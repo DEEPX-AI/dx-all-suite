@@ -1,0 +1,226 @@
+// Cover page
+// !!! :note: do not working with named @page ???
+@page :first {
+    @top-right {
+      content: normal;
+    }
+  
+    @bottom-center {
+      content: normal;
+    }
+  
+    @bottom-right {
+      content: normal;
+    }
+  }
+  
+  article#doc-cover {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+  
+    &>.wrapper {
+      flex: 1 0 auto;
+      text-align: center;
+      padding: 0 3rem;
+  
+      &.upper {
+        flex: 1 1 auto;
+        max-height: 30vh;
+  
+        > .logo {
+          width: 20%;
+          height: 20%;
+          background-position: center bottom;
+          background-repeat: no-repeat;
+          background-size: contain;
+        }
+      }
+  
+      h1 {
+        font-size: 36pt;
+        line-height: 1.4;
+      }
+  
+      h2 {
+        border: none;
+        bookmark-level: none;
+      }
+    }
+  
+  
+    &>.properties {
+      flex: 0 0 auto;
+      text-align: right;
+      padding: 0 2rem;
+  
+      p#copyright {
+        font-size: 80%;
+      }
+    }
+  }
+  
+  article {
+    h1 {
+      border-bottom: 2px solid #06b;
+    }
+  
+    h2 {
+      border-bottom: 1px solid #5ad;
+    }
+  
+    h3 {
+      border-bottom: 0.5px solid #eee;
+    }
+  
+    h1>.pdf-order,
+    h2>.pdf-order,
+    h3>.pdf-order {
+      padding-left: 6px;
+      // padding-right: 0.8rem;
+    }
+  }
+  
+  $back_cover-bg: #fff;
+  
+  article#doc-back_cover {
+    page: back_cover;
+  
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    text-align: center;
+  
+    .wrapper {
+      flex: 1 0 auto;
+      display: inline-block;
+      background: $back_cover-bg;
+  
+      &.upper {
+       flex: 1 1 auto;
+       max-height: 30vh;
+  
+       > .logo {
+          width: 20%;
+          height: 20%;
+          background-position: center bottom;
+          background-repeat: no-repeat;
+          background-size: contain;
+        }
+     }
+    }
+  
+    .qrcode {
+      display: inline-block;
+      flex: 0 0 auto;
+      background: $back_cover-bg;
+  
+      > a {
+        display: inline-block;
+        padding: 0.5em 2em;
+        border-radius: 1em;
+        background-color: #fff;
+  
+        img {
+          width: 0%;
+          height: auto;
+        }
+      }
+    }
+  }
+  
+  @page back_cover {
+    background-color: $back_cover-bg;
+  
+    @top-right {
+      content: normal;
+    }
+  
+    @bottom-center {
+      content: normal;
+    }
+  
+    @bottom-left {
+      font-size: 8pt;
+      content: string(title);
+    }
+  
+    @bottom-right {
+      font-size: 8pt;
+      content: string(copyright);
+    }
+  }
+  
+  @media print {
+    html {
+      //font-size: 95%;
+      font-size: 16pt;
+      font-family: 'Noto Sans Display';
+    }
+  
+    body {
+      font-size: 16pt;
+      font-family: 'Noto Sans Display';
+    }
+  
+    article {
+      font-size: 0.8rem;
+      line-height: 1.6;
+    }
+  
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+      font-family: 'Noto Sans Display';
+      font-size: 0.8rem;
+    }
+  
+    label {
+      font-family: 'Noto Sans Display';
+      font-size: 1rem;
+    }
+  
+  
+    pre,
+    code,
+    var,
+    samp,
+    kbd,
+    tt {
+      font-family: 'Roboto Mono';
+      font-size: 0.8rem;
+    }
+  
+    pre code,
+    pre var,
+    pre samp,
+    pre kbd,
+    pre tt {
+      font-family: 'Roboto Mono';
+      font-size: 80%;
+    }
+  
+    /* Adjusts positioning of admonition icon */
+    .md-typeset :is(.admonition-title,summary):before {
+      top: 0.6rem;
+      left: 0.6rem;
+    }
+
+    table {
+      width: 100% !important; /* 테이블 너비 100% 설정 */
+      table-layout: fixed; /* 테이블 레이아웃 고정 */
+      break-inside: avoid; /* 페이지 분할 방지 */
+    }
+
+    td, th {
+        word-wrap: break-word; /* 단어 줄 바꿈 */
+        overflow-wrap: break-word; /* 긴 단어 처리 */
+        max-width: 200px; /* 최대 너비 설정 (조절 가능) */
+    }
+    th {
+        white-space: nowrap; /*헤더의 경우 줄바꿈 방지*/
+    }
+  }

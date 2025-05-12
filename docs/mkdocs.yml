@@ -1,0 +1,130 @@
+site_name: DX-ALL User Guide
+use_directory_urls: false
+docs_dir: source # markdown 원문 폴더
+site_dir: docs # html로 변환된 폴더
+theme: 
+  name : material
+  language: en
+  font:
+    text: Noto Sans Display
+    #text: Noto Serif
+    #code: Noto Sans 
+    code: Roboto Mono 
+  logo: ./img/deepx.png
+  favicon: ./img/favicon.png
+  palette:
+    # Palette toggle for light mode
+    - scheme: default
+      primary: black
+      toggle:
+        icon: material/brightness-7 
+        name: Switch to dark mode
+    # Palette toggle for dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: black
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+     - toc.integrate
+     - content.code.annotate
+     - navigation.tabs
+     - navigation.tabs.sticky
+     - content.tabs.link
+     - content.code.copy
+nav:
+  - Introduction: docs/introduction.md
+  - Installation: docs/installation.md
+  - Version Compatibility: docs/version_compatibility.md
+  - FAQ: docs/faq.md
+
+plugins:
+  - search
+  - with-pdf:
+      author: DEEPX.ai
+      copyright: ⓒ Copyright 2025- DEEPX All Rights Reserved.
+      #
+      #cover: false
+      #cover_title: TITLE TEXT
+      cover_subtitle: 2025/03/21
+      cover_logo : img/deepx.png
+      custom_template_path: docs/stylesheets
+      #back_cover: true
+      #
+      #toc_title: TOC TITLE TEXT
+      #heading_shift: false
+      #toc_level: 3
+      #ordered_chapter_level: 2
+      #excludes_children:
+      #    - 'release-notes/:upgrading'
+      #    - 'release-notes/:changelog'
+      #
+      #exclude_pages:
+      #    - 'bugs/'
+      #    - 'appendix/contribute/'
+      #convert_iframe:
+      #    - src: IFRAME SRC
+      #      img: POSTER IMAGE URL
+      #      text: ALTERNATE TEXT
+      #    - src: ...
+      #two_columns_level: 3
+      #
+      #render_js: true
+      #headless_chrome_path: headless-chromium
+      #
+      output_path: ../DX-ALL 2025-03.pdf
+      #enabled_if_env: ENABLE_PDF_EXPORT
+      #
+      #debug_html: true
+      #show_anchors: true
+      #verbose: true
+#  - mkdocs-video
+extra:
+#  version:
+#    provider: mike
+#    default: stable
+  generator: false
+  social:
+#     - icon: fontawesome/brands/github
+#       link: https://github.com/deepx-ai
+     - icon: fontawesome/brands/linkedin
+       link: https://www.linkedin.com/company/deepx-corporation/
+#  alternate:
+#    - name: English
+#      link: /en/    
+#      lang: en
+#    - name: Korean
+#      link: /kr/
+#      lang: kr
+extra_css: 
+  - stylesheets/extra.css
+markdown_extensions:
+  - admonition
+  - def_list
+  - toc:
+        permalink: "true"
+        baselevel: 1
+        separator: ">_"
+        toc_depth: 3
+  - pymdownx.critic
+  - pymdownx.caret
+  - pymdownx.keys
+  - pymdownx.mark
+  - pymdownx.tilde
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true 
+  - attr_list
+  - md_in_html
+extra_javascript:
+  - javascripts/mathjax.js
+  - https://polyfill.io/v3/polyfill.min.js?features=es6
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+copyright: ⓒ Copyright 2022 <a href="http://deepx.ai">DEEPX</a>. All Rights Reserved.
