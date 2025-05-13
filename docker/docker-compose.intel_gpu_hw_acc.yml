@@ -1,0 +1,40 @@
+services:
+  dx-runtime:
+    container_name: dx-runtime_intel-hw-acc-${UBUNTU_VERSION}
+    image: dx-runtime_intel-hw-acc:${UBUNTU_VERSION}
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.intel_gpu_hw_acc
+      args:
+        UBUNTU_VERSION: ${UBUNTU_VERSION}
+    ipc: host                                 # NPU ipc
+    pid: host                                 # pid sharing for DX-RT Service
+    tty: true                                 # NPU
+    stdin_open: true
+    environment:
+      - PYTHONUNBUFFERED=1
+      - DISPLAY=${DISPLAY}                    # X11 forwarding
+      - XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR}    # X11
+      - XAUTHORITY=/tmp/.docker.xauth         # X11
+      - DOCKER_VOLUME_PATH=${DOCKER_VOLUME_PATH:-/deepx/workspace} # volume path
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix         # X11
+      - $HOME/.Xauthority:/root/.Xauthority   # X11
+      - $XAUTHORITY:$XAUTHORITY_TARGET        # X11
+      - /dev:/dev                             # NPU, Camera, GPU
+      - /lib/udev/rules.d:/lib/udev/rules.d   # auto detect device(USB CAM)
+      - /lib/modules:/lib/modules             # GPU
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /etc/machine-id:/etc/machine-id:ro    # NPU dbus
+      - /var/run/dbus/system_bus_socket:/var/run/dbus/system_bus_socket # NPU dbus
+      - /run/dbus:/run/dbus                   # NPU dbus
+      - /var/lib/dbus:/var/lib/dbus           # NPU dbus
+      - ${LOCAL_VOLUME_PATH:-../workspace}:${DOCKER_VOLUME_PATH:-/deepx/workspace} # mount volume
+    network_mode: "host"
+    privileged: true                          # NPU
+    restart: on-failure
+    devices:
+      - "/dev:/dev"                           # NPU / GPU / USB CAM
+

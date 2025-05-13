@@ -1,0 +1,337 @@
+# DXNN® - DEEPX NPU SDK Getting-Start
+
+---
+
+## 📑 Table of Contents
+
+### 📦 Preparation
+- [DX-AS (DEEPX All Suite) Installation](#dx-as--deepx-all-suite--installation)
+
+### 🧩 DX-Compiler
+- [1. compiler-1_download_onnx.sh](#📁-1-compiler-1_download_onnxsh)
+- [2. compiler-2_setup_dataset.sh](#📁-2-compiler-2_setup_datasetsh)
+- [3. compiler-3_setup_output_path.sh](#📁-3-compiler-3_setup_output_pathsh)
+- [4. compiler-4_model_compile.sh](#📁-4-compiler-4_model_compilesh)
+- [5. compiler-5_setup_simulator_deps.sh](#📁-5-compiler-5_setup_simulator_depssh)
+- [6. compiler-6_run_examples_using_simulator.sh](#📁-6-compiler-6_run_examples_using_simulatorsh)
+
+### 🧩 DX-Runtime
+- [1. runtime-1_setup_input_path.sh](#📁-1-runtime-1_setup_input_pathsh)
+- [2. runtime-2_setup_assets.sh](#📁-2-runtime-2_setup_assetssh)
+- [3. runtime-3_run_example_using_dxrt.sh](#📁-3-runtime-3_run_example_using_dxrtsh)
+
+---
+
+# 사전 준비
+
+## 📦 DX-AS (DEEPX All Suite) Installation
+
+Refer to [https://github.com/DEEX-AI/dx-as/README.md](https://github.com/DEEX-AI/dx-as/README.md) to install **DXNN® - DEEPX NPU SDK** on your local system or inside a Docker container.
+
+1. [Install on local machine](README.md#local-installation)  
+2. [Build Docker image and run container](README.md#installation-using-docker)
+
+---
+
+# 🧩 DX-Compiler: AI Model Compilation Scripts Guide
+
+This section explains the purpose and flow of each script from `compiler-1_download_onnx.sh` to `compiler-6_run_examples_using_simulator.sh`.
+
+---
+
+## 📁 1. compiler-1_download_onnx.sh
+
+Downloads model files (`.onnx`, `.json`) and links them into the workspace.
+
+- **Purpose**: Automatic model download
+- **Description**:
+  - Downloads files into `modelzoo/onnx` and `modelzoo/json` directories.
+  - Supports models: `YOLOV5S-1`, `YOLOV5S_Face-1`, `MobileNetV2-1`.
+  - `--force` option allows overwriting existing files.
+
+### 📌 Key Functions
+
+- `show_help([type], [message])`
+  - Displays usage and exits when invalid options are passed.
+  - Supports `--force`, `--help`.
+
+- `download(model_name, ext_name)`
+- `download(model_name, ext_name)`
+  - Downloads resources based on the given model name and extension.
+  - Calls `get_resource.sh` and saves to `modelzoo/{ext_name}/{model_name}.{ext_name}`.
+  - Also creates a symbolic link to the workspace (`workspace/modelzoo/`).
+
+
+- `main()`  
+  Iterates through model list and extension list, calling `download()`.
+
+---
+
+## 📁 2. compiler-2_setup_calribration_dataset.sh
+
+Creates a symbolic link to the calibration dataset and modifies `.json` config files to use it.
+
+- **Purpose**: Calibration dataset setup
+- **Description**:
+  - Creates symlink: `./calibration_dataset` → `dx_com/calibration_dataset`
+  - Forcefully changes (hijacks) the `dataset_path` entry in `modelzoo/json/*.json` to `./calibration_dataset`.
+  - Configured to use the sample calibration dataset included within `dx_com`.
+
+### 📌 Key Functions
+
+- `make_symlink_calribration_dataset()`
+  - Creates a symbolic link from `dx_com/calibration_dataset` to `./calibration_dataset`.
+  - Recreates the link if the existing one is broken.
+
+- `hijack_dataset_path(model_name)`
+  - Forcefully changes the `"dataset_path"` value in `json/{model_name}.json` to `./calibration_dataset`.
+  - Backs up the original file as `.bak` and modifies the value using the `sed` command.
+  - Outputs the `diff` showing changes before and after.
+
+- `main()`
+  - Executes `make_symlink_calribration_dataset()`.
+  - Runs `hijack_dataset_path()` for each of the three models.
+
+---
+
+## 📁 3. compiler-3_setup_output_path.sh
+
+Creates a symbolic link from `./dxnn` to the workspace output path.
+
+- **Purpose**: Setup path for compiled model output
+- **Description**:
+  - In host mode: `./dxnn` → `workspace/dxnn`
+  - In container mode: `./dxnn` → `${DOCKER_VOLUME_PATH}/dxnn`
+  - Automatically detects environment and handles broken symlinks
+
+### 📌 Key Function
+
+- `setup_compiled_model_path()`
+  - Checks if the environment is a container and determines the output path accordingly:
+    - Container: `${DOCKER_VOLUME_PATH}/dxnn`
+    - Host: `${DX_AS_PATH}/workspace/dxnn`
+  - Creates a symbolic link `./dxnn` pointing to the appropriate workspace directory.
+  - Handles recreation if the existing link is broken.
+
+---
+
+## 📁 4. compiler-4_model_compile.sh
+
+Compiles `.onnx` files into `.dxnn` format using `dx_com`.
+
+- **Purpose**: Run model compilation
+- **Description**:
+  - Uses `dx_com` to compile `onnx + json → dxnn`
+  - Outputs result to `./dxnn/`
+
+### 📌 Key Functions
+
+- `compile(model_name)`
+  - Runs `dx_com` to convert `.onnx + .json` into a `.dxnn` file.
+  - The output is saved in the `./dxnn` directory.
+  - Exits on failure.
+
+- `main()`
+  - Iterates through the list of models and calls `compile()` for each.
+
+
+---
+
+## 📁 5. compiler-5_setup_simulator_deps.sh
+
+Installs dependencies for the simulator environment.
+
+- **Purpose**: Install simulator dependencies
+- **Description**:
+  - Executes `dx_simulator/scripts/install.sh` (Python venv + pip packages)
+
+### 📌 Key Function
+
+- `main()`
+  - Runs `dx_simulator/scripts/install.sh`.
+  - Internally sets up a Python virtual environment and installs required pip packages.
+
+
+---
+
+## 📁 6. compiler-6_run_examples_using_simulator.sh
+
+Runs inference examples using the compiled models via the simulator.
+
+- **Purpose**: Run simulator examples
+- **Description**:
+  - Copies and forks simulator examples to a working folder
+  - Replaces hardcoded `.dxnn` paths with user's compiled models
+  - Executes examples and shows results with `fim` or in logs
+
+### 📌 Key Functions
+
+- `fork_examples()`
+  - Copies example files from `dx_simulator/examples` to `forked_dx_simulator_example`.
+  - Examples include: `example_yolov5s.py`, `example_yolov5face.py`, `example_classification.py`.
+  - Also copies associated image folders.
+  - Initializes a `git` repository and commits to enable diff tracking.
+
+- `replace_all(file, source_str, target_str)`
+  - Replaces a given string with another using `sed`.
+
+- `hijack_example(file_path, source_str, target_str, commit_msg)`
+  - Replaces the `.dxnn` path in the specified example file with the user-compiled model path.
+  - Prints the diff result.
+
+- `run_hijacked_example(file_path, save_log)`
+  - Executes the hijacked example.
+  - Activates the Python virtual environment from `dx_simulator` and runs the example.
+  - Uses `fim` to view images (automatically installs if not present).
+  - For classification examples, outputs results to a `.log` file.
+
+- `main()`
+  - Forks the example files.
+  - For each model (`YOLOV5S_Face`, `YOLOV5S`, `MobileNetV2`), performs hijack → execution → result check.
+---
+
+## 🔄 Execution Order
+
+```bash
+./getting-start/compiler-1_download_onnx.sh
+./getting-start/compiler-2_setup_dataset.sh
+./getting-start/compiler-3_setup_output_path.sh
+./getting-start/compiler-4_model_compile.sh
+./getting-start/compiler-5_setup_simulator_deps.sh
+./getting-start/compiler-6_run_examples_using_simulator.sh
+```
+---
+
+## 💡 Tip
+
+- The `.dxnn` file is the final executable generated by `dx_com`, which the simulator uses to perform inference.
+- Each script can be run independently, but following the order above ensures the entire process works as intended.
+
+---
+
+# 🧩 DX-Runtime: Application Execution Scripts Guide
+
+This document explains the role and execution flow of the scripts from `runtime-1_setup_input_path.sh` to `runtime-3_run_example_using_dxrt.sh`.  
+It serves as a guide for running compiled `.dxnn` models from the `dx-compiler` in an actual runtime environment based on example executions.
+---
+
+## 📁 1. runtime-1_setup_input_path.sh
+
+Creates a symbolic link to the compiled model directory for runtime access.
+
+- **Function**: Set runtime model path
+- **Description**:
+  - Creates a symbolic link for `./dxnn` to point to `workspace/dxnn`.
+  - Automatically detects and supports both host and Docker container environments.
+
+### 📌 Key Function
+
+- `setup_compiled_model_path()`
+  - Automatically sets the path based on whether the environment is a container or not.
+    - Container: `${DOCKER_VOLUME_PATH}/dxnn`
+    - Host: `${DX_AS_PATH}/workspace/dxnn`
+  - Links `./dxnn` to the respective workspace path (also restores broken symlinks).
+---
+
+## 📁 2. runtime-2_setup_assets.sh
+
+Prepares the configuration files and model resources for running examples.
+
+- **Function**: Prepare configuration files and resources for running examples.
+- **Description**:
+  - Calls the `setup.sh` of `dx_app` and `dx_stream` to download and copy necessary resources for example execution.
+  - Automatically prepares required models, configuration files, and sample images.
+
+### 📌 Key Function
+
+- `setup_assets(target_path)`
+  - Executes the `setup.sh` of each module (`dx_app`, `dx_stream`).
+  - Internally copies or links sample images, JSON configurations, models, etc.
+---
+
+## 📁 3. runtime-3_run_example_using_dxrt.sh
+
+Runs the `.dxnn` model using `dx_app` examples and checks the results.
+
+- **Function**: Run runtime examples (Object Detection, Face Detection, Classification).
+- **Description**:
+  - Forks the `dx_app` example into the `forked_dx_app_example` folder.
+  - Hijacks the model path in the `.json` configuration file to the user’s compiled model.
+  - Executes `run_detector` and `run_classifier` binaries.
+  - Checks image results (using `fim`) or logs.
+
+### 📌 Key Functions
+
+- `fork_examples()`
+  - Copies `dx_app/bin` binaries, `example/*`, and `sample/*` resources.
+  - Initializes Git and commits to track diffs.
+
+- `hijack_example(file_path, source_str, target_str, commit_msg)`
+  - Replaces `"./assets/models/*.dxnn"` path in `.json` configuration file with the actual generated model path.
+  - Shows the diff for verification.
+
+- `run_hijacked_example(exe, config, save_log)`
+  - Runs the binary and checks the results.
+    - Object/Face Detection: Displays the result image and checks with `fim`.
+    - Classification: Logs results to the `result-app.log` file.
+
+- `main()`
+  - Forks, hijacks, and runs the YOLOV5S_Face, YOLOV5S, and MobileNetV2 models.
+---
+
+## 🔄 Runtime Execution Order
+
+```bash
+bash runtime-1_setup_input_path.sh
+bash runtime-2_setup_assets.sh
+bash runtime-3_run_example_using_dxrt.sh
+```
+
+---
+
+## 💡 Tips
+
+- Run `runtime-*` scripts **after** `.dxnn` models have been compiled successfully.
+- `fim` is a CLI tool for viewing image output. It will be automatically installed if missing.
+- Before running examples, make sure to run `dx_app/setup.sh` to download required models and sample data.
+---
+
+## 🔄 Full Execution Order
+
+```bash
+# Compiler Steps
+bash compiler-1_download_onnx.sh
+bash compiler-2_setup_dataset.sh
+bash compiler-3_setup_output_path.sh
+bash compiler-4_model_compile.sh
+bash compiler-5_setup_simulator_deps.sh
+bash compiler-6_run_examples_using_simulator.sh
+
+# Runtime Steps
+bash runtime-1_setup_input_path.sh
+bash runtime-2_setup_assets.sh
+bash runtime-3_run_example_using_dxrt.sh
+```
+---
+
+## 📁 Folder Structure (After Execution)
+
+```
+getting-start/ 
+├── calibration_dataset
+├── dxnn                         # ← Model output symbolic link created by dx-compiler 
+├── forked_dx_app_example        # ← Example execution target (forked) 
+│   ├── bin
+│   ├── example
+│   │   ├── run_classifier
+│   │   └── run_detector
+│   └── sample
+│       └── ILSVRC2012
+├── forked_dx_simulator_example  # ← Example execution target (forked) 
+│   └── examples
+│       └── images
+└── modelzoo
+    ├── json
+    └── onnx
+```
+

@@ -6,7 +6,7 @@
 
 *temporary: need to change Github URL to cloud public repo*
 ```
-$ git clone --recurse-submodules git@gh.deepx.ai:deepx/dxnn-sdk.git
+$ git clone --recurse-submodules git@github.com:DEEPX-AI/dx-all-suite.git
 ```
 
 ### (Optional) Initialize and Update Submodules in an Already Cloned Repository

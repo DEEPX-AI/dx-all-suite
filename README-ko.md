@@ -6,7 +6,7 @@
 
 *temporary: need to change Github URL to cloud public repo*
 ```
-$ git clone --recurse-submodules git@gh.deepx.ai:deepx/dxnn-sdk.git
+$ git clone --recurse-submodules git@github.com:DEEPX-AI/dx-all-suite.git
 ```
 
 ### (선택) 이미 클론된 리포지토리에서 서브모듈 초기화 및 업데이트

@@ -1,0 +1,112 @@
+services:
+  dx-compiler:
+    container_name: dx-compiler-${UBUNTU_VERSION}
+    image: dx-compiler:${UBUNTU_VERSION}
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.dx-compiler
+      args:
+        UBUNTU_VERSION: ${UBUNTU_VERSION}
+        FILE_DXCOM: ${FILE_DXCOM:-/should/be/set/path}
+        FILE_DXSIM: ${FILE_DXSIM:-/should/be/set/path}
+    environment:
+      - PYTHONUNBUFFERED=1
+      - DISPLAY=${DISPLAY}                    # X11 forwarding
+      - XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR}    # X11
+      - XAUTHORITY=/tmp/.docker.xauth         # X11
+      - DOCKER_VOLUME_PATH=${DOCKER_VOLUME_PATH:-/deepx/workspace} # volume path
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix         # X11
+      - $HOME/.Xauthority:/root/.Xauthority   # X11
+      - $XAUTHORITY:$XAUTHORITY_TARGET        # X11
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${LOCAL_VOLUME_PATH:-../workspace}:${DOCKER_VOLUME_PATH:-/deepx/workspace} # mount volume
+    network_mode: "host"
+    restart: on-failure
+    devices:
+      - "/dev/dri:/dev/dri"                   # GPU    
+
+  dx-runtime:
+    container_name: dx-runtime-${UBUNTU_VERSION}
+    image: dx-runtime:${UBUNTU_VERSION}
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.dx-runtime
+      args:
+        UBUNTU_VERSION: ${UBUNTU_VERSION}
+    ipc: host                                 # NPU ipc
+    pid: host                                 # pid sharing for DX-RT Service
+    tty: true                                 # NPU
+    stdin_open: true
+    environment:
+      - PYTHONUNBUFFERED=1
+      - DISPLAY=${DISPLAY}                    # X11 forwarding
+      - XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR}    # X11
+      - XAUTHORITY=/tmp/.docker.xauth         # X11
+      - DOCKER_VOLUME_PATH=${DOCKER_VOLUME_PATH:-/deepx/workspace} # volume path
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix         # X11
+      - $HOME/.Xauthority:/root/.Xauthority   # X11
+      - $XAUTHORITY:$XAUTHORITY_TARGET        # X11
+      - /dev:/dev                             # NPU, Camera, GPU
+      - /lib/udev/rules.d:/lib/udev/rules.d   # auto detect device(USB CAM)
+      - /lib/modules:/lib/modules             # GPU
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /etc/machine-id:/etc/machine-id:ro    # NPU dbus
+      - /var/run/dbus/system_bus_socket:/var/run/dbus/system_bus_socket # NPU dbus
+      - /run/dbus:/run/dbus                   # NPU dbus
+      - /var/lib/dbus:/var/lib/dbus           # NPU dbus
+      - ${LOCAL_VOLUME_PATH:-../workspace}:${DOCKER_VOLUME_PATH:-/deepx/workspace} # mount volume
+    network_mode: "host"
+    privileged: true                          # NPU
+    restart: on-failure
+    devices:
+      - "/dev:/dev"                           # NPU / GPU / USB CAM
+
+  dx-modelzoo:
+    container_name: dx-modelzoo-${UBUNTU_VERSION}
+    image: dx-modelzoo:${UBUNTU_VERSION}
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.dx-modelzoo
+      args:
+        UBUNTU_VERSION: ${UBUNTU_VERSION}
+    ipc: host                                 # NPU ipc
+    pid: host                                 # pid sharing for DX-RT Service
+    tty: true                                 # NPU
+    stdin_open: true
+    environment:
+      - PYTHONUNBUFFERED=1
+      - DISPLAY=${DISPLAY}                    # X11 forwarding
+      - XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR}    # X11
+      - XAUTHORITY=/tmp/.docker.xauth         # X11
+      - DOCKER_VOLUME_PATH=${DOCKER_VOLUME_PATH:-/deepx/workspace} # volume path
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix         # X11
+      - $HOME/.Xauthority:/root/.Xauthority   # X11
+      - $XAUTHORITY:$XAUTHORITY_TARGET        # X11
+      - /dev:/dev                             # NPU, Camera, GPU
+      - /lib/udev/rules.d:/lib/udev/rules.d   # auto detect device(USB CAM)
+      - /lib/modules:/lib/modules             # GPU
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /etc/machine-id:/etc/machine-id:ro    # NPU dbus
+      - /var/run/dbus/system_bus_socket:/var/run/dbus/system_bus_socket # NPU dbus
+      - /run/dbus:/run/dbus                   # NPU dbus
+      - /var/lib/dbus:/var/lib/dbus           # NPU dbus
+      - ${LOCAL_VOLUME_PATH:-../workspace}:${DOCKER_VOLUME_PATH:-/deepx/workspace} # mount volume
+    network_mode: "host"
+    privileged: true                          # NPU
+    restart: on-failure
+    devices:
+      - "/dev:/dev"                           # NPU / GPU / USB CAM
+    # override 'entorypoint' command "/usr/local/bin/dxrtd" to "/bin/sh -c sleep infinity"
+    # cause: Instead of launching the standalone dxrtd (DX-RT Service), 
+    #        utilize the dxrtd service provided within the dx-runtime container.
+    entrypoint: ["/bin/sh", "-c"]
+    command: ["sleep infinity"]
