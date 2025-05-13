@@ -1,0 +1,7 @@
+.vscode/       export-ignore
+.gitignore     export-ignore
+.gitattributes     export-ignore
+.bumpversion.cfg
+.cliff.toml
+.pre-commit-config.yaml
+README_INTERNAL.md
