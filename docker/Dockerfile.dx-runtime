@@ -1,0 +1,120 @@
+ARG UBUNTU_VERSION=24.04
+FROM ubuntu:${UBUNTU_VERSION}
+
+USER root
+
+ARG TZ=Asia/Seoul
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ >/etc/timezone
+
+ARG DEBIAN_FRONTEND=noninteractive
+ENV PATH="/usr/local/bin:${PATH}"
+
+### update apt repo
+RUN apt-get update && apt-get install -y \
+    software-properties-common && \
+    add-apt-repository universe && \
+    add-apt-repository multiverse && \
+    apt-get update
+
+### install utils
+RUN apt-get update && apt-get install -y \
+        git vim sudo \
+        libva-dev \
+        pciutils \
+        kmod \
+        lsb-release
+
+# X11 forwarding and xcb
+RUN apt-get install -y x11-apps libx11-6 xauth libxext6 libxrender1 libxtst6 libxi6 libxcb-xinerama0
+
+# python 3
+RUN apt-get install -y python3 python3-dev python3-venv
+
+# Set up Virtual Environment
+RUN set -x && \
+    python3 -m venv /venv-dxnn && \
+    . /venv-dxnn/bin/activate && \
+    echo "Upgrade pip wheel setuptools..." && \
+    UBUNTU_VERSION=$(lsb_release -rs) && \
+    echo "*** UBUNTU_VERSION(${UBUNTU_VERSION}) ***" && \
+    if [ "$UBUNTU_VERSION" = "24.04" ]; then \
+      pip install --upgrade setuptools; \
+    elif [ "$UBUNTU_VERSION" = "22.04" ]; then \
+      pip install --upgrade pip wheel setuptools; \
+    elif [ "$UBUNTU_VERSION" = "20.04" ] || [ "$UBUNTU_VERSION" = "18.04" ]; then \
+      pip install --upgrade pip wheel setuptools; \
+    else \
+      echo "Unspported Ubuntu version: $UBUNTU_VERSION" && exit 1; \
+    fi
+
+WORKDIR /deepx/dx-runtime/dx_rt
+ADD archives/dx_rt.tar.gz /deepx/dx-runtime/dx_rt/
+
+# temp: until dx_rt's USE_ORT build option default changes from OFF to ON
+RUN set -x && \
+    CMAKE_FILE="cmake/dxrt.cfg.cmake" && \
+    sed -i 's/option(USE_ORT *"Use ONNX Runtime" *OFF)/option(USE_ORT "Use ONNX Runtime" ON)/' "$CMAKE_FILE" && \
+    echo "USE_ORT option has been set to ON in dx_rt/$CMAKE_FILE"
+
+# temp: disable support version check logic in 'dx_rt/lib/inference_engine.cpp'
+RUN set -x && \
+    TARGET_FILE="lib/inference_engine.cpp" && \
+    sed -i '/^[[:space:]]*if ( !isSupporterModelVersion(version_str) )/s/^/\/\//' "$TARGET_FILE" && \
+    sed -i '/^[[:space:]]*throw InvalidModelException(std::string("Unsupported compiler version/s/^/\/\//' "$TARGET_FILE" && \
+    echo "USE_ORT option has been set to ON in dx_rt/$TARGET_FILE"
+
+RUN set -x && \
+    . /venv-dxnn/bin/activate && \
+    echo "Build dx_rt..." && \
+    ./install.sh --all && \
+    ./build.sh --install && \
+    cd ./python_package && \
+    pip install .
+
+WORKDIR /deepx/dx-runtime/dx_app
+ARG FILE_DXAPP=archives/dx_app.tar.gz
+ADD ${FILE_DXAPP} /deepx/dx-runtime/dx_app/
+RUN set -x && \
+    . /venv-dxnn/bin/activate && \
+    echo "Build dx_app..." && \
+    ./install.sh --all
+RUN set -x && \
+    . /venv-dxnn/bin/activate && \
+    ./build.sh
+
+WORKDIR /deepx/dx-runtime/dx_stream
+ARG FILE_DXSTREAM=archives/dx_stream.tar.gz
+ADD ${FILE_DXSTREAM} /deepx/dx-runtime/dx_stream/
+RUN set -x && \
+    . /venv-dxnn/bin/activate && \
+    echo "install dependancies for dx_stream..." && \
+    sudo ./install.sh
+RUN set -x && \
+    . /venv-dxnn/bin/activate && \
+    echo "Build dx_stream..." && \
+    sudo ./build.sh --install
+
+RUN rm -rf /deepx/dx-runtime/dx_stream/util && \
+    rm -rf /deepx/dx-runtime/dx_app/util && \
+    rm -rf /deepx/dx-runtime/dx_app/build_x86_64 && \
+    rm -rf /deepx/dx-runtime/dx_rt/build_x86_64
+
+WORKDIR /deepx
+
+RUN apt-get update && \
+    apt-get install -y \
+    vim fim && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN echo "source /venv-dxnn/bin/activate" >> /root/.bashrc
+
+# COPY 'scripts' and 'getting-start'
+COPY scripts /deepx/scripts
+COPY getting-start /deepx/getting-start
+ENV DX_CONTAINER_MODE=true
+RUN /deepx/getting-start/runtime-clean.sh
+
+ENTRYPOINT [ "/usr/local/bin/dxrtd" ]
+# ENTRYPOINT ["tail", "-f", "/dev/null"]
+

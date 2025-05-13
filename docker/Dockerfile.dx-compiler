@@ -1,0 +1,136 @@
+ARG UBUNTU_VERSION=24.04
+FROM alpine:latest AS install
+USER root
+
+# COPY and EXTRACT 'dx-com' and 'dx_simulator' for using option '--strip-components=1'
+WORKDIR /deepx/dx-compiler/dx_com
+ARG FILE_DXCOM
+COPY ${FILE_DXCOM} /deepx/dx-compiler/dx_com
+
+RUN tar_file=$(ls *.tar.gz) && \
+    first_entry=$(tar -tzf "$tar_file" | head -n 1) && \
+    if echo "$first_entry" | grep -q '/'; then \
+        echo "Detected top-level directory. Using --strip-components=1"; \
+        tar -xzf "$tar_file" --strip-components=1 -C .; \
+    else \
+        echo "No top-level directory. Extracting as-is"; \
+        tar -xzf "$tar_file" -C .; \
+    fi && \
+    rm -f "$tar_file"
+
+WORKDIR /deepx/dx-compiler/dx_simulator
+ARG FILE_DXSIM
+COPY ${FILE_DXSIM} /deepx/dx-compiler/dx_simulator
+
+RUN tar_file=$(ls *.tar.gz) && \
+    first_entry=$(tar -tzf "$tar_file" | head -n 1) && \
+    if echo "$first_entry" | grep -q '/'; then \
+        echo "Detected top-level directory. Using --strip-components=1"; \
+        tar -xzf "$tar_file" --strip-components=1 -C .; \
+    else \
+        echo "No top-level directory. Extracting as-is"; \
+        tar -xzf "$tar_file" -C .; \
+    fi && \
+    rm -f "$tar_file"
+
+
+# COPY 'scripts' and 'getting-start'
+COPY scripts /deepx/scripts
+COPY getting-start /deepx/getting-start
+ENV DX_CONTAINER_MODE=true
+RUN /deepx/getting-start/compiler-clean.sh
+
+###
+FROM ubuntu:${UBUNTU_VERSION}
+
+USER root
+
+ARG TZ=Asia/Seoul
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ >/etc/timezone
+
+ARG DEBIAN_FRONTEND=noninteractive
+ENV PATH="/usr/local/bin:${PATH}"
+
+### update apt repo
+RUN apt-get update && apt-get install -y \
+    software-properties-common && \
+    add-apt-repository universe && \
+    add-apt-repository multiverse && \
+    apt-get update
+
+### install utils
+RUN apt-get update && apt-get install -y \
+        git vim sudo \
+        lsb-release
+
+# X11 forwarding and xcb
+RUN apt-get install -y x11-apps libx11-6 xauth libxext6 libxrender1 libxtst6 libxi6 libxcb-xinerama0
+
+# Install dependencies for dx-compiler
+# python 3.11
+RUN add-apt-repository -y ppa:deadsnakes/ppa && \
+    apt-get install -y python3.11 python3.11-dev python3.11-venv
+
+# Set up Virtual Environment
+RUN set -x && \
+    python3.11 -m venv /venv-dxnn
+
+RUN set -x && \
+    echo "Install dependencies..." && \
+    UBUNTU_VERSION=$(lsb_release -rs) && \
+    echo "*** UBUNTU_VERSION(${UBUNTU_VERSION}) ***" && \
+    if [ "$UBUNTU_VERSION" = "24.04" ]; then \
+      apt-get update && apt-get install -y --no-install-recommends \
+              libgl1-mesa-dev libglib2.0-0 make; \
+    elif [ "$UBUNTU_VERSION" = "22.04" ]; then \
+      apt-get update && apt-get install -y --no-install-recommends \
+              libgl1-mesa-dev libglib2.0-0 make; \
+    elif [ "$UBUNTU_VERSION" = "20.04" ] || [ "$UBUNTU_VERSION" = "18.04" ]; then \
+      apt-get update && apt-get install -y --no-install-recommends \
+              libgl1-mesa-dev libgl1-mesa-glx libglib2.0-0 make; \
+    else \
+      echo "Unspported Ubuntu version: $UBUNTU_VERSION" && exit 1; \
+    fi && \
+    apt-get update && apt-get install -y --no-install-recommends \
+        libssl-dev \
+        wget \
+        openssl \
+        build-essential \
+        zlib1g-dev \
+        patchelf \
+        libffi-dev \
+        ca-certificates \
+        libbz2-dev \
+        liblzma-dev \
+        libncursesw5-dev \
+        libsqlite3-dev \
+        tk-dev \
+        libgdbm-dev \
+        libc6-dev \
+        libncurses5-dev \
+        libnss3-dev \
+        ccache
+
+# Copy dx_com and dx_simulator
+COPY --from=install /deepx /deepx
+
+#### Install dx_simulator ####
+# dx_simulator installation is disabled — enabling it would increase the Docker image size from 7GB to 16GB.
+# Therefore, it is recommended to run `/deepx/dx-compiler/dx_simulator/scripts/install.sh` after the container starts, rather than during the Docker build stage.
+##############################
+# WORKDIR /deepx/dx-compiler/dx_simulator
+# RUN set -x && \
+#     echo "install dx_simulator..." && \
+#     ./scripts/install.sh
+
+RUN apt-get update && \
+    apt-get install -y \
+    vim fim && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN echo "source /venv-dxnn/bin/activate" >> /root/.bashrc
+WORKDIR /deepx
+
+ENTRYPOINT ["tail", "-f", "/dev/null"]
+
