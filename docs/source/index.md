@@ -4,7 +4,7 @@
 
 DX-AS (DEEPX All Suite) is an integrated environment of frameworks and tools that enables inference and compilation of AI models using DEEPX devices. Users can build the integrated environment by installing individual tools, but DX-AS maintains optimal compatibility by aligning the versions of the individual tools.
 
-![](./../resources/deepx_dxnn_sdk_detail.png)
+![](./resources/deepx_dxnn_sdk_detail.png)
 
 ### Components 
 
@@ -46,3 +46,6 @@ DX-Stream is a GStreamer Custom Plugin designed to simplify the development of V
 
 ## Version Compatibility
 [Link](version_compatibility.md)
+
+## FAQ
+[Link](docs/source/faq.md)
