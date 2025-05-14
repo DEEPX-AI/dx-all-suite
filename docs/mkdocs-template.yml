@@ -1,4 +1,4 @@
-site_name: DX-ALL User Guide
+site_name: DX-AS (DEEPX All Suite) User Guide
 use_directory_urls: false
 docs_dir: source # markdown 원문 폴더
 site_dir: docs # html로 변환된 폴더
@@ -34,10 +34,11 @@ theme:
      - content.tabs.link
      - content.code.copy
 nav:
-  - Introduction: docs/introduction.md
-  - Installation: docs/installation.md
-  - Version Compatibility: docs/version_compatibility.md
-  - FAQ: docs/faq.md
+  - Introduction: index.md
+  - Installation: installation.md
+  - Getting Start: getting-start.md
+  - Version Compatibility: version_compatibility.md
+  - FAQ: faq.md
 
 plugins:
   - search
@@ -47,7 +48,7 @@ plugins:
       #
       #cover: false
       #cover_title: TITLE TEXT
-      cover_subtitle: 2025/03/21
+      cover_subtitle: 2025/05/14
       cover_logo : img/deepx.png
       custom_template_path: docs/stylesheets
       #back_cover: true
@@ -73,7 +74,7 @@ plugins:
       #render_js: true
       #headless_chrome_path: headless-chromium
       #
-      output_path: ../DX-ALL 2025-03.pdf
+      output_path: ${PDF_FILE_PATH}
       #enabled_if_env: ENABLE_PDF_EXPORT
       #
       #debug_html: true
