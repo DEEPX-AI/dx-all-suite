@@ -12,15 +12,15 @@ pip install mkdocs-video
 pip install pymdown-extensions
 pip install mkdocs-with-pdf 
 ```
-* https://github.com/orzih/mkdocs-with-pdf 
+**Reference** : https://github.com/orzih/mkdocs-with-pdf 
 
 ### Building the site
 ```
-mkdocs build
+./mkdocs.sh
 ```
 
 ### Start the server 
 ```
-mkdocs serve
+./mkdocs.sh --serve
 ```
-https://mkdocs.readthedocs.io/en/stable/getting-started/
+**Reference** : https://mkdocs.readthedocs.io/en/stable/getting-started/

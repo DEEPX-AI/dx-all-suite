@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.3] - 2025-05-14
+
+### 🐛 Bug Fixes
+
+- Update README.md for mkdocs guide
+
+### ⚙️ Miscellaneous Tasks
+
+- Change bump-version branch dev to main
+
 ## [0.2.2] - 2025-05-14
 
 ### 🐛 Bug Fixes

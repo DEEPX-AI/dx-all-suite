@@ -9,21 +9,20 @@ DX-AS (DEEPX All Suite) is an integrated environment of frameworks and tools tha
 
 For detailed guides on running demo applications and templates, refer to the following documents:
 
-### [Introduction](docs/source/docs/introduction.md)
+### Introduction
+[Link](docs/source/index.md)
 
-### [Installation Guide](docs/source/docs/installation.md)
+### Installation Guide
+[Link](docs/source/installation.md)
 
-### [Getting Started](docs/source/docs/getting-start.md)
+### Getting Started
+[Link](docs/source/getting-start.md)
 
-### [Make Docuemtment](docs/make_docs.md)
-#### Building the site
-```
-cd docs
-mkdocs build
-```
+### Version Compatibility
+[Link](docs/source/version_compatibility.md)
 
-#### Start the server 
-```
-cd docs
-mkdocs serve
-```
+### FAQ
+[Link](docs/source/faq.md)
+
+### Make Docuemtment
+[Link](docs/make_docs.md)
