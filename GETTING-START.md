@@ -26,9 +26,9 @@
 
 ## 📦 DX-AS (DEEPX All Suite) Installation
 
-Refer to [https://github.com/DEEX-AI/dx-as/README.md](https://github.com/DEEX-AI/dx-as/README.md) to install **DXNN® - DEEPX NPU SDK** on your local system or inside a Docker container.
+Refer to [https://github.com/DEEX-AI/dx-all-suite/README.md](https://github.com/DEEX-AI/dx-as/README.md) to install **DXNN® - DEEPX NPU SDK** on your local system or inside a Docker container.
 
-1. [Install on local machine](README.md#local-installation)  
+1. [Install on local machine](README.md#local-installation)
 2. [Build Docker image and run container](README.md#installation-using-docker)
 
 ---

@@ -69,7 +69,7 @@ SIM_VERSION="2.14.5"        # default
 Alternatively, specify the version directly when executing the command:
 
 ```
-$ ./install.sh --com_version=<version> --sim_version=<version>
+$ ./dx-compiler/install.sh --com_version=<version> --sim_version=<version>
 ```
 
 ---
@@ -122,7 +122,7 @@ $ ./dx-runtime/install.sh --target=dx_fw
 1. When using a Docker environment, the NPU driver must be installed on the host system:
 
    ```
-   $ ./install.sh --target=dx_rt_npu_linux_driver
+   $ ./dx-runtime/install.sh --target=dx_rt_npu_linux_driver
    ```
 
 2. If `dx_rt` is already installed on the host system and the `service daemon` (`/usr/local/bin/dxrtd`) is running, launching the `DX-Runtime` Docker container will result in an error (`Other instance of dxrtd is running`) and automatic termination.  
@@ -152,9 +152,10 @@ $ docker images
 ```
 
 ```
-REPOSITORY               TAG       IMAGE ID       CREATED          SIZE
-dx-compiler        22.04     9b7e6577c526   6 minutes ago    6.56GB
-dx-runtime         22.04     1c96c081fdea   16 hours ago     4.02GB
+REPOSITORY         TAG       IMAGE ID       CREATED         SIZE
+dx-runtime         24.04     05127c0813dc   41 hours ago    4.8GB
+dx-compiler        24.04     b08c7e39e89f   42 hours ago    7.08GB
+dx-modelzoo        24.04     cb2a92323b41   2 weeks ago     2.11GB
 ```
 
 #### Selective Docker Image Build for a Specific Environment
@@ -171,7 +172,9 @@ Use the `--target=<environment_name>` option to build only `dx-runtime` or `dx-c
 
 ### Run the Docker Container
 
-**(Optional) Stop the `dxrt` service daemon before starting a Docker container.**  
+**(Optional) If `dx_rt` is already installed on the host system, please stop the `dxrt` service daemon before running the Docker container.**  
+(Reason: If the `dxrt` service daemon is already running on the host or in another container, the `dx-runtime` container will not be able to start. Only one instance of the service daemon can run at a time, including both host and container environments.)
+
 (Refer to note #4 for more details.)
 
 ```
@@ -191,9 +194,10 @@ $ docker ps
 ```
 
 ```
-CONTAINER ID   IMAGE                     COMMAND                  CREATED          STATUS          PORTS     NAMES
-47837ae2aa4a   dx-runtime:24.04    "/usr/local/bin/dxrt…"   26 minutes ago   Up 26 minutes             dx-runtime-24.04
-6c2b63d248d6   dx-compiler:24.04   "tail -f /dev/null s…"   26 minutes ago   Up 26 minutes             dx-compiler-24.04
+CONTAINER ID   IMAGE                  COMMAND                  CREATED          STATUS          PORTS     NAMES
+f040e793662b   dx-runtime:24.04       "/usr/local/bin/dxrtd"   33 seconds ago   Up 33 seconds             dx-runtime-24.04
+e93af235ceb1   dx-modelzoo:24.04      "/bin/sh -c 'sleep i…"   42 hours ago     Up 33 seconds             dx-modelzoo-24.04
+b3715d613434   dx-compiler:24.04      "tail -f /dev/null"      42 hours ago     Up 33 seconds             dx-compiler-24.04
 ```
 
 #### Enter the Container
@@ -203,10 +207,14 @@ $ docker exec -it dx-runtime-<ubuntu_version> bash
 ```
 
 ```
-$ docker exec -it dx-container-<ubuntu_version> bash
+$ docker exec -it dx-compiler-<ubuntu_version> bash
 ```
 
-This allows you to enter the `dx-compiler` and `dx-runtime` environments via a bash shell.
+```
+$ docker exec -it dx-modelzoo-<ubuntu_version> bash
+```
+
+This allows you to enter the `dx-compiler`, `dx-runtime` and `dx-modelzoo` environments via a bash shell.
 
 #### Check DX-Runtime Installation Inside the Container
 
@@ -252,7 +260,7 @@ DVFS Disabled
 2. **Inside the Docker Container:**
     ```
     $ docker exec -it dx-runtime-<ubuntu_version> bash
-    # cd /deepx/dx_app
+    # cd /deepx/dx-runtime/dx_app
     ```
 
 ### Setup Assets (Precompiled NPU Model and Sample Input Videos)
@@ -283,7 +291,7 @@ $ fim ./result-app1.jpg
 2. **Inside the Docker Container:**
     ```
     $ docker exec -it dx-runtime-<ubuntu_version> bash
-    # cd /deepx/dx_stream
+    # cd /deepx/dx-compiler/dx_stream
     ```
 
 ### Setup Assets (Precompiled NPU Model and Sample Input Videos)
@@ -315,7 +323,7 @@ $ ./run_demo.sh
 2. **Inside the Docker Container:**
     ```
     $ docker exec -it dx-compiler-<ubuntu_version> bash
-    # cd /deepx/dx_com
+    # cd /deepx/dx-compiler/dx_com
     ```
 
 ### Run `dx_com` using Sample onnx input
@@ -356,7 +364,7 @@ Compiling Model : 100%|███████████████████
 2. **Inside the Docker Container:**
     ```
     $ docker exec -it dx-compiler-<ubuntu_version> bash
-    (venv-dx-simulator) # cd /deepx/dx_simulator
+    (venv-dx-simulator) # cd /deepx/dx-compiler/dx_simulator
     ```
 
 ### Install Prerequisites
@@ -374,8 +382,8 @@ Compiling Model : 100%|███████████████████
 2. **Inside the Docker Container:**
     ```
     $ docker exec -it dx-compiler-<ubuntu_version> bash
-    (venv-dx-simulator) # cd /deepx/dx_simulator
-    (venv-dx-simulator) # pip install /deepx/dx_simulator/dx_simulator-*-cp311-cp311-linux_x86_64.whl --force-reinstall
+    (venv-dx-simulator) # cd /deepx/dx-compiler/dx_simulator
+    (venv-dx-simulator) # pip install /deepx/dx-compiler/dx_simulator/dx_simulator-*-cp311-cp311-linux_x86_64.whl --force-reinstall
     (venv-dx-simulator) # pip install ultralytics
     ```
 

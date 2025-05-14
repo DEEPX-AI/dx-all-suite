@@ -59,17 +59,17 @@ $ ./dx-compiler/install.sh
 
 ### 특정 버전 설치
 
-특정 버전을 설치하려면 `install.sh` 파일에서 환경 변수를 수정하세요.
+특정 버전을 설치하려면 `./dx-compiler/install.sh` 파일에서 환경 변수를 수정하세요.
 
 ```
-COM_VERSION="1.38.1"        # 기본값
-SIM_VERSION="2.14.5"        # 기본값
+COM_VERSION="1.38.1"        # default
+SIM_VERSION="2.14.5"        # default
 ```
 
 또는 명령어 실행 시 버전을 직접 지정할 수도 있습니다.
 
 ```
-$ ./install.sh --com_version=<version> --sim_version=<version>
+$ ./dx-compiler/install.sh --com_version=<version> --sim_version=<version>
 ```
 
 ---
@@ -87,6 +87,8 @@ $ ./dx-runtime/install.sh --all
 `dx_rt_npu_linux_driver`, `dx_rt`, `dx_app`, `dx_stream` (단, `dx_fw` 펌웨어 업데이트 제외)
 
 ### 특정 모듈만 설치
+
+특정 모듈을 지정하여 설치하려면:
 
 ```
 $ ./dx-runtime/install.sh --target=<module_name>
@@ -120,7 +122,7 @@ $ ./dx-runtime/install.sh --target=dx_fw
 1. Docker 환경을 사용할 경우, NPU 드라이버는 반드시 호스트 시스템에 설치해야 합니다.
 
    ```
-   $ ./install.sh --target=dx_rt_npu_linux_driver
+   $ ./dx-runtime/install.sh --target=dx_rt_npu_linux_driver
    ```
 
 2. 호스트 시스템에 `dx_rt`가 설치되어 있고 `service daemon`(`/usr/local/bin/dxrtd`)이 실행 중이면,  
@@ -152,9 +154,10 @@ $ docker images
 ```
 
 ```
-REPOSITORY               TAG       IMAGE ID       CREATED          SIZE
-dx-compiler        22.04     9b7e6577c526   6 minutes ago    6.56GB
-dx-runtime         22.04     1c96c081fdea   16 hours ago     4.02GB
+REPOSITORY         TAG       IMAGE ID       CREATED         SIZE
+dx-runtime         24.04     05127c0813dc   41 hours ago    4.8GB
+dx-compiler        24.04     b08c7e39e89f   42 hours ago    7.08GB
+dx-modelzoo        24.04     cb2a92323b41   2 weeks ago     2.11GB
 ```
 
 #### 특정 환경만 빌드
@@ -171,7 +174,8 @@ $ ./docker_build.sh --target=dx-compiler --ubuntu_version=24.04
 
 ### Docker 컨테이너 실행
 
-**(선택) Docker 컨테이너 실행 전에 `dxrt` 서비스 데몬을 중지하세요.**  
+**(선택) Host 환경에 이미 `dx_rt`가 설치되어 있는 경우, Docker 컨테이너 실행 전에 `dxrt` 서비스 데몬을 중지하세요.**  
+(사유: Host환경 또는 특정컨테이너에 `dxrt` 서비스 데몬이 이미 실행되어 있는 경우, `dx-runtime` 컨테이너 실행이 되지 않습니다. 서비스 데몬은 Host와 컨테이너를 포함하여 1개만 실행 가능)
 (#4 참고)
 
 ```
@@ -191,9 +195,10 @@ $ docker ps
 ```
 
 ```
-CONTAINER ID   IMAGE                     COMMAND                  CREATED          STATUS          PORTS     NAMES
-47837ae2aa4a   dx-runtime:24.04    "/usr/local/bin/dxrt…"   26 minutes ago   Up 26 minutes             dx-runtime-24.04
-6c2b63d248d6   dx-compiler:24.04   "tail -f /dev/null s…"   26 minutes ago   Up 26 minutes             dx-compiler-24.04
+CONTAINER ID   IMAGE                  COMMAND                  CREATED          STATUS          PORTS     NAMES
+f040e793662b   dx-runtime:24.04       "/usr/local/bin/dxrtd"   33 seconds ago   Up 33 seconds             dx-runtime-24.04
+e93af235ceb1   dx-modelzoo:24.04      "/bin/sh -c 'sleep i…"   42 hours ago     Up 33 seconds             dx-modelzoo-24.04
+b3715d613434   dx-compiler:24.04      "tail -f /dev/null"      42 hours ago     Up 33 seconds             dx-compiler-24.04
 ```
 
 #### 컨테이너 내부 접속
@@ -203,10 +208,14 @@ $ docker exec -it dx-runtime-<ubuntu_version> bash
 ```
 
 ```
-$ docker exec -it dx-container-<ubuntu_version> bash
+$ docker exec -it dx-compiler-<ubuntu_version> bash
 ```
 
-위 명령어를 통해 `dx-compiler` 및 `dx-runtime` 환경에 접속할 수 있습니다.
+```
+$ docker exec -it dx-modelzoo-<ubuntu_version> bash
+```
+
+위 명령어를 통해 `dx-compiler`, `dx-runtime` 및 `dx-modelzoo` 환경에 접속할 수 있습니다.
 
 #### 컨테이너 내부에서 DX-Runtime 설치 확인
 
@@ -252,7 +261,7 @@ DVFS Disabled
 2. **도커 컨테이너 내부에서 실행하는 경우:**
    ```
     $ docker exec -it dx-runtime-<ubuntu_version> bash
-    # cd /deepx/dx_app
+    # cd /deepx/dx-runtime/dx_app
    ```
 
 ### 애셋 설정 (사전 컴파일된 NPU 모델 및 샘플 입력 영상)
@@ -283,7 +292,7 @@ $ fim ./result-app1.jpg
 2. **도커 컨테이너 내부에서 실행하는 경우:**
    ```
     $ docker exec -it dx-runtime-<ubuntu_version> bash
-    # cd /deepx/dx_stream
+    # cd /deepx/dx-runtime/dx_stream
    ```
 
 ### Assets 설정 (사전 컴파일된 NPU 모델 및 샘플 입력 영상)
@@ -315,7 +324,7 @@ $ ./run_demo.sh
 2. **도커 컨테이너 내부에서 실행하는 경우:**
     ```
     $ docker exec -it dx-compiler-<ubuntu_version> bash
-    # cd /deepx/dx_com
+    # cd /deepx/dx-compiler/dx_com
     ```
 
 ### 샘플 ONNX 입력을 사용하여 `dx_com` 실행
@@ -356,7 +365,7 @@ Compiling Model : 100%|███████████████████
 2. **도커 컨테이너 내부에서 실행하는 경우:**
     ```
     $ docker exec -it dx-compiler-<ubuntu_version> bash
-    (venv-dx-simulator) # cd /deepx/dx_simulator
+    (venv-dx-simulator) # cd /deepx/dx-compiler/dx_simulator
     ```
 
 ### 필수 패키지 설치
@@ -374,8 +383,8 @@ Compiling Model : 100%|███████████████████
 2. **도커 컨테이너 내부에서 실행하는 경우:**
     ```
     $ docker exec -it dx-compiler-<ubuntu_version> bash
-    (venv-dx-simulator) # cd /deepx/dx_simulator
-    (venv-dx-simulator) # pip install /deepx/dx_simulator/dx_simulator-*-cp311-cp311-linux_x86_64.whl --force-reinstall
+    (venv-dx-simulator) # cd /deepx/dx-compiler/dx_simulator
+    (venv-dx-simulator) # pip install /deepx/dx-compiler/dx_simulator/dx_simulator-*-cp311-cp311-linux_x86_64.whl --force-reinstall
     (venv-dx-simulator) # pip install ultralytics
     ```
 
