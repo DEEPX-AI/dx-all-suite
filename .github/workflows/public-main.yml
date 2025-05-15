@@ -1,0 +1,52 @@
+name: main
+run-name: ${{github.event.head_commit.message}}(${{github.event.head_commit.ref}})
+
+on:
+    workflow_dispatch:
+    push:
+        branches:
+            - main
+
+permissions: write-all
+
+jobs:
+    release:
+        name: checkout
+        if: github.repository == 'DEEPX-AI/dx-all-suite'
+        runs-on: self-hosted
+        timeout-minutes: 20
+        steps:
+            - name: Clean
+              run: |
+                  sudo rm -rf ${{ github.workspace }}
+                  mkdir -p ${{ github.workspace }}
+            
+            - name: Checkout 
+              uses: actions/checkout@v4
+              with:
+                fetch-depth: 0
+                fetch-tags: true
+                token: ${{ secrets.GH_TOKEN }}
+            
+            - name: Create tag
+              uses: rickstaa/action-create-tag@v1
+              with:
+                  tag_exists_error: false
+                  tag: ${{ github.event.head_commit.message }}
+                  force_push_tag: true
+                  commit_sha: ${{ github.event.head_commit.ref}}
+                  message: '${{ github.event.head_commit.message }}'
+
+            - name: Get to tag
+              run: echo "TO_TAG=${{ github.event.head_commit.message }}" >> $GITHUB_ENV
+            - name: make latest_release.md
+              run: awk '/^## v/{if (found) exit; found=1} found' RELEASE_NOTES.md > latest_release.md
+    
+            - name: Create release
+              uses: ncipollo/release-action@v1
+              with:
+                tag: ${{ env.TO_TAG }}
+                allowUpdates: false
+                makeLatest: true
+                draft: true
+                bodyfile: latest_release.md
