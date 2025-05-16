@@ -109,7 +109,7 @@ The `dx_fw` module does not include source code but provides a `fw.bin` image fi
 To update the firmware using `dxrt-cli`, run:
 
 ```
-$ dxrt-cli -u ./dx-runtime/dx_fw/m1a/X.X.X/mdot2/fw.bin -u reset
+$ dxrt-cli -u ./dx-runtime/dx_fw/m1/X.X.X/mdot2/fw.bin
 ```
 
 Alternatively, you can use:
