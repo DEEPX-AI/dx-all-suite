@@ -2,7 +2,9 @@ name: main
 run-name: ${{github.event.head_commit.message}}(${{github.event.head_commit.ref}})
 
 on:
-  workflow_dispatch:
+  push:
+    branches:
+        - main
   
 permissions: write-all
 
