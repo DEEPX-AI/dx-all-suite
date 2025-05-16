@@ -2,17 +2,14 @@ name: main
 run-name: ${{github.event.head_commit.message}}(${{github.event.head_commit.ref}})
 
 on:
-    workflow_dispatch:
-    push:
-        branches:
-            - main
-
+  workflow_dispatch:
+  
 permissions: write-all
 
 jobs:
     release:
         name: checkout
-        if: github.repository == 'DEEPX-AI/dx-all-suite'
+        if: github.repository == 'DEEPX-AI/dx-all-suite' && github.ref == 'refs/heads/main'
         runs-on: self-hosted
         timeout-minutes: 20
         steps:
