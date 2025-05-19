@@ -47,6 +47,18 @@ RUN set -x && \
       echo "Unspported Ubuntu version: $UBUNTU_VERSION" && exit 1; \
     fi
 
+# for setting ssl issue on intranet
+# only used 'USE_INTRANET=true'
+ARG USE_INTRANET=false
+ARG CA_FILE_NAME="dummy.crt"
+COPY ${CA_FILE_NAME} /usr/local/share/ca-certificates/
+RUN if [ "$USE_INTRANET" = "true" ]; then \
+      git config --global http.sslVerify false && \
+      update-ca-certificates ; \
+    else \
+      echo "Skipping intranet SSL setup"; \
+    fi
+
 WORKDIR /deepx/dx-runtime/dx_rt
 ADD archives/dx_rt.tar.gz /deepx/dx-runtime/dx_rt/
 

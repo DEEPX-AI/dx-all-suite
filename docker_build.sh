@@ -11,6 +11,8 @@ pushd "$SCRIPT_DIR"
 OUTPUT_DIR="$SCRIPT_DIR/archives"
 UBUNTU_VERSION=""
 
+DEV_MODE=0
+
 # Properties file path
 VERSION_FILE="$COMPILER_PATH/compiler.properties"
 
@@ -19,7 +21,7 @@ if [[ -f "$VERSION_FILE" ]]; then
     # load varialbles
     source "$VERSION_FILE"
 else
-    echo -e "${TAG_ERROR} Version file '$VERSION_FILE' not found."
+    echo -e "${TAG_ERROR} Version file '$VERSION_FILE' not found.\n${TAG_INFO} ${COLOR_BRIGHT_YELLOW_ON_BLACK}Please try running 'git submodule update --init --recursive --force' and then try again.${COLOR_RESET}"
     exit 1
 fi
 
@@ -67,6 +69,10 @@ docker_build_impl()
     local target=$1
     local config_file_args=${2:--f docker/docker-compose.yml}
     local no_cache_arg=""
+
+    if [ ${DEV_MODE} -eq 1 ]; then
+        config_file_args="${config_file_args} -f docker/docker-compose.dev.yml"
+    fi
 
     if [ "$NO_CACHE" = "y" ]; then
         no_cache_arg="--no-cache"
@@ -206,6 +212,9 @@ for i in "$@"; do
         --help)
             show_help
             exit 0
+            ;;
+        --dev)
+            DEV_MODE=1
             ;;
         *)
             echo -e "${TAG_ERROR}: Invalid option '$1'"

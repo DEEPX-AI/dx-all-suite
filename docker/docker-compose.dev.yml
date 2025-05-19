@@ -1,5 +1,9 @@
 services:
   dx-compiler:
+    build:
+      args:
+        USE_INTRANET: "true"
+        CA_FILE_NAME: "intranet_CA_SSL.crt"
     volumes:
       - /mnt/datasets:/mnt/datasets
       - /mnt/regression_storage:/mnt/regression_storage
@@ -8,12 +12,20 @@ services:
       - ${DX_MZ_SRC_PATH:-../dx-modelzoo}:/deepx/dx-modelzoo
       - ~/.ssh:/root/.ssh
   dx-runtime:
+    build:
+      args:
+        USE_INTRANET: "true"
+        CA_FILE_NAME: "intranet_CA_SSL.crt"
     volumes:
       - /mnt/datasets:/mnt/datasets
       - /mnt/regression_storage:/mnt/regression_storage
       - /mnt/modelzoo_storage:/mnt/modelzoo_storage
       - ~/.ssh:/root/.ssh
   dx-modelzoo:
+    build:
+      args:
+        USE_INTRANET: "true"
+        CA_FILE_NAME: "intranet_CA_SSL.crt"
     volumes:
       - /mnt/datasets:/mnt/datasets
       - /mnt/regression_storage:/mnt/regression_storage
