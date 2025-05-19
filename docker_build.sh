@@ -92,7 +92,7 @@ docker_build_impl()
     CMD="docker compose ${config_file_args} build ${no_cache_arg} dx-${target}"
     echo "${CMD}"
 
-    ${CMD}
+    ${CMD} || { echo -e "${TAG_ERROR} docker build '${target} failed. "; exit 1; }
 }
 
 docker_build_all() 
@@ -147,12 +147,12 @@ main() {
     case $TARGET_ENV in
         dx-compiler)
             echo "Archiving dx-compiler"
-            ./archive_dx-compiler.sh
+            ./archive_dx-compiler.sh || { echo -e "${TAG_ERROR} Archiving dx-compiler failed."; exit 1; }
             docker_build_dx-compiler
             ;;
         dx-runtime)
             echo "Archiving dx-runtime"
-            ./archive_git_repos.sh --target=dx-runtime
+            ./archive_git_repos.sh --target=dx-runtime || { echo -e "${TAG_ERROR} Archiving dx-runtime failed.\n${TAG_INFO} ${COLOR_BRIGHT_YELLOW_ON_BLACK}Please try running 'git submodule update --init --recursive --force' and then try again.${COLOR_RESET}"; exit 1; }
             docker_build_dx-runtime
             if [ "$DRIVER_UPDATE" = "y" ]; then
                 install_dx_rt_npu_linux_driver
@@ -160,13 +160,13 @@ main() {
             ;;
         dx-modelzoo)
             echo "Archiving dx-modelzoo"
-            ./archive_git_repos.sh --target=dx-modelzoo
+            ./archive_git_repos.sh --target=dx-modelzoo || { echo -e "${TAG_ERROR} Archiving dx-modelzoo failed.\n${TAG_INFO} ${COLOR_BRIGHT_YELLOW_ON_BLACK}Please try running 'git submodule update --init --recursive --force' and then try again.${COLOR_RESET}"; exit 1; }
             docker_build_dx-modelzoo
             ;;
         all)
             echo "Archiving all DXNN® environments"
-            ./archive_dx-compiler.sh
-            ./archive_git_repos.sh --all
+            ./archive_dx-compiler.sh || { echo -e "${TAG_ERROR} Archiving dx-compiler failed."; exit 1; }
+            ./archive_git_repos.sh --all || { echo -e "${TAG_ERROR} Archiving dx-runtime or dx-modelzoo failed.\n${TAG_INFO} ${COLOR_BRIGHT_YELLOW_ON_BLACK}Please try running 'git submodule update --init --recursive --force' and then try again.${COLOR_RESET}"; exit 1; }
             docker_build_all
             if [ "$DRIVER_UPDATE" = "y" ]; then
                 install_dx_rt_npu_linux_driver
