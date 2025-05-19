@@ -1,0 +1,104 @@
+name: create-public-release-tag
+
+on:
+  workflow_dispatch:
+
+permissions: write-all
+
+jobs:
+  create-public-release-tag:
+    runs-on: self-hosted
+
+    steps:
+      - name: Clean
+        run: |
+          sudo rm -rf ${{ github.workspace }}
+          mkdir -p ${{ github.workspace }}
+
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GH_DCI_TOKEN }}
+          ref: ${{ github.ref}}
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Fetch Tags
+        run: git fetch --tags --recurse-submodules
+
+      - name: Get Current Date
+        run: echo "current_date=$(date +'%Y%m%d')" >> $GITHUB_ENV
+
+      - name: Determine Release Tag
+        run: |
+          release_tag="release-${{ env.current_date }}"
+          echo "release_tag=$release_tag" >> $GITHUB_ENV
+          echo "Determined release tag: $release_tag"
+
+      - name: Generate Release Message
+        run: |
+          echo "Generating release message..."
+          echo -e "Integration Test M1A/V3 Pass\n" > "release_message.txt"
+          echo -e "Remark:" >> "release_message.txt"
+
+          SUB_REPOS=("dx-compiler" "dx-runtime")
+
+          for SUB_REPO in "${SUB_REPOS[@]}"; do
+            SUB_HASH=$(git -C "$SUB_REPO" rev-parse --short=7 HEAD)
+            echo "${SUB_REPO} @${SUB_HASH}" >> "release_message.txt"
+            git -C "$SUB_REPO" submodule foreach --quiet "
+              echo \${name}
+            " | while read -r submodule; do
+              echo "$submodule"
+              if [ -z "$(git -C "$SUB_REPO/$submodule" tag)" ]; then
+                echo "No tags found in submodule: $submodule"
+                submodule_tag="No Release tag found"
+              else
+                submodule_tag=$(git -C "$SUB_REPO/$submodule" describe --tags --abbrev=0 2>/dev/null ||
+                                echo "No Release tag found")
+                submodule_hash=$(git -C "$SUB_REPO/$submodule" rev-parse --short=7 HEAD)
+              fi
+              
+              echo "${submodule}: ${submodule_tag}@${submodule_hash}" >> "release_message.txt"
+            done
+            echo -e "\n" >> "release_message.txt"
+          done
+
+          release_message=$(cat "release_message.txt")
+          echo "$release_message"
+
+          echo "Release message generated in release_message.txt"
+
+      - name: Create and Push Tag
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_DCI_TOKEN }}
+        run: |
+          git tag ${{ env.release_tag }}
+          git push origin ${{ env.release_tag }}
+
+      - name: Create GitHub Release
+        uses: actions/github-script@v6
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_DCI_TOKEN }}
+          GITHUB_API_URL: "https://gh.deepx.ai/api/v3"
+        with:
+          script: |
+            const fs = require('fs');
+            const releaseMessage = fs.readFileSync('release_message.txt', 'utf-8');
+
+            const response = await github.rest.repos.createRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              tag_name: '${{ env.release_tag }}',
+              name: '${{ env.release_tag }}',
+              body: releaseMessage,
+              draft: false,
+              prerelease: false,
+            });
+
+            console.log(`Created public-release: ${response.data.html_url}`);
+      
+      - name: Clean
+        run: |
+          sudo rm -rf ${{ github.workspace }}
+          mkdir -p ${{ github.workspace }} 

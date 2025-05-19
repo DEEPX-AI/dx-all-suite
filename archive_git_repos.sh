@@ -59,32 +59,44 @@ git_archive_from_subdirs() {
 
     echo -e "=== Archiving ${base_path} ... ${TAG_START} ==="
 
-    find "${base_path}" -mindepth 1 -maxdepth 1 -type d | while read -r subdir; do
-        local dir_name=$(basename "$subdir")
+    for dir_name in "${target_subdirs[@]}"; do
+        local subdir="${base_path}/${dir_name}"
 
-        if [[ " ${target_subdirs[@]} " =~ " ${dir_name} " ]]; then
-            git_archive "${subdir}"
-            if [ $? -ne 0 ]; then
+        if [ -d "$subdir" ]; then
+            git_archive "$subdir"
+            local ret=$?
+            echo "git_archive return code: $ret"
+            if [ $ret -ne 0 ]; then
                 echo -e "${TAG_ERROR} Archiving $subdir failed!"
-                exit $?
+                return $ret
             fi
         else
-            echo -e "${TAG_INFO} Directory not included in target list, skipping: $dir_name"
-            continue
+            echo -e "${TAG_ERROR} Directory does not exist, dir_name: $dir_name"
+            return 1
         fi
     done
 
     echo -e "=== Archiving ${base_path} ... ${TAG_DONE} ==="
+    return 0
 }
 
 archive_runtime() {
     DXRT_TARGET_DIRS=("dx_rt" "dx_app" "dx_stream")
     git_archive_from_subdirs "${DX_AS_PATH}/dx-runtime" "${DXRT_TARGET_DIRS[@]}"
+    if [ $? -ne 0 ]; then
+        echo -e "${TAG_ERROR} Archiving dx-runtime / dx_rt, dx_app, dx_stream failed!"
+        exit 1
+    fi
 }
 
 archive_modelzoo() {
     DXRT_TARGET_DIRS=("dx_rt")
     git_archive_from_subdirs "${DX_AS_PATH}/dx-runtime" "${DXRT_TARGET_DIRS[@]}"
+    if [ $? -ne 0 ]; then
+        echo -e "${TAG_ERROR} Archiving dx-runtime / dx_rt failed!"
+        exit 1
+    fi
+    
     git_archive "${DX_AS_PATH}/dx-modelzoo"
     if [ $? -ne 0 ]; then
         echo -e "${TAG_ERROR} Archiving dx-modelzoo failed!"
