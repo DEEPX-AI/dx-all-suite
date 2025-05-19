@@ -39,7 +39,7 @@ show_help() {
     exit 0
 }
 
-docker_run_impl()
+docker_down_impl()
 {
     local target=$1
     local config_file_args=${2:--f docker/docker-compose.yml}
@@ -51,7 +51,6 @@ docker_run_impl()
     # Run Docker Container
     export COMPOSE_BAKE=true
     export UBUNTU_VERSION=${UBUNTU_VERSION}
-    DUMMY_XAUTHORITY=""
     if [ ! -n "${XAUTHORITY}" ]; then
         echo -e "${TAG_INFO} XAUTHORITY env is not set. so, try to set automatically."
         DUMMY_XAUTHORITY="/tmp/dummy"
@@ -64,49 +63,25 @@ docker_run_impl()
         export XAUTHORITY_TARGET="/tmp/.docker.xauth"
     fi
 
-    CMD="docker compose ${config_file_args} up -d --remove-orphans dx-${target}"
+    CMD="docker compose ${config_file_args} down dx-${target}"
     echo "${CMD}"
 
     ${CMD}
-
-    if [ -n "${DUMMY_XAUTHORITY}" ]; then
-        echo -e "${TAG_INFO} Adding xauth into docker container"
-
-        # remove 'localhost' or 'LOCALHOST' in DISPLAY env var
-        if [[ "$DISPLAY" == localhost:* ]]; then
-            export DISPLAY=${DISPLAY#localhost}
-        elif [[ "$DISPLAY" == LOCALHOST:* ]]; then
-            export DISPLAY=${DISPLAY#LOCALHOST}
-        fi
-
-        XAUTHORITY=~/.Xauthority
-        export XAUTHORITY
-        XAUTH=$(xauth list "$DISPLAY")
-        XAUTH_ADD_CMD="xauth add $XAUTH"
-        
-        DOCKER_EXEC_CMD1="docker exec -it dx-${target}-${UBUNTU_VERSION} touch /tmp/.docker.xauth"
-        DOCKER_EXEC_CMD2="docker exec -it dx-${target}-${UBUNTU_VERSION} ${XAUTH_ADD_CMD}"
-
-        echo -e "${DOCKER_EXEC_CMD1}"
-        echo -e "${DOCKER_EXEC_CMD2}"
-        ${DOCKER_EXEC_CMD1}
-        ${DOCKER_EXEC_CMD2}
-    fi
 }
 
-docker_run_all() 
+docker_down_all() 
 {
-    docker_run_dx-compiler
-    docker_run_dx-runtime
-    docker_run_dx-modelzoo
+    docker_down_dx-compiler
+    docker_down_dx-runtime
+    docker_down_dx-modelzoo
 }
 
-docker_run_dx-compiler() 
+docker_down_dx-compiler() 
 {
-    docker_run_impl "compiler"
+    docker_down_impl "compiler"
 }
 
-docker_run_dx-runtime()
+docker_down_dx-runtime()
 {
     local docker_compose_args="-f docker/docker-compose.yml"
 
@@ -114,13 +89,13 @@ docker_run_dx-runtime()
         docker_compose_args="${docker_compose_args} -f docker/docker-compose.intel_gpu_hw_acc.yml"
     fi
 
-    docker_run_impl "runtime" "${docker_compose_args}"
+    docker_down_impl "runtime" "${docker_compose_args}"
 }
 
-docker_run_dx-modelzoo()
+docker_down_dx-modelzoo()
 {
     local docker_compose_args="-f docker/docker-compose.yml"
-    docker_run_impl "modelzoo" "${docker_compose_args}"
+    docker_down_impl "modelzoo" "${docker_compose_args}"
 }
 
 main() {
@@ -134,20 +109,20 @@ main() {
 
     case $TARGET_ENV in
         dx-compiler)
-            echo "Installing dx-compiler"
-            docker_run_dx-compiler
+            echo "Stopping and removing dx-compiler"
+            docker_down_dx-compiler
             ;;
         dx-runtime)
-            echo "Installing dx-runtime"
-            docker_run_dx-runtime
+            echo "Stopping and removing dx-runtime"
+            docker_down_dx-runtime
             ;;
         dx-modelzoo)
-            echo "Installing dx-modelzoo"
-            docker_run_dx-modelzoo
+            echo "Stopping and removing dx-modelzoo"
+            docker_down_dx-modelzoo
             ;;
         all)
-            echo "Installing all DXNN® environments"
-            docker_run_all
+            echo "Stopping and removing all DXNN® environments"
+            docker_down_all
             ;;
         *)
             echo -e "${TAG_ERROR} Unknown '--target' option '$TARGET_ENV'"
