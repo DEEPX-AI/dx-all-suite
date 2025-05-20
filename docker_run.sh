@@ -39,6 +39,25 @@ show_help() {
     exit 0
 }
 
+check_xdg_sesstion_type()
+{
+    if [ "$XDG_SESSION_TYPE" != "x11" ]; then
+        echo -e "${TAG_INFO} XDG_SESSION_TYPE: $XDG_SESSION_TYPE"
+        echo -e "${TAG_WARN} ${COLOR_BRIGHT_YELLOW_ON_BLACK}it is recommended to use an **X11 session (with .Xauthority support)** when working with the 'dx-all-suite' container.${COLOR_RESET}"
+        echo -e "${TAG_WARN} ${COLOR_BRIGHT_YELLOW_ON_BLACK}For more details, please refer to the [FAQ section of the dx-all-suite documentation](https://github.com/DEEPX-AI/dx-all-suite/blob/main/docs/source/faq.md).${COLOR_RESET}"
+
+        echo -e "${COLOR_BRIGHT_GREEN_ON_BLACK}if the user's host environment is not based on **X11 (with .Xauthority)** but instead uses **Xwayland** or similar, the 'xauth' data may be lost after a system reboot or session logout. As a result, the authentication file mount between the host and the container may fail, making it impossible to restart or reuse the container.${COLOR_RESET}"
+        echo -e -n "${COLOR_RED_ON_BLACK}This may cause issues. Do you still want to continue? (y/n): ${COLOR_RESET}"
+        read -r answer
+        if [[ "$answer" == "y" || "$answer" == "Y" ]]; then
+            echo -e "${TAG_INFO} Start docker run ..."
+        else
+            echo -e "${TAG_INFO} Terminated docker run ..."
+            exit 1
+        fi
+    fi
+}
+
 docker_run_impl()
 {
     local target=$1
@@ -131,6 +150,8 @@ main() {
         echo -e "${TAG_INFO} UBUNTU_VERSSION($UBUNTU_VERSION) is set."
         echo -e "${TAG_INFO} TARGET_ENV($TARGET_ENV) is set."
     fi
+
+    check_xdg_sesstion_type
 
     case $TARGET_ENV in
         dx-compiler)
