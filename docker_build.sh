@@ -12,6 +12,7 @@ OUTPUT_DIR="$SCRIPT_DIR/archives"
 UBUNTU_VERSION=""
 
 DEV_MODE=0
+FORCE_ARGS=""
 
 # Properties file path
 VERSION_FILE="$COMPILER_PATH/compiler.properties"
@@ -153,7 +154,7 @@ main() {
     case $TARGET_ENV in
         dx-compiler)
             echo "Archiving dx-compiler"
-            ./archive_dx-compiler.sh || { echo -e "${TAG_ERROR} Archiving dx-compiler failed."; exit 1; }
+            ./archive_dx-compiler.sh $FORCE_ARGS || { echo -e "${TAG_ERROR} Archiving dx-compiler failed."; exit 1; }
             docker_build_dx-compiler
             ;;
         dx-runtime)
@@ -215,6 +216,9 @@ for i in "$@"; do
             ;;
         --dev)
             DEV_MODE=1
+            ;;
+        --force)
+            FORCE_ARGS="--force"
             ;;
         *)
             echo -e "${TAG_ERROR}: Invalid option '$1'"

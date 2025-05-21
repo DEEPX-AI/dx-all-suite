@@ -41,8 +41,14 @@ show_help() {
 
 check_xdg_sesstion_type()
 {
-    if [ "$XDG_SESSION_TYPE" != "x11" ]; then
-        echo -e "${TAG_INFO} XDG_SESSION_TYPE: $XDG_SESSION_TYPE"
+    echo -e "${TAG_INFO} XDG_SESSION_TYPE: $XDG_SESSION_TYPE"
+    if [ "$XDG_SESSION_TYPE" == "tty" ]; then
+        echo -e "${TAG_WARN} ${COLOR_BRIGHT_YELLOW_ON_BLACK}You are currently running in a **tty session**, which does not support GUI. In such environments, it is not possible to visually confirm the results of example code execution via GUI. (Note): ${COLOR_RESET}"
+        echo -e -n "${TAG_INFO} ${COLOR_BRIGHT_GREEN_ON_BLACK}Press any key and hit Enter to continue. ${COLOR_RESET}"
+        read -r answer
+        echo -e "${TAG_INFO} Start docker run ..."
+
+    elif [ "$XDG_SESSION_TYPE" != "x11" ]; then
         echo -e "${TAG_WARN} ${COLOR_BRIGHT_YELLOW_ON_BLACK}it is recommended to use an **X11 session (with .Xauthority support)** when working with the 'dx-all-suite' container.${COLOR_RESET}"
         echo -e "${TAG_WARN} ${COLOR_BRIGHT_YELLOW_ON_BLACK}For more details, please refer to the [FAQ section of the dx-all-suite documentation](https://github.com/DEEPX-AI/dx-all-suite/blob/main/docs/source/faq.md).${COLOR_RESET}"
 
@@ -52,7 +58,7 @@ check_xdg_sesstion_type()
         if [[ "$answer" == "y" || "$answer" == "Y" ]]; then
             echo -e "${TAG_INFO} Start docker run ..."
         else
-            echo -e "${TAG_INFO} Terminated docker run ..."
+            echo -e "${TAG_INFO} Docker run has been canceled."
             exit 1
         fi
     fi
@@ -77,7 +83,6 @@ docker_run_impl()
         touch ${DUMMY_XAUTHORITY}
         export XAUTHORITY=${DUMMY_XAUTHORITY}
         export XAUTHORITY_TARGET=${DUMMY_XAUTHORITY}
-        
     else
         echo -e "${TAG_INFO} XAUTHORITY(${XAUTHORITY}) is set"
         export XAUTHORITY_TARGET="/tmp/.docker.xauth"
@@ -88,7 +93,12 @@ docker_run_impl()
 
     ${CMD}
 
-    if [ -n "${DUMMY_XAUTHORITY}" ]; then
+    if [ "$XDG_SESSION_TYPE" == "tty" ]; then
+        local DOCKER_EXEC_CMD="docker exec -it dx-${target}-${UBUNTU_VERSION} touch /deepx/tty_flag"
+
+        echo -e "${DOCKER_EXEC_CMD}"
+        ${DOCKER_EXEC_CMD}
+    elif [ -n "${DUMMY_XAUTHORITY}" ]; then
         echo -e "${TAG_INFO} Adding xauth into docker container"
 
         # remove 'localhost' or 'LOCALHOST' in DISPLAY env var
@@ -103,8 +113,8 @@ docker_run_impl()
         XAUTH=$(xauth list "$DISPLAY")
         XAUTH_ADD_CMD="xauth add $XAUTH"
         
-        DOCKER_EXEC_CMD1="docker exec -it dx-${target}-${UBUNTU_VERSION} touch /tmp/.docker.xauth"
-        DOCKER_EXEC_CMD2="docker exec -it dx-${target}-${UBUNTU_VERSION} ${XAUTH_ADD_CMD}"
+        local DOCKER_EXEC_CMD1="docker exec -it dx-${target}-${UBUNTU_VERSION} touch /tmp/.docker.xauth"
+        local DOCKER_EXEC_CMD2="docker exec -it dx-${target}-${UBUNTU_VERSION} ${XAUTH_ADD_CMD}"
 
         echo -e "${DOCKER_EXEC_CMD1}"
         echo -e "${DOCKER_EXEC_CMD2}"
