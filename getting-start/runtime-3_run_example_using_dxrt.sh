@@ -86,6 +86,8 @@ show_diff() {
     # Make a commit for diff comparison
     # rm -rf ./result*.*
     git add . && git commit -m "hijack: ${commit_msg}" && git --no-pager diff HEAD~1
+    echo -e -n "${TAG_INFO} ${COLOR_BRIGHT_GREEN_ON_BLACK}Press any key and hit Enter to continue. ${COLOR_RESET}"
+    read -r answer
     popd
 
     echo -e "---------------- ${TAG_INFO} show hijacking diff  [END]  ----------------"
@@ -132,6 +134,24 @@ run_hijacked_example() {
 
     popd
     echo -e "=== run_hijacked_example ${TAG_DONE} ==="
+}
+
+show_result() {
+    local result_path=$1
+    local result_real_path=$(realpath -s "${result_path}")
+
+    if [ ! -f /deepx/tty_flag ]; then
+        echo -e "${TAG_INFO} <hint> Use the ${COLOR_BRIGHT_GREEN_ON_BLACK}'Page Up/Down'${COLOR_RESET} keys to view previous/next results"
+        echo -e "${TAG_INFO} <hint> Press ${COLOR_BRIGHT_GREEN_ON_BLACK}'q'${COLOR_RESET} to exit result viewing"
+        fim ${result_path}
+        rm -rf ${result_path}
+    else
+        echo -e "${TAG_WARN} ${COLOR_BRIGHT_YELLOW_ON_BLACK}You are currently running in a **tty session**, which does not support GUI. In such environments, it is not possible to visually confirm the results of example code execution via GUI. (Note): ${COLOR_RESET}"
+        echo -e "${TAG_INFO} ${COLOR_BRIGHT_CYAN_ON_BLACK}The result has been saved at **${result_path}**. Please use the **docker cp** command or similar method to copy the file and check the result on your host. ${COLOR_RESET}"
+        echo -e "${TAG_INFO} ${COLOR_BRIGHT_CYAN_ON_BLACK}(e.g.) 'docker cp <container_name>:${result_real_path} .' ${COLOR_RESET}"
+        echo -e -n "${TAG_INFO} ${COLOR_BRIGHT_GREEN_ON_BLACK}Press any key and hit Enter to continue. ${COLOR_RESET}"
+        read -r answer
+    fi
 }
 
 main() {
@@ -187,10 +207,7 @@ main() {
     # run yolo_face hijakced example
     rm -rf ${FORK_PATH}/result*.jpg
     run_hijacked_example "./bin/run_detector" "${YOLO_FACE_EXAMPLE_PATH}"
-    echo -e "${TAG_INFO} <hint> Use the ${COLOR_BRIGHT_GREEN_ON_BLACK}'Page Up/Down'${COLOR_RESET} keys to view previous/next results"
-    echo -e "${TAG_INFO} <hint> Press ${COLOR_BRIGHT_GREEN_ON_BLACK}'q'${COLOR_RESET} to exit result viewing"
-    fim ${FORK_PATH}/result*.jpg
-    rm -rf ${FORK_PATH}/result*.jpg
+    show_result "${FORK_PATH}/result*.jpg"
     echo -e "${TAG_DONE} === YOLOV5 Face ==="
 
 
@@ -203,10 +220,7 @@ main() {
     # run yolov5s hijakced example
     rm -rf ${FORK_PATH}/result*.jpg
     run_hijacked_example "./bin/run_detector" "${YOLO_V5S_EXAMPLE_PATH}"
-    echo -e "${TAG_INFO} <hint> Use the ${COLOR_BRIGHT_GREEN_ON_BLACK}'Page Up/Down'${COLOR_RESET} keys to view previous/next results"
-    echo -e "${TAG_INFO} <hint> Press ${COLOR_BRIGHT_GREEN_ON_BLACK}'q'${COLOR_RESET} to exit result viewing"
-    fim ${FORK_PATH}/result*.jpg
-    rm -rf ${FORK_PATH}/result*.jpg
+    show_result "${FORK_PATH}/result*.jpg"
     echo -e "${TAG_DONE} === Yolov5s ==="
 
 
@@ -220,8 +234,12 @@ main() {
     rm -rf ${FORK_PATH}/result*.log
     run_hijacked_example "./bin/run_classifier" "${MOBILENET_V2_EXAMPLE_PATH}" "y"
     echo -e "${TAG_INFO} -------- [Result of MobileNetV2 example] --------"
+    echo -e -n "${COLOR_BRIGHT_YELLOW_ON_BLACK}"
     cat ${FORK_PATH}/result-app.log
+    echo -e -n "${COLOR_RESET}"
     echo -e "${TAG_INFO} -------------------------------------------------"
+    echo -e -n "${TAG_INFO} ${COLOR_BRIGHT_GREEN_ON_BLACK}Press any key and hit Enter to continue. ${COLOR_RESET}"
+    read -r answer
     rm -rf ${FORK_PATH}/result*.log
     echo -e "${TAG_DONE} === MobileNetV2 ==="
 }
