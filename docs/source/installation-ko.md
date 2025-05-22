@@ -108,7 +108,7 @@ $ ./dx-runtime/install.sh --target=<module_name>
 `dxrt-cli`를 사용하여 펌웨어를 업데이트하려면:
 
 ```
-$ dxrt-cli -u ./dx-runtime/dx_fw/m1a/X.X.X/mdot2/fw.bin -u reset
+$ dxrt-cli -u ./dx-runtime/dx_fw/m1/X.X.X/mdot2/fw.bin
 ```
 
 또는:
@@ -127,26 +127,69 @@ $ ./dx-runtime/install.sh --target=dx_fw
 
 #### 참고 사항
 
-1. Docker 환경을 사용할 경우, NPU 드라이버는 반드시 호스트 시스템에 설치해야 합니다.
+##### 1. Docker 환경을 사용할 경우, NPU 드라이버는 반드시 호스트 시스템에 설치해야 합니다.
 
    ```
    $ ./dx-runtime/install.sh --target=dx_rt_npu_linux_driver
    ```
 
-2. 호스트 시스템에 `dx_rt`가 설치되어 있고 `service daemon`(`/usr/local/bin/dxrtd`)이 실행 중이면,  
+##### 2. 호스트 시스템에 `dx_rt`가 설치되어 있고 `service daemon`(`/usr/local/bin/dxrtd`)이 실행 중이면,  
    `DX-Runtime` Docker 컨테이너를 실행할 때 `Other instance of dxrtd is running` 오류가 발생하며 종료됩니다.  
    컨테이너 실행 전에 호스트에서 서비스 데몬을 중지하세요.
 
-3. 다른 컨테이너에서 `service daemon`(`/usr/local/bin/dxrtd`)이 실행 중이면, 새로운 컨테이너 실행 시 동일한 오류가 발생합니다.  
-   여러 개의 DX-Runtime 컨테이너를 동시에 실행하려면 아래 #4 항목을 참고하세요.
+##### 3. 만약 다른 컨테이너에서 이미 `서비스 데몬`(`/usr/local/bin/dxrtd`)이 실행 중이라면, 새로운 컨테이너를 실행하더라도 동일한 오류가 발생합니다.  
+   여러 개의 DX-Runtime 컨테이너를 동시에 실행하려면, [#4](#4-컨테이너-내부가-아닌-호스트에서-실행-중인-서비스-데몬을-그대로-사용하고자-하는-경우)를 참고하세요.
 
-4. 컨테이너 내부가 아닌 호스트 시스템에서 `service daemon`을 실행하려면,  
-   `./docker/Dockerfile`에서 다음과 같이 수정하세요.
+##### 4. 컨테이너 내부가 아닌 호스트에서 실행 중인 `dxrtd`(서비스 데몬)을 그대로 사용하고자 하는 경우,  
+다음 두 가지 방법 중 하나로 설정할 수 있습니다:
 
-   ```
-   # ENTRYPOINT [ "/usr/local/bin/dxrtd" ]
-   ENTRYPOINT ["tail", "-f", "/dev/null"]
-   ```
+
+###### 해결 방법 1: Docker 이미지 빌드 단계에서 수정
+`docker/Dockerfile.dx-runtime` 파일을 아래와 같이 수정합니다:
+
+- 변경 전:
+```
+...
+ENTRYPOINT [ "/usr/local/bin/dxrtd" ]
+# ENTRYPOINT ["tail", "-f", "/dev/null"]
+```
+
+- 변경 후:
+```
+...
+# ENTRYPOINT [ "/usr/local/bin/dxrtd" ]
+ENTRYPOINT ["tail", "-f", "/dev/null"]
+```
+
+###### 해결 방법 2: Docker 컨테이너 실행 단계에서 수정
+`docker/docker-compose.yml` 파일을 아래와 같이 수정합니다:
+
+- 변경 전:
+```
+  ...
+  dx-runtime:
+    container_name: dx-runtime-${UBUNTU_VERSION}
+    image: dx-runtime:${UBUNTU_VERSION}
+    ...
+    restart: on-failure
+    devices:
+      - "/dev:/dev"                           # NPU / GPU / USB CAM
+```
+
+- 변경 후:
+```
+  ...
+  dx-runtime:
+    container_name: dx-runtime-${UBUNTU_VERSION}
+    image: dx-runtime:${UBUNTU_VERSION}
+    ...
+    restart: on-failure
+    devices:
+      - "/dev:/dev"                           # NPU / GPU / USB CAM
+
+    entrypoint: ["/bin/sh", "-c"]             # 추가됨
+    command: ["sleep infinity"]               # 추가됨
+```
 
 #### Docker 이미지 빌드
 
@@ -288,7 +331,7 @@ $ ./scripts/run_detector.sh
 $ fim ./result-app1.jpg
 ```
 
-**자세한 내용은 `dx_app/README.md`를 참고하세요.**
+**자세한 내용은 [dx-runtime/dx_app/README.md](/dx-runtime/dx_app/README.md).**
 
 ---
 
@@ -318,7 +361,7 @@ $ ./setup.sh
 $ ./run_demo.sh
 ```
 
-**자세한 내용은 `dx_stream/README.md`를 참고하세요.**
+**자세한 내용은 [dx-runtime/dx_stream/README.md](/dx-runtime/dx_stream/README.md)를 참고하세요.**
 
 ---
 
@@ -361,7 +404,7 @@ dx_com/dx_com \
 Compiling Model : 100%|███████████████████████████████| 1.0/1.0 [00:47<00:00, 47.66s/model ]
 ```
 
-**자세한 내용은 `dx_com/README.md`를 참고하세요.**
+**자세한 내용은 [dx-compiler/source/docs/02_02_Installation_of_DX-COM.md](/dx-compiler/source/docs/02_02_Installation_of_DX-COM.md)를 참고하세요.**
 
 ---
 
@@ -406,5 +449,5 @@ Compiling Model : 100%|███████████████████
 (venv-dx-simulator) $ fim examples/yolov5s.jpg
 ```
 
-**자세한 내용은 `dx_simulator/README.md`를 참고하세요.**
+**자세한 내용은 [dx-compiler/source/docs/04_01_Simulator_DX-SIM.md](/dx-compiler/source/docs/04_01_Simulator_DX-SIM.md)를 참고하세요.**
 
