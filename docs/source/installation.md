@@ -128,24 +128,68 @@ $ ./dx-runtime/install.sh --target=dx_fw
 
 #### Notes
 
-1. When using a Docker environment, the NPU driver must be installed on the host system:
+##### 1. When using a Docker environment, the NPU driver must be installed on the host system:
 
    ```
    $ ./dx-runtime/install.sh --target=dx_rt_npu_linux_driver
    ```
 
-2. If `dx_rt` is already installed on the host system and the `service daemon` (`/usr/local/bin/dxrtd`) is running, launching the `DX-Runtime` Docker container will result in an error (`Other instance of dxrtd is running`) and automatic termination.  
+##### 2. If `dx_rt` is already installed on the host system and the `service daemon` (`/usr/local/bin/dxrtd`) is running, launching the `DX-Runtime` Docker container will result in an error (`Other instance of dxrtd is running`) and automatic termination.  
    Before starting the container, stop the service daemon on the host system.
 
-3. If another container is already running with the `service daemon` (`/usr/local/bin/dxrtd`), starting a new container will also result in the same error.  
-   To run multiple DX-Runtime containers simultaneously, refer to note #4.
+##### 3. If another container is already running with the `service daemon` (`/usr/local/bin/dxrtd`), starting a new container will also result in the same error.  
+   To run multiple DX-Runtime containers simultaneously, refer to note [#4](#4-if-you-prefer-to-use-the-service-daemon-running-on-the-host-system-instead-of-inside-the-container)
 
-4. If you prefer to use the `service daemon` running on the host system instead of inside the container, modify `./docker/Dockerfile` as follows:
+##### 4. If you prefer to use the `dxrtd`(service daemon) running on the host system instead of inside the container, 
+You can configure this in two ways:
 
-   ```
-   # ENTRYPOINT [ "/usr/local/bin/dxrtd" ]
-   ENTRYPOINT ["tail", "-f", "/dev/null"]
-   ```
+
+###### Solution 1: Modify at Docker image build level
+Update the `docker/Dockerfile.dx-runtime` as follows:
+
+- Before:
+```
+...
+ENTRYPOINT [ "/usr/local/bin/dxrtd" ]
+# ENTRYPOINT ["tail", "-f", "/dev/null"]
+```
+
+- After:
+```
+...
+# ENTRYPOINT [ "/usr/local/bin/dxrtd" ]
+ENTRYPOINT ["tail", "-f", "/dev/null"]
+```
+
+###### Solution 2) Modify at Docker container run level
+Update the `docker/docker-compose.yml` as follows:
+
+- Before:
+```
+  ...
+  dx-runtime:
+    container_name: dx-runtime-${UBUNTU_VERSION}
+    image: dx-runtime:${UBUNTU_VERSION}
+    ...
+    restart: on-failure
+    devices:
+      - "/dev:/dev"                           # NPU / GPU / USB CAM
+```
+
+- After:
+```
+  ...
+  dx-runtime:
+    container_name: dx-runtime-${UBUNTU_VERSION}
+    image: dx-runtime:${UBUNTU_VERSION}
+    ...
+    restart: on-failure
+    devices:
+      - "/dev:/dev"                           # NPU / GPU / USB CAM
+
+    entrypoint: ["/bin/sh", "-c"]             # ADDED
+    command: ["sleep infinity"]               # ADDED
+```
 
 #### Build the Docker Image
 
@@ -289,7 +333,7 @@ $ ./scripts/run_detector.sh
 $ fim ./result-app1.jpg
 ```
 
-**For more details, refer to `dx_app/README.md`.**
+**For more details, refer to [dx-runtime/dx_app/README.md](/dx-runtime/dx_app/README.md).**
 
 ---
 
@@ -319,7 +363,7 @@ $ ./setup.sh
 $ ./run_demo.sh
 ```
 
-**For more details, refer to `dx_stream/README.md`.**
+**For more details, refer to [dx-runtime/dx_stream/README.md](/dx-runtime/dx_stream/README.md).**
 
 ---
 
@@ -362,7 +406,7 @@ dx_com/dx_com \
 Compiling Model : 100%|███████████████████████████████| 1.0/1.0 [00:47<00:00, 47.66s/model ]
 ```
 
-**For more details, refer to `dx_com/README.md`.**
+**For more details, refer to [dx-compiler/source/docs/02_02_Installation_of_DX-COM.md](/dx-compiler/source/docs/02_02_Installation_of_DX-COM.md).**
 
 ---
 
@@ -406,5 +450,5 @@ Compiling Model : 100%|███████████████████
 (venv-dx-simulator) $ fim examples/yolov5s.jpg
 ```
 
-**For more details, refer to `dx_simulator/README.md`.**
+**For more details, refer to [dx-compiler/source/docs/04_01_Simulator_DX-SIM.md](/dx-compiler/source/docs/04_01_Simulator_DX-SIM.md).**
 

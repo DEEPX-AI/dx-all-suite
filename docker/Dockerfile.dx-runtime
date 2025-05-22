@@ -68,13 +68,6 @@ RUN set -x && \
     sed -i 's/option(USE_ORT *"Use ONNX Runtime" *OFF)/option(USE_ORT "Use ONNX Runtime" ON)/' "$CMAKE_FILE" && \
     echo "USE_ORT option has been set to ON in dx_rt/$CMAKE_FILE"
 
-# # temp: disable support version check logic in 'dx_rt/lib/inference_engine.cpp'
-# RUN set -x && \
-#     TARGET_FILE="lib/inference_engine.cpp" && \
-#     sed -i '/^[[:space:]]*if ( !isSupporterModelVersion(version_str) )/s/^/\/\//' "$TARGET_FILE" && \
-#     sed -i '/^[[:space:]]*throw InvalidModelException(std::string("Unsupported compiler version/s/^/\/\//' "$TARGET_FILE" && \
-#     echo "USE_ORT option has been set to ON in dx_rt/$TARGET_FILE"
-
 RUN set -x && \
     . /venv-dxnn/bin/activate && \
     echo "Build dx_rt..." && \
