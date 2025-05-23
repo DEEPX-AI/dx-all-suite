@@ -140,3 +140,53 @@ sudo systemctl restart gdm3
 
 After reboot or GDM restart, the system will use the X11 session by default instead of Wayland.
 
+---
+
+## Question #3
+
+When running the example code, the following error message appears:
+
+```
+The current firmware version is X.X.X. Please update your firmware to version X.X.X or higher.
+```
+
+## Answer #3
+
+**dx_rt** depends on both **dx_rt_npu_linux_driver** and **dx_fw**. To use the current version of **dx_rt** properly, you need to update the **dx_fw**.
+
+Please refer to [Link](/docs/source/installation.md#update-dx_fw-firmware-image) to update your **dx_fw** and resolve the issue.
+
+---
+
+## Question #4
+
+When running the example code, the following error message appears:
+
+```
+The current device driver version is X.X.X. Please update your device driver to version X.X.X or higher.
+```
+
+## Answer #4
+
+**dx_rt** depends on both **dx_rt_npu_linux_driver** and **dx_fw**. To use the current version of **dx_rt** properly, you need to update the **dx_rt_npu_linux_driver**.
+
+Please refer to [Link](/docs/source/installation.md#1-when-using-a-docker-environment-the-npu-driver-must-be-installed-on-the-host-system) to update your **dx_rt_npu_linux_driver** and resolve the issue.
+
+---
+
+## Question #5
+
+When running the example code, the following error message appears:
+
+```
+The model's compiler version (X.X.X) is not compatible in this RT library. Please downgrade the RT library version to X.X.X or use a model file generated with a compiler version X.X.X or higher.
+```
+
+## Answer #5
+
+This error occurs due to an incompatibility between the **dx_rt** runtime and the model file compiled with **dx_com**.
+
+To resolve the issue, either downgrade **dx_rt** to a compatible version, or recompile the model file (*.dxnn) using a **dx_com** version that matches your current **dx_rt**.
+
+Refer to [Link](/docs/source/version_compatibility.md) for version compatibility details between modules.
+
