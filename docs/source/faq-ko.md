@@ -104,7 +104,7 @@ Error response from daemon: failed to create task for container: failed to creat
 Error: failed to start containers: dx-runtime-22.04
 ```
 
-## 답변 #2
+## Answer #2
 
 `dx-all-suite` Docker 컨테이너는 샘플 애플리케이션이나 예제 코드를 실행할 때 **GUI 창을 표시하기 위해 X11 포워딩**을 사용합니다. 이를 위해 `xauth`를 활용하여 인증을 처리합니다.
 
@@ -142,4 +142,54 @@ sudo systemctl restart gdm3
 ```
 
 재부팅하거나 GDM을 재시작한 이후에는 시스템이 기본적으로 Wayland가 아닌 **X11 세션을 사용**하게 됩니다.
+
+---
+
+## Question #3
+
+Example code 실행 시 아래와 같은 메시지와 함께 에러가 발생했습니다.
+
+```
+The current firmware version is X.X.X. Please update your firmware to version X.X.X or higher.
+```
+
+## Answer #3
+
+**dx_rt**는 **dx_rt_npu_linux_driver**와 **dx_fw**에 의존성이 있으며, 현재 사용 중인 **dx_rt**를 정상적으로 사용하려면 **dx_fw**의 업데이트가 필요합니다.
+
+[Link](/docs/source/installation.md#update-dx_fw-firmware-image)를 참고하여 **dx_fw**를 업데이트하면 문제를 해결할 수 있습니다.
+
+---
+
+## Question #4
+
+Example code 실행 시 아래와 같은 메시지와 함께 에러가 발생했습니다.
+
+```
+The current device driver version is X.X.X. Please update your device driver to version X.X.X or higher.
+```
+
+## Answer #4
+
+**dx_rt**는 **dx_rt_npu_linux_driver**와 **dx_fw**에 의존성이 있으며, 현재 사용 중인 **dx_rt**를 정상적으로 사용하려면 **dx_rt_npu_linux_driver**의 업데이트가 필요합니다.
+
+[Link](/docs/source/installation.md#1-when-using-a-docker-environment-the-npu-driver-must-be-installed-on-the-host-system)를 참고하여 **dx_rt_npu_linux_driver**를 업데이트하면 문제를 해결할 수 있습니다.
+
+---
+
+## Question #5
+
+Example code 실행 시 아래와 같은 메시지와 함께 에러가 발생했습니다.
+
+```
+The model's compiler version(X.X.X is not compatible in this RT library. Please downgrade the RT library version to X.X.X or use a model file generated with a compiler version X.X.X  or higher.
+```
+
+## Answer #5
+
+현재 사용 중인 **dx_rt**와 모델 파일을 컴파일한 **dx_com** 버전 간에 호환성 문제가 발생한 상황입니다. 
+
+호환 가능한 **dx_rt** 버전으로 다운그레이드하거나, 현재 사용 중인 **dx_rt**와 호환되는 **dx_com** 버전을 사용하여 모델 파일(*.dxnn)을 다시 컴파일해야 합니다.
+
+각 모듈 간 버전 호환성은 [Link](/docs/source/version_compatibility.md)를 참고하시기 바랍니다.
 
