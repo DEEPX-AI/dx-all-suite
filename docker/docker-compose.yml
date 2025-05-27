@@ -22,7 +22,6 @@ services:
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
       - /var/run/docker.sock:/var/run/docker.sock
-      - ${LOCAL_VOLUME_PATH:-../workspace}:${DOCKER_VOLUME_PATH:-/deepx/workspace} # mount volume
     network_mode: "host"
     restart: on-failure
     devices:
@@ -61,11 +60,14 @@ services:
       - /run/dbus:/run/dbus                   # NPU dbus
       - /var/lib/dbus:/var/lib/dbus           # NPU dbus
       - ${LOCAL_VOLUME_PATH:-../workspace}:${DOCKER_VOLUME_PATH:-/deepx/workspace} # mount volume
+      - /var/run/docker.sock:/var/run/docker.sock   # execute dx_com in dx-compiler container via docker CLI
     network_mode: "host"
     privileged: true                          # NPU
     restart: on-failure
     devices:
       - "/dev:/dev"                           # NPU / GPU / USB CAM
+    entrypoint: ["/bin/sh", "-c"]
+    command: ["sleep infinity"]
 
   dx-modelzoo:
     container_name: dx-modelzoo-${UBUNTU_VERSION}
@@ -100,6 +102,7 @@ services:
       - /run/dbus:/run/dbus                   # NPU dbus
       - /var/lib/dbus:/var/lib/dbus           # NPU dbus
       - ${LOCAL_VOLUME_PATH:-../workspace}:${DOCKER_VOLUME_PATH:-/deepx/workspace} # mount volume
+      - /var/run/docker.sock:/var/run/docker.sock   # execute dx_com in dx-compiler container via docker CLI
     network_mode: "host"
     privileged: true                          # NPU
     restart: on-failure
