@@ -1,0 +1,16 @@
+services:
+  dx-compiler:
+    build:
+      args:
+        USE_INTRANET: "true"
+        CA_FILE_NAME: "intranet_CA_SSL.crt"
+  dx-runtime:
+    build:
+      args:
+        USE_INTRANET: "true"
+        CA_FILE_NAME: "intranet_CA_SSL.crt"
+  dx-modelzoo:
+    build:
+      args:
+        USE_INTRANET: "true"
+        CA_FILE_NAME: "intranet_CA_SSL.crt"

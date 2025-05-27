@@ -11,7 +11,7 @@ pushd "$SCRIPT_DIR"
 OUTPUT_DIR="$SCRIPT_DIR/archives"
 UBUNTU_VERSION=""
 
-DEV_MODE=0
+INTERNAL_MODE=0
 FORCE_ARGS=""
 
 # Properties file path
@@ -71,8 +71,8 @@ docker_build_impl()
     local config_file_args=${2:--f docker/docker-compose.yml}
     local no_cache_arg=""
 
-    if [ ${DEV_MODE} -eq 1 ]; then
-        config_file_args="${config_file_args} -f docker/docker-compose.dev.yml"
+    if [ ${INTERNAL_MODE} -eq 1 ]; then
+        config_file_args="${config_file_args} -f docker/docker-compose.internal.yml"
     fi
 
     if [ "$NO_CACHE" = "y" ]; then
@@ -214,8 +214,8 @@ for i in "$@"; do
             show_help
             exit 0
             ;;
-        --dev)
-            DEV_MODE=1
+        --internal)
+            INTERNAL_MODE=1
             ;;
         --force)
             FORCE_ARGS="--force"
