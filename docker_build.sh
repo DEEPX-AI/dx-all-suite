@@ -11,6 +11,7 @@ pushd "$SCRIPT_DIR"
 OUTPUT_DIR="$SCRIPT_DIR/archives"
 UBUNTU_VERSION=""
 
+NVIDIA_GPU_MODE=0
 INTERNAL_MODE=0
 FORCE_ARGS=""
 
@@ -70,6 +71,10 @@ docker_build_impl()
     local target=$1
     local config_file_args=${2:--f docker/docker-compose.yml}
     local no_cache_arg=""
+
+    if [ ${NVIDIA_GPU_MODE} -eq 1 ]; then
+        config_file_args="${config_file_args} -f docker/docker-compose.nvidia_gpu.yml"
+    fi
 
     if [ ${INTERNAL_MODE} -eq 1 ]; then
         config_file_args="${config_file_args} -f docker/docker-compose.internal.yml"
@@ -209,6 +214,9 @@ for i in "$@"; do
             ;;
         --no-cache)
             NO_CACHE=y
+            ;;
+        --nvidia_gpu)
+            NVIDIA_GPU_MODE=1
             ;;
         --help)
             show_help

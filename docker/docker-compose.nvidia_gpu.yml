@@ -1,0 +1,34 @@
+services:
+  dx-compiler:
+    container_name: dx-compiler-${CUDA_VERSION:-12.8.1}-cudnn-runtime-ubuntu${UBUNTU_VERSION}
+    image: dx-compiler:${CUDA_VERSION:-12.8.1}-cudnn-runtime-ubuntu${UBUNTU_VERSION}
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+    runtime: nvidia
+    build:
+      args:
+        BASE_IMAGE_NAME: "nvidia/cuda"
+        TAG_NAME: "${CUDA_VERSION:-12.8.1}-cudnn-runtime-ubuntu${UBUNTU_VERSION}"
+  dx-runtime:
+    container_name: dx-runtime-${CUDA_VERSION:-12.8.1}-cudnn-runtime-ubuntu${UBUNTU_VERSION}}
+    image: dx-runtime:${CUDA_VERSION:-12.8.1}-cudnn-runtime-ubuntu${UBUNTU_VERSION}
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+    runtime: nvidia
+    build:
+      args:
+        BASE_IMAGE_NAME: "nvidia/cuda"
+        TAG_NAME: "${CUDA_VERSION:-12.8.1}-cudnn-runtime-ubuntu${UBUNTU_VERSION}"
+  dx-modelzoo:
+    container_name: dx-modelzoo-${CUDA_VERSION:-12.8.1}-cudnn-runtime-ubuntu${UBUNTU_VERSION}
+    image: dx-modelzoo:${CUDA_VERSION:-12.8.1}-cudnn-runtime-ubuntu${UBUNTU_VERSION}
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+    runtime: nvidia
+    build:
+      args:
+        BASE_IMAGE_NAME: "nvidia/cuda"
+        TAG_NAME: "${CUDA_VERSION:-12.8.1}-cudnn-runtime-ubuntu${UBUNTU_VERSION}"

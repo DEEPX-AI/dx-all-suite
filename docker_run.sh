@@ -10,6 +10,7 @@ pushd "$SCRIPT_DIR"
 OUTPUT_DIR="$SCRIPT_DIR/archives"
 UBUNTU_VERSION=""
 
+NVIDIA_GPU_MODE=0
 DEV_MODE=0
 INTEL_GPU_HW_ACC=0
 
@@ -69,6 +70,10 @@ docker_run_impl()
     local target=$1
     local config_file_args=${2:--f docker/docker-compose.yml}
 
+    if [ ${NVIDIA_GPU_MODE} -eq 1 ]; then
+        config_file_args="${config_file_args} -f docker/docker-compose.nvidia_gpu.yml"
+    fi
+
     if [ ${DEV_MODE} -eq 1 ]; then
         config_file_args="${config_file_args} -f docker/docker-compose.dev.yml"
     fi
@@ -79,7 +84,8 @@ docker_run_impl()
     DUMMY_XAUTHORITY=""
     if [ ! -n "${XAUTHORITY}" ]; then
         echo -e "${TAG_INFO} XAUTHORITY env is not set. so, try to set automatically."
-        DUMMY_XAUTHORITY="/tmp/dummy"
+        DUMMY_XAUTHORITY="${DX_AS_PATH}/dummy_xauthority"
+        rm -rf ${DUMMY_XAUTHORITY}
         touch ${DUMMY_XAUTHORITY}
         export XAUTHORITY=${DUMMY_XAUTHORITY}
         export XAUTHORITY_TARGET=${DUMMY_XAUTHORITY}
@@ -198,6 +204,9 @@ for i in "$@"; do
             ;;
         --ubuntu_version=*)
             UBUNTU_VERSION="${1#*=}"
+            ;;
+        --nvidia_gpu)
+            NVIDIA_GPU_MODE=1
             ;;
         --help)
             show_help

@@ -4,14 +4,12 @@ services:
       - /mnt/datasets:/mnt/datasets
       - /mnt/regression_storage:/mnt/regression_storage
       - /mnt/modelzoo_storage:/mnt/modelzoo_storage
-      - ${DX_MZ_SRC_PATH:-../dx-modelzoo}:/deepx/dx-modelzoo
       - ~/.ssh:/root/.ssh
   dx-runtime:
     volumes:
       - /mnt/datasets:/mnt/datasets
       - /mnt/regression_storage:/mnt/regression_storage
       - /mnt/modelzoo_storage:/mnt/modelzoo_storage
-      - ${DX_RUNTIME_SRC_PATH:-../dx-runtime}:/deepx/dx-runtime
       - ~/.ssh:/root/.ssh
   dx-modelzoo:
     volumes:
