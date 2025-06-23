@@ -1,0 +1,119 @@
+ARG UBUNTU_VERSION=24.04
+ARG TAG_NAME=${UBUNTU_VERSION}
+ARG BASE_IMAGE_NAME=ubuntu
+FROM alpine:latest AS install
+USER root
+
+# COPY and EXTRACT 'dx-com' and 'dx_simulator' for using option '--strip-components=1'
+WORKDIR /deepx/dx-compiler/dx_com
+ARG FILE_DXCOM
+COPY ${FILE_DXCOM} /deepx/dx-compiler/dx_com
+
+RUN tar_file=$(ls *.tar.gz) && \
+    first_entry=$(tar -tzf "$tar_file" | head -n 1) && \
+    if echo "$first_entry" | grep -q '/'; then \
+        echo "Detected top-level directory. Using --strip-components=1"; \
+        tar -xzf "$tar_file" --strip-components=1 -C .; \
+    else \
+        echo "No top-level directory. Extracting as-is"; \
+        tar -xzf "$tar_file" -C .; \
+    fi && \
+    rm -f "$tar_file"
+
+WORKDIR /deepx/dx-compiler/dx_simulator
+ARG FILE_DXSIM
+COPY ${FILE_DXSIM} /deepx/dx-compiler/dx_simulator
+
+RUN tar_file=$(ls *.tar.gz) && \
+    first_entry=$(tar -tzf "$tar_file" | head -n 1) && \
+    if echo "$first_entry" | grep -q '/'; then \
+        echo "Detected top-level directory. Using --strip-components=1"; \
+        tar -xzf "$tar_file" --strip-components=1 -C .; \
+    else \
+        echo "No top-level directory. Extracting as-is"; \
+        tar -xzf "$tar_file" -C .; \
+    fi && \
+    rm -f "$tar_file"
+
+
+# COPY 'scripts' and 'getting-start'
+COPY scripts /deepx/scripts
+COPY getting-start /deepx/getting-start
+ENV DX_CONTAINER_MODE=true
+RUN /deepx/getting-start/compiler-clean.sh
+
+# COPY dx-runtime
+WORKDIR /deepx/dx-runtime/dx_rt
+ADD archives/dx_rt.tar.gz /deepx/dx-runtime/dx_rt/
+
+# temp: until dx_rt's USE_ORT build option default changes from OFF to ON
+RUN set -x && \
+    CMAKE_FILE="cmake/dxrt.cfg.cmake" && \
+    sed -i 's/option(USE_ORT *"Use ONNX Runtime" *OFF)/option(USE_ORT "Use ONNX Runtime" ON)/' "$CMAKE_FILE" && \
+    echo "USE_ORT option has been set to ON in dx_rt/$CMAKE_FILE"
+
+WORKDIR /deepx/dx-runtime/dx_app
+ARG FILE_DXAPP=archives/dx_app.tar.gz
+ADD ${FILE_DXAPP} /deepx/dx-runtime/dx_app/
+
+WORKDIR /deepx/dx-runtime/dx_stream
+ARG FILE_DXSTREAM=archives/dx_stream.tar.gz
+ADD ${FILE_DXSTREAM} /deepx/dx-runtime/dx_stream/
+
+# COPY dx-modelzoo
+WORKDIR /deepx/dx-modelzoo
+ARG FILE_DXMODELZOO=archives/dx-modelzoo.tar.gz
+ADD ${FILE_DXMODELZOO} /deepx/dx-modelzoo/
+
+###
+FROM ${BASE_IMAGE_NAME}:${TAG_NAME}
+
+USER root
+
+ARG TZ=Asia/Seoul
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ >/etc/timezone
+
+ARG DEBIAN_FRONTEND=noninteractive
+ENV PATH="/usr/local/bin:${PATH}"
+
+### update apt repo
+RUN apt-get update && apt-get install -y \
+    software-properties-common && \
+    add-apt-repository universe && \
+    add-apt-repository multiverse && \
+    apt-get update
+
+### install utils
+RUN apt-get update && apt-get install -y \
+        tzdata \
+        git vim sudo \
+        lsb-release
+
+# X11 forwarding and xcb
+RUN apt-get install -y x11-apps libx11-6 xauth libxext6 libxrender1 libxtst6 libxi6 libxcb-xinerama0
+
+# for setting ssl issue on intranet
+# only used 'USE_INTRANET=true'
+ARG USE_INTRANET=false
+ARG CA_FILE_NAME="dummy.crt"
+COPY ${CA_FILE_NAME} /usr/local/share/ca-certificates/
+RUN if [ "$USE_INTRANET" = "true" ]; then \
+      git config --global http.sslVerify false && \
+      update-ca-certificates ; \
+    else \
+      echo "Skipping intranet SSL setup"; \
+    fi
+
+# Copy dx_com and dx_simulator
+COPY --from=install /deepx /deepx
+
+RUN apt-get update && \
+    apt-get install -y \
+    vim fim && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+WORKDIR /deepx
+
+ENTRYPOINT ["tail", "-f", "/dev/null"]
+
