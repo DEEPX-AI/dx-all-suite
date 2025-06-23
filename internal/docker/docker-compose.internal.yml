@@ -1,0 +1,6 @@
+services:
+  dx-local-install-test:
+    build:
+      args:
+        USE_INTRANET: "true"
+        CA_FILE_NAME: "intranet_CA_SSL.crt"
