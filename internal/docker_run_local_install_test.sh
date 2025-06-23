@@ -1,6 +1,6 @@
 #!/bin/bash
 SCRIPT_DIR=$(realpath "$(dirname "$0")")
-DX_AS_PATH=$(realpath -s "${SCRIPT_DIR}")
+DX_AS_PATH=$(realpath -s "${SCRIPT_DIR}/../")
 
 # color env settings
 source ${DX_AS_PATH}/scripts/color_env.sh
@@ -16,14 +16,9 @@ INTEL_GPU_HW_ACC=0
 
 # Function to display help message
 show_help() {
-    echo "Usage: $(basename "$0") OPTIONS(--all | target=<environment_name>) --ubuntu_version=<version> [--help]"
-    echo "Example:1) $0 --all --ubuntu_version=24.04"
-    echo "Example 2) $0 --target=dx-compiler --ubuntu_version=24.04"
-    echo "Example 3) $0 --target=dx-runtime --ubuntu_version=24.04"
-    echo "Example 3) $0 --target=dx-modelzoo --ubuntu_version=24.04"
+    echo "Usage: $(basename "$0") --ubuntu_version=<version> [--help]"
+    echo "Example:1) $0 --ubuntu_version=24.04"
     echo "Options:"
-    echo "  --all                          : Install DXNN® Software Stack (dx-compiler & dx-runtime & dx-modelzoo)"
-    echo "  --target=<environment_name>    : Install specify target DXNN® environment (ex> dx-compiler | dx-runtime | dx-modelzoo)"
     echo "  --ubuntu_version=<version>     : Specify Ubuntu version (ex> 24.04)"
     echo "  [--help]                       : Show this help message"
 
@@ -67,8 +62,7 @@ check_xdg_sesstion_type()
 
 docker_run_impl()
 {
-    local target=$1
-    local config_file_args=${2:--f docker/docker-compose.yml}
+    local config_file_args=${1:--f docker/docker-compose.local.install.test.yml}
 
     if [ ${NVIDIA_GPU_MODE} -eq 1 ]; then
         config_file_args="${config_file_args} -f docker/docker-compose.nvidia_gpu.yml"
@@ -94,13 +88,13 @@ docker_run_impl()
         export XAUTHORITY_TARGET="/tmp/.docker.xauth"
     fi
 
-    CMD="docker compose ${config_file_args} -p dx-all-suite up -d --remove-orphans dx-${target}"
+    CMD="docker compose ${config_file_args} -p dx-all-suite-local-install-test up -d --remove-orphans dx-local-install-test"
     echo "${CMD}"
 
     ${CMD}
 
     if [ "$XDG_SESSION_TYPE" == "tty" ]; then
-        local DOCKER_EXEC_CMD="docker exec -it dx-${target}-${UBUNTU_VERSION} touch /deepx/tty_flag"
+        local DOCKER_EXEC_CMD="docker exec -it dx-local-install-test-${UBUNTU_VERSION} touch /deepx/tty_flag"
 
         echo -e "${DOCKER_EXEC_CMD}"
         ${DOCKER_EXEC_CMD}
@@ -119,8 +113,8 @@ docker_run_impl()
         XAUTH=$(xauth list "$DISPLAY")
         XAUTH_ADD_CMD="xauth add $XAUTH"
         
-        local DOCKER_EXEC_CMD1="docker exec -it dx-${target}-${UBUNTU_VERSION} touch /tmp/.docker.xauth"
-        local DOCKER_EXEC_CMD2="docker exec -it dx-${target}-${UBUNTU_VERSION} ${XAUTH_ADD_CMD}"
+        local DOCKER_EXEC_CMD1="docker exec -it dx-local-install-test-${UBUNTU_VERSION} touch /tmp/.docker.xauth"
+        local DOCKER_EXEC_CMD2="docker exec -it dx-local-install-test-${UBUNTU_VERSION} ${XAUTH_ADD_CMD}"
 
         echo -e "${DOCKER_EXEC_CMD1}"
         echo -e "${DOCKER_EXEC_CMD2}"
@@ -129,34 +123,15 @@ docker_run_impl()
     fi
 }
 
-docker_run_all() 
+docker_run()
 {
-    docker_run_dx-compiler
-    docker_run_dx-runtime
-    docker_run_dx-modelzoo
-}
-
-docker_run_dx-compiler() 
-{
-    local docker_compose_args="-f docker/docker-compose.yml"
-    docker_run_impl "compiler" "${docker_compose_args}"
-}
-
-docker_run_dx-runtime()
-{
-    local docker_compose_args="-f docker/docker-compose.yml"
+    local docker_compose_args="-f docker/docker-compose.local.install.test.yml"
 
     if [ ${INTEL_GPU_HW_ACC} -eq 1 ]; then
         docker_compose_args="${docker_compose_args} -f docker/docker-compose.intel_gpu_hw_acc.yml"
     fi
 
-    docker_run_impl "runtime" "${docker_compose_args}"
-}
-
-docker_run_dx-modelzoo()
-{
-    local docker_compose_args="-f docker/docker-compose.yml"
-    docker_run_impl "modelzoo" "${docker_compose_args}"
+    docker_run_impl "${docker_compose_args}"
 }
 
 main() {
@@ -165,44 +140,17 @@ main() {
         show_help "error" "--ubuntu_version ($UBUNTU_VERSION) does not exist."
     else
         echo -e "${TAG_INFO} UBUNTU_VERSSION($UBUNTU_VERSION) is set."
-        echo -e "${TAG_INFO} TARGET_ENV($TARGET_ENV) is set."
     fi
 
     check_xdg_sesstion_type
 
-    case $TARGET_ENV in
-        dx-compiler)
-            echo "Installing dx-compiler"
-            docker_run_dx-compiler
-            ;;
-        dx-runtime)
-            echo "Installing dx-runtime"
-            docker_run_dx-runtime
-            ;;
-        dx-modelzoo)
-            echo "Installing dx-modelzoo"
-            docker_run_dx-modelzoo
-            ;;
-        all)
-            echo "Installing all DXNN® environments"
-            docker_run_all
-            ;;
-        *)
-            echo -e "${TAG_ERROR} Unknown '--target' option '$TARGET_ENV'"
-            show_help "error" "${TAG_INFO} (Hint) Please specify either the '--all' option or the '--target=<dx-compiler | dx-runtime>' option."
-            ;;
-    esac
+    echo "Installing all DXNN® environments"
+    docker_run
 }
 
 # parse args
 for i in "$@"; do
     case "$1" in
-        --all)
-            TARGET_ENV=all
-            ;;
-        --target=*)
-            TARGET_ENV="${1#*=}"
-            ;;
         --ubuntu_version=*)
             UBUNTU_VERSION="${1#*=}"
             ;;

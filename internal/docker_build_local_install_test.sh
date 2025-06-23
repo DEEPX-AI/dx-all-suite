@@ -1,6 +1,6 @@
 #!/bin/bash
 SCRIPT_DIR=$(realpath "$(dirname "$0")")
-DX_AS_PATH=$(realpath -s "${SCRIPT_DIR}")
+DX_AS_PATH=$(realpath -s "${SCRIPT_DIR}/../")
 COMPILER_PATH="${DX_AS_PATH}/dx-compiler"
 
 # color env settings
@@ -40,14 +40,10 @@ FILE_DXSIM="archives/dx_simulator_v${SIM_VERSION}.tar.gz"
 
 # Function to display help message
 show_help() {
-    echo "Usage: $(basename "$0") OPTIONS(--all | target=<environment_name>) --ubuntu_version=<version> [--help]"
-    echo "Example 1) $0 --all --ubuntu_version=24.04"
-    echo "Example 2) $0 --target=dx-compiler --ubuntu_version=24.04"
-    echo "Example 3) $0 --target=dx-runtime --ubuntu_version=24.04 --driver_update"
-    echo "Example 3) $0 --target=dx-modelzoo --ubuntu_version=24.04 --driver_update"
+    echo "Usage: $(basename "$0") --ubuntu_version=<version> [--help | --no-cache | --driver_update]"
+    echo "Example 1) $0 --ubuntu_version=24.04"
+    echo "Example 2) $0 --ubuntu_version=24.04 --driver_update"
     echo "Options:"
-    echo "  --all                          : Install DXNN® Software Stack (dx-compiler & dx-runtime & dx-modelzoo)"
-    echo "  --target=<environment_name>    : Install specify target DXNN® environment (ex> dx-compiler | dx-runtime | dx-modelzoo)"
     echo "  --ubuntu_version=<version>     : Specify Ubuntu version (ex> 24.04)"
     echo "  [--driver_update]              : Install 'dx_rt_npu_linux_driver' in the host environment"
     echo "  [--no-cache]                   : Build Docker images freshly without cache"
@@ -68,8 +64,7 @@ show_help() {
 
 docker_build_impl()
 {
-    local target=$1
-    local config_file_args=${2:--f docker/docker-compose.yml}
+    local config_file_args=${1:--f docker/docker-compose.yml}
     local no_cache_arg=""
 
     if [ ${NVIDIA_GPU_MODE} -eq 1 ]; then
@@ -101,35 +96,16 @@ docker_build_impl()
         export XAUTHORITY_TARGET="/tmp/.docker.xauth"
     fi
 
-    CMD="docker compose ${config_file_args} build ${no_cache_arg} dx-${target}"
+    CMD="docker compose ${config_file_args} build ${no_cache_arg} dx-local-install-test"
     echo "${CMD}"
 
-    ${CMD} || { echo -e "${TAG_ERROR} docker build '${target} failed. "; exit 1; }
+    ${CMD} || { echo -e "${TAG_ERROR} docker build dx-local-install-test failed. "; exit 1; }
 }
 
-docker_build_all() 
+docker_build() 
 {
-    docker_build_dx-compiler
-    docker_build_dx-runtime
-    docker_build_dx-modelzoo
-}
-
-docker_build_dx-compiler() 
-{
-    local docker_compose_args="-f docker/docker-compose.yml"
-    docker_build_impl "compiler" "${docker_compose_args}"
-}
-
-docker_build_dx-runtime()
-{
-    local docker_compose_args="-f docker/docker-compose.yml"
-    docker_build_impl "runtime" "${docker_compose_args}"
-}
-
-docker_build_dx-modelzoo()
-{
-    local docker_compose_args="-f docker/docker-compose.yml"
-    docker_build_impl "modelzoo" "${docker_compose_args}"
+    local docker_compose_args="-f docker/docker-compose.local.install.test.yml"
+    docker_build_impl "${docker_compose_args}"
 }
 
 install_dx_rt_npu_linux_driver() 
@@ -146,7 +122,6 @@ main() {
         show_help "error" "--ubuntu_version ($UBUNTU_VERSION) does not exist."
     else
         echo -e "${TAG_INFO} UBUNTU_VERSSION($UBUNTU_VERSION) is set."
-        echo -e "${TAG_INFO} TARGET_ENV($TARGET_ENV) is set."
         echo -e "${TAG_INFO} FILE_DXCOM($FILE_DXCOM) is set."
         echo -e "${TAG_INFO} FILE_DXSIM($FILE_DXSIM) is set."
         if [ "$DRIVER_UPDATE" = "y" ]; then
@@ -157,39 +132,13 @@ main() {
         fi
     fi
 
-    case $TARGET_ENV in
-        dx-compiler)
-            echo "Archiving dx-compiler"
-            ${DX_AS_PATH}/archive_dx-compiler.sh $FORCE_ARGS || { echo -e "${TAG_ERROR} Archiving dx-compiler failed."; exit 1; }
-            docker_build_dx-compiler
-            ;;
-        dx-runtime)
-            echo "Archiving dx-runtime"
-            ${DX_AS_PATH}/archive_git_repos.sh --target=dx-runtime || { echo -e "${TAG_ERROR} Archiving dx-runtime failed.\n${TAG_INFO} ${COLOR_BRIGHT_YELLOW_ON_BLACK}Please try running 'git submodule update --init --recursive --force' and then try again.${COLOR_RESET}"; exit 1; }
-            docker_build_dx-runtime
-            if [ "$DRIVER_UPDATE" = "y" ]; then
-                install_dx_rt_npu_linux_driver
-            fi
-            ;;
-        dx-modelzoo)
-            echo "Archiving dx-modelzoo"
-            ${DX_AS_PATH}/archive_git_repos.sh --target=dx-modelzoo || { echo -e "${TAG_ERROR} Archiving dx-modelzoo failed.\n${TAG_INFO} ${COLOR_BRIGHT_YELLOW_ON_BLACK}Please try running 'git submodule update --init --recursive --force' and then try again.${COLOR_RESET}"; exit 1; }
-            docker_build_dx-modelzoo
-            ;;
-        all)
-            echo "Archiving all DXNN® environments"
-            ${DX_AS_PATH}/archive_dx-compiler.sh || { echo -e "${TAG_ERROR} Archiving dx-compiler failed."; exit 1; }
-            ${DX_AS_PATH}/archive_git_repos.sh --all || { echo -e "${TAG_ERROR} Archiving dx-runtime or dx-modelzoo failed.\n${TAG_INFO} ${COLOR_BRIGHT_YELLOW_ON_BLACK}Please try running 'git submodule update --init --recursive --force' and then try again.${COLOR_RESET}"; exit 1; }
-            docker_build_all
-            if [ "$DRIVER_UPDATE" = "y" ]; then
-                install_dx_rt_npu_linux_driver
-            fi
-            ;;
-        *)
-            echo -e "${TAG_ERROR} Unknown '--target' option '$TARGET_ENV'"
-            show_help "error" "${TAG_INFO} (Hint) Please specify either the '--all' option or the '--target=<dx-compiler | dx-runtime>' option."
-            ;;
-    esac
+    echo "Archiving all DXNN® environments"
+    ${DX_AS_PATH}/archive_dx-compiler.sh || { echo -e "${TAG_ERROR} Archiving dx-compiler failed."; exit 1; }
+    ${DX_AS_PATH}/archive_git_repos.sh --all || { echo -e "${TAG_ERROR} Archiving dx-runtime or dx-modelzoo failed.\n${TAG_INFO} ${COLOR_BRIGHT_YELLOW_ON_BLACK}Please try running 'git submodule update --init --recursive --force' and then try again.${COLOR_RESET}"; exit 1; }
+    docker_build
+    if [ "$DRIVER_UPDATE" = "y" ]; then
+        install_dx_rt_npu_linux_driver
+    fi
 
     # remove archives
     # if [[ -d "$OUTPUT_DIR" ]]; then
@@ -201,12 +150,6 @@ main() {
 # parse args
 for i in "$@"; do
     case "$1" in
-        --all)
-            TARGET_ENV=all
-            ;;
-        --target=*)
-            TARGET_ENV="${1#*=}"
-            ;;
         --ubuntu_version=*)
             UBUNTU_VERSION="${1#*=}"
             ;;

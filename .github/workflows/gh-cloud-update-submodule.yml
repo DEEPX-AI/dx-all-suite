@@ -1,0 +1,40 @@
+name: update-submodule
+
+on:
+  repository_dispatch:
+    types:
+      - update-submodule
+
+permissions: write-all
+
+jobs:
+  update-submodule:
+    runs-on: 
+      - self-hosted
+      - sdk
+    timeout-minutes: 5
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-tags: true
+          fetch-depth: 0
+          token: ${{ secrets.GC_DCI_TOKEN }}
+
+      - name: Update submodule
+        run: |
+          echo "Update submodule ${{ github.event.client_payload.name }} → ${{ github.event.client_payload.sha }}"
+          cd ${{ github.event.client_payload.name }}
+          git fetch --all && git checkout ${{ github.event.client_payload.sha }}
+          git submodule update --init --recursive
+
+      - name: Generate DATE ENV
+        run: |
+          echo "DATE=$(date +"%Y-%m-%d")" >> $GITHUB_ENV
+
+      - name: Commit Submodule
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: 'ci(${{env.DATE}}): Update ${{ github.event.client_payload.name }}'
+          branch: ${{ github.event.client_payload.ref }}
