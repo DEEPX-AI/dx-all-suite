@@ -26,6 +26,7 @@ jobs:
           fetch-tags: true
           fetch-depth: 0
           token: ${{ secrets.GC_DCI_TOKEN }}
+          ref: ${{ github.ref}}
 
       - name: Update submodule
         run: |
