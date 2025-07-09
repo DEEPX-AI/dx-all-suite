@@ -28,6 +28,7 @@ jobs:
           ref: main
           token: ${{ secrets.GC_DCI_TOKEN }}
           fetch-depth: 0
+          submodules: recursive
 
       - name: Fetch Staging Branch
         run: git fetch origin staging
@@ -55,8 +56,9 @@ jobs:
           echo "Pulling latest changes from origin/main before merge..."
           git pull origin main # 최신 main 브랜치 상태를 가져옴
 
-          echo "Attempting to squash merge origin/staging into main..."
-          git merge --squash origin/staging -m "${{ env.LAST_STAGING_COMMIT_MESSAGE }}"
+          echo "Attempting to squash merge staging into main..."
+          git merge --squash origin/staging -m "${{ env.LAST_STAGING_COMMIT_MESSAGE }}" || true
+          git add dx-runtime dx-compiler dx-modelzoo
 
           # Merge 후 스테이징된 변경 사항이 있는지 확인
           if git diff --staged --quiet; then
