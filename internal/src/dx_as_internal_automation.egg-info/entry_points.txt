@@ -1,0 +1,2 @@
+[console_scripts]
+dx-aws-s3 = aws_s3_manager.main:main

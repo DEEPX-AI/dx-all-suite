@@ -4,7 +4,7 @@ ARG BASE_IMAGE_NAME=ubuntu
 FROM alpine:latest AS install
 USER root
 
-# COPY and EXTRACT 'dx-com' and 'dx_simulator' for using option '--strip-components=1'
+# COPY and EXTRACT 'dx-com' for using option '--strip-components=1'
 WORKDIR /deepx/dx-compiler/dx_com
 ARG FILE_DXCOM
 COPY ${FILE_DXCOM} /deepx/dx-compiler/dx_com
@@ -19,22 +19,6 @@ RUN tar_file=$(ls *.tar.gz) && \
         tar -xzf "$tar_file" -C .; \
     fi && \
     rm -f "$tar_file"
-
-WORKDIR /deepx/dx-compiler/dx_simulator
-ARG FILE_DXSIM
-COPY ${FILE_DXSIM} /deepx/dx-compiler/dx_simulator
-
-RUN tar_file=$(ls *.tar.gz) && \
-    first_entry=$(tar -tzf "$tar_file" | head -n 1) && \
-    if echo "$first_entry" | grep -q '/'; then \
-        echo "Detected top-level directory. Using --strip-components=1"; \
-        tar -xzf "$tar_file" --strip-components=1 -C .; \
-    else \
-        echo "No top-level directory. Extracting as-is"; \
-        tar -xzf "$tar_file" -C .; \
-    fi && \
-    rm -f "$tar_file"
-
 
 # COPY 'scripts' and 'getting-start'
 COPY scripts /deepx/scripts
@@ -104,7 +88,7 @@ RUN if [ "$USE_INTRANET" = "true" ]; then \
       echo "Skipping intranet SSL setup"; \
     fi
 
-# Copy dx_com and dx_simulator
+# Copy dx_com
 COPY --from=install /deepx /deepx
 
 RUN apt-get update && \

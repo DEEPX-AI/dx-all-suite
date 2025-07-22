@@ -1,0 +1,23 @@
+Copyright (C) 2018- DEEPX Ltd.
+All rights reserved.
+
+This software is the property of DEEPX and is provided exclusively to customers 
+who are supplied with DEEPX NPU (Neural Processing Unit). Unauthorized sharing 
+or usage is strictly prohibited by law. The license for this software is
+allocated to specific users or organizations associated with DEEPX, and any use
+by individuals or entities outside of this scope is illegal.
+
+Unauthorized use or sharing of the software will be considered as an
+infringement of DEEPX's intellectual property rights, which may result in legal
+action, claims for damages, and criminal penalties.
+
+If you intend to use the software, you must first contact DEEPX or the
+contracted user or organization authorized to obtain the license formally.
+
+This warning is provided to emphasize the strict policy regarding software 
+licenses and unauthorized sharing. The SDK may contain open-source components,
+each of which is subject to its respective software license. It is the
+responsibility of users to adhere to the terms of these licenses. 
+
+By reading this warning, you acknowledge the need to comply with the software's 
+license and usage terms. Failure to comply may result in legal liabilities.

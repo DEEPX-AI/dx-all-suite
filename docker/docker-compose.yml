@@ -8,7 +8,6 @@ services:
       args:
         UBUNTU_VERSION: ${UBUNTU_VERSION}
         FILE_DXCOM: ${FILE_DXCOM:-/should/be/set/path}
-        FILE_DXSIM: ${FILE_DXSIM:-/should/be/set/path}
     environment:
       - PYTHONUNBUFFERED=1
       - DISPLAY=${DISPLAY}                    # X11 forwarding
