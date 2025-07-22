@@ -8,7 +8,6 @@ services:
       args:
         UBUNTU_VERSION: ${UBUNTU_VERSION}
         FILE_DXCOM: ${FILE_DXCOM:-/should/be/set/path}
-        FILE_DXSIM: ${FILE_DXSIM:-/should/be/set/path}
     ipc: host                                 # NPU ipc
     pid: host                                 # pid sharing for dx-local-install-test-RT Service
     tty: true                                 # NPU

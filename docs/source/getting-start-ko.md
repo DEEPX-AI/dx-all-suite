@@ -54,7 +54,7 @@ getting-start/
 
 ## 🧩 DX-Compiler: AI Model Compilation Scripts Guide
 
-이 문서는 `compiler-1_download_onnx.sh` ~ `compiler-6_run_examples_using_simulator.sh` 까지 각 스크립트의 역할과 실행 순서를 설명합니다.
+이 문서는 `compiler-1_download_onnx.sh` ~ `compiler-4_model_compile.sh` 까지 각 스크립트의 역할과 실행 순서를 설명합니다.
 
 **🔄 실행 순서**
 
@@ -63,13 +63,11 @@ getting-start/
 ./getting-start/compiler-2_setup_dataset.sh
 ./getting-start/compiler-3_setup_output_path.sh
 ./getting-start/compiler-4_model_compile.sh
-./getting-start/compiler-5_setup_simulator_deps.sh
-./getting-start/compiler-6_run_examples_using_simulator.sh
 ```
 
 **💡 Tip**
 
-- `.dxnn` 파일은 `dx_com`으로 생성된 최종 실행 대상이며, 시뮬레이터는 이를 기반으로 추론을 수행합니다.
+- `.dxnn` 파일은 `dx_com`으로 생성된 최종 실행 대상입니다.
 - 각 스크립트는 독립적으로 실행할 수 있지만, 위 순서를 지켜야 전체 프로세스가 정상 동작합니다.
 
 ---
@@ -165,60 +163,6 @@ Calibration dataset 경로를 설정하고 `.json` 파일 내 경로도 덮어�
 
 - `main()`
   - 모델 리스트 순회하며 `compile()` 호출.
-
----
-
-### 📁 5. compiler-5_setup_simulator_deps.sh
-
-시뮬레이터 실행에 필요한 의존성 패키지를 설치합니다.
-
-- **기능**: 시뮬레이터 의존성 설치
-- **설명**:
-  - `dx_simulator/scripts/install.sh` 를 실행하여 python venv 및 필요 패키지를 설치합니다.
-  - 최초 1회만 실행하면 됩니다.
-
-#### 📌 주요 함수
-
-- `main()`
-  - `dx_simulator/scripts/install.sh` 실행.
-  - 내부적으로 Python venv 및 pip 패키지를 설치.
-
----
-
-### 📁 6. compiler-6_run_examples_using_simulator.sh
-
-`.dxnn` 모델을 이용해 시뮬레이터 예제를 실행합니다. 코드 자동 수정(hijack) 및 결과 출력 포함.
-
-- **기능**: 시뮬레이터 예제 실행
-- **설명**:
-  - `dx_simulator` 예제를 복사하여 `./forked_dx_simulator_example` 디렉토리에 생성합니다.
-  - `.dxnn` 경로를 자동으로 대체(hijack)하여 사용자 컴파일 결과를 사용하도록 수정합니다.
-  - `YOLOV5S`, `YOLOV5S_Face`, `MobileNetV2` 예제를 실행하고 결과를 확인합니다.
-
-#### 📌 주요 함수
-
-- `fork_examples()`
-  - `dx_simulator/examples` 디렉토리 내 예제들을 `forked_dx_simulator_example`로 복사.
-  - 예제: `example_yolov5s.py`, `example_yolov5face.py`, `example_classification.py`
-  - 이미지 폴더도 함께 복사.
-  - `git init` 후 commit 하여 diff 추적 가능하게 설정.
-
-- `replace_all(file, source_str, target_str)`
-  - 주어진 문자열을 다른 문자열로 대체 (`sed` 사용).
-
-- `hijack_example(file_path, source_str, target_str, commit_msg)`
-  - 특정 예제 파일 내 `.dxnn` 경로를 사용자 컴파일 결과로 교체.
-  - diff 결과 출력.
-
-- `run_hijacked_example(file_path, save_log)`
-  - hijack된 예제를 실행.
-  - `dx_simulator`의 venv를 활성화 후 예제 실행.
-  - `fim` 툴로 이미지 확인 (설치 안 되어 있으면 자동 설치 시도).
-  - classification 예제는 `.log` 파일로 결과 출력.
-
-- `main()`
-  - 예제 파일 fork
-  - 각 모델(`YOLOV5S_Face`, `YOLOV5S`, `MobileNetV2`)에 대해 hijack → 실행 → 결과 확인
 
 ---
 
