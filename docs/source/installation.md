@@ -1,13 +1,13 @@
 # Installation Guide
 
-DX-ALL is a tool for creating an environment to validate and utilize DEEPX devices. DX-ALL provides the following below methods for setting up the integrated environment:
+DX-All-Suite is a tool for creating an environment to validate and utilize DEEPX devices. DX-All-Suite provides the following below methods for setting up the integrated environment:
 
 **Install on local machine**
-    - Set up the DX-ALL environment directly on the host environment
+    - Set up the DX-All-Suite environment directly on the host environment
     (maintaining compatibility between the individual tools).
 
 **Build Docker image and run container**
-    - Build a DX-ALL environment within a Docker environment, or load a pre-built image to create a container.
+    - Build a DX-All-Suite environment within a Docker environment, or load a pre-built image to create a container.
 
 
 ## Prerequisites
@@ -40,7 +40,7 @@ $ ./scripts/install_docker.sh
 
 ## Local Installation
 
-### Install DX-Compiler Environment (dx_com, dx_simulator)
+### Install DX-Compiler Environment (dx_com)
 
 The `DX-Compiler` environment provides prebuilt binary outputs and does not include source code. Each module can be downloaded and installed from a remote server using the following command:
 
@@ -48,38 +48,55 @@ The `DX-Compiler` environment provides prebuilt binary outputs and does not incl
 $ ./dx-compiler/install.sh
 ```
 
-When executing the above command:
+When executing the above command, **DEEPX Developers' Portal** account authentication may be required to download and install the DX-Compiler modules. The script obtains authentication information based on the following priority:
 
-1. The `dx-com` and `dx-simulator` modules will be downloaded to  
-   `../docker_volume/release/dx_com/download/dx_com_M1A_v[VERSION].tar.gz` and  
-   `../docker_volume/release/dx_simulator/download/dx_simulator_v[VERSION].tar.gz`, respectively.
+1.  **Directly specify when executing the command (1st priority):**
+    ```
+    $ ./dx-compiler/install.sh --username=<your_email> --password=<your_password>
+    ```
+2.  **Use environment variables (2nd priority):**
+    ```
+    $ export DX_USERNAME=<your_email>
+    $ export DX_PASSWORD=<your_password>
+    $ ./dx-compiler/install.sh
+    ```
 
-2. The downloaded modules will be extracted to  
-   `../docker_volume/release/dx_com/dx_com_M1A_v[VERSION]` and  
-   `../docker_volume/release/dx_simulator/dx_simulator_v[VERSION]`.  
-   Symbolic links will also be created at `./dx-compiler/dx-com` and `./dx-simulator`.
+    Alternatively, you can add account information to `compiler.properties` as shown below, which will be injected as environment variables:
+    ```
+    DX_USERNAME=<your_email>
+    DX_PASSWORD=<your_password>
+    ```
+3.  **Prompt for input (3rd priority):**
+    If neither of the above methods is used, the script will prompt you to enter your account information directly in the terminal during execution.
 
-3. If the modules are already installed, running `./dx-compiler/install.sh` again will reuse the existing installations.  
-   To force a reinstallation, use the `--force` option:
+Upon successful installation:
 
-   ```
-   $ ./dx-compiler/install.sh --force
-   ```
+1.  The `dx-com` module archive files (`.tar.gz`) will be downloaded and saved to:
+    * `./workspace/release/dx_com/download/dx_com_M1A_v[VERSION].tar.gz`
 
-#### Install a Specific Version
+2.  The downloaded modules will be extracted to:
+    * `./workspace/release/dx_com/dx_com_M1A_v[VERSION]`
+    * Symbolic links will also be created at `./dx-compiler/dx-com`.
 
-To install a specific version, modify the environment variables in `install.sh`:
+3.  If the modules are already installed, running `./dx-compiler/install.sh` again will reuse the existing installations. To force a reinstallation, use the `--force` option:
+
+    ```
+    $ ./dx-compiler/install.sh --force
+    ```
+
+####  Archive Mode (--archive_mode=y)
+
+The `--archive_mode=y` option is primarily used when building Docker images for the `dx-compiler` environment with `docker_build.sh`. When this mode is activated, only the download of the module's `.tar.gz` file proceeds; no extraction or symbolic link creation is performed.
 
 ```
-COM_VERSION="1.38.1"        # default
-SIM_VERSION="2.14.5"        # default
+$ ./dx-compiler/install.sh --archive_mode=y
 ```
 
-Alternatively, specify the version directly when executing the command:
+When executing the above command, the module archive files (`*.tar.gz`) will be downloaded and saved to:
 
-```
-$ ./dx-compiler/install.sh --com_version=<version> --sim_version=<version>
-```
+* `../archives/dx_com_M1A_v[VERSION].tar.gz`
+
+These archive files can then be utilized by the Docker image build process.
 
 ---
 
@@ -407,48 +424,3 @@ Compiling Model : 100%|███████████████████
 ```
 
 **For more details, refer to [dx-compiler/source/docs/02_02_Installation_of_DX-COM.md](/dx-compiler/source/docs/02_02_Installation_of_DX-COM.md).**
-
----
-
-### dx_simulator
-
-#### Installation Path
-
-1. **On the Host Environment:**
-    ```
-    $ cd ./dx-compiler/dx_simulator
-    ```
-2. **Inside the Docker Container:**
-    ```
-    $ docker exec -it dx-compiler-<ubuntu_version> bash
-    (venv-dx-simulator) # cd /deepx/dx-compiler/dx_simulator
-    ```
-
-#### Install Prerequisites
-
-1. **On the Host Environment:**
-    ```
-    # install prerequisites, python venv and dx_simulator
-    ./scripts/install.sh
-
-    # "To activate the virtual environment, run:"
-    source ${VENV_PATH}/bin/activate
-    (venv-dx-simulator) $
-    ```
-
-2. **Inside the Docker Container:**
-    ```
-    $ docker exec -it dx-compiler-<ubuntu_version> bash
-    (venv-dx-simulator) # cd /deepx/dx-compiler/dx_simulator
-    (venv-dx-simulator) # pip install /deepx/dx-compiler/dx_simulator/dx_simulator-*-cp311-cp311-linux_x86_64.whl --force-reinstall
-    (venv-dx-simulator) # pip install ultralytics
-    ```
-
-#### Run `dx_simulator` using Sample dxnn input
-```
-(venv-dx-simulator) $ python examples/example_yolov5s.py
-(venv-dx-simulator) $ fim examples/yolov5s.jpg
-```
-
-**For more details, refer to [dx-compiler/source/docs/04_01_Simulator_DX-SIM.md](/dx-compiler/source/docs/04_01_Simulator_DX-SIM.md).**
-

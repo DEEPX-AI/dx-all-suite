@@ -4,25 +4,10 @@ ARG BASE_IMAGE_NAME=ubuntu
 FROM alpine:latest AS install
 USER root
 
-# COPY and EXTRACT 'dx-com' and 'dx_simulator' for using option '--strip-components=1'
+# COPY and EXTRACT 'dx-com' for using option '--strip-components=1'
 WORKDIR /deepx/dx-compiler/dx_com
 ARG FILE_DXCOM
 COPY ${FILE_DXCOM} /deepx/dx-compiler/dx_com
-
-RUN tar_file=$(ls *.tar.gz) && \
-    first_entry=$(tar -tzf "$tar_file" | head -n 1) && \
-    if echo "$first_entry" | grep -q '/'; then \
-        echo "Detected top-level directory. Using --strip-components=1"; \
-        tar -xzf "$tar_file" --strip-components=1 -C .; \
-    else \
-        echo "No top-level directory. Extracting as-is"; \
-        tar -xzf "$tar_file" -C .; \
-    fi && \
-    rm -f "$tar_file"
-
-WORKDIR /deepx/dx-compiler/dx_simulator
-ARG FILE_DXSIM
-COPY ${FILE_DXSIM} /deepx/dx-compiler/dx_simulator
 
 RUN tar_file=$(ls *.tar.gz) && \
     first_entry=$(tar -tzf "$tar_file" | head -n 1) && \
@@ -165,17 +150,8 @@ RUN set -x && \
         libnss3-dev \
         ccache
 
-# Copy dx_com and dx_simulator
+# Copy dx_com
 COPY --from=install /deepx /deepx
-
-#### Install dx_simulator ####
-# dx_simulator installation is disabled — enabling it would increase the Docker image size from 7GB to 16GB.
-# Therefore, it is recommended to run `/deepx/dx-compiler/dx_simulator/scripts/install.sh` after the container starts, rather than during the Docker build stage.
-##############################
-# WORKDIR /deepx/dx-compiler/dx_simulator
-# RUN set -x && \
-#     echo "install dx_simulator..." && \
-#     ./scripts/install.sh
 
 RUN apt-get update && \
     apt-get install -y \

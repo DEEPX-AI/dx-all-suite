@@ -18,7 +18,7 @@ FORCE_ARGS=""
 # Properties file path
 VERSION_FILE="$COMPILER_PATH/compiler.properties"
 
-# read 'COM_VERSION', 'SIM_VERSION' from properties file
+# read 'COM_VERSION' from properties file
 if [[ -f "$VERSION_FILE" ]]; then
     # load varialbles
     source "$VERSION_FILE"
@@ -27,16 +27,14 @@ else
     exit 1
 fi
 
-if [ -n "${COM_VERSION}" ] && [ -n "${SIM_VERSION}" ]; then
+if [ -n "${COM_VERSION}" ]; then
     echo -e "${TAG_INFO} dx_com version(${COM_VERSION}) is set."
-    echo -e "${TAG_INFO} dx_simulator version(${SIM_VERSION}) is set."
 else
-    echo -e "${TAG_ERROR} 'dx_com' or 'dx_sim' version is not specified in ${VERSION_FILE}."
+    echo -e "${TAG_ERROR} 'dx_com' version is not specified in ${VERSION_FILE}."
     exit 1
 fi
 
-FILE_DXCOM="archives/dx_com_M1A_v${COM_VERSION}.tar.gz"
-FILE_DXSIM="archives/dx_simulator_v${SIM_VERSION}.tar.gz"
+FILE_DXCOM="archives/dx_com_M1_v${COM_VERSION}.tar.gz"
 
 # Function to display help message
 show_help() {
@@ -88,7 +86,6 @@ docker_build_impl()
     export COMPOSE_BAKE=true
     export UBUNTU_VERSION=${UBUNTU_VERSION}
     export FILE_DXCOM=${FILE_DXCOM}
-    export FILE_DXSIM=${FILE_DXSIM}
     if [ ! -n "${XAUTHORITY}" ]; then
         echo -e "${TAG_INFO} XAUTHORITY env is not set. so, try to set automatically."
         DUMMY_XAUTHORITY="/tmp/dummy"
@@ -148,7 +145,6 @@ main() {
         echo -e "${TAG_INFO} UBUNTU_VERSSION($UBUNTU_VERSION) is set."
         echo -e "${TAG_INFO} TARGET_ENV($TARGET_ENV) is set."
         echo -e "${TAG_INFO} FILE_DXCOM($FILE_DXCOM) is set."
-        echo -e "${TAG_INFO} FILE_DXSIM($FILE_DXSIM) is set."
         if [ "$DRIVER_UPDATE" = "y" ]; then
             echo -e "${TAG_INFO} DRIVER_UPDATE($DRIVER_UPDATE) is set."
         fi
