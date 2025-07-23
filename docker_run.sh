@@ -5,9 +5,9 @@ DX_AS_PATH=$(realpath -s "${SCRIPT_DIR}")
 # color env settings
 source ${DX_AS_PATH}/scripts/color_env.sh
 
-pushd "$SCRIPT_DIR"
+pushd "$DX_AS_PATH"
 
-OUTPUT_DIR="$SCRIPT_DIR/archives"
+OUTPUT_DIR="$DX_AS_PATH/archives"
 UBUNTU_VERSION=""
 
 NVIDIA_GPU_MODE=0

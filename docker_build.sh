@@ -6,9 +6,9 @@ COMPILER_PATH="${DX_AS_PATH}/dx-compiler"
 # color env settings
 source ${DX_AS_PATH}/scripts/color_env.sh
 
-pushd "$SCRIPT_DIR"
+pushd "$DX_AS_PATH"
 
-OUTPUT_DIR="$SCRIPT_DIR/archives"
+OUTPUT_DIR="$DX_AS_PATH/archives"
 UBUNTU_VERSION=""
 
 NVIDIA_GPU_MODE=0
@@ -156,12 +156,12 @@ main() {
     case $TARGET_ENV in
         dx-compiler)
             echo "Archiving dx-compiler"
-            ${DX_AS_PATH}/archive_dx-compiler.sh $FORCE_ARGS || { echo -e "${TAG_ERROR} Archiving dx-compiler failed."; exit 1; }
+            ${DX_AS_PATH}/scripts/archive_dx-compiler.sh $FORCE_ARGS || { echo -e "${TAG_ERROR} Archiving dx-compiler failed."; exit 1; }
             docker_build_dx-compiler
             ;;
         dx-runtime)
             echo "Archiving dx-runtime"
-            ${DX_AS_PATH}/archive_git_repos.sh --target=dx-runtime || { echo -e "${TAG_ERROR} Archiving dx-runtime failed.\n${TAG_INFO} ${COLOR_BRIGHT_YELLOW_ON_BLACK}Please try running 'git submodule update --init --recursive --force' and then try again.${COLOR_RESET}"; exit 1; }
+            ${DX_AS_PATH}/scripts/archive_git_repos.sh --target=dx-runtime || { echo -e "${TAG_ERROR} Archiving dx-runtime failed.\n${TAG_INFO} ${COLOR_BRIGHT_YELLOW_ON_BLACK}Please try running 'git submodule update --init --recursive --force' and then try again.${COLOR_RESET}"; exit 1; }
             docker_build_dx-runtime
             if [ "$DRIVER_UPDATE" = "y" ]; then
                 install_dx_rt_npu_linux_driver
@@ -169,13 +169,13 @@ main() {
             ;;
         dx-modelzoo)
             echo "Archiving dx-modelzoo"
-            ${DX_AS_PATH}/archive_git_repos.sh --target=dx-modelzoo || { echo -e "${TAG_ERROR} Archiving dx-modelzoo failed.\n${TAG_INFO} ${COLOR_BRIGHT_YELLOW_ON_BLACK}Please try running 'git submodule update --init --recursive --force' and then try again.${COLOR_RESET}"; exit 1; }
+            ${DX_AS_PATH}/scripts/archive_git_repos.sh --target=dx-modelzoo || { echo -e "${TAG_ERROR} Archiving dx-modelzoo failed.\n${TAG_INFO} ${COLOR_BRIGHT_YELLOW_ON_BLACK}Please try running 'git submodule update --init --recursive --force' and then try again.${COLOR_RESET}"; exit 1; }
             docker_build_dx-modelzoo
             ;;
         all)
             echo "Archiving all DXNN® environments"
-            ${DX_AS_PATH}/archive_dx-compiler.sh || { echo -e "${TAG_ERROR} Archiving dx-compiler failed."; exit 1; }
-            ${DX_AS_PATH}/archive_git_repos.sh --all || { echo -e "${TAG_ERROR} Archiving dx-runtime or dx-modelzoo failed.\n${TAG_INFO} ${COLOR_BRIGHT_YELLOW_ON_BLACK}Please try running 'git submodule update --init --recursive --force' and then try again.${COLOR_RESET}"; exit 1; }
+            ${DX_AS_PATH}/scripts/archive_dx-compiler.sh || { echo -e "${TAG_ERROR} Archiving dx-compiler failed."; exit 1; }
+            ${DX_AS_PATH}/scripts/archive_git_repos.sh --all || { echo -e "${TAG_ERROR} Archiving dx-runtime or dx-modelzoo failed.\n${TAG_INFO} ${COLOR_BRIGHT_YELLOW_ON_BLACK}Please try running 'git submodule update --init --recursive --force' and then try again.${COLOR_RESET}"; exit 1; }
             docker_build_all
             if [ "$DRIVER_UPDATE" = "y" ]; then
                 install_dx_rt_npu_linux_driver

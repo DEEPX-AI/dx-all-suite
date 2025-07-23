@@ -1,8 +1,8 @@
 #!/bin/bash
 SCRIPT_DIR=$(realpath "$(dirname "$0")")
-DX_AS_PATH=$(realpath -s "${SCRIPT_DIR}")
+DX_AS_PATH=$(realpath -s "${SCRIPT_DIR}/..")
 
-pushd $SCRIPT_DIR
+pushd $DX_AS_PATH
 
 FORCE_ARGS=""
 
@@ -33,7 +33,7 @@ main() {
     # arciving dx-com
     echo -e "=== Archiving dx-compiler ... ${TAG_START} ==="
 
-    ARCHIVE_COMPILER_CMD="$SCRIPT_DIR/dx-compiler/install.sh --archive_mode=y $FORCE_ARGS"
+    ARCHIVE_COMPILER_CMD="$DX_AS_PATH/dx-compiler/install.sh --archive_mode=y $FORCE_ARGS"
     echo "$ARCHIVE_COMPILER_CMD"
 
     $ARCHIVE_COMPILER_CMD

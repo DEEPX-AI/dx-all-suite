@@ -1,13 +1,13 @@
 #!/bin/bash
 SCRIPT_DIR=$(realpath "$(dirname "$0")")
 DX_AS_PATH=$(realpath -s "${SCRIPT_DIR}/../")
+DX_AS_INTERNAL_PATH="${DX_AS_PATH}/internal"
 
 # color env settings
 source ${DX_AS_PATH}/scripts/color_env.sh
 
-pushd "$SCRIPT_DIR"
+pushd "$DX_AS_INTERNAL_PATH"
 
-OUTPUT_DIR="$SCRIPT_DIR/archives"
 UBUNTU_VERSION=""
 
 NVIDIA_GPU_MODE=0

@@ -1,14 +1,15 @@
 #!/bin/bash
 SCRIPT_DIR=$(realpath "$(dirname "$0")")
 DX_AS_PATH=$(realpath -s "${SCRIPT_DIR}/../")
+DX_AS_INTERNAL_PATH="${DX_AS_PATH}/internal"
 COMPILER_PATH="${DX_AS_PATH}/dx-compiler"
 
 # color env settings
 source ${DX_AS_PATH}/scripts/color_env.sh
 
-pushd "$SCRIPT_DIR"
+pushd "$DX_AS_INTERNAL_PATH"
 
-OUTPUT_DIR="$SCRIPT_DIR/archives"
+OUTPUT_DIR="$DX_AS_PATH/archives"
 UBUNTU_VERSION=""
 
 NVIDIA_GPU_MODE=0
@@ -34,7 +35,7 @@ else
     exit 1
 fi
 
-FILE_DXCOM="archives/dx_com_M1A_v${COM_VERSION}.tar.gz"
+FILE_DXCOM="archives/dx_com_M1_v${COM_VERSION}.tar.gz"
 
 # Function to display help message
 show_help() {
@@ -129,8 +130,8 @@ main() {
     fi
 
     echo "Archiving all DXNN® environments"
-    ${DX_AS_PATH}/archive_dx-compiler.sh || { echo -e "${TAG_ERROR} Archiving dx-compiler failed."; exit 1; }
-    ${DX_AS_PATH}/archive_git_repos.sh --all || { echo -e "${TAG_ERROR} Archiving dx-runtime or dx-modelzoo failed.\n${TAG_INFO} ${COLOR_BRIGHT_YELLOW_ON_BLACK}Please try running 'git submodule update --init --recursive --force' and then try again.${COLOR_RESET}"; exit 1; }
+    ${DX_AS_PATH}/scripts/archive_dx-compiler.sh || { echo -e "${TAG_ERROR} Archiving dx-compiler failed."; exit 1; }
+    ${DX_AS_PATH}/scripts/archive_git_repos.sh --all || { echo -e "${TAG_ERROR} Archiving dx-runtime or dx-modelzoo failed.\n${TAG_INFO} ${COLOR_BRIGHT_YELLOW_ON_BLACK}Please try running 'git submodule update --init --recursive --force' and then try again.${COLOR_RESET}"; exit 1; }
     docker_build
     if [ "$DRIVER_UPDATE" = "y" ]; then
         install_dx_rt_npu_linux_driver
