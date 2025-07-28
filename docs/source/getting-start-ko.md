@@ -60,7 +60,7 @@ getting-start/
 
 ```bash
 ./getting-start/compiler-1_download_onnx.sh
-./getting-start/compiler-2_setup_dataset.sh
+./getting-start/compiler-2_setup_calibration_dataset.sh
 ./getting-start/compiler-3_setup_output_path.sh
 ./getting-start/compiler-4_model_compile.sh
 ```
@@ -98,7 +98,7 @@ getting-start/
 
 ---
 
-### 📁 2. compiler-2_setup_calribration_dataset.sh
+### 📁 2. compiler-2_setup_calibration_dataset.sh
 
 Calibration dataset 경로를 설정하고 `.json` 파일 내 경로도 덮어씌웁니다.
 
@@ -110,7 +110,7 @@ Calibration dataset 경로를 설정하고 `.json` 파일 내 경로도 덮어�
 
 #### 📌 주요 함수
 
-- `make_symlink_calribration_dataset()`
+- `make_symlink_calibration_dataset()`
   - `dx_com/calibration_dataset` → `./calibration_dataset` 심볼릭 링크 생성.
   - 기존 링크가 깨져 있는 경우 재생성 처리.
 
@@ -120,7 +120,7 @@ Calibration dataset 경로를 설정하고 `.json` 파일 내 경로도 덮어�
   - 변경 전/후 `diff` 출력.
 
 - `main()`
-  - `make_symlink_calribration_dataset()` 실행.
+  - `make_symlink_calibration_dataset()` 실행.
   - 예시 모델 각각에 대해 `hijack_dataset_path()` 수행.
 
 ---

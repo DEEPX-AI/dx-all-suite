@@ -31,7 +31,7 @@ echo -e "============================"
 # }
 # ```
 
-make_symlink_calribration_dataset() {
+make_symlink_calibration_dataset() {
     if [ ! -d "${COMPILER_PATH}/dx_com/calibration_dataset" ]; then
         echo -e "${TAG_ERROR} '${COMPILER_PATH}/dx_com/calibration_dataset' is not exist"
         exit 1
@@ -95,7 +95,7 @@ main() {
     MODELZOO_PATH="${SCRIPT_DIR}/modelzoo"
     CALIBRATION_DATASET_PATH="${SCRIPT_DIR}/calibration_dataset"
 
-    make_symlink_calribration_dataset
+    make_symlink_calibration_dataset
 
     MODEL_NAME_LIST=("YOLOV5S-1" "YOLOV5S_Face-1" "MobileNetV2-1")
     for i in "${!MODEL_NAME_LIST[@]}"; do

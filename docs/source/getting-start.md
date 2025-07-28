@@ -7,7 +7,7 @@
 ```bash
 # Compiler Steps
 bash compiler-1_download_onnx.sh
-bash compiler-2_setup_dataset.sh
+bash compiler-2_setup_calibration_dataset.sh
 bash compiler-3_setup_output_path.sh
 bash compiler-4_model_compile.sh
 
@@ -95,7 +95,7 @@ Downloads model files (`.onnx`, `.json`) and links them into the workspace.
 
 ---
 
-### 📁 2. compiler-2_setup_calribration_dataset.sh
+### 📁 2. compiler-2_setup_calibration_dataset.sh
 
 Creates a symbolic link to the calibration dataset and modifies `.json` config files to use it.
 
@@ -107,7 +107,7 @@ Creates a symbolic link to the calibration dataset and modifies `.json` config f
 
 #### 📌 Key Functions
 
-- `make_symlink_calribration_dataset()`
+- `make_symlink_calibration_dataset()`
   - Creates a symbolic link from `dx_com/calibration_dataset` to `./calibration_dataset`.
   - Recreates the link if the existing one is broken.
 
@@ -117,7 +117,7 @@ Creates a symbolic link to the calibration dataset and modifies `.json` config f
   - Outputs the `diff` showing changes before and after.
 
 - `main()`
-  - Executes `make_symlink_calribration_dataset()`.
+  - Executes `make_symlink_calibration_dataset()`.
   - Runs `hijack_dataset_path()` for each of the three models.
 
 ---
