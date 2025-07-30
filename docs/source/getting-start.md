@@ -2,7 +2,7 @@
 
 ## Overall
 
-**🔄 Full Execution Order****
+**🔄 Full Execution Order**
 
 ```bash
 # Compiler Steps
@@ -17,14 +17,13 @@ bash runtime-2_setup_assets.sh
 bash runtime-3_run_example_using_dxrt.sh
 ```
 
-
 **📁 Folder Structure (After Execution)**
 
 ```
-getting-start/ 
+getting-start/
 ├── calibration_dataset
-├── dxnn                         # ← Model output symbolic link created by dx-compiler 
-├── forked_dx_app_example        # ← Example execution target (forked) 
+├── dxnn                         # ← Model output symbolic link created by dx-compiler
+├── forked_dx_app_example        # ← Example execution target (forked)
 │   ├── bin
 │   ├── example
 │   │   ├── run_classifier
@@ -55,7 +54,7 @@ This section explains the purpose and flow of each script from `compiler-1_downl
 
 ```bash
 ./getting-start/compiler-1_download_onnx.sh
-./getting-start/compiler-2_setup_dataset.sh
+./getting-start/compiler-2_setup_calibration_dataset.sh
 ./getting-start/compiler-3_setup_output_path.sh
 ./getting-start/compiler-4_model_compile.sh
 ```
@@ -80,15 +79,16 @@ Downloads model files (`.onnx`, `.json`) and links them into the workspace.
 #### 📌 Key Functions
 
 - `show_help([type], [message])`
+
   - Displays usage and exits when invalid options are passed.
   - Supports `--force`, `--help`.
 
 - `download(model_name, ext_name)`
 - `download(model_name, ext_name)`
+
   - Downloads resources based on the given model name and extension.
   - Calls `get_resource.sh` and saves to `modelzoo/{ext_name}/{model_name}.{ext_name}`.
   - Also creates a symbolic link to the workspace (`workspace/modelzoo/`).
-
 
 - `main()`  
   Iterates through model list and extension list, calling `download()`.
@@ -108,10 +108,12 @@ Creates a symbolic link to the calibration dataset and modifies `.json` config f
 #### 📌 Key Functions
 
 - `make_symlink_calibration_dataset()`
+
   - Creates a symbolic link from `dx_com/calibration_dataset` to `./calibration_dataset`.
   - Recreates the link if the existing one is broken.
 
 - `hijack_dataset_path(model_name)`
+
   - Forcefully changes the `"dataset_path"` value in `json/{model_name}.json` to `./calibration_dataset`.
   - Backs up the original file as `.bak` and modifies the value using the `sed` command.
   - Outputs the `diff` showing changes before and after.
@@ -155,6 +157,7 @@ Compiles `.onnx` files into `.dxnn` format using `dx_com`.
 #### 📌 Key Functions
 
 - `compile(model_name)`
+
   - Runs `dx_com` to convert `.onnx + .json` into a `.dxnn` file.
   - The output is saved in the `./dxnn` directory.
   - Exits on failure.
@@ -201,6 +204,7 @@ Creates a symbolic link to the compiled model directory for runtime access.
     - Container: `${DOCKER_VOLUME_PATH}/dxnn`
     - Host: `${DX_AS_PATH}/workspace/dxnn`
   - Links `./dxnn` to the respective workspace path (also restores broken symlinks).
+
 ---
 
 ### 📁 2. runtime-2_setup_assets.sh
@@ -217,6 +221,7 @@ Prepares the configuration files and model resources for running examples.
 - `setup_assets(target_path)`
   - Executes the `setup.sh` of each module (`dx_app`, `dx_stream`).
   - Internally copies or links sample images, JSON configurations, models, etc.
+
 ---
 
 ### 📁 3. runtime-3_run_example_using_dxrt.sh
@@ -233,14 +238,17 @@ Runs the `.dxnn` model using `dx_app` examples and checks the results.
 #### 📌 Key Functions
 
 - `fork_examples()`
+
   - Copies `dx_app/bin` binaries, `example/*`, and `sample/*` resources.
   - Initializes Git and commits to track diffs.
 
 - `hijack_example(file_path, source_str, target_str, commit_msg)`
+
   - Replaces `"./assets/models/*.dxnn"` path in `.json` configuration file with the actual generated model path.
   - Shows the diff for verification.
 
 - `run_hijacked_example(exe, config, save_log)`
+
   - Runs the binary and checks the results.
     - Object/Face Detection: Displays the result image and checks with `fim`.
     - Classification: Logs results to the `result-app.log` file.
