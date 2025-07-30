@@ -7,7 +7,7 @@
 ```bash
 # Compiler Steps
 bash compiler-1_download_onnx.sh
-bash compiler-2_setup_dataset.sh
+bash compiler-2_setup_calibration_dataset.sh
 bash compiler-3_setup_output_path.sh
 bash compiler-4_model_compile.sh
 bash compiler-5_setup_simulator_deps.sh
@@ -60,7 +60,7 @@ getting-start/
 
 ```bash
 ./getting-start/compiler-1_download_onnx.sh
-./getting-start/compiler-2_setup_calibration_dataset.sh
+./getting-start/compiler-2_setup_dataset.sh
 ./getting-start/compiler-3_setup_output_path.sh
 ./getting-start/compiler-4_model_compile.sh
 ```
