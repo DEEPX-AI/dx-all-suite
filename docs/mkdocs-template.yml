@@ -33,6 +33,7 @@ theme:
      - navigation.tabs.sticky
      - content.tabs.link
      - content.code.copy
+site_url: 'https://developer.deepx.ai/'
 nav:
   - Introduction: index.md
   - Installation: installation.md
@@ -82,6 +83,7 @@ plugins:
       #verbose: true
 #  - mkdocs-video
 extra:
+  homepage: https://developer.deepx.ai
 #  version:
 #    provider: mike
 #    default: stable
