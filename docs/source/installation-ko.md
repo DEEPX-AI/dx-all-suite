@@ -2,16 +2,19 @@
 
 DX-All-Suite은 DEEPX 디바이스를 검증하고 활용하기 위한 환경을 구축하는 도구입니다. DX-All-Suite은 통합 환경을 설정하기 위한 다음의 방법들을 제공합니다:
 
-**로컬 머신에 설치**
-    - 호스트 환경에 직접 DX-All-Suite 환경을 구축합니다 (각 개별 도구 간의 호환성을 유지함).
+**로컬 머신에 설치** - 호스트 환경에 직접 DX-All-Suite 환경을 구축합니다 (각 개별 도구 간의 호환성을 유지함).
 
-**Docker 이미지 빌드 및 컨테이너 실행**
-    - Docker 환경 내에서 DX-All-Suite 환경을 빌드하거나, 미리 빌드된 이미지를 로드하여 컨테이너를 생성합니다.
-
+**Docker 이미지 빌드 및 컨테이너 실행** - Docker 환경 내에서 DX-All-Suite 환경을 빌드하거나, 미리 빌드된 이미지를 로드하여 컨테이너를 생성합니다.
 
 ## Preparation
 
 ### 메인 리포지토리 클론
+
+```
+$ git clone --recurse-submodules https://github.com/DEEPX-AI/dx-all-suite.git
+```
+
+또는
 
 ```
 $ git clone --recurse-submodules git@github.com:DEEPX-AI/dx-all-suite.git
@@ -54,29 +57,34 @@ $ ./dx-compiler/install.sh
     $ ./dx-compiler/install.sh --username=<user> --password=<pass>
     ```
 2.  **환경 변수 사용 (2순위):**
+
     ```
     $ export DX_USERNAME=<사용자_이메일>
     $ export DX_PASSWORD=<사용자_비밀번호>
     $ ./dx-compiler/install.sh
     ```
-    
-    또는, 
+
+    또는,
     compiler.properties에 아래와 같이 계정정보를 추가하면 환경변수로 주입됩니다.
+
     ```
     DX_USERNAME=<사용자_이메일>
     DX_PASSWORD=<사용자_비밀번호>
     ```
+
 3.  **프롬프트 입력 (3순위):**
     위 두 가지 방법이 사용되지 않은 경우, 스크립트 실행 중 터미널 프롬프트에서 계정 정보를 직접 입력하라는 메시지가 표시됩니다.
 
 성공적으로 설치되면:
 
 1.  `dx-com` 모듈의 아카이브 파일(`.tar.gz`)이 아래 경로에 다운로드 및 저장됩니다.
-    * `./workspace/release/dx_com/download/dx_com_M1_v[VERSION].tar.gz`
+
+    - `./workspace/release/dx_com/download/dx_com_M1_v[VERSION].tar.gz`
 
 2.  다운로드된 모듈이 아래 경로에 압축 해제됩니다.
-    * `./workspace/release/dx_com/dx_com_M1_v[VERSION]`
-    * 심볼릭 링크가 `./dx-compiler/dx-com`에 생성됩니다.
+
+    - `./workspace/release/dx_com/dx_com_M1_v[VERSION]`
+    - 심볼릭 링크가 `./dx-compiler/dx-com`에 생성됩니다.
 
 3.  이미 설치된 경우, `./dx-compiler/install.sh`를 다시 실행하면 기존 설치를 재사용합니다. 강제 재설치를 원할 경우 `--force` 옵션을 사용하세요.
 
@@ -85,12 +93,14 @@ $ ./dx-compiler/install.sh
     ```
 
 #### 아카이브 모드 (--archive_mode=y)
+
 `--archive_mode=y` 옵션은 주로 docker_build.sh를 사용하여 `dx-compiler` 환경에 대한 Docker 이미지를 빌드할 때 사용됩니다. 이 모드를 활성화하면, 모듈의 `.tar.gz` 파일을 다운로드하는 것까지만 진행되고 압축 해제 및 심볼릭 링크 생성은 수행되지 않습니다.
 
 ```
 $ ./dx-compiler/install.sh --archive_mode=y
 ```
-위 명령을 실행하면, 모듈 아카이브 파일(*.tar.gz)이 아래 경로에 다운로드 및 저장됩니다:
+
+위 명령을 실행하면, 모듈 아카이브 파일(\*.tar.gz)이 아래 경로에 다운로드 및 저장됩니다:
 
 archives/dx_com_M1_v[VERSION].tar.gz
 
@@ -98,7 +108,7 @@ archives/dx_com_M1_v[VERSION].tar.gz
 
 ---
 
-### DX-Runtime 환경 설치 
+### DX-Runtime 환경 설치
 
 `DX-Runtime` 환경은 각 모듈의 소스 코드를 포함하며, `./dx-runtime` 디렉터리에서 Git 서브모듈(`dx_rt_npu_linux_driver`, `dx_rt`, `dx_app`, and `dx_stream`)로 관리됩니다.  
 모든 모듈을 빌드 및 설치하려면 아래 명령을 실행하세요.
@@ -145,25 +155,29 @@ $ ./dx-runtime/install.sh --target=dx_fw
 
 ##### 1. Docker 환경을 사용할 경우, NPU 드라이버는 반드시 호스트 시스템에 설치해야 합니다.
 
-   ```
-   $ ./dx-runtime/install.sh --target=dx_rt_npu_linux_driver
-   ```
+```
+$ ./dx-runtime/install.sh --target=dx_rt_npu_linux_driver
+```
 
-##### 2. 호스트 시스템에 `dx_rt`가 설치되어 있고 `service daemon`(`/usr/local/bin/dxrtd`)이 실행 중이면,  
-   `DX-Runtime` Docker 컨테이너를 실행할 때 `Other instance of dxrtd is running` 오류가 발생하며 종료됩니다.  
-   컨테이너 실행 전에 호스트에서 서비스 데몬을 중지하세요.
+##### 2. 호스트 시스템에 `dx_rt`가 설치되어 있고 `service daemon`(`/usr/local/bin/dxrtd`)이 실행 중이면,
 
-##### 3. 만약 다른 컨테이너에서 이미 `서비스 데몬`(`/usr/local/bin/dxrtd`)이 실행 중이라면, 새로운 컨테이너를 실행하더라도 동일한 오류가 발생합니다.  
-   여러 개의 DX-Runtime 컨테이너를 동시에 실행하려면, [#4](#4-컨테이너-내부가-아닌-호스트에서-실행-중인-서비스-데몬을-그대로-사용하고자-하는-경우)를 참고하세요.
+`DX-Runtime` Docker 컨테이너를 실행할 때 `Other instance of dxrtd is running` 오류가 발생하며 종료됩니다.  
+ 컨테이너 실행 전에 호스트에서 서비스 데몬을 중지하세요.
 
-##### 4. 컨테이너 내부가 아닌 호스트에서 실행 중인 `dxrtd`(서비스 데몬)을 그대로 사용하고자 하는 경우,  
+##### 3. 만약 다른 컨테이너에서 이미 `서비스 데몬`(`/usr/local/bin/dxrtd`)이 실행 중이라면, 새로운 컨테이너를 실행하더라도 동일한 오류가 발생합니다.
+
+여러 개의 DX-Runtime 컨테이너를 동시에 실행하려면, [#4](#4-컨테이너-내부가-아닌-호스트에서-실행-중인-서비스-데몬을-그대로-사용하고자-하는-경우)를 참고하세요.
+
+##### 4. 컨테이너 내부가 아닌 호스트에서 실행 중인 `dxrtd`(서비스 데몬)을 그대로 사용하고자 하는 경우,
+
 다음 두 가지 방법 중 하나로 설정할 수 있습니다:
 
-
 ###### 해결 방법 1: Docker 이미지 빌드 단계에서 수정
+
 `docker/Dockerfile.dx-runtime` 파일을 아래와 같이 수정합니다:
 
 - 변경 전:
+
 ```
 ...
 ENTRYPOINT [ "/usr/local/bin/dxrtd" ]
@@ -171,6 +185,7 @@ ENTRYPOINT [ "/usr/local/bin/dxrtd" ]
 ```
 
 - 변경 후:
+
 ```
 ...
 # ENTRYPOINT [ "/usr/local/bin/dxrtd" ]
@@ -178,9 +193,11 @@ ENTRYPOINT ["tail", "-f", "/dev/null"]
 ```
 
 ###### 해결 방법 2: Docker 컨테이너 실행 단계에서 수정
+
 `docker/docker-compose.yml` 파일을 아래와 같이 수정합니다:
 
 - 변경 전:
+
 ```
   ...
   dx-runtime:
@@ -193,6 +210,7 @@ ENTRYPOINT ["tail", "-f", "/dev/null"]
 ```
 
 - 변경 후:
+
 ```
   ...
   dx-runtime:
@@ -240,6 +258,7 @@ $ ./docker_build.sh --target=dx-compiler --ubuntu_version=24.04
 ```
 $ ./docker_build.sh --target=dx-modelzoo --ubuntu_version=24.04
 ```
+
 `--target=<environment_name>` 옵션을 사용하여 `dx-runtime` 또는 `dx-compiler`만 빌드할 수 있습니다.
 
 #### Docker 컨테이너 실행
@@ -388,14 +407,14 @@ $ ./run_demo.sh
 #### 설치 경로
 
 1. **호스트 환경에서 실행하는 경우:**
-    ```
-    $ cd ./dx-compiler/dx_com
-    ```
+   ```
+   $ cd ./dx-compiler/dx_com
+   ```
 2. **도커 컨테이너 내부에서 실행하는 경우:**
-    ```
-    $ docker exec -it dx-compiler-<ubuntu_version> bash
-    # cd /deepx/dx-compiler/dx_com
-    ```
+   ```
+   $ docker exec -it dx-compiler-<ubuntu_version> bash
+   # cd /deepx/dx-compiler/dx_com
+   ```
 
 #### 샘플 ONNX 입력을 사용하여 `dx_com` 실행
 
@@ -404,21 +423,20 @@ $ make
 dx_com/dx_com \
         -m sample/MobileNetV1-1.onnx \
         -c sample/MobileNetV1-1.json \
-        -o sample/MobileNetV1-1 
+        -o sample/MobileNetV1-1
 Compiling Model : 100%|███████████████████████████████| 1.0/1.0 [00:06<00:00,  7.00s/model ]
 
 dx_com/dx_com \
         -m sample/ResNet50-1.onnx \
         -c sample/ResNet50-1.json \
-        -o sample/ResNet50-1 
+        -o sample/ResNet50-1
 Compiling Model : 100%|███████████████████████████████| 1.0/1.0 [00:19<00:00, 19.17s/model ]
 
 dx_com/dx_com \
         -m sample/YOLOV5-1.onnx \
         -c sample/YOLOV5-1.json \
-        -o sample/YOLOV5-1 
+        -o sample/YOLOV5-1
 Compiling Model : 100%|███████████████████████████████| 1.0/1.0 [00:47<00:00, 47.66s/model ]
 ```
 
 **자세한 내용은 [dx-compiler/source/docs/02_02_Installation_of_DX-COM.md](/dx-compiler/source/docs/02_02_Installation_of_DX-COM.md)를 참고하세요.**
-
