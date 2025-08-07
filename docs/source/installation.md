@@ -118,7 +118,14 @@ $ ./dx-runtime/install.sh --all
 ```
 
 This command will build and install the following modules:  
-`dx_rt_npu_linux_driver`, `dx_rt`, `dx_app`, and `dx_stream` (excluding `dx_fw` firmware updates).
+`dx_fw`, `dx_rt_npu_linux_driver`, `dx_rt`, `dx_app`, and `dx_stream`
+
+```
+$ ./dx-runtime/install.sh --all --exclude-fw
+``` 
+
+You can exclude `dx_fw` from the installation using the `--exclude-fw` option.
+
 
 #### Selective Installation of a Specific Module
 
@@ -142,6 +149,15 @@ Alternatively, you can use:
 ```
 $ ./dx-runtime/install.sh --target=dx_fw
 ```
+
+#### Sanity check
+
+```
+$ ./dx-runtime/scripts/sanity_check.sh
+```
+
+You can use this command to verify that `dx_rt` and `dx_rt_npu_linux_driver` are installed correctly.
+
 
 **It is recommended to completely shut down and power off the system before rebooting after a firmware update.**
 
