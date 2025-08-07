@@ -3,9 +3,10 @@ name: Direct Staging Update and Tag
 run-name: Direct staging push to dx-all-suite by ${{ github.sha }}
 
 on:
-  push:
-    branches:
-      - staging # dx-all-suite의 staging 브랜치에 직접 푸시될 때 트리거
+  workflow_dispatch:
+#  push:
+#    branches:
+#      - staging
 
 permissions: write-all
 
