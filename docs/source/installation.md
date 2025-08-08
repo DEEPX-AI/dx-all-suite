@@ -39,6 +39,26 @@ $ git submodule status
 $ ./scripts/install_docker.sh
 ```
 
+#### Python Virtual Environment (Recommended)
+
+The installation scripts will install Python packages via pip. To avoid conflicts with system packages and maintain a clean environment, it is strongly recommended to use a Python virtual environment:
+
+```bash
+# Create a virtual environment
+$ python -m venv dx-venv
+
+# Activate the virtual environment
+$ source dx-venv/bin/activate  # On Linux/macOS
+# or
+$ dx-venv\Scripts\activate  # On Windows
+
+# Verify the virtual environment is active
+$ which python
+# Should show: /path/to/dx-venv/bin/python
+```
+
+After activating the virtual environment, proceed with the installation steps below.
+
 ---
 
 ## Local Installation
