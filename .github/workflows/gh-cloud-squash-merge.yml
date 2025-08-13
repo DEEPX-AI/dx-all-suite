@@ -1,0 +1,44 @@
+name: Squash Merge Target Repositories
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_repos:
+        description: 'Target repositories to merge (comma-separated)'
+        required: false
+        default: 'DEEPX-AI/dx_rt,DEEPX-AI/dx_app,DEEPX-AI/dx_stream,DEEPX-AI/dx_rt_npu_linux_driver,DEEPX-AI/dx_fw,DEEPX-AI/dx-modelzoo'
+        type: string
+      source_branch:
+        description: 'Source branch to merge from'
+        required: false
+        default: 'staging'
+        type: string
+      target_branch:
+        description: 'Target branch to merge into'
+        required: false
+        default: 'main'
+        type: string
+      delete_source_branch:
+        description: 'Delete source branch after merge'
+        required: false
+        default: false
+        type: boolean
+      create_release:
+        description: 'Create release after merge'
+        required: false
+        default: false
+        type: boolean
+
+permissions: write-all
+
+jobs:
+  call_squash_merge:
+    uses: DEEPX-AI/do_workflows-central/.github/workflows/squash-merge.yml@main
+    with:
+      target_repos: ${{ github.event.inputs.target_repos }}
+      source_branch: ${{ github.event.inputs.source_branch }}
+      target_branch: ${{ github.event.inputs.target_branch }}
+      delete_source_branch: ${{ github.event.inputs.delete_source_branch }}
+      create_release: ${{ github.event.inputs.create_release }}
+    secrets:
+      token: ${{ secrets.GC_DCI_TOKEN }}
