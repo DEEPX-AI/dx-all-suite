@@ -19,9 +19,9 @@ on:
         default: 'main'
         type: string
       delete_source_branch:
-        description: 'Delete source branch after merge'
+        description: 'Delete source branch and recreate after merge'
         required: false
-        default: false
+        default: true
         type: boolean
       create_release:
         description: 'Create release after merge'
