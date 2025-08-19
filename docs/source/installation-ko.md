@@ -38,6 +38,26 @@ $ git submodule status
 $ ./scripts/install_docker.sh
 ```
 
+### Python 가상 환경 (권장)
+
+설치 스크립트는 pip를 통해 Python 패키지를 설치합니다. 시스템 패키지와의 충돌을 피하고 깔끔한 환경을 유지하기 위해 Python 가상 환경을 사용하는 것을 강력하게 권장합니다.
+
+```
+# 가상 환경 생성
+$ python -m venv dx-venv
+
+# 가상 환경 활성화
+$ source dx-venv/bin/activate  # Linux/macOS
+# 또는
+$ dx-venv\Scripts\activate  # Windows
+
+# 가상 환경이 활성화되었는지 확인
+$ which python
+# 출력 결과: /path/to/dx-venv/bin/python
+```
+
+가상 환경을 활성화한 후, 아래의 설치 단계를 진행하세요.
+
 ---
 
 ## 로컬 설치
