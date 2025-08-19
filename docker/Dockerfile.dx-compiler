@@ -11,9 +11,15 @@ COPY ${FILE_DXCOM} /deepx/dx-compiler/dx_com
 
 RUN tar_file=$(ls *.tar.gz) && \
     first_entry=$(tar -tzf "$tar_file" | head -n 1) && \
-    if echo "$first_entry" | grep -q '/'; then \
-        echo "Detected top-level directory. Using --strip-components=1"; \
-        tar -xzf "$tar_file" --strip-components=1 -C .; \
+    normalized_entry="${first_entry#./}" && \
+    if echo "$normalized_entry" | grep -q '/'; then \
+        if echo "$first_entry" | grep -q '^./'; then \
+            echo "Detected top-level directory with ./ prefix. Using --strip-components=2"; \
+            tar -xzf "$tar_file" --strip-components=2 -C .; \
+        else \
+            echo "Detected top-level directory. Using --strip-components=1"; \
+            tar -xzf "$tar_file" --strip-components=1 -C .; \
+        fi; \
     else \
         echo "No top-level directory. Extracting as-is"; \
         tar -xzf "$tar_file" -C .; \

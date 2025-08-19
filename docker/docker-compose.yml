@@ -21,6 +21,7 @@ services:
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
       - /var/run/docker.sock:/var/run/docker.sock
+      - ${LOCAL_VOLUME_PATH:-../workspace}:${DOCKER_VOLUME_PATH:-/deepx/workspace} # mount volume
     network_mode: "host"
     restart: on-failure
     devices:
