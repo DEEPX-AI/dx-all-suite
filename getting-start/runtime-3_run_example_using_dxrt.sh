@@ -7,6 +7,7 @@ DX_APP_PATH="${RUNTIME_PATH}/dx_app"
 
 # color env settings
 source ${DX_AS_PATH}/scripts/color_env.sh
+source ${DX_AS_PATH}/scripts/common_util.sh
 
 echo -e "======== PATH INFO ========="
 echo "RUNTIME_PATH($RUNTIME_PATH)"
@@ -24,14 +25,36 @@ fork_examples() {
     
     # copy dx_app example application binary executable files
     mkdir -p  ${FORK_PATH}/bin
-    cp -dp ${DX_APP_PATH}/bin/run_detector ${FORK_PATH}/bin/.
-    cp -dp ${DX_APP_PATH}/bin/run_classifier ${FORK_PATH}/bin/.
+    local cp_run_detector_cmd="cp -dp ${DX_APP_PATH}/bin/run_detector ${FORK_PATH}/bin/."
+    local cp_run_classifier_cmd="cp -dp ${DX_APP_PATH}/bin/run_classifier ${FORK_PATH}/bin/."
+    local err_msg_run_detector="Failed to copy 'run_detector' binary executable file."
+    local err_msg_run_classifier="Failed to copy 'run_classifier' binary executable file."
+    local hint_msg="Please build dx_app first. using command"
+    local suggested_action_cmd="${RUNTIME_PATH}/install.sh --target=dx_app"
+
+    eval "$cp_run_detector_cmd" || {
+        # handle_cmd_failure function arguments
+        #   - local error_message=$1
+        #   - local hint_message=$2
+        #   - local origin_cmd=$3
+        #   - local suggested_action_cmd=$4
+        handle_cmd_failure "$err_msg_run_detector" "$hint_msg" "$cp_run_detector_cmd" "$suggested_action_cmd"
+    }
+
+    eval "$cp_run_classifier_cmd" || {
+        # handle_cmd_failure function arguments
+        #   - local error_message=$1
+        #   - local hint_message=$2
+        #   - local origin_cmd=$3
+        #   - local suggested_action_cmd=$4
+        handle_cmd_failure "$err_msg_run_classifier" "$hint_msg" "$cp_run_classifier_cmd" "$suggested_action_cmd"
+    }
 
     # copy dx_app example application configration(json) files
     mkdir -p ${FORK_PATH}/example/run_detector
     mkdir -p ${FORK_PATH}/example/run_classifier
     # for Object Detection (YOLOV5S-1)
-    cp -dp ${DX_APP_PATH}/example/run_detector/yolov5s3_example.json ${FORK_PATH}/example/run_detector/.
+    cp -dp ${DX_APP_PATH}/example/run_detector/yolov5s1_example.json ${FORK_PATH}/example/run_detector/.
     # for Face Detection (YOLOV5S_Face-1)
     cp -dp ${DX_APP_PATH}/example/run_detector/yolo_face_example.json ${FORK_PATH}/example/run_detector/.
     # for Image Classification (MobileNetV2-1-1)
@@ -213,8 +236,8 @@ main() {
 
     echo -e "${TAG_START} === Yolov5S ==="
     # hijack yolov5s example
-    YOLO_V5S_EXAMPLE_PATH="example/run_detector/yolov5s3_example.json"
-    YOLO_V5S_SOURCE_STR="./assets/models/YOLOV5S_3.dxnn"
+    YOLO_V5S_EXAMPLE_PATH="example/run_detector/yolov5s1_example.json"
+    YOLO_V5S_SOURCE_STR="./assets/models/YOLOV5S_1.dxnn"
     hijack_example "${YOLO_V5S_EXAMPLE_PATH}" "${YOLO_V5S_SOURCE_STR}" "${YOLO_V5S_TARGET_STR}" "${COMMIT_MSG}"
 
     # run yolov5s hijakced example
