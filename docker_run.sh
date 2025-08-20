@@ -4,8 +4,9 @@ DX_AS_PATH=$(realpath -s "${SCRIPT_DIR}")
 
 # color env settings
 source ${DX_AS_PATH}/scripts/color_env.sh
+source ${DX_AS_PATH}/scripts/common_util.sh
 
-pushd "$DX_AS_PATH"
+pushd "$DX_AS_PATH" >&2
 
 OUTPUT_DIR="$DX_AS_PATH/archives"
 UBUNTU_VERSION=""
@@ -94,7 +95,9 @@ docker_run_impl()
         export XAUTHORITY_TARGET="/tmp/.docker.xauth"
     fi
 
-    CMD="docker compose ${config_file_args} -p dx-all-suite up -d --remove-orphans dx-${target}"
+    # Dynamically set the project name based on the Ubuntu
+    export COMPOSE_PROJECT_NAME="dx-all-suite-$(echo "${UBUNTU_VERSION}" | sed 's/\./-/g')"
+    CMD="docker compose ${config_file_args} -p ${COMPOSE_PROJECT_NAME} up -d --remove-orphans dx-${target}"
     echo "${CMD}"
 
     ${CMD}
@@ -230,6 +233,6 @@ done
 
 main
 
-popd
+popd >&2
 
 exit 0
