@@ -106,12 +106,6 @@ $ ./dx-compiler/install.sh
     - `./workspace/release/dx_com/dx_com_M1_v[VERSION]`
     - 심볼릭 링크가 `./dx-compiler/dx-com`에 생성됩니다.
 
-3.  이미 설치된 경우, `./dx-compiler/install.sh`를 다시 실행하면 기존 설치를 재사용합니다. 강제 재설치를 원할 경우 `--force` 옵션을 사용하세요.
-
-    ```
-    $ ./dx-compiler/install.sh --force
-    ```
-
 #### 아카이브 모드 (--archive_mode=y)
 
 `--archive_mode=y` 옵션은 주로 docker_build.sh를 사용하여 `dx-compiler` 환경에 대한 Docker 이미지를 빌드할 때 사용됩니다. 이 모드를 활성화하면, 모듈의 `.tar.gz` 파일을 다운로드하는 것까지만 진행되고 압축 해제 및 심볼릭 링크 생성은 수행되지 않습니다.

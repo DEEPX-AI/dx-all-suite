@@ -86,12 +86,6 @@ Upon successful installation:
     - `./workspace/release/dx_com/dx_com_M1A_v[VERSION]`
     - Symbolic links will also be created at `./dx-compiler/dx-com`.
 
-3.  If the modules are already installed, running `./dx-compiler/install.sh` again will reuse the existing installations. To force a reinstallation, use the `--force` option:
-
-    ```
-    $ ./dx-compiler/install.sh --force
-    ```
-
 #### Archive Mode (--archive_mode=y)
 
 The `--archive_mode=y` option is primarily used when building Docker images for the `dx-compiler` environment with `docker_build.sh`. When this mode is activated, only the download of the module's `.tar.gz` file proceeds; no extraction or symbolic link creation is performed.
