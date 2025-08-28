@@ -1,6 +1,6 @@
 [submodule "dx-runtime"]
 	path = dx-runtime
-	url = git@github.com:DEEPX-AI/dx-runtime.git
+	url = ../dx-runtime.git
 	ignore = dirty
 [submodule "dx-compiler"]
 	path = dx-compiler
