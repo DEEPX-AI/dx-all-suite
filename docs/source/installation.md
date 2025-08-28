@@ -386,12 +386,12 @@ $ fim ./result-app1.jpg
 
 1. **On the Host Environment:**
    ```
-   $ cd ./dx-compiler/dx_stream
+   $ cd ./dx-runtime/dx_stream
    ```
 2. **Inside the Docker Container:**
    ```
    $ docker exec -it dx-runtime-<ubuntu_version> bash
-   # cd /deepx/dx-compiler/dx_stream
+   # cd /deepx/dx-runtime/dx_stream
    ```
 
 #### Setup Assets (Precompiled NPU Model and Sample Input Videos)

@@ -100,7 +100,7 @@ docker_run_impl()
     CMD="docker compose ${config_file_args} -p ${COMPOSE_PROJECT_NAME} up -d --remove-orphans dx-${target}"
     echo "${CMD}"
 
-    ${CMD}
+    ${CMD} || { echo -e "${TAG_ERROR} docker run 'dx-${target}' failed. "; exit 1; }
 
     if [ "$XDG_SESSION_TYPE" == "tty" ]; then
         local DOCKER_EXEC_CMD="docker exec -it dx-${target}-${UBUNTU_VERSION} touch /deepx/tty_flag"
@@ -223,9 +223,7 @@ for i in "$@"; do
             INTEL_GPU_HW_ACC=1
             ;;
         *)
-            echo -e "${TAG_ERROR}: Invalid option '$1'"
-            show_help
-            exit 1
+            show_help "error" "Invalid option '$1'"
             ;;
     esac
     shift

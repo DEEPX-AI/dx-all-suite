@@ -4,6 +4,7 @@ DEEPX software components have version compatibility dependencies between them. 
 
 | DX-All-Suite | DX-COM | DX_FW | NPU Driver | DX-RT | DX-Stream | DX-APP |
 |:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| v1.0.0 | v1.60.1 | v2.1.0 | v1.5.0 | v2.9.6 | v1.6.3 | v1.10.2 |
+| v1.0.0 | v1.60.1 | v2.1.0 | v1.5.0 | v2.9.5 | v1.7.0 | v1.11.0 |
+| v2.0.0 | v2.0.0 | v2.1.4 | v1.7.1 | v3.0.0 | v2.0.0 | v2.0.0 |
 
 
