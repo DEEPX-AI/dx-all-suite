@@ -4,8 +4,9 @@ DX_AS_PATH=$(realpath -s "${SCRIPT_DIR}")
 
 # color env settings
 source ${DX_AS_PATH}/scripts/color_env.sh
+source ${DX_AS_PATH}/scripts/common_util.sh
 
-pushd "$DX_AS_PATH"
+pushd "$DX_AS_PATH" >&2
 
 OUTPUT_DIR="$DX_AS_PATH/archives"
 UBUNTU_VERSION=""
@@ -64,10 +65,12 @@ docker_down_impl()
         export XAUTHORITY_TARGET="/tmp/.docker.xauth"
     fi
 
-    CMD="docker compose ${config_file_args} down dx-${target}"
+    # Use the same project name as docker_run.sh
+    export COMPOSE_PROJECT_NAME="dx-all-suite-$(echo "${UBUNTU_VERSION}" | sed 's/\./-/g')"
+    CMD="docker compose ${config_file_args} -p ${COMPOSE_PROJECT_NAME} down dx-${target}"
     echo "${CMD}"
 
-    ${CMD}
+    ${CMD} || { echo -e "${TAG_ERROR} docker down 'dx-${target}' failed. "; exit 1; }
 }
 
 docker_down_all() 
@@ -155,9 +158,7 @@ for i in "$@"; do
             INTEL_GPU_HW_ACC=1
             ;;
         *)
-            echo -e "${TAG_ERROR}: Invalid option '$1'"
-            show_help
-            exit 1
+            show_help "error" "Invalid option '$1'"
             ;;
     esac
     shift
@@ -165,6 +166,6 @@ done
 
 main
 
-popd
+popd >&2
 
 exit 0

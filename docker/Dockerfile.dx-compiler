@@ -26,6 +26,9 @@ RUN tar_file=$(ls *.tar.gz) && \
     fi && \
     rm -f "$tar_file"
 
+WORKDIR /deepx/dx-compiler/dx_tron
+ARG FILE_DXTRON
+COPY ${FILE_DXTRON} /deepx/dx-compiler/dx_tron
 
 # COPY 'scripts' and 'getting-start'
 COPY scripts /deepx/scripts
@@ -81,36 +84,6 @@ RUN set -x && \
     if [ "$UBUNTU_VERSION" = "24.04" ] || [ "$UBUNTU_VERSION" = "22.04" ] || [ "$UBUNTU_VERSION" = "20.04" ]; then \
         add-apt-repository -y ppa:deadsnakes/ppa && apt-get update && \
         apt-get install -y python3.11 python3.11-dev python3.11-venv; \
-    elif [ "$UBUNTU_VERSION" = "18.04" ]; then \
-        PYTHON_SRC_VERSION=3.11.9 && \
-        apt-get update && \
-        apt-get install -y --no-install-recommends \
-            build-essential \
-            wget \
-            curl \
-            ca-certificates \
-            libssl-dev \
-            zlib1g-dev \
-            libncurses5-dev \
-            libncursesw5-dev \
-            libreadline-dev \
-            libsqlite3-dev \
-            libgdbm-dev \
-            libdb5.3-dev \
-            libbz2-dev \
-            libexpat1-dev \
-            liblzma-dev \
-            tk-dev \
-            libffi-dev \
-            uuid-dev && \
-        wget --no-check-certificate https://www.python.org/ftp/python/${PYTHON_SRC_VERSION}/Python-${PYTHON_SRC_VERSION}.tgz && \
-        tar xvf Python-${PYTHON_SRC_VERSION}.tgz && \
-        cd Python-${PYTHON_SRC_VERSION} && \
-        ./configure --enable-optimizations && \
-        make -j$(nproc) && \
-        make altinstall && \
-        cd .. && \
-        rm -rf Python-${PYTHON_SRC_VERSION}*; \
     else \
         echo "Unsupported Ubuntu version: $UBUNTU_VERSION" && exit 1; \
     fi && \
@@ -126,13 +99,16 @@ RUN set -x && \
     echo "*** UBUNTU_VERSION(${UBUNTU_VERSION}) ***" && \
     if [ "$UBUNTU_VERSION" = "24.04" ]; then \
         apt-get update && apt-get install -y --no-install-recommends \
-            libgl1-mesa-dev libglib2.0-0 make; \
+            libgl1-mesa-dev libglib2.0-0 make \
+            libfuse2 libayatana-appindicator3-1; \
     elif [ "$UBUNTU_VERSION" = "22.04" ]; then \
         apt-get update && apt-get install -y --no-install-recommends \
-            libgl1-mesa-dev libglib2.0-0 make; \
-    elif [ "$UBUNTU_VERSION" = "20.04" ] || [ "$UBUNTU_VERSION" = "18.04" ]; then \
+            libgl1-mesa-dev libglib2.0-0 make \
+            libfuse2 libappindicator3-1 libgconf-2-4; \
+    elif [ "$UBUNTU_VERSION" = "20.04" ]; then \
         apt-get update && apt-get install -y --no-install-recommends \
-            libgl1-mesa-dev libgl1-mesa-glx libglib2.0-0 make; \
+            libgl1-mesa-dev libgl1-mesa-glx libglib2.0-0 make \
+            libfuse2 libappindicator1 libgconf-2-4; \
     else \
         echo "Unsupported Ubuntu version: $UBUNTU_VERSION" && exit 1; \
     fi && \
@@ -154,19 +130,53 @@ RUN set -x && \
         libc6-dev \
         libncurses5-dev \
         libnss3-dev \
-        ccache
+        ccache \
+        fuse libxss1 libxtst6 libnss3 \
+        libcanberra-gtk-module libcanberra-gtk3-module \
+        software-properties-common \
+        vim fim
 
-# Copy dx_com
-COPY --from=install /deepx /deepx
-
-RUN apt-get update && \
+RUN add-apt-repository -y universe && \
+    apt-get update && \
     apt-get install -y \
-    vim fim && \
+        xdg-utils && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-RUN echo "source /venv-dxnn/bin/activate" >> /root/.bashrc
-WORKDIR /deepx
+ARG HOST_UID
+ARG HOST_GID
+ARG TARGET_USER
+ARG TARGET_HOME
+
+# Set default values (in case values are not provided at build time)
+ENV HOST_UID=${HOST_UID:-1000}
+ENV HOST_GID=${HOST_GID:-1000}
+ENV TARGET_USER=${TARGET_USER:-deepx}
+ENV TARGET_HOME=${TARGET_HOME:-/deepx}
+
+# UID/GID based user processing
+RUN set -eux; \
+    if getent passwd "$HOST_UID" > /dev/null; then \
+        EXISTING_USER=$(getent passwd "$HOST_UID" | cut -d: -f1); \
+        usermod -l "$TARGET_USER" -d "$TARGET_HOME" -m "$EXISTING_USER"; \
+        EXISTING_GROUP=$(getent group "$HOST_GID" | cut -d: -f1); \
+        groupmod -n "$TARGET_USER" "$EXISTING_GROUP"; \
+    else \
+        groupadd -g "$HOST_GID" "$TARGET_USER" || true; \
+        useradd -u "$HOST_UID" -g "$HOST_GID" -d "$TARGET_HOME" -s /bin/bash "$TARGET_USER"; \
+    fi
+
+# Copy dx_com and dx_tron
+COPY --from=install /deepx /deepx
+
+RUN chown -R "$HOST_UID:$HOST_GID" "$TARGET_HOME"
+
+# set default password
+RUN echo "deepx:deepx" | chpasswd
+
+USER $TARGET_USER
+WORKDIR $TARGET_HOME
+
+RUN echo "source /venv-dxnn/bin/activate" >> $TARGET_HOME/.bashrc
 
 ENTRYPOINT ["tail", "-f", "/dev/null"]
-

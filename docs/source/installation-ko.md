@@ -406,7 +406,7 @@ $ fim ./result-app1.jpg
 
 1. **호스트 환경에서 실행하는 경우:**
    ```
-   $ cd ./dx-compiler/dx_stream
+   $ cd ./dx-runtime/dx_stream
    ```
 2. **도커 컨테이너 내부에서 실행하는 경우:**
    ```
