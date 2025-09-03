@@ -10,49 +10,50 @@ DX-All-Suite은 DEEPX 디바이스를 검증하고 활용하기 위한 환경을
 
 ### 메인 리포지토리 클론
 
-```
-$ git clone --recurse-submodules https://github.com/DEEPX-AI/dx-all-suite.git
+
+```bash
+git clone --recurse-submodules https://github.com/DEEPX-AI/dx-all-suite.git
 ```
 
 또는
 
-```
-$ git clone --recurse-submodules git@github.com:DEEPX-AI/dx-all-suite.git
+```bash
+git clone --recurse-submodules git@github.com:DEEPX-AI/dx-all-suite.git
 ```
 
 #### (선택) 이미 클론된 리포지토리에서 서브모듈 초기화 및 업데이트
 
-```
-$ git submodule update --init --recursive
+```bash
+git submodule update --init --recursive
 ```
 
 ### 서브모듈 상태 확인
 
-```
-$ git submodule status
+```bash
+git submodule status
 ```
 
 #### (선택) Docker 및 Docker Compose 설치
 
-```
-$ ./scripts/install_docker.sh
+```bash
+./scripts/install_docker.sh
 ```
 
 ### Python 가상 환경 (권장)
 
 설치 스크립트는 pip를 통해 Python 패키지를 설치합니다. 시스템 패키지와의 충돌을 피하고 깔끔한 환경을 유지하기 위해 Python 가상 환경을 사용하는 것을 강력하게 권장합니다.
 
-```
+```bash
 # 가상 환경 생성
-$ python -m venv dx-venv
+python -m venv dx-venv
 
 # 가상 환경 활성화
-$ source dx-venv/bin/activate  # Linux/macOS
+source dx-venv/bin/activate  # Linux/macOS
 # 또는
-$ dx-venv\Scripts\activate  # Windows
+dx-venv\Scripts\activate  # Windows
 
 # 가상 환경이 활성화되었는지 확인
-$ which python
+which python
 # 출력 결과: /path/to/dx-venv/bin/python
 ```
 
@@ -66,28 +67,28 @@ $ which python
 
 `DX-Compiler` 환경은 사전 빌드된 바이너리를 제공하며, 소스 코드는 포함되지 않습니다. 각 모듈은 원격 서버에서 다운로드하여 설치할 수 있습니다.
 
-```
-$ ./dx-compiler/install.sh
+```bash
+./dx-compiler/install.sh
 ```
 
 위 명령을 실행하면, DX-Compiler 모듈을 **DEEPX Developers' Portal**에서 다운로드하고 설치하기 위해 계정 인증 정보가 필요할 수 있습니다. 스크립트는 다음 우선순위에 따라 인증 정보를 획득합니다:
 
 1.  **명령어 실행 시 직접 지정 (1순위):**
-    ```
-    $ ./dx-compiler/install.sh --username=<user> --password=<pass>
+    ```bash
+    ./dx-compiler/install.sh --username=<user> --password=<pass>
     ```
 2.  **환경 변수 사용 (2순위):**
 
-    ```
-    $ export DX_USERNAME=<사용자_이메일>
-    $ export DX_PASSWORD=<사용자_비밀번호>
-    $ ./dx-compiler/install.sh
+    ```bash
+    export DX_USERNAME=<사용자_이메일>
+    export DX_PASSWORD=<사용자_비밀번호>
+    ./dx-compiler/install.sh
     ```
 
     또는,
     compiler.properties에 아래와 같이 계정정보를 추가하면 환경변수로 주입됩니다.
 
-    ```
+    ```bash
     DX_USERNAME=<사용자_이메일>
     DX_PASSWORD=<사용자_비밀번호>
     ```
@@ -110,8 +111,8 @@ $ ./dx-compiler/install.sh
 
 `--archive_mode=y` 옵션은 주로 docker_build.sh를 사용하여 `dx-compiler` 환경에 대한 Docker 이미지를 빌드할 때 사용됩니다. 이 모드를 활성화하면, 모듈의 `.tar.gz` 파일을 다운로드하는 것까지만 진행되고 압축 해제 및 심볼릭 링크 생성은 수행되지 않습니다.
 
-```
-$ ./dx-compiler/install.sh --archive_mode=y
+```bash
+./dx-compiler/install.sh --archive_mode=y
 ```
 
 위 명령을 실행하면, 모듈 아카이브 파일(\*.tar.gz)이 아래 경로에 다운로드 및 저장됩니다:
@@ -127,16 +128,16 @@ archives/dx_com_M1_v[VERSION].tar.gz
 `DX-Runtime` 환경은 각 모듈의 소스 코드를 포함하며, `./dx-runtime` 디렉터리에서 Git 서브모듈(`dx_rt_npu_linux_driver`, `dx_rt`, `dx_app`, and `dx_stream`)로 관리됩니다.  
 모든 모듈을 빌드 및 설치하려면 아래 명령을 실행하세요.
 
-```
-$ ./dx-runtime/install.sh --all
+```bash
+./dx-runtime/install.sh --all
 ```
 
 이 명령어는 다음 모듈을 빌드 및 설치합니다.  
 `dx_fw, dx_rt_npu_linux_driver`, `dx_rt`, `dx_app`, `dx_stream`
 
 
-```
-$ ./dx-runtime/install.sh --all --exclude-fw
+```bash
+./dx-runtime/install.sh --all --exclude-fw
 ``` 
 
 `--exclude-fw` 옵션을 사용하여 `dx_fw`를 제외하고 설치가 가능합니다.
@@ -145,8 +146,8 @@ $ ./dx-runtime/install.sh --all --exclude-fw
 
 특정 모듈을 지정하여 설치하려면:
 
-```
-$ ./dx-runtime/install.sh --target=<module_name>
+```bash
+./dx-runtime/install.sh --target=<module_name>
 ```
 
 #### `dx_fw` (펌웨어 이미지) 업데이트
@@ -154,14 +155,14 @@ $ ./dx-runtime/install.sh --target=<module_name>
 `dx_fw` 모듈은 소스 코드를 포함하지 않으며, `fw.bin` 이미지 파일을 제공합니다.  
 `dxrt-cli`를 사용하여 펌웨어를 업데이트하려면:
 
-```
-$ dxrt-cli -u ./dx-runtime/dx_fw/m1/X.X.X/mdot2/fw.bin
+```bash
+dxrt-cli -u ./dx-runtime/dx_fw/m1/X.X.X/mdot2/fw.bin
 ```
 
 또는:
 
-```
-$ ./dx-runtime/install.sh --target=dx_fw
+```bash
+./dx-runtime/install.sh --target=dx_fw
 ```
 
 **펌웨어 업데이트 후에는 시스템을 완전히 종료하고 전원을 껐다가 다시 켜는 것이 권장됩니다.**
@@ -169,8 +170,8 @@ $ ./dx-runtime/install.sh --target=dx_fw
 
 #### Sanity check
 
-```
-$ ./dx-runtime/scripts/sanity_check.sh
+```bash
+./dx-runtime/scripts/sanity_check.sh
 ```
 
 이 명령어를 통해 `dx_rt`와 `dx_rt_npu_linux_driver`가 정상적으로 설치가 되었는지 체크 할 수 있습니다.
@@ -185,8 +186,8 @@ $ ./dx-runtime/scripts/sanity_check.sh
 
 ##### 1. Docker 환경을 사용할 경우, NPU 드라이버는 반드시 호스트 시스템에 설치해야 합니다.
 
-```
-$ ./dx-runtime/install.sh --target=dx_rt_npu_linux_driver
+```bash
+./dx-runtime/install.sh --target=dx_rt_npu_linux_driver
 ```
 
 ##### 2. 호스트 시스템에 `dx_rt`가 설치되어 있고 `service daemon`(`/usr/local/bin/dxrtd`)이 실행 중이면,
@@ -208,7 +209,7 @@ $ ./dx-runtime/install.sh --target=dx_rt_npu_linux_driver
 
 - 변경 전:
 
-```
+```Dockerfile
 ...
 ENTRYPOINT [ "/usr/local/bin/dxrtd" ]
 # ENTRYPOINT ["tail", "-f", "/dev/null"]
@@ -216,7 +217,7 @@ ENTRYPOINT [ "/usr/local/bin/dxrtd" ]
 
 - 변경 후:
 
-```
+```Dockerfile
 ...
 # ENTRYPOINT [ "/usr/local/bin/dxrtd" ]
 ENTRYPOINT ["tail", "-f", "/dev/null"]
@@ -228,7 +229,7 @@ ENTRYPOINT ["tail", "-f", "/dev/null"]
 
 - 변경 전:
 
-```
+```bash
   ...
   dx-runtime:
     container_name: dx-runtime-${UBUNTU_VERSION}
@@ -241,7 +242,7 @@ ENTRYPOINT ["tail", "-f", "/dev/null"]
 
 - 변경 후:
 
-```
+```bash
   ...
   dx-runtime:
     container_name: dx-runtime-${UBUNTU_VERSION}
@@ -257,15 +258,15 @@ ENTRYPOINT ["tail", "-f", "/dev/null"]
 
 #### Docker 이미지 빌드
 
-```
-$ ./docker_build.sh --all --ubuntu_version=24.04
+```bash
+./docker_build.sh --all --ubuntu_version=24.04
 ```
 
 위 명령어는 `dx-compiler`, `dx-runtime` 및 `dx-modelzoo` 환경이 포함된 Docker 이미지를 빌드합니다.  
 빌드된 이미지는 아래 명령어로 확인할 수 있습니다.
 
-```
-$ docker images
+```bash
+docker images
 ```
 
 ```
@@ -277,16 +278,16 @@ dx-modelzoo        24.04     cb2a92323b41   2 weeks ago     2.11GB
 
 ##### 특정 환경만 빌드
 
-```
-$ ./docker_build.sh --target=dx-runtime --ubuntu_version=24.04
-```
-
-```
-$ ./docker_build.sh --target=dx-compiler --ubuntu_version=24.04
+```bash
+./docker_build.sh --target=dx-runtime --ubuntu_version=24.04
 ```
 
+```bash
+./docker_build.sh --target=dx-compiler --ubuntu_version=24.04
 ```
-$ ./docker_build.sh --target=dx-modelzoo --ubuntu_version=24.04
+
+```bash
+./docker_build.sh --target=dx-modelzoo --ubuntu_version=24.04
 ```
 
 `--target=<environment_name>` 옵션을 사용하여 `dx-runtime` 또는 `dx-compiler`만 빌드할 수 있습니다.
@@ -303,14 +304,14 @@ sudo systemctl stop dxrt.service
 
 ##### 모든 환경(`dx_compiler`, `dx_runtime` 및 `dx-modelzoo`) 포함 컨테이너 실행
 
-```
-$ ./docker_run.sh --all --ubuntu_version=<ubuntu_version>
+```bash
+./docker_run.sh --all --ubuntu_version=<ubuntu_version>
 ```
 
 실행 중인 컨테이너 확인:
 
-```
-$ docker ps
+```bash
+docker ps
 ```
 
 ```
@@ -322,24 +323,24 @@ b3715d613434   dx-compiler:24.04      "tail -f /dev/null"      42 hours ago     
 
 ##### 컨테이너 내부 접속
 
-```
-$ docker exec -it dx-runtime-<ubuntu_version> bash
-```
-
-```
-$ docker exec -it dx-compiler-<ubuntu_version> bash
+```bash
+docker exec -it dx-runtime-<ubuntu_version> bash
 ```
 
+```bash
+docker exec -it dx-compiler-<ubuntu_version> bash
 ```
-$ docker exec -it dx-modelzoo-<ubuntu_version> bash
+
+```bash
+docker exec -it dx-modelzoo-<ubuntu_version> bash
 ```
 
 위 명령어를 통해 `dx-compiler`, `dx-runtime` 및 `dx-modelzoo` 환경에 접속할 수 있습니다.
 
 ##### 컨테이너 내부에서 DX-Runtime 설치 확인
 
-```
-# dxrt-cli -s
+```bash
+dxrt-cli -s
 ```
 
 출력 예시:
@@ -374,26 +375,26 @@ DVFS Disabled
 #### 설치 경로
 
 1. **호스트 환경에서 실행하는 경우:**
-   ```
-   $ cd ./dx-runtime/dx_app
+   ```bash
+   cd ./dx-runtime/dx_app
    ```
 2. **도커 컨테이너 내부에서 실행하는 경우:**
-   ```
-    $ docker exec -it dx-runtime-<ubuntu_version> bash
-    # cd /deepx/dx-runtime/dx_app
+   ```bash
+    docker exec -it dx-runtime-<ubuntu_version> bash
+    cd /deepx/dx-runtime/dx_app
    ```
 
 #### 애셋 설정 (사전 컴파일된 NPU 모델 및 샘플 입력 영상)
 
-```
-$ ./setup.sh
+```bash
+./setup.sh
 ```
 
 #### `dx_app` 실행
 
-```
-$ ./scripts/run_detector.sh
-$ fim ./result-app1.jpg
+```bash
+./scripts/run_detector.sh
+fim ./result-app1.jpg
 ```
 
 **자세한 내용은 [dx-runtime/dx_app/README.md](/dx-runtime/dx_app/README.md).**
@@ -405,25 +406,25 @@ $ fim ./result-app1.jpg
 #### 설치 경로
 
 1. **호스트 환경에서 실행하는 경우:**
-   ```
-   $ cd ./dx-runtime/dx_stream
+   ```bash
+   cd ./dx-runtime/dx_stream
    ```
 2. **도커 컨테이너 내부에서 실행하는 경우:**
-   ```
-    $ docker exec -it dx-runtime-<ubuntu_version> bash
-    # cd /deepx/dx-runtime/dx_stream
+   ```bash
+    docker exec -it dx-runtime-<ubuntu_version> bash
+    cd /deepx/dx-runtime/dx_stream
    ```
 
 #### Assets 설정 (사전 컴파일된 NPU 모델 및 샘플 입력 영상)
 
-```
-$ ./setup.sh
+```bash
+./setup.sh
 ```
 
 #### `dx_stream` 실행
 
-```
-$ ./run_demo.sh
+```bash
+./run_demo.sh
 ```
 
 **자세한 내용은 [dx-runtime/dx_stream/README.md](/dx-runtime/dx_stream/README.md)를 참고하세요.**
@@ -437,19 +438,19 @@ $ ./run_demo.sh
 #### 설치 경로
 
 1. **호스트 환경에서 실행하는 경우:**
-   ```
-   $ cd ./dx-compiler/dx_com
+   ```bash
+   cd ./dx-compiler/dx_com
    ```
 2. **도커 컨테이너 내부에서 실행하는 경우:**
-   ```
-   $ docker exec -it dx-compiler-<ubuntu_version> bash
+   ```bash
+   docker exec -it dx-compiler-<ubuntu_version> bash
    # cd /deepx/dx-compiler/dx_com
    ```
 
 #### 샘플 ONNX 입력을 사용하여 `dx_com` 실행
 
-```
-$ make
+```bash
+make
 dx_com/dx_com \
         -m sample/MobileNetV1-1.onnx \
         -c sample/MobileNetV1-1.json \

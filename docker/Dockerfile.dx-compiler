@@ -166,6 +166,10 @@ RUN set -eux; \
         useradd -u "$HOST_UID" -g "$HOST_GID" -d "$TARGET_HOME" -s /bin/bash "$TARGET_USER"; \
     fi
 
+# Copy init script for workspace permissions
+COPY docker/init-workspace.sh /usr/local/bin/init-workspace.sh
+RUN chmod +x /usr/local/bin/init-workspace.sh
+
 # Copy dx_com and dx_tron
 COPY --from=install /deepx /deepx
 
@@ -174,9 +178,15 @@ RUN chown -R "$HOST_UID:$HOST_GID" "$TARGET_HOME"
 # set default password
 RUN echo "deepx:deepx" | chpasswd
 
+# add sudo group
+RUN groupadd -g "$HOST_GID" "$TARGET_USER" || true; \
+    usermod -aG sudo "$TARGET_USER"; \
+    echo "$TARGET_USER ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers;
+
 USER $TARGET_USER
 WORKDIR $TARGET_HOME
 
 RUN echo "source /venv-dxnn/bin/activate" >> $TARGET_HOME/.bashrc
 
-ENTRYPOINT ["tail", "-f", "/dev/null"]
+ENTRYPOINT ["/usr/local/bin/init-workspace.sh"]
+CMD ["tail", "-f", "/dev/null"]

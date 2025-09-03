@@ -5,7 +5,7 @@
 When running the `dx-runtime` or `dx-modelzoo` container using the `docker_run.sh` script, the container stays in a **Restarting** state, and you cannot execute `docker exec -it <container-name> bash`.
 
 ```bash
-$ ./docker_run.sh --target=dx-runtime --ubuntu_version=24.04
+./docker_run.sh --target=dx-runtime --ubuntu_version=24.04
 ```
 
 ```plaintext
@@ -20,7 +20,7 @@ docker compose -f docker/docker-compose.yml up -d --remove-orphans dx-runtime
 ```
 
 ```bash
-$ docker exec -it dx-rumtime-24.04 bash
+docker exec -it dx-rumtime-24.04 bash
 ```
 
 ```plaintext
@@ -32,7 +32,7 @@ Error response from daemon: No such container: dx-rumtime-24.04
 First, check if the **dxrtd** (dx-runtime service daemon) is already running on the host system:
 
 ```bash
-$ ps aux | grep dxrtd
+ps aux | grep dxrtd
 ```
 
 ```plaintext
@@ -44,7 +44,7 @@ If **dxrtd is already running on the host**, the attempt to run `dxrtd` inside t
 Check the container status with:
 
 ```bash
-$ docker ps 
+docker ps 
 ```
 
 ```plaintext
@@ -53,7 +53,7 @@ CONTAINER ID   IMAGE                  COMMAND                  CREATED          
 ```
 
 ```bash
-$ docker logs dx-runtime-24.04 
+docker logs dx-runtime-24.04 
 ```
 
 ```plaintext

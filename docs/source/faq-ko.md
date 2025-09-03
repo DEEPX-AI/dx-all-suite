@@ -4,9 +4,8 @@
 
 `dx-runtime` 또는 `dx-modelzoo` 컨테이너를 `docker_run.sh` 스크립트를 통해 실행하였으나, 컨테이너가 **계속해서 재시작(Restarting)** 상태에 머무르며 `docker exec -it <컨테이너이름> bash` 명령어를 실행할 수 없습니다.
 
-
 ```bash
-$ ./docker_run.sh --target=dx-runtime --ubuntu_version=24.04
+./docker_run.sh --target=dx-runtime --ubuntu_version=24.04
 ```
 
 ```plaintext
@@ -21,7 +20,7 @@ docker compose -f docker/docker-compose.yml up -d --remove-orphans dx-runtime
 ```
 
 ```bash
-$ docker exec -it dx-rumtime-24.04 bash
+docker exec -it dx-rumtime-24.04 bash
 ```
 
 ```plaintext
@@ -33,7 +32,7 @@ Error response from daemon: No such container: dx-rumtime-24.04
 먼저, 호스트 시스템에서 **dxrtd**(dx-runtime 서비스 데몬)가 이미 실행 중인지 확인합니다:
 
 ```bash
-$ ps aux | grep dxrtd
+ps aux | grep dxrtd
 ```
 
 ```plaintext
@@ -45,7 +44,7 @@ root       60451  0.0  0.0 253648  6956 ?        Ssl  10:52   0:00 **/usr/local/
 컨테이너 상태를 확인하려면 다음 명령어를 사용합니다:
 
 ```bash
-$ docker ps 
+docker ps 
 ```
 
 ```plaintext
@@ -54,7 +53,7 @@ CONTAINER ID   IMAGE                  COMMAND                  CREATED          
 ```
 
 ```bash
-$ docker logs dx-runtime-24.04 
+docker logs dx-runtime-24.04 
 ```
 
 ```plaintext
