@@ -31,14 +31,15 @@ This release marks a significant step forward with new features and major stabil
 **Performance & Efficiency:**  
 - Implemented a new "stop & go" inference function that splits large tiles for better performance.
 - Increased the number of threads for the `DeviceOutputWorker` from 3 to 4.
-- The default build option for DX-RT is now `USE_ORT=ON`, which enables the CPU task for `.dxnn` models by default.
 - YOLO post-processing logic was updated to use a `RunAsync() + Wait()` structure to ensure correct output order.
+- The default build option for DX-RT is now `USE_ORT=ON`, which enables the CPU task for `.dxnn` models by default. Add automatic handling of input dummy padding and output dummy slicing when `USE_ORT=OFF` (build-time or via InferenceOption). 
 
 **Stability & Fixes:**  
 - Resolved a kernel panic caused by an incorrect NPU channel number.
 - Fixed a build error on Ubuntu 18.04 related to Python 3.6.9 incompatibility by adding automatic installation support for a compatible Python version (3.8.2).
 - Corrected a QSPI read logic bug that could cause underflow.
 - Addressed a processing delay bug in `dx-inputselector` and fixed a bug in dx_rt that affected multi-tail models.
+- In DX-COM, `PPU(Post-Processing Unit)` is no longer supported, and there are no current plans to reinstate it.
 
 **New Features & Tools:**  
 - Added a new USB inference module.
@@ -47,6 +48,7 @@ This release marks a significant step forward with new features and major stabil
 - Support for the `Softmax`, `Slice`, and `ConvTranspose` operators was enabled.
 - Partial support for Vision Transformer (ViT) models was added.
 - Implemented a new uninstall script (`uninstall.sh`) for project cleanup.
+- In DX-RT, add support for both .dxnn file formats: v6 (compiled with dx_com 1.40.2 or later) and v7 (compiled with dx_com 2.x.x).
 
 For detailed updated items, refer to **each environment & module's Release Notes.**
 
