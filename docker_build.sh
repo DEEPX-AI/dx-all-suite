@@ -42,13 +42,6 @@ else
     exit 1
 fi
 
-if [ -n "${TRON_VERSION}" ]; then
-    echo -e "${TAG_INFO} dx_tron version(${TRON_VERSION}) is set."
-else
-    echo -e "${TAG_ERROR} 'dx_tron' version is not specified in ${VERSION_FILE}."
-    exit 1
-fi
-
 FILE_DXCOM="archives/dx_com_M1_v${COM_VERSION}.tar.gz"
 FILE_DXTRON="archives/DXTron-${TRON_VERSION}.AppImage"
 HOST_UID=$(id -u)

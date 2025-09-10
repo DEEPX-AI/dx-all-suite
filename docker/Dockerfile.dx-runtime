@@ -130,7 +130,7 @@ RUN set -x && \
     . /venv-dxnn/bin/activate && \
     echo "Build dx_rt..." && \
     ./install.sh --all && \
-    ./build.sh --install && \
+    ./build.sh && \
     cd ./python_package && \
     pip install .
 

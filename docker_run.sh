@@ -55,14 +55,14 @@ check_xdg_sesstion_type()
 {
     print_colored_v2 "INFO" "XDG_SESSION_TYPE: $XDG_SESSION_TYPE"
     if [ "$XDG_SESSION_TYPE" == "tty" ]; then
-        print_colored_v2 "WARNING" "${COLOR_BRIGHT_YELLOW_ON_BLACK}You are currently running in a **tty session**, which does not support GUI. In such environments, it is not possible to visually confirm the results of example code execution via GUI. (Note): ${COLOR_RESET}"
+        print_colored_v2 "WARNING" "You are currently running in a **tty session**, which does not support GUI. In such environments, it is not possible to visually confirm the results of example code execution via GUI. (Note): "
         echo -e -n "${TAG_INFO} ${COLOR_BRIGHT_GREEN_ON_BLACK}Press any key and hit Enter to continue. ${COLOR_RESET}"
         read -r answer
         print_colored_v2 "INFO" "Start docker run ..."
 
     elif [ "$XDG_SESSION_TYPE" != "x11" ]; then
-        print_colored_v2 "WARNING" "${COLOR_BRIGHT_YELLOW_ON_BLACK}it is recommended to use an **X11 session (with .Xauthority support)** when working with the 'dx-all-suite' container.${COLOR_RESET}"
-        print_colored_v2 "WARNING" "${COLOR_BRIGHT_YELLOW_ON_BLACK}For more details, please refer to the [FAQ section of the dx-all-suite documentation](https://github.com/DEEPX-AI/dx-all-suite/blob/main/docs/source/faq.md).${COLOR_RESET}"
+        print_colored_v2 "WARNING" "it is recommended to use an **X11 session (with .Xauthority support)** when working with the 'dx-all-suite' container."
+        print_colored_v2 "WARNING" "For more details, please refer to the [FAQ section of the dx-all-suite documentation](https://github.com/DEEPX-AI/dx-all-suite/blob/main/docs/source/faq.md)."
 
         echo -e "${COLOR_BRIGHT_GREEN_ON_BLACK}if the user's host environment is not based on **X11 (with .Xauthority)** but instead uses **Xwayland** or similar, the 'xauth' data may be lost after a system reboot or session logout. As a result, the authentication file mount between the host and the container may fail, making it impossible to restart or reuse the container.${COLOR_RESET}"
         echo -e -n "${COLOR_RED_ON_BLACK}This may cause issues. Do you still want to continue? (y/n): ${COLOR_RESET}"
