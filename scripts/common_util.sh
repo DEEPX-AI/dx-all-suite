@@ -18,8 +18,8 @@ print_colored() {
         "OK") printf "${COLOR_BG_GREEN}[OK]${COLOR_RESET}${COLOR_BRIGHT_GREEN} %s ${COLOR_RESET}\n" "$message" >&2 ;;
         "FAIL") printf "${COLOR_BG_RED}[FAIL]${COLOR_RESET}${COLOR_BRIGHT_RED} %s ${COLOR_RESET}\n" "$message" >&2 ;;
         "INFO") printf "${COLOR_BG_BLUE}[INFO]${COLOR_RESET}${COLOR_BRIGHT_BLUE} %s ${COLOR_RESET}\n" "$message" >&2 ;;
-        "WARNING") printf "${COLOR_BG_YELLOW}[WARNING]${COLOR_RESET}${COLOR_BRIGHT_YELLOW} %s ${COLOR_RESET}\n" "$message" >&2 ;;
-        "DEBUG") printf "${COLOR_BG_YELLOW}[DEBUG]${COLOR_RESET}${COLOR_BRIGHT_YELLOW} %s ${COLOR_RESET}\n" "$message" >&2 ;;
+        "WARNING") printf "${COLOR_BLACK_ON_YELLOW}[WARNING]${COLOR_RESET}${COLOR_BRIGHT_YELLOW} %s ${COLOR_RESET}\n" "$message" >&2 ;;
+        "DEBUG") printf "${COLOR_BLACK_ON_YELLOW}[DEBUG]${COLOR_RESET}${COLOR_BRIGHT_YELLOW} %s ${COLOR_RESET}\n" "$message" >&2 ;;
         "HINT") printf "${COLOR_BG_GREEN}[HINT]${COLOR_RESET}${COLOR_BRIGHT_GREEN_ON_BLACK} %s ${COLOR_RESET}\n" "$message" >&2 ;;
         "SKIP") printf "${COLOR_WHITE_ON_GRAY}[SKIP]${COLOR_RESET}${COLOR_BRIGHT_WHITE_ON_GRAY} %s ${COLOR_RESET}\n" "$message" >&2 ;;
 
@@ -66,15 +66,30 @@ handle_cmd_failure() {
     local hint_message=$2
     local origin_cmd=$3
     local suggested_action_cmd=$4
+    local suggested_action_message="Would you like to perform the suggested action now?"
+    local message_type="ERROR"
+
+    handle_cmd_interactive "$error_message" "$hint_message" "$origin_cmd" "$suggested_action_cmd" "$suggested_action_message" "$message_type"
+}
+
+# Interactive command handler with user confirmation
+handle_cmd_interactive() {
+    local message=$1
+    local hint_message=$2
+    local origin_cmd=$3
+    local suggested_action_cmd=$4
+    local suggested_action_message=$5
+    local message_type=$6
+    local default_input=${7:-Y}
     
-    print_colored_v2 "ERROR" "${error_message}"
+    print_colored_v2 "${message_type}" "${message}"
     print_colored_v2 "HINT" "${hint_message}"
-    print_colored_v2 "YELLOW" "Would you like to perform the suggested action now? [Y/n] (Default is 'y' after 10 seconds of no input. This process will be aborted if you enter 'n')"
+    print_colored_v2 "YELLOW" "${suggested_action_message} [y/n] (Default is '${default_input}' after 10 seconds of no input. This process will be aborted if you enter 'n')"
     read -t 10 -p ">> " user_input
-    user_input=${user_input:-Y}
+    user_input=${user_input:-$default_input}
     if [[ "${user_input,,}" == "n" ]]; then
         print_colored_v2 "INFO" "This process aborted by user."
-        exit 1
+        return 5
     else
         if [ -n "$suggested_action_cmd" ]; then
             print_colored_v2 "INFO" "Suggested action will be performed."
@@ -86,11 +101,13 @@ handle_cmd_failure() {
 
         if [ -n "$origin_cmd" ]; then
             eval "$origin_cmd" || {
-                print_colored_v2 "ERROR" "${error_message}"
+                print_colored_v2 "ERROR" "${message}"
                 exit 1
             }
         fi
     fi
+
+    return 0
 }
 
 # OS Check function
@@ -287,6 +304,10 @@ delete_dir() {
     fi
 }
 
+delete_path() {
+    delete_dir "$1"
+}
+
 # Function to delete symlinks and their target files
 delete_symlinks() {
     local dir="$1"
@@ -357,4 +378,19 @@ delete_symlinks() {
             print_colored_v2 "DEBUG" "Skip to delete symlink, because it is not a symlink: $symlink"
         fi
     done
+}
+
+check_docker_compose() {
+    if command -v docker &> /dev/null; then
+        if docker compose version &> /dev/null; then
+            echo "✅ The 'docker compose' command works properly."
+            return 0
+        else
+            echo "⚠️ 'docker' is installed, but the 'compose' command is not available."
+            return 1
+        fi
+    else
+        echo "❌ 'docker' is not installed on the system."
+        return 1
+    fi
 }
