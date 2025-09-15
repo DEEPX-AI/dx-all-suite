@@ -19,7 +19,6 @@ source "${SCRIPT_DIR}/common_util.sh"
 exit_with_message() {
     local error_message="$1"
     print_colored_v2 "ERROR" "$error_message"
-    print_colored_v2 "HINT" "If the issue persists, please try again with sudo and the --force option, like this: 'sudo ./setup.sh --force'."
     exit 1
 }
 
