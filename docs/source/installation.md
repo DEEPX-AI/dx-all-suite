@@ -4,12 +4,21 @@ DX-All-Suite is a tool for creating an environment to validate and utilize DEEPX
 
 **Install on local machine** - Set up the DX-All-Suite environment directly on the host environment
 (maintaining compatibility between the individual tools).
+**Install on local machine** - Set up the DX-All-Suite environment directly on the host environment
+(maintaining compatibility between the individual tools).
 
+**Build Docker image and run container** - Build a DX-All-Suite environment within a Docker environment, or load a pre-built image to create a container.
 **Build Docker image and run container** - Build a DX-All-Suite environment within a Docker environment, or load a pre-built image to create a container.
 
 ## Prerequisites
 
 ### Clone the Main Repository
+
+```
+$ git clone --recurse-submodules https://github.com/DEEPX-AI/dx-all-suite.git
+```
+
+or
 
 ```bash
 git clone --recurse-submodules https://github.com/DEEPX-AI/dx-all-suite.git
@@ -72,6 +81,7 @@ The `DX-Compiler` environment provides prebuilt binary outputs and does not incl
 ```
 
 When executing the above command, **DEEPX Developers' Portal (https://developer.deepx.ai)** account authentication may be required to download and install the DX-Compiler modules. The script obtains authentication information based on the following priority:
+When executing the above command, **DEEPX Developers' Portal (https://developer.deepx.ai)** account authentication may be required to download and install the DX-Compiler modules. The script obtains authentication information based on the following priority:
 
 1.  **Directly specify when executing the command (1st priority):**
     ```bash
@@ -101,10 +111,14 @@ Upon successful installation:
 
     - `./workspace/release/dx_com/download/dx_com_M1A_v[VERSION].tar.gz`
 
+    - `./workspace/release/dx_com/download/dx_com_M1A_v[VERSION].tar.gz`
+
 2.  The downloaded modules will be extracted to:
 
     - `./workspace/release/dx_com/dx_com_M1A_v[VERSION]`
     - Symbolic links will also be created at `./dx-compiler/dx-com`.
+
+#### Archive Mode (--archive_mode=y)
 
 #### Archive Mode (--archive_mode=y)
 
@@ -117,10 +131,13 @@ The `--archive_mode=y` option is primarily used when building Docker images for 
 When executing the above command, the module archive files (`*.tar.gz`) will be downloaded and saved to:
 
 - `../archives/dx_com_M1A_v[VERSION].tar.gz`
+- `../archives/dx_com_M1A_v[VERSION].tar.gz`
 
 These archive files can then be utilized by the Docker image build process.
 
 ---
+
+### Install DX-Runtime Environment
 
 ### Install DX-Runtime Environment
 
@@ -136,10 +153,9 @@ This command will build and install the following modules:
 
 ```bash
 ./dx-runtime/install.sh --all --exclude-fw
-``` 
+```
 
 You can exclude `dx_fw` from the installation using the `--exclude-fw` option.
-
 
 #### Selective Installation of a Specific Module
 
@@ -172,7 +188,6 @@ Alternatively, you can use:
 
 You can use this command to verify that `dx_rt` and `dx_rt_npu_linux_driver` are installed correctly.
 
-
 **It is recommended to completely shut down and power off the system before rebooting after a firmware update.**
 
 ---
@@ -193,9 +208,19 @@ You can use this command to verify that `dx_rt` and `dx_rt_npu_linux_driver` are
 
 Before starting the container, stop the service daemon on the host system.
 
+##### 2. If `dx_rt` is already installed on the host system and the `service daemon` (`/usr/local/bin/dxrtd`) is running, launching the `DX-Runtime` Docker container will result in an error (`Other instance of dxrtd is running`) and automatic termination.
+
+Before starting the container, stop the service daemon on the host system.
+
 ##### 3. If another container is already running with the `service daemon` (`/usr/local/bin/dxrtd`), starting a new container will also result in the same error.
 
 To run multiple DX-Runtime containers simultaneously, refer to note [#4](#4-if-you-prefer-to-use-the-service-daemon-running-on-the-host-system-instead-of-inside-the-container)
+
+##### 3. If another container is already running with the `service daemon` (`/usr/local/bin/dxrtd`), starting a new container will also result in the same error.
+
+To run multiple DX-Runtime containers simultaneously, refer to note [#4](#4-if-you-prefer-to-use-the-service-daemon-running-on-the-host-system-instead-of-inside-the-container)
+
+##### 4. If you prefer to use the `dxrtd`(service daemon) running on the host system instead of inside the container,
 
 ##### 4. If you prefer to use the `dxrtd`(service daemon) running on the host system instead of inside the container,
 
@@ -454,17 +479,20 @@ dx_com/dx_com \
         -m sample/MobileNetV1-1.onnx \
         -c sample/MobileNetV1-1.json \
         -o sample/MobileNetV1-1
+        -o sample/MobileNetV1-1
 Compiling Model : 100%|███████████████████████████████| 1.0/1.0 [00:06<00:00,  7.00s/model ]
 
 dx_com/dx_com \
         -m sample/ResNet50-1.onnx \
         -c sample/ResNet50-1.json \
         -o sample/ResNet50-1
+        -o sample/ResNet50-1
 Compiling Model : 100%|███████████████████████████████| 1.0/1.0 [00:19<00:00, 19.17s/model ]
 
 dx_com/dx_com \
         -m sample/YOLOV5-1.onnx \
         -c sample/YOLOV5-1.json \
+        -o sample/YOLOV5-1
         -o sample/YOLOV5-1
 Compiling Model : 100%|███████████████████████████████| 1.0/1.0 [00:47<00:00, 47.66s/model ]
 ```

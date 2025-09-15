@@ -45,7 +45,6 @@ jobs:
           git checkout $TARGET_BRANCH
           git reset --hard origin/$TARGET_BRANCH
 
-          git config -f .gitmodules submodule.$SUBMODULE_NAME.url git@github.com:DEEPX-AI/$SUBMODULE_NAME.git
           git submodule update --init --recursive $SUBMODULE_NAME
 
           cd $SUBMODULE_NAME
