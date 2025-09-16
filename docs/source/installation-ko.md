@@ -3,9 +3,7 @@
 DX-All-Suite은 DEEPX 디바이스를 검증하고 활용하기 위한 환경을 구축하는 도구입니다. DX-All-Suite은 통합 환경을 설정하기 위한 다음의 방법들을 제공합니다:
 
 **로컬 머신에 설치** - 호스트 환경에 직접 DX-All-Suite 환경을 구축합니다 (각 개별 도구 간의 호환성을 유지함).
-**로컬 머신에 설치** - 호스트 환경에 직접 DX-All-Suite 환경을 구축합니다 (각 개별 도구 간의 호환성을 유지함).
 
-**Docker 이미지 빌드 및 컨테이너 실행** - Docker 환경 내에서 DX-All-Suite 환경을 빌드하거나, 미리 빌드된 이미지를 로드하여 컨테이너를 생성합니다.
 **Docker 이미지 빌드 및 컨테이너 실행** - Docker 환경 내에서 DX-All-Suite 환경을 빌드하거나, 미리 빌드된 이미지를 로드하여 컨테이너를 생성합니다.
 
 ## Preparation
@@ -87,8 +85,6 @@ which python
     ```
 
     또는,
-
-    또는,
     compiler.properties에 아래와 같이 계정정보를 추가하면 환경변수로 주입됩니다.
 
     ```bash
@@ -102,8 +98,6 @@ which python
 성공적으로 설치되면:
 
 1.  `dx-com` 모듈의 아카이브 파일(`.tar.gz`)이 아래 경로에 다운로드 및 저장됩니다.
-
-    - `./workspace/release/dx_com/download/dx_com_M1_v[VERSION].tar.gz`
 
     - `./workspace/release/dx_com/download/dx_com_M1_v[VERSION].tar.gz`
 
@@ -128,7 +122,6 @@ archives/dx_com_M1_v[VERSION].tar.gz
 
 ---
 
-### DX-Runtime 환경 설치
 
 ### DX-Runtime 환경 설치
 
@@ -200,20 +193,9 @@ dxrt-cli -u ./dx-runtime/dx_fw/m1/X.X.X/mdot2/fw.bin
 `DX-Runtime` Docker 컨테이너를 실행할 때 `Other instance of dxrtd is running` 오류가 발생하며 종료됩니다.  
  컨테이너 실행 전에 호스트에서 서비스 데몬을 중지하세요.
 
-##### 2. 호스트 시스템에 `dx_rt`가 설치되어 있고 `service daemon`(`/usr/local/bin/dxrtd`)이 실행 중이면,
-
-`DX-Runtime` Docker 컨테이너를 실행할 때 `Other instance of dxrtd is running` 오류가 발생하며 종료됩니다.  
- 컨테이너 실행 전에 호스트에서 서비스 데몬을 중지하세요.
-
 ##### 3. 만약 다른 컨테이너에서 이미 `서비스 데몬`(`/usr/local/bin/dxrtd`)이 실행 중이라면, 새로운 컨테이너를 실행하더라도 동일한 오류가 발생합니다.
 
 여러 개의 DX-Runtime 컨테이너를 동시에 실행하려면, [#4](#4-컨테이너-내부가-아닌-호스트에서-실행-중인-서비스-데몬을-그대로-사용하고자-하는-경우)를 참고하세요.
-
-##### 3. 만약 다른 컨테이너에서 이미 `서비스 데몬`(`/usr/local/bin/dxrtd`)이 실행 중이라면, 새로운 컨테이너를 실행하더라도 동일한 오류가 발생합니다.
-
-여러 개의 DX-Runtime 컨테이너를 동시에 실행하려면, [#4](#4-컨테이너-내부가-아닌-호스트에서-실행-중인-서비스-데몬을-그대로-사용하고자-하는-경우)를 참고하세요.
-
-##### 4. 컨테이너 내부가 아닌 호스트에서 실행 중인 `dxrtd`(서비스 데몬)을 그대로 사용하고자 하는 경우,
 
 ##### 4. 컨테이너 내부가 아닌 호스트에서 실행 중인 `dxrtd`(서비스 데몬)을 그대로 사용하고자 하는 경우,
 
