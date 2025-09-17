@@ -2,6 +2,21 @@ DEEPX software components have version compatibility dependencies between them. 
 
 ## DXNN SDK Version
 
+<style>
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  th, td {
+    border: 1px solid #666666ff;
+    padding: 8px;
+    text-align: center;
+  }
+  th {
+    text-align: center;
+  }
+</style>
+
 <table>
   <thead>
     <tr>
@@ -29,7 +44,7 @@ DEEPX software components have version compatibility dependencies between them. 
     </tr>
     <tr>
       <td>v2.0.0</td>
-      <td>v0.0.8</td>
+      <td>v2.0.0</td>
       <td>v2.1.4</td>
       <td>v1.7.1</td>
       <td>v3.0.0</td>
