@@ -4,7 +4,7 @@
 
 - DX-Compiler: v2.0.0
   - DX-COM: v2.0.0
-  - DX-TRON: v0.0.8
+  - DX-TRON: v2.0.0
 - DX-Runtime: v2.0.0
   - DX_FW: v2.1.4
   - NPU Driver: v1.7.1
