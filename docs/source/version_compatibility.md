@@ -22,10 +22,10 @@ DEEPX software components have version compatibility dependencies between them. 
   </thead>
   <tbody>
     <tr>
-      <td rowspan="2" style="text-align: center">2025-09-08</td>
-      <td rowspan="2" style="text-align: center">v2.0.0</td>
-      <td colspan="2" style="text-align: center">v2.0.0</td>
-      <td colspan="5" style="text-align: center">v2.0.0</td>
+      <td rowspan="2">2025-09-08</td>
+      <td rowspan="2">v2.0.0</td>
+      <td colspan="2">v2.0.0</td>
+      <td colspan="5">v2.0.0</td>
     </tr>
     <tr>
       <td>v2.0.0</td>
@@ -37,10 +37,10 @@ DEEPX software components have version compatibility dependencies between them. 
       <td>v2.0.0</td>
     </tr>
     <tr>
-      <td rowspan="2" style="text-align: center">2025-07-23</td>
-      <td rowspan="2" style="text-align: center">v1.0.0</td>
-      <td colspan="2" style="text-align: center">v1.0.0</td>
-      <td colspan="5" style="text-align: center">v1.0.0</td>
+      <td rowspan="2">2025-07-23</td>
+      <td rowspan="2">v1.0.0</td>
+      <td colspan="2">v1.0.0</td>
+      <td colspan="5">v1.0.0</td>
     </tr>
     <tr>
       <td>v1.60.1</td>
