@@ -83,8 +83,15 @@ services:
     restart: on-failure
     devices:
       - "/dev:/dev"                           # NPU / GPU / USB CAM
-    entrypoint: ["/bin/sh", "-c"]
-    command: ["sleep infinity"]
+    # **********************************************************************************
+    # dxrtd (DX-RT Service) should only run in one place among the host or containers.
+    # (By default, the dxrtd service runs within the dx-runtime container)
+    # If you want to run the dxrtd service in a different container or host,
+    # uncomment the 'entrypoint' and 'command' lines below.
+    # for more details, please refer to the [FAQ section of the dx-all-suite documentation](https://github.com/DEEPX-AI/dx-all-suite/blob/main/docs/source/faq.md)."
+    # **********************************************************************************
+    # entrypoint: ["/bin/sh", "-c"]
+    # command: ["sleep infinity"]
 
   dx-modelzoo:
     container_name: dx-modelzoo-${UBUNTU_VERSION}
@@ -125,8 +132,11 @@ services:
     restart: on-failure
     devices:
       - "/dev:/dev"                           # NPU / GPU / USB CAM
-    # override 'entorypoint' command "/usr/local/bin/dxrtd" to "/bin/sh -c sleep infinity"
+    # **********************************************************************************
+    # override 'entrypoint' command "/usr/local/bin/dxrtd" to "/bin/sh -c sleep infinity"
     # cause: Instead of launching the standalone dxrtd (DX-RT Service), 
     #        utilize the dxrtd service provided within the dx-runtime container.
+    # for more details, please refer to the [FAQ section of the dx-all-suite documentation](https://github.com/DEEPX-AI/dx-all-suite/blob/main/docs/source/faq.md).
+    # **********************************************************************************
     entrypoint: ["/bin/sh", "-c"]
     command: ["sleep infinity"]

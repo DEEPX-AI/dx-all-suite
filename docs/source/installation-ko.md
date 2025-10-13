@@ -47,7 +47,7 @@ git submodule status
 python -m venv dx-venv
 
 # 가상 환경 활성화
-source dx-venv/bin/activate  # Linux/macOS
+source dx-venv/bin/activate  # Linux
 # 또는
 dx-venv\Scripts\activate  # Windows
 
@@ -70,7 +70,14 @@ which python
 ./dx-compiler/install.sh
 ```
 
-위 명령을 실행하면, DX-Compiler 모듈을 **DEEPX Developers' Portal**에서 다운로드하고 설치하기 위해 계정 인증 정보가 필요할 수 있습니다. 스크립트는 다음 우선순위에 따라 인증 정보를 획득합니다:
+위 명령어를 실행하면 DX-Compiler 모듈을 다운로드 및 설치하기 위해 DEEPX Developers' Portal([https://developer.deepx.ai](https://developer.deepx.ai)) 계정 인증이 필요합니다.
+
+Developer Portal 계정이 필요하신 경우, 아래 정보를 포함하여 [sales@deepx.ai](mailto:sales@deepx.ai)로 이메일을 보내주세요.
+
+- 회사/기관명
+- 직책
+
+스크립트는 아래의 우선순위에 따라 인증 정보를 획득합니다:
 
 1.  **명령어 실행 시 직접 지정 (1순위):**
     ```bash
@@ -121,7 +128,6 @@ archives/dx_com_M1_v[VERSION].tar.gz
 이 아카이브 파일들은 Docker 이미지 빌드 프로세스에서 활용될 수 있습니다.
 
 ---
-
 
 ### DX-Runtime 환경 설치
 

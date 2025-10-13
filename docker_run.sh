@@ -151,12 +151,120 @@ docker_run_all()
 
 docker_run_dx-compiler() 
 {
+    # this function is defined in scripts/common_util.sh
+    # Usage: os_check "supported_os_names" "ubuntu_versions" "debian_versions"
+    os_check "ubuntu" "20.04 22.04 24.04" "" || {
+        print_colored_v2 "SKIP" "Current OS is not supported. Skip and continue to next target."
+        return 0
+    }
+
+    # this function is defined in scripts/common_util.sh
+    # Usage: arch_check "supported_arch_names"
+    arch_check "amd64 x86_64" || {
+        print_colored_v2 "SKIP" "Current architecture is not supported. Skip and continue to next target."
+        return 0
+    }
+
     local docker_compose_args="-f docker/docker-compose.yml"
     docker_run_impl "compiler" "${docker_compose_args}"
+    return 0
+}
+
+check_dxrtd_process()
+{
+    echo "=== Checking dxrtd location ===" >&2
+
+    # 1. Check if running on host (systemd)
+    if systemctl is-active --quiet dxrt.service 2>/dev/null; then
+        echo "⚠️ dxrtd is running as HOST systemd service" >&2
+        systemctl status dxrt.service --no-pager -l >&2
+        echo "HOST"
+        return 0
+    fi
+
+    # 2. Find the actual container that owns the dxrtd process
+    local PID=$(pgrep dxrtd)
+    if [ -n "$PID" ]; then
+        echo "=== dxrtd Process Details ===" >&2
+        echo "PID: $PID" >&2
+        echo "Parent PID: $(ps -o ppid= -p $PID | tr -d ' ')" >&2
+        echo "Command line: $(cat /proc/$PID/cmdline | tr '\0' ' ')" >&2
+        
+        # Find actual container ID using cgroup
+        local CONTAINER_ID=$(cat /proc/$PID/cgroup 2>/dev/null | grep -o 'docker-[a-f0-9]\{64\}' | head -1 | sed 's/docker-//' | cut -c1-12)
+        if [ -n "$CONTAINER_ID" ]; then
+            local CONTAINER_NAME=$(docker ps --format 'table {{.Names}}\t{{.ID}}' | grep $CONTAINER_ID | awk '{print $1}')
+            echo "⚠️ dxrtd is running in Docker container: $CONTAINER_NAME (ID: $CONTAINER_ID)" >&2
+            
+            # Check the container configuration
+            echo "--- Container Configuration ---" >&2
+            docker inspect $CONTAINER_NAME --format 'Entrypoint: {{.Config.Entrypoint}}' >&2
+            docker inspect $CONTAINER_NAME --format 'Command: {{.Config.Cmd}}' >&2
+            echo "--- Container dxrtd Process ---" >&2
+            docker exec $CONTAINER_NAME ps aux | grep dxrtd | grep -v grep >&2
+            echo "$CONTAINER_NAME"
+            return 0
+        else
+            echo "⚠️ Could not determine container (possibly running on HOST)" >&2
+            echo "UNKNOWN"
+            return 0
+        fi
+    else
+        echo "✅ No dxrtd process found" >&2
+        echo "NONE"
+        return 0
+    fi
+
+    echo "=== All Container Entrypoint Summary ===" >&2
+    for container in $(docker ps --format '{{.Names}}'); do
+        entrypoint=$(docker inspect $container --format '{{.Config.Entrypoint}}')
+        echo "$container: $entrypoint" >&2
+    done
 }
 
 docker_run_dx-runtime()
 {
+    local which_dxrtd=$(check_dxrtd_process)
+    
+    if [ "$which_dxrtd" == "NONE" ]; then
+        print_colored_v2 "INFO" "No existing dxrtd (DX-RT Service) process found. Proceeding to start dx-runtime container."
+    else
+        if [[ "$which_dxrtd" == "HOST" || "$which_dxrtd" == "UNKNOWN" ]]; then
+            print_colored_v2 "WARNING" "dxrtd (DX-RT Service) is already running on the ${which_dxrtd}."
+            print_colored_v2 "WARNING" "Please stop the dxrtd service on the ${which_dxrtd} before running the dx-runtime container."
+            print_colored_v2 "WARNING" "(By default, the dxrtd service runs within the dx-runtime container)"
+            print_colored_v2 "HINT" "1) If you want to run the dxrtd service in a different container or host"
+            
+            echo -e "${COLOR_BOLD}${COLOR_CYAN}[HINT]   ** please uncomment the 'entrypoint' and 'command' lines in the docker-compose.yml file."
+            echo -e "${COLOR_BOLD}${COLOR_CYAN}[HINT]   ** For more details, please refer to the (https://github.com/DEEPX-AI/dx-all-suite/blob/main/docs/source/faq.md) **"
+            
+            print_colored_v2 "HINT" "2) or stop the dxrtd service on the ${which_dxrtd} before running the dx-runtime container."
+            print_colored_v2 "HINT" "   You can stop the dxrtd service on the ${which_dxrtd} by running the following command:"
+
+            if [ "$which_dxrtd" == "HOST" ]; then
+                echo -e "${COLOR_BOLD}${COLOR_CYAN}[HINT]   ** 'sudo systemctl stop dxrt.service'${COLOR_RESET} **"
+            else
+                local PID=$(pgrep dxrtd)
+                echo -e "${COLOR_BOLD}${COLOR_CYAN}[HINT]   ** 'sudo kill -9 ${PID}'${COLOR_RESET} **"
+            fi
+            return 1
+        else
+            print_colored_v2 "WARNING" "dxrtd (DX-RT Service) is already running on the container '${which_dxrtd}'."
+            print_colored_v2 "WARNING" "Please stop the dxrtd service on the container '${which_dxrtd}' before running the dx-runtime container."
+            print_colored_v2 "WARNING" "(By default, the dxrtd service runs within the dx-runtime container)"
+            print_colored_v2 "HINT" "1) If you want to run the dxrtd service in a different container or host"
+            
+            echo -e "${COLOR_BOLD}${COLOR_CYAN}[HINT]   ** please uncomment the 'entrypoint' and 'command' lines in the docker-compose.yml file."
+            echo -e "${COLOR_BOLD}${COLOR_CYAN}[HINT]   ** For more details, please refer to the (https://github.com/DEEPX-AI/dx-all-suite/blob/main/docs/source/faq.md) **"
+            
+            print_colored_v2 "HINT" "2) or stop the dxrtd service on the container '${which_dxrtd}' before running the dx-runtime container."
+            print_colored_v2 "HINT" "   You can stop the dxrtd service on the container '${which_dxrtd}' by running the following command:"
+            
+            echo -e "${COLOR_BOLD}${COLOR_CYAN}[HINT]   ** 'sudo docker stop ${which_dxrtd}'${COLOR_RESET} **"
+            return 1
+        fi
+    fi
+
     local docker_compose_args="-f docker/docker-compose.yml"
 
     if [ ${INTEL_GPU_HW_ACC} -eq 1 ]; then
