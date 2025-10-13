@@ -137,10 +137,51 @@ docker_build_all()
     docker_build_dx-modelzoo
 }
 
+archive_dx-compiler()
+{
+    print_colored_v2 "INFO" "Archiving dx-compiler"
+    # this function is defined in scripts/common_util.sh
+    # Usage: os_check "supported_os_names" "ubuntu_versions" "debian_versions"
+    os_check "ubuntu" "20.04 22.04 24.04" "" || {
+        print_colored_v2 "SKIP" "Current OS is not supported. Skip and continue to next target."
+        return 0
+    }
+
+    # this function is defined in scripts/common_util.sh
+    # Usage: arch_check "supported_arch_names"
+    arch_check "amd64 x86_64" || {
+        print_colored_v2 "SKIP" "Current architecture is not supported. Skip and continue to next target."
+        return 0
+    }
+
+    ${DX_AS_PATH}/scripts/archive_dx-compiler.sh || {
+        print_colored_v2 "ERROR" "Archiving dx-compiler failed."
+        return 1
+    }
+
+    print_colored_v2 "SUCCESS" "Archiving dx-compiler is done."
+    return 0
+}
+
 docker_build_dx-compiler() 
 {
+    # this function is defined in scripts/common_util.sh
+    # Usage: os_check "supported_os_names" "ubuntu_versions" "debian_versions"
+    os_check "ubuntu" "20.04 22.04 24.04" "" || {
+        print_colored_v2 "SKIP" "Current OS is not supported. Skip and continue to next target."
+        return 0
+    }
+
+    # this function is defined in scripts/common_util.sh
+    # Usage: arch_check "supported_arch_names"
+    arch_check "amd64 x86_64" || {
+        print_colored_v2 "SKIP" "Current architecture is not supported. Skip and continue to next target."
+        return 0
+    }
+
     local docker_compose_args="-f docker/docker-compose.yml"
     docker_build_impl "compiler" "${docker_compose_args}"
+    return 0
 }
 
 docker_build_dx-runtime()
@@ -207,8 +248,7 @@ main() {
             if [ "$SKIP_ARCHIVE" = "y" ]; then
                 print_colored_v2 "INFO" "SKIP_ARCHIVE($SKIP_ARCHIVE) is set. so, skip archiving $TARGET_ENV."
             else
-                echo "Archiving dx-compiler"
-                ${DX_AS_PATH}/scripts/archive_dx-compiler.sh $FORCE_ARGS || { print_colored_v2 "ERROR" "Archiving dx-compiler failed."; exit 1; }
+                archive_dx-compiler
             fi
             docker_build_dx-compiler
             ;;
@@ -238,9 +278,15 @@ main() {
                 print_colored_v2 "INFO" "SKIP_ARCHIVE($SKIP_ARCHIVE) is set. so, skip archiving $TARGET_ENV."
             else
                 echo "Archiving all DXNN® environments"
-                ${DX_AS_PATH}/scripts/archive_dx-compiler.sh || { print_colored_v2 "ERROR" "Archiving dx-compiler failed."; exit 1; }
-                ${DX_AS_PATH}/scripts/archive_git_repos.sh --all || { print_colored_v2 "ERROR" "Archiving dx-runtime or dx-modelzoo failed.\n${TAG_INFO} ${COLOR_BRIGHT_YELLOW_ON_BLACK}Please try running 'git submodule update --init --recursive --force' and then try again.${COLOR_RESET}"; exit 1; }
+                archive_dx-compiler
+
+                ${DX_AS_PATH}/scripts/archive_git_repos.sh --all || {
+                    print_colored_v2 "ERROR" "Archiving dx-runtime or dx-modelzoo failed."
+                    echo -e "${TAG_HINT} ${COLOR_BRIGHT_YELLOW_ON_BLACK}Please try running 'git submodule update --init --recursive --force' and then try again.${COLOR_RESET}"
+                    exit 1
+                }
             fi
+
             docker_build_all
             if [ "$DRIVER_UPDATE" = "y" ]; then
                 install_dx_rt_npu_linux_driver
