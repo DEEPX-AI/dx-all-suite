@@ -54,7 +54,7 @@ The installation scripts will install Python packages via pip. To avoid conflict
 python -m venv dx-venv
 
 # Activate the virtual environment
-source dx-venv/bin/activate  # On Linux/macOS
+source dx-venv/bin/activate  # On Linux
 # or
 dx-venv\Scripts\activate  # On Windows
 
@@ -77,7 +77,14 @@ The `DX-Compiler` environment provides prebuilt binary outputs and does not incl
 ./dx-compiler/install.sh
 ```
 
-When executing the above command, **DEEPX Developers' Portal (https://developer.deepx.ai)** account authentication may be required to download and install the DX-Compiler modules. The script obtains authentication information based on the following priority:
+When executing the above command, DEEPX Developers' Portal ([https://developer.deepx.ai](https://developer.deepx.ai)) account authentication is required to download and install the DX-Compiler modules.
+
+To obtain Developer Portal credentials: Please send an email to [sales@deepx.ai](mailto:sales@deepx.ai) with the following information:
+
+- Company/Organization name
+- Your job title
+
+The script obtains authentication information based on the following priority:
 
 1.  **Directly specify when executing the command (1st priority):**
     ```bash
@@ -127,7 +134,6 @@ When executing the above command, the module archive files (`*.tar.gz`) will be 
 These archive files can then be utilized by the Docker image build process.
 
 ---
-
 
 ### Install DX-Runtime Environment
 
