@@ -30,11 +30,11 @@ WORKDIR /deepx/dx-compiler/dx_tron
 ARG FILE_DXTRON
 COPY ${FILE_DXTRON} /deepx/dx-compiler/dx_tron
 
-# COPY 'scripts' and 'getting-start'
+# COPY 'scripts' and 'getting-started'
 COPY scripts /deepx/scripts
-COPY getting-start /deepx/getting-start
+COPY getting-started /deepx/getting-started
 ENV DX_CONTAINER_MODE=true
-RUN /deepx/getting-start/compiler-clean.sh
+RUN /deepx/getting-started/compiler-clean.sh
 
 ###
 FROM ${BASE_IMAGE_NAME}:${TAG_NAME}
