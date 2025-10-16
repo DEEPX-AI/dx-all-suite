@@ -72,7 +72,7 @@ For detailed guides on running demo applications and templates, refer to the fol
 [Link](docs/source/installation.md)
 
 ### Getting Started
-[Link](docs/source/getting-start.md)
+[Link](docs/source/getting-started.md)
 
 ### Version Compatibility
 [Link](docs/source/version_compatibility.md)

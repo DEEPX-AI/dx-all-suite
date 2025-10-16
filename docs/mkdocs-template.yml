@@ -37,7 +37,7 @@ site_url: 'https://developer.deepx.ai/'
 nav:
   - Introduction: index.md
   - Installation: installation.md
-  - Getting Start: getting-start.md
+  - Getting Start: getting-started.md
   - Version Compatibility: version_compatibility.md
   - FAQ: faq.md
 

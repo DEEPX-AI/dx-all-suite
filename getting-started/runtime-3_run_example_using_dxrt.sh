@@ -178,16 +178,16 @@ show_result() {
 }
 
 main() {
-    YOLO_FACE_TARGET_STR="${DX_AS_PATH}/getting-start/dxnn/YOLOV5S_Face-1.dxnn"
-    YOLO_V5S_TARGET_STR="${DX_AS_PATH}/getting-start/dxnn/YOLOV5S-1.dxnn"
-    MOBILENET_V2_TARGET_STR="${DX_AS_PATH}/getting-start/dxnn/MobileNetV2-1.dxnn"
+    YOLO_FACE_TARGET_STR="${DX_AS_PATH}/getting-started/dxnn/YOLOV5S_Face-1.dxnn"
+    YOLO_V5S_TARGET_STR="${DX_AS_PATH}/getting-started/dxnn/YOLOV5S-1.dxnn"
+    MOBILENET_V2_TARGET_STR="${DX_AS_PATH}/getting-started/dxnn/MobileNetV2-1.dxnn"
 
-    # Check if the *.dxnn files were successfully generated using 'getting-start/compiler-4_model_compile.sh'
+    # Check if the *.dxnn files were successfully generated using 'getting-started/compiler-4_model_compile.sh'
     DXNN_CHECK_LIST=("${YOLO_FACE_TARGET_STR}" "${YOLO_V5S_TARGET_STR}" "${MOBILENET_V2_TARGET_STR}")
     for i in "${!DXNN_CHECK_LIST[@]}"; do
         if [ ! -f ${DXNN_CHECK_LIST[$i]} ]; then
             echo -e "${TAG_ERROR} ${DXNN_CHECK_LIST[$i]} does not exist."
-            echo -e "${TAG_INFO} (HINT) In the dx-compiler environment, use 'getting-start/compiler-4_model_compile.sh' to compile 'getting-start/modelzoo/onnx/*.onnx' into 'getting-start/dxnn/*.dxnn'."
+            echo -e "${TAG_INFO} (HINT) In the dx-compiler environment, use 'getting-started/compiler-4_model_compile.sh' to compile 'getting-started/modelzoo/onnx/*.onnx' into 'getting-started/dxnn/*.dxnn'."
             exit 1
         fi
     done

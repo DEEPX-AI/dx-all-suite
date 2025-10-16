@@ -172,11 +172,11 @@ RUN apt-get update && \
 
 RUN echo "source /venv-dxnn/bin/activate" >> /root/.bashrc
 
-# COPY 'scripts' and 'getting-start'
+# COPY 'scripts' and 'getting-started'
 COPY scripts /deepx/scripts
-COPY getting-start /deepx/getting-start
+COPY getting-started /deepx/getting-started
 ENV DX_CONTAINER_MODE=true
-RUN /deepx/getting-start/runtime-clean.sh
+RUN /deepx/getting-started/runtime-clean.sh
 
 ENTRYPOINT [ "/usr/local/bin/dxrtd" ]
 # ENTRYPOINT ["tail", "-f", "/dev/null"]

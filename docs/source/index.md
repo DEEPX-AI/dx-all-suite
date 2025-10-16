@@ -42,7 +42,7 @@ DX-Stream is a GStreamer Custom Plugin designed to simplify the development of V
 [Link](installation.md)
 
 ## Getting Started
-[Link](getting-start.md)
+[Link](getting-started.md)
 
 ## Version Compatibility
 [Link](version_compatibility.md)

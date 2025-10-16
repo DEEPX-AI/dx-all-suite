@@ -1,4 +1,4 @@
-# Getting-Start
+# Getting-Started
 
 ## Overall
 
@@ -20,7 +20,7 @@ bash runtime-3_run_example_using_dxrt.sh
 **📁 Folder Structure (After Execution)**
 
 ```
-getting-start/
+getting-started/
 ├── calibration_dataset
 ├── dxnn                         # ← Model output symbolic link created by dx-compiler
 ├── forked_dx_app_example        # ← Example execution target (forked)
@@ -53,10 +53,10 @@ This section explains the purpose and flow of each script from `compiler-1_downl
 **🔄 Execution Order**
 
 ```bash
-./getting-start/compiler-1_download_onnx.sh
-./getting-start/compiler-2_setup_calibration_dataset.sh
-./getting-start/compiler-3_setup_output_path.sh
-./getting-start/compiler-4_model_compile.sh
+./getting-started/compiler-1_download_onnx.sh
+./getting-started/compiler-2_setup_calibration_dataset.sh
+./getting-started/compiler-3_setup_output_path.sh
+./getting-started/compiler-4_model_compile.sh
 ```
 
 **💡 Tip**
