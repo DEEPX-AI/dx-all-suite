@@ -1,12 +1,13 @@
 services:
   dx-compiler:
-    container_name: dx-compiler-${UBUNTU_VERSION}
-    image: dx-compiler:${UBUNTU_VERSION}
+    container_name: dx-compiler-${BASE_IMAGE_NAME}-${OS_VERSION}
+    image: dx-compiler:${BASE_IMAGE_NAME}-${OS_VERSION}
     build:
       context: ..
       dockerfile: docker/Dockerfile.dx-compiler
       args:
-        UBUNTU_VERSION: ${UBUNTU_VERSION}
+        BASE_IMAGE_NAME: ${BASE_IMAGE_NAME:-ubuntu}
+        OS_VERSION: ${OS_VERSION}
         FILE_DXCOM: ${FILE_DXCOM:-/should/be/set/path}
         FILE_DXTRON: ${FILE_DXTRON:-/should/be/set/path}
         HOST_UID: ${HOST_UID:-1000}
@@ -45,13 +46,14 @@ services:
       - "/dev/dri:/dev/dri"                   # GPU    
 
   dx-runtime:
-    container_name: dx-runtime-${UBUNTU_VERSION}
-    image: dx-runtime:${UBUNTU_VERSION}
+    container_name: dx-runtime-${BASE_IMAGE_NAME}-${OS_VERSION}
+    image: dx-runtime:${BASE_IMAGE_NAME}-${OS_VERSION}
     build:
       context: ..
       dockerfile: docker/Dockerfile.dx-runtime
       args:
-        UBUNTU_VERSION: ${UBUNTU_VERSION}
+        BASE_IMAGE_NAME: ${BASE_IMAGE_NAME:-ubuntu}
+        OS_VERSION: ${OS_VERSION}
     ipc: host                                 # NPU ipc
     pid: host                                 # pid sharing for DX-RT Service
     tty: true                                 # NPU
@@ -94,13 +96,14 @@ services:
     # command: ["sleep infinity"]
 
   dx-modelzoo:
-    container_name: dx-modelzoo-${UBUNTU_VERSION}
-    image: dx-modelzoo:${UBUNTU_VERSION}
+    container_name: dx-modelzoo-${BASE_IMAGE_NAME}-${OS_VERSION}
+    image: dx-modelzoo:${BASE_IMAGE_NAME}-${OS_VERSION}
     build:
       context: ..
       dockerfile: docker/Dockerfile.dx-modelzoo
       args:
-        UBUNTU_VERSION: ${UBUNTU_VERSION}
+        BASE_IMAGE_NAME: ${BASE_IMAGE_NAME:-ubuntu}
+        OS_VERSION: ${OS_VERSION}
     ipc: host                                 # NPU ipc
     pid: host                                 # pid sharing for DX-RT Service
     tty: true                                 # NPU
