@@ -1,9 +1,12 @@
-ARG UBUNTU_VERSION=24.04
-ARG TAG_NAME=${UBUNTU_VERSION}
 ARG BASE_IMAGE_NAME=ubuntu
+ARG OS_VERSION=24.04
+ARG TAG_NAME=${OS_VERSION}
 FROM ${BASE_IMAGE_NAME}:${TAG_NAME}
 
 USER root
+
+# ARG must be re-declared after FROM to be available in RUN commands
+ARG BASE_IMAGE_NAME=ubuntu
 
 ARG TZ=Asia/Seoul
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ >/etc/timezone
@@ -13,10 +16,13 @@ ENV PATH="/usr/local/bin:${PATH}"
 
 ### update apt repo
 RUN apt-get update && apt-get install -y \
-    software-properties-common && \
+    software-properties-common
+
+RUN if [ "${BASE_IMAGE_NAME}" = "ubuntu" ]; then \
     add-apt-repository universe && \
     add-apt-repository multiverse && \
-    apt-get update
+    apt-get update; \
+  fi
 
 ### install utils
 RUN apt-get update && apt-get install -y \
@@ -43,78 +49,113 @@ RUN if [ "$USE_INTRANET" = "true" ]; then \
     fi
 
 # Setup Python 3.8.2 or higher
-#   - 18.04: 3.8.2 (source build)
-#   - 20.04: 3.8.2 (apt install)
-#   - 22.04: 3.10.4 (apt install)
-#   - 24.04: 3.12.3 (apt install)
+#   - Ubuntu 18.04: 3.8.2 (source build)
+#   - Ubuntu 20.04: 3.8.2 (apt install)
+#   - Ubuntu 22.04: 3.10.4 (apt install)
+#   - Ubuntu 24.04: 3.12.3 (apt install)
+#   - Debian 11: 3.9.2 (apt install)
+#   - Debian 12: 3.11.2 (apt install)
 ENV MIN_PY_VERSION=3.8.2
 ARG TARGET_INSTALL_PY_VERSION=""
 RUN set -x && \
     echo "Install python ${TARGET_INSTALL_PY_VERSION} or higher.." && \
-    UBUNTU_VERSION=$(lsb_release -rs) && \
-    echo "*** UBUNTU_VERSION(${UBUNTU_VERSION}) ***" && \
-    if [ "$UBUNTU_VERSION" = "24.04" ] || [ "$UBUNTU_VERSION" = "22.04" ] || [ "$UBUNTU_VERSION" = "20.04" ]; then \
-        if [ -n "${TARGET_INSTALL_PY_VERSION}" ]; then \
+    if [ "${BASE_IMAGE_NAME}" = "ubuntu" ]; then \
+        OS_VERSION=$(lsb_release -rs) && \
+        echo "*** OS_VERSION(${OS_VERSION}) ***" && \
+        if [ "$OS_VERSION" = "24.04" ] || [ "$OS_VERSION" = "22.04" ] || [ "$OS_VERSION" = "20.04" ]; then \
+            if [ -n "${TARGET_INSTALL_PY_VERSION}" ]; then \
+                PY_MAJOR_MINOR=$(echo "${TARGET_INSTALL_PY_VERSION}" | cut -d. -f1,2) && \
+                echo "Install python ${PY_MAJOR_MINOR} version using apt.." && \
+                apt-get install -y python${PY_MAJOR_MINOR} python${PY_MAJOR_MINOR}-dev python${PY_MAJOR_MINOR}-venv && \
+                DX_PYTHON_EXEC="python${PY_MAJOR_MINOR}"; \
+            else \
+                echo "Install python os default version" && \
+                apt-get install -y python3 python3-dev python3-venv && \
+                DX_PYTHON_EXEC="python3"; \
+            fi \
+        elif [ "$OS_VERSION" = "18.04" ]; then \
+            if [ ! -n "${TARGET_INSTALL_PY_VERSION}" ]; then \
+                TARGET_INSTALL_PY_VERSION=${MIN_PY_VERSION}; \
+            fi && \
+            echo "Install python ${TARGET_INSTALL_PY_VERSION} version using source build.." && \
+            apt-get update && \
+            apt-get install -y --no-install-recommends \
+                build-essential \
+                wget \
+                curl \
+                ca-certificates \
+                libssl-dev \
+                zlib1g-dev \
+                libncurses5-dev \
+                libncursesw5-dev \
+                libreadline-dev \
+                libsqlite3-dev \
+                libgdbm-dev \
+                libdb5.3-dev \
+                libbz2-dev \
+                libexpat1-dev \
+                liblzma-dev \
+                tk-dev \
+                libffi-dev \
+                uuid-dev && \
+            wget --no-check-certificate https://www.python.org/ftp/python/${TARGET_INSTALL_PY_VERSION}/Python-${TARGET_INSTALL_PY_VERSION}.tgz && \
+            tar xvf Python-${TARGET_INSTALL_PY_VERSION}.tgz && \
+            cd Python-${TARGET_INSTALL_PY_VERSION} && \
+            ./configure --enable-optimizations && \
+            make -j$(nproc) && \
+            make altinstall && \
+            cd .. && \
+            rm -rf Python-${TARGET_INSTALL_PY_VERSION}* && \
             PY_MAJOR_MINOR=$(echo "${TARGET_INSTALL_PY_VERSION}" | cut -d. -f1,2) && \
-            echo "Install python ${PY_MAJOR_MINOR} version using apt.." && \
-            apt-get install -y python${PY_MAJOR_MINOR} python${PY_MAJOR_MINOR}-dev python${PY_MAJOR_MINOR}-venv && \
             DX_PYTHON_EXEC="python${PY_MAJOR_MINOR}"; \
         else \
-            echo "Install python os default version" && \
-            apt-get install -y python3 python3-dev python3-venv && \
-            DX_PYTHON_EXEC="python3"; \
-        fi \
-    elif [ "$UBUNTU_VERSION" = "18.04" ]; then \
-        if [ ! -n "${TARGET_INSTALL_PY_VERSION}" ]; then \
-            TARGET_INSTALL_PY_VERSION=${MIN_PY_VERSION}; \
-        fi && \
-        echo "Install python ${TARGET_INSTALL_PY_VERSION} version using source build.." && \
-        apt-get update && \
-        apt-get install -y --no-install-recommends \
-            build-essential \
-            wget \
-            curl \
-            ca-certificates \
-            libssl-dev \
-            zlib1g-dev \
-            libncurses5-dev \
-            libncursesw5-dev \
-            libreadline-dev \
-            libsqlite3-dev \
-            libgdbm-dev \
-            libdb5.3-dev \
-            libbz2-dev \
-            libexpat1-dev \
-            liblzma-dev \
-            tk-dev \
-            libffi-dev \
-            uuid-dev && \
-        wget --no-check-certificate https://www.python.org/ftp/python/${TARGET_INSTALL_PY_VERSION}/Python-${TARGET_INSTALL_PY_VERSION}.tgz && \
-        tar xvf Python-${TARGET_INSTALL_PY_VERSION}.tgz && \
-        cd Python-${TARGET_INSTALL_PY_VERSION} && \
-        ./configure --enable-optimizations && \
-        make -j$(nproc) && \
-        make altinstall && \
-        cd .. && \
-        rm -rf Python-${TARGET_INSTALL_PY_VERSION}* && \
-        PY_MAJOR_MINOR=$(echo "${TARGET_INSTALL_PY_VERSION}" | cut -d. -f1,2) && \
-        DX_PYTHON_EXEC="python${PY_MAJOR_MINOR}"; \
+            echo "Unsupported Ubuntu version: $OS_VERSION" && exit 1; \
+        fi; \
+    elif [ "${BASE_IMAGE_NAME}" = "debian" ]; then \
+        DEBIAN_VERSION=$(lsb_release -rs) && \
+        echo "*** DEBIAN_VERSION(${DEBIAN_VERSION}) ***" && \
+        if [ "$DEBIAN_VERSION" = "12" ] || [ "$DEBIAN_VERSION" = "11" ]; then \
+            if [ -n "${TARGET_INSTALL_PY_VERSION}" ]; then \
+                PY_MAJOR_MINOR=$(echo "${TARGET_INSTALL_PY_VERSION}" | cut -d. -f1,2) && \
+                echo "Install python ${PY_MAJOR_MINOR} version using apt.." && \
+                apt-get install -y python${PY_MAJOR_MINOR} python${PY_MAJOR_MINOR}-dev python${PY_MAJOR_MINOR}-venv && \
+                DX_PYTHON_EXEC="python${PY_MAJOR_MINOR}"; \
+            else \
+                echo "Install python os default version" && \
+                apt-get install -y python3 python3-dev python3-venv && \
+                DX_PYTHON_EXEC="python3"; \
+            fi \
+        else \
+            echo "Unsupported Debian version: $DEBIAN_VERSION" && exit 1; \
+        fi; \
     else \
-        echo "Unsupported Ubuntu version: $UBUNTU_VERSION" && exit 1; \
+        echo "Unsupported base image: ${BASE_IMAGE_NAME}" && exit 1; \
     fi && \
     echo "Install ${DX_PYTHON_EXEC} done" && \
     echo "Set up Virtual Environment..." && \
     ${DX_PYTHON_EXEC} -m venv /venv-dxnn && \
     . /venv-dxnn/bin/activate && \
     echo "Upgrade pip wheel setuptools..." && \
-    UBUNTU_VERSION=$(lsb_release -rs) && \
-    echo "*** UBUNTU_VERSION(${UBUNTU_VERSION}) ***" && \
-    if [ "$UBUNTU_VERSION" = "24.04" ]; then \
-      pip install --upgrade setuptools; \
-    elif [ "$UBUNTU_VERSION" = "22.04" ] || [ "$UBUNTU_VERSION" = "20.04" ] || [ "$UBUNTU_VERSION" = "18.04" ]; then \
-      pip install --upgrade pip wheel setuptools; \
-    else \
-      echo "Unspported Ubuntu version: $UBUNTU_VERSION" && exit 1; \
+    if [ "${BASE_IMAGE_NAME}" = "ubuntu" ]; then \
+        OS_VERSION=$(lsb_release -rs) && \
+        echo "*** OS_VERSION(${OS_VERSION}) ***" && \
+        if [ "$OS_VERSION" = "24.04" ]; then \
+            pip install --upgrade setuptools; \
+        elif [ "$OS_VERSION" = "22.04" ] || [ "$OS_VERSION" = "20.04" ] || [ "$OS_VERSION" = "18.04" ]; then \
+            pip install --upgrade pip wheel setuptools; \
+        else \
+            echo "Unsupported Ubuntu version: $OS_VERSION" && exit 1; \
+        fi; \
+    elif [ "${BASE_IMAGE_NAME}" = "debian" ]; then \
+        DEBIAN_VERSION=$(lsb_release -rs) && \
+        echo "*** DEBIAN_VERSION(${DEBIAN_VERSION}) ***" && \
+        if [ "$DEBIAN_VERSION" = "12" ]; then \
+            pip install --upgrade setuptools; \
+        elif [ "$DEBIAN_VERSION" = "11" ]; then \
+            pip install --upgrade pip wheel setuptools; \
+        else \
+            echo "Unsupported Debian version: $DEBIAN_VERSION" && exit 1; \
+        fi; \
     fi
 
 WORKDIR /deepx/dx-runtime/dx_rt
@@ -180,4 +221,3 @@ RUN /deepx/getting-started/runtime-clean.sh
 
 ENTRYPOINT [ "/usr/local/bin/dxrtd" ]
 # ENTRYPOINT ["tail", "-f", "/dev/null"]
-

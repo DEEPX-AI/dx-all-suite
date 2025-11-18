@@ -1,6 +1,6 @@
-ARG UBUNTU_VERSION=24.04
-ARG TAG_NAME=${UBUNTU_VERSION}
 ARG BASE_IMAGE_NAME=ubuntu
+ARG OS_VERSION=24.04
+ARG TAG_NAME=${OS_VERSION}
 FROM alpine:latest AS install
 USER root
 
@@ -41,6 +41,9 @@ FROM ${BASE_IMAGE_NAME}:${TAG_NAME}
 
 USER root
 
+# ARG must be re-declared after FROM to be available in RUN commands
+ARG BASE_IMAGE_NAME=ubuntu
+
 ARG TZ=Asia/Seoul
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ >/etc/timezone
 
@@ -49,10 +52,13 @@ ENV PATH="/usr/local/bin:${PATH}"
 
 ### update apt repo
 RUN apt-get update && apt-get install -y \
-    software-properties-common && \
+    software-properties-common
+
+RUN if [ "${BASE_IMAGE_NAME}" = "ubuntu" ]; then \
     add-apt-repository universe && \
     add-apt-repository multiverse && \
-    apt-get update
+    apt-get update; \
+  fi
 
 ### install utils
 RUN apt-get update && apt-get install -y \
@@ -78,40 +84,48 @@ RUN if [ "$USE_INTRANET" = "true" ]; then \
 # Install dependencies for dx-compiler
 # python 3.11
 RUN set -x && \
-    echo "Install python 3.11..." && \
-    UBUNTU_VERSION=$(lsb_release -rs) && \
-    echo "*** UBUNTU_VERSION(${UBUNTU_VERSION}) ***" && \
-    if [ "$UBUNTU_VERSION" = "24.04" ] || [ "$UBUNTU_VERSION" = "22.04" ] || [ "$UBUNTU_VERSION" = "20.04" ]; then \
-        add-apt-repository -y ppa:deadsnakes/ppa && apt-get update && \
-        apt-get install -y python3.11 python3.11-dev python3.11-venv; \
+    echo "Install python ${TARGET_INSTALL_PY_VERSION} or higher.." && \
+    if [ "${BASE_IMAGE_NAME}" = "ubuntu" ]; then \
+        OS_VERSION=$(lsb_release -rs) && \
+        echo "*** OS_VERSION(${OS_VERSION}) ***" && \
+        if [ "$OS_VERSION" = "24.04" ] || [ "$OS_VERSION" = "22.04" ] || [ "$OS_VERSION" = "20.04" ]; then \
+            add-apt-repository -y ppa:deadsnakes/ppa && apt-get update && \
+            apt-get install -y python3.11 python3.11-dev python3.11-venv; \
+        else \
+            echo "Unsupported Ubuntu version: $OS_VERSION" && exit 1; \
+        fi; \
     else \
-        echo "Unsupported Ubuntu version: $UBUNTU_VERSION" && exit 1; \
+        echo "Unsupported base image: ${BASE_IMAGE_NAME}" && exit 1; \
     fi && \
-    echo "Install python3.11 done";
-
-# Set up Virtual Environment
-RUN set -x && \
-    python3.11 -m venv /venv-dxnn
-
-RUN set -x && \
-    echo "Install dependencies..." && \
-    UBUNTU_VERSION=$(lsb_release -rs) && \
-    echo "*** UBUNTU_VERSION(${UBUNTU_VERSION}) ***" && \
-    if [ "$UBUNTU_VERSION" = "24.04" ]; then \
-        apt-get update && apt-get install -y --no-install-recommends \
-            libgl1-mesa-dev libglib2.0-0 make \
-            libfuse2 libayatana-appindicator3-1; \
-    elif [ "$UBUNTU_VERSION" = "22.04" ]; then \
-        apt-get update && apt-get install -y --no-install-recommends \
-            libgl1-mesa-dev libglib2.0-0 make \
-            libfuse2 libappindicator3-1 libgconf-2-4; \
-    elif [ "$UBUNTU_VERSION" = "20.04" ]; then \
-        apt-get update && apt-get install -y --no-install-recommends \
-            libgl1-mesa-dev libgl1-mesa-glx libglib2.0-0 make \
-            libfuse2 libappindicator1 libgconf-2-4; \
+    echo "Install ${DX_PYTHON_EXEC} done" && \
+    echo "Set up Virtual Environment..." && \
+    ${DX_PYTHON_EXEC} -m venv /venv-dxnn && \
+    . /venv-dxnn/bin/activate && \
+    echo "Upgrade pip wheel setuptools..." && \
+    if [ "${BASE_IMAGE_NAME}" = "ubuntu" ]; then \
+        OS_VERSION=$(lsb_release -rs) && \
+        echo "*** OS_VERSION(${OS_VERSION}) ***" && \
+        if [ "$OS_VERSION" = "24.04" ]; then \
+            apt-get update && apt-get install -y --no-install-recommends \
+                libgl1-mesa-dev libglib2.0-0 make \
+                libfuse2 libayatana-appindicator3-1; \
+        elif [ "$OS_VERSION" = "22.04" ]; then \
+            apt-get update && apt-get install -y --no-install-recommends \
+                libgl1-mesa-dev libglib2.0-0 make \
+                libfuse2 libappindicator3-1 libgconf-2-4; \
+        elif [ "$OS_VERSION" = "20.04" ]; then \
+            apt-get update && apt-get install -y --no-install-recommends \
+                libgl1-mesa-dev libgl1-mesa-glx libglib2.0-0 make \
+                libfuse2 libappindicator1 libgconf-2-4; \
+        else \
+            echo "Unsupported Ubuntu version: $OS_VERSION" && exit 1; \
+        fi; \
     else \
-        echo "Unsupported Ubuntu version: $UBUNTU_VERSION" && exit 1; \
-    fi && \
+        echo "Unsupported base image: ${BASE_IMAGE_NAME}" && exit 1; \
+    fi
+
+# Install build tools and libraries
+RUN set -x && \
     apt-get update && apt-get install -y --no-install-recommends \
         libssl-dev \
         wget \
@@ -136,8 +150,7 @@ RUN set -x && \
         software-properties-common \
         vim fim
 
-RUN add-apt-repository -y universe && \
-    apt-get update && \
+RUN apt-get update && \
     apt-get install -y \
         xdg-utils && \
     apt-get clean && \
