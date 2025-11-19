@@ -233,6 +233,50 @@ check_dxrtd_process()
     done
 }
 
+# Check if entrypoint/command override is configured in docker-compose.yml for dx-runtime
+check_runtime_entrypoint_override() {
+    local compose_file="${DX_AS_PATH}/docker/docker-compose.yml"
+    
+    # Check if docker-compose.yml file exists
+    if [ ! -f "$compose_file" ]; then
+        return 1
+    fi
+    
+    # Extract dx-runtime section: from dx-runtime to the next service (dx-modelzoo)
+    local in_runtime=0
+    local runtime_section=""
+    
+    while IFS= read -r line; do
+        # Start of dx-runtime section
+        if [[ "$line" =~ ^[[:space:]]*dx-runtime:[[:space:]]*$ ]]; then
+            in_runtime=1
+            runtime_section+="$line"$'\n'
+            continue
+        fi
+        
+        # Exit when next top-level service is found (lines ending with : without indentation)
+        if [[ $in_runtime -eq 1 ]] && [[ "$line" =~ ^[[:space:]]{0,2}[a-zA-Z0-9_-]+:[[:space:]]*$ ]] && [[ ! "$line" =~ dx-runtime ]]; then
+            break
+        fi
+        
+        # Collect dx-runtime section content
+        if [[ $in_runtime -eq 1 ]]; then
+            runtime_section+="$line"$'\n'
+        fi
+    done < "$compose_file"
+    
+    # Check for uncommented entrypoint
+    local has_entrypoint=$(echo "$runtime_section" | grep -E "^[[:space:]]+entrypoint:" | grep -v "^[[:space:]]*#")
+    # Check for uncommented command
+    local has_command=$(echo "$runtime_section" | grep -E "^[[:space:]]+command:" | grep -v "^[[:space:]]*#")
+    
+    if [[ -n "$has_entrypoint" ]] || [[ -n "$has_command" ]]; then
+        return 0  # entrypoint/command is configured
+    else
+        return 1  # not configured
+    fi
+}
+
 docker_run_dx-runtime()
 {
     local which_dxrtd=$(check_dxrtd_process)
@@ -240,46 +284,53 @@ docker_run_dx-runtime()
     if [ "$which_dxrtd" == "NONE" ]; then
         print_colored_v2 "INFO" "No existing dxrtd (DX-RT Service) process found. Proceeding to start dx-runtime container."
     else
-        if [[ "$which_dxrtd" == "HOST" || "$which_dxrtd" == "UNKNOWN" ]]; then
-            print_colored_v2 "WARNING" "dxrtd (DX-RT Service) is already running on the ${which_dxrtd}."
-            print_colored_v2 "WARNING" "Please stop the dxrtd service on the ${which_dxrtd} before running the dx-runtime container."
-            print_colored_v2 "WARNING" "(By default, the dxrtd service runs within the dx-runtime container)"
-            print_colored_v2 "HINT" "1) If you want to run the dxrtd service in a different container or host"
-            
-            echo -e "${COLOR_BOLD}${COLOR_CYAN}[HINT]   ** please uncomment the 'entrypoint' and 'command' lines in the docker-compose.yml file."
-            echo -e "${COLOR_BOLD}${COLOR_CYAN}[HINT]   ** For more details, please refer to the (https://github.com/DEEPX-AI/dx-all-suite/blob/main/docs/source/faq.md) **"
-            
-            print_colored_v2 "HINT" "2) or stop the dxrtd service on the ${which_dxrtd} before running the dx-runtime container."
-            print_colored_v2 "HINT" "   You can stop the dxrtd service on the ${which_dxrtd} by running the following command:"
-
-            if [ "$which_dxrtd" == "HOST" ]; then
-                echo -e "${COLOR_BOLD}${COLOR_CYAN}[HINT]   ** 'sudo systemctl stop dxrt.service'${COLOR_RESET} **"
-            else
-                local PID=$(pgrep dxrtd)
-                echo -e "${COLOR_BOLD}${COLOR_CYAN}[HINT]   ** 'sudo kill -9 ${PID}'${COLOR_RESET} **"
-            fi
-            return 1
+        # Check if entrypoint/command is already configured in docker-compose.yml
+        if check_runtime_entrypoint_override; then
+            print_colored_v2 "INFO" "dxrtd service is running externally (on ${which_dxrtd}), but docker-compose.yml has entrypoint/command override configured."
+            print_colored_v2 "INFO" "Proceeding to start dx-runtime container without starting dxrtd service inside the container."
         else
-            print_colored_v2 "WARNING" "dxrtd (DX-RT Service) is already running on the container '${which_dxrtd}'."
-            print_colored_v2 "WARNING" "Please stop the dxrtd service on the container '${which_dxrtd}' before running the dx-runtime container."
-            print_colored_v2 "WARNING" "(By default, the dxrtd service runs within the dx-runtime container)"
-            print_colored_v2 "HINT" "1) If you want to run the dxrtd service in a different container or host"
-            
-            echo -e "${COLOR_BOLD}${COLOR_CYAN}[HINT]   ** please uncomment the 'entrypoint' and 'command' lines in the docker-compose.yml file."
-            echo -e "${COLOR_BOLD}${COLOR_CYAN}[HINT]   ** For more details, please refer to the (https://github.com/DEEPX-AI/dx-all-suite/blob/main/docs/source/faq.md) **"
-            
-            print_colored_v2 "HINT" "2) or stop the dxrtd service on the container '${which_dxrtd}' before running the dx-runtime container."
-            print_colored_v2 "HINT" "   You can stop the dxrtd service on the container '${which_dxrtd}' by running the following command:"
-            
-            echo -e "${COLOR_BOLD}${COLOR_CYAN}[HINT]   ** 'sudo docker stop ${which_dxrtd}'${COLOR_RESET} **"
-            return 1
+            # Display existing warning message logic
+            if [[ "$which_dxrtd" == "HOST" || "$which_dxrtd" == "UNKNOWN" ]]; then
+                print_colored_v2 "WARNING" "dxrtd (DX-RT Service) is already running on the ${which_dxrtd}."
+                print_colored_v2 "WARNING" "Please stop the dxrtd service on the ${which_dxrtd} before running the dx-runtime container."
+                print_colored_v2 "WARNING" "(By default, the dxrtd service runs within the dx-runtime container)"
+                print_colored_v2 "HINT" "1) If you want to run the dxrtd service in a different container or host"
+                
+                echo -e "${COLOR_BOLD}${COLOR_CYAN}[HINT]   ** please uncomment the 'entrypoint' and 'command' lines in the docker-compose.yml file."
+                echo -e "${COLOR_BOLD}${COLOR_CYAN}[HINT]   ** For more details, please refer to the (https://github.com/DEEPX-AI/dx-all-suite/blob/main/docs/source/faq.md) **"
+                
+                print_colored_v2 "HINT" "2) or stop the dxrtd service on the ${which_dxrtd} before running the dx-runtime container."
+                print_colored_v2 "HINT" "   You can stop the dxrtd service on the ${which_dxrtd} by running the following command:"
+
+                if [ "$which_dxrtd" == "HOST" ]; then
+                    echo -e "${COLOR_BOLD}${COLOR_CYAN}[HINT]   ** 'sudo systemctl stop dxrt.service'${COLOR_RESET} **"
+                else
+                    local PID=$(pgrep dxrtd)
+                    echo -e "${COLOR_BOLD}${COLOR_CYAN}[HINT]   ** 'sudo kill -9 ${PID}'${COLOR_RESET} **"
+                fi
+                return 1
+            else
+                print_colored_v2 "WARNING" "dxrtd (DX-RT Service) is already running on the container '${which_dxrtd}'."
+                print_colored_v2 "WARNING" "Please stop the dxrtd service on the container '${which_dxrtd}' before running the dx-runtime container."
+                print_colored_v2 "WARNING" "(By default, the dxrtd service runs within the dx-runtime container)"
+                print_colored_v2 "HINT" "1) If you want to run the dxrtd service in a different container or host"
+                
+                echo -e "${COLOR_BOLD}${COLOR_CYAN}[HINT]   ** please uncomment the 'entrypoint' and 'command' lines in the docker-compose.yml file."
+                echo -e "${COLOR_BOLD}${COLOR_CYAN}[HINT]   ** For more details, please refer to the (https://github.com/DEEPX-AI/dx-all-suite/blob/main/docs/source/faq.md) **"
+                
+                print_colored_v2 "HINT" "2) or stop the dxrtd service on the container '${which_dxrtd}' before running the dx-runtime container."
+                print_colored_v2 "HINT" "   You can stop the dxrtd service on the container '${which_dxrtd}' by running the following command:"
+                
+                echo -e "${COLOR_BOLD}${COLOR_CYAN}[HINT]   ** 'sudo docker stop ${which_dxrtd}'${COLOR_RESET} **"
+                return 1
+            fi
         fi
     fi
 
     local docker_compose_args="-f docker/docker-compose.yml"
 
     if [ ${INTEL_GPU_HW_ACC} -eq 1 ]; then
-        docker_compose_args="${docker_compose_args} -f docker/docker-compose.intel_gpu_hw_acc.yml"
+        docker_compose_args="${docker_compose_args} -f docker-compose.intel_gpu_hw_acc.yml"
     fi
 
     docker_run_impl "runtime" "${docker_compose_args}"
