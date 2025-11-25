@@ -11,9 +11,9 @@ source ${DX_AS_PATH}/scripts/color_env.sh
 
 # Function to display help message
 show_help() {
-    echo "Usage: $(basename "$0") [--help] [--force]"
+    echo "Usage: $(basename "$0") [--help] [--re-archive=<true|false>]"
     echo "Options:"
-    echo "  [--force]                      : Force overwrite if the file already exists"
+    echo "  [--re-archive=<true|false>]    : Force rebuild archive for dx-compiler (default: true)"
     echo "  [--help]                       : Show this help message"
 
     if [ "$1" == "error" ] && [[ ! -n "$2" ]]; then
@@ -51,13 +51,19 @@ for i in "$@"; do
             show_help
             exit 0
             ;;
-        --force)
+        --re-archive)
             FORCE_ARGS="--force"
             ;;
+        --re-archive=*)
+            FORCE_VALUE="${1#*=}"
+            if [ "$FORCE_VALUE" = "false" ]; then
+                FORCE_ARGS="--force=false"
+            else
+                FORCE_ARGS="--force"
+            fi
+            ;;
         *)
-            echo -e "${TAG_ERROR}: Invalid option '$1'"
-            show_help
-            exit 1
+            show_help "error" "Invalid option '$1'"
             ;;
     esac
     shift
