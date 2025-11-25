@@ -17,7 +17,7 @@ OS_VERSION=""
 
 NVIDIA_GPU_MODE=0
 INTERNAL_MODE=0
-FORCE_ARGS=""
+RE_ARCHIVE_ARGS=""
 
 # Properties file path
 VERSION_FILE="$COMPILER_PATH/compiler.properties"
@@ -72,6 +72,7 @@ show_help() {
     echo -e "  ${COLOR_GREEN}[--driver_update]${COLOR_RESET}              Install 'dx_rt_npu_linux_driver' in the host environment"
     echo -e "  ${COLOR_GREEN}[--no-cache]${COLOR_RESET}                   Build Docker images freshly without cache"
     echo -e "  ${COLOR_GREEN}[--skip-archive]${COLOR_RESET}               Skip archiving dx-compiler or dx-runtime or dx-modelzoo before building"
+    echo -e "  ${COLOR_GREEN}[--re-archive=<true|false>]${COLOR_RESET}    Force rebuild archive for dx-compiler (default: true)"
     echo -e "  ${COLOR_GREEN}[--help]${COLOR_RESET}                       Show this help message"
     echo -e ""
     echo -e "${COLOR_BOLD}Examples:${COLOR_RESET}"
@@ -107,6 +108,7 @@ docker_build_impl()
 
     if [ ${INTERNAL_MODE} -eq 1 ]; then
         config_file_args="${config_file_args} -f docker/docker-compose.internal.yml"
+        export DOCKER_BUILDKIT=0
     fi
 
     if [ "$NO_CACHE" = "y" ]; then
@@ -165,7 +167,7 @@ archive_dx-compiler()
         return 0
     }
 
-    ${DX_AS_PATH}/scripts/archive_dx-compiler.sh || {
+    ${DX_AS_PATH}/scripts/archive_dx-compiler.sh ${RE_ARCHIVE_ARGS} || {
         print_colored_v2 "ERROR" "Archiving dx-compiler failed."
         return 1
     }
@@ -279,7 +281,7 @@ main() {
             if [ "$SKIP_ARCHIVE" = "y" ]; then
                 print_colored_v2 "INFO" "SKIP_ARCHIVE($SKIP_ARCHIVE) is set. so, skip archiving $TARGET_ENV."
             else
-                archive_dx-compiler
+                archive_dx-compiler || { exit 1; }
             fi
             docker_build_dx-compiler
             ;;
@@ -309,7 +311,7 @@ main() {
                 print_colored_v2 "INFO" "SKIP_ARCHIVE($SKIP_ARCHIVE) is set. so, skip archiving $TARGET_ENV."
             else
                 echo "Archiving all DXNN® environments"
-                archive_dx-compiler
+                archive_dx-compiler || { exit 1; }
 
                 ${DX_AS_PATH}/scripts/archive_git_repos.sh --all || {
                     print_colored_v2 "ERROR" "Archiving dx-runtime or dx-modelzoo failed."
@@ -369,8 +371,16 @@ for i in "$@"; do
         --internal)
             INTERNAL_MODE=1
             ;;
-        --force)
-            FORCE_ARGS="--force"
+        --re-archive)
+            RE_ARCHIVE_ARGS="--re-archive"
+            ;;
+        --re-archive=*)
+            FORCE_VALUE="${1#*=}"
+            if [ "$FORCE_VALUE" = "false" ]; then
+                RE_ARCHIVE_ARGS="--re-archive=false"
+            else
+                RE_ARCHIVE_ARGS="--re-archive"
+            fi
             ;;
         *)
             show_help "error" "Invalid option '$1'"

@@ -1,0 +1,62 @@
+# Git
+.git/
+.gitignore
+.gitmodules
+
+# Build outputs
+**/build/
+**/build_*/
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.pyd
+.Python
+**/.pytest_cache/
+
+# Virtual environments
+venv/
+venv-*/
+**/venv/
+**/venv-*/
+.venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+log/
+logs/
+*.log
+
+# Test and documentation
+tests/
+docs/
+**/*.md
+!README.md
+
+# Workspace (mounted as volume)
+workspace/
+
+# Internal
+internal/
+
+# Getting started examples (will be copied explicitly)
+# getting-started/
+
+# Temporary files
+*.tmp
+*.bak
+*.orig
+.DS_Store
+Thumbs.db
+
+# Submodule contents (already archived)
+dx-compiler/
+dx-runtime/
+dx-modelzoo/
