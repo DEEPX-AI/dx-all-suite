@@ -36,11 +36,26 @@ main() {
     ARCHIVE_COMPILER_CMD="$DX_AS_PATH/dx-compiler/install.sh --archive_mode=y $FORCE_ARGS"
     echo "$ARCHIVE_COMPILER_CMD"
 
-    $ARCHIVE_COMPILER_CMD
+    ARCHIVE_OUTPUT=$($ARCHIVE_COMPILER_CMD)
     if [ $? -ne 0 ]; then
         echo -e "${TAG_ERROR} Archiving dx-compiler failed!"
         exit 1
     fi
+    
+    # Extract archived file paths from output
+    ARCHIVED_COM_FILE=$(echo "$ARCHIVE_OUTPUT" | grep "ARCHIVED_COM_FILE=" | cut -d'=' -f2)
+    ARCHIVED_TRON_FILE=$(echo "$ARCHIVE_OUTPUT" | grep "ARCHIVED_TRON_FILE=" | cut -d'=' -f2)
+    
+    # Export for parent script
+    if [ -n "$ARCHIVED_COM_FILE" ]; then
+        export ARCHIVED_COM_FILE
+        echo "ARCHIVED_COM_FILE=${ARCHIVED_COM_FILE}"
+    fi
+    if [ -n "$ARCHIVED_TRON_FILE" ]; then
+        export ARCHIVED_TRON_FILE
+        echo "ARCHIVED_TRON_FILE=${ARCHIVED_TRON_FILE}"
+    fi
+    
     echo -e "=== Archiving dx-compiler ... ${TAG_DONE} ==="
 }
 

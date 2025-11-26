@@ -45,8 +45,9 @@ else
     exit 1
 fi
 
-FILE_DXCOM="archives/dx_com_M1_v${COM_VERSION}.tar.gz"
-FILE_DXTRON="archives/DXTron-${TRON_VERSION}.AppImage"
+# Initialize file paths (will be set dynamically during archive)
+FILE_DXCOM=""
+FILE_DXTRON=""
 HOST_UID=$(id -u)
 HOST_GID=$(id -g)
 TARGET_USER=deepx
@@ -167,10 +168,38 @@ archive_dx-compiler()
         return 0
     }
 
-    ${DX_AS_PATH}/scripts/archive_dx-compiler.sh ${RE_ARCHIVE_ARGS} || {
+    # Run archive script and capture output
+    ARCHIVE_OUTPUT=$(${DX_AS_PATH}/scripts/archive_dx-compiler.sh ${RE_ARCHIVE_ARGS} 2>&1)
+    if [ $? -ne 0 ]; then
         print_colored_v2 "ERROR" "Archiving dx-compiler failed."
         return 1
-    }
+    fi
+    
+    # Extract archived file paths from the archive script's output
+    ARCHIVED_COM=$(echo "$ARCHIVE_OUTPUT" | grep "ARCHIVED_COM_FILE=" | cut -d'=' -f2)
+    ARCHIVED_TRON=$(echo "$ARCHIVE_OUTPUT" | grep "ARCHIVED_TRON_FILE=" | cut -d'=' -f2)
+    
+    # Set FILE_DXCOM and FILE_DXTRON if archived files were created
+    # Convert absolute paths to relative paths for Docker build context
+    if [ -n "$ARCHIVED_COM" ] && [ -f "$ARCHIVED_COM" ]; then
+        # Convert to relative path from DX_AS_PATH
+        FILE_DXCOM="${ARCHIVED_COM#${DX_AS_PATH}/}"
+        print_colored_v2 "INFO" "Using archived dx_com file: $FILE_DXCOM"
+    else
+        # Fallback to default pattern if archive output not captured
+        FILE_DXCOM="archives/dx_com_M1_v${COM_VERSION}.tar.gz"
+        print_colored_v2 "WARNING" "Could not detect archived dx_com file, using default: $FILE_DXCOM"
+    fi
+    
+    if [ -n "$ARCHIVED_TRON" ] && [ -f "$ARCHIVED_TRON" ]; then
+        # Convert to relative path from DX_AS_PATH
+        FILE_DXTRON="${ARCHIVED_TRON#${DX_AS_PATH}/}"
+        print_colored_v2 "INFO" "Using archived dx_tron file: $FILE_DXTRON"
+    else
+        # Fallback to default pattern if archive output not captured
+        FILE_DXTRON="archives/DXTron-${TRON_VERSION}.AppImage"
+        print_colored_v2 "WARNING" "Could not detect archived dx_tron file, using default: $FILE_DXTRON"
+    fi
 
     print_colored_v2 "SUCCESS" "Archiving dx-compiler is done."
     return 0
@@ -263,8 +292,6 @@ main() {
     print_colored_v2 "INFO" "BASE_IMAGE_NAME($BASE_IMAGE_NAME) is set."
     print_colored_v2 "INFO" "OS_VERSION($OS_VERSION) is set."
     print_colored_v2 "INFO" "TARGET_ENV($TARGET_ENV) is set."
-    print_colored_v2 "INFO" "FILE_DXCOM($FILE_DXCOM) is set."
-    print_colored_v2 "INFO" "FILE_DXTRON($FILE_DXTRON) is set."
     print_colored_v2 "INFO" "HOST_UID($HOST_UID) is set."
     print_colored_v2 "INFO" "HOST_GID($HOST_GID) is set."
     print_colored_v2 "INFO" "TARGET_USER($TARGET_USER) is set."
@@ -280,9 +307,18 @@ main() {
         dx-compiler)
             if [ "$SKIP_ARCHIVE" = "y" ]; then
                 print_colored_v2 "INFO" "SKIP_ARCHIVE($SKIP_ARCHIVE) is set. so, skip archiving $TARGET_ENV."
+                # Set default file paths if not set by archive
+                if [ -z "$FILE_DXCOM" ]; then
+                    FILE_DXCOM="archives/dx_com_M1_v${COM_VERSION}.tar.gz"
+                fi
+                if [ -z "$FILE_DXTRON" ]; then
+                    FILE_DXTRON="archives/DXTron-${TRON_VERSION}.AppImage"
+                fi
             else
                 archive_dx-compiler || { exit 1; }
             fi
+            print_colored_v2 "INFO" "FILE_DXCOM($FILE_DXCOM) is set."
+            print_colored_v2 "INFO" "FILE_DXTRON($FILE_DXTRON) is set."
             docker_build_dx-compiler
             ;;
         dx-runtime)
@@ -292,6 +328,15 @@ main() {
                 echo "Archiving dx-runtime"
                 ${DX_AS_PATH}/scripts/archive_git_repos.sh --target=dx-runtime || { print_colored_v2 "ERROR" "Archiving dx-runtime failed.\n${TAG_INFO} ${COLOR_BRIGHT_YELLOW_ON_BLACK}Please try running 'git submodule update --init --recursive --force' and then try again.${COLOR_RESET}"; exit 1; }
             fi
+            # Set default file paths if not set
+            if [ -z "$FILE_DXCOM" ]; then
+                FILE_DXCOM="archives/dx_com_M1_v${COM_VERSION}.tar.gz"
+            fi
+            if [ -z "$FILE_DXTRON" ]; then
+                FILE_DXTRON="archives/DXTron-${TRON_VERSION}.AppImage"
+            fi
+            print_colored_v2 "INFO" "FILE_DXCOM($FILE_DXCOM) is set."
+            print_colored_v2 "INFO" "FILE_DXTRON($FILE_DXTRON) is set."
             docker_build_dx-runtime
             if [ "$DRIVER_UPDATE" = "y" ]; then
                 install_dx_rt_npu_linux_driver
@@ -304,11 +349,27 @@ main() {
                 echo "Archiving dx-modelzoo"
                 ${DX_AS_PATH}/scripts/archive_git_repos.sh --target=dx-modelzoo || { print_colored_v2 "ERROR" "Archiving dx-modelzoo failed.\n${TAG_INFO} ${COLOR_BRIGHT_YELLOW_ON_BLACK}Please try running 'git submodule update --init --recursive --force' and then try again.${COLOR_RESET}"; exit 1; }
             fi
+            # Set default file paths if not set
+            if [ -z "$FILE_DXCOM" ]; then
+                FILE_DXCOM="archives/dx_com_M1_v${COM_VERSION}.tar.gz"
+            fi
+            if [ -z "$FILE_DXTRON" ]; then
+                FILE_DXTRON="archives/DXTron-${TRON_VERSION}.AppImage"
+            fi
+            print_colored_v2 "INFO" "FILE_DXCOM($FILE_DXCOM) is set."
+            print_colored_v2 "INFO" "FILE_DXTRON($FILE_DXTRON) is set."
             docker_build_dx-modelzoo
             ;;
         all)
             if [ "$SKIP_ARCHIVE" = "y" ]; then
                 print_colored_v2 "INFO" "SKIP_ARCHIVE($SKIP_ARCHIVE) is set. so, skip archiving $TARGET_ENV."
+                # Set default file paths if not set by archive
+                if [ -z "$FILE_DXCOM" ]; then
+                    FILE_DXCOM="archives/dx_com_M1_v${COM_VERSION}.tar.gz"
+                fi
+                if [ -z "$FILE_DXTRON" ]; then
+                    FILE_DXTRON="archives/DXTron-${TRON_VERSION}.AppImage"
+                fi
             else
                 echo "Archiving all DXNN® environments"
                 archive_dx-compiler || { exit 1; }
@@ -319,7 +380,9 @@ main() {
                     exit 1
                 }
             fi
-
+            
+            print_colored_v2 "INFO" "FILE_DXCOM($FILE_DXCOM) is set."
+            print_colored_v2 "INFO" "FILE_DXTRON($FILE_DXTRON) is set."
             docker_build_all
             if [ "$DRIVER_UPDATE" = "y" ]; then
                 install_dx_rt_npu_linux_driver
