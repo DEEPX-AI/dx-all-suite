@@ -175,10 +175,29 @@ archive_dx-compiler()
         return 0
     }
 
-    ${DX_AS_PATH}/scripts/archive_dx-compiler.sh ${RE_ARCHIVE_ARGS} || {
+    # Capture output from archive script
+    ARCHIVE_OUTPUT=$(${DX_AS_PATH}/scripts/archive_dx-compiler.sh ${RE_ARCHIVE_ARGS})
+    ARCHIVE_EXIT_CODE=$?
+    
+    if [ $ARCHIVE_EXIT_CODE -ne 0 ]; then
         print_colored_v2 "ERROR" "Archiving dx-compiler failed."
         return 1
-    }
+    fi
+    
+    # Extract archived file paths from output
+    ARCHIVED_COM=$(echo "$ARCHIVE_OUTPUT" | grep "^ARCHIVED_COM_FILE=" | tail -1 | cut -d'=' -f2)
+    ARCHIVED_TRON=$(echo "$ARCHIVE_OUTPUT" | grep "^ARCHIVED_TRON_FILE=" | tail -1 | cut -d'=' -f2)
+    
+    # Update FILE_DXCOM and FILE_DXTRON if archived files were found
+    if [ -n "$ARCHIVED_COM" ] && [ -f "$ARCHIVED_COM" ]; then
+        FILE_DXCOM="${ARCHIVED_COM#${DX_AS_PATH}/}"  # Remove DX_AS_PATH prefix for relative path
+        print_colored_v2 "INFO" "Updated FILE_DXCOM to: $FILE_DXCOM"
+    fi
+    
+    if [ -n "$ARCHIVED_TRON" ] && [ -f "$ARCHIVED_TRON" ]; then
+        FILE_DXTRON="${ARCHIVED_TRON#${DX_AS_PATH}/}"  # Remove DX_AS_PATH prefix for relative path
+        print_colored_v2 "INFO" "Updated FILE_DXTRON to: $FILE_DXTRON"
+    fi
 
     print_colored_v2 "SUCCESS" "Archiving dx-compiler is done."
     return 0
