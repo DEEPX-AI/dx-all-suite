@@ -91,6 +91,16 @@ docker_run_impl()
     local target=$1
     local config_file_args=${2:--f docker/docker-compose.yml}
 
+    # Check if Docker image exists before running
+    local image_name="dx-${target}:${BASE_IMAGE_NAME}-${OS_VERSION}"
+    if ! docker images --format "{{.Repository}}:{{.Tag}}" | grep -q "^${image_name}$"; then
+        print_colored_v2 "WARNING" "Docker image '${image_name}' not found."
+        print_colored_v2 "HINT" "Please build the image first using:"
+        echo -e "${COLOR_BOLD}${COLOR_CYAN}[HINT]   ** './docker_build.sh --target=${target} --ubuntu_version=${OS_VERSION}'${COLOR_RESET} **"
+        echo -e "${COLOR_BOLD}${COLOR_CYAN}[HINT]   or './docker_build.sh --all --ubuntu_version=${OS_VERSION}'${COLOR_RESET} **"
+        return 1
+    fi
+
     if [ ${NVIDIA_GPU_MODE} -eq 1 ]; then
         config_file_args="${config_file_args} -f docker/docker-compose.nvidia_gpu.yml"
     fi
@@ -155,29 +165,106 @@ docker_run_impl()
 
 docker_run_all() 
 {
-    docker_run_dx-compiler
-    docker_run_dx-runtime
-    docker_run_dx-modelzoo
+    local results=()
+    local failed_count=0
+    local success_count=0
+    local skip_count=0
+    
+    # Run dx-compiler
+    local output
+    output=$(docker_run_dx-compiler 2>&1)
+    local ret=$?
+    if [ $ret -eq 0 ]; then
+        results+=("✅ dx-compiler: Success")
+        ((success_count++))
+    elif [ $ret -eq 5 ]; then
+        local reason=$(echo "$output" | grep -oP '(?<=\[SKIP\]|\[INFO\]).+' | head -1 | sed 's/^ *//')
+        results+=("⏭️  dx-compiler: Skipped - ${reason}")
+        ((skip_count++))
+    else
+        local reason=$(echo "$output" | grep -oP '(?<=\[ERROR\]|\[WARNING\]).+' | head -1 | sed 's/^ *//')
+        if [ -z "$reason" ]; then
+            reason="Unknown error"
+        fi
+        results+=("❌ dx-compiler: Failed - ${reason}")
+        ((failed_count++))
+    fi
+    
+    # Run dx-runtime
+    output=$(docker_run_dx-runtime 2>&1)
+    ret=$?
+    if [ $ret -eq 0 ]; then
+        results+=("✅ dx-runtime: Success")
+        ((success_count++))
+    elif [ $ret -eq 5 ]; then
+        local reason=$(echo "$output" | grep -oP '(?<=\[SKIP\]|\[INFO\]).+' | head -1 | sed 's/^ *//')
+        results+=("⏭️  dx-runtime: Skipped - ${reason}")
+        ((skip_count++))
+    else
+        local reason=$(echo "$output" | grep -oP '(?<=\[ERROR\]|\[WARNING\]).+' | head -1 | sed 's/^ *//')
+        if [ -z "$reason" ]; then
+            reason="Unknown error"
+        fi
+        results+=("❌ dx-runtime: Failed - ${reason}")
+        ((failed_count++))
+    fi
+    
+    # Run dx-modelzoo
+    output=$(docker_run_dx-modelzoo 2>&1)
+    ret=$?
+    if [ $ret -eq 0 ]; then
+        results+=("✅ dx-modelzoo: Success")
+        ((success_count++))
+    elif [ $ret -eq 5 ]; then
+        local reason=$(echo "$output" | grep -oP '(?<=\[SKIP\]|\[INFO\]).+' | head -1 | sed 's/^ *//')
+        results+=("⏭️  dx-modelzoo: Skipped - ${reason}")
+        ((skip_count++))
+    else
+        local reason=$(echo "$output" | grep -oP '(?<=\[ERROR\]|\[WARNING\]).+' | head -1 | sed 's/^ *//')
+        if [ -z "$reason" ]; then
+            reason="Unknown error"
+        fi
+        results+=("❌ dx-modelzoo: Failed - ${reason}")
+        ((failed_count++))
+    fi
+    
+    # Display summary
+    echo ""
+    echo "======================================"
+    echo "    Container Execution Summary"
+    echo "======================================"
+    for result in "${results[@]}"; do
+        echo "$result"
+    done
+    echo "======================================"
+    echo "Total: $((success_count + failed_count + skip_count)) | Success: ${success_count} | Failed: ${failed_count} | Skipped: ${skip_count}"
+    echo "======================================"
 }
 
 docker_run_dx-compiler() 
 {
+    # dx-compiler only supports ubuntu
+    if [ "${BASE_IMAGE_NAME}" != "ubuntu" ]; then
+        print_colored_v2 "SKIP" "dx-compiler only supports Ubuntu. Skipping run for ${BASE_IMAGE_NAME}."
+        return 5
+    fi
+
     # this function is defined in scripts/common_util.sh
     # Usage: os_check "supported_os_names" "ubuntu_versions" "debian_versions"
     os_check "ubuntu" "20.04 22.04 24.04" "" || {
         print_colored_v2 "SKIP" "Current OS is not supported. Skip and continue to next target."
-        return 0
+        return 5
     }
 
     # this function is defined in scripts/common_util.sh
     # Usage: arch_check "supported_arch_names"
     arch_check "amd64 x86_64" || {
         print_colored_v2 "SKIP" "Current architecture is not supported. Skip and continue to next target."
-        return 0
+        return 5
     }
 
     local docker_compose_args="-f docker/docker-compose.yml"
-    docker_run_impl "compiler" "${docker_compose_args}"
+    docker_run_impl "compiler" "${docker_compose_args}" || return 1
     return 0
 }
 
@@ -333,13 +420,13 @@ docker_run_dx-runtime()
         docker_compose_args="${docker_compose_args} -f docker-compose.intel_gpu_hw_acc.yml"
     fi
 
-    docker_run_impl "runtime" "${docker_compose_args}"
+    docker_run_impl "runtime" "${docker_compose_args}" || return 1
 }
 
 docker_run_dx-modelzoo()
 {
     local docker_compose_args="-f docker/docker-compose.yml"
-    docker_run_impl "modelzoo" "${docker_compose_args}"
+    docker_run_impl "modelzoo" "${docker_compose_args}" || return 1
 }
 
 check_docker_compose_command() {
@@ -388,15 +475,15 @@ main() {
     case $TARGET_ENV in
         dx-compiler)
             echo "Installing dx-compiler"
-            docker_run_dx-compiler
+            docker_run_dx-compiler || print_colored_v2 "SKIP" "Failed to run dx-compiler container."
             ;;
         dx-runtime)
             echo "Installing dx-runtime"
-            docker_run_dx-runtime
+            docker_run_dx-runtime || print_colored_v2 "SKIP" "Failed to run dx-runtime container."
             ;;
         dx-modelzoo)
             echo "Installing dx-modelzoo"
-            docker_run_dx-modelzoo
+            docker_run_dx-modelzoo || print_colored_v2 "SKIP" "Failed to run dx-modelzoo container."
             ;;
         all)
             echo "Installing all DXNN® environments"

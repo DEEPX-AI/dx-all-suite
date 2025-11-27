@@ -154,6 +154,12 @@ docker_build_all()
 
 archive_dx-compiler()
 {
+    # dx-compiler only supports ubuntu
+    if [ "${BASE_IMAGE_NAME}" != "ubuntu" ]; then
+        print_colored_v2 "SKIP" "dx-compiler only supports Ubuntu. Skipping archive for ${BASE_IMAGE_NAME}."
+        return 0
+    fi
+
     print_colored_v2 "INFO" "Archiving dx-compiler"
     # this function is defined in scripts/common_util.sh
     # Usage: os_check "supported_os_names" "ubuntu_versions" "debian_versions"
@@ -182,8 +188,8 @@ docker_build_dx-compiler()
 {
     # dx-compiler only supports ubuntu
     if [ "${BASE_IMAGE_NAME}" != "ubuntu" ]; then
-        print_colored_v2 "ERROR" "dx-compiler only supports Ubuntu. Please use --ubuntu_version option."
-        exit 1
+        print_colored_v2 "SKIP" "dx-compiler only supports Ubuntu. Skipping build for ${BASE_IMAGE_NAME}."
+        return 0
     fi
 
     # this function is defined in scripts/common_util.sh
