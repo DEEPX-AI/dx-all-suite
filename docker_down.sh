@@ -10,19 +10,28 @@ pushd "$DX_AS_PATH" >&2
 
 OUTPUT_DIR="$DX_AS_PATH/archives"
 UBUNTU_VERSION=""
+DEBIAN_VERSION=""
+BASE_IMAGE_NAME=""
+OS_VERSION=""
 
 DEV_MODE=0
 INTEL_GPU_HW_ACC=0
 
 # Function to display help message
 show_help() {
-    echo -e "Usage: ${COLOR_CYAN}$(basename "$0") OPTIONS(--all | target=<environment_name>) --ubuntu_version=<version>${COLOR_RESET}"
+    echo -e "Usage: ${COLOR_CYAN}$(basename "$0") ${COLOR_GREEN}--all${COLOR_RESET} ${COLOR_YELLOW}--ubuntu_version=<version>${COLOR_RESET}"
+    echo -e "   or: ${COLOR_CYAN}$(basename "$0") ${COLOR_GREEN}--target=<dx-compiler>${COLOR_RESET} ${COLOR_YELLOW}--ubuntu_version=<version>${COLOR_RESET}"
+    echo -e "   or: ${COLOR_CYAN}$(basename "$0") ${COLOR_GREEN}--target=<dx-runtime | dx-modelzoo>${COLOR_RESET} ${COLOR_YELLOW}(--ubuntu_version=<version> | --debian_version=<version>)${COLOR_RESET}"
     echo -e ""
-    echo -e "${COLOR_BOLD}Required:${COLOR_RESET}"
-    echo -e "  ${COLOR_GREEN}--all${COLOR_RESET}                          Install DXNN® Software Stack (dx-compiler & dx-runtime & dx-modelzoo)"
-    echo -e "  ${COLOR_BOLD}or${COLOR_RESET}"
-    echo -e "  ${COLOR_GREEN}--target=<environment_name>${COLOR_RESET}    Install specify target DXNN® environment (ex> dx-compiler | dx-runtime | dx-modelzoo)"
-    echo -e "  ${COLOR_GREEN}--ubuntu_version=<version>${COLOR_RESET}     Specify Ubuntu version (ex> 24.04)"
+    echo -e "${COLOR_BOLD}Required (choose one target option):${COLOR_RESET}"
+    echo -e "  ${COLOR_GREEN}--all${COLOR_RESET}                          Stop all DXNN® containers (dx-compiler & dx-runtime & dx-modelzoo)"
+    echo -e "  ${COLOR_GREEN}--target=<environment_name>${COLOR_RESET}    Stop specific DXNN® container"
+    echo -e "                                   Available: ${COLOR_CYAN}dx-compiler${COLOR_RESET} | ${COLOR_CYAN}dx-runtime${COLOR_RESET} | ${COLOR_CYAN}dx-modelzoo${COLOR_RESET}"
+    echo -e ""
+    echo -e "${COLOR_BOLD}Required (choose one OS option):${COLOR_RESET}"
+    echo -e "  ${COLOR_YELLOW}--ubuntu_version=<version>${COLOR_RESET}     Specify Ubuntu version (ex: 24.04, 22.04, 20.04)"
+    echo -e "  ${COLOR_YELLOW}--debian_version=<version>${COLOR_RESET}     Specify Debian version (ex: 12)"
+    echo -e "                                   Note: ${COLOR_CYAN}dx-compiler${COLOR_RESET} only supports Ubuntu ${COLOR_RED}(Debian is not supported)${COLOR_RESET}"
     echo -e ""
     echo -e "${COLOR_BOLD}Optional:${COLOR_RESET}"
     echo -e "  ${COLOR_GREEN}[--help]${COLOR_RESET}                       Show this help message"
@@ -31,6 +40,7 @@ show_help() {
     echo -e "  ${COLOR_YELLOW}$0 --all --ubuntu_version=24.04${COLOR_RESET}"
     echo -e "  ${COLOR_YELLOW}$0 --target=dx-compiler --ubuntu_version=24.04${COLOR_RESET}"
     echo -e "  ${COLOR_YELLOW}$0 --target=dx-runtime --ubuntu_version=24.04${COLOR_RESET}"
+    echo -e "  ${COLOR_YELLOW}$0 --target=dx-runtime --debian_version=12${COLOR_RESET}"
     echo -e "  ${COLOR_YELLOW}$0 --target=dx-modelzoo --ubuntu_version=24.04${COLOR_RESET}"
     echo -e ""
 
@@ -58,7 +68,8 @@ docker_down_impl()
 
     # Run Docker Container
     export COMPOSE_BAKE=true
-    export UBUNTU_VERSION=${UBUNTU_VERSION}
+    export BASE_IMAGE_NAME=${BASE_IMAGE_NAME}
+    export OS_VERSION=${OS_VERSION}
     DUMMY_XAUTHORITY=""
     if [ ! -n "${XAUTHORITY}" ]; then
         print_colored_v2 "INFO" "XAUTHORITY env is not set. so, try to set automatically."
@@ -72,8 +83,8 @@ docker_down_impl()
         export XAUTHORITY_TARGET="/tmp/.docker.xauth"
     fi
 
-    # Use the same project name as docker_run.sh
-    export COMPOSE_PROJECT_NAME="dx-all-suite-$(echo "${UBUNTU_VERSION}" | sed 's/\./-/g')"
+    # Dynamically set the project name based on the Ubuntu or Debian version
+    export COMPOSE_PROJECT_NAME="dx-all-suite-$(echo "${BASE_IMAGE_NAME}-${OS_VERSION}" | sed 's/\./-/g')"
     CMD="docker compose ${config_file_args} -p ${COMPOSE_PROJECT_NAME} down dx-${target}"
     echo "${CMD}"
 
@@ -89,6 +100,12 @@ docker_down_all()
 
 docker_down_dx-compiler() 
 {
+    # dx-compiler only supports ubuntu
+    if [ "${BASE_IMAGE_NAME}" != "ubuntu" ]; then
+        print_colored_v2 "ERROR" "dx-compiler only supports Ubuntu. Please use --ubuntu_version option."
+        exit 1
+    fi
+
     docker_down_impl "compiler"
 }
 
@@ -128,13 +145,27 @@ main() {
     # check docker compose command
     check_docker_compose_command
 
-    # usage
-    if [ -z "$UBUNTU_VERSION" ]; then
-        show_help "error" "--ubuntu_version ($UBUNTU_VERSION) does not exist."
-    else
-        print_colored_v2 "INFO" "UBUNTU_VERSSION($UBUNTU_VERSION) is set."
-        print_colored_v2 "INFO" "TARGET_ENV($TARGET_ENV) is set."
+    # Validate OS version options
+    if [ -n "$UBUNTU_VERSION" ] && [ -n "$DEBIAN_VERSION" ]; then
+        show_help "error" "Cannot specify both --ubuntu_version and --debian_version. Please choose one."
     fi
+
+    if [ -z "$UBUNTU_VERSION" ] && [ -z "$DEBIAN_VERSION" ]; then
+        show_help "error" "Either --ubuntu_version or --debian_version option must be specified."
+    fi
+
+    # Set BASE_IMAGE_NAME and OS_VERSION based on input
+    if [ -n "$UBUNTU_VERSION" ]; then
+        BASE_IMAGE_NAME="ubuntu"
+        OS_VERSION="$UBUNTU_VERSION"
+    elif [ -n "$DEBIAN_VERSION" ]; then
+        BASE_IMAGE_NAME="debian"
+        OS_VERSION="$DEBIAN_VERSION"
+    fi
+
+    print_colored_v2 "INFO" "BASE_IMAGE_NAME($BASE_IMAGE_NAME) is set."
+    print_colored_v2 "INFO" "OS_VERSION($OS_VERSION) is set."
+    print_colored_v2 "INFO" "TARGET_ENV($TARGET_ENV) is set."
 
     case $TARGET_ENV in
         dx-compiler)
@@ -170,6 +201,9 @@ for i in "$@"; do
             ;;
         --ubuntu_version=*)
             UBUNTU_VERSION="${1#*=}"
+            ;;
+        --debian_version=*)
+            DEBIAN_VERSION="${1#*=}"
             ;;
         --help)
             show_help
