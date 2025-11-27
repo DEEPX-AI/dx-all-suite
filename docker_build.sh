@@ -108,14 +108,14 @@ docker_build_impl()
 
     if [ ${INTERNAL_MODE} -eq 1 ]; then
         config_file_args="${config_file_args} -f docker/docker-compose.internal.yml"
-        export DOCKER_BUILDKIT=0
     fi
 
     if [ "$NO_CACHE" = "y" ]; then
         no_cache_arg="--no-cache"
     fi
 
-    # Build Docker image
+    # Build Docker image variables ...
+    export DOCKER_BUILDKIT=1
     export COMPOSE_BAKE=true
     export BASE_IMAGE_NAME=${BASE_IMAGE_NAME}
     export OS_VERSION=${OS_VERSION}
@@ -125,18 +125,20 @@ docker_build_impl()
     export HOST_GID=${HOST_GID}
     export TARGET_USER=${TARGET_USER}
     export TARGET_HOME=${TARGET_HOME}
+    
+    # XAUTHORITY setup ...
     if [ ! -n "${XAUTHORITY}" ]; then
         print_colored_v2 "INFO" "XAUTHORITY env is not set. so, try to set automatically."
         DUMMY_XAUTHORITY="/tmp/dummy"
         touch ${DUMMY_XAUTHORITY}
         export XAUTHORITY=${DUMMY_XAUTHORITY}
         export XAUTHORITY_TARGET=${DUMMY_XAUTHORITY}
-        
     else
         print_colored_v2 "INFO" "XAUTHORITY(${XAUTHORITY}) is set"
         export XAUTHORITY_TARGET="/tmp/.docker.xauth"
     fi
 
+    docker buildx use default
     CMD="docker compose ${config_file_args} build ${no_cache_arg} dx-${target}"
     echo "${CMD}"
 
