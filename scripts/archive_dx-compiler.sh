@@ -33,14 +33,42 @@ main() {
     # arciving dx-com
     echo -e "=== Archiving dx-compiler ... ${TAG_START} ==="
 
+    # Create a temporary file to capture archived file paths
+    TEMP_OUTPUT=$(mktemp)
+    export ARCHIVE_OUTPUT_FILE="$TEMP_OUTPUT"
+
     ARCHIVE_COMPILER_CMD="$DX_AS_PATH/dx-compiler/install.sh --archive_mode=y $FORCE_ARGS"
     echo "$ARCHIVE_COMPILER_CMD"
 
+    # Run command directly - stdin/stdout/stderr remain connected to terminal
     $ARCHIVE_COMPILER_CMD
-    if [ $? -ne 0 ]; then
+    EXIT_CODE=$?
+    
+    if [ $EXIT_CODE -ne 0 ]; then
+        rm -f "$TEMP_OUTPUT"
         echo -e "${TAG_ERROR} Archiving dx-compiler failed!"
         exit 1
     fi
+    
+    # Read archived file paths from the temp file
+    if [ -f "$TEMP_OUTPUT" ]; then
+        ARCHIVED_COM_FILE=$(grep "ARCHIVED_COM_FILE=" "$TEMP_OUTPUT" | tail -1 | cut -d'=' -f2)
+        ARCHIVED_TRON_FILE=$(grep "ARCHIVED_TRON_FILE=" "$TEMP_OUTPUT" | tail -1 | cut -d'=' -f2)
+    fi
+    
+    # Clean up temp file
+    rm -f "$TEMP_OUTPUT"
+    
+    # Export for parent script
+    if [ -n "$ARCHIVED_COM_FILE" ]; then
+        export ARCHIVED_COM_FILE
+        echo "ARCHIVED_COM_FILE=${ARCHIVED_COM_FILE}"
+    fi
+    if [ -n "$ARCHIVED_TRON_FILE" ]; then
+        export ARCHIVED_TRON_FILE
+        echo "ARCHIVED_TRON_FILE=${ARCHIVED_TRON_FILE}"
+    fi
+    
     echo -e "=== Archiving dx-compiler ... ${TAG_DONE} ==="
 }
 
