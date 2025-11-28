@@ -16,6 +16,7 @@ BASE_IMAGE_NAME=""
 OS_VERSION=""
 
 NVIDIA_GPU_MODE=0
+INTEL_GPU_MODE=0
 INTERNAL_MODE=0
 RE_ARCHIVE_ARGS=""
 
@@ -104,6 +105,10 @@ docker_build_impl()
 
     if [ ${NVIDIA_GPU_MODE} -eq 1 ]; then
         config_file_args="${config_file_args} -f docker/docker-compose.nvidia_gpu.yml"
+    fi
+
+    if [ ${INTEL_GPU_MODE} -eq 1 ]; then
+        config_file_args="${config_file_args} -f docker/docker-compose.intel_gpu_hw_acc.yml"
     fi
 
     if [ ${INTERNAL_MODE} -eq 1 ]; then
@@ -390,6 +395,9 @@ for i in "$@"; do
             ;;
         --nvidia_gpu)
             NVIDIA_GPU_MODE=1
+            ;;
+        --intel_gpu)
+            INTEL_GPU_MODE=1
             ;;
         --help)
             show_help
