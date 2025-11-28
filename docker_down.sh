@@ -15,7 +15,37 @@ BASE_IMAGE_NAME=""
 OS_VERSION=""
 
 DEV_MODE=0
-INTEL_GPU_HW_ACC=0
+INTEL_GPU_MODE=0
+
+get_compose_project_name() {
+    local use_intel_suffix="${1:-0}"
+    local suffix=""
+
+    if [ "${use_intel_suffix}" -eq 1 ]; then
+        suffix="-intel-gpu"
+    fi
+
+    local sanitized_os=$(echo "${BASE_IMAGE_NAME}-${OS_VERSION}" | sed 's/\./-/g')
+    echo "dx-all-suite${suffix}-${sanitized_os}"
+}
+
+get_compose_project_from_container() {
+    local container_name=$1
+    local fallback=$2
+
+    if [ -z "$container_name" ]; then
+        echo "$fallback"
+        return
+    fi
+
+    local project=$(docker inspect -f '{{index .Config.Labels "com.docker.compose.project"}}' "$container_name" 2>/dev/null | tr -d '\r')
+
+    if [ -n "$project" ] && [ "$project" != "<no value>" ]; then
+        echo "$project"
+    else
+        echo "$fallback"
+    fi
+}
 
 # Function to display help message
 show_help() {
@@ -37,6 +67,7 @@ show_help() {
     echo -e "                                   Note: ${COLOR_CYAN}dx-compiler${COLOR_RESET} only supports Ubuntu ${COLOR_RED}(Debian is not supported)${COLOR_RESET}"
     echo -e ""
     echo -e "${COLOR_BOLD}Optional:${COLOR_RESET}"
+    echo -e "  ${COLOR_GREEN}[--intel_gpu]${COLOR_RESET}                 Stop Intel GPU acceleration variant (dx-runtime)"
     echo -e "  ${COLOR_GREEN}[--help]${COLOR_RESET}                       Show this help message"
     echo -e ""
     echo -e "${COLOR_BOLD}Examples:${COLOR_RESET}"
@@ -65,6 +96,8 @@ docker_down_impl()
 {
     local target=$1
     local config_file_args=${2:--f docker/docker-compose.yml}
+    local use_intel_suffix=${3:-$INTEL_GPU_MODE}
+    local explicit_project_name=${4:-}
 
     if [ ${DEV_MODE} -eq 1 ]; then
         config_file_args="${config_file_args} -f docker/docker-compose.dev.yml"
@@ -88,11 +121,34 @@ docker_down_impl()
     fi
 
     # Dynamically set the project name based on the Ubuntu or Debian version
-    export COMPOSE_PROJECT_NAME="dx-all-suite-$(echo "${BASE_IMAGE_NAME}-${OS_VERSION}" | sed 's/\./-/g')"
+    if [ -n "${explicit_project_name}" ]; then
+        export COMPOSE_PROJECT_NAME="${explicit_project_name}"
+    else
+        export COMPOSE_PROJECT_NAME="$(get_compose_project_name ${use_intel_suffix})"
+    fi
     CMD="docker compose ${config_file_args} -p ${COMPOSE_PROJECT_NAME} down dx-${target}"
     echo "${CMD}"
 
     ${CMD} || { print_colored_v2 "ERROR" "docker down 'dx-${target}' failed. "; exit 1; }
+}
+
+run_compose_down_command()
+{
+    local cmd="$1"
+    local success_msg="$2"
+    local failure_msg="$3"
+
+    echo "  ${cmd}"
+
+    ${cmd} 2>&1 | while IFS= read -r line; do
+        echo "  $line"
+    done
+
+    if [ ${PIPESTATUS[0]} -eq 0 ]; then
+        print_colored_v2 "SUCCESS" "${success_msg}"
+    else
+        print_colored_v2 "WARNING" "${failure_msg}"
+    fi
 }
 
 docker_down_all_without_os_versions()
@@ -100,8 +156,8 @@ docker_down_all_without_os_versions()
     # Stop all containers regardless of OS version
     print_colored_v2 "INFO" "Stopping all DXNN® containers (all OS versions)"
     
-    # Get all running dx-compiler, dx-runtime, dx-modelzoo containers
-    local containers=$(docker ps -a --format "{{.Names}}" 2>/dev/null | grep -E "^(dx-compiler|dx-runtime|dx-modelzoo)-")
+    # Get all running dx-compiler, dx-runtime (default/intel), dx-modelzoo containers
+    local containers=$(docker ps -a --format "{{.Names}}" 2>/dev/null | grep -E "^(dx-compiler|dx-runtime|dx-runtime_intel-hw-acc|dx-modelzoo)-")
     
     if [ -z "$containers" ]; then
         print_colored_v2 "INFO" "No DXNN® containers found."
@@ -113,7 +169,7 @@ docker_down_all_without_os_versions()
     
     # Extract unique OS combinations from container names
     # Container name format: dx-{service}-{os_name}-{os_version}
-    local unique_os_combinations=$(echo "$containers" | sed -E 's/^dx-(compiler|runtime|modelzoo)-//' | sort -u)
+    local unique_os_combinations=$(printf '%s\n' "$containers" | sed -E 's/^dx-(compiler|runtime|runtime_intel-hw-acc|modelzoo)-//' | sort -u)
     
     echo ""
     echo "Detected OS combinations:"
@@ -126,14 +182,13 @@ docker_down_all_without_os_versions()
         # Format: ubuntu-20.04 or debian-12
         local os_name=$(echo "$os_combo" | cut -d'-' -f1)
         local os_version=$(echo "$os_combo" | cut -d'-' -f2-)
-        
+
         print_colored_v2 "INFO" "Processing ${os_name}-${os_version} containers..."
-        
+
         # Set environment variables for docker-compose
         export BASE_IMAGE_NAME="$os_name"
         export OS_VERSION="$os_version"
-        export COMPOSE_PROJECT_NAME="dx-all-suite-$(echo "${os_name}-${os_version}" | sed 's/\./-/g')"
-        
+
         # Set XAUTHORITY for compose
         local DUMMY_XAUTHORITY=""
         if [ ! -n "${XAUTHORITY}" ]; then
@@ -144,34 +199,46 @@ docker_down_all_without_os_versions()
         else
             export XAUTHORITY_TARGET="/tmp/.docker.xauth"
         fi
-        
-        # Find which services exist for this OS combination
-        local services_to_down=""
-        if echo "$containers" | grep -q "^dx-compiler-${os_combo}$"; then
-            services_to_down="${services_to_down} dx-compiler"
+
+        # Default stack services (dx-compiler, dx-runtime, dx-modelzoo)
+        local base_services=""
+        if printf '%s\n' "$containers" | grep -Fxq "dx-compiler-${os_combo}"; then
+            base_services="${base_services} dx-compiler"
         fi
-        if echo "$containers" | grep -q "^dx-runtime-${os_combo}$"; then
-            services_to_down="${services_to_down} dx-runtime"
+        if printf '%s\n' "$containers" | grep -Fxq "dx-runtime-${os_combo}"; then
+            base_services="${base_services} dx-runtime"
         fi
-        if echo "$containers" | grep -q "^dx-modelzoo-${os_combo}$"; then
-            services_to_down="${services_to_down} dx-modelzoo"
+        if printf '%s\n' "$containers" | grep -Fxq "dx-modelzoo-${os_combo}"; then
+            base_services="${base_services} dx-modelzoo"
         fi
-        
-        if [ -n "$services_to_down" ]; then
-            local CMD="docker compose -f docker/docker-compose.yml -p ${COMPOSE_PROJECT_NAME} down${services_to_down}"
-            echo "  ${CMD}"
-            
-            ${CMD} 2>&1 | while IFS= read -r line; do
-                echo "  $line"
-            done
-            
-            if [ ${PIPESTATUS[0]} -eq 0 ]; then
-                print_colored_v2 "SUCCESS" "✓ Successfully stopped and removed ${os_name}-${os_version} containers"
-            else
-                print_colored_v2 "WARNING" "✗ Failed to stop some ${os_name}-${os_version} containers"
+
+        if [ -n "$base_services" ]; then
+            local sample_container=""
+            if printf '%s\n' "$containers" | grep -Fxq "dx-runtime-${os_combo}"; then
+                sample_container="dx-runtime-${os_combo}"
+            elif printf '%s\n' "$containers" | grep -Fxq "dx-compiler-${os_combo}"; then
+                sample_container="dx-compiler-${os_combo}"
+            elif printf '%s\n' "$containers" | grep -Fxq "dx-modelzoo-${os_combo}"; then
+                sample_container="dx-modelzoo-${os_combo}"
             fi
+
+            local base_project=$(get_compose_project_name 0)
+            if [ -n "$sample_container" ]; then
+                base_project=$(get_compose_project_from_container "$sample_container" "$base_project")
+            fi
+
+            local CMD="docker compose -f docker/docker-compose.yml -p ${base_project} down${base_services}"
+            run_compose_down_command "${CMD}" "✓ Successfully stopped and removed default ${os_name}-${os_version} containers" "✗ Failed to stop some default ${os_name}-${os_version} containers"
         fi
-        
+
+        # Intel runtime stack
+        if printf '%s\n' "$containers" | grep -Fxq "dx-runtime_intel-hw-acc-${os_combo}"; then
+            local intel_project=$(get_compose_project_name 1)
+            intel_project=$(get_compose_project_from_container "dx-runtime_intel-hw-acc-${os_combo}" "$intel_project")
+            local CMD="docker compose -f docker/docker-compose.yml -f docker/docker-compose.intel_gpu_hw_acc.yml -p ${intel_project} down dx-runtime"
+            run_compose_down_command "${CMD}" "✓ Successfully stopped and removed intel ${os_name}-${os_version} runtime containers" "✗ Failed to stop intel ${os_name}-${os_version} runtime containers"
+        fi
+
         echo ""
     done
     
@@ -183,8 +250,13 @@ docker_down_all_with_os_version()
     # Stop all containers regardless of OS version
     print_colored_v2 "INFO" "Stopping all DXNN® containers (Specific OS versions: ${BASE_IMAGE_NAME}-${OS_VERSION})"
     docker_down_dx-compiler
-    docker_down_dx-runtime
+    docker_down_dx-runtime 0
     docker_down_dx-modelzoo
+
+    local intel_container_name="dx-runtime_intel-hw-acc-${BASE_IMAGE_NAME}-${OS_VERSION}"
+    if docker ps -a --format "{{.Names}}" | grep -Fxq "${intel_container_name}"; then
+        docker_down_dx-runtime 1
+    fi
 }
 
 docker_down_dx-compiler() 
@@ -194,13 +266,21 @@ docker_down_dx-compiler()
 
 docker_down_dx-runtime()
 {
+    local intel_mode=${1:-$INTEL_GPU_MODE}
     local docker_compose_args="-f docker/docker-compose.yml"
+    local container_name="dx-runtime-${BASE_IMAGE_NAME}-${OS_VERSION}"
 
-    if [ ${INTEL_GPU_HW_ACC} -eq 1 ]; then
+    if [ ${intel_mode} -eq 1 ]; then
         docker_compose_args="${docker_compose_args} -f docker/docker-compose.intel_gpu_hw_acc.yml"
+        container_name="dx-runtime_intel-hw-acc-${BASE_IMAGE_NAME}-${OS_VERSION}"
     fi
 
-    docker_down_impl "runtime" "${docker_compose_args}"
+    local project_name=$(get_compose_project_name ${intel_mode})
+    if docker ps -a --format "{{.Names}}" | grep -Fxq "${container_name}"; then
+        project_name=$(get_compose_project_from_container "${container_name}" "${project_name}")
+    fi
+
+    docker_down_impl "runtime" "${docker_compose_args}" "${intel_mode}" "${project_name}"
 }
 
 docker_down_dx-modelzoo()
@@ -301,8 +381,8 @@ for i in "$@"; do
         --dev)
             DEV_MODE=1
             ;;
-        --intel_gpu_hw_acc)
-            INTEL_GPU_HW_ACC=1
+        --intel_gpu)
+            INTEL_GPU_MODE=1
             ;;
         *)
             show_help "error" "Invalid option '$1'"

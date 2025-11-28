@@ -16,7 +16,20 @@ OS_VERSION=""
 
 NVIDIA_GPU_MODE=0
 DEV_MODE=0
-INTEL_GPU_HW_ACC=0
+INTEL_GPU_MODE=0
+DISABLE_DXRT_SERVICE=0
+
+get_compose_project_name() {
+    local use_intel_suffix="${1:-0}"
+    local suffix=""
+
+    if [ "${use_intel_suffix}" -eq 1 ]; then
+        suffix="-intel-gpu"
+    fi
+
+    local sanitized_os=$(echo "${BASE_IMAGE_NAME}-${OS_VERSION}" | sed 's/\./-/g')
+    echo "dx-all-suite${suffix}-${sanitized_os}"
+}
 
 # Function to display help message
 show_help() {
@@ -37,7 +50,8 @@ show_help() {
     echo -e "${COLOR_BOLD}Optional:${COLOR_RESET}"
     # echo -e "  ${COLOR_GREEN}[--nvidia_gpu]${COLOR_RESET}                 Enable NVIDIA GPU support"
     # echo -e "  ${COLOR_GREEN}[--dev]${COLOR_RESET}                        Enable development mode"
-    # echo -e "  ${COLOR_GREEN}[--intel_gpu_hw_acc]${COLOR_RESET}           Enable Intel GPU hardware acceleration"
+    echo -e "  ${COLOR_GREEN}[--intel_gpu]${COLOR_RESET}                 Enable Intel GPU hardware acceleration (dx-runtime)"
+    echo -e "  ${COLOR_GREEN}[--disable_dxrt_service]${COLOR_RESET}      Disable dxrtd service inside dx-runtime container"
     echo -e "  ${COLOR_GREEN}[--help]${COLOR_RESET}                       Show this help message"
     echo -e ""
     echo -e "${COLOR_BOLD}Examples:${COLOR_RESET}"
@@ -90,13 +104,33 @@ docker_run_impl()
 {
     local target=$1
     local config_file_args=${2:--f docker/docker-compose.yml}
+    local use_intel_suffix=${3:-0}
 
     # Check if Docker image exists before running
-    local image_name="dx-${target}:${BASE_IMAGE_NAME}-${OS_VERSION}"
+    local image_name="dx-${target}"
+    if [ "${use_intel_suffix}" -eq 1 ] && [ "${target}" == "runtime" ]; then
+        image_name="dx-${target}_intel-hw-acc"
+    fi
+    image_name="${image_name}:${BASE_IMAGE_NAME}-${OS_VERSION}"
+    
     if ! docker images --format "{{.Repository}}:{{.Tag}}" | grep -q "^${image_name}$"; then
         print_colored_v2 "WARNING" "Docker image '${image_name}' not found."
         print_colored_v2 "HINT" "Please build the image first using:"
-        echo -e "${COLOR_BOLD}${COLOR_CYAN}[HINT]   ** './docker_build.sh --target=${target} --ubuntu_version=${OS_VERSION}'${COLOR_RESET} **"
+        
+        local build_cmd="./docker_build.sh --target=${target}"
+        if [ "${use_intel_suffix}" -eq 1 ] && [ "${target}" == "runtime" ]; then
+            build_cmd="${build_cmd} --intel_gpu"
+        fi
+        if [ "${BASE_IMAGE_NAME}" == "ubuntu" ]; then
+            build_cmd="${build_cmd} --ubuntu_version=${OS_VERSION}"
+        elif [ "${BASE_IMAGE_NAME}" == "debian" ]; then
+            build_cmd="${build_cmd} --debian_version=${OS_VERSION}"
+        else
+            print_colored_v2 "ERROR" "Unsupported BASE_IMAGE_NAME: ${BASE_IMAGE_NAME}"
+            return 1
+        fi
+        
+        echo -e "${COLOR_BOLD}${COLOR_CYAN}[HINT]   ** '${build_cmd}'${COLOR_RESET} **"
         echo -e "${COLOR_BOLD}${COLOR_CYAN}[HINT]   or './docker_build.sh --all --ubuntu_version=${OS_VERSION}'${COLOR_RESET} **"
         return 1
     fi
@@ -126,8 +160,8 @@ docker_run_impl()
         export XAUTHORITY_TARGET="/tmp/.docker.xauth"
     fi
 
-    # Dynamically set the project name based on the Ubuntu
-    export COMPOSE_PROJECT_NAME="dx-all-suite-$(echo "${BASE_IMAGE_NAME}-${OS_VERSION}" | sed 's/\./-/g')"
+    # Dynamically set the project name
+    export COMPOSE_PROJECT_NAME="$(get_compose_project_name ${INTEL_GPU_MODE})"
     CMD="docker compose ${config_file_args} -p ${COMPOSE_PROJECT_NAME} up -d --remove-orphans dx-${target}"
     echo "${CMD}"
 
@@ -163,70 +197,60 @@ docker_run_impl()
     fi
 }
 
+build_runtime_stack_compose_args()
+{
+    local docker_compose_args="-f docker/docker-compose.yml"
+
+    if [ ${INTEL_GPU_MODE} -eq 1 ]; then
+        docker_compose_args="${docker_compose_args} -f docker/docker-compose.intel_gpu_hw_acc.yml"
+    fi
+
+    if [ ${DISABLE_DXRT_SERVICE} -eq 1 ]; then
+        docker_compose_args="${docker_compose_args} -f docker/docker-compose.disable_dxrt_service.yml"
+    fi
+
+    echo "${docker_compose_args}"
+}
+
 docker_run_all() 
 {
     local results=()
     local failed_count=0
     local success_count=0
     local skip_count=0
-    
-    # Run dx-compiler
-    local output
-    output=$(docker_run_dx-compiler 2>&1)
-    local ret=$?
-    if [ $ret -eq 0 ]; then
-        results+=("✅ dx-compiler: Success")
-        ((success_count++))
-    elif [ $ret -eq 5 ]; then
-        local reason=$(echo "$output" | grep -oP '(?<=\[SKIP\]|\[INFO\]).+' | head -1 | sed 's/^ *//')
-        results+=("⏭️  dx-compiler: Skipped - ${reason}")
-        ((skip_count++))
-    else
-        local reason=$(echo "$output" | grep -oP '(?<=\[ERROR\]|\[WARNING\]).+' | head -1 | sed 's/^ *//')
-        if [ -z "$reason" ]; then
-            reason="Unknown error"
+
+    local targets=("dx-compiler" "dx-runtime" "dx-modelzoo")
+    local runners=("docker_run_dx-compiler" "docker_run_dx-runtime" "docker_run_dx-modelzoo")
+
+    for idx in "${!targets[@]}"; do
+        local target="${targets[$idx]}"
+        local runner="${runners[$idx]}"
+        local output
+        output=$($runner 2>&1)
+        local ret=$?
+
+        if [ $ret -eq 0 ]; then
+            results+=("✅ ${target}: Success")
+            ((success_count++))
+            continue
         fi
-        results+=("❌ dx-compiler: Failed - ${reason}")
-        ((failed_count++))
-    fi
-    
-    # Run dx-runtime
-    output=$(docker_run_dx-runtime 2>&1)
-    ret=$?
-    if [ $ret -eq 0 ]; then
-        results+=("✅ dx-runtime: Success")
-        ((success_count++))
-    elif [ $ret -eq 5 ]; then
-        local reason=$(echo "$output" | grep -oP '(?<=\[SKIP\]|\[INFO\]).+' | head -1 | sed 's/^ *//')
-        results+=("⏭️  dx-runtime: Skipped - ${reason}")
-        ((skip_count++))
-    else
-        local reason=$(echo "$output" | grep -oP '(?<=\[ERROR\]|\[WARNING\]).+' | head -1 | sed 's/^ *//')
-        if [ -z "$reason" ]; then
-            reason="Unknown error"
+
+        local reason="$(echo "$output" | grep -oP '(?<=\[SKIP\]|\[INFO\]).+' | head -1 | sed 's/^ *//')"
+
+        if [ $ret -eq 5 ]; then
+            results+=("⏭️  ${target}: Skipped - ${reason}")
+            ((skip_count++))
+        else
+            if [ -z "$reason" ]; then
+                reason=$(echo "$output" | grep -oP '(?<=\[ERROR\]|\[WARNING\]).+' | head -1 | sed 's/^ *//')
+            fi
+            if [ -z "$reason" ]; then
+                reason="Unknown error"
+            fi
+            results+=("❌ ${target}: Failed - ${reason}")
+            ((failed_count++))
         fi
-        results+=("❌ dx-runtime: Failed - ${reason}")
-        ((failed_count++))
-    fi
-    
-    # Run dx-modelzoo
-    output=$(docker_run_dx-modelzoo 2>&1)
-    ret=$?
-    if [ $ret -eq 0 ]; then
-        results+=("✅ dx-modelzoo: Success")
-        ((success_count++))
-    elif [ $ret -eq 5 ]; then
-        local reason=$(echo "$output" | grep -oP '(?<=\[SKIP\]|\[INFO\]).+' | head -1 | sed 's/^ *//')
-        results+=("⏭️  dx-modelzoo: Skipped - ${reason}")
-        ((skip_count++))
-    else
-        local reason=$(echo "$output" | grep -oP '(?<=\[ERROR\]|\[WARNING\]).+' | head -1 | sed 's/^ *//')
-        if [ -z "$reason" ]; then
-            reason="Unknown error"
-        fi
-        results+=("❌ dx-modelzoo: Failed - ${reason}")
-        ((failed_count++))
-    fi
+    done
     
     # Display summary
     echo ""
@@ -414,18 +438,13 @@ docker_run_dx-runtime()
         fi
     fi
 
-    local docker_compose_args="-f docker/docker-compose.yml"
-
-    if [ ${INTEL_GPU_HW_ACC} -eq 1 ]; then
-        docker_compose_args="${docker_compose_args} -f docker-compose.intel_gpu_hw_acc.yml"
-    fi
-
-    docker_run_impl "runtime" "${docker_compose_args}" || return 1
+    local docker_compose_args="$(build_runtime_stack_compose_args)"
+    docker_run_impl "runtime" "${docker_compose_args}" "${INTEL_GPU_MODE}" || return 1
 }
 
 docker_run_dx-modelzoo()
 {
-    local docker_compose_args="-f docker/docker-compose.yml"
+    local docker_compose_args="$(build_runtime_stack_compose_args)"
     docker_run_impl "modelzoo" "${docker_compose_args}" || return 1
 }
 
@@ -520,8 +539,11 @@ for i in "$@"; do
         --dev)
             DEV_MODE=1
             ;;
-        --intel_gpu_hw_acc)
-            INTEL_GPU_HW_ACC=1
+        --intel_gpu)
+            INTEL_GPU_MODE=1
+            ;;
+        --disable_dxrt_service)
+            DISABLE_DXRT_SERVICE=1
             ;;
         *)
             show_help "error" "Invalid option '$1'"

@@ -1,0 +1,14 @@
+services:
+  # **********************************************************************************
+  # dxrtd (DX-RT Service) should only run in one place among the host or containers.
+  # (By default, the dxrtd service runs within the dx-runtime container)
+  # If you want to run the dxrtd service in a different container or host,
+  # use the docker-compose.disable_dxrt_service.yml to disable the dxrtd service in the dx-runtime and dx-modelzoo container.
+  # for more details, please refer to the [FAQ section of the dx-all-suite documentation](https://github.com/DEEPX-AI/dx-all-suite/blob/main/docs/source/faq.md)."
+  # **********************************************************************************
+  dx-runtime:
+    entrypoint: ["/bin/sh", "-c"]
+    command: ["sleep infinity"]
+  dx-modelzoo:
+    entrypoint: ["/bin/sh", "-c"]
+    command: ["sleep infinity"]
