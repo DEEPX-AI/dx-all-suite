@@ -392,48 +392,65 @@ docker_run_dx-runtime()
 {
     local which_dxrtd=$(check_dxrtd_process)
     
-    if [ "$which_dxrtd" == "NONE" ]; then
-        print_colored_v2 "INFO" "No existing dxrtd (DX-RT Service) process found. Proceeding to start dx-runtime container."
-    else
-        # Check if entrypoint/command is already configured in docker-compose.yml
-        if check_runtime_entrypoint_override; then
-            print_colored_v2 "INFO" "dxrtd service is running externally (on ${which_dxrtd}), but docker-compose.yml has entrypoint/command override configured."
-            print_colored_v2 "INFO" "Proceeding to start dx-runtime container without starting dxrtd service inside the container."
+    # Handle --disable_dxrt_service option: reverse logic
+    if [ ${DISABLE_DXRT_SERVICE} -eq 1 ]; then
+        if [ "$which_dxrtd" == "NONE" ]; then
+            print_colored_v2 "WARNING" "--disable_dxrt_service option is enabled, but no dxrtd (DX-RT Service) process is running."
+            print_colored_v2 "WARNING" "When using --disable_dxrt_service, the dx-runtime container will not start dxrtd service."
+            print_colored_v2 "WARNING" "Therefore, dxrtd must be running on the host or in another container."
+            print_colored_v2 "HINT" "Please start dxrtd service before running dx-runtime container with --disable_dxrt_service option."
+            print_colored_v2 "HINT" "You can start dxrtd service by:"
+            echo -e "${COLOR_BOLD}${COLOR_CYAN}[HINT]   1) Start dxrtd on host: 'sudo systemctl start dxrt.service'${COLOR_RESET}"
+            echo -e "${COLOR_BOLD}${COLOR_CYAN}[HINT]   2) Or run dx-runtime container without --disable_dxrt_service option${COLOR_RESET}"
+            return 1
         else
-            # Display existing warning message logic
-            if [[ "$which_dxrtd" == "HOST" || "$which_dxrtd" == "UNKNOWN" ]]; then
-                print_colored_v2 "WARNING" "dxrtd (DX-RT Service) is already running on the ${which_dxrtd}."
-                print_colored_v2 "WARNING" "Please stop the dxrtd service on the ${which_dxrtd} before running the dx-runtime container."
-                print_colored_v2 "WARNING" "(By default, the dxrtd service runs within the dx-runtime container)"
-                print_colored_v2 "HINT" "1) If you want to run the dxrtd service in a different container or host"
-                
-                echo -e "${COLOR_BOLD}${COLOR_CYAN}[HINT]   ** please uncomment the 'entrypoint' and 'command' lines in the docker-compose.yml file."
-                echo -e "${COLOR_BOLD}${COLOR_CYAN}[HINT]   ** For more details, please refer to the (https://github.com/DEEPX-AI/dx-all-suite/blob/main/docs/source/faq.md) **"
-                
-                print_colored_v2 "HINT" "2) or stop the dxrtd service on the ${which_dxrtd} before running the dx-runtime container."
-                print_colored_v2 "HINT" "   You can stop the dxrtd service on the ${which_dxrtd} by running the following command:"
-
-                if [ "$which_dxrtd" == "HOST" ]; then
-                    echo -e "${COLOR_BOLD}${COLOR_CYAN}[HINT]   ** 'sudo systemctl stop dxrt.service'${COLOR_RESET} **"
-                else
-                    local PID=$(pgrep dxrtd)
-                    echo -e "${COLOR_BOLD}${COLOR_CYAN}[HINT]   ** 'sudo kill -9 ${PID}'${COLOR_RESET} **"
-                fi
-                return 1
+            print_colored_v2 "INFO" "dxrtd (DX-RT Service) is running on ${which_dxrtd}."
+            print_colored_v2 "INFO" "Proceeding to start dx-runtime container with --disable_dxrt_service option (will use external dxrtd service)."
+        fi
+    else
+        # Normal mode: dxrtd should NOT be running elsewhere
+        if [ "$which_dxrtd" == "NONE" ]; then
+            print_colored_v2 "INFO" "No existing dxrtd (DX-RT Service) process found. Proceeding to start dx-runtime container."
+        else
+            # Check if entrypoint/command is already configured in docker-compose.yml
+            if check_runtime_entrypoint_override; then
+                print_colored_v2 "INFO" "dxrtd service is running externally (on ${which_dxrtd}), but docker-compose.yml has entrypoint/command override configured."
+                print_colored_v2 "INFO" "Proceeding to start dx-runtime container without starting dxrtd service inside the container."
             else
-                print_colored_v2 "WARNING" "dxrtd (DX-RT Service) is already running on the container '${which_dxrtd}'."
-                print_colored_v2 "WARNING" "Please stop the dxrtd service on the container '${which_dxrtd}' before running the dx-runtime container."
-                print_colored_v2 "WARNING" "(By default, the dxrtd service runs within the dx-runtime container)"
-                print_colored_v2 "HINT" "1) If you want to run the dxrtd service in a different container or host"
-                
-                echo -e "${COLOR_BOLD}${COLOR_CYAN}[HINT]   ** please uncomment the 'entrypoint' and 'command' lines in the docker-compose.yml file."
-                echo -e "${COLOR_BOLD}${COLOR_CYAN}[HINT]   ** For more details, please refer to the (https://github.com/DEEPX-AI/dx-all-suite/blob/main/docs/source/faq.md) **"
-                
-                print_colored_v2 "HINT" "2) or stop the dxrtd service on the container '${which_dxrtd}' before running the dx-runtime container."
-                print_colored_v2 "HINT" "   You can stop the dxrtd service on the container '${which_dxrtd}' by running the following command:"
-                
-                echo -e "${COLOR_BOLD}${COLOR_CYAN}[HINT]   ** 'sudo docker stop ${which_dxrtd}'${COLOR_RESET} **"
-                return 1
+                # Display existing warning message logic
+                if [[ "$which_dxrtd" == "HOST" || "$which_dxrtd" == "UNKNOWN" ]]; then
+                    print_colored_v2 "WARNING" "dxrtd (DX-RT Service) is already running on the ${which_dxrtd}."
+                    print_colored_v2 "WARNING" "Please choose one of the following options:"
+                    print_colored_v2 "WARNING" "(By default, the dxrtd service runs within the dx-runtime container)"
+                    print_colored_v2 "HINT" "1) Use the existing dxrtd service on ${which_dxrtd}:"
+                    echo -e "${COLOR_BOLD}${COLOR_CYAN}[HINT]      Run with --disable_dxrt_service option to use external dxrtd service${COLOR_RESET}"
+                    echo -e "${COLOR_BOLD}${COLOR_CYAN}[HINT]      Example: './docker_run.sh --target=dx-runtime --ubuntu_version=${OS_VERSION} --disable_dxrt_service'${COLOR_RESET}"
+                    print_colored_v2 "HINT" "2) Manually configure docker-compose.yml:"
+                    echo -e "${COLOR_BOLD}${COLOR_CYAN}[HINT]      Uncomment the 'entrypoint' and 'command' lines in the docker-compose.yml file${COLOR_RESET}"
+                    echo -e "${COLOR_BOLD}${COLOR_CYAN}[HINT]      For more details, refer to: https://github.com/DEEPX-AI/dx-all-suite/blob/main/docs/source/faq.md${COLOR_RESET}"
+                    print_colored_v2 "HINT" "3) Stop the dxrtd service on the ${which_dxrtd}:"
+
+                    if [ "$which_dxrtd" == "HOST" ]; then
+                        echo -e "${COLOR_BOLD}${COLOR_CYAN}[HINT]      Command: 'sudo systemctl stop dxrt.service'${COLOR_RESET}"
+                    else
+                        local PID=$(pgrep dxrtd)
+                        echo -e "${COLOR_BOLD}${COLOR_CYAN}[HINT]      Command: 'sudo kill -9 ${PID}'${COLOR_RESET}"
+                    fi
+                    return 1
+                else
+                    print_colored_v2 "WARNING" "dxrtd (DX-RT Service) is already running on the container '${which_dxrtd}'."
+                    print_colored_v2 "WARNING" "Please choose one of the following options:"
+                    print_colored_v2 "WARNING" "(By default, the dxrtd service runs within the dx-runtime container)"
+                    print_colored_v2 "HINT" "1) Use the existing dxrtd service on container '${which_dxrtd}':"
+                    echo -e "${COLOR_BOLD}${COLOR_CYAN}[HINT]      Run with --disable_dxrt_service option to use external dxrtd service${COLOR_RESET}"
+                    echo -e "${COLOR_BOLD}${COLOR_CYAN}[HINT]      Example: './docker_run.sh --target=dx-runtime --ubuntu_version=${OS_VERSION} --disable_dxrt_service'${COLOR_RESET}"
+                    print_colored_v2 "HINT" "2) Manually configure docker-compose.yml:"
+                    echo -e "${COLOR_BOLD}${COLOR_CYAN}[HINT]      Uncomment the 'entrypoint' and 'command' lines in the docker-compose.yml file${COLOR_RESET}"
+                    echo -e "${COLOR_BOLD}${COLOR_CYAN}[HINT]      For more details, refer to: https://github.com/DEEPX-AI/dx-all-suite/blob/main/docs/source/faq.md${COLOR_RESET}"
+                    print_colored_v2 "HINT" "3) Stop the dxrtd service on the container '${which_dxrtd}':"
+                    echo -e "${COLOR_BOLD}${COLOR_CYAN}[HINT]      Command: 'sudo docker stop ${which_dxrtd}'${COLOR_RESET}"
+                    return 1
+                fi
             fi
         fi
     fi
