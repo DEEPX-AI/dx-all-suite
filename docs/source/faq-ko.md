@@ -2,88 +2,67 @@
 
 ## Question #1
 
-`dx-runtime` 또는 `dx-modelzoo` 컨테이너를 `docker_run.sh` 스크립트를 통해 실행하였으나, 컨테이너가 **계속해서 재시작(Restarting)** 상태에 머무르며 `docker exec -it <컨테이너이름> bash` 명령어를 실행할 수 없습니다.
+`dx-runtime` 또는 `dx-modelzoo` 컨테이너를 `docker_run.sh` 스크립트를 통해 실행하려고 하면, **dxrtd (DX-RT Service)가 이미 실행 중**이라는 경고 메시지와 함께 컨테이너 시작이 차단됩니다.
 
 ```bash
 ./docker_run.sh --target=dx-runtime --ubuntu_version=24.04
 ```
 
 ```plaintext
-[INFO] UBUNTU_VERSSION(24.04) is set.
+[INFO] BASE_IMAGE_NAME(ubuntu) is set.
+[INFO] OS_VERSION(24.04) is set.
 [INFO] TARGET_ENV(dx-runtime) is set.
 [INFO] XDG_SESSION_TYPE: x11
 Installing dx-runtime
-[INFO] XAUTHORITY(/run/user/1000/gdm/Xauthority) is set
-docker compose -f docker/docker-compose.yml up -d --remove-orphans dx-runtime
-[+] Running 1/1
- ✔ Container dx-runtime-24.04  Started                                                                                                                                        0.1s 
-```
-
-```bash
-docker exec -it dx-rumtime-24.04 bash
-```
-
-```plaintext
-Error response from daemon: No such container: dx-rumtime-24.04
+=== Checking dxrtd location ===
+⚠️ dxrtd is running as HOST systemd service
+[WARNING] dxrtd (DX-RT Service) is already running on the HOST.
+[WARNING] Please choose one of the following options:
+[WARNING] (By default, the dxrtd service runs within the dx-runtime container)
+[HINT] 1) Use the existing dxrtd service on HOST:
+[HINT]      Run with --disable_dxrt_service option to use external dxrtd service
+[HINT]      Example: './docker_run.sh --target=dx-runtime --ubuntu_version=24.04 --disable_dxrt_service'
+[HINT] 2) Manually configure docker-compose.yml:
+[HINT]      Uncomment the 'entrypoint' and 'command' lines in the docker-compose.yml file
+[HINT] 3) Stop the dxrtd service on the HOST:
+[HINT]      Command: 'sudo systemctl stop dxrt.service'
+[HINT] For more details, refer to: https://github.com/DEEPX-AI/dx-all-suite/blob/main/docs/source/faq.md
 ```
 
 ## Answer #1
 
-먼저, 호스트 시스템에서 **dxrtd**(dx-runtime 서비스 데몬)가 이미 실행 중인지 확인합니다:
+`docker_run.sh` 스크립트는 호스트 시스템이나 다른 컨테이너에서 **dxrtd**(dx-runtime 서비스 데몬)가 이미 실행 중인지 자동으로 감지합니다. 기본적으로 dx-runtime 컨테이너는 자체 dxrtd 서비스를 시작하는데, 이는 기존에 실행 중인 dxrtd 인스턴스와 충돌하게 됩니다.
+
+충돌이 감지되면, 스크립트는 컨테이너 시작을 차단하고 세 가지 해결 방법을 제시합니다:
+
+### 해결방법 1: --disable_dxrt_service 옵션으로 기존 dxrtd 사용 (권장)
+
+**호스트 또는 다른 컨테이너에서 실행 중인 `dxrtd`를 유지**하고, `--disable_dxrt_service` 옵션을 사용하여 dx-runtime 컨테이너가 자체 dxrtd 서비스를 시작하지 않도록 합니다.
+
+이 옵션은 컨테이너가 외부 dxrtd 서비스를 사용하도록 지시합니다:
 
 ```bash
-ps aux | grep dxrtd
+./docker_run.sh --target=dx-runtime --ubuntu_version=24.04 --disable_dxrt_service
 ```
 
-```plaintext
-root       60451  0.0  0.0 253648  6956 ?        Ssl  10:52   0:00 **/usr/local/bin/dxrtd**
-```
+이 방법이 가장 간단하며, 서비스를 중지하거나 설정 파일을 수정할 필요가 없습니다.
 
-호스트에서 **dxrtd가 이미 실행 중**일 경우, Docker 컨테이너 내부에서 `dxrtd` 실행이 실패하여 **컨테이너가 무한 재시작 상태**에 빠지게 됩니다.
+### 해결방법 2: docker-compose.yml 수동 설정
 
-컨테이너 상태를 확인하려면 다음 명령어를 사용합니다:
+**외부에서 `dxrtd`를 실행 상태로 유지**하고, docker-compose.yml 파일을 수정하여 **Docker 컨테이너 내부에서는 dxrtd를 실행하지 않도록 설정**합니다.
 
-```bash
-docker ps 
-```
+자세한 설정 방법은 이 가이드 [Link](/docs/source/installation-ko.md#해결-방법-2-docker-composeyml-수정) 섹션을 참고하세요.
 
-```plaintext
-CONTAINER ID   IMAGE                  COMMAND                  CREATED          STATUS                           PORTS     NAMES
-041b9a4933e3   dx-runtime:24.04       "/usr/local/bin/dxrtd"   18 seconds ago   **Restarting (255) 4 seconds ago**             dx-runtime-24.04
-```
+### 해결방법 3: 외부 dxrtd를 중지하고 컨테이너 내부에서 실행
 
-```bash
-docker logs dx-runtime-24.04 
-```
+**호스트에서 실행 중인 `dxrtd` 서비스를 중지**한 후, `docker_run.sh`를 실행하여 **Docker 컨테이너 내부에서만 dxrtd가 실행**되도록 합니다.
 
-```plaintext
-Other instance of dxrtd is running
-Other instance of dxrtd is running
-Other instance of dxrtd is running
-Other instance of dxrtd is running
-Other instance of dxrtd is running
-Other instance of dxrtd is running
-Other instance of dxrtd is running
-Other instance of dxrtd is running
-Other instance of dxrtd is running
-```
-
-### 해결방법 1.
-
-**호스트에서 실행 중인 `dxrtd` 서비스를 중지**한 후, `docker_run.sh`를 실행하여 **Docker 컨테이너에서만 dxrtd가 실행**되도록 합니다.
-
-자세한 내용은 설치 가이드 [Link](/docs/source/installation.md#run-the-docker-container) 섹션을 참고하세요.
+자세한 내용은 설치 가이드 [Link](/docs/source/installation-ko.md#docker-컨테이너-실행) 섹션을 참고하세요.
 
 ```bash
 sudo systemctl stop dxrt.service
 ./docker_run.sh --target=dx-runtime --ubuntu_version=24.04
 ```
-
-### 해결방법 2. 
-
-**호스트에서 `dxrtd`를 유지**하고, **Docker 컨테이너 내부에서는 dxrtd를 실행하지 않도록 설정**합니다.
-
-자세한 설정 방법은 이 가이드 [Link](/docs/source/installation.md#4-if-you-prefer-to-use-the-service-daemon-running-on-the-host-system-instead-of-inside-the-container) 섹션을 참고하세요.
 
 ---
 
@@ -94,8 +73,7 @@ sudo systemctl stop dxrt.service
 [WARN] it is recommended to use an **X11 session (with .Xauthority support)** when working with the 'dx-all-suite' container.
 ```
 
-### Q2.2
-시스템 재부팅 또는 세션이 종료된 이후 컨테이너를 재시작이 안되는 문제(error mounting /tmp/.docker.xauth)가 발생했습니다. 
+### Q2.2 시스템 재부팅 또는 세션이 종료된 이후 컨테이너를 재시작이 안되는 문제(error mounting /tmp/.docker.xauth)가 발생했습니다. 
 
 에러 메세지 예시:
 ```

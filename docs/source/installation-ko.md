@@ -194,50 +194,30 @@ dxrt-cli -u ./dx-runtime/dx_fw/m1/X.X.X/mdot2/fw.bin
 ./dx-runtime/install.sh --target=dx_rt_npu_linux_driver
 ```
 
-##### 2. 호스트 시스템에 `dx_rt`가 설치되어 있고 `service daemon`(`/usr/local/bin/dxrtd`)이 실행 중이면,
+##### 2. `docker_run.sh` 스크립트는 호스트나 다른 컨테이너에서 `dxrtd`(서비스 데몬)가 이미 실행 중인지 자동으로 감지합니다.
 
-`DX-Runtime` Docker 컨테이너를 실행할 때 `Other instance of dxrtd is running` 오류가 발생하며 종료됩니다.  
- 컨테이너 실행 전에 호스트에서 서비스 데몬을 중지하세요.
+기본적으로 dx-runtime 컨테이너는 자체 dxrtd 서비스를 시작합니다. 만약 dxrtd가 다른 곳에서 이미 실행 중이면, 스크립트가 컨테이너 시작을 차단하고 세 가지 해결 방법을 제시합니다:
 
-##### 3. 만약 다른 컨테이너에서 이미 `서비스 데몬`(`/usr/local/bin/dxrtd`)이 실행 중이라면, 새로운 컨테이너를 실행하더라도 동일한 오류가 발생합니다.
+###### 해결 방법 1: --disable_dxrt_service 옵션 사용 (권장)
 
-여러 개의 DX-Runtime 컨테이너를 동시에 실행하려면, [#4](#4-컨테이너-내부가-아닌-호스트에서-실행-중인-서비스-데몬을-그대로-사용하고자-하는-경우)를 참고하세요.
-
-##### 4. 컨테이너 내부가 아닌 호스트에서 실행 중인 `dxrtd`(서비스 데몬)을 그대로 사용하고자 하는 경우,
-
-다음 두 가지 방법 중 하나로 설정할 수 있습니다:
-
-###### 해결 방법 1: Docker 이미지 빌드 단계에서 수정
-
-`docker/Dockerfile.dx-runtime` 파일을 아래와 같이 수정합니다:
-
-- 변경 전:
-
-```Dockerfile
-...
-ENTRYPOINT [ "/usr/local/bin/dxrtd" ]
-# ENTRYPOINT ["tail", "-f", "/dev/null"]
-```
-
-- 변경 후:
-
-```Dockerfile
-...
-# ENTRYPOINT [ "/usr/local/bin/dxrtd" ]
-ENTRYPOINT ["tail", "-f", "/dev/null"]
-```
-
-###### 해결 방법 2: Docker 컨테이너 실행 단계에서 수정
-
-`docker/docker-compose.yml` 파일을 아래와 같이 수정합니다:
-
-- 변경 전:
+호스트나 다른 컨테이너에서 실행 중인 dxrtd 서비스를 사용하려면 `--disable_dxrt_service` 옵션을 추가하세요:
 
 ```bash
-  ...
+./docker_run.sh --target=dx-runtime --ubuntu_version=24.04 --disable_dxrt_service
+```
+
+이 방법이 가장 간단하며, 서비스를 중지하거나 설정 파일을 수정할 필요가 없습니다.
+
+###### 해결 방법 2: docker-compose.yml 수정
+
+`docker/docker-compose.yml` 파일을 수정하여 컨테이너 내부에서 dxrtd가 시작되지 않도록 설정합니다:
+
+- 변경 전:
+
+```yaml
   dx-runtime:
-    container_name: dx-runtime-${UBUNTU_VERSION}
-    image: dx-runtime:${UBUNTU_VERSION}
+    container_name: dx-runtime-${BASE_IMAGE_NAME}-${OS_VERSION}
+    image: dx-runtime:${BASE_IMAGE_NAME}-${OS_VERSION}
     ...
     restart: on-failure
     devices:
@@ -246,11 +226,10 @@ ENTRYPOINT ["tail", "-f", "/dev/null"]
 
 - 변경 후:
 
-```bash
-  ...
+```yaml
   dx-runtime:
-    container_name: dx-runtime-${UBUNTU_VERSION}
-    image: dx-runtime:${UBUNTU_VERSION}
+    container_name: dx-runtime-${BASE_IMAGE_NAME}-${OS_VERSION}
+    image: dx-runtime:${BASE_IMAGE_NAME}-${OS_VERSION}
     ...
     restart: on-failure
     devices:
@@ -259,6 +238,27 @@ ENTRYPOINT ["tail", "-f", "/dev/null"]
     entrypoint: ["/bin/sh", "-c"]             # 추가됨
     command: ["sleep infinity"]               # 추가됨
 ```
+
+###### 해결 방법 3: 외부 dxrtd 중지 후 컨테이너 내부에서 실행
+
+호스트에서 실행 중인 dxrtd 서비스를 중지한 후, 컨테이너를 정상적으로 실행합니다:
+
+```bash
+sudo systemctl stop dxrt.service
+./docker_run.sh --target=dx-runtime --ubuntu_version=24.04
+```
+
+##### 3. 여러 개의 DX-Runtime 컨테이너를 동시에 실행하려면, 외부 dxrtd 서비스를 사용할 컨테이너에 `--disable_dxrt_service` 옵션을 사용하세요.
+
+**워크플로우 다이어그램: dxrtd 충돌 감지 및 해결**
+
+![dxrtd 워크플로우 다이어그램](img/dxrtd-workflow-ko.svg)
+
+**핵심 사항:**
+- **`--disable_dxrt_service` 사용 시**: 컨테이너는 외부 dxrtd 필요 (호스트 또는 다른 컨테이너)
+- **옵션 미사용 (기본값)**: 컨테이너가 자체 dxrtd 시작, dxrtd가 이미 존재하면 차단
+- **자동 감지**: 스크립트가 컨테이너 시작 전 충돌 확인
+- **다중 컨테이너**: 하나의 dxrtd 인스턴스를 공유하는 추가 컨테이너에 `--disable_dxrt_service` 사용
 
 #### Docker 이미지 빌드
 
@@ -298,13 +298,9 @@ dx-modelzoo        24.04     cb2a92323b41   2 weeks ago     2.11GB
 
 #### Docker 컨테이너 실행
 
-**(선택) Host 환경에 이미 `dx_rt`가 설치되어 있는 경우, Docker 컨테이너 실행 전에 `dxrt` 서비스 데몬을 중지하세요.**  
-(사유: Host환경 또는 특정컨테이너에 `dxrt` 서비스 데몬이 이미 실행되어 있는 경우, `dx-runtime` 컨테이너 실행이 되지 않습니다. 서비스 데몬은 Host와 컨테이너를 포함하여 1개만 실행 가능)
-(#4 참고)
+`docker_run.sh` 스크립트는 컨테이너를 시작하기 전에 dxrtd 충돌을 자동으로 확인합니다. 만약 호스트나 다른 컨테이너에서 dxrtd가 이미 실행 중이면, 스크립트가 충돌을 해결하기 위한 방법을 제시합니다.
 
-```
-sudo systemctl stop dxrt.service
-```
+`--disable_dxrt_service` 옵션을 사용하는 권장 방법은 [#2](#2-docker_runsh-스크립트는-호스트나-다른-컨테이너에서-dxrtd서비스-데몬가-이미-실행-중인지-자동으로-감지합니다)를 참고하세요.
 
 ##### 모든 환경(`dx_compiler`, `dx_runtime` 및 `dx-modelzoo`) 포함 컨테이너 실행
 

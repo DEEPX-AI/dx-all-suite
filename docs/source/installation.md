@@ -194,49 +194,30 @@ You can use this command to verify that `dx_rt` and `dx_rt_npu_linux_driver` are
 ./dx-runtime/install.sh --target=dx_rt_npu_linux_driver
 ```
 
-##### 2. If `dx_rt` is already installed on the host system and the `service daemon` (`/usr/local/bin/dxrtd`) is running, launching the `DX-Runtime` Docker container will result in an error (`Other instance of dxrtd is running`) and automatic termination.
+##### 2. The `docker_run.sh` script automatically detects if `dxrtd` (service daemon) is already running on the host or in another container.
 
-Before starting the container, stop the service daemon on the host system.
+By default, the dx-runtime container starts its own dxrtd service. If dxrtd is already running elsewhere, the script will prevent container startup and provide three solutions:
 
-##### 3. If another container is already running with the `service daemon` (`/usr/local/bin/dxrtd`), starting a new container will also result in the same error.
+###### Solution 1: Use --disable_dxrt_service option (Recommended)
 
-To run multiple DX-Runtime containers simultaneously, refer to note [#4](#4-if-you-prefer-to-use-the-service-daemon-running-on-the-host-system-instead-of-inside-the-container)
-
-##### 4. If you prefer to use the `dxrtd`(service daemon) running on the host system instead of inside the container,
-
-You can configure this in two ways:
-
-###### Solution 1: Modify at Docker image build level
-
-Update the `docker/Dockerfile.dx-runtime` as follows:
-
-- Before:
-
-```Dockerfile
-...
-ENTRYPOINT [ "/usr/local/bin/dxrtd" ]
-# ENTRYPOINT ["tail", "-f", "/dev/null"]
-```
-
-- After:
-
-```Dockerfile
-...
-# ENTRYPOINT [ "/usr/local/bin/dxrtd" ]
-ENTRYPOINT ["tail", "-f", "/dev/null"]
-```
-
-###### Solution 2) Modify at Docker container run level
-
-Update the `docker/docker-compose.yml` as follows:
-
-- Before:
+Use the existing dxrtd service on the host or another container by adding the `--disable_dxrt_service` option:
 
 ```bash
-  ...
+./docker_run.sh --target=dx-runtime --ubuntu_version=24.04 --disable_dxrt_service
+```
+
+This is the simplest solution and doesn't require stopping services or modifying configuration files.
+
+###### Solution 2: Modify docker-compose.yml
+
+Update the `docker/docker-compose.yml` to prevent dxrtd from starting inside the container:
+
+- Before:
+
+```yaml
   dx-runtime:
-    container_name: dx-runtime-${UBUNTU_VERSION}
-    image: dx-runtime:${UBUNTU_VERSION}
+    container_name: dx-runtime-${BASE_IMAGE_NAME}-${OS_VERSION}
+    image: dx-runtime:${BASE_IMAGE_NAME}-${OS_VERSION}
     ...
     restart: on-failure
     devices:
@@ -245,11 +226,10 @@ Update the `docker/docker-compose.yml` as follows:
 
 - After:
 
-```bash
-  ...
+```yaml
   dx-runtime:
-    container_name: dx-runtime-${UBUNTU_VERSION}
-    image: dx-runtime:${UBUNTU_VERSION}
+    container_name: dx-runtime-${BASE_IMAGE_NAME}-${OS_VERSION}
+    image: dx-runtime:${BASE_IMAGE_NAME}-${OS_VERSION}
     ...
     restart: on-failure
     devices:
@@ -258,6 +238,27 @@ Update the `docker/docker-compose.yml` as follows:
     entrypoint: ["/bin/sh", "-c"]             # ADDED
     command: ["sleep infinity"]               # ADDED
 ```
+
+###### Solution 3: Stop external dxrtd and run inside container
+
+Stop the dxrtd service running on the host, then run the container normally:
+
+```bash
+sudo systemctl stop dxrt.service
+./docker_run.sh --target=dx-runtime --ubuntu_version=24.04
+```
+
+##### 3. To run multiple DX-Runtime containers simultaneously, use the `--disable_dxrt_service` option for containers that should use an external dxrtd service.
+
+**Workflow Diagram: dxrtd Conflict Detection and Resolution**
+
+![dxrtd Workflow Diagram](img/dxrtd-workflow.svg)
+
+**Key Points:**
+- **With `--disable_dxrt_service`**: Container requires external dxrtd (on host or another container)
+- **Without option (default)**: Container starts its own dxrtd, blocks if dxrtd already exists
+- **Automatic detection**: Script checks for conflicts before starting containers
+- **Multiple containers**: Use `--disable_dxrt_service` for additional containers sharing one dxrtd instance
 
 #### Build the Docker Image
 
@@ -297,14 +298,9 @@ Use the `--target=<environment_name>` option to build only `dx-runtime` or `dx-c
 
 #### Run the Docker Container
 
-**(Optional) If `dx_rt` is already installed on the host system, please stop the `dxrt` service daemon before running the Docker container.**  
-(Reason: If the `dxrt` service daemon is already running on the host or in another container, the `dx-runtime` container will not be able to start. Only one instance of the service daemon can run at a time, including both host and container environments.)
+The `docker_run.sh` script automatically checks for dxrtd conflicts before starting containers. If dxrtd is already running on the host or in another container, the script will provide solutions to resolve the conflict.
 
-(Refer to note #4 for more details.)
-
-```
-sudo systemctl stop dxrt.service
-```
+For the recommended approach using the `--disable_dxrt_service` option, refer to note [#2](#2-the-docker_runsh-script-automatically-detects-if-dxrtd-service-daemon-is-already-running-on-the-host-or-in-another-container).
 
 ##### Run a Docker Container with All Environments (`dx_compiler`, `dx_runtime` and `dx_modelzoo`)
 

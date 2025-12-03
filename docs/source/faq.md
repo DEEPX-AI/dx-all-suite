@@ -2,73 +2,58 @@
 
 ## Question #1
 
-When running the `dx-runtime` or `dx-modelzoo` container using the `docker_run.sh` script, the container stays in a **Restarting** state, and you cannot execute `docker exec -it <container-name> bash`.
+When running the `dx-runtime` or `dx-modelzoo` container using the `docker_run.sh` script, you receive a warning that **dxrtd (DX-RT Service) is already running**, and the script prevents container startup.
 
 ```bash
 ./docker_run.sh --target=dx-runtime --ubuntu_version=24.04
 ```
 
 ```plaintext
-[INFO] UBUNTU_VERSSION(24.04) is set.
+[INFO] BASE_IMAGE_NAME(ubuntu) is set.
+[INFO] OS_VERSION(24.04) is set.
 [INFO] TARGET_ENV(dx-runtime) is set.
 [INFO] XDG_SESSION_TYPE: x11
 Installing dx-runtime
-[INFO] XAUTHORITY(/run/user/1000/gdm/Xauthority) is set
-docker compose -f docker/docker-compose.yml up -d --remove-orphans dx-runtime
-[+] Running 1/1
- ✔ Container dx-runtime-24.04  Started                                                                                                                                        0.1s 
-```
-
-```bash
-docker exec -it dx-rumtime-24.04 bash
-```
-
-```plaintext
-Error response from daemon: No such container: dx-rumtime-24.04
+=== Checking dxrtd location ===
+⚠️ dxrtd is running as HOST systemd service
+[WARNING] dxrtd (DX-RT Service) is already running on the HOST.
+[WARNING] Please choose one of the following options:
+[WARNING] (By default, the dxrtd service runs within the dx-runtime container)
+[HINT] 1) Use the existing dxrtd service on HOST:
+[HINT]      Run with --disable_dxrt_service option to use external dxrtd service
+[HINT]      Example: './docker_run.sh --target=dx-runtime --ubuntu_version=24.04 --disable_dxrt_service'
+[HINT] 2) Manually configure docker-compose.yml:
+[HINT]      Uncomment the 'entrypoint' and 'command' lines in the docker-compose.yml file
+[HINT] 3) Stop the dxrtd service on the HOST:
+[HINT]      Command: 'sudo systemctl stop dxrt.service'
+[HINT] For more details, refer to: https://github.com/DEEPX-AI/dx-all-suite/blob/main/docs/source/faq.md
 ```
 
 ## Answer #1
 
-First, check if the **dxrtd** (dx-runtime service daemon) is already running on the host system:
+The `docker_run.sh` script automatically detects if **dxrtd** (dx-runtime service daemon) is already running on the host system or in another container. By default, the dx-runtime container starts its own dxrtd service, which would conflict with any existing dxrtd instance.
+
+When a conflict is detected, the script prevents container startup and provides three solutions:
+
+### Solution 1: Use existing dxrtd with --disable_dxrt_service option (Recommended)
+
+**Keep `dxrtd` running on the host or another container**, and use the `--disable_dxrt_service` option to prevent the dx-runtime container from starting its own dxrtd service.
+
+This option tells the container to use the external dxrtd service instead of starting a new one:
 
 ```bash
-ps aux | grep dxrtd
+./docker_run.sh --target=dx-runtime --ubuntu_version=24.04 --disable_dxrt_service
 ```
 
-```plaintext
-root       60451  0.0  0.0 253648  6956 ?        Ssl  10:52   0:00 **/usr/local/bin/dxrtd**
-```
+This is the simplest solution and doesn't require stopping any services or modifying configuration files.
 
-If **dxrtd is already running on the host**, the attempt to run `dxrtd` inside the Docker container will fail, causing the container to enter a **restart loop**.
+### Solution 2: Manually configure docker-compose.yml
 
-Check the container status with:
+**Keep `dxrtd` running externally** and **prevent it from running inside the Docker container** by modifying the docker-compose.yml file.
 
-```bash
-docker ps 
-```
+Refer to this guide [Link](/docs/source/installation.md#solution-2-modify-docker-composeyml) for configuration instructions.
 
-```plaintext
-CONTAINER ID   IMAGE                  COMMAND                  CREATED          STATUS                           PORTS     NAMES
-041b9a4933e3   dx-runtime:24.04       "/usr/local/bin/dxrtd"   18 seconds ago   **Restarting (255) 4 seconds ago**             dx-runtime-24.04
-```
-
-```bash
-docker logs dx-runtime-24.04 
-```
-
-```plaintext
-Other instance of dxrtd is running
-Other instance of dxrtd is running
-Other instance of dxrtd is running
-Other instance of dxrtd is running
-Other instance of dxrtd is running
-Other instance of dxrtd is running
-Other instance of dxrtd is running
-Other instance of dxrtd is running
-Other instance of dxrtd is running
-```
-
-### Solution 1:
+### Solution 3: Stop external dxrtd and run inside container
 
 **Stop the `dxrtd` service running on the host**, then rerun the `docker_run.sh` script so that `dxrtd` runs **only inside the Docker container**.
 
@@ -78,12 +63,6 @@ Refer to the installation guide [Link](/docs/source/installation.md#run-the-dock
 sudo systemctl stop dxrt.service
 ./docker_run.sh --target=dx-runtime --ubuntu_version=24.04
 ```
-
-### Solution 2:
-
-Keep `dxrtd` running **on the host**, and **prevent it from running inside the Docker container**.
-
-Refer to this guide [Link](/docs/source/installation.md#4-if-you-prefer-to-use-the-service-daemon-running-on-the-host-system-instead-of-inside-the-container) for configuration instructions.
 
 ---
 

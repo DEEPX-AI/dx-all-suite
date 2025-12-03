@@ -427,7 +427,6 @@ docker_run_dx-runtime()
                     echo -e "${COLOR_BOLD}${COLOR_CYAN}[HINT]      Example: './docker_run.sh --target=dx-runtime --ubuntu_version=${OS_VERSION} --disable_dxrt_service'${COLOR_RESET}"
                     print_colored_v2 "HINT" "2) Manually configure docker-compose.yml:"
                     echo -e "${COLOR_BOLD}${COLOR_CYAN}[HINT]      Uncomment the 'entrypoint' and 'command' lines in the docker-compose.yml file${COLOR_RESET}"
-                    echo -e "${COLOR_BOLD}${COLOR_CYAN}[HINT]      For more details, refer to: https://github.com/DEEPX-AI/dx-all-suite/blob/main/docs/source/faq.md${COLOR_RESET}"
                     print_colored_v2 "HINT" "3) Stop the dxrtd service on the ${which_dxrtd}:"
 
                     if [ "$which_dxrtd" == "HOST" ]; then
@@ -436,6 +435,7 @@ docker_run_dx-runtime()
                         local PID=$(pgrep dxrtd)
                         echo -e "${COLOR_BOLD}${COLOR_CYAN}[HINT]      Command: 'sudo kill -9 ${PID}'${COLOR_RESET}"
                     fi
+                    echo -e "${COLOR_BOLD}${COLOR_CYAN}[HINT] For more details, refer to: https://github.com/DEEPX-AI/dx-all-suite/blob/main/docs/source/faq.md${COLOR_RESET}"
                     return 1
                 else
                     print_colored_v2 "WARNING" "dxrtd (DX-RT Service) is already running on the container '${which_dxrtd}'."
@@ -446,9 +446,9 @@ docker_run_dx-runtime()
                     echo -e "${COLOR_BOLD}${COLOR_CYAN}[HINT]      Example: './docker_run.sh --target=dx-runtime --ubuntu_version=${OS_VERSION} --disable_dxrt_service'${COLOR_RESET}"
                     print_colored_v2 "HINT" "2) Manually configure docker-compose.yml:"
                     echo -e "${COLOR_BOLD}${COLOR_CYAN}[HINT]      Uncomment the 'entrypoint' and 'command' lines in the docker-compose.yml file${COLOR_RESET}"
-                    echo -e "${COLOR_BOLD}${COLOR_CYAN}[HINT]      For more details, refer to: https://github.com/DEEPX-AI/dx-all-suite/blob/main/docs/source/faq.md${COLOR_RESET}"
                     print_colored_v2 "HINT" "3) Stop the dxrtd service on the container '${which_dxrtd}':"
                     echo -e "${COLOR_BOLD}${COLOR_CYAN}[HINT]      Command: 'sudo docker stop ${which_dxrtd}'${COLOR_RESET}"
+                    echo -e "${COLOR_BOLD}${COLOR_CYAN}[HINT] For more details, refer to: https://github.com/DEEPX-AI/dx-all-suite/blob/main/docs/source/faq.md${COLOR_RESET}"
                     return 1
                 fi
             fi
