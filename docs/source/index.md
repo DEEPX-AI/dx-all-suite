@@ -2,7 +2,7 @@
 
 ## Overview
 
-DX-AS (DEEPX All Suite) is an integrated environment of frameworks and tools that enables inference and compilation of AI models using DEEPX devices. Users can build the integrated environment by installing individual tools, but DX-AS maintains optimal compatibility by aligning the versions of the individual tools.
+**DX-AS (DEEPX All Suite)** is an integrated environment of frameworks and tools that enables inference and compilation of AI models using DEEPX devices. Users can build the integrated environment by installing individual tools, but DX-AS maintains optimal compatibility by aligning the versions of the individual tools.
 
 ![](./resources/deepx_dxnn_sdk_detail.png)
 
@@ -38,6 +38,52 @@ As an example of using the DX-RT API, the User Application Example allows users 
 
 DX-Stream is a GStreamer Custom Plugin designed to simplify the development of Vision AI Applications using DEEPX's NPU in a GStreamer pipeline format. DX-Stream enables rapid and efficient development of Vision AI Applications by providing a modular, pipeline-based framework powered by DEEPX's NPU. The customizable preprocessing, inference, and postprocessing elements ensure flexibility for a variety of AI scenarios.
 
+---
+
+## DX-AS (DEEPX All Suite) Environments and Installation Guide
+
+### [AI Model Compile Environment](https://github.com/DEEPX-AI/dx-compiler) (Compiler Platform)
+
+**Purpose**  
+  - Must be installed on the Host machine that will perform the compilation (converting) of ONNX models to our proprietary DXNN (DEEPX format).  
+
+**Core Components**
+  - DX-COM: Converts ONNX models into highly optimized, NPU-ready binaries.
+
+**Flexibility & Support**
+  - OS: Compatible with Debian-based Linux (Ubuntu 20.04, 22.04, 24.04)
+  - Architecture: Supports x86_64 only
+
+**Easy Installation**
+  - Our single script automates the full setup process
+  - All DX-Compiler components are ready to use upon completion.
+
+
+**You can install dx-compiler by following the instructions at this [LINK](https://github.com/DEEPX-AI/dx-all-suite/blob/staging/docs/source/installation.md#local-installation).**
+
+
+### [AI Model Runtime Environment](https://github.com/DEEPX-AI/dx-runtime) (Deployment Platform)
+
+**Purpose**  
+  - Must be installed on the Target system where the DEEPX M1 M.2 module is attached and the DEEPX AI model (.dxnn) will be executed.  
+
+**Core Components**
+  - DX-RT & DX-FW & NPU Driver: Foundational software for NPU control
+  - DX-APP: C++ and Python examples to jump-start your projects
+  - DX-Stream: GStreamer integration for seamless multimedia pipelines
+
+**Flexibility & Support**
+  - OS: Compatible with Debian-based Linux (Ubuntu 20.04, 22.04, 24.04)
+  - Architecture: Supports both x86_64 and arm64
+
+**Easy Installation**
+  - Our script automates the entire process
+  - One-time reboot is required after installation to finalize the NPU Driver setup
+
+**You can install dx-runtime by following the instructions at this [LINK](https://github.com/DEEPX-AI/dx-all-suite/blob/staging/docs/source/installation.md#install-dx-runtime-environment).**
+
+---
+
 ## Installation Guide
 [Link](installation.md)
 
@@ -49,3 +95,5 @@ DX-Stream is a GStreamer Custom Plugin designed to simplify the development of V
 
 ## FAQ
 [Link](docs/source/faq.md)
+
+---
