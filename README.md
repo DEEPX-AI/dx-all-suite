@@ -1,10 +1,11 @@
 # DXNN® - DEEPX NPU SDK (DX-AS: DEEPX All Suite)
 
-DX-AS (DEEPX All Suite) is an integrated environment of frameworks and tools that enables inference and compilation of AI models using DEEPX devices. Users can build the integrated environment by installing individual tools, but DX-AS maintains optimal compatibility by aligning the versions of the individual tools.
+**DX-AS (DEEPX All Suite)** is an integrated environment of frameworks and tools that enables inference and compilation of AI models using DEEPX devices. Users can build the integrated environment by installing individual tools, but DX-AS maintains optimal compatibility by aligning the versions of the individual tools.
 
 ![](./docs/source/resources/deepx_dxnn_sdk_simple.png)
 ![](./docs/source/img/dxnn-workflow.png)
 
+---
 
 ## Quick Guide
 
@@ -18,14 +19,20 @@ With just an ONNX-format AI model and your applications source code, you can har
 
 By using DX-Allsuite, you can set up both components seamlessly, without managing them individually.
 
-You can install each part independently as needed. For instance, set up only the **dx-compiler environment on your development system**, and only the **dx-runtime environment on the target device**.
+You can install each part independently as needed. For instance, set up only the **AI Model Compile Environment on your compiler platform**, and only the **AI Model Runtime Environment on the deployment platform**.
 
 
 ![](./docs/source/img/dx-as.png)
 ![](./docs/source/img/dx-as2.png)
 
+---
 
-### [dx-compiler](https://github.com/DEEPX-AI/dx-compiler)
+## DX-AS (DEEPX All Suite) Environments and Installation Guide
+
+### [AI Model Compile Environment](https://github.com/DEEPX-AI/dx-compiler) (Compiler Platform)
+
+**Purpose**  
+  - Must be installed on the Host machine that will perform the compilation (converting) of ONNX models to our proprietary DXNN (DEEPX format).  
 
 **Core Components**
   - DX-COM: Converts ONNX models into highly optimized, NPU-ready binaries.
@@ -42,10 +49,13 @@ You can install each part independently as needed. For instance, set up only the
 **You can install dx-compiler by following the instructions at this [LINK](https://github.com/DEEPX-AI/dx-all-suite/blob/staging/docs/source/installation.md#local-installation).**
 
 
-### [dx-runtime](https://github.com/DEEPX-AI/dx-runtime)
+### [AI Model Runtime Environment](https://github.com/DEEPX-AI/dx-runtime) (Deployment Platform)
+
+**Purpose**  
+  - Must be installed on the Target system where the DEEPX M1 M.2 module is attached and the DEEPX AI model (.dxnn) will be executed.  
 
 **Core Components**
-  - DX-Runtime & NPU Driver: Foundational software for NPU control
+  - DX-RT & DX-FW & NPU Driver: Foundational software for NPU control
   - DX-APP: C++ and Python examples to jump-start your projects
   - DX-Stream: GStreamer integration for seamless multimedia pipelines
 
@@ -59,7 +69,7 @@ You can install each part independently as needed. For instance, set up only the
 
 **You can install dx-runtime by following the instructions at this [LINK](https://github.com/DEEPX-AI/dx-all-suite/blob/staging/docs/source/installation.md#install-dx-runtime-environment).**
 
-
+---
 
 ## Documentation
 
@@ -83,3 +93,4 @@ For detailed guides on running demo applications and templates, refer to the fol
 ### Make Docuemtment
 [Link](docs/make_docs.md)
 
+---
