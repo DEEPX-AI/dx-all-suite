@@ -2,11 +2,13 @@ DEEPX software components have version compatibility dependencies between them. 
 
 ## DXNN SDK Version
 
-<table>
+<table style="border-collapse: collapse; margin-bottom: 0px;" cellpadding="0" cellspacing="0">
   <thead>
     <tr>
-      <th rowspan="2">Release Date</th>
-      <th rowspan="2">DX-All-Suite</th>
+      <th rowspan="4">Release Date</th>
+      <th colspan="7">DX-AllSuite</th>
+    </tr>
+    <tr>
       <th colspan="2">DX-Compiler</th>
       <th colspan="5">DX-Runtime</th>
     </tr>
@@ -22,8 +24,27 @@ DEEPX software components have version compatibility dependencies between them. 
   </thead>
   <tbody>
     <tr>
-      <td rowspan="2">2025-09-08</td>
-      <td rowspan="2">v2.0.0</td>
+      <td rowspan="3">2025-11-28</td>
+      <td colspan="7">v2.1.0</td>
+    </tr>
+    <tr>
+      <td colspan="2">v2.1.0</td>
+      <td colspan="5">v2.1.0</td>
+    </tr>
+    <tr>
+      <td>v2.1.0</td>
+      <td>v2.0.0</td>
+      <td>2.4.0</td>
+      <td>1.8.0</td>
+      <td>3.1.0</td>
+      <td>2.1.0</td>
+      <td>2.1.0</td>
+    </tr>
+    <tr>
+      <td rowspan="3">2025-09-08</td>
+      <td colspan="7">v2.0.0</td>
+    </tr>
+    <tr>
       <td colspan="2">v2.0.0</td>
       <td colspan="5">v2.0.0</td>
     </tr>
@@ -37,8 +58,10 @@ DEEPX software components have version compatibility dependencies between them. 
       <td>v2.0.0</td>
     </tr>
     <tr>
-      <td rowspan="2">2025-07-23</td>
-      <td rowspan="2">v1.0.0</td>
+      <td rowspan="3">2025-07-23</td>
+      <td colspan="7">v1.0.0</td>
+    </tr>
+    <tr>
       <td colspan="2">v1.0.0</td>
       <td colspan="5">v1.0.0</td>
     </tr>
@@ -53,3 +76,5 @@ DEEPX software components have version compatibility dependencies between them. 
     </tr>
   </tbody>
 </table>
+
+---

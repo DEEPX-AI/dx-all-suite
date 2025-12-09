@@ -11,9 +11,9 @@ source ${DX_AS_PATH}/scripts/color_env.sh
 
 # Function to display help message
 show_help() {
-    echo "Usage: $(basename "$0") [--help] [--force]"
+    echo "Usage: $(basename "$0") [--help] [--re-archive=<true|false>]"
     echo "Options:"
-    echo "  [--force]                      : Force overwrite if the file already exists"
+    echo "  [--re-archive=<true|false>]    : Force rebuild archive for dx-compiler (default: true)"
     echo "  [--help]                       : Show this help message"
 
     if [ "$1" == "error" ] && [[ ! -n "$2" ]]; then
@@ -33,14 +33,42 @@ main() {
     # arciving dx-com
     echo -e "=== Archiving dx-compiler ... ${TAG_START} ==="
 
+    # Create a temporary file to capture archived file paths
+    TEMP_OUTPUT=$(mktemp)
+    export ARCHIVE_OUTPUT_FILE="$TEMP_OUTPUT"
+
     ARCHIVE_COMPILER_CMD="$DX_AS_PATH/dx-compiler/install.sh --archive_mode=y $FORCE_ARGS"
     echo "$ARCHIVE_COMPILER_CMD"
 
+    # Run command directly - stdin/stdout/stderr remain connected to terminal
     $ARCHIVE_COMPILER_CMD
-    if [ $? -ne 0 ]; then
+    EXIT_CODE=$?
+    
+    if [ $EXIT_CODE -ne 0 ]; then
+        rm -f "$TEMP_OUTPUT"
         echo -e "${TAG_ERROR} Archiving dx-compiler failed!"
         exit 1
     fi
+    
+    # Read archived file paths from the temp file
+    if [ -f "$TEMP_OUTPUT" ]; then
+        ARCHIVED_COM_FILE=$(grep "ARCHIVED_COM_FILE=" "$TEMP_OUTPUT" | tail -1 | cut -d'=' -f2)
+        ARCHIVED_TRON_FILE=$(grep "ARCHIVED_TRON_FILE=" "$TEMP_OUTPUT" | tail -1 | cut -d'=' -f2)
+    fi
+    
+    # Clean up temp file
+    rm -f "$TEMP_OUTPUT"
+    
+    # Export for parent script
+    if [ -n "$ARCHIVED_COM_FILE" ]; then
+        export ARCHIVED_COM_FILE
+        echo "ARCHIVED_COM_FILE=${ARCHIVED_COM_FILE}"
+    fi
+    if [ -n "$ARCHIVED_TRON_FILE" ]; then
+        export ARCHIVED_TRON_FILE
+        echo "ARCHIVED_TRON_FILE=${ARCHIVED_TRON_FILE}"
+    fi
+    
     echo -e "=== Archiving dx-compiler ... ${TAG_DONE} ==="
 }
 
@@ -51,13 +79,19 @@ for i in "$@"; do
             show_help
             exit 0
             ;;
-        --force)
+        --re-archive)
             FORCE_ARGS="--force"
             ;;
+        --re-archive=*)
+            FORCE_VALUE="${1#*=}"
+            if [ "$FORCE_VALUE" = "false" ]; then
+                FORCE_ARGS="--force=false"
+            else
+                FORCE_ARGS="--force"
+            fi
+            ;;
         *)
-            echo -e "${TAG_ERROR}: Invalid option '$1'"
-            show_help
-            exit 1
+            show_help "error" "Invalid option '$1'"
             ;;
     esac
     shift

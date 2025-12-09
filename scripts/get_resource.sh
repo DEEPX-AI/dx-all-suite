@@ -59,7 +59,7 @@ set_archive_target_path() {
 # Function to display help message
 show_help() {
     print_colored_v2 "INFO" "Usage: $(basename "$0") --src_path=<source_path> --output=<dir> [--symlink_target_path=<dir>] [--extract] [--force]"
-    print_colored_v2 "INFO" "Example: $0 --src_path=modelzoo/onnx/MobileNetV2-1.onnx --output=../getting-start/modelzoo/json -symlink_target_path=../workspace/modelzoo/json"
+    print_colored_v2 "INFO" "Example: $0 --src_path=modelzoo/onnx/MobileNetV2-1.onnx --output=../getting-started/modelzoo/json -symlink_target_path=../workspace/modelzoo/json"
     print_colored_v2 "INFO" "Options:"
     print_colored_v2 "INFO" "  --src_path=<path>                Set source path for file server endpoint"
     print_colored_v2 "INFO" "  --output=<path>                  Set output path (example: ./assets)"

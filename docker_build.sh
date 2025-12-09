@@ -11,10 +11,13 @@ pushd "$DX_AS_PATH" >&2
 
 OUTPUT_DIR="$DX_AS_PATH/archives"
 UBUNTU_VERSION=""
+DEBIAN_VERSION=""
+BASE_IMAGE_NAME=""
+OS_VERSION=""
 
 NVIDIA_GPU_MODE=0
 INTERNAL_MODE=0
-FORCE_ARGS=""
+RE_ARCHIVE_ARGS=""
 
 # Properties file path
 VERSION_FILE="$COMPILER_PATH/compiler.properties"
@@ -51,24 +54,32 @@ TARGET_HOME=/deepx
 
 # Function to display help message
 show_help() {
-    echo -e "Usage: ${COLOR_CYAN}$(basename "$0") OPTIONS(--all | target=<environment_name>)${COLOR_RESET} --ubuntu_version=<version>${COLOR_RESET}"
+    echo -e "Usage: ${COLOR_CYAN}$(basename "$0") ${COLOR_GREEN}--all${COLOR_RESET} ${COLOR_YELLOW}--ubuntu_version=<version>${COLOR_RESET}"
+    echo -e "   or: ${COLOR_CYAN}$(basename "$0") ${COLOR_GREEN}--target=<dx-compiler>${COLOR_RESET} ${COLOR_YELLOW}--ubuntu_version=<version>${COLOR_RESET}"
+    echo -e "   or: ${COLOR_CYAN}$(basename "$0") ${COLOR_GREEN}--target=<dx-runtime | dx-modelzoo>${COLOR_RESET} ${COLOR_YELLOW}(--ubuntu_version=<version> | --debian_version=<version>)${COLOR_RESET}"
     echo -e ""
-    echo -e "${COLOR_BOLD}Required:${COLOR_RESET}"
-    echo -e "  ${COLOR_GREEN}--all${COLOR_RESET}                          Install DXNN® Software Stack (dx-compiler & dx-runtime & dx-modelzoo)"
-    echo -e "  ${COLOR_BOLD}or${COLOR_RESET}"
-    echo -e "  ${COLOR_GREEN}--target=<environment_name>${COLOR_RESET}    Install specify target DXNN® environment (ex> dx-compiler | dx-runtime | dx-modelzoo)"
-    echo -e "  ${COLOR_GREEN}--ubuntu_version=<version>${COLOR_RESET}     Specify Ubuntu version (ex> 24.04)"
+    echo -e "${COLOR_BOLD}Required (choose one target option):${COLOR_RESET}"
+    echo -e "  ${COLOR_GREEN}--all${COLOR_RESET}                          Run all DXNN® containers (dx-compiler & dx-runtime & dx-modelzoo)"
+    echo -e "  ${COLOR_GREEN}--target=<environment_name>${COLOR_RESET}    Run specific DXNN® container"
+    echo -e "                                   Available: ${COLOR_CYAN}dx-compiler${COLOR_RESET} | ${COLOR_CYAN}dx-runtime${COLOR_RESET} | ${COLOR_CYAN}dx-modelzoo${COLOR_RESET}"
+    echo -e ""
+    echo -e "${COLOR_BOLD}Required (choose one OS option):${COLOR_RESET}"
+    echo -e "  ${COLOR_YELLOW}--ubuntu_version=<version>${COLOR_RESET}     Specify Ubuntu version (ex: 24.04, 22.04, 20.04)"
+    echo -e "  ${COLOR_YELLOW}--debian_version=<version>${COLOR_RESET}     Specify Debian version (ex: 12)"
+    echo -e "                                   Note: ${COLOR_CYAN}dx-compiler${COLOR_RESET} only supports Ubuntu ${COLOR_RED}(Debian is not supported)${COLOR_RESET}"
     echo -e ""
     echo -e "${COLOR_BOLD}Optional:${COLOR_RESET}"
     echo -e "  ${COLOR_GREEN}[--driver_update]${COLOR_RESET}              Install 'dx_rt_npu_linux_driver' in the host environment"
     echo -e "  ${COLOR_GREEN}[--no-cache]${COLOR_RESET}                   Build Docker images freshly without cache"
     echo -e "  ${COLOR_GREEN}[--skip-archive]${COLOR_RESET}               Skip archiving dx-compiler or dx-runtime or dx-modelzoo before building"
+    echo -e "  ${COLOR_GREEN}[--re-archive=<true|false>]${COLOR_RESET}    Force rebuild archive for dx-compiler (default: true)"
     echo -e "  ${COLOR_GREEN}[--help]${COLOR_RESET}                       Show this help message"
     echo -e ""
     echo -e "${COLOR_BOLD}Examples:${COLOR_RESET}"
     echo -e "  ${COLOR_YELLOW}$0 --all --ubuntu_version=24.04${COLOR_RESET}"
     echo -e "  ${COLOR_YELLOW}$0 --target=dx-compiler --ubuntu_version=24.04${COLOR_RESET}"
     echo -e "  ${COLOR_YELLOW}$0 --target=dx-runtime --ubuntu_version=24.04 --driver_update${COLOR_RESET}"
+    echo -e "  ${COLOR_YELLOW}$0 --target=dx-runtime --debian_version=12 --driver_update${COLOR_RESET}"
     echo -e "  ${COLOR_YELLOW}$0 --target=dx-modelzoo --ubuntu_version=24.04 --driver_update${COLOR_RESET}"
     echo -e ""
 
@@ -103,27 +114,31 @@ docker_build_impl()
         no_cache_arg="--no-cache"
     fi
 
-    # Build Docker image
+    # Build Docker image variables ...
+    export DOCKER_BUILDKIT=1
     export COMPOSE_BAKE=true
-    export UBUNTU_VERSION=${UBUNTU_VERSION}
+    export BASE_IMAGE_NAME=${BASE_IMAGE_NAME}
+    export OS_VERSION=${OS_VERSION}
     export FILE_DXCOM=${FILE_DXCOM}
     export FILE_DXTRON=${FILE_DXTRON}
     export HOST_UID=${HOST_UID}
     export HOST_GID=${HOST_GID}
     export TARGET_USER=${TARGET_USER}
     export TARGET_HOME=${TARGET_HOME}
+    
+    # XAUTHORITY setup ...
     if [ ! -n "${XAUTHORITY}" ]; then
         print_colored_v2 "INFO" "XAUTHORITY env is not set. so, try to set automatically."
         DUMMY_XAUTHORITY="/tmp/dummy"
         touch ${DUMMY_XAUTHORITY}
         export XAUTHORITY=${DUMMY_XAUTHORITY}
         export XAUTHORITY_TARGET=${DUMMY_XAUTHORITY}
-        
     else
         print_colored_v2 "INFO" "XAUTHORITY(${XAUTHORITY}) is set"
         export XAUTHORITY_TARGET="/tmp/.docker.xauth"
     fi
 
+    docker buildx use default
     CMD="docker compose ${config_file_args} build ${no_cache_arg} dx-${target}"
     echo "${CMD}"
 
@@ -137,10 +152,82 @@ docker_build_all()
     docker_build_dx-modelzoo
 }
 
+archive_dx-compiler()
+{
+    # dx-compiler only supports ubuntu
+    if [ "${BASE_IMAGE_NAME}" != "ubuntu" ]; then
+        print_colored_v2 "SKIP" "dx-compiler only supports Ubuntu. Skipping archive for ${BASE_IMAGE_NAME}."
+        return 0
+    fi
+
+    print_colored_v2 "INFO" "Archiving dx-compiler"
+    # this function is defined in scripts/common_util.sh
+    # Usage: os_check "supported_os_names" "ubuntu_versions" "debian_versions"
+    os_check "ubuntu" "20.04 22.04 24.04" "" || {
+        print_colored_v2 "SKIP" "Current OS is not supported. Skip and continue to next target."
+        return 0
+    }
+
+    # this function is defined in scripts/common_util.sh
+    # Usage: arch_check "supported_arch_names"
+    arch_check "amd64 x86_64" || {
+        print_colored_v2 "SKIP" "Current architecture is not supported. Skip and continue to next target."
+        return 0
+    }
+
+    # Capture output from archive script
+    ARCHIVE_OUTPUT=$(${DX_AS_PATH}/scripts/archive_dx-compiler.sh ${RE_ARCHIVE_ARGS})
+    ARCHIVE_EXIT_CODE=$?
+    
+    if [ $ARCHIVE_EXIT_CODE -ne 0 ]; then
+        print_colored_v2 "ERROR" "Archiving dx-compiler failed."
+        return 1
+    fi
+    
+    # Extract archived file paths from output
+    ARCHIVED_COM=$(echo "$ARCHIVE_OUTPUT" | grep "^ARCHIVED_COM_FILE=" | tail -1 | cut -d'=' -f2)
+    ARCHIVED_TRON=$(echo "$ARCHIVE_OUTPUT" | grep "^ARCHIVED_TRON_FILE=" | tail -1 | cut -d'=' -f2)
+    
+    # Update FILE_DXCOM and FILE_DXTRON if archived files were found
+    if [ -n "$ARCHIVED_COM" ] && [ -f "$ARCHIVED_COM" ]; then
+        FILE_DXCOM="${ARCHIVED_COM#${DX_AS_PATH}/}"  # Remove DX_AS_PATH prefix for relative path
+        print_colored_v2 "INFO" "Updated FILE_DXCOM to: $FILE_DXCOM"
+    fi
+    
+    if [ -n "$ARCHIVED_TRON" ] && [ -f "$ARCHIVED_TRON" ]; then
+        FILE_DXTRON="${ARCHIVED_TRON#${DX_AS_PATH}/}"  # Remove DX_AS_PATH prefix for relative path
+        print_colored_v2 "INFO" "Updated FILE_DXTRON to: $FILE_DXTRON"
+    fi
+
+    print_colored_v2 "SUCCESS" "Archiving dx-compiler is done."
+    return 0
+}
+
 docker_build_dx-compiler() 
 {
+    # dx-compiler only supports ubuntu
+    if [ "${BASE_IMAGE_NAME}" != "ubuntu" ]; then
+        print_colored_v2 "SKIP" "dx-compiler only supports Ubuntu. Skipping build for ${BASE_IMAGE_NAME}."
+        return 0
+    fi
+
+    # this function is defined in scripts/common_util.sh
+    # Usage: os_check "supported_os_names" "ubuntu_versions" "debian_versions"
+    os_check "ubuntu" "20.04 22.04 24.04" "" || {
+        print_colored_v2 "SKIP" "Current OS is not supported. Skip and continue to next target."
+        return 0
+    }
+
+    # this function is defined in scripts/common_util.sh
+    # Usage: arch_check "supported_arch_names"
+    arch_check "amd64 x86_64" || {
+        print_colored_v2 "SKIP" "Current architecture is not supported. Skip and continue to next target."
+        return 0
+    }
+
     local docker_compose_args="-f docker/docker-compose.yml"
     docker_build_impl "compiler" "${docker_compose_args}"
+    return 0
 }
 
 docker_build_dx-runtime()
@@ -182,24 +269,38 @@ main() {
     # check docker compose command
     check_docker_compose_command
 
-    # usage
-    if [ -z "$UBUNTU_VERSION" ]; then
-        show_help "error" "--ubuntu_version option does not exist."
-    else
-        print_colored_v2 "INFO" "UBUNTU_VERSSION($UBUNTU_VERSION) is set."
-        print_colored_v2 "INFO" "TARGET_ENV($TARGET_ENV) is set."
-        print_colored_v2 "INFO" "FILE_DXCOM($FILE_DXCOM) is set."
-        print_colored_v2 "INFO" "FILE_DXTRON($FILE_DXTRON) is set."
-        print_colored_v2 "INFO" "HOST_UID($HOST_UID) is set."
-        print_colored_v2 "INFO" "HOST_GID($HOST_GID) is set."
-        print_colored_v2 "INFO" "TARGET_USER($TARGET_USER) is set."
-        print_colored_v2 "INFO" "TARGET_HOME($TARGET_HOME) is set."
-        if [ "$DRIVER_UPDATE" = "y" ]; then
-            print_colored_v2 "INFO" "DRIVER_UPDATE($DRIVER_UPDATE) is set."
-        fi
-        if [ "$NO_CACHE" = "y" ]; then
-            print_colored_v2 "INFO" "NO_CACHE($NO_CACHE) is set."
-        fi
+    # Validate OS version options
+    if [ -n "$UBUNTU_VERSION" ] && [ -n "$DEBIAN_VERSION" ]; then
+        show_help "error" "Cannot specify both --ubuntu_version and --debian_version. Please choose one."
+    fi
+
+    if [ -z "$UBUNTU_VERSION" ] && [ -z "$DEBIAN_VERSION" ]; then
+        show_help "error" "Either --ubuntu_version or --debian_version option must be specified."
+    fi
+
+    # Set BASE_IMAGE_NAME and OS_VERSION based on input
+    if [ -n "$UBUNTU_VERSION" ]; then
+        BASE_IMAGE_NAME="ubuntu"
+        OS_VERSION="$UBUNTU_VERSION"
+    elif [ -n "$DEBIAN_VERSION" ]; then
+        BASE_IMAGE_NAME="debian"
+        OS_VERSION="$DEBIAN_VERSION"
+    fi
+
+    print_colored_v2 "INFO" "BASE_IMAGE_NAME($BASE_IMAGE_NAME) is set."
+    print_colored_v2 "INFO" "OS_VERSION($OS_VERSION) is set."
+    print_colored_v2 "INFO" "TARGET_ENV($TARGET_ENV) is set."
+    print_colored_v2 "INFO" "FILE_DXCOM($FILE_DXCOM) is set."
+    print_colored_v2 "INFO" "FILE_DXTRON($FILE_DXTRON) is set."
+    print_colored_v2 "INFO" "HOST_UID($HOST_UID) is set."
+    print_colored_v2 "INFO" "HOST_GID($HOST_GID) is set."
+    print_colored_v2 "INFO" "TARGET_USER($TARGET_USER) is set."
+    print_colored_v2 "INFO" "TARGET_HOME($TARGET_HOME) is set."
+    if [ "$DRIVER_UPDATE" = "y" ]; then
+        print_colored_v2 "INFO" "DRIVER_UPDATE($DRIVER_UPDATE) is set."
+    fi
+    if [ "$NO_CACHE" = "y" ]; then
+        print_colored_v2 "INFO" "NO_CACHE($NO_CACHE) is set."
     fi
 
     case $TARGET_ENV in
@@ -207,8 +308,7 @@ main() {
             if [ "$SKIP_ARCHIVE" = "y" ]; then
                 print_colored_v2 "INFO" "SKIP_ARCHIVE($SKIP_ARCHIVE) is set. so, skip archiving $TARGET_ENV."
             else
-                echo "Archiving dx-compiler"
-                ${DX_AS_PATH}/scripts/archive_dx-compiler.sh $FORCE_ARGS || { print_colored_v2 "ERROR" "Archiving dx-compiler failed."; exit 1; }
+                archive_dx-compiler || { exit 1; }
             fi
             docker_build_dx-compiler
             ;;
@@ -238,16 +338,22 @@ main() {
                 print_colored_v2 "INFO" "SKIP_ARCHIVE($SKIP_ARCHIVE) is set. so, skip archiving $TARGET_ENV."
             else
                 echo "Archiving all DXNN® environments"
-                ${DX_AS_PATH}/scripts/archive_dx-compiler.sh || { print_colored_v2 "ERROR" "Archiving dx-compiler failed."; exit 1; }
-                ${DX_AS_PATH}/scripts/archive_git_repos.sh --all || { print_colored_v2 "ERROR" "Archiving dx-runtime or dx-modelzoo failed.\n${TAG_INFO} ${COLOR_BRIGHT_YELLOW_ON_BLACK}Please try running 'git submodule update --init --recursive --force' and then try again.${COLOR_RESET}"; exit 1; }
+                archive_dx-compiler || { exit 1; }
+
+                ${DX_AS_PATH}/scripts/archive_git_repos.sh --all || {
+                    print_colored_v2 "ERROR" "Archiving dx-runtime or dx-modelzoo failed."
+                    echo -e "${TAG_HINT} ${COLOR_BRIGHT_YELLOW_ON_BLACK}Please try running 'git submodule update --init --recursive --force' and then try again.${COLOR_RESET}"
+                    exit 1
+                }
             fi
+
             docker_build_all
             if [ "$DRIVER_UPDATE" = "y" ]; then
                 install_dx_rt_npu_linux_driver
             fi
             ;;
         *)
-            show_help "error" "(Hint) Please specify either the '--all' option or the '--target=<dx-compiler | dx-runtime>' option."
+            show_help "error" "(Hint) Please specify either the '--all' option or the '--target=<dx-compiler | dx-runtime | dx-modelzoo>' option."
             ;;
     esac
 
@@ -270,6 +376,9 @@ for i in "$@"; do
         --ubuntu_version=*)
             UBUNTU_VERSION="${1#*=}"
             ;;
+        --debian_version=*)
+            DEBIAN_VERSION="${1#*=}"
+            ;;
         --driver_update)
             DRIVER_UPDATE=y
             ;;
@@ -289,8 +398,16 @@ for i in "$@"; do
         --internal)
             INTERNAL_MODE=1
             ;;
-        --force)
-            FORCE_ARGS="--force"
+        --re-archive)
+            RE_ARCHIVE_ARGS="--re-archive"
+            ;;
+        --re-archive=*)
+            FORCE_VALUE="${1#*=}"
+            if [ "$FORCE_VALUE" = "false" ]; then
+                RE_ARCHIVE_ARGS="--re-archive=false"
+            else
+                RE_ARCHIVE_ARGS="--re-archive"
+            fi
             ;;
         *)
             show_help "error" "Invalid option '$1'"

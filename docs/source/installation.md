@@ -11,12 +11,6 @@ DX-All-Suite is a tool for creating an environment to validate and utilize DEEPX
 
 ### Clone the Main Repository
 
-```
-$ git clone --recurse-submodules https://github.com/DEEPX-AI/dx-all-suite.git
-```
-
-or
-
 ```bash
 git clone --recurse-submodules https://github.com/DEEPX-AI/dx-all-suite.git
 ```

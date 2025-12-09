@@ -189,9 +189,9 @@ uninstall_common_files() {
 
 uninstall_project_specific_files() {
     print_colored_v2 "INFO" "Uninstalling ${PROJECT_NAME} specific files..."
-    delete_symlinks "getting-start"
-    delete_dir "getting-start/forked_dx_app_example/"
-    delete_dir "getting-start/modelzoo/"
+    delete_symlinks "getting-started"
+    delete_dir "getting-started/forked_dx_app_example/"
+    delete_dir "getting-started/modelzoo/"
     delete_dir "workspace"
     delete_dir "archives"
 }

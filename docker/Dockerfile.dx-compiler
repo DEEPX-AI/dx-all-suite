@@ -1,8 +1,14 @@
-ARG UBUNTU_VERSION=24.04
-ARG TAG_NAME=${UBUNTU_VERSION}
 ARG BASE_IMAGE_NAME=ubuntu
-FROM alpine:latest AS install
+ARG OS_VERSION=24.04
+ARG TAG_NAME=${OS_VERSION}
+ARG INSTALL_BASE_IMAGE=alpine:latest
+FROM ${INSTALL_BASE_IMAGE} AS install
 USER root
+
+# Install tar if using ubuntu base (alpine has it by default)
+RUN if command -v apt-get >/dev/null 2>&1; then \
+        apt-get update && apt-get install -y tar && rm -rf /var/lib/apt/lists/*; \
+    fi
 
 # COPY and EXTRACT 'dx-com' for using option '--strip-components=1'
 WORKDIR /deepx/dx-compiler/dx_com
@@ -30,16 +36,19 @@ WORKDIR /deepx/dx-compiler/dx_tron
 ARG FILE_DXTRON
 COPY ${FILE_DXTRON} /deepx/dx-compiler/dx_tron
 
-# COPY 'scripts' and 'getting-start'
+# COPY 'scripts' and 'getting-started'
 COPY scripts /deepx/scripts
-COPY getting-start /deepx/getting-start
+COPY getting-started /deepx/getting-started
 ENV DX_CONTAINER_MODE=true
-RUN /deepx/getting-start/compiler-clean.sh
+RUN /deepx/getting-started/compiler-clean.sh
 
 ###
 FROM ${BASE_IMAGE_NAME}:${TAG_NAME}
 
 USER root
+
+# ARG must be re-declared after FROM to be available in RUN commands
+ARG BASE_IMAGE_NAME=ubuntu
 
 ARG TZ=Asia/Seoul
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ >/etc/timezone
@@ -49,10 +58,13 @@ ENV PATH="/usr/local/bin:${PATH}"
 
 ### update apt repo
 RUN apt-get update && apt-get install -y \
-    software-properties-common && \
+    software-properties-common
+
+RUN if [ "${BASE_IMAGE_NAME}" = "ubuntu" ]; then \
     add-apt-repository universe && \
     add-apt-repository multiverse && \
-    apt-get update
+    apt-get update; \
+  fi
 
 ### install utils
 RUN apt-get update && apt-get install -y \
@@ -76,42 +88,107 @@ RUN if [ "$USE_INTRANET" = "true" ]; then \
     fi
 
 # Install dependencies for dx-compiler
-# python 3.11
+# Setup Python 3.11.2 or higher
+#   - Unified installation flow: apt → source build fallback
+#   - Ubuntu 20.04, 22.04, 24.04 supported
+ENV MIN_PY_VERSION=3.11.2
+ARG TARGET_INSTALL_PY_VERSION=""
 RUN set -x && \
-    echo "Install python 3.11..." && \
-    UBUNTU_VERSION=$(lsb_release -rs) && \
-    echo "*** UBUNTU_VERSION(${UBUNTU_VERSION}) ***" && \
-    if [ "$UBUNTU_VERSION" = "24.04" ] || [ "$UBUNTU_VERSION" = "22.04" ] || [ "$UBUNTU_VERSION" = "20.04" ]; then \
-        add-apt-repository -y ppa:deadsnakes/ppa && apt-get update && \
-        apt-get install -y python3.11 python3.11-dev python3.11-venv; \
-    else \
-        echo "Unsupported Ubuntu version: $UBUNTU_VERSION" && exit 1; \
+    echo "Install python ${TARGET_INSTALL_PY_VERSION:-default} or higher.." && \
+    if [ -z "${TARGET_INSTALL_PY_VERSION}" ]; then \
+        TARGET_INSTALL_PY_VERSION=${MIN_PY_VERSION}; \
+        echo "No specific version requested, using minimum: ${MIN_PY_VERSION}"; \
     fi && \
-    echo "Install python3.11 done";
-
-# Set up Virtual Environment
-RUN set -x && \
-    python3.11 -m venv /venv-dxnn
-
-RUN set -x && \
-    echo "Install dependencies..." && \
-    UBUNTU_VERSION=$(lsb_release -rs) && \
-    echo "*** UBUNTU_VERSION(${UBUNTU_VERSION}) ***" && \
-    if [ "$UBUNTU_VERSION" = "24.04" ]; then \
-        apt-get update && apt-get install -y --no-install-recommends \
-            libgl1-mesa-dev libglib2.0-0 make \
-            libfuse2 libayatana-appindicator3-1; \
-    elif [ "$UBUNTU_VERSION" = "22.04" ]; then \
-        apt-get update && apt-get install -y --no-install-recommends \
-            libgl1-mesa-dev libglib2.0-0 make \
-            libfuse2 libappindicator3-1 libgconf-2-4; \
-    elif [ "$UBUNTU_VERSION" = "20.04" ]; then \
-        apt-get update && apt-get install -y --no-install-recommends \
-            libgl1-mesa-dev libgl1-mesa-glx libglib2.0-0 make \
-            libfuse2 libappindicator1 libgconf-2-4; \
+    PY_MAJOR_MINOR=$(echo "${TARGET_INSTALL_PY_VERSION}" | cut -d. -f1,2) && \
+    DX_PYTHON_EXEC="" && \
+    if [ "${BASE_IMAGE_NAME}" = "ubuntu" ] && { [ "$(lsb_release -rs)" = "24.04" ] || [ "$(lsb_release -rs)" = "22.04" ] || [ "$(lsb_release -rs)" = "20.04" ]; }; then \
+        echo "Supported OS: ${BASE_IMAGE_NAME} $(lsb_release -rs)" && \
+        apt-get update && \
+        if [ "${BASE_IMAGE_NAME}" = "ubuntu" ]; then \
+            echo "Adding deadsnakes PPA for Ubuntu..." && \
+            apt-get install -y software-properties-common gnupg gpg-agent ca-certificates && \
+            add-apt-repository -y ppa:deadsnakes/ppa || echo "PPA add failed, continuing..." && \
+            apt-get update || true; \
+        fi && \
+        echo "Checking if python${PY_MAJOR_MINOR} packages are available via apt..." && \
+        MAIN_PKG=$(apt-cache search "^python${PY_MAJOR_MINOR}$" 2>/dev/null | grep -c "^python${PY_MAJOR_MINOR} " || echo "0") && \
+        DEV_PKG=$(apt-cache search "^python${PY_MAJOR_MINOR}-dev$" 2>/dev/null | grep -c "^python${PY_MAJOR_MINOR}-dev " || echo "0") && \
+        VENV_PKG=$(apt-cache search "^python${PY_MAJOR_MINOR}-venv$" 2>/dev/null | grep -c "^python${PY_MAJOR_MINOR}-venv " || echo "0") && \
+        echo "Installing generic python3-dev and python3-venv packages (base requirement)..." && \
+        apt-get install -y python3-dev python3-venv && \
+        if [ "$MAIN_PKG" -gt 0 ] && [ "$DEV_PKG" -gt 0 ] && [ "$VENV_PKG" -gt 0 ]; then \
+            echo "python${PY_MAJOR_MINOR} packages available via apt, installing..." && \
+            apt-get install -y python${PY_MAJOR_MINOR} python${PY_MAJOR_MINOR}-dev python${PY_MAJOR_MINOR}-venv && \
+            DX_PYTHON_EXEC="python${PY_MAJOR_MINOR}"; \
+        else \
+            echo "python${PY_MAJOR_MINOR} not available via apt (main:$MAIN_PKG, dev:$DEV_PKG, venv:$VENV_PKG), will use source build..."; \
+        fi && \
+        if [ -z "${DX_PYTHON_EXEC}" ]; then \
+            echo "Installing python ${TARGET_INSTALL_PY_VERSION} via source build..." && \
+            apt-get install -y --no-install-recommends \
+                build-essential \
+                wget \
+                curl \
+                ca-certificates \
+                libssl-dev \
+                zlib1g-dev \
+                libncurses5-dev \
+                libncursesw5-dev \
+                libreadline-dev \
+                libsqlite3-dev \
+                libgdbm-dev \
+                libdb5.3-dev \
+                libbz2-dev \
+                libexpat1-dev \
+                liblzma-dev \
+                tk-dev \
+                libffi-dev \
+                uuid-dev && \
+            wget --no-check-certificate https://www.python.org/ftp/python/${TARGET_INSTALL_PY_VERSION}/Python-${TARGET_INSTALL_PY_VERSION}.tgz && \
+            tar xzf Python-${TARGET_INSTALL_PY_VERSION}.tgz && \
+            cd Python-${TARGET_INSTALL_PY_VERSION} && \
+            ./configure --enable-optimizations && \
+            make -j$(nproc) && \
+            make altinstall && \
+            cd .. && \
+            rm -rf Python-${TARGET_INSTALL_PY_VERSION}* && \
+            DX_PYTHON_EXEC="python${PY_MAJOR_MINOR}"; \
+        fi; \
     else \
-        echo "Unsupported Ubuntu version: $UBUNTU_VERSION" && exit 1; \
+        echo "Unsupported OS: ${BASE_IMAGE_NAME} $(lsb_release -rs)" && exit 1; \
     fi && \
+    if [ -z "${DX_PYTHON_EXEC}" ]; then \
+        echo "Failed to install Python" && exit 1; \
+    fi && \
+    echo "Python installation completed: ${DX_PYTHON_EXEC}" && \
+    echo "Set up Virtual Environment..." && \
+    ${DX_PYTHON_EXEC} -m venv /venv-dxnn && \
+    . /venv-dxnn/bin/activate && \
+    echo "Upgrade pip wheel setuptools..." && \
+    if [ "${BASE_IMAGE_NAME}" = "ubuntu" ]; then \
+        OS_VERSION=$(lsb_release -rs) && \
+        echo "*** OS_VERSION(${OS_VERSION}) ***" && \
+        if [ "$OS_VERSION" = "24.04" ]; then \
+            apt-get update && apt-get install -y --no-install-recommends \
+                libgl1-mesa-dev libglib2.0-0 make \
+                libfuse2 libayatana-appindicator3-1; \
+        elif [ "$OS_VERSION" = "22.04" ]; then \
+            apt-get update && apt-get install -y --no-install-recommends \
+                libgl1-mesa-dev libglib2.0-0 make \
+                libfuse2 libappindicator3-1 libgconf-2-4; \
+        elif [ "$OS_VERSION" = "20.04" ]; then \
+            apt-get update && apt-get install -y --no-install-recommends \
+                libgl1-mesa-dev libgl1-mesa-glx libglib2.0-0 make \
+                libfuse2 libappindicator1 libgconf-2-4; \
+        else \
+            echo "Unsupported Ubuntu version: $OS_VERSION" && exit 1; \
+        fi; \
+    else \
+        echo "Unsupported base image: ${BASE_IMAGE_NAME}" && exit 1; \
+    fi
+
+# Install build tools and libraries
+RUN set -x && \
     apt-get update && apt-get install -y --no-install-recommends \
         libssl-dev \
         wget \
@@ -136,8 +213,7 @@ RUN set -x && \
         software-properties-common \
         vim fim
 
-RUN add-apt-repository -y universe && \
-    apt-get update && \
+RUN apt-get update && \
     apt-get install -y \
         xdg-utils && \
     apt-get clean && \
