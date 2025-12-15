@@ -22,7 +22,7 @@ This release marks a significant step forward with new features and major stabil
 - **PPU Acceleration Integrated:** The Post-Processing Unit (PPU) is fully integrated into the compiler (DX-COM), runtime (DX-RT), and streaming (DX-Stream) layers. This allows the NPU to handle NMS/bounding box decoding for models like YOLO and SCRFD, drastically reducing CPU overhead.
 - **Next-Gen Model Support:** The entire stack now supports the new DXNN V8 file format and DXNNv8 PPU models (DX-RT and DX_FW), enabling the newest generation of AI applications.
 - **Windows Ecosystem:** Full support for Windows 10/11 has been added to the DX-APP layer, complete with automated build scripts, making cross-platform development easier.
-- **Advanced Diagnostics & Tuning:** New dedicated tools like the DX-Fit tuning toolkit, dxbenchmark, and GstShark integration provide comprehensive performance evaluation and optimization capabilities.
+- **Advanced Diagnostics & Profilers:** New dedicated tools like the dxbenchmark, and GstShark integration provide comprehensive performance evaluation and optimization capabilities.
 
 ---
 
@@ -50,7 +50,7 @@ This release marks a significant step forward with new features and major stabil
     - DX-Stream: Added GstShark integration for comprehensive pipeline performance analysis.
     - DX_FW: Added Secure Debug and Model Profiling mode.
 - PPU Data Types: DX-APP added support for three new PPU data types: BBOX, POSE, and FACE.
-- Connectivity & System: Added option for NPU inference over USB (DX_FW). Added Partial Compilation support (--compile_input_nodes/--compile_output_nodes) in DX-COM.
+- DX_COM: Added Partial Compilation support (--compile_input_nodes/--compile_output_nodes).
 
 **Known Issues (DX-APP / DX-COM)**
 - Accuracy degradation observed in the DeepLabV3 Semantic Segmentation model.
