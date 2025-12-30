@@ -6,6 +6,7 @@ DX_AS_PATH=$(realpath -s "${COMPILER_PATH}/..")
 
 # color env settings
 source ${DX_AS_PATH}/scripts/color_env.sh
+source ${DX_AS_PATH}/scripts/common_util.sh
 
 echo -e "======== PATH INFO ========="
 echo "COMPILER_PATH($COMPILER_PATH)"
@@ -13,13 +14,31 @@ echo "DX_AS_PATH($DX_AS_PATH)"
 echo -e "============================"
 
 OUTPUT_PATH="${SCRIPT_DIR}/dxnn"
+PROJECT_NAME="dx-compiler"
+
+# Determine venv path based on container mode
+if check_container_mode; then
+    VENV_PATH="${COMPILER_PATH}/venv-${PROJECT_NAME}"
+else
+    VENV_PATH="${COMPILER_PATH}/venv-${PROJECT_NAME}-local"
+fi
+
+# Activate virtual environment
+if [ -f "${VENV_PATH}/bin/activate" ]; then
+    print_colored_v2 "INFO" "Activating virtual environment: ${VENV_PATH}"
+    source "${VENV_PATH}/bin/activate"
+else
+    print_colored_v2 "ERROR" "Virtual environment not found at: ${VENV_PATH}"
+    print_colored_v2 "HINT" "Please run './dx-compiler/install.sh' first to set up the environment."
+    exit 1
+fi
 
 compile() {
     local model_name=$1
     echo -e "=== Compile model('${model_name}') ${TAG_START} ==="
 
     CMD="\
-    ${DX_COM_PATH}/dx_com/dx_com \
+    dxcom \
         -m ${SCRIPT_DIR}/modelzoo/onnx/${model_name}.onnx \
         -c ${SCRIPT_DIR}/modelzoo/json/${model_name}.json \
         -o ${OUTPUT_PATH}/"

@@ -84,6 +84,11 @@ The script obtains authentication information based on the following priority:
     ```bash
     ./dx-compiler/install.sh --username=<your_email> --password=<your_password>
     ```
+    
+    **Note:** If your password contains special characters like `!` or `$`, use single quotes:
+    ```bash
+    ./dx-compiler/install.sh --username=<your_email> --password='pass!word'
+    ```
 2.  **Use environment variables (2nd priority):**
 
     ```bash
@@ -102,16 +107,66 @@ The script obtains authentication information based on the following priority:
 3.  **Prompt for input (3rd priority):**
     If neither of the above methods is used, the script will prompt you to enter your account information directly in the terminal during execution.
 
+#### Python Version Compatibility
+
+The installation script automatically checks Python version compatibility. Supported Python versions are `3.8`, `3.9`, `3.10`, `3.11`, and `3.12`.
+
+If the current system's Python version is not compatible, the script will detect this and ask the user whether to install a compatible Python version. You can also specify a specific Python version using the `--python_version` option:
+
+```bash
+./dx-compiler/install.sh --python_version=3.11
+```
+
+#### Installation Modes
+
+By default, the installation script runs in **Wheel mode**. In this mode, Python wheel packages are downloaded and installed into the virtual environment.
+
+To use legacy executables, add the `--legacy` option:
+
+```bash
+./dx-compiler/install.sh --legacy
+```
+
+**Wheel Mode (default):**
+- Downloads and installs Python wheel packages
+- Use `dxcom` command after activating the virtual environment
+- Automatically selects the appropriate wheel package for your Python version
+
+**Legacy Mode:**
+- Downloads and extracts executable files
+- Can be run directly
+
+> ⚠️ **Warning:** Legacy mode will be removed in future versions. We recommend using Wheel mode (default) for new projects.
+
 Upon successful installation:
 
-1.  The `dx-com` module archive files (`.tar.gz`) will be downloaded and saved to:
+1.  The `dx_com` module will be downloaded and installed:
+    - **Wheel Mode:** Python wheel packages are installed in the virtual environment
+    - **Legacy Mode:** Executables are extracted to `./workspace/release/dx_com/dx_com_M1_v[VERSION]`
 
-    - `./workspace/release/dx_com/download/dx_com_M1A_v[VERSION].tar.gz`
+2.  Symbolic links will be created at `./dx-compiler/dx_com`.
 
-2.  The downloaded modules will be extracted to:
+#### Using dx_com
 
-    - `./workspace/release/dx_com/dx_com_M1A_v[VERSION]`
-    - Symbolic links will also be created at `./dx-compiler/dx-com`.
+**If installed with Wheel mode:**
+
+You can use the `dxcom` command after activating the virtual environment:
+
+```bash
+# Activate virtual environment
+source ./dx-compiler/venv-dx-compiler/bin/activate
+
+# Use dxcom
+dxcom -h
+```
+
+**If installed with Legacy mode:**
+
+You can run it directly:
+
+```bash
+./dx-compiler/dx_com/dx_com -h
+```
 
 #### Archive Mode (--archive_mode=y)
 
@@ -126,6 +181,30 @@ When executing the above command, the module archive files (`*.tar.gz`) will be 
 - `../archives/dx_com_M1A_v[VERSION].tar.gz`
 
 These archive files can then be utilized by the Docker image build process.
+
+#### Using DX-TRON
+
+`dx_tron` (DX-TRON) is a graphical model compiler tool.
+
+**Run with AppImage (GUI):**
+
+```bash
+./dx-compiler/run_dxtron_appimage.sh
+```
+
+**Run as web server:**
+
+```bash
+./dx-compiler/run_dxtron_web.sh --port=8080
+```
+
+Then access `http://localhost:8080` in your browser.
+
+To use a different port:
+
+```bash
+./dx-compiler/run_dxtron_web.sh --port=3000
+```
 
 ---
 

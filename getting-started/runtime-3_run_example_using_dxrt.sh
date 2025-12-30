@@ -237,7 +237,7 @@ main() {
     echo -e "${TAG_START} === Yolov5S ==="
     # hijack yolov5s example
     YOLO_V5S_EXAMPLE_PATH="example/run_detector/yolov5s1_example.json"
-    YOLO_V5S_SOURCE_STR="./assets/models/YOLOV5S_1.dxnn"
+    YOLO_V5S_SOURCE_STR="./assets/models/YOLOV5S-1.dxnn"
     hijack_example "${YOLO_V5S_EXAMPLE_PATH}" "${YOLO_V5S_SOURCE_STR}" "${YOLO_V5S_TARGET_STR}" "${COMMIT_MSG}"
 
     # run yolov5s hijakced example

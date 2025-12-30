@@ -83,6 +83,11 @@ Developer Portal 계정이 필요하신 경우, 아래 정보를 포함하여 [s
     ```bash
     ./dx-compiler/install.sh --username=<user> --password=<pass>
     ```
+    
+    **참고:** 비밀번호에 `!` 또는 `$`와 같은 특수문자가 포함되어 있는 경우, 작은따옴표를 사용하세요:
+    ```bash
+    ./dx-compiler/install.sh --username=<user> --password='pass!word'
+    ```
 2.  **환경 변수 사용 (2순위):**
 
     ```bash
@@ -102,16 +107,66 @@ Developer Portal 계정이 필요하신 경우, 아래 정보를 포함하여 [s
 3.  **프롬프트 입력 (3순위):**
     위 두 가지 방법이 사용되지 않은 경우, 스크립트 실행 중 터미널 프롬프트에서 계정 정보를 직접 입력하라는 메시지가 표시됩니다.
 
+#### Python 버전 호환성
+
+설치 스크립트는 Python 버전 호환성을 자동으로 확인합니다. 지원되는 Python 버전은 `3.8`, `3.9`, `3.10`, `3.11`, `3.12`입니다.
+
+현재 시스템의 Python 버전이 호환되지 않는 경우, 스크립트가 이를 감지하고 사용자에게 호환 가능한 Python 버전을 설치할 것인지 묻습니다. `--python_version` 옵션을 사용하여 특정 Python 버전을 지정할 수도 있습니다:
+
+```bash
+./dx-compiler/install.sh --python_version=3.11
+```
+
+#### 설치 모드
+
+기본적으로 설치 스크립트는 **Wheel 모드**로 실행됩니다. 이 모드에서는 Python wheel 패키지를 다운로드하고 가상 환경에 설치합니다.
+
+레거시 실행 파일을 사용하려면 `--legacy` 옵션을 추가하세요:
+
+```bash
+./dx-compiler/install.sh --legacy
+```
+
+**Wheel 모드 (기본값):**
+- Python wheel 패키지를 다운로드하고 설치
+- 가상 환경 활성화 후 `dxcom` 명령어 사용 가능
+- Python 버전별로 적절한 wheel 패키지 자동 선택
+
+**Legacy 모드:**
+- 실행 파일 다운로드 및 압축 해제
+- 직접 실행 가능
+
+> ⚠️ **주의:** Legacy 모드는 향후 버전에서 제거될 예정입니다. 새로운 프로젝트에서는 Wheel 모드(기본값) 사용을 권장합니다.
+
 성공적으로 설치되면:
 
-1.  `dx-com` 모듈의 아카이브 파일(`.tar.gz`)이 아래 경로에 다운로드 및 저장됩니다.
+1.  `dx_com` 모듈이 다운로드 및 설치됩니다:
+    - **Wheel 모드:** Python wheel 패키지가 가상 환경에 설치됩니다
+    - **Legacy 모드:** 실행 파일이 `./workspace/release/dx_com/dx_com_M1_v[VERSION]`에 압축 해제됩니다
 
-    - `./workspace/release/dx_com/download/dx_com_M1_v[VERSION].tar.gz`
+2.  심볼릭 링크가 `./dx-compiler/dx_com`에 생성됩니다.
 
-2.  다운로드된 모듈이 아래 경로에 압축 해제됩니다.
+#### dx_com 사용하기
 
-    - `./workspace/release/dx_com/dx_com_M1_v[VERSION]`
-    - 심볼릭 링크가 `./dx-compiler/dx-com`에 생성됩니다.
+**Wheel 모드로 설치한 경우:**
+
+가상 환경을 활성화한 후 `dxcom` 명령어를 사용할 수 있습니다:
+
+```bash
+# 가상 환경 활성화
+source ./dx-compiler/venv-dx-compiler/bin/activate
+
+# dxcom 사용
+dxcom -h
+```
+
+**Legacy 모드로 설치한 경우:**
+
+직접 실행 가능합니다:
+
+```bash
+./dx-compiler/dx_com/dx_com -h
+```
 
 #### 아카이브 모드 (--archive_mode=y)
 
@@ -126,6 +181,30 @@ Developer Portal 계정이 필요하신 경우, 아래 정보를 포함하여 [s
 archives/dx_com_M1_v[VERSION].tar.gz
 
 이 아카이브 파일들은 Docker 이미지 빌드 프로세스에서 활용될 수 있습니다.
+
+#### DX-TRON 사용하기
+
+`dx_tron` (DX-TRON)은 그래픽 기반 모델 컴파일러 도구입니다.
+
+**AppImage로 실행 (GUI):**
+
+```bash
+./dx-compiler/run_dxtron_appimage.sh
+```
+
+**웹 서버로 실행:**
+
+```bash
+./dx-compiler/run_dxtron_web.sh --port=8080
+```
+
+그런 다음 브라우저에서 `http://localhost:8080`에 접속하세요.
+
+다른 포트를 사용하려면:
+
+```bash
+./dx-compiler/run_dxtron_web.sh --port=3000
+```
 
 ---
 
