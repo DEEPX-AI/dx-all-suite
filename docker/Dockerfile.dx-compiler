@@ -36,6 +36,23 @@ WORKDIR /deepx/dx-compiler/dx_tron
 ARG FILE_DXTRON
 COPY ${FILE_DXTRON} /deepx/dx-compiler/dx_tron
 
+RUN tar_file=$(ls *.tar.gz) && \
+    first_entry=$(tar -tzf "$tar_file" | head -n 1) && \
+    normalized_entry="${first_entry#./}" && \
+    if echo "$normalized_entry" | grep -q '/'; then \
+        if echo "$first_entry" | grep -q '^./'; then \
+            echo "Detected top-level directory with ./ prefix. Using --strip-components=2"; \
+            tar -xzf "$tar_file" --strip-components=2 -C .; \
+        else \
+            echo "Detected top-level directory. Using --strip-components=1"; \
+            tar -xzf "$tar_file" --strip-components=1 -C .; \
+        fi; \
+    else \
+        echo "No top-level directory. Extracting as-is"; \
+        tar -xzf "$tar_file" -C .; \
+    fi && \
+    rm -f "$tar_file"
+
 # COPY 'scripts' and 'getting-started'
 COPY scripts /deepx/scripts
 COPY getting-started /deepx/getting-started
@@ -88,79 +105,111 @@ RUN if [ "$USE_INTRANET" = "true" ]; then \
     fi
 
 # Install dependencies for dx-compiler
-# Setup Python 3.11.2 or higher
-#   - Unified installation flow: apt → source build fallback
+# Setup Python (minimum 3.8)
+#   - Detect system Python first, install MIN_PY_VERSION if system Python is lower
+#   - Unified installation flow: system python → apt → source build fallback
 #   - Ubuntu 20.04, 22.04, 24.04 supported
-ENV MIN_PY_VERSION=3.11.2
+ENV MIN_PY_VERSION=3.8
 ARG TARGET_INSTALL_PY_VERSION=""
 RUN set -x && \
-    echo "Install python ${TARGET_INSTALL_PY_VERSION:-default} or higher.." && \
-    if [ -z "${TARGET_INSTALL_PY_VERSION}" ]; then \
-        TARGET_INSTALL_PY_VERSION=${MIN_PY_VERSION}; \
-        echo "No specific version requested, using minimum: ${MIN_PY_VERSION}"; \
-    fi && \
-    PY_MAJOR_MINOR=$(echo "${TARGET_INSTALL_PY_VERSION}" | cut -d. -f1,2) && \
+    echo "Detecting system Python and checking minimum version requirement..." && \
+    MIN_MAJOR=$(echo "${MIN_PY_VERSION}" | cut -d. -f1) && \
+    MIN_MINOR=$(echo "${MIN_PY_VERSION}" | cut -d. -f2) && \
     DX_PYTHON_EXEC="" && \
-    if [ "${BASE_IMAGE_NAME}" = "ubuntu" ] && { [ "$(lsb_release -rs)" = "24.04" ] || [ "$(lsb_release -rs)" = "22.04" ] || [ "$(lsb_release -rs)" = "20.04" ]; }; then \
-        echo "Supported OS: ${BASE_IMAGE_NAME} $(lsb_release -rs)" && \
-        apt-get update && \
-        if [ "${BASE_IMAGE_NAME}" = "ubuntu" ]; then \
-            echo "Adding deadsnakes PPA for Ubuntu..." && \
-            apt-get install -y software-properties-common gnupg gpg-agent ca-certificates && \
-            add-apt-repository -y ppa:deadsnakes/ppa || echo "PPA add failed, continuing..." && \
-            apt-get update || true; \
-        fi && \
-        echo "Checking if python${PY_MAJOR_MINOR} packages are available via apt..." && \
-        MAIN_PKG=$(apt-cache search "^python${PY_MAJOR_MINOR}$" 2>/dev/null | grep -c "^python${PY_MAJOR_MINOR} " || echo "0") && \
-        DEV_PKG=$(apt-cache search "^python${PY_MAJOR_MINOR}-dev$" 2>/dev/null | grep -c "^python${PY_MAJOR_MINOR}-dev " || echo "0") && \
-        VENV_PKG=$(apt-cache search "^python${PY_MAJOR_MINOR}-venv$" 2>/dev/null | grep -c "^python${PY_MAJOR_MINOR}-venv " || echo "0") && \
-        echo "Installing generic python3-dev and python3-venv packages (base requirement)..." && \
-        apt-get install -y python3-dev python3-venv && \
-        if [ "$MAIN_PKG" -gt 0 ] && [ "$DEV_PKG" -gt 0 ] && [ "$VENV_PKG" -gt 0 ]; then \
-            echo "python${PY_MAJOR_MINOR} packages available via apt, installing..." && \
-            apt-get install -y python${PY_MAJOR_MINOR} python${PY_MAJOR_MINOR}-dev python${PY_MAJOR_MINOR}-venv && \
-            DX_PYTHON_EXEC="python${PY_MAJOR_MINOR}"; \
+    NEED_INSTALL="false" && \
+    if command -v python3 >/dev/null 2>&1; then \
+        SYS_PY_VERSION=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}')" 2>/dev/null || echo "0.0.0") && \
+        SYS_MAJOR=$(echo "${SYS_PY_VERSION}" | cut -d. -f1) && \
+        SYS_MINOR=$(echo "${SYS_PY_VERSION}" | cut -d. -f2) && \
+        echo "System Python detected: ${SYS_PY_VERSION}" && \
+        if [ "$SYS_MAJOR" -gt "$MIN_MAJOR" ] || { [ "$SYS_MAJOR" -eq "$MIN_MAJOR" ] && [ "$SYS_MINOR" -ge "$MIN_MINOR" ]; }; then \
+            echo "System Python ${SYS_PY_VERSION} meets minimum requirement (>= ${MIN_PY_VERSION})" && \
+            SYS_PY_MAJOR_MINOR="${SYS_MAJOR}.${SYS_MINOR}" && \
+            echo "Installing python${SYS_PY_MAJOR_MINOR}-dev and python${SYS_PY_MAJOR_MINOR}-venv packages..." && \
+            apt-get update && \
+            apt-get install -y python${SYS_PY_MAJOR_MINOR}-dev python${SYS_PY_MAJOR_MINOR}-venv || \
+            apt-get install -y python3-dev python3-venv && \
+            DX_PYTHON_EXEC="python3"; \
         else \
-            echo "python${PY_MAJOR_MINOR} not available via apt (main:$MAIN_PKG, dev:$DEV_PKG, venv:$VENV_PKG), will use source build..."; \
-        fi && \
-        if [ -z "${DX_PYTHON_EXEC}" ]; then \
-            echo "Installing python ${TARGET_INSTALL_PY_VERSION} via source build..." && \
-            apt-get install -y --no-install-recommends \
-                build-essential \
-                wget \
-                curl \
-                ca-certificates \
-                libssl-dev \
-                zlib1g-dev \
-                libncurses5-dev \
-                libncursesw5-dev \
-                libreadline-dev \
-                libsqlite3-dev \
-                libgdbm-dev \
-                libdb5.3-dev \
-                libbz2-dev \
-                libexpat1-dev \
-                liblzma-dev \
-                tk-dev \
-                libffi-dev \
-                uuid-dev && \
-            wget --no-check-certificate https://www.python.org/ftp/python/${TARGET_INSTALL_PY_VERSION}/Python-${TARGET_INSTALL_PY_VERSION}.tgz && \
-            tar xzf Python-${TARGET_INSTALL_PY_VERSION}.tgz && \
-            cd Python-${TARGET_INSTALL_PY_VERSION} && \
-            ./configure --enable-optimizations && \
-            make -j$(nproc) && \
-            make altinstall && \
-            cd .. && \
-            rm -rf Python-${TARGET_INSTALL_PY_VERSION}* && \
-            DX_PYTHON_EXEC="python${PY_MAJOR_MINOR}"; \
+            echo "System Python ${SYS_PY_VERSION} is lower than minimum ${MIN_PY_VERSION}, need to install..." && \
+            NEED_INSTALL="true"; \
         fi; \
     else \
-        echo "Unsupported OS: ${BASE_IMAGE_NAME} $(lsb_release -rs)" && exit 1; \
+        echo "No system Python found, need to install..." && \
+        NEED_INSTALL="true"; \
+    fi && \
+    if [ -n "${TARGET_INSTALL_PY_VERSION}" ]; then \
+        echo "Specific version requested: ${TARGET_INSTALL_PY_VERSION}, will install..." && \
+        NEED_INSTALL="true" && \
+        DX_PYTHON_EXEC=""; \
+    fi && \
+    if [ "${NEED_INSTALL}" = "true" ]; then \
+        if [ -z "${TARGET_INSTALL_PY_VERSION}" ]; then \
+            TARGET_INSTALL_PY_VERSION="${MIN_PY_VERSION}.0"; \
+            echo "Using minimum version for installation: ${TARGET_INSTALL_PY_VERSION}"; \
+        fi && \
+        PY_MAJOR_MINOR=$(echo "${TARGET_INSTALL_PY_VERSION}" | cut -d. -f1,2) && \
+        if [ "${BASE_IMAGE_NAME}" = "ubuntu" ] && { [ "$(lsb_release -rs)" = "24.04" ] || [ "$(lsb_release -rs)" = "22.04" ] || [ "$(lsb_release -rs)" = "20.04" ]; }; then \
+            echo "Supported OS: ${BASE_IMAGE_NAME} $(lsb_release -rs)" && \
+            apt-get update && \
+            if [ "${BASE_IMAGE_NAME}" = "ubuntu" ]; then \
+                echo "Adding deadsnakes PPA for Ubuntu..." && \
+                apt-get install -y software-properties-common gnupg gpg-agent ca-certificates && \
+                add-apt-repository -y ppa:deadsnakes/ppa || echo "PPA add failed, continuing..." && \
+                apt-get update || true; \
+            fi && \
+            echo "Checking if python${PY_MAJOR_MINOR} packages are available via apt..." && \
+            MAIN_PKG=$(apt-cache search "^python${PY_MAJOR_MINOR}$" 2>/dev/null | grep -c "^python${PY_MAJOR_MINOR} " || echo "0") && \
+            DEV_PKG=$(apt-cache search "^python${PY_MAJOR_MINOR}-dev$" 2>/dev/null | grep -c "^python${PY_MAJOR_MINOR}-dev " || echo "0") && \
+            VENV_PKG=$(apt-cache search "^python${PY_MAJOR_MINOR}-venv$" 2>/dev/null | grep -c "^python${PY_MAJOR_MINOR}-venv " || echo "0") && \
+            echo "Installing generic python3-dev and python3-venv packages (base requirement)..." && \
+            apt-get install -y python3-dev python3-venv && \
+            if [ "$MAIN_PKG" -gt 0 ] && [ "$DEV_PKG" -gt 0 ] && [ "$VENV_PKG" -gt 0 ]; then \
+                echo "python${PY_MAJOR_MINOR} packages available via apt, installing..." && \
+                apt-get install -y python${PY_MAJOR_MINOR} python${PY_MAJOR_MINOR}-dev python${PY_MAJOR_MINOR}-venv && \
+                DX_PYTHON_EXEC="python${PY_MAJOR_MINOR}"; \
+            else \
+                echo "python${PY_MAJOR_MINOR} not available via apt (main:$MAIN_PKG, dev:$DEV_PKG, venv:$VENV_PKG), will use source build..."; \
+            fi && \
+            if [ -z "${DX_PYTHON_EXEC}" ]; then \
+                echo "Installing python ${TARGET_INSTALL_PY_VERSION} via source build..." && \
+                apt-get install -y --no-install-recommends \
+                    build-essential \
+                    wget \
+                    curl \
+                    ca-certificates \
+                    libssl-dev \
+                    zlib1g-dev \
+                    libncurses5-dev \
+                    libncursesw5-dev \
+                    libreadline-dev \
+                    libsqlite3-dev \
+                    libgdbm-dev \
+                    libdb5.3-dev \
+                    libbz2-dev \
+                    libexpat1-dev \
+                    liblzma-dev \
+                    tk-dev \
+                    libffi-dev \
+                    uuid-dev && \
+                wget --no-check-certificate https://www.python.org/ftp/python/${TARGET_INSTALL_PY_VERSION}/Python-${TARGET_INSTALL_PY_VERSION}.tgz && \
+                tar xzf Python-${TARGET_INSTALL_PY_VERSION}.tgz && \
+                cd Python-${TARGET_INSTALL_PY_VERSION} && \
+                ./configure --enable-optimizations && \
+                make -j$(nproc) && \
+                make altinstall && \
+                cd .. && \
+                rm -rf Python-${TARGET_INSTALL_PY_VERSION}* && \
+                DX_PYTHON_EXEC="python${PY_MAJOR_MINOR}"; \
+            fi; \
+        else \
+            echo "Unsupported OS: ${BASE_IMAGE_NAME} $(lsb_release -rs)" && exit 1; \
+        fi; \
     fi && \
     if [ -z "${DX_PYTHON_EXEC}" ]; then \
-        echo "Failed to install Python" && exit 1; \
+        echo "Failed to determine Python executable" && exit 1; \
     fi && \
-    echo "Python installation completed: ${DX_PYTHON_EXEC}" && \
+    echo "Python ready: ${DX_PYTHON_EXEC} ($(${DX_PYTHON_EXEC} --version 2>&1))" && \
     echo "Set up Virtual Environment..." && \
     ${DX_PYTHON_EXEC} -m venv /venv-dxnn && \
     . /venv-dxnn/bin/activate && \
@@ -258,6 +307,31 @@ RUN echo "deepx:deepx" | chpasswd
 RUN groupadd -g "$HOST_GID" "$TARGET_USER" || true; \
     usermod -aG sudo "$TARGET_USER"; \
     echo "$TARGET_USER ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers;
+
+# Install DX-COM wheel package for the current Python version (before switching to non-root user)
+RUN set -ex; \
+    . /venv-dxnn/bin/activate; \
+    PYTHON_VERSION_TAG=$(python3 -c "import sys; print(f'cp{sys.version_info.major}{sys.version_info.minor}')"); \
+    echo "Detected Python version tag: ${PYTHON_VERSION_TAG}"; \
+    MATCHING_WHEEL=$(find /deepx/dx-compiler/dx_com -name "*-${PYTHON_VERSION_TAG}-*.whl" -print -quit); \
+    if [ -z "$MATCHING_WHEEL" ]; then \
+        echo "ERROR: No wheel file compatible with Python ${PYTHON_VERSION_TAG} found."; \
+        ls -la /deepx/dx-compiler/dx_com/*.whl || echo "No wheel files found"; \
+        exit 1; \
+    fi; \
+    echo "Found compatible wheel file: $(basename "$MATCHING_WHEEL")"; \
+    pip3 install "$MATCHING_WHEEL"
+
+# Install DX-Tron package for debian-based systems (with architecture detection)
+RUN set -x && \
+    ARCH=$(dpkg --print-architecture 2>/dev/null || uname -m) && \
+    case "$ARCH" in \
+        amd64|x86_64) ARCH="amd64" ;; \
+        arm64|aarch64) ARCH="arm64" ;; \
+    esac && \
+    echo "Detected architecture: ${ARCH}" && \
+    apt-get update && \
+    apt install -y /deepx/dx-compiler/dx_tron/dxtron_*_${ARCH}.deb
 
 USER $TARGET_USER
 WORKDIR $TARGET_HOME

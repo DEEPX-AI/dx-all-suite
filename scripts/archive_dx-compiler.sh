@@ -5,15 +5,17 @@ DX_AS_PATH=$(realpath -s "${SCRIPT_DIR}/..")
 pushd $DX_AS_PATH
 
 FORCE_ARGS=""
+PYTHON_VERSION_ARGS=""
 
 # color env settings
 source ${DX_AS_PATH}/scripts/color_env.sh
 
 # Function to display help message
 show_help() {
-    echo "Usage: $(basename "$0") [--help] [--re-archive=<true|false>]"
+    echo "Usage: $(basename "$0") [--help] [--re-archive=<true|false>] [--python_version=<version>]"
     echo "Options:"
     echo "  [--re-archive=<true|false>]    : Force rebuild archive for dx-compiler (default: true)"
+    echo "  [--python_version=<version>]   : Specify Python version (e.g., 3.11, 3.12)"
     echo "  [--help]                       : Show this help message"
 
     if [ "$1" == "error" ] && [[ ! -n "$2" ]]; then
@@ -37,7 +39,7 @@ main() {
     TEMP_OUTPUT=$(mktemp)
     export ARCHIVE_OUTPUT_FILE="$TEMP_OUTPUT"
 
-    ARCHIVE_COMPILER_CMD="$DX_AS_PATH/dx-compiler/install.sh --archive_mode=y $FORCE_ARGS"
+    ARCHIVE_COMPILER_CMD="$DX_AS_PATH/dx-compiler/install.sh --archive_mode=y $FORCE_ARGS $PYTHON_VERSION_ARGS"
     echo "$ARCHIVE_COMPILER_CMD"
 
     # Run command directly - stdin/stdout/stderr remain connected to terminal
@@ -89,6 +91,9 @@ for i in "$@"; do
             else
                 FORCE_ARGS="--force"
             fi
+            ;;
+        --python_version=*)
+            PYTHON_VERSION_ARGS="--python_version=${1#*=}"
             ;;
         *)
             show_help "error" "Invalid option '$1'"

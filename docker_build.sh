@@ -175,8 +175,22 @@ archive_dx-compiler()
         return 0
     }
 
+    # Determine default Python version based on OS version
+    # Ubuntu 20.04: 3.8, Ubuntu 22.04: 3.10, Ubuntu 24.04: 3.12
+    local PYTHON_VERSION_ARG=""
+    case "${OS_VERSION}" in
+        20.04) PYTHON_VERSION_ARG="--python_version=3.8" ;;
+        22.04) PYTHON_VERSION_ARG="--python_version=3.10" ;;
+        24.04) PYTHON_VERSION_ARG="--python_version=3.12" ;;
+        *)
+            print_colored_v2 "ERROR" "Unsupported OS version: ${BASE_IMAGE_NAME} ${OS_VERSION}. Supported versions: Ubuntu 20.04, 22.04, 24.04"
+            return 1
+            ;;
+    esac
+    print_colored_v2 "INFO" "Using Python version for ${BASE_IMAGE_NAME} ${OS_VERSION}: ${PYTHON_VERSION_ARG:-default}"
+
     # Capture output from archive script
-    ARCHIVE_OUTPUT=$(${DX_AS_PATH}/scripts/archive_dx-compiler.sh ${RE_ARCHIVE_ARGS})
+    ARCHIVE_OUTPUT=$(${DX_AS_PATH}/scripts/archive_dx-compiler.sh ${RE_ARCHIVE_ARGS} ${PYTHON_VERSION_ARG})
     ARCHIVE_EXIT_CODE=$?
     
     if [ $ARCHIVE_EXIT_CODE -ne 0 ]; then
