@@ -63,7 +63,7 @@ After activating the virtual environment, proceed with the installation steps be
 
 ## Local Installation
 
-### Install DX-Compiler Environment (dx_com)
+### Install DX-Compiler Environment (dx_com, dx_tron)
 
 The `DX-Compiler` environment provides prebuilt binary outputs and does not include source code. Each module can be downloaded and installed from a remote server using the following command:
 
@@ -108,6 +108,8 @@ The script obtains authentication information based on the following priority:
     If neither of the above methods is used, the script will prompt you to enter your account information directly in the terminal during execution.
 
 #### Python Version Compatibility
+
+`dx_com`'s **Wheel mode (default)** installation requires Python.
 
 The installation script automatically checks Python version compatibility. Supported Python versions are `3.8`, `3.9`, `3.10`, `3.11`, and `3.12`.
 
@@ -165,7 +167,7 @@ dxcom -h
 You can run it directly:
 
 ```bash
-./dx-compiler/dx_com/dx_com -h
+./dx-compiler/dx_com/dx_com/dx_com -h
 ```
 
 #### Archive Mode (--archive_mode=y)
@@ -178,13 +180,21 @@ The `--archive_mode=y` option is primarily used when building Docker images for 
 
 When executing the above command, the module archive files (`*.tar.gz`) will be downloaded and saved to:
 
-- `../archives/dx_com_M1A_v[VERSION].tar.gz`
+archives/dx_com_M1_v[VERSION].tar.gz
 
 These archive files can then be utilized by the Docker image build process.
 
 #### Using DX-TRON
 
 `dx_tron` (DX-TRON) is a graphical model compiler tool.
+
+**If installed with deb (Debian Package: default) mode:**
+
+You can use the `dxtron` command:
+
+```bash
+dxtron
+```
 
 **Run with AppImage (GUI):**
 
@@ -205,6 +215,8 @@ To use a different port:
 ```bash
 ./dx-compiler/run_dxtron_web.sh --port=3000
 ```
+
+**(P.S.) DXTron for Windows: available for download via `developer.deepx.ai`.**
 
 ---
 
@@ -249,6 +261,8 @@ Alternatively, you can use:
 ./dx-runtime/install.sh --target=dx_fw
 ```
 
+**It is recommended to completely shut down and power off the system before rebooting after a firmware update.**
+
 #### Sanity check
 
 ```bash
@@ -256,8 +270,6 @@ Alternatively, you can use:
 ```
 
 You can use this command to verify that `dx_rt` and `dx_rt_npu_linux_driver` are installed correctly.
-
-**It is recommended to completely shut down and power off the system before rebooting after a firmware update.**
 
 ---
 
@@ -532,8 +544,39 @@ fim ./result-app1.jpg
 
 #### Run `dx_com` using Sample onnx input
 
+**If installed with Wheel mode:**
+
+You can use the `dxcom` command after activating the virtual environment:
+
 ```bash
-make
+# Activate virtual environment
+source ./dx-compiler/venv-dx-compiler/bin/activate
+
+dxcom \
+        -m sample/MobileNetV1-1.onnx \
+        -c sample/MobileNetV1-1.json \
+        -o sample/MobileNetV1-1
+        -o sample/MobileNetV1-1
+Compiling Model : 100%|███████████████████████████████| 1.0/1.0 [00:06<00:00,  7.00s/model ]
+
+dxcom \
+        -m sample/ResNet50-1.onnx \
+        -c sample/ResNet50-1.json \
+        -o sample/ResNet50-1
+        -o sample/ResNet50-1
+Compiling Model : 100%|███████████████████████████████| 1.0/1.0 [00:19<00:00, 19.17s/model ]
+
+dxcom \
+        -m sample/YOLOV5-1.onnx \
+        -c sample/YOLOV5-1.json \
+        -o sample/YOLOV5-1
+        -o sample/YOLOV5-1
+Compiling Model : 100%|███████████████████████████████| 1.0/1.0 [00:47<00:00, 47.66s/model ]
+```
+
+**If installed with Legacy mode:**
+
+```bash
 dx_com/dx_com \
         -m sample/MobileNetV1-1.onnx \
         -c sample/MobileNetV1-1.json \
