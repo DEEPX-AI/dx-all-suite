@@ -57,8 +57,19 @@ ARG TARGET_INSTALL_PY_VERSION=""
 RUN set -x && \
     echo "Install python ${TARGET_INSTALL_PY_VERSION:-default} or higher.." && \
     if [ -z "${TARGET_INSTALL_PY_VERSION}" ]; then \
-        TARGET_INSTALL_PY_VERSION=${MIN_PY_VERSION}; \
-        echo "No specific version requested, using minimum: ${MIN_PY_VERSION}"; \
+        echo "No specific version requested, checking system Python version..." && \
+        SYSTEM_PY_VERSION=$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}")' 2>/dev/null || echo "0.0.0") && \
+        echo "System Python version: ${SYSTEM_PY_VERSION}" && \
+        echo "Minimum required version: ${MIN_PY_VERSION}" && \
+        SYSTEM_VER_NUM=$(printf "%02d%02d%02d" $(echo "${SYSTEM_PY_VERSION}" | tr '.' ' ')) && \
+        MIN_VER_NUM=$(printf "%02d%02d%02d" $(echo "${MIN_PY_VERSION}" | tr '.' ' ')) && \
+        if [ "${SYSTEM_VER_NUM}" -ge "${MIN_VER_NUM}" ]; then \
+            echo "System Python (${SYSTEM_PY_VERSION}) meets minimum requirement. Using system Python." && \
+            TARGET_INSTALL_PY_VERSION="${SYSTEM_PY_VERSION}"; \
+        else \
+            echo "System Python (${SYSTEM_PY_VERSION}) is below minimum requirement. Will install ${MIN_PY_VERSION}." && \
+            TARGET_INSTALL_PY_VERSION=${MIN_PY_VERSION}; \
+        fi; \
     fi && \
     PY_MAJOR_MINOR=$(echo "${TARGET_INSTALL_PY_VERSION}" | cut -d. -f1,2) && \
     DX_PYTHON_EXEC="" && \
@@ -140,9 +151,7 @@ RUN set -x && \
     elif [ "${BASE_IMAGE_NAME}" = "debian" ]; then \
         DEBIAN_VERSION=$(lsb_release -rs) && \
         echo "*** DEBIAN_VERSION(${DEBIAN_VERSION}) ***" && \
-        if [ "$DEBIAN_VERSION" = "12" ]; then \
-            pip install --upgrade setuptools; \
-        elif [ "$DEBIAN_VERSION" = "11" ]; then \
+        if [ "$DEBIAN_VERSION" = "12" ] || [ "$DEBIAN_VERSION" = "11" ]; then \
             pip install --upgrade pip wheel setuptools; \
         else \
             echo "Unsupported Debian version: $DEBIAN_VERSION" && exit 1; \

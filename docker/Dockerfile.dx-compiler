@@ -309,10 +309,16 @@ RUN groupadd -g "$HOST_GID" "$TARGET_USER" || true; \
     echo "$TARGET_USER ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers;
 
 # Install DX-COM wheel package for the current Python version (before switching to non-root user)
+# For Python 3.8, manually install onnxruntime 1.18.0 from direct URL (PyPI doesn't support it)
 RUN set -ex; \
     . /venv-dxnn/bin/activate; \
     PYTHON_VERSION_TAG=$(python3 -c "import sys; print(f'cp{sys.version_info.major}{sys.version_info.minor}')"); \
     echo "Detected Python version tag: ${PYTHON_VERSION_TAG}"; \
+    if [ "${PYTHON_VERSION_TAG}" = "cp38" ]; then \
+        echo "Python 3.8 detected: Upgrading pip and installing onnxruntime 1.18.0 from direct URL..."; \
+        pip3 install --upgrade pip; \
+        pip3 install https://files.pythonhosted.org/packages/1b/74/02cb1f6fcbadc094c98c49aff8571e7c576bdb4015c01507c385285b5bed/onnxruntime-1.18.0-cp38-cp38-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl; \
+    fi; \
     MATCHING_WHEEL=$(find /deepx/dx-compiler/dx_com -name "*-${PYTHON_VERSION_TAG}-*.whl" -print -quit); \
     if [ -z "$MATCHING_WHEEL" ]; then \
         echo "ERROR: No wheel file compatible with Python ${PYTHON_VERSION_TAG} found."; \
