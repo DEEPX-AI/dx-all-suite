@@ -1,5 +1,70 @@
 # RELEASE_NOTES
 
+##  DX-All-Suite v2.2.0 / 2026-01-16
+
+- DX-Compiler: v2.2.0
+    - DX-COM: v2.2.0
+    - DX-TRON: v2.0.1
+- DX-Runtime: v2.2.0
+    - DX_FW: v2.5.0
+    - NPU Driver: v2.1.0
+    - DX-RT: v3.2.0
+    - DX-Stream: v2.2.0
+    - DX-APP: v3.0.0
+
+---
+
+Here are the **DX-All-Suite v2.2.0** Release Note.
+
+### What's New?
+
+This release introduces a **Python-Centric Ecosystem** and a **Complete Example Overhaul**, making development more intuitive and integrated.
+
+- **Python-First Workflow**: DX-COM is now available via `pip` (Wheel), and new Python bindings (`pydxs, dx_postprocess`) allow for seamless metadata and post-processing management directly in Python.
+- **Major DX-APP Refactoring (v3.0.0)**: Legacy demos have been replaced with a modern, task-oriented example system. This includes built-in support for the latest YOLO generations (v10/v11/v12).
+- **Expanded Hardware Acceleration**: PPU (Post-Processing Unit) support has been extended to the newest YOLO models, further offloading CPU tasks to the NPU.
+- **Advanced Resource Management**: The introduction of NPU QoS (Quality of Service) and improved asynchronous handling ensures stable performance in multi-tasking environments.
+
+---
+### Key Updates
+
+**Performance & Efficiency**  
+- Extended PPU Support: Hardware-accelerated post-processing now supports YOLOv8, v9, v10, v11, and v12.
+- PCIe DMA Optimization: Reduced CPU dependency and improved sequence efficiency for high-speed data transfer (requires SDK v3.2.1+).
+- Inference Reporting: Updated `inf_time` to include both NPU and PPCPU runtimes for realistic performance profiling.
+- Resource Prioritization: Added QoS to the NPU Scheduler to manage execution priority effectively.
+- Memory Footprint: Further reduced device memory usage for models utilizing PPU.
+
+**Stability & Fixes**
+- Soft Lockup Prevention: Added sleep/reschedule logic in polling to prevent system hangs during slow hardware ACKs.
+- Stream Stability: Resolved race conditions and segfaults in secondary inference modes with shared buffers.
+- Model Accuracy: Fixed a known accuracy degradation issue in the DeepLabV3PlusMobilenet-1 model.
+- Code Robustness: Implemented global `try-catch` handling and improved argument validation across the application layer.
+
+**New Features & Tools**
+- Installation & Deployment:
+    - DX-COM Wheel: Install the compiler via `pip` for automated ML pipelines and Jupyter environments.
+    - DX-TRON Debian: Added `.deb` package support for Ubuntu 20.04/22.04/24.04.
+- Development Tools:
+    - `RuntimeEventDispatcher`: A new centralized C++/Python singleton for handling system events, errors, and warnings.
+    - `pydxs`: New Python binding for managing Stream metadata (`DXFrameMeta, DXObjectMeta,` etc.).
+- Engine Capabilities: Enabled direct `.dxnn` model loading from memory buffers and per-instance I/O buffer configuration.
+- Testing Infrastructure: Established a Pytest-based E2E test system for DX-APP, achieving over 93% code coverage.
+
+**Known Issues**
+- PReLU Degradation: Significant FPS drops may occur in models using PReLU activation functions.
+- PPU Conversion Gap: DX-Compiler v2.2.0 does not yet support converting face/pose models to PPU format (requires v1.0.0 for these specific tasks).
+- Breaking Changes: DX-APP v3.0.0 is not backward compatible with v2.x legacy demos or JSON configuration files.
+
+**Migration Guide**
+- Example Transition: Move from the `demos/` directory to the new `src/cpp_example/` and `src/python_example/` structures.
+- Configuration: Replace legacy JSON config files with the new Command-Line Argument system in Python.
+- Environment: Update your Python environment using the provided `requirements.txt` to support the new `dx_engine` and `pydxs` modules.
+
+For detailed updated items, refer to **each environment & module's Release Notes.
+
+---
+
 ##  DX-All-Suite v2.1.0 / 2025-11-28
 
 - DX-Compiler: v2.1.0
