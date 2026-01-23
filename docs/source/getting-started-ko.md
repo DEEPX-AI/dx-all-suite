@@ -6,12 +6,14 @@
 
 ```bash
 # Compiler Steps
+bash compiler-0_install_dx-compiler.sh  # 이미 설치된 경우 생략 가능
 bash compiler-1_download_onnx.sh
 bash compiler-2_setup_calibration_dataset.sh
 bash compiler-3_setup_output_path.sh
 bash compiler-4_model_compile.sh
 
 # Runtime Steps
+bash runtime-0_install_dx-runtime.sh    # 이미 설치된 경우 생략 가능
 bash runtime-1_setup_input_path.sh
 bash runtime-2_setup_assets.sh
 bash runtime-3_run_example_using_dxrt.sh
@@ -48,11 +50,12 @@ getting-started/
 
 ## 🧩 DX-Compiler: AI Model Compilation Scripts Guide
 
-이 문서는 `compiler-1_download_onnx.sh` ~ `compiler-4_model_compile.sh` 까지 각 스크립트의 역할과 실행 순서를 설명합니다.
+이 문서는 `compiler-0_install_dx-compiler.sh` ~ `compiler-4_model_compile.sh` 까지 각 스크립트의 역할과 실행 순서를 설명합니다.
 
 **🔄 실행 순서**
 
 ```bash
+./getting-started/compiler-0_install_dx-compiler.sh  # 이미 설치된 경우 생략 가능
 ./getting-started/compiler-1_download_onnx.sh
 ./getting-started/compiler-2_setup_calibration_dataset.sh
 ./getting-started/compiler-3_setup_output_path.sh
@@ -63,6 +66,22 @@ getting-started/
 
 - `.dxnn` 파일은 `dx_com`으로 생성된 최종 실행 대상입니다.
 - 각 스크립트는 독립적으로 실행할 수 있지만, 위 순서를 지켜야 전체 프로세스가 정상 동작합니다.
+
+---
+
+### 📁 0. compiler-0_install_dx-compiler.sh
+
+dx-compiler 패키지를 설치합니다.
+
+- **기능**: dx-compiler 설치
+- **설명**:
+  - `./dx-compiler/install.sh`를 실행하여 dx-compiler 패키지를 설치합니다.
+  - **이미 설치된 경우 이 단계를 생략하세요**.
+
+#### 📌 주요 함수
+
+- `dx-compiler` 디렉토리로 이동하여 설치 스크립트를 실행합니다.
+- 설치 종료 코드를 확인하고 성공/실패를 보고합니다.
 
 ---
 
@@ -167,12 +186,13 @@ Calibration dataset 경로를 설정하고 `.json` 파일 내 경로도 덮어�
 
 ## 🧩 DX-Runtime: Application Execution Scripts Guide
 
-이 문서는 `runtime-1_setup_input_path.sh` ~ `runtime-3_run_example_using_dxrt.sh` 스크립트의 역할과 실행 흐름을 설명합니다.  
+이 문서는 `runtime-0_install_dx-runtime.sh` ~ `runtime-3_run_example_using_dxrt.sh` 스크립트의 역할과 실행 흐름을 설명합니다.  
 `dx-compiler` 에서 `.dxnn` 모델을 생성한 후, 이를 실제 런타임 환경에서 실행하기 위한 예제 기반 가이드입니다.
 
 **🔄 Runtime 실행 순서**
 
 ```bash
+bash runtime-0_install_dx-runtime.sh  # 이미 설치된 경우 생략 가능
 bash runtime-1_setup_input_path.sh
 bash runtime-2_setup_assets.sh
 bash runtime-3_run_example_using_dxrt.sh
@@ -183,6 +203,35 @@ bash runtime-3_run_example_using_dxrt.sh
 - `DXNN®` 모델이 `.dxnn` 형태로 정상 생성된 이후에 `runtime-*` 스크립트를 실행하세요.
 - `fim` 툴은 이미지 결과 확인용 CLI 도구로, 자동 설치 루틴이 포함되어 있습니다.
 - 예제 실행 전 `dx_app/setup.sh`을 통해 필요한 모델/샘플 데이터를 반드시 준비해야 합니다.
+
+---
+
+### 📁 0. runtime-0_install_dx-runtime.sh
+
+dx-runtime 패키지를 설치합니다.
+
+- **기능**: dx-runtime 설치
+- **설명**:
+  - `./dx-runtime/install.sh --all`을 실행하여 모든 구성 요소를 포함한 dx-runtime 패키지를 설치합니다.
+  - `--exclude-fw` 플래그를 지원하여 펌웨어 설치를 제외할 수 있습니다.
+  - **이미 설치된 경우 이 단계를 생략하세요**.
+
+#### 📌 주요 함수
+
+- `dx-runtime` 디렉토리로 이동하여 설치 스크립트를 실행합니다.
+- 기본적으로 `--all` 플래그와 함께 실행되어 모든 구성 요소를 설치합니다.
+- `--exclude-fw` 플래그가 제공되면 펌웨어 설치를 건너뛰고 `--exclude-fw`와 함께 실행됩니다.
+- 설치 종료 코드를 확인하고 성공/실패를 보고합니다.
+
+#### 📌 사용법
+
+```bash
+# 모든 구성 요소와 함께 설치 (기본값)
+bash runtime-0_install_dx-runtime.sh
+
+# 펌웨어 없이 설치
+bash runtime-0_install_dx-runtime.sh --exclude-fw
+```
 
 ---
 

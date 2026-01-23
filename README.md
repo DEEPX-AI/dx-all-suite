@@ -90,7 +90,7 @@ For detailed guides on running demo applications and templates, refer to the fol
 ### FAQ
 [Link](docs/source/faq.md)
 
-### Make Docuemtment
+### Make Documentation
 [Link](docs/make_docs.md)
 
 ---
