@@ -21,7 +21,7 @@ Here are the **DX-All-Suite v2.2.0** Release Note.
 This release introduces a **Python-Centric Ecosystem** and a **Complete Example Overhaul**, making development more intuitive and integrated.
 
 - **Python-First Workflow**: DX-COM is now available via `pip` (Wheel), and new Python bindings (`pydxs, dx_postprocess`) allow for seamless metadata and post-processing management directly in Python.
-- **Major DX-APP Refactoring (v3.0.0)**: Legacy demos have been replaced with a modern, task-oriented example system. This includes built-in support for the latest YOLO generations (v10/v11/v12).
+- **Major DX-APP Refactoring (v3.0.0)**: Legacy demos have been replaced with a modern, task-oriented example system. This includes built-in support for the latest YOLO generations (v26, v10/v11/v12).
 - **Expanded Hardware Acceleration**: PPU (Post-Processing Unit) support has been extended to the newest YOLO models, further offloading CPU tasks to the NPU.
 - **Advanced Resource Management**: The introduction of NPU QoS (Quality of Service) and improved asynchronous handling ensures stable performance in multi-tasking environments.
 
@@ -29,7 +29,7 @@ This release introduces a **Python-Centric Ecosystem** and a **Complete Example 
 ### Key Updates
 
 **Performance & Efficiency**  
-- Extended PPU Support: Hardware-accelerated post-processing now supports YOLOv8, v9, v10, v11, and v12.
+- Extended PPU Support: Hardware-accelerated post-processing now supports YOLO26, YOLOv8, v9, v10, v11, and v12.
 - PCIe DMA Optimization: Reduced CPU dependency and improved sequence efficiency for high-speed data transfer (requires SDK v3.2.1+).
 - Inference Reporting: Updated `inf_time` to include both NPU and PPCPU runtimes for realistic performance profiling.
 - Resource Prioritization: Added QoS to the NPU Scheduler to manage execution priority effectively.
@@ -46,6 +46,7 @@ This release introduces a **Python-Centric Ecosystem** and a **Complete Example 
     - DX-COM Wheel: Install the compiler via `pip` for automated ML pipelines and Jupyter environments.
     - DX-TRON Debian: Added `.deb` package support for Ubuntu 20.04/22.04/24.04.
 - Development Tools:
+    - YOLO26 Support: Integration of the latest Ultralytics model optimized for edge deployment.
     - `RuntimeEventDispatcher`: A new centralized C++/Python singleton for handling system events, errors, and warnings.
     - `pydxs`: New Python binding for managing Stream metadata (`DXFrameMeta, DXObjectMeta,` etc.).
 - Engine Capabilities: Enabled direct `.dxnn` model loading from memory buffers and per-instance I/O buffer configuration.
@@ -58,7 +59,7 @@ This release introduces a **Python-Centric Ecosystem** and a **Complete Example 
 
 **Migration Guide**
 - Example Transition: Move from the `demos/` directory to the new `src/cpp_example/` and `src/python_example/` structures.
-- Configuration: Replace legacy JSON config files with the new Command-Line Argument system in Python.
+- Configuration: Replace legacy JSON config files with the new Command-Line Argument system in Python (e.g., for YOLO26 execution).
 - Environment: Update your Python environment using the provided `requirements.txt` to support the new `dx_engine` and `pydxs` modules.
 
 For detailed updated items, refer to **each environment & module's Release Notes.
