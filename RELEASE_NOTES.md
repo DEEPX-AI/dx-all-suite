@@ -36,6 +36,7 @@ This release introduces a **Python-Centric Ecosystem** and a **Complete Example 
 - Memory Footprint: Further reduced device memory usage for models utilizing PPU.
 
 **Stability & Fixes**
+- PCIe Stability: Added PERST# signal wait during initial boot stage to ensure reliable link establishment.
 - Soft Lockup Prevention: Added sleep/reschedule logic in polling to prevent system hangs during slow hardware ACKs.
 - Stream Stability: Resolved race conditions and segfaults in secondary inference modes with shared buffers.
 - Model Accuracy: Fixed a known accuracy degradation issue in the DeepLabV3PlusMobilenet-1 model.
