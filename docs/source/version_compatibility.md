@@ -24,7 +24,7 @@ DEEPX software components have version compatibility dependencies between them. 
   </thead>
   <tbody>
     <tr>
-      <td rowspan="3">2025-01-16</td>
+      <td rowspan="3">2026-01-16</td>
       <td colspan="7">v2.2.0</td>
     </tr>
     <tr>
