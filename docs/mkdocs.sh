@@ -31,7 +31,7 @@ main() {
     VERSION=$(head -n 1 ${PROJECT_ROOT}/release.ver | tr -d '\r\n')
     echo "VERSION=${VERSION}"
 
-    export PDF_FILE_PATH=../DX-AS_${VERSION}.pdf
+    export PDF_FILE_PATH=../DX-AS_${VERSION}_JAN_2026.pdf
     echo "PDF_FILE_PATH=${PDF_FILE_PATH}"
 
     # Create a temporary yml from a template with the version

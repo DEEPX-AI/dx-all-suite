@@ -15,14 +15,13 @@ ARG DEBIAN_FRONTEND=noninteractive
 ENV PATH="/usr/local/bin:${PATH}"
 
 ### update apt repo
-RUN apt-get update && apt-get install -y \
-    software-properties-common
-
 RUN if [ "${BASE_IMAGE_NAME}" = "ubuntu" ]; then \
+    apt-get update && apt-get install -y \
+    software-properties-common && \
     add-apt-repository universe && \
     add-apt-repository multiverse && \
     apt-get update; \
-  fi
+    fi
 
 ### install utils
 RUN apt-get update && apt-get install -y \
@@ -51,7 +50,7 @@ RUN if [ "$USE_INTRANET" = "true" ]; then \
 # Setup Python 3.8.2 or higher
 #   - Unified installation flow: apt → source build fallback
 #   - Ubuntu 18.04, 20.04, 22.04, 24.04 supported
-#   - Debian 11, 12 supported
+#   - Debian 12, 13 supported
 ENV MIN_PY_VERSION=3.8.2
 ARG TARGET_INSTALL_PY_VERSION=""
 RUN set -x && \
@@ -74,7 +73,7 @@ RUN set -x && \
     PY_MAJOR_MINOR=$(echo "${TARGET_INSTALL_PY_VERSION}" | cut -d. -f1,2) && \
     DX_PYTHON_EXEC="" && \
     if { [ "${BASE_IMAGE_NAME}" = "ubuntu" ] && { [ "$(lsb_release -rs)" = "24.04" ] || [ "$(lsb_release -rs)" = "22.04" ] || [ "$(lsb_release -rs)" = "20.04" ] || [ "$(lsb_release -rs)" = "18.04" ]; }; } || \
-       { [ "${BASE_IMAGE_NAME}" = "debian" ] && { [ "$(lsb_release -rs)" = "12" ] || [ "$(lsb_release -rs)" = "11" ]; }; }; then \
+       { [ "${BASE_IMAGE_NAME}" = "debian" ] && { [ "$(lsb_release -rs)" = "13" ] || [ "$(lsb_release -rs)" = "12" ]; }; }; then \
         echo "Supported OS: ${BASE_IMAGE_NAME} $(lsb_release -rs)" && \
         apt-get update && \
         if [ "${BASE_IMAGE_NAME}" = "ubuntu" ]; then \
@@ -151,7 +150,7 @@ RUN set -x && \
     elif [ "${BASE_IMAGE_NAME}" = "debian" ]; then \
         DEBIAN_VERSION=$(lsb_release -rs) && \
         echo "*** DEBIAN_VERSION(${DEBIAN_VERSION}) ***" && \
-        if [ "$DEBIAN_VERSION" = "12" ] || [ "$DEBIAN_VERSION" = "11" ]; then \
+        if [ "$DEBIAN_VERSION" = "13" ] || [ "$DEBIAN_VERSION" = "12" ]; then \
             pip install --upgrade pip wheel setuptools; \
         else \
             echo "Unsupported Debian version: $DEBIAN_VERSION" && exit 1; \
