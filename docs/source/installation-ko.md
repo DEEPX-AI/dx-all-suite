@@ -482,11 +482,16 @@ DVFS Disabled
 ./setup.sh
 ```
 
-#### `dx_app` 실행
+#### `dx_app` C++ demo 실행
 
 ```bash
-./scripts/run_detector.sh
-fim ./result-app1.jpg
+./run_demo.sh
+```
+
+#### `dx_app` python demo 실행
+
+```bash
+./run_demo_python.sh
 ```
 
 **자세한 내용은 [dx-runtime/dx_app/README.md](/dx-runtime/dx_app/README.md).**
