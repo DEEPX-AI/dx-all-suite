@@ -25,9 +25,9 @@ getting-started/
 ├── dxnn                         # ← Model output symbolic link created by dx-compiler
 ├── forked_dx_app_example        # ← Example execution target (forked)
 │   ├── bin
-│   ├── example
-│   │   ├── run_classifier
-│   │   └── run_detector
+│   │   ├── efficientnet_async
+│   │   └── yolov5_async
+│   │   └── yolov5face_async
 │   └── sample
 │       └── ILSVRC2012
 └── modelzoo

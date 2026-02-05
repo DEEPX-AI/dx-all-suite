@@ -482,11 +482,16 @@ DVFS Disabled
 ./setup.sh
 ```
 
-#### Run `dx_app`
+#### Run `dx_app` C++ demos
 
 ```bash
-./scripts/run_detector.sh
-fim ./result-app1.jpg
+./run_demo.sh
+```
+
+#### Run `dx_app` python demos
+
+```bash
+./run_demo_python.sh
 ```
 
 **For more details, refer to [dx-runtime/dx_app/README.md](/dx-runtime/dx_app/README.md).**
