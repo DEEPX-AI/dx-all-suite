@@ -1,5 +1,34 @@
 # RELEASE_NOTES
 
+## DX-All-Suite v2.2.1 / 2026-02-06
+
+- DX-Runtime: v2.2.1
+  - DX-APP: v3.0.1
+
+---
+
+Here are the **DX-All-Suite v2.2.1** Release Note.
+
+### What's New?
+
+This release focuses on enhancing the YOLO ecosystem with expanded model variant support and improved flexibility in post-processing.
+
+- **Extended YOLO26 Coverage**: Full support for YOLO26 variants including classification, pose estimation, segmentation, and oriented bounding box detection.
+
+---
+
+### Key Updates
+
+**Stability & Fixes**
+
+- Fixed hardcoded attribute size limitation in YOLO post-processing that could cause issues with models having different output configurations.
+
+**New Features & Tools**
+
+- Add yolov26 cls, yolo26 pose, yolo26 seg, yolo26 obb examples
+
+---
+
 ##  DX-All-Suite v2.2.0 / 2026-01-16
 
 - DX-Compiler: v2.2.0
