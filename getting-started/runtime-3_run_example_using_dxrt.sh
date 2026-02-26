@@ -96,9 +96,11 @@ run_example() {
     if [ ! -f /deepx/tty_flag ]; then
         echo -e "${TAG_INFO} <hint> Press ${COLOR_BRIGHT_GREEN_ON_BLACK}'q' or 'Ctrl+C'${COLOR_RESET} to exit result viewing"
     else
-        additional_args+=" --no-display"
+        if [ "${exe_file_path}" != "./bin/efficientnet_async" ]; then
+            additional_args+=" --no-display"
+        fi
     fi
-    
+
     RUN_CMD="${exe_file_path} -m ${dxnn_file_path} -i ${image_path} ${SAVE_LOG_ARG} -l ${loop} ${additional_args}"
     echo "$RUN_CMD"
     eval "$RUN_CMD"
@@ -176,29 +178,22 @@ main() {
     # fork dx_app example (yolo_face, yolov5s, mobilenetv2)
     fork_examples
 
-    echo -e "${TAG_START} === Yolov5 Face ==="
-    COMMIT_MSG="Updated to use '*.dxnn' files compiled by the user with 'dx_com'"
-
     # yolo_face example
+    echo -e "${TAG_START} === Yolov5 Face ==="
     rm -rf ${FORK_PATH}/result*.jpg
     run_example "./bin/yolov5face_async" "${YOLO_FACE_TARGET_STR}" "./sample/face_sample.jpg" "n" "30"
     show_result "${FORK_PATH}/result*.jpg"
     echo -e "${TAG_DONE} === YOLOV5 Face ==="
 
-
-    echo -e "${TAG_START} === Yolov5S ==="
     # yolov5s example
+    echo -e "${TAG_START} === Yolov5S ==="
     rm -rf ${FORK_PATH}/result*.jpg
     run_example "./bin/yolov5_async" "${YOLO_V5S_TARGET_STR}" "./sample/1.jpg" "n" "300"
     show_result "${FORK_PATH}/result*.jpg"
     echo -e "${TAG_DONE} === Yolov5s ==="
 
-
-    # hijack mobilenetv2 example
-    echo -e "${TAG_START} === MobileNetV2 ==="
-    hijack_example "${MOBILENET_V2_EXAMPLE_PATH}" "${MOBILENET_V2_SOURCE_STR}" "${MOBILENET_V2_TARGET_STR}" "${COMMIT_MSG}"
-
-    # run mobilenetv2 hijakced example
+    # mobilenetv2 example
+    echo -e "${TAG_START} === MobileNetV2 ==="    
     rm -rf ${FORK_PATH}/result*.log
     run_example "./bin/efficientnet_async" "${MOBILENET_V2_TARGET_STR}" "./sample/ILSVRC2012/1.jpeg" "y" "300"
     echo -e "${TAG_INFO} -------- [Result of MobileNetV2 example] --------"

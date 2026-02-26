@@ -125,6 +125,10 @@ docker_build_impl()
     export HOST_GID=${HOST_GID}
     export TARGET_USER=${TARGET_USER}
     export TARGET_HOME=${TARGET_HOME}
+
+    # Export credentials for DEEPX Portal authentication
+    export DX_USERNAME=${DX_USERNAME}
+    export DX_PASSWORD=${DX_PASSWORD}
     
     # XAUTHORITY setup ...
     if [ ! -n "${XAUTHORITY}" ]; then
@@ -310,6 +314,13 @@ main() {
     print_colored_v2 "INFO" "HOST_GID($HOST_GID) is set."
     print_colored_v2 "INFO" "TARGET_USER($TARGET_USER) is set."
     print_colored_v2 "INFO" "TARGET_HOME($TARGET_HOME) is set."
+    # Log credentials status
+    if [ -n "$DX_USERNAME" ] && [ -n "$DX_PASSWORD" ]; then
+        print_colored_v2 "INFO" "DX_USERNAME is set."
+        print_colored_v2 "INFO" "DX_PASSWORD is set."
+    else
+        print_colored_v2 "WARNING" "DX_USERNAME or DX_PASSWORD is not set. Archive operations may fail."
+    fi
     if [ "$DRIVER_UPDATE" = "y" ]; then
         print_colored_v2 "INFO" "DRIVER_UPDATE($DRIVER_UPDATE) is set."
     fi

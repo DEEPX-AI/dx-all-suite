@@ -1,16 +1,14 @@
 #!/bin/bash
 SCRIPT_DIR=$(realpath "$(dirname "$0")")
-COMPILER_PATH=$(realpath -s "${SCRIPT_DIR}/../dx-compiler")
-DX_AS_PATH=$(realpath -s "${COMPILER_PATH}/..")
+DX_AS_PATH=$(realpath -s "${SCRIPT_DIR}/..")
+BASE_URL="https://sdk.deepx.ai/"
 
 # color env settings
 source ${DX_AS_PATH}/scripts/color_env.sh
 
 echo -e "======== PATH INFO ========="
-echo "COMPILER_PATH($COMPILER_PATH)"
 echo "DX_AS_PATH($DX_AS_PATH)"
 echo -e "============================"
-
 
 # setup 'calibration_dataset' to './calibration_dataset'
 #   Notes: 
@@ -31,32 +29,49 @@ echo -e "============================"
 # }
 # ```
 
-make_symlink_calibration_dataset() {
-    if [ ! -d "${COMPILER_PATH}/dx_com/calibration_dataset" ]; then
-        echo -e "${TAG_ERROR} '${COMPILER_PATH}/dx_com/calibration_dataset' is not exist"
-        exit 1
-    fi
+# Function to display help message
+show_help() {
+    echo "Usage: $(basename "$0") [OPTIONS]"
+    echo "Options:"
+    echo "  [--force]     : Force overwrite if the file already exists"
+    echo "  [--help]      : Show this help message"
 
-    if [ -L "${CALIBRATION_DATASET_PATH}" ] && [ -e "${CALIBRATION_DATASET_PATH}" ]; then
-        echo -e "${TAG_INFO} '${CALIBRATION_DATASET_PATH}' is exist. so, skip to make symlink"
+    if [ "$1" == "error" ] && [[ ! -n "$2" ]]; then
+        echo -e "${TAG_ERROR} Invalid or missing arguments."
+        exit 1
+    elif [ "$1" == "error" ] && [[ -n "$2" ]]; then
+        echo -e "${TAG_ERROR} $2"
+        exit 1
+    elif [[ "$1" == "warn" ]] && [[ -n "$2" ]]; then
+        echo -e "${TAG_WARN} $2"
         return 0
     fi
-    
-    if [ -L "${CALIBRATION_DATASET_PATH}" ] && [ ! -e "${CALIBRATION_DATASET_PATH}" ]; then
-        echo "'${CALIBRATION_DATASET_PATH}' is symlink. but, it is broken. so, recreate symlink."
-        rm -rf ${CALIBRATION_DATASET_PATH}
-    fi
+    exit 0
+}
 
-    CMD="ln -s ${COMPILER_PATH}/dx_com/calibration_dataset ${SCRIPT_DIR}/."
-    echo "$CMD"
+download() {
+    local model_name=$1
+    local ext_name=$2
 
-    $CMD
+    echo -e "=== Download : ${CALIBRATION_DATASET_PATH} ${TAG_START} ==="
+
+    SOURCE_PATH="dataset/calibration_dataset.tar.gz"
+    OUTPUT_DIR="${CALIBRATION_DATASET_PATH}"
+    EXTRACT_ARGS="--extract"
+
+    SYMLINK_TARGET_PATH="${DX_AS_PATH}/workspace/dataset"
+    SYMLINK_ARGS="--symlink_target_path=$SYMLINK_TARGET_PATH"
+
+    GET_RES_CMD="${DX_AS_PATH}/scripts/get_resource.sh --src_path=$SOURCE_PATH --output=$OUTPUT_DIR $EXTRACT_ARGS $SYMLINK_ARGS $FORCE_ARGS"
+    echo "Get Resources from remote server ..."
+    echo "$GET_RES_CMD"
+
+    $GET_RES_CMD
     if [ $? -ne 0 ]; then
-        echo -e "${TAG_ERROR} Setup 'calibration_dataset' to './calibration_dataset failed!"
+        echo -e "${TAG_ERROR} Get calibration dataset failed!"
         exit 1
     fi
-
-    echo -e "${TAG_SUCC} Setup 'calibration_dataset' to './calibration_dataset"
+    echo -e "=== Download : ${CALIBRATION_DATASET_PATH} ${TAG_DONE} ==="
 }
 
 hijack_dataset_path() {
@@ -95,7 +110,7 @@ main() {
     MODELZOO_PATH="${SCRIPT_DIR}/modelzoo"
     CALIBRATION_DATASET_PATH="${SCRIPT_DIR}/calibration_dataset"
 
-    make_symlink_calibration_dataset
+    download
 
     MODEL_NAME_LIST=("YOLOV5S-1" "YOLOV5S_Face-1" "MobileNetV2-1")
     for i in "${!MODEL_NAME_LIST[@]}"; do
