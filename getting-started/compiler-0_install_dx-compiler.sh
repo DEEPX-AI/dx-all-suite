@@ -4,6 +4,7 @@ DX_AS_PATH=$(realpath -s "${SCRIPT_DIR}/..")
 
 # color env settings
 source ${DX_AS_PATH}/scripts/color_env.sh
+source ${DX_AS_PATH}/scripts/common_util.sh
 
 # Display help message
 show_help() {
@@ -50,19 +51,43 @@ echo -e "============================"
 
 # Check if dxcom is already installed and working (skip if --force is used)
 if [ "$FORCE_INSTALL" = false ]; then
-    DXCOM_PATH="${DX_AS_PATH}/dx-compiler/venv-dx-compiler-local/bin/dxcom"
-    if [ -f "${DXCOM_PATH}" ]; then
-        echo -e "${TAG_INFO} Checking existing dxcom installation..."
-        if "${DXCOM_PATH}" -v &>/dev/null; then
-            echo -e "${TAG_INFO} dxcom is already installed and working:"
-            "${DXCOM_PATH}" -v
-            echo -e "${TAG_DONE} Skipping dx-compiler installation"
-            exit 0
-        else
-            echo -e "${TAG_INFO} Existing dxcom installation found but not working. Proceeding with installation..."
+    COMPILER_PATH="${DX_AS_PATH}/dx-compiler"
+    PROJECT_NAME="dx-compiler"
+
+    _check_dxcom_working() {
+        if command -v dxcom &>/dev/null; then
+            echo -e "${TAG_INFO} dxcom is already available in PATH and working:"
+            dxcom -v
+            return 0
         fi
-    else
-        echo -e "${TAG_INFO} dxcom not found. Proceeding with installation..."
+
+        echo -e "${TAG_INFO} dxcom not found in PATH. Checking venv..."
+        if check_container_mode; then
+            VENV_PATH="${COMPILER_PATH}/venv-${PROJECT_NAME}"
+        else
+            VENV_PATH="${COMPILER_PATH}/venv-${PROJECT_NAME}-local"
+        fi
+
+        if [ -f "${VENV_PATH}/bin/activate" ]; then
+            echo -e "${TAG_INFO} Activating venv: ${VENV_PATH}"
+            source "${VENV_PATH}/bin/activate"
+            if command -v dxcom &>/dev/null; then
+                echo -e "${TAG_INFO} dxcom is available in venv and working:"
+                dxcom -v
+                return 0
+            else
+                echo -e "${TAG_INFO} dxcom found in venv but not working. Proceeding with installation..."
+                return 1
+            fi
+        else
+            echo -e "${TAG_INFO} venv not found at: ${VENV_PATH}. Proceeding with installation..."
+            return 1
+        fi
+    }
+
+    if _check_dxcom_working; then
+        echo -e "${TAG_DONE} Skipping dx-compiler installation"
+        exit 0
     fi
 else
     echo -e "${TAG_INFO} Force install mode enabled. Proceeding with installation..."

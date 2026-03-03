@@ -23,8 +23,8 @@ bash runtime-3_run_example_using_dxrt.sh
 
 ```
 getting-started/
-├── calibration_dataset
-├── dxnn                         # ← Model output symbolic link created by dx-compiler
+├── calibration_dataset          # ← 심볼릭 링크 → dx-compiler/dx_com/calibration_dataset
+├── dxnn                         # ← 심볼릭 링크 → dx-compiler/dx_com/output
 ├── forked_dx_app_example        # ← Example execution target (forked)
 │   ├── bin
 │   │   ├── efficientnet_async
@@ -32,7 +32,7 @@ getting-started/
 │   │   └── yolov5face_async
 │   └── sample
 │       └── ILSVRC2012
-└── modelzoo
+└── sample_models                # ← 심볼릭 링크 → dx-compiler/dx_com/sample_models
     ├── json
     └── onnx
 ```
@@ -102,60 +102,36 @@ bash compiler-0_install_dx-compiler.sh -f
 
 ### 📁 1. compiler-1_download_onnx.sh
 
-모델 파일(.onnx, .json)을 다운로드 받아 설정된 workspace로 연결합니다.
+샘플 모델 파일(`.onnx`, `.json`)을 다운로드하고 `getting-started/`에 심볼릭 링크를 생성합니다.
 
 - **기능**: 모델 다운로드 자동화
 - **설명**:
-  - `modelzoo/onnx` 와 `modelzoo/json` 디렉토리에 `.onnx` 모델과 설정파일을 다운로드합니다.
-  - `YOLOV5S-1`, `YOLOV5S_Face-1`, `MobileNetV2-1` 모델을 기준으로 동작합니다.
+  - `dx-compiler/example/1-download_sample_models.sh`에 위임하여 `dx-compiler/dx_com/sample_models/`에 모델을 다운로드합니다.
+  - 심볼릭 링크 생성: `getting-started/sample_models` → `dx-compiler/dx_com/sample_models`.
+  - 지원 모델: `YOLOV5S-1`, `YOLOV5S_Face-1`, `MobileNetV2-1`.
   - `--force` 옵션으로 기존 파일을 덮어쓸 수 있습니다.
 
 #### 📌 주요 함수
 
-- `show_help([type], [message])`
-
-  - 잘못된 옵션 입력 시 도움말 메시지를 출력하고 종료합니다.
-  - `--force`, `--help` 지원.
-
-- `download(model_name, ext_name)`
-
-  - 주어진 모델 이름과 확장자를 기반으로 리소스를 다운로드합니다.
-  - `get_resource.sh`를 호출해 `modelzoo/{ext_name}/{model_name}.{ext_name}`에 저장.
-  - workspace (`workspace/modelzoo/`)와의 심볼릭 링크 생성도 포함.
-
-- `main()`
-  - 모델 리스트와 확장자 리스트를 순회하며 `download()
+- 다운로드 로직은 `dx-compiler/example/1-download_sample_models.sh`에 위임합니다.
+- 다운로드 완료 후 `getting-started/sample_models` 심볼릭 링크를 생성합니다.
 
 ---
 
 ### 📁 2. compiler-2_setup_calibration_dataset.sh
 
-Calibration dataset을 다운로드하고 `.json` 파일 내 경로를 설정합니다.
+Calibration dataset을 다운로드하고 `getting-started/`에 심볼릭 링크를 생성합니다.
 
 - **기능**: Calibration 데이터셋 설정
 - **설명**:
-  - 원격 서버에서 `calibration_dataset.tar.gz` 를 다운로드하여 `./calibration_dataset` 에 압축을 해제합니다.
-  - workspace에 심볼릭 링크 생성: `workspace/dataset` → `./calibration_dataset`.
-  - `modelzoo/json/*.json` 내 `dataset_path` 항목을 `./calibration_dataset` 으로 강제 변경(hijack)합니다.
+  - `dx-compiler/example/2-download_sample_calibration_dataset.sh`에 위임하여 `dx-compiler/dx_com/calibration_dataset/`에 데이터셋을 다운로드 및 압축 해제합니다.
+  - 심볼릭 링크 생성: `getting-started/calibration_dataset` → `dx-compiler/dx_com/calibration_dataset`.
   - `--force` 옵션으로 기존 파일을 덮어쓸 수 있습니다.
 
 #### 📌 주요 함수
 
-- `download()`
-
-  - 원격 서버에서 calibration dataset 아카이브를 다운로드합니다.
-  - `get_resource.sh`를 호출하여 `dataset/calibration_dataset.tar.gz`를 다운로드하고 압축 해제합니다.
-  - `workspace/dataset`에서 압축 해제된 dataset으로의 심볼릭 링크를 생성합니다.
-
-- `hijack_dataset_path(model_name)`
-
-  - `json/{model_name}.json` 내 `"dataset_path"` 값을 `./calibration_dataset` 로 강제 변경.
-  - 기존 파일 백업(`.bak`) 후 `sed` 명령어로 값 수정.
-  - 변경 전/후 `diff` 출력.
-
-- `main()`
-  - `download()`를 실행하여 calibration dataset 다운로드.
-  - 예시 모델 각각에 대해 `hijack_dataset_path()` 수행.
+- 다운로드/압축 해제 로직은 `dx-compiler/example/2-download_sample_calibration_dataset.sh`에 위임합니다.
+- 다운로드 완료 후 `getting-started/calibration_dataset` 심볼릭 링크를 생성합니다.
 
 ---
 
@@ -181,23 +157,18 @@ Calibration dataset을 다운로드하고 `.json` 파일 내 경로를 설정합
 
 ### 📁 4. compiler-4_model_compile.sh
 
-`.onnx` 모델을 `.dxnn` 포맷으로 컴파일합니다.
+샘플 `.onnx` 모델을 `.dxnn` 포맷으로 컴파일하고 출력 경로에 심볼릭 링크를 생성합니다.
 
 - **기능**: 모델 컴파일 실행
 - **설명**:
-  - `dx_com` 툴을 이용해 `.onnx` 및 `.json` 파일을 `.dxnn` 포맷으로 변환합니다.
-  - 변환된 `.dxnn` 파일은 `./dxnn/` 디렉토리에 저장됩니다.
+  - `dx-compiler/example/3-compile_sample_models.sh`에 위임하여 `dxcom`으로 `onnx + json → dxnn` 변환을 수행합니다.
+  - 컴파일된 `.dxnn` 파일은 `dx-compiler/dx_com/output/`에 저장됩니다.
+  - 심볼릭 링크 생성: `getting-started/dxnn` → `dx-compiler/dx_com/output`.
 
 #### 📌 주요 함수
 
-- `compile(model_name)`
-
-  - `dx_com` 실행하여 `.onnx + .json → .dxnn` 으로 변환.
-  - 결과물은 `./dxnn` 디렉토리에 저장.
-  - 실패 시 종료.
-
-- `main()`
-  - 모델 리스트 순회하며 `compile()` 호출.
+- 컴파일 로직은 `dx-compiler/example/3-compile_sample_models.sh`에 위임합니다.
+- 컴파일 완료 후 `getting-started/dxnn` 심볼릭 링크를 생성합니다.
 
 ---
 
