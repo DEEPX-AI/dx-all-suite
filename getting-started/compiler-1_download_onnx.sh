@@ -1,92 +1,69 @@
 #!/bin/bash
+# =============================================================================
+# [Getting Started] Download Sample ONNX Models
+#
+# This script delegates model downloading to dx-compiler/example/1-download_sample_models.sh
+# and creates a symlink so that getting-started/sample_models points to the
+# downloaded models in dx-compiler/example/sample_models/.
+#
+# This design allows dx-compiler to be used both:
+#   - As part of dx-all-suite (via this getting-started wrapper)
+#   - Standalone after cloning the dx-compiler repository alone
+# =============================================================================
+
 SCRIPT_DIR=$(realpath "$(dirname "$0")")
 DX_AS_PATH=$(realpath -s "${SCRIPT_DIR}/..")
+COMPILER_EXAMPLE_DIR="${DX_AS_PATH}/dx-compiler/example"
 
 # color env settings
-source ${DX_AS_PATH}/scripts/color_env.sh
+source "${DX_AS_PATH}/scripts/color_env.sh"
 
 echo -e "======== PATH INFO ========="
 echo "DX_AS_PATH($DX_AS_PATH)"
+echo "COMPILER_EXAMPLE_DIR($COMPILER_EXAMPLE_DIR)"
 echo -e "============================"
 
+# Parse --force argument and pass it through
+PASSTHROUGH_ARGS=""
+for arg in "$@"; do
+    case "$arg" in
+        --force) PASSTHROUGH_ARGS="--force" ;;
+        --help) PASSTHROUGH_ARGS="--help" ;;
+    esac
+done
 
-# Function to display help message
-show_help() {
-    echo "Usage: $(basename "$0") [OPTIONS]"
-    echo "Options:"
-    echo "  [--force]     : Force overwrite if the file already exists"
-    echo "  [--help]      : Show this help message"
+# -----------------------------------------------------------------------------
+# [Step 1] Delegate to dx-compiler/example/1-download_sample_models.sh
+# -----------------------------------------------------------------------------
+echo -e "=== Delegating to dx-compiler/example/1-download_sample_models.sh ${TAG_START} ==="
+"${COMPILER_EXAMPLE_DIR}/1-download_sample_models.sh" ${PASSTHROUGH_ARGS}
+if [ $? -ne 0 ]; then
+    echo -e "${TAG_ERROR} Model download failed!"
+    exit 1
+fi
+echo -e "=== Delegating to dx-compiler/example/1-download_sample_models.sh ${TAG_DONE} ==="
 
-    if [ "$1" == "error" ] && [[ ! -n "$2" ]]; then
-        echo -e "${TAG_ERROR} Invalid or missing arguments."
-        exit 1
-    elif [ "$1" == "error" ] && [[ -n "$2" ]]; then
-        echo -e "${TAG_ERROR} $2"
-        exit 1
-    elif [[ "$1" == "warn" ]] && [[ -n "$2" ]]; then
-        echo -e "${TAG_WARN} $2"
-        return 0
-    fi
-    exit 0
-}
+# -----------------------------------------------------------------------------
+# [Step 2] Create symlink: getting-started/sample_models -> dx-compiler/example/sample_models
+#
+#   Other getting-started scripts (compiler-2, compiler-4) reference
+#   ${SCRIPT_DIR}/sample_models, so we create a symlink here for compatibility.
+# -----------------------------------------------------------------------------
+SAMPLE_MODELS_SYMLINK="${SCRIPT_DIR}/sample_models"
+SAMPLE_MODELS_REAL="${DX_AS_PATH}/dx-compiler/dx_com/sample_models"
 
-download() {
-    local model_name=$1
-    local ext_name=$2
+if [ -L "${SAMPLE_MODELS_SYMLINK}" ]; then
+    rm "${SAMPLE_MODELS_SYMLINK}"
+elif [ -e "${SAMPLE_MODELS_SYMLINK}" ]; then
+    echo -e "${TAG_ERROR} ${SAMPLE_MODELS_SYMLINK} exists as a non-symlink. Remove it manually."
+    exit 1
+fi
 
-    echo -e "=== [#$i] Download : ${model_name}.${ext_name} ${TAG_START} ==="
-
-    SOURCE_PATH="modelzoo/${ext_name}/${model_name}.${ext_name}"
-    OUTPUT_DIR="${SCRIPT_DIR}/modelzoo/${ext_name}"
-    EXTRACT_ARGS=""
-
-    SYMLINK_TARGET_PATH="${DX_AS_PATH}/workspace/modelzoo/${ext_name}"
-    SYMLINK_ARGS="--symlink_target_path=$SYMLINK_TARGET_PATH"
-
-    GET_RES_CMD="${DX_AS_PATH}/scripts/get_resource.sh --src_path=$SOURCE_PATH --output=$OUTPUT_DIR $EXTRACT_ARGS $SYMLINK_ARGS $FORCE_ARGS"
-    echo "Get Resources from remote server ..."
-    echo "$GET_RES_CMD"
-
-    $GET_RES_CMD
-    if [ $? -ne 0 ]; then
-        echo -e "${TAG_ERROR} Get model failed!"
-        exit 1
-    fi
-    echo -e "=== [#$i] Download : ${model_name}.${ext_name} ${TAG_DONE} ==="
-}
-
-main() {
-    FORCE_ARGS=""
-    # parse args
-    for i in "$@"; do
-        case "$1" in
-            --force)
-                FORCE_ARGS="--force"
-                ;;
-            --help)
-                show_help
-                ;;
-            *)
-                show_help "error" "Invalid option '$1'"
-                ;;
-        esac
-        shift
-    done
-
-    # usage
-    BASE_URL="https://sdk.deepx.ai/"
-
-    # default value
-    MODEL_NAME_LIST=("YOLOV5S-1" "YOLOV5S_Face-1" "MobileNetV2-1")
-    EXT_LIST=("onnx" "json")
-    for i in "${!MODEL_NAME_LIST[@]}"; do
-        for j in "${!EXT_LIST[@]}"; do
-            download ${MODEL_NAME_LIST[$i]} ${EXT_LIST[$j]}
-        done
-    done
-}
-
-main
+ln -s "${SAMPLE_MODELS_REAL}" "${SAMPLE_MODELS_SYMLINK}"
+if [ $? -ne 0 ]; then
+    echo -e "${TAG_ERROR} Failed to create symlink: ${SAMPLE_MODELS_SYMLINK} -> ${SAMPLE_MODELS_REAL}"
+    exit 1
+fi
+echo "Created symlink: ${SAMPLE_MODELS_SYMLINK} -> ${SAMPLE_MODELS_REAL}"
 
 exit 0
-
