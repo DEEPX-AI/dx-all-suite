@@ -45,7 +45,7 @@ plugins:
   - search
   - to-pdf:
       author: DEEPX.ai
-      copyright: ⓒ Copyright 2026 DEEPX All Rights Reserved.
+      copyright: ⓒ Copyright 2026- DEEPX All Rights Reserved.
       #
       #cover: false
       #cover_title: TITLE TEXT

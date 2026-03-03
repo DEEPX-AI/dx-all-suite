@@ -145,6 +145,16 @@ which python
 
 2.  심볼릭 링크가 `./dx-compiler/dx_com`에 생성됩니다.
 
+3.  **샘플 데이터가 자동으로 다운로드**됩니다 (`./dx-compiler/dx_com/`):
+    - `sample_models/` — 샘플 ONNX 모델 및 JSON 설정 파일 (`YOLOV5S-1`, `YOLOV5S_Face-1`, `MobileNetV2-1`)
+    - `calibration_dataset/` — 양자화(Quantization)용 캘리브레이션 이미지
+
+    > 자동 다운로드가 실패하면 수동으로 실행할 수 있습니다:
+    > ```bash
+    > ./dx-compiler/example/1-download_sample_models.sh
+    > ./dx-compiler/example/2-download_sample_calibration_dataset.sh
+    > ```
+
 #### dx_com 사용하기
 
 **Wheel 모드로 설치한 경우:**
@@ -546,58 +556,47 @@ DVFS Disabled
 
 #### 샘플 ONNX 입력을 사용하여 `dx_com` 실행
 
-**Wheel 모드로 설치한 경우:**
+설치 시 샘플 모델이 자동으로 `./dx-compiler/dx_com/sample_models/`에 다운로드됩니다.
+`./dx-compiler/dx_com/` 디렉토리 기준으로 실행합니다.
 
-가상 환경을 활성화한 후 `dxcom` 명령어를 사용할 수 있습니다:
+**샘플 모델 일괄 컴파일 (권장):**
 
 ```bash
-# Activate virtual environment
+../example/3-compile_sample_models.sh
+```
+
+**개별 모델 수동 컴파일:**
+
+**Wheel 모드로 설치한 경우:**
+
+```bash
+# 가상 환경 활성화
 source ./dx-compiler/venv-dx-compiler/bin/activate
 
-dxcom \
-        -m sample/MobileNetV1-1.onnx \
-        -c sample/MobileNetV1-1.json \
-        -o sample/MobileNetV1-1
-        -o sample/MobileNetV1-1
-Compiling Model : 100%|███████████████████████████████| 1.0/1.0 [00:06<00:00,  7.00s/model ]
+cd ./dx-compiler/dx_com
 
 dxcom \
-        -m sample/ResNet50-1.onnx \
-        -c sample/ResNet50-1.json \
-        -o sample/ResNet50-1
-        -o sample/ResNet50-1
-Compiling Model : 100%|███████████████████████████████| 1.0/1.0 [00:19<00:00, 19.17s/model ]
-
-dxcom \
-        -m sample/YOLOV5-1.onnx \
-        -c sample/YOLOV5-1.json \
-        -o sample/YOLOV5-1
-        -o sample/YOLOV5-1
+        -m sample_models/onnx/YOLOV5S-1.onnx \
+        -c sample_models/json/YOLOV5S-1.json \
+        -o output/YOLOV5S-1
 Compiling Model : 100%|███████████████████████████████| 1.0/1.0 [00:47<00:00, 47.66s/model ]
+
+dxcom \
+        -m sample_models/onnx/MobileNetV2-1.onnx \
+        -c sample_models/json/MobileNetV2-1.json \
+        -o output/MobileNetV2-1
+Compiling Model : 100%|███████████████████████████████| 1.0/1.0 [00:06<00:00,  7.00s/model ]
 ```
 
 **Legacy 모드로 설치한 경우:**
 
 ```bash
-dx_com/dx_com \
-        -m sample/MobileNetV1-1.onnx \
-        -c sample/MobileNetV1-1.json \
-        -o sample/MobileNetV1-1
-        -o sample/MobileNetV1-1
-Compiling Model : 100%|███████████████████████████████| 1.0/1.0 [00:06<00:00,  7.00s/model ]
+cd ./dx-compiler/dx_com
 
 dx_com/dx_com \
-        -m sample/ResNet50-1.onnx \
-        -c sample/ResNet50-1.json \
-        -o sample/ResNet50-1
-        -o sample/ResNet50-1
-Compiling Model : 100%|███████████████████████████████| 1.0/1.0 [00:19<00:00, 19.17s/model ]
-
-dx_com/dx_com \
-        -m sample/YOLOV5-1.onnx \
-        -c sample/YOLOV5-1.json \
-        -o sample/YOLOV5-1
-        -o sample/YOLOV5-1
+        -m sample_models/onnx/YOLOV5S-1.onnx \
+        -c sample_models/json/YOLOV5S-1.json \
+        -o output/YOLOV5S-1
 Compiling Model : 100%|███████████████████████████████| 1.0/1.0 [00:47<00:00, 47.66s/model ]
 ```
 

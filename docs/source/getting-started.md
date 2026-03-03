@@ -23,8 +23,8 @@ bash runtime-3_run_example_using_dxrt.sh
 
 ```
 getting-started/
-├── calibration_dataset
-├── dxnn                         # ← Model output symbolic link created by dx-compiler
+├── calibration_dataset          # ← Symlink → dx-compiler/dx_com/calibration_dataset
+├── dxnn                         # ← Symlink → dx-compiler/dx_com/output
 ├── forked_dx_app_example        # ← Example execution target (forked)
 │   ├── bin
 │   │   ├── efficientnet_async
@@ -32,7 +32,7 @@ getting-started/
 │   │   └── yolov5face_async
 │   └── sample
 │       └── ILSVRC2012
-└── modelzoo
+└── sample_models                # ← Symlink → dx-compiler/dx_com/sample_models
     ├── json
     └── onnx
 ```
@@ -102,61 +102,36 @@ bash compiler-0_install_dx-compiler.sh -f
 
 ### 📁 1. compiler-1_download_onnx.sh
 
-Downloads model files (`.onnx`, `.json`) and links them into the workspace.
+Downloads sample model files (`.onnx`, `.json`) and creates a symlink into `getting-started/`.
 
 - **Purpose**: Automatic model download
 - **Description**:
-  - Downloads files into `modelzoo/onnx` and `modelzoo/json` directories.
+  - Delegates to `dx-compiler/example/1-download_sample_models.sh` which downloads models to `dx-compiler/dx_com/sample_models/`.
+  - Creates symlink: `getting-started/sample_models` → `dx-compiler/dx_com/sample_models`.
   - Supports models: `YOLOV5S-1`, `YOLOV5S_Face-1`, `MobileNetV2-1`.
   - `--force` option allows overwriting existing files.
 
 #### 📌 Key Functions
 
-- `show_help([type], [message])`
-
-  - Displays usage and exits when invalid options are passed.
-  - Supports `--force`, `--help`.
-
-- `download(model_name, ext_name)`
-- `download(model_name, ext_name)`
-
-  - Downloads resources based on the given model name and extension.
-  - Calls `get_resource.sh` and saves to `modelzoo/{ext_name}/{model_name}.{ext_name}`.
-  - Also creates a symbolic link to the workspace (`workspace/modelzoo/`).
-
-- `main()`
-  Iterates through model list and extension list, calling `download()`.
+- Delegates all download logic to `dx-compiler/example/1-download_sample_models.sh`.
+- Creates the `getting-started/sample_models` symlink pointing to the downloaded data.
 
 ---
 
 ### 📁 2. compiler-2_setup_calibration_dataset.sh
 
-Downloads the calibration dataset and modifies `.json` config files to use it.
+Downloads the calibration dataset and creates a symlink into `getting-started/`.
 
 - **Purpose**: Calibration dataset setup
 - **Description**:
-  - Downloads `calibration_dataset.tar.gz` and extracts it to `workspace/dataset`.
-  - Creates a symlink in the workspace: `workspace/dataset/calibration_dataset` → `./calibration_dataset`.
-  - Forcefully changes (hijacks) the `dataset_path` entry in `modelzoo/json/*.json` to `./calibration_dataset`.
+  - Delegates to `dx-compiler/example/2-download_sample_calibration_dataset.sh` which downloads and extracts the dataset to `dx-compiler/dx_com/calibration_dataset/`.
+  - Creates symlink: `getting-started/calibration_dataset` → `dx-compiler/dx_com/calibration_dataset`.
   - `--force` option allows overwriting existing files.
 
 #### 📌 Key Functions
 
-- `download()`
-
-  - Downloads the calibration dataset archive from the remote server.
-  - Calls `get_resource.sh` to download and extract `dataset/calibration_dataset.tar.gz`.
-  - Creates a symbolic link from `workspace/dataset/calibration_dataset` to the extracted dataset.
-
-- `hijack_dataset_path(model_name)`
-
-  - Forcefully changes the `"dataset_path"` value in `json/{model_name}.json` to `./calibration_dataset`.
-  - Backs up the original file as `.bak` and modifies the value using the `sed` command.
-  - Outputs the `diff` showing changes before and after.
-
-- `main()`
-  - Executes `download()` to get the calibration dataset.
-  - Runs `hijack_dataset_path()` for each of the three models.
+- Delegates all download/extraction logic to `dx-compiler/example/2-download_sample_calibration_dataset.sh`.
+- Creates the `getting-started/calibration_dataset` symlink pointing to the downloaded dataset.
 
 ---
 
@@ -183,23 +158,18 @@ Creates a symbolic link from `./dxnn` to the workspace output path.
 
 ### 📁 4. compiler-4_model_compile.sh
 
-Compiles `.onnx` files into `.dxnn` format using `dx_com`.
+Compiles sample `.onnx` models into `.dxnn` format and creates a symlink to the output.
 
 - **Purpose**: Run model compilation
 - **Description**:
-  - Uses `dx_com` to compile `onnx + json → dxnn`
-  - Outputs result to `./dxnn/`
+  - Delegates to `dx-compiler/example/3-compile_sample_models.sh` which runs `dxcom` to compile `onnx + json → dxnn`.
+  - Output `.dxnn` files are saved to `dx-compiler/dx_com/output/`.
+  - Creates symlink: `getting-started/dxnn` → `dx-compiler/dx_com/output`.
 
 #### 📌 Key Functions
 
-- `compile(model_name)`
-
-  - Runs `dx_com` to convert `.onnx + .json` into a `.dxnn` file.
-  - The output is saved in the `./dxnn` directory.
-  - Exits on failure.
-
-- `main()`
-  - Iterates through the list of models and calls `compile()` for each.
+- Delegates all compilation logic to `dx-compiler/example/3-compile_sample_models.sh`.
+- Creates the `getting-started/dxnn` symlink pointing to the compiled output directory.
 
 ---
 
