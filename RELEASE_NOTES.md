@@ -4,6 +4,7 @@
 
 - DX-Runtime: v2.2.2
     - DX-APP: v3.0.2
+    - DX-STREAM: v2.2.1
 - DX-Compiler v2.2.1
     - DX-COM: v2.2.1
 
