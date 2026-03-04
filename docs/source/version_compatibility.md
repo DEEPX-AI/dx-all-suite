@@ -37,7 +37,7 @@ DEEPX software components have version compatibility dependencies between them. 
       <td>v2.5.0</td>
       <td>v2.1.0</td>
       <td>v3.2.0</td>
-      <td>v2.2.0</td>
+      <td>v2.2.1</td>
       <td><b>v3.0.2</b></td>
     </tr>
     <tr>
@@ -54,7 +54,7 @@ DEEPX software components have version compatibility dependencies between them. 
       <td>v2.5.0</td>
       <td>v2.1.0</td>
       <td>v3.2.0</td>
-      <td>v2.2.0</td>
+      <td><b>v2.2.1</b></td>
       <td><b>v3.0.1</b></td>
     </tr>
     <tr>
