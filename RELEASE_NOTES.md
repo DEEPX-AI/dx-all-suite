@@ -1,9 +1,51 @@
 # RELEASE_NOTES
 
+## DX-All-Suite v2.2.2 / 2026-02-26
+
+- DX-Runtime: v2.2.2
+    - DX-APP: v3.0.2
+    - DX-STREAM: v2.2.1
+- DX-Compiler v2.2.1
+    - DX-COM: v2.2.1
+
+---
+
+Here are the **DX-All-Suite v2.2.2** Release Notes.
+
+### What's New?
+
+This release enhances the development experience with GPU-accelerated quantization and improved Windows platform support.
+
+- **GPU-Accelerated Quantization**: DX-COM now supports GPU quantization via JSON configuration with automatic GPU detection, significantly speeding up the compilation process.
+- **Enhanced Windows Support**: Improved Windows build stability with automated vcpkg installation and fixed compatibility issues.
+
+---
+
+### Key Updates
+
+**Performance & Efficiency**
+
+- GPU Quantization: Added `quantization_device` support in JSON configuration for CLI-based GPU quantization. Automatic GPU detection falls back to CPU when CUDA is unavailable.
+- Windows Build: Automated DLL copying (dxrt, vkpkg) to dx-app/bin directory and added vcpkg installation script for streamlined Windows builds.
+
+**Stability & Fixes**
+
+- Fixed DXQ enhanced quantization option bugs in DX-COM.
+- Fixed PPU compilation bug in Python Wheel Package for Python 3.8, 3.9, and 3.10.
+- Fixed an issue where compilation proceeded without error when invalid model input names were specified.
+- Removed experimental filesystem includes and updated float literals in example cpp files to resolve Windows build errors.
+- Refactored apply_argmax to reduce nesting and fix gcovr warnings.
+
+**Known Issues**
+
+- Significant FPS degradation has been observed in models using PReLU as an activation function.
+
+---
+
 ## DX-All-Suite v2.2.1 / 2026-02-06
 
 - DX-Runtime: v2.2.1
-  - DX-APP: v3.0.1
+    - DX-APP: v3.0.1
 
 ---
 

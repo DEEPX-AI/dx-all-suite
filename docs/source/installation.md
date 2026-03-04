@@ -145,6 +145,16 @@ Upon successful installation:
 
 2.  Symbolic links will be created at `./dx-compiler/dx_com`.
 
+3.  **Sample data is automatically downloaded** into `./dx-compiler/dx_com/`:
+    - `sample_models/` — sample ONNX models and JSON configs (`YOLOV5S-1`, `YOLOV5S_Face-1`, `MobileNetV2-1`)
+    - `calibration_dataset/` — calibration images for quantization
+
+    > If the automatic download fails, you can run it manually:
+    > ```bash
+    > ./dx-compiler/example/1-download_sample_models.sh
+    > ./dx-compiler/example/2-download_sample_calibration_dataset.sh
+    > ```
+
 #### Using dx_com
 
 **If installed with Wheel mode:**
@@ -546,58 +556,47 @@ DVFS Disabled
 
 #### Run `dx_com` using Sample onnx input
 
-**If installed with Wheel mode:**
+Sample models are automatically downloaded to `./dx-compiler/dx_com/sample_models/` during installation.
+Run the following from the `./dx-compiler/dx_com/` directory.
 
-You can use the `dxcom` command after activating the virtual environment:
+**Compile all sample models at once (recommended):**
+
+```bash
+../example/3-compile_sample_models.sh
+```
+
+**Or compile individual models manually:**
+
+**If installed with Wheel mode:**
 
 ```bash
 # Activate virtual environment
 source ./dx-compiler/venv-dx-compiler/bin/activate
 
-dxcom \
-        -m sample/MobileNetV1-1.onnx \
-        -c sample/MobileNetV1-1.json \
-        -o sample/MobileNetV1-1
-        -o sample/MobileNetV1-1
-Compiling Model : 100%|███████████████████████████████| 1.0/1.0 [00:06<00:00,  7.00s/model ]
+cd ./dx-compiler/dx_com
 
 dxcom \
-        -m sample/ResNet50-1.onnx \
-        -c sample/ResNet50-1.json \
-        -o sample/ResNet50-1
-        -o sample/ResNet50-1
-Compiling Model : 100%|███████████████████████████████| 1.0/1.0 [00:19<00:00, 19.17s/model ]
-
-dxcom \
-        -m sample/YOLOV5-1.onnx \
-        -c sample/YOLOV5-1.json \
-        -o sample/YOLOV5-1
-        -o sample/YOLOV5-1
+        -m sample_models/onnx/YOLOV5S-1.onnx \
+        -c sample_models/json/YOLOV5S-1.json \
+        -o output/YOLOV5S-1
 Compiling Model : 100%|███████████████████████████████| 1.0/1.0 [00:47<00:00, 47.66s/model ]
+
+dxcom \
+        -m sample_models/onnx/MobileNetV2-1.onnx \
+        -c sample_models/json/MobileNetV2-1.json \
+        -o output/MobileNetV2-1
+Compiling Model : 100%|███████████████████████████████| 1.0/1.0 [00:06<00:00,  7.00s/model ]
 ```
 
 **If installed with Legacy mode:**
 
 ```bash
-dx_com/dx_com \
-        -m sample/MobileNetV1-1.onnx \
-        -c sample/MobileNetV1-1.json \
-        -o sample/MobileNetV1-1
-        -o sample/MobileNetV1-1
-Compiling Model : 100%|███████████████████████████████| 1.0/1.0 [00:06<00:00,  7.00s/model ]
+cd ./dx-compiler/dx_com
 
 dx_com/dx_com \
-        -m sample/ResNet50-1.onnx \
-        -c sample/ResNet50-1.json \
-        -o sample/ResNet50-1
-        -o sample/ResNet50-1
-Compiling Model : 100%|███████████████████████████████| 1.0/1.0 [00:19<00:00, 19.17s/model ]
-
-dx_com/dx_com \
-        -m sample/YOLOV5-1.onnx \
-        -c sample/YOLOV5-1.json \
-        -o sample/YOLOV5-1
-        -o sample/YOLOV5-1
+        -m sample_models/onnx/YOLOV5S-1.onnx \
+        -c sample_models/json/YOLOV5S-1.json \
+        -o output/YOLOV5S-1
 Compiling Model : 100%|███████████████████████████████| 1.0/1.0 [00:47<00:00, 47.66s/model ]
 ```
 

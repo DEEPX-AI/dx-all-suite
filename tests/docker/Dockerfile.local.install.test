@@ -1,0 +1,88 @@
+ARG OS_TYPE=ubuntu
+ARG VERSION=24.04
+FROM ${OS_TYPE}:${VERSION}
+
+USER root
+
+ARG TZ=Asia/Seoul
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ >/etc/timezone
+
+ARG DEBIAN_FRONTEND=noninteractive
+ENV PATH="/usr/local/bin:${PATH}"
+
+### update apt repo
+RUN if [ "${OS_TYPE}" = "ubuntu" ]; then \
+    apt-get update && apt-get install -y \
+    software-properties-common && \
+    add-apt-repository universe && \
+    add-apt-repository multiverse && \
+    apt-get update; \
+    fi
+
+### install utils
+RUN apt-get update && apt-get install -y \
+        tzdata \
+        git vim sudo \
+        lsb-release
+
+# X11 forwarding and xcb
+RUN apt-get install -y x11-apps libx11-6 xauth libxext6 libxrender1 libxtst6 libxi6 libxcb-xinerama0
+
+# for setting ssl issue on intranet
+# only used 'USE_INTRANET=true'
+ARG USE_INTRANET=false
+ARG CA_FILE_NAME="dummy.crt"
+COPY ${CA_FILE_NAME} /usr/local/share/ca-certificates/
+RUN if [ "$USE_INTRANET" = "true" ]; then \
+      git config --global http.sslVerify false && \
+      update-ca-certificates ; \
+    else \
+      echo "Skipping intranet SSL setup"; \
+    fi
+
+RUN apt-get update && \
+    apt-get install -y \
+    vim fim && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+ARG HOST_UID
+ARG HOST_GID
+ARG TARGET_USER
+ARG TARGET_HOME
+
+# Set default values (in case values are not provided at build time)
+ENV HOST_UID=${HOST_UID:-1000}
+ENV HOST_GID=${HOST_GID:-1000}
+ENV TARGET_USER=${TARGET_USER:-deepx}
+ENV TARGET_HOME=${TARGET_HOME:-/deepx}
+
+# UID/GID based user processing
+RUN set -eux; \
+    if getent passwd "$HOST_UID" > /dev/null; then \
+        EXISTING_USER=$(getent passwd "$HOST_UID" | cut -d: -f1); \
+        usermod -l "$TARGET_USER" -d "$TARGET_HOME" -m "$EXISTING_USER"; \
+        EXISTING_GROUP=$(getent group "$HOST_GID" | cut -d: -f1); \
+        groupmod -n "$TARGET_USER" "$EXISTING_GROUP"; \
+    else \
+        groupadd -g "$HOST_GID" "$TARGET_USER" || true; \
+        useradd -u "$HOST_UID" -g "$HOST_GID" -d "$TARGET_HOME" -s /bin/bash "$TARGET_USER"; \
+    fi
+
+# Copy init script for workspace permissions
+COPY docker/init-workspace.sh /usr/local/bin/init-workspace.sh
+RUN chmod +x /usr/local/bin/init-workspace.sh
+
+# set default password
+RUN echo "deepx:deepx" | chpasswd
+
+# add sudo group
+RUN groupadd -g "$HOST_GID" "$TARGET_USER" || true; \
+    usermod -aG sudo "$TARGET_USER"; \
+    echo "$TARGET_USER ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers;
+
+USER $TARGET_USER
+WORKDIR $TARGET_HOME
+
+ENTRYPOINT ["/usr/local/bin/init-workspace.sh"]
+CMD ["tail", "-f", "/dev/null"]

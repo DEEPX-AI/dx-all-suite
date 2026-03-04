@@ -45,11 +45,11 @@ plugins:
   - search
   - to-pdf:
       author: DEEPX.ai
-      copyright: ⓒ Copyright 2025- DEEPX All Rights Reserved.
+      copyright: ⓒ Copyright 2026- DEEPX All Rights Reserved.
       #
       #cover: false
       #cover_title: TITLE TEXT
-      cover_subtitle: 2026/01/23 (v2.2.0)
+      cover_subtitle: 2026/02/26 (v2.2.2)
       cover_logo : img/deepx.png
       custom_template_path: docs/stylesheets
       #back_cover: true

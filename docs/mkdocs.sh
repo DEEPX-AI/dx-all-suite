@@ -31,7 +31,13 @@ main() {
     VERSION=$(head -n 1 ${PROJECT_ROOT}/release.ver | tr -d '\r\n')
     echo "VERSION=${VERSION}"
 
-    export PDF_FILE_PATH=../DX-AS_${VERSION}_JAN_2026.pdf
+    # Extract latest release date from RELEASE_NOTES.md (format: ## DX-All-Suite vX.X.X / YYYY-MM-DD)
+    RELEASE_LINE=$(grep -m 1 "^## DX-All-Suite" ${PROJECT_ROOT}/RELEASE_NOTES.md)
+    RAW_DATE=$(echo "$RELEASE_LINE" | awk -F' / ' '{print $2}' | tr -d '\r')
+    RELEASE_DATE=$(date -d "$RAW_DATE" +%b_%Y | tr '[:lower:]' '[:upper:]')
+    echo "RELEASE_DATE=${RELEASE_DATE}"
+
+    export PDF_FILE_PATH=../DX-AS_${VERSION}_${RELEASE_DATE}.pdf
     echo "PDF_FILE_PATH=${PDF_FILE_PATH}"
 
     # Create a temporary yml from a template with the version
