@@ -1,0 +1,23 @@
+# Getting started artifacts
+getting-started/calibration_dataset
+getting-started/dxnn/
+getting-started/modelzoo/
+getting-started/results/
+
+# Internal tools and workspace
+internal/
+workspace/
+
+# SSL certificate
+intranet_CA_SSL.crt
+
+
+tests/venv/
+dx-agentic-dev/
+docs/superpowers/
+copilot-session-*.html
+
+__pycache__/
+*.pyc
+*.pyo
+*.pyd

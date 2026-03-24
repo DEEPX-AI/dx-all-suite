@@ -4,6 +4,21 @@ Shared utilities and configuration for all test suites.
 
 import os
 import shlex
+
+def pytest_configure(config):
+    """Register custom markers to suppress PytestUnknownMarkWarning."""
+    markers = [
+        "docker_install: Docker image build validation tests",
+        "local_install: Local installation validation tests",
+        "getting_started: End-to-end getting-started workflow tests",
+        "sanity: Quick prerequisite validation tests",
+        "compiler: Compiler-related tests",
+        "runtime: Runtime-related tests",
+        "agentic_e2e_autopilot: Agentic E2E tests with autopilot (fully autonomous, CI/CD)",
+    ]
+    for marker in markers:
+        config.addinivalue_line("markers", marker)
+
 import subprocess
 import sys
 from pathlib import Path

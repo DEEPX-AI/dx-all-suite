@@ -8,7 +8,7 @@ A comprehensive pytest-based test suite for automated verification of the dx-all
 
 ## ✅ Test Suite Categories
 
-This repository includes three primary pytest suites for CI/CD and local validation:
+This repository includes five pytest suites for CI/CD and local validation:
 
 ### 1. **test_docker_install** — Docker Image Build Validation
 Validates Docker image builds using `docker_build.sh` for all supported components and OS versions.
@@ -41,6 +41,39 @@ Validates the complete getting-started user workflow from compilation to executi
 - Sequential execution ensuring proper workflow order
 
 **Total tests:** 11 (6 compiler + 5 runtime tests)
+
+### 4. **test_agentic_scenarios** — Agentic Development Infrastructure Validation
+Validates the agentic development infrastructure across all 5 project levels (suite, compiler, runtime, dx_app, dx_stream).
+
+**What it tests:**
+- Guide document structure: existence, headings, scenario numbering, EN/KO synchronization
+- Routing consistency: CLAUDE.md, AGENTS.md, copilot-instructions.md, opencode.json, .cursorrules
+- Scenario references: agent/skill references in guides match actual infrastructure
+- Cross-project scenarios: handoff chains, validation scripts, output isolation
+
+**Total tests:** 199 (186 passed, 13 skipped)
+
+### 5. **test_agentic_e2e_scenarios** — Agentic End-to-End Copilot CLI Scenario Tests
+Runs actual Copilot CLI invocations for representative scenarios from each project level, then statically verifies the generated output files.
+
+**Two modes:**
+- **autopilot** (default): Fully autonomous with `--no-ask-user`. CI/CD optimized. Runs via pytest.
+- **manual**: Interactive shell-based mode (no pytest). User interacts with copilot TUI directly, then shell validates output.
+
+**Output isolation:** Prompts do NOT specify an output directory. Each sub-project's `copilot-instructions.md` enforces Output Isolation, automatically writing generated files to `dx-agentic-dev/<session_id>/`. The test framework auto-detects new session directories by comparing pre/post snapshots of each scenario's search paths.
+
+**What it tests:**
+- **dx_app Scenario #1:** Build a yolo26n person detection app (IFactory pattern, config.json, runner)
+- **dx_stream Scenario #1:** Build a detection pipeline with tracking (GStreamer elements, RTSP, tracker)
+- **dx-compiler Scenario #2:** Generate compilation config for ONNX to DXNN (config.json structure)
+- **dx-runtime Scenario #2:** Build standalone detection app via routing (routing verification)
+- **dx-all-suite Scenario #2:** Cross-project compile + app generation (both compiler and app artifacts)
+
+**Verification approach:** Static analysis only (file existence, Python syntax via `ast.parse`, JSON structure, required patterns). No actual HW inference.
+
+**Total tests:** 42 (pytest: autopilot mode, shell: manual mode)
+**Markers (pytest only):**
+- `pytest.mark.agentic_e2e_autopilot` — fully autonomous (CI/CD)
 
 ## 🎯 Test Scope
 
@@ -76,12 +109,14 @@ Validates the complete getting-started user workflow from compilation to executi
 
 ### Test Composition Summary
 
-| Test Suite | Sanity | Build | Run | Install | Workflow | Total |
-|------------|--------|-------|-----|---------|----------|-------|
-| **docker_install** | 4 | 15 | - | - | - | **19** |
-| **local_install** | 3 | 15 | 15 | 15 | - | **48** |
-| **getting_started** | - | - | - | - | 11 | **11** |
-| **Grand Total** | **7** | **30** | **15** | **15** | **11** | **78** |
+| Test Suite | Sanity | Build | Run | Install | Workflow | Agentic Infra | E2E Scenarios | Total |
+|------------|--------|-------|-----|---------|----------|---------------|---------------|-------|
+| **docker_install** | 4 | 15 | - | - | - | - | - | **19** |
+| **local_install** | 3 | 15 | 15 | 15 | - | - | - | **48** |
+| **getting_started** | - | - | - | - | 11 | - | - | **11** |
+| **agentic** | - | - | - | - | - | 199 | - | **199** |
+| **agentic_e2e** | - | - | - | - | - | - | 42 | **42** |
+| **Grand Total** | **7** | **30** | **15** | **15** | **11** | **199** | **42** | **319+** |
 
 ## 📁 File Structure
 
@@ -96,8 +131,22 @@ tests/
 ├── 🐍 test_getting-started/         # Getting-started workflow tests
 │   ├── test_getting_started.py      # 11 tests (6 compiler + 5 runtime)
 │   └── README.md                    # Getting-started test documentation
+├── 🐍 test_agentic_scenarios/       # Agentic infrastructure validation
+│   ├── conftest.py                  # ProjectInfra dataclass, path constants, helpers
+│   ├── test_guide_structure.py      # Guide existence, headings, numbering, EN/KO sync
+│   ├── test_routing_consistency.py  # CLAUDE.md, AGENTS.md, copilot-instructions consistency
+│   ├── test_scenario_references.py  # Agent/skill references match infrastructure
+│   └── test_cross_project_scenarios.py  # Handoff chains, validation scripts
+├── 🐍 test_agentic_e2e_scenarios/   # Agentic end-to-end Copilot CLI scenario tests
+│   ├── conftest.py                  # CopilotRunnerAutopilot, ScenarioResult, session auto-detection, verification helpers
+│   ├── test_dx_app_agentic_e2e.py   # dx_app Scenario #1 (10 tests)
+│   ├── test_dx_stream_agentic_e2e.py # dx_stream Scenario #1 (8 tests)
+│   ├── test_compiler_agentic_e2e.py # dx-compiler Scenario #2 (7 tests)
+│   ├── test_runtime_agentic_e2e.py  # dx-runtime Scenario #2 (6 tests)
+│   └── test_suite_agentic_e2e.py    # dx-all-suite Scenario #2 (7 tests)
 ├── 🔧 conftest.py                   # Shared pytest fixtures and utilities
 ├── ⚡ test.sh                       # Unified test command wrapper (main entry point)
+├── 🔍 parse_copilot_session.py        # Copilot CLI events.jsonl → Markdown report parser
 ├── 🐳 docker/                       # Docker compose files for test containers
 │   ├── docker-compose.local.install.test.yml
 │   └── Dockerfile.local.install.test
@@ -132,6 +181,13 @@ cd tests
 
 # Getting-started workflow (11 tests, ~30-60 minutes)
 ./test.sh getting_started
+
+# Agentic infrastructure validation (199 tests, ~1 second)
+./test.sh agentic
+
+# Agentic E2E Copilot CLI scenario tests (42 tests, ~3-5 minutes)
+./test.sh agentic-e2e-autopilot      # Fully autonomous (CI/CD) — pytest
+./test.sh agentic-e2e-manual        # Interactive (shell-based, no pytest)
 ```
 
 ### Step 3: Full Test Suite
@@ -164,6 +220,9 @@ cd tests
 ./test.sh docker_install   # Docker build tests (15 tests, ~6-8 hours)
 ./test.sh local_install    # Local install tests (49 tests, ~8-12 hours)
 ./test.sh getting_started  # Getting-started workflow (11 tests, ~30-60 min)
+./test.sh agentic          # Agentic infrastructure (199 tests, ~1 second)
+./test.sh agentic-e2e-autopilot    # Agentic E2E fully autonomous (CI/CD)
+./test.sh agentic-e2e-manual       # Agentic E2E interactive (shell-based)
 ```
 
 ### Advanced Options
@@ -219,6 +278,7 @@ Use `-m` to filter tests by pytest markers:
 ./test.sh -m "docker_install"      # Only docker install tests
 ./test.sh -m "local_install"       # Only local install tests
 ./test.sh -m "getting_started"     # Only getting-started tests
+./test.sh -m "agentic_e2e_autopilot"       # Only fully autonomous agentic E2E
 ./test.sh -m "compiler"            # Compiler-related tests
 ./test.sh -m "runtime"             # Runtime-related tests
 ```
@@ -260,7 +320,33 @@ Use `-m` to filter tests by pytest markers:
 ./test.sh --report --json-report docker_install
 ```
 
-### Example 6: Internal Network Testing
+### Example 6: Agentic E2E — Autopilot (CI/CD)
+
+```bash
+# Run all agentic E2E tests in autopilot mode (fully autonomous, --no-ask-user)
+./test.sh agentic-e2e-autopilot
+
+# Filter to compiler scenario only
+./test.sh agentic-e2e-autopilot -k compiler
+
+# With custom model and extended timeout
+DX_AGENTIC_E2E_TIMEOUT=900 DX_AGENTIC_E2E_MODEL="claude-opus-4.6" \
+  ./test.sh agentic-e2e-autopilot
+```
+
+### Example 7: Agentic E2E — Manual (Interactive, Shell-Based)
+
+```bash
+# Shell-based interactive mode — runs copilot TUI directly (no pytest)
+# Shows scenario menu, user selects one, then interacts with copilot
+./test.sh agentic-e2e-manual
+
+# Auto-select a specific scenario via -k filter (skips menu)
+./test.sh agentic-e2e-manual -k compiler
+./test.sh agentic-e2e-manual -k dx_app
+```
+
+### Example 8: Internal Network Testing
 
 ```bash
 # Use internal network settings (intranet)
@@ -268,7 +354,7 @@ Use `-m` to filter tests by pytest markers:
 ./test.sh --internal local_install
 ```
 
-### Example 7: Specific OS Testing
+### Example 9: Specific OS Testing
 
 ```bash
 # Test only Debian distributions
@@ -278,7 +364,7 @@ Use `-m` to filter tests by pytest markers:
 ./test.sh -k "18.04" all
 ```
 
-### Example 8: List Tests Without Running
+### Example 10: List Tests Without Running
 
 ```bash
 # List all tests that would run
@@ -291,6 +377,112 @@ Use `-m` to filter tests by pytest markers:
 ./test.sh --list --internal -m "sanity" docker_install
 ```
 
+## 🤖 Agentic E2E — Copilot CLI Autonomous Execution
+
+The agentic E2E test suite (`test_agentic_e2e_scenarios/`) runs real Copilot CLI
+sessions against the dx-all-suite codebase. This section explains how autonomous
+(auto-approve) execution works.
+
+### Two Execution Modes
+
+| Mode | Entry Point | Copilot Flags | User Interaction |
+|------|-------------|---------------|------------------|
+| **Autopilot** | `./test.sh agentic-e2e-autopilot` | `--yolo --no-ask-user -s` | None (fully autonomous) |
+| **Manual** | `./test.sh agentic-e2e-manual` | `--yolo` | Interactive TUI |
+
+### Copilot CLI Flags Explained
+
+| Flag | Meaning | When Used |
+|------|---------|-----------|
+| `--yolo` | Alias for `--allow-all-tools --allow-all-paths --allow-all-urls` — auto-approves ALL tool calls (file writes, bash commands, web fetches) without confirmation prompts | Both modes |
+| `--no-ask-user` | Disables the `ask_user` tool so the agent never blocks waiting for user input | Autopilot only |
+| `-s` | Silent mode — shows only agent response, no TUI chrome | Autopilot only |
+| `-p <prompt>` | Non-interactive prompt mode (agent runs and exits) | Autopilot only |
+| `-i <prompt>` | Interactive prompt mode (opens TUI with initial prompt) | Manual only |
+| `--share=<file>` | Saves session transcript to a file | Autopilot only |
+| `--model <name>` | Selects the LLM model to use | Both modes |
+
+### Autopilot Mode — How It Works
+
+The `CopilotRunnerAutopilot` class in `conftest.py` constructs and executes:
+
+```bash
+copilot -p "<prompt> IMPORTANT: This is an automated test run. Do not ask
+questions or present options. Proceed directly with implementation, choosing
+the most appropriate approach." \
+  --yolo \
+  --no-ask-user \
+  -s \
+  --share=<session_log> \
+  --model claude-sonnet-4.6
+```
+
+Key behaviors:
+- **`--yolo`** auto-approves all tool calls — the agent can read/write files,
+  run shell commands, and fetch URLs without human confirmation.
+- **`--no-ask-user`** prevents the agent from ever asking questions — if it
+  encounters an ambiguity, it must decide on its own.
+- The **AUTOPILOT_DIRECTIVE** (appended to every prompt) reinforces autonomous
+  behavior at the prompt level.
+- The session runs with a **timeout** (default 300s, configurable via
+  `DX_AGENTIC_E2E_TIMEOUT`). If the agent exceeds the timeout, the process
+  is killed and the test fails.
+
+### Manual Mode — How It Works
+
+Manual mode opens the Copilot TUI directly:
+
+```bash
+copilot -i "<prompt>" --yolo --model claude-sonnet-4.6
+```
+
+Key behaviors:
+- **`--yolo`** still auto-approves tool calls, but the user can interact
+  with the agent through the TUI.
+- **No `--no-ask-user`** — the agent CAN ask clarifying questions, and the
+  user responds via the TUI.
+- After the session, `test.sh` runs shell-based validation (file existence,
+  syntax checks) on the generated artifacts.
+
+### Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `DX_AGENTIC_E2E_MODEL` | `claude-sonnet-4.6` | LLM model for Copilot CLI |
+| `DX_AGENTIC_E2E_TIMEOUT` | `300` | Timeout in seconds per scenario |
+| `DX_AGENTIC_E2E_KEEP_ARTIFACTS` | `0` | Set to `1` to keep generated `dx-agentic-dev/` directories after test run |
+| `DX_AGENTIC_E2E_MODE` | (set by test.sh) | `autopilot` or `manual` — set automatically by `test.sh` |
+
+### Running with Different Models
+
+```bash
+# Claude Sonnet 4.6 (recommended)
+DX_AGENTIC_E2E_MODEL="claude-sonnet-4.6" ./test.sh agentic-e2e-autopilot
+
+# GPT-4.1 (not recommended — may fabricate APIs)
+DX_AGENTIC_E2E_MODEL="gpt-4.1" DX_AGENTIC_E2E_TIMEOUT=600 \
+  ./test.sh agentic-e2e-autopilot
+
+# Claude Opus 4.6 (highest quality, slower)
+DX_AGENTIC_E2E_MODEL="claude-opus-4.6" DX_AGENTIC_E2E_TIMEOUT=900 \
+  ./test.sh agentic-e2e-autopilot
+```
+
+### Session Output and Artifacts
+
+Each scenario generates artifacts in `dx-agentic-dev/<session_id>/` within
+the target sub-project. The test framework auto-detects new session directories
+by comparing pre/post directory snapshots.
+
+After a test run, artifacts include:
+- Generated code files (Python scripts, configs, shell scripts)
+- `session.log` — command execution transcript
+- Copilot session transcript (saved via `--share=<file>`)
+- HTML export (if `test.sh` detects it was generated via `/share html`)
+
+Set `DX_AGENTIC_E2E_KEEP_ARTIFACTS=1` to preserve these artifacts for debugging.
+Without this flag, `test.sh` cleans up generated directories after validation.
+
 ## 📊 Expected Execution Time
 
 | Test Suite | Test Count | Expected Time | Use Case |
@@ -299,7 +491,9 @@ Use `-m` to filter tests by pytest markers:
 | **docker_install** | 19 | ~6-8 hours | Docker build validation |
 | **local_install** | 49 | ~8-12 hours | Installation script validation |
 | **getting_started** | 11 | ~30-60 minutes | End-to-end workflow |
-| **Full Suite (all)** | 79 | ~12-20 hours | Complete validation |
+| **agentic** | 199 | ~1 second | Agentic infrastructure validation |
+| **agentic_e2e** | 42 | ~3-5 minutes | Agentic E2E Copilot CLI scenario tests |
+| **Full Suite (all)** | 319 | ~12-20 hours | Complete validation |
 
 ### Per-Component Breakdown
 
@@ -424,9 +618,10 @@ Sequential execution ensures proper workflow:
 
 | Document | Description |
 |----------|-------------|
-| `README.md` | 📝 This comprehensive guide (all test suites) |
-| `test.sh` | ⚡ Main test runner with all options |
-| `conftest.py` | 🔧 Shared pytest fixtures and utilities |
+| `README.md` | This comprehensive guide (all test suites) |
+| `test.sh` | Main test runner with all options |
+| `parse_copilot_session.py` | Copilot CLI `events.jsonl` → Markdown report parser |
+| `conftest.py` | Shared pytest fixtures and utilities |
 | `pytest.ini` | ⚙️ Pytest configuration and markers |
 | `README_DOCKER_BUILD_TESTS.md` | 📘 Legacy docker build guide |
 | `CI_CD_EXAMPLES.md` | 🔄 CI/CD integration examples |
@@ -488,6 +683,11 @@ export DX_TEST_NO_CACHE=1
 
 # Custom volume mount path
 export LOCAL_VOLUME_PATH="/path/to/dx-all-suite"
+
+# Agentic E2E test configuration
+export DX_AGENTIC_E2E_TIMEOUT=900           # Copilot CLI timeout in seconds (default: 300)
+export DX_AGENTIC_E2E_MODEL="claude-opus-4.6"       # Copilot model to use (default: claude-sonnet-4.6)
+export DX_AGENTIC_E2E_KEEP_ARTIFACTS=1     # Keep generated artifacts after test run
 
 ```
 
@@ -652,6 +852,7 @@ See [CI_CD_EXAMPLES.md](CI_CD_EXAMPLES.md) for detailed examples.
 **Pull Request (Fast Feedback):**
 ```bash
 ./test.sh sanity                      # Quick validation (~10 sec)
+./test.sh agentic                     # Agentic infrastructure (~1 sec)
 ./test.sh -k "24.04" docker_install  # Latest OS only (~2 hours)
 ```
 
@@ -660,6 +861,7 @@ See [CI_CD_EXAMPLES.md](CI_CD_EXAMPLES.md) for detailed examples.
 ./test.sh --report docker_install     # Full docker builds
 ./test.sh --report local_install      # Full local installs
 ./test.sh --report getting_started    # End-to-end workflow
+./test.sh agentic-e2e-autopilot            # Agentic E2E Copilot CLI scenarios
 ```
 
 **Release (Full Validation):**
@@ -730,9 +932,9 @@ See [CI_CD_EXAMPLES.md](CI_CD_EXAMPLES.md) for detailed examples.
 ---
 
 **Last Updated:**
-2026-01-29
+2026-04-09
 **Total Tests:**
-78 (docker_install: 19 | local_install: 48 | getting_started: 11)
+319 (docker_install: 19 | local_install: 48 | getting_started: 11 | agentic: 199 | agentic_e2e: 42)
 **Supported OS:**
 Ubuntu 24.04, 22.04, 20.04, 18.04 | Debian 12, 13
 **Components:**
