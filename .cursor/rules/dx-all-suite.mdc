@@ -1,0 +1,45 @@
+---
+description: DEEPX All Suite entry point — routes to the appropriate submodule
+alwaysApply: true
+---
+
+**Response Language**: Match your response language to the user's prompt language — when asking questions or responding, use the same language the user is using.
+
+# DX All Suite
+
+This is the top-level DEEPX All Suite repository.
+
+## Submodule Routing
+
+- **dx_app code** (standalone inference): See `dx-runtime/dx_app/.cursor/rules/`
+- **dx_stream code** (GStreamer pipelines): See `dx-runtime/dx_stream/.cursor/rules/`
+- **Cross-project integration**: See `dx-runtime/.cursor/rules/`
+
+## Conventions
+
+1. Each submodule is self-contained with its own `.deepx/` knowledge base
+2. Logging: `logging.getLogger(__name__)` — never bare `print()`
+3. NPU check: `dxrt-cli -s` before any NPU operation
+4. Always use absolute imports within each submodule
+
+## Process Skills (available at every level)
+| Skill | When to use | Read |
+|---|---|---|
+| Brainstorm & Plan | Before any code generation | Use submodule's `.deepx/skills/dx-brainstorm-and-plan.md` |
+| TDD | Validate each file after creation | Use submodule's `.deepx/skills/dx-tdd.md` |
+| Verify Completion | Before claiming task is done | Use submodule's `.deepx/skills/dx-verify-completion.md` |
+
+## Interactive Workflow (MUST FOLLOW)
+- Ask 2-3 questions before building
+- Present plan, get approval
+- Validate after generation
+- Output to `dx-agentic-dev/<session_id>/` by default
+
+## Session Sentinels (MANDATORY for Automated Testing)
+
+When processing a user prompt, output these exact markers:
+- **First line of response**: `[DX-AGENTIC-DEV: START]`
+- **Last line after ALL work complete**: `[DX-AGENTIC-DEV: DONE]`
+- Sub-agents invoked via routing do NOT output sentinels
+- Before DONE: verify all mandatory deliverables exist; create any missing ones
+- Before DONE line: output `To save this session as HTML, type: /share html` (Copilot CLI only)

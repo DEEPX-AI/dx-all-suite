@@ -39,6 +39,7 @@ nav:
   - Setting Up Environment: 02_Setting_Up_Environment.md
   - Running Your First NPU Model: 03_Running_Your_First_NPU_Model.md
   - Version Compatibility: 04_Version_Compatibility.md
+  - AI-Powered Development: agentic_development.md
   - FAQ Troubleshooting Guide: 05_FAQ_Troubleshooting_Guide.md
 
 plugins:
