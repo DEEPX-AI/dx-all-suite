@@ -5,6 +5,7 @@
 **DX-AS (DEEPX All Suite)** is an integrated environment of frameworks and tools that enables inference and compilation of AI models using DEEPX devices. Users can build the integrated environment by installing individual tools, but DX-AS maintains optimal compatibility by aligning the versions of the individual tools.
 
 ![](./resources/dxnn_sdk_illustration.png)
+![](./resources/dxnn_sdk_illustration_simple.png)
 
 ### Components 
 
@@ -51,7 +52,7 @@ DX-Stream is a GStreamer Custom Plugin designed to simplify the development of V
   - DX-COM: Converts ONNX models into highly optimized, NPU-ready binaries.
 
 **Flexibility & Support**
-  - OS: Compatible with Debian-based Linux (Ubuntu 20.04, 22.04, 24.04)
+  - OS: Compatible with Debian-based Linux
   - Architecture: Supports x86_64 only
 
 **Easy Installation**
@@ -73,7 +74,7 @@ DX-Stream is a GStreamer Custom Plugin designed to simplify the development of V
   - DX-Stream: GStreamer integration for seamless multimedia pipelines
 
 **Flexibility & Support**
-  - OS: Compatible with Debian-based Linux (Ubuntu 20.04, 22.04, 24.04)
+  - OS: Compatible with Debian-based Linux
   - Architecture: Supports both x86_64 and arm64
 
 **Easy Installation**

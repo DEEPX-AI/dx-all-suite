@@ -21,8 +21,6 @@ services:
       - XAUTHORITY=/tmp/.docker.xauth         # X11
       - DOCKER_VOLUME_PATH=${DOCKER_VOLUME_PATH:-/deepx/workspace} # volume path
       - DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/${HOST_UID:-1000}/bus # fuse (for DX-Tron)
-      - DX_USERNAME=${DX_USERNAME}            # developer.deepx.ai username
-      - DX_PASSWORD=${DX_PASSWORD}            # developer.deepx.ai password
     cap_add:                                  # fuse (for DX-Tron)
       - SYS_ADMIN
     security_opt:                             # fuse (for DX-Tron)

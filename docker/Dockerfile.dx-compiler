@@ -1,65 +1,6 @@
 ARG BASE_IMAGE_NAME=ubuntu
 ARG OS_VERSION=24.04
 ARG TAG_NAME=${OS_VERSION}
-ARG INSTALL_BASE_IMAGE=alpine:latest
-FROM ${INSTALL_BASE_IMAGE} AS install
-USER root
-
-# Install tar if using ubuntu base (alpine has it by default)
-RUN if command -v apt-get >/dev/null 2>&1; then \
-        apt-get update && apt-get install -y tar && rm -rf /var/lib/apt/lists/*; \
-    fi
-
-# COPY and EXTRACT 'dx-com' for using option '--strip-components=1'
-WORKDIR /deepx/dx-compiler/dx_com
-ARG FILE_DXCOM
-COPY ${FILE_DXCOM} /deepx/dx-compiler/dx_com
-
-RUN tar_file=$(ls *.tar.gz) && \
-    first_entry=$(tar -tzf "$tar_file" | head -n 1) && \
-    normalized_entry="${first_entry#./}" && \
-    if echo "$normalized_entry" | grep -q '/'; then \
-        if echo "$first_entry" | grep -q '^./'; then \
-            echo "Detected top-level directory with ./ prefix. Using --strip-components=2"; \
-            tar -xzf "$tar_file" --strip-components=2 -C .; \
-        else \
-            echo "Detected top-level directory. Using --strip-components=1"; \
-            tar -xzf "$tar_file" --strip-components=1 -C .; \
-        fi; \
-    else \
-        echo "No top-level directory. Extracting as-is"; \
-        tar -xzf "$tar_file" -C .; \
-    fi && \
-    rm -f "$tar_file"
-
-WORKDIR /deepx/dx-compiler/dx_tron
-ARG FILE_DXTRON
-COPY ${FILE_DXTRON} /deepx/dx-compiler/dx_tron
-
-RUN tar_file=$(ls *.tar.gz) && \
-    first_entry=$(tar -tzf "$tar_file" | head -n 1) && \
-    normalized_entry="${first_entry#./}" && \
-    if echo "$normalized_entry" | grep -q '/'; then \
-        if echo "$first_entry" | grep -q '^./'; then \
-            echo "Detected top-level directory with ./ prefix. Using --strip-components=2"; \
-            tar -xzf "$tar_file" --strip-components=2 -C .; \
-        else \
-            echo "Detected top-level directory. Using --strip-components=1"; \
-            tar -xzf "$tar_file" --strip-components=1 -C .; \
-        fi; \
-    else \
-        echo "No top-level directory. Extracting as-is"; \
-        tar -xzf "$tar_file" -C .; \
-    fi && \
-    rm -f "$tar_file"
-
-# COPY 'scripts' and 'getting-started'
-COPY scripts /deepx/scripts
-COPY getting-started /deepx/getting-started
-ENV DX_CONTAINER_MODE=true
-RUN /deepx/getting-started/compiler-clean.sh
-
-###
 FROM ${BASE_IMAGE_NAME}:${TAG_NAME}
 
 USER root
@@ -74,20 +15,19 @@ ARG DEBIAN_FRONTEND=noninteractive
 ENV PATH="/usr/local/bin:${PATH}"
 
 ### update apt repo
-RUN apt-get update && apt-get install -y \
-    software-properties-common
-
 RUN if [ "${BASE_IMAGE_NAME}" = "ubuntu" ]; then \
+    apt-get update && apt-get install -y \
+    software-properties-common && \
     add-apt-repository universe && \
     add-apt-repository multiverse && \
     apt-get update; \
-  fi
+    fi
 
 ### install utils
 RUN apt-get update && apt-get install -y \
-        tzdata \
-        git vim sudo \
-        lsb-release
+    tzdata \
+    git vim sudo \
+    lsb-release
 
 # X11 forwarding and xcb
 RUN apt-get install -y x11-apps libx11-6 xauth libxext6 libxrender1 libxtst6 libxi6 libxcb-xinerama0
@@ -295,8 +235,21 @@ RUN set -eux; \
 COPY docker/init-workspace.sh /usr/local/bin/init-workspace.sh
 RUN chmod +x /usr/local/bin/init-workspace.sh
 
-# Copy dx_com and dx_tron
-COPY --from=install /deepx /deepx
+# Copy dx_com
+WORKDIR /deepx/dx-compiler/dx_com
+ARG FILE_DXCOM
+ADD ${FILE_DXCOM} /deepx/dx-compiler/dx_com
+
+# Copy dx_tron
+WORKDIR /deepx/dx-compiler/dx_tron
+ARG FILE_DXTRON
+ADD ${FILE_DXTRON} /deepx/dx-compiler/dx_tron
+
+# COPY 'scripts' and 'getting-started'
+COPY scripts /deepx/scripts
+COPY getting-started /deepx/getting-started
+ENV DX_CONTAINER_MODE=true
+RUN /deepx/getting-started/compiler-clean.sh
 
 RUN chown -R "$HOST_UID:$HOST_GID" "$TARGET_HOME"
 

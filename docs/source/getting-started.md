@@ -312,9 +312,9 @@ Runs the `.dxnn` model using `dx_app` async examples and checks the results.
   - Validates all `.dxnn` model files exist (`YOLOV5S_Face-1`, `YOLOV5S-1`, `MobileNetV2-1`).
   - Checks and installs `fim` if needed (for future image viewing support).
   - Runs three examples sequentially:
-    - **YOLOV5 Face**: 30 iterations on `face_sample.jpg`
-    - **YOLOV5S**: 300 iterations on `1.jpg`
-    - **MobileNetV2**: 300 iterations on `ILSVRC2012/1.jpeg` with logged output
+    - **YOLOV5 Face**: 30 iterations on `face_sample.jpg` (Picture with 5 persons with face smiling)
+    - **YOLOV5S**: 300 iterations on `1.jpg` (Picture of restaurant kitchen)
+    - **MobileNetV2**: 300 iterations on `ILSVRC2012/1.jpeg` (Picture of butterfly) with logged output
 
 **Models tested:**
 - YOLOV5S_Face-1 (Face Detection)

@@ -15,7 +15,7 @@ DEEPX software components have version compatibility dependencies between them. 
     <tr>
       <th>DX-COM</th>
       <th>DX-TRON</th>
-      <th>DX_FW</th>
+      <th>DX-FW</th>
       <th>NPU Driver</th>
       <th>DX-RT</th>
       <th>DX-Stream</th>
@@ -25,105 +25,105 @@ DEEPX software components have version compatibility dependencies between them. 
   <tbody>
     <tr>
       <td rowspan="3">2026-02-26</td>
-      <td colspan="7">v2.2.2</td>
+      <td colspan="7" align="center">v2.2.2</td>
     </tr>
     <tr>
-      <td colspan="2">v2.2.1</td>
-      <td colspan="5">v2.2.2</td>
+      <td colspan="2" align="center">v2.2.1</td>
+      <td colspan="5" align="center">v2.2.2</td>
     </tr>
     <tr>
-      <td><b>v2.2.1</b></td>
-      <td>v2.0.1</td>
-      <td>v2.5.0</td>
-      <td>v2.1.0</td>
-      <td>v3.2.0</td>
-      <td><b>v2.2.1</b></td>
-      <td><b>v3.0.2</b></td>
+      <td align="center"><b>v2.2.1</b></td>
+      <td align="center">v2.0.1</td>
+      <td align="center">v2.5.0</td>
+      <td align="center">v2.1.0</td>
+      <td align="center">v3.2.0</td>
+      <td align="center"><b>v2.2.1</b></td>
+      <td align="center"><b>v3.0.2</b></td>
     </tr>
     <tr>
       <td rowspan="3">2026-02-09</td>
-      <td colspan="7">v2.2.1</td>
+      <td colspan="7" align="center">v2.2.1</td>
     </tr>
     <tr>
-      <td colspan="2">v2.2.0</td>
-      <td colspan="5">v2.2.1</td>
+      <td colspan="2" align="center">v2.2.0</td>
+      <td colspan="5" align="center">v2.2.1</td>
     </tr>
     <tr>
-      <td>v2.2.0</td>
-      <td>v2.0.1</td>
-      <td>v2.5.0</td>
-      <td>v2.1.0</td>
-      <td>v3.2.0</td>
-      <td>v2.2.0</td>
-      <td><b>v3.0.1</b></td>
+      <td align="center">v2.2.0</td>
+      <td align="center">v2.0.1</td>
+      <td align="center">v2.5.0</td>
+      <td align="center">v2.1.0</td>
+      <td align="center">v3.2.0</td>
+      <td align="center">v2.2.0</td>
+      <td align="center"><b>v3.0.1</b></td>
     </tr>
     <tr>
       <td rowspan="3">2026-01-16</td>
-      <td colspan="7">v2.2.0</td>
+      <td colspan="7" align="center">v2.2.0</td>
     </tr>
     <tr>
-      <td colspan="2">v2.2.0</td>
-      <td colspan="5">v2.2.0</td>
+      <td colspan="2" align="center">v2.2.0</td>
+      <td colspan="5" align="center">v2.2.0</td>
     </tr>
     <tr>
-      <td>v2.2.0</td>
-      <td>v2.0.1</td>
-      <td>v2.5.0</td>
-      <td>v2.1.0</td>
-      <td>v3.2.0</td>
-      <td>v2.2.0</td>
-      <td>v3.0.0</td>
+      <td align="center">v2.2.0</td>
+      <td align="center">v2.0.1</td>
+      <td align="center">v2.5.0</td>
+      <td align="center">v2.1.0</td>
+      <td align="center">v3.2.0</td>
+      <td align="center">v2.2.0</td>
+      <td align="center">v3.0.0</td>
     </tr>
     <tr>
       <td rowspan="3">2025-11-28</td>
-      <td colspan="7">v2.1.0</td>
+      <td colspan="7" align="center">v2.1.0</td>
     </tr>
     <tr>
-      <td colspan="2">v2.1.0</td>
-      <td colspan="5">v2.1.0</td>
+      <td colspan="2" align="center">v2.1.0</td>
+      <td colspan="5" align="center">v2.1.0</td>
     </tr>
     <tr>
-      <td>v2.1.0</td>
-      <td>v2.0.0</td>
-      <td>v2.4.0</td>
-      <td>v1.8.0</td>
-      <td>v3.1.0</td>
-      <td>v2.1.0</td>
-      <td>v2.1.0</td>
+      <td align="center">v2.1.0</td>
+      <td align="center">v2.0.0</td>
+      <td align="center">v2.4.0</td>
+      <td align="center">v1.8.0</td>
+      <td align="center">v3.1.0</td>
+      <td align="center">v2.1.0</td>
+      <td align="center">v2.1.0</td>
     </tr>
     <tr>
       <td rowspan="3">2025-09-08</td>
-      <td colspan="7">v2.0.0</td>
+      <td colspan="7" align="center">v2.0.0</td>
     </tr>
     <tr>
-      <td colspan="2">v2.0.0</td>
-      <td colspan="5">v2.0.0</td>
+      <td colspan="2" align="center">v2.0.0</td>
+      <td colspan="5" align="center">v2.0.0</td>
     </tr>
     <tr>
-      <td>v2.0.0</td>
-      <td>v2.0.0</td>
-      <td>v2.1.4</td>
-      <td>v1.7.1</td>
-      <td>v3.0.0</td>
-      <td>v2.0.0</td>
-      <td>v2.0.0</td>
+      <td align="center">v2.0.0</td>
+      <td align="center">v2.0.0</td>
+      <td align="center">v2.1.4</td>
+      <td align="center">v1.7.1</td>
+      <td align="center">v3.0.0</td>
+      <td align="center">v2.0.0</td>
+      <td align="center">v2.0.0</td>
     </tr>
     <tr>
       <td rowspan="3">2025-07-23</td>
-      <td colspan="7">v1.0.0</td>
+      <td colspan="7" align="center">v1.0.0</td>
     </tr>
     <tr>
-      <td colspan="2">v1.0.0</td>
-      <td colspan="5">v1.0.0</td>
+      <td colspan="2" align="center">v1.0.0</td>
+      <td colspan="5" align="center">v1.0.0</td>
     </tr>
     <tr>
-      <td>v1.60.1</td>
-      <td>v0.0.8</td>
-      <td>v2.1.0</td>
-      <td>v1.5.0</td>
-      <td>v2.9.5</td>
-      <td>v1.7.0</td>
-      <td>v1.11.0</td>
+      <td align="center">v1.60.1</td>
+      <td align="center">v0.0.8</td>
+      <td align="center">v2.1.0</td>
+      <td align="center">v1.5.0</td>
+      <td align="center">v2.9.5</td>
+      <td align="center">v1.7.0</td>
+      <td align="center">v1.11.0</td>
     </tr>
   </tbody>
 </table>
