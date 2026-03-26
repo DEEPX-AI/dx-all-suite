@@ -42,7 +42,7 @@ main() {
         compiler_clean
     else
         printf "(host mode detected)\n"
-        printf "%b Please use 'runtime-clean.sh' only inside the Docker container.%b\n" "${TAG_WARN} ${COLOR_BRIGHT_YELLOW_ON_BLACK}" "${COLOR_RESET}"
+        printf "%b Please use 'compiler-clean.sh' only inside the Docker container.%b\n" "${TAG_WARN} ${COLOR_BRIGHT_YELLOW_ON_BLACK}" "${COLOR_RESET}"
     fi
 }
 
