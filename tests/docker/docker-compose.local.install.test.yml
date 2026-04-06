@@ -42,5 +42,6 @@ services:
     network_mode: "host"
     privileged: true                          # NPU
     restart: on-failure
+    command: ["tail", "-f", "/dev/null"]              # keep container running for test
     devices:
       - "/dev:/dev"                           # NPU / GPU / USB CAM
