@@ -24,14 +24,13 @@ setup_assets() {
     echo -e "=== Setup ${target_path} assets ${TAG_START} ==="
 
     pushd ${target_path}
-    ./setup.sh
+    ./setup.sh --models MobileNetV2 YOLOv5s_Face YOLOV5S
     popd
 
     echo -e "=== Setup ${target_path} assets '${COMPILED_MODEL_PATH}' ${TAG_DONE} ==="
 }
 
 setup_assets "${DX_APP_PATH}"
-setup_assets "${DX_STREAM_PATH}"
 
 exit 0
 
