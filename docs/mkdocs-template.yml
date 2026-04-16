@@ -1,4 +1,4 @@
-site_name: DX-AS (DEEPX All Suite) User Guide
+site_name: DXNN All Suite (DX-AllSuite) User Manual
 use_directory_urls: false
 docs_dir: source # markdown 원문 폴더
 site_dir: docs # html로 변환된 폴더
@@ -35,21 +35,22 @@ theme:
      - content.code.copy
 site_url: 'https://developer.deepx.ai/'
 nav:
-  - Introduction: index.md
-  - Installation: installation.md
-  - Getting Start: getting-started.md
-  - Version Compatibility: version_compatibility.md
-  - FAQ: faq.md
+  - DX-AllSuite Architecture Overview: 01_DX-AllSuite_Architecture_Overview.md
+  - Setting Up Environment: 02_Setting_Up_Environment.md
+  - Running Your First NPU Model: 03_Running_Your_First_NPU_Model.md
+  - Version Compatibility: 04_Version_Compatibility.md
+  - FAQ Troubleshooting Guide: 05_FAQ_Troubleshooting_Guide.md
 
 plugins:
   - search
+  - include-markdown
   - to-pdf:
       author: DEEPX.ai
-      copyright: ⓒ Copyright 2026- DEEPX All Rights Reserved.
+      copyright: ⓒ Copyright 2026 DEEPX All Rights Reserved.
       #
       #cover: false
-      #cover_title: TITLE TEXT
-      cover_subtitle: 2026/02/26 (v2.2.2)
+      cover_title: DXNN All Suite (DX-AllSuite) User Manual
+      cover_subtitle: 2026/04/10 (v2.3.0)
       cover_logo : img/deepx.png
       custom_template_path: docs/stylesheets
       #back_cover: true
@@ -75,7 +76,7 @@ plugins:
       #render_js: true
       #headless_chrome_path: headless-chromium
       #
-      output_path: ${PDF_FILE_PATH}
+      output_path: ../DEEPX_DX-AllSuite_UM_v2.3.0_APR_2026.pdf
       #enabled_if_env: ENABLE_PDF_EXPORT
       #
       #debug_html: true
