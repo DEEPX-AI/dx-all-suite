@@ -1,5 +1,69 @@
 # RELEASE_NOTES
 
+##  DX-All-Suite v2.3.0 / 2026-04-10
+
+- DX-Compiler: v2.3.0
+    - DX-COM: v2.3.0
+    - DX-TRON: v2.0.1
+- DX-Runtime: v2.3.0
+    - DX_FW: v2.5.5
+    - NPU Driver: v2.4.1
+    - DX-RT: v3.3.0
+    - DX-Stream: 3.0.0
+    - DX-APP: v3.1.0
+
+---
+
+Here are the **DX-All-Suite v2.3.0** Release Note.  
+
+### What's New?
+
+This major release focuses on Runtime Efficiency, Security Hardening, and a Unified Application Architecture. Significant optimizations in the YOLO post-processing pipeline and a major overhaul of the DX-Stream architecture make this our most robust release to date.  
+
+- **TopK-Optimized YOLO Pipeline**: DX-COM v2.3.0 introduces a high-efficiency post-processing pipeline for DFL-based YOLO models, applying TopK filtering before decoding to drastically reduce CPU overhead.  
+- **Modular & Sudo-less DX-Stream (v3.0.0)**: A complete architectural refresh of the streaming module, featuring a new kernel abstraction for hardware backends and a user-friendly installation that no longer requires root privileges.  
+- **Unified APP Framework**: DX-APP v3.1.0 establishes a strict 5-layer design pattern, ensuring 1:1 parity between C++ and Python implementations for seamless cross-language development.  
+- **Enterprise Linux Support**: DX-COM validation has expanded to include Fedora 42–45, Red Hat 9–10, and CentOS Stream 9–10.  
+
+---
+
+### Key Updates
+
+**Performance & Efficiency**  
+
+- **DFL Post-Processing**: Optimized pipeline for YOLO models decoder reduces CPU workload by filtering candidates via TopK before bounding box decoding.  
+- **NPU Latency**: Reduced inference latency for the majority of supported models through compiler optimizations.  
+- **Zero-Copy Streaming**: DX-Stream now supports DMA-Buffer zero-copy in RGA and DXOSD, reducing memory bandwidth usage.  
+- **CPU Acceleration**: Introduced optional build-time features for CPU-bound operation acceleration in the runtime.  
+
+**Stability & Fixes**  
+
+- **Hardware Compatibility**: Fixed 64-bit PCIe TLP errors on Raspberry Pi 4 and resolved ARM64 IOMMU DMA coherency bugs.  
+- **Multi-Device Handling**: Fixed PPU data transfer errors and IPC exceptions occurring in multi-process/H1/multi-M.2 environments.  
+- **Robustness**: Implemented DMA abnormal recovery for improved system resilience and fixed PPU safety via 2-cell memory alignment.  
+
+**New Features & Tools**  
+- **Security Hardening**: Added mandatory authentication for CLI and UART consoles, plus OTP-based chip identification during boot.  
+- **Expanded AI Tasks**: Added native support for Depth Estimation (FastDepth) and Image Restoration (DnCNN, Zero-DCE, ESPCN).  
+- **Massive Model Zoo**: Integrated 280+ models across 17 categories with 560+ examples, supported by a new manifest-based auto-download system.  
+- **Development Tools**: Added `dxtop` for No-Service Mode monitoring and new GStreamer elements (`DxScale`, `DxConvert`) for HW-accelerated scaling and color conversion.  
+
+### Known Issues
+
+- **PReLU Activation**: Significant FPS degradation persists in models using PReLU activation functions.  
+- **Accuracy Variability**: Certain models (OSNet, RepVGGA2, YoloV9C) may show accuracy variability depending on the host CPU and calibration dataset.  
+
+
+### Migration Guide
+
+- **DX-Stream v3.0.0 (Breaking Change)**: Users must move environment variables from `/etc/profile.d/` to ~/.bashrc. Models are now managed via `dx-modelzoo`; run setup_sample_models.sh to update.  
+- **DX-APP v3.1.0**: Project structures have changed to follow the 5-layer pattern. Refer to the new `src/` directory for updated implementation standards.  
+- **Minimum Dependencies**: DX-RT v3.3.0 now requires NPU Driver v2.4.0+ and Firmware v2.5.2+ at a minimum.  
+
+For detailed updated items, refer to **each environment & module's Release Notes.  
+
+---
+
 ## DX-All-Suite v2.2.2 / 2026-02-26
 
 - DX-Runtime: v2.2.2

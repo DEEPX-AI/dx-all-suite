@@ -1,99 +1,85 @@
-# DXNN® - DEEPX NPU SDK (DX-AS: DEEPX All Suite)
+# DXNN - DEEPX NPU SDK (DX-AllSuite: DEEPX All Suite)
 
-**DX-AS (DEEPX All Suite)** is an integrated environment of frameworks and tools that enables inference and compilation of AI models using DEEPX devices. Users can build the integrated environment by installing individual tools, but DX-AS maintains optimal compatibility by aligning the versions of the individual tools.
+**DX-AllSuite** is an all-in-one software platform designed to streamline the entire process of compiling, optimizing, simulating, and deploying AI inference applications on **DEEPX NPUs**. It ensures optimal compatibility and powerful hardware performance through a complete toolchain that covers everything from model creation to real-world "Physical AI" deployment.  
 
-![](./docs/source/resources/dxnn_sdk_illustration.png)
-![](./docs/source/resources/dxnn_sdk_illustration_simple.png)
+<div align="center">
+  <img src="./docs/source/img/DXNN-SDK-Full-Architecture.png" width="600">
+  <p><strong>Figure. DXNN SDK Full Architecture Overview.</strong></p>
+</div>
 
----
+**Key Features**  
 
-## Quick Guide
+- **High Efficiency**: Equipped with the proprietary **DX-COM** compiler that extracts 100% of NPU performance. It utilizes advanced quantization (Intelligent Quantization with INT8) to minimize accuracy loss while maximizing inference speed.  
+- **Seamless Integration**: Build intelligent video analytics pipelines that bridge the entire pre-processing, inference, and post-processing workflow. Using **DX-Stream** (GStreamer-based custom plugins), you can deploy complex vision tasks without extensive code modifications.  
+- **Flexible Ecosystem**: Fully supports **Python and C++ APIs** and offers a **ModelZoo** with over 270 optimized models. As a leader in the Open-Source Physical AI Alliance, we provide seamless workflows for popular frameworks.  
 
-The DEEPX SDK is primarily divided into two key parts.
+<div align="center">
+  <img src="./docs/source/img/DXNN-SDK-Simple-Architecture.png" width="600">
+  <p><strong>Figure. DXNN SDK Simple Architecture Overview.</strong></p>
+</div>
 
-The first is the **AI Model Compile Environment** part, which **transforms your AI model** into an optimized format for efficient execution on the DEEPX NPU.
+## Getting Started
 
-The second is the **AI Model Runtime Environment** part, which **executes the compiled AI model on the actual DEEPX NPU hardware** to generate results
+**DX-AllSuite** provides two environments depending on your intended use. Choose the environment that fits your needs to get started.
 
-With just an ONNX-format AI model and your applications source code, you can harness the full power of the DEEPX NPU by using the DEEPX SDK (highlighted in blue) to run your AI model quickly and efficiently
+### AI Model Compile Environment (Host PC)  
 
-By using DX-Allsuite, you can set up both components seamlessly, without managing them individually.
+This environment is used for converting and optimizing trained AI models into DEEPX NPU-specific binaries.  
 
-You can install each part independently as needed. For instance, set up only the **AI Model Compile Environment on your compiler platform**, and only the **AI Model Runtime Environment on the deployment platform**.
+- **Arch**: x86_64  
+- **OS**: Ubuntu 24.04 / 22.04 / 20.04 (LTS), Fedora, Redhat, CentOS  
+-	**Hardware**: x86_64 Host PC  
+- **Software**: Python 3.8~3.12, CUDA (Optional for simulation)  
+-	**Key Tasks**: AI model (`.onnx`) compilation, Quantization, `.dxnn` generation  
+-	**Action**: DX-Compiler Local Installation Guide [Link]  
+
+### AI Model Runtime Environment (Target Device)
+
+This environment is for performing inference and running applications on devices physically equipped with DEEPX NPUs.  
+
+-	**Arch**: x86_64, aarch64 
+-	**OS**: Ubuntu 24.04 / 22.04 / 20.04 / 18.04 (LTS), Debian 13 / 12
+-	**Hardware**: Host PC / Target Board (DEEPX NPU is required)
+-	**Software**: Python 3.8+
+-	**Key Tasks**: `.dxnn` model execution, real-time data inference, resource management
+-	**Action**: DX-Runtime Installation Guide [Link]
+
+!!! warning "Activation Required"  
+    A system reboot is mandatory after installation to properly load the NPU Driver into the kernel.  
+    ```Bash  
+    sudo reboot  
+    ```
+
+## Supported Models
+
+DX-AllSuite supports a vast array of industry-standard AI architectures, optimized for peak performance on our NPU.  
+
+- **Image Classification**: AlexNet, ResNet/ResNeXt/WideResNet, MobileNet, EfficientNet (Lite/V2), ViT/DeiT/BEiT, MobileViT, FastViT, CasViT, RegNet, ShuffleNet, VGG, and more.  
+- **Object Detection**: YOLO families (YOLOv3–YOLOv11, YOLOX, YOLO26), SSD, EfficientDet, NanoDet, DamoYOLO.  
+- **Segmentation**: DeepLabV3/DeepLabV3+, SegFormer, BiSeNet, UNet, YOLACT, and YOLO-based segmentation variants (YOLOv5/YOLOv8/YOLO26).  
+- **Advanced Vision Tasks**: Face analysis (Detection, Recognition, Landmarks, Attributes), Human/Hand Pose Estimation, Low-Light Enhancement, Image Denoising, Super Resolution, Depth Estimation, Oriented Object Detection (OBB), Zero-Shot Instance Segmentation, and Person Attributes.  
+
+!!! note "Pro Tip"  
+    Instead of compiling models yourself, you can download ready-to-use binaries from the [**DEEPX ModelZoo**](https://developer.deepx.ai/modelzoo/), which features **over 270 optimized models**.  
 
 
-![](./docs/source/img/dx-as.png)
-![](./docs/source/img/dx-as2.png)
+## Documentation Navigation
 
----
+If you are a first-time user, we recommend following the documentation in this order.  
 
-## DX-AS (DEEPX All Suite) Environments and Installation Guide
+- **Step 1. [DX-AllSuite Architecture Overview](./docs/source/01_DX-AllSuite_Architecture_Overview.md)**: SDK overview, module descriptions, and ModelZoo usage  
+- **Step 2. [Setting Up Environment](./docs/source/02_Setting_Up_Environment.md)**: Detailed Local/Docker installation and troubleshooting  
+- **Step 3. [Running Your First NPU Model](./docs/source/03_Running_Your_First_NPU_Model.md)**: Step-by-step hands-on script execution  
+- **Step 4. [Checking Version Compatibility](./docs/source/04_Version_Compatibility.md)**: SDK, Driver, and Firmware dependency matrix  
+- **Step 5. [FAQ Troubleshooting Guide](./docs/source/05_FAQ_Troubleshooting_Guide.md)**: Solutions for environment conflicts and GUI session (X11) errors  
 
-### [AI Model Compile Environment](https://github.com/DEEPX-AI/dx-compiler) (Compiler Platform)
+## Support
 
-**Purpose**  
-  - Must be installed on the Host machine that will perform the compilation (converting) of ONNX models to our proprietary DXNN (DEEPX format).  
+The DEEPX Technical Support Team is here to help you build smooth AI solutions.  
 
-**Core Components**
-  - DX-COM: Converts ONNX models into highly optimized, NPU-ready binaries.
+- **DEEPX Developer Portal**: [https://developer.deepx.ai](https://developer.deepx.ai) (Latest documentation and SDK release notes)  
+- **Technical Support**: [tech-support@deepx.ai](mailto:tech-support@deepx.ai) (Consultation on custom model deployment and hardware integration)    
 
-**Flexibility & Support**
-  - OS: Compatible with Debian-based Linux (Ubuntu 20.04, 22.04, 24.04)
-  - Architecture: Supports x86_64 only
-
-**Easy Installation**
-  - Our single script automates the full setup process
-  - All DX-Compiler components are ready to use upon completion.
-
-
-**You can install dx-compiler by following the instructions at this [LINK](https://github.com/DEEPX-AI/dx-all-suite/blob/staging/docs/source/installation.md#local-installation).**
-
-
-### [AI Model Runtime Environment](https://github.com/DEEPX-AI/dx-runtime) (Deployment Platform)
-
-**Purpose**  
-  - Must be installed on the Target system where the DEEPX M1 M.2 module is attached and the DEEPX AI model (.dxnn) will be executed.  
-
-**Core Components**
-  - DX-RT & DX-FW & NPU Driver: Foundational software for NPU control
-  - DX-APP: C++ and Python examples to jump-start your projects
-  - DX-Stream: GStreamer integration for seamless multimedia pipelines
-
-**Flexibility & Support**
-  - OS: Compatible with Debian-based Linux (Ubuntu 20.04, 22.04, 24.04)
-  - Architecture: Supports both x86_64 and arm64
-
-**Easy Installation**
-  - Our script automates the entire process
-  - One-time reboot is required after installation to finalize the NPU Driver setup
-
-**You can install dx-runtime by following the instructions at this [LINK](https://github.com/DEEPX-AI/dx-all-suite/blob/staging/docs/source/installation.md#install-dx-runtime-environment).**
-
----
-
-## Documentation
-
-For detailed guides on running demo applications and templates, refer to the following documents:
-
-### Introduction
-[Link](docs/source/index.md)
-
-### Installation Guide
-[Link](docs/source/installation.md)
-
-### Getting Started
-[Link](docs/source/getting-started.md)
-
-### Version Compatibility
-[Link](docs/source/version_compatibility.md)
-
-### FAQ
-[Link](docs/source/faq.md)
-
-### Make Documentation
-[Link](docs/make_docs.md)
-
-### Test
-[Link](tests/README.md)
+Copyright © DEEPX. All rights reserved.  
 
 ---
