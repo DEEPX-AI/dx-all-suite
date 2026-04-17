@@ -166,7 +166,7 @@ This release introduces a **Python-Centric Ecosystem** and a **Complete Example 
 **Performance & Efficiency**  
 - Extended PPU Support: Hardware-accelerated post-processing now supports YOLO26, YOLOv8, v9, v10, v11, and v12.
 - PCIe DMA Optimization: Reduced CPU dependency and improved sequence efficiency for high-speed data transfer (requires DX-RT SDK v3.2.0+).
-- Inference Reporting: Updated `inf_time` to include both NPU and PPCPU runtimes for realistic performance profiling.
+- Inference Reporting: Updated `inf_time` to include both NPU and PPU runtimes for realistic performance profiling.
 - Resource Prioritization: Added QoS to the NPU Scheduler to manage execution priority effectively.
 - Memory Footprint: Further reduced device memory usage for models utilizing PPU.
 
