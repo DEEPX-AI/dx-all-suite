@@ -38,25 +38,15 @@ git submodule status
 ./scripts/install_docker.sh
 ```
 
-### Python 가상 환경 (권장)
+#### (선택) Python 및 Python 가상 환경 설치
 
-설치 스크립트는 pip를 통해 Python 패키지를 설치합니다. 시스템 패키지와의 충돌을 피하고 깔끔한 환경을 유지하기 위해 Python 가상 환경을 사용하는 것을 강력하게 권장합니다.
+설치 스크립트가 자동으로 Python 버전을 감지하고, 필요한 경우 호환 가능한 Python을 설치하며, 가상 환경을 생성하고 활성화합니다. Python이나 가상 환경을 수동으로 설정할 필요 없이, 설치 스크립트를 실행하면 모든 것을 자동으로 처리합니다.
+
+Python이 시스템에 설치되어 있지 않은 경우, 미리 설치해두면 빌드 시간을 줄일 수 있습니다:
 
 ```bash
-# 가상 환경 생성
-python -m venv dx-venv
-
-# 가상 환경 활성화
-source dx-venv/bin/activate  # Linux
-# 또는
-dx-venv\Scripts\activate  # Windows
-
-# 가상 환경이 활성화되었는지 확인
-which python
-# 출력 결과: /path/to/dx-venv/bin/python
+sudo apt install python3 python3-dev python3-venv
 ```
-
-가상 환경을 활성화한 후, 아래의 설치 단계를 진행하세요.
 
 ---
 
@@ -70,43 +60,9 @@ which python
 ./dx-compiler/install.sh
 ```
 
-위 명령어를 실행하면 DX-Compiler 모듈을 다운로드 및 설치하기 위해 DEEPX Developers' Portal([https://developer.deepx.ai](https://developer.deepx.ai)) 계정 인증이 필요합니다.
-
-계속하기 전에 개발자 포털을 방문하여 계정을 생성하세요.
-
-스크립트는 아래의 우선순위에 따라 인증 정보를 획득합니다:
-
-1.  **명령어 실행 시 직접 지정 (1순위):**
-    ```bash
-    ./dx-compiler/install.sh --username=<user> --password=<pass>
-    ```
-    
-    **참고:** 비밀번호에 `!` 또는 `$`와 같은 특수문자가 포함되어 있는 경우, 작은따옴표를 사용하세요:
-    ```bash
-    ./dx-compiler/install.sh --username=<user> --password='pass!word'
-    ```
-2.  **환경 변수 사용 (2순위):**
-
-    ```bash
-    export DX_USERNAME=<사용자_이메일>
-    export DX_PASSWORD=<사용자_비밀번호>
-    ./dx-compiler/install.sh
-    ```
-
-    또는,
-    compiler.properties에 아래와 같이 계정정보를 추가하면 환경변수로 주입됩니다.
-
-    ```bash
-    DX_USERNAME=<사용자_이메일>
-    DX_PASSWORD=<사용자_비밀번호>
-    ```
-
-3.  **프롬프트 입력 (3순위):**
-    위 두 가지 방법이 사용되지 않은 경우, 스크립트 실행 중 터미널 프롬프트에서 계정 정보를 직접 입력하라는 메시지가 표시됩니다.
-
 #### Python 버전 호환성
 
-`dx_com`의 `Wheel 모드(기본값)** 설치는 Python을 필요로 합니다.
+`dx_com` 설치는 Python을 필요로 합니다.
 
 설치 스크립트는 Python 버전 호환성을 자동으로 확인합니다. 지원되는 Python 버전은 `3.8`, `3.9`, `3.10`, `3.11`, `3.12`입니다.
 
@@ -118,30 +74,14 @@ which python
 
 #### 설치 모드
 
-기본적으로 설치 스크립트는 **Wheel 모드**로 실행됩니다. 이 모드에서는 Python wheel 패키지를 다운로드하고 가상 환경에 설치합니다.
+설치 스크립트는 Python wheel 패키지를 가상 환경에 다운로드하고 설치하며, Python 버전에 맞는 패키지를 자동으로 선택합니다.
 
-레거시 실행 파일을 사용하려면 `--legacy` 옵션을 추가하세요:
-
-```bash
-./dx-compiler/install.sh --legacy
-```
-
-**Wheel 모드 (기본값):**
-- Python wheel 패키지를 다운로드하고 설치
-- 가상 환경 활성화 후 `dxcom` 명령어 사용 가능
-- Python 버전별로 적절한 wheel 패키지 자동 선택
-
-**Legacy 모드:**
-- 실행 파일 다운로드 및 압축 해제
-- 직접 실행 가능
-
-> ⚠️ **주의:** Legacy 모드는 향후 버전에서 제거될 예정입니다. 새로운 프로젝트에서는 Wheel 모드(기본값) 사용을 권장합니다.
+가상 환경을 활성화한 후 `dxcom` 명령어를 사용하세요.
 
 성공적으로 설치되면:
 
 1.  `dx_com` 모듈이 다운로드 및 설치됩니다:
-    - **Wheel 모드:** Python wheel 패키지가 가상 환경에 설치됩니다
-    - **Legacy 모드:** 실행 파일이 `./workspace/release/dx_com/dx_com_M1_v[VERSION]`에 압축 해제됩니다
+    - Python wheel 패키지가 가상 환경에 설치됩니다
 
 2.  심볼릭 링크가 `./dx-compiler/dx_com`에 생성됩니다.
 
@@ -157,8 +97,6 @@ which python
 
 #### dx_com 사용하기
 
-**Wheel 모드로 설치한 경우:**
-
 가상 환경을 활성화한 후 `dxcom` 명령어를 사용할 수 있습니다:
 
 ```bash
@@ -167,14 +105,6 @@ source ./dx-compiler/venv-dx-compiler/bin/activate
 
 # dxcom 사용
 dxcom -h
-```
-
-**Legacy 모드로 설치한 경우:**
-
-별도의 가상환경 활성화 없이 직접 실행 가능합니다:
-
-```bash
-./dx-compiler/dx_com/dx_com/dx_com -h
 ```
 
 #### 아카이브 모드 (--archive_mode=y)
@@ -567,8 +497,6 @@ DVFS Disabled
 
 **개별 모델 수동 컴파일:**
 
-**Wheel 모드로 설치한 경우:**
-
 ```bash
 # 가상 환경 활성화
 source ./dx-compiler/venv-dx-compiler/bin/activate
@@ -586,18 +514,6 @@ dxcom \
         -c sample_models/json/MobileNetV2-1.json \
         -o output/MobileNetV2-1
 Compiling Model : 100%|███████████████████████████████| 1.0/1.0 [00:06<00:00,  7.00s/model ]
-```
-
-**Legacy 모드로 설치한 경우:**
-
-```bash
-cd ./dx-compiler/dx_com
-
-dx_com/dx_com \
-        -m sample_models/onnx/YOLOV5S-1.onnx \
-        -c sample_models/json/YOLOV5S-1.json \
-        -o output/YOLOV5S-1
-Compiling Model : 100%|███████████████████████████████| 1.0/1.0 [00:47<00:00, 47.66s/model ]
 ```
 
 **자세한 내용은 [dx-compiler/source/docs/02_02_Installation_of_DX-COM.md](/dx-compiler/source/docs/02_02_Installation_of_DX-COM.md)를 참고하세요.**

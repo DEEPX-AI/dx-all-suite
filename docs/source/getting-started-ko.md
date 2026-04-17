@@ -311,9 +311,9 @@ bash runtime-0_install_dx-runtime.sh --exclude-fw -f
   - 모든 `.dxnn` 모델 파일 존재 여부 검증 (`YOLOV5S_Face-1`, `YOLOV5S-1`, `MobileNetV2-1`)
   - 필요한 경우 `fim` 설치 확인 (향후 이미지 뷰어 지원용)
   - 세 가지 예제를 순차적으로 실행:
-    - **YOLOV5 Face**: `face_sample.jpg`에 대해 30회 반복
-    - **YOLOV5S**: `1.jpg`에 대해 300회 반복
-    - **MobileNetV2**: `ILSVRC2012/1.jpeg`에 대해 300회 반복 (로그 출력)
+    - **YOLOV5 Face**: `face_sample.jpg`에 대해 30회 반복 (5명의 인물이 웃는 얼굴 사진)
+    - **YOLOV5S**: `1.jpg`에 대해 300회 반복 (레스토랑 주방 사진)
+    - **MobileNetV2**: `ILSVRC2012/1.jpeg`에 대해 300회 반복 (나비 사진, 로그 출력)
 
 **테스트된 모델:**
 - YOLOV5S_Face-1 (얼굴 감지)

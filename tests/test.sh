@@ -48,8 +48,6 @@ DEBUG_MODE=0
 LIST_MODE=0
 CACHE_CLEAR=0
 INTERNAL_MODE=0
-DX_USERNAME_ARG=""
-DX_PASSWORD_ARG=""
 
 print_info() {
     echo -e "${BLUE}[INFO]${NC} $@"
@@ -133,8 +131,6 @@ print_usage() {
     echo -e "  ${GREEN}--list${NC}           - List tests without running them (--collect-only)"
     echo -e "  ${GREEN}--cache-clear${NC}    - Clear pytest cache before running tests"
     echo -e "  ${GREEN}--internal${NC}       - Use internal network settings (sets USE_INTRANET=true)"
-    echo -e "  ${GREEN}--dx_username=<user>${NC} - Set DX_USERNAME for docker builds"
-    echo -e "  ${GREEN}--dx_password=<pass>${NC} - Set DX_PASSWORD for docker builds"
     echo -e "  ${GREEN}-k <expr>${NC}        - Pytest keyword expression filter (e.g., \"ubuntu and 24.04\")"
     echo -e "  ${GREEN}-m <expr>${NC}        - Pytest marker expression filter (e.g., \"local and sanity\")"
     echo -e ""
@@ -234,26 +230,6 @@ while [[ $# -gt 0 ]]; do
             INTERNAL_MODE=1
             shift
             ;;
-        --dx_username=*)
-            DX_USERNAME_ARG="${1#*=}"
-            if [ -z "${DX_USERNAME_ARG}" ]; then
-                echo -e "Missing value for --dx_username option"
-                echo -e ""
-                print_usage
-                exit 1
-            fi
-            shift
-            ;;
-        --dx_password=*)
-            DX_PASSWORD_ARG="${1#*=}"
-            if [ -z "${DX_PASSWORD_ARG}" ]; then
-                echo -e "Missing value for --dx_password option"
-                echo -e ""
-                print_usage
-                exit 1
-            fi
-            shift
-            ;;
         -k)
             if [ -z "$2" ]; then
                 echo -e "Missing argument for -k"
@@ -318,23 +294,6 @@ if [ $CACHE_CLEAR -eq 1 ]; then
     else
         print_info "No pytest cache found to clear"
     fi
-fi
-
-# Export DX_USERNAME and DX_PASSWORD from command line args or environment
-if [ -n "${DX_USERNAME_ARG}" ]; then
-    export DX_USERNAME="${DX_USERNAME_ARG}"
-    print_info "DX_USERNAME set from command line: ${DX_USERNAME}"
-elif [ -n "${DX_USERNAME}" ]; then
-    export DX_USERNAME
-    print_info "DX_USERNAME set from environment: ${DX_USERNAME}"
-fi
-
-if [ -n "${DX_PASSWORD_ARG}" ]; then
-    export DX_PASSWORD="${DX_PASSWORD_ARG}"
-    print_info "DX_PASSWORD set from command line: ****"
-elif [ -n "${DX_PASSWORD}" ]; then
-    export DX_PASSWORD
-    print_info "DX_PASSWORD set from environment: ****"
 fi
 
 # Export exclude-fw flag as environment variable

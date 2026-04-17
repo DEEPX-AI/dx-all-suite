@@ -39,25 +39,15 @@ git submodule status
 ./scripts/install_docker.sh
 ```
 
-#### Python Virtual Environment (Recommended)
+#### (Optional) Install Python and Python Virtual Environment
 
-The installation scripts will install Python packages via pip. To avoid conflicts with system packages and maintain a clean environment, it is strongly recommended to use a Python virtual environment:
+The installation scripts automatically detect your Python version, install a compatible Python if needed, and create and activate a virtual environment. You do not need to set up Python or a virtual environment manually — simply run the installation script and it will handle everything.
+
+If Python is not already installed on your system, installing it beforehand can reduce build time:
 
 ```bash
-# Create a virtual environment
-python -m venv dx-venv
-
-# Activate the virtual environment
-source dx-venv/bin/activate  # On Linux
-# or
-dx-venv\Scripts\activate  # On Windows
-
-# Verify the virtual environment is active
-which python
-# Should show: /path/to/dx-venv/bin/python
+sudo apt install python3 python3-dev python3-venv
 ```
-
-After activating the virtual environment, proceed with the installation steps below.
 
 ---
 
@@ -71,42 +61,9 @@ The `DX-Compiler` environment provides prebuilt binary outputs and does not incl
 ./dx-compiler/install.sh
 ```
 
-When executing the above command, DEEPX Developers' Portal ([https://developer.deepx.ai](https://developer.deepx.ai)) account authentication is required to download and install the DX-Compiler modules.
-
-Please visit the developer portal and create an account before proceeding.
-
-The script obtains authentication information based on the following priority:
-
-1.  **Directly specify when executing the command (1st priority):**
-    ```bash
-    ./dx-compiler/install.sh --username=<your_email> --password=<your_password>
-    ```
-    
-    **Note:** If your password contains special characters like `!` or `$`, use single quotes:
-    ```bash
-    ./dx-compiler/install.sh --username=<your_email> --password='pass!word'
-    ```
-2.  **Use environment variables (2nd priority):**
-
-    ```bash
-    export DX_USERNAME=<your_email>
-    export DX_PASSWORD=<your_password>
-    ./dx-compiler/install.sh
-    ```
-
-    Alternatively, you can add account information to `compiler.properties` as shown below, which will be injected as environment variables:
-
-    ```bash
-    DX_USERNAME=<your_email>
-    DX_PASSWORD=<your_password>
-    ```
-
-3.  **Prompt for input (3rd priority):**
-    If neither of the above methods is used, the script will prompt you to enter your account information directly in the terminal during execution.
-
 #### Python Version Compatibility
 
-`dx_com`'s **Wheel mode (default)** installation requires Python.
+`dx_com`'s installation requires Python.
 
 The installation script automatically checks Python version compatibility. Supported Python versions are `3.8`, `3.9`, `3.10`, `3.11`, and `3.12`.
 
@@ -118,30 +75,14 @@ If the current system's Python version is not compatible, the script will detect
 
 #### Installation Modes
 
-By default, the installation script runs in **Wheel mode**. In this mode, Python wheel packages are downloaded and installed into the virtual environment.
+The installation script downloads and installs Python wheel packages into the virtual environment, automatically selecting the appropriate package for your Python version.
 
-To use legacy executables, add the `--legacy` option:
-
-```bash
-./dx-compiler/install.sh --legacy
-```
-
-**Wheel Mode (default):**
-- Downloads and installs Python wheel packages
-- Use `dxcom` command after activating the virtual environment
-- Automatically selects the appropriate wheel package for your Python version
-
-**Legacy Mode:**
-- Downloads and extracts executable files
-- Can be run directly
-
-> ⚠️ **Warning:** Legacy mode will be removed in future versions. We recommend using Wheel mode (default) for new projects.
+Use `dxcom` command after activating the virtual environment.
 
 Upon successful installation:
 
 1.  The `dx_com` module will be downloaded and installed:
-    - **Wheel Mode:** Python wheel packages are installed in the virtual environment
-    - **Legacy Mode:** Executables are extracted to `./workspace/release/dx_com/dx_com_M1_v[VERSION]`
+    - Python wheel packages are installed in the virtual environment
 
 2.  Symbolic links will be created at `./dx-compiler/dx_com`.
 
@@ -157,39 +98,15 @@ Upon successful installation:
 
 #### Using dx_com
 
-**If installed with Wheel mode:**
-
 You can use the `dxcom` command after activating the virtual environment:
 
 ```bash
 # Activate virtual environment
-source ./dx-compiler/venv-dx-compiler/bin/activate
+source ./dx-compiler/venv-dx-compiler-local/bin/activate
 
 # Use dxcom
 dxcom -h
 ```
-
-**If installed with Legacy mode:**
-
-You can run it directly:
-
-```bash
-./dx-compiler/dx_com/dx_com/dx_com -h
-```
-
-#### Archive Mode (--archive_mode=y)
-
-The `--archive_mode=y` option is primarily used when building Docker images for the `dx-compiler` environment with `docker_build.sh`. When this mode is activated, only the download of the module's `.tar.gz` file proceeds; no extraction or symbolic link creation is performed.
-
-```bash
-./dx-compiler/install.sh --archive_mode=y
-```
-
-When executing the above command, the module archive files (`*.tar.gz`) will be downloaded and saved to:
-
-archives/dx_com_M1_v[VERSION].tar.gz
-
-These archive files can then be utilized by the Docker image build process.
 
 #### Using DX-TRON
 
@@ -448,23 +365,23 @@ dxrt-cli -s
 Example output:
 
 ```
-DXRT v2.6.3
+DXRT v3.2.0
 =======================================================
 * Device 0: M1, Accelerator type
 ---------------------   Version   ---------------------
-* RT Driver version   : v1.3.1
-* PCIe Driver version : v1.2.0
+* RT Driver version   : v2.1.0
+* PCIe Driver version : v2.0.1
 -------------------------------------------------------
-* FW version          : v1.6.0
+* FW version          : v2.4.0
 --------------------- Device Info ---------------------
-* Memory : LPDDR5 5800 MHz, 3.92GiB
-* Board  : M.2, Rev 10.0
+* Memory : LPDDR5 6000 MHz, 3.92GiB
+* Board  : M.2, Rev 1.0
+* Chip Offset : 0
 * PCIe   : Gen3 X4 [02:00:00]
 
 NPU 0: voltage 750 mV, clock 1000 MHz, temperature 29'C
 NPU 1: voltage 750 mV, clock 1000 MHz, temperature 28'C
 NPU 2: voltage 750 mV, clock 1000 MHz, temperature 28'C
-DVFS Disabled
 =======================================================
 ```
 
@@ -567,11 +484,9 @@ Run the following from the `./dx-compiler/dx_com/` directory.
 
 **Or compile individual models manually:**
 
-**If installed with Wheel mode:**
-
 ```bash
 # Activate virtual environment
-source ./dx-compiler/venv-dx-compiler/bin/activate
+source ./dx-compiler/venv-dx-compiler-local/bin/activate
 
 cd ./dx-compiler/dx_com
 
@@ -588,16 +503,5 @@ dxcom \
 Compiling Model : 100%|███████████████████████████████| 1.0/1.0 [00:06<00:00,  7.00s/model ]
 ```
 
-**If installed with Legacy mode:**
-
-```bash
-cd ./dx-compiler/dx_com
-
-dx_com/dx_com \
-        -m sample_models/onnx/YOLOV5S-1.onnx \
-        -c sample_models/json/YOLOV5S-1.json \
-        -o output/YOLOV5S-1
-Compiling Model : 100%|███████████████████████████████| 1.0/1.0 [00:47<00:00, 47.66s/model ]
-```
 
 **For more details, refer to [dx-compiler/source/docs/02_02_Installation_of_DX-COM.md](/dx-compiler/source/docs/02_02_Installation_of_DX-COM.md).**

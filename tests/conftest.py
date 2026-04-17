@@ -3,6 +3,7 @@ Shared utilities and configuration for all test suites.
 """
 
 import os
+import shlex
 import subprocess
 import sys
 from pathlib import Path
@@ -18,8 +19,10 @@ def is_verbose() -> bool:
     """Check if verbose/debug mode is enabled."""
     return os.getenv("DX_TEST_VERBOSE", "0").lower() in {"1", "true", "yes", "y"}
 
-def container_name(os_type: str, version: str) -> str:
-    """Generate container name from os_type and version string."""
+def container_name(os_type: str, version: str, component: str = "") -> str:
+    """Generate container name from component, os_type and version string."""
+    if component:
+        return f"dx-local-install-test-{component}-{os_type}-{version.replace('.', '-')}"
     return f"dx-local-install-test-{os_type}-{version.replace('.', '-')}"
 
 
@@ -98,18 +101,14 @@ def run_in_container(
             print(banner, file=sys.stdout, flush=True)
             print(banner, file=sys.stderr, flush=True)
 
+    # Wrap docker exec -it with script -qec to allocate PTY
+    docker_cmd = ["docker", "exec", "-it", container_name, "bash", "-lc", cmd]
+    wrapped_cmd = ["script", "-qec", " ".join(shlex.quote(arg) for arg in docker_cmd), "/dev/null"]
+
     if is_verbose():
         # Live output mode - stream output in real-time
         process = subprocess.Popen(
-            [
-                "docker",
-                "exec",
-                "-i",
-                container_name,
-                "bash",
-                "-lc",
-                cmd,
-            ],
+            wrapped_cmd,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
@@ -139,7 +138,7 @@ def run_in_container(
             print(summary, file=sys.stdout, flush=True)
 
         return subprocess.CompletedProcess(
-            args=["docker", "exec", "-i", container_name, "bash", "-lc", cmd],
+            args=docker_cmd,
             returncode=process.returncode,
             stdout="\n".join(output_lines),
             stderr=None,
@@ -147,15 +146,7 @@ def run_in_container(
     else:
         # Quiet mode - capture output and return
         return subprocess.run(
-            [
-                "docker",
-                "exec",
-                "-i",
-                container_name,
-                "bash",
-                "-lc",
-                cmd,
-            ],
+            wrapped_cmd,
             capture_output=True,
             text=True,
             cwd=PROJECT_ROOT,
@@ -202,10 +193,13 @@ def run_command(
         )
         print(banner, file=sys.stdout, flush=True)
 
+    # Wrap command with script -qec to allocate PTY
+    script_cmd = ["script", "-qec", " ".join(shlex.quote(arg) for arg in cmd), "/dev/null"]
+
     if is_verbose():
         # Live output mode - stream output in real-time
         process = subprocess.Popen(
-            cmd,
+            script_cmd,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
@@ -244,7 +238,7 @@ def run_command(
     else:
         # Quiet mode - capture both stdout and stderr separately
         result = subprocess.run(
-            cmd,
+            script_cmd,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,

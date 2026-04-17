@@ -25,22 +25,22 @@ fork_examples() {
     
     # copy dx_app example application binary executable files
     mkdir -p  ${FORK_PATH}/bin
-    local cp_efficientnet_async_cmd="cp -dp ${DX_APP_PATH}/bin/efficientnet_async ${FORK_PATH}/bin/."
-    local cp_yolov5_async_cmd="cp -dp ${DX_APP_PATH}/bin/yolov5_async ${FORK_PATH}/bin/."
-    local cp_yolov5face_async_cmd="cp -dp ${DX_APP_PATH}/bin/yolov5face_async ${FORK_PATH}/bin/."
-    local err_msg_efficientnet_async="Failed to copy 'efficientnet_async' binary executable file."
-    local err_msg_yolov5_async="Failed to copy 'yolov5_async' binary executable file."
-    local err_msg_yolov5face_async="Failed to copy 'yolov5face_async' binary executable file."
+    local cp_mobilenetv2_async_cmd="cp -dp ${DX_APP_PATH}/bin/mobilenetv2_async ${FORK_PATH}/bin/."
+    local cp_yolov5_async_cmd="cp -dp ${DX_APP_PATH}/bin/yolov5s_async ${FORK_PATH}/bin/."
+    local cp_yolov5face_async_cmd="cp -dp ${DX_APP_PATH}/bin/yolov5s_face_async ${FORK_PATH}/bin/."
+    local err_msg_mobilenetv2_async="Failed to copy 'mobilenetv2_async' binary executable file."
+    local err_msg_yolov5_async="Failed to copy 'yolov5s_async' binary executable file."
+    local err_msg_yolov5face_async="Failed to copy 'yolov5s_face_async' binary executable file."
     local hint_msg="Please build dx_app first. using command"
     local suggested_action_cmd="${RUNTIME_PATH}/install.sh --target=dx_app"
 
-    eval "$cp_efficientnet_async_cmd" || {
+    eval "$cp_mobilenetv2_async_cmd" || {
         # handle_cmd_failure function arguments
         #   - local error_message=$1
         #   - local hint_message=$2
         #   - local origin_cmd=$3
         #   - local suggested_action_cmd=$4
-        handle_cmd_failure "$err_msg_efficientnet_async" "$hint_msg" "$cp_efficientnet_async_cmd" "$suggested_action_cmd"
+        handle_cmd_failure "$err_msg_mobilenetv2_async" "$hint_msg" "$cp_mobilenetv2_async_cmd" "$suggested_action_cmd"
     }
 
     eval "$cp_yolov5_async_cmd" || {
@@ -64,13 +64,9 @@ fork_examples() {
     # copy input image sample for Image Classification Model
     # for Object Detection (YOLOV5S-1)
     mkdir -p ${FORK_PATH}/sample
-    cp -dp ${DX_APP_PATH}/sample/img/1.jpg ${FORK_PATH}/sample/.
-    cp -dp ${DX_APP_PATH}/sample/img/2.jpg ${FORK_PATH}/sample/.
-    cp -dp ${DX_APP_PATH}/sample/img/3.jpg ${FORK_PATH}/sample/.
-    cp -dp ${DX_APP_PATH}/sample/img/4.jpg ${FORK_PATH}/sample/.
-    cp -dp ${DX_APP_PATH}/sample/img/5.jpg ${FORK_PATH}/sample/.
+    cp -dp ${DX_APP_PATH}/sample/img/sample_kitchen.jpg ${FORK_PATH}/sample/.
     # for Face Detection (YOLOV5S_Face-1)
-    cp -dp ${DX_APP_PATH}/sample/img/face_sample.jpg ${FORK_PATH}/sample/.
+    cp -dp ${DX_APP_PATH}/sample/img/sample_face.jpg ${FORK_PATH}/sample/.
     # for Image Classification (MobileNetV2-1-1)
     mkdir -p ${FORK_PATH}/sample/ILSVRC2012
     cp -dpR ${DX_APP_PATH}/sample/ILSVRC2012 ${FORK_PATH}/sample/.
@@ -96,7 +92,7 @@ run_example() {
     if [ ! -f /deepx/tty_flag ]; then
         echo -e "${TAG_INFO} <hint> Press ${COLOR_BRIGHT_GREEN_ON_BLACK}'q' or 'Ctrl+C'${COLOR_RESET} to exit result viewing"
     else
-        if [ "${exe_file_path}" != "./bin/efficientnet_async" ]; then
+        if [ "${exe_file_path}" != "./bin/mobilenetv2_async" ]; then
             additional_args+=" --no-display"
         fi
     fi
@@ -138,9 +134,9 @@ show_result() {
 }
 
 main() {
-    YOLO_FACE_TARGET_STR="${DX_AS_PATH}/getting-started/dxnn/YOLOV5S_Face-1.dxnn"
-    YOLO_V5S_TARGET_STR="${DX_AS_PATH}/getting-started/dxnn/YOLOV5S-1.dxnn"
-    MOBILENET_V2_TARGET_STR="${DX_AS_PATH}/getting-started/dxnn/MobileNetV2-1.dxnn"
+    YOLO_FACE_TARGET_STR="${DX_AS_PATH}/getting-started/dxnn/YOLOV5S_Face-1.dxnn" #YOLOv5s_Face
+    YOLO_V5S_TARGET_STR="${DX_AS_PATH}/getting-started/dxnn/YOLOV5S-1.dxnn" #YOLOV5S
+    MOBILENET_V2_TARGET_STR="${DX_AS_PATH}/getting-started/dxnn/MobileNetV2-1.dxnn" #MobileNetV2
 
     # Check if the *.dxnn files were successfully generated using 'getting-started/compiler-4_model_compile.sh'
     DXNN_CHECK_LIST=("${YOLO_FACE_TARGET_STR}" "${YOLO_V5S_TARGET_STR}" "${MOBILENET_V2_TARGET_STR}")
@@ -181,21 +177,21 @@ main() {
     # yolo_face example
     echo -e "${TAG_START} === Yolov5 Face ==="
     rm -rf ${FORK_PATH}/result*.jpg
-    run_example "./bin/yolov5face_async" "${YOLO_FACE_TARGET_STR}" "./sample/face_sample.jpg" "n" "30"
+    run_example "./bin/yolov5s_face_async" "${YOLO_FACE_TARGET_STR}" "./sample/sample_face.jpg" "n" "30"
     show_result "${FORK_PATH}/result*.jpg"
     echo -e "${TAG_DONE} === YOLOV5 Face ==="
 
     # yolov5s example
     echo -e "${TAG_START} === Yolov5S ==="
     rm -rf ${FORK_PATH}/result*.jpg
-    run_example "./bin/yolov5_async" "${YOLO_V5S_TARGET_STR}" "./sample/1.jpg" "n" "300"
+    run_example "./bin/yolov5s_async" "${YOLO_V5S_TARGET_STR}" "./sample/sample_kitchen.jpg" "n" "300"
     show_result "${FORK_PATH}/result*.jpg"
     echo -e "${TAG_DONE} === Yolov5s ==="
 
     # mobilenetv2 example
     echo -e "${TAG_START} === MobileNetV2 ==="    
     rm -rf ${FORK_PATH}/result*.log
-    run_example "./bin/efficientnet_async" "${MOBILENET_V2_TARGET_STR}" "./sample/ILSVRC2012/1.jpeg" "y" "300"
+    run_example "./bin/mobilenetv2_async" "${MOBILENET_V2_TARGET_STR}" "./sample/ILSVRC2012/1.jpeg" "y" "300"
     echo -e "${TAG_INFO} -------- [Result of MobileNetV2 example] --------"
     echo -e -n "${COLOR_BRIGHT_YELLOW_ON_BLACK}"
     cat ${FORK_PATH}/result-app.log

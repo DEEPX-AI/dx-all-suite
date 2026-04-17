@@ -184,12 +184,7 @@ cd tests
 # Special Options
 ./test.sh --exclude-fw local_install           # Skip firmware in runtime install
 ./test.sh --internal docker_install            # Use internal network (intranet)
-./test.sh --dx_username=<user> <suite>         # Set DX_USERNAME for dx-compiler download
-./test.sh --dx_password=<pass> <suite>         # Set DX_PASSWORD for dx-compiler download
 ./test.sh --cache-clear all                    # Clear pytest cache first
-
-# Combined Options Example
-./test.sh --internal --dx_username=admin --dx_password=secret local_install
 ```
 
 ### Keyword Filters
@@ -494,9 +489,6 @@ export DX_TEST_NO_CACHE=1
 # Custom volume mount path
 export LOCAL_VOLUME_PATH="/path/to/dx-all-suite"
 
-# developer.deepx.ai credentials (for dx-compiler download)
-export DX_USERNAME="your_username"
-export DX_PASSWORD="your_password"
 ```
 
 **Using --internal flag:**
@@ -532,14 +524,6 @@ Without `--debug`, output is buffered and only shown after test completion or on
 
 # Debug mode with filters
 ./test.sh --debug -k "runtime and ubuntu and 24.04" local_install
-```
-
-**Using --dx_username and --dx_password:**
-These flags set credentials that are passed as environment variables to Docker containers during `local_install` tests. Useful for authenticated package repositories or internal servers.
-
-```bash
-# Example with internal network and credentials
-./test.sh --internal --dx_username=admin --dx_password=secret local_install
 ```
 
 ### Custom Docker Compose Configuration
@@ -610,33 +594,7 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-#### 5. dx-compiler Download Failure from developer.deepx.ai
-
-If dx-compiler installation fails when downloading `dx-com` or `dx-tron` from developer.deepx.ai, you need to provide authentication credentials:
-
-**Error symptoms:**
-- `401 Unauthorized` errors during dx-compiler installation
-- Download failures from `https://developer.deepx.ai`
-- Missing `dx-com` or `dx-tron` files
-
-**Solution:**
-Export your DeepX developer credentials before running tests:
-
-```bash
-# Set credentials as environment variables
-export DX_USERNAME="your_username"
-export DX_PASSWORD="your_password"
-
-# Then run tests with --dx_username and --dx_password flags
-./test.sh --dx_username=your_username --dx_password=your_password local_install
-
-# Or for specific component tests
-./test.sh --debug --dx_username=your_username --dx_password=your_password -k "compiler" local_install
-```
-
-**Note:** These credentials are passed to Docker containers during installation to authenticate downloads from the DeepX developer portal.
-
-#### 6. Sudo Password Prompts During Tests
+#### 5. Sudo Password Prompts During Tests
 
 If tests fail or hang due to sudo password prompts, you can configure passwordless sudo for specific commands or the current user.
 

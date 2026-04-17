@@ -111,14 +111,6 @@ class TestDockerBuild:
         if os.getenv("DX_TEST_INTERNAL", "0").lower() in {"1", "true", "yes", "y"}:
             cmd.append("--internal")
 
-        # Verify credentials are set (log for debugging)
-        import sys
-        if os.getenv("DX_USERNAME") and os.getenv("DX_PASSWORD"):
-            print(f"[DEBUG] DX_USERNAME is set: {os.getenv('DX_USERNAME')}", file=sys.stderr)
-            print(f"[DEBUG] DX_PASSWORD is set: ****", file=sys.stderr)
-        else:
-            print(f"[WARNING] DX_USERNAME or DX_PASSWORD not set in environment", file=sys.stderr)
-
         # Build banner message
         banner_msg = f"Building {target} on {os_type}:{version}"
 

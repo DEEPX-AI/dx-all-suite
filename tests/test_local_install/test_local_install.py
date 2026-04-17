@@ -163,10 +163,6 @@ class TestLocalInstallDockerBuild:
             env["COMPONENT"] = component
         if not env.get("LOCAL_VOLUME_PATH"):
             env["LOCAL_VOLUME_PATH"] = str(PROJECT_ROOT)
-        if not env.get("DX_USERNAME"):
-            env["DX_USERNAME"] = ""
-        if not env.get("DX_PASSWORD"):
-            env["DX_PASSWORD"] = ""
 
         config_file_args = ["-f", "tests/docker/docker-compose.local.install.test.yml"]
         if env.get("DX_TEST_NVIDIA_GPU", "0").lower() in {"1", "true", "yes", "y"}:
@@ -257,10 +253,10 @@ class TestLocalInstallDockerRun:
         """
         Test Docker container startup.
 
-        Starts the container using docker run with volume mounting.
+        Starts the container using docker compose up with volume mounting.
         If container exists, removes it and recreates.
         """
-        container_name_str = container_name(os_type, version)
+        container_name_str = container_name(os_type, version, component)
 
         # Check if container exists (running or stopped)
         check_result = subprocess.run(
@@ -283,10 +279,6 @@ class TestLocalInstallDockerRun:
                     f"STDERR:\n{remove_result.stderr}"
                 )
 
-        # Get LOCAL_VOLUME_PATH from environment
-        local_volume_path = os.getenv("LOCAL_VOLUME_PATH", str(PROJECT_ROOT))
-        docker_volume_path = os.getenv("DOCKER_VOLUME_PATH", "/deepx/workspace")
-
         # Build image name
         image_name = f"dx-local-install-test-{os_type}:{version}"
 
@@ -294,31 +286,52 @@ class TestLocalInstallDockerRun:
         if not check_docker_image_exists(os_type, version):
             pytest.fail(f"Docker image {image_name} does not exist. Run docker build test first.")
 
-        # Start the container
+        # Prepare environment for docker compose
+        env = os.environ.copy()
+        env["HOST_UID"] = str(os.getuid())
+        env["HOST_GID"] = str(os.getgid())
+        env["OS_TYPE"] = os_type
+        env["VERSION"] = version
+        env["VERSION_DASH"] = version.replace(".", "-")
+        env["COMPONENT"] = component
+        env["LOCAL_VOLUME_PATH"] = os.getenv("LOCAL_VOLUME_PATH", str(PROJECT_ROOT))
+        env["DOCKER_VOLUME_PATH"] = os.getenv("DOCKER_VOLUME_PATH", "/deepx/workspace")
+
+        if not env.get("XAUTHORITY"):
+            dummy_xauth = "/tmp/dummy"
+            Path(dummy_xauth).touch(exist_ok=True)
+            env["XAUTHORITY"] = dummy_xauth
+            env["XAUTHORITY_TARGET"] = dummy_xauth
+        else:
+            env["XAUTHORITY_TARGET"] = "/tmp/.docker.xauth"
+
+        if not env.get("USE_INTRANET"):
+            env["USE_INTRANET"] = ""
+        if not env.get("CA_FILE_NAME"):
+            env["CA_FILE_NAME"] = ""
+        if not env.get("DISPLAY"):
+            env["DISPLAY"] = ""
+
+        config_file_args = ["-f", "tests/docker/docker-compose.local.install.test.yml"]
+        if env.get("DX_TEST_NVIDIA_GPU", "0").lower() in {"1", "true", "yes", "y"}:
+            config_file_args.extend(["-f", "docker/docker-compose.nvidia_gpu.yml"])
+        if env.get("DX_TEST_INTERNAL", "0").lower() in {"1", "true", "yes", "y"}:
+            config_file_args.extend(["-f", "docker/docker-compose.internal.yml"])
+
+        # Start the container using docker compose
         cmd = [
-            "docker", "run",
-            "-d",
-            "--name", container_name_str,
-            "-e", f"DOCKER_VOLUME_PATH={docker_volume_path}",
-            "-e", f"LOCAL_VOLUME_PATH={local_volume_path}",
-            "-v", f"{local_volume_path}:{docker_volume_path}"
+            "docker", "compose",
+            *config_file_args,
+            "up", "-d",
+            "dx-local-install-test",
         ]
-
-        # Add DX_USERNAME and DX_PASSWORD if they exist
-        if os.getenv("DX_USERNAME"):
-            cmd.extend(["-e", f"DX_USERNAME={os.getenv('DX_USERNAME')}"])
-        if os.getenv("DX_PASSWORD"):
-            cmd.extend(["-e", f"DX_PASSWORD={os.getenv('DX_PASSWORD')}"])
-
-        cmd.extend([
-            image_name,
-            "tail", "-f", "/dev/null"
-        ])
 
         result = subprocess.run(
             cmd,
             capture_output=True,
             text=True,
+            cwd=str(PROJECT_ROOT),
+            env=env,
         )
 
         if result.returncode != 0:
@@ -388,7 +401,7 @@ class TestLocalInstallation:
             version: OS version (24.04, 22.04, etc.)
             capsys: Pytest fixture for capturing output
         """
-        container_name_str = container_name(os_type, version)
+        container_name_str = container_name(os_type, version, component)
 
         # Ensure container is running
         if not is_container_running(container_name_str):
