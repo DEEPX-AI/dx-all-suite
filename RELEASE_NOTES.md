@@ -6,7 +6,7 @@
     - DX-COM: v2.3.0
     - DX-TRON: v2.0.1
 - DX-Runtime: v2.3.0
-    - DX_FW: v2.5.5
+    - DX_FW: v2.5.6
     - NPU Driver: v2.4.1
     - DX-RT: v3.3.0
     - DX-Stream: 3.0.0
@@ -40,10 +40,11 @@ This major release focuses on Runtime Efficiency, Security Hardening, and a Unif
 
 - **Hardware Compatibility**: Fixed 64-bit PCIe TLP errors on Raspberry Pi 4 and resolved ARM64 IOMMU DMA coherency bugs.  
 - **Multi-Device Handling**: Fixed PPU data transfer errors and IPC exceptions occurring in multi-process/H1/multi-M.2 environments.  
-- **Robustness**: Implemented DMA abnormal recovery for improved system resilience and fixed PPU safety via 2-cell memory alignment.  
+- **Robustness**: Implemented DMA abnormal recovery for improved system resilience and fixed PPU safety via 2-cell memory alignment.
+- **Power Saving**: Re-enabled run mode NPU and hardened devMode race.
 
 **New Features & Tools**  
-- **Security Hardening**: Added mandatory authentication for CLI and UART consoles, plus OTP-based chip identification during boot.  
+
 - **Expanded AI Tasks**: Added native support for Depth Estimation (FastDepth) and Image Restoration (DnCNN, Zero-DCE, ESPCN).  
 - **Massive Model Zoo**: Integrated 280+ models across 17 categories with 560+ examples, supported by a new manifest-based auto-download system.  
 - **Development Tools**: Added `dxtop` for No-Service Mode monitoring and new GStreamer elements (`DxScale`, `DxConvert`) for HW-accelerated scaling and color conversion.  
