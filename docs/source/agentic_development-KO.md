@@ -140,10 +140,10 @@ dx-all-suite는 작업을 분류하고 적절한 서브모듈로 디스패치하
 
 | 도구 | 전역 컨텍스트 | 파일별 컨텍스트 | 에이전트 | 스킬 |
 |---|---|---|---|---|
-| Claude Code | `CLAUDE.md` | Context Routing Table (수동) | `CLAUDE.md` 라우팅에 내장 | `.deepx/skills/` (직접 읽기) |
-| Copilot | `.github/copilot-instructions.md` | `.github/instructions/*.instructions.md` (`applyTo:` 글로브) | `.github/agents/*.agent.md` | — |
-| Cursor | `.cursor/rules/dx-*.mdc` (`alwaysApply: true`) | `.cursor/rules/*.mdc` (`globs: [...]`) | — | — |
-| OpenCode | `AGENTS.md` + `opencode.json` instructions | — | `.opencode/agents/*.md` | `.opencode/skills/*/SKILL.md` |
+| Claude Code | `CLAUDE.md` | Context Routing Table (수동) | `.claude/agents/*.md` (생성됨) | `.deepx/skills/` (직접 읽기) |
+| Copilot | `.github/copilot-instructions.md` | `.github/instructions/*.instructions.md` (`applyTo:` 글로브) | `.github/agents/*.agent.md` | `.github/skills/` (인라인 복사) |
+| Cursor | `.cursor/rules/dx-*.mdc` (`alwaysApply: true`) | `.cursor/rules/*.mdc` (`globs: [...]`) | `.cursor/rules/` 에이전트 `.mdc` 파일 | `.cursor/rules/` 스킬 `.mdc` 파일 |
+| OpenCode | `AGENTS.md` + `opencode.json` instructions | — | `.opencode/agents/*.md` | `.deepx/skills/*/SKILL.md` |
 
 ### 초기 설정
 
@@ -193,23 +193,64 @@ cursor dx-all-suite/dx-runtime/dx_app
 | `dx-suite-builder` | `.github/agents/dx-suite-builder.agent.md` | `.opencode/agents/dx-suite-builder.md` |
 | `dx-suite-validator` | `.github/agents/dx-suite-validator.agent.md` | `.opencode/agents/dx-suite-validator.md` |
 
-> Claude Code와 Cursor는 이 레벨에서 별도 에이전트 시스템이 없습니다.
-> Claude Code는 `CLAUDE.md`의 Context Routing Table로 작업을 디스패치합니다.
+> Claude Code는 `.claude/agents/`에 생성된 에이전트 파일이 있습니다 (예: `dx-suite-builder.md`).
+> Cursor는 `.cursor/rules/`에 에이전트 `.mdc` 파일이 있습니다 (예: `dx-suite-builder.mdc`).
+> Claude Code는 또한 `CLAUDE.md`의 Context Routing Table로 작업을 디스패치합니다.
 
 #### 스킬 파일 (OpenCode 전용 — `/slash-command`)
 
 | 스킬 | 파일 |
 |------|------|
-| `/dx-brainstorm-and-plan` | `.opencode/skills/dx-brainstorm-and-plan/SKILL.md` |
-| `/dx-verify-completion` | `.opencode/skills/dx-verify-completion/SKILL.md` |
-| `/dx-validate-all` | `.opencode/skills/dx-validate-all/SKILL.md` |
-| `/dx-tdd` | `.opencode/skills/dx-tdd/SKILL.md` |
+| `/dx-brainstorm-and-plan` | `.deepx/skills/dx-brainstorm-and-plan/SKILL.md` |
+| `/dx-verify-completion` | `.deepx/skills/dx-verify-completion/SKILL.md` |
+| `/dx-validate-all` | `.deepx/skills/dx-validate-all/SKILL.md` |
+| `/dx-tdd` | `.deepx/skills/dx-tdd/SKILL.md` |
+| `/dx-dispatching-parallel-agents` | `.deepx/skills/dx-dispatching-parallel-agents/SKILL.md` |
+| `/dx-executing-plans` | `.deepx/skills/dx-executing-plans/SKILL.md` |
+| `/dx-receiving-code-review` | `.deepx/skills/dx-receiving-code-review/SKILL.md` |
+| `/dx-requesting-code-review` | `.deepx/skills/dx-requesting-code-review/SKILL.md` |
+| `/dx-skill-router` | `.deepx/skills/dx-skill-router/SKILL.md` |
+| `/dx-subagent-driven-development` | `.deepx/skills/dx-subagent-driven-development/SKILL.md` |
+| `/dx-systematic-debugging` | `.deepx/skills/dx-systematic-debugging/SKILL.md` |
+| `/dx-writing-plans` | `.deepx/skills/dx-writing-plans/SKILL.md` |
+| `/dx-writing-skills` | `.deepx/skills/dx-writing-skills/SKILL.md` |
 
 #### 공유 지식 베이스 (`.deepx/`)
 
-Suite 레벨에는 `.deepx/` 디렉토리가 없습니다. Suite-level 인스트럭션 파일
-(`CLAUDE.md`, `copilot-instructions.md`, `AGENTS.md`)이 git 서브모듈 가시성
-제한을 보완하기 위해 핵심 하위 프로젝트 규칙을 인라인으로 중복 포함합니다.
+`.deepx/` 디렉토리는 모든 플랫폼별 파일의 **정규 소스** (단일 진실 공급원)입니다.
+에이전트, 스킬, 템플릿, 프래그먼트를 플랫폼 중립 형식으로 포함합니다.
+`dx-agentic-gen` 생성기가 이를 Copilot (`.github/`), Claude Code (`.claude/`),
+OpenCode (`.opencode/`), Cursor (`.cursor/rules/`) 용 플랫폼별 파일로 변환합니다.
+
+| 디렉토리 | 내용 |
+|-----------|------|
+| `agents/` | `dx-suite-builder`, `dx-suite-validator` |
+| `skills/` | 13개 스킬 (도메인 + 공유 프로세스 스킬) |
+| `templates/` | `{en,ko}/*.tmpl` — 인스트럭션 파일 템플릿 |
+| `templates/fragments/` | `{en,ko}/*.md` — 여러 리포에서 재사용되는 공유 섹션 |
+| `memory/` | 세션 간 영속 지식 |
+| `knowledge/` | 구조화된 참조 데이터 |
+| `instructions/` | 에이전트 내부 지침 |
+| `toolsets/` | 도구 참조 문서 |
+
+인스트럭션 파일 (`CLAUDE.md`, `AGENTS.md`, `copilot-instructions.md`, EN+KO)도
+템플릿과 프래그먼트에서 생성됩니다 — 직접 편집하면 안 됩니다.
+
+#### 플랫폼 파일 생성
+
+모든 플랫폼별 파일은 `dx-agentic-dev-gen` 패키지에 의해 `.deepx/`에서 생성됩니다.
+생성된 파일을 직접 편집하지 마세요.
+
+```bash
+pip install -e tools/dx-agentic-dev-gen   # 생성기 설치
+dx-agentic-gen generate                    # 플랫폼 파일 생성
+dx-agentic-gen check                       # 드리프트 없는지 확인
+```
+
+pre-commit 훅이 생성된 파일의 동기화를 강제합니다:
+```bash
+tools/dx-agentic-dev-gen/scripts/install-hooks.sh   # 최초 1회 설정
+```
 
 ## 도구별 빠른 시작
 

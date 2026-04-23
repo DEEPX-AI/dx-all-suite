@@ -1,0 +1,400 @@
+# DX All Suite — AI Coding Agents Entry Point
+
+> Top-level repository for the DEEPX All Suite (DX-AS).
+
+{{FRAGMENT:response-language}}
+
+{{FRAGMENT:recommended-model}}
+
+## Repository Structure
+
+| Component | Path | Purpose |
+|---|---|---|
+| **dx-runtime** | `dx-runtime/` | Integration layer + cross-project orchestration |
+| **dx_app** | `dx-runtime/dx_app/` | Standalone inference apps (Python/C++, 133 models, 15 AI tasks) |
+| **dx_stream** | `dx-runtime/dx_stream/` | GStreamer pipeline apps (13 elements, 6 pipeline categories) |
+| **Docs** | `docs/` | MkDocs documentation site |
+| **dx-compiler** | `dx-compiler/` | DXNN model compiler (ONNX → .dxnn via DX-COM) |
+
+## Agents
+
+| Agent | Description |
+|---|---|
+| `@dx-suite-builder` | Top-level router — classifies tasks and routes to the appropriate submodule |
+| `@dx-suite-validator` | Suite-wide validation — runs framework checks across all 3 levels |
+
+Each submodule also has its own agents (accessible when working within that submodule):
+
+| Submodule | Agents |
+|---|---|
+| dx-runtime | `@dx-runtime-builder`, `@dx-validator` |
+| dx_app | `@dx-app-builder`, `@dx-python-builder`, `@dx-cpp-builder`, `@dx-benchmark-builder`, `@dx-model-manager`, `@dx-validator` |
+| dx_stream | `@dx-stream-builder`, `@dx-pipeline-builder`, `@dx-model-manager`, `@dx-validator` |
+| dx-compiler | `@dx-compiler-builder`, `@dx-model-converter`, `@dx-dxnn-compiler` |
+
+## Skills
+
+| Skill | Description |
+|---|---|
+| `/dx-validate-all` | Full validation across all 3 levels — validate, collect feedback, apply fixes, verify |
+| `/dx-brainstorm-and-plan` | Brainstorm, propose 2-3 approaches, spec self-review, then plan |
+| `/dx-tdd` | Validation-driven development with optional Red-Green-Refactor for unit tests |
+| `/dx-verify-completion` | Verify before claiming completion — evidence before assertions |
+
+### Process Skills
+
+| Skill | Description |
+|---|---|
+| `/dx-writing-plans` | Write implementation plans with bite-sized tasks |
+| `/dx-executing-plans` | Execute plans with review checkpoints |
+| `/dx-subagent-driven-development` | Execute plans via fresh subagent per task with two-stage review |
+| `/dx-systematic-debugging` | Systematic debugging — 4-phase root cause investigation before proposing fixes |
+| `/dx-receiving-code-review` | Evaluate code review feedback with technical rigor |
+| `/dx-requesting-code-review` | Request code review after completing features |
+| `/dx-skill-router` | Skill discovery and invocation — check skills before any action |
+| `/dx-writing-skills` | Create and edit skill files |
+| `/dx-dispatching-parallel-agents` | Dispatch parallel subagents for independent tasks |
+
+## Routing
+
+Each submodule has its own `AGENTS.md`, agents, and skills:
+
+- **Standalone inference tasks**: Work in `dx-runtime/dx_app/`
+- **GStreamer pipeline tasks**: Work in `dx-runtime/dx_stream/`
+- **Cross-project or unified tasks**: Work in `dx-runtime/`
+- **Model compilation tasks**: Work in `dx-compiler/`
+- **Cross-suite tasks** (compile + deploy): Orchestrate across `dx-compiler/` and `dx-runtime/`
+
+## Quick Reference
+
+```bash
+# Build
+cd dx-runtime/dx_app && ./install.sh && ./build.sh
+cd dx-runtime/dx_stream && ./install.sh
+
+# Test
+cd dx-runtime/dx_app && pytest tests/
+cd dx-runtime/dx_stream && pytest test/
+
+# Validate
+python dx-runtime/.deepx/scripts/validate_framework.py
+python dx-runtime/dx_app/.deepx/scripts/validate_framework.py
+python dx-runtime/dx_stream/.deepx/scripts/validate_framework.py
+python dx-compiler/.deepx/scripts/validate_framework.py
+
+# Unified feedback loop
+python dx-runtime/.deepx/scripts/feedback_collector.py --framework-only
+```
+
+## Output Isolation (HARD GATE)
+
+ALL AI-generated files MUST be written to `dx-agentic-dev/<session_id>/` within the
+target sub-project. NEVER write generated code directly into existing source directories
+(e.g., `src/`, `pipelines/`, `semseg_260323/`, or any directory containing user's
+existing code).
+
+**Session ID format**: `YYYYMMDD-HHMMSS_<model>_<task>` — the timestamp MUST use the
+**system local timezone** (NOT UTC). Use `$(date +%Y%m%d-%H%M%S)` in Bash or
+`datetime.now().strftime('%Y%m%d-%H%M%S')` in Python. Do NOT use `date -u`,
+`datetime.utcnow()`, or `datetime.now(timezone.utc)`.
+
+- **Correct**: `dx-runtime/dx_app/dx-agentic-dev/20260413-093000_plantseg_inference/demo_dxnn_sync.py`
+- **Wrong**: `dx-runtime/dx_app/semseg_260323/demo_dxnn_sync.py`
+
+The ONLY exception: when the user EXPLICITLY says "write to the source directory" or
+"modify the existing file in-place". Placing new files alongside existing code in a
+source directory without explicit user instruction is a violation.
+
+## Cross-Project Routing (MANDATORY)
+
+When a task involves DXNN compilation (ONNX → .dxnn), the **compiler builder agent
+MUST be invoked** and the actual `dxcom` command MUST be executed. Never generate
+placeholder compilation scripts or stub code — produce the real `.dxnn` file.
+
+| Task mentions... | Route to |
+|---|---|
+| ONNX → DXNN, compile, dxcom | `@dx-compiler-builder` in `dx-compiler/` |
+| Python app, factory, inference | `@dx-app-builder` in `dx-runtime/dx_app/` |
+| GStreamer pipeline, stream | `@dx-stream-builder` in `dx-runtime/dx_stream/` |
+
+{{FRAGMENT:no-placeholder-code}}
+
+{{FRAGMENT:experimental-features-prohibited}}
+
+{{FRAGMENT:brainstorming-spec-before-plan}}
+
+{{FRAGMENT:autopilot-mode-guard}}
+
+## Hardware
+
+| Architecture | Value |
+|---|---|
+| DX-M1 | `dx_m1` |
+
+{{FRAGMENT:git-safety-superpowers}}
+
+## Session Sentinels (MANDATORY for Automated Testing)
+
+When processing a user prompt, output these exact markers for automated session
+boundary detection by the test harness:
+
+- **First line of your response**: `[DX-AGENTIC-DEV: START]`
+- **Last line after ALL work is complete**: `[DX-AGENTIC-DEV: DONE (output-dir: <relative_path>)]`
+  where `<relative_path>` is the session output directory (e.g., `dx-agentic-dev/20260409-143022_yolo26n_detection/`)
+
+Rules:
+1. **CRITICAL — Output `[DX-AGENTIC-DEV: START]` as the absolute first line of your
+   first response.** This must appear before ANY other text, tool calls, or reasoning.
+   Even if the user instructs you to "just proceed" or "use your own judgment",
+   the START sentinel is non-negotiable — automated tests WILL fail without it.
+2. Output `[DX-AGENTIC-DEV: DONE (output-dir: <path>)]` as the very last line after all work, validation,
+   and file generation is complete
+3. If you are a **sub-agent** invoked via handoff/routing from a higher-level agent,
+   do NOT output these sentinels — only the top-level agent outputs them
+4. If the user sends multiple prompts in a session, output START/DONE for each prompt
+5. The `output-dir` in DONE must be the relative path from the project root to the
+   session output directory. If no files were generated, omit the `(output-dir: ...)` part.
+6. **NEVER output DONE after only producing planning artifacts** (specs, plans, design
+   documents). DONE means all deliverables are produced — implementation code, scripts,
+   configs, and validation results. If you completed a brainstorming or planning phase
+   but have not yet implemented the actual code, do NOT output DONE. Instead, proceed
+   to implementation or ask the user how to proceed.
+7. **Pre-DONE mandatory deliverable check**: Before outputting DONE, run the
+   self-verification check below. If any mandatory file is missing, create it
+   before outputting DONE. **NEVER skip this step.**
+   ```bash
+   WORK_DIR="<session_output_directory>"
+   echo "=== Mandatory Deliverable Check ==="
+   for f in setup.sh run.sh verify.py session.log README.md config.json; do
+       [ -f "${WORK_DIR}/$f" ] && echo "  ✓ $f" || echo "  ✗ MISSING: $f"
+   done
+   ls "${WORK_DIR}"/*.dxnn 2>/dev/null && echo "  ✓ .dxnn model" || echo "  ✗ MISSING: .dxnn model"
+   ```
+   If ANY artifact shows MISSING, go back and generate it. Do NOT present the
+   final report or output DONE with missing artifacts.
+8. **Session HTML export guidance** (Copilot CLI only): Immediately before the DONE
+   sentinel line, output: `To save this session as HTML, type: /share html`
+   — this tells the user they can preserve the full conversation. The `/share html`
+   command is specific to GitHub Copilot CLI; it does not work in Claude Code,
+   Copilot Chat (VS Code), or OpenCode. The test harness (`test.sh`) will automatically
+   detect and copy the exported HTML file to the session output directory.
+
+## Mandatory Deliverables
+
+ALL compilation or app-generation sessions MUST produce the following files in the
+session output directory (`dx-agentic-dev/<session_id>/`) before outputting DONE.
+This applies to **every task type** — compiler-only, app-only, and cross-project.
+
+| File | Purpose | Required when |
+|------|---------|---------------|
+| `setup.sh` | Environment setup (sanity check, dxcom install, venv, pip deps) | Always |
+| `run.sh` | One-command inference launcher with venv activation | Always |
+| `README.md` | Session summary, quick start, file list | Always |
+| `verify.py` | ONNX vs DXNN numerical comparison | Compilation involved |
+| `session.log` | Actual command output log (NOT hand-written summary) | Always |
+| `config.json` | dxcom compilation configuration | Compilation involved |
+| `*.dxnn` | Compiled model binary | Compilation involved |
+
+These are in ADDITION to any application-specific artifacts (Python files with
+factory/inference patterns, GStreamer pipeline code, etc.).
+
+Each sub-project also defines templates for these files in its agent/skill documents
+(e.g., `dx-compiler/.deepx/agents/dx-dxnn-compiler.md` Phase 5.5).
+
+## Prerequisites Check (HARD GATE)
+
+Before generating ANY code, creating files, or routing to sub-agents, the following
+environment checks MUST pass. This gate applies at the suite level — even if
+brainstorming produced a spec and plan, these checks MUST execute before implementation.
+
+```bash
+# 1. dx-runtime sanity check (MANDATORY — do NOT skip)
+bash dx-runtime/scripts/sanity_check.sh --dx_rt
+# IMPORTANT: Judge PASS/FAIL by the TEXT OUTPUT, not the exit code.
+# Agents often pipe through `| tail` or `| head`, which silently
+# replaces the real exit code with tail's exit code (always 0).
+# PASS = output contains "Sanity check PASSED!" and NO [ERROR] lines
+# FAIL = output contains "Sanity check FAILED!" or ANY [ERROR] lines
+# NEVER pipe through tail/head/grep — run the command directly.
+# If FAIL → run install, then RE-CHECK:
+bash dx-runtime/install.sh --all --exclude-app --exclude-stream --skip-uninstall --venv-reuse
+bash dx-runtime/scripts/sanity_check.sh --dx_rt  # Must PASS after install
+
+# 2. dx_engine import check (MANDATORY for app generation tasks)
+python -c "import dx_engine; print('dx_engine OK')" 2>/dev/null || {
+    echo "dx_engine not available. Run: cd dx-runtime/dx_app && ./install.sh && ./build.sh"
+}
+
+# 3. dxcom availability check (MANDATORY for compilation tasks)
+python -c "import dx_com; print('dxcom OK')" 2>/dev/null || {
+    echo "dxcom not available."
+    # Installation fallback:
+    #   1. pip install dxcom (if in venv)
+    #   2. bash dx-compiler/install.sh (if available)
+    #   3. source dx-compiler/venv-dx-compiler-local/bin/activate (if exists)
+    # If ALL fail → STOP and inform user. NEVER proceed without dxcom.
+}
+```
+
+**This is a HARD GATE:**
+- Do NOT generate any implementation code until these checks pass
+- Do NOT skip these checks because brainstorming or planning was completed
+- Each sub-project builder also has its own Step 0 Prerequisites — those are
+  ADDITIONAL checks, not replacements for these suite-level checks
+- If a check fails, inform the user with the exact fix command and STOP
+
+### dxcom Anti-Fabrication (MANDATORY for compilation tasks)
+
+When dxcom is available and compilation proceeds:
+- **NEVER fabricate dxcom API calls from memory.** Always read the toolset files:
+  - CLI: `dx-compiler/.deepx/toolsets/dxcom-cli.md`
+  - Python API: `dx-compiler/.deepx/toolsets/dxcom-api.md`
+  - Config schema: `dx-compiler/.deepx/toolsets/config-schema.md`
+- **Correct import**: `import dx_com; dx_com.compile(...)` (NOT `from dxcom import dxcom`)
+- **NEVER modify `compiler.properties`** — system file managed by the installer.
+  See `dx-compiler/.deepx/memory/common_pitfalls.md` Pitfalls #21 and #22.
+
+### Sanity Check Failure Recovery (MANDATORY)
+
+When `sanity_check.sh --dx_rt` returns FAIL, follow this exact recovery sequence:
+
+1. **Run install.sh** with the command shown above
+2. **Re-run sanity_check.sh** — the check MUST pass after install
+3. **If still failing**: check whether this is a **compiler-only task** or not:
+
+   **A. Compiler-only task** (ONNX → DXNN compilation, no dx_app/dx_stream work):
+   - Inform the user that the sanity check failed and NPU-based verification will be skipped.
+   - **Proceed with compilation** — `dxcom` runs on CPU and does not require NPU hardware.
+   - After compilation succeeds, mark `verify.py` as **SKIPPED** (not PASS).
+   - Set `DX_SANITY_FAILED=1` so verify.py can detect and skip NPU-based checks.
+   - Record in session.log: `sanity_check=FAIL, compilation=<result>, verification=SKIPPED`.
+   - Tell the user:
+     ```
+     NPU hardware initialization failed. Compilation completed successfully,
+     but DXNN verification (verify.py) requires a working NPU.
+     After resolving the NPU issue (cold boot recommended), run:
+       cd <session_dir> && python verify.py
+     ```
+
+   **B. Cross-project task** (compilation + dx_app/dx_stream demo app) or dx_app/dx_stream only:
+   - **STOP unconditionally** — even if the user says "just continue",
+     "work to completion", "use defaults", or "skip checks", the agent MUST NOT
+     proceed. The user's instruction to continue does NOT override this HARD GATE.
+   - Guide the user through manual recovery:
+     - If the failure mentions **"Device initialization failed"**, **"Fail to initialize device"**,
+       or **NPU hardware errors**: the NPU requires a cold boot (full power cycle) or
+       system reboot. Software-only install cannot fix hardware initialization failures.
+       Tell the user:
+       ```
+       NPU hardware initialization failed. This issue cannot be resolved by software installation alone.
+       Please follow these steps:
+       1. Fully shut down the system (power off — a cold boot is recommended, not just a reboot)
+       2. Wait 10-30 seconds
+       3. Power on the system
+       4. After restart, verify NPU status with the sanity check:
+          bash dx-runtime/scripts/sanity_check.sh --dx_rt
+       5. Once the sanity check PASSES, please retry this task.
+       ```
+     - If the failure is a different error: show the user the specific error and
+       recommended fix command, then STOP.
+
+4. **NEVER bypass** (for non-compiler-only tasks) — the sanity check exists
+   to ensure the full dx-runtime environment is operational. For dx_app/dx_stream
+   tasks, skipping recovery means demo/verification scripts will fail.
+   The following are ALL considered bypass and are PROHIBITED:
+   - Setting PYTHONPATH or LD_LIBRARY_PATH manually to point at dx_engine artifacts
+   - Using a venv from another repository (e.g., compiler venv) for dx_engine imports
+   - Searching multiple venvs to find one where dx_engine happens to import
+   - Concluding "exit code was 0, so it passed" when output text shows FAILED or [ERROR]
+   - Piping sanity_check.sh through `| tail` / `| head` / `| grep` and using the pipe's exit code
+   - Reinterpreting the user's "just continue" / "work to completion" / "use defaults"
+     / autopilot instructions as permission to override the HARD GATE
+   - Marking the prerequisite check as "done" or "passed" when it actually failed
+   Note: compiler-only tasks (item 3A above) are exempt from this STOP — compilation
+   proceeds, but verification is marked SKIPPED, not PASS.
+5. **Common failure causes**:
+   - NPU driver not installed → `install.sh` with `dx_rt_npu_linux_driver` target
+   - dx_engine build artifacts missing → `cd dx_app && ./install.sh && ./build.sh`
+   - PEP 668 (Ubuntu 24.04+) blocking pip → must use venv (never `--break-system-packages`)
+
+{{FRAGMENT:rule-conflict-resolution}}
+
+## Sub-Project Development Rules (MANDATORY — SELF-CONTAINED)
+
+These rules are **authoritative and self-contained**. They MUST be followed regardless
+of whether sub-project files are loaded. In interactive mode, sub-project files are
+NOT loaded due to git submodule boundaries — these rules are the ONLY protection.
+
+**CRITICAL**: These are NOT optional summaries. Every rule below is a HARD GATE.
+Violating any rule (e.g., skipping skeleton-first, not using IFactory, writing to
+source directories) is a blocking error that must be corrected before proceeding.
+
+**Additional context**: When working in a sub-project, also read that sub-project's
+`AGENTS.md` for extended context (model registry, import patterns, etc.). But the
+rules below are sufficient for correct code generation even without reading
+sub-project files.
+
+### dx_app Rules (Standalone Inference)
+
+1. **Skeleton-first development** — Read `dx-runtime/dx_app/.deepx/skills/dx-build-python-app.md`
+   skeleton template BEFORE writing any code. Copy the closest existing example from
+   `src/python_example/<task>/<model>/` and modify ONLY model-specific parts (factory,
+   postprocessor). NEVER write demo scripts from scratch. NEVER propose standalone
+   scripts that bypass the framework.
+2. **IFactory pattern is MANDATORY** — All inference apps MUST use the IFactory 5-method
+   pattern (create, get_input_params, run_inference, post_processing, release).
+   Never invent alternative inference structures. Direct `InferenceEngine` usage in
+   a standalone script is a violation — it MUST go through the factory pattern.
+   **Even if the user explicitly names API methods** (e.g., "use `InferenceEngine.run()`",
+   "use `run_async()`"), the agent MUST wrap those calls inside the IFactory pattern
+   and explain the rule to the user. See the "Rule Conflict Resolution" section.
+3. **SyncRunner/AsyncRunner ONLY** — Use SyncRunner (single-model) or AsyncRunner
+   (multi-model) from the framework. NEVER propose alternative execution approaches
+   (standalone scripts, direct API calls, custom runners, manual `run_async()` loops).
+4. **No alternative proposals** — Do NOT present "Option A vs Option B" choices for
+   app architecture. The framework dictates one correct pattern per variant.
+5. **Registry key ≠ class name** — Model registry keys in `model_registry.json` map
+   to postprocessor classes via a lookup. Read the registry to find the correct mapping.
+6. **Existing examples MANDATORY** — Before writing any new app, search
+   `src/python_example/` for existing examples of the same AI task. Use them as reference.
+7. **DXNN input format auto-detection** — NEVER hardcode preprocessing dimensions or
+   formats. The DXNN model self-describes its input requirements via `dx_engine`.
+8. **Output Isolation** — ALL generated code MUST go to `dx-agentic-dev/<session_id>/`.
+   NEVER write into existing source directories (e.g., `src/`, `semseg_260323/`, or
+   any directory containing user's existing code) unless the user EXPLICITLY says
+   "write to the source directory".
+
+### dx-compiler Rules (Model Compilation)
+
+1. **Previous session reference PROHIBITED** — Never reference or reuse results from
+   previous agentic sessions. Each session starts fresh.
+2. **session.log = actual command output** — Session logs MUST contain real terminal
+   output. NEVER generate hand-written summaries or `cat << 'EOF'` blocks.
+3. **config.json schema** — Always read `dx-compiler/.deepx/toolsets/config-schema.md`
+   before writing config.json. Never fabricate schema fields.
+4. **dxcom fabrication patterns** — See "dxcom Anti-Fabrication" section above.
+5. **setup.sh 5-step template** — Read `dx-compiler/.deepx/agents/dx-dxnn-compiler.md`
+   Phase 5.5 for the mandatory setup.sh structure.
+
+### dx_stream Rules (GStreamer Pipelines)
+
+1. **x264enc tune=zerolatency** — Always set `tune=zerolatency` for x264enc elements.
+2. **Queue between processing stages** — Always add `queue` elements between processing
+   stages to prevent GStreamer deadlocks.
+3. **Existing pipelines MANDATORY** — Search `pipelines/` for existing examples before
+   creating new pipeline configurations.
+
+### Common Rules (All Sub-Projects)
+
+1. **PPU model auto-detection** — Check model name suffix (`_ppu`), README, or registry
+   for PPU flag before routing or generating postprocessor code.
+2. **Build order** — dx_rt → dx_app → dx_stream. Never build out of order.
+3. **Sub-project context loading** — When routing to or working within a sub-project,
+   ALWAYS read that sub-project's `AGENTS.md` first.
+
+{{FRAGMENT:plan-output}}
+
+
+---
+
+{{FRAGMENT:instruction-verification-loop}}

@@ -1,19 +1,40 @@
 ---
 name: DX Suite Validator
-description: Top-level validation orchestrator for DEEPX All Suite. Runs framework
-  validation across all 3 levels (dx-runtime, dx_app, dx_stream), collects feedback,
-  and applies approved fixes.
-argument-hint: e.g., validate everything, validate dx_app only
+description: 'Top-level validation orchestrator for DEEPX All Suite. Runs framework validation across all 3 levels (dx-runtime,
+  dx_app, dx_stream), collects feedback, and applies approved fixes.
+
+  '
+argument-hint: e.g., validate everything, validate dx_app framework only
 tools:
+- agent/runSubagent
+- edit/createDirectory
+- edit/createFile
+- edit/editFiles
+- edit/findTextInFiles
+- edit/getDocumentText
+- edit/getSelectedText
+- edit/insertTextAtSelection
 - execute/awaitTerminal
 - execute/createAndRunTask
 - execute/getTerminalOutput
 - execute/runInTerminal
+- git/searchCommits
+- read/readDirectory
 - read/readFile
-- search/textSearch
-- todo
-- vscode/askQuestions
+handoffs:
+- label: Validate dx_app
+  agent: dx-validator
+  prompt: Route dx_app validation
+  send: false
+- label: Validate dx_stream
+  agent: dx-validator
+  prompt: Route dx_stream validation
+  send: false
 ---
+
+<!-- AUTO-GENERATED from .deepx/ — DO NOT EDIT DIRECTLY -->
+<!-- Source: .deepx/agents/dx-suite-validator.md -->
+<!-- Run: dx-agentic-gen generate -->
 
 **Response Language**: Match your response language to the user's prompt language — when asking questions or responding, use the same language the user is using. When responding in Korean, keep English technical terms in English. Do NOT transliterate into Korean phonetics (한글 음차 표기 금지).
 
@@ -44,6 +65,16 @@ python dx-runtime/.deepx/scripts/feedback_collector.py --all
 python dx-runtime/.deepx/scripts/apply_feedback.py --dry-run
 python dx-runtime/.deepx/scripts/apply_feedback.py --report <path> --approve-all
 ```
+
+## Available Scripts
+
+| Script | Path |
+|---|---|
+| validate_framework.py (runtime) | `dx-runtime/.deepx/scripts/validate_framework.py` |
+| validate_framework.py (dx_app) | `dx-runtime/dx_app/.deepx/scripts/validate_framework.py` |
+| validate_framework.py (dx_stream) | `dx-runtime/dx_stream/.deepx/scripts/validate_framework.py` |
+| feedback_collector.py | `dx-runtime/.deepx/scripts/feedback_collector.py` |
+| apply_feedback.py | `dx-runtime/.deepx/scripts/apply_feedback.py` |
 
 ## Expected Results
 

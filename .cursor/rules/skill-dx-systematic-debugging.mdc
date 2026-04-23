@@ -1,0 +1,6 @@
+---
+description: "Use when encountering any bug, test failure, or unexpected behavior, before proposing fixes"
+alwaysApply: false
+---
+
+Read and follow the skill documentation at `.deepx/skills/dx-systematic-debugging/SKILL.md`.

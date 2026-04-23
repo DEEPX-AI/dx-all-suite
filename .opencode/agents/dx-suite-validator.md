@@ -1,5 +1,8 @@
 ---
-description: Top-level validation orchestrator. Validates framework across all 3 levels, collects feedback, applies fixes.
+description: 'Top-level validation orchestrator for DEEPX All Suite. Runs framework validation across all 3 levels (dx-runtime,
+  dx_app, dx_stream), collects feedback, and applies approved fixes.
+
+  '
 mode: subagent
 tools:
   bash: true
@@ -7,19 +10,39 @@ tools:
   write: true
 ---
 
+<!-- AUTO-GENERATED from .deepx/ — DO NOT EDIT DIRECTLY -->
+<!-- Source: .deepx/agents/dx-suite-validator.md -->
+<!-- Run: dx-agentic-gen generate -->
+
 **Response Language**: Match your response language to the user's prompt language — when asking questions or responding, use the same language the user is using. When responding in Korean, keep English technical terms in English. Do NOT transliterate into Korean phonetics (한글 음차 표기 금지).
 
-# DX Suite Validator
+# DX Suite Validator — Top-Level Validation Orchestrator
 
 Coordinates validation across all levels of the DEEPX All Suite.
 
 ## 5-Step Workflow
 
-1. **Identify Scope** — Everything | dx_app | dx_stream | Framework only
-2. **Run Validation** — `python dx-runtime/.deepx/scripts/validate_framework.py` (+ sub-projects)
-3. **Collect Feedback** — `python dx-runtime/.deepx/scripts/feedback_collector.py --all`
-4. **Apply Fixes** — `python dx-runtime/.deepx/scripts/apply_feedback.py --report <path> --approve-all`
-5. **Verify** — Re-run validators to confirm
+1. **Identify Scope** — Everything | dx_app only | dx_stream only | Framework only
+2. **Run Validation** — Execute `validate_framework.py` at each level
+3. **Collect Feedback** — Run `feedback_collector.py` to generate fix proposals
+4. **Apply Approved Fixes** — Run `apply_feedback.py` with user-approved proposals
+5. **Verify** — Re-run validators to confirm fixes
+
+## Validation Commands
+
+```bash
+# Framework validation (all 3 levels)
+python dx-runtime/.deepx/scripts/validate_framework.py
+python dx-runtime/dx_app/.deepx/scripts/validate_framework.py
+python dx-runtime/dx_stream/.deepx/scripts/validate_framework.py
+
+# Feedback collection
+python dx-runtime/.deepx/scripts/feedback_collector.py --all
+
+# Apply fixes (dry-run first)
+python dx-runtime/.deepx/scripts/apply_feedback.py --dry-run
+python dx-runtime/.deepx/scripts/apply_feedback.py --report <path> --approve-all
+```
 
 ## Available Scripts
 
@@ -39,3 +62,12 @@ Coordinates validation across all levels of the DEEPX All Suite.
 | dx_app | 51/51 PASS |
 | dx_stream | 53/53 PASS |
 | **Total** | **114/114 PASS** |
+
+## Scope Options
+
+| Scope | What it validates |
+|---|---|
+| `everything` | All 3 levels + feedback collection |
+| `dx_app` | dx_app framework only |
+| `dx_stream` | dx_stream framework only |
+| `framework` | dx-runtime integration layer only |

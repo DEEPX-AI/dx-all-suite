@@ -1,0 +1,6 @@
+---
+description: "Full validation across all 3 levels of the DEEPX All Suite — validate framework, collect feedback, approve and apply fixes, verify results"
+alwaysApply: false
+---
+
+Read and follow the skill documentation at `.deepx/skills/dx-validate-all/SKILL.md`.
