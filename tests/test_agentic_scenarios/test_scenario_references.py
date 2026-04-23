@@ -57,18 +57,21 @@ def _collect_agents_from_agents_md() -> Set[str]:
 
 
 def _collect_all_skills() -> Dict[str, Path]:
-    """Collect all skill names -> file path from .deepx/skills/ and .opencode/skills/ dirs."""
+    """Collect all skill names -> file path from .deepx/skills/ dirs.
+
+    Supports two layouts:
+    - Flat .md files: .deepx/skills/dx-validate.md → "dx-validate"
+    - Subdirectories with SKILL.md: .deepx/skills/dx-validate/SKILL.md → "dx-validate"
+    """
     skills: Dict[str, Path] = {}
     for name, root in PROJECT_ROOTS.items():
-        # .deepx/skills/ — flat .md files
         skills_dir = root / ".deepx" / "skills"
         if skills_dir.exists():
+            # Flat .md files
             for f in list_md_files(skills_dir):
                 skills[f.stem] = f
-        # .opencode/skills/ — subdirectories with SKILL.md
-        oc_skills_dir = root / ".opencode" / "skills"
-        if oc_skills_dir.exists():
-            for d in oc_skills_dir.iterdir():
+            # Subdirectories with SKILL.md
+            for d in sorted(skills_dir.iterdir()):
                 if d.is_dir() and (d / "SKILL.md").exists():
                     skills.setdefault(d.name, d / "SKILL.md")
     return skills

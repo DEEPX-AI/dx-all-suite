@@ -143,10 +143,10 @@ the `.deepx/` knowledge base through its own configuration mechanism.
 
 | Tool | Global Context | File-Specific Context | Agents | Skills |
 |---|---|---|---|---|
-| Claude Code | `CLAUDE.md` | Context Routing Table (manual) | Built into `CLAUDE.md` routing | `.deepx/skills/` (read directly) |
-| Copilot | `.github/copilot-instructions.md` | `.github/instructions/*.instructions.md` (`applyTo:` glob) | `.github/agents/*.agent.md` | — |
-| Cursor | `.cursor/rules/dx-*.mdc` (`alwaysApply: true`) | `.cursor/rules/*.mdc` (`globs: [...]`) | — | — |
-| OpenCode | `AGENTS.md` + `opencode.json` instructions | — | `.opencode/agents/*.md` | `.opencode/skills/*/SKILL.md` |
+| Claude Code | `CLAUDE.md` | Context Routing Table (manual) | `.claude/agents/*.md` (generated) | `.deepx/skills/` (read directly) |
+| Copilot | `.github/copilot-instructions.md` | `.github/instructions/*.instructions.md` (`applyTo:` glob) | `.github/agents/*.agent.md` | `.github/skills/` (inline copies) |
+| Cursor | `.cursor/rules/dx-*.mdc` (`alwaysApply: true`) | `.cursor/rules/*.mdc` (`globs: [...]`) | `.cursor/rules/` agent `.mdc` files | `.cursor/rules/` skill `.mdc` files |
+| OpenCode | `AGENTS.md` + `opencode.json` instructions | — | `.opencode/agents/*.md` | `.deepx/skills/*/SKILL.md` |
 
 ### First-Time Setup
 
@@ -197,23 +197,65 @@ manually via agent or skill commands.
 | `dx-suite-builder` | `.github/agents/dx-suite-builder.agent.md` | `.opencode/agents/dx-suite-builder.md` |
 | `dx-suite-validator` | `.github/agents/dx-suite-validator.agent.md` | `.opencode/agents/dx-suite-validator.md` |
 
-> Claude Code and Cursor do not have a separate agent system at this level.
-> Claude Code uses the Context Routing Table in `CLAUDE.md` to dispatch tasks.
+> Claude Code has generated agent files in `.claude/agents/` (e.g., `dx-suite-builder.md`).
+> Cursor has agent `.mdc` files in `.cursor/rules/` (e.g., `dx-suite-builder.mdc`).
+> Claude Code also uses the Context Routing Table in `CLAUDE.md` to dispatch tasks.
 
 #### Skill Files (OpenCode Only — `/slash-command`)
 
 | Skill | File |
 |-------|------|
-| `/dx-brainstorm-and-plan` | `.opencode/skills/dx-brainstorm-and-plan/SKILL.md` |
-| `/dx-verify-completion` | `.opencode/skills/dx-verify-completion/SKILL.md` |
-| `/dx-validate-all` | `.opencode/skills/dx-validate-all/SKILL.md` |
-| `/dx-tdd` | `.opencode/skills/dx-tdd/SKILL.md` |
+| `/dx-brainstorm-and-plan` | `.deepx/skills/dx-brainstorm-and-plan/SKILL.md` |
+| `/dx-verify-completion` | `.deepx/skills/dx-verify-completion/SKILL.md` |
+| `/dx-validate-all` | `.deepx/skills/dx-validate-all/SKILL.md` |
+| `/dx-tdd` | `.deepx/skills/dx-tdd/SKILL.md` |
+| `/dx-dispatching-parallel-agents` | `.deepx/skills/dx-dispatching-parallel-agents/SKILL.md` |
+| `/dx-executing-plans` | `.deepx/skills/dx-executing-plans/SKILL.md` |
+| `/dx-receiving-code-review` | `.deepx/skills/dx-receiving-code-review/SKILL.md` |
+| `/dx-requesting-code-review` | `.deepx/skills/dx-requesting-code-review/SKILL.md` |
+| `/dx-skill-router` | `.deepx/skills/dx-skill-router/SKILL.md` |
+| `/dx-subagent-driven-development` | `.deepx/skills/dx-subagent-driven-development/SKILL.md` |
+| `/dx-systematic-debugging` | `.deepx/skills/dx-systematic-debugging/SKILL.md` |
+| `/dx-writing-plans` | `.deepx/skills/dx-writing-plans/SKILL.md` |
+| `/dx-writing-skills` | `.deepx/skills/dx-writing-skills/SKILL.md` |
 
 #### Shared Knowledge Base (`.deepx/`)
 
-No `.deepx/` directory exists at the suite level. Suite-level instruction files
-(`CLAUDE.md`, `copilot-instructions.md`, `AGENTS.md`) duplicate critical sub-project
-rules inline to compensate for git submodule visibility limitations.
+The `.deepx/` directory is the **canonical source** (single source of truth) for all
+platform-specific files. It contains agents, skills, templates, and fragments in a
+platform-agnostic format. The `dx-agentic-gen` generator transforms this into
+platform-specific files for Copilot (`.github/`), Claude Code (`.claude/`),
+OpenCode (`.opencode/`), and Cursor (`.cursor/rules/`).
+
+| Directory | Contents |
+|-----------|----------|
+| `agents/` | `dx-suite-builder`, `dx-suite-validator` |
+| `skills/` | 13 skills (domain + shared process skills) |
+| `templates/` | `{en,ko}/*.tmpl` — instruction file templates |
+| `templates/fragments/` | `{en,ko}/*.md` — shared sections reused across repos |
+| `memory/` | Persistent cross-session knowledge |
+| `knowledge/` | Structured reference data |
+| `instructions/` | Internal agent instructions |
+| `toolsets/` | Tool reference documentation |
+
+Instruction files (`CLAUDE.md`, `AGENTS.md`, `copilot-instructions.md`, EN+KO) are
+also generated from templates and fragments — they should not be edited directly.
+
+#### Platform File Generation
+
+All platform-specific files are generated from `.deepx/` by the `dx-agentic-dev-gen`
+package. Never edit generated files directly.
+
+```bash
+pip install -e tools/dx-agentic-dev-gen   # Install generator
+dx-agentic-gen generate                    # Generate platform files
+dx-agentic-gen check                       # Verify no drift
+```
+
+A pre-commit hook enforces that generated files stay in sync:
+```bash
+tools/dx-agentic-dev-gen/scripts/install-hooks.sh   # One-time setup
+```
 
 ## Quick Start by Tool
 

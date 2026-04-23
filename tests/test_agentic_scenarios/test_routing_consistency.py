@@ -1142,3 +1142,184 @@ class TestCriticalRulesParity:
                 f"E2E Round 7 showed agent using UTC timestamps instead of local "
                 f"timezone for session directory naming."
             )
+
+
+# ---------------------------------------------------------------------------
+# Stale path reference tests
+# ---------------------------------------------------------------------------
+
+
+class TestNoStaleOpenCodeSkillsRefs:
+    """Instruction and documentation files must not reference .opencode/skills/
+    after migration to .deepx/skills/."""
+
+    INSTRUCTION_GLOBS = [
+        "CLAUDE.md", "CLAUDE-KO.md",
+        "AGENTS.md", "AGENTS-KO.md",
+        ".github/copilot-instructions.md", ".github/copilot-instructions-KO.md",
+    ]
+
+    @pytest.mark.parametrize(
+        "project,root",
+        [(k, v) for k, v in PROJECT_ROOTS.items()],
+        ids=list(PROJECT_ROOTS.keys()),
+    )
+    def test_no_stale_opencode_skills_in_instruction_files(self, project: str, root: Path):
+        """No instruction file should reference .opencode/skills/ (migrated to .deepx/skills/)."""
+        violations = []
+        for pattern in self.INSTRUCTION_GLOBS:
+            fpath = root / pattern
+            if fpath.exists():
+                text = fpath.read_text(encoding="utf-8")
+                if ".opencode/skills/" in text:
+                    violations.append(fpath.name)
+        assert not violations, (
+            f"{project}: Stale .opencode/skills/ references in: {violations}. "
+            f"Skills have been migrated to .deepx/skills/."
+        )
+
+    @pytest.mark.parametrize(
+        "project,root",
+        [(k, v) for k, v in PROJECT_ROOTS.items()],
+        ids=list(PROJECT_ROOTS.keys()),
+    )
+    def test_no_stale_opencode_skills_in_docs(self, project: str, root: Path):
+        """No documentation file should reference .opencode/skills/."""
+        violations = []
+        for md_file in root.rglob("docs/**/*.md"):
+            text = md_file.read_text(encoding="utf-8")
+            if ".opencode/skills/" in text:
+                violations.append(str(md_file.relative_to(root)))
+        assert not violations, (
+            f"{project}: Stale .opencode/skills/ references in docs: {violations}. "
+            f"Skills have been migrated to .deepx/skills/."
+        )
+
+
+# ---------------------------------------------------------------------------
+# Copilot CLI skill discovery tests
+# ---------------------------------------------------------------------------
+
+
+class TestGitHubSkillsSymlink:
+    """.github/skills must be a symlink to .deepx/skills/ for Copilot CLI discovery."""
+
+    @pytest.mark.parametrize(
+        "project,root",
+        [(k, v) for k, v in PROJECT_ROOTS.items()],
+        ids=list(PROJECT_ROOTS.keys()),
+    )
+    def test_github_skills_symlink_exists(self, project: str, root: Path):
+        """.github/skills must exist (as symlink or directory)."""
+        github_skills = root / ".github" / "skills"
+        assert github_skills.exists(), (
+            f"{project}: .github/skills does not exist. "
+            f"Copilot CLI discovers skills from .github/skills/. "
+            f"Run: dx-agentic-gen generate"
+        )
+
+    @pytest.mark.parametrize(
+        "project,root",
+        [(k, v) for k, v in PROJECT_ROOTS.items()],
+        ids=list(PROJECT_ROOTS.keys()),
+    )
+    def test_github_skills_is_not_symlink(self, project: str, root: Path):
+        """.github/skills should be a real directory (inline copy), not a symlink."""
+        github_skills = root / ".github" / "skills"
+        if not github_skills.exists():
+            pytest.skip(f"{project}: .github/skills does not exist")
+        assert not github_skills.is_symlink(), (
+            f"{project}: .github/skills is still a symlink. "
+            f"Generator should produce inline copies, not symlinks. "
+            f"Remove symlink and run: dx-agentic-gen generate"
+        )
+
+    @pytest.mark.parametrize(
+        "project,root",
+        [(k, v) for k, v in PROJECT_ROOTS.items()],
+        ids=list(PROJECT_ROOTS.keys()),
+    )
+    def test_github_skills_contains_skill_files(self, project: str, root: Path):
+        """Skills visible via .github/skills/ must have SKILL.md with YAML frontmatter."""
+        github_skills = root / ".github" / "skills"
+        if not github_skills.exists():
+            pytest.skip(f"{project}: .github/skills does not exist")
+        skill_dirs = [
+            d for d in sorted(github_skills.iterdir())
+            if d.is_dir() and (d / "SKILL.md").exists()
+        ]
+        assert skill_dirs, (
+            f"{project}: .github/skills/ has no skill subdirectories with SKILL.md"
+        )
+        missing_frontmatter = []
+        for d in skill_dirs:
+            content = (d / "SKILL.md").read_text(encoding="utf-8")
+            if not content.startswith("---"):
+                missing_frontmatter.append(d.name)
+        assert not missing_frontmatter, (
+            f"{project}: Skills missing YAML frontmatter: {missing_frontmatter}. "
+            f"Copilot CLI requires ---\\nname: ...\\ndescription: ...\\n--- at top of SKILL.md"
+        )
+
+
+# ---------------------------------------------------------------------------
+# argument-hint sync between .deepx/agents/ and .github/agents/
+# ---------------------------------------------------------------------------
+
+
+class TestArgumentHintSync:
+    """Agents with argument-hint in .deepx/agents/ must have it in .github/agents/ too."""
+
+    @staticmethod
+    def _extract_argument_hint(path: Path) -> str | None:
+        """Extract argument-hint value from YAML frontmatter (parsed, not raw)."""
+        import yaml
+
+        text = path.read_text(encoding="utf-8")
+        if not text.startswith("---"):
+            return None
+        end = text.find("\n---", 3)
+        if end == -1:
+            return None
+        try:
+            fm = yaml.safe_load(text[3:end]) or {}
+        except yaml.YAMLError:
+            return None
+        hint = fm.get("argument-hint")
+        return str(hint) if hint is not None else None
+
+    @pytest.mark.parametrize(
+        "project,root",
+        list(PROJECT_ROOTS.items()),
+        ids=list(PROJECT_ROOTS.keys()),
+    )
+    def test_github_agents_have_argument_hint(self, project: str, root: Path):
+        """Every .github/agents/ file that has a .deepx/agents/ counterpart
+        with argument-hint must also contain the same argument-hint."""
+        deepx_agents = root / ".deepx" / "agents"
+        github_agents = root / ".github" / "agents"
+        if not deepx_agents.exists() or not github_agents.exists():
+            pytest.skip(f"{project}: missing .deepx/agents/ or .github/agents/")
+
+        missing = []
+        mismatched = []
+        for deepx_file in sorted(deepx_agents.glob("*.md")):
+            hint = self._extract_argument_hint(deepx_file)
+            if not hint:
+                continue
+            # .github counterpart uses .agent.md extension
+            gh_file = github_agents / f"{deepx_file.stem}.agent.md"
+            if not gh_file.exists():
+                continue
+            gh_hint = self._extract_argument_hint(gh_file)
+            if gh_hint is None:
+                missing.append(deepx_file.stem)
+            elif gh_hint != hint:
+                mismatched.append(f"{deepx_file.stem}: deepx={hint!r} github={gh_hint!r}")
+
+        assert not missing, (
+            f"{project}: .github/agents/ missing argument-hint for: {missing}"
+        )
+        assert not mismatched, (
+            f"{project}: argument-hint mismatch: {mismatched}"
+        )

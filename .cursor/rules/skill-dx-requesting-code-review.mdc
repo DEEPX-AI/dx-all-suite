@@ -1,0 +1,6 @@
+---
+description: "Use when completing tasks, implementing major features, or before merging to verify work meets requirements"
+alwaysApply: false
+---
+
+Read and follow the skill documentation at `.deepx/skills/dx-requesting-code-review/SKILL.md`.

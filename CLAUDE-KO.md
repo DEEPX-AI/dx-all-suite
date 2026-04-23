@@ -98,9 +98,23 @@ API accuracy. Please switch to a recommended model.
 | 스킬 | 설명 |
 |---|---|
 | `/dx-validate-all` | 전체 3개 레벨에 걸친 전체 검증 — 검증, 피드백 수집, 수정 적용, 확인 |
-| `/dx-brainstorm-and-plan` | 코드 생성 전 브레인스토밍 및 계획 |
-| `/dx-tdd` | 테스트 주도 개발 — 점진적 검증 |
+| `/dx-brainstorm-and-plan` | 브레인스토밍, 2-3가지 접근법 제안, 스펙 자체 검토 후 계획 |
+| `/dx-tdd` | 검증 주도 개발, 선택적 Red-Green-Refactor 단위 테스트 |
 | `/dx-verify-completion` | 완료 선언 전 검증 — 주장 전 증거 |
+
+### 프로세스 스킬
+
+| 스킬 | 설명 |
+|---|---|
+| `/dx-writing-plans` | 세분화된 태스크로 구현 계획 작성 |
+| `/dx-executing-plans` | 리뷰 체크포인트와 함께 계획 실행 |
+| `/dx-subagent-driven-development` | 태스크별 신규 서브에이전트로 계획 실행, 2단계 리뷰 |
+| `/dx-systematic-debugging` | 체계적 디버깅 — 수정 제안 전 4단계 근본 원인 조사 |
+| `/dx-receiving-code-review` | 코드 리뷰 피드백을 기술적 엄밀성으로 평가 |
+| `/dx-requesting-code-review` | 기능 완료 후 코드 리뷰 요청 |
+| `/dx-skill-router` | 스킬 탐색 및 호출 — 모든 작업 전 스킬 확인 |
+| `/dx-writing-skills` | 스킬 파일 생성 및 편집 |
+| `/dx-dispatching-parallel-agents` | 독립 태스크를 위한 병렬 서브에이전트 디스패치 |
 
 ## 빠른 참조
 
@@ -562,28 +576,44 @@ dxcom이 사용 가능하고 컴파일이 진행될 때:
 
 ## Instruction File Verification Loop (HARD GATE) — 내부 개발 전용
 
-에이전트 지식 베이스 파일 수정 시 — 다음 패턴에 해당하는 파일:
-`**/.cursor/**/*.mdc`, `**/.github/**/*.md`, `**/.opencode/**/*.md`,
-`**/AGENTS*.md`, `**/CLAUDE*.md`, 또는 `**/.deepx/**/*.md` — 작업 완료를
-선언하기 전에 다음 검증-수정 루프를 **반드시** 수행해야 합니다:
+canonical source 수정 시 — `**/.deepx/**/*.md` 파일(agents, skills, templates,
+fragments 포함) — 작업 완료 선언 전에 다음 루프를 **반드시** 수행해야 합니다:
 
-1. **자동화 테스트 루프** — `tests/test_agentic_scenarios/`를 실행하고 모든 실패를 수정:
+1. **Generator 실행** — `.deepx/` 변경을 모든 플랫폼으로 전파:
+   ```bash
+   dx-agentic-gen generate
+   # Suite 전체: bash tools/dx-agentic-dev-gen/scripts/run_all.sh generate
+   ```
+2. **Drift 검증** — 생성물과 commit 상태 일치 확인:
+   ```bash
+   dx-agentic-gen check
+   ```
+   drift 발견 시 1단계로 복귀.
+3. **자동화 테스트 루프** — 테스트는 generator 출력이 정책을 만족하는지 검증:
    ```bash
    python -m pytest tests/test_agentic_scenarios/ -v --tb=short
    ```
-2. **수동 감사** — 테스트 결과를 사용하지 않고, 실제 파일 내용을 읽어 크로스 플랫폼
-   sync (CLAUDE vs AGENTS vs copilot)와 레벨 간 sync (suite → 하위 레벨)를 독립적으로
-   검증합니다.
-3. **갭 분석** — 수동 감사에서 테스트가 잡지 못한 이슈를 발견하면, **먼저 테스트
-   케이스를 강화**한 후 파일을 수정합니다.
-4. **반복** — 1단계로 돌아갑니다. 자동화 테스트 통과 AND 수동 감사 이슈 0건이
-   될 때까지 계속 반복합니다.
+   실패 처리:
+   - generator 버그 → generator 수정 → 1단계
+   - `.deepx/` 콘텐츠 누락 → `.deepx/` 수정 → 1단계
+   - 테스트 규칙 부족 → 테스트 강화 → 1단계
+4. **수동 감사** — 테스트 결과에 의존하지 않고, 생성된 파일들을 독립적으로 읽어
+   크로스 플랫폼 sync(CLAUDE vs AGENTS vs copilot)와 레벨 간 sync(suite → 하위)를
+   검증.
+5. **갭 분석** — 수동 감사에서 발견한 이슈:
+   - generator가 놓친 경우 → **generator 규칙 수정** 후 1단계
+   - 테스트가 놓친 경우 → **테스트 강화** 후 1단계
+6. **반복** — 3~5단계 모두 통과할 때까지.
 
-**수동 감사가 필요한 이유**: 테스트는 알려진 패턴만 검증할 수 있습니다. 수동 감사는
-상호 참조 방향 오류, 섹션 순서 문제, 의미론적 갭 등 기존 테스트가 커버하지 못하는
-새로운 이슈를 발견합니다. 테스트 강화 후에도 수동 감사가 추가 이슈를 일관되게
-발견해왔습니다.
+**플랫폼 파일을 직접 수정하지 마세요.** `.deepx/` 외의 파일 — CLAUDE.md, AGENTS.md,
+copilot-instructions.md, `.github/agents/`, `.github/skills/`, `.claude/agents/`,
+`.claude/skills/`, `.opencode/agents/`, `.cursor/rules/` — 은 모두 generator
+출력물이며 다음 generate에서 덮어써집니다. Pre-commit hook이 이를 강제합니다:
+생성된 파일이 최신이 아니면 `git commit`이 실패합니다. Hook 설치:
+```bash
+tools/dx-agentic-dev-gen/scripts/install-hooks.sh
+```
 
-이 게이트는 instruction 파일이 작업의 *주요 산출물*인 경우(예: 규칙 추가, 플랫폼 sync,
-KO 번역 생성)에 적용됩니다. 기능 구현의 일부로 instruction 파일에 단순 한 줄 수정이
-발생하는 경우에는 적용되지 않습니다.
+이 게이트는 `.deepx/` 파일이 작업의 *주요 산출물*인 경우(규칙 추가, 플랫폼 sync,
+KO 번역 생성, agents/skills 수정)에 적용됩니다. 기능 구현 중 `.deepx/`에 단순
+한 줄 수정이 발생하는 경우에는 적용되지 않습니다.

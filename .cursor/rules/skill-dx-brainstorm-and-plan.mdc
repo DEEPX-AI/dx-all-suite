@@ -1,0 +1,6 @@
+---
+description: "Brainstorm and plan before any code generation. HARD-GATE: no code without approved plan."
+alwaysApply: false
+---
+
+Read and follow the skill documentation at `.deepx/skills/dx-brainstorm-and-plan/SKILL.md`.

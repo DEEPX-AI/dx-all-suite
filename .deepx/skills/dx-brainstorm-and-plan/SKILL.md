@@ -79,15 +79,39 @@ Rules:
 - Provide concrete options (not open-ended)
 - Default to the simplest working configuration
 
-### Step 4: Present Build Plan
+### Step 4: Propose 2-3 Approaches
+
+Before committing to a single design, propose 2-3 different approaches with
+trade-offs:
+
+- **Lead with your recommendation** and explain why
+- For each approach, briefly describe: architecture, complexity, and trade-offs
+- Examples of approach dimensions: sync vs async, Python vs C++, single-model vs
+  multi-model, monolithic vs modular pipeline
+
+Wait for the user to choose or ask for more detail before proceeding.
+
+### Step 5: Present Build Plan
 
 Present a concise plan covering all affected sub-projects.
 
-### Step 5: Get User Approval
+### Step 6: Get User Approval
 
 Wait for explicit user approval before proceeding.
 
-### Step 6: Route to Implementation
+### Step 7: Spec Self-Review
+
+After the user approves, do a quick self-review of the plan before implementation:
+
+1. **Placeholder scan:** Any "TBD", "TODO", incomplete sections, or vague requirements? Fix them.
+2. **Internal consistency:** Do any parts of the plan contradict each other? Does the architecture match the feature descriptions?
+3. **Scope check:** Is this focused enough for a single implementation pass, or does it need decomposition?
+4. **Ambiguity check:** Could any requirement be interpreted two different ways? If so, pick one and make it explicit.
+
+Fix any issues inline — no need for a separate review cycle. If changes are
+significant, re-confirm with the user.
+
+### Step 8: Route to Implementation
 
 After approval, route to the appropriate project-level skill.
 
