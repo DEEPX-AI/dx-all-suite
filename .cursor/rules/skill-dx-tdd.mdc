@@ -1,0 +1,6 @@
+---
+description: "Test-driven development for DEEPX apps. Iron Law: no code without validation check first."
+alwaysApply: false
+---
+
+Read and follow the skill documentation at `.deepx/skills/dx-tdd/SKILL.md`.

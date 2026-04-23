@@ -5,5 +5,5 @@
     "dx-runtime/CLAUDE.md",
     "dx-runtime/.deepx/memory/common_pitfalls.md"
   ],
-  "skills": {"paths": [".opencode/skills"]}
+  "skills": {"paths": [".deepx/skills"]}
 }
