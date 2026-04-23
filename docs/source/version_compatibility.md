@@ -24,6 +24,23 @@ DEEPX software components have version compatibility dependencies between them. 
   </thead>
   <tbody>
     <tr>
+      <td rowspan="3">2026-04-27</td>
+      <td colspan="7" align="center">v2.3.1</td>
+    </tr>
+    <tr>
+      <td colspan="2" align="center"><b>v2.3.1</b></td>
+      <td colspan="5" align="center"><b>v2.3.1</b></td>
+    </tr>
+    <tr>
+      <td align="center">v2.3.0</td>
+      <td align="center">v2.0.1</td>
+      <td align="center">v2.5.6</td>
+      <td align="center">v2.4.1</td>
+      <td align="center"><b>v3.3.1</b></td>
+      <td align="center"><b>v3.0.1</b></td>
+      <td align="center"><b>v3.1.1</b></td>
+    </tr>
+    <tr>
       <td rowspan="3">2026-04-03</td>
       <td colspan="7" align="center">v2.3.0</td>
     </tr>
@@ -49,13 +66,13 @@ DEEPX software components have version compatibility dependencies between them. 
       <td colspan="5" align="center">v2.2.2</td>
     </tr>
     <tr>
-      <td align="center">v2.2.1</td>
+      <td align="center"><b>v2.2.1</b></td>
       <td align="center">v2.0.1</td>
       <td align="center">v2.5.0</td>
       <td align="center">v2.1.0</td>
       <td align="center">v3.2.0</td>
-      <td align="center">v2.2.1</td>
-      <td align="center">v3.0.2</td>
+      <td align="center"><b>v2.2.1</b></td>
+      <td align="center"><b>v3.0.2</b></td>
     </tr>
     <tr>
       <td rowspan="3">2026-02-09</td>
