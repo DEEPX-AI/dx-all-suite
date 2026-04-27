@@ -487,7 +487,7 @@ case "$COMMAND" in
         TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
         # ARTIFACTS_BASE is computed per-scenario inside the loop (based on workdir)
         declare -A SCENARIO_ARTIFACTS
-        GLOBAL_SUMMARY_BASE="${SCRIPT_DIR}/../dx-agentic-dev/e2e-tests/manual_${TIMESTAMP}"
+        GLOBAL_SUMMARY_BASE="${SCRIPT_DIR}/../dx-agentic-dev/e2e-tests/copilot_cli/manual/${TIMESTAMP}"
 
         # Scenario definitions (index → name, workdir, timeout, prompt)
         SCENARIO_KEYS=(compiler dx_app dx_stream runtime suite)
@@ -820,7 +820,7 @@ case "$COMMAND" in
             _prompt="${SCENARIO_PROMPTS[$scenario_key]}"
 
             # Per-scenario artifact base: under each scenario's workdir
-            ARTIFACTS_BASE="${_workdir}/dx-agentic-dev/e2e-tests/manual_${TIMESTAMP}"
+            ARTIFACTS_BASE="${_workdir}/dx-agentic-dev/e2e-tests/copilot_cli/manual/${TIMESTAMP}"
             SCENARIO_ARTIFACTS[$scenario_key]="$ARTIFACTS_BASE"
 
             # Create artifact base (session-logs subdir created later with UUID)
@@ -1134,7 +1134,7 @@ case "$COMMAND" in
         KEEP_ARTIFACTS="${DX_AGENTIC_E2E_KEEP_ARTIFACTS:-0}"
         TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
         declare -A SCENARIO_ARTIFACTS
-        GLOBAL_SUMMARY_BASE="${SCRIPT_DIR}/../dx-agentic-dev/e2e-tests/cursor_manual_${TIMESTAMP}"
+        GLOBAL_SUMMARY_BASE="${SCRIPT_DIR}/../dx-agentic-dev/e2e-tests/cursor_cli/manual/${TIMESTAMP}"
 
         SCENARIO_KEYS=(compiler dx_app dx_stream runtime suite)
 
@@ -1235,7 +1235,7 @@ case "$COMMAND" in
             _search_paths="${SCENARIO_SEARCH_PATHS[$scenario_key]}"
             _prompt="${SCENARIO_PROMPTS[$scenario_key]}"
 
-            ARTIFACTS_BASE="${_workdir}/dx-agentic-dev/e2e-tests/cursor_manual_${TIMESTAMP}"
+            ARTIFACTS_BASE="${_workdir}/dx-agentic-dev/e2e-tests/cursor_cli/manual/${TIMESTAMP}"
             SCENARIO_ARTIFACTS[$scenario_key]="$ARTIFACTS_BASE"
             mkdir -p "$ARTIFACTS_BASE"
 

@@ -50,13 +50,13 @@ SCENARIO_PROMPT = (
 # ---------------------------------------------------------------------------
 
 @pytest.fixture(scope="module")
-def scenario(copilot_runner, agentic_e2e_artifacts_dir) -> ScenarioResult:
+def scenario(copilot_runner, copilot_cli_artifacts_dir) -> ScenarioResult:
     """Execute suite Scenario #2 via Copilot CLI."""
     return copilot_runner.run(
         prompt=SCENARIO_PROMPT,
         workdir=SUITE_ROOT,
         scenario_key="suite",
-        session_log_dir=agentic_e2e_artifacts_dir,
+        session_log_dir=copilot_cli_artifacts_dir,
         timeout=1200,  # cross-project with download + compilation + app generation
     )
 
