@@ -13,8 +13,10 @@
 #   local           - Run only local installation tests
 #   docker          - Run only docker installation tests
 #   getting_started - Run only getting-started tests
-#   agentic-e2e-autopilot     - Run agentic E2E tests (fully autonomous, CI/CD)
-#   agentic-e2e-manual       - Run agentic E2E interactively (shell-based, no pytest)
+#   agentic-e2e-copilot-cli-autopilot  - Run agentic E2E tests via Copilot CLI (fully autonomous, CI/CD)
+#   agentic-e2e-cursor-cli-autopilot   - Run agentic E2E tests via Cursor CLI (fully autonomous)
+#   agentic-e2e-copilot-cli-manual    - Run agentic E2E interactively via Copilot CLI (shell-based, no pytest)
+#   agentic-e2e-cursor-cli-manual      - Run agentic E2E interactively via Cursor CLI (shell-based, no pytest)
 #   list            - List all available tests
 #   report          - Run all tests and generate HTML report
 #   json            - Run all tests and generate JSON report
@@ -144,8 +146,10 @@ print_usage() {
     echo -e "  ${GREEN}local_install${NC}   - Run only local installation tests"
     echo -e "  ${GREEN}docker_install${NC}  - Run only docker installation tests"
     echo -e "  ${GREEN}getting_started${NC} - Run only getting-started tests"
-    echo -e "  ${GREEN}agentic-e2e-autopilot${NC}    - Run agentic E2E (fully autonomous, CI/CD)"
-    echo -e "  ${GREEN}agentic-e2e-manual${NC}       - Run agentic E2E interactively (shell-based, no pytest)"
+    echo -e "  ${GREEN}agentic-e2e-copilot-cli-autopilot${NC}  - Run agentic E2E via Copilot CLI (fully autonomous, CI/CD)"
+    echo -e "  ${GREEN}agentic-e2e-cursor-cli-autopilot${NC}   - Run agentic E2E via Cursor CLI (fully autonomous)"
+    echo -e "  ${GREEN}agentic-e2e-copilot-cli-manual${NC}    - Run agentic E2E interactively via Copilot CLI (shell-based)"
+    echo -e "  ${GREEN}agentic-e2e-cursor-cli-manual${NC}      - Run agentic E2E interactively via Cursor CLI (shell-based)"
     echo -e ""
     echo -e "Utility Commands:"
     echo -e "  ${GREEN}list${NC}            - List all available tests"
@@ -165,9 +169,10 @@ print_usage() {
     echo -e "  ./test.sh getting_started"
     echo -e "  ./test.sh --report sanity"
     echo -e "  ./test.sh --debug local_install"
-    echo -e "  ./test.sh agentic-e2e-autopilot"
-    echo -e "  ./test.sh agentic-e2e-manual"
-    echo -e "  ./test.sh agentic-e2e-autopilot -k dx_app"
+    echo -e "  ./test.sh agentic-e2e-copilot-cli-autopilot"
+    echo -e "  ./test.sh agentic-e2e-copilot-cli-manual"
+    echo -e "  ./test.sh agentic-e2e-cursor-cli-manual"
+    echo -e "  ./test.sh agentic-e2e-copilot-cli-autopilot -k dx_app"
     echo -e "  ./test.sh report"
 }
 
@@ -425,17 +430,17 @@ case "$COMMAND" in
         exit $EXIT_CODE
         ;;
 
-    agentic-e2e-autopilot)
-        print_info "Running agentic E2E tests (autopilot, fully autonomous)..."
+    agentic-e2e-copilot-cli-autopilot)
+        print_info "Running agentic E2E tests via Copilot CLI (autopilot, fully autonomous)..."
         if ! command -v copilot &> /dev/null; then
-            print_error "Copilot CLI not found on PATH. Install it first."
+            print_error "Copilot CLI (copilot) not found on PATH. Install it first."
             exit 1
         fi
         export DX_AGENTIC_E2E_MODE=autopilot
         if [ -n "${M_EXPR}" ]; then
-            COMBINED_M_ARGS=(-m "agentic_e2e_autopilot and (${M_EXPR})")
+            COMBINED_M_ARGS=(-m "agentic_e2e_copilot_cli_autopilot and (${M_EXPR})")
         else
-            COMBINED_M_ARGS=(-m agentic_e2e_autopilot)
+            COMBINED_M_ARGS=(-m agentic_e2e_copilot_cli_autopilot)
         fi
         pytest -v "${CAPTURE_ARGS[@]}" "${COLLECT_ONLY_ARGS[@]}" "${COMBINED_M_ARGS[@]}" "${K_ARGS[@]}" "${REPORT_ARGS[@]}" "${JSON_ARGS[@]}" "$@"
         EXIT_CODE=$?
@@ -445,13 +450,34 @@ case "$COMMAND" in
         exit $EXIT_CODE
         ;;
 
-    agentic-e2e-manual)
+    agentic-e2e-cursor-cli-autopilot)
+        print_info "Running agentic E2E tests via Cursor CLI (autopilot, fully autonomous)..."
+        if ! command -v agent &> /dev/null; then
+            print_error "Cursor CLI (agent) not found on PATH. Install it first:"
+            print_error "  curl https://cursor.com/install -fsS | bash"
+            exit 1
+        fi
+        export DX_AGENTIC_E2E_MODE=autopilot
+        if [ -n "${M_EXPR}" ]; then
+            COMBINED_M_ARGS=(-m "agentic_e2e_cursor_cli_autopilot and (${M_EXPR})")
+        else
+            COMBINED_M_ARGS=(-m agentic_e2e_cursor_cli_autopilot)
+        fi
+        pytest -v "${CAPTURE_ARGS[@]}" "${COLLECT_ONLY_ARGS[@]}" "${COMBINED_M_ARGS[@]}" "${K_ARGS[@]}" "${REPORT_ARGS[@]}" "${JSON_ARGS[@]}" "$@"
+        EXIT_CODE=$?
+        if [ $GENERATE_REPORT -eq 1 ] && [ $EXIT_CODE -eq 0 ]; then
+            print_success "HTML report generated: ${REPORT_FILE}"
+        fi
+        exit $EXIT_CODE
+        ;;
+
+    agentic-e2e-copilot-cli-manual)
         # ---------------------------------------------------------------
-        # Shell-based interactive mode — runs copilot directly (no pytest)
+        # Shell-based interactive mode — runs Copilot CLI directly (no pytest)
         # User interacts with copilot TUI, then shell validates output.
         # ---------------------------------------------------------------
         if ! command -v copilot &> /dev/null; then
-            print_error "Copilot CLI not found on PATH. Install it first."
+            print_error "Copilot CLI (copilot) not found on PATH. Install it first."
             exit 1
         fi
 
@@ -1086,6 +1112,207 @@ case "$COMMAND" in
                 rm -rf "$GLOBAL_SUMMARY_BASE"
             fi
         fi
+
+        if [ "$TOTAL_FAIL" -gt 0 ]; then
+            exit 1
+        fi
+        exit 0
+        ;;
+
+    agentic-e2e-cursor-cli-manual)
+        # ---------------------------------------------------------------
+        # Shell-based interactive mode — runs Cursor CLI directly (no pytest)
+        # User interacts with Cursor agent, then shell validates output.
+        # ---------------------------------------------------------------
+        if ! command -v agent &> /dev/null; then
+            print_error "Cursor CLI (agent) not found on PATH. Install it first:"
+            print_error "  curl https://cursor.com/install -fsS | bash"
+            exit 1
+        fi
+
+        AGENTIC_MODEL="${DX_AGENTIC_E2E_CURSOR_MODEL:-claude-4.6-sonnet-medium}"
+        KEEP_ARTIFACTS="${DX_AGENTIC_E2E_KEEP_ARTIFACTS:-0}"
+        TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
+        declare -A SCENARIO_ARTIFACTS
+        GLOBAL_SUMMARY_BASE="${SCRIPT_DIR}/../dx-agentic-dev/e2e-tests/cursor_manual_${TIMESTAMP}"
+
+        SCENARIO_KEYS=(compiler dx_app dx_stream runtime suite)
+
+        declare -A SCENARIO_LABELS
+        SCENARIO_LABELS[compiler]="Download yolo26n, compile to DXNN"
+        SCENARIO_LABELS[dx_app]="Build yolo26n person detection app"
+        SCENARIO_LABELS[dx_stream]="Build detection pipeline with tracking"
+        SCENARIO_LABELS[runtime]="Route to dx_app + dx_stream via runtime builder"
+        SCENARIO_LABELS[suite]="Cross-project compile + app generation"
+
+        declare -A SCENARIO_WORKDIRS
+        SCENARIO_WORKDIRS[compiler]="${SCRIPT_DIR}/../dx-compiler"
+        SCENARIO_WORKDIRS[dx_app]="${SCRIPT_DIR}/../dx-runtime/dx_app"
+        SCENARIO_WORKDIRS[dx_stream]="${SCRIPT_DIR}/../dx-runtime/dx_stream"
+        SCENARIO_WORKDIRS[runtime]="${SCRIPT_DIR}/../dx-runtime"
+        SCENARIO_WORKDIRS[suite]="${SCRIPT_DIR}/.."
+
+        declare -A SCENARIO_PROMPTS
+        SCENARIO_PROMPTS[compiler]="Compile yolo26n model to dxnn"
+        SCENARIO_PROMPTS[dx_app]="Build a yolo26n detection app"
+        SCENARIO_PROMPTS[dx_stream]="Build a real-time detection pipeline with yolo26n"
+        SCENARIO_PROMPTS[runtime]="Build a yolo26n standalone detection app and a real-time streaming pipeline for it"
+        SCENARIO_PROMPTS[suite]="Compile yolo26n and build an inference app"
+
+        declare -A SCENARIO_SEARCH_PATHS
+        SCENARIO_SEARCH_PATHS[compiler]="${SCRIPT_DIR}/../dx-compiler/dx-agentic-dev"
+        SCENARIO_SEARCH_PATHS[dx_app]="${SCRIPT_DIR}/../dx-runtime/dx_app/dx-agentic-dev"
+        SCENARIO_SEARCH_PATHS[dx_stream]="${SCRIPT_DIR}/../dx-runtime/dx_stream/dx-agentic-dev"
+        SCENARIO_SEARCH_PATHS[runtime]="${SCRIPT_DIR}/../dx-runtime/dx-agentic-dev ${SCRIPT_DIR}/../dx-runtime/dx_app/dx-agentic-dev ${SCRIPT_DIR}/../dx-runtime/dx_stream/dx-agentic-dev"
+        SCENARIO_SEARCH_PATHS[suite]="${SCRIPT_DIR}/../dx-agentic-dev ${SCRIPT_DIR}/../dx-compiler/dx-agentic-dev ${SCRIPT_DIR}/../dx-runtime/dx_app/dx-agentic-dev ${SCRIPT_DIR}/../dx-runtime/dx_stream/dx-agentic-dev ${SCRIPT_DIR}/../dx-runtime/dx-agentic-dev"
+
+        declare -A SCENARIO_CHECK_MODELS
+        SCENARIO_CHECK_MODELS[compiler]=1
+        SCENARIO_CHECK_MODELS[dx_app]=0
+        SCENARIO_CHECK_MODELS[dx_stream]=0
+        SCENARIO_CHECK_MODELS[runtime]=0
+        SCENARIO_CHECK_MODELS[suite]=1
+
+        # Reuse snapshot/detect/validate helpers from copilot-manual (already defined above)
+        # They persist in the same shell process.
+
+        # --- Scenario selection ---
+        SELECTED_SCENARIOS=()
+
+        if [ -n "${K_EXPR}" ]; then
+            for key in "${SCENARIO_KEYS[@]}"; do
+                if echo "$key" | grep -qi "${K_EXPR}"; then
+                    SELECTED_SCENARIOS+=("$key")
+                fi
+            done
+            if [ ${#SELECTED_SCENARIOS[@]} -eq 0 ]; then
+                print_error "No scenario matches filter: ${K_EXPR}"
+                print_info "Available: ${SCENARIO_KEYS[*]}"
+                exit 1
+            fi
+            print_info "Auto-selected by -k filter: ${SELECTED_SCENARIOS[*]}"
+        else
+            echo ""
+            echo -e "${YELLOW}Agentic E2E Manual Mode — Interactive Cursor CLI${NC}"
+            echo ""
+            echo -e "Available scenarios:"
+            for i in "${!SCENARIO_KEYS[@]}"; do
+                _key="${SCENARIO_KEYS[$i]}"
+                printf "  ${GREEN}%d)${NC} %-12s — %s\n" "$((i+1))" "$_key" "${SCENARIO_LABELS[$_key]}"
+            done
+            echo -e "  ${GREEN}a)${NC} all          — Run all scenarios sequentially"
+            echo ""
+            read -p "Select scenario [1-${#SCENARIO_KEYS[@]}/a]: " CHOICE
+
+            case "$CHOICE" in
+                a|A|all)
+                    SELECTED_SCENARIOS=("${SCENARIO_KEYS[@]}")
+                    ;;
+                [1-9])
+                    _idx=$((CHOICE - 1))
+                    if [ "$_idx" -ge 0 ] && [ "$_idx" -lt "${#SCENARIO_KEYS[@]}" ]; then
+                        SELECTED_SCENARIOS=("${SCENARIO_KEYS[$_idx]}")
+                    else
+                        print_error "Invalid selection: ${CHOICE}"
+                        exit 1
+                    fi
+                    ;;
+                *)
+                    print_error "Invalid selection: ${CHOICE}"
+                    exit 1
+                    ;;
+            esac
+        fi
+
+        # --- Execute selected scenarios ---
+        TOTAL_PASS=0
+        TOTAL_FAIL=0
+        declare -A SCENARIO_RESULTS
+        declare -A SCENARIO_DIRS
+
+        for scenario_key in "${SELECTED_SCENARIOS[@]}"; do
+            _workdir="$(realpath "${SCENARIO_WORKDIRS[$scenario_key]}")"
+            _search_paths="${SCENARIO_SEARCH_PATHS[$scenario_key]}"
+            _prompt="${SCENARIO_PROMPTS[$scenario_key]}"
+
+            ARTIFACTS_BASE="${_workdir}/dx-agentic-dev/e2e-tests/cursor_manual_${TIMESTAMP}"
+            SCENARIO_ARTIFACTS[$scenario_key]="$ARTIFACTS_BASE"
+            mkdir -p "$ARTIFACTS_BASE"
+
+            echo ""
+            echo -e "${BLUE}================================================================${NC}"
+            echo -e "${BLUE}=== Scenario: ${scenario_key}${NC}"
+            echo -e "${BLUE}=== Workdir:  ${_workdir}${NC}"
+            echo -e "${BLUE}=== Model:    ${AGENTIC_MODEL}${NC}"
+            echo -e "${BLUE}=== Prompt:   ${_prompt}${NC}"
+            echo -e "${BLUE}================================================================${NC}"
+            echo ""
+            print_info "Starting Cursor CLI session..."
+            print_info "Exit manually with Ctrl+C when done"
+            echo ""
+
+            _snapshot_file=$(mktemp)
+            snapshot_sessions "$_search_paths" "$_snapshot_file"
+
+            # Run Cursor agent session (interactive TUI)
+            (cd "$_workdir" && agent \
+                --model "$AGENTIC_MODEL" \
+                "$_prompt")
+            _cursor_exit=$?
+
+            # Post-detection: find new session directories
+            _detected_dirs=$(detect_new_sessions "$_search_paths" "$_snapshot_file")
+            rm -f "$_snapshot_file"
+
+            read -r -a _detected_arr <<< "$_detected_dirs"
+            if [ ${#_detected_arr[@]} -gt 1 ]; then
+                declare -A _seen_dirs
+                _deduped=()
+                for _dd in "${_detected_arr[@]}"; do
+                    _dd_real="$(realpath "$_dd" 2>/dev/null || echo "$_dd")"
+                    [[ "$_dd_real" != */ ]] && _dd_real="${_dd_real}/"
+                    if [ -z "${_seen_dirs[$_dd_real]+x}" ]; then
+                        _seen_dirs[$_dd_real]=1
+                        _deduped+=("$_dd_real")
+                    fi
+                done
+                _detected_arr=("${_deduped[@]}")
+                unset _seen_dirs _deduped
+            fi
+
+            if [ ${#_detected_arr[@]} -gt 0 ]; then
+                print_info "Detected ${#_detected_arr[@]} new session dir(s):"
+                for _dd in "${_detected_arr[@]}"; do
+                    echo "  -> $_dd"
+                done
+            else
+                echo -e "  ${YELLOW}[WARN]${NC} No new session directories detected"
+            fi
+
+            validate_scenario "$scenario_key" "$_cursor_exit" "${_detected_arr[@]}"
+            _val_failures=$?
+            if [ "$_val_failures" -eq 0 ]; then
+                TOTAL_PASS=$((TOTAL_PASS + 1))
+                SCENARIO_RESULTS[$scenario_key]="PASS"
+            else
+                TOTAL_FAIL=$((TOTAL_FAIL + 1))
+                SCENARIO_RESULTS[$scenario_key]="FAIL"
+            fi
+            SCENARIO_DIRS[$scenario_key]="${_detected_arr[*]}"
+        done
+
+        # --- Summary ---
+        echo ""
+        echo -e "${BLUE}================================================================${NC}"
+        echo -e "${BLUE}=== Agentic E2E Cursor Manual — Final Summary${NC}"
+        echo -e "${BLUE}================================================================${NC}"
+        echo -e "  Model:            ${AGENTIC_MODEL}"
+        echo -e "  Scenarios run:    ${#SELECTED_SCENARIOS[@]}"
+        echo -e "  ${GREEN}Passed:${NC}           ${TOTAL_PASS}"
+        if [ "$TOTAL_FAIL" -gt 0 ]; then
+            echo -e "  ${RED}Failed:${NC}           ${TOTAL_FAIL}"
+        fi
+        echo ""
 
         if [ "$TOTAL_FAIL" -gt 0 ]; then
             exit 1

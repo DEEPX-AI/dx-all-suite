@@ -467,10 +467,6 @@ Agents output fixed markers at the start and end of each task for automated test
 | `[DX-AGENTIC-DEV: START]` | **CRITICAL** — Absolute first line of the agent's first response, before ANY other text, tool calls, or reasoning. Non-negotiable even if the user says "just proceed" — automated tests WILL fail without it. |
 | `[DX-AGENTIC-DEV: DONE (output-dir: <relative_path>)]` | Last line after all work is complete. `<relative_path>` is the session output directory relative to the project root. If no files were generated, omit the `(output-dir: ...)` part. |
 
-These markers are used by `test.sh agentic-e2e-manual` for automatic session
-termination and `/share html` (Copilot CLI only) transcript saving. Sub-agents invoked via handoff
-do not output sentinels — only the top-level agent does.
-
 **Important**: DONE means all deliverables are produced — implementation code, scripts,
 configs, and validation results. If the agent only produced planning artifacts (specs,
 plans, design documents) without implementing actual code, DONE must NOT be output.

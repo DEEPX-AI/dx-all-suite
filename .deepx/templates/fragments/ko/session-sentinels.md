@@ -37,9 +37,18 @@
    ```
    산출물 중 MISSING이 있으면, 돌아가서 생성하세요. 누락된 산출물이 있는 상태에서
    최종 보고서를 제시하거나 DONE을 출력하지 마세요.
-8. **세션 HTML 내보내기 안내** (Copilot CLI 전용): DONE 센티넬 줄 바로 앞에 출력하세요:
-   `To save this session as HTML, type: /share html`
-   — 이것은 사용자에게 전체 대화를 보존할 수 있음을 알려줍니다. `/share html` 명령은
-   GitHub Copilot CLI 전용이며, Claude Code, Copilot Chat (VS Code), OpenCode에서는
-   작동하지 않습니다. 테스트 하네스 (`test.sh`)는 내보낸 HTML 파일을 자동으로 감지하고
+8. **세션 내보내기 안내**: DONE 센티넬 줄 바로 앞에, CLI 플랫폼에 맞는 세션 저장
+   안내를 출력하세요:
+
+   | 플랫폼 | 명령 | 형식 |
+   |--------|------|------|
+   | **Copilot CLI** | `/share html` | HTML 트랜스크립트 |
+   | **Cursor CLI** (`agent`) | 내장 내보내기 없음 — 테스트 하네스가 `--output-format stream-json`으로 자동 저장 | JSON stream |
+   | **OpenCode** | `/export` | JSON |
+
+   Copilot CLI의 경우: `To save this session as HTML, type: /share html`
+   OpenCode의 경우: `To save this session as JSON, type: /export`
+   Cursor CLI의 경우: 사용자 작업이 필요 없습니다 — 테스트 하네스가 출력을 자동 캡처합니다.
+
+   테스트 하네스 (`test.sh`)는 내보낸 아티팩트를 자동으로 감지하고
    세션 출력 디렉토리에 복사합니다.

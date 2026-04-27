@@ -3,14 +3,16 @@
 Shared fixtures and utilities for agentic E2E scenario tests.
 
 Provides:
-- CopilotRunnerAutopilot: subprocess wrapper for ``copilot`` CLI (autopilot mode)
+- CopilotRunnerAutopilot: subprocess wrapper for ``copilot`` (Copilot CLI, autopilot mode)
+- CursorRunnerAutopilot: subprocess wrapper for ``agent`` (Cursor CLI, autopilot mode,
+  default model: claude-4.6-sonnet-medium)
 - Session auto-detection: finds new ``dx-agentic-dev/<session_id>/`` dirs
 - Verification helpers: syntax, JSON structure, pattern matching
 - ScenarioResult: dataclass holding execution outcome + output directories
 - Session-scoped fixtures for runner and output management
 
-Note: Manual (interactive) mode is handled by ``test.sh agentic-e2e-manual``
-directly as a shell-based script (no pytest). See test.sh for details.
+Note: Manual (interactive) modes are handled by ``test.sh agentic-e2e-copilot-manual``
+and ``test.sh agentic-e2e-cursor-manual`` as shell-based scripts (no pytest).
 """
 
 from __future__ import annotations
@@ -197,6 +199,16 @@ class ScenarioResult:
 # ---------------------------------------------------------------------------
 # CopilotRunnerAutopilot
 # ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
+# Default model for Cursor CLI
+# ---------------------------------------------------------------------------
+
+DEFAULT_CURSOR_MODEL = os.environ.get("DX_AGENTIC_E2E_CURSOR_MODEL", "claude-4.6-sonnet-medium-thinking")
+
+# Default timeout for Cursor CLI execution (5 minutes)
+DEFAULT_CURSOR_TIMEOUT = int(os.environ.get("DX_AGENTIC_E2E_CURSOR_TIMEOUT", "600"))
+
 
 class CopilotRunnerAutopilot:
     """Wrapper for autopilot Copilot CLI invocations.
@@ -468,6 +480,293 @@ class CopilotRunnerAutopilot:
 
 
 # ---------------------------------------------------------------------------
+# CursorRunnerAutopilot
+# ---------------------------------------------------------------------------
+
+class CursorRunnerAutopilot:
+    """Wrapper for autopilot Cursor CLI (``agent``) invocations.
+
+    Runs ``agent -p --force --output-format stream-json <prompt>`` for fully
+    autonomous execution.  The ``--force`` flag auto-approves ALL file writes
+    and tool calls (equivalent to Copilot's ``--yolo``).
+
+    An autopilot directive is appended to every prompt to prevent the agent
+    from asking questions via plain text output.
+
+    Output files are auto-detected in ``dx-agentic-dev/<session_id>/`` under
+    the relevant sub-project directories — same mechanism as Copilot.
+
+    The ``stream-json`` output format provides structured NDJSON events that
+    are parsed for session metadata (session_id, duration, assistant text).
+
+    Usage::
+
+        runner = CursorRunnerAutopilot()
+        result = runner.run(
+            prompt="Build a yolo26n detection app",
+            workdir=APP_ROOT,
+            scenario_key="dx_app",
+        )
+        assert result.succeeded
+        assert result.output_dir is not None
+    """
+
+    CURSOR_BIN = "agent"
+    MODE = "autopilot"
+
+    AUTOPILOT_DIRECTIVE = (
+        " IMPORTANT: This is an automated test run. "
+        "Do not ask questions or present options. "
+        "Proceed directly with implementation, choosing the most appropriate approach."
+    )
+
+    def __init__(self, model: str = ""):
+        self.model = model or DEFAULT_CURSOR_MODEL
+
+    @classmethod
+    def is_available(cls) -> bool:
+        """Check if the ``agent`` binary is on PATH."""
+        return shutil.which(cls.CURSOR_BIN) is not None
+
+    @classmethod
+    def is_authenticated(cls) -> bool:
+        """Check if the Cursor CLI is authenticated (API key or login).
+
+        Runs a trivial ``agent -p`` invocation and checks for auth errors.
+        Returns ``True`` if auth is configured, ``False`` otherwise.
+        """
+        if not cls.is_available():
+            return False
+        if os.environ.get("CURSOR_API_KEY"):
+            return True
+        try:
+            probe = subprocess.run(
+                [cls.CURSOR_BIN, "-p", "--output-format", "json", "echo test"],
+                capture_output=True, text=True, timeout=60,
+                env={**os.environ, "NO_COLOR": "1"},
+            )
+            if "Authentication required" in (probe.stderr or ""):
+                return False
+            if "CURSOR_API_KEY" in (probe.stderr or ""):
+                return False
+            return True
+        except subprocess.TimeoutExpired:
+            # Timeout means the CLI is running (authenticated) but LLM is slow
+            return True
+        except Exception:
+            return False
+
+    @classmethod
+    def cursor_path(cls) -> Optional[str]:
+        """Return the full path to the agent binary, or None."""
+        return shutil.which(cls.CURSOR_BIN)
+
+    def run(
+        self,
+        prompt: str,
+        workdir: Path,
+        scenario_key: str,
+        session_log_dir: Optional[Path] = None,
+        timeout: int = DEFAULT_CURSOR_TIMEOUT,
+        extra_args: Optional[List[str]] = None,
+    ) -> ScenarioResult:
+        """Execute a Cursor CLI prompt in autopilot mode.
+
+        Args:
+            prompt: The instruction to send to the Cursor agent.
+            workdir: Working directory (determines which .cursor/rules load).
+            scenario_key: One of ``"compiler"``, ``"dx_app"``, ``"dx_stream"``,
+                ``"runtime"``, ``"suite"``.
+            session_log_dir: Directory to store the session transcript.
+            timeout: Maximum execution time in seconds.
+            extra_args: Additional CLI arguments.
+
+        Returns:
+            ScenarioResult with exit code, output, and auto-detected output dirs.
+        """
+        log_dir = session_log_dir or Path(os.environ.get("TMPDIR", "/tmp"))
+        log_dir.mkdir(parents=True, exist_ok=True)
+
+        effective_prompt = prompt + self.AUTOPILOT_DIRECTIVE
+
+        search_paths = AGENTIC_DEV_SEARCH_PATHS.get(
+            scenario_key, [workdir / "dx-agentic-dev"],
+        )
+
+        snapshot = _snapshot_sessions(search_paths)
+        start_utc = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+        cmd = [
+            self.CURSOR_BIN,
+            "-p",                           # print / non-interactive mode
+            "--force",                       # auto-approve all tool calls
+            "--output-format", "stream-json",
+            effective_prompt,
+        ]
+
+        if self.model:
+            cmd.extend(["--model", self.model])
+
+        if extra_args:
+            cmd.extend(extra_args)
+
+        start = time.monotonic()
+        try:
+            result = subprocess.run(
+                cmd,
+                cwd=str(workdir),
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+                env={**os.environ, "NO_COLOR": "1"},
+            )
+            duration = time.monotonic() - start
+            output_dirs = _detect_new_sessions(search_paths, snapshot)
+            end_utc = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+            session_uuid, assistant_text = _parse_cursor_stream_json(result.stdout)
+
+            session_log = log_dir / f"{scenario_key}-cursor-session.md"
+            _save_cursor_session_log(
+                session_log, result.stdout, result.stderr,
+                scenario_key, prompt, session_uuid,
+            )
+
+            session_events_log = log_dir / f"{scenario_key}-cursor-stream.jsonl"
+            try:
+                session_events_log.write_text(result.stdout, encoding="utf-8")
+            except Exception:
+                pass
+
+            for odir in output_dirs:
+                try:
+                    odir_real = odir.resolve()
+                    session_name = odir_real.name
+                    parent_name = odir_real.parent.parent.name
+                    link_path = log_dir / f"{parent_name}_{session_name}"
+                    link_path.unlink(missing_ok=True)
+                    link_path.symlink_to(odir_real)
+                except Exception:
+                    pass
+
+            return ScenarioResult(
+                returncode=result.returncode,
+                stdout=assistant_text or result.stdout,
+                stderr=result.stderr,
+                output_dirs=output_dirs,
+                session_log=session_log if session_log.exists() else None,
+                session_events_log=session_events_log if session_events_log.exists() else None,
+                duration_seconds=duration,
+                prompt=prompt,
+                workdir=workdir,
+                start_utc=start_utc,
+                end_utc=end_utc,
+                session_uuid=session_uuid,
+            )
+        except subprocess.TimeoutExpired as exc:
+            duration = time.monotonic() - start
+            output_dirs = _detect_new_sessions(search_paths, snapshot)
+            end_utc = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+            raw_stdout = exc.stdout.decode(errors="replace") if isinstance(exc.stdout, bytes) else (exc.stdout or "")
+            session_uuid, assistant_text = _parse_cursor_stream_json(raw_stdout)
+
+            session_events_log = log_dir / f"{scenario_key}-cursor-stream.jsonl"
+            try:
+                session_events_log.write_text(raw_stdout, encoding="utf-8")
+            except Exception:
+                pass
+
+            return ScenarioResult(
+                returncode=-1,
+                stdout=assistant_text or raw_stdout,
+                stderr=f"TIMEOUT after {timeout}s",
+                output_dirs=output_dirs,
+                session_log=None,
+                session_events_log=session_events_log if session_events_log.exists() else None,
+                duration_seconds=duration,
+                prompt=prompt,
+                workdir=workdir,
+                start_utc=start_utc,
+                end_utc=end_utc,
+                session_uuid=session_uuid,
+            )
+
+
+def _parse_cursor_stream_json(raw_output: str) -> tuple:
+    """Parse Cursor CLI stream-json NDJSON output.
+
+    Extracts session_uuid and concatenated assistant text from the stream.
+
+    Returns:
+        ``(session_uuid, assistant_text)`` — either may be ``None``.
+    """
+    session_uuid = None
+    assistant_parts: List[str] = []
+
+    for line in raw_output.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+
+        event_type = event.get("type", "")
+        sid = event.get("session_id")
+        if sid and not session_uuid:
+            session_uuid = sid
+
+        if event_type == "assistant":
+            msg = event.get("message", {})
+            for content_part in msg.get("content", []):
+                text = content_part.get("text", "")
+                if text:
+                    assistant_parts.append(text)
+        elif event_type == "result":
+            result_text = event.get("result", "")
+            if result_text and not assistant_parts:
+                assistant_parts.append(result_text)
+            if not session_uuid:
+                session_uuid = event.get("session_id")
+
+    assistant_text = "\n".join(assistant_parts) if assistant_parts else None
+    return session_uuid, assistant_text
+
+
+def _save_cursor_session_log(
+    output_path: Path,
+    raw_stdout: str,
+    raw_stderr: str,
+    scenario_key: str,
+    prompt: str,
+    session_uuid: Optional[str],
+) -> None:
+    """Save Cursor CLI session as a Markdown log (best-effort)."""
+    try:
+        lines = [
+            f"# Cursor CLI Session — {scenario_key}",
+            "",
+            f"- **Session UUID:** {session_uuid or 'unknown'}",
+            f"- **Prompt:** {prompt}",
+            "",
+            "## Assistant Output",
+            "",
+        ]
+        _, assistant_text = _parse_cursor_stream_json(raw_stdout)
+        if assistant_text:
+            lines.append(assistant_text)
+        else:
+            lines.append("(no assistant output captured)")
+        if raw_stderr and raw_stderr.strip():
+            lines.extend(["", "## Stderr", "", raw_stderr])
+        output_path.write_text("\n".join(lines), encoding="utf-8")
+    except Exception:
+        pass
+
+
+# ---------------------------------------------------------------------------
 # Copilot session UUID + state dir extraction (best-effort)
 # ---------------------------------------------------------------------------
 
@@ -640,7 +939,7 @@ def format_scenario_failure(result: ScenarioResult) -> str:
     lines = [
         "",
         "=" * 80,
-        "COPILOT AGENTIC E2E SCENARIO FAILED",
+        "AGENTIC E2E SCENARIO FAILED",
         "=" * 80,
         f"Exit Code: {result.returncode}",
         f"Duration:  {result.duration_seconds:.1f}s",
@@ -739,8 +1038,8 @@ def copilot_runner():
     Uses ``--yolo --no-ask-user -s`` flags for fully autonomous execution.
     Mode is determined by ``DX_AGENTIC_E2E_MODE`` env var (set by test.sh).
 
-    Manual mode is handled by ``test.sh agentic-e2e-manual`` directly
-    (shell-based interactive, no pytest).
+    Manual modes are handled by ``test.sh agentic-e2e-copilot-manual`` and
+    ``test.sh agentic-e2e-cursor-manual`` (shell-based interactive, no pytest).
     """
     runner_cls = _RUNNER_CLASSES.get(AGENTIC_E2E_MODE, CopilotRunnerAutopilot)
     if not runner_cls.is_available():
@@ -750,6 +1049,28 @@ def copilot_runner():
             f"Install Copilot CLI first (see README.md)."
         )
     return runner_cls()
+
+
+@pytest.fixture(scope="session")
+def cursor_runner():
+    """Session-scoped CursorRunnerAutopilot for Cursor CLI autopilot mode.
+
+    Uses ``agent -p --force --output-format stream-json`` for fully
+    autonomous execution.  Skips if the ``agent`` binary is not on PATH
+    or if authentication is not configured.
+    """
+    if not CursorRunnerAutopilot.is_available():
+        pytest.skip(
+            f"Cursor CLI not found on PATH. "
+            f"Searched for '{CursorRunnerAutopilot.CURSOR_BIN}' — not found. "
+            f"Install Cursor CLI first: curl https://cursor.com/install -fsS | bash"
+        )
+    if not CursorRunnerAutopilot.is_authenticated():
+        pytest.skip(
+            "Cursor CLI is not authenticated. "
+            "Run 'agent login' or set CURSOR_API_KEY environment variable."
+        )
+    return CursorRunnerAutopilot()
 
 
 @pytest.fixture(scope="session")
