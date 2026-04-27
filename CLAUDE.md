@@ -312,25 +312,25 @@ Rules:
    configs, and validation results. If you completed a brainstorming or planning phase
    but have not yet implemented the actual code, do NOT output DONE. Instead, proceed
    to implementation or ask the user how to proceed.
-7. **Pre-DONE mandatory deliverable check**: Before outputting DONE, run the
-   self-verification check below. If any mandatory file is missing, create it
-   before outputting DONE. **NEVER skip this step.**
-   ```bash
-   WORK_DIR="<session_output_directory>"
-   echo "=== Mandatory Deliverable Check ==="
-   for f in setup.sh run.sh verify.py session.log README.md config.json; do
-       [ -f "${WORK_DIR}/$f" ] && echo "  ✓ $f" || echo "  ✗ MISSING: $f"
-   done
-   ls "${WORK_DIR}"/*.dxnn 2>/dev/null && echo "  ✓ .dxnn model" || echo "  ✗ MISSING: .dxnn model"
-   ```
-   If ANY artifact shows MISSING, go back and generate it. Do NOT present the
-   final report or output DONE with missing artifacts.
-8. **Session HTML export guidance** (Copilot CLI only): Immediately before the DONE
-   sentinel line, output: `To save this session as HTML, type: /share html`
-   — this tells the user they can preserve the full conversation. The `/share html`
-   command is specific to GitHub Copilot CLI; it does not work in Claude Code,
-   Copilot Chat (VS Code), or OpenCode. The test harness (`test.sh`) will automatically
-   detect and copy the exported HTML file to the session output directory.
+7. **Pre-DONE mandatory deliverable check**: Before outputting DONE, verify that all
+   mandatory deliverables exist in the session directory. If any mandatory file is
+   missing, create it before outputting DONE. Each sub-project defines its own mandatory
+   file list in its skill document (e.g., `dx-build-pipeline-app.md` File Creation Checklist).
+8. **Session export guidance**: Immediately before the DONE sentinel line, output
+   the appropriate session-save instruction based on the CLI platform:
+
+   | Platform | Command | Format |
+   |----------|---------|--------|
+   | **Copilot CLI** | `/share html` | HTML transcript |
+   | **Cursor CLI** (`agent`) | No built-in export — session is saved automatically by the test harness via `--output-format stream-json` | JSON stream |
+   | **OpenCode** | `/export` | JSON |
+
+   For Copilot CLI, output: `To save this session as HTML, type: /share html`
+   For OpenCode, output: `To save this session as JSON, type: /export`
+   For Cursor CLI, no user action is needed — the test harness captures output automatically.
+
+   The test harness (`test.sh`) will automatically detect and copy exported artifacts
+   to the session output directory.
 
 ## Mandatory Deliverables
 
@@ -613,12 +613,32 @@ When modifying the canonical source — files in `**/.deepx/**/*.md`
    - Tests missed a case → **strengthen tests** → step 1
 6. **Repeat** — Continue until steps 3–5 all pass.
 
-**Do NOT edit platform files directly.** Files outside `.deepx/` — including
-CLAUDE.md, AGENTS.md, copilot-instructions.md, `.github/agents/`,
-`.github/skills/`, `.claude/agents/`, `.claude/skills/`, `.opencode/agents/`,
-`.cursor/rules/` — are all generator output and will be overwritten on
-next generate. A pre-commit hook enforces this: `git commit` will fail if
-generated files are out-of-date. Install hooks with:
+### Pre-flight Classification (MANDATORY)
+
+Before modifying ANY `.md` or `.mdc` file in the repository, classify it into
+one of three categories. **Never skip this step** — editing a generator-managed
+file directly is a silent corruption that will be overwritten on next generate.
+
+1. **Canonical source** (`**/.deepx/**/*.md`) — Modify directly, then run the
+   Verification Loop above.
+2. **Generator output** — Files at known output paths:
+   `CLAUDE.md`, `CLAUDE-KO.md`, `AGENTS.md`, `AGENTS-KO.md`,
+   `copilot-instructions.md`, `.github/agents/`, `.github/skills/`,
+   `.claude/agents/`, `.claude/skills/`, `.opencode/agents/`, `.cursor/rules/`
+   → **Do NOT edit directly.** Find and modify the `.deepx/` source
+   (template, fragment, or agent/skill), then `dx-agentic-gen generate`.
+3. **Independent source** — Everything else (`docs/source/`, `source/docs/`,
+   `tests/`, `README.md` in sub-projects, etc.)
+   → Edit directly. Run `dx-agentic-gen check` once afterward to confirm no
+   unexpected drift.
+
+**Anti-pattern**: Modifying a file without first classifying it. If you are
+unsure whether a file is generator output, run `dx-agentic-gen check` before
+AND after the edit — if the check overwrites your change, the file is managed
+by the generator and must be edited via `.deepx/` source instead.
+
+A pre-commit hook enforces generator output integrity: `git commit` will fail
+if generated files are out-of-date. Install hooks with:
 ```bash
 tools/dx-agentic-dev-gen/scripts/install-hooks.sh
 ```

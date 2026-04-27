@@ -461,10 +461,6 @@ dx-all-suite/dx-agentic-dev/
 | `[DX-AGENTIC-DEV: START]` | **필수** — 에이전트 첫 번째 응답의 절대적 첫 줄. 다른 텍스트, tool call, reasoning보다 반드시 먼저 출력. 사용자가 "알아서 진행해"라고 해도 생략 불가 — 자동 테스트가 실패합니다. |
 | `[DX-AGENTIC-DEV: DONE (output-dir: <relative_path>)]` | 모든 작업 완료 후 마지막 줄. `<relative_path>`는 프로젝트 루트 기준 세션 산출물 디렉토리의 상대 경로. 생성된 파일이 없으면 `(output-dir: ...)` 부분을 생략. |
 
-이 마커는 `test.sh agentic-e2e-manual`에서 자동 세션 종료 및 `/share html` (Copilot CLI 전용)
-트랜스크립트 저장에 사용됩니다. 핸드오프로 호출된 하위 에이전트는 센티넬을
-출력하지 않으며, 최상위 에이전트만 출력합니다.
-
 **중요**: DONE은 모든 산출물(구현 코드, 스크립트, 설정 파일, 검증 결과)이 생성된
 후에만 출력합니다. 기획 산출물(spec, plan, 설계 문서)만 작성하고 실제 코드를
 구현하지 않은 상태에서는 DONE을 출력하면 안 됩니다.

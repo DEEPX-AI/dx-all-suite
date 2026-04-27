@@ -47,20 +47,22 @@ Validates the agentic development infrastructure across all 5 project levels (su
 
 **What it tests:**
 - Guide document structure: existence, headings, scenario numbering, EN/KO synchronization
-- Routing consistency: CLAUDE.md, AGENTS.md, copilot-instructions.md, opencode.json, .cursorrules
+- Routing consistency: CLAUDE.md, AGENTS.md, copilot-instructions.md, copilot.json, .cursorrules
 - Scenario references: agent/skill references in guides match actual infrastructure
 - Cross-project scenarios: handoff chains, validation scripts, output isolation
 
 **Total tests:** 199 (186 passed, 13 skipped)
 
-### 5. **test_agentic_e2e_scenarios** — Agentic End-to-End Copilot CLI Scenario Tests
-Runs actual Copilot CLI invocations for representative scenarios from each project level, then statically verifies the generated output files.
+### 5. **test_agentic_e2e_scenarios** — Agentic End-to-End Scenario Tests (Copilot CLI + Cursor CLI)
+Runs actual CLI agent invocations for representative scenarios from each project level, then statically verifies the generated output files.
 
-**Two modes:**
-- **autopilot** (default): Fully autonomous with `--no-ask-user`. CI/CD optimized. Runs via pytest.
-- **manual**: Interactive shell-based mode (no pytest). User interacts with copilot TUI directly, then shell validates output.
+**Three modes:**
+- **copilot autopilot**: Fully autonomous with `--no-ask-user`. CI/CD optimized. Uses Copilot CLI (`copilot`). Runs via pytest.
+- **cursor autopilot**: Fully autonomous via Cursor CLI (`agent -p --force`). Same scenarios and assertions. Runs via pytest.
+- **copilot manual**: Interactive shell-based mode (no pytest). User interacts with Copilot CLI TUI directly, then shell validates output.
+- **cursor manual**: Interactive shell-based mode (no pytest). User interacts with Cursor CLI TUI directly, then shell validates output.
 
-**Output isolation:** Prompts do NOT specify an output directory. Each sub-project's `copilot-instructions.md` enforces Output Isolation, automatically writing generated files to `dx-agentic-dev/<session_id>/`. The test framework auto-detects new session directories by comparing pre/post snapshots of each scenario's search paths.
+**Output isolation:** Prompts do NOT specify an output directory. Each sub-project's agent configuration (`copilot-instructions.md` for OpenCode, `.cursor/rules/*.mdc` for Cursor) enforces Output Isolation, automatically writing generated files to `dx-agentic-dev/<session_id>/`. The test framework auto-detects new session directories by comparing pre/post snapshots of each scenario's search paths.
 
 **What it tests:**
 - **dx_app Scenario #1:** Build a yolo26n person detection app (IFactory pattern, config.json, runner)
@@ -71,9 +73,10 @@ Runs actual Copilot CLI invocations for representative scenarios from each proje
 
 **Verification approach:** Static analysis only (file existence, Python syntax via `ast.parse`, JSON structure, required patterns). No actual HW inference.
 
-**Total tests:** 42 (pytest: autopilot mode, shell: manual mode)
+**Total tests:** 67 (copilot) + 63 (cursor) = 130 (pytest), plus shell: manual mode
 **Markers (pytest only):**
-- `pytest.mark.agentic_e2e_autopilot` — fully autonomous (CI/CD)
+- `pytest.mark.agentic_e2e_copilot_cli_autopilot` — Copilot CLI fully autonomous (CI/CD)
+- `pytest.mark.agentic_e2e_cursor_cli_autopilot` — Cursor CLI fully autonomous (CI/CD)
 
 ## 🎯 Test Scope
 
@@ -115,8 +118,9 @@ Runs actual Copilot CLI invocations for representative scenarios from each proje
 | **local_install** | 3 | 15 | 15 | 15 | - | - | - | **48** |
 | **getting_started** | - | - | - | - | 11 | - | - | **11** |
 | **agentic** | - | - | - | - | - | 199 | - | **199** |
-| **agentic_e2e** | - | - | - | - | - | - | 42 | **42** |
-| **Grand Total** | **7** | **30** | **15** | **15** | **11** | **199** | **42** | **319+** |
+| **agentic_e2e (copilot-cli)** | - | - | - | - | - | - | 67 | **67** |
+| **agentic_e2e (cursor-cli)** | - | - | - | - | - | - | 63 | **63** |
+| **Grand Total** | **7** | **30** | **15** | **15** | **11** | **199** | **130** | **407** |
 
 ## 📁 File Structure
 
@@ -137,13 +141,18 @@ tests/
 │   ├── test_routing_consistency.py  # CLAUDE.md, AGENTS.md, copilot-instructions consistency
 │   ├── test_scenario_references.py  # Agent/skill references match infrastructure
 │   └── test_cross_project_scenarios.py  # Handoff chains, validation scripts
-├── 🐍 test_agentic_e2e_scenarios/   # Agentic end-to-end Copilot CLI scenario tests
-│   ├── conftest.py                  # CopilotRunnerAutopilot, ScenarioResult, session auto-detection, verification helpers
-│   ├── test_dx_app_agentic_e2e.py   # dx_app Scenario #1 (10 tests)
-│   ├── test_dx_stream_agentic_e2e.py # dx_stream Scenario #1 (8 tests)
-│   ├── test_compiler_agentic_e2e.py # dx-compiler Scenario #2 (7 tests)
-│   ├── test_runtime_agentic_e2e.py  # dx-runtime Scenario #2 (6 tests)
-│   └── test_suite_agentic_e2e.py    # dx-all-suite Scenario #2 (7 tests)
+├── 🐍 test_agentic_e2e_scenarios/   # Agentic E2E scenario tests (Copilot + Cursor CLI)
+│   ├── conftest.py                  # CopilotRunnerAutopilot, CursorRunnerAutopilot, ScenarioResult, helpers
+│   ├── test_dx_app_agentic_e2e.py   # dx_app — Copilot CLI (11 tests)
+│   ├── test_dx_stream_agentic_e2e.py # dx_stream — Copilot CLI (18 tests)
+│   ├── test_compiler_agentic_e2e.py # dx-compiler — Copilot CLI (14 tests)
+│   ├── test_runtime_agentic_e2e.py  # dx-runtime — Copilot CLI (10 tests)
+│   ├── test_suite_agentic_e2e.py    # dx-all-suite — Copilot CLI (14 tests)
+│   ├── test_cursor_dx_app_agentic_e2e.py    # dx_app — Cursor CLI (10 tests)
+│   ├── test_cursor_dx_stream_agentic_e2e.py # dx_stream — Cursor CLI (15 tests)
+│   ├── test_cursor_compiler_agentic_e2e.py  # dx-compiler — Cursor CLI (14 tests)
+│   ├── test_cursor_runtime_agentic_e2e.py   # dx-runtime — Cursor CLI (10 tests)
+│   └── test_cursor_suite_agentic_e2e.py     # dx-all-suite — Cursor CLI (14 tests)
 ├── 🔧 conftest.py                   # Shared pytest fixtures and utilities
 ├── ⚡ test.sh                       # Unified test command wrapper (main entry point)
 ├── 🔍 parse_copilot_session.py        # Copilot CLI events.jsonl → Markdown report parser
@@ -185,15 +194,17 @@ cd tests
 # Agentic infrastructure validation (199 tests, ~1 second)
 ./test.sh agentic
 
-# Agentic E2E Copilot CLI scenario tests (42 tests, ~3-5 minutes)
-./test.sh agentic-e2e-autopilot      # Fully autonomous (CI/CD) — pytest
-./test.sh agentic-e2e-manual        # Interactive (shell-based, no pytest)
+# Agentic E2E scenario tests
+./test.sh agentic-e2e-copilot-cli-autopilot    # Copilot CLI, fully autonomous (CI/CD)
+./test.sh agentic-e2e-cursor-cli-autopilot     # Cursor CLI, fully autonomous (CI/CD)
+./test.sh agentic-e2e-copilot-cli-manual      # Copilot CLI, interactive (shell-based)
+./test.sh agentic-e2e-cursor-cli-manual        # Cursor CLI, interactive (shell-based)
 ```
 
 ### Step 3: Full Test Suite
 
 ```bash
-./test.sh all          # All 79 tests (~12-20 hours)
+./test.sh all          # All tests (~13-21 hours)
 ```
 
 ### Step 4: Generate Reports
@@ -209,7 +220,7 @@ cd tests
 
 ```bash
 ./test.sh sanity           # ⚡ Quick validation (5-10 seconds)
-./test.sh all              # 🔥 Full test suite (12-20 hours, 79 tests)
+./test.sh all              # 🔥 Full test suite (~13-21 hours)
 ./test.sh list             # 📋 List all available tests
 ./test.sh help             # ❓ Show detailed help
 ```
@@ -221,8 +232,10 @@ cd tests
 ./test.sh local_install    # Local install tests (49 tests, ~8-12 hours)
 ./test.sh getting_started  # Getting-started workflow (11 tests, ~30-60 min)
 ./test.sh agentic          # Agentic infrastructure (199 tests, ~1 second)
-./test.sh agentic-e2e-autopilot    # Agentic E2E fully autonomous (CI/CD)
-./test.sh agentic-e2e-manual       # Agentic E2E interactive (shell-based)
+./test.sh agentic-e2e-copilot-cli-autopilot   # Agentic E2E Copilot CLI autonomous (CI/CD)
+./test.sh agentic-e2e-cursor-cli-autopilot    # Agentic E2E Cursor CLI autonomous (CI/CD)
+./test.sh agentic-e2e-copilot-cli-manual     # Agentic E2E Copilot CLI interactive
+./test.sh agentic-e2e-cursor-cli-manual       # Agentic E2E Cursor CLI interactive
 ```
 
 ### Advanced Options
@@ -278,7 +291,8 @@ Use `-m` to filter tests by pytest markers:
 ./test.sh -m "docker_install"      # Only docker install tests
 ./test.sh -m "local_install"       # Only local install tests
 ./test.sh -m "getting_started"     # Only getting-started tests
-./test.sh -m "agentic_e2e_autopilot"       # Only fully autonomous agentic E2E
+./test.sh -m "agentic_e2e_copilot_cli_autopilot"  # Only Copilot CLI agentic E2E
+./test.sh -m "agentic_e2e_cursor_cli_autopilot"   # Only Cursor CLI agentic E2E
 ./test.sh -m "compiler"            # Compiler-related tests
 ./test.sh -m "runtime"             # Runtime-related tests
 ```
@@ -320,33 +334,56 @@ Use `-m` to filter tests by pytest markers:
 ./test.sh --report --json-report docker_install
 ```
 
-### Example 6: Agentic E2E — Autopilot (CI/CD)
+### Example 6: Agentic E2E — Copilot CLI Autopilot (CI/CD)
 
 ```bash
-# Run all agentic E2E tests in autopilot mode (fully autonomous, --no-ask-user)
-./test.sh agentic-e2e-autopilot
+# Run all Copilot CLI E2E tests in autopilot mode (fully autonomous)
+./test.sh agentic-e2e-copilot-cli-autopilot
 
 # Filter to compiler scenario only
-./test.sh agentic-e2e-autopilot -k compiler
+./test.sh agentic-e2e-copilot-cli-autopilot -k compiler
 
 # With custom model and extended timeout
 DX_AGENTIC_E2E_TIMEOUT=900 DX_AGENTIC_E2E_MODEL="claude-opus-4.6" \
-  ./test.sh agentic-e2e-autopilot
+  ./test.sh agentic-e2e-copilot-cli-autopilot
 ```
 
-### Example 7: Agentic E2E — Manual (Interactive, Shell-Based)
+### Example 7: Agentic E2E — Cursor CLI Autopilot (CI/CD)
 
 ```bash
-# Shell-based interactive mode — runs copilot TUI directly (no pytest)
-# Shows scenario menu, user selects one, then interacts with copilot
-./test.sh agentic-e2e-manual
+# Run all Cursor CLI E2E tests (default model: claude-4.6-sonnet-medium)
+./test.sh agentic-e2e-cursor-cli-autopilot
 
-# Auto-select a specific scenario via -k filter (skips menu)
-./test.sh agentic-e2e-manual -k compiler
-./test.sh agentic-e2e-manual -k dx_app
+# Filter to dx_stream scenario only
+./test.sh agentic-e2e-cursor-cli-autopilot -k dx_stream
+
+# With different model
+DX_AGENTIC_E2E_CURSOR_MODEL="claude-opus-4-7-thinking-high" \
+  ./test.sh agentic-e2e-cursor-cli-autopilot
 ```
 
-### Example 8: Internal Network Testing
+### Example 8: Agentic E2E — Copilot CLI Manual (Interactive)
+
+```bash
+# Interactive mode — runs Copilot CLI TUI directly (no pytest)
+./test.sh agentic-e2e-copilot-cli-manual
+
+# Auto-select a specific scenario
+./test.sh agentic-e2e-copilot-cli-manual -k compiler
+./test.sh agentic-e2e-copilot-cli-manual -k dx_app
+```
+
+### Example 9: Agentic E2E — Cursor CLI Manual (Interactive)
+
+```bash
+# Interactive mode — runs Cursor CLI TUI directly (no pytest)
+./test.sh agentic-e2e-cursor-cli-manual
+
+# Auto-select a specific scenario
+./test.sh agentic-e2e-cursor-cli-manual -k dx_stream
+```
+
+### Example 10: Internal Network Testing
 
 ```bash
 # Use internal network settings (intranet)
@@ -354,7 +391,7 @@ DX_AGENTIC_E2E_TIMEOUT=900 DX_AGENTIC_E2E_MODEL="claude-opus-4.6" \
 ./test.sh --internal local_install
 ```
 
-### Example 9: Specific OS Testing
+### Example 11: Specific OS Testing
 
 ```bash
 # Test only Debian distributions
@@ -364,7 +401,7 @@ DX_AGENTIC_E2E_TIMEOUT=900 DX_AGENTIC_E2E_MODEL="claude-opus-4.6" \
 ./test.sh -k "18.04" all
 ```
 
-### Example 10: List Tests Without Running
+### Example 12: List Tests Without Running
 
 ```bash
 # List all tests that would run
@@ -385,10 +422,10 @@ sessions against the dx-all-suite codebase. This section explains how autonomous
 
 ### Two Execution Modes
 
-| Mode | Entry Point | Copilot Flags | User Interaction |
-|------|-------------|---------------|------------------|
-| **Autopilot** | `./test.sh agentic-e2e-autopilot` | `--yolo --no-ask-user -s` | None (fully autonomous) |
-| **Manual** | `./test.sh agentic-e2e-manual` | `--yolo` | Interactive TUI |
+| Mode | Entry Point | OpenCode Flags | User Interaction |
+|------|-------------|----------------|------------------|
+| **Autopilot** | `./test.sh agentic-e2e-copilot-cli-autopilot` | `--yolo --no-ask-user -s` | None (fully autonomous) |
+| **Manual** | `./test.sh agentic-e2e-copilot-cli-manual` | `--yolo` | Interactive TUI |
 
 ### Copilot CLI Flags Explained
 
@@ -407,9 +444,7 @@ sessions against the dx-all-suite codebase. This section explains how autonomous
 The `CopilotRunnerAutopilot` class in `conftest.py` constructs and executes:
 
 ```bash
-copilot -p "<prompt> IMPORTANT: This is an automated test run. Do not ask
-questions or present options. Proceed directly with implementation, choosing
-the most appropriate approach." \
+copilot -p "<prompt> IMPORTANT: This is an automated test run. ..." \
   --yolo \
   --no-ask-user \
   -s \
@@ -457,15 +492,15 @@ Key behaviors:
 
 ```bash
 # Claude Sonnet 4.6 (recommended)
-DX_AGENTIC_E2E_MODEL="claude-sonnet-4.6" ./test.sh agentic-e2e-autopilot
+DX_AGENTIC_E2E_MODEL="claude-sonnet-4.6" ./test.sh agentic-e2e-copilot-cli-autopilot
 
 # GPT-4.1 (not recommended — may fabricate APIs)
 DX_AGENTIC_E2E_MODEL="gpt-4.1" DX_AGENTIC_E2E_TIMEOUT=600 \
-  ./test.sh agentic-e2e-autopilot
+  ./test.sh agentic-e2e-copilot-cli-autopilot
 
 # Claude Opus 4.6 (highest quality, slower)
 DX_AGENTIC_E2E_MODEL="claude-opus-4.6" DX_AGENTIC_E2E_TIMEOUT=900 \
-  ./test.sh agentic-e2e-autopilot
+  ./test.sh agentic-e2e-copilot-cli-autopilot
 ```
 
 ### Session Output and Artifacts
@@ -483,6 +518,127 @@ After a test run, artifacts include:
 Set `DX_AGENTIC_E2E_KEEP_ARTIFACTS=1` to preserve these artifacts for debugging.
 Without this flag, `test.sh` cleans up generated directories after validation.
 
+## 🖥 Agentic E2E — Cursor CLI Autonomous Execution
+
+The Cursor CLI E2E tests (`test_cursor_*_agentic_e2e.py`) run the same scenarios as
+the Copilot CLI tests, but using the Cursor CLI (`agent`) instead.
+
+### How It Works
+
+The `CursorRunnerAutopilot` class in `conftest.py` constructs and executes:
+
+```bash
+agent -p --force --output-format stream-json \
+  "<prompt> IMPORTANT: This is an automated test run. ..."
+```
+
+Key behaviors:
+- **`-p`** (print mode) runs non-interactively — no TUI, agent runs and exits.
+- **`--force`** auto-approves all file writes and tool calls (equivalent to
+  Copilot's `--yolo`).
+- **`--output-format stream-json`** provides structured NDJSON events that are
+  parsed for session metadata (session_id, assistant text, duration).
+- The **AUTOPILOT_DIRECTIVE** (appended to every prompt) reinforces autonomous
+  behavior.
+- Rules are loaded from `.cursor/rules/*.mdc` files (Cursor's equivalent of
+  `copilot-instructions.md`).
+
+### Running Cursor CLI E2E Tests
+
+```bash
+# Run all Cursor CLI scenarios (uses claude-4.6-sonnet-medium by default)
+./test.sh agentic-e2e-cursor-cli-autopilot
+
+# Filter to specific scenario
+./test.sh agentic-e2e-cursor-cli-autopilot -k dx_app
+./test.sh agentic-e2e-cursor-cli-autopilot -k compiler
+
+# With custom model (override default)
+DX_AGENTIC_E2E_CURSOR_MODEL="claude-opus-4-7-thinking-high" \
+  ./test.sh agentic-e2e-cursor-cli-autopilot
+
+# With extended timeout
+DX_AGENTIC_E2E_CURSOR_TIMEOUT=900 \
+  ./test.sh agentic-e2e-cursor-cli-autopilot
+```
+
+### Environment Variables (Cursor-specific)
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `DX_AGENTIC_E2E_CURSOR_MODEL` | `claude-4.6-sonnet-medium` | LLM model for Cursor CLI |
+| `DX_AGENTIC_E2E_CURSOR_TIMEOUT` | `300` | Timeout in seconds per scenario |
+| `DX_AGENTIC_E2E_KEEP_ARTIFACTS` | `0` | Set to `1` to keep generated artifacts |
+| `CURSOR_API_KEY` | (from login) | API key for headless authentication |
+
+### Prerequisites
+
+1. **Install the Cursor CLI:**
+
+```bash
+curl https://cursor.com/install -fsS | bash
+```
+
+2. **Verify installation:**
+
+```bash
+agent --version
+```
+
+3. **Authenticate** (required before first run):
+
+```bash
+# Interactive browser-based login
+agent login
+
+# Or set API key for headless/CI environments
+export CURSOR_API_KEY="your-api-key"
+```
+
+The test framework automatically checks authentication status before running.
+If not authenticated, all Cursor CLI tests are gracefully **skipped** with a
+clear message (not failed).
+
+### Available Models
+
+List models supported by your account:
+
+```bash
+agent models
+```
+
+Common model IDs for E2E testing:
+
+| Model ID | Description | Recommended |
+|----------|-------------|-------------|
+| `claude-4.6-sonnet-medium` | Claude Sonnet 4.6 1M (default) | Yes — best balance of quality and speed |
+| `claude-4.6-opus-high` | Claude Opus 4.6 1M | Highest quality, slower |
+| `claude-opus-4-7-thinking-high` | Claude Opus 4.7 1M Thinking | Complex reasoning tasks |
+| `composer-2-fast` | Cursor Composer 2 Fast | Fast but lower quality |
+
+### Tested Results (Claude Sonnet 4.6)
+
+| Scenario | Tests | Result | Duration |
+|----------|-------|--------|----------|
+| **dx_app** | 10/10 | ALL PASSED | ~1.5 min |
+| **compiler** | 14/14 | ALL PASSED | ~18 min |
+| **dx_stream** | 15/15 | ALL PASSED | ~2.5 min |
+| **runtime** | 10/10 | ALL PASSED | ~3 min |
+| **suite** | 14/14 | ALL PASSED | ~16 min |
+| **Total** | **63/63** | **ALL PASSED** | ~41 min |
+
+### Differences from Copilot CLI Tests
+
+| Aspect | Copilot CLI | Cursor CLI |
+|--------|-------------|------------|
+| Binary | `copilot` | `agent` |
+| Auto-approve | `--yolo` | `--force` |
+| No questions | `--no-ask-user` flag | Prompt directive only |
+| Session log | `--share=<file>` | Parsed from stream-json stdout |
+| Rules file | `copilot-instructions.md` | `.cursor/rules/*.mdc` |
+| Session events | `~/.copilot/session-state/events.jsonl` | Stream-json NDJSON from stdout |
+| Output format | Plain text (stdout) | `--output-format stream-json` |
+
 ## 📊 Expected Execution Time
 
 | Test Suite | Test Count | Expected Time | Use Case |
@@ -492,8 +648,9 @@ Without this flag, `test.sh` cleans up generated directories after validation.
 | **local_install** | 49 | ~8-12 hours | Installation script validation |
 | **getting_started** | 11 | ~30-60 minutes | End-to-end workflow |
 | **agentic** | 199 | ~1 second | Agentic infrastructure validation |
-| **agentic_e2e** | 42 | ~3-5 minutes | Agentic E2E Copilot CLI scenario tests |
-| **Full Suite (all)** | 319 | ~12-20 hours | Complete validation |
+| **agentic_e2e (copilot-cli)** | 67 | ~30-45 minutes | Agentic E2E Copilot CLI scenario tests |
+| **agentic_e2e (cursor-cli)** | 63 | ~40-45 minutes | Agentic E2E Cursor CLI scenario tests (Claude Sonnet 4.6) |
+| **Full Suite (all)** | 407 | ~13-21 hours | Complete validation |
 
 ### Per-Component Breakdown
 
@@ -684,11 +841,15 @@ export DX_TEST_NO_CACHE=1
 # Custom volume mount path
 export LOCAL_VOLUME_PATH="/path/to/dx-all-suite"
 
-# Agentic E2E test configuration
+# Agentic E2E test configuration (Copilot CLI)
 export DX_AGENTIC_E2E_TIMEOUT=900           # Copilot CLI timeout in seconds (default: 300)
-export DX_AGENTIC_E2E_MODEL="claude-opus-4.6"       # Copilot model to use (default: claude-sonnet-4.6)
+export DX_AGENTIC_E2E_MODEL="claude-opus-4.6"       # OpenCode model to use (default: claude-sonnet-4.6)
 export DX_AGENTIC_E2E_KEEP_ARTIFACTS=1     # Keep generated artifacts after test run
 
+# Agentic E2E test configuration (Cursor CLI)
+export DX_AGENTIC_E2E_CURSOR_MODEL="claude-4.6-sonnet-medium"  # Cursor model (default: claude-4.6-sonnet-medium)
+export DX_AGENTIC_E2E_CURSOR_TIMEOUT=300    # Cursor CLI timeout in seconds (default: 300)
+export CURSOR_API_KEY="your-api-key"        # API key for headless/CI (alternative to 'agent login')
 ```
 
 **Using --internal flag:**
@@ -861,7 +1022,8 @@ See [CI_CD_EXAMPLES.md](CI_CD_EXAMPLES.md) for detailed examples.
 ./test.sh --report docker_install     # Full docker builds
 ./test.sh --report local_install      # Full local installs
 ./test.sh --report getting_started    # End-to-end workflow
-./test.sh agentic-e2e-autopilot            # Agentic E2E Copilot CLI scenarios
+./test.sh agentic-e2e-copilot-cli-autopilot    # Agentic E2E Copilot CLI scenarios
+./test.sh agentic-e2e-cursor-cli-autopilot     # Agentic E2E Cursor CLI scenarios
 ```
 
 **Release (Full Validation):**
@@ -932,9 +1094,9 @@ See [CI_CD_EXAMPLES.md](CI_CD_EXAMPLES.md) for detailed examples.
 ---
 
 **Last Updated:**
-2026-04-09
+2026-04-23
 **Total Tests:**
-319 (docker_install: 19 | local_install: 48 | getting_started: 11 | agentic: 199 | agentic_e2e: 42)
+407 (docker_install: 19 | local_install: 48 | getting_started: 11 | agentic: 199 | agentic_e2e_copilot_cli: 67 | agentic_e2e_cursor_cli: 63)
 **Supported OS:**
 Ubuntu 24.04, 22.04, 20.04, 18.04 | Debian 12, 13
 **Components:**
