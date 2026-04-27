@@ -32,13 +32,13 @@ SCENARIO_PROMPT = (
 
 
 @pytest.fixture(scope="module")
-def scenario(cursor_runner, agentic_e2e_artifacts_dir) -> ScenarioResult:
+def scenario(cursor_runner, cursor_cli_artifacts_dir) -> ScenarioResult:
     """Execute dx-runtime Scenario via Cursor CLI."""
     return cursor_runner.run(
         prompt=SCENARIO_PROMPT,
         workdir=RUNTIME_ROOT,
         scenario_key="runtime",
-        session_log_dir=agentic_e2e_artifacts_dir,
+        session_log_dir=cursor_cli_artifacts_dir,
         timeout=900,
     )
 

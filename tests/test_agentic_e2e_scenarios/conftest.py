@@ -1073,22 +1073,81 @@ def cursor_runner():
     return CursorRunnerAutopilot()
 
 
-@pytest.fixture(scope="session")
-def agentic_e2e_artifacts_dir():
-    """Session-scoped base directory for all agentic E2E test artifacts.
+def _make_artifacts_dir_fixture(tool: str, mode: str):
+    """Factory that creates a session-scoped artifacts dir fixture for a given tool/mode.
 
-    Creates ``dx-agentic-dev/e2e-tests/<session_id>/`` and cleans up after
-    the session unless ``DX_AGENTIC_E2E_KEEP_ARTIFACTS=1`` is set.
+    Output path: ``dx-agentic-dev/e2e-tests/<tool>/<mode>/<session_id>/``
+
+    Supported tools: ``copilot_cli``, ``cursor_cli``, ``opencode``, ``claude_code``
+    Supported modes: ``autopilot``, ``manual``
+    """
+    @pytest.fixture(scope="session")
+    def _fixture():
+        session_id = time.strftime("%Y%m%d_%H%M%S") + f"_{uuid.uuid4().hex[:6]}"
+        artifacts_dir = AGENTIC_E2E_ARTIFACTS_BASE / tool / mode / session_id
+        artifacts_dir.mkdir(parents=True, exist_ok=True)
+
+        yield artifacts_dir
+
+        if not os.environ.get("DX_AGENTIC_E2E_KEEP_ARTIFACTS"):
+            shutil.rmtree(artifacts_dir, ignore_errors=True)
+            # Remove empty parent dirs (mode/, tool/) up to e2e-tests/
+            for parent in [artifacts_dir.parent, artifacts_dir.parent.parent]:
+                try:
+                    if parent.exists() and not any(parent.iterdir()):
+                        parent.rmdir()
+                except OSError:
+                    pass
+
+    _fixture.__name__ = f"{tool}_{mode}_artifacts_dir"
+    return _fixture
+
+
+@pytest.fixture(scope="session")
+def copilot_cli_artifacts_dir():
+    """Session-scoped artifacts dir for Copilot CLI autopilot runs.
+
+    Path: ``dx-agentic-dev/e2e-tests/copilot_cli/autopilot/<session_id>/``
     """
     session_id = time.strftime("%Y%m%d_%H%M%S") + f"_{uuid.uuid4().hex[:6]}"
-    artifacts_dir = AGENTIC_E2E_ARTIFACTS_BASE / session_id
+    artifacts_dir = AGENTIC_E2E_ARTIFACTS_BASE / "copilot_cli" / "autopilot" / session_id
     artifacts_dir.mkdir(parents=True, exist_ok=True)
 
     yield artifacts_dir
 
-    # Cleanup unless explicitly kept
     if not os.environ.get("DX_AGENTIC_E2E_KEEP_ARTIFACTS"):
         shutil.rmtree(artifacts_dir, ignore_errors=True)
-        # Also remove parent if empty
-        if AGENTIC_E2E_ARTIFACTS_BASE.exists() and not any(AGENTIC_E2E_ARTIFACTS_BASE.iterdir()):
-            AGENTIC_E2E_ARTIFACTS_BASE.rmdir()
+        for parent in [artifacts_dir.parent, artifacts_dir.parent.parent]:
+            try:
+                if parent.exists() and not any(parent.iterdir()):
+                    parent.rmdir()
+            except OSError:
+                pass
+
+
+@pytest.fixture(scope="session")
+def cursor_cli_artifacts_dir():
+    """Session-scoped artifacts dir for Cursor CLI autopilot runs.
+
+    Path: ``dx-agentic-dev/e2e-tests/cursor_cli/autopilot/<session_id>/``
+    """
+    session_id = time.strftime("%Y%m%d_%H%M%S") + f"_{uuid.uuid4().hex[:6]}"
+    artifacts_dir = AGENTIC_E2E_ARTIFACTS_BASE / "cursor_cli" / "autopilot" / session_id
+    artifacts_dir.mkdir(parents=True, exist_ok=True)
+
+    yield artifacts_dir
+
+    if not os.environ.get("DX_AGENTIC_E2E_KEEP_ARTIFACTS"):
+        shutil.rmtree(artifacts_dir, ignore_errors=True)
+        for parent in [artifacts_dir.parent, artifacts_dir.parent.parent]:
+            try:
+                if parent.exists() and not any(parent.iterdir()):
+                    parent.rmdir()
+            except OSError:
+                pass
+
+
+@pytest.fixture(scope="session")
+def agentic_e2e_artifacts_dir(copilot_cli_artifacts_dir):
+    """Deprecated alias for copilot_cli_artifacts_dir. Use tool-specific fixtures instead."""
+    return copilot_cli_artifacts_dir

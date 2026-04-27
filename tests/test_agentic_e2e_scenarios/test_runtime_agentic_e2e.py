@@ -51,13 +51,13 @@ SCENARIO_PROMPT = (
 # ---------------------------------------------------------------------------
 
 @pytest.fixture(scope="module")
-def scenario(copilot_runner, agentic_e2e_artifacts_dir) -> ScenarioResult:
+def scenario(copilot_runner, copilot_cli_artifacts_dir) -> ScenarioResult:
     """Execute dx-runtime Scenario #2 via Copilot CLI."""
     return copilot_runner.run(
         prompt=SCENARIO_PROMPT,
         workdir=RUNTIME_ROOT,
         scenario_key="runtime",
-        session_log_dir=agentic_e2e_artifacts_dir,
+        session_log_dir=copilot_cli_artifacts_dir,
         timeout=600,  # two sub-tasks: dx_app + dx_stream
     )
 
