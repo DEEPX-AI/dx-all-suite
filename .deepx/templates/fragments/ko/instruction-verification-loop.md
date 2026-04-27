@@ -29,11 +29,32 @@ fragments 포함) — 작업 완료 선언 전에 다음 루프를 **반드시**
    - 테스트가 놓친 경우 → **테스트 강화** 후 1단계
 6. **반복** — 3~5단계 모두 통과할 때까지.
 
-**플랫폼 파일을 직접 수정하지 마세요.** `.deepx/` 외의 파일 — CLAUDE.md, AGENTS.md,
-copilot-instructions.md, `.github/agents/`, `.github/skills/`, `.claude/agents/`,
-`.claude/skills/`, `.opencode/agents/`, `.cursor/rules/` — 은 모두 generator
-출력물이며 다음 generate에서 덮어써집니다. Pre-commit hook이 이를 강제합니다:
-생성된 파일이 최신이 아니면 `git commit`이 실패합니다. Hook 설치:
+### Pre-flight Classification (MANDATORY)
+
+저장소 내의 `.md` 또는 `.mdc` 파일을 수정하기 전에, 반드시 다음 3가지 카테고리
+중 하나로 분류하세요. **이 단계를 절대 건너뛰지 마세요** — generator 관리 파일을
+직접 수정하면 다음 generate에서 조용히 덮어써지는 사일런트 손상이 됩니다.
+
+1. **Canonical source** (`**/.deepx/**/*.md`) — 직접 수정 후 위의 Verification
+   Loop을 실행합니다.
+2. **Generator output** — 알려진 출력 경로의 파일:
+   `CLAUDE.md`, `CLAUDE-KO.md`, `AGENTS.md`, `AGENTS-KO.md`,
+   `copilot-instructions.md`, `.github/agents/`, `.github/skills/`,
+   `.claude/agents/`, `.claude/skills/`, `.opencode/agents/`, `.cursor/rules/`
+   → **직접 수정 금지.** `.deepx/` source(template, fragment, 또는
+   agent/skill)를 찾아 수정한 후 `dx-agentic-gen generate`를 실행하세요.
+3. **독립 소스** — 위 두 카테고리에 해당하지 않는 모든 파일 (`docs/source/`,
+   `source/docs/`, `tests/`, 서브 프로젝트의 `README.md` 등)
+   → 직접 수정 가능. 수정 후 `dx-agentic-gen check`를 한 번 실행하여 예상치
+   못한 drift가 없는지 확인하세요.
+
+**Anti-pattern**: 분류 없이 바로 파일을 수정하는 것. 해당 파일이 generator
+output인지 확실하지 않으면, 수정 전후에 `dx-agentic-gen check`를 실행하세요
+— check가 수정 내용을 덮어쓰면 해당 파일은 generator가 관리하는 파일이므로
+`.deepx/` source를 통해 수정해야 합니다.
+
+Pre-commit hook이 generator output 무결성을 강제합니다: 생성된 파일이
+최신이 아니면 `git commit`이 실패합니다. Hook 설치:
 ```bash
 tools/dx-agentic-dev-gen/scripts/install-hooks.sh
 ```

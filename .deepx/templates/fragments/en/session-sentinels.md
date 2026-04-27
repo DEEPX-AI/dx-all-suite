@@ -28,9 +28,18 @@ Rules:
    mandatory deliverables exist in the session directory. If any mandatory file is
    missing, create it before outputting DONE. Each sub-project defines its own mandatory
    file list in its skill document (e.g., `dx-build-pipeline-app.md` File Creation Checklist).
-8. **Session HTML export guidance** (Copilot CLI only): Immediately before the DONE
-   sentinel line, output: `To save this session as HTML, type: /share html`
-   — this tells the user they can preserve the full conversation. The `/share html`
-   command is specific to GitHub Copilot CLI; it does not work in Claude Code,
-   Copilot Chat (VS Code), or OpenCode. The test harness (`test.sh`) will automatically
-   detect and copy the exported HTML file to the session output directory.
+8. **Session export guidance**: Immediately before the DONE sentinel line, output
+   the appropriate session-save instruction based on the CLI platform:
+
+   | Platform | Command | Format |
+   |----------|---------|--------|
+   | **Copilot CLI** | `/share html` | HTML transcript |
+   | **Cursor CLI** (`agent`) | No built-in export — session is saved automatically by the test harness via `--output-format stream-json` | JSON stream |
+   | **OpenCode** | `/export` | JSON |
+
+   For Copilot CLI, output: `To save this session as HTML, type: /share html`
+   For OpenCode, output: `To save this session as JSON, type: /export`
+   For Cursor CLI, no user action is needed — the test harness captures output automatically.
+
+   The test harness (`test.sh`) will automatically detect and copy exported artifacts
+   to the session output directory.

@@ -319,11 +319,20 @@ superpowers `brainstorming` 스킬 또는 `/dx-brainstorm-and-plan` 사용 시:
    ```
    산출물 중 MISSING이 있으면, 돌아가서 생성하세요. 누락된 산출물이 있는 상태에서
    최종 보고서를 제시하거나 DONE을 출력하지 마세요.
-8. **세션 HTML 내보내기 안내** (Copilot CLI 전용): DONE 센티넬 줄 바로 앞에 출력하세요:
-   `To save this session as HTML, type: /share html`
-   — 이것은 사용자에게 전체 대화를 보존할 수 있음을 알려줍니다. `/share html` 명령은
-   GitHub Copilot CLI 전용이며, Claude Code, Copilot Chat (VS Code), OpenCode에서는
-   작동하지 않습니다. 테스트 하네스 (`test.sh`)는 내보낸 HTML 파일을 자동으로 감지하고
+8. **세션 내보내기 안내**: DONE 센티넬 줄 바로 앞에, CLI 플랫폼에 맞는 세션 저장
+   안내를 출력하세요:
+
+   | 플랫폼 | 명령 | 형식 |
+   |--------|------|------|
+   | **Copilot CLI** | `/share html` | HTML 트랜스크립트 |
+   | **Cursor CLI** (`agent`) | 내장 내보내기 없음 — 테스트 하네스가 `--output-format stream-json`으로 자동 저장 | JSON stream |
+   | **OpenCode** | `/export` | JSON |
+
+   Copilot CLI의 경우: `To save this session as HTML, type: /share html`
+   OpenCode의 경우: `To save this session as JSON, type: /export`
+   Cursor CLI의 경우: 사용자 작업이 필요 없습니다 — 테스트 하네스가 출력을 자동 캡처합니다.
+
+   테스트 하네스 (`test.sh`)는 내보낸 아티팩트를 자동으로 감지하고
    세션 출력 디렉토리에 복사합니다.
 
 ## 필수 산출물
@@ -605,11 +614,32 @@ fragments 포함) — 작업 완료 선언 전에 다음 루프를 **반드시**
    - 테스트가 놓친 경우 → **테스트 강화** 후 1단계
 6. **반복** — 3~5단계 모두 통과할 때까지.
 
-**플랫폼 파일을 직접 수정하지 마세요.** `.deepx/` 외의 파일 — CLAUDE.md, AGENTS.md,
-copilot-instructions.md, `.github/agents/`, `.github/skills/`, `.claude/agents/`,
-`.claude/skills/`, `.opencode/agents/`, `.cursor/rules/` — 은 모두 generator
-출력물이며 다음 generate에서 덮어써집니다. Pre-commit hook이 이를 강제합니다:
-생성된 파일이 최신이 아니면 `git commit`이 실패합니다. Hook 설치:
+### Pre-flight Classification (MANDATORY)
+
+저장소 내의 `.md` 또는 `.mdc` 파일을 수정하기 전에, 반드시 다음 3가지 카테고리
+중 하나로 분류하세요. **이 단계를 절대 건너뛰지 마세요** — generator 관리 파일을
+직접 수정하면 다음 generate에서 조용히 덮어써지는 사일런트 손상이 됩니다.
+
+1. **Canonical source** (`**/.deepx/**/*.md`) — 직접 수정 후 위의 Verification
+   Loop을 실행합니다.
+2. **Generator output** — 알려진 출력 경로의 파일:
+   `CLAUDE.md`, `CLAUDE-KO.md`, `AGENTS.md`, `AGENTS-KO.md`,
+   `copilot-instructions.md`, `.github/agents/`, `.github/skills/`,
+   `.claude/agents/`, `.claude/skills/`, `.opencode/agents/`, `.cursor/rules/`
+   → **직접 수정 금지.** `.deepx/` source(template, fragment, 또는
+   agent/skill)를 찾아 수정한 후 `dx-agentic-gen generate`를 실행하세요.
+3. **독립 소스** — 위 두 카테고리에 해당하지 않는 모든 파일 (`docs/source/`,
+   `source/docs/`, `tests/`, 서브 프로젝트의 `README.md` 등)
+   → 직접 수정 가능. 수정 후 `dx-agentic-gen check`를 한 번 실행하여 예상치
+   못한 drift가 없는지 확인하세요.
+
+**Anti-pattern**: 분류 없이 바로 파일을 수정하는 것. 해당 파일이 generator
+output인지 확실하지 않으면, 수정 전후에 `dx-agentic-gen check`를 실행하세요
+— check가 수정 내용을 덮어쓰면 해당 파일은 generator가 관리하는 파일이므로
+`.deepx/` source를 통해 수정해야 합니다.
+
+Pre-commit hook이 generator output 무결성을 강제합니다: 생성된 파일이
+최신이 아니면 `git commit`이 실패합니다. Hook 설치:
 ```bash
 tools/dx-agentic-dev-gen/scripts/install-hooks.sh
 ```

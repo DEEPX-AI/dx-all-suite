@@ -30,12 +30,32 @@ When modifying the canonical source — files in `**/.deepx/**/*.md`
    - Tests missed a case → **strengthen tests** → step 1
 6. **Repeat** — Continue until steps 3–5 all pass.
 
-**Do NOT edit platform files directly.** Files outside `.deepx/` — including
-CLAUDE.md, AGENTS.md, copilot-instructions.md, `.github/agents/`,
-`.github/skills/`, `.claude/agents/`, `.claude/skills/`, `.opencode/agents/`,
-`.cursor/rules/` — are all generator output and will be overwritten on
-next generate. A pre-commit hook enforces this: `git commit` will fail if
-generated files are out-of-date. Install hooks with:
+### Pre-flight Classification (MANDATORY)
+
+Before modifying ANY `.md` or `.mdc` file in the repository, classify it into
+one of three categories. **Never skip this step** — editing a generator-managed
+file directly is a silent corruption that will be overwritten on next generate.
+
+1. **Canonical source** (`**/.deepx/**/*.md`) — Modify directly, then run the
+   Verification Loop above.
+2. **Generator output** — Files at known output paths:
+   `CLAUDE.md`, `CLAUDE-KO.md`, `AGENTS.md`, `AGENTS-KO.md`,
+   `copilot-instructions.md`, `.github/agents/`, `.github/skills/`,
+   `.claude/agents/`, `.claude/skills/`, `.opencode/agents/`, `.cursor/rules/`
+   → **Do NOT edit directly.** Find and modify the `.deepx/` source
+   (template, fragment, or agent/skill), then `dx-agentic-gen generate`.
+3. **Independent source** — Everything else (`docs/source/`, `source/docs/`,
+   `tests/`, `README.md` in sub-projects, etc.)
+   → Edit directly. Run `dx-agentic-gen check` once afterward to confirm no
+   unexpected drift.
+
+**Anti-pattern**: Modifying a file without first classifying it. If you are
+unsure whether a file is generator output, run `dx-agentic-gen check` before
+AND after the edit — if the check overwrites your change, the file is managed
+by the generator and must be edited via `.deepx/` source instead.
+
+A pre-commit hook enforces generator output integrity: `git commit` will fail
+if generated files are out-of-date. Install hooks with:
 ```bash
 tools/dx-agentic-dev-gen/scripts/install-hooks.sh
 ```
