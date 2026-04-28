@@ -5,6 +5,17 @@ Shared utilities and configuration for all test suites.
 import os
 import shlex
 
+# Prevent pytest from crawling sub-project test directories that have missing
+# dependencies (dx-modelzoo, pybind11, pydxs, etc.).  This is defence-in-depth:
+# the autopilot cases in test.sh also pass an explicit path, but this guard
+# protects against future scope creep or combined runs.
+collect_ignore_glob = [
+    "../dx-modelzoo/tests/*",
+    "../dx-runtime/dx_rt/extern/*",
+    "../dx-runtime/dx_app/tests/*",
+    "../dx-runtime/dx_stream/test/*",
+]
+
 def pytest_configure(config):
     """Register custom markers to suppress PytestUnknownMarkWarning."""
     markers = [

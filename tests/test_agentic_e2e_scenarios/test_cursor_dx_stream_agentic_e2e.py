@@ -57,6 +57,15 @@ class TestExecution:
             f"Scenario took {scenario.duration_seconds:.0f}s (limit: 600s)"
         )
 
+    def test_session_log_saved(self, scenario: ScenarioResult):
+        """Session transcript is captured automatically by the test harness."""
+        if not scenario.succeeded:
+            pytest.skip("Cursor execution failed — skipping log check")
+        if scenario.session_log:
+            assert scenario.session_log.stat().st_size > 0, (
+                "Session log exists but is empty"
+            )
+
     def test_start_sentinel_emitted(self, scenario: ScenarioResult):
         """Agent emits [DX-AGENTIC-DEV: START] before any other text."""
         if not scenario.succeeded:
@@ -165,6 +174,21 @@ class TestCodeQuality:
             "No RTSP source reference found in generated pipeline files"
         )
 
+    def test_pipeline_has_dxrate_for_rtsp(self, scenario: ScenarioResult):
+        """RTSP pipeline path must include dxrate element to cap frame ingestion."""
+        if not scenario.succeeded:
+            pytest.skip("Cursor execution failed")
+        py_files = scenario.generated_py_files
+        if not py_files:
+            pytest.skip("No Python files generated")
+        for f in py_files:
+            content = f.read_text(encoding="utf-8")
+            if "rtsp://" in content:
+                assert "dxrate" in content.lower(), (
+                    f"{f.name}: pipeline handles RTSP but is missing dxrate element.\n"
+                    "Fix: add 'dxrate max-rate=30' after decodebin in the RTSP source branch."
+                )
+
     def test_x264enc_has_tune_zerolatency(self, scenario: ScenarioResult):
         """If x264enc is used anywhere, it MUST have tune=zerolatency."""
         if not scenario.succeeded:
@@ -222,6 +246,22 @@ class TestMandatoryArtifacts:
             f"Found keys: {list(data.keys()) if isinstance(data, dict) else type(data)}"
         )
 
+    def test_session_json_created_at_has_timezone(self, scenario: ScenarioResult):
+        """session.json created_at must include an ISO 8601 timezone offset."""
+        if not scenario.succeeded:
+            pytest.skip("Cursor execution failed")
+        import json
+        import re
+        session_files = [f for f in scenario.all_generated_files if f.name == "session.json"]
+        if not session_files:
+            pytest.skip("No session.json generated")
+        data = json.loads(session_files[0].read_text(encoding="utf-8"))
+        created_at = data.get("created_at", "")
+        assert re.search(r"[+-]\d{2}:\d{2}$|Z$", created_at), (
+            f"session.json created_at missing timezone offset: {created_at!r}\n"
+            "Fix: use datetime.now().astimezone().isoformat(timespec='seconds')"
+        )
+
     def test_readme_md_exists(self, scenario: ScenarioResult):
         """README.md usage documentation file is generated."""
         if not scenario.succeeded:
@@ -230,6 +270,21 @@ class TestMandatoryArtifacts:
         assert len(readme_files) > 0, (
             f"No README.md found.\n"
             f"All files: {[f.name for f in scenario.all_generated_files]}"
+        )
+
+    def test_readme_has_run_instructions(self, scenario: ScenarioResult):
+        """README.md contains running instructions."""
+        if not scenario.succeeded:
+            pytest.skip("Cursor execution failed")
+        readme_files = [f for f in scenario.all_generated_files if f.name.lower() == "readme.md"]
+        if not readme_files:
+            pytest.skip("No README.md generated")
+        content = readme_files[0].read_text(encoding="utf-8").lower()
+        run_indicators = ["run", "usage", "how to", "execute", "launch", "bash", "```"]
+        found = any(ind in content for ind in run_indicators)
+        assert found, (
+            "README.md does not contain running instructions.\n"
+            "Expected at least one of: run, usage, how to, execute, launch, code block"
         )
 
     def test_run_script_exists(self, scenario: ScenarioResult):
@@ -243,6 +298,26 @@ class TestMandatoryArtifacts:
         assert len(run_scripts) > 0, (
             f"No run_*.sh script found.\n"
             f"All files: {[f.name for f in scenario.all_generated_files]}"
+        )
+
+    def test_run_script_is_executable_or_has_shebang(self, scenario: ScenarioResult):
+        """run_<app>.sh has a shebang line or executable permission."""
+        if not scenario.succeeded:
+            pytest.skip("Cursor execution failed")
+        run_scripts = [
+            f for f in scenario.all_generated_files
+            if f.name.startswith("run_") and f.name.endswith(".sh")
+        ]
+        if not run_scripts:
+            pytest.skip("No run_*.sh generated")
+        script = run_scripts[0]
+        content = script.read_text(encoding="utf-8")
+        has_shebang = content.startswith("#!/")
+        import stat
+        is_executable = bool(script.stat().st_mode & stat.S_IXUSR)
+        assert has_shebang or is_executable, (
+            f"{script.name} has no shebang and is not executable.\n"
+            f"Expected #!/bin/bash or #!/usr/bin/env bash at the top."
         )
 
     def test_pipeline_py_exists(self, scenario: ScenarioResult):

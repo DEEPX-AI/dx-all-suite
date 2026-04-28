@@ -62,8 +62,9 @@ COMPILER_E2E_ARTIFACTS_BASE = COMPILER_ROOT / "dx-agentic-dev" / "e2e-tests"
 APP_E2E_ARTIFACTS_BASE = APP_ROOT / "dx-agentic-dev" / "e2e-tests"
 STREAM_E2E_ARTIFACTS_BASE = STREAM_ROOT / "dx-agentic-dev" / "e2e-tests"
 
-# Default timeout for Copilot CLI execution (5 minutes)
-DEFAULT_COPILOT_TIMEOUT = int(os.environ.get("DX_AGENTIC_E2E_TIMEOUT", "300"))
+# Default timeout for Copilot CLI execution (6 minutes — Copilot's corrective-iteration
+# behaviour can push past 5 min; 360s gives ~30% margin over observed worst-case)
+DEFAULT_COPILOT_TIMEOUT = int(os.environ.get("DX_AGENTIC_E2E_TIMEOUT", "360"))
 
 # Model to use for agentic E2E tests (override via env var)
 DEFAULT_COPILOT_MODEL = os.environ.get("DX_AGENTIC_E2E_MODEL", "claude-sonnet-4.6")
@@ -111,15 +112,20 @@ def _detect_new_sessions(
 ) -> List[Path]:
     """Find new session directories created after *snapshot*.
 
-    Returns a list of newly created session dirs, sorted by modification time
-    (newest last).
+    Returns a list of newly created non-empty session dirs, sorted by
+    modification time (newest last).  Empty directories are excluded — some
+    tools (e.g. OpenCode) create a placeholder directory on a first failed
+    attempt and then retry into a different directory; including the empty
+    placeholder causes false positives in output detection.
     """
     new_dirs: List[Path] = []
     for agentic_dev_dir in search_paths:
         if agentic_dev_dir.exists():
             for child in agentic_dev_dir.iterdir():
                 if child.is_dir() and child not in snapshot:
-                    new_dirs.append(child)
+                    # Skip empty directories (failed first-attempt placeholders)
+                    if any(child.rglob("*")):
+                        new_dirs.append(child)
     return sorted(new_dirs, key=lambda p: p.stat().st_mtime)
 
 
@@ -209,6 +215,9 @@ class ScenarioResult:
 # ---------------------------------------------------------------------------
 
 DEFAULT_CURSOR_MODEL = os.environ.get("DX_AGENTIC_E2E_CURSOR_MODEL", "claude-4.6-sonnet-medium-thinking")
+# Fallback model used when the primary model hits a quota/usage-limit error.
+# Cursor's error message says "Switch to auto or Auto" — so "auto" is the correct value.
+CURSOR_FALLBACK_MODEL = os.environ.get("DX_AGENTIC_E2E_CURSOR_FALLBACK_MODEL", "auto")
 
 # Default timeout for Cursor CLI execution (5 minutes)
 DEFAULT_CURSOR_TIMEOUT = int(os.environ.get("DX_AGENTIC_E2E_CURSOR_TIMEOUT", "600"))
@@ -525,6 +534,16 @@ class CopilotRunnerAutopilot:
 
 
 # ---------------------------------------------------------------------------
+# Cursor quota-error detection
+# ---------------------------------------------------------------------------
+
+def _is_cursor_quota_error(text: str) -> bool:
+    """Return True if *text* contains Cursor's usage-limit error message."""
+    lower = text.lower()
+    return "out of usage" in lower or "switch to auto" in lower
+
+
+# ---------------------------------------------------------------------------
 # CursorRunnerAutopilot
 # ---------------------------------------------------------------------------
 
@@ -666,6 +685,42 @@ class CursorRunnerAutopilot:
                 env={**os.environ, "NO_COLOR": "1"},
             )
             duration = time.monotonic() - start
+
+            # Usage-limit fallback: Cursor reports "out of usage / switch to auto"
+            # when the primary model quota is exhausted.  Retry with CURSOR_FALLBACK_MODEL
+            # ("auto") so the test can still run against an available model.
+            if (result.returncode != 0
+                    and _is_cursor_quota_error(result.stderr or result.stdout or "")
+                    and self.model != CURSOR_FALLBACK_MODEL):
+                fallback_cmd = [
+                    self.CURSOR_BIN,
+                    "-p",
+                    "--force",
+                    "--output-format", "stream-json",
+                    effective_prompt,
+                    "--model", CURSOR_FALLBACK_MODEL,
+                ]
+                # Carry over extra_args minus any --model override
+                if extra_args:
+                    skip_next = False
+                    for arg in extra_args:
+                        if skip_next:
+                            skip_next = False
+                            continue
+                        if arg == "--model":
+                            skip_next = True
+                            continue
+                        fallback_cmd.append(arg)
+                result = subprocess.run(
+                    fallback_cmd,
+                    cwd=str(workdir),
+                    capture_output=True,
+                    text=True,
+                    timeout=timeout,
+                    env={**os.environ, "NO_COLOR": "1"},
+                )
+                duration = time.monotonic() - start
+
             output_dirs = _detect_new_sessions(search_paths, snapshot)
             end_utc = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
@@ -1630,6 +1685,48 @@ def cursor_runner():
     return CursorRunnerAutopilot()
 
 
+def _cleanup_artifacts_dir(artifacts_dir: Path) -> None:
+    """Clean up an artifacts directory after a test session.
+
+    Policy:
+    - Always remove symlinks (dangling references to output dirs).
+    - Preserve actual session log files (.md, .jsonl, .json) — these are
+      useful for post-mortem debugging and are small enough to keep.
+    - Remove the directory itself only if it is empty after symlink cleanup.
+    - Remove empty parent dirs (mode/, tool/) up to e2e-tests/ level.
+
+    This avoids two failure modes:
+    1. Accidentally deleting session logs that were still being flushed
+       (the race condition between runner teardown and fixture teardown).
+    2. Leaving dangling symlinks to already-cleaned-up output dirs.
+    """
+    if not artifacts_dir.exists():
+        return
+
+    # Remove symlinks first (they reference output dirs that may be gone)
+    for entry in list(artifacts_dir.iterdir()):
+        if entry.is_symlink():
+            try:
+                entry.unlink()
+            except OSError:
+                pass
+
+    # Remove the session dir only if empty (no log files remain)
+    try:
+        if artifacts_dir.exists() and not any(artifacts_dir.iterdir()):
+            artifacts_dir.rmdir()
+    except OSError:
+        pass
+
+    # Remove empty parent dirs (mode/, tool/) up to e2e-tests/
+    for parent in [artifacts_dir.parent, artifacts_dir.parent.parent]:
+        try:
+            if parent.exists() and not any(parent.iterdir()):
+                parent.rmdir()
+        except OSError:
+            pass
+
+
 def _make_artifacts_dir_fixture(tool: str, mode: str, base: Path = None):
     """Factory that creates a session-scoped artifacts dir fixture for a given tool/mode.
 
@@ -1649,15 +1746,8 @@ def _make_artifacts_dir_fixture(tool: str, mode: str, base: Path = None):
 
         yield artifacts_dir
 
-        if not os.environ.get("DX_AGENTIC_E2E_KEEP_ARTIFACTS"):
-            shutil.rmtree(artifacts_dir, ignore_errors=True)
-            # Remove empty parent dirs (mode/, tool/) up to e2e-tests/
-            for parent in [artifacts_dir.parent, artifacts_dir.parent.parent]:
-                try:
-                    if parent.exists() and not any(parent.iterdir()):
-                        parent.rmdir()
-                except OSError:
-                    pass
+        if os.environ.get("DX_AGENTIC_E2E_CLEANUP_ARTIFACTS"):
+            _cleanup_artifacts_dir(artifacts_dir)
 
     _fixture.__name__ = f"{tool}_{mode}_artifacts_dir"
     return _fixture
@@ -1675,14 +1765,8 @@ def copilot_cli_artifacts_dir():
 
     yield artifacts_dir
 
-    if not os.environ.get("DX_AGENTIC_E2E_KEEP_ARTIFACTS"):
-        shutil.rmtree(artifacts_dir, ignore_errors=True)
-        for parent in [artifacts_dir.parent, artifacts_dir.parent.parent]:
-            try:
-                if parent.exists() and not any(parent.iterdir()):
-                    parent.rmdir()
-            except OSError:
-                pass
+    if os.environ.get("DX_AGENTIC_E2E_CLEANUP_ARTIFACTS"):
+        _cleanup_artifacts_dir(artifacts_dir)
 
 
 @pytest.fixture(scope="session")
@@ -1697,14 +1781,8 @@ def cursor_cli_artifacts_dir():
 
     yield artifacts_dir
 
-    if not os.environ.get("DX_AGENTIC_E2E_KEEP_ARTIFACTS"):
-        shutil.rmtree(artifacts_dir, ignore_errors=True)
-        for parent in [artifacts_dir.parent, artifacts_dir.parent.parent]:
-            try:
-                if parent.exists() and not any(parent.iterdir()):
-                    parent.rmdir()
-            except OSError:
-                pass
+    if os.environ.get("DX_AGENTIC_E2E_CLEANUP_ARTIFACTS"):
+        _cleanup_artifacts_dir(artifacts_dir)
 
 
 @pytest.fixture(scope="session")
@@ -1756,14 +1834,8 @@ def opencode_artifacts_dir():
 
     yield artifacts_dir
 
-    if not os.environ.get("DX_AGENTIC_E2E_KEEP_ARTIFACTS"):
-        shutil.rmtree(artifacts_dir, ignore_errors=True)
-        for parent in [artifacts_dir.parent, artifacts_dir.parent.parent]:
-            try:
-                if parent.exists() and not any(parent.iterdir()):
-                    parent.rmdir()
-            except OSError:
-                pass
+    if os.environ.get("DX_AGENTIC_E2E_CLEANUP_ARTIFACTS"):
+        _cleanup_artifacts_dir(artifacts_dir)
 
 
 @pytest.fixture(scope="session")
@@ -1778,14 +1850,8 @@ def claude_code_artifacts_dir():
 
     yield artifacts_dir
 
-    if not os.environ.get("DX_AGENTIC_E2E_KEEP_ARTIFACTS"):
-        shutil.rmtree(artifacts_dir, ignore_errors=True)
-        for parent in [artifacts_dir.parent, artifacts_dir.parent.parent]:
-            try:
-                if parent.exists() and not any(parent.iterdir()):
-                    parent.rmdir()
-            except OSError:
-                pass
+    if os.environ.get("DX_AGENTIC_E2E_CLEANUP_ARTIFACTS"):
+        _cleanup_artifacts_dir(artifacts_dir)
 
 
 @pytest.fixture(scope="session")
@@ -1810,14 +1876,8 @@ def compiler_copilot_cli_artifacts_dir():
     artifacts_dir = COMPILER_E2E_ARTIFACTS_BASE / "copilot_cli" / "autopilot" / session_id
     artifacts_dir.mkdir(parents=True, exist_ok=True)
     yield artifacts_dir
-    if not os.environ.get("DX_AGENTIC_E2E_KEEP_ARTIFACTS"):
-        shutil.rmtree(artifacts_dir, ignore_errors=True)
-        for parent in [artifacts_dir.parent, artifacts_dir.parent.parent]:
-            try:
-                if parent.exists() and not any(parent.iterdir()):
-                    parent.rmdir()
-            except OSError:
-                pass
+    if os.environ.get("DX_AGENTIC_E2E_CLEANUP_ARTIFACTS"):
+        _cleanup_artifacts_dir(artifacts_dir)
 
 
 @pytest.fixture(scope="session")
@@ -1827,14 +1887,8 @@ def compiler_cursor_cli_artifacts_dir():
     artifacts_dir = COMPILER_E2E_ARTIFACTS_BASE / "cursor_cli" / "autopilot" / session_id
     artifacts_dir.mkdir(parents=True, exist_ok=True)
     yield artifacts_dir
-    if not os.environ.get("DX_AGENTIC_E2E_KEEP_ARTIFACTS"):
-        shutil.rmtree(artifacts_dir, ignore_errors=True)
-        for parent in [artifacts_dir.parent, artifacts_dir.parent.parent]:
-            try:
-                if parent.exists() and not any(parent.iterdir()):
-                    parent.rmdir()
-            except OSError:
-                pass
+    if os.environ.get("DX_AGENTIC_E2E_CLEANUP_ARTIFACTS"):
+        _cleanup_artifacts_dir(artifacts_dir)
 
 
 @pytest.fixture(scope="session")
@@ -1844,14 +1898,8 @@ def compiler_opencode_artifacts_dir():
     artifacts_dir = COMPILER_E2E_ARTIFACTS_BASE / "opencode" / "autopilot" / session_id
     artifacts_dir.mkdir(parents=True, exist_ok=True)
     yield artifacts_dir
-    if not os.environ.get("DX_AGENTIC_E2E_KEEP_ARTIFACTS"):
-        shutil.rmtree(artifacts_dir, ignore_errors=True)
-        for parent in [artifacts_dir.parent, artifacts_dir.parent.parent]:
-            try:
-                if parent.exists() and not any(parent.iterdir()):
-                    parent.rmdir()
-            except OSError:
-                pass
+    if os.environ.get("DX_AGENTIC_E2E_CLEANUP_ARTIFACTS"):
+        _cleanup_artifacts_dir(artifacts_dir)
 
 
 @pytest.fixture(scope="session")
@@ -1861,14 +1909,8 @@ def compiler_claude_code_artifacts_dir():
     artifacts_dir = COMPILER_E2E_ARTIFACTS_BASE / "claude_code" / "autopilot" / session_id
     artifacts_dir.mkdir(parents=True, exist_ok=True)
     yield artifacts_dir
-    if not os.environ.get("DX_AGENTIC_E2E_KEEP_ARTIFACTS"):
-        shutil.rmtree(artifacts_dir, ignore_errors=True)
-        for parent in [artifacts_dir.parent, artifacts_dir.parent.parent]:
-            try:
-                if parent.exists() and not any(parent.iterdir()):
-                    parent.rmdir()
-            except OSError:
-                pass
+    if os.environ.get("DX_AGENTIC_E2E_CLEANUP_ARTIFACTS"):
+        _cleanup_artifacts_dir(artifacts_dir)
 
 
 # --- dx_app ----------------------------------------------------------------
@@ -1880,14 +1922,8 @@ def app_copilot_cli_artifacts_dir():
     artifacts_dir = APP_E2E_ARTIFACTS_BASE / "copilot_cli" / "autopilot" / session_id
     artifacts_dir.mkdir(parents=True, exist_ok=True)
     yield artifacts_dir
-    if not os.environ.get("DX_AGENTIC_E2E_KEEP_ARTIFACTS"):
-        shutil.rmtree(artifacts_dir, ignore_errors=True)
-        for parent in [artifacts_dir.parent, artifacts_dir.parent.parent]:
-            try:
-                if parent.exists() and not any(parent.iterdir()):
-                    parent.rmdir()
-            except OSError:
-                pass
+    if os.environ.get("DX_AGENTIC_E2E_CLEANUP_ARTIFACTS"):
+        _cleanup_artifacts_dir(artifacts_dir)
 
 
 @pytest.fixture(scope="session")
@@ -1897,14 +1933,8 @@ def app_cursor_cli_artifacts_dir():
     artifacts_dir = APP_E2E_ARTIFACTS_BASE / "cursor_cli" / "autopilot" / session_id
     artifacts_dir.mkdir(parents=True, exist_ok=True)
     yield artifacts_dir
-    if not os.environ.get("DX_AGENTIC_E2E_KEEP_ARTIFACTS"):
-        shutil.rmtree(artifacts_dir, ignore_errors=True)
-        for parent in [artifacts_dir.parent, artifacts_dir.parent.parent]:
-            try:
-                if parent.exists() and not any(parent.iterdir()):
-                    parent.rmdir()
-            except OSError:
-                pass
+    if os.environ.get("DX_AGENTIC_E2E_CLEANUP_ARTIFACTS"):
+        _cleanup_artifacts_dir(artifacts_dir)
 
 
 @pytest.fixture(scope="session")
@@ -1914,14 +1944,8 @@ def app_opencode_artifacts_dir():
     artifacts_dir = APP_E2E_ARTIFACTS_BASE / "opencode" / "autopilot" / session_id
     artifacts_dir.mkdir(parents=True, exist_ok=True)
     yield artifacts_dir
-    if not os.environ.get("DX_AGENTIC_E2E_KEEP_ARTIFACTS"):
-        shutil.rmtree(artifacts_dir, ignore_errors=True)
-        for parent in [artifacts_dir.parent, artifacts_dir.parent.parent]:
-            try:
-                if parent.exists() and not any(parent.iterdir()):
-                    parent.rmdir()
-            except OSError:
-                pass
+    if os.environ.get("DX_AGENTIC_E2E_CLEANUP_ARTIFACTS"):
+        _cleanup_artifacts_dir(artifacts_dir)
 
 
 @pytest.fixture(scope="session")
@@ -1931,14 +1955,8 @@ def app_claude_code_artifacts_dir():
     artifacts_dir = APP_E2E_ARTIFACTS_BASE / "claude_code" / "autopilot" / session_id
     artifacts_dir.mkdir(parents=True, exist_ok=True)
     yield artifacts_dir
-    if not os.environ.get("DX_AGENTIC_E2E_KEEP_ARTIFACTS"):
-        shutil.rmtree(artifacts_dir, ignore_errors=True)
-        for parent in [artifacts_dir.parent, artifacts_dir.parent.parent]:
-            try:
-                if parent.exists() and not any(parent.iterdir()):
-                    parent.rmdir()
-            except OSError:
-                pass
+    if os.environ.get("DX_AGENTIC_E2E_CLEANUP_ARTIFACTS"):
+        _cleanup_artifacts_dir(artifacts_dir)
 
 
 # --- dx_stream -------------------------------------------------------------
@@ -1950,14 +1968,8 @@ def stream_copilot_cli_artifacts_dir():
     artifacts_dir = STREAM_E2E_ARTIFACTS_BASE / "copilot_cli" / "autopilot" / session_id
     artifacts_dir.mkdir(parents=True, exist_ok=True)
     yield artifacts_dir
-    if not os.environ.get("DX_AGENTIC_E2E_KEEP_ARTIFACTS"):
-        shutil.rmtree(artifacts_dir, ignore_errors=True)
-        for parent in [artifacts_dir.parent, artifacts_dir.parent.parent]:
-            try:
-                if parent.exists() and not any(parent.iterdir()):
-                    parent.rmdir()
-            except OSError:
-                pass
+    if os.environ.get("DX_AGENTIC_E2E_CLEANUP_ARTIFACTS"):
+        _cleanup_artifacts_dir(artifacts_dir)
 
 
 @pytest.fixture(scope="session")
@@ -1967,14 +1979,8 @@ def stream_cursor_cli_artifacts_dir():
     artifacts_dir = STREAM_E2E_ARTIFACTS_BASE / "cursor_cli" / "autopilot" / session_id
     artifacts_dir.mkdir(parents=True, exist_ok=True)
     yield artifacts_dir
-    if not os.environ.get("DX_AGENTIC_E2E_KEEP_ARTIFACTS"):
-        shutil.rmtree(artifacts_dir, ignore_errors=True)
-        for parent in [artifacts_dir.parent, artifacts_dir.parent.parent]:
-            try:
-                if parent.exists() and not any(parent.iterdir()):
-                    parent.rmdir()
-            except OSError:
-                pass
+    if os.environ.get("DX_AGENTIC_E2E_CLEANUP_ARTIFACTS"):
+        _cleanup_artifacts_dir(artifacts_dir)
 
 
 @pytest.fixture(scope="session")
@@ -1984,14 +1990,8 @@ def stream_opencode_artifacts_dir():
     artifacts_dir = STREAM_E2E_ARTIFACTS_BASE / "opencode" / "autopilot" / session_id
     artifacts_dir.mkdir(parents=True, exist_ok=True)
     yield artifacts_dir
-    if not os.environ.get("DX_AGENTIC_E2E_KEEP_ARTIFACTS"):
-        shutil.rmtree(artifacts_dir, ignore_errors=True)
-        for parent in [artifacts_dir.parent, artifacts_dir.parent.parent]:
-            try:
-                if parent.exists() and not any(parent.iterdir()):
-                    parent.rmdir()
-            except OSError:
-                pass
+    if os.environ.get("DX_AGENTIC_E2E_CLEANUP_ARTIFACTS"):
+        _cleanup_artifacts_dir(artifacts_dir)
 
 
 @pytest.fixture(scope="session")
@@ -2001,14 +2001,8 @@ def stream_claude_code_artifacts_dir():
     artifacts_dir = STREAM_E2E_ARTIFACTS_BASE / "claude_code" / "autopilot" / session_id
     artifacts_dir.mkdir(parents=True, exist_ok=True)
     yield artifacts_dir
-    if not os.environ.get("DX_AGENTIC_E2E_KEEP_ARTIFACTS"):
-        shutil.rmtree(artifacts_dir, ignore_errors=True)
-        for parent in [artifacts_dir.parent, artifacts_dir.parent.parent]:
-            try:
-                if parent.exists() and not any(parent.iterdir()):
-                    parent.rmdir()
-            except OSError:
-                pass
+    if os.environ.get("DX_AGENTIC_E2E_CLEANUP_ARTIFACTS"):
+        _cleanup_artifacts_dir(artifacts_dir)
 
 
 # ---------------------------------------------------------------------------

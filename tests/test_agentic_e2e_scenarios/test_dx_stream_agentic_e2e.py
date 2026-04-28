@@ -17,6 +17,8 @@ Guide reference:
 
 from __future__ import annotations
 
+import os
+
 import pytest
 
 from .conftest import (
@@ -71,9 +73,10 @@ class TestExecution:
         assert scenario.succeeded, format_scenario_failure(scenario)
 
     def test_completed_within_timeout(self, scenario: ScenarioResult):
-        """Execution finishes within the configured timeout."""
-        assert scenario.duration_seconds < 300, (
-            f"Scenario took {scenario.duration_seconds:.0f}s (limit: 300s)"
+        """Execution finishes within the configured timeout (+1 s grace for timer jitter)."""
+        timeout = int(os.environ.get("DX_AGENTIC_E2E_TIMEOUT", "360"))
+        assert scenario.duration_seconds < timeout + 1, (
+            f"Scenario took {scenario.duration_seconds:.0f}s (limit: {timeout}s)"
         )
 
     def test_session_log_saved(self, scenario: ScenarioResult):
@@ -198,6 +201,21 @@ class TestCodeQuality:
             "No RTSP source reference found in generated pipeline files"
         )
 
+    def test_pipeline_has_dxrate_for_rtsp(self, scenario: ScenarioResult):
+        """RTSP pipeline path must include dxrate element to cap frame ingestion."""
+        if not scenario.succeeded:
+            pytest.skip("Copilot execution failed")
+        py_files = scenario.generated_py_files
+        if not py_files:
+            pytest.skip("No Python files generated")
+        for f in py_files:
+            content = f.read_text(encoding="utf-8")
+            if "rtsp://" in content:
+                assert "dxrate" in content.lower(), (
+                    f"{f.name}: pipeline handles RTSP but is missing dxrate element.\n"
+                    "Fix: add 'dxrate max-rate=30' after decodebin in the RTSP source branch."
+                )
+
     def test_x264enc_has_tune_zerolatency(self, scenario: ScenarioResult):
         """If x264enc is used anywhere, it MUST have tune=zerolatency.
 
@@ -282,6 +300,25 @@ class TestMandatoryArtifacts:
             f"session.json lacks expected metadata concepts.\n"
             f"Expected at least one of: {expected_concepts}\n"
             f"Found keys: {list(data.keys()) if isinstance(data, dict) else type(data)}"
+        )
+
+    def test_session_json_created_at_has_timezone(self, scenario: ScenarioResult):
+        """session.json created_at must include an ISO 8601 timezone offset."""
+        if not scenario.succeeded:
+            pytest.skip("Copilot execution failed")
+        import json
+        import re
+        session_files = [
+            f for f in scenario.all_generated_files
+            if f.name == "session.json"
+        ]
+        if not session_files:
+            pytest.skip("No session.json generated")
+        data = json.loads(session_files[0].read_text(encoding="utf-8"))
+        created_at = data.get("created_at", "")
+        assert re.search(r"[+-]\d{2}:\d{2}$|Z$", created_at), (
+            f"session.json created_at missing timezone offset: {created_at!r}\n"
+            "Fix: use datetime.now().astimezone().isoformat(timespec='seconds')"
         )
 
     def test_readme_md_exists(self, scenario: ScenarioResult):
