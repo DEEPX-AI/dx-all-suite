@@ -5,9 +5,11 @@
 #   tools/dx-agentic-dev-gen/scripts/install-hooks.sh
 #
 # This installs the drift-check hook into:
-#   .git/hooks/pre-commit              (suite root)
+#   .git/hooks/pre-commit                                    (suite root)
 #   .git/modules/dx-compiler/hooks/pre-commit
 #   .git/modules/dx-runtime/hooks/pre-commit
+#   .git/modules/dx-runtime/modules/dx_app/hooks/pre-commit  (nested)
+#   .git/modules/dx-runtime/modules/dx_stream/hooks/pre-commit (nested)
 
 set -euo pipefail
 
@@ -50,13 +52,23 @@ echo ""
 # Suite root
 install_hook "$SUITE_ROOT/.git/hooks" "suite root"
 
-# Submodules
+# Top-level submodules
 for module in dx-compiler dx-runtime; do
     module_hooks="$SUITE_ROOT/.git/modules/$module/hooks"
     if [ -d "$(dirname "$module_hooks")" ]; then
         install_hook "$module_hooks" "$module"
     else
         echo "  $module: submodule not found, skipping"
+    fi
+done
+
+# Nested submodules under dx-runtime (dx_app, dx_stream)
+for nested in dx_app dx_stream; do
+    nested_hooks="$SUITE_ROOT/.git/modules/dx-runtime/modules/$nested/hooks"
+    if [ -d "$(dirname "$nested_hooks")" ]; then
+        install_hook "$nested_hooks" "dx-runtime/$nested"
+    else
+        echo "  dx-runtime/$nested: nested submodule not found, skipping"
     fi
 done
 
