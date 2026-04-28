@@ -485,7 +485,7 @@ Key behaviors:
 |----------|---------|-------------|
 | `DX_AGENTIC_E2E_MODEL` | `claude-sonnet-4.6` | LLM model for Copilot CLI |
 | `DX_AGENTIC_E2E_TIMEOUT` | `300` | Timeout in seconds per scenario |
-| `DX_AGENTIC_E2E_KEEP_ARTIFACTS` | `0` | Set to `1` to keep generated `dx-agentic-dev/` directories after test run |
+| `DX_AGENTIC_E2E_CLEANUP_ARTIFACTS` | (unset) | Set to `1` to delete generated `dx-agentic-dev/` directories after test run (default: keep) |
 | `DX_AGENTIC_E2E_MODE` | (set by test.sh) | `autopilot` or `manual` — set automatically by `test.sh` |
 
 ### Running with Different Models
@@ -515,8 +515,8 @@ After a test run, artifacts include:
 - Copilot session transcript (saved via `--share=<file>`)
 - HTML export (if `test.sh` detects it was generated via `/share html`)
 
-Set `DX_AGENTIC_E2E_KEEP_ARTIFACTS=1` to preserve these artifacts for debugging.
-Without this flag, `test.sh` cleans up generated directories after validation.
+Generated artifacts are preserved by default for debugging.
+Set `DX_AGENTIC_E2E_CLEANUP_ARTIFACTS=1` to delete them after a successful run.
 
 ## 🖥 Agentic E2E — Cursor CLI Autonomous Execution
 
@@ -568,7 +568,7 @@ DX_AGENTIC_E2E_CURSOR_TIMEOUT=900 \
 |----------|---------|-------------|
 | `DX_AGENTIC_E2E_CURSOR_MODEL` | `claude-4.6-sonnet-medium` | LLM model for Cursor CLI |
 | `DX_AGENTIC_E2E_CURSOR_TIMEOUT` | `300` | Timeout in seconds per scenario |
-| `DX_AGENTIC_E2E_KEEP_ARTIFACTS` | `0` | Set to `1` to keep generated artifacts |
+| `DX_AGENTIC_E2E_CLEANUP_ARTIFACTS` | (unset) | Set to `1` to delete generated artifacts after a successful run (default: keep) |
 | `CURSOR_API_KEY` | (from login) | API key for headless authentication |
 
 ### Prerequisites
@@ -844,7 +844,7 @@ export LOCAL_VOLUME_PATH="/path/to/dx-all-suite"
 # Agentic E2E test configuration (Copilot CLI)
 export DX_AGENTIC_E2E_TIMEOUT=900           # Copilot CLI timeout in seconds (default: 300)
 export DX_AGENTIC_E2E_MODEL="claude-opus-4.6"       # OpenCode model to use (default: claude-sonnet-4.6)
-export DX_AGENTIC_E2E_KEEP_ARTIFACTS=1     # Keep generated artifacts after test run
+# export DX_AGENTIC_E2E_CLEANUP_ARTIFACTS=1  # Delete artifacts after successful run (default: keep)
 
 # Agentic E2E test configuration (Cursor CLI)
 export DX_AGENTIC_E2E_CURSOR_MODEL="claude-4.6-sonnet-medium"  # Cursor model (default: claude-4.6-sonnet-medium)

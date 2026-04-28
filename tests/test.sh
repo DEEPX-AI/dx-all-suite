@@ -56,6 +56,7 @@ DEBUG_MODE=0
 LIST_MODE=0
 CACHE_CLEAR=0
 INTERNAL_MODE=0
+CLEANUP_ARTIFACTS_FLAG=0
 
 print_info() {
     echo -e "${BLUE}[INFO]${NC} $@"
@@ -139,6 +140,7 @@ print_usage() {
     echo -e "  ${GREEN}--list${NC}           - List tests without running them (--collect-only)"
     echo -e "  ${GREEN}--cache-clear${NC}    - Clear pytest cache before running tests"
     echo -e "  ${GREEN}--internal${NC}       - Use internal network settings (sets USE_INTRANET=true)"
+    echo -e "  ${GREEN}--cleanup${NC}        - Delete generated artifacts after a successful run (default: keep)"
     echo -e "  ${GREEN}-k <expr>${NC}        - Pytest keyword expression filter (e.g., \"ubuntu and 24.04\")"
     echo -e "  ${GREEN}-m <expr>${NC}        - Pytest marker expression filter (e.g., \"local and sanity\")"
     echo -e ""
@@ -185,6 +187,7 @@ print_usage() {
     echo -e "  ./test.sh agentic-e2e-claude-code-autopilot"
     echo -e "  ./test.sh agentic-e2e-claude-code-manual"
     echo -e "  ./test.sh agentic-e2e-copilot-cli-autopilot -k dx_app"
+    echo -e "  ./test.sh --cleanup agentic-e2e-claude-code-autopilot -k dx_stream"
     echo -e "  ./test.sh report"
 }
 
@@ -252,6 +255,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --internal)
             INTERNAL_MODE=1
+            shift
+            ;;
+        --cleanup)
+            CLEANUP_ARTIFACTS_FLAG=1
             shift
             ;;
         -k)
@@ -323,6 +330,11 @@ fi
 # Export exclude-fw flag as environment variable
 if [ $EXCLUDE_FW -eq 1 ]; then
     export DX_EXCLUDE_FW=1
+fi
+
+# Export cleanup flag — CLI --cleanup takes precedence over env var
+if [ $CLEANUP_ARTIFACTS_FLAG -eq 1 ]; then
+    export DX_AGENTIC_E2E_CLEANUP_ARTIFACTS=1
 fi
 
 # Export debug mode as environment variable
@@ -454,7 +466,7 @@ case "$COMMAND" in
         else
             COMBINED_M_ARGS=(-m agentic_e2e_copilot_cli_autopilot)
         fi
-        pytest -v "${CAPTURE_ARGS[@]}" "${COLLECT_ONLY_ARGS[@]}" "${COMBINED_M_ARGS[@]}" "${K_ARGS[@]}" "${REPORT_ARGS[@]}" "${JSON_ARGS[@]}" "$@"
+        pytest tests/test_agentic_e2e_scenarios/ -v "${CAPTURE_ARGS[@]}" "${COLLECT_ONLY_ARGS[@]}" "${COMBINED_M_ARGS[@]}" "${K_ARGS[@]}" "${REPORT_ARGS[@]}" "${JSON_ARGS[@]}" "$@"
         EXIT_CODE=$?
         if [ $GENERATE_REPORT -eq 1 ] && [ $EXIT_CODE -eq 0 ]; then
             print_success "HTML report generated: ${REPORT_FILE}"
@@ -475,7 +487,7 @@ case "$COMMAND" in
         else
             COMBINED_M_ARGS=(-m agentic_e2e_cursor_cli_autopilot)
         fi
-        pytest -v "${CAPTURE_ARGS[@]}" "${COLLECT_ONLY_ARGS[@]}" "${COMBINED_M_ARGS[@]}" "${K_ARGS[@]}" "${REPORT_ARGS[@]}" "${JSON_ARGS[@]}" "$@"
+        pytest tests/test_agentic_e2e_scenarios/ -v "${CAPTURE_ARGS[@]}" "${COLLECT_ONLY_ARGS[@]}" "${COMBINED_M_ARGS[@]}" "${K_ARGS[@]}" "${REPORT_ARGS[@]}" "${JSON_ARGS[@]}" "$@"
         EXIT_CODE=$?
         if [ $GENERATE_REPORT -eq 1 ] && [ $EXIT_CODE -eq 0 ]; then
             print_success "HTML report generated: ${REPORT_FILE}"
@@ -495,7 +507,7 @@ case "$COMMAND" in
 
         # Model and artifact settings
         AGENTIC_MODEL="${DX_AGENTIC_E2E_MODEL:-claude-sonnet-4.6}"
-        KEEP_ARTIFACTS="${DX_AGENTIC_E2E_KEEP_ARTIFACTS:-0}"
+        CLEANUP_ARTIFACTS="${DX_AGENTIC_E2E_CLEANUP_ARTIFACTS:-0}"
         TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
         # ARTIFACTS_BASE is computed per-scenario inside the loop (based on workdir)
         declare -A SCENARIO_ARTIFACTS
@@ -1115,8 +1127,8 @@ case "$COMMAND" in
         echo ""
 
         # Cleanup session logs unless kept (generated files are in dx-agentic-dev/)
-        if [ "$KEEP_ARTIFACTS" != "1" ] && [ "$TOTAL_FAIL" -eq 0 ]; then
-            print_info "Cleaning up artifacts (set DX_AGENTIC_E2E_KEEP_ARTIFACTS=1 to keep)"
+        if [ "$CLEANUP_ARTIFACTS" = "1" ] && [ "$TOTAL_FAIL" -eq 0 ]; then
+            print_info "Cleaning up artifacts (DX_AGENTIC_E2E_CLEANUP_ARTIFACTS=1)"
             for _ab in "${SCENARIO_ARTIFACTS[@]}"; do
                 rm -rf "$_ab"
             done
@@ -1143,7 +1155,7 @@ case "$COMMAND" in
         fi
 
         AGENTIC_MODEL="${DX_AGENTIC_E2E_CURSOR_MODEL:-claude-4.6-sonnet-medium}"
-        KEEP_ARTIFACTS="${DX_AGENTIC_E2E_KEEP_ARTIFACTS:-0}"
+        CLEANUP_ARTIFACTS="${DX_AGENTIC_E2E_CLEANUP_ARTIFACTS:-0}"
         TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
         declare -A SCENARIO_ARTIFACTS
         GLOBAL_SUMMARY_BASE="${SCRIPT_DIR}/../dx-agentic-dev/e2e-tests/cursor_cli/manual/${TIMESTAMP}"
@@ -1344,7 +1356,7 @@ case "$COMMAND" in
         else
             COMBINED_M_ARGS=(-m agentic_e2e_opencode_cli_autopilot)
         fi
-        pytest -v "${CAPTURE_ARGS[@]}" "${COLLECT_ONLY_ARGS[@]}" "${COMBINED_M_ARGS[@]}" "${K_ARGS[@]}" "${REPORT_ARGS[@]}" "${JSON_ARGS[@]}" "$@"
+        pytest tests/test_agentic_e2e_scenarios/ -v "${CAPTURE_ARGS[@]}" "${COLLECT_ONLY_ARGS[@]}" "${COMBINED_M_ARGS[@]}" "${K_ARGS[@]}" "${REPORT_ARGS[@]}" "${JSON_ARGS[@]}" "$@"
         EXIT_CODE=$?
         if [ $GENERATE_REPORT -eq 1 ] && [ $EXIT_CODE -eq 0 ]; then
             print_success "HTML report generated: ${REPORT_FILE}"
@@ -1360,11 +1372,11 @@ case "$COMMAND" in
             exit 1
         fi
         # Auth check via 'claude auth status'
-        _auth_json=$(claude auth status --output-format json 2>/dev/null || echo '{}')
+        _auth_json=$(claude auth status 2>/dev/null || echo '{}')
         _logged_in=$(python3 -c "import json,sys; d=json.loads(sys.stdin.read()); print(str(d.get('loggedIn',False)).lower())" <<< "$_auth_json" 2>/dev/null || echo "false")
         if [ "$_logged_in" != "true" ]; then
             print_error "Claude Code is not authenticated. Run: claude auth login"
-            exit 1
+            exit 77
         fi
         export DX_AGENTIC_E2E_MODE=autopilot
         if [ -n "${M_EXPR}" ]; then
@@ -1372,7 +1384,7 @@ case "$COMMAND" in
         else
             COMBINED_M_ARGS=(-m agentic_e2e_claude_code_autopilot)
         fi
-        pytest -v "${CAPTURE_ARGS[@]}" "${COLLECT_ONLY_ARGS[@]}" "${COMBINED_M_ARGS[@]}" "${K_ARGS[@]}" "${REPORT_ARGS[@]}" "${JSON_ARGS[@]}" "$@"
+        pytest tests/test_agentic_e2e_scenarios/ -v "${CAPTURE_ARGS[@]}" "${COLLECT_ONLY_ARGS[@]}" "${COMBINED_M_ARGS[@]}" "${K_ARGS[@]}" "${REPORT_ARGS[@]}" "${JSON_ARGS[@]}" "$@"
         EXIT_CODE=$?
         if [ $GENERATE_REPORT -eq 1 ] && [ $EXIT_CODE -eq 0 ]; then
             print_success "HTML report generated: ${REPORT_FILE}"
@@ -1392,7 +1404,7 @@ case "$COMMAND" in
         fi
 
         AGENTIC_MODEL="${DX_AGENTIC_E2E_OPENCODE_MODEL:-github-copilot/claude-sonnet-4.6}"
-        KEEP_ARTIFACTS="${DX_AGENTIC_E2E_KEEP_ARTIFACTS:-0}"
+        CLEANUP_ARTIFACTS="${DX_AGENTIC_E2E_CLEANUP_ARTIFACTS:-0}"
         TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
         declare -A SCENARIO_ARTIFACTS
         GLOBAL_SUMMARY_BASE="${SCRIPT_DIR}/../dx-agentic-dev/e2e-tests/opencode/manual/${TIMESTAMP}"
@@ -1683,15 +1695,15 @@ case "$COMMAND" in
         fi
 
         # Auth check
-        _auth_json=$(claude auth status --output-format json 2>/dev/null || echo '{}')
+        _auth_json=$(claude auth status 2>/dev/null || echo '{}')
         _logged_in=$(python3 -c "import json,sys; d=json.loads(sys.stdin.read()); print(str(d.get('loggedIn',False)).lower())" <<< "$_auth_json" 2>/dev/null || echo "false")
         if [ "$_logged_in" != "true" ]; then
             print_error "Claude Code is not authenticated. Run: claude auth login"
-            exit 1
+            exit 77
         fi
 
         AGENTIC_MODEL="${DX_AGENTIC_E2E_CLAUDE_CODE_MODEL:-claude-sonnet-4-6}"
-        KEEP_ARTIFACTS="${DX_AGENTIC_E2E_KEEP_ARTIFACTS:-0}"
+        CLEANUP_ARTIFACTS="${DX_AGENTIC_E2E_CLEANUP_ARTIFACTS:-0}"
         TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
         declare -A SCENARIO_ARTIFACTS
         GLOBAL_SUMMARY_BASE="${SCRIPT_DIR}/../dx-agentic-dev/e2e-tests/claude_code/manual/${TIMESTAMP}"
