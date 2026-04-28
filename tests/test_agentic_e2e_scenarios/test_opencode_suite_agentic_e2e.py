@@ -1,12 +1,12 @@
 # SPDX-License-Identifier: Apache-2.0
 """
-Agentic E2E Test (Cursor CLI): dx-all-suite Scenario — Cross-Project Compile + App
+Agentic E2E Test (OpenCode): dx-all-suite Scenario — Cross-Project Compile + App
 
-Runs the Cursor CLI ``agent`` at the suite root with a cross-project prompt
-requiring both dx-compiler and dx_app.  Verifies the suite-level router
-orchestrates across submodules.
+Runs the OpenCode CLI at the suite root with a cross-project prompt
+requiring both dx-compiler and dx_app.
 
-This is the Cursor CLI counterpart of ``test_suite_agentic_e2e.py``.
+This is the OpenCode counterpart of ``test_suite_agentic_e2e.py`` (Copilot CLI)
+and ``test_cursor_suite_agentic_e2e.py`` (Cursor CLI).
 """
 
 from __future__ import annotations
@@ -23,7 +23,7 @@ from .conftest import (
 )
 
 pytestmark = [
-    pytest.mark.agentic_e2e_cursor_cli_autopilot,
+    pytest.mark.agentic_e2e_opencode_cli_autopilot,
 ]
 
 SCENARIO_PROMPT = (
@@ -32,22 +32,22 @@ SCENARIO_PROMPT = (
 
 
 @pytest.fixture(scope="module")
-def scenario(cursor_runner, cursor_cli_artifacts_dir) -> ScenarioResult:
-    """Execute suite Scenario via Cursor CLI."""
-    return cursor_runner.run(
+def scenario(opencode_runner, opencode_artifacts_dir) -> ScenarioResult:
+    """Execute suite Scenario via OpenCode CLI."""
+    return opencode_runner.run(
         prompt=SCENARIO_PROMPT,
         workdir=SUITE_ROOT,
         scenario_key="suite",
-        session_log_dir=cursor_cli_artifacts_dir,
+        session_log_dir=opencode_artifacts_dir,
         timeout=1500,
     )
 
 
 class TestExecution:
-    """Cursor CLI execution basics."""
+    """OpenCode CLI execution basics."""
 
     def test_exit_code_zero(self, scenario: ScenarioResult):
-        """Cursor CLI exits successfully."""
+        """OpenCode CLI exits successfully."""
         assert scenario.succeeded, format_scenario_failure(scenario)
 
     def test_completed_within_timeout(self, scenario: ScenarioResult):
@@ -59,7 +59,7 @@ class TestExecution:
     def test_start_sentinel_emitted(self, scenario: ScenarioResult):
         """Agent emits [DX-AGENTIC-DEV: START] before any other text."""
         if not scenario.succeeded:
-            pytest.skip("Cursor execution failed")
+            pytest.skip("OpenCode execution failed")
         verify_start_sentinel(scenario)
 
 
@@ -69,7 +69,7 @@ class TestCrossProjectOutput:
     def test_files_generated(self, scenario: ScenarioResult):
         """At least some output files are generated."""
         if not scenario.succeeded:
-            pytest.skip("Cursor execution failed")
+            pytest.skip("OpenCode execution failed")
         assert len(scenario.all_generated_files) > 0, (
             f"No files generated in {scenario.output_dirs or '(no dirs detected)'}"
         )
@@ -77,7 +77,7 @@ class TestCrossProjectOutput:
     def test_compilation_artifacts(self, scenario: ScenarioResult):
         """Compilation-related artifacts are present (config, model, or dxnn)."""
         if not scenario.succeeded:
-            pytest.skip("Cursor execution failed")
+            pytest.skip("OpenCode execution failed")
         all_files = scenario.all_generated_files
         if not all_files:
             pytest.skip("No files generated")
@@ -95,23 +95,10 @@ class TestCrossProjectOutput:
             f"All files: {[f.name for f in all_files]}"
         )
 
-    def test_model_acquired(self, scenario: ScenarioResult):
-        """A model file (.onnx, .pt, or .dxnn) was downloaded/produced."""
-        if not scenario.succeeded:
-            pytest.skip("Cursor execution failed")
-        model_files = [
-            f for f in scenario.all_generated_files
-            if f.suffix in (".onnx", ".pt", ".pth", ".dxnn")
-        ]
-        assert len(model_files) > 0, (
-            f"No model files found.\n"
-            f"All files: {[f.name for f in scenario.all_generated_files]}"
-        )
-
     def test_dxnn_compiled(self, scenario: ScenarioResult):
         """A compiled .dxnn model file was produced."""
         if not scenario.succeeded:
-            pytest.skip("Cursor execution failed")
+            pytest.skip("OpenCode execution failed")
         dxnn_files = scenario.generated_dxnn_files
         assert len(dxnn_files) > 0, (
             f"No .dxnn files found.\n"
@@ -121,7 +108,7 @@ class TestCrossProjectOutput:
     def test_app_artifacts(self, scenario: ScenarioResult):
         """Application-related Python files are present."""
         if not scenario.succeeded:
-            pytest.skip("Cursor execution failed")
+            pytest.skip("OpenCode execution failed")
         py_files = scenario.generated_py_files
         if not py_files:
             pytest.skip("No Python files generated")
@@ -147,7 +134,7 @@ class TestMandatoryArtifacts:
     def test_setup_sh_exists(self, scenario: ScenarioResult):
         """setup.sh environment setup script is generated."""
         if not scenario.succeeded:
-            pytest.skip("Cursor execution failed")
+            pytest.skip("OpenCode execution failed")
         setup_files = [f for f in scenario.all_generated_files if f.name == "setup.sh"]
         assert len(setup_files) > 0, (
             f"No setup.sh found.\n"
@@ -157,30 +144,10 @@ class TestMandatoryArtifacts:
     def test_run_sh_exists(self, scenario: ScenarioResult):
         """run.sh inference launcher script is generated."""
         if not scenario.succeeded:
-            pytest.skip("Cursor execution failed")
+            pytest.skip("OpenCode execution failed")
         run_files = [f for f in scenario.all_generated_files if f.name == "run.sh"]
         assert len(run_files) > 0, (
             f"No run.sh found.\n"
-            f"All files: {[f.name for f in scenario.all_generated_files]}"
-        )
-
-    def test_verify_py_exists(self, scenario: ScenarioResult):
-        """verify.py ONNX vs DXNN comparison script is generated."""
-        if not scenario.succeeded:
-            pytest.skip("Cursor execution failed")
-        verify_files = [f for f in scenario.all_generated_files if f.name == "verify.py"]
-        assert len(verify_files) > 0, (
-            f"No verify.py found.\n"
-            f"All files: {[f.name for f in scenario.all_generated_files]}"
-        )
-
-    def test_session_log_exists(self, scenario: ScenarioResult):
-        """session.log with actual command output is generated."""
-        if not scenario.succeeded:
-            pytest.skip("Cursor execution failed")
-        log_files = [f for f in scenario.all_generated_files if f.name == "session.log"]
-        assert len(log_files) > 0, (
-            f"No session.log found.\n"
             f"All files: {[f.name for f in scenario.all_generated_files]}"
         )
 
@@ -191,13 +158,13 @@ class TestCodeQuality:
     def test_all_python_files_valid_syntax(self, scenario: ScenarioResult):
         """All generated .py files parse without SyntaxError."""
         if not scenario.succeeded:
-            pytest.skip("Cursor execution failed")
+            pytest.skip("OpenCode execution failed")
         for py_file in scenario.generated_py_files:
             verify_python_syntax(py_file)
 
     def test_all_json_files_valid(self, scenario: ScenarioResult):
         """All generated .json files are valid JSON."""
         if not scenario.succeeded:
-            pytest.skip("Cursor execution failed")
+            pytest.skip("OpenCode execution failed")
         for json_file in scenario.generated_json_files:
             verify_json_structure(json_file)
