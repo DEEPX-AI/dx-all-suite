@@ -55,8 +55,12 @@ RUNTIME_ROOT = SUITE_ROOT / "dx-runtime"
 APP_ROOT = RUNTIME_ROOT / "dx_app"
 STREAM_ROOT = RUNTIME_ROOT / "dx_stream"
 
-# Base directory for agentic E2E test artifacts (gitignored via dx-agentic-dev/)
+# Base directories for agentic E2E test artifacts (gitignored via dx-agentic-dev/).
+# Suite/runtime scenarios: SUITE_ROOT; sub-project scenarios: per-project roots.
 AGENTIC_E2E_ARTIFACTS_BASE = SUITE_ROOT / "dx-agentic-dev" / "e2e-tests"
+COMPILER_E2E_ARTIFACTS_BASE = COMPILER_ROOT / "dx-agentic-dev" / "e2e-tests"
+APP_E2E_ARTIFACTS_BASE = APP_ROOT / "dx-agentic-dev" / "e2e-tests"
+STREAM_E2E_ARTIFACTS_BASE = STREAM_ROOT / "dx-agentic-dev" / "e2e-tests"
 
 # Default timeout for Copilot CLI execution (5 minutes)
 DEFAULT_COPILOT_TIMEOUT = int(os.environ.get("DX_AGENTIC_E2E_TIMEOUT", "300"))
@@ -397,6 +401,15 @@ class CopilotRunnerAutopilot:
                 output_dirs=output_dirs,
             )
 
+            # Fallback: if --share file was not written (non-clean shutdown),
+            # copy the parse_and_render MD output to the session_log path so
+            # session_log is always present regardless of how Copilot exited.
+            if not session_log.exists() and session_events_log.exists():
+                try:
+                    shutil.copy2(str(session_events_log), str(session_log))
+                except Exception:
+                    pass
+
             # Copy events.jsonl for traceability
             if session_state_dir:
                 events_src = Path(session_state_dir) / "events.jsonl"
@@ -462,6 +475,15 @@ class CopilotRunnerAutopilot:
                 output=session_events_log,
                 output_dirs=output_dirs,
             )
+
+            # Fallback: --share file is never written on timeout since Copilot
+            # is SIGKILL'd before it can flush the share output.  Copy the
+            # parse_and_render MD so session_log is always populated.
+            if not session_log.exists() and session_events_log.exists():
+                try:
+                    shutil.copy2(str(session_events_log), str(session_log))
+                except Exception:
+                    pass
 
             # Copy events.jsonl for traceability
             if session_state_dir:
@@ -1608,18 +1630,21 @@ def cursor_runner():
     return CursorRunnerAutopilot()
 
 
-def _make_artifacts_dir_fixture(tool: str, mode: str):
+def _make_artifacts_dir_fixture(tool: str, mode: str, base: Path = None):
     """Factory that creates a session-scoped artifacts dir fixture for a given tool/mode.
 
-    Output path: ``dx-agentic-dev/e2e-tests/<tool>/<mode>/<session_id>/``
+    Output path: ``<base>/e2e-tests/<tool>/<mode>/<session_id>/``
+    Defaults to ``AGENTIC_E2E_ARTIFACTS_BASE`` (suite root) when *base* is None.
 
     Supported tools: ``copilot_cli``, ``cursor_cli``, ``opencode``, ``claude_code``
     Supported modes: ``autopilot``, ``manual``
     """
+    resolved_base = base if base is not None else AGENTIC_E2E_ARTIFACTS_BASE
+
     @pytest.fixture(scope="session")
     def _fixture():
         session_id = time.strftime("%Y%m%d_%H%M%S") + f"_{uuid.uuid4().hex[:6]}"
-        artifacts_dir = AGENTIC_E2E_ARTIFACTS_BASE / tool / mode / session_id
+        artifacts_dir = resolved_base / tool / mode / session_id
         artifacts_dir.mkdir(parents=True, exist_ok=True)
 
         yield artifacts_dir
@@ -1767,6 +1792,223 @@ def claude_code_artifacts_dir():
 def agentic_e2e_artifacts_dir(copilot_cli_artifacts_dir):
     """Deprecated alias for copilot_cli_artifacts_dir. Use tool-specific fixtures instead."""
     return copilot_cli_artifacts_dir
+
+
+# ---------------------------------------------------------------------------
+# Per-project artifacts dir fixtures
+# Route each sub-project's test artifacts into that project's own
+# dx-agentic-dev/e2e-tests/<tool>/<mode>/<session_id>/ directory so the
+# hierarchy mirrors the manual-mode layout used by test.sh.
+# ---------------------------------------------------------------------------
+
+# --- dx-compiler -----------------------------------------------------------
+
+@pytest.fixture(scope="session")
+def compiler_copilot_cli_artifacts_dir():
+    """Path: dx-compiler/dx-agentic-dev/e2e-tests/copilot_cli/autopilot/<session_id>/"""
+    session_id = time.strftime("%Y%m%d_%H%M%S") + f"_{uuid.uuid4().hex[:6]}"
+    artifacts_dir = COMPILER_E2E_ARTIFACTS_BASE / "copilot_cli" / "autopilot" / session_id
+    artifacts_dir.mkdir(parents=True, exist_ok=True)
+    yield artifacts_dir
+    if not os.environ.get("DX_AGENTIC_E2E_KEEP_ARTIFACTS"):
+        shutil.rmtree(artifacts_dir, ignore_errors=True)
+        for parent in [artifacts_dir.parent, artifacts_dir.parent.parent]:
+            try:
+                if parent.exists() and not any(parent.iterdir()):
+                    parent.rmdir()
+            except OSError:
+                pass
+
+
+@pytest.fixture(scope="session")
+def compiler_cursor_cli_artifacts_dir():
+    """Path: dx-compiler/dx-agentic-dev/e2e-tests/cursor_cli/autopilot/<session_id>/"""
+    session_id = time.strftime("%Y%m%d_%H%M%S") + f"_{uuid.uuid4().hex[:6]}"
+    artifacts_dir = COMPILER_E2E_ARTIFACTS_BASE / "cursor_cli" / "autopilot" / session_id
+    artifacts_dir.mkdir(parents=True, exist_ok=True)
+    yield artifacts_dir
+    if not os.environ.get("DX_AGENTIC_E2E_KEEP_ARTIFACTS"):
+        shutil.rmtree(artifacts_dir, ignore_errors=True)
+        for parent in [artifacts_dir.parent, artifacts_dir.parent.parent]:
+            try:
+                if parent.exists() and not any(parent.iterdir()):
+                    parent.rmdir()
+            except OSError:
+                pass
+
+
+@pytest.fixture(scope="session")
+def compiler_opencode_artifacts_dir():
+    """Path: dx-compiler/dx-agentic-dev/e2e-tests/opencode/autopilot/<session_id>/"""
+    session_id = time.strftime("%Y%m%d_%H%M%S") + f"_{uuid.uuid4().hex[:6]}"
+    artifacts_dir = COMPILER_E2E_ARTIFACTS_BASE / "opencode" / "autopilot" / session_id
+    artifacts_dir.mkdir(parents=True, exist_ok=True)
+    yield artifacts_dir
+    if not os.environ.get("DX_AGENTIC_E2E_KEEP_ARTIFACTS"):
+        shutil.rmtree(artifacts_dir, ignore_errors=True)
+        for parent in [artifacts_dir.parent, artifacts_dir.parent.parent]:
+            try:
+                if parent.exists() and not any(parent.iterdir()):
+                    parent.rmdir()
+            except OSError:
+                pass
+
+
+@pytest.fixture(scope="session")
+def compiler_claude_code_artifacts_dir():
+    """Path: dx-compiler/dx-agentic-dev/e2e-tests/claude_code/autopilot/<session_id>/"""
+    session_id = time.strftime("%Y%m%d_%H%M%S") + f"_{uuid.uuid4().hex[:6]}"
+    artifacts_dir = COMPILER_E2E_ARTIFACTS_BASE / "claude_code" / "autopilot" / session_id
+    artifacts_dir.mkdir(parents=True, exist_ok=True)
+    yield artifacts_dir
+    if not os.environ.get("DX_AGENTIC_E2E_KEEP_ARTIFACTS"):
+        shutil.rmtree(artifacts_dir, ignore_errors=True)
+        for parent in [artifacts_dir.parent, artifacts_dir.parent.parent]:
+            try:
+                if parent.exists() and not any(parent.iterdir()):
+                    parent.rmdir()
+            except OSError:
+                pass
+
+
+# --- dx_app ----------------------------------------------------------------
+
+@pytest.fixture(scope="session")
+def app_copilot_cli_artifacts_dir():
+    """Path: dx-runtime/dx_app/dx-agentic-dev/e2e-tests/copilot_cli/autopilot/<session_id>/"""
+    session_id = time.strftime("%Y%m%d_%H%M%S") + f"_{uuid.uuid4().hex[:6]}"
+    artifacts_dir = APP_E2E_ARTIFACTS_BASE / "copilot_cli" / "autopilot" / session_id
+    artifacts_dir.mkdir(parents=True, exist_ok=True)
+    yield artifacts_dir
+    if not os.environ.get("DX_AGENTIC_E2E_KEEP_ARTIFACTS"):
+        shutil.rmtree(artifacts_dir, ignore_errors=True)
+        for parent in [artifacts_dir.parent, artifacts_dir.parent.parent]:
+            try:
+                if parent.exists() and not any(parent.iterdir()):
+                    parent.rmdir()
+            except OSError:
+                pass
+
+
+@pytest.fixture(scope="session")
+def app_cursor_cli_artifacts_dir():
+    """Path: dx-runtime/dx_app/dx-agentic-dev/e2e-tests/cursor_cli/autopilot/<session_id>/"""
+    session_id = time.strftime("%Y%m%d_%H%M%S") + f"_{uuid.uuid4().hex[:6]}"
+    artifacts_dir = APP_E2E_ARTIFACTS_BASE / "cursor_cli" / "autopilot" / session_id
+    artifacts_dir.mkdir(parents=True, exist_ok=True)
+    yield artifacts_dir
+    if not os.environ.get("DX_AGENTIC_E2E_KEEP_ARTIFACTS"):
+        shutil.rmtree(artifacts_dir, ignore_errors=True)
+        for parent in [artifacts_dir.parent, artifacts_dir.parent.parent]:
+            try:
+                if parent.exists() and not any(parent.iterdir()):
+                    parent.rmdir()
+            except OSError:
+                pass
+
+
+@pytest.fixture(scope="session")
+def app_opencode_artifacts_dir():
+    """Path: dx-runtime/dx_app/dx-agentic-dev/e2e-tests/opencode/autopilot/<session_id>/"""
+    session_id = time.strftime("%Y%m%d_%H%M%S") + f"_{uuid.uuid4().hex[:6]}"
+    artifacts_dir = APP_E2E_ARTIFACTS_BASE / "opencode" / "autopilot" / session_id
+    artifacts_dir.mkdir(parents=True, exist_ok=True)
+    yield artifacts_dir
+    if not os.environ.get("DX_AGENTIC_E2E_KEEP_ARTIFACTS"):
+        shutil.rmtree(artifacts_dir, ignore_errors=True)
+        for parent in [artifacts_dir.parent, artifacts_dir.parent.parent]:
+            try:
+                if parent.exists() and not any(parent.iterdir()):
+                    parent.rmdir()
+            except OSError:
+                pass
+
+
+@pytest.fixture(scope="session")
+def app_claude_code_artifacts_dir():
+    """Path: dx-runtime/dx_app/dx-agentic-dev/e2e-tests/claude_code/autopilot/<session_id>/"""
+    session_id = time.strftime("%Y%m%d_%H%M%S") + f"_{uuid.uuid4().hex[:6]}"
+    artifacts_dir = APP_E2E_ARTIFACTS_BASE / "claude_code" / "autopilot" / session_id
+    artifacts_dir.mkdir(parents=True, exist_ok=True)
+    yield artifacts_dir
+    if not os.environ.get("DX_AGENTIC_E2E_KEEP_ARTIFACTS"):
+        shutil.rmtree(artifacts_dir, ignore_errors=True)
+        for parent in [artifacts_dir.parent, artifacts_dir.parent.parent]:
+            try:
+                if parent.exists() and not any(parent.iterdir()):
+                    parent.rmdir()
+            except OSError:
+                pass
+
+
+# --- dx_stream -------------------------------------------------------------
+
+@pytest.fixture(scope="session")
+def stream_copilot_cli_artifacts_dir():
+    """Path: dx-runtime/dx_stream/dx-agentic-dev/e2e-tests/copilot_cli/autopilot/<session_id>/"""
+    session_id = time.strftime("%Y%m%d_%H%M%S") + f"_{uuid.uuid4().hex[:6]}"
+    artifacts_dir = STREAM_E2E_ARTIFACTS_BASE / "copilot_cli" / "autopilot" / session_id
+    artifacts_dir.mkdir(parents=True, exist_ok=True)
+    yield artifacts_dir
+    if not os.environ.get("DX_AGENTIC_E2E_KEEP_ARTIFACTS"):
+        shutil.rmtree(artifacts_dir, ignore_errors=True)
+        for parent in [artifacts_dir.parent, artifacts_dir.parent.parent]:
+            try:
+                if parent.exists() and not any(parent.iterdir()):
+                    parent.rmdir()
+            except OSError:
+                pass
+
+
+@pytest.fixture(scope="session")
+def stream_cursor_cli_artifacts_dir():
+    """Path: dx-runtime/dx_stream/dx-agentic-dev/e2e-tests/cursor_cli/autopilot/<session_id>/"""
+    session_id = time.strftime("%Y%m%d_%H%M%S") + f"_{uuid.uuid4().hex[:6]}"
+    artifacts_dir = STREAM_E2E_ARTIFACTS_BASE / "cursor_cli" / "autopilot" / session_id
+    artifacts_dir.mkdir(parents=True, exist_ok=True)
+    yield artifacts_dir
+    if not os.environ.get("DX_AGENTIC_E2E_KEEP_ARTIFACTS"):
+        shutil.rmtree(artifacts_dir, ignore_errors=True)
+        for parent in [artifacts_dir.parent, artifacts_dir.parent.parent]:
+            try:
+                if parent.exists() and not any(parent.iterdir()):
+                    parent.rmdir()
+            except OSError:
+                pass
+
+
+@pytest.fixture(scope="session")
+def stream_opencode_artifacts_dir():
+    """Path: dx-runtime/dx_stream/dx-agentic-dev/e2e-tests/opencode/autopilot/<session_id>/"""
+    session_id = time.strftime("%Y%m%d_%H%M%S") + f"_{uuid.uuid4().hex[:6]}"
+    artifacts_dir = STREAM_E2E_ARTIFACTS_BASE / "opencode" / "autopilot" / session_id
+    artifacts_dir.mkdir(parents=True, exist_ok=True)
+    yield artifacts_dir
+    if not os.environ.get("DX_AGENTIC_E2E_KEEP_ARTIFACTS"):
+        shutil.rmtree(artifacts_dir, ignore_errors=True)
+        for parent in [artifacts_dir.parent, artifacts_dir.parent.parent]:
+            try:
+                if parent.exists() and not any(parent.iterdir()):
+                    parent.rmdir()
+            except OSError:
+                pass
+
+
+@pytest.fixture(scope="session")
+def stream_claude_code_artifacts_dir():
+    """Path: dx-runtime/dx_stream/dx-agentic-dev/e2e-tests/claude_code/autopilot/<session_id>/"""
+    session_id = time.strftime("%Y%m%d_%H%M%S") + f"_{uuid.uuid4().hex[:6]}"
+    artifacts_dir = STREAM_E2E_ARTIFACTS_BASE / "claude_code" / "autopilot" / session_id
+    artifacts_dir.mkdir(parents=True, exist_ok=True)
+    yield artifacts_dir
+    if not os.environ.get("DX_AGENTIC_E2E_KEEP_ARTIFACTS"):
+        shutil.rmtree(artifacts_dir, ignore_errors=True)
+        for parent in [artifacts_dir.parent, artifacts_dir.parent.parent]:
+            try:
+                if parent.exists() and not any(parent.iterdir()):
+                    parent.rmdir()
+            except OSError:
+                pass
 
 
 # ---------------------------------------------------------------------------

@@ -49,13 +49,13 @@ SCENARIO_PROMPT = (
 # ---------------------------------------------------------------------------
 
 @pytest.fixture(scope="module")
-def scenario(copilot_runner, copilot_cli_artifacts_dir) -> ScenarioResult:
+def scenario(copilot_runner, stream_copilot_cli_artifacts_dir) -> ScenarioResult:
     """Execute dx_stream Scenario #1 via Copilot CLI."""
     return copilot_runner.run(
         prompt=SCENARIO_PROMPT,
         workdir=STREAM_ROOT,
         scenario_key="dx_stream",
-        session_log_dir=copilot_cli_artifacts_dir,
+        session_log_dir=stream_copilot_cli_artifacts_dir,
     )
 
 

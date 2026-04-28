@@ -33,13 +33,13 @@ SCENARIO_PROMPT = (
 
 
 @pytest.fixture(scope="module")
-def scenario(claude_code_runner, claude_code_artifacts_dir) -> ScenarioResult:
+def scenario(claude_code_runner, stream_claude_code_artifacts_dir) -> ScenarioResult:
     """Execute dx_stream Scenario via Claude Code CLI."""
     return claude_code_runner.run(
         prompt=SCENARIO_PROMPT,
         workdir=STREAM_ROOT,
         scenario_key="dx_stream",
-        session_log_dir=claude_code_artifacts_dir,
+        session_log_dir=stream_claude_code_artifacts_dir,
     )
 
 

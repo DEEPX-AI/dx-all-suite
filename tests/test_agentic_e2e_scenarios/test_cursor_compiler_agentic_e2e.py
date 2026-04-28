@@ -31,13 +31,13 @@ SCENARIO_PROMPT = (
 
 
 @pytest.fixture(scope="module")
-def scenario(cursor_runner, cursor_cli_artifacts_dir) -> ScenarioResult:
+def scenario(cursor_runner, compiler_cursor_cli_artifacts_dir) -> ScenarioResult:
     """Execute dx-compiler Scenario via Cursor CLI."""
     return cursor_runner.run(
         prompt=SCENARIO_PROMPT,
         workdir=COMPILER_ROOT,
         scenario_key="compiler",
-        session_log_dir=cursor_cli_artifacts_dir,
+        session_log_dir=compiler_cursor_cli_artifacts_dir,
         timeout=1500,
     )
 

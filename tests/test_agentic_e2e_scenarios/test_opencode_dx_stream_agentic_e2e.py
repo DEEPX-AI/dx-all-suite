@@ -33,13 +33,13 @@ SCENARIO_PROMPT = (
 
 
 @pytest.fixture(scope="module")
-def scenario(opencode_runner, opencode_artifacts_dir) -> ScenarioResult:
+def scenario(opencode_runner, stream_opencode_artifacts_dir) -> ScenarioResult:
     """Execute dx_stream Scenario via OpenCode CLI."""
     return opencode_runner.run(
         prompt=SCENARIO_PROMPT,
         workdir=STREAM_ROOT,
         scenario_key="dx_stream",
-        session_log_dir=opencode_artifacts_dir,
+        session_log_dir=stream_opencode_artifacts_dir,
     )
 
 

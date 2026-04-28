@@ -13,14 +13,14 @@
 #   local           - Run only local installation tests
 #   docker          - Run only docker installation tests
 #   getting_started - Run only getting-started tests
-#   agentic-e2e-copilot-cli-autopilot  - Run agentic E2E tests via Copilot CLI (fully autonomous, CI/CD)
+#   agentic-e2e-copilot-cli-autopilot  - Run agentic E2E tests via Copilot CLI (fully autonomous)
 #   agentic-e2e-cursor-cli-autopilot   - Run agentic E2E tests via Cursor CLI (fully autonomous)
 #   agentic-e2e-opencode-cli-autopilot - Run agentic E2E tests via OpenCode CLI (fully autonomous)
 #   agentic-e2e-claude-code-autopilot  - Run agentic E2E tests via Claude Code CLI (fully autonomous)
 #   agentic-e2e-copilot-cli-manual    - Run agentic E2E interactively via Copilot CLI (shell-based, no pytest)
 #   agentic-e2e-cursor-cli-manual      - Run agentic E2E interactively via Cursor CLI (shell-based, no pytest)
 #   agentic-e2e-opencode-cli-manual    - Run agentic E2E interactively via OpenCode CLI (/export HTML archive)
-#   agentic-e2e-claude-code-manual     - Run agentic E2E interactively via Claude Code CLI (/insight HTML archive)
+#   agentic-e2e-claude-code-manual     - Run agentic E2E interactively via Claude Code CLI (/export txt archive)
 #   list            - List all available tests
 #   report          - Run all tests and generate HTML report
 #   json            - Run all tests and generate JSON report
@@ -157,7 +157,7 @@ print_usage() {
     echo -e "  ${GREEN}agentic-e2e-copilot-cli-manual${NC}    - Run agentic E2E interactively via Copilot CLI (shell-based)"
     echo -e "  ${GREEN}agentic-e2e-cursor-cli-manual${NC}      - Run agentic E2E interactively via Cursor CLI (shell-based)"
     echo -e "  ${GREEN}agentic-e2e-opencode-cli-manual${NC}    - Run agentic E2E interactively via OpenCode CLI (/export HTML)"
-    echo -e "  ${GREEN}agentic-e2e-claude-code-manual${NC}     - Run agentic E2E interactively via Claude Code CLI (/insight HTML)"
+    echo -e "  ${GREEN}agentic-e2e-claude-code-manual${NC}     - Run agentic E2E interactively via Claude Code CLI (/export txt)"
     echo -e ""
     echo -e "Utility Commands:"
     echo -e "  ${GREEN}list${NC}            - List all available tests"
@@ -1673,8 +1673,8 @@ case "$COMMAND" in
     agentic-e2e-claude-code-manual)
         # ---------------------------------------------------------------
         # Shell-based interactive mode — runs Claude Code CLI directly (no pytest)
-        # User interacts with Claude Code TUI, types /insight to save HTML report,
-        # then exits. Shell detects the HTML and archives it.
+        # User interacts with Claude Code TUI, types /export to save txt transcript,
+        # then exits. Shell detects the txt file and archives it.
         # ---------------------------------------------------------------
         if ! command -v claude &> /dev/null; then
             print_error "Claude Code CLI (claude) not found on PATH. Install it first:"
@@ -1814,7 +1814,7 @@ case "$COMMAND" in
             done
             echo -e "  ${GREEN}a)${NC} all          — Run all scenarios sequentially"
             echo ""
-            echo -e "${YELLOW}NOTE:${NC} Type ${GREEN}/insight${NC} in the session before exiting to save HTML report."
+            echo -e "${YELLOW}NOTE:${NC} Type ${GREEN}/export${NC} in the session before exiting to save txt transcript."
             echo ""
             read -p "Select scenario [1-${#SCENARIO_KEYS[@]}/a]: " CHOICE
 
@@ -1854,7 +1854,7 @@ case "$COMMAND" in
             echo -e "${BLUE}=== Prompt:   ${_prompt}${NC}"
             echo -e "${BLUE}================================================================${NC}"
             echo ""
-            echo -e "${YELLOW}TIP:${NC} Type ${GREEN}/insight${NC} in the session before exiting to save HTML report"
+            echo -e "${YELLOW}TIP:${NC} Type ${GREEN}/export${NC} in the session before exiting to save txt transcript"
             echo ""
             print_info "Starting Claude Code session..."
             echo ""
@@ -1862,17 +1862,10 @@ case "$COMMAND" in
             _snapshot_file=$(mktemp)
             snapshot_sessions "$_search_paths" "$_snapshot_file"
 
-            # Capture pre-session /insight report mtime if it exists
-            _insight_candidates=(
-                "$HOME/.claude/usage-data/report.html"
-                "$HOME/.claude/insights.html"
-            )
-            declare -A _insight_premtime
-            for _ic in "${_insight_candidates[@]}"; do
-                if [ -f "$_ic" ]; then
-                    _insight_premtime[$_ic]=$(stat -c %Y "$_ic" 2>/dev/null || echo "0")
-                fi
-            done
+            # Snapshot existing /export txt files in workdir before session.
+            # Claude Code writes: <workdir>/YYYY-MM-DD-HHMMSS-<title>.txt
+            _export_snapshot_file=$(mktemp)
+            find "$_workdir" -maxdepth 1 -name "????-??-??-*.txt" 2>/dev/null > "$_export_snapshot_file"
 
             # Run Claude Code interactively
             (cd "$_workdir" && claude --dangerously-skip-permissions --model "$AGENTIC_MODEL")
@@ -1892,32 +1885,26 @@ case "$COMMAND" in
                 echo -e "  ${YELLOW}[WARN]${NC} No new session directories detected"
             fi
 
-            # Detect and archive /insight HTML report
-            # Claude Code creates the report at well-known paths after /insight
-            _insight_html=""
-            for _ic in "${_insight_candidates[@]}"; do
-                if [ -f "$_ic" ]; then
-                    _new_mtime=$(stat -c %Y "$_ic" 2>/dev/null || echo "0")
-                    _old_mtime="${_insight_premtime[$_ic]:-0}"
-                    if [ "$_new_mtime" -gt "$_old_mtime" ]; then
-                        _insight_html="$_ic"
-                        break
-                    fi
+            # Detect and archive /export txt transcript.
+            # Find txt files in workdir that were not in the pre-session snapshot,
+            # picking the most recently modified one.
+            _export_txt=""
+            while IFS= read -r _tf; do
+                if ! grep -qxF "$_tf" "$_export_snapshot_file" 2>/dev/null; then
+                    _export_txt="$_tf"
+                    break
                 fi
-            done
-            # Fallback: look for any recently created HTML in ~/.claude/
-            if [ -z "$_insight_html" ]; then
-                _insight_html=$(find "$HOME/.claude" -name "*.html" -newer "$_snapshot_file" \
-                    -print -quit 2>/dev/null || true)
-            fi
+            done < <(find "$_workdir" -maxdepth 1 -name "????-??-??-*.txt" \
+                         -printf "%T@ %p\n" 2>/dev/null | sort -rn | awk '{print $2}')
+            rm -f "$_export_snapshot_file"
 
-            if [ -n "$_insight_html" ]; then
-                _html_dest="${ARTIFACTS_BASE}/${scenario_key}-claude-insight.html"
-                cp "$_insight_html" "$_html_dest"
-                print_info "Claude Code /insight HTML archived: ${_html_dest}"
+            if [ -n "$_export_txt" ]; then
+                _txt_dest="${ARTIFACTS_BASE}/${scenario_key}-claude-export.txt"
+                cp "$_export_txt" "$_txt_dest"
+                print_info "Claude Code /export txt archived: ${_txt_dest}"
             else
-                echo -e "  ${YELLOW}[WARN]${NC} No Claude Code insight HTML found."
-                echo -e "         Did you type ${GREEN}/insight${NC} before exiting the session?"
+                echo -e "  ${YELLOW}[WARN]${NC} No Claude Code export txt found."
+                echo -e "         Did you type ${GREEN}/export${NC} before exiting the session?"
             fi
 
             validate_scenario "$scenario_key" "$_cc_exit" "${_detected_arr[@]}"
