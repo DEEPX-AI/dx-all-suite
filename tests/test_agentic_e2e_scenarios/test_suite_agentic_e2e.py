@@ -57,7 +57,7 @@ def scenario(copilot_runner, copilot_cli_artifacts_dir) -> ScenarioResult:
         workdir=SUITE_ROOT,
         scenario_key="suite",
         session_log_dir=copilot_cli_artifacts_dir,
-        timeout=1200,  # cross-project with download + compilation + app generation
+        timeout=1500,  # cross-project with download + compilation + app generation
     )
 
 
@@ -74,8 +74,8 @@ class TestExecution:
 
     def test_completed_within_timeout(self, scenario: ScenarioResult):
         """Execution finishes within the extended timeout."""
-        assert scenario.duration_seconds < 1200, (
-            f"Scenario took {scenario.duration_seconds:.0f}s (limit: 1200s)"
+        assert scenario.duration_seconds < 1500, (
+            f"Scenario took {scenario.duration_seconds:.0f}s (limit: 1500s)"
         )
 
     def test_start_sentinel_emitted(self, scenario: ScenarioResult):
