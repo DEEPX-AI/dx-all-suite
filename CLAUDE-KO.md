@@ -327,9 +327,11 @@ superpowers `brainstorming` 스킬 또는 `/dx-brainstorm-and-plan` 사용 시:
    | **Copilot CLI** | `/share html` | HTML 트랜스크립트 |
    | **Cursor CLI** (`agent`) | 내장 내보내기 없음 — 테스트 하네스가 `--output-format stream-json`으로 자동 저장 | JSON stream |
    | **OpenCode** | `/export` | JSON |
+   | **Claude Code** (`claude`) | `/export` | TXT 트랜스크립트 — `<workdir>/YYYY-MM-DD-HHMMSS-<title>.txt`로 저장 |
 
    Copilot CLI의 경우: `To save this session as HTML, type: /share html`
    OpenCode의 경우: `To save this session as JSON, type: /export`
+   Claude Code의 경우: `To save this session as a text transcript, type: /export`
    Cursor CLI의 경우: 사용자 작업이 필요 없습니다 — 테스트 하네스가 출력을 자동 캡처합니다.
 
    테스트 하네스 (`test.sh`)는 내보낸 아티팩트를 자동으로 감지하고

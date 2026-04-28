@@ -32,13 +32,13 @@ SCENARIO_PROMPT = (
 
 
 @pytest.fixture(scope="module")
-def scenario(claude_code_runner, claude_code_artifacts_dir) -> ScenarioResult:
+def scenario(claude_code_runner, compiler_claude_code_artifacts_dir) -> ScenarioResult:
     """Execute dx-compiler Scenario via Claude Code CLI."""
     return claude_code_runner.run(
         prompt=SCENARIO_PROMPT,
         workdir=COMPILER_ROOT,
         scenario_key="compiler",
-        session_log_dir=claude_code_artifacts_dir,
+        session_log_dir=compiler_claude_code_artifacts_dir,
         timeout=1500,
     )
 
