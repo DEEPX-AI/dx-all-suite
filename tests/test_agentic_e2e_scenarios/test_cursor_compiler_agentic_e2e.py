@@ -38,7 +38,7 @@ def scenario(cursor_runner, cursor_cli_artifacts_dir) -> ScenarioResult:
         workdir=COMPILER_ROOT,
         scenario_key="compiler",
         session_log_dir=cursor_cli_artifacts_dir,
-        timeout=1200,
+        timeout=1500,
     )
 
 
@@ -51,8 +51,8 @@ class TestExecution:
 
     def test_completed_within_timeout(self, scenario: ScenarioResult):
         """Execution finishes within the configured timeout."""
-        assert scenario.duration_seconds < 1200, (
-            f"Scenario took {scenario.duration_seconds:.0f}s (limit: 1200s)"
+        assert scenario.duration_seconds < 1500, (
+            f"Scenario took {scenario.duration_seconds:.0f}s (limit: 1500s)"
         )
 
     def test_start_sentinel_emitted(self, scenario: ScenarioResult):

@@ -209,6 +209,20 @@ DEFAULT_CURSOR_MODEL = os.environ.get("DX_AGENTIC_E2E_CURSOR_MODEL", "claude-4.6
 # Default timeout for Cursor CLI execution (5 minutes)
 DEFAULT_CURSOR_TIMEOUT = int(os.environ.get("DX_AGENTIC_E2E_CURSOR_TIMEOUT", "600"))
 
+# ---------------------------------------------------------------------------
+# Default model / timeout for OpenCode CLI
+# ---------------------------------------------------------------------------
+
+DEFAULT_OPENCODE_MODEL = os.environ.get("DX_AGENTIC_E2E_OPENCODE_MODEL", "github-copilot/claude-sonnet-4.6")
+DEFAULT_OPENCODE_TIMEOUT = int(os.environ.get("DX_AGENTIC_E2E_OPENCODE_TIMEOUT", "600"))
+
+# ---------------------------------------------------------------------------
+# Default model / timeout for Claude Code CLI
+# ---------------------------------------------------------------------------
+
+DEFAULT_CLAUDE_CODE_MODEL = os.environ.get("DX_AGENTIC_E2E_CLAUDE_CODE_MODEL", "claude-sonnet-4-6")
+DEFAULT_CLAUDE_CODE_TIMEOUT = int(os.environ.get("DX_AGENTIC_E2E_CLAUDE_CODE_TIMEOUT", "600"))
+
 
 class CopilotRunnerAutopilot:
     """Wrapper for autopilot Copilot CLI invocations.
@@ -347,8 +361,17 @@ class CopilotRunnerAutopilot:
             )
             duration = time.monotonic() - start
 
-            # Post-detection: find new session directories
+            # Post-detection: find new session directories.
+            # Copilot sub-agents may write output dirs several minutes after the
+            # main CLI process exits, so poll up to 120 s in 5-second intervals.
             output_dirs = _detect_new_sessions(search_paths, snapshot)
+            if not output_dirs:
+                poll_deadline = time.monotonic() + 120
+                while time.monotonic() < poll_deadline:
+                    time.sleep(5)
+                    output_dirs = _detect_new_sessions(search_paths, snapshot)
+                    if output_dirs:
+                        break
 
             # Record end timestamp
             end_utc = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -693,6 +716,389 @@ class CursorRunnerAutopilot:
             )
 
 
+# ---------------------------------------------------------------------------
+# OpenCodeRunnerAutopilot
+# ---------------------------------------------------------------------------
+
+class OpenCodeRunnerAutopilot:
+    """Wrapper for autopilot OpenCode CLI invocations.
+
+    Runs ``opencode run --format json --model <model> <prompt>`` for fully
+    autonomous execution.
+
+    An autopilot directive is appended to every prompt to prevent the agent
+    from asking questions via plain text output.
+
+    Output files are auto-detected in ``dx-agentic-dev/<session_id>/`` under
+    the relevant sub-project directories — same mechanism as Copilot.
+
+    Usage::
+
+        runner = OpenCodeRunnerAutopilot()
+        result = runner.run(
+            prompt="Build a yolo26n detection app",
+            workdir=APP_ROOT,
+            scenario_key="dx_app",
+        )
+        assert result.succeeded
+        assert result.output_dir is not None
+    """
+
+    OPENCODE_BIN = "opencode"
+    MODE = "autopilot"
+
+    AUTOPILOT_DIRECTIVE = (
+        " IMPORTANT: This is an automated test run. "
+        "Do not ask questions or present options. "
+        "Proceed directly with implementation, choosing the most appropriate approach."
+    )
+
+    def __init__(self, model: str = ""):
+        self.model = model or DEFAULT_OPENCODE_MODEL
+
+    @classmethod
+    def is_available(cls) -> bool:
+        """Check if the ``opencode`` binary is on PATH."""
+        return shutil.which(cls.OPENCODE_BIN) is not None
+
+    @classmethod
+    def opencode_path(cls) -> Optional[str]:
+        """Return the full path to the opencode binary, or None."""
+        return shutil.which(cls.OPENCODE_BIN)
+
+    def run(
+        self,
+        prompt: str,
+        workdir: Path,
+        scenario_key: str,
+        session_log_dir: Optional[Path] = None,
+        timeout: int = DEFAULT_OPENCODE_TIMEOUT,
+        extra_args: Optional[List[str]] = None,
+    ) -> ScenarioResult:
+        """Execute an OpenCode CLI prompt in autopilot mode.
+
+        Args:
+            prompt: The instruction to send to OpenCode.
+            workdir: Working directory (determines which agent config loads).
+            scenario_key: One of ``"compiler"``, ``"dx_app"``, ``"dx_stream"``,
+                ``"runtime"``, ``"suite"``.
+            session_log_dir: Directory to store the session transcript.
+            timeout: Maximum execution time in seconds.
+            extra_args: Additional CLI arguments.
+
+        Returns:
+            ScenarioResult with exit code, output, and auto-detected output dirs.
+        """
+        log_dir = session_log_dir or Path(os.environ.get("TMPDIR", "/tmp"))
+        log_dir.mkdir(parents=True, exist_ok=True)
+
+        effective_prompt = prompt + self.AUTOPILOT_DIRECTIVE
+
+        search_paths = AGENTIC_DEV_SEARCH_PATHS.get(
+            scenario_key, [workdir / "dx-agentic-dev"],
+        )
+
+        snapshot = _snapshot_sessions(search_paths)
+        start_utc = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+        cmd = [
+            self.OPENCODE_BIN,
+            "run",
+            "--format", "json",
+            effective_prompt,
+        ]
+
+        if self.model:
+            cmd.extend(["--model", self.model])
+
+        if extra_args:
+            cmd.extend(extra_args)
+
+        start = time.monotonic()
+        try:
+            result = subprocess.run(
+                cmd,
+                cwd=str(workdir),
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+                env={**os.environ, "NO_COLOR": "1"},
+            )
+            duration = time.monotonic() - start
+            output_dirs = _detect_new_sessions(search_paths, snapshot)
+            end_utc = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+            session_uuid, assistant_text = _parse_opencode_stream_json(result.stdout)
+
+            session_log = log_dir / f"{scenario_key}-opencode-session.md"
+            _save_opencode_session_log(
+                session_log, result.stdout, result.stderr,
+                scenario_key, prompt, session_uuid,
+            )
+
+            session_events_log = log_dir / f"{scenario_key}-opencode-stream.jsonl"
+            try:
+                session_events_log.write_text(result.stdout, encoding="utf-8")
+            except Exception:
+                pass
+
+            for odir in output_dirs:
+                try:
+                    odir_real = odir.resolve()
+                    session_name = odir_real.name
+                    parent_name = odir_real.parent.parent.name
+                    link_path = log_dir / f"{parent_name}_{session_name}"
+                    link_path.unlink(missing_ok=True)
+                    link_path.symlink_to(odir_real)
+                except Exception:
+                    pass
+
+            return ScenarioResult(
+                returncode=result.returncode,
+                stdout=assistant_text or result.stdout,
+                stderr=result.stderr,
+                output_dirs=output_dirs,
+                session_log=session_log if session_log.exists() else None,
+                session_events_log=session_events_log if session_events_log.exists() else None,
+                duration_seconds=duration,
+                prompt=prompt,
+                workdir=workdir,
+                start_utc=start_utc,
+                end_utc=end_utc,
+                session_uuid=session_uuid,
+            )
+        except subprocess.TimeoutExpired as exc:
+            duration = time.monotonic() - start
+            output_dirs = _detect_new_sessions(search_paths, snapshot)
+            end_utc = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+            raw_stdout = exc.stdout.decode(errors="replace") if isinstance(exc.stdout, bytes) else (exc.stdout or "")
+            session_uuid, assistant_text = _parse_opencode_stream_json(raw_stdout)
+
+            session_events_log = log_dir / f"{scenario_key}-opencode-stream.jsonl"
+            try:
+                session_events_log.write_text(raw_stdout, encoding="utf-8")
+            except Exception:
+                pass
+
+            return ScenarioResult(
+                returncode=-1,
+                stdout=assistant_text or raw_stdout,
+                stderr=f"TIMEOUT after {timeout}s",
+                output_dirs=output_dirs,
+                session_log=None,
+                session_events_log=session_events_log if session_events_log.exists() else None,
+                duration_seconds=duration,
+                prompt=prompt,
+                workdir=workdir,
+                start_utc=start_utc,
+                end_utc=end_utc,
+                session_uuid=session_uuid,
+            )
+
+
+# ---------------------------------------------------------------------------
+# ClaudeCodeRunnerAutopilot
+# ---------------------------------------------------------------------------
+
+class ClaudeCodeRunnerAutopilot:
+    """Wrapper for autopilot Claude Code CLI invocations.
+
+    Runs ``claude -p --dangerously-skip-permissions --output-format stream-json
+    <prompt>`` for fully autonomous execution.
+
+    An autopilot directive is appended to every prompt to prevent the agent
+    from asking questions.
+
+    Output files are auto-detected in ``dx-agentic-dev/<session_id>/`` under
+    the relevant sub-project directories — same mechanism as Copilot.
+
+    Usage::
+
+        runner = ClaudeCodeRunnerAutopilot()
+        result = runner.run(
+            prompt="Build a yolo26n detection app",
+            workdir=APP_ROOT,
+            scenario_key="dx_app",
+        )
+        assert result.succeeded
+        assert result.output_dir is not None
+    """
+
+    CLAUDE_CODE_BIN = "claude"
+    MODE = "autopilot"
+
+    AUTOPILOT_DIRECTIVE = (
+        " IMPORTANT: This is an automated test run. "
+        "Do not ask questions or present options. "
+        "Proceed directly with implementation, choosing the most appropriate approach."
+    )
+
+    def __init__(self, model: str = ""):
+        self.model = model or DEFAULT_CLAUDE_CODE_MODEL
+
+    @classmethod
+    def is_available(cls) -> bool:
+        """Check if the ``claude`` binary is on PATH."""
+        return shutil.which(cls.CLAUDE_CODE_BIN) is not None
+
+    @classmethod
+    def is_authenticated(cls) -> bool:
+        """Check if Claude Code CLI is authenticated via ``claude auth status``.
+
+        Returns ``True`` if ``loggedIn`` is true in the JSON response.
+        """
+        if not cls.is_available():
+            return False
+        try:
+            result = subprocess.run(
+                [cls.CLAUDE_CODE_BIN, "auth", "status"],
+                capture_output=True, text=True, timeout=15,
+                env={**os.environ, "NO_COLOR": "1"},
+            )
+            data = json.loads(result.stdout)
+            return bool(data.get("loggedIn", False))
+        except Exception:
+            return False
+
+    @classmethod
+    def claude_code_path(cls) -> Optional[str]:
+        """Return the full path to the claude binary, or None."""
+        return shutil.which(cls.CLAUDE_CODE_BIN)
+
+    def run(
+        self,
+        prompt: str,
+        workdir: Path,
+        scenario_key: str,
+        session_log_dir: Optional[Path] = None,
+        timeout: int = DEFAULT_CLAUDE_CODE_TIMEOUT,
+        extra_args: Optional[List[str]] = None,
+    ) -> ScenarioResult:
+        """Execute a Claude Code CLI prompt in autopilot mode.
+
+        Args:
+            prompt: The instruction to send to Claude Code.
+            workdir: Working directory (CLAUDE.md loads from here).
+            scenario_key: One of ``"compiler"``, ``"dx_app"``, ``"dx_stream"``,
+                ``"runtime"``, ``"suite"``.
+            session_log_dir: Directory to store the session transcript.
+            timeout: Maximum execution time in seconds.
+            extra_args: Additional CLI arguments.
+
+        Returns:
+            ScenarioResult with exit code, output, and auto-detected output dirs.
+        """
+        log_dir = session_log_dir or Path(os.environ.get("TMPDIR", "/tmp"))
+        log_dir.mkdir(parents=True, exist_ok=True)
+
+        effective_prompt = prompt + self.AUTOPILOT_DIRECTIVE
+
+        search_paths = AGENTIC_DEV_SEARCH_PATHS.get(
+            scenario_key, [workdir / "dx-agentic-dev"],
+        )
+
+        snapshot = _snapshot_sessions(search_paths)
+        start_utc = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+        cmd = [
+            self.CLAUDE_CODE_BIN,
+            "-p",                                     # print / non-interactive
+            "--dangerously-skip-permissions",          # fully autonomous
+            "--verbose",                               # required with stream-json
+            "--output-format", "stream-json",
+            effective_prompt,
+        ]
+
+        if self.model:
+            cmd.extend(["--model", self.model])
+
+        if extra_args:
+            cmd.extend(extra_args)
+
+        start = time.monotonic()
+        try:
+            result = subprocess.run(
+                cmd,
+                cwd=str(workdir),
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+                env={**os.environ, "NO_COLOR": "1"},
+            )
+            duration = time.monotonic() - start
+            output_dirs = _detect_new_sessions(search_paths, snapshot)
+            end_utc = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+            session_uuid, assistant_text = _parse_claude_code_stream_json(result.stdout)
+
+            session_log = log_dir / f"{scenario_key}-claude-code-session.md"
+            _save_claude_code_session_log(
+                session_log, result.stdout, result.stderr,
+                scenario_key, prompt, session_uuid,
+            )
+
+            session_events_log = log_dir / f"{scenario_key}-claude-code-stream.jsonl"
+            try:
+                session_events_log.write_text(result.stdout, encoding="utf-8")
+            except Exception:
+                pass
+
+            for odir in output_dirs:
+                try:
+                    odir_real = odir.resolve()
+                    session_name = odir_real.name
+                    parent_name = odir_real.parent.parent.name
+                    link_path = log_dir / f"{parent_name}_{session_name}"
+                    link_path.unlink(missing_ok=True)
+                    link_path.symlink_to(odir_real)
+                except Exception:
+                    pass
+
+            return ScenarioResult(
+                returncode=result.returncode,
+                stdout=assistant_text or result.stdout,
+                stderr=result.stderr,
+                output_dirs=output_dirs,
+                session_log=session_log if session_log.exists() else None,
+                session_events_log=session_events_log if session_events_log.exists() else None,
+                duration_seconds=duration,
+                prompt=prompt,
+                workdir=workdir,
+                start_utc=start_utc,
+                end_utc=end_utc,
+                session_uuid=session_uuid,
+            )
+        except subprocess.TimeoutExpired as exc:
+            duration = time.monotonic() - start
+            output_dirs = _detect_new_sessions(search_paths, snapshot)
+            end_utc = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+            raw_stdout = exc.stdout.decode(errors="replace") if isinstance(exc.stdout, bytes) else (exc.stdout or "")
+            session_uuid, assistant_text = _parse_claude_code_stream_json(raw_stdout)
+
+            session_events_log = log_dir / f"{scenario_key}-claude-code-stream.jsonl"
+            try:
+                session_events_log.write_text(raw_stdout, encoding="utf-8")
+            except Exception:
+                pass
+
+            return ScenarioResult(
+                returncode=-1,
+                stdout=assistant_text or raw_stdout,
+                stderr=f"TIMEOUT after {timeout}s",
+                output_dirs=output_dirs,
+                session_log=None,
+                session_events_log=session_events_log if session_events_log.exists() else None,
+                duration_seconds=duration,
+                prompt=prompt,
+                workdir=workdir,
+                start_utc=start_utc,
+                end_utc=end_utc,
+                session_uuid=session_uuid,
+            )
+
+
 def _parse_cursor_stream_json(raw_output: str) -> tuple:
     """Parse Cursor CLI stream-json NDJSON output.
 
@@ -755,6 +1161,135 @@ def _save_cursor_session_log(
             "",
         ]
         _, assistant_text = _parse_cursor_stream_json(raw_stdout)
+        if assistant_text:
+            lines.append(assistant_text)
+        else:
+            lines.append("(no assistant output captured)")
+        if raw_stderr and raw_stderr.strip():
+            lines.extend(["", "## Stderr", "", raw_stderr])
+        output_path.write_text("\n".join(lines), encoding="utf-8")
+    except Exception:
+        pass
+
+
+# ---------------------------------------------------------------------------
+# OpenCode stream JSON parsing
+# ---------------------------------------------------------------------------
+
+
+def _parse_opencode_stream_json(raw_output: str) -> tuple:
+    """Parse OpenCode CLI ``--format json`` NDJSON output.
+
+    Returns:
+        ``(session_id, assistant_text)`` — either may be ``None``.
+    """
+    session_id = None
+    assistant_parts: List[str] = []
+
+    for line in raw_output.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+
+        event_type = event.get("type", "")
+        sid = event.get("sessionID") or event.get("session_id") or event.get("id")
+        if sid and not session_id:
+            session_id = str(sid)
+
+        if event_type in ("assistant", "text", "message"):
+            text = event.get("text") or event.get("content", "")
+            if isinstance(text, str) and text:
+                assistant_parts.append(text)
+            elif isinstance(text, list):
+                for part in text:
+                    if isinstance(part, dict):
+                        t = part.get("text", "")
+                        if t:
+                            assistant_parts.append(t)
+            # Also check nested message.content
+            msg = event.get("message", {})
+            if isinstance(msg, dict):
+                for content_part in msg.get("content", []):
+                    if isinstance(content_part, dict):
+                        t = content_part.get("text", "")
+                        if t:
+                            assistant_parts.append(t)
+
+    assistant_text = "\n".join(assistant_parts) if assistant_parts else None
+    return session_id, assistant_text
+
+
+def _save_opencode_session_log(
+    output_path: Path,
+    raw_stdout: str,
+    raw_stderr: str,
+    scenario_key: str,
+    prompt: str,
+    session_uuid: Optional[str],
+) -> None:
+    """Save OpenCode session as a Markdown log (best-effort)."""
+    try:
+        lines = [
+            f"# OpenCode Session — {scenario_key}",
+            "",
+            f"- **Session UUID:** {session_uuid or 'unknown'}",
+            f"- **Prompt:** {prompt}",
+            "",
+            "## Assistant Output",
+            "",
+        ]
+        _, assistant_text = _parse_opencode_stream_json(raw_stdout)
+        if assistant_text:
+            lines.append(assistant_text)
+        else:
+            lines.append("(no assistant output captured)")
+        if raw_stderr and raw_stderr.strip():
+            lines.extend(["", "## Stderr", "", raw_stderr])
+        output_path.write_text("\n".join(lines), encoding="utf-8")
+    except Exception:
+        pass
+
+
+# ---------------------------------------------------------------------------
+# Claude Code stream JSON parsing
+# ---------------------------------------------------------------------------
+
+
+def _parse_claude_code_stream_json(raw_output: str) -> tuple:
+    """Parse Claude Code CLI ``--output-format stream-json`` NDJSON output.
+
+    Format is identical to Cursor CLI stream-json.
+
+    Returns:
+        ``(session_uuid, assistant_text)`` — either may be ``None``.
+    """
+    return _parse_cursor_stream_json(raw_output)
+
+
+def _save_claude_code_session_log(
+    output_path: Path,
+    raw_stdout: str,
+    raw_stderr: str,
+    scenario_key: str,
+    prompt: str,
+    session_uuid: Optional[str],
+) -> None:
+    """Save Claude Code session as a Markdown log (best-effort)."""
+    try:
+        lines = [
+            f"# Claude Code Session — {scenario_key}",
+            "",
+            f"- **Session UUID:** {session_uuid or 'unknown'}",
+            f"- **Prompt:** {prompt}",
+            "",
+            "## Assistant Output",
+            "",
+        ]
+        _, assistant_text = _parse_claude_code_stream_json(raw_stdout)
         if assistant_text:
             lines.append(assistant_text)
         else:
@@ -1148,6 +1683,124 @@ def cursor_cli_artifacts_dir():
 
 
 @pytest.fixture(scope="session")
+def opencode_runner():
+    """Session-scoped OpenCodeRunnerAutopilot for autopilot mode.
+
+    Uses ``opencode run --format json`` for fully autonomous execution.
+    Skips if the ``opencode`` binary is not on PATH.
+    """
+    if not OpenCodeRunnerAutopilot.is_available():
+        pytest.skip(
+            f"OpenCode CLI not found on PATH. "
+            f"Searched for '{OpenCodeRunnerAutopilot.OPENCODE_BIN}' — not found. "
+            f"Install OpenCode: curl -fsSL https://opencode.ai/install | bash"
+        )
+    return OpenCodeRunnerAutopilot()
+
+
+@pytest.fixture(scope="session")
+def claude_code_runner():
+    """Session-scoped ClaudeCodeRunnerAutopilot for autopilot mode.
+
+    Uses ``claude -p --dangerously-skip-permissions --output-format stream-json``
+    for fully autonomous execution. Skips if ``claude`` is not on PATH or not
+    authenticated (checked via ``claude auth status``).
+    """
+    if not ClaudeCodeRunnerAutopilot.is_available():
+        pytest.skip(
+            f"Claude Code CLI not found on PATH. "
+            f"Searched for '{ClaudeCodeRunnerAutopilot.CLAUDE_CODE_BIN}' — not found."
+        )
+    if not ClaudeCodeRunnerAutopilot.is_authenticated():
+        pytest.skip(
+            "Claude Code CLI is not authenticated. "
+            "Run 'claude login' to authenticate."
+        )
+    return ClaudeCodeRunnerAutopilot()
+
+
+@pytest.fixture(scope="session")
+def opencode_artifacts_dir():
+    """Session-scoped artifacts dir for OpenCode autopilot runs.
+
+    Path: ``dx-agentic-dev/e2e-tests/opencode/autopilot/<session_id>/``
+    """
+    session_id = time.strftime("%Y%m%d_%H%M%S") + f"_{uuid.uuid4().hex[:6]}"
+    artifacts_dir = AGENTIC_E2E_ARTIFACTS_BASE / "opencode" / "autopilot" / session_id
+    artifacts_dir.mkdir(parents=True, exist_ok=True)
+
+    yield artifacts_dir
+
+    if not os.environ.get("DX_AGENTIC_E2E_KEEP_ARTIFACTS"):
+        shutil.rmtree(artifacts_dir, ignore_errors=True)
+        for parent in [artifacts_dir.parent, artifacts_dir.parent.parent]:
+            try:
+                if parent.exists() and not any(parent.iterdir()):
+                    parent.rmdir()
+            except OSError:
+                pass
+
+
+@pytest.fixture(scope="session")
+def claude_code_artifacts_dir():
+    """Session-scoped artifacts dir for Claude Code autopilot runs.
+
+    Path: ``dx-agentic-dev/e2e-tests/claude_code/autopilot/<session_id>/``
+    """
+    session_id = time.strftime("%Y%m%d_%H%M%S") + f"_{uuid.uuid4().hex[:6]}"
+    artifacts_dir = AGENTIC_E2E_ARTIFACTS_BASE / "claude_code" / "autopilot" / session_id
+    artifacts_dir.mkdir(parents=True, exist_ok=True)
+
+    yield artifacts_dir
+
+    if not os.environ.get("DX_AGENTIC_E2E_KEEP_ARTIFACTS"):
+        shutil.rmtree(artifacts_dir, ignore_errors=True)
+        for parent in [artifacts_dir.parent, artifacts_dir.parent.parent]:
+            try:
+                if parent.exists() and not any(parent.iterdir()):
+                    parent.rmdir()
+            except OSError:
+                pass
+
+
+@pytest.fixture(scope="session")
 def agentic_e2e_artifacts_dir(copilot_cli_artifacts_dir):
     """Deprecated alias for copilot_cli_artifacts_dir. Use tool-specific fixtures instead."""
     return copilot_cli_artifacts_dir
+
+
+# ---------------------------------------------------------------------------
+# NPU hardware availability check
+# ---------------------------------------------------------------------------
+
+def _is_npu_available() -> bool:
+    """Return True if ``dxrt-cli -s`` exits 0 (NPU hardware functional)."""
+    if shutil.which("dxrt-cli") is None:
+        return False
+    try:
+        result = subprocess.run(
+            ["dxrt-cli", "-s"],
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        return result.returncode == 0
+    except (subprocess.TimeoutExpired, OSError):
+        return False
+
+
+@pytest.fixture(scope="session")
+def npu_hardware_available():
+    """Session-scoped fixture that skips if NPU hardware is not functional.
+
+    Runs ``dxrt-cli -s`` once per test session.  If it fails (DKMS driver not
+    loaded, hardware init failure, etc.) all tests that depend on this fixture
+    are skipped with a descriptive message.  A cold boot may be required to
+    reload the ``dxrt_driver`` kernel module.
+    """
+    if not _is_npu_available():
+        pytest.skip(
+            "NPU hardware not available (dxrt-cli -s returned non-zero). "
+            "The DKMS kernel module (dxrt_driver) may not be loaded — "
+            "a cold boot / system reboot may be required."
+        )

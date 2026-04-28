@@ -15,8 +15,12 @@
 #   getting_started - Run only getting-started tests
 #   agentic-e2e-copilot-cli-autopilot  - Run agentic E2E tests via Copilot CLI (fully autonomous, CI/CD)
 #   agentic-e2e-cursor-cli-autopilot   - Run agentic E2E tests via Cursor CLI (fully autonomous)
+#   agentic-e2e-opencode-cli-autopilot - Run agentic E2E tests via OpenCode CLI (fully autonomous)
+#   agentic-e2e-claude-code-autopilot  - Run agentic E2E tests via Claude Code CLI (fully autonomous)
 #   agentic-e2e-copilot-cli-manual    - Run agentic E2E interactively via Copilot CLI (shell-based, no pytest)
 #   agentic-e2e-cursor-cli-manual      - Run agentic E2E interactively via Cursor CLI (shell-based, no pytest)
+#   agentic-e2e-opencode-cli-manual    - Run agentic E2E interactively via OpenCode CLI (/export HTML archive)
+#   agentic-e2e-claude-code-manual     - Run agentic E2E interactively via Claude Code CLI (/insight HTML archive)
 #   list            - List all available tests
 #   report          - Run all tests and generate HTML report
 #   json            - Run all tests and generate JSON report
@@ -148,8 +152,12 @@ print_usage() {
     echo -e "  ${GREEN}getting_started${NC} - Run only getting-started tests"
     echo -e "  ${GREEN}agentic-e2e-copilot-cli-autopilot${NC}  - Run agentic E2E via Copilot CLI (fully autonomous, CI/CD)"
     echo -e "  ${GREEN}agentic-e2e-cursor-cli-autopilot${NC}   - Run agentic E2E via Cursor CLI (fully autonomous)"
+    echo -e "  ${GREEN}agentic-e2e-opencode-cli-autopilot${NC} - Run agentic E2E via OpenCode CLI (fully autonomous)"
+    echo -e "  ${GREEN}agentic-e2e-claude-code-autopilot${NC}  - Run agentic E2E via Claude Code CLI (fully autonomous)"
     echo -e "  ${GREEN}agentic-e2e-copilot-cli-manual${NC}    - Run agentic E2E interactively via Copilot CLI (shell-based)"
     echo -e "  ${GREEN}agentic-e2e-cursor-cli-manual${NC}      - Run agentic E2E interactively via Cursor CLI (shell-based)"
+    echo -e "  ${GREEN}agentic-e2e-opencode-cli-manual${NC}    - Run agentic E2E interactively via OpenCode CLI (/export HTML)"
+    echo -e "  ${GREEN}agentic-e2e-claude-code-manual${NC}     - Run agentic E2E interactively via Claude Code CLI (/insight HTML)"
     echo -e ""
     echo -e "Utility Commands:"
     echo -e "  ${GREEN}list${NC}            - List all available tests"
@@ -172,6 +180,10 @@ print_usage() {
     echo -e "  ./test.sh agentic-e2e-copilot-cli-autopilot"
     echo -e "  ./test.sh agentic-e2e-copilot-cli-manual"
     echo -e "  ./test.sh agentic-e2e-cursor-cli-manual"
+    echo -e "  ./test.sh agentic-e2e-opencode-cli-autopilot"
+    echo -e "  ./test.sh agentic-e2e-opencode-cli-manual"
+    echo -e "  ./test.sh agentic-e2e-claude-code-autopilot"
+    echo -e "  ./test.sh agentic-e2e-claude-code-manual"
     echo -e "  ./test.sh agentic-e2e-copilot-cli-autopilot -k dx_app"
     echo -e "  ./test.sh report"
 }
@@ -1317,6 +1329,622 @@ case "$COMMAND" in
         if [ "$TOTAL_FAIL" -gt 0 ]; then
             exit 1
         fi
+        exit 0
+        ;;
+
+    agentic-e2e-opencode-cli-autopilot)
+        print_info "Running agentic E2E tests via OpenCode CLI (autopilot, fully autonomous)..."
+        if ! command -v opencode &> /dev/null; then
+            print_error "OpenCode CLI (opencode) not found on PATH. Install it first."
+            exit 1
+        fi
+        export DX_AGENTIC_E2E_MODE=autopilot
+        if [ -n "${M_EXPR}" ]; then
+            COMBINED_M_ARGS=(-m "agentic_e2e_opencode_cli_autopilot and (${M_EXPR})")
+        else
+            COMBINED_M_ARGS=(-m agentic_e2e_opencode_cli_autopilot)
+        fi
+        pytest -v "${CAPTURE_ARGS[@]}" "${COLLECT_ONLY_ARGS[@]}" "${COMBINED_M_ARGS[@]}" "${K_ARGS[@]}" "${REPORT_ARGS[@]}" "${JSON_ARGS[@]}" "$@"
+        EXIT_CODE=$?
+        if [ $GENERATE_REPORT -eq 1 ] && [ $EXIT_CODE -eq 0 ]; then
+            print_success "HTML report generated: ${REPORT_FILE}"
+        fi
+        exit $EXIT_CODE
+        ;;
+
+    agentic-e2e-claude-code-autopilot)
+        print_info "Running agentic E2E tests via Claude Code CLI (autopilot, fully autonomous)..."
+        if ! command -v claude &> /dev/null; then
+            print_error "Claude Code CLI (claude) not found on PATH. Install it first:"
+            print_error "  npm install -g @anthropic-ai/claude-code"
+            exit 1
+        fi
+        # Auth check via 'claude auth status'
+        _auth_json=$(claude auth status --output-format json 2>/dev/null || echo '{}')
+        _logged_in=$(python3 -c "import json,sys; d=json.loads(sys.stdin.read()); print(str(d.get('loggedIn',False)).lower())" <<< "$_auth_json" 2>/dev/null || echo "false")
+        if [ "$_logged_in" != "true" ]; then
+            print_error "Claude Code is not authenticated. Run: claude auth login"
+            exit 1
+        fi
+        export DX_AGENTIC_E2E_MODE=autopilot
+        if [ -n "${M_EXPR}" ]; then
+            COMBINED_M_ARGS=(-m "agentic_e2e_claude_code_autopilot and (${M_EXPR})")
+        else
+            COMBINED_M_ARGS=(-m agentic_e2e_claude_code_autopilot)
+        fi
+        pytest -v "${CAPTURE_ARGS[@]}" "${COLLECT_ONLY_ARGS[@]}" "${COMBINED_M_ARGS[@]}" "${K_ARGS[@]}" "${REPORT_ARGS[@]}" "${JSON_ARGS[@]}" "$@"
+        EXIT_CODE=$?
+        if [ $GENERATE_REPORT -eq 1 ] && [ $EXIT_CODE -eq 0 ]; then
+            print_success "HTML report generated: ${REPORT_FILE}"
+        fi
+        exit $EXIT_CODE
+        ;;
+
+    agentic-e2e-opencode-cli-manual)
+        # ---------------------------------------------------------------
+        # Shell-based interactive mode — runs OpenCode CLI directly (no pytest)
+        # User interacts with OpenCode TUI, types /export to save HTML archive,
+        # then exits. Shell detects the exported HTML and archives it.
+        # ---------------------------------------------------------------
+        if ! command -v opencode &> /dev/null; then
+            print_error "OpenCode CLI (opencode) not found on PATH. Install it first."
+            exit 1
+        fi
+
+        AGENTIC_MODEL="${DX_AGENTIC_E2E_OPENCODE_MODEL:-github-copilot/claude-sonnet-4.6}"
+        KEEP_ARTIFACTS="${DX_AGENTIC_E2E_KEEP_ARTIFACTS:-0}"
+        TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
+        declare -A SCENARIO_ARTIFACTS
+        GLOBAL_SUMMARY_BASE="${SCRIPT_DIR}/../dx-agentic-dev/e2e-tests/opencode/manual/${TIMESTAMP}"
+
+        SCENARIO_KEYS=(compiler dx_app dx_stream runtime suite)
+
+        declare -A SCENARIO_LABELS
+        SCENARIO_LABELS[compiler]="Download yolo26n, compile to DXNN"
+        SCENARIO_LABELS[dx_app]="Build yolo26n person detection app"
+        SCENARIO_LABELS[dx_stream]="Build detection pipeline with tracking"
+        SCENARIO_LABELS[runtime]="Route to dx_app + dx_stream via runtime builder"
+        SCENARIO_LABELS[suite]="Cross-project compile + app generation"
+
+        declare -A SCENARIO_WORKDIRS
+        SCENARIO_WORKDIRS[compiler]="${SCRIPT_DIR}/../dx-compiler"
+        SCENARIO_WORKDIRS[dx_app]="${SCRIPT_DIR}/../dx-runtime/dx_app"
+        SCENARIO_WORKDIRS[dx_stream]="${SCRIPT_DIR}/../dx-runtime/dx_stream"
+        SCENARIO_WORKDIRS[runtime]="${SCRIPT_DIR}/../dx-runtime"
+        SCENARIO_WORKDIRS[suite]="${SCRIPT_DIR}/.."
+
+        declare -A SCENARIO_PROMPTS
+        SCENARIO_PROMPTS[compiler]="Compile yolo26n model to dxnn"
+        SCENARIO_PROMPTS[dx_app]="Build a yolo26n detection app"
+        SCENARIO_PROMPTS[dx_stream]="Build a real-time detection pipeline with yolo26n"
+        SCENARIO_PROMPTS[runtime]="Build a yolo26n standalone detection app and a real-time streaming pipeline for it"
+        SCENARIO_PROMPTS[suite]="Compile yolo26n and build an inference app"
+
+        declare -A SCENARIO_SEARCH_PATHS
+        SCENARIO_SEARCH_PATHS[compiler]="${SCRIPT_DIR}/../dx-compiler/dx-agentic-dev"
+        SCENARIO_SEARCH_PATHS[dx_app]="${SCRIPT_DIR}/../dx-runtime/dx_app/dx-agentic-dev"
+        SCENARIO_SEARCH_PATHS[dx_stream]="${SCRIPT_DIR}/../dx-runtime/dx_stream/dx-agentic-dev"
+        SCENARIO_SEARCH_PATHS[runtime]="${SCRIPT_DIR}/../dx-runtime/dx-agentic-dev ${SCRIPT_DIR}/../dx-runtime/dx_app/dx-agentic-dev ${SCRIPT_DIR}/../dx-runtime/dx_stream/dx-agentic-dev"
+        SCENARIO_SEARCH_PATHS[suite]="${SCRIPT_DIR}/../dx-agentic-dev ${SCRIPT_DIR}/../dx-compiler/dx-agentic-dev ${SCRIPT_DIR}/../dx-runtime/dx_app/dx-agentic-dev ${SCRIPT_DIR}/../dx-runtime/dx_stream/dx-agentic-dev ${SCRIPT_DIR}/../dx-runtime/dx-agentic-dev"
+
+        declare -A SCENARIO_CHECK_MODELS
+        SCENARIO_CHECK_MODELS[compiler]=1
+        SCENARIO_CHECK_MODELS[dx_app]=0
+        SCENARIO_CHECK_MODELS[dx_stream]=0
+        SCENARIO_CHECK_MODELS[runtime]=0
+        SCENARIO_CHECK_MODELS[suite]=1
+
+        # Snapshot/detect helpers (defined in copilot-manual block above; reused here)
+        # If running this case directly (without copilot-manual), redefine:
+        if ! declare -f snapshot_sessions > /dev/null 2>&1; then
+            snapshot_sessions() {
+                local search_paths="$1"
+                local snapshot_file="$2"
+                > "$snapshot_file"
+                for sp in $search_paths; do
+                    local sp_real
+                    sp_real="$(realpath "$sp" 2>/dev/null)" || continue
+                    if [ -d "$sp_real" ]; then
+                        for d in "$sp_real"/*/; do
+                            [ -d "$d" ] && echo "$d" >> "$snapshot_file"
+                        done
+                    fi
+                done
+            }
+            detect_new_sessions() {
+                local search_paths="$1"
+                local snapshot_file="$2"
+                local new_dirs=()
+                for sp in $search_paths; do
+                    local sp_real
+                    sp_real="$(realpath "$sp" 2>/dev/null)" || continue
+                    if [ -d "$sp_real" ]; then
+                        for d in "$sp_real"/*/; do
+                            if [ -d "$d" ] && ! grep -qxF "$d" "$snapshot_file" 2>/dev/null; then
+                                new_dirs+=("$d")
+                            fi
+                        done
+                    fi
+                done
+                echo "${new_dirs[*]}"
+            }
+            validate_scenario() {
+                local scenario_key="$1"
+                local exit_code="$2"
+                shift 2
+                local output_dirs=("$@")
+                local check_models="${SCENARIO_CHECK_MODELS[$scenario_key]}"
+                local pass_count=0 fail_count=0 total_checks=0
+                echo ""
+                echo -e "${BLUE}=== Validation Results: ${scenario_key} ===${NC}"
+                total_checks=$((total_checks + 1))
+                if [ "$exit_code" -eq 0 ]; then
+                    echo -e "  ${GREEN}[PASS]${NC} Exit code: 0"
+                    pass_count=$((pass_count + 1))
+                else
+                    echo -e "  ${RED}[FAIL]${NC} Exit code: ${exit_code}"
+                    fail_count=$((fail_count + 1))
+                fi
+                total_checks=$((total_checks + 1))
+                if [ ${#output_dirs[@]} -gt 0 ]; then
+                    echo -e "  ${GREEN}[PASS]${NC} Session dirs detected: ${#output_dirs[@]}"
+                    pass_count=$((pass_count + 1))
+                else
+                    echo -e "  ${RED}[FAIL]${NC} No session directories detected"
+                    fail_count=$((fail_count + 1))
+                    echo -e "  ${YELLOW}Summary: ${pass_count}/${total_checks} passed, ${fail_count} failed${NC}"
+                    return "$fail_count"
+                fi
+                total_checks=$((total_checks + 1))
+                local file_count=0
+                for _d in "${output_dirs[@]}"; do
+                    local _fc
+                    _fc=$(find "$_d" -type f 2>/dev/null | wc -l)
+                    file_count=$((file_count + _fc))
+                done
+                if [ "$file_count" -gt 0 ]; then
+                    echo -e "  ${GREEN}[PASS]${NC} Files generated: ${file_count}"
+                    pass_count=$((pass_count + 1))
+                else
+                    echo -e "  ${RED}[FAIL]${NC} No files generated"
+                    fail_count=$((fail_count + 1))
+                fi
+                echo ""
+                if [ "$fail_count" -eq 0 ]; then
+                    echo -e "  ${GREEN}Summary: ${pass_count}/${total_checks} checks passed${NC}"
+                else
+                    echo -e "  ${YELLOW}Summary: ${pass_count}/${total_checks} passed, ${fail_count} failed${NC}"
+                fi
+                echo ""
+                return "$fail_count"
+            }
+        fi
+
+        # --- Scenario selection ---
+        SELECTED_SCENARIOS=()
+
+        if [ -n "${K_EXPR}" ]; then
+            for key in "${SCENARIO_KEYS[@]}"; do
+                if echo "$key" | grep -qi "${K_EXPR}"; then
+                    SELECTED_SCENARIOS+=("$key")
+                fi
+            done
+            if [ ${#SELECTED_SCENARIOS[@]} -eq 0 ]; then
+                print_error "No scenario matches filter: ${K_EXPR}"
+                print_info "Available: ${SCENARIO_KEYS[*]}"
+                exit 1
+            fi
+            print_info "Auto-selected by -k filter: ${SELECTED_SCENARIOS[*]}"
+        else
+            echo ""
+            echo -e "${YELLOW}Agentic E2E Manual Mode — Interactive OpenCode CLI${NC}"
+            echo ""
+            echo -e "Available scenarios:"
+            for i in "${!SCENARIO_KEYS[@]}"; do
+                _key="${SCENARIO_KEYS[$i]}"
+                printf "  ${GREEN}%d)${NC} %-12s — %s\n" "$((i+1))" "$_key" "${SCENARIO_LABELS[$_key]}"
+            done
+            echo -e "  ${GREEN}a)${NC} all          — Run all scenarios sequentially"
+            echo ""
+            echo -e "${YELLOW}NOTE:${NC} During the session, type ${GREEN}/export${NC} before exiting"
+            echo -e "       to save an HTML archive of the conversation."
+            echo ""
+            read -p "Select scenario [1-${#SCENARIO_KEYS[@]}/a]: " CHOICE
+
+            case "$CHOICE" in
+                a|A|all) SELECTED_SCENARIOS=("${SCENARIO_KEYS[@]}") ;;
+                [1-9])
+                    _idx=$((CHOICE - 1))
+                    if [ "$_idx" -ge 0 ] && [ "$_idx" -lt "${#SCENARIO_KEYS[@]}" ]; then
+                        SELECTED_SCENARIOS=("${SCENARIO_KEYS[$_idx]}")
+                    else
+                        print_error "Invalid selection: ${CHOICE}"; exit 1
+                    fi
+                    ;;
+                *) print_error "Invalid selection: ${CHOICE}"; exit 1 ;;
+            esac
+        fi
+
+        TOTAL_PASS=0
+        TOTAL_FAIL=0
+        declare -A SCENARIO_RESULTS
+        declare -A SCENARIO_DIRS
+
+        for scenario_key in "${SELECTED_SCENARIOS[@]}"; do
+            _workdir="$(realpath "${SCENARIO_WORKDIRS[$scenario_key]}")"
+            _search_paths="${SCENARIO_SEARCH_PATHS[$scenario_key]}"
+            _prompt="${SCENARIO_PROMPTS[$scenario_key]}"
+
+            ARTIFACTS_BASE="${_workdir}/dx-agentic-dev/e2e-tests/opencode/manual/${TIMESTAMP}"
+            SCENARIO_ARTIFACTS[$scenario_key]="$ARTIFACTS_BASE"
+            mkdir -p "$ARTIFACTS_BASE"
+
+            echo ""
+            echo -e "${BLUE}================================================================${NC}"
+            echo -e "${BLUE}=== Scenario: ${scenario_key}${NC}"
+            echo -e "${BLUE}=== Workdir:  ${_workdir}${NC}"
+            echo -e "${BLUE}=== Model:    ${AGENTIC_MODEL}${NC}"
+            echo -e "${BLUE}=== Prompt:   ${_prompt}${NC}"
+            echo -e "${BLUE}================================================================${NC}"
+            echo ""
+            echo -e "${YELLOW}TIP:${NC} Type ${GREEN}/export${NC} in the session before exiting to save HTML archive"
+            echo ""
+            print_info "Starting OpenCode session..."
+            echo ""
+
+            _snapshot_file=$(mktemp)
+            snapshot_sessions "$_search_paths" "$_snapshot_file"
+
+            # Run OpenCode interactively (pre-fill with initial prompt)
+            (cd "$_workdir" && opencode --model "$AGENTIC_MODEL" "$_prompt")
+            _oc_exit=$?
+
+            # Give a moment for async file writes (e.g. /export HTML)
+            sleep 2
+
+            # Post-detection: find new session directories
+            _detected_dirs=$(detect_new_sessions "$_search_paths" "$_snapshot_file")
+            rm -f "$_snapshot_file"
+
+            read -r -a _detected_arr <<< "$_detected_dirs"
+            if [ ${#_detected_arr[@]} -gt 0 ]; then
+                print_info "Detected ${#_detected_arr[@]} new session dir(s):"
+                for _dd in "${_detected_arr[@]}"; do echo "  -> $_dd"; done
+            else
+                echo -e "  ${YELLOW}[WARN]${NC} No new session directories detected"
+            fi
+
+            # Detect and archive /export HTML
+            # OpenCode saves exports as opencode-<session_id>.html in the workdir
+            _export_html=""
+            for _hf in "$_workdir"/opencode-*.html; do
+                if [ -f "$_hf" ]; then
+                    # Pick the most recently modified one
+                    if [ -z "$_export_html" ] || [ "$_hf" -nt "$_export_html" ]; then
+                        _export_html="$_hf"
+                    fi
+                fi
+            done
+            # Fallback: check OpenCode global session store
+            _oc_sessions_dir="${HOME}/.local/share/opencode/sessions"
+            if [ -z "$_export_html" ] && [ -d "$_oc_sessions_dir" ]; then
+                for _hf in "$_oc_sessions_dir"/*.html; do
+                    [ -f "$_hf" ] && _export_html="$_hf" && break
+                done
+            fi
+
+            if [ -n "$_export_html" ]; then
+                _html_dest="${ARTIFACTS_BASE}/${scenario_key}-opencode-export.html"
+                cp "$_export_html" "$_html_dest"
+                print_info "OpenCode /export HTML archived: ${_html_dest}"
+            else
+                echo -e "  ${YELLOW}[WARN]${NC} No OpenCode export HTML found."
+                echo -e "         Did you type ${GREEN}/export${NC} before exiting the session?"
+            fi
+
+            validate_scenario "$scenario_key" "$_oc_exit" "${_detected_arr[@]}"
+            _val_failures=$?
+            if [ "$_val_failures" -eq 0 ]; then
+                TOTAL_PASS=$((TOTAL_PASS + 1))
+                SCENARIO_RESULTS[$scenario_key]="PASS"
+            else
+                TOTAL_FAIL=$((TOTAL_FAIL + 1))
+                SCENARIO_RESULTS[$scenario_key]="FAIL"
+            fi
+            SCENARIO_DIRS[$scenario_key]="${_detected_arr[*]}"
+        done
+
+        echo ""
+        echo -e "${BLUE}================================================================${NC}"
+        echo -e "${BLUE}=== Agentic E2E OpenCode Manual — Final Summary${NC}"
+        echo -e "${BLUE}================================================================${NC}"
+        echo -e "  Model:            ${AGENTIC_MODEL}"
+        echo -e "  Scenarios run:    ${#SELECTED_SCENARIOS[@]}"
+        echo -e "  ${GREEN}Passed:${NC}           ${TOTAL_PASS}"
+        if [ "$TOTAL_FAIL" -gt 0 ]; then
+            echo -e "  ${RED}Failed:${NC}           ${TOTAL_FAIL}"
+        fi
+        echo ""
+
+        if [ "$TOTAL_FAIL" -gt 0 ]; then exit 1; fi
+        exit 0
+        ;;
+
+    agentic-e2e-claude-code-manual)
+        # ---------------------------------------------------------------
+        # Shell-based interactive mode — runs Claude Code CLI directly (no pytest)
+        # User interacts with Claude Code TUI, types /insight to save HTML report,
+        # then exits. Shell detects the HTML and archives it.
+        # ---------------------------------------------------------------
+        if ! command -v claude &> /dev/null; then
+            print_error "Claude Code CLI (claude) not found on PATH. Install it first:"
+            print_error "  npm install -g @anthropic-ai/claude-code"
+            exit 1
+        fi
+
+        # Auth check
+        _auth_json=$(claude auth status --output-format json 2>/dev/null || echo '{}')
+        _logged_in=$(python3 -c "import json,sys; d=json.loads(sys.stdin.read()); print(str(d.get('loggedIn',False)).lower())" <<< "$_auth_json" 2>/dev/null || echo "false")
+        if [ "$_logged_in" != "true" ]; then
+            print_error "Claude Code is not authenticated. Run: claude auth login"
+            exit 1
+        fi
+
+        AGENTIC_MODEL="${DX_AGENTIC_E2E_CLAUDE_CODE_MODEL:-claude-sonnet-4-6}"
+        KEEP_ARTIFACTS="${DX_AGENTIC_E2E_KEEP_ARTIFACTS:-0}"
+        TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
+        declare -A SCENARIO_ARTIFACTS
+        GLOBAL_SUMMARY_BASE="${SCRIPT_DIR}/../dx-agentic-dev/e2e-tests/claude_code/manual/${TIMESTAMP}"
+
+        SCENARIO_KEYS=(compiler dx_app dx_stream runtime suite)
+
+        declare -A SCENARIO_LABELS
+        SCENARIO_LABELS[compiler]="Download yolo26n, compile to DXNN"
+        SCENARIO_LABELS[dx_app]="Build yolo26n person detection app"
+        SCENARIO_LABELS[dx_stream]="Build detection pipeline with tracking"
+        SCENARIO_LABELS[runtime]="Route to dx_app + dx_stream via runtime builder"
+        SCENARIO_LABELS[suite]="Cross-project compile + app generation"
+
+        declare -A SCENARIO_WORKDIRS
+        SCENARIO_WORKDIRS[compiler]="${SCRIPT_DIR}/../dx-compiler"
+        SCENARIO_WORKDIRS[dx_app]="${SCRIPT_DIR}/../dx-runtime/dx_app"
+        SCENARIO_WORKDIRS[dx_stream]="${SCRIPT_DIR}/../dx-runtime/dx_stream"
+        SCENARIO_WORKDIRS[runtime]="${SCRIPT_DIR}/../dx-runtime"
+        SCENARIO_WORKDIRS[suite]="${SCRIPT_DIR}/.."
+
+        declare -A SCENARIO_PROMPTS
+        SCENARIO_PROMPTS[compiler]="Compile yolo26n model to dxnn"
+        SCENARIO_PROMPTS[dx_app]="Build a yolo26n detection app"
+        SCENARIO_PROMPTS[dx_stream]="Build a real-time detection pipeline with yolo26n"
+        SCENARIO_PROMPTS[runtime]="Build a yolo26n standalone detection app and a real-time streaming pipeline for it"
+        SCENARIO_PROMPTS[suite]="Compile yolo26n and build an inference app"
+
+        declare -A SCENARIO_SEARCH_PATHS
+        SCENARIO_SEARCH_PATHS[compiler]="${SCRIPT_DIR}/../dx-compiler/dx-agentic-dev"
+        SCENARIO_SEARCH_PATHS[dx_app]="${SCRIPT_DIR}/../dx-runtime/dx_app/dx-agentic-dev"
+        SCENARIO_SEARCH_PATHS[dx_stream]="${SCRIPT_DIR}/../dx-runtime/dx_stream/dx-agentic-dev"
+        SCENARIO_SEARCH_PATHS[runtime]="${SCRIPT_DIR}/../dx-runtime/dx-agentic-dev ${SCRIPT_DIR}/../dx-runtime/dx_app/dx-agentic-dev ${SCRIPT_DIR}/../dx-runtime/dx_stream/dx-agentic-dev"
+        SCENARIO_SEARCH_PATHS[suite]="${SCRIPT_DIR}/../dx-agentic-dev ${SCRIPT_DIR}/../dx-compiler/dx-agentic-dev ${SCRIPT_DIR}/../dx-runtime/dx_app/dx-agentic-dev ${SCRIPT_DIR}/../dx-runtime/dx_stream/dx-agentic-dev ${SCRIPT_DIR}/../dx-runtime/dx-agentic-dev"
+
+        declare -A SCENARIO_CHECK_MODELS
+        SCENARIO_CHECK_MODELS[compiler]=1
+        SCENARIO_CHECK_MODELS[dx_app]=0
+        SCENARIO_CHECK_MODELS[dx_stream]=0
+        SCENARIO_CHECK_MODELS[runtime]=0
+        SCENARIO_CHECK_MODELS[suite]=1
+
+        # Snapshot/detect helpers (reuse or redefine)
+        if ! declare -f snapshot_sessions > /dev/null 2>&1; then
+            snapshot_sessions() {
+                local search_paths="$1"; local snapshot_file="$2"
+                > "$snapshot_file"
+                for sp in $search_paths; do
+                    local sp_real
+                    sp_real="$(realpath "$sp" 2>/dev/null)" || continue
+                    if [ -d "$sp_real" ]; then
+                        for d in "$sp_real"/*/; do [ -d "$d" ] && echo "$d" >> "$snapshot_file"; done
+                    fi
+                done
+            }
+            detect_new_sessions() {
+                local search_paths="$1"; local snapshot_file="$2"; local new_dirs=()
+                for sp in $search_paths; do
+                    local sp_real
+                    sp_real="$(realpath "$sp" 2>/dev/null)" || continue
+                    if [ -d "$sp_real" ]; then
+                        for d in "$sp_real"/*/; do
+                            if [ -d "$d" ] && ! grep -qxF "$d" "$snapshot_file" 2>/dev/null; then
+                                new_dirs+=("$d")
+                            fi
+                        done
+                    fi
+                done
+                echo "${new_dirs[*]}"
+            }
+            validate_scenario() {
+                local scenario_key="$1"; local exit_code="$2"; shift 2
+                local output_dirs=("$@")
+                local pass_count=0 fail_count=0 total_checks=0
+                echo ""; echo -e "${BLUE}=== Validation Results: ${scenario_key} ===${NC}"
+                total_checks=$((total_checks + 1))
+                if [ "$exit_code" -eq 0 ]; then
+                    echo -e "  ${GREEN}[PASS]${NC} Exit code: 0"; pass_count=$((pass_count + 1))
+                else
+                    echo -e "  ${RED}[FAIL]${NC} Exit code: ${exit_code}"; fail_count=$((fail_count + 1))
+                fi
+                total_checks=$((total_checks + 1))
+                if [ ${#output_dirs[@]} -gt 0 ]; then
+                    echo -e "  ${GREEN}[PASS]${NC} Session dirs detected: ${#output_dirs[@]}"
+                    pass_count=$((pass_count + 1))
+                else
+                    echo -e "  ${RED}[FAIL]${NC} No session directories detected"
+                    fail_count=$((fail_count + 1))
+                fi
+                echo ""
+                if [ "$fail_count" -eq 0 ]; then
+                    echo -e "  ${GREEN}Summary: ${pass_count}/${total_checks} checks passed${NC}"
+                else
+                    echo -e "  ${YELLOW}Summary: ${pass_count}/${total_checks} passed, ${fail_count} failed${NC}"
+                fi
+                echo ""; return "$fail_count"
+            }
+        fi
+
+        # --- Scenario selection ---
+        SELECTED_SCENARIOS=()
+
+        if [ -n "${K_EXPR}" ]; then
+            for key in "${SCENARIO_KEYS[@]}"; do
+                if echo "$key" | grep -qi "${K_EXPR}"; then SELECTED_SCENARIOS+=("$key"); fi
+            done
+            if [ ${#SELECTED_SCENARIOS[@]} -eq 0 ]; then
+                print_error "No scenario matches filter: ${K_EXPR}"
+                print_info "Available: ${SCENARIO_KEYS[*]}"
+                exit 1
+            fi
+            print_info "Auto-selected by -k filter: ${SELECTED_SCENARIOS[*]}"
+        else
+            echo ""
+            echo -e "${YELLOW}Agentic E2E Manual Mode — Interactive Claude Code CLI${NC}"
+            echo ""
+            echo -e "Available scenarios:"
+            for i in "${!SCENARIO_KEYS[@]}"; do
+                _key="${SCENARIO_KEYS[$i]}"
+                printf "  ${GREEN}%d)${NC} %-12s — %s\n" "$((i+1))" "$_key" "${SCENARIO_LABELS[$_key]}"
+            done
+            echo -e "  ${GREEN}a)${NC} all          — Run all scenarios sequentially"
+            echo ""
+            echo -e "${YELLOW}NOTE:${NC} Type ${GREEN}/insight${NC} in the session before exiting to save HTML report."
+            echo ""
+            read -p "Select scenario [1-${#SCENARIO_KEYS[@]}/a]: " CHOICE
+
+            case "$CHOICE" in
+                a|A|all) SELECTED_SCENARIOS=("${SCENARIO_KEYS[@]}") ;;
+                [1-9])
+                    _idx=$((CHOICE - 1))
+                    if [ "$_idx" -ge 0 ] && [ "$_idx" -lt "${#SCENARIO_KEYS[@]}" ]; then
+                        SELECTED_SCENARIOS=("${SCENARIO_KEYS[$_idx]}")
+                    else
+                        print_error "Invalid selection: ${CHOICE}"; exit 1
+                    fi
+                    ;;
+                *) print_error "Invalid selection: ${CHOICE}"; exit 1 ;;
+            esac
+        fi
+
+        TOTAL_PASS=0
+        TOTAL_FAIL=0
+        declare -A SCENARIO_RESULTS
+        declare -A SCENARIO_DIRS
+
+        for scenario_key in "${SELECTED_SCENARIOS[@]}"; do
+            _workdir="$(realpath "${SCENARIO_WORKDIRS[$scenario_key]}")"
+            _search_paths="${SCENARIO_SEARCH_PATHS[$scenario_key]}"
+            _prompt="${SCENARIO_PROMPTS[$scenario_key]}"
+
+            ARTIFACTS_BASE="${_workdir}/dx-agentic-dev/e2e-tests/claude_code/manual/${TIMESTAMP}"
+            SCENARIO_ARTIFACTS[$scenario_key]="$ARTIFACTS_BASE"
+            mkdir -p "$ARTIFACTS_BASE"
+
+            echo ""
+            echo -e "${BLUE}================================================================${NC}"
+            echo -e "${BLUE}=== Scenario: ${scenario_key}${NC}"
+            echo -e "${BLUE}=== Workdir:  ${_workdir}${NC}"
+            echo -e "${BLUE}=== Model:    ${AGENTIC_MODEL}${NC}"
+            echo -e "${BLUE}=== Prompt:   ${_prompt}${NC}"
+            echo -e "${BLUE}================================================================${NC}"
+            echo ""
+            echo -e "${YELLOW}TIP:${NC} Type ${GREEN}/insight${NC} in the session before exiting to save HTML report"
+            echo ""
+            print_info "Starting Claude Code session..."
+            echo ""
+
+            _snapshot_file=$(mktemp)
+            snapshot_sessions "$_search_paths" "$_snapshot_file"
+
+            # Capture pre-session /insight report mtime if it exists
+            _insight_candidates=(
+                "$HOME/.claude/usage-data/report.html"
+                "$HOME/.claude/insights.html"
+            )
+            declare -A _insight_premtime
+            for _ic in "${_insight_candidates[@]}"; do
+                if [ -f "$_ic" ]; then
+                    _insight_premtime[$_ic]=$(stat -c %Y "$_ic" 2>/dev/null || echo "0")
+                fi
+            done
+
+            # Run Claude Code interactively
+            (cd "$_workdir" && claude --dangerously-skip-permissions --model "$AGENTIC_MODEL")
+            _cc_exit=$?
+
+            sleep 2
+
+            # Post-detection: find new session directories
+            _detected_dirs=$(detect_new_sessions "$_search_paths" "$_snapshot_file")
+            rm -f "$_snapshot_file"
+
+            read -r -a _detected_arr <<< "$_detected_dirs"
+            if [ ${#_detected_arr[@]} -gt 0 ]; then
+                print_info "Detected ${#_detected_arr[@]} new session dir(s):"
+                for _dd in "${_detected_arr[@]}"; do echo "  -> $_dd"; done
+            else
+                echo -e "  ${YELLOW}[WARN]${NC} No new session directories detected"
+            fi
+
+            # Detect and archive /insight HTML report
+            # Claude Code creates the report at well-known paths after /insight
+            _insight_html=""
+            for _ic in "${_insight_candidates[@]}"; do
+                if [ -f "$_ic" ]; then
+                    _new_mtime=$(stat -c %Y "$_ic" 2>/dev/null || echo "0")
+                    _old_mtime="${_insight_premtime[$_ic]:-0}"
+                    if [ "$_new_mtime" -gt "$_old_mtime" ]; then
+                        _insight_html="$_ic"
+                        break
+                    fi
+                fi
+            done
+            # Fallback: look for any recently created HTML in ~/.claude/
+            if [ -z "$_insight_html" ]; then
+                _insight_html=$(find "$HOME/.claude" -name "*.html" -newer "$_snapshot_file" \
+                    -print -quit 2>/dev/null || true)
+            fi
+
+            if [ -n "$_insight_html" ]; then
+                _html_dest="${ARTIFACTS_BASE}/${scenario_key}-claude-insight.html"
+                cp "$_insight_html" "$_html_dest"
+                print_info "Claude Code /insight HTML archived: ${_html_dest}"
+            else
+                echo -e "  ${YELLOW}[WARN]${NC} No Claude Code insight HTML found."
+                echo -e "         Did you type ${GREEN}/insight${NC} before exiting the session?"
+            fi
+
+            validate_scenario "$scenario_key" "$_cc_exit" "${_detected_arr[@]}"
+            _val_failures=$?
+            if [ "$_val_failures" -eq 0 ]; then
+                TOTAL_PASS=$((TOTAL_PASS + 1))
+                SCENARIO_RESULTS[$scenario_key]="PASS"
+            else
+                TOTAL_FAIL=$((TOTAL_FAIL + 1))
+                SCENARIO_RESULTS[$scenario_key]="FAIL"
+            fi
+            SCENARIO_DIRS[$scenario_key]="${_detected_arr[*]}"
+        done
+
+        echo ""
+        echo -e "${BLUE}================================================================${NC}"
+        echo -e "${BLUE}=== Agentic E2E Claude Code Manual — Final Summary${NC}"
+        echo -e "${BLUE}================================================================${NC}"
+        echo -e "  Model:            ${AGENTIC_MODEL}"
+        echo -e "  Scenarios run:    ${#SELECTED_SCENARIOS[@]}"
+        echo -e "  ${GREEN}Passed:${NC}           ${TOTAL_PASS}"
+        if [ "$TOTAL_FAIL" -gt 0 ]; then
+            echo -e "  ${RED}Failed:${NC}           ${TOTAL_FAIL}"
+        fi
+        echo ""
+
+        if [ "$TOTAL_FAIL" -gt 0 ]; then exit 1; fi
         exit 0
         ;;
 

@@ -16,6 +16,8 @@ def pytest_configure(config):
         "runtime: Runtime-related tests",
         "agentic_e2e_copilot_cli_autopilot: Agentic E2E tests via Copilot CLI autopilot (fully autonomous, CI/CD)",
         "agentic_e2e_cursor_cli_autopilot: Agentic E2E tests via Cursor CLI autopilot (fully autonomous)",
+        "agentic_e2e_opencode_cli_autopilot: Agentic E2E tests via OpenCode CLI autopilot (fully autonomous)",
+        "agentic_e2e_claude_code_autopilot: Agentic E2E tests via Claude Code CLI autopilot (fully autonomous)",
     ]
     for marker in markers:
         config.addinivalue_line("markers", marker)
