@@ -338,9 +338,11 @@ Rules:
    | **Copilot CLI** | `/share html` | HTML transcript |
    | **Cursor CLI** (`agent`) | No built-in export — session is saved automatically by the test harness via `--output-format stream-json` | JSON stream |
    | **OpenCode** | `/export` | JSON |
+   | **Claude Code** (`claude`) | `/export` | TXT transcript — written to `<workdir>/YYYY-MM-DD-HHMMSS-<title>.txt` |
 
    For Copilot CLI, output: `To save this session as HTML, type: /share html`
    For OpenCode, output: `To save this session as JSON, type: /export`
+   For Claude Code, output: `To save this session as a text transcript, type: /export`
    For Cursor CLI, no user action is needed — the test harness captures output automatically.
 
    The test harness (`test.sh`) will automatically detect and copy exported artifacts

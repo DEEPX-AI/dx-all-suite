@@ -32,13 +32,13 @@ SCENARIO_PROMPT = (
 
 
 @pytest.fixture(scope="module")
-def scenario(opencode_runner, opencode_artifacts_dir) -> ScenarioResult:
+def scenario(opencode_runner, compiler_opencode_artifacts_dir) -> ScenarioResult:
     """Execute dx-compiler Scenario via OpenCode CLI."""
     return opencode_runner.run(
         prompt=SCENARIO_PROMPT,
         workdir=COMPILER_ROOT,
         scenario_key="compiler",
-        session_log_dir=opencode_artifacts_dir,
+        session_log_dir=compiler_opencode_artifacts_dir,
         timeout=1500,
     )
 

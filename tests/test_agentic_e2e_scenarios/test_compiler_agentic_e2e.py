@@ -51,13 +51,13 @@ SCENARIO_PROMPT = (
 # ---------------------------------------------------------------------------
 
 @pytest.fixture(scope="module")
-def scenario(copilot_runner, copilot_cli_artifacts_dir) -> ScenarioResult:
+def scenario(copilot_runner, compiler_copilot_cli_artifacts_dir) -> ScenarioResult:
     """Execute dx-compiler Scenario #2 via Copilot CLI."""
     return copilot_runner.run(
         prompt=SCENARIO_PROMPT,
         workdir=COMPILER_ROOT,
         scenario_key="compiler",
-        session_log_dir=copilot_cli_artifacts_dir,
+        session_log_dir=compiler_copilot_cli_artifacts_dir,
         timeout=1500,  # download + compilation + verification may take up to 25 min
     )
 
