@@ -15,7 +15,9 @@ import pytest
 
 from .conftest import (
     STREAM_ROOT,
+    DEFAULT_CLAUDE_CODE_TIMEOUT,
     ScenarioResult,
+    _apt_lock,
     format_scenario_failure,
     verify_json_structure,
     verify_patterns_in_file,
@@ -35,12 +37,13 @@ SCENARIO_PROMPT = (
 @pytest.fixture(scope="module")
 def scenario(claude_code_runner, stream_claude_code_artifacts_dir) -> ScenarioResult:
     """Execute dx_stream Scenario via Claude Code CLI."""
-    return claude_code_runner.run(
-        prompt=SCENARIO_PROMPT,
-        workdir=STREAM_ROOT,
-        scenario_key="dx_stream",
-        session_log_dir=stream_claude_code_artifacts_dir,
-    )
+    with _apt_lock():
+        return claude_code_runner.run(
+            prompt=SCENARIO_PROMPT,
+            workdir=STREAM_ROOT,
+            scenario_key="dx_stream",
+            session_log_dir=stream_claude_code_artifacts_dir,
+        )
 
 
 class TestExecution:
@@ -51,9 +54,9 @@ class TestExecution:
         assert scenario.succeeded, format_scenario_failure(scenario)
 
     def test_completed_within_timeout(self, scenario: ScenarioResult):
-        """Execution finishes within the configured timeout."""
-        assert scenario.duration_seconds < 600, (
-            f"Scenario took {scenario.duration_seconds:.0f}s (limit: 600s)"
+        """Execution finishes within the configured timeout (+10 s grace for timer jitter)."""
+        assert scenario.duration_seconds < DEFAULT_CLAUDE_CODE_TIMEOUT + 10, (
+            f"Scenario took {scenario.duration_seconds:.0f}s (limit: {DEFAULT_CLAUDE_CODE_TIMEOUT}s)"
         )
 
     def test_session_log_saved(self, scenario: ScenarioResult):
@@ -65,11 +68,61 @@ class TestExecution:
                 "Session log exists but is empty"
             )
 
+    def test_session_log_has_meaningful_content(self, scenario: ScenarioResult):
+        """session.log must contain at least 10 non-empty lines of actual output."""
+        if not scenario.succeeded:
+            pytest.skip("Claude Code execution failed")
+        if not scenario.session_log or not scenario.session_log.exists():
+            pytest.skip("No session.log found")
+        log = scenario.session_log.read_text(encoding="utf-8")
+        lines = [line for line in log.splitlines() if line.strip()]
+        assert len(lines) >= 10, (
+            f"session.log has only {len(lines)} non-empty lines (minimum: 10).\n"
+            "Fix: session.log should contain actual command output, not just EOS markers."
+        )
+        # R55: content pattern checks — extended marker vocabulary covers skip/ok paths.
+        assert "Pipeline" in log, (
+            "session.log must contain pipeline execution output (missing 'Pipeline')"
+        )
+        assert any(kw in log for kw in (
+            "End of stream", "Pipeline stopped", "complete", "PASS",
+            "Pipeline execution", "[OK]",
+        )), (
+            "session.log must contain a completion marker "
+            "(expected: 'End of stream', 'Pipeline stopped', 'complete', 'PASS', "
+            "'Pipeline execution', or '[OK]')"
+        )
+
     def test_start_sentinel_emitted(self, scenario: ScenarioResult):
         """Agent emits [DX-AGENTIC-DEV: START] before any other text."""
         if not scenario.succeeded:
             pytest.skip("Claude Code execution failed")
         verify_start_sentinel(scenario)
+
+    def test_session_log_has_pipeline_execution_evidence(self, scenario: ScenarioResult):
+        """R69: session.log must contain evidence of actual GStreamer pipeline execution.
+
+        Complements test_session_log_has_meaningful_content by explicitly checking
+        for GStreamer-origin content — catches validator-only logs that satisfy line
+        count but lack any 'python pipeline.py' execution output.
+        """
+        if not scenario.succeeded:
+            pytest.skip("Claude Code execution failed")
+        if not scenario.session_log or not scenario.session_log.exists():
+            pytest.skip("No session.log found")
+        log = scenario.session_log.read_text(encoding="utf-8")
+        has_gst = any(m in log for m in (
+            "Pipeline", "End of stream", "Pipeline stopped", "PLAYING", "GST_",
+        ))
+        has_launch = "pipeline.py" in log and (
+            "=== pipeline" in log or "execution" in log.lower()
+        )
+        assert has_gst or has_launch, (
+            "session.log shows no evidence of GStreamer pipeline execution. "
+            "The agent likely ran only validation tooling. "
+            "Fix: SKILL.md Verification Step requires explicit "
+            "'python pipeline.py ... | tee -a session.log' (R68)."
+        )
 
 
 class TestGeneratedFiles:
@@ -79,6 +132,8 @@ class TestGeneratedFiles:
         """At least one Python file is generated."""
         if not scenario.succeeded:
             pytest.skip("Claude Code execution failed")
+        if scenario.environment_hard_gate:
+            pytest.skip("Agent halted at Phase 0 environment HARD GATE — environment issue, not code regression")
         assert len(scenario.generated_py_files) > 0, (
             f"No .py files found.\n"
             f"Search dirs: {scenario.output_dirs}\n"
@@ -89,6 +144,8 @@ class TestGeneratedFiles:
         """A pipeline-related Python file is generated."""
         if not scenario.succeeded:
             pytest.skip("Claude Code execution failed")
+        if scenario.environment_hard_gate:
+            pytest.skip("Agent halted at Phase 0 environment HARD GATE — environment issue, not code regression")
         pipeline_files = [
             f for f in scenario.generated_py_files
             if any(kw in f.name.lower() for kw in [
@@ -188,6 +245,45 @@ class TestCodeQuality:
                     "Fix: add 'dxrate max-rate=30' after decodebin in the RTSP source branch."
                 )
 
+    def test_pipeline_has_output_recording(self, scenario: ScenarioResult):
+        """pipeline.py must support --output file recording via tee."""
+        if not scenario.succeeded:
+            pytest.skip("Claude Code execution failed")
+        py_files = scenario.generated_py_files
+        if not py_files:
+            pytest.skip("No Python files generated")
+        pipeline_files = [
+            f for f in py_files
+            if any(kw in f.name.lower() for kw in ["pipeline", "detect", "app", "main", "stream"])
+        ]
+        target = pipeline_files if pipeline_files else py_files
+        found_recording = False
+        for f in target:
+            content = f.read_text(encoding="utf-8")
+            if "--output" in content or "tee name=" in content:
+                found_recording = True
+                break
+        assert found_recording, (
+            "pipeline.py must implement tee-based file recording.\n"
+            "Fix: add --output argument to argparse and tee name=t dual-sink code path."
+        )
+
+    def test_run_script_invokes_pipeline(self, scenario: ScenarioResult):
+        """run_<app>.sh should invoke pipeline.py with --input and --model arguments."""
+        if not scenario.succeeded:
+            pytest.skip("Claude Code execution failed")
+        scripts = list(scenario.output_dir.glob("run_*.sh")) if scenario.output_dir else []
+        scripts = [s for s in scripts if s.name != "run.sh"]
+        if not scripts:
+            pytest.skip("No run_<app>.sh script found")
+        content = scripts[0].read_text(encoding="utf-8")
+        assert "pipeline.py" in content, (
+            f"{scripts[0].name} does not invoke pipeline.py"
+        )
+        assert "--model" in content or "MODEL" in content, (
+            f"{scripts[0].name} missing --model argument"
+        )
+
     def test_x264enc_has_tune_zerolatency(self, scenario: ScenarioResult):
         """If x264enc is used anywhere, it MUST have tune=zerolatency."""
         if not scenario.succeeded:
@@ -222,6 +318,8 @@ class TestMandatoryArtifacts:
         """session.json build metadata file is generated."""
         if not scenario.succeeded:
             pytest.skip("Claude Code execution failed")
+        if scenario.environment_hard_gate:
+            pytest.skip("Agent halted at Phase 0 environment HARD GATE — environment issue, not code regression")
         session_files = [f for f in scenario.all_generated_files if f.name == "session.json"]
         assert len(session_files) > 0, (
             f"No session.json found.\n"
@@ -265,6 +363,8 @@ class TestMandatoryArtifacts:
         """README.md usage documentation file is generated."""
         if not scenario.succeeded:
             pytest.skip("Claude Code execution failed")
+        if scenario.environment_hard_gate:
+            pytest.skip("Agent halted at Phase 0 environment HARD GATE — environment issue, not code regression")
         readme_files = [f for f in scenario.all_generated_files if f.name.lower() == "readme.md"]
         assert len(readme_files) > 0, (
             f"No README.md found.\n"
@@ -286,10 +386,38 @@ class TestMandatoryArtifacts:
             "Expected at least one of: run, usage, how to, execute, launch, code block"
         )
 
+    def test_readme_has_pipeline_diagram(self, scenario: ScenarioResult):
+        """README.md must include a pipeline diagram (ASCII → chain or Pipeline section)."""
+        if not scenario.succeeded:
+            pytest.skip("Claude Code execution failed")
+        readme_files = [f for f in scenario.all_generated_files if f.name.lower() == "readme.md"]
+        if not readme_files:
+            pytest.skip("No README.md generated")
+        content = readme_files[0].read_text(encoding="utf-8")
+        assert "→" in content or "Pipeline" in content, (
+            "README.md must contain a pipeline diagram (ASCII → chain or 'Pipeline' section).\n"
+            "Fix: add a '## Pipeline Diagram' section with an ASCII → element chain."
+        )
+
+    def test_readme_has_files_section(self, scenario: ScenarioResult):
+        """README.md must list generated files including pipeline.py and session.json."""
+        if not scenario.succeeded:
+            pytest.skip("Claude Code execution failed")
+        readme_files = [f for f in scenario.all_generated_files if f.name.lower() == "readme.md"]
+        if not readme_files:
+            pytest.skip("No README.md generated")
+        content = readme_files[0].read_text(encoding="utf-8")
+        assert "pipeline.py" in content and "session.json" in content, (
+            "README.md must list generated files (pipeline.py and session.json at minimum).\n"
+            "Fix: add a '## Files' table listing all generated artifacts."
+        )
+
     def test_run_script_exists(self, scenario: ScenarioResult):
         """run_<app>.sh shell script wrapper is generated."""
         if not scenario.succeeded:
             pytest.skip("Claude Code execution failed")
+        if scenario.environment_hard_gate:
+            pytest.skip("Agent halted at Phase 0 environment HARD GATE — environment issue, not code regression")
         run_scripts = [
             f for f in scenario.all_generated_files
             if f.name.startswith("run_") and f.name.endswith(".sh")
@@ -323,6 +451,8 @@ class TestMandatoryArtifacts:
         """pipeline.py (or equivalent main pipeline script) is generated."""
         if not scenario.succeeded:
             pytest.skip("Claude Code execution failed")
+        if scenario.environment_hard_gate:
+            pytest.skip("Agent halted at Phase 0 environment HARD GATE — environment issue, not code regression")
         pipeline_files = [
             f for f in scenario.generated_py_files
             if any(kw in f.name.lower() for kw in [
@@ -334,4 +464,78 @@ class TestMandatoryArtifacts:
             f"Search dirs: {scenario.output_dirs}\n"
             f"Python files: {[f.name for f in scenario.generated_py_files]}\n"
             "The agent MUST generate pipeline.py (HARD-GATE in dx-build-pipeline-app.md)."
+        )
+
+    def test_session_json_model_is_dx_model(self, scenario: ScenarioResult):
+        """session.json 'model' must be the DX model name, not the AI agent model."""
+        if not scenario.succeeded:
+            pytest.skip("Claude Code execution failed")
+        import json
+        session_files = [
+            f for f in scenario.all_generated_files
+            if f.name == "session.json"
+        ]
+        if not session_files:
+            pytest.skip("No session.json generated")
+        data = json.loads(session_files[0].read_text(encoding="utf-8"))
+        model = data.get("model", "")
+        forbidden = ("claude", "gpt", "gemini", "sonnet", "opus", "haiku")
+        assert not any(kw in model.lower() for kw in forbidden), (
+            f"session.json 'model' field '{model}' contains an AI model name. "
+            "Expected DX model name (e.g. 'yolo26n')."
+        )
+
+    def test_session_json_pipeline_category_uses_underscore(self, scenario: ScenarioResult):
+        """pipeline_category must use underscores (canonical: 'single_model')."""
+        if not scenario.succeeded:
+            pytest.skip("Claude Code execution failed")
+        import json
+        session_files = [
+            f for f in scenario.all_generated_files
+            if f.name == "session.json"
+        ]
+        if not session_files:
+            pytest.skip("No session.json generated")
+        data = json.loads(session_files[0].read_text(encoding="utf-8"))
+        category = data.get("pipeline_category", "")
+        if category:
+            assert "-" not in category, (
+                f"pipeline_category '{category}' uses hyphens; "
+                "canonical format uses underscores (e.g. 'single_model')"
+            )
+
+    def test_setup_sh_exists(self, scenario: ScenarioResult):
+        """setup.sh environment setup script is generated."""
+        if not scenario.succeeded:
+            pytest.skip("Claude Code execution failed")
+        if scenario.environment_hard_gate:
+            pytest.skip("Agent halted at Phase 0 environment HARD GATE — environment issue, not code regression")
+        setup_scripts = [f for f in scenario.all_generated_files if f.name == "setup.sh"]
+        assert len(setup_scripts) > 0, (
+            f"No setup.sh found.\n"
+            f"All files: {[f.name for f in scenario.all_generated_files]}\n"
+            "The agent MUST generate setup.sh (HARD-GATE in dx-build-pipeline-app.md)."
+        )
+
+    def test_session_txt_export_exists(self, scenario: ScenarioResult):
+        """Session transcript (session.txt) should be present for Claude Code."""
+        if scenario.output_dir is None:
+            pytest.skip("No output directory detected")
+        # Claude Code exports as .txt; the harness copies it as session.txt.
+        # Also accept session.html in case a future harness update changes format.
+        txt_export = (scenario.output_dir / "session.txt").exists()
+        html_export = (scenario.output_dir / "session.html").exists()
+        assert txt_export or html_export, (
+            "No session export found (session.txt or session.html) — "
+            "check that the harness copies the session log into the output directory"
+        )
+
+    def test_session_txt_in_correct_dir(self, scenario: ScenarioResult):
+        """R17: session.txt should be written to Claude Code's output directory by the runner."""
+        if scenario.output_dir is None:
+            pytest.skip("No output directory detected")
+        session_txt = scenario.output_dir / "session.txt"
+        assert session_txt.exists(), (
+            f"session.txt missing from {scenario.output_dir} — "
+            "check ClaudeCodeRunnerAutopilot.run() output_dir resolution (R17)"
         )
