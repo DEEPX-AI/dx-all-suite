@@ -162,7 +162,8 @@ python dx-runtime/.deepx/scripts/feedback_collector.py --framework-only
 **시스템 로컬 타임존**을 사용해야 합니다 (UTC가 아님). Bash에서는
 `$(date +%Y%m%d-%H%M%S)`, Python에서는
 `datetime.now().strftime('%Y%m%d-%H%M%S')`을 사용하세요. `date -u`,
-`datetime.utcnow()`, 또는 `datetime.now(timezone.utc)`를 사용하지 마세요.
+사용하지 마세요.
+- **`<agent>`**: 코딩 에이전트 식별자 — `claude`, `copilot`, `cursor`, `opencode` 중 하나를 사용하세요.
 
 - **올바름**: `dx-runtime/dx_app/dx-agentic-dev/20260413-093000_claude_plantseg_inference/demo_dxnn_sync.py`
 - **잘못됨**: `dx-runtime/dx_app/semseg_260323/demo_dxnn_sync.py`

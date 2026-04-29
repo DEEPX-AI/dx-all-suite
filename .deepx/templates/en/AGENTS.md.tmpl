@@ -97,7 +97,7 @@ existing code).
 **system local timezone** (NOT UTC). Use `$(date +%Y%m%d-%H%M%S)` in Bash or
 `datetime.now().strftime('%Y%m%d-%H%M%S')` in Python. Do NOT use `date -u`,
 `datetime.utcnow()`, or `datetime.now(timezone.utc)`.
-`<agent>` identifies the coding tool: `claude` (Claude Code), `copilot` (Copilot CLI), `cursor` (Cursor), `opencode` (OpenCode).
+- **`<agent>`**: the coding agent identifier — use `claude`, `copilot`, `cursor`, or `opencode`.
 
 - **Correct**: `dx-runtime/dx_app/dx-agentic-dev/20260413-093000_claude_plantseg_inference/demo_dxnn_sync.py`
 - **Wrong**: `dx-runtime/dx_app/semseg_260323/demo_dxnn_sync.py`
