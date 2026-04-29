@@ -44,8 +44,12 @@ bash tools/run-e2e-improvement-loop.sh &
 | `--scenario KEY` | `dx_stream` | 전체 도구 테스트에 적용할 pytest `-k` 필터 |
 | `--resume` | 꺼짐 | 가장 최근 실행에서 이어서 재개 |
 | `--run-dir PATH` | 자동 | 타임스탬프 자동 생성 대신 특정 실행 디렉터리 지정 |
+| `--orchestrator TYPE` | `claude` | 리포트+개선 단계에 사용할 오케스트레이터: `claude`, `copilot`, `cursor`, 또는 `opencode` |
 | `--claude-bin PATH` | `claude` | Claude CLI 바이너리 경로 |
-| `--model MODEL` | `claude-sonnet-4-6` | 리포트 생성 및 개선 적용에 사용할 Claude 모델 |
+| `--copilot-bin PATH` | `copilot` | Copilot CLI 바이너리 경로 |
+| `--cursor-bin PATH` | `agent` | Cursor CLI 바이너리 경로 |
+| `--opencode-bin PATH` | `opencode` | OpenCode 바이너리 경로 |
+| `--model MODEL` | `claude-sonnet-4-6` | 리포트 생성 및 개선 적용에 사용할 모델 |
 | `--suite-root PATH` | 자동 감지 | dx-all-suite 루트 디렉터리 경로 |
 | `--dry-run` | 꺼짐 | 명령어만 출력하고 실제 실행하지 않음 |
 | `-h, --help` | | 도움말 표시 |
@@ -147,12 +151,65 @@ Claude는 각 권고 사항에 다음 태그 중 하나를 붙입니다:
 
 | 변수 | 설명 |
 |------|------|
+| `ORCHESTRATOR` | 오케스트레이터 지정: `claude`, `copilot`, `cursor`, 또는 `opencode` (`--orchestrator`와 동일) |
 | `CLAUDE_BIN` | Claude 바이너리 경로 지정 (`--claude-bin`과 동일) |
+| `COPILOT_BIN` | Copilot 바이너리 경로 지정 (`--copilot-bin`과 동일) |
+| `CURSOR_BIN` | Cursor CLI 바이너리 경로 지정 (`--cursor-bin`과 동일) |
+| `OPENCODE_BIN` | OpenCode 바이너리 경로 지정 (`--opencode-bin`과 동일) |
 | `CLAUDE_MODEL` | 사용할 모델 지정 (`--model`과 동일) |
 
 ## 사전 요구사항
 
 - `python3`가 PATH에 있어야 함
-- `claude` CLI 인증 완료 (`claude auth login`)
+- `claude` CLI 인증 완료 (`claude auth login`) — `--orchestrator claude` (기본값) 사용 시
+- `copilot` CLI 설치 및 인증 완료 — `--orchestrator copilot` 사용 시
+- `agent` (Cursor CLI) 설치 및 인증 완료 — `--orchestrator cursor` 사용 시
+- `opencode` CLI 설치 완료 — `--orchestrator opencode` 사용 시
 - `dx-agentic-gen`이 PATH에 있어야 함 (post-improvement drift guard용)
 - `tests/test.sh`가 suite root에 존재해야 함
+
+## Copilot CLI 오케스트레이터로 실행하기
+
+```bash
+# Step 3 (리포트 생성), Step 4 (개선 적용)에 Copilot CLI 사용 (Step 1의 4개 도구 E2E 테스트는 동일하게 실행됨)
+bash tools/run-e2e-improvement-loop.sh --orchestrator copilot
+
+# 바이너리 경로를 명시적으로 지정
+bash tools/run-e2e-improvement-loop.sh --orchestrator copilot --copilot-bin /usr/local/bin/copilot
+
+# 환경 변수로 지정
+ORCHESTRATOR=copilot bash tools/run-e2e-improvement-loop.sh
+```
+
+> **참고:** `--orchestrator`는 **오케스트레이션 단계** (리포트 생성 및 개선 적용)에 사용할 AI CLI를 지정합니다. Step 1의 E2E 테스트는 이 설정과 무관하게 항상 4개 도구(copilot/cursor/opencode/claude_code) 모두 실행합니다.
+
+## Cursor CLI 오케스트레이터로 실행하기
+
+```bash
+# Step 3 (리포트 생성), Step 4 (개선 적용)에 Cursor CLI 사용
+bash tools/run-e2e-improvement-loop.sh --orchestrator cursor
+
+# 바이너리 경로를 명시적으로 지정
+bash tools/run-e2e-improvement-loop.sh --orchestrator cursor --cursor-bin /usr/local/bin/agent
+
+# 환경 변수로 지정
+ORCHESTRATOR=cursor bash tools/run-e2e-improvement-loop.sh
+```
+
+> **참고:** Cursor CLI 바이너리 이름은 `agent`입니다. PATH에 있거나 `--cursor-bin`으로 경로를 지정하세요.
+
+## OpenCode 오케스트레이터로 실행하기
+
+```bash
+# Step 3 (리포트 생성), Step 4 (개선 적용)에 OpenCode 사용
+bash tools/run-e2e-improvement-loop.sh --orchestrator opencode
+
+# 바이너리 경로를 명시적으로 지정
+bash tools/run-e2e-improvement-loop.sh --orchestrator opencode --opencode-bin /usr/local/bin/opencode
+
+# 특정 모델 지정 (OpenCode의 provider-prefix 형식 사용)
+bash tools/run-e2e-improvement-loop.sh --orchestrator opencode --model "anthropic/claude-sonnet-4-5"
+
+# 환경 변수로 지정
+ORCHESTRATOR=opencode bash tools/run-e2e-improvement-loop.sh
+```

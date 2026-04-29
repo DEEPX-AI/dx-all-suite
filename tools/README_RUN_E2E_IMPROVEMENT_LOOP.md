@@ -44,8 +44,12 @@ bash tools/run-e2e-improvement-loop.sh &
 | `--scenario KEY` | `dx_stream` | pytest `-k` filter applied to all tool tests |
 | `--resume` | off | Resume from the latest existing run |
 | `--run-dir PATH` | auto | Use a specific run directory instead of auto-timestamped |
+| `--orchestrator TYPE` | `claude` | Orchestrator for report+improve steps: `claude`, `copilot`, `cursor`, or `opencode` |
 | `--claude-bin PATH` | `claude` | Path to the Claude CLI binary |
-| `--model MODEL` | `claude-sonnet-4-6` | Claude model used for report generation and improvements |
+| `--copilot-bin PATH` | `copilot` | Path to the Copilot CLI binary |
+| `--cursor-bin PATH` | `agent` | Path to the Cursor CLI binary |
+| `--opencode-bin PATH` | `opencode` | Path to the OpenCode binary |
+| `--model MODEL` | `claude-sonnet-4-6` | Model used for report generation and improvements |
 | `--suite-root PATH` | auto-detect | Path to the dx-all-suite root directory |
 | `--dry-run` | off | Print commands without executing |
 | `-h, --help` | | Show help |
@@ -145,12 +149,65 @@ Claude tags each recommendation with one of these categories:
 
 | Variable | Description |
 |----------|-------------|
+| `ORCHESTRATOR` | Override orchestrator: `claude`, `copilot`, `cursor`, or `opencode` (same as `--orchestrator`) |
 | `CLAUDE_BIN` | Override Claude binary path (same as `--claude-bin`) |
+| `COPILOT_BIN` | Override Copilot binary path (same as `--copilot-bin`) |
+| `CURSOR_BIN` | Override Cursor CLI binary path (same as `--cursor-bin`) |
+| `OPENCODE_BIN` | Override OpenCode binary path (same as `--opencode-bin`) |
 | `CLAUDE_MODEL` | Override model (same as `--model`) |
 
 ## Prerequisites
 
 - `python3` on PATH
-- `claude` CLI authenticated (`claude auth login`)
+- `claude` CLI authenticated (`claude auth login`) — if using `--orchestrator claude` (default)
+- `copilot` CLI installed and authenticated — if using `--orchestrator copilot`
+- `agent` (Cursor CLI) installed and authenticated — if using `--orchestrator cursor`
+- `opencode` CLI installed — if using `--orchestrator opencode`
 - `dx-agentic-gen` on PATH (for post-improvement drift guard)
 - `tests/test.sh` present in suite root
+
+## Running with Copilot CLI Orchestrator
+
+```bash
+# Use Copilot CLI for Steps 3 and 4 (report + improve), while still running all 4 tool E2E tests in Step 1
+bash tools/run-e2e-improvement-loop.sh --orchestrator copilot
+
+# Specify explicit binary path
+bash tools/run-e2e-improvement-loop.sh --orchestrator copilot --copilot-bin /usr/local/bin/copilot
+
+# Via environment variable
+ORCHESTRATOR=copilot bash tools/run-e2e-improvement-loop.sh
+```
+
+> **Note:** `--orchestrator` controls which AI CLI runs the **orchestration steps** (report generation and improvement application). The E2E tests in Step 1 always run all 4 tools (copilot/cursor/opencode/claude_code) regardless of this setting.
+
+## Running with Cursor CLI Orchestrator
+
+```bash
+# Use Cursor CLI for Steps 3 and 4 (report + improve)
+bash tools/run-e2e-improvement-loop.sh --orchestrator cursor
+
+# Specify explicit binary path
+bash tools/run-e2e-improvement-loop.sh --orchestrator cursor --cursor-bin /usr/local/bin/agent
+
+# Via environment variable
+ORCHESTRATOR=cursor bash tools/run-e2e-improvement-loop.sh
+```
+
+> **Note:** The Cursor CLI binary is named `agent`. Ensure it is on PATH or specify the path with `--cursor-bin`.
+
+## Running with OpenCode Orchestrator
+
+```bash
+# Use OpenCode for Steps 3 and 4 (report + improve)
+bash tools/run-e2e-improvement-loop.sh --orchestrator opencode
+
+# Specify explicit binary path
+bash tools/run-e2e-improvement-loop.sh --orchestrator opencode --opencode-bin /usr/local/bin/opencode
+
+# With a specific model (use OpenCode's provider-prefixed model format)
+bash tools/run-e2e-improvement-loop.sh --orchestrator opencode --model "anthropic/claude-sonnet-4-5"
+
+# Via environment variable
+ORCHESTRATOR=opencode bash tools/run-e2e-improvement-loop.sh
+```
