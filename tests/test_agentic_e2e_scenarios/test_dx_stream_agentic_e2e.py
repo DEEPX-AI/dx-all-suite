@@ -625,12 +625,12 @@ class TestMandatoryArtifacts:
         if not scenario.succeeded:
             pytest.skip("Copilot execution failed")
         import json
-        session_files = [
-            f for f in scenario.all_generated_files if f.name == "session.json"
-        ]
-        if not session_files:
+        # R92: Use scenario.output_dir directly to eliminate latent contamination risk
+        # under concurrent execution (same R73 pattern applied to all 4 tools).
+        session_path = scenario.output_dir / "session.json"
+        if not session_path.exists():
             pytest.skip("No session.json found")
-        data = json.loads(session_files[0].read_text(encoding="utf-8"))
+        data = json.loads(session_path.read_text(encoding="utf-8"))
         sid = data.get("session_id", "")
         assert "copilot" in sid, (
             f"session.json session_id '{sid}' does not contain agent identifier 'copilot'.\n"

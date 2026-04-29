@@ -10,9 +10,6 @@ R24: Expands E2E coverage beyond single_model to exercise the cascaded category.
 
 from __future__ import annotations
 
-import shutil as _shutil
-import subprocess as _sp
-
 import pytest
 
 from .conftest import (
@@ -22,18 +19,6 @@ from .conftest import (
     verify_python_syntax,
     verify_start_sentinel,
 )
-
-# R48: module-level dxroiextract availability check — static checks run even without the plugin.
-try:
-    _dxroiextract_available: bool = (
-        _shutil.which("gst-inspect-1.0") is not None
-        and _sp.run(
-            ["gst-inspect-1.0", "dxroiextract"],
-            capture_output=True, timeout=15,
-        ).returncode == 0
-    )
-except Exception:
-    _dxroiextract_available = True
 
 pytestmark = [
     pytest.mark.agentic_e2e_claude_code_autopilot,
@@ -113,8 +98,6 @@ class TestExecution:
 
     def test_session_log_has_meaningful_content(self, scenario: ScenarioResult):
         """session.log must contain at least 10 non-empty lines of actual output."""
-        if not _dxroiextract_available:
-            pytest.skip("dxroiextract plugin not installed — runtime pipeline execution skipped")
         if not scenario.succeeded:
             pytest.skip("Claude Code execution failed")
         if not scenario.session_log or not scenario.session_log.exists():
@@ -140,8 +123,6 @@ class TestExecution:
 
     def test_start_sentinel_emitted(self, scenario: ScenarioResult):
         """Agent emits [DX-AGENTIC-DEV: START] before any other text."""
-        if not _dxroiextract_available:
-            pytest.skip("dxroiextract plugin not installed — runtime pipeline execution skipped")
         if not scenario.succeeded:
             pytest.skip("Claude Code execution failed")
         verify_start_sentinel(scenario)
@@ -151,10 +132,7 @@ class TestExecution:
 
         Mirrors R69 for single_model — catches validator-only cascaded logs that satisfy
         line count but lack any 'python pipeline.py' execution output.
-        Guarded by _dxroiextract_available since the cascaded pipeline requires the plugin.
         """
-        if not _dxroiextract_available:
-            pytest.skip("dxroiextract plugin not installed — runtime pipeline execution skipped")
         if not scenario.succeeded:
             pytest.skip("Claude Code execution failed")
         if not scenario.session_log or not scenario.session_log.exists():
@@ -227,29 +205,8 @@ class TestCodeQuality:
                 break
         assert found, "No DX GStreamer elements found in generated files"
 
-    def test_pipeline_has_cascaded_roi_extract(self, scenario: ScenarioResult):
-        """Cascaded pipeline must include DxRoiExtract for feeding secondary stage."""
-        if not scenario.succeeded:
-            pytest.skip("Claude Code execution failed")
-        py_files = scenario.generated_py_files
-        if not py_files:
-            pytest.skip("No Python files generated")
-        roi_patterns = ["dxroiextract", "DxRoiExtract", "roi_extract"]
-        found = False
-        for f in py_files:
-            content = f.read_text(encoding="utf-8").lower()
-            if any(p.lower() in content for p in roi_patterns):
-                found = True
-                break
-        assert found, (
-            "Cascaded pipeline missing DxRoiExtract element.\n"
-            "Fix: a cascaded pipeline MUST use DxRoiExtract to crop detections "
-            "for the secondary classification stage."
-        )
-
-    def test_cascaded_roi_extract_in_pipeline_string(self, scenario: ScenarioResult):
-        """dxroiextract must appear as a quoted GStreamer element string, not only in comments."""
-        import re as _re
+    def test_pipeline_has_secondary_mode(self, scenario: ScenarioResult):
+        """Cascaded pipeline must use secondary-mode=true on the secondary DxPreprocess/DxInfer/DxPostprocess."""
         if not scenario.succeeded:
             pytest.skip("Claude Code execution failed")
         py_files = scenario.generated_py_files
@@ -258,14 +215,14 @@ class TestCodeQuality:
         found = False
         for f in py_files:
             content = f.read_text(encoding="utf-8")
-            if _re.search(r"""['"]\s*dxroiextract\s*['"]""", content, _re.IGNORECASE):
+            if "secondary-mode=true" in content or "secondary_mode=True" in content or "secondary_mode=true" in content:
                 found = True
                 break
         assert found, (
-            "dxroiextract must appear as a quoted GStreamer element string in pipeline construction, "
-            "not only in comments or variable names.\n"
-            "Fix: the pipeline string must contain 'dxroiextract' as a literal element "
-            "(e.g., '... ! dxroiextract ! ...'). A comment-only mention does not satisfy this check."
+            "Cascaded pipeline missing secondary-mode=true.\n"
+            "Fix: the secondary DxPreprocess, DxInfer, and DxPostprocess elements "
+            "MUST have secondary-mode=true. ROI extraction is handled automatically "
+            "by DxPreprocess when secondary-mode=true — no separate ROI element needed."
         )
 
     def test_pipeline_has_two_inference_stages(self, scenario: ScenarioResult):
@@ -459,10 +416,12 @@ class TestMandatoryArtifacts:
         if not scenario.succeeded:
             pytest.skip("Claude Code execution failed")
         import json
-        session_files = [f for f in scenario.all_generated_files if f.name == "session.json"]
-        if not session_files:
+        # R92: Use scenario.output_dir directly to eliminate latent contamination risk
+        # under concurrent execution (same R73 pattern applied to all 4 tools).
+        session_path = scenario.output_dir / "session.json"
+        if not session_path.exists():
             pytest.skip("No session.json found")
-        data = json.loads(session_files[0].read_text(encoding="utf-8"))
+        data = json.loads(session_path.read_text(encoding="utf-8"))
         sid = data.get("session_id", "")
         assert "claude" in sid, (
             f"session.json session_id '{sid}' does not contain agent identifier 'claude'.\n"
