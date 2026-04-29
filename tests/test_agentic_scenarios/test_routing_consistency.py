@@ -1570,3 +1570,40 @@ class TestAutopilotSWEGatesCrossReference:
             "Fix: add a check that outputs a WARNING when .deepx/ files are staged "
             "together with files outside .deepx/ — to prevent accidental mixed commits."
         )
+
+    def test_skill_router_mandatory_universal_rule(self):
+        """skill-router-mandatory fragment MUST exist at suite root and contain
+        a universal mandate that /dx-skill-router is invoked for EVERY user
+        message — not only for internal development tasks.
+
+        Root cause: /dx-skill-router was only enforced inside the
+        swe-process-gates-internal-dev fragment, which only triggers for
+        internal dev tasks. Pure read/analysis tasks bypassed the skill-router
+        entirely.
+        Fix: create .deepx/templates/fragments/en/skill-router-mandatory.md
+        with language like 'every user message' making the mandate unconditional.
+        """
+        suite_root_frag_dir = Path(
+            "/data/home/dhyang/github/dx-all-suite/.deepx/templates/fragments/en"
+        )
+
+        text = self._read_fragment(suite_root_frag_dir, "skill-router-mandatory")
+        assert text is not None, (
+            f"skill-router-mandatory.md fragment not found in {suite_root_frag_dir}.\n\n"
+            "Fix: create .deepx/templates/fragments/en/skill-router-mandatory.md "
+            "with a HARD GATE mandating /dx-skill-router for every user message."
+        )
+
+        universal_phrases = [
+            "every user message",
+            "every message",
+            "all user messages",
+        ]
+        has_universal = any(p in text.lower() for p in universal_phrases)
+        assert has_universal, (
+            "skill-router-mandatory fragment exists but does not contain "
+            "a universal mandate phrase (e.g. 'every user message').\n\n"
+            f"Fragment content (first 500 chars):\n{text[:500]}\n\n"
+            "Fix: add language like '/dx-skill-router MUST be invoked for "
+            "every user message' to the fragment."
+        )
