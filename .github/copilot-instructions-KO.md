@@ -163,6 +163,7 @@ Copilot Chat에서 `@agent-name`을 사용하여 에이전트를 호출하세요
 `$(date +%Y%m%d-%H%M%S)`, Python에서는 `datetime.now().strftime('%Y%m%d-%H%M%S')`를
 사용하세요. `date -u`, `datetime.utcnow()`, `datetime.now(timezone.utc)`는 사용하지
 마세요.
+- **`<agent>`**: 코딩 에이전트 식별자 — `claude`, `copilot`, `cursor`, `opencode` 중 하나를 사용하세요.
 
 - **올바름**: `dx-runtime/dx_app/dx-agentic-dev/20260413-093000_claude_plantseg_inference/demo_dxnn_sync.py`
 - **잘못됨**: `dx-runtime/dx_app/semseg_260323/demo_dxnn_sync.py`
