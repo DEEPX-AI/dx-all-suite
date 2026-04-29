@@ -18,7 +18,9 @@ and ``test.sh agentic-e2e-cursor-manual`` as shell-based scripts (no pytest).
 from __future__ import annotations
 
 import ast
+import fcntl
 import json
+import logging
 import os
 import re
 import shutil
@@ -26,10 +28,13 @@ import subprocess
 import sys
 import time
 import uuid
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional, Set
+
+_logger = logging.getLogger(__name__)
 
 import pytest
 
@@ -62,9 +67,15 @@ COMPILER_E2E_ARTIFACTS_BASE = COMPILER_ROOT / "dx-agentic-dev" / "e2e-tests"
 APP_E2E_ARTIFACTS_BASE = APP_ROOT / "dx-agentic-dev" / "e2e-tests"
 STREAM_E2E_ARTIFACTS_BASE = STREAM_ROOT / "dx-agentic-dev" / "e2e-tests"
 
-# Default timeout for Copilot CLI execution (6 minutes — Copilot's corrective-iteration
-# behaviour can push past 5 min; 360s gives ~30% margin over observed worst-case)
-DEFAULT_COPILOT_TIMEOUT = int(os.environ.get("DX_AGENTIC_E2E_TIMEOUT", "360"))
+# Default timeout for Copilot CLI execution (10 minutes — Copilot's corrective-iteration
+# behaviour with model download + live gst-launch verification can exceed 6 min; 600s
+# matches the timeout used by Cursor, OpenCode, and Claude Code runners)
+DEFAULT_COPILOT_TIMEOUT = int(os.environ.get("DX_AGENTIC_E2E_TIMEOUT", "600"))
+
+# Separate timeout for Copilot cascaded scenarios — cascaded sessions require more time
+# than single_model; 900s gives Copilot extra margin (vs 720s for OpenCode) because
+# Copilot's brainstorming pass takes longer and it often retries within a session.
+DEFAULT_COPILOT_CASCADED_TIMEOUT = int(os.environ.get("DX_COPILOT_CASCADED_TIMEOUT", "900"))
 
 # Model to use for agentic E2E tests (override via env var)
 DEFAULT_COPILOT_MODEL = os.environ.get("DX_AGENTIC_E2E_MODEL", "claude-sonnet-4.6")
@@ -205,6 +216,45 @@ class ScenarioResult:
         """All .dxnn files generated across output directories."""
         return self._collect_files("*.dxnn")
 
+    @property
+    def environment_hard_gate(self) -> bool:
+        """R57: True when agent correctly halted at Phase 0 environment HARD GATE.
+
+        Distinguishes "agent bug" from "environment not ready": when output_dirs
+        is empty AND the session log contains HARD GATE indicators, tests should
+        SKIP (informational) rather than FAIL (regression).
+        """
+        if self.output_dirs:
+            return False
+        _keywords = (
+            "sanity_check FAILED", "Sanity check FAIL", "Sanity check failed",
+            "HARD GATE", "libdxrt", "dpkg lock",
+        )
+        _text = " ".join(filter(None, [self.stdout or "", self.stderr or ""]))
+        if self.session_log and self.session_log.exists():
+            try:
+                _text += " " + self.session_log.read_text(encoding="utf-8", errors="replace")
+            except Exception:
+                pass
+        return any(kw in _text for kw in _keywords)
+
+    @property
+    def connection_error(self) -> bool:
+        """R66: True when the tool reports repeated connection failures (network/service outage).
+
+        Cursor's connection failure mode emits 'Connection failed repeatedly' in stderr
+        and produces 'reconnecting' NDJSON subtype events with 5+ retry attempts.
+        This flag enables post-run diagnosis without manual log inspection, and
+        allows format_scenario_failure to surface a human-readable explanation.
+        """
+        _stderr = self.stderr or ""
+        _stdout = self.stdout or ""
+        if "Connection failed repeatedly" in _stderr:
+            return True
+        if _stdout.count('"subtype":"reconnecting"') >= 5:
+            return True
+        return False
+
 
 # ---------------------------------------------------------------------------
 # CopilotRunnerAutopilot
@@ -228,6 +278,9 @@ DEFAULT_CURSOR_TIMEOUT = int(os.environ.get("DX_AGENTIC_E2E_CURSOR_TIMEOUT", "60
 
 DEFAULT_OPENCODE_MODEL = os.environ.get("DX_AGENTIC_E2E_OPENCODE_MODEL", "github-copilot/claude-sonnet-4.6")
 DEFAULT_OPENCODE_TIMEOUT = int(os.environ.get("DX_AGENTIC_E2E_OPENCODE_TIMEOUT", "600"))
+# Separate timeout for OpenCode cascaded scenarios — cascaded sessions are longer and require
+# more time than single_model scenarios; default 720s gives a 20% margin over the observed 600s limit.
+DEFAULT_OPENCODE_CASCADED_TIMEOUT = int(os.environ.get("DX_OPENCODE_CASCADED_TIMEOUT", "720"))
 
 # ---------------------------------------------------------------------------
 # Default model / timeout for Claude Code CLI
@@ -235,6 +288,32 @@ DEFAULT_OPENCODE_TIMEOUT = int(os.environ.get("DX_AGENTIC_E2E_OPENCODE_TIMEOUT",
 
 DEFAULT_CLAUDE_CODE_MODEL = os.environ.get("DX_AGENTIC_E2E_CLAUDE_CODE_MODEL", "claude-sonnet-4-6")
 DEFAULT_CLAUDE_CODE_TIMEOUT = int(os.environ.get("DX_AGENTIC_E2E_CLAUDE_CODE_TIMEOUT", "600"))
+
+# ---------------------------------------------------------------------------
+# R59: Advisory file lock to serialize concurrent apt/dpkg operations
+# ---------------------------------------------------------------------------
+
+_APT_LOCK_FILE = "/tmp/dx_e2e_apt.lock"
+
+
+@contextmanager
+def _apt_lock():
+    """R59: Serialize concurrent agent subprocess launches to prevent dpkg conflicts.
+
+    When 4 tool suites run simultaneously, each agent's Phase 0 runs
+    sanity_check.sh + install.sh, causing concurrent apt/dpkg races that
+    leave libdxrt in a broken state. This lock serializes subprocess launches
+    so only one agent installs packages at a time.
+
+    The lock covers the full subprocess execution because Phase 0 (apt install)
+    occurs at the start and we cannot signal when it completes from outside.
+    """
+    with open(_APT_LOCK_FILE, "w") as _lf:
+        try:
+            fcntl.flock(_lf.fileno(), fcntl.LOCK_EX)
+            yield
+        finally:
+            fcntl.flock(_lf.fileno(), fcntl.LOCK_UN)
 
 
 class CopilotRunnerAutopilot:
@@ -401,13 +480,27 @@ class CopilotRunnerAutopilot:
 
             session_events_log = session_logs_dir / f"{scenario_key}-session_logs-{uuid_suffix}.md"
 
+            # R70: Resolve authoritative output_dir from DONE sentinel before copying
+            # session.html.  Prevents Copilot's HTML from contaminating other tools'
+            # session directories when all 4 tools run concurrently and create dirs
+            # with similar timestamps that confuse the name-based scanner.
+            _copilot_html_dirs = output_dirs
+            _done_copilot = re.search(
+                r'\[DX-AGENTIC-DEV: DONE \(output-dir: ([^)]+)\)\]',
+                result.stdout or "",
+            )
+            if _done_copilot:
+                _primary_copilot = SUITE_ROOT / _done_copilot.group(1).strip()
+                if _primary_copilot.is_dir():
+                    _copilot_html_dirs = [_primary_copilot]
+
             # Parse Copilot events.jsonl (best-effort)
             _parse_session_events(
                 cwd=str(workdir),
                 after=start_utc,
                 before=end_utc,
                 output=session_events_log,
-                output_dirs=output_dirs,
+                output_dirs=_copilot_html_dirs,
             )
 
             # Fallback: if --share file was not written (non-clean shutdown),
@@ -541,6 +634,24 @@ def _is_cursor_quota_error(text: str) -> bool:
     """Return True if *text* contains Cursor's usage-limit error message."""
     lower = text.lower()
     return "out of usage" in lower or "switch to auto" in lower
+
+
+# ---------------------------------------------------------------------------
+# Claude Code quota-error detection
+# ---------------------------------------------------------------------------
+
+_CLAUDE_QUOTA_POLL_INTERVAL = int(
+    os.environ.get("DX_AGENTIC_E2E_CLAUDE_QUOTA_POLL_INTERVAL", "3600")
+)
+_CLAUDE_QUOTA_MAX_POLLS = int(
+    os.environ.get("DX_AGENTIC_E2E_CLAUDE_QUOTA_MAX_POLLS", "8")
+)
+
+
+def _is_claude_code_usage_limit(text: str) -> bool:
+    """Return True if text signals Claude Code usage/session limit exhaustion."""
+    lower = text.lower()
+    return "usage limit" in lower or "rate limit" in lower
 
 
 # ---------------------------------------------------------------------------
@@ -1094,15 +1205,41 @@ class ClaudeCodeRunnerAutopilot:
             cmd.extend(extra_args)
 
         start = time.monotonic()
+        _quota_polls = 0
+        while True:
+            try:
+                result = subprocess.run(
+                    cmd,
+                    cwd=str(workdir),
+                    capture_output=True,
+                    text=True,
+                    timeout=timeout,
+                    env={**os.environ, "NO_COLOR": "1"},
+                )
+            except subprocess.TimeoutExpired:
+                raise  # let outer except handle it
+
+            _combined = (result.stdout or "") + (result.stderr or "")
+            if result.returncode != 0 and _is_claude_code_usage_limit(_combined):
+                if _quota_polls >= _CLAUDE_QUOTA_MAX_POLLS:
+                    _logger.error(
+                        "Claude Code usage limit — max polls (%d) exceeded, aborting",
+                        _CLAUDE_QUOTA_MAX_POLLS,
+                    )
+                    break
+                _quota_polls += 1
+                _logger.warning(
+                    "Claude Code usage limit hit — sleeping %d min (poll %d/%d)",
+                    _CLAUDE_QUOTA_POLL_INTERVAL // 60,
+                    _quota_polls,
+                    _CLAUDE_QUOTA_MAX_POLLS,
+                )
+                time.sleep(_CLAUDE_QUOTA_POLL_INTERVAL)
+                start = time.monotonic()
+                continue
+            break
+
         try:
-            result = subprocess.run(
-                cmd,
-                cwd=str(workdir),
-                capture_output=True,
-                text=True,
-                timeout=timeout,
-                env={**os.environ, "NO_COLOR": "1"},
-            )
             duration = time.monotonic() - start
             output_dirs = _detect_new_sessions(search_paths, snapshot)
             end_utc = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -1120,6 +1257,46 @@ class ClaudeCodeRunnerAutopilot:
                 session_events_log.write_text(result.stdout, encoding="utf-8")
             except Exception:
                 pass
+
+            # R49+R54: Copy session log as session.txt into the DONE-sentinel-resolved dir.
+            # R49: Parse the DONE sentinel from assistant_text for the authoritative path.
+            # R54: Also update output_dirs to the sentinel-resolved path so that
+            #   scenario.output_dir (= output_dirs[0]) matches where session.txt lands.
+            #   Added pre-write diagnostics (sentinel path, exists check) to surface
+            #   failures that were previously silently swallowed.
+            _session_txt_written = False
+            if session_log.exists() and assistant_text:
+                _done_re = re.compile(r'\[DX-AGENTIC-DEV: DONE \(output-dir: ([^)]+)\)\]')
+                _done_match = _done_re.search(assistant_text)
+                if _done_match:
+                    _done_rel = _done_match.group(1).strip()
+                    _primary = workdir / _done_rel
+                    _logger.info(
+                        "R54: DONE sentinel path=%s resolved=%s exists=%s",
+                        _done_rel, _primary, _primary.exists(),
+                    )
+                    if _primary.exists():
+                        # R54: sync output_dirs so scenario.output_dir == sentinel path
+                        if not output_dirs or output_dirs[0] != _primary:
+                            output_dirs = [_primary] + [d for d in output_dirs if d != _primary]
+                        try:
+                            txt_dest = _primary / "session.txt"
+                            _logger.info("R54: session.txt → %s (writing)", txt_dest)
+                            if not txt_dest.exists():
+                                shutil.copy2(str(session_log), str(txt_dest))
+                            _logger.info("session.txt written to: %s", txt_dest)
+                            _session_txt_written = True
+                        except Exception as _e:
+                            _logger.warning("R54: session.txt write failed: %s", _e)
+            if not _session_txt_written and output_dirs and session_log.exists():
+                try:
+                    txt_dest = output_dirs[0] / "session.txt"
+                    _logger.info("R54: session.txt → %s (fallback)", txt_dest)
+                    if not txt_dest.exists():
+                        shutil.copy2(str(session_log), str(txt_dest))
+                    _logger.info("session.txt written to (fallback): %s", txt_dest)
+                except Exception:
+                    pass  # Best-effort: never block the test
 
             for odir in output_dirs:
                 try:
@@ -1277,8 +1454,11 @@ def _parse_opencode_stream_json(raw_output: str) -> tuple:
         if sid and not session_id:
             session_id = str(sid)
 
-        if event_type in ("assistant", "text", "message"):
-            text = event.get("text") or event.get("content", "")
+        if event_type in ("assistant", "text", "message", "step_start",
+                          "step_finish", "message_finish", "answer",
+                          "output", "tool_result"):
+            text = (event.get("text") or event.get("content", "")
+                    or event.get("output", "") or event.get("result", ""))
             if isinstance(text, str) and text:
                 assistant_parts.append(text)
             elif isinstance(text, list):
@@ -1295,6 +1475,51 @@ def _parse_opencode_stream_json(raw_output: str) -> tuple:
                         t = content_part.get("text", "")
                         if t:
                             assistant_parts.append(t)
+            # Check top-level content array with typed blocks (step_start format)
+            for item in event.get("content", []) if isinstance(event.get("content"), list) else []:
+                if isinstance(item, dict) and item.get("type") == "text":
+                    t = item.get("text", "")
+                    if t:
+                        assistant_parts.append(t)
+
+    # Fallback: if no structured events matched, collect non-JSON lines as raw output
+    if not assistant_parts:
+        for line in raw_output.splitlines():
+            s = line.strip()
+            if s and not s.startswith("{"):
+                assistant_parts.append(s)
+
+    # R47+R52: Final fallback — scan raw NDJSON events for DONE sentinel in any text field.
+    # Handles sessions where OpenCode uses event types not in the dispatch table,
+    # ensuring output_dir resolution even when text extraction fails.
+    # R52: Added per-event diagnostic logging to surface why extraction fails.
+    if not assistant_parts:
+        _r47_scanned = 0
+        for line in raw_output.splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                event = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            _r47_scanned += 1
+            _event_type = event.get("type", "<none>")
+            for field in ("content", "text", "result", "output", "value", "message"):
+                val = event.get(field, "")
+                if isinstance(val, str) and "[DX-AGENTIC-DEV: DONE" in val:
+                    _logger.info(
+                        "R47: DONE sentinel found in event type=%s field=%s",
+                        _event_type, field,
+                    )
+                    assistant_parts.append(val)
+                    break
+            if assistant_parts:
+                break
+        _logger.info(
+            "R47: scanned %d NDJSON events for DONE sentinel; found=%s",
+            _r47_scanned, bool(assistant_parts),
+        )
 
     assistant_text = "\n".join(assistant_parts) if assistant_parts else None
     return session_id, assistant_text
@@ -1320,6 +1545,10 @@ def _save_opencode_session_log(
             "",
         ]
         _, assistant_text = _parse_opencode_stream_json(raw_stdout)
+        if not assistant_text and raw_stdout.strip():
+            # Dump raw stream for parser diagnosis
+            debug_path = output_path.with_suffix(".raw.jsonl")
+            debug_path.write_text(raw_stdout, encoding="utf-8")
         if assistant_text:
             lines.append(assistant_text)
         else:
@@ -1548,21 +1777,31 @@ def verify_file_tree(
 def format_scenario_failure(result: ScenarioResult) -> str:
     """Format a clear error message for a failed scenario execution."""
     output_str = ", ".join(str(d) for d in result.output_dirs) if result.output_dirs else "(none detected)"
+    failure_kind = "CONNECTION FAILURE (external — not code-fixable)" if result.connection_error else "AGENTIC E2E SCENARIO FAILED"
     lines = [
         "",
         "=" * 80,
-        "AGENTIC E2E SCENARIO FAILED",
+        failure_kind,
         "=" * 80,
         f"Exit Code: {result.returncode}",
         f"Duration:  {result.duration_seconds:.1f}s",
         f"Workdir:   {result.workdir}",
         f"Output:    {output_str}",
+    ]
+    if result.connection_error:
+        lines.extend([
+            "",
+            "DIAGNOSIS: The tool's backend API reported repeated connection failures.",
+            "This is a transient network/service outage — no code change can fix it.",
+            "Re-run the test suite once connectivity is restored.",
+        ])
+    lines.extend([
         "",
         "PROMPT:",
         "-" * 80,
         result.prompt,
         "",
-    ]
+    ])
     if result.stdout:
         lines.extend([
             "STDOUT (last 50 lines):",
@@ -2005,6 +2244,64 @@ def stream_claude_code_artifacts_dir():
         _cleanup_artifacts_dir(artifacts_dir)
 
 
+# --- dx_stream cascaded scenario artifacts ---------------------------------
+
+@pytest.fixture(scope="session")
+def stream_copilot_cascaded_artifacts_dir():
+    """Cascaded scenario artifacts dir for Copilot CLI.
+
+    Path: dx-runtime/dx_stream/dx-agentic-dev/e2e-tests/copilot_cli/autopilot_cascaded/<session_id>/
+    """
+    session_id = time.strftime("%Y%m%d_%H%M%S") + f"_{uuid.uuid4().hex[:6]}"
+    artifacts_dir = STREAM_E2E_ARTIFACTS_BASE / "copilot_cli" / "autopilot_cascaded" / session_id
+    artifacts_dir.mkdir(parents=True, exist_ok=True)
+    yield artifacts_dir
+    if os.environ.get("DX_AGENTIC_E2E_CLEANUP_ARTIFACTS"):
+        _cleanup_artifacts_dir(artifacts_dir)
+
+
+@pytest.fixture(scope="session")
+def stream_cursor_cascaded_artifacts_dir():
+    """Cascaded scenario artifacts dir for Cursor CLI.
+
+    Path: dx-runtime/dx_stream/dx-agentic-dev/e2e-tests/cursor_cli/autopilot_cascaded/<session_id>/
+    """
+    session_id = time.strftime("%Y%m%d_%H%M%S") + f"_{uuid.uuid4().hex[:6]}"
+    artifacts_dir = STREAM_E2E_ARTIFACTS_BASE / "cursor_cli" / "autopilot_cascaded" / session_id
+    artifacts_dir.mkdir(parents=True, exist_ok=True)
+    yield artifacts_dir
+    if os.environ.get("DX_AGENTIC_E2E_CLEANUP_ARTIFACTS"):
+        _cleanup_artifacts_dir(artifacts_dir)
+
+
+@pytest.fixture(scope="session")
+def stream_opencode_cascaded_artifacts_dir():
+    """Cascaded scenario artifacts dir for OpenCode.
+
+    Path: dx-runtime/dx_stream/dx-agentic-dev/e2e-tests/opencode/autopilot_cascaded/<session_id>/
+    """
+    session_id = time.strftime("%Y%m%d_%H%M%S") + f"_{uuid.uuid4().hex[:6]}"
+    artifacts_dir = STREAM_E2E_ARTIFACTS_BASE / "opencode" / "autopilot_cascaded" / session_id
+    artifacts_dir.mkdir(parents=True, exist_ok=True)
+    yield artifacts_dir
+    if os.environ.get("DX_AGENTIC_E2E_CLEANUP_ARTIFACTS"):
+        _cleanup_artifacts_dir(artifacts_dir)
+
+
+@pytest.fixture(scope="session")
+def stream_claude_code_cascaded_artifacts_dir():
+    """Cascaded scenario artifacts dir for Claude Code.
+
+    Path: dx-runtime/dx_stream/dx-agentic-dev/e2e-tests/claude_code/autopilot_cascaded/<session_id>/
+    """
+    session_id = time.strftime("%Y%m%d_%H%M%S") + f"_{uuid.uuid4().hex[:6]}"
+    artifacts_dir = STREAM_E2E_ARTIFACTS_BASE / "claude_code" / "autopilot_cascaded" / session_id
+    artifacts_dir.mkdir(parents=True, exist_ok=True)
+    yield artifacts_dir
+    if os.environ.get("DX_AGENTIC_E2E_CLEANUP_ARTIFACTS"):
+        _cleanup_artifacts_dir(artifacts_dir)
+
+
 # ---------------------------------------------------------------------------
 # NPU hardware availability check
 # ---------------------------------------------------------------------------
@@ -2023,6 +2320,32 @@ def _is_npu_available() -> bool:
         return result.returncode == 0
     except (subprocess.TimeoutExpired, OSError):
         return False
+
+
+def _check_dxroiextract() -> None:
+    """Skip the calling test/fixture if the dxroiextract GStreamer plugin is absent.
+
+    All cascaded E2E scenarios require DxRoiExtract to route primary-stage detections
+    into the secondary inference stage.  If the plugin is not registered, the pipeline
+    fails at runtime with "no element dxroiextract".  Skipping early (R46) converts
+    a silent runtime failure into an explicit diagnostic skip so developers see the
+    installation gap immediately rather than after waiting for a full session run.
+    """
+    if shutil.which("gst-inspect-1.0") is None:
+        return  # GStreamer not installed at all — skip only if runner also not available
+    try:
+        result = subprocess.run(
+            ["gst-inspect-1.0", "dxroiextract"],
+            capture_output=True,
+            timeout=15,
+        )
+        if result.returncode != 0:
+            pytest.skip(
+                "dxroiextract GStreamer plugin not available — "
+                "install dx_stream GStreamer plugins first (run ./install.sh in dx_stream/)"
+            )
+    except (subprocess.TimeoutExpired, OSError):
+        pass  # Best-effort: if gst-inspect hangs or errors, proceed without skipping
 
 
 @pytest.fixture(scope="session")
