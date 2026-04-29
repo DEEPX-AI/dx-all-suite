@@ -35,6 +35,28 @@ fragments 포함) — 작업 완료 선언 전에 다음 루프를 **반드시**
 중 하나로 분류하세요. **이 단계를 절대 건너뛰지 마세요** — generator 관리 파일을
 직접 수정하면 다음 generate에서 조용히 덮어써지는 사일런트 손상이 됩니다.
 
+**모든 파일 편집 전 다음 세 가지 질문에 순서대로 답하세요:**
+
+> **Q1. 파일 경로가 `**/.deepx/**` 내부에 있나요?**
+> - YES → **Canonical source.** 직접 수정 후 `dx-agentic-gen generate` + `check` 실행.
+> - NO → Q2로 이동.
+>
+> **Q2. 파일 경로 또는 이름이 다음 중 하나와 일치하나요?**
+> ```
+> .github/agents/    .github/skills/    .opencode/agents/
+> .claude/agents/    .claude/skills/    .cursor/rules/
+> CLAUDE.md          CLAUDE-KO.md       AGENTS.md    AGENTS-KO.md
+> copilot-instructions.md               copilot-instructions-KO.md
+> ```
+> - YES → **Generator output. 직접 수정 금지.**
+>   `.deepx/` source(template, fragment, 또는 agent/skill)를 찾아 수정한 후
+>   `dx-agentic-gen generate`를 실행하세요.
+> - NO → Q3으로 이동.
+>
+> **Q3. 파일이 `<!-- AUTO-GENERATED`로 시작하나요?**
+> - YES → **Generator output. 직접 수정 금지.** Q2와 동일.
+> - NO → **Independent source.** 직접 수정 가능. 수정 후 `dx-agentic-gen check`를 한 번 실행.
+
 1. **Canonical source** (`**/.deepx/**/*.md`) — 직접 수정 후 위의 Verification
    Loop을 실행합니다.
 2. **Generator output** — 알려진 출력 경로의 파일:

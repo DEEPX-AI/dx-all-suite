@@ -567,3 +567,21 @@ class TestMandatoryArtifacts:
             f"All files: {[f.name for f in scenario.all_generated_files]}\n"
             "The agent MUST generate setup.sh (HARD-GATE in dx-build-pipeline-app.md)."
         )
+
+    def test_session_id_has_agent_identifier(self, scenario: ScenarioResult):
+        """R80: session.json session_id must include the agent identifier 'cursor'."""
+        if not scenario.succeeded:
+            pytest.skip("Cursor execution failed")
+        import json
+        session_files = [
+            f for f in scenario.all_generated_files if f.name == "session.json"
+        ]
+        if not session_files:
+            pytest.skip("No session.json found")
+        data = json.loads(session_files[0].read_text(encoding="utf-8"))
+        sid = data.get("session_id", "")
+        assert "cursor" in sid, (
+            f"session.json session_id '{sid}' does not contain agent identifier 'cursor'.\n"
+            "Fix: session_id must use format YYYYMMDD-HHMMSS_<agent>_<model>_<task> "
+            "where <agent> is 'cursor'."
+        )

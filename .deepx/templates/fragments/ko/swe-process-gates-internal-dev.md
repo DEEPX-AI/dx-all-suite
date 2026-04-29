@@ -21,6 +21,11 @@ Cursor (IDE), OpenCode, 기타 모든 도구)를 사용하여 내부 dx-agentic-
 모든 비-trivial 내부 변경은 반드시 이 시퀀스를 거쳐야 합니다.
 **이 시퀀스가 완료되기 전까지 코드 작성 금지.**
 
+**Autopilot mode는 이 시퀀스를 면제하지 않습니다.** "자율적으로 작업하라"는
+"묻지 말고 모든 규칙을 따르라"는 의미이지, "규칙을 건너뛰어도 된다"는 의미가 아닙니다.
+Autopilot에서는 `ask_user` 대신 knowledge base 기본값으로 결정하되,
+아래 모든 단계는 그대로 적용됩니다.
+
 | 단계 | Skill | 적용 시점 |
 |------|-------|-----------|
 | 1 | `/dx-skill-router` | **항상** — 모든 작업 전 적용 가능한 skill 식별 |
@@ -29,6 +34,9 @@ Cursor (IDE), OpenCode, 기타 모든 도구)를 사용하여 내부 dx-agentic-
 | 4 | `/dx-tdd` | 모든 코드 변경 — 구현 전 테스트/검증을 먼저 확인하거나 작성 |
 | 5 | Verification loop | 모든 변경 후 — generator + drift check + test 실행 |
 | 6 | `/dx-verify-completion` | 완료 선언 전 — 주장이 아닌 증거 필요 |
+
+**Non-trivial 판단 기준**: 변경이 ≥2개 파일 또는 ≥2개 레포에 영향을 미치면
+Non-trivial로 간주하며, Trivial 변경 예외가 적용되지 않습니다.
 
 ### "테스트 우선"의 의미
 
@@ -69,3 +77,5 @@ Cursor (IDE), OpenCode, 기타 모든 도구)를 사용하여 내부 dx-agentic-
 - "마지막에 검증하겠다" 방식 — `/dx-tdd`에 따라 파일별로 검증
 - generator 출력 파일 직접 편집 — 다음 `dx-agentic-gen generate` 실행 시 덮어씌워짐
 - `/dx-skill-router` 호출 전 구현 시작
+- **Autopilot mode를 면제로 오해** — autopilot은 "묻지 않기"를 의미할 뿐,
+  "규칙 없음"이 아닙니다. Autopilot에서도 필수 Skill 시퀀스는 완전히 적용됩니다.

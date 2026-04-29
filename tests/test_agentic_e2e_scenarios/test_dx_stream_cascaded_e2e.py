@@ -339,6 +339,25 @@ class TestCodeQuality:
                             f"  Fix: x264enc tune=zerolatency (prevents B-frame deadlock)"
                         )
 
+    def test_pipeline_has_dxrate_for_rtsp(self, scenario: ScenarioResult):
+        """R87: Cascaded RTSP pipeline path must include dxrate element.
+
+        Cascaded pipelines reference RTSP input — the same dxrate requirement that
+        applies to single_model pipelines must be enforced here too.
+        """
+        if not scenario.succeeded:
+            pytest.skip("Copilot execution failed")
+        py_files = scenario.generated_py_files
+        if not py_files:
+            pytest.skip("No Python files generated")
+        for f in py_files:
+            content = f.read_text(encoding="utf-8")
+            if "rtsp://" in content:
+                assert "dxrate" in content.lower(), (
+                    f"{f.name}: cascaded pipeline handles RTSP but is missing dxrate element.\n"
+                    "Fix: add 'dxrate max-rate=30' after decodebin in the RTSP source branch."
+                )
+
 
 class TestMandatoryArtifacts:
     """Verify mandatory deliverable files exist in cascaded session directory."""
@@ -429,4 +448,20 @@ class TestMandatoryArtifacts:
             pytest.skip("No output directory detected")
         assert (scenario.output_dir / "session.html").exists(), (
             "session.html not found — tool export may have changed format or been skipped"
+        )
+
+    def test_session_id_has_agent_identifier(self, scenario: ScenarioResult):
+        """R80: session.json session_id must include the agent identifier 'copilot'."""
+        if not scenario.succeeded:
+            pytest.skip("Copilot execution failed")
+        import json
+        session_files = [f for f in scenario.all_generated_files if f.name == "session.json"]
+        if not session_files:
+            pytest.skip("No session.json found")
+        data = json.loads(session_files[0].read_text(encoding="utf-8"))
+        sid = data.get("session_id", "")
+        assert "copilot" in sid, (
+            f"session.json session_id '{sid}' does not contain agent identifier 'copilot'.\n"
+            "Fix: session_id must use format YYYYMMDD-HHMMSS_<agent>_<model>_<task> "
+            "where <agent> is 'copilot'."
         )
