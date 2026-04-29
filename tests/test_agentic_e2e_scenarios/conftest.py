@@ -480,19 +480,38 @@ class CopilotRunnerAutopilot:
 
             session_events_log = session_logs_dir / f"{scenario_key}-session_logs-{uuid_suffix}.md"
 
-            # R70: Resolve authoritative output_dir from DONE sentinel before copying
+            # R70/R74: Resolve authoritative output_dir from DONE sentinel before copying
             # session.html.  Prevents Copilot's HTML from contaminating other tools'
             # session directories when all 4 tools run concurrently and create dirs
             # with similar timestamps that confuse the name-based scanner.
-            _copilot_html_dirs = output_dirs
+            #
+            # R74: R70 used SUITE_ROOT to resolve the sentinel path, but agents running
+            # in a sub-project workdir (e.g. dx_stream/) emit paths relative to workdir,
+            # not SUITE_ROOT.  Try workdir first; fall back to SUITE_ROOT for cross-project
+            # paths.  If the sentinel is absent entirely, pass an empty list to avoid
+            # writing HTML to all concurrently-detected dirs (the root cause of 486 L
+            # cross-contamination in dirs attributed to Claude Code and OpenCode).
+            _copilot_html_dirs: List[Path] = []  # default: no HTML copy unless sentinel resolves
             _done_copilot = re.search(
                 r'\[DX-AGENTIC-DEV: DONE \(output-dir: ([^)]+)\)\]',
                 result.stdout or "",
             )
             if _done_copilot:
-                _primary_copilot = SUITE_ROOT / _done_copilot.group(1).strip()
+                _rel = _done_copilot.group(1).strip()
+                # Try workdir-relative first (most common for sub-project agents)
+                _primary_copilot = workdir / _rel
+                if not _primary_copilot.is_dir():
+                    # Fall back to suite-root-relative (cross-project agents)
+                    _primary_copilot = SUITE_ROOT / _rel
                 if _primary_copilot.is_dir():
                     _copilot_html_dirs = [_primary_copilot]
+                else:
+                    # Sentinel found but path doesn't exist — scope to Copilot's first dir
+                    _copilot_html_dirs = output_dirs[:1] if output_dirs else []
+            elif output_dirs:
+                # No sentinel: use only the first detected dir (Copilot's own session)
+                # to avoid polluting any concurrently-created dirs from other tools.
+                _copilot_html_dirs = output_dirs[:1]
 
             # Parse Copilot events.jsonl (best-effort)
             _parse_session_events(

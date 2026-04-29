@@ -83,6 +83,15 @@ def scenario(copilot_runner, stream_copilot_cascaded_artifacts_dir) -> ScenarioR
             len(result.output_dirs), [d.name for d in result.output_dirs],
         )
         result.output_dirs = [max(result.output_dirs, key=lambda d: d.stat().st_mtime)]
+    # R78: diagnostic — short cascaded sessions (<360 s) may indicate premature termination
+    _MIN_CASCADED_DURATION_WARNING = 360
+    if result.duration_seconds < _MIN_CASCADED_DURATION_WARNING:
+        import logging as _logging
+        _logging.getLogger(__name__).warning(
+            "Copilot cascaded session completed in %.0f s (< %d s threshold) — "
+            "session may have terminated prematurely; check artifact quality",
+            result.duration_seconds, _MIN_CASCADED_DURATION_WARNING,
+        )
     return result
 
 
@@ -364,6 +373,7 @@ class TestMandatoryArtifacts:
         if not scenario.succeeded:
             pytest.skip("Copilot execution failed")
         import json
+        import re as _re
         session_files = [f for f in scenario.all_generated_files if f.name == "session.json"]
         if not session_files:
             pytest.skip("No session.json generated")
@@ -372,6 +382,11 @@ class TestMandatoryArtifacts:
         forbidden = ("claude", "gpt", "gemini", "sonnet", "opus", "haiku")
         assert not any(kw in model.lower() for kw in forbidden), (
             f"session.json 'model' field '{model}' contains an AI model name."
+        )
+        # R77: positive assertion — must look like a DXNN model name (alphanumeric + underscore)
+        assert _re.match(r'^[A-Za-z0-9_]+$', model), (
+            f"session.json 'model' field '{model}' does not look like a DXNN model name "
+            "(expected alphanumeric + underscore only, e.g., 'yolo26n', 'EfficientNet_Lite0')."
         )
 
     def test_readme_md_exists(self, scenario: ScenarioResult):

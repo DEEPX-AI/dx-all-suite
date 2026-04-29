@@ -340,6 +340,7 @@ class TestMandatoryArtifacts:
         if not scenario.succeeded:
             pytest.skip("Cursor execution failed")
         import json
+        import re as _re
         session_files = [f for f in scenario.all_generated_files if f.name == "session.json"]
         if not session_files:
             pytest.skip("No session.json generated")
@@ -348,6 +349,11 @@ class TestMandatoryArtifacts:
         forbidden = ("claude", "gpt", "gemini", "sonnet", "opus", "haiku")
         assert not any(kw in model.lower() for kw in forbidden), (
             f"session.json 'model' field '{model}' contains an AI model name."
+        )
+        # R77: positive assertion — must look like a DXNN model name (alphanumeric + underscore)
+        assert _re.match(r'^[A-Za-z0-9_]+$', model), (
+            f"session.json 'model' field '{model}' does not look like a DXNN model name "
+            "(expected alphanumeric + underscore only, e.g., 'yolo26n', 'EfficientNet_Lite0')."
         )
 
     def test_readme_md_exists(self, scenario: ScenarioResult):
