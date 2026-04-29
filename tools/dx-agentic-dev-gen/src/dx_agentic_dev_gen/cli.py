@@ -51,12 +51,26 @@ def main(argv: list[str] | None = None) -> int:
         default=Path("."),
     )
 
+    # lint
+    lint_parser = sub.add_parser(
+        "lint",
+        help="Check EN/KO fragment parity (pair existence + structural marker sync)",
+    )
+    lint_parser.add_argument(
+        "--repo",
+        type=Path,
+        default=Path("."),
+        help="Repository root path (default: current directory)",
+    )
+
     args = parser.parse_args(argv)
     repo = args.repo.resolve()
 
     if not (repo / ".deepx").is_dir():
-        print(f"ERROR: {repo} does not contain .deepx/ directory", file=sys.stderr)
-        return 1
+        # lint can still run if fragments are found in a parent; use cwd
+        if args.command != "lint":
+            print(f"ERROR: {repo} does not contain .deepx/ directory", file=sys.stderr)
+            return 1
 
     from .generator import Generator
 
@@ -74,6 +88,12 @@ def main(argv: list[str] | None = None) -> int:
 
     elif args.command == "check":
         clean, report = gen.check(platform=args.platform)
+        for line in report:
+            print(line)
+        return 0 if clean else 1
+
+    elif args.command == "lint":
+        clean, report = gen.lint()
         for line in report:
             print(line)
         return 0 if clean else 1

@@ -6,6 +6,9 @@ When the user is absent — autopilot mode, `--yolo` flag, or system auto-respon
 1. **"Work autonomously" means "follow all rules without asking", NOT "skip rules".**
    Every mandatory gate still applies: brainstorming spec, plan, TDD, mandatory
    artifacts, execution verification, and self-verification checks.
+   **This includes the SWE Process Gates Mandatory Skill Sequence** — in autopilot,
+   `/dx-skill-router` → `/dx-brainstorm-and-plan` → `/dx-tdd` must be followed
+   exactly as in interactive mode. Autopilot mode does NOT waive this sequence.
 2. **Do NOT call `ask_user`** — Make decisions using knowledge base defaults and
    documented best practices. Calling `ask_user` in autopilot wastes a turn and
    the auto-response does not grant permission to bypass any gate.

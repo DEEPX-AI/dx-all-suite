@@ -72,9 +72,17 @@ class TestExecution:
         """session.log must contain at least 10 non-empty lines of actual output."""
         if not scenario.succeeded:
             pytest.skip("Claude Code execution failed")
-        if not scenario.session_log or not scenario.session_log.exists():
-            pytest.skip("No session.log found")
-        log = scenario.session_log.read_text(encoding="utf-8")
+        # R79: Prefer agent-generated session.log from output_dir (mirrors R14 for OpenCode,
+        # R51 for Cursor). scenario.session_log is the harness transcript which lacks GStreamer
+        # output markers even when the agent ran the pipeline successfully.
+        _agent_log = scenario.output_dir / "session.log" if scenario.output_dir else None
+        if _agent_log and _agent_log.exists():
+            log_path = _agent_log
+        else:
+            if not scenario.session_log or not scenario.session_log.exists():
+                pytest.skip("No session.log found")
+            log_path = scenario.session_log
+        log = log_path.read_text(encoding="utf-8")
         lines = [line for line in log.splitlines() if line.strip()]
         assert len(lines) >= 10, (
             f"session.log has only {len(lines)} non-empty lines (minimum: 10).\n"
@@ -108,9 +116,15 @@ class TestExecution:
         """
         if not scenario.succeeded:
             pytest.skip("Claude Code execution failed")
-        if not scenario.session_log or not scenario.session_log.exists():
-            pytest.skip("No session.log found")
-        log = scenario.session_log.read_text(encoding="utf-8")
+        # R79: Prefer agent-generated session.log from output_dir (same as test_session_log_has_meaningful_content).
+        _agent_log = scenario.output_dir / "session.log" if scenario.output_dir else None
+        if _agent_log and _agent_log.exists():
+            log_path = _agent_log
+        else:
+            if not scenario.session_log or not scenario.session_log.exists():
+                pytest.skip("No session.log found")
+            log_path = scenario.session_log
+        log = log_path.read_text(encoding="utf-8")
         has_gst = any(m in log for m in (
             "Pipeline", "End of stream", "Pipeline stopped", "PLAYING", "GST_",
         ))
@@ -538,4 +552,20 @@ class TestMandatoryArtifacts:
         assert session_txt.exists(), (
             f"session.txt missing from {scenario.output_dir} — "
             "check ClaudeCodeRunnerAutopilot.run() output_dir resolution (R17)"
+        )
+
+    def test_session_id_has_agent_identifier(self, scenario: ScenarioResult):
+        """R80: session.json session_id must include the agent identifier 'claude'."""
+        if not scenario.succeeded:
+            pytest.skip("Claude Code execution failed")
+        import json
+        session_files = [f for f in scenario.all_generated_files if f.name == "session.json"]
+        if not session_files:
+            pytest.skip("No session.json found")
+        data = json.loads(session_files[0].read_text(encoding="utf-8"))
+        sid = data.get("session_id", "")
+        assert "claude" in sid, (
+            f"session.json session_id '{sid}' does not contain agent identifier 'claude'.\n"
+            "Fix: session_id must use format YYYYMMDD-HHMMSS_<agent>_<model>_<task> "
+            "where <agent> is 'claude'."
         )

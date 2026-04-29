@@ -88,9 +88,100 @@ class Generator:
 
         return clean, report
 
-    # ------------------------------------------------------------------
-    # Helpers
-    # ------------------------------------------------------------------
+    def lint(self) -> tuple[bool, list[str]]:
+        """Check EN/KO fragment parity.
+
+        Verifies:
+        1. Every EN fragment has a matching KO counterpart (pair existence).
+        2. Structural markers present in EN (Q1./Q2./Q3. decision-tree anchors)
+           are also present in KO.
+
+        Returns (clean, report_lines) — mirrors check() API.
+        """
+        report: list[str] = []
+        clean = True
+
+        fragments_dir = self._find_fragments_dir()
+        if not fragments_dir:
+            report.append("SKIP: no fragments directory found (nothing to lint).")
+            return True, report
+
+        en_dir = fragments_dir / "en"
+        ko_dir = fragments_dir / "ko"
+
+        en_files: dict[str, Path] = {}
+        ko_files: dict[str, Path] = {}
+
+        if en_dir.is_dir():
+            for f in sorted(en_dir.glob("*.md")):
+                en_files[f.stem] = f
+        if ko_dir.is_dir():
+            for f in sorted(ko_dir.glob("*.md")):
+                ko_files[f.stem] = f
+
+        if not en_files and not ko_files:
+            report.append("SKIP: no fragment files found.")
+            return True, report
+
+        # ── Check 1: pair existence ──────────────────────────────────────
+        for stem in sorted(en_files):
+            if stem not in ko_files:
+                report.append(
+                    f"[ERROR] {stem}: EN fragment has no KO counterpart "
+                    f"(missing {ko_dir.relative_to(self.repo) if ko_dir.is_relative_to(self.repo) else ko_dir}/{stem}.md)"
+                )
+                clean = False
+            else:
+                report.append(f"[OK] {stem}: EN/KO pair exists.")
+
+        for stem in sorted(ko_files):
+            if stem not in en_files:
+                report.append(
+                    f"[WARN] {stem}: KO fragment has no EN counterpart."
+                )
+
+        # ── Check 2: structural marker parity ───────────────────────────
+        # Markers: decision-tree question anchors used in Pre-flight Classification.
+        # Pattern: lines containing "**Q<digit>." (e.g. "> **Q1.", "**Q1. Is the")
+        import re
+
+        MARKER_PATTERN = re.compile(r"\*\*Q\d+\.")
+
+        for stem in sorted(en_files):
+            if stem not in ko_files:
+                continue  # already reported as missing pair above
+
+            en_text = en_files[stem].read_text(encoding="utf-8")
+            ko_text = ko_files[stem].read_text(encoding="utf-8")
+
+            en_markers = MARKER_PATTERN.findall(en_text)
+            ko_markers = MARKER_PATTERN.findall(ko_text)
+
+            if en_markers and not ko_markers:
+                missing = sorted(set(en_markers))
+                report.append(
+                    f"[ERROR] {stem}: KO fragment is missing structural markers "
+                    f"found in EN: {missing}"
+                )
+                clean = False
+            elif set(en_markers) != set(ko_markers):
+                en_set = sorted(set(en_markers))
+                ko_set = sorted(set(ko_markers))
+                report.append(
+                    f"[WARN] {stem}: EN/KO structural markers differ — "
+                    f"EN: {en_set}, KO: {ko_set}"
+                )
+
+        if clean:
+            report.append("All EN/KO fragment pairs are consistent.")
+        else:
+            report.append(
+                "\nFix: update the KO fragment in "
+                ".deepx/templates/fragments/ko/, then run "
+                "'dx-agentic-gen generate'."
+            )
+
+        return clean, report
 
     def _read_agents(self) -> list[tuple[str, dict, str]]:
         """Read all .deepx/agents/*.md files.

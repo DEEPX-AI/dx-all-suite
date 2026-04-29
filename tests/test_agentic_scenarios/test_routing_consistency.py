@@ -1323,3 +1323,135 @@ class TestArgumentHintSync:
         assert not mismatched, (
             f"{project}: argument-hint mismatch: {mismatched}"
         )
+
+
+# ---------------------------------------------------------------------------
+# Autopilot + SWE Process Gates cross-reference tests
+# ---------------------------------------------------------------------------
+
+
+class TestAutopilotSWEGatesCrossReference:
+    """Verify that autopilot-mode-guard and swe-process-gates fragments
+    are cross-linked so that agents cannot misinterpret 'autopilot' as
+    permission to skip the Mandatory Skill Sequence.
+
+    Root cause: In a real session an agent treated 'autopilot mode' as
+    'skip SWE gates', committed 35 files across 5 repos without a plan,
+    and mixed unrelated pre-existing changes into the commit.
+    """
+
+    FRAGMENT_ROOTS = [
+        Path("/data/home/dhyang/github/dx-all-suite/.deepx/templates/fragments/en"),
+        Path("/data/home/dhyang/github/dx-all-suite/dx-runtime/.deepx/templates/fragments/en"),
+        Path("/data/home/dhyang/github/dx-all-suite/dx-compiler/.deepx/templates/fragments/en"),
+        Path("/data/home/dhyang/github/dx-all-suite/dx-runtime/dx_app/.deepx/templates/fragments/en"),
+        Path("/data/home/dhyang/github/dx-all-suite/dx-runtime/dx_stream/.deepx/templates/fragments/en"),
+    ]
+
+    def _read_fragment(self, fragment_dir: Path, name: str) -> str | None:
+        """Return fragment text, or None if the fragment doesn't exist in this dir."""
+        fpath = fragment_dir / f"{name}.md"
+        if fpath.exists():
+            return fpath.read_text(encoding="utf-8")
+        return None
+
+    def test_autopilot_guard_references_swe_mandatory_skill_sequence(self):
+        """autopilot-mode-guard fragment MUST reference the SWE Process Gates
+        Mandatory Skill Sequence so agents know autopilot does NOT waive it.
+
+        Background: an agent interpreted 'autopilot mode' as permission to skip
+        /dx-skill-router and /dx-brainstorm-and-plan, leading to a commit with
+        35 files changed and unrelated pre-existing changes mixed in.
+        The fix: the autopilot guard must mention 'Mandatory Skill Sequence'
+        or 'SWE Process Gates' explicitly.
+        """
+        found_in = []
+        missing_in = []
+        for frag_dir in self.FRAGMENT_ROOTS:
+            text = self._read_fragment(frag_dir, "autopilot-mode-guard")
+            if text is None:
+                continue  # Fragment not present at this level — OK
+            has_crossref = (
+                "Mandatory Skill Sequence" in text
+                or "SWE Process Gates" in text
+                or "dx-skill-router" in text
+            )
+            if has_crossref:
+                found_in.append(str(frag_dir))
+            else:
+                missing_in.append(str(frag_dir))
+
+        assert not missing_in, (
+            "autopilot-mode-guard fragment is missing cross-reference to "
+            "SWE Process Gates / Mandatory Skill Sequence in:\n"
+            + "\n".join(f"  {p}" for p in missing_in)
+            + "\n\nFix: add an explicit note that autopilot does NOT waive "
+            "the Mandatory Skill Sequence (/dx-skill-router → "
+            "/dx-brainstorm-and-plan → /dx-tdd)."
+        )
+
+    def test_swe_process_gates_prohibits_autopilot_waiver(self):
+        """swe-process-gates-internal-dev fragment MUST explicitly state that
+        autopilot mode does NOT waive the Mandatory Skill Sequence.
+
+        Background: the SWE Process Gates section existed but made no mention
+        of autopilot, making it easy for an agent to treat autopilot as an
+        exception to the mandatory skill sequence.
+        """
+        found_in = []
+        missing_in = []
+        for frag_dir in self.FRAGMENT_ROOTS:
+            text = self._read_fragment(frag_dir, "swe-process-gates-internal-dev")
+            if text is None:
+                continue  # Fragment not present at this level — OK
+            # Must contain either "autopilot" or "Autopilot" in the context of
+            # NOT waiving the sequence
+            has_autopilot_waiver_prohibition = (
+                "autopilot" in text.lower()
+                and (
+                    "does not waive" in text.lower()
+                    or "does NOT waive" in text
+                    or "autopilot mode" in text.lower()
+                )
+            )
+            if has_autopilot_waiver_prohibition:
+                found_in.append(str(frag_dir))
+            else:
+                missing_in.append(str(frag_dir))
+
+        assert not missing_in, (
+            "swe-process-gates-internal-dev fragment does not prohibit "
+            "autopilot waiver of Mandatory Skill Sequence in:\n"
+            + "\n".join(f"  {p}" for p in missing_in)
+            + "\n\nFix: add explicit rule: 'Autopilot mode does NOT waive "
+            "the Mandatory Skill Sequence — /dx-skill-router, "
+            "/dx-brainstorm-and-plan, and /dx-tdd must be followed.'"
+        )
+
+    def test_pre_commit_hook_warns_on_non_deepx_with_deepx_staged(self):
+        """pre-commit-hook.sh MUST contain logic to warn when non-.deepx/ files
+        are staged alongside .deepx/ files.
+
+        Background: git add -A caused unrelated pre-existing changes to be
+        committed together with intended .deepx/ changes. The hook only checked
+        for drift but did not warn about mixed staged files.
+        """
+        hook_path = Path(
+            "/data/home/dhyang/github/dx-all-suite/"
+            "tools/dx-agentic-dev-gen/scripts/pre-commit-hook.sh"
+        )
+        assert hook_path.exists(), f"pre-commit-hook.sh not found at {hook_path}"
+        text = hook_path.read_text(encoding="utf-8")
+        has_scope_check = (
+            ".deepx" in text
+            and (
+                "WARNING" in text
+                and ("non-.deepx" in text or "outside .deepx" in text or "non_deepx" in text)
+            )
+        )
+        assert has_scope_check, (
+            "pre-commit-hook.sh does not warn when non-.deepx/ files are staged "
+            "alongside .deepx/ files.\n\n"
+            "Fix: add a check that outputs a WARNING when .deepx/ files are staged "
+            "together with files outside .deepx/ — to prevent accidental mixed commits."
+        )
