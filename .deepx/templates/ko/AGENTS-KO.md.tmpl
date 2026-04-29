@@ -93,13 +93,13 @@ python dx-runtime/.deepx/scripts/feedback_collector.py --framework-only
 또는 사용자의 기존 코드가 포함된 모든 디렉토리)에 생성된 코드를 직접 작성하지
 마세요.
 
-**세션 ID 형식**: `YYYYMMDD-HHMMSS_<model>_<task>` — 타임스탬프는 반드시
+**세션 ID 형식**: `YYYYMMDD-HHMMSS_<agent>_<model>_<task>` — 타임스탬프는 반드시
 **시스템 로컬 타임존**을 사용해야 합니다 (UTC가 아님). Bash에서는
 `$(date +%Y%m%d-%H%M%S)`, Python에서는
 `datetime.now().strftime('%Y%m%d-%H%M%S')`을 사용하세요. `date -u`,
 `datetime.utcnow()`, 또는 `datetime.now(timezone.utc)`를 사용하지 마세요.
 
-- **올바름**: `dx-runtime/dx_app/dx-agentic-dev/20260413-093000_plantseg_inference/demo_dxnn_sync.py`
+- **올바름**: `dx-runtime/dx_app/dx-agentic-dev/20260413-093000_claude_plantseg_inference/demo_dxnn_sync.py`
 - **잘못됨**: `dx-runtime/dx_app/semseg_260323/demo_dxnn_sync.py`
 
 유일한 예외: 사용자가 명시적으로 "소스 디렉토리에 작성" 또는 "기존 파일을

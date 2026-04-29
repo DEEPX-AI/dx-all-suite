@@ -159,12 +159,13 @@ target sub-project. NEVER write generated code directly into existing source dir
 (e.g., `src/`, `pipelines/`, `semseg_260323/`, or any directory containing user's
 existing code).
 
-**Session ID format**: `YYYYMMDD-HHMMSS_<model>_<task>` — the timestamp MUST use the
+**Session ID format**: `YYYYMMDD-HHMMSS_<agent>_<model>_<task>` — the timestamp MUST use the
 **system local timezone** (NOT UTC). Use `$(date +%Y%m%d-%H%M%S)` in Bash or
 `datetime.now().strftime('%Y%m%d-%H%M%S')` in Python. Do NOT use `date -u`,
 `datetime.utcnow()`, or `datetime.now(timezone.utc)`.
+`<agent>` identifies the coding tool: `claude` (Claude Code), `copilot` (Copilot CLI), `cursor` (Cursor), `opencode` (OpenCode).
 
-- **Correct**: `dx-runtime/dx_app/dx-agentic-dev/20260413-093000_plantseg_inference/demo_dxnn_sync.py`
+- **Correct**: `dx-runtime/dx_app/dx-agentic-dev/20260413-093000_claude_plantseg_inference/demo_dxnn_sync.py`
 - **Wrong**: `dx-runtime/dx_app/semseg_260323/demo_dxnn_sync.py`
 
 The ONLY exception: when the user EXPLICITLY says "write to the source directory" or

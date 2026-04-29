@@ -19,9 +19,12 @@
 #   --suite-root PATH     Path to dx-all-suite root (default: auto-detect)
 #   --claude-bin PATH     Claude binary path (default: claude)
 #   --model MODEL         Claude model for improvement step (default: claude-sonnet-4-6)
-#   --resume              Resume from existing state.json (skip re-init)
+#   --run-dir PATH        Use specific run directory instead of auto-timestamped
+#   --resume              Resume from latest timestamped run in doc/reports/e2e-loop/
 #   --dry-run             Print commands without executing
 #   -h, --help            Show this help
+#
+# Results are stored in: doc/reports/e2e-loop/YYYYMMDD-HHMMSS/
 
 set -euo pipefail
 
@@ -35,6 +38,53 @@ warn() { echo -e "${YELLOW}[!]${NC} $*"; }
 fail() { echo -e "${RED}[✗]${NC} $*"; }
 sep()  { echo -e "${BOLD}──────────────────────────────────────────────────────${NC}"; }
 
+# ── Claude quota helpers ───────────────────────────────────────────────────────
+_is_claude_quota_error() {
+    local text="${1,,}"   # to lowercase
+    [[ "$text" == *"usage limit"* ]] || [[ "$text" == *"rate limit"* ]] \
+        || [[ "$text" == *"hit your limit"* ]] || [[ "$text" == *"hit our limit"* ]] \
+        || [[ "$text" == *"hit the limit"* ]] || [[ "$text" == *"you've hit"* ]]
+}
+
+# Poll every CLAUDE_QUOTA_POLL_INTERVAL seconds until quota clears or max polls exceeded.
+# Returns 0 when quota cleared, 1 when max polls reached.
+_wait_for_claude_quota() {
+    local poll=0
+    while [ "$poll" -lt "$CLAUDE_QUOTA_MAX_POLLS" ]; do
+        poll=$(( poll + 1 ))
+        log "[quota-wait] Poll $poll/$CLAUDE_QUOTA_MAX_POLLS — sleeping ${CLAUDE_QUOTA_POLL_INTERVAL}s ($(( CLAUDE_QUOTA_POLL_INTERVAL / 60 )) min) ..."
+        sleep "$CLAUDE_QUOTA_POLL_INTERVAL"
+        local probe
+        probe=$( "$CLAUDE_BIN" --output-format text -p "echo ok" 2>&1 ) || true
+        if ! _is_claude_quota_error "$probe"; then
+            ok "[quota-wait] Quota cleared at poll $poll — resuming."
+            return 0
+        fi
+        warn "[quota-wait] Still over quota (poll $poll)."
+    done
+    fail "[quota-wait] Max polls ($CLAUDE_QUOTA_MAX_POLLS) exceeded — aborting loop."
+    return 1
+}
+
+# Claude CLI wrapper: detects quota errors and polls until cleared, then retries.
+# Usage: run_claude <log_file> [claude args...]
+run_claude() {
+    local log_file="$1"; shift
+    while true; do
+        local out rc
+        out=$( "$CLAUDE_BIN" "$@" 2>&1 )
+        rc=$?
+        printf '%s\n' "$out" >> "$log_file"
+        if [ "$rc" -ne 0 ] && _is_claude_quota_error "$out"; then
+            warn "[quota-wait] Claude usage limit hit."
+            _wait_for_claude_quota || return 1
+            log "[quota-wait] Retrying claude call ..."
+            continue
+        fi
+        return "$rc"
+    done
+}
+
 # ── Defaults ──────────────────────────────────────────────────────────────────
 MAX_ITERATIONS=5
 SCENARIO="dx_stream"
@@ -42,6 +92,9 @@ CLAUDE_BIN="${CLAUDE_BIN:-claude}"
 MODEL="${CLAUDE_MODEL:-claude-sonnet-4-6}"
 RESUME=0
 DRY_RUN=0
+RUN_DIR=""   # explicit run directory (overrides auto-timestamped dir)
+CLAUDE_QUOTA_POLL_INTERVAL="${CLAUDE_QUOTA_POLL_INTERVAL:-3600}"  # 60 min between polls
+CLAUDE_QUOTA_MAX_POLLS="${CLAUDE_QUOTA_MAX_POLLS:-8}"             # max 8 h wait total
 
 # ── Path resolution ───────────────────────────────────────────────────────────
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -55,6 +108,7 @@ while [[ $# -gt 0 ]]; do
         --suite-root)     SUITE_ROOT="$2";     shift 2 ;;
         --claude-bin)     CLAUDE_BIN="$2";     shift 2 ;;
         --model)          MODEL="$2";          shift 2 ;;
+        --run-dir)        RUN_DIR="$2";        shift 2 ;;
         --resume)         RESUME=1;            shift ;;
         --dry-run)        DRY_RUN=1;           shift ;;
         -h|--help)
@@ -66,7 +120,21 @@ while [[ $# -gt 0 ]]; do
 done
 
 TESTS_DIR="$SUITE_ROOT/tests"
-STATE_DIR="$SUITE_ROOT/doc/reports/e2e-loop"
+RUN_BASE="$SUITE_ROOT/doc/reports/e2e-loop"
+
+# Resolve STATE_DIR: explicit --run-dir > --resume (latest) > new timestamped dir
+if [ -n "$RUN_DIR" ]; then
+    STATE_DIR="$RUN_DIR"
+elif [ "$RESUME" -eq 1 ]; then
+    _latest=$(ls -d "$RUN_BASE"/[0-9]*/state.json 2>/dev/null | sort -r | head -1)
+    if [ -z "$_latest" ]; then
+        fail "--resume: no existing timestamped run found in $RUN_BASE"; exit 1
+    fi
+    STATE_DIR=$(dirname "$_latest")
+    log "Resuming run: $STATE_DIR"
+else
+    STATE_DIR="$RUN_BASE/$(date +%Y%m%d-%H%M%S)"
+fi
 STATE_FILE="$STATE_DIR/state.json"
 
 # ── Pre-flight checks ─────────────────────────────────────────────────────────
@@ -188,6 +256,7 @@ duration = float(dur_match.group(1)) if dur_match else $duration
 
 # Quota / usage-limit detection
 quota_error = 'out of usage' in log.lower() or 'switch to auto' in log.lower()
+claude_quota_error = 'usage limit' in log.lower() or 'rate limit' in log.lower()
 timeout_error = 'TIMEOUT after' in log
 auth_error = $rc == 77 or ('not authenticated' in log.lower() and 'claude auth login' in log.lower())
 
@@ -202,6 +271,7 @@ d = {
     'tool': '$tool',
     'log_file': '$out_log',
     'quota_error': quota_error,
+    'claude_quota_error': claude_quota_error,
     'timeout_error': timeout_error,
     'auth_error': auth_error,
 }
@@ -317,15 +387,15 @@ The report must:
 
 Previous reports for reference style: $SUITE_ROOT/doc/reports/"
 
-    "$CLAUDE_BIN" \
+    run_claude "$STATE_DIR/iteration-${iter}-report-gen.log" \
         --dangerously-skip-permissions \
         --model "$MODEL" \
         --output-format text \
-        -p "$prompt" \
-        2>&1 | tee "$STATE_DIR/iteration-${iter}-report-gen.log" >/dev/null
+        -p "$prompt" || true
 
     if [ -f "$report_file" ]; then
         ok "Report → $report_file"
+        translate_to_korean "$report_file"
     else
         warn "Report file not created — check $STATE_DIR/iteration-${iter}-report-gen.log"
     fi
@@ -347,8 +417,8 @@ apply_improvements() {
     fi
 
     if [ ! -f "$report_file" ]; then
-        fail "Report file missing: $report_file"
-        echo '{"done":true,"stop_reason":"report_missing","applied":[]}' > "$result_file"
+        fail "Report file missing: $report_file — skipping improvement step, will retry next iteration"
+        echo '{"done":false,"stop_reason":"report_missing","applied":[]}' > "$result_file"
         return 0
     fi
 
@@ -380,15 +450,16 @@ Suite root: $SUITE_ROOT
 6. Write a changes log (one section per change) to: $changes_file
 7. FINAL action: write this JSON to $result_file
    {\"done\": bool, \"stop_reason\": str|null, \"applied\": [{\"category\": \"...\", \"description\": \"...\"}]}
+   IMPORTANT: set done=true ONLY when you applied zero improvements (applied list is empty).
+   If you applied any improvements, set done=false so tests are re-run to verify them.
 
 Begin now."
 
-    "$CLAUDE_BIN" \
+    run_claude "$STATE_DIR/iteration-${iter}-improve.log" \
         --dangerously-skip-permissions \
         --model "$MODEL" \
         --output-format text \
-        -p "$prompt" \
-        2>&1 | tee "$STATE_DIR/iteration-${iter}-improve.log" >/dev/null
+        -p "$prompt" || true
 
     if [ -f "$result_file" ]; then
         ok "Result JSON → $result_file"
@@ -428,10 +499,21 @@ except Exception as e:
 with open(state_file) as f:
     state = json.load(f)
 
-for item in result.get("applied", []):
+raw_applied = result.get("applied", [])
+# Normalise: Claude sometimes writes strings (e.g. ["R56", "R57"]) instead of dicts
+applied_this = []
+for item in raw_applied:
+    if isinstance(item, dict):
+        applied_this.append(item)
+    else:
+        applied_this.append({"category": "", "description": str(item)})
+
+for item in applied_this:
     state["improvements_applied"].append({"iteration": iter, **item})
 
-done   = bool(result.get("done", False))
+# If improvements were applied, always continue to re-run tests — even if Claude
+# set done=true (Claude means "I found nothing MORE", but tests must re-run to verify).
+done   = bool(result.get("done", False)) and not applied_this
 reason = result.get("stop_reason")
 state["iteration"] = iter + 1
 
@@ -443,9 +525,46 @@ with open(state_file, "w") as f:
     json.dump(state, f, indent=2)
 
 print("done" if done else "continue")
-for a in result.get("applied", []):
+for a in applied_this:
     print(f"  [{a.get('category','')}] {a.get('description','')}")
 PYEOF
+}
+
+# ── Korean translation helper ─────────────────────────────────────────────────
+# Translates a markdown file to Korean and writes a *-KO.md sibling.
+translate_to_korean() {
+    local src="$1"
+    local dst="${src%.md}-KO.md"
+
+    if [ "$DRY_RUN" -eq 1 ]; then
+        warn "[dry-run] would translate $src → $dst"
+        return 0
+    fi
+    [ -f "$src" ] || { warn "translate_to_korean: source not found: $src"; return 0; }
+
+    log "Translating to Korean: $(basename "$src") → $(basename "$dst")"
+    local prompt="Translate the following Markdown document into Korean.
+Rules:
+- Preserve all Markdown structure (headings, lists, code blocks, bold, italic, tables).
+- Keep technical terms, file paths, code identifiers, and proper nouns in English.
+- Output ONLY the translated Markdown — no preamble, no explanation.
+
+Source file: $src
+
+Write the translated content directly to: $dst"
+
+    local _ko_log="${dst%.md}.log"
+    run_claude "$_ko_log" \
+        --dangerously-skip-permissions \
+        --model "$MODEL" \
+        --output-format text \
+        -p "$prompt" || true
+
+    if [ -f "$dst" ]; then
+        ok "KO → $dst"
+    else
+        warn "KO translation not written: $dst"
+    fi
 }
 
 # ── Final summary ─────────────────────────────────────────────────────────────
@@ -484,6 +603,7 @@ pathlib.Path("$summary_file").write_text("\\n".join(lines) + "\\n")
 print("Summary written.")
 EOF
     ok "Summary → $summary_file"
+    translate_to_korean "$summary_file"
 }
 
 # ── Main loop ─────────────────────────────────────────────────────────────────
@@ -501,6 +621,7 @@ main() {
 
     if [ "$RESUME" -eq 1 ] && [ -f "$STATE_FILE" ]; then
         log "Resuming from existing state: $STATE_FILE"
+        state_update "s['status'] = 'running'; s['max_iterations'] = $MAX_ITERATIONS; s['stop_reason'] = None"
     else
         state_init
     fi
