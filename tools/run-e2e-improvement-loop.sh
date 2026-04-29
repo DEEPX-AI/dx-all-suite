@@ -17,8 +17,12 @@
 #   --max-iterations N    Max loop iterations (default: 5)
 #   --scenario KEY        Scenario key filter for pytest (default: dx_stream)
 #   --suite-root PATH     Path to dx-all-suite root (default: auto-detect)
+#   --orchestrator TYPE   Orchestrator for report+improve steps: claude (default), copilot, cursor, or opencode
 #   --claude-bin PATH     Claude binary path (default: claude)
-#   --model MODEL         Claude model for improvement step (default: claude-sonnet-4-6)
+#   --copilot-bin PATH    Copilot binary path (default: copilot)
+#   --cursor-bin PATH     Cursor CLI binary path (default: agent)
+#   --opencode-bin PATH   OpenCode binary path (default: opencode)
+#   --model MODEL         Model for report generation and improvements (default: claude-sonnet-4-6)
 #   --run-dir PATH        Use specific run directory instead of auto-timestamped
 #   --resume              Resume from latest timestamped run in doc/reports/e2e-loop/
 #   --dry-run             Print commands without executing
@@ -85,10 +89,166 @@ run_claude() {
     done
 }
 
+# ── Copilot quota helpers ─────────────────────────────────────────────────────
+_is_copilot_quota_error() {
+    local text="${1,,}"
+    [[ "$text" == *"out of usage"* ]] || [[ "$text" == *"switch to auto"* ]] \
+        || [[ "$text" == *"rate limit"* ]] || [[ "$text" == *"usage limit"* ]]
+}
+
+_wait_for_copilot_quota() {
+    local poll=0
+    while [ "$poll" -lt "$CLAUDE_QUOTA_MAX_POLLS" ]; do
+        poll=$(( poll + 1 ))
+        log "[quota-wait] Poll $poll/$CLAUDE_QUOTA_MAX_POLLS — sleeping ${CLAUDE_QUOTA_POLL_INTERVAL}s ($(( CLAUDE_QUOTA_POLL_INTERVAL / 60 )) min) ..."
+        sleep "$CLAUDE_QUOTA_POLL_INTERVAL"
+        local probe
+        probe=$( (cd "$SUITE_ROOT" && "$COPILOT_BIN" -i "echo ok" --yolo) 2>&1 ) || true
+        if ! _is_copilot_quota_error "$probe"; then
+            ok "[quota-wait] Copilot quota cleared at poll $poll — resuming."
+            return 0
+        fi
+        warn "[quota-wait] Copilot still over quota (poll $poll)."
+    done
+    fail "[quota-wait] Max polls ($CLAUDE_QUOTA_MAX_POLLS) exceeded — aborting loop."
+    return 1
+}
+
+# Copilot CLI wrapper: runs a prompt non-interactively with --yolo.
+# Usage: run_copilot <log_file> <prompt>
+run_copilot() {
+    local log_file="$1"
+    local prompt="$2"
+    while true; do
+        local out rc
+        out=$( (cd "$SUITE_ROOT" && "$COPILOT_BIN" -i "$prompt" --yolo --model "$MODEL") 2>&1 )
+        rc=$?
+        printf '%s\n' "$out" >> "$log_file"
+        if [ "$rc" -ne 0 ] && _is_copilot_quota_error "$out"; then
+            warn "[quota-wait] Copilot usage limit hit."
+            _wait_for_copilot_quota || return 1
+            log "[quota-wait] Retrying copilot call ..."
+            continue
+        fi
+        return "$rc"
+    done
+}
+
+# ── Cursor quota helpers ──────────────────────────────────────────────────────
+_is_cursor_quota_error() {
+    local text="${1,,}"
+    [[ "$text" == *"out of usage"* ]] || [[ "$text" == *"switch to auto"* ]]
+}
+
+_wait_for_cursor_quota() {
+    local poll=0
+    while [ "$poll" -lt "$CLAUDE_QUOTA_MAX_POLLS" ]; do
+        poll=$(( poll + 1 ))
+        log "[quota-wait] Poll $poll/$CLAUDE_QUOTA_MAX_POLLS — sleeping ${CLAUDE_QUOTA_POLL_INTERVAL}s ($(( CLAUDE_QUOTA_POLL_INTERVAL / 60 )) min) ..."
+        sleep "$CLAUDE_QUOTA_POLL_INTERVAL"
+        local probe
+        probe=$( (cd "$SUITE_ROOT" && "$CURSOR_BIN" -p --force --output-format stream-json "echo ok") 2>&1 ) || true
+        if ! _is_cursor_quota_error "$probe"; then
+            ok "[quota-wait] Cursor quota cleared at poll $poll — resuming."
+            return 0
+        fi
+        warn "[quota-wait] Cursor still over quota (poll $poll)."
+    done
+    fail "[quota-wait] Max polls ($CLAUDE_QUOTA_MAX_POLLS) exceeded — aborting loop."
+    return 1
+}
+
+# Cursor CLI wrapper: runs a prompt non-interactively with -p --force.
+# Usage: run_cursor <log_file> <prompt>
+run_cursor() {
+    local log_file="$1"
+    local prompt="$2"
+    while true; do
+        local out rc
+        out=$( (cd "$SUITE_ROOT" && "$CURSOR_BIN" -p --force --output-format stream-json --model "$MODEL" "$prompt") 2>&1 )
+        rc=$?
+        printf '%s\n' "$out" >> "$log_file"
+        if [ "$rc" -ne 0 ] && _is_cursor_quota_error "$out"; then
+            warn "[quota-wait] Cursor usage limit hit."
+            _wait_for_cursor_quota || return 1
+            log "[quota-wait] Retrying cursor call ..."
+            continue
+        fi
+        return "$rc"
+    done
+}
+
+# ── OpenCode quota helpers ────────────────────────────────────────────────────
+_is_opencode_quota_error() {
+    local text="${1,,}"
+    [[ "$text" == *"rate limit"* ]] || [[ "$text" == *"usage limit"* ]] \
+        || [[ "$text" == *"quota exceeded"* ]] || [[ "$text" == *"too many requests"* ]]
+}
+
+_wait_for_opencode_quota() {
+    local poll=0
+    while [ "$poll" -lt "$CLAUDE_QUOTA_MAX_POLLS" ]; do
+        poll=$(( poll + 1 ))
+        log "[quota-wait] Poll $poll/$CLAUDE_QUOTA_MAX_POLLS — sleeping ${CLAUDE_QUOTA_POLL_INTERVAL}s ($(( CLAUDE_QUOTA_POLL_INTERVAL / 60 )) min) ..."
+        sleep "$CLAUDE_QUOTA_POLL_INTERVAL"
+        local probe
+        probe=$( (cd "$SUITE_ROOT" && "$OPENCODE_BIN" run --format json "echo ok") 2>&1 ) || true
+        if ! _is_opencode_quota_error "$probe"; then
+            ok "[quota-wait] OpenCode quota cleared at poll $poll — resuming."
+            return 0
+        fi
+        warn "[quota-wait] OpenCode still over quota (poll $poll)."
+    done
+    fail "[quota-wait] Max polls ($CLAUDE_QUOTA_MAX_POLLS) exceeded — aborting loop."
+    return 1
+}
+
+# OpenCode wrapper: runs a prompt non-interactively via `opencode run --format json`.
+# Usage: run_opencode <log_file> <prompt>
+run_opencode() {
+    local log_file="$1"
+    local prompt="$2"
+    while true; do
+        local out rc
+        out=$( (cd "$SUITE_ROOT" && "$OPENCODE_BIN" run --format json --model "$MODEL" "$prompt") 2>&1 )
+        rc=$?
+        printf '%s\n' "$out" >> "$log_file"
+        if [ "$rc" -ne 0 ] && _is_opencode_quota_error "$out"; then
+            warn "[quota-wait] OpenCode usage limit hit."
+            _wait_for_opencode_quota || return 1
+            log "[quota-wait] Retrying opencode call ..."
+            continue
+        fi
+        return "$rc"
+    done
+}
+
+# ── Orchestrator dispatcher ───────────────────────────────────────────────────
+# Routes report/improve/translate calls to claude/copilot/cursor/opencode based on $ORCHESTRATOR.
+# Usage: run_orchestrator <log_file> <prompt>
+run_orchestrator() {
+    local log_file="$1"
+    local prompt="$2"
+    case "$ORCHESTRATOR" in
+        copilot)  run_copilot  "$log_file" "$prompt" ;;
+        cursor)   run_cursor   "$log_file" "$prompt" ;;
+        opencode) run_opencode "$log_file" "$prompt" ;;
+        *)        run_claude "$log_file" \
+                      --dangerously-skip-permissions \
+                      --model "$MODEL" \
+                      --output-format text \
+                      -p "$prompt" ;;
+    esac
+}
+
 # ── Defaults ──────────────────────────────────────────────────────────────────
 MAX_ITERATIONS=5
 SCENARIO="dx_stream"
+ORCHESTRATOR="${ORCHESTRATOR:-claude}"   # claude|copilot|cursor|opencode
 CLAUDE_BIN="${CLAUDE_BIN:-claude}"
+COPILOT_BIN="${COPILOT_BIN:-copilot}"
+CURSOR_BIN="${CURSOR_BIN:-agent}"
+OPENCODE_BIN="${OPENCODE_BIN:-opencode}"
 MODEL="${CLAUDE_MODEL:-claude-sonnet-4-6}"
 RESUME=0
 DRY_RUN=0
@@ -106,7 +266,11 @@ while [[ $# -gt 0 ]]; do
         --max-iterations) MAX_ITERATIONS="$2"; shift 2 ;;
         --scenario)       SCENARIO="$2";       shift 2 ;;
         --suite-root)     SUITE_ROOT="$2";     shift 2 ;;
+        --orchestrator)   ORCHESTRATOR="$2";   shift 2 ;;
         --claude-bin)     CLAUDE_BIN="$2";     shift 2 ;;
+        --copilot-bin)    COPILOT_BIN="$2";    shift 2 ;;
+        --cursor-bin)     CURSOR_BIN="$2";     shift 2 ;;
+        --opencode-bin)   OPENCODE_BIN="$2";   shift 2 ;;
         --model)          MODEL="$2";          shift 2 ;;
         --run-dir)        RUN_DIR="$2";        shift 2 ;;
         --resume)         RESUME=1;            shift ;;
@@ -144,11 +308,32 @@ preflight() {
     command -v python3 &>/dev/null || { fail "python3 not found"; ok=0; }
     [ -f "$TESTS_DIR/test.sh" ]    || { fail "tests/test.sh not found at $TESTS_DIR"; ok=0; }
 
-    if ! command -v "$CLAUDE_BIN" &>/dev/null; then
-        fail "claude binary not found: $CLAUDE_BIN"
-        warn "Set CLAUDE_BIN env var or use --claude-bin"
-        ok=0
-    fi
+    case "$ORCHESTRATOR" in
+        copilot)
+            if ! command -v "$COPILOT_BIN" &>/dev/null; then
+                fail "copilot binary not found: $COPILOT_BIN"
+                warn "Set COPILOT_BIN env var or use --copilot-bin"
+                ok=0
+            fi ;;
+        cursor)
+            if ! command -v "$CURSOR_BIN" &>/dev/null; then
+                fail "cursor binary (agent) not found: $CURSOR_BIN"
+                warn "Set CURSOR_BIN env var or use --cursor-bin"
+                ok=0
+            fi ;;
+        opencode)
+            if ! command -v "$OPENCODE_BIN" &>/dev/null; then
+                fail "opencode binary not found: $OPENCODE_BIN"
+                warn "Set OPENCODE_BIN env var or use --opencode-bin"
+                ok=0
+            fi ;;
+        *)
+            if ! command -v "$CLAUDE_BIN" &>/dev/null; then
+                fail "claude binary not found: $CLAUDE_BIN"
+                warn "Set CLAUDE_BIN env var or use --claude-bin"
+                ok=0
+            fi ;;
+    esac
 
     [ "$ok" -eq 1 ] || exit 1
 }
@@ -387,11 +572,7 @@ The report must:
 
 Previous reports for reference style: $SUITE_ROOT/doc/reports/"
 
-    run_claude "$STATE_DIR/iteration-${iter}-report-gen.log" \
-        --dangerously-skip-permissions \
-        --model "$MODEL" \
-        --output-format text \
-        -p "$prompt" || true
+    run_orchestrator "$STATE_DIR/iteration-${iter}-report-gen.log" "$prompt" || true
 
     if [ -f "$report_file" ]; then
         ok "Report → $report_file"
@@ -455,11 +636,7 @@ Suite root: $SUITE_ROOT
 
 Begin now."
 
-    run_claude "$STATE_DIR/iteration-${iter}-improve.log" \
-        --dangerously-skip-permissions \
-        --model "$MODEL" \
-        --output-format text \
-        -p "$prompt" || true
+    run_orchestrator "$STATE_DIR/iteration-${iter}-improve.log" "$prompt" || true
 
     if [ -f "$result_file" ]; then
         ok "Result JSON → $result_file"
@@ -554,11 +731,7 @@ Source file: $src
 Write the translated content directly to: $dst"
 
     local _ko_log="${dst%.md}.log"
-    run_claude "$_ko_log" \
-        --dangerously-skip-permissions \
-        --model "$MODEL" \
-        --output-format text \
-        -p "$prompt" || true
+    run_orchestrator "$_ko_log" "$prompt" || true
 
     if [ -f "$dst" ]; then
         ok "KO → $dst"
@@ -610,11 +783,16 @@ EOF
 main() {
     sep
     log "Agentic E2E Self-Improvement Loop"
-    log "Suite root : $SUITE_ROOT"
-    log "Scenario   : $SCENARIO"
-    log "Max iter   : $MAX_ITERATIONS"
-    log "Claude     : $CLAUDE_BIN (model=$MODEL)"
-    log "State dir  : $STATE_DIR"
+    log "Suite root   : $SUITE_ROOT"
+    log "Scenario     : $SCENARIO"
+    log "Max iter     : $MAX_ITERATIONS"
+    case "$ORCHESTRATOR" in
+        copilot)  log "Orchestrator : copilot ($COPILOT_BIN, model=$MODEL)" ;;
+        cursor)   log "Orchestrator : cursor ($CURSOR_BIN, model=$MODEL)" ;;
+        opencode) log "Orchestrator : opencode ($OPENCODE_BIN, model=$MODEL)" ;;
+        *)        log "Orchestrator : claude ($CLAUDE_BIN, model=$MODEL)" ;;
+    esac
+    log "State dir    : $STATE_DIR"
     sep
 
     preflight
