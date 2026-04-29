@@ -618,7 +618,8 @@ dxcom이 사용 가능하고 컴파일이 진행되는 경우:
 AI 에이전트(Claude Code, Copilot CLI, Cursor CLI, Copilot Chat (VS Code),
 Cursor (IDE), OpenCode, 기타 모든 도구)를 사용하여 내부 dx-agentic-dev 기능을
 개발하거나 수정할 때는 전체 소프트웨어 엔지니어링 규율이 **필수**입니다.
-다음 경로에 영향을 미치는 모든 작업에 적용됩니다:
+내부 dx-agentic-dev 기능에 해당하거나 관련된 모든 작업에 적용됩니다.
+다음 경로들이 적용 대상입니다 (비-완전 목록 — 확실하지 않을 경우 SWE 규율을 적용하세요):
 
 | 경로 | 예시 |
 |------|------|
@@ -627,6 +628,7 @@ Cursor (IDE), OpenCode, 기타 모든 도구)를 사용하여 내부 dx-agentic-
 | `tests/test.sh` | 수동/자동 shell runner |
 | `tests/conftest.py`, `tests/parse_copilot_session.py` | 공유 테스트 인프라 |
 | `tools/dx-agentic-dev-gen/` | generator 소스, CLI, transformer |
+| `tools/*.sh` | loop 스크립트 및 orchestration runner (예: `run-e2e-improvement-loop.sh`) |
 | `.deepx/` | agent, skill, 템플릿, fragment (canonical source) |
 
 이 규칙은 아래 **Instruction File Verification Loop**에 **추가로** 적용됩니다.
@@ -643,7 +645,7 @@ Autopilot에서는 `ask_user` 대신 knowledge base 기본값으로 결정하되
 
 | 단계 | Skill | 적용 시점 |
 |------|-------|-----------|
-| 1 | `/dx-skill-router` | **항상** — 모든 작업 전 적용 가능한 skill 식별 |
+| 1 | `/dx-skill-router` | **HARD GATE** — 경로 분류 전, SWE 게이트 체크 전, 파일 읽기 전에 반드시 호출. 어떤 조건에서도 이 단계를 건너뛰거나 미룰 수 없습니다. |
 | 2 | `/dx-brainstorm-and-plan` | 기능 추가, 동작 변경, 구조적 리팩토링 시 |
 | 3 | `/dx-writing-plans` | 승인된 계획이 >2 구현 단계를 포함할 때 |
 | 4 | `/dx-tdd` | 모든 코드 변경 — 구현 전 테스트/검증을 먼저 확인하거나 작성 |
@@ -651,7 +653,9 @@ Autopilot에서는 `ask_user` 대신 knowledge base 기본값으로 결정하되
 | 6 | `/dx-verify-completion` | 완료 선언 전 — 주장이 아닌 증거 필요 |
 
 **Non-trivial 판단 기준**: 변경이 ≥2개 파일 또는 ≥2개 레포에 영향을 미치면
-Non-trivial로 간주하며, Trivial 변경 예외가 적용되지 않습니다.
+Non-trivial로 간주하며, Trivial 변경 예외가 적용되지 않습니다. **이 기준은
+위의 SWE 경로 목록과 독립적으로 적용됩니다** — 목록에 없는 경로의 파일이라도
+≥2개를 변경하면 `/dx-brainstorm-and-plan`이 필요합니다.
 
 ### "테스트 우선"의 의미
 
@@ -694,6 +698,8 @@ Non-trivial로 간주하며, Trivial 변경 예외가 적용되지 않습니다.
 - `/dx-skill-router` 호출 전 구현 시작
 - **Autopilot mode를 면제로 오해** — autopilot은 "묻지 않기"를 의미할 뿐,
   "규칙 없음"이 아닙니다. Autopilot에서도 필수 Skill 시퀀스는 완전히 적용됩니다.
+- `tools/*.sh` 스크립트를 `tools/dx-agentic-dev-gen/`에 없다는 이유로 "내부 개발 아님"으로 취급하기 —
+  `tools/` 하위의 모든 loop 및 orchestration 스크립트는 내부 dx-agentic-dev 기능이며 SWE 규율이 적용됩니다
 
 ---
 

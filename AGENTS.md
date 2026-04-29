@@ -606,7 +606,9 @@ review the plan directly in the prompt without opening a separate file.
 When any AI agent (Claude Code, Copilot CLI, Cursor CLI, Copilot Chat (VS Code),
 Cursor (IDE), OpenCode, or any other tool) is used to develop or modify internal
 dx-agentic-dev features, the full Software Engineering discipline is **MANDATORY**.
-This applies to any task touching the following paths:
+This applies to any task that IS or INVOLVES an internal dx-agentic-dev feature.
+The following paths are covered (non-exhaustive — when in doubt, apply the SWE
+discipline):
 
 | Path | Examples |
 |------|---------|
@@ -615,6 +617,7 @@ This applies to any task touching the following paths:
 | `tests/test.sh` | manual/autopilot shell runner |
 | `tests/conftest.py`, `tests/parse_copilot_session.py` | shared test infrastructure |
 | `tools/dx-agentic-dev-gen/` | generator source, CLI, transformers |
+| `tools/*.sh` | loop scripts and orchestration runners (e.g. `run-e2e-improvement-loop.sh`) |
 | `.deepx/` | agents, skills, templates, fragments (canonical source) |
 
 These rules apply **in addition to** the Instruction File Verification Loop below.
@@ -631,7 +634,7 @@ still applies.
 
 | Step | Skill | When required |
 |------|-------|--------------|
-| 1 | `/dx-skill-router` | **Always** — identify applicable skills before any action |
+| 1 | `/dx-skill-router` | **HARD GATE** — invoke BEFORE any path classification, BEFORE any SWE gate check, BEFORE any file read. No condition allows skipping or deferring this step. |
 | 2 | `/dx-brainstorm-and-plan` | Any feature addition, behavior change, or structural refactor |
 | 3 | `/dx-writing-plans` | When the approved plan has >2 implementation steps |
 | 4 | `/dx-tdd` | All code changes — identify or write the test/validation BEFORE implementing |
@@ -639,7 +642,9 @@ still applies.
 | 6 | `/dx-verify-completion` | Before claiming done — evidence required, not assertions |
 
 **Non-trivial judgment**: if the change touches ≥2 files OR ≥2 repos, it is
-Non-trivial and the Trivial Change Exception does NOT apply.
+Non-trivial and the Trivial Change Exception does NOT apply. **This check is
+independent of the SWE path list above** — a change to files outside the
+listed paths but touching ≥2 files still requires `/dx-brainstorm-and-plan`.
 
 ### What "Test First" Means Here
 
@@ -682,6 +687,9 @@ Steps 4–6 (TDD, verification, completion check) are **NEVER** skipped, even fo
 - Starting implementation before `/dx-skill-router` has been invoked
 - **Treating autopilot mode as a waiver** — autopilot means "no asking",
   NOT "no rules". The Mandatory Skill Sequence applies in full in autopilot mode.
+- Treating `tools/*.sh` scripts as "not internal dev" because they are not in
+  `tools/dx-agentic-dev-gen/` — all loop and orchestration scripts under `tools/`
+  are internal dx-agentic-dev features and the SWE discipline applies
 
 ---
 

@@ -1428,6 +1428,121 @@ class TestAutopilotSWEGatesCrossReference:
             "/dx-brainstorm-and-plan, and /dx-tdd must be followed.'"
         )
 
+    def test_swe_process_gates_path_list_is_non_exhaustive(self):
+        """swe-process-gates-internal-dev MUST state its path list is non-exhaustive.
+
+        Root cause: an agent read the path table as a complete/exhaustive list,
+        concluded 'tools/run-e2e-improvement-loop.sh is not listed → SWE gates
+        do not apply', and proceeded without /dx-skill-router.
+        Fix: the fragment must include wording that makes the list explicitly
+        non-exhaustive (e.g. 'non-exhaustive', 'when in doubt').
+        """
+        found_in = []
+        missing_in = []
+        for frag_dir in self.FRAGMENT_ROOTS:
+            text = self._read_fragment(frag_dir, "swe-process-gates-internal-dev")
+            if text is None:
+                continue
+            has_non_exhaustive = (
+                "non-exhaustive" in text.lower()
+                or "including but not limited to" in text.lower()
+                or "when in doubt" in text.lower()
+            )
+            if has_non_exhaustive:
+                found_in.append(str(frag_dir))
+            else:
+                missing_in.append(str(frag_dir))
+
+        assert not missing_in, (
+            "swe-process-gates-internal-dev path list is not marked as non-exhaustive in:\n"
+            + "\n".join(f"  {p}" for p in missing_in)
+            + "\n\nFix: change 'This applies to any task touching the following paths:' to "
+            "explicitly state the list is non-exhaustive, e.g. add "
+            "'(non-exhaustive — when in doubt, apply the SWE discipline)'."
+        )
+
+    def test_swe_process_gates_skill_router_is_hard_gate(self):
+        """swe-process-gates-internal-dev MUST designate /dx-skill-router as a
+        HARD GATE, not merely 'Always'.
+
+        Root cause: 'Always' in the skill sequence table was treated as a soft
+        recommendation that the agent could override after deciding SWE gates
+        did not apply. The skill-router invocation must be framed as unconditional
+        — it must happen BEFORE the SWE path check, not after.
+        Fix: use explicit ordering language in the /dx-skill-router row:
+        'BEFORE any path classification' or 'BEFORE any SWE gate check'.
+        Note: checking for these specific phrases (not just "HARD GATE") avoids
+        a false-positive from the section title 'SWE Process Gates (HARD GATE)'.
+        """
+        found_in = []
+        missing_in = []
+        for frag_dir in self.FRAGMENT_ROOTS:
+            text = self._read_fragment(frag_dir, "swe-process-gates-internal-dev")
+            if text is None:
+                continue
+            # Must contain explicit ordering language near dx-skill-router,
+            # not just the section title which incidentally contains 'HARD GATE'.
+            has_hard_gate = (
+                ("before any path" in text.lower() and "dx-skill-router" in text)
+                or ("before any swe" in text.lower() and "dx-skill-router" in text)
+                or ("no condition allows skipping" in text.lower() and "dx-skill-router" in text)
+            )
+            if has_hard_gate:
+                found_in.append(str(frag_dir))
+            else:
+                missing_in.append(str(frag_dir))
+
+        assert not missing_in, (
+            "swe-process-gates-internal-dev does not designate /dx-skill-router as "
+            "a HARD GATE with explicit ordering in:\n"
+            + "\n".join(f"  {p}" for p in missing_in)
+            + "\n\nFix: change the /dx-skill-router row from 'Always — identify...' "
+            "to 'HARD GATE — invoke BEFORE any path classification, BEFORE any SWE "
+            "gate check, BEFORE any file read. No condition allows skipping or "
+            "deferring this step.'."
+        )
+
+    def test_swe_process_gates_non_trivial_check_is_path_independent(self):
+        """swe-process-gates-internal-dev MUST state that the non-trivial check
+        (≥2 files) applies independently of the SWE path list.
+
+        Root cause: the non-trivial judgment was only mentioned inside the SWE
+        section; an agent that concluded 'this path is not in the SWE list'
+        never reached the non-trivial check and skipped /dx-brainstorm-and-plan
+        even though ≥2 files were being changed.
+        Fix: add a note that the ≥2 files criterion applies regardless of whether
+        the changed paths are in the SWE mandatory path list.
+        """
+        found_in = []
+        missing_in = []
+        for frag_dir in self.FRAGMENT_ROOTS:
+            text = self._read_fragment(frag_dir, "swe-process-gates-internal-dev")
+            if text is None:
+                continue
+            has_path_independent_note = (
+                ("independent" in text.lower() and "non-trivial" in text.lower())
+                or ("regardless" in text.lower() and (
+                    "\u22652" in text or ">= 2" in text or "2 files" in text
+                ))
+                or ("outside" in text.lower() and (
+                    "\u22652" in text or ">= 2" in text or "2 files" in text
+                ))
+            )
+            if has_path_independent_note:
+                found_in.append(str(frag_dir))
+            else:
+                missing_in.append(str(frag_dir))
+
+        assert not missing_in, (
+            "swe-process-gates-internal-dev does not state that the non-trivial "
+            "check (≥2 files) is independent of the SWE path list in:\n"
+            + "\n".join(f"  {p}" for p in missing_in)
+            + "\n\nFix: add a note after the non-trivial judgment: 'This check is "
+            "independent of the SWE path list above — a change to files outside "
+            "the listed paths but touching ≥2 files still requires "
+            "/dx-brainstorm-and-plan.'."
+        )
+
     def test_pre_commit_hook_warns_on_non_deepx_with_deepx_staged(self):
         """pre-commit-hook.sh MUST contain logic to warn when non-.deepx/ files
         are staged alongside .deepx/ files.
