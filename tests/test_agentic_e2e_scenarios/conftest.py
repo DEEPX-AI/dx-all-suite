@@ -2341,30 +2341,6 @@ def _is_npu_available() -> bool:
         return False
 
 
-def _check_dxroiextract() -> None:
-    """Skip the calling test/fixture if the dxroiextract GStreamer plugin is absent.
-
-    All cascaded E2E scenarios require DxRoiExtract to route primary-stage detections
-    into the secondary inference stage.  If the plugin is not registered, the pipeline
-    fails at runtime with "no element dxroiextract".  Skipping early (R46) converts
-    a silent runtime failure into an explicit diagnostic skip so developers see the
-    installation gap immediately rather than after waiting for a full session run.
-    """
-    if shutil.which("gst-inspect-1.0") is None:
-        return  # GStreamer not installed at all — skip only if runner also not available
-    try:
-        result = subprocess.run(
-            ["gst-inspect-1.0", "dxroiextract"],
-            capture_output=True,
-            timeout=15,
-        )
-        if result.returncode != 0:
-            pytest.skip(
-                "dxroiextract GStreamer plugin not available — "
-                "install dx_stream GStreamer plugins first (run ./install.sh in dx_stream/)"
-            )
-    except (subprocess.TimeoutExpired, OSError):
-        pass  # Best-effort: if gst-inspect hangs or errors, proceed without skipping
 
 
 @pytest.fixture(scope="session")

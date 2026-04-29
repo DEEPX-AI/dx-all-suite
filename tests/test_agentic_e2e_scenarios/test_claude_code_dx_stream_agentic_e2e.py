@@ -559,10 +559,11 @@ class TestMandatoryArtifacts:
         if not scenario.succeeded:
             pytest.skip("Claude Code execution failed")
         import json
-        session_files = [f for f in scenario.all_generated_files if f.name == "session.json"]
-        if not session_files:
+        # R91: Use scenario.output_dir directly (same R73 pattern, mirrors R90 for Cursor).
+        session_path = scenario.output_dir / "session.json"
+        if not session_path.exists():
             pytest.skip("No session.json found")
-        data = json.loads(session_files[0].read_text(encoding="utf-8"))
+        data = json.loads(session_path.read_text(encoding="utf-8"))
         sid = data.get("session_id", "")
         assert "claude" in sid, (
             f"session.json session_id '{sid}' does not contain agent identifier 'claude'.\n"

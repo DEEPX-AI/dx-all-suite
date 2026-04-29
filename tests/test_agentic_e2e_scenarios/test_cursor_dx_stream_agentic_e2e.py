@@ -573,12 +573,12 @@ class TestMandatoryArtifacts:
         if not scenario.succeeded:
             pytest.skip("Cursor execution failed")
         import json
-        session_files = [
-            f for f in scenario.all_generated_files if f.name == "session.json"
-        ]
-        if not session_files:
+        # R90: Use scenario.output_dir directly to avoid all_generated_files
+        # cross-directory contamination (same pattern as R73 for README length).
+        session_path = scenario.output_dir / "session.json"
+        if not session_path.exists():
             pytest.skip("No session.json found")
-        data = json.loads(session_files[0].read_text(encoding="utf-8"))
+        data = json.loads(session_path.read_text(encoding="utf-8"))
         sid = data.get("session_id", "")
         assert "cursor" in sid, (
             f"session.json session_id '{sid}' does not contain agent identifier 'cursor'.\n"
