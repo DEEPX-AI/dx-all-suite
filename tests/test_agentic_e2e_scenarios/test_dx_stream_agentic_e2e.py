@@ -598,3 +598,43 @@ class TestMandatoryArtifacts:
             f"All files: {[f.name for f in scenario.all_generated_files]}\n"
             "The agent MUST generate setup.sh (HARD-GATE in dx-build-pipeline-app.md)."
         )
+
+    def test_session_id_has_agent_identifier(self, scenario: ScenarioResult):
+        """R80: session.json session_id must include the agent identifier 'copilot'."""
+        if not scenario.succeeded:
+            pytest.skip("Copilot execution failed")
+        import json
+        session_files = [
+            f for f in scenario.all_generated_files if f.name == "session.json"
+        ]
+        if not session_files:
+            pytest.skip("No session.json found")
+        data = json.loads(session_files[0].read_text(encoding="utf-8"))
+        sid = data.get("session_id", "")
+        assert "copilot" in sid, (
+            f"session.json session_id '{sid}' does not contain agent identifier 'copilot'.\n"
+            "Fix: session_id must use format YYYYMMDD-HHMMSS_<agent>_<model>_<task> "
+            "where <agent> is 'copilot'."
+        )
+
+    def test_readme_has_sufficient_length(self, scenario: ScenarioResult):
+        """R86: Copilot single_model README.md should be substantive (>= 60 lines).
+
+        Copilot single_model produced 68 L in iter 19 vs 93–134 L for other tools.
+        This guard establishes a regression baseline for README quality.
+        Uses output_dir directly (not all_generated_files) to prevent false PASS
+        from a co-located README belonging to another tool.
+        """
+        if not scenario.succeeded:
+            pytest.skip("Copilot execution failed")
+        if not scenario.output_dir or not scenario.output_dir.exists():
+            pytest.skip("No output directory resolved")
+        readme = scenario.output_dir / "README.md"
+        if not readme.exists():
+            pytest.skip("No README.md in Copilot output directory")
+        lines = len(readme.read_text(encoding="utf-8").splitlines())
+        assert lines >= 60, (
+            f"README.md too short: {lines} lines (expected >= 60). "
+            "A substantive README should include prerequisites, pipeline diagram, "
+            "run instructions, configuration table, and files table."
+        )

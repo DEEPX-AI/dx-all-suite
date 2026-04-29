@@ -248,6 +248,9 @@ When the user is absent — autopilot mode, `--yolo` flag, or system auto-respon
 1. **"Work autonomously" means "follow all rules without asking", NOT "skip rules".**
    Every mandatory gate still applies: brainstorming spec, plan, TDD, mandatory
    artifacts, execution verification, and self-verification checks.
+   **This includes the SWE Process Gates Mandatory Skill Sequence** — in autopilot,
+   `/dx-skill-router` → `/dx-brainstorm-and-plan` → `/dx-tdd` must be followed
+   exactly as in interactive mode. Autopilot mode does NOT waive this sequence.
 2. **Do NOT call `ask_user`** — Make decisions using knowledge base defaults and
    documented best practices. Calling `ask_user` in autopilot wastes a turn and
    the auto-response does not grant permission to bypass any gate.
@@ -621,6 +624,11 @@ These rules apply **in addition to** the Instruction File Verification Loop belo
 Every non-trivial internal change MUST flow through this sequence.
 **No code before this sequence completes.**
 
+**Autopilot mode does NOT waive this sequence.** "Work autonomously" means follow
+all rules without asking — NOT skip rules. In autopilot, make default decisions
+using the knowledge base instead of calling `ask_user`, but every step below
+still applies.
+
 | Step | Skill | When required |
 |------|-------|--------------|
 | 1 | `/dx-skill-router` | **Always** — identify applicable skills before any action |
@@ -629,6 +637,9 @@ Every non-trivial internal change MUST flow through this sequence.
 | 4 | `/dx-tdd` | All code changes — identify or write the test/validation BEFORE implementing |
 | 5 | Verification loop | After every change — generator + drift check + test run |
 | 6 | `/dx-verify-completion` | Before claiming done — evidence required, not assertions |
+
+**Non-trivial judgment**: if the change touches ≥2 files OR ≥2 repos, it is
+Non-trivial and the Trivial Change Exception does NOT apply.
 
 ### What "Test First" Means Here
 
@@ -669,6 +680,8 @@ Steps 4–6 (TDD, verification, completion check) are **NEVER** skipped, even fo
 - Treating "I'll validate at the end" as acceptable — validate file-by-file, per `/dx-tdd`
 - Editing generator output files directly — they are overwritten on next `dx-agentic-gen generate`
 - Starting implementation before `/dx-skill-router` has been invoked
+- **Treating autopilot mode as a waiver** — autopilot means "no asking",
+  NOT "no rules". The Mandatory Skill Sequence applies in full in autopilot mode.
 
 ---
 

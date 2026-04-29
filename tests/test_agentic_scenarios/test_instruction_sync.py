@@ -530,3 +530,83 @@ class TestCrossReferenceDirection:
             f"{project}: Incorrect cross-reference direction:\n"
             + "\n".join(defects)
         )
+
+
+# ---------------------------------------------------------------------------
+# Pre-flight Classification structural sync (EN/KO fragment parity)
+# ---------------------------------------------------------------------------
+
+
+class TestPreFlightClassificationSync:
+    """Verify that KO instruction files contain the Q1/Q2/Q3 decision tree
+    in the Pre-flight Classification section, matching the EN structure.
+
+    Root cause: the KO `instruction-verification-loop` fragment was missing
+    the 'Answer these three questions' blockquote block (Q1/Q2/Q3), while the
+    EN version had it. Existing EN/KO sync tests (code block count, H3 count)
+    did not catch this because the counts happened to match by coincidence.
+    """
+
+    INSTRUCTION_PAIRS_COPILOT = [
+        (
+            Path("/data/home/dhyang/github/dx-all-suite/.github/copilot-instructions.md"),
+            Path("/data/home/dhyang/github/dx-all-suite/.github/copilot-instructions-KO.md"),
+            "suite",
+        ),
+        (
+            Path("/data/home/dhyang/github/dx-all-suite/dx-compiler/.github/copilot-instructions.md"),
+            Path("/data/home/dhyang/github/dx-all-suite/dx-compiler/.github/copilot-instructions-KO.md"),
+            "compiler",
+        ),
+        (
+            Path("/data/home/dhyang/github/dx-all-suite/dx-runtime/.github/copilot-instructions.md"),
+            Path("/data/home/dhyang/github/dx-all-suite/dx-runtime/.github/copilot-instructions-KO.md"),
+            "runtime",
+        ),
+        (
+            Path("/data/home/dhyang/github/dx-all-suite/dx-runtime/dx_app/.github/copilot-instructions.md"),
+            Path("/data/home/dhyang/github/dx-all-suite/dx-runtime/dx_app/.github/copilot-instructions-KO.md"),
+            "app",
+        ),
+        (
+            Path("/data/home/dhyang/github/dx-all-suite/dx-runtime/dx_stream/.github/copilot-instructions.md"),
+            Path("/data/home/dhyang/github/dx-all-suite/dx-runtime/dx_stream/.github/copilot-instructions-KO.md"),
+            "stream",
+        ),
+    ]
+
+    @pytest.mark.parametrize(
+        "en_path,ko_path,label",
+        INSTRUCTION_PAIRS_COPILOT,
+        ids=[p[2] for p in INSTRUCTION_PAIRS_COPILOT],
+    )
+    def test_preflight_ko_has_q1_q2_q3_decision_tree(
+        self, en_path: Path, ko_path: Path, label: str
+    ):
+        """KO instruction file must contain the Q1/Q2/Q3 decision tree in
+        the Pre-flight Classification section, matching the EN structure.
+
+        The decision tree is the blockquote block starting with 'Q1.'/'Q2.'/'Q3.'
+        It guides agents through classifying a file before editing it.
+        If it's missing from KO, Korean-language agents may not see the
+        three-step flow and may misclassify files.
+        """
+        if not en_path.exists() or not ko_path.exists():
+            pytest.skip(f"{label}: files missing")
+
+        en_text = en_path.read_text(encoding="utf-8")
+        ko_text = ko_path.read_text(encoding="utf-8")
+
+        # EN must have the Q1/Q2/Q3 blockquote (sanity)
+        assert "Q1." in en_text and "Q2." in en_text and "Q3." in en_text, (
+            f"{label}/EN: missing Q1/Q2/Q3 decision tree in Pre-flight Classification"
+        )
+
+        # KO must also have Q1/Q2/Q3
+        missing = [q for q in ("Q1.", "Q2.", "Q3.") if q not in ko_text]
+        assert not missing, (
+            f"{label}/KO: Pre-flight Classification is missing the Q1/Q2/Q3 "
+            f"decision tree blocks: {missing}\n\n"
+            f"Fix: add the Korean translation of the Q1/Q2/Q3 blockquote to "
+            f".deepx/templates/fragments/ko/instruction-verification-loop.md"
+        )

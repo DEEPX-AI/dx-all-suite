@@ -6,6 +6,9 @@
 1. **"Work autonomously"는 "묻지 않고 모든 규칙을 따르라"는 의미이지, "규칙을 건너뛰라"는 의미가 아닙니다.**
    모든 필수 게이트가 여전히 적용됩니다: brainstorming spec, 계획, TDD, 필수 산출물,
    실행 검증, 자체 검증 확인.
+   **SWE Process Gates의 필수 Skill 시퀀스도 포함됩니다** — autopilot에서도
+   `/dx-skill-router` → `/dx-brainstorm-and-plan` → `/dx-tdd`를 interactive mode와
+   동일하게 따라야 합니다. Autopilot mode는 이 시퀀스를 면제하지 않습니다.
 2. **`ask_user`를 호출하지 마세요** — knowledge base 기본값과 문서화된 모범 사례를
    사용하여 결정하세요. autopilot에서 `ask_user`를 호출하면 한 턴을 낭비하며
    auto-response는 게이트 우회 권한을 부여하지 않습니다.
