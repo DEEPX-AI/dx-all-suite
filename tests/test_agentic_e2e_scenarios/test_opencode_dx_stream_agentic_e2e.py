@@ -556,3 +556,24 @@ class TestMandatoryArtifacts:
             "Fix: session_id must use format YYYYMMDD-HHMMSS_<agent>_<model>_<task> "
             "where <agent> is 'opencode'."
         )
+
+    def test_readme_has_sufficient_length(self, scenario: ScenarioResult):
+        """R89: OpenCode single_model README.md should be substantive (>= 50 lines).
+
+        OpenCode single_model README was 119 L in iter 19 — this guard establishes
+        a regression baseline. Uses output_dir directly (per R73) to prevent false PASS
+        from a co-located README belonging to another tool's directory.
+        """
+        if not scenario.succeeded:
+            pytest.skip("OpenCode execution failed")
+        if not scenario.output_dir or not scenario.output_dir.exists():
+            pytest.skip("No output directory resolved")
+        readme = scenario.output_dir / "README.md"
+        if not readme.exists():
+            pytest.skip("No README.md in OpenCode output directory")
+        lines = len(readme.read_text(encoding="utf-8").splitlines())
+        assert lines >= 50, (
+            f"README.md too short: {lines} lines (expected >= 50). "
+            "A substantive README should include prerequisites, pipeline diagram, "
+            "run instructions, configuration table, and files table."
+        )

@@ -170,6 +170,38 @@ class TestExecution:
             pytest.skip("OpenCode execution failed")
         verify_start_sentinel(scenario)
 
+    def test_session_log_has_pipeline_execution_evidence(self, scenario: ScenarioResult):
+        """R88: session.log must contain evidence of actual GStreamer pipeline execution.
+
+        Mirrors R69 for single_model — catches validator-only cascaded logs that satisfy
+        line count but lack any 'python pipeline.py' execution output.
+        Guarded by _dxroiextract_available since the cascaded pipeline requires the plugin.
+        """
+        if not _dxroiextract_available:
+            pytest.skip("dxroiextract plugin not installed — runtime pipeline execution skipped")
+        if not scenario.succeeded:
+            pytest.skip("OpenCode execution failed")
+        agent_log = scenario.output_dir / "session.log" if scenario.output_dir else None
+        if agent_log and agent_log.exists():
+            log_path = agent_log
+        elif scenario.session_log and scenario.session_log.exists():
+            log_path = scenario.session_log
+        else:
+            pytest.skip("No session.log found")
+        log = log_path.read_text(encoding="utf-8")
+        has_gst = any(m in log for m in (
+            "Pipeline", "End of stream", "Pipeline stopped", "PLAYING", "GST_",
+        ))
+        has_launch = "pipeline.py" in log and (
+            "=== pipeline" in log or "execution" in log.lower()
+        )
+        assert has_gst or has_launch, (
+            "session.log shows no evidence of GStreamer pipeline execution. "
+            "The agent likely ran only validation tooling. "
+            "Fix: SKILL.md Verification Step requires explicit "
+            "'python pipeline.py ... | tee -a session.log' (R68)."
+        )
+
     def test_harness_transcript_extracts_session_uuid(self, scenario: ScenarioResult):
         """Harness must extract a non-empty session UUID from OpenCode's NDJSON stream."""
         if not scenario.succeeded:
@@ -463,4 +495,25 @@ class TestMandatoryArtifacts:
             f"session.json session_id '{sid}' does not contain agent identifier 'opencode'.\n"
             "Fix: session_id must use format YYYYMMDD-HHMMSS_<agent>_<model>_<task> "
             "where <agent> is 'opencode'."
+        )
+
+    def test_readme_has_sufficient_length(self, scenario: ScenarioResult):
+        """R89: OpenCode cascaded README.md should be substantive (>= 60 lines).
+
+        OpenCode cascaded README was 149 L in iter 19 — this guard establishes
+        a regression baseline. Uses output_dir directly (per R73) to prevent false PASS
+        from a co-located README belonging to another tool's directory.
+        """
+        if not scenario.succeeded:
+            pytest.skip("OpenCode execution failed")
+        if not scenario.output_dir or not scenario.output_dir.exists():
+            pytest.skip("No output directory resolved")
+        readme = scenario.output_dir / "README.md"
+        if not readme.exists():
+            pytest.skip("No README.md in OpenCode output directory")
+        lines = len(readme.read_text(encoding="utf-8").splitlines())
+        assert lines >= 60, (
+            f"README.md too short: {lines} lines (expected >= 60). "
+            "A substantive README should include prerequisites, pipeline diagram, "
+            "run instructions, configuration table, and files table."
         )

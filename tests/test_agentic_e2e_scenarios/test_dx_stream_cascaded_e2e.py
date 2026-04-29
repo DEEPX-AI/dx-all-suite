@@ -155,6 +155,33 @@ class TestExecution:
             pytest.skip("Copilot execution failed")
         verify_start_sentinel(scenario)
 
+    def test_session_log_has_pipeline_execution_evidence(self, scenario: ScenarioResult):
+        """R88: session.log must contain evidence of actual GStreamer pipeline execution.
+
+        Mirrors R69 for single_model — catches validator-only cascaded logs that satisfy
+        line count but lack any 'python pipeline.py' execution output.
+        Guarded by _dxroiextract_available since the cascaded pipeline requires the plugin.
+        """
+        if not _dxroiextract_available:
+            pytest.skip("dxroiextract plugin not installed — runtime pipeline execution skipped")
+        if not scenario.succeeded:
+            pytest.skip("Copilot execution failed")
+        if not scenario.session_log or not scenario.session_log.exists():
+            pytest.skip("No session.log found")
+        log = scenario.session_log.read_text(encoding="utf-8")
+        has_gst = any(m in log for m in (
+            "Pipeline", "End of stream", "Pipeline stopped", "PLAYING", "GST_",
+        ))
+        has_launch = "pipeline.py" in log and (
+            "=== pipeline" in log or "execution" in log.lower()
+        )
+        assert has_gst or has_launch, (
+            "session.log shows no evidence of GStreamer pipeline execution. "
+            "The agent likely ran only validation tooling. "
+            "Fix: SKILL.md Verification Step requires explicit "
+            "'python pipeline.py ... | tee -a session.log' (R68)."
+        )
+
 
 class TestGeneratedFiles:
     """Verify expected pipeline files were generated."""

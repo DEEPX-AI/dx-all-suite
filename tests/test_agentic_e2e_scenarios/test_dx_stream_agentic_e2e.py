@@ -53,13 +53,34 @@ SCENARIO_PROMPT = (
 @pytest.fixture(scope="module")
 def scenario(copilot_runner, stream_copilot_cli_artifacts_dir) -> ScenarioResult:
     """Execute dx_stream Scenario #1 via Copilot CLI."""
+    import re as _re
     with _apt_lock():
-        return copilot_runner.run(
+        result = copilot_runner.run(
             prompt=SCENARIO_PROMPT,
             workdir=STREAM_ROOT,
             scenario_key="dx_stream",
             session_log_dir=stream_copilot_cli_artifacts_dir,
         )
+    # R86: Resolve output_dir from DONE sentinel (prevents cross-dir contamination
+    # when OpenCode creates a directory concurrently and appears first in output_dirs).
+    _done_match = _re.search(
+        r'\[DX-AGENTIC-DEV: DONE \(output-dir: ([^)]+)\)\]',
+        result.stdout or ''
+    )
+    if _done_match:
+        _rel = _done_match.group(1).strip().rstrip('/')
+        _resolved = result.workdir / _rel
+        if _resolved.exists() and (not result.output_dirs or _resolved != result.output_dirs[0]):
+            import logging as _logging
+            _logging.getLogger(__name__).info(
+                "R86: output_dir resolved from DONE sentinel: %s (was %s)",
+                _resolved, result.output_dirs[0] if result.output_dirs else None
+            )
+            if result.output_dirs:
+                result.output_dirs[0] = _resolved
+            else:
+                result.output_dirs.append(_resolved)
+    return result
 
 
 # ---------------------------------------------------------------------------
