@@ -25,6 +25,7 @@
 #   --model MODEL         Model for report generation and improvements (default: claude-sonnet-4-6)
 #   --run-dir PATH        Use specific run directory instead of auto-timestamped
 #   --resume              Resume from latest timestamped run in doc/reports/e2e-loop/
+#   --report-only         Run E2E tests and generate report, but skip the improvement step (Step 4)
 #   --dry-run             Print commands without executing
 #   -h, --help            Show this help
 #
@@ -257,6 +258,7 @@ OPENCODE_BIN="${OPENCODE_BIN:-opencode}"
 MODEL="${CLAUDE_MODEL:-claude-sonnet-4-6}"
 RESUME=0
 DRY_RUN=0
+REPORT_ONLY=0
 RUN_DIR=""   # explicit run directory (overrides auto-timestamped dir)
 CLAUDE_QUOTA_POLL_INTERVAL="${CLAUDE_QUOTA_POLL_INTERVAL:-3600}"  # 60 min between polls
 CLAUDE_QUOTA_MAX_POLLS="${CLAUDE_QUOTA_MAX_POLLS:-8}"             # max 8 h wait total
@@ -279,6 +281,7 @@ while [[ $# -gt 0 ]]; do
         --model)          MODEL="$2";          shift 2 ;;
         --run-dir)        RUN_DIR="$2";        shift 2 ;;
         --resume)         RESUME=1;            shift ;;
+        --report-only)    REPORT_ONLY=1;       shift ;;
         --dry-run)        DRY_RUN=1;           shift ;;
         -h|--help)
             sed -n '/^# tools\//,/^$/{/^set -/q; s/^# \?//; p}' "$0" | head -30
@@ -926,6 +929,11 @@ main() {
 
         # Step 4: Apply improvements
         sep; log "Step 4/4 — Applying improvements"
+        if [ "$REPORT_ONLY" -eq 1 ]; then
+            warn "--report-only: skipping Step 4 (apply improvements)"
+            # Advance iteration counter so max-iterations check works correctly
+            state_update "s['iteration'] = $iter + 1; s['status'] = 'done'; s['stop_reason'] = 'report_only'"
+        else
         apply_improvements "$iter"
 
         # Guard: regenerate all platform outputs after improvements to fix any generator drift
@@ -993,6 +1001,7 @@ print('conftest symbol check OK')
         fi
 
         log "Improvements applied this iteration. Continuing ..."
+        fi  # end of --report-only skip block (if [ "$REPORT_ONLY" -eq 1 ])
         echo ""
     done
 
