@@ -593,6 +593,7 @@ case "$COMMAND" in
         detect_new_sessions() {
             local search_paths="$1"
             local snapshot_file="$2"
+            local agent_filter="${3:-}"
             local new_dirs=()
             for sp in $search_paths; do
                 local sp_real
@@ -605,6 +606,15 @@ case "$COMMAND" in
                     done
                 fi
             done
+            # Agent filter: only return dirs whose name contains the agent string
+            # (mirrors autopilot conftest.py _detect_new_sessions agent_filter)
+            if [ -n "$agent_filter" ]; then
+                local filtered=()
+                for d in "${new_dirs[@]}"; do
+                    [[ "$d" == *"$agent_filter"* ]] && filtered+=("$d")
+                done
+                new_dirs=("${filtered[@]}")
+            fi
             # Return space-separated list (empty if none)
             echo "${new_dirs[*]}"
         }
@@ -886,7 +896,7 @@ case "$COMMAND" in
             _end_ts=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
             # Post-detection: find new session directories
-            _detected_dirs=$(detect_new_sessions "$_search_paths" "$_snapshot_file")
+            _detected_dirs=$(detect_new_sessions "$_search_paths" "$_snapshot_file" "copilot")
             rm -f "$_snapshot_file"
 
             # Sentinel-based detection: extract output-dir from Copilot session logs
@@ -1228,6 +1238,7 @@ case "$COMMAND" in
             detect_new_sessions() {
                 local search_paths="$1"
                 local snapshot_file="$2"
+                local agent_filter="${3:-}"
                 local new_dirs=()
                 for sp in $search_paths; do
                     local sp_real
@@ -1240,6 +1251,13 @@ case "$COMMAND" in
                         done
                     fi
                 done
+                if [ -n "$agent_filter" ]; then
+                    local filtered=()
+                    for d in "${new_dirs[@]}"; do
+                        [[ "$d" == *"$agent_filter"* ]] && filtered+=("$d")
+                    done
+                    new_dirs=("${filtered[@]}")
+                fi
                 echo "${new_dirs[*]}"
             }
         fi
@@ -1329,7 +1347,7 @@ case "$COMMAND" in
             _cursor_exit=$?
 
             # Post-detection: find new session directories
-            _detected_dirs=$(detect_new_sessions "$_search_paths" "$_snapshot_file")
+            _detected_dirs=$(detect_new_sessions "$_search_paths" "$_snapshot_file" "cursor")
             rm -f "$_snapshot_file"
 
             read -r -a _detected_arr <<< "$_detected_dirs"
@@ -1515,6 +1533,7 @@ case "$COMMAND" in
             detect_new_sessions() {
                 local search_paths="$1"
                 local snapshot_file="$2"
+                local agent_filter="${3:-}"
                 local new_dirs=()
                 for sp in $search_paths; do
                     local sp_real
@@ -1527,6 +1546,13 @@ case "$COMMAND" in
                         done
                     fi
                 done
+                if [ -n "$agent_filter" ]; then
+                    local filtered=()
+                    for d in "${new_dirs[@]}"; do
+                        [[ "$d" == *"$agent_filter"* ]] && filtered+=("$d")
+                    done
+                    new_dirs=("${filtered[@]}")
+                fi
                 echo "${new_dirs[*]}"
             }
             validate_scenario() {
@@ -1666,7 +1692,7 @@ case "$COMMAND" in
             sleep 2
 
             # Post-detection: find new session directories
-            _detected_dirs=$(detect_new_sessions "$_search_paths" "$_snapshot_file")
+            _detected_dirs=$(detect_new_sessions "$_search_paths" "$_snapshot_file" "opencode")
             rm -f "$_snapshot_file"
 
             read -r -a _detected_arr <<< "$_detected_dirs"
@@ -1815,7 +1841,8 @@ case "$COMMAND" in
                 done
             }
             detect_new_sessions() {
-                local search_paths="$1"; local snapshot_file="$2"; local new_dirs=()
+                local search_paths="$1"; local snapshot_file="$2"
+                local agent_filter="${3:-}"; local new_dirs=()
                 for sp in $search_paths; do
                     local sp_real
                     sp_real="$(realpath "$sp" 2>/dev/null)" || continue
@@ -1827,6 +1854,13 @@ case "$COMMAND" in
                         done
                     fi
                 done
+                if [ -n "$agent_filter" ]; then
+                    local filtered=()
+                    for d in "${new_dirs[@]}"; do
+                        [[ "$d" == *"$agent_filter"* ]] && filtered+=("$d")
+                    done
+                    new_dirs=("${filtered[@]}")
+                fi
                 echo "${new_dirs[*]}"
             }
             validate_scenario() {
@@ -1942,7 +1976,7 @@ case "$COMMAND" in
             sleep 2
 
             # Post-detection: find new session directories
-            _detected_dirs=$(detect_new_sessions "$_search_paths" "$_snapshot_file")
+            _detected_dirs=$(detect_new_sessions "$_search_paths" "$_snapshot_file" "claude")
             rm -f "$_snapshot_file"
 
             read -r -a _detected_arr <<< "$_detected_dirs"
