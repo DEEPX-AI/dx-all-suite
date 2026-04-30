@@ -119,9 +119,14 @@ _wait_for_copilot_quota() {
 run_copilot() {
     local log_file="$1"
     local prompt="$2"
+    # Copilot CLI uses dot notation for model minor version (claude-sonnet-4.6),
+    # while the default MODEL uses dash notation (claude-sonnet-4-6).
+    # Translate: replace trailing -<digits> with .<digits>.
+    local copilot_model
+    copilot_model=$(echo "$MODEL" | sed 's/-\([0-9][0-9]*\)$/.\1/')
     while true; do
         local out rc
-        out=$( (cd "$SUITE_ROOT" && "$COPILOT_BIN" -i "$prompt" --yolo --model "$MODEL") 2>&1 )
+        out=$( (cd "$SUITE_ROOT" && "$COPILOT_BIN" -i "$prompt" --yolo --model "$copilot_model") 2>&1 )
         rc=$?
         printf '%s\n' "$out" >> "$log_file"
         if [ "$rc" -ne 0 ] && _is_copilot_quota_error "$out"; then
@@ -243,7 +248,7 @@ run_orchestrator() {
 
 # ── Defaults ──────────────────────────────────────────────────────────────────
 MAX_ITERATIONS=5
-SCENARIO="dx_stream"
+SCENARIO="suite"
 ORCHESTRATOR="${ORCHESTRATOR:-claude}"   # claude|copilot|cursor|opencode
 CLAUDE_BIN="${CLAUDE_BIN:-claude}"
 COPILOT_BIN="${COPILOT_BIN:-copilot}"
@@ -407,6 +412,10 @@ run_tool_test() {
     start=$(date +%s)
 
     set +e
+    # R2: Explicitly truncate the log file before running so that any content
+    # written by a previous run (e.g. the agent's own self-test invocation) does
+    # not appear before the harness evaluation output.
+    > "$out_log"
     (
         cd "$SUITE_ROOT"
         bash "$TESTS_DIR/test.sh" \
@@ -414,7 +423,7 @@ run_tool_test() {
             -k "$SCENARIO" \
             --json-report \
             2>&1
-    ) | tee "$out_log"
+    ) | tee -a "$out_log"
     local rc=${PIPESTATUS[0]}
     set -e
 
@@ -561,6 +570,21 @@ Then read the pytest log files and artifact listing referenced in that context.
 
 Write a comparison report to the path in context['report_out'].
 
+## IMPORTANT CONTEXT: Confirmed Hallucinations (DO NOT recommend restoring)
+
+The following patterns are CONFIRMED HALLUCINATIONS permanently removed from the codebase.
+Do NOT recommend restoring them, strengthening tests for them, or any variant of them:
+
+- **SingleImageCalibDataset** — does not exist in dx_com SDK. Official calibration uses
+  real multiple images. The banned tests around this were deliberately removed.
+- **CALIBRATION_OK** log marker — does not appear in real dx_com output.
+- **test_compilation_used_fast_calibration** — BANNED test function (hallucination test).
+- **test_calibration_self_check_passed** — BANNED test function (hallucination test).
+
+If a tool's session fails test_compilation_used_fast_calibration or test_calibration_self_check_passed,
+the correct fix is: those test functions must be PERMANENTLY REMOVED from the test file,
+NOT re-added or strengthened. Recommend removing them with category [test_coverage].
+
 The report must:
 1. Summarise pass/fail/skip for each of the 4 tools with duration
 2. Compare generated artifact files (file list, line counts) for each tool
@@ -620,14 +644,41 @@ Suite root: $SUITE_ROOT
 - Comparison report: $report_file
 - Already applied improvements: $applied_file
 
+## FORBIDDEN OPERATIONS — Do NOT perform these, even if the report recommends them
+
+The following are CONFIRMED HALLUCINATIONS that were deliberately removed from the codebase.
+Do NOT re-add them under any name, description, or structural variant:
+
+1. **SingleImageCalibDataset** — This class does NOT exist in the dx_com SDK.
+   - Do NOT add it to any .py, .md, or .deepx/ file.
+   - Do NOT recommend it or any single-image augmentation calibration pattern.
+   - The official calibration pattern uses REAL multiple images from a directory.
+
+2. **CALIBRATION_OK** — This log marker does NOT appear in real dx_com output.
+   - Do NOT add checks for it, do NOT generate it, do NOT reference it.
+
+3. **test_compilation_used_fast_calibration** — BANNED test function name.
+   - Do NOT add this function to any test file under any description.
+   - It was removed because it tested a hallucinated SDK behavior.
+
+4. **test_calibration_self_check_passed** — BANNED test function name.
+   - Do NOT add this function to any test file under any description.
+   - It was removed because it tested a hallucinated log marker.
+
+**Verification gate**: After applying any .deepx/ or test file changes, run:
+  python -m pytest tests/test_agentic_scenarios/test_sdk_grounding.py tests/test_agentic_scenarios/test_forbidden_patterns.py -v
+If either file fails, REVERT the change and mark the improvement as blocked.
+
 ## Task
 1. Read both files above.
 2. Extract recommendations tagged [timeout], [test_coverage], [runner_code], [skill_md].
    Skip [tooling] items (account/quota — not fixable in code).
+   Skip any recommendation that involves FORBIDDEN OPERATIONS listed above.
 3. Skip improvements already in the applied list.
 4. If nothing new remains → write result JSON with done=true.
 5. Apply each new improvement (edit the relevant source files).
-   Rule: edits under .deepx/ MUST be followed by: dx-agentic-gen generate
+   Rule: edits under .deepx/ MUST be followed by: bash tools/dx-agentic-dev-gen/scripts/run_all.sh generate
+   Rule: MUST run grounding/forbidden tests after any .deepx/ or test file edit (see Verification gate above).
 6. Write a changes log (one section per change) to: $changes_file
 7. FINAL action: write this JSON to $result_file
    {\"done\": bool, \"stop_reason\": str|null, \"applied\": [{\"category\": \"...\", \"description\": \"...\"}]}
@@ -820,6 +871,24 @@ main() {
             break
         fi
 
+        # R16: Pre-run collect-only check — abort before spending agent time if collection fails
+        sep; log "Step 0/4 — Pre-run pytest collection check"
+        set +e
+        (
+            cd "$SUITE_ROOT"
+            python3 -m pytest tests/test_agentic_e2e_scenarios/ \
+                --collect-only -q 2>&1
+        )
+        local _collect_rc=$?
+        set -e
+        if [ "$_collect_rc" -ne 0 ]; then
+            warn "pytest --collect-only failed (exit $_collect_rc) — collection error before agent launch."
+            warn "Aborting iteration to avoid 0/N 'no artifact' false negative."
+            state_update "s['status'] = 'done'; s['stop_reason'] = 'collection_error_before_run'"
+            break
+        fi
+        ok "Collection check PASSED — proceeding to agent runs."
+
         # Step 1: Run all 4 E2E tests in parallel
         sep; log "Step 1/4 — Running E2E tests (parallel)"
         local _pids=()
@@ -868,6 +937,51 @@ main() {
                     | grep -E "CHANGED|UNCHANGED|ERROR|Generated|error" || true
             fi
         done
+
+        # R15: Post-improvement syntax check — abort if any test file has a SyntaxError
+        # (prevents silent regressions from reaching the next run phase)
+        log "Post-improvement: checking syntax of E2E test files ..."
+        set +e
+        (
+            cd "$SUITE_ROOT"
+            python3 -m py_compile \
+                tests/test_agentic_e2e_scenarios/test_*suite*.py \
+                tests/test_agentic_e2e_scenarios/conftest.py 2>&1
+        )
+        local _syntax_rc=$?
+        set -e
+        if [ "$_syntax_rc" -ne 0 ]; then
+            warn "SyntaxError detected in E2E test files after applying improvements!"
+            warn "Flagging improvement as bad — stopping loop to prevent regression."
+            state_update "s['status'] = 'done'; s['stop_reason'] = 'syntax_error_after_improvement'"
+            break
+        fi
+        ok "Post-improvement syntax check PASSED."
+
+        # R36: Post-improvement conftest symbol check — catches NameError (undefined names)
+        # that py_compile cannot detect (runtime error, not SyntaxError).
+        log "Post-improvement: checking conftest.py required symbols ..."
+        set +e
+        (
+            cd "$SUITE_ROOT"
+            python3 -c "
+import importlib, sys
+sys.path.insert(0, 'tests')
+m = importlib.import_module('test_agentic_e2e_scenarios.conftest')
+for name in ('_snapshot_sessions', '_detect_new_sessions', '_wait_for_background_compilation'):
+    assert hasattr(m, name), f'Missing: {name}'
+print('conftest symbol check OK')
+" 2>&1
+        )
+        local _symbol_rc=$?
+        set -e
+        if [ "$_symbol_rc" -ne 0 ]; then
+            warn "conftest.py symbol check FAILED — missing required helper function!"
+            warn "Flagging improvement as bad — stopping loop to prevent regression."
+            state_update "s['status'] = 'done'; s['stop_reason'] = 'symbol_error_after_improvement'"
+            break
+        fi
+        ok "Post-improvement conftest symbol check PASSED."
 
         # Process result → decide whether to continue
         local decision=""

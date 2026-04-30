@@ -206,6 +206,32 @@ placeholder compilation scripts or stub code — produce the real `.dxnn` file.
 | Python app, factory, inference | `@dx-app-builder` in `dx-runtime/dx_app/` |
 | GStreamer pipeline, stream | `@dx-stream-builder` in `dx-runtime/dx_stream/` |
 
+### Cross-Project Session Layout — HARD GATE (R41)
+
+When the task is **"compile ONNX + build app"** (suite scenario), you MUST produce
+**two separate session directories**:
+
+1. **Compiler session** → `dx-compiler/dx-agentic-dev/<session_id>/` (contains
+   `compile.py`, `config.json`, `yolo26n.dxnn`, `verify.py`, `session.log`)
+2. **App session** → `dx-runtime/dx_app/dx-agentic-dev/<session_id>/` (contains
+   factory, `<model>_sync.py`, `setup.sh`, `run.sh`)
+
+**NEVER merge both into a single `dx_app/` session.** The test assertion that will fail:
+```python
+assert any("dx-compiler" in str(d) for d in output_dirs)
+```
+
+This dual-session layout violation has occurred repeatedly in cursor (iter-4, iter-6,
+iter-8). The compiler agent document (`dx-compiler/`) contains the R31 Session Layout
+HARD GATE. You MUST read and apply it before writing any files.
+
+### Session Naming — PROHIBITED Patterns (R43)
+
+Do NOT use `_auto_` in the session ID. The `_auto_` prefix indicates the tool bypassed
+the cross-project routing workflow. A correct suite session produces TWO separate IDs:
+- `<ts>_<agent>_<model>_compile` in `dx-compiler/dx-agentic-dev/`
+- `<ts>_<agent>_<model>_inference` in `dx-runtime/dx_app/dx-agentic-dev/`
+
 ## No Placeholder Code (MANDATORY)
 
 NEVER generate stub/placeholder code. This includes:
@@ -449,6 +475,34 @@ When dxcom is available and compilation proceeds:
 - **NEVER modify `compiler.properties`** — system file managed by the installer.
   See `dx-compiler/.deepx/memory/common_pitfalls.md` Pitfalls #21 and #22.
 
+### Background Compilation (MANDATORY — R42)
+
+**WARNING — Synchronous `dx_com.compile()` in the main process is PROHIBITED (R42).**
+
+Calling `dx_com.compile()` directly blocks the agent's tool-call thread for 10+ minutes.
+During that time the agent cannot generate other artifacts in parallel, making it
+vulnerable to timeout and missing the concurrent artifact generation requirement.
+
+**ALWAYS use `subprocess.Popen` with a `compile.pid` file:**
+```python
+import subprocess, os
+compile_script = f"{work_dir}/compile.py"
+compile_out = open(f"{work_dir}/compile_out.log", "w")
+proc = subprocess.Popen(
+    ["python3", compile_script],
+    stdout=compile_out, stderr=subprocess.STDOUT,
+    cwd=work_dir, start_new_session=True,
+)
+with open(f"{work_dir}/compile.pid", "w") as f:
+    f.write(str(proc.pid))
+# Now generate ALL other artifacts (factory, sync.py, setup.sh, run.sh, verify.py)
+# BEFORE checking compile.pid / .dxnn existence.
+```
+
+Evidence: copilot iter-11 and cursor iter-11 produced no `compile.pid` and used
+synchronous compilation — this is the pattern to avoid. claude_code and opencode
+(via subagent) correctly use `subprocess.Popen` + PID file.
+
 ### Sanity Check Failure Recovery (MANDATORY)
 
 When `sanity_check.sh --dx_rt` returns FAIL, follow this exact recovery sequence:
@@ -527,7 +581,9 @@ When a user's request conflicts with a HARD GATE rule, the agent MUST:
 
 **Common conflict patterns** (from real sessions):
 - User says "use `InferenceEngine.Run()`" → Must use IFactory pattern (engine
-  calls go inside `run_inference()` method)
+  calls are handled internally by SyncRunner/AsyncRunner; implement the 5 IFactory
+  methods: `create_preprocessor`, `create_postprocessor`, `create_visualizer`,
+  `get_model_name`, `get_task_type`)
 - User says "clone demo.py and swap onnxruntime" → Must use skeleton-first
   from `src/python_example/`, not clone user scripts
 - User says "create demo_dxnn_sync.py" → Must use `<model>_sync.py` naming
@@ -563,7 +619,7 @@ sub-project files.
    postprocessor). NEVER write demo scripts from scratch. NEVER propose standalone
    scripts that bypass the framework.
 2. **IFactory pattern is MANDATORY** — All inference apps MUST use the IFactory 5-method
-   pattern (create, get_input_params, run_inference, post_processing, release).
+   pattern (create_preprocessor, create_postprocessor, create_visualizer, get_model_name, get_task_type).
    Never invent alternative inference structures. Direct `InferenceEngine` usage in
    a standalone script is a violation — it MUST go through the factory pattern.
    **Even if the user explicitly names API methods** (e.g., "use `InferenceEngine.run()`",

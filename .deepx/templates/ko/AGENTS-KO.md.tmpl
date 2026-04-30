@@ -121,6 +121,32 @@ python dx-runtime/.deepx/scripts/feedback_collector.py --framework-only
 | Python app, factory, inference | `@dx-app-builder` in `dx-runtime/dx_app/` |
 | GStreamer pipeline, stream | `@dx-stream-builder` in `dx-runtime/dx_stream/` |
 
+### 크로스 프로젝트 session layout — HARD GATE (R41)
+
+**"ONNX 컴파일 + app 빌드"** (suite 시나리오) 작업 시, **두 개의 별도 session 디렉토리**를
+반드시 생성해야 합니다:
+
+1. **Compiler session** → `dx-compiler/dx-agentic-dev/<session_id>/` (`compile.py`,
+   `config.json`, `yolo26n.dxnn`, `verify.py`, `session.log` 포함)
+2. **App session** → `dx-runtime/dx_app/dx-agentic-dev/<session_id>/` (factory,
+   `<model>_sync.py`, `setup.sh`, `run.sh` 포함)
+
+**절대 두 가지를 단일 `dx_app/` session에 합치지 마세요.** 실패할 test assertion:
+```python
+assert any("dx-compiler" in str(d) for d in output_dirs)
+```
+
+이 dual-session layout 위반은 cursor에서 반복적으로 발생했습니다 (iter-4, 6, 8).
+compiler agent 문서 (`dx-compiler/`)의 R31 Session Layout HARD GATE를 먼저 읽고
+적용하세요.
+
+### Session 이름 — 금지 패턴 (R43)
+
+session ID에 `_auto_`를 사용하지 마세요. `_auto_` prefix는 cross-project routing
+workflow를 우회했다는 것을 나타냅니다. 올바른 suite session은 두 개의 별도 ID를 생성합니다:
+- `<ts>_<agent>_<model>_compile` in `dx-compiler/dx-agentic-dev/`
+- `<ts>_<agent>_<model>_inference` in `dx-runtime/dx_app/dx-agentic-dev/`
+
 {{FRAGMENT:no-placeholder-code}}
 
 {{FRAGMENT:experimental-features-prohibited}}
@@ -213,6 +239,31 @@ dxcom이 사용 가능하고 컴파일이 진행되는 경우:
 - **올바른 import**: `import dx_com; dx_com.compile(...)` (`from dxcom import dxcom`이 아님)
 - **절대 `compiler.properties`를 수정하지 마세요** — 설치 프로그램이 관리하는 시스템 파일입니다.
   `dx-compiler/.deepx/memory/common_pitfalls.md` Pitfalls #21과 #22를 참조하세요.
+
+### Background Compilation (MANDATORY — R42)
+
+**경고 — 메인 프로세스에서 동기 `dx_com.compile()` 호출은 PROHIBITED (R42)입니다.**
+
+`dx_com.compile()`을 직접 호출하면 에이전트의 tool-call 스레드가 10분 이상 블록됩니다.
+그 동안 에이전트는 다른 artifact를 병렬로 생성할 수 없어 timeout에 취약해집니다.
+
+**항상 `compile.pid` 파일과 함께 `subprocess.Popen`을 사용하세요:**
+```python
+import subprocess, os
+compile_script = f"{work_dir}/compile.py"
+compile_out = open(f"{work_dir}/compile_out.log", "w")
+proc = subprocess.Popen(
+    ["python3", compile_script],
+    stdout=compile_out, stderr=subprocess.STDOUT,
+    cwd=work_dir, start_new_session=True,
+)
+with open(f"{work_dir}/compile.pid", "w") as f:
+    f.write(str(proc.pid))
+# 이제 compile.pid / .dxnn 존재 여부 확인 전에 다른 모든 artifact를 생성하세요.
+# (factory, sync.py, setup.sh, run.sh, verify.py 등 모든 artifact 생성 후 확인)
+```
+
+근거: copilot iter-11과 cursor iter-11은 `compile.pid`를 생성하지 않고 동기 컴파일을 사용했습니다.
 
 ### Sanity Check 실패 복구 (MANDATORY)
 
@@ -307,7 +358,7 @@ dxcom이 사용 가능하고 컴파일이 진행되는 경우:
    스크립트를 처음부터 작성하지 마세요. 절대 프레임워크를 우회하는 독립
    스크립트를 제안하지 마세요.
 2. **IFactory 패턴은 MANDATORY** — 모든 inference 앱은 IFactory 5-method 패턴
-   (create, get_input_params, run_inference, post_processing, release)을 사용해야
+   (create_preprocessor, create_postprocessor, create_visualizer, get_model_name, get_task_type)을 사용해야
    합니다. 대안적인 inference 구조를 발명하지 마세요. 독립 스크립트에서의 직접
    `InferenceEngine` 사용은 위반입니다 — factory 패턴을 통해야 합니다.
    **사용자가 명시적으로 API 메서드를 지정하더라도** (예: "`InferenceEngine.run()`
