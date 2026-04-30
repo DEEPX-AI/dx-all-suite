@@ -28,3 +28,5 @@ tests/reports/
 compile.pid
 *.onnx
 *.pt
+*.txt
+session-ses_*.md
