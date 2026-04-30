@@ -57,7 +57,8 @@ def scenario(copilot_runner, copilot_cli_artifacts_dir) -> ScenarioResult:
         workdir=SUITE_ROOT,
         scenario_key="suite",
         session_log_dir=copilot_cli_artifacts_dir,
-        timeout=3000,  # REC-S1: increased from 2400s — single-image calibration + full artifact generation can push 35-40 min; 3000s provides 10-min buffer
+        timeout=4200,  # REC-W4 (iter-18): increased from 3000s — copilot timed out at 3000s in iter-18
+                       # due to YoloCalibDataset with 100 images × 37s/batch = 62 min; 4200s = 70 min buffer
     )
 
 
@@ -74,8 +75,8 @@ class TestExecution:
 
     def test_completed_within_timeout(self, scenario: ScenarioResult):
         """Execution finishes within the extended timeout."""
-        assert scenario.duration_seconds < 3000, (
-            f"Scenario took {scenario.duration_seconds:.0f}s (limit: 3000s)"
+        assert scenario.duration_seconds < 4200, (
+            f"Scenario took {scenario.duration_seconds:.0f}s (limit: 4200s)"
         )
 
     def test_start_sentinel_emitted(self, scenario: ScenarioResult):
@@ -258,32 +259,35 @@ class TestMandatoryArtifacts:
         )
 
     def test_onnx_retained_in_compiler_session(self, scenario: ScenarioResult):
-        """yolo26n.onnx is retained in compiler session dir (REC-U5 soft check).
+        """yolo26n.onnx (real binary ≥ 1 MB) is retained in compiler session dir (REC-V5).
 
-        REC-U5 (iter-16): copilot and claude_code do not retain yolo26n.onnx after
-        compilation. Retaining it helps debug verify.py failures and re-compilation.
-        Emits UserWarning (not fail) — ONNX retention is useful but not required.
+        REC-U5 (iter-16): Added as soft UserWarning.
+        REC-V5 (iter-17): Promoted to pytest.fail — checks that a real .onnx binary
+            (≥ 1 MB, not just a symlink) is retained in the compiler session directory.
+            copilot had no .onnx; claude_code had an 18-byte symlink (not a real copy).
+            Retaining the real .onnx ensures session is self-contained and re-runnable.
         """
         if not scenario.succeeded:
             pytest.skip("Copilot execution failed")
-        import warnings
         compiler_dirs = set()
         for f in scenario.all_generated_files:
             if f.name == "compile.py":
                 compiler_dirs.add(f.parent)
         if not compiler_dirs:
             pytest.skip("No compiler session dir found")
-        onnx_in_compiler = [
+        real_onnx_in_compiler = [
             f for f in scenario.all_generated_files
-            if f.suffix == ".onnx" and f.parent in compiler_dirs
+            if f.suffix == ".onnx"
+            and f.parent in compiler_dirs
+            and f.resolve().stat().st_size >= 1_000_000
         ]
-        if not onnx_in_compiler:
-            warnings.warn(
-                "No .onnx file found in compiler session directory.\n"
-                "Retaining the source .onnx helps debug verify.py failures and re-compilation.\n"
-                "Consider keeping the .onnx alongside the .dxnn in the compiler session dir.",
-                UserWarning,
-                stacklevel=2,
+        if not real_onnx_in_compiler:
+            pytest.fail(
+                "No real .onnx file (≥ 1 MB) found in compiler session directory.\n"
+                "Retaining the source .onnx makes the session self-contained and "
+                "reproducible (verify.py re-runs, re-compilation without repo access).\n"
+                "Use shutil.copy or cp to retain yolo26n.onnx alongside the .dxnn file.\n"
+                "Symlinks (claude_code iter-17: 18-byte symlink) do NOT satisfy this check."
             )
 
     @pytest.mark.xfail(
@@ -361,3 +365,124 @@ class TestCodeQuality:
                     UserWarning,
                     stacklevel=2,
                 )
+
+    def test_compile_py_avoids_slow_calibration(self, scenario: ScenarioResult):
+        """compile.py uses augmentation-based DataLoader, not a 100-distinct-image strategy (REC-W1).
+
+        REC-W1 (iter-18): Detects slow calibration strategies that cause 62-min timeouts.
+        Banned class names indicate 100-distinct-image iteration strategies.
+        Without this test, copilot/cursor timeout regressions are invisible to the suite.
+        """
+        if not scenario.succeeded:
+            pytest.skip("Copilot execution failed")
+        import warnings
+        banned_classes = [
+            "CalibDataset", "CalibrationDataset", "YoloCalibDataset",
+            "YOLOCalibDataset", "ImageFolder", "DefaultDataset",
+        ]
+        compile_scripts = [
+            f for f in scenario.all_generated_files
+            if f.name in ("compile.py", "compile_model.py")
+            and "dx-compiler" in str(f)
+        ]
+        for script in compile_scripts:
+            content = script.read_text(encoding="utf-8", errors="replace")
+            has_banned = any(name in content for name in banned_classes)
+            if not has_banned:
+                continue
+            banned_found = [n for n in banned_classes if n in content]
+            dxnn_in_dir = list(script.parent.glob("*.dxnn"))
+            if not dxnn_in_dir:
+                pytest.fail(
+                    f"{script.parent.name}/{script.name} uses a banned calibration "
+                    f"strategy (found: {banned_found}) and no .dxnn was produced. "
+                    "Use augmentation-based DataLoader (1 real image, 100 augmented copies). "
+                    "Banned names: CalibDataset, CalibrationDataset, YoloCalibDataset, "
+                    "YOLOCalibDataset, ImageFolder, DefaultDataset."
+                )
+            elif scenario.duration_seconds > 600:
+                pytest.fail(
+                    f"{script.parent.name}/{script.name} uses a banned calibration "
+                    f"strategy (found: {banned_found}, duration={scenario.duration_seconds:.0f}s > 600s). "
+                    ".dxnn was produced but calibration time exceeded limit — "
+                    "100-distinct-image strategy (~62 min) used instead of augmentation (~1 min)."
+                )
+            else:
+                warnings.warn(
+                    f"{script.parent.name}/{script.name} uses a non-compliant calibration "
+                    f"strategy (found: {banned_found}) but compilation completed within timeout "
+                    f"({scenario.duration_seconds:.0f}s). "
+                    "Use augmentation-based DataLoader for consistent performance.",
+                    UserWarning,
+                    stacklevel=2,
+                )
+
+    def test_compile_self_check_ran(self, scenario: ScenarioResult):
+        """Compiler session.log contains CALIB_STRATEGY_OK: marker from Rule 5 self-check (REC-W1).
+
+        REC-W1 (iter-18): Verifies the agent ran the mandatory AST self-check in Rule 5
+        (dx-dxnn-compiler.md) that confirms augmentation-based DataLoader was written.
+        If CALIB_STRATEGY_OK is absent, the agent skipped the mandatory self-check.
+        """
+        if not scenario.succeeded:
+            pytest.skip("Copilot execution failed")
+        compiler_session_logs = [
+            f for f in scenario.all_generated_files
+            if f.name == "session.log" and "dx-compiler" in str(f)
+        ]
+        if not compiler_session_logs:
+            pytest.fail(
+                "No compiler session.log found in dx-compiler session directories. "
+                "Cannot verify calibration self-check was executed."
+            )
+        for log in compiler_session_logs:
+            content = log.read_text(encoding="utf-8", errors="replace")
+            if "CALIB_STRATEGY_OK" not in content:
+                pytest.fail(
+                    f"{log.parent.name}/session.log does not contain 'CALIB_STRATEGY_OK:' marker.\n"
+                    "The agent must run the Rule 5 AST self-check before subprocess.Popen:\n"
+                    "  echo 'CALIB_STRATEGY_OK: augmentation-based DataLoader confirmed' >> session.log\n"
+                    "See dx-dxnn-compiler.md Rule 5 for the full self-check command."
+                )
+
+    def test_compile_pid_r42_compliance(self, scenario: ScenarioResult):
+        """Detects concurrent synchronous + background compilation (R42 violation) (REC-W3).
+
+        REC-W3 (iter-18): Soft-fail stat-based timing check. If .dxnn was created much
+        earlier than the compile_out.log line count implies (background compile still running
+        with many lines), it suggests a synchronous dx_com.compile() ran in parallel with
+        the background subprocess — an R42 violation. Flags the §4.4 claude_code anomaly
+        pattern (iter-18: .dxnn at 13 min, background at 71/100 batches at 47 min).
+        """
+        if not scenario.succeeded:
+            pytest.skip("Copilot execution failed")
+        import warnings
+        compiler_dirs = [d for d in scenario.output_dirs if "dx-compiler" in str(d)]
+        for comp_dir in compiler_dirs:
+            dxnn_files = list(comp_dir.glob("*.dxnn"))
+            compile_out_files = list(comp_dir.glob("compile_out*.log"))
+            if not dxnn_files or not compile_out_files:
+                continue
+            try:
+                dxnn_mtime = dxnn_files[0].stat().st_mtime
+                dir_mtime = comp_dir.stat().st_mtime
+                compile_out_lines = sum(
+                    len(f.read_text(encoding="utf-8", errors="replace").splitlines())
+                    for f in compile_out_files
+                )
+                time_since_start = dxnn_mtime - dir_mtime
+                # If compile_out has many lines (background compile still running progress bars)
+                # but .dxnn appeared very early, suspect synchronous compile in parallel
+                if compile_out_lines > 1000 and time_since_start < 1200:
+                    warnings.warn(
+                        f"{comp_dir.name}: R42 compliance anomaly — .dxnn created "
+                        f"{time_since_start:.0f}s after session start but compile_out.log "
+                        f"has {compile_out_lines} lines (background compile still running). "
+                        "Suggests synchronous dx_com.compile() ran alongside background PID. "
+                        "R42 prohibits synchronous compile() in the main agent thread. "
+                        "See §4.4 of iter-18 report for claude_code anomaly pattern.",
+                        UserWarning,
+                        stacklevel=2,
+                    )
+            except Exception:
+                pass

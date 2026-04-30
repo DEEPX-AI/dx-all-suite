@@ -143,3 +143,33 @@ class TestConftestSymbols:
             "This causes NameError at fixture setup time, blocking all tests.\n"
             "Ensure the function is defined at module scope (not nested inside another function)."
         )
+
+    def test_opencode_runner_session_uuid_initialized(self):
+        """REC-X7: Verify session_uuid has a default value before the conditional JSON parse.
+
+        Regression test for the UnboundLocalError introduced in iter-19 where session_uuid
+        was referenced in _save_opencode_session_log() in the success path before being
+        assigned. The fix (REC-X1) adds a _parse_opencode_stream_json() call immediately
+        after subprocess.run() to guarantee session_uuid is always bound.
+        """
+        import ast
+        import inspect
+        from test_agentic_e2e_scenarios.conftest import OpenCodeRunnerAutopilot
+        src = inspect.getsource(OpenCodeRunnerAutopilot.run)
+        # Split on the first conditional block to check initialization order.
+        # session_uuid must be assigned (via parse) before any 'if' or 'for' branch
+        # in the success path that leads to _save_opencode_session_log.
+        assert "_parse_opencode_stream_json" in src, (
+            "OpenCodeRunnerAutopilot.run() does not call _parse_opencode_stream_json — "
+            "session_uuid and assistant_text will be unbound in the success path "
+            "(UnboundLocalError regression from iter-19, REC-X1)."
+        )
+        # Verify the parse call appears before _save_opencode_session_log in the source
+        parse_pos = src.index("_parse_opencode_stream_json")
+        save_pos = src.index("_save_opencode_session_log")
+        assert parse_pos < save_pos, (
+            "_parse_opencode_stream_json must appear before _save_opencode_session_log "
+            "to ensure session_uuid is initialized. "
+            f"Found parse at offset {parse_pos}, save at offset {save_pos}. "
+            "(REC-X7 regression guard)"
+        )

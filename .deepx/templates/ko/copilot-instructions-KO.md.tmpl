@@ -185,6 +185,20 @@ GStreamer 파이프라인 코드 등)에 추가되는 것입니다.
 각 서브 프로젝트는 에이전트/스킬 문서에서 이 파일들의 템플릿을 정의합니다
 (예: `dx-compiler/.deepx/agents/dx-dxnn-compiler.md` Phase 5.5).
 
+### Cross-project suite 작업 — pre-DONE `.dxnn` 확인 (HARD GATE, REC-X4)
+
+**컴파일이 포함된 모든 작업**에서 DONE sentinel을 출력하기 전에, `.dxnn` 파일이
+compiler session 디렉토리에 존재하는지 확인하세요:
+
+```bash
+COMPILER_SESSION="<compiler_session_dir>"   # 예: dx-compiler/dx-agentic-dev/20260430-..._compile
+test -f "${COMPILER_SESSION}/yolo26n.dxnn" \
+  || { echo "BLOCKED: yolo26n.dxnn not found — 컴파일이 아직 실행 중입니다. compile.pid가 종료될 때까지 기다리세요."; exit 1; }
+```
+
+`yolo26n.dxnn`이 없는 상태에서 DONE을 출력하면 백그라운드 컴파일이 나중에 완료되더라도
+`test_dxnn_compiled`가 실패합니다. Phase 5.8을 참조하세요: `dx-compiler/.deepx/agents/dx-dxnn-compiler.md`.
+
 ## 사전 요구사항 확인 (HARD GATE)
 
 코드 생성, 파일 생성, 서브 에이전트로의 라우팅 전에 다음 환경 검사가 통과해야
