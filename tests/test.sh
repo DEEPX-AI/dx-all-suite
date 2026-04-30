@@ -1425,6 +1425,18 @@ case "$COMMAND" in
                 echo -e "  ${YELLOW}[WARN]${NC} No new session directories detected"
             fi
 
+            # Symlinks: create in ARTIFACTS_BASE pointing to detected session dirs
+            if [ ${#_detected_arr[@]} -gt 0 ]; then
+                for _dd in "${_detected_arr[@]}"; do
+                    _session_name=$(basename "$_dd")
+                    _parent_dir=$(dirname "$_dd")
+                    _parent_name=$(basename "$(dirname "$_parent_dir")")
+                    _link_name="${_parent_name}_${_session_name}"
+                    ln -sfn "$(realpath "$_dd")" "${ARTIFACTS_BASE}/${_link_name}"
+                    print_info "Symlink: ${ARTIFACTS_BASE}/${_link_name} -> $(realpath "$_dd")"
+                done
+            fi
+
             validate_scenario "$scenario_key" "$_cursor_exit" "${_detected_arr[@]}"
             _val_failures=$?
             if [ "$_val_failures" -eq 0 ]; then
@@ -1781,6 +1793,18 @@ case "$COMMAND" in
                 echo -e "         Did you type ${GREEN}/export${NC} before exiting the session?"
             fi
 
+            # Symlinks: create in ARTIFACTS_BASE pointing to detected session dirs
+            if [ ${#_detected_arr[@]} -gt 0 ]; then
+                for _dd in "${_detected_arr[@]}"; do
+                    _session_name=$(basename "$_dd")
+                    _parent_dir=$(dirname "$_dd")
+                    _parent_name=$(basename "$(dirname "$_parent_dir")")
+                    _link_name="${_parent_name}_${_session_name}"
+                    ln -sfn "$(realpath "$_dd")" "${ARTIFACTS_BASE}/${_link_name}"
+                    print_info "Symlink: ${ARTIFACTS_BASE}/${_link_name} -> $(realpath "$_dd")"
+                done
+            fi
+
             validate_scenario "$scenario_key" "$_oc_exit" "${_detected_arr[@]}"
             _val_failures=$?
             if [ "$_val_failures" -eq 0 ]; then
@@ -2057,6 +2081,18 @@ case "$COMMAND" in
             else
                 echo -e "  ${YELLOW}[WARN]${NC} No Claude Code export txt found."
                 echo -e "         Did you type ${GREEN}/export${NC} before exiting the session?"
+            fi
+
+            # Symlinks: create in ARTIFACTS_BASE pointing to detected session dirs
+            if [ ${#_detected_arr[@]} -gt 0 ]; then
+                for _dd in "${_detected_arr[@]}"; do
+                    _session_name=$(basename "$_dd")
+                    _parent_dir=$(dirname "$_dd")
+                    _parent_name=$(basename "$(dirname "$_parent_dir")")
+                    _link_name="${_parent_name}_${_session_name}"
+                    ln -sfn "$(realpath "$_dd")" "${ARTIFACTS_BASE}/${_link_name}"
+                    print_info "Symlink: ${ARTIFACTS_BASE}/${_link_name} -> $(realpath "$_dd")"
+                done
             fi
 
             validate_scenario "$scenario_key" "$_cc_exit" "${_detected_arr[@]}"
