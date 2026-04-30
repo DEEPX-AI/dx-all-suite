@@ -187,6 +187,21 @@ factory/inference patterns, GStreamer pipeline code, etc.).
 Each sub-project also defines templates for these files in its agent/skill documents
 (e.g., `dx-compiler/.deepx/agents/dx-dxnn-compiler.md` Phase 5.5).
 
+### Cross-project suite tasks — pre-DONE `.dxnn` check (HARD GATE, REC-X4)
+
+**For any task involving compilation**, before emitting the DONE sentinel, verify that
+the `.dxnn` file exists in the compiler session directory:
+
+```bash
+COMPILER_SESSION="<compiler_session_dir>"   # e.g., dx-compiler/dx-agentic-dev/20260430-..._compile
+test -f "${COMPILER_SESSION}/yolo26n.dxnn" \
+  || { echo "BLOCKED: yolo26n.dxnn not found — compilation still running. Wait for compile.pid to exit before emitting DONE."; exit 1; }
+```
+
+Emitting DONE while `yolo26n.dxnn` is absent causes `test_dxnn_compiled` to fail even if
+background compilation eventually produces it (the test harness collects files at DONE time).
+See Phase 5.8 in `dx-compiler/.deepx/agents/dx-dxnn-compiler.md` for the full pre-DONE gate.
+
 ## Prerequisites Check (HARD GATE)
 
 Before generating ANY code, creating files, or routing to sub-agents, the following

@@ -366,6 +366,11 @@ superpowers `brainstorming` 스킬 또는 `/dx-brainstorm-and-plan` 사용 시:
 4. 사용자가 세션에서 여러 프롬프트를 보내면, 각 프롬프트에 대해 START/DONE을 출력하세요
 5. DONE의 `output-dir`은 프로젝트 루트에서 세션 출력 디렉토리까지의 상대 경로여야 합니다.
    파일이 생성되지 않았다면, `(output-dir: ...)` 부분을 생략하세요.
+   **Cross-project 태스크** (예: compile + app 생성)의 경우, 모든 output directory를
+   ` + ` 구분자로 나열하세요:
+   ```
+   [DX-AGENTIC-DEV: DONE (output-dir: dx-compiler/dx-agentic-dev/20260409-143022_copilot_yolo26n_compile/ + dx-runtime/dx_app/dx-agentic-dev/20260409-143022_copilot_yolo26n_inference/)]
+   ```
 6. **계획 산출물만 생성한 후에는 절대 DONE을 출력하지 마세요** (spec, plan, 설계
    문서). DONE은 모든 산출물이 생성되었음을 의미합니다 — 구현 코드, 스크립트,
    설정, 검증 결과. brainstorming 또는 계획 단계를 완료했지만 실제 코드를 아직
@@ -423,6 +428,20 @@ GStreamer 파이프라인 코드 등)에 추가되는 것입니다.
 
 각 서브 프로젝트는 에이전트/스킬 문서에서 이 파일들의 템플릿을 정의합니다
 (예: `dx-compiler/.deepx/agents/dx-dxnn-compiler.md` Phase 5.5).
+
+### Cross-project suite 작업 — pre-DONE `.dxnn` 확인 (HARD GATE, REC-X4)
+
+**컴파일이 포함된 모든 작업**에서 DONE sentinel을 출력하기 전에, `.dxnn` 파일이
+compiler session 디렉토리에 존재하는지 확인하세요:
+
+```bash
+COMPILER_SESSION="<compiler_session_dir>"   # 예: dx-compiler/dx-agentic-dev/20260430-..._compile
+test -f "${COMPILER_SESSION}/yolo26n.dxnn" \
+  || { echo "BLOCKED: yolo26n.dxnn not found — 컴파일이 아직 실행 중입니다. compile.pid가 종료될 때까지 기다리세요."; exit 1; }
+```
+
+`yolo26n.dxnn`이 없는 상태에서 DONE을 출력하면 백그라운드 컴파일이 나중에 완료되더라도
+`test_dxnn_compiled`가 실패합니다. Phase 5.8을 참조하세요: `dx-compiler/.deepx/agents/dx-dxnn-compiler.md`.
 
 ## 사전 요구사항 확인 (HARD GATE)
 
