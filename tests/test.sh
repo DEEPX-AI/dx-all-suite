@@ -1208,8 +1208,41 @@ case "$COMMAND" in
         SCENARIO_CHECK_MODELS[runtime]=0
         SCENARIO_CHECK_MODELS[suite]=1
 
-        # Reuse snapshot/detect/validate helpers from copilot-manual (already defined above)
-        # They persist in the same shell process.
+        # Snapshot/detect helpers (defined in copilot-manual block above; reused here)
+        # If running this case directly (without copilot-manual), redefine:
+        if ! declare -f snapshot_sessions > /dev/null 2>&1; then
+            snapshot_sessions() {
+                local search_paths="$1"
+                local snapshot_file="$2"
+                > "$snapshot_file"
+                for sp in $search_paths; do
+                    local sp_real
+                    sp_real="$(realpath "$sp" 2>/dev/null)" || continue
+                    if [ -d "$sp_real" ]; then
+                        for d in "$sp_real"/*/; do
+                            [ -d "$d" ] && echo "$d" >> "$snapshot_file"
+                        done
+                    fi
+                done
+            }
+            detect_new_sessions() {
+                local search_paths="$1"
+                local snapshot_file="$2"
+                local new_dirs=()
+                for sp in $search_paths; do
+                    local sp_real
+                    sp_real="$(realpath "$sp" 2>/dev/null)" || continue
+                    if [ -d "$sp_real" ]; then
+                        for d in "$sp_real"/*/; do
+                            if [ -d "$d" ] && ! grep -qxF "$d" "$snapshot_file" 2>/dev/null; then
+                                new_dirs+=("$d")
+                            fi
+                        done
+                    fi
+                done
+                echo "${new_dirs[*]}"
+            }
+        fi
 
         # --- Scenario selection ---
         SELECTED_SCENARIOS=()
