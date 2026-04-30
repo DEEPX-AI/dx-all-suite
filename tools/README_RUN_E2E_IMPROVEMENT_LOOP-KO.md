@@ -29,7 +29,7 @@ Step 4  Claude 호출 → 테스트 파일 / SKILL.md 개선 적용
 ## 빠른 시작
 
 ```bash
-# 기본 실행 (최대 5 iteration, dx_stream 시나리오)
+# 기본 실행 (최대 5 iteration, suite 시나리오)
 bash tools/run-e2e-improvement-loop.sh
 
 # 백그라운드 실행 (장시간 실행 시 권장)
@@ -41,7 +41,7 @@ bash tools/run-e2e-improvement-loop.sh &
 | 옵션 | 기본값 | 설명 |
 |------|--------|------|
 | `--max-iterations N` | `5` | 최대 반복 횟수 |
-| `--scenario KEY` | `dx_stream` | 전체 도구 테스트에 적용할 pytest `-k` 필터 |
+| `--scenario KEY` | `suite` | 전체 도구 테스트에 적용할 pytest `-k` 필터 |
 | `--resume` | 꺼짐 | 가장 최근 실행에서 이어서 재개 |
 | `--run-dir PATH` | 자동 | 타임스탬프 자동 생성 대신 특정 실행 디렉터리 지정 |
 | `--orchestrator TYPE` | `claude` | 리포트+개선 단계에 사용할 오케스트레이터: `claude`, `copilot`, `cursor`, 또는 `opencode` |

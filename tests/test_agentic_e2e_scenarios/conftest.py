@@ -106,6 +106,80 @@ AGENTIC_DEV_SEARCH_PATHS: Dict[str, List[Path]] = {
 }
 
 
+def _wait_for_background_compilation(dirs: List[Path], timeout_s: int = 180) -> None:
+    """R34: Wait for any background compilation (tracked via compile.pid) to finish.
+
+    After detecting session directories, if any contains a ``compile.pid`` file,
+    read the PID and wait up to *timeout_s* seconds for the process to exit using
+    WNOHANG polling.  This closes the timing race between background `compile.py`
+    subprocesses and test-collection time: without this wait, a test that runs
+    immediately after the DONE sentinel may collect files before the .dxnn is written
+    (observed in claude_code iter-6: DONE at 00:53, .dxnn at 00:56, test collected
+    files at 00:53 → test_dxnn_compiled FAILED despite .dxnn eventually existing).
+
+    The wait is bounded to *timeout_s* (default 180 s) to avoid hanging forever on
+    orphaned PID files from previous failed sessions.
+
+    REC-4: Also emits a warning when 2+ ``compile_out*.log`` files are detected in a
+    session directory, indicating multiple compilation attempts (retries due to ENOSPC,
+    calibration failures, etc.) that may exhaust the session time budget.
+    """
+    import errno
+    import warnings
+
+    for session_dir in dirs:
+        # REC-4: Detect multiple compilation attempts
+        compile_out_logs = list(session_dir.glob("compile_out*.log"))
+        if len(compile_out_logs) >= 2:
+            warnings.warn(
+                f"REC-4: Multiple compilation attempts detected in {session_dir.name}: "
+                f"{len(compile_out_logs)} compile_out*.log files found "
+                f"({[f.name for f in sorted(compile_out_logs)]}). "
+                "This indicates retries (ENOSPC, calibration failure, etc.) that may "
+                "exhaust the session time budget. Check disk space and calibration strategy.",
+                UserWarning,
+                stacklevel=2,
+            )
+
+        pid_file = session_dir / "compile.pid"
+        if not pid_file.exists():
+            continue
+        try:
+            pid = int(pid_file.read_text().strip())
+        except Exception:
+            continue
+
+        deadline = time.monotonic() + timeout_s
+        _logger.info(
+            "R34: compile.pid found in %s (PID=%d) — waiting up to %ds for compilation",
+            session_dir.name, pid, timeout_s,
+        )
+        while time.monotonic() < deadline:
+            try:
+                waited_pid, _ = os.waitpid(pid, os.WNOHANG)
+                if waited_pid != 0:
+                    _logger.info("R34: compilation PID=%d exited cleanly", pid)
+                    break
+            except ChildProcessError:
+                # Process already exited and was reaped (or never a child — common for
+                # subprocess.Popen with start_new_session=True)
+                _logger.info("R34: compilation PID=%d already exited (ChildProcessError)", pid)
+                break
+            except OSError as exc:
+                if exc.errno == errno.ECHILD:
+                    _logger.info("R34: compilation PID=%d already reaped (ECHILD)", pid)
+                    break
+                # Unexpected OS error — stop polling
+                _logger.warning("R34: waitpid(%d) OSError: %s", pid, exc)
+                break
+            time.sleep(5)
+        else:
+            _logger.warning(
+                "R34: compile.pid PID=%d still running after %ds — continuing anyway",
+                pid, timeout_s,
+            )
+
+
 def _snapshot_sessions(search_paths: List[Path]) -> Set[Path]:
     """Snapshot existing session directories under the given search paths."""
     existing: Set[Path] = set()
@@ -120,6 +194,8 @@ def _snapshot_sessions(search_paths: List[Path]) -> Set[Path]:
 def _detect_new_sessions(
     search_paths: List[Path],
     snapshot: Set[Path],
+    agent_filter: Optional[str] = None,
+    exclude_filters: Optional[List[str]] = None,
 ) -> List[Path]:
     """Find new session directories created after *snapshot*.
 
@@ -128,6 +204,18 @@ def _detect_new_sessions(
     tools (e.g. OpenCode) create a placeholder directory on a first failed
     attempt and then retry into a different directory; including the empty
     placeholder causes false positives in output detection.
+
+    R20: When *agent_filter* is provided (e.g. ``"copilot"``, ``"cursor"``,
+    ``"claude"``), only directories whose name contains the filter string are
+    returned.  This prevents cross-contamination when multiple tools run
+    concurrently and each tool's `_detect_new_sessions` scan picks up sessions
+    created by the others (false positives if the current tool fails silently).
+
+    R39: When *exclude_filters* is provided (e.g. ``["_copilot_", "_cursor_"]``
+    for opencode), directories whose name contains ANY of the exclude strings
+    are removed.  This prevents cross-tool session contamination for tools whose
+    subagent uses a shared agent name (e.g. opencode → claude subagent, which
+    can collide with sessions from the claude_code runner).
     """
     new_dirs: List[Path] = []
     for agentic_dev_dir in search_paths:
@@ -137,6 +225,11 @@ def _detect_new_sessions(
                     # Skip empty directories (failed first-attempt placeholders)
                     if any(child.rglob("*")):
                         new_dirs.append(child)
+    if agent_filter:
+        new_dirs = [d for d in new_dirs if agent_filter in d.name]
+    if exclude_filters:
+        for ef in exclude_filters:
+            new_dirs = [d for d in new_dirs if ef not in d.name]
     return sorted(new_dirs, key=lambda p: p.stat().st_mtime)
 
 
@@ -453,17 +546,53 @@ class CopilotRunnerAutopilot:
             )
             duration = time.monotonic() - start
 
+            # R3/R6: Ghost-run detection.
+            # If the CLI exits in < 30 s with empty stdout, it is almost certainly
+            # a caching/deduplication early-exit — not a real agent run.  Log a
+            # diagnostic so the issue is surfaced in the pytest log rather than
+            # silently appearing as "0 files generated".
+            _GHOST_RUN_THRESHOLD_S = 30
+            if duration < _GHOST_RUN_THRESHOLD_S and not (result.stdout or "").strip():
+                _logger.warning(
+                    "Copilot ghost run detected: CLI exited in %.1fs with empty stdout "
+                    "(likely deduplication or session caching — not a real agent run). "
+                    "Scenario will be reported as empty. "
+                    "Check for duplicate session detection or stale cache.",
+                    duration,
+                )
+
+            # REC-3: ENOSPC soft-exit detection.
+            # Copilot CLI exits with code 1 when its internal JSONL session-events writer
+            # fails due to disk full — even though all user-facing work is complete.
+            # If returncode==1 AND ENOSPC is in stderr AND the DONE sentinel is present,
+            # treat as a successful run for test purposes (all artifacts are intact).
+            _effective_returncode = result.returncode
+            if (
+                result.returncode == 1
+                and "ENOSPC" in (result.stderr or "")
+                and "[DX-AGENTIC-DEV: DONE" in (result.stdout or "")
+            ):
+                _logger.warning(
+                    "REC-3: Copilot exited with code 1 due to ENOSPC (disk full on "
+                    "session-events.jsonl write), but DONE sentinel is present — "
+                    "all user-facing artifacts are intact. Treating as returncode=0."
+                )
+                _effective_returncode = 0
+
             # Post-detection: find new session directories.
             # Copilot sub-agents may write output dirs several minutes after the
             # main CLI process exits, so poll up to 120 s in 5-second intervals.
-            output_dirs = _detect_new_sessions(search_paths, snapshot)
+            output_dirs = _detect_new_sessions(search_paths, snapshot, agent_filter="copilot")
             if not output_dirs:
                 poll_deadline = time.monotonic() + 120
                 while time.monotonic() < poll_deadline:
                     time.sleep(5)
-                    output_dirs = _detect_new_sessions(search_paths, snapshot)
+                    output_dirs = _detect_new_sessions(search_paths, snapshot, agent_filter="copilot")
                     if output_dirs:
                         break
+
+            # R34: Wait for any background compilation tracked via compile.pid before collecting
+            _wait_for_background_compilation(output_dirs)
 
             # Record end timestamp
             end_utc = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -555,7 +684,7 @@ class CopilotRunnerAutopilot:
                     pass  # Best-effort
 
             return ScenarioResult(
-                returncode=result.returncode,
+                returncode=_effective_returncode,
                 stdout=result.stdout,
                 stderr=result.stderr,
                 output_dirs=output_dirs,
@@ -572,7 +701,7 @@ class CopilotRunnerAutopilot:
             duration = time.monotonic() - start
 
             # Still try to detect any partial output
-            output_dirs = _detect_new_sessions(search_paths, snapshot)
+            output_dirs = _detect_new_sessions(search_paths, snapshot, agent_filter="copilot")
 
             # Extract session info even on timeout (best-effort)
             end_utc = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -851,7 +980,18 @@ class CursorRunnerAutopilot:
                 )
                 duration = time.monotonic() - start
 
-            output_dirs = _detect_new_sessions(search_paths, snapshot)
+            output_dirs = _detect_new_sessions(search_paths, snapshot, agent_filter="cursor")
+            # REC-S5: Warn when cursor uses a non-Claude backend (e.g. GPT-4 via _gpt_ session ID)
+            for odir in output_dirs:
+                if "_gpt_" in str(odir):
+                    warnings.warn(
+                        f"cursor: GPT-4 backend detected (session contains _gpt_: {odir.name}) — "
+                        "compile.pid (R42) and calibration compliance (REC-K) may regress. "
+                        "Claude-backed cursor sessions pass consistently; GPT-4 does not follow R42.",
+                        UserWarning,
+                    )
+            # R34: Wait for any background compilation tracked via compile.pid before collecting
+            _wait_for_background_compilation(output_dirs)
             end_utc = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
             session_uuid, assistant_text = _parse_cursor_stream_json(result.stdout)
@@ -895,7 +1035,7 @@ class CursorRunnerAutopilot:
             )
         except subprocess.TimeoutExpired as exc:
             duration = time.monotonic() - start
-            output_dirs = _detect_new_sessions(search_paths, snapshot)
+            output_dirs = _detect_new_sessions(search_paths, snapshot, agent_filter="cursor")
             end_utc = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
             raw_stdout = exc.stdout.decode(errors="replace") if isinstance(exc.stdout, bytes) else (exc.stdout or "")
@@ -1032,7 +1172,53 @@ class OpenCodeRunnerAutopilot:
                 env={**os.environ, "NO_COLOR": "1"},
             )
             duration = time.monotonic() - start
-            output_dirs = _detect_new_sessions(search_paths, snapshot)
+            # R20: No agent_filter here — opencode delegates to @dx-suite-builder (claude subagent),
+            # which creates sessions named *_claude_* not *_opencode_*. Filtering by "opencode"
+            # would yield zero results. Accept all new sessions but exclude sessions clearly
+            # belonging to other tools (R39: exclude_filters prevents copilot/cursor cross-
+            # contamination; claude_code sessions named *_claude_* remain included since
+            # opencode's own subagent is also named "claude" — deeper fix requires session.owner).
+            output_dirs = _detect_new_sessions(
+                search_paths, snapshot,
+                exclude_filters=["_copilot_", "_cursor_"],  # R39
+            )
+            # R34: Wait for any background compilation tracked via compile.pid before collecting
+            _wait_for_background_compilation(output_dirs)
+            # REC-M: Filter cross-contamination from concurrent claude_code sessions.
+            # If opencode produced its own sessions (named _opencode_*), any _claude_* sessions
+            # in output_dirs are from the concurrent claude_code autonomous run, not from
+            # opencode's subagent. Filter them to prevent false-positive test failures.
+            # NOTE: If opencode's subagent creates ONLY _claude_* sessions (no _opencode_* present),
+            # we cannot distinguish them from claude_code contamination and must keep all.
+            import warnings as _w
+            _has_opencode_sessions = any("_opencode_" in _d.name for _d in output_dirs)
+            if _has_opencode_sessions:
+                _contamination = [_d for _d in output_dirs if "_claude_" in _d.name]
+                if _contamination:
+                    output_dirs = [_d for _d in output_dirs if "_claude_" not in _d.name]
+                    for _cdir in _contamination:
+                        _w.warn(
+                            f"opencode: filtered cross-contamination _claude_ session: {_cdir.name}. "
+                            "opencode's own sessions use _opencode_ prefix — this _claude_ session "
+                            "belongs to the concurrent claude_code run. Filtered from output_dirs. "
+                            "(REC-M filter applied)",
+                            UserWarning,
+                            stacklevel=2,
+                        )
+            else:
+                # REC-L: No _opencode_* sessions found — opencode's subagent may use _claude_* names.
+                # Cannot filter; warn so the user can identify potential cross-contamination.
+                for _odir in output_dirs:
+                    if "_claude_" in _odir.name:
+                        _w.warn(
+                            f"opencode: detected _claude_ session in output_dirs: {_odir.name}. "
+                            "This may be cross-contamination from a concurrent claude_code run "
+                            "(not opencode's own subagent output). "
+                            "session.json from this directory may not belong to opencode "
+                            "(REC-J/REC-L: session.owner tracking not yet implemented).",
+                            UserWarning,
+                            stacklevel=2,
+                        )
             end_utc = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
             session_uuid, assistant_text = _parse_opencode_stream_json(result.stdout)
@@ -1076,7 +1262,22 @@ class OpenCodeRunnerAutopilot:
             )
         except subprocess.TimeoutExpired as exc:
             duration = time.monotonic() - start
-            output_dirs = _detect_new_sessions(search_paths, snapshot)
+            output_dirs = _detect_new_sessions(
+                search_paths, snapshot,
+                exclude_filters=["_copilot_", "_cursor_"],  # R39: no filter by name, exclude foreign tools
+            )
+            # REC-M (timeout path): Apply same cross-contamination filter as success path.
+            import warnings as _w_t
+            _has_oc_t = any("_opencode_" in _d.name for _d in output_dirs)
+            if _has_oc_t:
+                _contam_t = [_d for _d in output_dirs if "_claude_" in _d.name]
+                if _contam_t:
+                    output_dirs = [_d for _d in output_dirs if "_claude_" not in _d.name]
+                    for _cdir in _contam_t:
+                        _w_t.warn(
+                            f"opencode: filtered cross-contamination _claude_ session (timeout): {_cdir.name}. (REC-M)",
+                            UserWarning, stacklevel=2,
+                        )
             end_utc = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
             raw_stdout = exc.stdout.decode(errors="replace") if isinstance(exc.stdout, bytes) else (exc.stdout or "")
@@ -1225,8 +1426,14 @@ class ClaudeCodeRunnerAutopilot:
 
         start = time.monotonic()
         _quota_polls = 0
-        while True:
-            try:
+        # R8: Wrap the entire while-loop + post-processing in a single try block so
+        # that subprocess.TimeoutExpired propagates to the except handler below.
+        # Previously the try: was placed AFTER the while loop, so TimeoutExpired
+        # raised inside the loop propagated past the except clause uncaught, causing
+        # all 11 tests to receive ERROR (unfixable fixture exception) instead of
+        # FAIL+SKIP.
+        try:
+            while True:
                 result = subprocess.run(
                     cmd,
                     cwd=str(workdir),
@@ -1234,33 +1441,37 @@ class ClaudeCodeRunnerAutopilot:
                     text=True,
                     timeout=timeout,
                     env={**os.environ, "NO_COLOR": "1"},
+                    # R1: Detach from the test process's terminal session to prevent
+                    # SIGHUP from being delivered to the claude agent when the
+                    # controlling terminal closes (returncode=129 = 128+SIGHUP).
+                    start_new_session=True,
                 )
-            except subprocess.TimeoutExpired:
-                raise  # let outer except handle it
 
-            _combined = (result.stdout or "") + (result.stderr or "")
-            if result.returncode != 0 and _is_claude_code_usage_limit(_combined):
-                if _quota_polls >= _CLAUDE_QUOTA_MAX_POLLS:
-                    _logger.error(
-                        "Claude Code usage limit — max polls (%d) exceeded, aborting",
+                _combined = (result.stdout or "") + (result.stderr or "")
+                if result.returncode != 0 and _is_claude_code_usage_limit(_combined):
+                    if _quota_polls >= _CLAUDE_QUOTA_MAX_POLLS:
+                        _logger.error(
+                            "Claude Code usage limit — max polls (%d) exceeded, aborting",
+                            _CLAUDE_QUOTA_MAX_POLLS,
+                        )
+                        break
+                    _quota_polls += 1
+                    _logger.warning(
+                        "Claude Code usage limit hit — sleeping %d min (poll %d/%d)",
+                        _CLAUDE_QUOTA_POLL_INTERVAL // 60,
+                        _quota_polls,
                         _CLAUDE_QUOTA_MAX_POLLS,
                     )
-                    break
-                _quota_polls += 1
-                _logger.warning(
-                    "Claude Code usage limit hit — sleeping %d min (poll %d/%d)",
-                    _CLAUDE_QUOTA_POLL_INTERVAL // 60,
-                    _quota_polls,
-                    _CLAUDE_QUOTA_MAX_POLLS,
-                )
-                time.sleep(_CLAUDE_QUOTA_POLL_INTERVAL)
-                start = time.monotonic()
-                continue
-            break
+                    time.sleep(_CLAUDE_QUOTA_POLL_INTERVAL)
+                    start = time.monotonic()
+                    continue
+                break
 
-        try:
+
             duration = time.monotonic() - start
-            output_dirs = _detect_new_sessions(search_paths, snapshot)
+            output_dirs = _detect_new_sessions(search_paths, snapshot, agent_filter="claude")
+            # R34: Wait for any background compilation tracked via compile.pid before collecting
+            _wait_for_background_compilation(output_dirs)
             end_utc = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
             session_uuid, assistant_text = _parse_claude_code_stream_json(result.stdout)
@@ -1344,7 +1555,7 @@ class ClaudeCodeRunnerAutopilot:
             )
         except subprocess.TimeoutExpired as exc:
             duration = time.monotonic() - start
-            output_dirs = _detect_new_sessions(search_paths, snapshot)
+            output_dirs = _detect_new_sessions(search_paths, snapshot, agent_filter="claude")
             end_utc = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
             raw_stdout = exc.stdout.decode(errors="replace") if isinstance(exc.stdout, bytes) else (exc.stdout or "")
