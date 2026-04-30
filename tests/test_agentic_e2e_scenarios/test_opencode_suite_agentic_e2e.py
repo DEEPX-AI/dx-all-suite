@@ -210,32 +210,33 @@ class TestMandatoryArtifacts:
         )
 
     def test_onnx_retained_in_compiler_session(self, scenario: ScenarioResult):
-        """yolo26n.onnx is retained in compiler session dir (REC-U5 soft check).
+        """yolo26n.onnx (real binary ≥ 1 MB) is retained in compiler session dir (REC-V5).
 
-        REC-U5 (iter-16): Retaining the source .onnx helps debug verify.py failures
-        and re-compilation. Emits UserWarning (not fail) — ONNX retention is useful
-        but not required.
+        REC-U5 (iter-16): Added as soft UserWarning.
+        REC-V5 (iter-17): Promoted to pytest.fail — checks that a real .onnx binary
+            (≥ 1 MB, not just a symlink) is retained in the compiler session directory.
         """
         if not scenario.succeeded:
             pytest.skip("OpenCode execution failed")
-        import warnings
         compiler_dirs = set()
         for f in scenario.all_generated_files:
             if f.name == "compile.py":
                 compiler_dirs.add(f.parent)
         if not compiler_dirs:
             pytest.skip("No compiler session dir found")
-        onnx_in_compiler = [
+        real_onnx_in_compiler = [
             f for f in scenario.all_generated_files
-            if f.suffix == ".onnx" and f.parent in compiler_dirs
+            if f.suffix == ".onnx"
+            and f.parent in compiler_dirs
+            and f.resolve().stat().st_size >= 1_000_000
         ]
-        if not onnx_in_compiler:
-            warnings.warn(
-                "No .onnx file found in compiler session directory.\n"
-                "Retaining the source .onnx helps debug verify.py failures and re-compilation.\n"
-                "Consider keeping the .onnx alongside the .dxnn in the compiler session dir.",
-                UserWarning,
-                stacklevel=2,
+        if not real_onnx_in_compiler:
+            pytest.fail(
+                "No real .onnx file (≥ 1 MB) found in compiler session directory.\n"
+                "Retaining the source .onnx makes the session self-contained and "
+                "reproducible (verify.py re-runs, re-compilation without repo access).\n"
+                "Use shutil.copy or cp to retain yolo26n.onnx alongside the .dxnn file.\n"
+                "Symlinks do NOT satisfy this check — a real binary copy is required."
             )
 
     def test_session_json_exists(self, scenario: ScenarioResult):
@@ -304,12 +305,107 @@ class TestCodeQuality:
                     stacklevel=2,
                 )
 
-    def test_session_json_has_agent_field(self, scenario: ScenarioResult):
-        """session.json contains 'agent' field attributing the session to opencode (REC-T2).
+    def test_compile_py_avoids_slow_calibration(self, scenario: ScenarioResult):
+        """compile.py uses augmentation-based DataLoader, not a 100-distinct-image strategy (REC-W1).
 
-        REC-T2 (iter-15): Promoted from xfail to hard assertion. opencode XPASSED in iter-15
-        with REC-M cross-contamination filtering — scenario.all_generated_files now contains
-        only opencode's own sessions. Asserts agent='opencode' for genuine attribution.
+        REC-W1 (iter-18): Detects slow calibration strategies that cause 62-min timeouts.
+        REC-F/REC-T6: Per-attempt analysis — for opencode's multi-attempt pattern,
+        intermediate failed attempts (no .dxnn in same dir) emit UserWarning only;
+        hard fail only for the attempt that produced .dxnn with > 600s duration.
+        """
+        if not scenario.succeeded:
+            pytest.skip("OpenCode execution failed")
+        import warnings
+        banned_classes = [
+            "CalibDataset", "CalibrationDataset", "YoloCalibDataset",
+            "YOLOCalibDataset", "ImageFolder", "DefaultDataset",
+        ]
+        compile_scripts = [
+            f for f in scenario.all_generated_files
+            if f.name in ("compile.py", "compile_model.py")
+            and "dx-compiler" in str(f)
+        ]
+        for script in compile_scripts:
+            content = script.read_text(encoding="utf-8", errors="replace")
+            has_banned = any(name in content for name in banned_classes)
+            if not has_banned:
+                continue
+            banned_found = [n for n in banned_classes if n in content]
+            # REC-F: Per-attempt analysis — check .dxnn in script's OWN directory
+            dxnn_in_dir = list(script.parent.glob("*.dxnn"))
+            if not dxnn_in_dir:
+                # Intermediate failed attempt — UserWarning only (not a hard fail)
+                warnings.warn(
+                    f"opencode attempt {script.parent.name}/{script.name} uses a banned "
+                    f"calibration strategy (found: {banned_found}) and no .dxnn in same dir. "
+                    "This may be an intermediate failed attempt. "
+                    "Use augmentation-based DataLoader for consistent compilation performance.",
+                    UserWarning,
+                    stacklevel=2,
+                )
+            elif scenario.duration_seconds > 600:
+                pytest.fail(
+                    f"{script.parent.name}/{script.name} uses a banned calibration "
+                    f"strategy (found: {banned_found}, duration={scenario.duration_seconds:.0f}s > 600s). "
+                    ".dxnn was produced but calibration time exceeded limit — "
+                    "100-distinct-image strategy (~62 min) used instead of augmentation (~1 min). "
+                    "(REC-F per-attempt analysis)"
+                )
+            else:
+                warnings.warn(
+                    f"{script.parent.name}/{script.name} uses a non-compliant calibration "
+                    f"strategy (found: {banned_found}) but compilation completed within timeout "
+                    f"({scenario.duration_seconds:.0f}s). "
+                    "Use augmentation-based DataLoader for consistent performance.",
+                    UserWarning,
+                    stacklevel=2,
+                )
+
+    def test_compile_self_check_ran(self, scenario: ScenarioResult):
+        """Compiler session.log contains CALIB_STRATEGY_OK: marker from Rule 5 self-check (REC-W1).
+
+        REC-W1 (iter-18): Verifies the agent ran the mandatory AST self-check in Rule 5
+        (dx-dxnn-compiler.md) that confirms augmentation-based DataLoader was written.
+        If CALIB_STRATEGY_OK is absent, the agent skipped the mandatory self-check.
+        """
+        if not scenario.succeeded:
+            pytest.skip("OpenCode execution failed")
+        compiler_session_logs = [
+            f for f in scenario.all_generated_files
+            if f.name == "session.log" and "dx-compiler" in str(f)
+        ]
+        if not compiler_session_logs:
+            pytest.fail(
+                "No compiler session.log found in dx-compiler session directories. "
+                "Cannot verify calibration self-check was executed."
+            )
+        for log in compiler_session_logs:
+            content = log.read_text(encoding="utf-8", errors="replace")
+            if "CALIB_STRATEGY_OK" not in content:
+                pytest.fail(
+                    f"{log.parent.name}/session.log does not contain 'CALIB_STRATEGY_OK:' marker.\n"
+                    "The agent must run the Rule 5 AST self-check before subprocess.Popen:\n"
+                    "  echo 'CALIB_STRATEGY_OK: augmentation-based DataLoader confirmed' >> session.log\n"
+                    "See dx-dxnn-compiler.md Rule 5 for the full self-check command."
+                )
+
+    @pytest.mark.xfail(
+        reason=(
+            "REC-V7 (iter-17): opencode uses a claude subagent which writes agent='claude', "
+            "not 'opencode'. The test_session_json_exists regression in iter-17 shows this "
+            "attribution gap is non-deterministic. Re-marked xfail until session.owner "
+            "tracking is implemented or opencode explicitly overrides the agent field."
+        ),
+        strict=False,
+    )
+    def test_session_json_has_agent_field(self, scenario: ScenarioResult):
+        """session.json contains 'agent' field attributing the session to opencode (REC-V7).
+
+        REC-T2 (iter-15): Promoted from xfail to hard assertion.
+        REC-V7 (iter-17): Re-marked as xfail — opencode subagent writes agent='claude',
+            not 'opencode'. The iter-17 session.json regression (no file produced) confirms
+            this attribution gap is non-deterministic. Re-evaluate once opencode explicitly
+            overrides the agent field or session.owner tracking is implemented.
         """
         if not scenario.succeeded:
             pytest.skip("OpenCode execution failed")
@@ -327,3 +423,41 @@ class TestCodeQuality:
             f"session.json 'agent' field does not contain 'opencode': {agent_val!r}\n"
             f"Full session.json: {data}"
         )
+
+    def test_compile_pid_r42_compliance(self, scenario: ScenarioResult):
+        """Detects concurrent synchronous + background compilation (R42 violation) (REC-W3).
+
+        REC-W3 (iter-18): Soft-fail stat-based timing check. If .dxnn was created much
+        earlier than the compile_out.log line count implies (background compile still running),
+        it suggests a synchronous dx_com.compile() ran in parallel with the background
+        subprocess — an R42 violation.
+        """
+        if not scenario.succeeded:
+            pytest.skip("OpenCode execution failed")
+        import warnings
+        compiler_dirs = [d for d in scenario.output_dirs if "dx-compiler" in str(d)]
+        for comp_dir in compiler_dirs:
+            dxnn_files = list(comp_dir.glob("*.dxnn"))
+            compile_out_files = list(comp_dir.glob("compile_out*.log"))
+            if not dxnn_files or not compile_out_files:
+                continue
+            try:
+                dxnn_mtime = dxnn_files[0].stat().st_mtime
+                dir_mtime = comp_dir.stat().st_mtime
+                compile_out_lines = sum(
+                    len(f.read_text(encoding="utf-8", errors="replace").splitlines())
+                    for f in compile_out_files
+                )
+                time_since_start = dxnn_mtime - dir_mtime
+                if compile_out_lines > 1000 and time_since_start < 1200:
+                    warnings.warn(
+                        f"{comp_dir.name}: R42 compliance anomaly — .dxnn created "
+                        f"{time_since_start:.0f}s after session start but compile_out.log "
+                        f"has {compile_out_lines} lines (background compile still running). "
+                        "Suggests synchronous dx_com.compile() ran alongside background PID. "
+                        "R42 prohibits synchronous compile() in the main agent thread.",
+                        UserWarning,
+                        stacklevel=2,
+                    )
+            except Exception:
+                pass

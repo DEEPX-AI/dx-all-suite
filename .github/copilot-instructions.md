@@ -374,6 +374,11 @@ Rules:
 4. If the user sends multiple prompts in a session, output START/DONE for each prompt
 5. The `output-dir` in DONE must be the relative path from the project root to the
    session output directory. If no files were generated, omit the `(output-dir: ...)` part.
+   **For cross-project tasks** (e.g., compile + app generation), list ALL output directories
+   separated by ` + `:
+   ```
+   [DX-AGENTIC-DEV: DONE (output-dir: dx-compiler/dx-agentic-dev/20260409-143022_copilot_yolo26n_compile/ + dx-runtime/dx_app/dx-agentic-dev/20260409-143022_copilot_yolo26n_inference/)]
+   ```
 6. **NEVER output DONE after only producing planning artifacts** (specs, plans, design
    documents). DONE means all deliverables are produced — implementation code, scripts,
    configs, and validation results. If you completed a brainstorming or planning phase
@@ -422,6 +427,21 @@ factory/inference patterns, GStreamer pipeline code, etc.).
 
 Each sub-project also defines templates for these files in its agent/skill documents
 (e.g., `dx-compiler/.deepx/agents/dx-dxnn-compiler.md` Phase 5.5).
+
+### Cross-project suite tasks — pre-DONE `.dxnn` check (HARD GATE, REC-X4)
+
+**For any task involving compilation**, before emitting the DONE sentinel, verify that
+the `.dxnn` file exists in the compiler session directory:
+
+```bash
+COMPILER_SESSION="<compiler_session_dir>"   # e.g., dx-compiler/dx-agentic-dev/20260430-..._compile
+test -f "${COMPILER_SESSION}/yolo26n.dxnn" \
+  || { echo "BLOCKED: yolo26n.dxnn not found — compilation still running. Wait for compile.pid to exit before emitting DONE."; exit 1; }
+```
+
+Emitting DONE while `yolo26n.dxnn` is absent causes `test_dxnn_compiled` to fail even if
+background compilation eventually produces it (the test harness collects files at DONE time).
+See Phase 5.8 in `dx-compiler/.deepx/agents/dx-dxnn-compiler.md` for the full pre-DONE gate.
 
 ## Prerequisites Check (HARD GATE)
 
