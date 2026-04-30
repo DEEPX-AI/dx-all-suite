@@ -19,6 +19,11 @@
 4. 사용자가 세션에서 여러 프롬프트를 보내면, 각 프롬프트에 대해 START/DONE을 출력하세요
 5. DONE의 `output-dir`은 프로젝트 루트에서 세션 출력 디렉토리까지의 상대 경로여야 합니다.
    파일이 생성되지 않았다면, `(output-dir: ...)` 부분을 생략하세요.
+   **Cross-project 태스크** (예: compile + app 생성)의 경우, 모든 output directory를
+   ` + ` 구분자로 나열하세요:
+   ```
+   [DX-AGENTIC-DEV: DONE (output-dir: dx-compiler/dx-agentic-dev/20260409-143022_copilot_yolo26n_compile/ + dx-runtime/dx_app/dx-agentic-dev/20260409-143022_copilot_yolo26n_inference/)]
+   ```
 6. **계획 산출물만 생성한 후에는 절대 DONE을 출력하지 마세요** (spec, plan, 설계
    문서). DONE은 모든 산출물이 생성되었음을 의미합니다 — 구현 코드, 스크립트,
    설정, 검증 결과. brainstorming 또는 계획 단계를 완료했지만 실제 코드를 아직
