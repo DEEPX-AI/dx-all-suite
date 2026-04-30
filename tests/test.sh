@@ -1460,6 +1460,12 @@ case "$COMMAND" in
         if [ "$TOTAL_FAIL" -gt 0 ]; then
             echo -e "  ${RED}Failed:${NC}           ${TOTAL_FAIL}"
         fi
+        echo -e "  Artifacts (per-scenario):"
+        for _key in "${SELECTED_SCENARIOS[@]}"; do
+            _ab="${SCENARIO_ARTIFACTS[$_key]}"
+            _ab_short=$(echo "$_ab" | sed "s|$(realpath "${SCRIPT_DIR}/..")/||g")
+            echo -e "    ${GREEN}${_key}:${NC}  ${_ab_short}/"
+        done
         echo ""
 
         if [ "$TOTAL_FAIL" -gt 0 ]; then
@@ -1744,13 +1750,17 @@ case "$COMMAND" in
             _snapshot_file=$(mktemp)
             snapshot_sessions "$_search_paths" "$_snapshot_file"
 
+            # Snapshot existing session-*.md files before session starts
+            _export_snapshot_file=$(mktemp)
+            find "$_workdir" -maxdepth 1 -name "session-*.md" 2>/dev/null > "$_export_snapshot_file"
+
             # Run OpenCode interactively (pre-fill with initial prompt)
             # OpenCode TUI does not support prompt pre-fill via positional arg
             # (positional = project directory). Use --prompt flag instead.
             (cd "$_workdir" && opencode --model "$AGENTIC_MODEL" --prompt "$_prompt")
             _oc_exit=$?
 
-            # Give a moment for async file writes (e.g. /export HTML)
+            # Give a moment for async file writes (e.g. /export markdown)
             sleep 2
 
             # Post-detection: find new session directories
@@ -1765,33 +1775,26 @@ case "$COMMAND" in
                 echo -e "  ${YELLOW}[WARN]${NC} No new session directories detected"
             fi
 
-            # Detect and archive /export HTML
-            # OpenCode saves exports as opencode-<session_id>.html in the workdir
-            _export_html=""
-            for _hf in "$_workdir"/opencode-*.html; do
-                if [ -f "$_hf" ]; then
-                    # Pick the most recently modified one
-                    if [ -z "$_export_html" ] || [ "$_hf" -nt "$_export_html" ]; then
-                        _export_html="$_hf"
-                    fi
+            # Detect and archive /export markdown
+            # OpenCode /export saves as session-<session_id>.md in the workdir
+            _export_md=""
+            while IFS= read -r _mf; do
+                if ! grep -qxF "$_mf" "$_export_snapshot_file" 2>/dev/null; then
+                    _export_md="$_mf"
+                    break
                 fi
-            done
-            # Fallback: check OpenCode global session store
-            _oc_sessions_dir="${HOME}/.local/share/opencode/sessions"
-            if [ -z "$_export_html" ] && [ -d "$_oc_sessions_dir" ]; then
-                for _hf in "$_oc_sessions_dir"/*.html; do
-                    [ -f "$_hf" ] && _export_html="$_hf" && break
-                done
-            fi
+            done < <(find "$_workdir" -maxdepth 1 -name "session-*.md" \
+                         -printf "%T@ %p\n" 2>/dev/null | sort -rn | awk '{print $2}')
 
-            if [ -n "$_export_html" ]; then
-                _html_dest="${ARTIFACTS_BASE}/${scenario_key}-opencode-export.html"
-                cp "$_export_html" "$_html_dest"
-                print_info "OpenCode /export HTML archived: ${_html_dest}"
+            if [ -n "$_export_md" ]; then
+                _md_dest="${ARTIFACTS_BASE}/${scenario_key}-opencode-session.md"
+                cp "$_export_md" "$_md_dest"
+                print_info "OpenCode /export markdown archived: ${_md_dest}"
             else
-                echo -e "  ${YELLOW}[WARN]${NC} No OpenCode export HTML found."
+                echo -e "  ${YELLOW}[WARN]${NC} No OpenCode export markdown found."
                 echo -e "         Did you type ${GREEN}/export${NC} before exiting the session?"
             fi
+            rm -f "$_export_snapshot_file"
 
             # Symlinks: create in ARTIFACTS_BASE pointing to detected session dirs
             if [ ${#_detected_arr[@]} -gt 0 ]; then
@@ -1827,6 +1830,12 @@ case "$COMMAND" in
         if [ "$TOTAL_FAIL" -gt 0 ]; then
             echo -e "  ${RED}Failed:${NC}           ${TOTAL_FAIL}"
         fi
+        echo -e "  Artifacts (per-scenario):"
+        for _key in "${SELECTED_SCENARIOS[@]}"; do
+            _ab="${SCENARIO_ARTIFACTS[$_key]}"
+            _ab_short=$(echo "$_ab" | sed "s|$(realpath "${SCRIPT_DIR}/..")/||g")
+            echo -e "    ${GREEN}${_key}:${NC}  ${_ab_short}/"
+        done
         echo ""
 
         if [ "$TOTAL_FAIL" -gt 0 ]; then exit 1; fi
@@ -2117,6 +2126,12 @@ case "$COMMAND" in
         if [ "$TOTAL_FAIL" -gt 0 ]; then
             echo -e "  ${RED}Failed:${NC}           ${TOTAL_FAIL}"
         fi
+        echo -e "  Artifacts (per-scenario):"
+        for _key in "${SELECTED_SCENARIOS[@]}"; do
+            _ab="${SCENARIO_ARTIFACTS[$_key]}"
+            _ab_short=$(echo "$_ab" | sed "s|$(realpath "${SCRIPT_DIR}/..")/||g")
+            echo -e "    ${GREEN}${_key}:${NC}  ${_ab_short}/"
+        done
         echo ""
 
         if [ "$TOTAL_FAIL" -gt 0 ]; then exit 1; fi
