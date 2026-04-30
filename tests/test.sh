@@ -1260,6 +1260,56 @@ case "$COMMAND" in
                 fi
                 echo "${new_dirs[*]}"
             }
+            validate_scenario() {
+                local scenario_key="$1"
+                local exit_code="$2"
+                shift 2
+                local output_dirs=("$@")
+                local check_models="${SCENARIO_CHECK_MODELS[$scenario_key]}"
+                local pass_count=0 fail_count=0 total_checks=0
+                echo ""
+                echo -e "${BLUE}=== Validation Results: ${scenario_key} ===${NC}"
+                total_checks=$((total_checks + 1))
+                if [ "$exit_code" -eq 0 ]; then
+                    echo -e "  ${GREEN}[PASS]${NC} Exit code: 0"
+                    pass_count=$((pass_count + 1))
+                else
+                    echo -e "  ${RED}[FAIL]${NC} Exit code: ${exit_code}"
+                    fail_count=$((fail_count + 1))
+                fi
+                total_checks=$((total_checks + 1))
+                if [ ${#output_dirs[@]} -gt 0 ]; then
+                    echo -e "  ${GREEN}[PASS]${NC} Session dirs detected: ${#output_dirs[@]}"
+                    pass_count=$((pass_count + 1))
+                else
+                    echo -e "  ${RED}[FAIL]${NC} No session directories detected"
+                    fail_count=$((fail_count + 1))
+                    echo -e "  ${YELLOW}Summary: ${pass_count}/${total_checks} passed, ${fail_count} failed${NC}"
+                    return "$fail_count"
+                fi
+                total_checks=$((total_checks + 1))
+                local file_count=0
+                for _d in "${output_dirs[@]}"; do
+                    local _fc
+                    _fc=$(find "$_d" -type f 2>/dev/null | wc -l)
+                    file_count=$((file_count + _fc))
+                done
+                if [ "$file_count" -gt 0 ]; then
+                    echo -e "  ${GREEN}[PASS]${NC} Files generated: ${file_count}"
+                    pass_count=$((pass_count + 1))
+                else
+                    echo -e "  ${RED}[FAIL]${NC} No files generated"
+                    fail_count=$((fail_count + 1))
+                fi
+                echo ""
+                if [ "$fail_count" -eq 0 ]; then
+                    echo -e "  ${GREEN}Summary: ${pass_count}/${total_checks} checks passed${NC}"
+                else
+                    echo -e "  ${YELLOW}Summary: ${pass_count}/${total_checks} passed, ${fail_count} failed${NC}"
+                fi
+                echo ""
+                return "$fail_count"
+            }
         fi
 
         # --- Scenario selection ---
