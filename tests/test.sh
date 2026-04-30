@@ -1624,7 +1624,9 @@ case "$COMMAND" in
             snapshot_sessions "$_search_paths" "$_snapshot_file"
 
             # Run OpenCode interactively (pre-fill with initial prompt)
-            (cd "$_workdir" && opencode --model "$AGENTIC_MODEL" "$_prompt")
+            # OpenCode TUI does not support prompt pre-fill via positional arg
+            # (positional = project directory). The prompt is shown in the TIP above.
+            (cd "$_workdir" && opencode --model "$AGENTIC_MODEL")
             _oc_exit=$?
 
             # Give a moment for async file writes (e.g. /export HTML)
@@ -1900,8 +1902,8 @@ case "$COMMAND" in
             _export_snapshot_file=$(mktemp)
             find "$_workdir" -maxdepth 1 -name "????-??-??-*.txt" 2>/dev/null > "$_export_snapshot_file"
 
-            # Run Claude Code interactively
-            (cd "$_workdir" && claude --dangerously-skip-permissions --model "$AGENTIC_MODEL")
+            # Run Claude Code interactively (positional prompt = initial message pre-fill)
+            (cd "$_workdir" && claude --dangerously-skip-permissions --model "$AGENTIC_MODEL" "$_prompt")
             _cc_exit=$?
 
             sleep 2
