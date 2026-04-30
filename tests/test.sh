@@ -1625,8 +1625,8 @@ case "$COMMAND" in
 
             # Run OpenCode interactively (pre-fill with initial prompt)
             # OpenCode TUI does not support prompt pre-fill via positional arg
-            # (positional = project directory). The prompt is shown in the TIP above.
-            (cd "$_workdir" && opencode --model "$AGENTIC_MODEL")
+            # (positional = project directory). Use --prompt flag instead.
+            (cd "$_workdir" && opencode --model "$AGENTIC_MODEL" --prompt "$_prompt")
             _oc_exit=$?
 
             # Give a moment for async file writes (e.g. /export HTML)
