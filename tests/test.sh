@@ -383,6 +383,296 @@ fi
 
 set -- "${EXTRA_ARGS[@]}"
 
+# =============================================================================
+# MANUAL_SHARED — shared definitions for all 4 manual E2E test sections.
+# Defined before case statement so all sections always have access,
+# regardless of execution order (eliminates the guard pattern dependency).
+# =============================================================================
+
+SCENARIO_KEYS=(compiler dx_app dx_stream cascaded runtime suite)
+
+declare -A SCENARIO_LABELS
+SCENARIO_LABELS[compiler]="Download yolo26n, compile to DXNN"
+SCENARIO_LABELS[dx_app]="Build yolo26n person detection app"
+SCENARIO_LABELS[dx_stream]="Build detection pipeline with tracking"
+SCENARIO_LABELS[cascaded]="Build cascaded detection pipeline"
+SCENARIO_LABELS[runtime]="Route to dx_app + dx_stream via runtime builder"
+SCENARIO_LABELS[suite]="Cross-project compile + app generation"
+
+declare -A SCENARIO_WORKDIRS
+SCENARIO_WORKDIRS[compiler]="${SCRIPT_DIR}/../dx-compiler"
+SCENARIO_WORKDIRS[dx_app]="${SCRIPT_DIR}/../dx-runtime/dx_app"
+SCENARIO_WORKDIRS[dx_stream]="${SCRIPT_DIR}/../dx-runtime/dx_stream"
+SCENARIO_WORKDIRS[cascaded]="${SCRIPT_DIR}/../dx-runtime/dx_stream"
+SCENARIO_WORKDIRS[runtime]="${SCRIPT_DIR}/../dx-runtime"
+SCENARIO_WORKDIRS[suite]="${SCRIPT_DIR}/.."
+
+declare -A SCENARIO_TIMEOUTS
+SCENARIO_TIMEOUTS[compiler]=1200
+SCENARIO_TIMEOUTS[dx_app]=600
+SCENARIO_TIMEOUTS[dx_stream]=300
+SCENARIO_TIMEOUTS[cascaded]=900
+SCENARIO_TIMEOUTS[runtime]=600
+SCENARIO_TIMEOUTS[suite]=900
+
+# Prompts from each component's Agentic Development guide (User Scenarios).
+# No output_dir directive — copilot-instructions.md enforces Output Isolation
+# (auto-creates dx-agentic-dev/<session_id>/ in the target sub-project).
+declare -A SCENARIO_PROMPTS
+SCENARIO_PROMPTS[compiler]="Compile yolo26n model to dxnn"
+SCENARIO_PROMPTS[dx_app]="Build a yolo26n detection app"
+SCENARIO_PROMPTS[dx_stream]="Build a real-time detection pipeline with yolo26n"
+SCENARIO_PROMPTS[cascaded]="Build a cascaded pipeline using yolo26n for primary object detection and a secondary classification stage for detected objects"
+SCENARIO_PROMPTS[runtime]="Build a yolo26n standalone detection app and a real-time streaming pipeline for it"
+SCENARIO_PROMPTS[suite]="Compile yolo26n and build an inference app"
+
+# Extra validation flags (scenarios that should produce model files)
+declare -A SCENARIO_CHECK_MODELS
+SCENARIO_CHECK_MODELS[compiler]=1
+SCENARIO_CHECK_MODELS[dx_app]=0
+SCENARIO_CHECK_MODELS[dx_stream]=0
+SCENARIO_CHECK_MODELS[cascaded]=0
+SCENARIO_CHECK_MODELS[runtime]=0
+SCENARIO_CHECK_MODELS[suite]=1
+
+# Search paths for dx-agentic-dev/ session auto-detection.
+# Each scenario may write to one or more sub-project directories.
+# Values are space-separated lists of dx-agentic-dev/ parent dirs.
+declare -A SCENARIO_SEARCH_PATHS
+SCENARIO_SEARCH_PATHS[compiler]="${SCRIPT_DIR}/../dx-compiler/dx-agentic-dev"
+SCENARIO_SEARCH_PATHS[dx_app]="${SCRIPT_DIR}/../dx-runtime/dx_app/dx-agentic-dev"
+SCENARIO_SEARCH_PATHS[dx_stream]="${SCRIPT_DIR}/../dx-runtime/dx_stream/dx-agentic-dev"
+SCENARIO_SEARCH_PATHS[cascaded]="${SCRIPT_DIR}/../dx-runtime/dx_stream/dx-agentic-dev"
+SCENARIO_SEARCH_PATHS[runtime]="${SCRIPT_DIR}/../dx-runtime/dx-agentic-dev ${SCRIPT_DIR}/../dx-runtime/dx_app/dx-agentic-dev ${SCRIPT_DIR}/../dx-runtime/dx_stream/dx-agentic-dev"
+SCENARIO_SEARCH_PATHS[suite]="${SCRIPT_DIR}/../dx-agentic-dev ${SCRIPT_DIR}/../dx-compiler/dx-agentic-dev ${SCRIPT_DIR}/../dx-runtime/dx_app/dx-agentic-dev ${SCRIPT_DIR}/../dx-runtime/dx_stream/dx-agentic-dev ${SCRIPT_DIR}/../dx-runtime/dx-agentic-dev"
+
+# --- Session auto-detection helpers ---
+# Snapshot existing session dirs under the search paths
+snapshot_sessions() {
+    local search_paths="$1"
+    local snapshot_file="$2"
+    > "$snapshot_file"
+    for sp in $search_paths; do
+        local sp_real
+        sp_real="$(realpath "$sp" 2>/dev/null)" || continue
+        if [ -d "$sp_real" ]; then
+            for d in "$sp_real"/*/; do
+                [ -d "$d" ] && echo "$d" >> "$snapshot_file"
+            done
+        fi
+    done
+}
+
+# Detect new session dirs created after the snapshot
+detect_new_sessions() {
+    local search_paths="$1"
+    local snapshot_file="$2"
+    local agent_filter="${3:-}"
+    local new_dirs=()
+    for sp in $search_paths; do
+        local sp_real
+        sp_real="$(realpath "$sp" 2>/dev/null)" || continue
+        if [ -d "$sp_real" ]; then
+            for d in "$sp_real"/*/; do
+                if [ -d "$d" ] && ! grep -qxF "$d" "$snapshot_file" 2>/dev/null; then
+                    new_dirs+=("$d")
+                fi
+            done
+        fi
+    done
+    # Agent filter: only return dirs whose name contains the agent string
+    # (mirrors autopilot conftest.py _detect_new_sessions agent_filter)
+    if [ -n "$agent_filter" ]; then
+        local filtered=()
+        for d in "${new_dirs[@]}"; do
+            [[ "$d" == *"$agent_filter"* ]] && filtered+=("$d")
+        done
+        new_dirs=("${filtered[@]}")
+    fi
+    # Return space-separated list (empty if none)
+    echo "${new_dirs[*]}"
+}
+
+# --- Validation function ---
+# Usage: validate_scenario <scenario_key> <exit_code> <dir1> [dir2] ...
+# Validates output across one or more auto-detected session directories.
+validate_scenario() {
+    local scenario_key="$1"
+    local exit_code="$2"
+    shift 2
+    local output_dirs=("$@")
+    local check_models="${SCENARIO_CHECK_MODELS[$scenario_key]}"
+    local pass_count=0
+    local fail_count=0
+    local total_checks=0
+
+    echo ""
+    echo -e "${BLUE}=== Validation Results: ${scenario_key} ===${NC}"
+
+    # Check 1: Exit code
+    total_checks=$((total_checks + 1))
+    if [ "$exit_code" -eq 0 ]; then
+        echo -e "  ${GREEN}[PASS]${NC} Exit code: 0"
+        pass_count=$((pass_count + 1))
+    else
+        echo -e "  ${RED}[FAIL]${NC} Exit code: ${exit_code}"
+        fail_count=$((fail_count + 1))
+    fi
+
+    # Check 1b: Session directories detected
+    total_checks=$((total_checks + 1))
+    if [ ${#output_dirs[@]} -gt 0 ]; then
+        echo -e "  ${GREEN}[PASS]${NC} Session dirs detected: ${#output_dirs[@]}"
+        for _d in "${output_dirs[@]}"; do
+            echo -e "         ${_d}"
+        done
+        pass_count=$((pass_count + 1))
+    else
+        echo -e "  ${RED}[FAIL]${NC} No session directories detected in dx-agentic-dev/"
+        fail_count=$((fail_count + 1))
+        echo ""
+        echo -e "  ${YELLOW}Summary: ${pass_count}/${total_checks} passed, ${fail_count} failed${NC}"
+        echo ""
+        return "$fail_count"
+    fi
+
+    # Check 2: Files generated (across all dirs)
+    total_checks=$((total_checks + 1))
+    local file_count=0
+    for _d in "${output_dirs[@]}"; do
+        local _fc
+        _fc=$(find "$_d" -type f 2>/dev/null | wc -l)
+        file_count=$((file_count + _fc))
+    done
+    if [ "$file_count" -gt 0 ]; then
+        echo -e "  ${GREEN}[PASS]${NC} Files generated: ${file_count}"
+        pass_count=$((pass_count + 1))
+    else
+        echo -e "  ${RED}[FAIL]${NC} No files generated in detected session dirs"
+        fail_count=$((fail_count + 1))
+    fi
+
+    # Check 3: JSON validity (across all dirs)
+    local json_files=""
+    for _d in "${output_dirs[@]}"; do
+        local _jf
+        _jf=$(find "$_d" -name "*.json" -not -name "copilot-session.md" 2>/dev/null)
+        [ -n "$_jf" ] && json_files="${json_files}${_jf}"$'\n'
+    done
+    json_files=$(echo "$json_files" | sed '/^$/d')
+    if [ -n "$json_files" ]; then
+        local json_ok=1
+        local json_count=0
+        while IFS= read -r jf; do
+            json_count=$((json_count + 1))
+            if ! python3 -c "import json; json.load(open('$jf'))" 2>/dev/null; then
+                json_ok=0
+                echo -e "  ${RED}[FAIL]${NC} Invalid JSON: $(basename "$jf")"
+            fi
+        done <<< "$json_files"
+        total_checks=$((total_checks + 1))
+        if [ "$json_ok" -eq 1 ]; then
+            echo -e "  ${GREEN}[PASS]${NC} JSON valid (${json_count} files)"
+            pass_count=$((pass_count + 1))
+        else
+            fail_count=$((fail_count + 1))
+        fi
+    fi
+
+    # Check 4: Python syntax (across all dirs)
+    local py_files=""
+    for _d in "${output_dirs[@]}"; do
+        local _pf
+        _pf=$(find "$_d" -name "*.py" 2>/dev/null)
+        [ -n "$_pf" ] && py_files="${py_files}${_pf}"$'\n'
+    done
+    py_files=$(echo "$py_files" | sed '/^$/d')
+    if [ -n "$py_files" ]; then
+        local py_ok=1
+        local py_count=0
+        while IFS= read -r pf; do
+            py_count=$((py_count + 1))
+            if ! python3 -c "import ast; ast.parse(open('$pf').read())" 2>/dev/null; then
+                py_ok=0
+                echo -e "  ${RED}[FAIL]${NC} Syntax error: $(basename "$pf")"
+            fi
+        done <<< "$py_files"
+        total_checks=$((total_checks + 1))
+        if [ "$py_ok" -eq 1 ]; then
+            echo -e "  ${GREEN}[PASS]${NC} Python syntax OK (${py_count} files)"
+            pass_count=$((pass_count + 1))
+        else
+            fail_count=$((fail_count + 1))
+        fi
+    fi
+
+    # Check 5: Mandatory artifacts (compiler/suite only, across all dirs)
+    if [ "$check_models" -eq 1 ]; then
+        for artifact_name in setup.sh run.sh verify.py session.log; do
+            total_checks=$((total_checks + 1))
+            local artifact_found=0
+            for _d in "${output_dirs[@]}"; do
+                if [ -f "$_d/$artifact_name" ]; then
+                    artifact_found=1
+                    break
+                fi
+            done
+            if [ "$artifact_found" -eq 1 ]; then
+                echo -e "  ${GREEN}[PASS]${NC} Mandatory artifact: ${artifact_name}"
+                pass_count=$((pass_count + 1))
+            else
+                echo -e "  ${RED}[FAIL]${NC} Missing mandatory artifact: ${artifact_name}"
+                fail_count=$((fail_count + 1))
+            fi
+        done
+    fi
+
+    # Check 6: Model files (compiler/suite only, across all dirs)
+    if [ "$check_models" -eq 1 ]; then
+        total_checks=$((total_checks + 1))
+        local model_count=0
+        for _d in "${output_dirs[@]}"; do
+            local _mc
+            _mc=$(find "$_d" \( -name "*.onnx" -o -name "*.pt" -o -name "*.pth" \) 2>/dev/null | wc -l)
+            model_count=$((model_count + _mc))
+        done
+        if [ "$model_count" -gt 0 ]; then
+            echo -e "  ${GREEN}[PASS]${NC} Model files acquired (${model_count})"
+            pass_count=$((pass_count + 1))
+        else
+            echo -e "  ${RED}[FAIL]${NC} No model files (.onnx/.pt/.pth) found"
+            fail_count=$((fail_count + 1))
+        fi
+
+        total_checks=$((total_checks + 1))
+        local dxnn_count=0
+        for _d in "${output_dirs[@]}"; do
+            local _dc
+            _dc=$(find "$_d" -name "*.dxnn" 2>/dev/null | wc -l)
+            dxnn_count=$((dxnn_count + _dc))
+        done
+        if [ "$dxnn_count" -gt 0 ]; then
+            echo -e "  ${GREEN}[PASS]${NC} DXNN compiled (${dxnn_count})"
+            pass_count=$((pass_count + 1))
+        else
+            echo -e "  ${RED}[FAIL]${NC} No .dxnn files found"
+            fail_count=$((fail_count + 1))
+        fi
+    fi
+
+    echo ""
+    if [ "$fail_count" -eq 0 ]; then
+        echo -e "  ${GREEN}Summary: ${pass_count}/${total_checks} checks passed${NC}"
+    else
+        echo -e "  ${YELLOW}Summary: ${pass_count}/${total_checks} passed, ${fail_count} failed${NC}"
+    fi
+    echo ""
+
+    return "$fail_count"
+}
+
+# =============================================================================
+
 case "$COMMAND" in
     sanity)
         print_info "Running sanity checks only..."
@@ -512,291 +802,6 @@ case "$COMMAND" in
         # ARTIFACTS_BASE is computed per-scenario inside the loop (based on workdir)
         declare -A SCENARIO_ARTIFACTS
         GLOBAL_SUMMARY_BASE="${SCRIPT_DIR}/../dx-agentic-dev/e2e-tests/copilot_cli/manual/${TIMESTAMP}"
-
-        # Scenario definitions (index → name, workdir, timeout, prompt)
-        SCENARIO_KEYS=(compiler dx_app dx_stream cascaded runtime suite)
-
-        declare -A SCENARIO_LABELS
-        SCENARIO_LABELS[compiler]="Download yolo26n, compile to DXNN"
-        SCENARIO_LABELS[dx_app]="Build yolo26n person detection app"
-        SCENARIO_LABELS[dx_stream]="Build detection pipeline with tracking"
-        SCENARIO_LABELS[cascaded]="Build cascaded detection pipeline"
-        SCENARIO_LABELS[runtime]="Route to dx_app + dx_stream via runtime builder"
-        SCENARIO_LABELS[suite]="Cross-project compile + app generation"
-
-        declare -A SCENARIO_WORKDIRS
-        SCENARIO_WORKDIRS[compiler]="${SCRIPT_DIR}/../dx-compiler"
-        SCENARIO_WORKDIRS[dx_app]="${SCRIPT_DIR}/../dx-runtime/dx_app"
-        SCENARIO_WORKDIRS[dx_stream]="${SCRIPT_DIR}/../dx-runtime/dx_stream"
-        SCENARIO_WORKDIRS[cascaded]="${SCRIPT_DIR}/../dx-runtime/dx_stream"
-        SCENARIO_WORKDIRS[runtime]="${SCRIPT_DIR}/../dx-runtime"
-        SCENARIO_WORKDIRS[suite]="${SCRIPT_DIR}/.."
-
-        declare -A SCENARIO_TIMEOUTS
-        SCENARIO_TIMEOUTS[compiler]=1200
-        SCENARIO_TIMEOUTS[dx_app]=600
-        SCENARIO_TIMEOUTS[dx_stream]=300
-        SCENARIO_TIMEOUTS[cascaded]=900
-        SCENARIO_TIMEOUTS[runtime]=600
-        SCENARIO_TIMEOUTS[suite]=900
-
-        # Prompts from each component's Agentic Development guide (User Scenarios)
-        # No output_dir directive — copilot-instructions.md enforces Output Isolation
-        # (auto-creates dx-agentic-dev/<session_id>/ in the target sub-project).
-
-        declare -A SCENARIO_PROMPTS
-        SCENARIO_PROMPTS[compiler]="Compile yolo26n model to dxnn"
-        SCENARIO_PROMPTS[dx_app]="Build a yolo26n detection app"
-        SCENARIO_PROMPTS[dx_stream]="Build a real-time detection pipeline with yolo26n"
-        SCENARIO_PROMPTS[cascaded]="Build a cascaded pipeline using yolo26n for primary object detection and a secondary classification stage for detected objects"
-        SCENARIO_PROMPTS[runtime]="Build a yolo26n standalone detection app and a real-time streaming pipeline for it"
-        SCENARIO_PROMPTS[suite]="Compile yolo26n and build an inference app"
-
-        # Extra validation flags (scenarios that should produce model files)
-        declare -A SCENARIO_CHECK_MODELS
-        SCENARIO_CHECK_MODELS[compiler]=1
-        SCENARIO_CHECK_MODELS[dx_app]=0
-        SCENARIO_CHECK_MODELS[dx_stream]=0
-        SCENARIO_CHECK_MODELS[cascaded]=0
-        SCENARIO_CHECK_MODELS[runtime]=0
-        SCENARIO_CHECK_MODELS[suite]=1
-
-        # Search paths for dx-agentic-dev/ session auto-detection.
-        # Each scenario may write to one or more sub-project directories.
-        # Values are space-separated lists of dx-agentic-dev/ parent dirs.
-        declare -A SCENARIO_SEARCH_PATHS
-        SCENARIO_SEARCH_PATHS[compiler]="${SCRIPT_DIR}/../dx-compiler/dx-agentic-dev"
-        SCENARIO_SEARCH_PATHS[dx_app]="${SCRIPT_DIR}/../dx-runtime/dx_app/dx-agentic-dev"
-        SCENARIO_SEARCH_PATHS[dx_stream]="${SCRIPT_DIR}/../dx-runtime/dx_stream/dx-agentic-dev"
-        SCENARIO_SEARCH_PATHS[cascaded]="${SCRIPT_DIR}/../dx-runtime/dx_stream/dx-agentic-dev"
-        SCENARIO_SEARCH_PATHS[runtime]="${SCRIPT_DIR}/../dx-runtime/dx-agentic-dev ${SCRIPT_DIR}/../dx-runtime/dx_app/dx-agentic-dev ${SCRIPT_DIR}/../dx-runtime/dx_stream/dx-agentic-dev"
-        SCENARIO_SEARCH_PATHS[suite]="${SCRIPT_DIR}/../dx-agentic-dev ${SCRIPT_DIR}/../dx-compiler/dx-agentic-dev ${SCRIPT_DIR}/../dx-runtime/dx_app/dx-agentic-dev ${SCRIPT_DIR}/../dx-runtime/dx_stream/dx-agentic-dev ${SCRIPT_DIR}/../dx-runtime/dx-agentic-dev"
-
-        # --- Session auto-detection helpers ---
-        # Snapshot existing session dirs under the search paths
-        snapshot_sessions() {
-            local search_paths="$1"
-            local snapshot_file="$2"
-            > "$snapshot_file"
-            for sp in $search_paths; do
-                local sp_real
-                sp_real="$(realpath "$sp" 2>/dev/null)" || continue
-                if [ -d "$sp_real" ]; then
-                    for d in "$sp_real"/*/; do
-                        [ -d "$d" ] && echo "$d" >> "$snapshot_file"
-                    done
-                fi
-            done
-        }
-
-        # Detect new session dirs created after the snapshot
-        detect_new_sessions() {
-            local search_paths="$1"
-            local snapshot_file="$2"
-            local agent_filter="${3:-}"
-            local new_dirs=()
-            for sp in $search_paths; do
-                local sp_real
-                sp_real="$(realpath "$sp" 2>/dev/null)" || continue
-                if [ -d "$sp_real" ]; then
-                    for d in "$sp_real"/*/; do
-                        if [ -d "$d" ] && ! grep -qxF "$d" "$snapshot_file" 2>/dev/null; then
-                            new_dirs+=("$d")
-                        fi
-                    done
-                fi
-            done
-            # Agent filter: only return dirs whose name contains the agent string
-            # (mirrors autopilot conftest.py _detect_new_sessions agent_filter)
-            if [ -n "$agent_filter" ]; then
-                local filtered=()
-                for d in "${new_dirs[@]}"; do
-                    [[ "$d" == *"$agent_filter"* ]] && filtered+=("$d")
-                done
-                new_dirs=("${filtered[@]}")
-            fi
-            # Return space-separated list (empty if none)
-            echo "${new_dirs[*]}"
-        }
-
-        # --- Validation function ---
-        # Usage: validate_scenario <scenario_key> <exit_code> <dir1> [dir2] ...
-        # Validates output across one or more auto-detected session directories.
-        validate_scenario() {
-            local scenario_key="$1"
-            local exit_code="$2"
-            shift 2
-            local output_dirs=("$@")
-            local check_models="${SCENARIO_CHECK_MODELS[$scenario_key]}"
-            local pass_count=0
-            local fail_count=0
-            local total_checks=0
-
-            echo ""
-            echo -e "${BLUE}=== Validation Results: ${scenario_key} ===${NC}"
-
-            # Check 1: Exit code
-            total_checks=$((total_checks + 1))
-            if [ "$exit_code" -eq 0 ]; then
-                echo -e "  ${GREEN}[PASS]${NC} Exit code: 0"
-                pass_count=$((pass_count + 1))
-            else
-                echo -e "  ${RED}[FAIL]${NC} Exit code: ${exit_code}"
-                fail_count=$((fail_count + 1))
-            fi
-
-            # Check 1b: Session directories detected
-            total_checks=$((total_checks + 1))
-            if [ ${#output_dirs[@]} -gt 0 ]; then
-                echo -e "  ${GREEN}[PASS]${NC} Session dirs detected: ${#output_dirs[@]}"
-                for _d in "${output_dirs[@]}"; do
-                    echo -e "         ${_d}"
-                done
-                pass_count=$((pass_count + 1))
-            else
-                echo -e "  ${RED}[FAIL]${NC} No session directories detected in dx-agentic-dev/"
-                fail_count=$((fail_count + 1))
-                # Can't validate further without dirs
-                echo ""
-                echo -e "  ${YELLOW}Summary: ${pass_count}/${total_checks} passed, ${fail_count} failed${NC}"
-                echo ""
-                return "$fail_count"
-            fi
-
-            # Check 2: Files generated (across all dirs)
-            total_checks=$((total_checks + 1))
-            local file_count=0
-            for _d in "${output_dirs[@]}"; do
-                local _fc
-                _fc=$(find "$_d" -type f 2>/dev/null | wc -l)
-                file_count=$((file_count + _fc))
-            done
-            if [ "$file_count" -gt 0 ]; then
-                echo -e "  ${GREEN}[PASS]${NC} Files generated: ${file_count}"
-                pass_count=$((pass_count + 1))
-            else
-                echo -e "  ${RED}[FAIL]${NC} No files generated in detected session dirs"
-                fail_count=$((fail_count + 1))
-            fi
-
-            # Check 3: JSON validity (across all dirs)
-            local json_files=""
-            for _d in "${output_dirs[@]}"; do
-                local _jf
-                _jf=$(find "$_d" -name "*.json" -not -name "copilot-session.md" 2>/dev/null)
-                [ -n "$_jf" ] && json_files="${json_files}${_jf}"$'\n'
-            done
-            json_files=$(echo "$json_files" | sed '/^$/d')
-            if [ -n "$json_files" ]; then
-                local json_ok=1
-                local json_count=0
-                while IFS= read -r jf; do
-                    json_count=$((json_count + 1))
-                    if ! python3 -c "import json; json.load(open('$jf'))" 2>/dev/null; then
-                        json_ok=0
-                        echo -e "  ${RED}[FAIL]${NC} Invalid JSON: $(basename "$jf")"
-                    fi
-                done <<< "$json_files"
-                total_checks=$((total_checks + 1))
-                if [ "$json_ok" -eq 1 ]; then
-                    echo -e "  ${GREEN}[PASS]${NC} JSON valid (${json_count} files)"
-                    pass_count=$((pass_count + 1))
-                else
-                    fail_count=$((fail_count + 1))
-                fi
-            fi
-
-            # Check 4: Python syntax (across all dirs)
-            local py_files=""
-            for _d in "${output_dirs[@]}"; do
-                local _pf
-                _pf=$(find "$_d" -name "*.py" 2>/dev/null)
-                [ -n "$_pf" ] && py_files="${py_files}${_pf}"$'\n'
-            done
-            py_files=$(echo "$py_files" | sed '/^$/d')
-            if [ -n "$py_files" ]; then
-                local py_ok=1
-                local py_count=0
-                while IFS= read -r pf; do
-                    py_count=$((py_count + 1))
-                    if ! python3 -c "import ast; ast.parse(open('$pf').read())" 2>/dev/null; then
-                        py_ok=0
-                        echo -e "  ${RED}[FAIL]${NC} Syntax error: $(basename "$pf")"
-                    fi
-                done <<< "$py_files"
-                total_checks=$((total_checks + 1))
-                if [ "$py_ok" -eq 1 ]; then
-                    echo -e "  ${GREEN}[PASS]${NC} Python syntax OK (${py_count} files)"
-                    pass_count=$((pass_count + 1))
-                else
-                    fail_count=$((fail_count + 1))
-                fi
-            fi
-
-            # Check 5: Mandatory artifacts (compiler/suite only, across all dirs)
-            if [ "$check_models" -eq 1 ]; then
-                for artifact_name in setup.sh run.sh verify.py session.log; do
-                    total_checks=$((total_checks + 1))
-                    local artifact_found=0
-                    for _d in "${output_dirs[@]}"; do
-                        if [ -f "$_d/$artifact_name" ]; then
-                            artifact_found=1
-                            break
-                        fi
-                    done
-                    if [ "$artifact_found" -eq 1 ]; then
-                        echo -e "  ${GREEN}[PASS]${NC} Mandatory artifact: ${artifact_name}"
-                        pass_count=$((pass_count + 1))
-                    else
-                        echo -e "  ${RED}[FAIL]${NC} Missing mandatory artifact: ${artifact_name}"
-                        fail_count=$((fail_count + 1))
-                    fi
-                done
-            fi
-
-            # Check 6: Model files (compiler/suite only, across all dirs)
-            if [ "$check_models" -eq 1 ]; then
-                total_checks=$((total_checks + 1))
-                local model_count=0
-                for _d in "${output_dirs[@]}"; do
-                    local _mc
-                    _mc=$(find "$_d" \( -name "*.onnx" -o -name "*.pt" -o -name "*.pth" \) 2>/dev/null | wc -l)
-                    model_count=$((model_count + _mc))
-                done
-                if [ "$model_count" -gt 0 ]; then
-                    echo -e "  ${GREEN}[PASS]${NC} Model files acquired (${model_count})"
-                    pass_count=$((pass_count + 1))
-                else
-                    echo -e "  ${RED}[FAIL]${NC} No model files (.onnx/.pt/.pth) found"
-                    fail_count=$((fail_count + 1))
-                fi
-
-                total_checks=$((total_checks + 1))
-                local dxnn_count=0
-                for _d in "${output_dirs[@]}"; do
-                    local _dc
-                    _dc=$(find "$_d" -name "*.dxnn" 2>/dev/null | wc -l)
-                    dxnn_count=$((dxnn_count + _dc))
-                done
-                if [ "$dxnn_count" -gt 0 ]; then
-                    echo -e "  ${GREEN}[PASS]${NC} DXNN compiled (${dxnn_count})"
-                    pass_count=$((pass_count + 1))
-                else
-                    echo -e "  ${RED}[FAIL]${NC} No .dxnn files found"
-                    fail_count=$((fail_count + 1))
-                fi
-            fi
-
-            echo ""
-            if [ "$fail_count" -eq 0 ]; then
-                echo -e "  ${GREEN}Summary: ${pass_count}/${total_checks} checks passed${NC}"
-            else
-                echo -e "  ${YELLOW}Summary: ${pass_count}/${total_checks} passed, ${fail_count} failed${NC}"
-            fi
-            echo ""
-
-            return "$fail_count"
-        }
 
         # --- Scenario selection ---
         # If -k filter matches a scenario key, auto-select it
@@ -1176,142 +1181,6 @@ case "$COMMAND" in
         declare -A SCENARIO_ARTIFACTS
         GLOBAL_SUMMARY_BASE="${SCRIPT_DIR}/../dx-agentic-dev/e2e-tests/cursor_cli/manual/${TIMESTAMP}"
 
-        SCENARIO_KEYS=(compiler dx_app dx_stream cascaded runtime suite)
-
-        declare -A SCENARIO_LABELS
-        SCENARIO_LABELS[compiler]="Download yolo26n, compile to DXNN"
-        SCENARIO_LABELS[dx_app]="Build yolo26n person detection app"
-        SCENARIO_LABELS[dx_stream]="Build detection pipeline with tracking"
-        SCENARIO_LABELS[cascaded]="Build cascaded detection pipeline"
-        SCENARIO_LABELS[runtime]="Route to dx_app + dx_stream via runtime builder"
-        SCENARIO_LABELS[suite]="Cross-project compile + app generation"
-
-        declare -A SCENARIO_WORKDIRS
-        SCENARIO_WORKDIRS[compiler]="${SCRIPT_DIR}/../dx-compiler"
-        SCENARIO_WORKDIRS[dx_app]="${SCRIPT_DIR}/../dx-runtime/dx_app"
-        SCENARIO_WORKDIRS[dx_stream]="${SCRIPT_DIR}/../dx-runtime/dx_stream"
-        SCENARIO_WORKDIRS[cascaded]="${SCRIPT_DIR}/../dx-runtime/dx_stream"
-        SCENARIO_WORKDIRS[runtime]="${SCRIPT_DIR}/../dx-runtime"
-        SCENARIO_WORKDIRS[suite]="${SCRIPT_DIR}/.."
-
-        declare -A SCENARIO_PROMPTS
-        SCENARIO_PROMPTS[compiler]="Compile yolo26n model to dxnn"
-        SCENARIO_PROMPTS[dx_app]="Build a yolo26n detection app"
-        SCENARIO_PROMPTS[dx_stream]="Build a real-time detection pipeline with yolo26n"
-        SCENARIO_PROMPTS[cascaded]="Build a cascaded pipeline using yolo26n for primary object detection and a secondary classification stage for detected objects"
-        SCENARIO_PROMPTS[runtime]="Build a yolo26n standalone detection app and a real-time streaming pipeline for it"
-        SCENARIO_PROMPTS[suite]="Compile yolo26n and build an inference app"
-
-        declare -A SCENARIO_SEARCH_PATHS
-        SCENARIO_SEARCH_PATHS[compiler]="${SCRIPT_DIR}/../dx-compiler/dx-agentic-dev"
-        SCENARIO_SEARCH_PATHS[dx_app]="${SCRIPT_DIR}/../dx-runtime/dx_app/dx-agentic-dev"
-        SCENARIO_SEARCH_PATHS[dx_stream]="${SCRIPT_DIR}/../dx-runtime/dx_stream/dx-agentic-dev"
-        SCENARIO_SEARCH_PATHS[cascaded]="${SCRIPT_DIR}/../dx-runtime/dx_stream/dx-agentic-dev"
-        SCENARIO_SEARCH_PATHS[runtime]="${SCRIPT_DIR}/../dx-runtime/dx-agentic-dev ${SCRIPT_DIR}/../dx-runtime/dx_app/dx-agentic-dev ${SCRIPT_DIR}/../dx-runtime/dx_stream/dx-agentic-dev"
-        SCENARIO_SEARCH_PATHS[suite]="${SCRIPT_DIR}/../dx-agentic-dev ${SCRIPT_DIR}/../dx-compiler/dx-agentic-dev ${SCRIPT_DIR}/../dx-runtime/dx_app/dx-agentic-dev ${SCRIPT_DIR}/../dx-runtime/dx_stream/dx-agentic-dev ${SCRIPT_DIR}/../dx-runtime/dx-agentic-dev"
-
-        declare -A SCENARIO_CHECK_MODELS
-        SCENARIO_CHECK_MODELS[compiler]=1
-        SCENARIO_CHECK_MODELS[dx_app]=0
-        SCENARIO_CHECK_MODELS[dx_stream]=0
-        SCENARIO_CHECK_MODELS[cascaded]=0
-        SCENARIO_CHECK_MODELS[runtime]=0
-        SCENARIO_CHECK_MODELS[suite]=1
-
-        # Snapshot/detect helpers (defined in copilot-manual block above; reused here)
-        # If running this case directly (without copilot-manual), redefine:
-        if ! declare -f snapshot_sessions > /dev/null 2>&1; then
-            snapshot_sessions() {
-                local search_paths="$1"
-                local snapshot_file="$2"
-                > "$snapshot_file"
-                for sp in $search_paths; do
-                    local sp_real
-                    sp_real="$(realpath "$sp" 2>/dev/null)" || continue
-                    if [ -d "$sp_real" ]; then
-                        for d in "$sp_real"/*/; do
-                            [ -d "$d" ] && echo "$d" >> "$snapshot_file"
-                        done
-                    fi
-                done
-            }
-            detect_new_sessions() {
-                local search_paths="$1"
-                local snapshot_file="$2"
-                local agent_filter="${3:-}"
-                local new_dirs=()
-                for sp in $search_paths; do
-                    local sp_real
-                    sp_real="$(realpath "$sp" 2>/dev/null)" || continue
-                    if [ -d "$sp_real" ]; then
-                        for d in "$sp_real"/*/; do
-                            if [ -d "$d" ] && ! grep -qxF "$d" "$snapshot_file" 2>/dev/null; then
-                                new_dirs+=("$d")
-                            fi
-                        done
-                    fi
-                done
-                if [ -n "$agent_filter" ]; then
-                    local filtered=()
-                    for d in "${new_dirs[@]}"; do
-                        [[ "$d" == *"$agent_filter"* ]] && filtered+=("$d")
-                    done
-                    new_dirs=("${filtered[@]}")
-                fi
-                echo "${new_dirs[*]}"
-            }
-            validate_scenario() {
-                local scenario_key="$1"
-                local exit_code="$2"
-                shift 2
-                local output_dirs=("$@")
-                local check_models="${SCENARIO_CHECK_MODELS[$scenario_key]}"
-                local pass_count=0 fail_count=0 total_checks=0
-                echo ""
-                echo -e "${BLUE}=== Validation Results: ${scenario_key} ===${NC}"
-                total_checks=$((total_checks + 1))
-                if [ "$exit_code" -eq 0 ]; then
-                    echo -e "  ${GREEN}[PASS]${NC} Exit code: 0"
-                    pass_count=$((pass_count + 1))
-                else
-                    echo -e "  ${RED}[FAIL]${NC} Exit code: ${exit_code}"
-                    fail_count=$((fail_count + 1))
-                fi
-                total_checks=$((total_checks + 1))
-                if [ ${#output_dirs[@]} -gt 0 ]; then
-                    echo -e "  ${GREEN}[PASS]${NC} Session dirs detected: ${#output_dirs[@]}"
-                    pass_count=$((pass_count + 1))
-                else
-                    echo -e "  ${RED}[FAIL]${NC} No session directories detected"
-                    fail_count=$((fail_count + 1))
-                    echo -e "  ${YELLOW}Summary: ${pass_count}/${total_checks} passed, ${fail_count} failed${NC}"
-                    return "$fail_count"
-                fi
-                total_checks=$((total_checks + 1))
-                local file_count=0
-                for _d in "${output_dirs[@]}"; do
-                    local _fc
-                    _fc=$(find "$_d" -type f 2>/dev/null | wc -l)
-                    file_count=$((file_count + _fc))
-                done
-                if [ "$file_count" -gt 0 ]; then
-                    echo -e "  ${GREEN}[PASS]${NC} Files generated: ${file_count}"
-                    pass_count=$((pass_count + 1))
-                else
-                    echo -e "  ${RED}[FAIL]${NC} No files generated"
-                    fail_count=$((fail_count + 1))
-                fi
-                echo ""
-                if [ "$fail_count" -eq 0 ]; then
-                    echo -e "  ${GREEN}Summary: ${pass_count}/${total_checks} checks passed${NC}"
-                else
-                    echo -e "  ${YELLOW}Summary: ${pass_count}/${total_checks} passed, ${fail_count} failed${NC}"
-                fi
-                echo ""
-                return "$fail_count"
-            }
-        fi
-
         # --- Scenario selection ---
         SELECTED_SCENARIOS=()
 
@@ -1449,6 +1318,70 @@ case "$COMMAND" in
             SCENARIO_DIRS[$scenario_key]="${_detected_arr[*]}"
         done
 
+            # --- Per-scenario README.md ---
+            _readme="${ARTIFACTS_BASE}/README.md"
+            {
+                echo "# Agentic E2E Manual — ${scenario_key} Results"
+                echo ""
+                echo "- **Date:** $(date '+%Y-%m-%d %H:%M:%S')"
+                echo "- **Model:** ${AGENTIC_MODEL}"
+                echo "- **Scenario:** ${scenario_key}"
+                echo "- **Workdir:** ${_workdir}"
+                echo "- **Result:** ${SCENARIO_RESULTS[$scenario_key]}"
+                echo ""
+                echo "## Session Directories"
+                echo ""
+                if [ ${#_detected_arr[@]} -gt 0 ]; then
+                    for _dd in "${_detected_arr[@]}"; do
+                        _dd_short=$(echo "$_dd" | sed "s|$(realpath "${SCRIPT_DIR}/..")/||g")
+                        echo "- \`${_dd_short}\`"
+                    done
+                else
+                    echo "- (none detected)"
+                fi
+                echo ""
+                echo "## Artifacts"
+                echo ""
+                echo "- **Symlinks:** Point to actual \`dx-agentic-dev/\` session directories"
+                echo "- **Export:** (Cursor agent does not provide a built-in /export — session captured by test harness)"
+            } > "$_readme"
+
+        # --- Global summary README.md (when running multiple scenarios) ---
+        if [ ${#SELECTED_SCENARIOS[@]} -gt 1 ]; then
+            mkdir -p "$GLOBAL_SUMMARY_BASE"
+            _global_readme="${GLOBAL_SUMMARY_BASE}/README.md"
+            {
+                echo "# Agentic E2E Manual — Global Summary"
+                echo ""
+                echo "- **Date:** $(date '+%Y-%m-%d %H:%M:%S')"
+                echo "- **Model:** ${AGENTIC_MODEL}"
+                echo "- **Scenarios:** ${#SELECTED_SCENARIOS[@]}"
+                echo "- **Passed:** ${TOTAL_PASS}"
+                echo "- **Failed:** ${TOTAL_FAIL}"
+                echo ""
+                echo "## Scenario Results"
+                echo ""
+                echo "| Scenario | Result | Artifacts Base | Session Directories |"
+                echo "|----------|--------|----------------|---------------------|"
+                for _key in "${SELECTED_SCENARIOS[@]}"; do
+                    _result="${SCENARIO_RESULTS[$_key]:-SKIP}"
+                    _ab="${SCENARIO_ARTIFACTS[$_key]}"
+                    _ab_short=$(echo "$_ab" | sed "s|$(realpath "${SCRIPT_DIR}/..")/||g")
+                    _dirs="${SCENARIO_DIRS[$_key]:-none}"
+                    _dirs_short=$(echo "$_dirs" | sed "s|$(realpath "${SCRIPT_DIR}/..")/||g")
+                    echo "| $_key | $_result | \`$_ab_short\` | $_dirs_short |"
+                done
+                echo ""
+                echo "## Per-Scenario Artifacts"
+                echo ""
+                for _key in "${SELECTED_SCENARIOS[@]}"; do
+                    _ab="${SCENARIO_ARTIFACTS[$_key]}"
+                    _ab_short=$(echo "$_ab" | sed "s|$(realpath "${SCRIPT_DIR}/..")/||g")
+                    echo "- **$_key:** \`$_ab_short/\`"
+                done
+            } > "$_global_readme"
+        fi
+
         # --- Summary ---
         echo ""
         echo -e "${BLUE}================================================================${NC}"
@@ -1538,142 +1471,6 @@ case "$COMMAND" in
         TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
         declare -A SCENARIO_ARTIFACTS
         GLOBAL_SUMMARY_BASE="${SCRIPT_DIR}/../dx-agentic-dev/e2e-tests/opencode/manual/${TIMESTAMP}"
-
-        SCENARIO_KEYS=(compiler dx_app dx_stream cascaded runtime suite)
-
-        declare -A SCENARIO_LABELS
-        SCENARIO_LABELS[compiler]="Download yolo26n, compile to DXNN"
-        SCENARIO_LABELS[dx_app]="Build yolo26n person detection app"
-        SCENARIO_LABELS[dx_stream]="Build detection pipeline with tracking"
-        SCENARIO_LABELS[cascaded]="Build cascaded detection pipeline"
-        SCENARIO_LABELS[runtime]="Route to dx_app + dx_stream via runtime builder"
-        SCENARIO_LABELS[suite]="Cross-project compile + app generation"
-
-        declare -A SCENARIO_WORKDIRS
-        SCENARIO_WORKDIRS[compiler]="${SCRIPT_DIR}/../dx-compiler"
-        SCENARIO_WORKDIRS[dx_app]="${SCRIPT_DIR}/../dx-runtime/dx_app"
-        SCENARIO_WORKDIRS[dx_stream]="${SCRIPT_DIR}/../dx-runtime/dx_stream"
-        SCENARIO_WORKDIRS[cascaded]="${SCRIPT_DIR}/../dx-runtime/dx_stream"
-        SCENARIO_WORKDIRS[runtime]="${SCRIPT_DIR}/../dx-runtime"
-        SCENARIO_WORKDIRS[suite]="${SCRIPT_DIR}/.."
-
-        declare -A SCENARIO_PROMPTS
-        SCENARIO_PROMPTS[compiler]="Compile yolo26n model to dxnn"
-        SCENARIO_PROMPTS[dx_app]="Build a yolo26n detection app"
-        SCENARIO_PROMPTS[dx_stream]="Build a real-time detection pipeline with yolo26n"
-        SCENARIO_PROMPTS[cascaded]="Build a cascaded pipeline using yolo26n for primary object detection and a secondary classification stage for detected objects"
-        SCENARIO_PROMPTS[runtime]="Build a yolo26n standalone detection app and a real-time streaming pipeline for it"
-        SCENARIO_PROMPTS[suite]="Compile yolo26n and build an inference app"
-
-        declare -A SCENARIO_SEARCH_PATHS
-        SCENARIO_SEARCH_PATHS[compiler]="${SCRIPT_DIR}/../dx-compiler/dx-agentic-dev"
-        SCENARIO_SEARCH_PATHS[dx_app]="${SCRIPT_DIR}/../dx-runtime/dx_app/dx-agentic-dev"
-        SCENARIO_SEARCH_PATHS[dx_stream]="${SCRIPT_DIR}/../dx-runtime/dx_stream/dx-agentic-dev"
-        SCENARIO_SEARCH_PATHS[cascaded]="${SCRIPT_DIR}/../dx-runtime/dx_stream/dx-agentic-dev"
-        SCENARIO_SEARCH_PATHS[runtime]="${SCRIPT_DIR}/../dx-runtime/dx-agentic-dev ${SCRIPT_DIR}/../dx-runtime/dx_app/dx-agentic-dev ${SCRIPT_DIR}/../dx-runtime/dx_stream/dx-agentic-dev"
-        SCENARIO_SEARCH_PATHS[suite]="${SCRIPT_DIR}/../dx-agentic-dev ${SCRIPT_DIR}/../dx-compiler/dx-agentic-dev ${SCRIPT_DIR}/../dx-runtime/dx_app/dx-agentic-dev ${SCRIPT_DIR}/../dx-runtime/dx_stream/dx-agentic-dev ${SCRIPT_DIR}/../dx-runtime/dx-agentic-dev"
-
-        declare -A SCENARIO_CHECK_MODELS
-        SCENARIO_CHECK_MODELS[compiler]=1
-        SCENARIO_CHECK_MODELS[dx_app]=0
-        SCENARIO_CHECK_MODELS[dx_stream]=0
-        SCENARIO_CHECK_MODELS[cascaded]=0
-        SCENARIO_CHECK_MODELS[runtime]=0
-        SCENARIO_CHECK_MODELS[suite]=1
-
-        # Snapshot/detect helpers (defined in copilot-manual block above; reused here)
-        # If running this case directly (without copilot-manual), redefine:
-        if ! declare -f snapshot_sessions > /dev/null 2>&1; then
-            snapshot_sessions() {
-                local search_paths="$1"
-                local snapshot_file="$2"
-                > "$snapshot_file"
-                for sp in $search_paths; do
-                    local sp_real
-                    sp_real="$(realpath "$sp" 2>/dev/null)" || continue
-                    if [ -d "$sp_real" ]; then
-                        for d in "$sp_real"/*/; do
-                            [ -d "$d" ] && echo "$d" >> "$snapshot_file"
-                        done
-                    fi
-                done
-            }
-            detect_new_sessions() {
-                local search_paths="$1"
-                local snapshot_file="$2"
-                local agent_filter="${3:-}"
-                local new_dirs=()
-                for sp in $search_paths; do
-                    local sp_real
-                    sp_real="$(realpath "$sp" 2>/dev/null)" || continue
-                    if [ -d "$sp_real" ]; then
-                        for d in "$sp_real"/*/; do
-                            if [ -d "$d" ] && ! grep -qxF "$d" "$snapshot_file" 2>/dev/null; then
-                                new_dirs+=("$d")
-                            fi
-                        done
-                    fi
-                done
-                if [ -n "$agent_filter" ]; then
-                    local filtered=()
-                    for d in "${new_dirs[@]}"; do
-                        [[ "$d" == *"$agent_filter"* ]] && filtered+=("$d")
-                    done
-                    new_dirs=("${filtered[@]}")
-                fi
-                echo "${new_dirs[*]}"
-            }
-            validate_scenario() {
-                local scenario_key="$1"
-                local exit_code="$2"
-                shift 2
-                local output_dirs=("$@")
-                local check_models="${SCENARIO_CHECK_MODELS[$scenario_key]}"
-                local pass_count=0 fail_count=0 total_checks=0
-                echo ""
-                echo -e "${BLUE}=== Validation Results: ${scenario_key} ===${NC}"
-                total_checks=$((total_checks + 1))
-                if [ "$exit_code" -eq 0 ]; then
-                    echo -e "  ${GREEN}[PASS]${NC} Exit code: 0"
-                    pass_count=$((pass_count + 1))
-                else
-                    echo -e "  ${RED}[FAIL]${NC} Exit code: ${exit_code}"
-                    fail_count=$((fail_count + 1))
-                fi
-                total_checks=$((total_checks + 1))
-                if [ ${#output_dirs[@]} -gt 0 ]; then
-                    echo -e "  ${GREEN}[PASS]${NC} Session dirs detected: ${#output_dirs[@]}"
-                    pass_count=$((pass_count + 1))
-                else
-                    echo -e "  ${RED}[FAIL]${NC} No session directories detected"
-                    fail_count=$((fail_count + 1))
-                    echo -e "  ${YELLOW}Summary: ${pass_count}/${total_checks} passed, ${fail_count} failed${NC}"
-                    return "$fail_count"
-                fi
-                total_checks=$((total_checks + 1))
-                local file_count=0
-                for _d in "${output_dirs[@]}"; do
-                    local _fc
-                    _fc=$(find "$_d" -type f 2>/dev/null | wc -l)
-                    file_count=$((file_count + _fc))
-                done
-                if [ "$file_count" -gt 0 ]; then
-                    echo -e "  ${GREEN}[PASS]${NC} Files generated: ${file_count}"
-                    pass_count=$((pass_count + 1))
-                else
-                    echo -e "  ${RED}[FAIL]${NC} No files generated"
-                    fail_count=$((fail_count + 1))
-                fi
-                echo ""
-                if [ "$fail_count" -eq 0 ]; then
-                    echo -e "  ${GREEN}Summary: ${pass_count}/${total_checks} checks passed${NC}"
-                else
-                    echo -e "  ${YELLOW}Summary: ${pass_count}/${total_checks} passed, ${fail_count} failed${NC}"
-                fi
-                echo ""
-                return "$fail_count"
-            }
-        fi
 
         # --- Scenario selection ---
         SELECTED_SCENARIOS=()
@@ -1820,6 +1617,70 @@ case "$COMMAND" in
             SCENARIO_DIRS[$scenario_key]="${_detected_arr[*]}"
         done
 
+            # --- Per-scenario README.md ---
+            _readme="${ARTIFACTS_BASE}/README.md"
+            {
+                echo "# Agentic E2E Manual — ${scenario_key} Results"
+                echo ""
+                echo "- **Date:** $(date '+%Y-%m-%d %H:%M:%S')"
+                echo "- **Model:** ${AGENTIC_MODEL}"
+                echo "- **Scenario:** ${scenario_key}"
+                echo "- **Workdir:** ${_workdir}"
+                echo "- **Result:** ${SCENARIO_RESULTS[$scenario_key]}"
+                echo ""
+                echo "## Session Directories"
+                echo ""
+                if [ ${#_detected_arr[@]} -gt 0 ]; then
+                    for _dd in "${_detected_arr[@]}"; do
+                        _dd_short=$(echo "$_dd" | sed "s|$(realpath "${SCRIPT_DIR}/..")/||g")
+                        echo "- \`${_dd_short}\`"
+                    done
+                else
+                    echo "- (none detected)"
+                fi
+                echo ""
+                echo "## Artifacts"
+                echo ""
+                echo "- **Symlinks:** Point to actual \`dx-agentic-dev/\` session directories"
+                echo "- **Export:** `${scenario_key}-opencode-session.md` (exported via `/export` in OpenCode)"
+            } > "$_readme"
+
+        # --- Global summary README.md (when running multiple scenarios) ---
+        if [ ${#SELECTED_SCENARIOS[@]} -gt 1 ]; then
+            mkdir -p "$GLOBAL_SUMMARY_BASE"
+            _global_readme="${GLOBAL_SUMMARY_BASE}/README.md"
+            {
+                echo "# Agentic E2E Manual — Global Summary"
+                echo ""
+                echo "- **Date:** $(date '+%Y-%m-%d %H:%M:%S')"
+                echo "- **Model:** ${AGENTIC_MODEL}"
+                echo "- **Scenarios:** ${#SELECTED_SCENARIOS[@]}"
+                echo "- **Passed:** ${TOTAL_PASS}"
+                echo "- **Failed:** ${TOTAL_FAIL}"
+                echo ""
+                echo "## Scenario Results"
+                echo ""
+                echo "| Scenario | Result | Artifacts Base | Session Directories |"
+                echo "|----------|--------|----------------|---------------------|"
+                for _key in "${SELECTED_SCENARIOS[@]}"; do
+                    _result="${SCENARIO_RESULTS[$_key]:-SKIP}"
+                    _ab="${SCENARIO_ARTIFACTS[$_key]}"
+                    _ab_short=$(echo "$_ab" | sed "s|$(realpath "${SCRIPT_DIR}/..")/||g")
+                    _dirs="${SCENARIO_DIRS[$_key]:-none}"
+                    _dirs_short=$(echo "$_dirs" | sed "s|$(realpath "${SCRIPT_DIR}/..")/||g")
+                    echo "| $_key | $_result | \`$_ab_short\` | $_dirs_short |"
+                done
+                echo ""
+                echo "## Per-Scenario Artifacts"
+                echo ""
+                for _key in "${SELECTED_SCENARIOS[@]}"; do
+                    _ab="${SCENARIO_ARTIFACTS[$_key]}"
+                    _ab_short=$(echo "$_ab" | sed "s|$(realpath "${SCRIPT_DIR}/..")/||g")
+                    echo "- **$_key:** \`$_ab_short/\`"
+                done
+            } > "$_global_readme"
+        fi
+
         echo ""
         echo -e "${BLUE}================================================================${NC}"
         echo -e "${BLUE}=== Agentic E2E OpenCode Manual — Final Summary${NC}"
@@ -1867,113 +1728,6 @@ case "$COMMAND" in
         TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
         declare -A SCENARIO_ARTIFACTS
         GLOBAL_SUMMARY_BASE="${SCRIPT_DIR}/../dx-agentic-dev/e2e-tests/claude_code/manual/${TIMESTAMP}"
-
-        SCENARIO_KEYS=(compiler dx_app dx_stream cascaded runtime suite)
-
-        declare -A SCENARIO_LABELS
-        SCENARIO_LABELS[compiler]="Download yolo26n, compile to DXNN"
-        SCENARIO_LABELS[dx_app]="Build yolo26n person detection app"
-        SCENARIO_LABELS[dx_stream]="Build detection pipeline with tracking"
-        SCENARIO_LABELS[cascaded]="Build cascaded detection pipeline"
-        SCENARIO_LABELS[runtime]="Route to dx_app + dx_stream via runtime builder"
-        SCENARIO_LABELS[suite]="Cross-project compile + app generation"
-
-        declare -A SCENARIO_WORKDIRS
-        SCENARIO_WORKDIRS[compiler]="${SCRIPT_DIR}/../dx-compiler"
-        SCENARIO_WORKDIRS[dx_app]="${SCRIPT_DIR}/../dx-runtime/dx_app"
-        SCENARIO_WORKDIRS[dx_stream]="${SCRIPT_DIR}/../dx-runtime/dx_stream"
-        SCENARIO_WORKDIRS[cascaded]="${SCRIPT_DIR}/../dx-runtime/dx_stream"
-        SCENARIO_WORKDIRS[runtime]="${SCRIPT_DIR}/../dx-runtime"
-        SCENARIO_WORKDIRS[suite]="${SCRIPT_DIR}/.."
-
-        declare -A SCENARIO_PROMPTS
-        SCENARIO_PROMPTS[compiler]="Compile yolo26n model to dxnn"
-        SCENARIO_PROMPTS[dx_app]="Build a yolo26n detection app"
-        SCENARIO_PROMPTS[dx_stream]="Build a real-time detection pipeline with yolo26n"
-        SCENARIO_PROMPTS[cascaded]="Build a cascaded pipeline using yolo26n for primary object detection and a secondary classification stage for detected objects"
-        SCENARIO_PROMPTS[runtime]="Build a yolo26n standalone detection app and a real-time streaming pipeline for it"
-        SCENARIO_PROMPTS[suite]="Compile yolo26n and build an inference app"
-
-        declare -A SCENARIO_SEARCH_PATHS
-        SCENARIO_SEARCH_PATHS[compiler]="${SCRIPT_DIR}/../dx-compiler/dx-agentic-dev"
-        SCENARIO_SEARCH_PATHS[dx_app]="${SCRIPT_DIR}/../dx-runtime/dx_app/dx-agentic-dev"
-        SCENARIO_SEARCH_PATHS[dx_stream]="${SCRIPT_DIR}/../dx-runtime/dx_stream/dx-agentic-dev"
-        SCENARIO_SEARCH_PATHS[cascaded]="${SCRIPT_DIR}/../dx-runtime/dx_stream/dx-agentic-dev"
-        SCENARIO_SEARCH_PATHS[runtime]="${SCRIPT_DIR}/../dx-runtime/dx-agentic-dev ${SCRIPT_DIR}/../dx-runtime/dx_app/dx-agentic-dev ${SCRIPT_DIR}/../dx-runtime/dx_stream/dx-agentic-dev"
-        SCENARIO_SEARCH_PATHS[suite]="${SCRIPT_DIR}/../dx-agentic-dev ${SCRIPT_DIR}/../dx-compiler/dx-agentic-dev ${SCRIPT_DIR}/../dx-runtime/dx_app/dx-agentic-dev ${SCRIPT_DIR}/../dx-runtime/dx_stream/dx-agentic-dev ${SCRIPT_DIR}/../dx-runtime/dx-agentic-dev"
-
-        declare -A SCENARIO_CHECK_MODELS
-        SCENARIO_CHECK_MODELS[compiler]=1
-        SCENARIO_CHECK_MODELS[dx_app]=0
-        SCENARIO_CHECK_MODELS[dx_stream]=0
-        SCENARIO_CHECK_MODELS[cascaded]=0
-        SCENARIO_CHECK_MODELS[runtime]=0
-        SCENARIO_CHECK_MODELS[suite]=1
-
-        # Snapshot/detect helpers (reuse or redefine)
-        if ! declare -f snapshot_sessions > /dev/null 2>&1; then
-            snapshot_sessions() {
-                local search_paths="$1"; local snapshot_file="$2"
-                > "$snapshot_file"
-                for sp in $search_paths; do
-                    local sp_real
-                    sp_real="$(realpath "$sp" 2>/dev/null)" || continue
-                    if [ -d "$sp_real" ]; then
-                        for d in "$sp_real"/*/; do [ -d "$d" ] && echo "$d" >> "$snapshot_file"; done
-                    fi
-                done
-            }
-            detect_new_sessions() {
-                local search_paths="$1"; local snapshot_file="$2"
-                local agent_filter="${3:-}"; local new_dirs=()
-                for sp in $search_paths; do
-                    local sp_real
-                    sp_real="$(realpath "$sp" 2>/dev/null)" || continue
-                    if [ -d "$sp_real" ]; then
-                        for d in "$sp_real"/*/; do
-                            if [ -d "$d" ] && ! grep -qxF "$d" "$snapshot_file" 2>/dev/null; then
-                                new_dirs+=("$d")
-                            fi
-                        done
-                    fi
-                done
-                if [ -n "$agent_filter" ]; then
-                    local filtered=()
-                    for d in "${new_dirs[@]}"; do
-                        [[ "$d" == *"$agent_filter"* ]] && filtered+=("$d")
-                    done
-                    new_dirs=("${filtered[@]}")
-                fi
-                echo "${new_dirs[*]}"
-            }
-            validate_scenario() {
-                local scenario_key="$1"; local exit_code="$2"; shift 2
-                local output_dirs=("$@")
-                local pass_count=0 fail_count=0 total_checks=0
-                echo ""; echo -e "${BLUE}=== Validation Results: ${scenario_key} ===${NC}"
-                total_checks=$((total_checks + 1))
-                if [ "$exit_code" -eq 0 ]; then
-                    echo -e "  ${GREEN}[PASS]${NC} Exit code: 0"; pass_count=$((pass_count + 1))
-                else
-                    echo -e "  ${RED}[FAIL]${NC} Exit code: ${exit_code}"; fail_count=$((fail_count + 1))
-                fi
-                total_checks=$((total_checks + 1))
-                if [ ${#output_dirs[@]} -gt 0 ]; then
-                    echo -e "  ${GREEN}[PASS]${NC} Session dirs detected: ${#output_dirs[@]}"
-                    pass_count=$((pass_count + 1))
-                else
-                    echo -e "  ${RED}[FAIL]${NC} No session directories detected"
-                    fail_count=$((fail_count + 1))
-                fi
-                echo ""
-                if [ "$fail_count" -eq 0 ]; then
-                    echo -e "  ${GREEN}Summary: ${pass_count}/${total_checks} checks passed${NC}"
-                else
-                    echo -e "  ${YELLOW}Summary: ${pass_count}/${total_checks} passed, ${fail_count} failed${NC}"
-                fi
-                echo ""; return "$fail_count"
-            }
-        fi
 
         # --- Scenario selection ---
         SELECTED_SCENARIOS=()
@@ -2115,6 +1869,70 @@ case "$COMMAND" in
             fi
             SCENARIO_DIRS[$scenario_key]="${_detected_arr[*]}"
         done
+
+            # --- Per-scenario README.md ---
+            _readme="${ARTIFACTS_BASE}/README.md"
+            {
+                echo "# Agentic E2E Manual — ${scenario_key} Results"
+                echo ""
+                echo "- **Date:** $(date '+%Y-%m-%d %H:%M:%S')"
+                echo "- **Model:** ${AGENTIC_MODEL}"
+                echo "- **Scenario:** ${scenario_key}"
+                echo "- **Workdir:** ${_workdir}"
+                echo "- **Result:** ${SCENARIO_RESULTS[$scenario_key]}"
+                echo ""
+                echo "## Session Directories"
+                echo ""
+                if [ ${#_detected_arr[@]} -gt 0 ]; then
+                    for _dd in "${_detected_arr[@]}"; do
+                        _dd_short=$(echo "$_dd" | sed "s|$(realpath "${SCRIPT_DIR}/..")/||g")
+                        echo "- \`${_dd_short}\`"
+                    done
+                else
+                    echo "- (none detected)"
+                fi
+                echo ""
+                echo "## Artifacts"
+                echo ""
+                echo "- **Symlinks:** Point to actual \`dx-agentic-dev/\` session directories"
+                echo "- **Export:** `${scenario_key}-claude-export.txt` (exported via `/export` in Claude Code)"
+            } > "$_readme"
+
+        # --- Global summary README.md (when running multiple scenarios) ---
+        if [ ${#SELECTED_SCENARIOS[@]} -gt 1 ]; then
+            mkdir -p "$GLOBAL_SUMMARY_BASE"
+            _global_readme="${GLOBAL_SUMMARY_BASE}/README.md"
+            {
+                echo "# Agentic E2E Manual — Global Summary"
+                echo ""
+                echo "- **Date:** $(date '+%Y-%m-%d %H:%M:%S')"
+                echo "- **Model:** ${AGENTIC_MODEL}"
+                echo "- **Scenarios:** ${#SELECTED_SCENARIOS[@]}"
+                echo "- **Passed:** ${TOTAL_PASS}"
+                echo "- **Failed:** ${TOTAL_FAIL}"
+                echo ""
+                echo "## Scenario Results"
+                echo ""
+                echo "| Scenario | Result | Artifacts Base | Session Directories |"
+                echo "|----------|--------|----------------|---------------------|"
+                for _key in "${SELECTED_SCENARIOS[@]}"; do
+                    _result="${SCENARIO_RESULTS[$_key]:-SKIP}"
+                    _ab="${SCENARIO_ARTIFACTS[$_key]}"
+                    _ab_short=$(echo "$_ab" | sed "s|$(realpath "${SCRIPT_DIR}/..")/||g")
+                    _dirs="${SCENARIO_DIRS[$_key]:-none}"
+                    _dirs_short=$(echo "$_dirs" | sed "s|$(realpath "${SCRIPT_DIR}/..")/||g")
+                    echo "| $_key | $_result | \`$_ab_short\` | $_dirs_short |"
+                done
+                echo ""
+                echo "## Per-Scenario Artifacts"
+                echo ""
+                for _key in "${SELECTED_SCENARIOS[@]}"; do
+                    _ab="${SCENARIO_ARTIFACTS[$_key]}"
+                    _ab_short=$(echo "$_ab" | sed "s|$(realpath "${SCRIPT_DIR}/..")/||g")
+                    echo "- **$_key:** \`$_ab_short/\`"
+                done
+            } > "$_global_readme"
+        fi
 
         echo ""
         echo -e "${BLUE}================================================================${NC}"
