@@ -514,12 +514,13 @@ case "$COMMAND" in
         GLOBAL_SUMMARY_BASE="${SCRIPT_DIR}/../dx-agentic-dev/e2e-tests/copilot_cli/manual/${TIMESTAMP}"
 
         # Scenario definitions (index → name, workdir, timeout, prompt)
-        SCENARIO_KEYS=(compiler dx_app dx_stream runtime suite)
+        SCENARIO_KEYS=(compiler dx_app dx_stream cascaded runtime suite)
 
         declare -A SCENARIO_LABELS
         SCENARIO_LABELS[compiler]="Download yolo26n, compile to DXNN"
         SCENARIO_LABELS[dx_app]="Build yolo26n person detection app"
         SCENARIO_LABELS[dx_stream]="Build detection pipeline with tracking"
+        SCENARIO_LABELS[cascaded]="Build cascaded detection pipeline"
         SCENARIO_LABELS[runtime]="Route to dx_app + dx_stream via runtime builder"
         SCENARIO_LABELS[suite]="Cross-project compile + app generation"
 
@@ -527,6 +528,7 @@ case "$COMMAND" in
         SCENARIO_WORKDIRS[compiler]="${SCRIPT_DIR}/../dx-compiler"
         SCENARIO_WORKDIRS[dx_app]="${SCRIPT_DIR}/../dx-runtime/dx_app"
         SCENARIO_WORKDIRS[dx_stream]="${SCRIPT_DIR}/../dx-runtime/dx_stream"
+        SCENARIO_WORKDIRS[cascaded]="${SCRIPT_DIR}/../dx-runtime/dx_stream"
         SCENARIO_WORKDIRS[runtime]="${SCRIPT_DIR}/../dx-runtime"
         SCENARIO_WORKDIRS[suite]="${SCRIPT_DIR}/.."
 
@@ -534,6 +536,7 @@ case "$COMMAND" in
         SCENARIO_TIMEOUTS[compiler]=1200
         SCENARIO_TIMEOUTS[dx_app]=600
         SCENARIO_TIMEOUTS[dx_stream]=300
+        SCENARIO_TIMEOUTS[cascaded]=900
         SCENARIO_TIMEOUTS[runtime]=600
         SCENARIO_TIMEOUTS[suite]=900
 
@@ -545,6 +548,7 @@ case "$COMMAND" in
         SCENARIO_PROMPTS[compiler]="Compile yolo26n model to dxnn"
         SCENARIO_PROMPTS[dx_app]="Build a yolo26n detection app"
         SCENARIO_PROMPTS[dx_stream]="Build a real-time detection pipeline with yolo26n"
+        SCENARIO_PROMPTS[cascaded]="Build a cascaded pipeline using yolo26n for primary object detection and a secondary classification stage for detected objects"
         SCENARIO_PROMPTS[runtime]="Build a yolo26n standalone detection app and a real-time streaming pipeline for it"
         SCENARIO_PROMPTS[suite]="Compile yolo26n and build an inference app"
 
@@ -553,6 +557,7 @@ case "$COMMAND" in
         SCENARIO_CHECK_MODELS[compiler]=1
         SCENARIO_CHECK_MODELS[dx_app]=0
         SCENARIO_CHECK_MODELS[dx_stream]=0
+        SCENARIO_CHECK_MODELS[cascaded]=0
         SCENARIO_CHECK_MODELS[runtime]=0
         SCENARIO_CHECK_MODELS[suite]=1
 
@@ -563,6 +568,7 @@ case "$COMMAND" in
         SCENARIO_SEARCH_PATHS[compiler]="${SCRIPT_DIR}/../dx-compiler/dx-agentic-dev"
         SCENARIO_SEARCH_PATHS[dx_app]="${SCRIPT_DIR}/../dx-runtime/dx_app/dx-agentic-dev"
         SCENARIO_SEARCH_PATHS[dx_stream]="${SCRIPT_DIR}/../dx-runtime/dx_stream/dx-agentic-dev"
+        SCENARIO_SEARCH_PATHS[cascaded]="${SCRIPT_DIR}/../dx-runtime/dx_stream/dx-agentic-dev"
         SCENARIO_SEARCH_PATHS[runtime]="${SCRIPT_DIR}/../dx-runtime/dx-agentic-dev ${SCRIPT_DIR}/../dx-runtime/dx_app/dx-agentic-dev ${SCRIPT_DIR}/../dx-runtime/dx_stream/dx-agentic-dev"
         SCENARIO_SEARCH_PATHS[suite]="${SCRIPT_DIR}/../dx-agentic-dev ${SCRIPT_DIR}/../dx-compiler/dx-agentic-dev ${SCRIPT_DIR}/../dx-runtime/dx_app/dx-agentic-dev ${SCRIPT_DIR}/../dx-runtime/dx_stream/dx-agentic-dev ${SCRIPT_DIR}/../dx-runtime/dx-agentic-dev"
 
@@ -1160,12 +1166,13 @@ case "$COMMAND" in
         declare -A SCENARIO_ARTIFACTS
         GLOBAL_SUMMARY_BASE="${SCRIPT_DIR}/../dx-agentic-dev/e2e-tests/cursor_cli/manual/${TIMESTAMP}"
 
-        SCENARIO_KEYS=(compiler dx_app dx_stream runtime suite)
+        SCENARIO_KEYS=(compiler dx_app dx_stream cascaded runtime suite)
 
         declare -A SCENARIO_LABELS
         SCENARIO_LABELS[compiler]="Download yolo26n, compile to DXNN"
         SCENARIO_LABELS[dx_app]="Build yolo26n person detection app"
         SCENARIO_LABELS[dx_stream]="Build detection pipeline with tracking"
+        SCENARIO_LABELS[cascaded]="Build cascaded detection pipeline"
         SCENARIO_LABELS[runtime]="Route to dx_app + dx_stream via runtime builder"
         SCENARIO_LABELS[suite]="Cross-project compile + app generation"
 
@@ -1173,6 +1180,7 @@ case "$COMMAND" in
         SCENARIO_WORKDIRS[compiler]="${SCRIPT_DIR}/../dx-compiler"
         SCENARIO_WORKDIRS[dx_app]="${SCRIPT_DIR}/../dx-runtime/dx_app"
         SCENARIO_WORKDIRS[dx_stream]="${SCRIPT_DIR}/../dx-runtime/dx_stream"
+        SCENARIO_WORKDIRS[cascaded]="${SCRIPT_DIR}/../dx-runtime/dx_stream"
         SCENARIO_WORKDIRS[runtime]="${SCRIPT_DIR}/../dx-runtime"
         SCENARIO_WORKDIRS[suite]="${SCRIPT_DIR}/.."
 
@@ -1180,6 +1188,7 @@ case "$COMMAND" in
         SCENARIO_PROMPTS[compiler]="Compile yolo26n model to dxnn"
         SCENARIO_PROMPTS[dx_app]="Build a yolo26n detection app"
         SCENARIO_PROMPTS[dx_stream]="Build a real-time detection pipeline with yolo26n"
+        SCENARIO_PROMPTS[cascaded]="Build a cascaded pipeline using yolo26n for primary object detection and a secondary classification stage for detected objects"
         SCENARIO_PROMPTS[runtime]="Build a yolo26n standalone detection app and a real-time streaming pipeline for it"
         SCENARIO_PROMPTS[suite]="Compile yolo26n and build an inference app"
 
@@ -1187,6 +1196,7 @@ case "$COMMAND" in
         SCENARIO_SEARCH_PATHS[compiler]="${SCRIPT_DIR}/../dx-compiler/dx-agentic-dev"
         SCENARIO_SEARCH_PATHS[dx_app]="${SCRIPT_DIR}/../dx-runtime/dx_app/dx-agentic-dev"
         SCENARIO_SEARCH_PATHS[dx_stream]="${SCRIPT_DIR}/../dx-runtime/dx_stream/dx-agentic-dev"
+        SCENARIO_SEARCH_PATHS[cascaded]="${SCRIPT_DIR}/../dx-runtime/dx_stream/dx-agentic-dev"
         SCENARIO_SEARCH_PATHS[runtime]="${SCRIPT_DIR}/../dx-runtime/dx-agentic-dev ${SCRIPT_DIR}/../dx-runtime/dx_app/dx-agentic-dev ${SCRIPT_DIR}/../dx-runtime/dx_stream/dx-agentic-dev"
         SCENARIO_SEARCH_PATHS[suite]="${SCRIPT_DIR}/../dx-agentic-dev ${SCRIPT_DIR}/../dx-compiler/dx-agentic-dev ${SCRIPT_DIR}/../dx-runtime/dx_app/dx-agentic-dev ${SCRIPT_DIR}/../dx-runtime/dx_stream/dx-agentic-dev ${SCRIPT_DIR}/../dx-runtime/dx-agentic-dev"
 
@@ -1194,6 +1204,7 @@ case "$COMMAND" in
         SCENARIO_CHECK_MODELS[compiler]=1
         SCENARIO_CHECK_MODELS[dx_app]=0
         SCENARIO_CHECK_MODELS[dx_stream]=0
+        SCENARIO_CHECK_MODELS[cascaded]=0
         SCENARIO_CHECK_MODELS[runtime]=0
         SCENARIO_CHECK_MODELS[suite]=1
 
@@ -1409,12 +1420,13 @@ case "$COMMAND" in
         declare -A SCENARIO_ARTIFACTS
         GLOBAL_SUMMARY_BASE="${SCRIPT_DIR}/../dx-agentic-dev/e2e-tests/opencode/manual/${TIMESTAMP}"
 
-        SCENARIO_KEYS=(compiler dx_app dx_stream runtime suite)
+        SCENARIO_KEYS=(compiler dx_app dx_stream cascaded runtime suite)
 
         declare -A SCENARIO_LABELS
         SCENARIO_LABELS[compiler]="Download yolo26n, compile to DXNN"
         SCENARIO_LABELS[dx_app]="Build yolo26n person detection app"
         SCENARIO_LABELS[dx_stream]="Build detection pipeline with tracking"
+        SCENARIO_LABELS[cascaded]="Build cascaded detection pipeline"
         SCENARIO_LABELS[runtime]="Route to dx_app + dx_stream via runtime builder"
         SCENARIO_LABELS[suite]="Cross-project compile + app generation"
 
@@ -1422,6 +1434,7 @@ case "$COMMAND" in
         SCENARIO_WORKDIRS[compiler]="${SCRIPT_DIR}/../dx-compiler"
         SCENARIO_WORKDIRS[dx_app]="${SCRIPT_DIR}/../dx-runtime/dx_app"
         SCENARIO_WORKDIRS[dx_stream]="${SCRIPT_DIR}/../dx-runtime/dx_stream"
+        SCENARIO_WORKDIRS[cascaded]="${SCRIPT_DIR}/../dx-runtime/dx_stream"
         SCENARIO_WORKDIRS[runtime]="${SCRIPT_DIR}/../dx-runtime"
         SCENARIO_WORKDIRS[suite]="${SCRIPT_DIR}/.."
 
@@ -1429,6 +1442,7 @@ case "$COMMAND" in
         SCENARIO_PROMPTS[compiler]="Compile yolo26n model to dxnn"
         SCENARIO_PROMPTS[dx_app]="Build a yolo26n detection app"
         SCENARIO_PROMPTS[dx_stream]="Build a real-time detection pipeline with yolo26n"
+        SCENARIO_PROMPTS[cascaded]="Build a cascaded pipeline using yolo26n for primary object detection and a secondary classification stage for detected objects"
         SCENARIO_PROMPTS[runtime]="Build a yolo26n standalone detection app and a real-time streaming pipeline for it"
         SCENARIO_PROMPTS[suite]="Compile yolo26n and build an inference app"
 
@@ -1436,6 +1450,7 @@ case "$COMMAND" in
         SCENARIO_SEARCH_PATHS[compiler]="${SCRIPT_DIR}/../dx-compiler/dx-agentic-dev"
         SCENARIO_SEARCH_PATHS[dx_app]="${SCRIPT_DIR}/../dx-runtime/dx_app/dx-agentic-dev"
         SCENARIO_SEARCH_PATHS[dx_stream]="${SCRIPT_DIR}/../dx-runtime/dx_stream/dx-agentic-dev"
+        SCENARIO_SEARCH_PATHS[cascaded]="${SCRIPT_DIR}/../dx-runtime/dx_stream/dx-agentic-dev"
         SCENARIO_SEARCH_PATHS[runtime]="${SCRIPT_DIR}/../dx-runtime/dx-agentic-dev ${SCRIPT_DIR}/../dx-runtime/dx_app/dx-agentic-dev ${SCRIPT_DIR}/../dx-runtime/dx_stream/dx-agentic-dev"
         SCENARIO_SEARCH_PATHS[suite]="${SCRIPT_DIR}/../dx-agentic-dev ${SCRIPT_DIR}/../dx-compiler/dx-agentic-dev ${SCRIPT_DIR}/../dx-runtime/dx_app/dx-agentic-dev ${SCRIPT_DIR}/../dx-runtime/dx_stream/dx-agentic-dev ${SCRIPT_DIR}/../dx-runtime/dx-agentic-dev"
 
@@ -1443,6 +1458,7 @@ case "$COMMAND" in
         SCENARIO_CHECK_MODELS[compiler]=1
         SCENARIO_CHECK_MODELS[dx_app]=0
         SCENARIO_CHECK_MODELS[dx_stream]=0
+        SCENARIO_CHECK_MODELS[cascaded]=0
         SCENARIO_CHECK_MODELS[runtime]=0
         SCENARIO_CHECK_MODELS[suite]=1
 
@@ -1708,12 +1724,13 @@ case "$COMMAND" in
         declare -A SCENARIO_ARTIFACTS
         GLOBAL_SUMMARY_BASE="${SCRIPT_DIR}/../dx-agentic-dev/e2e-tests/claude_code/manual/${TIMESTAMP}"
 
-        SCENARIO_KEYS=(compiler dx_app dx_stream runtime suite)
+        SCENARIO_KEYS=(compiler dx_app dx_stream cascaded runtime suite)
 
         declare -A SCENARIO_LABELS
         SCENARIO_LABELS[compiler]="Download yolo26n, compile to DXNN"
         SCENARIO_LABELS[dx_app]="Build yolo26n person detection app"
         SCENARIO_LABELS[dx_stream]="Build detection pipeline with tracking"
+        SCENARIO_LABELS[cascaded]="Build cascaded detection pipeline"
         SCENARIO_LABELS[runtime]="Route to dx_app + dx_stream via runtime builder"
         SCENARIO_LABELS[suite]="Cross-project compile + app generation"
 
@@ -1721,6 +1738,7 @@ case "$COMMAND" in
         SCENARIO_WORKDIRS[compiler]="${SCRIPT_DIR}/../dx-compiler"
         SCENARIO_WORKDIRS[dx_app]="${SCRIPT_DIR}/../dx-runtime/dx_app"
         SCENARIO_WORKDIRS[dx_stream]="${SCRIPT_DIR}/../dx-runtime/dx_stream"
+        SCENARIO_WORKDIRS[cascaded]="${SCRIPT_DIR}/../dx-runtime/dx_stream"
         SCENARIO_WORKDIRS[runtime]="${SCRIPT_DIR}/../dx-runtime"
         SCENARIO_WORKDIRS[suite]="${SCRIPT_DIR}/.."
 
@@ -1728,6 +1746,7 @@ case "$COMMAND" in
         SCENARIO_PROMPTS[compiler]="Compile yolo26n model to dxnn"
         SCENARIO_PROMPTS[dx_app]="Build a yolo26n detection app"
         SCENARIO_PROMPTS[dx_stream]="Build a real-time detection pipeline with yolo26n"
+        SCENARIO_PROMPTS[cascaded]="Build a cascaded pipeline using yolo26n for primary object detection and a secondary classification stage for detected objects"
         SCENARIO_PROMPTS[runtime]="Build a yolo26n standalone detection app and a real-time streaming pipeline for it"
         SCENARIO_PROMPTS[suite]="Compile yolo26n and build an inference app"
 
@@ -1735,6 +1754,7 @@ case "$COMMAND" in
         SCENARIO_SEARCH_PATHS[compiler]="${SCRIPT_DIR}/../dx-compiler/dx-agentic-dev"
         SCENARIO_SEARCH_PATHS[dx_app]="${SCRIPT_DIR}/../dx-runtime/dx_app/dx-agentic-dev"
         SCENARIO_SEARCH_PATHS[dx_stream]="${SCRIPT_DIR}/../dx-runtime/dx_stream/dx-agentic-dev"
+        SCENARIO_SEARCH_PATHS[cascaded]="${SCRIPT_DIR}/../dx-runtime/dx_stream/dx-agentic-dev"
         SCENARIO_SEARCH_PATHS[runtime]="${SCRIPT_DIR}/../dx-runtime/dx-agentic-dev ${SCRIPT_DIR}/../dx-runtime/dx_app/dx-agentic-dev ${SCRIPT_DIR}/../dx-runtime/dx_stream/dx-agentic-dev"
         SCENARIO_SEARCH_PATHS[suite]="${SCRIPT_DIR}/../dx-agentic-dev ${SCRIPT_DIR}/../dx-compiler/dx-agentic-dev ${SCRIPT_DIR}/../dx-runtime/dx_app/dx-agentic-dev ${SCRIPT_DIR}/../dx-runtime/dx_stream/dx-agentic-dev ${SCRIPT_DIR}/../dx-runtime/dx-agentic-dev"
 
@@ -1742,6 +1762,7 @@ case "$COMMAND" in
         SCENARIO_CHECK_MODELS[compiler]=1
         SCENARIO_CHECK_MODELS[dx_app]=0
         SCENARIO_CHECK_MODELS[dx_stream]=0
+        SCENARIO_CHECK_MODELS[cascaded]=0
         SCENARIO_CHECK_MODELS[runtime]=0
         SCENARIO_CHECK_MODELS[suite]=1
 
