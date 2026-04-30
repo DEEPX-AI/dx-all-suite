@@ -552,6 +552,11 @@ validate_scenario() {
         fail_count=$((fail_count + 1))
     fi
 
+    # Ensure .sh files are executable (agents may create them without +x)
+    for _d in "${output_dirs[@]}"; do
+        find "$_d" -name "*.sh" -type f -exec chmod +x {} + 2>/dev/null
+    done
+
     # Check 3: JSON validity (across all dirs)
     local json_files=""
     for _d in "${output_dirs[@]}"; do
@@ -1642,7 +1647,7 @@ case "$COMMAND" in
                 echo "## Artifacts"
                 echo ""
                 echo "- **Symlinks:** Point to actual \`dx-agentic-dev/\` session directories"
-                echo "- **Export:** `${scenario_key}-opencode-session.md` (exported via `/export` in OpenCode)"
+                echo "- **Export:** \`${scenario_key}-opencode-session.md\` (exported via \`/export\` in OpenCode)"
             } > "$_readme"
 
         # --- Global summary README.md (when running multiple scenarios) ---
@@ -1895,7 +1900,7 @@ case "$COMMAND" in
                 echo "## Artifacts"
                 echo ""
                 echo "- **Symlinks:** Point to actual \`dx-agentic-dev/\` session directories"
-                echo "- **Export:** `${scenario_key}-claude-export.txt` (exported via `/export` in Claude Code)"
+                echo "- **Export:** \`${scenario_key}-claude-export.txt\` (exported via \`/export\` in Claude Code)"
             } > "$_readme"
 
         # --- Global summary README.md (when running multiple scenarios) ---
