@@ -19,6 +19,11 @@ Rules:
 4. If the user sends multiple prompts in a session, output START/DONE for each prompt
 5. The `output-dir` in DONE must be the relative path from the project root to the
    session output directory. If no files were generated, omit the `(output-dir: ...)` part.
+   **For cross-project tasks** (e.g., compile + app generation), list ALL output directories
+   separated by ` + `:
+   ```
+   [DX-AGENTIC-DEV: DONE (output-dir: dx-compiler/dx-agentic-dev/20260409-143022_copilot_yolo26n_compile/ + dx-runtime/dx_app/dx-agentic-dev/20260409-143022_copilot_yolo26n_inference/)]
+   ```
 6. **NEVER output DONE after only producing planning artifacts** (specs, plans, design
    documents). DONE means all deliverables are produced — implementation code, scripts,
    configs, and validation results. If you completed a brainstorming or planning phase
