@@ -29,7 +29,7 @@ Each run is stored in a timestamped directory so multiple runs never overwrite e
 ## Quick Start
 
 ```bash
-# Standard run (5 iterations max, dx_stream scenario)
+# Standard run (5 iterations max, suite scenario)
 bash tools/run-e2e-improvement-loop.sh
 
 # Background run (recommended for long sessions)
@@ -41,7 +41,7 @@ bash tools/run-e2e-improvement-loop.sh &
 | Option | Default | Description |
 |--------|---------|-------------|
 | `--max-iterations N` | `5` | Maximum number of iterations |
-| `--scenario KEY` | `dx_stream` | pytest `-k` filter applied to all tool tests |
+| `--scenario KEY` | `suite` | pytest `-k` filter applied to all tool tests |
 | `--resume` | off | Resume from the latest existing run |
 | `--run-dir PATH` | auto | Use a specific run directory instead of auto-timestamped |
 | `--orchestrator TYPE` | `claude` | Orchestrator for report+improve steps: `claude`, `copilot`, `cursor`, or `opencode` |

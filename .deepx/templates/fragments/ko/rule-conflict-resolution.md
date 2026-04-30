@@ -12,7 +12,9 @@
 
 **일반적인 충돌 패턴** (실제 세션에서):
 - 사용자가 "use `InferenceEngine.Run()`"이라고 말함 → IFactory 패턴 사용 필수
-  (engine 호출은 `run_inference()` 메서드 내부에)
+  (engine 호출은 SyncRunner/AsyncRunner가 내부에서 처리함; IFactory 5-method
+  구현 필수: `create_preprocessor`, `create_postprocessor`, `create_visualizer`,
+  `get_model_name`, `get_task_type`)
 - 사용자가 "clone demo.py and swap onnxruntime"이라고 말함 → `src/python_example/`에서
   skeleton-first 사용 필수, 사용자 스크립트 clone 금지
 - 사용자가 "create demo_dxnn_sync.py"라고 말함 → SyncRunner와 함께

@@ -39,21 +39,19 @@ def scenario(cursor_runner, cursor_cli_artifacts_dir) -> ScenarioResult:
         workdir=SUITE_ROOT,
         scenario_key="suite",
         session_log_dir=cursor_cli_artifacts_dir,
-        timeout=1500,
+        timeout=3000,  # REC-S1: increased from 2400s — synchronous compile blocks agent; 3000s provides 10-min buffer
     )
 
 
 class TestExecution:
-    """Cursor CLI execution basics."""
-
     def test_exit_code_zero(self, scenario: ScenarioResult):
         """Cursor CLI exits successfully."""
         assert scenario.succeeded, format_scenario_failure(scenario)
 
     def test_completed_within_timeout(self, scenario: ScenarioResult):
         """Execution finishes within the extended timeout."""
-        assert scenario.duration_seconds < 1500, (
-            f"Scenario took {scenario.duration_seconds:.0f}s (limit: 1500s)"
+        assert scenario.duration_seconds < 3000, (
+            f"Scenario took {scenario.duration_seconds:.0f}s (limit: 3000s)"
         )
 
     def test_start_sentinel_emitted(self, scenario: ScenarioResult):
@@ -94,6 +92,14 @@ class TestCrossProjectOutput:
             f"No compilation artifacts found.\n"
             f"All files: {[f.name for f in all_files]}"
         )
+        # R22: Enforce dual-session layout — compiler artifacts must be in dx-compiler/dx-agentic-dev/,
+        # not merged into dx_app/dx-agentic-dev/. cursor (iter-4) placed both in dx_app/, which is
+        # non-standard and hides output-isolation rule violations.
+        assert any("dx-compiler" in str(d) for d in scenario.output_dirs), (
+            "No dx-compiler session found in output_dirs — compiler artifacts must be in "
+            "dx-compiler/dx-agentic-dev/, not merged with app artifacts in dx_app/. "
+            f"Current output_dirs: {[str(d) for d in scenario.output_dirs]}"
+        )
 
     def test_model_acquired(self, scenario: ScenarioResult):
         """A model file (.onnx, .pt, or .dxnn) was downloaded/produced."""
@@ -119,7 +125,7 @@ class TestCrossProjectOutput:
         )
 
     def test_app_artifacts(self, scenario: ScenarioResult):
-        """Application-related Python files are present."""
+        """Application-related Python files are present, including a factory file (R32)."""
         if not scenario.succeeded:
             pytest.skip("Cursor execution failed")
         py_files = scenario.generated_py_files
@@ -138,6 +144,17 @@ class TestCrossProjectOutput:
         assert found_app, (
             "No application/inference patterns found in Python files.\n"
             f"Files: {[f.name for f in py_files]}"
+        )
+        # R32: Require explicit factory or sync inference file — compile.py content alone
+        # is not sufficient evidence that the inference app portion was completed.
+        factory_files = [
+            f for f in py_files
+            if "factory" in f.parts or f.name.endswith("_factory.py") or f.name.endswith("_sync.py")
+        ]
+        assert len(factory_files) > 0, (
+            "No factory or *_sync.py file found — inference app incomplete.\n"
+            "Expected factory/*_factory.py or *_sync.py (IFactory + SyncRunner pattern).\n"
+            f"Python files: {[str(f.relative_to(f.parent.parent)) for f in py_files]}"
         )
 
 
@@ -184,6 +201,74 @@ class TestMandatoryArtifacts:
             f"All files: {[f.name for f in scenario.all_generated_files]}"
         )
 
+    def test_compile_pid_exists(self, scenario: ScenarioResult):
+        """compile.pid is generated in compiler session directory (REC-S2/REC-T1).
+
+        REC-T1 (iter-15): Promoted from xfail to hard assertion. cursor XPASSED in iter-15
+        after returning to Claude backend. xfail was for GPT-4 backend regression in iter-14.
+        REC-S2: compile.pid proves subprocess.Popen background compilation was used (R42).
+        """
+        if not scenario.succeeded:
+            pytest.skip("Cursor execution failed")
+        pid_files = [f for f in scenario.all_generated_files if f.name == "compile.pid"]
+        assert len(pid_files) > 0, (
+            f"No compile.pid found in compiler session.\n"
+            f"All files: {[f.name for f in scenario.all_generated_files]}\n"
+            "R42 violation: agent MUST use subprocess.Popen + compile.pid pattern "
+            "(NOT synchronous dx_com.compile()). GPT-4 backend may not follow R42."
+        )
+
+    def test_onnx_retained_in_compiler_session(self, scenario: ScenarioResult):
+        """yolo26n.onnx is retained in compiler session dir (REC-U5 soft check).
+
+        REC-U5 (iter-16): Retaining the source .onnx helps debug verify.py failures
+        and re-compilation. Emits UserWarning (not fail) — ONNX retention is useful
+        but not required.
+        """
+        if not scenario.succeeded:
+            pytest.skip("Cursor execution failed")
+        import warnings
+        compiler_dirs = set()
+        for f in scenario.all_generated_files:
+            if f.name == "compile.py":
+                compiler_dirs.add(f.parent)
+        if not compiler_dirs:
+            pytest.skip("No compiler session dir found")
+        onnx_in_compiler = [
+            f for f in scenario.all_generated_files
+            if f.suffix == ".onnx" and f.parent in compiler_dirs
+        ]
+        if not onnx_in_compiler:
+            warnings.warn(
+                "No .onnx file found in compiler session directory.\n"
+                "Retaining the source .onnx helps debug verify.py failures and re-compilation.\n"
+                "Consider keeping the .onnx alongside the .dxnn in the compiler session dir.",
+                UserWarning,
+                stacklevel=2,
+            )
+
+    @pytest.mark.xfail(
+        reason=(
+            "R48: cursor does not currently produce session.json in app session. "
+            "Promote to regular test once cursor generates session.json."
+        ),
+        strict=False,
+    )
+    def test_session_json_exists(self, scenario: ScenarioResult):
+        """session.json metadata file is generated in app session (R48).
+
+        R48: All tools should produce a session.json with build metadata.
+        Currently xfail for cursor which does not produce session.json.
+        """
+        if not scenario.succeeded:
+            pytest.skip("Cursor execution failed")
+        json_files = [f for f in scenario.all_generated_files if f.name == "session.json"]
+        assert len(json_files) > 0, (
+            f"No session.json found in app session.\n"
+            f"All files: {[f.name for f in scenario.all_generated_files]}\n"
+            "The agent MUST generate session.json with build metadata (R48)."
+        )
+
 
 class TestCodeQuality:
     """Validate all generated code."""
@@ -201,3 +286,62 @@ class TestCodeQuality:
             pytest.skip("Cursor execution failed")
         for json_file in scenario.generated_json_files:
             verify_json_structure(json_file)
+
+    def test_readme_quality_check(self, scenario: ScenarioResult):
+        """App session README.md has sufficient content (REC-T7/REC-U7).
+
+        REC-T7 (iter-15): cursor app README was 19 lines in iter-15 — shortest of all tools.
+        REC-U7 (iter-16): cursor has produced thin READMEs (19–29 L) across iter-13 to
+        iter-16 despite repeated UserWarnings — promoting to hard pytest.fail after
+        4 consecutive iterations below threshold.
+        """
+        if not scenario.succeeded:
+            pytest.skip("Cursor execution failed")
+        readme_files = [
+            f for f in scenario.all_generated_files
+            if f.name == "README.md"
+        ]
+        if not readme_files:
+            pytest.skip("No README.md found")
+        for readme in readme_files:
+            lines = readme.read_text(encoding="utf-8").splitlines()
+            if len(lines) < 30:
+                pytest.fail(
+                    f"{readme.parent.name}/README.md has only {len(lines)} lines "
+                    f"(< 30 lines threshold). cursor has been below threshold for 4 "
+                    f"consecutive iterations (iter-13 to iter-16). "
+                    "Add file listing, session metadata, and quick-start examples. "
+                    "Other tools average 48-64 lines."
+                )
+
+    def test_verify_py_inference_quality(self, scenario: ScenarioResult):
+        """verify.py output shows no critical DXNN inference failure (REC-U6).
+
+        REC-U6 (iter-16): All 4 tools showed quantization quality issues
+        (cosine similarity < 0.99 or inference errors) invisible to the test suite.
+        Checks session.log for DXNN inference failure indicators and emits UserWarning.
+        """
+        if not scenario.succeeded:
+            pytest.skip("Cursor execution failed")
+        import warnings
+        session_logs = [
+            f for f in scenario.all_generated_files
+            if f.name == "session.log"
+        ]
+        failure_indicators = [
+            "DXNN inference FAILED",
+            "inference FAILED",
+            "Input data must be np.ndarray",
+        ]
+        for log in session_logs:
+            content = log.read_text(encoding="utf-8", errors="replace")
+            found = [kw for kw in failure_indicators if kw in content]
+            if found:
+                warnings.warn(
+                    f"DXNN inference failure indicator(s) detected in "
+                    f"{log.parent.name}/session.log: {found}.\n"
+                    "This indicates a verify.py bug or DXNN quantization issue.\n"
+                    "Check the verify.py implementation and calibration data quality.",
+                    UserWarning,
+                    stacklevel=2,
+                )

@@ -25,3 +25,6 @@ __pycache__/
 tools/dx-agentic-dev-gen/src/dx_agentic_dev_gen.egg-info/
 doc/reports/
 tests/reports/
+compile.pid
+*.onnx
+*.pt
