@@ -6,7 +6,7 @@
     - DX-COM: v2.3.0
     - DX-TRON: v2.0.1
 - DX-Runtime: v2.3.1
-    - DX_FW: v2.6.1
+    - DX_FW: v2.5.6
     - NPU Driver: v2.4.1
     - DX-RT: v3.3.1
     - DX-Stream: v3.0.1
@@ -22,7 +22,6 @@ This patch release focuses on stability improvements, documentation corrections,
 
 - **Installer Fix (DX-Compiler)**: `uninstall.sh` now properly removes all installed packages and extracted module directories, and supports a new `--target` option for selective uninstallation.
 - **Runtime Compatibility (DX-RT)**: Updated pre-built library versions (onnxruntime, openvino) for improved compatibility.
-- **Firmware Stability (DX-FW)**: Updated LPDDR5(x) training logic and hardened PPU operation for improved system stability.
 
 ---
 
@@ -33,7 +32,6 @@ This patch release focuses on stability improvements, documentation corrections,
 - **DX-Compiler Installer**: Fixed `uninstall.sh` not removing installed packages (`dx_com` via `pip3 uninstall`) and the `dxtron` Debian package (`apt-get remove`), and not deleting extracted `dx_com/` and `dx_tron/` directories.
 - **DX-RT**: Updated pre-built onnxruntime (1.23.2 → 1.22.0) and openvino (25.4 → 25.1) for improved compatibility.
 - **DX-Stream**: Fixed uninstall not removing apps build directories and pydxs build cache.
-- **DX-FW**: Updated LPDDR5(x) Training Logic for improved reliability. and Hardened PPCPU logic for improved robustness.
 
 **New Features & Tools**
 
