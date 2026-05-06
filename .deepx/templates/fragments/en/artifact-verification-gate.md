@@ -67,13 +67,24 @@ Common failures to test for:
 
 ### Import Resolution Test (MANDATORY for Python apps)
 
-After all Python files are generated, run:
+After all Python files are generated, run the following from the session directory.
+**CRITICAL**: Run WITHOUT any manually set PYTHONPATH — this verifies the generated
+`_sync.py` dynamic walker correctly resolves `src/python_example/common` on its own:
+
 ```bash
 cd <session_dir>
-python -c "from factory import <Model>Factory; print('import OK')"
+python <model>_sync.py --help 2>&1 | head -10
 ```
 
-If this fails, the factory uses an incorrect import path. Fix it before proceeding.
+Expected: `--help` output (usage/argparse text). If `ImportError: No module named 'common'`
+appears, the dynamic path walker in `_sync.py` failed — do NOT use `PYTHONPATH=../../`
+as a workaround. Fix the walker in `_sync.py` instead.
+
+**Anti-pattern (PROHIBITED)**:
+```bash
+# WRONG — masks broken path setup; passes in agent env even when generated code is broken
+PYTHONPATH=../../ python -c "from factory import <Model>Factory; print('import OK')"
+```
 
 ### session.log Must Be Real Output (MANDATORY)
 

@@ -509,13 +509,24 @@ verify.py가 "ONNX inference failed" 또는 "DXNN inference failed"를 출력하
 
 ### Import 해석 테스트 (Python app에 MANDATORY)
 
-모든 Python 파일 생성 후 실행:
+모든 Python 파일 생성 후, **외부 PYTHONPATH 없이** session 디렉토리에서 실행:
+— 이 방식은 생성된 `_sync.py`의 dynamic walker가 `src/python_example/common`을
+스스로 올바르게 해석하는지 검증합니다:
+
 ```bash
 cd <session_dir>
-python -c "from factory import <Model>Factory; print('import OK')"
+python <model>_sync.py --help 2>&1 | head -10
 ```
 
-실패 시 factory가 잘못된 import 경로를 사용한 것입니다. 진행 전 수정하세요.
+기대 결과: `--help` 출력(usage/argparse 텍스트). `ImportError: No module named 'common'`가
+나타나면, `_sync.py`의 dynamic path walker가 실패한 것 — `PYTHONPATH=../../`로 우회하지 말고
+`_sync.py`의 walker를 직접 수정하세요.
+
+**금지 패턴**:
+```bash
+# 잘못된 방법 — agent 환경에서 통과해도 생성 코드의 broken path를 숨김
+PYTHONPATH=../../ python -c "from factory import <Model>Factory; print('import OK')"
+```
 
 ### session.log는 실제 출력이어야 함 (MANDATORY)
 
