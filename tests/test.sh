@@ -13,14 +13,14 @@
 #   local           - Run only local installation tests
 #   docker          - Run only docker installation tests
 #   getting_started - Run only getting-started tests
-#   agentic-e2e-copilot-cli-autopilot  - Run agentic E2E tests via Copilot CLI (fully autonomous)
-#   agentic-e2e-cursor-cli-autopilot   - Run agentic E2E tests via Cursor CLI (fully autonomous)
-#   agentic-e2e-opencode-cli-autopilot - Run agentic E2E tests via OpenCode CLI (fully autonomous)
 #   agentic-e2e-claude-code-autopilot  - Run agentic E2E tests via Claude Code CLI (fully autonomous)
-#   agentic-e2e-copilot-cli-manual    - Run agentic E2E interactively via Copilot CLI (shell-based, no pytest)
-#   agentic-e2e-cursor-cli-manual      - Run agentic E2E interactively via Cursor CLI (shell-based, no pytest)
-#   agentic-e2e-opencode-cli-manual    - Run agentic E2E interactively via OpenCode CLI (/export HTML archive)
+#   agentic-e2e-copilot-cli-autopilot  - Run agentic E2E tests via Copilot CLI (fully autonomous)
+#   agentic-e2e-opencode-cli-autopilot - Run agentic E2E tests via OpenCode CLI (fully autonomous)
+#   agentic-e2e-cursor-cli-autopilot   - Run agentic E2E tests via Cursor CLI (fully autonomous)
 #   agentic-e2e-claude-code-manual     - Run agentic E2E interactively via Claude Code CLI (/export txt archive)
+#   agentic-e2e-copilot-cli-manual     - Run agentic E2E interactively via Copilot CLI (shell-based, no pytest)
+#   agentic-e2e-opencode-cli-manual    - Run agentic E2E interactively via OpenCode CLI (/export HTML archive)
+#   agentic-e2e-cursor-cli-manual      - Run agentic E2E interactively via Cursor CLI (shell-based, no pytest)
 #   list            - List all available tests
 #   report          - Run all tests and generate HTML report
 #   json            - Run all tests and generate JSON report
@@ -152,14 +152,14 @@ print_usage() {
     echo -e "  ${GREEN}local_install${NC}   - Run only local installation tests"
     echo -e "  ${GREEN}docker_install${NC}  - Run only docker installation tests"
     echo -e "  ${GREEN}getting_started${NC} - Run only getting-started tests"
-    echo -e "  ${GREEN}agentic-e2e-copilot-cli-autopilot${NC}  - Run agentic E2E via Copilot CLI (fully autonomous, CI/CD)"
-    echo -e "  ${GREEN}agentic-e2e-cursor-cli-autopilot${NC}   - Run agentic E2E via Cursor CLI (fully autonomous)"
-    echo -e "  ${GREEN}agentic-e2e-opencode-cli-autopilot${NC} - Run agentic E2E via OpenCode CLI (fully autonomous)"
     echo -e "  ${GREEN}agentic-e2e-claude-code-autopilot${NC}  - Run agentic E2E via Claude Code CLI (fully autonomous)"
-    echo -e "  ${GREEN}agentic-e2e-copilot-cli-manual${NC}    - Run agentic E2E interactively via Copilot CLI (shell-based)"
-    echo -e "  ${GREEN}agentic-e2e-cursor-cli-manual${NC}      - Run agentic E2E interactively via Cursor CLI (shell-based)"
-    echo -e "  ${GREEN}agentic-e2e-opencode-cli-manual${NC}    - Run agentic E2E interactively via OpenCode CLI (/export HTML)"
+    echo -e "  ${GREEN}agentic-e2e-copilot-cli-autopilot${NC}  - Run agentic E2E via Copilot CLI (fully autonomous, CI/CD)"
+    echo -e "  ${GREEN}agentic-e2e-opencode-cli-autopilot${NC} - Run agentic E2E via OpenCode CLI (fully autonomous)"
+    echo -e "  ${GREEN}agentic-e2e-cursor-cli-autopilot${NC}   - Run agentic E2E via Cursor CLI (fully autonomous)"
     echo -e "  ${GREEN}agentic-e2e-claude-code-manual${NC}     - Run agentic E2E interactively via Claude Code CLI (/export txt)"
+    echo -e "  ${GREEN}agentic-e2e-copilot-cli-manual${NC}    - Run agentic E2E interactively via Copilot CLI (shell-based)"
+    echo -e "  ${GREEN}agentic-e2e-opencode-cli-manual${NC}    - Run agentic E2E interactively via OpenCode CLI (/export HTML)"
+    echo -e "  ${GREEN}agentic-e2e-cursor-cli-manual${NC}      - Run agentic E2E interactively via Cursor CLI (shell-based)"
     echo -e ""
     echo -e "Utility Commands:"
     echo -e "  ${GREEN}list${NC}            - List all available tests"
@@ -179,13 +179,14 @@ print_usage() {
     echo -e "  ./test.sh getting_started"
     echo -e "  ./test.sh --report sanity"
     echo -e "  ./test.sh --debug local_install"
-    echo -e "  ./test.sh agentic-e2e-copilot-cli-autopilot"
-    echo -e "  ./test.sh agentic-e2e-copilot-cli-manual"
-    echo -e "  ./test.sh agentic-e2e-cursor-cli-manual"
-    echo -e "  ./test.sh agentic-e2e-opencode-cli-autopilot"
-    echo -e "  ./test.sh agentic-e2e-opencode-cli-manual"
     echo -e "  ./test.sh agentic-e2e-claude-code-autopilot"
+    echo -e "  ./test.sh agentic-e2e-copilot-cli-autopilot"
+    echo -e "  ./test.sh agentic-e2e-opencode-cli-autopilot"
+    echo -e "  ./test.sh agentic-e2e-cursor-cli-autopilot"
     echo -e "  ./test.sh agentic-e2e-claude-code-manual"
+    echo -e "  ./test.sh agentic-e2e-copilot-cli-manual"
+    echo -e "  ./test.sh agentic-e2e-opencode-cli-manual"
+    echo -e "  ./test.sh agentic-e2e-cursor-cli-manual"
     echo -e "  ./test.sh agentic-e2e-copilot-cli-autopilot -k dx_app"
     echo -e "  ./test.sh --cleanup agentic-e2e-claude-code-autopilot -k dx_stream"
     echo -e "  ./test.sh report"
@@ -1851,6 +1852,18 @@ case "$COMMAND" in
                 echo -e "         Did you type ${GREEN}/export${NC} before exiting the session?"
             fi
 
+            # Generate HTML report from Claude Code session JSONL (richer than /export txt)
+            _claude_session_html="${ARTIFACTS_BASE}/${scenario_key}-claude-session.html"
+            if python3 "${SCRIPT_DIR}/parse_claude_session.py" \
+                --project "$_workdir" \
+                --format html \
+                --include-thinking \
+                --output "$_claude_session_html" 2>/dev/null; then
+                print_info "Claude session HTML generated: $_claude_session_html"
+            else
+                echo -e "  ${YELLOW}[WARN]${NC} Failed to generate Claude session HTML (non-fatal)"
+            fi
+
             # Symlinks: create in ARTIFACTS_BASE pointing to detected session dirs
             if [ ${#_detected_arr[@]} -gt 0 ]; then
                 for _dd in "${_detected_arr[@]}"; do
@@ -1901,6 +1914,7 @@ case "$COMMAND" in
                 echo ""
                 echo "- **Symlinks:** Point to actual \`dx-agentic-dev/\` session directories"
                 echo "- **Export:** \`${scenario_key}-claude-export.txt\` (exported via \`/export\` in Claude Code)"
+                echo "- **Session HTML:** \`${scenario_key}-claude-session.html\` (parsed from JSONL via \`parse_claude_session.py\`)"
             } > "$_readme"
 
         # --- Global summary README.md (when running multiple scenarios) ---
