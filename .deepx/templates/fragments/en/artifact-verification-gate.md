@@ -22,10 +22,34 @@ After generating each artifact, verify it IMMEDIATELY (not at the end):
 |----------|---------------------|-----------|
 | `setup.sh` | `bash -n setup.sh && bash setup.sh` | Exit code 0, no errors |
 | `run.sh` | `bash -n run.sh` | Syntax OK (full run needs model) |
-| `verify.py` | `python -c "import py_compile; py_compile.compile('verify.py', doraise=True)"` | Syntax OK |
+| `verify.py` | `python verify.py; echo "exit: $?"` | Exit code 0 and output contains "RESULT: PASS" |
 | `*.py` (factory) | `python -c "import py_compile; py_compile.compile('<file>', doraise=True)"` | Syntax OK |
 | `*.py` (app) | `PYTHONPATH=. python -c "import py_compile; py_compile.compile('<file>', doraise=True)"` | Syntax OK |
 | `config.json` | `python -c "import json; json.load(open('config.json'))"` | Valid JSON |
+
+### verify.py Execution Test (MANDATORY)
+
+`verify.py` MUST be executed WITHOUT manual venv activation to confirm it is
+self-contained:
+
+```bash
+python verify.py    # NOT: source venv/bin/activate && python verify.py
+echo "Exit code: $?"
+```
+
+Required behavior:
+1. **Exit code 0** when both ONNX and DXNN inference succeed
+2. **Exit code 1** when any inference fails (ImportError, RuntimeError, etc.)
+3. **Self-contained**: auto-adds required site-packages to `sys.path` internally
+   — no manual `source venv/bin/activate` required by the caller
+
+If `verify.py` prints "ONNX inference failed" or "DXNN inference failed" but
+exits 0, it is BROKEN. Fix the exit code before proceeding.
+
+Common failures:
+- `No module named 'onnxruntime'` → verify.py must add compiler venv site-packages to sys.path
+- `No module named 'dx_engine'` → verify.py must add runtime venv site-packages to sys.path
+- Prints "failed" but exits 0 → add `sys.exit(1)` in the failure branch
 
 ### setup.sh Execution Test (MANDATORY)
 

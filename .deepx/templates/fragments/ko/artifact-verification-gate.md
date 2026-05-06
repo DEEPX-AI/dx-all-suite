@@ -22,10 +22,31 @@ deliverable에 적용됩니다.
 |----------|----------|-----------|
 | `setup.sh` | `bash -n setup.sh && bash setup.sh` | Exit code 0, 에러 없음 |
 | `run.sh` | `bash -n run.sh` | 문법 OK (전체 실행은 model 필요) |
-| `verify.py` | `python -c "import py_compile; py_compile.compile('verify.py', doraise=True)"` | 문법 OK |
+| `verify.py` | `python verify.py; echo "exit: $?"` | Exit code 0, 출력에 "RESULT: PASS" 포함 |
 | `*.py` (factory) | `python -c "import py_compile; py_compile.compile('<file>', doraise=True)"` | 문법 OK |
 | `*.py` (app) | `PYTHONPATH=. python -c "import py_compile; py_compile.compile('<file>', doraise=True)"` | 문법 OK |
 | `config.json` | `python -c "import json; json.load(open('config.json'))"` | 유효한 JSON |
+
+### verify.py 실행 테스트 (MANDATORY)
+
+`verify.py`는 venv를 수동으로 활성화하지 않은 상태에서 실행해 self-contained 여부를 확인해야 합니다:
+
+```bash
+python verify.py    # NOT: source venv/bin/activate && python verify.py
+echo "Exit code: $?"
+```
+
+필수 동작:
+1. ONNX와 DXNN 추론이 모두 성공하면 **exit code 0**
+2. 추론이 하나라도 실패하면 **exit code 1** (ImportError, RuntimeError 등)
+3. **Self-contained**: 호출자의 venv 활성화 없이 내부에서 필요한 site-packages를 `sys.path`에 자동 추가
+
+verify.py가 "ONNX inference failed" 또는 "DXNN inference failed"를 출력하면서 exit 0을 반환하면 **버그**입니다. 진행 전에 exit code를 수정하세요.
+
+일반적인 실패 원인:
+- `No module named 'onnxruntime'` → verify.py가 compiler venv site-packages를 sys.path에 추가해야 함
+- `No module named 'dx_engine'` → verify.py가 runtime venv site-packages를 sys.path에 추가해야 함
+- "failed" 출력 후 exit 0 → 실패 분기에 `sys.exit(1)` 추가 필요
 
 ### setup.sh 실행 테스트 (MANDATORY)
 
