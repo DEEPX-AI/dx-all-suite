@@ -100,22 +100,20 @@ The following patterns are PROHIBITED for session.log:
 - `printf "..." > session.log` (hand-written summary)
 - Writing session.log content from memory without running commands
 
-### dx-tdd Invocation (MANDATORY for All Code Generation)
+### dx-tdd and Process Skill Sequence (MANDATORY for All Code Generation)
 
-The `/dx-tdd` skill MUST be invoked for ALL artifact generation sessions — this
-includes user-facing compilation, app generation, and pipeline tasks. It is NOT
-limited to "internal development" tasks.
+The complete process skill sequence (`/dx-brainstorm-and-plan` → `/dx-writing-plans`
+→ `/dx-tdd` → `/dx-verify-completion`) is MANDATORY for ALL artifact generation
+sessions. See the **"Mandatory Process Skill Sequence — All Code Generation"**
+section for the full sequence definition and enforcement rules.
 
-Its "Red-Green-Verify" cycle applies:
+Within this Artifact Verification Gate, the `/dx-tdd` Red-Green-Verify cycle
+applies to each artifact:
 1. **RED**: Define what each artifact must satisfy (syntax, execution, imports)
 2. **GREEN**: Generate the artifact
-3. **VERIFY**: Run the check immediately after creation
+3. **VERIFY**: Run the check immediately after creation (using the verification
+   commands defined above in this section)
 
-This is NOT optional even in autopilot mode. Skipping dx-tdd for code generation
-is a session-failing violation regardless of whether the task is "internal
-development" or "user-facing."
-
-**Rationale**: The SWE Process Gates "Mandatory Skill Sequence" is scoped to
-internal dx-agentic-dev development. This Artifact Verification Gate extends
-the same discipline to all generated deliverables. Without it, agents produce
-untested setup.sh, broken imports, and fabricated session.log files.
+This is NOT optional even in autopilot mode. Skipping any process skill for code
+generation is a session-failing violation regardless of whether the task is
+"internal development" or "user-facing."

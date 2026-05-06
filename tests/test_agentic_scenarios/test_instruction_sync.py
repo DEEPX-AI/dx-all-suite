@@ -16,8 +16,13 @@ from typing import List, Set
 import pytest
 
 from .conftest import (
+    APP_ROOT,
+    COMPILER_ROOT,
     INSTRUCTION_PAIRS,
     PROJECT_ROOTS,
+    RUNTIME_ROOT,
+    STREAM_ROOT,
+    SUITE_ROOT,
     InstructionPair,
     extract_agent_references,
     extract_code_blocks,
@@ -344,6 +349,7 @@ class TestSuiteSubLevelRulePropagation:
         "Output Isolation",
         "Rule Conflict Resolution",
         "Instruction File Verification Loop",
+        "Mandatory Process Skill Sequence",
     ]
 
     # Rules checked at specific levels only
@@ -609,4 +615,126 @@ class TestPreFlightClassificationSync:
             f"decision tree blocks: {missing}\n\n"
             f"Fix: add the Korean translation of the Q1/Q2/Q3 blockquote to "
             f".deepx/templates/fragments/ko/instruction-verification-loop.md"
+        )
+
+
+# ---------------------------------------------------------------------------
+# Task 6: Template fragment inclusion parity across levels
+# ---------------------------------------------------------------------------
+
+
+class TestTemplateFragmentInclusionParity:
+    """Verify that fragments included at the suite level are also included
+    in all sub-module templates.
+
+    Root cause: when adding a new fragment to all sub-module templates, it's
+    easy to miss one level (e.g., dx-runtime was omitted while dx_app,
+    dx_stream, and dx-compiler were updated). No test caught this because
+    existing checks only verify generated output content, not template-level
+    fragment inclusion consistency.
+
+    This test reads .tmpl files at each level, extracts {{FRAGMENT:xxx}}
+    directives, and verifies that designated "universal" fragments appear
+    at ALL levels.
+    """
+
+    TEMPLATE_DIRS = {
+        "suite": SUITE_ROOT / ".deepx/templates/en",
+        "compiler": COMPILER_ROOT / ".deepx/templates/en",
+        "runtime": RUNTIME_ROOT / ".deepx/templates/en",
+        "app": APP_ROOT / ".deepx/templates/en",
+        "stream": STREAM_ROOT / ".deepx/templates/en",
+    }
+
+    # Fragments that MUST be included in templates at ALL levels.
+    # Add new universal fragments here when they are created.
+    UNIVERSAL_FRAGMENTS = [
+        "response-language",
+        "recommended-model",
+        "skill-router-mandatory",
+        "no-placeholder-code",
+        "experimental-features-prohibited",
+        "brainstorming-spec-before-plan",
+        "mandatory-process-skill-sequence",
+        "autopilot-mode-guard",
+        "session-sentinels",
+        "plan-output",
+        "instruction-verification-loop",
+    ]
+
+    @staticmethod
+    def _extract_fragments_from_template(tmpl_path: Path) -> set[str]:
+        """Extract all {{FRAGMENT:xxx}} names from a template file."""
+        text = tmpl_path.read_text(encoding="utf-8")
+        return set(re.findall(r"\{\{FRAGMENT:([^}]+)\}\}", text))
+
+    def _get_all_fragments_at_level(self, level: str) -> set[str]:
+        """Get union of all fragments included across all .tmpl files at a level."""
+        tmpl_dir = self.TEMPLATE_DIRS[level]
+        if not tmpl_dir.exists():
+            return set()
+        fragments: set[str] = set()
+        for tmpl in tmpl_dir.glob("*.tmpl"):
+            fragments.update(self._extract_fragments_from_template(tmpl))
+        return fragments
+
+    @pytest.mark.parametrize("fragment", UNIVERSAL_FRAGMENTS, ids=UNIVERSAL_FRAGMENTS)
+    def test_universal_fragment_at_all_levels(self, fragment: str):
+        """Universal fragments must be included in at least one template at every level."""
+        missing_levels = []
+        for level, tmpl_dir in self.TEMPLATE_DIRS.items():
+            if not tmpl_dir.exists():
+                missing_levels.append(f"  {level}: template dir missing ({tmpl_dir})")
+                continue
+            level_fragments = self._get_all_fragments_at_level(level)
+            if fragment not in level_fragments:
+                missing_levels.append(
+                    f"  {level}: {{{{FRAGMENT:{fragment}}}}} not in any .tmpl"
+                )
+
+        assert not missing_levels, (
+            f"Universal fragment '{fragment}' missing at some levels:\n"
+            + "\n".join(missing_levels)
+            + f"\n\nFix: add '{{{{FRAGMENT:{fragment}}}}}' to the .deepx/templates/en/*.md.tmpl "
+            f"files at the missing levels."
+        )
+
+    def test_en_ko_template_fragment_parity(self):
+        """EN and KO templates at each level must include the same set of fragments."""
+        mismatches = []
+        for level, en_dir in self.TEMPLATE_DIRS.items():
+            # Derive KO dir from EN dir
+            ko_dir = en_dir.parent / "ko"
+            if not en_dir.exists() or not ko_dir.exists():
+                continue
+
+            for en_tmpl in sorted(en_dir.glob("*.tmpl")):
+                # Find matching KO template (AGENTS.md.tmpl → AGENTS-KO.md.tmpl)
+                ko_name = en_tmpl.name.replace(".md.tmpl", "-KO.md.tmpl")
+                ko_tmpl = ko_dir / ko_name
+                if not ko_tmpl.exists():
+                    continue
+
+                en_frags = self._extract_fragments_from_template(en_tmpl)
+                ko_frags = self._extract_fragments_from_template(ko_tmpl)
+
+                en_only = en_frags - ko_frags
+                ko_only = ko_frags - en_frags
+
+                if en_only or ko_only:
+                    detail = []
+                    if en_only:
+                        detail.append(f"    EN-only: {sorted(en_only)}")
+                    if ko_only:
+                        detail.append(f"    KO-only: {sorted(ko_only)}")
+                    mismatches.append(
+                        f"  {level}/{en_tmpl.name} vs {ko_name}:\n"
+                        + "\n".join(detail)
+                    )
+
+        assert not mismatches, (
+            "EN/KO template fragment inclusion mismatch:\n"
+            + "\n".join(mismatches)
+            + "\n\nFix: ensure EN and KO templates include the same "
+            "{{FRAGMENT:xxx}} directives."
         )
