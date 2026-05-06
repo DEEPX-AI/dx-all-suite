@@ -762,7 +762,7 @@ case "$COMMAND" in
         else
             COMBINED_M_ARGS=(-m agentic_e2e_copilot_cli_autopilot)
         fi
-        pytest tests/test_agentic_e2e_scenarios/ -v "${CAPTURE_ARGS[@]}" "${COLLECT_ONLY_ARGS[@]}" "${COMBINED_M_ARGS[@]}" "${K_ARGS[@]}" "${REPORT_ARGS[@]}" "${JSON_ARGS[@]}" "$@"
+        pytest "${SCRIPT_DIR}/test_agentic_e2e_scenarios/" -v "${CAPTURE_ARGS[@]}" "${COLLECT_ONLY_ARGS[@]}" "${COMBINED_M_ARGS[@]}" "${K_ARGS[@]}" "${REPORT_ARGS[@]}" "${JSON_ARGS[@]}" "$@"
         EXIT_CODE=$?
         if [ $GENERATE_REPORT -eq 1 ] && [ $EXIT_CODE -eq 0 ]; then
             print_success "HTML report generated: ${REPORT_FILE}"
@@ -783,7 +783,7 @@ case "$COMMAND" in
         else
             COMBINED_M_ARGS=(-m agentic_e2e_cursor_cli_autopilot)
         fi
-        pytest tests/test_agentic_e2e_scenarios/ -v "${CAPTURE_ARGS[@]}" "${COLLECT_ONLY_ARGS[@]}" "${COMBINED_M_ARGS[@]}" "${K_ARGS[@]}" "${REPORT_ARGS[@]}" "${JSON_ARGS[@]}" "$@"
+        pytest "${SCRIPT_DIR}/test_agentic_e2e_scenarios/" -v "${CAPTURE_ARGS[@]}" "${COLLECT_ONLY_ARGS[@]}" "${COMBINED_M_ARGS[@]}" "${K_ARGS[@]}" "${REPORT_ARGS[@]}" "${JSON_ARGS[@]}" "$@"
         EXIT_CODE=$?
         if [ $GENERATE_REPORT -eq 1 ] && [ $EXIT_CODE -eq 0 ]; then
             print_success "HTML report generated: ${REPORT_FILE}"
@@ -1425,7 +1425,7 @@ case "$COMMAND" in
         else
             COMBINED_M_ARGS=(-m agentic_e2e_opencode_cli_autopilot)
         fi
-        pytest tests/test_agentic_e2e_scenarios/ -v "${CAPTURE_ARGS[@]}" "${COLLECT_ONLY_ARGS[@]}" "${COMBINED_M_ARGS[@]}" "${K_ARGS[@]}" "${REPORT_ARGS[@]}" "${JSON_ARGS[@]}" "$@"
+        pytest "${SCRIPT_DIR}/test_agentic_e2e_scenarios/" -v "${CAPTURE_ARGS[@]}" "${COLLECT_ONLY_ARGS[@]}" "${COMBINED_M_ARGS[@]}" "${K_ARGS[@]}" "${REPORT_ARGS[@]}" "${JSON_ARGS[@]}" "$@"
         EXIT_CODE=$?
         if [ $GENERATE_REPORT -eq 1 ] && [ $EXIT_CODE -eq 0 ]; then
             print_success "HTML report generated: ${REPORT_FILE}"
@@ -1453,7 +1453,7 @@ case "$COMMAND" in
         else
             COMBINED_M_ARGS=(-m agentic_e2e_claude_code_autopilot)
         fi
-        pytest tests/test_agentic_e2e_scenarios/ -v "${CAPTURE_ARGS[@]}" "${COLLECT_ONLY_ARGS[@]}" "${COMBINED_M_ARGS[@]}" "${K_ARGS[@]}" "${REPORT_ARGS[@]}" "${JSON_ARGS[@]}" "$@"
+        pytest "${SCRIPT_DIR}/test_agentic_e2e_scenarios/" -v "${CAPTURE_ARGS[@]}" "${COLLECT_ONLY_ARGS[@]}" "${COMBINED_M_ARGS[@]}" "${K_ARGS[@]}" "${REPORT_ARGS[@]}" "${JSON_ARGS[@]}" "$@"
         EXIT_CODE=$?
         if [ $GENERATE_REPORT -eq 1 ] && [ $EXIT_CODE -eq 0 ]; then
             print_success "HTML report generated: ${REPORT_FILE}"
