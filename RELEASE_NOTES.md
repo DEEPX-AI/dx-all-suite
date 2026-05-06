@@ -1,12 +1,12 @@
 # RELEASE_NOTES
 
-##  DX-All-Suite v2.3.1 / 2026-04-27
+##  DX-All-Suite v2.3.1 / 2026-05-06
 
 - DX-Compiler: v2.3.1
     - DX-COM: v2.3.0
     - DX-TRON: v2.0.1
 - DX-Runtime: v2.3.1
-    - DX_FW: v2.5.6
+    - DX_FW: v2.6.1
     - NPU Driver: v2.4.1
     - DX-RT: v3.3.1
     - DX-Stream: v3.0.1
@@ -18,10 +18,11 @@ Here are the **DX-All-Suite v2.3.1** Release Note.
 
 ### What's New?
 
-This patch release focuses on stability improvements, documentation corrections, and license compliance across the DX-Compiler installer, DX-Runtime, and DX-Stream modules.
+This patch release focuses on stability improvements, documentation corrections, license compliance, and firmware stability across the DX-Compiler installer, DX-Runtime, and DX-Stream modules.
 
 - **Installer Fix (DX-Compiler)**: `uninstall.sh` now properly removes all installed packages and extracted module directories, and supports a new `--target` option for selective uninstallation.
 - **Runtime Compatibility (DX-RT)**: Updated pre-built library versions (onnxruntime, openvino) for improved compatibility.
+- **Firmware Stability (DX-FW)**: Updated LPDDR5(x) training logic and hardened PPCPU operation for improved system stability.
 
 ---
 
@@ -31,7 +32,13 @@ This patch release focuses on stability improvements, documentation corrections,
 
 - **DX-Compiler Installer**: Fixed `uninstall.sh` not removing installed packages (`dx_com` via `pip3 uninstall`) and the `dxtron` Debian package (`apt-get remove`), and not deleting extracted `dx_com/` and `dx_tron/` directories.
 - **DX-RT**: Updated pre-built onnxruntime (1.23.2 → 1.22.0) and openvino (25.4 → 25.1) for improved compatibility.
-- **Documentation**: Fixed typos across DX-RT, DX-APP, and DX-Stream user manuals.
+- **DX-Stream**: Fixed uninstall not removing apps build directories and pydxs build cache.
+- **DX-FW**: Updated LPDDR5(x) Training Logic for improved reliability. and Hardened PPCPU logic for improved robustness.
+
+**New Features & Tools**
+
+- **DX-Compiler Installer**: Added `--target=<dx_com|dx_tron|all>` option to `uninstall.sh` (default: `all`), consistent with `install.sh`.
+- **DX-APP & DX-Stream**: Added license information for third-party models and datasets.
 
 For detailed updated items, refer to **each environment & module's Release Notes**.
 
