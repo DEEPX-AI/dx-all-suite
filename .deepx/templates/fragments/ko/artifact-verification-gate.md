@@ -97,22 +97,20 @@ command 2>&1 | tee session.log
 - `printf "..." > session.log` (수작업 요약)
 - 명령을 실행하지 않고 메모리에서 session.log 내용 작성
 
-### dx-tdd 호출 (모든 코드 생성에 MANDATORY)
+### dx-tdd 및 프로세스 스킬 시퀀스 (모든 코드 생성에 MANDATORY)
 
-`/dx-tdd` skill은 모든 artifact 생성 session에서 호출되어야 합니다 — 사용자 대상
-compilation, app 생성, pipeline task를 포함합니다. "internal development" task에
-한정되지 않습니다.
+완전한 프로세스 스킬 시퀀스 (`/dx-brainstorm-and-plan` → `/dx-writing-plans`
+→ `/dx-tdd` → `/dx-verify-completion`)는 모든 artifact 생성 session에서
+MANDATORY입니다. 전체 시퀀스 정의와 강제 규칙은 **"필수 프로세스 스킬 시퀀스 —
+모든 코드 생성"** 섹션을 참조하세요.
 
-Red-Green-Verify cycle 적용:
+이 Artifact Verification Gate 내에서 `/dx-tdd` Red-Green-Verify cycle은
+각 artifact에 적용됩니다:
 1. **RED**: 각 artifact가 만족해야 할 조건 정의 (문법, 실행, import)
 2. **GREEN**: artifact 생성
-3. **VERIFY**: 생성 직후 즉시 체크 실행
+3. **VERIFY**: 생성 직후 즉시 체크 실행 (이 섹션 위에 정의된 verification
+   command 사용)
 
-autopilot mode에서도 선택사항이 아닙니다. 코드 생성에서 dx-tdd를 건너뛰는 것은
-task가 "internal development"인지 "user-facing"인지에 관계없이 session 실패
-위반입니다.
-
-**근거**: SWE Process Gates "Mandatory Skill Sequence"는 internal dx-agentic-dev
-development에 한정됩니다. 이 Artifact Verification Gate는 동일한 discipline을
-모든 생성된 deliverable로 확장합니다. 이것 없이는 agent가 테스트되지 않은
-setup.sh, 깨진 import, 조작된 session.log 파일을 생산합니다.
+Autopilot mode에서도 선택사항이 아닙니다. 코드 생성에서 어떤 프로세스 스킬을
+건너뛰는 것은 task가 "internal development"인지 "user-facing"인지에 관계없이
+session 실패 위반입니다.
