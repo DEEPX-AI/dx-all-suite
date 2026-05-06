@@ -1746,3 +1746,109 @@ class TestSWEGateBypassPrevention:
             "is NOT a SWE gate waiver. Re-invoke this skill and follow the SWE mandatory "
             "sequence when Phase 4 involves .deepx/, tests/, or tools/. |"
         )
+
+
+class TestENKOLinecountParity:
+    """lint() must ERROR when EN fragment has ≥10 more lines than KO counterpart.
+
+    Regression test for: EN swe-process-gates-internal-dev gained 10 lines
+    (2 new anti-patterns in commit 954247e) but KO was not updated — lint
+    reported [OK] and the stale KO was committed.
+    """
+
+    def test_lint_errors_on_line_count_divergence(self, tmp_path):
+        """lint() must return clean=False when EN has ≥10 more lines than KO."""
+        from dx_agentic_dev_gen.generator import Generator
+
+        deepx = tmp_path / ".deepx"
+        frags_en = deepx / "templates" / "fragments" / "en"
+        frags_ko = deepx / "templates" / "fragments" / "ko"
+        frags_en.mkdir(parents=True)
+        frags_ko.mkdir(parents=True)
+
+        # EN has 20 lines, KO has 9 (diff = 11, above threshold of 10)
+        (frags_en / "test-fragment.md").write_text("".join(["- Item\n"] * 20))
+        (frags_ko / "test-fragment.md").write_text("".join(["- 항목\n"] * 9))
+
+        gen = Generator(tmp_path)
+        clean, report = gen.lint()
+
+        assert not clean, (
+            "lint() should return clean=False when EN has ≥10 more lines than KO.\n"
+            f"Report: {report}"
+        )
+        error_lines = [r for r in report if "[ERROR]" in r and "line" in r.lower()]
+        assert error_lines, (
+            "lint() report must contain an [ERROR] line mentioning line count.\n"
+            f"Report: {report}"
+        )
+
+    def test_lint_ok_when_ko_longer_than_en(self, tmp_path):
+        """lint() must NOT flag when KO is longer than EN (normal translation verbosity)."""
+        from dx_agentic_dev_gen.generator import Generator
+
+        deepx = tmp_path / ".deepx"
+        frags_en = deepx / "templates" / "fragments" / "en"
+        frags_ko = deepx / "templates" / "fragments" / "ko"
+        frags_en.mkdir(parents=True)
+        frags_ko.mkdir(parents=True)
+
+        # KO longer than EN — normal for Korean translations
+        (frags_en / "test-fragment.md").write_text("".join(["- Item\n"] * 10))
+        (frags_ko / "test-fragment.md").write_text("".join(["- 항목에 대한 설명\n"] * 20))
+
+        gen = Generator(tmp_path)
+        clean, report = gen.lint()
+
+        linecount_errors = [r for r in report if "[ERROR]" in r and "line" in r.lower()]
+        assert not linecount_errors, (
+            "lint() must NOT flag when KO has more lines than EN.\n"
+            f"Report: {report}"
+        )
+
+    def test_lint_ok_when_diff_under_threshold(self, tmp_path):
+        """lint() must NOT flag when EN > KO by fewer than 10 lines (normal variation)."""
+        from dx_agentic_dev_gen.generator import Generator
+
+        deepx = tmp_path / ".deepx"
+        frags_en = deepx / "templates" / "fragments" / "en"
+        frags_ko = deepx / "templates" / "fragments" / "ko"
+        frags_en.mkdir(parents=True)
+        frags_ko.mkdir(parents=True)
+
+        # EN > KO by 5 lines — within normal variation range
+        (frags_en / "test-fragment.md").write_text("".join(["- Item\n"] * 50))
+        (frags_ko / "test-fragment.md").write_text("".join(["- 항목\n"] * 45))
+
+        gen = Generator(tmp_path)
+        clean, report = gen.lint()
+
+        linecount_errors = [r for r in report if "[ERROR]" in r and "line" in r.lower()]
+        assert not linecount_errors, (
+            "lint() must NOT flag EN > KO difference under 10 lines.\n"
+            f"Report: {report}"
+        )
+
+    def test_actual_swe_fragment_ko_is_not_stale(self):
+        """Regression: swe-process-gates-internal-dev KO must not lag EN by ≥10 lines."""
+        en_path = (
+            SUITE_ROOT
+            / ".deepx/templates/fragments/en/swe-process-gates-internal-dev.md"
+        )
+        ko_path = (
+            SUITE_ROOT
+            / ".deepx/templates/fragments/ko/swe-process-gates-internal-dev.md"
+        )
+
+        assert en_path.exists(), f"EN fragment not found: {en_path}"
+        assert ko_path.exists(), f"KO fragment not found: {ko_path}"
+
+        en_lines = len(en_path.read_text(encoding="utf-8").splitlines())
+        ko_lines = len(ko_path.read_text(encoding="utf-8").splitlines())
+        diff = en_lines - ko_lines
+
+        assert diff < 10, (
+            f"swe-process-gates-internal-dev: EN has {diff} more lines than KO "
+            f"(EN={en_lines}, KO={ko_lines}). Update the KO fragment to sync the "
+            "2 new anti-patterns added in commit 954247e."
+        )
