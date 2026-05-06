@@ -22,7 +22,7 @@ This patch release focuses on stability improvements, documentation corrections,
 
 - **Installer Fix (DX-Compiler)**: `uninstall.sh` now properly removes all installed packages and extracted module directories, and supports a new `--target` option for selective uninstallation.
 - **Runtime Compatibility (DX-RT)**: Updated pre-built library versions (onnxruntime, openvino) for improved compatibility.
-- **Firmware Stability (DX-FW)**: Updated LPDDR5(x) training logic and hardened PPCPU operation for improved system stability.
+- **Firmware Stability (DX-FW)**: Updated LPDDR5(x) training logic and hardened PPU operation for improved system stability.
 
 ---
 
