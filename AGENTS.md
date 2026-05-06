@@ -910,6 +910,14 @@ Steps 4–6 (TDD, verification, completion check) are **NEVER** skipped, even fo
 - Treating `tools/*.sh` scripts as "not internal dev" because they are not in
   `tools/dx-agentic-dev-gen/` — all loop and orchestration scripts under `tools/`
   are internal dx-agentic-dev features and the SWE discipline applies
+- **Treating `dx-systematic-debugging` completion as a SWE gate waiver** — finishing
+  Phases 1–3 (root cause identified) does NOT exempt the implementation from the
+  SWE mandatory sequence. When Phase 4 implementation involves `.deepx/`, `tests/`,
+  or `tools/`, it is a **NEW internal dev task** that MUST restart the skill sequence
+  from `/dx-skill-router`. See the SWE Gate Pre-Flight in `dx-systematic-debugging` Phase 4.
+- **Treating previous skill invocation as current-message coverage** — `/dx-skill-router`
+  MUST be invoked at the start of **each user message**. Invocation in a prior message
+  does NOT carry forward. "I already invoked it this session" is a rationalization.
 
 ---
 

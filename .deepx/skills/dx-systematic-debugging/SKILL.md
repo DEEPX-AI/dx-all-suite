@@ -169,6 +169,22 @@ You MUST complete each phase before proceeding to the next.
 
 ### Phase 4: Implementation
 
+**SWE Gate Pre-Flight (MANDATORY — runs before every Phase 4 entry)**
+
+Before implementing ANY fix, answer this question:
+**"Does this fix modify files under `.deepx/`, `tests/`, or `tools/`?"**
+
+- **YES** → This is an internal SWE task. **STOP and invoke the full SWE Mandatory Skill Sequence:**
+  1. `/dx-skill-router` — re-invoke NOW (previous invocation does not carry over to this message)
+  2. `/dx-brainstorm-and-plan` — if the fix touches ≥2 files
+  3. `/dx-writing-plans` — if the plan has >2 steps
+  4. `/dx-tdd` — RED phase before any code
+
+  The debugging work (Phases 1–3) is now COMPLETE. The implementation is a **NEW SWE task**.
+  Proceed via the SWE mandatory sequence, not through the Phase 4 steps below.
+
+- **NO** → Proceed with Phase 4 steps below.
+
 **Fix the root cause, not the symptom:**
 
 1. **Create Failing Test Case**

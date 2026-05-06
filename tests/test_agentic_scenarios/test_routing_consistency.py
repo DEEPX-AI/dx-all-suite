@@ -23,6 +23,7 @@ from .conftest import (
     PROJECT_INFRA,
     PROJECT_ROOTS,
     ProjectInfra,
+    SUITE_ROOT,
     agent_names_from_dir,
     extract_agent_references,
     extract_skill_references,
@@ -1606,4 +1607,142 @@ class TestAutopilotSWEGatesCrossReference:
             f"Fragment content (first 500 chars):\n{text[:500]}\n\n"
             "Fix: add language like '/dx-skill-router MUST be invoked for "
             "every user message' to the fragment."
+        )
+
+
+# ---------------------------------------------------------------------------
+# SWE Gate Bypass Prevention tests (G1 / G2 / G3)
+# Root cause: agent used dx-systematic-debugging phases 1-3 to identify .deepx/
+# root causes, then bypassed /dx-skill-router, /dx-brainstorm-and-plan, and
+# /dx-tdd RED phase because no rule explicitly blocked the transition.
+# ---------------------------------------------------------------------------
+
+
+class TestSWEGateBypassPrevention:
+    """Verify that the three gaps allowing debugging→implementation bypass
+    are covered by explicit rules in the canonical .deepx/ sources."""
+
+    def test_systematic_debugging_phase4_swe_preflight(self):
+        """dx-systematic-debugging Phase 4 MUST contain a mandatory SWE Gate
+        Pre-Flight check that blocks direct implementation of .deepx/ / tests/ /
+        tools/ changes without re-invoking the SWE mandatory skill sequence.
+
+        Root cause: Phase 4 had no check for SWE paths. Agent transitioned from
+        debugging (phases 1-3) to implementation without invoking skill sequence.
+
+        Fix: Phase 4 must explicitly state that .deepx/ / tests/ / tools/ fixes
+        require re-invoking the SWE mandatory skill sequence before any code.
+        """
+        skill_path = (
+            SUITE_ROOT / ".deepx/skills/dx-systematic-debugging/SKILL.md"
+        )
+        assert skill_path.exists(), f"dx-systematic-debugging skill not found: {skill_path}"
+        text = skill_path.read_text(encoding="utf-8")
+
+        has_swe_preflight = (
+            ("swe gate pre-flight" in text.lower() or "swe pre-flight" in text.lower())
+            and (".deepx/" in text or "`.deepx/`" in text)
+            and ("tests/" in text or "`tests/`" in text)
+            and ("tools/" in text or "`tools/`" in text)
+        )
+        assert has_swe_preflight, (
+            "dx-systematic-debugging Phase 4 does not contain a SWE Gate Pre-Flight check.\n\n"
+            "Root cause: when debugging leads to a fix in .deepx/, tests/, or tools/, "
+            "the agent bypasses the SWE mandatory skill sequence because Phase 4 does not require it.\n\n"
+            "Fix: add a 'SWE Gate Pre-Flight' block at the top of Phase 4 that says:\n"
+            "  'Does this fix modify .deepx/, tests/, or tools/? If YES → STOP and invoke "
+            "the SWE mandatory sequence. Previous skill invocation does not carry over.'"
+        )
+
+    def test_swe_gates_debugging_bypass_antipattern(self):
+        """swe-process-gates-internal-dev Common Anti-Patterns MUST include:
+        1. The 'debugging → implementation bypass' pattern
+        2. The 'previous skill invocation covers current message' pattern
+
+        Root cause: agent used dx-systematic-debugging Phase 1-3 to identify root
+        cause in .deepx/ files, then jumped directly to Phase 4 implementation
+        without re-invoking /dx-skill-router or /dx-brainstorm-and-plan, because
+        no anti-pattern rule existed for this transition.
+        """
+        fragment_path = (
+            SUITE_ROOT
+            / ".deepx/templates/fragments/en/swe-process-gates-internal-dev.md"
+        )
+        assert fragment_path.exists(), f"Fragment not found: {fragment_path}"
+        text = fragment_path.read_text(encoding="utf-8").lower()
+
+        # Must mention debugging-to-implementation bypass
+        has_debug_bypass = (
+            "systematic-debugging" in text or "systematic_debugging" in text
+        ) and ("waiver" in text or "waive" in text or "bypass" in text)
+        assert has_debug_bypass, (
+            "swe-process-gates-internal-dev does not contain an anti-pattern for "
+            "'debugging → implementation bypass'.\n\n"
+            "Fix: add to Common Anti-Patterns:\n"
+            "  'Treating dx-systematic-debugging completion as a SWE gate waiver — "
+            "finishing phases 1-3 does NOT exempt the implementation from the SWE "
+            "mandatory sequence. When Phase 4 involves .deepx/, tests/, or tools/, "
+            "it is a NEW task that MUST restart the skill sequence.'"
+        )
+
+        # Must mention per-message re-invocation rule
+        has_per_message = (
+            "per-message" in text
+            or "each user message" in text
+            or "each message" in text
+            or "carry forward" in text
+            or "carry over" in text
+        )
+        assert has_per_message, (
+            "swe-process-gates-internal-dev does not contain an anti-pattern for "
+            "'treating previous skill invocation as current-message coverage'.\n\n"
+            "Fix: add to Common Anti-Patterns:\n"
+            "  'Treating previous skill invocation as current-message coverage — "
+            "/dx-skill-router MUST be invoked at the start of EACH user message. "
+            "Prior invocation does not carry forward.'"
+        )
+
+    def test_skill_router_per_message_reinvocation(self):
+        """dx-skill-router Red Flags MUST contain entries for:
+        1. 'I already invoked this skill earlier' (per-message re-invocation)
+        2. Debugging skill completion ≠ SWE gate waiver
+
+        Root cause: the skill had no red flag for 'I already did this earlier',
+        allowing the agent to treat a prior message's invocation as sufficient
+        for the current message.
+        """
+        skill_path = SUITE_ROOT / ".deepx/skills/dx-skill-router/SKILL.md"
+        assert skill_path.exists(), f"dx-skill-router skill not found: {skill_path}"
+        text = skill_path.read_text(encoding="utf-8").lower()
+
+        # Must mention per-message re-invocation
+        has_per_message = (
+            "already invoked" in text
+            or "already called" in text
+            or "each new user message" in text
+            or "each user message" in text
+            or "per message" in text
+            or "carry forward" in text
+        )
+        assert has_per_message, (
+            "dx-skill-router Red Flags does not contain a row for "
+            "'I already invoked this skill earlier'.\n\n"
+            "Fix: add to Red Flags table:\n"
+            "  | 'I already invoked this skill earlier' | Skill invocation covers ONE message. "
+            "Re-invoke at the start of EACH new user message — prior invocations do not carry forward. |"
+        )
+
+        # Must mention debugging bypass
+        has_debug_bypass = (
+            "systematic-debugging" in text
+            or ("debug" in text and "implement" in text and "waiver" in text)
+            or ("debug" in text and "swe gate" in text)
+        )
+        assert has_debug_bypass, (
+            "dx-skill-router Red Flags does not contain a row for "
+            "'dx-systematic-debugging told me to implement now'.\n\n"
+            "Fix: add to Red Flags table:\n"
+            "  | 'dx-systematic-debugging told me to implement now' | Debugging completion "
+            "is NOT a SWE gate waiver. Re-invoke this skill and follow the SWE mandatory "
+            "sequence when Phase 4 involves .deepx/, tests/, or tools/. |"
         )
