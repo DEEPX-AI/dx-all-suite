@@ -85,3 +85,11 @@ Non-trivial로 간주하며, Trivial 변경 예외가 적용되지 않습니다.
   "규칙 없음"이 아닙니다. Autopilot에서도 필수 Skill 시퀀스는 완전히 적용됩니다.
 - `tools/*.sh` 스크립트를 `tools/dx-agentic-dev-gen/`에 없다는 이유로 "내부 개발 아님"으로 취급하기 —
   `tools/` 하위의 모든 loop 및 orchestration 스크립트는 내부 dx-agentic-dev 기능이며 SWE 규율이 적용됩니다
+- **`dx-systematic-debugging` 완료를 SWE gate 면제로 취급** — Phase 1–3 (근본 원인 파악)을
+  완료했다고 해서 구현 작업이 SWE 필수 시퀀스에서 면제되는 것은 아닙니다. Phase 4 구현이
+  `.deepx/`, `tests/`, 또는 `tools/`를 포함할 경우, 이는 **새로운 내부 개발 작업**으로서
+  `/dx-skill-router`부터 시퀀스를 **재시작**해야 합니다.
+  `dx-systematic-debugging` Phase 4의 SWE Gate Pre-Flight를 참조하세요.
+- **이전 Skill 호출을 현재 메시지 적용 범위로 취급** — `/dx-skill-router`는 **각 사용자
+  메시지** 시작 시 호출되어야 합니다. 이전 메시지의 호출은 이월되지 않습니다.
+  "이미 이 세션에서 호출했다"는 합리화입니다.

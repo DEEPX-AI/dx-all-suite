@@ -82,6 +82,12 @@ if generated files are out-of-date. Install hooks with:
 tools/dx-agentic-dev-gen/scripts/install-hooks.sh
 ```
 
+> **KO counterpart rule**: When editing any EN fragment, check whether the KO
+> counterpart also needs updating. If you added or removed ≥ 1 paragraph, update
+> `.deepx/templates/fragments/ko/<stem>.md` before committing. Run
+> `dx-agentic-gen lint` to verify `[OK]` — lint will ERROR if EN exceeds KO by
+> ≥ 10 lines.
+
 This gate applies when `.deepx/` files are the *primary deliverable* (e.g., adding
 rules, syncing platforms, creating KO translations, modifying agents/skills). It
 does NOT apply when a feature implementation incidentally triggers a single-line

@@ -172,6 +172,30 @@ class Generator:
                     f"EN: {en_set}, KO: {ko_set}"
                 )
 
+        # ── Check 3: line-count divergence (EN significantly longer than KO) ──
+        # Directional: flag only when EN > KO by ≥ threshold.
+        # KO translations are sometimes more verbose than EN (e.g., session-sentinels:
+        # EN=52, KO=61) — that is expected and must not be flagged.
+        # Threshold: ≥ 10 absolute lines where EN > KO → stale KO indicator.
+        LINE_DIFF_THRESHOLD = 10
+
+        for stem in sorted(en_files):
+            if stem not in ko_files:
+                continue  # already reported as missing pair above
+
+            en_count = len(en_files[stem].read_text(encoding="utf-8").splitlines())
+            ko_count = len(ko_files[stem].read_text(encoding="utf-8").splitlines())
+            diff = en_count - ko_count
+
+            if diff >= LINE_DIFF_THRESHOLD:
+                report.append(
+                    f"[ERROR] {stem}: EN fragment has {diff} more lines than KO "
+                    f"(EN={en_count}, KO={ko_count}) — KO may be stale. "
+                    f"Update .deepx/templates/fragments/ko/{stem}.md, "
+                    "then run 'dx-agentic-gen generate'."
+                )
+                clean = False
+
         if clean:
             report.append("All EN/KO fragment pairs are consistent.")
         else:
