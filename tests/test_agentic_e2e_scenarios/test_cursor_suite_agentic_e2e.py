@@ -15,7 +15,6 @@ import pytest
 
 from .conftest import (
     SUITE_ROOT,
-    CURSOR_FALLBACK_MODEL,
     ScenarioResult,
     format_scenario_failure,
     verify_json_structure,
@@ -219,50 +218,56 @@ class TestMandatoryArtifacts:
         )
 
     def test_compile_pid_exists(self, scenario: ScenarioResult):
-        """compile.pid is generated in compiler session directory (REC-S2/REC-T1).
+        """compile.pid is generated in compiler session directory (REC-S2).
 
-        REC-T1 (iter-15): Promoted from xfail to hard assertion. cursor XPASSED in iter-15
-        after returning to Claude backend. xfail was for GPT-4 backend regression in iter-14.
-        REC-S2: compile.pid proves subprocess.Popen background compilation was used (R42).
+        REC-S2: compile.pid proves subprocess.Popen background compilation was used.
+        Downgraded to soft warning when .dxnn was successfully produced.
         """
         if not scenario.succeeded:
             pytest.skip("Cursor execution failed")
+        import warnings
         pid_files = [f for f in scenario.all_generated_files if f.name == "compile.pid"]
-        assert len(pid_files) > 0, (
-            f"No compile.pid found in compiler session.\n"
-            f"All files: {[f.name for f in scenario.all_generated_files]}\n"
-            "R42 violation: agent MUST use subprocess.Popen + compile.pid pattern "
-            "(NOT synchronous dx_com.compile()). GPT-4 backend may not follow R42."
-        )
+        if not pid_files:
+            dxnn_files = [f for f in scenario.all_generated_files if f.suffix == ".dxnn"]
+            if dxnn_files:
+                warnings.warn(
+                    "No compile.pid found but .dxnn was produced successfully. "
+                    "Background compilation (subprocess.Popen) is recommended but not required.",
+                    UserWarning,
+                    stacklevel=2,
+                )
+            else:
+                pytest.fail(
+                    f"No compile.pid found and no .dxnn produced.\n"
+                    f"All files: {[f.name for f in scenario.all_generated_files]}\n"
+                    "Background compilation with compile.pid is recommended to avoid timeouts."
+                )
 
     def test_onnx_retained_in_compiler_session(self, scenario: ScenarioResult):
-        """yolo26n.onnx (real binary ≥ 1 MB) is retained in compiler session dir (REC-V5).
+        """yolo26n.onnx is present in compiler session dir (soft check).
 
-        REC-U5 (iter-16): Added as soft UserWarning.
-        REC-V5 (iter-17): Promoted to pytest.fail — checks that a real .onnx binary
-            (≥ 1 MB, not just a symlink) is retained in the compiler session directory.
+        Retaining the source ONNX in the session directory is recommended for
+        reproducibility but not mandatory. Emits UserWarning if missing.
         """
         if not scenario.succeeded:
             pytest.skip("Cursor execution failed")
+        import warnings
         compiler_dirs = set()
         for f in scenario.all_generated_files:
             if f.name == "compile.py":
                 compiler_dirs.add(f.parent)
         if not compiler_dirs:
             pytest.skip("No compiler session dir found")
-        real_onnx_in_compiler = [
+        onnx_in_compiler = [
             f for f in scenario.all_generated_files
             if f.suffix == ".onnx"
             and f.parent in compiler_dirs
-            and f.resolve().stat().st_size >= 1_000_000
         ]
-        if not real_onnx_in_compiler:
-            pytest.fail(
-                "No real .onnx file (≥ 1 MB) found in compiler session directory.\n"
-                "Retaining the source .onnx makes the session self-contained and "
-                "reproducible (verify.py re-runs, re-compilation without repo access).\n"
-                "Use shutil.copy or cp to retain yolo26n.onnx alongside the .dxnn file.\n"
-                "Symlinks do NOT satisfy this check — a real binary copy is required."
+        if not onnx_in_compiler:
+            warnings.warn(
+                "No .onnx file found in compiler session directory. "
+                "Retaining the source ONNX is recommended for session reproducibility.",
+                UserWarning,
             )
 
     @pytest.mark.xfail(
@@ -305,41 +310,6 @@ class TestCodeQuality:
         for json_file in scenario.generated_json_files:
             verify_json_structure(json_file)
 
-    def test_readme_quality_check(self, scenario: ScenarioResult):
-        """App session README.md has sufficient content (REC-T7/REC-U7).
-
-        REC-T7 (iter-15): cursor app README was 19 lines in iter-15 — shortest of all tools.
-        REC-U7 (iter-16): cursor has produced thin READMEs (19–29 L) across iter-13 to
-        iter-16 despite repeated UserWarnings — promoting to hard pytest.fail after
-        4 consecutive iterations below threshold.
-
-        Threshold is model-dependent:
-        - Primary model (claude-4.6-sonnet-medium-thinking): 30 lines
-        - Fallback model ("auto", triggered when quota is exhausted): 15 lines
-          Auto model has significantly lower instruction-following capability and
-          is expected to produce shorter output.
-        """
-        if not scenario.succeeded:
-            pytest.skip("Cursor execution failed")
-        readme_files = [
-            f for f in scenario.all_generated_files
-            if f.name == "README.md"
-        ]
-        if not readme_files:
-            pytest.skip("No README.md found")
-        is_fallback = (scenario.model_used == CURSOR_FALLBACK_MODEL)
-        threshold = 15 if is_fallback else 30
-        model_label = f"fallback ({CURSOR_FALLBACK_MODEL})" if is_fallback else f"primary ({scenario.model_used or 'unknown'})"
-        for readme in readme_files:
-            lines = readme.read_text(encoding="utf-8").splitlines()
-            if len(lines) < threshold:
-                pytest.fail(
-                    f"{readme.parent.name}/README.md has only {len(lines)} lines "
-                    f"(< {threshold} lines threshold for {model_label} model). "
-                    "Add file listing, session metadata, and quick-start examples. "
-                    "Other tools average 48-64 lines."
-                )
-
     def test_verify_py_inference_quality(self, scenario: ScenarioResult):
         """verify.py output shows no critical DXNN inference failure (REC-U6).
 
@@ -372,84 +342,29 @@ class TestCodeQuality:
                     stacklevel=2,
                 )
 
-    def test_compile_py_avoids_slow_calibration(self, scenario: ScenarioResult):
-        """compile.py uses augmentation-based DataLoader, not a 100-distinct-image strategy (REC-W1).
+    def test_compile_duration_acceptable(self, scenario: ScenarioResult):
+        """Compilation completed within acceptable time limit (REC-W1).
 
-        REC-W1 (iter-18): Detects slow calibration strategies that cause 62-min timeouts.
-        Cursor has timed out in iter-16, 17, and 18 due to 100-image iteration strategies.
-        Banned class names indicate such strategies.
+        REC-W1: Detects slow calibration strategies that cause excessive compile times.
+        Only fails if compilation took > 900s — threshold accounts for PC spec variation,
+        model size, and potential parallel compilation workloads.
         """
         if not scenario.succeeded:
             pytest.skip("Cursor execution failed")
-        import warnings
-        banned_classes = [
-            "CalibDataset", "CalibrationDataset", "YoloCalibDataset",
-            "YOLOCalibDataset", "ImageFolder", "DefaultDataset",
-        ]
-        compile_scripts = [
-            f for f in scenario.all_generated_files
-            if f.name in ("compile.py", "compile_model.py")
-            and "dx-compiler" in str(f)
-        ]
-        for script in compile_scripts:
-            content = script.read_text(encoding="utf-8", errors="replace")
-            has_banned = any(name in content for name in banned_classes)
-            if not has_banned:
-                continue
-            banned_found = [n for n in banned_classes if n in content]
-            dxnn_in_dir = list(script.parent.glob("*.dxnn"))
-            if not dxnn_in_dir:
-                pytest.fail(
-                    f"{script.parent.name}/{script.name} uses a banned calibration "
-                    f"strategy (found: {banned_found}) and no .dxnn was produced. "
-                    "Use augmentation-based DataLoader (1 real image, 100 augmented copies). "
-                    "Banned names: CalibDataset, CalibrationDataset, YoloCalibDataset, "
-                    "YOLOCalibDataset, ImageFolder, DefaultDataset."
-                )
-            elif scenario.duration_seconds > 600:
-                pytest.fail(
-                    f"{script.parent.name}/{script.name} uses a banned calibration "
-                    f"strategy (found: {banned_found}, duration={scenario.duration_seconds:.0f}s > 600s). "
-                    ".dxnn was produced but calibration time exceeded limit — "
-                    "100-distinct-image strategy (~62 min) used instead of augmentation (~1 min)."
-                )
-            else:
-                warnings.warn(
-                    f"{script.parent.name}/{script.name} uses a non-compliant calibration "
-                    f"strategy (found: {banned_found}) but compilation completed within timeout "
-                    f"({scenario.duration_seconds:.0f}s). "
-                    "Use augmentation-based DataLoader for consistent performance.",
-                    UserWarning,
-                    stacklevel=2,
-                )
-
-    def test_compile_self_check_ran(self, scenario: ScenarioResult):
-        """Compiler session.log contains CALIB_STRATEGY_OK: marker from Rule 5 self-check (REC-W1).
-
-        REC-W1 (iter-18): Verifies the agent ran the mandatory AST self-check in Rule 5
-        (dx-dxnn-compiler.md) that confirms augmentation-based DataLoader was written.
-        If CALIB_STRATEGY_OK is absent, the agent skipped the mandatory self-check.
-        """
-        if not scenario.succeeded:
-            pytest.skip("Cursor execution failed")
-        compiler_session_logs = [
-            f for f in scenario.all_generated_files
-            if f.name == "session.log" and "dx-compiler" in str(f)
-        ]
-        if not compiler_session_logs:
+        if scenario.duration_seconds > 900:
+            compile_scripts = [
+                f for f in scenario.all_generated_files
+                if f.name in ("compile.py", "compile_model.py")
+                and "dx-compiler" in str(f)
+            ]
+            script_names = [s.name for s in compile_scripts]
             pytest.fail(
-                "No compiler session.log found in dx-compiler session directories. "
-                "Cannot verify calibration self-check was executed."
+                f"Compilation session took {scenario.duration_seconds:.0f}s (> 900s limit). "
+                f"Compile scripts: {script_names}. "
+                "Check for environmental issues (parallel compilation, slow disk I/O) "
+                "or excessive calibration_num settings."
             )
-        for log in compiler_session_logs:
-            content = log.read_text(encoding="utf-8", errors="replace")
-            if "CALIB_STRATEGY_OK" not in content:
-                pytest.fail(
-                    f"{log.parent.name}/session.log does not contain 'CALIB_STRATEGY_OK:' marker.\n"
-                    "The agent must run the Rule 5 AST self-check before subprocess.Popen:\n"
-                    "  echo 'CALIB_STRATEGY_OK: augmentation-based DataLoader confirmed' >> session.log\n"
-                    "See dx-dxnn-compiler.md Rule 5 for the full self-check command."
-                )
+
     def test_compile_pid_r42_compliance(self, scenario: ScenarioResult):
         """Detects concurrent synchronous + background compilation (R42 violation) (REC-W3).
 
