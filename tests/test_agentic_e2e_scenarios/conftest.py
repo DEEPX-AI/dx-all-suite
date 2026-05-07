@@ -73,6 +73,9 @@ def pytest_configure(config):
     for marker in markers:
         config.addinivalue_line("markers", marker)
 
+    # Store registry for session-finish consolidation
+    config._dx_artifacts_dirs: dict = {}
+
 # ---------------------------------------------------------------------------
 # Path constants (same roots as test_agentic_scenarios)
 # ---------------------------------------------------------------------------
@@ -2245,6 +2248,96 @@ def cursor_runner():
     return CursorRunnerAutopilot()
 
 
+def _register_artifacts_dir(request, key: str, artifacts_dir: "Path") -> None:
+    """Register an artifacts dir for consolidated results at session end."""
+    config = request.config
+    artifacts_map = getattr(config, "_dx_artifacts_dirs", None)
+    if artifacts_map is not None:
+        artifacts_map[key] = artifacts_dir
+
+
+def pytest_sessionfinish(session, exitstatus):
+    """Create a consolidated results directory after all tests complete.
+
+    Generates ``dx-agentic-dev/e2e-tests/results/<session_id>/`` containing:
+    - Symlinks to each per-scenario artifacts directory
+    - ``manifest.json`` with all artifacts locations and test results
+    - ``SUMMARY.md`` for quick human review
+    """
+    artifacts_map = getattr(session.config, "_dx_artifacts_dirs", {})
+    if not artifacts_map:
+        return
+
+    session_id = time.strftime("%Y%m%d_%H%M%S") + f"_{uuid.uuid4().hex[:6]}"
+    results_dir = AGENTIC_E2E_ARTIFACTS_BASE / "results" / session_id
+    results_dir.mkdir(parents=True, exist_ok=True)
+
+    manifest = {
+        "session_id": session_id,
+        "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "exit_status": exitstatus,
+        "artifacts": {},
+    }
+
+    for key, artifacts_dir in sorted(artifacts_map.items()):
+        if not artifacts_dir.exists():
+            continue
+        link_path = results_dir / key
+        try:
+            link_path.symlink_to(artifacts_dir)
+        except OSError:
+            pass
+
+        contents = []
+        for entry in sorted(artifacts_dir.iterdir()):
+            entry_info = {"name": entry.name, "type": "symlink" if entry.is_symlink() else "file"}
+            if entry.is_symlink():
+                try:
+                    entry_info["target"] = str(entry.resolve())
+                except OSError:
+                    entry_info["target"] = str(os.readlink(entry))
+            contents.append(entry_info)
+
+        manifest["artifacts"][key] = {
+            "path": str(artifacts_dir),
+            "relative_path": str(artifacts_dir.relative_to(SUITE_ROOT)),
+            "contents": contents,
+        }
+
+    manifest_path = results_dir / "manifest.json"
+    manifest_path.write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n")
+
+    # Human-readable summary
+    lines = [
+        "# Autopilot E2E Test Results", "",
+        f"**Session**: `{session_id}`",
+        f"**Date**: {manifest['created_at']}",
+        f"**Exit Status**: {exitstatus} ({'PASSED' if exitstatus == 0 else 'FAILED'})",
+        "", "## Artifacts by Scenario", "",
+    ]
+    for key, info in sorted(manifest["artifacts"].items()):
+        tool, scenario = key.split("__", 1) if "__" in key else (key, "unknown")
+        lines.append(f"### {tool} / {scenario}")
+        lines.append("")
+        lines.append(f"- **Path**: `{info['relative_path']}`")
+        lines.append("- **Contents**:")
+        for item in info["contents"]:
+            if item["type"] == "symlink":
+                lines.append(f"  - `{item['name']}` -> `{item['target']}`")
+            else:
+                lines.append(f"  - `{item['name']}`")
+        lines.append("")
+
+    lines.append("---")
+    lines.append(f"Results dir: `{results_dir.relative_to(SUITE_ROOT)}`")
+    (results_dir / "SUMMARY.md").write_text("\n".join(lines) + "\n")
+
+    print(f"\n{'='*70}")
+    print(f"  DX Autopilot E2E - Consolidated Results")
+    print(f"  {results_dir}")
+    print(f"{'='*70}\n")
+
+
 def _cleanup_artifacts_dir(artifacts_dir: Path) -> None:
     """Clean up an artifacts directory after a test session.
 
@@ -2314,7 +2407,7 @@ def _make_artifacts_dir_fixture(tool: str, mode: str, base: Path = None):
 
 
 @pytest.fixture(scope="session")
-def copilot_cli_artifacts_dir():
+def copilot_cli_artifacts_dir(request):
     """Session-scoped artifacts dir for Copilot CLI autopilot runs.
 
     Path: ``dx-agentic-dev/e2e-tests/copilot_cli/autopilot/<session_id>/``
@@ -2322,6 +2415,7 @@ def copilot_cli_artifacts_dir():
     session_id = time.strftime("%Y%m%d_%H%M%S") + f"_{uuid.uuid4().hex[:6]}"
     artifacts_dir = AGENTIC_E2E_ARTIFACTS_BASE / "copilot_cli" / "autopilot" / session_id
     artifacts_dir.mkdir(parents=True, exist_ok=True)
+    _register_artifacts_dir(request, "copilot_cli__suite", artifacts_dir)
 
     yield artifacts_dir
 
@@ -2330,7 +2424,7 @@ def copilot_cli_artifacts_dir():
 
 
 @pytest.fixture(scope="session")
-def cursor_cli_artifacts_dir():
+def cursor_cli_artifacts_dir(request):
     """Session-scoped artifacts dir for Cursor CLI autopilot runs.
 
     Path: ``dx-agentic-dev/e2e-tests/cursor_cli/autopilot/<session_id>/``
@@ -2338,6 +2432,7 @@ def cursor_cli_artifacts_dir():
     session_id = time.strftime("%Y%m%d_%H%M%S") + f"_{uuid.uuid4().hex[:6]}"
     artifacts_dir = AGENTIC_E2E_ARTIFACTS_BASE / "cursor_cli" / "autopilot" / session_id
     artifacts_dir.mkdir(parents=True, exist_ok=True)
+    _register_artifacts_dir(request, "cursor_cli__suite", artifacts_dir)
 
     yield artifacts_dir
 
@@ -2383,7 +2478,7 @@ def claude_code_runner():
 
 
 @pytest.fixture(scope="session")
-def opencode_artifacts_dir():
+def opencode_artifacts_dir(request):
     """Session-scoped artifacts dir for OpenCode autopilot runs.
 
     Path: ``dx-agentic-dev/e2e-tests/opencode/autopilot/<session_id>/``
@@ -2391,6 +2486,7 @@ def opencode_artifacts_dir():
     session_id = time.strftime("%Y%m%d_%H%M%S") + f"_{uuid.uuid4().hex[:6]}"
     artifacts_dir = AGENTIC_E2E_ARTIFACTS_BASE / "opencode" / "autopilot" / session_id
     artifacts_dir.mkdir(parents=True, exist_ok=True)
+    _register_artifacts_dir(request, "opencode__suite", artifacts_dir)
 
     yield artifacts_dir
 
@@ -2399,7 +2495,7 @@ def opencode_artifacts_dir():
 
 
 @pytest.fixture(scope="session")
-def claude_code_artifacts_dir():
+def claude_code_artifacts_dir(request):
     """Session-scoped artifacts dir for Claude Code autopilot runs.
 
     Path: ``dx-agentic-dev/e2e-tests/claude_code/autopilot/<session_id>/``
@@ -2407,6 +2503,7 @@ def claude_code_artifacts_dir():
     session_id = time.strftime("%Y%m%d_%H%M%S") + f"_{uuid.uuid4().hex[:6]}"
     artifacts_dir = AGENTIC_E2E_ARTIFACTS_BASE / "claude_code" / "autopilot" / session_id
     artifacts_dir.mkdir(parents=True, exist_ok=True)
+    _register_artifacts_dir(request, "claude_code__suite", artifacts_dir)
 
     yield artifacts_dir
 
@@ -2430,44 +2527,48 @@ def agentic_e2e_artifacts_dir(copilot_cli_artifacts_dir):
 # --- dx-compiler -----------------------------------------------------------
 
 @pytest.fixture(scope="session")
-def compiler_copilot_cli_artifacts_dir():
+def compiler_copilot_cli_artifacts_dir(request):
     """Path: dx-compiler/dx-agentic-dev/e2e-tests/copilot_cli/autopilot/<session_id>/"""
     session_id = time.strftime("%Y%m%d_%H%M%S") + f"_{uuid.uuid4().hex[:6]}"
     artifacts_dir = COMPILER_E2E_ARTIFACTS_BASE / "copilot_cli" / "autopilot" / session_id
     artifacts_dir.mkdir(parents=True, exist_ok=True)
+    _register_artifacts_dir(request, "copilot_cli__compiler", artifacts_dir)
     yield artifacts_dir
     if os.environ.get("DX_AGENTIC_E2E_CLEANUP_ARTIFACTS"):
         _cleanup_artifacts_dir(artifacts_dir)
 
 
 @pytest.fixture(scope="session")
-def compiler_cursor_cli_artifacts_dir():
+def compiler_cursor_cli_artifacts_dir(request):
     """Path: dx-compiler/dx-agentic-dev/e2e-tests/cursor_cli/autopilot/<session_id>/"""
     session_id = time.strftime("%Y%m%d_%H%M%S") + f"_{uuid.uuid4().hex[:6]}"
     artifacts_dir = COMPILER_E2E_ARTIFACTS_BASE / "cursor_cli" / "autopilot" / session_id
     artifacts_dir.mkdir(parents=True, exist_ok=True)
+    _register_artifacts_dir(request, "cursor_cli__compiler", artifacts_dir)
     yield artifacts_dir
     if os.environ.get("DX_AGENTIC_E2E_CLEANUP_ARTIFACTS"):
         _cleanup_artifacts_dir(artifacts_dir)
 
 
 @pytest.fixture(scope="session")
-def compiler_opencode_artifacts_dir():
+def compiler_opencode_artifacts_dir(request):
     """Path: dx-compiler/dx-agentic-dev/e2e-tests/opencode/autopilot/<session_id>/"""
     session_id = time.strftime("%Y%m%d_%H%M%S") + f"_{uuid.uuid4().hex[:6]}"
     artifacts_dir = COMPILER_E2E_ARTIFACTS_BASE / "opencode" / "autopilot" / session_id
     artifacts_dir.mkdir(parents=True, exist_ok=True)
+    _register_artifacts_dir(request, "opencode__compiler", artifacts_dir)
     yield artifacts_dir
     if os.environ.get("DX_AGENTIC_E2E_CLEANUP_ARTIFACTS"):
         _cleanup_artifacts_dir(artifacts_dir)
 
 
 @pytest.fixture(scope="session")
-def compiler_claude_code_artifacts_dir():
+def compiler_claude_code_artifacts_dir(request):
     """Path: dx-compiler/dx-agentic-dev/e2e-tests/claude_code/autopilot/<session_id>/"""
     session_id = time.strftime("%Y%m%d_%H%M%S") + f"_{uuid.uuid4().hex[:6]}"
     artifacts_dir = COMPILER_E2E_ARTIFACTS_BASE / "claude_code" / "autopilot" / session_id
     artifacts_dir.mkdir(parents=True, exist_ok=True)
+    _register_artifacts_dir(request, "claude_code__compiler", artifacts_dir)
     yield artifacts_dir
     if os.environ.get("DX_AGENTIC_E2E_CLEANUP_ARTIFACTS"):
         _cleanup_artifacts_dir(artifacts_dir)
@@ -2476,44 +2577,48 @@ def compiler_claude_code_artifacts_dir():
 # --- dx_app ----------------------------------------------------------------
 
 @pytest.fixture(scope="session")
-def app_copilot_cli_artifacts_dir():
+def app_copilot_cli_artifacts_dir(request):
     """Path: dx-runtime/dx_app/dx-agentic-dev/e2e-tests/copilot_cli/autopilot/<session_id>/"""
     session_id = time.strftime("%Y%m%d_%H%M%S") + f"_{uuid.uuid4().hex[:6]}"
     artifacts_dir = APP_E2E_ARTIFACTS_BASE / "copilot_cli" / "autopilot" / session_id
     artifacts_dir.mkdir(parents=True, exist_ok=True)
+    _register_artifacts_dir(request, "copilot_cli__dx_app", artifacts_dir)
     yield artifacts_dir
     if os.environ.get("DX_AGENTIC_E2E_CLEANUP_ARTIFACTS"):
         _cleanup_artifacts_dir(artifacts_dir)
 
 
 @pytest.fixture(scope="session")
-def app_cursor_cli_artifacts_dir():
+def app_cursor_cli_artifacts_dir(request):
     """Path: dx-runtime/dx_app/dx-agentic-dev/e2e-tests/cursor_cli/autopilot/<session_id>/"""
     session_id = time.strftime("%Y%m%d_%H%M%S") + f"_{uuid.uuid4().hex[:6]}"
     artifacts_dir = APP_E2E_ARTIFACTS_BASE / "cursor_cli" / "autopilot" / session_id
     artifacts_dir.mkdir(parents=True, exist_ok=True)
+    _register_artifacts_dir(request, "cursor_cli__dx_app", artifacts_dir)
     yield artifacts_dir
     if os.environ.get("DX_AGENTIC_E2E_CLEANUP_ARTIFACTS"):
         _cleanup_artifacts_dir(artifacts_dir)
 
 
 @pytest.fixture(scope="session")
-def app_opencode_artifacts_dir():
+def app_opencode_artifacts_dir(request):
     """Path: dx-runtime/dx_app/dx-agentic-dev/e2e-tests/opencode/autopilot/<session_id>/"""
     session_id = time.strftime("%Y%m%d_%H%M%S") + f"_{uuid.uuid4().hex[:6]}"
     artifacts_dir = APP_E2E_ARTIFACTS_BASE / "opencode" / "autopilot" / session_id
     artifacts_dir.mkdir(parents=True, exist_ok=True)
+    _register_artifacts_dir(request, "opencode__dx_app", artifacts_dir)
     yield artifacts_dir
     if os.environ.get("DX_AGENTIC_E2E_CLEANUP_ARTIFACTS"):
         _cleanup_artifacts_dir(artifacts_dir)
 
 
 @pytest.fixture(scope="session")
-def app_claude_code_artifacts_dir():
+def app_claude_code_artifacts_dir(request):
     """Path: dx-runtime/dx_app/dx-agentic-dev/e2e-tests/claude_code/autopilot/<session_id>/"""
     session_id = time.strftime("%Y%m%d_%H%M%S") + f"_{uuid.uuid4().hex[:6]}"
     artifacts_dir = APP_E2E_ARTIFACTS_BASE / "claude_code" / "autopilot" / session_id
     artifacts_dir.mkdir(parents=True, exist_ok=True)
+    _register_artifacts_dir(request, "claude_code__dx_app", artifacts_dir)
     yield artifacts_dir
     if os.environ.get("DX_AGENTIC_E2E_CLEANUP_ARTIFACTS"):
         _cleanup_artifacts_dir(artifacts_dir)
@@ -2522,44 +2627,48 @@ def app_claude_code_artifacts_dir():
 # --- dx_stream -------------------------------------------------------------
 
 @pytest.fixture(scope="session")
-def stream_copilot_cli_artifacts_dir():
+def stream_copilot_cli_artifacts_dir(request):
     """Path: dx-runtime/dx_stream/dx-agentic-dev/e2e-tests/copilot_cli/autopilot/<session_id>/"""
     session_id = time.strftime("%Y%m%d_%H%M%S") + f"_{uuid.uuid4().hex[:6]}"
     artifacts_dir = STREAM_E2E_ARTIFACTS_BASE / "copilot_cli" / "autopilot" / session_id
     artifacts_dir.mkdir(parents=True, exist_ok=True)
+    _register_artifacts_dir(request, "copilot_cli__dx_stream", artifacts_dir)
     yield artifacts_dir
     if os.environ.get("DX_AGENTIC_E2E_CLEANUP_ARTIFACTS"):
         _cleanup_artifacts_dir(artifacts_dir)
 
 
 @pytest.fixture(scope="session")
-def stream_cursor_cli_artifacts_dir():
+def stream_cursor_cli_artifacts_dir(request):
     """Path: dx-runtime/dx_stream/dx-agentic-dev/e2e-tests/cursor_cli/autopilot/<session_id>/"""
     session_id = time.strftime("%Y%m%d_%H%M%S") + f"_{uuid.uuid4().hex[:6]}"
     artifacts_dir = STREAM_E2E_ARTIFACTS_BASE / "cursor_cli" / "autopilot" / session_id
     artifacts_dir.mkdir(parents=True, exist_ok=True)
+    _register_artifacts_dir(request, "cursor_cli__dx_stream", artifacts_dir)
     yield artifacts_dir
     if os.environ.get("DX_AGENTIC_E2E_CLEANUP_ARTIFACTS"):
         _cleanup_artifacts_dir(artifacts_dir)
 
 
 @pytest.fixture(scope="session")
-def stream_opencode_artifacts_dir():
+def stream_opencode_artifacts_dir(request):
     """Path: dx-runtime/dx_stream/dx-agentic-dev/e2e-tests/opencode/autopilot/<session_id>/"""
     session_id = time.strftime("%Y%m%d_%H%M%S") + f"_{uuid.uuid4().hex[:6]}"
     artifacts_dir = STREAM_E2E_ARTIFACTS_BASE / "opencode" / "autopilot" / session_id
     artifacts_dir.mkdir(parents=True, exist_ok=True)
+    _register_artifacts_dir(request, "opencode__dx_stream", artifacts_dir)
     yield artifacts_dir
     if os.environ.get("DX_AGENTIC_E2E_CLEANUP_ARTIFACTS"):
         _cleanup_artifacts_dir(artifacts_dir)
 
 
 @pytest.fixture(scope="session")
-def stream_claude_code_artifacts_dir():
+def stream_claude_code_artifacts_dir(request):
     """Path: dx-runtime/dx_stream/dx-agentic-dev/e2e-tests/claude_code/autopilot/<session_id>/"""
     session_id = time.strftime("%Y%m%d_%H%M%S") + f"_{uuid.uuid4().hex[:6]}"
     artifacts_dir = STREAM_E2E_ARTIFACTS_BASE / "claude_code" / "autopilot" / session_id
     artifacts_dir.mkdir(parents=True, exist_ok=True)
+    _register_artifacts_dir(request, "claude_code__dx_stream", artifacts_dir)
     yield artifacts_dir
     if os.environ.get("DX_AGENTIC_E2E_CLEANUP_ARTIFACTS"):
         _cleanup_artifacts_dir(artifacts_dir)
@@ -2568,7 +2677,7 @@ def stream_claude_code_artifacts_dir():
 # --- dx_stream cascaded scenario artifacts ---------------------------------
 
 @pytest.fixture(scope="session")
-def stream_copilot_cascaded_artifacts_dir():
+def stream_copilot_cascaded_artifacts_dir(request):
     """Cascaded scenario artifacts dir for Copilot CLI.
 
     Path: dx-runtime/dx_stream/dx-agentic-dev/e2e-tests/copilot_cli/autopilot_cascaded/<session_id>/
@@ -2576,13 +2685,14 @@ def stream_copilot_cascaded_artifacts_dir():
     session_id = time.strftime("%Y%m%d_%H%M%S") + f"_{uuid.uuid4().hex[:6]}"
     artifacts_dir = STREAM_E2E_ARTIFACTS_BASE / "copilot_cli" / "autopilot_cascaded" / session_id
     artifacts_dir.mkdir(parents=True, exist_ok=True)
+    _register_artifacts_dir(request, "copilot_cli__dx_stream_cascaded", artifacts_dir)
     yield artifacts_dir
     if os.environ.get("DX_AGENTIC_E2E_CLEANUP_ARTIFACTS"):
         _cleanup_artifacts_dir(artifacts_dir)
 
 
 @pytest.fixture(scope="session")
-def stream_cursor_cascaded_artifacts_dir():
+def stream_cursor_cascaded_artifacts_dir(request):
     """Cascaded scenario artifacts dir for Cursor CLI.
 
     Path: dx-runtime/dx_stream/dx-agentic-dev/e2e-tests/cursor_cli/autopilot_cascaded/<session_id>/
@@ -2590,13 +2700,14 @@ def stream_cursor_cascaded_artifacts_dir():
     session_id = time.strftime("%Y%m%d_%H%M%S") + f"_{uuid.uuid4().hex[:6]}"
     artifacts_dir = STREAM_E2E_ARTIFACTS_BASE / "cursor_cli" / "autopilot_cascaded" / session_id
     artifacts_dir.mkdir(parents=True, exist_ok=True)
+    _register_artifacts_dir(request, "cursor_cli__dx_stream_cascaded", artifacts_dir)
     yield artifacts_dir
     if os.environ.get("DX_AGENTIC_E2E_CLEANUP_ARTIFACTS"):
         _cleanup_artifacts_dir(artifacts_dir)
 
 
 @pytest.fixture(scope="session")
-def stream_opencode_cascaded_artifacts_dir():
+def stream_opencode_cascaded_artifacts_dir(request):
     """Cascaded scenario artifacts dir for OpenCode.
 
     Path: dx-runtime/dx_stream/dx-agentic-dev/e2e-tests/opencode/autopilot_cascaded/<session_id>/
@@ -2604,13 +2715,14 @@ def stream_opencode_cascaded_artifacts_dir():
     session_id = time.strftime("%Y%m%d_%H%M%S") + f"_{uuid.uuid4().hex[:6]}"
     artifacts_dir = STREAM_E2E_ARTIFACTS_BASE / "opencode" / "autopilot_cascaded" / session_id
     artifacts_dir.mkdir(parents=True, exist_ok=True)
+    _register_artifacts_dir(request, "opencode__dx_stream_cascaded", artifacts_dir)
     yield artifacts_dir
     if os.environ.get("DX_AGENTIC_E2E_CLEANUP_ARTIFACTS"):
         _cleanup_artifacts_dir(artifacts_dir)
 
 
 @pytest.fixture(scope="session")
-def stream_claude_code_cascaded_artifacts_dir():
+def stream_claude_code_cascaded_artifacts_dir(request):
     """Cascaded scenario artifacts dir for Claude Code.
 
     Path: dx-runtime/dx_stream/dx-agentic-dev/e2e-tests/claude_code/autopilot_cascaded/<session_id>/
@@ -2618,6 +2730,7 @@ def stream_claude_code_cascaded_artifacts_dir():
     session_id = time.strftime("%Y%m%d_%H%M%S") + f"_{uuid.uuid4().hex[:6]}"
     artifacts_dir = STREAM_E2E_ARTIFACTS_BASE / "claude_code" / "autopilot_cascaded" / session_id
     artifacts_dir.mkdir(parents=True, exist_ok=True)
+    _register_artifacts_dir(request, "claude_code__dx_stream_cascaded", artifacts_dir)
     yield artifacts_dir
     if os.environ.get("DX_AGENTIC_E2E_CLEANUP_ARTIFACTS"):
         _cleanup_artifacts_dir(artifacts_dir)

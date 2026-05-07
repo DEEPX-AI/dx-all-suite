@@ -339,6 +339,13 @@ Artifact Verification Gate는 각 artifact가 **어떻게** 검증되는지 정�
 - Step 5 (`/dx-verify-completion`)는 모든 mandatory deliverable이 존재하고
   Artifact Verification Gate check를 통과하는지 확인.
 
+### Invoke = 실제 Tool Call
+
+"skill을 호출한다"는 것은 `skill` tool을 호출하여 load하는 것을 의미합니다.
+텍스트에 "dx-tdd를 사용합니다"라고 쓰는 것은 호출이 **아닙니다** — tool이
+반드시 호출되어야 합니다. `skill` tool을 호출하지 않았다면 해당 단계는
+미완료입니다.
+
 ### Anti-Pattern (금지)
 
 - "이건 간단해서 brainstorm 불필요" → brainstorm은 non-trivial 코드 생성에
@@ -351,6 +358,12 @@ Artifact Verification Gate는 각 artifact가 **어떻게** 검증되는지 정�
 - 실행 출력 없이 DONE 선언 → 증거 필수. "검증했다"는 출력 없이는 불가.
 - "사용자가 빨리 하라고 했다" → 사용자 지시가 이 HARD GATE를 override하지 않음.
   속도가 프로세스 생략을 정당화하지 않음.
+- **텍스트 언급 ≠ skill 호출** — 응답 텍스트에 "dx-tdd를 사용합니다" 또는
+  "dx-brainstorm-and-plan을 따릅니다"라고 작성하는 것은 유효한 호출이 아닙니다.
+  각 단계마다 `skill` tool이 반드시 호출되어야 합니다.
+- **대화 맥락 ≠ brainstorming** — 이전 메시지에서 요구사항을 논의했다고 해서
+  `/dx-brainstorm-and-plan` 호출을 대체할 수 없습니다. 각 기능에는 명시적
+  사용자 승인이 포함된 정식 brainstorm이 필요합니다.
 
 ## 자율 모드 보호 (MANDATORY)
 
@@ -955,6 +968,34 @@ Non-trivial로 간주하며, Trivial 변경 예외가 적용되지 않습니다.
 | **증거 없이 완료 선언 금지** | pytest/generator 출력 제시 — 완료 주장 불가 |
 | **생성된 파일 직접 편집 금지** | `CLAUDE.md`, `AGENTS.md`, `.claude/` → `.deepx/` source 편집 |
 
+### "호출(Invoke)" = 실제 `skill` Tool Call (필수)
+
+"skill을 호출한다"는 것은 **`skill` tool**(또는 해당 platform의 동등한 도구)을
+실제로 호출하여 skill을 load하고 활성화하는 것을 의미합니다. 다음은 유효한
+호출이 **아닙니다**:
+
+- 텍스트에 "dx-tdd를 사용합니다"라고 쓰기 → **호출 아님**
+- 머릿속으로 skill의 규칙을 따르기로 결정 → **호출 아님**
+- plan이나 설명에서 skill을 언급 → **호출 아님**
+
+필수 Skill 시퀀스의 각 단계는 실제 tool call이 필요합니다. `skill` tool이
+호출되지 않았으면 해당 단계는 미완료입니다.
+
+### 구현 전 체크리스트 (필수)
+
+코드 작성 전 (첫 번째 `edit` 또는 `create` 호출 포함), agent는 다음 조건이
+충족되었는지 검증해야 합니다. 대화에 체크리스트를 출력하세요:
+
+```
+SWE Pre-Implementation Checklist:
+[ ] /dx-skill-router 호출됨 (현재 메시지)
+[ ] /dx-brainstorm-and-plan 호출됨 AND 사용자 계획 승인
+[ ] /dx-tdd 호출됨 AND RED baseline 캡처됨
+[ ] 수정 대상 파일 식별 및 분류됨 (canonical vs generated)
+```
+
+어떤 항목이라도 체크할 수 없으면 **중지**하고 누락된 단계를 먼저 완료하세요.
+
 ### 흔한 안티패턴 (금지)
 
 - "변경이 명확하다"는 이유로 `/dx-brainstorm-and-plan` 건너뛰기 — 절대 명확하지 않음
@@ -975,6 +1016,12 @@ Non-trivial로 간주하며, Trivial 변경 예외가 적용되지 않습니다.
 - **이전 Skill 호출을 현재 메시지 적용 범위로 취급** — `/dx-skill-router`는 **각 사용자
   메시지** 시작 시 호출되어야 합니다. 이전 메시지의 호출은 이월되지 않습니다.
   "이미 이 세션에서 호출했다"는 합리화입니다.
+- **텍스트 언급 ≠ skill 호출** — 응답 텍스트에 "dx-tdd를 사용합니다" 또는
+  "dx-brainstorm-and-plan을 따릅니다"라고 작성하는 것은 `skill` tool을 호출하는 것과
+  **같지 않습니다**. Skill은 반드시 tool call을 통해 load해야 호출된 것으로 간주합니다.
+- **대화 연속성 합리화** — "이전 메시지에서 이미 논의했으니까"라는 이유로 현재 기능에 대한
+  전체 시퀀스를 면제할 수 없습니다. 각 기능 추가는 대화에 아무리 많은 맥락이 있더라도
+  독립적인 단위로서 고유한 brainstorm, plan, TDD 주기가 필요합니다.
 
 ---
 

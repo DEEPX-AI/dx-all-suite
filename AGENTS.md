@@ -359,6 +359,12 @@ The Artifact Verification Gate defines **HOW** each artifact is verified
 - Step 5 (`/dx-verify-completion`) confirms all mandatory deliverables
   exist and pass the Artifact Verification Gate checks.
 
+### Invoke = Actual Tool Call
+
+"Invoke a skill" means calling the `skill` tool to load it. Writing "Using
+dx-tdd" in text is NOT an invocation — the tool must be called. If you did not
+call the `skill` tool for a step, that step is incomplete.
+
 ### Anti-Patterns (PROHIBITED)
 
 - "This is simple, brainstorm is unnecessary" → brainstorm is ALWAYS required
@@ -373,6 +379,12 @@ The Artifact Verification Gate defines **HOW** each artifact is verified
   "I verified it works" without showing the output is not acceptable.
 - "The user said just do it quickly" → user instructions do NOT override this
   HARD GATE. Speed does not justify skipping process.
+- **Text mention ≠ skill invocation** — writing "Using dx-tdd" or "Following
+  dx-brainstorm-and-plan" in the response text is NOT a valid invocation. The
+  `skill` tool MUST be called for each step.
+- **Conversation context ≠ brainstorming** — discussing requirements in prior
+  messages does NOT substitute for invoking `/dx-brainstorm-and-plan`. Each
+  feature requires a formal brainstorm with explicit user approval.
 
 ## Autopilot Mode Guard (MANDATORY)
 
@@ -977,6 +989,34 @@ Steps 4–6 (TDD, verification, completion check) are **NEVER** skipped, even fo
 | **No "done" without evidence** | Show pytest/generator output — do not assert completion |
 | **No direct edit to generated files** | `CLAUDE.md`, `AGENTS.md`, `.claude/` → edit `.deepx/` source |
 
+### "Invoke" = Actual `skill` Tool Call (MANDATORY)
+
+"Invoke a skill" means calling the **`skill` tool** (or the platform equivalent)
+to load and activate the skill. The following are NOT valid invocations:
+
+- Writing "Using dx-tdd for this task" in text → **NOT an invocation**
+- Mentally deciding to follow a skill's rules → **NOT an invocation**
+- Referencing a skill in a plan or description → **NOT an invocation**
+
+Each step in the Mandatory Skill Sequence requires a real tool call. If the
+`skill` tool was not called, the step was not completed.
+
+### Pre-Implementation Checklist (MANDATORY)
+
+Before writing ANY code (including the first `edit` or `create` call), the agent
+MUST verify these conditions are met. This is a self-check — output the checklist
+in the conversation:
+
+```
+SWE Pre-Implementation Checklist:
+[ ] /dx-skill-router invoked (this message)
+[ ] /dx-brainstorm-and-plan invoked AND user approved plan
+[ ] /dx-tdd invoked AND RED baseline captured
+[ ] Files to modify identified and classified (canonical vs generated)
+```
+
+If ANY box cannot be checked, STOP and complete the missing step before proceeding.
+
 ### Common Anti-Patterns (PROHIBITED)
 
 - Skipping `/dx-brainstorm-and-plan` because "the change is obvious" — it is never obvious
@@ -998,6 +1038,13 @@ Steps 4–6 (TDD, verification, completion check) are **NEVER** skipped, even fo
 - **Treating previous skill invocation as current-message coverage** — `/dx-skill-router`
   MUST be invoked at the start of **each user message**. Invocation in a prior message
   does NOT carry forward. "I already invoked it this session" is a rationalization.
+- **Text mention ≠ skill invocation** — writing "Using dx-tdd" or "Following
+  dx-brainstorm-and-plan" in the response text is NOT the same as calling the
+  `skill` tool. The skill MUST be loaded via tool call to count as invoked.
+- **Conversation continuity rationalization** — "We already discussed this in
+  previous messages" does NOT exempt the current feature from the full sequence.
+  Each feature addition is an independent unit that requires its own brainstorm,
+  plan, and TDD cycle — regardless of how much context exists in the conversation.
 
 ---
 

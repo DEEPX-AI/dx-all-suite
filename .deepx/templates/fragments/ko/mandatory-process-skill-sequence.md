@@ -70,6 +70,13 @@ Artifact Verification Gate는 각 artifact가 **어떻게** 검증되는지 정�
 - Step 5 (`/dx-verify-completion`)는 모든 mandatory deliverable이 존재하고
   Artifact Verification Gate check를 통과하는지 확인.
 
+### Invoke = 실제 Tool Call
+
+"skill을 호출한다"는 것은 `skill` tool을 호출하여 load하는 것을 의미합니다.
+텍스트에 "dx-tdd를 사용합니다"라고 쓰는 것은 호출이 **아닙니다** — tool이
+반드시 호출되어야 합니다. `skill` tool을 호출하지 않았다면 해당 단계는
+미완료입니다.
+
 ### Anti-Pattern (금지)
 
 - "이건 간단해서 brainstorm 불필요" → brainstorm은 non-trivial 코드 생성에
@@ -82,3 +89,9 @@ Artifact Verification Gate는 각 artifact가 **어떻게** 검증되는지 정�
 - 실행 출력 없이 DONE 선언 → 증거 필수. "검증했다"는 출력 없이는 불가.
 - "사용자가 빨리 하라고 했다" → 사용자 지시가 이 HARD GATE를 override하지 않음.
   속도가 프로세스 생략을 정당화하지 않음.
+- **텍스트 언급 ≠ skill 호출** — 응답 텍스트에 "dx-tdd를 사용합니다" 또는
+  "dx-brainstorm-and-plan을 따릅니다"라고 작성하는 것은 유효한 호출이 아닙니다.
+  각 단계마다 `skill` tool이 반드시 호출되어야 합니다.
+- **대화 맥락 ≠ brainstorming** — 이전 메시지에서 요구사항을 논의했다고 해서
+  `/dx-brainstorm-and-plan` 호출을 대체할 수 없습니다. 각 기능에는 명시적
+  사용자 승인이 포함된 정식 brainstorm이 필요합니다.

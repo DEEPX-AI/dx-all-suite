@@ -70,6 +70,12 @@ The Artifact Verification Gate defines **HOW** each artifact is verified
 - Step 5 (`/dx-verify-completion`) confirms all mandatory deliverables
   exist and pass the Artifact Verification Gate checks.
 
+### Invoke = Actual Tool Call
+
+"Invoke a skill" means calling the `skill` tool to load it. Writing "Using
+dx-tdd" in text is NOT an invocation — the tool must be called. If you did not
+call the `skill` tool for a step, that step is incomplete.
+
 ### Anti-Patterns (PROHIBITED)
 
 - "This is simple, brainstorm is unnecessary" → brainstorm is ALWAYS required
@@ -84,3 +90,9 @@ The Artifact Verification Gate defines **HOW** each artifact is verified
   "I verified it works" without showing the output is not acceptable.
 - "The user said just do it quickly" → user instructions do NOT override this
   HARD GATE. Speed does not justify skipping process.
+- **Text mention ≠ skill invocation** — writing "Using dx-tdd" or "Following
+  dx-brainstorm-and-plan" in the response text is NOT a valid invocation. The
+  `skill` tool MUST be called for each step.
+- **Conversation context ≠ brainstorming** — discussing requirements in prior
+  messages does NOT substitute for invoking `/dx-brainstorm-and-plan`. Each
+  feature requires a formal brainstorm with explicit user approval.
