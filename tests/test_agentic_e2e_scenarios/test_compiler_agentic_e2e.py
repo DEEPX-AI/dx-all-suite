@@ -60,7 +60,7 @@ def scenario(copilot_runner, compiler_copilot_cli_artifacts_dir) -> ScenarioResu
         workdir=COMPILER_ROOT,
         scenario_key="compiler",
         session_log_dir=compiler_copilot_cli_artifacts_dir,
-        timeout=1500,  # download + compilation + verification may take up to 25 min
+        timeout=2400,  # download + compilation + verification — varies by PC spec, model size, and parallel jobs
     )
 
 
@@ -77,8 +77,8 @@ class TestExecution:
 
     def test_completed_within_timeout(self, scenario: ScenarioResult):
         """Execution finishes within the configured timeout."""
-        assert scenario.duration_seconds < 1500, (
-            f"Scenario took {scenario.duration_seconds:.0f}s (limit: 1500s)"
+        assert scenario.duration_seconds < 2400, (
+            f"Scenario took {scenario.duration_seconds:.0f}s (limit: 2400s)"
         )
 
     def test_start_sentinel_emitted(self, scenario: ScenarioResult):

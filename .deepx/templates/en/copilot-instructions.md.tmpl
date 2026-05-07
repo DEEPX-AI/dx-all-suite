@@ -258,15 +258,12 @@ When dxcom is available and compilation proceeds:
 - **NEVER modify `compiler.properties`** — system file managed by the installer.
   See `dx-compiler/.deepx/memory/common_pitfalls.md` Pitfalls #21 and #22.
 
-### Background Compilation (MANDATORY — R42)
+### Background Compilation (RECOMMENDED)
 
-**WARNING — Synchronous `dx_com.compile()` in the main process is PROHIBITED (R42).**
+Using `subprocess.Popen` for compilation avoids blocking the agent's tool-call
+thread for 10+ minutes, allowing parallel artifact generation.
 
-Calling `dx_com.compile()` directly blocks the agent's tool-call thread for 10+ minutes.
-During that time the agent cannot generate other artifacts in parallel, making it
-vulnerable to timeout and missing the concurrent artifact generation requirement.
-
-**ALWAYS use `subprocess.Popen` with a `compile.pid` file:**
+**Recommended pattern** — `subprocess.Popen` with a `compile.pid` file:
 ```python
 import subprocess, os
 compile_script = f"{work_dir}/compile.py"
@@ -282,9 +279,8 @@ with open(f"{work_dir}/compile.pid", "w") as f:
 # BEFORE checking compile.pid / .dxnn existence.
 ```
 
-Evidence: copilot iter-11 and cursor iter-11 produced no `compile.pid` and used
-synchronous compilation — this is the pattern to avoid. claude_code and opencode
-(via subagent) correctly use `subprocess.Popen` + PID file.
+Synchronous compilation is acceptable when the agent can tolerate the blocking
+time, but background compilation is preferred for timeout avoidance.
 
 ### Sanity Check Failure Recovery (MANDATORY)
 

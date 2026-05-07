@@ -699,14 +699,12 @@ dxcom이 사용 가능하고 컴파일이 진행되는 경우:
 - **절대 `compiler.properties`를 수정하지 마세요** — 설치 프로그램이 관리하는 시스템 파일입니다.
   `dx-compiler/.deepx/memory/common_pitfalls.md` Pitfalls #21과 #22를 참조하세요.
 
-### Background Compilation (MANDATORY — R42)
+### Background Compilation (RECOMMENDED)
 
-**경고 — 메인 프로세스에서 동기 `dx_com.compile()` 호출은 PROHIBITED (R42)입니다.**
+`subprocess.Popen`을 사용한 컴파일은 에이전트의 tool-call 스레드가 10분 이상
+블록되는 것을 방지하여 병렬 artifact 생성을 가능하게 합니다.
 
-`dx_com.compile()`을 직접 호출하면 에이전트의 tool-call 스레드가 10분 이상 블록됩니다.
-그 동안 에이전트는 다른 artifact를 병렬로 생성할 수 없어 timeout에 취약해집니다.
-
-**항상 `compile.pid` 파일과 함께 `subprocess.Popen`을 사용하세요:**
+**권장 패턴** — `compile.pid` 파일과 함께 `subprocess.Popen` 사용:
 ```python
 import subprocess, os
 compile_script = f"{work_dir}/compile.py"
@@ -722,7 +720,8 @@ with open(f"{work_dir}/compile.pid", "w") as f:
 # (factory, sync.py, setup.sh, run.sh, verify.py 등 모든 artifact 생성 후 확인)
 ```
 
-근거: copilot iter-11과 cursor iter-11은 `compile.pid`를 생성하지 않고 동기 컴파일을 사용했습니다.
+동기 컴파일도 에이전트가 블록 시간을 감당할 수 있다면 허용되지만,
+timeout 방지를 위해 background 컴파일이 권장됩니다.
 
 ### Sanity Check 실패 복구 (MANDATORY)
 

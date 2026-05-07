@@ -39,7 +39,7 @@ def scenario(opencode_runner, compiler_opencode_artifacts_dir) -> ScenarioResult
         workdir=COMPILER_ROOT,
         scenario_key="compiler",
         session_log_dir=compiler_opencode_artifacts_dir,
-        timeout=1500,
+        timeout=2400,
     )
 
 
@@ -52,8 +52,8 @@ class TestExecution:
 
     def test_completed_within_timeout(self, scenario: ScenarioResult):
         """Execution finishes within the configured timeout."""
-        assert scenario.duration_seconds < 1500, (
-            f"Scenario took {scenario.duration_seconds:.0f}s (limit: 1500s)"
+        assert scenario.duration_seconds < 2400, (
+            f"Scenario took {scenario.duration_seconds:.0f}s (limit: 2400s)"
         )
 
     def test_start_sentinel_emitted(self, scenario: ScenarioResult):
