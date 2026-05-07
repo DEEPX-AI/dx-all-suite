@@ -15,6 +15,7 @@ import pytest
 
 from .conftest import (
     COMPILER_ROOT,
+    DEFAULT_COMPILER_TIMEOUT,
     ScenarioResult,
     format_scenario_failure,
     verify_json_structure,
@@ -39,7 +40,7 @@ def scenario(opencode_runner, compiler_opencode_artifacts_dir) -> ScenarioResult
         workdir=COMPILER_ROOT,
         scenario_key="compiler",
         session_log_dir=compiler_opencode_artifacts_dir,
-        timeout=2400,
+        timeout=DEFAULT_COMPILER_TIMEOUT,
     )
 
 
@@ -52,8 +53,8 @@ class TestExecution:
 
     def test_completed_within_timeout(self, scenario: ScenarioResult):
         """Execution finishes within the configured timeout."""
-        assert scenario.duration_seconds < 2400, (
-            f"Scenario took {scenario.duration_seconds:.0f}s (limit: 2400s)"
+        assert scenario.duration_seconds < DEFAULT_COMPILER_TIMEOUT, (
+            f"Scenario took {scenario.duration_seconds:.0f}s (limit: {DEFAULT_COMPILER_TIMEOUT}s)"
         )
 
     def test_start_sentinel_emitted(self, scenario: ScenarioResult):

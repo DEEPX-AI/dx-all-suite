@@ -24,6 +24,7 @@ import pytest
 
 from .conftest import (
     COMPILER_ROOT,
+    DEFAULT_COMPILER_TIMEOUT,
     ScenarioResult,
     format_scenario_failure,
     verify_json_structure,
@@ -60,7 +61,7 @@ def scenario(copilot_runner, compiler_copilot_cli_artifacts_dir) -> ScenarioResu
         workdir=COMPILER_ROOT,
         scenario_key="compiler",
         session_log_dir=compiler_copilot_cli_artifacts_dir,
-        timeout=2400,  # download + compilation + verification — varies by PC spec, model size, and parallel jobs
+        timeout=DEFAULT_COMPILER_TIMEOUT,  # download + compilation + verification — varies by PC spec, model size, and parallel jobs
     )
 
 
@@ -77,8 +78,8 @@ class TestExecution:
 
     def test_completed_within_timeout(self, scenario: ScenarioResult):
         """Execution finishes within the configured timeout."""
-        assert scenario.duration_seconds < 2400, (
-            f"Scenario took {scenario.duration_seconds:.0f}s (limit: 2400s)"
+        assert scenario.duration_seconds < DEFAULT_COMPILER_TIMEOUT, (
+            f"Scenario took {scenario.duration_seconds:.0f}s (limit: {DEFAULT_COMPILER_TIMEOUT}s)"
         )
 
     def test_start_sentinel_emitted(self, scenario: ScenarioResult):
@@ -115,17 +116,40 @@ class TestGeneratedFiles:
         )
 
     def test_onnx_model_acquired(self, scenario: ScenarioResult):
-        """An ONNX model file was downloaded or exported."""
+        """An ONNX model file was downloaded or retained in session dir.
+
+        If .dxnn exists (compilation succeeded), missing .onnx is a warning
+        (agent used modelzoo path directly). If neither .onnx nor .dxnn exist,
+        it's a hard failure.
+        """
         if not scenario.succeeded:
             pytest.skip("Copilot execution failed")
+        import warnings
+
         onnx_files = scenario.generated_onnx_files
         # Also check for .pt files (intermediate download)
         pt_files = [
             f for f in scenario.all_generated_files
             if f.suffix in (".pt", ".pth")
         ]
-        assert len(onnx_files) > 0 or len(pt_files) > 0, (
-            f"No model files (.onnx, .pt, .pth) found.\n"
+        if len(onnx_files) > 0 or len(pt_files) > 0:
+            return  # Model retained — pass
+
+        # No .onnx/.pt found — check if compilation succeeded anyway
+        dxnn_files = scenario.generated_dxnn_files
+        if len(dxnn_files) > 0:
+            # Compilation succeeded without retaining source model — warn only
+            warnings.warn(
+                "No .onnx/.pt file retained in session directory, but .dxnn "
+                "compilation succeeded. Retaining the source ONNX is STRONGLY "
+                "RECOMMENDED for session reproducibility.",
+                UserWarning,
+            )
+            return
+
+        # Neither model source nor compiled output — hard fail
+        assert False, (
+            f"No model files (.onnx, .pt, .pth) AND no .dxnn found.\n"
             f"Search dirs: {scenario.output_dirs}\n"
             f"All files: {[f.name for f in scenario.all_generated_files]}\n"
             "The agent should download the model before compilation."

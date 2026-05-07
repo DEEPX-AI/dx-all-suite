@@ -57,6 +57,8 @@ LIST_MODE=0
 CACHE_CLEAR=0
 INTERNAL_MODE=0
 CLEANUP_ARTIFACTS_FLAG=0
+PARALLEL_WORKERS=""
+PARALLEL_ARGS=()
 
 print_info() {
     echo -e "${BLUE}[INFO]${NC} $@"
@@ -141,6 +143,7 @@ print_usage() {
     echo -e "  ${GREEN}--cache-clear${NC}    - Clear pytest cache before running tests"
     echo -e "  ${GREEN}--internal${NC}       - Use internal network settings (sets USE_INTRANET=true)"
     echo -e "  ${GREEN}--cleanup${NC}        - Delete generated artifacts after a successful run (default: keep)"
+    echo -e "  ${GREEN}--parallel[=N]${NC}   - Run E2E scenarios in parallel (default: 3 workers, uses pytest-xdist)"
     echo -e "  ${GREEN}-k <expr>${NC}        - Pytest keyword expression filter (e.g., \"ubuntu and 24.04\")"
     echo -e "  ${GREEN}-m <expr>${NC}        - Pytest marker expression filter (e.g., \"local and sanity\")"
     echo -e ""
@@ -260,6 +263,19 @@ while [[ $# -gt 0 ]]; do
             ;;
         --cleanup)
             CLEANUP_ARTIFACTS_FLAG=1
+            shift
+            ;;
+        --parallel)
+            PARALLEL_WORKERS="${DX_PARALLEL_WORKERS:-3}"
+            PARALLEL_ARGS=(-n "${PARALLEL_WORKERS}" --dist loadscope)
+            shift
+            ;;
+        --parallel=*)
+            PARALLEL_WORKERS="${1#*=}"
+            if [ -z "${PARALLEL_WORKERS}" ]; then
+                PARALLEL_WORKERS=3
+            fi
+            PARALLEL_ARGS=(-n "${PARALLEL_WORKERS}" --dist loadscope)
             shift
             ;;
         -k)
@@ -762,7 +778,7 @@ case "$COMMAND" in
         else
             COMBINED_M_ARGS=(-m agentic_e2e_copilot_cli_autopilot)
         fi
-        pytest "${SCRIPT_DIR}/test_agentic_e2e_scenarios/" -v "${CAPTURE_ARGS[@]}" "${COLLECT_ONLY_ARGS[@]}" "${COMBINED_M_ARGS[@]}" "${K_ARGS[@]}" "${REPORT_ARGS[@]}" "${JSON_ARGS[@]}" "$@"
+        pytest "${SCRIPT_DIR}/test_agentic_e2e_scenarios/" -v "${PARALLEL_ARGS[@]}" "${CAPTURE_ARGS[@]}" "${COLLECT_ONLY_ARGS[@]}" "${COMBINED_M_ARGS[@]}" "${K_ARGS[@]}" "${REPORT_ARGS[@]}" "${JSON_ARGS[@]}" "$@"
         EXIT_CODE=$?
         if [ $GENERATE_REPORT -eq 1 ] && [ $EXIT_CODE -eq 0 ]; then
             print_success "HTML report generated: ${REPORT_FILE}"
@@ -783,7 +799,7 @@ case "$COMMAND" in
         else
             COMBINED_M_ARGS=(-m agentic_e2e_cursor_cli_autopilot)
         fi
-        pytest "${SCRIPT_DIR}/test_agentic_e2e_scenarios/" -v "${CAPTURE_ARGS[@]}" "${COLLECT_ONLY_ARGS[@]}" "${COMBINED_M_ARGS[@]}" "${K_ARGS[@]}" "${REPORT_ARGS[@]}" "${JSON_ARGS[@]}" "$@"
+        pytest "${SCRIPT_DIR}/test_agentic_e2e_scenarios/" -v "${PARALLEL_ARGS[@]}" "${CAPTURE_ARGS[@]}" "${COLLECT_ONLY_ARGS[@]}" "${COMBINED_M_ARGS[@]}" "${K_ARGS[@]}" "${REPORT_ARGS[@]}" "${JSON_ARGS[@]}" "$@"
         EXIT_CODE=$?
         if [ $GENERATE_REPORT -eq 1 ] && [ $EXIT_CODE -eq 0 ]; then
             print_success "HTML report generated: ${REPORT_FILE}"
@@ -1425,7 +1441,7 @@ case "$COMMAND" in
         else
             COMBINED_M_ARGS=(-m agentic_e2e_opencode_cli_autopilot)
         fi
-        pytest "${SCRIPT_DIR}/test_agentic_e2e_scenarios/" -v "${CAPTURE_ARGS[@]}" "${COLLECT_ONLY_ARGS[@]}" "${COMBINED_M_ARGS[@]}" "${K_ARGS[@]}" "${REPORT_ARGS[@]}" "${JSON_ARGS[@]}" "$@"
+        pytest "${SCRIPT_DIR}/test_agentic_e2e_scenarios/" -v "${PARALLEL_ARGS[@]}" "${CAPTURE_ARGS[@]}" "${COLLECT_ONLY_ARGS[@]}" "${COMBINED_M_ARGS[@]}" "${K_ARGS[@]}" "${REPORT_ARGS[@]}" "${JSON_ARGS[@]}" "$@"
         EXIT_CODE=$?
         if [ $GENERATE_REPORT -eq 1 ] && [ $EXIT_CODE -eq 0 ]; then
             print_success "HTML report generated: ${REPORT_FILE}"
@@ -1453,7 +1469,7 @@ case "$COMMAND" in
         else
             COMBINED_M_ARGS=(-m agentic_e2e_claude_code_autopilot)
         fi
-        pytest "${SCRIPT_DIR}/test_agentic_e2e_scenarios/" -v "${CAPTURE_ARGS[@]}" "${COLLECT_ONLY_ARGS[@]}" "${COMBINED_M_ARGS[@]}" "${K_ARGS[@]}" "${REPORT_ARGS[@]}" "${JSON_ARGS[@]}" "$@"
+        pytest "${SCRIPT_DIR}/test_agentic_e2e_scenarios/" -v "${PARALLEL_ARGS[@]}" "${CAPTURE_ARGS[@]}" "${COLLECT_ONLY_ARGS[@]}" "${COMBINED_M_ARGS[@]}" "${K_ARGS[@]}" "${REPORT_ARGS[@]}" "${JSON_ARGS[@]}" "$@"
         EXIT_CODE=$?
         if [ $GENERATE_REPORT -eq 1 ] && [ $EXIT_CODE -eq 0 ]; then
             print_success "HTML report generated: ${REPORT_FILE}"

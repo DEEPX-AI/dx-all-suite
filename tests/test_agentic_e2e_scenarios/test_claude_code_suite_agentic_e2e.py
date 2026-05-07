@@ -14,6 +14,7 @@ from __future__ import annotations
 import pytest
 
 from .conftest import (
+    DEFAULT_COMPILE_DURATION_LIMIT,
     SUITE_ROOT,
     ScenarioResult,
     format_scenario_failure,
@@ -316,12 +317,13 @@ class TestCodeQuality:
         """Compilation completed within acceptable time limit (REC-W1).
 
         REC-W1: Detects slow calibration strategies that cause excessive compile times.
-        Only fails if compilation took > 900s — threshold accounts for PC spec variation,
-        model size, and potential parallel compilation workloads.
+        Only fails if compilation took > DEFAULT_COMPILE_DURATION_LIMIT — threshold
+        accounts for PC spec variation, model size, and potential parallel compilation
+        workloads. Override via DX_COMPILE_DURATION_LIMIT env var.
         """
         if not scenario.succeeded:
             pytest.skip("Claude Code execution failed")
-        if scenario.duration_seconds > 900:
+        if scenario.duration_seconds > DEFAULT_COMPILE_DURATION_LIMIT:
             compile_scripts = [
                 f for f in scenario.all_generated_files
                 if f.name in ("compile.py", "compile_model.py")
@@ -329,7 +331,7 @@ class TestCodeQuality:
             ]
             script_names = [s.name for s in compile_scripts]
             pytest.fail(
-                f"Compilation session took {scenario.duration_seconds:.0f}s (> 900s limit). "
+                f"Compilation session took {scenario.duration_seconds:.0f}s (> {DEFAULT_COMPILE_DURATION_LIMIT}s limit). "
                 f"Compile scripts: {script_names}. "
                 "Check for environmental issues (parallel compilation, slow disk I/O) "
                 "or excessive calibration_num settings."

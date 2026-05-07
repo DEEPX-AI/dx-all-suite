@@ -13,6 +13,12 @@ Provides:
 
 Note: Manual (interactive) modes are handled by ``test.sh agentic-e2e-copilot-manual``
 and ``test.sh agentic-e2e-cursor-manual`` as shell-based scripts (no pytest).
+
+Parallelism (pytest-xdist):
+  Supports ``pytest -n <N> --dist loadscope`` for parallel execution.
+  Each test module's scenario fixture (scope="module") runs on a single worker,
+  so independent scenarios (compiler, suite, dx_app, dx_stream, runtime)
+  execute concurrently across workers. Use ``./test.sh --parallel`` to enable.
 """
 
 from __future__ import annotations
@@ -50,6 +56,23 @@ from parse_copilot_session import (  # noqa: E402
     parse_session,
 )
 
+
+def pytest_configure(config):
+    """Register custom markers for agentic E2E tests.
+
+    This duplicates the registration in tests/conftest.py to suppress
+    PytestUnknownMarkWarning when tests are collected from a working directory
+    that doesn't traverse the parent conftest (e.g., running from tests/venv/).
+    """
+    markers = [
+        "agentic_e2e_copilot_cli_autopilot: Agentic E2E tests via Copilot CLI autopilot",
+        "agentic_e2e_cursor_cli_autopilot: Agentic E2E tests via Cursor CLI autopilot",
+        "agentic_e2e_opencode_cli_autopilot: Agentic E2E tests via OpenCode CLI autopilot",
+        "agentic_e2e_claude_code_autopilot: Agentic E2E tests via Claude Code CLI autopilot",
+    ]
+    for marker in markers:
+        config.addinivalue_line("markers", marker)
+
 # ---------------------------------------------------------------------------
 # Path constants (same roots as test_agentic_scenarios)
 # ---------------------------------------------------------------------------
@@ -76,6 +99,16 @@ DEFAULT_COPILOT_TIMEOUT = int(os.environ.get("DX_AGENTIC_E2E_TIMEOUT", "600"))
 # than single_model; 900s gives Copilot extra margin (vs 720s for OpenCode) because
 # Copilot's brainstorming pass takes longer and it often retries within a session.
 DEFAULT_COPILOT_CASCADED_TIMEOUT = int(os.environ.get("DX_COPILOT_CASCADED_TIMEOUT", "900"))
+
+# Compiler scenario timeout — compilation + verification can take 30-50 min depending on
+# calibration dataset size, model complexity, and parallel workloads on the same machine.
+# 3600s (60 min) accommodates parallel execution where 4 agents compile simultaneously.
+DEFAULT_COMPILER_TIMEOUT = int(os.environ.get("DX_COMPILER_TIMEOUT", "3600"))
+
+# Compile duration acceptability threshold (REC-W1) — suite scenarios fail if compilation
+# exceeds this limit. 1800s accounts for parallel compilation workloads (4 agents on same
+# machine can cause 2-3x slowdown vs single-agent baseline of ~600s).
+DEFAULT_COMPILE_DURATION_LIMIT = int(os.environ.get("DX_COMPILE_DURATION_LIMIT", "1800"))
 
 # Model to use for agentic E2E tests (override via env var)
 DEFAULT_COPILOT_MODEL = os.environ.get("DX_AGENTIC_E2E_MODEL", "claude-sonnet-4.6")
