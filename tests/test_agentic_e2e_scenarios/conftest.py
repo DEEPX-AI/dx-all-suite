@@ -727,13 +727,13 @@ class CopilotRunnerAutopilot:
                         pass  # Best-effort
 
             # Symlinks: create in log_dir for each detected output dir
-            # Pattern: <parent_name>_<session_name> -> <real_path>
+            # Pattern: <scenario_key>-copilot-session_<parent_name>_<session_name>
             for odir in output_dirs:
                 try:
                     odir_real = odir.resolve()
                     session_name = odir_real.name
                     parent_name = odir_real.parent.parent.name  # e.g. dx-compiler
-                    link_path = log_dir / f"{parent_name}_{session_name}"
+                    link_path = log_dir / f"{scenario_key}-copilot-session_{parent_name}_{session_name}"
                     link_path.unlink(missing_ok=True)
                     link_path.symlink_to(odir_real)
                 except Exception:
@@ -802,13 +802,13 @@ class CopilotRunnerAutopilot:
                         pass  # Best-effort
 
             # Symlinks: create in log_dir for each detected output dir
-            # Pattern: <parent_name>_<session_name> -> <real_path>
+            # Pattern: <scenario_key>-copilot-session_<parent_name>_<session_name>
             for odir in output_dirs:
                 try:
                     odir_real = odir.resolve()
                     session_name = odir_real.name
                     parent_name = odir_real.parent.parent.name  # e.g. dx-compiler
-                    link_path = log_dir / f"{parent_name}_{session_name}"
+                    link_path = log_dir / f"{scenario_key}-copilot-session_{parent_name}_{session_name}"
                     link_path.unlink(missing_ok=True)
                     link_path.symlink_to(odir_real)
                 except Exception:
@@ -1071,7 +1071,7 @@ class CursorRunnerAutopilot:
                     odir_real = odir.resolve()
                     session_name = odir_real.name
                     parent_name = odir_real.parent.parent.name
-                    link_path = log_dir / f"{parent_name}_{session_name}"
+                    link_path = log_dir / f"{scenario_key}-cursor-session_{parent_name}_{session_name}"
                     link_path.unlink(missing_ok=True)
                     link_path.symlink_to(odir_real)
                 except Exception:
@@ -1334,7 +1334,7 @@ class OpenCodeRunnerAutopilot:
                     odir_real = odir.resolve()
                     session_name = odir_real.name
                     parent_name = odir_real.parent.parent.name
-                    link_path = log_dir / f"{parent_name}_{session_name}"
+                    link_path = log_dir / f"{scenario_key}-opencode-session_{parent_name}_{session_name}"
                     link_path.unlink(missing_ok=True)
                     link_path.symlink_to(odir_real)
                 except Exception:
@@ -1627,7 +1627,7 @@ class ClaudeCodeRunnerAutopilot:
                     odir_real = odir.resolve()
                     session_name = odir_real.name
                     parent_name = odir_real.parent.parent.name
-                    link_path = log_dir / f"{parent_name}_{session_name}"
+                    link_path = log_dir / f"{scenario_key}-claude-code-session_{parent_name}_{session_name}"
                     link_path.unlink(missing_ok=True)
                     link_path.symlink_to(odir_real)
                 except Exception:

@@ -1048,7 +1048,7 @@ case "$COMMAND" in
                     # Determine parent sub-project name (e.g. dx-compiler, dx_app)
                     _parent_dir=$(dirname "$_dd")         # .../dx-compiler/dx-agentic-dev
                     _parent_name=$(basename "$(dirname "$_parent_dir")")  # dx-compiler
-                    _link_name="${_parent_name}_${_session_name}"
+                    _link_name="${scenario_key}-copilot-session_${_parent_name}_${_session_name}"
                     ln -sfn "$(realpath "$_dd")" "${ARTIFACTS_BASE}/${_link_name}"
                     print_info "Symlink: ${ARTIFACTS_BASE}/${_link_name} -> $(realpath "$_dd")"
                 done
@@ -1322,7 +1322,7 @@ case "$COMMAND" in
                     _session_name=$(basename "$_dd")
                     _parent_dir=$(dirname "$_dd")
                     _parent_name=$(basename "$(dirname "$_parent_dir")")
-                    _link_name="${_parent_name}_${_session_name}"
+                    _link_name="${scenario_key}-cursor-session_${_parent_name}_${_session_name}"
                     ln -sfn "$(realpath "$_dd")" "${ARTIFACTS_BASE}/${_link_name}"
                     print_info "Symlink: ${ARTIFACTS_BASE}/${_link_name} -> $(realpath "$_dd")"
                 done
@@ -1621,7 +1621,7 @@ case "$COMMAND" in
                     _session_name=$(basename "$_dd")
                     _parent_dir=$(dirname "$_dd")
                     _parent_name=$(basename "$(dirname "$_parent_dir")")
-                    _link_name="${_parent_name}_${_session_name}"
+                    _link_name="${scenario_key}-opencode-session_${_parent_name}_${_session_name}"
                     ln -sfn "$(realpath "$_dd")" "${ARTIFACTS_BASE}/${_link_name}"
                     print_info "Symlink: ${ARTIFACTS_BASE}/${_link_name} -> $(realpath "$_dd")"
                 done
@@ -1886,7 +1886,7 @@ case "$COMMAND" in
                     _session_name=$(basename "$_dd")
                     _parent_dir=$(dirname "$_dd")
                     _parent_name=$(basename "$(dirname "$_parent_dir")")
-                    _link_name="${_parent_name}_${_session_name}"
+                    _link_name="${scenario_key}-claude-code-session_${_parent_name}_${_session_name}"
                     ln -sfn "$(realpath "$_dd")" "${ARTIFACTS_BASE}/${_link_name}"
                     print_info "Symlink: ${ARTIFACTS_BASE}/${_link_name} -> $(realpath "$_dd")"
                 done
