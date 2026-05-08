@@ -26,6 +26,7 @@ from .conftest import (
     COMPILER_ROOT,
     DEFAULT_COMPILER_TIMEOUT,
     ScenarioResult,
+    check_no_cross_project_relative_paths,
     format_scenario_failure,
     verify_json_structure,
     verify_python_syntax,
@@ -296,6 +297,18 @@ class TestMandatoryArtifacts:
             f"All files: {[f.name for f in scenario.all_generated_files]}\n"
             "The agent MUST capture actual command output to session.log."
         )
+
+    def test_no_cross_project_relative_paths(self, scenario: ScenarioResult):
+        """setup.sh and run.sh must use SUITE_ROOT, not hardcoded ../../ for cross-project refs."""
+        if not scenario.succeeded:
+            pytest.skip("Copilot execution failed")
+        for script_name in ("setup.sh", "run.sh"):
+            scripts = [
+                f for f in scenario.all_generated_files
+                if f.name == script_name
+            ]
+            for script in scripts:
+                check_no_cross_project_relative_paths(script)
 
 
 class TestCodeQuality:

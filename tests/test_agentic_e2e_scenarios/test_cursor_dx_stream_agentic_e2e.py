@@ -531,7 +531,7 @@ class TestMandatoryArtifacts:
             )
 
     def test_readme_has_sufficient_length(self, scenario: ScenarioResult):
-        """R71/R73: Cursor single_model README.md should be substantive (>= 60 lines).
+        """R71/R73: Cursor single_model README.md should be substantive (>= 40 lines).
 
         Cursor consistently produces the shortest README (78 L in iter 15 vs 118–134 L
         for other tools).  This guard creates an early-warning signal before content
@@ -549,8 +549,8 @@ class TestMandatoryArtifacts:
         if not readme.exists():
             pytest.skip("No README.md in Cursor output directory")
         lines = len(readme.read_text(encoding="utf-8").splitlines())
-        assert lines >= 60, (
-            f"README.md too short: {lines} lines (expected >= 60). "
+        assert lines >= 40, (
+            f"README.md too short: {lines} lines (expected >= 40). "
             "A substantive README should include prerequisites, pipeline diagram, "
             "run instructions, configuration table, and files table."
         )

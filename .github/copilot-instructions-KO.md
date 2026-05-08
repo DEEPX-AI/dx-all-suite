@@ -590,6 +590,64 @@ verify.py가 "ONNX inference failed" 또는 "DXNN inference failed"를 출력하
 - `No module named 'dx_engine'` → verify.py가 runtime venv site-packages를 sys.path에 추가해야 함
 - "failed" 출력 후 exit 0 → 실패 분기에 `sys.exit(1)` 추가 필요
 
+### Cross-Project 경로 해석 — SUITE_ROOT (HARD GATE)
+
+`setup.sh`, `run.sh`, 또는 생성된 script가 **자체 sub-project 외부** 경로를 참조할 때
+(예: compiler session에서 `dx-runtime` 참조, app session에서 `dx-compiler` 참조),
+반드시 `SUITE_ROOT` auto-detection을 사용해야 합니다 — `../../dx-runtime` 같은
+하드코딩된 상대 경로는 절대 금지입니다.
+
+**이유**: Session 디렉토리 depth가 sub-project마다 다릅니다:
+- `dx-compiler/dx-agentic-dev/<session>/` = suite root에서 3단계
+- `dx-runtime/dx_app/dx-agentic-dev/<session>/` = suite root에서 4단계
+- `dx-runtime/dx_stream/dx-agentic-dev/<session>/` = suite root에서 4단계
+
+하드코딩된 `../../` 또는 `../../../` 경로는 agent가 depth를 잘못 계산하면
+깨집니다 (반복적인 실패 패턴).
+
+**필수 SUITE_ROOT 패턴** — 생성되는 모든 `setup.sh` / `run.sh`에서 사용:
+```bash
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd -P)"
+
+# Suite root 자동 탐지 (dx-runtime/과 dx-compiler/ 형제 디렉토리 발견 시까지 상위 탐색)
+SUITE_ROOT="$SCRIPT_DIR"
+while [ "$SUITE_ROOT" != "/" ]; do
+    if [ -d "$SUITE_ROOT/dx-runtime" ] && [ -d "$SUITE_ROOT/dx-compiler" ]; then
+        break
+    fi
+    SUITE_ROOT="$(dirname "$SUITE_ROOT")"
+done
+if [ "$SUITE_ROOT" = "/" ]; then
+    echo "ERROR: Cannot find dx-all-suite root (expected dx-runtime/ and dx-compiler/ siblings)"
+    exit 1
+fi
+
+RUNTIME_DIR="$SUITE_ROOT/dx-runtime"
+COMPILER_DIR="$SUITE_ROOT/dx-compiler"
+```
+
+**프로젝트 내부 상대 경로** (예: dx_app session에서 `../../assets/models/`로
+`dx_app/assets/` 참조)는 단일 sub-project 내 depth가 고정이므로 허용됩니다.
+단, cross-project 참조는 반드시 `$SUITE_ROOT`를 사용해야 합니다.
+
+**금지 패턴** (생성된 `setup.sh` / `run.sh`에서):
+```bash
+# cross-project 참조에서 아래 모든 패턴 금지:
+RUNTIME_DIR="../../dx-runtime"           # depth 가정 오류
+RUNTIME_DIR="../../../dx-runtime"        # 여전히 취약
+--input ../../dx-runtime/dx_app/sample/  # 인라인 하드코딩 상대 경로
+REF_DXNN="../../dx-runtime/dx_app/assets/models/..."  # SUITE_ROOT 없는 cross-project
+```
+
+**올바른 패턴**:
+```bash
+# cross-project 참조 — 항상 SUITE_ROOT 사용
+RUNTIME_DIR="$SUITE_ROOT/dx-runtime"
+COMPILER_DIR="$SUITE_ROOT/dx-compiler"
+--input "$SUITE_ROOT/dx-runtime/dx_app/sample/img/sample_dog.jpg"
+REF_DXNN="$SUITE_ROOT/dx-runtime/dx_app/assets/models/${MODEL_NAME}.dxnn"
+```
+
 ### setup.sh 실행 테스트 (MANDATORY)
 
 `setup.sh`는 session directory에서 실행해야 합니다 (문법 체크만이 아님).
@@ -603,6 +661,7 @@ verify.py가 "ONNX inference failed" 또는 "DXNN inference failed"를 출력하
 - 비공개 package에 대한 `pip install <package>` → local install 또는 사전 설치된 venv 사용
 - symlink된 directory에서 상대 경로 해석 → `$(cd "$(dirname "$0")" && pwd -P)` 패턴 사용
 - 누락된 dependency → `pip install` 목록 완전성 확인
+- `../../`를 사용한 cross-project 경로 → 위의 SUITE_ROOT 패턴 사용
 
 ### Import 해석 테스트 (Python app에 MANDATORY)
 

@@ -593,6 +593,64 @@ Common failures:
 - `No module named 'dx_engine'` → verify.py must add runtime venv site-packages to sys.path
 - Prints "failed" but exits 0 → add `sys.exit(1)` in the failure branch
 
+### Cross-Project Path Resolution — SUITE_ROOT (HARD GATE)
+
+When `setup.sh`, `run.sh`, or any generated script references a path **outside
+its own sub-project** (e.g., a compiler session referencing `dx-runtime`, or an
+app session referencing `dx-compiler`), the script MUST use `SUITE_ROOT`
+auto-detection — NEVER hardcoded relative paths like `../../dx-runtime`.
+
+**Why**: Session directory depth varies by sub-project:
+- `dx-compiler/dx-agentic-dev/<session>/` = 3 levels from suite root
+- `dx-runtime/dx_app/dx-agentic-dev/<session>/` = 4 levels from suite root
+- `dx-runtime/dx_stream/dx-agentic-dev/<session>/` = 4 levels from suite root
+
+Hardcoded `../../` or `../../../` paths break when the agent miscounts depth
+(a recurring failure pattern).
+
+**Mandatory SUITE_ROOT pattern** — use this in ALL generated `setup.sh` / `run.sh`:
+```bash
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd -P)"
+
+# Auto-detect suite root (walks up until dx-runtime/ and dx-compiler/ siblings are found)
+SUITE_ROOT="$SCRIPT_DIR"
+while [ "$SUITE_ROOT" != "/" ]; do
+    if [ -d "$SUITE_ROOT/dx-runtime" ] && [ -d "$SUITE_ROOT/dx-compiler" ]; then
+        break
+    fi
+    SUITE_ROOT="$(dirname "$SUITE_ROOT")"
+done
+if [ "$SUITE_ROOT" = "/" ]; then
+    echo "ERROR: Cannot find dx-all-suite root (expected dx-runtime/ and dx-compiler/ siblings)"
+    exit 1
+fi
+
+RUNTIME_DIR="$SUITE_ROOT/dx-runtime"
+COMPILER_DIR="$SUITE_ROOT/dx-compiler"
+```
+
+**Within-project relative paths** (e.g., `../../assets/models/` from a dx_app
+session to `dx_app/assets/`) are acceptable because the depth within a single
+sub-project is fixed. But cross-project references MUST use `$SUITE_ROOT`.
+
+**Prohibited patterns** in generated `setup.sh` / `run.sh`:
+```bash
+# ALL of these are PROHIBITED for cross-project references:
+RUNTIME_DIR="../../dx-runtime"           # Wrong depth assumption
+RUNTIME_DIR="../../../dx-runtime"        # Still fragile
+--input ../../dx-runtime/dx_app/sample/  # Inline hardcoded relative path
+REF_DXNN="../../dx-runtime/dx_app/assets/models/..."  # Cross-project without SUITE_ROOT
+```
+
+**Correct patterns**:
+```bash
+# Cross-project references — always use SUITE_ROOT
+RUNTIME_DIR="$SUITE_ROOT/dx-runtime"
+COMPILER_DIR="$SUITE_ROOT/dx-compiler"
+--input "$SUITE_ROOT/dx-runtime/dx_app/sample/img/sample_dog.jpg"
+REF_DXNN="$SUITE_ROOT/dx-runtime/dx_app/assets/models/${MODEL_NAME}.dxnn"
+```
+
 ### setup.sh Execution Test (MANDATORY)
 
 `setup.sh` MUST be executed (not just syntax-checked) in the session directory.
@@ -606,6 +664,7 @@ Common failures to test for:
 - `pip install <package>` for private packages → must use local install or pre-installed venv
 - Relative path resolution from symlinked directories → use `$(cd "$(dirname "$0")" && pwd -P)` patterns
 - Missing dependencies → verify `pip install` list is complete
+- Cross-project paths using `../../` instead of `SUITE_ROOT` → use the SUITE_ROOT pattern above
 
 ### Import Resolution Test (MANDATORY for Python apps)
 

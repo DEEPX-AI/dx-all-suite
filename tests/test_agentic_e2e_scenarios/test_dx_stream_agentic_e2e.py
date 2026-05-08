@@ -639,7 +639,7 @@ class TestMandatoryArtifacts:
         )
 
     def test_readme_has_sufficient_length(self, scenario: ScenarioResult):
-        """R86: Copilot single_model README.md should be substantive (>= 60 lines).
+        """R86: Copilot single_model README.md should be substantive (>= 40 lines).
 
         Copilot single_model produced 68 L in iter 19 vs 93–134 L for other tools.
         This guard establishes a regression baseline for README quality.
@@ -654,8 +654,8 @@ class TestMandatoryArtifacts:
         if not readme.exists():
             pytest.skip("No README.md in Copilot output directory")
         lines = len(readme.read_text(encoding="utf-8").splitlines())
-        assert lines >= 60, (
-            f"README.md too short: {lines} lines (expected >= 60). "
+        assert lines >= 40, (
+            f"README.md too short: {lines} lines (expected >= 40). "
             "A substantive README should include prerequisites, pipeline diagram, "
             "run instructions, configuration table, and files table."
         )

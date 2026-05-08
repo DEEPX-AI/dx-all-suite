@@ -109,9 +109,9 @@ DEFAULT_COPILOT_CASCADED_TIMEOUT = int(os.environ.get("DX_COPILOT_CASCADED_TIMEO
 DEFAULT_COMPILER_TIMEOUT = int(os.environ.get("DX_COMPILER_TIMEOUT", "3600"))
 
 # Compile duration acceptability threshold (REC-W1) — suite scenarios fail if compilation
-# exceeds this limit. 1800s accounts for parallel compilation workloads (4 agents on same
-# machine can cause 2-3x slowdown vs single-agent baseline of ~600s).
-DEFAULT_COMPILE_DURATION_LIMIT = int(os.environ.get("DX_COMPILE_DURATION_LIMIT", "1800"))
+# exceeds this limit. 2400s accounts for parallel compilation workloads (4 agents on same
+# machine can cause 3-4x slowdown vs single-agent baseline of ~600s).
+DEFAULT_COMPILE_DURATION_LIMIT = int(os.environ.get("DX_COMPILE_DURATION_LIMIT", "2400"))
 
 # Model to use for agentic E2E tests (override via env var)
 DEFAULT_COPILOT_MODEL = os.environ.get("DX_AGENTIC_E2E_MODEL", "claude-sonnet-4.6")
@@ -2067,6 +2067,69 @@ def verify_patterns_in_file(
         )
 
 
+# Cross-project relative path regex: matches ../../dx-runtime or ../../dx-compiler
+# outside of comments/echo strings.  We scan for the raw pattern and then exclude
+# lines that are clearly inside SUITE_ROOT walker (the auto-detection loop).
+_CROSS_PROJECT_RELPATH_RE = re.compile(
+    r'(?<!\$SUITE_ROOT/)\.\.\/[^"]*\bdx-(runtime|compiler)\b'
+)
+
+# Patterns that are part of the SUITE_ROOT walker itself (false positives)
+_SUITE_ROOT_WALKER_KEYWORDS = {"SUITE_ROOT", "while [", "dirname"}
+
+
+def check_no_cross_project_relative_paths(
+    filepath: Path,
+    *,
+    warn_only: bool = False,
+) -> List[str]:
+    """Check that shell scripts don't use hardcoded relative paths for cross-project refs.
+
+    Cross-project references (e.g., from dx-compiler session to dx-runtime) MUST use
+    the SUITE_ROOT auto-detection pattern, not hardcoded ``../../dx-runtime``.
+
+    Args:
+        filepath: Path to setup.sh or run.sh to check.
+        warn_only: If True, return violations as warnings instead of failing.
+
+    Returns:
+        List of violation descriptions. Empty if no violations found.
+    """
+    if not filepath.exists():
+        return []
+
+    content = filepath.read_text(encoding="utf-8")
+    violations = []
+
+    for lineno, line in enumerate(content.splitlines(), 1):
+        stripped = line.strip()
+        # Skip comments, echo/printf strings, and SUITE_ROOT walker lines
+        if stripped.startswith("#"):
+            continue
+        if any(kw in line for kw in _SUITE_ROOT_WALKER_KEYWORDS):
+            continue
+
+        # Look for ../../dx-runtime or ../../dx-compiler patterns
+        if re.search(r'\.\./\.\./[^"\']*dx-(runtime|compiler)', line):
+            violations.append(
+                f"  L{lineno}: {stripped}\n"
+                f"    → Cross-project path uses hardcoded relative '../../'. "
+                f"Use $SUITE_ROOT/dx-runtime or $SUITE_ROOT/dx-compiler instead."
+            )
+
+    if violations and not warn_only:
+        msg = (
+            f"{filepath.name} contains cross-project relative paths "
+            f"(HARD GATE violation):\n"
+            + "\n".join(violations)
+            + "\n\nFix: Replace hardcoded '../../dx-runtime' with "
+            "'$SUITE_ROOT/dx-runtime' using the SUITE_ROOT auto-detection pattern."
+        )
+        pytest.fail(msg)
+
+    return violations
+
+
 def verify_file_tree(
     base_dir: Path,
     expected_patterns: List[str],
@@ -2268,7 +2331,21 @@ def pytest_sessionfinish(session, exitstatus):
     if not artifacts_map:
         return
 
-    session_id = time.strftime("%Y%m%d_%H%M%S") + f"_{uuid.uuid4().hex[:6]}"
+    # Extract marker expression to include in directory name
+    marker_expr = session.config.getoption("-m", default="")
+    marker_suffix = ""
+    if marker_expr:
+        # e.g. "agentic_e2e_copilot_cli_autopilot" → "copilot-cli-autopilot"
+        clean = marker_expr.strip()
+        clean = clean.replace("agentic_e2e_", "").replace("_", "-")
+        # Remove compound expressions (keep first term)
+        for sep in (" and ", " or "):
+            if sep in clean:
+                clean = clean.split(sep)[0].strip()
+        if clean:
+            marker_suffix = f"_{clean}"
+
+    session_id = time.strftime("%Y%m%d_%H%M%S") + f"_{uuid.uuid4().hex[:6]}{marker_suffix}"
     results_dir = AGENTIC_E2E_ARTIFACTS_BASE / "results" / session_id
     results_dir.mkdir(parents=True, exist_ok=True)
 
@@ -2416,6 +2493,7 @@ def copilot_cli_artifacts_dir(request):
     artifacts_dir = AGENTIC_E2E_ARTIFACTS_BASE / "copilot_cli" / "autopilot" / session_id
     artifacts_dir.mkdir(parents=True, exist_ok=True)
     _register_artifacts_dir(request, "copilot_cli__suite", artifacts_dir)
+    _register_artifacts_dir(request, "copilot_cli__runtime", artifacts_dir)
 
     yield artifacts_dir
 
@@ -2433,6 +2511,7 @@ def cursor_cli_artifacts_dir(request):
     artifacts_dir = AGENTIC_E2E_ARTIFACTS_BASE / "cursor_cli" / "autopilot" / session_id
     artifacts_dir.mkdir(parents=True, exist_ok=True)
     _register_artifacts_dir(request, "cursor_cli__suite", artifacts_dir)
+    _register_artifacts_dir(request, "cursor_cli__runtime", artifacts_dir)
 
     yield artifacts_dir
 
@@ -2487,6 +2566,7 @@ def opencode_artifacts_dir(request):
     artifacts_dir = AGENTIC_E2E_ARTIFACTS_BASE / "opencode" / "autopilot" / session_id
     artifacts_dir.mkdir(parents=True, exist_ok=True)
     _register_artifacts_dir(request, "opencode__suite", artifacts_dir)
+    _register_artifacts_dir(request, "opencode__runtime", artifacts_dir)
 
     yield artifacts_dir
 
@@ -2504,6 +2584,7 @@ def claude_code_artifacts_dir(request):
     artifacts_dir = AGENTIC_E2E_ARTIFACTS_BASE / "claude_code" / "autopilot" / session_id
     artifacts_dir.mkdir(parents=True, exist_ok=True)
     _register_artifacts_dir(request, "claude_code__suite", artifacts_dir)
+    _register_artifacts_dir(request, "claude_code__runtime", artifacts_dir)
 
     yield artifacts_dir
 
