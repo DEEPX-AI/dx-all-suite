@@ -229,3 +229,96 @@ class TestLintMissingStructuralMarker:
             "lint should return clean=True when KO has all Q markers.\n"
             + "\n".join(report)
         )
+
+
+# ---------------------------------------------------------------------------
+# 5. Korean text in non-KO files (Check 4)
+# ---------------------------------------------------------------------------
+
+
+class TestLintKoreanInEnFiles:
+    """Check 4: Korean characters must not appear in non-KO .deepx/ files.
+
+    Exemption: a line ending with '<!-- KOREAN-OK: <reason> -->' is allowed.
+    """
+
+    def test_lint_detects_korean_in_en_fragment(self, tmp_path):
+        """lint must return clean=False when an EN fragment contains Korean text."""
+        deepx = tmp_path / ".deepx"
+        en_dir = deepx / "templates" / "fragments" / "en"
+        ko_dir = deepx / "templates" / "fragments" / "ko"
+        en_dir.mkdir(parents=True)
+        ko_dir.mkdir(parents=True)
+
+        # EN fragment with Korean text (violation)
+        (en_dir / "bad-rule.md").write_text(
+            "## Bad Rule\n\n이 규칙은 English 파일에 있으면 안 됩니다.\n",
+            encoding="utf-8",
+        )
+        (ko_dir / "bad-rule.md").write_text(
+            "## Bad Rule\n\n이 규칙은 올바른 KO 파일입니다.\n",
+            encoding="utf-8",
+        )
+
+        from dx_agentic_dev_gen.generator import Generator
+
+        gen = Generator(tmp_path)
+        clean, report = gen.lint()
+
+        assert not clean, "lint should return clean=False when EN fragment has Korean."
+        report_text = "\n".join(report)
+        assert "[ERROR]" in report_text, (
+            f"lint report should contain [ERROR] for Korean in EN file.\nReport:\n{report_text}"
+        )
+        assert "bad-rule" in report_text, (
+            f"lint report should mention the violating file.\nReport:\n{report_text}"
+        )
+
+    def test_lint_allows_korean_ok_annotation(self, tmp_path):
+        """Lines annotated with <!-- KOREAN-OK: ... --> must be exempt from Check 4."""
+        deepx = tmp_path / ".deepx"
+        en_dir = deepx / "templates" / "fragments" / "en"
+        ko_dir = deepx / "templates" / "fragments" / "ko"
+        en_dir.mkdir(parents=True)
+        ko_dir.mkdir(parents=True)
+
+        # EN fragment where Korean is annotated as intentional
+        (en_dir / "response-rule.md").write_text(
+            "## Response Language\n\n"
+            "Do NOT transliterate English into Korean phonetics "
+            "(한글 음차 표기 금지). <!-- KOREAN-OK: rule references notation term -->\n",
+            encoding="utf-8",
+        )
+        (ko_dir / "response-rule.md").write_text(
+            "## 응답 언어\n\n영어를 한글로 음차 표기하지 마세요.\n",
+            encoding="utf-8",
+        )
+
+        from dx_agentic_dev_gen.generator import Generator
+
+        gen = Generator(tmp_path)
+        clean, report = gen.lint()
+        report_text = "\n".join(report)
+
+        # Should pass — the Korean line has KOREAN-OK annotation
+        error_lines = [l for l in report if "[ERROR]" in l and "Korean" in l]
+        assert not error_lines, (
+            f"lint should not report Korean errors for KOREAN-OK annotated lines.\n"
+            f"Report:\n{report_text}"
+        )
+
+    def test_lint_passes_on_current_repo_korean_check(self):
+        """Check 4 must pass on the current repo state (all Korean in EN files
+        must either be absent or annotated with KOREAN-OK).
+        """
+        from dx_agentic_dev_gen.generator import Generator
+
+        gen = Generator(REPO_ROOT)
+        clean, report = gen.lint()
+        error_lines = [l for l in report if "[ERROR]" in l and "Korean" in l]
+        assert not error_lines, (
+            "Korean text found in non-KO .deepx/ files without KOREAN-OK annotation.\n"
+            "Fix: add '<!-- KOREAN-OK: <reason> -->' to the line, or move Korean "
+            "content to the -KO counterpart.\n"
+            + "\n".join(error_lines)
+        )

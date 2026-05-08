@@ -94,6 +94,55 @@ Answer three questions:
 
 ---
 
+## Rule 4: No Korean Text in Non-KO Files (MANDATORY)
+
+English fragment files (`.deepx/templates/fragments/en/`) and all non-KO
+`.deepx/` files MUST contain only English text. This rule is enforced by
+`dx-agentic-gen lint` (Check 4) and the pre-commit hook.
+
+**Prohibited** — inserting Korean text into an EN fragment or agent file:
+
+```markdown
+<!-- BAD: Korean in an EN fragment -->
+이 규칙은 모든 태스크에 적용됩니다.
+This rule applies to all tasks.
+```
+
+**Correct** — Korean content goes only in the KO counterpart:
+
+```markdown
+<!-- en/my-rule.md -->
+This rule applies to all tasks.
+
+<!-- ko/my-rule.md -->
+이 규칙은 모든 태스크에 적용됩니다.
+```
+
+### Exemption: `<!-- KOREAN-OK: <reason> -->`
+
+When Korean text **must** appear in an EN file (e.g., a rule that names a Korean
+notation pattern so agents can recognize it), annotate the line with
+`<!-- KOREAN-OK: <reason> -->` at the end:
+
+```markdown
+Do NOT transliterate into Korean phonetics (한글 음차 표기 금지). <!-- KOREAN-OK: rule text references Korean notation term agents must recognize -->
+```
+
+```markdown
+- "웹 기반 비주얼 컴패니언" (web-based visual companion) <!-- KOREAN-OK: Korean feature name included so agents recognize prohibited requests in Korean -->
+```
+
+The annotation must be on the **same line** as the Korean text.
+Placing it on a preceding comment line does NOT exempt the Korean line.
+
+### What lint checks (Check 4)
+
+`dx-agentic-gen lint` scans all `.deepx/**/*.md` files that are not KO files
+(filename contains `-KO`/`_KO`, or file is under a `/ko/` directory) and reports
+`[ERROR]` for any Korean character found without a `<!-- KOREAN-OK: ... -->` annotation.
+
+---
+
 ## Rule 3: Verify With lint Before Committing
 
 After any fragment change, always run lint before committing:

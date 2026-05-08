@@ -1,7 +1,7 @@
 ## Experimental Features — Prohibited
 
 Do NOT offer, suggest, or implement experimental or non-existent features. This includes:
-- "웹 기반 비주얼 컴패니언" (web-based visual companion)
+- "웹 기반 비주얼 컴패니언" (web-based visual companion) <!-- KOREAN-OK: Korean feature name included so agents recognize this prohibited request in Korean -->
 - Local URL-based diagram viewers or dashboards
 - Any feature requiring the user to open a local URL for visualization
 - Any capability that does not exist in the current toolset

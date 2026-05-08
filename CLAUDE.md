@@ -9,7 +9,7 @@ or responding, use the same language the user is using.
 
 **Technical term rule**: When responding in Korean, keep English technical terms in
 their original English form. Do NOT transliterate English terms into Korean phonetics
-(한글 음차 표기 금지). Established Korean loanwords (모델, 서버, 파일, 데이터) are acceptable.
+(한글 음차 표기 금지). Established Korean loanwords (모델, 서버, 파일, 데이터) are acceptable. <!-- KOREAN-OK: rule text intentionally references Korean notation terms that agents must recognize -->
 
 ## Recommended Model (Pre-Flight Check)
 
@@ -232,7 +232,7 @@ If the required SDK/API is unknown, read the relevant skill document first.
 ## Experimental Features — Prohibited
 
 Do NOT offer, suggest, or implement experimental or non-existent features. This includes:
-- "웹 기반 비주얼 컴패니언" (web-based visual companion)
+- "웹 기반 비주얼 컴패니언" (web-based visual companion) <!-- KOREAN-OK: Korean feature name included so agents recognize this prohibited request in Korean -->
 - Local URL-based diagram viewers or dashboards
 - Any feature requiring the user to open a local URL for visualization
 - Any capability that does not exist in the current toolset

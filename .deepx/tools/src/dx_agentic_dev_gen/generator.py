@@ -196,14 +196,76 @@ class Generator:
                 )
                 clean = False
 
+        # ── Check 4: no Korean text in non-KO .deepx/ files ────────────────
+        ko_clean, ko_report = self._check_korean_in_non_ko_files()
+        report.extend(ko_report)
+        if not ko_clean:
+            clean = False
+
         if clean:
             report.append("All EN/KO fragment pairs are consistent.")
         else:
             report.append(
                 "\nFix: update the KO fragment in "
                 ".deepx/templates/fragments/ko/, then run "
-                "'dx-agentic-gen generate'."
+                "'dx-agentic-gen generate'.\n"
+                "For intentional Korean in EN files, add "
+                "'<!-- KOREAN-OK: <reason> -->' at the end of the line."
             )
+
+        return clean, report
+
+    def _check_korean_in_non_ko_files(self) -> tuple[bool, list[str]]:
+        """Check 4: No Korean characters in non-KO .deepx/ markdown files.
+
+        A line is exempt if it ends with (or contains) a
+        ``<!-- KOREAN-OK: <reason> -->`` annotation.
+
+        Returns (clean, report_lines).
+        """
+        import re as _re
+
+        KOREAN = _re.compile(r"[\uAC00-\uD7A3\u3131-\u318E\u3200-\u32FF]")
+        EXEMPT = _re.compile(r"<!--\s*KOREAN-OK\b.*?-->", _re.IGNORECASE)
+
+        report: list[str] = []
+        clean = True
+
+        if not self.deepx.is_dir():
+            return True, []
+
+        for md_file in sorted(self.deepx.rglob("*.md")):
+            # Skip KO files: name contains -KO/_KO, or file lives in a /ko/ dir
+            name = md_file.name
+            if "-KO" in name or "_KO" in name:
+                continue
+            if "ko" in md_file.parts:
+                continue
+
+            try:
+                lines = md_file.read_text(encoding="utf-8").splitlines()
+            except Exception:
+                continue
+
+            in_code_block = False
+            for lineno, line in enumerate(lines, 1):
+                # Skip fenced code blocks (```...```)
+                stripped = line.lstrip()
+                if stripped.startswith("```"):
+                    in_code_block = not in_code_block
+                    continue
+                if in_code_block:
+                    continue
+                if not KOREAN.search(line):
+                    continue
+                if EXEMPT.search(line):
+                    continue
+                rel = md_file.relative_to(self.repo)
+                report.append(
+                    f"[ERROR] Korean text in non-KO file {rel}:{lineno}: "
+                    f"{line.strip()[:80]}"
+                )
+                clean = False
 
         return clean, report
 
