@@ -6,7 +6,7 @@ fragments 포함) — 작업 완료 선언 전에 다음 루프를 **반드시**
 1. **Generator 실행** — `.deepx/` 변경을 모든 플랫폼으로 전파:
    ```bash
    dx-agentic-gen generate
-   # Suite 전체: bash tools/dx-agentic-dev-gen/scripts/run_all.sh generate
+   # Suite 전체: bash .deepx/tools/scripts/run_all.sh generate
    ```
 2. **Drift 검증** — 생성물과 commit 상태 일치 확인:
    ```bash
@@ -15,7 +15,7 @@ fragments 포함) — 작업 완료 선언 전에 다음 루프를 **반드시**
    drift 발견 시 1단계로 복귀.
 3. **자동화 테스트 루프** — 테스트는 generator 출력이 정책을 만족하는지 검증:
    ```bash
-   python -m pytest tests/test_agentic_scenarios/ -v --tb=short
+   python -m pytest .deepx/tests/test_agentic_scenarios/ -v --tb=short
    ```
    실패 처리:
    - generator 버그 → generator 수정 → 1단계
@@ -78,7 +78,7 @@ output인지 확실하지 않으면, 수정 전후에 `dx-agentic-gen check`를 
 Pre-commit hook이 generator output 무결성을 강제합니다: 생성된 파일이
 최신이 아니면 `git commit`이 실패합니다. Hook 설치:
 ```bash
-tools/dx-agentic-dev-gen/scripts/install-hooks.sh
+.deepx/tools/scripts/install-hooks.sh
 ```
 
 > **KO 대응 파일 규칙**: EN fragment를 편집할 때, KO 대응 파일도 업데이트가

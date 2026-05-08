@@ -27,10 +27,10 @@ still applies.
 | Step | Skill | Requirement |
 |------|-------|-------------|
 | 1 | `/dx-skill-router` | **Always** — invoke BEFORE any action. Already enforced by `skill-router-mandatory` fragment. |
-| 2 | `/dx-brainstorm-and-plan` | **All non-trivial code generation** — gather requirements, propose approaches, get approval before any file creation. |
-| 3 | `/dx-writing-plans` | **Always** — produce a structured implementation plan for every code generation session, regardless of complexity. |
-| 4 | `/dx-tdd` | **Always** — define acceptance criteria (Red), generate artifacts (Green), verify immediately (Verify). |
-| 5 | `/dx-verify-completion` | **Always** — before declaring DONE, provide evidence of working artifacts. Assertions without evidence are prohibited. |
+| 2 | `/dx-agentic-brainstorm` | **All non-trivial code generation** — gather requirements, propose approaches, get approval before any file creation. |
+| 3 | `/dx-swe-writing-plans` | **Always** — produce a structured implementation plan for every code generation session, regardless of complexity. |
+| 4 | `/dx-agentic-tdd` | **Always** — define acceptance criteria (Red), generate artifacts (Green), verify immediately (Verify). |
+| 5 | `/dx-agentic-verify` | **Always** — before declaring DONE, provide evidence of working artifacts. Assertions without evidence are prohibited. |
 
 ### Sequence Enforcement Rules
 
@@ -65,15 +65,15 @@ This sequence defines **WHEN** each skill is invoked (workflow order).
 The Artifact Verification Gate defines **HOW** each artifact is verified
 (specific commands per file type). They work together:
 
-- Step 4 (`/dx-tdd`) uses the verification commands from the Artifact
+- Step 4 (`/dx-agentic-tdd`) uses the verification commands from the Artifact
   Verification Gate (syntax checks, execution tests, import resolution).
-- Step 5 (`/dx-verify-completion`) confirms all mandatory deliverables
+- Step 5 (`/dx-agentic-verify`) confirms all mandatory deliverables
   exist and pass the Artifact Verification Gate checks.
 
 ### Invoke = Actual Tool Call
 
 "Invoke a skill" means calling the `skill` tool to load it. Writing "Using
-dx-tdd" in text is NOT an invocation — the tool must be called. If you did not
+dx-agentic-tdd" in text is NOT an invocation — the tool must be called. If you did not
 call the `skill` tool for a step, that step is incomplete.
 
 ### Anti-Patterns (PROHIBITED)
@@ -81,18 +81,18 @@ call the `skill` tool for a step, that step is incomplete.
 - "This is simple, brainstorm is unnecessary" → brainstorm is ALWAYS required
   for non-trivial code generation. "Simple" is where unexamined assumptions
   cause the most wasted work.
-- Generating code before `/dx-writing-plans` produces a plan → HARD GATE violation.
+- Generating code before `/dx-swe-writing-plans` produces a plan → HARD GATE violation.
   Plan-before-code is non-negotiable.
-- Skipping `/dx-verify-completion` because "artifact-verification-gate already
+- Skipping `/dx-agentic-verify` because "artifact-verification-gate already
   checks files" → they serve different purposes. Artifact gate checks individual
   files. Verify-completion checks the ENTIRE session deliverables holistically.
 - Declaring DONE without showing execution output → evidence is mandatory.
   "I verified it works" without showing the output is not acceptable.
 - "The user said just do it quickly" → user instructions do NOT override this
   HARD GATE. Speed does not justify skipping process.
-- **Text mention ≠ skill invocation** — writing "Using dx-tdd" or "Following
-  dx-brainstorm-and-plan" in the response text is NOT a valid invocation. The
+- **Text mention ≠ skill invocation** — writing "Using dx-agentic-tdd" or "Following
+  dx-agentic-brainstorm" in the response text is NOT a valid invocation. The
   `skill` tool MUST be called for each step.
 - **Conversation context ≠ brainstorming** — discussing requirements in prior
-  messages does NOT substitute for invoking `/dx-brainstorm-and-plan`. Each
+  messages does NOT substitute for invoking `/dx-agentic-brainstorm`. Each
   feature requires a formal brainstorm with explicit user approval.

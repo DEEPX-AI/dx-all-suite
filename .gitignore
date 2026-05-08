@@ -13,6 +13,7 @@ intranet_CA_SSL.crt
 
 
 tests/venv/
+.deepx/tests/venv/
 dx-agentic-dev/
 docs/superpowers/
 copilot-session-*.html
@@ -22,11 +23,13 @@ __pycache__/
 *.pyo
 *.pyd
 
-tools/dx-agentic-dev-gen/src/dx_agentic_dev_gen.egg-info/
+.deepx/tools/src/dx_agentic_dev_gen.egg-info/
 doc/reports/
 tests/reports/
+.deepx/tests/reports/
 compile.pid
 *.onnx
 *.pt
 *.txt
+!requirements.txt
 session-ses_*.md

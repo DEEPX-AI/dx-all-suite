@@ -1,6 +1,6 @@
 ## Brainstorming — Spec Before Plan (HARD GATE)
 
-When using the superpowers `brainstorming` skill or `/dx-brainstorm-and-plan`:
+When using the superpowers `brainstorming` skill or `/dx-swe-brainstorm`:
 
 1. **Spec document is MANDATORY** — Before transitioning to `writing-plans`, a spec
    document MUST be written to `docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md`.
@@ -10,7 +10,7 @@ When using the superpowers `brainstorming` skill or `/dx-brainstorm-and-plan`:
    responses (e.g., answering a different question) as spec approval.
 3. **Plan document MUST reference the spec** — The plan header must include a link
    to the approved spec document.
-4. **Prefer `/dx-brainstorm-and-plan`** — Use the project-level brainstorming skill
+4. **Prefer `/dx-swe-brainstorm`** — Use the project-level brainstorming skill
    instead of the generic superpowers `brainstorming` skill. The project-level skill
     has domain-specific questions and pre-flight checks.
 5. **Rule conflict check is MANDATORY** — During brainstorming, the agent MUST check

@@ -159,14 +159,14 @@ The following patterns are PROHIBITED for session.log:
 - `printf "..." > session.log` (hand-written summary)
 - Writing session.log content from memory without running commands
 
-### dx-tdd and Process Skill Sequence (MANDATORY for All Code Generation)
+### dx-agentic-tdd and Process Skill Sequence (MANDATORY for All Code Generation)
 
-The complete process skill sequence (`/dx-brainstorm-and-plan` → `/dx-writing-plans`
-→ `/dx-tdd` → `/dx-verify-completion`) is MANDATORY for ALL artifact generation
+The complete process skill sequence (`/dx-agentic-brainstorm` → `/dx-swe-writing-plans`
+→ `/dx-agentic-tdd` → `/dx-agentic-verify`) is MANDATORY for ALL artifact generation
 sessions. See the **"Mandatory Process Skill Sequence — All Code Generation"**
 section for the full sequence definition and enforcement rules.
 
-Within this Artifact Verification Gate, the `/dx-tdd` Red-Green-Verify cycle
+Within this Artifact Verification Gate, the `/dx-agentic-tdd` Red-Green-Verify cycle
 applies to each artifact:
 1. **RED**: Define what each artifact must satisfy (syntax, execution, imports)
 2. **GREEN**: Generate the artifact

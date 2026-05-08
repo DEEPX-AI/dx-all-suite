@@ -23,7 +23,7 @@ if echo "$FILE_PATH" | grep -qE '/\.(github/(skills|agents)|opencode/agents|clau
     echo "  Rule : This file is auto-generated from .deepx/ by dx-agentic-gen."
     echo "  Fix  : Edit the canonical source in .deepx/ instead, then run:"
     echo "           dx-agentic-gen generate"
-    echo "         or: tools/dx-agentic-dev-gen/scripts/run_all.sh generate"
+    echo "         or: .deepx/tools/scripts/run_all.sh generate"
     exit 2
 fi
 
@@ -37,7 +37,7 @@ case "$BASENAME" in
         echo "  Rule : This file is auto-generated from .deepx/ by dx-agentic-gen."
         echo "  Fix  : Edit the canonical template in .deepx/ instead, then run:"
         echo "           dx-agentic-gen generate"
-        echo "         or: tools/dx-agentic-dev-gen/scripts/run_all.sh generate"
+        echo "         or: .deepx/tools/scripts/run_all.sh generate"
         exit 2
         ;;
 esac

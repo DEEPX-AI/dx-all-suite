@@ -91,35 +91,34 @@ dx-all-suite는 작업을 분류하고 적절한 서브모듈로 디스패치하
 
 | 레벨 | 스킬 | 설명 |
 |---|---|---|
-| **dx-all-suite** | `/dx-validate-all` | 3개 레벨 전체 검증 |
-| **dx-runtime** | `/dx-validate-and-fix` | 검증, 피드백 수집, 수정 적용, 결과 확인 |
-| **dx_app** | `/dx-build-python-app` | Python 추론 앱 빌드 |
-| **dx_app** | `/dx-build-cpp-app` | C++ 추론 앱 빌드 |
-| **dx_app** | `/dx-build-async-app` | 비동기 고성능 앱 빌드 |
-| **dx_app** | `/dx-model-management` | 모델 다운로드 및 설정 |
-| **dx_app** | `/dx-validate` | 검증 체크 실행 |
-| **dx_stream** | `/dx-build-pipeline-app` | GStreamer 파이프라인 앱 빌드 |
-| **dx_stream** | `/dx-build-mqtt-kafka-app` | MQTT/Kafka 파이프라인 앱 빌드 |
-| **dx_stream** | `/dx-validate` | 검증 체크 실행 |
-| **dx_stream** | `/dx-model-management` | 모델 다운로드 및 설정 |
-| **dx-compiler** | `/dx-convert-model` | PyTorch 모델을 ONNX로 변환 |
-| **dx-compiler** | `/dx-compile-model` | ONNX 모델을 DXNN으로 컴파일 |
-| **dx-compiler** | `/dx-validate-compile` | 컴파일된 DXNN 출력 검증 |
-| **DX All Suite** | `/dx-brainstorm-and-plan` | 프로세스: 모든 작업 전 협업 설계 세션 |
-| **DX All Suite** | `/dx-tdd` | 프로세스: 테스트 주도 개발 — 점진적 검증 |
-| **DX All Suite** | `/dx-verify-completion` | 프로세스: 완료 전 검증 — 증거 먼저, 주장 나중에 |
-| **dx-runtime** | `/dx-brainstorm-and-plan` | 프로세스: 코드 생성 전 협업 설계 세션 |
-| **dx-runtime** | `/dx-tdd` | 프로세스: 테스트 주도 개발 — 생성 직후 즉시 검증 |
-| **dx-runtime** | `/dx-verify-completion` | 프로세스: 완료 전 검증 — 증거 먼저, 주장 나중에 |
-| **dx_app** | `/dx-brainstorm-and-plan` | 프로세스: 코드 생성 전 협업 설계 세션 |
-| **dx_app** | `/dx-tdd` | 프로세스: 테스트 주도 개발 — 생성 직후 즉시 검증 |
-| **dx_app** | `/dx-verify-completion` | 프로세스: 완료 전 검증 — 증거 먼저, 주장 나중에 |
-| **dx_stream** | `/dx-brainstorm-and-plan` | 프로세스: 코드 생성 전 협업 설계 세션 |
-| **dx_stream** | `/dx-tdd` | 프로세스: 테스트 주도 개발 — 생성 직후 즉시 검증 |
-| **dx_stream** | `/dx-verify-completion` | 프로세스: 완료 전 검증 — 증거 먼저, 주장 나중에 |
-| **dx-compiler** | `/dx-brainstorm-and-plan` | 프로세스: 컴파일 전 협업 설계 세션 |
-| **dx-compiler** | `/dx-tdd` | 프로세스: 테스트 주도 개발 — 각 단계를 점진적으로 검증 |
-| **dx-compiler** | `/dx-verify-completion` | 프로세스: 완료 전 검증 — 증거 먼저, 주장 나중에 |
+| **dx-runtime** | `/dx-agentic-runtime-validate` | 검증, 피드백 수집, 수정 적용, 결과 확인 |
+| **dx_app** | `/dx-agentic-app-build-python` | Python 추론 앱 빌드 |
+| **dx_app** | `/dx-agentic-app-build-cpp` | C++ 추론 앱 빌드 |
+| **dx_app** | `/dx-agentic-app-build-async` | 비동기 고성능 앱 빌드 |
+| **dx_app** | `/dx-agentic-app-model-management` | 모델 다운로드 및 설정 |
+| **dx_app** | `/dx-agentic-app-validate` | 검증 체크 실행 |
+| **dx_stream** | `/dx-agentic-stream-build-pipeline` | GStreamer 파이프라인 앱 빌드 |
+| **dx_stream** | `/dx-agentic-stream-build-mqtt-kafka` | MQTT/Kafka 파이프라인 앱 빌드 |
+| **dx_stream** | `/dx-agentic-stream-validate` | 검증 체크 실행 |
+| **dx_stream** | `/dx-agentic-stream-model-management` | 모델 다운로드 및 설정 |
+| **dx-compiler** | `/dx-agentic-compiler-convert` | PyTorch 모델을 ONNX로 변환 |
+| **dx-compiler** | `/dx-agentic-compiler-compile` | ONNX 모델을 DXNN으로 컴파일 |
+| **dx-compiler** | `/dx-agentic-compiler-validate` | 컴파일된 DXNN 출력 검증 |
+| **DX All Suite** | `/dx-swe-brainstorm` | 프로세스: 모든 작업 전 협업 설계 세션 |
+| **DX All Suite** | `/dx-swe-tdd` | 프로세스: 테스트 주도 개발 — 점진적 검증 |
+| **DX All Suite** | `/dx-swe-verify` | 프로세스: 완료 전 검증 — 증거 먼저, 주장 나중에 |
+| **dx-runtime** | `/dx-swe-brainstorm` | 프로세스: 코드 생성 전 협업 설계 세션 |
+| **dx-runtime** | `/dx-swe-tdd` | 프로세스: 테스트 주도 개발 — 생성 직후 즉시 검증 |
+| **dx-runtime** | `/dx-swe-verify` | 프로세스: 완료 전 검증 — 증거 먼저, 주장 나중에 |
+| **dx_app** | `/dx-swe-brainstorm` | 프로세스: 코드 생성 전 협업 설계 세션 |
+| **dx_app** | `/dx-swe-tdd` | 프로세스: 테스트 주도 개발 — 생성 직후 즉시 검증 |
+| **dx_app** | `/dx-swe-verify` | 프로세스: 완료 전 검증 — 증거 먼저, 주장 나중에 |
+| **dx_stream** | `/dx-swe-brainstorm` | 프로세스: 코드 생성 전 협업 설계 세션 |
+| **dx_stream** | `/dx-swe-tdd` | 프로세스: 테스트 주도 개발 — 생성 직후 즉시 검증 |
+| **dx_stream** | `/dx-swe-verify` | 프로세스: 완료 전 검증 — 증거 먼저, 주장 나중에 |
+| **dx-compiler** | `/dx-swe-brainstorm` | 프로세스: 컴파일 전 협업 설계 세션 |
+| **dx-compiler** | `/dx-swe-tdd` | 프로세스: 테스트 주도 개발 — 각 단계를 점진적으로 검증 |
+| **dx-compiler** | `/dx-swe-verify` | 프로세스: 완료 전 검증 — 증거 먼저, 주장 나중에 |
 
 > **팁:** 어떤 서브모듈을 대상으로 해야 할지 모르겠다면, 최상위에서
 > `@dx-suite-builder`를 사용하세요 — 작업을 분류하고 적절한 빌더로 라우팅합니다.
@@ -201,19 +200,17 @@ cursor dx-all-suite/dx-runtime/dx_app
 
 | 스킬 | 파일 |
 |------|------|
-| `/dx-brainstorm-and-plan` | `.deepx/skills/dx-brainstorm-and-plan/SKILL.md` |
-| `/dx-verify-completion` | `.deepx/skills/dx-verify-completion/SKILL.md` |
-| `/dx-validate-all` | `.deepx/skills/dx-validate-all/SKILL.md` |
-| `/dx-tdd` | `.deepx/skills/dx-tdd/SKILL.md` |
-| `/dx-dispatching-parallel-agents` | `.deepx/skills/dx-dispatching-parallel-agents/SKILL.md` |
-| `/dx-executing-plans` | `.deepx/skills/dx-executing-plans/SKILL.md` |
-| `/dx-receiving-code-review` | `.deepx/skills/dx-receiving-code-review/SKILL.md` |
-| `/dx-requesting-code-review` | `.deepx/skills/dx-requesting-code-review/SKILL.md` |
+| `/dx-swe-brainstorm` | `.deepx/skills/dx-swe-brainstorm/SKILL.md` |
+| `/dx-swe-verify` | `.deepx/skills/dx-swe-verify/SKILL.md` |
+| `/dx-swe-tdd` | `.deepx/skills/dx-swe-tdd/SKILL.md` |
+| `/dx-swe-parallel-agents` | `.deepx/skills/dx-swe-parallel-agents/SKILL.md` |
+| `/dx-swe-executing-plans` | `.deepx/skills/dx-swe-executing-plans/SKILL.md` |
+| `/dx-swe-receiving-review` | `.deepx/skills/dx-swe-receiving-review/SKILL.md` |
+| `/dx-swe-requesting-review` | `.deepx/skills/dx-swe-requesting-review/SKILL.md` |
 | `/dx-skill-router` | `.deepx/skills/dx-skill-router/SKILL.md` |
-| `/dx-subagent-driven-development` | `.deepx/skills/dx-subagent-driven-development/SKILL.md` |
-| `/dx-systematic-debugging` | `.deepx/skills/dx-systematic-debugging/SKILL.md` |
-| `/dx-writing-plans` | `.deepx/skills/dx-writing-plans/SKILL.md` |
-| `/dx-writing-skills` | `.deepx/skills/dx-writing-skills/SKILL.md` |
+| `/dx-swe-subagent-dev` | `.deepx/skills/dx-swe-subagent-dev/SKILL.md` |
+| `/dx-swe-debugging` | `.deepx/skills/dx-swe-debugging/SKILL.md` |
+| `/dx-swe-writing-plans` | `.deepx/skills/dx-swe-writing-plans/SKILL.md` |
 
 #### 공유 지식 베이스 (`.deepx/`)
 
@@ -242,14 +239,14 @@ OpenCode (`.opencode/`), Cursor (`.cursor/rules/`) 용 플랫폼별 파일로 �
 생성된 파일을 직접 편집하지 마세요.
 
 ```bash
-pip install -e tools/dx-agentic-dev-gen   # 생성기 설치
+pip install -e .deepx/tools   # 생성기 설치
 dx-agentic-gen generate                    # 플랫폼 파일 생성
 dx-agentic-gen check                       # 드리프트 없는지 확인
 ```
 
 pre-commit 훅이 생성된 파일의 동기화를 강제합니다:
 ```bash
-tools/dx-agentic-dev-gen/scripts/install-hooks.sh   # 최초 1회 설정
+.deepx/tools/scripts/install-hooks.sh   # 최초 1회 설정
 ```
 
 ## 도구별 빠른 시작

@@ -124,24 +124,24 @@ Each submodule also has its own agents (accessible when working within that subm
 
 | Skill | Description |
 |---|---|
-| `/dx-validate-all` | Full validation across all 3 levels — validate, collect feedback, apply fixes, verify |
-| `/dx-brainstorm-and-plan` | Brainstorm, propose 2-3 approaches, spec self-review, then plan |
-| `/dx-tdd` | Validation-driven development with optional Red-Green-Refactor for unit tests |
-| `/dx-verify-completion` | Verify before claiming completion — evidence before assertions |
+| `/dx-harness-validate` | Internal: validate .deepx/ framework integrity across all levels |
+| `/dx-swe-brainstorm` | Brainstorm, propose 2-3 approaches, spec self-review, then plan |
+| `/dx-swe-tdd` | Validation-driven development with optional Red-Green-Refactor for unit tests |
+| `/dx-swe-verify` | Verify before claiming completion — evidence before assertions |
 
 ### Process Skills
 
 | Skill | Description |
 |---|---|
-| `/dx-writing-plans` | Write implementation plans with bite-sized tasks |
-| `/dx-executing-plans` | Execute plans with review checkpoints |
-| `/dx-subagent-driven-development` | Execute plans via fresh subagent per task with two-stage review |
-| `/dx-systematic-debugging` | Systematic debugging — 4-phase root cause investigation before proposing fixes |
-| `/dx-receiving-code-review` | Evaluate code review feedback with technical rigor |
-| `/dx-requesting-code-review` | Request code review after completing features |
+| `/dx-swe-writing-plans` | Write implementation plans with bite-sized tasks |
+| `/dx-swe-executing-plans` | Execute plans with review checkpoints |
+| `/dx-swe-subagent-dev` | Execute plans via fresh subagent per task with two-stage review |
+| `/dx-swe-debugging` | Systematic debugging — 4-phase root cause investigation before proposing fixes |
+| `/dx-swe-receiving-review` | Evaluate code review feedback with technical rigor |
+| `/dx-swe-requesting-review` | Request code review after completing features |
 | `/dx-skill-router` | Skill discovery and invocation — check skills before any action |
-| `/dx-writing-skills` | Create and edit skill files |
-| `/dx-dispatching-parallel-agents` | Dispatch parallel subagents for independent tasks |
+| `/dx-harness-writing-skills` | Internal: create/edit .deepx/ skill files |
+| `/dx-swe-parallel-agents` | Dispatch parallel subagents for independent tasks |
 
 ## Routing
 
@@ -269,7 +269,7 @@ plan, TDD, mandatory artifacts, execution verification) still apply without exce
 
 ## Brainstorming — Spec Before Plan (HARD GATE)
 
-When using the superpowers `brainstorming` skill or `/dx-brainstorm-and-plan`:
+When using the superpowers `brainstorming` skill or `/dx-swe-brainstorm`:
 
 1. **Spec document is MANDATORY** — Before transitioning to `writing-plans`, a spec
    document MUST be written to `docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md`.
@@ -279,7 +279,7 @@ When using the superpowers `brainstorming` skill or `/dx-brainstorm-and-plan`:
    responses (e.g., answering a different question) as spec approval.
 3. **Plan document MUST reference the spec** — The plan header must include a link
    to the approved spec document.
-4. **Prefer `/dx-brainstorm-and-plan`** — Use the project-level brainstorming skill
+4. **Prefer `/dx-swe-brainstorm`** — Use the project-level brainstorming skill
    instead of the generic superpowers `brainstorming` skill. The project-level skill
     has domain-specific questions and pre-flight checks.
 5. **Rule conflict check is MANDATORY** — During brainstorming, the agent MUST check
@@ -316,10 +316,10 @@ still applies.
 | Step | Skill | Requirement |
 |------|-------|-------------|
 | 1 | `/dx-skill-router` | **Always** — invoke BEFORE any action. Already enforced by `skill-router-mandatory` fragment. |
-| 2 | `/dx-brainstorm-and-plan` | **All non-trivial code generation** — gather requirements, propose approaches, get approval before any file creation. |
-| 3 | `/dx-writing-plans` | **Always** — produce a structured implementation plan for every code generation session, regardless of complexity. |
-| 4 | `/dx-tdd` | **Always** — define acceptance criteria (Red), generate artifacts (Green), verify immediately (Verify). |
-| 5 | `/dx-verify-completion` | **Always** — before declaring DONE, provide evidence of working artifacts. Assertions without evidence are prohibited. |
+| 2 | `/dx-agentic-brainstorm` | **All non-trivial code generation** — gather requirements, propose approaches, get approval before any file creation. |
+| 3 | `/dx-swe-writing-plans` | **Always** — produce a structured implementation plan for every code generation session, regardless of complexity. |
+| 4 | `/dx-agentic-tdd` | **Always** — define acceptance criteria (Red), generate artifacts (Green), verify immediately (Verify). |
+| 5 | `/dx-agentic-verify` | **Always** — before declaring DONE, provide evidence of working artifacts. Assertions without evidence are prohibited. |
 
 ### Sequence Enforcement Rules
 
@@ -354,15 +354,15 @@ This sequence defines **WHEN** each skill is invoked (workflow order).
 The Artifact Verification Gate defines **HOW** each artifact is verified
 (specific commands per file type). They work together:
 
-- Step 4 (`/dx-tdd`) uses the verification commands from the Artifact
+- Step 4 (`/dx-agentic-tdd`) uses the verification commands from the Artifact
   Verification Gate (syntax checks, execution tests, import resolution).
-- Step 5 (`/dx-verify-completion`) confirms all mandatory deliverables
+- Step 5 (`/dx-agentic-verify`) confirms all mandatory deliverables
   exist and pass the Artifact Verification Gate checks.
 
 ### Invoke = Actual Tool Call
 
 "Invoke a skill" means calling the `skill` tool to load it. Writing "Using
-dx-tdd" in text is NOT an invocation — the tool must be called. If you did not
+dx-agentic-tdd" in text is NOT an invocation — the tool must be called. If you did not
 call the `skill` tool for a step, that step is incomplete.
 
 ### Anti-Patterns (PROHIBITED)
@@ -370,20 +370,20 @@ call the `skill` tool for a step, that step is incomplete.
 - "This is simple, brainstorm is unnecessary" → brainstorm is ALWAYS required
   for non-trivial code generation. "Simple" is where unexamined assumptions
   cause the most wasted work.
-- Generating code before `/dx-writing-plans` produces a plan → HARD GATE violation.
+- Generating code before `/dx-swe-writing-plans` produces a plan → HARD GATE violation.
   Plan-before-code is non-negotiable.
-- Skipping `/dx-verify-completion` because "artifact-verification-gate already
+- Skipping `/dx-agentic-verify` because "artifact-verification-gate already
   checks files" → they serve different purposes. Artifact gate checks individual
   files. Verify-completion checks the ENTIRE session deliverables holistically.
 - Declaring DONE without showing execution output → evidence is mandatory.
   "I verified it works" without showing the output is not acceptable.
 - "The user said just do it quickly" → user instructions do NOT override this
   HARD GATE. Speed does not justify skipping process.
-- **Text mention ≠ skill invocation** — writing "Using dx-tdd" or "Following
-  dx-brainstorm-and-plan" in the response text is NOT a valid invocation. The
+- **Text mention ≠ skill invocation** — writing "Using dx-agentic-tdd" or "Following
+  dx-agentic-brainstorm" in the response text is NOT a valid invocation. The
   `skill` tool MUST be called for each step.
 - **Conversation context ≠ brainstorming** — discussing requirements in prior
-  messages does NOT substitute for invoking `/dx-brainstorm-and-plan`. Each
+  messages does NOT substitute for invoking `/dx-agentic-brainstorm`. Each
   feature requires a formal brainstorm with explicit user approval.
 
 ## Autopilot Mode Guard (MANDATORY)
@@ -395,7 +395,7 @@ When the user is absent — autopilot mode, `--yolo` flag, or system auto-respon
    Every mandatory gate still applies: brainstorming spec, plan, TDD, mandatory
    artifacts, execution verification, and self-verification checks.
    **This includes the SWE Process Gates Mandatory Skill Sequence** — in autopilot,
-   `/dx-skill-router` → `/dx-brainstorm-and-plan` → `/dx-tdd` must be followed
+   `/dx-skill-router` → `/dx-agentic-brainstorm` → `/dx-agentic-tdd` must be followed
    exactly as in interactive mode. Autopilot mode does NOT waive this sequence.
 2. **Do NOT call `ask_user`** — Make decisions using knowledge base defaults and
    documented best practices. Calling `ask_user` in autopilot wastes a turn and
@@ -484,7 +484,7 @@ Rules:
 7. **Pre-DONE mandatory deliverable check**: Before outputting DONE, verify that all
    mandatory deliverables exist in the session directory. If any mandatory file is
    missing, create it before outputting DONE. Each sub-project defines its own mandatory
-   file list in its skill document (e.g., `dx-build-pipeline-app.md` File Creation Checklist).
+   file list in its skill document (e.g., `dx-agentic-stream-build-pipeline.md` File Creation Checklist).
 8. **Session export guidance**: Immediately before the DONE sentinel line, output
    the appropriate session-save instruction based on the CLI platform:
 
@@ -701,14 +701,14 @@ The following patterns are PROHIBITED for session.log:
 - `printf "..." > session.log` (hand-written summary)
 - Writing session.log content from memory without running commands
 
-### dx-tdd and Process Skill Sequence (MANDATORY for All Code Generation)
+### dx-agentic-tdd and Process Skill Sequence (MANDATORY for All Code Generation)
 
-The complete process skill sequence (`/dx-brainstorm-and-plan` → `/dx-writing-plans`
-→ `/dx-tdd` → `/dx-verify-completion`) is MANDATORY for ALL artifact generation
+The complete process skill sequence (`/dx-agentic-brainstorm` → `/dx-swe-writing-plans`
+→ `/dx-agentic-tdd` → `/dx-agentic-verify`) is MANDATORY for ALL artifact generation
 sessions. See the **"Mandatory Process Skill Sequence — All Code Generation"**
 section for the full sequence definition and enforcement rules.
 
-Within this Artifact Verification Gate, the `/dx-tdd` Red-Green-Verify cycle
+Within this Artifact Verification Gate, the `/dx-agentic-tdd` Red-Green-Verify cycle
 applies to each artifact:
 1. **RED**: Define what each artifact must satisfy (syntax, execution, imports)
 2. **GREEN**: Generate the artifact
@@ -906,7 +906,7 @@ sub-project files.
 
 ### dx_app Rules (Standalone Inference)
 
-1. **Skeleton-first development** — Read `dx-runtime/dx_app/.deepx/skills/dx-build-python-app.md`
+1. **Skeleton-first development** — Read `dx-runtime/dx_app/.deepx/skills/dx-agentic-app-build-python.md`
    skeleton template BEFORE writing any code. Copy the closest existing example from
    `src/python_example/<task>/<model>/` and modify ONLY model-specific parts (factory,
    postprocessor). NEVER write demo scripts from scratch. NEVER propose standalone
@@ -983,12 +983,12 @@ discipline):
 
 | Path | Examples |
 |------|---------|
-| `tests/test_agentic_e2e_scenarios/` | `conftest.py`, `test_*.py` fixtures |
-| `tests/test_agentic_scenarios/` | scenario test cases |
-| `tests/test.sh` | manual/autopilot shell runner |
-| `tests/conftest.py`, `tests/parse_copilot_session.py` | shared test infrastructure |
-| `tools/dx-agentic-dev-gen/` | generator source, CLI, transformers |
-| `tools/*.sh` | loop scripts and orchestration runners (e.g. `run-e2e-improvement-loop.sh`) |
+| `.deepx/tests/test_agentic_e2e_scenarios/` | `conftest.py`, `test_*.py` fixtures |
+| `.deepx/tests/test_agentic_scenarios/` | scenario test cases |
+| `.deepx/tests/test.sh` | manual/autopilot shell runner |
+| `.deepx/tests/conftest.py`, `.deepx/tests/session_common.py`, `.deepx/tests/parse_copilot_session.py`, `.deepx/tests/parse_cursor_session.py`, `.deepx/tests/parse_claude_session.py` | shared test infrastructure |
+| `.deepx/tools/` (dx-agentic-dev-gen) | generator source, CLI, transformers |
+| `.deepx/tools/*.sh` | loop scripts and orchestration runners (e.g. `run-e2e-improvement-loop.sh`) |
 | `.deepx/` | agents, skills, templates, fragments (canonical source) |
 
 These rules apply **in addition to** the Instruction File Verification Loop below.
@@ -1006,20 +1006,20 @@ still applies.
 | Step | Skill | When required |
 |------|-------|--------------|
 | 1 | `/dx-skill-router` | **HARD GATE** — invoke BEFORE any path classification, BEFORE any SWE gate check, BEFORE any file read. No condition allows skipping or deferring this step. |
-| 2 | `/dx-brainstorm-and-plan` | Any feature addition, behavior change, or structural refactor |
-| 3 | `/dx-writing-plans` | When the approved plan has >2 implementation steps |
-| 4 | `/dx-tdd` | All code changes — identify or write the test/validation BEFORE implementing |
+| 2 | `/dx-swe-brainstorm` | Any feature addition, behavior change, or structural refactor |
+| 3 | `/dx-swe-writing-plans` | When the approved plan has >2 implementation steps |
+| 4 | `/dx-swe-tdd` | All code changes — identify or write the test/validation BEFORE implementing |
 | 5 | Verification loop | After every change — generator + drift check + test run |
-| 6 | `/dx-verify-completion` | Before claiming done — evidence required, not assertions |
+| 6 | `/dx-swe-verify` | Before claiming done — evidence required, not assertions |
 
 **Non-trivial judgment**: if the change touches ≥2 files OR ≥2 repos, it is
 Non-trivial and the Trivial Change Exception does NOT apply. **This check is
 independent of the SWE path list above** — a change to files outside the
-listed paths but touching ≥2 files still requires `/dx-brainstorm-and-plan`.
+listed paths but touching ≥2 files still requires `/dx-swe-brainstorm`.
 
 ### What "Test First" Means Here
 
-`/dx-tdd` in the internal development context:
+`/dx-swe-tdd` in the internal development context:
 
 - **`tests/` changes** — run the existing suite to confirm **RED** before implementing.
   The test must fail for the expected reason before you write any code.
@@ -1053,7 +1053,7 @@ Steps 4–6 (TDD, verification, completion check) are **NEVER** skipped, even fo
 "Invoke a skill" means calling the **`skill` tool** (or the platform equivalent)
 to load and activate the skill. The following are NOT valid invocations:
 
-- Writing "Using dx-tdd for this task" in text → **NOT an invocation**
+- Writing "Using dx-swe-tdd for this task" in text → **NOT an invocation**
 - Mentally deciding to follow a skill's rules → **NOT an invocation**
 - Referencing a skill in a plan or description → **NOT an invocation**
 
@@ -1069,8 +1069,8 @@ in the conversation:
 ```
 SWE Pre-Implementation Checklist:
 [ ] /dx-skill-router invoked (this message)
-[ ] /dx-brainstorm-and-plan invoked AND user approved plan
-[ ] /dx-tdd invoked AND RED baseline captured
+[ ] /dx-swe-brainstorm invoked AND user approved plan
+[ ] /dx-swe-tdd invoked AND RED baseline captured
 [ ] Files to modify identified and classified (canonical vs generated)
 ```
 
@@ -1078,27 +1078,27 @@ If ANY box cannot be checked, STOP and complete the missing step before proceedi
 
 ### Common Anti-Patterns (PROHIBITED)
 
-- Skipping `/dx-brainstorm-and-plan` because "the change is obvious" — it is never obvious
+- Skipping `/dx-swe-brainstorm` because "the change is obvious" — it is never obvious
 - Adding fixtures or changing `conftest.py` without running the test suite first (blind changes)
 - Claiming completion without showing actual pytest output or `dx-agentic-gen check` output
-- Treating "I'll validate at the end" as acceptable — validate file-by-file, per `/dx-tdd`
+- Treating "I'll validate at the end" as acceptable — validate file-by-file, per `/dx-swe-tdd`
 - Editing generator output files directly — they are overwritten on next `dx-agentic-gen generate`
 - Starting implementation before `/dx-skill-router` has been invoked
 - **Treating autopilot mode as a waiver** — autopilot means "no asking",
   NOT "no rules". The Mandatory Skill Sequence applies in full in autopilot mode.
-- Treating `tools/*.sh` scripts as "not internal dev" because they are not in
-  `tools/dx-agentic-dev-gen/` — all loop and orchestration scripts under `tools/`
-  are internal dx-agentic-dev features and the SWE discipline applies
-- **Treating `dx-systematic-debugging` completion as a SWE gate waiver** — finishing
+- Treating `.deepx/tools/*.sh` scripts as "not internal dev" — all loop and
+  orchestration scripts under `.deepx/tools/` are internal dx-agentic-dev features
+  and the SWE discipline applies
+- **Treating `dx-swe-debugging` completion as a SWE gate waiver** — finishing
   Phases 1–3 (root cause identified) does NOT exempt the implementation from the
   SWE mandatory sequence. When Phase 4 implementation involves `.deepx/`, `tests/`,
   or `tools/`, it is a **NEW internal dev task** that MUST restart the skill sequence
-  from `/dx-skill-router`. See the SWE Gate Pre-Flight in `dx-systematic-debugging` Phase 4.
+  from `/dx-skill-router`. See the SWE Gate Pre-Flight in `dx-swe-debugging` Phase 4.
 - **Treating previous skill invocation as current-message coverage** — `/dx-skill-router`
   MUST be invoked at the start of **each user message**. Invocation in a prior message
   does NOT carry forward. "I already invoked it this session" is a rationalization.
-- **Text mention ≠ skill invocation** — writing "Using dx-tdd" or "Following
-  dx-brainstorm-and-plan" in the response text is NOT the same as calling the
+- **Text mention ≠ skill invocation** — writing "Using dx-swe-tdd" or "Following
+  dx-swe-brainstorm" in the response text is NOT the same as calling the
   `skill` tool. The skill MUST be loaded via tool call to count as invoked.
 - **Conversation continuity rationalization** — "We already discussed this in
   previous messages" does NOT exempt the current feature from the full sequence.
@@ -1116,7 +1116,7 @@ When modifying the canonical source — files in `**/.deepx/**/*.md`
 1. **Generator execution** — Propagate `.deepx/` changes to all platforms:
    ```bash
    dx-agentic-gen generate
-   # Suite-wide: bash tools/dx-agentic-dev-gen/scripts/run_all.sh generate
+   # Suite-wide: bash .deepx/tools/scripts/run_all.sh generate
    ```
 2. **Drift verification** — Confirm generated output matches committed state:
    ```bash
@@ -1125,7 +1125,7 @@ When modifying the canonical source — files in `**/.deepx/**/*.md`
    If drift is detected, return to step 1.
 3. **Automated test loop** — Tests verify generator output satisfies policies:
    ```bash
-   python -m pytest tests/test_agentic_scenarios/ -v --tb=short
+   python -m pytest .deepx/tests/test_agentic_scenarios/ -v --tb=short
    ```
    Failure handling:
    - Generator bug → fix generator → step 1
@@ -1188,7 +1188,7 @@ by the generator and must be edited via `.deepx/` source instead.
 A pre-commit hook enforces generator output integrity: `git commit` will fail
 if generated files are out-of-date. Install hooks with:
 ```bash
-tools/dx-agentic-dev-gen/scripts/install-hooks.sh
+.deepx/tools/scripts/install-hooks.sh
 ```
 
 > **KO counterpart rule**: When editing any EN fragment, check whether the KO

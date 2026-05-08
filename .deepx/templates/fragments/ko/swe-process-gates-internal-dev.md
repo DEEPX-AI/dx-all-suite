@@ -8,12 +8,12 @@ Cursor (IDE), OpenCode, 기타 모든 도구)를 사용하여 내부 dx-agentic-
 
 | 경로 | 예시 |
 |------|------|
-| `tests/test_agentic_e2e_scenarios/` | `conftest.py`, `test_*.py` fixture |
-| `tests/test_agentic_scenarios/` | 시나리오 테스트 케이스 |
-| `tests/test.sh` | 수동/자동 shell runner |
-| `tests/conftest.py`, `tests/parse_copilot_session.py` | 공유 테스트 인프라 |
-| `tools/dx-agentic-dev-gen/` | generator 소스, CLI, transformer |
-| `tools/*.sh` | loop 스크립트 및 orchestration runner (예: `run-e2e-improvement-loop.sh`) |
+| `.deepx/tests/test_agentic_e2e_scenarios/` | `conftest.py`, `test_*.py` fixture |
+| `.deepx/tests/test_agentic_scenarios/` | 시나리오 테스트 케이스 |
+| `.deepx/tests/test.sh` | 수동/자동 shell runner |
+| `.deepx/tests/conftest.py`, `.deepx/tests/session_common.py`, `.deepx/tests/parse_copilot_session.py`, `.deepx/tests/parse_cursor_session.py`, `.deepx/tests/parse_claude_session.py` | 공유 테스트 인프라 |
+| `.deepx/tools/` (dx-agentic-dev-gen) | generator 소스, CLI, transformer |
+| `.deepx/tools/*.sh` | loop 스크립트 및 orchestration runner (예: `run-e2e-improvement-loop.sh`) |
 | `.deepx/` | agent, skill, 템플릿, fragment (canonical source) |
 
 이 규칙은 아래 **Instruction File Verification Loop**에 **추가로** 적용됩니다.
@@ -31,20 +31,20 @@ Autopilot에서는 `ask_user` 대신 knowledge base 기본값으로 결정하되
 | 단계 | Skill | 적용 시점 |
 |------|-------|-----------|
 | 1 | `/dx-skill-router` | **HARD GATE** — 경로 분류 전, SWE 게이트 체크 전, 파일 읽기 전에 반드시 호출. 어떤 조건에서도 이 단계를 건너뛰거나 미룰 수 없습니다. |
-| 2 | `/dx-brainstorm-and-plan` | 기능 추가, 동작 변경, 구조적 리팩토링 시 |
-| 3 | `/dx-writing-plans` | 승인된 계획이 >2 구현 단계를 포함할 때 |
-| 4 | `/dx-tdd` | 모든 코드 변경 — 구현 전 테스트/검증을 먼저 확인하거나 작성 |
+| 2 | `/dx-swe-brainstorm` | 기능 추가, 동작 변경, 구조적 리팩토링 시 |
+| 3 | `/dx-swe-writing-plans` | 승인된 계획이 >2 구현 단계를 포함할 때 |
+| 4 | `/dx-swe-tdd` | 모든 코드 변경 — 구현 전 테스트/검증을 먼저 확인하거나 작성 |
 | 5 | Verification loop | 모든 변경 후 — generator + drift check + test 실행 |
-| 6 | `/dx-verify-completion` | 완료 선언 전 — 주장이 아닌 증거 필요 |
+| 6 | `/dx-swe-verify` | 완료 선언 전 — 주장이 아닌 증거 필요 |
 
 **Non-trivial 판단 기준**: 변경이 ≥2개 파일 또는 ≥2개 레포에 영향을 미치면
 Non-trivial로 간주하며, Trivial 변경 예외가 적용되지 않습니다. **이 기준은
 위의 SWE 경로 목록과 독립적으로 적용됩니다** — 목록에 없는 경로의 파일이라도
-≥2개를 변경하면 `/dx-brainstorm-and-plan`이 필요합니다.
+≥2개를 변경하면 `/dx-swe-brainstorm`이 필요합니다.
 
 ### "테스트 우선"의 의미
 
-내부 개발 맥락에서 `/dx-tdd`:
+내부 개발 맥락에서 `/dx-swe-tdd`:
 
 - **`tests/` 변경** — 기존 suite를 실행하여 구현 전 **RED** 상태를 확인합니다.
   코드를 작성하기 전에 예상된 이유로 테스트가 실패해야 합니다.
@@ -79,7 +79,7 @@ Non-trivial로 간주하며, Trivial 변경 예외가 적용되지 않습니다.
 실제로 호출하여 skill을 load하고 활성화하는 것을 의미합니다. 다음은 유효한
 호출이 **아닙니다**:
 
-- 텍스트에 "dx-tdd를 사용합니다"라고 쓰기 → **호출 아님**
+- 텍스트에 "dx-swe-tdd를 사용합니다"라고 쓰기 → **호출 아님**
 - 머릿속으로 skill의 규칙을 따르기로 결정 → **호출 아님**
 - plan이나 설명에서 skill을 언급 → **호출 아님**
 
@@ -94,8 +94,8 @@ Non-trivial로 간주하며, Trivial 변경 예외가 적용되지 않습니다.
 ```
 SWE Pre-Implementation Checklist:
 [ ] /dx-skill-router 호출됨 (현재 메시지)
-[ ] /dx-brainstorm-and-plan 호출됨 AND 사용자 계획 승인
-[ ] /dx-tdd 호출됨 AND RED baseline 캡처됨
+[ ] /dx-swe-brainstorm 호출됨 AND 사용자 계획 승인
+[ ] /dx-swe-tdd 호출됨 AND RED baseline 캡처됨
 [ ] 수정 대상 파일 식별 및 분류됨 (canonical vs generated)
 ```
 
@@ -103,26 +103,26 @@ SWE Pre-Implementation Checklist:
 
 ### 흔한 안티패턴 (금지)
 
-- "변경이 명확하다"는 이유로 `/dx-brainstorm-and-plan` 건너뛰기 — 절대 명확하지 않음
+- "변경이 명확하다"는 이유로 `/dx-swe-brainstorm` 건너뛰기 — 절대 명확하지 않음
 - 테스트 suite 실행 없이 fixture 추가 또는 `conftest.py` 변경 (눈먼 변경)
 - 실제 pytest 출력 또는 `dx-agentic-gen check` 출력 없이 완료 주장
-- "마지막에 검증하겠다" 방식 — `/dx-tdd`에 따라 파일별로 검증
+- "마지막에 검증하겠다" 방식 — `/dx-swe-tdd`에 따라 파일별로 검증
 - generator 출력 파일 직접 편집 — 다음 `dx-agentic-gen generate` 실행 시 덮어씌워짐
 - `/dx-skill-router` 호출 전 구현 시작
 - **Autopilot mode를 면제로 오해** — autopilot은 "묻지 않기"를 의미할 뿐,
   "규칙 없음"이 아닙니다. Autopilot에서도 필수 Skill 시퀀스는 완전히 적용됩니다.
-- `tools/*.sh` 스크립트를 `tools/dx-agentic-dev-gen/`에 없다는 이유로 "내부 개발 아님"으로 취급하기 —
-  `tools/` 하위의 모든 loop 및 orchestration 스크립트는 내부 dx-agentic-dev 기능이며 SWE 규율이 적용됩니다
-- **`dx-systematic-debugging` 완료를 SWE gate 면제로 취급** — Phase 1–3 (근본 원인 파악)을
+- `.deepx/tools/*.sh` 스크립트를 "내부 개발 아님"으로 취급하기 —
+  `.deepx/tools/` 하위의 모든 loop 및 orchestration 스크립트는 내부 dx-agentic-dev 기능이며 SWE 규율이 적용됩니다
+- **`dx-swe-debugging` 완료를 SWE gate 면제로 취급** — Phase 1–3 (근본 원인 파악)을
   완료했다고 해서 구현 작업이 SWE 필수 시퀀스에서 면제되는 것은 아닙니다. Phase 4 구현이
   `.deepx/`, `tests/`, 또는 `tools/`를 포함할 경우, 이는 **새로운 내부 개발 작업**으로서
   `/dx-skill-router`부터 시퀀스를 **재시작**해야 합니다.
-  `dx-systematic-debugging` Phase 4의 SWE Gate Pre-Flight를 참조하세요.
+  `dx-swe-debugging` Phase 4의 SWE Gate Pre-Flight를 참조하세요.
 - **이전 Skill 호출을 현재 메시지 적용 범위로 취급** — `/dx-skill-router`는 **각 사용자
   메시지** 시작 시 호출되어야 합니다. 이전 메시지의 호출은 이월되지 않습니다.
   "이미 이 세션에서 호출했다"는 합리화입니다.
-- **텍스트 언급 ≠ skill 호출** — 응답 텍스트에 "dx-tdd를 사용합니다" 또는
-  "dx-brainstorm-and-plan을 따릅니다"라고 작성하는 것은 `skill` tool을 호출하는 것과
+- **텍스트 언급 ≠ skill 호출** — 응답 텍스트에 "dx-swe-tdd를 사용합니다" 또는
+  "dx-swe-brainstorm을 따릅니다"라고 작성하는 것은 `skill` tool을 호출하는 것과
   **같지 않습니다**. Skill은 반드시 tool call을 통해 load해야 호출된 것으로 간주합니다.
 - **대화 연속성 합리화** — "이전 메시지에서 이미 논의했으니까"라는 이유로 현재 기능에 대한
   전체 시퀀스를 면제할 수 없습니다. 각 기능 추가는 대화에 아무리 많은 맥락이 있더라도

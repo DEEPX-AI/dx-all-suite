@@ -94,35 +94,34 @@ correct submodule.
 
 | Level | Skill | Description |
 |---|---|---|
-| **dx-all-suite** | `/dx-validate-all` | Full validation across all 3 levels |
-| **dx-runtime** | `/dx-validate-and-fix` | Validate, collect feedback, apply fixes, verify |
-| **dx_app** | `/dx-build-python-app` | Build Python inference app |
-| **dx_app** | `/dx-build-cpp-app` | Build C++ inference app |
-| **dx_app** | `/dx-build-async-app` | Build async high-performance app |
-| **dx_app** | `/dx-model-management` | Download and configure models |
-| **dx_app** | `/dx-validate` | Run validation checks |
-| **dx_stream** | `/dx-build-pipeline-app` | Build GStreamer pipeline app |
-| **dx_stream** | `/dx-build-mqtt-kafka-app` | Build MQTT/Kafka pipeline app |
-| **dx_stream** | `/dx-validate` | Run validation checks |
-| **dx_stream** | `/dx-model-management` | Download and configure models |
-| **dx-compiler** | `/dx-convert-model` | Convert PyTorch model to ONNX |
-| **dx-compiler** | `/dx-compile-model` | Compile ONNX model to DXNN |
-| **dx-compiler** | `/dx-validate-compile` | Validate compiled DXNN output |
-| **DX All Suite** | `/dx-brainstorm-and-plan` | Process: collaborative design session before any work |
-| **DX All Suite** | `/dx-tdd` | Process: test-driven development — validate incrementally |
-| **DX All Suite** | `/dx-verify-completion` | Process: verify before claiming completion — evidence before assertions |
-| **dx-runtime** | `/dx-brainstorm-and-plan` | Process: collaborative design session before code generation |
-| **dx-runtime** | `/dx-tdd` | Process: test-driven development — validate each file immediately after creation |
-| **dx-runtime** | `/dx-verify-completion` | Process: verify before claiming completion — evidence before assertions |
-| **dx_app** | `/dx-brainstorm-and-plan` | Process: collaborative design session before code generation |
-| **dx_app** | `/dx-tdd` | Process: test-driven development — validate each file immediately after creation |
-| **dx_app** | `/dx-verify-completion` | Process: verify before claiming completion — evidence before assertions |
-| **dx_stream** | `/dx-brainstorm-and-plan` | Process: collaborative design session before code generation |
-| **dx_stream** | `/dx-tdd` | Process: test-driven development — validate each file immediately after creation |
-| **dx_stream** | `/dx-verify-completion` | Process: verify before claiming completion — evidence before assertions |
-| **dx-compiler** | `/dx-brainstorm-and-plan` | Process: collaborative design session before compilation |
-| **dx-compiler** | `/dx-tdd` | Process: test-driven development — validate each step incrementally |
-| **dx-compiler** | `/dx-verify-completion` | Process: verify before claiming completion — evidence before assertions |
+| **dx-runtime** | `/dx-agentic-runtime-validate` | Validate, collect feedback, apply fixes, verify |
+| **dx_app** | `/dx-agentic-app-build-python` | Build Python inference app |
+| **dx_app** | `/dx-agentic-app-build-cpp` | Build C++ inference app |
+| **dx_app** | `/dx-agentic-app-build-async` | Build async high-performance app |
+| **dx_app** | `/dx-agentic-app-model-management` | Download and configure models |
+| **dx_app** | `/dx-agentic-app-validate` | Run validation checks |
+| **dx_stream** | `/dx-agentic-stream-build-pipeline` | Build GStreamer pipeline app |
+| **dx_stream** | `/dx-agentic-stream-build-mqtt-kafka` | Build MQTT/Kafka pipeline app |
+| **dx_stream** | `/dx-agentic-stream-validate` | Run validation checks |
+| **dx_stream** | `/dx-agentic-stream-model-management` | Download and configure models |
+| **dx-compiler** | `/dx-agentic-compiler-convert` | Convert PyTorch model to ONNX |
+| **dx-compiler** | `/dx-agentic-compiler-compile` | Compile ONNX model to DXNN |
+| **dx-compiler** | `/dx-agentic-compiler-validate` | Validate compiled DXNN output |
+| **DX All Suite** | `/dx-swe-brainstorm` | Process: collaborative design session before any work |
+| **DX All Suite** | `/dx-swe-tdd` | Process: test-driven development — validate incrementally |
+| **DX All Suite** | `/dx-swe-verify` | Process: verify before claiming completion — evidence before assertions |
+| **dx-runtime** | `/dx-swe-brainstorm` | Process: collaborative design session before code generation |
+| **dx-runtime** | `/dx-swe-tdd` | Process: test-driven development — validate each file immediately after creation |
+| **dx-runtime** | `/dx-swe-verify` | Process: verify before claiming completion — evidence before assertions |
+| **dx_app** | `/dx-swe-brainstorm` | Process: collaborative design session before code generation |
+| **dx_app** | `/dx-swe-tdd` | Process: test-driven development — validate each file immediately after creation |
+| **dx_app** | `/dx-swe-verify` | Process: verify before claiming completion — evidence before assertions |
+| **dx_stream** | `/dx-swe-brainstorm` | Process: collaborative design session before code generation |
+| **dx_stream** | `/dx-swe-tdd` | Process: test-driven development — validate each file immediately after creation |
+| **dx_stream** | `/dx-swe-verify` | Process: verify before claiming completion — evidence before assertions |
+| **dx-compiler** | `/dx-swe-brainstorm` | Process: collaborative design session before compilation |
+| **dx-compiler** | `/dx-swe-tdd` | Process: test-driven development — validate each step incrementally |
+| **dx-compiler** | `/dx-swe-verify` | Process: verify before claiming completion — evidence before assertions |
 
 > **Tip:** If you are unsure which submodule to target, use `@dx-suite-builder`
 > at the top level — it will classify your task and route to the correct builder.
@@ -205,19 +204,17 @@ manually via agent or skill commands.
 
 | Skill | File |
 |-------|------|
-| `/dx-brainstorm-and-plan` | `.deepx/skills/dx-brainstorm-and-plan/SKILL.md` |
-| `/dx-verify-completion` | `.deepx/skills/dx-verify-completion/SKILL.md` |
-| `/dx-validate-all` | `.deepx/skills/dx-validate-all/SKILL.md` |
-| `/dx-tdd` | `.deepx/skills/dx-tdd/SKILL.md` |
-| `/dx-dispatching-parallel-agents` | `.deepx/skills/dx-dispatching-parallel-agents/SKILL.md` |
-| `/dx-executing-plans` | `.deepx/skills/dx-executing-plans/SKILL.md` |
-| `/dx-receiving-code-review` | `.deepx/skills/dx-receiving-code-review/SKILL.md` |
-| `/dx-requesting-code-review` | `.deepx/skills/dx-requesting-code-review/SKILL.md` |
+| `/dx-swe-brainstorm` | `.deepx/skills/dx-swe-brainstorm/SKILL.md` |
+| `/dx-swe-verify` | `.deepx/skills/dx-swe-verify/SKILL.md` |
+| `/dx-swe-tdd` | `.deepx/skills/dx-swe-tdd/SKILL.md` |
+| `/dx-swe-parallel-agents` | `.deepx/skills/dx-swe-parallel-agents/SKILL.md` |
+| `/dx-swe-executing-plans` | `.deepx/skills/dx-swe-executing-plans/SKILL.md` |
+| `/dx-swe-receiving-review` | `.deepx/skills/dx-swe-receiving-review/SKILL.md` |
+| `/dx-swe-requesting-review` | `.deepx/skills/dx-swe-requesting-review/SKILL.md` |
 | `/dx-skill-router` | `.deepx/skills/dx-skill-router/SKILL.md` |
-| `/dx-subagent-driven-development` | `.deepx/skills/dx-subagent-driven-development/SKILL.md` |
-| `/dx-systematic-debugging` | `.deepx/skills/dx-systematic-debugging/SKILL.md` |
-| `/dx-writing-plans` | `.deepx/skills/dx-writing-plans/SKILL.md` |
-| `/dx-writing-skills` | `.deepx/skills/dx-writing-skills/SKILL.md` |
+| `/dx-swe-subagent-dev` | `.deepx/skills/dx-swe-subagent-dev/SKILL.md` |
+| `/dx-swe-debugging` | `.deepx/skills/dx-swe-debugging/SKILL.md` |
+| `/dx-swe-writing-plans` | `.deepx/skills/dx-swe-writing-plans/SKILL.md` |
 
 #### Shared Knowledge Base (`.deepx/`)
 
@@ -247,14 +244,14 @@ All platform-specific files are generated from `.deepx/` by the `dx-agentic-dev-
 package. Never edit generated files directly.
 
 ```bash
-pip install -e tools/dx-agentic-dev-gen   # Install generator
+pip install -e .deepx/tools   # Install generator
 dx-agentic-gen generate                    # Generate platform files
 dx-agentic-gen check                       # Verify no drift
 ```
 
 A pre-commit hook enforces that generated files stay in sync:
 ```bash
-tools/dx-agentic-dev-gen/scripts/install-hooks.sh   # One-time setup
+.deepx/tools/scripts/install-hooks.sh   # One-time setup
 ```
 
 ## Quick Start by Tool

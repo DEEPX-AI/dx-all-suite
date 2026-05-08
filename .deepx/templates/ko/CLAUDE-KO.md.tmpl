@@ -34,24 +34,24 @@
 
 | 스킬 | 설명 |
 |---|---|
-| `/dx-validate-all` | 전체 3개 레벨에 걸친 전체 검증 — 검증, 피드백 수집, 수정 적용, 확인 |
-| `/dx-brainstorm-and-plan` | 브레인스토밍, 2-3가지 접근법 제안, 스펙 자체 검토 후 계획 |
-| `/dx-tdd` | 검증 주도 개발, 선택적 Red-Green-Refactor 단위 테스트 |
-| `/dx-verify-completion` | 완료 선언 전 검증 — 주장 전 증거 |
+| `/dx-harness-validate` | 내부개발: .deepx/ framework 무결성 검증 |
+| `/dx-swe-brainstorm` | 브레인스토밍, 2-3가지 접근법 제안, 스펙 자체 검토 후 계획 |
+| `/dx-swe-tdd` | 검증 주도 개발, 선택적 Red-Green-Refactor 단위 테스트 |
+| `/dx-swe-verify` | 완료 선언 전 검증 — 주장 전 증거 |
 
 ### 프로세스 스킬
 
 | 스킬 | 설명 |
 |---|---|
-| `/dx-writing-plans` | 세분화된 태스크로 구현 계획 작성 |
-| `/dx-executing-plans` | 리뷰 체크포인트와 함께 계획 실행 |
-| `/dx-subagent-driven-development` | 태스크별 신규 서브에이전트로 계획 실행, 2단계 리뷰 |
-| `/dx-systematic-debugging` | 체계적 디버깅 — 수정 제안 전 4단계 근본 원인 조사 |
-| `/dx-receiving-code-review` | 코드 리뷰 피드백을 기술적 엄밀성으로 평가 |
-| `/dx-requesting-code-review` | 기능 완료 후 코드 리뷰 요청 |
+| `/dx-swe-writing-plans` | 세분화된 태스크로 구현 계획 작성 |
+| `/dx-swe-executing-plans` | 리뷰 체크포인트와 함께 계획 실행 |
+| `/dx-swe-subagent-dev` | 태스크별 신규 서브에이전트로 계획 실행, 2단계 리뷰 |
+| `/dx-swe-debugging` | 체계적 디버깅 — 수정 제안 전 4단계 근본 원인 조사 |
+| `/dx-swe-receiving-review` | 코드 리뷰 피드백을 기술적 엄밀성으로 평가 |
+| `/dx-swe-requesting-review` | 기능 완료 후 코드 리뷰 요청 |
 | `/dx-skill-router` | 스킬 탐색 및 호출 — 모든 작업 전 스킬 확인 |
-| `/dx-writing-skills` | 스킬 파일 생성 및 편집 |
-| `/dx-dispatching-parallel-agents` | 독립 태스크를 위한 병렬 서브에이전트 디스패치 |
+| `/dx-harness-writing-skills` | 내부개발: .deepx/ 스킬 파일 생성 및 편집 |
+| `/dx-swe-parallel-agents` | 독립 태스크를 위한 병렬 서브에이전트 디스패치 |
 
 ## 빠른 참조
 
@@ -343,7 +343,7 @@ timeout 방지를 위해 background 컴파일이 권장됩니다.
 
 ### dx_app 규칙 (Standalone Inference)
 
-1. **Skeleton-first 개발** — 코드를 작성하기 전에 `dx-runtime/dx_app/.deepx/skills/dx-build-python-app.md`
+1. **Skeleton-first 개발** — 코드를 작성하기 전에 `dx-runtime/dx_app/.deepx/skills/dx-agentic-app-build-python.md`
    skeleton 템플릿을 읽으세요. `src/python_example/<task>/<model>/`에서 가장 유사한
    기존 예제를 복사하고 모델별 부분 (factory, postprocessor)만 수정하세요.
    데모 스크립트를 처음부터 절대 작성하지 마세요. 프레임워크를 우회하는 standalone

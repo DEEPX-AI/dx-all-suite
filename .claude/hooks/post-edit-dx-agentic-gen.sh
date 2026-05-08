@@ -21,7 +21,7 @@ REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
 # Need dx-agentic-gen on PATH
 if ! command -v dx-agentic-gen &>/dev/null; then
     echo "[dx-agentic-gen] WARNING: binary not found — drift check skipped."
-    echo "  Install: pip install -e ${REPO_ROOT}/tools/dx-agentic-dev-gen"
+    echo "  Install: pip install -e ${REPO_ROOT}/.deepx/tools"
     exit 0
 fi
 

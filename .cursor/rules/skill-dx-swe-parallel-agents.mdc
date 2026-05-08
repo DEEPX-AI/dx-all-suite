@@ -1,0 +1,6 @@
+---
+description: "Use when facing 2+ independent tasks that can be worked on without shared state or sequential dependencies"
+alwaysApply: false
+---
+
+Read and follow the skill documentation at `.deepx/skills/dx-swe-parallel-agents/SKILL.md`.

@@ -7,7 +7,7 @@ When modifying the canonical source — files in `**/.deepx/**/*.md`
 1. **Generator execution** — Propagate `.deepx/` changes to all platforms:
    ```bash
    dx-agentic-gen generate
-   # Suite-wide: bash tools/dx-agentic-dev-gen/scripts/run_all.sh generate
+   # Suite-wide: bash .deepx/tools/scripts/run_all.sh generate
    ```
 2. **Drift verification** — Confirm generated output matches committed state:
    ```bash
@@ -16,7 +16,7 @@ When modifying the canonical source — files in `**/.deepx/**/*.md`
    If drift is detected, return to step 1.
 3. **Automated test loop** — Tests verify generator output satisfies policies:
    ```bash
-   python -m pytest tests/test_agentic_scenarios/ -v --tb=short
+   python -m pytest .deepx/tests/test_agentic_scenarios/ -v --tb=short
    ```
    Failure handling:
    - Generator bug → fix generator → step 1
@@ -79,7 +79,7 @@ by the generator and must be edited via `.deepx/` source instead.
 A pre-commit hook enforces generator output integrity: `git commit` will fail
 if generated files are out-of-date. Install hooks with:
 ```bash
-tools/dx-agentic-dev-gen/scripts/install-hooks.sh
+.deepx/tools/scripts/install-hooks.sh
 ```
 
 > **KO counterpart rule**: When editing any EN fragment, check whether the KO

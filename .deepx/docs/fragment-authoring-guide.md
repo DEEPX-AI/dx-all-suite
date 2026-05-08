@@ -37,7 +37,7 @@ vim .deepx/templates/ko/CLAUDE-KO.md.tmpl # add {{FRAGMENT:my-new-rule}}
 # (repeat for AGENTS.md.tmpl, copilot-instructions.md.tmpl as needed)
 
 # 4. Generate and verify
-bash tools/dx-agentic-dev-gen/scripts/run_all.sh generate
+bash .deepx/tools/scripts/run_all.sh generate
 dx-agentic-gen check      # must report "All generated files are up-to-date."
 dx-agentic-gen lint       # must report "All EN/KO fragment pairs are consistent."
 ```
@@ -65,31 +65,31 @@ A structural marker is any line matching `**Q<digit>.` — for example:
 <!-- BAD: KO fragment omits the decision tree and only has the numbered list -->
 ### Pre-flight Classification (MANDATORY)
 
-세 가지 질문에 답하세요:
+Answer three questions:
 
-1. **Canonical source** — 직접 수정.
-2. **Generator output** — .deepx/ source를 수정.
-3. **독립 소스** — 직접 수정.
+1. **Canonical source** — edit directly.
+2. **Generator output** — edit `.deepx/` source.
+3. **Independent source** — edit directly.
 ```
 
 ```markdown
 <!-- GOOD: KO fragment includes both the decision tree AND the numbered list -->
 ### Pre-flight Classification (MANDATORY)
 
-**모든 파일 편집 전 다음 세 가지 질문에 순서대로 답하세요:**
+**Answer these three questions in order before every file edit:**
 
-> **Q1. 파일 경로가 `**/.deepx/**` 내부에 있나요?**
-> - YES → **Canonical source.** 직접 수정 후 `dx-agentic-gen generate` + `check` 실행.
-> - NO → Q2로 이동.
+> **Q1. Is the file path inside `**/.deepx/**`?**
+> - YES → **Canonical source.** Edit directly, then run `dx-agentic-gen generate` + `check`.
+> - NO → go to Q2.
 >
-> **Q2. 파일 경로 또는 이름이 다음 중 하나와 일치하나요?**
+> **Q2. Does the file path or name match any of these?**
 > ...
-> **Q3. 파일이 `<!-- AUTO-GENERATED`로 시작하나요?**
+> **Q3. Does the file begin with `<!-- AUTO-GENERATED`?**
 > ...
 
-1. **Canonical source** — 직접 수정.
-2. **Generator output** — .deepx/ source를 수정.
-3. **독립 소스** — 직접 수정.
+1. **Canonical source** — edit directly.
+2. **Generator output** — edit `.deepx/` source.
+3. **Independent source** — edit directly.
 ```
 
 ---
@@ -101,7 +101,7 @@ After any fragment change, always run lint before committing:
 ```bash
 dx-agentic-gen lint        # Check EN/KO parity for current repo
 # or suite-wide:
-bash tools/dx-agentic-dev-gen/scripts/run_all.sh lint
+bash .deepx/tools/scripts/run_all.sh lint
 ```
 
 The pre-commit hook automatically runs lint when `.deepx/` files are staged.
@@ -116,10 +116,10 @@ A lint failure **blocks the commit** (same as a drift check failure).
 [ ] KO fragment written: .deepx/templates/fragments/ko/<name>.md
 [ ] Template placeholder added to EN template(s)
 [ ] Template placeholder added to KO template(s)
-[ ] bash tools/dx-agentic-dev-gen/scripts/run_all.sh generate  → OK
+[ ] bash .deepx/tools/scripts/run_all.sh generate  → OK
 [ ] dx-agentic-gen check   → "All generated files are up-to-date."
 [ ] dx-agentic-gen lint    → "All EN/KO fragment pairs are consistent."
-[ ] python -m pytest tests/test_agentic_scenarios/ -q  → all pass
+[ ] python -m pytest .deepx/tests/test_agentic_scenarios/ -q  → all pass
 ```
 
 ---

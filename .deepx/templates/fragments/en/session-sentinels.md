@@ -32,7 +32,7 @@ Rules:
 7. **Pre-DONE mandatory deliverable check**: Before outputting DONE, verify that all
    mandatory deliverables exist in the session directory. If any mandatory file is
    missing, create it before outputting DONE. Each sub-project defines its own mandatory
-   file list in its skill document (e.g., `dx-build-pipeline-app.md` File Creation Checklist).
+   file list in its skill document (e.g., `dx-agentic-stream-build-pipeline.md` File Creation Checklist).
 8. **Session export guidance**: Immediately before the DONE sentinel line, output
    the appropriate session-save instruction based on the CLI platform:
 

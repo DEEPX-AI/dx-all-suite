@@ -43,7 +43,7 @@ digraph skill_flow {
     "User message received" [shape=doublecircle];
     "About to EnterPlanMode?" [shape=doublecircle];
     "Already brainstormed?" [shape=diamond];
-    "Invoke dx-brainstorm-and-plan" [shape=box];
+    "Invoke dx-swe-brainstorm" [shape=box];
     "Might any skill apply?" [shape=diamond];
     "Invoke skill tool" [shape=box];
     "Announce: 'Using [skill] to [purpose]'" [shape=box];
@@ -53,9 +53,9 @@ digraph skill_flow {
     "Respond (including clarifications)" [shape=doublecircle];
 
     "About to EnterPlanMode?" -> "Already brainstormed?";
-    "Already brainstormed?" -> "Invoke dx-brainstorm-and-plan" [label="no"];
+    "Already brainstormed?" -> "Invoke dx-swe-brainstorm" [label="no"];
     "Already brainstormed?" -> "Might any skill apply?" [label="yes"];
-    "Invoke dx-brainstorm-and-plan" -> "Might any skill apply?";
+    "Invoke dx-swe-brainstorm" -> "Might any skill apply?";
 
     "User message received" -> "Might any skill apply?";
     "Might any skill apply?" -> "Invoke skill tool" [label="yes, even 1%"];
@@ -70,19 +70,40 @@ digraph skill_flow {
 
 ## Available dx-* Skills
 
+### General SWE Process (dx-swe-*)
+
 | Skill | When to use |
 |-------|-------------|
-| `dx-brainstorm-and-plan` | Before any creative work — creating features, building components, adding functionality |
-| `dx-systematic-debugging` | When encountering any bug, test failure, or unexpected behavior |
-| `dx-dispatching-parallel-agents` | When facing 2+ independent tasks that can run in parallel |
-| `dx-writing-plans` | When you have a spec or requirements for a multi-step task |
-| `dx-executing-plans` | When you have a written implementation plan to execute |
-| `dx-subagent-driven-development` | When executing implementation plans with independent tasks |
-| `dx-verify-completion` | Before claiming work is complete, fixed, or passing |
-| `dx-tdd` | When implementing any feature or bugfix |
-| `dx-receiving-code-review` | When receiving code review feedback |
-| `dx-requesting-code-review` | When completing tasks or before merging |
-| `dx-writing-skills` | When creating or editing skills |
+| `dx-swe-brainstorm` | Before any creative work — creating features, building components, adding functionality |
+| `dx-swe-tdd` | When implementing any feature or bugfix — Red-Green-Verify cycle |
+| `dx-swe-verify` | Before claiming work is complete, fixed, or passing |
+| `dx-swe-debugging` | When encountering any bug, test failure, or unexpected behavior |
+| `dx-swe-writing-plans` | When you have a spec or requirements for a multi-step task |
+| `dx-swe-executing-plans` | When you have a written implementation plan to execute |
+| `dx-swe-subagent-dev` | When executing implementation plans with independent tasks |
+| `dx-swe-parallel-agents` | When facing 2+ independent tasks that can run in parallel |
+| `dx-swe-receiving-review` | When receiving code review feedback |
+| `dx-swe-requesting-review` | When completing tasks or before merging |
+
+### DEEPX Build (dx-agentic-*)
+
+| Skill | When to use |
+|-------|-------------|
+| `dx-agentic-brainstorm` | DEEPX build brainstorming — model registry check, sub-project routing |
+| `dx-agentic-tdd` | DEEPX build validation order — factory, pipeline, integration checks |
+| `dx-agentic-verify` | DEEPX build verification checklists — dx_app, dx_stream, cross-project |
+
+### Internal Harness Development (dx-harness-*)
+
+| Skill | When to use |
+|-------|-------------|
+| `dx-harness-validate` | Validate .deepx/ framework integrity (generator, tests, drift check) |
+| `dx-harness-writing-skills` | Create/edit .deepx/ skill files |
+
+### Meta
+
+| Skill | When to use |
+|-------|-------------|
 | `dx-skill-router` | This skill — how to discover and invoke skills |
 
 ## Red Flags
@@ -104,21 +125,21 @@ These thoughts mean STOP — you're rationalizing:
 | "This feels productive" | Undisciplined action wastes time. Skills prevent this. |
 | "I know what that means" | Knowing the concept ≠ using the skill. Invoke it. |
 | "I already invoked this skill earlier" | Skill invocation covers ONE message. Re-invoke at the start of EACH new user message — prior invocations do not carry forward. |
-| "dx-systematic-debugging told me to implement now" | Debugging completion is NOT a SWE gate waiver. When Phase 4 implementation involves `.deepx/`, `tests/`, or `tools/`, re-invoke this skill and follow the SWE mandatory sequence. |
+| "dx-systematic-debugging told me to implement now" | Debugging completion is NOT a SWE gate waiver. When Phase 4 implementation involves `.deepx/`, `.deepx/tests/`, or `.deepx/tools/`, re-invoke this skill and follow the SWE mandatory sequence. |
 
 ## Skill Priority
 
 When multiple skills could apply, use this order:
 
-1. **Process skills first** (dx-brainstorm-and-plan, dx-systematic-debugging) — these determine HOW to approach the task
+1. **Process skills first** (dx-swe-brainstorm, dx-swe-debugging) — these determine HOW to approach the task
 2. **Implementation skills second** (domain-specific skills) — these guide execution
 
-"Let's build X" → dx-brainstorm-and-plan first, then implementation skills.
-"Fix this bug" → dx-systematic-debugging first, then domain-specific skills.
+"Let's build X" → dx-swe-brainstorm first, then implementation skills.
+"Fix this bug" → dx-swe-debugging first, then domain-specific skills.
 
 ## Skill Types
 
-**Rigid** (dx-tdd, dx-systematic-debugging): Follow exactly. Don't adapt away discipline.
+**Rigid** (dx-swe-tdd, dx-swe-debugging): Follow exactly. Don't adapt away discipline.
 
 **Flexible** (patterns): Adapt principles to context.
 

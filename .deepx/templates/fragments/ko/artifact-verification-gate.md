@@ -156,14 +156,14 @@ command 2>&1 | tee session.log
 - `printf "..." > session.log` (수작업 요약)
 - 명령을 실행하지 않고 메모리에서 session.log 내용 작성
 
-### dx-tdd 및 프로세스 스킬 시퀀스 (모든 코드 생성에 MANDATORY)
+### dx-agentic-tdd 및 프로세스 스킬 시퀀스 (모든 코드 생성에 MANDATORY)
 
-완전한 프로세스 스킬 시퀀스 (`/dx-brainstorm-and-plan` → `/dx-writing-plans`
-→ `/dx-tdd` → `/dx-verify-completion`)는 모든 artifact 생성 session에서
+완전한 프로세스 스킬 시퀀스 (`/dx-agentic-brainstorm` → `/dx-swe-writing-plans`
+→ `/dx-agentic-tdd` → `/dx-agentic-verify`)는 모든 artifact 생성 session에서
 MANDATORY입니다. 전체 시퀀스 정의와 강제 규칙은 **"필수 프로세스 스킬 시퀀스 —
 모든 코드 생성"** 섹션을 참조하세요.
 
-이 Artifact Verification Gate 내에서 `/dx-tdd` Red-Green-Verify cycle은
+이 Artifact Verification Gate 내에서 `/dx-agentic-tdd` Red-Green-Verify cycle은
 각 artifact에 적용됩니다:
 1. **RED**: 각 artifact가 만족해야 할 조건 정의 (문법, 실행, import)
 2. **GREEN**: artifact 생성

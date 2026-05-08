@@ -1,0 +1,6 @@
+---
+description: "Use when you have a spec or requirements for a multi-step task, before touching code"
+alwaysApply: false
+---
+
+Read and follow the skill documentation at `.deepx/skills/dx-swe-writing-plans/SKILL.md`.

@@ -9,12 +9,12 @@ discipline):
 
 | Path | Examples |
 |------|---------|
-| `tests/test_agentic_e2e_scenarios/` | `conftest.py`, `test_*.py` fixtures |
-| `tests/test_agentic_scenarios/` | scenario test cases |
-| `tests/test.sh` | manual/autopilot shell runner |
-| `tests/conftest.py`, `tests/parse_copilot_session.py` | shared test infrastructure |
-| `tools/dx-agentic-dev-gen/` | generator source, CLI, transformers |
-| `tools/*.sh` | loop scripts and orchestration runners (e.g. `run-e2e-improvement-loop.sh`) |
+| `.deepx/tests/test_agentic_e2e_scenarios/` | `conftest.py`, `test_*.py` fixtures |
+| `.deepx/tests/test_agentic_scenarios/` | scenario test cases |
+| `.deepx/tests/test.sh` | manual/autopilot shell runner |
+| `.deepx/tests/conftest.py`, `.deepx/tests/session_common.py`, `.deepx/tests/parse_copilot_session.py`, `.deepx/tests/parse_cursor_session.py`, `.deepx/tests/parse_claude_session.py` | shared test infrastructure |
+| `.deepx/tools/` (dx-agentic-dev-gen) | generator source, CLI, transformers |
+| `.deepx/tools/*.sh` | loop scripts and orchestration runners (e.g. `run-e2e-improvement-loop.sh`) |
 | `.deepx/` | agents, skills, templates, fragments (canonical source) |
 
 These rules apply **in addition to** the Instruction File Verification Loop below.
@@ -32,20 +32,20 @@ still applies.
 | Step | Skill | When required |
 |------|-------|--------------|
 | 1 | `/dx-skill-router` | **HARD GATE** — invoke BEFORE any path classification, BEFORE any SWE gate check, BEFORE any file read. No condition allows skipping or deferring this step. |
-| 2 | `/dx-brainstorm-and-plan` | Any feature addition, behavior change, or structural refactor |
-| 3 | `/dx-writing-plans` | When the approved plan has >2 implementation steps |
-| 4 | `/dx-tdd` | All code changes — identify or write the test/validation BEFORE implementing |
+| 2 | `/dx-swe-brainstorm` | Any feature addition, behavior change, or structural refactor |
+| 3 | `/dx-swe-writing-plans` | When the approved plan has >2 implementation steps |
+| 4 | `/dx-swe-tdd` | All code changes — identify or write the test/validation BEFORE implementing |
 | 5 | Verification loop | After every change — generator + drift check + test run |
-| 6 | `/dx-verify-completion` | Before claiming done — evidence required, not assertions |
+| 6 | `/dx-swe-verify` | Before claiming done — evidence required, not assertions |
 
 **Non-trivial judgment**: if the change touches ≥2 files OR ≥2 repos, it is
 Non-trivial and the Trivial Change Exception does NOT apply. **This check is
 independent of the SWE path list above** — a change to files outside the
-listed paths but touching ≥2 files still requires `/dx-brainstorm-and-plan`.
+listed paths but touching ≥2 files still requires `/dx-swe-brainstorm`.
 
 ### What "Test First" Means Here
 
-`/dx-tdd` in the internal development context:
+`/dx-swe-tdd` in the internal development context:
 
 - **`tests/` changes** — run the existing suite to confirm **RED** before implementing.
   The test must fail for the expected reason before you write any code.
@@ -79,7 +79,7 @@ Steps 4–6 (TDD, verification, completion check) are **NEVER** skipped, even fo
 "Invoke a skill" means calling the **`skill` tool** (or the platform equivalent)
 to load and activate the skill. The following are NOT valid invocations:
 
-- Writing "Using dx-tdd for this task" in text → **NOT an invocation**
+- Writing "Using dx-swe-tdd for this task" in text → **NOT an invocation**
 - Mentally deciding to follow a skill's rules → **NOT an invocation**
 - Referencing a skill in a plan or description → **NOT an invocation**
 
@@ -95,8 +95,8 @@ in the conversation:
 ```
 SWE Pre-Implementation Checklist:
 [ ] /dx-skill-router invoked (this message)
-[ ] /dx-brainstorm-and-plan invoked AND user approved plan
-[ ] /dx-tdd invoked AND RED baseline captured
+[ ] /dx-swe-brainstorm invoked AND user approved plan
+[ ] /dx-swe-tdd invoked AND RED baseline captured
 [ ] Files to modify identified and classified (canonical vs generated)
 ```
 
@@ -104,27 +104,27 @@ If ANY box cannot be checked, STOP and complete the missing step before proceedi
 
 ### Common Anti-Patterns (PROHIBITED)
 
-- Skipping `/dx-brainstorm-and-plan` because "the change is obvious" — it is never obvious
+- Skipping `/dx-swe-brainstorm` because "the change is obvious" — it is never obvious
 - Adding fixtures or changing `conftest.py` without running the test suite first (blind changes)
 - Claiming completion without showing actual pytest output or `dx-agentic-gen check` output
-- Treating "I'll validate at the end" as acceptable — validate file-by-file, per `/dx-tdd`
+- Treating "I'll validate at the end" as acceptable — validate file-by-file, per `/dx-swe-tdd`
 - Editing generator output files directly — they are overwritten on next `dx-agentic-gen generate`
 - Starting implementation before `/dx-skill-router` has been invoked
 - **Treating autopilot mode as a waiver** — autopilot means "no asking",
   NOT "no rules". The Mandatory Skill Sequence applies in full in autopilot mode.
-- Treating `tools/*.sh` scripts as "not internal dev" because they are not in
-  `tools/dx-agentic-dev-gen/` — all loop and orchestration scripts under `tools/`
-  are internal dx-agentic-dev features and the SWE discipline applies
-- **Treating `dx-systematic-debugging` completion as a SWE gate waiver** — finishing
+- Treating `.deepx/tools/*.sh` scripts as "not internal dev" — all loop and
+  orchestration scripts under `.deepx/tools/` are internal dx-agentic-dev features
+  and the SWE discipline applies
+- **Treating `dx-swe-debugging` completion as a SWE gate waiver** — finishing
   Phases 1–3 (root cause identified) does NOT exempt the implementation from the
   SWE mandatory sequence. When Phase 4 implementation involves `.deepx/`, `tests/`,
   or `tools/`, it is a **NEW internal dev task** that MUST restart the skill sequence
-  from `/dx-skill-router`. See the SWE Gate Pre-Flight in `dx-systematic-debugging` Phase 4.
+  from `/dx-skill-router`. See the SWE Gate Pre-Flight in `dx-swe-debugging` Phase 4.
 - **Treating previous skill invocation as current-message coverage** — `/dx-skill-router`
   MUST be invoked at the start of **each user message**. Invocation in a prior message
   does NOT carry forward. "I already invoked it this session" is a rationalization.
-- **Text mention ≠ skill invocation** — writing "Using dx-tdd" or "Following
-  dx-brainstorm-and-plan" in the response text is NOT the same as calling the
+- **Text mention ≠ skill invocation** — writing "Using dx-swe-tdd" or "Following
+  dx-swe-brainstorm" in the response text is NOT the same as calling the
   `skill` tool. The skill MUST be loaded via tool call to count as invoked.
 - **Conversation continuity rationalization** — "We already discussed this in
   previous messages" does NOT exempt the current feature from the full sequence.

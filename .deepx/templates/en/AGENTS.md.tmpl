@@ -38,24 +38,24 @@ Each submodule also has its own agents (accessible when working within that subm
 
 | Skill | Description |
 |---|---|
-| `/dx-validate-all` | Full validation across all 3 levels — validate, collect feedback, apply fixes, verify |
-| `/dx-brainstorm-and-plan` | Brainstorm, propose 2-3 approaches, spec self-review, then plan |
-| `/dx-tdd` | Validation-driven development with optional Red-Green-Refactor for unit tests |
-| `/dx-verify-completion` | Verify before claiming completion — evidence before assertions |
+| `/dx-harness-validate` | Internal: validate .deepx/ framework integrity across all levels |
+| `/dx-swe-brainstorm` | Brainstorm, propose 2-3 approaches, spec self-review, then plan |
+| `/dx-swe-tdd` | Validation-driven development with optional Red-Green-Refactor for unit tests |
+| `/dx-swe-verify` | Verify before claiming completion — evidence before assertions |
 
 ### Process Skills
 
 | Skill | Description |
 |---|---|
-| `/dx-writing-plans` | Write implementation plans with bite-sized tasks |
-| `/dx-executing-plans` | Execute plans with review checkpoints |
-| `/dx-subagent-driven-development` | Execute plans via fresh subagent per task with two-stage review |
-| `/dx-systematic-debugging` | Systematic debugging — 4-phase root cause investigation before proposing fixes |
-| `/dx-receiving-code-review` | Evaluate code review feedback with technical rigor |
-| `/dx-requesting-code-review` | Request code review after completing features |
+| `/dx-swe-writing-plans` | Write implementation plans with bite-sized tasks |
+| `/dx-swe-executing-plans` | Execute plans with review checkpoints |
+| `/dx-swe-subagent-dev` | Execute plans via fresh subagent per task with two-stage review |
+| `/dx-swe-debugging` | Systematic debugging — 4-phase root cause investigation before proposing fixes |
+| `/dx-swe-receiving-review` | Evaluate code review feedback with technical rigor |
+| `/dx-swe-requesting-review` | Request code review after completing features |
 | `/dx-skill-router` | Skill discovery and invocation — check skills before any action |
-| `/dx-writing-skills` | Create and edit skill files |
-| `/dx-dispatching-parallel-agents` | Dispatch parallel subagents for independent tasks |
+| `/dx-harness-writing-skills` | Internal: create/edit .deepx/ skill files |
+| `/dx-swe-parallel-agents` | Dispatch parallel subagents for independent tasks |
 
 ## Routing
 
@@ -363,7 +363,7 @@ sub-project files.
 
 ### dx_app Rules (Standalone Inference)
 
-1. **Skeleton-first development** — Read `dx-runtime/dx_app/.deepx/skills/dx-build-python-app.md`
+1. **Skeleton-first development** — Read `dx-runtime/dx_app/.deepx/skills/dx-agentic-app-build-python.md`
    skeleton template BEFORE writing any code. Copy the closest existing example from
    `src/python_example/<task>/<model>/` and modify ONLY model-specific parts (factory,
    postprocessor). NEVER write demo scripts from scratch. NEVER propose standalone

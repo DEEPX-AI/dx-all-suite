@@ -149,19 +149,19 @@ Copilot Chat에서 `@agent-name`을 사용하여 에이전트를 호출하세요
 
 | 스킬 | 설명 |
 |-------|-------------|
-| `/dx-validate-all` | 3개 레벨 모두에 대한 전체 검증 |
-| `/dx-brainstorm-and-plan` | 브레인스토밍, 2-3가지 접근법 제안, 스펙 자체 검토 후 계획 |
-| `/dx-tdd` | 검증 주도 개발, 선택적 Red-Green-Refactor 단위 테스트 |
-| `/dx-verify-completion` | 완료 선언 전 검증 — 주장 전 증거 |
-| `/dx-writing-plans` | 세분화된 태스크로 구현 계획 작성 |
-| `/dx-executing-plans` | 리뷰 체크포인트와 함께 계획 실행 |
-| `/dx-subagent-driven-development` | 태스크별 신규 서브에이전트로 계획 실행, 2단계 리뷰 |
-| `/dx-systematic-debugging` | 체계적 디버깅 — 수정 제안 전 4단계 근본 원인 조사 |
-| `/dx-receiving-code-review` | 코드 리뷰 피드백을 기술적 엄밀성으로 평가 |
-| `/dx-requesting-code-review` | 기능 완료 후 코드 리뷰 요청 |
+| `/dx-harness-validate` | 내부개발: .deepx/ framework 무결성 검증 |
+| `/dx-swe-brainstorm` | 브레인스토밍, 2-3가지 접근법 제안, 스펙 자체 검토 후 계획 |
+| `/dx-swe-tdd` | 검증 주도 개발, 선택적 Red-Green-Refactor 단위 테스트 |
+| `/dx-swe-verify` | 완료 선언 전 검증 — 주장 전 증거 |
+| `/dx-swe-writing-plans` | 세분화된 태스크로 구현 계획 작성 |
+| `/dx-swe-executing-plans` | 리뷰 체크포인트와 함께 계획 실행 |
+| `/dx-swe-subagent-dev` | 태스크별 신규 서브에이전트로 계획 실행, 2단계 리뷰 |
+| `/dx-swe-debugging` | 체계적 디버깅 — 수정 제안 전 4단계 근본 원인 조사 |
+| `/dx-swe-receiving-review` | 코드 리뷰 피드백을 기술적 엄밀성으로 평가 |
+| `/dx-swe-requesting-review` | 기능 완료 후 코드 리뷰 요청 |
 | `/dx-skill-router` | 스킬 탐색 및 호출 — 모든 작업 전 스킬 확인 |
-| `/dx-writing-skills` | 스킬 파일 생성 및 편집 |
-| `/dx-dispatching-parallel-agents` | 독립 태스크를 위한 병렬 서브에이전트 디스패치 |
+| `/dx-harness-writing-skills` | 내부개발: .deepx/ 스킬 파일 생성 및 편집 |
+| `/dx-swe-parallel-agents` | 독립 태스크를 위한 병렬 서브에이전트 디스패치 |
 
 각 서브모듈도 자체 에이전트를 보유합니다 (해당 서브모듈 내에서 작업할 때 접근 가능):
 
@@ -266,7 +266,7 @@ TDD, 필수 산출물, 실행 검증)는 예외 없이 여전히 적용됩니다
 
 ## 브레인스토밍 — 계획 전 Spec (HARD GATE)
 
-superpowers `brainstorming` 스킬 또는 `/dx-brainstorm-and-plan` 사용 시:
+superpowers `brainstorming` 스킬 또는 `/dx-swe-brainstorm` 사용 시:
 
 1. **Spec 문서는 MANDATORY** — `writing-plans`로 전환하기 전에, spec 문서를
    `docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md`에 반드시 작성해야 합니다.
@@ -276,7 +276,7 @@ superpowers `brainstorming` 스킬 또는 `/dx-brainstorm-and-plan` 사용 시:
    답변)을 spec 승인으로 처리하지 마세요.
 3. **계획 문서는 spec을 참조해야 합니다** — 계획 헤더에는 승인된 spec 문서에 대한
    링크가 포함되어야 합니다.
-4. **`/dx-brainstorm-and-plan` 선호** — 일반 superpowers `brainstorming` 스킬 대신
+4. **`/dx-swe-brainstorm` 선호** — 일반 superpowers `brainstorming` 스킬 대신
    프로젝트 레벨의 brainstorming 스킬을 사용하세요. 프로젝트 레벨 스킬에는
    도메인별 질문과 사전 점검이 포함되어 있습니다.
 5. **규칙 충돌 확인은 MANDATORY** — brainstorming 중, agent는 사용자 요구사항이
@@ -313,10 +313,10 @@ dx-agentic-dev infrastructure 작업에 적용되고, 이 gate는 user-facing �
 | Step | Skill | 요구사항 |
 |------|-------|----------|
 | 1 | `/dx-skill-router` | **항상** — 어떤 action보다 먼저 호출. `skill-router-mandatory` fragment로 이미 강제됨. |
-| 2 | `/dx-brainstorm-and-plan` | **모든 non-trivial 코드 생성** — 요구사항 수집, approach 제안, 승인 후 파일 생성. |
-| 3 | `/dx-writing-plans` | **항상** — 복잡도와 무관하게 모든 코드 생성 세션에서 구조화된 구현 계획 작성 필수. |
-| 4 | `/dx-tdd` | **항상** — 합격 기준 정의 (Red), artifact 생성 (Green), 즉시 검증 (Verify). |
-| 5 | `/dx-verify-completion` | **항상** — DONE 선언 전, 동작하는 artifact의 증거 제시 필수. 증거 없는 주장 금지. |
+| 2 | `/dx-agentic-brainstorm` | **모든 non-trivial 코드 생성** — 요구사항 수집, approach 제안, 승인 후 파일 생성. |
+| 3 | `/dx-swe-writing-plans` | **항상** — 복잡도와 무관하게 모든 코드 생성 세션에서 구조화된 구현 계획 작성 필수. |
+| 4 | `/dx-agentic-tdd` | **항상** — 합격 기준 정의 (Red), artifact 생성 (Green), 즉시 검증 (Verify). |
+| 5 | `/dx-agentic-verify` | **항상** — DONE 선언 전, 동작하는 artifact의 증거 제시 필수. 증거 없는 주장 금지. |
 
 ### 시퀀스 강제 규칙
 
@@ -351,15 +351,15 @@ Autopilot 모드 (사용자 부재, `--yolo` 플래그, auto-response):
 Artifact Verification Gate는 각 artifact가 **어떻게** 검증되는지 정의합니다
 (파일 유형별 구체적 command). 함께 작동합니다:
 
-- Step 4 (`/dx-tdd`)는 Artifact Verification Gate의 검증 command 사용
+- Step 4 (`/dx-agentic-tdd`)는 Artifact Verification Gate의 검증 command 사용
   (syntax check, execution test, import resolution).
-- Step 5 (`/dx-verify-completion`)는 모든 mandatory deliverable이 존재하고
+- Step 5 (`/dx-agentic-verify`)는 모든 mandatory deliverable이 존재하고
   Artifact Verification Gate check를 통과하는지 확인.
 
 ### Invoke = 실제 Tool Call
 
 "skill을 호출한다"는 것은 `skill` tool을 호출하여 load하는 것을 의미합니다.
-텍스트에 "dx-tdd를 사용합니다"라고 쓰는 것은 호출이 **아닙니다** — tool이
+텍스트에 "dx-agentic-tdd를 사용합니다"라고 쓰는 것은 호출이 **아닙니다** — tool이
 반드시 호출되어야 합니다. `skill` tool을 호출하지 않았다면 해당 단계는
 미완료입니다.
 
@@ -367,19 +367,19 @@ Artifact Verification Gate는 각 artifact가 **어떻게** 검증되는지 정�
 
 - "이건 간단해서 brainstorm 불필요" → brainstorm은 non-trivial 코드 생성에
   항상 필요. "간단한" 프로젝트에서 검토되지 않은 가정이 가장 많은 재작업을 유발.
-- `/dx-writing-plans` 이전에 코드 생성 → HARD GATE 위반.
+- `/dx-swe-writing-plans` 이전에 코드 생성 → HARD GATE 위반.
   Plan-before-code는 협상 불가.
-- "artifact-verification-gate가 이미 파일을 확인하니까" `/dx-verify-completion`
+- "artifact-verification-gate가 이미 파일을 확인하니까" `/dx-agentic-verify`
   생략 → 목적이 다름. Artifact gate는 개별 파일 확인. Verify-completion은
   전체 세션 deliverable을 총체적으로 확인.
 - 실행 출력 없이 DONE 선언 → 증거 필수. "검증했다"는 출력 없이는 불가.
 - "사용자가 빨리 하라고 했다" → 사용자 지시가 이 HARD GATE를 override하지 않음.
   속도가 프로세스 생략을 정당화하지 않음.
-- **텍스트 언급 ≠ skill 호출** — 응답 텍스트에 "dx-tdd를 사용합니다" 또는
-  "dx-brainstorm-and-plan을 따릅니다"라고 작성하는 것은 유효한 호출이 아닙니다.
+- **텍스트 언급 ≠ skill 호출** — 응답 텍스트에 "dx-agentic-tdd를 사용합니다" 또는
+  "dx-agentic-brainstorm을 따릅니다"라고 작성하는 것은 유효한 호출이 아닙니다.
   각 단계마다 `skill` tool이 반드시 호출되어야 합니다.
 - **대화 맥락 ≠ brainstorming** — 이전 메시지에서 요구사항을 논의했다고 해서
-  `/dx-brainstorm-and-plan` 호출을 대체할 수 없습니다. 각 기능에는 명시적
+  `/dx-agentic-brainstorm` 호출을 대체할 수 없습니다. 각 기능에는 명시적
   사용자 승인이 포함된 정식 brainstorm이 필요합니다.
 
 ## 자율 모드 보호 (MANDATORY)
@@ -391,7 +391,7 @@ Artifact Verification Gate는 각 artifact가 **어떻게** 검증되는지 정�
    모든 필수 게이트가 여전히 적용됩니다: brainstorming spec, 계획, TDD, 필수 산출물,
    실행 검증, 자체 검증 확인.
    **SWE Process Gates의 필수 Skill 시퀀스도 포함됩니다** — autopilot에서도
-   `/dx-skill-router` → `/dx-brainstorm-and-plan` → `/dx-tdd`를 interactive mode와
+   `/dx-skill-router` → `/dx-agentic-brainstorm` → `/dx-agentic-tdd`를 interactive mode와
    동일하게 따라야 합니다. Autopilot mode는 이 시퀀스를 면제하지 않습니다.
 2. **`ask_user`를 호출하지 마세요** — knowledge base 기본값과 문서화된 모범 사례를
    사용하여 결정하세요. autopilot에서 `ask_user`를 호출하면 한 턴을 낭비하며
@@ -698,14 +698,14 @@ command 2>&1 | tee session.log
 - `printf "..." > session.log` (수작업 요약)
 - 명령을 실행하지 않고 메모리에서 session.log 내용 작성
 
-### dx-tdd 및 프로세스 스킬 시퀀스 (모든 코드 생성에 MANDATORY)
+### dx-agentic-tdd 및 프로세스 스킬 시퀀스 (모든 코드 생성에 MANDATORY)
 
-완전한 프로세스 스킬 시퀀스 (`/dx-brainstorm-and-plan` → `/dx-writing-plans`
-→ `/dx-tdd` → `/dx-verify-completion`)는 모든 artifact 생성 session에서
+완전한 프로세스 스킬 시퀀스 (`/dx-agentic-brainstorm` → `/dx-swe-writing-plans`
+→ `/dx-agentic-tdd` → `/dx-agentic-verify`)는 모든 artifact 생성 session에서
 MANDATORY입니다. 전체 시퀀스 정의와 강제 규칙은 **"필수 프로세스 스킬 시퀀스 —
 모든 코드 생성"** 섹션을 참조하세요.
 
-이 Artifact Verification Gate 내에서 `/dx-tdd` Red-Green-Verify cycle은
+이 Artifact Verification Gate 내에서 `/dx-agentic-tdd` Red-Green-Verify cycle은
 각 artifact에 적용됩니다:
 1. **RED**: 각 artifact가 만족해야 할 조건 정의 (문법, 실행, import)
 2. **GREEN**: artifact 생성
@@ -902,7 +902,7 @@ timeout 방지를 위해 background 컴파일이 권장됩니다.
 ### dx_app 규칙 (독립형 추론)
 
 1. **Skeleton-first 개발** — 코드를 작성하기 전에
-   `dx-runtime/dx_app/.deepx/skills/dx-build-python-app.md` skeleton 템플릿을
+   `dx-runtime/dx_app/.deepx/skills/dx-agentic-app-build-python.md` skeleton 템플릿을
    읽으세요. `src/python_example/<task>/<model>/`에서 가장 가까운 기존 예제를
    복사하고 모델별 부분 (factory, postprocessor)만 수정하세요. 데모 스크립트를
    처음부터 작성하지 마세요. 프레임워크를 우회하는 독립형 스크립트를 제안하지 마세요.
@@ -978,7 +978,7 @@ fragments 포함) — 작업 완료 선언 전에 다음 루프를 **반드시**
 1. **Generator 실행** — `.deepx/` 변경을 모든 플랫폼으로 전파:
    ```bash
    dx-agentic-gen generate
-   # Suite 전체: bash tools/dx-agentic-dev-gen/scripts/run_all.sh generate
+   # Suite 전체: bash .deepx/tools/scripts/run_all.sh generate
    ```
 2. **Drift 검증** — 생성물과 commit 상태 일치 확인:
    ```bash
@@ -987,7 +987,7 @@ fragments 포함) — 작업 완료 선언 전에 다음 루프를 **반드시**
    drift 발견 시 1단계로 복귀.
 3. **자동화 테스트 루프** — 테스트는 generator 출력이 정책을 만족하는지 검증:
    ```bash
-   python -m pytest tests/test_agentic_scenarios/ -v --tb=short
+   python -m pytest .deepx/tests/test_agentic_scenarios/ -v --tb=short
    ```
    실패 처리:
    - generator 버그 → generator 수정 → 1단계
@@ -1050,7 +1050,7 @@ output인지 확실하지 않으면, 수정 전후에 `dx-agentic-gen check`를 
 Pre-commit hook이 generator output 무결성을 강제합니다: 생성된 파일이
 최신이 아니면 `git commit`이 실패합니다. Hook 설치:
 ```bash
-tools/dx-agentic-dev-gen/scripts/install-hooks.sh
+.deepx/tools/scripts/install-hooks.sh
 ```
 
 > **KO 대응 파일 규칙**: EN fragment를 편집할 때, KO 대응 파일도 업데이트가
