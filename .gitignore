@@ -24,7 +24,7 @@ __pycache__/
 *.pyd
 
 .deepx/tools/src/dx_agentic_dev_gen.egg-info/
-doc/reports/
+.deepx/tools/e2e-loop-results/
 tests/reports/
 .deepx/tests/reports/
 compile.pid

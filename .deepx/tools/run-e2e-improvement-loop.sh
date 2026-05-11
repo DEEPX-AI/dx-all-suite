@@ -24,12 +24,12 @@
 #   --opencode-bin PATH   OpenCode binary path (default: opencode)
 #   --model MODEL         Model for report generation and improvements (default: claude-sonnet-4-6)
 #   --run-dir PATH        Use specific run directory instead of auto-timestamped
-#   --resume              Resume from latest timestamped run in doc/reports/e2e-loop/
+#   --resume              Resume from latest timestamped run in .deepx/tools/e2e-loop-results/
 #   --report-only         Run E2E tests and generate report, but skip the improvement step (Step 4)
 #   --dry-run             Print commands without executing
 #   -h, --help            Show this help
 #
-# Results are stored in: doc/reports/e2e-loop/YYYYMMDD-HHMMSS/
+# Results are stored in: .deepx/tools/e2e-loop-results/YYYYMMDD-HHMMSS/
 
 set -euo pipefail
 
@@ -292,7 +292,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 TESTS_DIR="$SUITE_ROOT/.deepx/tests"
-RUN_BASE="$SUITE_ROOT/doc/reports/e2e-loop"
+RUN_BASE="$SUITE_ROOT/.deepx/tools/e2e-loop-results"
 
 # Resolve STATE_DIR: explicit --run-dir > --resume (latest) > new timestamped dir
 if [ -n "$RUN_DIR" ]; then
@@ -597,7 +597,7 @@ The report must:
    [timeout] [test_coverage] [runner_code] [skill_md] [tooling]
    (tooling = account/quota issues NOT fixable in code)
 
-Previous reports for reference style: $SUITE_ROOT/doc/reports/"
+Previous reports for reference style: $SUITE_ROOT/.deepx/tools/e2e-loop-results/"
 
     run_orchestrator "$STATE_DIR/iteration-${iter}-report-gen.log" "$prompt" || true
 
