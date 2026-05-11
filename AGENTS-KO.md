@@ -573,23 +573,26 @@ deliverable에 적용됩니다.
 
 ### verify.py 실행 테스트 (MANDATORY)
 
-`verify.py`는 venv를 수동으로 활성화하지 않은 상태에서 실행해 self-contained 여부를 확인해야 합니다:
+`verify.py`는 `setup.sh`가 생성한 세션 venv를 활성화한 상태에서 실행해야 합니다:
 
 ```bash
-python verify.py    # NOT: source venv/bin/activate && python verify.py
+source venv/bin/activate   # setup.sh가 생성한 venv 활성화
+python verify.py
 echo "Exit code: $?"
+deactivate
 ```
 
 필수 동작:
 1. ONNX와 DXNN 추론이 모두 성공하면 **exit code 0**
 2. 추론이 하나라도 실패하면 **exit code 1** (ImportError, RuntimeError 등)
-3. **Self-contained**: 호출자의 venv 활성화 없이 내부에서 필요한 site-packages를 `sys.path`에 자동 추가
+3. **venv가 dependency 제공**: `setup.sh`가 필요한 패키지(`onnxruntime`, `numpy` 등)를
+   포함한 venv를 생성합니다. `verify.py`는 검증 로직에만 집중합니다.
 
 verify.py가 "ONNX inference failed" 또는 "DXNN inference failed"를 출력하면서 exit 0을 반환하면 **버그**입니다. 진행 전에 exit code를 수정하세요.
 
 일반적인 실패 원인:
-- `No module named 'onnxruntime'` → verify.py가 compiler venv site-packages를 sys.path에 추가해야 함
-- `No module named 'dx_engine'` → verify.py가 runtime venv site-packages를 sys.path에 추가해야 함
+- `No module named 'onnxruntime'` → `setup.sh`를 먼저 실행하여 dependency가 포함된 venv 생성
+- `No module named 'dx_engine'` → `setup.sh`가 runtime site-packages를 venv에 추가하는지 확인
 - "failed" 출력 후 exit 0 → 실패 분기에 `sys.exit(1)` 추가 필요
 
 ### Cross-Project 경로 해석 — SUITE_ROOT (HARD GATE)

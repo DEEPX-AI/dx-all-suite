@@ -543,6 +543,8 @@ class TestMandatoryArtifacts:
         """R80: session.json session_id must include the agent identifier 'opencode'."""
         if not scenario.succeeded:
             pytest.skip("OpenCode execution failed")
+        if scenario.output_dir is None:
+            pytest.skip("No output directory found")
         import json
         # R92: Use scenario.output_dir directly to eliminate latent contamination risk
         # under concurrent execution (same R73 pattern applied to all 4 tools).

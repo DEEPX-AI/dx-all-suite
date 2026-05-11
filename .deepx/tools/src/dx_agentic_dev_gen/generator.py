@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from typing import Any
 
@@ -53,6 +54,9 @@ class Generator:
                 else:
                     path.parent.mkdir(parents=True, exist_ok=True)
                     path.write_text(content, encoding="utf-8")
+                    # Ensure generated files are non-executable (644)
+                    # regardless of umask or execution context
+                    os.chmod(path, 0o644)
                     results[path] = "written"
 
         return results

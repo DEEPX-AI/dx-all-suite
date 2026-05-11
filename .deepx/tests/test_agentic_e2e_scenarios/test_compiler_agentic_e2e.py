@@ -217,39 +217,6 @@ class TestMandatoryArtifacts:
             "The agent MUST generate verify.py for ONNX vs DXNN verification."
         )
 
-    def test_verify_py_self_contained(self, scenario: ScenarioResult):
-        """verify.py must bootstrap sys.path internally (no manual venv activation required).
-
-        Root cause this test prevents: agents ran verify.py with an active venv,
-        masking the fact that verify.py had no sys.path bootstrap. Users running
-        'python verify.py' directly got ModuleNotFoundError.
-        """
-        if not scenario.succeeded:
-            pytest.skip("Copilot execution failed")
-        verify_files = [
-            f for f in scenario.all_generated_files
-            if f.name == "verify.py"
-        ]
-        if not verify_files:
-            pytest.skip("No verify.py found (covered by test_verify_py_exists)")
-
-        for vf in verify_files:
-            content = vf.read_text()
-            has_bootstrap = (
-                "_add_site_packages" in content
-                or (
-                    "sys.path.insert" in content
-                    and ("site-packages" in content or "venv" in content)
-                )
-            )
-            assert has_bootstrap, (
-                f"verify.py at {vf} is NOT self-contained.\n"
-                "verify.py MUST auto-bootstrap sys.path so it runs without manual venv activation.\n"
-                "Required pattern: _add_site_packages() function OR sys.path.insert() with venv site-packages.\n"
-                "Root cause: running 'python verify.py' without venv fails with ModuleNotFoundError.\n"
-                "Fix: add _add_site_packages() bootstrap at the top of verify.py."
-            )
-
     def test_verify_py_exits_nonzero_on_failure(self, scenario: ScenarioResult):
         """verify.py must exit(1) when inference fails, not silently continue.
 

@@ -572,26 +572,27 @@ After generating each artifact, verify it IMMEDIATELY (not at the end):
 
 ### verify.py Execution Test (MANDATORY)
 
-`verify.py` MUST be executed WITHOUT manual venv activation to confirm it is
-self-contained:
+`verify.py` MUST be executed with the session venv activated (created by `setup.sh`):
 
 ```bash
-python verify.py    # NOT: source venv/bin/activate && python verify.py
+source venv/bin/activate   # activate the venv created by setup.sh
+python verify.py
 echo "Exit code: $?"
+deactivate
 ```
 
 Required behavior:
 1. **Exit code 0** when both ONNX and DXNN inference succeed
 2. **Exit code 1** when any inference fails (ImportError, RuntimeError, etc.)
-3. **Self-contained**: auto-adds required site-packages to `sys.path` internally
-   — no manual `source venv/bin/activate` required by the caller
+3. **venv provides dependencies**: `setup.sh` creates the venv with all required packages
+   (`onnxruntime`, `numpy`, etc.). `verify.py` focuses on verification logic only.
 
 If `verify.py` prints "ONNX inference failed" or "DXNN inference failed" but
 exits 0, it is BROKEN. Fix the exit code before proceeding.
 
 Common failures:
-- `No module named 'onnxruntime'` → verify.py must add compiler venv site-packages to sys.path
-- `No module named 'dx_engine'` → verify.py must add runtime venv site-packages to sys.path
+- `No module named 'onnxruntime'` → run `setup.sh` first to create venv with dependencies
+- `No module named 'dx_engine'` → ensure `setup.sh` adds runtime site-packages to venv
 - Prints "failed" but exits 0 → add `sys.exit(1)` in the failure branch
 
 ### Cross-Project Path Resolution — SUITE_ROOT (HARD GATE)

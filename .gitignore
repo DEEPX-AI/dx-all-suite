@@ -33,3 +33,8 @@ compile.pid
 *.txt
 !requirements.txt
 session-ses_*.md
+
+archives/
+getting-started/dxnn
+getting-started/forked_dx_app_example/
+getting-started/sample_models
