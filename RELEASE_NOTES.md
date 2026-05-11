@@ -1,5 +1,44 @@
 # RELEASE_NOTES
 
+##  DX-All-Suite v2.3.2 / 2026-05-11
+
+- DX-Compiler: v2.3.1
+    - DX-COM: v2.3.0
+    - DX-TRON: v2.0.1
+- DX-Runtime: v2.3.2
+    - DX_FW: v2.5.6
+    - NPU Driver: v2.4.1
+    - DX-RT: v3.3.2
+    - DX-Stream: v3.0.1
+    - DX-APP: v3.1.1
+
+---
+
+Here are the **DX-All-Suite v2.3.2** Release Note.
+
+### What's New?
+
+This patch release focuses on Debian package and Python build improvements in DX-RT.
+
+- **DX-RT Build Quality**: Removed redundant build artifacts from the Debian package, improved Python extension module linking, and added conditional pip upgrade for legacy OS compatibility.
+
+---
+
+### Key Updates
+
+**Stability & Fixes**
+
+- **DX-RT**: Improved Python extension module linking for `_pydxrt` build.
+
+**New Features & Tools**
+
+- **DX-RT**: Removed redundant build artifacts and temporary directories from the Debian package.
+- **DX-RT**: Added conditional pip upgrade (v21.3+) to ensure build stability on legacy OS environments.
+
+For detailed updated items, refer to **each environment & module's Release Notes**.
+
+---
+
 ##  DX-All-Suite v2.3.1 / 2026-05-06
 
 - DX-Compiler: v2.3.1
