@@ -1,4 +1,4 @@
-# AI-Powered Development (Beta)
+# DEEPX Agentic Development - dx-agentic-dev (Beta)
 
 > **Beta Feature** — Agentic development support is under active development.
 > Skill definitions and routing behavior may change between releases.
@@ -57,7 +57,7 @@ consistent coding standards, testing patterns, and model-management rules.
 
 ### dx-compiler — Model Compilation
 
-DXNN model compilation powered by DX-COM v2.2.1. The agent understands the full
+DXNN model compilation powered by DX-COM. The agent understands the full
 compilation pipeline — ONNX model validation, config.json generation with auto-inferred
 parameters, calibration data preparation, INT8 quantization, and PPU configuration —
 and can compile models from a single natural-language prompt. Before compilation, the
@@ -411,9 +411,22 @@ skills, element catalogs, and worked examples:
 | **dx_stream** | [`dx_stream/docs/source/docs/08_DX-STREAM_Agentic_Development.md`](../../../dx_stream/docs/source/docs/08_DX-STREAM_Agentic_Development.md) |
 | **dx-compiler** | [`dx-compiler/source/docs/05_DX-COMPILER_Agentic_Development.md`](../../dx-compiler/source/docs/05_DX-COMPILER_Agentic_Development.md) |
 
+## Internal Reference Documents
+
+For a deeper view of the `.deepx/` canonical source, generator pipeline, and
+harness development model (intended for contributors, not end users):
+
+| Document | Scope |
+|---|---|
+| [`.deepx/docs/dx-agentic-dev-overview.md`](../../.deepx/docs/dx-agentic-dev-overview.md) | Comprehensive walk-through of every `.deepx/` directory across all 5 repos |
+| [`.deepx/README.md`](../../.deepx/README.md) | Top-level master index for the `.deepx/` knowledge base |
+| [`.deepx/docs/skill-architecture.md`](../../.deepx/docs/skill-architecture.md) | 3-tier skill model (SWE / Agentic / Harness) |
+| [`.deepx/tools/README.md`](../../.deepx/tools/README.md) | `dx-agentic-gen` generator package guide |
+| [`.deepx/tools/scripts/README.md`](../../.deepx/tools/scripts/README.md) | Operational scripts (`run_all.sh`, hooks, E2E loop) |
+
 ## Output Isolation
 
-By default, all AI-generated code is placed in `dx-agentic-dev/<session_id>/`
+By default, all agent-generated code is placed in `dx-agentic-dev/<session_id>/`
 within the target sub-project. This prevents accidental modifications to existing
 production code.
 
@@ -422,7 +435,7 @@ production code.
 | **Default (isolated)** | `dx-agentic-dev/<session_id>/` | Always, unless user says otherwise |
 | **Production** | `src/` | Only when explicitly requested by the user |
 
-Session ID format: `YYYYMMDD-HHMMSS_model_task`.
+Session ID format: `YYYYMMDD-HHMMSS_<agent>_<model>_<task>` where `<agent>` is `claude`, `copilot`, `cursor`, or `opencode`.
 
 Each session directory contains:
 - `README.md` — session metadata, generated file list, run instructions

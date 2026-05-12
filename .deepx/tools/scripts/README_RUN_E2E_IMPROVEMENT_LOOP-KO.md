@@ -30,10 +30,10 @@ Step 4  Claude 호출 → 테스트 파일 / SKILL.md 개선 적용
 
 ```bash
 # 기본 실행 (최대 5 iteration, suite 시나리오)
-bash .deepx/tools/run-e2e-improvement-loop.sh
+bash .deepx/tools/scripts/run-e2e-improvement-loop.sh
 
 # 백그라운드 실행 (장시간 실행 시 권장)
-bash .deepx/tools/run-e2e-improvement-loop.sh &
+bash .deepx/tools/scripts/run-e2e-improvement-loop.sh &
 ```
 
 ## 옵션
@@ -86,7 +86,7 @@ doc/reports/e2e-loop/
 ### iteration 횟수를 늘려서 실행
 
 ```bash
-bash .deepx/tools/run-e2e-improvement-loop.sh --max-iterations 10
+bash .deepx/tools/scripts/run-e2e-improvement-loop.sh --max-iterations 10
 ```
 
 ### 완료된 실행 이어서 재개
@@ -97,7 +97,7 @@ bash .deepx/tools/run-e2e-improvement-loop.sh --max-iterations 10
 
 ```bash
 # 최신 실행에서 이어받아 총 10 iteration까지 실행
-bash .deepx/tools/run-e2e-improvement-loop.sh --resume --max-iterations 10
+bash .deepx/tools/scripts/run-e2e-improvement-loop.sh --resume --max-iterations 10
 ```
 
 `improvements_applied` 이력이 유지되므로 이미 적용된 항목(R1, R2, …)은 중복 적용되지 않습니다.
@@ -105,7 +105,7 @@ bash .deepx/tools/run-e2e-improvement-loop.sh --resume --max-iterations 10
 ### 특정 실행 디렉터리를 지정해서 재개
 
 ```bash
-bash .deepx/tools/run-e2e-improvement-loop.sh \
+bash .deepx/tools/scripts/run-e2e-improvement-loop.sh \
   --run-dir doc/reports/e2e-loop/2026-04-28-175036 \
   --resume \
   --max-iterations 10
@@ -114,7 +114,7 @@ bash .deepx/tools/run-e2e-improvement-loop.sh \
 ### dry-run (실제 실행 없이 설정 확인)
 
 ```bash
-bash .deepx/tools/run-e2e-improvement-loop.sh --dry-run
+bash .deepx/tools/scripts/run-e2e-improvement-loop.sh --dry-run
 ```
 
 ## `--resume`이 하지 않는 것
@@ -172,13 +172,13 @@ Claude는 각 권고 사항에 다음 태그 중 하나를 붙입니다:
 
 ```bash
 # Step 3 (리포트 생성), Step 4 (개선 적용)에 Copilot CLI 사용 (Step 1의 4개 도구 E2E 테스트는 동일하게 실행됨)
-bash .deepx/tools/run-e2e-improvement-loop.sh --orchestrator copilot
+bash .deepx/tools/scripts/run-e2e-improvement-loop.sh --orchestrator copilot
 
 # 바이너리 경로를 명시적으로 지정
-bash .deepx/tools/run-e2e-improvement-loop.sh --orchestrator copilot --copilot-bin /usr/local/bin/copilot
+bash .deepx/tools/scripts/run-e2e-improvement-loop.sh --orchestrator copilot --copilot-bin /usr/local/bin/copilot
 
 # 환경 변수로 지정
-ORCHESTRATOR=copilot bash .deepx/tools/run-e2e-improvement-loop.sh
+ORCHESTRATOR=copilot bash .deepx/tools/scripts/run-e2e-improvement-loop.sh
 ```
 
 > **참고:** `--orchestrator`는 **오케스트레이션 단계** (리포트 생성 및 개선 적용)에 사용할 AI CLI를 지정합니다. Step 1의 E2E 테스트는 이 설정과 무관하게 항상 4개 도구(copilot/cursor/opencode/claude_code) 모두 실행합니다.
@@ -187,13 +187,13 @@ ORCHESTRATOR=copilot bash .deepx/tools/run-e2e-improvement-loop.sh
 
 ```bash
 # Step 3 (리포트 생성), Step 4 (개선 적용)에 Cursor CLI 사용
-bash .deepx/tools/run-e2e-improvement-loop.sh --orchestrator cursor
+bash .deepx/tools/scripts/run-e2e-improvement-loop.sh --orchestrator cursor
 
 # 바이너리 경로를 명시적으로 지정
-bash .deepx/tools/run-e2e-improvement-loop.sh --orchestrator cursor --cursor-bin /usr/local/bin/agent
+bash .deepx/tools/scripts/run-e2e-improvement-loop.sh --orchestrator cursor --cursor-bin /usr/local/bin/agent
 
 # 환경 변수로 지정
-ORCHESTRATOR=cursor bash .deepx/tools/run-e2e-improvement-loop.sh
+ORCHESTRATOR=cursor bash .deepx/tools/scripts/run-e2e-improvement-loop.sh
 ```
 
 > **참고:** Cursor CLI 바이너리 이름은 `agent`입니다. PATH에 있거나 `--cursor-bin`으로 경로를 지정하세요.
@@ -202,14 +202,14 @@ ORCHESTRATOR=cursor bash .deepx/tools/run-e2e-improvement-loop.sh
 
 ```bash
 # Step 3 (리포트 생성), Step 4 (개선 적용)에 OpenCode 사용
-bash .deepx/tools/run-e2e-improvement-loop.sh --orchestrator opencode
+bash .deepx/tools/scripts/run-e2e-improvement-loop.sh --orchestrator opencode
 
 # 바이너리 경로를 명시적으로 지정
-bash .deepx/tools/run-e2e-improvement-loop.sh --orchestrator opencode --opencode-bin /usr/local/bin/opencode
+bash .deepx/tools/scripts/run-e2e-improvement-loop.sh --orchestrator opencode --opencode-bin /usr/local/bin/opencode
 
 # 특정 모델 지정 (OpenCode의 provider-prefix 형식 사용)
-bash .deepx/tools/run-e2e-improvement-loop.sh --orchestrator opencode --model "anthropic/claude-sonnet-4-5"
+bash .deepx/tools/scripts/run-e2e-improvement-loop.sh --orchestrator opencode --model "anthropic/claude-sonnet-4-5"
 
 # 환경 변수로 지정
-ORCHESTRATOR=opencode bash .deepx/tools/run-e2e-improvement-loop.sh
+ORCHESTRATOR=opencode bash .deepx/tools/scripts/run-e2e-improvement-loop.sh
 ```

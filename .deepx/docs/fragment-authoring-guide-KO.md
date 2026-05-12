@@ -4,6 +4,9 @@
 위한 규칙을 정의합니다. Fragment는 5개 repo 전체의 모든 platform instruction 파일
 (CLAUDE.md, AGENTS.md, copilot-instructions.md 등) 에 주입되는 빌딩 블록입니다.
 
+현재 `.deepx/templates/fragments/` 에는 EN 16개 + KO 16개 = **총 32개 fragment 파일**이 있으며,
+각 EN 파일은 동일한 stem 이름의 KO 페어를 가져야 합니다 (Rule 1 참고).
+
 ---
 
 ## Rule 1: EN과 KO를 동시에 생성해야 한다 (MANDATORY)
@@ -90,6 +93,55 @@ structural marker는 `**Q<digit>.` 패턴과 일치하는 모든 라인을 의�
 2. **Generator output** — .deepx/ source를 수정.
 3. **독립 소스** — 직접 수정.
 ```
+
+---
+
+## Rule 4: KO가 아닌 파일에는 한국어 텍스트 금지 (MANDATORY)
+
+English fragment 파일 (`.deepx/templates/fragments/en/`) 과 모든 비-KO `.deepx/` 파일은
+**오직 영문만 포함해야 합니다**. 이 규칙은 `dx-agentic-gen lint` (Check 4) 와 pre-commit
+hook 으로 강제됩니다.
+
+**금지** — EN fragment 또는 agent 파일에 한국어 텍스트 삽입:
+
+```markdown
+<!-- BAD: Korean in an EN fragment -->
+이 규칙은 모든 태스크에 적용됩니다.
+This rule applies to all tasks.
+```
+
+**올바른 방식** — 한국어 콘텐츠는 KO 카운터파트에만 둡니다:
+
+```markdown
+<!-- en/my-rule.md -->
+This rule applies to all tasks.
+
+<!-- ko/my-rule.md -->
+이 규칙은 모든 태스크에 적용됩니다.
+```
+
+### 예외: `<!-- KOREAN-OK: <reason> -->` 어노테이션
+
+EN 파일에 한국어가 **반드시** 등장해야 하는 경우 (예: 한국어 표기 패턴 자체를 명명하는 규칙
+— 에이전트가 그 패턴을 인식해야 하는 경우), 해당 라인 끝에
+`<!-- KOREAN-OK: <reason> -->` 어노테이션을 추가합니다:
+
+```markdown
+Do NOT transliterate into Korean phonetics (한글 음차 표기 금지). <!-- KOREAN-OK: rule text references Korean notation term agents must recognize -->
+```
+
+```markdown
+- "웹 기반 비주얼 컴패니언" (web-based visual companion) <!-- KOREAN-OK: Korean feature name included so agents recognize prohibited requests in Korean -->
+```
+
+어노테이션은 한국어 텍스트와 **동일한 라인**에 있어야 합니다.
+바로 앞 주석 라인에 두는 것은 면제되지 **않습니다**.
+
+### lint Check 4 동작
+
+`dx-agentic-gen lint` 는 KO가 아닌 모든 `.deepx/**/*.md` 파일을 스캔합니다
+(파일명에 `-KO`/`_KO` 가 포함되거나 `/ko/` 디렉토리 하위인 파일은 제외).
+`<!-- KOREAN-OK: ... -->` 어노테이션 없는 한국어 문자가 발견되면 `[ERROR]` 를 보고합니다.
 
 ---
 

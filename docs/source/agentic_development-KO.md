@@ -1,4 +1,4 @@
-# AI 기반 개발 (Beta)
+# DEEPX Agentic Development - dx-agentic-dev (Beta)
 
 > **베타 기능** — 에이전틱 개발 지원은 현재 활발히 개발 중입니다.
 > 스킬 정의와 라우팅 동작은 릴리스 간에 변경될 수 있습니다.
@@ -55,7 +55,7 @@ GStreamer 기반 실시간 비디오 분석. 에이전트는 6개 기능 카테�
 
 ### dx-compiler — 모델 컴파일
 
-DX-COM v2.2.1 기반의 DXNN 모델 컴파일. 에이전트는 전체 컴파일 파이프라인을
+DX-COM 기반의 DXNN 모델 컴파일. 에이전트는 전체 컴파일 파이프라인을
 이해합니다 — ONNX 모델 검증, config.json 자동 생성, 캘리브레이션 데이터 준비,
 INT8 양자화, PPU 설정 — 하나의 자연어 프롬프트로 모델을 컴파일할 수 있습니다.
 컴파일 전에 에이전트가 NMS-free 모델 감지, ONNX 단순화, PPU 컴파일에 대한
@@ -406,9 +406,22 @@ dx-all-suite 메타 가이드는 모든 서브 프로젝트 시나리오로 라�
 | **dx_stream** | [`dx_stream/docs/source/docs/08_DX-STREAM_Agentic_Development.md`](../../../dx_stream/docs/source/docs/08_DX-STREAM_Agentic_Development.md) |
 | **dx-compiler** | [`dx-compiler/source/docs/05_DX-COMPILER_Agentic_Development.md`](../../dx-compiler/source/docs/05_DX-COMPILER_Agentic_Development.md) |
 
+## 내부 참고 문서
+
+`.deepx/` canonical source, generator 파이프라인, harness 개발 모델을 더 깊이
+파악하려면 다음 문서를 참고하세요 (엔드유저용이 아닌 기여자용):
+
+| 문서 | 범위 |
+|---|---|
+| [`.deepx/docs/dx-agentic-dev-overview.md`](../../.deepx/docs/dx-agentic-dev-overview.md) | 5개 repo 전체의 `.deepx/` 디렉토리 종합 안내 |
+| [`.deepx/README.md`](../../.deepx/README.md) | `.deepx/` knowledge base 최상위 마스터 인덱스 |
+| [`.deepx/docs/skill-architecture.md`](../../.deepx/docs/skill-architecture.md) | 3-tier skill 모델 (SWE / Agentic / Harness) |
+| [`.deepx/tools/README.md`](../../.deepx/tools/README.md) | `dx-agentic-gen` generator 패키지 가이드 |
+| [`.deepx/tools/scripts/README.md`](../../.deepx/tools/scripts/README.md) | 운영 스크립트 (`run_all.sh`, hooks, E2E loop) |
+
 ## 산출물 격리
 
-기본적으로 모든 AI 생성 코드는 대상 서브 프로젝트 내 `dx-agentic-dev/<session_id>/`에
+기본적으로 모든 에이전트 생성 코드는 대상 서브 프로젝트 내 `dx-agentic-dev/<session_id>/`에
 배치됩니다. 이는 기존 프로덕션 코드의 의도치 않은 수정을 방지합니다.
 
 | 출력 유형 | 경로 | 시점 |
@@ -416,7 +429,7 @@ dx-all-suite 메타 가이드는 모든 서브 프로젝트 시나리오로 라�
 | **기본 (격리)** | `dx-agentic-dev/<session_id>/` | 사용자가 달리 지정하지 않는 한 항상 |
 | **프로덕션** | `src/` | 사용자가 명시적으로 요청한 경우에만 |
 
-세션 ID 형식: `YYYYMMDD-HHMMSS_model_task`.
+세션 ID 형식: `YYYYMMDD-HHMMSS_<agent>_<model>_<task>` — `<agent>`는 `claude`, `copilot`, `cursor`, `opencode` 중 하나.
 
 각 세션 디렉토리에는 다음이 포함됩니다:
 - `README.md` — 세션 메타데이터, 생성된 파일 목록, 실행 지침

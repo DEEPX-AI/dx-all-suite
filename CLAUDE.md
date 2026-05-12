@@ -975,7 +975,7 @@ discipline):
 | `.deepx/tests/test.sh` | manual/autopilot shell runner |
 | `.deepx/tests/conftest.py`, `.deepx/tests/session_common.py`, `.deepx/tests/parse_copilot_session.py`, `.deepx/tests/parse_cursor_session.py`, `.deepx/tests/parse_claude_session.py` | shared test infrastructure |
 | `.deepx/tools/` (dx-agentic-dev-gen) | generator source, CLI, transformers |
-| `.deepx/tools/*.sh` | loop scripts and orchestration runners (e.g. `run-e2e-improvement-loop.sh`) |
+| `.deepx/tools/scripts/*.sh` | loop scripts and orchestration runners (e.g. `run-e2e-improvement-loop.sh`, `run_all.sh`, `install-hooks.sh`, `pre-commit-hook.sh`) |
 | `.deepx/` | agents, skills, templates, fragments (canonical source) |
 
 These rules apply **in addition to** the Instruction File Verification Loop below.
@@ -1073,9 +1073,9 @@ If ANY box cannot be checked, STOP and complete the missing step before proceedi
 - Starting implementation before `/dx-skill-router` has been invoked
 - **Treating autopilot mode as a waiver** — autopilot means "no asking",
   NOT "no rules". The Mandatory Skill Sequence applies in full in autopilot mode.
-- Treating `.deepx/tools/*.sh` scripts as "not internal dev" — all loop and
-  orchestration scripts under `.deepx/tools/` are internal dx-agentic-dev features
-  and the SWE discipline applies
+- Treating `.deepx/tools/scripts/*.sh` scripts as "not internal dev" — all loop and
+  orchestration scripts under `.deepx/tools/scripts/` are internal dx-agentic-dev
+  features and the SWE discipline applies
 - **Treating `dx-swe-debugging` completion as a SWE gate waiver** — finishing
   Phases 1–3 (root cause identified) does NOT exempt the implementation from the
   SWE mandatory sequence. When Phase 4 implementation involves `.deepx/`, `tests/`,

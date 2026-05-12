@@ -30,10 +30,10 @@ Each run is stored in a timestamped directory so multiple runs never overwrite e
 
 ```bash
 # Standard run (5 iterations max, suite scenario)
-bash .deepx/tools/run-e2e-improvement-loop.sh
+bash .deepx/tools/scripts/run-e2e-improvement-loop.sh
 
 # Background run (recommended for long sessions)
-bash .deepx/tools/run-e2e-improvement-loop.sh &
+bash .deepx/tools/scripts/run-e2e-improvement-loop.sh &
 ```
 
 ## Options
@@ -86,7 +86,7 @@ doc/reports/e2e-loop/
 ### Run with more iterations
 
 ```bash
-bash .deepx/tools/run-e2e-improvement-loop.sh --max-iterations 10
+bash .deepx/tools/scripts/run-e2e-improvement-loop.sh --max-iterations 10
 ```
 
 ### Continue a completed run
@@ -95,7 +95,7 @@ bash .deepx/tools/run-e2e-improvement-loop.sh --max-iterations 10
 
 ```bash
 # Resume latest run, extend to 10 iterations total
-bash .deepx/tools/run-e2e-improvement-loop.sh --resume --max-iterations 10
+bash .deepx/tools/scripts/run-e2e-improvement-loop.sh --resume --max-iterations 10
 ```
 
 The `improvements_applied` history is preserved, so already-applied items (R1, R2, …) are never re-applied.
@@ -103,7 +103,7 @@ The `improvements_applied` history is preserved, so already-applied items (R1, R
 ### Resume a specific run directory
 
 ```bash
-bash .deepx/tools/run-e2e-improvement-loop.sh \
+bash .deepx/tools/scripts/run-e2e-improvement-loop.sh \
   --run-dir doc/reports/e2e-loop/2026-04-28-175036 \
   --resume \
   --max-iterations 10
@@ -112,7 +112,7 @@ bash .deepx/tools/run-e2e-improvement-loop.sh \
 ### Dry run (verify config without running tests)
 
 ```bash
-bash .deepx/tools/run-e2e-improvement-loop.sh --dry-run
+bash .deepx/tools/scripts/run-e2e-improvement-loop.sh --dry-run
 ```
 
 ## What `--resume` Does NOT Do
@@ -170,13 +170,13 @@ Claude tags each recommendation with one of these categories:
 
 ```bash
 # Use Copilot CLI for Steps 3 and 4 (report + improve), while still running all 4 tool E2E tests in Step 1
-bash .deepx/tools/run-e2e-improvement-loop.sh --orchestrator copilot
+bash .deepx/tools/scripts/run-e2e-improvement-loop.sh --orchestrator copilot
 
 # Specify explicit binary path
-bash .deepx/tools/run-e2e-improvement-loop.sh --orchestrator copilot --copilot-bin /usr/local/bin/copilot
+bash .deepx/tools/scripts/run-e2e-improvement-loop.sh --orchestrator copilot --copilot-bin /usr/local/bin/copilot
 
 # Via environment variable
-ORCHESTRATOR=copilot bash .deepx/tools/run-e2e-improvement-loop.sh
+ORCHESTRATOR=copilot bash .deepx/tools/scripts/run-e2e-improvement-loop.sh
 ```
 
 > **Note:** `--orchestrator` controls which AI CLI runs the **orchestration steps** (report generation and improvement application). The E2E tests in Step 1 always run all 4 tools (copilot/cursor/opencode/claude_code) regardless of this setting.
@@ -185,13 +185,13 @@ ORCHESTRATOR=copilot bash .deepx/tools/run-e2e-improvement-loop.sh
 
 ```bash
 # Use Cursor CLI for Steps 3 and 4 (report + improve)
-bash .deepx/tools/run-e2e-improvement-loop.sh --orchestrator cursor
+bash .deepx/tools/scripts/run-e2e-improvement-loop.sh --orchestrator cursor
 
 # Specify explicit binary path
-bash .deepx/tools/run-e2e-improvement-loop.sh --orchestrator cursor --cursor-bin /usr/local/bin/agent
+bash .deepx/tools/scripts/run-e2e-improvement-loop.sh --orchestrator cursor --cursor-bin /usr/local/bin/agent
 
 # Via environment variable
-ORCHESTRATOR=cursor bash .deepx/tools/run-e2e-improvement-loop.sh
+ORCHESTRATOR=cursor bash .deepx/tools/scripts/run-e2e-improvement-loop.sh
 ```
 
 > **Note:** The Cursor CLI binary is named `agent`. Ensure it is on PATH or specify the path with `--cursor-bin`.
@@ -200,14 +200,14 @@ ORCHESTRATOR=cursor bash .deepx/tools/run-e2e-improvement-loop.sh
 
 ```bash
 # Use OpenCode for Steps 3 and 4 (report + improve)
-bash .deepx/tools/run-e2e-improvement-loop.sh --orchestrator opencode
+bash .deepx/tools/scripts/run-e2e-improvement-loop.sh --orchestrator opencode
 
 # Specify explicit binary path
-bash .deepx/tools/run-e2e-improvement-loop.sh --orchestrator opencode --opencode-bin /usr/local/bin/opencode
+bash .deepx/tools/scripts/run-e2e-improvement-loop.sh --orchestrator opencode --opencode-bin /usr/local/bin/opencode
 
 # With a specific model (use OpenCode's provider-prefixed model format)
-bash .deepx/tools/run-e2e-improvement-loop.sh --orchestrator opencode --model "anthropic/claude-sonnet-4-5"
+bash .deepx/tools/scripts/run-e2e-improvement-loop.sh --orchestrator opencode --model "anthropic/claude-sonnet-4-5"
 
 # Via environment variable
-ORCHESTRATOR=opencode bash .deepx/tools/run-e2e-improvement-loop.sh
+ORCHESTRATOR=opencode bash .deepx/tools/scripts/run-e2e-improvement-loop.sh
 ```

@@ -213,10 +213,17 @@ instruction fragment의 **path matching**으로 결정됩니다:
     test_agentic_scenarios/       — 정적 harness test
     test_agentic_e2e_scenarios/   — E2E agent 실행 test
   tools/            — harness 개발 도구
-    dx-agentic-dev-gen/           — generator CLI + transformer
-    run-e2e-improvement-loop.sh   — E2E improvement loop runner
-    README_RUN_E2E_IMPROVEMENT_LOOP.md
-    README_RUN_E2E_IMPROVEMENT_LOOP-KO.md
+    README.md                     — dx-agentic-gen 패키지 가이드
+    pyproject.toml                — 패키지 정의 (dx-agentic-dev-gen)
+    src/dx_agentic_dev_gen/       — generator 패키지 (cli, generator, transformers, frontmatter, constants)
+    scripts/
+      README.md                       — scripts/ 가이드
+      run_all.sh                      — 멀티-repo generate/check/lint 래퍼
+      install-hooks.sh                — pre-commit hook 설치
+      pre-commit-hook.sh              — drift + lint guard (git이 호출)
+      run-e2e-improvement-loop.sh     — E2E improvement loop runner
+      README_RUN_E2E_IMPROVEMENT_LOOP.md
+      README_RUN_E2E_IMPROVEMENT_LOOP-KO.md
 ```
 
 Product test infrastructure는 `tests/`에 그대로 유지됩니다 (Docker, local install,

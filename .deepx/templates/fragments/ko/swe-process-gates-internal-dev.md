@@ -13,7 +13,7 @@ Cursor (IDE), OpenCode, 기타 모든 도구)를 사용하여 내부 dx-agentic-
 | `.deepx/tests/test.sh` | 수동/자동 shell runner |
 | `.deepx/tests/conftest.py`, `.deepx/tests/session_common.py`, `.deepx/tests/parse_copilot_session.py`, `.deepx/tests/parse_cursor_session.py`, `.deepx/tests/parse_claude_session.py` | 공유 테스트 인프라 |
 | `.deepx/tools/` (dx-agentic-dev-gen) | generator 소스, CLI, transformer |
-| `.deepx/tools/*.sh` | loop 스크립트 및 orchestration runner (예: `run-e2e-improvement-loop.sh`) |
+| `.deepx/tools/scripts/*.sh` | loop 스크립트 및 orchestration runner (예: `run-e2e-improvement-loop.sh`, `run_all.sh`, `install-hooks.sh`, `pre-commit-hook.sh`) |
 | `.deepx/` | agent, skill, 템플릿, fragment (canonical source) |
 
 이 규칙은 아래 **Instruction File Verification Loop**에 **추가로** 적용됩니다.
@@ -111,8 +111,8 @@ SWE Pre-Implementation Checklist:
 - `/dx-skill-router` 호출 전 구현 시작
 - **Autopilot mode를 면제로 오해** — autopilot은 "묻지 않기"를 의미할 뿐,
   "규칙 없음"이 아닙니다. Autopilot에서도 필수 Skill 시퀀스는 완전히 적용됩니다.
-- `.deepx/tools/*.sh` 스크립트를 "내부 개발 아님"으로 취급하기 —
-  `.deepx/tools/` 하위의 모든 loop 및 orchestration 스크립트는 내부 dx-agentic-dev 기능이며 SWE 규율이 적용됩니다
+- `.deepx/tools/scripts/*.sh` 스크립트를 "내부 개발 아님"으로 취급하기 —
+  `.deepx/tools/scripts/` 하위의 모든 loop 및 orchestration 스크립트는 내부 dx-agentic-dev 기능이며 SWE 규율이 적용됩니다
 - **`dx-swe-debugging` 완료를 SWE gate 면제로 취급** — Phase 1–3 (근본 원인 파악)을
   완료했다고 해서 구현 작업이 SWE 필수 시퀀스에서 면제되는 것은 아닙니다. Phase 4 구현이
   `.deepx/`, `tests/`, 또는 `tools/`를 포함할 경우, 이는 **새로운 내부 개발 작업**으로서

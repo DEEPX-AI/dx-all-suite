@@ -214,10 +214,17 @@ All harness development files live under `.deepx/`:
     test_agentic_scenarios/       — static harness tests
     test_agentic_e2e_scenarios/   — E2E agent execution tests
   tools/            — harness development tools
-    dx-agentic-dev-gen/           — generator CLI + transformers
-    run-e2e-improvement-loop.sh   — E2E improvement loop runner
-    README_RUN_E2E_IMPROVEMENT_LOOP.md
-    README_RUN_E2E_IMPROVEMENT_LOOP-KO.md
+    README.md                     — dx-agentic-gen package guide
+    pyproject.toml                — package definition (dx-agentic-dev-gen)
+    src/dx_agentic_dev_gen/       — generator package (cli, generator, transformers, frontmatter, constants)
+    scripts/
+      README.md                       — scripts/ guide
+      run_all.sh                      — multi-repo generate/check/lint wrapper
+      install-hooks.sh                — pre-commit hook installer
+      pre-commit-hook.sh              — drift + lint guard (invoked by git)
+      run-e2e-improvement-loop.sh     — E2E improvement loop runner
+      README_RUN_E2E_IMPROVEMENT_LOOP.md
+      README_RUN_E2E_IMPROVEMENT_LOOP-KO.md
 ```
 
 Product test infrastructure remains at `tests/` (Docker, local install,
