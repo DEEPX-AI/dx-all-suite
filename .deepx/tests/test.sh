@@ -171,6 +171,26 @@ print_usage() {
     echo -e "  ./test.sh agentic-e2e-copilot-cli-autopilot -k dx_app"
     echo -e "  ./test.sh --cleanup agentic-e2e-claude-code-autopilot -k dx_stream"
     echo -e "  ./test.sh report"
+    echo -e ""
+    echo -e "${YELLOW}Per-tool Model Selection (env vars)${NC}"
+    echo -e "  ${GREEN}DX_AGENTIC_E2E_CLAUDE_CODE_MODEL${NC} = claude-sonnet-4-6 (default)"
+    echo -e "  ${GREEN}DX_AGENTIC_E2E_COPILOT_MODEL${NC}     = claude-sonnet-4.6 (default)"
+    echo -e "  ${GREEN}DX_AGENTIC_E2E_CURSOR_MODEL${NC}      = claude-4.6-sonnet-medium-thinking (default)"
+    echo -e "  ${GREEN}DX_AGENTIC_E2E_CURSOR_FALLBACK_MODEL${NC} = auto (used on quota cap)"
+    echo -e "  ${GREEN}DX_AGENTIC_E2E_OPENCODE_MODEL${NC}    = github-copilot/claude-sonnet-4.6 (default)"
+    echo -e ""
+    echo -e "  Cursor auto model (built-in composite LLM):"
+    echo -e "    DX_AGENTIC_E2E_CURSOR_MODEL=auto ./test.sh agentic-e2e-cursor-cli-autopilot"
+    echo -e ""
+    echo -e "  Cursor Opus 4.7 thinking (strongest reasoning):"
+    echo -e "    DX_AGENTIC_E2E_CURSOR_MODEL=claude-opus-4-7-thinking-high ./test.sh agentic-e2e-cursor-cli-autopilot"
+    echo -e ""
+    echo -e "  GPT-5.3-codex via Copilot provider (OpenCode):"
+    echo -e "    DX_AGENTIC_E2E_OPENCODE_MODEL=github-copilot/gpt-5.3-codex ./test.sh agentic-e2e-opencode-cli-autopilot"
+    echo -e ""
+    echo -e "${YELLOW}Reports — JSON report enabled by default${NC}"
+    echo -e "  Per-test pass/fail/xfailed/skipped JSON is automatically saved to ${SCRIPT_DIR}/reports/test_report_<TS>.json."
+    echo -e "  Opt-out: DX_AGENTIC_E2E_NO_JSON_REPORT=1 ./test.sh ..."
 }
 
 if [ $# -eq 0 ]; then
@@ -344,12 +364,22 @@ if [ $GENERATE_REPORT -eq 1 ]; then
     fi
 fi
 
-# Setup JSON report if requested
-if [ $GENERATE_JSON -eq 1 ]; then
+# Setup JSON report — ALWAYS active by default (used by analyzer for per-test PASS/FAIL).
+# Opt-out: set DX_AGENTIC_E2E_NO_JSON_REPORT=1 in environment.
+if [ -z "${DX_AGENTIC_E2E_NO_JSON_REPORT}" ]; then
     if [ -z "${JSON_FILE}" ]; then
         REPORT_DIR="${SCRIPT_DIR}/reports"
         mkdir -p "${REPORT_DIR}"
-        TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
+        : "${TIMESTAMP:=$(date +"%Y%m%d_%H%M%S")}"
+        JSON_FILE="${REPORT_DIR}/test_report_${TIMESTAMP}.json"
+        JSON_ARGS=(--json-report --json-report-file="${JSON_FILE}")
+    fi
+elif [ $GENERATE_JSON -eq 1 ]; then
+    # Legacy explicit --json-report request (no-op if already set above)
+    if [ -z "${JSON_FILE}" ]; then
+        REPORT_DIR="${SCRIPT_DIR}/reports"
+        mkdir -p "${REPORT_DIR}"
+        : "${TIMESTAMP:=$(date +"%Y%m%d_%H%M%S")}"
         JSON_FILE="${REPORT_DIR}/test_report_${TIMESTAMP}.json"
         JSON_ARGS=(--json-report --json-report-file="${JSON_FILE}")
     fi

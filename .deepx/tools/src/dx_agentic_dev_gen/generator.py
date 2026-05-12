@@ -225,12 +225,23 @@ class Generator:
         A line is exempt if it ends with (or contains) a
         ``<!-- KOREAN-OK: <reason> -->`` annotation.
 
+        Scope: this check applies only to **fragment-system-related** files
+        (agents, skills, templates, fragments, docs, memory). Directories that
+        host standalone tooling (`.deepx/tests/`, `.deepx/tools/scripts/`) are
+        exempt \u2014 their READMEs are end-user documentation that may be authored
+        in either language depending on audience.
+
         Returns (clean, report_lines).
         """
         import re as _re
 
         KOREAN = _re.compile(r"[\uAC00-\uD7A3\u3131-\u318E\u3200-\u32FF]")
         EXEMPT = _re.compile(r"<!--\s*KOREAN-OK\b.*?-->", _re.IGNORECASE)
+
+        # Top-level directories under .deepx/ that ARE subject to the fragment
+        # canonical-source rule (EN/KO split). All other paths are user-facing
+        # docs / standalone tools where mixed-language content is permitted.
+        FRAGMENT_SCOPE = {"agents", "skills", "templates", "fragments", "docs", "memory"}
 
         report: list[str] = []
         clean = True
@@ -245,6 +256,19 @@ class Generator:
                 continue
             if "ko" in md_file.parts:
                 continue
+            # Scope filter: only check files inside fragment-scope subtrees of .deepx/
+            try:
+                rel_parts = md_file.relative_to(self.deepx).parts
+            except ValueError:
+                continue
+            if not rel_parts:
+                continue
+            top = rel_parts[0]
+            # Top-level README.md of .deepx/ itself IS checked (it's an index doc)
+            if top == name and top.endswith(".md"):
+                pass  # top-level file like .deepx/README.md \u2192 check
+            elif top not in FRAGMENT_SCOPE:
+                continue  # outside fragment system \u2192 skip
 
             try:
                 lines = md_file.read_text(encoding="utf-8").splitlines()
