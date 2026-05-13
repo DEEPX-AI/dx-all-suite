@@ -588,7 +588,12 @@ def _env_bool(name: str, default: bool = False) -> bool:
 def main(argv: Optional[List[str]] = None) -> int:
     env_cli = os.environ.get("DX_INSIGHTS_CLI") or "auto"
     env_model = os.environ.get("DX_INSIGHTS_MODEL") or None
-    env_allow_paid = _env_bool("DX_INSIGHTS_ALLOW_PAID")
+    # Tri-state for allow-paid: None (apply mode-specific default) / True / False.
+    # An explicit env var setting overrides the default; absence leaves it None.
+    env_allow_paid: Optional[bool] = (
+        _env_bool("DX_INSIGHTS_ALLOW_PAID") if "DX_INSIGHTS_ALLOW_PAID" in os.environ
+        else None
+    )
 
     p = argparse.ArgumentParser(description="Agentic insight generator (post-analysis)")
     p.add_argument("--mode", choices=["insights", "runnability"], required=True,
@@ -605,10 +610,14 @@ def main(argv: Optional[List[str]] = None) -> int:
                          "'claude-sonnet-4-6', 'auto'). When omitted, the CLI's "
                          "free_default_model is used unless --allow-paid is set. "
                          "Env: DX_INSIGHTS_MODEL"))
-    p.add_argument("--allow-paid", action="store_true", default=env_allow_paid,
+    p.add_argument("--allow-paid", action=argparse.BooleanOptionalAction,
+                   default=env_allow_paid,
                    help=("Permit paid/billed model selections (Claude Code seat, "
                          "claude-sonnet-4-6 via copilot, gpt-5/codex, etc.). "
-                         "Default: only free models. Env: DX_INSIGHTS_ALLOW_PAID=1"))
+                         "Mode-specific defaults when neither --allow-paid nor "
+                         "--no-allow-paid is given: insights → PAID (context >64K "
+                         "needs sonnet-4.6), runnability → FREE (gpt-4.1 fits "
+                         "per-session prompts). Env: DX_INSIGHTS_ALLOW_PAID=0|1"))
     p.add_argument("--output-dir", default=None,
                    help="Where to write the output (default: same as --report-dir)")
     p.add_argument("--sample", type=int, default=8,
@@ -624,6 +633,19 @@ def main(argv: Optional[List[str]] = None) -> int:
         print(f"ERROR: report-dir not found: {report_dir}", file=sys.stderr)
         return 2
     out_dir = Path(args.output_dir).resolve() if args.output_dir else report_dir
+
+    # Apply mode-specific default for allow_paid when caller didn't specify.
+    # Rationale: the insights prompt embeds analysis.md (~100KB / ~96K tokens),
+    # which exceeds gpt-4.1's 64K context. The runnability prompt is tiny
+    # (per-session README/setup.sh/run.sh, ~20KB) and fits free models.
+    if args.allow_paid is None:
+        if args.mode == "insights":
+            args.allow_paid = True
+            print("NOTE: insights mode defaulting to --allow-paid (copilot + "
+                  "claude-sonnet-4.6) due to context-size requirements. Pass "
+                  "--no-allow-paid to force a free model.", file=sys.stderr)
+        else:
+            args.allow_paid = False
 
     # Resolve CLI (handle 'auto' here so failures emit a clear message)
     chosen_cli = resolve_cli(args.cli, args.allow_paid)
