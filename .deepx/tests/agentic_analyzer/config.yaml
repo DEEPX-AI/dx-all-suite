@@ -30,12 +30,11 @@ tools:
     artifact_prefix: "opencode"
     binary: "opencode"
     notes: "OpenCode CLI"
-  # Future:
-  # codex-cli:
-  #   dir_suffix: "codex-cli-autopilot"
-  #   artifact_prefix: "codex_cli"
-  #   binary: "codex"
-  #   notes: "OpenAI Codex CLI"
+  codex-cli:
+    dir_suffix: "codex-cli-autopilot"
+    artifact_prefix: "codex_cli"
+    binary: "codex"
+    notes: "OpenAI Codex CLI (via copilot provider, gpt-5.3-codex)"
 
 # ---------------------------------------------------------------------------
 # Scenarios — name + mandatory deliverables under the session output dir
@@ -110,6 +109,7 @@ default_models:
   copilot-cli: "claude-sonnet-4.6"
   cursor-cli: "claude-sonnet-4.6"
   opencode-cli: "claude-sonnet-4.6"
+  codex-cli: "gpt-5.3-codex"
 
 # Per-session overrides (session_id substring → model)
 # Cursor used "auto" model in initial 5 rounds due to subscription cap
@@ -122,7 +122,7 @@ model_overrides:
 # Compliance rules — HARD GATE patterns expected in transcripts/artifacts
 # ---------------------------------------------------------------------------
 compliance_rules:
-  session_id_pattern: '^\d{8}-\d{6}_(claude|copilot|cursor|opencode)_[a-zA-Z0-9_]+_[a-zA-Z0-9_]+$'
+  session_id_pattern: '^\d{8}-\d{6}_(claude|copilot|cursor|opencode|codex)_[a-zA-Z0-9_]+_[a-zA-Z0-9_]+$'
   sentinel_start: "[DX-AGENTIC-DEV: START]"
   sentinel_done_pattern: '\[DX-AGENTIC-DEV: DONE \(output-dir: ([^)]+)\)\]'
   prohibited_in_session_log:

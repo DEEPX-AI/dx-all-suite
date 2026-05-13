@@ -435,7 +435,7 @@ production code.
 | **Default (isolated)** | `dx-agentic-dev/<session_id>/` | Always, unless user says otherwise |
 | **Production** | `src/` | Only when explicitly requested by the user |
 
-Session ID format: `YYYYMMDD-HHMMSS_<agent>_<model>_<task>` where `<agent>` is `claude`, `copilot`, `cursor`, or `opencode`.
+Session ID format: `YYYYMMDD-HHMMSS_<agent>_<model>_<task>` where `<agent>` is `claude`, `codex`, `copilot`, `cursor`, or `opencode`.
 
 Each session directory contains:
 - `README.md` — session metadata, generated file list, run instructions

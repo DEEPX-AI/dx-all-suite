@@ -69,14 +69,16 @@ def write_markdown(evals: List[SessionEval], out_path: Path, meta: Dict) -> None
     lines.append("## 📖 점수 산정 방식 (Quick Reference)")
     lines.append("")
     lines.append("```")
-    lines.append("Overall % = 0.30·Compliance% + 0.25·Quality% + 0.25·Verdict% + 0.15·ExecutionTrace% + 2.5(START) + 2.5(DONE)")
+    lines.append("Overall % = 0.25·Compliance% + 0.20·Quality% + 0.10·Verdict% + 0.25·ExecutionTrace% + 0.15·Runnability% + 2.5(START) + 2.5(DONE)")
     lines.append("Verdict   = PASS(100) / PARTIAL(50) / FAIL(0) / UNKNOWN(0)  — 시나리오 산출물 inferred")
+    lines.append("Runnability = End-user 실행 가능성 (LLM 판정) — runnability_report.md 없으면 나머지 4-factor 비례 배분")
     lines.append("```")
     lines.append("")
-    lines.append("- **Compliance** = HARD GATE 체크 통과율 (sentinel/output isolation/IFactory/필수파일/...)")
-    lines.append("- **Quality** = py_compile + JSON parse + bash -n 통과율, placeholder/anti-pattern 페널티")
-    lines.append("- **Verdict** = 시나리오 1차 산출물 존재성 (compiler→.dxnn, dx_app→factory+sync, suite→dual dir)")
-    lines.append("- **ExecutionTrace** = 실제 실행 흔적 — session.log substantive + 성공 마커 + .dxnn realistic size + no failure markers")
+    lines.append("- **Compliance** (25%) = HARD GATE 체크 통과율 (sentinel/output isolation/IFactory/필수파일/...)")
+    lines.append("- **Quality** (20%) = py_compile + JSON parse + bash -n 통과율, placeholder/anti-pattern 페널티")
+    lines.append("- **Verdict** (10%) = 시나리오 1차 산출물 존재성 (compiler→.dxnn, dx_app→factory+sync, suite→dual dir)")
+    lines.append("- **ExecutionTrace** (25%) = 실제 실행 흔적 — session.log substantive + 성공 마커 + .dxnn realistic size + no failure markers")
+    lines.append("- **Runnability** (15%) = End-user가 README/setup.sh/run.sh 따라 실제 실행 가능한지 LLM 판정 (PASS/PARTIAL/FAIL + 세부 1-5점)")
     lines.append("- **Exit 0 %** = pytest 라운드 전체의 exit 코드 (라운드 단위, **시나리오 단위 ≠**). **Overall 에는 미반영** — 정보용. timeout 케이스는 자가-개선 iteration 으로 인한 경우가 많아 페널티 부여하지 않음 (별도 ⏱ 마커 표시).")
     lines.append("")
 
@@ -89,12 +91,15 @@ def write_markdown(evals: List[SessionEval], out_path: Path, meta: Dict) -> None
     pass_per_tool = {t: sum(1 for e in evals if e.tool == t and e.verdict == "PASS") for t in tools}
     partial_per_tool = {t: sum(1 for e in evals if e.tool == t and e.verdict == "PARTIAL") for t in tools}
     fail_per_tool = {t: sum(1 for e in evals if e.tool == t and e.verdict == "FAIL") for t in tools}
-    lines.append("| Tool | Sessions | Compl % | Qual % | Verdict % | Exec % | Overall % | σ(Overall) | Avg Duration | START % | DONE % | Pass/Part/Fail | pytest Exit0 % | ⏱ Timeout | ToolCalls | LOC |")
-    lines.append("|------|---------:|-------:|------:|----------:|------:|----------:|----------:|-------------:|--------:|-------:|:--------------:|---------------:|----------:|---------:|----:|")
+    lines.append("| Tool | Sessions | Compl % | Qual % | Verdict % | Exec % | Runn % | Overall % | σ(Overall) | Avg Duration | START % | DONE % | Pass/Part/Fail | pytest Exit0 % | ⏱ Timeout | ToolCalls | LOC |")
+    lines.append("|------|---------:|-------:|------:|----------:|------:|------:|----------:|----------:|-------------:|--------:|-------:|:--------------:|---------------:|----------:|---------:|----:|")
     for tool in tools:
         m = per_tool.get(tool, {})
         verdict_avg = sum(e.verdict_score for e in evals if e.tool == tool) / max(1, m.get("sessions", 1))
         exec_avg = sum(e.execution_score for e in evals if e.tool == tool) / max(1, m.get("sessions", 1))
+        runn_scores = [e.runnability_score for e in evals if e.tool == tool and e.runnability_score > 0]
+        runn_avg = sum(runn_scores) / len(runn_scores) if runn_scores else 0.0
+        runn_display = _fmt_num(runn_avg) if runn_scores else "-"
         ppf = f"{pass_per_tool[tool]} / {partial_per_tool[tool]} / {fail_per_tool[tool]}"
         timeouts = sum(1 for e in evals if e.tool == tool and e.suspected_timeout)
         lines.append(
@@ -103,6 +108,7 @@ def write_markdown(evals: List[SessionEval], out_path: Path, meta: Dict) -> None
             f"{_fmt_num(m.get('avg_quality_score'))} | "
             f"{_fmt_num(verdict_avg)} | "
             f"{_fmt_num(exec_avg)} | "
+            f"{runn_display} | "
             f"{_fmt_num(m.get('avg_overall_score'))} | "
             f"{_fmt_num(m.get('stdev_overall_score'))} | "
             f"{_fmt_duration(m.get('avg_duration_sec'))} | "
@@ -265,17 +271,19 @@ def write_markdown(evals: List[SessionEval], out_path: Path, meta: Dict) -> None
     # ----------------------------------------------------------
     lines.append("## 7. 세션별 상세 (전체)")
     lines.append("")
-    lines.append("| R | Tool | Scenario | Model | Verdict | Exec % | ⏱ | pytest | Duration | Comp % | Qual % | Overall % | S/D | ToolCalls | LOC | PH | Eng | Reason |")
-    lines.append("|--:|------|----------|-------|:------:|------:|:--:|:------:|---------:|------:|------:|---------:|:--:|---------:|---:|---:|----:|-------|")
+    lines.append("| R | Tool | Scenario | Model | Verdict | Exec % | Runn % | ⏱ | pytest | Duration | Comp % | Qual % | Overall % | S/D | ToolCalls | LOC | PH | Eng | Reason |")
+    lines.append("|--:|------|----------|-------|:------:|------:|------:|:--:|:------:|---------:|------:|------:|---------:|:--:|---------:|---:|---:|----:|-------|")
     for e in sorted(evals, key=lambda x: (x.round_index, x.tool, x.scenario)):
         model_short = (e.model or "").replace("claude-sonnet-", "").replace("(non-standard)", "⚠")[:18]
         verdict_disp = f"{verdict_emoji.get(e.verdict, '?')} {e.verdict[:4]}"
         sd_marker = ("✓" if e.has_start else "✗") + "/" + ("✓" if e.has_done else "✗")
         timeout_mark = "⏱" if e.suspected_timeout else ""
+        runn_disp = _fmt_num(e.runnability_score) if e.runnability_score > 0 else "-"
         lines.append(
             f"| {e.round_index} | {e.tool} | {e.scenario} | {model_short} | "
             f"{verdict_disp} | "
             f"{_fmt_num(e.execution_score)} | "
+            f"{runn_disp} | "
             f"{timeout_mark} | "
             f"{e.exit_status if e.exit_status is not None else '-'} | "
             f"{_fmt_duration(e.duration_sec)} | "
@@ -488,8 +496,10 @@ def write_markdown(evals: List[SessionEval], out_path: Path, meta: Dict) -> None
     lines.append("")
     lines.append("### Overall % (composite)")
     lines.append("```")
-    lines.append("Overall = 0.40 × Compliance + 0.30 × Quality + 0.25 × Verdict + 2.5(START) + 2.5(DONE)")
+    lines.append("Overall = 0.25 × Compliance + 0.20 × Quality + 0.10 × Verdict + 0.25 × ExecutionTrace + 0.15 × Runnability + 2.5(START) + 2.5(DONE)")
     lines.append("```")
+    lines.append("- Runnability 데이터가 없는 세션은 나머지 4-factor 비례 배분 (backward compatible)")
+    lines.append("- Verdict 는 파일 존재만 확인하므로 가중치 낮음 (10%); 실제 실행 증거(Execution 25%)와 end-user 관점(Runnability 15%)에 높은 비중")
     lines.append("")
     lines.append("### pytest Exit 0 %")
     lines.append("- pytest 의 round-level exit code (한 라운드에 6개 시나리오; 그 중 한 assertion 실패 시 1)")
@@ -530,7 +540,7 @@ def write_csv(evals: List[SessionEval], out_path: Path) -> None:
         "round", "tool", "scenario", "model", "verdict", "verdict_score", "verdict_reason",
         "exit_status_round", "duration_sec",
         "has_start", "has_done", "compliance_pct", "quality_score",
-        "execution_score", "overall_score",
+        "execution_score", "runnability_score", "overall_score",
         "tool_call_count", "python_files", "python_loc", "bash_loc", "json_loc",
         "placeholder_hits", "direct_engine_use",
         "input_tokens", "output_tokens", "cache_read_tokens", "cache_write_tokens", "reasoning_tokens",
@@ -558,6 +568,7 @@ def write_csv(evals: List[SessionEval], out_path: Path) -> None:
                 "compliance_pct": e.compliance_score_pct,
                 "quality_score": e.quality_score,
                 "execution_score": e.execution_score,
+                "runnability_score": e.runnability_score,
                 "overall_score": e.overall_score,
                 "tool_call_count": e.tool_call_count,
                 "python_files": e.python_files,

@@ -44,7 +44,7 @@ bash .deepx/tools/scripts/run-e2e-improvement-loop.sh &
 | `--scenario KEY` | `suite` | pytest `-k` filter applied to all tool tests |
 | `--resume` | off | Resume from the latest existing run |
 | `--run-dir PATH` | auto | Use a specific run directory instead of auto-timestamped |
-| `--orchestrator TYPE` | `claude` | Orchestrator for report+improve steps: `claude`, `copilot`, `cursor`, or `opencode` |
+| `--orchestrator TYPE` | `claude` | Orchestrator for report+improve steps: `claude`, `codex`, `copilot`, `cursor`, or `opencode` |
 | `--claude-bin PATH` | `claude` | Path to the Claude CLI binary |
 | `--copilot-bin PATH` | `copilot` | Path to the Copilot CLI binary |
 | `--cursor-bin PATH` | `agent` | Path to the Cursor CLI binary |
@@ -149,7 +149,7 @@ Claude tags each recommendation with one of these categories:
 
 | Variable | Description |
 |----------|-------------|
-| `ORCHESTRATOR` | Override orchestrator: `claude`, `copilot`, `cursor`, or `opencode` (same as `--orchestrator`) |
+| `ORCHESTRATOR` | Override orchestrator: `claude`, `codex`, `copilot`, `cursor`, or `opencode` (same as `--orchestrator`) |
 | `CLAUDE_BIN` | Override Claude binary path (same as `--claude-bin`) |
 | `COPILOT_BIN` | Override Copilot binary path (same as `--copilot-bin`) |
 | `CURSOR_BIN` | Override Cursor CLI binary path (same as `--cursor-bin`) |

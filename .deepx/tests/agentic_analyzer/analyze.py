@@ -30,7 +30,7 @@ import argparse
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 # Allow running from any cwd
 HERE = Path(__file__).resolve().parent
@@ -66,6 +66,7 @@ from lib.pytest_data import collect_pytest_round
 from lib.cost import estimate_cost, compute_calibration_ratios
 from lib.aggregate import SessionEval, composite_score
 from lib.report import write_markdown, write_json, write_csv
+from lib.runnability_parser import parse_runnability_report, aggregate_runnability
 
 
 def _load_config(path: Path) -> dict:
@@ -151,6 +152,8 @@ def evaluate_scenario(ref: ScenarioRef, config: dict) -> SessionEval:
     overall = composite_score(comp.score_pct, quality_score, vscore, execution_score,
                               sd.has_start_sentinel, sd.has_done_sentinel)
 
+    # Runnability will be merged in post-pass if runnability_report.md exists
+
     return SessionEval(
         round_index=ref.parent.round_index,
         tool=ref.parent.tool,
@@ -218,7 +221,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     parser.add_argument("--round", action="append", type=int, help="Filter to specific rounds (repeatable)")
     parser.add_argument(
         "--insights",
-        choices=["off", "auto", "copilot", "claude", "cursor", "opencode"],
+        choices=["off", "auto", "copilot", "claude", "cursor", "opencode", "codex"],
         default="auto",
         help=(
             "Automatically invoke insights.py after analysis (default: auto). "
@@ -229,7 +232,14 @@ def main(argv: Optional[List[str]] = None) -> int:
     parser.add_argument(
         "--insights-runnability",
         action="store_true",
-        help="Also run insights.py --mode runnability on a sample of sessions",
+        default=True,
+        help="Run insights.py --mode runnability on a sample of sessions (default: True). Use --no-insights-runnability to skip.",
+    )
+    parser.add_argument(
+        "--no-insights-runnability",
+        action="store_false",
+        dest="insights_runnability",
+        help="Skip runnability evaluation",
     )
     parser.add_argument(
         "--insights-sample",
@@ -350,7 +360,97 @@ def main(argv: Optional[List[str]] = None) -> int:
     if args.insights != "off":
         _run_insights_chain(out_dir, args.insights, args.insights_runnability,
                             args.insights_sample)
+
+    # ---------------- Post-insights: merge runnability into scores ----------------
+    runnability_path = out_dir / "runnability_report.md"
+    if runnability_path.is_file():
+        print("\n→ Parsing runnability_report.md and recomputing Overall scores...")
+        runn_entries = parse_runnability_report(runnability_path)
+        runn_agg = aggregate_runnability(runn_entries)
+        updated = 0
+        for e in evals:
+            key = (e.tool, e.scenario)
+            if key in runn_agg:
+                e.runnability_score = runn_agg[key]
+                e.overall_score = composite_score(
+                    e.compliance_score_pct, e.quality_score, e.verdict_score,
+                    e.execution_score, e.has_start, e.has_done,
+                    runnability_pct=e.runnability_score, has_runnability=True,
+                )
+                updated += 1
+        if updated > 0:
+            print(f"  Updated {updated} sessions with runnability scores")
+            # Rewrite reports with updated scores
+            write_markdown(evals, md_path, meta)
+            write_json(evals, json_path, meta)
+            write_csv(evals, csv_path)
+            print(f"  Rewrote: {md_path}")
+
+    # ---------------- Comprehensive report ----------------
+    _generate_comprehensive_report(out_dir)
+
     return 0
+
+
+def _generate_comprehensive_report(report_dir: Path) -> None:
+    """Merge analysis.md + insights.md + runnability_report.md into one comprehensive report."""
+    parts: List[str] = []
+    parts.append("# DEEPX Agentic Development — 종합 보고서 (Comprehensive Report)")
+    parts.append("")
+    parts.append(f"> 생성 시각: {datetime.now().isoformat(timespec='seconds')}")
+    parts.append(f"> 이 보고서는 analysis.md, insights.md, runnability_report.md를 통합한 종합본입니다.")
+    parts.append("")
+    parts.append("---")
+    parts.append("")
+
+    # Part 1: analysis.md
+    analysis_path = report_dir / "analysis.md"
+    if analysis_path.is_file():
+        parts.append("# Part 1: 정량 분석 (analysis.md)")
+        parts.append("")
+        parts.append(analysis_path.read_text(encoding="utf-8"))
+        parts.append("")
+        parts.append("---")
+        parts.append("")
+
+    # Part 2: insights.md
+    insights_path = report_dir / "insights.md"
+    if insights_path.is_file():
+        parts.append("# Part 2: 정성 인사이트 (insights.md)")
+        parts.append("")
+        parts.append(insights_path.read_text(encoding="utf-8"))
+        parts.append("")
+        parts.append("---")
+        parts.append("")
+    else:
+        prompt_path = report_dir / "insights_prompt.md"
+        if prompt_path.is_file():
+            parts.append("# Part 2: 정성 인사이트 (미생성)")
+            parts.append("")
+            parts.append("> insights.md가 아직 생성되지 않았습니다.")
+            parts.append(f"> 프롬프트: `{prompt_path}`")
+            parts.append("> 수동 실행: `python3 insights.py --mode insights --report-dir <dir> --cli <copilot|claude>`")
+            parts.append("")
+            parts.append("---")
+            parts.append("")
+
+    # Part 3: runnability_report.md
+    runnability_path = report_dir / "runnability_report.md"
+    if runnability_path.is_file():
+        parts.append("# Part 3: End-User Runnability 평가 (runnability_report.md)")
+        parts.append("")
+        parts.append(runnability_path.read_text(encoding="utf-8"))
+        parts.append("")
+    else:
+        parts.append("# Part 3: End-User Runnability 평가 (미실행)")
+        parts.append("")
+        parts.append("> runnability 평가가 실행되지 않았습니다.")
+        parts.append("> 실행: `python3 insights.py --mode runnability --report-dir <dir> --cli <copilot|claude> --sample 8`")
+        parts.append("")
+
+    out_path = report_dir / "comprehensive_report.md"
+    out_path.write_text("\n".join(parts), encoding="utf-8")
+    print(f"\n✓ Wrote comprehensive report: {out_path}")
 
 
 def _run_insights_chain(report_dir: Path, mode: str, also_runnability: bool,
@@ -373,7 +473,7 @@ def _run_insights_chain(report_dir: Path, mode: str, also_runnability: bool,
     candidates = []
     if mode == "auto":
         # Preferred order — copilot first per user guidance
-        candidates = ["copilot", "claude", "cursor", "opencode"]
+        candidates = ["copilot", "claude", "cursor", "opencode", "codex"]
     else:
         candidates = [mode]
 
@@ -381,6 +481,7 @@ def _run_insights_chain(report_dir: Path, mode: str, also_runnability: bool,
     binaries = {
         "copilot": "copilot", "claude": "claude",
         "cursor": "agent", "opencode": "opencode",
+        "codex": "codex",
     }
     chosen = None
     for c in candidates:

@@ -14,10 +14,12 @@
 #   agentic-e2e-copilot-cli-autopilot  - Run agentic E2E tests via Copilot CLI (fully autonomous)
 #   agentic-e2e-opencode-cli-autopilot - Run agentic E2E tests via OpenCode CLI (fully autonomous)
 #   agentic-e2e-cursor-cli-autopilot   - Run agentic E2E tests via Cursor CLI (fully autonomous)
+#   agentic-e2e-codex-cli-autopilot    - Run agentic E2E tests via Codex CLI (fully autonomous)
 #   agentic-e2e-claude-code-manual     - Run agentic E2E interactively via Claude Code CLI (/export txt archive)
 #   agentic-e2e-copilot-cli-manual     - Run agentic E2E interactively via Copilot CLI (shell-based, no pytest)
 #   agentic-e2e-opencode-cli-manual    - Run agentic E2E interactively via OpenCode CLI (/export HTML archive)
 #   agentic-e2e-cursor-cli-manual      - Run agentic E2E interactively via Cursor CLI (shell-based, no pytest)
+#   agentic-e2e-codex-cli-manual       - Run agentic E2E interactively via Codex CLI (shell-based)
 #   list            - List all available tests
 #   report          - Run all tests and generate HTML report
 #   json            - Run all tests and generate JSON report
@@ -145,10 +147,12 @@ print_usage() {
     echo -e "  ${GREEN}agentic-e2e-copilot-cli-autopilot${NC}  - Run agentic E2E via Copilot CLI (fully autonomous, CI/CD)"
     echo -e "  ${GREEN}agentic-e2e-opencode-cli-autopilot${NC} - Run agentic E2E via OpenCode CLI (fully autonomous)"
     echo -e "  ${GREEN}agentic-e2e-cursor-cli-autopilot${NC}   - Run agentic E2E via Cursor CLI (fully autonomous)"
+    echo -e "  ${GREEN}agentic-e2e-codex-cli-autopilot${NC}    - Run agentic E2E via Codex CLI (fully autonomous)"
     echo -e "  ${GREEN}agentic-e2e-claude-code-manual${NC}     - Run agentic E2E interactively via Claude Code CLI (/export txt)"
     echo -e "  ${GREEN}agentic-e2e-copilot-cli-manual${NC}    - Run agentic E2E interactively via Copilot CLI (shell-based)"
     echo -e "  ${GREEN}agentic-e2e-opencode-cli-manual${NC}    - Run agentic E2E interactively via OpenCode CLI (/export HTML)"
     echo -e "  ${GREEN}agentic-e2e-cursor-cli-manual${NC}      - Run agentic E2E interactively via Cursor CLI (shell-based)"
+    echo -e "  ${GREEN}agentic-e2e-codex-cli-manual${NC}       - Run agentic E2E interactively via Codex CLI (shell-based)"
     echo -e ""
     echo -e "Utility Commands:"
     echo -e "  ${GREEN}list${NC}            - List all available tests"
@@ -164,6 +168,7 @@ print_usage() {
     echo -e "  ./test.sh agentic-e2e-copilot-cli-autopilot"
     echo -e "  ./test.sh agentic-e2e-opencode-cli-autopilot"
     echo -e "  ./test.sh agentic-e2e-cursor-cli-autopilot"
+    echo -e "  ./test.sh agentic-e2e-codex-cli-autopilot"
     echo -e "  ./test.sh agentic-e2e-claude-code-manual"
     echo -e "  ./test.sh agentic-e2e-copilot-cli-manual"
     echo -e "  ./test.sh agentic-e2e-opencode-cli-manual"
@@ -178,6 +183,7 @@ print_usage() {
     echo -e "  ${GREEN}DX_AGENTIC_E2E_CURSOR_MODEL${NC}      = claude-4.6-sonnet-medium-thinking (default)"
     echo -e "  ${GREEN}DX_AGENTIC_E2E_CURSOR_FALLBACK_MODEL${NC} = auto (used on quota cap)"
     echo -e "  ${GREEN}DX_AGENTIC_E2E_OPENCODE_MODEL${NC}    = github-copilot/claude-sonnet-4.6 (default)"
+    echo -e "  ${GREEN}DX_AGENTIC_E2E_CODEX_MODEL${NC}       = gpt-5.3-codex (default; Claude not supported via Codex)"
     echo -e ""
     echo -e "  Cursor auto model (built-in composite LLM):"
     echo -e "    DX_AGENTIC_E2E_CURSOR_MODEL=auto ./test.sh agentic-e2e-cursor-cli-autopilot"
@@ -1394,6 +1400,37 @@ case "$COMMAND" in
         fi
         exit $EXIT_CODE
         ;;
+
+    agentic-e2e-codex-cli-autopilot)
+        print_info "Running agentic E2E tests via Codex CLI (autopilot, fully autonomous)..."
+        CODEX_BIN="${HOME}/bin/codex"
+        if [ ! -x "$CODEX_BIN" ] && ! command -v codex &> /dev/null; then
+            print_error "Codex CLI (codex) not found. Install from https://github.com/openai/codex"
+            exit 1
+        fi
+        # Auth check via gh auth token (copilot provider)
+        if ! gh auth token &> /dev/null; then
+            print_error "GitHub auth failed. Run: gh auth login"
+            exit 77
+        fi
+        export DX_AGENTIC_E2E_MODE=autopilot
+        # Ensure codex is on PATH
+        if [ -x "$CODEX_BIN" ]; then
+            export PATH="${HOME}/bin:${PATH}"
+        fi
+        if [ -n "${M_EXPR}" ]; then
+            COMBINED_M_ARGS=(-m "agentic_e2e_codex_cli_autopilot and (${M_EXPR})")
+        else
+            COMBINED_M_ARGS=(-m agentic_e2e_codex_cli_autopilot)
+        fi
+        pytest "${SCRIPT_DIR}/test_agentic_e2e_scenarios/" -v "${PARALLEL_ARGS[@]}" "${CAPTURE_ARGS[@]}" "${COLLECT_ONLY_ARGS[@]}" "${COMBINED_M_ARGS[@]}" "${K_ARGS[@]}" "${REPORT_ARGS[@]}" "${JSON_ARGS[@]}" "$@"
+        EXIT_CODE=$?
+        if [ $GENERATE_REPORT -eq 1 ] && [ $EXIT_CODE -eq 0 ]; then
+            print_success "HTML report generated: ${REPORT_FILE}"
+        fi
+        exit $EXIT_CODE
+        ;;
+
 
     agentic-e2e-opencode-cli-manual)
         # ---------------------------------------------------------------

@@ -55,6 +55,7 @@ from parse_copilot_session import (  # noqa: E402
     parse_and_render,
     parse_session,
 )
+from parse_codex_session import render_codex_html  # noqa: E402
 from parse_cursor_session import render_cursor_html  # noqa: E402
 
 
@@ -70,6 +71,7 @@ def pytest_configure(config):
         "agentic_e2e_cursor_cli_autopilot: Agentic E2E tests via Cursor CLI autopilot",
         "agentic_e2e_opencode_cli_autopilot: Agentic E2E tests via OpenCode CLI autopilot",
         "agentic_e2e_claude_code_autopilot: Agentic E2E tests via Claude Code CLI autopilot",
+        "agentic_e2e_codex_cli_autopilot: Agentic E2E tests via Codex CLI autopilot",
     ]
     for marker in markers:
         config.addinivalue_line("markers", marker)
@@ -438,6 +440,15 @@ DEFAULT_OPENCODE_CASCADED_TIMEOUT = int(os.environ.get("DX_OPENCODE_CASCADED_TIM
 
 DEFAULT_CLAUDE_CODE_MODEL = os.environ.get("DX_AGENTIC_E2E_CLAUDE_CODE_MODEL", "claude-sonnet-4-6")
 DEFAULT_CLAUDE_CODE_TIMEOUT = int(os.environ.get("DX_AGENTIC_E2E_CLAUDE_CODE_TIMEOUT", "600"))
+
+# ---------------------------------------------------------------------------
+# Default model / timeout for Codex CLI
+# ---------------------------------------------------------------------------
+# NOTE: Codex CLI requires the Responses API. Claude models on the Copilot
+# endpoint only support Chat Completions — so GPT models must be used.
+# Default: gpt-5.3-codex. Alternatives: gpt-5.4, gpt-5.5, gpt-5.2-codex.
+DEFAULT_CODEX_MODEL = os.environ.get("DX_AGENTIC_E2E_CODEX_MODEL", "gpt-5.3-codex")
+DEFAULT_CODEX_TIMEOUT = int(os.environ.get("DX_AGENTIC_E2E_CODEX_TIMEOUT", "600"))
 
 # ---------------------------------------------------------------------------
 # R59: Advisory file lock to serialize concurrent apt/dpkg operations
@@ -2279,6 +2290,351 @@ def verify_start_sentinel(result: ScenarioResult) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Codex CLI JSONL output parser
+# ---------------------------------------------------------------------------
+
+def _parse_codex_jsonl(stdout: str) -> tuple:
+    """Parse Codex CLI ``--json`` JSONL output.
+
+    Returns:
+        (thread_id, assistant_text): thread ID from ``thread.started`` and
+        concatenated text from all ``item.completed`` ``agent_message`` events.
+    """
+    thread_id = ""
+    text_parts: List[str] = []
+    for line in (stdout or "").splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        etype = event.get("type", "")
+        if etype == "thread.started":
+            thread_id = (
+                event.get("thread_id", "")
+                or event.get("thread", {}).get("id", "")
+            )
+        elif etype == "item.completed":
+            item = event.get("item", {})
+            if item.get("type") == "agent_message":
+                text = item.get("text", "")
+                if not text:
+                    content = item.get("content", [])
+                    if isinstance(content, list):
+                        parts = []
+                        for part in content:
+                            if isinstance(part, dict) and part.get("type") == "output_text":
+                                parts.append(part.get("text", ""))
+                        text = "\n".join(p for p in parts if p)
+                if text:
+                    text_parts.append(text)
+    return thread_id, "\n".join(text_parts)
+
+
+# ---------------------------------------------------------------------------
+# CodexRunnerAutopilot
+# ---------------------------------------------------------------------------
+
+class CodexRunnerAutopilot:
+    """Wrapper for autopilot Codex CLI invocations.
+
+    Runs ``codex exec --json -s danger-full-access -m <model> -C <workdir>
+    <prompt>`` for fully autonomous execution.
+
+    An autopilot directive is appended to every prompt to prevent the agent
+    from asking questions.
+
+    Output files are auto-detected in ``dx-agentic-dev/<session_id>/`` under
+    the relevant sub-project directories — same mechanism as other runners.
+
+    Usage::
+
+        runner = CodexRunnerAutopilot()
+        result = runner.run(
+            prompt="Build a yolo26n detection app",
+            workdir=APP_ROOT,
+            scenario_key="dx_app",
+        )
+        assert result.succeeded
+        assert result.output_dir is not None
+    """
+
+    CODEX_BIN = "codex"
+    MODE = "autopilot"
+
+    AUTOPILOT_DIRECTIVE = (
+        " IMPORTANT: This is an automated test run. "
+        "Do not ask questions or present options. "
+        "Proceed directly with implementation, choosing the most appropriate approach."
+    )
+
+    def __init__(self, model: str = ""):
+        self.model = model or DEFAULT_CODEX_MODEL
+
+    @classmethod
+    def is_available(cls) -> bool:
+        """Check if the ``codex`` binary is on PATH."""
+        return shutil.which(cls.CODEX_BIN) is not None
+
+    @classmethod
+    def is_authenticated(cls) -> bool:
+        """Check if Codex CLI can authenticate via the copilot provider.
+
+        Verifies that ``gh auth token`` returns a valid token, since Codex
+        uses the copilot provider configured in ``~/.codex/config.toml``.
+        """
+        try:
+            result = subprocess.run(
+                ["gh", "auth", "token"],
+                capture_output=True, text=True, timeout=10,
+            )
+            return result.returncode == 0 and bool(result.stdout.strip())
+        except Exception:
+            return False
+
+    @classmethod
+    def codex_path(cls) -> Optional[str]:
+        """Return the full path to the codex binary, or None."""
+        return shutil.which(cls.CODEX_BIN)
+
+    def run(
+        self,
+        prompt: str,
+        workdir: Path,
+        scenario_key: str,
+        session_log_dir: Optional[Path] = None,
+        timeout: int = DEFAULT_CODEX_TIMEOUT,
+        extra_args: Optional[List[str]] = None,
+    ) -> ScenarioResult:
+        """Execute a Codex CLI prompt in autopilot mode.
+
+        Args:
+            prompt: The instruction to send to Codex.
+            workdir: Working directory for the Codex agent.
+            scenario_key: One of ``"compiler"``, ``"dx_app"``, ``"dx_stream"``,
+                ``"runtime"``, ``"suite"``.
+            session_log_dir: Directory to store the session transcript.
+            timeout: Maximum execution time in seconds.
+            extra_args: Additional CLI arguments.
+
+        Returns:
+            ScenarioResult with exit code, output, and auto-detected output dirs.
+        """
+        log_dir = session_log_dir or (SUITE_ROOT / '.codex-logs')
+        log_dir.mkdir(parents=True, exist_ok=True)
+
+        effective_prompt = prompt + self.AUTOPILOT_DIRECTIVE
+
+        search_paths = AGENTIC_DEV_SEARCH_PATHS.get(
+            scenario_key, [workdir / "dx-agentic-dev"],
+        )
+
+        snapshot = _snapshot_sessions(search_paths)
+        start_utc = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+        cmd = [
+            self.CODEX_BIN,
+            "exec",
+            "--json",
+            "-s", "danger-full-access",
+            "-C", str(workdir),
+        ]
+
+        if self.model:
+            cmd.extend(["-m", self.model])
+
+        if extra_args:
+            cmd.extend(extra_args)
+
+        cmd.append(effective_prompt)
+
+        start = time.monotonic()
+        try:
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+                env={**os.environ, "NO_COLOR": "1"},
+                start_new_session=True,
+            )
+            duration = time.monotonic() - start
+
+            thread_id, assistant_text = _parse_codex_jsonl(result.stdout)
+
+            # With dx-codex-identity skill + AGENTS.md update, Codex now uses
+            # "_codex_" in session dir names — use agent_filter like other tools.
+            output_dirs = _detect_new_sessions(
+                search_paths, snapshot,
+                agent_filter="codex",
+            )
+            _wait_for_background_compilation(output_dirs)
+            end_utc = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+            session_log = log_dir / f"{scenario_key}-codex-session.jsonl"
+            try:
+                session_log.write_text(result.stdout or "", encoding="utf-8")
+            except Exception:
+                pass
+
+            html_path = log_dir / f"{scenario_key}-codex-session.html"
+            try:
+                render_codex_html(
+                    session_log,
+                    html_path,
+                    session_id_override=thread_id or None,
+                    scenario_key=scenario_key,
+                    title=f"Codex CLI: {scenario_key}",
+                )
+            except Exception:
+                pass
+
+            if result.stderr:
+                stderr_log = log_dir / f"{scenario_key}-codex-stderr.log"
+                try:
+                    stderr_log.write_text(result.stderr, encoding="utf-8")
+                except Exception:
+                    pass
+
+            if assistant_text:
+                import re as _re
+                _done_re = _re.compile(
+                    r"\[DX-AGENTIC-DEV:\s*DONE\s*\(output-dir:\s*([^)]+)\)\]"
+                )
+                _done_match = _done_re.search(assistant_text)
+                if _done_match:
+                    raw_dirs = _done_match.group(1)
+                    for part in raw_dirs.split("+"):
+                        part = part.strip()
+                        candidate = SUITE_ROOT / part
+                        if candidate.is_dir() and candidate not in output_dirs:
+                            output_dirs.append(candidate)
+
+            for odir in output_dirs:
+                try:
+                    dst = odir / "session.txt"
+                    if not dst.exists() and session_log.exists():
+                        shutil.copy2(str(session_log), str(dst))
+                except Exception:
+                    pass
+                try:
+                    dst = odir / "session.html"
+                    if not dst.exists() and html_path.exists():
+                        shutil.copy2(str(html_path), str(dst))
+                except Exception:
+                    pass
+
+            for odir in output_dirs:
+                try:
+                    odir_real = odir.resolve()
+                    session_name = odir_real.name
+                    parent_name = odir_real.parent.parent.name
+                    link_path = log_dir / f"{scenario_key}-codex-session_{parent_name}_{session_name}"
+                    link_path.unlink(missing_ok=True)
+                    link_path.symlink_to(odir_real)
+                except Exception:
+                    pass
+
+            return ScenarioResult(
+                returncode=result.returncode,
+                stdout=result.stdout,
+                stderr=result.stderr,
+                output_dirs=output_dirs,
+                session_log=session_log,
+                session_events_log=session_log,
+                duration_seconds=duration,
+                prompt=effective_prompt,
+                workdir=workdir,
+                start_utc=start_utc,
+                end_utc=end_utc,
+                session_uuid=thread_id or None,
+                model_used=self.model,
+            )
+
+        except subprocess.TimeoutExpired as exc:
+            duration = time.monotonic() - start
+            end_utc = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+            output_dirs = _detect_new_sessions(search_paths, snapshot, agent_filter="codex")
+            _wait_for_background_compilation(output_dirs)
+
+            raw_stdout = exc.stdout.decode(errors="replace") if isinstance(exc.stdout, bytes) else (exc.stdout or "")
+            thread_id, assistant_text = _parse_codex_jsonl(raw_stdout)
+
+            session_log = log_dir / f"{scenario_key}-codex-session.jsonl"
+            try:
+                session_log.write_text(raw_stdout, encoding="utf-8")
+            except Exception:
+                pass
+
+            html_path = log_dir / f"{scenario_key}-codex-session.html"
+            try:
+                render_codex_html(
+                    session_log,
+                    html_path,
+                    session_id_override=thread_id or None,
+                    scenario_key=scenario_key,
+                    title=f"Codex CLI: {scenario_key}",
+                )
+            except Exception:
+                pass
+
+            if assistant_text:
+                import re as _re
+                _done_re = _re.compile(
+                    r"\[DX-AGENTIC-DEV:\s*DONE\s*\(output-dir:\s*([^)]+)\)\]"
+                )
+                _done_match = _done_re.search(assistant_text)
+                if _done_match:
+                    raw_dirs = _done_match.group(1)
+                    for part in raw_dirs.split("+"):
+                        part = part.strip()
+                        candidate = SUITE_ROOT / part
+                        if candidate.is_dir() and candidate not in output_dirs:
+                            output_dirs.append(candidate)
+
+            for odir in output_dirs:
+                try:
+                    dst = odir / "session.txt"
+                    if not dst.exists() and session_log.exists():
+                        shutil.copy2(str(session_log), str(dst))
+                except Exception:
+                    pass
+                try:
+                    dst = odir / "session.html"
+                    if not dst.exists() and html_path.exists():
+                        shutil.copy2(str(html_path), str(dst))
+                except Exception:
+                    pass
+                try:
+                    odir_real = odir.resolve()
+                    session_name = odir_real.name
+                    parent_name = odir_real.parent.parent.name
+                    link_path = log_dir / f"{scenario_key}-codex-session_{parent_name}_{session_name}"
+                    link_path.unlink(missing_ok=True)
+                    link_path.symlink_to(odir_real)
+                except Exception:
+                    pass
+
+            return ScenarioResult(
+                returncode=-1,
+                stdout=assistant_text or raw_stdout,
+                stderr=f"Codex CLI timed out after {timeout}s",
+                output_dirs=output_dirs,
+                session_log=session_log if session_log.exists() else None,
+                session_events_log=session_log if session_log.exists() else None,
+                duration_seconds=duration,
+                prompt=effective_prompt,
+                workdir=workdir,
+                start_utc=start_utc,
+                end_utc=end_utc,
+                session_uuid=thread_id or None,
+                model_used=self.model,
+            )
+
+
+# ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
 
@@ -2580,6 +2936,27 @@ def claude_code_runner():
 
 
 @pytest.fixture(scope="session")
+def codex_runner():
+    """Session-scoped CodexRunnerAutopilot for autopilot mode.
+
+    Uses ``codex exec --json -s danger-full-access`` for fully autonomous execution.
+    Skips if the ``codex`` binary is not on PATH or ``gh auth token`` fails.
+    """
+    if not CodexRunnerAutopilot.is_available():
+        pytest.skip(
+            f"Codex CLI not found on PATH. "
+            f"Searched for '{CodexRunnerAutopilot.CODEX_BIN}' — not found. "
+            f"Install Codex CLI from https://github.com/openai/codex"
+        )
+    if not CodexRunnerAutopilot.is_authenticated():
+        pytest.skip(
+            "Codex CLI authentication failed. "
+            "Ensure 'gh auth token' returns a valid token for copilot provider."
+        )
+    return CodexRunnerAutopilot()
+
+
+@pytest.fixture(scope="session")
 def opencode_artifacts_dir(request):
     """Session-scoped artifacts dir for OpenCode autopilot runs.
 
@@ -2608,6 +2985,24 @@ def claude_code_artifacts_dir(request):
     artifacts_dir.mkdir(parents=True, exist_ok=True)
     _register_artifacts_dir(request, "claude_code__suite", artifacts_dir)
     _register_artifacts_dir(request, "claude_code__runtime", artifacts_dir)
+
+    yield artifacts_dir
+
+    if os.environ.get("DX_AGENTIC_E2E_CLEANUP_ARTIFACTS"):
+        _cleanup_artifacts_dir(artifacts_dir)
+
+
+@pytest.fixture(scope="session")
+def codex_cli_artifacts_dir(request):
+    """Session-scoped artifacts dir for Codex CLI autopilot runs.
+
+    Path: ``dx-agentic-dev/e2e-tests/codex_cli/autopilot/<session_id>/``
+    """
+    session_id = time.strftime("%Y%m%d_%H%M%S") + f"_{uuid.uuid4().hex[:6]}"
+    artifacts_dir = AGENTIC_E2E_ARTIFACTS_BASE / "codex_cli" / "autopilot" / session_id
+    artifacts_dir.mkdir(parents=True, exist_ok=True)
+    _register_artifacts_dir(request, "codex_cli__suite", artifacts_dir)
+    _register_artifacts_dir(request, "codex_cli__runtime", artifacts_dir)
 
     yield artifacts_dir
 
@@ -2678,6 +3073,18 @@ def compiler_claude_code_artifacts_dir(request):
         _cleanup_artifacts_dir(artifacts_dir)
 
 
+@pytest.fixture(scope="session")
+def compiler_codex_cli_artifacts_dir(request):
+    """Path: dx-compiler/dx-agentic-dev/e2e-tests/codex_cli/autopilot/<session_id>/"""
+    session_id = time.strftime("%Y%m%d_%H%M%S") + f"_{uuid.uuid4().hex[:6]}"
+    artifacts_dir = COMPILER_E2E_ARTIFACTS_BASE / "codex_cli" / "autopilot" / session_id
+    artifacts_dir.mkdir(parents=True, exist_ok=True)
+    _register_artifacts_dir(request, "codex_cli__compiler", artifacts_dir)
+    yield artifacts_dir
+    if os.environ.get("DX_AGENTIC_E2E_CLEANUP_ARTIFACTS"):
+        _cleanup_artifacts_dir(artifacts_dir)
+
+
 # --- dx_app ----------------------------------------------------------------
 
 @pytest.fixture(scope="session")
@@ -2728,6 +3135,18 @@ def app_claude_code_artifacts_dir(request):
         _cleanup_artifacts_dir(artifacts_dir)
 
 
+@pytest.fixture(scope="session")
+def app_codex_cli_artifacts_dir(request):
+    """Path: dx-runtime/dx_app/dx-agentic-dev/e2e-tests/codex_cli/autopilot/<session_id>/"""
+    session_id = time.strftime("%Y%m%d_%H%M%S") + f"_{uuid.uuid4().hex[:6]}"
+    artifacts_dir = APP_E2E_ARTIFACTS_BASE / "codex_cli" / "autopilot" / session_id
+    artifacts_dir.mkdir(parents=True, exist_ok=True)
+    _register_artifacts_dir(request, "codex_cli__dx_app", artifacts_dir)
+    yield artifacts_dir
+    if os.environ.get("DX_AGENTIC_E2E_CLEANUP_ARTIFACTS"):
+        _cleanup_artifacts_dir(artifacts_dir)
+
+
 # --- dx_stream -------------------------------------------------------------
 
 @pytest.fixture(scope="session")
@@ -2773,6 +3192,18 @@ def stream_claude_code_artifacts_dir(request):
     artifacts_dir = STREAM_E2E_ARTIFACTS_BASE / "claude_code" / "autopilot" / session_id
     artifacts_dir.mkdir(parents=True, exist_ok=True)
     _register_artifacts_dir(request, "claude_code__dx_stream", artifacts_dir)
+    yield artifacts_dir
+    if os.environ.get("DX_AGENTIC_E2E_CLEANUP_ARTIFACTS"):
+        _cleanup_artifacts_dir(artifacts_dir)
+
+
+@pytest.fixture(scope="session")
+def stream_codex_cli_artifacts_dir(request):
+    """Path: dx-runtime/dx_stream/dx-agentic-dev/e2e-tests/codex_cli/autopilot/<session_id>/"""
+    session_id = time.strftime("%Y%m%d_%H%M%S") + f"_{uuid.uuid4().hex[:6]}"
+    artifacts_dir = STREAM_E2E_ARTIFACTS_BASE / "codex_cli" / "autopilot" / session_id
+    artifacts_dir.mkdir(parents=True, exist_ok=True)
+    _register_artifacts_dir(request, "codex_cli__dx_stream", artifacts_dir)
     yield artifacts_dir
     if os.environ.get("DX_AGENTIC_E2E_CLEANUP_ARTIFACTS"):
         _cleanup_artifacts_dir(artifacts_dir)
@@ -2835,6 +3266,21 @@ def stream_claude_code_cascaded_artifacts_dir(request):
     artifacts_dir = STREAM_E2E_ARTIFACTS_BASE / "claude_code" / "autopilot_cascaded" / session_id
     artifacts_dir.mkdir(parents=True, exist_ok=True)
     _register_artifacts_dir(request, "claude_code__dx_stream_cascaded", artifacts_dir)
+    yield artifacts_dir
+    if os.environ.get("DX_AGENTIC_E2E_CLEANUP_ARTIFACTS"):
+        _cleanup_artifacts_dir(artifacts_dir)
+
+
+@pytest.fixture(scope="session")
+def stream_codex_cascaded_artifacts_dir(request):
+    """Cascaded scenario artifacts dir for Codex CLI.
+
+    Path: dx-runtime/dx_stream/dx-agentic-dev/e2e-tests/codex_cli/autopilot_cascaded/<session_id>/
+    """
+    session_id = time.strftime("%Y%m%d_%H%M%S") + f"_{uuid.uuid4().hex[:6]}"
+    artifacts_dir = STREAM_E2E_ARTIFACTS_BASE / "codex_cli" / "autopilot_cascaded" / session_id
+    artifacts_dir.mkdir(parents=True, exist_ok=True)
+    _register_artifacts_dir(request, "codex_cli__dx_stream_cascaded", artifacts_dir)
     yield artifacts_dir
     if os.environ.get("DX_AGENTIC_E2E_CLEANUP_ARTIFACTS"):
         _cleanup_artifacts_dir(artifacts_dir)

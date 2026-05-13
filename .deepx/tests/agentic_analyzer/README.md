@@ -43,7 +43,7 @@ python3 insights.py --mode insights --report-dir reports/<TS>/ --cli claude
 # 산출물 8개 sample 의 end-user 실행 가능성 판정
 python3 insights.py --mode runnability --report-dir reports/<TS>/ --cli copilot --sample 8
 
-# 지원 CLI agents: claude / copilot / cursor / opencode
+# 지원 CLI agents: claude / codex / copilot / cursor / opencode
 # CLI 미설치 시 prompt 파일만 저장 → 수동 실행 가능
 ```
 
@@ -77,7 +77,7 @@ python3 insights.py --mode runnability --report-dir reports/<TS>/ --cli copilot 
 
 ### 3.2 집계 차원
 
-- **per tool** (claude-code / copilot-cli / cursor-cli / opencode-cli + 추후 codex-cli)
+- **per tool** (claude-code / copilot-cli / cursor-cli / opencode-cli / codex-cli)
 - **per round** (1-N — 라운드 추가 시 자동 확장)
 - **per scenario** (compiler / dx_app / dx_stream / dx_stream_cascaded / runtime / suite)
 - **per model** (config.yaml 의 model overrides 매핑 — Cursor "auto" 같은 비표준 케이스 식별)
@@ -85,10 +85,14 @@ python3 insights.py --mode runnability --report-dir reports/<TS>/ --cli copilot 
 ### 3.3 점수 계산식
 
 ```
-Compliance % = (통과 체크 수 / 전체 체크 수) × 100
-Quality %    = syntax_pct - 5 × placeholder_hits - 5 × direct_engine_use (페널티 cap 적용)
-Overall %    = 0.5 × Compliance + 0.4 × Quality + 5 × START + 5 × DONE
+Compliance %   = (통과 체크 수 / 전체 체크 수) × 100
+Quality %      = syntax_pct - 5 × placeholder_hits - 5 × direct_engine_use (페널티 cap 적용)
+Runnability %  = 0.4×verdict(PASS=100/PARTIAL=50/FAIL=0) + 0.2×README(1-5→0-100) + 0.2×Setup(1-5→0-100) + 0.15×Run(1-5→0-100) + 0.05×Verification(Y=100/N=0)
+Overall %      = 0.25·Compliance + 0.20·Quality + 0.10·Verdict + 0.25·ExecutionTrace + 0.15·Runnability + 2.5(START) + 2.5(DONE)
 ```
+
+> **Runnability 데이터가 없는 세션**: 나머지 4-factor를 비례 배분 (backward compatible).
+> **Verdict 가중치 10%**: 파일 존재만 확인하므로 가중치 낮음. Execution(25%)과 Runnability(15%)에 더 높은 비중.
 
 ## 4. 디렉토리 구조
 
@@ -105,6 +109,7 @@ analyzer/
 │   ├── quality.py           # 정적 코드 품질 (py_compile, JSON parse, bash -n, regex 안티패턴)
 │   ├── functional.py        # Verdict 추론 (PASS/PARTIAL/FAIL) + LOC 카운트
 │   ├── execution.py         # ExecutionTrace — session.log + compile_out.log 실행 흔적 분석
+│   ├── runnability_parser.py # Runnability report 파싱 → 세션별 정량 점수 추출
 │   ├── pytest_data.py       # pytest assertion 데이터 (있다면 json-report 파싱)
 │   ├── bias_check.py        # Cursor auto 모델 편향 점검 (도구간 메트릭 비교)
 │   ├── aggregate.py         # SessionEval + per-tool/round/scenario 집계 + stdev
@@ -115,7 +120,8 @@ analyzer/
     ├── per_session.csv
     ├── insights_prompt.md       # (insights mode) agent에 줄 프롬프트
     ├── insights.md              # (insights mode) agent 응답 (자동/수동)
-    └── runnability_report.md    # (runnability mode) sample 세션 end-user 실행 가능성 판정
+    ├── runnability_report.md    # (runnability mode) sample 세션 end-user 실행 가능성 판정
+    └── comprehensive_report.md  # analysis + insights + runnability 통합 보고서
 ```
 
 ## 5. 새로운 도구/모델 추가
