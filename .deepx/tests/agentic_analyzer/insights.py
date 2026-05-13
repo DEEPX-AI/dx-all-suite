@@ -520,8 +520,26 @@ def run_runnability(report_dir: Path, cli: str, output_dir: Path,
         sampled = sampled[:sample]
         mode_label = f"sample={sample}"
 
+    out_path = output_dir / "runnability_report.md"
+    started_at = datetime.now().isoformat(timespec='seconds')
+
+    def _write_report(results: List[str], done: int, total: int, final: bool) -> None:
+        """Write runnability_report.md with current progress. Called after every
+        session in exhaustive mode so an interrupted run still leaves usable
+        partial data on disk.
+        """
+        status = "complete" if final else f"in-progress ({done}/{total})"
+        header = (
+            f"# End-User Runnability Report\n"
+            f"> Generated: {started_at}  (status: {status})\n"
+            f"> Sessions evaluated: {done}/{total}  |  Mode: {mode_label}  |  CLI: `{cli}`\n\n"
+            f"---\n\n"
+        )
+        out_path.write_text(header + "\n\n---\n\n".join(results), encoding="utf-8")
+
     print(f"Evaluating runnability of {len(sampled)} sessions ({mode_label}, CLI: {cli})...")
     results: List[str] = []
+    total = len(sampled)
     for i, s in enumerate(sampled, 1):
         tool = s.get("tool")
         scenario = s.get("scenario")
@@ -542,22 +560,18 @@ def run_runnability(report_dir: Path, cli: str, output_dir: Path,
             session_label=label,
             README=readme, SETUP=setup, RUN=run_sh, SESSION_LOG=slog,
         )
-        print(f"  [{i}/{len(sampled)}] {label}")
+        print(f"  [{i}/{total}] {label}")
         ans = invoke_cli(cli, prompt, model=model, allow_paid=allow_paid,
                           timeout_sec=180)
         if ans is None:
             results.append(f"### {label}\n\n(CLI invocation failed/skipped)\n")
         else:
             results.append(ans.strip() + "\n")
+        # Incremental flush — protects multi-hour exhaustive runs against
+        # interruption (kill, timeout, machine reboot). Cheap (<1ms per call).
+        _write_report(results, i, total, final=False)
 
-    out_path = output_dir / "runnability_report.md"
-    header = (
-        f"# End-User Runnability Report\n"
-        f"> Generated: {datetime.now().isoformat(timespec='seconds')}\n"
-        f"> Sampled sessions: {len(sampled)}  |  CLI used: `{cli}`\n\n"
-        f"---\n\n"
-    )
-    out_path.write_text(header + "\n\n---\n\n".join(results), encoding="utf-8")
+    _write_report(results, len(results), total, final=True)
     print(f"✓ Wrote runnability report to: {out_path}")
     return 0
 
