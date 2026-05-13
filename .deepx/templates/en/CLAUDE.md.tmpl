@@ -81,13 +81,14 @@ target sub-project. NEVER write generated code directly into existing source dir
 (e.g., `src/`, `pipelines/`, `semseg_260323/`, or any directory containing user's
 existing code).
 
-**Session ID format**: `YYYYMMDD-HHMMSS_<agent>_<model>_<task>` — the timestamp MUST use the
+**Session ID format**: `YYYYMMDD-HHMMSS_<agent>_<coding_model>_<target_model>_<task>` — the timestamp MUST use the
 **system local timezone** (NOT UTC). Use `$(date +%Y%m%d-%H%M%S)` in Bash or
 `datetime.now().strftime('%Y%m%d-%H%M%S')` in Python. Do NOT use `date -u`,
 `datetime.utcnow()`, or `datetime.now(timezone.utc)`.
 - **`<agent>`**: the coding agent identifier — use `claude`, `codex`, `copilot`, `cursor`, or `opencode`.
+- **`<coding_model>`**: shortened coding model name — e.g., `sonnet46`, `opus46`, `gpt53codex`, `gpt55`.
 
-- **Correct**: `dx-runtime/dx_app/dx-agentic-dev/20260413-093000_claude_plantseg_inference/demo_dxnn_sync.py`
+- **Correct**: `dx-runtime/dx_app/dx-agentic-dev/20260413-093000_claude_opus46_plantseg_inference/demo_dxnn_sync.py`
 - **Wrong**: `dx-runtime/dx_app/semseg_260323/demo_dxnn_sync.py`
 
 The ONLY exception: when the user EXPLICITLY says "write to the source directory" or
@@ -129,8 +130,8 @@ Layout HARD GATE. You MUST read and apply it before writing any files.
 
 Do NOT use `_auto_` in the session ID. The `_auto_` prefix indicates the tool bypassed
 the cross-project routing workflow. A correct suite session produces TWO separate IDs:
-- `<ts>_<agent>_<model>_compile` in `dx-compiler/dx-agentic-dev/`
-- `<ts>_<agent>_<model>_inference` in `dx-runtime/dx_app/dx-agentic-dev/`
+- `<ts>_<agent>_<coding_model>_<target_model>_compile` in `dx-compiler/dx-agentic-dev/`
+- `<ts>_<agent>_<coding_model>_<target_model>_inference` in `dx-runtime/dx_app/dx-agentic-dev/`
 
 {{FRAGMENT:no-placeholder-code}}
 

@@ -179,14 +179,15 @@ python dx-runtime/.deepx/scripts/feedback_collector.py --framework-only
 또는 사용자의 기존 코드가 포함된 모든 디렉토리)에 생성된 코드를 직접 작성하지
 마세요.
 
-**세션 ID 형식**: `YYYYMMDD-HHMMSS_<agent>_<model>_<task>` — 타임스탬프는 반드시
+**세션 ID 형식**: `YYYYMMDD-HHMMSS_<agent>_<coding_model>_<target_model>_<task>` — 타임스탬프는 반드시
 **시스템 로컬 타임존**을 사용해야 합니다 (UTC가 아님). Bash에서는
 `$(date +%Y%m%d-%H%M%S)`, Python에서는
 `datetime.now().strftime('%Y%m%d-%H%M%S')`을 사용하세요. `date -u`,
 사용하지 마세요.
 - **`<agent>`**: 코딩 에이전트 식별자 — `claude`, `codex`, `copilot`, `cursor`, `opencode` 중 하나를 사용하세요.
+- **`<coding_model>`**: 코딩 모델 축약명 — 예: `sonnet46`, `opus46`, `gpt53codex`, `gpt55`.
 
-- **올바름**: `dx-runtime/dx_app/dx-agentic-dev/20260413-093000_claude_plantseg_inference/demo_dxnn_sync.py`
+- **올바름**: `dx-runtime/dx_app/dx-agentic-dev/20260413-093000_claude_opus46_plantseg_inference/demo_dxnn_sync.py`
 - **잘못됨**: `dx-runtime/dx_app/semseg_260323/demo_dxnn_sync.py`
 
 유일한 예외: 사용자가 명시적으로 "소스 디렉토리에 작성" 또는 "기존 파일을
@@ -228,8 +229,8 @@ compiler agent 문서 (`dx-compiler/`)의 R31 Session Layout HARD GATE를 먼저
 
 session ID에 `_auto_`를 사용하지 마세요. `_auto_` prefix는 cross-project routing
 workflow를 우회했다는 것을 나타냅니다. 올바른 suite session은 두 개의 별도 ID를 생성합니다:
-- `<ts>_<agent>_<model>_compile` in `dx-compiler/dx-agentic-dev/`
-- `<ts>_<agent>_<model>_inference` in `dx-runtime/dx_app/dx-agentic-dev/`
+- `<ts>_<agent>_<coding_model>_<target_model>_compile` in `dx-compiler/dx-agentic-dev/`
+- `<ts>_<agent>_<coding_model>_<target_model>_inference` in `dx-runtime/dx_app/dx-agentic-dev/`
 
 ## 플레이스홀더 코드 금지 (MANDATORY)
 

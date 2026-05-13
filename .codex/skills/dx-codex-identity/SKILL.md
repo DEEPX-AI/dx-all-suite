@@ -16,20 +16,26 @@ DEEPX Agentic Development framework.
 When creating session directories, use `codex` as your `<agent>` identifier:
 
 ```
-YYYYMMDD-HHMMSS_codex_<model>_<task>
+YYYYMMDD-HHMMSS_codex_<coding_model>_<target_model>_<task>
 ```
 
+- **`<coding_model>`**: your AI model name, shortened — e.g., `gpt53codex` for gpt-5.3-codex, `gpt55` for gpt-5.5
+- **`<target_model>`**: the inference model being compiled/deployed — e.g., `yolo26n`, `plantseg`
+
 **Examples:**
-- `20260513-100000_codex_yolo26n_compile`
-- `20260513-100000_codex_yolo26n_inference`
+- `20260513-100000_codex_gpt53codex_yolo26n_compile`
+- `20260513-100000_codex_gpt53codex_yolo26n_inference`
 
 **NEVER** use `copilot`, `cursor`, `claude`, or `opencode` as the agent identifier.
 You are Codex CLI — always use `codex`.
 
+**NEVER** confuse the coding model (gpt-5.3-codex) with the target model (yolo26n).
+The coding model is YOUR model. The target model is the user's inference model.
+
 ## Session ID Generation
 
 ```bash
-SESSION_ID="$(date +%Y%m%d-%H%M%S)_codex_${MODEL_NAME}_${TASK}"
+SESSION_ID="$(date +%Y%m%d-%H%M%S)_codex_gpt53codex_${TARGET_MODEL}_${TASK}"
 ```
 
 ## Knowledge Base
