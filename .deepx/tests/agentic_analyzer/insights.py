@@ -48,20 +48,24 @@ from typing import List, Optional
 # ---------------------------------------------------------------------------
 
 CLI_CONFIG = {
+    # claude:  -p <prompt> (positional prompt accepted; --dangerously-skip-permissions auto-approves)
     "claude": {
         "binary": "claude",
-        "args": ["-p", "--dangerously-skip-permissions"],
-        "stdin_prompt": True,            # accepts prompt on stdin
+        "args": ["--dangerously-skip-permissions", "-p"],
+        "stdin_prompt": False,
+        "prompt_via_arg": True,   # append prompt as positional
     },
+    # copilot:  -p "<prompt>" (the `-p` flag takes a value — must come as separate token)
     "copilot": {
         "binary": "copilot",
-        "args": ["-p", "--yolo", "--no-ask-user", "-s"],
+        "args": ["--yolo", "--no-ask-user", "-s", "-p"],
         "stdin_prompt": False,
         "prompt_via_arg": True,
     },
+    # cursor agent:  -p "<prompt>" (similar)
     "cursor": {
         "binary": "agent",
-        "args": ["-p", "--force"],
+        "args": ["--force", "-p"],
         "stdin_prompt": False,
         "prompt_via_arg": True,
     },
