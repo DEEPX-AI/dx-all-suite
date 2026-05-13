@@ -44,7 +44,7 @@ bash .deepx/tools/scripts/run-e2e-improvement-loop.sh &
 | `--scenario KEY` | `suite` | 전체 도구 테스트에 적용할 pytest `-k` 필터 |
 | `--resume` | 꺼짐 | 가장 최근 실행에서 이어서 재개 |
 | `--run-dir PATH` | 자동 | 타임스탬프 자동 생성 대신 특정 실행 디렉터리 지정 |
-| `--orchestrator TYPE` | `claude` | 리포트+개선 단계에 사용할 오케스트레이터: `claude`, `copilot`, `cursor`, 또는 `opencode` |
+| `--orchestrator TYPE` | `claude` | 리포트+개선 단계에 사용할 오케스트레이터: `claude`, `codex`, `copilot`, `cursor`, 또는 `opencode` |
 | `--claude-bin PATH` | `claude` | Claude CLI 바이너리 경로 |
 | `--copilot-bin PATH` | `copilot` | Copilot CLI 바이너리 경로 |
 | `--cursor-bin PATH` | `agent` | Cursor CLI 바이너리 경로 |
@@ -151,7 +151,7 @@ Claude는 각 권고 사항에 다음 태그 중 하나를 붙입니다:
 
 | 변수 | 설명 |
 |------|------|
-| `ORCHESTRATOR` | 오케스트레이터 지정: `claude`, `copilot`, `cursor`, 또는 `opencode` (`--orchestrator`와 동일) |
+| `ORCHESTRATOR` | 오케스트레이터 지정: `claude`, `codex`, `copilot`, `cursor`, 또는 `opencode` (`--orchestrator`와 동일) |
 | `CLAUDE_BIN` | Claude 바이너리 경로 지정 (`--claude-bin`과 동일) |
 | `COPILOT_BIN` | Copilot 바이너리 경로 지정 (`--copilot-bin`과 동일) |
 | `CURSOR_BIN` | Cursor CLI 바이너리 경로 지정 (`--cursor-bin`과 동일) |

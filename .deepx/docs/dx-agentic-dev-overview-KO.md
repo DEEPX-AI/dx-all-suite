@@ -46,7 +46,7 @@ DEEPX Agentic Development (dx-agentic-dev) 기능은 **`.deepx/`를 canonical so
 모든 AI 생성 코드는 `dx-agentic-dev/<session_id>/` 아래에 작성됩니다 (기본). 사용자가 명시적으로 `src/`에 쓰라고 지시한 경우만 예외입니다.
 
 - 세션 ID 포맷: `YYYYMMDD-HHMMSS_<agent>_<model>_<task>` (시스템 로컬 타임존, UTC 금지)
-- `<agent>`: `claude` / `copilot` / `cursor` / `opencode`
+- `<agent>`: `claude` / `codex` / `copilot` / `cursor` / `opencode`
 - Cross-project suite 작업은 **2개 세션 디렉토리** 생성 필수 (R41 규칙):
   - `dx-compiler/dx-agentic-dev/<id>_compile/`
   - `dx-runtime/dx_app/dx-agentic-dev/<id>_inference/`

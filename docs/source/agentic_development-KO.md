@@ -429,7 +429,7 @@ dx-all-suite 메타 가이드는 모든 서브 프로젝트 시나리오로 라�
 | **기본 (격리)** | `dx-agentic-dev/<session_id>/` | 사용자가 달리 지정하지 않는 한 항상 |
 | **프로덕션** | `src/` | 사용자가 명시적으로 요청한 경우에만 |
 
-세션 ID 형식: `YYYYMMDD-HHMMSS_<agent>_<model>_<task>` — `<agent>`는 `claude`, `copilot`, `cursor`, `opencode` 중 하나.
+세션 ID 형식: `YYYYMMDD-HHMMSS_<agent>_<model>_<task>` — `<agent>`는 `claude`, `codex`, `copilot`, `cursor`, `opencode` 중 하나.
 
 각 세션 디렉토리에는 다음이 포함됩니다:
 - `README.md` — 세션 메타데이터, 생성된 파일 목록, 실행 지침

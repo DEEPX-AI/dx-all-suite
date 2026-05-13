@@ -46,7 +46,7 @@ Generate DEEPX SDK-based AI applications from natural-language prompts. The AI a
 All AI-generated code is written under `dx-agentic-dev/<session_id>/` (default). The only exception is when the user explicitly instructs writing to `src/`.
 
 - Session ID format: `YYYYMMDD-HHMMSS_<agent>_<model>_<task>` (system local timezone, UTC prohibited)
-- `<agent>`: `claude` / `copilot` / `cursor` / `opencode`
+- `<agent>`: `claude` / `codex` / `copilot` / `cursor` / `opencode`
 - Cross-project suite tasks require creation of **2 session directories** (R41 rule):
   - `dx-compiler/dx-agentic-dev/<id>_compile/`
   - `dx-runtime/dx_app/dx-agentic-dev/<id>_inference/`
