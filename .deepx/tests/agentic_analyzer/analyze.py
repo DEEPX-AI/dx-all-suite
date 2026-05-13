@@ -245,7 +245,26 @@ def main(argv: Optional[List[str]] = None) -> int:
         "--insights-sample",
         type=int,
         default=8,
-        help="(with --insights-runnability) number of sample sessions to evaluate",
+        help="(with --insights-runnability) number of sample sessions to evaluate. "
+             "Use 0 (or --insights-all) for EXHAUSTIVE.",
+    )
+    parser.add_argument(
+        "--insights-all",
+        action="store_true",
+        help="(with --insights-runnability) evaluate every session, not just a sample.",
+    )
+    parser.add_argument(
+        "--insights-model",
+        default=None,
+        help="(forwarded to insights.py) override the chosen CLI's default model "
+             "(e.g. 'gpt-4.1', 'claude-sonnet-4-6'). Defaults to the CLI's "
+             "free_default_model unless --insights-allow-paid is set.",
+    )
+    parser.add_argument(
+        "--insights-allow-paid",
+        action="store_true",
+        help="(forwarded to insights.py) permit paid/billed model selections "
+             "in the auto chain. Default: only free combinations.",
     )
 
     args = parser.parse_args(argv)
@@ -361,8 +380,11 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     # ---------------- Optional: auto-invoke insights.py ----------------
     if args.insights != "off":
-        _run_insights_chain(out_dir, args.insights, args.insights_runnability,
-                            args.insights_sample)
+        effective_sample = 0 if args.insights_all else args.insights_sample
+        _run_insights_chain(
+            out_dir, args.insights, args.insights_runnability, effective_sample,
+            model=args.insights_model, allow_paid=args.insights_allow_paid,
+        )
 
     # ---------------- Post-insights: merge runnability into scores ----------------
     runnability_path = out_dir / "runnability_report.md"
@@ -462,11 +484,14 @@ def _generate_comprehensive_report(report_dir: Path) -> None:
 
 
 def _run_insights_chain(report_dir: Path, mode: str, also_runnability: bool,
-                         sample: int) -> None:
+                         sample: int, *, model: Optional[str] = None,
+                         allow_paid: bool = False) -> None:
     """Try to invoke insights.py automatically after analysis.
 
-    `mode == 'auto'`: try copilot first, then claude, then cursor, then opencode.
-    Otherwise: use the named CLI.
+    `mode == 'auto'`: select first available CLI from insights.AUTO_CHAIN_FREE
+    (or AUTO_CHAIN_PAID when allow_paid). Otherwise: use the named CLI.
+
+    Sample mode: pass sample=0 to evaluate every session (exhaustive).
 
     Always saves the prompt file (insights_prompt.md) regardless of CLI availability,
     so the user can re-run manually.
@@ -478,47 +503,59 @@ def _run_insights_chain(report_dir: Path, mode: str, also_runnability: bool,
     if not insights_script.is_file():
         return
 
-    candidates = []
+    # Import chain definitions from insights.py to keep a single source of truth.
+    sys.path.insert(0, str(HERE))
+    try:
+        from insights import (  # type: ignore
+            AUTO_CHAIN_FREE, AUTO_CHAIN_PAID, CLI_CONFIG,
+        )
+    finally:
+        sys.path.pop(0)
+
     if mode == "auto":
-        # Preferred order — copilot first per user guidance
-        candidates = ["copilot", "claude", "cursor", "opencode", "codex"]
+        candidates = list(AUTO_CHAIN_PAID) if allow_paid else list(AUTO_CHAIN_FREE)
     else:
         candidates = [mode]
 
-    # Map cli name → expected binary name
-    binaries = {
-        "copilot": "copilot", "claude": "claude",
-        "cursor": "agent", "opencode": "opencode",
-        "codex": "codex",
-    }
     chosen = None
     for c in candidates:
-        if shutil.which(binaries.get(c, c)):
+        binary = CLI_CONFIG.get(c, {}).get("binary", c)
+        if shutil.which(binary):
             chosen = c
             break
 
+    chain_label = "paid" if allow_paid else "free"
     if not chosen:
         # No CLI available — still save the prompt so user can run later
         print()
-        print(f"⚠ No agentic CLI available ({candidates}). Saving prompt only.")
+        print(f"⚠ No agentic CLI available in {chain_label} chain ({candidates}). "
+              f"Saving prompt only.")
         try:
             subprocess.run(
                 ["python3", str(insights_script), "--mode", "insights",
-                 "--report-dir", str(report_dir), "--cli", "copilot"],
+                 "--report-dir", str(report_dir), "--cli", "auto"]
+                + (["--allow-paid"] if allow_paid else []),
                 check=False, capture_output=True, timeout=30,
             )
         except Exception:
             pass
         print(f"  → run manually: python3 insights.py --mode insights "
-              f"--report-dir {report_dir} --cli <claude|copilot|cursor|opencode>")
+              f"--report-dir {report_dir} --cli <copilot|claude|cursor|opencode|codex>"
+              f"{' --allow-paid' if allow_paid else ''}")
         return
 
+    common_args = ["--report-dir", str(report_dir), "--cli", chosen]
+    if model:
+        common_args += ["--model", model]
+    if allow_paid:
+        common_args += ["--allow-paid"]
+
     print()
-    print(f"→ Invoking insights.py --mode insights --cli {chosen} (auto chain)...")
+    print(f"→ Invoking insights.py --mode insights --cli {chosen} "
+          f"(chain={chain_label}, model={model or 'default'})...")
     try:
         r = subprocess.run(
-            ["python3", str(insights_script), "--mode", "insights",
-             "--report-dir", str(report_dir), "--cli", chosen],
+            ["python3", str(insights_script), "--mode", "insights"] + common_args,
             check=False, timeout=1200,
         )
         if r.returncode == 0:
@@ -529,19 +566,23 @@ def _run_insights_chain(report_dir: Path, mode: str, also_runnability: bool,
         print(f"⚠ insights.py failed: {e}")
 
     if also_runnability:
+        sample_label = "EXHAUSTIVE" if sample <= 0 else f"sample={sample}"
         print()
-        print(f"→ Invoking insights.py --mode runnability --cli {chosen} (sample={sample})...")
+        print(f"→ Invoking insights.py --mode runnability --cli {chosen} "
+              f"({sample_label})...")
+        # Exhaustive evaluation can take hours — extend timeout proportionally
+        runn_timeout = 14400 if sample <= 0 else 1800  # 4h vs 30min
         try:
             r = subprocess.run(
-                ["python3", str(insights_script), "--mode", "runnability",
-                 "--report-dir", str(report_dir), "--cli", chosen,
-                 "--sample", str(sample)],
-                check=False, timeout=1800,
+                ["python3", str(insights_script), "--mode", "runnability"]
+                + common_args
+                + (["--all"] if sample <= 0 else ["--sample", str(sample)]),
+                check=False, timeout=runn_timeout,
             )
             if r.returncode == 0:
                 print(f"✓ runnability_report.md generated")
         except subprocess.TimeoutExpired:
-            print(f"⚠ runnability check timed out")
+            print(f"⚠ runnability check timed out (>{runn_timeout}s)")
         except Exception as e:
             print(f"⚠ runnability check failed: {e}")
 

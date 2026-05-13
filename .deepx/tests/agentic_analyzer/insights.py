@@ -48,6 +48,30 @@ from typing import List, Optional
 # CLI configuration per agent tool
 # ---------------------------------------------------------------------------
 
+#
+# Per-CLI config keys:
+#   binary              -- the executable name to invoke
+#   args                -- fixed args after `[--model X]` and before the prompt
+#   stdin_prompt        -- pass prompt via stdin (legacy; most CLIs use prompt_via_arg)
+#   prompt_via_arg      -- append the prompt as the final positional arg
+#   model_flag          -- the CLI's model-selection flag (None if not supported)
+#   free_default_model  -- the recommended **no-cost** model for this CLI
+#                          (None means this CLI has no free-tier model — must use
+#                           --allow-paid or override with --model)
+#   paid_default_model  -- the recommended highest-quality model when paid usage
+#                          is acceptable
+#
+# Free vs paid policy (per user account state at the time of writing):
+#   - Claude Code: team-plan seat → free WITHIN weekly limit. Treated as PAID
+#     in auto-chain because the limit is precious and easily exhausted.
+#   - Copilot Enterprise: gpt-4.1, gpt-5-mini, gpt-5.4-mini are free; Claude
+#     models + larger GPT (5/5.2/5.3/5.4/5.5/codex variants) consume premium
+#     requests.
+#   - Cursor subscription: `auto` (composer-2-fast) is free; pinned named
+#     models consume Cursor credits.
+#   - OpenCode / Codex: route through Copilot provider → all sonnet/gpt-5
+#     model selections are paid.
+#
 CLI_CONFIG = {
     # claude:  -p <prompt> (positional prompt accepted; --dangerously-skip-permissions auto-approves)
     "claude": {
@@ -55,6 +79,9 @@ CLI_CONFIG = {
         "args": ["--dangerously-skip-permissions", "-p"],
         "stdin_prompt": False,
         "prompt_via_arg": True,   # append prompt as positional
+        "model_flag": "--model",
+        "free_default_model": None,           # team-plan limit is precious — treat as paid
+        "paid_default_model": "claude-sonnet-4-6",
     },
     # copilot:  -p "<prompt>" (the `-p` flag takes a value — must come as separate token)
     "copilot": {
@@ -62,6 +89,9 @@ CLI_CONFIG = {
         "args": ["--yolo", "--no-ask-user", "-s", "-p"],
         "stdin_prompt": False,
         "prompt_via_arg": True,
+        "model_flag": "--model",
+        "free_default_model": "gpt-4.1",      # Enterprise free
+        "paid_default_model": "claude-sonnet-4.6",
     },
     # cursor agent:  -p "<prompt>" (similar)
     "cursor": {
@@ -69,20 +99,39 @@ CLI_CONFIG = {
         "args": ["--force", "-p"],
         "stdin_prompt": False,
         "prompt_via_arg": True,
+        "model_flag": "--model",
+        "free_default_model": "auto",         # subscription composer-2-fast, no extra charge
+        "paid_default_model": "sonnet-4.6",
     },
     "opencode": {
         "binary": "opencode",
         "args": ["run"],
         "stdin_prompt": False,
         "prompt_via_arg": True,
+        "model_flag": "--model",
+        # opencode routes through copilot provider → can use free copilot models
+        "free_default_model": "github-copilot/gpt-4.1",
+        "paid_default_model": "github-copilot/claude-sonnet-4.6",
     },
     "codex": {
         "binary": "codex",
         "args": ["exec", "--json", "-s", "danger-full-access"],
         "stdin_prompt": False,
         "prompt_via_arg": True,
+        "model_flag": "--model",
+        # codex CLI authenticates via `gh auth token` → uses copilot provider models
+        "free_default_model": "gpt-4.1",
+        "paid_default_model": "gpt-5.3-codex",
     },
 }
+
+
+# Auto-chain priority (first installed CLI wins).
+# Free chain: only CLIs that can use a no-cost model.
+# Paid chain: all CLIs.
+# Order: copilot first per user policy (most reliable + best free model coverage).
+AUTO_CHAIN_FREE = ["copilot", "cursor", "opencode", "codex"]
+AUTO_CHAIN_PAID = ["copilot", "claude", "cursor", "opencode", "codex"]
 
 
 # ---------------------------------------------------------------------------
@@ -240,8 +289,47 @@ Produce the markdown analysis block now.
 # CLI invocation
 # ---------------------------------------------------------------------------
 
-def invoke_cli(cli: str, prompt: str, timeout_sec: int = 300) -> Optional[str]:
-    """Invoke an agent CLI with a prompt. Return the stdout text, or None on failure."""
+def resolve_effective_model(cli: str, model: Optional[str],
+                             allow_paid: bool) -> Optional[str]:
+    """Pick the model to use for this CLI call.
+
+    Precedence: explicit `model` arg > paid_default (if allow_paid) > free_default.
+    Returns None when the CLI has no free option AND allow_paid is False —
+    callers must skip the invocation in that case.
+    """
+    if model:
+        return model
+    conf = CLI_CONFIG.get(cli, {})
+    if allow_paid:
+        return conf.get("paid_default_model") or conf.get("free_default_model")
+    return conf.get("free_default_model")
+
+
+def resolve_cli(name: str, allow_paid: bool) -> Optional[str]:
+    """Resolve `--cli auto` to the first installed CLI in the appropriate chain.
+    Returns the resolved CLI name (one of CLI_CONFIG keys), or None when nothing
+    is available. Non-auto values pass through if the binary is installed.
+    """
+    if name and name != "auto":
+        conf = CLI_CONFIG.get(name)
+        if conf and shutil.which(conf["binary"]):
+            return name
+        return None
+    chain = AUTO_CHAIN_PAID if allow_paid else AUTO_CHAIN_FREE
+    for c in chain:
+        if shutil.which(CLI_CONFIG[c]["binary"]):
+            return c
+    return None
+
+
+def invoke_cli(cli: str, prompt: str, *, model: Optional[str] = None,
+               allow_paid: bool = False, timeout_sec: int = 300) -> Optional[str]:
+    """Invoke an agent CLI with a prompt. Return the stdout text, or None on failure.
+
+    When `model` is None, the effective model is derived from CLI_CONFIG using
+    `allow_paid` — see `resolve_effective_model`. If the CLI has no free model
+    and `allow_paid` is False, the call is skipped (None returned).
+    """
     conf = CLI_CONFIG.get(cli)
     if not conf:
         print(f"ERROR: unknown CLI '{cli}'", file=sys.stderr)
@@ -251,7 +339,17 @@ def invoke_cli(cli: str, prompt: str, timeout_sec: int = 300) -> Optional[str]:
               file=sys.stderr)
         return None
 
-    cmd = [conf["binary"], *conf["args"]]
+    effective_model = resolve_effective_model(cli, model, allow_paid)
+    if effective_model is None:
+        print(f"WARN: CLI '{cli}' has no free-tier model. Pass --allow-paid or "
+              f"--model <name> to override.", file=sys.stderr)
+        return None
+
+    cmd = [conf["binary"]]
+    model_flag = conf.get("model_flag")
+    if model_flag:
+        cmd.extend([model_flag, effective_model])
+    cmd.extend(conf["args"])
     try:
         if conf.get("prompt_via_arg"):
             cmd.append(prompt)
@@ -261,15 +359,17 @@ def invoke_cli(cli: str, prompt: str, timeout_sec: int = 300) -> Optional[str]:
             r = subprocess.run(cmd, input=prompt, capture_output=True, text=True,
                                timeout=timeout_sec)
         if r.returncode != 0:
-            print(f"WARN: CLI '{cli}' returned exit {r.returncode}: {r.stderr[:300]}",
-                  file=sys.stderr)
+            print(f"WARN: CLI '{cli}' (model={effective_model}) returned exit "
+                  f"{r.returncode}: {r.stderr[:300]}", file=sys.stderr)
             return None
         return r.stdout
     except subprocess.TimeoutExpired:
-        print(f"WARN: CLI '{cli}' timed out after {timeout_sec}s", file=sys.stderr)
+        print(f"WARN: CLI '{cli}' (model={effective_model}) timed out after "
+              f"{timeout_sec}s", file=sys.stderr)
         return None
     except Exception as e:
-        print(f"WARN: CLI '{cli}' invocation failed: {e}", file=sys.stderr)
+        print(f"WARN: CLI '{cli}' (model={effective_model}) invocation failed: {e}",
+              file=sys.stderr)
         return None
 
 
@@ -277,7 +377,8 @@ def invoke_cli(cli: str, prompt: str, timeout_sec: int = 300) -> Optional[str]:
 # Mode: insights
 # ---------------------------------------------------------------------------
 
-def run_insights(report_dir: Path, cli: str, output_dir: Path) -> int:
+def run_insights(report_dir: Path, cli: str, output_dir: Path,
+                  *, model: Optional[str] = None, allow_paid: bool = False) -> int:
     """Generate insights.md from analysis.md + analysis.json using a CLI agent."""
     analysis_md = report_dir / "analysis.md"
     if not analysis_md.is_file():
@@ -296,7 +397,8 @@ def run_insights(report_dir: Path, cli: str, output_dir: Path) -> int:
     print(f"Saved prompt to: {prompt_path}")
 
     print(f"Invoking CLI '{cli}'... (this can take several minutes)")
-    result = invoke_cli(cli, prompt, timeout_sec=900)
+    result = invoke_cli(cli, prompt, model=model, allow_paid=allow_paid,
+                         timeout_sec=900)
     if result is None:
         print(f"⚠ CLI invocation failed/skipped. The prompt is saved at "
               f"{prompt_path} — run it manually with your preferred agent.")
@@ -383,8 +485,17 @@ def _read_safely(path: Path, limit: int = 10_000) -> str:
 
 
 def run_runnability(report_dir: Path, cli: str, output_dir: Path,
-                     sample: int = 8) -> int:
-    """Judge end-user runnability of a sample of sessions using a CLI agent."""
+                     sample: int = 8, *, model: Optional[str] = None,
+                     allow_paid: bool = False) -> int:
+    """Judge end-user runnability of sessions using a CLI agent.
+
+    Sample selection modes:
+      - sample > 0: pick one diverse session per (tool, scenario), shuffle,
+                    take first `sample`. (Same as before.)
+      - sample <= 0 (or `--all`): EXHAUSTIVE — evaluate every session.
+                                  Expensive: 396 sessions ≈ 30min~5h depending
+                                  on CLI throughput.
+    """
     json_path = report_dir / "analysis.json"
     if not json_path.is_file():
         print(f"ERROR: {json_path} not found", file=sys.stderr)
@@ -393,19 +504,23 @@ def run_runnability(report_dir: Path, cli: str, output_dir: Path,
     data = json.loads(json_path.read_text(encoding="utf-8"))
     sessions = data.get("sessions", [])
 
-    # Sample selection: prefer diverse (per tool × scenario)
-    # Group by (tool, scenario), pick 1 from each up to sample limit
-    by_key = {}
-    for s in sessions:
-        key = (s.get("tool"), s.get("scenario"))
-        by_key.setdefault(key, []).append(s)
-    sampled = []
-    for key, lst in by_key.items():
-        sampled.append(lst[0])  # take first
-    random.shuffle(sampled)
-    sampled = sampled[:sample]
+    if sample <= 0:
+        # Exhaustive: keep all sessions in their original (tool, round, scenario) order
+        sampled = list(sessions)
+        mode_label = "EXHAUSTIVE"
+    else:
+        # Sample selection: prefer diverse (per tool × scenario)
+        # Group by (tool, scenario), pick 1 from each up to sample limit
+        by_key = {}
+        for s in sessions:
+            key = (s.get("tool"), s.get("scenario"))
+            by_key.setdefault(key, []).append(s)
+        sampled = [lst[0] for lst in by_key.values()]
+        random.shuffle(sampled)
+        sampled = sampled[:sample]
+        mode_label = f"sample={sample}"
 
-    print(f"Evaluating runnability of {len(sampled)} sample sessions (CLI: {cli})...")
+    print(f"Evaluating runnability of {len(sampled)} sessions ({mode_label}, CLI: {cli})...")
     results: List[str] = []
     for i, s in enumerate(sampled, 1):
         tool = s.get("tool")
@@ -428,7 +543,8 @@ def run_runnability(report_dir: Path, cli: str, output_dir: Path,
             README=readme, SETUP=setup, RUN=run_sh, SESSION_LOG=slog,
         )
         print(f"  [{i}/{len(sampled)}] {label}")
-        ans = invoke_cli(cli, prompt, timeout_sec=180)
+        ans = invoke_cli(cli, prompt, model=model, allow_paid=allow_paid,
+                          timeout_sec=180)
         if ans is None:
             results.append(f"### {label}\n\n(CLI invocation failed/skipped)\n")
         else:
@@ -450,18 +566,43 @@ def run_runnability(report_dir: Path, cli: str, output_dir: Path,
 # CLI parser
 # ---------------------------------------------------------------------------
 
+def _env_bool(name: str, default: bool = False) -> bool:
+    v = os.environ.get(name, "")
+    return v.lower() in ("1", "true", "yes", "on") if v else default
+
+
 def main(argv: Optional[List[str]] = None) -> int:
+    env_cli = os.environ.get("DX_INSIGHTS_CLI") or "auto"
+    env_model = os.environ.get("DX_INSIGHTS_MODEL") or None
+    env_allow_paid = _env_bool("DX_INSIGHTS_ALLOW_PAID")
+
     p = argparse.ArgumentParser(description="Agentic insight generator (post-analysis)")
     p.add_argument("--mode", choices=["insights", "runnability"], required=True,
                    help="What to analyze")
     p.add_argument("--report-dir", required=True,
                    help="Path to a previously-generated report dir (with analysis.md + analysis.json)")
-    p.add_argument("--cli", choices=list(CLI_CONFIG.keys()), default="claude",
-                   help="Which CLI agent to call (default: claude)")
+    p.add_argument("--cli", choices=list(CLI_CONFIG.keys()) + ["auto"],
+                   default=env_cli,
+                   help=("Which CLI agent to call. 'auto' picks the first installed "
+                         "CLI from the free chain (or paid chain if --allow-paid). "
+                         f"Default: {env_cli} (env: DX_INSIGHTS_CLI)"))
+    p.add_argument("--model", default=env_model,
+                   help=("Override the CLI's default model (e.g. 'gpt-4.1', "
+                         "'claude-sonnet-4-6', 'auto'). When omitted, the CLI's "
+                         "free_default_model is used unless --allow-paid is set. "
+                         "Env: DX_INSIGHTS_MODEL"))
+    p.add_argument("--allow-paid", action="store_true", default=env_allow_paid,
+                   help=("Permit paid/billed model selections (Claude Code seat, "
+                         "claude-sonnet-4-6 via copilot, gpt-5/codex, etc.). "
+                         "Default: only free models. Env: DX_INSIGHTS_ALLOW_PAID=1"))
     p.add_argument("--output-dir", default=None,
                    help="Where to write the output (default: same as --report-dir)")
     p.add_argument("--sample", type=int, default=8,
-                   help="(runnability mode) number of sessions to sample (default: 8)")
+                   help=("(runnability mode) number of sessions to sample (default: 8). "
+                         "Use 0 (or --all) for EXHAUSTIVE — evaluate every session "
+                         "(expensive)."))
+    p.add_argument("--all", action="store_true",
+                   help="(runnability mode) alias for --sample 0 (exhaustive)")
 
     args = p.parse_args(argv)
     report_dir = Path(args.report_dir).resolve()
@@ -470,10 +611,23 @@ def main(argv: Optional[List[str]] = None) -> int:
         return 2
     out_dir = Path(args.output_dir).resolve() if args.output_dir else report_dir
 
+    # Resolve CLI (handle 'auto' here so failures emit a clear message)
+    chosen_cli = resolve_cli(args.cli, args.allow_paid)
+    if not chosen_cli:
+        chain = AUTO_CHAIN_PAID if args.allow_paid else AUTO_CHAIN_FREE
+        print(f"ERROR: no usable CLI found. Tried: {chain}. "
+              f"Install one (or pass --allow-paid to widen the chain), or use "
+              f"--cli <name> with a specific binary in PATH.", file=sys.stderr)
+        return 3
+
+    effective_sample = 0 if args.all else args.sample
+
     if args.mode == "insights":
-        return run_insights(report_dir, args.cli, out_dir)
+        return run_insights(report_dir, chosen_cli, out_dir,
+                            model=args.model, allow_paid=args.allow_paid)
     elif args.mode == "runnability":
-        return run_runnability(report_dir, args.cli, out_dir, args.sample)
+        return run_runnability(report_dir, chosen_cli, out_dir, effective_sample,
+                                model=args.model, allow_paid=args.allow_paid)
     return 0
 
 
