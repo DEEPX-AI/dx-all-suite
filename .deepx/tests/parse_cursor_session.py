@@ -1,22 +1,17 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: Apache-2.0
 """
-Parse Cursor CLI session logs (stream-json NDJSON) into HTML or Markdown.
+Parse Cursor session data into HTML.
 
-Cursor CLI ``--output-format stream-json`` produces NDJSON with event types:
-
-- ``system/init`` — session metadata (cwd, model, session_id)
-- ``user`` — user message (starts a new turn)
-- ``thinking/delta`` + ``thinking/completed`` — model thinking (streamed)
-- ``tool_call/started`` + ``tool_call/completed`` — tool invocations
-- ``assistant`` — assistant response text
-- ``result/success`` — session end marker
+Supports two input sources:
+- Cursor CLI ``--output-format stream-json`` NDJSON
+- Cursor persistent agent transcripts under ``~/.cursor/projects/.../agent-transcripts/``
 
 Usage::
 
     # As a library
-    from parse_cursor_session import parse_cursor_jsonl, render_cursor_html
-    session = parse_cursor_jsonl("path/to/stream.jsonl")
+    from parse_cursor_session import parse_cursor_session, render_cursor_html
+    session = parse_cursor_session(Path("path/to/stream.jsonl"))
     html = render_html(session)
 
     # Convenience: parse + write HTML in one call
@@ -52,12 +47,13 @@ from session_common import (
 
 @dataclass
 class SessionMetadata:
-    """Session metadata from Cursor system/init event."""
+    """Session metadata from Cursor session sources."""
 
     session_id: str = ""
     cwd: str = ""
     summary: str = ""
     session_dir: Path = field(default_factory=Path)
+    source_format: str = "stream"
 
 
 @dataclass
@@ -85,6 +81,9 @@ class ParsedSession:
     agent_label: str = "Cursor"
 
 
+CURSOR_TRANSCRIPTS_BASE = Path.home() / ".cursor" / "projects"
+
+
 # ---------------------------------------------------------------------------
 # Sentinel helpers (delegate to session_common)
 # ---------------------------------------------------------------------------
@@ -101,11 +100,54 @@ def has_start_sentinel(parsed: ParsedSession) -> bool:
 
 
 # ---------------------------------------------------------------------------
+# Parser helpers
+# ---------------------------------------------------------------------------
+
+
+def _parse_iso_datetime(value: Optional[str]) -> Optional[datetime]:
+    if not value:
+        return None
+    try:
+        return datetime.fromisoformat(value.replace("Z", "+00:00")).astimezone(timezone.utc)
+    except (TypeError, ValueError):
+        return None
+
+
+def _encode_cursor_project_path(workdir: Path) -> str:
+    workdir = Path(workdir).expanduser().resolve()
+    return str(workdir).lstrip("/").replace("/", "-")
+
+
+def _find_cursor_transcript(workdir: Path, after_utc: str, before_utc: str) -> Optional[Path]:
+    project_dir = CURSOR_TRANSCRIPTS_BASE / _encode_cursor_project_path(Path(workdir)) / "agent-transcripts"
+    if not project_dir.exists():
+        return None
+
+    after_dt = _parse_iso_datetime(after_utc)
+    before_dt = _parse_iso_datetime(before_utc)
+    candidates: List[Path] = []
+    for candidate in project_dir.glob("*/*.jsonl"):
+        if "subagents" in candidate.parts or not candidate.is_file():
+            continue
+        mtime = datetime.fromtimestamp(candidate.stat().st_mtime, tz=timezone.utc)
+        if after_dt and mtime < after_dt:
+            continue
+        if before_dt and mtime > before_dt:
+            continue
+        candidates.append(candidate)
+
+    if not candidates:
+        return None
+    candidates.sort(key=lambda path: path.stat().st_mtime, reverse=True)
+    return candidates[0]
+
+
+# ---------------------------------------------------------------------------
 # Parser
 # ---------------------------------------------------------------------------
 
 
-def parse_cursor_jsonl(
+def parse_cursor_stream_json(
     jsonl_path: Path,
     *,
     session_id_override: Optional[str] = None,
@@ -128,6 +170,7 @@ def parse_cursor_jsonl(
 
     meta = SessionMetadata()
     meta.session_dir = jsonl_path.parent
+    meta.source_format = "stream"
 
     turns: List[ConversationTurn] = []
     current_turn: Optional[ConversationTurn] = None
@@ -253,6 +296,124 @@ def parse_cursor_jsonl(
         agent_label="Cursor",
     )
     return session
+
+
+def parse_cursor_jsonl(
+    jsonl_path: Path,
+    *,
+    session_id_override: Optional[str] = None,
+    scenario_key: Optional[str] = None,
+) -> ParsedSession:
+    """Backward-compatible alias for stream-json parsing."""
+    return parse_cursor_stream_json(
+        jsonl_path,
+        session_id_override=session_id_override,
+        scenario_key=scenario_key,
+    )
+
+
+def parse_cursor_transcript(transcript_path: Path) -> ParsedSession:
+    """Parse a Cursor persistent agent transcript JSONL file."""
+    transcript_path = Path(transcript_path).expanduser()
+    lines = transcript_path.read_text(encoding="utf-8", errors="replace").splitlines()
+
+    meta = SessionMetadata(
+        session_id=transcript_path.stem,
+        session_dir=transcript_path.parent,
+        source_format="transcript",
+    )
+    turns: List[ConversationTurn] = []
+
+    for raw_line in lines:
+        raw_line = raw_line.strip()
+        if not raw_line:
+            continue
+        try:
+            entry = json.loads(raw_line)
+        except json.JSONDecodeError:
+            continue
+
+        role = str(entry.get("role", ""))
+        message = entry.get("message", {}) if isinstance(entry.get("message"), dict) else {}
+        content = message.get("content", []) if isinstance(message.get("content"), list) else []
+        turn = ConversationTurn(turn_index=len(turns))
+
+        text_parts: List[str] = []
+        for part in content:
+            if not isinstance(part, dict):
+                continue
+            ptype = str(part.get("type", ""))
+            if ptype == "text":
+                text = part.get("text", "")
+                if text:
+                    text_parts.append(str(text))
+                continue
+            if ptype == "tool_use":
+                tool_name = str(part.get("name", "unknown"))
+                tool_input = part.get("input", {})
+                turn.tool_calls.append(ToolCall(
+                    tool_call_id=str(part.get("id", f"tool-{len(turn.tool_calls)}")),
+                    tool_name=tool_name,
+                    arguments=json.dumps(tool_input, indent=2, ensure_ascii=False) if isinstance(tool_input, (dict, list)) else str(tool_input),
+                    success=True,
+                    result_content="[transcript - no result recorded]",
+                ))
+                continue
+            if ptype == "thinking":
+                thinking_text = part.get("thinking") or part.get("text") or ""
+                turn.tool_calls.append(ToolCall(
+                    tool_call_id=str(part.get("id", f"thinking-{len(turn.tool_calls)}")),
+                    tool_name="🧠 thinking",
+                    arguments="",
+                    success=True,
+                    result_content=str(thinking_text),
+                ))
+
+        combined_text = "\n".join(text_parts).strip()
+        if role == "user":
+            turn.user_content = combined_text
+        elif role == "assistant":
+            turn.assistant_content = combined_text
+        else:
+            continue
+
+        if turn.user_content or turn.assistant_content or turn.tool_calls:
+            turns.append(turn)
+
+    return ParsedSession(
+        metadata=meta,
+        turns=turns,
+        raw_event_count=len(lines),
+        agent_label="Cursor",
+    )
+
+
+def parse_cursor_session(
+    jsonl_path: Path,
+    *,
+    session_id_override: Optional[str] = None,
+    scenario_key: Optional[str] = None,
+    workdir: Optional[Path] = None,
+    after_utc: Optional[str] = None,
+    before_utc: Optional[str] = None,
+) -> ParsedSession:
+    """Parse Cursor session data, preferring persistent transcripts over stream JSONL."""
+    transcript_path: Optional[Path] = None
+    if workdir is not None and (after_utc or before_utc):
+        transcript_path = _find_cursor_transcript(Path(workdir), after_utc or "", before_utc or "")
+    if transcript_path is not None:
+        session = parse_cursor_transcript(transcript_path)
+        session.metadata.summary = scenario_key or session.metadata.summary
+        if session_id_override:
+            session.metadata.session_id = session_id_override
+        if workdir is not None:
+            session.metadata.cwd = str(Path(workdir))
+        return session
+    return parse_cursor_stream_json(
+        jsonl_path,
+        session_id_override=session_id_override,
+        scenario_key=scenario_key,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -392,12 +553,8 @@ def _format_cursor_success(tool: str, success: Dict[str, Any]) -> str:
 # ---------------------------------------------------------------------------
 
 
-def render_html(session: ParsedSession) -> str:
-    """Render a ParsedSession as a self-contained HTML page.
-
-    Returns:
-        Complete HTML document string.
-    """
+def _build_html(session: ParsedSession) -> str:
+    """Render a ParsedSession as a self-contained HTML page."""
     meta = session.metadata
     if meta.summary:
         title = html_escape(f"{session.agent_label} Session — {meta.summary}")
@@ -408,22 +565,22 @@ def render_html(session: ParsedSession) -> str:
     entry_idx = 0
 
     for turn in session.turns:
-        # User message
-        entry_idx += 1
-        user_text = html_escape(turn.user_content)
         time_label = format_timestamp(turn.timestamp) if turn.timestamp else ""
-        entries.append(
-            f'<div class="entry user" id="entry-{entry_idx}">'
-            f'<div class="entry-hdr">'
-            f'<span class="icon">&#x1F464;</span>'
-            f'<span class="label">User</span>'
-            f'<span class="time">{time_label}</span>'
-            f'</div>'
-            f'<div class="entry-body">{user_text}</div>'
-            f'</div>'
-        )
 
-        # Tool calls
+        if turn.user_content:
+            entry_idx += 1
+            user_text = html_escape(turn.user_content)
+            entries.append(
+                f'<div class="entry user" id="entry-{entry_idx}">'
+                f'<div class="entry-hdr">'
+                f'<span class="icon">&#x1F464;</span>'
+                f'<span class="label">User</span>'
+                f'<span class="time">{time_label}</span>'
+                f'</div>'
+                f'<div class="entry-body">{user_text}</div>'
+                f'</div>'
+            )
+
         for tc in turn.tool_calls:
             entry_idx += 1
             status_cls = "tool-ok" if tc.success else "tool-fail" if tc.success is False else "tool-ok"
@@ -437,7 +594,6 @@ def render_html(session: ParsedSession) -> str:
                 truncated = truncate(tc.result_content, 1000)
                 result_html = f'<div class="tool-result"><pre>{html_escape(truncated)}</pre></div>'
 
-            # Thinking blocks get special styling
             if tc.tool_name == "🧠 thinking":
                 status_cls = "thinking collapsed"
                 status_icon = "&#x1F4AD;"
@@ -455,7 +611,6 @@ def render_html(session: ParsedSession) -> str:
                 f'</div>'
             )
 
-        # Assistant response
         if turn.assistant_content:
             entry_idx += 1
             assistant_html = md_to_html_simple(turn.assistant_content)
@@ -470,12 +625,12 @@ def render_html(session: ParsedSession) -> str:
                 f'</div>'
             )
 
-    # Summary
     total_tools = sum(len(t.tool_calls) for t in session.turns)
     summary_rows = [
         f"<tr><td>Turns</td><td>{len(session.turns)}</td></tr>",
         f"<tr><td>Tool calls</td><td>{total_tools}</td></tr>",
         f"<tr><td>Events (raw)</td><td>{session.raw_event_count}</td></tr>",
+        f"<tr><td>Source format</td><td><code>{html_escape(meta.source_format)}</code></td></tr>",
     ]
     if session.selected_model:
         summary_rows.append(f"<tr><td>Model</td><td><code>{html_escape(session.selected_model)}</code></td></tr>")
@@ -503,6 +658,7 @@ def render_html(session: ParsedSession) -> str:
 <table class="meta-table">
 <tr><td>Session ID</td><td><code>{html_escape(meta.session_id)}</code></td></tr>
 <tr><td>Working Directory</td><td><code>{html_escape(meta.cwd)}</code></td></tr>
+<tr><td>Source format</td><td><code>{html_escape(meta.source_format)}</code></td></tr>
 {f"<tr><td>Model</td><td><code>{html_escape(session.selected_model)}</code></td></tr>" if session.selected_model else ""}
 <tr><td>Turns / Events</td><td>{len(session.turns)} turns, {session.raw_event_count} events</td></tr>
 </table>
@@ -518,20 +674,31 @@ Generated by <code>parse_cursor_session.py</code> at {now_utc}
 </html>"""
 
 
-def render_cursor_html(jsonl_path: Path, output_path: Path, **kwargs) -> Optional[str]:
-    """Convenience: parse a Cursor JSONL and render to HTML in one call.
+def render_html(session: ParsedSession) -> str:
+    return _build_html(session)
 
-    Args:
-        jsonl_path: Path to ``.jsonl`` file.
-        output_path: Path to write the HTML output.
-        **kwargs: Forwarded to :func:`parse_cursor_jsonl`.
 
-    Returns:
-        The HTML string, or None on failure.
-    """
+def render_cursor_html(
+    jsonl_path: Path,
+    output_path: Path,
+    *,
+    session_id_override: Optional[str] = None,
+    scenario_key: Optional[str] = None,
+    workdir: Optional[Path] = None,
+    after_utc: Optional[str] = None,
+    before_utc: Optional[str] = None,
+) -> Optional[str]:
+    """Convenience: parse a Cursor session source and render to HTML."""
     try:
-        session = parse_cursor_jsonl(jsonl_path, **kwargs)
-        html = render_html(session)
+        session = parse_cursor_session(
+            jsonl_path,
+            session_id_override=session_id_override,
+            scenario_key=scenario_key,
+            workdir=workdir,
+            after_utc=after_utc,
+            before_utc=before_utc,
+        )
+        html = _build_html(session)
         output_path.parent.mkdir(parents=True, exist_ok=True)
         output_path.write_text(html, encoding="utf-8")
         return html
