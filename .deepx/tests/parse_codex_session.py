@@ -16,6 +16,7 @@ an HTML transcript using shared helpers from ``session_common.py``.
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -34,6 +35,10 @@ from session_common import (
 )
 
 
+_EXIT_CODE_RE = re.compile(r"(?:Process )?exited with code\s+(\d+)", re.IGNORECASE)
+_WALL_TIME_RE = re.compile(r"Wall time:\s*([0-9.]+)\s*seconds", re.IGNORECASE)
+
+
 @dataclass
 class SessionMetadata:
     """Session metadata extracted from Codex JSONL."""
@@ -42,6 +47,11 @@ class SessionMetadata:
     cwd: str = ""
     summary: str = ""
     jsonl_path: Path = field(default_factory=Path)
+    repository: str = ""
+    branch: str = ""
+    git_sha: str = ""
+    model_provider: str = ""
+    cli_version: str = ""
 
 
 @dataclass
@@ -93,6 +103,46 @@ def parse_codex_jsonl(
     jsonl_path = Path(jsonl_path)
     lines = jsonl_path.read_text(encoding="utf-8", errors="replace").splitlines()
 
+    events: List[Dict[str, Any]] = []
+    for raw_line in lines:
+        raw_line = raw_line.strip()
+        if not raw_line:
+            continue
+        try:
+            events.append(json.loads(raw_line))
+        except json.JSONDecodeError:
+            continue
+
+    if events and str(events[0].get("type", "")) == "session_meta":
+        return _parse_persistent_format(
+            events,
+            jsonl_path,
+            raw_event_count=len(lines),
+            session_id_override=session_id_override,
+            scenario_key=scenario_key,
+            title=title,
+        )
+
+    return _parse_exec_format(
+        events,
+        jsonl_path,
+        raw_event_count=len(lines),
+        session_id_override=session_id_override,
+        scenario_key=scenario_key,
+        title=title,
+    )
+
+
+def _parse_exec_format(
+    events: List[Dict[str, Any]],
+    jsonl_path: Path,
+    *,
+    raw_event_count: int,
+    session_id_override: Optional[str] = None,
+    scenario_key: Optional[str] = None,
+    title: Optional[str] = None,
+) -> ParsedSession:
+    """Parse the original ``codex exec --json`` event stream."""
     meta = SessionMetadata(summary=scenario_key or title or "")
     meta.jsonl_path = jsonl_path
 
@@ -106,15 +156,7 @@ def parse_codex_jsonl(
     total_commands = 0
     failed_commands = 0
 
-    for raw_line in lines:
-        raw_line = raw_line.strip()
-        if not raw_line:
-            continue
-        try:
-            event = json.loads(raw_line)
-        except json.JSONDecodeError:
-            continue
-
+    for event in events:
         etype = str(event.get("type", ""))
         event_ts = _extract_timestamp(event)
         if event_ts and not start_time:
@@ -237,7 +279,275 @@ def parse_codex_jsonl(
         start_time=start_time,
         end_time=end_time,
         turns=turns,
-        raw_event_count=len(lines),
+        raw_event_count=raw_event_count,
+        agent_label="Codex",
+        token_usage=token_usage,
+        files_changed=files_changed,
+        total_commands=total_commands,
+        failed_commands=failed_commands,
+    )
+
+
+def _parse_persistent_format(
+    events: List[Dict[str, Any]],
+    jsonl_path: Path,
+    *,
+    raw_event_count: int,
+    session_id_override: Optional[str] = None,
+    scenario_key: Optional[str] = None,
+    title: Optional[str] = None,
+) -> ParsedSession:
+    """Parse persistent Codex JSONL sessions stored under ``~/.codex/sessions``."""
+    meta = SessionMetadata(summary=scenario_key or title or "")
+    meta.jsonl_path = jsonl_path
+
+    turns: List[ConversationTurn] = []
+    current_turn: Optional[ConversationTurn] = None
+    pending_tool_calls: Dict[str, ToolCall] = {}
+    pending_tool_names: Dict[str, str] = {}
+    pending_tool_commands: Dict[str, bool] = {}
+    selected_model = ""
+    start_time = ""
+    end_time = ""
+    token_usage: Dict[str, int] = {}
+    files_changed: List[Dict[str, str]] = []
+    total_commands = 0
+    failed_commands = 0
+    last_user_text = ""
+    deferred_outputs: Dict[str, tuple] = {}  # call_id → (payload, ts, name) for out-of-order outputs
+
+    def flush_current_turn() -> None:
+        nonlocal current_turn
+        if current_turn is None:
+            return
+        if current_turn.user_content or current_turn.assistant_content or current_turn.tool_calls:
+            current_turn.turn_index = len(turns)
+            turns.append(current_turn)
+        current_turn = None
+
+    def ensure_current_turn(timestamp: str = "") -> ConversationTurn:
+        nonlocal current_turn
+        if current_turn is None:
+            current_turn = ConversationTurn(turn_index=len(turns), timestamp=timestamp)
+        elif timestamp and not current_turn.timestamp:
+            current_turn.timestamp = timestamp
+        return current_turn
+
+    def append_user_text(text: str, timestamp: str = "") -> None:
+        nonlocal current_turn, last_user_text
+        text = text.strip()
+        if not text:
+            return
+        if _normalized_text(text) == _normalized_text(last_user_text):
+            return
+        flush_current_turn()
+        current_turn = ConversationTurn(turn_index=len(turns), user_content=text, timestamp=timestamp)
+        last_user_text = text
+
+    def append_assistant_text(text: str, timestamp: str = "") -> None:
+        nonlocal current_turn
+        text = text.strip()
+        if not text:
+            return
+        if current_turn is None:
+            current_turn = ConversationTurn(turn_index=len(turns), timestamp=timestamp)
+        elif current_turn.assistant_content or current_turn.tool_calls:
+            flush_current_turn()
+            current_turn = ConversationTurn(turn_index=len(turns), timestamp=timestamp)
+        elif timestamp and not current_turn.timestamp:
+            current_turn.timestamp = timestamp
+        current_turn.assistant_content = text
+
+    def append_tool_call(tool_call: ToolCall, timestamp: str = "") -> None:
+        turn = ensure_current_turn(timestamp)
+        turn.tool_calls.append(tool_call)
+
+    for event in events:
+        etype = str(event.get("type", ""))
+        payload = event.get("payload", {}) or {}
+        event_ts = _extract_timestamp(event)
+        if event_ts and not start_time:
+            start_time = event_ts
+        if event_ts:
+            end_time = event_ts
+
+        if etype == "session_meta":
+            meta.session_id = (
+                session_id_override
+                or payload.get("id", "")
+                or meta.session_id
+            )
+            meta.cwd = payload.get("cwd", "") or meta.cwd
+            meta.model_provider = payload.get("model_provider", "") or meta.model_provider
+            meta.cli_version = payload.get("cli_version", "") or meta.cli_version
+            git_info = payload.get("git", {}) or {}
+            meta.repository = (
+                git_info.get("repository")
+                or git_info.get("repository_url")
+                or meta.repository
+            )
+            meta.branch = (
+                git_info.get("branch")
+                or git_info.get("branch_name")
+                or meta.branch
+            )
+            meta.git_sha = (
+                git_info.get("commit_hash")
+                or git_info.get("sha")
+                or git_info.get("commit")
+                or meta.git_sha
+            )
+            start_time = payload.get("timestamp", "") or start_time
+            continue
+
+        if etype == "turn_context":
+            meta.cwd = payload.get("cwd", "") or meta.cwd
+            selected_model = (
+                payload.get("model", "")
+                or _dig(payload, "collaboration_mode", "settings", "model")
+                or selected_model
+            )
+            git_info = payload.get("git", {}) or {}
+            meta.repository = (
+                git_info.get("repository")
+                or git_info.get("repository_url")
+                or meta.repository
+            )
+            meta.branch = (
+                git_info.get("branch")
+                or git_info.get("branch_name")
+                or meta.branch
+            )
+            meta.git_sha = (
+                git_info.get("commit_hash")
+                or git_info.get("sha")
+                or git_info.get("commit")
+                or meta.git_sha
+            )
+            continue
+
+        if etype == "event_msg":
+            payload_type = str(payload.get("type", ""))
+            if payload_type == "agent_message":
+                append_assistant_text(_stringify_content(payload.get("message")), event_ts)
+                continue
+            if payload_type == "user_message":
+                append_user_text(_stringify_content(payload.get("message")), event_ts)
+                continue
+            if payload_type == "task_complete":
+                end_time = event_ts or end_time
+                continue
+            if payload_type == "token_count":
+                for source in (payload.get("info"), payload.get("rate_limits")):
+                    if isinstance(source, dict):
+                        for k, v in source.items():
+                            if isinstance(v, (int, float)):
+                                token_usage[k] = token_usage.get(k, 0) + int(v)
+                continue
+            continue
+
+        if etype != "response_item":
+            continue
+
+        payload_type = str(payload.get("type", ""))
+        if payload_type == "reasoning":
+            continue
+
+        if payload_type == "message":
+            role = str(payload.get("role", ""))
+            text = _extract_message_text(payload.get("content"))
+            if role == "assistant":
+                append_assistant_text(text, event_ts)
+            elif role == "user" and text and not _should_skip_persistent_user_message(text):
+                append_user_text(text, event_ts)
+            continue
+
+        if payload_type in {"function_call", "custom_tool_call"}:
+            tool_call = _extract_persistent_tool_call(payload)
+            call_id = tool_call.tool_call_id or str(payload.get("call_id", ""))
+            if call_id and call_id in deferred_outputs:
+                # Merge with previously-buffered output (out-of-order case)
+                out_payload, out_ts, _ = deferred_outputs.pop(call_id)
+                raw_output = out_payload.get("output", "")
+                output_text, output_meta = _extract_persistent_output(raw_output)
+                tool_call.result_content = output_text
+                tool_call.success = _infer_tool_success(output_text, output_meta)
+                tool_call.duration_ms = _infer_tool_duration_ms(output_text, output_meta)
+                append_tool_call(tool_call, out_ts or event_ts)
+                if _is_command_tool_call(payload):
+                    total_commands += 1
+                    if tool_call.success is False:
+                        failed_commands += 1
+                files_changed.extend(_extract_files_changed(tool_call.result_content))
+            elif call_id:
+                pending_tool_calls[call_id] = tool_call
+                pending_tool_names[call_id] = str(payload.get("name", tool_call.tool_name))
+                pending_tool_commands[call_id] = _is_command_tool_call(payload)
+            else:
+                append_tool_call(tool_call, event_ts)
+                if _is_command_tool_call(payload):
+                    total_commands += 1
+                    if tool_call.success is False:
+                        failed_commands += 1
+            continue
+
+        if payload_type in {"function_call_output", "custom_tool_call_output"}:
+            call_id = str(payload.get("call_id", ""))
+            tool_call = pending_tool_calls.pop(call_id, None)
+            original_name = pending_tool_names.pop(call_id, "")
+            is_command = pending_tool_commands.pop(call_id, False)
+            if tool_call is None:
+                # Output arrived before its function_call (rare race).
+                # Buffer it; if the matching call arrives later we merge.
+                deferred_outputs[call_id] = (payload, event_ts, original_name)
+                continue
+            raw_output = payload.get("output", "")
+            output_text, output_meta = _extract_persistent_output(raw_output)
+            tool_call.result_content = output_text
+            tool_call.success = _infer_tool_success(output_text, output_meta)
+            tool_call.duration_ms = _infer_tool_duration_ms(output_text, output_meta)
+            if not tool_call.tool_name:
+                tool_call.tool_name = original_name or "tool"
+            append_tool_call(tool_call, event_ts)
+            if is_command:
+                total_commands += 1
+                if tool_call.success is False:
+                    failed_commands += 1
+            files_changed.extend(_extract_files_changed(tool_call.result_content))
+            continue
+
+    for call_id, tool_call in pending_tool_calls.items():
+        append_tool_call(tool_call, "")
+        if pending_tool_commands.get(call_id):
+            total_commands += 1
+            if tool_call.success is False:
+                failed_commands += 1
+
+    # Flush any deferred outputs that never got a matching function_call
+    for call_id, (out_payload, out_ts, out_name) in deferred_outputs.items():
+        raw_output = out_payload.get("output", "")
+        output_text, output_meta = _extract_persistent_output(raw_output)
+        orphan = ToolCall(
+            tool_call_id=call_id,
+            tool_name=out_name or str(out_payload.get("name", "tool")),
+            result_content=output_text,
+            success=_infer_tool_success(output_text, output_meta),
+            duration_ms=_infer_tool_duration_ms(output_text, output_meta),
+        )
+        append_tool_call(orphan, out_ts)
+
+    flush_current_turn()
+
+    if session_id_override:
+        meta.session_id = session_id_override
+
+    return ParsedSession(
+        metadata=meta,
+        selected_model=selected_model,
+        start_time=start_time,
+        end_time=end_time,
+        turns=turns,
+        raw_event_count=raw_event_count,
         agent_label="Codex",
         token_usage=token_usage,
         files_changed=files_changed,
@@ -316,6 +626,14 @@ def render_html(session: ParsedSession, *, title: Optional[str] = None) -> str:
         summary_rows.append(
             f"<tr><td>Model</td><td><code>{html_escape(session.selected_model)}</code></td></tr>"
         )
+    if meta.model_provider:
+        summary_rows.append(
+            f"<tr><td>Provider</td><td><code>{html_escape(meta.model_provider)}</code></td></tr>"
+        )
+    if meta.cli_version:
+        summary_rows.append(
+            f"<tr><td>CLI Version</td><td><code>{html_escape(meta.cli_version)}</code></td></tr>"
+        )
     if session.files_changed:
         fc_list = ", ".join(f"{fc.get('kind', '?')}: {fc.get('path', '?')}" for fc in session.files_changed[:20])
         if len(session.files_changed) > 20:
@@ -343,6 +661,7 @@ def render_html(session: ParsedSession, *, title: Optional[str] = None) -> str:
         + "</table></div>"
     )
 
+    repo_display = _display_repository(meta.repository)
     now_utc = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
     return f"""<!DOCTYPE html>
 <html lang=\"en\">
@@ -358,6 +677,10 @@ def render_html(session: ParsedSession, *, title: Optional[str] = None) -> str:
 <table class=\"meta-table\">
 <tr><td>Session ID</td><td><code>{html_escape(meta.session_id)}</code></td></tr>
 <tr><td>Working Directory</td><td><code>{html_escape(meta.cwd)}</code></td></tr>
+{f'<tr><td>Repository</td><td><code>{html_escape(repo_display)}</code></td></tr>' if repo_display else ''}
+{f'<tr><td>Branch</td><td><code>{html_escape(meta.branch)}</code></td></tr>' if meta.branch else ''}
+{f'<tr><td>Started</td><td>{html_escape(format_timestamp(session.start_time))}</td></tr>' if session.start_time else ''}
+{f'<tr><td>Ended</td><td>{html_escape(format_timestamp(session.end_time))}</td></tr>' if session.end_time else ''}
 {f'<tr><td>Model</td><td><code>{html_escape(session.selected_model)}</code></td></tr>' if session.selected_model else ''}
 <tr><td>Turns / Events</td><td>{len(session.turns)} turns, {session.raw_event_count} events</td></tr>
 </table>
@@ -503,6 +826,155 @@ def _extract_tool_call(item: Dict[str, Any]) -> Optional[ToolCall]:
         success=success,
         result_content=result_content,
     )
+
+
+def _extract_persistent_tool_call(payload: Dict[str, Any]) -> ToolCall:
+    """Build a ToolCall shell from a persistent-format tool invocation."""
+    tool_name = str(payload.get("name", "") or payload.get("type", "") or "tool")
+    arguments_obj = payload.get("arguments", payload.get("input", ""))
+    arguments_text = _stringify_content(arguments_obj)
+    command = ""
+    if payload.get("type") == "function_call":
+        command = _extract_command_from_arguments(arguments_obj)
+    label = truncate(command or tool_name, 140)
+    if payload.get("type") == "custom_tool_call":
+        label = tool_name
+    return ToolCall(
+        tool_call_id=str(payload.get("call_id", "") or f"tool-{tool_name}"),
+        tool_name=label,
+        arguments=command or arguments_text,
+        success=None,
+        result_content="",
+    )
+
+
+def _extract_persistent_output(raw_output: Any) -> tuple[str, Dict[str, Any]]:
+    """Extract displayable text and metadata from persistent tool output payloads."""
+    output_text = _stringify_content(raw_output)
+    output_meta: Dict[str, Any] = {}
+    if isinstance(raw_output, str):
+        try:
+            parsed = json.loads(raw_output)
+        except json.JSONDecodeError:
+            parsed = None
+        if isinstance(parsed, dict):
+            output_meta = parsed.get("metadata", {}) or {}
+            output_text = _stringify_content(parsed.get("output", raw_output))
+    elif isinstance(raw_output, dict):
+        output_meta = raw_output.get("metadata", {}) or {}
+        output_text = _stringify_content(raw_output.get("output", raw_output))
+    return output_text, output_meta
+
+
+def _extract_message_text(content: Any) -> str:
+    """Extract text from response_item message content arrays."""
+    return _stringify_content(content).strip()
+
+
+def _should_skip_persistent_user_message(text: str) -> bool:
+    """Ignore injected system/developer blobs serialized as user messages."""
+    normalized = _normalized_text(text)
+    skip_markers = (
+        "ag\u0065nts.md instructions for",
+        "<instructions>",
+        "<permissions instructions>",
+        "<skills_instructions>",
+        "filesystem sandboxing defines",
+    )
+    return any(marker in normalized for marker in skip_markers)
+
+
+def _extract_command_from_arguments(arguments: Any) -> str:
+    """Extract a shell command string from tool-call arguments when possible."""
+    parsed: Any = arguments
+    if isinstance(arguments, str):
+        try:
+            parsed = json.loads(arguments)
+        except json.JSONDecodeError:
+            return arguments
+    if isinstance(parsed, dict):
+        for key in ("cmd", "command"):
+            value = parsed.get(key)
+            if isinstance(value, str) and value:
+                return value
+    return _stringify_content(arguments)
+
+
+def _is_command_tool_call(payload: Dict[str, Any]) -> bool:
+    """Heuristic: treat exec-like calls as command executions."""
+    name = str(payload.get("name", "") or "")
+    if name in {"exec_command", "run_command", "bash", "shell"}:
+        return True
+    if payload.get("type") == "function_call":
+        parsed = _extract_command_from_arguments(payload.get("arguments", ""))
+        return bool(parsed)
+    return False
+
+
+def _infer_tool_success(output_text: str, output_meta: Dict[str, Any]) -> Optional[bool]:
+    """Infer success from exec output text or embedded metadata."""
+    exit_code = output_meta.get("exit_code")
+    if isinstance(exit_code, int):
+        return exit_code == 0
+    match = _EXIT_CODE_RE.search(output_text)
+    if match:
+        return int(match.group(1)) == 0
+    lowered = output_text.lower()
+    if lowered.startswith("error:") or "traceback" in lowered:
+        return False
+    if output_text:
+        return True
+    return None
+
+
+def _infer_tool_duration_ms(output_text: str, output_meta: Dict[str, Any]) -> Optional[float]:
+    """Infer duration in milliseconds from exec output text or metadata."""
+    duration_seconds = output_meta.get("duration_seconds")
+    if isinstance(duration_seconds, (int, float)):
+        return float(duration_seconds) * 1000.0
+    match = _WALL_TIME_RE.search(output_text)
+    if match:
+        try:
+            return float(match.group(1)) * 1000.0
+        except ValueError:
+            return None
+    return None
+
+
+def _extract_files_changed(output_text: str) -> List[Dict[str, str]]:
+    """Best-effort extraction of edited files from apply_patch output."""
+    files: List[Dict[str, str]] = []
+    capture = False
+    for line in output_text.splitlines():
+        if "Updated the following files:" in line:
+            capture = True
+            continue
+        if not capture:
+            continue
+        stripped = line.strip()
+        if not stripped:
+            break
+        if len(stripped) > 2 and stripped[1] == " ":
+            kind = {"M": "update", "A": "create", "D": "delete"}.get(stripped[0], "update")
+            files.append({"path": stripped[2:].strip(), "kind": kind})
+        else:
+            break
+    return files
+
+
+def _display_repository(repository: str) -> str:
+    """Normalize repository URLs for compact HTML display."""
+    repository = repository.strip()
+    if repository.startswith("https://github.com/"):
+        repository = repository[len("https://github.com/"):]
+    if repository.endswith(".git"):
+        repository = repository[:-4]
+    return repository
+
+
+def _normalized_text(text: str) -> str:
+    """Normalize whitespace for duplicate detection."""
+    return " ".join(text.split()).strip().lower()
 
 
 def _stringify_content(value: Any) -> str:
