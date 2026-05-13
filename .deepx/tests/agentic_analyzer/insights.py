@@ -20,9 +20,10 @@ Usage:
 
 Supported CLI agents:
     claude    — `claude -p --dangerously-skip-permissions`
-    copilot   — `copilot -p --yolo --no-ask-user -s`
+    copilot   — `copilot -p --yolo --no-ask-user`
     cursor    — `agent -p --force`
     opencode  — `opencode run --format text`
+    codex     — `codex exec --json -s danger-full-access`
 
 If the CLI is not installed or fails, falls back to writing a prompt-only template
 (insights_prompt.md) that the user can run manually.
@@ -55,7 +56,7 @@ CLI_CONFIG = {
     },
     "copilot": {
         "binary": "copilot",
-        "args": ["-p", "--yolo", "--no-ask-user", "-s"],
+        "args": ["-p", "--yolo", "--no-ask-user"],
         "stdin_prompt": False,
         "prompt_via_arg": True,
     },
@@ -68,6 +69,12 @@ CLI_CONFIG = {
     "opencode": {
         "binary": "opencode",
         "args": ["run"],
+        "stdin_prompt": False,
+        "prompt_via_arg": True,
+    },
+    "codex": {
+        "binary": "codex",
+        "args": ["exec", "--json", "-s", "danger-full-access"],
         "stdin_prompt": False,
         "prompt_via_arg": True,
     },
