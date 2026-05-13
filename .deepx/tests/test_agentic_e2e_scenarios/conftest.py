@@ -2378,6 +2378,24 @@ def _parse_codex_jsonl(stdout: str) -> tuple:
     return thread_id, "\n".join(text_parts)
 
 
+def _find_codex_persistent_session(thread_id: str) -> Optional[Path]:
+    """Find the persistent Codex session JSONL matching a thread ID.
+
+    Codex CLI stores detailed session data at:
+      ~/.codex/sessions/YYYY/MM/DD/rollout-*-<thread_id>.jsonl
+
+    Returns the path if found, None otherwise.
+    """
+    if not thread_id:
+        return None
+    codex_home = Path.home() / ".codex" / "sessions"
+    if not codex_home.is_dir():
+        return None
+    for jsonl_file in codex_home.rglob(f"*{thread_id}.jsonl"):
+        return jsonl_file
+    return None
+
+
 # ---------------------------------------------------------------------------
 # CodexRunnerAutopilot
 # ---------------------------------------------------------------------------
@@ -2524,10 +2542,19 @@ class CodexRunnerAutopilot:
             except Exception:
                 pass
 
+            persistent_jsonl = _find_codex_persistent_session(thread_id)
+            persistent_log = None
+            if persistent_jsonl:
+                persistent_log = log_dir / f"{scenario_key}-codex-persistent.jsonl"
+                try:
+                    shutil.copy2(str(persistent_jsonl), str(persistent_log))
+                except Exception:
+                    persistent_log = None
+
             html_path = log_dir / f"{scenario_key}-codex-session.html"
             try:
                 render_codex_html(
-                    session_log,
+                    persistent_log or session_log,
                     html_path,
                     session_id_override=thread_id or None,
                     scenario_key=scenario_key,
@@ -2568,6 +2595,13 @@ class CodexRunnerAutopilot:
                     dst = odir / "session.html"
                     if not dst.exists() and html_path.exists():
                         shutil.copy2(str(html_path), str(dst))
+                except Exception:
+                    pass
+                try:
+                    if persistent_log and persistent_log.exists():
+                        dst = odir / "session-persistent.jsonl"
+                        if not dst.exists():
+                            shutil.copy2(str(persistent_log), str(dst))
                 except Exception:
                     pass
 
@@ -2613,10 +2647,19 @@ class CodexRunnerAutopilot:
             except Exception:
                 pass
 
+            persistent_jsonl = _find_codex_persistent_session(thread_id)
+            persistent_log = None
+            if persistent_jsonl:
+                persistent_log = log_dir / f"{scenario_key}-codex-persistent.jsonl"
+                try:
+                    shutil.copy2(str(persistent_jsonl), str(persistent_log))
+                except Exception:
+                    persistent_log = None
+
             html_path = log_dir / f"{scenario_key}-codex-session.html"
             try:
                 render_codex_html(
-                    session_log,
+                    persistent_log or session_log,
                     html_path,
                     session_id_override=thread_id or None,
                     scenario_key=scenario_key,
@@ -2650,6 +2693,13 @@ class CodexRunnerAutopilot:
                     dst = odir / "session.html"
                     if not dst.exists() and html_path.exists():
                         shutil.copy2(str(html_path), str(dst))
+                except Exception:
+                    pass
+                try:
+                    if persistent_log and persistent_log.exists():
+                        dst = odir / "session-persistent.jsonl"
+                        if not dst.exists():
+                            shutil.copy2(str(persistent_log), str(dst))
                 except Exception:
                     pass
                 try:
