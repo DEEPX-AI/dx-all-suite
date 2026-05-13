@@ -57,7 +57,7 @@ from parse_copilot_session import (  # noqa: E402
 )
 from parse_codex_session import render_codex_html  # noqa: E402
 from parse_cursor_session import render_cursor_html  # noqa: E402
-from parse_opencode_session import render_opencode_html  # noqa: E402
+from parse_opencode_session import OPENCODE_DB_PATH, render_opencode_html  # noqa: E402
 
 
 def pytest_configure(config):
@@ -1382,6 +1382,10 @@ class OpenCodeRunnerAutopilot:
                     session_events_log, html_path,
                     session_id_override=session_uuid,
                     scenario_key=scenario_key,
+                    db_path=OPENCODE_DB_PATH,
+                    workdir=workdir,
+                    after_utc=start_utc,
+                    before_utc=end_utc,
                 )
             except Exception:
                 pass
@@ -1458,6 +1462,10 @@ class OpenCodeRunnerAutopilot:
                     session_events_log, html_path,
                     session_id_override=session_uuid,
                     scenario_key=scenario_key,
+                    db_path=OPENCODE_DB_PATH,
+                    workdir=workdir,
+                    after_utc=start_utc,
+                    before_utc=end_utc,
                 )
             except Exception:
                 pass
