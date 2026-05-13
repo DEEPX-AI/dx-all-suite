@@ -57,6 +57,7 @@ from parse_copilot_session import (  # noqa: E402
 )
 from parse_codex_session import render_codex_html  # noqa: E402
 from parse_cursor_session import render_cursor_html  # noqa: E402
+from parse_opencode_session import render_opencode_html  # noqa: E402
 
 
 def pytest_configure(config):
@@ -1100,6 +1101,17 @@ class CursorRunnerAutopilot:
                 except Exception:
                     pass
 
+            # Copy HTML into per-session output dirs (cursor)
+            if html_path.exists():
+                for odir in output_dirs:
+                    try:
+                        dst = odir / "session.html"
+                        if not dst.exists():
+                            import shutil as _shutil_cur
+                            _shutil_cur.copy2(str(html_path), str(dst))
+                    except Exception:
+                        pass
+
             return ScenarioResult(
                 returncode=result.returncode,
                 stdout=assistant_text or result.stdout,
@@ -1363,6 +1375,17 @@ class OpenCodeRunnerAutopilot:
             except Exception:
                 pass
 
+            # Generate HTML from OpenCode JSONL (best-effort)
+            html_path = log_dir / f"{scenario_key}-opencode-session.html"
+            try:
+                render_opencode_html(
+                    session_events_log, html_path,
+                    session_id_override=session_uuid,
+                    scenario_key=scenario_key,
+                )
+            except Exception:
+                pass
+
             for odir in output_dirs:
                 try:
                     odir_real = odir.resolve()
@@ -1373,6 +1396,17 @@ class OpenCodeRunnerAutopilot:
                     link_path.symlink_to(odir_real)
                 except Exception:
                     pass
+
+            # Copy HTML into per-session output dirs (opencode)
+            if html_path.exists():
+                for odir in output_dirs:
+                    try:
+                        dst = odir / "session.html"
+                        if not dst.exists():
+                            import shutil as _shutil_oc
+                            _shutil_oc.copy2(str(html_path), str(dst))
+                    except Exception:
+                        pass
 
             return ScenarioResult(
                 returncode=result.returncode,
@@ -1414,6 +1448,17 @@ class OpenCodeRunnerAutopilot:
             session_events_log = log_dir / f"{scenario_key}-opencode-stream.jsonl"
             try:
                 session_events_log.write_text(raw_stdout, encoding="utf-8")
+            except Exception:
+                pass
+
+            # Generate HTML from OpenCode JSONL (best-effort, timeout path)
+            try:
+                html_path = log_dir / f"{scenario_key}-opencode-session.html"
+                render_opencode_html(
+                    session_events_log, html_path,
+                    session_id_override=session_uuid,
+                    scenario_key=scenario_key,
+                )
             except Exception:
                 pass
 
