@@ -158,6 +158,15 @@ OUTPUT REQUIREMENTS:
 - If the data is insufficient for a section, explicitly say so rather than guessing
 - Start the output directly with the `# ` heading (no preamble)
 
+CRITICAL OUTPUT MECHANISM:
+- The stdout of your response IS the `insights.md` file. The wrapper script captures
+  your stdout verbatim and writes it to the target path.
+- DO NOT use the Write, Edit, or any file-creation tools. The file already has a path
+  determined by the wrapper — your job is to emit the content, not to save it.
+- DO NOT wrap your output in a code fence or quote block. Emit raw markdown.
+- DO NOT add a trailing sentence describing what you did (e.g., "insights.md 생성 완료").
+  The first line MUST be `# ` and the last line MUST be the actual final markdown content.
+
 REPORT INPUT:
 ====================
 
@@ -165,7 +174,7 @@ REPORT INPUT:
 
 ====================
 
-Now produce `insights.md`.
+Emit the full markdown content of `insights.md` now (inline; no file writes).
 """
 
 
@@ -294,9 +303,69 @@ def run_insights(report_dir: Path, cli: str, output_dir: Path) -> int:
         return 1
 
     insights_path = output_dir / "insights.md"
-    insights_path.write_text(result, encoding="utf-8")
-    print(f"✓ Wrote insights to: {insights_path}")
+    final_text, source = _select_insights_content(result, report_dir, insights_path)
+    insights_path.write_text(final_text, encoding="utf-8")
+    if source == "stdout":
+        print(f"✓ Wrote insights to: {insights_path}")
+    else:
+        print(f"✓ Wrote insights to: {insights_path} (recovered from {source})")
     return 0
+
+
+def _select_insights_content(stdout: str, report_dir: Path,
+                              target_path: Path) -> tuple[str, str]:
+    """Pick the best insights content: stdout if it looks like a full report,
+    otherwise search known fallback paths for an insights.md the CLI may have
+    written via a file-creation tool against our explicit prompt instructions.
+    Returns (content, source_label).
+    """
+    stdout_text = stdout or ""
+    # Heuristic: a real insights report starts with '# ' and is >2KB.
+    is_full_report = stdout_text.lstrip().startswith("# ") and len(stdout_text) >= 2048
+    if is_full_report:
+        return stdout_text, "stdout"
+
+    # Stdout looks like a chat summary, not the report. Look for fallback files
+    # the CLI may have written via Write tool (against prompt instructions).
+    suite_root = _find_suite_root(report_dir)
+    fallback_candidates = [
+        suite_root / "dx-agentic-dev" / "e2e-tests" / "results" / "insights.md",
+        Path.cwd() / "insights.md",
+    ]
+    now = datetime.now().timestamp()
+    for cand in fallback_candidates:
+        if cand.is_file() and cand.resolve() != target_path.resolve():
+            try:
+                mtime = cand.stat().st_mtime
+            except OSError:
+                continue
+            # Only trust files touched within the last 30 minutes
+            if now - mtime > 1800:
+                continue
+            content = cand.read_text(encoding="utf-8", errors="ignore")
+            if content.lstrip().startswith("# ") and len(content) >= 2048:
+                # Move the misplaced file out of the way
+                try:
+                    cand.unlink()
+                except OSError:
+                    pass
+                return content, str(cand)
+
+    # No good fallback — return whatever stdout had (caller will write it).
+    return stdout_text, "stdout"
+
+
+def _find_suite_root(start: Path) -> Path:
+    """Walk up from start looking for the dx-all-suite root (has dx-runtime/ and
+    dx-compiler/ siblings). Falls back to start.parent.parent.parent."""
+    p = start.resolve()
+    for _ in range(8):
+        if (p / "dx-runtime").is_dir() and (p / "dx-compiler").is_dir():
+            return p
+        if p.parent == p:
+            break
+        p = p.parent
+    return start.resolve().parent.parent.parent
 
 
 # ---------------------------------------------------------------------------
