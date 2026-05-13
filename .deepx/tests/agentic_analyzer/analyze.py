@@ -65,7 +65,7 @@ from lib.execution import evaluate_execution
 from lib.pytest_data import collect_pytest_round
 from lib.cost import estimate_cost, compute_calibration_ratios
 from lib.aggregate import SessionEval, composite_score
-from lib.report import write_markdown, write_json, write_csv
+from lib.report import write_markdown, write_json, write_csv, write_html, md_file_to_html
 from lib.runnability_parser import parse_runnability_report, aggregate_runnability
 
 
@@ -347,14 +347,17 @@ def main(argv: Optional[List[str]] = None) -> int:
     md_path = out_dir / "analysis.md"
     json_path = out_dir / "analysis.json"
     csv_path = out_dir / "per_session.csv"
+    html_path = out_dir / "analysis.html"
     write_markdown(evals, md_path, meta)
     write_json(evals, json_path, meta)
     write_csv(evals, csv_path)
+    write_html(evals, html_path, meta)
 
     print()
     print(f"Wrote: {md_path}")
     print(f"Wrote: {json_path}")
     print(f"Wrote: {csv_path}")
+    print(f"Wrote: {html_path}")
 
     # ---------------- Optional: auto-invoke insights.py ----------------
     if args.insights != "off":
@@ -384,6 +387,7 @@ def main(argv: Optional[List[str]] = None) -> int:
             write_markdown(evals, md_path, meta)
             write_json(evals, json_path, meta)
             write_csv(evals, csv_path)
+            write_html(evals, html_path, meta)
             print(f"  Rewrote: {md_path}")
 
     # ---------------- Comprehensive report ----------------
@@ -451,6 +455,10 @@ def _generate_comprehensive_report(report_dir: Path) -> None:
     out_path = report_dir / "comprehensive_report.md"
     out_path.write_text("\n".join(parts), encoding="utf-8")
     print(f"\n✓ Wrote comprehensive report: {out_path}")
+
+    # Generate HTML version of comprehensive report
+    html_out = report_dir / "comprehensive_report.html"
+    md_file_to_html(out_path, html_out, title="DEEPX Agentic Development — 종합 보고서")
 
 
 def _run_insights_chain(report_dir: Path, mode: str, also_runnability: bool,

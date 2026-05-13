@@ -1,9 +1,11 @@
-"""Produce Markdown + JSON + CSV reports from aggregated evaluations."""
+"""Produce Markdown + JSON + CSV + HTML reports from aggregated evaluations."""
 
 from __future__ import annotations
 
 import csv
+import html as html_mod
 import json
+import re
 from dataclasses import asdict
 from datetime import datetime
 from pathlib import Path
@@ -592,3 +594,215 @@ def write_csv(evals: List[SessionEval], out_path: Path) -> None:
                 "session_id": e.session_id,
                 "output_dirs": "; ".join(e.output_dirs),
             })
+
+
+# ---------------------------------------------------------------------------
+# HTML Report
+# ---------------------------------------------------------------------------
+
+_HTML_CSS = """\
+:root { --bg: #0d1117; --fg: #e6edf3; --muted: #8b949e; --border: #30363d;
+        --accent: #58a6ff; --green: #3fb950; --red: #f85149; --yellow: #d29922;
+        --table-bg: #161b22; --table-stripe: #1c2333; }
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font-family: -apple-system, BlinkMacSystemFont,
+       'Segoe UI', Helvetica, Arial, sans-serif; line-height: 1.6; margin: 0; padding: 20px; }
+.container { max-width: 1400px; margin: 0 auto; }
+h1 { border-bottom: 1px solid var(--border); padding-bottom: 12px; }
+h2 { color: var(--accent); margin-top: 2em; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+h3 { color: var(--muted); margin-top: 1.5em; }
+table { border-collapse: collapse; width: 100%; margin: 12px 0 24px; font-size: 0.88em; }
+th { background: var(--table-bg); color: var(--accent); padding: 8px 10px; text-align: left;
+     border: 1px solid var(--border); position: sticky; top: 0; }
+td { padding: 6px 10px; border: 1px solid var(--border); }
+tr:nth-child(even) { background: var(--table-stripe); }
+tr:hover { background: #21262d; }
+blockquote { border-left: 3px solid var(--accent); padding-left: 16px; color: var(--muted);
+             margin: 12px 0; }
+code { background: #1c2333; padding: 2px 6px; border-radius: 3px; font-size: 0.9em; }
+pre { background: #161b22; padding: 14px; border-radius: 6px; overflow-x: auto;
+      border: 1px solid var(--border); }
+pre code { background: transparent; padding: 0; }
+.badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.8em; font-weight: 600; }
+.badge-pass { background: #238636; color: #fff; }
+.badge-fail { background: #da3633; color: #fff; }
+.badge-partial { background: #9e6a03; color: #fff; }
+ul { padding-left: 1.5em; }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+.timestamp { color: var(--muted); font-size: 0.85em; }
+"""
+
+
+def _md_to_html(md_text: str) -> str:
+    """Convert Markdown text to HTML (lightweight, table-aware)."""
+    lines = md_text.split("\n")
+    html_parts: List[str] = []
+    in_table = False
+    in_code = False
+    in_list = False
+    code_lines: List[str] = []
+
+    for line in lines:
+        stripped = line.strip()
+
+        # Code blocks
+        if stripped.startswith("```"):
+            if in_code:
+                html_parts.append(f'<pre><code>{html_mod.escape(chr(10).join(code_lines))}</code></pre>')
+                code_lines = []
+                in_code = False
+            else:
+                if in_list:
+                    html_parts.append("</ul>")
+                    in_list = False
+                in_code = True
+            continue
+        if in_code:
+            code_lines.append(line)
+            continue
+
+        # Empty line
+        if not stripped:
+            if in_table:
+                html_parts.append("</tbody></table>")
+                in_table = False
+            if in_list:
+                html_parts.append("</ul>")
+                in_list = False
+            continue
+
+        # Table separator (|---|...)
+        if re.match(r"^\|[\s\-:|]+\|$", stripped):
+            continue
+
+        # Table row
+        if stripped.startswith("|") and stripped.endswith("|"):
+            cells = [c.strip() for c in stripped.strip("|").split("|")]
+            if not in_table:
+                html_parts.append('<table>')
+                html_parts.append("<thead><tr>" + "".join(f"<th>{_inline_md(c)}</th>" for c in cells) + "</tr></thead>")
+                html_parts.append("<tbody>")
+                in_table = True
+            else:
+                html_parts.append("<tr>" + "".join(f"<td>{_inline_md(c)}</td>" for c in cells) + "</tr>")
+            continue
+
+        if in_table:
+            html_parts.append("</tbody></table>")
+            in_table = False
+
+        # Headers
+        if stripped.startswith("#"):
+            m = re.match(r"^(#{1,6})\s+(.*)", stripped)
+            if m:
+                level = len(m.group(1))
+                text = _inline_md(m.group(2))
+                html_parts.append(f"<h{level}>{text}</h{level}>")
+                continue
+
+        # Blockquote
+        if stripped.startswith(">"):
+            text = _inline_md(stripped.lstrip("> "))
+            html_parts.append(f"<blockquote>{text}</blockquote>")
+            continue
+
+        # List items
+        if re.match(r"^[-*]\s", stripped):
+            if not in_list:
+                html_parts.append("<ul>")
+                in_list = True
+            text = _inline_md(stripped[2:])
+            html_parts.append(f"<li>{text}</li>")
+            continue
+
+        if in_list:
+            html_parts.append("</ul>")
+            in_list = False
+
+        # Regular paragraph
+        html_parts.append(f"<p>{_inline_md(stripped)}</p>")
+
+    # Close any open tags
+    if in_table:
+        html_parts.append("</tbody></table>")
+    if in_list:
+        html_parts.append("</ul>")
+    if in_code:
+        html_parts.append(f'<pre><code>{html_mod.escape(chr(10).join(code_lines))}</code></pre>')
+
+    return "\n".join(html_parts)
+
+
+def _inline_md(text: str) -> str:
+    """Convert inline Markdown (bold, code, links) to HTML."""
+    text = html_mod.escape(text)
+    text = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", text)
+    text = re.sub(r"`(.+?)`", r"<code>\1</code>", text)
+    # Verdict badges
+    text = text.replace("✅", '<span class="badge badge-pass">✅</span>')
+    text = text.replace("❌", '<span class="badge badge-fail">❌</span>')
+    text = text.replace("❓", '<span class="badge badge-partial">❓</span>')
+    return text
+
+
+def write_html(evals: List[SessionEval], out_path: Path, meta: Dict) -> None:
+    """Generate self-contained HTML report from evaluations.
+
+    Reads the companion ``.md`` file (must already exist) and converts it.
+    """
+    md_path = out_path.with_suffix(".md")
+    if not md_path.exists():
+        return
+
+    md_content = md_path.read_text(encoding="utf-8")
+    body = _md_to_html(md_content)
+    title = "DEEPX Agentic Development — E2E Autopilot Analysis"
+
+    html = f"""<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{html_mod.escape(title)}</title>
+<style>
+{_HTML_CSS}
+</style>
+</head>
+<body>
+<div class="container">
+{body}
+</div>
+</body>
+</html>"""
+
+    out_path.write_text(html, encoding="utf-8")
+
+
+def md_file_to_html(md_path: Path, html_path: Path, title: str = "") -> None:
+    """Convert any Markdown file to a self-contained HTML file."""
+    if not md_path.exists():
+        return
+
+    md_content = md_path.read_text(encoding="utf-8")
+    body = _md_to_html(md_content)
+    title = title or md_path.stem
+
+    html = f"""<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{html_mod.escape(title)}</title>
+<style>
+{_HTML_CSS}
+</style>
+</head>
+<body>
+<div class="container">
+{body}
+</div>
+</body>
+</html>"""
+
+    html_path.write_text(html, encoding="utf-8")
