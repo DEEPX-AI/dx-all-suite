@@ -378,53 +378,81 @@ def main(argv: Optional[List[str]] = None) -> int:
     print(f"Wrote: {csv_path}")
     print(f"Wrote: {html_path}")
 
-    # ---------------- Optional: auto-invoke insights.py ----------------
+    # ---------------- Insights pipeline (correct ordering) ----------------
+    # The pipeline ORDER MATTERS:
+    #   1. runnability  → writes runnability_report.md
+    #   2. merge        → folds runnability into Overall scores; rewrites
+    #                     analysis.md/json/csv/html
+    #   3. insights     → reads the UPDATED analysis.md so qualitative analysis
+    #                     reflects runnability data
+    #   4. comprehensive → assembles the final summary report
+    #
+    # Earlier versions ran insights BEFORE runnability, which meant the
+    # insights.md was based on stale Overall scores (no Runn% factored in).
     if args.insights != "off":
         effective_sample = 0 if args.insights_all else args.insights_sample
-        _run_insights_chain(
-            out_dir, args.insights, args.insights_runnability, effective_sample,
-            model=args.insights_model, allow_paid=args.insights_allow_paid,
+        chosen_cli = _resolve_insights_cli(
+            args.insights, allow_paid=args.insights_allow_paid,
         )
+        # --- Step 1: runnability ---
+        if args.insights_runnability and chosen_cli:
+            _run_runnability_step(
+                out_dir, chosen_cli, effective_sample,
+                model=args.insights_model, allow_paid=args.insights_allow_paid,
+            )
 
-    # ---------------- Post-insights: merge runnability into scores ----------------
-    runnability_path = out_dir / "runnability_report.md"
-    if runnability_path.is_file():
-        print("\n→ Parsing runnability_report.md and recomputing Overall scores...")
-        runn_entries = parse_runnability_report(runnability_path)
-        runn_agg = aggregate_runnability(runn_entries)
-        updated = 0
-        for e in evals:
-            key = (e.tool, e.scenario)
-            if key in runn_agg:
-                e.runnability_score = runn_agg[key]
-                e.overall_score = composite_score(
-                    e.compliance_score_pct, e.quality_score, e.verdict_score,
-                    e.execution_score, e.has_start, e.has_done,
-                    runnability_pct=e.runnability_score, has_runnability=True,
-                )
-                updated += 1
-        if updated > 0:
-            print(f"  Updated {updated} sessions with runnability scores")
-            # Rewrite reports with updated scores
-            write_markdown(evals, md_path, meta)
-            write_json(evals, json_path, meta)
-            write_csv(evals, csv_path)
-            write_html(evals, html_path, meta)
-            print(f"  Rewrote: {md_path}")
+        # --- Step 2: merge runnability scores into analysis.md ---
+        runnability_path = out_dir / "runnability_report.md"
+        if runnability_path.is_file():
+            print("\n→ Parsing runnability_report.md and recomputing Overall scores...")
+            runn_entries = parse_runnability_report(runnability_path)
+            runn_agg = aggregate_runnability(runn_entries)
+            updated = 0
+            for e in evals:
+                key = (e.tool, e.scenario)
+                if key in runn_agg:
+                    e.runnability_score = runn_agg[key]
+                    e.overall_score = composite_score(
+                        e.compliance_score_pct, e.quality_score, e.verdict_score,
+                        e.execution_score, e.has_start, e.has_done,
+                        runnability_pct=e.runnability_score, has_runnability=True,
+                    )
+                    updated += 1
+            if updated > 0:
+                print(f"  Updated {updated} sessions with runnability scores")
+                write_markdown(evals, md_path, meta)
+                write_json(evals, json_path, meta)
+                write_csv(evals, csv_path)
+                write_html(evals, html_path, meta)
+                print(f"  Rewrote: {md_path}")
 
-    # ---------------- Comprehensive report ----------------
+        # --- Step 3: insights (now reads updated analysis.md) ---
+        if chosen_cli:
+            _run_insights_step(
+                out_dir, chosen_cli,
+                model=args.insights_model, allow_paid=args.insights_allow_paid,
+            )
+
+    # ---------------- Step 4: Comprehensive report (slim Part 3) ----------------
     _generate_comprehensive_report(out_dir)
 
     return 0
 
 
 def _generate_comprehensive_report(report_dir: Path) -> None:
-    """Merge analysis.md + insights.md + runnability_report.md into one comprehensive report."""
+    """Assemble analysis + insights + slim runnability summary into one report.
+
+    Part 3 (runnability) is now a tight summary — distribution tables, skip
+    classification, top FAILs, common PARTIAL patterns — with the raw per-
+    session details linked rather than inlined. This keeps comprehensive_report
+    a digestible single document while still pointing to the full data.
+    """
     parts: List[str] = []
     parts.append("# DEEPX Agentic Development — 종합 보고서 (Comprehensive Report)")
     parts.append("")
     parts.append(f"> 생성 시각: {datetime.now().isoformat(timespec='seconds')}")
-    parts.append(f"> 이 보고서는 analysis.md, insights.md, runnability_report.md를 통합한 종합본입니다.")
+    parts.append("> 이 보고서는 analysis.md(정량) + insights.md(정성) + runnability 요약을 통합한 종합본입니다.")
+    parts.append("> Raw 데이터는 마지막 §참고 섹션의 링크로 제공됩니다.")
     parts.append("")
     parts.append("---")
     parts.append("")
@@ -460,19 +488,20 @@ def _generate_comprehensive_report(report_dir: Path) -> None:
             parts.append("---")
             parts.append("")
 
-    # Part 3: runnability_report.md
-    runnability_path = report_dir / "runnability_report.md"
-    if runnability_path.is_file():
-        parts.append("# Part 3: End-User Runnability 평가 (runnability_report.md)")
-        parts.append("")
-        parts.append(runnability_path.read_text(encoding="utf-8"))
-        parts.append("")
-    else:
-        parts.append("# Part 3: End-User Runnability 평가 (미실행)")
-        parts.append("")
-        parts.append("> runnability 평가가 실행되지 않았습니다.")
-        parts.append("> 실행: `python3 insights.py --mode runnability --report-dir <dir> --cli <copilot|claude> --sample 8`")
-        parts.append("")
+    # Part 3: SLIM runnability summary (no raw inline)
+    parts.append(_render_runnability_summary(report_dir))
+    parts.append("")
+
+    # §참고: links to raw data
+    parts.append("---")
+    parts.append("")
+    parts.append("## 참고 / Raw 데이터")
+    parts.append("")
+    parts.append("- 정성 평가 (세션별 raw): [`runnability_report.md`](./runnability_report.md)")
+    parts.append("- 정량 분석 (세션 단위 raw JSON): [`analysis.json`](./analysis.json)")
+    parts.append("- 세션 행 단위 CSV: [`per_session.csv`](./per_session.csv)")
+    parts.append("- 분석 단계별 .md: [`analysis.md`](./analysis.md) · [`insights.md`](./insights.md)")
+    parts.append("")
 
     out_path = report_dir / "comprehensive_report.md"
     out_path.write_text("\n".join(parts), encoding="utf-8")
@@ -483,27 +512,174 @@ def _generate_comprehensive_report(report_dir: Path) -> None:
     md_file_to_html(out_path, html_out, title="DEEPX Agentic Development — 종합 보고서")
 
 
-def _run_insights_chain(report_dir: Path, mode: str, also_runnability: bool,
-                         sample: int, *, model: Optional[str] = None,
-                         allow_paid: bool = False) -> None:
-    """Try to invoke insights.py automatically after analysis.
+def _render_runnability_summary(report_dir: Path) -> str:
+    """Build the slim Part 3 (runnability summary) — tables + key cases, no raw."""
+    import json as _json
+    import re as _re
 
-    `mode == 'auto'`: select first available CLI from insights.AUTO_CHAIN_FREE
-    (or AUTO_CHAIN_PAID when allow_paid). Otherwise: use the named CLI.
+    runn_path = report_dir / "runnability_report.md"
+    analysis_json_path = report_dir / "analysis.json"
 
-    Sample mode: pass sample=0 to evaluate every session (exhaustive).
+    if not runn_path.is_file():
+        return ("# Part 3: End-User Runnability — 요약 (미실행)\n\n"
+                "> runnability 평가가 실행되지 않았습니다.\n"
+                "> 실행: `python3 insights.py --mode runnability --report-dir <dir> "
+                "--cli <copilot|claude> --all`\n")
 
-    Always saves the prompt file (insights_prompt.md) regardless of CLI availability,
-    so the user can re-run manually.
+    runn_text = runn_path.read_text(encoding="utf-8", errors="ignore")
+    # Parse each evaluation block: split by '### R<round> <tool> <scenario>'.
+    block_pat = _re.compile(
+        r"###\s+R(?P<round>\d+)\s+(?P<tool>\S+)\s+(?P<scenario>\S+)\s*\n"
+        r"(?P<body>.*?)(?=\n###\s+R\d+\s+\S+\s+\S+|\Z)",
+        _re.DOTALL,
+    )
+    verdict_pat = _re.compile(
+        r"\*\*end-user runnability\*\*\s*:\s*(PASS|PARTIAL|FAIL)", _re.IGNORECASE
+    )
+    issue_pat = _re.compile(
+        r"\*\*Key issues\*\*[^\n]*:\s*\n((?:\s*[-*][^\n]*\n?)+)", _re.IGNORECASE
+    )
+    verdict_oneline = _re.compile(
+        r"\*\*One-sentence verdict\*\*\s*:\s*([^\n]+)", _re.IGNORECASE
+    )
+
+    blocks = list(block_pat.finditer(runn_text))
+    parsed: List[Dict[str, str]] = []
+    for m in blocks:
+        body = m.group("body")
+        vmatch = verdict_pat.search(body)
+        verdict = vmatch.group(1).upper() if vmatch else "?"
+        imatch = issue_pat.search(body)
+        issues_text = imatch.group(1) if imatch else ""
+        # Extract individual bullets
+        issue_bullets = [
+            ln.strip("-* ").strip()
+            for ln in issues_text.splitlines() if ln.strip()
+        ]
+        vone = verdict_oneline.search(body)
+        parsed.append({
+            "round":    m.group("round"),
+            "tool":     m.group("tool"),
+            "scenario": m.group("scenario"),
+            "verdict":  verdict,
+            "issues":   issue_bullets,
+            "verdict_oneline": (vone.group(1).strip() if vone else "").rstrip("."),
+        })
+
+    # ---- Distribution tables (per-tool, per-scenario) ----
+    by_tool: Dict[str, Dict[str, int]] = {}
+    by_scenario: Dict[str, Dict[str, int]] = {}
+    for p in parsed:
+        for d, k in ((by_tool, p["tool"]), (by_scenario, p["scenario"])):
+            row = d.setdefault(k, {"PASS": 0, "PARTIAL": 0, "FAIL": 0, "?": 0})
+            row[p["verdict"]] += 1
+
+    lines: List[str] = []
+    lines.append("# Part 3: End-User Runnability — 요약")
+    lines.append("")
+    lines.append(f"> 평가된 세션: **{len(parsed)}** (raw: [`runnability_report.md`](./runnability_report.md))")
+    lines.append("")
+    lines.append("## 3.1 분포 — Tool별")
+    lines.append("")
+    lines.append("| Tool | PASS | PARTIAL | FAIL | Total | Runn % |")
+    lines.append("|------|----:|-------:|----:|-----:|------:|")
+    for tool in sorted(by_tool):
+        row = by_tool[tool]
+        tot = row["PASS"] + row["PARTIAL"] + row["FAIL"]
+        runn_pct = ((row["PASS"] * 100 + row["PARTIAL"] * 50) / tot) if tot else 0
+        lines.append(f"| **{tool}** | {row['PASS']} | {row['PARTIAL']} | "
+                     f"{row['FAIL']} | {tot} | {runn_pct:.1f} |")
+    lines.append("")
+    lines.append("## 3.2 분포 — Scenario별")
+    lines.append("")
+    lines.append("| Scenario | PASS | PARTIAL | FAIL | Total | Runn % |")
+    lines.append("|----------|----:|-------:|----:|-----:|------:|")
+    for sc in sorted(by_scenario):
+        row = by_scenario[sc]
+        tot = row["PASS"] + row["PARTIAL"] + row["FAIL"]
+        runn_pct = ((row["PASS"] * 100 + row["PARTIAL"] * 50) / tot) if tot else 0
+        lines.append(f"| {sc} | {row['PASS']} | {row['PARTIAL']} | "
+                     f"{row['FAIL']} | {tot} | {runn_pct:.1f} |")
+    lines.append("")
+
+    # ---- Skip categorization (from analysis.json) ----
+    if analysis_json_path.is_file():
+        try:
+            sys.path.insert(0, str(HERE))
+            from lib.skip_analyzer import (  # type: ignore
+                categorize_skipped_sessions, render_skip_summary_markdown,
+            )
+        finally:
+            sys.path.pop(0)
+        data = _json.loads(analysis_json_path.read_text(encoding="utf-8"))
+        sessions = data.get("sessions", [])
+        skip_report = categorize_skipped_sessions(sessions)
+        lines.append("## 3.3 Skipped 세션 분류")
+        lines.append("")
+        lines.append(render_skip_summary_markdown(skip_report, heading_level=4))
+        lines.append("")
+
+    # ---- FAIL cases (full list, max ~12 to keep readable) ----
+    fails = [p for p in parsed if p["verdict"] == "FAIL"]
+    lines.append(f"## 3.4 FAIL 사례 ({len(fails)}건)")
+    lines.append("")
+    if not fails:
+        lines.append("_없음._")
+    else:
+        for p in fails[:12]:
+            lines.append(f"- **{p['tool']} R{p['round']} {p['scenario']}** — "
+                         f"{p['verdict_oneline']}")
+        if len(fails) > 12:
+            lines.append(f"- _… (+{len(fails) - 12}건 더; raw 참조)_")
+    lines.append("")
+
+    # ---- PARTIAL common-issue keyword frequency ----
+    partials = [p for p in parsed if p["verdict"] == "PARTIAL"]
+    if partials:
+        keywords = [
+            ("verify.py", "verify.py 미제공"),
+            ("SUITE_ROOT", "SUITE_ROOT 미사용 (상대경로 의존)"),
+            ("session.log", "session.log 부재/부족"),
+            ("setup.sh", "setup.sh 환경 구성 불완전"),
+            ("venv", "venv 처리 부재"),
+            ("dx_engine", "dx_engine bridging 누락"),
+            ("ImportError", "ImportError / import 실패"),
+            ("README", "README 안내 부족"),
+            ("path", "경로 하드코딩"),
+            ("permission", "권한 / write target 문제"),
+        ]
+        counts: List[tuple] = []
+        for kw, label in keywords:
+            n = sum(
+                1 for p in partials
+                if any(kw.lower() in iss.lower() for iss in p["issues"])
+            )
+            if n:
+                counts.append((n, label))
+        counts.sort(reverse=True)
+        lines.append(f"## 3.5 PARTIAL 공통 패턴 ({len(partials)}건 중 키워드 빈도)")
+        lines.append("")
+        if counts:
+            lines.append("| 패턴 | 등장 세션 수 |")
+            lines.append("|------|-----------:|")
+            for n, label in counts[:8]:
+                lines.append(f"| {label} | {n} |")
+        else:
+            lines.append("_키워드 매칭 없음._")
+        lines.append("")
+
+    return "\n".join(lines)
+
+
+def _resolve_insights_cli(mode: str, *, allow_paid: bool = False) -> Optional[str]:
+    """Pick the CLI to use for insights/runnability subprocesses.
+
+    `mode == 'auto'` walks insights.AUTO_CHAIN_FREE (or AUTO_CHAIN_PAID if paid
+    is allowed) and returns the first installed binary. A named mode passes
+    through. Returns None if nothing is available.
     """
     import shutil
-    import subprocess
 
-    insights_script = HERE / "insights.py"
-    if not insights_script.is_file():
-        return
-
-    # Import chain definitions from insights.py to keep a single source of truth.
     sys.path.insert(0, str(HERE))
     try:
         from insights import (  # type: ignore
@@ -517,74 +693,85 @@ def _run_insights_chain(report_dir: Path, mode: str, also_runnability: bool,
     else:
         candidates = [mode]
 
-    chosen = None
     for c in candidates:
         binary = CLI_CONFIG.get(c, {}).get("binary", c)
         if shutil.which(binary):
-            chosen = c
-            break
+            return c
 
     chain_label = "paid" if allow_paid else "free"
-    if not chosen:
-        # No CLI available — still save the prompt so user can run later
-        print()
-        print(f"⚠ No agentic CLI available in {chain_label} chain ({candidates}). "
-              f"Saving prompt only.")
-        try:
-            subprocess.run(
-                ["python3", str(insights_script), "--mode", "insights",
-                 "--report-dir", str(report_dir), "--cli", "auto"]
-                + (["--allow-paid"] if allow_paid else []),
-                check=False, capture_output=True, timeout=30,
-            )
-        except Exception:
-            pass
-        print(f"  → run manually: python3 insights.py --mode insights "
-              f"--report-dir {report_dir} --cli <copilot|claude|cursor|opencode|codex>"
-              f"{' --allow-paid' if allow_paid else ''}")
-        return
-
-    common_args = ["--report-dir", str(report_dir), "--cli", chosen]
-    if model:
-        common_args += ["--model", model]
-    if allow_paid:
-        common_args += ["--allow-paid"]
-
     print()
-    print(f"→ Invoking insights.py --mode insights --cli {chosen} "
-          f"(chain={chain_label}, model={model or 'default'})...")
+    print(f"⚠ No agentic CLI available in {chain_label} chain ({candidates}). "
+          f"Skipping insights/runnability steps.")
+    return None
+
+
+def _insights_common_args(report_dir: Path, chosen: str,
+                           model: Optional[str], allow_paid: bool) -> List[str]:
+    args = ["--report-dir", str(report_dir), "--cli", chosen]
+    if model:
+        args += ["--model", model]
+    if allow_paid:
+        args += ["--allow-paid"]
+    return args
+
+
+def _run_runnability_step(report_dir: Path, chosen: str, sample: int,
+                           *, model: Optional[str] = None,
+                           allow_paid: bool = False) -> None:
+    """Invoke insights.py --mode runnability. Runs FIRST so its scores can be
+    merged into analysis.md before the insights step reads it.
+    """
+    import subprocess
+
+    insights_script = HERE / "insights.py"
+    if not insights_script.is_file():
+        return
+    sample_label = "EXHAUSTIVE" if sample <= 0 else f"sample={sample}"
+    runn_timeout = 14400 if sample <= 0 else 1800  # 4h vs 30min
+    common = _insights_common_args(report_dir, chosen, model, allow_paid)
+    print()
+    print(f"→ Step 1: insights.py --mode runnability --cli {chosen} "
+          f"({sample_label})...")
     try:
         r = subprocess.run(
-            ["python3", str(insights_script), "--mode", "insights"] + common_args,
+            ["python3", str(insights_script), "--mode", "runnability"] + common
+            + (["--all"] if sample <= 0 else ["--sample", str(sample)]),
+            check=False, timeout=runn_timeout,
+        )
+        if r.returncode == 0:
+            print("✓ runnability_report.md generated")
+    except subprocess.TimeoutExpired:
+        print(f"⚠ runnability check timed out (>{runn_timeout}s)")
+    except Exception as e:
+        print(f"⚠ runnability check failed: {e}")
+
+
+def _run_insights_step(report_dir: Path, chosen: str,
+                        *, model: Optional[str] = None,
+                        allow_paid: bool = False) -> None:
+    """Invoke insights.py --mode insights. Runs AFTER runnability merge so the
+    qualitative analysis reflects updated Overall scores.
+    """
+    import subprocess
+
+    insights_script = HERE / "insights.py"
+    if not insights_script.is_file():
+        return
+    common = _insights_common_args(report_dir, chosen, model, allow_paid)
+    print()
+    print(f"→ Step 3: insights.py --mode insights --cli {chosen} "
+          f"(model={model or 'default'})...")
+    try:
+        r = subprocess.run(
+            ["python3", str(insights_script), "--mode", "insights"] + common,
             check=False, timeout=1200,
         )
         if r.returncode == 0:
             print(f"✓ insights.md generated (via {chosen})")
     except subprocess.TimeoutExpired:
-        print(f"⚠ insights.py timed out (>20min); prompt saved for manual retry")
+        print("⚠ insights.py timed out (>20min); prompt saved for manual retry")
     except Exception as e:
         print(f"⚠ insights.py failed: {e}")
-
-    if also_runnability:
-        sample_label = "EXHAUSTIVE" if sample <= 0 else f"sample={sample}"
-        print()
-        print(f"→ Invoking insights.py --mode runnability --cli {chosen} "
-              f"({sample_label})...")
-        # Exhaustive evaluation can take hours — extend timeout proportionally
-        runn_timeout = 14400 if sample <= 0 else 1800  # 4h vs 30min
-        try:
-            r = subprocess.run(
-                ["python3", str(insights_script), "--mode", "runnability"]
-                + common_args
-                + (["--all"] if sample <= 0 else ["--sample", str(sample)]),
-                check=False, timeout=runn_timeout,
-            )
-            if r.returncode == 0:
-                print(f"✓ runnability_report.md generated")
-        except subprocess.TimeoutExpired:
-            print(f"⚠ runnability check timed out (>{runn_timeout}s)")
-        except Exception as e:
-            print(f"⚠ runnability check failed: {e}")
 
 
 if __name__ == "__main__":

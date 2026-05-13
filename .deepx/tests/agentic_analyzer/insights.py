@@ -520,6 +520,20 @@ def run_runnability(report_dir: Path, cli: str, output_dir: Path,
         sampled = sampled[:sample]
         mode_label = f"sample={sample}"
 
+    # Pre-compute skip analysis (sessions with no output_dirs are skipped before
+    # the LLM is called — categorize them so the report explains WHY).
+    try:
+        # Lazy import keeps insights.py runnable even if the lib path is unusual.
+        sys.path.insert(0, str(Path(__file__).parent))
+        from lib.skip_analyzer import (  # type: ignore
+            categorize_skipped_sessions, render_skip_summary_markdown,
+        )
+    finally:
+        if sys.path and sys.path[0] == str(Path(__file__).parent):
+            sys.path.pop(0)
+    skip_report = categorize_skipped_sessions(sessions)
+    skip_md = render_skip_summary_markdown(skip_report, heading_level=2)
+
     out_path = output_dir / "runnability_report.md"
     started_at = datetime.now().isoformat(timespec='seconds')
 
@@ -532,8 +546,13 @@ def run_runnability(report_dir: Path, cli: str, output_dir: Path,
         header = (
             f"# End-User Runnability Report\n"
             f"> Generated: {started_at}  (status: {status})\n"
-            f"> Sessions evaluated: {done}/{total}  |  Mode: {mode_label}  |  CLI: `{cli}`\n\n"
+            f"> Sessions evaluated: {done}/{total}  |  Mode: {mode_label}  |  CLI: `{cli}`\n"
+            f"> Sessions skipped (no artifacts to evaluate): "
+            f"{skip_report['skipped_count']}/{skip_report['total_sessions']}\n\n"
             f"---\n\n"
+            f"{skip_md}\n"
+            f"---\n\n"
+            f"## 세션별 평가\n\n"
         )
         out_path.write_text(header + "\n\n---\n\n".join(results), encoding="utf-8")
 
