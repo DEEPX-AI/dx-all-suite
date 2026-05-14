@@ -187,8 +187,19 @@ When you run `python3 analyze.py`, the following stages execute in order:
 > so that the qualitative analysis in insights.md reflects the updated Overall scores
 > that include Runnability data.
 >
-> **Skip flags**: `--no-insights-runnability` skips Stages 5–6 (uses 4-factor Overall).
-> `--insights off` skips Stages 5–7 entirely (report only, no LLM calls).
+> **Stage 5 vs Stage 6 independence**: Stage 6 (merge) triggers whenever
+> `runnability_report.md` exists in the output directory — it does **not** check
+> whether Stage 5 produced it in the current run. This means you can:
+> 1. Skip Stage 5 with `--no-insights-runnability`
+> 2. Copy a previous `runnability_report.md` into the output directory
+> 3. Re-run the analyzer — Stage 6 will parse and merge the pre-existing file
+>
+> This is useful for reusing expensive runnability evaluations across report
+> regenerations without re-running the LLM evaluation.
+>
+> **Skip flags**: `--no-insights-runnability` skips Stage 5 only (Stage 6 still
+> runs if `runnability_report.md` is present). `--insights off` skips
+> Stages 5–7 entirely (report only, no LLM calls).
 
 ## 3. Dependencies
 

@@ -185,7 +185,17 @@ python3 insights.py --mode runnability --report-dir reports/<TS>/ --cli copilot 
 > 실행되어야 insights.md의 정성 분석이 Runnability가 반영된 최신 Overall 점수를 기반으로
 > 작성됩니다.
 >
-> **건너뛰기 플래그**: `--no-insights-runnability`는 Stage 5–6을 건너뜁니다 (4-factor Overall 사용).
+> **Stage 5와 Stage 6의 독립성**: Stage 6 (병합)은 출력 디렉토리에
+> `runnability_report.md` 파일이 존재하는지만 확인합니다 — 현재 실행에서
+> Stage 5가 생성했는지 여부는 체크하지 않습니다. 따라서 다음이 가능합니다:
+> 1. `--no-insights-runnability`로 Stage 5 생략
+> 2. 이전 실행의 `runnability_report.md`를 출력 디렉토리에 복사
+> 3. analyzer 재실행 — Stage 6이 기존 파일을 파싱하여 병합
+>
+> 이 방식은 비용이 큰 runnability 평가를 리포트 재생성 시 재사용할 때 유용합니다.
+>
+> **건너뛰기 플래그**: `--no-insights-runnability`는 Stage 5만 건너뜁니다
+> (`runnability_report.md`가 존재하면 Stage 6은 실행됨).
 > `--insights off`는 Stage 5–7 전체를 건너뜁니다 (리포트만, LLM 호출 없음).
 
 ## 3. 의존성
