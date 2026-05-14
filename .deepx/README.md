@@ -92,6 +92,7 @@ Each sub-project `.deepx/` is self-contained. This top-level `.deepx/` adds:
 │   ├── README.md                ← Test categories and how to run them
 │   ├── test_agentic_scenarios/  ← 199 static infra tests
 │   ├── test_agentic_e2e_scenarios/  ← 352 E2E tests (4 CLIs × 5 scenarios)
+│   ├── agentic_analyzer/        ← E2E result analyzer (reports, charts, dashboard)
 │   ├── test.sh                  ← Manual + autopilot runner
 │   └── …
 │
@@ -245,6 +246,7 @@ how to add or modify a fragment.
 | How to author a new fragment | [`docs/fragment-authoring-guide.md`](docs/fragment-authoring-guide.md) |
 | `dx-agentic-gen` generator package | [`tools/README.md`](tools/README.md) |
 | Operational scripts (`run_all.sh`, hooks, E2E loop) | [`tools/scripts/README.md`](tools/scripts/README.md) |
+| E2E result analyzer (reports, charts, dashboard) | [`tests/agentic_analyzer/README.md`](tests/agentic_analyzer/README.md) |
 | Test categories and how to run them | [`tests/README.md`](tests/README.md) |
 | Sub-project specifics | the sub-project `.deepx/README.md` (linked above in §2) |
 

@@ -92,6 +92,7 @@ dx-all-suite는 5개의 repo를 포함하며, 각각 자체 `.deepx/`를 가집�
 │   ├── README.md                ← Test categories and how to run them
 │   ├── test_agentic_scenarios/  ← 199 static infra tests
 │   ├── test_agentic_e2e_scenarios/  ← 352 E2E tests (4 CLIs × 5 scenarios)
+│   ├── agentic_analyzer/        ← E2E 결과 분석기 (리포트, 차트, 대시보드)
 │   ├── test.sh                  ← Manual + autopilot runner
 │   └── …
 │
@@ -245,6 +246,7 @@ Fragment를 추가하거나 수정하는 방법은
 | 새로운 fragment 작성 방법 | [`docs/fragment-authoring-guide.md`](docs/fragment-authoring-guide.md) |
 | `dx-agentic-gen` generator 패키지 | [`tools/README.md`](tools/README.md) |
 | 운영 스크립트 (`run_all.sh`, hooks, E2E loop) | [`tools/scripts/README.md`](tools/scripts/README.md) |
+| E2E 결과 분석기 (리포트, 차트, 대시보드) | [`tests/agentic_analyzer/README-KO.md`](tests/agentic_analyzer/README-KO.md) |
 | 테스트 카테고리 및 실행 방법 | [`tests/README.md`](tests/README.md) |
 | Sub-project 세부 사항 | sub-project `.deepx/README.md` (위 §2에 링크됨) |
 

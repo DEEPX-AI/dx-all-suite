@@ -35,7 +35,8 @@ python3 analyze.py --insights claude --insights-model claude-sonnet-4.6
 - `analysis.json` — 머신 판독용 전체 데이터
 - `per_session.csv` — 스프레드시트용 flat 표
 - `comprehensive_report.md` — 통합 보고서 (analysis + insights + runnability)
-- `comprehensive_report.html` — 통합 보고서 HTML 버전
+- `comprehensive_report.html` — 통합 보고서 HTML 버전 (Chart.js 인터랙티브 차트 포함 — Executive Summary + 시각 비교)
+- `dashboard.html` — 독립 실행형 인터랙티브 대시보드 (Chart.js — 종합 순위, 레이더, 라운드 추이, 시나리오 비교)
 
 > **입출력 디렉토리**: 도구 코드는 `.deepx/tests/agentic_analyzer/` (git tracked)에,
 > 입력(results) + 출력(analyzer_reports)은 `dx-agentic-dev/e2e-tests/` (gitignored)에 위치.
@@ -160,10 +161,13 @@ python3 insights.py --mode runnability --report-dir reports/<TS>/ --cli copilot 
 │          ↓                                                          │
 │  Stage 8: 종합 보고서 조립                                          │
 │  ┌─────────────────────────────────────────────────────┐            │
+│  │ Part 0: Executive Summary (정렬된 도구별 순위)        │            │
 │  │ Part 1: analysis.md (정량)                            │            │
 │  │ Part 2: insights.md (정성)                            │            │
 │  │ Part 3: runnability 요약 (간략)                        │            │
-│  │  → comprehensive_report.md + .html                    │  ← (F)   │
+│  │  → comprehensive_report.md                            │  ← (F)   │
+│  │  → comprehensive_report.html (Chart.js 차트 포함)     │  ← (G)   │
+│  │  → dashboard.html (독립 인터랙티브 대시보드)           │  ← (H)   │
 │  └─────────────────────────────────────────────────────┘            │
 │                                                                     │
 └─────────────────────────────────────────────────────────────────────┘
@@ -179,7 +183,9 @@ python3 insights.py --mode runnability --report-dir reports/<TS>/ --cli copilot 
 | 5 (D) | `runnability_report.md` | LLM agent의 세션별 end-user 실행 가능성 평가 |
 | 6 (A') | `analysis.md` (재작성) | Runnability 점수가 Overall에 반영된 업데이트 버전 |
 | 7 (E) | `insights.md` | LLM agent의 정성 분석 (업데이트된 analysis.md 기반) |
-| 8 (F) | `comprehensive_report.md` / `.html` | Part 1+2+3 통합 종합 보고서 |
+| 8 (F) | `comprehensive_report.md` | 통합 보고서 — Executive Summary + Part 1+2+3 |
+| 8 (G) | `comprehensive_report.html` | Chart.js 인터랙티브 차트 내장 HTML (bar, radar, trend, sentinel) |
+| 8 (H) | `dashboard.html` | 독립 실행형 인터랙티브 대시보드 (Chart.js — 6종 차트, 정렬 가능 순위표) |
 
 > **파이프라인 순서가 중요합니다**: Runnability (Stage 5)가 insights (Stage 7)보다 먼저
 > 실행되어야 insights.md의 정성 분석이 Runnability가 반영된 최신 Overall 점수를 기반으로

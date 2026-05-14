@@ -27,6 +27,7 @@ Examples:
 from __future__ import annotations
 
 import argparse
+import html as html_mod
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -457,6 +458,12 @@ def _generate_comprehensive_report(report_dir: Path) -> None:
     parts.append("---")
     parts.append("")
 
+    # Executive Summary — ranked tool table
+    parts.append(_render_executive_summary(report_dir))
+    parts.append("")
+    parts.append("---")
+    parts.append("")
+
     # Part 1: analysis.md
     analysis_path = report_dir / "analysis.md"
     if analysis_path.is_file():
@@ -501,15 +508,695 @@ def _generate_comprehensive_report(report_dir: Path) -> None:
     parts.append("- 정량 분석 (세션 단위 raw JSON): [`analysis.json`](./analysis.json)")
     parts.append("- 세션 행 단위 CSV: [`per_session.csv`](./per_session.csv)")
     parts.append("- 분석 단계별 .md: [`analysis.md`](./analysis.md) · [`insights.md`](./insights.md)")
+    parts.append("- 인터랙티브 대시보드: [`dashboard.html`](./dashboard.html)")
     parts.append("")
 
     out_path = report_dir / "comprehensive_report.md"
     out_path.write_text("\n".join(parts), encoding="utf-8")
     print(f"\n✓ Wrote comprehensive report: {out_path}")
 
-    # Generate HTML version of comprehensive report
+    # Generate HTML version of comprehensive report (enhanced with Chart.js)
     html_out = report_dir / "comprehensive_report.html"
-    md_file_to_html(out_path, html_out, title="DEEPX Agentic Development — 종합 보고서")
+    _write_comprehensive_html(out_path, html_out, report_dir)
+
+    # Generate standalone interactive dashboard
+    _generate_dashboard_html(report_dir)
+
+
+def _render_executive_summary(report_dir: Path) -> str:
+    """Build Executive Summary with sorted tool rankings from analysis.json."""
+    import json as _json
+
+    json_path = report_dir / "analysis.json"
+    if not json_path.is_file():
+        return ""
+
+    data = _json.loads(json_path.read_text(encoding="utf-8"))
+    per_tool = data.get("per_tool", {})
+    if not per_tool:
+        return ""
+
+    # Build ranked list sorted by avg_overall_score descending
+    ranked = []
+    for tool, m in per_tool.items():
+        ranked.append({
+            "tool": tool,
+            "overall": m.get("avg_overall_score", 0),
+            "compliance": m.get("avg_compliance_pct", 0),
+            "quality": m.get("avg_quality_score", 0),
+            "sessions": m.get("sessions", 0),
+            "duration": m.get("avg_duration_sec", 0),
+            "stdev_overall": m.get("stdev_overall_score", 0),
+            "start_sentinel": m.get("pct_with_start_sentinel", 0),
+            "done_sentinel": m.get("pct_with_done_sentinel", 0),
+            "exit_0": m.get("pct_exit_0", 0),
+            "tool_calls": m.get("avg_tool_calls", 0),
+            "python_loc": m.get("avg_python_loc", 0),
+        })
+    ranked.sort(key=lambda x: x["overall"], reverse=True)
+
+    meta = data.get("meta", {})
+    total_sessions = meta.get("session_count", sum(r["sessions"] for r in ranked))
+    total_rounds = len(meta.get("rounds", []))
+    total_scenarios = len(meta.get("scenarios", []))
+
+    lines = []
+    lines.append("# Executive Summary — 도구별 종합 순위")
+    lines.append("")
+    lines.append(f"> **{total_sessions}** sessions = "
+                 f"**{len(ranked)}** tools × **{total_rounds}** rounds × "
+                 f"**{total_scenarios}** scenarios")
+    lines.append("")
+
+    # Main ranking table
+    lines.append("## 종합 순위 (Overall Score 기준)")
+    lines.append("")
+    lines.append("| Rank | Tool | Overall | Compliance | Quality | σ(Overall) | Sessions | Avg Duration |")
+    lines.append("|:----:|------|--------:|-----------:|--------:|-----------:|--------:|-------------:|")
+    medals = ["🥇", "🥈", "🥉", "4", "5"]
+    for i, r in enumerate(ranked):
+        dur_min = int(r["duration"] // 60)
+        dur_sec = int(r["duration"] % 60)
+        lines.append(
+            f"| {medals[i] if i < 5 else i+1} "
+            f"| **{r['tool']}** "
+            f"| **{r['overall']:.1f}** "
+            f"| {r['compliance']:.1f}% "
+            f"| {r['quality']:.1f} "
+            f"| ±{r['stdev_overall']:.1f} "
+            f"| {r['sessions']} "
+            f"| {dur_min}m {dur_sec}s |"
+        )
+    lines.append("")
+
+    # Sentinel / exit compliance mini-table
+    lines.append("## Sentinel & Exit Code 준수율")
+    lines.append("")
+    lines.append("| Tool | START Sentinel | DONE Sentinel | Exit 0 | Avg Tool Calls | Avg Python LOC |")
+    lines.append("|------|---------------:|--------------:|-------:|---------------:|---------------:|")
+    for r in ranked:
+        lines.append(
+            f"| {r['tool']} "
+            f"| {r['start_sentinel']:.1f}% "
+            f"| {r['done_sentinel']:.1f}% "
+            f"| {r['exit_0']:.1f}% "
+            f"| {r['tool_calls']:.1f} "
+            f"| {r['python_loc']:.0f} |"
+        )
+    lines.append("")
+
+    # Key findings
+    best = ranked[0]
+    worst = ranked[-1]
+    lines.append("## 주요 발견 (Key Findings)")
+    lines.append("")
+    lines.append(f"- **최고 종합 점수**: {best['tool']} ({best['overall']:.1f})")
+    lines.append(f"- **최저 종합 점수**: {worst['tool']} ({worst['overall']:.1f})")
+    lines.append(f"- **점수 차이**: {best['overall'] - worst['overall']:.1f}점 "
+                 f"({((best['overall'] - worst['overall']) / worst['overall'] * 100):.1f}% 격차)")
+    # Find best per dimension
+    best_compliance = max(ranked, key=lambda x: x["compliance"])
+    best_quality = max(ranked, key=lambda x: x["quality"])
+    fastest = min(ranked, key=lambda x: x["duration"])
+    lines.append(f"- **최고 Compliance**: {best_compliance['tool']} ({best_compliance['compliance']:.1f}%)")
+    lines.append(f"- **최고 Quality**: {best_quality['tool']} ({best_quality['quality']:.1f})")
+    lines.append(f"- **최단 평균 실행시간**: {fastest['tool']} "
+                 f"({int(fastest['duration']//60)}m {int(fastest['duration']%60)}s)")
+    lines.append("")
+    lines.append("> 📊 **인터랙티브 차트**: [`dashboard.html`](./dashboard.html) 에서 "
+                 "시각적 비교 그래프를 확인할 수 있습니다.")
+    lines.append("")
+
+    return "\n".join(lines)
+
+
+def _write_comprehensive_html(md_path: Path, html_path: Path, report_dir: Path) -> None:
+    """Write comprehensive_report.html with Chart.js charts injected at the top."""
+    import json as _json
+
+    if not md_path.exists():
+        return
+
+    md_content = md_path.read_text(encoding="utf-8")
+    body = _md_to_html_import(md_content)
+    title = "DEEPX Agentic Development — 종합 보고서"
+
+    # Load analysis.json for chart data
+    json_path = report_dir / "analysis.json"
+    chart_section = ""
+    if json_path.is_file():
+        data = _json.loads(json_path.read_text(encoding="utf-8"))
+        chart_section = _build_chart_section(data)
+
+    html = f"""<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{html_mod.escape(title)}</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<style>
+{_get_comprehensive_css()}
+</style>
+</head>
+<body>
+<div class="container">
+{chart_section}
+{body}
+</div>
+</body>
+</html>"""
+
+    html_path.write_text(html, encoding="utf-8")
+
+
+def _build_chart_section(data: dict) -> str:
+    """Build HTML section with Chart.js charts from analysis.json data."""
+    import json as _json
+
+    per_tool = data.get("per_tool", {})
+    if not per_tool:
+        return ""
+
+    # Sort tools by overall score
+    ranked = sorted(per_tool.items(), key=lambda x: x[1].get("avg_overall_score", 0), reverse=True)
+    tools = [t[0] for t in ranked]
+    overall = [round(t[1].get("avg_overall_score", 0), 1) for t in ranked]
+    compliance = [round(t[1].get("avg_compliance_pct", 0), 1) for t in ranked]
+    quality = [round(t[1].get("avg_quality_score", 0), 1) for t in ranked]
+    duration = [round(t[1].get("avg_duration_sec", 0) / 60, 1) for t in ranked]
+    start_s = [round(t[1].get("pct_with_start_sentinel", 0), 1) for t in ranked]
+    done_s = [round(t[1].get("pct_with_done_sentinel", 0), 1) for t in ranked]
+
+    # Round trend data
+    per_rt = data.get("per_round_tool", {})
+    rounds_set = sorted({int(k.split("__")[0][1:]) for k in per_rt})
+    tool_set = sorted(per_tool.keys())
+    trend_data = {}
+    for tool in tool_set:
+        trend_data[tool] = []
+        for r in rounds_set:
+            key = f"R{r}__{tool}"
+            val = per_rt.get(key, {}).get("avg_overall_score", None)
+            trend_data[tool].append(round(val, 1) if val is not None else None)
+
+    colors = [
+        "rgba(54, 162, 235, 0.8)",   # blue - copilot
+        "rgba(75, 192, 192, 0.8)",   # teal - opencode
+        "rgba(255, 159, 64, 0.8)",   # orange - codex
+        "rgba(153, 102, 255, 0.8)",  # purple - cursor
+        "rgba(255, 99, 132, 0.8)",   # red - claude
+    ]
+    border_colors = [c.replace("0.8", "1") for c in colors]
+
+    # Assign colors by tool name (stable mapping)
+    tool_color_map = {
+        "copilot-cli": 0, "opencode-cli": 1, "codex-cli": 2,
+        "cursor-cli": 3, "claude-code": 4,
+    }
+
+    def _tc(tool_name):
+        idx = tool_color_map.get(tool_name, hash(tool_name) % len(colors))
+        return colors[idx]
+
+    def _tbc(tool_name):
+        idx = tool_color_map.get(tool_name, hash(tool_name) % len(colors))
+        return border_colors[idx]
+
+    return f"""
+<div class="chart-dashboard">
+  <h2>📊 Visual Summary — Tool Comparison Charts</h2>
+  <p class="chart-subtitle">analysis.json 기반 자동 생성 | 인터랙티브 차트는
+    <a href="./dashboard.html">dashboard.html</a> 참조</p>
+
+  <div class="chart-grid">
+    <div class="chart-card">
+      <h3>Overall Score (종합 점수)</h3>
+      <canvas id="chartOverall" height="200"></canvas>
+    </div>
+    <div class="chart-card">
+      <h3>Compliance vs Quality</h3>
+      <canvas id="chartCompQual" height="200"></canvas>
+    </div>
+    <div class="chart-card">
+      <h3>Sentinel 준수율</h3>
+      <canvas id="chartSentinel" height="200"></canvas>
+    </div>
+    <div class="chart-card">
+      <h3>평균 실행시간 (분)</h3>
+      <canvas id="chartDuration" height="200"></canvas>
+    </div>
+  </div>
+
+  <div class="chart-card chart-wide">
+    <h3>Round별 Overall Score 추이</h3>
+    <canvas id="chartTrend" height="120"></canvas>
+  </div>
+</div>
+
+<script>
+(function() {{
+  const tools = {_json.dumps(tools)};
+  const overall = {_json.dumps(overall)};
+  const compliance = {_json.dumps(compliance)};
+  const quality = {_json.dumps(quality)};
+  const duration = {_json.dumps(duration)};
+  const startS = {_json.dumps(start_s)};
+  const doneS = {_json.dumps(done_s)};
+  const toolColors = tools.map(t => ({{
+    'copilot-cli': 'rgba(54,162,235,0.8)',
+    'opencode-cli': 'rgba(75,192,192,0.8)',
+    'codex-cli': 'rgba(255,159,64,0.8)',
+    'cursor-cli': 'rgba(153,102,255,0.8)',
+    'claude-code': 'rgba(255,99,132,0.8)',
+  }})[t] || 'rgba(128,128,128,0.8)');
+  const toolBorders = toolColors.map(c => c.replace('0.8', '1'));
+
+  // 1. Overall Score bar chart
+  new Chart(document.getElementById('chartOverall'), {{
+    type: 'bar',
+    data: {{
+      labels: tools,
+      datasets: [{{ label: 'Overall Score', data: overall,
+        backgroundColor: toolColors, borderColor: toolBorders, borderWidth: 1 }}]
+    }},
+    options: {{
+      indexAxis: 'y',
+      scales: {{ x: {{ min: 0, max: 100 }} }},
+      plugins: {{ legend: {{ display: false }} }}
+    }}
+  }});
+
+  // 2. Compliance vs Quality grouped bar
+  new Chart(document.getElementById('chartCompQual'), {{
+    type: 'bar',
+    data: {{
+      labels: tools,
+      datasets: [
+        {{ label: 'Compliance %', data: compliance,
+           backgroundColor: 'rgba(54,162,235,0.6)', borderColor: 'rgba(54,162,235,1)', borderWidth: 1 }},
+        {{ label: 'Quality', data: quality,
+           backgroundColor: 'rgba(75,192,192,0.6)', borderColor: 'rgba(75,192,192,1)', borderWidth: 1 }}
+      ]
+    }},
+    options: {{ scales: {{ y: {{ min: 50, max: 100 }} }} }}
+  }});
+
+  // 3. Sentinel compliance grouped bar
+  new Chart(document.getElementById('chartSentinel'), {{
+    type: 'bar',
+    data: {{
+      labels: tools,
+      datasets: [
+        {{ label: 'START Sentinel %', data: startS,
+           backgroundColor: 'rgba(54,162,235,0.6)', borderWidth: 1 }},
+        {{ label: 'DONE Sentinel %', data: doneS,
+           backgroundColor: 'rgba(255,206,86,0.6)', borderWidth: 1 }}
+      ]
+    }},
+    options: {{ scales: {{ y: {{ min: 50, max: 100 }} }} }}
+  }});
+
+  // 4. Duration bar
+  new Chart(document.getElementById('chartDuration'), {{
+    type: 'bar',
+    data: {{
+      labels: tools,
+      datasets: [{{ label: 'Avg Duration (min)', data: duration,
+        backgroundColor: toolColors, borderColor: toolBorders, borderWidth: 1 }}]
+    }},
+    options: {{ plugins: {{ legend: {{ display: false }} }} }}
+  }});
+
+  // 5. Round trend line chart
+  const trendData = {_json.dumps(trend_data)};
+  const rounds = {_json.dumps([f"R{r}" for r in rounds_set])};
+  const trendDatasets = Object.keys(trendData).sort().map(tool => ({{
+    label: tool,
+    data: trendData[tool],
+    borderColor: ({{
+      'copilot-cli': 'rgba(54,162,235,1)',
+      'opencode-cli': 'rgba(75,192,192,1)',
+      'codex-cli': 'rgba(255,159,64,1)',
+      'cursor-cli': 'rgba(153,102,255,1)',
+      'claude-code': 'rgba(255,99,132,1)',
+    }})[tool] || 'rgba(128,128,128,1)',
+    fill: false,
+    tension: 0.3,
+    pointRadius: 2,
+    spanGaps: true,
+  }}));
+
+  new Chart(document.getElementById('chartTrend'), {{
+    type: 'line',
+    data: {{ labels: rounds, datasets: trendDatasets }},
+    options: {{
+      scales: {{ y: {{ min: 30, max: 100 }} }},
+      plugins: {{ legend: {{ position: 'bottom' }} }}
+    }}
+  }});
+}})();
+</script>
+"""
+
+
+def _get_comprehensive_css() -> str:
+    """CSS for comprehensive_report.html (report + charts)."""
+    return """
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+       max-width: 1200px; margin: 0 auto; padding: 20px; background: #fafafa; color: #333; }
+.container { background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,.1); }
+h1 { color: #1a1a2e; border-bottom: 2px solid #16213e; padding-bottom: 10px; }
+h2 { color: #16213e; margin-top: 30px; }
+h3 { color: #0f3460; }
+table { border-collapse: collapse; width: 100%; margin: 15px 0; font-size: 14px; }
+th { background: #16213e; color: #fff; padding: 10px 12px; text-align: left; }
+td { padding: 8px 12px; border-bottom: 1px solid #e0e0e0; }
+tr:hover td { background: #f0f4ff; }
+blockquote { border-left: 4px solid #16213e; padding: 10px 15px; margin: 15px 0;
+             background: #f8f9fa; color: #555; }
+code { background: #f0f0f0; padding: 2px 6px; border-radius: 3px; font-size: 0.9em; }
+pre { background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 5px; overflow-x: auto; }
+pre code { background: transparent; color: inherit; padding: 0; }
+ul { padding-left: 25px; }
+li { margin-bottom: 5px; }
+a { color: #0066cc; }
+.badge-pass { color: #28a745; }
+.badge-fail { color: #dc3545; }
+.badge-partial { color: #ffc107; }
+.chart-dashboard { margin: 30px 0; padding: 20px; background: #f4f7ff; border-radius: 10px;
+                   border: 1px solid #d0d9f0; }
+.chart-dashboard h2 { color: #1a1a2e; margin-top: 0; }
+.chart-subtitle { color: #666; font-size: 0.9em; margin-bottom: 20px; }
+.chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+.chart-card { background: #fff; padding: 15px; border-radius: 8px;
+              box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+.chart-card h3 { margin: 0 0 10px 0; font-size: 0.95em; color: #333; }
+.chart-wide { grid-column: 1 / -1; }
+@media (max-width: 768px) { .chart-grid { grid-template-columns: 1fr; } }
+"""
+
+
+def _md_to_html_import(md_text: str) -> str:
+    """Delegate to lib/report._md_to_html for comprehensive report."""
+    sys.path.insert(0, str(HERE))
+    try:
+        from lib.report import _md_to_html  # type: ignore
+    finally:
+        sys.path.pop(0)
+    return _md_to_html(md_text)
+
+
+def _generate_dashboard_html(report_dir: Path) -> None:
+    """Generate a standalone interactive dashboard.html from analysis.json."""
+    import json as _json
+
+    json_path = report_dir / "analysis.json"
+    if not json_path.is_file():
+        return
+
+    data = _json.loads(json_path.read_text(encoding="utf-8"))
+    per_tool = data.get("per_tool", {})
+    per_rt = data.get("per_round_tool", {})
+    per_st = data.get("per_scenario_tool", {})
+    meta = data.get("meta", {})
+
+    if not per_tool:
+        return
+
+    # Prepare data
+    ranked = sorted(per_tool.items(), key=lambda x: x[1].get("avg_overall_score", 0), reverse=True)
+    tools = [t[0] for t in ranked]
+    tools_sorted_alpha = sorted(per_tool.keys())
+
+    # Round trend
+    rounds_set = sorted({int(k.split("__")[0][1:]) for k in per_rt})
+    trend_data = {}
+    for tool in tools_sorted_alpha:
+        trend_data[tool] = []
+        for r in rounds_set:
+            key = f"R{r}__{tool}"
+            val = per_rt.get(key, {}).get("avg_overall_score", None)
+            trend_data[tool].append(round(val, 1) if val is not None else None)
+
+    # Scenario breakdown
+    scenarios = sorted(meta.get("scenarios", []))
+    scenario_data = {}
+    for tool in tools_sorted_alpha:
+        scenario_data[tool] = {}
+        for sc in scenarios:
+            key = f"{sc}__{tool}"
+            val = per_st.get(key, {}).get("avg_overall_score", None)
+            scenario_data[tool][sc] = round(val, 1) if val is not None else 0
+
+    # Radar dimensions (normalize to 0-100)
+    radar_dims = ["Overall", "Compliance", "Quality", "START Sentinel", "DONE Sentinel"]
+    radar_data = {}
+    for tool, m in per_tool.items():
+        radar_data[tool] = [
+            round(m.get("avg_overall_score", 0), 1),
+            round(m.get("avg_compliance_pct", 0), 1),
+            round(m.get("avg_quality_score", 0), 1),
+            round(m.get("pct_with_start_sentinel", 0), 1),
+            round(m.get("pct_with_done_sentinel", 0), 1),
+        ]
+
+    dashboard_data = {
+        "meta": meta,
+        "tools": tools,
+        "tools_alpha": tools_sorted_alpha,
+        "per_tool": {t: {
+            "overall": round(m.get("avg_overall_score", 0), 1),
+            "compliance": round(m.get("avg_compliance_pct", 0), 1),
+            "quality": round(m.get("avg_quality_score", 0), 1),
+            "stdev": round(m.get("stdev_overall_score", 0), 1),
+            "duration_min": round(m.get("avg_duration_sec", 0) / 60, 1),
+            "sessions": m.get("sessions", 0),
+            "start_sentinel": round(m.get("pct_with_start_sentinel", 0), 1),
+            "done_sentinel": round(m.get("pct_with_done_sentinel", 0), 1),
+            "exit_0": round(m.get("pct_exit_0", 0), 1),
+            "tool_calls": round(m.get("avg_tool_calls", 0), 1),
+            "python_loc": round(m.get("avg_python_loc", 0), 0),
+        } for t, m in per_tool.items()},
+        "rounds": [f"R{r}" for r in rounds_set],
+        "trend": trend_data,
+        "scenarios": scenarios,
+        "scenario_data": scenario_data,
+        "radar_dims": radar_dims,
+        "radar_data": radar_data,
+    }
+
+    html = _DASHBOARD_TEMPLATE.replace("__DATA_PLACEHOLDER__", _json.dumps(dashboard_data, indent=2))
+    out_path = report_dir / "dashboard.html"
+    out_path.write_text(html, encoding="utf-8")
+    print(f"✓ Wrote dashboard: {out_path}")
+
+
+_DASHBOARD_TEMPLATE = r"""<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DEEPX Agentic Development — E2E Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+       background: #0f172a; color: #e2e8f0; }
+.header { background: linear-gradient(135deg, #1e293b, #334155); padding: 30px 40px;
+           border-bottom: 3px solid #3b82f6; }
+.header h1 { font-size: 1.8em; color: #f1f5f9; margin-bottom: 5px; }
+.header p { color: #94a3b8; font-size: 0.95em; }
+.main { max-width: 1400px; margin: 0 auto; padding: 30px; }
+.rank-section { margin-bottom: 30px; }
+.rank-section h2 { color: #93c5fd; margin-bottom: 15px; font-size: 1.3em; }
+.rank-table { width: 100%; border-collapse: collapse; background: #1e293b;
+              border-radius: 8px; overflow: hidden; }
+.rank-table th { background: #334155; color: #93c5fd; padding: 12px 15px;
+                 text-align: left; font-size: 0.85em; text-transform: uppercase;
+                 letter-spacing: 0.5px; }
+.rank-table td { padding: 10px 15px; border-bottom: 1px solid #334155; font-size: 0.95em; }
+.rank-table tr:hover td { background: #283548; }
+.rank-table .medal { font-size: 1.2em; }
+.rank-table .tool-name { font-weight: 600; color: #f1f5f9; }
+.rank-table .score { font-weight: 700; }
+.rank-table .score-high { color: #4ade80; }
+.rank-table .score-mid { color: #facc15; }
+.rank-table .score-low { color: #f87171; }
+.score-bar { display: inline-block; height: 8px; border-radius: 4px; margin-left: 8px; vertical-align: middle; }
+.chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 25px 0; }
+.chart-card { background: #1e293b; border-radius: 10px; padding: 20px;
+              border: 1px solid #334155; }
+.chart-card h3 { color: #93c5fd; margin-bottom: 12px; font-size: 1em; }
+.chart-wide { grid-column: 1 / -1; }
+.findings { background: #1e293b; border-radius: 10px; padding: 20px; margin: 25px 0;
+            border: 1px solid #334155; }
+.findings h2 { color: #93c5fd; margin-bottom: 15px; }
+.findings ul { list-style: none; padding: 0; }
+.findings li { padding: 8px 0; border-bottom: 1px solid #334155; font-size: 0.95em; }
+.findings li:last-child { border-bottom: none; }
+.findings .label { color: #94a3b8; display: inline-block; min-width: 180px; }
+.findings .value { color: #f1f5f9; font-weight: 600; }
+.footer { text-align: center; padding: 20px; color: #64748b; font-size: 0.85em; }
+a { color: #60a5fa; }
+@media (max-width: 900px) { .chart-grid { grid-template-columns: 1fr; } .main { padding: 15px; } }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>📊 DEEPX Agentic Development — E2E Dashboard</h1>
+  <p id="subtitle">Loading...</p>
+</div>
+<div class="main">
+  <div class="rank-section"><h2>🏆 Tool Rankings (Overall Score)</h2>
+    <table class="rank-table"><thead><tr>
+      <th>Rank</th><th>Tool</th><th>Overall</th><th>Compliance</th>
+      <th>Quality</th><th>σ</th><th>Sessions</th><th>Avg Duration</th>
+    </tr></thead><tbody id="rankBody"></tbody></table>
+  </div>
+
+  <div class="chart-grid">
+    <div class="chart-card"><h3>Overall Score Comparison</h3><canvas id="cOverall"></canvas></div>
+    <div class="chart-card"><h3>Radar — Multi-Dimension</h3><canvas id="cRadar"></canvas></div>
+    <div class="chart-card"><h3>Compliance vs Quality</h3><canvas id="cCompQual"></canvas></div>
+    <div class="chart-card"><h3>Average Duration (min)</h3><canvas id="cDuration"></canvas></div>
+    <div class="chart-card chart-wide"><h3>Round-over-Round Overall Score Trend</h3><canvas id="cTrend" height="100"></canvas></div>
+    <div class="chart-card chart-wide"><h3>Scenario Breakdown (Overall Score per Tool × Scenario)</h3><canvas id="cScenario" height="100"></canvas></div>
+  </div>
+
+  <div class="findings"><h2>📋 Key Findings</h2><ul id="findingsList"></ul></div>
+  <div class="footer">
+    Generated by <code>analyze.py</code> | Data: <a href="./analysis.json">analysis.json</a>
+    | Full report: <a href="./comprehensive_report.html">comprehensive_report.html</a>
+  </div>
+</div>
+
+<script>
+const D = __DATA_PLACEHOLDER__;
+const COLORS = {
+  'copilot-cli':  {bg:'rgba(54,162,235,0.7)',  border:'rgba(54,162,235,1)'},
+  'opencode-cli': {bg:'rgba(75,192,192,0.7)',  border:'rgba(75,192,192,1)'},
+  'codex-cli':    {bg:'rgba(255,159,64,0.7)',  border:'rgba(255,159,64,1)'},
+  'cursor-cli':   {bg:'rgba(153,102,255,0.7)', border:'rgba(153,102,255,1)'},
+  'claude-code':  {bg:'rgba(255,99,132,0.7)',  border:'rgba(255,99,132,1)'},
+};
+function tc(t) { return COLORS[t] || {bg:'rgba(128,128,128,0.7)',border:'rgba(128,128,128,1)'}; }
+const medals = ['🥇','🥈','🥉'];
+
+// Subtitle
+document.getElementById('subtitle').textContent =
+  `${D.meta.session_count} sessions | ${D.meta.tools.length} tools | ${D.meta.rounds.length} rounds | ${D.meta.scenarios.length} scenarios`;
+
+// Ranking table
+const rb = document.getElementById('rankBody');
+D.tools.forEach((t,i) => {
+  const m = D.per_tool[t];
+  const cls = m.overall >= 75 ? 'score-high' : m.overall >= 65 ? 'score-mid' : 'score-low';
+  const dur = `${Math.floor(m.duration_min)}m ${Math.round((m.duration_min%1)*60)}s`;
+  const barW = Math.round(m.overall);
+  rb.innerHTML += `<tr>
+    <td class="medal">${i<3?medals[i]:i+1}</td>
+    <td class="tool-name">${t}</td>
+    <td class="score ${cls}">${m.overall}
+      <span class="score-bar" style="width:${barW}px;background:${tc(t).bg}"></span></td>
+    <td>${m.compliance}%</td><td>${m.quality}</td>
+    <td>±${m.stdev}</td><td>${m.sessions}</td><td>${dur}</td></tr>`;
+});
+
+// Chart defaults
+Chart.defaults.color = '#94a3b8';
+Chart.defaults.borderColor = '#334155';
+
+// 1. Overall bar (horizontal)
+new Chart(document.getElementById('cOverall'), {
+  type: 'bar',
+  data: { labels: D.tools,
+    datasets: [{ data: D.tools.map(t=>D.per_tool[t].overall),
+      backgroundColor: D.tools.map(t=>tc(t).bg), borderColor: D.tools.map(t=>tc(t).border), borderWidth:1 }]
+  },
+  options: { indexAxis:'y', scales:{x:{min:0,max:100}}, plugins:{legend:{display:false}} }
+});
+
+// 2. Radar
+new Chart(document.getElementById('cRadar'), {
+  type: 'radar',
+  data: { labels: D.radar_dims,
+    datasets: D.tools_alpha.map(t=>({
+      label: t, data: D.radar_data[t],
+      borderColor: tc(t).border, backgroundColor: tc(t).bg.replace('0.7','0.15'),
+      borderWidth: 2, pointRadius: 3,
+    }))
+  },
+  options: { scales: { r: { min:50, max:100, ticks:{stepSize:10} } },
+             plugins: { legend: { position:'bottom' } } }
+});
+
+// 3. Compliance vs Quality grouped bar
+new Chart(document.getElementById('cCompQual'), {
+  type: 'bar',
+  data: { labels: D.tools,
+    datasets: [
+      { label:'Compliance %', data: D.tools.map(t=>D.per_tool[t].compliance),
+        backgroundColor:'rgba(54,162,235,0.6)' },
+      { label:'Quality', data: D.tools.map(t=>D.per_tool[t].quality),
+        backgroundColor:'rgba(75,192,192,0.6)' }
+    ]
+  },
+  options: { scales:{y:{min:50,max:100}} }
+});
+
+// 4. Duration bar
+new Chart(document.getElementById('cDuration'), {
+  type: 'bar',
+  data: { labels: D.tools,
+    datasets: [{ data: D.tools.map(t=>D.per_tool[t].duration_min),
+      backgroundColor: D.tools.map(t=>tc(t).bg), borderWidth:1 }]
+  },
+  options: { plugins:{legend:{display:false}} }
+});
+
+// 5. Round trend line
+new Chart(document.getElementById('cTrend'), {
+  type: 'line',
+  data: { labels: D.rounds,
+    datasets: D.tools_alpha.map(t=>({
+      label: t, data: D.trend[t],
+      borderColor: tc(t).border, fill:false, tension:0.3, pointRadius:2, spanGaps:true,
+    }))
+  },
+  options: { scales:{y:{min:20,max:100}}, plugins:{legend:{position:'bottom'}} }
+});
+
+// 6. Scenario breakdown grouped bar
+const scDatasets = D.tools_alpha.map(t=>({
+  label: t, data: D.scenarios.map(s => D.scenario_data[t][s] || 0),
+  backgroundColor: tc(t).bg, borderColor: tc(t).border, borderWidth:1,
+}));
+new Chart(document.getElementById('cScenario'), {
+  type: 'bar',
+  data: { labels: D.scenarios, datasets: scDatasets },
+  options: { scales:{y:{min:0,max:100}}, plugins:{legend:{position:'bottom'}} }
+});
+
+// Key findings
+const fl = document.getElementById('findingsList');
+const best = D.tools[0], worst = D.tools[D.tools.length-1];
+const bm = D.per_tool[best], wm = D.per_tool[worst];
+const fastest = D.tools_alpha.reduce((a,b) => D.per_tool[a].duration_min < D.per_tool[b].duration_min ? a : b);
+const bestComp = D.tools_alpha.reduce((a,b) => D.per_tool[a].compliance > D.per_tool[b].compliance ? a : b);
+const bestQual = D.tools_alpha.reduce((a,b) => D.per_tool[a].quality > D.per_tool[b].quality ? a : b);
+[
+  ['최고 종합 점수', `${best} (${bm.overall})`],
+  ['최저 종합 점수', `${worst} (${wm.overall})`],
+  ['점수 격차', `${(bm.overall-wm.overall).toFixed(1)}점 (${((bm.overall-wm.overall)/wm.overall*100).toFixed(1)}%)`],
+  ['최고 Compliance', `${bestComp} (${D.per_tool[bestComp].compliance}%)`],
+  ['최고 Quality', `${bestQual} (${D.per_tool[bestQual].quality})`],
+  ['최단 평균 실행시간', `${fastest} (${Math.floor(D.per_tool[fastest].duration_min)}m ${Math.round((D.per_tool[fastest].duration_min%1)*60)}s)`],
+].forEach(([lbl,val]) => { fl.innerHTML += `<li><span class="label">${lbl}</span><span class="value">${val}</span></li>`; });
+</script>
+</body>
+</html>
+"""
 
 
 def _render_runnability_summary(report_dir: Path) -> str:

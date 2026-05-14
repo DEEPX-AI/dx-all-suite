@@ -36,7 +36,8 @@ Output files (default: `<suite-root>/dx-agentic-dev/e2e-tests/analyzer_reports/<
 - `analysis.json` — Machine-readable full data
 - `per_session.csv` — Flat table for spreadsheet import
 - `comprehensive_report.md` — Unified report (analysis + insights + runnability)
-- `comprehensive_report.html` — HTML version of comprehensive report
+- `comprehensive_report.html` — HTML version with Chart.js interactive charts (Executive Summary + visual comparisons)
+- `dashboard.html` — Standalone interactive dashboard (Chart.js — overall ranking, radar, round trends, scenario breakdown)
 
 > **I/O directories**: Tool code lives in `.deepx/tests/agentic_analyzer/` (git tracked).
 > Input (results) and output (analyzer_reports) live in `dx-agentic-dev/e2e-tests/` (gitignored).
@@ -162,10 +163,13 @@ When you run `python3 analyze.py`, the following stages execute in order:
 │          ↓                                                          │
 │  Stage 8: Comprehensive Report Assembly                             │
 │  ┌─────────────────────────────────────────────────────┐            │
+│  │ Part 0: Executive Summary (sorted tool rankings)      │            │
 │  │ Part 1: analysis.md (quantitative)                    │            │
 │  │ Part 2: insights.md (qualitative)                     │            │
 │  │ Part 3: runnability summary (slim)                    │            │
-│  │  → comprehensive_report.md + .html                    │  ← (F)   │
+│  │  → comprehensive_report.md                            │  ← (F)   │
+│  │  → comprehensive_report.html (with Chart.js charts)   │  ← (G)   │
+│  │  → dashboard.html (standalone interactive dashboard)  │  ← (H)   │
 │  └─────────────────────────────────────────────────────┘            │
 │                                                                     │
 └─────────────────────────────────────────────────────────────────────┘
@@ -181,7 +185,9 @@ When you run `python3 analyze.py`, the following stages execute in order:
 | 5 (D) | `runnability_report.md` | LLM agent's end-user runnability evaluation per session |
 | 6 (A') | `analysis.md` (rewritten) | Updated with Runnability scores merged into Overall |
 | 7 (E) | `insights.md` | LLM agent's qualitative analysis (reads updated analysis.md) |
-| 8 (F) | `comprehensive_report.md` / `.html` | Unified report assembling Parts 1+2+3 |
+| 8 (F) | `comprehensive_report.md` | Unified report — Executive Summary + Parts 1+2+3 |
+| 8 (G) | `comprehensive_report.html` | HTML with embedded Chart.js charts (bar, radar, trend, sentinel) |
+| 8 (H) | `dashboard.html` | Standalone interactive dashboard (Chart.js — 6 chart types, sortable ranking) |
 
 > **Pipeline ordering matters**: Runnability (Stage 5) runs BEFORE insights (Stage 7)
 > so that the qualitative analysis in insights.md reflects the updated Overall scores
