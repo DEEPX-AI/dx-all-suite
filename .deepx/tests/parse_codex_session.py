@@ -707,6 +707,77 @@ def render_codex_html(jsonl_path: Path, output_path: Path, **kwargs) -> Optional
         return None
 
 
+def render_markdown(session: ParsedSession) -> str:
+    """Render a ParsedSession as Markdown text."""
+    meta = session.metadata
+    title = meta.summary or f"Codex CLI Session {meta.session_id[:8] if meta.session_id else 'unknown'}"
+    lines: List[str] = [f"# {title}", ""]
+
+    lines.append("## Session Info")
+    lines.append("")
+    lines.append(f"- **Session ID:** `{meta.session_id or 'unknown'}`")
+    if meta.cwd:
+        lines.append(f"- **Working Dir:** `{meta.cwd}`")
+    if meta.repository:
+        lines.append(f"- **Repository:** `{meta.repository}`")
+    if meta.branch:
+        lines.append(f"- **Branch:** `{meta.branch}`")
+    if session.selected_model:
+        lines.append(f"- **Model:** `{session.selected_model}`")
+    if meta.model_provider:
+        lines.append(f"- **Provider:** `{meta.model_provider}`")
+    if session.start_time:
+        lines.append(f"- **Started:** {session.start_time}")
+    if session.end_time:
+        lines.append(f"- **Ended:** {session.end_time}")
+    lines.append(f"- **Turns:** {len(session.turns)}")
+    lines.append(f"- **Commands:** {session.total_commands} total, {session.failed_commands} failed")
+    lines.append("")
+
+    lines.append("## Conversation")
+    lines.append("")
+
+    for turn in session.turns:
+        if turn.user_content:
+            lines.append("### User")
+            lines.append("")
+            lines.append(turn.user_content)
+            lines.append("")
+
+        for tc in turn.tool_calls:
+            status = "✅" if tc.success else "❌" if tc.success is False else "⚙️"
+            lines.append(f"### {status} Tool: {tc.tool_name}")
+            lines.append("")
+            if tc.arguments and tc.arguments != "{}":
+                lines.append(f"```\n{tc.arguments[:2000]}\n```")
+            if tc.result_content:
+                content = tc.result_content[:2000]
+                if len(tc.result_content) > 2000:
+                    content += f"\n... ({len(tc.result_content) - 2000} chars truncated)"
+                lines.append(f"**Result:**\n```\n{content}\n```")
+            lines.append("")
+
+        if turn.assistant_content:
+            lines.append("### Assistant")
+            lines.append("")
+            lines.append(turn.assistant_content)
+            lines.append("")
+
+    return "\n".join(lines)
+
+
+def render_codex_md(jsonl_path: Path, output_path: Path, **kwargs) -> Optional[str]:
+    """Convenience: parse a Codex JSONL and render to Markdown in one call."""
+    try:
+        session = parse_codex_jsonl(jsonl_path, **kwargs)
+        md = render_markdown(session)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_text(md, encoding="utf-8")
+        return md
+    except Exception:
+        return None
+
+
 def _extract_timestamp(event: Dict[str, Any]) -> str:
     """Extract a display timestamp from common Codex event fields."""
     for key in ("timestamp", "created_at"):

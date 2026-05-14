@@ -55,7 +55,7 @@ from parse_copilot_session import (  # noqa: E402
     parse_and_render,
     parse_session,
 )
-from parse_codex_session import render_codex_html  # noqa: E402
+from parse_codex_session import render_codex_html, render_codex_md  # noqa: E402
 from parse_cursor_session import render_cursor_html  # noqa: E402
 from parse_opencode_session import OPENCODE_DB_PATH, render_opencode_html  # noqa: E402
 
@@ -1152,12 +1152,42 @@ class CursorRunnerAutopilot:
             except Exception:
                 pass
 
+            # T1: Generate session.md even on timeout (best-effort)
+            session_log = log_dir / f"{scenario_key}-cursor-session.md"
+            _raw_stderr_cur = exc.stderr.decode(errors="replace") if isinstance(exc.stderr, bytes) else ""
+            _save_cursor_session_log(
+                session_log, raw_stdout, _raw_stderr_cur, scenario_key, prompt, session_uuid,
+            )
+
+            # T5: DONE sentinel fallback for output_dirs
+            if assistant_text:
+                _done_re_cur = re.compile(r'\[DX-AGENTIC-DEV:\s*DONE\s*\(output-dir:\s*([^)]+)\)\]')
+                _done_match_cur = _done_re_cur.search(assistant_text)
+                if _done_match_cur:
+                    for part in _done_match_cur.group(1).split("+"):
+                        part = part.strip()
+                        candidate = SUITE_ROOT / part
+                        if candidate.is_dir() and candidate not in output_dirs:
+                            output_dirs.append(candidate)
+
+            # T2: Create symlinks even on timeout (best-effort)
+            for odir in output_dirs:
+                try:
+                    odir_real = odir.resolve()
+                    session_name = odir_real.name
+                    parent_name = odir_real.parent.parent.name
+                    link_path = log_dir / f"{scenario_key}-cursor-session_{parent_name}_{session_name}"
+                    link_path.unlink(missing_ok=True)
+                    link_path.symlink_to(odir_real)
+                except Exception:
+                    pass
+
             return ScenarioResult(
                 returncode=-1,
                 stdout=assistant_text or raw_stdout,
                 stderr=f"TIMEOUT after {timeout}s",
                 output_dirs=output_dirs,
-                session_log=None,
+                session_log=session_log if session_log.exists() else None,
                 session_events_log=session_events_log if session_events_log.exists() else None,
                 duration_seconds=duration,
                 prompt=prompt,
@@ -1470,12 +1500,31 @@ class OpenCodeRunnerAutopilot:
             except Exception:
                 pass
 
+            # T1: Generate session.md even on timeout (best-effort)
+            session_log = log_dir / f"{scenario_key}-opencode-session.md"
+            _raw_stderr_oc = exc.stderr.decode(errors="replace") if isinstance(exc.stderr, bytes) else ""
+            _save_opencode_session_log(
+                session_log, raw_stdout, _raw_stderr_oc, scenario_key, prompt, session_uuid,
+            )
+
+            # T2: Create symlinks even on timeout (best-effort)
+            for odir in output_dirs:
+                try:
+                    odir_real = odir.resolve()
+                    session_name = odir_real.name
+                    parent_name = odir_real.parent.parent.name
+                    link_path = log_dir / f"{scenario_key}-opencode-session_{parent_name}_{session_name}"
+                    link_path.unlink(missing_ok=True)
+                    link_path.symlink_to(odir_real)
+                except Exception:
+                    pass
+
             return ScenarioResult(
                 returncode=-1,
                 stdout=assistant_text or raw_stdout,
                 stderr=f"TIMEOUT after {timeout}s",
                 output_dirs=output_dirs,
-                session_log=None,
+                session_log=session_log if session_log.exists() else None,
                 session_events_log=session_events_log if session_events_log.exists() else None,
                 duration_seconds=duration,
                 prompt=prompt,
@@ -1663,6 +1712,21 @@ class ClaudeCodeRunnerAutopilot:
                 scenario_key, prompt, session_uuid,
             )
 
+            # T6: Generate HTML alongside MD (best-effort)
+            try:
+                from parse_claude_session import (
+                    find_sessions as _find_cc_sessions,
+                    parse_session as _parse_cc,
+                    render_html as _render_cc_html,
+                )
+                _cc_sessions = _find_cc_sessions(cwd=str(workdir), after=start_utc, before=end_utc)
+                if _cc_sessions:
+                    _cc_parsed = _parse_cc(_cc_sessions[0])
+                    _cc_html_path = log_dir / f"{scenario_key}-claude-code-session.html"
+                    _cc_html_path.write_text(_render_cc_html(_cc_parsed), encoding="utf-8")
+            except Exception:
+                pass
+
             session_events_log = log_dir / f"{scenario_key}-claude-code-stream.jsonl"
             try:
                 session_events_log.write_text(result.stdout, encoding="utf-8")
@@ -1740,6 +1804,7 @@ class ClaudeCodeRunnerAutopilot:
             end_utc = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
             raw_stdout = exc.stdout.decode(errors="replace") if isinstance(exc.stdout, bytes) else (exc.stdout or "")
+            raw_stderr = exc.stderr.decode(errors="replace") if isinstance(exc.stderr, bytes) else ""
             session_uuid, assistant_text = _parse_claude_code_stream_json(raw_stdout)
 
             session_events_log = log_dir / f"{scenario_key}-claude-code-stream.jsonl"
@@ -1748,12 +1813,46 @@ class ClaudeCodeRunnerAutopilot:
             except Exception:
                 pass
 
+            # T1: Generate session.md even on timeout (best-effort)
+            session_log = log_dir / f"{scenario_key}-claude-code-session.md"
+            _save_claude_code_session_log(
+                session_log, raw_stdout, raw_stderr,
+                scenario_key, prompt, session_uuid,
+            )
+
+            # T6: Generate HTML alongside MD (best-effort)
+            try:
+                from parse_claude_session import (
+                    find_sessions as _find_cc_sessions_t,
+                    parse_session as _parse_cc_t,
+                    render_html as _render_cc_html_t,
+                )
+                _cc_sessions_t = _find_cc_sessions_t(cwd=str(workdir), after=start_utc, before=end_utc)
+                if _cc_sessions_t:
+                    _cc_parsed_t = _parse_cc_t(_cc_sessions_t[0])
+                    _cc_html_t = log_dir / f"{scenario_key}-claude-code-session.html"
+                    _cc_html_t.write_text(_render_cc_html_t(_cc_parsed_t), encoding="utf-8")
+            except Exception:
+                pass
+
+            # T2: Create symlinks even on timeout (best-effort)
+            for odir in output_dirs:
+                try:
+                    odir_real = odir.resolve()
+                    session_name = odir_real.name
+                    parent_name = odir_real.parent.parent.name
+                    link_path = log_dir / f"{scenario_key}-claude-code-session_{parent_name}_{session_name}"
+                    link_path.unlink(missing_ok=True)
+                    link_path.symlink_to(odir_real)
+                except Exception:
+                    pass
+
             return ScenarioResult(
                 returncode=-1,
                 stdout=assistant_text or raw_stdout,
                 stderr=f"TIMEOUT after {timeout}s",
                 output_dirs=output_dirs,
-                session_log=None,
+                session_log=session_log if session_log.exists() else None,
                 session_events_log=session_events_log if session_events_log.exists() else None,
                 duration_seconds=duration,
                 prompt=prompt,
@@ -2571,6 +2670,18 @@ class CodexRunnerAutopilot:
             except Exception:
                 pass
 
+            # T4: Generate session.md from JSONL (best-effort)
+            session_md = log_dir / f"{scenario_key}-codex-session.md"
+            try:
+                render_codex_md(
+                    persistent_log or session_log,
+                    session_md,
+                    session_id_override=thread_id or None,
+                    scenario_key=scenario_key,
+                )
+            except Exception:
+                pass
+
             if result.stderr:
                 stderr_log = log_dir / f"{scenario_key}-codex-stderr.log"
                 try:
@@ -2672,6 +2783,18 @@ class CodexRunnerAutopilot:
                     session_id_override=thread_id or None,
                     scenario_key=scenario_key,
                     title=f"Codex CLI: {scenario_key}",
+                )
+            except Exception:
+                pass
+
+            # T4: Generate session.md from JSONL on timeout (best-effort)
+            session_md = log_dir / f"{scenario_key}-codex-session.md"
+            try:
+                render_codex_md(
+                    persistent_log or session_log,
+                    session_md,
+                    session_id_override=thread_id or None,
+                    scenario_key=scenario_key,
                 )
             except Exception:
                 pass
@@ -2970,17 +3093,23 @@ def copilot_cli_artifacts_dir(request):
     """Session-scoped artifacts dir for Copilot CLI autopilot runs.
 
     Path: ``dx-agentic-dev/e2e-tests/copilot_cli/autopilot/<session_id>/``
+
+    T3: Suite and runtime use separate directories to prevent artifact collision.
     """
     session_id = time.strftime("%Y%m%d_%H%M%S") + f"_{uuid.uuid4().hex[:6]}"
-    artifacts_dir = AGENTIC_E2E_ARTIFACTS_BASE / "copilot_cli" / "autopilot" / session_id
+    base = AGENTIC_E2E_ARTIFACTS_BASE / "copilot_cli" / "autopilot"
+    artifacts_dir = base / session_id
     artifacts_dir.mkdir(parents=True, exist_ok=True)
-    _register_artifacts_dir(request, "copilot_cli__suite", artifacts_dir)
+    suite_dir = base / f"{session_id}_suite"
+    suite_dir.mkdir(parents=True, exist_ok=True)
+    _register_artifacts_dir(request, "copilot_cli__suite", suite_dir)
     _register_artifacts_dir(request, "copilot_cli__runtime", artifacts_dir)
 
     yield artifacts_dir
 
     if os.environ.get("DX_AGENTIC_E2E_CLEANUP_ARTIFACTS"):
         _cleanup_artifacts_dir(artifacts_dir)
+        _cleanup_artifacts_dir(suite_dir)
 
 
 @pytest.fixture(scope="session")
@@ -2988,17 +3117,23 @@ def cursor_cli_artifacts_dir(request):
     """Session-scoped artifacts dir for Cursor CLI autopilot runs.
 
     Path: ``dx-agentic-dev/e2e-tests/cursor_cli/autopilot/<session_id>/``
+
+    T3: Suite and runtime use separate directories to prevent artifact collision.
     """
     session_id = time.strftime("%Y%m%d_%H%M%S") + f"_{uuid.uuid4().hex[:6]}"
-    artifacts_dir = AGENTIC_E2E_ARTIFACTS_BASE / "cursor_cli" / "autopilot" / session_id
+    base = AGENTIC_E2E_ARTIFACTS_BASE / "cursor_cli" / "autopilot"
+    artifacts_dir = base / session_id
     artifacts_dir.mkdir(parents=True, exist_ok=True)
-    _register_artifacts_dir(request, "cursor_cli__suite", artifacts_dir)
+    suite_dir = base / f"{session_id}_suite"
+    suite_dir.mkdir(parents=True, exist_ok=True)
+    _register_artifacts_dir(request, "cursor_cli__suite", suite_dir)
     _register_artifacts_dir(request, "cursor_cli__runtime", artifacts_dir)
 
     yield artifacts_dir
 
     if os.environ.get("DX_AGENTIC_E2E_CLEANUP_ARTIFACTS"):
         _cleanup_artifacts_dir(artifacts_dir)
+        _cleanup_artifacts_dir(suite_dir)
 
 
 @pytest.fixture(scope="session")
@@ -3064,17 +3199,23 @@ def opencode_artifacts_dir(request):
     """Session-scoped artifacts dir for OpenCode autopilot runs.
 
     Path: ``dx-agentic-dev/e2e-tests/opencode/autopilot/<session_id>/``
+
+    T3: Suite and runtime use separate directories to prevent artifact collision.
     """
     session_id = time.strftime("%Y%m%d_%H%M%S") + f"_{uuid.uuid4().hex[:6]}"
-    artifacts_dir = AGENTIC_E2E_ARTIFACTS_BASE / "opencode" / "autopilot" / session_id
+    base = AGENTIC_E2E_ARTIFACTS_BASE / "opencode" / "autopilot"
+    artifacts_dir = base / session_id
     artifacts_dir.mkdir(parents=True, exist_ok=True)
-    _register_artifacts_dir(request, "opencode__suite", artifacts_dir)
+    suite_dir = base / f"{session_id}_suite"
+    suite_dir.mkdir(parents=True, exist_ok=True)
+    _register_artifacts_dir(request, "opencode__suite", suite_dir)
     _register_artifacts_dir(request, "opencode__runtime", artifacts_dir)
 
     yield artifacts_dir
 
     if os.environ.get("DX_AGENTIC_E2E_CLEANUP_ARTIFACTS"):
         _cleanup_artifacts_dir(artifacts_dir)
+        _cleanup_artifacts_dir(suite_dir)
 
 
 @pytest.fixture(scope="session")
@@ -3082,17 +3223,23 @@ def claude_code_artifacts_dir(request):
     """Session-scoped artifacts dir for Claude Code autopilot runs.
 
     Path: ``dx-agentic-dev/e2e-tests/claude_code/autopilot/<session_id>/``
+
+    T3: Suite and runtime use separate directories to prevent artifact collision.
     """
     session_id = time.strftime("%Y%m%d_%H%M%S") + f"_{uuid.uuid4().hex[:6]}"
-    artifacts_dir = AGENTIC_E2E_ARTIFACTS_BASE / "claude_code" / "autopilot" / session_id
+    base = AGENTIC_E2E_ARTIFACTS_BASE / "claude_code" / "autopilot"
+    artifacts_dir = base / session_id
     artifacts_dir.mkdir(parents=True, exist_ok=True)
-    _register_artifacts_dir(request, "claude_code__suite", artifacts_dir)
+    suite_dir = base / f"{session_id}_suite"
+    suite_dir.mkdir(parents=True, exist_ok=True)
+    _register_artifacts_dir(request, "claude_code__suite", suite_dir)
     _register_artifacts_dir(request, "claude_code__runtime", artifacts_dir)
 
     yield artifacts_dir
 
     if os.environ.get("DX_AGENTIC_E2E_CLEANUP_ARTIFACTS"):
         _cleanup_artifacts_dir(artifacts_dir)
+        _cleanup_artifacts_dir(suite_dir)
 
 
 @pytest.fixture(scope="session")
@@ -3100,17 +3247,23 @@ def codex_cli_artifacts_dir(request):
     """Session-scoped artifacts dir for Codex CLI autopilot runs.
 
     Path: ``dx-agentic-dev/e2e-tests/codex_cli/autopilot/<session_id>/``
+
+    T3: Suite and runtime use separate directories to prevent artifact collision.
     """
     session_id = time.strftime("%Y%m%d_%H%M%S") + f"_{uuid.uuid4().hex[:6]}"
-    artifacts_dir = AGENTIC_E2E_ARTIFACTS_BASE / "codex_cli" / "autopilot" / session_id
+    base = AGENTIC_E2E_ARTIFACTS_BASE / "codex_cli" / "autopilot"
+    artifacts_dir = base / session_id
     artifacts_dir.mkdir(parents=True, exist_ok=True)
-    _register_artifacts_dir(request, "codex_cli__suite", artifacts_dir)
+    suite_dir = base / f"{session_id}_suite"
+    suite_dir.mkdir(parents=True, exist_ok=True)
+    _register_artifacts_dir(request, "codex_cli__suite", suite_dir)
     _register_artifacts_dir(request, "codex_cli__runtime", artifacts_dir)
 
     yield artifacts_dir
 
     if os.environ.get("DX_AGENTIC_E2E_CLEANUP_ARTIFACTS"):
         _cleanup_artifacts_dir(artifacts_dir)
+        _cleanup_artifacts_dir(suite_dir)
 
 
 @pytest.fixture(scope="session")
