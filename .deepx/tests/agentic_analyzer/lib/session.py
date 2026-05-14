@@ -435,7 +435,8 @@ def _parse_codex_stream(stream: Path, sd: SessionData,
       event_msg has token_count, turn_context has model, all events have timestamps.
 
     Token fields (exec): input_tokens, cached_input_tokens, output_tokens, reasoning_output_tokens.
-    Note: input_tokens is NEW-only (NOT total like Copilot). No subtraction needed.
+    ⚠ input_tokens is TOTAL (includes cached) — same semantics as Copilot's inputTokens.
+    Fresh input = input_tokens − cached_input_tokens.
     """
     # --- Parse exec format for tokens and tool calls ---
     for ev in _parse_jsonl(stream):
@@ -444,9 +445,11 @@ def _parse_codex_stream(stream: Path, sd: SessionData,
         if ev_type == "turn.completed":
             usage = ev.get("usage", {}) or {}
             if usage:
-                sd.total_input_tokens = int(usage.get("input_tokens", 0) or 0)
+                raw_input = int(usage.get("input_tokens", 0) or 0)
+                cached = int(usage.get("cached_input_tokens", 0) or 0)
+                sd.total_input_tokens = max(0, raw_input - cached)  # fresh (non-cached)
                 sd.total_output_tokens = int(usage.get("output_tokens", 0) or 0)
-                sd.total_cache_read_tokens = int(usage.get("cached_input_tokens", 0) or 0)
+                sd.total_cache_read_tokens = cached
                 sd.total_reasoning_tokens = int(usage.get("reasoning_output_tokens", 0) or 0)
 
         if ev_type == "item.completed":
