@@ -134,7 +134,7 @@ python3 insights.py --mode runnability --report-dir reports/<TS>/ --cli copilot 
 │  │  → per_session.csv                                    │  ← (C)   │
 │  └─────────────────────────────────────────────────────┘            │
 │          ↓                                                          │
-│  Stage 5: Runnability 평가 (선택)                                   │
+│  Stage 5: Runnability 평가 (기본 활성, --no-insights-runnability로 생략 가능) │
 │  ┌─────────────────────────────────────────────────────┐            │
 │  │ insights.py --mode runnability                        │            │
 │  │  → LLM agent가 세션 README/setup.sh/run.sh 읽고 평가  │            │

@@ -136,7 +136,7 @@ When you run `python3 analyze.py`, the following stages execute in order:
 │  │  → per_session.csv                                    │  ← (C)   │
 │  └─────────────────────────────────────────────────────┘            │
 │          ↓                                                          │
-│  Stage 5: Runnability Evaluation (optional)                         │
+│  Stage 5: Runnability Evaluation (on by default; skip with --no-insights-runnability) │
 │  ┌─────────────────────────────────────────────────────┐            │
 │  │ insights.py --mode runnability                        │            │
 │  │  → LLM agent reads session README/setup.sh/run.sh    │            │
