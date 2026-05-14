@@ -163,7 +163,8 @@ def estimate_cost(
         return cb
 
     # ===== OpenCode CLI — copilot provider, reverse-engineer premium count =====
-    if tool == "opencode-cli":
+    if tool in ("opencode-cli", "codex-cli"):
+        tool_label = "OpenCode" if tool == "opencode-cli" else "Codex CLI"
         if calibration and calibration.tokens_per_premium:
             tpr = calibration.tokens_per_premium
             total_io = input_tokens + output_tokens
@@ -175,15 +176,15 @@ def estimate_cost(
             cb.total_usd = cb.usd_premium
             cb.pricing_basis = "copilot_premium_request (estimated)"
             cb.notes = (
-                f"OpenCode uses copilot provider — premium count NOT in stream. "
+                f"{tool_label} uses copilot provider — premium count NOT in stream. "
                 f"Estimated {est_premium:.1f} reqs = {total_io:,} (input+output) / {tpr:,.0f} (calibration ratio)"
             )
             return cb
         # Calibration unavailable → fall back to noting this
-        cb.pricing_basis = "opencode_calibration_unavailable"
+        cb.pricing_basis = f"{tool.replace('-', '_')}_calibration_unavailable"
         cb.notes = (
-            "OpenCode uses copilot provider but no copilot-cli data available to "
-            "calibrate token→premium ratio. Cost cannot be reliably estimated."
+            f"{tool_label} uses copilot provider but no copilot-cli data available to "
+            f"calibrate token→premium ratio. Cost cannot be reliably estimated."
         )
         return cb
 

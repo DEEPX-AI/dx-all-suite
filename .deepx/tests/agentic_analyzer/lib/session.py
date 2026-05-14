@@ -12,7 +12,7 @@ from typing import List, Optional
 SENTINEL_START = "[DX-AGENTIC-DEV: START]"
 SENTINEL_DONE_RE = re.compile(r"\[DX-AGENTIC-DEV:\s*DONE(?:\s*\(output-dir:\s*([^)]*)\))?\]")
 SESSION_ID_RE = re.compile(
-    r"^(\d{8})-(\d{6})_(claude|copilot|cursor|opencode)_([a-zA-Z0-9_]+)$"
+    r"^(\d{8})-(\d{6})_(claude|copilot|cursor|opencode|codex)_([a-zA-Z0-9_]+)$"
 )
 
 
@@ -402,6 +402,85 @@ def _scan_transcript_md(md: Path, sd: SessionData) -> None:
             break  # one is enough for the flag
 
 
+def _scan_transcript_html(html: Path, sd: SessionData) -> None:
+    """Fallback: scan HTML transcript for sentinels when MD is unavailable or incomplete."""
+    try:
+        text = html.read_text(encoding="utf-8", errors="ignore")
+    except Exception:
+        return
+    if not sd.transcript_length:
+        sd.transcript_length = len(text)
+    if not sd.has_start_sentinel and SENTINEL_START in text:
+        sd.has_start_sentinel = True
+    if not sd.has_done_sentinel:
+        for m in SENTINEL_DONE_RE.finditer(text):
+            sd.has_done_sentinel = True
+            captured = m.group(1)
+            if captured:
+                for p in captured.split("+"):
+                    p = p.strip()
+                    if p:
+                        sd.done_output_dirs.append(p)
+
+
+def _parse_codex_stream(stream: Path, sd: SessionData,
+                        persistent_jsonl: Optional[Path] = None) -> None:
+    """Codex CLI exec JSONL: extract model, duration, tokens, tool calls.
+
+    Format variants:
+    - Exec format (*-session.jsonl): turn.completed has cumulative usage,
+      item.completed has command_execution/file_change as tool calls.
+      NO timestamps in exec format.
+    - Persistent format (*-persistent.jsonl): response_item has function_call,
+      event_msg has token_count, turn_context has model, all events have timestamps.
+
+    Token fields (exec): input_tokens, cached_input_tokens, output_tokens, reasoning_output_tokens.
+    Note: input_tokens is NEW-only (NOT total like Copilot). No subtraction needed.
+    """
+    # --- Parse exec format for tokens and tool calls ---
+    for ev in _parse_jsonl(stream):
+        ev_type = str(ev.get("type") or "")
+
+        if ev_type == "turn.completed":
+            usage = ev.get("usage", {}) or {}
+            if usage:
+                sd.total_input_tokens = int(usage.get("input_tokens", 0) or 0)
+                sd.total_output_tokens = int(usage.get("output_tokens", 0) or 0)
+                sd.total_cache_read_tokens = int(usage.get("cached_input_tokens", 0) or 0)
+                sd.total_reasoning_tokens = int(usage.get("reasoning_output_tokens", 0) or 0)
+
+        if ev_type == "item.completed":
+            item = ev.get("item", {}) or {}
+            item_type = item.get("type", "")
+            if item_type in ("command_execution", "file_change"):
+                sd.tool_call_count += 1
+
+    # --- Parse persistent format for model and timestamps ---
+    if persistent_jsonl and persistent_jsonl.is_file():
+        first_ts = None
+        last_ts = None
+        for ev in _parse_jsonl(persistent_jsonl):
+            ev_type = str(ev.get("type") or "")
+            payload = ev.get("payload", {}) or {}
+
+            ts_str = ev.get("timestamp")
+            if ts_str:
+                conv = _ts_to_seconds(ts_str)
+                if conv is not None:
+                    if first_ts is None or conv < first_ts:
+                        first_ts = conv
+                    if last_ts is None or conv > last_ts:
+                        last_ts = conv
+
+            if ev_type == "turn_context" and not sd.model:
+                sd.model = payload.get("model")
+            if ev_type == "session_meta" and not sd.model:
+                sd.model = payload.get("model")
+
+        if sd.duration_sec is None and first_ts is not None and last_ts is not None:
+            sd.duration_sec = max(0.0, last_ts - first_ts)
+
+
 def _duration_from_mtime(scenario_ref, sd: SessionData) -> None:
     """Strong fallback: use file mtimes across artifact + output dirs as session duration.
 
@@ -436,6 +515,10 @@ def parse_session(scenario_ref) -> SessionData:
     sd = SessionData()
     if scenario_ref.transcript_md and scenario_ref.transcript_md.is_file():
         _scan_transcript_md(scenario_ref.transcript_md, sd)
+    # HTML fallback: if sentinel not found in MD (or no MD), try HTML transcript
+    if (not sd.has_start_sentinel or not sd.has_done_sentinel):
+        if scenario_ref.transcript_html and scenario_ref.transcript_html.is_file():
+            _scan_transcript_html(scenario_ref.transcript_html, sd)
     if scenario_ref.stream_jsonl and scenario_ref.stream_jsonl.is_file():
         tool = scenario_ref.parent.tool
         if tool == "claude-code":
@@ -446,6 +529,9 @@ def parse_session(scenario_ref) -> SessionData:
             _parse_opencode_stream(scenario_ref.stream_jsonl, sd)
         elif tool == "cursor-cli":
             _parse_cursor_stream(scenario_ref.stream_jsonl, sd)
+        elif tool == "codex-cli":
+            _parse_codex_stream(scenario_ref.stream_jsonl, sd,
+                                persistent_jsonl=getattr(scenario_ref, 'secondary_jsonl', None))
         else:
             _parse_generic_stream(scenario_ref.stream_jsonl, sd)
     # If duration not detected, or seems too small (< 1s), use mtime as fallback

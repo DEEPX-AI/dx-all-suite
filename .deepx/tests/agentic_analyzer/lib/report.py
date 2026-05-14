@@ -348,6 +348,7 @@ def write_markdown(evals: List[SessionEval], out_path: Path, meta: Dict) -> None
         "copilot-cli": "`requests.count` = GitHub Copilot Premium Requests consumed",
         "cursor-cli": "Token-based pricing — no premium request",
         "opencode-cli": "`part.cost` summed across steps (USD); copilot provider = uses Copilot premium",
+        "codex-cli": "Copilot provider — premium consumed but not exposed in Codex JSONL",
     }
     for tool in tools:
         ev = [e for e in evals if e.tool == tool]

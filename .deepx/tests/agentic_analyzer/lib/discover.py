@@ -40,6 +40,7 @@ class ScenarioRef:
     transcript_md: Optional[Path] = None
     transcript_html: Optional[Path] = None
     stream_jsonl: Optional[Path] = None
+    secondary_jsonl: Optional[Path] = None  # Codex: persistent JSONL (timestamps, model)
     output_dirs: List[Path] = field(default_factory=list)  # symlink targets → dx-agentic-dev/<sid>/
     output_dir_names: List[str] = field(default_factory=list)  # session_id portion
 
@@ -131,9 +132,32 @@ def extract_scenarios(rd: ResultDir, tools_cfg: dict, scenarios_cfg: dict) -> Li
                 ref.transcript_md = full
             elif name.endswith(".html") and "session" in name:
                 ref.transcript_html = full
-            elif name.endswith(".jsonl") and ("stream" in name or "events" in name):
-                # stream.jsonl (claude-code, cursor, opencode) or events-<uuid>.jsonl (copilot)
-                ref.stream_jsonl = full
+            elif name.endswith(".jsonl"):
+                # stream.jsonl (claude-code, cursor, opencode), events-<uuid>.jsonl (copilot),
+                # or *-codex-session.jsonl / *-codex-persistent.jsonl (codex-cli)
+                is_codex_jsonl = "codex" in name
+                if is_codex_jsonl and "persistent" in name:
+                    # Codex persistent format (timestamps, model) — must check before "stream"
+                    # because dx_stream-codex-persistent.jsonl contains "stream" as substring
+                    ref.secondary_jsonl = full
+                elif is_codex_jsonl and "session" in name:
+                    # Codex exec format (turn.completed with usage)
+                    if ref.stream_jsonl is None:
+                        ref.stream_jsonl = full
+                elif "stream" in name or "events" in name:
+                    ref.stream_jsonl = full
+        # Filesystem fallback: if transcript_md missing but files exist on disk
+        # (e.g., retroactively generated MDs not in manifest)
+        if ref.transcript_md is None and art_path.is_dir():
+            for candidate in art_path.iterdir():
+                if candidate.suffix == ".md" and "session" in candidate.name:
+                    ref.transcript_md = candidate
+                    break
+        if ref.transcript_html is None and art_path.is_dir():
+            for candidate in art_path.iterdir():
+                if candidate.suffix == ".html" and "session" in candidate.name:
+                    ref.transcript_html = candidate
+                    break
         out.append(ref)
     return out
 
