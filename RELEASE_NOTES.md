@@ -1,5 +1,27 @@
 # RELEASE_NOTES
 
+##  DX-All-Suite v2.3.3 / 2026-05-14
+
+- DX-Compiler: v2.3.1
+    - DX-COM: v2.3.0
+    - DX-TRON: v2.0.1
+- DX-Runtime: v2.3.3
+    - DX_FW: v2.5.6
+    - NPU Driver: v2.4.1
+    - DX-RT: v3.3.2
+    - DX-Stream: v3.0.1
+    - DX-APP: v3.1.1
+
+---
+
+Here are the **DX-All-Suite v2.3.3** Release Note.
+
+### What's New?
+
+This hotfix release resolves a missing Debian package file issue in `dx_rt_npu_linux_driver`. (v2.4.1, packaging fix only).
+
+---
+
 ##  DX-All-Suite v2.3.2 / 2026-05-11
 
 - DX-Compiler: v2.3.1
