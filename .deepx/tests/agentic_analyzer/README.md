@@ -83,15 +83,122 @@ Output:
 | `--insights-model` | CLI default | Override model for insights agent |
 | `--insights-allow-paid` | false | Allow paid/billed model selections |
 
-## 2. Dependencies
+## 2. Pipeline Stages — What `analyze.py` Does
+
+When you run `python3 analyze.py`, the following stages execute in order:
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                        analyze.py Pipeline                         │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│  Stage 1: Discovery                                                 │
+│  ┌─────────────────────────────────────────────────────┐            │
+│  │ discover.py: scan results/ directory                 │            │
+│  │  → ResultDir (per tool×round) + ScenarioRef (per     │            │
+│  │    scenario within each result dir)                  │            │
+│  │  → Round numbering by timestamp sort                 │            │
+│  │  → JSONL file matching (tool-specific patterns)      │            │
+│  └─────────────────────────────────────────────────────┘            │
+│          ↓                                                          │
+│  Stage 2: Per-Session Evaluation (for each ScenarioRef)             │
+│  ┌─────────────────────────────────────────────────────┐            │
+│  │ 2a. session.py: parse transcript + JSONL             │            │
+│  │     → sentinel detection, model, duration, tokens,   │            │
+│  │       tool calls, premium requests                   │            │
+│  │ 2b. compliance.py: HARD GATE checks                  │            │
+│  │     → sentinel, isolation, session ID, factory,      │            │
+│  │       deliverables, suite dual-dir                   │            │
+│  │ 2c. quality.py: static code quality                  │            │
+│  │     → py_compile, json parse, bash -n,               │            │
+│  │       placeholder/direct-engine penalties             │            │
+│  │ 2d. functional.py: verdict inference                  │            │
+│  │     → PASS/PARTIAL/FAIL/UNKNOWN per scenario          │            │
+│  │ 2e. execution.py: execution trace analysis            │            │
+│  │     → session.log + compile_out.log evidence          │            │
+│  │                                                       │            │
+│  │ ⇒ composite_score() → Overall (4-factor, no Runn)    │            │
+│  └─────────────────────────────────────────────────────┘            │
+│          ↓                                                          │
+│  Stage 3: Cost Estimation (post-pass)                               │
+│  ┌─────────────────────────────────────────────────────┐            │
+│  │ cost.py: cross-tool calibration                      │            │
+│  │  → copilot-cli tokens/premium ratio → estimate       │            │
+│  │    premium counts for opencode/codex                  │            │
+│  │  → token × pricing table → estimated USD              │            │
+│  └─────────────────────────────────────────────────────┘            │
+│          ↓                                                          │
+│  Stage 4: Report Generation                                         │
+│  ┌─────────────────────────────────────────────────────┐            │
+│  │ report.py: write outputs                              │            │
+│  │  → analysis.md + analysis.html                        │  ← (A)   │
+│  │  → analysis.json                                      │  ← (B)   │
+│  │  → per_session.csv                                    │  ← (C)   │
+│  └─────────────────────────────────────────────────────┘            │
+│          ↓                                                          │
+│  Stage 5: Runnability Evaluation (optional)                         │
+│  ┌─────────────────────────────────────────────────────┐            │
+│  │ insights.py --mode runnability                        │            │
+│  │  → LLM agent reads session README/setup.sh/run.sh    │            │
+│  │  → Scores: Verdict, README, Setup, Run, Verification  │            │
+│  │  → runnability_report.md                              │  ← (D)   │
+│  └─────────────────────────────────────────────────────┘            │
+│          ↓                                                          │
+│  Stage 6: Runnability Merge (rewrites Stage 4 outputs)              │
+│  ┌─────────────────────────────────────────────────────┐            │
+│  │ runnability_parser.py: parse runnability scores       │            │
+│  │  → merge into SessionEval.runnability_score           │            │
+│  │  → recompute Overall (5-factor, with Runnability)     │            │
+│  │  → REWRITE analysis.md/html/json/csv                  │  ← (A')  │
+│  └─────────────────────────────────────────────────────┘            │
+│          ↓                                                          │
+│  Stage 7: Qualitative Insights                                      │
+│  ┌─────────────────────────────────────────────────────┐            │
+│  │ insights.py --mode insights                           │            │
+│  │  → LLM agent reads UPDATED analysis.md (with Runn)   │            │
+│  │  → Per-tool strengths/weaknesses, recommendations     │            │
+│  │  → insights.md                                        │  ← (E)   │
+│  └─────────────────────────────────────────────────────┘            │
+│          ↓                                                          │
+│  Stage 8: Comprehensive Report Assembly                             │
+│  ┌─────────────────────────────────────────────────────┐            │
+│  │ Part 1: analysis.md (quantitative)                    │            │
+│  │ Part 2: insights.md (qualitative)                     │            │
+│  │ Part 3: runnability summary (slim)                    │            │
+│  │  → comprehensive_report.md + .html                    │  ← (F)   │
+│  └─────────────────────────────────────────────────────┘            │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### Stage Output Summary
+
+| Stage | Output File | Description |
+|-------|------------|-------------|
+| 4 (A) | `analysis.md` / `analysis.html` | Main quantitative report — per-tool/round/scenario tables, Overall scores |
+| 4 (B) | `analysis.json` | Machine-readable full evaluation data |
+| 4 (C) | `per_session.csv` | Flat table for spreadsheet import |
+| 5 (D) | `runnability_report.md` | LLM agent's end-user runnability evaluation per session |
+| 6 (A') | `analysis.md` (rewritten) | Updated with Runnability scores merged into Overall |
+| 7 (E) | `insights.md` | LLM agent's qualitative analysis (reads updated analysis.md) |
+| 8 (F) | `comprehensive_report.md` / `.html` | Unified report assembling Parts 1+2+3 |
+
+> **Pipeline ordering matters**: Runnability (Stage 5) runs BEFORE insights (Stage 7)
+> so that the qualitative analysis in insights.md reflects the updated Overall scores
+> that include Runnability data.
+>
+> **Skip flags**: `--no-insights-runnability` skips Stages 5–6 (uses 4-factor Overall).
+> `--insights off` skips Stages 5–7 entirely (report only, no LLM calls).
+
+## 3. Dependencies
 
 - Python 3.10+
 - PyYAML (`pip install pyyaml`)
 - `bash` (for code quality checks via `bash -n`)
 
-## 3. Analysis Dimensions
+## 4. Analysis Dimensions
 
-### 3.1 Metric Tiers
+### 4.1 Metric Tiers
 
 | Tier | Checks | Implementation |
 |------|--------|---------------|
@@ -107,14 +214,14 @@ Output:
 | **T10 Agentic insight** | Secondary CLI agent call for per-tool strengths/weaknesses + end-user runnability | `insights.py` |
 | **T11 Cost** | Token usage → estimated USD cost + premium request estimation via calibration | `cost.py` |
 
-### 3.2 Aggregation Dimensions
+### 4.2 Aggregation Dimensions
 
 - **per tool** (claude-code / copilot-cli / cursor-cli / opencode-cli / codex-cli)
 - **per round** (1–N — auto-extends as rounds are added)
 - **per scenario** (compiler / dx_app / dx_stream / dx_stream_cascaded / runtime / suite)
 - **per model** (config.yaml model overrides — flags non-standard cases like Cursor "auto")
 
-### 3.3 Scoring Formulas
+### 4.3 Scoring Formulas
 
 ```
 Compliance %   = (passed checks / total checks) × 100
@@ -133,7 +240,7 @@ Overall %      = 0.25·Compliance + 0.20·Quality + 0.10·Verdict
 > **Verdict weight 10%**: Only checks file existence, so low weight. Execution (25%)
 > and Runnability (15%) carry higher weight as they measure actual functionality.
 
-## 4. Directory Structure
+## 5. Directory Structure
 
 ```
 agentic_analyzer/
@@ -167,11 +274,11 @@ agentic_analyzer/
     └── comprehensive_report.html
 ```
 
-## 5. Adding New Tools / Models
+## 6. Adding New Tools / Models
 
 Extend via `config.yaml` only — **no code changes required**.
 
-### 5.1 New Tool (e.g., OpenAI Codex CLI)
+### 6.1 New Tool (e.g., OpenAI Codex CLI)
 
 ```yaml
 tools:
@@ -187,7 +294,7 @@ Prerequisites:
 - manifest.json artifact keys prefixed: `codex_cli__<scenario>`
 - Scenario directory contains `<scenario>-codex-session.md` + `*-stream.jsonl` or `*-events-*.jsonl`
 
-### 5.2 Model Mapping Changes
+### 6.2 Model Mapping Changes
 
 ```yaml
 default_models:
@@ -199,7 +306,7 @@ model_overrides:
     note: "GPT-5.4 codex rollout starting Jun 1"
 ```
 
-### 5.3 New Scenario
+### 6.3 New Scenario
 
 ```yaml
 scenarios:
@@ -215,7 +322,7 @@ scenarios:
       - "**/results.json"
 ```
 
-## 6. Cumulative Analysis
+## 7. Cumulative Analysis
 
 Round numbering is **automatic**. When new round results appear in `results/`,
 they are sorted by timestamp and assigned sequential round numbers.
@@ -229,7 +336,7 @@ python3 analyze.py --round 1 2 3 4 5      # Initial 5 rounds
 python3 analyze.py --round 6 7 8 9 10     # Additional 5 rounds
 ```
 
-## 7. Token Semantics Per Tool
+## 8. Token Semantics Per Tool
 
 Each tool reports token usage differently. The analyzer normalizes to "fresh input
 tokens" (tokens actually billed) before cost estimation:
@@ -246,7 +353,7 @@ tokens" (tokens actually billed) before cost estimation:
 > For other tools using copilot provider (OpenCode, Codex), the analyzer calibrates
 > using copilot-cli's observed `tokens-per-premium-request` ratio.
 
-## 8. Methodology — How Scores Are Computed
+## 9. Methodology — How Scores Are Computed
 
 ### Compliance (HARD GATE Checks)
 
@@ -303,7 +410,7 @@ Token usage is converted to estimated USD using pricing tables in `config.yaml`:
 - **Copilot premium requests**: USD per request (Pro tier reference: $0.033/req)
 - **Cross-tool calibration**: copilot-cli's observed `tokens/premium-request` ratio is applied to estimate premium request counts for tools that don't report them directly
 
-## 9. Known Limitations / Future Improvements
+## 10. Known Limitations / Future Improvements
 
 | Limitation | Current Status |
 |-----------|---------------|
@@ -317,7 +424,7 @@ Token usage is converted to estimated USD using pricing tables in `config.yaml`:
 | **Codex CLI dual-JSONL** | **Improved**: Parser handles both `*-stream.jsonl` and `*-events-*.jsonl` patterns |
 | **HTML reports** | **Improved**: All MD reports now have HTML counterparts with styled tables |
 
-## 10. License / Ownership
+## 11. License / Ownership
 
 Internal tool. Part of the dx-all-suite `dx-agentic-dev` infrastructure. This
 directory follows the `.gitignore` policy of the dx-all-suite repo.

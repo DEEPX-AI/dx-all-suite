@@ -82,15 +82,121 @@ python3 insights.py --mode runnability --report-dir reports/<TS>/ --cli copilot 
 | `--insights-model` | CLI 기본 | Insights agent 모델 override |
 | `--insights-allow-paid` | false | 유료 모델 선택 허용 |
 
-## 2. 의존성
+## 2. 파이프라인 단계 — `analyze.py` 실행 흐름
+
+`python3 analyze.py` 실행 시 다음 단계가 순서대로 처리됩니다:
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                        analyze.py Pipeline                         │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│  Stage 1: Discovery (탐색)                                          │
+│  ┌─────────────────────────────────────────────────────┐            │
+│  │ discover.py: results/ 디렉토리 스캔                    │            │
+│  │  → ResultDir (도구×라운드) + ScenarioRef (시나리오별)     │            │
+│  │  → timestamp 정렬로 라운드 번호 자동 부여                │            │
+│  │  → JSONL 파일 매칭 (도구별 패턴)                        │            │
+│  └─────────────────────────────────────────────────────┘            │
+│          ↓                                                          │
+│  Stage 2: 세션별 평가 (각 ScenarioRef 대상)                         │
+│  ┌─────────────────────────────────────────────────────┐            │
+│  │ 2a. session.py: transcript + JSONL 파싱               │            │
+│  │     → sentinel 탐지, 모델, 소요시간, 토큰,              │            │
+│  │       tool calls, premium requests                   │            │
+│  │ 2b. compliance.py: HARD GATE 체크                     │            │
+│  │     → sentinel, isolation, session ID, factory,      │            │
+│  │       필수 파일, suite dual-dir                        │            │
+│  │ 2c. quality.py: 정적 코드 품질                         │            │
+│  │     → py_compile, json parse, bash -n,               │            │
+│  │       placeholder/direct-engine 페널티                 │            │
+│  │ 2d. functional.py: Verdict 추론                        │            │
+│  │     → 시나리오별 PASS/PARTIAL/FAIL/UNKNOWN              │            │
+│  │ 2e. execution.py: 실행 흔적 분석                        │            │
+│  │     → session.log + compile_out.log 증거 확인           │            │
+│  │                                                       │            │
+│  │ ⇒ composite_score() → Overall (4-factor, Runn 미포함)  │            │
+│  └─────────────────────────────────────────────────────┘            │
+│          ↓                                                          │
+│  Stage 3: 비용 추정 (post-pass)                                     │
+│  ┌─────────────────────────────────────────────────────┐            │
+│  │ cost.py: 도구간 calibration                           │            │
+│  │  → copilot-cli의 tokens/premium 비율 → opencode/codex │            │
+│  │    premium 수 추정                                     │            │
+│  │  → 토큰 × pricing table → 추정 USD                     │            │
+│  └─────────────────────────────────────────────────────┘            │
+│          ↓                                                          │
+│  Stage 4: 리포트 생성                                               │
+│  ┌─────────────────────────────────────────────────────┐            │
+│  │ report.py: 출력 파일 작성                              │            │
+│  │  → analysis.md + analysis.html                        │  ← (A)   │
+│  │  → analysis.json                                      │  ← (B)   │
+│  │  → per_session.csv                                    │  ← (C)   │
+│  └─────────────────────────────────────────────────────┘            │
+│          ↓                                                          │
+│  Stage 5: Runnability 평가 (선택)                                   │
+│  ┌─────────────────────────────────────────────────────┐            │
+│  │ insights.py --mode runnability                        │            │
+│  │  → LLM agent가 세션 README/setup.sh/run.sh 읽고 평가  │            │
+│  │  → 점수: Verdict, README, Setup, Run, Verification    │            │
+│  │  → runnability_report.md                              │  ← (D)   │
+│  └─────────────────────────────────────────────────────┘            │
+│          ↓                                                          │
+│  Stage 6: Runnability 병합 (Stage 4 산출물 재작성)                  │
+│  ┌─────────────────────────────────────────────────────┐            │
+│  │ runnability_parser.py: runnability 점수 파싱           │            │
+│  │  → SessionEval.runnability_score에 병합                │            │
+│  │  → Overall 재계산 (5-factor, Runnability 포함)         │            │
+│  │  → analysis.md/html/json/csv 재작성                   │  ← (A')  │
+│  └─────────────────────────────────────────────────────┘            │
+│          ↓                                                          │
+│  Stage 7: 정성 인사이트                                             │
+│  ┌─────────────────────────────────────────────────────┐            │
+│  │ insights.py --mode insights                           │            │
+│  │  → LLM agent가 업데이트된 analysis.md 읽음 (Runn 포함) │            │
+│  │  → 도구별 강점/약점, 추천사항                           │            │
+│  │  → insights.md                                        │  ← (E)   │
+│  └─────────────────────────────────────────────────────┘            │
+│          ↓                                                          │
+│  Stage 8: 종합 보고서 조립                                          │
+│  ┌─────────────────────────────────────────────────────┐            │
+│  │ Part 1: analysis.md (정량)                            │            │
+│  │ Part 2: insights.md (정성)                            │            │
+│  │ Part 3: runnability 요약 (간략)                        │            │
+│  │  → comprehensive_report.md + .html                    │  ← (F)   │
+│  └─────────────────────────────────────────────────────┘            │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### 단계별 산출물 요약
+
+| 단계 | 산출물 | 설명 |
+|------|--------|------|
+| 4 (A) | `analysis.md` / `analysis.html` | 메인 정량 리포트 — 도구/라운드/시나리오별 표, Overall 점수 |
+| 4 (B) | `analysis.json` | 머신 판독용 전체 평가 데이터 |
+| 4 (C) | `per_session.csv` | 스프레드시트 import용 flat 표 |
+| 5 (D) | `runnability_report.md` | LLM agent의 세션별 end-user 실행 가능성 평가 |
+| 6 (A') | `analysis.md` (재작성) | Runnability 점수가 Overall에 반영된 업데이트 버전 |
+| 7 (E) | `insights.md` | LLM agent의 정성 분석 (업데이트된 analysis.md 기반) |
+| 8 (F) | `comprehensive_report.md` / `.html` | Part 1+2+3 통합 종합 보고서 |
+
+> **파이프라인 순서가 중요합니다**: Runnability (Stage 5)가 insights (Stage 7)보다 먼저
+> 실행되어야 insights.md의 정성 분석이 Runnability가 반영된 최신 Overall 점수를 기반으로
+> 작성됩니다.
+>
+> **건너뛰기 플래그**: `--no-insights-runnability`는 Stage 5–6을 건너뜁니다 (4-factor Overall 사용).
+> `--insights off`는 Stage 5–7 전체를 건너뜁니다 (리포트만, LLM 호출 없음).
+
+## 3. 의존성
 
 - Python 3.10+
 - PyYAML (`pip install pyyaml`)
 - `bash` (코드 품질 검사용 `bash -n`)
 
-## 3. 분석 차원
+## 4. 분석 차원
 
-### 3.1 메트릭 Tier
+### 4.1 메트릭 Tier
 
 | Tier | 검증 항목 | 구현 위치 |
 |------|----------|----------|
@@ -106,14 +212,14 @@ python3 insights.py --mode runnability --report-dir reports/<TS>/ --cli copilot 
 | **T10 Agentic insight** | 2차 CLI agent 호출로 도구별 강점/약점 + end-user runnability 판정 | `insights.py` |
 | **T11 비용** | 토큰 사용량 → 추정 USD 비용 + premium request calibration 기반 추정 | `cost.py` |
 
-### 3.2 집계 차원
+### 4.2 집계 차원
 
 - **per tool** (claude-code / copilot-cli / cursor-cli / opencode-cli / codex-cli)
 - **per round** (1–N — 라운드 추가 시 자동 확장)
 - **per scenario** (compiler / dx_app / dx_stream / dx_stream_cascaded / runtime / suite)
 - **per model** (config.yaml의 model overrides 매핑 — Cursor "auto" 같은 비표준 케이스 식별)
 
-### 3.3 점수 계산식
+### 4.3 점수 계산식
 
 ```
 Compliance %   = (통과 체크 수 / 전체 체크 수) × 100
@@ -130,7 +236,7 @@ Overall %      = 0.25·Compliance + 0.20·Quality + 0.10·Verdict
 >
 > **Verdict 가중치 10%**: 파일 존재만 확인하므로 가중치 낮음. Execution(25%)과 Runnability(15%)에 더 높은 비중.
 
-## 4. 디렉토리 구조
+## 5. 디렉토리 구조
 
 ```
 agentic_analyzer/
@@ -164,11 +270,11 @@ agentic_analyzer/
     └── comprehensive_report.html
 ```
 
-## 5. 새로운 도구/모델 추가
+## 6. 새로운 도구/모델 추가
 
 코드 수정 **없이** `config.yaml`만 갱신하면 됩니다.
 
-### 5.1 신규 도구 (예: OpenAI Codex CLI)
+### 6.1 신규 도구 (예: OpenAI Codex CLI)
 
 ```yaml
 tools:
@@ -184,7 +290,7 @@ tools:
 - manifest.json artifacts 키 접두: `codex_cli__<scenario>`
 - 시나리오 디렉토리에 `<scenario>-codex-session.md` + `*-stream.jsonl` 또는 `*-events-*.jsonl`
 
-### 5.2 모델 매핑 변경
+### 6.2 모델 매핑 변경
 
 ```yaml
 default_models:
@@ -196,7 +302,7 @@ model_overrides:
     note: "GPT-5.4 codex rollout starting Jun 1"
 ```
 
-### 5.3 새 시나리오 추가
+### 6.3 새 시나리오 추가
 
 ```yaml
 scenarios:
@@ -212,7 +318,7 @@ scenarios:
       - "**/results.json"
 ```
 
-## 6. 누적 분석
+## 7. 누적 분석
 
 라운드 카운팅은 **자동**입니다. 추가 라운드 결과가 `results/`에 들어가면 timestamp 순으로
 정렬되어 다음 라운드 번호가 할당됩니다.
@@ -226,7 +332,7 @@ python3 analyze.py --round 1 2 3 4 5      # 초기 5 라운드
 python3 analyze.py --round 6 7 8 9 10     # 추가 5 라운드
 ```
 
-## 7. 도구별 토큰 의미론
+## 8. 도구별 토큰 의미론
 
 각 도구는 토큰 사용량을 다르게 보고합니다. Analyzer는 비용 추정 전에 "fresh input tokens"
 (실제 과금 대상)으로 정규화합니다:
@@ -243,7 +349,7 @@ python3 analyze.py --round 6 7 8 9 10     # 추가 5 라운드
 > copilot provider를 사용하는 다른 도구(OpenCode, Codex)는 copilot-cli의 관측된
 > `tokens/premium-request` 비율로 calibration하여 추정합니다.
 
-## 8. 메서드 — 어떻게 점수를 매겼나
+## 9. 메서드 — 어떻게 점수를 매겼나
 
 ### Compliance (HARD GATE 체크)
 
@@ -300,7 +406,7 @@ Overall = 0.25 × Compliance% + 0.20 × Quality% + 0.10 × Verdict%
 - **Copilot premium requests**: request당 USD (Pro tier 기준: $0.033/req)
 - **Cross-tool calibration**: copilot-cli의 관측된 `tokens/premium-request` 비율을 직접 보고하지 않는 도구들의 premium request 추정에 사용
 
-## 9. 알려진 한계 / 향후 개선
+## 10. 알려진 한계 / 향후 개선
 
 | 한계 | 현재 상태 |
 |------|----------|
@@ -314,7 +420,7 @@ Overall = 0.25 × Compliance% + 0.20 × Quality% + 0.10 × Verdict%
 | **Codex CLI dual-JSONL** | **개선 적용**: `*-stream.jsonl`과 `*-events-*.jsonl` 패턴 모두 처리 |
 | **HTML 리포트** | **개선 적용**: 모든 MD 리포트에 HTML 버전 동시 생성 |
 
-## 10. 라이선스/소유권
+## 11. 라이선스/소유권
 
 내부 도구. dx-all-suite의 `dx-agentic-dev` 인프라에 속함. 본 디렉토리는 dx-agentic-dev/
 의 일부로서 dx-all-suite repo의 `.gitignore` 정책을 따릅니다.
