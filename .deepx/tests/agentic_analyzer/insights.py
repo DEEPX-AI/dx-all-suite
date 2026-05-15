@@ -232,6 +232,28 @@ Emit the full markdown content of `insights.md` now (inline; no file writes).
 """
 
 
+HYPOTHESIS_VERIFICATION_SECTION = """\
+
+## 8. 가설 검증: 벤치마크 vs 실측 간극 분석
+
+아래 사전 가설과 실제 결과를 비교 분석하세요.
+
+### 사전 가설 요약
+
+{hypothesis_summary}
+
+### 분석 요구사항
+
+각 가설에 대해:
+1. **검증 결과**: 지지(Supported) / 기각(Rejected) / 부분 지지(Partial)
+2. **실측 데이터**: 해당 metric의 실제 도구별 순위와 점수
+3. **간극 분석**: 예상과 실측의 차이 원인 (도구 특성, 프롬프트 전달 방식, 자동화 수준 등)
+4. **시사점**: 벤치마크 점수와 실제 agentic 워크플로우 성능 간의 관계에 대한 통찰
+
+OUTPUT에 "## 8. 가설 검증: 벤치마크 vs 실측 간극 분석" 헤딩으로 시작하는 섹션을 추가하세요.
+"""
+
+
 RUNNABILITY_PROMPT_TEMPLATE = """\
 You are evaluating whether an end-user can run a generated session's artifacts.
 
@@ -395,6 +417,27 @@ def run_insights(report_dir: Path, cli: str, output_dir: Path,
     if len(report_content) > 250_000:
         report_content = report_content[:250_000] + "\n[...TRUNCATED...]"
     prompt = INSIGHTS_PROMPT_TEMPLATE.format(REPORT_CONTENT=report_content)
+
+    # Append §8 hypothesis verification if hypothesis.json exists
+    hypothesis_path = report_dir / "hypothesis.json"
+    if hypothesis_path.is_file():
+        try:
+            hyp_data = json.loads(hypothesis_path.read_text(encoding="utf-8"))
+            hyp_lines = []
+            for h in hyp_data.get("hypotheses", []):
+                hyp_lines.append(f"- **{h.get('id', '?')}**: {h.get('statement', 'N/A')}")
+                hyp_lines.append(f"  - Metric: {h.get('metric', 'N/A')}")
+                ranking = h.get('expected_ranking', [])
+                if ranking:
+                    hyp_lines.append(f"  - 예상 순위: {' > '.join(ranking)}")
+                hyp_lines.append(f"  - 신뢰도: {h.get('confidence', 'N/A')}")
+            hypothesis_summary = "\n".join(hyp_lines)
+            prompt += HYPOTHESIS_VERIFICATION_SECTION.format(
+                hypothesis_summary=hypothesis_summary,
+            )
+            print(f"  (appended §8 hypothesis verification — {len(hyp_data.get('hypotheses', []))} hypotheses)")
+        except (json.JSONDecodeError, OSError) as e:
+            print(f"WARN: could not read hypothesis.json for §8: {e}", file=sys.stderr)
 
     # Save the prompt regardless (so user can re-run manually)
     prompt_path = output_dir / "insights_prompt.md"

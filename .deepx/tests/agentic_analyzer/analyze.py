@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import argparse
 import html as html_mod
+import json
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -278,6 +279,14 @@ def main(argv: Optional[List[str]] = None) -> int:
              "runnability evaluation (skip already-evaluated sessions, merge "
              "new results). Useful when adding new rounds to an existing report.",
     )
+    parser.add_argument(
+        "--hypothesis",
+        default=None,
+        help="Path to hypothesis prompt (.md) or pre-built hypothesis (.json). "
+             "When provided, generates hypothesis.json via LLM (Stage 4.5) and "
+             "adds Part 0 '실험 설계' to comprehensive report. If insights are "
+             "also enabled, §8 '가설 검증' is added to insights.md.",
+    )
 
     args = parser.parse_args(argv)
 
@@ -439,6 +448,21 @@ def main(argv: Optional[List[str]] = None) -> int:
                 write_html(evals, html_path, meta)
                 print(f"  Rewrote: {md_path}")
 
+        # --- Step 2.5: hypothesis generation (optional) ---
+        if getattr(args, 'hypothesis', None) and chosen_cli:
+            hp = Path(args.hypothesis)
+            if hp.suffix.lower() == ".json":
+                import shutil
+                dest = out_dir / "hypothesis.json"
+                shutil.copy2(hp, dest)
+                print(f"\n  ✓ hypothesis.json copied from {hp}")
+            else:
+                _run_hypothesis_step(
+                    out_dir, chosen_cli, hp,
+                    model=args.insights_model,
+                    allow_paid=args.insights_allow_paid,
+                )
+
         # --- Step 3: insights (now reads updated analysis.md) ---
         if chosen_cli:
             _run_insights_step(
@@ -446,10 +470,115 @@ def main(argv: Optional[List[str]] = None) -> int:
                 model=args.insights_model, allow_paid=args.insights_allow_paid,
             )
 
+    # Handle --hypothesis when --insights off (no CLI resolved above)
+    if args.hypothesis and not (out_dir / "hypothesis.json").is_file():
+        hp = Path(args.hypothesis)
+        if hp.suffix.lower() == ".json":
+            import shutil
+            shutil.copy2(hp, out_dir / "hypothesis.json")
+            print(f"\n  ✓ hypothesis.json copied from {hp}")
+        else:
+            hyp_cli = _resolve_insights_cli("auto", allow_paid=True)
+            if hyp_cli:
+                _run_hypothesis_step(
+                    out_dir, hyp_cli, hp,
+                    model=args.insights_model if hasattr(args, 'insights_model') else None,
+                    allow_paid=True,
+                )
+
     # ---------------- Step 4: Comprehensive report (slim Part 3) ----------------
     _generate_comprehensive_report(out_dir)
 
     return 0
+
+
+_DEFAULT_EXPERIMENT_DESIGN = """\
+# Part 0: 실험 설계
+
+## 실험 제목
+
+DEEPX Agentic Development E2E 평가
+
+## 실험 목적
+
+5개 AI 코딩 도구(Claude Code, Copilot CLI, Cursor CLI, OpenCode, Codex CLI)를 사용하여 \
+NPU(Neural Processing Unit) 추론 앱을 자동 생성하는 "Agentic Development" 워크플로우의 \
+실용성과 도구 간 성능 차이를 정량적으로 비교 평가한다.
+
+## 실험 조건
+
+- **시나리오**: 6개 (compiler, app-python 4종, cross-project)
+- **반복 횟수**: 라운드당 도구×시나리오 = 30 세션
+- **평가 지표**: 규칙 준수(Compliance), 코드 품질(Quality), 실행 가능성(Runnability), 산출물 완성도(Execution), 종합 점수(Overall)
+- **통제 변수**: 동일 프롬프트, 동일 하드웨어(DX-M1 NPU), 동일 모델(Claude Sonnet 4.6 계열)
+"""
+
+
+def _render_experiment_design(hypothesis_path: Optional[Path]) -> str:
+    """Render Part 0: 실험 설계.
+
+    Always returns the default experiment purpose/conditions.
+    When hypothesis.json exists, appends benchmarks and hypotheses.
+    """
+    base = _DEFAULT_EXPERIMENT_DESIGN
+
+    if hypothesis_path is None or not hypothesis_path.is_file():
+        return base
+
+    try:
+        data = json.loads(hypothesis_path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return base
+
+    exp = data.get("experiment", {})
+    lines: List[str] = []
+
+    # Enrich purpose if hypothesis provides one
+    if exp.get("purpose"):
+        lines.append(f"\n> **가설 기반 실험 목적:** {exp['purpose']}")
+        lines.append("")
+    if exp.get("background"):
+        lines.append(f"## 실험 배경\n\n{exp['background']}")
+        lines.append("")
+
+    benchmarks = data.get("benchmarks", [])
+    if benchmarks:
+        lines.append("## 참조 벤치마크")
+        lines.append("")
+        for bm in benchmarks:
+            lines.append(f"### {bm.get('name', 'N/A')}")
+            lines.append("")
+            lines.append(f"- URL: {bm.get('url', 'N/A')}")
+            lines.append(f"- 조회일: {bm.get('retrieved_date', 'N/A')}")
+            lines.append(f"- Metric: {bm.get('metric', 'N/A')}")
+            scores = bm.get("scores", {})
+            if scores:
+                for model_name, score in scores.items():
+                    lines.append(f"  - {model_name}: {score}")
+            if bm.get("notes"):
+                lines.append(f"- 비고: {bm['notes']}")
+            lines.append("")
+
+    hypotheses = data.get("hypotheses", [])
+    if hypotheses:
+        lines.append("## 사전 가설")
+        lines.append("")
+        for h in hypotheses:
+            lines.append(f"### {h.get('id', '?')}: {h.get('statement', 'N/A')}")
+            lines.append("")
+            lines.append(f"- **근거:** {h.get('rationale', 'N/A')}")
+            lines.append(f"- **측정 지표:** {h.get('metric', 'N/A')}")
+            ranking = h.get("expected_ranking", [])
+            if ranking:
+                lines.append(f"- **예상 순위:** {' > '.join(ranking)}")
+            lines.append(f"- **신뢰도:** {h.get('confidence', 'N/A')}")
+            basis = h.get("benchmark_basis", [])
+            if basis:
+                lines.append(f"- **벤치마크 근거:** {', '.join(basis)}")
+            lines.append("")
+
+    return base + "\n".join(lines)
+
 
 
 def _generate_comprehensive_report(report_dir: Path) -> None:
@@ -466,6 +595,15 @@ def _generate_comprehensive_report(report_dir: Path) -> None:
     parts.append(f"> 생성 시각: {datetime.now().isoformat(timespec='seconds')}")
     parts.append("> 이 보고서는 analysis.md(정량) + insights.md(정성) + runnability 요약을 통합한 종합본입니다.")
     parts.append("> Raw 데이터는 마지막 §참고 섹션의 링크로 제공됩니다.")
+    parts.append("")
+    parts.append("---")
+    parts.append("")
+
+    # Part 0: 실험 설계 (always present; enriched if hypothesis.json exists)
+    hypothesis_path = report_dir / "hypothesis.json"
+    parts.append(_render_experiment_design(
+        hypothesis_path if hypothesis_path.is_file() else None,
+    ))
     parts.append("")
     parts.append("---")
     parts.append("")
@@ -1453,6 +1591,43 @@ def _run_runnability_step(report_dir: Path, chosen: str, sample: int,
         print(f"⚠ runnability check timed out (>{runn_timeout}s)")
     except Exception as e:
         print(f"⚠ runnability check failed: {e}")
+
+
+def _run_hypothesis_step(report_dir: Path, chosen: str, prompt_path: Path,
+                         *, model: Optional[str] = None,
+                         allow_paid: Optional[bool] = None) -> None:
+    """Invoke insights.py --mode hypothesis."""
+    import subprocess
+
+    insights_script = HERE / "insights.py"
+    if not insights_script.is_file():
+        return
+    cmd = [sys.executable, str(insights_script),
+           "--mode", "hypothesis",
+           "--prompt", str(prompt_path),
+           "--report-dir", str(report_dir),
+           "--cli", chosen]
+    if model:
+        cmd.extend(["--model", model])
+    if allow_paid is True:
+        cmd.append("--allow-paid")
+    elif allow_paid is False:
+        cmd.append("--no-allow-paid")
+    # When None → insights.py applies mode-specific default (paid for hypothesis)
+    print(f"\n{'='*60}")
+    print(f"Stage 4.5: Hypothesis generation via '{chosen}'")
+    print(f"{'='*60}")
+    try:
+        r = subprocess.run(cmd, check=False, timeout=900)
+        if r.returncode == 0:
+            print("✓ hypothesis.json generated")
+        else:
+            print(f"⚠ hypothesis generation returned exit {r.returncode}")
+    except subprocess.TimeoutExpired:
+        print("⚠ hypothesis generation timed out (>900s)")
+    except Exception as e:
+        print(f"⚠ hypothesis generation failed: {e}")
+
 
 
 def _run_insights_step(report_dir: Path, chosen: str,
