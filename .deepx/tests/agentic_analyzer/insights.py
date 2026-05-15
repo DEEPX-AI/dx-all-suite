@@ -35,6 +35,7 @@ import argparse
 import json
 import os
 import random
+import re
 import shutil
 import subprocess
 import sys
@@ -484,9 +485,53 @@ def _read_safely(path: Path, limit: int = 10_000) -> str:
         return f"(read error: {e})"
 
 
+def _parse_existing_labels(existing_report: Path) -> set:
+    """Parse an existing runnability_report.md and return a set of session labels
+    (e.g. {'R1 copilot-cli compiler', 'R1 copilot-cli dx_app', ...}).
+
+    Only includes sessions that were actually evaluated (have runnability fields),
+    not those that were skipped or failed.
+    """
+    if not existing_report.is_file():
+        return set()
+    text = existing_report.read_text(encoding="utf-8", errors="ignore")
+    labels = set()
+    for m in re.finditer(r"^###\s+(R\d+\s+\S+\s+\S+)", text, re.MULTILINE):
+        raw_label = m.group(1).strip()
+        # Check this section has actual evaluation data (not just "CLI invocation failed")
+        section_start = m.start()
+        next_header = text.find("\n### ", section_start + 1)
+        section = text[section_start:next_header] if next_header > 0 else text[section_start:]
+        if re.search(r"end-user runnability.*?:\s*(PASS|PARTIAL|FAIL)", section, re.IGNORECASE):
+            labels.add(raw_label)
+    return labels
+
+
+def _read_existing_sections(existing_report: Path) -> List[str]:
+    """Read existing runnability_report.md and return list of raw section strings
+    (each starting with '### R...'). Used to prepend existing results in merged output.
+    """
+    if not existing_report.is_file():
+        return []
+    text = existing_report.read_text(encoding="utf-8", errors="ignore")
+    sections = []
+    # Find the "세션별 평가" marker, then split by ### headers
+    eval_start = text.find("## 세션별 평가")
+    if eval_start < 0:
+        eval_start = 0
+    eval_text = text[eval_start:]
+    parts = re.split(r"(?=^###\s)", eval_text, flags=re.MULTILINE)
+    for part in parts:
+        part = part.strip()
+        if part.startswith("###"):
+            sections.append(part)
+    return sections
+
+
 def run_runnability(report_dir: Path, cli: str, output_dir: Path,
                      sample: int = 8, *, model: Optional[str] = None,
-                     allow_paid: bool = False) -> int:
+                     allow_paid: bool = False,
+                     existing_report: Optional[Path] = None) -> int:
     """Judge end-user runnability of sessions using a CLI agent.
 
     Sample selection modes:
@@ -495,6 +540,11 @@ def run_runnability(report_dir: Path, cli: str, output_dir: Path,
       - sample <= 0 (or `--all`): EXHAUSTIVE — evaluate every session.
                                   Expensive: 396 sessions ≈ 30min~5h depending
                                   on CLI throughput.
+
+    Incremental mode (--existing-report):
+      When an existing runnability_report.md is provided, sessions already
+      evaluated in that report are skipped. New results are merged with
+      existing results in the output file.
     """
     json_path = report_dir / "analysis.json"
     if not json_path.is_file():
@@ -503,6 +553,15 @@ def run_runnability(report_dir: Path, cli: str, output_dir: Path,
 
     data = json.loads(json_path.read_text(encoding="utf-8"))
     sessions = data.get("sessions", [])
+
+    # Parse existing report for incremental mode
+    existing_labels: set = set()
+    existing_sections: List[str] = []
+    if existing_report:
+        existing_labels = _parse_existing_labels(existing_report)
+        existing_sections = _read_existing_sections(existing_report)
+        print(f"→ Incremental mode: {len(existing_labels)} sessions already evaluated "
+              f"in {existing_report.name}")
 
     if sample <= 0:
         # Exhaustive: keep all sessions in their original (tool, round, scenario) order
@@ -519,6 +578,19 @@ def run_runnability(report_dir: Path, cli: str, output_dir: Path,
         random.shuffle(sampled)
         sampled = sampled[:sample]
         mode_label = f"sample={sample}"
+
+    # Filter out already-evaluated sessions in incremental mode
+    if existing_labels:
+        before_count = len(sampled)
+        sampled = [
+            s for s in sampled
+            if f"R{s.get('round_index')} {s.get('tool')} {s.get('scenario')}"
+            not in existing_labels
+        ]
+        skipped_count = before_count - len(sampled)
+        print(f"  Skipping {skipped_count} already-evaluated sessions, "
+              f"{len(sampled)} remaining")
+        mode_label += f" (incremental, {skipped_count} reused)"
 
     # Pre-compute skip analysis (sessions with no output_dirs are skipped before
     # the LLM is called — categorize them so the report explains WHY).
@@ -537,16 +609,33 @@ def run_runnability(report_dir: Path, cli: str, output_dir: Path,
     out_path = output_dir / "runnability_report.md"
     started_at = datetime.now().isoformat(timespec='seconds')
 
-    def _write_report(results: List[str], done: int, total: int, final: bool) -> None:
+    # Prepare merged results: existing sections first, then new evaluations
+    merged_results: List[str] = list(existing_sections)
+
+    total_evaluated = len(existing_labels)  # count of all evaluated (existing + new)
+
+    def _write_report(new_results: List[str], done: int, new_total: int,
+                      final: bool) -> None:
         """Write runnability_report.md with current progress. Called after every
         session in exhaustive mode so an interrupted run still leaves usable
         partial data on disk.
         """
-        status = "complete" if final else f"in-progress ({done}/{total})"
+        all_results = merged_results + new_results
+        evaluated = total_evaluated + len(new_results)
+        total_sessions = len(sessions)
+        status = "complete" if final else f"in-progress ({done}/{new_total})"
+        incremental_note = ""
+        if existing_labels:
+            incremental_note = (
+                f"> Incremental: {len(existing_labels)} reused from existing report, "
+                f"{len(new_results)} newly evaluated\n"
+            )
         header = (
             f"# End-User Runnability Report\n"
             f"> Generated: {started_at}  (status: {status})\n"
-            f"> Sessions evaluated: {done}/{total}  |  Mode: {mode_label}  |  CLI: `{cli}`\n"
+            f"> Sessions evaluated: {evaluated}/{total_sessions}  |  "
+            f"Mode: {mode_label}  |  CLI: `{cli}`\n"
+            f"{incremental_note}"
             f"> Sessions skipped (no artifacts to evaluate): "
             f"{skip_report['skipped_count']}/{skip_report['total_sessions']}\n\n"
             f"---\n\n"
@@ -554,10 +643,16 @@ def run_runnability(report_dir: Path, cli: str, output_dir: Path,
             f"---\n\n"
             f"## 세션별 평가\n\n"
         )
-        out_path.write_text(header + "\n\n---\n\n".join(results), encoding="utf-8")
+        out_path.write_text(header + "\n\n---\n\n".join(all_results), encoding="utf-8")
+
+    if not sampled:
+        print("All sessions already evaluated — writing merged report.")
+        _write_report([], 0, 0, final=True)
+        print(f"✓ Wrote runnability report to: {out_path}")
+        return 0
 
     print(f"Evaluating runnability of {len(sampled)} sessions ({mode_label}, CLI: {cli})...")
-    results: List[str] = []
+    new_results: List[str] = []
     total = len(sampled)
     for i, s in enumerate(sampled, 1):
         tool = s.get("tool")
@@ -583,14 +678,14 @@ def run_runnability(report_dir: Path, cli: str, output_dir: Path,
         ans = invoke_cli(cli, prompt, model=model, allow_paid=allow_paid,
                           timeout_sec=180)
         if ans is None:
-            results.append(f"### {label}\n\n(CLI invocation failed/skipped)\n")
+            new_results.append(f"### {label}\n\n(CLI invocation failed/skipped)\n")
         else:
-            results.append(ans.strip() + "\n")
+            new_results.append(ans.strip() + "\n")
         # Incremental flush — protects multi-hour exhaustive runs against
         # interruption (kill, timeout, machine reboot). Cheap (<1ms per call).
-        _write_report(results, i, total, final=False)
+        _write_report(new_results, i, total, final=False)
 
-    _write_report(results, len(results), total, final=True)
+    _write_report(new_results, len(new_results), total, final=True)
     print(f"✓ Wrote runnability report to: {out_path}")
     return 0
 
@@ -645,6 +740,12 @@ def main(argv: Optional[List[str]] = None) -> int:
                          "(expensive)."))
     p.add_argument("--all", action="store_true",
                    help="(runnability mode) alias for --sample 0 (exhaustive)")
+    p.add_argument("--existing-report", default=None,
+                   help=("(runnability mode) path to an existing runnability_report.md "
+                         "from a previous run. Sessions already evaluated in that "
+                         "report are skipped; new results are merged with existing "
+                         "ones. Use this for incremental runnability evaluation "
+                         "(e.g. adding rounds 11-20 to an existing 10-round report)."))
 
     args = p.parse_args(argv)
     report_dir = Path(args.report_dir).resolve()
@@ -681,8 +782,10 @@ def main(argv: Optional[List[str]] = None) -> int:
         return run_insights(report_dir, chosen_cli, out_dir,
                             model=args.model, allow_paid=args.allow_paid)
     elif args.mode == "runnability":
+        existing = Path(args.existing_report).resolve() if args.existing_report else None
         return run_runnability(report_dir, chosen_cli, out_dir, effective_sample,
-                                model=args.model, allow_paid=args.allow_paid)
+                                model=args.model, allow_paid=args.allow_paid,
+                                existing_report=existing)
     return 0
 
 

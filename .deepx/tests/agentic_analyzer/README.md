@@ -83,6 +83,7 @@ Output:
 | `--insights-all` | false | Evaluate every session (exhaustive runnability) |
 | `--insights-model` | CLI default | Override model for insights agent |
 | `--insights-allow-paid` | false | Allow paid/billed model selections |
+| `--existing-runnability` | none | Path to existing `runnability_report.md` for incremental evaluation |
 
 ## 2. Pipeline Stages — What `analyze.py` Does
 
@@ -206,6 +207,23 @@ When you run `python3 analyze.py`, the following stages execute in order:
 > **Skip flags**: `--no-insights-runnability` skips Stage 5 only (Stage 6 still
 > runs if `runnability_report.md` is present). `--insights off` skips
 > Stages 5–7 entirely (report only, no LLM calls).
+>
+> **Incremental runnability** (`--existing-runnability` / `--existing-report`):
+> When adding new rounds to an existing dataset (e.g., rounds 11-20 to a
+> 10-round report), pass a previous `runnability_report.md` to skip
+> already-evaluated sessions:
+> ```bash
+> # Via analyze.py (full pipeline — recommended)
+> python3 analyze.py results/ --insights auto --insights-all \
+>     --existing-runnability path/to/old/runnability_report.md
+>
+> # Via insights.py directly
+> python3 insights.py --mode runnability --report-dir reports/<ts>/ \
+>     --existing-report path/to/old/runnability_report.md --all
+> ```
+> The existing report is parsed; sessions with valid evaluations (PASS/PARTIAL/FAIL
+> verdict) are skipped. New results are merged with existing sections in the output.
+> Session counts reflect `{existing_reused} + {newly_evaluated}` totals.
 
 ## 3. Dependencies
 

@@ -267,6 +267,14 @@ def main(argv: Optional[List[str]] = None) -> int:
         help="(forwarded to insights.py) permit paid/billed model selections "
              "in the auto chain. Default: only free combinations.",
     )
+    parser.add_argument(
+        "--existing-runnability",
+        default=None,
+        help="Path to an existing runnability_report.md from a previous run. "
+             "Passed to insights.py via --existing-report for incremental "
+             "runnability evaluation (skip already-evaluated sessions, merge "
+             "new results). Useful when adding new rounds to an existing report.",
+    )
 
     args = parser.parse_args(argv)
 
@@ -400,6 +408,7 @@ def main(argv: Optional[List[str]] = None) -> int:
             _run_runnability_step(
                 out_dir, chosen_cli, effective_sample,
                 model=args.insights_model, allow_paid=args.insights_allow_paid,
+                existing_report=Path(args.existing_runnability).resolve() if args.existing_runnability else None,
             )
 
         # --- Step 2: merge runnability scores into analysis.md ---
@@ -1404,7 +1413,8 @@ def _insights_common_args(report_dir: Path, chosen: str,
 
 def _run_runnability_step(report_dir: Path, chosen: str, sample: int,
                            *, model: Optional[str] = None,
-                           allow_paid: bool = False) -> None:
+                           allow_paid: bool = False,
+                           existing_report: Optional[Path] = None) -> None:
     """Invoke insights.py --mode runnability. Runs FIRST so its scores can be
     merged into analysis.md before the insights step reads it.
     """
@@ -1416,13 +1426,18 @@ def _run_runnability_step(report_dir: Path, chosen: str, sample: int,
     sample_label = "EXHAUSTIVE" if sample <= 0 else f"sample={sample}"
     runn_timeout = 14400 if sample <= 0 else 1800  # 4h vs 30min
     common = _insights_common_args(report_dir, chosen, model, allow_paid)
+    extra_args = []
+    if existing_report and existing_report.is_file():
+        extra_args += ["--existing-report", str(existing_report)]
+        print(f"  (incremental: reusing {existing_report.name})")
     print()
     print(f"→ Step 1: insights.py --mode runnability --cli {chosen} "
           f"({sample_label})...")
     try:
         r = subprocess.run(
             ["python3", str(insights_script), "--mode", "runnability"] + common
-            + (["--all"] if sample <= 0 else ["--sample", str(sample)]),
+            + (["--all"] if sample <= 0 else ["--sample", str(sample)])
+            + extra_args,
             check=False, timeout=runn_timeout,
         )
         if r.returncode == 0:

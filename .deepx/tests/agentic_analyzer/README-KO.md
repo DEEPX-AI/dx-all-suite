@@ -82,6 +82,7 @@ python3 insights.py --mode runnability --report-dir reports/<TS>/ --cli copilot 
 | `--insights-all` | false | 전수 평가 (모든 세션) |
 | `--insights-model` | CLI 기본 | Insights agent 모델 override |
 | `--insights-allow-paid` | false | 유료 모델 선택 허용 |
+| `--existing-runnability` | 없음 | 기존 `runnability_report.md` 경로 (incremental 평가용) |
 
 ## 2. 파이프라인 단계 — `analyze.py` 실행 흐름
 
@@ -203,6 +204,22 @@ python3 insights.py --mode runnability --report-dir reports/<TS>/ --cli copilot 
 > **건너뛰기 플래그**: `--no-insights-runnability`는 Stage 5만 건너뜁니다
 > (`runnability_report.md`가 존재하면 Stage 6은 실행됨).
 > `--insights off`는 Stage 5–7 전체를 건너뜁니다 (리포트만, LLM 호출 없음).
+>
+> **Incremental runnability** (`--existing-runnability` / `--existing-report`):
+> 기존 데이터셋에 새 라운드를 추가할 때 (예: 10라운드 리포트에 11-20라운드 추가),
+> 이전 `runnability_report.md`를 지정하면 이미 평가된 세션을 건너뜁니다:
+> ```bash
+> # analyze.py 경유 (전체 pipeline — 권장)
+> python3 analyze.py results/ --insights auto --insights-all \
+>     --existing-runnability path/to/old/runnability_report.md
+>
+> # insights.py 직접 실행
+> python3 insights.py --mode runnability --report-dir reports/<ts>/ \
+>     --existing-report path/to/old/runnability_report.md --all
+> ```
+> 기존 리포트를 파싱하여 유효한 평가(PASS/PARTIAL/FAIL verdict)가 있는 세션을
+> 건너뛰고, 새로운 결과와 기존 결과를 병합하여 출력합니다.
+> 세션 수는 `{기존 재사용} + {신규 평가}` 합계로 표시됩니다.
 
 ## 3. 의존성
 
