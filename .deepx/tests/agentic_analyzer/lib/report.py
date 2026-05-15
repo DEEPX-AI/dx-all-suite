@@ -122,8 +122,8 @@ def write_markdown(evals: List[SessionEval], out_path: Path, meta: Dict) -> None
     pass_per_tool = {t: sum(1 for e in scored_evals if e.tool == t and e.verdict == "PASS") for t in tools}
     partial_per_tool = {t: sum(1 for e in scored_evals if e.tool == t and e.verdict == "PARTIAL") for t in tools}
     fail_per_tool = {t: sum(1 for e in scored_evals if e.tool == t and e.verdict == "FAIL") for t in tools}
-    lines.append("| Tool | Scored/Total | Compl % | Qual % | Verdict % | Exec % | Runn % | Overall % | σ(Overall) | Avg Duration | START % | DONE % | Pass/Part/Fail | pytest Exit0 % | ⏱ Timeout | ToolCalls | LOC |")
-    lines.append("|------|------------:|-------:|------:|----------:|------:|------:|----------:|----------:|-------------:|--------:|-------:|:--------------:|---------------:|----------:|---------:|----:|")
+    # Build rows sorted by overall score for ranking
+    _tool_rows_s1 = []
     for tool in tools:
         m = per_tool.get(tool, {})
         n_scored = int(m.get("sessions_scored", m.get("sessions", 0)))
@@ -137,8 +137,19 @@ def write_markdown(evals: List[SessionEval], out_path: Path, meta: Dict) -> None
         runn_display = _fmt_num(runn_avg) if runn_scores else "-"
         ppf = f"{pass_per_tool[tool]} / {partial_per_tool[tool]} / {fail_per_tool[tool]}"
         timeouts = sum(1 for e in scored_evals if e.tool == tool and e.suspected_timeout)
+        overall = float(m.get('avg_overall_score', 0) or 0)
+        _tool_rows_s1.append((tool, overall, m, sessions_display, verdict_avg, exec_avg,
+                              runn_display, ppf, timeouts))
+    _tool_rows_s1.sort(key=lambda x: x[1], reverse=True)
+
+    lines.append("| Rank | Tool | Scored/Total | Compl % | Qual % | Verdict % | Exec % | Runn % | Overall % | σ(Overall) | Avg Duration | START % | DONE % | Pass/Part/Fail | pytest Exit0 % | ⏱ Timeout | ToolCalls | LOC |")
+    lines.append("|-----:|------|------------:|-------:|------:|----------:|------:|------:|----------:|----------:|-------------:|--------:|-------:|:--------------:|---------------:|----------:|---------:|----:|")
+    _medals = {1: "🥇", 2: "🥈", 3: "🥉"}
+    for _rank, (tool, _ov, m, sessions_display, verdict_avg, exec_avg,
+                runn_display, ppf, timeouts) in enumerate(_tool_rows_s1, 1):
+        medal = _medals.get(_rank, str(_rank))
         lines.append(
-            f"| **{tool}** | {sessions_display} | "
+            f"| {medal} | **{tool}** | {sessions_display} | "
             f"{_fmt_num(m.get('avg_compliance_pct'))} | "
             f"{_fmt_num(m.get('avg_quality_score'))} | "
             f"{_fmt_num(verdict_avg)} | "
@@ -160,75 +171,24 @@ def write_markdown(evals: List[SessionEval], out_path: Path, meta: Dict) -> None
     lines.append("")
 
     # ----------------------------------------------------------
-    # 2. Per round × tool — Overall %
+    # 2. 평가 메트릭 해설 + 시나리오별 데이터 (§5+§10 통합)
     # ----------------------------------------------------------
-    lines.append("## 2. 도구별 회차별 — Overall %")
+    lines.append("## 2. 평가 메트릭 해설 및 시나리오별 세분화")
     lines.append("")
-    header = "| Tool | " + " | ".join(f"R{r}" for r in rounds) + " | 평균 |"
-    sep = "|------|" + "|".join(":-----:" for _ in rounds) + "|-----:|"
-    lines.append(header)
-    lines.append(sep)
-    for tool in tools:
-        row_cells = []
-        sum_v, count_v = 0.0, 0
-        for r in rounds:
-            m = per_rt.get((r, tool))
-            v = m.get("avg_overall_score") if m else None
-            row_cells.append(_fmt_num(v) if v is not None else "-")
-            if v is not None:
-                sum_v += v
-                count_v += 1
-        avg = sum_v / count_v if count_v else 0.0
-        lines.append(f"| **{tool}** | " + " | ".join(row_cells) + f" | {_fmt_num(avg)} |")
+    lines.append("> 각 메트릭의 정의와 측정 방법을 설명한 뒤, 바로 도구 × 시나리오별 데이터를 제시합니다.")
     lines.append("")
 
-    lines.append("## 3. 도구별 회차별 — Compliance %")
-    lines.append("")
-    lines.append(header)
-    lines.append(sep)
-    for tool in tools:
-        row_cells = []
-        sum_v, count_v = 0.0, 0
-        for r in rounds:
-            m = per_rt.get((r, tool))
-            v = m.get("avg_compliance_pct") if m else None
-            row_cells.append(_fmt_num(v) if v is not None else "-")
-            if v is not None:
-                sum_v += v
-                count_v += 1
-        avg = sum_v / count_v if count_v else 0.0
-        lines.append(f"| **{tool}** | " + " | ".join(row_cells) + f" | {_fmt_num(avg)} |")
-    lines.append("")
+    header2 = "| Rank | Tool | " + " | ".join(scenarios) + " | 평균 |"
+    sep2 = "|-----:|------|" + "|".join(":-----:" for _ in scenarios) + "|-----:|"
 
-    lines.append("## 4. 도구별 회차별 — Avg Duration")
-    lines.append("")
-    lines.append(header)
-    lines.append(sep)
-    for tool in tools:
-        row_cells = []
-        for r in rounds:
-            m = per_rt.get((r, tool))
-            v = m.get("avg_duration_sec") if m else None
-            row_cells.append(_fmt_duration(v) if v is not None else "-")
-        m_tool = per_tool.get(tool, {})
-        lines.append(
-            f"| **{tool}** | " + " | ".join(row_cells) +
-            f" | {_fmt_duration(m_tool.get('avg_duration_sec'))} |"
-        )
-    lines.append("")
+    # lower_is_better metrics for ranking direction
+    _lower_better_metrics = {"avg_duration_sec", "pct_fail"}
 
-    # ----------------------------------------------------------
-    # 5. Per scenario × tool — 세분화된 다차원 표
-    # ----------------------------------------------------------
-    header2 = "| Tool | " + " | ".join(scenarios) + " | 평균 |"
-    sep2 = "|------|" + "|".join(":-----:" for _ in scenarios) + "|-----:|"
-
-    def _table(title: str, metric: str, fmt=_fmt_num):
-        lines.append(f"### 5.{metric_index[0]} {title}")
-        metric_index[0] += 1
-        lines.append("")
+    def _metric_table(title: str, metric: str, fmt=_fmt_num):
+        """Emit a ranked scenario × tool table."""
         lines.append(header2)
         lines.append(sep2)
+        _trows = []
         for tool in tools:
             cells = []
             vals = []
@@ -237,24 +197,73 @@ def write_markdown(evals: List[SessionEval], out_path: Path, meta: Dict) -> None
                 v = m.get(metric) if m else None
                 cells.append(fmt(v) if v is not None else "-")
                 if v is not None:
-                    vals.append(v)
+                    vals.append(float(v))
             avg = sum(vals) / len(vals) if vals else 0.0
-            lines.append(f"| **{tool}** | " + " | ".join(cells) + f" | {fmt(avg)} |")
+            _trows.append((tool, cells, avg))
+        reverse = metric not in _lower_better_metrics
+        _trows.sort(key=lambda x: x[2], reverse=reverse)
+        _m5 = {1: "🥇", 2: "🥈", 3: "🥉"}
+        for rank, (tool, cells, avg) in enumerate(_trows, 1):
+            medal = _m5.get(rank, str(rank))
+            lines.append(f"| {medal} | **{tool}** | " + " | ".join(cells) + f" | {fmt(avg)} |")
         lines.append("")
 
-    lines.append("## 5. 도구별 시나리오별 — 세분화")
+    # --- 2.1 Overall % ---
+    lines.append("### 2.1 Overall % (종합 점수)")
     lines.append("")
-    metric_index = [1]
-    _table("Overall %", "avg_overall_score")
-    _table("Compliance %", "avg_compliance_pct")
-    _table("Quality %", "avg_quality_score")
-    _table("Verdict % (산출물 PASS=100/PARTIAL=50/FAIL=0)", "avg_verdict_score")
-    _table("PASS 비율 %", "pct_pass")
-    _table("FAIL 비율 %", "pct_fail")
-    _table("Avg Duration", "avg_duration_sec", _fmt_duration)
-    _table("Avg Tool Calls", "avg_tool_calls")
-    _table("Avg Python LOC", "avg_python_loc")
+    lines.append("```")
+    lines.append("Overall = 0.25×Compliance + 0.20×Quality + 0.10×Verdict + 0.25×ExecutionTrace + 0.15×Runnability + 2.5(START) + 2.5(DONE)")
+    lines.append("```")
+    lines.append("")
+    lines.append("- Runnability 데이터가 없는 세션은 나머지 4-factor 비례 배분 (backward compatible)")
+    lines.append("- Verdict 는 파일 존재만 확인하므로 가중치 낮음 (10%); 실제 실행 증거(Execution 25%)와 end-user 관점(Runnability 15%)에 높은 비중")
+    lines.append("")
+    _metric_table("Overall %", "avg_overall_score")
 
+    # --- 2.2 Compliance % ---
+    lines.append("### 2.2 Compliance % (HARD GATE 체크 통과율, 가중치 25%)")
+    lines.append("")
+    lines.append("- `sentinel_start` — 응답 첫 줄 `[DX-AGENTIC-DEV: START]`")
+    lines.append("- `sentinel_done` — 마지막 줄 `[DX-AGENTIC-DEV: DONE (output-dir: ...)]`")
+    lines.append("- `output_isolation_present` — 산출물이 `dx-agentic-dev/<session_id>/` 하위")
+    lines.append("- `session_id_format` — `YYYYMMDD-HHMMSS_<agent>_<model>_<task>` 패턴")
+    lines.append("- `mandatory_deliverables` — 시나리오별 필수 파일 존재 (setup.sh, run.sh, README.md, session.log, factory, *_sync.py 등)")
+    lines.append("- `ifactory_5_methods` — dx_app factory 5-method 패턴")
+    lines.append("- `session_log_authentic` — session.log 가 hand-written heredoc 아님")
+    lines.append("- `suite_dual_session_dirs` — suite 시나리오에서 2개 별도 sub-project dir 생성 (R41 HARD GATE)")
+    lines.append("")
+    _metric_table("Compliance %", "avg_compliance_pct")
+
+    # --- 2.3 Quality % ---
+    lines.append("### 2.3 Quality % (정적 코드 품질, 가중치 20%)")
+    lines.append("")
+    lines.append("- 모든 `.py` 파일 `py_compile` → 통과율")
+    lines.append("- 모든 `.json` 파일 `json.load` → 통과율")
+    lines.append("- 모든 `.sh` 파일 `bash -n` → 통과율")
+    lines.append("- **Placeholder** 페널티: `# TODO: implement`, 주석된 import, `np.zeros(...)` 등 (hit 당 5점, cap 30)")
+    lines.append("- **Direct engine use** 페널티: factory 외부 `engine.run()` — HARD GATE 위반 (hit 당 5점, cap 15)")
+    lines.append("")
+    _metric_table("Quality %", "avg_quality_score")
+
+    # --- 2.4 Verdict % ---
+    lines.append("### 2.4 Verdict % (산출물 PASS/PARTIAL/FAIL — 정적 추론, 가중치 10%)")
+    lines.append("")
+    lines.append("- `compiler`: PASS = `*.dxnn` + `config.json` 존재 / FAIL = `.dxnn` 미생성")
+    lines.append("- `dx_app`: PASS = factory + `*_sync.py` / PARTIAL = factory 만 / FAIL = factory 없음")
+    lines.append("- `dx_stream` / `dx_stream_cascaded`: PASS = `pipeline.py` + `run_*.sh`")
+    lines.append("- `runtime`: PASS = sub-project 출력 중 하나 이상이 형식 통과")
+    lines.append("- `suite`: PASS = dx-compiler + dx_app 둘 다 자체 dir (R41 HARD GATE)")
+    lines.append("")
+    _metric_table("Verdict %", "avg_verdict_score")
+
+    # --- 2.5 ExecutionTrace % ---
+    lines.append("### 2.5 ExecutionTrace % (실제 실행 흔적, 가중치 25%)")
+    lines.append("")
+    lines.append("- session.log substantive (실질적 내용 포함)")
+    lines.append("- 성공 마커 존재 (compile success, inference output 등)")
+    lines.append("- .dxnn realistic size (>1KB)")
+    lines.append("- no failure markers (traceback, error 등)")
+    lines.append("")
     # Compute scenario-level execution avg ad-hoc
     exec_avg_per_scen_tool = {}
     for sc in scenarios:
@@ -263,11 +272,9 @@ def write_markdown(evals: List[SessionEval], out_path: Path, meta: Dict) -> None
             n = max(1, len(evals_st))
             exec_avg_per_scen_tool[(sc, tool)] = sum(e.execution_score for e in evals_st) / n
 
-    lines.append(f"### 5.{metric_index[0]} ExecutionTrace %")
-    metric_index[0] += 1
-    lines.append("")
     lines.append(header2)
     lines.append(sep2)
+    _exec_rows = []
     for tool in tools:
         cells = []
         vals = []
@@ -276,13 +283,193 @@ def write_markdown(evals: List[SessionEval], out_path: Path, meta: Dict) -> None
             cells.append(_fmt_num(v))
             vals.append(v)
         avg = sum(vals) / len(vals) if vals else 0.0
-        lines.append(f"| **{tool}** | " + " | ".join(cells) + f" | {_fmt_num(avg)} |")
+        _exec_rows.append((tool, cells, avg))
+    _exec_rows.sort(key=lambda x: x[2], reverse=True)
+    _m5x = {1: "🥇", 2: "🥈", 3: "🥉"}
+    for rank, (tool, cells, avg) in enumerate(_exec_rows, 1):
+        medal = _m5x.get(rank, str(rank))
+        lines.append(f"| {medal} | **{tool}** | " + " | ".join(cells) + f" | {_fmt_num(avg)} |")
+    lines.append("")
+
+    # --- 2.6 Runnability % ---
+    lines.append("### 2.6 Runnability % (End-user 실행 가능성, 가중치 15%)")
+    lines.append("")
+    lines.append("- End-user가 README/setup.sh/run.sh 따라 실제 실행 가능한지 LLM 판정")
+    lines.append("- PASS(100)/PARTIAL(50)/FAIL(0) + 세부 1-5점 스케일")
+    lines.append("- `runnability_report.md` 없으면 나머지 4-factor 비례 배분")
+    lines.append("")
+    # Build runnability per scenario×tool
+    runn_per_scen_tool = {}
+    for sc in scenarios:
+        for tool in tools:
+            evals_st = [e for e in evals if e.scenario == sc and e.tool == tool and e.runnability_score > 0]
+            if evals_st:
+                runn_per_scen_tool[(sc, tool)] = sum(e.runnability_score for e in evals_st) / len(evals_st)
+            else:
+                runn_per_scen_tool[(sc, tool)] = None
+
+    lines.append(header2)
+    lines.append(sep2)
+    _runn_rows = []
+    for tool in tools:
+        cells = []
+        vals = []
+        for sc in scenarios:
+            v = runn_per_scen_tool.get((sc, tool))
+            cells.append(_fmt_num(v) if v is not None else "-")
+            if v is not None:
+                vals.append(float(v))
+        avg = sum(vals) / len(vals) if vals else 0.0
+        _runn_rows.append((tool, cells, avg))
+    _runn_rows.sort(key=lambda x: x[2], reverse=True)
+    for rank, (tool, cells, avg) in enumerate(_runn_rows, 1):
+        medal = _m5x.get(rank, str(rank))
+        lines.append(f"| {medal} | **{tool}** | " + " | ".join(cells) + f" | {_fmt_num(avg)} |")
+    lines.append("")
+
+    # --- 2.7 보조 메트릭 ---
+    lines.append("### 2.7 보조 메트릭 (Overall 점수에 미반영)")
+    lines.append("")
+    lines.append("다음 메트릭은 점수 산정에 직접 포함되지 않으며, 참고 정보로 제공됩니다.")
+    lines.append("")
+    lines.append("#### PASS / FAIL 비율")
+    lines.append("")
+    _metric_table("PASS 비율 %", "pct_pass")
+    _metric_table("FAIL 비율 %", "pct_fail")
+
+    lines.append("#### Duration (실행 시간)")
+    lines.append("")
+    lines.append("- Claude Code: `result.duration_ms` (stream-json 최종 이벤트)")
+    lines.append("- Cursor: `result` event 의 `duration_ms`")
+    lines.append("- OpenCode: `timestamp` (Unix ms) 첫/마지막 이벤트 차이")
+    lines.append("- Copilot: events-*.jsonl 의 첫/마지막 이벤트 timestamp")
+    lines.append("- Fallback: artifact + output dir 파일 mtime 의 최대-최소 차이")
+    lines.append("")
+    _metric_table("Avg Duration", "avg_duration_sec", _fmt_duration)
+
+    lines.append("#### Tool Calls & Python LOC")
+    lines.append("")
+    _metric_table("Avg Tool Calls", "avg_tool_calls")
+    _metric_table("Avg Python LOC", "avg_python_loc")
+
+    lines.append("#### Tool Calls Efficiency Index")
+    lines.append("")
+    lines.append("단순 tool call 수는 효율을 직접 나타내지 않습니다. "
+                 "적은 호출이 높은 성공률과 결합될 때만 의미 있습니다.")
+    lines.append("")
+    lines.append("```")
+    lines.append("Efficiency Index = (Verdict% × ExecutionTrace%) / (Tool Calls + 1) × 100")
+    lines.append("```")
+    lines.append("")
+    # Compute efficiency and rank
+    from .bias_check import _avg as _bias_avg
+    by_tool_evals = {t: [e for e in evals if e.tool == t] for t in tools}
+    eff_data = []
+    for tool in tools:
+        tc = _bias_avg([e.tool_call_count for e in by_tool_evals[tool]])
+        ver = _bias_avg([e.verdict_score for e in by_tool_evals[tool]])
+        exec_p = _bias_avg([e.execution_score for e in by_tool_evals[tool]])
+        eff = (ver * exec_p) / (tc + 1) * 100
+        eff_data.append((tool, tc, ver, exec_p, eff))
+    eff_data.sort(key=lambda x: x[4], reverse=True)
+
+    lines.append("| Rank | Tool | Avg Tool Calls | Avg Verdict % | Avg Exec % | **Efficiency Index** |")
+    lines.append("|-----:|------|---------------:|--------------:|-----------:|---------------------:|")
+    for rank, (tool, tc, ver, exec_p, eff) in enumerate(eff_data, 1):
+        medal = {1: "🥇", 2: "🥈", 3: "🥉"}.get(rank, str(rank))
+        lines.append(f"| {medal} | **{tool}** | {tc:.1f} | {ver:.1f} | {exec_p:.1f} | **{eff:.1f}** |")
+    lines.append("")
+    lines.append("> **해석 유의사항**: tool call 당 작업 granularity는 도구마다 다릅니다 "
+                 "(Claude Code는 1 Bash에 multi-line 명령을 묶고, Copilot/OpenCode는 개별 호출로 분해). "
+                 "따라서 Efficiency Index는 도구 간 상대 비교보다 동일 도구 내 회차별 추세 파악에 더 적합합니다.")
+    lines.append("")
+
+    lines.append("#### pytest Exit 0 %")
+    lines.append("")
+    lines.append("- pytest 의 round-level exit code (한 라운드에 6개 시나리오; 그 중 한 assertion 실패 시 1)")
+    lines.append("- **Overall 점수에는 미반영** (라운드 단위 → 시나리오 단위로 분해 불가). 별도 컬럼으로 표시.")
+    lines.append("- 진정한 시나리오별 pass/fail 은 Verdict 컬럼이 더 정확.")
     lines.append("")
 
     # ----------------------------------------------------------
-    # 6. Round × Scenario × Tool — 가장 granular 한 표 (verdict 표시)
+    # 3. 회차별 추이
     # ----------------------------------------------------------
-    lines.append("## 6. 회차 × 시나리오 × 도구 — Verdict 매트릭스")
+    lines.append("## 3. 도구별 회차별 추이")
+    lines.append("")
+    header = "| Rank | Tool | " + " | ".join(f"R{r}" for r in rounds) + " | 평균 |"
+    sep = "|-----:|------|" + "|".join(":-----:" for _ in rounds) + "|-----:|"
+
+    def _ranked_round_rows(metric_key, fmt=_fmt_num):
+        """Compute per-tool rows with averages, return sorted by avg descending."""
+        _rows = []
+        for tool in tools:
+            row_cells = []
+            sum_v, count_v = 0.0, 0
+            for r in rounds:
+                m = per_rt.get((r, tool))
+                v = m.get(metric_key) if m else None
+                row_cells.append(fmt(v) if v is not None else "-")
+                if v is not None:
+                    sum_v += float(v)
+                    count_v += 1
+            avg = sum_v / count_v if count_v else 0.0
+            _rows.append((tool, row_cells, avg))
+        _rows.sort(key=lambda x: x[2], reverse=True)
+        return _rows
+
+    _medals_rt = {1: "🥇", 2: "🥈", 3: "🥉"}
+
+    lines.append("### 3.1 Overall %")
+    lines.append("")
+    rows_s2 = _ranked_round_rows("avg_overall_score")
+    lines.append(header)
+    lines.append(sep)
+    for rank, (tool, cells, avg) in enumerate(rows_s2, 1):
+        medal = _medals_rt.get(rank, str(rank))
+        lines.append(f"| {medal} | **{tool}** | " + " | ".join(cells) + f" | {_fmt_num(avg)} |")
+    lines.append("")
+
+    lines.append("### 3.2 Compliance %")
+    lines.append("")
+    rows_s3 = _ranked_round_rows("avg_compliance_pct")
+    lines.append(header)
+    lines.append(sep)
+    for rank, (tool, cells, avg) in enumerate(rows_s3, 1):
+        medal = _medals_rt.get(rank, str(rank))
+        lines.append(f"| {medal} | **{tool}** | " + " | ".join(cells) + f" | {_fmt_num(avg)} |")
+    lines.append("")
+
+    lines.append("### 3.3 Avg Duration")
+    lines.append("")
+    _dur_rows = []
+    for tool in tools:
+        row_cells = []
+        sum_v, count_v = 0.0, 0
+        for r in rounds:
+            m = per_rt.get((r, tool))
+            v = m.get("avg_duration_sec") if m else None
+            row_cells.append(_fmt_duration(v) if v is not None else "-")
+            if v is not None:
+                sum_v += float(v)
+                count_v += 1
+        avg_dur = sum_v / count_v if count_v else 9999.0
+        m_tool = per_tool.get(tool, {})
+        _dur_rows.append((tool, row_cells, avg_dur, m_tool.get('avg_duration_sec')))
+    _dur_rows.sort(key=lambda x: x[2])  # ascending — faster is better
+    lines.append(header)
+    lines.append(sep)
+    for rank, (tool, cells, _ad, avg_dur_raw) in enumerate(_dur_rows, 1):
+        medal = _medals_rt.get(rank, str(rank))
+        lines.append(
+            f"| {medal} | **{tool}** | " + " | ".join(cells) +
+            f" | {_fmt_duration(avg_dur_raw)} |"
+        )
+    lines.append("")
+
+    # ----------------------------------------------------------
+    # 4. Verdict 매트릭스
+    # ----------------------------------------------------------
+    lines.append("## 4. 회차 × 시나리오 × 도구 — Verdict 매트릭스")
     lines.append("")
     verdict_emoji = {"PASS": "✅", "PARTIAL": "🟡", "FAIL": "❌", "UNKNOWN": "❓"}
     for sc in scenarios:
@@ -302,44 +489,15 @@ def write_markdown(evals: List[SessionEval], out_path: Path, meta: Dict) -> None
         lines.append("")
 
     # ----------------------------------------------------------
-    # 7. Per-session 상세 (모든 행)
+    # 5. FAIL 분석
     # ----------------------------------------------------------
-    lines.append("## 7. 세션별 상세 (전체)")
+    lines.append("## 5. 회차별 FAIL Verdict 카운트")
     lines.append("")
-    lines.append("| R | Tool | Scenario | Model | Verdict | Exec % | Runn % | ⏱ | pytest | Duration | Comp % | Qual % | Overall % | S/D | ToolCalls | LOC | PH | Eng | Reason |")
-    lines.append("|--:|------|----------|-------|:------:|------:|------:|:--:|:------:|---------:|------:|------:|---------:|:--:|---------:|---:|---:|----:|-------|")
-    for e in sorted(evals, key=lambda x: (x.round_index, x.tool, x.scenario)):
-        model_short = (e.model or "").replace("claude-sonnet-", "").replace("(non-standard)", "⚠")[:18]
-        verdict_disp = f"{verdict_emoji.get(e.verdict, '?')} {e.verdict[:4]}"
-        sd_marker = ("✓" if e.has_start else "✗") + "/" + ("✓" if e.has_done else "✗")
-        timeout_mark = "⏱" if e.suspected_timeout else ""
-        runn_disp = _fmt_num(e.runnability_score) if e.runnability_score > 0 else "-"
-        lines.append(
-            f"| {e.round_index} | {e.tool} | {e.scenario} | {model_short} | "
-            f"{verdict_disp} | "
-            f"{_fmt_num(e.execution_score)} | "
-            f"{runn_disp} | "
-            f"{timeout_mark} | "
-            f"{e.exit_status if e.exit_status is not None else '-'} | "
-            f"{_fmt_duration(e.duration_sec)} | "
-            f"{_fmt_num(e.compliance_score_pct)} | "
-            f"{_fmt_num(e.quality_score)} | "
-            f"{_fmt_num(e.overall_score)} | "
-            f"{sd_marker} | "
-            f"{e.tool_call_count} | "
-            f"{e.python_loc} | "
-            f"{e.placeholder_hits} | {e.direct_engine_use} | "
-            f"{e.verdict_reason[:60]} |"
-        )
-    lines.append("")
-
-    # ----------------------------------------------------------
-    # 8. 회차별 실패 시나리오 카운트
-    # ----------------------------------------------------------
-    lines.append("## 8. 회차별 FAIL Verdict 카운트")
-    lines.append("")
-    lines.append(header)
-    lines.append(sep)
+    _fail_header = "| Rank | Tool | " + " | ".join(f"R{r}" for r in rounds) + " | 합계 |"
+    _fail_sep = "|-----:|------|" + "|".join(":-----:" for _ in rounds) + "|-----:|"
+    lines.append(_fail_header)
+    lines.append(_fail_sep)
+    _fail_rows = []
     for tool in tools:
         row_cells = []
         total_fail = 0
@@ -350,57 +508,66 @@ def write_markdown(evals: List[SessionEval], out_path: Path, meta: Dict) -> None
             )
             row_cells.append(str(fails))
             total_fail += fails
-        lines.append(f"| **{tool}** | " + " | ".join(row_cells) + f" | **{total_fail}** |")
+        _fail_rows.append((tool, row_cells, total_fail))
+    _fail_rows.sort(key=lambda x: x[2])  # ascending — fewer fails is better
+    _mf = {1: "🥇", 2: "🥈", 3: "🥉"}
+    for rank, (tool, row_cells, total_fail) in enumerate(_fail_rows, 1):
+        medal = _mf.get(rank, str(rank))
+        lines.append(f"| {medal} | **{tool}** | " + " | ".join(row_cells) + f" | **{total_fail}** |")
     lines.append("")
 
     # ----------------------------------------------------------
-    # 9. 토큰 사용량 + 비용 효율성
+    # 6. 토큰 사용량 + 비용 효율성 (핵심 → 배경 순)
     # ----------------------------------------------------------
-    lines.append("## 9. 토큰 사용량 + 비용 효율성")
+    lines.append("## 6. 토큰 사용량 + 비용 효율성")
     lines.append("")
 
-    # --- 9.1 Raw token table (as-recorded) ---
-    n_rounds = len(set(e.round_index for e in evals if e.round_index))
-    n_scenarios = len(set(e.scenario for e in evals if e.scenario))
-    n_sessions = len(evals)
-    lines.append(f"### 9.1 도구별 누적 토큰 — Raw (전체 {n_sessions} sessions 합계)")
+    # --- 6.1 비용 대비 성능 종합 판단 (핵심 → 상단) ---
+    lines.append("### 6.1 비용 대비 성능 종합 판단")
     lines.append("")
-    lines.append("> ⚠ **토큰 의미론이 도구별로 다릅니다.** 아래 표의 수치는 각 도구 stream에서 추출한 원본(raw) 값이며, "
-                 "직접 비교에는 주의가 필요합니다. 차이 원인은 §9.2에서 설명합니다.")
+    lines.append("아래는 당사 구독 형태, 도구 사용 방법, E2E 테스트 결과, 외부 벤치마크를 종합한 비용 효율성 평가입니다:")
     lines.append("")
-    lines.append("| Tool | Sessions | Fresh Input | Output | Cache Read (raw) | Cache Write | Reasoning | Avg Output/Sess |")
-    lines.append("|------|--------:|-----------:|-------:|-----------------:|------------:|----------:|----------------:|")
+    sub_info = {
+        "claude-code": ("정액제", "정액 구독 한도 내", "토큰 사용량 방식"),
+        "copilot-cli": ("정액제", "초과 허용", "Premium Request 단위 과금"),
+        "cursor-cli": ("정액제", "정액 구독 한도 내", "—"),
+        "opencode-cli": ("정액제", "초과 허용", "Premium Request 단위 과금"),
+        "codex-cli": ("정액제", "초과 허용", "Premium Request 단위 과금"),
+    }
+    lines.append("| Rank | 도구 | E2E Overall | 구독 | 초과 허용 | 산정 방식 | 효율성 판단 |")
+    lines.append("|-----:|------|----------:|------|---------|---------|----------|")
+    tool_overall = {}
     for tool in tools:
         ev = [e for e in evals if e.tool == tool]
-        n = max(1, len(ev))
-        n_with = sum(1 for e in ev if e.input_tokens > 0 or e.output_tokens > 0 or e.cache_read_tokens > 0)
-        ti = sum(e.input_tokens for e in ev)
-        to = sum(e.output_tokens for e in ev)
-        tcr = sum(e.cache_read_tokens for e in ev)
-        tcw = sum(e.cache_write_tokens for e in ev)
-        tre = sum(e.reasoning_tokens for e in ev)
-        lines.append(f"| **{tool}** | {n_with}/{n} | {ti:,} | {to:,} | {tcr:,} | {tcw:,} | {tre:,} | {int(to/n):,} |")
+        scored = [e for e in ev if not _is_env_failure(e)]
+        if scored:
+            tool_overall[tool] = sum(e.overall_score for e in scored) / len(scored)
+        else:
+            tool_overall[tool] = 0.0
+    _cost_rows = []
+    for tool in tools:
+        sub, overage, method = sub_info.get(tool, ("?", "?", "?"))
+        ov = tool_overall.get(tool, 0)
+        if ov >= 78:
+            eff = "✅ 높음"
+        elif ov >= 75:
+            eff = "⚠ 보통"
+        else:
+            eff = "△ 개선 필요"
+        _cost_rows.append((tool, ov, sub, overage, method, eff))
+    _cost_rows.sort(key=lambda x: x[1], reverse=True)
+    _mc = {1: "🥇", 2: "🥈", 3: "🥉"}
+    for rank, (tool, ov, sub, overage, method, eff) in enumerate(_cost_rows, 1):
+        medal = _mc.get(rank, str(rank))
+        lines.append(f"| {medal} | **{tool}** | {ov:.1f} | {sub} | {overage} | {method} | {eff} |")
+    lines.append("")
+    lines.append("> **종합 의견**: 현재 모든 도구가 구독 기반 정액 또는 Enterprise PR 충전 체계를 사용하고 있어, "
+                 "토큰 단위 비용 비교는 의미가 제한적입니다. **비용 효율성은 '동일 구독료 내에서 더 많은 성공적 세션을 "
+                 "완료할 수 있는가'로 판단하는 것이 적절합니다.** E2E Overall Score가 이 기준에 가장 가까운 지표입니다.")
     lines.append("")
 
-    # --- 9.2 Token semantics note ---
-    lines.append("### 9.2 도구별 토큰 보고 의미론 차이")
-    lines.append("")
-    lines.append("각 도구/provider의 stream 형식에 따라 토큰 필드의 의미가 다릅니다:")
-    lines.append("")
-    lines.append("| 도구 | `input_tokens` 의미 | `cache_read` 의미 | 보정 방법 |")
-    lines.append("|------|-------------------|------------------|----------|")
-    lines.append("| **claude-code** | Fresh only (Anthropic API native) | **Per-turn SUM** — 매 turn마다 전체 캐시 컨텍스트를 재보고 → 누적 합산 시 ~100× 과대 | 마지막 turn의 cache_read가 실제 context window |")
-    lines.append("| **copilot-cli** | Fresh (total − cache_read − cache_write로 보정 완료) | Session 합계 ✅ | 이미 보정됨 |")
-    lines.append("| **codex-cli** | Fresh (total − cached로 보정 완료) | Session cached ✅ | 이미 보정됨 |")
-    lines.append("| **cursor-cli** | Fresh (Anthropic backend, result event) | Session 합계 ✅ | 보정 불필요 |")
-    lines.append("| **opencode-cli** | Per-step incremental SUM | Per-step cache SUM | provider 의존, 대체로 정상 |")
-    lines.append("")
-    lines.append("> **결론**: `Fresh Input`과 `Output`은 도구 간 비교 가능합니다. "
-                 "`Cache Read`는 claude-code만 per-turn 합산으로 과대 보고되므로 직접 비교에 부적합합니다.")
-    lines.append("")
-
-    # --- 9.3 Premium Requests (observed) ---
-    lines.append("### 9.3 도구별 Premium Requests (관측치)")
+    # --- 6.2 Premium Requests ---
+    lines.append("### 6.2 도구별 Premium Requests (관측치)")
     lines.append("")
     lines.append("| Tool | Total Premium Req | Avg PR/Session | 측정 방식 |")
     lines.append("|------|------------------:|---------------:|----------|")
@@ -423,8 +590,46 @@ def write_markdown(evals: List[SessionEval], out_path: Path, meta: Dict) -> None
             lines.append(f"| **{tool}** | — | — | {note} |")
     lines.append("")
 
-    # --- 9.4 Cost comparison limitation ---
-    lines.append("### 9.4 비용 산정 한계 및 실제 구독 현황")
+    # --- 6.3 Raw token table ---
+    n_sessions = len(evals)
+    lines.append(f"### 6.3 도구별 누적 토큰 — Raw (전체 {n_sessions} sessions 합계)")
+    lines.append("")
+    lines.append("> ⚠ **토큰 의미론이 도구별로 다릅니다.** 아래 표의 수치는 각 도구 stream에서 추출한 원본(raw) 값이며, "
+                 "직접 비교에는 주의가 필요합니다. 차이 원인은 §6.4에서 설명합니다.")
+    lines.append("")
+    lines.append("| Tool | Sessions | Fresh Input | Output | Cache Read (raw) | Cache Write | Reasoning | Avg Output/Sess |")
+    lines.append("|------|--------:|-----------:|-------:|-----------------:|------------:|----------:|----------------:|")
+    for tool in tools:
+        ev = [e for e in evals if e.tool == tool]
+        n = max(1, len(ev))
+        n_with = sum(1 for e in ev if e.input_tokens > 0 or e.output_tokens > 0 or e.cache_read_tokens > 0)
+        ti = sum(e.input_tokens for e in ev)
+        to = sum(e.output_tokens for e in ev)
+        tcr = sum(e.cache_read_tokens for e in ev)
+        tcw = sum(e.cache_write_tokens for e in ev)
+        tre = sum(e.reasoning_tokens for e in ev)
+        lines.append(f"| **{tool}** | {n_with}/{n} | {ti:,} | {to:,} | {tcr:,} | {tcw:,} | {tre:,} | {int(to/n):,} |")
+    lines.append("")
+
+    # --- 6.4 Token semantics ---
+    lines.append("### 6.4 도구별 토큰 보고 의미론 차이")
+    lines.append("")
+    lines.append("각 도구/provider의 stream 형식에 따라 토큰 필드의 의미가 다릅니다:")
+    lines.append("")
+    lines.append("| 도구 | `input_tokens` 의미 | `cache_read` 의미 | 보정 방법 |")
+    lines.append("|------|-------------------|------------------|----------|")
+    lines.append("| **claude-code** | Fresh only (Anthropic API native) | **Per-turn SUM** — 매 turn마다 전체 캐시 컨텍스트를 재보고 → 누적 합산 시 ~100× 과대 | 마지막 turn의 cache_read가 실제 context window |")
+    lines.append("| **copilot-cli** | Fresh (total − cache_read − cache_write로 보정 완료) | Session 합계 ✅ | 이미 보정됨 |")
+    lines.append("| **codex-cli** | Fresh (total − cached로 보정 완료) | Session cached ✅ | 이미 보정됨 |")
+    lines.append("| **cursor-cli** | Fresh (Anthropic backend, result event) | Session 합계 ✅ | 보정 불필요 |")
+    lines.append("| **opencode-cli** | Per-step incremental SUM | Per-step cache SUM | provider 의존, 대체로 정상 |")
+    lines.append("")
+    lines.append("> **결론**: `Fresh Input`과 `Output`은 도구 간 비교 가능합니다. "
+                 "`Cache Read`는 claude-code만 per-turn 합산으로 과대 보고되므로 직접 비교에 부적합합니다.")
+    lines.append("")
+
+    # --- 6.5 비용 산정 한계 ---
+    lines.append("### 6.5 비용 산정 한계 및 실제 구독 현황")
     lines.append("")
     lines.append("**일관된 기준의 도구 간 비용 비교는 현실적으로 불가능합니다.** 각 도구의 과금 체계가 근본적으로 다르기 때문입니다:")
     lines.append("")
@@ -442,8 +647,8 @@ def write_markdown(evals: List[SessionEval], out_path: Path, meta: Dict) -> None
                  "토큰 사용량과 무관하게 월 고정 비용만 발생합니다.")
     lines.append("")
 
-    # --- 9.5 External benchmarks for cost-efficiency context ---
-    lines.append("### 9.5 외부 벤치마크 기반 모델 비용 효율성 참고")
+    # --- 6.6 External benchmarks ---
+    lines.append("### 6.6 외부 벤치마크 기반 모델 비용 효율성 참고")
     lines.append("")
     lines.append("도구 간 직접 비용 비교가 불가능하므로, 외부 벤치마크의 **모델별 성능 대비 비용** 데이터를 참고로 제시합니다.")
     lines.append("")
@@ -505,49 +710,8 @@ def write_markdown(evals: List[SessionEval], out_path: Path, meta: Dict) -> None
     lines.append("| Claude Haiku 4.5 | $1.00 | $5.00 | $0.10 | $1.25 |")
     lines.append("")
 
-    # --- 9.6 Comprehensive cost-performance assessment ---
-    lines.append("### 9.6 비용 대비 성능 종합 판단")
-    lines.append("")
-    lines.append("아래는 당사 구독 형태, 도구 사용 방법, E2E 테스트 결과, 외부 벤치마크를 종합한 비용 효율성 평가입니다:")
-    lines.append("")
-    # Build ranked data with subscription info
-    sub_info = {
-        "claude-code": ("정액제", "정액 구독 한도 내", "토큰 사용량 방식"),
-        "copilot-cli": ("정액제", "초과 허용", "Premium Request 단위 과금"),
-        "cursor-cli": ("정액제", "정액 구독 한도 내", "—"),
-        "opencode-cli": ("정액제", "초과 허용", "Premium Request 단위 과금"),
-        "codex-cli": ("정액제", "초과 허용", "Premium Request 단위 과금"),
-    }
-    lines.append("| 도구 | E2E Overall | 구독 | 초과 허용 | 산정 방식 | 효율성 판단 |")
-    lines.append("|------|----------:|------|---------|---------|----------|")
-    # Get overall scores from aggregated data
-    tool_overall = {}
-    for tool in tools:
-        ev = [e for e in evals if e.tool == tool]
-        scored = [e for e in ev if not _is_env_failure(e)]
-        if scored:
-            tool_overall[tool] = sum(e.overall_score for e in scored) / len(scored)
-        else:
-            tool_overall[tool] = 0.0
-    for tool in tools:
-        sub, overage, method = sub_info.get(tool, ("?", "?", "?"))
-        ov = tool_overall.get(tool, 0)
-        # Efficiency judgment
-        if ov >= 78:
-            eff = "✅ 높음"
-        elif ov >= 75:
-            eff = "⚠ 보통"
-        else:
-            eff = "△ 개선 필요"
-        lines.append(f"| **{tool}** | {ov:.1f} | {sub} | {overage} | {method} | {eff} |")
-    lines.append("")
-    lines.append("> **종합 의견**: 현재 모든 도구가 구독 기반 정액 또는 Enterprise PR 충전 체계를 사용하고 있어, "
-                 "토큰 단위 비용 비교는 의미가 제한적입니다. **비용 효율성은 '동일 구독료 내에서 더 많은 성공적 세션을 "
-                 "완료할 수 있는가'로 판단하는 것이 적절합니다.** E2E Overall Score가 이 기준에 가장 가까운 지표입니다.")
-    lines.append("")
-
-    # --- 9.7 Provider dashboards ---
-    lines.append("### 9.7 외부 Provider Usage Dashboard (실제 사용량 검증용)")
+    # --- 6.7 Provider dashboards ---
+    lines.append("### 6.7 외부 Provider Usage Dashboard (실제 사용량 검증용)")
     lines.append("")
     lines.append("| Provider | Dashboard | 비고 |")
     lines.append("|----------|-----------|------|")
@@ -557,56 +721,38 @@ def write_markdown(evals: List[SessionEval], out_path: Path, meta: Dict) -> None
     lines.append("")
 
     # ----------------------------------------------------------
-    # 10. 평가 방법 (자세)
+    # 7. 세션별 상세 (전체) — 접기
     # ----------------------------------------------------------
-    lines.append("## 10. 평가 방법 (자세)")
+    lines.append("## 7. 세션별 상세 (전체)")
     lines.append("")
-    lines.append("### Compliance % (HARD GATE 체크 통과율)")
-    lines.append("- `sentinel_start` — 응답 첫 줄 `[DX-AGENTIC-DEV: START]`")
-    lines.append("- `sentinel_done` — 마지막 줄 `[DX-AGENTIC-DEV: DONE (output-dir: ...)]`")
-    lines.append("- `output_isolation_present` — 산출물이 `dx-agentic-dev/<session_id>/` 하위")
-    lines.append("- `session_id_format` — `YYYYMMDD-HHMMSS_<agent>_<model>_<task>` 패턴")
-    lines.append("- `mandatory_deliverables` — 시나리오별 필수 파일 존재 (setup.sh, run.sh, README.md, session.log, factory, *_sync.py 등)")
-    lines.append("- `ifactory_5_methods` — dx_app factory 5-method 패턴 (`create_preprocessor`, `create_postprocessor`, `create_visualizer`, `get_model_name`, `get_task_type`)")
-    lines.append("- `session_log_authentic` — session.log 가 hand-written heredoc 아님 (실 명령 출력)")
-    lines.append("- `suite_dual_session_dirs` — suite 시나리오에서 2개 별도 sub-project dir 생성 (R41 HARD GATE)")
+    lines.append(f"> 총 {len(evals)}개 세션. HTML 보고서에서는 접기/펼치기로 제공됩니다.")
     lines.append("")
-    lines.append("### Quality % (정적 코드 품질)")
-    lines.append("- 모든 `.py` 파일 `py_compile` → 통과율")
-    lines.append("- 모든 `.json` 파일 `json.load` → 통과율")
-    lines.append("- 모든 `.sh` 파일 `bash -n` → 통과율")
-    lines.append("- **Placeholder** 페널티: `# TODO: implement`, 주석된 dx_engine/dxnn_sdk import, `np.zeros(...)` 등 (hit 당 5점, cap 30)")
-    lines.append("- **Direct engine use** 페널티: factory 외부 `engine.run()/.run_async()` 호출 — HARD GATE 위반 (hit 당 5점, cap 15)")
+    lines.append("| R | Tool | Scenario | Model | Verdict | Exec % | Runn % | ⏱ | pytest | Duration | Comp % | Qual % | Overall % | S/D | ToolCalls | LOC | PH | Eng | Reason |")
+    lines.append("|--:|------|----------|-------|:------:|------:|------:|:--:|:------:|---------:|------:|------:|---------:|:--:|---------:|---:|---:|----:|-------|")
+    for e in sorted(evals, key=lambda x: (x.round_index, x.tool, x.scenario)):
+        model_short = (e.model or "").replace("claude-sonnet-", "").replace("(non-standard)", "⚠")[:18]
+        verdict_disp = f"{verdict_emoji.get(e.verdict, '?')} {e.verdict[:4]}"
+        sd_marker = ("✓" if e.has_start else "✗") + "/" + ("✓" if e.has_done else "✗")
+        timeout_mark = "⏱" if e.suspected_timeout else ""
+        runn_disp = _fmt_num(e.runnability_score) if e.runnability_score > 0 else "-"
+        lines.append(
+            f"| {e.round_index} | {e.tool} | {e.scenario} | {model_short} | "
+            f"{verdict_disp} | "
+            f"{_fmt_num(e.execution_score)} | "
+            f"{runn_disp} | "
+            f"{timeout_mark} | "
+            f"{e.exit_status if e.exit_status is not None else '-'} | "
+            f"{_fmt_duration(e.duration_sec)} | "
+            f"{_fmt_num(e.compliance_score_pct)} | "
+            f"{_fmt_num(e.quality_score)} | "
+            f"{_fmt_num(e.overall_score)} | "
+            f"{sd_marker} | "
+            f"{e.tool_call_count} | "
+            f"{e.python_loc} | "
+            f"{e.placeholder_hits} | {e.direct_engine_use} | "
+            f"{e.verdict_reason[:60]} |"
+        )
     lines.append("")
-    lines.append("### Verdict (시나리오 1차 산출물 PASS/PARTIAL/FAIL — 정적 추론)")
-    lines.append("- `compiler`: PASS = `*.dxnn` + `config.json` 존재 / FAIL = `.dxnn` 미생성")
-    lines.append("- `dx_app`: PASS = factory + `*_sync.py` 둘 다 / PARTIAL = factory 만 / FAIL = factory 없음")
-    lines.append("- `dx_stream` / `dx_stream_cascaded`: PASS = `pipeline.py` + `run_*.sh` / PARTIAL = pipeline 만 / FAIL = pipeline 없음")
-    lines.append("- `runtime`: PASS = sub-project 출력 중 하나 이상이 형식 통과")
-    lines.append("- `suite`: PASS = dx-compiler + dx_app 둘 다 자체 dir 으로 (R41 HARD GATE) / PARTIAL = 하나만 / FAIL = 둘 다 없음")
-    lines.append("")
-    lines.append("### Overall % (composite)")
-    lines.append("```")
-    lines.append("Overall = 0.25 × Compliance + 0.20 × Quality + 0.10 × Verdict + 0.25 × ExecutionTrace + 0.15 × Runnability + 2.5(START) + 2.5(DONE)")
-    lines.append("```")
-    lines.append("- Runnability 데이터가 없는 세션은 나머지 4-factor 비례 배분 (backward compatible)")
-    lines.append("- Verdict 는 파일 존재만 확인하므로 가중치 낮음 (10%); 실제 실행 증거(Execution 25%)와 end-user 관점(Runnability 15%)에 높은 비중")
-    lines.append("")
-    lines.append("### pytest Exit 0 %")
-    lines.append("- pytest 의 round-level exit code (한 라운드에 6개 시나리오; 그 중 한 assertion 실패 시 1)")
-    lines.append("- **Overall 점수에는 미반영** (라운드 단위 → 시나리오 단위로 분해 불가). 별도 컬럼으로 표시.")
-    lines.append("- 진정한 시나리오별 pass/fail 은 Verdict 컬럼이 더 정확.")
-    lines.append("")
-    lines.append("### Duration")
-    lines.append("- Claude Code: `result.duration_ms` (stream-json 최종 이벤트)")
-    lines.append("- Cursor: `result` event 의 `duration_ms` (개별 tool_call 의 duration_ms는 제외 — 세션 총합과 구분)")
-    lines.append("- OpenCode: `timestamp` (Unix ms) 첫/마지막 이벤트 차이")
-    lines.append("- Copilot: events-*.jsonl 의 첫/마지막 이벤트 timestamp")
-    lines.append("- Fallback: artifact + output dir 파일 mtime 의 최대-최소 차이")
-    lines.append("")
-
-    # Q4 — Cursor bias check section
-    lines.append(analyze_bias(evals))
 
     out_path.write_text("\n".join(lines), encoding="utf-8")
 
@@ -730,7 +876,17 @@ def _md_to_html(md_text: str) -> str:
     in_table = False
     in_code = False
     in_list = False
+    in_details = False  # track <details> block for §7
     code_lines: List[str] = []
+    _heading_counter = [0]
+
+    def _slug(text: str) -> str:
+        """Create URL-friendly slug from heading text."""
+        clean = re.sub(r'<[^>]+>', '', text)  # strip HTML tags
+        clean = re.sub(r'[^\w\s가-힣-]', '', clean)  # keep alphanumeric, Korean, hyphens
+        clean = clean.strip().replace(' ', '-').lower()
+        _heading_counter[0] += 1
+        return f"sec-{_heading_counter[0]}-{clean[:40]}"
 
     for line in lines:
         stripped = line.strip()
@@ -787,7 +943,19 @@ def _md_to_html(md_text: str) -> str:
             if m:
                 level = len(m.group(1))
                 text = _inline_md(m.group(2))
-                html_parts.append(f"<h{level}>{text}</h{level}>")
+                hid = _slug(text)
+
+                # Close previous <details> if a new h2 starts
+                if in_details and level <= 2:
+                    html_parts.append("</details>")
+                    in_details = False
+
+                # Wrap §7 in collapsible <details>
+                if "세션별 상세" in m.group(2) and level == 2:
+                    html_parts.append(f'<details id="{hid}"><summary><h{level} style="display:inline">{text}</h{level}> (클릭하여 펼치기)</summary>')
+                    in_details = True
+                else:
+                    html_parts.append(f'<h{level} id="{hid}">{text}</h{level}>')
                 continue
 
         # Blockquote
@@ -813,6 +981,8 @@ def _md_to_html(md_text: str) -> str:
         html_parts.append(f"<p>{_inline_md(stripped)}</p>")
 
     # Close any open tags
+    if in_details:
+        html_parts.append("</details>")
     if in_table:
         html_parts.append("</tbody></table>")
     if in_list:

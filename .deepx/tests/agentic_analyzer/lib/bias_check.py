@@ -165,52 +165,42 @@ def analyze_bias(evals) -> str:
     lines.append("2. **Cursor 의 Execution Trace 가 다른 도구 대비 비슷한 수준**: 산출물 단순 존재가 아닌 실제 실행 흔적까지 비슷하다면 편향 가능성 낮음.")
     lines.append("3. **Duration 가중치 조정 검토**: 만약 cursor 의 우위가 거의 duration 차이에서만 온다면, Overall 에 duration 을 직접 반영하지 않는 현재 가중치 정책이 적절.")
     lines.append("")
-    lines.append("### 11.4 'Tool Calls' 메트릭 해석 가이드 (⚠ 효율 ≠ 적은 호출)")
+    lines.append("### 11.4 Tool Calls Efficiency Index 메트릭")
     lines.append("")
-    lines.append("**왜 이 섹션이 추가되었나**: 이전 리포트 요약에서 *'tool calls 효율 (58 vs 76) 에서 옴'* 이라는 표현을 사용했습니다. "
-                 "이는 **부정확한 해석**이었습니다. 적은 tool call 수가 곧 효율적 작업을 의미하지 않으며, "
-                 "오히려 다음 두 가지 상반된 해석이 가능합니다.")
+    lines.append("단순 tool call 수는 효율을 직접 나타내지 않습니다. "
+                 "적은 호출이 높은 성공률과 결합될 때만 의미 있습니다.")
     lines.append("")
-    lines.append("**가능한 해석 (Pro)** — 적은 호출이 좋은 경우:")
-    lines.append("- 모델이 처음에 정확히 의도를 파악해 fewer trial-and-error")
-    lines.append("- planning 이 명확해서 redundant read/grep 이 적음")
-    lines.append("- 더 큰 patch 를 한 번에 적용 (다수 작은 edit 대신)")
+    lines.append("**산출 공식**:")
     lines.append("")
-    lines.append("**가능한 해석 (Con)** — 적은 호출이 나쁜 경우:")
-    lines.append("- 컨텍스트 검증을 충분히 하지 않음 (e.g., 기존 코드를 안 읽고 추측)")
-    lines.append("- 자가-검증을 안 함 (validate_app.py 미실행, 단순히 생성만)")
-    lines.append("- 산출물에 대한 self-test/debugging 단계 생략")
+    lines.append("```")
+    lines.append("Efficiency Index = (Verdict% × ExecutionTrace%) / (Tool Calls + 1) × 100")
+    lines.append("```")
     lines.append("")
-    lines.append("**메트릭 자체의 한계**:")
-    lines.append("- '1 tool call' 의 weight 가 도구마다 다름 (cursor의 한 tool call 이 더 무거운 일을 할 수도 있음)")
-    lines.append("- Claude Code 는 `Bash` 한 호출에 multi-line 명령을 묶지만, OpenCode/Copilot 은 multiple 호출로 분해할 수 있음")
-    lines.append("- counting 자체에 노이즈: stream-json 의 `tool_call/started + completed` 이중 이벤트 카운팅 (분석기 중복 제거 적용은 했지만 도구 간 정확도 차이는 잔존)")
-    lines.append("")
-    lines.append("**올바른 평가 방법**:")
-    lines.append("- Tool calls 단독으로 효율을 판단 ❌")
-    lines.append("- Tool calls × **Verdict (PASS 비율)** × **ExecutionTrace** 조합으로 평가 ✅")
-    lines.append("- 즉, *'적은 호출로 더 많은 PASS + 더 풍부한 실행 흔적'* 이 진정한 효율")
+    lines.append("- **Verdict%**: 산출물 존재성 점수 (PASS=100, PARTIAL=50, FAIL=0)")
+    lines.append("- **ExecutionTrace%**: 실제 실행 흔적 점수")
+    lines.append("- **Tool Calls**: 세션당 평균 tool call 횟수")
+    lines.append("- 높은 성공률을 적은 호출로 달성할수록 Index가 높아짐")
     lines.append("")
 
-    # Compute the 'true efficiency' indicator
-    lines.append("**복합 효율 지표 (Tool Calls Efficiency Index)**:")
-    lines.append("")
-    lines.append("```")
-    lines.append("Efficiency = (Verdict% × ExecutionTrace%) / (Tool Calls + 1)    × 100 (스케일링)")
-    lines.append("            높은 PASS+Execution을 적은 tool call 로 달성할수록 큰 값")
-    lines.append("```")
-    lines.append("")
-    lines.append("| Tool | Avg Tool Calls | Avg Verdict % | Avg Exec % | **Efficiency Index** |")
-    lines.append("|------|---------------:|--------------:|-----------:|---------------------:|")
+    # Compute efficiency and rank
+    eff_data = []
     for tool in tools:
         tc = _avg([e.tool_call_count for e in by_tool[tool]])
         ver = _avg([e.verdict_score for e in by_tool[tool]])
         exec_p = _avg([e.execution_score for e in by_tool[tool]])
-        eff = (ver * exec_p) / (tc + 1) * 100  # scaled
-        lines.append(f"| **{tool}** | {tc:.1f} | {ver:.1f} | {exec_p:.1f} | **{eff:.1f}** |")
+        eff = (ver * exec_p) / (tc + 1) * 100
+        eff_data.append((tool, tc, ver, exec_p, eff))
+    eff_data.sort(key=lambda x: x[4], reverse=True)
+
+    lines.append("| Rank | Tool | Avg Tool Calls | Avg Verdict % | Avg Exec % | **Efficiency Index** |")
+    lines.append("|-----:|------|---------------:|--------------:|-----------:|---------------------:|")
+    for rank, (tool, tc, ver, exec_p, eff) in enumerate(eff_data, 1):
+        medal = {1: "🥇", 2: "🥈", 3: "🥉"}.get(rank, str(rank))
+        lines.append(f"| {medal} | **{tool}** | {tc:.1f} | {ver:.1f} | {exec_p:.1f} | **{eff:.1f}** |")
     lines.append("")
-    lines.append("→ Efficiency Index 가 가장 높은 도구가 '진정한 효율' 면에서 우위. "
-                 "단순 tool call 수 만으로 비교했을 때와 결과가 달라질 수 있음.")
+    lines.append("**해석 유의사항**: tool call 당 작업 granularity는 도구마다 다릅니다 "
+                 "(Claude Code는 1 Bash에 multi-line 명령을 묶고, Copilot/OpenCode는 개별 호출로 분해). "
+                 "따라서 Efficiency Index는 도구 간 상대 비교보다 동일 도구 내 회차별 추세 파악에 더 적합합니다.")
     lines.append("")
 
     return "\n".join(lines)
