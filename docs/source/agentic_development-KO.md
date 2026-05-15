@@ -125,7 +125,7 @@ dx-all-suite는 작업을 분류하고 적절한 서브모듈로 디스패치하
 
 ## 지원 AI 도구
 
-에이전틱 개발은 4가지 AI 코딩 도구에서 작동합니다. 각 도구는 자체 설정
+에이전틱 개발은 5가지 AI 코딩 도구에서 작동합니다. 각 도구는 자체 설정
 메커니즘을 통해 `.deepx/` 지식 베이스를 자동으로 로드합니다.
 
 | 도구 | 유형 | 자동 로드 메커니즘 | 에이전트 호출 | 스킬 호출 |
@@ -134,6 +134,7 @@ dx-all-suite는 작업을 분류하고 적절한 서브모듈로 디스패치하
 | **GitHub Copilot** | VS Code | `.github/copilot-instructions.md` | Copilot Chat에서 `@에이전트명 "프롬프트"` | — |
 | **Cursor** | IDE | `.cursor/rules/*.mdc` | 자유 형식 대화; `alwaysApply` 또는 `globs`로 규칙 로드 | — |
 | **OpenCode** | CLI | `AGENTS.md` + `opencode.json` | `@에이전트명 "프롬프트"` | `/스킬명` 슬래시 명령 |
+| **Codex CLI** | CLI | `AGENTS.md` + `.codex/skills/dx-codex-identity/SKILL.md` | 자유 형식 대화 (`codex exec ...`) | `cat .deepx/skills/<name>/SKILL.md` 로 직접 읽기 |
 
 ### 자동 로드되는 항목
 
@@ -143,6 +144,7 @@ dx-all-suite는 작업을 분류하고 적절한 서브모듈로 디스패치하
 | Copilot | `.github/copilot-instructions.md` | `.github/instructions/*.instructions.md` (`applyTo:` 글로브) | `.github/agents/*.agent.md` | `.github/skills/` (인라인 복사) |
 | Cursor | `.cursor/rules/dx-*.mdc` (`alwaysApply: true`) | `.cursor/rules/*.mdc` (`globs: [...]`) | `.cursor/rules/` 에이전트 `.mdc` 파일 | `.cursor/rules/` 스킬 `.mdc` 파일 |
 | OpenCode | `AGENTS.md` + `opencode.json` instructions | — | `.opencode/agents/*.md` | `.deepx/skills/*/SKILL.md` |
+| Codex CLI | `AGENTS.md` | — | `.deepx/agents/*.md` (직접 `cat`) | `.codex/skills/dx-codex-identity/` (자동) + `.deepx/skills/` (수동 `cat`) |
 
 ### 초기 설정
 

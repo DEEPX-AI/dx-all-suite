@@ -22,7 +22,7 @@ DEEPX Agentic Development (dx-agentic-dev) 기능은 **`.deepx/`를 canonical so
 - **dx-compiler**: ONNX → DXNN 변환 (DX-COM, PPU 자동 감지)
 - **cross-project**: 컴파일 + 앱 빌드 + 검증 연쇄
 
-### 1.2 지원 AI 도구 (4종)
+### 1.2 지원 AI 도구 (5종)
 
 | 도구 | 자동 로드 메커니즘 | 에이전트 호출 |
 |------|--------------------|---------------|
@@ -30,6 +30,7 @@ DEEPX Agentic Development (dx-agentic-dev) 기능은 **`.deepx/`를 canonical so
 | **GitHub Copilot** | `.github/copilot-instructions.md` + `.github/agents/` | `@agent-name "prompt"` |
 | **Cursor** | `.cursor/rules/*.mdc` (`alwaysApply` / `globs`) | 자연어 |
 | **OpenCode** | `AGENTS.md` + `opencode.json` + `.opencode/agents/` + 슬래시 명령 | `@agent-name` 또는 `/skill-name` |
+| **Codex CLI** | `AGENTS.md` + `.codex/skills/dx-codex-identity/SKILL.md` | `codex exec --json -s danger-full-access -m <model> -C <workdir>` (기본: `gpt-5.3-codex`, Copilot provider 인증) |
 
 ### 1.3 계층 라우팅 구조
 
@@ -169,9 +170,9 @@ API hallucination 방지용 grounding 문서. 검증된 심볼만 나열:
 ### 3.7 tests/ — 인프라 검증 + E2E
 
 - `test_agentic_scenarios/`: 199 tests (~1초) — 가이드 문서 구조, 라우팅 일관성, 시나리오 참조, cross-project handoff
-- `test_agentic_e2e_scenarios/`: **352 pytest tests** (Copilot 67 + Cursor 63 + OpenCode 112 + Claude Code 110) — 실제 CLI 호출 → 정적 검증 (file existence, AST, JSON 구조)
-- 4개 모드 × 2 (autopilot / manual) = 8개 실행 모드
-- **총 551 agentic tests**
+- `test_agentic_e2e_scenarios/`: **463 pytest tests** (Copilot 67 + Cursor 63 + OpenCode 112 + Claude Code 110 + Codex 111) — 실제 CLI 호출 → 정적 검증 (file existence, AST, JSON 구조)
+- 5개 모드 × 2 (autopilot / manual) = 10개 실행 모드
+- **총 662 agentic tests**
 
 ---
 
@@ -446,8 +447,9 @@ API hallucination 방지용 grounding 문서. 검증된 심볼만 나열:
 | Cursor CLI (`agent`) | `-p --force --output-format stream-json` | `--force` / 프롬프트 지시 | stream-json stdout |
 | OpenCode | `run --format json` | `run` 모드 자동 / 프롬프트 지시 | `/export` → `session-*.md` |
 | Claude Code (`claude`) | `-p --dangerously-skip-permissions --output-format stream-json` | `--dangerously-skip-permissions` / 프롬프트 지시 | `/export` → `*.txt` |
+| Codex CLI (`codex`) | `exec --json -s danger-full-access -m <model>` | `-s danger-full-access` / 프롬프트 지시 | `~/.codex/sessions/YYYY/MM/DD/rollout-*-<thread_id>.jsonl` |
 
-5개 시나리오 × 4개 도구 = 20 시나리오. 검증은 **정적 분석만**(file existence, AST, JSON, 패턴) — 실제 HW 추론은 수행하지 않음.
+5개 시나리오 × 5개 도구 = 25 시나리오. 검증은 **정적 분석만**(file existence, AST, JSON, 패턴) — 실제 HW 추론은 수행하지 않음.
 
 ---
 
@@ -503,6 +505,7 @@ cd .deepx/tests
 ./test.sh agentic-e2e-copilot-cli-autopilot
 ./test.sh agentic-e2e-cursor-cli-autopilot
 ./test.sh agentic-e2e-opencode-cli-autopilot
+./test.sh agentic-e2e-codex-cli-autopilot               # Codex CLI E2E
 ```
 
 ## 부록 B. 환경 변수 (E2E 테스트)
@@ -514,6 +517,8 @@ cd .deepx/tests
 | `DX_AGENTIC_E2E_CURSOR_MODEL` | `claude-4.6-sonnet-medium` | Cursor CLI 모델 |
 | `DX_AGENTIC_E2E_OPENCODE_MODEL` | `github-copilot/claude-sonnet-4.6` | OpenCode 모델 |
 | `DX_AGENTIC_E2E_CLAUDE_CODE_MODEL` | `claude-sonnet-4-6` | Claude Code 모델 |
+| `DX_AGENTIC_E2E_CODEX_MODEL` | `gpt-5.3-codex` | Codex CLI 모델 |
+| `DX_AGENTIC_E2E_CODEX_TIMEOUT` | `600` | Codex CLI 타임아웃 (초) |
 | `DX_AGENTIC_E2E_CLEANUP_ARTIFACTS` | (unset) | 1 = 성공 후 산출물 삭제 |
 
 ---

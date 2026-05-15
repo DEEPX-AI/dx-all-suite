@@ -22,7 +22,7 @@ Generate DEEPX SDK-based AI applications from natural-language prompts. The AI a
 - **dx-compiler**: ONNX → DXNN conversion (DX-COM, PPU auto-detection)
 - **cross-project**: compile + app build + verification chain
 
-### 1.2 Supported AI Tools (4 types)
+### 1.2 Supported AI Tools (5 types)
 
 | Tool | Auto-load mechanism | Agent invocation |
 |------|---------------------|------------------|
@@ -30,6 +30,7 @@ Generate DEEPX SDK-based AI applications from natural-language prompts. The AI a
 | **GitHub Copilot** | `.github/copilot-instructions.md` + `.github/agents/` | `@agent-name "prompt"` |
 | **Cursor** | `.cursor/rules/*.mdc` (`alwaysApply` / `globs`) | natural language |
 | **OpenCode** | `AGENTS.md` + `opencode.json` + `.opencode/agents/` + slash commands | `@agent-name` or `/skill-name` |
+| **Codex CLI** | `AGENTS.md` + `.codex/skills/dx-codex-identity/SKILL.md` | `codex exec --json -s danger-full-access -m <model> -C <workdir>` (default model: `gpt-5.3-codex`, Copilot provider auth) |
 
 ### 1.3 Hierarchical Routing Structure
 
@@ -169,9 +170,9 @@ These 16 fragments are **selectively injected** into the `CLAUDE.md` / `AGENTS.m
 ### 3.7 tests/ — Infrastructure Verification + E2E
 
 - `test_agentic_scenarios/`: 199 tests (~1 sec) — guide document structure, routing consistency, scenario references, cross-project handoff
-- `test_agentic_e2e_scenarios/`: **352 pytest tests** (Copilot 67 + Cursor 63 + OpenCode 112 + Claude Code 110) — real CLI invocation → static verification (file existence, AST, JSON structure)
+- `test_agentic_e2e_scenarios/`: **463 pytest tests** (Copilot 67 + Cursor 63 + OpenCode 112 + Claude Code 110 + Codex 111) — real CLI invocation → static verification (file existence, AST, JSON structure)
 - 4 modes × 2 (autopilot / manual) = 8 execution modes
-- **Total of 551 agentic tests**
+- **Total of 662 agentic tests**
 
 ---
 
@@ -438,7 +439,7 @@ Additional messaging elements (`architecture.md`): `DxMsgConv`, `DxMsgBroker`.
 | `test_scenario_references.py` | Agent/skill references matched to actual infrastructure |
 | `test_cross_project_scenarios.py` | Handoff chain, validation scripts, output isolation |
 
-### 9.2 E2E Scenarios (352 pytest + manual)
+### 9.2 E2E Scenarios (463 pytest + manual)
 
 | Tool | autopilot flags | Auto-approve / question blocking | Session export |
 |------|------------------|---------------------------------|----------------|
@@ -446,8 +447,9 @@ Additional messaging elements (`architecture.md`): `DxMsgConv`, `DxMsgBroker`.
 | Cursor CLI (`agent`) | `-p --force --output-format stream-json` | `--force` / prompt instruction | stream-json stdout |
 | OpenCode | `run --format json` | `run` mode auto / prompt instruction | `/export` → `session-*.md` |
 | Claude Code (`claude`) | `-p --dangerously-skip-permissions --output-format stream-json` | `--dangerously-skip-permissions` / prompt instruction | `/export` → `*.txt` |
+| Codex CLI (`codex`) | `exec --json -s danger-full-access -m <model>` | `-s danger-full-access` / prompt instruction | `~/.codex/sessions/YYYY/MM/DD/rollout-*-<thread_id>.jsonl` |
 
-5 scenarios × 4 tools = 20 scenarios. Verification is **static analysis only** (file existence, AST, JSON, patterns) — actual HW inference is not performed.
+5 scenarios × 5 tools = 25 scenarios. Verification is **static analysis only** (file existence, AST, JSON, patterns) — actual HW inference is not performed.
 
 ---
 
@@ -503,6 +505,7 @@ cd .deepx/tests
 ./test.sh agentic-e2e-copilot-cli-autopilot
 ./test.sh agentic-e2e-cursor-cli-autopilot
 ./test.sh agentic-e2e-opencode-cli-autopilot
+./test.sh agentic-e2e-codex-cli-autopilot               # Codex CLI E2E
 ```
 
 ## Appendix B. Environment Variables (E2E Tests)
@@ -514,6 +517,8 @@ cd .deepx/tests
 | `DX_AGENTIC_E2E_CURSOR_MODEL` | `claude-4.6-sonnet-medium` | Cursor CLI model |
 | `DX_AGENTIC_E2E_OPENCODE_MODEL` | `github-copilot/claude-sonnet-4.6` | OpenCode model |
 | `DX_AGENTIC_E2E_CLAUDE_CODE_MODEL` | `claude-sonnet-4-6` | Claude Code model |
+| `DX_AGENTIC_E2E_CODEX_MODEL` | `gpt-5.3-codex` | Codex CLI model |
+| `DX_AGENTIC_E2E_CODEX_TIMEOUT` | `600` | Codex CLI timeout (sec) |
 | `DX_AGENTIC_E2E_CLEANUP_ARTIFACTS` | (unset) | 1 = delete artifacts after success |
 
 ---

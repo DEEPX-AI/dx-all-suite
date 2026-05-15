@@ -128,7 +128,7 @@ correct submodule.
 
 ## Supported AI Tools
 
-Agentic development works with four AI coding tools. Each tool auto-loads
+Agentic development works with five AI coding tools. Each tool auto-loads
 the `.deepx/` knowledge base through its own configuration mechanism.
 
 | Tool | Type | Auto-Load Mechanism | Agent Invocation | Skill Invocation |
@@ -137,6 +137,7 @@ the `.deepx/` knowledge base through its own configuration mechanism.
 | **GitHub Copilot** | VS Code | `.github/copilot-instructions.md` | `@agent-name "prompt"` in Copilot Chat | — |
 | **Cursor** | IDE | `.cursor/rules/*.mdc` | Free-form conversation; rules loaded by `alwaysApply` or `globs` | — |
 | **OpenCode** | CLI | `AGENTS.md` + `opencode.json` | `@agent-name "prompt"` | `/skill-name` slash command |
+| **Codex CLI** | CLI | `AGENTS.md` + `.codex/skills/dx-codex-identity/SKILL.md` | Free-form conversation (`codex exec ...`) | `cat .deepx/skills/<name>/SKILL.md` (read directly) |
 
 ### What Gets Auto-Loaded
 
@@ -146,6 +147,7 @@ the `.deepx/` knowledge base through its own configuration mechanism.
 | Copilot | `.github/copilot-instructions.md` | `.github/instructions/*.instructions.md` (`applyTo:` glob) | `.github/agents/*.agent.md` | `.github/skills/` (inline copies) |
 | Cursor | `.cursor/rules/dx-*.mdc` (`alwaysApply: true`) | `.cursor/rules/*.mdc` (`globs: [...]`) | `.cursor/rules/` agent `.mdc` files | `.cursor/rules/` skill `.mdc` files |
 | OpenCode | `AGENTS.md` + `opencode.json` instructions | — | `.opencode/agents/*.md` | `.deepx/skills/*/SKILL.md` |
+| Codex CLI | `AGENTS.md` | — | `.deepx/agents/*.md` (direct `cat`) | `.codex/skills/dx-codex-identity/` (auto) + `.deepx/skills/` (manual `cat`) |
 
 ### First-Time Setup
 
