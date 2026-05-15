@@ -422,72 +422,62 @@ def main(argv: Optional[List[str]] = None) -> int:
                 model=args.insights_model, allow_paid=args.insights_allow_paid,
                 existing_report=Path(args.existing_runnability).resolve() if args.existing_runnability else None,
             )
+    else:
+        chosen_cli = None
 
-        # --- Step 2: merge runnability scores into analysis.md ---
-        runnability_path = out_dir / "runnability_report.md"
-        if runnability_path.is_file():
-            print("\n→ Parsing runnability_report.md and recomputing Overall scores...")
-            runn_entries = parse_runnability_report(runnability_path)
-            runn_agg = aggregate_runnability(runn_entries)
-            updated = 0
-            for e in evals:
-                key = (e.tool, e.scenario)
-                if key in runn_agg:
-                    e.runnability_score = runn_agg[key]
-                    e.overall_score = composite_score(
-                        e.compliance_score_pct, e.quality_score, e.verdict_score,
-                        e.execution_score, e.has_start, e.has_done,
-                        runnability_pct=e.runnability_score, has_runnability=True,
-                    )
-                    updated += 1
-            if updated > 0:
-                print(f"  Updated {updated} sessions with runnability scores")
-                write_markdown(evals, md_path, meta)
-                write_json(evals, json_path, meta)
-                write_csv(evals, csv_path)
-                write_html(evals, html_path, meta)
-                print(f"  Rewrote: {md_path}")
+    # --- Step 2: merge runnability scores into analysis.md ---
+    # (runs regardless of --insights flag — pure computation, no LLM needed)
+    runnability_path = out_dir / "runnability_report.md"
+    if runnability_path.is_file():
+        print("\n→ Parsing runnability_report.md and recomputing Overall scores...")
+        runn_entries = parse_runnability_report(runnability_path)
+        runn_agg = aggregate_runnability(runn_entries)
+        updated = 0
+        for e in evals:
+            key = (e.tool, e.scenario)
+            if key in runn_agg:
+                e.runnability_score = runn_agg[key]
+                e.overall_score = composite_score(
+                    e.compliance_score_pct, e.quality_score, e.verdict_score,
+                    e.execution_score, e.has_start, e.has_done,
+                    runnability_pct=e.runnability_score, has_runnability=True,
+                )
+                updated += 1
+        if updated > 0:
+            print(f"  Updated {updated} sessions with runnability scores")
+            write_markdown(evals, md_path, meta)
+            write_json(evals, json_path, meta)
+            write_csv(evals, csv_path)
+            write_html(evals, html_path, meta)
+            print(f"  Rewrote: {md_path}")
 
-        # --- Step 2.5: hypothesis generation (optional) ---
-        if getattr(args, 'hypothesis', None) and chosen_cli:
-            hp = Path(args.hypothesis)
-            if hp.suffix.lower() == ".json":
-                import shutil
-                dest = out_dir / "hypothesis.json"
-                if hp.resolve() != dest.resolve():
-                    shutil.copy2(hp, dest)
-                    print(f"\n  ✓ hypothesis.json copied from {hp}")
-                else:
-                    print(f"\n  ✓ hypothesis.json already in output directory")
+    # --- Step 2.5: hypothesis generation (optional) ---
+    # (runs regardless of --insights flag — copies JSON or invokes LLM)
+    if getattr(args, 'hypothesis', None):
+        hp = Path(args.hypothesis)
+        if hp.suffix.lower() == ".json":
+            import shutil
+            dest = out_dir / "hypothesis.json"
+            if hp.resolve() != dest.resolve():
+                shutil.copy2(hp, dest)
+                print(f"\n  ✓ hypothesis.json copied from {hp}")
             else:
+                print(f"\n  ✓ hypothesis.json already in output directory")
+        else:
+            hyp_cli = chosen_cli or _resolve_insights_cli("auto", allow_paid=True)
+            if hyp_cli:
                 _run_hypothesis_step(
-                    out_dir, chosen_cli, hp,
+                    out_dir, hyp_cli, hp,
                     model=args.insights_model,
                     allow_paid=args.insights_allow_paid,
                 )
 
+    if args.insights != "off" and chosen_cli:
         # --- Step 3: insights (now reads updated analysis.md) ---
-        if chosen_cli:
-            _run_insights_step(
-                out_dir, chosen_cli,
-                model=args.insights_model, allow_paid=args.insights_allow_paid,
-            )
-
-    # Handle --hypothesis when --insights off (no CLI resolved above)
-    if args.hypothesis and not (out_dir / "hypothesis.json").is_file():
-        hp = Path(args.hypothesis)
-        if hp.suffix.lower() == ".json":
-            import shutil
-            shutil.copy2(hp, out_dir / "hypothesis.json")
-            print(f"\n  ✓ hypothesis.json copied from {hp}")
-        else:
-            hyp_cli = _resolve_insights_cli("auto", allow_paid=True)
-            if hyp_cli:
-                _run_hypothesis_step(
-                    out_dir, hyp_cli, hp,
-                    model=args.insights_model if hasattr(args, 'insights_model') else None,
-                    allow_paid=True,
-                )
+        _run_insights_step(
+            out_dir, chosen_cli,
+            model=args.insights_model, allow_paid=args.insights_allow_paid,
+        )
 
     # ---------------- Step 4: Comprehensive report (slim Part 3) ----------------
     _generate_comprehensive_report(out_dir)
