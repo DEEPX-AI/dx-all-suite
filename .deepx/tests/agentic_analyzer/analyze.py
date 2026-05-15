@@ -425,6 +425,16 @@ def main(argv: Optional[List[str]] = None) -> int:
     else:
         chosen_cli = None
 
+    # --- Step 1.5: copy existing runnability report when insights is off ---
+    # When --insights off skips Step 1 but --existing-runnability is provided,
+    # copy the file so Step 2 merge can find it.
+    if args.existing_runnability and not (out_dir / "runnability_report.md").is_file():
+        import shutil
+        src = Path(args.existing_runnability).resolve()
+        if src.is_file():
+            shutil.copy2(src, out_dir / "runnability_report.md")
+            print(f"\n  ✓ runnability_report.md copied from {src.name}")
+
     # --- Step 2: merge runnability scores into analysis.md ---
     # (runs regardless of --insights flag — pure computation, no LLM needed)
     runnability_path = out_dir / "runnability_report.md"
