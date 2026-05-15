@@ -377,10 +377,29 @@ def invoke_cli(cli: str, prompt: str, *, model: Optional[str] = None,
     if model_flag:
         cmd.extend([model_flag, effective_model])
     cmd.extend(conf["args"])
+
+    # OS arg-length safety: if prompt > 100 KB, write to temp file and
+    # replace the positional prompt arg with a file-read instruction.
+    _MAX_ARG_BYTES = 100_000
+    tmp_prompt_file = None
     try:
         if conf.get("prompt_via_arg"):
-            cmd.append(prompt)
-            r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout_sec)
+            if len(prompt.encode("utf-8")) > _MAX_ARG_BYTES:
+                # Write prompt to a temp file, pass via stdin instead of arg
+                import tempfile
+                tmp_prompt_file = tempfile.NamedTemporaryFile(
+                    mode="w", suffix=".md", delete=False, encoding="utf-8",
+                )
+                tmp_prompt_file.write(prompt)
+                tmp_prompt_file.close()
+                # Remove trailing `-p` from args (if present) since we'll use stdin
+                if cmd[-1] == "-p":
+                    cmd = cmd[:-1]
+                r = subprocess.run(cmd, input=prompt, capture_output=True, text=True,
+                                   timeout=timeout_sec)
+            else:
+                cmd.append(prompt)
+                r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout_sec)
         else:
             # Pass via stdin
             r = subprocess.run(cmd, input=prompt, capture_output=True, text=True,
@@ -398,6 +417,12 @@ def invoke_cli(cli: str, prompt: str, *, model: Optional[str] = None,
         print(f"WARN: CLI '{cli}' (model={effective_model}) invocation failed: {e}",
               file=sys.stderr)
         return None
+    finally:
+        if tmp_prompt_file is not None:
+            try:
+                os.unlink(tmp_prompt_file.name)
+            except OSError:
+                pass
 
 
 # ---------------------------------------------------------------------------

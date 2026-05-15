@@ -454,8 +454,11 @@ def main(argv: Optional[List[str]] = None) -> int:
             if hp.suffix.lower() == ".json":
                 import shutil
                 dest = out_dir / "hypothesis.json"
-                shutil.copy2(hp, dest)
-                print(f"\n  ✓ hypothesis.json copied from {hp}")
+                if hp.resolve() != dest.resolve():
+                    shutil.copy2(hp, dest)
+                    print(f"\n  ✓ hypothesis.json copied from {hp}")
+                else:
+                    print(f"\n  ✓ hypothesis.json already in output directory")
             else:
                 _run_hypothesis_step(
                     out_dir, chosen_cli, hp,
