@@ -13,6 +13,7 @@ from typing import Dict, List
 
 from .aggregate import (
     SessionEval,
+    _is_env_failure,
     aggregate_per_round_tool,
     aggregate_per_scenario_tool,
     aggregate_per_tool,
@@ -353,151 +354,206 @@ def write_markdown(evals: List[SessionEval], out_path: Path, meta: Dict) -> None
     lines.append("")
 
     # ----------------------------------------------------------
-    # 9. 토큰 사용량 + 비용 + premium requests
+    # 9. 토큰 사용량 + 비용 효율성
     # ----------------------------------------------------------
-    lines.append("## 9. 토큰 사용량 + 비용 + Premium Requests")
+    lines.append("## 9. 토큰 사용량 + 비용 효율성")
     lines.append("")
-    lines.append("### 9.1 도구별 누적 토큰 (5라운드 × 6시나리오 = 30 sessions 합계)")
+
+    # --- 9.1 Raw token table (as-recorded) ---
+    n_rounds = len(set(e.round_index for e in evals if e.round_index))
+    n_scenarios = len(set(e.scenario for e in evals if e.scenario))
+    n_sessions = len(evals)
+    lines.append(f"### 9.1 도구별 누적 토큰 — Raw (전체 {n_sessions} sessions 합계)")
     lines.append("")
-    lines.append("| Tool | Total Input | Total Output | Cache Read | Cache Write | Reasoning | Avg Output/Session |")
-    lines.append("|------|------------:|-------------:|-----------:|------------:|----------:|-------------------:|")
+    lines.append("> ⚠ **토큰 의미론이 도구별로 다릅니다.** 아래 표의 수치는 각 도구 stream에서 추출한 원본(raw) 값이며, "
+                 "직접 비교에는 주의가 필요합니다. 차이 원인은 §9.2에서 설명합니다.")
+    lines.append("")
+    lines.append("| Tool | Sessions | Fresh Input | Output | Cache Read (raw) | Cache Write | Reasoning | Avg Output/Sess |")
+    lines.append("|------|--------:|-----------:|-------:|-----------------:|------------:|----------:|----------------:|")
     for tool in tools:
         ev = [e for e in evals if e.tool == tool]
         n = max(1, len(ev))
+        n_with = sum(1 for e in ev if e.input_tokens > 0 or e.output_tokens > 0 or e.cache_read_tokens > 0)
         ti = sum(e.input_tokens for e in ev)
         to = sum(e.output_tokens for e in ev)
         tcr = sum(e.cache_read_tokens for e in ev)
         tcw = sum(e.cache_write_tokens for e in ev)
         tre = sum(e.reasoning_tokens for e in ev)
-        lines.append(f"| **{tool}** | {ti:,} | {to:,} | {tcr:,} | {tcw:,} | {tre:,} | {int(to/n):,} |")
+        lines.append(f"| **{tool}** | {n_with}/{n} | {ti:,} | {to:,} | {tcr:,} | {tcw:,} | {tre:,} | {int(to/n):,} |")
     lines.append("")
-    lines.append("### 9.2 도구별 Premium Requests / Cost")
+
+    # --- 9.2 Token semantics note ---
+    lines.append("### 9.2 도구별 토큰 보고 의미론 차이")
     lines.append("")
-    lines.append("| Tool | Total Premium Requests | Total Cost Units | Avg Premium/Session | Notes |")
-    lines.append("|------|----------------------:|----------------:|--------------------:|-------|")
-    notes_map = {
-        "claude-code": "Anthropic API (subscription-based; no premium request concept)",
-        "copilot-cli": "`requests.count` = GitHub Copilot Premium Requests consumed",
-        "cursor-cli": "Token-based pricing — no premium request",
-        "opencode-cli": "`part.cost` summed across steps (USD); copilot provider = uses Copilot premium",
-        "codex-cli": "Copilot provider — premium consumed but not exposed in Codex JSONL",
+    lines.append("각 도구/provider의 stream 형식에 따라 토큰 필드의 의미가 다릅니다:")
+    lines.append("")
+    lines.append("| 도구 | `input_tokens` 의미 | `cache_read` 의미 | 보정 방법 |")
+    lines.append("|------|-------------------|------------------|----------|")
+    lines.append("| **claude-code** | Fresh only (Anthropic API native) | **Per-turn SUM** — 매 turn마다 전체 캐시 컨텍스트를 재보고 → 누적 합산 시 ~100× 과대 | 마지막 turn의 cache_read가 실제 context window |")
+    lines.append("| **copilot-cli** | Fresh (total − cache_read − cache_write로 보정 완료) | Session 합계 ✅ | 이미 보정됨 |")
+    lines.append("| **codex-cli** | Fresh (total − cached로 보정 완료) | Session cached ✅ | 이미 보정됨 |")
+    lines.append("| **cursor-cli** | Fresh (Anthropic backend, result event) | Session 합계 ✅ | 보정 불필요 |")
+    lines.append("| **opencode-cli** | Per-step incremental SUM | Per-step cache SUM | provider 의존, 대체로 정상 |")
+    lines.append("")
+    lines.append("> **결론**: `Fresh Input`과 `Output`은 도구 간 비교 가능합니다. "
+                 "`Cache Read`는 claude-code만 per-turn 합산으로 과대 보고되므로 직접 비교에 부적합합니다.")
+    lines.append("")
+
+    # --- 9.3 Premium Requests (observed) ---
+    lines.append("### 9.3 도구별 Premium Requests (관측치)")
+    lines.append("")
+    lines.append("| Tool | Total Premium Req | Avg PR/Session | 측정 방식 |")
+    lines.append("|------|------------------:|---------------:|----------|")
+    pr_notes = {
+        "claude-code": "해당 없음 (Anthropic Team Plan 구독, PR 개념 없음)",
+        "copilot-cli": "`session.shutdown.totalPremiumRequests` (actual)",
+        "cursor-cli": "해당 없음 (Cursor Team Plan 구독, PR 개념 없음)",
+        "opencode-cli": "Copilot provider 경유 — PR 소비량 stream 미노출",
+        "codex-cli": "Copilot provider 경유 — PR 소비량 stream 미노출",
     }
     for tool in tools:
         ev = [e for e in evals if e.tool == tool]
         n = max(1, len(ev))
         total_prem = sum(e.premium_requests for e in ev)
-        total_cost = sum(e.cost_units for e in ev)
         avg_prem = total_prem / n
-        note = notes_map.get(tool, "-")
-        lines.append(f"| **{tool}** | {total_prem:,} | {total_cost:.2f} | {avg_prem:.1f} | {note} |")
-    lines.append("")
-    lines.append("> **Note**: OpenCode 의 `cost` 는 USD (provider에 따라 다름). copilot provider 로 실행 시 "
-                 "premium request 는 underlying Copilot 백엔드에서 측정되지만 OpenCode stream 에 직접 노출되지 않음 — "
-                 "별도 `gh copilot status` 또는 GitHub 대시보드에서 확인 필요.")
-    lines.append("")
-    lines.append("### 9.3 시나리오별 평균 비용 비교 (per-session)")
-    lines.append("")
-    lines.append("| Tool | Avg Input Tokens | Avg Output Tokens | Avg Premium/Session | Avg Cost/Session |")
-    lines.append("|------|-----------------:|------------------:|--------------------:|-----------------:|")
-    for tool in tools:
-        ev = [e for e in evals if e.tool == tool]
-        n = max(1, len(ev))
-        avg_in = sum(e.input_tokens for e in ev) / n
-        avg_out = sum(e.output_tokens for e in ev) / n
-        avg_pr = sum(e.premium_requests for e in ev) / n
-        avg_co = sum(e.cost_units for e in ev) / n
-        lines.append(f"| **{tool}** | {int(avg_in):,} | {int(avg_out):,} | {avg_pr:.1f} | {avg_co:.3f} |")
-    lines.append("")
-    lines.append("### 9.4 추정 비용 — 도구별 차등 적용 (실제 / 역산 / 무료)")
-    lines.append("")
-    lines.append("> **Pricing 출처**: `config.yaml` 의 `pricing:` 섹션 (편집 가능). 검증은 각 provider 대시보드 (§9.5).")
-    lines.append("")
-    lines.append("**도구별 산정 로직**:")
-    lines.append("- `claude-code` → Anthropic API direct: token × per-million rate (input/output/cache)")
-    lines.append("- `copilot-cli` → Premium Request **(actual)**: stream의 `requests.count` × $/req")
-    lines.append("- `cursor-cli` (sonnet/opus 모델) → Anthropic rates proxy (Cursor 자체는 구독제이나 token 사용량을 동일 모델 기준으로 환산)")
-    lines.append("- `cursor-cli` (**auto 모델**) → **$0** (Cursor 구독 정액 한도 내 무료)")
-    lines.append("- `opencode-cli` (copilot provider) → Premium Request **(estimated)**: copilot-cli의 `tokens/req` 비율로 역산")
+        note = pr_notes.get(tool, "-")
+        if total_prem > 0:
+            lines.append(f"| **{tool}** | {total_prem:,} | {avg_prem:.1f} | {note} |")
+        else:
+            lines.append(f"| **{tool}** | — | — | {note} |")
     lines.append("")
 
-    # Calibration info
-    cop_total_tok = sum(e.input_tokens + e.output_tokens for e in evals if e.tool == "copilot-cli" and e.premium_requests > 0)
-    cop_total_prem = sum(e.premium_requests for e in evals if e.tool == "copilot-cli" and e.premium_requests > 0)
-    if cop_total_prem > 0:
-        tpr = cop_total_tok / cop_total_prem
-        lines.append(f"> **OpenCode 역산 calibration**: {cop_total_tok:,} (copilot-cli input+output tokens) ÷ "
-                     f"{cop_total_prem:,} (premium reqs) = **{tpr:,.0f} tokens/req** ← 이 비율로 opencode premium req 추정")
-        lines.append("")
+    # --- 9.4 Cost comparison limitation ---
+    lines.append("### 9.4 비용 산정 한계 및 실제 구독 현황")
+    lines.append("")
+    lines.append("**일관된 기준의 도구 간 비용 비교는 현실적으로 불가능합니다.** 각 도구의 과금 체계가 근본적으로 다르기 때문입니다:")
+    lines.append("")
+    lines.append("| 도구 | 과금 체계 | 구독 현황 | 추가 비용 산정 |")
+    lines.append("|------|---------|---------|-------------|")
+    lines.append("| **claude-code** | Anthropic Team Plan ($25/seat/mo) | 세션 한도 + 주간 한도 내 사용 | ❌ 불가 — 정액 구독 한도 내 |")
+    lines.append("| **copilot-cli** | GitHub Copilot Enterprise | 기본 사용량 초과 시 Premium Request 단위 충전 | ⚠ PR 단위만 가능 (토큰↔PR 비율 비선형) |")
+    lines.append("| **cursor-cli** | Cursor Team Plan (최소 요금) | auto 모델, 한도 초과 시 제한 (추가 과금 없음) | ❌ 불가 — 정액 한도 내 |")
+    lines.append("| **opencode-cli** | Copilot provider 경유 | Copilot Enterprise PR 소비 | ❌ 불가 — PR 소비량 미노출 |")
+    lines.append("| **codex-cli** | Copilot provider 경유 | Copilot Enterprise PR 소비 | ❌ 불가 — PR 소비량 미노출 |")
+    lines.append("")
+    lines.append("> **핵심 제약**: copilot-cli만 실제 Premium Request 소비량이 stream에 기록됩니다. "
+                 "opencode-cli와 codex-cli는 동일한 Copilot backend를 사용하지만 PR 소비량이 stream에 노출되지 않아 "
+                 "copilot-cli와의 비용 비교가 불가능합니다. claude-code와 cursor-cli는 정액 구독이므로 "
+                 "토큰 사용량과 무관하게 월 고정 비용만 발생합니다.")
+    lines.append("")
 
-    lines.append("**도구별 종합 비용 + 토큰 + Premium Request 정보** (30 sessions 합계):")
+    # --- 9.5 External benchmarks for cost-efficiency context ---
+    lines.append("### 9.5 외부 벤치마크 기반 모델 비용 효율성 참고")
     lines.append("")
-    lines.append("| Tool | Total Input | Total Output | Cache Read | Premium Req (actual / estimated) | Total USD | Avg USD/sess | Cost Basis |")
-    lines.append("|------|------------:|-------------:|-----------:|----------------------------------:|----------:|-------------:|-----------|")
+    lines.append("도구 간 직접 비용 비교가 불가능하므로, 외부 벤치마크의 **모델별 성능 대비 비용** 데이터를 참고로 제시합니다.")
+    lines.append("")
+    lines.append("#### A. Aider Polyglot Coding Benchmark (2025.11)")
+    lines.append("")
+    lines.append("출처: [aider.chat/docs/leaderboards](https://aider.chat/docs/leaderboards/) — "
+                 "225 exercises (C++, Go, Java, JS, Python, Rust)")
+    lines.append("")
+    lines.append("| Model | Edit Accuracy | Run Cost | 비고 |")
+    lines.append("|-------|-------------:|--------:|------|")
+    lines.append("| GPT-5 (high) | 88.0% | $29.08 | 최고 정확도 |")
+    lines.append("| GPT-5 (medium) | 86.7% | $17.69 | 비용 대비 최고 효율 |")
+    lines.append("| Claude Opus 4 (no think) | 70.7% | $68.63 | 높은 비용 |")
+    lines.append("| Claude Opus 4 (32k think) | 72.0% | $65.75 | thinking 효과 미미 |")
+    lines.append("| Claude Sonnet 4 (32k think) | 61.3% | $26.58 | |")
+    lines.append("| Claude Sonnet 4 (no think) | 56.4% | $15.82 | |")
+    lines.append("| GPT-4.1 | 52.4% | $9.86 | 저비용 |")
+    lines.append("| DeepSeek-V3.2-Exp (Reasoner) | 74.2% | $1.30 | **극히 저렴** |")
+    lines.append("")
+    lines.append("> ⚠ Claude Sonnet **4.6**, Opus **4.6/4.7**, GPT-5.x-**Codex** 변형은 아직 Aider 리더보드에 미등재 "
+                 "(2025.11 기준). 위 수치는 이전 세대 모델 기준입니다.")
+    lines.append("")
+    lines.append("#### B. SWE-Bench Verified (실제 GitHub Issue 해결률)")
+    lines.append("")
+    lines.append("출처: [github.com/swe-bench/experiments](https://github.com/swe-bench/experiments) — 500 issues")
+    lines.append("")
+    lines.append("| Agent + Model | Resolve Rate | 날짜 |")
+    lines.append("|--------------|------------:|------|")
+    lines.append("| OpenHands + Claude Opus 4.5 | 77.6% (388/500) | 2025.11 |")
+    lines.append("| Sonar Foundation + Claude Sonnet 4.5 | 74.8% (374/500) | 2025.11 |")
+    lines.append("")
+    lines.append("> SWE-bench는 2025.11부터 학술 팀 + 오픈소스 방법론만 접수하는 정책으로 변경되어, "
+                 "최신 상용 모델(Sonnet 4.6, Opus 4.6/4.7)의 공식 결과는 부재합니다.")
+    lines.append("")
+    lines.append("#### C. GitHub Copilot Premium Request 모델별 Multiplier (2026.06 이전)")
+    lines.append("")
+    lines.append("출처: [GitHub Docs — Models and Pricing](https://docs.github.com/en/copilot/reference/copilot-billing/models-and-pricing)")
+    lines.append("")
+    lines.append("| Model | 현재 Multiplier | 2026.06+ Multiplier |")
+    lines.append("|-------|---------------:|-------------------:|")
+    lines.append("| **Claude Sonnet 4.6** | **1×** | **9×** |")
+    lines.append("| **Claude Opus 4.6** | **3×** | **27×** |")
+    lines.append("| Claude Opus 4.7 | 15× | 27× |")
+    lines.append("| GPT-5.2-Codex | 1× | 3× |")
+    lines.append("| GPT-5.3-Codex | 1× | 6× |")
+    lines.append("| GPT-4.1 (included) | 0× | 1× |")
+    lines.append("| GPT-5 mini (included) | 0× | 0.33× |")
+    lines.append("")
+    lines.append("> ⚠ **2026.06 가격 인상 예정**: Sonnet 4.6은 1× → 9×, Opus 4.6은 3× → 27×로 대폭 인상. "
+                 "Copilot provider 기반 도구(copilot-cli, opencode-cli, codex-cli)의 실질 비용이 크게 증가할 전망입니다.")
+    lines.append("")
+    lines.append("#### D. Anthropic API Token 단가 (참고용)")
+    lines.append("")
+    lines.append("| Model | Input /MTok | Output /MTok | Cache Read /MTok | Cache Write /MTok |")
+    lines.append("|-------|----------:|----------:|----------:|----------:|")
+    lines.append("| Claude Sonnet 4.6 | $3.00 | $15.00 | $0.30 | $3.75 |")
+    lines.append("| Claude Opus 4.6 | $5.00 | $25.00 | $0.50 | $6.25 |")
+    lines.append("| Claude Opus 4.7 | $5.00 | $25.00 | $0.50 | $6.25 |")
+    lines.append("| Claude Haiku 4.5 | $1.00 | $5.00 | $0.10 | $1.25 |")
+    lines.append("")
+
+    # --- 9.6 Comprehensive cost-performance assessment ---
+    lines.append("### 9.6 비용 대비 성능 종합 판단")
+    lines.append("")
+    lines.append("아래는 당사 구독 형태, 도구 사용 방법, E2E 테스트 결과, 외부 벤치마크를 종합한 비용 효율성 평가입니다:")
+    lines.append("")
+    # Build ranked data with subscription info
+    sub_info = {
+        "claude-code": ("Anthropic Team ($25/seat/mo)", "정액 한도 내", "세션/주간 한도 소진 시 사용 불가"),
+        "copilot-cli": ("Copilot Enterprise", "PR 충전제", "모델 multiplier에 따라 실질 비용 변동"),
+        "cursor-cli": ("Cursor Team (최소 요금)", "정액 한도 내 (auto)", "한도 초과 시 사용 제한"),
+        "opencode-cli": ("Copilot Enterprise (경유)", "PR 간접 소비", "PR 소비량 미측정"),
+        "codex-cli": ("Copilot Enterprise (경유)", "PR 간접 소비", "PR 소비량 미측정"),
+    }
+    lines.append("| 도구 | E2E Overall | 구독 | 과금 방식 | 한계 | 효율성 판단 |")
+    lines.append("|------|----------:|------|---------|------|----------|")
+    # Get overall scores from aggregated data
+    tool_overall = {}
     for tool in tools:
         ev = [e for e in evals if e.tool == tool]
-        n = max(1, len(ev))
-        ti = sum(e.input_tokens for e in ev)
-        to = sum(e.output_tokens for e in ev)
-        tcr = sum(e.cache_read_tokens for e in ev)
-        total_premium_actual = sum(e.premium_requests for e in ev)
-        total_premium_est = sum(e.estimated_premium_requests for e in ev)
-        prem_display = (
-            f"{total_premium_actual:,} (actual)" if total_premium_actual > 0
-            else f"~{total_premium_est:,.0f} (est)" if total_premium_est > 0
-            else "—"
-        )
-        total_usd = sum(e.estimated_usd for e in ev)
-        basis_counts: dict = {}
-        for e in ev:
-            basis_counts[e.cost_basis] = basis_counts.get(e.cost_basis, 0) + 1
-        basis_primary = max(basis_counts, key=basis_counts.get) if basis_counts else "?"
-        lines.append(
-            f"| **{tool}** | {ti:,} | {to:,} | {tcr:,} | {prem_display} | "
-            f"${total_usd:.4f} | ${total_usd/n:.4f} | `{basis_primary}` |"
-        )
-    lines.append("")
-    lines.append("**Per-session 평균 (보다 직관적인 비교용)**:")
-    lines.append("")
-    lines.append("| Tool | Avg Input | Avg Output | Avg Cache Read | Avg Premium Req | Avg USD/session |")
-    lines.append("|------|----------:|-----------:|---------------:|----------------:|----------------:|")
+        scored = [e for e in ev if not _is_env_failure(e)]
+        if scored:
+            tool_overall[tool] = sum(e.overall_score for e in scored) / len(scored)
+        else:
+            tool_overall[tool] = 0.0
     for tool in tools:
-        ev = [e for e in evals if e.tool == tool]
-        n = max(1, len(ev))
-        ai = sum(e.input_tokens for e in ev) / n
-        ao = sum(e.output_tokens for e in ev) / n
-        ac = sum(e.cache_read_tokens for e in ev) / n
-        prem_actual = sum(e.premium_requests for e in ev) / n
-        prem_est = sum(e.estimated_premium_requests for e in ev) / n
-        prem_avg = prem_actual if prem_actual > 0 else prem_est
-        prem_suffix = " (actual)" if prem_actual > 0 else (" (est)" if prem_est > 0 else "")
-        avg_usd = sum(e.estimated_usd for e in ev) / n
-        lines.append(
-            f"| **{tool}** | {int(ai):,} | {int(ao):,} | {int(ac):,} | "
-            f"{prem_avg:.1f}{prem_suffix} | ${avg_usd:.4f} |"
-        )
+        sub, billing, limit = sub_info.get(tool, ("?", "?", "?"))
+        ov = tool_overall.get(tool, 0)
+        # Efficiency judgment
+        if ov >= 78:
+            eff = "✅ 높음"
+        elif ov >= 75:
+            eff = "⚠ 보통"
+        else:
+            eff = "△ 개선 필요"
+        lines.append(f"| **{tool}** | {ov:.1f} | {sub} | {billing} | {limit} | {eff} |")
     lines.append("")
-    # Cursor caveat — auto sessions are free
-    cursor_auto_sessions = sum(1 for e in evals
-                                if e.tool == "cursor-cli" and "auto" in (e.model or "").lower())
-    if cursor_auto_sessions > 0:
-        lines.append(f"> ⚠ **Cursor 의 {cursor_auto_sessions} 세션**이 'auto' 모델로 실행되어 USD $0 으로 처리됨 "
-                     f"(Cursor 구독 정액 내 무료). 실제 한도 소진은 cursor.com/dashboard 에서 확인.")
-        lines.append("")
-    lines.append("### 9.5 외부 Provider Usage Dashboard / API (ground-truth 검증용)")
+    lines.append("> **종합 의견**: 현재 모든 도구가 구독 기반 정액 또는 Enterprise PR 충전 체계를 사용하고 있어, "
+                 "토큰 단위 비용 비교는 의미가 제한적입니다. **비용 효율성은 '동일 구독료 내에서 더 많은 성공적 세션을 "
+                 "완료할 수 있는가'로 판단하는 것이 적절합니다.** E2E Overall Score가 이 기준에 가장 가까운 지표입니다.")
     lines.append("")
-    lines.append("| Provider | Dashboard (web) | API endpoint | CLI command |")
-    lines.append("|----------|-----------------|--------------|-------------|")
-    lines.append("| **Anthropic** | https://console.anthropic.com/settings/usage | `GET /v1/organizations/{org}/usage_report/messages` (admin only) | (interactive `/usage` only) |")
-    lines.append("| **GitHub Copilot (personal)** | https://github.com/settings/copilot/usage | (user-level API not public) | — |")
-    lines.append("| **GitHub Copilot (org)** | https://github.com/organizations/`<ORG>`/settings/copilot/usage | `GET /orgs/{org}/copilot/usage` (admin) | `gh api /orgs/<ORG>/copilot/usage` |")
-    lines.append("| **Cursor** | https://cursor.com/dashboard | (no public usage API) | `agent status` (auth only) |")
-    lines.append("| **OpenCode** | — | — | `opencode stats [--days N] [--models]` |")
+
+    # --- 9.7 Provider dashboards ---
+    lines.append("### 9.7 외부 Provider Usage Dashboard (실제 사용량 검증용)")
     lines.append("")
-    lines.append("> **권장 검증 절차**: 분석기 추정 USD 와 provider 대시보드 실제 사용량을 라운드 단위로 비교 → "
-                 "큰 차이 발생 시 `config.yaml` 의 `pricing:` 값을 조정.")
-    lines.append("")
-    lines.append("> **`opencode stats` 활용**: OpenCode 의 경우 `opencode stats --days 7 --models` 로 "
-                 "정확한 토큰/USD 사용량을 도구 자체에서 받을 수 있음 (가장 정확). 다른 도구는 분석기 추정 + 외부 대시보드 교차 검증 필요.")
+    lines.append("| Provider | Dashboard | 비고 |")
+    lines.append("|----------|-----------|------|")
+    lines.append("| **Anthropic** | https://console.anthropic.com/settings/usage | claude-code 실사용량 |")
+    lines.append("| **GitHub Copilot** | https://github.com/organizations/`<ORG>`/settings/copilot/usage | copilot-cli PR 소비량 |")
+    lines.append("| **Cursor** | https://cursor.com/dashboard | cursor-cli 사용량 |")
     lines.append("")
 
     # ----------------------------------------------------------
