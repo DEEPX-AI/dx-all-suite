@@ -430,7 +430,7 @@ def write_markdown(evals: List[SessionEval], out_path: Path, meta: Dict) -> None
     lines.append("")
     lines.append("| 도구 | 과금 체계 | 구독 현황 | 추가 비용 산정 |")
     lines.append("|------|---------|---------|-------------|")
-    lines.append("| **claude-code** | Anthropic Team Plan ($25/seat/mo) | 세션 한도 + 주간 한도 내 사용 | ❌ 불가 — 정액 구독 한도 내 |")
+    lines.append("| **claude-code** | Anthropic Team Plan (정액 구독) | 세션 한도 + 주간 한도 내 사용 | ❌ 불가 — 정액 구독 한도 내 |")
     lines.append("| **copilot-cli** | GitHub Copilot Enterprise | 기본 사용량 초과 시 Premium Request 단위 충전 | ⚠ PR 단위만 가능 (토큰↔PR 비율 비선형) |")
     lines.append("| **cursor-cli** | Cursor Team Plan (최소 요금) | auto 모델, 한도 초과 시 제한 (추가 과금 없음) | ❌ 불가 — 정액 한도 내 |")
     lines.append("| **opencode-cli** | Copilot provider 경유 | Copilot Enterprise PR 소비 | ❌ 불가 — PR 소비량 미노출 |")
@@ -512,7 +512,7 @@ def write_markdown(evals: List[SessionEval], out_path: Path, meta: Dict) -> None
     lines.append("")
     # Build ranked data with subscription info
     sub_info = {
-        "claude-code": ("Anthropic Team ($25/seat/mo)", "정액 한도 내", "세션/주간 한도 소진 시 사용 불가"),
+        "claude-code": ("Anthropic Team Plan (정액 구독)", "정액 한도 내", "세션/주간 한도 소진 시 사용 불가"),
         "copilot-cli": ("Copilot Enterprise", "PR 충전제", "모델 multiplier에 따라 실질 비용 변동"),
         "cursor-cli": ("Cursor Team (최소 요금)", "정액 한도 내 (auto)", "한도 초과 시 사용 제한"),
         "opencode-cli": ("Copilot Enterprise (경유)", "PR 간접 소비", "PR 소비량 미측정"),
