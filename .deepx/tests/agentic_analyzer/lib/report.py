@@ -428,13 +428,13 @@ def write_markdown(evals: List[SessionEval], out_path: Path, meta: Dict) -> None
     lines.append("")
     lines.append("**일관된 기준의 도구 간 비용 비교는 현실적으로 불가능합니다.** 각 도구의 과금 체계가 근본적으로 다르기 때문입니다:")
     lines.append("")
-    lines.append("| 도구 | 과금 체계 | 구독 현황 | 추가 비용 산정 |")
-    lines.append("|------|---------|---------|-------------|")
-    lines.append("| **claude-code** | Anthropic Team Plan (정액 구독) | 세션 한도 + 주간 한도 내 사용 | ❌ 불가 — 정액 구독 한도 내 |")
-    lines.append("| **copilot-cli** | GitHub Copilot Enterprise | 기본 사용량 초과 시 Premium Request 단위 충전 | ⚠ PR 단위만 가능 (토큰↔PR 비율 비선형) |")
-    lines.append("| **cursor-cli** | Cursor Team Plan (최소 요금) | auto 모델, 한도 초과 시 제한 (추가 과금 없음) | ❌ 불가 — 정액 한도 내 |")
-    lines.append("| **opencode-cli** | Copilot provider 경유 | Copilot Enterprise PR 소비 | ❌ 불가 — PR 소비량 미노출 |")
-    lines.append("| **codex-cli** | Copilot provider 경유 | Copilot Enterprise PR 소비 | ❌ 불가 — PR 소비량 미노출 |")
+    lines.append("| 도구 | 구독 | 초과 허용 | 산정 방식 |")
+    lines.append("|------|------|---------|---------|")
+    lines.append("| **claude-code** | 정액제 | 정액 구독 한도 내 | 토큰 사용량 방식 |")
+    lines.append("| **copilot-cli** | 정액제 | 초과 허용 | Premium Request 단위 과금 |")
+    lines.append("| **cursor-cli** | 정액제 | 정액 구독 한도 내 | — |")
+    lines.append("| **opencode-cli** | 정액제 | 초과 허용 | Premium Request 단위 과금 |")
+    lines.append("| **codex-cli** | 정액제 | 초과 허용 | Premium Request 단위 과금 |")
     lines.append("")
     lines.append("> **핵심 제약**: copilot-cli만 실제 Premium Request 소비량이 stream에 기록됩니다. "
                  "opencode-cli와 codex-cli는 동일한 Copilot backend를 사용하지만 PR 소비량이 stream에 노출되지 않아 "
@@ -512,14 +512,14 @@ def write_markdown(evals: List[SessionEval], out_path: Path, meta: Dict) -> None
     lines.append("")
     # Build ranked data with subscription info
     sub_info = {
-        "claude-code": ("Anthropic Team Plan (정액 구독)", "정액 한도 내", "세션/주간 한도 소진 시 사용 불가"),
-        "copilot-cli": ("Copilot Enterprise", "PR 충전제", "모델 multiplier에 따라 실질 비용 변동"),
-        "cursor-cli": ("Cursor Team (최소 요금)", "정액 한도 내 (auto)", "한도 초과 시 사용 제한"),
-        "opencode-cli": ("Copilot Enterprise (경유)", "PR 간접 소비", "PR 소비량 미측정"),
-        "codex-cli": ("Copilot Enterprise (경유)", "PR 간접 소비", "PR 소비량 미측정"),
+        "claude-code": ("정액제", "정액 구독 한도 내", "토큰 사용량 방식"),
+        "copilot-cli": ("정액제", "초과 허용", "Premium Request 단위 과금"),
+        "cursor-cli": ("정액제", "정액 구독 한도 내", "—"),
+        "opencode-cli": ("정액제", "초과 허용", "Premium Request 단위 과금"),
+        "codex-cli": ("정액제", "초과 허용", "Premium Request 단위 과금"),
     }
-    lines.append("| 도구 | E2E Overall | 구독 | 과금 방식 | 한계 | 효율성 판단 |")
-    lines.append("|------|----------:|------|---------|------|----------|")
+    lines.append("| 도구 | E2E Overall | 구독 | 초과 허용 | 산정 방식 | 효율성 판단 |")
+    lines.append("|------|----------:|------|---------|---------|----------|")
     # Get overall scores from aggregated data
     tool_overall = {}
     for tool in tools:
@@ -530,7 +530,7 @@ def write_markdown(evals: List[SessionEval], out_path: Path, meta: Dict) -> None
         else:
             tool_overall[tool] = 0.0
     for tool in tools:
-        sub, billing, limit = sub_info.get(tool, ("?", "?", "?"))
+        sub, overage, method = sub_info.get(tool, ("?", "?", "?"))
         ov = tool_overall.get(tool, 0)
         # Efficiency judgment
         if ov >= 78:
@@ -539,7 +539,7 @@ def write_markdown(evals: List[SessionEval], out_path: Path, meta: Dict) -> None
             eff = "⚠ 보통"
         else:
             eff = "△ 개선 필요"
-        lines.append(f"| **{tool}** | {ov:.1f} | {sub} | {billing} | {limit} | {eff} |")
+        lines.append(f"| **{tool}** | {ov:.1f} | {sub} | {overage} | {method} | {eff} |")
     lines.append("")
     lines.append("> **종합 의견**: 현재 모든 도구가 구독 기반 정액 또는 Enterprise PR 충전 체계를 사용하고 있어, "
                  "토큰 단위 비용 비교는 의미가 제한적입니다. **비용 효율성은 '동일 구독료 내에서 더 많은 성공적 세션을 "
