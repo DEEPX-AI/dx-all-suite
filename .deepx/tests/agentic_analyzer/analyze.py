@@ -842,10 +842,34 @@ def _write_comprehensive_html(md_path: Path, html_path: Path, report_dir: Path) 
 </style>
 </head>
 <body>
+<nav id="sidebar" class="sidebar">
+  <div class="sidebar-toggle" id="sidebar-toggle">☰ 목차</div>
+  <div class="sidebar-content" id="sidebar-nav"></div>
+</nav>
 <div class="container">
 {chart_section}
 {body}
 </div>
+<script>
+// Sidebar toggle
+document.getElementById('sidebar-toggle').addEventListener('click', function() {{
+  var sb = document.getElementById('sidebar');
+  sb.classList.toggle('collapsed');
+  document.body.style.paddingLeft = sb.classList.contains('collapsed') ? '60px' : '280px';
+}});
+// Build sidebar navigation from headings
+(function() {{
+  const nav = document.getElementById('sidebar-nav');
+  const headings = document.querySelectorAll('h1[id], h2[id], h3[id]');
+  headings.forEach(h => {{
+    const a = document.createElement('a');
+    a.href = '#' + h.id;
+    a.textContent = h.textContent.replace(/[🥇🥈🥉]/g, '').trim();
+    a.className = 'nav-' + h.tagName.toLowerCase();
+    nav.appendChild(a);
+  }});
+}})();
+</script>
 </body>
 </html>"""
 
@@ -1116,16 +1140,19 @@ def _build_chart_section(data: dict, hypothesis_path: Optional[Path] = None) -> 
 
 
 def _get_comprehensive_css() -> str:
-    """CSS for comprehensive_report.html (report + charts)."""
+    """CSS for comprehensive_report.html (report + charts + sidebar)."""
     return """
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-       max-width: 1200px; margin: 0 auto; padding: 20px; background: #fafafa; color: #333; }
-.container { background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,.1); }
+       margin: 0; padding: 20px; padding-left: 280px; background: #fafafa; color: #333;
+       transition: padding-left 0.3s; }
+.container { max-width: 1200px; background: #fff; padding: 30px; border-radius: 8px;
+             box-shadow: 0 1px 3px rgba(0,0,0,.1); margin: 0 auto; }
 h1 { color: #1a1a2e; border-bottom: 2px solid #16213e; padding-bottom: 10px; }
 h2 { color: #16213e; margin-top: 30px; }
 h3 { color: #0f3460; }
 table { border-collapse: collapse; width: 100%; margin: 15px 0; font-size: 14px; }
-th { background: #16213e; color: #fff; padding: 10px 12px; text-align: left; }
+th { background: #16213e; color: #fff; padding: 10px 12px; text-align: left; position: sticky; top: 0; z-index: 1; }
+th code { background: rgba(255,255,255,0.15); color: #fff; }
 td { padding: 8px 12px; border-bottom: 1px solid #e0e0e0; }
 tr:hover td { background: #f0f4ff; }
 blockquote { border-left: 4px solid #16213e; padding: 10px 15px; margin: 15px 0;
@@ -1139,6 +1166,30 @@ a { color: #0066cc; }
 .badge-pass { color: #28a745; }
 .badge-fail { color: #dc3545; }
 .badge-partial { color: #ffc107; }
+/* Sidebar navigation */
+.sidebar { position: fixed; top: 0; left: 0; width: 260px; height: 100vh; background: #1a1a2e;
+           color: #ccc; overflow-y: auto; z-index: 100; transition: width 0.3s;
+           box-shadow: 2px 0 8px rgba(0,0,0,.15); }
+.sidebar.collapsed { width: 44px; overflow: hidden; }
+.sidebar.collapsed .sidebar-content { display: none; }
+.sidebar-toggle { padding: 12px 15px; cursor: pointer; background: #16213e; color: #fff;
+                  font-size: 14px; font-weight: bold; position: sticky; top: 0; z-index: 2;
+                  white-space: nowrap; }
+.sidebar.collapsed .sidebar-toggle { padding: 12px; text-align: center; }
+.sidebar-content { padding: 10px 0; }
+.sidebar-content a { display: block; padding: 5px 15px; color: #aab; text-decoration: none;
+                     font-size: 13px; line-height: 1.4; border-left: 3px solid transparent; }
+.sidebar-content a:hover { background: #16213e; color: #fff; border-left-color: #4a9eff; }
+.sidebar-content a.nav-h1 { font-weight: bold; font-size: 14px; padding-top: 10px; color: #eee; }
+.sidebar-content a.nav-h2 { padding-left: 20px; color: #ccd; }
+.sidebar-content a.nav-h3 { padding-left: 35px; font-size: 12px; color: #99a; }
+/* Collapsible details */
+details { margin: 15px 0; }
+details summary { cursor: pointer; padding: 10px 15px; background: #f0f4ff; border-radius: 5px;
+                  border: 1px solid #d0d9f0; font-weight: bold; color: #16213e; }
+details summary:hover { background: #e0e8ff; }
+details[open] summary { border-radius: 5px 5px 0 0; }
+/* Chart dashboard */
 .chart-dashboard { margin: 30px 0; padding: 20px; background: #f4f7ff; border-radius: 10px;
                    border: 1px solid #d0d9f0; }
 .chart-dashboard h2 { color: #1a1a2e; margin-top: 0; }
@@ -1148,7 +1199,14 @@ a { color: #0066cc; }
               box-shadow: 0 1px 3px rgba(0,0,0,.08); }
 .chart-card h3 { margin: 0 0 10px 0; font-size: 0.95em; color: #333; }
 .chart-wide { grid-column: 1 / -1; }
-@media (max-width: 768px) { .chart-grid { grid-template-columns: 1fr; } }
+@media (max-width: 900px) {
+  body { padding-left: 20px; }
+  .sidebar { width: 44px; overflow: hidden; }
+  .sidebar .sidebar-content { display: none; }
+  .sidebar:not(.collapsed) { width: 260px; overflow-y: auto; }
+  .sidebar:not(.collapsed) .sidebar-content { display: block; }
+  .chart-grid { grid-template-columns: 1fr; }
+}
 """
 
 
