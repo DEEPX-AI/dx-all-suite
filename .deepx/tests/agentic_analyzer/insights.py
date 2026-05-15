@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Agentic insight generation — uses a CLI agent to derive qualitative analysis.
 
-Two modes:
+Three modes:
 
   --mode insights      Read analysis.md + analysis.json → call CLI agent →
                        generate insights.md with per-tool strengths/weaknesses
@@ -9,6 +9,10 @@ Two modes:
   --mode runnability   For each session, read README.md + setup.sh + run.sh →
                        call CLI agent to judge end-user runnability →
                        generate runnability_report.md
+
+  --mode hypothesis    Read a prompt template (.md) → call CLI agent →
+                       generate hypothesis.json with experiment hypotheses
+                       based on external benchmarks (SWE-Bench, Aider, etc.)
 
 Usage:
     # Generate insights from an existing report
@@ -691,6 +695,68 @@ def run_runnability(report_dir: Path, cli: str, output_dir: Path,
 
 
 # ---------------------------------------------------------------------------
+# Mode: hypothesis
+# ---------------------------------------------------------------------------
+
+
+def run_hypothesis(prompt_path: Path, output_dir: Path, cli: str,
+                   *, model: Optional[str] = None,
+                   allow_paid: bool = True) -> int:
+    """Read a prompt template (.md), invoke an LLM, write hypothesis.json.
+
+    If *prompt_path* is a .json file, copy it directly (skip LLM).
+    Returns 0 on success, non-zero on failure.
+    """
+    if prompt_path.suffix.lower() == ".json":
+        import shutil as _shutil
+        dest = output_dir / "hypothesis.json"
+        _shutil.copy2(prompt_path, dest)
+        print(f"  ✓ hypothesis.json copied from {prompt_path}")
+        return 0
+
+    prompt_text = prompt_path.read_text(encoding="utf-8")
+
+    result = invoke_cli(cli, prompt_text, model=model, allow_paid=allow_paid,
+                        timeout_sec=600)
+    if result is None:
+        print("ERROR: hypothesis generation failed — no LLM response",
+              file=sys.stderr)
+        return 1
+
+    # Extract JSON from response (may be wrapped in markdown code block)
+    json_match = re.search(r'```(?:json)?\s*(\{.*?\})\s*```', result, re.DOTALL)
+    if json_match:
+        raw_json = json_match.group(1)
+    else:
+        # Try the entire response as JSON
+        raw_json = result.strip()
+
+    # Validate JSON
+    try:
+        parsed = json.loads(raw_json)
+    except json.JSONDecodeError as e:
+        print(f"ERROR: LLM returned invalid JSON: {e}", file=sys.stderr)
+        # Save raw response for debugging
+        raw_path = output_dir / "hypothesis_raw.txt"
+        raw_path.write_text(result, encoding="utf-8")
+        print(f"  Raw LLM response saved to: {raw_path}", file=sys.stderr)
+        return 1
+
+    # Basic schema validation
+    if "hypotheses" not in parsed:
+        print("WARN: hypothesis.json missing 'hypotheses' key", file=sys.stderr)
+    num_hyp = len(parsed.get("hypotheses", []))
+
+    out_path = output_dir / "hypothesis.json"
+    out_path.write_text(
+        json.dumps(parsed, indent=2, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
+    print(f"  ✓ hypothesis.json written ({num_hyp} hypotheses)")
+    return 0
+
+
+# ---------------------------------------------------------------------------
 # CLI parser
 # ---------------------------------------------------------------------------
 
@@ -710,7 +776,8 @@ def main(argv: Optional[List[str]] = None) -> int:
     )
 
     p = argparse.ArgumentParser(description="Agentic insight generator (post-analysis)")
-    p.add_argument("--mode", choices=["insights", "runnability"], required=True,
+    p.add_argument("--mode", choices=["insights", "runnability", "hypothesis"],
+                   required=True,
                    help="What to analyze")
     p.add_argument("--report-dir", required=True,
                    help="Path to a previously-generated report dir (with analysis.md + analysis.json)")
@@ -746,6 +813,11 @@ def main(argv: Optional[List[str]] = None) -> int:
                          "report are skipped; new results are merged with existing "
                          "ones. Use this for incremental runnability evaluation "
                          "(e.g. adding rounds 11-20 to an existing 10-round report)."))
+    p.add_argument("--prompt", default=None,
+                   help=("(hypothesis mode) path to hypothesis prompt template "
+                         "(.md) or pre-built hypothesis (.json). Required for "
+                         "hypothesis mode. If .json, copied directly without "
+                         "LLM invocation."))
 
     args = p.parse_args(argv)
     report_dir = Path(args.report_dir).resolve()
@@ -755,15 +827,14 @@ def main(argv: Optional[List[str]] = None) -> int:
     out_dir = Path(args.output_dir).resolve() if args.output_dir else report_dir
 
     # Apply mode-specific default for allow_paid when caller didn't specify.
-    # Rationale: the insights prompt embeds analysis.md (~100KB / ~96K tokens),
-    # which exceeds gpt-4.1's 64K context. The runnability prompt is tiny
-    # (per-session README/setup.sh/run.sh, ~20KB) and fits free models.
+    # Rationale: insights/hypothesis often benefit from higher-context or
+    # higher-capability models, while runnability fits free models.
     if args.allow_paid is None:
-        if args.mode == "insights":
+        if args.mode in ("insights", "hypothesis"):
             args.allow_paid = True
-            print("NOTE: insights mode defaulting to --allow-paid (copilot + "
-                  "claude-sonnet-4.6) due to context-size requirements. Pass "
-                  "--no-allow-paid to force a free model.", file=sys.stderr)
+            print(f"NOTE: {args.mode} mode defaulting to --allow-paid (copilot + "
+                  "claude-sonnet-4.6). Pass --no-allow-paid to force a free model.",
+                  file=sys.stderr)
         else:
             args.allow_paid = False
 
@@ -784,8 +855,20 @@ def main(argv: Optional[List[str]] = None) -> int:
     elif args.mode == "runnability":
         existing = Path(args.existing_report).resolve() if args.existing_report else None
         return run_runnability(report_dir, chosen_cli, out_dir, effective_sample,
-                                model=args.model, allow_paid=args.allow_paid,
-                                existing_report=existing)
+                               model=args.model, allow_paid=args.allow_paid,
+                               existing_report=existing)
+    elif args.mode == "hypothesis":
+        if not args.prompt:
+            print("ERROR: --prompt is required for hypothesis mode",
+                  file=sys.stderr)
+            return 2
+        prompt_path = Path(args.prompt)
+        if not prompt_path.is_file():
+            print(f"ERROR: prompt file not found: {prompt_path}",
+                  file=sys.stderr)
+            return 2
+        return run_hypothesis(prompt_path, out_dir, chosen_cli,
+                              model=args.model, allow_paid=args.allow_paid)
     return 0
 
 
