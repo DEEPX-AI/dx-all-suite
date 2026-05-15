@@ -11,10 +11,17 @@ Categories (heuristic; first match wins):
   - subprocess_crash      : 5s <= duration < 300s        → agent process died
   - agent_self_abort      : 300s <= duration < 900s      → agent gave up
   - other                 : everything else
+
+Environment failure categories (false alarms — excluded from scoring):
+  anthropic_rate_limit, subprocess_crash are classified as environment failures
+  because they reflect infrastructure/network issues, not tool capability.
 """
 from __future__ import annotations
 from collections import defaultdict
-from typing import Any, Dict, List
+from typing import Any, Dict, List, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .aggregate import SessionEval
 
 
 CATEGORY_LABELS = {
@@ -24,6 +31,13 @@ CATEGORY_LABELS = {
     "agent_self_abort":     "Agent self-abort (mid-run termination)",
     "other":                "Other / Unknown",
 }
+
+# Categories that represent environment/infrastructure failures, not tool capability.
+# Sessions in these categories are excluded from score averages (false alarms).
+ENV_FAILURE_CATEGORIES = frozenset({
+    "anthropic_rate_limit",
+    "subprocess_crash",
+})
 
 
 def _classify(session: Dict[str, Any]) -> str:
@@ -39,6 +53,24 @@ def _classify(session: Dict[str, Any]) -> str:
     if 300 <= duration < 900:
         return "agent_self_abort"
     return "other"
+
+
+def is_env_failure_eval(ev: "SessionEval") -> bool:
+    """Check if a SessionEval represents an environment failure (false alarm).
+
+    An environment failure is a session where the CLI/agent never started due to
+    infrastructure issues (API rate limits, TLS errors, CLI crashes).
+
+    Detection: no output_dirs AND no START sentinel AND short duration (<5s).
+    Sessions WITH has_start=True but no output_dirs are typically artifact
+    collection bugs (the agent ran but artifacts weren't captured), not env failures.
+    """
+    if ev.output_dirs:
+        return False
+    if ev.has_start:
+        return False  # Agent ran — this is an artifact bug, not env failure
+    duration = ev.duration_sec or 0.0
+    return duration < 5.0
 
 
 def categorize_skipped_sessions(sessions: List[Dict[str, Any]]) -> Dict[str, Any]:

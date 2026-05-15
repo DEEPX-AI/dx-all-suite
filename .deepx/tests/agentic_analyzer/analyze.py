@@ -698,6 +698,8 @@ def _render_executive_summary(report_dir: Path) -> str:
             "compliance": m.get("avg_compliance_pct", 0),
             "quality": m.get("avg_quality_score", 0),
             "sessions": m.get("sessions", 0),
+            "sessions_scored": m.get("sessions_scored", m.get("sessions", 0)),
+            "env_failures": m.get("env_failures", 0),
             "duration": m.get("avg_duration_sec", 0),
             "stdev_overall": m.get("stdev_overall_score", 0),
             "start_sentinel": m.get("pct_with_start_sentinel", 0),
@@ -730,6 +732,8 @@ def _render_executive_summary(report_dir: Path) -> str:
     for i, r in enumerate(ranked):
         dur_min = int(r["duration"] // 60)
         dur_sec = int(r["duration"] % 60)
+        sess_display = (f"{r['sessions_scored']}/{r['sessions']}"
+                        if r['env_failures'] > 0 else str(r['sessions']))
         lines.append(
             f"| {medals[i] if i < 5 else i+1} "
             f"| **{r['tool']}** "
@@ -737,10 +741,31 @@ def _render_executive_summary(report_dir: Path) -> str:
             f"| {r['compliance']:.1f}% "
             f"| {r['quality']:.1f} "
             f"| ±{r['stdev_overall']:.1f} "
-            f"| {r['sessions']} "
+            f"| {sess_display} "
             f"| {dur_min}m {dur_sec}s |"
         )
     lines.append("")
+
+    # Environment failure (false alarm) notice
+    total_env = sum(r['env_failures'] for r in ranked)
+    if total_env > 0:
+        lines.append("## 가성 결함 제외 (False Alarm Exclusion)")
+        lines.append("")
+        lines.append(f"환경 문제(API rate limit, TLS error, CLI crash)로 인한 완전 실패 세션 "
+                     f"**{total_env}건**이 점수 평균 산정 모수에서 제외되었습니다.")
+        lines.append("이 세션들은 도구 능력이 아닌 인프라 문제를 반영하므로 가성 결함으로 분류됩니다.")
+        lines.append("")
+        lines.append("| 도구 | 제외 세션 수 | 유효 세션 수 | 제외 비율 |")
+        lines.append("|------|----------:|----------:|--------:|")
+        for r in ranked:
+            if r['env_failures'] > 0:
+                pct = 100.0 * r['env_failures'] / r['sessions'] if r['sessions'] else 0
+                lines.append(
+                    f"| {r['tool']} | {r['env_failures']} | "
+                    f"{r['sessions_scored']}/{r['sessions']} | {pct:.1f}% |")
+        lines.append("")
+        lines.append("> 판정 기준: output_dirs 없음 + START sentinel 없음 + duration < 5초 → CLI가 agent를 시작하지 못한 환경 장애")
+        lines.append("")
 
     # Sentinel / exit compliance mini-table
     lines.append("## Sentinel & Exit Code 준수율")

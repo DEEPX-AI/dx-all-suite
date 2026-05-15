@@ -6,6 +6,18 @@ from dataclasses import dataclass, field
 from typing import Dict, List, Optional
 
 
+def _is_env_failure(ev: "SessionEval") -> bool:
+    """Thin wrapper around skip_analyzer.is_env_failure_eval.
+
+    Avoids circular import by importing lazily.  Falls back to False on error.
+    """
+    try:
+        from .skip_analyzer import is_env_failure_eval
+        return is_env_failure_eval(ev)
+    except Exception:
+        return False
+
+
 @dataclass
 class SessionEval:
     """Combined evaluation row for one scenario session."""
@@ -116,77 +128,94 @@ def _stdev(values: List[float]) -> float:
 
 
 def aggregate_per_tool(evals: List[SessionEval]) -> Dict[str, Dict[str, float]]:
-    """Compute averages + stdev per tool. Stdev = consistency indicator (lower = more consistent)."""
+    """Compute averages + stdev per tool. Stdev = consistency indicator (lower = more consistent).
+
+    Environment failure sessions (rate limit, TLS error, CLI crash) are excluded
+    from score averages but counted separately as 'env_failures'.
+    """
     by_tool: Dict[str, List[SessionEval]] = {}
     for e in evals:
         by_tool.setdefault(e.tool, []).append(e)
     out: Dict[str, Dict[str, float]] = {}
     for tool, lst in by_tool.items():
-        n = len(lst)
-        if n == 0:
+        n_total = len(lst)
+        if n_total == 0:
             continue
-        overalls = [e.overall_score for e in lst]
-        durations = [e.duration_sec for e in lst if e.duration_sec]
+        env_fails = [e for e in lst if _is_env_failure(e)]
+        scored = [e for e in lst if not _is_env_failure(e)]
+        n = len(scored) or 1  # avoid division by zero
+        overalls = [e.overall_score for e in scored]
+        durations = [e.duration_sec for e in scored if e.duration_sec]
         out[tool] = {
-            "sessions": n,
-            "avg_compliance_pct": sum(e.compliance_score_pct for e in lst) / n,
-            "avg_quality_score": sum(e.quality_score for e in lst) / n,
+            "sessions": n_total,
+            "sessions_scored": len(scored),
+            "env_failures": len(env_fails),
+            "avg_compliance_pct": sum(e.compliance_score_pct for e in scored) / n,
+            "avg_quality_score": sum(e.quality_score for e in scored) / n,
             "avg_overall_score": sum(overalls) / n,
             "stdev_overall_score": _stdev(overalls),
             "avg_duration_sec": sum(durations) / max(1, len(durations)),
             "stdev_duration_sec": _stdev(durations),
-            "pct_with_start_sentinel": 100.0 * sum(1 for e in lst if e.has_start) / n,
-            "pct_with_done_sentinel": 100.0 * sum(1 for e in lst if e.has_done) / n,
-            "pct_exit_0": 100.0 * sum(1 for e in lst if e.exit_status == 0) / n,
-            "avg_tool_calls": sum(e.tool_call_count for e in lst) / n,
-            "avg_python_loc": sum(e.python_loc for e in lst) / n,
+            "pct_with_start_sentinel": 100.0 * sum(1 for e in scored if e.has_start) / n,
+            "pct_with_done_sentinel": 100.0 * sum(1 for e in scored if e.has_done) / n,
+            "pct_exit_0": 100.0 * sum(1 for e in lst if e.exit_status == 0) / n_total,
+            "avg_tool_calls": sum(e.tool_call_count for e in scored) / n,
+            "avg_python_loc": sum(e.python_loc for e in scored) / n,
         }
     return out
 
 
 def aggregate_per_round_tool(evals: List[SessionEval]) -> Dict[tuple, Dict[str, float]]:
-    """key = (round_index, tool) → metrics."""
+    """key = (round_index, tool) → metrics. Env failures excluded from averages."""
     by_key: Dict[tuple, List[SessionEval]] = {}
     for e in evals:
         by_key.setdefault((e.round_index, e.tool), []).append(e)
     out: Dict[tuple, Dict[str, float]] = {}
     for key, lst in by_key.items():
-        n = len(lst)
+        n_total = len(lst)
+        scored = [e for e in lst if not _is_env_failure(e)]
+        n = len(scored) or 1
         out[key] = {
-            "sessions": n,
-            "avg_compliance_pct": sum(e.compliance_score_pct for e in lst) / n,
-            "avg_quality_score": sum(e.quality_score for e in lst) / n,
-            "avg_overall_score": sum(e.overall_score for e in lst) / n,
+            "sessions": n_total,
+            "sessions_scored": len(scored),
+            "env_failures": n_total - len(scored),
+            "avg_compliance_pct": sum(e.compliance_score_pct for e in scored) / n,
+            "avg_quality_score": sum(e.quality_score for e in scored) / n,
+            "avg_overall_score": sum(e.overall_score for e in scored) / n,
             "avg_duration_sec":
-                sum(e.duration_sec or 0 for e in lst if e.duration_sec) /
-                max(1, sum(1 for e in lst if e.duration_sec)),
-            "pct_with_start_sentinel": 100.0 * sum(1 for e in lst if e.has_start) / n,
-            "pct_with_done_sentinel": 100.0 * sum(1 for e in lst if e.has_done) / n,
+                sum(e.duration_sec or 0 for e in scored if e.duration_sec) /
+                max(1, sum(1 for e in scored if e.duration_sec)),
+            "pct_with_start_sentinel": 100.0 * sum(1 for e in scored if e.has_start) / n,
+            "pct_with_done_sentinel": 100.0 * sum(1 for e in scored if e.has_done) / n,
         }
     return out
 
 
 def aggregate_per_scenario_tool(evals: List[SessionEval]) -> Dict[tuple, Dict[str, float]]:
-    """key = (scenario, tool) → detailed metrics."""
+    """key = (scenario, tool) → detailed metrics. Env failures excluded from averages."""
     by_key: Dict[tuple, List[SessionEval]] = {}
     for e in evals:
         by_key.setdefault((e.scenario, e.tool), []).append(e)
     out: Dict[tuple, Dict[str, float]] = {}
     for key, lst in by_key.items():
-        n = len(lst)
-        n_with_dur = max(1, sum(1 for e in lst if e.duration_sec))
+        n_total = len(lst)
+        scored = [e for e in lst if not _is_env_failure(e)]
+        n = len(scored) or 1
+        n_with_dur = max(1, sum(1 for e in scored if e.duration_sec))
         out[key] = {
-            "sessions": n,
-            "avg_compliance_pct": sum(e.compliance_score_pct for e in lst) / n,
-            "avg_quality_score": sum(e.quality_score for e in lst) / n,
-            "avg_verdict_score": sum(e.verdict_score for e in lst) / n,
-            "avg_overall_score": sum(e.overall_score for e in lst) / n,
-            "avg_duration_sec": sum(e.duration_sec or 0 for e in lst if e.duration_sec) / n_with_dur,
-            "pct_pass": 100.0 * sum(1 for e in lst if e.verdict == "PASS") / n,
-            "pct_partial": 100.0 * sum(1 for e in lst if e.verdict == "PARTIAL") / n,
-            "pct_fail": 100.0 * sum(1 for e in lst if e.verdict == "FAIL") / n,
-            "avg_tool_calls": sum(e.tool_call_count for e in lst) / n,
-            "avg_python_loc": sum(e.python_loc for e in lst) / n,
+            "sessions": n_total,
+            "sessions_scored": len(scored),
+            "env_failures": n_total - len(scored),
+            "avg_compliance_pct": sum(e.compliance_score_pct for e in scored) / n,
+            "avg_quality_score": sum(e.quality_score for e in scored) / n,
+            "avg_verdict_score": sum(e.verdict_score for e in scored) / n,
+            "avg_overall_score": sum(e.overall_score for e in scored) / n,
+            "avg_duration_sec": sum(e.duration_sec or 0 for e in scored if e.duration_sec) / n_with_dur,
+            "pct_pass": 100.0 * sum(1 for e in scored if e.verdict == "PASS") / n,
+            "pct_partial": 100.0 * sum(1 for e in scored if e.verdict == "PARTIAL") / n,
+            "pct_fail": 100.0 * sum(1 for e in scored if e.verdict == "FAIL") / n,
+            "avg_tool_calls": sum(e.tool_call_count for e in scored) / n,
+            "avg_python_loc": sum(e.python_loc for e in scored) / n,
         }
     return out
 

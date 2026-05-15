@@ -89,23 +89,55 @@ def write_markdown(evals: List[SessionEval], out_path: Path, meta: Dict) -> None
     # ----------------------------------------------------------
     lines.append("## 1. 도구별 종합 점수")
     lines.append("")
-    # Compute scenario-level pass/fail aggregates per tool
-    pass_per_tool = {t: sum(1 for e in evals if e.tool == t and e.verdict == "PASS") for t in tools}
-    partial_per_tool = {t: sum(1 for e in evals if e.tool == t and e.verdict == "PARTIAL") for t in tools}
-    fail_per_tool = {t: sum(1 for e in evals if e.tool == t and e.verdict == "FAIL") for t in tools}
-    lines.append("| Tool | Sessions | Compl % | Qual % | Verdict % | Exec % | Runn % | Overall % | σ(Overall) | Avg Duration | START % | DONE % | Pass/Part/Fail | pytest Exit0 % | ⏱ Timeout | ToolCalls | LOC |")
-    lines.append("|------|---------:|-------:|------:|----------:|------:|------:|----------:|----------:|-------------:|--------:|-------:|:--------------:|---------------:|----------:|---------:|----:|")
+
+    # Check for env failures and add note if any
+    try:
+        from .skip_analyzer import is_env_failure_eval
+    except ImportError:
+        is_env_failure_eval = lambda e: False  # noqa: E731
+    total_env_failures = sum(1 for e in evals if is_env_failure_eval(e))
+    if total_env_failures > 0:
+        lines.append(f"> ⚠️ **가성 결함(False Alarm) 제외**: 환경 문제(API rate limit, TLS error, CLI crash)로 "
+                     f"인한 완전 실패 세션 **{total_env_failures}건**이 점수 평균 산정 모수에서 제외되었습니다. "
+                     f"이 세션들은 도구 능력이 아닌 인프라 문제를 반영하므로 가성 결함으로 분류됩니다.")
+        lines.append("")
+        # Per-tool breakdown of env failures
+        env_by_tool = {}
+        for e in evals:
+            if is_env_failure_eval(e):
+                env_by_tool.setdefault(e.tool, []).append(e)
+        if env_by_tool:
+            lines.append("| 도구 | 제외 세션 수 | 원인 |")
+            lines.append("|------|----------:|------|")
+            for t in sorted(env_by_tool.keys()):
+                el = env_by_tool[t]
+                rounds = sorted({e.round_index for e in el})
+                rounds_str = ", ".join(f"R{r}" for r in rounds)
+                lines.append(f"| {t} | {len(el)} | {rounds_str} |")
+            lines.append("")
+
+    # Compute scenario-level pass/fail aggregates per tool (scored only)
+    scored_evals = [e for e in evals if not is_env_failure_eval(e)]
+    pass_per_tool = {t: sum(1 for e in scored_evals if e.tool == t and e.verdict == "PASS") for t in tools}
+    partial_per_tool = {t: sum(1 for e in scored_evals if e.tool == t and e.verdict == "PARTIAL") for t in tools}
+    fail_per_tool = {t: sum(1 for e in scored_evals if e.tool == t and e.verdict == "FAIL") for t in tools}
+    lines.append("| Tool | Scored/Total | Compl % | Qual % | Verdict % | Exec % | Runn % | Overall % | σ(Overall) | Avg Duration | START % | DONE % | Pass/Part/Fail | pytest Exit0 % | ⏱ Timeout | ToolCalls | LOC |")
+    lines.append("|------|------------:|-------:|------:|----------:|------:|------:|----------:|----------:|-------------:|--------:|-------:|:--------------:|---------------:|----------:|---------:|----:|")
     for tool in tools:
         m = per_tool.get(tool, {})
-        verdict_avg = sum(e.verdict_score for e in evals if e.tool == tool) / max(1, m.get("sessions", 1))
-        exec_avg = sum(e.execution_score for e in evals if e.tool == tool) / max(1, m.get("sessions", 1))
-        runn_scores = [e.runnability_score for e in evals if e.tool == tool and e.runnability_score > 0]
+        n_scored = int(m.get("sessions_scored", m.get("sessions", 0)))
+        n_total = int(m.get("sessions", 0))
+        n_env = int(m.get("env_failures", 0))
+        sessions_display = f"{n_scored}/{n_total}" if n_env > 0 else str(n_total)
+        verdict_avg = sum(e.verdict_score for e in scored_evals if e.tool == tool) / max(1, n_scored)
+        exec_avg = sum(e.execution_score for e in scored_evals if e.tool == tool) / max(1, n_scored)
+        runn_scores = [e.runnability_score for e in scored_evals if e.tool == tool and e.runnability_score > 0]
         runn_avg = sum(runn_scores) / len(runn_scores) if runn_scores else 0.0
         runn_display = _fmt_num(runn_avg) if runn_scores else "-"
         ppf = f"{pass_per_tool[tool]} / {partial_per_tool[tool]} / {fail_per_tool[tool]}"
-        timeouts = sum(1 for e in evals if e.tool == tool and e.suspected_timeout)
+        timeouts = sum(1 for e in scored_evals if e.tool == tool and e.suspected_timeout)
         lines.append(
-            f"| **{tool}** | {int(m.get('sessions', 0))} | "
+            f"| **{tool}** | {sessions_display} | "
             f"{_fmt_num(m.get('avg_compliance_pct'))} | "
             f"{_fmt_num(m.get('avg_quality_score'))} | "
             f"{_fmt_num(verdict_avg)} | "
@@ -123,7 +155,7 @@ def write_markdown(evals: List[SessionEval], out_path: Path, meta: Dict) -> None
             f"{int(m.get('avg_python_loc', 0))} |"
         )
     lines.append("")
-    lines.append("> **σ (sigma)** = stdev (낮을수록 일관성이 높음). **Exec %** = ExecutionTrace 점수 (실제 명령 실행 흔적). **⏱ Timeout** = 의심 timeout 발생 세션 수 (참고용; 점수에 페널티 없음).")
+    lines.append("> **σ (sigma)** = stdev (낮을수록 일관성이 높음). **Exec %** = ExecutionTrace 점수 (실제 명령 실행 흔적). **⏱ Timeout** = 의심 timeout 발생 세션 수 (참고용; 점수에 페널티 없음). **Scored/Total** = 점수 산정 포함 세션 / 전체 세션 (환경 실패 제외).")
     lines.append("")
 
     # ----------------------------------------------------------
