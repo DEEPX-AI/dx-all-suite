@@ -263,9 +263,12 @@ def main(argv: Optional[List[str]] = None) -> int:
     )
     parser.add_argument(
         "--insights-allow-paid",
-        action="store_true",
-        help="(forwarded to insights.py) permit paid/billed model selections "
-             "in the auto chain. Default: only free combinations.",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help="(forwarded to insights.py) permit paid/billed model selections. "
+             "Mode-specific defaults when unset: insights/hypothesis → PAID "
+             "(copilot + claude-sonnet-4.6), runnability → FREE (gpt-4.1). "
+             "Use --no-insights-allow-paid to force free models for all stages.",
     )
     parser.add_argument(
         "--existing-runnability",
@@ -1367,7 +1370,7 @@ def _render_runnability_summary(report_dir: Path) -> str:
     return "\n".join(lines)
 
 
-def _resolve_insights_cli(mode: str, *, allow_paid: bool = False) -> Optional[str]:
+def _resolve_insights_cli(mode: str, *, allow_paid: Optional[bool] = None) -> Optional[str]:
     """Pick the CLI to use for insights/runnability subprocesses.
 
     `mode == 'auto'` walks insights.AUTO_CHAIN_FREE (or AUTO_CHAIN_PAID if paid
@@ -1384,8 +1387,10 @@ def _resolve_insights_cli(mode: str, *, allow_paid: bool = False) -> Optional[st
     finally:
         sys.path.pop(0)
 
+    effective_allow_paid = True if allow_paid is None else allow_paid
+
     if mode == "auto":
-        candidates = list(AUTO_CHAIN_PAID) if allow_paid else list(AUTO_CHAIN_FREE)
+        candidates = list(AUTO_CHAIN_PAID) if effective_allow_paid else list(AUTO_CHAIN_FREE)
     else:
         candidates = [mode]
 
@@ -1394,7 +1399,7 @@ def _resolve_insights_cli(mode: str, *, allow_paid: bool = False) -> Optional[st
         if shutil.which(binary):
             return c
 
-    chain_label = "paid" if allow_paid else "free"
+    chain_label = "paid" if effective_allow_paid else "free"
     print()
     print(f"⚠ No agentic CLI available in {chain_label} chain ({candidates}). "
           f"Skipping insights/runnability steps.")
@@ -1402,18 +1407,20 @@ def _resolve_insights_cli(mode: str, *, allow_paid: bool = False) -> Optional[st
 
 
 def _insights_common_args(report_dir: Path, chosen: str,
-                           model: Optional[str], allow_paid: bool) -> List[str]:
+                           model: Optional[str], allow_paid: Optional[bool]) -> List[str]:
     args = ["--report-dir", str(report_dir), "--cli", chosen]
     if model:
         args += ["--model", model]
-    if allow_paid:
+    if allow_paid is True:
         args += ["--allow-paid"]
+    elif allow_paid is False:
+        args += ["--no-allow-paid"]
     return args
 
 
 def _run_runnability_step(report_dir: Path, chosen: str, sample: int,
                            *, model: Optional[str] = None,
-                           allow_paid: bool = False,
+                           allow_paid: Optional[bool] = None,
                            existing_report: Optional[Path] = None) -> None:
     """Invoke insights.py --mode runnability. Runs FIRST so its scores can be
     merged into analysis.md before the insights step reads it.
@@ -1450,7 +1457,7 @@ def _run_runnability_step(report_dir: Path, chosen: str, sample: int,
 
 def _run_insights_step(report_dir: Path, chosen: str,
                         *, model: Optional[str] = None,
-                        allow_paid: bool = False) -> None:
+                        allow_paid: Optional[bool] = None) -> None:
     """Invoke insights.py --mode insights. Runs AFTER runnability merge so the
     qualitative analysis reflects updated Overall scores.
     """
