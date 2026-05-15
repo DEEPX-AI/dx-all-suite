@@ -66,7 +66,33 @@ python3 insights.py --mode runnability --report-dir reports/<TS>/ --cli copilot 
 - `insights.md` — agent 응답 결과 (도구별 강점 3개, 약점 3개, 시나리오 추천, 회차 학습 패턴 등)
 - `runnability_report.md` — 샘플 세션의 README/setup.sh/run.sh를 agent가 직접 읽고 end-user 실행 가능성 평가
 
-### 1.3 CLI 플래그 참조
+### 1.3 가설 생성 (insights.py)
+
+외부 benchmark(SWE-Bench, Aider, Artificial Analysis, EvalPlus)를 바탕으로
+pre-experiment hypotheses를 생성하기 위해, 구조화된 prompt와 함께 LLM을 호출합니다.
+
+```bash
+# 기본 prompt template로 hypothesis.json 생성
+python3 insights.py --mode hypothesis --report-dir reports/<TS>/ --cli copilot \
+    --prompt prompts/hypothesis_prompt.md
+
+# 미리 만들어 둔 hypothesis.json 직접 사용 (LLM 호출 없음)
+python3 insights.py --mode hypothesis --report-dir reports/<TS>/ \
+    --prompt my_hypothesis.json
+
+# analyze.py 경유 (통합 pipeline — Stage 4.5)
+python3 analyze.py --hypothesis prompts/hypothesis_prompt.md
+```
+
+산출물:
+- `hypothesis.json` — benchmark reference가 포함된 구조화된 hypotheses
+
+리포트 디렉토리에 `hypothesis.json`이 있으면:
+- `comprehensive_report.md`의 **§0 실험 설계**가 purpose, benchmarks, hypotheses로 보강됩니다
+- `insights.md`에 predictions vs actual data를 비교하는 **§8 가설 검증**이 추가됩니다
+- `dashboard.html`에 **Hypothesis vs Actual chart**가 표시됩니다
+
+### 1.4 CLI 플래그 참조
 
 | 플래그 | 기본값 | 설명 |
 |--------|--------|------|
@@ -81,7 +107,8 @@ python3 insights.py --mode runnability --report-dir reports/<TS>/ --cli copilot 
 | `--insights-sample` | 8 | runnability 평가할 샘플 세션 수 |
 | `--insights-all` | false | 전수 평가 (모든 세션) |
 | `--insights-model` | CLI 기본 | Insights agent 모델 override |
-| `--insights-allow-paid` | false | 유료 모델 선택 허용 |
+| `--insights-allow-paid` / `--no-insights-allow-paid` | mode별 상이 | 유료 모델 허용/차단. 기본값은 mode별로 다름: runnability=free, insights/hypothesis=paid |
+| `--hypothesis` | 없음 | hypothesis prompt(.md) 또는 pre-built(.json) 경로. LLM으로 hypothesis.json을 생성하고 리포트에 §0/§8을 추가 |
 | `--existing-runnability` | 없음 | 기존 `runnability_report.md` 경로 (incremental 평가용) |
 
 ## 2. 파이프라인 단계 — `analyze.py` 실행 흐름
@@ -136,6 +163,13 @@ python3 insights.py --mode runnability --report-dir reports/<TS>/ --cli copilot 
 │  │  → per_session.csv                                    │  ← (C)   │
 │  └─────────────────────────────────────────────────────┘            │
 │          ↓                                                          │
+│  Stage 4.5: 가설 생성 (선택)                                   │
+│  ┌─────────────────────────────────────────────────────┐            │
+│  │ insights.py --mode hypothesis (if --hypothesis)      │            │
+│  │  → LLM이 benchmark 기반 hypotheses 생성              │            │
+│  │  → hypothesis.json                                   │  ← (A½)   │
+│  └─────────────────────────────────────────────────────┘            │
+│          ↓                                                          │
 │  Stage 5: Runnability 평가 (기본 활성, --no-insights-runnability로 생략 가능) │
 │  ┌─────────────────────────────────────────────────────┐            │
 │  │ insights.py --mode runnability                        │            │
@@ -162,10 +196,12 @@ python3 insights.py --mode runnability --report-dir reports/<TS>/ --cli copilot 
 │          ↓                                                          │
 │  Stage 8: 종합 보고서 조립                                          │
 │  ┌─────────────────────────────────────────────────────┐            │
-│  │ Part 0: Executive Summary (정렬된 도구별 순위)        │            │
-│  │ Part 1: analysis.md (정량)                            │            │
-│  │ Part 2: insights.md (정성)                            │            │
-│  │ Part 3: runnability 요약 (간략)                        │            │
+│  │ Part 0: 실험 설계 (experiment design — 항상 표시;      │            │
+│  │         hypothesis가 있으면 보강됨)                    │            │
+│  │ Part 1: Executive Summary (정렬된 도구별 순위)         │            │
+│  │ Part 2: analysis.md (정량)                            │            │
+│  │ Part 3: insights.md (정성, hyp 있으면 §8 gap 포함)    │            │
+│  │ Part 4: runnability 요약 (간략)                        │            │
 │  │  → comprehensive_report.md                            │  ← (F)   │
 │  │  → comprehensive_report.html (Chart.js 차트 포함)     │  ← (G)   │
 │  │  → dashboard.html (독립 인터랙티브 대시보드)           │  ← (H)   │
@@ -181,10 +217,11 @@ python3 insights.py --mode runnability --report-dir reports/<TS>/ --cli copilot 
 | 4 (A) | `analysis.md` / `analysis.html` | 메인 정량 리포트 — 도구/라운드/시나리오별 표, Overall 점수 |
 | 4 (B) | `analysis.json` | 머신 판독용 전체 평가 데이터 |
 | 4 (C) | `per_session.csv` | 스프레드시트 import용 flat 표 |
+| 4.5 (A½) | `hypothesis.json` | 외부 benchmark 기반 pre-experiment hypotheses (선택 — `--hypothesis` 필요) |
 | 5 (D) | `runnability_report.md` | LLM agent의 세션별 end-user 실행 가능성 평가 |
 | 6 (A') | `analysis.md` (재작성) | Runnability 점수가 Overall에 반영된 업데이트 버전 |
 | 7 (E) | `insights.md` | LLM agent의 정성 분석 (업데이트된 analysis.md 기반) |
-| 8 (F) | `comprehensive_report.md` | 통합 보고서 — Executive Summary + Part 1+2+3 |
+| 8 (F) | `comprehensive_report.md` | 통합 보고서 — 실험 설계 + Executive Summary + Part 1+2+3+4 |
 | 8 (G) | `comprehensive_report.html` | Chart.js 인터랙티브 차트 내장 HTML (bar, radar, trend, sentinel) |
 | 8 (H) | `dashboard.html` | 독립 실행형 인터랙티브 대시보드 (Chart.js — 6종 차트, 정렬 가능 순위표) |
 
@@ -227,9 +264,22 @@ python3 insights.py --mode runnability --report-dir reports/<TS>/ --cli copilot 
 - PyYAML (`pip install pyyaml`)
 - `bash` (코드 품질 검사용 `bash -n`)
 
-## 4. 분석 차원
+## 4. 기본 모델 정책
 
-### 4.1 메트릭 Tier
+analyzer는 비용과 품질의 균형을 위해 stage별로 서로 다른 기본 모델 정책을 사용합니다:
+
+| Stage | 기본 `allow_paid` | 기본 CLI + Model | 이유 |
+|-------|-------------------|-------------------|------|
+| Runnability (Stage 5) | `False` (free) | copilot + gpt-4.1 | 처리량이 큼 — 모든 세션을 평가 |
+| Insights (Stage 7) | `True` (paid) | copilot + claude-sonnet-4.6 | 품질이 중요함 — 단일 종합 분석 |
+| Hypothesis (Stage 4.5) | `True` (paid) | copilot + claude-sonnet-4.6 | benchmark synthesis에 reasoning이 필요 |
+
+`analyze.py`에서는 `--insights-allow-paid` / `--no-insights-allow-paid`로,
+`insights.py`에서는 `--allow-paid` / `--no-allow-paid`로 override할 수 있습니다.
+
+## 5. 분석 차원
+
+### 5.1 메트릭 Tier
 
 | Tier | 검증 항목 | 구현 위치 |
 |------|----------|----------|
@@ -245,14 +295,14 @@ python3 insights.py --mode runnability --report-dir reports/<TS>/ --cli copilot 
 | **T10 Agentic insight** | 2차 CLI agent 호출로 도구별 강점/약점 + end-user runnability 판정 | `insights.py` |
 | **T11 비용** | 토큰 사용량 → 추정 USD 비용 + premium request calibration 기반 추정 | `cost.py` |
 
-### 4.2 집계 차원
+### 5.2 집계 차원
 
 - **per tool** (claude-code / copilot-cli / cursor-cli / opencode-cli / codex-cli)
 - **per round** (1–N — 라운드 추가 시 자동 확장)
 - **per scenario** (compiler / dx_app / dx_stream / dx_stream_cascaded / runtime / suite)
 - **per model** (config.yaml의 model overrides 매핑 — Cursor "auto" 같은 비표준 케이스 식별)
 
-### 4.3 점수 계산식
+### 5.3 점수 계산식
 
 ```
 Compliance %   = (통과 체크 수 / 전체 체크 수) × 100
@@ -269,7 +319,7 @@ Overall %      = 0.25·Compliance + 0.20·Quality + 0.10·Verdict
 >
 > **Verdict 가중치 10%**: 파일 존재만 확인하므로 가중치 낮음. Execution(25%)과 Runnability(15%)에 더 높은 비중.
 
-## 5. 디렉토리 구조
+## 6. 디렉토리 구조
 
 ```
 agentic_analyzer/
@@ -303,11 +353,11 @@ agentic_analyzer/
     └── comprehensive_report.html
 ```
 
-## 6. 새로운 도구/모델 추가
+## 7. 새로운 도구/모델 추가
 
 코드 수정 **없이** `config.yaml`만 갱신하면 됩니다.
 
-### 6.1 신규 도구 (예: OpenAI Codex CLI)
+### 7.1 신규 도구 (예: OpenAI Codex CLI)
 
 ```yaml
 tools:
@@ -323,7 +373,7 @@ tools:
 - manifest.json artifacts 키 접두: `codex_cli__<scenario>`
 - 시나리오 디렉토리에 `<scenario>-codex-session.md` + `*-stream.jsonl` 또는 `*-events-*.jsonl`
 
-### 6.2 모델 매핑 변경
+### 7.2 모델 매핑 변경
 
 ```yaml
 default_models:
@@ -335,7 +385,7 @@ model_overrides:
     note: "GPT-5.4 codex rollout starting Jun 1"
 ```
 
-### 6.3 새 시나리오 추가
+### 7.3 새 시나리오 추가
 
 ```yaml
 scenarios:
@@ -351,7 +401,7 @@ scenarios:
       - "**/results.json"
 ```
 
-## 7. 누적 분석
+## 8. 누적 분석
 
 라운드 카운팅은 **자동**입니다. 추가 라운드 결과가 `results/`에 들어가면 timestamp 순으로
 정렬되어 다음 라운드 번호가 할당됩니다.
@@ -365,7 +415,7 @@ python3 analyze.py --round 1 2 3 4 5      # 초기 5 라운드
 python3 analyze.py --round 6 7 8 9 10     # 추가 5 라운드
 ```
 
-## 8. 도구별 토큰 의미론
+## 9. 도구별 토큰 의미론
 
 각 도구는 토큰 사용량을 다르게 보고합니다. Analyzer는 비용 추정 전에 "fresh input tokens"
 (실제 과금 대상)으로 정규화합니다:
@@ -382,7 +432,7 @@ python3 analyze.py --round 6 7 8 9 10     # 추가 5 라운드
 > copilot provider를 사용하는 다른 도구(OpenCode, Codex)는 copilot-cli의 관측된
 > `tokens/premium-request` 비율로 calibration하여 추정합니다.
 
-## 9. 메서드 — 어떻게 점수를 매겼나
+## 10. 메서드 — 어떻게 점수를 매겼나
 
 ### Compliance (HARD GATE 체크)
 
@@ -439,7 +489,7 @@ Overall = 0.25 × Compliance% + 0.20 × Quality% + 0.10 × Verdict%
 - **Copilot premium requests**: request당 USD (Pro tier 기준: $0.033/req)
 - **Cross-tool calibration**: copilot-cli의 관측된 `tokens/premium-request` 비율을 직접 보고하지 않는 도구들의 premium request 추정에 사용
 
-## 10. 알려진 한계 / 향후 개선
+## 11. 알려진 한계 / 향후 개선
 
 | 한계 | 현재 상태 |
 |------|----------|
@@ -453,7 +503,7 @@ Overall = 0.25 × Compliance% + 0.20 × Quality% + 0.10 × Verdict%
 | **Codex CLI dual-JSONL** | **개선 적용**: `*-stream.jsonl`과 `*-events-*.jsonl` 패턴 모두 처리 |
 | **HTML 리포트** | **개선 적용**: 모든 MD 리포트에 HTML 버전 동시 생성 |
 
-## 11. 라이선스/소유권
+## 12. 라이선스/소유권
 
 내부 도구. dx-all-suite의 `dx-agentic-dev` 인프라에 속함. 본 디렉토리는 dx-agentic-dev/
 의 일부로서 dx-all-suite repo의 `.gitignore` 정책을 따릅니다.

@@ -67,7 +67,33 @@ Output:
 - `insights.md` — Agent response (top 3 strengths/weaknesses per tool, scenario recommendations, learning patterns)
 - `runnability_report.md` — Agent reads session README/setup.sh/run.sh and evaluates end-user runnability
 
-### 1.3 CLI Flags Reference
+### 1.3 Hypothesis Generation (insights.py)
+
+Generates pre-experiment hypotheses based on external benchmarks (SWE-Bench, Aider,
+Artificial Analysis, EvalPlus) by invoking an LLM with a structured prompt.
+
+```bash
+# Generate hypothesis.json from the default prompt template
+python3 insights.py --mode hypothesis --report-dir reports/<TS>/ --cli copilot \
+    --prompt prompts/hypothesis_prompt.md
+
+# Use a pre-built hypothesis.json directly (no LLM call)
+python3 insights.py --mode hypothesis --report-dir reports/<TS>/ \
+    --prompt my_hypothesis.json
+
+# Via analyze.py (integrated pipeline — Stage 4.5)
+python3 analyze.py --hypothesis prompts/hypothesis_prompt.md
+```
+
+Output:
+- `hypothesis.json` — Structured hypotheses with benchmark references
+
+When `hypothesis.json` exists in the report directory:
+- **§0 실험 설계** is enriched with purpose, benchmarks, and hypotheses in `comprehensive_report.md`
+- **§8 가설 검증** is added to `insights.md` comparing predictions vs actual data
+- **Hypothesis vs Actual chart** appears in `dashboard.html`
+
+### 1.4 CLI Flags Reference
 
 | Flag | Default | Description |
 |------|---------|-------------|
@@ -82,7 +108,8 @@ Output:
 | `--insights-sample` | 8 | Number of sample sessions for runnability |
 | `--insights-all` | false | Evaluate every session (exhaustive runnability) |
 | `--insights-model` | CLI default | Override model for insights agent |
-| `--insights-allow-paid` | false | Allow paid/billed model selections |
+| `--insights-allow-paid` / `--no-insights-allow-paid` | mode-specific | Allow/deny paid models. Default varies by mode: runnability=free, insights/hypothesis=paid |
+| `--hypothesis` | none | Path to hypothesis prompt (.md) or pre-built (.json). Generates hypothesis.json via LLM and adds §0/§8 to report |
 | `--existing-runnability` | none | Path to existing `runnability_report.md` for incremental evaluation |
 
 ## 2. Pipeline Stages — What `analyze.py` Does
@@ -138,6 +165,13 @@ When you run `python3 analyze.py`, the following stages execute in order:
 │  │  → per_session.csv                                    │  ← (C)   │
 │  └─────────────────────────────────────────────────────┘            │
 │          ↓                                                          │
+│  Stage 4.5: Hypothesis Generation (optional)                    │
+│  ┌─────────────────────────────────────────────────────┐        │
+│  │ insights.py --mode hypothesis (if --hypothesis)      │        │
+│  │  → LLM generates hypotheses from benchmarks          │        │
+│  │  → hypothesis.json                                   │ ← (A½) │
+│  └─────────────────────────────────────────────────────┘        │
+│          ↓                                                      │
 │  Stage 5: Runnability Evaluation (on by default; skip with --no-insights-runnability) │
 │  ┌─────────────────────────────────────────────────────┐            │
 │  │ insights.py --mode runnability                        │            │
@@ -164,10 +198,12 @@ When you run `python3 analyze.py`, the following stages execute in order:
 │          ↓                                                          │
 │  Stage 8: Comprehensive Report Assembly                             │
 │  ┌─────────────────────────────────────────────────────┐            │
-│  │ Part 0: Executive Summary (sorted tool rankings)      │            │
-│  │ Part 1: analysis.md (quantitative)                    │            │
-│  │ Part 2: insights.md (qualitative)                     │            │
-│  │ Part 3: runnability summary (slim)                    │            │
+│  │ Part 0: 실험 설계 (experiment design — always shown;        │            │
+│  │         enriched with hypothesis when available)             │            │
+│  │ Part 1: Executive Summary (sorted tool rankings)            │            │
+│  │ Part 2: analysis.md (quantitative)                          │            │
+│  │ Part 3: insights.md (qualitative, with §8 gap if hyp)      │            │
+│  │ Part 4: runnability summary (slim)                          │            │
 │  │  → comprehensive_report.md                            │  ← (F)   │
 │  │  → comprehensive_report.html (with Chart.js charts)   │  ← (G)   │
 │  │  → dashboard.html (standalone interactive dashboard)  │  ← (H)   │
@@ -183,10 +219,11 @@ When you run `python3 analyze.py`, the following stages execute in order:
 | 4 (A) | `analysis.md` / `analysis.html` | Main quantitative report — per-tool/round/scenario tables, Overall scores |
 | 4 (B) | `analysis.json` | Machine-readable full evaluation data |
 | 4 (C) | `per_session.csv` | Flat table for spreadsheet import |
+| 4.5 (A½) | `hypothesis.json` | Pre-experiment hypotheses from external benchmarks (optional — requires `--hypothesis`) |
 | 5 (D) | `runnability_report.md` | LLM agent's end-user runnability evaluation per session |
 | 6 (A') | `analysis.md` (rewritten) | Updated with Runnability scores merged into Overall |
 | 7 (E) | `insights.md` | LLM agent's qualitative analysis (reads updated analysis.md) |
-| 8 (F) | `comprehensive_report.md` | Unified report — Executive Summary + Parts 1+2+3 |
+| 8 (F) | `comprehensive_report.md` | Unified report — experiment design + Executive Summary + Parts 1+2+3+4 |
 | 8 (G) | `comprehensive_report.html` | HTML with embedded Chart.js charts (bar, radar, trend, sentinel) |
 | 8 (H) | `dashboard.html` | Standalone interactive dashboard (Chart.js — 6 chart types, sortable ranking) |
 
@@ -231,9 +268,23 @@ When you run `python3 analyze.py`, the following stages execute in order:
 - PyYAML (`pip install pyyaml`)
 - `bash` (for code quality checks via `bash -n`)
 
-## 4. Analysis Dimensions
+## 4. Default Model Policy
 
-### 4.1 Metric Tiers
+The analyzer uses different default models depending on the stage to balance
+cost and quality:
+
+| Stage | Default `allow_paid` | Default CLI + Model | Rationale |
+|-------|---------------------|---------------------|-----------|
+| Runnability (Stage 5) | `False` (free) | copilot + gpt-4.1 | High volume — evaluates every session |
+| Insights (Stage 7) | `True` (paid) | copilot + claude-sonnet-4.6 | Quality matters — single comprehensive analysis |
+| Hypothesis (Stage 4.5) | `True` (paid) | copilot + claude-sonnet-4.6 | Benchmark synthesis requires reasoning |
+
+Override with `--insights-allow-paid` / `--no-insights-allow-paid` in `analyze.py`,
+or `--allow-paid` / `--no-allow-paid` in `insights.py`.
+
+## 5. Analysis Dimensions
+
+### 5.1 Metric Tiers
 
 | Tier | Checks | Implementation |
 |------|--------|---------------|
@@ -249,14 +300,14 @@ When you run `python3 analyze.py`, the following stages execute in order:
 | **T10 Agentic insight** | Secondary CLI agent call for per-tool strengths/weaknesses + end-user runnability | `insights.py` |
 | **T11 Cost** | Token usage → estimated USD cost + premium request estimation via calibration | `cost.py` |
 
-### 4.2 Aggregation Dimensions
+### 5.2 Aggregation Dimensions
 
 - **per tool** (claude-code / copilot-cli / cursor-cli / opencode-cli / codex-cli)
 - **per round** (1–N — auto-extends as rounds are added)
 - **per scenario** (compiler / dx_app / dx_stream / dx_stream_cascaded / runtime / suite)
 - **per model** (config.yaml model overrides — flags non-standard cases like Cursor "auto")
 
-### 4.3 Scoring Formulas
+### 5.3 Scoring Formulas
 
 ```
 Compliance %   = (passed checks / total checks) × 100
@@ -275,7 +326,7 @@ Overall %      = 0.25·Compliance + 0.20·Quality + 0.10·Verdict
 > **Verdict weight 10%**: Only checks file existence, so low weight. Execution (25%)
 > and Runnability (15%) carry higher weight as they measure actual functionality.
 
-## 5. Directory Structure
+## 6. Directory Structure
 
 ```
 agentic_analyzer/
@@ -309,11 +360,11 @@ agentic_analyzer/
     └── comprehensive_report.html
 ```
 
-## 6. Adding New Tools / Models
+## 7. Adding New Tools / Models
 
 Extend via `config.yaml` only — **no code changes required**.
 
-### 6.1 New Tool (e.g., OpenAI Codex CLI)
+### 7.1 New Tool (e.g., OpenAI Codex CLI)
 
 ```yaml
 tools:
@@ -329,7 +380,7 @@ Prerequisites:
 - manifest.json artifact keys prefixed: `codex_cli__<scenario>`
 - Scenario directory contains `<scenario>-codex-session.md` + `*-stream.jsonl` or `*-events-*.jsonl`
 
-### 6.2 Model Mapping Changes
+### 7.2 Model Mapping Changes
 
 ```yaml
 default_models:
@@ -341,7 +392,7 @@ model_overrides:
     note: "GPT-5.4 codex rollout starting Jun 1"
 ```
 
-### 6.3 New Scenario
+### 7.3 New Scenario
 
 ```yaml
 scenarios:
@@ -357,7 +408,7 @@ scenarios:
       - "**/results.json"
 ```
 
-## 7. Cumulative Analysis
+## 8. Cumulative Analysis
 
 Round numbering is **automatic**. When new round results appear in `results/`,
 they are sorted by timestamp and assigned sequential round numbers.
@@ -371,7 +422,7 @@ python3 analyze.py --round 1 2 3 4 5      # Initial 5 rounds
 python3 analyze.py --round 6 7 8 9 10     # Additional 5 rounds
 ```
 
-## 8. Token Semantics Per Tool
+## 9. Token Semantics Per Tool
 
 Each tool reports token usage differently. The analyzer normalizes to "fresh input
 tokens" (tokens actually billed) before cost estimation:
@@ -388,7 +439,7 @@ tokens" (tokens actually billed) before cost estimation:
 > For other tools using copilot provider (OpenCode, Codex), the analyzer calibrates
 > using copilot-cli's observed `tokens-per-premium-request` ratio.
 
-## 9. Methodology — How Scores Are Computed
+## 10. Methodology — How Scores Are Computed
 
 ### Compliance (HARD GATE Checks)
 
@@ -445,7 +496,7 @@ Token usage is converted to estimated USD using pricing tables in `config.yaml`:
 - **Copilot premium requests**: USD per request (Pro tier reference: $0.033/req)
 - **Cross-tool calibration**: copilot-cli's observed `tokens/premium-request` ratio is applied to estimate premium request counts for tools that don't report them directly
 
-## 10. Known Limitations / Future Improvements
+## 11. Known Limitations / Future Improvements
 
 | Limitation | Current Status |
 |-----------|---------------|
@@ -459,7 +510,7 @@ Token usage is converted to estimated USD using pricing tables in `config.yaml`:
 | **Codex CLI dual-JSONL** | **Improved**: Parser handles both `*-stream.jsonl` and `*-events-*.jsonl` patterns |
 | **HTML reports** | **Improved**: All MD reports now have HTML counterparts with styled tables |
 
-## 11. License / Ownership
+## 12. License / Ownership
 
 Internal tool. Part of the dx-all-suite `dx-agentic-dev` infrastructure. This
 directory follows the `.gitignore` policy of the dx-all-suite repo.
