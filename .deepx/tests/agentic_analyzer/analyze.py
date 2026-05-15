@@ -793,10 +793,14 @@ def _write_comprehensive_html(md_path: Path, html_path: Path, report_dir: Path) 
 
     # Load analysis.json for chart data
     json_path = report_dir / "analysis.json"
+    hypothesis_path = report_dir / "hypothesis.json"
     chart_section = ""
     if json_path.is_file():
         data = _json.loads(json_path.read_text(encoding="utf-8"))
-        chart_section = _build_chart_section(data)
+        chart_section = _build_chart_section(
+            data,
+            hypothesis_path if hypothesis_path.is_file() else None,
+        )
 
     html = f"""<!DOCTYPE html>
 <html lang="ko">
@@ -820,9 +824,16 @@ def _write_comprehensive_html(md_path: Path, html_path: Path, report_dir: Path) 
     html_path.write_text(html, encoding="utf-8")
 
 
-def _build_chart_section(data: dict) -> str:
+def _build_chart_section(data: dict, hypothesis_path: Optional[Path] = None) -> str:
     """Build HTML section with Chart.js charts from analysis.json data."""
     import json as _json
+
+    hypothesis_data = None
+    if hypothesis_path is not None and hypothesis_path.is_file():
+        try:
+            hypothesis_data = _json.loads(hypothesis_path.read_text(encoding="utf-8"))
+        except Exception:
+            hypothesis_data = None
 
     per_tool = data.get("per_tool", {})
     if not per_tool:
@@ -902,6 +913,11 @@ def _build_chart_section(data: dict) -> str:
     <h3>Round별 Overall Score 추이</h3>
     <canvas id="chartTrend" height="120"></canvas>
   </div>
+
+  <div class="chart-card chart-wide" id="hypothesisChartContainer" style="display:none">
+    <h3>🔬 Hypothesis vs Actual (가설 검증)</h3>
+    <canvas id="chartHypothesis" height="150"></canvas>
+  </div>
 </div>
 
 <script>
@@ -913,6 +929,7 @@ def _build_chart_section(data: dict) -> str:
   const duration = {_json.dumps(duration)};
   const startS = {_json.dumps(start_s)};
   const doneS = {_json.dumps(done_s)};
+  const hypothesisData = {_json.dumps(hypothesis_data)};
   const toolColors = tools.map(t => ({{
     'copilot-cli': 'rgba(54,162,235,0.8)',
     'opencode-cli': 'rgba(75,192,192,0.8)',
@@ -1005,6 +1022,66 @@ def _build_chart_section(data: dict) -> str:
       plugins: {{ legend: {{ position: 'bottom' }} }}
     }}
   }});
+
+  // 6. Hypothesis vs Actual rank comparison
+  if (hypothesisData && Array.isArray(hypothesisData.hypotheses)) {{
+    const oh = hypothesisData.hypotheses.find(h => h.metric === 'overall_score' && Array.isArray(h.expected_ranking));
+    if (oh) {{
+      const expectedRanking = oh.expected_ranking.filter(t => tools.includes(t));
+      if (expectedRanking.length) {{
+        const actualRanked = [...tools];
+        const labels = expectedRanking;
+        const expectedPos = expectedRanking.map((_, i) => i + 1);
+        const actualPos = expectedRanking.map(t => {{
+          const idx = actualRanked.indexOf(t);
+          return idx >= 0 ? idx + 1 : null;
+        }});
+        const rankMax = Math.max(expectedRanking.length, actualRanked.length, 5);
+        const hypTitle = oh.statement
+          ? `가설: ${{oh.statement.length > 80 ? oh.statement.slice(0, 77) + '...' : oh.statement}}`
+          : 'Expected Rank vs Actual Rank';
+
+        document.getElementById('hypothesisChartContainer').style.display = 'block';
+        new Chart(document.getElementById('chartHypothesis'), {{
+          type: 'bar',
+          data: {{
+            labels,
+            datasets: [
+              {{
+                label: 'Expected Rank',
+                data: expectedPos,
+                backgroundColor: 'rgba(54,162,235,0.6)',
+                borderColor: 'rgba(54,162,235,1)',
+                borderWidth: 1,
+              }},
+              {{
+                label: 'Actual Rank',
+                data: actualPos,
+                backgroundColor: 'rgba(255,99,132,0.6)',
+                borderColor: 'rgba(255,99,132,1)',
+                borderWidth: 1,
+              }}
+            ]
+          }},
+          options: {{
+            scales: {{
+              y: {{
+                reverse: true,
+                min: 1,
+                max: rankMax,
+                ticks: {{ stepSize: 1 }},
+                title: {{ display: true, text: 'Rank (lower is better)' }}
+              }}
+            }},
+            plugins: {{
+              legend: {{ position: 'bottom' }},
+              title: {{ display: true, text: hypTitle }}
+            }}
+          }}
+        }});
+      }}
+    }}
+  }}
 }})();
 </script>
 """
@@ -1099,6 +1176,14 @@ def _generate_dashboard_html(report_dir: Path) -> None:
             val = per_st.get(key, {}).get("avg_overall_score", None)
             scenario_data[tool][sc] = round(val, 1) if val is not None else 0
 
+    hyp_path = report_dir / "hypothesis.json"
+    hypothesis_data = None
+    if hyp_path.is_file():
+        try:
+            hypothesis_data = _json.loads(hyp_path.read_text(encoding="utf-8"))
+        except Exception:
+            hypothesis_data = None
+
     # Radar dimensions (normalize to 0-100)
     radar_dims = ["Overall", "Compliance", "Quality", "START Sentinel", "DONE Sentinel"]
     radar_data = {}
@@ -1134,6 +1219,7 @@ def _generate_dashboard_html(report_dir: Path) -> None:
         "scenario_data": scenario_data,
         "radar_dims": radar_dims,
         "radar_data": radar_data,
+        "hypothesis": hypothesis_data,
     }
 
     html = _DASHBOARD_TEMPLATE.replace("__DATA_PLACEHOLDER__", _json.dumps(dashboard_data, indent=2))
@@ -1212,6 +1298,7 @@ a { color: #60a5fa; }
     <div class="chart-card"><h3>Average Duration (min)</h3><canvas id="cDuration"></canvas></div>
     <div class="chart-card chart-wide"><h3>Round-over-Round Overall Score Trend</h3><canvas id="cTrend" height="100"></canvas></div>
     <div class="chart-card chart-wide"><h3>Scenario Breakdown (Overall Score per Tool × Scenario)</h3><canvas id="cScenario" height="100"></canvas></div>
+    <div class="chart-card chart-wide" id="dashHypContainer" style="display:none"><h3>🔬 Hypothesis vs Actual — 가설 검증 차트</h3><canvas id="cHypothesis" height="120"></canvas></div>
   </div>
 
   <div class="findings"><h2>📋 Key Findings</h2><ul id="findingsList"></ul></div>
@@ -1327,6 +1414,64 @@ new Chart(document.getElementById('cScenario'), {
   data: { labels: D.scenarios, datasets: scDatasets },
   options: { scales:{y:{min:0,max:100}}, plugins:{legend:{position:'bottom'}} }
 });
+
+// 7. Hypothesis vs Actual
+if (D.hypothesis && Array.isArray(D.hypothesis.hypotheses)) {
+  const oh = D.hypothesis.hypotheses.find(h => h.metric === 'overall_score' && Array.isArray(h.expected_ranking));
+  if (oh) {
+    const expRank = oh.expected_ranking.filter(t => D.tools.includes(t));
+    if (expRank.length) {
+      document.getElementById('dashHypContainer').style.display = 'block';
+      const actualRanked = [...D.tools];
+      const expectedPos = expRank.map((_, i) => i + 1);
+      const actualPos = expRank.map(t => {
+        const idx = actualRanked.indexOf(t);
+        return idx >= 0 ? idx + 1 : null;
+      });
+      const hypTitle = oh.statement
+        ? `가설: ${oh.statement.length > 80 ? oh.statement.slice(0, 77) + '...' : oh.statement}`
+        : 'Expected Rank vs Actual Rank';
+
+      new Chart(document.getElementById('cHypothesis'), {
+        type: 'bar',
+        data: {
+          labels: expRank,
+          datasets: [
+            {
+              label: 'Expected Rank',
+              data: expectedPos,
+              backgroundColor: 'rgba(54,162,235,0.6)',
+              borderColor: 'rgba(54,162,235,1)',
+              borderWidth: 1,
+            },
+            {
+              label: 'Actual Rank',
+              data: actualPos,
+              backgroundColor: 'rgba(255,99,132,0.6)',
+              borderColor: 'rgba(255,99,132,1)',
+              borderWidth: 1,
+            }
+          ]
+        },
+        options: {
+          scales: {
+            y: {
+              reverse: true,
+              min: 1,
+              max: Math.max(expRank.length, actualRanked.length, 5),
+              ticks: { stepSize: 1 },
+              title: { display: true, text: 'Rank (lower is better)' }
+            }
+          },
+          plugins: {
+            legend: { position: 'bottom' },
+            title: { display: true, text: hypTitle }
+          }
+        }
+      });
+    }
+  }
+}
 
 // Key findings
 const fl = document.getElementById('findingsList');
