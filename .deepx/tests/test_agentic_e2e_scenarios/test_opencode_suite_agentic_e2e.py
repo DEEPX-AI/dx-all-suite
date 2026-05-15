@@ -37,13 +37,13 @@ GRACE_PERIOD = 10     # R18-parity: OS scheduling jitter allowance
 
 
 @pytest.fixture(scope="module")
-def scenario(opencode_runner, opencode_artifacts_dir) -> ScenarioResult:
+def scenario(opencode_runner, opencode_suite_artifacts_dir) -> ScenarioResult:
     """Execute suite Scenario via OpenCode CLI."""
     return opencode_runner.run(
         prompt=SCENARIO_PROMPT,
         workdir=SUITE_ROOT,
         scenario_key="suite",
-        session_log_dir=opencode_artifacts_dir,
+        session_log_dir=opencode_suite_artifacts_dir,
         timeout=SUITE_TIMEOUT,
     )
 

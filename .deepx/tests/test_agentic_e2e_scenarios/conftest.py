@@ -3266,6 +3266,44 @@ def codex_cli_artifacts_dir(request):
         _cleanup_artifacts_dir(suite_dir)
 
 
+# ---------------------------------------------------------------------------
+# Suite-specific artifacts dir fixtures
+# Each suite test should use *_suite_artifacts_dir so that session logs and
+# symlinks are written to the _suite directory (not the base/runtime dir).
+# This fixes the T3 artifact collision bug where suite-* files ended up in
+# the runtime directory because both tests shared the same artifacts_dir.
+# ---------------------------------------------------------------------------
+
+@pytest.fixture(scope="session")
+def copilot_cli_suite_artifacts_dir(copilot_cli_artifacts_dir):
+    """Suite-specific artifacts dir for Copilot CLI (derives _suite from base)."""
+    return copilot_cli_artifacts_dir.parent / f"{copilot_cli_artifacts_dir.name}_suite"
+
+
+@pytest.fixture(scope="session")
+def cursor_cli_suite_artifacts_dir(cursor_cli_artifacts_dir):
+    """Suite-specific artifacts dir for Cursor CLI (derives _suite from base)."""
+    return cursor_cli_artifacts_dir.parent / f"{cursor_cli_artifacts_dir.name}_suite"
+
+
+@pytest.fixture(scope="session")
+def opencode_suite_artifacts_dir(opencode_artifacts_dir):
+    """Suite-specific artifacts dir for OpenCode (derives _suite from base)."""
+    return opencode_artifacts_dir.parent / f"{opencode_artifacts_dir.name}_suite"
+
+
+@pytest.fixture(scope="session")
+def claude_code_suite_artifacts_dir(claude_code_artifacts_dir):
+    """Suite-specific artifacts dir for Claude Code (derives _suite from base)."""
+    return claude_code_artifacts_dir.parent / f"{claude_code_artifacts_dir.name}_suite"
+
+
+@pytest.fixture(scope="session")
+def codex_cli_suite_artifacts_dir(codex_cli_artifacts_dir):
+    """Suite-specific artifacts dir for Codex CLI (derives _suite from base)."""
+    return codex_cli_artifacts_dir.parent / f"{codex_cli_artifacts_dir.name}_suite"
+
+
 @pytest.fixture(scope="session")
 def agentic_e2e_artifacts_dir(copilot_cli_artifacts_dir):
     """Deprecated alias for copilot_cli_artifacts_dir. Use tool-specific fixtures instead."""

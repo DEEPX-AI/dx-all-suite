@@ -38,13 +38,13 @@ GRACE_PERIOD = 10    # R18: OS scheduling jitter allowance (38 ms overrun in ite
 
 
 @pytest.fixture(scope="module")
-def scenario(codex_runner, codex_cli_artifacts_dir) -> ScenarioResult:
+def scenario(codex_runner, codex_cli_suite_artifacts_dir) -> ScenarioResult:
     """Execute suite Scenario via Codex CLI."""
     return codex_runner.run(
         prompt=SCENARIO_PROMPT,
         workdir=SUITE_ROOT,
         scenario_key="suite",
-        session_log_dir=codex_cli_artifacts_dir,
+        session_log_dir=codex_cli_suite_artifacts_dir,
         timeout=SUITE_TIMEOUT,
     )
 

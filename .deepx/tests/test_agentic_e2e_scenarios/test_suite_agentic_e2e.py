@@ -52,13 +52,13 @@ SCENARIO_PROMPT = (
 # ---------------------------------------------------------------------------
 
 @pytest.fixture(scope="module")
-def scenario(copilot_runner, copilot_cli_artifacts_dir) -> ScenarioResult:
+def scenario(copilot_runner, copilot_cli_suite_artifacts_dir) -> ScenarioResult:
     """Execute suite Scenario #2 via Copilot CLI."""
     return copilot_runner.run(
         prompt=SCENARIO_PROMPT,
         workdir=SUITE_ROOT,
         scenario_key="suite",
-        session_log_dir=copilot_cli_artifacts_dir,
+        session_log_dir=copilot_cli_suite_artifacts_dir,
         timeout=4200,  # REC-W4 (iter-18): increased from 3000s — copilot timed out at 3000s in iter-18
                        # due to YoloCalibDataset with 100 images × 37s/batch = 62 min; 4200s = 70 min buffer
     )
