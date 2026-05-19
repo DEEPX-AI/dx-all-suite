@@ -72,12 +72,12 @@ def write_markdown(evals: List[SessionEval], out_path: Path, meta: Dict) -> None
     lines.append("## 📖 점수 산정 방식 (Quick Reference)")
     lines.append("")
     lines.append("```")
-    lines.append("Overall % = 0.25·Compliance% + 0.20·Quality% + 0.10·Verdict% + 0.25·ExecutionTrace% + 0.15·Runnability% + 2.5(START) + 2.5(DONE)")
+    lines.append("Overall % = 0.25·Compliance% + 0.20·Quality% + 0.10·Verdict% + 0.25·ExecutionTrace% + 0.15·Runnability%")
     lines.append("Verdict   = PASS(100) / PARTIAL(50) / FAIL(0) / UNKNOWN(0)  — 시나리오 산출물 inferred")
     lines.append("Runnability = End-user 실행 가능성 (LLM 판정) — runnability_report.md 없으면 나머지 4-factor 비례 배분")
     lines.append("```")
     lines.append("")
-    lines.append("- **Compliance** (25%) = HARD GATE 체크 통과율 (sentinel/output isolation/IFactory/필수파일/...)")
+    lines.append("- **Compliance** (25%) = HARD GATE 체크 통과율 (sentinel START/DONE, output isolation, IFactory, 필수파일, ...)")
     lines.append("- **Quality** (20%) = py_compile + JSON parse + bash -n 통과율, placeholder/anti-pattern 페널티")
     lines.append("- **Verdict** (10%) = 시나리오 1차 산출물 존재성 (compiler→.dxnn, dx_app→factory+sync, suite→dual dir)")
     lines.append("- **ExecutionTrace** (25%) = 실제 실행 흔적 — session.log substantive + 성공 마커 + .dxnn realistic size + no failure markers")
@@ -167,7 +167,7 @@ def write_markdown(evals: List[SessionEval], out_path: Path, meta: Dict) -> None
             f"{int(m.get('avg_python_loc', 0))} |"
         )
     lines.append("")
-    lines.append("> **σ (sigma)** = stdev (낮을수록 일관성이 높음). **Exec %** = ExecutionTrace 점수 (실제 명령 실행 흔적). **⏱ Timeout** = 의심 timeout 발생 세션 수 (참고용; 점수에 페널티 없음). **Scored/Total** = 점수 산정 포함 세션 / 전체 세션 (환경 실패 제외).")
+    lines.append("> **σ (sigma)** = stdev (낮을수록 일관성이 높음). **Exec %** = ExecutionTrace 점수 (실제 명령 실행 흔적). **⏱ Timeout** = 의심 timeout 발생 세션 수 (참고용; 점수에 페널티 없음). **Scored/Total** = 점수 산정 포함 세션 / 전체 세션 (환경 실패 제외). **START/DONE %** = sentinel 준수율 (Compliance %에 포함 반영).")
     lines.append("")
 
     # ----------------------------------------------------------
@@ -212,7 +212,7 @@ def write_markdown(evals: List[SessionEval], out_path: Path, meta: Dict) -> None
     lines.append("### 2.1 Overall % (종합 점수)")
     lines.append("")
     lines.append("```")
-    lines.append("Overall = 0.25×Compliance + 0.20×Quality + 0.10×Verdict + 0.25×ExecutionTrace + 0.15×Runnability + 2.5(START) + 2.5(DONE)")
+    lines.append("Overall = 0.25×Compliance + 0.20×Quality + 0.10×Verdict + 0.25×ExecutionTrace + 0.15×Runnability")
     lines.append("```")
     lines.append("")
     lines.append("- Runnability 데이터가 없는 세션은 나머지 4-factor 비례 배분 (backward compatible)")
