@@ -87,32 +87,30 @@ def composite_score(
     runnability_pct: float = 0.0,
     has_runnability: bool = False,
 ) -> float:
-    """Weighted overall:
-      - 25% Compliance (HARD GATE checks — sentinel 포함)
+    """Weighted overall (100-point scale):
+      - 30% Compliance (HARD GATE checks — sentinel, mandatory deliverables 포함)
       - 20% Quality (static syntax + anti-pattern detection)
-      - 10% Verdict (artifact existence — 1차 산출물 PASS/FAIL)
-      - 25% ExecutionTrace (실제 명령 실행 흔적: session.log + compile_out.log + 성공 마커)
-      - 15% Runnability (end-user 실행 가능성 — LLM 판정)
+      - 30% ExecutionTrace (실제 명령 실행 흔적: session.log + compile_out.log + 성공 마커)
+      - 20% Runnability (end-user 실행 가능성 — LLM 판정)
 
-    Sentinel (START/DONE)은 Compliance 체크 항목으로만 반영.
-    별도 보너스 없음 (이전 +5% 보너스는 이중 반영이므로 제거).
+    Verdict (산출물 존재 여부)는 Compliance mandatory_deliverables와 중복이므로
+    별도 가중치 없이 정보용으로만 표시 (Verdict 매트릭스 참조).
 
-    Verdict 는 파일 존재만 확인하므로 가중치를 낮추고, 실제 실행 증거(Execution)와
-    end-user 관점의 실행 가능성(Runnability)에 더 높은 비중을 둠.
+    verdict_pct 인자는 backward compat 유지 — 계산에는 미사용.
 
-    Runnability 데이터가 없는 세션은 기존 4-factor 가중치를 비례 배분하여 backward
+    Runnability 데이터가 없는 세션은 나머지 3-factor 비례 배분하여 backward
     compatible 하게 처리.
 
     pytest 의 round-level exit code 는 미포함 (시나리오 분해 불가; 정보용 컬럼만).
     """
     if has_runnability:
-        return min(100.0, (0.25 * comp_pct + 0.20 * qual_pct + 0.10 * verdict_pct
-                           + 0.25 * execution_pct + 0.15 * runnability_pct))
+        return min(100.0, (0.30 * comp_pct + 0.20 * qual_pct
+                           + 0.30 * execution_pct + 0.20 * runnability_pct))
     else:
-        # No runnability data — redistribute 15% proportionally among the other 4
-        # Effective weights: 31.25%C + 25%Q + 12.5%V + 31.25%E (sum = 100%)
-        return min(100.0, (0.25 / 0.80 * comp_pct + 0.20 / 0.80 * qual_pct
-                           + 0.10 / 0.80 * verdict_pct + 0.25 / 0.80 * execution_pct))
+        # No runnability data — redistribute 20% proportionally among the other 3
+        # Effective weights: 37.5%C + 25%Q + 37.5%E (sum = 100%)
+        return min(100.0, (0.30 / 0.80 * comp_pct + 0.20 / 0.80 * qual_pct
+                           + 0.30 / 0.80 * execution_pct))
 
 
 def _stdev(values: List[float]) -> float:

@@ -72,17 +72,16 @@ def write_markdown(evals: List[SessionEval], out_path: Path, meta: Dict) -> None
     lines.append("## 📖 점수 산정 방식 (Quick Reference)")
     lines.append("")
     lines.append("```")
-    lines.append("Overall % = 0.25·Compliance% + 0.20·Quality% + 0.10·Verdict% + 0.25·ExecutionTrace% + 0.15·Runnability%")
-    lines.append("Verdict   = PASS(100) / PARTIAL(50) / FAIL(0) / UNKNOWN(0)  — 시나리오 산출물 inferred")
-    lines.append("Runnability = End-user 실행 가능성 (LLM 판정) — runnability_report.md 없으면 나머지 4-factor 비례 배분")
+    lines.append("Overall % = 0.30·Compliance% + 0.20·Quality% + 0.30·ExecutionTrace% + 0.20·Runnability%")
+    lines.append("Runnability = End-user 실행 가능성 (LLM 판정) — runnability_report.md 없으면 나머지 3-factor 비례 배분")
     lines.append("```")
     lines.append("")
-    lines.append("- **Compliance** (25%) = HARD GATE 체크 통과율 (sentinel START/DONE, output isolation, IFactory, 필수파일, ...)")
+    lines.append("- **Compliance** (30%) = HARD GATE 체크 통과율 (sentinel START/DONE, output isolation, mandatory deliverables, IFactory, session_log authentic, suite dual dirs)")
     lines.append("- **Quality** (20%) = py_compile + JSON parse + bash -n 통과율, placeholder/anti-pattern 페널티")
-    lines.append("- **Verdict** (10%) = 시나리오 1차 산출물 존재성 (compiler→.dxnn, dx_app→factory+sync, suite→dual dir)")
-    lines.append("- **ExecutionTrace** (25%) = 실제 실행 흔적 — session.log substantive + 성공 마커 + .dxnn realistic size + no failure markers")
-    lines.append("- **Runnability** (15%) = End-user가 README/setup.sh/run.sh 따라 실제 실행 가능한지 LLM 판정 (PASS/PARTIAL/FAIL + 세부 1-5점)")
-    lines.append("- **Exit 0 %** = pytest 라운드 전체의 exit 코드 (라운드 단위, **시나리오 단위 ≠**). **Overall 에는 미반영** — 정보용. timeout 케이스는 자가-개선 iteration 으로 인한 경우가 많아 페널티 부여하지 않음 (별도 ⏱ 마커 표시).")
+    lines.append("- **ExecutionTrace** (30%) = 실제 실행 흔적 — session.log substantive + 성공 마커 + .dxnn realistic size + no failure markers")
+    lines.append("- **Runnability** (20%) = End-user가 README/setup.sh/run.sh 따라 실제 실행 가능한지 LLM 판정 (PASS/PARTIAL/FAIL + 세부 1-5점)")
+    lines.append("- **Verdict** (정보용) = 산출물 PASS/PARTIAL/FAIL 판정 — Compliance mandatory_deliverables와 중복이므로 점수 미반영, 시각화 참조용")
+    lines.append("- **Exit 0 %** = pytest 라운드 전체의 exit 코드 (라운드 단위, **시나리오 단위 ≠**). **Overall 에는 미반영** — 정보용.")
     lines.append("")
 
     # ----------------------------------------------------------
@@ -167,7 +166,7 @@ def write_markdown(evals: List[SessionEval], out_path: Path, meta: Dict) -> None
             f"{int(m.get('avg_python_loc', 0))} |"
         )
     lines.append("")
-    lines.append("> **σ (sigma)** = stdev (낮을수록 일관성이 높음). **Exec %** = ExecutionTrace 점수 (실제 명령 실행 흔적). **⏱ Timeout** = 의심 timeout 발생 세션 수 (참고용; 점수에 페널티 없음). **Scored/Total** = 점수 산정 포함 세션 / 전체 세션 (환경 실패 제외). **START/DONE %** = sentinel 준수율 (Compliance %에 포함 반영).")
+    lines.append("> **σ (sigma)** = stdev (낮을수록 일관성이 높음). **Exec %** = ExecutionTrace 점수 (실제 명령 실행 흔적). **⏱ Timeout** = 의심 timeout 발생 세션 수 (참고용; 점수에 페널티 없음). **Scored/Total** = 점수 산정 포함 세션 / 전체 세션 (환경 실패 제외). **START/DONE %** = sentinel 준수율 (Compliance %에 포함 반영). **Verdict %** = 정보용 (Overall 미반영).")
     lines.append("")
 
     # ----------------------------------------------------------
@@ -212,16 +211,16 @@ def write_markdown(evals: List[SessionEval], out_path: Path, meta: Dict) -> None
     lines.append("### 2.1 Overall % (종합 점수)")
     lines.append("")
     lines.append("```")
-    lines.append("Overall = 0.25×Compliance + 0.20×Quality + 0.10×Verdict + 0.25×ExecutionTrace + 0.15×Runnability")
+    lines.append("Overall = 0.30×Compliance + 0.20×Quality + 0.30×ExecutionTrace + 0.20×Runnability")
     lines.append("```")
     lines.append("")
-    lines.append("- Runnability 데이터가 없는 세션은 나머지 4-factor 비례 배분 (backward compatible)")
-    lines.append("- Verdict 는 파일 존재만 확인하므로 가중치 낮음 (10%); 실제 실행 증거(Execution 25%)와 end-user 관점(Runnability 15%)에 높은 비중")
+    lines.append("- Runnability 데이터가 없는 세션은 나머지 3-factor 비례 배분 (backward compatible)")
+    lines.append("- Verdict는 Compliance mandatory_deliverables와 중복이므로 점수 미반영 (정보용 매트릭스만 표시)")
     lines.append("")
     _metric_table("Overall %", "avg_overall_score")
 
     # --- 2.2 Compliance % ---
-    lines.append("### 2.2 Compliance % (HARD GATE 체크 통과율, 가중치 25%)")
+    lines.append("### 2.2 Compliance % (HARD GATE 체크 통과율, 가중치 30%)")
     lines.append("")
     lines.append("- `sentinel_start` — 응답 첫 줄 `[DX-AGENTIC-DEV: START]`")
     lines.append("- `sentinel_done` — 마지막 줄 `[DX-AGENTIC-DEV: DONE (output-dir: ...)]`")
@@ -245,8 +244,11 @@ def write_markdown(evals: List[SessionEval], out_path: Path, meta: Dict) -> None
     lines.append("")
     _metric_table("Quality %", "avg_quality_score")
 
-    # --- 2.4 Verdict % ---
-    lines.append("### 2.4 Verdict % (산출물 PASS/PARTIAL/FAIL — 정적 추론, 가중치 10%)")
+    # --- 2.4 Verdict (정보용 — Overall 미반영) ---
+    lines.append("### 2.4 Verdict (산출물 PASS/PARTIAL/FAIL — 정보용, Overall 미반영)")
+    lines.append("")
+    lines.append("> ⚠️ Verdict는 Compliance `mandatory_deliverables`와 측정 대상이 중복되어 Overall 점수에 미반영합니다.")
+    lines.append("> 산출물 상태 시각화 용도로만 제공됩니다.")
     lines.append("")
     lines.append("- `compiler`: PASS = `*.dxnn` + `config.json` 존재 / FAIL = `.dxnn` 미생성")
     lines.append("- `dx_app`: PASS = factory + `*_sync.py` / PARTIAL = factory 만 / FAIL = factory 없음")
@@ -257,7 +259,7 @@ def write_markdown(evals: List[SessionEval], out_path: Path, meta: Dict) -> None
     _metric_table("Verdict %", "avg_verdict_score")
 
     # --- 2.5 ExecutionTrace % ---
-    lines.append("### 2.5 ExecutionTrace % (실제 실행 흔적, 가중치 25%)")
+    lines.append("### 2.5 ExecutionTrace % (실제 실행 흔적, 가중치 30%)")
     lines.append("")
     lines.append("- session.log substantive (실질적 내용 포함)")
     lines.append("- 성공 마커 존재 (compile success, inference output 등)")
@@ -292,11 +294,11 @@ def write_markdown(evals: List[SessionEval], out_path: Path, meta: Dict) -> None
     lines.append("")
 
     # --- 2.6 Runnability % ---
-    lines.append("### 2.6 Runnability % (End-user 실행 가능성, 가중치 15%)")
+    lines.append("### 2.6 Runnability % (End-user 실행 가능성, 가중치 20%)")
     lines.append("")
     lines.append("- End-user가 README/setup.sh/run.sh 따라 실제 실행 가능한지 LLM 판정")
     lines.append("- PASS(100)/PARTIAL(50)/FAIL(0) + 세부 1-5점 스케일")
-    lines.append("- `runnability_report.md` 없으면 나머지 4-factor 비례 배분")
+    lines.append("- `runnability_report.md` 없으면 나머지 3-factor 비례 배분")
     lines.append("")
     # Build runnability per scenario×tool
     runn_per_scen_tool = {}
@@ -358,7 +360,7 @@ def write_markdown(evals: List[SessionEval], out_path: Path, meta: Dict) -> None
                  "적은 호출이 높은 성공률과 결합될 때만 의미 있습니다.")
     lines.append("")
     lines.append("```")
-    lines.append("Efficiency Index = (Verdict% × ExecutionTrace%) / (Tool Calls + 1) × 100")
+    lines.append("Efficiency Index = (Compliance% × ExecutionTrace%) / (Tool Calls + 1) × 100")
     lines.append("```")
     lines.append("")
     # Compute efficiency and rank
@@ -367,17 +369,17 @@ def write_markdown(evals: List[SessionEval], out_path: Path, meta: Dict) -> None
     eff_data = []
     for tool in tools:
         tc = _bias_avg([e.tool_call_count for e in by_tool_evals[tool]])
-        ver = _bias_avg([e.verdict_score for e in by_tool_evals[tool]])
+        comp = _bias_avg([e.compliance_score_pct for e in by_tool_evals[tool]])
         exec_p = _bias_avg([e.execution_score for e in by_tool_evals[tool]])
-        eff = (ver * exec_p) / (tc + 1) * 100
-        eff_data.append((tool, tc, ver, exec_p, eff))
+        eff = (comp * exec_p) / (tc + 1) * 100
+        eff_data.append((tool, tc, comp, exec_p, eff))
     eff_data.sort(key=lambda x: x[4], reverse=True)
 
-    lines.append("| Rank | Tool | Avg Tool Calls | Avg Verdict % | Avg Exec % | **Efficiency Index** |")
-    lines.append("|-----:|------|---------------:|--------------:|-----------:|---------------------:|")
-    for rank, (tool, tc, ver, exec_p, eff) in enumerate(eff_data, 1):
+    lines.append("| Rank | Tool | Avg Tool Calls | Avg Compl % | Avg Exec % | **Efficiency Index** |")
+    lines.append("|-----:|------|---------------:|------------:|-----------:|---------------------:|")
+    for rank, (tool, tc, comp, exec_p, eff) in enumerate(eff_data, 1):
         medal = {1: "🥇", 2: "🥈", 3: "🥉"}.get(rank, str(rank))
-        lines.append(f"| {medal} | **{tool}** | {tc:.1f} | {ver:.1f} | {exec_p:.1f} | **{eff:.1f}** |")
+        lines.append(f"| {medal} | **{tool}** | {tc:.1f} | {comp:.1f} | {exec_p:.1f} | **{eff:.1f}** |")
     lines.append("")
     lines.append("> **해석 유의사항**: tool call 당 작업 granularity는 도구마다 다릅니다 "
                  "(Claude Code는 1 Bash에 multi-line 명령을 묶고, Copilot/OpenCode는 개별 호출로 분해). "
