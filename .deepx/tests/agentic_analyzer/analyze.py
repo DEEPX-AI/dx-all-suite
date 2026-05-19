@@ -767,22 +767,6 @@ def _render_executive_summary(report_dir: Path) -> str:
         lines.append("> 판정 기준: output_dirs 없음 + START sentinel 없음 + duration < 5초 → CLI가 agent를 시작하지 못한 환경 장애")
         lines.append("")
 
-    # Sentinel / exit compliance mini-table
-    lines.append("## Sentinel & Exit Code 준수율")
-    lines.append("")
-    lines.append("| Tool | START Sentinel | DONE Sentinel | Exit 0 | Avg Tool Calls | Avg Python LOC |")
-    lines.append("|------|---------------:|--------------:|-------:|---------------:|---------------:|")
-    for r in ranked:
-        lines.append(
-            f"| {r['tool']} "
-            f"| {r['start_sentinel']:.1f}% "
-            f"| {r['done_sentinel']:.1f}% "
-            f"| {r['exit_0']:.1f}% "
-            f"| {r['tool_calls']:.1f} "
-            f"| {r['python_loc']:.0f} |"
-        )
-    lines.append("")
-
     # Key findings
     best = ranked[0]
     worst = ranked[-1]

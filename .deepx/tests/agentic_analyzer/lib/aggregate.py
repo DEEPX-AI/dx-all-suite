@@ -88,12 +88,14 @@ def composite_score(
     has_runnability: bool = False,
 ) -> float:
     """Weighted overall:
-      - 25% Compliance (HARD GATE checks)
+      - 25% Compliance (HARD GATE checks — sentinel 포함)
       - 20% Quality (static syntax + anti-pattern detection)
       - 10% Verdict (artifact existence — 1차 산출물 PASS/FAIL)
       - 25% ExecutionTrace (실제 명령 실행 흔적: session.log + compile_out.log + 성공 마커)
       - 15% Runnability (end-user 실행 가능성 — LLM 판정)
-      - 5% sentinel bonus (START/DONE)
+
+    Sentinel (START/DONE)은 Compliance 체크 항목으로만 반영.
+    별도 보너스 없음 (이전 +5% 보너스는 이중 반영이므로 제거).
 
     Verdict 는 파일 존재만 확인하므로 가중치를 낮추고, 실제 실행 증거(Execution)와
     end-user 관점의 실행 가능성(Runnability)에 더 높은 비중을 둠.
@@ -104,17 +106,13 @@ def composite_score(
     pytest 의 round-level exit code 는 미포함 (시나리오 분해 불가; 정보용 컬럼만).
     """
     if has_runnability:
-        base = (0.25 * comp_pct + 0.20 * qual_pct + 0.10 * verdict_pct
-                + 0.25 * execution_pct + 0.15 * runnability_pct)
+        return min(100.0, (0.25 * comp_pct + 0.20 * qual_pct + 0.10 * verdict_pct
+                           + 0.25 * execution_pct + 0.15 * runnability_pct))
     else:
         # No runnability data — redistribute 15% proportionally among the other 4
-        # Effective weights: ~29.4%C + 23.5%Q + 11.8%V + 29.4%E  (≈ original ratios)
-        base = (0.25 / 0.80 * comp_pct + 0.20 / 0.80 * qual_pct
-                + 0.10 / 0.80 * verdict_pct + 0.25 / 0.80 * execution_pct)
-        base *= 0.95  # leave room for sentinel bonus (max 5%)
-    sentinel_bonus = 2.5 if has_start else 0.0
-    sentinel_bonus += 2.5 if has_done else 0.0
-    return min(100.0, base + sentinel_bonus)
+        # Effective weights: 31.25%C + 25%Q + 12.5%V + 31.25%E (sum = 100%)
+        return min(100.0, (0.25 / 0.80 * comp_pct + 0.20 / 0.80 * qual_pct
+                           + 0.10 / 0.80 * verdict_pct + 0.25 / 0.80 * execution_pct))
 
 
 def _stdev(values: List[float]) -> float:
