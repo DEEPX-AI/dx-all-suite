@@ -175,6 +175,7 @@ def evaluate_scenario(ref: ScenarioRef, config: dict) -> SessionEval:
         cache_write_tokens=sd.total_cache_write_tokens,
         reasoning_tokens=sd.total_reasoning_tokens,
         premium_requests=sd.premium_requests,
+        user_turn_count=sd.user_turn_count,
         cost_units=sd.cost_units,
         # estimated_usd / cost_basis are filled in by the post-pass
         python_loc=loc_python,
@@ -235,25 +236,13 @@ def main(argv: Optional[List[str]] = None) -> int:
         "--insights-runnability",
         action="store_true",
         default=True,
-        help="Run insights.py --mode runnability on a sample of sessions (default: True). Use --no-insights-runnability to skip.",
+        help="Run insights.py --mode runnability on all sessions (default: True). Use --no-insights-runnability to skip.",
     )
     parser.add_argument(
         "--no-insights-runnability",
         action="store_false",
         dest="insights_runnability",
         help="Skip runnability evaluation",
-    )
-    parser.add_argument(
-        "--insights-sample",
-        type=int,
-        default=8,
-        help="(with --insights-runnability) number of sample sessions to evaluate. "
-             "Use 0 (or --insights-all) for EXHAUSTIVE.",
-    )
-    parser.add_argument(
-        "--insights-all",
-        action="store_true",
-        help="(with --insights-runnability) evaluate every session, not just a sample.",
     )
     parser.add_argument(
         "--insights-model",
@@ -350,6 +339,8 @@ def main(argv: Optional[List[str]] = None) -> int:
             premium_requests=e.premium_requests,
             config_pricing=config_pricing,
             calibration=calibration,
+            user_turn_count=e.user_turn_count,
+            tool_call_count=e.tool_call_count,
         )
         e.estimated_usd = cb.total_usd
         e.cost_basis = cb.pricing_basis
@@ -411,14 +402,13 @@ def main(argv: Optional[List[str]] = None) -> int:
     # Earlier versions ran insights BEFORE runnability, which meant the
     # insights.md was based on stale Overall scores (no Runn% factored in).
     if args.insights != "off":
-        effective_sample = 0 if args.insights_all else args.insights_sample
         chosen_cli = _resolve_insights_cli(
             args.insights, allow_paid=args.insights_allow_paid,
         )
         # --- Step 1: runnability ---
         if args.insights_runnability and chosen_cli:
             _run_runnability_step(
-                out_dir, chosen_cli, effective_sample,
+                out_dir, chosen_cli,
                 model=args.insights_model, allow_paid=args.insights_allow_paid,
                 existing_report=Path(args.existing_runnability).resolve() if args.existing_runnability else None,
             )
@@ -627,10 +617,15 @@ def _generate_comprehensive_report(report_dir: Path) -> None:
         parts.append("---")
         parts.append("")
 
-    # Part 2: insights.md
+    # Part 2: Runnability summary (computed before insights, so insights
+    # reflect updated Overall scores that include runnability)
+    parts.append(_render_runnability_summary(report_dir))
+    parts.append("")
+
+    # Part 3: insights.md (qualitative, generated AFTER runnability merge)
     insights_path = report_dir / "insights.md"
     if insights_path.is_file():
-        parts.append("# Part 2: 정성 인사이트 (insights.md)")
+        parts.append("# Part 3: 정성 인사이트 (insights.md)")
         parts.append("")
         parts.append(insights_path.read_text(encoding="utf-8"))
         parts.append("")
@@ -639,7 +634,7 @@ def _generate_comprehensive_report(report_dir: Path) -> None:
     else:
         prompt_path = report_dir / "insights_prompt.md"
         if prompt_path.is_file():
-            parts.append("# Part 2: 정성 인사이트 (미생성)")
+            parts.append("# Part 3: 정성 인사이트 (미생성)")
             parts.append("")
             parts.append("> insights.md가 아직 생성되지 않았습니다.")
             parts.append(f"> 프롬프트: `{prompt_path}`")
@@ -647,10 +642,6 @@ def _generate_comprehensive_report(report_dir: Path) -> None:
             parts.append("")
             parts.append("---")
             parts.append("")
-
-    # Part 3: SLIM runnability summary (no raw inline)
-    parts.append(_render_runnability_summary(report_dir))
-    parts.append("")
 
     # §참고: links to raw data
     parts.append("---")
@@ -671,6 +662,11 @@ def _generate_comprehensive_report(report_dir: Path) -> None:
     # Generate HTML version of comprehensive report (enhanced with Chart.js)
     html_out = report_dir / "comprehensive_report.html"
     _write_comprehensive_html(out_path, html_out, report_dir)
+
+    # Generate HTML version of runnability report (if md exists)
+    runn_md = report_dir / "runnability_report.md"
+    if runn_md.is_file():
+        _write_runnability_html(runn_md, report_dir / "runnability_report.html")
 
     # Generate standalone interactive dashboard
     _generate_dashboard_html(report_dir)
@@ -790,6 +786,38 @@ def _render_executive_summary(report_dir: Path) -> str:
     lines.append("")
 
     return "\n".join(lines)
+
+
+def _write_runnability_html(md_path: Path, html_path: Path) -> None:
+    """Convert runnability_report.md to a standalone HTML file."""
+    if not md_path.is_file():
+        return
+    md_content = md_path.read_text(encoding="utf-8")
+    body = _md_to_html_import(md_content)
+    title = "DEEPX Agentic Development — Runnability Report"
+    html = f"""<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{title}</title>
+<style>
+body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin: 40px auto; max-width: 1100px; padding: 0 20px; line-height: 1.6; color: #333; }}
+h1, h2, h3 {{ color: #1a1a2e; }}
+table {{ border-collapse: collapse; width: 100%; margin: 15px 0; }}
+th, td {{ border: 1px solid #ddd; padding: 8px 12px; text-align: left; }}
+th {{ background: #f0f4ff; }}
+pre {{ background: #f5f5f5; padding: 12px; border-radius: 5px; overflow-x: auto; }}
+code {{ background: #f0f0f0; padding: 2px 5px; border-radius: 3px; font-size: 0.9em; }}
+blockquote {{ border-left: 4px solid #4a9eff; padding-left: 15px; margin-left: 0; color: #555; }}
+a {{ color: #4a9eff; }}
+</style>
+</head>
+<body>
+{body}
+</body>
+</html>"""
+    html_path.write_text(html, encoding="utf-8")
+    print(f"  ✓ {html_path.name} written")
 
 
 def _write_comprehensive_html(md_path: Path, html_path: Path, report_dir: Path) -> None:
@@ -1565,7 +1593,7 @@ const bestQual = D.tools_alpha.reduce((a,b) => D.per_tool[a].quality > D.per_too
 
 
 def _render_runnability_summary(report_dir: Path) -> str:
-    """Build the slim Part 3 (runnability summary) — tables + key cases, no raw."""
+    """Build the slim Part 2 (runnability summary) — tables + key cases, no raw."""
     import json as _json
     import re as _re
 
@@ -1573,7 +1601,7 @@ def _render_runnability_summary(report_dir: Path) -> str:
     analysis_json_path = report_dir / "analysis.json"
 
     if not runn_path.is_file():
-        return ("# Part 3: End-User Runnability — 요약 (미실행)\n\n"
+        return ("# Part 2: End-User Runnability — 요약 (미실행)\n\n"
                 "> runnability 평가가 실행되지 않았습니다.\n"
                 "> 실행: `python3 insights.py --mode runnability --report-dir <dir> "
                 "--cli <copilot|claude> --all`\n")
@@ -1627,9 +1655,9 @@ def _render_runnability_summary(report_dir: Path) -> str:
             row[p["verdict"]] += 1
 
     lines: List[str] = []
-    lines.append("# Part 3: End-User Runnability — 요약")
+    lines.append("# Part 2: End-User Runnability — 요약")
     lines.append("")
-    lines.append(f"> 평가된 세션: **{len(parsed)}** (raw: [`runnability_report.md`](./runnability_report.md))")
+    lines.append(f"> 평가된 세션: **{len(parsed)}** (raw: [`runnability_report.html`](./runnability_report.html))")
     lines.append("")
     lines.append("## 3.1 분포 — Tool별")
     lines.append("")
@@ -1771,20 +1799,20 @@ def _insights_common_args(report_dir: Path, chosen: str,
     return args
 
 
-def _run_runnability_step(report_dir: Path, chosen: str, sample: int,
+def _run_runnability_step(report_dir: Path, chosen: str,
                            *, model: Optional[str] = None,
                            allow_paid: Optional[bool] = None,
                            existing_report: Optional[Path] = None) -> None:
-    """Invoke insights.py --mode runnability. Runs FIRST so its scores can be
-    merged into analysis.md before the insights step reads it.
+    """Invoke insights.py --mode runnability (always exhaustive).
+    Runs FIRST so its scores can be merged into analysis.md before the insights
+    step reads it.
     """
     import subprocess
 
     insights_script = HERE / "insights.py"
     if not insights_script.is_file():
         return
-    sample_label = "EXHAUSTIVE" if sample <= 0 else f"sample={sample}"
-    runn_timeout = 14400 if sample <= 0 else 1800  # 4h vs 30min
+    runn_timeout = 14400  # 4h for exhaustive evaluation
     common = _insights_common_args(report_dir, chosen, model, allow_paid)
     extra_args = []
     if existing_report and existing_report.is_file():
@@ -1792,11 +1820,10 @@ def _run_runnability_step(report_dir: Path, chosen: str, sample: int,
         print(f"  (incremental: reusing {existing_report.name})")
     print()
     print(f"→ Step 1: insights.py --mode runnability --cli {chosen} "
-          f"({sample_label})...")
+          f"(EXHAUSTIVE)...")
     try:
         r = subprocess.run(
             ["python3", str(insights_script), "--mode", "runnability"] + common
-            + (["--all"] if sample <= 0 else ["--sample", str(sample)])
             + extra_args,
             check=False, timeout=runn_timeout,
         )

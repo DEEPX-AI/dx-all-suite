@@ -417,7 +417,7 @@ class ScenarioResult:
 # Default model for Cursor CLI
 # ---------------------------------------------------------------------------
 
-DEFAULT_CURSOR_MODEL = os.environ.get("DX_AGENTIC_E2E_CURSOR_MODEL", "claude-4.6-sonnet-medium-thinking")
+DEFAULT_CURSOR_MODEL = os.environ.get("DX_AGENTIC_E2E_CURSOR_MODEL", "claude-4.6-sonnet-medium")
 # Fallback model used when the primary model hits a quota/usage-limit error.
 # Cursor's error message says "Switch to auto or Auto" — so "auto" is the correct value.
 CURSOR_FALLBACK_MODEL = os.environ.get("DX_AGENTIC_E2E_CURSOR_FALLBACK_MODEL", "auto")

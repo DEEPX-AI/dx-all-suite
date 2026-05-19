@@ -159,6 +159,25 @@ def extract_scenarios(rd: ResultDir, tools_cfg: dict, scenarios_cfg: dict) -> Li
                     ref.transcript_html = candidate
                     break
         out.append(ref)
+
+    # Fallback: if suite scenario has no output_dirs, derive from compiler + dx_app
+    suite_refs = [r for r in out if r.scenario == "suite" and not r.output_dirs]
+    if suite_refs:
+        comp_refs = [r for r in out if r.scenario == "compiler"]
+        app_refs = [r for r in out if r.scenario == "dx_app"]
+        for sr in suite_refs:
+            derived_dirs = []
+            derived_names = []
+            if comp_refs:
+                derived_dirs.extend(comp_refs[0].output_dirs)
+                derived_names.extend(comp_refs[0].output_dir_names)
+            if app_refs:
+                derived_dirs.extend(app_refs[0].output_dirs)
+                derived_names.extend(app_refs[0].output_dir_names)
+            if derived_dirs:
+                sr.output_dirs = derived_dirs
+                sr.output_dir_names = derived_names
+
     return out
 
 

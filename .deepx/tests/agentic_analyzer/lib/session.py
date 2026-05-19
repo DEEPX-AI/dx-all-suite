@@ -33,6 +33,8 @@ class SessionData:
     # Cost / billing
     premium_requests: int = 0           # Copilot CLI: data.modelMetrics.<model>.requests.count
     cost_units: float = 0.0             # Tool-specific cost (Copilot: requests.cost; OpenCode: part.cost sum)
+    # User turn count (for PR estimation via user_turns × multiplier)
+    user_turn_count: int = 0
     # Tool call count (sum of distinct tool invocations)
     tool_call_count: int = 0
     transcript_length: int = 0          # transcript .md file size in bytes
@@ -244,6 +246,11 @@ def _parse_opencode_stream(stream: Path, sd: SessionData) -> None:
     if sd.duration_sec is None and first_ts_seen and last_ts_seen:
         sd.duration_sec = max(0.0, last_ts_seen - first_ts_seen)
 
+    # OpenCode autopilot: 1 user turn (initial prompt). Stream doesn't expose
+    # user messages — only agent steps. Default to 1 for autopilot sessions.
+    if sd.user_turn_count == 0:
+        sd.user_turn_count = 1
+
 
 def _parse_cursor_stream(stream: Path, sd: SessionData) -> None:
     """Cursor stream.jsonl: tokens in 'result' event (cumulative) OR sum from assistant events."""
@@ -443,6 +450,7 @@ def _parse_codex_stream(stream: Path, sd: SessionData,
         ev_type = str(ev.get("type") or "")
 
         if ev_type == "turn.completed":
+            sd.user_turn_count += 1
             usage = ev.get("usage", {}) or {}
             if usage:
                 raw_input = int(usage.get("input_tokens", 0) or 0)

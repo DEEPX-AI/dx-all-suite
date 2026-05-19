@@ -32,12 +32,8 @@ SCENARIO_PROMPT = (
 
 
 @pytest.fixture(scope="module")
-def scenario(cursor_runner, cursor_cli_artifacts_dir, npu_hardware_available) -> ScenarioResult:
-    """Execute dx-runtime Scenario via Cursor CLI.
-
-    Requires ``npu_hardware_available``: skips if ``dxrt-cli -s`` fails
-    (DKMS driver not loaded / hardware init failure).
-    """
+def scenario(cursor_runner, cursor_cli_artifacts_dir) -> ScenarioResult:
+    """Execute dx-runtime Scenario via Cursor CLI."""
     return cursor_runner.run(
         prompt=SCENARIO_PROMPT,
         workdir=RUNTIME_ROOT,

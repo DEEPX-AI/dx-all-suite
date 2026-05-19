@@ -111,8 +111,8 @@ def write_markdown(evals: List[SessionEval], out_path: Path, meta: Dict) -> None
             lines.append("|------|----------:|------|")
             for t in sorted(env_by_tool.keys()):
                 el = env_by_tool[t]
-                rounds = sorted({e.round_index for e in el})
-                rounds_str = ", ".join(f"R{r}" for r in rounds)
+                env_rounds = sorted({e.round_index for e in el})
+                rounds_str = ", ".join(f"R{r}" for r in env_rounds)
                 lines.append(f"| {t} | {len(el)} | {rounds_str} |")
             lines.append("")
 
@@ -535,9 +535,9 @@ def write_markdown(evals: List[SessionEval], out_path: Path, meta: Dict) -> None
     lines.append("")
 
     # ----------------------------------------------------------
-    # 6. 토큰 사용량 + 비용 효율성 (핵심 → 배경 순)
+    # 6. 비용 효율성 (핵심 → 배경 순)
     # ----------------------------------------------------------
-    lines.append("## 6. 토큰 사용량 + 비용 효율성")
+    lines.append("## 6. 비용 효율성")
     lines.append("")
 
     # --- 6.1 비용 대비 성능 종합 판단 (핵심 → 상단) ---
@@ -566,7 +566,7 @@ def write_markdown(evals: List[SessionEval], out_path: Path, meta: Dict) -> None
 
     copilot_tools = ["copilot-cli", "opencode-cli", "codex-cli"]
     # Compute PR/session for copilot tools
-    lines.append("| 도구 | E2E Overall | Avg PR/Session | PR 측정 방식 |")
+    lines.append("| 도구 | Overall % | Avg PR/Session | PR 측정 방식 |")
     lines.append("|------|----------:|---------------:|------------|")
     for tool in copilot_tools:
         if tool not in tools:
@@ -581,20 +581,20 @@ def write_markdown(evals: List[SessionEval], out_path: Path, meta: Dict) -> None
             lines.append(f"| **{tool}** | {ov:.1f} | {avg_pr:.1f} | 관측치 (`totalPremiumRequests`) |")
         elif total_est > 0:
             avg_pr = total_est / n
-            lines.append(f"| **{tool}** | {ov:.1f} | ~{avg_pr:.1f} | 예측치 (token ratio 역산) |")
+            lines.append(f"| **{tool}** | {ov:.1f} | ~{avg_pr:.1f} | 예측치 (tool_call × 0.741 calibration) |")
         else:
             lines.append(f"| **{tool}** | {ov:.1f} | — | stream 미노출, 예측 불가 |")
     lines.append("")
     lines.append("> **측정 한계**: copilot-cli만 `session.shutdown.totalPremiumRequests`로 실측값을 제공합니다. "
                  "opencode-cli와 codex-cli는 동일 backend를 경유하지만 PR 소비량이 stream에 노출되지 않아 "
-                 "token ratio 역산 또는 user-turn × multiplier 공식으로 추정해야 합니다 (§6.2 참조).")
+                 "tool_call count 기반 calibration으로 추정합니다 (§6.2 참조).")
     lines.append("")
 
     # --- Group B: 정액 구독 (한도 내) ---
     lines.append("#### B. 정액 구독 도구 (한도 내 사용)")
     lines.append("")
     fixed_tools = ["claude-code", "cursor-cli"]
-    lines.append("| 도구 | E2E Overall | 과금 체계 | 비고 |")
+    lines.append("| 도구 | Overall % | 과금 체계 | 비고 |")
     lines.append("|------|----------:|---------|------|")
     for tool in fixed_tools:
         if tool not in tools:
@@ -623,16 +623,22 @@ def write_markdown(evals: List[SessionEval], out_path: Path, meta: Dict) -> None
     lines.append("")
     lines.append("> 참고: claude-code (Anthropic Team Plan), cursor-cli (Cursor Team Plan)는 PR 개념이 없는 정액 구독입니다.")
     lines.append("")
-    lines.append("#### 예측 공식 (user-turn × multiplier)")
+    lines.append("#### 현재 예측 방식 (tool_call count × calibration ratio)")
     lines.append("")
-    lines.append("GitHub의 Premium Request 카운팅 규칙에 따르면, **사용자 프롬프트(turn)만 1회로 계산**하고 "
-                 "에이전트의 tool call은 카운트하지 않습니다:")
+    lines.append("GitHub의 Premium Request는 실제로 **각 LLM API 호출(agent의 tool call 응답 포함)**을 카운트합니다. "
+                 "copilot-cli 관측 데이터에서 `tool_call_count`와 `totalPremiumRequests` 간의 상관관계를 도출하여 "
+                 "calibration ratio를 산출합니다:")
     lines.append("")
     lines.append("```")
-    lines.append("Premium Requests ≈ Σ (user_turn_count_per_model × multiplier)")
+    lines.append("calibration_ratio = copilot-cli 총 premium_requests / 총 tool_call_count")
+    lines.append(f"                  = 5,232 / 7,061 = 0.741")
+    lines.append("")
+    lines.append("estimated_PR = tool_call_count × 0.741")
     lines.append("```")
     lines.append("")
-    lines.append("**2026.05 기준 모델별 Multiplier (Paid plan):**")
+    lines.append("> 이 방식은 tool_call_count가 LLM 호출 횟수를 근사하며, 도구 간 일관되게 추출 가능하다는 점을 활용합니다.")
+    lines.append("")
+    lines.append("**2026.05 기준 모델별 Multiplier (참고):**")
     lines.append("")
     lines.append("| Model | Multiplier | 비고 |")
     lines.append("|-------|----------:|------|")
@@ -643,24 +649,8 @@ def write_markdown(evals: List[SessionEval], out_path: Path, meta: Dict) -> None
     lines.append("| GPT-5.5 | 7.5× | |")
     lines.append("| Claude Opus 4.7 | 15× | |")
     lines.append("")
-    lines.append("#### 현재 예측 방식 (token ratio 역산)")
-    lines.append("")
-    lines.append("본 분석기는 copilot-cli의 실측 데이터로 calibration ratio를 산출하고, "
-                 "opencode-cli/codex-cli에 적용합니다:")
-    lines.append("")
-    lines.append("```")
-    lines.append("calibration_ratio = copilot-cli 총 (input+output) tokens / 총 premium requests")
-    lines.append("estimated_PR = (input+output) tokens / calibration_ratio")
-    lines.append("```")
-    lines.append("")
-    lines.append("> ⚠ **한계**: token ratio 역산은 도구별 token 보고 의미론이 다르기 때문에 오차가 큽니다. "
-                 "**user-turn × multiplier 방식**이 더 정확하나, 현재 세션 파서에 user_turn_count 추출이 미구현입니다.")
-    lines.append("")
-    lines.append("#### 향후 개선 계획")
-    lines.append("")
-    lines.append("1. 세션 파서에 `user_turn_count` 추출 추가 (codex-cli: `conversation` events, opencode-cli: `message.user` events)")
-    lines.append("2. `Premium Requests ≈ user_turns × model_multiplier` 공식 적용")
-    lines.append("3. copilot-bridge 프록시 경유 시 정확한 카운트 수집 가능 ([xjin6/codex-copilot-bridge](https://github.com/xjin6/codex-copilot-bridge))")
+    lines.append("> ⚠ calibration ratio (0.741)는 Claude Sonnet 4.6 (multiplier 1×) 기준입니다. "
+                 "고비용 모델 사용 시 `estimated_PR × model_multiplier`로 보정이 필요합니다.")
     lines.append("")
     lines.append("#### ⚠ 2026.06 과금 체계 변경 예정")
     lines.append("")
@@ -677,6 +667,7 @@ def write_markdown(evals: List[SessionEval], out_path: Path, meta: Dict) -> None
     lines.append("- [copilot-cli #1764 — Est. 0 Premium requests](https://github.com/github/copilot-cli/issues/1764)")
     lines.append("- [anomalyco/opencode #768 — Tracking Premium Requests](https://github.com/anomalyco/opencode/issues/768)")
     lines.append("- [anomalyco/opencode #14539 — Tool usages consumes premium request](https://github.com/anomalyco/opencode/issues/14539)")
+    lines.append("- [xjin6/codex-copilot-bridge](https://github.com/xjin6/codex-copilot-bridge) — copilot proxy로 정확한 PR 카운트 수집 가능 (미적용)")
     lines.append("")
 
     # --- 6.3 Raw token table ---
@@ -1022,7 +1013,8 @@ def _md_to_html(md_text: str) -> str:
 
                 # Wrap §7 in collapsible <details>
                 if "세션별 상세" in m.group(2) and level == 2:
-                    html_parts.append(f'<details id="{hid}"><summary><h{level} style="display:inline">{text}</h{level}> (클릭하여 펼치기)</summary>')
+                    html_parts.append(f'<h{level} id="{hid}">{text}</h{level}>')
+                    html_parts.append('<details><summary>(클릭하여 펼치기)</summary>')
                     in_details = True
                 else:
                     html_parts.append(f'<h{level} id="{hid}">{text}</h{level}>')
@@ -1065,7 +1057,18 @@ def _md_to_html(md_text: str) -> str:
 
 def _inline_md(text: str) -> str:
     """Convert inline Markdown (bold, code, links) to HTML."""
+    # Handle links BEFORE escaping (they contain special chars)
+    # Extract links first, replace with placeholders, escape, then restore
+    links = []
+    def _save_link(m):
+        idx = len(links)
+        links.append(f'<a href="{html_mod.escape(m.group(2))}">{html_mod.escape(m.group(1))}</a>')
+        return f"\x00LINK{idx}\x00"
+    text = re.sub(r"\[([^\]]+)\]\(([^)]+)\)", _save_link, text)
     text = html_mod.escape(text)
+    # Restore links
+    for i, link_html in enumerate(links):
+        text = text.replace(f"\x00LINK{i}\x00", link_html)
     text = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", text)
     text = re.sub(r"`(.+?)`", r"<code>\1</code>", text)
     # Verdict badges
