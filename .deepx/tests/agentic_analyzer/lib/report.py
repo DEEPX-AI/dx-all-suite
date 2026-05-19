@@ -141,8 +141,8 @@ def write_markdown(evals: List[SessionEval], out_path: Path, meta: Dict) -> None
                               runn_display, ppf, timeouts))
     _tool_rows_s1.sort(key=lambda x: x[1], reverse=True)
 
-    lines.append("| Rank | Tool | Scored/Total | Compl % | Qual % | Verdict % | Exec % | Runn % | Overall % | σ(Overall) | Avg Duration | START % | DONE % | Pass/Part/Fail | pytest Exit0 % | ⏱ Timeout | ToolCalls | LOC |")
-    lines.append("|-----:|------|------------:|-------:|------:|----------:|------:|------:|----------:|----------:|-------------:|--------:|-------:|:--------------:|---------------:|----------:|---------:|----:|")
+    lines.append("| Rank | Tool | Scored/Total | Compl % | Qual % | Exec % | Runn % | Overall % | σ(Overall) | Avg Duration | ToolCalls | LOC |")
+    lines.append("|-----:|------|------------:|-------:|------:|------:|------:|----------:|----------:|-------------:|---------:|----:|")
     _medals = {1: "🥇", 2: "🥈", 3: "🥉"}
     for _rank, (tool, _ov, m, sessions_display, verdict_avg, exec_avg,
                 runn_display, ppf, timeouts) in enumerate(_tool_rows_s1, 1):
@@ -151,22 +151,16 @@ def write_markdown(evals: List[SessionEval], out_path: Path, meta: Dict) -> None
             f"| {medal} | **{tool}** | {sessions_display} | "
             f"{_fmt_num(m.get('avg_compliance_pct'))} | "
             f"{_fmt_num(m.get('avg_quality_score'))} | "
-            f"{_fmt_num(verdict_avg)} | "
             f"{_fmt_num(exec_avg)} | "
             f"{runn_display} | "
             f"{_fmt_num(m.get('avg_overall_score'))} | "
             f"{_fmt_num(m.get('stdev_overall_score'))} | "
             f"{_fmt_duration(m.get('avg_duration_sec'))} | "
-            f"{_fmt_num(m.get('pct_with_start_sentinel'))} | "
-            f"{_fmt_num(m.get('pct_with_done_sentinel'))} | "
-            f"{ppf} | "
-            f"{_fmt_num(m.get('pct_exit_0'))} | "
-            f"{timeouts} | "
             f"{_fmt_num(m.get('avg_tool_calls'))} | "
             f"{int(m.get('avg_python_loc', 0))} |"
         )
     lines.append("")
-    lines.append("> **σ (sigma)** = stdev (낮을수록 일관성이 높음). **Exec %** = ExecutionTrace 점수 (실제 명령 실행 흔적). **⏱ Timeout** = 의심 timeout 발생 세션 수 (참고용; 점수에 페널티 없음). **Scored/Total** = 점수 산정 포함 세션 / 전체 세션 (환경 실패 제외). **START/DONE %** = sentinel 준수율 (Compliance %에 포함 반영). **Verdict %** = 정보용 (Overall 미반영).")
+    lines.append("> **σ (sigma)** = stdev (낮을수록 일관성이 높음). **Exec %** = ExecutionTrace 점수 (실제 명령 실행 흔적). **Scored/Total** = 점수 산정 포함 세션 / 전체 세션 (환경 실패 제외).")
     lines.append("")
 
     # ----------------------------------------------------------
@@ -184,7 +178,7 @@ def write_markdown(evals: List[SessionEval], out_path: Path, meta: Dict) -> None
     _lower_better_metrics = {"avg_duration_sec", "pct_fail"}
 
     def _metric_table(title: str, metric: str, fmt=_fmt_num):
-        """Emit a ranked scenario × tool table."""
+        """Emit a ranked scenario × tool table followed by an ASCII bar chart."""
         lines.append(header2)
         lines.append(sep2)
         _trows = []
@@ -205,6 +199,15 @@ def write_markdown(evals: List[SessionEval], out_path: Path, meta: Dict) -> None
         for rank, (tool, cells, avg) in enumerate(_trows, 1):
             medal = _m5.get(rank, str(rank))
             lines.append(f"| {medal} | **{tool}** | " + " | ".join(cells) + f" | {fmt(avg)} |")
+        lines.append("")
+        # ASCII bar chart
+        _bar_max = max((r[2] for r in _trows), default=1.0) or 1.0
+        lines.append("```")
+        for tool, _, avg in _trows:
+            bar_len = int(avg / _bar_max * 30)
+            bar = "█" * bar_len
+            lines.append(f"  {tool:<14} {bar} {fmt(avg)}")
+        lines.append("```")
         lines.append("")
 
     # --- 2.1 Overall % ---
@@ -233,21 +236,10 @@ def write_markdown(evals: List[SessionEval], out_path: Path, meta: Dict) -> None
     lines.append("")
     _metric_table("Compliance %", "avg_compliance_pct")
 
-    # --- 2.3 Quality % ---
-    lines.append("### 2.3 Quality % (정적 코드 품질, 가중치 20%)")
+    # --- 2.2.1 Verdict (Compliance 참고 — Overall 미반영) ---
+    lines.append("#### 2.2.1 Verdict (산출물 PASS/PARTIAL/FAIL — 정보용)")
     lines.append("")
-    lines.append("- 모든 `.py` 파일 `py_compile` → 통과율")
-    lines.append("- 모든 `.json` 파일 `json.load` → 통과율")
-    lines.append("- 모든 `.sh` 파일 `bash -n` → 통과율")
-    lines.append("- **Placeholder** 페널티: `# TODO: implement`, 주석된 import, `np.zeros(...)` 등 (hit 당 5점, cap 30)")
-    lines.append("- **Direct engine use** 페널티: factory 외부 `engine.run()` — HARD GATE 위반 (hit 당 5점, cap 15)")
-    lines.append("")
-    _metric_table("Quality %", "avg_quality_score")
-
-    # --- 2.4 Verdict (정보용 — Overall 미반영) ---
-    lines.append("### 2.4 Verdict (산출물 PASS/PARTIAL/FAIL — 정보용, Overall 미반영)")
-    lines.append("")
-    lines.append("> ⚠️ Verdict는 Compliance `mandatory_deliverables`와 측정 대상이 중복되어 Overall 점수에 미반영합니다.")
+    lines.append("> Verdict는 Compliance `mandatory_deliverables`와 측정 대상이 중복되어 Overall 점수에 미반영합니다.")
     lines.append("> 산출물 상태 시각화 용도로만 제공됩니다.")
     lines.append("")
     lines.append("- `compiler`: PASS = `*.dxnn` + `config.json` 존재 / FAIL = `.dxnn` 미생성")
@@ -258,8 +250,24 @@ def write_markdown(evals: List[SessionEval], out_path: Path, meta: Dict) -> None
     lines.append("")
     _metric_table("Verdict %", "avg_verdict_score")
 
-    # --- 2.5 ExecutionTrace % ---
-    lines.append("### 2.5 ExecutionTrace % (실제 실행 흔적, 가중치 30%)")
+    # Verdict PASS/PARTIAL/FAIL count per tool
+    lines.append("| Tool | PASS | PARTIAL | FAIL |")
+    lines.append("|------|-----:|--------:|-----:|")
+    for tool in sorted(tools):
+        lines.append(f"| {tool} | {pass_per_tool[tool]} | {partial_per_tool[tool]} | {fail_per_tool[tool]} |")
+    lines.append("")
+    lines.append("### 2.3 Quality % (정적 코드 품질, 가중치 20%)")
+    lines.append("")
+    lines.append("- 모든 `.py` 파일 `py_compile` → 통과율")
+    lines.append("- 모든 `.json` 파일 `json.load` → 통과율")
+    lines.append("- 모든 `.sh` 파일 `bash -n` → 통과율")
+    lines.append("- **Placeholder** 페널티: `# TODO: implement`, 주석된 import, `np.zeros(...)` 등 (hit 당 5점, cap 30)")
+    lines.append("- **Direct engine use** 페널티: factory 외부 `engine.run()` — HARD GATE 위반 (hit 당 5점, cap 15)")
+    lines.append("")
+    _metric_table("Quality %", "avg_quality_score")
+
+    # --- 2.3 Quality % ---
+    lines.append("### 2.4 ExecutionTrace % (실제 실행 흔적, 가중치 30%)")
     lines.append("")
     lines.append("- session.log substantive (실질적 내용 포함)")
     lines.append("- 성공 마커 존재 (compile success, inference output 등)")
@@ -294,7 +302,7 @@ def write_markdown(evals: List[SessionEval], out_path: Path, meta: Dict) -> None
     lines.append("")
 
     # --- 2.6 Runnability % ---
-    lines.append("### 2.6 Runnability % (End-user 실행 가능성, 가중치 20%)")
+    lines.append("### 2.5 Runnability % (End-user 실행 가능성, 가중치 20%)")
     lines.append("")
     lines.append("- End-user가 README/setup.sh/run.sh 따라 실제 실행 가능한지 LLM 판정")
     lines.append("- PASS(100)/PARTIAL(50)/FAIL(0) + 세부 1-5점 스케일")
@@ -329,15 +337,23 @@ def write_markdown(evals: List[SessionEval], out_path: Path, meta: Dict) -> None
         lines.append(f"| {medal} | **{tool}** | " + " | ".join(cells) + f" | {_fmt_num(avg)} |")
     lines.append("")
 
-    # --- 2.7 보조 메트릭 ---
-    lines.append("### 2.7 보조 메트릭 (Overall 점수에 미반영)")
+    # --- 2.6 보조 메트릭 ---
+    lines.append("### 2.6 보조 메트릭 (Overall 점수에 미반영)")
     lines.append("")
     lines.append("다음 메트릭은 점수 산정에 직접 포함되지 않으며, 참고 정보로 제공됩니다.")
     lines.append("")
-    lines.append("#### PASS / FAIL 비율")
+
+    lines.append("#### ⏱ Suspected Timeout (의심 타임아웃)")
     lines.append("")
-    _metric_table("PASS 비율 %", "pct_pass")
-    _metric_table("FAIL 비율 %", "pct_fail")
+    lines.append("- 세션 실행 시간이 비정상적으로 길어 timeout이 의심되는 세션 수")
+    lines.append("- 점수에 페널티 없음 (Scored 세션에 포함되어 정상 채점됨)")
+    lines.append("")
+    lines.append("| Tool | ⏱ Timeout 세션 수 |")
+    lines.append("|------|------------------:|")
+    for tool in sorted(tools):
+        t_count = sum(1 for e in scored_evals if e.tool == tool and e.suspected_timeout)
+        lines.append(f"| {tool} | {t_count} |")
+    lines.append("")
 
     lines.append("#### Duration (실행 시간)")
     lines.append("")
