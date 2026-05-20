@@ -26,7 +26,7 @@ if TYPE_CHECKING:
 
 CATEGORY_LABELS = {
     "anthropic_rate_limit": "Anthropic 5h rate limit (claude-code)",
-    "pytest_timeout":       "pytest 60min timeout",
+    "pytest_timeout":       "pytest safety-net timeout (4h)",
     "subprocess_crash":     "Subprocess crash (early termination)",
     "agent_self_abort":     "Agent self-abort (mid-run termination)",
     "other":                "Other / Unknown",
