@@ -29,6 +29,7 @@ import json
 import logging
 import os
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -174,6 +175,16 @@ DEFAULT_COMPILE_DURATION_LIMIT = int(os.environ.get("DX_COMPILE_DURATION_LIMIT",
 
 # Model to use for agentic E2E tests (override via env var)
 DEFAULT_COPILOT_MODEL = os.environ.get("DX_AGENTIC_E2E_MODEL", "claude-sonnet-4.6")
+
+# Extra CLI args per tool — e.g. for thinking/reasoning modes (space-separated):
+#   DX_AGENTIC_E2E_COPILOT_EXTRA_ARGS="--effort xhigh"
+#   DX_AGENTIC_E2E_CLAUDE_CODE_EXTRA_ARGS="--effort xhigh"
+#   DX_AGENTIC_E2E_OPENCODE_EXTRA_ARGS="--variant high"
+#   DX_AGENTIC_E2E_CODEX_EXTRA_ARGS='-c model_reasoning_effort="xhigh"'
+DEFAULT_COPILOT_EXTRA_ARGS: List[str] = shlex.split(os.environ.get("DX_AGENTIC_E2E_COPILOT_EXTRA_ARGS", ""))
+DEFAULT_CLAUDE_CODE_EXTRA_ARGS: List[str] = shlex.split(os.environ.get("DX_AGENTIC_E2E_CLAUDE_CODE_EXTRA_ARGS", ""))
+DEFAULT_OPENCODE_EXTRA_ARGS: List[str] = shlex.split(os.environ.get("DX_AGENTIC_E2E_OPENCODE_EXTRA_ARGS", ""))
+DEFAULT_CODEX_EXTRA_ARGS: List[str] = shlex.split(os.environ.get("DX_AGENTIC_E2E_CODEX_EXTRA_ARGS", ""))
 
 
 # ---------------------------------------------------------------------------
@@ -699,6 +710,7 @@ class CopilotRunnerAutopilot:
 
     def __init__(self, model: str = ""):
         self.model = model or DEFAULT_COPILOT_MODEL
+        self._default_extra_args: List[str] = list(DEFAULT_COPILOT_EXTRA_ARGS)
 
     # -- availability checks ------------------------------------------------
 
@@ -780,8 +792,9 @@ class CopilotRunnerAutopilot:
         if self.model:
             cmd.extend(["--model", self.model])
 
-        if extra_args:
-            cmd.extend(extra_args)
+        _effective_extra = extra_args if extra_args is not None else self._default_extra_args
+        if _effective_extra:
+            cmd.extend(_effective_extra)
 
         # dxcom concurrency control: acquire slot for compiler/suite scenarios
         _dxcom_fd = _acquire_dxcom_slot_if_needed(scenario_key)
@@ -1482,6 +1495,7 @@ class OpenCodeRunnerAutopilot:
 
     def __init__(self, model: str = ""):
         self.model = model or DEFAULT_OPENCODE_MODEL
+        self._default_extra_args: List[str] = list(DEFAULT_OPENCODE_EXTRA_ARGS)
 
     @classmethod
     def is_available(cls) -> bool:
@@ -1538,8 +1552,9 @@ class OpenCodeRunnerAutopilot:
         if self.model:
             cmd.extend(["--model", self.model])
 
-        if extra_args:
-            cmd.extend(extra_args)
+        _effective_extra = extra_args if extra_args is not None else self._default_extra_args
+        if _effective_extra:
+            cmd.extend(_effective_extra)
 
         # dxcom concurrency control: acquire slot for compiler/suite scenarios
         _dxcom_fd = _acquire_dxcom_slot_if_needed(scenario_key)
@@ -1855,6 +1870,7 @@ class ClaudeCodeRunnerAutopilot:
 
     def __init__(self, model: str = ""):
         self.model = model or DEFAULT_CLAUDE_CODE_MODEL
+        self._default_extra_args: List[str] = list(DEFAULT_CLAUDE_CODE_EXTRA_ARGS)
 
     @classmethod
     def is_available(cls) -> bool:
@@ -1932,8 +1948,9 @@ class ClaudeCodeRunnerAutopilot:
         if self.model:
             cmd.extend(["--model", self.model])
 
-        if extra_args:
-            cmd.extend(extra_args)
+        _effective_extra = extra_args if extra_args is not None else self._default_extra_args
+        if _effective_extra:
+            cmd.extend(_effective_extra)
 
         # dxcom concurrency control: acquire slot for compiler/suite scenarios
         _dxcom_fd = _acquire_dxcom_slot_if_needed(scenario_key)
@@ -2855,6 +2872,7 @@ class CodexRunnerAutopilot:
 
     def __init__(self, model: str = ""):
         self.model = model or DEFAULT_CODEX_MODEL
+        self._default_extra_args: List[str] = list(DEFAULT_CODEX_EXTRA_ARGS)
 
     @classmethod
     def is_available(cls) -> bool:
@@ -2928,8 +2946,9 @@ class CodexRunnerAutopilot:
         if self.model:
             cmd.extend(["-m", self.model])
 
-        if extra_args:
-            cmd.extend(extra_args)
+        _effective_extra = extra_args if extra_args is not None else self._default_extra_args
+        if _effective_extra:
+            cmd.extend(_effective_extra)
 
         cmd.append(effective_prompt)
 
