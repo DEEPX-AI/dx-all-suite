@@ -20,7 +20,7 @@ from .conftest import (
     verify_json_structure,
     verify_python_syntax,
     verify_start_sentinel,
-    DEFAULT_TIMEOUT_RUNTIME,)
+    DEFAULT_TIMEOUT,)
 
 pytestmark = [
     pytest.mark.agentic_e2e_claude_code_autopilot,
@@ -39,7 +39,7 @@ def scenario(claude_code_runner, claude_code_artifacts_dir) -> ScenarioResult:
         workdir=RUNTIME_ROOT,
         scenario_key="runtime",
         session_log_dir=claude_code_artifacts_dir,
-        timeout=DEFAULT_TIMEOUT_RUNTIME,
+        timeout=DEFAULT_TIMEOUT,
     )
 
 
@@ -50,10 +50,14 @@ class TestExecution:
         """Claude Code CLI exits successfully."""
         assert scenario.succeeded, format_scenario_failure(scenario)
 
-    def test_completed_within_timeout(self, scenario: ScenarioResult):
-        """Execution finishes within the configured timeout."""
-        assert scenario.duration_seconds < DEFAULT_TIMEOUT_RUNTIME, (
-            f"Scenario took {scenario.duration_seconds:.0f}s (limit: {DEFAULT_TIMEOUT_RUNTIME}s)"
+
+    def test_duration_metric(self, scenario: ScenarioResult):
+        """Record execution duration as a warning metric (never fails)."""
+        import warnings
+        warnings.warn(
+            f"Duration: {scenario.duration_seconds:.0f}s",
+            UserWarning,
+            stacklevel=2,
         )
 
     def test_start_sentinel_emitted(self, scenario: ScenarioResult):

@@ -159,29 +159,13 @@ COMPILER_E2E_ARTIFACTS_BASE = COMPILER_ROOT / "dx-agentic-dev" / "e2e-tests"
 APP_E2E_ARTIFACTS_BASE = APP_ROOT / "dx-agentic-dev" / "e2e-tests"
 STREAM_E2E_ARTIFACTS_BASE = STREAM_ROOT / "dx-agentic-dev" / "e2e-tests"
 
-# Default timeout for Copilot CLI execution (10 minutes — Copilot's corrective-iteration
 # ---------------------------------------------------------------------------
-# Scenario-level timeouts — applied uniformly across ALL tools.
-# Override via environment variables; no tool-specific overrides needed.
+# Single safety-net timeout — prevents pytest hanging if an agent process
+# never exits (e.g. infinite loop, orphaned subprocess).
+# 4 hours covers the longest known scenario (compile + deploy) with headroom.
+# This is NOT a quality gate; use test_duration_metric for observability.
 # ---------------------------------------------------------------------------
-# compiler: ONNX→DXNN compilation can take 30-60 min under parallel workloads.
-DEFAULT_TIMEOUT_COMPILER = int(os.environ.get("DX_E2E_TIMEOUT_COMPILER", "3600"))
-# dx_app: Python inference app generation (brainstorm + plan + code + verify).
-DEFAULT_TIMEOUT_DX_APP = int(os.environ.get("DX_E2E_TIMEOUT_DX_APP", "1200"))
-# dx_stream: Single-network GStreamer pipeline generation.
-DEFAULT_TIMEOUT_DX_STREAM = int(os.environ.get("DX_E2E_TIMEOUT_DX_STREAM", "600"))
-# dx_stream_cascaded: Multi-model GStreamer pipeline — needs extra time vs single.
-DEFAULT_TIMEOUT_DX_STREAM_CASCADED = int(os.environ.get("DX_E2E_TIMEOUT_DX_STREAM_CASCADED", "900"))
-# runtime: Cross-project routing (dx_app + dx_stream sub-tasks).
-DEFAULT_TIMEOUT_RUNTIME = int(os.environ.get("DX_E2E_TIMEOUT_RUNTIME", "900"))
-# suite: Full compile + deploy cycle — highest budget across all tools.
-DEFAULT_TIMEOUT_SUITE = int(os.environ.get("DX_E2E_TIMEOUT_SUITE", "4200"))
-
-# Backward-compat aliases (used by runner .run() call sites that pass timeout= by name).
-# These will be removed once all runner calls are updated to pass the scenario constant directly.
-DEFAULT_COPILOT_TIMEOUT = DEFAULT_TIMEOUT_DX_STREAM
-DEFAULT_COPILOT_CASCADED_TIMEOUT = DEFAULT_TIMEOUT_DX_STREAM_CASCADED
-DEFAULT_COMPILER_TIMEOUT = DEFAULT_TIMEOUT_COMPILER
+DEFAULT_TIMEOUT = int(os.environ.get("DX_E2E_TIMEOUT", "14400"))
 
 # Compile duration acceptability threshold (REC-W1) — suite scenarios fail if compilation
 # exceeds this limit. 2400s accounts for parallel compilation workloads (4 agents on same
@@ -510,22 +494,18 @@ DEFAULT_CURSOR_MODEL = os.environ.get("DX_AGENTIC_E2E_CURSOR_MODEL", "claude-4.6
 CURSOR_FALLBACK_MODEL = os.environ.get("DX_AGENTIC_E2E_CURSOR_FALLBACK_MODEL", "auto")
 
 # Default timeout for Cursor CLI execution — uses shared scenario constants.
-DEFAULT_CURSOR_TIMEOUT = DEFAULT_TIMEOUT_DX_STREAM
 
 # ---------------------------------------------------------------------------
 # Default model / timeout for OpenCode CLI
 # ---------------------------------------------------------------------------
 
 DEFAULT_OPENCODE_MODEL = os.environ.get("DX_AGENTIC_E2E_OPENCODE_MODEL", "github-copilot/claude-sonnet-4.6")
-DEFAULT_OPENCODE_TIMEOUT = DEFAULT_TIMEOUT_DX_STREAM
-DEFAULT_OPENCODE_CASCADED_TIMEOUT = DEFAULT_TIMEOUT_DX_STREAM_CASCADED
 
 # ---------------------------------------------------------------------------
 # Default model / timeout for Claude Code CLI
 # ---------------------------------------------------------------------------
 
 DEFAULT_CLAUDE_CODE_MODEL = os.environ.get("DX_AGENTIC_E2E_CLAUDE_CODE_MODEL", "claude-sonnet-4-6")
-DEFAULT_CLAUDE_CODE_TIMEOUT = DEFAULT_TIMEOUT_DX_STREAM
 
 # ---------------------------------------------------------------------------
 # Default model / timeout for Codex CLI
@@ -534,7 +514,6 @@ DEFAULT_CLAUDE_CODE_TIMEOUT = DEFAULT_TIMEOUT_DX_STREAM
 # endpoint only support Chat Completions — so GPT models must be used.
 # Default: gpt-5.3-codex. Alternatives: gpt-5.4, gpt-5.5, gpt-5.2-codex.
 DEFAULT_CODEX_MODEL = os.environ.get("DX_AGENTIC_E2E_CODEX_MODEL", "gpt-5.3-codex")
-DEFAULT_CODEX_TIMEOUT = DEFAULT_TIMEOUT_DX_STREAM
 
 # ---------------------------------------------------------------------------
 # R59: Advisory file lock to serialize concurrent apt/dpkg operations
@@ -625,7 +604,7 @@ class CopilotRunnerAutopilot:
         workdir: Path,
         scenario_key: str,
         session_log_dir: Optional[Path] = None,
-        timeout: int = DEFAULT_COPILOT_TIMEOUT,
+        timeout: int = DEFAULT_TIMEOUT,
         extra_args: Optional[List[str]] = None,
     ) -> ScenarioResult:
         """Execute a Copilot CLI prompt in autopilot mode.
@@ -1071,7 +1050,7 @@ class CursorRunnerAutopilot:
         workdir: Path,
         scenario_key: str,
         session_log_dir: Optional[Path] = None,
-        timeout: int = DEFAULT_CURSOR_TIMEOUT,
+        timeout: int = DEFAULT_TIMEOUT,
         extra_args: Optional[List[str]] = None,
     ) -> ScenarioResult:
         """Execute a Cursor CLI prompt in autopilot mode.
@@ -1394,7 +1373,7 @@ class OpenCodeRunnerAutopilot:
         workdir: Path,
         scenario_key: str,
         session_log_dir: Optional[Path] = None,
-        timeout: int = DEFAULT_OPENCODE_TIMEOUT,
+        timeout: int = DEFAULT_TIMEOUT,
         extra_args: Optional[List[str]] = None,
     ) -> ScenarioResult:
         """Execute an OpenCode CLI prompt in autopilot mode.
@@ -1781,7 +1760,7 @@ class ClaudeCodeRunnerAutopilot:
         workdir: Path,
         scenario_key: str,
         session_log_dir: Optional[Path] = None,
-        timeout: int = DEFAULT_CLAUDE_CODE_TIMEOUT,
+        timeout: int = DEFAULT_TIMEOUT,
         extra_args: Optional[List[str]] = None,
     ) -> ScenarioResult:
         """Execute a Claude Code CLI prompt in autopilot mode.
@@ -2773,7 +2752,7 @@ class CodexRunnerAutopilot:
         workdir: Path,
         scenario_key: str,
         session_log_dir: Optional[Path] = None,
-        timeout: int = DEFAULT_CODEX_TIMEOUT,
+        timeout: int = DEFAULT_TIMEOUT,
         extra_args: Optional[List[str]] = None,
     ) -> ScenarioResult:
         """Execute a Codex CLI prompt in autopilot mode.

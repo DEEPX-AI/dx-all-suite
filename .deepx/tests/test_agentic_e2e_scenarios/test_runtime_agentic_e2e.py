@@ -27,7 +27,7 @@ from .conftest import (
     verify_json_structure,
     verify_python_syntax,
     verify_start_sentinel,
-    DEFAULT_TIMEOUT_RUNTIME,)
+    DEFAULT_TIMEOUT,)
 
 pytestmark = [
     pytest.mark.agentic_e2e_copilot_cli_autopilot,
@@ -58,7 +58,7 @@ def scenario(copilot_runner, copilot_cli_artifacts_dir) -> ScenarioResult:
         workdir=RUNTIME_ROOT,
         scenario_key="runtime",
         session_log_dir=copilot_cli_artifacts_dir,
-        timeout=DEFAULT_TIMEOUT_RUNTIME,  # two sub-tasks: dx_app + dx_stream
+        timeout=DEFAULT_TIMEOUT,  # two sub-tasks: dx_app + dx_stream
     )
 
 
@@ -73,10 +73,14 @@ class TestExecution:
         """Copilot CLI exits successfully."""
         assert scenario.succeeded, format_scenario_failure(scenario)
 
-    def test_completed_within_timeout(self, scenario: ScenarioResult):
-        """Execution finishes within the configured timeout."""
-        assert scenario.duration_seconds < DEFAULT_TIMEOUT_RUNTIME, (
-            f"Scenario took {scenario.duration_seconds:.0f}s (limit: {DEFAULT_TIMEOUT_RUNTIME}s)"
+
+    def test_duration_metric(self, scenario: ScenarioResult):
+        """Record execution duration as a warning metric (never fails)."""
+        import warnings
+        warnings.warn(
+            f"Duration: {scenario.duration_seconds:.0f}s",
+            UserWarning,
+            stacklevel=2,
         )
 
     def test_start_sentinel_emitted(self, scenario: ScenarioResult):

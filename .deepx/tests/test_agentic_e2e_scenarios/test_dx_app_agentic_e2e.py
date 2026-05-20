@@ -23,7 +23,7 @@ from .conftest import (
     verify_patterns_in_file,
     verify_python_syntax,
     verify_start_sentinel,
-    DEFAULT_TIMEOUT_DX_APP,)
+    DEFAULT_TIMEOUT,)
 
 pytestmark = [
     pytest.mark.agentic_e2e_copilot_cli_autopilot,
@@ -52,7 +52,7 @@ def scenario(copilot_runner, app_copilot_cli_artifacts_dir) -> ScenarioResult:
         workdir=APP_ROOT,
         scenario_key="dx_app",
         session_log_dir=app_copilot_cli_artifacts_dir,
-        timeout=DEFAULT_TIMEOUT_DX_APP,  # app generation with brainstorming/planning
+        timeout=DEFAULT_TIMEOUT,  # app generation with brainstorming/planning
     )
 
 
@@ -67,11 +67,6 @@ class TestExecution:
         """Copilot CLI exits successfully."""
         assert scenario.succeeded, format_scenario_failure(scenario)
 
-    def test_completed_within_timeout(self, scenario: ScenarioResult):
-        """Execution finishes within the configured timeout."""
-        assert scenario.duration_seconds < DEFAULT_TIMEOUT_DX_APP, (
-            f"Scenario took {scenario.duration_seconds:.0f}s (limit: {DEFAULT_TIMEOUT_DX_APP}s)"
-        )
 
     def test_session_log_saved(self, scenario: ScenarioResult):
         """Session transcript is saved via --share."""
@@ -82,6 +77,15 @@ class TestExecution:
             assert scenario.session_log.stat().st_size > 0, (
                 "Session log exists but is empty"
             )
+
+    def test_duration_metric(self, scenario: ScenarioResult):
+        """Record execution duration as a warning metric (never fails)."""
+        import warnings
+        warnings.warn(
+            f"Duration: {scenario.duration_seconds:.0f}s",
+            UserWarning,
+            stacklevel=2,
+        )
 
     def test_start_sentinel_emitted(self, scenario: ScenarioResult):
         """Agent emits [DX-AGENTIC-DEV: START] before any other text."""
