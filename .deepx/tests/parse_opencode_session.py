@@ -561,51 +561,59 @@ def parse_opencode_session(
 
 
 def _render_turn_html(turn: ConversationTurn, index: int) -> str:
-    """Render a single conversation turn to HTML."""
+    """Render a single conversation turn to HTML using .entry CSS classes from session_common."""
     parts: List[str] = []
 
     ts_str = ts_from_ms(turn.timestamp_ms) if turn.timestamp_ms else ""
-    ts_badge = f'<span class="timestamp">{ts_str}</span>' if ts_str else ""
+    ts_html = f'<span class="time">{ts_str}</span>' if ts_str else ""
 
     if turn.role == "user":
-        parts.append('<div class="turn user">')
-        parts.append(f'  <div class="turn-header">👤 User {ts_badge}</div>')
-        parts.append(f'  <div class="turn-content">{md_to_html_simple(html_escape(turn.content))}</div>')
-        parts.append('</div>')
+        body = md_to_html_simple(html_escape(turn.content))
+        parts.append(
+            f'<div class="entry user" id="entry-{index}">'
+            f'<div class="entry-hdr">'
+            f'<span class="icon">&#x1F464;</span>'
+            f'<span class="label">User</span>'
+            f'{ts_html}'
+            f'</div>'
+            f'<div class="entry-body">{body}</div>'
+            f'</div>'
+        )
 
     elif turn.role == "assistant":
-        parts.append('<div class="turn assistant">')
-        parts.append(f'  <div class="turn-header">🤖 Assistant {ts_badge}</div>')
-        parts.append(f'  <div class="turn-content">{md_to_html_simple(html_escape(turn.content))}</div>')
-        parts.append('</div>')
+        body = md_to_html_simple(html_escape(turn.content))
+        parts.append(
+            f'<div class="entry assistant" id="entry-{index}">'
+            f'<div class="entry-hdr">'
+            f'<span class="icon">&#x1F4AC;</span>'
+            f'<span class="label">Assistant</span>'
+            f'{ts_html}'
+            f'</div>'
+            f'<div class="entry-body">{body}</div>'
+            f'</div>'
+        )
 
     elif turn.role == "tool":
         for tc in turn.tool_calls:
             success = True if tc.success is None else bool(tc.success)
-            status_class = "success" if success else "error"
-            status_icon = "✅" if success else "❌"
-            status_text = "completed" if success else "failed"
-            parts.append('<div class="turn tool">')
-            parts.append('  <details>')
-            parts.append('    <summary class="tool-summary">')
-            parts.append(
-                f'      🔧 <strong>{html_escape(tc.tool_name)}</strong> '
-                f'<span class="status-{status_class}">{status_icon} {status_text}</span> '
-                f'{ts_badge}'
-            )
-            parts.append('    </summary>')
-            if tc.arguments:
-                parts.append('    <div class="tool-section">')
-                parts.append('      <div class="tool-label">Input:</div>')
-                parts.append(f'      <pre class="tool-io">{html_escape(truncate(tc.arguments, 3000))}</pre>')
-                parts.append('    </div>')
+            status_cls = "tool-ok" if success else "tool-fail"
+            status_icon = "&#x2705;" if success else "&#x274C;"
+            args_html = ""
+            if tc.arguments and tc.arguments != "{}":
+                args_html = f'<div class="tool-args"><code>{html_escape(truncate(tc.arguments, 3000))}</code></div>'
+            result_html = ""
             if tc.result_content:
-                parts.append('    <div class="tool-section">')
-                parts.append('      <div class="tool-label">Output:</div>')
-                parts.append(f'      <pre class="tool-io">{html_escape(truncate(tc.result_content, 3000))}</pre>')
-                parts.append('    </div>')
-            parts.append('  </details>')
-            parts.append('</div>')
+                result_html = f'<div class="tool-result"><pre>{html_escape(truncate(tc.result_content, 3000))}</pre></div>'
+            parts.append(
+                f'<div class="entry {status_cls} collapsed" id="entry-{index}">'
+                f'<div class="entry-hdr">'
+                f'<span class="icon">{status_icon}</span>'
+                f'<span class="label">{html_escape(tc.tool_name)}</span>'
+                f'<span class="time">click to expand</span>'
+                f'</div>'
+                f'<div class="entry-body">{args_html}{result_html}</div>'
+                f'</div>'
+            )
 
     return "\n".join(parts)
 
@@ -650,16 +658,7 @@ def _build_html(session: ParsedSession, scenario_key: str = "") -> str:
 <title>{html_escape(title)}</title>
 <style>
 {HTML_CSS}
-.tool-summary {{ cursor: pointer; padding: 6px 10px; border-radius: 4px; }}
-.tool-summary:hover {{ background: #333; }}
-.tool-section {{ margin: 8px 0 8px 20px; }}
-.tool-label {{ font-weight: bold; color: #8b949e; font-size: 0.85em; margin-bottom: 4px; }}
-.tool-io {{ background: #161b22; padding: 10px; border-radius: 4px; font-size: 0.82em;
-           max-height: 400px; overflow-y: auto; white-space: pre-wrap; word-break: break-word; }}
-.status-success {{ color: #3fb950; }}
-.status-error {{ color: #f85149; }}
-.timestamp {{ color: #8b949e; font-size: 0.8em; margin-left: 8px; }}
-.summary-box {{ background: #161b22; border: 1px solid #30363d; border-radius: 6px;
+.summary-box {{ background: var(--code-bg); border: 1px solid var(--border); border-radius: 6px;
               padding: 16px; margin-bottom: 20px; }}
 .summary-box ul {{ list-style: none; padding: 0; margin: 0; }}
 .summary-box li {{ padding: 3px 0; }}

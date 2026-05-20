@@ -23,7 +23,7 @@ from .conftest import (
     verify_patterns_in_file,
     verify_python_syntax,
     verify_start_sentinel,
-)
+    DEFAULT_TIMEOUT_DX_APP,)
 
 pytestmark = [
     pytest.mark.agentic_e2e_copilot_cli_autopilot,
@@ -52,7 +52,7 @@ def scenario(copilot_runner, app_copilot_cli_artifacts_dir) -> ScenarioResult:
         workdir=APP_ROOT,
         scenario_key="dx_app",
         session_log_dir=app_copilot_cli_artifacts_dir,
-        timeout=1200,  # app generation with brainstorming/planning
+        timeout=DEFAULT_TIMEOUT_DX_APP,  # app generation with brainstorming/planning
     )
 
 
@@ -69,8 +69,8 @@ class TestExecution:
 
     def test_completed_within_timeout(self, scenario: ScenarioResult):
         """Execution finishes within the configured timeout."""
-        assert scenario.duration_seconds < 1200, (
-            f"Scenario took {scenario.duration_seconds:.0f}s (limit: 1200s)"
+        assert scenario.duration_seconds < DEFAULT_TIMEOUT_DX_APP, (
+            f"Scenario took {scenario.duration_seconds:.0f}s (limit: {DEFAULT_TIMEOUT_DX_APP}s)"
         )
 
     def test_session_log_saved(self, scenario: ScenarioResult):

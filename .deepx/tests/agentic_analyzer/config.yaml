@@ -15,26 +15,31 @@ tools:
     artifact_prefix: "claude_code"
     binary: "claude"
     notes: "Claude Code CLI (Anthropic)"
+    known_false_positives: []
   copilot-cli:
     dir_suffix: "copilot-cli-autopilot"
     artifact_prefix: "copilot_cli"
     binary: "copilot"
     notes: "GitHub Copilot CLI"
+    known_false_positives: []
   cursor-cli:
     dir_suffix: "cursor-cli-autopilot"
     artifact_prefix: "cursor_cli"
     binary: "agent"
     notes: "Cursor CLI"
+    known_false_positives: []
   opencode-cli:
     dir_suffix: "opencode-cli-autopilot"
     artifact_prefix: "opencode"
     binary: "opencode"
     notes: "OpenCode CLI"
+    known_false_positives: []
   codex-cli:
     dir_suffix: "codex-cli-autopilot"
     artifact_prefix: "codex_cli"
     binary: "codex"
     notes: "OpenAI Codex CLI (via copilot provider, gpt-5.3-codex)"
+    known_false_positives: []
 
 # ---------------------------------------------------------------------------
 # Scenarios — name + mandatory deliverables under the session output dir

@@ -20,7 +20,7 @@ from __future__ import annotations
 import pytest
 
 from .conftest import (
-    DEFAULT_COPILOT_TIMEOUT,
+    DEFAULT_TIMEOUT_DX_STREAM,
     STREAM_ROOT,
     ScenarioResult,
     _apt_lock,
@@ -96,8 +96,8 @@ class TestExecution:
 
     def test_completed_within_timeout(self, scenario: ScenarioResult):
         """Execution finishes within the configured timeout (+10 s grace for timer jitter)."""
-        assert scenario.duration_seconds < DEFAULT_COPILOT_TIMEOUT + 10, (
-            f"Scenario took {scenario.duration_seconds:.0f}s (limit: {DEFAULT_COPILOT_TIMEOUT}s)"
+        assert scenario.duration_seconds < DEFAULT_TIMEOUT_DX_STREAM + 10, (
+            f"Scenario took {scenario.duration_seconds:.0f}s (limit: {DEFAULT_TIMEOUT_DX_STREAM}s)"
         )
 
     def test_session_log_saved(self, scenario: ScenarioResult):
