@@ -187,121 +187,6 @@ DEFAULT_OPENCODE_EXTRA_ARGS: List[str] = shlex.split(os.environ.get("DX_AGENTIC_
 DEFAULT_CODEX_EXTRA_ARGS: List[str] = shlex.split(os.environ.get("DX_AGENTIC_E2E_CODEX_EXTRA_ARGS", ""))
 
 
-# ---------------------------------------------------------------------------
-# dxcom concurrency control — limits CPU-heavy compilation scenarios
-# ---------------------------------------------------------------------------
-
-# Scenarios that invoke dxcom (CPU-intensive ONNX→DXNN compilation)
-DXCOM_SCENARIOS: Set[str] = {"compiler", "suite"}
-
-# Max concurrent dxcom executions across all tools/rounds (system-wide flock)
-DXCOM_MAX_CONCURRENT = int(os.environ.get("DX_E2E_DXCOM_MAX_CONCURRENT", "1"))
-
-# Directory for slot lock files
-DXCOM_LOCK_DIR = Path(os.environ.get(
-    "DX_E2E_DXCOM_LOCK_DIR", "/tmp/dx-e2e-dxcom-slots",
-))
-
-
-@contextmanager
-def dxcom_slot():
-    """Acquire a dxcom execution slot (flock-based counting semaphore).
-
-    Limits the number of concurrent dxcom-heavy scenarios (compiler, suite)
-    across all pytest processes system-wide.  Uses advisory file locks which
-    are automatically released by the OS if the process is killed.
-
-    Usage::
-
-        with dxcom_slot():
-            # run the agent (which will invoke dxcom)
-            result = subprocess.run(...)
-    """
-    DXCOM_LOCK_DIR.mkdir(parents=True, exist_ok=True)
-    fd = None
-
-    # Try non-blocking acquisition of any available slot
-    for i in range(DXCOM_MAX_CONCURRENT):
-        lock_file = DXCOM_LOCK_DIR / f"slot-{i}.lock"
-        _fd = open(lock_file, "w")
-        try:
-            fcntl.flock(_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
-            fd = _fd
-            _logger.info("dxcom_slot: acquired slot %d (non-blocking)", i)
-            break
-        except (BlockingIOError, OSError):
-            _fd.close()
-
-    # All slots busy — block on slot 0 (guaranteed to eventually free)
-    if fd is None:
-        lock_file = DXCOM_LOCK_DIR / "slot-0.lock"
-        fd = open(lock_file, "w")
-        _logger.info("dxcom_slot: all %d slots busy, blocking on slot-0 ...",
-                     DXCOM_MAX_CONCURRENT)
-        fcntl.flock(fd, fcntl.LOCK_EX)
-        _logger.info("dxcom_slot: acquired slot-0 (after wait)")
-
-    try:
-        yield
-    finally:
-        fcntl.flock(fd, fcntl.LOCK_UN)
-        fd.close()
-        _logger.debug("dxcom_slot: released")
-
-
-@contextmanager
-def _maybe_dxcom_slot(scenario_key: str):
-    """Conditionally acquire dxcom slot only for CPU-heavy scenarios."""
-    if scenario_key in DXCOM_SCENARIOS:
-        with dxcom_slot():
-            yield
-    else:
-        yield
-
-
-def _acquire_dxcom_slot_if_needed(scenario_key: str):
-    """Acquire dxcom slot for CPU-heavy scenarios. Returns fd or None.
-
-    Call ``_release_dxcom_slot(fd)`` when the scenario finishes.
-    This imperative API avoids re-indenting large existing try/except blocks.
-    """
-    if scenario_key not in DXCOM_SCENARIOS:
-        return None
-
-    DXCOM_LOCK_DIR.mkdir(parents=True, exist_ok=True)
-
-    # Try non-blocking acquisition of any available slot
-    for i in range(DXCOM_MAX_CONCURRENT):
-        lock_file = DXCOM_LOCK_DIR / f"slot-{i}.lock"
-        _fd = open(lock_file, "w")
-        try:
-            fcntl.flock(_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
-            _logger.info("dxcom_slot: acquired slot %d for %s (non-blocking)",
-                         i, scenario_key)
-            return _fd
-        except (BlockingIOError, OSError):
-            _fd.close()
-
-    # All slots busy — block on slot 0
-    lock_file = DXCOM_LOCK_DIR / "slot-0.lock"
-    fd = open(lock_file, "w")
-    _logger.info("dxcom_slot: all %d slots busy for %s, blocking ...",
-                 DXCOM_MAX_CONCURRENT, scenario_key)
-    fcntl.flock(fd, fcntl.LOCK_EX)
-    _logger.info("dxcom_slot: acquired slot-0 for %s (after wait)", scenario_key)
-    return fd
-
-
-def _release_dxcom_slot(fd):
-    """Release a previously acquired dxcom slot."""
-    if fd is not None:
-        try:
-            fcntl.flock(fd, fcntl.LOCK_UN)
-            fd.close()
-            _logger.debug("dxcom_slot: released")
-        except Exception:
-            pass
-
 
 # ---------------------------------------------------------------------------
 # Session auto-detection: dx-agentic-dev/<session_id>/ discovery
@@ -796,9 +681,6 @@ class CopilotRunnerAutopilot:
         if _effective_extra:
             cmd.extend(_effective_extra)
 
-        # dxcom concurrency control: acquire slot for compiler/suite scenarios
-        _dxcom_fd = _acquire_dxcom_slot_if_needed(scenario_key)
-
         start = time.monotonic()
         try:
             result = subprocess.run(
@@ -961,8 +843,6 @@ class CopilotRunnerAutopilot:
                     link_path.symlink_to(odir_real)
                 except Exception:
                     pass  # Best-effort
-
-            _release_dxcom_slot(_dxcom_fd)
             return ScenarioResult(
                 returncode=_effective_returncode,
                 stdout=result.stdout,
@@ -979,7 +859,6 @@ class CopilotRunnerAutopilot:
             )
         except subprocess.TimeoutExpired as exc:
             duration = time.monotonic() - start
-            _release_dxcom_slot(_dxcom_fd)
 
             # Still try to detect any partial output
             output_dirs = _detect_new_sessions(search_paths, snapshot, agent_filter="copilot", require_session_id_format=True)  # REC-W3
@@ -1227,9 +1106,6 @@ class CursorRunnerAutopilot:
         if extra_args:
             cmd.extend(extra_args)
 
-        # dxcom concurrency control: acquire slot for compiler/suite scenarios
-        _dxcom_fd = _acquire_dxcom_slot_if_needed(scenario_key)
-
         start = time.monotonic()
         try:
             result = subprocess.run(
@@ -1348,8 +1224,6 @@ class CursorRunnerAutopilot:
                             shutil.copy2(str(session_log), str(dst_md))
                     except Exception:
                         pass
-
-            _release_dxcom_slot(_dxcom_fd)
             return ScenarioResult(
                 returncode=result.returncode,
                 stdout=assistant_text or result.stdout,
@@ -1367,7 +1241,6 @@ class CursorRunnerAutopilot:
             )
         except subprocess.TimeoutExpired as exc:
             duration = time.monotonic() - start
-            _release_dxcom_slot(_dxcom_fd)
             output_dirs = _detect_new_sessions(search_paths, snapshot, agent_filter="cursor", require_session_id_format=True)  # REC-W3
             end_utc = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
@@ -1556,9 +1429,6 @@ class OpenCodeRunnerAutopilot:
         if _effective_extra:
             cmd.extend(_effective_extra)
 
-        # dxcom concurrency control: acquire slot for compiler/suite scenarios
-        _dxcom_fd = _acquire_dxcom_slot_if_needed(scenario_key)
-
         start = time.monotonic()
         try:
             result = subprocess.run(
@@ -1715,8 +1585,6 @@ class OpenCodeRunnerAutopilot:
                             shutil.copy2(str(session_log), str(dst_md))
                     except Exception:
                         pass
-
-            _release_dxcom_slot(_dxcom_fd)
             return ScenarioResult(
                 returncode=result.returncode,
                 stdout=assistant_text or result.stdout,
@@ -1733,7 +1601,6 @@ class OpenCodeRunnerAutopilot:
             )
         except subprocess.TimeoutExpired as exc:
             duration = time.monotonic() - start
-            _release_dxcom_slot(_dxcom_fd)
             output_dirs = _detect_new_sessions(
                 search_paths, snapshot,
                 exclude_filters=["_copilot_", "_cursor_"],  # R39: no filter by name, exclude foreign tools
@@ -1952,9 +1819,6 @@ class ClaudeCodeRunnerAutopilot:
         if _effective_extra:
             cmd.extend(_effective_extra)
 
-        # dxcom concurrency control: acquire slot for compiler/suite scenarios
-        _dxcom_fd = _acquire_dxcom_slot_if_needed(scenario_key)
-
         start = time.monotonic()
         _quota_polls = 0
         # R8: Wrap the entire while-loop + post-processing in a single try block so
@@ -2094,8 +1958,6 @@ class ClaudeCodeRunnerAutopilot:
                     link_path.symlink_to(odir_real)
                 except Exception:
                     pass
-
-            _release_dxcom_slot(_dxcom_fd)
             return ScenarioResult(
                 returncode=result.returncode,
                 stdout=assistant_text or result.stdout,
@@ -2112,7 +1974,6 @@ class ClaudeCodeRunnerAutopilot:
             )
         except subprocess.TimeoutExpired as exc:
             duration = time.monotonic() - start
-            _release_dxcom_slot(_dxcom_fd)
             output_dirs = _detect_new_sessions(search_paths, snapshot, agent_filter="claude", require_session_id_format=True)  # REC-W3
             end_utc = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
@@ -2952,9 +2813,6 @@ class CodexRunnerAutopilot:
 
         cmd.append(effective_prompt)
 
-        # dxcom concurrency control: acquire slot for compiler/suite scenarios
-        _dxcom_fd = _acquire_dxcom_slot_if_needed(scenario_key)
-
         start = time.monotonic()
         try:
             result = subprocess.run(
@@ -3070,8 +2928,6 @@ class CodexRunnerAutopilot:
                     link_path.symlink_to(odir_real)
                 except Exception:
                     pass
-
-            _release_dxcom_slot(_dxcom_fd)
             return ScenarioResult(
                 returncode=result.returncode,
                 stdout=result.stdout,
@@ -3090,7 +2946,6 @@ class CodexRunnerAutopilot:
 
         except subprocess.TimeoutExpired as exc:
             duration = time.monotonic() - start
-            _release_dxcom_slot(_dxcom_fd)
             end_utc = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
             output_dirs = _detect_new_sessions(search_paths, snapshot, agent_filter="codex", require_session_id_format=True)  # REC-W3
             _wait_for_background_compilation(output_dirs)
