@@ -22,7 +22,7 @@ from .conftest import (
     verify_json_structure,
     verify_python_syntax,
     verify_start_sentinel,
-)
+    DEFAULT_TIMEOUT_SUITE,)
 
 pytestmark = [
     pytest.mark.agentic_e2e_claude_code_autopilot,
@@ -33,7 +33,6 @@ SCENARIO_PROMPT = (
 )
 
 
-SUITE_TIMEOUT = 3000  # R19: increased from 2400 — claude_code brainstorm+prereq+compile+app cycle needs 50 min budget
 GRACE_PERIOD = 10    # R18: OS scheduling jitter allowance (38 ms overrun in iter-4 shows process teardown after DONE sentinel)
 
 
@@ -45,7 +44,7 @@ def scenario(claude_code_runner, claude_code_suite_artifacts_dir) -> ScenarioRes
         workdir=SUITE_ROOT,
         scenario_key="suite",
         session_log_dir=claude_code_suite_artifacts_dir,
-        timeout=SUITE_TIMEOUT,
+        timeout=DEFAULT_TIMEOUT_SUITE,
     )
 
 
@@ -56,9 +55,9 @@ class TestExecution:
 
     def test_completed_within_timeout(self, scenario: ScenarioResult):
         """Execution finishes within the extended timeout (+ OS grace period)."""
-        assert scenario.duration_seconds < SUITE_TIMEOUT + GRACE_PERIOD, (
+        assert scenario.duration_seconds < DEFAULT_TIMEOUT_SUITE + GRACE_PERIOD, (
             f"Scenario took {scenario.duration_seconds:.0f}s "
-            f"(limit: {SUITE_TIMEOUT}s + {GRACE_PERIOD}s grace = {SUITE_TIMEOUT + GRACE_PERIOD}s)"
+            f"(limit: {DEFAULT_TIMEOUT_SUITE}s + {GRACE_PERIOD}s grace = {DEFAULT_TIMEOUT_SUITE + GRACE_PERIOD}s)"
         )
 
     def test_start_sentinel_emitted(self, scenario: ScenarioResult):

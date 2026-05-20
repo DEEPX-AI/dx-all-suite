@@ -14,7 +14,7 @@ import pytest
 
 from .conftest import (
     COMPILER_ROOT,
-    DEFAULT_COMPILER_TIMEOUT,
+    DEFAULT_TIMEOUT_COMPILER,
     ScenarioResult,
     check_no_cross_project_relative_paths,
     format_scenario_failure,
@@ -40,7 +40,7 @@ def scenario(cursor_runner, compiler_cursor_cli_artifacts_dir) -> ScenarioResult
         workdir=COMPILER_ROOT,
         scenario_key="compiler",
         session_log_dir=compiler_cursor_cli_artifacts_dir,
-        timeout=DEFAULT_COMPILER_TIMEOUT,
+        timeout=DEFAULT_TIMEOUT_COMPILER,
     )
 
 
@@ -53,8 +53,8 @@ class TestExecution:
 
     def test_completed_within_timeout(self, scenario: ScenarioResult):
         """Execution finishes within the configured timeout."""
-        assert scenario.duration_seconds < DEFAULT_COMPILER_TIMEOUT, (
-            f"Scenario took {scenario.duration_seconds:.0f}s (limit: {DEFAULT_COMPILER_TIMEOUT}s)"
+        assert scenario.duration_seconds < DEFAULT_TIMEOUT_COMPILER, (
+            f"Scenario took {scenario.duration_seconds:.0f}s (limit: {DEFAULT_TIMEOUT_COMPILER}s)"
         )
 
     def test_start_sentinel_emitted(self, scenario: ScenarioResult):

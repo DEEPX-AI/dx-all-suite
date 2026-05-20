@@ -104,10 +104,8 @@ python3 analyze.py --hypothesis prompts/hypothesis_prompt.md
 | `--round` | 전체 | 라운드 번호 필터 (반복 가능) |
 | `--insights` | `auto` | Insights CLI agent: `off`, `auto`, `copilot`, `claude`, `cursor`, `opencode`, `codex` |
 | `--no-insights-runnability` | (활성) | Runnability 평가 건너뛰기 |
-| `--insights-sample` | 8 | runnability 평가할 샘플 세션 수 |
-| `--insights-all` | false | 전수 평가 (모든 세션) |
 | `--insights-model` | CLI 기본 | Insights agent 모델 override |
-| `--insights-allow-paid` / `--no-insights-allow-paid` | mode별 상이 | 유료 모델 허용/차단. 기본값은 mode별로 다름: runnability=free, insights/hypothesis=paid |
+| `--insights-allow-paid` / `--no-insights-allow-paid` | mode별 상이 | 유료 모델 허용/차단. 기본값은 mode별로 다름: runnability=free, insights/hypothesis=paid. `--insights-model`로 유료 모델 지정 시 필수. |
 | `--hypothesis` | 없음 | hypothesis prompt(.md) 또는 pre-built(.json) 경로. LLM으로 hypothesis.json을 생성하고 리포트에 §0/§8을 추가 |
 | `--existing-runnability` | 없음 | 기존 `runnability_report.md` 경로 (incremental 평가용) |
 
@@ -247,12 +245,12 @@ python3 analyze.py --hypothesis prompts/hypothesis_prompt.md
 > 이전 `runnability_report.md`를 지정하면 이미 평가된 세션을 건너뜁니다:
 > ```bash
 > # analyze.py 경유 (전체 pipeline — 권장)
-> python3 analyze.py results/ --insights auto --insights-all \
+> python3 analyze.py results/ --insights auto \
 >     --existing-runnability path/to/old/runnability_report.md
 >
 > # insights.py 직접 실행
 > python3 insights.py --mode runnability --report-dir reports/<ts>/ \
->     --existing-report path/to/old/runnability_report.md --all
+>     --existing-report path/to/old/runnability_report.md
 > ```
 > 기존 리포트를 파싱하여 유효한 평가(PASS/PARTIAL/FAIL verdict)가 있는 세션을
 > 건너뛰고, 새로운 결과와 기존 결과를 병합하여 출력합니다.

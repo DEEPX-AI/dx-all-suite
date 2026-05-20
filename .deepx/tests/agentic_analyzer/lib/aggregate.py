@@ -42,6 +42,7 @@ class SessionEval:
     # Cost / billing
     premium_requests: int = 0           # Copilot CLI only (actual from stream)
     estimated_premium_requests: float = 0.0  # OpenCode: reverse-engineered from token ratio
+    user_turn_count: int = 0            # User turns for PR estimation (user_turns × multiplier)
     cost_units: float = 0.0             # Copilot: requests.cost, OpenCode: part.cost sum
     estimated_usd: float = 0.0          # Computed from pricing config (informational)
     cost_basis: str = "unknown"         # Which pricing rule was applied

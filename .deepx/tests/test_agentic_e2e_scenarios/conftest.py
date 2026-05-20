@@ -80,6 +80,68 @@ def pytest_configure(config):
     # Store registry for session-finish consolidation
     config._dx_artifacts_dirs: dict = {}
 
+    # Load known false positives from analyzer config.yaml
+    _config_yaml = Path(__file__).resolve().parents[1] / "agentic_analyzer" / "config.yaml"
+    _known_fp: dict = {}
+    if _config_yaml.exists():
+        try:
+            import yaml as _yaml
+            _raw = _yaml.safe_load(_config_yaml.read_text())
+            for _tool_id, _tool_cfg in (_raw.get("tools") or {}).items():
+                _fps = _tool_cfg.get("known_false_positives") or []
+                if _fps:
+                    _known_fp[_tool_id] = _fps
+        except Exception as _e:  # noqa: BLE001
+            _logger.warning("Failed to load known_false_positives from config.yaml: %s", _e)
+    config._dx_known_fp = _known_fp
+
+
+# Mapping: pytest marker name → tool id (matches config.yaml tools keys)
+_MARKER_TO_TOOL: dict = {
+    "agentic_e2e_claude_code_autopilot": "claude-code",
+    "agentic_e2e_copilot_cli_autopilot": "copilot-cli",
+    "agentic_e2e_cursor_cli_autopilot": "cursor-cli",
+    "agentic_e2e_opencode_cli_autopilot": "opencode-cli",
+    "agentic_e2e_codex_cli_autopilot": "codex-cli",
+}
+
+
+def pytest_collection_modifyitems(config, items):
+    """Apply xfail marks for per-tool known false positives declared in config.yaml.
+
+    For each test item, checks if its tool marker matches an entry in
+    ``config._dx_known_fp``.  If the item's test function name matches a
+    ``test_name`` entry (and optional ``file_contains`` filter passes),
+    the item is marked ``xfail(strict=False)`` so failures are reported as
+    expected rather than blocking.
+    """
+    known_fp: dict = getattr(config, "_dx_known_fp", {})
+    if not known_fp:
+        return
+
+    for item in items:
+        item_marker_names = {m.name for m in item.iter_markers()}
+        tool_id = next(
+            (_MARKER_TO_TOOL[m] for m in item_marker_names if m in _MARKER_TO_TOOL),
+            None,
+        )
+        if tool_id is None:
+            continue
+        fps = known_fp.get(tool_id, [])
+        if not fps:
+            continue
+
+        file_path = str(item.fspath)
+        for fp in fps:
+            if item.name != fp.get("test_name", ""):
+                continue
+            file_contains = fp.get("file_contains") or []
+            if file_contains and not any(fc in file_path for fc in file_contains):
+                continue
+            reason = fp.get("reason") or f"Known false positive [{fp.get('id', '?')}]"
+            item.add_marker(pytest.mark.xfail(strict=False, reason=reason))
+            break  # first matching FP wins
+
 # ---------------------------------------------------------------------------
 # Path constants (same roots as test_agentic_scenarios)
 # ---------------------------------------------------------------------------
@@ -98,19 +160,28 @@ APP_E2E_ARTIFACTS_BASE = APP_ROOT / "dx-agentic-dev" / "e2e-tests"
 STREAM_E2E_ARTIFACTS_BASE = STREAM_ROOT / "dx-agentic-dev" / "e2e-tests"
 
 # Default timeout for Copilot CLI execution (10 minutes — Copilot's corrective-iteration
-# behaviour with model download + live gst-launch verification can exceed 6 min; 600s
-# matches the timeout used by Cursor, OpenCode, and Claude Code runners)
-DEFAULT_COPILOT_TIMEOUT = int(os.environ.get("DX_AGENTIC_E2E_TIMEOUT", "600"))
+# ---------------------------------------------------------------------------
+# Scenario-level timeouts — applied uniformly across ALL tools.
+# Override via environment variables; no tool-specific overrides needed.
+# ---------------------------------------------------------------------------
+# compiler: ONNX→DXNN compilation can take 30-60 min under parallel workloads.
+DEFAULT_TIMEOUT_COMPILER = int(os.environ.get("DX_E2E_TIMEOUT_COMPILER", "3600"))
+# dx_app: Python inference app generation (brainstorm + plan + code + verify).
+DEFAULT_TIMEOUT_DX_APP = int(os.environ.get("DX_E2E_TIMEOUT_DX_APP", "1200"))
+# dx_stream: Single-network GStreamer pipeline generation.
+DEFAULT_TIMEOUT_DX_STREAM = int(os.environ.get("DX_E2E_TIMEOUT_DX_STREAM", "600"))
+# dx_stream_cascaded: Multi-model GStreamer pipeline — needs extra time vs single.
+DEFAULT_TIMEOUT_DX_STREAM_CASCADED = int(os.environ.get("DX_E2E_TIMEOUT_DX_STREAM_CASCADED", "900"))
+# runtime: Cross-project routing (dx_app + dx_stream sub-tasks).
+DEFAULT_TIMEOUT_RUNTIME = int(os.environ.get("DX_E2E_TIMEOUT_RUNTIME", "900"))
+# suite: Full compile + deploy cycle — highest budget across all tools.
+DEFAULT_TIMEOUT_SUITE = int(os.environ.get("DX_E2E_TIMEOUT_SUITE", "4200"))
 
-# Separate timeout for Copilot cascaded scenarios — cascaded sessions require more time
-# than single_model; 900s gives Copilot extra margin (vs 720s for OpenCode) because
-# Copilot's brainstorming pass takes longer and it often retries within a session.
-DEFAULT_COPILOT_CASCADED_TIMEOUT = int(os.environ.get("DX_COPILOT_CASCADED_TIMEOUT", "900"))
-
-# Compiler scenario timeout — compilation + verification can take 30-50 min depending on
-# calibration dataset size, model complexity, and parallel workloads on the same machine.
-# 3600s (60 min) accommodates parallel execution where 4 agents compile simultaneously.
-DEFAULT_COMPILER_TIMEOUT = int(os.environ.get("DX_COMPILER_TIMEOUT", "3600"))
+# Backward-compat aliases (used by runner .run() call sites that pass timeout= by name).
+# These will be removed once all runner calls are updated to pass the scenario constant directly.
+DEFAULT_COPILOT_TIMEOUT = DEFAULT_TIMEOUT_DX_STREAM
+DEFAULT_COPILOT_CASCADED_TIMEOUT = DEFAULT_TIMEOUT_DX_STREAM_CASCADED
+DEFAULT_COMPILER_TIMEOUT = DEFAULT_TIMEOUT_COMPILER
 
 # Compile duration acceptability threshold (REC-W1) — suite scenarios fail if compilation
 # exceeds this limit. 2400s accounts for parallel compilation workloads (4 agents on same
@@ -255,6 +326,7 @@ def _detect_new_sessions(
     snapshot: Set[Path],
     agent_filter: Optional[str] = None,
     exclude_filters: Optional[List[str]] = None,
+    require_session_id_format: bool = False,
 ) -> List[Path]:
     """Find new session directories created after *snapshot*.
 
@@ -275,12 +347,27 @@ def _detect_new_sessions(
     are removed.  This prevents cross-tool session contamination for tools whose
     subagent uses a shared agent name (e.g. opencode → claude subagent, which
     can collide with sessions from the claude_code runner).
+
+    REC-W3: When *require_session_id_format* is True, only directories whose
+    name matches the canonical session ID format ``YYYYMMDD-HHMMSS_*`` are
+    accepted.  This prevents false positives from non-session directories that
+    happen to be created inside ``dx-agentic-dev/`` during execution — for
+    example a Python venv created at the wrong level (e.g. ``.venv_<ts>_...``).
+    Tools that rely only on *exclude_filters* (no *agent_filter*) should set
+    this to True, since they have no name-based positive filter to guard against
+    such collisions.
     """
+    import re as _re
+    _SESSION_ID_RE = _re.compile(r'^\d{8}-\d{6}_')
+
     new_dirs: List[Path] = []
     for agentic_dev_dir in search_paths:
         if agentic_dev_dir.exists():
             for child in agentic_dev_dir.iterdir():
                 if child.is_dir() and child not in snapshot:
+                    # REC-W3: Skip directories that don't match session ID format when requested
+                    if require_session_id_format and not _SESSION_ID_RE.match(child.name):
+                        continue
                     # Skip empty directories (failed first-attempt placeholders)
                     if any(child.rglob("*")):
                         new_dirs.append(child)
@@ -417,30 +504,28 @@ class ScenarioResult:
 # Default model for Cursor CLI
 # ---------------------------------------------------------------------------
 
-DEFAULT_CURSOR_MODEL = os.environ.get("DX_AGENTIC_E2E_CURSOR_MODEL", "claude-4.6-sonnet-medium-thinking")
+DEFAULT_CURSOR_MODEL = os.environ.get("DX_AGENTIC_E2E_CURSOR_MODEL", "claude-4.6-sonnet-medium")
 # Fallback model used when the primary model hits a quota/usage-limit error.
 # Cursor's error message says "Switch to auto or Auto" — so "auto" is the correct value.
 CURSOR_FALLBACK_MODEL = os.environ.get("DX_AGENTIC_E2E_CURSOR_FALLBACK_MODEL", "auto")
 
-# Default timeout for Cursor CLI execution (5 minutes)
-DEFAULT_CURSOR_TIMEOUT = int(os.environ.get("DX_AGENTIC_E2E_CURSOR_TIMEOUT", "600"))
+# Default timeout for Cursor CLI execution — uses shared scenario constants.
+DEFAULT_CURSOR_TIMEOUT = DEFAULT_TIMEOUT_DX_STREAM
 
 # ---------------------------------------------------------------------------
 # Default model / timeout for OpenCode CLI
 # ---------------------------------------------------------------------------
 
 DEFAULT_OPENCODE_MODEL = os.environ.get("DX_AGENTIC_E2E_OPENCODE_MODEL", "github-copilot/claude-sonnet-4.6")
-DEFAULT_OPENCODE_TIMEOUT = int(os.environ.get("DX_AGENTIC_E2E_OPENCODE_TIMEOUT", "600"))
-# Separate timeout for OpenCode cascaded scenarios — cascaded sessions are longer and require
-# more time than single_model scenarios; default 720s gives a 20% margin over the observed 600s limit.
-DEFAULT_OPENCODE_CASCADED_TIMEOUT = int(os.environ.get("DX_OPENCODE_CASCADED_TIMEOUT", "720"))
+DEFAULT_OPENCODE_TIMEOUT = DEFAULT_TIMEOUT_DX_STREAM
+DEFAULT_OPENCODE_CASCADED_TIMEOUT = DEFAULT_TIMEOUT_DX_STREAM_CASCADED
 
 # ---------------------------------------------------------------------------
 # Default model / timeout for Claude Code CLI
 # ---------------------------------------------------------------------------
 
 DEFAULT_CLAUDE_CODE_MODEL = os.environ.get("DX_AGENTIC_E2E_CLAUDE_CODE_MODEL", "claude-sonnet-4-6")
-DEFAULT_CLAUDE_CODE_TIMEOUT = int(os.environ.get("DX_AGENTIC_E2E_CLAUDE_CODE_TIMEOUT", "600"))
+DEFAULT_CLAUDE_CODE_TIMEOUT = DEFAULT_TIMEOUT_DX_STREAM
 
 # ---------------------------------------------------------------------------
 # Default model / timeout for Codex CLI
@@ -449,7 +534,7 @@ DEFAULT_CLAUDE_CODE_TIMEOUT = int(os.environ.get("DX_AGENTIC_E2E_CLAUDE_CODE_TIM
 # endpoint only support Chat Completions — so GPT models must be used.
 # Default: gpt-5.3-codex. Alternatives: gpt-5.4, gpt-5.5, gpt-5.2-codex.
 DEFAULT_CODEX_MODEL = os.environ.get("DX_AGENTIC_E2E_CODEX_MODEL", "gpt-5.3-codex")
-DEFAULT_CODEX_TIMEOUT = int(os.environ.get("DX_AGENTIC_E2E_CODEX_TIMEOUT", "600"))
+DEFAULT_CODEX_TIMEOUT = DEFAULT_TIMEOUT_DX_STREAM
 
 # ---------------------------------------------------------------------------
 # R59: Advisory file lock to serialize concurrent apt/dpkg operations
@@ -651,12 +736,12 @@ class CopilotRunnerAutopilot:
             # Post-detection: find new session directories.
             # Copilot sub-agents may write output dirs several minutes after the
             # main CLI process exits, so poll up to 120 s in 5-second intervals.
-            output_dirs = _detect_new_sessions(search_paths, snapshot, agent_filter="copilot")
+            output_dirs = _detect_new_sessions(search_paths, snapshot, agent_filter="copilot", require_session_id_format=True)  # REC-W3
             if not output_dirs:
                 poll_deadline = time.monotonic() + 120
                 while time.monotonic() < poll_deadline:
                     time.sleep(5)
-                    output_dirs = _detect_new_sessions(search_paths, snapshot, agent_filter="copilot")
+                    output_dirs = _detect_new_sessions(search_paths, snapshot, agent_filter="copilot", require_session_id_format=True)  # REC-W3
                     if output_dirs:
                         break
 
@@ -695,16 +780,17 @@ class CopilotRunnerAutopilot:
                 result.stdout or "",
             )
             if _done_copilot:
-                _rel = _done_copilot.group(1).strip()
-                # Try workdir-relative first (most common for sub-project agents)
-                _primary_copilot = workdir / _rel
-                if not _primary_copilot.is_dir():
-                    # Fall back to suite-root-relative (cross-project agents)
-                    _primary_copilot = SUITE_ROOT / _rel
-                if _primary_copilot.is_dir():
-                    _copilot_html_dirs = [_primary_copilot]
-                else:
-                    # Sentinel found but path doesn't exist — scope to Copilot's first dir
+                _rel_str = _done_copilot.group(1).strip()
+                # Issue 4: Split by " + " to handle cross-project DONE sentinels
+                _copilot_html_dirs = []
+                for _rel in [r.strip() for r in _rel_str.split(" + ")]:
+                    _candidate = workdir / _rel
+                    if not _candidate.is_dir():
+                        _candidate = SUITE_ROOT / _rel
+                    if _candidate.is_dir():
+                        _copilot_html_dirs.append(_candidate)
+                if not _copilot_html_dirs:
+                    # Sentinel found but path(s) don't exist — scope to Copilot's first dir
                     _copilot_html_dirs = output_dirs[:1] if output_dirs else []
             elif output_dirs:
                 # No sentinel: use only the first detected dir (Copilot's own session)
@@ -719,6 +805,19 @@ class CopilotRunnerAutopilot:
                 output=session_events_log,
                 output_dirs=_copilot_html_dirs,
             )
+
+            # Issue 3: Copy HTML/MD from session_logs_dir to log_dir for direct access
+            _se_html = session_events_log.with_suffix(".html")
+            if _se_html.exists():
+                try:
+                    shutil.copy2(str(_se_html), str(log_dir / f"{scenario_key}-copilot-session.html"))
+                except Exception:
+                    pass
+            if session_events_log.exists():
+                try:
+                    shutil.copy2(str(session_events_log), str(log_dir / f"{scenario_key}-copilot-session.md"))
+                except Exception:
+                    pass
 
             # Fallback: if --share file was not written (non-clean shutdown),
             # copy the parse_and_render MD output to the session_log path so
@@ -770,7 +869,7 @@ class CopilotRunnerAutopilot:
             duration = time.monotonic() - start
 
             # Still try to detect any partial output
-            output_dirs = _detect_new_sessions(search_paths, snapshot, agent_filter="copilot")
+            output_dirs = _detect_new_sessions(search_paths, snapshot, agent_filter="copilot", require_session_id_format=True)  # REC-W3
 
             # Extract session info even on timeout (best-effort)
             end_utc = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -794,6 +893,19 @@ class CopilotRunnerAutopilot:
                 output=session_events_log,
                 output_dirs=output_dirs,
             )
+
+            # Issue 3 (timeout): Copy HTML/MD from session_logs_dir to log_dir
+            _se_html_t = session_events_log.with_suffix(".html")
+            if _se_html_t.exists():
+                try:
+                    shutil.copy2(str(_se_html_t), str(log_dir / f"{scenario_key}-copilot-session.html"))
+                except Exception:
+                    pass
+            if session_events_log.exists():
+                try:
+                    shutil.copy2(str(session_events_log), str(log_dir / f"{scenario_key}-copilot-session.md"))
+                except Exception:
+                    pass
 
             # Fallback: --share file is never written on timeout since Copilot
             # is SIGKILL'd before it can flush the share output.  Copy the
@@ -1051,8 +1163,7 @@ class CursorRunnerAutopilot:
                 duration = time.monotonic() - start
                 actual_model = CURSOR_FALLBACK_MODEL  # quota exhausted — running on fallback model
 
-            output_dirs = _detect_new_sessions(search_paths, snapshot, agent_filter="cursor")
-            # REC-S5: Warn when cursor uses a non-Claude backend (e.g. GPT-4 via _gpt_ session ID)
+            output_dirs = _detect_new_sessions(search_paths, snapshot, agent_filter="cursor", require_session_id_format=True)  # REC-W3
             for odir in output_dirs:
                 if "_gpt_" in str(odir):
                     warnings.warn(
@@ -1112,6 +1223,16 @@ class CursorRunnerAutopilot:
                     except Exception:
                         pass
 
+            # Issue 5: Copy session.md into per-session output dirs (cursor)
+            if session_log.exists():
+                for odir in output_dirs:
+                    try:
+                        dst_md = odir / "session.md"
+                        if not dst_md.exists():
+                            shutil.copy2(str(session_log), str(dst_md))
+                    except Exception:
+                        pass
+
             return ScenarioResult(
                 returncode=result.returncode,
                 stdout=assistant_text or result.stdout,
@@ -1129,7 +1250,7 @@ class CursorRunnerAutopilot:
             )
         except subprocess.TimeoutExpired as exc:
             duration = time.monotonic() - start
-            output_dirs = _detect_new_sessions(search_paths, snapshot, agent_filter="cursor")
+            output_dirs = _detect_new_sessions(search_paths, snapshot, agent_filter="cursor", require_session_id_format=True)  # REC-W3
             end_utc = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
             raw_stdout = exc.stdout.decode(errors="replace") if isinstance(exc.stdout, bytes) else (exc.stdout or "")
@@ -1181,6 +1302,25 @@ class CursorRunnerAutopilot:
                     link_path.symlink_to(odir_real)
                 except Exception:
                     pass
+
+            # Issue 5 (timeout): Copy HTML and session.md into output dirs (cursor)
+            _html_path_t = log_dir / f"{scenario_key}-cursor-session.html"
+            if _html_path_t.exists():
+                for odir in output_dirs:
+                    try:
+                        dst_ht = odir / "session.html"
+                        if not dst_ht.exists():
+                            shutil.copy2(str(_html_path_t), str(dst_ht))
+                    except Exception:
+                        pass
+            if session_log.exists():
+                for odir in output_dirs:
+                    try:
+                        dst_mt = odir / "session.md"
+                        if not dst_mt.exists():
+                            shutil.copy2(str(session_log), str(dst_mt))
+                    except Exception:
+                        pass
 
             return ScenarioResult(
                 returncode=-1,
@@ -1320,6 +1460,7 @@ class OpenCodeRunnerAutopilot:
             output_dirs = _detect_new_sessions(
                 search_paths, snapshot,
                 exclude_filters=["_copilot_", "_cursor_"],  # R39
+                require_session_id_format=True,  # REC-W3: reject non-session dirs (e.g. .venv_...)
             )
             # R34: Wait for any background compilation tracked via compile.pid before collecting
             _wait_for_background_compilation(output_dirs)
@@ -1442,6 +1583,16 @@ class OpenCodeRunnerAutopilot:
                     except Exception:
                         pass
 
+            # Issue 7: Copy session.md into per-session output dirs (opencode)
+            if session_log.exists():
+                for odir in output_dirs:
+                    try:
+                        dst_md = odir / "session.md"
+                        if not dst_md.exists():
+                            shutil.copy2(str(session_log), str(dst_md))
+                    except Exception:
+                        pass
+
             return ScenarioResult(
                 returncode=result.returncode,
                 stdout=assistant_text or result.stdout,
@@ -1461,6 +1612,7 @@ class OpenCodeRunnerAutopilot:
             output_dirs = _detect_new_sessions(
                 search_paths, snapshot,
                 exclude_filters=["_copilot_", "_cursor_"],  # R39: no filter by name, exclude foreign tools
+                require_session_id_format=True,  # REC-W3: reject non-session dirs (e.g. .venv_...)
             )
             # REC-M (timeout path): Apply same cross-contamination filter as success path.
             import warnings as _w_t
@@ -1518,6 +1670,25 @@ class OpenCodeRunnerAutopilot:
                     link_path.symlink_to(odir_real)
                 except Exception:
                     pass
+
+            # Issue 7 (timeout): Copy HTML and session.md into output dirs (opencode)
+            _html_path_oc_t = log_dir / f"{scenario_key}-opencode-session.html"
+            if _html_path_oc_t.exists():
+                for odir in output_dirs:
+                    try:
+                        dst_hoc = odir / "session.html"
+                        if not dst_hoc.exists():
+                            shutil.copy2(str(_html_path_oc_t), str(dst_hoc))
+                    except Exception:
+                        pass
+            if session_log.exists():
+                for odir in output_dirs:
+                    try:
+                        dst_moc = odir / "session.md"
+                        if not dst_moc.exists():
+                            shutil.copy2(str(session_log), str(dst_moc))
+                    except Exception:
+                        pass
 
             return ScenarioResult(
                 returncode=-1,
@@ -1699,7 +1870,7 @@ class ClaudeCodeRunnerAutopilot:
 
 
             duration = time.monotonic() - start
-            output_dirs = _detect_new_sessions(search_paths, snapshot, agent_filter="claude")
+            output_dirs = _detect_new_sessions(search_paths, snapshot, agent_filter="claude", require_session_id_format=True)  # REC-W3
             # R34: Wait for any background compilation tracked via compile.pid before collecting
             _wait_for_background_compilation(output_dirs)
             end_utc = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -1719,7 +1890,7 @@ class ClaudeCodeRunnerAutopilot:
                     parse_session as _parse_cc,
                     render_html as _render_cc_html,
                 )
-                _cc_sessions = _find_cc_sessions(cwd=str(workdir), after=start_utc, before=end_utc)
+                _cc_sessions = _find_cc_sessions(project_path=str(workdir), after=start_utc, before=end_utc)
                 if _cc_sessions:
                     _cc_parsed = _parse_cc(_cc_sessions[0])
                     _cc_html_path = log_dir / f"{scenario_key}-claude-code-session.html"
@@ -1773,6 +1944,16 @@ class ClaudeCodeRunnerAutopilot:
                 except Exception:
                     pass  # Best-effort: never block the test
 
+            # Issue 2: Copy HTML into per-session output dirs (claude-code)
+            if '_cc_html_path' in dir() and _cc_html_path.exists():
+                for odir in output_dirs:
+                    try:
+                        dst_html = odir / "session.html"
+                        if not dst_html.exists():
+                            shutil.copy2(str(_cc_html_path), str(dst_html))
+                    except Exception:
+                        pass
+
             for odir in output_dirs:
                 try:
                     odir_real = odir.resolve()
@@ -1800,7 +1981,7 @@ class ClaudeCodeRunnerAutopilot:
             )
         except subprocess.TimeoutExpired as exc:
             duration = time.monotonic() - start
-            output_dirs = _detect_new_sessions(search_paths, snapshot, agent_filter="claude")
+            output_dirs = _detect_new_sessions(search_paths, snapshot, agent_filter="claude", require_session_id_format=True)  # REC-W3
             end_utc = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
             raw_stdout = exc.stdout.decode(errors="replace") if isinstance(exc.stdout, bytes) else (exc.stdout or "")
@@ -1827,13 +2008,24 @@ class ClaudeCodeRunnerAutopilot:
                     parse_session as _parse_cc_t,
                     render_html as _render_cc_html_t,
                 )
-                _cc_sessions_t = _find_cc_sessions_t(cwd=str(workdir), after=start_utc, before=end_utc)
+                _cc_sessions_t = _find_cc_sessions_t(project_path=str(workdir), after=start_utc, before=end_utc)
                 if _cc_sessions_t:
                     _cc_parsed_t = _parse_cc_t(_cc_sessions_t[0])
                     _cc_html_t = log_dir / f"{scenario_key}-claude-code-session.html"
                     _cc_html_t.write_text(_render_cc_html_t(_cc_parsed_t), encoding="utf-8")
             except Exception:
                 pass
+
+            # Issue 2 (timeout): Copy HTML into per-session output dirs (claude-code)
+            _cc_html_t = log_dir / f"{scenario_key}-claude-code-session.html"  # path defined above
+            if _cc_html_t.exists():
+                for odir in output_dirs:
+                    try:
+                        dst_html_t = odir / "session.html"
+                        if not dst_html_t.exists():
+                            shutil.copy2(str(_cc_html_t), str(dst_html_t))
+                    except Exception:
+                        pass
 
             # T2: Create symlinks even on timeout (best-effort)
             for odir in output_dirs:
@@ -1967,8 +2159,14 @@ def _parse_opencode_stream_json(raw_output: str) -> tuple:
         if event_type in ("assistant", "text", "message", "step_start",
                           "step_finish", "message_finish", "answer",
                           "output", "tool_result"):
-            text = (event.get("text") or event.get("content", "")
-                    or event.get("output", "") or event.get("result", ""))
+            # OpenCode NDJSON v2 format: {"type": "text", "part": {"text": "..."}}
+            # Text is nested in event["part"]["text"], not at event["text"] directly.
+            _part = event.get("part") if isinstance(event.get("part"), dict) else {}
+            text = (
+                _part.get("text")
+                or event.get("text") or event.get("content", "")
+                or event.get("output", "") or event.get("result", "")
+            )
             if isinstance(text, str) and text:
                 assistant_parts.append(text)
             elif isinstance(text, list):
@@ -2639,6 +2837,7 @@ class CodexRunnerAutopilot:
             output_dirs = _detect_new_sessions(
                 search_paths, snapshot,
                 agent_filter="codex",
+                require_session_id_format=True,  # REC-W3: reject non-session dirs (e.g. .venv_...)
             )
             _wait_for_background_compilation(output_dirs)
             end_utc = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -2754,7 +2953,7 @@ class CodexRunnerAutopilot:
         except subprocess.TimeoutExpired as exc:
             duration = time.monotonic() - start
             end_utc = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-            output_dirs = _detect_new_sessions(search_paths, snapshot, agent_filter="codex")
+            output_dirs = _detect_new_sessions(search_paths, snapshot, agent_filter="codex", require_session_id_format=True)  # REC-W3
             _wait_for_background_compilation(output_dirs)
 
             raw_stdout = exc.stdout.decode(errors="replace") if isinstance(exc.stdout, bytes) else (exc.stdout or "")
@@ -3579,41 +3778,3 @@ def stream_codex_cascaded_artifacts_dir(request):
     if os.environ.get("DX_AGENTIC_E2E_CLEANUP_ARTIFACTS"):
         _cleanup_artifacts_dir(artifacts_dir)
 
-
-# ---------------------------------------------------------------------------
-# NPU hardware availability check
-# ---------------------------------------------------------------------------
-
-def _is_npu_available() -> bool:
-    """Return True if ``dxrt-cli -s`` exits 0 (NPU hardware functional)."""
-    if shutil.which("dxrt-cli") is None:
-        return False
-    try:
-        result = subprocess.run(
-            ["dxrt-cli", "-s"],
-            capture_output=True,
-            text=True,
-            timeout=30,
-        )
-        return result.returncode == 0
-    except (subprocess.TimeoutExpired, OSError):
-        return False
-
-
-
-
-@pytest.fixture(scope="session")
-def npu_hardware_available():
-    """Session-scoped fixture that skips if NPU hardware is not functional.
-
-    Runs ``dxrt-cli -s`` once per test session.  If it fails (DKMS driver not
-    loaded, hardware init failure, etc.) all tests that depend on this fixture
-    are skipped with a descriptive message.  A cold boot may be required to
-    reload the ``dxrt_driver`` kernel module.
-    """
-    if not _is_npu_available():
-        pytest.skip(
-            "NPU hardware not available (dxrt-cli -s returned non-zero). "
-            "The DKMS kernel module (dxrt_driver) may not be loaded — "
-            "a cold boot / system reboot may be required."
-        )

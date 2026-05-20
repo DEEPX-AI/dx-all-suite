@@ -15,7 +15,7 @@ import os
 import pytest
 
 from .conftest import (
-    DEFAULT_COPILOT_CASCADED_TIMEOUT,
+    DEFAULT_TIMEOUT_DX_STREAM_CASCADED,
     STREAM_ROOT,
     ScenarioResult,
     format_scenario_failure,
@@ -45,7 +45,7 @@ def scenario(copilot_runner, stream_copilot_cascaded_artifacts_dir) -> ScenarioR
         workdir=STREAM_ROOT,
         scenario_key="dx_stream",
         session_log_dir=stream_copilot_cascaded_artifacts_dir,
-        timeout=DEFAULT_COPILOT_CASCADED_TIMEOUT,
+        timeout=DEFAULT_TIMEOUT_DX_STREAM_CASCADED,
     )
     # R33: use DONE sentinel path as primary output_dir to prevent cross-tool
     # contamination when multiple tools create *_cascaded/ directories concurrently.
@@ -87,9 +87,9 @@ class TestExecution:
 
     def test_completed_within_timeout(self, scenario: ScenarioResult):
         """Execution finishes within the configured timeout."""
-        # R50: Copilot cascaded uses DEFAULT_COPILOT_CASCADED_TIMEOUT (900 s default);
+        # R50: Copilot cascaded uses DEFAULT_TIMEOUT_DX_STREAM_CASCADED (900 s default);
         # +10 s tolerance for wall-clock measurement overshoot at exact timeout boundary.
-        limit = DEFAULT_COPILOT_CASCADED_TIMEOUT
+        limit = DEFAULT_TIMEOUT_DX_STREAM_CASCADED
         assert scenario.duration_seconds < limit + 10, (
             f"Scenario took {scenario.duration_seconds:.0f}s (limit: {limit}s)"
         )

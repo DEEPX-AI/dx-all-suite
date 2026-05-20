@@ -111,6 +111,8 @@ def estimate_cost(
     premium_requests: int,
     config_pricing: dict,
     calibration: Optional[CalibrationRatios] = None,
+    user_turn_count: int = 0,
+    tool_call_count: int = 0,
 ) -> CostBreakdown:
     """Compute estimated USD for a single session, tool/model-aware.
 
@@ -123,10 +125,10 @@ def estimate_cost(
         - if model is 'auto' → 0 USD (subscription, free within quota)
         - else → Anthropic rates (proxy — Cursor doesn't bill per-token directly)
 
-    - **opencode-cli** (uses copilot provider):
-        - Estimate premium req count from token ratio: premium ≈ (input+output) / tokens_per_premium
+    - **opencode-cli / codex-cli** (uses copilot provider):
+        - Primary: user_turn_count × model_multiplier (if user_turn_count > 0)
+        - Fallback: token ratio reverse-engineering (input+output) / tokens_per_premium
         - cost = est_premium × usd_per_request
-        - Falls back to Anthropic proxy if calibration unavailable
 
     - **claude-code** (or unknown tool):
         - Anthropic API direct billing → token-based using configured rates
@@ -162,21 +164,42 @@ def estimate_cost(
         )
         return cb
 
-    # ===== OpenCode CLI — copilot provider, reverse-engineer premium count =====
+    # ===== OpenCode CLI / Codex CLI — copilot provider =====
     if tool in ("opencode-cli", "codex-cli"):
         tool_label = "OpenCode" if tool == "opencode-cli" else "Codex CLI"
+        prem_cfg = config_pricing.get("copilot_premium_request", {}) or {}
+        usd_per = float(prem_cfg.get("usd_per_request", 0.033))
+
+        # Primary method: tool_call_count × calibration_ratio
+        # Calibration: copilot-cli observed PR/tool_call = 0.741 (5232 PR / 7061 tool_calls)
+        # This works because GitHub counts each LLM roundtrip as a premium request,
+        # and tool_call_count approximates LLM roundtrips across all tools.
+        TOOL_CALL_PR_RATIO = 0.741  # calibrated from copilot-cli observed data
+
+        if tool_call_count > 0:
+            est_premium = tool_call_count * TOOL_CALL_PR_RATIO
+            cb.estimated_premium_requests = est_premium
+            cb.usd_premium = est_premium * usd_per
+            cb.total_usd = cb.usd_premium
+            cb.pricing_basis = "copilot_premium_request (tool_call calibration)"
+            cb.notes = (
+                f"{tool_label}: {tool_call_count} tool calls × {TOOL_CALL_PR_RATIO:.3f} "
+                f"(calibration ratio) = {est_premium:.1f} estimated premium requests"
+            )
+            return cb
+
+        # Fallback: token ratio calibration
         if calibration and calibration.tokens_per_premium:
             tpr = calibration.tokens_per_premium
             total_io = input_tokens + output_tokens
             est_premium = total_io / tpr if tpr > 0 else 0.0
             cb.estimated_premium_requests = est_premium
-            prem_cfg = config_pricing.get("copilot_premium_request", {}) or {}
-            usd_per = float(prem_cfg.get("usd_per_request", 0.033))
             cb.usd_premium = est_premium * usd_per
             cb.total_usd = cb.usd_premium
-            cb.pricing_basis = "copilot_premium_request (estimated)"
+            cb.pricing_basis = "copilot_premium_request (token ratio fallback)"
             cb.notes = (
-                f"{tool_label} uses copilot provider — premium count NOT in stream. "
+                f"{tool_label} uses copilot provider — tool_call_count unavailable, "
+                f"fell back to token ratio. "
                 f"Estimated {est_premium:.1f} reqs = {total_io:,} (input+output) / {tpr:,.0f} (calibration ratio)"
             )
             return cb
@@ -184,7 +207,7 @@ def estimate_cost(
         cb.pricing_basis = f"{tool.replace('-', '_')}_calibration_unavailable"
         cb.notes = (
             f"{tool_label} uses copilot provider but no copilot-cli data available to "
-            f"calibrate token→premium ratio. Cost cannot be reliably estimated."
+            f"calibrate. Cost cannot be reliably estimated."
         )
         return cb
 

@@ -14,7 +14,7 @@ import os
 import pytest
 
 from .conftest import (
-    DEFAULT_OPENCODE_CASCADED_TIMEOUT,
+    DEFAULT_TIMEOUT_DX_STREAM_CASCADED,
     STREAM_ROOT,
     ScenarioResult,
     format_scenario_failure,
@@ -38,7 +38,7 @@ def scenario(opencode_runner, stream_opencode_cascaded_artifacts_dir) -> Scenari
     import re as _re
     import json as _json
     # R43: cascaded scenarios need more time than single_model (720s vs 600s default)
-    _cascaded_timeout = DEFAULT_OPENCODE_CASCADED_TIMEOUT
+    _cascaded_timeout = DEFAULT_TIMEOUT_DX_STREAM_CASCADED
     result = opencode_runner.run(
         prompt=SCENARIO_PROMPT,
         workdir=STREAM_ROOT,
@@ -101,7 +101,7 @@ class TestExecution:
         # R44: use env-var-driven limit + 10s tolerance to avoid false failures
         # when the subprocess is killed exactly at the timeout boundary (wall-clock
         # measurement always runs fractionally over the nominal limit).
-        limit = DEFAULT_OPENCODE_CASCADED_TIMEOUT
+        limit = DEFAULT_TIMEOUT_DX_STREAM_CASCADED
         assert scenario.duration_seconds < limit + 10, (
             f"Scenario took {scenario.duration_seconds:.0f}s (limit: {limit}s)"
         )

@@ -18,9 +18,9 @@ Usage:
     # Generate insights from an existing report
     python insights.py --mode insights --report-dir reports/<ts>/ --cli claude
 
-    # Judge end-user runnability of a sample of sessions
+    # Judge end-user runnability of ALL sessions (exhaustive)
     python insights.py --mode runnability --report-dir reports/<ts>/ \\
-        --cli copilot --sample 10
+        --cli copilot
 
 Supported CLI agents:
     claude    — `claude -p --dangerously-skip-permissions`
@@ -323,10 +323,23 @@ def resolve_effective_model(cli: str, model: Optional[str],
     Precedence: explicit `model` arg > paid_default (if allow_paid) > free_default.
     Returns None when the CLI has no free option AND allow_paid is False —
     callers must skip the invocation in that case.
+
+    If an explicit model is provided that matches a paid_default but allow_paid
+    is False, returns None (blocks the paid model).
     """
-    if model:
-        return model
     conf = CLI_CONFIG.get(cli, {})
+    if model:
+        # Guard: block paid model when allow_paid is False
+        free_model = conf.get("free_default_model")
+        if not allow_paid and free_model and model != free_model:
+            # Check if the explicit model is NOT a known free model
+            free_models = {"gpt-4.1", "gpt-5-mini", "gpt-5.4-mini", "auto",
+                           "github-copilot/gpt-4.1"}
+            if model not in free_models:
+                print(f"BLOCKED: model '{model}' requires --allow-paid "
+                      f"(free alternative: {free_model})", file=sys.stderr)
+                return None
+        return model
     if allow_paid:
         return conf.get("paid_default_model") or conf.get("free_default_model")
     return conf.get("free_default_model")
@@ -601,17 +614,12 @@ def _read_existing_sections(existing_report: Path) -> List[str]:
 
 
 def run_runnability(report_dir: Path, cli: str, output_dir: Path,
-                     sample: int = 8, *, model: Optional[str] = None,
+                     *, model: Optional[str] = None,
                      allow_paid: bool = False,
                      existing_report: Optional[Path] = None) -> int:
-    """Judge end-user runnability of sessions using a CLI agent.
+    """Judge end-user runnability of ALL sessions using a CLI agent.
 
-    Sample selection modes:
-      - sample > 0: pick one diverse session per (tool, scenario), shuffle,
-                    take first `sample`. (Same as before.)
-      - sample <= 0 (or `--all`): EXHAUSTIVE — evaluate every session.
-                                  Expensive: 396 sessions ≈ 30min~5h depending
-                                  on CLI throughput.
+    Always evaluates every session (exhaustive mode).
 
     Incremental mode (--existing-report):
       When an existing runnability_report.md is provided, sessions already
@@ -635,21 +643,9 @@ def run_runnability(report_dir: Path, cli: str, output_dir: Path,
         print(f"→ Incremental mode: {len(existing_labels)} sessions already evaluated "
               f"in {existing_report.name}")
 
-    if sample <= 0:
-        # Exhaustive: keep all sessions in their original (tool, round, scenario) order
-        sampled = list(sessions)
-        mode_label = "EXHAUSTIVE"
-    else:
-        # Sample selection: prefer diverse (per tool × scenario)
-        # Group by (tool, scenario), pick 1 from each up to sample limit
-        by_key = {}
-        for s in sessions:
-            key = (s.get("tool"), s.get("scenario"))
-            by_key.setdefault(key, []).append(s)
-        sampled = [lst[0] for lst in by_key.values()]
-        random.shuffle(sampled)
-        sampled = sampled[:sample]
-        mode_label = f"sample={sample}"
+    # Exhaustive: keep all sessions in their original (tool, round, scenario) order
+    sampled = list(sessions)
+    mode_label = "EXHAUSTIVE"
 
     # Filter out already-evaluated sessions in incremental mode
     if existing_labels:
@@ -869,12 +865,6 @@ def main(argv: Optional[List[str]] = None) -> int:
                          "per-session prompts). Env: DX_INSIGHTS_ALLOW_PAID=0|1"))
     p.add_argument("--output-dir", default=None,
                    help="Where to write the output (default: same as --report-dir)")
-    p.add_argument("--sample", type=int, default=8,
-                   help=("(runnability mode) number of sessions to sample (default: 8). "
-                         "Use 0 (or --all) for EXHAUSTIVE — evaluate every session "
-                         "(expensive)."))
-    p.add_argument("--all", action="store_true",
-                   help="(runnability mode) alias for --sample 0 (exhaustive)")
     p.add_argument("--existing-report", default=None,
                    help=("(runnability mode) path to an existing runnability_report.md "
                          "from a previous run. Sessions already evaluated in that "
@@ -915,14 +905,12 @@ def main(argv: Optional[List[str]] = None) -> int:
               f"--cli <name> with a specific binary in PATH.", file=sys.stderr)
         return 3
 
-    effective_sample = 0 if args.all else args.sample
-
     if args.mode == "insights":
         return run_insights(report_dir, chosen_cli, out_dir,
                             model=args.model, allow_paid=args.allow_paid)
     elif args.mode == "runnability":
         existing = Path(args.existing_report).resolve() if args.existing_report else None
-        return run_runnability(report_dir, chosen_cli, out_dir, effective_sample,
+        return run_runnability(report_dir, chosen_cli, out_dir,
                                model=args.model, allow_paid=args.allow_paid,
                                existing_report=existing)
     elif args.mode == "hypothesis":

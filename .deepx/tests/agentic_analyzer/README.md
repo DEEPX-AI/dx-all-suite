@@ -105,10 +105,8 @@ When `hypothesis.json` exists in the report directory:
 | `--round` | all | Filter by round number (repeatable) |
 | `--insights` | `auto` | Insights CLI agent: `off`, `auto`, `copilot`, `claude`, `cursor`, `opencode`, `codex` |
 | `--no-insights-runnability` | (enabled) | Skip runnability evaluation |
-| `--insights-sample` | 8 | Number of sample sessions for runnability |
-| `--insights-all` | false | Evaluate every session (exhaustive runnability) |
 | `--insights-model` | CLI default | Override model for insights agent |
-| `--insights-allow-paid` / `--no-insights-allow-paid` | mode-specific | Allow/deny paid models. Default varies by mode: runnability=free, insights/hypothesis=paid |
+| `--insights-allow-paid` / `--no-insights-allow-paid` | mode-specific | Allow/deny paid models. Default varies by mode: runnability=free, insights/hypothesis=paid. Required when using `--insights-model` with a paid model. |
 | `--hypothesis` | none | Path to hypothesis prompt (.md) or pre-built (.json). Generates hypothesis.json via LLM and adds §0/§8 to report |
 | `--existing-runnability` | none | Path to existing `runnability_report.md` for incremental evaluation |
 
@@ -251,12 +249,12 @@ When you run `python3 analyze.py`, the following stages execute in order:
 > already-evaluated sessions:
 > ```bash
 > # Via analyze.py (full pipeline — recommended)
-> python3 analyze.py results/ --insights auto --insights-all \
+> python3 analyze.py results/ --insights auto \
 >     --existing-runnability path/to/old/runnability_report.md
 >
 > # Via insights.py directly
 > python3 insights.py --mode runnability --report-dir reports/<ts>/ \
->     --existing-report path/to/old/runnability_report.md --all
+>     --existing-report path/to/old/runnability_report.md
 > ```
 > The existing report is parsed; sessions with valid evaluations (PASS/PARTIAL/FAIL
 > verdict) are skipped. New results are merged with existing sections in the output.

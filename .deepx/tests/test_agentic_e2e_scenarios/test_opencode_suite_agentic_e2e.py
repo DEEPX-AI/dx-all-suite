@@ -22,7 +22,7 @@ from .conftest import (
     verify_json_structure,
     verify_python_syntax,
     verify_start_sentinel,
-)
+    DEFAULT_TIMEOUT_SUITE,)
 
 pytestmark = [
     pytest.mark.agentic_e2e_opencode_cli_autopilot,
@@ -32,7 +32,6 @@ SCENARIO_PROMPT = (
     "Compile yolo26n and build an inference app"
 )
 
-SUITE_TIMEOUT = 3600  # REC-6: increased from 3000s — opencode needs 60 min budget to survive multiple compilation retries (3 attempts in iter-10 consumed 47 min)
 GRACE_PERIOD = 10     # R18-parity: OS scheduling jitter allowance
 
 
@@ -44,7 +43,7 @@ def scenario(opencode_runner, opencode_suite_artifacts_dir) -> ScenarioResult:
         workdir=SUITE_ROOT,
         scenario_key="suite",
         session_log_dir=opencode_suite_artifacts_dir,
-        timeout=SUITE_TIMEOUT,
+        timeout=DEFAULT_TIMEOUT_SUITE,
     )
 
 
@@ -55,9 +54,9 @@ class TestExecution:
 
     def test_completed_within_timeout(self, scenario: ScenarioResult):
         """Execution finishes within the extended timeout."""
-        assert scenario.duration_seconds < SUITE_TIMEOUT + GRACE_PERIOD, (
+        assert scenario.duration_seconds < DEFAULT_TIMEOUT_SUITE + GRACE_PERIOD, (
             f"Scenario took {scenario.duration_seconds:.0f}s "
-            f"(limit: {SUITE_TIMEOUT}s + {GRACE_PERIOD}s grace = {SUITE_TIMEOUT + GRACE_PERIOD}s)"
+            f"(limit: {DEFAULT_TIMEOUT_SUITE}s + {GRACE_PERIOD}s grace = {DEFAULT_TIMEOUT_SUITE + GRACE_PERIOD}s)"
         )
 
     def test_start_sentinel_emitted(self, scenario: ScenarioResult):

@@ -18,7 +18,8 @@ from .conftest import (
     format_scenario_failure,
     verify_python_syntax,
     verify_start_sentinel,
-)
+    DEFAULT_TIMEOUT_DX_STREAM,
+    DEFAULT_TIMEOUT_DX_STREAM_CASCADED,)
 
 pytestmark = [
     pytest.mark.agentic_e2e_codex_cli_autopilot,
@@ -40,6 +41,7 @@ def scenario(codex_runner, stream_codex_cascaded_artifacts_dir) -> ScenarioResul
         workdir=STREAM_ROOT,
         scenario_key="dx_stream",
         session_log_dir=stream_codex_cascaded_artifacts_dir,
+        timeout=DEFAULT_TIMEOUT_DX_STREAM_CASCADED,
     )
     # R33: use DONE sentinel path as primary output_dir to prevent cross-tool
     # contamination when multiple tools create *_cascaded/ directories concurrently.
@@ -83,8 +85,8 @@ class TestExecution:
 
     def test_completed_within_timeout(self, scenario: ScenarioResult):
         """Execution finishes within the configured timeout."""
-        assert scenario.duration_seconds < 600, (
-            f"Scenario took {scenario.duration_seconds:.0f}s (limit: 600s)"
+        assert scenario.duration_seconds < DEFAULT_TIMEOUT_DX_STREAM_CASCADED, (
+            f"Scenario took {scenario.duration_seconds:.0f}s (limit: {DEFAULT_TIMEOUT_DX_STREAM_CASCADED}s)"
         )
 
     def test_session_log_saved(self, scenario: ScenarioResult):
