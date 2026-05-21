@@ -111,8 +111,8 @@ def write_markdown(evals: List[SessionEval], out_path: Path, meta: Dict) -> None
             lines.append("|------|----------:|------|")
             for t in sorted(env_by_tool.keys()):
                 el = env_by_tool[t]
-                rounds = sorted({e.round_index for e in el})
-                rounds_str = ", ".join(f"R{r}" for r in rounds)
+                _env_rounds = sorted({e.round_index for e in el})
+                rounds_str = ", ".join(f"R{r}" for r in _env_rounds)
                 lines.append(f"| {t} | {len(el)} | {rounds_str} |")
             lines.append("")
 
@@ -141,8 +141,11 @@ def write_markdown(evals: List[SessionEval], out_path: Path, meta: Dict) -> None
                               runn_display, ppf, timeouts))
     _tool_rows_s1.sort(key=lambda x: x[1], reverse=True)
 
-    lines.append("| Rank | Tool | Scored/Total | Compl % | Qual % | Verdict % | Exec % | Runn % | Overall % | σ(Overall) | Avg Duration | START % | DONE % | Pass/Part/Fail | pytest Exit0 % | ⏱ Timeout | ToolCalls | LOC |")
-    lines.append("|-----:|------|------------:|-------:|------:|----------:|------:|------:|----------:|----------:|-------------:|--------:|-------:|:--------------:|---------------:|----------:|---------:|----:|")
+    # --- Table A: Overall 점수 구성 요소 (점수에 직접 반영되는 컬럼) ---
+    lines.append("### 1-A. Overall 점수 구성 요소")
+    lines.append("")
+    lines.append("| Rank | Tool | Scored/Total | Compl % | Qual % | Exec % | Runn % | **Overall %** | σ(Overall) |")
+    lines.append("|-----:|------|------------:|-------:|------:|------:|------:|----------:|----------:|")
     _medals = {1: "🥇", 2: "🥈", 3: "🥉"}
     for _rank, (tool, _ov, m, sessions_display, verdict_avg, exec_avg,
                 runn_display, ppf, timeouts) in enumerate(_tool_rows_s1, 1):
@@ -151,22 +154,40 @@ def write_markdown(evals: List[SessionEval], out_path: Path, meta: Dict) -> None
             f"| {medal} | **{tool}** | {sessions_display} | "
             f"{_fmt_num(m.get('avg_compliance_pct'))} | "
             f"{_fmt_num(m.get('avg_quality_score'))} | "
-            f"{_fmt_num(verdict_avg)} | "
             f"{_fmt_num(exec_avg)} | "
             f"{runn_display} | "
-            f"{_fmt_num(m.get('avg_overall_score'))} | "
-            f"{_fmt_num(m.get('stdev_overall_score'))} | "
-            f"{_fmt_duration(m.get('avg_duration_sec'))} | "
+            f"**{_fmt_num(m.get('avg_overall_score'))}** | "
+            f"{_fmt_num(m.get('stdev_overall_score'))} |"
+        )
+    lines.append("")
+    lines.append("> Overall % = 0.30·Compl + 0.20·Qual + 0.30·Exec + 0.20·Runn. "
+                 "**σ** = stdev (낮을수록 일관성이 높음). **Exec %** = ExecutionTrace 점수 (실제 명령 실행 흔적). "
+                 "**Scored/Total** = 점수 산정 포함 세션 / 전체 세션 (환경 실패 제외).")
+    lines.append("")
+
+    # --- Table B: 정보성 지표 (Overall 점수에 미반영) ---
+    lines.append("### 1-B. 정보성 지표 (참고용, Overall 미반영)")
+    lines.append("")
+    lines.append("| Tool | START % | DONE % | Verdict % | Pass/Part/Fail | pytest Exit0 % | ⏱ Timeout | Avg Duration | ToolCalls | LOC |")
+    lines.append("|------|--------:|-------:|----------:|:--------------:|---------------:|----------:|-------------:|---------:|----:|")
+    for _rank, (tool, _ov, m, sessions_display, verdict_avg, exec_avg,
+                runn_display, ppf, timeouts) in enumerate(_tool_rows_s1, 1):
+        lines.append(
+            f"| **{tool}** | "
             f"{_fmt_num(m.get('pct_with_start_sentinel'))} | "
             f"{_fmt_num(m.get('pct_with_done_sentinel'))} | "
+            f"{_fmt_num(verdict_avg)} | "
             f"{ppf} | "
             f"{_fmt_num(m.get('pct_exit_0'))} | "
             f"{timeouts} | "
+            f"{_fmt_duration(m.get('avg_duration_sec'))} | "
             f"{_fmt_num(m.get('avg_tool_calls'))} | "
             f"{int(m.get('avg_python_loc', 0))} |"
         )
     lines.append("")
-    lines.append("> **σ (sigma)** = stdev (낮을수록 일관성이 높음). **Exec %** = ExecutionTrace 점수 (실제 명령 실행 흔적). **⏱ Timeout** = 의심 timeout 발생 세션 수 (참고용; 점수에 페널티 없음). **Scored/Total** = 점수 산정 포함 세션 / 전체 세션 (환경 실패 제외). **START/DONE %** = sentinel 준수율 (Compliance %에 포함 반영). **Verdict %** = 정보용 (Overall 미반영).")
+    lines.append("> **START/DONE %** = sentinel 준수율 (Compliance %에 이미 반영됨). "
+                 "**Verdict %** = PASS/PARTIAL/FAIL 산출물 판정 (Overall 미반영, 정보용). "
+                 "**⏱ Timeout** = 의심 timeout 발생 세션 수. **pytest Exit0 %** = 라운드 단위 exit 코드 (시나리오 단위 ≠).")
     lines.append("")
 
     # ----------------------------------------------------------
@@ -184,7 +205,9 @@ def write_markdown(evals: List[SessionEval], out_path: Path, meta: Dict) -> None
     _lower_better_metrics = {"avg_duration_sec", "pct_fail"}
 
     def _metric_table(title: str, metric: str, fmt=_fmt_num):
-        """Emit a ranked scenario × tool table."""
+        """Emit a ranked scenario × tool table with a sub-header."""
+        lines.append(f"##### {title}")
+        lines.append("")
         lines.append(header2)
         lines.append(sep2)
         _trows = []
@@ -334,9 +357,12 @@ def write_markdown(evals: List[SessionEval], out_path: Path, meta: Dict) -> None
     lines.append("")
     lines.append("다음 메트릭은 점수 산정에 직접 포함되지 않으며, 참고 정보로 제공됩니다.")
     lines.append("")
-    lines.append("#### PASS / FAIL 비율")
+    lines.append("#### PASS / PARTIAL / FAIL 비율")
+    lines.append("")
+    lines.append("> PASS + PARTIAL + FAIL = 100%. PARTIAL = 규칙 일부 위반이나 실행 흔적 불완전.")
     lines.append("")
     _metric_table("PASS 비율 %", "pct_pass")
+    _metric_table("PARTIAL 비율 %", "pct_partial")
     _metric_table("FAIL 비율 %", "pct_fail")
 
     lines.append("#### Duration (실행 시간)")

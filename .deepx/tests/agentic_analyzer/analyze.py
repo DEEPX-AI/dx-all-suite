@@ -40,6 +40,33 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 
 
+# Known tool name aliases — keys without the -cli suffix that can appear in
+# hypothesis.json expected_ranking arrays generated before the canonical names
+# were stabilised.
+_TOOL_NAME_ALIASES: dict = {
+    "opencode": "opencode-cli",
+    "codex":    "codex-cli",
+    "cursor":   "cursor-cli",
+    "copilot":  "copilot-cli",
+}
+
+
+def _normalize_hypothesis_tools(hypothesis_data: dict) -> dict:
+    """Return a copy of hypothesis_data with tool names normalised in all
+    expected_ranking arrays.  No-op if hypothesis_data is None or empty."""
+    import copy
+    if not hypothesis_data:
+        return hypothesis_data
+    data = copy.deepcopy(hypothesis_data)
+    for h in data.get("hypotheses", []):
+        ranking = h.get("expected_ranking")
+        if isinstance(ranking, list):
+            h["expected_ranking"] = [
+                _TOOL_NAME_ALIASES.get(t, t) for t in ranking
+            ]
+    return data
+
+
 def _find_suite_root() -> Path:
     """Walk up from HERE to find dx-all-suite root.
     Marker: presence of both `.deepx/` AND `dx-runtime/` siblings.
@@ -800,7 +827,7 @@ def _render_executive_summary(report_dir: Path) -> str:
                     f"| {r['tool']} | {r['env_failures']} | "
                     f"{r['sessions_scored']}/{r['sessions']} | {pct:.1f}% |")
         lines.append("")
-        lines.append("> 판정 기준: output_dirs 없음 + START sentinel 없음 + duration < 5초 → CLI가 agent를 시작하지 못한 환경 장애")
+        lines.append("> 판정 기준: output_dirs 없음 + START sentinel 없음 + output_tokens == 0 → CLI가 agent를 시작하지 못한 환경 장애 (TLS 오류·API quota 등으로 LLM 미응답)")
         lines.append("")
 
     # Key findings
@@ -935,7 +962,9 @@ def _build_chart_section(data: dict, hypothesis_path: Optional[Path] = None) -> 
     hypothesis_data = None
     if hypothesis_path is not None and hypothesis_path.is_file():
         try:
-            hypothesis_data = _json.loads(hypothesis_path.read_text(encoding="utf-8"))
+            hypothesis_data = _normalize_hypothesis_tools(
+                _json.loads(hypothesis_path.read_text(encoding="utf-8"))
+            )
         except Exception:
             hypothesis_data = None
 
@@ -1318,7 +1347,9 @@ def _generate_dashboard_html(report_dir: Path) -> None:
     hypothesis_data = None
     if hyp_path.is_file():
         try:
-            hypothesis_data = _json.loads(hyp_path.read_text(encoding="utf-8"))
+            hypothesis_data = _normalize_hypothesis_tools(
+                _json.loads(hyp_path.read_text(encoding="utf-8"))
+            )
         except Exception:
             hypothesis_data = None
 

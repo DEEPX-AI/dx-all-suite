@@ -61,7 +61,11 @@ def is_env_failure_eval(ev: "SessionEval") -> bool:
     An environment failure is a session where the CLI/agent never started due to
     infrastructure issues (API rate limits, TLS errors, CLI crashes).
 
-    Detection: no output_dirs AND no START sentinel AND short duration (<5s).
+    Detection criteria (no output_dirs AND no START sentinel):
+      - output_tokens == 0: LLM never responded at all (TLS/network failure,
+        quota rejection before inference). Duration may be long (e.g. 400s
+        while the CLI retried the connection) but still an infrastructure issue.
+
     Sessions WITH has_start=True but no output_dirs are typically artifact
     collection bugs (the agent ran but artifacts weren't captured), not env failures.
     """
@@ -69,8 +73,9 @@ def is_env_failure_eval(ev: "SessionEval") -> bool:
         return False
     if ev.has_start:
         return False  # Agent ran — this is an artifact bug, not env failure
-    duration = ev.duration_sec or 0.0
-    return duration < 5.0
+    # output_tokens==0 means LLM never produced a single token → infra failure
+    # regardless of how long the CLI spent retrying.
+    return ev.output_tokens == 0
 
 
 def categorize_skipped_sessions(sessions: List[Dict[str, Any]]) -> Dict[str, Any]:

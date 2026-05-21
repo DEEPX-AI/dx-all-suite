@@ -180,7 +180,8 @@ def aggregate_per_round_tool(evals: List[SessionEval]) -> Dict[tuple, Dict[str, 
             "env_failures": n_total - len(scored),
             "avg_compliance_pct": sum(e.compliance_score_pct for e in scored) / n,
             "avg_quality_score": sum(e.quality_score for e in scored) / n,
-            "avg_overall_score": sum(e.overall_score for e in scored) / n,
+            # None when all sessions are env-failures (no scored data → gap in trend chart)
+            "avg_overall_score": (sum(e.overall_score for e in scored) / n) if scored else None,
             "avg_duration_sec":
                 sum(e.duration_sec or 0 for e in scored if e.duration_sec) /
                 max(1, sum(1 for e in scored if e.duration_sec)),
