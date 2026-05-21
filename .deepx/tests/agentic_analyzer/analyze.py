@@ -64,7 +64,6 @@ from lib.compliance import evaluate_compliance
 from lib.quality import evaluate_quality
 from lib.functional import infer_verdict, verdict_score, count_lines_of_code
 from lib.execution import evaluate_execution
-from lib.pytest_data import collect_pytest_round
 from lib.cost import estimate_cost, compute_calibration_ratios
 from lib.aggregate import SessionEval, composite_score
 from lib.report import write_markdown, write_json, write_csv, write_html, md_file_to_html

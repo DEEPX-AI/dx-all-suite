@@ -39,7 +39,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Dict, List, Optional, Set
+from typing import ClassVar, Dict, List, Optional, Set
 
 _logger = logging.getLogger(__name__)
 
@@ -415,12 +415,39 @@ class ScenarioResult:
         """Primary output directory (first detected)."""
         return self.output_dirs[0] if self.output_dirs else None
 
+    # Directories to skip when scanning output_dirs (matches quality.py behaviour)
+    _SKIP_DIRS_EXACT: ClassVar[Set[str]] = {
+        "__pycache__", ".venv", "node_modules", ".pytest_cache",
+        "site-packages", "dist-info", ".cache", ".tox",
+    }
+    _SKIP_DIR_PREFIXES: ClassVar[tuple] = ("venv",)
+
+    def _is_skip_path(self, path: Path, base: Path) -> bool:
+        """Return True if *path* is inside a vendored/cache directory."""
+        try:
+            rel = path.relative_to(base)
+        except ValueError:
+            return False
+        for seg in rel.parts:
+            if seg in self._SKIP_DIRS_EXACT:
+                return True
+            if seg.startswith(self._SKIP_DIR_PREFIXES):
+                return True
+        return False
+
     def _collect_files(self, glob_pattern: str) -> List[Path]:
-        """Collect files matching *glob_pattern* across all output_dirs."""
+        """Collect files matching *glob_pattern* across all output_dirs.
+
+        Excludes vendored/cache directories (venv, site-packages, __pycache__,
+        etc.) so that pip-internal .py files don't pollute the results.
+        """
         files: List[Path] = []
         for d in self.output_dirs:
             if d.exists():
-                files.extend(d.rglob(glob_pattern))
+                files.extend(
+                    p for p in d.rglob(glob_pattern)
+                    if not self._is_skip_path(p, d)
+                )
         return sorted(files)
 
     @property
@@ -435,11 +462,14 @@ class ScenarioResult:
 
     @property
     def all_generated_files(self) -> List[Path]:
-        """All files generated across output directories."""
+        """All files generated across output directories (excludes venv/cache dirs)."""
         files: List[Path] = []
         for d in self.output_dirs:
             if d.exists():
-                files.extend(f for f in d.rglob("*") if f.is_file())
+                files.extend(
+                    f for f in d.rglob("*")
+                    if f.is_file() and not self._is_skip_path(f, d)
+                )
         return sorted(files)
 
     @property

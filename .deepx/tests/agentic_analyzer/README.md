@@ -293,7 +293,6 @@ or `--allow-paid` / `--no-allow-paid` in `insights.py`.
 | **T5 Duration** | `result.duration_ms` from stream.jsonl (Claude Code/Cursor) or first/last timestamp delta | `session.py` |
 | **T6 Verdict** | Scenario artifact existence → PASS/PARTIAL/FAIL/UNKNOWN | `functional.py` |
 | **T7 ExecutionTrace** | Actual command execution evidence in session.log + compile_out.log + success/failure markers | `execution.py` |
-| **T8 Pytest assertion** | (informational) pytest-json-report data if available; NOT included in Overall | `pytest_data.py` |
 | **T9 Bias check** | Cursor "auto" model bias detection (cross-tool metric comparison) | `bias_check.py` |
 | **T10 Agentic insight** | Secondary CLI agent call for per-tool strengths/weaknesses + end-user runnability | `insights.py` |
 | **T11 Cost** | Token usage → estimated USD cost + premium request estimation via calibration | `cost.py` |
@@ -342,7 +341,6 @@ agentic_analyzer/
 │   ├── execution.py          # ExecutionTrace — session.log + compile_out.log execution evidence
 │   ├── cost.py               # Token → USD cost estimation + premium request calibration
 │   ├── runnability_parser.py # Runnability report parsing → per-session quantitative scores
-│   ├── pytest_data.py        # pytest assertion data (json-report parsing, if available)
 │   ├── bias_check.py         # Cursor auto model bias detection (cross-tool metrics)
 │   ├── aggregate.py          # SessionEval + per-tool/round/scenario aggregation + stdev
 │   └── report.py             # MD + HTML + JSON + CSV output

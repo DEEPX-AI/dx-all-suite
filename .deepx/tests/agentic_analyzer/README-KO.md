@@ -288,7 +288,6 @@ analyzer는 비용과 품질의 균형을 위해 stage별로 서로 다른 기�
 | **T5 시간** | stream.jsonl의 `result.duration_ms` (Claude Code/Cursor) 또는 첫/마지막 timestamp delta | `session.py` |
 | **T6 Verdict (산출물 PASS)** | 시나리오 1차 산출물 존재성 PASS/PARTIAL/FAIL/UNKNOWN | `functional.py` |
 | **T7 ExecutionTrace** | session.log + compile_out.log 등 실제 명령 실행 흔적 + 성공/실패 마커 | `execution.py` |
-| **T8 Pytest assertion** | (참고) pytest-json-report 데이터 (있는 경우만; Overall 미반영) | `pytest_data.py` |
 | **T9 Bias check** | Cursor auto 모델 편향 점검 (도구간 메트릭 비교 분석) | `bias_check.py` |
 | **T10 Agentic insight** | 2차 CLI agent 호출로 도구별 강점/약점 + end-user runnability 판정 | `insights.py` |
 | **T11 비용** | 토큰 사용량 → 추정 USD 비용 + premium request calibration 기반 추정 | `cost.py` |
@@ -335,7 +334,6 @@ agentic_analyzer/
 │   ├── execution.py          # ExecutionTrace — session.log + compile_out.log 실행 흔적 분석
 │   ├── cost.py               # 토큰 → USD 비용 추정 + premium request calibration
 │   ├── runnability_parser.py # Runnability report 파싱 → 세션별 정량 점수 추출
-│   ├── pytest_data.py        # pytest assertion 데이터 (있다면 json-report 파싱)
 │   ├── bias_check.py         # Cursor auto 모델 편향 점검 (도구간 메트릭 비교)
 │   ├── aggregate.py          # SessionEval + per-tool/round/scenario 집계 + stdev
 │   └── report.py             # MD + HTML + JSON + CSV 출력
