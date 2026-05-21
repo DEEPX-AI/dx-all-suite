@@ -781,16 +781,24 @@ def write_markdown(evals: List[SessionEval], out_path: Path, meta: Dict) -> None
     lines.append("")
     lines.append(f"> 총 {len(evals)}개 세션. HTML 보고서에서는 접기/펼치기로 제공됩니다.")
     lines.append("")
-    lines.append("| R | Tool | Scenario | Model | Verdict | Exec % | Runn % | ⏱ | pytest | Duration | Comp % | Qual % | Overall % | S/D | ToolCalls | LOC | PH | Eng | Reason |")
-    lines.append("|--:|------|----------|-------|:------:|------:|------:|:--:|:------:|---------:|------:|------:|---------:|:--:|---------:|---:|---:|----:|-------|")
-    for e in sorted(evals, key=lambda x: (x.round_index, x.tool, x.scenario)):
+    # Multi-run aggregation: include run_id column when 2+ run_ids are present
+    distinct_run_ids = sorted({e.run_id for e in evals})
+    multi_run = len(distinct_run_ids) > 1
+    if multi_run:
+        lines.append("| Run | R | Tool | Scenario | Model | Verdict | Exec % | Runn % | ⏱ | pytest | Duration | Comp % | Qual % | Overall % | S/D | ToolCalls | LOC | PH | Eng | Reason |")
+        lines.append("|-----|--:|------|----------|-------|:------:|------:|------:|:--:|:------:|---------:|------:|------:|---------:|:--:|---------:|---:|---:|----:|-------|")
+    else:
+        lines.append("| R | Tool | Scenario | Model | Verdict | Exec % | Runn % | ⏱ | pytest | Duration | Comp % | Qual % | Overall % | S/D | ToolCalls | LOC | PH | Eng | Reason |")
+        lines.append("|--:|------|----------|-------|:------:|------:|------:|:--:|:------:|---------:|------:|------:|---------:|:--:|---------:|---:|---:|----:|-------|")
+    for e in sorted(evals, key=lambda x: (x.run_id, x.round_index, x.tool, x.scenario)):
         model_short = (e.model or "").replace("claude-sonnet-", "").replace("(non-standard)", "⚠")[:18]
         verdict_disp = f"{verdict_emoji.get(e.verdict, '?')} {e.verdict[:4]}"
         sd_marker = ("✓" if e.has_start else "✗") + "/" + ("✓" if e.has_done else "✗")
         timeout_mark = "⏱" if e.suspected_timeout else ""
         runn_disp = _fmt_num(e.runnability_score) if e.runnability_score > 0 else "-"
+        run_col = f"{e.run_id} | " if multi_run else ""
         lines.append(
-            f"| {e.round_index} | {e.tool} | {e.scenario} | {model_short} | "
+            f"| {run_col}{e.round_index} | {e.tool} | {e.scenario} | {model_short} | "
             f"{verdict_disp} | "
             f"{_fmt_num(e.execution_score)} | "
             f"{runn_disp} | "
@@ -828,7 +836,7 @@ def write_json(evals: List[SessionEval], out_path: Path, meta: Dict) -> None:
 
 def write_csv(evals: List[SessionEval], out_path: Path) -> None:
     columns = [
-        "round", "tool", "scenario", "model", "verdict", "verdict_score", "verdict_reason",
+        "run_id", "round", "tool", "scenario", "model", "verdict", "verdict_score", "verdict_reason",
         "exit_status_round", "duration_sec",
         "has_start", "has_done", "compliance_pct", "quality_score",
         "execution_score", "runnability_score", "overall_score",
@@ -845,6 +853,7 @@ def write_csv(evals: List[SessionEval], out_path: Path) -> None:
         w.writeheader()
         for e in evals:
             w.writerow({
+                "run_id": e.run_id,
                 "round": e.round_index,
                 "tool": e.tool,
                 "scenario": e.scenario,

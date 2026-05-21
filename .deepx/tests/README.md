@@ -59,11 +59,17 @@ Located at `.deepx/tests/e2e_runner.py` and `.deepx/tests/e2e_monitor.py`.
 
 ### e2e_runner.py
 
-Runs 5 tools in parallel for N rounds with state tracking, stop/abort, and resume capabilities.
+Runs 5 tools for N rounds with state tracking, stop/abort, and resume capabilities.
+Tools are launched in **parallel by default**; pass `--sequential` to run one tool
+at a time (no NPU/CPU contention) for tighter per-tool measurement.
 
 ```bash
-# Run all tools for 5 rounds in parallel
+# Run all tools for 5 rounds in parallel (default)
 python .deepx/tests/e2e_runner.py --rounds 5
+
+# Sequential mode — one tool at a time (eliminates NPU/CPU contention)
+#   → per-tool duration approaches single-tool baseline, improving cost/quality analysis
+python .deepx/tests/e2e_runner.py --rounds 5 --sequential
 
 # Run specific tools only
 python .deepx/tests/e2e_runner.py --rounds 5 --tools claude-code,copilot-cli
@@ -80,7 +86,7 @@ python .deepx/tests/e2e_runner.py --rounds 10 --resume --run-id 20260521_100000
 # List all run IDs
 python .deepx/tests/e2e_runner.py --list
 
-# Show detailed status (per-round/scenario timing)
+# Show detailed status (mode/per-round/scenario timing)
 python .deepx/tests/e2e_runner.py --status
 python .deepx/tests/e2e_runner.py --status --run-id 20260521_135734
 
@@ -95,6 +101,34 @@ python .deepx/tests/e2e_runner.py --abort --force   # skip confirmation prompt
 python .deepx/tests/e2e_runner.py --cleanup --round 3
 python .deepx/tests/e2e_runner.py --cleanup --round 3 --tool claude-code
 python .deepx/tests/e2e_runner.py --cleanup --round 2,3,4
+```
+
+**Parallel vs Sequential:**
+
+| Mode | Concurrent tools | Use case |
+|------|------------------|----------|
+| (default) | N (tool count, e.g. 5) | Fast batch throughput |
+| `--sequential` | 1 | Eliminate NPU/CPU contention; accurate per-tool measurement |
+
+The runner persists the chosen mode in `state.json` (`"mode": "parallel" | "sequential"`)
+and shows it in `--status` output.
+
+**Per-scenario timeouts** (subprocess.run timeout per agent invocation):
+
+| Scenario | Default | Env override |
+|----------|---------|--------------|
+| compiler           | 1800s (30m) | `DX_TIMEOUT_COMPILER` |
+| dx_app             | 900s (15m)  | `DX_TIMEOUT_DX_APP` |
+| dx_stream          | 900s (15m)  | `DX_TIMEOUT_DX_STREAM` |
+| dx_stream_cascaded | 1200s (20m) | `DX_TIMEOUT_DX_STREAM_CASCADED` |
+| runtime            | 1200s (20m) | `DX_TIMEOUT_RUNTIME` |
+| suite              | 2400s (40m) | `DX_TIMEOUT_SUITE` |
+| (fallback)         | 7200s       | `DX_E2E_TIMEOUT` |
+
+Defaults are tuned for **sequential** baseline durations. Parallel mode may need
+longer timeouts due to contention — bump them as needed:
+```bash
+DX_TIMEOUT_COMPILER=3600 DX_TIMEOUT_SUITE=4800 python .deepx/tests/e2e_runner.py --rounds 5
 ```
 
 **Stop & Resume:**
@@ -124,7 +158,50 @@ python .deepx/tests/e2e_runner.py --cleanup --round 2,3,4
 **Resume priority:**
 1. `--run-id` specified: load that state.json
 2. Not specified: load via `runner_state/latest` symlink
-3. Fallback: scan `dx-agentic-dev/e2e-tests/results/` to build state from existing results
+3. Fallback: create a fresh run state (legacy flat results must be converted with
+   `migrate_results_to_run_id.py` first)
+
+### results/ Layout (run-id keyed)
+
+Per-round outputs are isolated under a run-id directory so different batches no
+longer mix in the same flat namespace:
+
+```
+dx-agentic-dev/e2e-tests/results/
+├── 20260521_135734/                       ← run_id from e2e_runner
+│   ├── 20260521_174857_e25076_claude-code-autopilot/
+│   │   ├── manifest.json
+│   │   ├── SUMMARY.md
+│   │   └── ...
+│   └── 20260521_155006_824828_copilot-cli-autopilot/
+├── 20260520_193327/                       ← a different run
+│   └── ...
+├── manual/                                ← manual `pytest` invocations (no DX_RUN_ID)
+│   └── 20260519_103045_xxxxxx_claude-code-autopilot/
+└── legacy/                                ← legacy flat results moved here by migration
+    └── 20260511_194755_d31c86_cursor-cli-autopilot/
+```
+
+Mechanism: `e2e_runner.py` propagates `DX_RUN_ID=<run_id>` to the subprocess env;
+`conftest.py:pytest_sessionfinish` reads it and writes outputs to
+`results/<run_id>/<session_id>/`. Manual invocations land under `results/manual/`.
+
+### Migrating Legacy flat results/
+
+```bash
+# Dry-run preview
+python .deepx/tests/migrate_results_to_run_id.py
+
+# Apply moves (matched → results/<run_id>/, unmatched → results/legacy/)
+python .deepx/tests/migrate_results_to_run_id.py --apply
+
+# Keep unmatched sessions flat (do not create legacy/)
+python .deepx/tests/migrate_results_to_run_id.py --apply --skip-legacy
+```
+
+The migration script reads `runner_state/*/state.json` to build a
+`result_dir_name → run_id` map. The analyzer supports both layouts simultaneously,
+so migration is recommended but not required.
 
 ### e2e_monitor.py
 
@@ -164,6 +241,43 @@ python .deepx/tests/e2e_monitor.py --once
 - Scenario icons: ✓(done) ▶(running) ·(pending)
 - Log panels (when `--tool` specified): per-tool real-time tail output
 - Scenario timing panel (when `--tool <name>`): per-scenario start/end/duration
+
+## 📊 Analyzer Reports (run-id aware)
+
+Generate quantitative + qualitative reports after one or more E2E runs:
+
+```bash
+cd .deepx/tests/agentic_analyzer
+
+# Aggregate every run (and legacy flat results)
+#   → analyzer_reports/_all/<timestamp>/
+python analyze.py
+
+# Single run only
+#   → analyzer_reports/<run_id>/<timestamp>/
+python analyze.py --run-id 20260521_135734
+
+# Combine multiple runs into one report
+#   → analyzer_reports/multi_<sha8>/<timestamp>/  (+ multi_manifest.json listing the inputs)
+python analyze.py --run-id 20260521_135734 --run-id 20260520_193327
+
+# Combine with other filters
+python analyze.py --run-id 20260521_135734 --tool claude-code --round 1 --round 2
+```
+
+**analyzer_reports/ layout:**
+
+```
+dx-agentic-dev/e2e-tests/analyzer_reports/
+├── _all/<timestamp>/                     ← no --run-id (everything aggregated)
+├── 20260521_135734/<timestamp>/          ← single --run-id
+├── multi_a3f2b1c4/<timestamp>/           ← multiple --run-id (SHA-8 of sorted IDs)
+│   └── multi_manifest.json               ← records the run-id inputs
+```
+
+**Round indexing:** rounds are numbered per `(run_id, tool)` — `R1` of one run never
+collides with `R1` of another. Multi-run reports automatically add a `Run` column to
+the per-session detail table.
 
 ## 🚀 Quick Start
 

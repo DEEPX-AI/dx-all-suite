@@ -27,6 +27,7 @@ Examples:
 from __future__ import annotations
 
 import argparse
+import hashlib
 import html as html_mod
 import json
 import sys
@@ -163,6 +164,7 @@ def evaluate_scenario(ref: ScenarioRef, config: dict) -> SessionEval:
         session_id=ref.parent.session_id,
         output_dirs=[str(p) for p in ref.output_dirs],
         exit_status=ref.parent.manifest.get("exit_status"),
+        run_id=ref.parent.run_id,
         duration_sec=sd.duration_sec,
         has_start=sd.has_start_sentinel,
         has_done=sd.has_done_sentinel,
@@ -221,6 +223,17 @@ def main(argv: Optional[List[str]] = None) -> int:
     parser.add_argument("--tool", action="append", help="Filter to specific tools (repeatable)")
     parser.add_argument("--scenario", action="append", help="Filter to specific scenarios (repeatable)")
     parser.add_argument("--round", action="append", type=int, help="Filter to specific rounds (repeatable)")
+    parser.add_argument(
+        "--run-id",
+        dest="run_id",
+        action="append",
+        help=(
+            "Restrict analysis to this run_id (repeatable). "
+            "When omitted, all run_ids (and legacy flat results) are aggregated. "
+            "Multiple --run-id flags produce one combined report in "
+            "analyzer_reports/multi_<sha8>/."
+        ),
+    )
     parser.add_argument(
         "--insights",
         choices=["off", "auto", "copilot", "claude", "cursor", "opencode", "codex"],
@@ -291,10 +304,16 @@ def main(argv: Optional[List[str]] = None) -> int:
     tools_cfg = config.get("tools", {}) or {}
     scenarios_cfg = config.get("scenarios", {}) or {}
 
+    # Run-ID scope (single, multiple, or all)
+    run_ids: Optional[List[str]] = args.run_id or None
+    if run_ids:
+        print(f"Run-ID scope: {', '.join(run_ids)}")
+
     # Discovery
-    all_refs = discover_all(results_root, tools_cfg, scenarios_cfg)
+    all_refs = discover_all(results_root, tools_cfg, scenarios_cfg, run_ids=run_ids)
     print(f"Discovered {len(all_refs)} scenario sessions across "
-          f"{len({(r.parent.tool, r.parent.round_index) for r in all_refs})} (tool, round) combos.")
+          f"{len({(r.parent.run_id, r.parent.tool, r.parent.round_index) for r in all_refs})} "
+          f"(run_id, tool, round) combos.")
 
     # Filtering
     if args.tool:
@@ -346,13 +365,34 @@ def main(argv: Optional[List[str]] = None) -> int:
         e.cost_note = cb.notes
         e.estimated_premium_requests = cb.estimated_premium_requests
 
-    # Output directory
+    # Output directory — keyed by run_id scope when --output-dir not given:
+    #   * No --run-id          → analyzer_reports/_all/<ts>/
+    #   * Single --run-id ID   → analyzer_reports/<ID>/<ts>/
+    #   * Multiple --run-id    → analyzer_reports/multi_<sha8>/<ts>/ (+ multi_manifest.json)
+    multi_manifest: Optional[dict] = None
     if args.output_dir:
         out_dir = Path(args.output_dir).resolve()
     else:
         ts = datetime.now().strftime("%Y%m%d-%H%M%S")
-        out_dir = DEFAULT_REPORTS_BASE / ts
+        if not run_ids:
+            out_dir = DEFAULT_REPORTS_BASE / "_all" / ts
+        elif len(run_ids) == 1:
+            out_dir = DEFAULT_REPORTS_BASE / run_ids[0] / ts
+        else:
+            sorted_ids = sorted(run_ids)
+            digest = hashlib.sha1("+".join(sorted_ids).encode("utf-8")).hexdigest()[:8]
+            out_dir = DEFAULT_REPORTS_BASE / f"multi_{digest}" / ts
+            multi_manifest = {
+                "generated_at": datetime.now().isoformat(timespec="seconds"),
+                "run_ids": sorted_ids,
+                "digest": digest,
+            }
     out_dir.mkdir(parents=True, exist_ok=True)
+    if multi_manifest is not None:
+        (out_dir / "multi_manifest.json").write_text(
+            json.dumps(multi_manifest, indent=2, ensure_ascii=False) + "\n",
+            encoding="utf-8",
+        )
 
     # Meta
     caveats = []
@@ -370,6 +410,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         "tools": sorted({e.tool for e in evals}),
         "rounds": sorted({e.round_index for e in evals}),
         "scenarios": sorted({e.scenario for e in evals}),
+        "run_ids": sorted({e.run_id for e in evals}),
         "caveats": caveats,
     }
 

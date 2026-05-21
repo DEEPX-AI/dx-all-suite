@@ -161,12 +161,38 @@ APP_E2E_ARTIFACTS_BASE = APP_ROOT / "dx-agentic-dev" / "e2e-tests"
 STREAM_E2E_ARTIFACTS_BASE = STREAM_ROOT / "dx-agentic-dev" / "e2e-tests"
 
 # ---------------------------------------------------------------------------
-# Single safety-net timeout — prevents pytest hanging if an agent process
-# never exits (e.g. infinite loop, orphaned subprocess).
-# 4 hours covers the longest known scenario (compile + deploy) with headroom.
-# This is NOT a quality gate; use test_duration_metric for observability.
+# Safety-net timeouts — prevents pytest hanging if an agent process never exits
+# (e.g. infinite loop, orphaned subprocess).
+#
+# DEFAULT_TIMEOUT is the global fallback (legacy uniform value). Per-scenario
+# limits in SCENARIO_TIMEOUTS are tighter and based on observed durations under
+# sequential execution (no NPU/CPU contention).
+#
+# These are NOT quality gates — use test_duration_metric for observability.
+# Override any value via env: DX_E2E_TIMEOUT, DX_TIMEOUT_<SCENARIO>.
 # ---------------------------------------------------------------------------
 DEFAULT_TIMEOUT = int(os.environ.get("DX_E2E_TIMEOUT", "7200"))
+
+SCENARIO_TIMEOUTS: Dict[str, int] = {
+    "compiler":           int(os.environ.get("DX_TIMEOUT_COMPILER",           "1800")),  # 30m
+    "dx_app":             int(os.environ.get("DX_TIMEOUT_DX_APP",             "900")),   # 15m
+    "dx_stream":          int(os.environ.get("DX_TIMEOUT_DX_STREAM",          "900")),   # 15m
+    "dx_stream_cascaded": int(os.environ.get("DX_TIMEOUT_DX_STREAM_CASCADED", "1200")),  # 20m
+    "runtime":            int(os.environ.get("DX_TIMEOUT_RUNTIME",            "1200")),  # 20m
+    "suite":              int(os.environ.get("DX_TIMEOUT_SUITE",              "2400")),  # 40m
+}
+
+
+def _resolve_scenario_timeout(scenario_key: str, override: Optional[int]) -> int:
+    """Return timeout (seconds) for *scenario_key*, honoring explicit override.
+
+    A caller-provided value different from DEFAULT_TIMEOUT is treated as an
+    explicit per-call override and used as-is. Otherwise the SCENARIO_TIMEOUTS
+    dict (env-overridable) is consulted, falling back to DEFAULT_TIMEOUT.
+    """
+    if override is not None and override != DEFAULT_TIMEOUT:
+        return override
+    return SCENARIO_TIMEOUTS.get(scenario_key, DEFAULT_TIMEOUT)
 
 # Compile duration acceptability threshold (REC-W1) — suite scenarios fail if compilation
 # exceeds this limit. 2400s accounts for parallel compilation workloads (4 agents on same
@@ -675,6 +701,7 @@ class CopilotRunnerAutopilot:
         Returns:
             ScenarioResult with exit code, output, and auto-detected output dirs.
         """
+        timeout = _resolve_scenario_timeout(scenario_key, timeout)
         # Session log location
         log_dir = session_log_dir or Path(os.environ.get("TMPDIR", "/tmp"))
         log_dir.mkdir(parents=True, exist_ok=True)
@@ -1110,6 +1137,7 @@ class CursorRunnerAutopilot:
         Returns:
             ScenarioResult with exit code, output, and auto-detected output dirs.
         """
+        timeout = _resolve_scenario_timeout(scenario_key, timeout)
         log_dir = session_log_dir or Path(os.environ.get("TMPDIR", "/tmp"))
         log_dir.mkdir(parents=True, exist_ok=True)
 
@@ -1433,6 +1461,7 @@ class OpenCodeRunnerAutopilot:
         Returns:
             ScenarioResult with exit code, output, and auto-detected output dirs.
         """
+        timeout = _resolve_scenario_timeout(scenario_key, timeout)
         log_dir = session_log_dir or Path(os.environ.get("TMPDIR", "/tmp"))
         log_dir.mkdir(parents=True, exist_ok=True)
 
@@ -1821,6 +1850,7 @@ class ClaudeCodeRunnerAutopilot:
         Returns:
             ScenarioResult with exit code, output, and auto-detected output dirs.
         """
+        timeout = _resolve_scenario_timeout(scenario_key, timeout)
         log_dir = session_log_dir or Path(os.environ.get("TMPDIR", "/tmp"))
         log_dir.mkdir(parents=True, exist_ok=True)
 
@@ -2814,6 +2844,7 @@ class CodexRunnerAutopilot:
         Returns:
             ScenarioResult with exit code, output, and auto-detected output dirs.
         """
+        timeout = _resolve_scenario_timeout(scenario_key, timeout)
         log_dir = session_log_dir or (SUITE_ROOT / '.codex-logs')
         log_dir.mkdir(parents=True, exist_ok=True)
 
@@ -3174,7 +3205,11 @@ def pytest_sessionfinish(session, exitstatus):
             marker_suffix = f"_{clean}"
 
     session_id = time.strftime("%Y%m%d_%H%M%S") + f"_{uuid.uuid4().hex[:6]}{marker_suffix}"
-    results_dir = AGENTIC_E2E_ARTIFACTS_BASE / "results" / session_id
+    # Run-id scoping: when invoked by e2e_runner.py, results are nested under
+    # results/<run_id>/<session_id>/ so each batch is cleanly separated.
+    # Manual pytest invocations (no DX_RUN_ID) fall under results/manual/.
+    run_id = os.environ.get("DX_RUN_ID", "manual").strip() or "manual"
+    results_dir = AGENTIC_E2E_ARTIFACTS_BASE / "results" / run_id / session_id
     results_dir.mkdir(parents=True, exist_ok=True)
 
     manifest = {

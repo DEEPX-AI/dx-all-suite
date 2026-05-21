@@ -51,11 +51,16 @@ DX-ALL-SUITE 프로젝트용 에이전트 개발 테스트 모음입니다. AI �
 
 ### e2e_runner.py
 
-5개 도구를 병렬로 N 라운드 실행하며, 상태 추적, 중단/재개, 상세 상태 확인 기능을 제공합니다.
+5개 도구를 N 라운드 실행하며, 상태 추적, 중단/재개, 상세 상태 확인 기능을 제공합니다.
+기본은 도구 간 **병렬** 실행이지만 `--sequential`로 한 번에 한 도구씩 순차 실행할 수 있습니다.
 
 ```bash
-# 모든 도구 5 라운드 병렬 실행
+# 모든 도구 5 라운드 병렬 실행 (기본)
 python .deepx/tests/e2e_runner.py --rounds 5
+
+# 순차 실행 — 한 번에 한 도구만 실행 (NPU/CPU 경합 제거)
+#   → 도구별 duration이 단독 실행 baseline에 가까워져 cost/quality 분석 신뢰도 향상
+python .deepx/tests/e2e_runner.py --rounds 5 --sequential
 
 # 특정 도구만 실행
 python .deepx/tests/e2e_runner.py --rounds 5 --tools claude-code,copilot-cli
@@ -72,7 +77,7 @@ python .deepx/tests/e2e_runner.py --rounds 10 --resume --run-id 20260521_100000
 # Run ID 목록 조회
 python .deepx/tests/e2e_runner.py --list
 
-# 상세 상태 확인 (라운드/시나리오별 timing 포함)
+# 상세 상태 확인 (mode/라운드/시나리오별 timing 포함)
 python .deepx/tests/e2e_runner.py --status
 python .deepx/tests/e2e_runner.py --status --run-id 20260521_135734
 
@@ -87,6 +92,32 @@ python .deepx/tests/e2e_runner.py --abort --force   # 확인 프롬프트 생략
 python .deepx/tests/e2e_runner.py --cleanup --round 3
 python .deepx/tests/e2e_runner.py --cleanup --round 3 --tool claude-code
 python .deepx/tests/e2e_runner.py --cleanup --round 2,3,4
+```
+
+**Parallel vs Sequential 비교:**
+
+| 모드 | 도구 동시 실행 수 | 사용 사례 |
+|------|------------------|----------|
+| (기본) | N (도구 개수, e.g. 5) | 빠른 batch 실행. 신뢰성보다 throughput |
+| `--sequential` | 1 | NPU/CPU 경합 제거. 도구별 정확한 측정/분석 필요 시 |
+
+`--status` 결과의 `Mode:` 필드와 `state.json`의 `"mode"` 필드로 어떤 모드로 실행됐는지 확인 가능합니다.
+
+**시나리오별 timeout** (도구 subprocess의 `subprocess.run(timeout=...)` 한도):
+
+| 시나리오 | 기본값 | 환경변수 override |
+|---------|--------|------------------|
+| compiler           | 1800s (30m) | `DX_TIMEOUT_COMPILER` |
+| dx_app             | 900s (15m)  | `DX_TIMEOUT_DX_APP` |
+| dx_stream          | 900s (15m)  | `DX_TIMEOUT_DX_STREAM` |
+| dx_stream_cascaded | 1200s (20m) | `DX_TIMEOUT_DX_STREAM_CASCADED` |
+| runtime            | 1200s (20m) | `DX_TIMEOUT_RUNTIME` |
+| suite              | 2400s (40m) | `DX_TIMEOUT_SUITE` |
+| (fallback)         | 7200s       | `DX_E2E_TIMEOUT` |
+
+기본값은 **sequential 실행 baseline 기준**으로 설정되어 있습니다. 병렬 모드는 NPU/CPU 경합으로 인해 더 긴 시간이 필요할 수 있어, 필요 시 환경변수로 늘려서 사용하세요:
+```bash
+DX_TIMEOUT_COMPILER=3600 DX_TIMEOUT_SUITE=4800 python .deepx/tests/e2e_runner.py --rounds 5
 ```
 
 **중단 및 재개:**
@@ -124,6 +155,7 @@ python .deepx/tests/e2e_runner.py --cleanup --round 2,3,4
   "created_at": "2026-05-21T04:57:34Z",
   "target_rounds": 5,
   "thinking": true,
+  "mode": "parallel",
   "runner_pid": 67890,
   "tools": ["claude-code", "copilot-cli", ...],
   "tool_states": {
@@ -142,7 +174,44 @@ python .deepx/tests/e2e_runner.py --cleanup --round 2,3,4
 **Resume 로직 우선순위:**
 1. `--run-id` 지정 시: 해당 state.json 로드
 2. 미지정 시: `runner_state/latest` symlink로 로드
-3. fallback: `dx-agentic-dev/e2e-tests/results/` 스캔하여 기존 결과로 state 구성
+3. fallback: 새 run_id로 빈 state 생성 (legacy flat results는 `migrate_results_to_run_id.py`로 이주 후 사용)
+
+### results/ 디렉터리 레이아웃 (run-id 기반)
+
+각 run의 결과물은 run-id 디렉터리 아래에 격리됩니다 — run 간 결과가 섞이지 않아 분석 정합성이 보장됩니다.
+
+```
+dx-agentic-dev/e2e-tests/results/
+├── 20260521_135734/                       ← e2e_runner의 run_id
+│   ├── 20260521_174857_e25076_claude-code-autopilot/
+│   │   ├── manifest.json
+│   │   ├── SUMMARY.md
+│   │   └── ...
+│   └── 20260521_155006_824828_copilot-cli-autopilot/
+├── 20260520_193327/                       ← 다른 run
+│   └── ...
+├── manual/                                ← 수동 pytest 실행 (DX_RUN_ID 미설정)
+│   └── 20260519_103045_xxxxxx_claude-code-autopilot/
+└── legacy/                                ← 기존 flat 결과를 마이그레이션
+    └── 20260511_194755_d31c86_cursor-cli-autopilot/
+```
+
+**구분 메커니즘:** `e2e_runner.py`가 subprocess 실행 시 `DX_RUN_ID=<run_id>` env를 전파 → `conftest.py:pytest_sessionfinish`가 이를 읽어 `results/<run_id>/` 아래에 결과 디렉터리 생성. 수동 pytest 실행(env 미설정)은 `results/manual/`로 분리.
+
+### 기존 flat results/ 마이그레이션
+
+```bash
+# Dry-run으로 이동 계획 미리보기
+python .deepx/tests/migrate_results_to_run_id.py
+
+# 실제 이동 (run-id 매칭 + 미매칭 → legacy/)
+python .deepx/tests/migrate_results_to_run_id.py --apply
+
+# 미매칭은 legacy/로 옮기지 않고 그대로 두기
+python .deepx/tests/migrate_results_to_run_id.py --apply --skip-legacy
+```
+
+스크립트는 `runner_state/*/state.json`의 `completed[*].result_dir_name`을 통해 매핑을 구성하며, 매칭되지 않은 디렉터리는 `legacy/`로 이동합니다. 분석기는 두 레이아웃을 모두 지원하므로 마이그레이션은 권장 사항이지 필수가 아닙니다.
 
 ### e2e_monitor.py
 
@@ -215,15 +284,34 @@ E2E 실행 완료 후 아래 명령으로 종합 분석 리포트를 생성합�
 ```bash
 cd .deepx/tests/agentic_analyzer
 
-# 기본 옵션 (가설 생성 + 정량 비교 + runnability + 정성 insight + 가설 비교 분석)
+# 기본 옵션 — 모든 run_id 합산 (가설 생성 + 정량 비교 + runnability + 정성 insight + 가설 비교)
+#   출력: analyzer_reports/_all/<timestamp>/
 python analyze.py
 
-# 특정 라운드만 (예: 1~5 라운드)
-python analyze.py --rounds 1,2,3,4,5
+# 단일 run-id만 분석
+#   출력: analyzer_reports/<run_id>/<timestamp>/
+python analyze.py --run-id 20260521_135734
 
-# 특정 도구만
-python analyze.py --tools claude-code,copilot-cli
+# 여러 run-id 합산 분석 (서로 다른 batch를 한 리포트로 통합)
+#   출력: analyzer_reports/multi_<sha8>/<timestamp>/  (+ multi_manifest.json)
+python analyze.py --run-id 20260521_135734 --run-id 20260520_193327
+
+# 특정 라운드/도구 필터와 조합
+python analyze.py --run-id 20260521_135734 --round 1 --round 2
+python analyze.py --tool claude-code,copilot-cli
 ```
+
+**analyzer_reports/ 디렉터리 레이아웃:**
+
+```
+dx-agentic-dev/e2e-tests/analyzer_reports/
+├── _all/<timestamp>/                     ← --run-id 미지정 (모든 run 합산)
+├── 20260521_135734/<timestamp>/          ← --run-id 단일
+├── multi_a3f2b1c4/<timestamp>/           ← --run-id 다중 (SHA-8 해시)
+│   └── multi_manifest.json               ← 포함된 run-id 목록
+```
+
+**라운드 인덱싱:** 라운드 인덱스는 `(run_id, tool)` 단위로 1부터 부여됩니다. 서로 다른 run의 R1은 충돌하지 않으며, 다중 run-id 합산 리포트에서는 per-session 상세 표에 `Run` 컬럼이 자동으로 추가됩니다.
 
 ---
 

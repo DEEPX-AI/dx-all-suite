@@ -125,7 +125,14 @@ class AbortRequested(Exception):
 class RunState:
     """Manages runner_state/<run_id>/state.json and provides thread-safe updates."""
 
-    def __init__(self, run_id: str, target_rounds: int, tools: List[str], thinking: bool):
+    def __init__(
+        self,
+        run_id: str,
+        target_rounds: int,
+        tools: List[str],
+        thinking: bool,
+        mode: str = "parallel",
+    ):
         self.run_id = run_id
         self.path = RUNNER_STATE_DIR / run_id / "state.json"
         self.log_dir = RUNNER_STATE_DIR / run_id / "logs"
@@ -134,6 +141,7 @@ class RunState:
             "created_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
             "target_rounds": target_rounds,
             "thinking": thinking,
+            "mode": mode,
             "tools": tools,
             "runner_pid": None,
             "status": "pending",
@@ -261,6 +269,7 @@ class RunState:
 
 def _normalize_state_data(data: dict) -> None:
     data.setdefault("thinking", False)
+    data.setdefault("mode", "parallel")
     data.setdefault("tools", ALL_TOOLS)
     data.setdefault("runner_pid", None)
     data.setdefault("status", "pending")
@@ -277,13 +286,28 @@ def _normalize_state_data(data: dict) -> None:
 # Detect completed rounds from results/ (used for --resume without state.json)
 # ---------------------------------------------------------------------------
 
-def detect_completed_from_results(tools: List[str], target_rounds: int) -> Dict[str, List[dict]]:
-    """Scan results/ dir and group completed rounds per tool by timestamp order."""
+def run_results_dir(run_id: str) -> Path:
+    """Return the per-run results directory (results/<run_id>/)."""
+    return RESULTS_ROOT / run_id
+
+
+def detect_completed_from_results(
+    tools: List[str], target_rounds: int, run_id: Optional[str] = None,
+) -> Dict[str, List[dict]]:
+    """Scan results/<run_id>/ and group completed rounds per tool by timestamp order.
+
+    If run_id is None, returns empty dict — the new run-id layout requires an
+    explicit run scope. Legacy flat results should be migrated via
+    migrate_results_to_run_id.py before --resume.
+    """
     per_tool: Dict[str, List[dict]] = {t: [] for t in tools}
-    if not RESULTS_ROOT.exists():
+    if not run_id:
+        return per_tool
+    run_dir = run_results_dir(run_id)
+    if not run_dir.exists():
         return per_tool
 
-    entries = sorted(RESULTS_ROOT.iterdir(), key=lambda p: p.name)
+    entries = sorted(run_dir.iterdir(), key=lambda p: p.name)
     for entry in entries:
         if not entry.is_dir():
             continue
@@ -342,11 +366,12 @@ def _collect_artifact_dirs(manifest_path: Path) -> List[str]:
     return dirs
 
 
-def _find_new_result_dir(tool: str, snapshot: set) -> Optional[str]:
-    """Return name of the new result dir created after *snapshot*."""
-    if not RESULTS_ROOT.exists():
+def _find_new_result_dir(tool: str, snapshot: set, run_id: str) -> Optional[str]:
+    """Return name of the new result dir created in results/<run_id>/ after *snapshot*."""
+    run_dir = run_results_dir(run_id)
+    if not run_dir.exists():
         return None
-    for entry in RESULTS_ROOT.iterdir():
+    for entry in run_dir.iterdir():
         if entry.is_dir() and entry not in snapshot:
             if f"{tool}-autopilot" in entry.name or tool.replace("-", "_") + "_autopilot" in entry.name:
                 return entry.name
@@ -395,8 +420,13 @@ def run_tool_rounds(
     log_dir.mkdir(parents=True, exist_ok=True)
 
     env = os.environ.copy()
+    # Propagate run_id so conftest.pytest_sessionfinish writes results into
+    # results/<run_id>/<session_id>/ instead of the flat results/ layout.
+    env["DX_RUN_ID"] = state.run_id
     if thinking:
         env.update(THINKING_ENV.get(tool, {}))
+
+    run_dir = run_results_dir(state.run_id)
 
     while state.remaining(tool) > 0:
         # Check sentinel BEFORE starting next round.
@@ -425,7 +455,7 @@ def run_tool_rounds(
         _log(f"[{tool}] Round {round_num}/{total} START", log_path)
         state.mark_start(tool, round_num)
 
-        results_snapshot: set = set(RESULTS_ROOT.iterdir()) if RESULTS_ROOT.exists() else set()
+        results_snapshot: set = set(run_dir.iterdir()) if run_dir.exists() else set()
         cmd = ["bash", str(TEST_SH), TOOL_CMD[tool]]
 
         with open(log_path, "a", encoding="utf-8") as flog:
@@ -459,10 +489,10 @@ def run_tool_rounds(
             state.data["tool_states"][tool]["pid"] = None
             state.save()
 
-        result_dir_name = _find_new_result_dir(tool, results_snapshot)
+        result_dir_name = _find_new_result_dir(tool, results_snapshot, state.run_id)
         artifact_dirs: List[str] = []
         if result_dir_name:
-            artifact_dirs = _collect_artifact_dirs(RESULTS_ROOT / result_dir_name / "manifest.json")
+            artifact_dirs = _collect_artifact_dirs(run_dir / result_dir_name / "manifest.json")
 
         _log(f"[{tool}] Round {round_num}/{total} DONE (exit={exit_code})", log_path)
         state.mark_done(tool, round_num, result_dir_name, exit_code, artifact_dirs)
@@ -498,10 +528,17 @@ def run_all(
     thinking: bool,
     resume: bool,
     run_id: Optional[str],
+    sequential: bool = False,
 ) -> int:
-    """Launch all tools in parallel; return overall exit code (0 = all passed)."""
+    """Launch tools according to mode (parallel default, --sequential for one-at-a-time).
+
+    Sequential mode runs each tool to completion before the next starts, eliminating
+    NPU/CPU contention so per-tool duration metrics reflect single-tool baseline.
+    Returns overall exit code (0 = all passed).
+    """
+    mode = "sequential" if sequential else "parallel"
     _abort_event.clear()
-    state = _resolve_state(tools, target_rounds, thinking, resume, run_id)
+    state = _resolve_state(tools, target_rounds, thinking, resume, run_id, mode=mode)
     log_dir = state.log_dir
 
     for fname in ["STOP", "ABORT"]:
@@ -525,7 +562,7 @@ def run_all(
 
     print(f"\n{'='*60}")
     print(f"  E2E Runner  run_id={state.run_id}")
-    print(f"  Tools: {', '.join(tools)}")
+    print(f"  Tools: {', '.join(tools)}  (mode: {mode})")
     print(f"  Target: {target_rounds} rounds  Thinking: {thinking}")
     for t in tools:
         done = state.completed_count(t)
@@ -538,7 +575,10 @@ def run_all(
     saw_abort = False
     saw_stop = False
 
-    with ThreadPoolExecutor(max_workers=len(tools)) as pool:
+    # Sequential: one worker → tools run one at a time, eliminating NPU/CPU
+    # contention. Parallel (default): one worker per tool → original behavior.
+    pool_size = 1 if sequential else max(1, len(tools))
+    with ThreadPoolExecutor(max_workers=pool_size) as pool:
         for tool in tools:
             if state.remaining(tool) > 0:
                 f = pool.submit(run_tool_rounds, tool, state, thinking, log_dir)
@@ -595,8 +635,13 @@ def _resolve_state(
     thinking: bool,
     resume: bool,
     run_id: Optional[str],
+    mode: str = "parallel",
 ) -> RunState:
-    """Load existing state (--resume) or create a fresh one."""
+    """Load existing state (--resume) or create a fresh one.
+
+    On resume, the loaded state's existing mode is preserved (cannot change mode
+    of a running batch). On fresh run, the supplied mode is recorded.
+    """
     if resume:
         # Try explicit run_id first
         if run_id:
@@ -620,11 +665,15 @@ def _resolve_state(
             state.save()
             return state
 
-        # Fallback: scan results/ dir and build state from existing dirs
-        print("No existing state found; scanning results/ to detect completed rounds...")
-        per_tool = detect_completed_from_results(tools, target_rounds)
-        new_run_id = _make_run_id()
-        state = RunState(new_run_id, target_rounds, tools, thinking)
+        # Fallback: scan results/<run_id>/ if an explicit run_id was given;
+        # otherwise create a fresh run. (Legacy flat results/ recovery removed
+        # — use migrate_results_to_run_id.py to convert before --resume.)
+        print("No existing state found; creating fresh run state.")
+        per_tool: Dict[str, List[dict]] = {t: [] for t in tools}
+        if run_id:
+            per_tool = detect_completed_from_results(tools, target_rounds, run_id=run_id)
+        new_run_id = run_id or _make_run_id()
+        state = RunState(new_run_id, target_rounds, tools, thinking, mode=mode)
         for t in tools:
             state.data["tool_states"][t]["completed"] = per_tool.get(t, [])
             done = len(state.data["tool_states"][t]["completed"])
@@ -635,7 +684,7 @@ def _resolve_state(
 
     # Fresh run
     new_run_id = _make_run_id()
-    state = RunState(new_run_id, target_rounds, tools, thinking)
+    state = RunState(new_run_id, target_rounds, tools, thinking, mode=mode)
     state.data["runner_pid"] = os.getpid()
     state.save()
     return state
@@ -677,7 +726,7 @@ def cleanup_rounds(round_nums: List[int], tools: List[str], run_id: Optional[str
         remaining_completed = []
         for entry in ts.get("completed", []):
             if entry["round"] in round_nums:
-                _delete_round_artifacts(tool, entry)
+                _delete_round_artifacts(tool, entry, run_id=state.run_id)
                 deleted_any = True
             else:
                 remaining_completed.append(entry)
@@ -694,7 +743,7 @@ def cleanup_rounds(round_nums: List[int], tools: List[str], run_id: Optional[str
 
 
 
-def _delete_round_artifacts(tool: str, entry: dict) -> None:
+def _delete_round_artifacts(tool: str, entry: dict, run_id: Optional[str] = None) -> None:
     rn = entry["round"]
     result_dir_name = entry.get("result_dir_name")
     artifact_dirs = entry.get("artifact_dirs", [])
@@ -709,22 +758,31 @@ def _delete_round_artifacts(tool: str, entry: dict) -> None:
             print(f"    (not found): {p}")
 
     if result_dir_name:
-        rd = RESULTS_ROOT / result_dir_name
-        if rd.exists():
-            shutil.rmtree(rd, ignore_errors=True)
-            print(f"    deleted result dir: {rd.name}")
+        # Prefer the run-id-scoped path; fall back to flat layout for legacy.
+        candidates = []
+        if run_id:
+            candidates.append(run_results_dir(run_id) / result_dir_name)
+        candidates.append(RESULTS_ROOT / result_dir_name)  # legacy / pre-migration
+        for rd in candidates:
+            if rd.exists():
+                shutil.rmtree(rd, ignore_errors=True)
+                print(f"    deleted result dir: {rd}")
+                break
 
 
 
 def _cleanup_from_results(round_nums: List[int], tools: List[str]) -> int:
-    """Cleanup without state.json: scan results/ and delete by ordinal round number."""
-    per_tool = detect_completed_from_results(tools, max(round_nums) + 1)
-    for tool in tools:
-        entries = per_tool.get(tool, [])
-        for entry in entries:
-            if entry["round"] in round_nums:
-                _delete_round_artifacts(tool, entry)
-    return 0
+    """Cleanup without state.json: requires a run_id to know which subdir to scan.
+
+    With the run-id layout, results/ is no longer flat — bare --cleanup without
+    state.json or --run-id cannot determine which results dir to inspect.
+    """
+    print(
+        "ERROR: --cleanup without an active state.json requires --run-id "
+        "(results/ is now organized by run_id).",
+        file=sys.stderr,
+    )
+    return 2
 
 
 
@@ -956,7 +1014,7 @@ def show_status(run_id: Optional[str]) -> None:
         # Plain text fallback (original format)
         print(f"\nRun ID     : {d['run_id']}")
         print(f"Created    : {d.get('created_at', '?')}")
-        print(f"Target     : {target} rounds  Thinking: {d.get('thinking', False)}")
+        print(f"Target     : {target} rounds  Thinking: {d.get('thinking', False)}  Mode: {d.get('mode', 'parallel')}")
         print(f"Status     : {overall_status}")
         print(f"Runner PID : {d.get('runner_pid') or '—'}")
         print(f"State      : {state_path}\n")
@@ -1132,6 +1190,11 @@ def build_parser() -> argparse.ArgumentParser:
         help=f"Comma-separated tool list (default: all). Options: {', '.join(ALL_TOOLS)}",
     )
     p.add_argument("--thinking", action="store_true", help="Enable thinking/high-reasoning mode for each tool")
+    p.add_argument(
+        "--sequential",
+        action="store_true",
+        help="Run tools one-at-a-time (no NPU/CPU contention). Default: parallel across tools.",
+    )
     p.add_argument("--resume", action="store_true", help="Auto-detect completed rounds and continue to target")
     p.add_argument("--run-id", dest="run_id", help="Specify a previous run ID")
     p.add_argument("--status", action="store_true", help="Show current run status and exit")
@@ -1179,7 +1242,14 @@ def main() -> int:
         round_nums = [int(r.strip()) for r in args.round_nums.split(",") if r.strip().isdigit()]
         return cleanup_rounds(round_nums, tools, args.run_id)
 
-    return run_all(tools, args.rounds, args.thinking, args.resume, args.run_id)
+    return run_all(
+        tools,
+        args.rounds,
+        args.thinking,
+        args.resume,
+        args.run_id,
+        sequential=args.sequential,
+    )
 
 
 if __name__ == "__main__":

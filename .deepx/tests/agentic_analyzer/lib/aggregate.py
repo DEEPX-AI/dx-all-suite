@@ -33,6 +33,8 @@ class SessionEval:
     has_done: bool
     tool_call_count: int
     transcript_length: int
+    # Run-id grouping (propagated from ResultDir.run_id)
+    run_id: str = "legacy"
     # Token usage (now extracted per-tool)
     input_tokens: int = 0
     output_tokens: int = 0
