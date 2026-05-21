@@ -435,23 +435,106 @@ def _terminate_process(proc: subprocess.Popen, log_path: Path, tool: str, round_
             pass
 
 
-def run_tool_rounds(
+def _run_single_round(
     tool: str,
     state: RunState,
-    thinking: bool,
-    log_dir: Path,
-) -> None:
-    """Run remaining rounds for *tool* sequentially, updating state after each."""
-    log_path = log_dir / f"{tool}.log"
-    log_dir.mkdir(parents=True, exist_ok=True)
+    env: Dict[str, str],
+    run_dir: Path,
+    log_path: Path,
+    round_num: int,
+) -> int:
+    """Execute one round for *tool*. Updates state via mark_start/mark_done.
 
+    Raises AbortRequested if the ABORT sentinel fires mid-round (after marking
+    this tool as aborted in state). Returns the subprocess exit code on normal
+    completion. Caller is responsible for STOP/ABORT pre-checks.
+    """
+    total = state.target_rounds
+    _log(f"[{tool}] Round {round_num}/{total} START", log_path)
+    state.mark_start(tool, round_num)
+
+    results_snapshot: set = set(run_dir.iterdir()) if run_dir.exists() else set()
+    cmd = ["bash", str(TEST_SH), TOOL_CMD[tool]]
+
+    with open(log_path, "a", encoding="utf-8") as flog:
+        flog.write(f"\n{'='*60}\n[{_now()}] {tool} Round {round_num}/{total} START\n{'='*60}\n")
+        flog.flush()
+        proc = subprocess.Popen(
+            cmd,
+            cwd=str(REPO_ROOT),
+            env=env,
+            stdout=flog,
+            stderr=subprocess.STDOUT,
+            # New session → new process group, so _terminate_process()
+            # can killpg() the entire bash → pytest → agent-CLI tree on abort.
+            start_new_session=True,
+        )
+
+    with _state_lock:
+        state.data["tool_states"][tool]["pid"] = proc.pid
+        state.save()
+
+    # Hoist the ABORT path out of the loop and emit a single diagnostic so
+    # we can confirm the polling loop is actually entered when --abort is
+    # later invoked.
+    abort_path = state.path.parent / "ABORT"
+    _log(
+        f"[{tool}] Polling PID {proc.pid} (PGID={proc.pid}) for completion. "
+        f"ABORT sentinel: {abort_path}",
+        log_path,
+    )
+    while proc.poll() is None:
+        time.sleep(2)
+        if _abort_event.is_set() or abort_path.exists():
+            _log(f"[{tool}] ABORT detected during round {round_num} polling", log_path)
+            _terminate_process(proc, log_path, tool, round_num)
+            with _state_lock:
+                state.data["tool_states"][tool]["in_progress"] = None
+                state.data["tool_states"][tool]["pid"] = None
+                state.data["tool_states"][tool]["status"] = "aborted"
+                state.save()
+            raise AbortRequested()
+
+    exit_code = proc.returncode
+    with _state_lock:
+        state.data["tool_states"][tool]["pid"] = None
+        state.save()
+
+    result_dir_name = _find_new_result_dir(tool, results_snapshot, state.run_id)
+    artifact_dirs: List[str] = []
+    if result_dir_name:
+        artifact_dirs = _collect_artifact_dirs(run_dir / result_dir_name / "manifest.json")
+
+    _log(f"[{tool}] Round {round_num}/{total} DONE (exit={exit_code})", log_path)
+    state.mark_done(tool, round_num, result_dir_name, exit_code, artifact_dirs)
+    return exit_code
+
+
+def _tool_env(state: RunState, tool: str, thinking: bool) -> Dict[str, str]:
+    """Build subprocess env for *tool*: inherits parent + DX_RUN_ID + thinking overrides."""
     env = os.environ.copy()
     # Propagate run_id so conftest.pytest_sessionfinish writes results into
     # results/<run_id>/<session_id>/ instead of the flat results/ layout.
     env["DX_RUN_ID"] = state.run_id
     if thinking:
         env.update(THINKING_ENV.get(tool, {}))
+    return env
 
+
+def run_tool_rounds(
+    tool: str,
+    state: RunState,
+    thinking: bool,
+    log_dir: Path,
+) -> None:
+    """Tool-major: run all remaining rounds for *tool* back-to-back.
+
+    Used by parallel mode (one thread per tool). Sequential mode iterates
+    round-major via run_round_major() instead.
+    """
+    log_path = log_dir / f"{tool}.log"
+    log_dir.mkdir(parents=True, exist_ok=True)
+    env = _tool_env(state, tool, thinking)
     run_dir = run_results_dir(state.run_id)
 
     while state.remaining(tool) > 0:
@@ -477,69 +560,94 @@ def run_tool_rounds(
             raise
 
         round_num = state.next_round_num(tool)
-        total = state.target_rounds
-        _log(f"[{tool}] Round {round_num}/{total} START", log_path)
-        state.mark_start(tool, round_num)
-
-        results_snapshot: set = set(run_dir.iterdir()) if run_dir.exists() else set()
-        cmd = ["bash", str(TEST_SH), TOOL_CMD[tool]]
-
-        with open(log_path, "a", encoding="utf-8") as flog:
-            flog.write(f"\n{'='*60}\n[{_now()}] {tool} Round {round_num}/{total} START\n{'='*60}\n")
-            flog.flush()
-            proc = subprocess.Popen(
-                cmd,
-                cwd=str(REPO_ROOT),
-                env=env,
-                stdout=flog,
-                stderr=subprocess.STDOUT,
-                # New session → new process group, so _terminate_process()
-                # can killpg() the entire bash → pytest → agent-CLI tree on abort.
-                start_new_session=True,
-            )
-
-        with _state_lock:
-            state.data["tool_states"][tool]["pid"] = proc.pid
-            state.save()
-
-        # Hoist the ABORT path out of the loop and emit a single diagnostic so
-        # we can confirm the polling loop is actually entered when --abort is
-        # later invoked.
-        abort_path = state.path.parent / "ABORT"
-        _log(
-            f"[{tool}] Polling PID {proc.pid} (PGID={proc.pid}) for completion. "
-            f"ABORT sentinel: {abort_path}",
-            log_path,
-        )
-        while proc.poll() is None:
-            time.sleep(2)
-            if _abort_event.is_set() or abort_path.exists():
-                _log(f"[{tool}] ABORT detected during round {round_num} polling", log_path)
-                _terminate_process(proc, log_path, tool, round_num)
-                with _state_lock:
-                    state.data["tool_states"][tool]["in_progress"] = None
-                    state.data["tool_states"][tool]["pid"] = None
-                    state.data["tool_states"][tool]["status"] = "aborted"
-                    state.save()
-                raise AbortRequested()
-
-        exit_code = proc.returncode
-        with _state_lock:
-            state.data["tool_states"][tool]["pid"] = None
-            state.save()
-
-        result_dir_name = _find_new_result_dir(tool, results_snapshot, state.run_id)
-        artifact_dirs: List[str] = []
-        if result_dir_name:
-            artifact_dirs = _collect_artifact_dirs(run_dir / result_dir_name / "manifest.json")
-
-        _log(f"[{tool}] Round {round_num}/{total} DONE (exit={exit_code})", log_path)
-        state.mark_done(tool, round_num, result_dir_name, exit_code, artifact_dirs)
+        _run_single_round(tool, state, env, run_dir, log_path, round_num)
 
     _log(f"[{tool}] All {state.target_rounds} rounds complete.", log_path)
     with _state_lock:
         state.data["tool_states"][tool]["status"] = "done"
         state.save()
+
+
+def run_round_major(
+    tools: List[str],
+    state: RunState,
+    thinking: bool,
+    log_dir: Path,
+) -> bool:
+    """Sequential round-major iteration: R1 across all tools, then R2 across all tools, etc.
+
+    Distributes per-tool session quota across rounds so a quota wall on one
+    tool affects only that tool's later rounds (not the whole batch). Also
+    enables clean mid-run partial reports — after iteration k completes,
+    every tool has exactly the same number of rounds banked.
+
+    Sentinel handling:
+      - STOP fired between rounds: graceful — currently active tool finishes
+        its round, remaining tools' remaining rounds are marked "stopped".
+      - ABORT fired (any time): current tool's active round is killed and
+        marked aborted; remaining tools' remaining rounds are marked aborted.
+
+    Returns True if all rounds completed with exit_code 0 across the board,
+    False otherwise.
+    """
+    target_rounds = state.target_rounds
+    log_dir.mkdir(parents=True, exist_ok=True)
+    run_dir = run_results_dir(state.run_id)
+    overall_ok = True
+
+    def _mark_remaining(status: str) -> None:
+        with _state_lock:
+            for t in tools:
+                ts = state.data["tool_states"][t]
+                if state.remaining(t) > 0 and ts.get("status") not in ("done", "aborted"):
+                    ts["status"] = status
+            state.save()
+
+    for round_idx in range(1, target_rounds + 1):
+        for tool in tools:
+            log_path = log_dir / f"{tool}.log"
+            # Resume safety: skip if this tool already has this round banked.
+            if state.completed_count(tool) >= round_idx:
+                continue
+            # Check sentinel between rounds so --stop is honored mid-batch.
+            try:
+                _check_sentinel(state)
+            except StopRequested:
+                _log(
+                    f"[runner] STOP requested at R{round_idx} / {tool}. "
+                    f"Marking unstarted tools as stopped.",
+                    log_path,
+                )
+                _mark_remaining("stopped")
+                return overall_ok
+            except AbortRequested:
+                _log(f"[runner] ABORT requested at R{round_idx} / {tool}.", log_path)
+                _mark_remaining("aborted")
+                return False
+
+            env = _tool_env(state, tool, thinking)
+            try:
+                exit_code = _run_single_round(tool, state, env, run_dir, log_path, round_idx)
+                if exit_code != 0:
+                    overall_ok = False
+            except AbortRequested:
+                # _run_single_round already marked this tool as aborted.
+                _log(
+                    f"[runner] ABORT during {tool} R{round_idx}. "
+                    f"Marking remaining tools aborted.",
+                    log_path,
+                )
+                _mark_remaining("aborted")
+                return False
+
+    # All rounds completed naturally — mark each tool with no remaining rounds as done.
+    with _state_lock:
+        for t in tools:
+            ts = state.data["tool_states"][t]
+            if state.remaining(t) == 0 and ts.get("status") != "done":
+                ts["status"] = "done"
+        state.save()
+    return overall_ok
 
 
 def _log(msg: str, log_path: Path) -> None:
@@ -610,44 +718,61 @@ def run_all(
         print(f"    {t}: {done} done, {rem} remaining")
     print(f"{'='*60}\n")
 
-    futures_map = {}
     overall_ok = True
     saw_abort = False
     saw_stop = False
 
-    # Sequential: one worker → tools run one at a time, eliminating NPU/CPU
-    # contention. Parallel (default): one worker per tool → original behavior.
-    pool_size = 1 if sequential else max(1, len(tools))
-    with ThreadPoolExecutor(max_workers=pool_size) as pool:
-        for tool in tools:
-            if state.remaining(tool) > 0:
-                f = pool.submit(run_tool_rounds, tool, state, thinking, log_dir)
-                futures_map[f] = tool
+    if sequential:
+        # Round-major iteration: R1 across all tools, then R2 across all tools.
+        # See run_round_major() docstring for rationale (session quota
+        # distribution + mid-run partial reports).
+        try:
+            overall_ok = run_round_major(tools, state, thinking, log_dir)
+        except Exception as exc:
+            print(f"  [runner] ERROR during round-major iteration: {exc}")
+            overall_ok = False
+        # Inspect tool statuses to detect stop/abort sentinels
+        tool_statuses = {
+            state.data["tool_states"][t].get("status", "pending") for t in tools
+        }
+        if "aborted" in tool_statuses:
+            saw_abort = True
+        if "stopped" in tool_statuses:
+            saw_stop = True
+    else:
+        # Parallel: one worker per tool, each runs all its rounds tool-major
+        # via run_tool_rounds (original behavior).
+        futures_map = {}
+        with ThreadPoolExecutor(max_workers=max(1, len(tools))) as pool:
+            for tool in tools:
+                if state.remaining(tool) > 0:
+                    f = pool.submit(run_tool_rounds, tool, state, thinking, log_dir)
+                    futures_map[f] = tool
 
-        for f in as_completed(futures_map):
-            tool = futures_map[f]
-            try:
-                f.result()
-                completed = state.data["tool_states"][tool]["completed"]
-                failed = sum(1 for r in completed if r["exit_code"] != 0)
-                if failed:
-                    print(f"  [{tool}] {failed} round(s) had non-zero exit.")
+            for f in as_completed(futures_map):
+                tool = futures_map[f]
+                try:
+                    f.result()
+                    completed = state.data["tool_states"][tool]["completed"]
+                    failed = sum(1 for r in completed if r["exit_code"] != 0)
+                    if failed:
+                        print(f"  [{tool}] {failed} round(s) had non-zero exit.")
+                        overall_ok = False
+                    if state.data["tool_states"][tool].get("status") == "stopped":
+                        saw_stop = True
+                except AbortRequested:
+                    print(f"  [{tool}] ABORT requested.")
+                    saw_abort = True
                     overall_ok = False
-                if state.data["tool_states"][tool].get("status") == "stopped":
-                    saw_stop = True
-            except AbortRequested:
-                print(f"  [{tool}] ABORT requested.")
-                saw_abort = True
-                overall_ok = False
-                with _state_lock:
-                    state.data["status"] = "aborted"
-                    state.save()
-            except Exception as exc:
-                print(f"  [{tool}] ERROR: {exc}")
-                overall_ok = False
-                with _state_lock:
-                    state.data["tool_states"][tool]["status"] = "error"
-                    state.save()
+                    with _state_lock:
+                        state.data["status"] = "aborted"
+                        state.save()
+                except Exception as exc:
+                    print(f"  [{tool}] ERROR: {exc}")
+                    overall_ok = False
+                    with _state_lock:
+                        state.data["tool_states"][tool]["status"] = "error"
+                        state.save()
 
     final_status = _derive_overall_status(state, overall_ok, saw_abort, saw_stop)
     with _state_lock:
