@@ -56,6 +56,16 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional
 
+# Optional Rich support for enhanced display
+try:
+    from rich.console import Console as RichConsole
+    from rich.table import Table as RichTable
+    from rich.text import Text as RichText
+    from rich.panel import Panel as RichPanel
+    _HAS_RICH = True
+except ImportError:
+    _HAS_RICH = False
+
 # ---------------------------------------------------------------------------
 # Paths
 # ---------------------------------------------------------------------------
@@ -837,15 +847,23 @@ def show_list() -> None:
         print(
             f"{marker:<7} {d.get('run_id', '?'):<18} {d.get('created_at', '?'):<20} "
             f"{str(d.get('target_rounds', '?')):<10} {str(d.get('thinking', False)):<9} "
-            f"{d.get('status', _derive_list_status(d)):<20} {progress}"
+            f"{_derive_list_status(d):<20} {progress}"
         )
 
 
 
 def _derive_list_status(data: dict) -> str:
+    """Derive overall run status from tool-level statuses.
+
+    Terminal states stored at top-level (done, aborted, stopped) take precedence.
+    Otherwise derive from tool_states.
+    """
+    top = data.get("status")
+    # Only trust top-level if it's a terminal state (set by runner on completion)
+    if top in ("done", "aborted", "stopped"):
+        return top
+    # Derive from tool-level statuses
     statuses = {ts.get("status", "pending") for ts in data.get("tool_states", {}).values()}
-    if data.get("status"):
-        return str(data["status"])
     if "aborted" in statuses:
         return "aborted"
     if "stopped" in statuses:
@@ -869,55 +887,165 @@ def show_status(run_id: Optional[str]) -> None:
 
     state = RunState.load(state_path)
     d = state.data
-    print(f"\nRun ID     : {d['run_id']}")
-    print(f"Created    : {d.get('created_at', '?')}")
-    print(f"Target     : {d['target_rounds']} rounds  Thinking: {d.get('thinking', False)}")
-    print(f"Status     : {d.get('status', '?')}")
-    print(f"Runner PID : {d.get('runner_pid') or '—'}")
-    print(f"State      : {state_path}\n")
+    target = d.get("target_rounds", "?")
+    thinking = "ON" if d.get("thinking") else "OFF"
+    overall_status = _derive_list_status(d)
 
-    print(f"{'Tool':<16} {'Done':>5} {'Fail':>5} {'Status':<14} {'PID':>8} Last result dir")
-    print(f"{'-'*16} {'-'*5} {'-'*5} {'-'*14} {'-'*8} {'-'*40}")
-    for tool in d.get("tools", ALL_TOOLS):
-        ts = d["tool_states"].get(tool, {})
-        completed = ts.get("completed", [])
-        ok = sum(1 for r in completed if r.get("exit_code") == 0)
-        ng = sum(1 for r in completed if r.get("exit_code") != 0)
-        status = ts.get("status", "?")
-        pid = ts.get("pid") or "—"
-        last = completed[-1].get("result_dir_name") if completed else "—"
-        print(f"{tool:<16} {ok:>5} {ng:>5} {status:<14} {str(pid):>8} {last or '—'}")
-    print()
+    if _HAS_RICH:
+        console = RichConsole()
+        header = RichText(
+            f"E2E Runner Status  run_id={d['run_id']}  target={target}R  thinking={thinking}  status={overall_status}",
+            style="bold",
+        )
+        console.print(header)
+        console.print(f"  State: {state_path}\n")
 
-    for tool in d.get("tools", ALL_TOOLS):
-        ts = d["tool_states"].get(tool, {})
-        completed = ts.get("completed", [])
-        ip = ts.get("in_progress")
-        log_summary = _summarize_log_timings(state.log_dir / f"{tool}.log")
+        # Summary table matching monitor's live TUI format
+        tbl = RichTable(expand=True, border_style="dim")
+        tbl.add_column("Tool", style="cyan", no_wrap=True, min_width=14)
+        tbl.add_column("Done", justify="right", style="green", min_width=4)
+        tbl.add_column("Fail", justify="right", style="red", min_width=4)
+        tbl.add_column("Rem", justify="right", style="yellow", min_width=4)
+        tbl.add_column("Status", min_width=8)
+        tbl.add_column("PID", justify="right", min_width=6)
+        tbl.add_column("Timing", min_width=20)
 
-        print(f"[{tool}]")
-        if completed:
-            for entry in completed:
-                start_utc = entry.get("start_utc") or "?"
-                end_utc = entry.get("end_utc") or "?"
-                duration = _format_duration(_duration_seconds(entry.get("start_utc"), entry.get("end_utc")))
-                result_dir = entry.get("result_dir_name") or "—"
-                print(
-                    f"  Round {entry.get('round', '?'):>2}: {start_utc} -> {end_utc}  "
-                    f"duration={duration}  exit={entry.get('exit_code', '?')}  result={result_dir}"
+        for tool in d.get("tools", ALL_TOOLS):
+            ts = d["tool_states"].get(tool, {})
+            completed = ts.get("completed", [])
+            ok = sum(1 for r in completed if r.get("exit_code") == 0)
+            ng = sum(1 for r in completed if r.get("exit_code") != 0)
+            rem = max(0, (int(target) if isinstance(target, int) else 0) - len(completed))
+            status = ts.get("status", "pending")
+            pid_str = str(ts.get("pid") or "—")
+            timing = _format_timing_for_status(ts)
+            tbl.add_row(tool, str(ok), str(ng) if ng else "—", str(rem), status, pid_str, timing)
+
+        console.print(RichPanel(tbl, title="Round Progress", border_style="green"))
+
+        # Completed Rounds detail
+        detail_tbl = RichTable(title="Completed Rounds", expand=True, border_style="dim")
+        detail_tbl.add_column("Tool", style="cyan", no_wrap=True)
+        detail_tbl.add_column("Round", justify="right")
+        detail_tbl.add_column("Start", no_wrap=True)
+        detail_tbl.add_column("End", no_wrap=True)
+        detail_tbl.add_column("Duration", no_wrap=True)
+        detail_tbl.add_column("Exit", justify="right")
+        detail_tbl.add_column("Result Dir", no_wrap=True)
+        has_rows = False
+        for tool in d.get("tools", ALL_TOOLS):
+            ts = d["tool_states"].get(tool, {})
+            for entry in ts.get("completed", []):
+                has_rows = True
+                start_utc = entry.get("start_utc", "")
+                end_utc = entry.get("end_utc", "")
+                start_short = _short_ts(start_utc)
+                end_short = _short_ts(end_utc)
+                dur = _format_duration(_duration_seconds(start_utc, end_utc))
+                ec = str(entry.get("exit_code", "?"))
+                ec_style = "green" if ec == "0" else "red"
+                result_dir = entry.get("result_dir_name", "—")
+                detail_tbl.add_row(
+                    tool, f"R{entry.get('round', '?')}", start_short, end_short,
+                    dur, RichText(ec, style=ec_style), result_dir or "—"
                 )
-        else:
-            print("  No completed rounds.")
+        if has_rows:
+            console.print(detail_tbl)
 
-        if ip:
-            elapsed = _format_duration(_elapsed_seconds(ip.get("start_utc")))
-            print(
-                f"  In progress: round {ip.get('round', '?')} since {ip.get('start_utc', '?')}  "
-                f"elapsed={elapsed}  pid={ts.get('pid') or '—'}"
-            )
-        if log_summary:
-            print(f"  Log timing: {log_summary}")
+        # In-progress detail
+        for tool in d.get("tools", ALL_TOOLS):
+            ts = d["tool_states"].get(tool, {})
+            ip = ts.get("in_progress")
+            if ip:
+                round_num = ip.get("round", "?")
+                start_utc = ip.get("start_utc", "")
+                elapsed = _format_duration(_elapsed_seconds(start_utc))
+                pid_str = ts.get("pid") or "—"
+                console.print(f"  [cyan]{tool}[/cyan] R{round_num} in progress  elapsed={elapsed}  pid={pid_str}")
+        console.print()
+    else:
+        # Plain text fallback (original format)
+        print(f"\nRun ID     : {d['run_id']}")
+        print(f"Created    : {d.get('created_at', '?')}")
+        print(f"Target     : {target} rounds  Thinking: {d.get('thinking', False)}")
+        print(f"Status     : {overall_status}")
+        print(f"Runner PID : {d.get('runner_pid') or '—'}")
+        print(f"State      : {state_path}\n")
+
+        print(f"{'Tool':<16} {'Done':>5} {'Fail':>5} {'Status':<14} {'PID':>8} Last result dir")
+        print(f"{'-'*16} {'-'*5} {'-'*5} {'-'*14} {'-'*8} {'-'*40}")
+        for tool in d.get("tools", ALL_TOOLS):
+            ts = d["tool_states"].get(tool, {})
+            completed = ts.get("completed", [])
+            ok = sum(1 for r in completed if r.get("exit_code") == 0)
+            ng = sum(1 for r in completed if r.get("exit_code") != 0)
+            status = ts.get("status", "?")
+            pid = ts.get("pid") or "—"
+            last = completed[-1].get("result_dir_name") if completed else "—"
+            print(f"{tool:<16} {ok:>5} {ng:>5} {status:<14} {str(pid):>8} {last or '—'}")
         print()
+
+        for tool in d.get("tools", ALL_TOOLS):
+            ts = d["tool_states"].get(tool, {})
+            completed = ts.get("completed", [])
+            ip = ts.get("in_progress")
+
+            print(f"[{tool}]")
+            if completed:
+                for entry in completed:
+                    start_utc = entry.get("start_utc") or "?"
+                    end_utc = entry.get("end_utc") or "?"
+                    duration = _format_duration(_duration_seconds(entry.get("start_utc"), entry.get("end_utc")))
+                    result_dir = entry.get("result_dir_name") or "—"
+                    print(
+                        f"  Round {entry.get('round', '?'):>2}: {start_utc} -> {end_utc}  "
+                        f"duration={duration}  exit={entry.get('exit_code', '?')}  result={result_dir}"
+                    )
+            else:
+                print("  No completed rounds.")
+
+            if ip:
+                elapsed = _format_duration(_elapsed_seconds(ip.get("start_utc")))
+                print(
+                    f"  In progress: round {ip.get('round', '?')} since {ip.get('start_utc', '?')}  "
+                    f"elapsed={elapsed}  pid={ts.get('pid') or '—'}"
+                )
+            print()
+
+
+def _short_ts(ts: Optional[str]) -> str:
+    """Extract local HH:MM from ISO timestamp."""
+    if not ts:
+        return "—"
+    dt = _parse_utc(ts)
+    if dt:
+        return dt.astimezone().strftime("%H:%M")
+    try:
+        return ts[11:16] if len(ts) > 16 else ts
+    except Exception:
+        return "—"
+
+
+def _format_timing_for_status(tool_state: dict) -> str:
+    """Format timing string for status display."""
+    status = tool_state.get("status", "pending")
+    if status == "running":
+        ip = tool_state.get("in_progress") or {}
+        round_num = ip.get("round", "?")
+        start_utc = ip.get("start_utc")
+        if not start_utc:
+            return f"R{round_num}"
+        elapsed = _format_duration(_elapsed_seconds(start_utc))
+        start_short = _short_ts(start_utc)
+        return f"R{round_num} {start_short} ({elapsed}+)"
+    if status == "done":
+        completed = tool_state.get("completed", [])
+        if not completed:
+            return "—"
+        last = completed[-1]
+        dur = _format_duration(_duration_seconds(last.get("start_utc"), last.get("end_utc")))
+        return f"last: {dur}"
+    return "—"
 
 
 

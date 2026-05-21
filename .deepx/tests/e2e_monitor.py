@@ -109,6 +109,39 @@ def _format_duration(seconds: Optional[float], plus: bool = False) -> str:
 
 
 
+def _short_time(ts: Optional[str]) -> str:
+    """Extract HH:MM from ISO timestamp."""
+    if not ts:
+        return "—"
+    dt = _parse_utc(ts)
+    if dt:
+        return dt.astimezone().strftime("%H:%M")
+    # Try local parse
+    try:
+        return ts[11:16] if len(ts) > 16 else ts
+    except Exception:
+        return "—"
+
+
+def _duration_str(start_ts: Optional[str], end_ts: Optional[str]) -> str:
+    """Duration between two ISO timestamps."""
+    s = _parse_utc(start_ts)
+    e = _parse_utc(end_ts)
+    if s and e:
+        return _format_duration((e - s).total_seconds())
+    return "—"
+
+
+def _elapsed_str(start_ts: Optional[str]) -> str:
+    """Elapsed time since an ISO timestamp until now."""
+    s = _parse_utc(start_ts)
+    if s is None:
+        return "?"
+    now = datetime.now(s.tzinfo)
+    return _format_duration((now - s).total_seconds(), plus=True)
+
+
+
 def _format_clock(value: Optional[str]) -> str:
     return value[:5] if value else "-"
 
@@ -440,21 +473,65 @@ def _make_scenario_timing_panel(tool: str, tool_state: dict, log_dir: Optional[P
 
 def print_snapshot(data: dict) -> None:
     target = data.get("target_rounds", "?")
-    thinking = data.get("thinking", False)
-    print(f"\n=== E2E Monitor  run_id={data.get('run_id', '?')} ===")
-    print(f"Target: {target} rounds  Thinking: {thinking}\n")
-    print(f"{'Tool':<16} {'Done':>5} {'Fail':>5} {'Rem':>5} {'Status':<10} {'Timing':<22}")
-    print("-" * 82)
+    thinking = "ON" if data.get("thinking") else "OFF"
+    run_id_str = data.get("run_id", "?")
     tool_states = data.get("tool_states", {})
-    for tool in data.get("tools", ALL_TOOLS):
-        ts = tool_states.get(tool, {})
-        completed = ts.get("completed", [])
-        ok = sum(1 for r in completed if r.get("exit_code") == 0)
-        ng = sum(1 for r in completed if r.get("exit_code") != 0)
-        rem = _remaining_rounds(target, len(completed))
-        status = ts.get("status", "pending")
-        print(f"{tool:<16} {ok:>5} {ng:>5} {rem:>5} {status:<10} {_format_tool_timing(ts):<22}")
-    print()
+
+    if _RICH:
+        from rich.console import Console as RConsole
+        console = RConsole()
+        header = Text(f"E2E Monitor  run_id={run_id_str}  target={target}R  thinking={thinking}", style="bold")
+        console.print(header)
+
+        log_dir = StateReader(run_id_str).log_dir()
+        tbl = _make_progress_table(data, log_dir)
+        console.print(Panel(tbl, title="Round Progress", border_style="green"))
+
+        # Per-tool completed round detail
+        detail_tbl = Table(title="Completed Rounds", expand=True, border_style="dim")
+        detail_tbl.add_column("Tool", style="cyan", no_wrap=True)
+        detail_tbl.add_column("Round", justify="right")
+        detail_tbl.add_column("Start", no_wrap=True)
+        detail_tbl.add_column("End", no_wrap=True)
+        detail_tbl.add_column("Duration", no_wrap=True)
+        detail_tbl.add_column("Exit", justify="right")
+        has_rows = False
+        for tool in data.get("tools", ALL_TOOLS):
+            ts = tool_states.get(tool, {})
+            for r in ts.get("completed", []):
+                has_rows = True
+                start = _short_time(r.get("start_utc") or r.get("started_at"))
+                end = _short_time(r.get("end_utc") or r.get("ended_at"))
+                dur = _duration_str(r.get("start_utc") or r.get("started_at"), r.get("end_utc") or r.get("ended_at"))
+                exit_code = str(r.get("exit_code", "?"))
+                exit_style = "green" if exit_code == "0" else "red"
+                detail_tbl.add_row(tool, f"R{r.get('round', '?')}", start, end, dur, Text(exit_code, style=exit_style))
+        if has_rows:
+            console.print(detail_tbl)
+
+        # In-progress round details
+        for tool in data.get("tools", ALL_TOOLS):
+            ts = tool_states.get(tool, {})
+            ip = ts.get("in_progress")
+            if ip:
+                ip_round = ip if isinstance(ip, int) else ip.get("round", "?")
+                start_at = ts.get("in_progress_started_at") or (ip.get("start_utc") if isinstance(ip, dict) else None)
+                elapsed = _elapsed_str(start_at) if start_at else "?"
+                console.print(f"  [cyan]{tool}[/cyan] R{ip_round} in progress ({elapsed})")
+    else:
+        print(f"\n=== E2E Monitor  run_id={run_id_str} ===")
+        print(f"Target: {target} rounds  Thinking: {thinking}\n")
+        print(f"{'Tool':<16} {'Done':>5} {'Fail':>5} {'Rem':>5} {'Status':<10} {'Timing':<22}")
+        print("-" * 82)
+        for tool in data.get("tools", ALL_TOOLS):
+            ts = tool_states.get(tool, {})
+            completed = ts.get("completed", [])
+            ok = sum(1 for r in completed if r.get("exit_code") == 0)
+            ng = sum(1 for r in completed if r.get("exit_code") != 0)
+            rem = _remaining_rounds(target, len(completed))
+            status = ts.get("status", "pending")
+            print(f"{tool:<16} {ok:>5} {ng:>5} {rem:>5} {status:<10} {_format_tool_timing(ts):<22}")
+        print()
 
 
 # ---------------------------------------------------------------------------
@@ -473,12 +550,19 @@ def show_list() -> None:
     if latest_link.is_symlink():
         latest_target = latest_link.readlink()
 
-    print(f"\n{'Run ID':<20} {'Created':<22} {'Rounds':>7} {'Think':>6} {'Status':<10}")
-    print("-" * 70)
+    states = sorted(
+        (p for p in RUNNER_STATE_DIR.glob("*/state.json") if p.parent.name != "latest"),
+        key=lambda p: p.stat().st_mtime,
+        reverse=True,
+    )
+    if not states:
+        print("No runs found.")
+        return
 
-    for state_file in sorted(RUNNER_STATE_DIR.glob("*/state.json"), key=lambda p: p.parent.name):
-        if state_file.parent.name == "latest":
-            continue
+    print(f"\n{'Latest':<7} {'Run ID':<18} {'Created':<20} {'Rounds':<10} {'Thinking':<9} {'Status':<12} Progress")
+    print(f"{'-'*7} {'-'*18} {'-'*20} {'-'*10} {'-'*9} {'-'*12} {'-'*40}")
+
+    for state_file in states:
         try:
             data = json.loads(state_file.read_text())
         except Exception:
@@ -491,20 +575,34 @@ def show_list() -> None:
 
         tools = data.get("tools", [])
         tool_states = data.get("tool_states", {})
-        statuses = [tool_states.get(t, {}).get("status", "pending") for t in tools]
-        if statuses and all(s == "done" for s in statuses):
-            overall = "done"
-        elif any(s == "aborted" for s in statuses):
-            overall = "aborted"
-        elif any(s == "stopped" for s in statuses):
-            overall = "stopped"
-        elif any(s == "running" for s in statuses):
-            overall = "running"
-        else:
-            overall = "pending"
 
-        marker = " ← latest" if str(latest_target) == run_id else ""
-        print(f"{run_id:<20} {created:<22} {target:>7} {thinking:>6} {overall:<10}{marker}")
+        # Derive overall status using same logic as runner
+        top = data.get("status")
+        if top in ("done", "aborted", "stopped"):
+            overall = top
+        else:
+            statuses = [tool_states.get(t, {}).get("status", "pending") for t in tools]
+            if any(s == "aborted" for s in statuses):
+                overall = "aborted"
+            elif any(s == "stopped" for s in statuses):
+                overall = "stopped"
+            elif any(s == "running" for s in statuses):
+                overall = "running"
+            elif statuses and all(s == "done" for s in statuses):
+                overall = "done"
+            else:
+                overall = "pending"
+
+        progress = ", ".join(
+            f"{t}:{len(tool_states.get(t, {}).get('completed', []))}/{target}"
+            for t in tools
+        )
+
+        marker = "*" if str(latest_target) == run_id else ""
+        print(
+            f"{marker:<7} {run_id:<18} {created:<20} {str(target):<10} {thinking:<9} "
+            f"{overall:<12} {progress}"
+        )
     print()
 
 
@@ -542,54 +640,56 @@ def run_monitor(run_id: Optional[str], tool_filter: Optional[str], tail_n: int, 
     console = Console()
     refresh_secs = 3
 
-    with Live(console=console, refresh_per_second=1, screen=False) as live:
-        while True:
-            data = reader.load()
+    try:
+        with Live(console=console, refresh_per_second=1, screen=False, transient=True) as live:
+            while True:
+                data = reader.load()
 
-            if data is None:
-                live.update(Panel("[yellow]No run state found. Start e2e_runner.py first.[/yellow]"))
+                if data is None:
+                    live.update(Panel("[yellow]No run state found. Start e2e_runner.py first.[/yellow]"))
+                    time.sleep(refresh_secs)
+                    continue
+
+                log_dir = reader.log_dir()
+                tool_states = data.get("tool_states", {})
+
+                run_id_str = data.get("run_id", "?")
+                target = data.get("target_rounds", "?")
+                thinking = "ON" if data.get("thinking") else "OFF"
+                now_str = datetime.now().strftime("%H:%M:%S")
+                header = Text(
+                    f"E2E Monitor  run_id={run_id_str}  target={target}R  thinking={thinking}  [{now_str}]",
+                    style="bold",
+                )
+
+                prog_panel = Panel(_make_progress_table(data, log_dir), title="Round Progress", border_style="green")
+
+                renderables = [header, prog_panel]
+                display_tools = _tool_display_list(tool_filter, data.get("tools", ALL_TOOLS))
+                if display_tools:
+                    log_panels = []
+                    for tool in display_tools:
+                        tailer = LogTailer(tool, log_dir, n=tail_n)
+                        log_panels.append(_make_log_panel(tool, tailer.tail(), tail_n))
+                    renderables.append(Columns(log_panels, equal=True, expand=True))
+
+                    if tool_filter not in (None, "all") and tool_filter in tool_states:
+                        renderables.append(_make_scenario_timing_panel(tool_filter, tool_states[tool_filter], log_dir))
+
+                live.update(Group(*renderables))
+
+                all_done = all(
+                    tool_states.get(tool, {}).get("status") == "done"
+                    for tool in data.get("tools", ALL_TOOLS)
+                )
+                if all_done:
+                    time.sleep(1)
+                    break
                 time.sleep(refresh_secs)
-                continue
-
-            log_dir = reader.log_dir()
-            tool_states = data.get("tool_states", {})
-
-            run_id_str = data.get("run_id", "?")
-            target = data.get("target_rounds", "?")
-            thinking = "ON" if data.get("thinking") else "OFF"
-            now_str = datetime.now().strftime("%H:%M:%S")
-            header = Text(
-                f"E2E Monitor  run_id={run_id_str}  target={target}R  thinking={thinking}  [{now_str}]",
-                style="bold",
-            )
-
-            prog_panel = Panel(_make_progress_table(data, log_dir), title="Round Progress", border_style="green")
-
-            renderables = [header, prog_panel]
-            display_tools = _tool_display_list(tool_filter, data.get("tools", ALL_TOOLS))
-            if display_tools:
-                log_panels = []
-                for tool in display_tools:
-                    tailer = LogTailer(tool, log_dir, n=tail_n)
-                    log_panels.append(_make_log_panel(tool, tailer.tail(), tail_n))
-                renderables.append(Columns(log_panels, equal=True, expand=True))
-
-                if tool_filter not in (None, "all") and tool_filter in tool_states:
-                    renderables.append(_make_scenario_timing_panel(tool_filter, tool_states[tool_filter], log_dir))
-
-            live.update(Group(*renderables))
-
-            all_done = all(
-                tool_states.get(tool, {}).get("status") == "done"
-                for tool in data.get("tools", ALL_TOOLS)
-            )
-            if all_done:
-                time.sleep(1)
-                break
-
-            time.sleep(refresh_secs)
-
-    console.print("\n[green]All tools completed![/green]")
+    except KeyboardInterrupt:
+        pass
+    else:
+        console.print("\n[green]All tools completed![/green]")
 
 
 # ---------------------------------------------------------------------------
