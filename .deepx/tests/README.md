@@ -612,6 +612,85 @@ export DX_AGENTIC_E2E_CLAUDE_CODE_MODEL="claude-sonnet-4-6"  # Claude Code model
 export DX_AGENTIC_E2E_CLAUDE_CODE_TIMEOUT=600  # Claude Code CLI timeout in seconds (default: 600)
 ```
 
+## 🔄 E2E Runner & Monitor
+
+Reusable tools for running multi-round parallel E2E tests and monitoring progress.
+Located at `.deepx/tests/e2e_runner.py` and `.deepx/tests/e2e_monitor.py`.
+
+### e2e_runner.py
+
+Runs all 5 tools in parallel for N rounds, with state tracking and resume support.
+
+```bash
+# Run 5 rounds for all tools in parallel
+python .deepx/tests/e2e_runner.py --rounds 5
+
+# Run for specific tools only
+python .deepx/tests/e2e_runner.py --rounds 5 --tools claude-code,copilot-cli
+
+# Enable thinking / high-reasoning mode (xhigh effort)
+python .deepx/tests/e2e_runner.py --rounds 5 --thinking
+
+# Resume: auto-detect completed rounds and continue to target
+python .deepx/tests/e2e_runner.py --rounds 10 --resume
+
+# Resume a specific previous run by ID
+python .deepx/tests/e2e_runner.py --rounds 10 --resume --run-id 20260521_100000
+
+# Show status of the latest run
+python .deepx/tests/e2e_runner.py --status
+
+# Delete artifacts for a specific round
+python .deepx/tests/e2e_runner.py --cleanup --round 3
+python .deepx/tests/e2e_runner.py --cleanup --round 3 --tool claude-code
+python .deepx/tests/e2e_runner.py --cleanup --round 2,3,4
+```
+
+**Thinking mode** per tool:
+
+| Tool | Thinking mode env var |
+|---|---|
+| `claude-code` | `DX_AGENTIC_E2E_CLAUDE_CODE_EXTRA_ARGS=--effort xhigh` |
+| `copilot-cli` | `DX_AGENTIC_E2E_COPILOT_EXTRA_ARGS=--effort xhigh` |
+| `opencode-cli` | `DX_AGENTIC_E2E_OPENCODE_EXTRA_ARGS=--variant high` |
+| `codex-cli` | `DX_AGENTIC_E2E_CODEX_EXTRA_ARGS=-c model_reasoning_effort="xhigh"` |
+| `cursor-cli` | No thinking mode (quota fallback to auto) |
+
+**State files** are stored under `.deepx/tests/runner_state/<run_id>/`:
+- `state.json` — round completion status, artifact dirs, exit codes
+- `logs/<tool>.log` — full stdout/stderr per tool
+- `latest` symlink — always points to the most recent run
+
+**Resume logic:**
+1. If `--run-id` given: load that state.json
+2. Otherwise: load via `runner_state/latest` symlink
+3. Fallback: scan `dx-agentic-dev/e2e-tests/results/` and build state from existing dirs
+
+### e2e_monitor.py
+
+Live TUI monitor (using `rich`) to watch runner progress in real-time.
+
+```bash
+# Watch latest run (live TUI, updates every 3 seconds)
+python .deepx/tests/e2e_monitor.py
+
+# Watch a specific run
+python .deepx/tests/e2e_monitor.py --run-id 20260521_100000
+
+# Focus on one tool's log
+python .deepx/tests/e2e_monitor.py --tool claude-code --tail 30
+
+# Print snapshot once and exit (no live update)
+python .deepx/tests/e2e_monitor.py --once
+```
+
+**Monitor layout:**
+- Round Progress table: Done / Fail / Remaining / Status / Last result dir
+- Log panels: tail output of currently running tools (up to 3 side-by-side)
+- Timeline: new result dirs as they appear in `results/`
+
+---
+
 ## 🔄 CI/CD Integration
 
 ### Recommended CI/CD Strategy
@@ -631,6 +710,13 @@ export DX_AGENTIC_E2E_CLAUDE_CODE_TIMEOUT=600  # Claude Code CLI timeout in seco
 
 ```
 tests/
+├── 🐍 e2e_runner.py                 # Multi-round parallel E2E runner (--rounds, --thinking, --resume, --cleanup)
+├── 🐍 e2e_monitor.py                # Live TUI monitor for runner progress (rich-based)
+├── 📁 runner_state/                 # Runner state files (auto-created, gitignored)
+│   ├── latest -> <run_id>/          # Symlink to most recent run
+│   └── <run_id>/                    # Per-run state dir (YYYYMMDD_HHMMSS)
+│       ├── state.json               # Round completion, artifact dirs, exit codes
+│       └── logs/<tool>.log          # Per-tool stdout/stderr log
 ├── 🐍 test_agentic_scenarios/       # Agentic infrastructure validation
 │   ├── conftest.py                  # ProjectInfra dataclass, path constants, helpers
 │   ├── test_guide_structure.py      # Guide existence, headings, numbering, EN/KO sync

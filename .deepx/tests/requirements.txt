@@ -6,3 +6,4 @@ pytest-xdist>=3.5.0
 
 # Additional utilities
 pytest-timeout>=2.2.0
+rich>=13.0
