@@ -394,19 +394,35 @@ def _check_sentinel(state: RunState) -> None:
 
 
 def _terminate_process(proc: subprocess.Popen, log_path: Path, tool: str, round_num: int) -> None:
-    _log(f"[{tool}] ABORT during round {round_num} — killing PID {proc.pid}", log_path)
+    """Kill the entire process group spawned for this round.
+
+    proc is started with start_new_session=True, so its PID is the PGID of
+    bash → pytest → agent CLI. Signal the whole group so the agent (typically
+    a grandchild of bash) terminates alongside its shell wrapper. SIGTERM
+    first with a 10s grace, then SIGKILL.
+    """
     try:
-        proc.terminate()
+        pgid = os.getpgid(proc.pid)
     except ProcessLookupError:
+        _log(f"[{tool}] ABORT during round {round_num} — PID {proc.pid} already exited", log_path)
+        return
+    _log(f"[{tool}] ABORT during round {round_num} — killing PGID {pgid} (SIGTERM)", log_path)
+    try:
+        os.killpg(pgid, signal.SIGTERM)
+    except (ProcessLookupError, PermissionError):
         return
     try:
         proc.wait(timeout=10)
     except subprocess.TimeoutExpired:
+        _log(f"[{tool}] ABORT — SIGTERM grace expired, escalating to SIGKILL on PGID {pgid}", log_path)
         try:
-            proc.kill()
-        except ProcessLookupError:
+            os.killpg(pgid, signal.SIGKILL)
+        except (ProcessLookupError, PermissionError):
             return
-        proc.wait()
+        try:
+            proc.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            pass
 
 
 def run_tool_rounds(
@@ -467,15 +483,28 @@ def run_tool_rounds(
                 env=env,
                 stdout=flog,
                 stderr=subprocess.STDOUT,
+                # New session → new process group, so _terminate_process()
+                # can killpg() the entire bash → pytest → agent-CLI tree on abort.
+                start_new_session=True,
             )
 
         with _state_lock:
             state.data["tool_states"][tool]["pid"] = proc.pid
             state.save()
 
+        # Hoist the ABORT path out of the loop and emit a single diagnostic so
+        # we can confirm the polling loop is actually entered when --abort is
+        # later invoked.
+        abort_path = state.path.parent / "ABORT"
+        _log(
+            f"[{tool}] Polling PID {proc.pid} (PGID={proc.pid}) for completion. "
+            f"ABORT sentinel: {abort_path}",
+            log_path,
+        )
         while proc.poll() is None:
             time.sleep(2)
-            if _abort_event.is_set() or (state.path.parent / "ABORT").exists():
+            if _abort_event.is_set() or abort_path.exists():
+                _log(f"[{tool}] ABORT detected during round {round_num} polling", log_path)
                 _terminate_process(proc, log_path, tool, round_num)
                 with _state_lock:
                     state.data["tool_states"][tool]["in_progress"] = None
@@ -807,6 +836,33 @@ def _pid_alive(pid: Optional[int]) -> bool:
     return True
 
 
+def _find_runner_pids_by_cmdline(run_id: str) -> List[int]:
+    """Find live e2e_runner.py processes that aren't this one.
+
+    Used as a fallback when state.json's runner_pid is null/stale (a known
+    race where runner_pid gets cleared prematurely). Scans /proc/<pid>/cmdline
+    for "e2e_runner.py" and excludes the current process. Caller still has to
+    decide whether to signal; this just enumerates candidates.
+    """
+    candidates: List[int] = []
+    proc_root = Path("/proc")
+    if not proc_root.is_dir():
+        return candidates
+    for entry in proc_root.iterdir():
+        if not entry.name.isdigit():
+            continue
+        pid = int(entry.name)
+        if pid == os.getpid():
+            continue
+        try:
+            cmd = (entry / "cmdline").read_bytes().replace(b"\0", b" ").decode(errors="replace")
+        except OSError:
+            continue
+        if "e2e_runner.py" in cmd:
+            candidates.append(pid)
+    return candidates
+
+
 
 def do_stop(run_id: Optional[str]) -> int:
     state_path = _find_state_path(run_id)
@@ -860,17 +916,62 @@ def do_abort(run_id: Optional[str], force: bool) -> int:
     }
     abort_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
+    signaled_runner = False
     runner_pid = state.data.get("runner_pid")
     if _pid_alive(runner_pid):
         try:
             os.kill(int(runner_pid), signal.SIGTERM)
+            signaled_runner = True
+            print(f"SIGTERM sent to runner PID {runner_pid}.")
         except OSError as exc:
             print(f"Warning: failed to signal runner PID {runner_pid}: {exc}", file=sys.stderr)
+
+    # Fallback A: state.json's runner_pid was null/stale (known race). Scan
+    # /proc for live e2e_runner.py processes and signal them. Safe because the
+    # ABORT sentinel was already written above — even if we signal the wrong
+    # runner, an unrelated runner ignores sentinels of other runs.
+    if not signaled_runner:
+        for pid in _find_runner_pids_by_cmdline(state.run_id):
+            try:
+                os.kill(pid, signal.SIGTERM)
+                signaled_runner = True
+                print(f"Fallback: SIGTERM sent to candidate runner PID {pid} (via /proc cmdline match).")
+            except (ProcessLookupError, PermissionError) as exc:
+                print(f"Warning: failed to signal candidate PID {pid}: {exc}", file=sys.stderr)
+
+    # Fallback B: directly killpg the per-tool subprocesses recorded in
+    # state.json. Belt-and-suspenders: if the worker polling loop never
+    # detects the ABORT sentinel (Bug 2 hypothesis), this still tears down
+    # the active bash → pytest → agent trees because each was launched with
+    # start_new_session=True (own process group).
+    killed_groups = []
+    for tool, ts in (state.data.get("tool_states") or {}).items():
+        pid = ts.get("pid")
+        if not pid or not _pid_alive(pid):
+            continue
+        try:
+            pgid = os.getpgid(int(pid))
+        except (ProcessLookupError, OSError):
+            continue
+        try:
+            os.killpg(pgid, signal.SIGTERM)
+            killed_groups.append((tool, pid, pgid))
+        except (ProcessLookupError, PermissionError):
+            pass
+    if killed_groups:
+        for tool, pid, pgid in killed_groups:
+            print(f"Fallback: SIGTERM sent to {tool} process group (PID={pid}, PGID={pgid}).")
 
     with _state_lock:
         state.data["status"] = "abort-requested"
         state.save()
 
+    if not signaled_runner and not killed_groups:
+        print(
+            "WARNING: ABORT sentinel written but no live runner/worker process was found. "
+            "Subprocesses (if any) may need manual cleanup.",
+            file=sys.stderr,
+        )
     print(f"ABORT requested for run_id={state.run_id}.")
     return 0
 
@@ -914,11 +1015,17 @@ def _derive_list_status(data: dict) -> str:
     """Derive overall run status from tool-level statuses.
 
     Terminal states stored at top-level (done, aborted, stopped) take precedence.
+    In-flight request states (abort-requested, stop-requested) are also surfaced
+    so callers see the intent immediately — they shouldn't look like "running".
     Otherwise derive from tool_states.
     """
     top = data.get("status")
-    # Only trust top-level if it's a terminal state (set by runner on completion)
+    # Terminal states set by runner on completion
     if top in ("done", "aborted", "stopped"):
+        return top
+    # In-flight request states set by do_abort / do_stop — surface them so
+    # --status / --list don't show stale "running" after abort/stop was issued.
+    if top in ("abort-requested", "stop-requested"):
         return top
     # Derive from tool-level statuses
     statuses = {ts.get("status", "pending") for ts in data.get("tool_states", {}).values()}
