@@ -951,17 +951,6 @@ def show_status(run_id: Optional[str]) -> None:
                 )
         if has_rows:
             console.print(detail_tbl)
-
-        # In-progress detail
-        for tool in d.get("tools", ALL_TOOLS):
-            ts = d["tool_states"].get(tool, {})
-            ip = ts.get("in_progress")
-            if ip:
-                round_num = ip.get("round", "?")
-                start_utc = ip.get("start_utc", "")
-                elapsed = _format_duration(_elapsed_seconds(start_utc))
-                pid_str = ts.get("pid") or "—"
-                console.print(f"  [cyan]{tool}[/cyan] R{round_num} in progress  elapsed={elapsed}  pid={pid_str}")
         console.print()
     else:
         # Plain text fallback (original format)

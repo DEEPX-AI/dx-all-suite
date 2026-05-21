@@ -455,6 +455,30 @@ def _make_progress_table(data: dict, log_dir: Optional[Path] = None) -> Table:
 
 
 
+def _make_completed_rounds_table(data: dict) -> Optional[Table]:
+    """Build a Rich Table showing completed rounds across all tools. Returns None if no completions."""
+    tool_states = data.get("tool_states", {})
+    detail_tbl = Table(title="Completed Rounds", expand=True, border_style="dim")
+    detail_tbl.add_column("Tool", style="cyan", no_wrap=True)
+    detail_tbl.add_column("Round", justify="right")
+    detail_tbl.add_column("Start", no_wrap=True)
+    detail_tbl.add_column("End", no_wrap=True)
+    detail_tbl.add_column("Duration", no_wrap=True)
+    detail_tbl.add_column("Exit", justify="right")
+    has_rows = False
+    for tool in data.get("tools", ALL_TOOLS):
+        ts = tool_states.get(tool, {})
+        for r in ts.get("completed", []):
+            has_rows = True
+            start = _short_time(r.get("start_utc") or r.get("started_at"))
+            end = _short_time(r.get("end_utc") or r.get("ended_at"))
+            dur = _duration_str(r.get("start_utc") or r.get("started_at"), r.get("end_utc") or r.get("ended_at"))
+            exit_code = str(r.get("exit_code", "?"))
+            exit_style = "green" if exit_code == "0" else "red"
+            detail_tbl.add_row(tool, f"R{r.get('round', '?')}", start, end, dur, Text(exit_code, style=exit_style))
+    return detail_tbl if has_rows else None
+
+
 def _make_log_panel(tool: str, lines: List[str], n: int = 4) -> Panel:
     content = "\n".join(lines[-n:]) or "(no output yet)"
     return Panel(content, title=f"[bold]{tool}[/bold] — tail log", border_style="blue")
@@ -488,36 +512,9 @@ def print_snapshot(data: dict) -> None:
         console.print(Panel(tbl, title="Round Progress", border_style="green"))
 
         # Per-tool completed round detail
-        detail_tbl = Table(title="Completed Rounds", expand=True, border_style="dim")
-        detail_tbl.add_column("Tool", style="cyan", no_wrap=True)
-        detail_tbl.add_column("Round", justify="right")
-        detail_tbl.add_column("Start", no_wrap=True)
-        detail_tbl.add_column("End", no_wrap=True)
-        detail_tbl.add_column("Duration", no_wrap=True)
-        detail_tbl.add_column("Exit", justify="right")
-        has_rows = False
-        for tool in data.get("tools", ALL_TOOLS):
-            ts = tool_states.get(tool, {})
-            for r in ts.get("completed", []):
-                has_rows = True
-                start = _short_time(r.get("start_utc") or r.get("started_at"))
-                end = _short_time(r.get("end_utc") or r.get("ended_at"))
-                dur = _duration_str(r.get("start_utc") or r.get("started_at"), r.get("end_utc") or r.get("ended_at"))
-                exit_code = str(r.get("exit_code", "?"))
-                exit_style = "green" if exit_code == "0" else "red"
-                detail_tbl.add_row(tool, f"R{r.get('round', '?')}", start, end, dur, Text(exit_code, style=exit_style))
-        if has_rows:
+        detail_tbl = _make_completed_rounds_table(data)
+        if detail_tbl:
             console.print(detail_tbl)
-
-        # In-progress round details
-        for tool in data.get("tools", ALL_TOOLS):
-            ts = tool_states.get(tool, {})
-            ip = ts.get("in_progress")
-            if ip:
-                ip_round = ip if isinstance(ip, int) else ip.get("round", "?")
-                start_at = ts.get("in_progress_started_at") or (ip.get("start_utc") if isinstance(ip, dict) else None)
-                elapsed = _elapsed_str(start_at) if start_at else "?"
-                console.print(f"  [cyan]{tool}[/cyan] R{ip_round} in progress ({elapsed})")
     else:
         print(f"\n=== E2E Monitor  run_id={run_id_str} ===")
         print(f"Target: {target} rounds  Thinking: {thinking}\n")
@@ -665,6 +662,9 @@ def run_monitor(run_id: Optional[str], tool_filter: Optional[str], tail_n: int, 
                 prog_panel = Panel(_make_progress_table(data, log_dir), title="Round Progress", border_style="green")
 
                 renderables = [header, prog_panel]
+                completed_tbl = _make_completed_rounds_table(data)
+                if completed_tbl:
+                    renderables.append(completed_tbl)
                 display_tools = _tool_display_list(tool_filter, data.get("tools", ALL_TOOLS))
                 if display_tools:
                     log_panels = []
