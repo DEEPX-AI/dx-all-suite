@@ -1,10 +1,18 @@
 #!/usr/bin/env python3
 """
-e2e_runner.py — Reusable multi-round parallel E2E test runner for DEEPX Agentic Dev.
+e2e_runner.py — Reusable multi-round E2E test runner for DEEPX Agentic Dev.
+
+Default execution model is SEQUENTIAL (one tool at a time) so per-tool
+duration metrics are not skewed by NPU/CPU contention. Use --parallel to
+run all tools concurrently when throughput matters more than measurement
+fidelity.
 
 Usage examples:
-    # Run 5 rounds for all tools (parallel)
+    # Run 5 rounds for all tools sequentially (default)
     python .deepx/tests/e2e_runner.py --rounds 5
+
+    # Run 5 rounds in parallel mode
+    python .deepx/tests/e2e_runner.py --rounds 5 --parallel
 
     # Run 5 rounds for specific tools only
     python .deepx/tests/e2e_runner.py --rounds 5 --tools claude-code,copilot-cli
@@ -18,7 +26,7 @@ Usage examples:
     # Resume a specific previous run
     python .deepx/tests/e2e_runner.py --rounds 5 --resume --run-id 20260521_100000
 
-    # Show current run status
+    # Show current run status (no --rounds needed)
     python .deepx/tests/e2e_runner.py --status
 
     # List all previous runs
@@ -131,7 +139,7 @@ class RunState:
         target_rounds: int,
         tools: List[str],
         thinking: bool,
-        mode: str = "parallel",
+        mode: str = "sequential",
     ):
         self.run_id = run_id
         self.path = RUNNER_STATE_DIR / run_id / "state.json"
@@ -269,6 +277,8 @@ class RunState:
 
 def _normalize_state_data(data: dict) -> None:
     data.setdefault("thinking", False)
+    # Old state files (pre-sequential default) had no mode field. They were
+    # written under the parallel-by-default era, so preserve that for legacy.
     data.setdefault("mode", "parallel")
     data.setdefault("tools", ALL_TOOLS)
     data.setdefault("runner_pid", None)
@@ -557,13 +567,14 @@ def run_all(
     thinking: bool,
     resume: bool,
     run_id: Optional[str],
-    sequential: bool = False,
+    sequential: bool = True,
 ) -> int:
-    """Launch tools according to mode (parallel default, --sequential for one-at-a-time).
+    """Launch tools according to mode (sequential by default; --parallel to fan out).
 
-    Sequential mode runs each tool to completion before the next starts, eliminating
-    NPU/CPU contention so per-tool duration metrics reflect single-tool baseline.
-    Returns overall exit code (0 = all passed).
+    Sequential mode (default) runs each tool to completion before the next starts,
+    eliminating NPU/CPU contention so per-tool duration metrics reflect single-tool
+    baseline. Pass sequential=False (via --parallel CLI flag) to run all tools
+    concurrently. Returns overall exit code (0 = all passed).
     """
     mode = "sequential" if sequential else "parallel"
     _abort_event.clear()
@@ -1286,11 +1297,14 @@ def _summarize_log_timings(log_path: Path) -> Optional[str]:
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="e2e_runner.py",
-        description="Reusable multi-round parallel E2E test runner for DEEPX Agentic Dev.",
+        description="Reusable multi-round E2E test runner for DEEPX Agentic Dev (sequential by default).",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=__doc__,
     )
-    p.add_argument("--rounds", type=int, default=5, help="Target number of rounds per tool (default: 5)")
+    # No default — required for actions that launch/resume a run. Status/list/
+    # stop/abort/cleanup commands do not need --rounds (enforced in main()).
+    p.add_argument("--rounds", type=int, default=None,
+                   help="Target number of rounds per tool (required when starting or resuming a run)")
     p.add_argument(
         "--tools",
         default=",".join(ALL_TOOLS),
@@ -1298,9 +1312,9 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p.add_argument("--thinking", action="store_true", help="Enable thinking/high-reasoning mode for each tool")
     p.add_argument(
-        "--sequential",
+        "--parallel",
         action="store_true",
-        help="Run tools one-at-a-time (no NPU/CPU contention). Default: parallel across tools.",
+        help="Run tools concurrently (one thread per tool). Default: sequential one-at-a-time.",
     )
     p.add_argument("--resume", action="store_true", help="Auto-detect completed rounds and continue to target")
     p.add_argument("--run-id", dest="run_id", help="Specify a previous run ID")
@@ -1326,6 +1340,7 @@ def main() -> int:
     parser = build_parser()
     args = parser.parse_args()
 
+    # Read-only / control commands — do not require --rounds.
     if args.list_runs:
         show_list()
         return 0
@@ -1349,13 +1364,22 @@ def main() -> int:
         round_nums = [int(r.strip()) for r in args.round_nums.split(",") if r.strip().isdigit()]
         return cleanup_rounds(round_nums, tools, args.run_id)
 
+    # Launching or resuming a run requires an explicit target.
+    if args.rounds is None:
+        parser.error("--rounds is required when starting or resuming a run")
+    if args.rounds < 1:
+        parser.error(f"--rounds must be >= 1 (got {args.rounds})")
+
+    # Sequential is the default; --parallel opts into concurrent execution.
+    sequential = not args.parallel
+
     return run_all(
         tools,
         args.rounds,
         args.thinking,
         args.resume,
         args.run_id,
-        sequential=args.sequential,
+        sequential=sequential,
     )
 
 

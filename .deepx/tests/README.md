@@ -60,16 +60,20 @@ Located at `.deepx/tests/e2e_runner.py` and `.deepx/tests/e2e_monitor.py`.
 ### e2e_runner.py
 
 Runs 5 tools for N rounds with state tracking, stop/abort, and resume capabilities.
-Tools are launched in **parallel by default**; pass `--sequential` to run one tool
-at a time (no NPU/CPU contention) for tighter per-tool measurement.
+Tools run **sequentially by default** (one at a time) so per-tool duration metrics
+are not skewed by NPU/CPU contention. Pass `--parallel` to fan out across all tools
+when throughput matters more than measurement fidelity.
+
+`--rounds` is **required** for actions that launch or resume a run (status/list/
+stop/abort/cleanup do not need it).
 
 ```bash
-# Run all tools for 5 rounds in parallel (default)
+# Run all tools for 5 rounds sequentially (default)
 python .deepx/tests/e2e_runner.py --rounds 5
 
-# Sequential mode — one tool at a time (eliminates NPU/CPU contention)
-#   → per-tool duration approaches single-tool baseline, improving cost/quality analysis
-python .deepx/tests/e2e_runner.py --rounds 5 --sequential
+# Parallel mode — fan out across all 5 tools at once
+#   → faster wall-clock but per-tool durations include contention overhead
+python .deepx/tests/e2e_runner.py --rounds 5 --parallel
 
 # Run specific tools only
 python .deepx/tests/e2e_runner.py --rounds 5 --tools claude-code,copilot-cli
@@ -103,14 +107,14 @@ python .deepx/tests/e2e_runner.py --cleanup --round 3 --tool claude-code
 python .deepx/tests/e2e_runner.py --cleanup --round 2,3,4
 ```
 
-**Parallel vs Sequential:**
+**Sequential vs Parallel:**
 
 | Mode | Concurrent tools | Use case |
 |------|------------------|----------|
-| (default) | N (tool count, e.g. 5) | Fast batch throughput |
-| `--sequential` | 1 | Eliminate NPU/CPU contention; accurate per-tool measurement |
+| (default) | 1 | Eliminate NPU/CPU contention; accurate per-tool measurement |
+| `--parallel` | N (tool count, e.g. 5) | Fast batch throughput |
 
-The runner persists the chosen mode in `state.json` (`"mode": "parallel" | "sequential"`)
+The runner persists the chosen mode in `state.json` (`"mode": "sequential" | "parallel"`)
 and shows it in `--status` output.
 
 **Per-scenario timeouts** (subprocess.run timeout per agent invocation):
@@ -841,16 +845,21 @@ export DX_AGENTIC_E2E_CLAUDE_CODE_TIMEOUT=600  # Claude Code CLI timeout in seco
 
 ## 🔄 E2E Runner & Monitor
 
-Reusable tools for running multi-round parallel E2E tests and monitoring progress.
+Reusable tools for running multi-round E2E tests and monitoring progress.
 Located at `.deepx/tests/e2e_runner.py` and `.deepx/tests/e2e_monitor.py`.
 
 ### e2e_runner.py
 
-Runs all 5 tools in parallel for N rounds, with state tracking and resume support.
+Runs all 5 tools for N rounds with state tracking and resume support.
+**Sequential by default**; pass `--parallel` for concurrent execution.
+`--rounds` is required when starting or resuming a run.
 
 ```bash
-# Run 5 rounds for all tools in parallel
+# Run 5 rounds for all tools sequentially (default)
 python .deepx/tests/e2e_runner.py --rounds 5
+
+# Parallel mode (one thread per tool — original behavior)
+python .deepx/tests/e2e_runner.py --rounds 5 --parallel
 
 # Run for specific tools only
 python .deepx/tests/e2e_runner.py --rounds 5 --tools claude-code,copilot-cli

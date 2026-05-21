@@ -52,15 +52,18 @@ DX-ALL-SUITE 프로젝트용 에이전트 개발 테스트 모음입니다. AI �
 ### e2e_runner.py
 
 5개 도구를 N 라운드 실행하며, 상태 추적, 중단/재개, 상세 상태 확인 기능을 제공합니다.
-기본은 도구 간 **병렬** 실행이지만 `--sequential`로 한 번에 한 도구씩 순차 실행할 수 있습니다.
+기본은 **순차(sequential) 실행** (한 번에 한 도구) — 도구별 duration이 NPU/CPU 경합 없이
+단독 실행 baseline에 가깝게 측정됩니다. throughput이 더 중요한 경우 `--parallel`로 도구 간
+동시 실행 모드로 전환 가능합니다.
+
+`--rounds`는 **필수 옵션**입니다 (조회/제어 명령은 예외).
 
 ```bash
-# 모든 도구 5 라운드 병렬 실행 (기본)
+# 모든 도구 5 라운드 순차 실행 (기본)
 python .deepx/tests/e2e_runner.py --rounds 5
 
-# 순차 실행 — 한 번에 한 도구만 실행 (NPU/CPU 경합 제거)
-#   → 도구별 duration이 단독 실행 baseline에 가까워져 cost/quality 분석 신뢰도 향상
-python .deepx/tests/e2e_runner.py --rounds 5 --sequential
+# 병렬 실행 — 5개 도구 동시 실행 (빠른 batch, 측정값은 경합으로 왜곡 가능)
+python .deepx/tests/e2e_runner.py --rounds 5 --parallel
 
 # 특정 도구만 실행
 python .deepx/tests/e2e_runner.py --rounds 5 --tools claude-code,copilot-cli
@@ -94,12 +97,12 @@ python .deepx/tests/e2e_runner.py --cleanup --round 3 --tool claude-code
 python .deepx/tests/e2e_runner.py --cleanup --round 2,3,4
 ```
 
-**Parallel vs Sequential 비교:**
+**Sequential vs Parallel 비교:**
 
 | 모드 | 도구 동시 실행 수 | 사용 사례 |
 |------|------------------|----------|
-| (기본) | N (도구 개수, e.g. 5) | 빠른 batch 실행. 신뢰성보다 throughput |
-| `--sequential` | 1 | NPU/CPU 경합 제거. 도구별 정확한 측정/분석 필요 시 |
+| (기본) | 1 | NPU/CPU 경합 제거. 도구별 정확한 측정/분석 필요 시 |
+| `--parallel` | N (도구 개수, e.g. 5) | 빠른 batch 실행. 신뢰성보다 throughput |
 
 `--status` 결과의 `Mode:` 필드와 `state.json`의 `"mode"` 필드로 어떤 모드로 실행됐는지 확인 가능합니다.
 
