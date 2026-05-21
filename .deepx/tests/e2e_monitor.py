@@ -20,7 +20,7 @@ import argparse
 import json
 import sys
 import time
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional
 
@@ -42,7 +42,6 @@ except ImportError:
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = (SCRIPT_DIR / "../..").resolve()
-RESULTS_ROOT = REPO_ROOT / "dx-agentic-dev/e2e-tests/results"
 RUNNER_STATE_DIR = SCRIPT_DIR / "runner_state"
 
 ALL_TOOLS: List[str] = [
@@ -52,6 +51,19 @@ ALL_TOOLS: List[str] = [
     "opencode-cli",
     "codex-cli",
 ]
+
+# Scenario keys — order matches test.sh execution order
+SCENARIO_KEYS: List[str] = ["compiler", "dx_app", "dx_stream", "cascaded", "runtime", "suite"]
+
+# Map scenario key to the substring that appears in test file paths
+SCENARIO_FILE_PATTERNS: Dict[str, str] = {
+    "compiler": "_compiler_",
+    "dx_app": "_dx_app_",
+    "dx_stream": "_dx_stream_agentic",  # not cascaded
+    "cascaded": "_dx_stream_cascaded",
+    "runtime": "_runtime_",
+    "suite": "_suite_",
+}
 
 # ---------------------------------------------------------------------------
 # State reader
@@ -104,7 +116,7 @@ class StateReader:
 class LogTailer:
     """Read last N lines from a log file."""
 
-    def __init__(self, tool: str, log_dir: Optional[Path], n: int = 20):
+    def __init__(self, tool: str, log_dir: Optional[Path], n: int = 4):
         self.tool = tool
         self.log_dir = log_dir
         self.n = n
@@ -126,32 +138,62 @@ class LogTailer:
         except Exception as exc:
             return [f"(error reading log: {exc})"]
 
+    def parse_scenario_status(self) -> Dict[str, str]:
+        """Parse log to determine per-scenario status for current round.
 
-# ---------------------------------------------------------------------------
-# Results watcher — detects new result dirs
-# ---------------------------------------------------------------------------
+        Returns dict: scenario_key -> "done"/"running"/"pending"
+        """
+        p = self._path
+        result = {k: "pending" for k in SCENARIO_KEYS}
+        if p is None:
+            return result
+        try:
+            content = p.read_text(encoding="utf-8", errors="replace")
+        except Exception:
+            return result
 
+        # Find the last "Round N" marker to scope to current round
+        lines = content.splitlines()
+        last_round_idx = 0
+        for i, line in enumerate(lines):
+            if "Round " in line and "START" in line:
+                last_round_idx = i
 
-class ResultsWatcher:
-    def __init__(self):
-        self._seen: set = set()
-        self._events: List[str] = []
-        self.refresh()
+        # Scan from last round start
+        current_round_lines = "\n".join(lines[last_round_idx:])
 
-    def refresh(self) -> List[str]:
-        """Return list of new entries discovered since last refresh."""
-        if not RESULTS_ROOT.exists():
-            return []
-        current = {e.name for e in RESULTS_ROOT.iterdir() if e.is_dir()}
-        new_entries = current - self._seen
-        self._seen = current
-        for name in sorted(new_entries):
-            ts = datetime.now().strftime("%H:%M:%S")
-            self._events.append(f"[{ts}] NEW result: {name}")
-        return list(new_entries)
+        # Detect which scenarios have started / finished
+        # Pattern: test file path appears when scenario starts executing
+        # "PASSED" or "FAILED" after test lines means done
+        started = set()
+        finished = set()
 
-    def events_tail(self, n: int = 20) -> List[str]:
-        return self._events[-n:]
+        for line in lines[last_round_idx:]:
+            for key, pattern in SCENARIO_FILE_PATTERNS.items():
+                if pattern in line:
+                    started.add(key)
+                    if "PASSED" in line or "FAILED" in line:
+                        finished.add(key)
+
+        # Also check for "passed" / "failed" summary at end
+        for key in started:
+            if key in finished:
+                result[key] = "done"
+            else:
+                result[key] = "running"
+
+        # The first non-finished started scenario is "running", rest of started are "done"
+        # Actually: pytest runs sequentially, so only one can be truly "running"
+        running_found = False
+        for key in SCENARIO_KEYS:
+            if key in started and key not in finished:
+                if not running_found:
+                    result[key] = "running"
+                    running_found = True
+                else:
+                    result[key] = "running"  # shouldn't happen in sequential
+
+        return result
 
 
 # ---------------------------------------------------------------------------
@@ -159,14 +201,14 @@ class ResultsWatcher:
 # ---------------------------------------------------------------------------
 
 
-def _make_progress_table(data: dict) -> Table:
+def _make_progress_table(data: dict, log_dir: Optional[Path] = None) -> Table:
     tbl = Table(title=None, expand=True, border_style="dim")
     tbl.add_column("Tool", style="cyan", no_wrap=True, min_width=14)
-    tbl.add_column("Done", justify="right", style="green", min_width=5)
-    tbl.add_column("Fail", justify="right", style="red", min_width=5)
-    tbl.add_column("Rem", justify="right", style="yellow", min_width=5)
-    tbl.add_column("Status", min_width=10)
-    tbl.add_column("Current Round / Last Result")
+    tbl.add_column("Done", justify="right", style="green", min_width=4)
+    tbl.add_column("Fail", justify="right", style="red", min_width=4)
+    tbl.add_column("Rem", justify="right", style="yellow", min_width=4)
+    tbl.add_column("Status", min_width=8)
+    tbl.add_column("Scenarios (current round)", min_width=40)
 
     target = data.get("target_rounds", "?")
     for tool in data.get("tools", ALL_TOOLS):
@@ -176,7 +218,6 @@ def _make_progress_table(data: dict) -> Table:
         ng = sum(1 for r in completed if r.get("exit_code") != 0)
         rem = max(0, int(target) - len(completed))
         status = ts.get("status", "pending")
-        ip = ts.get("in_progress")
 
         status_style = {
             "done": "[green]done[/green]",
@@ -184,12 +225,23 @@ def _make_progress_table(data: dict) -> Table:
             "pending": "[dim]pending[/dim]",
         }.get(status, status)
 
-        detail = ""
-        if ip:
-            detail = f"Round {ip['round']} (started {ip.get('start_utc', '?')[:19]}Z)"
-        elif completed:
-            last = completed[-1]
-            detail = (last.get("result_dir_name") or "")[-50:]
+        # Parse scenario progress from log
+        scenario_str = ""
+        if status == "running" and log_dir:
+            tailer = LogTailer(tool, log_dir, n=4)
+            scenarios = tailer.parse_scenario_status()
+            parts = []
+            for key in SCENARIO_KEYS:
+                s = scenarios[key]
+                if s == "done":
+                    parts.append(f"[green]✓{key}[/green]")
+                elif s == "running":
+                    parts.append(f"[yellow]▶{key}[/yellow]")
+                else:
+                    parts.append(f"[dim]·{key}[/dim]")
+            scenario_str = " ".join(parts)
+        elif status == "done":
+            scenario_str = "[green]all complete[/green]"
 
         tbl.add_row(
             tool,
@@ -197,27 +249,14 @@ def _make_progress_table(data: dict) -> Table:
             str(ng) if ng else "—",
             str(rem) if rem > 0 else "✓",
             Text.from_markup(status_style),
-            detail,
+            Text.from_markup(scenario_str),
         )
     return tbl
 
 
-def _make_log_panel(tool: str, lines: List[str], n: int = 20) -> Panel:
+def _make_log_panel(tool: str, lines: List[str], n: int = 4) -> Panel:
     content = "\n".join(lines[-n:]) or "(no output yet)"
     return Panel(content, title=f"[bold]{tool}[/bold] — tail log", border_style="blue")
-
-
-def _make_timeline_panel(events: List[str]) -> Panel:
-    content = "\n".join(events) or "(waiting for first result...)"
-    return Panel(content, title="Timeline (new results)", border_style="dim")
-
-
-def _running_tools(data: dict) -> List[str]:
-    return [
-        t
-        for t in data.get("tools", ALL_TOOLS)
-        if data["tool_states"].get(t, {}).get("in_progress") is not None
-    ]
 
 
 # ---------------------------------------------------------------------------
@@ -225,7 +264,7 @@ def _running_tools(data: dict) -> List[str]:
 # ---------------------------------------------------------------------------
 
 
-def print_snapshot(data: dict, watcher: ResultsWatcher) -> None:
+def print_snapshot(data: dict) -> None:
     target = data.get("target_rounds", "?")
     thinking = data.get("thinking", False)
     print(f"\n=== E2E Monitor  run_id={data.get('run_id', '?')} ===")
@@ -250,15 +289,13 @@ def print_snapshot(data: dict, watcher: ResultsWatcher) -> None:
 
 def run_monitor(run_id: Optional[str], tool_filter: Optional[str], tail_n: int, once: bool) -> None:
     reader = StateReader(run_id)
-    watcher = ResultsWatcher()
 
     if not _RICH or once:
         data = reader.load()
         if data is None:
             print("No run state found. Start a run with e2e_runner.py first.")
             return
-        watcher.refresh()
-        print_snapshot(data, watcher)
+        print_snapshot(data)
 
         if not once:
             log_dir = reader.log_dir()
@@ -276,7 +313,6 @@ def run_monitor(run_id: Optional[str], tool_filter: Optional[str], tail_n: int, 
     with Live(console=console, refresh_per_second=1, screen=False) as live:
         while True:
             data = reader.load()
-            watcher.refresh()
 
             if data is None:
                 live.update(Panel("[yellow]No run state found. Start e2e_runner.py first.[/yellow]"))
@@ -284,8 +320,6 @@ def run_monitor(run_id: Optional[str], tool_filter: Optional[str], tail_n: int, 
                 continue
 
             log_dir = reader.log_dir()
-            running = _running_tools(data)
-            display_tools = [tool_filter] if tool_filter else (running or data.get("tools", ALL_TOOLS))
 
             # Header
             run_id_str = data.get("run_id", "?")
@@ -297,26 +331,22 @@ def run_monitor(run_id: Optional[str], tool_filter: Optional[str], tail_n: int, 
                 style="bold",
             )
 
-            # Progress table
-            prog_panel = Panel(_make_progress_table(data), title="Round Progress", border_style="green")
+            # Progress table (with scenario status)
+            prog_panel = Panel(_make_progress_table(data, log_dir), title="Round Progress", border_style="green")
 
-            # Log panels for running (or filtered) tools
+            # Log panels for ALL tools (or filtered)
+            display_tools = [tool_filter] if tool_filter else data.get("tools", ALL_TOOLS)
             log_panels = []
-            for tool in display_tools[:3]:  # max 3 side-by-side panels
+            for tool in display_tools:
                 tailer = LogTailer(tool, log_dir, n=tail_n)
                 log_panels.append(_make_log_panel(tool, tailer.tail(), tail_n))
 
-            # Timeline
-            timeline_panel = _make_timeline_panel(watcher.events_tail(15))
-
             # Compose layout
             from rich.console import Group
-            from rich import print as rprint
 
             renderables = [header, prog_panel]
             if log_panels:
                 renderables.append(Columns(log_panels, equal=True, expand=True))
-            renderables.append(timeline_panel)
             live.update(Group(*renderables))
 
             # Check if all done
@@ -345,7 +375,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p.add_argument("--run-id", dest="run_id", help="Specific run ID to monitor")
     p.add_argument("--tool", help="Focus on a specific tool's log")
-    p.add_argument("--tail", type=int, default=20, help="Number of log lines to show (default: 20)")
+    p.add_argument("--tail", type=int, default=4, help="Number of log lines to show (default: 4)")
     p.add_argument("--once", action="store_true", help="Print snapshot once and exit (no live update)")
     return p
 
