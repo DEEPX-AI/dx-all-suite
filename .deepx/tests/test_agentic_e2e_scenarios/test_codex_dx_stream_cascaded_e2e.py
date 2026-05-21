@@ -417,7 +417,7 @@ class TestMandatoryArtifacts:
         )
 
     def test_session_id_has_agent_identifier(self, scenario: ScenarioResult):
-        """R80: session.json session_id must include the agent identifier 'claude'."""
+        """R80: session.json session_id must include the agent identifier 'codex'."""
         if not scenario.succeeded:
             pytest.skip("Codex execution failed")
         import json
@@ -428,8 +428,8 @@ class TestMandatoryArtifacts:
             pytest.skip("No session.json found")
         data = json.loads(session_path.read_text(encoding="utf-8"))
         sid = data.get("session_id", "")
-        assert "claude" in sid, (
-            f"session.json session_id '{sid}' does not contain agent identifier 'claude'.\n"
+        assert "codex" in sid, (
+            f"session.json session_id '{sid}' does not contain agent identifier 'codex'.\n"
             "Fix: session_id must use format YYYYMMDD-HHMMSS_<agent>_<model>_<task> "
-            "where <agent> is 'claude'."
+            "where <agent> is 'codex'."
         )
