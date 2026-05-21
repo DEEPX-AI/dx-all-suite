@@ -21,11 +21,20 @@ Usage examples:
     # Show current run status
     python .deepx/tests/e2e_runner.py --status
 
+    # List all previous runs
+    python .deepx/tests/e2e_runner.py --list
+
+    # Gracefully stop the current run after the active round finishes
+    python .deepx/tests/e2e_runner.py --stop --run-id 20260521_100000
+
+    # Abort the current run immediately
+    python .deepx/tests/e2e_runner.py --abort --run-id 20260521_100000 --force
+
     # Delete artifacts for round 3 of all tools
     python .deepx/tests/e2e_runner.py --cleanup --round 3
 
-    # Delete artifacts for round 3 of a specific tool
-    python .deepx/tests/e2e_runner.py --cleanup --round 3 --tool claude-code
+    # Delete artifacts for round 3 of a specific tool set
+    python .deepx/tests/e2e_runner.py --cleanup --round 3 --tools claude-code
 
 See .deepx/tests/README.md for full documentation.
 """
@@ -35,7 +44,9 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import shutil
+import signal
 import subprocess
 import sys
 import threading
@@ -69,20 +80,20 @@ ALL_TOOLS: List[str] = [
 
 # test.sh command name for each tool
 TOOL_CMD: Dict[str, str] = {
-    "claude-code":  "agentic-e2e-claude-code-autopilot",
-    "copilot-cli":  "agentic-e2e-copilot-cli-autopilot",
-    "cursor-cli":   "agentic-e2e-cursor-cli-autopilot",
+    "claude-code": "agentic-e2e-claude-code-autopilot",
+    "copilot-cli": "agentic-e2e-copilot-cli-autopilot",
+    "cursor-cli": "agentic-e2e-cursor-cli-autopilot",
     "opencode-cli": "agentic-e2e-opencode-cli-autopilot",
-    "codex-cli":    "agentic-e2e-codex-cli-autopilot",
+    "codex-cli": "agentic-e2e-codex-cli-autopilot",
 }
 
 # Thinking / high-reasoning mode env vars per tool
 THINKING_ENV: Dict[str, Dict[str, str]] = {
-    "claude-code":  {"DX_AGENTIC_E2E_CLAUDE_CODE_EXTRA_ARGS": "--effort xhigh"},
-    "copilot-cli":  {"DX_AGENTIC_E2E_COPILOT_EXTRA_ARGS": "--effort xhigh"},
+    "claude-code": {"DX_AGENTIC_E2E_CLAUDE_CODE_EXTRA_ARGS": "--effort xhigh"},
+    "copilot-cli": {"DX_AGENTIC_E2E_COPILOT_EXTRA_ARGS": "--effort xhigh"},
     "opencode-cli": {"DX_AGENTIC_E2E_OPENCODE_EXTRA_ARGS": "--variant high"},
-    "codex-cli":    {"DX_AGENTIC_E2E_CODEX_EXTRA_ARGS": '-c model_reasoning_effort="xhigh"'},
-    "cursor-cli":   {},  # quota exceeded; auto fallback, no thinking mode
+    "codex-cli": {"DX_AGENTIC_E2E_CODEX_EXTRA_ARGS": '-c model_reasoning_effort="xhigh"'},
+    "cursor-cli": {},  # quota exceeded; auto fallback, no thinking mode
 }
 
 # ---------------------------------------------------------------------------
@@ -90,6 +101,15 @@ THINKING_ENV: Dict[str, Dict[str, str]] = {
 # ---------------------------------------------------------------------------
 
 _state_lock = threading.Lock()
+_abort_event = threading.Event()
+
+
+class StopRequested(Exception):
+    """Graceful stop requested via sentinel file."""
+
+
+class AbortRequested(Exception):
+    """Immediate abort requested via sentinel file or SIGTERM."""
 
 
 class RunState:
@@ -105,8 +125,10 @@ class RunState:
             "target_rounds": target_rounds,
             "thinking": thinking,
             "tools": tools,
+            "runner_pid": None,
+            "status": "pending",
             "tool_states": {
-                t: {"completed": [], "in_progress": None, "status": "pending"}
+                t: {"completed": [], "in_progress": None, "status": "pending", "pid": None}
                 for t in tools
             },
         }
@@ -129,6 +151,7 @@ class RunState:
     @classmethod
     def load(cls, path: Path) -> "RunState":
         data = json.loads(path.read_text(encoding="utf-8"))
+        _normalize_state_data(data)
         obj = cls.__new__(cls)
         obj.run_id = data["run_id"]
         obj.path = path
@@ -147,7 +170,11 @@ class RunState:
                 return candidate
         # Fallback: newest by mtime
         candidates = sorted(
-            (RUNNER_STATE_DIR.glob("*/state.json") if RUNNER_STATE_DIR.exists() else []),
+            (
+                p
+                for p in (RUNNER_STATE_DIR.glob("*/state.json") if RUNNER_STATE_DIR.exists() else [])
+                if p.parent.name != "latest"
+            ),
             key=lambda p: p.stat().st_mtime,
             reverse=True,
         )
@@ -179,7 +206,7 @@ class RunState:
             ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
             ts_state = self.data["tool_states"][tool]
             start_utc = (ts_state.get("in_progress") or {}).get("start_utc", ts)
-            ts_state["completed"].append(
+            ts_state.setdefault("completed", []).append(
                 {
                     "round": round_num,
                     "result_dir_name": result_dir_name,
@@ -190,6 +217,7 @@ class RunState:
                 }
             )
             ts_state["in_progress"] = None
+            ts_state["pid"] = None
             target = self.data["target_rounds"]
             done = len(ts_state["completed"])
             ts_state["status"] = "done" if done >= target else "running"
@@ -219,6 +247,20 @@ class RunState:
     @property
     def tools(self) -> List[str]:
         return self.data.get("tools", ALL_TOOLS)
+
+
+def _normalize_state_data(data: dict) -> None:
+    data.setdefault("thinking", False)
+    data.setdefault("tools", ALL_TOOLS)
+    data.setdefault("runner_pid", None)
+    data.setdefault("status", "pending")
+    data.setdefault("tool_states", {})
+    for tool in data.get("tools", ALL_TOOLS):
+        ts = data["tool_states"].setdefault(tool, {})
+        ts.setdefault("completed", [])
+        ts.setdefault("in_progress", None)
+        ts.setdefault("status", "pending")
+        ts.setdefault("pid", None)
 
 
 # ---------------------------------------------------------------------------
@@ -305,6 +347,33 @@ def _find_new_result_dir(tool: str, snapshot: set) -> Optional[str]:
 # Single-tool runner
 # ---------------------------------------------------------------------------
 
+def _check_sentinel(state: RunState) -> None:
+    """Check for STOP/ABORT sentinel files. Raise if found."""
+    if _abort_event.is_set():
+        raise AbortRequested()
+    state_dir = state.path.parent
+    if (state_dir / "ABORT").exists():
+        raise AbortRequested()
+    if (state_dir / "STOP").exists():
+        raise StopRequested()
+
+
+def _terminate_process(proc: subprocess.Popen, log_path: Path, tool: str, round_num: int) -> None:
+    _log(f"[{tool}] ABORT during round {round_num} — killing PID {proc.pid}", log_path)
+    try:
+        proc.terminate()
+    except ProcessLookupError:
+        return
+    try:
+        proc.wait(timeout=10)
+    except subprocess.TimeoutExpired:
+        try:
+            proc.kill()
+        except ProcessLookupError:
+            return
+        proc.wait()
+
+
 def run_tool_rounds(
     tool: str,
     state: RunState,
@@ -320,20 +389,39 @@ def run_tool_rounds(
         env.update(THINKING_ENV.get(tool, {}))
 
     while state.remaining(tool) > 0:
+        # Check sentinel BEFORE starting next round.
+        try:
+            _check_sentinel(state)
+        except StopRequested:
+            _log(f"[{tool}] STOP requested. Finishing.", log_path)
+            with _state_lock:
+                ts = state.data["tool_states"][tool]
+                if ts.get("status") != "done":
+                    ts["status"] = "stopped"
+                state.save()
+            return
+        except AbortRequested:
+            _log(f"[{tool}] ABORT requested.", log_path)
+            with _state_lock:
+                ts = state.data["tool_states"][tool]
+                ts["in_progress"] = None
+                ts["pid"] = None
+                ts["status"] = "aborted"
+                state.save()
+            raise
+
         round_num = state.next_round_num(tool)
         total = state.target_rounds
-
         _log(f"[{tool}] Round {round_num}/{total} START", log_path)
         state.mark_start(tool, round_num)
 
-        # Snapshot results/ before run to detect the new result dir
         results_snapshot: set = set(RESULTS_ROOT.iterdir()) if RESULTS_ROOT.exists() else set()
-
         cmd = ["bash", str(TEST_SH), TOOL_CMD[tool]]
+
         with open(log_path, "a", encoding="utf-8") as flog:
             flog.write(f"\n{'='*60}\n[{_now()}] {tool} Round {round_num}/{total} START\n{'='*60}\n")
             flog.flush()
-            proc = subprocess.run(
+            proc = subprocess.Popen(
                 cmd,
                 cwd=str(REPO_ROOT),
                 env=env,
@@ -341,7 +429,26 @@ def run_tool_rounds(
                 stderr=subprocess.STDOUT,
             )
 
+        with _state_lock:
+            state.data["tool_states"][tool]["pid"] = proc.pid
+            state.save()
+
+        while proc.poll() is None:
+            time.sleep(2)
+            if _abort_event.is_set() or (state.path.parent / "ABORT").exists():
+                _terminate_process(proc, log_path, tool, round_num)
+                with _state_lock:
+                    state.data["tool_states"][tool]["in_progress"] = None
+                    state.data["tool_states"][tool]["pid"] = None
+                    state.data["tool_states"][tool]["status"] = "aborted"
+                    state.save()
+                raise AbortRequested()
+
         exit_code = proc.returncode
+        with _state_lock:
+            state.data["tool_states"][tool]["pid"] = None
+            state.save()
+
         result_dir_name = _find_new_result_dir(tool, results_snapshot)
         artifact_dirs: List[str] = []
         if result_dir_name:
@@ -351,6 +458,9 @@ def run_tool_rounds(
         state.mark_done(tool, round_num, result_dir_name, exit_code, artifact_dirs)
 
     _log(f"[{tool}] All {state.target_rounds} rounds complete.", log_path)
+    with _state_lock:
+        state.data["tool_states"][tool]["status"] = "done"
+        state.save()
 
 
 def _log(msg: str, log_path: Path) -> None:
@@ -380,13 +490,27 @@ def run_all(
     run_id: Optional[str],
 ) -> int:
     """Launch all tools in parallel; return overall exit code (0 = all passed)."""
+    _abort_event.clear()
     state = _resolve_state(tools, target_rounds, thinking, resume, run_id)
     log_dir = state.log_dir
 
+    for fname in ["STOP", "ABORT"]:
+        sentinel = state.path.parent / fname
+        sentinel.unlink(missing_ok=True)
+
+    with _state_lock:
+        state.data["runner_pid"] = os.getpid()
+        state.data["status"] = "running"
+        state.save()
+
     all_done = all(state.remaining(t) == 0 for t in tools)
     if all_done:
+        with _state_lock:
+            state.data["runner_pid"] = None
+            state.data["status"] = "done"
+            state.save()
         print(f"All tools already at {target_rounds} rounds. Nothing to do.")
-        print(f"Use --status to inspect results, or increase --rounds.")
+        print("Use --status to inspect results, or increase --rounds.")
         return 0
 
     print(f"\n{'='*60}")
@@ -401,6 +525,9 @@ def run_all(
 
     futures_map = {}
     overall_ok = True
+    saw_abort = False
+    saw_stop = False
+
     with ThreadPoolExecutor(max_workers=len(tools)) as pool:
         for tool in tools:
             if state.remaining(tool) > 0:
@@ -411,18 +538,35 @@ def run_all(
             tool = futures_map[f]
             try:
                 f.result()
-                failed = sum(
-                    1 for r in state.data["tool_states"][tool]["completed"] if r["exit_code"] != 0
-                )
+                completed = state.data["tool_states"][tool]["completed"]
+                failed = sum(1 for r in completed if r["exit_code"] != 0)
                 if failed:
                     print(f"  [{tool}] {failed} round(s) had non-zero exit.")
                     overall_ok = False
+                if state.data["tool_states"][tool].get("status") == "stopped":
+                    saw_stop = True
+            except AbortRequested:
+                print(f"  [{tool}] ABORT requested.")
+                saw_abort = True
+                overall_ok = False
+                with _state_lock:
+                    state.data["status"] = "aborted"
+                    state.save()
             except Exception as exc:
                 print(f"  [{tool}] ERROR: {exc}")
                 overall_ok = False
+                with _state_lock:
+                    state.data["tool_states"][tool]["status"] = "error"
+                    state.save()
+
+    final_status = _derive_overall_status(state, overall_ok, saw_abort, saw_stop)
+    with _state_lock:
+        state.data["runner_pid"] = None
+        state.data["status"] = final_status
+        state.save()
 
     print(f"\n{'='*60}")
-    print(f"  E2E Runner COMPLETE  run_id={state.run_id}")
+    print(f"  E2E Runner COMPLETE  run_id={state.run_id}  status={final_status}")
     for t in tools:
         completed = state.data["tool_states"][t]["completed"]
         ok = sum(1 for r in completed if r["exit_code"] == 0)
@@ -431,7 +575,8 @@ def run_all(
     print(f"  State: {state.path}")
     print(f"{'='*60}\n")
 
-    return 0 if overall_ok else 1
+    return 0 if final_status in {"done", "stopped"} and overall_ok else 1
+
 
 
 def _resolve_state(
@@ -449,8 +594,8 @@ def _resolve_state(
             if p.exists():
                 state = RunState.load(p)
                 print(f"Resuming run_id={run_id} from {p}")
-                # Update target in case caller raised it
                 state.data["target_rounds"] = target_rounds
+                state.data["runner_pid"] = os.getpid()
                 state.save()
                 return state
             print(f"WARNING: --run-id {run_id} not found; falling back to results/ detection")
@@ -461,6 +606,7 @@ def _resolve_state(
             state = RunState.load(latest_path)
             print(f"Resuming latest run_id={state.run_id}")
             state.data["target_rounds"] = target_rounds
+            state.data["runner_pid"] = os.getpid()
             state.save()
             return state
 
@@ -473,18 +619,33 @@ def _resolve_state(
             state.data["tool_states"][t]["completed"] = per_tool.get(t, [])
             done = len(state.data["tool_states"][t]["completed"])
             state.data["tool_states"][t]["status"] = "done" if done >= target_rounds else "pending"
+        state.data["runner_pid"] = os.getpid()
         state.save()
         return state
 
     # Fresh run
     new_run_id = _make_run_id()
     state = RunState(new_run_id, target_rounds, tools, thinking)
+    state.data["runner_pid"] = os.getpid()
     state.save()
     return state
 
 
 def _make_run_id() -> str:
     return datetime.now().strftime("%Y%m%d_%H%M%S")
+
+
+def _derive_overall_status(state: RunState, overall_ok: bool, saw_abort: bool, saw_stop: bool) -> str:
+    tool_statuses = {state.data["tool_states"].get(t, {}).get("status", "pending") for t in state.tools}
+    if saw_abort or "aborted" in tool_statuses:
+        return "aborted"
+    if saw_stop or "stopped" in tool_statuses:
+        return "stopped"
+    if "error" in tool_statuses:
+        return "error"
+    if all(state.remaining(t) == 0 for t in state.tools):
+        return "done" if overall_ok else "done-with-failures"
+    return "running" if overall_ok else "partial"
 
 
 # ---------------------------------------------------------------------------
@@ -511,6 +672,8 @@ def cleanup_rounds(round_nums: List[int], tools: List[str], run_id: Optional[str
             else:
                 remaining_completed.append(entry)
         ts["completed"] = remaining_completed
+        if not remaining_completed and ts.get("status") == "done":
+            ts["status"] = "pending"
 
     if deleted_any:
         state.save()
@@ -518,6 +681,7 @@ def cleanup_rounds(round_nums: List[int], tools: List[str], run_id: Optional[str
     else:
         print("No matching rounds found in state.")
     return 0
+
 
 
 def _delete_round_artifacts(tool: str, entry: dict) -> None:
@@ -541,6 +705,7 @@ def _delete_round_artifacts(tool: str, entry: dict) -> None:
             print(f"    deleted result dir: {rd.name}")
 
 
+
 def _cleanup_from_results(round_nums: List[int], tools: List[str]) -> int:
     """Cleanup without state.json: scan results/ and delete by ordinal round number."""
     per_tool = detect_completed_from_results(tools, max(round_nums) + 1)
@@ -552,11 +717,144 @@ def _cleanup_from_results(round_nums: List[int], tools: List[str]) -> int:
     return 0
 
 
+
 def _find_state_path(run_id: Optional[str]) -> Optional[Path]:
     if run_id:
         p = RUNNER_STATE_DIR / run_id / "state.json"
         return p if p.exists() else None
     return RunState.find_latest()
+
+
+# ---------------------------------------------------------------------------
+# Stop / abort / list commands
+# ---------------------------------------------------------------------------
+
+def _pid_alive(pid: Optional[int]) -> bool:
+    if not pid:
+        return False
+    try:
+        os.kill(int(pid), 0)
+    except (OSError, ValueError, TypeError):
+        return False
+    return True
+
+
+
+def do_stop(run_id: Optional[str]) -> int:
+    state_path = _find_state_path(run_id)
+    if state_path is None:
+        print("No run state found.", file=sys.stderr)
+        return 1
+
+    state = RunState.load(state_path)
+    if all(state.remaining(tool) == 0 for tool in state.tools):
+        print("Nothing to stop: all tools are already complete.")
+        return 0
+
+    runner_pid = state.data.get("runner_pid")
+    if not _pid_alive(runner_pid):
+        print(f"Runner is not active for run_id={state.run_id} (runner_pid={runner_pid}).", file=sys.stderr)
+        return 1
+
+    stop_path = state.path.parent / "STOP"
+    payload = {
+        "timestamp": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "requester_pid": os.getpid(),
+    }
+    stop_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+
+    with _state_lock:
+        state.data["status"] = "stop-requested"
+        state.save()
+
+    print(f"STOP requested for run_id={state.run_id}. Active rounds will finish before stopping.")
+    return 0
+
+
+
+def do_abort(run_id: Optional[str], force: bool) -> int:
+    state_path = _find_state_path(run_id)
+    if state_path is None:
+        print("No run state found.", file=sys.stderr)
+        return 1
+
+    if not force:
+        answer = input("Are you sure? (y/N) ").strip().lower()
+        if answer not in {"y", "yes"}:
+            print("Abort cancelled.")
+            return 1
+
+    state = RunState.load(state_path)
+    abort_path = state.path.parent / "ABORT"
+    payload = {
+        "timestamp": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "requester_pid": os.getpid(),
+    }
+    abort_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+
+    runner_pid = state.data.get("runner_pid")
+    if _pid_alive(runner_pid):
+        try:
+            os.kill(int(runner_pid), signal.SIGTERM)
+        except OSError as exc:
+            print(f"Warning: failed to signal runner PID {runner_pid}: {exc}", file=sys.stderr)
+
+    with _state_lock:
+        state.data["status"] = "abort-requested"
+        state.save()
+
+    print(f"ABORT requested for run_id={state.run_id}.")
+    return 0
+
+
+
+def show_list() -> None:
+    if not RUNNER_STATE_DIR.exists():
+        print("No runner_state directory found.")
+        return
+
+    latest_path = RunState.find_latest()
+    latest_run_id = latest_path.parent.name if latest_path else None
+    states = sorted(
+        (p for p in RUNNER_STATE_DIR.glob("*/state.json") if p.parent.name != "latest"),
+        key=lambda p: p.stat().st_mtime,
+        reverse=True,
+    )
+    if not states:
+        print("No runs found.")
+        return
+
+    print(f"{'Latest':<7} {'Run ID':<18} {'Created':<20} {'Rounds':<10} {'Thinking':<9} {'Status':<20} Progress")
+    print(f"{'-'*7} {'-'*18} {'-'*20} {'-'*10} {'-'*9} {'-'*20} {'-'*40}")
+    for state_path in states:
+        state = RunState.load(state_path)
+        d = state.data
+        progress = ", ".join(
+            f"{tool}:{len(d['tool_states'].get(tool, {}).get('completed', []))}/{d.get('target_rounds', '?')}"
+            for tool in d.get("tools", ALL_TOOLS)
+        )
+        marker = "*" if d.get("run_id") == latest_run_id else ""
+        print(
+            f"{marker:<7} {d.get('run_id', '?'):<18} {d.get('created_at', '?'):<20} "
+            f"{str(d.get('target_rounds', '?')):<10} {str(d.get('thinking', False)):<9} "
+            f"{d.get('status', _derive_list_status(d)):<20} {progress}"
+        )
+
+
+
+def _derive_list_status(data: dict) -> str:
+    statuses = {ts.get("status", "pending") for ts in data.get("tool_states", {}).values()}
+    if data.get("status"):
+        return str(data["status"])
+    if "aborted" in statuses:
+        return "aborted"
+    if "stopped" in statuses:
+        return "stopped"
+    if "running" in statuses:
+        return "running"
+    if statuses == {"done"}:
+        return "done"
+    return "pending"
 
 
 # ---------------------------------------------------------------------------
@@ -571,27 +869,132 @@ def show_status(run_id: Optional[str]) -> None:
 
     state = RunState.load(state_path)
     d = state.data
-    print(f"\nRun ID  : {d['run_id']}")
-    print(f"Created : {d.get('created_at', '?')}")
-    print(f"Target  : {d['target_rounds']} rounds  Thinking: {d.get('thinking', False)}")
-    print(f"State   : {state_path}\n")
-    print(f"{'Tool':<16} {'Done':>5} {'Fail':>5} {'Status':<10} Last result dir")
-    print(f"{'-'*16} {'-'*5} {'-'*5} {'-'*10} {'-'*40}")
+    print(f"\nRun ID     : {d['run_id']}")
+    print(f"Created    : {d.get('created_at', '?')}")
+    print(f"Target     : {d['target_rounds']} rounds  Thinking: {d.get('thinking', False)}")
+    print(f"Status     : {d.get('status', '?')}")
+    print(f"Runner PID : {d.get('runner_pid') or '—'}")
+    print(f"State      : {state_path}\n")
+
+    print(f"{'Tool':<16} {'Done':>5} {'Fail':>5} {'Status':<14} {'PID':>8} Last result dir")
+    print(f"{'-'*16} {'-'*5} {'-'*5} {'-'*14} {'-'*8} {'-'*40}")
     for tool in d.get("tools", ALL_TOOLS):
         ts = d["tool_states"].get(tool, {})
         completed = ts.get("completed", [])
-        ok = sum(1 for r in completed if r["exit_code"] == 0)
-        ng = sum(1 for r in completed if r["exit_code"] != 0)
+        ok = sum(1 for r in completed if r.get("exit_code") == 0)
+        ng = sum(1 for r in completed if r.get("exit_code") != 0)
         status = ts.get("status", "?")
-        last = completed[-1]["result_dir_name"] if completed else "—"
-        print(f"{tool:<16} {ok:>5} {ng:>5} {status:<10} {last or '—'}")
+        pid = ts.get("pid") or "—"
+        last = completed[-1].get("result_dir_name") if completed else "—"
+        print(f"{tool:<16} {ok:>5} {ng:>5} {status:<14} {str(pid):>8} {last or '—'}")
     print()
 
-    # Show in-progress
     for tool in d.get("tools", ALL_TOOLS):
-        ip = d["tool_states"].get(tool, {}).get("in_progress")
+        ts = d["tool_states"].get(tool, {})
+        completed = ts.get("completed", [])
+        ip = ts.get("in_progress")
+        log_summary = _summarize_log_timings(state.log_dir / f"{tool}.log")
+
+        print(f"[{tool}]")
+        if completed:
+            for entry in completed:
+                start_utc = entry.get("start_utc") or "?"
+                end_utc = entry.get("end_utc") or "?"
+                duration = _format_duration(_duration_seconds(entry.get("start_utc"), entry.get("end_utc")))
+                result_dir = entry.get("result_dir_name") or "—"
+                print(
+                    f"  Round {entry.get('round', '?'):>2}: {start_utc} -> {end_utc}  "
+                    f"duration={duration}  exit={entry.get('exit_code', '?')}  result={result_dir}"
+                )
+        else:
+            print("  No completed rounds.")
+
         if ip:
-            print(f"  {tool}: Round {ip['round']} in progress since {ip.get('start_utc', '?')}")
+            elapsed = _format_duration(_elapsed_seconds(ip.get("start_utc")))
+            print(
+                f"  In progress: round {ip.get('round', '?')} since {ip.get('start_utc', '?')}  "
+                f"elapsed={elapsed}  pid={ts.get('pid') or '—'}"
+            )
+        if log_summary:
+            print(f"  Log timing: {log_summary}")
+        print()
+
+
+
+def _parse_utc(ts: Optional[str]) -> Optional[datetime]:
+    if not ts:
+        return None
+    try:
+        return datetime.fromisoformat(ts.replace("Z", "+00:00"))
+    except Exception:
+        return None
+
+
+
+def _duration_seconds(start_utc: Optional[str], end_utc: Optional[str]) -> Optional[float]:
+    start_dt = _parse_utc(start_utc)
+    end_dt = _parse_utc(end_utc)
+    if not start_dt or not end_dt:
+        return None
+    return max(0.0, (end_dt - start_dt).total_seconds())
+
+
+
+def _elapsed_seconds(start_utc: Optional[str]) -> Optional[float]:
+    start_dt = _parse_utc(start_utc)
+    if not start_dt:
+        return None
+    return max(0.0, (datetime.now(timezone.utc) - start_dt).total_seconds())
+
+
+
+def _format_duration(seconds: Optional[float]) -> str:
+    if seconds is None:
+        return "?"
+    total = int(seconds)
+    hours, rem = divmod(total, 3600)
+    minutes, secs = divmod(rem, 60)
+    if hours:
+        return f"{hours}h{minutes:02d}m{secs:02d}s"
+    if minutes:
+        return f"{minutes}m{secs:02d}s"
+    return f"{secs}s"
+
+
+
+def _summarize_log_timings(log_path: Path) -> Optional[str]:
+    if not log_path.exists():
+        return None
+    try:
+        lines = log_path.read_text(encoding="utf-8", errors="ignore").splitlines()
+    except Exception:
+        return None
+
+    pattern = re.compile(r"^\[(\d{2}:\d{2}:\d{2})\]\s+(.*)$")
+    scenario_start: Dict[str, str] = {}
+    durations: List[int] = []
+    for line in lines:
+        match = pattern.match(line)
+        if not match:
+            continue
+        ts, msg = match.groups()
+        if "Scenario" not in msg:
+            continue
+        name = msg
+        if " START" in msg:
+            name = msg.rsplit(" START", 1)[0]
+            scenario_start[name] = ts
+        elif " DONE" in msg and name:
+            name = msg.rsplit(" DONE", 1)[0]
+            start_ts = scenario_start.pop(name, None)
+            if start_ts:
+                start_dt = datetime.strptime(start_ts, "%H:%M:%S")
+                end_dt = datetime.strptime(ts, "%H:%M:%S")
+                durations.append(int((end_dt - start_dt).total_seconds()))
+    if not durations:
+        return None
+    avg = sum(durations) / len(durations)
+    return f"scenarios={len(durations)} avg={_format_duration(avg)} max={_format_duration(max(durations))}"
 
 
 # ---------------------------------------------------------------------------
@@ -613,25 +1016,44 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p.add_argument("--thinking", action="store_true", help="Enable thinking/high-reasoning mode for each tool")
     p.add_argument("--resume", action="store_true", help="Auto-detect completed rounds and continue to target")
-    p.add_argument("--run-id", dest="run_id", help="Specify a previous run ID (use with --resume or --cleanup)")
+    p.add_argument("--run-id", dest="run_id", help="Specify a previous run ID")
     p.add_argument("--status", action="store_true", help="Show current run status and exit")
     p.add_argument("--cleanup", action="store_true", help="Delete artifacts for specified rounds")
+    p.add_argument("--stop", action="store_true", help="Gracefully stop a running session after the current round")
+    p.add_argument("--abort", action="store_true", help="Abort a running session immediately")
+    p.add_argument("--force", action="store_true", help="Do not prompt for confirmation with --abort")
+    p.add_argument("--list", dest="list_runs", action="store_true", help="List known runs and exit")
     p.add_argument("--round", dest="round_nums", type=str, help="Round number(s) to clean up, e.g. 3 or 2,3,4")
     return p
 
 
+
+def _handle_sigterm(signum, frame) -> None:  # type: ignore[no-untyped-def]
+    _abort_event.set()
+
+
+
 def main() -> int:
+    signal.signal(signal.SIGTERM, _handle_sigterm)
+
     parser = build_parser()
     args = parser.parse_args()
+
+    if args.list_runs:
+        show_list()
+        return 0
+    if args.stop:
+        return do_stop(args.run_id)
+    if args.abort:
+        return do_abort(args.run_id, args.force)
+    if args.status:
+        show_status(args.run_id)
+        return 0
 
     tools = [t.strip() for t in args.tools.split(",") if t.strip() in ALL_TOOLS]
     if not tools:
         print(f"ERROR: no valid tools specified. Valid: {', '.join(ALL_TOOLS)}", file=sys.stderr)
         return 2
-
-    if args.status:
-        show_status(args.run_id)
-        return 0
 
     if args.cleanup:
         if not args.round_nums:

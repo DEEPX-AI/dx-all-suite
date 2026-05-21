@@ -52,6 +52,119 @@ Runs actual CLI agent invocations for representative scenarios from each project
 - `pytest.mark.agentic_e2e_opencode_cli_autopilot` — OpenCode CLI fully autonomous (CI/CD)
 - `pytest.mark.agentic_e2e_claude_code_autopilot` — Claude Code CLI fully autonomous (CI/CD)
 
+## 🔄 E2E Runner & Monitor
+
+Reusable tools for running multiple rounds in parallel and monitoring progress in real time.
+Located at `.deepx/tests/e2e_runner.py` and `.deepx/tests/e2e_monitor.py`.
+
+### e2e_runner.py
+
+Runs 5 tools in parallel for N rounds with state tracking, stop/abort, and resume capabilities.
+
+```bash
+# Run all tools for 5 rounds in parallel
+python .deepx/tests/e2e_runner.py --rounds 5
+
+# Run specific tools only
+python .deepx/tests/e2e_runner.py --rounds 5 --tools claude-code,copilot-cli
+
+# Enable thinking / high-reasoning mode (xhigh effort)
+python .deepx/tests/e2e_runner.py --rounds 5 --thinking
+
+# Resume: auto-detect completed rounds, continue to target
+python .deepx/tests/e2e_runner.py --rounds 10 --resume
+
+# Resume a specific previous run
+python .deepx/tests/e2e_runner.py --rounds 10 --resume --run-id 20260521_100000
+
+# List all run IDs
+python .deepx/tests/e2e_runner.py --list
+
+# Show detailed status (per-round/scenario timing)
+python .deepx/tests/e2e_runner.py --status
+python .deepx/tests/e2e_runner.py --status --run-id 20260521_135734
+
+# Graceful stop (finish current round, then exit)
+python .deepx/tests/e2e_runner.py --stop
+
+# Immediate abort (kill processes, remove in-progress artifacts)
+python .deepx/tests/e2e_runner.py --abort
+python .deepx/tests/e2e_runner.py --abort --force   # skip confirmation prompt
+
+# Delete artifacts for specific rounds
+python .deepx/tests/e2e_runner.py --cleanup --round 3
+python .deepx/tests/e2e_runner.py --cleanup --round 3 --tool claude-code
+python .deepx/tests/e2e_runner.py --cleanup --round 2,3,4
+```
+
+**Stop & Resume:**
+
+| Command | Behavior | Child processes | In-progress artifacts |
+|---------|----------|-----------------|----------------------|
+| `--stop` | Graceful — finish current round, then exit | Natural completion | Kept |
+| `--abort` | Immediate — kill all now | SIGTERM sent | Deleted |
+| `--resume --rounds N` | Continue from completed count to N | — | — |
+
+**Thinking mode** (per-tool env vars):
+
+| Tool | Thinking mode env var |
+|---|---|
+| `claude-code` | `DX_AGENTIC_E2E_CLAUDE_CODE_EXTRA_ARGS=--effort xhigh` |
+| `copilot-cli` | `DX_AGENTIC_E2E_COPILOT_EXTRA_ARGS=--effort xhigh` |
+| `opencode-cli` | `DX_AGENTIC_E2E_OPENCODE_EXTRA_ARGS=--variant high` |
+| `codex-cli` | `DX_AGENTIC_E2E_CODEX_EXTRA_ARGS=-c model_reasoning_effort="xhigh"` |
+| `cursor-cli` | No thinking mode (quota exceeded; auto fallback) |
+
+**State files** (`.deepx/tests/runner_state/<run_id>/`):
+- `state.json` — round completion status, timing, artifact paths, exit codes, PIDs
+- `logs/<tool>.log` — per-tool full stdout/stderr log
+- `STOP` / `ABORT` — sentinel files (created by --stop/--abort)
+- `latest` symlink — always points to the most recent run
+
+**Resume priority:**
+1. `--run-id` specified: load that state.json
+2. Not specified: load via `runner_state/latest` symlink
+3. Fallback: scan `dx-agentic-dev/e2e-tests/results/` to build state from existing results
+
+### e2e_monitor.py
+
+Rich-based Live TUI monitor for real-time runner progress.
+
+```bash
+# Monitor latest run (progress table only, no logs)
+python .deepx/tests/e2e_monitor.py
+
+# Monitor specific run
+python .deepx/tests/e2e_monitor.py --run-id 20260521_100000
+
+# Show all tool logs
+python .deepx/tests/e2e_monitor.py --tool all
+
+# Focus on specific tool (logs + scenario timing)
+python .deepx/tests/e2e_monitor.py --tool claude-code --tail 30
+
+# List all run IDs
+python .deepx/tests/e2e_monitor.py --list
+
+# Print snapshot once and exit (no live update)
+python .deepx/tests/e2e_monitor.py --once
+```
+
+**`--tool` option:**
+
+| Option | Behavior |
+|--------|----------|
+| (not specified) | Progress table only, no log panels |
+| `--tool all` | Show tail logs for all 5 tools |
+| `--tool <name>` | Show that tool's tail log + per-scenario timing |
+
+**Monitor display:**
+- Round Progress table: Done / Fail / Remaining / Status / Timing / Scenarios
+- Timing column: current round start + elapsed (e.g., `R3 14:30 (42m+)`)
+- Scenario icons: ✓(done) ▶(running) ·(pending)
+- Log panels (when `--tool` specified): per-tool real-time tail output
+- Scenario timing panel (when `--tool <name>`): per-scenario start/end/duration
+
 ## 🚀 Quick Start
 
 ```bash

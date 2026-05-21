@@ -51,7 +51,7 @@ DX-ALL-SUITE 프로젝트용 에이전트 개발 테스트 모음입니다. AI �
 
 ### e2e_runner.py
 
-5개 도구를 병렬로 N 라운드 실행하며, 상태 추적 및 이어서 실행(resume) 기능을 제공합니다.
+5개 도구를 병렬로 N 라운드 실행하며, 상태 추적, 중단/재개, 상세 상태 확인 기능을 제공합니다.
 
 ```bash
 # 모든 도구 5 라운드 병렬 실행
@@ -69,14 +69,37 @@ python .deepx/tests/e2e_runner.py --rounds 10 --resume
 # 특정 이전 run ID로 resume
 python .deepx/tests/e2e_runner.py --rounds 10 --resume --run-id 20260521_100000
 
-# 최신 실행 상태 확인
+# Run ID 목록 조회
+python .deepx/tests/e2e_runner.py --list
+
+# 상세 상태 확인 (라운드/시나리오별 timing 포함)
 python .deepx/tests/e2e_runner.py --status
+python .deepx/tests/e2e_runner.py --status --run-id 20260521_135734
+
+# Graceful 중단 (현재 라운드 완료 후 종료)
+python .deepx/tests/e2e_runner.py --stop
+
+# 즉시 중단 (진행중 라운드 결과물 삭제)
+python .deepx/tests/e2e_runner.py --abort
+python .deepx/tests/e2e_runner.py --abort --force   # 확인 프롬프트 생략
 
 # 특정 라운드 산출물 삭제
 python .deepx/tests/e2e_runner.py --cleanup --round 3
 python .deepx/tests/e2e_runner.py --cleanup --round 3 --tool claude-code
 python .deepx/tests/e2e_runner.py --cleanup --round 2,3,4
 ```
+
+**중단 및 재개:**
+
+| 명령 | 동작 | 자식 프로세스 | 진행중 라운드 결과물 |
+|------|------|--------------|---------------------|
+| `--stop` | Graceful — 현재 라운드 완료 후 종료 | 자연 종료 대기 | 유지 |
+| `--abort` | Immediate — 즉시 종료 | SIGTERM 전송 | 삭제 |
+| `--resume --rounds N` | 완료된 라운드 이후부터 N까지 이어 실행 | — | — |
+
+중단 후 재개 예시:
+- `--stop` → 각 도구 현재 라운드 완료 → `--resume --rounds 10` → 남은 라운드 실행
+- `--abort` → 진행중 라운드 삭제 → `--resume --rounds 10` → 미완료 라운드부터 재실행
 
 **Thinking 모드** (도구별 env var):
 
@@ -89,9 +112,32 @@ python .deepx/tests/e2e_runner.py --cleanup --round 2,3,4
 | `cursor-cli` | Thinking 모드 없음 (quota 초과 시 auto fallback) |
 
 **State 파일** (`.deepx/tests/runner_state/<run_id>/`):
-- `state.json` — 라운드 완료 상태, artifact 경로, exit code
+- `state.json` — 라운드 완료 상태, timing, artifact 경로, exit code, PID
 - `logs/<tool>.log` — 도구별 전체 stdout/stderr 로그
+- `STOP` / `ABORT` — sentinel 파일 (--stop/--abort 시 생성)
 - `latest` symlink — 최신 실행을 항상 가리킴
+
+**state.json 구조:**
+```json
+{
+  "run_id": "20260521_135734",
+  "created_at": "2026-05-21T04:57:34Z",
+  "target_rounds": 5,
+  "thinking": true,
+  "runner_pid": 67890,
+  "tools": ["claude-code", "copilot-cli", ...],
+  "tool_states": {
+    "claude-code": {
+      "completed": [
+        {"round": 1, "exit_code": 0, "start_utc": "...", "end_utc": "...", "result_dir_name": "..."}
+      ],
+      "in_progress": {"round": 2, "start_utc": "..."},
+      "pid": 12345,
+      "status": "running"
+    }
+  }
+}
+```
 
 **Resume 로직 우선순위:**
 1. `--run-id` 지정 시: 해당 state.json 로드
@@ -103,23 +149,39 @@ python .deepx/tests/e2e_runner.py --cleanup --round 2,3,4
 `rich` 기반 Live TUI 모니터로 runner 진행 현황을 실시간으로 확인합니다.
 
 ```bash
-# 최신 실행 실시간 모니터 (3초마다 갱신)
+# 최신 실행 실시간 모니터 (progress table만, 로그 없음)
 python .deepx/tests/e2e_monitor.py
 
 # 특정 run 모니터
 python .deepx/tests/e2e_monitor.py --run-id 20260521_100000
 
-# 특정 도구 로그 집중 표시 (tail 30줄)
+# 모든 도구 로그 표시
+python .deepx/tests/e2e_monitor.py --tool all
+
+# 특정 도구 로그 집중 표시 + 시나리오 timing (tail 30줄)
 python .deepx/tests/e2e_monitor.py --tool claude-code --tail 30
+
+# Run ID 목록 조회
+python .deepx/tests/e2e_monitor.py --list
 
 # 스냅샷 1회 출력 후 종료 (실시간 갱신 없음)
 python .deepx/tests/e2e_monitor.py --once
 ```
 
+**`--tool` 옵션:**
+
+| 옵션 | 동작 |
+|------|------|
+| (미지정) | Progress table만 표시, 로그 패널 없음 |
+| `--tool all` | 5개 도구 전체 tail 로그 표시 |
+| `--tool <name>` | 해당 도구만 tail 로그 + 시나리오별 timing 표시 |
+
 **모니터 화면 구성:**
-- Round Progress 테이블: Done / Fail / Remaining / Status / 마지막 결과 디렉토리
-- 로그 패널: 현재 실행 중인 도구의 tail 출력 (최대 3개 나란히)
-- Timeline: `results/` 에 새 결과 디렉토리 생성 시 실시간 표시
+- Round Progress 테이블: Done / Fail / Remaining / Status / Timing / Scenarios
+- Timing 컬럼: 현재 라운드 시작시간 + 경과시간 (예: `R3 14:30 (42m+)`)
+- 시나리오 아이콘: ✓(완료) ▶(진행중) ·(대기)
+- 로그 패널 (`--tool` 지정 시): 도구별 실시간 tail 출력
+- 시나리오 timing 패널 (`--tool <name>` 시): 시나리오별 시작/종료/duration
 
 ---
 
