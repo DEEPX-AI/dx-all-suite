@@ -430,6 +430,22 @@ When the user is absent — autopilot mode, `--yolo` flag, or system auto-respon
      Instead: generate all other artifacts first, then check ONCE whether the
      `.dxnn` file exists. If it does not exist yet, proceed to execution
      verification with the assumption that compilation will complete.
+   - **NEVER use `pgrep -f` to monitor compile.pid process** — `pgrep -f
+     "path/to/compile.py"` matches the bash shell that is running the pgrep
+     command itself, causing an **infinite loop** that never exits even after
+     compilation finishes. Always use `kill -0 <PID>` to check if a specific
+     PID is still alive:
+     ```bash
+     # CORRECT — check by PID, not by name
+     COMPILE_PID=$(cat compile.pid)
+     while kill -0 "$COMPILE_PID" 2>/dev/null; do sleep 10; done
+     echo "Compilation PID=$COMPILE_PID has exited"
+     ```
+     **Prohibited patterns** (self-referential, cause infinite loops):
+     ```bash
+     while pgrep -f "compile.py" >/dev/null 2>&1; do sleep 20; done   # PROHIBITED
+     pgrep -f "session_dir/compile.py"                                 # PROHIBITED
+     ```
    - **Mandatory artifacts are compilation-independent** — `setup.sh`, `run.sh`,
      `verify.py`, factory, and app code do NOT require the `.dxnn` file to exist.
      Generate them using the known model name (e.g., `yolo26n.dxnn`) as a

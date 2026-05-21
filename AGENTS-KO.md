@@ -424,6 +424,21 @@ Artifact Verification Gate는 각 artifact가 **어떻게** 검증되는지 정�
      대신: 다른 모든 산출물을 먼저 생성한 후, `.dxnn` 파일이 존재하는지 한 번만
      확인하세요. 아직 존재하지 않으면, 컴파일이 완료될 것이라는 가정 하에 실행
      검증으로 진행하세요.
+   - **`pgrep -f`로 compile.pid 프로세스를 모니터링하지 마세요** — `pgrep -f
+     "path/to/compile.py"`는 pgrep 명령을 실행하는 bash 셸 자체를 매칭시켜
+     컴파일이 완료된 후에도 **무한루프**에 빠집니다. 특정 PID가 살아있는지
+     확인하려면 항상 `kill -0 <PID>`를 사용하세요:
+     ```bash
+     # 올바른 방법 — 이름이 아닌 PID로 확인
+     COMPILE_PID=$(cat compile.pid)
+     while kill -0 "$COMPILE_PID" 2>/dev/null; do sleep 10; done
+     echo "Compilation PID=$COMPILE_PID has exited"
+     ```
+     **금지된 패턴** (자기참조, 무한루프 유발):
+     ```bash
+     while pgrep -f "compile.py" >/dev/null 2>&1; do sleep 20; done   # 금지
+     pgrep -f "session_dir/compile.py"                                 # 금지
+     ```
    - **필수 산출물은 컴파일과 독립적** — `setup.sh`, `run.sh`, `verify.py`, factory,
      app 코드는 `.dxnn` 파일이 존재할 필요가 없습니다. 알려진 모델 이름
      (예: `yolo26n.dxnn`)을 플레이스홀더 경로로 사용하여 생성하세요. 실행 검증만

@@ -166,7 +166,7 @@ STREAM_E2E_ARTIFACTS_BASE = STREAM_ROOT / "dx-agentic-dev" / "e2e-tests"
 # 4 hours covers the longest known scenario (compile + deploy) with headroom.
 # This is NOT a quality gate; use test_duration_metric for observability.
 # ---------------------------------------------------------------------------
-DEFAULT_TIMEOUT = int(os.environ.get("DX_E2E_TIMEOUT", "14400"))
+DEFAULT_TIMEOUT = int(os.environ.get("DX_E2E_TIMEOUT", "7200"))
 
 # Compile duration acceptability threshold (REC-W1) — suite scenarios fail if compilation
 # exceeds this limit. 2400s accounts for parallel compilation workloads (4 agents on same

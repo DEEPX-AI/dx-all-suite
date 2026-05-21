@@ -1811,7 +1811,7 @@ def _run_runnability_step(report_dir: Path, chosen: str,
     insights_script = HERE / "insights.py"
     if not insights_script.is_file():
         return
-    runn_timeout = 14400  # 4h for exhaustive evaluation
+    runn_timeout = 7200  # 2h for exhaustive evaluation
     common = _insights_common_args(report_dir, chosen, model, allow_paid)
     extra_args = []
     if existing_report and existing_report.is_file():
