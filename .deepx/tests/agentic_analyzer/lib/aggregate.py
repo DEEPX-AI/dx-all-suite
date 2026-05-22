@@ -80,24 +80,29 @@ class SessionEval:
     notes: List[str] = field(default_factory=list)
 
 
-# Scenario-aware Overall weights (v2). Each row sums to 1.00.
+# Scenario-aware Overall weights (v2.1). Each row sums to 1.00.
 #
 # Rationale:
 #   compiler / suite      → ExecutionTrace is the dominant evidence channel
 #                           (.dxnn artifact + chain validation), so it carries
 #                           a higher weight (35%) than the default.
-#   dx_app / dx_stream    → these are code-generation scenarios with naturally
-#                           limited execution traces; Quality (static syntax,
-#                           anti-pattern detection) better reflects scenario
-#                           intent, so it gets 25% (was 20%).
-#   runtime               → multi-domain routing where end-user runnability
-#                           matters most; Runnability gets 25% (was 20%).
+#   dx_app / dx_stream / dx_stream_cascaded
+#                         → code-generation scenarios. v2.0 had Quality=25%
+#                           assuming static syntax checks would discriminate,
+#                           but the first batch showed inter-tool Quality
+#                           spread was only 2.2 pts (σ 0.8) — almost no
+#                           discrimination — while Runnability spread was
+#                           16.7 pts (σ 6.7). v2.1 reallocates 5pt from
+#                           Quality (25→20) to Runnability (20→25) so the
+#                           Overall score better reflects observed end-user
+#                           runnability differences between tools.
+#   runtime               → multi-domain routing; Runnability already 25%.
 #   default (unknown)     → conservative original 30/20/30/20.
 COMPOSITE_WEIGHTS: Dict[str, Dict[str, float]] = {
     "compiler":           {"comp": 0.30, "qual": 0.15, "exec": 0.35, "runn": 0.20},
-    "dx_app":             {"comp": 0.30, "qual": 0.25, "exec": 0.25, "runn": 0.20},
-    "dx_stream":          {"comp": 0.30, "qual": 0.25, "exec": 0.25, "runn": 0.20},
-    "dx_stream_cascaded": {"comp": 0.30, "qual": 0.25, "exec": 0.25, "runn": 0.20},
+    "dx_app":             {"comp": 0.30, "qual": 0.20, "exec": 0.25, "runn": 0.25},
+    "dx_stream":          {"comp": 0.30, "qual": 0.20, "exec": 0.25, "runn": 0.25},
+    "dx_stream_cascaded": {"comp": 0.30, "qual": 0.20, "exec": 0.25, "runn": 0.25},
     "runtime":            {"comp": 0.30, "qual": 0.20, "exec": 0.25, "runn": 0.25},
     "suite":              {"comp": 0.30, "qual": 0.15, "exec": 0.35, "runn": 0.20},
     # legacy fallback (used when scenario is None / unknown)

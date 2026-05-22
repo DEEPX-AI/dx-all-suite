@@ -76,7 +76,7 @@ def write_markdown(evals: List[SessionEval], out_path: Path, meta: Dict) -> None
     lines.append("| 시나리오 | Compliance | Quality | ExecutionTrace | Runnability |")
     lines.append("|---|---:|---:|---:|---:|")
     lines.append("| compiler | 30% | 15% | **35%** | 20% |")
-    lines.append("| dx_app / dx_stream / dx_stream_cascaded | 30% | **25%** | 25% | 20% |")
+    lines.append("| dx_app / dx_stream / dx_stream_cascaded | 30% | 20% | 25% | **25%** |")
     lines.append("| runtime | 30% | 20% | 25% | **25%** |")
     lines.append("| suite | 30% | 15% | **35%** | 20% |")
     lines.append("")
