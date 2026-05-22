@@ -616,7 +616,18 @@ def _render_summary_extras_from_insights(insights_path: Path) -> str:
     parts: List[str] = []
 
     # Hypothesis verification — surface the 가설 검증 종합 table + 종합 시사점.
+    # Link target: Part-3 (insights.md) § "7. 가설 검증 …" heading.
+    # We use the stable HTML alias `#hypothesis-verification` injected by
+    # lib/report._md_to_html (counter-based sec-N-* IDs change as the report
+    # structure evolves, so they cannot be hardcoded here).
+    HYP_ANCHOR = "#hypothesis-verification"
+    HYP_LINK = f"> 상세: [§7 가설 검증 — 벤치마크 vs 실측 간극 분석]({HYP_ANCHOR})"
+
     hyp_body = _extract_insights_section(text, "가설 검증")
+    parts.append("## 가설 검증")
+    parts.append("")
+    parts.append(HYP_LINK)
+    parts.append("")
     if hyp_body:
         # Prefer the 종합 sub-block when present; otherwise fall back to the
         # full §-body so we never leave the Summary section empty for runs
@@ -627,29 +638,34 @@ def _render_summary_extras_from_insights(insights_path: Path) -> str:
             hyp_summary = hyp_body[summary_match.start():].strip()
         else:
             hyp_summary = hyp_body
-        parts.append("## 가설 검증")
-        parts.append("")
-        # Link to the Part-3 (insights.md) § "7. 가설 검증 …" heading. The
-        # comprehensive_report _md_to_html slug generator emits ids of the
-        # form sec-<N>-<slugified-text>; the heading number rotates as
-        # insights.md evolves, so we point to a stable trailing portion.
-        parts.append(
-            "> 상세: [§7 가설 검증 — 벤치마크 vs 실측 간극 분석]"
-            "(#sec-131-7-가설-검증-벤치마크-vs-실측-간극-분석)"
-        )
-        parts.append("")
         parts.append(hyp_summary)
-        parts.append("")
+    else:
+        # Fallback when insights.md doesn't contain a 가설 검증 section
+        # (e.g. analyzer ran without --hypothesis, or LLM skipped it).
+        # Preserves report structure so the anchor link still resolves
+        # if/when insights.md is regenerated.
+        parts.append(
+            "> _이번 실행에는 가설 검증 결과가 포함되지 않았습니다. "
+            "`--hypothesis <prompt|json>` 옵션과 함께 재실행하면 위 anchor에 상세 분석이 표시됩니다._"
+        )
+    parts.append("")
 
-    # Recommendations — surface 향후 운영 권장 bullets.
+    # Recommendations — surface 향후 운영 권장 bullets. Same stable-alias pattern.
+    REC_ANCHOR = "#recommendations"
+    REC_LINK = f"> 상세: [§8 향후 운영 권장]({REC_ANCHOR})"
+
     rec_body = _extract_insights_section(text, "향후 운영")
+    parts.append("## 향후 운영 권장")
+    parts.append("")
+    parts.append(REC_LINK)
+    parts.append("")
     if rec_body:
-        parts.append("## 향후 운영 권장")
-        parts.append("")
-        parts.append("> 상세: §8 향후 운영 권장 (insights.md)")
-        parts.append("")
         parts.append(rec_body)
-        parts.append("")
+    else:
+        parts.append(
+            "> _이번 실행에는 향후 운영 권장 섹션이 포함되지 않았습니다._"
+        )
+    parts.append("")
 
     return "\n".join(parts)
 
@@ -728,15 +744,16 @@ def _render_experiment_design(
                 lines.append(f"- **벤치마크 근거:** {', '.join(basis)}")
             lines.append("")
 
-        # New section AFTER 사전 가설 that hosts the Chart.js visual summary
-        # in the HTML output. The {{CHART_SECTION}} placeholder is replaced by
-        # _build_chart_section() during HTML rendering (see analyze.py:_write_
-        # comprehensive_html). In the markdown view this section is empty
-        # except for the heading + a pointer to the dashboard.
-        lines.append("## 도구별 검증 결과 요약")
-        lines.append("")
-        lines.append("{{CHART_SECTION}}")
-        lines.append("")
+    # 도구별 검증 결과 요약 + Visual Summary placeholder are emitted
+    # UNCONDITIONALLY (with or without hypothesis.json). When hypotheses
+    # exist this section sits right after 사전 가설; otherwise it appears
+    # as the first sub-section of the Summary block. The {{CHART_SECTION}}
+    # placeholder is replaced by _build_chart_section() during HTML
+    # rendering (see analyze.py:_write_comprehensive_html).
+    lines.append("## 도구별 검증 결과 요약")
+    lines.append("")
+    lines.append("{{CHART_SECTION}}")
+    lines.append("")
 
     body = base + "\n".join(lines)
     if extras_from_insights:

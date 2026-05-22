@@ -1023,6 +1023,18 @@ def _md_to_html(md_text: str) -> str:
                     html_parts.append("</details>")
                     in_details = False
 
+                # Stable cross-document anchors: counter-based IDs change as
+                # the report structure evolves, breaking links in
+                # _render_summary_extras_from_insights. Emit a stable <a id>
+                # alias right before well-known section headings so
+                # "#hypothesis-verification" / "#recommendations" stay valid.
+                raw = m.group(2).strip()
+                if level == 2:
+                    if "가설 검증" in raw and "종합" not in raw:
+                        html_parts.append('<a id="hypothesis-verification"></a>')
+                    elif "향후 운영" in raw and raw.startswith(("8.", "8 ")):
+                        html_parts.append('<a id="recommendations"></a>')
+
                 # Wrap §7 in collapsible <details>
                 if "세션별 상세" in m.group(2) and level == 2:
                     html_parts.append(f'<details id="{hid}"><summary><h{level} style="display:inline">{text}</h{level}> (클릭하여 펼치기)</summary>')
