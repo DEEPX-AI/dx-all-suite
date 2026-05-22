@@ -197,7 +197,7 @@ Note any metrics that appear unreliable, biased, or limited:
 - Identify metrics with poor cross-tool comparability (e.g., tool call counting variance)
 - Flag any cases where Verdict and Overall disagree (artifact exists but score low, or vice versa)
 
-## 7. 향후 운영 권장
+## 8. 향후 운영 권장
 Based on the data, provide actionable recommendations for future rounds.
 Examples (only include if data supports them):
 - Whether to deprecate/de-prioritize any tool
@@ -234,7 +234,7 @@ Emit the full markdown content of `insights.md` now (inline; no file writes).
 
 HYPOTHESIS_VERIFICATION_SECTION = """\
 
-## 8. 가설 검증: 벤치마크 vs 실측 간극 분석
+## 7. 가설 검증: 벤치마크 vs 실측 간극 분석
 
 아래 사전 가설과 실제 결과를 비교 분석하세요.
 
@@ -244,13 +244,29 @@ HYPOTHESIS_VERIFICATION_SECTION = """\
 
 ### 분석 요구사항
 
-각 가설에 대해:
+각 가설에 대해 다음 4가지를 반드시 모두 포함:
 1. **검증 결과**: 지지(Supported) / 기각(Rejected) / 부분 지지(Partial)
 2. **실측 데이터**: 해당 metric의 실제 도구별 순위와 점수
 3. **간극 분석**: 예상과 실측의 차이 원인 (도구 특성, 프롬프트 전달 방식, 자동화 수준 등)
 4. **시사점**: 벤치마크 점수와 실제 agentic 워크플로우 성능 간의 관계에 대한 통찰
 
-OUTPUT에 "## 8. 가설 검증: 벤치마크 vs 실측 간극 분석" 헤딩으로 시작하는 섹션을 추가하세요.
+### 가설 검증 종합 (필수)
+
+각 가설별 4가지 분석을 마친 뒤 반드시 이 sub-section을 끝에 추가하세요. 다음 두 가지 요소를
+**둘 다** 포함해야 합니다 — 누락은 출력 누락으로 간주됩니다:
+
+1. **가설 검증 종합 표** — Markdown 표. 컬럼은 정확히 다음과 같이:
+   `| 가설 | 결과 | 핵심 교훈 |`
+   `|------|:----:|----------|`
+   각 가설(H1~Hn)에 대해 한 행씩. "결과" 컬럼은 ✅ 지지 / ❌ 기각 / 🟡 부분 지지 중 하나.
+   "핵심 교훈"은 한 문장(40자 이내).
+
+2. **종합 시사점** — `**종합 시사점**:` 으로 시작하는 단락(3~5문장).
+   가설들의 결과를 관통하는 메타 통찰을 서술. 예: 어떤 종류의 가설이 잘 맞았고/틀렸는지,
+   벤치마크 데이터와 실측 사이에 어떤 패턴의 간극이 보였는지, 향후 가설 설계에 대한 교훈 등.
+
+OUTPUT에 "## 7. 가설 검증: 벤치마크 vs 실측 간극 분석" 헤딩으로 시작하는 섹션을 추가하세요.
+이 섹션은 본 INSIGHTS의 §1~§6 다음에 위치하고, §8 향후 운영 권장은 그 뒤에 옵니다.
 """
 
 

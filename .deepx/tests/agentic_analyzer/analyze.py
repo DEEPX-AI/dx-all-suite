@@ -553,7 +553,7 @@ def main(argv: Optional[List[str]] = None) -> int:
 
 
 _DEFAULT_EXPERIMENT_DESIGN = """\
-# Part 0: 실험 설계
+# 실험 결과 요약(Summary)
 
 ## 실험 제목
 
@@ -574,16 +574,99 @@ NPU(Neural Processing Unit) 추론 앱을 자동 생성하는 "Agentic Developme
 """
 
 
-def _render_experiment_design(hypothesis_path: Optional[Path]) -> str:
-    """Render Part 0: 실험 설계.
+_SECTION_HEADING_RE = __import__("re").compile(r'^##\s+\d+\.\s+(.*)$', __import__("re").MULTILINE)
+
+
+def _extract_insights_section(insights_text: str, title_keyword: str) -> str:
+    """Extract the body of an insights.md `## N. <title>` section.
+
+    *title_keyword* is matched against the heading text (case-insensitive substring).
+    Returns the section body (everything between the matching heading and the next
+    `## ` heading or EOF), stripped. Empty string if not found.
+    """
+    re = __import__("re")
+    headings = list(_SECTION_HEADING_RE.finditer(insights_text))
+    target_idx = None
+    for i, m in enumerate(headings):
+        if title_keyword.lower() in m.group(1).lower():
+            target_idx = i
+            break
+    if target_idx is None:
+        return ""
+    start = headings[target_idx].end()
+    end = headings[target_idx + 1].start() if target_idx + 1 < len(headings) else len(insights_text)
+    return insights_text[start:end].strip()
+
+
+def _render_summary_extras_from_insights(insights_path: Path) -> str:
+    """Pull condensed 가설 검증 + 향후 운영 권장 subsections from insights.md.
+
+    These appear as sub-sections under the Summary section of the comprehensive
+    report so a reader gets the headline conclusions without scrolling to
+    Part 3. The full text remains in insights.md (rendered as Part 3 later).
+    """
+    if not insights_path.is_file():
+        return ""
+    try:
+        text = insights_path.read_text(encoding="utf-8")
+    except OSError:
+        return ""
+
+    parts: List[str] = []
+
+    # Hypothesis verification — surface the 가설 검증 종합 table + 종합 시사점.
+    hyp_body = _extract_insights_section(text, "가설 검증")
+    if hyp_body:
+        # Prefer the 종합 sub-block when present; otherwise fall back to the
+        # full §-body so we never leave the Summary section empty for runs
+        # where the LLM skipped the explicit 종합 heading.
+        import re as _re
+        summary_match = _re.search(r'###\s+가설 검증 종합', hyp_body)
+        if summary_match:
+            hyp_summary = hyp_body[summary_match.start():].strip()
+        else:
+            hyp_summary = hyp_body
+        parts.append("## 가설 검증")
+        parts.append("")
+        parts.append("> 상세: §7 가설 검증 (insights.md)")
+        parts.append("")
+        parts.append(hyp_summary)
+        parts.append("")
+
+    # Recommendations — surface 향후 운영 권장 bullets.
+    rec_body = _extract_insights_section(text, "향후 운영")
+    if rec_body:
+        parts.append("## 향후 운영 권장")
+        parts.append("")
+        parts.append("> 상세: §8 향후 운영 권장 (insights.md)")
+        parts.append("")
+        parts.append(rec_body)
+        parts.append("")
+
+    return "\n".join(parts)
+
+
+def _render_experiment_design(
+    hypothesis_path: Optional[Path],
+    insights_path: Optional[Path] = None,
+) -> str:
+    """Render the Summary section (originally 'Part 0: 실험 설계').
 
     Always returns the default experiment purpose/conditions.
     When hypothesis.json exists, appends benchmarks and hypotheses.
+    When insights.md exists, also injects condensed 가설 검증 + 향후 운영 권장
+    subsections so the Summary section is self-contained.
     """
     base = _DEFAULT_EXPERIMENT_DESIGN
 
+    extras_from_insights = (
+        _render_summary_extras_from_insights(insights_path)
+        if insights_path is not None
+        else ""
+    )
+
     if hypothesis_path is None or not hypothesis_path.is_file():
-        return base
+        return base + ("\n\n" + extras_from_insights if extras_from_insights else "")
 
     try:
         data = json.loads(hypothesis_path.read_text(encoding="utf-8"))
@@ -637,7 +720,10 @@ def _render_experiment_design(hypothesis_path: Optional[Path]) -> str:
                 lines.append(f"- **벤치마크 근거:** {', '.join(basis)}")
             lines.append("")
 
-    return base + "\n".join(lines)
+    body = base + "\n".join(lines)
+    if extras_from_insights:
+        body += "\n\n" + extras_from_insights
+    return body
 
 
 
@@ -659,10 +745,14 @@ def _generate_comprehensive_report(report_dir: Path) -> None:
     parts.append("---")
     parts.append("")
 
-    # Part 0: 실험 설계 (always present; enriched if hypothesis.json exists)
+    # Summary section (always present; enriched if hypothesis.json exists;
+    # also pulls condensed 가설 검증 + 향후 운영 권장 from insights.md if present
+    # so the headline conclusions land at the top of the report).
     hypothesis_path = report_dir / "hypothesis.json"
+    insights_path = report_dir / "insights.md"
     parts.append(_render_experiment_design(
         hypothesis_path if hypothesis_path.is_file() else None,
+        insights_path if insights_path.is_file() else None,
     ))
     parts.append("")
     parts.append("---")
