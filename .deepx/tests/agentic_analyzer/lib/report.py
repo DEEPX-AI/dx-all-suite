@@ -349,11 +349,6 @@ def write_markdown(evals: List[SessionEval], out_path: Path, meta: Dict) -> None
     # --- 2.6 보조 메트릭 ---
     lines.append("### 2.6 보조 메트릭 (Overall 점수에 미반영)")
     lines.append("")
-    lines.append("다음 메트릭은 점수 산정에 직접 포함되지 않으며, 참고 정보로 제공됩니다.")
-    lines.append("")
-    lines.append("> PASS/PARTIAL/FAIL 분포는 §4 Verdict 매트릭스 (회차×시나리오×도구) 와")
-    lines.append("> §1-B 정보성 지표 표 (도구별 Pass/Part/Fail 카운트) 에서 확인 가능합니다.")
-    lines.append("")
     lines.append("#### Duration (실행 시간)")
     lines.append("")
     lines.append("- Claude Code: `result.duration_ms` (stream-json 최종 이벤트)")

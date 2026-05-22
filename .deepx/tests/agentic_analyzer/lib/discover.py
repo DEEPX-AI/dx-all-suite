@@ -24,6 +24,11 @@ SESSION_DIR_RE = re.compile(
     r"^(?P<date>\d{8})_(?P<time>\d{6})_(?P<hash>[a-f0-9]{6})_(?P<tool_dir>.+-autopilot)$"
 )
 
+# DONE sentinel from agent's session log — the authoritative list of output
+# directories the agent produced. Multi-path entries (cross-project suite)
+# are separated by " + " per the contract in CLAUDE.md.
+DONE_SENTINEL_RE = re.compile(r'\[DX-AGENTIC-DEV: DONE \(output-dir: ([^)]+)\)\]')
+
 
 @dataclass
 class ResultDir:
@@ -207,6 +212,16 @@ def extract_scenarios(rd: ResultDir, tools_cfg: dict, scenarios_cfg: dict) -> Li
                     break
         out.append(ref)
 
+    # Filter each ref's output_dirs by DONE sentinel when present. Agents that
+    # retry a scenario produce multiple dx-agentic-dev/<sid>/ directories within
+    # the test's time window; conftest captures all of them as symlinks, so
+    # output_dirs ends up with both the abandoned attempts and the final ones.
+    # The DONE sentinel emitted by the agent is the authoritative list — anything
+    # not mentioned there should not contribute to downstream evaluation (Runn,
+    # Quality, ExecutionTrace). No-op when no sentinel is found.
+    for r in out:
+        _filter_output_dirs_by_done_sentinel(r)
+
     # Fallback: if suite scenario has no output_dirs, derive from compiler + dx_app
     suite_refs = [r for r in out if r.scenario == "suite" and not r.output_dirs]
     if suite_refs:
@@ -226,6 +241,72 @@ def extract_scenarios(rd: ResultDir, tools_cfg: dict, scenarios_cfg: dict) -> Li
                 sr.output_dir_names = derived_names
 
     return out
+
+
+def _parse_done_sentinel_paths(ref: "ScenarioRef") -> List[str]:
+    """Return the list of output-dir paths declared by the agent's DONE sentinel.
+
+    Searches the session transcript (markdown) and the stream JSONL for the
+    sentinel pattern. Multi-path entries (separated by " + ") are split and
+    returned as a list of relative paths. Empty list if no sentinel is found.
+    """
+    sources: List[Path] = []
+    if ref.transcript_md is not None:
+        sources.append(ref.transcript_md)
+    if ref.stream_jsonl is not None:
+        sources.append(ref.stream_jsonl)
+    for src in sources:
+        if not src.is_file():
+            continue
+        try:
+            text = src.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        m = DONE_SENTINEL_RE.search(text)
+        if not m:
+            continue
+        return [p.strip() for p in m.group(1).split(" + ") if p.strip()]
+    return []
+
+
+def _filter_output_dirs_by_done_sentinel(ref: "ScenarioRef") -> None:
+    """Restrict ref.output_dirs to directories named in the DONE sentinel.
+
+    Matching is suffix-based: an output_dir is kept if any sentinel path
+    appears as a suffix of its absolute path. Falls back to the original
+    (unfiltered) list when no sentinel is found OR when filtering would
+    leave zero output_dirs (defensive — never drop everything).
+    """
+    if not ref.output_dirs:
+        return
+    sentinel_paths = _parse_done_sentinel_paths(ref)
+    if not sentinel_paths:
+        return  # no sentinel → preserve current behavior
+
+    filtered_dirs: List[Path] = []
+    filtered_names: List[str] = []
+    for od, name in zip(ref.output_dirs, ref.output_dir_names):
+        od_str = str(od).replace("\\", "/").rstrip("/")
+        kept = False
+        for sp in sentinel_paths:
+            sp_norm = sp.replace("\\", "/").rstrip("/")
+            # Either the full sentinel path is a suffix of the absolute
+            # output_dir path, or the directory name itself matches the
+            # tail of the sentinel path. The second form catches cases
+            # where sentinel was written with a slightly different prefix.
+            if od_str.endswith(sp_norm) or sp_norm.endswith("/" + name) or sp_norm == name:
+                kept = True
+                break
+        if kept:
+            filtered_dirs.append(od)
+            filtered_names.append(name)
+
+    # Never produce an empty list — when the sentinel paths fail to match any
+    # captured dir (mis-typed by the agent, normalization mismatch, etc.) we
+    # silently fall back to the original list so downstream eval still runs.
+    if filtered_dirs:
+        ref.output_dirs = filtered_dirs
+        ref.output_dir_names = filtered_names
 
 
 def discover_all(
