@@ -10,6 +10,8 @@ This is the Cursor CLI counterpart of ``test_compiler_agentic_e2e.py``.
 
 from __future__ import annotations
 
+import re
+
 import pytest
 
 from .conftest import (
@@ -152,6 +154,39 @@ class TestMandatoryArtifacts:
             f"No verify.py found.\n"
             f"All files: {[f.name for f in scenario.all_generated_files]}"
         )
+
+    def test_verify_py_exits_nonzero_on_failure(self, scenario: ScenarioResult):
+        """verify.py must exit(1) when inference fails, not silently continue.
+
+        Root cause this test prevents: verify.py caught ImportError/RuntimeError,
+        printed 'inference failed', but exited 0. Agents saw exit code 0 and
+        declared verification passed, even though both inferences failed.
+        """
+        if not scenario.succeeded:
+            pytest.skip("Cursor execution failed")
+        verify_files = [
+            f for f in scenario.all_generated_files
+            if f.name == "verify.py"
+        ]
+        if not verify_files:
+            pytest.skip("No verify.py found (covered by test_verify_py_exists)")
+
+        for vf in verify_files:
+            content = vf.read_text()
+            assert "sys.exit(1)" in content, (
+                f"verify.py at {vf} does NOT call sys.exit(1) on failure.\n"
+                "verify.py MUST call sys.exit(1) when ONNX or DXNN inference fails.\n"
+                "Root cause: verify.py printed 'inference failed' but returned exit 0,\n"
+                "so the Artifact Verification Gate was bypassed (exit 0 = success).\n"
+                "Fix: add sys.exit(1) in the failure branch."
+            )
+            silent_fail = re.search(
+                r'except\s+[\w\[\], ]*:\s*\n\s*(pass|continue)\s*\n', content
+            )
+            assert not silent_fail, (
+                f"verify.py at {vf} has a silent exception handler (except: pass/continue).\n"
+                "All exception handlers MUST print the error AND set failed=True for sys.exit(1)."
+            )
 
     def test_session_log_exists(self, scenario: ScenarioResult):
         """session.log with actual command output is generated."""

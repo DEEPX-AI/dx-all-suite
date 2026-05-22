@@ -53,6 +53,15 @@ class TestExecution:
         """Cursor CLI exits successfully."""
         assert scenario.succeeded, format_scenario_failure(scenario)
 
+    def test_session_log_saved(self, scenario: ScenarioResult):
+        """Session transcript is saved."""
+        if not scenario.succeeded:
+            pytest.skip("Cursor execution failed — skipping log check")
+        # Session log is optional (export may fail silently)
+        if scenario.session_log:
+            assert scenario.session_log.stat().st_size > 0, (
+                "Session log exists but is empty"
+            )
 
     def test_duration_metric(self, scenario: ScenarioResult):
         """Record execution duration as a warning metric (never fails)."""

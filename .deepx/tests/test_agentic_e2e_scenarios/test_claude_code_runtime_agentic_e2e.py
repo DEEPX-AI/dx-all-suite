@@ -155,6 +155,27 @@ class TestRouting:
         )
 
 
+class TestMandatoryArtifacts:
+    """Validate mandatory artifacts in runtime scenarios."""
+
+    def test_session_log_exists(self, scenario: ScenarioResult):
+        """session.log with actual command output is generated."""
+        if not scenario.succeeded:
+            pytest.skip("Claude Code execution failed")
+        log_files = [
+            f for f in scenario.all_generated_files
+            if f.name == "session.log"
+        ]
+        if not log_files:
+            import warnings
+            warnings.warn(
+                f"No session.log found in runtime session.\n"
+                f"Search dirs: {scenario.output_dirs}\n"
+                "session.log may exist in sub-session directories. "
+                "Capturing command output to session.log is recommended."
+            )
+
+
 class TestCodeQuality:
     """Validate generated code quality."""
 

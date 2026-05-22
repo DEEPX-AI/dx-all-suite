@@ -382,6 +382,27 @@ class TestMandatoryArtifacts:
             f"No README.md found.\nAll files: {[f.name for f in scenario.all_generated_files]}"
         )
 
+    def test_readme_has_sufficient_length(self, scenario: ScenarioResult):
+        """README.md should be substantive (>= 40 lines).
+
+        Establishes a regression baseline for README quality. Uses output_dir
+        directly (not all_generated_files) to prevent false PASS from a
+        co-located README belonging to another tool.
+        """
+        if not scenario.succeeded:
+            pytest.skip("Codex execution failed")
+        if not scenario.output_dir or not scenario.output_dir.exists():
+            pytest.skip("No output directory resolved")
+        readme = scenario.output_dir / "README.md"
+        if not readme.exists():
+            pytest.skip("No README.md in output directory")
+        lines = len(readme.read_text(encoding="utf-8").splitlines())
+        assert lines >= 40, (
+            f"README.md too short: {lines} lines (expected >= 40). "
+            "A substantive README should include prerequisites, pipeline diagram, "
+            "run instructions, configuration table, and files table."
+        )
+
     def test_run_script_exists(self, scenario: ScenarioResult):
         """run_<app>.sh shell script wrapper is generated."""
         if not scenario.succeeded:
