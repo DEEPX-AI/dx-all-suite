@@ -1071,6 +1071,16 @@ def _inline_md(text: str) -> str:
     text = html_mod.escape(text)
     text = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", text)
     text = re.sub(r"`(.+?)`", r"<code>\1</code>", text)
+    # Markdown links: [text](url) → <a href="url">text</a>.
+    # Placed AFTER bold/code conversions so that link text containing inline
+    # code (e.g. [`dashboard.html`](./dashboard.html)) still renders the
+    # <code> tag inside the anchor. Pattern: text = any chars except ']';
+    # url = any chars except whitespace and ')'.
+    text = re.sub(
+        r'\[([^\]]+)\]\(([^)\s]+)\)',
+        r'<a href="\2">\1</a>',
+        text,
+    )
     # Verdict badges
     text = text.replace("✅", '<span class="badge badge-pass">✅</span>')
     text = text.replace("❌", '<span class="badge badge-fail">❌</span>')
