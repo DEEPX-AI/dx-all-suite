@@ -629,7 +629,14 @@ def _render_summary_extras_from_insights(insights_path: Path) -> str:
             hyp_summary = hyp_body
         parts.append("## 가설 검증")
         parts.append("")
-        parts.append("> 상세: §7 가설 검증 (insights.md)")
+        # Link to the Part-3 (insights.md) § "7. 가설 검증 …" heading. The
+        # comprehensive_report _md_to_html slug generator emits ids of the
+        # form sec-<N>-<slugified-text>; the heading number rotates as
+        # insights.md evolves, so we point to a stable trailing portion.
+        parts.append(
+            "> 상세: [§7 가설 검증 — 벤치마크 vs 실측 간극 분석]"
+            "(#sec-131-7-가설-검증-벤치마크-vs-실측-간극-분석)"
+        )
         parts.append("")
         parts.append(hyp_summary)
         parts.append("")
@@ -720,6 +727,16 @@ def _render_experiment_design(
             if basis:
                 lines.append(f"- **벤치마크 근거:** {', '.join(basis)}")
             lines.append("")
+
+        # New section AFTER 사전 가설 that hosts the Chart.js visual summary
+        # in the HTML output. The {{CHART_SECTION}} placeholder is replaced by
+        # _build_chart_section() during HTML rendering (see analyze.py:_write_
+        # comprehensive_html). In the markdown view this section is empty
+        # except for the heading + a pointer to the dashboard.
+        lines.append("## 도구별 검증 결과 요약")
+        lines.append("")
+        lines.append("{{CHART_SECTION}}")
+        lines.append("")
 
     body = base + "\n".join(lines)
     if extras_from_insights:
@@ -1000,6 +1017,20 @@ def _write_comprehensive_html(md_path: Path, html_path: Path, report_dir: Path) 
             hypothesis_path if hypothesis_path.is_file() else None,
         )
 
+    # Place chart_section AFTER 사전 가설 heading (under the "도구별 검증 결과
+    # 요약" section we emitted in _render_experiment_design). The markdown
+    # carries a literal "{{CHART_SECTION}}" placeholder; once md→html
+    # conversion runs, that string survives unchanged inside a <p> wrapper
+    # — replace it with the chart HTML and drop the now-empty paragraph.
+    placeholder = "<p>{{CHART_SECTION}}</p>"
+    if placeholder in body:
+        body = body.replace(placeholder, chart_section)
+        chart_section_for_top = ""  # already injected mid-body
+    else:
+        # Fallback for older reports without hypothesis section — keep legacy
+        # behavior of showing charts at the top of the document.
+        chart_section_for_top = chart_section
+
     html = f"""<!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -1017,7 +1048,7 @@ def _write_comprehensive_html(md_path: Path, html_path: Path, report_dir: Path) 
   <div class="sidebar-content" id="sidebar-nav"></div>
 </nav>
 <div class="container">
-{chart_section}
+{chart_section_for_top}
 {body}
 </div>
 <script>
