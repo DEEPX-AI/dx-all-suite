@@ -109,3 +109,50 @@ The analyzer's `session_log_authentic` compliance check:
     top-level session.log is structurally unnatural; the underlying
     `ExecutionTrace` rubric still demands real logs in each sub-project).
 
+## Session-ID Freshness (HARD GATE)
+
+Each agent invocation MUST produce a **fresh** session directory whose name
+starts with the current local timestamp. **Reusing a previous round's session
+directory — even one created earlier today — is a HARD GATE violation** (see
+AGENTS.md / CLAUDE.md: "Previous session reference PROHIBITED"). The harness
+now scrubs stale state-marker files between rounds AND asserts the parsed
+session-id timestamp falls within the current round's window. Sessions whose
+timestamp predates the round start by >60 s fail `test_session_freshness`.
+
+**Prohibited patterns** (reading any of these files is forbidden — they may
+carry a prior round's session_id):
+
+```bash
+# ✗ Do NOT do this — these files leak prior session paths
+cat .codex_current_work_dir          .codex_session_id
+cat .cursor_current_session_id        .copilot_current_work_dir
+cat .current_dx_session_id           .current_dx_work_dir
+cat .active_session_id               .active_work_dir
+cat .tmp_dx_workdir                  .dx_session_*
+ls dx-agentic-dev/                    # discovering prior sessions
+find . -name "20*_yolo*_compile"     # path globs that match prior runs
+```
+
+**Required pattern** — always synthesise a new session-id from scratch:
+
+```bash
+# ✓ Correct — fresh timestamp from system clock
+SESSION_ID="$(date +%Y%m%d-%H%M%S)_<agent>_<coding_model>_<target_model>_<task>"
+WORK_DIR="dx-agentic-dev/${SESSION_ID}"
+mkdir -p "${WORK_DIR}"
+```
+
+Even if a prior session-dir exists with the same model/task and looks
+"complete", do not re-enter it. The harness expects each round to be an
+independent, end-to-end re-execution; reusing prior artifacts causes:
+
+1. conftest's `_detect_new_sessions` to skip the dir (pre-existed in
+   snapshot) → manifest.json has no output symlink → analyzer scores
+   Compliance 40% for that scenario.
+2. Round-N's session timestamp predates round-N start → `test_session_freshness`
+   FAIL.
+3. Cross-round pollution: round-N's analyzer report attributes round-K's
+   artifacts to round-N, distorting per-round metrics.
+
+If you find the round taking unreasonably long because compilation is slow,
+fix the slowness — **do not** "skip" by reusing a prior compile result.

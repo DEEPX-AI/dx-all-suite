@@ -37,7 +37,7 @@ import time
 import uuid
 from contextlib import contextmanager
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import ClassVar, Dict, List, Optional, Set
 
@@ -105,6 +105,30 @@ _MARKER_TO_TOOL: dict = {
     "agentic_e2e_opencode_cli_autopilot": "opencode-cli",
     "agentic_e2e_codex_cli_autopilot": "codex-cli",
 }
+
+
+def pytest_runtest_teardown(item, nextitem):
+    """After each test, optionally assert that any consumed ScenarioResult's
+    session-id timestamps are within the round window (Layer 2 of the
+    "agent reused prior session dir" root-cause fix).
+
+    Default OFF — opt-in with `DX_ASSERT_SESSION_FRESHNESS=1`. When OFF this
+    hook is essentially a no-op (a single env-var check) and adds negligible
+    overhead.
+    """
+    if os.environ.get("DX_ASSERT_SESSION_FRESHNESS") != "1":
+        return
+    # Find any `scenario`-named fixture on this test (the standard convention
+    # across all per-tool/per-scenario test files).
+    funcargs = getattr(item, "funcargs", None) or {}
+    sr = funcargs.get("scenario")
+    if sr is None or not hasattr(sr, "output_dirs"):
+        return
+    try:
+        assert_fresh_session_timestamps(sr)
+    except Exception:
+        # pytest.fail raises an exception subclass — let it propagate.
+        raise
 
 
 def pytest_collection_modifyitems(config, items):
@@ -402,6 +426,66 @@ def _detect_new_sessions(
 
 
 # ---------------------------------------------------------------------------
+# Session-id freshness gate (opt-in via DX_ASSERT_SESSION_FRESHNESS=1)
+# ---------------------------------------------------------------------------
+# When enabled, asserts every output_dir's session_id timestamp falls within
+# the round's execution window (subprocess start_utc minus DX_SESSION_SKEW_SEC
+# tolerance, default 60s). Catches the "agent reused a prior round's
+# dx-agentic-dev/<sid>/ dir" bug — see AGENTS.md:957 "Previous session
+# reference PROHIBITED". Disabled by default so this check can ship without
+# disrupting in-flight batches.
+
+_SESSION_ID_TS_RE = re.compile(r"^(\d{8})-(\d{6})_")
+
+
+def assert_fresh_session_timestamps(scenario_result: "ScenarioResult") -> None:
+    """Raise pytest.fail if any output_dir's sid timestamp predates the round.
+
+    Honors env vars:
+      DX_ASSERT_SESSION_FRESHNESS  '1' to enable (default OFF)
+      DX_SESSION_SKEW_SEC          tolerance in seconds (default 60)
+    """
+    if os.environ.get("DX_ASSERT_SESSION_FRESHNESS") != "1":
+        return
+    if not scenario_result.output_dirs or not scenario_result.start_utc:
+        return
+    try:
+        skew = int(os.environ.get("DX_SESSION_SKEW_SEC", "60"))
+    except ValueError:
+        skew = 60
+    try:
+        start_dt = datetime.fromisoformat(scenario_result.start_utc.replace("Z", "+00:00"))
+    except Exception:
+        return
+    threshold = start_dt - timedelta(seconds=skew)
+    stale: List[str] = []
+    for od in scenario_result.output_dirs:
+        m = _SESSION_ID_TS_RE.match(od.name)
+        if not m:
+            continue
+        try:
+            sid_dt = datetime.strptime(f"{m.group(1)}{m.group(2)}", "%Y%m%d%H%M%S")
+        except ValueError:
+            continue
+        # Session-id timestamps are recorded in LOCAL time (per AGENTS.md
+        # session-id spec). Attach the system's local tz, then convert to UTC
+        # for comparison against the UTC round_start.
+        local_tz = timezone(timedelta(seconds=-time.timezone))
+        sid_utc = sid_dt.replace(tzinfo=local_tz).astimezone(timezone.utc)
+        if sid_utc < threshold:
+            stale.append(
+                f"{od.name} (sid={sid_utc.isoformat()} < round_start-skew={threshold.isoformat()})"
+            )
+    if stale:
+        import pytest
+        pytest.fail(
+            "Session-id timestamp predates round start by >"
+            f"{skew}s — agent reused a prior session dir. "
+            "See AGENTS.md:957 'Previous session reference PROHIBITED'. "
+            "Stale: " + "; ".join(stale)
+        )
+
+
 # Dataclasses
 # ---------------------------------------------------------------------------
 

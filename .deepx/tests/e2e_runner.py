@@ -435,6 +435,55 @@ def _terminate_process(proc: subprocess.Popen, log_path: Path, tool: str, round_
             pass
 
 
+# Stale state file globs that tools leave at sub-project root and that a
+# *different* round's agent may read to discover (and illegally reuse) a prior
+# session directory. See AGENTS.md:957 "Previous session reference PROHIBITED".
+# The harness scrubs these before each round so the agent starts clean.
+_STALE_STATE_GLOBS = (
+    ".codex_*",
+    ".cursor_*",
+    ".copilot_*",
+    ".current_*",
+    ".active_*",
+    ".tmp_dx_*",
+    ".dx_session_*",
+    ".dx_work_*",
+)
+
+# Sub-project roots where a tool may write its state file. Relative to REPO_ROOT.
+_STATE_FILE_SUB_ROOTS = (
+    "dx-compiler",
+    "dx-runtime",
+    "dx-runtime/dx_app",
+    "dx-runtime/dx_stream",
+)
+
+
+def _scrub_stale_state_files(log_path: Path, tool: str) -> int:
+    """Remove cross-round/cross-tool stale state files before launching a round.
+
+    Returns count of files removed (for logging).
+    """
+    removed = 0
+    for sub in _STATE_FILE_SUB_ROOTS:
+        root = REPO_ROOT / sub
+        if not root.is_dir():
+            continue
+        for pat in _STALE_STATE_GLOBS:
+            for stale in root.glob(pat):
+                # Skip directories (only target small marker files)
+                if stale.is_dir():
+                    continue
+                try:
+                    stale.unlink(missing_ok=True)
+                    removed += 1
+                except OSError:
+                    pass
+    if removed:
+        _log(f"[{tool}] Pre-round cleanup: removed {removed} stale state file(s)", log_path)
+    return removed
+
+
 def _run_single_round(
     tool: str,
     state: RunState,
@@ -450,6 +499,10 @@ def _run_single_round(
     completion. Caller is responsible for STOP/ABORT pre-checks.
     """
     total = state.target_rounds
+    # Pre-flight: scrub stale state files so this round's agent does not
+    # discover a prior round's session_id via a leftover .codex_* / .current_*
+    # marker file. Defense-in-depth against the agent-side rule violation.
+    _scrub_stale_state_files(log_path, tool)
     _log(f"[{tool}] Round {round_num}/{total} START", log_path)
     state.mark_start(tool, round_num)
 

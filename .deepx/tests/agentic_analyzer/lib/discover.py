@@ -270,16 +270,71 @@ def _parse_done_sentinel_paths(ref: "ScenarioRef") -> List[str]:
 
 
 def _filter_output_dirs_by_done_sentinel(ref: "ScenarioRef") -> None:
-    """Restrict ref.output_dirs to directories named in the DONE sentinel.
+    """Restrict ref.output_dirs to directories named in the DONE sentinel,
+    OR recover them from the sentinel when no symlinks were captured.
+
+    Three behaviors depending on input state:
+      1. output_dirs non-empty + sentinel present → filter (suffix match).
+      2. output_dirs empty + sentinel present → **fallback**: resolve sentinel
+         relative paths against suite root and add existing dirs to output_dirs.
+         Recovers the "agent reused a pre-existing dir which conftest didn't
+         classify as new" bug (see plan: Root-Cause Fix — Agent Reuse).
+      3. output_dirs empty + no sentinel → no-op (downstream sees empty).
 
     Matching is suffix-based: an output_dir is kept if any sentinel path
     appears as a suffix of its absolute path. Falls back to the original
-    (unfiltered) list when no sentinel is found OR when filtering would
-    leave zero output_dirs (defensive — never drop everything).
+    (unfiltered) list when filtering would leave zero output_dirs (defensive
+    — never drop everything for case 1).
     """
-    if not ref.output_dirs:
-        return
     sentinel_paths = _parse_done_sentinel_paths(ref)
+
+    # Case 2: fallback recovery — output_dirs is empty (symlink omitted because
+    # the agent reused a pre-existing dx-agentic-dev/<sid>/ dir that conftest's
+    # _detect_new_sessions did not classify as "new"). Use the agent's DONE
+    # sentinel as the authoritative claim of what it produced.
+    if not ref.output_dirs:
+        if not sentinel_paths:
+            return
+        # Resolve suite root by walking up from artifact_path until both
+        # 'dx-compiler' and 'dx-runtime' siblings exist.
+        suite_root: Optional[Path] = None
+        cur = ref.artifact_path.resolve() if ref.artifact_path else None
+        while cur is not None and cur != cur.parent:
+            if (cur / "dx-compiler").is_dir() and (cur / "dx-runtime").is_dir():
+                suite_root = cur
+                break
+            cur = cur.parent
+        if suite_root is None:
+            return
+        # Agent's sentinel path may be relative to either suite root or to a
+        # sub-project workdir (dx-compiler/, dx-runtime/, dx-runtime/dx_app/,
+        # dx-runtime/dx_stream/). Try each base in turn.
+        sub_bases = [
+            suite_root,
+            suite_root / "dx-compiler",
+            suite_root / "dx-runtime",
+            suite_root / "dx-runtime" / "dx_app",
+            suite_root / "dx-runtime" / "dx_stream",
+        ]
+        for sp in sentinel_paths:
+            p_norm = sp.strip().replace("\\", "/").rstrip("/")
+            if not p_norm:
+                continue
+            if p_norm.startswith("/"):
+                cand = Path(p_norm)
+                if cand.is_dir():
+                    ref.output_dirs.append(cand)
+                    ref.output_dir_names.append(cand.name)
+                continue
+            for base in sub_bases:
+                cand = base / p_norm
+                if cand.is_dir():
+                    ref.output_dirs.append(cand)
+                    ref.output_dir_names.append(cand.name)
+                    break
+        return
+
+    # Case 1: filter existing list by sentinel
     if not sentinel_paths:
         return  # no sentinel → preserve current behavior
 
