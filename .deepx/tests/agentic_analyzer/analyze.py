@@ -165,21 +165,17 @@ def evaluate_scenario(ref: ScenarioRef, config: dict) -> SessionEval:
     # Here we just resolve the model.
     resolved_model = _resolve_model(ref.parent.tool, ref.parent.session_id, config)
 
-    # Execution trace — analyze log files for actual command execution evidence
-    execution_score = 0.0
-    execution_breakdown: Dict[str, float] = {}
-    suspected_timeout = False
-    for od in ref.output_dirs:
-        er = evaluate_execution(od, ref.scenario)
-        # Take max across output dirs (suite has multiple)
-        if er.score > execution_score:
-            execution_score = er.score
-            execution_breakdown = er.score_breakdown
-        if er.suspected_timeout:
-            suspected_timeout = True
+    # Execution trace — rubric v2 evaluates ALL output_dirs at once (multi-dir
+    # scenarios like runtime / suite are scored holistically rather than via
+    # per-dir max).
+    er = evaluate_execution(ref.output_dirs, ref.scenario)
+    execution_score = er.score
+    execution_breakdown = er.score_breakdown
+    suspected_timeout = er.suspected_timeout
 
     overall = composite_score(comp.score_pct, quality_score, vscore, execution_score,
-                              sd.has_start_sentinel, sd.has_done_sentinel)
+                              sd.has_start_sentinel, sd.has_done_sentinel,
+                              scenario=ref.scenario)
 
     # Runnability will be merged in post-pass if runnability_report.md exists
 
@@ -429,6 +425,9 @@ def main(argv: Optional[List[str]] = None) -> int:
             f"`{ov.get('session_id_pattern', '?')}` → model `{ov.get('model', '?')}` "
             f"({ov.get('note', '').rstrip('.')})"
         )
+    # Pull rubric version from execution module (single source of truth)
+    from lib.execution import RUBRIC_VERSION as _exec_rubric_v
+
     meta = {
         "generated_at": datetime.now().isoformat(timespec="seconds"),
         "results_root": str(results_root),
@@ -438,6 +437,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         "rounds": sorted({e.round_index for e in evals}),
         "scenarios": sorted({e.scenario for e in evals}),
         "run_ids": sorted({e.run_id for e in evals}),
+        "rubric_version": _exec_rubric_v,
         "caveats": caveats,
     }
 
@@ -508,6 +508,7 @@ def main(argv: Optional[List[str]] = None) -> int:
                     e.compliance_score_pct, e.quality_score, e.verdict_score,
                     e.execution_score, e.has_start, e.has_done,
                     runnability_pct=e.runnability_score, has_runnability=True,
+                    scenario=e.scenario,
                 )
                 updated += 1
         if updated > 0:

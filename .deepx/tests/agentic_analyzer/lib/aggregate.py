@@ -80,6 +80,31 @@ class SessionEval:
     notes: List[str] = field(default_factory=list)
 
 
+# Scenario-aware Overall weights (v2). Each row sums to 1.00.
+#
+# Rationale:
+#   compiler / suite      → ExecutionTrace is the dominant evidence channel
+#                           (.dxnn artifact + chain validation), so it carries
+#                           a higher weight (35%) than the default.
+#   dx_app / dx_stream    → these are code-generation scenarios with naturally
+#                           limited execution traces; Quality (static syntax,
+#                           anti-pattern detection) better reflects scenario
+#                           intent, so it gets 25% (was 20%).
+#   runtime               → multi-domain routing where end-user runnability
+#                           matters most; Runnability gets 25% (was 20%).
+#   default (unknown)     → conservative original 30/20/30/20.
+COMPOSITE_WEIGHTS: Dict[str, Dict[str, float]] = {
+    "compiler":           {"comp": 0.30, "qual": 0.15, "exec": 0.35, "runn": 0.20},
+    "dx_app":             {"comp": 0.30, "qual": 0.25, "exec": 0.25, "runn": 0.20},
+    "dx_stream":          {"comp": 0.30, "qual": 0.25, "exec": 0.25, "runn": 0.20},
+    "dx_stream_cascaded": {"comp": 0.30, "qual": 0.25, "exec": 0.25, "runn": 0.20},
+    "runtime":            {"comp": 0.30, "qual": 0.20, "exec": 0.25, "runn": 0.25},
+    "suite":              {"comp": 0.30, "qual": 0.15, "exec": 0.35, "runn": 0.20},
+    # legacy fallback (used when scenario is None / unknown)
+    "_default":           {"comp": 0.30, "qual": 0.20, "exec": 0.30, "runn": 0.20},
+}
+
+
 def composite_score(
     comp_pct: float,
     qual_pct: float,
@@ -89,31 +114,36 @@ def composite_score(
     has_done: bool,
     runnability_pct: float = 0.0,
     has_runnability: bool = False,
+    scenario: Optional[str] = None,
 ) -> float:
-    """Weighted overall (100-point scale):
-      - 30% Compliance (HARD GATE checks — sentinel, mandatory deliverables 포함)
-      - 20% Quality (static syntax + anti-pattern detection)
-      - 30% ExecutionTrace (실제 명령 실행 흔적: session.log + compile_out.log + 성공 마커)
-      - 20% Runnability (end-user 실행 가능성 — LLM 판정)
+    """Weighted overall (100-point scale), scenario-aware weights (v2).
+
+    Per-scenario weights are looked up in COMPOSITE_WEIGHTS. When `scenario`
+    is None or unknown, the legacy 30/20/30/20 weights are used so callers that
+    haven't been updated yet still get sensible numbers.
 
     Verdict (산출물 존재 여부)는 Compliance mandatory_deliverables와 중복이므로
-    별도 가중치 없이 정보용으로만 표시 (Verdict 매트릭스 참조).
+    별도 가중치 없이 정보용으로만 표시. verdict_pct 인자는 backward compat 유지.
 
-    verdict_pct 인자는 backward compat 유지 — 계산에는 미사용.
-
-    Runnability 데이터가 없는 세션은 나머지 3-factor 비례 배분하여 backward
-    compatible 하게 처리.
+    Runnability 데이터가 없는 세션은 runn 가중치를 나머지 3-factor에 비례 재분배.
 
     pytest 의 round-level exit code 는 미포함 (시나리오 분해 불가; 정보용 컬럼만).
     """
+    w = COMPOSITE_WEIGHTS.get(scenario or "_default", COMPOSITE_WEIGHTS["_default"])
     if has_runnability:
-        return min(100.0, (0.30 * comp_pct + 0.20 * qual_pct
-                           + 0.30 * execution_pct + 0.20 * runnability_pct))
-    else:
-        # No runnability data — redistribute 20% proportionally among the other 3
-        # Effective weights: 37.5%C + 25%Q + 37.5%E (sum = 100%)
-        return min(100.0, (0.30 / 0.80 * comp_pct + 0.20 / 0.80 * qual_pct
-                           + 0.30 / 0.80 * execution_pct))
+        return min(100.0,
+                   w["comp"] * comp_pct
+                   + w["qual"] * qual_pct
+                   + w["exec"] * execution_pct
+                   + w["runn"] * runnability_pct)
+    # No runnability → redistribute runn weight proportionally across the other 3
+    remaining = w["comp"] + w["qual"] + w["exec"]
+    if remaining <= 0:
+        return 0.0
+    return min(100.0,
+               (w["comp"] / remaining) * comp_pct
+               + (w["qual"] / remaining) * qual_pct
+               + (w["exec"] / remaining) * execution_pct)
 
 
 def _stdev(values: List[float]) -> float:

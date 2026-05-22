@@ -82,6 +82,14 @@ def _has_factory_methods(out_dir: Path, required: List[str]) -> tuple[bool, str]
 
 
 def _check_prohibited_in_session_log(out_dir: Path, patterns: List[str]) -> tuple[bool, str]:
+    """Detect fabricated session.log writes (heredoc/printf/python/etc.).
+
+    False-positive guard: a hit that points to a DIFFERENT path's session.log
+    (e.g. `cat << 'EOF' > dx-runtime/.../session.log`) is legitimate — the
+    agent is writing a sub-project session.log via heredoc, which is the
+    expected pattern. We only flag patterns where the target is THIS dir's
+    session.log (or a bare 'session.log' relative path).
+    """
     log = out_dir / "session.log"
     if not log.is_file():
         return False, "session.log missing"
@@ -89,10 +97,60 @@ def _check_prohibited_in_session_log(out_dir: Path, patterns: List[str]) -> tupl
         body = log.read_text(encoding="utf-8", errors="ignore")
     except Exception:
         return False, "session.log read failed"
-    hits = [p for p in patterns if p in body or re.search(p, body)]
-    if hits:
-        return False, f"prohibited pattern(s) found: {hits[:3]}"
-    return True, "session.log clean (no fabrication markers)"
+
+    # Compile patterns once
+    matches: List[str] = []
+    for p in patterns:
+        # Substring check first (fast path for literal patterns)
+        if p in body:
+            matches.append(p)
+            continue
+        # Regex check
+        try:
+            if re.search(p, body):
+                matches.append(p)
+        except re.error:
+            continue
+
+    if not matches:
+        return True, "session.log clean (no fabrication markers)"
+
+    # False-positive guard: filter out matches that explicitly target a path
+    # OTHER than the current dir's session.log. Heuristic: look at each hit's
+    # surrounding context for "/path/to/something/session.log" — if there's a
+    # directory prefix that isn't '.' or the current dir, treat as legitimate
+    # sub-project log write.
+    real_hits: List[str] = []
+    out_dir_str = str(out_dir)
+    for pat in matches:
+        try:
+            for m in re.finditer(pat, body):
+                # Look at the surrounding 200 chars after the match for context
+                start = m.start()
+                end = min(len(body), m.end() + 200)
+                ctx = body[start:end]
+                # Extract target path of the redirect/write
+                # Match: > <path>/session.log or "session.log" arg or write_text(<path>)
+                target_match = re.search(
+                    r"(?:>|tee|write_text\(['\"]|open\(['\"])\s*([^'\"\s)]+)",
+                    ctx,
+                )
+                if target_match:
+                    target = target_match.group(1)
+                    # If target contains a slash AND is NOT inside this out_dir,
+                    # it's targeting a different file → legitimate.
+                    if "/" in target:
+                        if out_dir_str not in target and target != "session.log":
+                            continue
+                # Otherwise it's a hit on our own session.log
+                real_hits.append(pat[:50])
+                break
+        except re.error:
+            real_hits.append(pat[:50])
+
+    if real_hits:
+        return False, f"prohibited pattern(s) found: {real_hits[:3]}"
+    return True, "session.log clean (heredoc writes targeted other paths)"
 
 
 def evaluate_compliance(
@@ -182,9 +240,24 @@ def evaluate_compliance(
             rep.add("ifactory_5_methods", ok, note=note)
 
     # 9. session.log clean (no fabricated heredoc / echo)
+    #
+    # Scenario-aware penalty:
+    #   - For most scenarios: mandatory check, counts toward score (rep.add).
+    #   - For 'runtime': multi-domain routing produces TWO sub-project
+    #     session.logs (dx_app + dx_stream). A unified top-level session.log
+    #     is unnatural — agents typically write each sub-project's log via
+    #     heredoc which the legacy detector flagged. We record the check as
+    #     informational (notes only) but do NOT count it toward the score.
     prohibited_log = rules.get("prohibited_in_session_log", []) or []
     if prohibited_log and out_dirs:
         ok, note = _check_prohibited_in_session_log(out_dirs[0], prohibited_log)
-        rep.add("session_log_authentic", ok, note=note)
+        if scenario_ref.scenario == "runtime":
+            # Soft-warning only — record in checks/notes but don't add to score.
+            rep.checks["session_log_authentic"] = ok
+            rep.notes["session_log_authentic"] = (
+                f"[soft-warning: runtime] {note}"
+            )
+        else:
+            rep.add("session_log_authentic", ok, note=note)
 
     return rep

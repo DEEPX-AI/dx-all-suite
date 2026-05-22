@@ -130,10 +130,34 @@ compliance_rules:
   session_id_pattern: '^\d{8}-\d{6}_(claude|copilot|cursor|opencode|codex)_[a-zA-Z0-9_]+_[a-zA-Z0-9_]+$'
   sentinel_start: "[DX-AGENTIC-DEV: START]"
   sentinel_done_pattern: '\[DX-AGENTIC-DEV: DONE \(output-dir: ([^)]+)\)\]'
+  # Patterns matched against the CONTENT of the agent's own session.log
+  # (which should be tee-captured stdout from actual command execution).
+  # These detect fabrication — agent wrote a template/heredoc to session.log
+  # instead of capturing real output. False-positive guard in compliance.py:
+  # matches inside paths that point to OTHER session.logs (e.g. when the agent
+  # legitimately writes a sub-project's session.log) are NOT counted.
   prohibited_in_session_log:
+    # Heredoc-style writes (most common)
     - "cat << 'EOF' > session.log"
     - "cat << 'LOGEOF'"
+    - "cat <<EOF > session.log"
+    - "cat <<-EOF > session.log"
+    - "cat <<\\EOF > session.log"
+    # echo / printf direct writes
     - "echo .* > session.log"
+    - "echo -e .* > session.log"
+    - "printf .* > session.log"
+    - "printf .* \\| tee session.log"
+    # Python-driven writes
+    - "open\\(['\"]session\\.log['\"], ['\"]w"
+    - "write_text\\(.*session\\.log"
+    - "Path\\(['\"]session\\.log['\"]\\)\\.write_text"
+    # awk/sed template generation
+    - "awk .* > session.log"
+    - "sed .* > session.log"
+    # base64-decoded payload
+    - "base64 -d.* > session.log"
+    - "base64 --decode.* > session.log"
   prohibited_in_code:
     - "TODO: implement"
     - "# from dxnn_sdk"

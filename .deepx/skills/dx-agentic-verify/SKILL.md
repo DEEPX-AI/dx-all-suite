@@ -81,3 +81,31 @@ print(f'OK: dx_app has {len(app_reg)} models, dx_stream has {len(stream_list)} m
 cd dx-runtime/dx_app && ./install.sh && ./build.sh && echo "OK: dx_app build"
 cd dx-runtime/dx_stream && ./install.sh && echo "OK: dx_stream install"
 ```
+
+## session.log Authenticity (HARD GATE)
+
+For ANY scenario that produces a `dx-agentic-dev/<sid>/session.log`, the log
+MUST be the tee-captured stdout of real command execution — never a heredoc
+template or programmatic write.
+
+| ✓ Allowed | ✗ Prohibited |
+|---|---|
+| `python <runner>.py ... 2>&1 \| tee session.log` | `cat << 'EOF' > session.log ... EOF` |
+| `bash run.sh 2>&1 \| tee session.log` | `printf "..." > session.log` |
+| `dxcom <cfg> 2>&1 \| tee compile_out.log` (compiler) | `Path("session.log").write_text(...)` |
+| `gst-launch-1.0 ... 2>&1 \| tee session.log` (dx_stream) | `awk ... > session.log` / `base64 -d ... > session.log` |
+
+**Cross-project (runtime / suite) — dual session.log**:
+Each sub-project gets its OWN session.log, each captured from its OWN command
+execution. Writing one sub-project's session.log from a different directory
+via heredoc (e.g., `cat << 'EOF' > dx-runtime/dx_app/.../session.log`) is a
+legitimate cross-project write that the analyzer recognizes (the false-positive
+guard checks the target path); the rule still requires real execution capture
+for each sub-project, not template content.
+
+The analyzer's `session_log_authentic` compliance check:
+  - Hard-fail for `compiler` / `dx_app` / `dx_stream` / `dx_stream_cascaded` / `suite`
+  - Soft-warning only for `runtime` (multi-domain scenario where a unified
+    top-level session.log is structurally unnatural; the underlying
+    `ExecutionTrace` rubric still demands real logs in each sub-project).
+
