@@ -271,22 +271,12 @@ def write_markdown(evals: List[SessionEval], out_path: Path, meta: Dict) -> None
     lines.append("")
     _metric_table("Quality %", "avg_quality_score")
 
-    # --- 2.4 Verdict (정보용 — Overall 미반영) ---
-    lines.append("### 2.4 Verdict (산출물 PASS/PARTIAL/FAIL — 정보용, Overall 미반영)")
-    lines.append("")
-    lines.append("> ⚠️ Verdict는 Compliance `mandatory_deliverables`와 측정 대상이 중복되어 Overall 점수에 미반영합니다.")
-    lines.append("> 산출물 상태 시각화 용도로만 제공됩니다.")
-    lines.append("")
-    lines.append("- `compiler`: PASS = `*.dxnn` + `config.json` 존재 / FAIL = `.dxnn` 미생성")
-    lines.append("- `dx_app`: PASS = factory + `*_sync.py` / PARTIAL = factory 만 / FAIL = factory 없음")
-    lines.append("- `dx_stream` / `dx_stream_cascaded`: PASS = `pipeline.py` + `run_*.sh`")
-    lines.append("- `runtime`: PASS = sub-project 출력 중 하나 이상이 형식 통과")
-    lines.append("- `suite`: PASS = dx-compiler + dx_app 둘 다 자체 dir (R41 HARD GATE)")
-    lines.append("")
-    _metric_table("Verdict %", "avg_verdict_score")
+    # Note: Verdict %는 §1-B 와 §4 매트릭스에서 이미 제공됨.
+    # 별도 §2.4 평균 표는 Compliance.mandatory_deliverables 와 측정 대상이
+    # 중복되고, §4 매트릭스가 raw label 을 그대로 보여주므로 제거.
 
-    # --- 2.5 ExecutionTrace % ---
-    lines.append("### 2.5 ExecutionTrace % (실제 실행 흔적, 가중치 30%)")
+    # --- 2.4 ExecutionTrace % ---
+    lines.append("### 2.4 ExecutionTrace % (실제 실행 흔적, 가중치 30%)")
     lines.append("")
     lines.append("- session.log substantive (실질적 내용 포함)")
     lines.append("- 성공 마커 존재 (compile success, inference output 등)")
@@ -320,8 +310,8 @@ def write_markdown(evals: List[SessionEval], out_path: Path, meta: Dict) -> None
         lines.append(f"| {medal} | **{tool}** | " + " | ".join(cells) + f" | {_fmt_num(avg)} |")
     lines.append("")
 
-    # --- 2.6 Runnability % ---
-    lines.append("### 2.6 Runnability % (End-user 실행 가능성, 가중치 20%)")
+    # --- 2.5 Runnability % ---
+    lines.append("### 2.5 Runnability % (End-user 실행 가능성, 가중치 20%)")
     lines.append("")
     lines.append("- End-user가 README/setup.sh/run.sh 따라 실제 실행 가능한지 LLM 판정")
     lines.append("- PASS(100)/PARTIAL(50)/FAIL(0) + 세부 1-5점 스케일")
@@ -356,19 +346,14 @@ def write_markdown(evals: List[SessionEval], out_path: Path, meta: Dict) -> None
         lines.append(f"| {medal} | **{tool}** | " + " | ".join(cells) + f" | {_fmt_num(avg)} |")
     lines.append("")
 
-    # --- 2.7 보조 메트릭 ---
-    lines.append("### 2.7 보조 메트릭 (Overall 점수에 미반영)")
+    # --- 2.6 보조 메트릭 ---
+    lines.append("### 2.6 보조 메트릭 (Overall 점수에 미반영)")
     lines.append("")
     lines.append("다음 메트릭은 점수 산정에 직접 포함되지 않으며, 참고 정보로 제공됩니다.")
     lines.append("")
-    lines.append("#### PASS / PARTIAL / FAIL 비율")
+    lines.append("> PASS/PARTIAL/FAIL 분포는 §4 Verdict 매트릭스 (회차×시나리오×도구) 와")
+    lines.append("> §1-B 정보성 지표 표 (도구별 Pass/Part/Fail 카운트) 에서 확인 가능합니다.")
     lines.append("")
-    lines.append("> PASS + PARTIAL + FAIL = 100%. PARTIAL = 규칙 일부 위반이나 실행 흔적 불완전.")
-    lines.append("")
-    _metric_table("PASS 비율 %", "pct_pass")
-    _metric_table("PARTIAL 비율 %", "pct_partial")
-    _metric_table("FAIL 비율 %", "pct_fail")
-
     lines.append("#### Duration (실행 시간)")
     lines.append("")
     lines.append("- Claude Code: `result.duration_ms` (stream-json 최종 이벤트)")
