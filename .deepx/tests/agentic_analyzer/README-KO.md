@@ -109,6 +109,30 @@ python3 analyze.py --hypothesis prompts/hypothesis_prompt.md
 | `--hypothesis` | 없음 | hypothesis prompt(.md) 또는 pre-built(.json) 경로. LLM으로 hypothesis.json을 생성하고 리포트에 §0/§8을 추가 |
 | `--existing-runnability` | 없음 | 기존 `runnability_report.md` 경로 (incremental 평가용) |
 
+### 1.5 비교 리포트 (build_comparison.py)
+
+두 분석 리포트 디렉토리 간 side-by-side 비교 페이지를 생성합니다
+(예: non-thinking vs thinking 모드, baseline vs 실험 조건):
+
+```bash
+python3 build_comparison.py \
+  --non-thinking-dir <NT_리포트_dir> \
+  --thinking-dir <TH_리포트_dir> \
+  --non-thinking-run-id <NT_run_id> \
+  --thinking-run-id <TH_run_id> \
+  --output <출력_dir>/comparison.html
+```
+
+입력: 각각 `per_session.csv` + `comprehensive_report.html`를 포함하는 두 분석 리포트 디렉토리.
+
+출력: 단일 HTML 페이지
+- 도구별 집계 delta 표 (5개 metric: Compliance, Quality, ExecutionTrace, Runnability, Overall — 값 + 색상 Δ)
+- (도구 × 시나리오)별 delta 표 (5도구 × 6시나리오 = 30행)
+- 두 원본 `comprehensive_report.html`을 side-by-side iframe 으로 표시
+
+LLM 호출 없음 — CSV 단순 집계만. 프롬프트/설정 변경, thinking 모드 토글,
+하네스 fix 영향을 시각적으로 비교할 때 적합.
+
 ## 2. 파이프라인 단계 — `analyze.py` 실행 흐름
 
 `python3 analyze.py` 실행 시 다음 단계가 순서대로 처리됩니다:

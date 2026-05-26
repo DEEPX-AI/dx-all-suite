@@ -110,6 +110,31 @@ When `hypothesis.json` exists in the report directory:
 | `--hypothesis` | none | Path to hypothesis prompt (.md) or pre-built (.json). Generates hypothesis.json via LLM and adds §0/§8 to report |
 | `--existing-runnability` | none | Path to existing `runnability_report.md` for incremental evaluation |
 
+### 1.5 Comparison Reports (build_comparison.py)
+
+Generate a side-by-side comparison between two analyzer report directories
+(e.g. non-thinking vs thinking mode, baseline vs experimental):
+
+```bash
+python3 build_comparison.py \
+  --non-thinking-dir <path_to_NT_report_dir> \
+  --thinking-dir <path_to_TH_report_dir> \
+  --non-thinking-run-id <NT_run_id> \
+  --thinking-run-id <TH_run_id> \
+  --output <output_dir>/comparison.html
+```
+
+Inputs: two analyzer report directories that each contain a `per_session.csv`
+and `comprehensive_report.html`.
+
+Output: single HTML page with:
+- Per-tool aggregate delta table (5 metrics: Compliance, Quality, ExecutionTrace, Runnability, Overall — values + colored Δ)
+- Per-(tool × scenario) delta table (5 tools × 6 scenarios = 30 rows)
+- Side-by-side iframes of both source `comprehensive_report.html` files
+
+No LLM calls — pure CSV aggregation. Suitable for visualizing the impact of
+prompt/config changes, thinking-mode toggles, or harness fixes.
+
 ## 2. Pipeline Stages — What `analyze.py` Does
 
 When you run `python3 analyze.py`, the following stages execute in order:
