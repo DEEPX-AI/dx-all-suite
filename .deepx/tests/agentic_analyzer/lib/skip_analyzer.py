@@ -58,23 +58,34 @@ def _classify(session: Dict[str, Any]) -> str:
 def is_env_failure_eval(ev: "SessionEval") -> bool:
     """Check if a SessionEval represents an environment failure (false alarm).
 
-    An environment failure is a session where the CLI/agent never started due to
-    infrastructure issues (API rate limits, TLS errors, CLI crashes).
+    Two false-alarm patterns are detected:
 
-    Detection criteria (no output_dirs AND no START sentinel):
-      - output_tokens == 0: LLM never responded at all (TLS/network failure,
-        quota rejection before inference). Duration may be long (e.g. 400s
-        while the CLI retried the connection) but still an infrastructure issue.
+    (A) Pre-execution infra failure — CLI/agent never started:
+        no output_dirs + no START sentinel + output_tokens==0
+        → API rate limit, TLS error, CLI crash before any LLM call.
 
-    Sessions WITH has_start=True but no output_dirs are typically artifact
-    collection bugs (the agent ran but artifacts weren't captured), not env failures.
+    (B) Incomplete session — CLI/agent started but was prematurely terminated
+        while producing partial artifacts:
+        has_start=True + has_done=False + exit_status != 0
+        → Bash auto-background hang, internal CLI crash mid-execution, or
+          external SIGKILL. Reflects harness/CLI failure rather than tool
+          capability. Observed in claude-code thinking mode where one mandatory
+          sub-project session (e.g. runtime's dx_stream) never gets generated.
+
+    Sessions WITH has_start=True and complete DONE sentinel but no output_dirs
+    are typically artifact collection bugs (the agent ran but artifacts weren't
+    captured), not env failures.
     """
+    # (B) Incomplete session detection — agent terminated mid-execution
+    if ev.has_start and not ev.has_done and (ev.exit_status or 0) != 0:
+        return True
+
+    # (A) Pre-execution failure detection
     if ev.output_dirs:
         return False
     if ev.has_start:
         return False  # Agent ran — this is an artifact bug, not env failure
     # output_tokens==0 means LLM never produced a single token → infra failure
-    # regardless of how long the CLI spent retrying.
     return ev.output_tokens == 0
 
 
