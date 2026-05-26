@@ -90,6 +90,38 @@ def _normalize_model_name(model: str) -> str:
     return "anthropic_claude_sonnet_4_6"   # default fallback
 
 
+def _lookup_multiplier(model: str, multiplier_table: dict) -> float:
+    """Resolve PR multiplier for ``model`` against ``copilot_request_multiplier``.
+
+    Tries exact (case-insensitive) match first, then substring containment
+    (e.g. "claude-sonnet-4.6-thinking" → "claude-sonnet-4.6" hits), finally
+    falls back to ``_default`` key or 1.0.
+
+    Phase D primary input for opencode-cli / codex-cli PR estimation.
+    """
+    if not multiplier_table:
+        return 1.0
+    m = (model or "").strip()
+    if not m:
+        return float(multiplier_table.get("_default", 1.0))
+    m_low = m.lower()
+    # Exact case-insensitive match first
+    for k, v in multiplier_table.items():
+        if k == "_default":
+            continue
+        if k.lower() == m_low:
+            return float(v)
+    # Substring containment: try longest keys first to prefer specific matches
+    keys_by_len = sorted(
+        (k for k in multiplier_table if k != "_default"),
+        key=len, reverse=True,
+    )
+    for k in keys_by_len:
+        if k.lower() in m_low:
+            return float(multiplier_table[k])
+    return float(multiplier_table.get("_default", 1.0))
+
+
 def _token_cost(input_tokens, output_tokens, cache_read, cache_write, rates) -> CostBreakdown:
     """Pure token-based costing (Anthropic-style)."""
     cb = CostBreakdown()
@@ -170,10 +202,29 @@ def estimate_cost(
         prem_cfg = config_pricing.get("copilot_premium_request", {}) or {}
         usd_per = float(prem_cfg.get("usd_per_request", 0.033))
 
-        # Primary method: tool_call_count × calibration_ratio
+        # ---- PRIMARY (Phase D): user_turn_count × model_multiplier ----
+        # GitHub Copilot's PR accounting rule: each user prompt counts as 1
+        # PR (scaled by model multiplier); tool calls within a turn are free.
+        # `copilot_request_multiplier` table (config.yaml) holds the 2026-05
+        # multipliers; "_default" falls back to 1.0 (sonnet-4.6 baseline).
+        mult_cfg = config_pricing.get("copilot_request_multiplier", {}) or {}
+        if user_turn_count > 0 and mult_cfg:
+            mult = _lookup_multiplier(model, mult_cfg)
+            est_premium = user_turn_count * mult
+            cb.estimated_premium_requests = est_premium
+            cb.usd_premium = est_premium * usd_per
+            cb.total_usd = cb.usd_premium
+            cb.pricing_basis = "copilot_premium_request (user_turn × multiplier)"
+            cb.notes = (
+                f"{tool_label}: {user_turn_count} user turns × {mult:g} multiplier "
+                f"({model or 'default'}) = {est_premium:g} estimated premium requests"
+            )
+            return cb
+
+        # ---- SECONDARY: tool_call_count × calibration_ratio ----
         # Calibration: copilot-cli observed PR/tool_call = 0.741 (5232 PR / 7061 tool_calls)
-        # This works because GitHub counts each LLM roundtrip as a premium request,
-        # and tool_call_count approximates LLM roundtrips across all tools.
+        # Pre-Phase-D primary path; now demoted to fallback when user_turn_count is
+        # unavailable (e.g. older sessions parsed before Phase B/C wiring).
         TOOL_CALL_PR_RATIO = 0.741  # calibrated from copilot-cli observed data
 
         if tool_call_count > 0:
@@ -181,14 +232,15 @@ def estimate_cost(
             cb.estimated_premium_requests = est_premium
             cb.usd_premium = est_premium * usd_per
             cb.total_usd = cb.usd_premium
-            cb.pricing_basis = "copilot_premium_request (tool_call calibration)"
+            cb.pricing_basis = "copilot_premium_request (tool_call calibration fallback)"
             cb.notes = (
                 f"{tool_label}: {tool_call_count} tool calls × {TOOL_CALL_PR_RATIO:.3f} "
-                f"(calibration ratio) = {est_premium:.1f} estimated premium requests"
+                f"(calibration ratio fallback — user_turn_count unavailable) "
+                f"= {est_premium:.1f} estimated premium requests"
             )
             return cb
 
-        # Fallback: token ratio calibration
+        # ---- TERTIARY: token ratio calibration ----
         if calibration and calibration.tokens_per_premium:
             tpr = calibration.tokens_per_premium
             total_io = input_tokens + output_tokens
@@ -198,9 +250,9 @@ def estimate_cost(
             cb.total_usd = cb.usd_premium
             cb.pricing_basis = "copilot_premium_request (token ratio fallback)"
             cb.notes = (
-                f"{tool_label} uses copilot provider — tool_call_count unavailable, "
-                f"fell back to token ratio. "
-                f"Estimated {est_premium:.1f} reqs = {total_io:,} (input+output) / {tpr:,.0f} (calibration ratio)"
+                f"{tool_label} uses copilot provider — user_turn_count + tool_call_count "
+                f"unavailable, fell back to token ratio. "
+                f"Estimated {est_premium:.1f} reqs = {total_io:,} (input+output) / {tpr:,.0f}"
             )
             return cb
         # Calibration unavailable → fall back to noting this
