@@ -180,6 +180,16 @@ INFERENCE_MARKERS_V3 = [
     r"\bInference\s+\d+\.\d+\s*ms\b",
     r"\bRESULT\s*:\s*PASS\b",
     r"\bAll\s+(?:validations|variants)\s+PASSED\b",
+    # v3.1: bare FPS metric (e.g. "40.6 FPS") emitted via agent Bash tool
+    # captures into session.txt — claude-code dx_app rarely emits the
+    # "Overall FPS" prefix, just the raw "<number> FPS" line from the python
+    # script.  Without this, 4/5 R2/R4/R6/R7/R8 sessions were scored 0
+    # despite real inference runs in their session.txt transcripts.
+    r"\b\d+(?:\.\d+)?\s*FPS\b",
+    # v3.1: "exit code 0" near inference command tokens (sync.py / detection /
+    # Inference) — common pattern in agent-Bash-tool execution where the
+    # transcript captures both the command and its zero exit.
+    r"exit\s+code\s+0[^\n]{0,200}(?:Inference|sync\.py|detection)",
 ]
 
 PIPELINE_RUN_MARKERS_V3 = [
