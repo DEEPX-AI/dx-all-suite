@@ -91,6 +91,8 @@ def main() -> int:
         "render_error": 0,
         "would_write": 0,
         "wrote": 0,
+        "session_dir_copied": 0,
+        "session_dir_would_copy": 0,
     }
     actions: List[str] = []
     errors: List[str] = []
@@ -104,7 +106,37 @@ def main() -> int:
         jsonl_candidates = sorted(scenario_dir.glob("*-claude-code-stream.jsonl"))
         html_candidates = sorted(scenario_dir.glob("*-claude-code-session.html"))
 
-        if html_candidates:
+        # Even when the wrapper already has an HTML, the per-session-dir copy
+        # (created at conftest.py:~2185 during normal runs) can still be
+        # missing — past sessions that hit the encode_project_path bug were
+        # backfilled to the wrapper only.  Resolve symlinks here and propagate.
+        if html_candidates and jsonl_candidates:
+            prefix = jsonl_candidates[0].name[: -len("-stream.jsonl")]
+            # symlink naming: ``{prefix}-session_<scenario>_<session_id>``
+            # (e.g. ``dx_app-claude-code-session_dx_app_20260523-015147_...``)
+            # — note the "-session_" infix, NOT just "_".
+            symlink_prefix = f"{prefix}-session_"
+            html_src = html_candidates[0]
+            for entry in scenario_dir.iterdir():
+                if entry.is_symlink() and entry.name.startswith(symlink_prefix):
+                    try:
+                        resolved = entry.resolve(strict=True)
+                    except (OSError, RuntimeError):
+                        break
+                    if resolved.is_dir():
+                        dst = resolved / "session.html"
+                        if not dst.exists():
+                            if args.apply:
+                                try:
+                                    dst.write_text(html_src.read_text(encoding="utf-8"), encoding="utf-8")
+                                    stats["session_dir_copied"] += 1
+                                    actions.append(f"COPIED → {dst}")
+                                except OSError as e:
+                                    errors.append(f"session.html copy error: {dst}: {e}")
+                            else:
+                                stats["session_dir_would_copy"] += 1
+                                actions.append(f"WOULD copy → {dst}")
+                    break
             stats["already_has_html"] += 1
             continue
         if not jsonl_candidates:
@@ -137,17 +169,43 @@ def main() -> int:
             errors.append(f"render error {type(e).__name__}: {run_id}/{result_name}/{scenario}: {e}")
             continue
 
+        # Also copy into the per-session output dir (the symlink target). The
+        # conftest.py harness does this at session-creation time (line ~2185)
+        # but a retro backfill writes only to the wrapper dir, leaving the
+        # actual artifact dir without its session.html. Resolve the symlink in
+        # ``scenario_dir`` (e.g. ``<scenario>-claude-code-session_<scenario>_<sid>``)
+        # and copy session.html into that dir too.
+        session_dir_html: Optional[Path] = None
+        for entry in scenario_dir.iterdir():
+            if entry.is_symlink() and entry.name.startswith(f"{prefix}_"):
+                try:
+                    resolved = entry.resolve(strict=True)
+                except (OSError, RuntimeError):
+                    continue
+                if resolved.is_dir():
+                    candidate = resolved / "session.html"
+                    if not candidate.exists():
+                        session_dir_html = candidate
+                break
+
         if args.apply:
             try:
                 html.write_text(html_text, encoding="utf-8")
                 stats["wrote"] += 1
                 actions.append(f"WROTE  {html} ({len(html_text):,}B)")
+                if session_dir_html is not None:
+                    try:
+                        session_dir_html.write_text(html_text, encoding="utf-8")
+                        actions.append(f"  + copied to {session_dir_html}")
+                    except OSError as e:
+                        errors.append(f"session.html copy error: {session_dir_html}: {e}")
             except OSError as e:
                 stats["render_error"] += 1
                 errors.append(f"write error: {html}: {e}")
         else:
             stats["would_write"] += 1
-            actions.append(f"WOULD  {run_id}/{result_name}/{scenario} ({len(html_text):,}B from uuid {uuid[:8]})")
+            extra = f" + session.html → {session_dir_html}" if session_dir_html else ""
+            actions.append(f"WOULD  {run_id}/{result_name}/{scenario} ({len(html_text):,}B from uuid {uuid[:8]}){extra}")
 
     print("=== Summary ===")
     for k, v in stats.items():
