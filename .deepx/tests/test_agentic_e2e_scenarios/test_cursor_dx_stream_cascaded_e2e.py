@@ -15,6 +15,7 @@ import pytest
 from .conftest import (
     STREAM_ROOT,
     ScenarioResult,
+    _resolve_done_sentinel_dirs,
     format_scenario_failure,
     verify_python_syntax,
     verify_start_sentinel,
@@ -33,7 +34,6 @@ SCENARIO_PROMPT = (
 @pytest.fixture(scope="module")
 def scenario(cursor_runner, stream_cursor_cascaded_artifacts_dir) -> ScenarioResult:
     """Execute dx_stream cascaded Scenario via Cursor CLI."""
-    import re as _re
     result = cursor_runner.run(
         prompt=SCENARIO_PROMPT,
         workdir=STREAM_ROOT,
@@ -41,17 +41,11 @@ def scenario(cursor_runner, stream_cursor_cascaded_artifacts_dir) -> ScenarioRes
         session_log_dir=stream_cursor_cascaded_artifacts_dir,
         timeout=DEFAULT_TIMEOUT,
     )
-    # R33: use DONE sentinel path as primary output_dir to prevent cross-tool
-    # contamination when multiple tools create *_cascaded/ directories concurrently.
-    _done_match = _re.search(
-        r'\[DX-AGENTIC-DEV: DONE \(output-dir: ([^)]+)\)\]', result.stdout or ""
+    # R33/R76: resolve DONE sentinel output-dir; handles workdir-relative AND
+    # suite-root-relative paths.
+    result.output_dirs, _ = _resolve_done_sentinel_dirs(
+        result.stdout or "", result.workdir, result.output_dirs, name_filter="cascaded"
     )
-    if _done_match:
-        _primary = result.workdir / _done_match.group(1).strip()
-        result.output_dirs = [_primary] if _primary.exists() else []
-    else:
-        # R28 fallback: filter to only directories named with "cascaded"
-        result.output_dirs = [d for d in result.output_dirs if "cascaded" in d.name]
     # R63: de-duplicate when fallback resolves multiple cascaded dirs (cross-tool contamination)
     if len(result.output_dirs) > 1:
         import logging as _logging

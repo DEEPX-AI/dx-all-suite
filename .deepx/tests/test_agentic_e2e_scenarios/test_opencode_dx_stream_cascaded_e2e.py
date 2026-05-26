@@ -17,6 +17,7 @@ from .conftest import (
     DEFAULT_TIMEOUT,
     STREAM_ROOT,
     ScenarioResult,
+    _resolve_done_sentinel_dirs,
     format_scenario_failure,
     verify_python_syntax,
     verify_start_sentinel,)
@@ -45,14 +46,13 @@ def scenario(opencode_runner, stream_opencode_cascaded_artifacts_dir) -> Scenari
         session_log_dir=stream_opencode_cascaded_artifacts_dir,
         timeout=_cascaded_timeout,
     )
-    # R33: use DONE sentinel path as primary output_dir to prevent cross-tool
-    # contamination when multiple tools create *_cascaded/ directories concurrently.
+    # R36: if DONE sentinel not in stdout, scan raw NDJSON events log — OpenCode's
+    # DONE line may be inside a JSON event field that the text extractor did not
+    # surface into result.stdout.  Build a corpus that includes any such fields,
+    # then hand it to the shared helper for path resolution (R33/R76).
     _DONE_RE = _re.compile(r'\[DX-AGENTIC-DEV: DONE \(output-dir: ([^)]+)\)\]')
-    _done_match = _DONE_RE.search(result.stdout or "")
-    # R36: if DONE sentinel not found in assistant_text, scan the raw NDJSON events
-    # log.  OpenCode's DONE line may be inside a JSON event field that the text
-    # extractor did not surface into result.stdout.
-    if not _done_match and result.session_events_log and result.session_events_log.exists():
+    _search_text = result.stdout or ""
+    if not _DONE_RE.search(_search_text) and result.session_events_log and result.session_events_log.exists():
         try:
             _raw = result.session_events_log.read_text(encoding="utf-8")
             for _line in _raw.splitlines():
@@ -60,23 +60,18 @@ def scenario(opencode_runner, stream_opencode_cascaded_artifacts_dir) -> Scenari
                     _ev = _json.loads(_line)
                     for _field in ("content", "text", "result", "output"):
                         _val = _ev.get(_field, "")
-                        if isinstance(_val, str):
-                            _m = _DONE_RE.search(_val)
-                            if _m:
-                                _done_match = _m
-                                break
-                    if _done_match:
+                        if isinstance(_val, str) and _DONE_RE.search(_val):
+                            _search_text = _val
+                            break
+                    if _DONE_RE.search(_search_text):
                         break
                 except (_json.JSONDecodeError, AttributeError):
                     continue
         except Exception:
             pass
-    if _done_match:
-        _primary = result.workdir / _done_match.group(1).strip()
-        result.output_dirs = [_primary] if _primary.exists() else []
-    else:
-        # R28 fallback: filter to only directories named with "cascaded"
-        result.output_dirs = [d for d in result.output_dirs if "cascaded" in d.name]
+    result.output_dirs, _ = _resolve_done_sentinel_dirs(
+        _search_text, result.workdir, result.output_dirs, name_filter="cascaded"
+    )
     # R63: de-duplicate when fallback resolves multiple cascaded dirs (cross-tool contamination)
     if len(result.output_dirs) > 1:
         import logging as _logging

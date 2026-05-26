@@ -31,15 +31,65 @@ import os
 import re
 import shlex
 import shutil
+import signal
 import subprocess
 import sys
 import time
 import uuid
 from contextlib import contextmanager
 from dataclasses import dataclass, field
+
+
+def run_with_pgroup_cleanup(
+    cmd, *, timeout, capture_output=True, text=True, cwd=None, env=None,
+):
+    """Drop-in replacement for ``subprocess.run`` that kills the entire process
+    group on timeout.
+
+    Stock ``subprocess.run(..., timeout=N)`` SIGKILLs only the immediate child
+    on timeout. Any descendants spawned by the child (e.g. when claude-code's
+    Bash tool auto-backgrounds ``python yolo26n_sync.py``) survive and the
+    test harness never reclaims them. This wrapper uses ``start_new_session=True``
+    + ``os.killpg`` to terminate the whole tree.
+
+    Returns
+    -------
+    subprocess.CompletedProcess  (compatible with subprocess.run callers)
+
+    Raises
+    ------
+    subprocess.TimeoutExpired  (same as subprocess.run, after group cleanup)
+    """
+    popen_kwargs = {"start_new_session": True, "cwd": cwd, "env": env}
+    if capture_output:
+        popen_kwargs["stdout"] = subprocess.PIPE
+        popen_kwargs["stderr"] = subprocess.PIPE
+    if text:
+        popen_kwargs["text"] = True
+
+    proc = subprocess.Popen(cmd, **popen_kwargs)
+    try:
+        stdout, stderr = proc.communicate(timeout=timeout)
+        return subprocess.CompletedProcess(
+            cmd, proc.returncode, stdout=stdout, stderr=stderr,
+        )
+    except subprocess.TimeoutExpired:
+        # Kill the whole process group so auto-backgrounded grandchildren die too.
+        try:
+            os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
+        except (ProcessLookupError, PermissionError):
+            proc.kill()
+        # Drain any remaining output so descriptors close cleanly.
+        try:
+            stdout, stderr = proc.communicate(timeout=5)
+        except subprocess.TimeoutExpired:
+            stdout, stderr = "", ""
+        raise subprocess.TimeoutExpired(
+            cmd=cmd, timeout=timeout, output=stdout, stderr=stderr,
+        )
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import ClassVar, Dict, List, Optional, Set
+from typing import ClassVar, Dict, List, Optional, Set, Tuple
 
 _logger = logging.getLogger(__name__)
 
@@ -217,6 +267,56 @@ def _resolve_scenario_timeout(scenario_key: str, override: Optional[int]) -> int
     if override is not None and override != DEFAULT_TIMEOUT:
         return override
     return SCENARIO_TIMEOUTS.get(scenario_key, DEFAULT_TIMEOUT)
+
+
+_DONE_SENTINEL_RE = re.compile(r"\[DX-AGENTIC-DEV: DONE \(output-dir: ([^)]+)\)\]")
+
+
+def _resolve_done_sentinel_dirs(
+    stdout: str,
+    workdir: Path,
+    runner_dirs: List[Path],
+    name_filter: str = "",
+) -> Tuple[List[Path], bool]:
+    """Resolve ``[DX-AGENTIC-DEV: DONE (output-dir: ...)]`` to real directories.
+
+    Handles the three input shapes agents emit in practice:
+      * workdir-relative (e.g. ``dx-agentic-dev/<sid>/``)
+      * suite-root-relative (e.g. ``dx-runtime/dx_stream/dx-agentic-dev/<sid>/``)
+      * multi-path cross-project (``compile_dir + app_dir``)
+
+    Resolution order per path (after splitting by `` + ``):
+      1. ``workdir / rel``
+      2. ``SUITE_ROOT / rel``
+
+    Returns ``(resolved_dirs, sentinel_found)``:
+      * sentinel present + ≥1 path resolves on disk → (resolved, True)
+      * sentinel present + zero paths resolve → (name_filter-filtered runner_dirs, True)
+      * sentinel absent → (name_filter-filtered runner_dirs, False)
+
+    The fallback to runner_dirs guards the regression where a present-but-
+    unresolvable sentinel silently produced an empty ``output_dirs`` list,
+    causing 7 mandatory-artifact tests per round to false-fail.
+    """
+    m = _DONE_SENTINEL_RE.search(stdout or "")
+    if not m:
+        filtered = [d for d in runner_dirs if (not name_filter or name_filter in d.name)]
+        return filtered, False
+
+    resolved: List[Path] = []
+    for rel in (r.strip().rstrip("/") for r in m.group(1).split(" + ")):
+        if not rel:
+            continue
+        cand = workdir / rel
+        if not cand.is_dir():
+            cand = SUITE_ROOT / rel
+        if cand.is_dir() and cand not in resolved:
+            resolved.append(cand)
+
+    if resolved:
+        return resolved, True
+    filtered = [d for d in runner_dirs if (not name_filter or name_filter in d.name)]
+    return filtered, True
 
 # Compile duration acceptability threshold (REC-W1) — suite scenarios fail if compilation
 # exceeds this limit. 2400s accounts for parallel compilation workloads (4 agents on same
@@ -897,39 +997,16 @@ class CopilotRunnerAutopilot:
 
             session_events_log = session_logs_dir / f"{scenario_key}-session_logs-{uuid_suffix}.md"
 
-            # R70/R74: Resolve authoritative output_dir from DONE sentinel before copying
-            # session.html.  Prevents Copilot's HTML from contaminating other tools'
-            # session directories when all 4 tools run concurrently and create dirs
-            # with similar timestamps that confuse the name-based scanner.
-            #
-            # R74: R70 used SUITE_ROOT to resolve the sentinel path, but agents running
-            # in a sub-project workdir (e.g. dx_stream/) emit paths relative to workdir,
-            # not SUITE_ROOT.  Try workdir first; fall back to SUITE_ROOT for cross-project
-            # paths.  If the sentinel is absent entirely, pass an empty list to avoid
-            # writing HTML to all concurrently-detected dirs (the root cause of 486 L
-            # cross-contamination in dirs attributed to Claude Code and OpenCode).
-            _copilot_html_dirs: List[Path] = []  # default: no HTML copy unless sentinel resolves
-            _done_copilot = re.search(
-                r'\[DX-AGENTIC-DEV: DONE \(output-dir: ([^)]+)\)\]',
-                result.stdout or "",
+            # R70/R74/R76: Resolve authoritative output_dir from DONE sentinel before
+            # copying session.html.  Prevents Copilot's HTML from contaminating other
+            # tools' session directories when all 4 tools run concurrently and create
+            # dirs with similar timestamps that confuse the name-based scanner.
+            # Helper handles workdir-relative AND suite-root-relative paths plus
+            # `` + ``-split cross-project sentinels.  When sentinel is absent or
+            # unresolvable, fall back to Copilot's first detected dir only.
+            _copilot_html_dirs, _ = _resolve_done_sentinel_dirs(
+                result.stdout or "", workdir, output_dirs[:1], name_filter=""
             )
-            if _done_copilot:
-                _rel_str = _done_copilot.group(1).strip()
-                # Issue 4: Split by " + " to handle cross-project DONE sentinels
-                _copilot_html_dirs = []
-                for _rel in [r.strip() for r in _rel_str.split(" + ")]:
-                    _candidate = workdir / _rel
-                    if not _candidate.is_dir():
-                        _candidate = SUITE_ROOT / _rel
-                    if _candidate.is_dir():
-                        _copilot_html_dirs.append(_candidate)
-                if not _copilot_html_dirs:
-                    # Sentinel found but path(s) don't exist — scope to Copilot's first dir
-                    _copilot_html_dirs = output_dirs[:1] if output_dirs else []
-            elif output_dirs:
-                # No sentinel: use only the first detected dir (Copilot's own session)
-                # to avoid polluting any concurrently-created dirs from other tools.
-                _copilot_html_dirs = output_dirs[:1]
 
             # Parse Copilot events.jsonl (best-effort)
             _parse_session_events(
@@ -1973,17 +2050,20 @@ class ClaudeCodeRunnerAutopilot:
         # FAIL+SKIP.
         try:
             while True:
-                result = subprocess.run(
+                # REC-Q2: use run_with_pgroup_cleanup so that on timeout, the
+                # entire process group is killed (not just the immediate claude
+                # child). Without this, Bash auto-backgrounded grandchildren
+                # (e.g. `python yolo26n_sync.py` running inference) survive and
+                # hold the test harness hostage, leading to incomplete sessions
+                # marked has_done=False. Both functions return CompletedProcess
+                # with the same shape, so downstream code is unaffected.
+                result = run_with_pgroup_cleanup(
                     cmd,
                     cwd=str(workdir),
                     capture_output=True,
                     text=True,
                     timeout=timeout,
                     env={**os.environ, "NO_COLOR": "1"},
-                    # R1: Detach from the test process's terminal session to prevent
-                    # SIGHUP from being delivered to the claude agent when the
-                    # controlling terminal closes (returncode=129 = 128+SIGHUP).
-                    start_new_session=True,
                 )
 
                 _combined = (result.stdout or "") + (result.stderr or "")
@@ -2021,20 +2101,40 @@ class ClaudeCodeRunnerAutopilot:
                 scenario_key, prompt, session_uuid,
             )
 
-            # T6: Generate HTML alongside MD (best-effort)
+            # T6/R77: Generate HTML alongside MD (best-effort).
+            # Prefer session_uuid-based lookup — it bypasses two latent bugs that
+            # silently dropped HTML for dx_app/dx_stream/cascaded/runtime:
+            #   (1) encode_project_path() didn't replace '_' with '-', so workdirs
+            #       like dx-runtime/dx_app missed the projects dir lookup;
+            #   (2) jsonl flush lags stdout EOF by ~2–17 s, so a project_path scan
+            #       constrained by before=end_utc could filter the file out.
+            # UUID lookup uses no time filter and walks all project dirs.
             try:
                 from parse_claude_session import (
                     find_sessions as _find_cc_sessions,
+                    find_project_dir as _find_cc_proj_dir,
                     parse_session as _parse_cc,
                     render_html as _render_cc_html,
                 )
-                _cc_sessions = _find_cc_sessions(project_path=str(workdir), after=start_utc, before=end_utc)
-                if _cc_sessions:
+                if session_uuid:
+                    _cc_sessions = _find_cc_sessions(session_id=session_uuid)
+                else:
+                    _cc_sessions = _find_cc_sessions(
+                        project_path=str(workdir), after=start_utc, before=end_utc,
+                    )
+                if not _cc_sessions:
+                    _logger.warning(
+                        "claude HTML skipped: no sessions matched. "
+                        "uuid=%s workdir=%s proj_dir=%s",
+                        session_uuid, workdir, _find_cc_proj_dir(str(workdir)),
+                    )
+                else:
                     _cc_parsed = _parse_cc(_cc_sessions[0])
                     _cc_html_path = log_dir / f"{scenario_key}-claude-code-session.html"
                     _cc_html_path.write_text(_render_cc_html(_cc_parsed), encoding="utf-8")
-            except Exception:
-                pass
+                    _logger.info("claude HTML written: %s", _cc_html_path)
+            except Exception as _e:
+                _logger.warning("claude HTML render failed: %s", _e)
 
             session_events_log = log_dir / f"{scenario_key}-claude-code-stream.jsonl"
             try:
@@ -2138,20 +2238,35 @@ class ClaudeCodeRunnerAutopilot:
                 scenario_key, prompt, session_uuid,
             )
 
-            # T6: Generate HTML alongside MD (best-effort)
+            # T6/R77: Generate HTML alongside MD (best-effort) — UUID-first; see
+            # the matching normal-path block above for the rationale (encoding
+            # bug + jsonl-flush time race).
             try:
                 from parse_claude_session import (
                     find_sessions as _find_cc_sessions_t,
+                    find_project_dir as _find_cc_proj_dir_t,
                     parse_session as _parse_cc_t,
                     render_html as _render_cc_html_t,
                 )
-                _cc_sessions_t = _find_cc_sessions_t(project_path=str(workdir), after=start_utc, before=end_utc)
-                if _cc_sessions_t:
+                if session_uuid:
+                    _cc_sessions_t = _find_cc_sessions_t(session_id=session_uuid)
+                else:
+                    _cc_sessions_t = _find_cc_sessions_t(
+                        project_path=str(workdir), after=start_utc, before=end_utc,
+                    )
+                if not _cc_sessions_t:
+                    _logger.warning(
+                        "claude HTML (timeout-path) skipped: no sessions matched. "
+                        "uuid=%s workdir=%s proj_dir=%s",
+                        session_uuid, workdir, _find_cc_proj_dir_t(str(workdir)),
+                    )
+                else:
                     _cc_parsed_t = _parse_cc_t(_cc_sessions_t[0])
                     _cc_html_t = log_dir / f"{scenario_key}-claude-code-session.html"
                     _cc_html_t.write_text(_render_cc_html_t(_cc_parsed_t), encoding="utf-8")
-            except Exception:
-                pass
+                    _logger.info("claude HTML written (timeout-path): %s", _cc_html_t)
+            except Exception as _e:
+                _logger.warning("claude HTML render failed (timeout-path): %s", _e)
 
             # Issue 2 (timeout): Copy HTML into per-session output dirs (claude-code)
             _cc_html_t = log_dir / f"{scenario_key}-claude-code-session.html"  # path defined above

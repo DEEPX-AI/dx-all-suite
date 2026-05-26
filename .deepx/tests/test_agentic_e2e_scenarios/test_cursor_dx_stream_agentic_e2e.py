@@ -18,6 +18,7 @@ from .conftest import (
     STREAM_ROOT,
     ScenarioResult,
     _apt_lock,
+    _resolve_done_sentinel_dirs,
     format_scenario_failure,
     verify_json_structure,
     verify_patterns_in_file,
@@ -37,7 +38,6 @@ SCENARIO_PROMPT = (
 @pytest.fixture(scope="module")
 def scenario(cursor_runner, stream_cursor_cli_artifacts_dir) -> ScenarioResult:
     """Execute dx_stream Scenario via Cursor CLI."""
-    import re as _re
     with _apt_lock():
         result = cursor_runner.run(
             prompt=SCENARIO_PROMPT,
@@ -46,16 +46,15 @@ def scenario(cursor_runner, stream_cursor_cli_artifacts_dir) -> ScenarioResult:
             session_log_dir=stream_cursor_cli_artifacts_dir,
         timeout=DEFAULT_TIMEOUT,
     )
-    # R51: parse DONE sentinel from result.stdout to get the authoritative output_dir.
-    # Prevents cross-tool contamination when 4 tools run concurrently and Cursor's
-    # directory cannot be disambiguated by name scan alone.
-    _done_match = _re.search(
-        r'\[DX-AGENTIC-DEV: DONE \(output-dir: ([^)]+)\)\]', result.stdout or ""
+    # R51/R76: resolve DONE sentinel output-dir (workdir OR suite-root relative),
+    # then prepend to runner-detected output_dirs.  Prepend (not replace) preserves
+    # cursor's own session dir disambiguation when 4 tools run concurrently.
+    _resolved, _found = _resolve_done_sentinel_dirs(
+        result.stdout or "", result.workdir, [], name_filter=""
     )
-    if _done_match:
-        _primary = result.workdir / _done_match.group(1).strip()
-        if _primary.exists():
-            result.output_dirs = [_primary] + [d for d in result.output_dirs if d != _primary]
+    if _found and _resolved:
+        _primary = _resolved[0]
+        result.output_dirs = [_primary] + [d for d in result.output_dirs if d != _primary]
     return result
 
 
