@@ -119,7 +119,11 @@ def _resolve_model(tool: str, session_id: str, config: dict) -> str:
     return config.get("default_models", {}).get(tool, "unknown")
 
 
-def evaluate_scenario(ref: ScenarioRef, config: dict) -> SessionEval:
+def evaluate_scenario(
+    ref: ScenarioRef,
+    config: dict,
+    rubric_version: str = "v3",
+) -> SessionEval:
     """Run all per-session evaluators for one ScenarioRef and combine into SessionEval."""
     rules = config.get("compliance_rules", {}) or {}
     scenarios_cfg = config.get("scenarios", {}) or {}
@@ -165,10 +169,10 @@ def evaluate_scenario(ref: ScenarioRef, config: dict) -> SessionEval:
     # Here we just resolve the model.
     resolved_model = _resolve_model(ref.parent.tool, ref.parent.session_id, config)
 
-    # Execution trace — rubric v2 evaluates ALL output_dirs at once (multi-dir
+    # Execution trace — rubric evaluates ALL output_dirs at once (multi-dir
     # scenarios like runtime / suite are scored holistically rather than via
     # per-dir max).
-    er = evaluate_execution(ref.output_dirs, ref.scenario)
+    er = evaluate_execution(ref.output_dirs, ref.scenario, rubric_version=rubric_version)
     execution_score = er.score
     execution_breakdown = er.score_breakdown
     suspected_timeout = er.suspected_timeout
@@ -304,6 +308,18 @@ def main(argv: Optional[List[str]] = None) -> int:
              "new results). Useful when adding new rounds to an existing report.",
     )
     parser.add_argument(
+        "--rubric-version",
+        dest="rubric_version",
+        choices=["v2", "v3"],
+        default="v3",
+        help=(
+            "ExecutionTrace rubric version (default: v3). "
+            "v3 = expanded marker dictionary + verify_py reallocation. "
+            "v2 preserved for data lineage / reproducibility — see "
+            "lib/execution.py EXECUTION_RUBRIC_V3 docstring."
+        ),
+    )
+    parser.add_argument(
         "--hypothesis",
         default=None,
         help="Path to hypothesis prompt (.md) or pre-built hypothesis (.json). "
@@ -353,7 +369,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         if i % 10 == 0 or i == len(all_refs):
             print(f"  [{i}/{len(all_refs)}] {ref.parent.tool} R{ref.parent.round_index} {ref.scenario}")
         try:
-            evals.append(evaluate_scenario(ref, config))
+            evals.append(evaluate_scenario(ref, config, rubric_version=args.rubric_version))
         except Exception as e:
             print(f"  WARN: evaluation failed for {ref.parent.session_id}/{ref.scenario}: {e}",
                   file=sys.stderr)
@@ -397,6 +413,9 @@ def main(argv: Optional[List[str]] = None) -> int:
         out_dir = Path(args.output_dir).resolve()
     else:
         ts = datetime.now().strftime("%Y%m%d-%H%M%S")
+        # Suffix with rubric version so v2 / v3 reports for the same run-id
+        # can coexist for direct comparison.
+        ts = f"{ts}_{args.rubric_version}"
         if not run_ids:
             out_dir = DEFAULT_REPORTS_BASE / "_all" / ts
         elif len(run_ids) == 1:
@@ -425,8 +444,8 @@ def main(argv: Optional[List[str]] = None) -> int:
             f"`{ov.get('session_id_pattern', '?')}` → model `{ov.get('model', '?')}` "
             f"({ov.get('note', '').rstrip('.')})"
         )
-    # Pull rubric version from execution module (single source of truth)
-    from lib.execution import RUBRIC_VERSION as _exec_rubric_v
+    # Use the CLI-selected rubric (single source of truth across this run)
+    _exec_rubric_v = args.rubric_version
 
     meta = {
         "generated_at": datetime.now().isoformat(timespec="seconds"),
@@ -914,8 +933,12 @@ def _render_executive_summary(report_dir: Path) -> str:
     # Main ranking table
     lines.append("## 종합 순위 (Overall Score 기준)")
     lines.append("")
-    lines.append("| Rank | Tool | Overall | Compliance | Quality | σ(Overall) | Sessions | Avg Duration |")
-    lines.append("|:----:|------|--------:|-----------:|--------:|-----------:|--------:|-------------:|")
+    # Top-level ranking shows only the composite Overall and dispersion — the
+    # 4 sub-scores (Compliance / Quality / ExecutionTrace / Runnability) are
+    # detailed in §1-A and §2.2~§2.5 of the comprehensive report. Showing only
+    # 2 of the 4 sub-scores here was confusing (R65 feedback).
+    lines.append("| Rank | Tool | Overall | σ(Overall) | Sessions | Avg Duration |")
+    lines.append("|:----:|------|--------:|-----------:|--------:|-------------:|")
     medals = ["🥇", "🥈", "🥉", "4", "5"]
     for i, r in enumerate(ranked):
         dur_min = int(r["duration"] // 60)
@@ -926,8 +949,6 @@ def _render_executive_summary(report_dir: Path) -> str:
             f"| {medals[i] if i < 5 else i+1} "
             f"| **{r['tool']}** "
             f"| **{r['overall']:.1f}** "
-            f"| {r['compliance']:.1f}% "
-            f"| {r['quality']:.1f} "
             f"| ±{r['stdev_overall']:.1f} "
             f"| {sess_display} "
             f"| {dur_min}m {dur_sec}s |"
@@ -1492,14 +1513,17 @@ def _generate_dashboard_html(report_dir: Path) -> None:
         except Exception:
             hypothesis_data = None
 
-    # Radar dimensions (normalize to 0-100)
-    radar_dims = ["Overall", "Compliance", "Quality", "START Sentinel", "DONE Sentinel"]
+    # Radar dimensions (normalize to 0-100) — all 4 sub-scores + sentinel signals
+    radar_dims = ["Overall", "Compliance", "Quality", "ExecutionTrace",
+                  "Runnability", "START Sentinel", "DONE Sentinel"]
     radar_data = {}
     for tool, m in per_tool.items():
         radar_data[tool] = [
             round(m.get("avg_overall_score", 0), 1),
             round(m.get("avg_compliance_pct", 0), 1),
             round(m.get("avg_quality_score", 0), 1),
+            round(m.get("avg_execution_score", 0), 1),
+            round(m.get("avg_runnability_score", 0), 1),
             round(m.get("pct_with_start_sentinel", 0), 1),
             round(m.get("pct_with_done_sentinel", 0), 1),
         ]
@@ -1512,6 +1536,8 @@ def _generate_dashboard_html(report_dir: Path) -> None:
             "overall": round(m.get("avg_overall_score", 0), 1),
             "compliance": round(m.get("avg_compliance_pct", 0), 1),
             "quality": round(m.get("avg_quality_score", 0), 1),
+            "execution": round(m.get("avg_execution_score", 0), 1),
+            "runnability": round(m.get("avg_runnability_score", 0), 1),
             "stdev": round(m.get("stdev_overall_score", 0), 1),
             "duration_min": round(m.get("avg_duration_sec", 0) / 60, 1),
             "sessions": m.get("sessions", 0),
@@ -1595,14 +1621,15 @@ a { color: #60a5fa; }
   <div class="rank-section"><h2>🏆 Tool Rankings (Overall Score)</h2>
     <table class="rank-table"><thead><tr>
       <th>Rank</th><th>Tool</th><th>Overall</th><th>Compliance</th>
-      <th>Quality</th><th>σ</th><th>Sessions</th><th>Avg Duration</th>
+      <th>Quality</th><th>ExecutionTrace</th><th>Runnability</th>
+      <th>σ</th><th>Sessions</th><th>Avg Duration</th>
     </tr></thead><tbody id="rankBody"></tbody></table>
   </div>
 
   <div class="chart-grid">
     <div class="chart-card"><h3>Overall Score Comparison</h3><canvas id="cOverall"></canvas></div>
     <div class="chart-card"><h3>Radar — Multi-Dimension</h3><canvas id="cRadar"></canvas></div>
-    <div class="chart-card"><h3>Compliance vs Quality</h3><canvas id="cCompQual"></canvas></div>
+    <div class="chart-card"><h3>4 Sub-Scores (Compl / Qual / Exec / Runn)</h3><canvas id="cSubScores"></canvas></div>
     <div class="chart-card"><h3>Average Duration (min)</h3><canvas id="cDuration"></canvas></div>
     <div class="chart-card chart-wide"><h3>Round-over-Round Overall Score Trend</h3><canvas id="cTrend" height="100"></canvas></div>
     <div class="chart-card chart-wide"><h3>Scenario Breakdown (Overall Score per Tool × Scenario)</h3><canvas id="cScenario" height="100"></canvas></div>
@@ -1645,6 +1672,7 @@ D.tools.forEach((t,i) => {
     <td class="score ${cls}">${m.overall}
       <span class="score-bar" style="width:${barW}px;background:${tc(t).bg}"></span></td>
     <td>${m.compliance}%</td><td>${m.quality}</td>
+    <td>${m.execution}</td><td>${m.runnability}</td>
     <td>±${m.stdev}</td><td>${m.sessions}</td><td>${dur}</td></tr>`;
 });
 
@@ -1676,18 +1704,22 @@ new Chart(document.getElementById('cRadar'), {
              plugins: { legend: { position:'bottom' } } }
 });
 
-// 3. Compliance vs Quality grouped bar
-new Chart(document.getElementById('cCompQual'), {
+// 3. 4 sub-scores grouped bar (Compl / Qual / Exec / Runn)
+new Chart(document.getElementById('cSubScores'), {
   type: 'bar',
   data: { labels: D.tools,
     datasets: [
-      { label:'Compliance %', data: D.tools.map(t=>D.per_tool[t].compliance),
+      { label:'Compliance %',   data: D.tools.map(t=>D.per_tool[t].compliance),
         backgroundColor:'rgba(54,162,235,0.6)' },
-      { label:'Quality', data: D.tools.map(t=>D.per_tool[t].quality),
-        backgroundColor:'rgba(75,192,192,0.6)' }
+      { label:'Quality',        data: D.tools.map(t=>D.per_tool[t].quality),
+        backgroundColor:'rgba(75,192,192,0.6)' },
+      { label:'ExecutionTrace', data: D.tools.map(t=>D.per_tool[t].execution),
+        backgroundColor:'rgba(255,159,64,0.6)' },
+      { label:'Runnability',    data: D.tools.map(t=>D.per_tool[t].runnability),
+        backgroundColor:'rgba(153,102,255,0.6)' }
     ]
   },
-  options: { scales:{y:{min:50,max:100}} }
+  options: { scales:{y:{min:0,max:100}}, plugins:{legend:{position:'bottom'}} }
 });
 
 // 4. Duration bar

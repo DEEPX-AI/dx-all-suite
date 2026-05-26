@@ -186,6 +186,8 @@ def aggregate_per_tool(evals: List[SessionEval]) -> Dict[str, Dict[str, float]]:
             "env_failures": len(env_fails),
             "avg_compliance_pct": sum(e.compliance_score_pct for e in scored) / n,
             "avg_quality_score": sum(e.quality_score for e in scored) / n,
+            "avg_execution_score": sum(e.execution_score for e in scored) / n,
+            "avg_runnability_score": sum(e.runnability_score for e in scored) / n,
             "avg_overall_score": sum(overalls) / n,
             "stdev_overall_score": _stdev(overalls),
             "avg_duration_sec": sum(durations) / max(1, len(durations)),

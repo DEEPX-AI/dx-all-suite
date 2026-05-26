@@ -63,10 +63,23 @@ TIMEOUT_MARKERS = [
 ]
 
 
-# Rubric v2 — scenario-specific component weights summing to 100
-RUBRIC_VERSION = "v2"
+RUBRIC_VERSIONS = ("v2", "v3")
+DEFAULT_RUBRIC_VERSION = "v3"
+# Legacy alias — preserved for callers that imported `RUBRIC_VERSION` directly.
+RUBRIC_VERSION = DEFAULT_RUBRIC_VERSION
 
-EXECUTION_RUBRIC: Dict[str, Dict[str, int]] = {
+# v3 vs v2:
+#   * Marker dictionary expanded so the execution evidence emitted by all 5
+#     tools in practice (e.g. "Overall FPS", "RESULT: PASS", "End of stream")
+#     is recognized — v2's narrow regex caused 4 of 5 tools to false-fail
+#     `inference_run_evidence` even when they had run inference.
+#   * `verify_py` (5 pts) removed from dx_app/dx_stream/dx_stream_cascaded
+#     where every tool scored 0% (the skill doesn't request verify.py for
+#     user-facing scenarios). The 5 points are reallocated to the dominant
+#     execution-evidence component for that scenario.
+#   * compiler/suite keep `verify_py` (the compiler skill actually requires it).
+
+EXECUTION_RUBRIC_V2: Dict[str, Dict[str, int]] = {
     "compiler": {
         "session_log_substantial": 15,
         "compile_evidence":        20,
@@ -115,6 +128,66 @@ EXECUTION_RUBRIC: Dict[str, Dict[str, int]] = {
         "clean_logs":              20,
     },
 }
+
+
+EXECUTION_RUBRIC_V3: Dict[str, Dict[str, int]] = {
+    "compiler": dict(EXECUTION_RUBRIC_V2["compiler"]),  # unchanged
+    "dx_app": {
+        "session_log_substantial": 10,
+        "inference_run_evidence":  30,  # +5 (absorbed from removed verify_py)
+        "factory_smoke_test":      20,
+        "success_markers":         20,
+        "clean_logs":              20,
+    },
+    "dx_stream": {
+        "pipeline_log_substantial":15,
+        "pipeline_dot_or_video":   30,  # +5
+        "gst_element_usage":       20,
+        "success_markers":         15,
+        "clean_logs":              20,
+    },
+    "dx_stream_cascaded": {
+        "pipeline_log_substantial":15,
+        "pipeline_dot_or_video":   25,  # +5
+        "two_stage_evidence":      25,
+        "success_markers":         15,
+        "clean_logs":              20,
+    },
+    "runtime": dict(EXECUTION_RUBRIC_V2["runtime"]),    # unchanged
+    "suite":   dict(EXECUTION_RUBRIC_V2["suite"]),      # unchanged
+}
+
+
+# Back-compat alias: existing callers importing EXECUTION_RUBRIC see the
+# version dictated by DEFAULT_RUBRIC_VERSION.
+EXECUTION_RUBRIC: Dict[str, Dict[str, int]] = (
+    EXECUTION_RUBRIC_V3 if DEFAULT_RUBRIC_VERSION == "v3" else EXECUTION_RUBRIC_V2
+)
+
+
+# -- v3 marker dictionaries ----------------------------------------------
+# Recognized in session.log when no physical output artifact (output/, .dot,
+# .mp4) is present.  Each pattern is matched case-insensitively via re.search.
+
+INFERENCE_MARKERS_V3 = [
+    # v2 patterns (carried forward)
+    r"\b(?:Inference|Detection|Prediction)\s+(?:complete|done|finished|results?)\b",
+    r"\bbbox(?:es)?:?\s*\[",
+    # v3 new: dx_app standard performance output (emitted by claude/codex/opencode)
+    r"\bOverall\s+FPS\s*[:=]?\s*\d",
+    r"\bPERFORMANCE\s+SUMMARY\b",
+    r"\bTotal\s+Frames\s*[:=]?\s*\d",
+    r"\bInference\s+\d+\.\d+\s*ms\b",
+    r"\bRESULT\s*:\s*PASS\b",
+    r"\bAll\s+(?:validations|variants)\s+PASSED\b",
+]
+
+PIPELINE_RUN_MARKERS_V3 = [
+    r"\bEnd[- ]of[- ][Ss]tream\b",
+    r"\bgst_pipeline\s+state[- ]changed\b",
+    r"\bPipeline\s+(?:started|running|stopped|EOS)\b",
+    r"\bGST_DEBUG\b",
+]
 
 
 @dataclass
@@ -269,18 +342,27 @@ def _has_factory_smoke_test(out_dir: Path) -> Tuple[bool, str]:
     return False, f"factory ({candidates[0].name}) missing IFactory methods"
 
 
-def _has_inference_run_evidence(out_dir: Path) -> Tuple[bool, str]:
+def _has_inference_run_evidence(out_dir: Path, rubric_version: str = "v2") -> Tuple[bool, str]:
     if not out_dir.is_dir():
         return False, ""
     for od in (out_dir / "output", out_dir / "outputs", out_dir / "results"):
         if od.is_dir() and any(od.iterdir()):
             return True, f"{od.name}/ has artifacts"
     sl_text = _read_text_safely(out_dir / "session.log")
-    if re.search(r"\b(?:Inference|Detection|Prediction)\s+(?:complete|done|finished|results?)\b",
-                 sl_text, re.IGNORECASE):
-        return True, "session.log mentions inference"
-    if re.search(r"\bbbox(?:es)?:?\s*\[", sl_text):
-        return True, "session.log shows bbox output"
+    if rubric_version == "v3":
+        for pat in INFERENCE_MARKERS_V3:
+            m = re.search(pat, sl_text, re.IGNORECASE)
+            if m:
+                return True, f"session.log: {m.group(0)[:60]}"
+    else:
+        if re.search(
+            r"\b(?:Inference|Detection|Prediction)\s+(?:complete|done|finished|results?)\b",
+            sl_text,
+            re.IGNORECASE,
+        ):
+            return True, "session.log mentions inference"
+        if re.search(r"\bbbox(?:es)?:?\s*\[", sl_text):
+            return True, "session.log shows bbox output"
     return False, "no inference evidence"
 
 
@@ -300,7 +382,7 @@ def _has_pipeline_log_substantial(out_dir: Path) -> Tuple[bool, str]:
     return False, "no substantial pipeline log"
 
 
-def _has_pipeline_dot_or_video(out_dir: Path) -> Tuple[bool, str]:
+def _has_pipeline_dot_or_video(out_dir: Path, rubric_version: str = "v2") -> Tuple[bool, str]:
     if not out_dir.is_dir():
         return False, ""
     dots = list(out_dir.rglob("*.dot"))
@@ -310,6 +392,12 @@ def _has_pipeline_dot_or_video(out_dir: Path) -> Tuple[bool, str]:
         vids = list(out_dir.rglob(ext))
         if vids:
             return True, f"{vids[0].name}"
+    if rubric_version == "v3":
+        sl_text = _read_text_safely(out_dir / "session.log")
+        for pat in PIPELINE_RUN_MARKERS_V3:
+            m = re.search(pat, sl_text, re.IGNORECASE)
+            if m:
+                return True, f"session.log: {m.group(0)[:60]}"
     return False, "no .dot or video output"
 
 
@@ -432,22 +520,33 @@ def _pick_primary_dir(output_dirs: List[Path], scenario: str) -> Optional[Path]:
 def evaluate_execution(
     output_dirs: Union[Path, Iterable[Path]],
     scenario: str,
+    rubric_version: str = DEFAULT_RUBRIC_VERSION,
 ) -> ExecutionReport:
-    """Score execution evidence using v2 scenario-aware rubric.
+    """Score execution evidence using a scenario-aware rubric.
 
     Accepts either a single Path (backward-compat) or an iterable of Paths.
     Each scenario's rubric sums to 100 — scores are directly comparable.
+
+    ``rubric_version`` selects the marker dictionary and weight allocation:
+      * ``"v2"`` — legacy behavior, preserved for data lineage / reproducibility.
+      * ``"v3"`` (default) — expanded markers + verify_py reallocation; see
+        the ``EXECUTION_RUBRIC_V3`` docstring above.
     """
+    if rubric_version not in RUBRIC_VERSIONS:
+        raise ValueError(f"unknown rubric_version: {rubric_version!r}")
+
     if isinstance(output_dirs, Path):
         dirs: List[Path] = [output_dirs]
     else:
         dirs = [p for p in output_dirs if isinstance(p, Path)]
 
     rep = ExecutionReport()
+    rep.rubric_version = rubric_version
     if not dirs:
         return rep
 
-    rubric = EXECUTION_RUBRIC.get(scenario, EXECUTION_RUBRIC["dx_app"])
+    rubric_map = EXECUTION_RUBRIC_V3 if rubric_version == "v3" else EXECUTION_RUBRIC_V2
+    rubric = rubric_map.get(scenario, rubric_map["dx_app"])
     primary = _pick_primary_dir(dirs, scenario)
 
     # Legacy informational fields (preserved for reports / SessionEval)
@@ -492,6 +591,7 @@ def evaluate_execution(
             rep.suspected_timeout = True
 
     # Rubric-driven scoring
+    version_aware_checks = {"inference_run_evidence", "pipeline_dot_or_video"}
     breakdown: Dict[str, float] = {}
     score = 0.0
     for component, weight in rubric.items():
@@ -499,16 +599,19 @@ def evaluate_execution(
         if component in _MULTI_DIR_CHECKS:
             passed, _ev = _MULTI_DIR_CHECKS[component](dirs)
         elif component in _SINGLE_DIR_CHECKS:
+            check = _SINGLE_DIR_CHECKS[component]
             if component in ("dxnn_artifact_size", "compile_artifact"):
                 for od in dirs:
                     if od.is_dir():
-                        p, _ev = _SINGLE_DIR_CHECKS[component](od)
+                        p, _ev = check(od)
                         if p:
                             passed = True
                             break
-            else:
-                if primary is not None:
-                    passed, _ev = _SINGLE_DIR_CHECKS[component](primary)
+            elif primary is not None:
+                if component in version_aware_checks:
+                    passed, _ev = check(primary, rubric_version)
+                else:
+                    passed, _ev = check(primary)
         else:
             continue
         breakdown[component] = float(weight) if passed else 0.0
