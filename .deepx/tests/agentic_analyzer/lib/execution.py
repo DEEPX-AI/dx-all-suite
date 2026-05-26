@@ -348,21 +348,43 @@ def _has_inference_run_evidence(out_dir: Path, rubric_version: str = "v2") -> Tu
     for od in (out_dir / "output", out_dir / "outputs", out_dir / "results"):
         if od.is_dir() and any(od.iterdir()):
             return True, f"{od.name}/ has artifacts"
-    sl_text = _read_text_safely(out_dir / "session.log")
+
+    # Check session.log first (shell-script-written) AND session.txt
+    # (claude-CLI transcript copied here by conftest line 2167). Both can carry
+    # legitimate inference evidence:
+    #  - session.log: setup.sh/run.sh inline `python yolo26n_sync.py --image ...`
+    #    captures argparse/output here.
+    #  - session.txt: claude/codex/cursor agents that invoke inference through
+    #    their own Bash tool path land FPS / exit_code / "Inference complete"
+    #    markers in the CLI transcript, NOT in session.log. Without checking
+    #    session.txt, those legitimate runs are scored 0.
+    # Other agent CLIs use different transcript filenames — include them too.
+    sl_text = (
+        _read_text_safely(out_dir / "session.log")
+        + "\n"
+        + _read_text_safely(out_dir / "session.txt")
+        + "\n"
+        + _read_text_safely(out_dir / "session.md")
+    )
     if rubric_version == "v3":
         for pat in INFERENCE_MARKERS_V3:
             m = re.search(pat, sl_text, re.IGNORECASE)
             if m:
-                return True, f"session.log: {m.group(0)[:60]}"
+                return True, f"transcript: {m.group(0)[:60]}"
     else:
         if re.search(
             r"\b(?:Inference|Detection|Prediction)\s+(?:complete|done|finished|results?)\b",
             sl_text,
             re.IGNORECASE,
         ):
-            return True, "session.log mentions inference"
+            return True, "transcript mentions inference"
         if re.search(r"\bbbox(?:es)?:?\s*\[", sl_text):
-            return True, "session.log shows bbox output"
+            return True, "transcript shows bbox output"
+        # Additional FPS / exit_code patterns commonly emitted by agent CLI Bash tool
+        if re.search(r"\b\d+(?:\.\d+)?\s*FPS\b", sl_text, re.IGNORECASE):
+            return True, "transcript shows FPS metric"
+        if re.search(r"\bexit\s+code\s+0\b.*\b(?:Inference|sync\.py|detection)\b", sl_text, re.IGNORECASE | re.DOTALL):
+            return True, "transcript shows successful inference exit"
     return False, "no inference evidence"
 
 
