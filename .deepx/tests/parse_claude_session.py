@@ -148,18 +148,29 @@ def has_start_sentinel(parsed: ParsedSession) -> bool:
 def encode_project_path(project_path: str) -> str:
     """Encode a project path to Claude's directory naming convention.
 
-    Claude replaces '/' with '-' in the project path to create the directory name.
-    Example: /data/home/dhyang/github/dx-all-suite → -data-home-dhyang-github-dx-all-suite
+    Claude Code replaces every non-alphanumeric character (``/``, ``_``, ``.``)
+    with ``-`` to form the directory under ``~/.claude/projects/``.  The earlier
+    ``replace('/', '-')``-only implementation left underscores intact and caused
+    sub-project workdirs like ``dx-runtime/dx_app`` (real dir: ``…-dx-runtime-dx-app``)
+    to silently miss.
     """
-    return project_path.replace("/", "-")
+    return re.sub(r"[^A-Za-z0-9]", "-", project_path)
 
 
 def find_project_dir(project_path: str) -> Optional[Path]:
-    """Find the Claude projects directory for a given project path."""
-    encoded = encode_project_path(project_path)
-    project_dir = CLAUDE_PROJECTS_DIR / encoded
-    if project_dir.is_dir():
-        return project_dir
+    """Find the Claude projects directory for a given project path.
+
+    Tries the modern encoding first, then falls back to the legacy ``/``-only
+    encoding so directories created by older Claude Code versions still resolve.
+    """
+    candidates = [encode_project_path(project_path)]
+    legacy = project_path.replace("/", "-")
+    if legacy not in candidates:
+        candidates.append(legacy)
+    for cand in candidates:
+        d = CLAUDE_PROJECTS_DIR / cand
+        if d.is_dir():
+            return d
     return None
 
 
