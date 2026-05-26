@@ -11,28 +11,84 @@ DEEPX는 5개의 AI 코딩 도구(Claude Code, Copilot CLI, Cursor CLI, OpenCode
 평가합니다. 각 도구는 동일한 6개 시나리오(compiler, app-python 4종, cross-project)를
 수행하며, 규칙 준수(compliance), 코드 품질(quality), 실행 가능성(runnability)을 측정합니다.
 
-## 참고할 외부 벤치마크
+## 참고 외부 벤치마크 (2026-05 기준 — 인라인 데이터)
 
-가설 수립 시 아래 벤치마크의 **최신 자료**를 참조하여 근거를 제시하세요:
+가설 수립 시 아래 **임베드된 최신 수치**를 일차 근거로 사용하세요. 본 prompt 작성 시점은
+2026-05-26이며, 데이터는 그때 기준 공개 leaderboard에서 채집되었습니다. 추가 검증이
+필요하면 URL의 최신 자료를 함께 참조해도 됩니다.
 
-1. **Artificial Analysis** (https://artificialanalysis.ai/)
-   - AI 모델 Intelligence Index, coding 벤치마크 점수
-2. **SWE-Bench Verified** (https://www.swebench.com/)
-   - 실제 GitHub issue 해결 능력 (resolve rate %)
-3. **Aider LLM Leaderboard** (https://aider.chat/docs/leaderboards/)
-   - Polyglot coding benchmark (edit accuracy %)
-4. **EvalPlus** (https://evalplus.github.io/leaderboard.html)
-   - HumanEval+/MBPP+ pass rates (참고용, 최신 모델 데이터 부족 시 생략 가능)
+### 1. Artificial Analysis — Intelligence Index v4.0 (May 2026)
+- URL: https://artificialanalysis.ai/
+- Methodology: 10개 평가(GDPval-AA, τ²-Bench Telecom, Terminal-Bench Hard, SciCode,
+  AA-LCR, AA-Omniscience, IFBench, Humanity's Last Exam, GPQA Diamond, CritPt) 통합 지수
+- 최신 순위 요약 (2026-05):
+  - **GPT-5.5** (high): Intelligence Index 1위, Terminal-Bench 2.0 82.7% (agentic terminal workflows 최강)
+  - **Claude Opus 4.7** (Adaptive): SWE-Bench Pro 64.3% — 복잡한 SE 1위
+  - **Gemini 3.1 Pro**: GPQA Diamond 94.3% — 과학 추론 1위
+  - **Claude Sonnet 4.6**: Opus 4.7 코딩 능력의 ~79.6% / 비용 20% — "best value for everyday coding"
+- 핵심 시사: 본 실험은 모든 도구가 **claude-sonnet-4.6** 백엔드 — 따라서 GPT-5.5/Opus 4.7
+  벤치마크 절대값이 아닌, **상대적 위치(Sonnet 4.6의 instruction following 강점)**가 가설 근거.
+
+### 2. SWE-Bench Verified Leaderboard (May 2026)
+- URL: https://www.swebench.com/  (live JS 페이지)
+- 메트릭: real GitHub issue resolve_rate (%)
+- 최신 상위 (2026-05-22 기준):
+  - Claude Mythos Preview: **93.9%**
+  - Claude Opus 4.7 (Adaptive): **87.6%**
+  - GPT-5.3 Codex: **85.0%**
+  - Claude Opus 4.5: **80.9%**
+  - (claude-sonnet-4-6은 Verified 최상단 미게재 — Sonnet은 Pro보다 Verified에서 약함)
+- 시사: 본 실험 backend(Sonnet 4.6)는 SWE-Bench Verified 절대값이 ~70-75% 수준으로 추정.
+  도구 간 차이는 **모델이 아닌 도구 하네스(자동 승인, instruction loop 등)에서 발생**.
+
+### 3. Aider Polyglot Leaderboard (live)
+- URL: https://aider.chat/docs/leaderboards/
+- 메트릭: 225 Exercism 문제 percent_correct + correct_edit_format
+- 최신 상위:
+
+  | 모델 | percent_correct | correct_edit_format |
+  |---|---:|---:|
+  | gpt-5 (high) | **88.0%** | 91.6% |
+  | gpt-5 (medium) | 86.7% | 88.4% |
+  | o3-pro (high) | 84.9% | 97.8% |
+  | gemini-2.5-pro-preview (32k think) | 83.1% | 99.6% |
+  | gpt-5 (low) | 81.3% | 86.7% |
+  | o3 (high) | 81.3% | 94.7% |
+  | claude-opus-4 (32k thinking) | 72.0% | **97.3%** |
+  | claude-opus-4 (no think) | 70.7% | 98.7% |
+  | claude-3-7-sonnet (32k thinking) | 64.9% | 97.8% |
+  | claude-3-7-sonnet (no think) | 60.4% | 93.3% |
+  | **claude-sonnet-4 (32k thinking)** | **61.3%** | **97.3%** |
+  | **claude-sonnet-4 (no thinking)** | **56.4%** | **98.2%** |
+- 핵심 시사:
+  - **percent_correct**: Claude Sonnet은 GPT-5/Opus 대비 코드 정확도 ~60%대 (낮음)
+  - **correct_edit_format**: Claude 계열은 97-99% — **instruction following / 형식 준수 압도적**
+  - → Sonnet 4.6 기반 도구들은 "코드 자체 품질"보다 "규칙·HARD-GATE 준수"에서 강점 예상
+  - → **thinking mode**가 Sonnet 4의 percent_correct를 +4.9pt 상승시킴
+
+### 4. EvalPlus / HumanEval+ MBPP+
+- URL: https://evalplus.github.io/leaderboard.html
+- HumanEval 절대값 (참고):
+  - Claude Sonnet 4.5: **97.6%** (2026-05-11)
+  - Kimi K2 Base: EvalPlus 종합 0.803 (현재 최상위)
+- 시사: HumanEval은 짧은 함수 단위 — agentic E2E 변별력 낮음. 보조 지표로만 활용.
 
 ## 실험에 사용된 도구-모델 조합
 
-| 도구 | 모델 | Provider |
-|------|------|----------|
-| Claude Code | claude-sonnet-4-6 | Anthropic (direct) |
-| Copilot CLI | claude-sonnet-4.6 | GitHub Copilot |
-| Cursor CLI | claude-sonnet-4.6 | Cursor |
-| OpenCode | claude-sonnet-4.6 | GitHub Copilot |
-| Codex CLI | claude-sonnet-4.6 | GitHub Copilot |
+모든 도구가 **claude-sonnet-4.6** backend (provider/통신 경로만 상이). 따라서 모델
+자체 능력은 동일하다는 전제. 차이의 본질은:
+
+| 도구 | Provider | 통신 특징 |
+|------|----------|---------|
+| Claude Code | Anthropic (direct) | 원생 stream-json, 가장 풍부한 trace |
+| Copilot CLI | GitHub Copilot | PR(Premium Request) 단위 과금, sentinel 풍부 |
+| Cursor CLI | Cursor | "fast" 변형 자주 등장, 짧은 duration |
+| OpenCode | GitHub Copilot | claude subagent 위임 패턴 |
+| Codex CLI | GitHub Copilot | NDJSON stream, sentinel 형식 차이 |
+
+본 실험의 **non-thinking 라운드(R1-R5)와 thinking 라운드(R6-R10)** 비교가 핵심:
+- thinking은 percent_correct를 일반적으로 ~5pt 상승시킴 (Aider 데이터)
+- 단 duration·token cost가 ~2배 증가 — efficiency 트레이드오프
 
 ## 출력 형식
 
@@ -48,26 +104,28 @@ DEEPX는 5개의 AI 코딩 도구(Claude Code, Copilot CLI, Cursor CLI, OpenCode
   },
   "benchmarks": [
     {
-      "name": "SWE-Bench Verified",
-      "url": "https://www.swebench.com/",
-      "retrieved_date": "2026-05-15",
+      "name": "Aider Polyglot",
+      "url": "https://aider.chat/docs/leaderboards/",
+      "retrieved_date": "2026-05-26",
       "scores": {
-        "claude-sonnet-4-6": 70.4,
-        "gpt-5": 71.8
+        "claude-sonnet-4-32k-thinking": 61.3,
+        "claude-sonnet-4-no-thinking": 56.4,
+        "claude-opus-4-32k-thinking": 72.0,
+        "gpt-5-high": 88.0
       },
-      "metric": "resolve_rate_pct",
-      "notes": "..."
+      "metric": "percent_correct",
+      "notes": "Claude Sonnet 4의 correct_edit_format은 97-98%로 압도적 — instruction following 강점."
     }
   ],
   "hypotheses": [
     {
       "id": "H1",
-      "statement": "Claude Code가 전체 종합 점수에서 1위를 차지할 것이다",
-      "rationale": "... (벤치마크 근거 + 도구 특성 근거)",
+      "statement": "...",
+      "rationale": "... (위 임베드된 벤치마크 수치를 직접 인용)",
       "metric": "overall_score",
       "expected_ranking": ["claude-code", "copilot-cli", "cursor-cli", "opencode", "codex-cli"],
       "confidence": "high|medium|low",
-      "benchmark_basis": ["SWE-Bench Verified", "Aider Polyglot"]
+      "benchmark_basis": ["Aider Polyglot", "Artificial Analysis Intelligence Index v4.0"]
     }
   ]
 }
@@ -75,9 +133,18 @@ DEEPX는 5개의 AI 코딩 도구(Claude Code, Copilot CLI, Cursor CLI, OpenCode
 
 ## 가설 작성 가이드라인
 
-1. **최소 5개 가설** 생성 (H1~H5+)
-2. 각 가설은 측정 가능한 metric과 연결 (overall_score, compliance_score, quality_score, runnability_score, execution_score)
+1. **최소 5개, 권장 7개 가설** 생성
+2. 각 가설은 측정 가능한 metric과 연결:
+   `overall_score` · `compliance_score` · `quality_score` · `runnability_score` · `execution_score`
 3. expected_ranking은 5개 도구 전체 순위를 예측
-4. rationale에는 반드시 1개 이상의 외부 벤치마크 데이터를 인용
+4. rationale은 **위 임베드된 수치 중 1개 이상을 직접 인용** (예: "Aider Polyglot 97.3% edit
+   format이 시사하듯 Claude Sonnet 4의 instruction following이 강해 compliance에서 상위 예상")
 5. confidence 수준을 high/medium/low로 표기
-6. 도구 자체의 특성(프롬프트 전달 방식, 도구 체인, 자동 승인 모드 등)도 고려
+6. 다음 차원도 고려:
+   - **thinking vs non-thinking** 라운드 차이 (R6-R10 vs R1-R5)
+   - **provider 통신 특성** (Anthropic direct vs Copilot backend vs Cursor)
+   - **도구 자체 하네스**: 자동 승인 모드, sentinel 형식, NDJSON vs stream-json
+   - **agentic 차원**: Terminal-Bench 2.0이 가장 본 실험과 직결 (GPT-5.5 우위) — 단 본 실험은
+     동일 모델이므로 도구 하네스가 변별 요소
+7. **모든 도구가 동일 모델**이라는 본 실험의 특수성을 가설에 반영
+   — 모델 절대 점수가 아닌, 도구별 **하네스/통신/sentinel 특성**이 결과를 좌우한다는 점.
