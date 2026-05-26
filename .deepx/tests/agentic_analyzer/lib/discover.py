@@ -132,18 +132,39 @@ def discover_result_dirs(
 
 
 def assign_round_indices(rds: List[ResultDir]) -> None:
-    """For each (run_id, tool), assign 1-based round index by chronological order.
+    """Assign 1-based round_index per tool with run_id-aware offsets.
 
-    Different run_ids have independent round counters so R1 across runs does
-    not collide.
+    Single-run-id case: per-tool R1..Rn (chronological) — unchanged.
+    Multi-run-id case: each tool gets a single continuous round counter that
+    spans every run_id in chronological run-order. E.g. run A has 5 rounds,
+    run B has 5 → tool sees R1..R5 from A then R6..R10 from B. This prevents
+    the (round, tool) aggregation from collapsing R1@A with R1@B in §5/§6
+    round-by-round tables.
     """
-    by_key: Dict[tuple, List[ResultDir]] = {}
+    # First, order run_ids by their earliest session timestamp so the
+    # offset is deterministic (oldest run gets R1..Rn, next run continues).
+    run_id_first_ts: Dict[str, str] = {}
     for rd in rds:
-        by_key.setdefault((rd.run_id, rd.tool), []).append(rd)
-    for key, lst in by_key.items():
-        lst.sort(key=lambda r: r.timestamp)
-        for i, rd in enumerate(lst, start=1):
-            rd.round_index = i
+        prev = run_id_first_ts.get(rd.run_id)
+        if prev is None or rd.timestamp < prev:
+            run_id_first_ts[rd.run_id] = rd.timestamp
+    ordered_run_ids = sorted(run_id_first_ts.keys(), key=lambda r: run_id_first_ts[r])
+
+    # Group by tool, then iterate run_ids in order, accumulating round offset.
+    by_tool: Dict[str, List[ResultDir]] = {}
+    for rd in rds:
+        by_tool.setdefault(rd.tool, []).append(rd)
+
+    for tool, lst in by_tool.items():
+        offset = 0
+        for run_id in ordered_run_ids:
+            sub = sorted(
+                (rd for rd in lst if rd.run_id == run_id),
+                key=lambda r: r.timestamp,
+            )
+            for i, rd in enumerate(sub, start=1):
+                rd.round_index = offset + i
+            offset += len(sub)
 
 
 def extract_scenarios(rd: ResultDir, tools_cfg: dict, scenarios_cfg: dict) -> List[ScenarioRef]:
