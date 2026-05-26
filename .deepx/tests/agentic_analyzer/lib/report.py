@@ -575,13 +575,13 @@ def write_markdown(evals: List[SessionEval], out_path: Path, meta: Dict) -> None
             lines.append(f"| **{tool}** | {ov:.1f} | {avg_pr:.1f} | 관측치 (`totalPremiumRequests`) |")
         elif total_est > 0:
             avg_pr = total_est / n
-            lines.append(f"| **{tool}** | {ov:.1f} | ~{avg_pr:.1f} | 예측치 (token ratio 역산) |")
+            lines.append(f"| **{tool}** | {ov:.1f} | ~{avg_pr:.1f} | 예측치 (user_turn × multiplier 1순위, token ratio 3순위 폴백) |")
         else:
             lines.append(f"| **{tool}** | {ov:.1f} | — | stream 미노출, 예측 불가 |")
     lines.append("")
     lines.append("> **측정 한계**: copilot-cli만 `session.shutdown.totalPremiumRequests`로 실측값을 제공합니다. "
                  "opencode-cli와 codex-cli는 동일 backend를 경유하지만 PR 소비량이 stream에 노출되지 않아 "
-                 "token ratio 역산 또는 user-turn × multiplier 공식으로 추정해야 합니다 (§6.2 참조).")
+                 "user-turn × multiplier 공식 (1순위) 또는 token ratio 폴백 (3순위)으로 추정해야 합니다 (§6.2 참조).")
     lines.append("")
 
     # --- Group B: 정액 구독 (한도 내) ---
@@ -637,24 +637,35 @@ def write_markdown(evals: List[SessionEval], out_path: Path, meta: Dict) -> None
     lines.append("| GPT-5.5 | 7.5× | |")
     lines.append("| Claude Opus 4.7 | 15× | |")
     lines.append("")
-    lines.append("#### 현재 예측 방식 (token ratio 역산)")
+    lines.append("#### 현재 예측 방식 (3-tier fallback)")
     lines.append("")
-    lines.append("본 분석기는 copilot-cli의 실측 데이터로 calibration ratio를 산출하고, "
-                 "opencode-cli/codex-cli에 적용합니다:")
+    lines.append("opencode-cli / codex-cli의 PR 예측은 다음 우선순위로 산정됩니다:")
+    lines.append("")
+    lines.append("| 우선순위 | 공식 | 데이터 출처 | 신뢰도 |")
+    lines.append("|:------:|------|------------|-------|")
+    lines.append("| **1순위** | `user_turn_count × model_multiplier` | 세션 stream의 type=user 이벤트 카운트 | 높음 (GitHub 정책 직접 반영) |")
+    lines.append("| 2순위 | `tool_call_count × 0.741` | copilot-cli 실측 보정 비율 | 중간 (도구별 tool_call 의미 차이) |")
+    lines.append("| 3순위 | `(input+output) tokens / calibration_ratio` | token 사용량 역산 | 낮음 (도구별 토큰 보고 의미 차이로 오차 큼) |")
     lines.append("")
     lines.append("```")
+    lines.append("# 1순위 — 정확 공식 (Phase D 이후 기본)")
+    lines.append("estimated_PR = user_turn_count × multiplier(model)")
+    lines.append("")
+    lines.append("# 3순위 — token ratio 역산 (legacy fallback)")
     lines.append("calibration_ratio = copilot-cli 총 (input+output) tokens / 총 premium requests")
     lines.append("estimated_PR = (input+output) tokens / calibration_ratio")
     lines.append("```")
     lines.append("")
-    lines.append("> ⚠ **한계**: token ratio 역산은 도구별 token 보고 의미론이 다르기 때문에 오차가 큽니다. "
-                 "**user-turn × multiplier 방식**이 더 정확하나, 현재 세션 파서에 user_turn_count 추출이 미구현입니다.")
+    lines.append("> ✅ **2026.05 refactor**: 세션 파서 5종 모두 `user_turn_count` 추출 구현 완료 (Phases B/C). "
+                 "copilot의 실측 PR ↔ 신공식 예측치 대조 시 sonnet-4.6 1× 케이스에서 우수한 일치도. "
+                 "기존 token ratio 방식은 fallback으로 보존.")
     lines.append("")
     lines.append("#### 향후 개선 계획")
     lines.append("")
-    lines.append("1. 세션 파서에 `user_turn_count` 추출 추가 (codex-cli: `conversation` events, opencode-cli: `message.user` events)")
-    lines.append("2. `Premium Requests ≈ user_turns × model_multiplier` 공식 적용")
-    lines.append("3. copilot-bridge 프록시 경유 시 정확한 카운트 수집 가능 ([xjin6/codex-copilot-bridge](https://github.com/xjin6/codex-copilot-bridge))")
+    lines.append("1. ~~세션 파서 user_turn_count 추출~~ ✅ **완료** (2026-05 Phase B/C)")
+    lines.append("2. ~~user_turns × multiplier 공식 적용~~ ✅ **완료** (2026-05 Phase D)")
+    lines.append("3. (미진행) copilot-bridge 프록시 경유 시 정확한 카운트 수집 가능 ([xjin6/codex-copilot-bridge](https://github.com/xjin6/codex-copilot-bridge))")
+    lines.append("4. copilot 실측 PR과 신공식 예측치 정량 비교 보고서 추가 (validation step)")
     lines.append("")
     lines.append("#### ⚠ 2026.06 과금 체계 변경 예정")
     lines.append("")
