@@ -281,11 +281,21 @@ ARTIFACTS (below):
 - README.md content (the user's primary entrypoint instructions)
 - setup.sh content (environment setup)
 - run.sh content (how to actually run the result)
-- session.log content (agent's reported execution evidence)
+- session.log content (shell-wrapper command trace from setup.sh / run.sh)
+- session.txt content (agent CLI transcript — exit codes, FPS / inference
+  metrics, tool-call outputs the agent captured at execution time; NOT
+  user-facing documentation)
 
 YOUR TASK:
 Judge whether a typical end-user (DEEPX SDK developer, but unfamiliar with this exact
 session) could successfully follow README.md to install + run + verify this artifact.
+
+Note: session.log records the shell wrappers' output; session.txt records
+the agent's own execution evidence (often the actual inference run with
+exit code + FPS that doesn't appear in session.log). Cross-reference both
+when judging "Verification provided" — if session.txt shows a real inference
+run completing with exit 0 + FPS, treat verification as PROVIDED even when
+README only references --help / smoke checks.
 
 OUTPUT FORMAT (Korean markdown):
 
@@ -317,9 +327,14 @@ run.sh:
 {RUN}
 ```
 
-session.log (excerpt):
+session.log (excerpt, shell wrapper):
 ```
 {SESSION_LOG}
+```
+
+session.txt (excerpt, agent CLI transcript — execution evidence):
+```
+{SESSION_TXT}
 ```
 
 =====================
@@ -798,6 +813,10 @@ def run_runnability(report_dir: Path, cli: str, output_dir: Path,
         setup = _read_safely(out_dir / "setup.sh", 4000)
         run_sh = _read_safely(out_dir / "run.sh", 4000)
         slog = _read_safely(out_dir / "session.log", 3000)
+        # Option D: also feed the agent CLI transcript so the LLM can detect
+        # inference evidence (FPS / exit-code 0 / "Inference complete") that
+        # the shell wrappers (setup.sh / run.sh) never wrote to session.log.
+        stxt = _read_safely(out_dir / "session.txt", 4000)
 
         # Include run_id in the section label (and thus in the eventual
         # `### R1 ... (run=...)` header in runnability_report.md) so future
@@ -810,7 +829,8 @@ def run_runnability(report_dir: Path, cli: str, output_dir: Path,
             label = f"R{round_ix} {tool} {scenario}"
         prompt = RUNNABILITY_PROMPT_TEMPLATE.format(
             session_label=label,
-            README=readme, SETUP=setup, RUN=run_sh, SESSION_LOG=slog,
+            README=readme, SETUP=setup, RUN=run_sh,
+            SESSION_LOG=slog, SESSION_TXT=stxt,
         )
         print(f"  [{i}/{total}] {label}")
         ans = invoke_cli(cli, prompt, model=model, allow_paid=allow_paid,
