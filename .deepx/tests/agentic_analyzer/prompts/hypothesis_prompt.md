@@ -26,8 +26,23 @@ DEEPX는 5개의 AI 코딩 도구(Claude Code, Copilot CLI, Cursor CLI, OpenCode
   - **Claude Opus 4.7** (Adaptive): SWE-Bench Pro 64.3% — 복잡한 SE 1위
   - **Gemini 3.1 Pro**: GPQA Diamond 94.3% — 과학 추론 1위
   - **Claude Sonnet 4.6**: Opus 4.7 코딩 능력의 ~79.6% / 비용 20% — "best value for everyday coding"
-- 핵심 시사: 본 실험은 모든 도구가 **claude-sonnet-4.6** 백엔드 — 따라서 GPT-5.5/Opus 4.7
-  벤치마크 절대값이 아닌, **상대적 위치(Sonnet 4.6의 instruction following 강점)**가 가설 근거.
+- 핵심 시사: 본 실험은 **cursor-cli를 제외한 4개 도구가 claude-sonnet-4.6** 백엔드,
+  cursor-cli는 자체 모델 **Composer 2.5** (composer25/composer25fast 변형) 사용.
+  → GPT-5.5/Opus 4.7 벤치마크 절대값이 아닌, **상대적 위치(Sonnet 4.6의 instruction
+  following 강점 vs Composer 2.5의 속도/비용 우위)**가 가설 근거.
+
+### 1.5 Cursor Composer 2.5 (2026-05-26 cursor.com/blog/composer-2-5)
+- URL: https://cursor.com/ko/blog/composer-2-5
+- Cursor 자체 학습한 coding-specialized 모델 (sonnet-4.6 미사용)
+- 회사 공식 클레임:
+  - Sonnet 4.6 대비 **~2× 빠른 응답 속도** (긴 reasoning 챕터 없는 형태)
+  - "frontier intelligence" 수준 — agentic coding 워크플로에 특화
+  - **Cursor Pro 무제한 사용 가능** (API 호출 비용 없음) — 자체 호스팅
+- 본 실험에서 80 cursor 세션 분석 결과:
+  - composer25 (74%), composer25fast (20%), composer (4%), comp25 (2%)
+  - **100% Composer 2.5 계열** — Sonnet 4.6 미실행
+- 시사: cursor-cli의 일관된 성능(Compliance ~98%, Runnability ~95%)이 도구 하네스
+  덕분인지, Composer 2.5 모델 자체 우위인지 분리 불가. 모델/하네스 교차 변수.
 
 ### 2. SWE-Bench Verified Leaderboard (May 2026)
 - URL: https://www.swebench.com/  (live JS 페이지)
@@ -75,16 +90,20 @@ DEEPX는 5개의 AI 코딩 도구(Claude Code, Copilot CLI, Cursor CLI, OpenCode
 
 ## 실험에 사용된 도구-모델 조합
 
-모든 도구가 **claude-sonnet-4.6** backend (provider/통신 경로만 상이). 따라서 모델
-자체 능력은 동일하다는 전제. 차이의 본질은:
+**4개 도구(claude-code/copilot-cli/opencode/codex-cli)는 claude-sonnet-4.6 backend.**
+**cursor-cli만 자체 모델 Composer 2.5 계열 사용 (단독 outlier).** 따라서 cursor와 그
+외 도구 간 비교는 "도구 하네스" + "모델" 양쪽 차이가 섞임.
 
-| 도구 | Provider | 통신 특징 |
-|------|----------|---------|
-| Claude Code | Anthropic (direct) | 원생 stream-json, 가장 풍부한 trace |
-| Copilot CLI | GitHub Copilot | PR(Premium Request) 단위 과금, sentinel 풍부 |
-| Cursor CLI | Cursor | "fast" 변형 자주 등장, 짧은 duration |
-| OpenCode | GitHub Copilot | claude subagent 위임 패턴 |
-| Codex CLI | GitHub Copilot | NDJSON stream, sentinel 형식 차이 |
+| 도구 | Backend Model | Provider | 통신 특징 |
+|------|---|----------|---------|
+| Claude Code | claude-sonnet-4.6 | Anthropic (direct) | 원생 stream-json, 가장 풍부한 trace |
+| Copilot CLI | claude-sonnet-4.6 | GitHub Copilot | PR(Premium Request) 단위 과금, sentinel 풍부 |
+| **Cursor CLI** | **Composer 2.5** (자체) | Cursor | composer25/composer25fast 변형, 짧은 duration, Pro 무제한 |
+| OpenCode | claude-sonnet-4.6 | GitHub Copilot | claude subagent 위임 패턴 |
+| Codex CLI | claude-sonnet-4.6 | GitHub Copilot | NDJSON stream, sentinel 형식 차이 |
+
+→ **가설 시 주의**: cursor-cli의 성능 차이는 "모델 자체 차이"일 수 있어, 다른 도구와
+직접 비교 시 confounder. 동일 backend의 4개 도구끼리 비교가 harness 영향 측정에 적합.
 
 본 실험의 **non-thinking 라운드(R1-R5)와 thinking 라운드(R6-R10)** 비교가 핵심:
 - thinking은 percent_correct를 일반적으로 ~5pt 상승시킴 (Aider 데이터)
@@ -142,9 +161,13 @@ DEEPX는 5개의 AI 코딩 도구(Claude Code, Copilot CLI, Cursor CLI, OpenCode
 5. confidence 수준을 high/medium/low로 표기
 6. 다음 차원도 고려:
    - **thinking vs non-thinking** 라운드 차이 (R6-R10 vs R1-R5)
-   - **provider 통신 특성** (Anthropic direct vs Copilot backend vs Cursor)
+   - **provider 통신 특성** (Anthropic direct vs Copilot backend vs Cursor 자체)
    - **도구 자체 하네스**: 자동 승인 모드, sentinel 형식, NDJSON vs stream-json
-   - **agentic 차원**: Terminal-Bench 2.0이 가장 본 실험과 직결 (GPT-5.5 우위) — 단 본 실험은
-     동일 모델이므로 도구 하네스가 변별 요소
-7. **모든 도구가 동일 모델**이라는 본 실험의 특수성을 가설에 반영
-   — 모델 절대 점수가 아닌, 도구별 **하네스/통신/sentinel 특성**이 결과를 좌우한다는 점.
+   - **agentic 차원**: Terminal-Bench 2.0이 가장 본 실험과 직결 (GPT-5.5 우위)
+   - **cursor-cli는 Composer 2.5 backend** (sonnet-4.6 미사용) — cursor의 점수
+     차이는 모델 자체 + 하네스 차이가 섞여 있어 confounder 존재
+7. **4개 도구(claude-code/copilot-cli/opencode/codex-cli)는 sonnet-4.6 공유**,
+   **cursor-cli만 Composer 2.5** — 이를 가설에 명시적으로 반영
+   — 동일 backend 4개 도구 간 차이는 도구별 **하네스/통신/sentinel 특성**이 좌우.
+   — cursor vs 4개 도구 간 차이에는 **모델 자체 차이**(Composer 2.5 vs Sonnet 4.6)도 포함.
+   — Composer 2.5 클레임(2× 속도, Pro 무제한)을 cursor의 cost/duration 가설에 활용 가능.
