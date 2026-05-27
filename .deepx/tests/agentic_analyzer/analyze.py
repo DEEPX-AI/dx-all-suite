@@ -192,6 +192,7 @@ def evaluate_scenario(
         output_dirs=[str(p) for p in ref.output_dirs],
         exit_status=ref.parent.manifest.get("exit_status"),
         run_id=ref.parent.run_id,
+        env_failure_signature=sd.env_failure_signature,
         duration_sec=sd.duration_sec,
         has_start=sd.has_start_sentinel,
         has_done=sd.has_done_sentinel,

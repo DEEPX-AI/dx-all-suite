@@ -39,6 +39,11 @@ class SessionData:
     tool_call_count: int = 0
     transcript_length: int = 0          # transcript .md file size in bytes
     errors_detected: List[str] = field(default_factory=list)
+    # Environment-failure signature (PR2): "cert" | "model-refresh-timeout" | "".
+    # Scanned from rendered transcript (claude SSL wording) AND stream.jsonl
+    # (cursor/opencode "first certificate", codex model-refresh). See
+    # lib/env_failure.py for the shared catalogue used by analyzer + runner.
+    env_failure_signature: str = ""
 
 
 def _parse_jsonl(path: Path):
@@ -521,6 +526,39 @@ def _duration_from_mtime(scenario_ref, sd: SessionData) -> None:
         pass
 
 
+def _scan_env_failure_signature(scenario_ref, sd: SessionData) -> None:
+    """Detect a cert/SSL or codex model-refresh env-failure signature.
+
+    Scans BOTH the rendered transcript (claude's "SSL certificate verification
+    failed" wording surfaces there) AND the raw stream.jsonl (cursor/opencode's
+    node "unable to verify the first certificate" + opencode's UnknownError
+    wrapper land there). Reads are capped to keep large transcripts cheap.
+
+    For codex, ``sd.tool_call_count`` is passed as the command-count proxy so a
+    model-refresh warning that nonetheless did real work (R5 compiler, 96
+    commands) is NOT flagged — only model-refresh with 0 work is an env failure.
+    """
+    from . import env_failure as ef
+
+    CAP = 400_000  # bytes per source — cert errors appear early/late, both ends matter
+    chunks: List[str] = []
+    for p in (getattr(scenario_ref, "transcript_md", None),
+              getattr(scenario_ref, "transcript_html", None),
+              getattr(scenario_ref, "stream_jsonl", None),
+              getattr(scenario_ref, "secondary_jsonl", None)):
+        if p and Path(p).is_file():
+            try:
+                chunks.append(Path(p).read_text(encoding="utf-8", errors="ignore")[:CAP])
+            except Exception:
+                continue
+    if not chunks:
+        return
+    text = "\n".join(chunks)
+    sig = ef.detect_env_signature(text, command_count=sd.tool_call_count)
+    if sig:
+        sd.env_failure_signature = sig
+
+
 def parse_session(scenario_ref) -> SessionData:
     """Top-level: produce SessionData from a ScenarioRef."""
     sd = SessionData()
@@ -548,6 +586,9 @@ def parse_session(scenario_ref) -> SessionData:
     # If duration not detected, or seems too small (< 1s), use mtime as fallback
     if sd.duration_sec is None or (sd.duration_sec is not None and sd.duration_sec < 1.0):
         _duration_from_mtime(scenario_ref, sd)
+    # Env-failure signature scan (after tool_call_count is populated, so the
+    # codex model-refresh-with-work guard has its command-count proxy).
+    _scan_env_failure_signature(scenario_ref, sd)
     return sd
 
 
