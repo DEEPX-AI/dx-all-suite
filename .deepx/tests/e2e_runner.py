@@ -62,7 +62,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 # Optional Rich support for enhanced display
 try:
@@ -1003,6 +1003,291 @@ def _cleanup_from_results(round_nums: List[int], tools: List[str]) -> int:
     return 2
 
 
+# ---------------------------------------------------------------------------
+# Environment-failure detection + redo (--redo-env-failures)
+# ---------------------------------------------------------------------------
+#
+# Detect rounds lost to environment issues (corporate TLS/SSL cert, codex
+# model-refresh timeout, copilot empty-unknown) and delete them so --resume
+# re-runs to target. Classification primitives are imported from the shared SSOT
+# (agentic_analyzer/lib/env_failure.py) so the runner and the analyzer agree on
+# what counts as an env failure. The dir-structure heuristics (rendered-DONE,
+# real-work markers, empty-unknown, output-session-dir presence) live here
+# because they are runner orchestration, not text-signature detection.
+
+# Mirror lib/session.py SENTINEL_* — DONE detection scans RENDERED transcripts
+# only (never raw stream.jsonl, whose `read`-tool outputs can echo doc text
+# containing the sentinel format → false positive).
+_SENTINEL_START = "[DX-AGENTIC-DEV: START]"
+_SENTINEL_DONE_RE = re.compile(r"\[DX-AGENTIC-DEV:\s*DONE(?:\s*\(output-dir:\s*[^)]*\))?\]")
+# Rendered-transcript filename suffixes (what the harness scans for sentinels)
+_TRANSCRIPT_SUFFIXES = ("-session.md", "-session.txt", "-session.html",
+                        "session.md", "session.txt", "session.html")
+# A scenario with real LLM interaction but no DONE is "incomplete" (a genuine
+# attempt), NOT an env failure — must NOT be deleted.
+_REAL_WORK_MARKERS = ('"type":"assistant"', "tool_use", "tool_call",
+                      "function_call", "item.completed", "turn.completed")
+_MIN_REAL_BLOB = 500
+_CODEX_COMMANDS_RE = re.compile(r"Commands:\*{0,2}\s*(\d+)\s*total")
+
+
+_ENV_FAILURE_MOD = None  # memoized SSOT module (loaded once per process)
+
+
+def _load_env_failure():
+    """Load the shared env-failure SSOT (agentic_analyzer/lib/env_failure.py).
+
+    Loaded by explicit file path via importlib so the runner has no hard
+    package-import dependency on the analyzer and no sys.path pollution.
+    env_failure.py imports only stdlib, so it loads standalone cleanly.
+    Memoized — classification touches it once per scenario.
+    """
+    global _ENV_FAILURE_MOD
+    if _ENV_FAILURE_MOD is not None:
+        return _ENV_FAILURE_MOD
+    import importlib.util
+    ef_path = SCRIPT_DIR / "agentic_analyzer" / "lib" / "env_failure.py"
+    spec = importlib.util.spec_from_file_location("dx_e2e_env_failure", ef_path)
+    if spec is None or spec.loader is None:
+        raise ImportError(f"cannot load env_failure SSOT from {ef_path}")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    _ENV_FAILURE_MOD = mod
+    return mod
+
+
+def _read_scenario_blob(scen_dir: Path) -> str:
+    """Concatenate all text artifacts in a scenario dir (recursive) for
+    env-signature detection — includes raw stream.jsonl where cert errors land."""
+    blob: List[str] = []
+    for f in scen_dir.rglob("*"):
+        if f.is_file() and f.suffix in (".jsonl", ".md", ".log", ".txt", ".html"):
+            try:
+                blob.append(f.read_text(encoding="utf-8", errors="ignore"))
+            except Exception:
+                pass
+    return "\n".join(blob)
+
+
+def _has_real_done_sentinel(scen_dir: Path) -> bool:
+    """True iff a DONE sentinel appears in a RENDERED transcript (session.md/.txt/.html)."""
+    for f in scen_dir.rglob("*"):
+        if not f.is_file():
+            continue
+        if any(f.name.endswith(sfx) for sfx in _TRANSCRIPT_SUFFIXES):
+            try:
+                text = f.read_text(encoding="utf-8", errors="ignore")
+            except Exception:
+                continue
+            if _SENTINEL_DONE_RE.search(text):
+                return True
+    return False
+
+
+def _codex_command_count(scen_dir: Path) -> Optional[int]:
+    """Parse codex session.md '**Commands:** N total'. None if absent.
+
+    Distinguishes a codex env failure (model-refresh-timeout + Commands=0 → the
+    model never loaded) from a codex incomplete run (model-refresh WARNING but
+    Commands>0 → recovered and worked, e.g. R5 compiler with 96 commands)."""
+    for f in scen_dir.rglob("*-session.md"):
+        try:
+            text = f.read_text(encoding="utf-8", errors="ignore")
+        except Exception:
+            continue
+        m = _CODEX_COMMANDS_RE.search(text)
+        if m:
+            return int(m.group(1))
+    return None
+
+
+def _has_output_session_dir(scen_dir: Path) -> bool:
+    """True iff the scenario produced an agent output dir (any subdir other than
+    the empty session-logs-unknown/ placeholder)."""
+    try:
+        for c in scen_dir.iterdir():
+            if c.is_dir() and c.name != "session-logs-unknown":
+                return True
+    except OSError:
+        pass
+    return False
+
+
+def _classify_round_scenario(scen_dir: Path) -> Tuple[str, set]:
+    """Return ("valid"|"envfail"|"incomplete"|"skip", signature_set) for one scenario.
+
+    valid:      DONE sentinel in a rendered transcript (work completed).
+    envfail:    env signature (cert / model-refresh / empty-unknown) or
+                effectively-empty output — DELETE-worthy.
+    incomplete: real LLM interaction but no DONE and no env signature — a
+                genuine attempt (KEEP; the analyzer handles it per-session).
+    skip:       no artifacts at all (not a real scenario slot).
+
+    The env vs incomplete decision delegates to the shared SSOT
+    (env_failure.is_env_failure) so the runner and analyzer stay in lockstep.
+    """
+    ef = _load_env_failure()
+    sigs: set = set()
+    has_any_file = any(f.is_file() for f in scen_dir.rglob("*"))
+    unknown_dir = scen_dir / "session-logs-unknown"
+    if not has_any_file:
+        # copilot env failure leaves ONLY an empty session-logs-unknown/ dir.
+        if unknown_dir.is_dir():
+            return ("envfail", {"empty-unknown"})
+        return ("skip", sigs)
+
+    if _has_real_done_sentinel(scen_dir):
+        return ("valid", sigs)
+
+    blob = _read_scenario_blob(scen_dir)
+    has_start = _SENTINEL_START in blob
+    cmd_count = _codex_command_count(scen_dir)
+    sig = ef.detect_env_signature(blob, command_count=cmd_count)
+    if sig:
+        sigs.add(sig)
+    # copilot empty-unknown can co-exist with stray files (tiny blob).
+    if unknown_dir.is_dir():
+        try:
+            unknown_empty = not any(unknown_dir.iterdir())
+        except OSError:
+            unknown_empty = True
+        if unknown_empty and len(blob.strip()) < 50:
+            sigs.add("empty-unknown")
+
+    has_real_work = (any(m in blob for m in _REAL_WORK_MARKERS)
+                     and len(blob) >= _MIN_REAL_BLOB)
+    has_output_dirs = _has_output_session_dir(scen_dir)
+
+    is_env = ef.is_env_failure(
+        env_signature=sig,
+        has_start=has_start,
+        has_done=False,
+        exit_status=None,
+        has_output_dirs=has_output_dirs,
+        output_tokens=(1 if has_real_work else 0),
+        tool_call_count=(cmd_count if cmd_count is not None else (1 if has_real_work else 0)),
+    )
+    if "empty-unknown" in sigs:
+        is_env = True  # env loss even without a text signature
+    return ("envfail" if is_env else "incomplete", sigs)
+
+
+def _analyze_round_env(result_dir: Path) -> Tuple[int, int, int, int, set]:
+    """Return (valid, incomplete, envfail, total, signatures) across a round's scenarios."""
+    if not result_dir.is_dir():
+        return (0, 0, 0, 0, set())
+    valid = incomplete = envfail = total = 0
+    sigs: set = set()
+    for sd in sorted(result_dir.iterdir()):
+        if not sd.is_dir():
+            continue
+        verdict, s = _classify_round_scenario(sd)
+        if verdict == "skip":
+            continue
+        total += 1
+        sigs |= s
+        if verdict == "valid":
+            valid += 1
+        elif verdict == "incomplete":
+            incomplete += 1
+        else:
+            envfail += 1
+    return (valid, incomplete, envfail, total, sigs)
+
+
+def _round_delete_worthy(valid: int, incomplete: int, envfail: int,
+                         total: int, sigs: set) -> bool:
+    """Round-level deletion criterion. Delete-worthy when EITHER:
+      (1) env failures are the MAJORITY (envfail > valid + incomplete), or
+      (2) ANY cert/SSL scenario is present — cert is a transient FIXABLE issue
+          (NODE_EXTRA_CA_CERTS), so re-running the whole round yields a clean
+          set, preferable to keeping a round with a permanently-broken scenario.
+    KEPT: rounds with only incomplete (real-but-no-DONE) scenarios and no cert
+    (e.g. cursor R1/R5: 5 valid + 1 incomplete; codex R5: 5 valid + 1
+    model-refresh incomplete) — no fixable cert taint."""
+    if total <= 0:
+        return False
+    return envfail > (valid + incomplete) or ("cert" in sigs)
+
+
+def detect_env_failed_rounds(state: "RunState", run_id: str) -> List[dict]:
+    """Scan a run's completed rounds and return those that are env-fail rounds."""
+    out: List[dict] = []
+    for tool, ts in state.data.get("tool_states", {}).items():
+        for rec in ts.get("completed", []):
+            rdir_name = rec.get("result_dir_name")
+            rdir = run_results_dir(run_id) / rdir_name if rdir_name else None
+            valid, incomplete, envfail, total, sigs = (
+                _analyze_round_env(rdir) if rdir else (0, 0, 0, 0, set())
+            )
+            if _round_delete_worthy(valid, incomplete, envfail, total, sigs):
+                out.append({
+                    "tool": tool,
+                    "round": rec.get("round"),
+                    "result_dir_name": rdir_name,
+                    "valid": valid,
+                    "incomplete": incomplete,
+                    "envfail": envfail,
+                    "total": total,
+                    "reason": (f"{valid}v/{incomplete}i/{envfail}e of {total}, "
+                               f"sigs={sorted(sigs)}"),
+                    "artifact_dirs": rec.get("artifact_dirs", []),
+                })
+    return out
+
+
+def redo_env_failures(run_id: Optional[str]) -> List[dict]:
+    """Detect + delete env-fail round records and reset state so --resume re-runs.
+
+    Returns the list of flagged rounds (empty when the run is clean). Deletes
+    each flagged round's result dir + agent output dirs and removes its record
+    from tool_states[tool].completed, then relabels kept rounds 1..N and resets
+    status to 'running' so the resume flow tops each tool back up to target.
+    """
+    state_path = _find_state_path(run_id)
+    if state_path is None:
+        print("ERROR: --redo-env-failures requires an existing run "
+              "(--run-id or a latest state.json).", file=sys.stderr)
+        return []
+    state = RunState.load(state_path)
+    rid = state.run_id
+
+    flagged = detect_env_failed_rounds(state, rid)
+    if not flagged:
+        print(f"[redo-env] run {rid}: no env-failure rounds detected — all clean.")
+        return []
+
+    to_remove = {(f["tool"], f["round"]) for f in flagged}
+    print(f"[redo-env] run {rid}: {len(flagged)} env-failure round(s) flagged:")
+    for f in flagged:
+        print(f"  {f['tool']:<14} R{f['round']}  ({f['reason']})")
+
+    target = state.target_rounds
+    for tool, ts in state.data.get("tool_states", {}).items():
+        kept: List[dict] = []
+        for rec in ts.get("completed", []):
+            if (tool, rec.get("round")) in to_remove:
+                _delete_round_artifacts(tool, rec, run_id=rid)
+            else:
+                kept.append(rec)
+        # Relabel kept rounds 1..N (by start order) so there are no gaps/dups.
+        kept.sort(key=lambda r: (r.get("start_utc") or "", r.get("round") or 0))
+        for i, rec in enumerate(kept, start=1):
+            rec["round"] = i
+        ts["completed"] = kept
+        ts["in_progress"] = None
+        ts["pid"] = None
+        ts["status"] = "done" if len(kept) >= target else "running"
+
+    # Reset overall status so the resume flow proceeds.
+    state.data["status"] = "running"
+    state.data["finished_at"] = None
+    state.save()
+    print(f"[redo-env] removed {len(flagged)} round(s); state reset to 'running' "
+          f"— re-run with --resume --run-id {rid} to refill to {target}.")
+    return flagged
+
+
 
 def _find_state_path(run_id: Optional[str]) -> Optional[Path]:
     if run_id:
@@ -1503,8 +1788,52 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--force", action="store_true", help="Do not prompt for confirmation with --abort")
     p.add_argument("--list", dest="list_runs", action="store_true", help="List known runs and exit")
     p.add_argument("--round", dest="round_nums", type=str, help="Round number(s) to clean up, e.g. 3 or 2,3,4")
+    p.add_argument(
+        "--redo-env-failures", dest="redo_env_failures", action="store_true",
+        help="Detect env-failed rounds (cert/SSL, codex model-refresh, copilot "
+             "empty-unknown), delete them, and reset state so --resume re-runs to target",
+    )
+    p.add_argument(
+        "--dry-run", action="store_true",
+        help="With --redo-env-failures: report env-failed rounds without deleting",
+    )
     return p
 
+
+
+def do_redo_env_failures(run_id: Optional[str], dry_run: bool = False) -> int:
+    """Control command for --redo-env-failures.
+
+    Default: detect env-fail rounds, delete them, and reset state so a
+    subsequent --resume refills to target. With --dry-run: report only.
+    """
+    state_path = _find_state_path(run_id)
+    if state_path is None:
+        print("ERROR: --redo-env-failures requires an existing run "
+              "(--run-id or a latest state.json).", file=sys.stderr)
+        return 2
+    state = RunState.load(state_path)
+    rid = state.run_id
+
+    if dry_run:
+        flagged = detect_env_failed_rounds(state, rid)
+        if not flagged:
+            print(f"[redo-env] run {rid}: no env-failure rounds detected — all clean.")
+            return 0
+        print(f"[redo-env] run {rid}: {len(flagged)} env-failure round(s) "
+              f"(dry-run — nothing deleted):")
+        for f in flagged:
+            print(f"  {f['tool']:<14} R{f['round']}  ({f['reason']})")
+        print(f"\n  Re-run without --dry-run to delete + reset for --resume.")
+        return 0
+
+    flagged = redo_env_failures(run_id)
+    if flagged:
+        target = state.target_rounds
+        print(f"\n  Next: python {Path(__file__).name} --resume "
+              f"--run-id {rid} --rounds {target} "
+              f"--tools {','.join(state.tools)}")
+    return 0
 
 
 def _handle_sigterm(signum, frame) -> None:  # type: ignore[no-untyped-def]
@@ -1529,6 +1858,8 @@ def main() -> int:
     if args.status:
         show_status(args.run_id)
         return 0
+    if args.redo_env_failures:
+        return do_redo_env_failures(args.run_id, dry_run=args.dry_run)
 
     tools = [t.strip() for t in args.tools.split(",") if t.strip() in ALL_TOOLS]
     if not tools:
