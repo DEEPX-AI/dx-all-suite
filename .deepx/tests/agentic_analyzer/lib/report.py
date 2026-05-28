@@ -9,7 +9,7 @@ import re
 from dataclasses import asdict
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from .aggregate import (
     SessionEval,
@@ -844,7 +844,20 @@ def write_json(evals: List[SessionEval], out_path: Path, meta: Dict) -> None:
     out_path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
 
 
-def write_csv(evals: List[SessionEval], out_path: Path) -> None:
+def write_csv(
+    evals: List[SessionEval],
+    out_path: Path,
+    *,
+    extra_columns: Optional[List[Tuple[str, Callable[[SessionEval], Any]]]] = None,
+) -> None:
+    """Write per_session.csv.
+
+    ``extra_columns`` appends additional columns after the base set. Each entry
+    is ``(column_name, getter)`` where ``getter(SessionEval) -> Any``. Used to
+    surface fields that may not exist on every SessionEval (e.g. PR2's
+    ``env_failure_signature`` or T4's ``no_done_cause``) without coupling
+    callers to the internal column order.
+    """
     columns = [
         "run_id", "round", "tool", "scenario", "model", "verdict", "verdict_score", "verdict_reason",
         "exit_status_round", "duration_sec",
@@ -858,11 +871,13 @@ def write_csv(evals: List[SessionEval], out_path: Path) -> None:
         "suspected_timeout",
         "session_id", "output_dirs",
     ]
+    extras = list(extra_columns or [])
+    columns = columns + [name for name, _ in extras]
     with out_path.open("w", encoding="utf-8", newline="") as f:
         w = csv.DictWriter(f, fieldnames=columns)
         w.writeheader()
         for e in evals:
-            w.writerow({
+            row = {
                 "run_id": e.run_id,
                 "round": e.round_index,
                 "tool": e.tool,
@@ -901,7 +916,10 @@ def write_csv(evals: List[SessionEval], out_path: Path) -> None:
                 "suspected_timeout": e.suspected_timeout,
                 "session_id": e.session_id,
                 "output_dirs": "; ".join(e.output_dirs),
-            })
+            }
+            for name, getter in extras:
+                row[name] = getter(e)
+            w.writerow(row)
 
 
 # ---------------------------------------------------------------------------

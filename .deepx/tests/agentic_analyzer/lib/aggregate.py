@@ -36,8 +36,9 @@ class SessionEval:
     # Run-id grouping (propagated from ResultDir.run_id)
     run_id: str = "legacy"
     # Environment-failure signature detected in the transcript (PR2):
-    # "cert" | "model-refresh-timeout" | "" (none). When set, the session is an
-    # env failure regardless of duration heuristics — see lib/env_failure.py.
+    # "cert" | "rate-limit" | "model-refresh-timeout" | "" (none). When set,
+    # the session is an env failure regardless of duration heuristics — see
+    # lib/env_failure.py.
     env_failure_signature: str = ""
     # Token usage (now extracted per-tool)
     input_tokens: int = 0

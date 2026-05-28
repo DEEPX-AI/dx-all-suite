@@ -98,6 +98,16 @@ from lib.report import write_markdown, write_json, write_csv, write_html, md_fil
 from lib.runnability_parser import parse_runnability_report, aggregate_runnability
 
 
+# Extra per_session.csv columns surfacing env-failure signals. env_failure_signature
+# is populated from SessionEval (PR2). no_done_cause is empty until T4 adds the
+# field to SessionEval and populates it. The getattr fallback keeps this safe
+# while T4 is in flight.
+_PER_SESSION_EXTRA_COLUMNS = [
+    ("env_failure_signature", lambda e: e.env_failure_signature),
+    ("no_done_cause", lambda e: getattr(e, "no_done_cause", "")),
+]
+
+
 def _load_config(path: Path) -> dict:
     """Minimal YAML loader. Try pyyaml first; fall back to a tiny custom parser."""
     try:
@@ -468,7 +478,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     html_path = out_dir / "analysis.html"
     write_markdown(evals, md_path, meta)
     write_json(evals, json_path, meta)
-    write_csv(evals, csv_path)
+    write_csv(evals, csv_path, extra_columns=_PER_SESSION_EXTRA_COLUMNS)
     write_html(evals, html_path, meta)
 
     print()
@@ -535,7 +545,7 @@ def main(argv: Optional[List[str]] = None) -> int:
             print(f"  Updated {updated} sessions with runnability scores")
             write_markdown(evals, md_path, meta)
             write_json(evals, json_path, meta)
-            write_csv(evals, csv_path)
+            write_csv(evals, csv_path, extra_columns=_PER_SESSION_EXTRA_COLUMNS)
             write_html(evals, html_path, meta)
             print(f"  Rewrote: {md_path}")
 
