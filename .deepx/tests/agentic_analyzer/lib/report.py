@@ -22,6 +22,40 @@ from .aggregate import (
 from .bias_check import analyze_bias
 
 
+def render_no_done_causes(evals, *, heading_level: int = 2) -> str:
+    """Render a per-tool breakdown of no-DONE causes (T4). Empty causes (sessions
+    WITH DONE) are excluded — this section is only about sessions WITHOUT it."""
+    from collections import Counter
+    h = "#" * heading_level
+    per_tool = {}
+    for ev in evals:
+        cause = getattr(ev, "no_done_cause", "")
+        if cause:
+            per_tool.setdefault(ev.tool, Counter())[cause] += 1
+    if not per_tool:
+        return f"{h} no-DONE 원인 분류\n\n_없음 (전 세션이 DONE 발행)_\n"
+    lines = [
+        f"{h} no-DONE 원인 분류",
+        "",
+        "| 도구 | env-rate-limit | env-cert | env-model-refresh-timeout | sentinel-omission | incomplete-planstop |",
+        "|------|---:|---:|---:|---:|---:|",
+    ]
+    for tool, c in sorted(per_tool.items()):
+        lines.append(
+            f"| {tool} | {c.get('env-rate-limit',0)} | {c.get('env-cert',0)} "
+            f"| {c.get('env-model-refresh-timeout',0)} "
+            f"| {c.get('sentinel-omission',0)} | {c.get('incomplete-planstop',0)} |"
+        )
+    lines += [
+        "",
+        "> **env-***: 환경결함 (채점 제외·재실행 대상). "
+        "**sentinel-omission**: 작업 완료·DONE 마커 누락 (codex 흔함). "
+        "**incomplete-planstop**: 실제 미완성 (모델이 plan→실행 경계에서 종료).",
+        "",
+    ]
+    return "\n".join(lines)
+
+
 def _fmt_num(v, suffix: str = "", decimals: int = 1) -> str:
     if v is None:
         return "-"
@@ -119,6 +153,10 @@ def write_markdown(evals: List[SessionEval], out_path: Path, meta: Dict) -> None
                 rounds_str = ", ".join(f"R{r}" for r in _env_rounds)
                 lines.append(f"| {t} | {len(el)} | {rounds_str} |")
             lines.append("")
+
+    # no-DONE 원인 분류 — placed right after the env-failure exclusion block
+    lines.append(render_no_done_causes(evals, heading_level=3))
+    lines.append("")
 
     # Compute scenario-level pass/fail aggregates per tool (scored only)
     scored_evals = [e for e in evals if not is_env_failure_eval(e)]

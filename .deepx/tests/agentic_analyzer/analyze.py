@@ -93,18 +93,17 @@ from lib.quality import evaluate_quality
 from lib.functional import infer_verdict, verdict_score, count_lines_of_code
 from lib.execution import evaluate_execution
 from lib.cost import estimate_cost, compute_calibration_ratios
-from lib.aggregate import SessionEval, composite_score
+from lib.aggregate import SessionEval, composite_score, classify_no_done_cause
 from lib.report import write_markdown, write_json, write_csv, write_html, md_file_to_html
 from lib.runnability_parser import parse_runnability_report, aggregate_runnability
 
 
-# Extra per_session.csv columns surfacing env-failure signals. env_failure_signature
-# is populated from SessionEval (PR2). no_done_cause is empty until T4 adds the
-# field to SessionEval and populates it. The getattr fallback keeps this safe
-# while T4 is in flight.
+# Extra per_session.csv columns surfacing env-failure signals (PR2 + T4):
+#   * env_failure_signature — cert / rate-limit / model-refresh-timeout / "".
+#   * no_done_cause         — env-<sig> / sentinel-omission / incomplete-planstop / "".
 _PER_SESSION_EXTRA_COLUMNS = [
     ("env_failure_signature", lambda e: e.env_failure_signature),
-    ("no_done_cause", lambda e: getattr(e, "no_done_cause", "")),
+    ("no_done_cause", lambda e: e.no_done_cause),
 ]
 
 
@@ -203,6 +202,12 @@ def evaluate_scenario(
         exit_status=ref.parent.manifest.get("exit_status"),
         run_id=ref.parent.run_id,
         env_failure_signature=sd.env_failure_signature,
+        no_done_cause=classify_no_done_cause(
+            has_done=sd.has_done_sentinel,
+            env_failure_signature=sd.env_failure_signature,
+            has_output_dirs=bool(ref.output_dirs),
+            execution_score=execution_score,
+        ),
         duration_sec=sd.duration_sec,
         has_start=sd.has_start_sentinel,
         has_done=sd.has_done_sentinel,
@@ -1951,6 +1956,10 @@ def _render_runnability_summary(report_dir: Path) -> str:
         lines.append("")
         lines.append(render_skip_summary_markdown(skip_report, heading_level=4))
         lines.append("")
+
+    # no-DONE 원인 분류 (T4) is rendered by write_markdown into analysis.md and
+    # inlined into Part 1 of comprehensive_report.md — do NOT re-render here or
+    # the section appears twice when a runnability_report.md is present.
 
     # ---- FAIL cases (full list, max ~12 to keep readable) ----
     fails = [p for p in parsed if p["verdict"] == "FAIL"]
