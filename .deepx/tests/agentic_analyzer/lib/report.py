@@ -559,29 +559,58 @@ def write_markdown(evals: List[SessionEval], out_path: Path, meta: Dict) -> None
     lines.append("")
 
     copilot_tools = ["copilot-cli", "opencode-cli", "codex-cli"]
-    # Compute PR/session for copilot tools
-    lines.append("| 도구 | E2E Overall | Avg PR/Session | PR 측정 방식 |")
-    lines.append("|------|----------:|---------------:|------------|")
+    # All three PR-estimation methods + the observed value are shown side-by-side
+    # so the user can directly compare how much they diverge. In practice
+    # method 1 (tool_call × 0.741) tracks copilot's observed value within ~15%,
+    # while method 2 (user_turn × multiplier) understates by ~35× for agentic
+    # multi-turn sessions. The "USD 기준" column marks which estimate the cost
+    # calculator actually used.
+    lines.append("| 도구 | E2E Overall | 관측 PR | 예측 1: tool_call × 0.741 | 예측 2: user_turn × mult | 예측 3: token ratio | USD 기준 |")
+    lines.append("|------|----------:|--------:|-----------------:|-----------------:|----------------:|----------|")
     for tool in copilot_tools:
         if tool not in tools:
             continue
         ev = [e for e in evals if e.tool == tool]
         n = max(1, len(ev))
         ov = tool_overall.get(tool, 0)
-        total_prem = sum(e.premium_requests for e in ev)
-        total_est = sum(e.estimated_premium_requests for e in ev)
-        if total_prem > 0:
-            avg_pr = total_prem / n
-            lines.append(f"| **{tool}** | {ov:.1f} | {avg_pr:.1f} | 관측치 (`totalPremiumRequests`) |")
-        elif total_est > 0:
-            avg_pr = total_est / n
-            lines.append(f"| **{tool}** | {ov:.1f} | ~{avg_pr:.1f} | 예측치 (token ratio 역산) |")
-        else:
-            lines.append(f"| **{tool}** | {ov:.1f} | — | stream 미노출, 예측 불가 |")
+        total_obs = sum(e.premium_requests for e in ev)
+        avg_obs = total_obs / n if total_obs > 0 else 0.0
+        avg_tc  = sum(e.pr_by_tool_call    for e in ev) / n
+        avg_ut  = sum(e.pr_by_user_turn    for e in ev) / n
+        avg_tr  = sum(e.pr_by_token_ratio  for e in ev) / n
+
+        # Pick the basis label from any session's cost_basis (they share it per tool)
+        basis_label = "—"
+        for e in ev:
+            if e.cost_basis and e.cost_basis != "unknown":
+                if "actual" in e.cost_basis:
+                    basis_label = "관측치"
+                elif "tool_call" in e.cost_basis:
+                    basis_label = "예측 1"
+                elif "user_turn" in e.cost_basis:
+                    basis_label = "예측 2"
+                elif "token ratio" in e.cost_basis:
+                    basis_label = "예측 3"
+                break
+
+        cell_obs = f"{avg_obs:.1f}" if avg_obs > 0 else "—"
+        cell_tc  = f"{avg_tc:.1f}"  if avg_tc > 0  else "—"
+        cell_ut  = f"{avg_ut:.1f}"  if avg_ut > 0  else "—"
+        cell_tr  = f"{avg_tr:.1f}"  if avg_tr > 0  else "—"
+        lines.append(
+            f"| **{tool}** | {ov:.1f} | {cell_obs} | {cell_tc} | {cell_ut} | {cell_tr} | {basis_label} |"
+        )
     lines.append("")
-    lines.append("> **측정 한계**: copilot-cli만 `session.shutdown.totalPremiumRequests`로 실측값을 제공합니다. "
-                 "opencode-cli와 codex-cli는 동일 backend를 경유하지만 PR 소비량이 stream에 노출되지 않아 "
-                 "token ratio 역산 또는 user-turn × multiplier 공식으로 추정해야 합니다 (§6.2 참조).")
+    lines.append(
+        "> **3가지 예측 방식을 모두 노출**한 이유: 본문 §6.2가 광고하는 "
+        "'user_turn × multiplier 1순위'가 실제로는 copilot 관측치 대비 자릿수 차이의 "
+        "과소평가를 보입니다 (예: 50 tool_calls의 agentic 세션에서 user_turn=1 × 1× = 1 PR vs "
+        "tool_call × 0.741 ≈ 37 PR). 어느 방식이 가장 신뢰성 있는지 직접 비교하도록 4개 열을 "
+        "모두 표시했습니다. "
+        "copilot-cli만 `session.shutdown.totalPremiumRequests`로 실측을 제공하며, "
+        "opencode/codex는 stream에 PR 미노출이므로 3가지 예측만 가능합니다 (§6.2 참조). "
+        "'USD 기준' 열은 cost USD 산정에 실제 사용된 방식을 표시합니다."
+    )
     lines.append("")
 
     # --- Group B: 정액 구독 (한도 내) ---

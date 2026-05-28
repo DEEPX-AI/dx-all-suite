@@ -403,6 +403,10 @@ def main(argv: Optional[List[str]] = None) -> int:
         e.cost_basis = cb.pricing_basis
         e.cost_note = cb.notes
         e.estimated_premium_requests = cb.estimated_premium_requests
+        e.pr_observed = cb.pr_observed
+        e.pr_by_tool_call = cb.pr_by_tool_call
+        e.pr_by_user_turn = cb.pr_by_user_turn
+        e.pr_by_token_ratio = cb.pr_by_token_ratio
 
     # Output directory — keyed by run_id scope when --output-dir not given:
     #   * No --run-id          → analyzer_reports/_all/<ts>/
