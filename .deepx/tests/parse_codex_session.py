@@ -92,6 +92,17 @@ def has_start_sentinel(parsed: ParsedSession) -> bool:
     return has_start_sentinel_in_turns(parsed.turns)
 
 
+def count_user_turns(parsed: ParsedSession) -> int:
+    """Return the number of non-empty user turns in the session.
+
+    Used by lib/cost.py:compute_estimated_pr() as the primary signal for
+    Premium Request estimation via user_turn_count × multiplier.  Empty
+    or whitespace-only user content (system pings, automated prompts) does
+    not count as a user-driven turn.
+    """
+    return sum(1 for t in parsed.turns if t.user_content.strip())
+
+
 def parse_codex_jsonl(
     jsonl_path: Path,
     *,

@@ -71,6 +71,22 @@ def _parse_claude_code_stream(stream: Path, sd: SessionData) -> None:
         if ev_type == "system" and ev.get("subtype") == "init":
             if not sd.model:
                 sd.model = ev.get("model")
+        elif ev_type == "user":
+            # Phase C: count user turns from stream. claude-code emits both
+            # "real" user prompts AND tool_result-wrapped-as-user events; only
+            # the former (non-empty text content) is a user-driven turn.
+            msg = ev.get("message", {}) or {}
+            content = msg.get("content", "")
+            has_user_text = False
+            if isinstance(content, str) and content.strip():
+                has_user_text = True
+            elif isinstance(content, list):
+                for c in content:
+                    if isinstance(c, dict) and c.get("type") == "text" and (c.get("text") or "").strip():
+                        has_user_text = True
+                        break
+            if has_user_text:
+                sd.user_turn_count += 1
         elif ev_type == "assistant":
             msg = ev.get("message", {}) or {}
             usage = msg.get("usage", {}) or {}
@@ -252,7 +268,14 @@ def _parse_opencode_stream(stream: Path, sd: SessionData) -> None:
         sd.duration_sec = max(0.0, last_ts_seen - first_ts_seen)
 
     # OpenCode autopilot: 1 user turn (initial prompt). Stream doesn't expose
-    # user messages — only agent steps. Default to 1 for autopilot sessions.
+    # user messages — only agent steps. Default to 1 for autopilot sessions
+    # (matches the e2e harness invariant: one prompt sent per scenario).
+    # Phase C note: claude-code / cursor / codex stream parsers now increment
+    # user_turn_count from explicit user events. opencode and the generic
+    # fallback path still rely on this default. copilot does NOT use this
+    # function (see _parse_generic_stream which it falls into) — its
+    # user_turn_count is also defaulted to 1 by the same fallback in any
+    # path that reaches here with count == 0.
     if sd.user_turn_count == 0:
         sd.user_turn_count = 1
 
@@ -274,6 +297,24 @@ def _parse_cursor_stream(stream: Path, sd: SessionData) -> None:
                 if k in ev and ev[k]:
                     sd.model = str(ev[k])
                     break
+
+        # Phase C: count user turns. Cursor stream emits a single ``type=user``
+        # event per autopilot session (the initial prompt); follow-up tool
+        # results travel under different types. text-content empty checks
+        # are still applied to guard against future shape changes.
+        if ev_type == "user":
+            msg = ev.get("message", {}) or {}
+            content = msg.get("content", "")
+            has_user_text = False
+            if isinstance(content, str) and content.strip():
+                has_user_text = True
+            elif isinstance(content, list):
+                for c in content:
+                    if isinstance(c, dict) and c.get("type") == "text" and (c.get("text") or "").strip():
+                        has_user_text = True
+                        break
+            if has_user_text:
+                sd.user_turn_count += 1
 
         # Cursor 'result' event has cumulative usage + total duration
         if ev_type == "result":

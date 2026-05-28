@@ -43,6 +43,12 @@ def _resolve_multiplier(model: str, mult_cfg: dict) -> float:
     return 1.0
 
 
+# Backward-compat alias — the feature/user-turn-pr-estimation branch named the
+# same lookup `_lookup_multiplier`. Both names refer to the same function so
+# test_pr_estimation.py (which imports `_lookup_multiplier`) keeps passing.
+_lookup_multiplier = _resolve_multiplier
+
+
 @dataclass
 class CostBreakdown:
     """Per-session cost estimate."""

@@ -215,10 +215,44 @@ pricing:
   # Business / Enterprise: subscription-based per seat
   copilot_premium_request:
     usd_per_request: 0.033       # Pro tier reference
-  # Some models cost > 1 premium request per call. Adjust as needed.
+  # ---- Premium Request multipliers (GitHub Copilot Paid plan, 2026-05) ----
+  # Used by lib/cost.py:compute_estimated_pr() to estimate PR consumption as
+  # ``user_turn_count × multiplier``.  Replaces the older token-ratio
+  # calibration which had high variance across tools.
+  #
+  # Source: GitHub Copilot pricing docs (2026-05) — verify periodically.
+  # When a tool's reported model is missing here, the analyzer falls back to
+  # the "_default" entry (sonnet-4.6 1× — most common case in this experiment).
   copilot_request_multiplier:
+    # Free models — 0× (no PR consumed)
+    "gpt-5-mini": 0
+    "gpt-4.1": 0
+    "gpt-4o": 0
+    # Low-cost — 0.33×
+    "claude-haiku-4.5": 0.33
+    "gemini-3-flash": 0.33
+    # Standard — 1× (this experiment's default backend)
     "claude-sonnet-4.6": 1.0
-    "gpt-5.3-codex": 1.0          # placeholder — verify
+    "claude-sonnet-4-6": 1.0      # alias used by some session.json files
+    "sonnet46": 1.0               # alias from session dir naming convention
+    "gpt-5.3-codex": 1.0          # placeholder — verify against current pricing
+    # Mid-high — 3×
+    "claude-opus-4.5": 3.0
+    "claude-opus-4.6": 3.0
+    # High — 7.5× / 15×
+    "gpt-5.5": 7.5
+    "claude-opus-4.7": 15.0
+    # Cursor Composer 2.5 — NOT a Copilot PR model; subscription-based ($20/mo
+    # Pro unlimited).  Multiplier 0 ensures these sessions are not counted in
+    # PR-based cost calculations even though they have user_turn_count > 0.
+    "composer-2.5": 0
+    "composer-2.5-fast": 0
+    "composer25": 0
+    "composer25fast": 0
+    "comp25": 0
+    "composer": 0
+    # Default fallback for unknown model strings
+    "_default": 1.0
 
 # ---------------------------------------------------------------------------
 # External usage dashboards / APIs (for ground-truth verification)
