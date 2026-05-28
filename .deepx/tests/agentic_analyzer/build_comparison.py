@@ -16,6 +16,42 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
+import sys as _sys
+_sys.path.insert(0, str(Path(__file__).resolve().parent))
+from lib import env_failure as _ef  # noqa: E402
+
+
+def _row_is_env_failure(r: dict) -> bool:
+    """Single source of truth: lib.env_failure.is_env_failure decides exclusion.
+
+    Pulls the same signals SessionEval feeds it from per_session.csv columns.
+    Robust to older CSVs (pre-T3) that lack env_failure_signature — uses ""
+    fallback and lets criterion A/B handle the case.
+    """
+    def _b(x):
+        return str(x).strip().lower() in ("true", "1", "yes")
+
+    def _i(x):
+        try:
+            return int(float(x))
+        except (TypeError, ValueError):
+            return 0
+
+    exit_raw = r.get("exit_status_round")
+    try:
+        exit_status = int(float(exit_raw)) if exit_raw not in (None, "", "NA") else None
+    except (TypeError, ValueError):
+        exit_status = None
+    return _ef.is_env_failure(
+        env_signature=(r.get("env_failure_signature") or ""),
+        has_start=_b(r.get("has_start")),
+        has_done=_b(r.get("has_done")),
+        exit_status=exit_status,
+        has_output_dirs=bool((r.get("output_dirs") or "").strip()),
+        output_tokens=_i(r.get("output_tokens")),
+        tool_call_count=_i(r.get("tool_call_count")),
+    )
+
 
 def load_per_session(path: Path) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
@@ -54,6 +90,8 @@ def aggregate(rows: list[dict[str, Any]]) -> dict[tuple[str, str], dict[str, flo
     """(tool, scenario) -> {metric: mean}."""
     buckets: dict[tuple[str, str], dict[str, list[float]]] = defaultdict(lambda: defaultdict(list))
     for r in rows:
+        if _row_is_env_failure(r):
+            continue
         tool = r.get("tool") or ""
         scenario = r.get("scenario") or ""
         if not tool or not scenario:
@@ -71,6 +109,8 @@ def aggregate(rows: list[dict[str, Any]]) -> dict[tuple[str, str], dict[str, flo
 def aggregate_by_tool(rows: list[dict[str, Any]]) -> dict[str, dict[str, float]]:
     buckets: dict[str, dict[str, list[float]]] = defaultdict(lambda: defaultdict(list))
     for r in rows:
+        if _row_is_env_failure(r):
+            continue
         tool = r.get("tool") or ""
         if not tool:
             continue

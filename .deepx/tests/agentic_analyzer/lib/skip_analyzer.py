@@ -58,35 +58,38 @@ def _classify(session: Dict[str, Any]) -> str:
 def is_env_failure_eval(ev: "SessionEval") -> bool:
     """Check if a SessionEval represents an environment failure (false alarm).
 
-    Two false-alarm patterns are detected:
+    Delegates to the shared ``lib.env_failure.is_env_failure`` decision so the
+    analyzer and the runner repair (goalB_repair) classify env failures
+    identically. The signals are pulled off the SessionEval row:
 
-    (A) Pre-execution infra failure — CLI/agent never started:
-        no output_dirs + no START sentinel + output_tokens==0
-        → API rate limit, TLS error, CLI crash before any LLM call.
+    (0) SIGNATURE — explicit cert / rate-limit / model-refresh signature
+        scanned from the transcript (``ev.env_failure_signature``). Highest
+        priority: a cert/SSL error, Anthropic session-limit, or codex
+        model-refresh timeout (with no real work) is an env failure even when
+        partial tokens / (derived) artifacts exist.
 
-    (B) Incomplete session — CLI/agent started but was prematurely terminated
-        while producing partial artifacts:
-        has_start=True + has_done=False + exit_status != 0
-        → Bash auto-background hang, internal CLI crash mid-execution, or
-          external SIGKILL. Reflects harness/CLI failure rather than tool
-          capability. Observed in claude-code thinking mode where one mandatory
-          sub-project session (e.g. runtime's dx_stream) never gets generated.
+    (B) Incomplete session — has_start + no DONE + non-zero round exit →
+        agent terminated mid-execution (Bash hang, CLI crash, SIGKILL).
 
-    Sessions WITH has_start=True and complete DONE sentinel but no output_dirs
-    are typically artifact collection bugs (the agent ran but artifacts weren't
-    captured), not env failures.
+    (A) Pre-execution infra failure — output_tokens==0 AND no START → API
+        rate limit / TLS error before any LLM call. Fires even when
+        output_dirs is True (the suite-fallback derives dirs from compiler+
+        dx_app, which must not mask a session that produced zero tokens).
+
+    Sessions WITH a DONE sentinel, or with real artifacts + has_start but
+    no signature, are NOT env failures (artifact-collection bug, not infra).
     """
-    # (B) Incomplete session detection — agent terminated mid-execution
-    if ev.has_start and not ev.has_done and (ev.exit_status or 0) != 0:
-        return True
+    from . import env_failure as ef
 
-    # (A) Pre-execution failure detection
-    if ev.output_dirs:
-        return False
-    if ev.has_start:
-        return False  # Agent ran — this is an artifact bug, not env failure
-    # output_tokens==0 means LLM never produced a single token → infra failure
-    return ev.output_tokens == 0
+    return ef.is_env_failure(
+        env_signature=getattr(ev, "env_failure_signature", "") or "",
+        has_start=ev.has_start,
+        has_done=ev.has_done,
+        exit_status=ev.exit_status,
+        has_output_dirs=bool(ev.output_dirs),
+        output_tokens=ev.output_tokens,
+        tool_call_count=ev.tool_call_count,
+    )
 
 
 def categorize_skipped_sessions(sessions: List[Dict[str, Any]]) -> Dict[str, Any]:

@@ -9,7 +9,7 @@ import re
 from dataclasses import asdict
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from .aggregate import (
     SessionEval,
@@ -20,6 +20,40 @@ from .aggregate import (
     aggregate_per_round_scenario_tool,
 )
 from .bias_check import analyze_bias
+
+
+def render_no_done_causes(evals, *, heading_level: int = 2) -> str:
+    """Render a per-tool breakdown of no-DONE causes (T4). Empty causes (sessions
+    WITH DONE) are excluded — this section is only about sessions WITHOUT it."""
+    from collections import Counter
+    h = "#" * heading_level
+    per_tool = {}
+    for ev in evals:
+        cause = getattr(ev, "no_done_cause", "")
+        if cause:
+            per_tool.setdefault(ev.tool, Counter())[cause] += 1
+    if not per_tool:
+        return f"{h} no-DONE 원인 분류\n\n_없음 (전 세션이 DONE 발행)_\n"
+    lines = [
+        f"{h} no-DONE 원인 분류",
+        "",
+        "| 도구 | env-rate-limit | env-cert | env-model-refresh-timeout | sentinel-omission | incomplete-planstop |",
+        "|------|---:|---:|---:|---:|---:|",
+    ]
+    for tool, c in sorted(per_tool.items()):
+        lines.append(
+            f"| {tool} | {c.get('env-rate-limit',0)} | {c.get('env-cert',0)} "
+            f"| {c.get('env-model-refresh-timeout',0)} "
+            f"| {c.get('sentinel-omission',0)} | {c.get('incomplete-planstop',0)} |"
+        )
+    lines += [
+        "",
+        "> **env-***: 환경결함 (채점 제외·재실행 대상). "
+        "**sentinel-omission**: 작업 완료·DONE 마커 누락 (codex 흔함). "
+        "**incomplete-planstop**: 실제 미완성 (모델이 plan→실행 경계에서 종료).",
+        "",
+    ]
+    return "\n".join(lines)
 
 
 def _fmt_num(v, suffix: str = "", decimals: int = 1) -> str:
@@ -119,6 +153,10 @@ def write_markdown(evals: List[SessionEval], out_path: Path, meta: Dict) -> None
                 rounds_str = ", ".join(f"R{r}" for r in _env_rounds)
                 lines.append(f"| {t} | {len(el)} | {rounds_str} |")
             lines.append("")
+
+    # no-DONE 원인 분류 — placed right after the env-failure exclusion block
+    lines.append(render_no_done_causes(evals, heading_level=3))
+    lines.append("")
 
     # Compute scenario-level pass/fail aggregates per tool (scored only)
     scored_evals = [e for e in evals if not is_env_failure_eval(e)]
@@ -873,7 +911,20 @@ def write_json(evals: List[SessionEval], out_path: Path, meta: Dict) -> None:
     out_path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
 
 
-def write_csv(evals: List[SessionEval], out_path: Path) -> None:
+def write_csv(
+    evals: List[SessionEval],
+    out_path: Path,
+    *,
+    extra_columns: Optional[List[Tuple[str, Callable[[SessionEval], Any]]]] = None,
+) -> None:
+    """Write per_session.csv.
+
+    ``extra_columns`` appends additional columns after the base set. Each entry
+    is ``(column_name, getter)`` where ``getter(SessionEval) -> Any``. Used to
+    surface fields that may not exist on every SessionEval (e.g. PR2's
+    ``env_failure_signature`` or T4's ``no_done_cause``) without coupling
+    callers to the internal column order.
+    """
     columns = [
         "run_id", "round", "tool", "scenario", "model", "verdict", "verdict_score", "verdict_reason",
         "exit_status_round", "duration_sec",
@@ -887,11 +938,13 @@ def write_csv(evals: List[SessionEval], out_path: Path) -> None:
         "suspected_timeout",
         "session_id", "output_dirs",
     ]
+    extras = list(extra_columns or [])
+    columns = columns + [name for name, _ in extras]
     with out_path.open("w", encoding="utf-8", newline="") as f:
         w = csv.DictWriter(f, fieldnames=columns)
         w.writeheader()
         for e in evals:
-            w.writerow({
+            row = {
                 "run_id": e.run_id,
                 "round": e.round_index,
                 "tool": e.tool,
@@ -930,7 +983,10 @@ def write_csv(evals: List[SessionEval], out_path: Path) -> None:
                 "suspected_timeout": e.suspected_timeout,
                 "session_id": e.session_id,
                 "output_dirs": "; ".join(e.output_dirs),
-            })
+            }
+            for name, getter in extras:
+                row[name] = getter(e)
+            w.writerow(row)
 
 
 # ---------------------------------------------------------------------------

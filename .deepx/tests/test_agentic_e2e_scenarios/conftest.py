@@ -109,6 +109,7 @@ from parse_copilot_session import (  # noqa: E402
 from parse_codex_session import render_codex_html, render_codex_md  # noqa: E402
 from parse_cursor_session import render_cursor_html  # noqa: E402
 from parse_opencode_session import OPENCODE_DB_PATH, render_opencode_html  # noqa: E402
+from _cli_env import agent_subprocess_env  # noqa: E402
 
 
 def pytest_configure(config):
@@ -930,7 +931,7 @@ class CopilotRunnerAutopilot:
                 capture_output=True,
                 text=True,
                 timeout=timeout,
-                env={**os.environ, "NO_COLOR": "1"},
+                env=agent_subprocess_env(),
             )
             duration = time.monotonic() - start
 
@@ -1257,7 +1258,7 @@ class CursorRunnerAutopilot:
             probe = subprocess.run(
                 [cls.CURSOR_BIN, "-p", "--output-format", "json", "echo test"],
                 capture_output=True, text=True, timeout=60,
-                env={**os.environ, "NO_COLOR": "1"},
+                env=agent_subprocess_env(),
             )
             if "Authentication required" in (probe.stderr or ""):
                 return False
@@ -1333,7 +1334,7 @@ class CursorRunnerAutopilot:
                 capture_output=True,
                 text=True,
                 timeout=timeout,
-                env={**os.environ, "NO_COLOR": "1"},
+                env=agent_subprocess_env(),
             )
             duration = time.monotonic() - start
 
@@ -1369,7 +1370,7 @@ class CursorRunnerAutopilot:
                     capture_output=True,
                     text=True,
                     timeout=timeout,
-                    env={**os.environ, "NO_COLOR": "1"},
+                    env=agent_subprocess_env(),
                 )
                 duration = time.monotonic() - start
                 actual_model = CURSOR_FALLBACK_MODEL  # quota exhausted — running on fallback model
@@ -1657,7 +1658,7 @@ class OpenCodeRunnerAutopilot:
                 capture_output=True,
                 text=True,
                 timeout=timeout,
-                env={**os.environ, "NO_COLOR": "1"},
+                env=agent_subprocess_env(),
             )
             duration = time.monotonic() - start
             # REC-X1: Initialize session_uuid/assistant_text from JSON output in success path.
@@ -1976,7 +1977,7 @@ class ClaudeCodeRunnerAutopilot:
             result = subprocess.run(
                 [cls.CLAUDE_CODE_BIN, "auth", "status"],
                 capture_output=True, text=True, timeout=15,
-                env={**os.environ, "NO_COLOR": "1"},
+                env=agent_subprocess_env(),
             )
             data = json.loads(result.stdout)
             return bool(data.get("loggedIn", False))
@@ -2063,7 +2064,7 @@ class ClaudeCodeRunnerAutopilot:
                     capture_output=True,
                     text=True,
                     timeout=timeout,
-                    env={**os.environ, "NO_COLOR": "1"},
+                    env=agent_subprocess_env(),
                 )
 
                 _combined = (result.stdout or "") + (result.stderr or "")
@@ -3080,7 +3081,7 @@ class CodexRunnerAutopilot:
                 capture_output=True,
                 text=True,
                 timeout=timeout,
-                env={**os.environ, "NO_COLOR": "1"},
+                env=agent_subprocess_env(),
                 start_new_session=True,
             )
             duration = time.monotonic() - start

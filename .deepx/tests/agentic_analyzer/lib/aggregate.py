@@ -35,6 +35,13 @@ class SessionEval:
     transcript_length: int
     # Run-id grouping (propagated from ResultDir.run_id)
     run_id: str = "legacy"
+    # Environment-failure signature detected in the transcript (PR2):
+    # "cert" | "rate-limit" | "model-refresh-timeout" | "" (none). When set,
+    # the session is an env failure regardless of duration heuristics — see
+    # lib/env_failure.py.
+    env_failure_signature: str = ""
+    # T4 no-DONE cause classification: "" | env-<sig> | sentinel-omission | incomplete-planstop
+    no_done_cause: str = ""
     # Token usage (now extracted per-tool)
     input_tokens: int = 0
     output_tokens: int = 0
@@ -83,6 +90,24 @@ class SessionEval:
     # Composite
     overall_score: float = 0.0
     notes: List[str] = field(default_factory=list)
+
+
+def classify_no_done_cause(*, has_done: bool, env_failure_signature: str,
+                           has_output_dirs: bool, execution_score: float) -> str:
+    """Classify WHY a session has no DONE sentinel (empty when it has one).
+
+    Priority: env signature (rate-limit/cert/model-refresh) > sentinel-omission
+    (real artifacts + execution evidence) > incomplete-planstop (ran but no
+    verifiable deliverable). The signature path prefixes with ``env-`` so the
+    report can group all env causes together (env-rate-limit, env-cert, ...).
+    """
+    if has_done:
+        return ""
+    if env_failure_signature:
+        return f"env-{env_failure_signature}"
+    if has_output_dirs and execution_score > 0:
+        return "sentinel-omission"
+    return "incomplete-planstop"
 
 
 # Scenario-aware Overall weights (v2.1). Each row sums to 1.00.
