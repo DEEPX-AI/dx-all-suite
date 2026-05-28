@@ -40,11 +40,23 @@ CODEX_INFRA_SIGNATURES = (
     "timeout waiting for child process",
 )
 
+# Anthropic/CLI usage-quota exhaustion (agent cannot run until reset). Environment
+# failure, NOT capability — the round should be deleted + re-run after reset.
+RATE_LIMIT_SIGNATURES = (
+    "hit your session limit",
+    "session limit · resets",
+    "usage limit reached",
+    # Specific quota phrasings only — the bare substring "rate limit" is avoided
+    # because it false-matches benign text (e.g. "no rate limit applied", docs).
+    "rate limit reached",
+    "rate limit exceeded",
+)
+
 
 def detect_env_signature(text: str, *, command_count: Optional[int] = None) -> str:
     """Classify the env-failure signature in transcript ``text``.
 
-    Returns one of: ``"cert"`` | ``"model-refresh-timeout"`` | ``""``.
+    Returns one of: ``"cert"`` | ``"rate-limit"`` | ``"model-refresh-timeout"`` | ``""``.
 
     For codex model-refresh: when ``command_count`` is provided and > 0, the
     agent recovered and did real work (e.g. R5 compiler: 96 commands), so it is
@@ -54,6 +66,8 @@ def detect_env_signature(text: str, *, command_count: Optional[int] = None) -> s
         return ""
     if any(sig in text for sig in CERT_SIGNATURES):
         return "cert"
+    if any(sig in text for sig in RATE_LIMIT_SIGNATURES):
+        return "rate-limit"
     if any(sig in text for sig in CODEX_INFRA_SIGNATURES):
         if command_count is not None and command_count > 0:
             return ""  # recovered, did real work → not an env failure

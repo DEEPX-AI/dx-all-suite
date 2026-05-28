@@ -168,3 +168,27 @@ def test_r11_r15_verdict_table():
         if got is not expected:
             failures.append(f"{label}: expected env={expected}, got {got}")
     assert not failures, "R11-R15 verdict mismatches:\n" + "\n".join(failures)
+
+
+# --- rate-limit / session-limit (Anthropic CLI quota exhaustion) -------------
+
+def test_detect_rate_limit_session_limit():
+    assert ef.detect_env_signature(
+        "You've hit your session limit · resets 8:40pm (Asia/Seoul)") == "rate-limit"
+    assert ef.detect_env_signature("session limit · resets 9:00am") == "rate-limit"
+
+def test_rate_limit_is_env_even_with_partial_output():
+    # claude R3 suite: rate-limit text, derived out_dirs present, no START/DONE
+    assert ef.is_env_failure(
+        env_signature="rate-limit", has_start=False, has_done=False,
+        has_output_dirs=True, output_tokens=0, tool_call_count=0) is True
+
+def test_cert_priority_over_rate_limit():
+    # cert is checked first; a mixed-signal blob must classify as cert, not rate-limit
+    assert ef.detect_env_signature("API Error: SSL certificate verification failed") == "cert"
+    assert ef.detect_env_signature(
+        "SSL certificate verification failed; also hit your session limit") == "cert"
+
+def test_bare_rate_limit_phrase_does_not_false_match():
+    # benign mentions of "rate limit" must NOT be flagged (only specific phrasings)
+    assert ef.detect_env_signature("Note: no rate limit applied to this endpoint.") == ""
