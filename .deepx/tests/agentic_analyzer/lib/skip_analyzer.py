@@ -62,19 +62,22 @@ def is_env_failure_eval(ev: "SessionEval") -> bool:
     analyzer and the runner repair (goalB_repair) classify env failures
     identically. The signals are pulled off the SessionEval row:
 
-    (0) SIGNATURE — explicit cert/model-refresh signature scanned from the
-        transcript (``ev.env_failure_signature``). Highest priority: a cert/SSL
-        error or codex model-refresh timeout (with no real work) is an env
-        failure even when partial tokens/artifacts exist.
+    (0) SIGNATURE — explicit cert / rate-limit / model-refresh signature
+        scanned from the transcript (``ev.env_failure_signature``). Highest
+        priority: a cert/SSL error, Anthropic session-limit, or codex
+        model-refresh timeout (with no real work) is an env failure even when
+        partial tokens / (derived) artifacts exist.
 
     (B) Incomplete session — has_start + no DONE + non-zero round exit →
         agent terminated mid-execution (Bash hang, CLI crash, SIGKILL).
 
-    (A) Pre-execution infra failure — no output_dirs + no START +
-        output_tokens==0 → API rate limit / TLS error before any LLM call.
+    (A) Pre-execution infra failure — output_tokens==0 AND no START → API
+        rate limit / TLS error before any LLM call. Fires even when
+        output_dirs is True (the suite-fallback derives dirs from compiler+
+        dx_app, which must not mask a session that produced zero tokens).
 
-    Sessions WITH a DONE sentinel, or with output_dirs / has_start but no
-    signature, are NOT env failures (artifact-collection bug, not infra).
+    Sessions WITH a DONE sentinel, or with real artifacts + has_start but
+    no signature, are NOT env failures (artifact-collection bug, not infra).
     """
     from . import env_failure as ef
 

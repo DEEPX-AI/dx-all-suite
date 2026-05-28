@@ -88,11 +88,14 @@ def is_env_failure(
     """Return True if a session is an environment failure (exclude from scoring).
 
     Priority:
-      1. SIGNATURE — explicit cert/model-refresh signature + no DONE.
+      1. SIGNATURE — explicit cert/rate-limit/model-refresh signature + no DONE.
          (model-refresh with real tool work is treated as non-env upstream by
          detect_env_signature returning "", but guard here too.)
       2. INCOMPLETE (criterion B) — started, no DONE, non-zero round exit.
-      3. PRE-EXECUTION (criterion A) — no output dirs, no START, zero tokens.
+      3. PRE-EXECUTION (criterion A) — zero output tokens + no START. Fires
+         even when has_output_dirs is True, because those dirs are derived /
+         inherited (e.g. the suite-fallback copies compiler+dx_app dirs) and
+         must not mask a session that produced zero LLM output.
     A session WITH a DONE sentinel is never an env failure.
     """
     if has_done:
@@ -108,9 +111,17 @@ def is_env_failure(
     if has_start and (exit_status or 0) != 0:
         return True
 
-    # (3) pre-execution infra failure: nothing produced
+    # (3) pre-execution infra failure. A session that produced ZERO LLM output
+    # tokens and never emitted START is an env failure even if has_output_dirs is
+    # True — those dirs are derived/inherited (e.g. the suite fallback copies
+    # compiler+dx_app dirs) and must not mask a session that did nothing.
+    if output_tokens == 0 and not has_start:
+        return True
     if has_output_dirs:
         return False
     if has_start:
         return False  # ran but artifacts not captured → artifact bug, not env
-    return output_tokens == 0
+    # Unreachable for env=True: the zero-token / no-start case was handled above.
+    # Kept defensive: if output_tokens is somehow negative/None-coerced upstream,
+    # this returns False (not env) — safer than asserting.
+    return False

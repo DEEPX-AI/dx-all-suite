@@ -192,3 +192,19 @@ def test_cert_priority_over_rate_limit():
 def test_bare_rate_limit_phrase_does_not_false_match():
     # benign mentions of "rate limit" must NOT be flagged (only specific phrasings)
     assert ef.detect_env_signature("Note: no rate limit applied to this endpoint.") == ""
+
+
+# --- criterion-A derived-dir masking fix -------------------------------------
+
+def test_zero_tokens_no_start_is_env_even_with_derived_dirs():
+    # suite scenario inherits compiler/dx_app dirs (derived) but produced 0 tokens
+    # and never emitted START → must be env failure, not a scored session.
+    assert ef.is_env_failure(
+        env_signature="", has_start=False, has_done=False,
+        has_output_dirs=True, output_tokens=0, tool_call_count=0) is True
+
+def test_real_work_with_dirs_still_not_env():
+    # regression: codex R5 (96 cmds, 5000 tokens, real artifacts) stays non-env
+    assert ef.is_env_failure(
+        env_signature="", has_start=False, has_done=False,
+        has_output_dirs=True, output_tokens=5000, tool_call_count=96) is False
