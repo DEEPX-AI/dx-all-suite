@@ -31,6 +31,20 @@ DEEPX는 5개의 AI 코딩 도구(Claude Code, Copilot CLI, Cursor CLI, OpenCode
   → GPT-5.5/Opus 4.7 벤치마크 절대값이 아닌, **상대적 위치(Sonnet 4.6의 instruction
   following 강점 vs Composer 2.5의 속도/비용 우위)**가 가설 근거.
 
+<!-- ⛔ HARD-GATE — §1.5 / §1.6 RE-EDIT 금지
+
+  §1.5는 Cursor가 **공식 공개한 정보**(블로그/회사 클레임)만 인용해야 합니다.
+  과거에 "본 실험에서 80 세션 분석 결과 ~98% 관측" 같은 문장을 추가했다가 H1
+  rationale에 사후 데이터가 인용되는 prior 위반이 두 번 발생했습니다. 다음
+  키워드를 추가하지 마세요: "본 실험에서", "N session 분석", "관측되었", "실측",
+  "observed", "Compliance ~", "Runnability ~". 가설은 결과를 모르는 상태에서
+  벤치마크/공식 클레임만으로 작성되어야 합니다.
+
+  §1.6은 Cursor가 공개한 `--list-models` 정보 + 본 실험 하네스 코드
+  (`e2e_runner.py` THINKING_ENV)만 인용 — 둘 다 사전 정보입니다. "결과"
+  ("관측되었더라도", "실제 효과", "stochastic variance로 확인됨" 등)을 추가하지
+  마세요.
+-->
 ### 1.5 Cursor Composer 2.5 (2026-05-26 cursor.com/blog/composer-2-5)
 - URL: https://cursor.com/ko/blog/composer-2-5
 - Cursor 자체 학습한 coding-specialized 모델 (sonnet-4.6 미사용)
@@ -38,36 +52,25 @@ DEEPX는 5개의 AI 코딩 도구(Claude Code, Copilot CLI, Cursor CLI, OpenCode
   - Sonnet 4.6 대비 **~2× 빠른 응답 속도** (긴 reasoning 챕터 없는 형태)
   - "frontier intelligence" 수준 — agentic coding 워크플로에 특화
   - **Cursor Pro 무제한 사용 가능** (API 호출 비용 없음) — 자체 호스팅
-- 본 실험에서 80 cursor 세션 분석 결과:
-  - composer25 (74%), composer25fast (20%), composer (4%), comp25 (2%)
-  - **100% Composer 2.5 계열** — Sonnet 4.6 미실행
-- 시사: cursor-cli의 일관된 성능(Compliance ~98%, Runnability ~95%)이 도구 하네스
-  덕분인지, Composer 2.5 모델 자체 우위인지 분리 불가. 모델/하네스 교차 변수.
+- 가용 변형: `composer-2.5`, `composer-2.5-fast` (`fast`는 reasoning이 짧은 별도 모델, thinking on/off 아님)
+- 시사: Cursor는 sonnet-4.6 미사용 — 모든 cursor-cli 세션은 Composer 2.5 backend로 처리.
+  따라서 cursor와 sonnet 도구의 점수 차이는 **모델 자체 차이 + 하네스 차이**가 섞여 있어 confounder.
 
-### 1.6 Cursor CLI의 thinking 토글 한계 (본 실험 결정적 confounder)
+### 1.6 Cursor CLI의 thinking 토글 한계 (잠재 confounder)
 
-`agent --list-models` 실측 결과:
-- **Composer 2.5 계열은 thinking variant가 모델에 존재하지 않음** (`composer-2.5`와 `composer-2.5-fast` 두 가지뿐, `fast`는 reasoning이 짧은 변종이지 thinking on/off가 아님)
+Cursor `agent --list-models`에 따르면:
+- Composer 2.5 계열은 thinking variant 미존재 (`composer-2.5`, `composer-2.5-fast` 두 가지)
 - thinking variant가 있는 모델: `claude-4.6-sonnet-medium-thinking`, `claude-opus-4-7-thinking-*`, `gpt-5.3-codex-{low,high,xhigh}` 등 — Cursor의 다른 backend 옵션
-- Cursor `--model auto`(quota 폴백 결과)는 Composer 2.5 family로 떨어지므로 **thinking 토글 인자 자체가 무의미**
+- `--model auto` (quota 폴백)는 Composer 2.5 family로 떨어지므로 **thinking 토글 인자 자체가 무의미**
 
-본 실험 하네스 (`e2e_runner.py:108-115` `THINKING_ENV`):
-```python
-"claude-code":  --effort xhigh
-"copilot-cli":  --effort xhigh
-"opencode-cli": --variant high
-"codex-cli":    -c model_reasoning_effort="xhigh"
-"cursor-cli":   {}  # quota exceeded; auto fallback, no thinking mode
-```
-
-- 4개 sonnet-4.6 도구는 TH 라운드에서 reasoning_effort=xhigh 적용
-- **cursor만 빈 dict** — TH 라운드에도 NT와 동일 인자로 실행
-- 결과: **cursor의 NT(R1-R5) vs TH(R6-R10) 차이는 thinking 효과가 아닌 라운드 간 stochastic variance**
+본 실험 하네스(`e2e_runner.py` `THINKING_ENV`)는 4개 sonnet-4.6 도구에만
+reasoning_effort 인자(--effort xhigh 등)를 적용하고 cursor-cli는 빈 dict(`{}`)로
+NT와 TH 라운드에서 동일 실행합니다. 즉 cursor의 NT vs TH 비교는 thinking
+효과를 분리할 수 없습니다.
 
 가설 작성 시 반드시 반영:
 - "thinking 효과" 가설은 **claude-code / copilot-cli / opencode / codex-cli 4개 도구로 한정**해 해석
-- cursor의 NT→TH 변화는 "thinking 모드 효과"로 인용 금지 — 모델 동일, 인자 동일
-- cursor를 thinking 비교에 포함하려면 명시적으로 `--model claude-4.6-sonnet-medium-thinking` 강제 필요 (현재 quota 한도로 미지원)
+- cursor의 NT→TH 차이는 "thinking 모드 효과"로 해석 금지 — 모델·인자 동일
 
 ### 2. SWE-Bench Verified Leaderboard (May 2026)
 - URL: https://www.swebench.com/  (live JS 페이지)
@@ -78,8 +81,9 @@ DEEPX는 5개의 AI 코딩 도구(Claude Code, Copilot CLI, Cursor CLI, OpenCode
   - GPT-5.3 Codex: **85.0%**
   - Claude Opus 4.5: **80.9%**
   - (claude-sonnet-4-6은 Verified 최상단 미게재 — Sonnet은 Pro보다 Verified에서 약함)
-- 시사: 본 실험 backend(Sonnet 4.6)는 SWE-Bench Verified 절대값이 ~70-75% 수준으로 추정.
-  도구 간 차이는 **모델이 아닌 도구 하네스(자동 승인, instruction loop 등)에서 발생**.
+- 시사: 4개 sonnet-4.6 도구의 backend는 SWE-Bench Verified 최상위(Opus 4.7 / GPT-5.3)
+  대비 ~10-15pt 낮은 영역으로 추정. 동일 backend 도구 간 차이는
+  **모델 능력이 아닌 도구 하네스(자동 승인, instruction loop 등)에서 발생** 예상.
 
 ### 3. Aider Polyglot Leaderboard (live)
 - URL: https://aider.chat/docs/leaderboards/
@@ -115,24 +119,44 @@ DEEPX는 5개의 AI 코딩 도구(Claude Code, Copilot CLI, Cursor CLI, OpenCode
 
 ## 실험에 사용된 도구-모델 조합
 
-**4개 도구(claude-code/copilot-cli/opencode/codex-cli)는 claude-sonnet-4.6 backend.**
-**cursor-cli만 자체 모델 Composer 2.5 계열 사용 (단독 outlier).** 따라서 cursor와 그
-외 도구 간 비교는 "도구 하네스" + "모델" 양쪽 차이가 섞임.
+본 실험은 **3개 라운드 그룹 × 5개 도구**로 구성된 15라운드 (각 5개 시나리오).
+도구별로 R1-R5(NT), R6-R10(TH, 기본 모델), R11-R15(TH, 상위 모델)로 backend가
+변경되는 점이 핵심.
 
-| 도구 | Backend Model | Provider | 통신 특징 |
+### 라운드 그룹 설계
+
+| 그룹 | 라운드 | Mode | claude-code · copilot-cli · opencode | codex-cli | cursor-cli |
+|---|---|---|---|---|---|
+| **A** | R1-R5   | NT (non-thinking)            | claude-sonnet-4.6     | gpt-5.3-codex   | Composer 2.5 (auto) |
+| **B** | R6-R10  | TH (reasoning xhigh)         | claude-sonnet-4.6     | gpt-5.3-codex   | Composer 2.5 (auto) |
+| **C** | R11-R15 | TH + 상위 모델 업그레이드     | **claude-opus-4.6**   | **gpt-5.5**     | Composer 2.5 (auto) |
+
+핵심 비교 축:
+- **Thinking 효과 (A vs B)**: 4개 sonnet/gpt 도구의 backend는 동일 — 차이는 reasoning_effort 인자뿐
+- **모델 등급 효과 (B vs C)**: thinking 인자는 동일 — Anthropic 4 도구는 sonnet→opus 업그레이드, codex는 gpt-5.3-codex→gpt-5.5
+- **종합 효과 (A vs C)**: 두 변수 모두 변경 — 참고용
+
+### 도구-Provider 통신 특징
+
+| 도구 | Backend (A/B → C) | Provider | 통신 특징 |
 |------|---|----------|---------|
-| Claude Code | claude-sonnet-4.6 | Anthropic (direct) | 원생 stream-json, 가장 풍부한 trace |
-| Copilot CLI | claude-sonnet-4.6 | GitHub Copilot | PR(Premium Request) 단위 과금, sentinel 풍부 |
-| **Cursor CLI** | **Composer 2.5** (자체) | Cursor | composer25/composer25fast 변형, 짧은 duration, Pro 무제한 |
-| OpenCode | claude-sonnet-4.6 | GitHub Copilot | claude subagent 위임 패턴 |
-| Codex CLI | claude-sonnet-4.6 | GitHub Copilot | NDJSON stream, sentinel 형식 차이 |
+| Claude Code | sonnet-4.6 → **opus-4.6** | Anthropic (direct) | 원생 stream-json, 가장 풍부한 trace |
+| Copilot CLI | sonnet-4.6 → **opus-4.6** | GitHub Copilot | PR(Premium Request) 단위 과금, sentinel 풍부 |
+| **Cursor CLI** | **Composer 2.5 (모든 그룹)** | Cursor | composer25/composer25fast 변형, 짧은 duration, Pro 무제한 |
+| OpenCode | sonnet-4.6 → **opus-4.6** | GitHub Copilot | claude subagent 위임 패턴 |
+| Codex CLI | gpt-5.3-codex → **gpt-5.5** | GitHub Copilot | NDJSON stream, sentinel 형식 차이 |
 
-→ **가설 시 주의**: cursor-cli의 성능 차이는 "모델 자체 차이"일 수 있어, 다른 도구와
-직접 비교 시 confounder. 동일 backend의 4개 도구끼리 비교가 harness 영향 측정에 적합.
+→ **가설 시 주의**:
+- cursor-cli는 그룹 A·B·C 모두 Composer 2.5(auto)로 동작 — thinking/모델 비교 모두에서 confounder
+- 동일 backend의 4 sonnet 도구끼리 비교가 harness 영향 측정에 적합
+- C 그룹의 모델 등급 효과는 Anthropic(sonnet→opus)와 OpenAI(gpt-5.3-codex→gpt-5.5)가 독립적으로 변하므로 두 family를 분리해 해석
 
-본 실험의 **non-thinking 라운드(R1-R5)와 thinking 라운드(R6-R10)** 비교가 핵심:
-- thinking은 percent_correct를 일반적으로 ~5pt 상승시킴 (Aider 데이터)
+### Thinking 효과 사전 기대 (Aider 데이터)
+
+- thinking은 Sonnet 4의 percent_correct를 ~5pt 상승시킴 (56.4% → 61.3%, +4.9pt)
 - 단 duration·token cost가 ~2배 증가 — efficiency 트레이드오프
+
+`experiment.background` 필드 작성 시 위 3-라운드 설계와 backend 전환을 반드시 명시.
 
 ## 출력 형식
 
@@ -185,13 +209,15 @@ DEEPX는 5개의 AI 코딩 도구(Claude Code, Copilot CLI, Cursor CLI, OpenCode
    format이 시사하듯 Claude Sonnet 4의 instruction following이 강해 compliance에서 상위 예상")
 5. confidence 수준을 high/medium/low로 표기
 6. 다음 차원도 고려:
-   - **thinking vs non-thinking** 라운드 차이 (R6-R10 vs R1-R5) —
-     **cursor 제외 4개 도구에서만** 유효 (cursor는 모델 변화 없음, §1.6 참조)
+   - **그룹 A(NT, R1-R5) vs B(TH, R6-R10)**: 동일 backend에서 reasoning_effort 적용 효과
+     — cursor 제외 4 도구에서만 유효
+   - **그룹 B(R6-R10) vs C(R11-R15)**: 모델 등급 효과 — Anthropic 3 도구는 sonnet→opus,
+     codex는 gpt-5.3-codex→gpt-5.5. cursor는 어떤 그룹에서도 모델 변화 없음
+   - **그룹 A vs C**: thinking + 모델 두 변수 동시 변경 — 참고용
    - **provider 통신 특성** (Anthropic direct vs Copilot backend vs Cursor 자체)
    - **도구 자체 하네스**: 자동 승인 모드, sentinel 형식, NDJSON vs stream-json
-   - **agentic 차원**: Terminal-Bench 2.0이 가장 본 실험과 직결 (GPT-5.5 우위)
-   - **cursor-cli는 Composer 2.5 backend** (sonnet-4.6 미사용) — cursor의 점수
-     차이는 모델 자체 + 하네스 차이가 섞여 있어 confounder 존재
+   - **agentic 차원**: Terminal-Bench 2.0이 가장 이 실험과 직결 (GPT-5.5 우위)
+   - **cursor-cli는 모든 라운드에서 Composer 2.5 backend** — 모든 비교에서 confounder
 7. **4개 도구(claude-code/copilot-cli/opencode/codex-cli)는 sonnet-4.6 공유**,
    **cursor-cli만 Composer 2.5** — 이를 가설에 명시적으로 반영
    — 동일 backend 4개 도구 간 차이는 도구별 **하네스/통신/sentinel 특성**이 좌우.
