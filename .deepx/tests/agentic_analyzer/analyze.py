@@ -611,9 +611,18 @@ NPU(Neural Processing Unit) 추론 앱을 자동 생성하는 "Agentic Developme
 ## 실험 조건
 
 - **시나리오**: 6개 (compiler, app-python 4종, cross-project)
-- **반복 횟수**: 라운드당 도구×시나리오 = 30 세션
-- **평가 지표**: 규칙 준수(Compliance), 코드 품질(Quality), 실행 가능성(Runnability), 산출물 완성도(Execution), 종합 점수(Overall)
-- **통제 변수**: 동일 프롬프트, 동일 하드웨어(DX-M1 NPU), 동일 모델(Claude Sonnet 4.6 계열)
+- **라운드 그룹**: 3 그룹 × 5라운드 = **15 라운드** (그룹당 도구 5 × 시나리오 6 = 30 세션, 전체 450 세션)
+  - **A** (R1-R5)   비추론(thinking off) + 기본 모델: claude-sonnet-4.6 / gpt-5.3-codex / Composer 2.5(auto)
+  - **B** (R6-R10)  추론(thinking on, reasoning_effort=xhigh) + 기본 모델: A와 동일 backend
+  - **C** (R11-R15) 추론(thinking on) + **상위 모델**: claude-opus-4.6 / gpt-5.5 / Composer 2.5(auto)
+- **핵심 비교 축**:
+  - A vs B → **thinking 효과** (모델 고정, reasoning_effort만 변화)
+  - B vs C → **모델 등급 효과** (thinking 고정, backend 모델만 업그레이드)
+  - A vs C → **종합 효과** (두 변수 동시 변경, 참고용)
+- **평가 지표**: 규칙 준수(Compliance), 코드 품질(Quality), 실행 가능성(Runnability), 실행 흔적(ExecutionTrace), 종합 점수(Overall)
+- **통제 변수**: 동일 프롬프트(6개 시나리오 자연어 동일), 동일 하드웨어(DX-M1 NPU), 동일 sub-project 산출물 경로 규약(`dx-agentic-dev/<session_id>/`)
+- **변동 변수**: (1) thinking on/off (그룹 A↔B), (2) backend 모델 등급 (그룹 B↔C)
+- **Confounder**: cursor-cli는 A·B·C 세 그룹 모두 Composer 2.5(auto) 고정 — thinking 변화도, 모델 변화도 적용되지 않음. cursor의 그룹간 점수 차이는 stochastic noise로 해석.
 """
 
 
