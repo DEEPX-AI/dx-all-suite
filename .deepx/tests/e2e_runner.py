@@ -564,13 +564,27 @@ def _run_single_round(
 
 
 def _tool_env(state: RunState, tool: str, thinking: bool) -> Dict[str, str]:
-    """Build subprocess env for *tool*: inherits parent + DX_RUN_ID + thinking overrides."""
+    """Build subprocess env for *tool*: inherits parent + DX_RUN_ID + thinking overrides.
+
+    Also emits metadata env vars so ``conftest.pytest_sessionfinish`` can record
+    the run's intent (mode, applied THINKING_ENV) in ``manifest.json``. This
+    lets the analyzer distinguish NT vs TH rounds and which reasoning_effort
+    argument was actually injected per tool — information that was previously
+    only knowable from the user's notes.
+    """
+    import json as _json
     env = os.environ.copy()
     # Propagate run_id so conftest.pytest_sessionfinish writes results into
     # results/<run_id>/<session_id>/ instead of the flat results/ layout.
     env["DX_RUN_ID"] = state.run_id
+    env["DX_TOOL"] = tool
+    env["DX_THINKING_MODE"] = "TH" if thinking else "NT"
+    applied = THINKING_ENV.get(tool, {}) if thinking else {}
     if thinking:
-        env.update(THINKING_ENV.get(tool, {}))
+        env.update(applied)
+    # Serialize the dict (possibly empty for cursor-cli) so manifest can show
+    # exactly which reasoning_effort args were injected this round.
+    env["DX_THINKING_ENV_APPLIED"] = _json.dumps(applied, ensure_ascii=False)
     return env
 
 

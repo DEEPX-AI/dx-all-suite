@@ -3412,10 +3412,42 @@ def pytest_sessionfinish(session, exitstatus):
     results_dir = AGENTIC_E2E_ARTIFACTS_BASE / "results" / run_id / session_id
     results_dir.mkdir(parents=True, exist_ok=True)
 
+    # Capture runner-supplied metadata (env vars set by e2e_runner._tool_env)
+    # so the analyzer can distinguish NT vs TH rounds and which model/effort
+    # args were actually applied this round. All keys are optional — falls
+    # back to empty strings when this session is invoked outside e2e_runner
+    # (e.g. manual pytest call).
+    _thinking_env_applied: dict = {}
+    _env_raw = os.environ.get("DX_THINKING_ENV_APPLIED", "")
+    if _env_raw:
+        try:
+            _thinking_env_applied = json.loads(_env_raw) or {}
+        except (json.JSONDecodeError, TypeError):
+            _thinking_env_applied = {}
+
+    # Snapshot the model-selection env vars whose values actually decide which
+    # backend model the agent will call. Keeping the snapshot in manifest makes
+    # it possible to tell e.g. R1-R5 (sonnet) from R11-R15 (opus) from the
+    # results directory alone, without referring to external notes.
+    _intended_models = {
+        "DX_AGENTIC_E2E_MODEL": os.environ.get("DX_AGENTIC_E2E_MODEL", ""),
+        "DX_AGENTIC_E2E_CLAUDE_CODE_MODEL": os.environ.get("DX_AGENTIC_E2E_CLAUDE_CODE_MODEL", ""),
+        "DX_AGENTIC_E2E_OPENCODE_MODEL": os.environ.get("DX_AGENTIC_E2E_OPENCODE_MODEL", ""),
+        "DX_AGENTIC_E2E_CURSOR_MODEL": os.environ.get("DX_AGENTIC_E2E_CURSOR_MODEL", ""),
+    }
+    _intended_models = {k: v for k, v in _intended_models.items() if v}
+
     manifest = {
         "session_id": session_id,
         "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "exit_status": exitstatus,
+        # Runner / scope metadata
+        "run_id": run_id,
+        "tool": os.environ.get("DX_TOOL", "")
+                  or (marker_suffix.lstrip("_") if marker_suffix else ""),
+        "mode": os.environ.get("DX_THINKING_MODE", ""),   # "TH" / "NT" / ""
+        "thinking_env_applied": _thinking_env_applied,    # per-tool reasoning_effort args (dict)
+        "intended_models": _intended_models,              # env-supplied model overrides
         "artifacts": {},
     }
 
