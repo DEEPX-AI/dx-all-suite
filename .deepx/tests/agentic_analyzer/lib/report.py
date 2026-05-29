@@ -14,6 +14,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 from .aggregate import (
     SessionEval,
     _is_env_failure,
+    aggregate_per_group_tool,
     aggregate_per_round_tool,
     aggregate_per_scenario_tool,
     aggregate_per_tool,
@@ -78,6 +79,345 @@ def _fmt_duration(sec) -> str:
         return f"{m / 60:.1f}h"
     except Exception:
         return str(sec)
+
+
+def _emit_group_comparison_section(lines: List[str], evals: List[SessionEval]) -> None:
+    """Emit §3.5-§3.7 group comparison tables (NT/TH × sonnet/opus).
+
+    Each comparison takes a (group_A, group_B) pair and shows per-tool Δ in
+    Overall / Compliance / Quality / ExecutionTrace / Runnability.
+
+    cursor-cli is automatically excluded — its sessions always belong to the
+    NA_auto group (Composer 2.5 has no thinking variant, no Anthropic backend).
+    """
+    per_group = aggregate_per_group_tool(evals)
+    if not per_group:
+        return
+
+    # Discover available groups + tools
+    tools_in_groups = sorted({k[1] for k in per_group if k[1] != "cursor-cli"})
+
+    def _delta_row(tool: str, group_a: str, group_b: str) -> Optional[Tuple[str, ...]]:
+        a = per_group.get((group_a, tool))
+        b = per_group.get((group_b, tool))
+        if not a or not b:
+            return None
+
+        def _delta(field: str) -> str:
+            try:
+                return f"{(b[field] - a[field]):+.1f}"
+            except (KeyError, TypeError):
+                return "—"
+
+        return (
+            tool,
+            f"{a.get('avg_overall_score', 0):.1f}",
+            f"{b.get('avg_overall_score', 0):.1f}",
+            _delta("avg_overall_score"),
+            _delta("avg_compliance_pct"),
+            _delta("avg_quality_score"),
+            _delta("avg_execution_score"),
+            _delta("avg_runnability_score"),
+            f"{a.get('sessions', 0)}/{b.get('sessions', 0)}",
+        )
+
+    def _emit_pair(
+        heading: str,
+        subtitle: str,
+        group_a: str,
+        group_a_label: str,
+        group_b: str,
+        group_b_label: str,
+    ) -> None:
+        lines.append(heading)
+        lines.append("")
+        lines.append(f"> {subtitle}")
+        lines.append("")
+        rows = []
+        for tool in tools_in_groups:
+            r = _delta_row(tool, group_a, group_b)
+            if r:
+                rows.append(r)
+        if not rows:
+            lines.append(f"> (해당 그룹의 데이터가 없습니다 — `{group_a}` 또는 `{group_b}` 비어 있음.)")
+            lines.append("")
+            return
+        lines.append(
+            "| Tool | "
+            f"{group_a_label} Overall | {group_b_label} Overall | ΔOverall | "
+            "ΔCompl | ΔQual | ΔExec | ΔRunn | Sessions (A/B) |"
+        )
+        lines.append("|------|---:|---:|---:|---:|---:|---:|---:|:---:|")
+        for r in rows:
+            lines.append(f"| **{r[0]}** | {r[1]} | {r[2]} | **{r[3]}** | {r[4]} | {r[5]} | {r[6]} | {r[7]} | {r[8]} |")
+        lines.append("")
+        lines.append("> cursor-cli는 mode=NA(Composer 2.5 고정)이므로 자동 제외됨.")
+        lines.append("")
+
+    def _emit_codex_pair(
+        title: str,
+        subtitle: str,
+        group_a: str,
+        group_a_label: str,
+        group_b: str,
+        group_b_label: str,
+    ) -> None:
+        """Render codex-cli single-tool delta table for a (group_a, group_b) pair."""
+        a = per_group.get((group_a, "codex-cli"))
+        b = per_group.get((group_b, "codex-cli"))
+        if not (a and b):
+            return
+        lines.append(title)
+        lines.append("")
+        lines.append(f"> {subtitle}")
+        lines.append("")
+        d = lambda k: f"{(b.get(k, 0) - a.get(k, 0)):+.1f}"
+        lines.append(
+            f"| Tool | {group_a_label} Overall | {group_b_label} Overall | "
+            "ΔOverall | ΔCompl | ΔQual | ΔExec | ΔRunn | Sessions (A/B) |"
+        )
+        lines.append("|------|---:|---:|---:|---:|---:|---:|---:|:---:|")
+        lines.append(
+            f"| **codex-cli** | {a.get('avg_overall_score', 0):.1f} | "
+            f"{b.get('avg_overall_score', 0):.1f} | "
+            f"**{d('avg_overall_score')}** | {d('avg_compliance_pct')} | "
+            f"{d('avg_quality_score')} | {d('avg_execution_score')} | "
+            f"{d('avg_runnability_score')} | "
+            f"{a.get('sessions', 0)}/{b.get('sessions', 0)} |"
+        )
+        lines.append("")
+
+    lines.append("### 3.5 그룹 비교 — Thinking 효과")
+    lines.append("")
+    _emit_pair(
+        "#### sonnet 4.6 도구: NT_sonnet → TH_sonnet (R1-R5 vs R6-R10)",
+        "동일 backend(claude-sonnet-4.6)에서 reasoning_effort=xhigh 적용 시 변화. "
+        "ΔOverall > 0이면 thinking 효과 긍정.",
+        "NT_sonnet", "NT", "TH_sonnet", "TH",
+    )
+    _emit_codex_pair(
+        "#### codex-cli: NT_gpt53codex → TH_gpt53codex (R1-R5 vs R6-R10)",
+        "동일 backend(gpt-5.3-codex)에서 `model_reasoning_effort=\"xhigh\"` 적용 시 변화. "
+        "codex는 backend가 sonnet 계열이 아니므로 §3.5 sonnet 표에서 분리하여 별도 표시.",
+        "NT_gpt53codex", "NT", "TH_gpt53codex", "TH",
+    )
+
+    lines.append("### 3.6 그룹 비교 — 모델 등급 효과 (Thinking 고정)")
+    lines.append("")
+    _emit_pair(
+        "#### Anthropic 도구: TH_sonnet → TH_opus (R6-R10 vs R11-R15)",
+        "동일 thinking 인자 + Anthropic backend 도구가 sonnet-4.6 → opus-4.6으로 업그레이드. "
+        "ΔOverall > 0이면 상위 모델 우위.",
+        "TH_sonnet", "sonnet TH", "TH_opus", "opus TH",
+    )
+    _emit_codex_pair(
+        "#### codex-cli: TH_gpt53codex → TH_gpt55 (R6-R10 vs R11-R15)",
+        "codex-cli만 backend가 gpt-5.3-codex → gpt-5.5로 변경. "
+        "thinking 인자 동일(reasoning_effort=xhigh).",
+        "TH_gpt53codex", "gpt-5.3-codex TH", "TH_gpt55", "gpt-5.5 TH",
+    )
+
+    lines.append("### 3.7 그룹 비교 — 종합 효과 (참고용)")
+    lines.append("")
+    _emit_pair(
+        "#### Anthropic 도구: NT_sonnet → TH_opus (R1-R5 vs R11-R15)",
+        "thinking + 모델 등급 두 변수 모두 다름 — 단독 변수 추론 불가, 참고용으로만 활용.",
+        "NT_sonnet", "NT sonnet", "TH_opus", "TH opus",
+    )
+    _emit_codex_pair(
+        "#### codex-cli: NT_gpt53codex → TH_gpt55 (R1-R5 vs R11-R15)",
+        "codex thinking 적용 + backend 변경. 두 변수 동시 변경이므로 단독 추론 불가, 참고용.",
+        "NT_gpt53codex", "NT gpt-5.3-codex", "TH_gpt55", "TH gpt-5.5",
+    )
+
+    # ----------------------------------------------------------
+    # 3.8 핵심 발견 (자동 생성, LLM 미사용)
+    # ----------------------------------------------------------
+    lines.append("### 3.8 핵심 발견 (정량 그룹 비교)")
+    lines.append("")
+    _emit_group_findings(lines, per_group)
+
+
+def _emit_group_rank_subsections(lines: List[str], per_group: dict) -> None:
+    """Render per-group (A/B/C) tool rankings under §2.1 Overall %.
+
+    Uses heading level "####" so it slots under §2.1 cleanly.
+    """
+    medals = ["🥇", "🥈", "🥉", "4", "5"]
+    GROUPS = [
+        ("A", "R1-R5 NT (sonnet 4.6 / gpt-5.3-codex / Composer 2.5)",
+         {"NT_sonnet", "NT_gpt53codex", "NA_auto"}),
+        ("B", "R6-R10 TH (sonnet 4.6 / gpt-5.3-codex / Composer 2.5)",
+         {"TH_sonnet", "TH_gpt53codex", "NA_auto"}),
+        ("C", "R11-R15 TH (opus 4.6 / gpt-5.5 / Composer 2.5)",
+         {"TH_opus", "TH_gpt55", "NA_auto"}),
+    ]
+
+    lines.append("")
+    lines.append("#### 그룹별 도구 순위 (A · B · C)")
+    lines.append("")
+    lines.append(
+        "> 그룹 A(R1-R5 NT) · B(R6-R10 TH) · C(R11-R15 TH + 상위 모델). "
+        "cursor-cli는 세 그룹 모두 Composer 2.5(auto) 고정."
+    )
+    lines.append("")
+
+    rankings: Dict[str, Dict[str, int]] = {}
+    for label, subtitle, gks in GROUPS:
+        per_tool_local: Dict[str, Dict[str, float]] = {}
+        for (gk, tool), m in per_group.items():
+            if gk not in gks:
+                continue
+            n = m.get("sessions", 0)
+            if n <= 0:
+                continue
+            d = per_tool_local.setdefault(tool, {"sum": 0.0, "n": 0, "exec_sum": 0.0, "runn_sum": 0.0})
+            d["sum"]      += m.get("avg_overall_score", 0) * n
+            d["exec_sum"] += m.get("avg_execution_score", 0) * n
+            d["runn_sum"] += m.get("avg_runnability_score", 0) * n
+            d["n"]        += n
+
+        rows = []
+        for tool, d in per_tool_local.items():
+            if d["n"] <= 0:
+                continue
+            rows.append({
+                "tool": tool,
+                "overall": d["sum"] / d["n"],
+                "exec":    d["exec_sum"] / d["n"],
+                "runn":    d["runn_sum"] / d["n"],
+                "sessions": d["n"],
+            })
+        rows.sort(key=lambda r: r["overall"], reverse=True)
+        rankings[label] = {r["tool"]: i + 1 for i, r in enumerate(rows)}
+
+        lines.append(f"##### 그룹 {label} — {subtitle}")
+        lines.append("")
+        if not rows:
+            lines.append("> _데이터 없음._\n")
+            continue
+        lines.append("| Rank | Tool | Overall | ExecutionTrace | Runnability | Sessions |")
+        lines.append("|:----:|------|--------:|---------------:|------------:|--------:|")
+        for i, r in enumerate(rows):
+            medal = medals[i] if i < len(medals) else str(i + 1)
+            lines.append(
+                f"| {medal} | **{r['tool']}** | **{r['overall']:.1f}** "
+                f"| {r['exec']:.1f} | {r['runn']:.1f} | {r['sessions']} |"
+            )
+        lines.append("")
+
+    # 그룹간 순위 변화 (A→C)
+    if rankings.get("A") and rankings.get("B") and rankings.get("C"):
+        common_tools = sorted(
+            set(rankings["A"].keys()) & set(rankings["B"].keys()) & set(rankings["C"].keys())
+        )
+        if common_tools:
+            lines.append("##### 그룹간 순위 변화 (A → B → C)")
+            lines.append("")
+            lines.append("| Tool | A 순위 | B 순위 | C 순위 | A→C 변동 |")
+            lines.append("|------|:----:|:----:|:----:|:----:|")
+            for t in common_tools:
+                ra, rb, rc = rankings["A"][t], rankings["B"][t], rankings["C"][t]
+                delta = ra - rc
+                if delta > 0:
+                    change = f"↑ +{delta}위"
+                elif delta < 0:
+                    change = f"↓ {delta}위"
+                else:
+                    change = "변동 없음"
+                lines.append(f"| **{t}** | {ra} | {rb} | {rc} | {change} |")
+            lines.append("")
+
+
+def _emit_group_findings(lines: List[str], per_group: dict) -> None:
+    """자동으로 그룹 비교 데이터에서 의미 있는 발견을 추출하여 bullet 텍스트로 출력.
+
+    LLM 미사용 — 수치 기반 결정론적 분석. insights.md가 silent fail 했을 때도
+    리포트에 핵심 발견이 누락되지 않도록 보장.
+    """
+    def _delta_for_tool(tool: str, group_a: str, group_b: str, field: str = "avg_overall_score") -> Optional[float]:
+        a = per_group.get((group_a, tool))
+        b = per_group.get((group_b, tool))
+        if not a or not b:
+            return None
+        return b.get(field, 0) - a.get(field, 0)
+
+    findings: List[str] = []
+
+    # Finding 1: codex thinking + 모델 업그레이드 우위
+    codex_th  = _delta_for_tool("codex-cli", "NT_gpt53codex", "TH_gpt53codex")
+    codex_mt  = _delta_for_tool("codex-cli", "TH_gpt53codex", "TH_gpt55")
+    codex_all = _delta_for_tool("codex-cli", "NT_gpt53codex", "TH_gpt55")
+    if codex_th is not None and codex_mt is not None and codex_all is not None:
+        if codex_th > 0 and codex_mt > 0:
+            findings.append(
+                f"**codex-cli만 thinking 효과 + 모델 업그레이드 모두 긍정** "
+                f"(ΔOverall: thinking {codex_th:+.1f}, 모델 {codex_mt:+.1f}, 종합 {codex_all:+.1f}). "
+                f"OpenAI 계열은 reasoning_effort/모델 등급 양쪽이 일관된 개선으로 작용."
+            )
+
+    # Finding 2: Anthropic sonnet → opus 역효과 케이스 다수
+    anthropic_tools = ["claude-code", "copilot-cli", "opencode-cli"]
+    sonnet_to_opus = {t: _delta_for_tool(t, "TH_sonnet", "TH_opus") for t in anthropic_tools}
+    neg_count = sum(1 for d in sonnet_to_opus.values() if d is not None and d < 0)
+    pos_count = sum(1 for d in sonnet_to_opus.values() if d is not None and d > 0)
+    if neg_count >= 2:
+        details = ", ".join(
+            f"{t} {d:+.1f}" for t, d in sonnet_to_opus.items() if d is not None
+        )
+        findings.append(
+            f"**Anthropic sonnet→opus가 다수 도구에서 역효과** "
+            f"({neg_count}/3 도구 ΔOverall < 0; 상세: {details}). "
+            f"동일 모델 등급 업그레이드가 도구 하네스에 따라 균일하지 않음 — opus 응답 형식이 "
+            f"하네스 파싱 기대값과 어긋날 가능성."
+        )
+
+    # Finding 3: copilot-cli ExecutionTrace 큰 폭 하락 (종합)
+    copilot_exec_all = _delta_for_tool("copilot-cli", "NT_sonnet", "TH_opus", "avg_execution_score")
+    if copilot_exec_all is not None and copilot_exec_all <= -10:
+        findings.append(
+            f"**copilot-cli ΔExec {copilot_exec_all:+.1f} (NT_sonnet → TH_opus 종합)** — "
+            f"thinking + opus 두 변수 모두 적용된 결과 ExecutionTrace 채점에서 큰 폭 하락. "
+            f"opus 출력 형식 차이 또는 thinking trace 길이 증가가 채점기의 마커 인식에 영향."
+        )
+
+    # Finding 4: opencode-cli만 sonnet→opus 긍정
+    opencode_mt = sonnet_to_opus.get("opencode-cli")
+    if opencode_mt is not None and opencode_mt > 0 and neg_count >= 2:
+        findings.append(
+            f"**opencode-cli만 sonnet→opus 긍정** "
+            f"(ΔOverall {opencode_mt:+.1f}). copilot provider 경유 시 opus 응답이 다른 "
+            f"Anthropic backend 도구 대비 더 일관된 형식으로 도착할 가능성."
+        )
+
+    # Finding 5: thinking 효과 미미 (sonnet 평균)
+    sonnet_th_deltas = [
+        _delta_for_tool(t, "NT_sonnet", "TH_sonnet") for t in anthropic_tools
+    ]
+    sonnet_th_valid = [d for d in sonnet_th_deltas if d is not None]
+    if sonnet_th_valid:
+        avg_th = sum(sonnet_th_valid) / len(sonnet_th_valid)
+        if abs(avg_th) < 1.0:
+            findings.append(
+                f"**Sonnet 4.6에서 thinking 효과 미미** "
+                f"(3 도구 평균 ΔOverall {avg_th:+.2f}). Aider Polyglot 사전 기대(+4.9pt) "
+                f"대비 본 실험 agentic 시나리오에서는 reasoning_effort=xhigh 영향이 적음. "
+                f"hypothesis H3 (thinking 효과 긍정) 의 sonnet 부분은 약한 지지 또는 기각 후보."
+            )
+
+    if not findings:
+        lines.append("> _그룹 데이터가 부족하여 자동 발견을 생성할 수 없습니다._")
+        lines.append("")
+        return
+
+    for i, txt in enumerate(findings, 1):
+        lines.append(f"{i}. {txt}")
+        lines.append("")
+    lines.append(
+        "> 이 발견은 분석기가 `per_group_tool` 수치에서 자동 추출한 결정론적 결과입니다 "
+        "(LLM 미사용). 정성적 해석과 권장 사항은 §정성 인사이트(insights.md) 섹션 참조."
+    )
+    lines.append("")
 
 
 def write_markdown(evals: List[SessionEval], out_path: Path, meta: Dict) -> None:
@@ -283,6 +623,11 @@ def write_markdown(evals: List[SessionEval], out_path: Path, meta: Dict) -> None
     lines.append("- Verdict는 Compliance mandatory_deliverables와 중복이므로 점수 미반영 (정보용 매트릭스만 표시)")
     lines.append("")
     _metric_table("Overall %", "avg_overall_score")
+
+    # Per-group (A/B/C) tool rankings for §2.1
+    per_group = aggregate_per_group_tool(evals)
+    if per_group:
+        _emit_group_rank_subsections(lines, per_group)
 
     # --- 2.2 Compliance % ---
     lines.append("### 2.2 Compliance % (HARD GATE 체크 통과율, 가중치 30%)")
@@ -515,6 +860,11 @@ def write_markdown(evals: List[SessionEval], out_path: Path, meta: Dict) -> None
             f" | {_fmt_duration(avg_dur_raw)} |"
         )
     lines.append("")
+
+    # ----------------------------------------------------------
+    # 3.X — Group comparison (NT/TH × model tier)
+    # ----------------------------------------------------------
+    _emit_group_comparison_section(lines, evals)
 
     # ----------------------------------------------------------
     # 4. Verdict 매트릭스
@@ -905,6 +1255,9 @@ def write_json(evals: List[SessionEval], out_path: Path, meta: Dict) -> None:
         },
         "per_scenario_tool": {
             f"{k[0]}__{k[1]}": v for k, v in aggregate_per_scenario_tool(evals).items()
+        },
+        "per_group_tool": {
+            f"{k[0]}__{k[1]}": v for k, v in aggregate_per_group_tool(evals).items()
         },
         "sessions": [asdict(e) for e in evals],
     }

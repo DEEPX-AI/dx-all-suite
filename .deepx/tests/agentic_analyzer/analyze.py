@@ -192,6 +192,7 @@ def evaluate_scenario(
 
     # Runnability will be merged in post-pass if runnability_report.md exists
 
+    from lib.aggregate import canonical_backend_model
     return SessionEval(
         round_index=ref.parent.round_index,
         tool=ref.parent.tool,
@@ -201,6 +202,8 @@ def evaluate_scenario(
         output_dirs=[str(p) for p in ref.output_dirs],
         exit_status=ref.parent.manifest.get("exit_status"),
         run_id=ref.parent.run_id,
+        mode=ref.parent.mode,
+        backend_model=canonical_backend_model(ref.parent.tool, ref.parent.intended_models),
         env_failure_signature=sd.env_failure_signature,
         no_done_cause=classify_no_done_cause(
             has_done=sd.has_done_sentinel,
@@ -903,6 +906,127 @@ def _generate_comprehensive_report(report_dir: Path) -> None:
     _generate_dashboard_html(report_dir)
 
 
+def _emit_group_rank_tables(lines: List[str], per_group: dict, *, heading_level: str = "##") -> None:
+    """Render per-group (A/B/C) tool ranking tables.
+
+    Aggregates by tool across a group's component group_keys (e.g. group B
+    spans both TH_sonnet for 3 Anthropic tools and TH_gpt53codex for codex)
+    and sorts by avg_overall_score descending.
+
+    Used in both Executive Summary and §2.1 by passing heading_level "##"
+    or "###" respectively.
+    """
+    medals = ["🥇", "🥈", "🥉", "4", "5"]
+    GROUPS = [
+        ("A", "R1-R5 (NT, sonnet 4.6 / gpt-5.3-codex / Composer 2.5)",
+         {"NT_sonnet", "NT_gpt53codex", "NA_auto"}),
+        ("B", "R6-R10 (TH, sonnet 4.6 / gpt-5.3-codex / Composer 2.5)",
+         {"TH_sonnet", "TH_gpt53codex", "NA_auto"}),
+        ("C", "R11-R15 (TH + 모델 업그레이드: opus 4.6 / gpt-5.5 / Composer 2.5)",
+         {"TH_opus", "TH_gpt55", "NA_auto"}),
+    ]
+
+    lines.append(f"{heading_level} 그룹별 도구 순위 (A · B · C)")
+    lines.append("")
+    lines.append(
+        "> 라운드 그룹: **A**(R1-R5 NT) · **B**(R6-R10 TH) · **C**(R11-R15 TH + 상위 모델). "
+        "cursor-cli는 세 그룹 모두 Composer 2.5(auto)로 동일 — backend 변화 없음."
+    )
+    lines.append("")
+
+    for label, subtitle, group_keys in GROUPS:
+        # Aggregate per tool across the group_keys for this group label.
+        # per_group dict from analysis.json uses string keys "<group>__<tool>".
+        per_tool: dict = {}
+        for key, m in per_group.items():
+            if "__" not in key:
+                continue
+            gk, tool = key.split("__", 1)
+            if gk not in group_keys:
+                continue
+            if tool not in per_tool:
+                per_tool[tool] = {"overall_sum": 0.0, "sess": 0, "exec_sum": 0.0, "runn_sum": 0.0}
+            n = m.get("sessions", 0)
+            if n <= 0:
+                continue
+            per_tool[tool]["overall_sum"] += m.get("avg_overall_score", 0) * n
+            per_tool[tool]["exec_sum"]    += m.get("avg_execution_score", 0) * n
+            per_tool[tool]["runn_sum"]    += m.get("avg_runnability_score", 0) * n
+            per_tool[tool]["sess"]        += n
+
+        # Compute weighted avg + sort
+        rows = []
+        for tool, agg in per_tool.items():
+            if agg["sess"] <= 0:
+                continue
+            rows.append({
+                "tool": tool,
+                "overall": agg["overall_sum"] / agg["sess"],
+                "exec":    agg["exec_sum"]    / agg["sess"],
+                "runn":    agg["runn_sum"]    / agg["sess"],
+                "sessions": agg["sess"],
+            })
+        rows.sort(key=lambda r: r["overall"], reverse=True)
+
+        lines.append(f"{heading_level}# 그룹 {label} — {subtitle}")
+        lines.append("")
+        if not rows:
+            lines.append("> _데이터 없음._")
+            lines.append("")
+            continue
+        lines.append("| Rank | Tool | Overall | ExecutionTrace | Runnability | Sessions |")
+        lines.append("|:----:|------|--------:|---------------:|------------:|--------:|")
+        for i, r in enumerate(rows):
+            medal = medals[i] if i < len(medals) else str(i + 1)
+            lines.append(
+                f"| {medal} | **{r['tool']}** | **{r['overall']:.1f}** "
+                f"| {r['exec']:.1f} | {r['runn']:.1f} | {r['sessions']} |"
+            )
+        lines.append("")
+
+    # ---- 그룹간 순위 변화 인사이트 ----
+    rankings_per_group = {}
+    for label, _subtitle, group_keys in GROUPS:
+        per_tool_local: dict = {}
+        for key, m in per_group.items():
+            if "__" not in key:
+                continue
+            gk, tool = key.split("__", 1)
+            if gk not in group_keys or m.get("sessions", 0) <= 0:
+                continue
+            per_tool_local.setdefault(tool, []).append(
+                (m.get("avg_overall_score", 0), m.get("sessions", 0))
+            )
+        rows = []
+        for tool, items in per_tool_local.items():
+            total_n = sum(n for _, n in items)
+            if total_n <= 0:
+                continue
+            avg = sum(s * n for s, n in items) / total_n
+            rows.append((tool, avg))
+        rows.sort(key=lambda x: x[1], reverse=True)
+        rankings_per_group[label] = {tool: rank for rank, (tool, _) in enumerate(rows, 1)}
+
+    if all(rankings_per_group.values()):
+        tools_in_all = sorted(set.intersection(*[set(r.keys()) for r in rankings_per_group.values()]))
+        if tools_in_all:
+            lines.append(f"{heading_level}# 그룹간 순위 변화 (A → B → C)")
+            lines.append("")
+            lines.append("| Tool | A 순위 | B 순위 | C 순위 | 변동 |")
+            lines.append("|------|:----:|:----:|:----:|------|")
+            for t in tools_in_all:
+                ra = rankings_per_group["A"].get(t, "-")
+                rb = rankings_per_group["B"].get(t, "-")
+                rc = rankings_per_group["C"].get(t, "-")
+                try:
+                    delta_ac = ra - rc
+                    change = f"A→C **{delta_ac:+d}**위" if delta_ac else "변동 없음"
+                except (TypeError, ValueError):
+                    change = "-"
+                lines.append(f"| **{t}** | {ra} | {rb} | {rc} | {change} |")
+            lines.append("")
+
+
 def _render_executive_summary(report_dir: Path) -> str:
     """Build Executive Summary with sorted tool rankings from analysis.json."""
     import json as _json
@@ -974,6 +1098,11 @@ def _render_executive_summary(report_dir: Path) -> str:
             f"| {dur_min}m {dur_sec}s |"
         )
     lines.append("")
+
+    # ----- Per-group rankings (A: R1-R5 NT, B: R6-R10 TH, C: R11-R15 TH+upgrade) -----
+    per_group = data.get("per_group_tool", {})
+    if per_group:
+        _emit_group_rank_tables(lines, per_group, heading_level="##")
 
     # Environment failure (false alarm) notice
     total_env = sum(r['env_failures'] for r in ranked)
@@ -1870,8 +1999,11 @@ def _render_runnability_summary(report_dir: Path) -> str:
 
     runn_text = runn_path.read_text(encoding="utf-8", errors="ignore")
     # Parse each evaluation block: split by '### R<round> <tool> <scenario>'.
+    # Optional " (run=<run_id>)" suffix appears in multi-run-id reports — match it
+    # but don't require it (legacy single-run reports omit the run= tag).
     block_pat = _re.compile(
-        r"###\s+R(?P<round>\d+)\s+(?P<tool>\S+)\s+(?P<scenario>\S+)\s*\n"
+        r"###\s+R(?P<round>\d+)\s+(?P<tool>\S+)\s+(?P<scenario>\S+)"
+        r"(?:\s+\(run=[^)]+\))?\s*\n"
         r"(?P<body>.*?)(?=\n###\s+R\d+\s+\S+\s+\S+|\Z)",
         _re.DOTALL,
     )

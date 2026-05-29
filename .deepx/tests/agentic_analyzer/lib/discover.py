@@ -40,6 +40,12 @@ class ResultDir:
     run_id: str = "legacy"   # parent run_id (results/<run_id>/...); "legacy" for flat layout
     round_index: int = 0     # 1-based round index per (run_id, tool)
     manifest: dict = field(default_factory=dict)
+    # Runner-supplied metadata (extracted from manifest fields written by
+    # conftest.pytest_sessionfinish or backfilled retroactively). Empty strings
+    # / dicts when the manifest predates the metadata schema.
+    mode: str = ""                          # "NT" / "TH" / "NA" / ""
+    intended_models: dict = field(default_factory=dict)
+    thinking_env_applied: dict = field(default_factory=dict)
 
 
 @dataclass
@@ -86,6 +92,9 @@ def _read_session_dir(entry: Path, run_id: str, tools_cfg: dict) -> Optional[Res
         tool=tool,
         run_id=run_id,
         manifest=manifest,
+        mode=str(manifest.get("mode") or "").strip(),
+        intended_models=dict(manifest.get("intended_models") or {}),
+        thinking_env_applied=dict(manifest.get("thinking_env_applied") or {}),
     )
 
 

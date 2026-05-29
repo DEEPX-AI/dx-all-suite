@@ -35,6 +35,12 @@ class SessionEval:
     transcript_length: int
     # Run-id grouping (propagated from ResultDir.run_id)
     run_id: str = "legacy"
+    # Thinking mode + canonical backend model — used by §4 group comparison
+    # tables and the hypothesis verification prompt to slice (NT vs TH) and
+    # (sonnet vs opus). "NA" for cursor-cli (Composer 2.5 has no thinking
+    # variant); empty string for legacy manifests without metadata.
+    mode: str = ""
+    backend_model: str = ""
     # Environment-failure signature detected in the transcript (PR2):
     # "cert" | "rate-limit" | "model-refresh-timeout" | "" (none). When set,
     # the session is an env failure regardless of duration heuristics — see
@@ -189,6 +195,98 @@ def _stdev(values: List[float]) -> float:
     mean = sum(values) / n
     var = sum((v - mean) ** 2 for v in values) / n
     return var ** 0.5
+
+
+def canonical_backend_model(tool: str, intended_models: dict) -> str:
+    """Normalize manifest.intended_models → canonical tag for grouping.
+
+    Returns one of:
+      - "sonnet-4.6", "opus-4.6"    (Anthropic Claude variants)
+      - "gpt-5.3-codex", "gpt-5.5"  (OpenAI variants)
+      - "auto"                      (cursor-cli Composer 2.5 fallback)
+      - ""                          (manifest has no model — pre-backfill data)
+
+    The same canonical value covers both naming variants used across tools
+    (e.g. ``claude-sonnet-4-6`` ≡ ``claude-sonnet-4.6`` ≡ ``github-copilot/claude-sonnet-4.6``).
+    """
+    if not intended_models:
+        return ""
+    # Pick the most likely source key for this tool. The dict usually has one
+    # entry but may contain multiple env vars — search by value content.
+    raw = ""
+    for v in intended_models.values():
+        if v:
+            raw = str(v).lower()
+            break
+    if not raw:
+        return ""
+    if "opus" in raw:
+        return "opus-4.6"
+    if "sonnet" in raw:
+        return "sonnet-4.6"
+    if "gpt-5.3-codex" in raw or "gpt-5-3-codex" in raw:
+        return "gpt-5.3-codex"
+    if "gpt-5.5" in raw or "gpt-5-5" in raw:
+        return "gpt-5.5"
+    if "auto" in raw:
+        return "auto"
+    return raw
+
+
+# Group definitions for §4 comparison tables and §7 hypothesis verification.
+# Each group is a (mode, backend_model_family) tuple — sessions in the same
+# group are averaged together per tool/scenario.
+#
+# Comparison axes used in the report:
+#   §4.1  thinking effect = TH_sonnet  vs  NT_sonnet  (model fixed, mode differs)
+#   §4.2  model tier      = TH_opus    vs  TH_sonnet  (mode fixed, model differs)
+#   §4.3  combined        = TH_opus    vs  NT_sonnet  (both differ — reference)
+# cursor-cli is excluded automatically because its sessions land in NA_auto.
+GROUP_KEYS: Dict[str, callable] = {
+    "NT_sonnet":     lambda e: e.mode == "NT" and "sonnet" in (e.backend_model or ""),
+    "TH_sonnet":     lambda e: e.mode == "TH" and "sonnet" in (e.backend_model or ""),
+    "TH_opus":       lambda e: e.mode == "TH" and "opus"   in (e.backend_model or ""),
+    "NT_gpt53codex": lambda e: e.mode == "NT" and (e.backend_model or "") == "gpt-5.3-codex",
+    "TH_gpt53codex": lambda e: e.mode == "TH" and (e.backend_model or "") == "gpt-5.3-codex",
+    "TH_gpt55":      lambda e: e.mode == "TH" and (e.backend_model or "") == "gpt-5.5",
+    "NA_auto":       lambda e: e.mode == "NA",  # cursor-cli
+}
+
+
+def aggregate_per_group_tool(
+    evals: List[SessionEval],
+) -> Dict[tuple, Dict[str, float]]:
+    """key = (group, tool) → per-(group, tool) average metrics.
+
+    Used by §4 comparison tables to compute Δ (TH−NT, opus−sonnet) per tool.
+    Environment-failure sessions are excluded from averages.
+    """
+    by_key: Dict[tuple, List[SessionEval]] = {}
+    for e in evals:
+        if _is_env_failure(e):
+            continue
+        for group_name, predicate in GROUP_KEYS.items():
+            try:
+                if predicate(e):
+                    by_key.setdefault((group_name, e.tool), []).append(e)
+                    break
+            except Exception:
+                continue
+    out: Dict[tuple, Dict[str, float]] = {}
+    for key, lst in by_key.items():
+        n = len(lst) or 1
+        out[key] = {
+            "sessions": len(lst),
+            "avg_overall_score":    sum(e.overall_score for e in lst) / n,
+            "avg_compliance_pct":   sum(e.compliance_score_pct for e in lst) / n,
+            "avg_quality_score":    sum(e.quality_score for e in lst) / n,
+            "avg_execution_score":  sum(e.execution_score for e in lst) / n,
+            "avg_runnability_score": sum(e.runnability_score for e in lst) / n,
+            "avg_duration_sec":
+                sum(e.duration_sec or 0 for e in lst if e.duration_sec) /
+                max(1, sum(1 for e in lst if e.duration_sec)),
+        }
+    return out
 
 
 def aggregate_per_tool(evals: List[SessionEval]) -> Dict[str, Dict[str, float]]:

@@ -347,6 +347,123 @@ Produce the markdown analysis block now.
 # CLI invocation
 # ---------------------------------------------------------------------------
 
+def _format_group_comparison_block(report_dir: Path) -> str:
+    """Format §4 group-comparison aggregates as a markdown block for the LLM.
+
+    Reads analysis.json's ``per_group_tool`` (key: ``"<group>__<tool>"``) and
+    produces three Δ tables (thinking effect, model-tier effect, combined) for
+    direct inline citation in hypothesis verification. Returns "" when the
+    JSON has no per_group_tool data (e.g. pre-metadata runs).
+    """
+    json_path = report_dir / "analysis.json"
+    if not json_path.is_file():
+        return ""
+    try:
+        data = json.loads(json_path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return ""
+
+    per_group = data.get("per_group_tool") or {}
+    if not per_group:
+        return ""
+
+    # Reshape: {(group, tool): metrics}
+    parsed: dict = {}
+    for k, v in per_group.items():
+        if "__" not in k:
+            continue
+        group, tool = k.split("__", 1)
+        parsed[(group, tool)] = v
+
+    tools = sorted({t for (_g, t) in parsed.keys() if t != "cursor-cli"})
+
+    def _delta_table(group_a: str, group_b: str, label_a: str, label_b: str) -> str:
+        rows = []
+        for tool in tools:
+            a = parsed.get((group_a, tool))
+            b = parsed.get((group_b, tool))
+            if not a or not b:
+                continue
+            delta_o = b.get("avg_overall_score", 0) - a.get("avg_overall_score", 0)
+            delta_e = b.get("avg_execution_score", 0) - a.get("avg_execution_score", 0)
+            delta_r = b.get("avg_runnability_score", 0) - a.get("avg_runnability_score", 0)
+            rows.append(
+                f"| {tool} | {a.get('avg_overall_score', 0):.1f} "
+                f"| {b.get('avg_overall_score', 0):.1f} "
+                f"| **{delta_o:+.1f}** | {delta_e:+.1f} | {delta_r:+.1f} |"
+            )
+        if not rows:
+            return ""
+        header = (
+            f"| Tool | {label_a} Overall | {label_b} Overall | ΔOverall | ΔExec | ΔRunn |\n"
+            "|------|---:|---:|---:|---:|---:|"
+        )
+        return header + "\n" + "\n".join(rows)
+
+    blocks: List[str] = []
+    blocks.append(
+        "### 그룹 비교 — 가설 검증용 정량 데이터 (analyzer 자동 계산)\n\n"
+        "다음 표들은 manifest의 mode/intended_models 메타데이터에서 자동 그룹화한 결과입니다. "
+        "cursor-cli는 mode=NA(Composer 2.5 고정)이므로 모든 비교에서 제외됩니다.\n"
+    )
+    def _codex_row(group_a: str, group_b: str, label_a: str, label_b: str, heading: str) -> str:
+        a = parsed.get((group_a, "codex-cli"))
+        b = parsed.get((group_b, "codex-cli"))
+        if not (a and b):
+            return ""
+        delta_o = b.get("avg_overall_score", 0) - a.get("avg_overall_score", 0)
+        delta_e = b.get("avg_execution_score", 0) - a.get("avg_execution_score", 0)
+        delta_r = b.get("avg_runnability_score", 0) - a.get("avg_runnability_score", 0)
+        return (
+            f"#### {heading}\n\n"
+            f"| Tool | {label_a} Overall | {label_b} Overall | ΔOverall | ΔExec | ΔRunn |\n"
+            "|------|---:|---:|---:|---:|---:|\n"
+            f"| codex-cli | {a.get('avg_overall_score', 0):.1f} "
+            f"| {b.get('avg_overall_score', 0):.1f} "
+            f"| **{delta_o:+.1f}** | {delta_e:+.1f} | {delta_r:+.1f} |"
+        )
+
+    # Thinking effect — sonnet (3 tools) + codex separately
+    th_tbl = _delta_table("NT_sonnet", "TH_sonnet", "NT", "TH")
+    if th_tbl:
+        blocks.append("#### Thinking 효과 — sonnet 4.6 도구 (R1-R5 vs R6-R10)\n\n" + th_tbl)
+    th_codex = _codex_row(
+        "NT_gpt53codex", "TH_gpt53codex", "NT", "TH",
+        "Thinking 효과 — codex-cli (gpt-5.3-codex 고정, R1-R5 vs R6-R10)",
+    )
+    if th_codex:
+        blocks.append(th_codex)
+
+    # Model tier effect — Anthropic sonnet→opus + codex 5.3→5.5
+    op_tbl = _delta_table("TH_sonnet", "TH_opus", "sonnet TH", "opus TH")
+    if op_tbl:
+        blocks.append("#### 모델 등급 효과 — Anthropic (sonnet→opus, R6-R10 vs R11-R15)\n\n" + op_tbl)
+    op_codex = _codex_row(
+        "TH_gpt53codex", "TH_gpt55", "gpt-5.3-codex TH", "gpt-5.5 TH",
+        "모델 등급 효과 — codex-cli (gpt-5.3-codex → gpt-5.5, R6-R10 vs R11-R15)",
+    )
+    if op_codex:
+        blocks.append(op_codex)
+
+    # Combined effect — Anthropic + codex
+    combined_tbl = _delta_table("NT_sonnet", "TH_opus", "NT sonnet", "TH opus")
+    if combined_tbl:
+        blocks.append("#### 종합 효과 (참고용) — Anthropic NT sonnet → TH opus\n\n" + combined_tbl)
+    combined_codex = _codex_row(
+        "NT_gpt53codex", "TH_gpt55", "NT gpt-5.3-codex", "TH gpt-5.5",
+        "종합 효과 (참고용) — codex NT gpt-5.3-codex → TH gpt-5.5",
+    )
+    if combined_codex:
+        blocks.append(combined_codex)
+
+    blocks.append(
+        "\n**가설 검증 시 위 표를 직접 인용하세요.** "
+        "예: 'H3 thinking 효과 ✅ 지지 — sonnet 4.6에서 ΔOverall = +X.Xpt (4개 도구 평균), "
+        "cursor-cli는 mode=NA로 제외.'"
+    )
+    return "\n\n".join(blocks)
+
+
 def resolve_effective_model(cli: str, model: Optional[str],
                              allow_paid: bool) -> Optional[str]:
     """Pick the model to use for this CLI call.
@@ -501,6 +618,15 @@ def run_insights(report_dir: Path, cli: str, output_dir: Path,
                     hyp_lines.append(f"  - 예상 순위: {' > '.join(ranking)}")
                 hyp_lines.append(f"  - 신뢰도: {h.get('confidence', 'N/A')}")
             hypothesis_summary = "\n".join(hyp_lines)
+
+            # Inject group-comparison tables from analysis.json so the LLM can
+            # cite Δ values when checking thinking-effect / model-tier hypotheses
+            # without re-deriving them from raw per_round data. cursor-cli is
+            # already auto-excluded at aggregation time (NA_auto group).
+            group_block = _format_group_comparison_block(report_dir)
+            if group_block:
+                hypothesis_summary = hypothesis_summary + "\n\n" + group_block
+
             prompt += HYPOTHESIS_VERIFICATION_SECTION.format(
                 hypothesis_summary=hypothesis_summary,
             )
