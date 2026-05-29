@@ -990,11 +990,13 @@ def write_markdown(evals: List[SessionEval], out_path: Path, meta: Dict) -> None
         )
     lines.append("")
     lines.append(
-        "> **3가지 예측 방식을 모두 노출**한 이유: 본문 §6.2가 광고하는 "
-        "'user_turn × multiplier 1순위'가 실제로는 copilot 관측치 대비 자릿수 차이의 "
-        "과소평가를 보입니다 (예: 50 tool_calls의 agentic 세션에서 user_turn=1 × 1× = 1 PR vs "
-        "tool_call × 0.741 ≈ 37 PR). 어느 방식이 가장 신뢰성 있는지 직접 비교하도록 4개 열을 "
-        "모두 표시했습니다. "
+        "> **3가지 예측 방식을 모두 노출**한 이유: "
+        "**예측 1 (tool_call × 0.741)** 이 copilot 관측치와 자릿수 일치(±15%)로 agentic 도구에서 "
+        "가장 신뢰성 있는 방식 — USD 산정에 우선 사용됩니다. "
+        "**예측 2 (user_turn × multiplier)** 는 GitHub 공식 정책 공식이나 agentic loop에서는 "
+        "user_turn 1회당 LLM round-trip이 수십 회 발생해 자릿수 35배 과소평가 (50 tool_call 세션에서 "
+        "user_turn=1 × 1× = 1 PR vs 실측 ~35 PR) — **신뢰성 결여로 USD 산정 미사용**, 참고치로만 노출. "
+        "**예측 3 (token ratio 역산)** 은 tool_call=0인 예외 세션의 fallback. "
         "copilot-cli만 `session.shutdown.totalPremiumRequests`로 실측을 제공하며, "
         "opencode/codex는 stream에 PR 미노출이므로 3가지 예측만 가능합니다 (§6.2 참조). "
         "'USD 기준' 열은 cost USD 산정에 실제 사용된 방식을 표시합니다."
@@ -1034,44 +1036,61 @@ def write_markdown(evals: List[SessionEval], out_path: Path, meta: Dict) -> None
     lines.append("")
     lines.append("> 참고: claude-code (Anthropic Team Plan), cursor-cli (Cursor Team Plan)는 PR 개념이 없는 정액 구독입니다.")
     lines.append("")
-    lines.append("#### 예측 공식 (user-turn × multiplier)")
+    lines.append("#### 예측 1순위 — tool_call × 0.741 (calibrated)")
     lines.append("")
-    lines.append("GitHub의 Premium Request 카운팅 규칙에 따르면, **사용자 프롬프트(turn)만 1회로 계산**하고 "
-                 "에이전트의 tool call은 카운트하지 않습니다:")
+    lines.append("**0.741 산정 방식 (copilot-cli 실측 calibration)**:")
     lines.append("")
     lines.append("```")
-    lines.append("Premium Requests ≈ Σ (user_turn_count_per_model × multiplier)")
+    lines.append("TOOL_CALL_PR_RATIO = (copilot-cli 모든 세션의 관측 PR 합) / (copilot-cli 모든 세션의 tool_call 합)")
+    lines.append("                   = 5,232 PR / 7,061 tool_calls")
+    lines.append("                   ≈ 0.741")
+    lines.append("estimated_PR(opencode/codex) = tool_call_count × 0.741")
     lines.append("```")
     lines.append("")
-    lines.append("**2026.05 기준 모델별 Multiplier (Paid plan):**")
+    lines.append("- copilot-cli는 `session.shutdown.totalPremiumRequests`로 PR 실측치를 제공 → 보정 기준점")
+    lines.append("- opencode/codex는 동일 GitHub Copilot backend 사용 → 동일 ratio 적용 합리적")
+    lines.append("- 검증: 신규 multi 분석에서 copilot 관측 PR vs 예측 PR(tool_call×0.741)이 ±15% 이내 일치")
     lines.append("")
-    lines.append("| Model | Multiplier | 비고 |")
-    lines.append("|-------|----------:|------|")
-    lines.append("| GPT-5 mini / GPT-4.1 / GPT-4o | 0× | 무료 모델 |")
-    lines.append("| Claude Haiku 4.5, Gemini 3 Flash | 0.33× | |")
-    lines.append("| **Claude Sonnet 4.6** (E2E 기본 모델) | **1×** | |")
-    lines.append("| Claude Opus 4.5/4.6 | 3× | |")
-    lines.append("| GPT-5.5 | 7.5× | |")
-    lines.append("| Claude Opus 4.7 | 15× | |")
+    lines.append("#### 예측 2순위 — token ratio 역산 (fallback)")
     lines.append("")
-    lines.append("#### 현재 예측 방식 (token ratio 역산)")
-    lines.append("")
-    lines.append("본 분석기는 copilot-cli의 실측 데이터로 calibration ratio를 산출하고, "
-                 "opencode-cli/codex-cli에 적용합니다:")
+    lines.append("tool_call_count가 0인 예외 세션의 경우만 사용:")
     lines.append("")
     lines.append("```")
     lines.append("calibration_ratio = copilot-cli 총 (input+output) tokens / 총 premium requests")
     lines.append("estimated_PR = (input+output) tokens / calibration_ratio")
     lines.append("```")
     lines.append("")
-    lines.append("> ⚠ **한계**: token ratio 역산은 도구별 token 보고 의미론이 다르기 때문에 오차가 큽니다. "
-                 "**user-turn × multiplier 방식**이 더 정확하나, 현재 세션 파서에 user_turn_count 추출이 미구현입니다.")
+    lines.append("> ⚠ **한계**: 도구별 token 보고 의미론(per-turn cumulative vs cumulative-only)이 달라 자릿수 변동이 큼.")
+    lines.append("")
+    lines.append("#### 시도되었으나 폐기된 방식 — user_turn × multiplier")
+    lines.append("")
+    lines.append("session 파서(`parse_claude_session.py`/`parse_copilot_session.py`/`parse_codex_session.py` 등)에는 "
+                 "**user_turn_count 추출이 모두 구현되어 있음**. 그러나:")
+    lines.append("")
+    lines.append("- agentic 도구는 **1개 user_turn(초기 프롬프트)당 수십 회의 LLM round-trip**을 발생시킴")
+    lines.append("- 실측 비교: copilot-cli 세션의 평균 user_turn=1, tool_calls≈55, 실측 PR≈35 → user_turn × 1× multiplier = 1 PR vs 실측 35 PR (자릿수 35배 과소평가)")
+    lines.append("- 따라서 GitHub Copilot 정책상의 \"user_turn당 1 PR\" 공식은 단순 chat에는 유효하나 **agentic loop에는 부적용**")
+    lines.append("")
+    lines.append("→ 본 분석기는 예측 1순위(tool_call × 0.741)를 사용하며, user_turn × multiplier 방식은 신뢰성 결여로 USD 산정에서 제외됨.")
+    lines.append("")
+    lines.append("#### 참고 — copilot-cli 관측 PR의 USD 단가 (multiplier 적용)")
+    lines.append("")
+    lines.append("copilot-cli의 실측 PR 수치에 USD를 부여할 때 모델별 multiplier가 적용됨 (예측치 계산에는 사용되지 않음).")
+    lines.append("")
+    lines.append("| Model | Multiplier | 비고 |")
+    lines.append("|-------|----------:|------|")
+    lines.append("| GPT-5 mini / GPT-4.1 / GPT-4o | 0× | 무료 모델 |")
+    lines.append("| Claude Haiku 4.5, Gemini 3 Flash | 0.33× | |")
+    lines.append("| **Claude Sonnet 4.6** (그룹 A/B 기본 모델) | **1×** | |")
+    lines.append("| Claude Opus 4.5/4.6 (그룹 C 상위 모델) | 3× | |")
+    lines.append("| GPT-5.5 (그룹 C codex 상위 모델) | 7.5× | |")
+    lines.append("| Claude Opus 4.7 | 15× | |")
     lines.append("")
     lines.append("#### 향후 개선 계획")
     lines.append("")
-    lines.append("1. 세션 파서에 `user_turn_count` 추출 추가 (codex-cli: `conversation` events, opencode-cli: `message.user` events)")
-    lines.append("2. `Premium Requests ≈ user_turns × model_multiplier` 공식 적용")
-    lines.append("3. copilot-bridge 프록시 경유 시 정확한 카운트 수집 가능 ([xjin6/codex-copilot-bridge](https://github.com/xjin6/codex-copilot-bridge))")
+    lines.append("1. copilot-bridge 프록시 경유 시 opencode/codex의 round-trip별 PR 실측 수집 가능 "
+                 "([xjin6/codex-copilot-bridge](https://github.com/xjin6/codex-copilot-bridge))")
+    lines.append("2. 2026.06 GitHub Copilot usage-based billing 전환 후 token usage × 단가로 산정 방식 전환 예정")
     lines.append("")
     lines.append("#### ⚠ 2026.06 과금 체계 변경 예정")
     lines.append("")
