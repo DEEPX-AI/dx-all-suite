@@ -242,6 +242,9 @@ pricing:
     # High — 7.5× / 15×
     "gpt-5.5": 7.5
     "claude-opus-4.7": 15.0
+    # opus 4.8 — placeholder pending GitHub Copilot's official multiplier publication.
+    # Defaulting to 15× (same tier as opus 4.7) until confirmed; revise when known.
+    "claude-opus-4.8": 15.0
     # Cursor Composer 2.5 — NOT a Copilot PR model; subscription-based ($20/mo
     # Pro unlimited).  Multiplier 0 ensures these sessions are not counted in
     # PR-based cost calculations even though they have user_turn_count > 0.

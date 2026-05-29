@@ -435,7 +435,7 @@ def _format_group_comparison_block(report_dir: Path) -> str:
         blocks.append(th_codex)
 
     # Model tier effect — Anthropic sonnet→opus + codex 5.3→5.5
-    op_tbl = _delta_table("TH_sonnet", "TH_opus", "sonnet TH", "opus TH")
+    op_tbl = _delta_table("TH_sonnet", "TH_opus46", "sonnet TH", "opus TH")
     if op_tbl:
         blocks.append("#### 모델 등급 효과 — Anthropic (sonnet→opus, R6-R10 vs R11-R15)\n\n" + op_tbl)
     op_codex = _codex_row(
@@ -446,7 +446,7 @@ def _format_group_comparison_block(report_dir: Path) -> str:
         blocks.append(op_codex)
 
     # Combined effect — Anthropic + codex
-    combined_tbl = _delta_table("NT_sonnet", "TH_opus", "NT sonnet", "TH opus")
+    combined_tbl = _delta_table("NT_sonnet", "TH_opus46", "NT sonnet", "TH opus")
     if combined_tbl:
         blocks.append("#### 종합 효과 (참고용) — Anthropic NT sonnet → TH opus\n\n" + combined_tbl)
     combined_codex = _codex_row(

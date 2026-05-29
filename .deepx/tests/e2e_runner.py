@@ -1788,6 +1788,19 @@ def build_parser() -> argparse.ArgumentParser:
         help=f"Comma-separated tool list (default: all). Options: {', '.join(ALL_TOOLS)}",
     )
     p.add_argument("--thinking", action="store_true", help="Enable thinking/high-reasoning mode for each tool")
+    # Per-tool model overrides — translate to the matching DX_AGENTIC_E2E_*_MODEL env
+    # var when the subprocess is launched. Useful for sweeping a single tool across
+    # multiple backend models (e.g. opus-4.6 vs opus-4.8 in copilot-cli).
+    p.add_argument("--copilot-model",  dest="copilot_model",  default=None,
+                   help="Override copilot-cli backend model (sets DX_AGENTIC_E2E_MODEL)")
+    p.add_argument("--codex-model",    dest="codex_model",    default=None,
+                   help="Override codex-cli backend model (sets DX_AGENTIC_E2E_MODEL for codex)")
+    p.add_argument("--opencode-model", dest="opencode_model", default=None,
+                   help="Override opencode-cli backend model (sets DX_AGENTIC_E2E_OPENCODE_MODEL)")
+    p.add_argument("--claude-model",   dest="claude_model",   default=None,
+                   help="Override claude-code backend model (sets DX_AGENTIC_E2E_CLAUDE_CODE_MODEL)")
+    p.add_argument("--cursor-model",   dest="cursor_model",   default=None,
+                   help="Override cursor-cli backend model (sets DX_AGENTIC_E2E_CURSOR_MODEL)")
     p.add_argument(
         "--parallel",
         action="store_true",
@@ -1879,6 +1892,22 @@ def main() -> int:
     if not tools:
         print(f"ERROR: no valid tools specified. Valid: {', '.join(ALL_TOOLS)}", file=sys.stderr)
         return 2
+
+    # Translate --<tool>-model CLI flags into the env vars conftest reads.
+    # Note: copilot and codex both consume DX_AGENTIC_E2E_MODEL, so running
+    # both tools in the same invocation with conflicting overrides is unsupported.
+    _MODEL_ENV_MAP = {
+        "copilot_model":  "DX_AGENTIC_E2E_MODEL",
+        "codex_model":    "DX_AGENTIC_E2E_MODEL",
+        "opencode_model": "DX_AGENTIC_E2E_OPENCODE_MODEL",
+        "claude_model":   "DX_AGENTIC_E2E_CLAUDE_CODE_MODEL",
+        "cursor_model":   "DX_AGENTIC_E2E_CURSOR_MODEL",
+    }
+    for arg_name, env_name in _MODEL_ENV_MAP.items():
+        val = getattr(args, arg_name, None)
+        if val:
+            os.environ[env_name] = val
+            print(f"  [model override] {env_name}={val}")
 
     if args.cleanup:
         if not args.round_nums:

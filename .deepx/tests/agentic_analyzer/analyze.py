@@ -932,7 +932,7 @@ def _emit_group_rank_tables(lines: List[str], per_group: dict, *, heading_level:
         ("B", "R6-R10 (TH, sonnet 4.6 / gpt-5.3-codex / Composer 2.5)",
          {"TH_sonnet", "TH_gpt53codex", "NA_auto"}),
         ("C", "R11-R15 (TH + 모델 업그레이드: opus 4.6 / gpt-5.5 / Composer 2.5)",
-         {"TH_opus", "TH_gpt55", "NA_auto"}),
+         {"TH_opus46", "TH_gpt55", "NA_auto"}),
     ]
 
     lines.append(f"{heading_level} 그룹별 도구 순위 (A · B · C)")

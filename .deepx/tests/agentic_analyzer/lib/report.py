@@ -205,10 +205,10 @@ def _emit_group_comparison_section(lines: List[str], evals: List[SessionEval]) -
     lines.append("### 3.6 그룹 비교 — 모델 등급 효과 (Thinking 고정)")
     lines.append("")
     _emit_pair(
-        "#### Anthropic 도구: TH_sonnet → TH_opus (R6-R10 vs R11-R15)",
+        "#### Anthropic 도구: TH_sonnet → TH_opus46 (R6-R10 vs R11-R15)",
         "동일 thinking 인자 + Anthropic backend 도구가 sonnet-4.6 → opus-4.6으로 업그레이드. "
         "ΔOverall > 0이면 상위 모델 우위.",
-        "TH_sonnet", "sonnet TH", "TH_opus", "opus TH",
+        "TH_sonnet", "sonnet TH", "TH_opus46", "opus TH",
     )
     _emit_codex_pair(
         "#### codex-cli: TH_gpt53codex → TH_gpt55 (R6-R10 vs R11-R15)",
@@ -220,9 +220,9 @@ def _emit_group_comparison_section(lines: List[str], evals: List[SessionEval]) -
     lines.append("### 3.7 그룹 비교 — 종합 효과 (참고용)")
     lines.append("")
     _emit_pair(
-        "#### Anthropic 도구: NT_sonnet → TH_opus (R1-R5 vs R11-R15)",
+        "#### Anthropic 도구: NT_sonnet → TH_opus46 (R1-R5 vs R11-R15)",
         "thinking + 모델 등급 두 변수 모두 다름 — 단독 변수 추론 불가, 참고용으로만 활용.",
-        "NT_sonnet", "NT sonnet", "TH_opus", "TH opus",
+        "NT_sonnet", "NT sonnet", "TH_opus46", "TH opus",
     )
     _emit_codex_pair(
         "#### codex-cli: NT_gpt53codex → TH_gpt55 (R1-R5 vs R11-R15)",
@@ -231,11 +231,94 @@ def _emit_group_comparison_section(lines: List[str], evals: List[SessionEval]) -
     )
 
     # ----------------------------------------------------------
-    # 3.8 핵심 발견 (자동 생성, LLM 미사용)
+    # 3.8 Opus 4.8 추가 평가 (copilot-cli only)
     # ----------------------------------------------------------
-    lines.append("### 3.8 핵심 발견 (정량 그룹 비교)")
+    _emit_opus48_section(lines, per_group)
+
+    # ----------------------------------------------------------
+    # 3.9 핵심 발견 (자동 생성, LLM 미사용)
+    # ----------------------------------------------------------
+    lines.append("### 3.9 핵심 발견 (정량 그룹 비교)")
     lines.append("")
     _emit_group_findings(lines, per_group)
+
+
+def _emit_opus48_section(lines: List[str], per_group: dict) -> None:
+    """§3.8 Opus 4.8 평가 — copilot-cli only 4-axis comparison.
+
+    Comparison axes:
+      - NT_opus46 vs TH_opus46 — thinking effect on opus 4.6
+      - NT_opus46 vs NT_opus48 — model upgrade in NT
+      - NT_opus48 vs TH_opus48 — thinking effect on opus 4.8
+      - TH_opus46 vs TH_opus48 — model upgrade in TH
+
+    Section is rendered only when at least one opus 4.8 group has data
+    (i.e. the report includes a run-id that ran copilot-cli with opus 4.8).
+    """
+    has_opus48 = any(
+        per_group.get((g, "copilot-cli"))
+        for g in ("NT_opus48", "TH_opus48")
+    )
+    if not has_opus48:
+        return
+
+    lines.append("### 3.8 Opus 4.8 평가 — copilot-cli 단독")
+    lines.append("")
+    lines.append(
+        "> copilot-cli만 별도 평가한 4축 비교. opus 4.6/4.8 NT/TH 4 그룹 데이터 기반. "
+        "다른 도구는 이 평가에 포함되지 않으므로 §3.5~3.7과는 독립적인 분석."
+    )
+    lines.append("")
+
+    def _pair(title: str, subtitle: str, group_a: str, label_a: str, group_b: str, label_b: str) -> None:
+        a = per_group.get((group_a, "copilot-cli"))
+        b = per_group.get((group_b, "copilot-cli"))
+        if not (a and b):
+            return
+        lines.append(title)
+        lines.append("")
+        lines.append(f"> {subtitle}")
+        lines.append("")
+        d = lambda k: f"{(b.get(k, 0) - a.get(k, 0)):+.1f}"
+        lines.append(
+            f"| Tool | {label_a} Overall | {label_b} Overall | "
+            "ΔOverall | ΔCompl | ΔQual | ΔExec | ΔRunn | Sessions (A/B) |"
+        )
+        lines.append("|------|---:|---:|---:|---:|---:|---:|---:|:---:|")
+        lines.append(
+            f"| **copilot-cli** | {a.get('avg_overall_score', 0):.1f} | "
+            f"{b.get('avg_overall_score', 0):.1f} | "
+            f"**{d('avg_overall_score')}** | {d('avg_compliance_pct')} | "
+            f"{d('avg_quality_score')} | {d('avg_execution_score')} | "
+            f"{d('avg_runnability_score')} | "
+            f"{a.get('sessions', 0)}/{b.get('sessions', 0)} |"
+        )
+        lines.append("")
+
+    _pair(
+        "#### 3.8.1 Thinking 효과 @ opus 4.6: NT_opus46 → TH_opus46",
+        "기존 TH opus 4.6 run-id(20260526_204111의 copilot-cli)와 신규 NT opus 4.6 run 비교. "
+        "ΔOverall > 0 = opus 4.6에서 reasoning_effort 효과 긍정.",
+        "NT_opus46", "NT", "TH_opus46", "TH",
+    )
+    _pair(
+        "#### 3.8.2 모델 업그레이드 @ NT: NT_opus46 → NT_opus48",
+        "동일 NT 모드에서 backend가 opus 4.6 → opus 4.8로 업그레이드. "
+        "ΔOverall > 0 = 신모델 우위 (thinking 미적용 baseline).",
+        "NT_opus46", "opus 4.6", "NT_opus48", "opus 4.8",
+    )
+    _pair(
+        "#### 3.8.3 Thinking 효과 @ opus 4.8: NT_opus48 → TH_opus48",
+        "신모델 opus 4.8에서 reasoning_effort 적용 효과. "
+        "ΔOverall > 0 = opus 4.8에서도 thinking 모드가 도움.",
+        "NT_opus48", "NT", "TH_opus48", "TH",
+    )
+    _pair(
+        "#### 3.8.4 모델 업그레이드 @ TH: TH_opus46 → TH_opus48",
+        "TH 모드 고정에서 backend가 opus 4.6 → opus 4.8로 업그레이드. "
+        "ΔOverall > 0 = thinking 적용 상태에서 신모델 우위.",
+        "TH_opus46", "opus 4.6", "TH_opus48", "opus 4.8",
+    )
 
 
 def _emit_group_rank_subsections(lines: List[str], per_group: dict) -> None:
@@ -250,7 +333,7 @@ def _emit_group_rank_subsections(lines: List[str], per_group: dict) -> None:
         ("B", "R6-R10 TH (sonnet 4.6 / gpt-5.3-codex / Composer 2.5)",
          {"TH_sonnet", "TH_gpt53codex", "NA_auto"}),
         ("C", "R11-R15 TH (opus 4.6 / gpt-5.5 / Composer 2.5)",
-         {"TH_opus", "TH_gpt55", "NA_auto"}),
+         {"TH_opus46", "TH_gpt55", "NA_auto"}),
     ]
 
     lines.append("")
@@ -358,7 +441,7 @@ def _emit_group_findings(lines: List[str], per_group: dict) -> None:
 
     # Finding 2: Anthropic sonnet → opus 역효과 케이스 다수
     anthropic_tools = ["claude-code", "copilot-cli", "opencode-cli"]
-    sonnet_to_opus = {t: _delta_for_tool(t, "TH_sonnet", "TH_opus") for t in anthropic_tools}
+    sonnet_to_opus = {t: _delta_for_tool(t, "TH_sonnet", "TH_opus46") for t in anthropic_tools}
     neg_count = sum(1 for d in sonnet_to_opus.values() if d is not None and d < 0)
     pos_count = sum(1 for d in sonnet_to_opus.values() if d is not None and d > 0)
     if neg_count >= 2:
@@ -373,10 +456,10 @@ def _emit_group_findings(lines: List[str], per_group: dict) -> None:
         )
 
     # Finding 3: copilot-cli ExecutionTrace 큰 폭 하락 (종합)
-    copilot_exec_all = _delta_for_tool("copilot-cli", "NT_sonnet", "TH_opus", "avg_execution_score")
+    copilot_exec_all = _delta_for_tool("copilot-cli", "NT_sonnet", "TH_opus46", "avg_execution_score")
     if copilot_exec_all is not None and copilot_exec_all <= -10:
         findings.append(
-            f"**copilot-cli ΔExec {copilot_exec_all:+.1f} (NT_sonnet → TH_opus 종합)** — "
+            f"**copilot-cli ΔExec {copilot_exec_all:+.1f} (NT_sonnet → TH_opus46 종합)** — "
             f"thinking + opus 두 변수 모두 적용된 결과 ExecutionTrace 채점에서 큰 폭 하락. "
             f"opus 출력 형식 차이 또는 thinking trace 길이 증가가 채점기의 마커 인식에 영향."
         )
@@ -403,6 +486,32 @@ def _emit_group_findings(lines: List[str], per_group: dict) -> None:
                 f"(3 도구 평균 ΔOverall {avg_th:+.2f}). Aider Polyglot 사전 기대(+4.9pt) "
                 f"대비 본 실험 agentic 시나리오에서는 reasoning_effort=xhigh 영향이 적음. "
                 f"hypothesis H3 (thinking 효과 긍정) 의 sonnet 부분은 약한 지지 또는 기각 후보."
+            )
+
+    # Finding 6+: opus 4.6 → 4.8 patterns (copilot-cli only, when opus-4.8 data exists)
+    opus48_th = _delta_for_tool("copilot-cli", "NT_opus48", "TH_opus48")
+    opus48_nt_upgrade = _delta_for_tool("copilot-cli", "NT_opus46", "NT_opus48")
+    opus48_th_upgrade = _delta_for_tool("copilot-cli", "TH_opus46", "TH_opus48")
+    if opus48_nt_upgrade is not None:
+        if opus48_nt_upgrade > 1.0:
+            findings.append(
+                f"**copilot-cli opus 4.6 → 4.8 모델 업그레이드 (NT)** — "
+                f"ΔOverall {opus48_nt_upgrade:+.1f}. "
+                f"reasoning 미적용 baseline에서 신모델 우위 확인."
+            )
+        elif opus48_nt_upgrade < -1.0:
+            findings.append(
+                f"**copilot-cli opus 4.6 → 4.8 모델 업그레이드가 NT에서 역효과** — "
+                f"ΔOverall {opus48_nt_upgrade:+.1f}. opus 4.8 응답 형식이 하네스/채점기와 어긋날 가능성."
+            )
+    if opus48_th is not None and opus48_nt_upgrade is not None:
+        # thinking effect on opus 4.8 vs on opus 4.6
+        opus46_th = _delta_for_tool("copilot-cli", "NT_opus46", "TH_opus46")
+        if opus46_th is not None:
+            findings.append(
+                f"**copilot-cli thinking 효과 비교** — "
+                f"opus 4.6에서 ΔOverall {opus46_th:+.1f}, opus 4.8에서 ΔOverall {opus48_th:+.1f}. "
+                f"두 모델에서 reasoning_effort 적용 효과 일관성 관측."
             )
 
     if not findings:

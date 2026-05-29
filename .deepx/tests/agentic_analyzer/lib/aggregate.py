@@ -201,13 +201,15 @@ def canonical_backend_model(tool: str, intended_models: dict) -> str:
     """Normalize manifest.intended_models → canonical tag for grouping.
 
     Returns one of:
-      - "sonnet-4.6", "opus-4.6"    (Anthropic Claude variants)
-      - "gpt-5.3-codex", "gpt-5.5"  (OpenAI variants)
-      - "auto"                      (cursor-cli Composer 2.5 fallback)
-      - ""                          (manifest has no model — pre-backfill data)
+      - "sonnet-4.6", "opus-4.6", "opus-4.8"  (Anthropic Claude variants)
+      - "gpt-5.3-codex", "gpt-5.5"             (OpenAI variants)
+      - "auto"                                  (cursor-cli Composer 2.5 fallback)
+      - ""                                      (manifest has no model — pre-backfill data)
 
     The same canonical value covers both naming variants used across tools
     (e.g. ``claude-sonnet-4-6`` ≡ ``claude-sonnet-4.6`` ≡ ``github-copilot/claude-sonnet-4.6``).
+    Opus variants are disambiguated by minor version: "4.8"/"4-8" → opus-4.8,
+    otherwise → opus-4.6 (legacy default for pre-opus-4.8 manifests).
     """
     if not intended_models:
         return ""
@@ -221,6 +223,8 @@ def canonical_backend_model(tool: str, intended_models: dict) -> str:
     if not raw:
         return ""
     if "opus" in raw:
+        if "4.8" in raw or "4-8" in raw:
+            return "opus-4.8"
         return "opus-4.6"
     if "sonnet" in raw:
         return "sonnet-4.6"
@@ -233,19 +237,27 @@ def canonical_backend_model(tool: str, intended_models: dict) -> str:
     return raw
 
 
-# Group definitions for §4 comparison tables and §7 hypothesis verification.
+# Group definitions for §3.X comparison tables and §7 hypothesis verification.
 # Each group is a (mode, backend_model_family) tuple — sessions in the same
 # group are averaged together per tool/scenario.
 #
 # Comparison axes used in the report:
-#   §4.1  thinking effect = TH_sonnet  vs  NT_sonnet  (model fixed, mode differs)
-#   §4.2  model tier      = TH_opus    vs  TH_sonnet  (mode fixed, model differs)
-#   §4.3  combined        = TH_opus    vs  NT_sonnet  (both differ — reference)
+#   §3.5  thinking effect = TH_sonnet   vs  NT_sonnet   (model fixed, mode differs)
+#   §3.6  model tier      = TH_opus46   vs  TH_sonnet   (mode fixed, model differs)
+#         opus-4.8 axis   = NT_opus46 vs NT_opus48 / NT_opus48 vs TH_opus48 / TH_opus46 vs TH_opus48
+#   §3.7  combined        = TH_opus46   vs  NT_sonnet   (both differ — reference)
 # cursor-cli is excluded automatically because its sessions land in NA_auto.
+#
+# Opus 4.6 and Opus 4.8 are first-class separate canonical models. The
+# legacy alias "TH_opus" maps to TH_opus46 below for backward compatibility
+# with reports generated before opus-4.8 evaluation existed.
 GROUP_KEYS: Dict[str, callable] = {
-    "NT_sonnet":     lambda e: e.mode == "NT" and "sonnet" in (e.backend_model or ""),
-    "TH_sonnet":     lambda e: e.mode == "TH" and "sonnet" in (e.backend_model or ""),
-    "TH_opus":       lambda e: e.mode == "TH" and "opus"   in (e.backend_model or ""),
+    "NT_sonnet":     lambda e: e.mode == "NT" and (e.backend_model or "") == "sonnet-4.6",
+    "TH_sonnet":     lambda e: e.mode == "TH" and (e.backend_model or "") == "sonnet-4.6",
+    "NT_opus46":     lambda e: e.mode == "NT" and (e.backend_model or "") == "opus-4.6",
+    "TH_opus46":     lambda e: e.mode == "TH" and (e.backend_model or "") == "opus-4.6",
+    "NT_opus48":     lambda e: e.mode == "NT" and (e.backend_model or "") == "opus-4.8",
+    "TH_opus48":     lambda e: e.mode == "TH" and (e.backend_model or "") == "opus-4.8",
     "NT_gpt53codex": lambda e: e.mode == "NT" and (e.backend_model or "") == "gpt-5.3-codex",
     "TH_gpt53codex": lambda e: e.mode == "TH" and (e.backend_model or "") == "gpt-5.3-codex",
     "TH_gpt55":      lambda e: e.mode == "TH" and (e.backend_model or "") == "gpt-5.5",
