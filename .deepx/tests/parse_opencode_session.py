@@ -629,8 +629,45 @@ def _render_turn_html(turn: ConversationTurn, index: int) -> str:
     return "\n".join(parts)
 
 
-def _build_html(session: ParsedSession, scenario_key: str = "") -> str:
-    """Build self-contained HTML document from parsed session."""
+def _thinking_summary_items(
+    thinking_mode: str,
+    thinking_args: Optional[Dict[str, str]],
+    intended_model: str,
+) -> List[str]:
+    """Summary <li> items describing runner-supplied thinking metadata."""
+    out: List[str] = []
+    if thinking_mode:
+        label = (
+            "ON (TH — extended thinking / high reasoning effort)" if thinking_mode == "TH"
+            else "OFF (NT — default reasoning)" if thinking_mode == "NT"
+            else thinking_mode
+        )
+        out.append(f"<li><strong>확장사고 (Thinking):</strong> {html_escape(label)}</li>")
+    if thinking_args:
+        for k, v in thinking_args.items():
+            out.append(
+                f"<li><strong>Reasoning Arg:</strong> <code>{html_escape(k)}={html_escape(v)}</code></li>"
+            )
+    if intended_model:
+        out.append(
+            f"<li><strong>Intended Model (runner-set):</strong> <code>{html_escape(intended_model)}</code></li>"
+        )
+    return out
+
+
+def _build_html(
+    session: ParsedSession,
+    scenario_key: str = "",
+    *,
+    thinking_mode: str = "",
+    thinking_args: Optional[Dict[str, str]] = None,
+    intended_model: str = "",
+) -> str:
+    """Build self-contained HTML document from parsed session.
+
+    ``thinking_*`` kwargs append runner-supplied metadata to the summary box
+    when provided.
+    """
     meta = session.metadata
     title = scenario_key or meta.title or meta.session_id or "OpenCode Session"
 
@@ -659,6 +696,7 @@ def _build_html(session: ParsedSession, scenario_key: str = "") -> str:
         f"<li><strong>START sentinel:</strong> {'✅' if has_start else '❌'}</li>",
         f"<li><strong>Output dirs:</strong> {', '.join(output_dirs) if output_dirs else 'none detected'}</li>",
     ]
+    summary_items.extend(_thinking_summary_items(thinking_mode, thinking_args, intended_model))
     summary_html = "\n".join(s for s in summary_items if s)
 
     return f"""<!DOCTYPE html>
@@ -705,8 +743,15 @@ def render_opencode_html(
     workdir: Optional[Path] = None,
     after_utc: Optional[str] = None,
     before_utc: Optional[str] = None,
+    thinking_mode: str = "",
+    thinking_args: Optional[Dict[str, str]] = None,
+    intended_model: str = "",
 ) -> Optional[str]:
-    """Render OpenCode session data to self-contained HTML."""
+    """Render OpenCode session data to self-contained HTML.
+
+    Runner metadata (``thinking_*``) is forwarded to ``_build_html`` so the
+    summary box reflects whether ``--thinking`` was applied.
+    """
     try:
         session = parse_opencode_session(
             jsonl_path,
@@ -722,7 +767,13 @@ def render_opencode_html(
         if scenario_key:
             session.metadata.scenario_key = scenario_key
 
-        html = _build_html(session, scenario_key=scenario_key)
+        html = _build_html(
+            session,
+            scenario_key=scenario_key,
+            thinking_mode=thinking_mode,
+            thinking_args=thinking_args,
+            intended_model=intended_model,
+        )
         output_path.write_text(html, encoding="utf-8")
 
         return session.metadata.session_id or None

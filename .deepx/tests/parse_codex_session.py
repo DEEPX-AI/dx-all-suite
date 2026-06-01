@@ -567,8 +567,67 @@ def _parse_persistent_format(
     )
 
 
-def render_html(session: ParsedSession, *, title: Optional[str] = None) -> str:
-    """Render a ParsedSession as a self-contained HTML page."""
+def _thinking_md_lines(
+    thinking_mode: str,
+    thinking_args: Optional[Dict[str, str]],
+    intended_model: str,
+) -> List[str]:
+    """Markdown bullets describing runner-supplied thinking metadata."""
+    out: List[str] = []
+    if thinking_mode:
+        label = (
+            "ON (TH — extended thinking / high reasoning effort)" if thinking_mode == "TH"
+            else "OFF (NT — default reasoning)" if thinking_mode == "NT"
+            else thinking_mode
+        )
+        out.append(f"- **확장사고 (Thinking):** {label}")
+    if thinking_args:
+        for k, v in thinking_args.items():
+            out.append(f"- **Reasoning Arg:** `{k}={v}`")
+    if intended_model:
+        out.append(f"- **Intended Model (runner-set):** `{intended_model}`")
+    return out
+
+
+def _thinking_html_rows(
+    thinking_mode: str,
+    thinking_args: Optional[Dict[str, str]],
+    intended_model: str,
+) -> List[str]:
+    """HTML <tr> rows describing runner-supplied thinking metadata."""
+    out: List[str] = []
+    if thinking_mode:
+        label = (
+            "ON (TH — extended thinking / high reasoning effort)" if thinking_mode == "TH"
+            else "OFF (NT — default reasoning)" if thinking_mode == "NT"
+            else thinking_mode
+        )
+        out.append(f"<tr><td>확장사고 (Thinking)</td><td>{html_escape(label)}</td></tr>")
+    if thinking_args:
+        for k, v in thinking_args.items():
+            out.append(
+                f"<tr><td>Reasoning Arg</td><td><code>{html_escape(k)}={html_escape(v)}</code></td></tr>"
+            )
+    if intended_model:
+        out.append(
+            f"<tr><td>Intended Model</td><td><code>{html_escape(intended_model)}</code></td></tr>"
+        )
+    return out
+
+
+def render_html(
+    session: ParsedSession,
+    *,
+    title: Optional[str] = None,
+    thinking_mode: str = "",
+    thinking_args: Optional[Dict[str, str]] = None,
+    intended_model: str = "",
+) -> str:
+    """Render a ParsedSession as a self-contained HTML page.
+
+    ``thinking_mode`` / ``thinking_args`` / ``intended_model`` are optional
+    runner-supplied metadata appended to the meta-table when provided.
+    """
     meta = session.metadata
     page_title = title or meta.summary or f"{session.agent_label} Session {meta.session_id[:8]}"
     page_title = html_escape(page_title)
@@ -694,6 +753,7 @@ def render_html(session: ParsedSession, *, title: Optional[str] = None) -> str:
 {f'<tr><td>Ended</td><td>{html_escape(format_timestamp(session.end_time))}</td></tr>' if session.end_time else ''}
 {f'<tr><td>Model</td><td><code>{html_escape(session.selected_model)}</code></td></tr>' if session.selected_model else ''}
 <tr><td>Turns / Events</td><td>{len(session.turns)} turns, {session.raw_event_count} events</td></tr>
+{chr(10).join(_thinking_html_rows(thinking_mode, thinking_args, intended_model))}
 </table>
 <hr />
 {"".join(entries)}
@@ -706,11 +766,20 @@ def render_html(session: ParsedSession, *, title: Optional[str] = None) -> str:
 
 
 def render_codex_html(jsonl_path: Path, output_path: Path, **kwargs) -> Optional[str]:
-    """Convenience: parse a Codex JSONL and render to HTML in one call."""
+    """Convenience: parse a Codex JSONL and render to HTML in one call.
+
+    Recognised render kwargs (passed through to ``render_html``):
+    ``title``, ``thinking_mode``, ``thinking_args``, ``intended_model``.
+    All other kwargs are forwarded to ``parse_codex_jsonl``.
+    """
     try:
-        title = kwargs.pop("title", None)
+        render_kwargs = {
+            k: kwargs.pop(k, None if k == "title" else "" if k != "thinking_args" else None)
+            for k in ("title", "thinking_mode", "thinking_args", "intended_model")
+            if k in kwargs
+        }
         session = parse_codex_jsonl(jsonl_path, **kwargs)
-        html = render_html(session, title=title)
+        html = render_html(session, **render_kwargs)
         output_path.parent.mkdir(parents=True, exist_ok=True)
         output_path.write_text(html, encoding="utf-8")
         return html
@@ -718,8 +787,18 @@ def render_codex_html(jsonl_path: Path, output_path: Path, **kwargs) -> Optional
         return None
 
 
-def render_markdown(session: ParsedSession) -> str:
-    """Render a ParsedSession as Markdown text."""
+def render_markdown(
+    session: ParsedSession,
+    *,
+    thinking_mode: str = "",
+    thinking_args: Optional[Dict[str, str]] = None,
+    intended_model: str = "",
+) -> str:
+    """Render a ParsedSession as Markdown text.
+
+    ``thinking_mode`` / ``thinking_args`` / ``intended_model`` carry runner
+    metadata; appended to the Session Info block when provided.
+    """
     meta = session.metadata
     title = meta.summary or f"Codex CLI Session {meta.session_id[:8] if meta.session_id else 'unknown'}"
     lines: List[str] = [f"# {title}", ""]
@@ -743,6 +822,7 @@ def render_markdown(session: ParsedSession) -> str:
         lines.append(f"- **Ended:** {session.end_time}")
     lines.append(f"- **Turns:** {len(session.turns)}")
     lines.append(f"- **Commands:** {session.total_commands} total, {session.failed_commands} failed")
+    lines.extend(_thinking_md_lines(thinking_mode, thinking_args, intended_model))
     lines.append("")
 
     lines.append("## Conversation")
@@ -778,10 +858,20 @@ def render_markdown(session: ParsedSession) -> str:
 
 
 def render_codex_md(jsonl_path: Path, output_path: Path, **kwargs) -> Optional[str]:
-    """Convenience: parse a Codex JSONL and render to Markdown in one call."""
+    """Convenience: parse a Codex JSONL and render to Markdown in one call.
+
+    Runner-supplied metadata kwargs (``thinking_mode``, ``thinking_args``,
+    ``intended_model``) are pulled out and forwarded to ``render_markdown``;
+    everything else is forwarded to ``parse_codex_jsonl``.
+    """
     try:
+        render_kwargs = {
+            k: kwargs.pop(k)
+            for k in ("thinking_mode", "thinking_args", "intended_model")
+            if k in kwargs
+        }
         session = parse_codex_jsonl(jsonl_path, **kwargs)
-        md = render_markdown(session)
+        md = render_markdown(session, **render_kwargs)
         output_path.parent.mkdir(parents=True, exist_ok=True)
         output_path.write_text(md, encoding="utf-8")
         return md

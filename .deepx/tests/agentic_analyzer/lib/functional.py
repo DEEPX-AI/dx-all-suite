@@ -28,6 +28,27 @@ def _has_glob(out_dir: Path, pattern: str) -> bool:
     return any(out_dir.rglob(pattern))
 
 
+# Path components that mark third-party / tooling subtrees we never want to
+# count as agent output (e.g. pip's own ``resolvelib/factory.py`` inside a
+# venv would otherwise show up as a fake IFactory).
+_NON_AGENT_PATH_PARTS = frozenset({"venv", ".venv", "site-packages", "__pycache__", "node_modules"})
+
+
+def _find_factory_files(out_dir: Path) -> List[Path]:
+    """Return Python files that look like an IFactory implementation.
+
+    Matches both ``factory.py`` (single-name convention some agents use) and
+    ``<prefix>_factory.py`` (the canonical naming in IFactory examples), then
+    drops anything inside a virtualenv / cache so pip's own ``factory.py``
+    (resolvelib internal) is never counted as an agent deliverable.
+    """
+    matches = list(out_dir.rglob("factory.py")) + list(out_dir.rglob("*_factory.py"))
+    return [
+        m for m in matches
+        if not any(p in _NON_AGENT_PATH_PARTS for p in m.parts)
+    ]
+
+
 def infer_verdict(scenario_ref, scenarios_cfg: dict) -> Tuple[str, str]:
     """Return (verdict, reason) where verdict ∈ {PASS, FAIL, PARTIAL, UNKNOWN}.
 
@@ -55,13 +76,16 @@ def infer_verdict(scenario_ref, scenarios_cfg: dict) -> Tuple[str, str]:
         return "FAIL", "compiler artifacts missing"
 
     if sc == "dx_app":
-        factory = list(primary_od.rglob("*_factory.py"))
-        sync_apps = list(primary_od.rglob("*_sync.py"))
+        factory = _find_factory_files(primary_od)
+        sync_apps = [
+            p for p in primary_od.rglob("*_sync.py")
+            if not any(part in _NON_AGENT_PATH_PARTS for part in p.parts)
+        ]
         if factory and sync_apps:
             return "PASS", f"factory + sync runner ({sync_apps[0].name})"
         if factory and not sync_apps:
             return "PARTIAL", "factory ok but no *_sync.py"
-        return "FAIL", "no factory.py found"
+        return "FAIL", "no factory.py / *_factory.py (outside venv) found"
 
     if sc in ("dx_stream", "dx_stream_cascaded"):
         pipeline = _has_file(primary_od, "pipeline.py")
@@ -77,7 +101,7 @@ def infer_verdict(scenario_ref, scenarios_cfg: dict) -> Tuple[str, str]:
         ok_subprojs = 0
         for od in out_dirs:
             s = str(od)
-            if "dx_app" in s and _has_glob(od, "*_factory.py"):
+            if "dx_app" in s and _find_factory_files(od):
                 ok_subprojs += 1
             elif "dx_stream" in s and (_has_file(od, "pipeline.py") or _has_glob(od, "*.py")):
                 ok_subprojs += 1
@@ -92,7 +116,7 @@ def infer_verdict(scenario_ref, scenarios_cfg: dict) -> Tuple[str, str]:
             for od in out_dirs
         )
         has_app = any(
-            "dx_app" in str(od) and _has_glob(od, "*_factory.py")
+            "dx_app" in str(od) and bool(_find_factory_files(od))
             for od in out_dirs
         )
         if has_compiler and has_app:

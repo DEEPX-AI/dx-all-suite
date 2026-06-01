@@ -200,6 +200,8 @@ def evaluate_scenario(
         model=_resolve_model(ref.parent.tool, ref.parent.session_id, config),
         session_id=ref.parent.session_id,
         output_dirs=[str(p) for p in ref.output_dirs],
+        result_session_dir=str(ref.parent.path),
+        result_scenario_dir=str(ref.parent.path / ref.artifact_key) if ref.artifact_key else str(ref.parent.path),
         exit_status=ref.parent.manifest.get("exit_status"),
         run_id=ref.parent.run_id,
         mode=ref.parent.mode,
@@ -588,6 +590,18 @@ def main(argv: Optional[List[str]] = None) -> int:
             out_dir, chosen_cli,
             model=args.insights_model, allow_paid=args.insights_allow_paid,
         )
+        # Append deterministic group comparison block to insights.md. We do
+        # this AFTER the LLM call so the LLM narrative comes first and the
+        # auto-aggregated tables follow as a reference appendix. Skipping the
+        # insights step therefore also skips the group block (--insights off
+        # produces a strictly raw analysis.md / no insights.md).
+        insights_md = out_dir / "insights.md"
+        if insights_md.is_file():
+            try:
+                from lib.report import append_group_sections_to_md
+                append_group_sections_to_md(insights_md, evals)
+            except Exception as _exc:
+                print(f"  (group section append skipped: {_exc})")
 
     # ---------------- Step 4: Comprehensive report (slim Part 3) ----------------
     _generate_comprehensive_report(out_dir)
@@ -595,34 +609,12 @@ def main(argv: Optional[List[str]] = None) -> int:
     return 0
 
 
-_DEFAULT_EXPERIMENT_DESIGN = """\
-# 실험 결과 요약(Summary)
+_DEFAULT_EXPERIMENT_TITLE = """\
+# 실험 결과 요약 (Summary)
 
 ## 실험 제목
 
 DEEPX Agentic Development E2E 평가
-
-## 실험 목적
-
-5개 AI 코딩 도구(Claude Code, Copilot CLI, Cursor CLI, OpenCode, Codex CLI)를 사용하여 \
-NPU(Neural Processing Unit) 추론 앱을 자동 생성하는 "Agentic Development" 워크플로우의 \
-실용성과 도구 간 성능 차이를 정량적으로 비교 평가한다.
-
-## 실험 조건
-
-- **시나리오**: 6개 (compiler, app-python 4종, cross-project)
-- **라운드 그룹**: 3 그룹 × 5라운드 = **15 라운드** (그룹당 도구 5 × 시나리오 6 = 30 세션, 전체 450 세션)
-  - **A** (R1-R5)   비추론(thinking off) + 기본 모델: claude-sonnet-4.6 / gpt-5.3-codex / Composer 2.5(auto)
-  - **B** (R6-R10)  추론(thinking on, reasoning_effort=xhigh) + 기본 모델: A와 동일 backend
-  - **C** (R11-R15) 추론(thinking on) + **상위 모델**: claude-opus-4.6 / gpt-5.5 / Composer 2.5(auto)
-- **핵심 비교 축**:
-  - A vs B → **thinking 효과** (모델 고정, reasoning_effort만 변화)
-  - B vs C → **모델 등급 효과** (thinking 고정, backend 모델만 업그레이드)
-  - A vs C → **종합 효과** (두 변수 동시 변경, 참고용)
-- **평가 지표**: 규칙 준수(Compliance), 코드 품질(Quality), 실행 가능성(Runnability), 실행 흔적(ExecutionTrace), 종합 점수(Overall)
-- **통제 변수**: 동일 프롬프트(6개 시나리오 자연어 동일), 동일 하드웨어(DX-M1 NPU), 동일 sub-project 산출물 경로 규약(`dx-agentic-dev/<session_id>/`)
-- **변동 변수**: (1) thinking on/off (그룹 A↔B), (2) backend 모델 등급 (그룹 B↔C)
-- **Confounder**: cursor-cli는 A·B·C 세 그룹 모두 Composer 2.5(auto) 고정 — thinking 변화도, 모델 변화도 적용되지 않음. cursor의 그룹간 점수 차이는 stochastic noise로 해석.
 """
 
 
@@ -721,95 +713,146 @@ def _render_summary_extras_from_insights(insights_path: Path) -> str:
     return "\n".join(parts)
 
 
+def _render_dynamic_conditions(study_profile: dict) -> str:
+    """Render the §실험 조건 section from a discover-time study profile.
+
+    Replaces the previous hardcoded 5-tools × 3-groups block. Everything is
+    derived from the actual evals that ``analyze.py`` discovered, so a
+    single-tool run shows "단일 도구 sweep" instead of pretending it covered
+    all five CLIs.
+    """
+    lines: List[str] = ["## 실험 조건", ""]
+    tools = study_profile.get("tools") or []
+    scenarios = study_profile.get("scenarios") or []
+    rounds = study_profile.get("rounds") or []
+    run_ids = study_profile.get("run_ids") or []
+    groups = study_profile.get("groups") or {}
+    thinking_modes = study_profile.get("thinking_modes") or []
+    backend_models = study_profile.get("backend_models") or []
+    sess_count = study_profile.get("session_count") or 0
+
+    lines.append(f"- **세션 수**: {sess_count}")
+    lines.append(f"- **도구** ({len(tools)}): {', '.join(f'`{t}`' for t in tools) if tools else '—'}")
+    lines.append(f"- **시나리오** ({len(scenarios)}): {', '.join(f'`{s}`' for s in scenarios) if scenarios else '—'}")
+    lines.append(f"- **라운드** ({len(rounds)}): R{min(rounds)}–R{max(rounds)}" if rounds else "- **라운드**: —")
+    lines.append(
+        f"- **Run IDs** ({len(run_ids)}): "
+        + (", ".join(f"`{r}`" for r in run_ids) if run_ids else "—")
+    )
+    lines.append(
+        f"- **Thinking 모드**: {', '.join(thinking_modes) if thinking_modes else '—'}"
+        + ("  (단일 모드)" if len(thinking_modes) == 1 else "")
+    )
+    lines.append(
+        f"- **Backend 모델**: {', '.join(f'`{b}`' for b in backend_models) if backend_models else '—'}"
+    )
+    if groups:
+        lines.append(f"- **발견된 그룹** ({len(groups)}):")
+        for g_name, g_info in groups.items():
+            rs = g_info.get("rounds") or []
+            rs_disp = f"R{min(rs)}–R{max(rs)}" if rs else "—"
+            lines.append(
+                f"  - `{g_name}` — {g_info.get('session_count', 0)} sessions, {rs_disp}, "
+                f"backend `{g_info.get('backend_model', '—') or '—'}`"
+            )
+    lines.append("")
+    return "\n".join(lines)
+
+
 def _render_experiment_design(
     hypothesis_path: Optional[Path],
     insights_path: Optional[Path] = None,
+    study_profile: Optional[dict] = None,
 ) -> str:
     """Render the Summary section (originally 'Part 0: 실험 설계').
 
-    Always returns the default experiment purpose/conditions.
-    When hypothesis.json exists, appends benchmarks and hypotheses.
-    When insights.md exists, also injects condensed 가설 검증 + 향후 운영 권장
-    subsections so the Summary section is self-contained.
+    Sections are now emitted only when their backing source is present:
+      - 실험 조건  → from ``study_profile`` (discover step)
+      - 실험 배경 / 실험 목적 / 사전 가설 → from ``hypothesis.json`` (LLM
+        hypothesis step). When ``hypothesis.json`` is missing these headers
+        are skipped entirely.
+      - 가설 검증 / 향후 운영 권장 (compact) → from ``insights.md``
+    Everything else (including the previous hardcoded 5-tools layout) is
+    gone, so a manual ``--insights off`` run produces a strictly factual
+    summary built only from the evals.
     """
-    base = _DEFAULT_EXPERIMENT_DESIGN
+    parts: List[str] = [_DEFAULT_EXPERIMENT_TITLE.rstrip(), ""]
 
+    # ---- 실험 조건 (discover-derived) ----------------------------------
+    if study_profile:
+        parts.append(_render_dynamic_conditions(study_profile))
+
+    # ---- hypothesis.json-derived sections ------------------------------
+    data: dict = {}
+    if hypothesis_path is not None and hypothesis_path.is_file():
+        try:
+            data = json.loads(hypothesis_path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            data = {}
+
+    exp = data.get("experiment", {}) if isinstance(data, dict) else {}
+    if exp.get("purpose"):
+        parts.append(f"## 실험 목적\n\n{exp['purpose']}")
+        parts.append("")
+    if exp.get("background"):
+        parts.append(f"## 실험 배경\n\n{exp['background']}")
+        parts.append("")
+
+    benchmarks = data.get("benchmarks", []) if isinstance(data, dict) else []
+    if benchmarks:
+        parts.append("## 참조 벤치마크")
+        parts.append("")
+        for bm in benchmarks:
+            parts.append(f"### {bm.get('name', 'N/A')}")
+            parts.append("")
+            parts.append(f"- URL: {bm.get('url', 'N/A')}")
+            parts.append(f"- 조회일: {bm.get('retrieved_date', 'N/A')}")
+            parts.append(f"- Metric: {bm.get('metric', 'N/A')}")
+            scores = bm.get("scores", {})
+            if scores:
+                for model_name, score in scores.items():
+                    parts.append(f"  - {model_name}: {score}")
+            if bm.get("notes"):
+                parts.append(f"- 비고: {bm['notes']}")
+            parts.append("")
+
+    hypotheses = data.get("hypotheses", []) if isinstance(data, dict) else []
+    if hypotheses:
+        parts.append("## 사전 가설")
+        parts.append("")
+        for h in hypotheses:
+            parts.append(f"### {h.get('id', '?')}: {h.get('statement', 'N/A')}")
+            parts.append("")
+            parts.append(f"- **근거:** {h.get('rationale', 'N/A')}")
+            parts.append(f"- **측정 지표:** {h.get('metric', 'N/A')}")
+            ranking = h.get("expected_ranking", [])
+            if ranking:
+                parts.append(f"- **예상 순위:** {' > '.join(ranking)}")
+            parts.append(f"- **신뢰도:** {h.get('confidence', 'N/A')}")
+            basis = h.get("benchmark_basis", [])
+            if basis:
+                parts.append(f"- **벤치마크 근거:** {', '.join(basis)}")
+            parts.append("")
+
+    # Chart placeholder is only injected when we have *something* to chart.
+    # Without a hypothesis JSON the summary stays compact.
+    if hypotheses or benchmarks:
+        parts.append("## 도구별 검증 결과 요약")
+        parts.append("")
+        parts.append("{{CHART_SECTION}}")
+        parts.append("")
+
+    # ---- insights.md-derived compact subsections -----------------------
     extras_from_insights = (
         _render_summary_extras_from_insights(insights_path)
         if insights_path is not None
         else ""
     )
-
-    if hypothesis_path is None or not hypothesis_path.is_file():
-        return base + ("\n\n" + extras_from_insights if extras_from_insights else "")
-
-    try:
-        data = json.loads(hypothesis_path.read_text(encoding="utf-8"))
-    except (json.JSONDecodeError, OSError):
-        return base
-
-    exp = data.get("experiment", {})
-    lines: List[str] = []
-
-    # Enrich purpose if hypothesis provides one
-    if exp.get("purpose"):
-        lines.append(f"\n> **가설 기반 실험 목적:** {exp['purpose']}")
-        lines.append("")
-    if exp.get("background"):
-        lines.append(f"## 실험 배경\n\n{exp['background']}")
-        lines.append("")
-
-    benchmarks = data.get("benchmarks", [])
-    if benchmarks:
-        lines.append("## 참조 벤치마크")
-        lines.append("")
-        for bm in benchmarks:
-            lines.append(f"### {bm.get('name', 'N/A')}")
-            lines.append("")
-            lines.append(f"- URL: {bm.get('url', 'N/A')}")
-            lines.append(f"- 조회일: {bm.get('retrieved_date', 'N/A')}")
-            lines.append(f"- Metric: {bm.get('metric', 'N/A')}")
-            scores = bm.get("scores", {})
-            if scores:
-                for model_name, score in scores.items():
-                    lines.append(f"  - {model_name}: {score}")
-            if bm.get("notes"):
-                lines.append(f"- 비고: {bm['notes']}")
-            lines.append("")
-
-    hypotheses = data.get("hypotheses", [])
-    if hypotheses:
-        lines.append("## 사전 가설")
-        lines.append("")
-        for h in hypotheses:
-            lines.append(f"### {h.get('id', '?')}: {h.get('statement', 'N/A')}")
-            lines.append("")
-            lines.append(f"- **근거:** {h.get('rationale', 'N/A')}")
-            lines.append(f"- **측정 지표:** {h.get('metric', 'N/A')}")
-            ranking = h.get("expected_ranking", [])
-            if ranking:
-                lines.append(f"- **예상 순위:** {' > '.join(ranking)}")
-            lines.append(f"- **신뢰도:** {h.get('confidence', 'N/A')}")
-            basis = h.get("benchmark_basis", [])
-            if basis:
-                lines.append(f"- **벤치마크 근거:** {', '.join(basis)}")
-            lines.append("")
-
-    # 도구별 검증 결과 요약 + Visual Summary placeholder are emitted
-    # UNCONDITIONALLY (with or without hypothesis.json). When hypotheses
-    # exist this section sits right after 사전 가설; otherwise it appears
-    # as the first sub-section of the Summary block. The {{CHART_SECTION}}
-    # placeholder is replaced by _build_chart_section() during HTML
-    # rendering (see analyze.py:_write_comprehensive_html).
-    lines.append("## 도구별 검증 결과 요약")
-    lines.append("")
-    lines.append("{{CHART_SECTION}}")
-    lines.append("")
-
-    body = base + "\n".join(lines)
     if extras_from_insights:
-        body += "\n\n" + extras_from_insights
-    return body
+        parts.append("")
+        parts.append(extras_from_insights)
+
+    return "\n".join(parts)
 
 
 
@@ -831,14 +874,27 @@ def _generate_comprehensive_report(report_dir: Path) -> None:
     parts.append("---")
     parts.append("")
 
-    # Summary section (always present; enriched if hypothesis.json exists;
-    # also pulls condensed 가설 검증 + 향후 운영 권장 from insights.md if present
-    # so the headline conclusions land at the top of the report).
+    # Summary section. Now driven by discover/insights/hypothesis outputs —
+    # the experiment conditions come from a study_profile built from the
+    # analysis.json sessions (deterministic), and the purpose/background/
+    # hypotheses come from hypothesis.json (LLM-derived) when present.
+    # Skipping --insights / --hypothesis therefore shrinks the summary to
+    # just the title + conditions.
     hypothesis_path = report_dir / "hypothesis.json"
     insights_path = report_dir / "insights.md"
+    study_profile: Optional[dict] = None
+    analysis_json = report_dir / "analysis.json"
+    if analysis_json.is_file():
+        try:
+            study_profile = json.loads(analysis_json.read_text(encoding="utf-8")).get(
+                "study_profile"
+            )
+        except (json.JSONDecodeError, OSError):
+            study_profile = None
     parts.append(_render_experiment_design(
         hypothesis_path if hypothesis_path.is_file() else None,
         insights_path if insights_path.is_file() else None,
+        study_profile=study_profile,
     ))
     parts.append("")
     parts.append("---")
@@ -1108,10 +1164,11 @@ def _render_executive_summary(report_dir: Path) -> str:
         )
     lines.append("")
 
-    # ----- Per-group rankings (A: R1-R5 NT, B: R6-R10 TH, C: R11-R15 TH+upgrade) -----
-    per_group = data.get("per_group_tool", {})
-    if per_group:
-        _emit_group_rank_tables(lines, per_group, heading_level="##")
+    # NOTE: Per-group (A/B/C) tool rankings used to appear here, but were
+    # moved to the insights step (``append_group_sections_to_md``) so that
+    # group rollups only show up when the qualitative narrative is also
+    # generated. Skipping insights leaves the executive summary free of any
+    # opinionated grouping.
 
     # Environment failure (false alarm) notice
     total_env = sum(r['env_failures'] for r in ranked)
@@ -1258,10 +1315,15 @@ document.getElementById('sidebar-toggle').addEventListener('click', function() {
 (function() {{
   const nav = document.getElementById('sidebar-nav');
   const headings = document.querySelectorAll('h1[id], h2[id], h3[id]');
+  // All hypothesis sub-headers (H1, H2, …) are omitted from the TOC; the
+  // top-level "사전 가설" entry is enough.
+  const SKIP_RE = /^H\\d+:/;
   headings.forEach(h => {{
+    const raw = h.textContent.trim();
+    if (SKIP_RE.test(raw)) return;
     const a = document.createElement('a');
     a.href = '#' + h.id;
-    a.textContent = h.textContent.replace(/[🥇🥈🥉]/g, '').trim();
+    a.textContent = raw.replace(/[🥇🥈🥉]/g, '').trim();
     a.className = 'nav-' + h.tagName.toLowerCase();
     nav.appendChild(a);
   }});
@@ -2245,15 +2307,58 @@ def _run_runnability_step(report_dir: Path, chosen: str,
 def _run_hypothesis_step(report_dir: Path, chosen: str, prompt_path: Path,
                          *, model: Optional[str] = None,
                          allow_paid: Optional[bool] = None) -> None:
-    """Invoke insights.py --mode hypothesis."""
+    """Invoke insights.py --mode hypothesis.
+
+    Before launching the subprocess, prepend a "실제 실험 프로파일" block to
+    the prompt text so the LLM tailors hypotheses to the groups that were
+    actually discovered (single-tool sweep, opus-4.8 axis only, etc.). The
+    prefixed prompt is written to a temp file inside ``report_dir`` so it is
+    archived alongside the rest of the run's artifacts.
+    """
     import subprocess
 
     insights_script = HERE / "insights.py"
     if not insights_script.is_file():
         return
+
+    # Build the augmented prompt (study_profile prefix + original prompt).
+    effective_prompt = prompt_path
+    analysis_json = report_dir / "analysis.json"
+    if analysis_json.is_file() and prompt_path.is_file():
+        try:
+            study_profile = json.loads(
+                analysis_json.read_text(encoding="utf-8")
+            ).get("study_profile")
+        except (json.JSONDecodeError, OSError):
+            study_profile = None
+        if study_profile:
+            prefix = (
+                "## 실제 실험 프로파일 (이 분석 실행에서 발견된 데이터)\n\n"
+                "아래 JSON은 ``analysis.json``의 ``study_profile`` 필드 — "
+                "이번 평가에서 실제로 발견된 도구·시나리오·그룹·라운드 구성입니다. "
+                "사전 가설을 작성할 때 반드시 이 프로파일에 맞춰 조정하십시오:\n\n"
+                "- **단일 도구 sweep**(`tools`가 1개)이면 도구 간 비교 가설은 "
+                "생성하지 마십시오.\n"
+                "- **단일 thinking 모드**(`thinking_modes` 1개)이면 thinking 효과 가설은 생략.\n"
+                "- **`groups`에 명시된 그룹**만 비교 가설의 비교축으로 사용하십시오.\n"
+                "- 프로파일과 모순되거나 데이터로 검증 불가능한 가설은 "
+                "생성하지 말고, 가능한 가설 개수만큼만 emit하십시오.\n\n"
+                "```json\n"
+                + json.dumps(study_profile, ensure_ascii=False, indent=2)
+                + "\n```\n\n"
+                "---\n\n"
+                "# (다음은 원본 hypothesis prompt 템플릿입니다)\n\n"
+            )
+            try:
+                augmented = prefix + prompt_path.read_text(encoding="utf-8")
+                effective_prompt = report_dir / "hypothesis_prompt.augmented.md"
+                effective_prompt.write_text(augmented, encoding="utf-8")
+            except OSError:
+                effective_prompt = prompt_path
+
     cmd = [sys.executable, str(insights_script),
            "--mode", "hypothesis",
-           "--prompt", str(prompt_path),
+           "--prompt", str(effective_prompt),
            "--report-dir", str(report_dir),
            "--cli", chosen]
     if model:

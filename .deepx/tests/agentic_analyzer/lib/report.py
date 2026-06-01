@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from .aggregate import (
+    GROUP_KEYS,
     SessionEval,
     _is_env_failure,
     aggregate_per_group_tool,
@@ -81,451 +82,625 @@ def _fmt_duration(sec) -> str:
         return str(sec)
 
 
-def _emit_group_comparison_section(lines: List[str], evals: List[SessionEval]) -> None:
-    """Emit §3.5-§3.7 group comparison tables (NT/TH × sonnet/opus).
+def _discover_comparison_axes(profile: dict) -> Dict[str, List[Dict[str, str]]]:
+    """Walk ``study_profile['groups']`` and derive pairwise comparison axes.
 
-    Each comparison takes a (group_A, group_B) pair and shows per-tool Δ in
-    Overall / Compliance / Quality / ExecutionTrace / Runnability.
+    Returns a dict with three keys ``thinking`` / ``model`` / ``combined``.
+    Each value is a list of pair definitions ``{a, b, label_a, label_b, subtitle}``.
 
-    cursor-cli is automatically excluded — its sessions always belong to the
-    NA_auto group (Composer 2.5 has no thinking variant, no Anthropic backend).
+    Axis rules (auto-discovered, no hardcoded labels):
+        thinking → same backend, mode NT vs TH
+        model    → same mode, backend pairwise
+        combined → both mode and backend differ (one direction only,
+                   alphabetical-pair to dedupe)
+    Empty lists mean the dataset does not provide that axis (e.g. a single
+    backend sweep has no model axis), which lets the caller skip the heading
+    entirely.
     """
-    per_group = aggregate_per_group_tool(evals)
-    if not per_group:
-        return
+    groups = profile.get("groups", {}) or {}
+    by_pair: Dict[Tuple[str, str], str] = {}
+    for name, info in groups.items():
+        m = (info or {}).get("thinking_mode", "") or ""
+        b = (info or {}).get("backend_model", "") or ""
+        if m and b:
+            by_pair[(m, b)] = name
 
-    # Discover available groups + tools
-    tools_in_groups = sorted({k[1] for k in per_group if k[1] != "cursor-cli"})
+    axes: Dict[str, List[Dict[str, str]]] = {
+        "thinking": [],
+        "model": [],
+        "combined": [],
+    }
 
-    def _delta_row(tool: str, group_a: str, group_b: str) -> Optional[Tuple[str, ...]]:
-        a = per_group.get((group_a, tool))
-        b = per_group.get((group_b, tool))
-        if not a or not b:
-            return None
+    # Thinking axis — same backend, NT vs TH.
+    for b in sorted({bb for (_, bb) in by_pair}):
+        nt = by_pair.get(("NT", b))
+        th = by_pair.get(("TH", b))
+        if nt and th:
+            axes["thinking"].append({
+                "axis": "thinking",
+                "a": nt,
+                "b": th,
+                "label_a": f"NT/{b}",
+                "label_b": f"TH/{b}",
+                "subtitle": f"backend `{b}` — NT → TH",
+            })
 
-        def _delta(field: str) -> str:
+    # Model axis — same mode, backend pairwise.
+    for mode in sorted({m for (m, _) in by_pair}):
+        backends = sorted([b for (m2, b) in by_pair if m2 == mode])
+        for i, ba in enumerate(backends):
+            for bb in backends[i + 1:]:
+                ga = by_pair.get((mode, ba))
+                gb = by_pair.get((mode, bb))
+                if ga and gb:
+                    axes["model"].append({
+                        "axis": "model",
+                        "a": ga,
+                        "b": gb,
+                        "label_a": f"{mode}/{ba}",
+                        "label_b": f"{mode}/{bb}",
+                        "subtitle": f"{mode} mode — `{ba}` → `{bb}`",
+                    })
+
+    # Combined axis — both mode and backend differ. One direction per
+    # unordered pair (sorted by group name) so the list does not double up.
+    items = sorted(by_pair.items())
+    for i, ((ma, ba), ga) in enumerate(items):
+        for (mb, bb), gb in items[i + 1:]:
+            if ma != mb and ba != bb:
+                axes["combined"].append({
+                    "axis": "combined",
+                    "a": ga,
+                    "b": gb,
+                    "label_a": f"{ma}/{ba}",
+                    "label_b": f"{mb}/{bb}",
+                    "subtitle": f"`{ma}/{ba}` → `{mb}/{bb}`",
+                })
+
+    return axes
+
+
+def _emit_axis_delta_table(
+    block: List[str],
+    pair: Dict[str, str],
+    per_group: dict,
+    tools: List[str],
+) -> None:
+    """Emit one ΔOverall/ΔCompl/ΔQual/ΔExec/ΔRunn delta table for one axis pair."""
+    ga, gb = pair["a"], pair["b"]
+    la, lb = pair["label_a"], pair["label_b"]
+
+    rows: List[Tuple[str, ...]] = []
+    for tool in tools:
+        a_data = per_group.get((ga, tool))
+        b_data = per_group.get((gb, tool))
+        if not a_data or not b_data:
+            continue
+
+        def _d(key: str, a=a_data, b=b_data) -> str:
             try:
-                return f"{(b[field] - a[field]):+.1f}"
-            except (KeyError, TypeError):
+                return f"{(float(b.get(key, 0) or 0) - float(a.get(key, 0) or 0)):+.1f}"
+            except (TypeError, ValueError):
                 return "—"
 
-        return (
+        rows.append((
             tool,
-            f"{a.get('avg_overall_score', 0):.1f}",
-            f"{b.get('avg_overall_score', 0):.1f}",
-            _delta("avg_overall_score"),
-            _delta("avg_compliance_pct"),
-            _delta("avg_quality_score"),
-            _delta("avg_execution_score"),
-            _delta("avg_runnability_score"),
-            f"{a.get('sessions', 0)}/{b.get('sessions', 0)}",
-        )
+            f"{(a_data.get('avg_overall_score', 0) or 0):.1f}",
+            f"{(b_data.get('avg_overall_score', 0) or 0):.1f}",
+            _d("avg_overall_score"),
+            _d("avg_compliance_pct"),
+            _d("avg_quality_score"),
+            _d("avg_execution_score"),
+            _d("avg_runnability_score"),
+            f"{a_data.get('sessions', 0)}/{b_data.get('sessions', 0)}",
+        ))
 
-    def _emit_pair(
-        heading: str,
-        subtitle: str,
-        group_a: str,
-        group_a_label: str,
-        group_b: str,
-        group_b_label: str,
-    ) -> None:
-        lines.append(heading)
-        lines.append("")
-        lines.append(f"> {subtitle}")
-        lines.append("")
-        rows = []
-        for tool in tools_in_groups:
-            r = _delta_row(tool, group_a, group_b)
-            if r:
-                rows.append(r)
-        if not rows:
-            lines.append(f"> (해당 그룹의 데이터가 없습니다 — `{group_a}` 또는 `{group_b}` 비어 있음.)")
-            lines.append("")
-            return
-        lines.append(
-            "| Tool | "
-            f"{group_a_label} Overall | {group_b_label} Overall | ΔOverall | "
-            "ΔCompl | ΔQual | ΔExec | ΔRunn | Sessions (A/B) |"
-        )
-        lines.append("|------|---:|---:|---:|---:|---:|---:|---:|:---:|")
-        for r in rows:
-            lines.append(f"| **{r[0]}** | {r[1]} | {r[2]} | **{r[3]}** | {r[4]} | {r[5]} | {r[6]} | {r[7]} | {r[8]} |")
-        lines.append("")
-        lines.append("> cursor-cli는 mode=NA(Composer 2.5 고정)이므로 자동 제외됨.")
-        lines.append("")
-
-    def _emit_codex_pair(
-        title: str,
-        subtitle: str,
-        group_a: str,
-        group_a_label: str,
-        group_b: str,
-        group_b_label: str,
-    ) -> None:
-        """Render codex-cli single-tool delta table for a (group_a, group_b) pair."""
-        a = per_group.get((group_a, "codex-cli"))
-        b = per_group.get((group_b, "codex-cli"))
-        if not (a and b):
-            return
-        lines.append(title)
-        lines.append("")
-        lines.append(f"> {subtitle}")
-        lines.append("")
-        d = lambda k: f"{(b.get(k, 0) - a.get(k, 0)):+.1f}"
-        lines.append(
-            f"| Tool | {group_a_label} Overall | {group_b_label} Overall | "
-            "ΔOverall | ΔCompl | ΔQual | ΔExec | ΔRunn | Sessions (A/B) |"
-        )
-        lines.append("|------|---:|---:|---:|---:|---:|---:|---:|:---:|")
-        lines.append(
-            f"| **codex-cli** | {a.get('avg_overall_score', 0):.1f} | "
-            f"{b.get('avg_overall_score', 0):.1f} | "
-            f"**{d('avg_overall_score')}** | {d('avg_compliance_pct')} | "
-            f"{d('avg_quality_score')} | {d('avg_execution_score')} | "
-            f"{d('avg_runnability_score')} | "
-            f"{a.get('sessions', 0)}/{b.get('sessions', 0)} |"
-        )
-        lines.append("")
-
-    lines.append("### 3.5 그룹 비교 — Thinking 효과")
-    lines.append("")
-    _emit_pair(
-        "#### sonnet 4.6 도구: NT_sonnet → TH_sonnet (R1-R5 vs R6-R10)",
-        "동일 backend(claude-sonnet-4.6)에서 reasoning_effort=xhigh 적용 시 변화. "
-        "ΔOverall > 0이면 thinking 효과 긍정.",
-        "NT_sonnet", "NT", "TH_sonnet", "TH",
-    )
-    _emit_codex_pair(
-        "#### codex-cli: NT_gpt53codex → TH_gpt53codex (R1-R5 vs R6-R10)",
-        "동일 backend(gpt-5.3-codex)에서 `model_reasoning_effort=\"xhigh\"` 적용 시 변화. "
-        "codex는 backend가 sonnet 계열이 아니므로 §3.5 sonnet 표에서 분리하여 별도 표시.",
-        "NT_gpt53codex", "NT", "TH_gpt53codex", "TH",
-    )
-
-    lines.append("### 3.6 그룹 비교 — 모델 등급 효과 (Thinking 고정)")
-    lines.append("")
-    _emit_pair(
-        "#### Anthropic 도구: TH_sonnet → TH_opus46 (R6-R10 vs R11-R15)",
-        "동일 thinking 인자 + Anthropic backend 도구가 sonnet-4.6 → opus-4.6으로 업그레이드. "
-        "ΔOverall > 0이면 상위 모델 우위.",
-        "TH_sonnet", "sonnet TH", "TH_opus46", "opus TH",
-    )
-    _emit_codex_pair(
-        "#### codex-cli: TH_gpt53codex → TH_gpt55 (R6-R10 vs R11-R15)",
-        "codex-cli만 backend가 gpt-5.3-codex → gpt-5.5로 변경. "
-        "thinking 인자 동일(reasoning_effort=xhigh).",
-        "TH_gpt53codex", "gpt-5.3-codex TH", "TH_gpt55", "gpt-5.5 TH",
-    )
-
-    lines.append("### 3.7 그룹 비교 — 종합 효과 (참고용)")
-    lines.append("")
-    _emit_pair(
-        "#### Anthropic 도구: NT_sonnet → TH_opus46 (R1-R5 vs R11-R15)",
-        "thinking + 모델 등급 두 변수 모두 다름 — 단독 변수 추론 불가, 참고용으로만 활용.",
-        "NT_sonnet", "NT sonnet", "TH_opus46", "TH opus",
-    )
-    _emit_codex_pair(
-        "#### codex-cli: NT_gpt53codex → TH_gpt55 (R1-R5 vs R11-R15)",
-        "codex thinking 적용 + backend 변경. 두 변수 동시 변경이므로 단독 추론 불가, 참고용.",
-        "NT_gpt53codex", "NT gpt-5.3-codex", "TH_gpt55", "TH gpt-5.5",
-    )
-
-    # ----------------------------------------------------------
-    # 3.8 Opus 4.8 추가 평가 (copilot-cli only)
-    # ----------------------------------------------------------
-    _emit_opus48_section(lines, per_group)
-
-    # ----------------------------------------------------------
-    # 3.9 핵심 발견 (자동 생성, LLM 미사용)
-    # ----------------------------------------------------------
-    lines.append("### 3.9 핵심 발견 (정량 그룹 비교)")
-    lines.append("")
-    _emit_group_findings(lines, per_group)
-
-
-def _emit_opus48_section(lines: List[str], per_group: dict) -> None:
-    """§3.8 Opus 4.8 평가 — copilot-cli only 4-axis comparison.
-
-    Comparison axes:
-      - NT_opus46 vs TH_opus46 — thinking effect on opus 4.6
-      - NT_opus46 vs NT_opus48 — model upgrade in NT
-      - NT_opus48 vs TH_opus48 — thinking effect on opus 4.8
-      - TH_opus46 vs TH_opus48 — model upgrade in TH
-
-    Section is rendered only when at least one opus 4.8 group has data
-    (i.e. the report includes a run-id that ran copilot-cli with opus 4.8).
-    """
-    has_opus48 = any(
-        per_group.get((g, "copilot-cli"))
-        for g in ("NT_opus48", "TH_opus48")
-    )
-    if not has_opus48:
+    block.append(f"#### {pair['subtitle']}  (`{ga}` → `{gb}`)")
+    block.append("")
+    if not rows:
+        block.append("> _데이터 없음 (도구가 두 그룹 모두에 sessions 없음)._")
+        block.append("")
         return
-
-    lines.append("### 3.8 Opus 4.8 평가 — copilot-cli 단독")
-    lines.append("")
-    lines.append(
-        "> copilot-cli만 별도 평가한 4축 비교. opus 4.6/4.8 NT/TH 4 그룹 데이터 기반. "
-        "다른 도구는 이 평가에 포함되지 않으므로 §3.5~3.7과는 독립적인 분석."
+    block.append(
+        f"| Tool | {la} Overall | {lb} Overall | ΔOverall | ΔCompl | ΔQual | ΔExec | ΔRunn | Sessions (A/B) |"
     )
-    lines.append("")
-
-    def _pair(title: str, subtitle: str, group_a: str, label_a: str, group_b: str, label_b: str) -> None:
-        a = per_group.get((group_a, "copilot-cli"))
-        b = per_group.get((group_b, "copilot-cli"))
-        if not (a and b):
-            return
-        lines.append(title)
-        lines.append("")
-        lines.append(f"> {subtitle}")
-        lines.append("")
-        d = lambda k: f"{(b.get(k, 0) - a.get(k, 0)):+.1f}"
-        lines.append(
-            f"| Tool | {label_a} Overall | {label_b} Overall | "
-            "ΔOverall | ΔCompl | ΔQual | ΔExec | ΔRunn | Sessions (A/B) |"
+    block.append("|------|---:|---:|---:|---:|---:|---:|---:|:---:|")
+    for r in rows:
+        block.append(
+            f"| **{r[0]}** | {r[1]} | {r[2]} | **{r[3]}** | {r[4]} | {r[5]} | {r[6]} | {r[7]} | {r[8]} |"
         )
-        lines.append("|------|---:|---:|---:|---:|---:|---:|---:|:---:|")
-        lines.append(
-            f"| **copilot-cli** | {a.get('avg_overall_score', 0):.1f} | "
-            f"{b.get('avg_overall_score', 0):.1f} | "
-            f"**{d('avg_overall_score')}** | {d('avg_compliance_pct')} | "
-            f"{d('avg_quality_score')} | {d('avg_execution_score')} | "
-            f"{d('avg_runnability_score')} | "
-            f"{a.get('sessions', 0)}/{b.get('sessions', 0)} |"
-        )
-        lines.append("")
-
-    _pair(
-        "#### 3.8.1 Thinking 효과 @ opus 4.6: NT_opus46 → TH_opus46",
-        "기존 TH opus 4.6 run-id(20260526_204111의 copilot-cli)와 신규 NT opus 4.6 run 비교. "
-        "ΔOverall > 0 = opus 4.6에서 reasoning_effort 효과 긍정.",
-        "NT_opus46", "NT", "TH_opus46", "TH",
-    )
-    _pair(
-        "#### 3.8.2 모델 업그레이드 @ NT: NT_opus46 → NT_opus48",
-        "동일 NT 모드에서 backend가 opus 4.6 → opus 4.8로 업그레이드. "
-        "ΔOverall > 0 = 신모델 우위 (thinking 미적용 baseline).",
-        "NT_opus46", "opus 4.6", "NT_opus48", "opus 4.8",
-    )
-    _pair(
-        "#### 3.8.3 Thinking 효과 @ opus 4.8: NT_opus48 → TH_opus48",
-        "신모델 opus 4.8에서 reasoning_effort 적용 효과. "
-        "ΔOverall > 0 = opus 4.8에서도 thinking 모드가 도움.",
-        "NT_opus48", "NT", "TH_opus48", "TH",
-    )
-    _pair(
-        "#### 3.8.4 모델 업그레이드 @ TH: TH_opus46 → TH_opus48",
-        "TH 모드 고정에서 backend가 opus 4.6 → opus 4.8로 업그레이드. "
-        "ΔOverall > 0 = thinking 적용 상태에서 신모델 우위.",
-        "TH_opus46", "opus 4.6", "TH_opus48", "opus 4.8",
-    )
+    block.append("")
 
 
-def _emit_group_rank_subsections(lines: List[str], per_group: dict) -> None:
-    """Render per-group (A/B/C) tool rankings under §2.1 Overall %.
+def _emit_dynamic_group_rank(
+    block: List[str],
+    evals: List[SessionEval],
+    profile: dict,
+) -> bool:
+    """Emit per-group tool ranking. Returns True if anything was emitted.
 
-    Uses heading level "####" so it slots under §2.1 cleanly.
+    Skipped automatically for single-tool sweeps (ranking of 1 is noise) and
+    when the discovered groups dict is empty.
     """
+    if profile.get("is_single_tool"):
+        return False
+    groups = profile.get("groups", {}) or {}
+    if not groups:
+        return False
+
+    per_group = aggregate_per_group_tool(evals)
     medals = ["🥇", "🥈", "🥉", "4", "5"]
-    GROUPS = [
-        ("A", "R1-R5 NT (sonnet 4.6 / gpt-5.3-codex / Composer 2.5)",
-         {"NT_sonnet", "NT_gpt53codex", "NA_auto"}),
-        ("B", "R6-R10 TH (sonnet 4.6 / gpt-5.3-codex / Composer 2.5)",
-         {"TH_sonnet", "TH_gpt53codex", "NA_auto"}),
-        ("C", "R11-R15 TH (opus 4.6 / gpt-5.5 / Composer 2.5)",
-         {"TH_opus46", "TH_gpt55", "NA_auto"}),
-    ]
-
-    lines.append("")
-    lines.append("#### 그룹별 도구 순위 (A · B · C)")
-    lines.append("")
-    lines.append(
-        "> 그룹 A(R1-R5 NT) · B(R6-R10 TH) · C(R11-R15 TH + 상위 모델). "
-        "cursor-cli는 세 그룹 모두 Composer 2.5(auto) 고정."
+    block.append("### 그룹별 도구 순위 (자동 발견된 그룹)")
+    block.append("")
+    block.append(
+        "> 각 (mode × backend) 그룹의 도구 ranking. 단일 도구 sweep이면 본 절은 생략됩니다."
     )
-    lines.append("")
-
-    rankings: Dict[str, Dict[str, int]] = {}
-    for label, subtitle, gks in GROUPS:
-        per_tool_local: Dict[str, Dict[str, float]] = {}
-        for (gk, tool), m in per_group.items():
-            if gk not in gks:
-                continue
-            n = m.get("sessions", 0)
-            if n <= 0:
-                continue
-            d = per_tool_local.setdefault(tool, {"sum": 0.0, "n": 0, "exec_sum": 0.0, "runn_sum": 0.0})
-            d["sum"]      += m.get("avg_overall_score", 0) * n
-            d["exec_sum"] += m.get("avg_execution_score", 0) * n
-            d["runn_sum"] += m.get("avg_runnability_score", 0) * n
-            d["n"]        += n
+    block.append("")
+    for g_name, g_info in groups.items():
+        rs = (g_info or {}).get("rounds", []) or []
+        rs_disp = f"R{min(rs)}–R{max(rs)}" if rs else "—"
+        backend = (g_info or {}).get("backend_model", "") or "—"
+        mode = (g_info or {}).get("thinking_mode", "") or "—"
+        block.append(
+            f"#### `{g_name}` — {rs_disp} (backend `{backend}`, mode `{mode}`)"
+        )
+        block.append("")
 
         rows = []
-        for tool, d in per_tool_local.items():
-            if d["n"] <= 0:
+        for (gn, tool), data in per_group.items():
+            if gn != g_name:
                 continue
             rows.append({
                 "tool": tool,
-                "overall": d["sum"] / d["n"],
-                "exec":    d["exec_sum"] / d["n"],
-                "runn":    d["runn_sum"] / d["n"],
-                "sessions": d["n"],
+                "overall": float(data.get("avg_overall_score", 0) or 0),
+                "exec": float(data.get("avg_execution_score", 0) or 0),
+                "runn": float(data.get("avg_runnability_score", 0) or 0),
+                "sessions": int(data.get("sessions", 0) or 0),
             })
-        rows.sort(key=lambda r: r["overall"], reverse=True)
-        rankings[label] = {r["tool"]: i + 1 for i, r in enumerate(rows)}
-
-        lines.append(f"##### 그룹 {label} — {subtitle}")
-        lines.append("")
         if not rows:
-            lines.append("> _데이터 없음._\n")
+            block.append("> _데이터 없음._")
+            block.append("")
             continue
-        lines.append("| Rank | Tool | Overall | ExecutionTrace | Runnability | Sessions |")
-        lines.append("|:----:|------|--------:|---------------:|------------:|--------:|")
+        rows.sort(key=lambda r: r["overall"], reverse=True)
+        block.append("| Rank | Tool | Overall | ExecutionTrace | Runnability | Sessions |")
+        block.append("|:----:|------|--------:|---------------:|------------:|--------:|")
         for i, r in enumerate(rows):
             medal = medals[i] if i < len(medals) else str(i + 1)
-            lines.append(
+            block.append(
                 f"| {medal} | **{r['tool']}** | **{r['overall']:.1f}** "
                 f"| {r['exec']:.1f} | {r['runn']:.1f} | {r['sessions']} |"
             )
-        lines.append("")
-
-    # 그룹간 순위 변화 (A→C)
-    if rankings.get("A") and rankings.get("B") and rankings.get("C"):
-        common_tools = sorted(
-            set(rankings["A"].keys()) & set(rankings["B"].keys()) & set(rankings["C"].keys())
-        )
-        if common_tools:
-            lines.append("##### 그룹간 순위 변화 (A → B → C)")
-            lines.append("")
-            lines.append("| Tool | A 순위 | B 순위 | C 순위 | A→C 변동 |")
-            lines.append("|------|:----:|:----:|:----:|:----:|")
-            for t in common_tools:
-                ra, rb, rc = rankings["A"][t], rankings["B"][t], rankings["C"][t]
-                delta = ra - rc
-                if delta > 0:
-                    change = f"↑ +{delta}위"
-                elif delta < 0:
-                    change = f"↓ {delta}위"
-                else:
-                    change = "변동 없음"
-                lines.append(f"| **{t}** | {ra} | {rb} | {rc} | {change} |")
-            lines.append("")
+        block.append("")
+    return True
 
 
-def _emit_group_findings(lines: List[str], per_group: dict) -> None:
-    """자동으로 그룹 비교 데이터에서 의미 있는 발견을 추출하여 bullet 텍스트로 출력.
+def _compute_dynamic_findings(
+    axes: Dict[str, List[Dict[str, str]]],
+    per_group: dict,
+    tools: List[str],
+) -> List[str]:
+    """Extract deterministic findings from per_group data + discovered axes.
 
-    LLM 미사용 — 수치 기반 결정론적 분석. insights.md가 silent fail 했을 때도
-    리포트에 핵심 발견이 누락되지 않도록 보장.
+    All findings are derived from the axes dict (no hardcoded sonnet/opus/codex
+    labels). Returns a list of markdown bullet strings (without leading dash).
     """
-    def _delta_for_tool(tool: str, group_a: str, group_b: str, field: str = "avg_overall_score") -> Optional[float]:
-        a = per_group.get((group_a, tool))
-        b = per_group.get((group_b, tool))
+    out: List[str] = []
+
+    def _delta(pair: Dict[str, str], tool: str, key: str = "avg_overall_score") -> Optional[float]:
+        a = per_group.get((pair["a"], tool))
+        b = per_group.get((pair["b"], tool))
         if not a or not b:
             return None
-        return b.get(field, 0) - a.get(field, 0)
+        try:
+            return float(b.get(key, 0) or 0) - float(a.get(key, 0) or 0)
+        except (TypeError, ValueError):
+            return None
 
-    findings: List[str] = []
+    # 1) Largest |ΔOverall| across all axes/tools
+    largest: Optional[Tuple[float, str, str, Dict[str, str]]] = None
+    for axis_name in ("thinking", "model", "combined"):
+        for pair in axes.get(axis_name, []):
+            for t in tools:
+                d = _delta(pair, t)
+                if d is None:
+                    continue
+                if largest is None or abs(d) > abs(largest[0]):
+                    largest = (d, t, axis_name, pair)
+    if largest:
+        d, t, ax_name, pair = largest
+        out.append(
+            f"**가장 큰 효과**: `{t}` × {ax_name} axis "
+            f"(`{pair['a']}` → `{pair['b']}`) 에서 ΔOverall **{d:+.1f}**."
+        )
 
-    # Finding 1: codex thinking + 모델 업그레이드 우위
-    codex_th  = _delta_for_tool("codex-cli", "NT_gpt53codex", "TH_gpt53codex")
-    codex_mt  = _delta_for_tool("codex-cli", "TH_gpt53codex", "TH_gpt55")
-    codex_all = _delta_for_tool("codex-cli", "NT_gpt53codex", "TH_gpt55")
-    if codex_th is not None and codex_mt is not None and codex_all is not None:
-        if codex_th > 0 and codex_mt > 0:
-            findings.append(
-                f"**codex-cli만 thinking 효과 + 모델 업그레이드 모두 긍정** "
-                f"(ΔOverall: thinking {codex_th:+.1f}, 모델 {codex_mt:+.1f}, 종합 {codex_all:+.1f}). "
-                f"OpenAI 계열은 reasoning_effort/모델 등급 양쪽이 일관된 개선으로 작용."
+    # 2) Per-axis consistency check (sign agreement across pairs/tools)
+    for axis_name in ("thinking", "model"):
+        pairs = axes.get(axis_name, [])
+        if not pairs:
+            continue
+        deltas: List[float] = []
+        for pair in pairs:
+            for t in tools:
+                d = _delta(pair, t)
+                if d is not None:
+                    deltas.append(d)
+        if not deltas:
+            continue
+        pos = sum(1 for d in deltas if d > 1.0)
+        neg = sum(1 for d in deltas if d < -1.0)
+        avg = sum(deltas) / len(deltas)
+        if pos and neg == 0:
+            out.append(
+                f"**{axis_name} 효과 일관**: 모든 비교 pair에서 ΔOverall > +1.0 "
+                f"(평균 {avg:+.1f}, {pos}/{len(deltas)} positive)."
+            )
+        elif neg and pos == 0:
+            out.append(
+                f"**{axis_name} 효과 음의 일관**: 모든 비교 pair에서 ΔOverall < -1.0 "
+                f"(평균 {avg:+.1f}, {neg}/{len(deltas)} negative)."
+            )
+        elif pos and neg:
+            out.append(
+                f"**{axis_name} 효과 혼합**: pair마다 방향 다름 "
+                f"({pos} positive, {neg} negative, |Δ|<1.0 제외; 평균 {avg:+.1f})."
             )
 
-    # Finding 2: Anthropic sonnet → opus 역효과 케이스 다수
-    anthropic_tools = ["claude-code", "copilot-cli", "opencode-cli"]
-    sonnet_to_opus = {t: _delta_for_tool(t, "TH_sonnet", "TH_opus46") for t in anthropic_tools}
-    neg_count = sum(1 for d in sonnet_to_opus.values() if d is not None and d < 0)
-    pos_count = sum(1 for d in sonnet_to_opus.values() if d is not None and d > 0)
-    if neg_count >= 2:
-        details = ", ".join(
-            f"{t} {d:+.1f}" for t, d in sonnet_to_opus.items() if d is not None
-        )
-        findings.append(
-            f"**Anthropic sonnet→opus가 다수 도구에서 역효과** "
-            f"({neg_count}/3 도구 ΔOverall < 0; 상세: {details}). "
-            f"동일 모델 등급 업그레이드가 도구 하네스에 따라 균일하지 않음 — opus 응답 형식이 "
-            f"하네스 파싱 기대값과 어긋날 가능성."
-        )
+    # 3) thinking 효과 vs model 효과 상대 크기 (per tool)
+    th_pairs = axes.get("thinking", [])
+    md_pairs = axes.get("model", [])
+    if th_pairs and md_pairs:
+        for t in tools:
+            th_max = max(
+                (abs(_delta(p, t) or 0) for p in th_pairs),
+                default=None,
+            )
+            md_max = max(
+                (abs(_delta(p, t) or 0) for p in md_pairs),
+                default=None,
+            )
+            if th_max is None or md_max is None:
+                continue
+            if th_max <= 0 and md_max <= 0:
+                continue
+            if md_max > th_max * 1.3:
+                out.append(
+                    f"**`{t}`: model 업그레이드 효과 > thinking 효과** "
+                    f"(|Δ|max model = {md_max:.1f}, thinking = {th_max:.1f})."
+                )
+            elif th_max > md_max * 1.3:
+                out.append(
+                    f"**`{t}`: thinking 효과 > model 업그레이드 효과** "
+                    f"(|Δ|max thinking = {th_max:.1f}, model = {md_max:.1f})."
+                )
+    return out
 
-    # Finding 3: copilot-cli ExecutionTrace 큰 폭 하락 (종합)
-    copilot_exec_all = _delta_for_tool("copilot-cli", "NT_sonnet", "TH_opus46", "avg_execution_score")
-    if copilot_exec_all is not None and copilot_exec_all <= -10:
-        findings.append(
-            f"**copilot-cli ΔExec {copilot_exec_all:+.1f} (NT_sonnet → TH_opus46 종합)** — "
-            f"thinking + opus 두 변수 모두 적용된 결과 ExecutionTrace 채점에서 큰 폭 하락. "
-            f"opus 출력 형식 차이 또는 thinking trace 길이 증가가 채점기의 마커 인식에 영향."
-        )
 
-    # Finding 4: opencode-cli만 sonnet→opus 긍정
-    opencode_mt = sonnet_to_opus.get("opencode-cli")
-    if opencode_mt is not None and opencode_mt > 0 and neg_count >= 2:
-        findings.append(
-            f"**opencode-cli만 sonnet→opus 긍정** "
-            f"(ΔOverall {opencode_mt:+.1f}). copilot provider 경유 시 opus 응답이 다른 "
-            f"Anthropic backend 도구 대비 더 일관된 형식으로 도착할 가능성."
-        )
+def append_group_sections_to_md(
+    md_path: Path,
+    evals: List[SessionEval],
+) -> bool:
+    """Append a deterministic, study_profile-driven group block to a md file.
 
-    # Finding 5: thinking 효과 미미 (sonnet 평균)
-    sonnet_th_deltas = [
-        _delta_for_tool(t, "NT_sonnet", "TH_sonnet") for t in anthropic_tools
+    The block is built **entirely from the discovered study_profile**:
+
+    * per-group tool rank — only when the sweep covers more than one tool
+    * Thinking axis — pairs of (NT, TH) discovered for the same backend
+    * Model axis    — pairs of backends discovered for the same mode
+    * Combined axis — pairs where both mode and backend differ
+    * findings      — derived from the axes themselves (LLM-free)
+
+    If none of those produce any rows (single-group sweep with no comparable
+    axis) the function emits nothing and returns False. This is what makes
+    ``--insights off`` plus a degenerate sweep produce a clean analysis.md /
+    insights.md without opinionated group rollups.
+
+    All sub-section headings are plain (no §3.5/§3.6/… numbering) so they
+    don't conflict with whatever main-doc numbering the caller uses.
+    """
+    from .aggregate import build_study_profile
+
+    if not evals:
+        return False
+    profile = build_study_profile(evals)
+    axes = _discover_comparison_axes(profile)
+    per_group = aggregate_per_group_tool(evals)
+    tools = profile.get("tools") or sorted({e.tool for e in evals})
+
+    sub_blocks: List[str] = []
+
+    # 1) Per-group tool rank (multi-tool sweeps only).
+    rank_block: List[str] = []
+    if _emit_dynamic_group_rank(rank_block, evals, profile):
+        sub_blocks.extend(rank_block)
+
+    # 2) Axis-based delta tables. Skip a whole axis when it has no pair.
+    axis_titles = {
+        "thinking": "### 그룹 비교 — Thinking 효과",
+        "model":    "### 그룹 비교 — 모델 등급 효과 (mode 고정)",
+        "combined": "### 그룹 비교 — 종합 효과 (mode + model 동시 변경, 참고용)",
+    }
+    for axis_name in ("thinking", "model", "combined"):
+        pairs = axes.get(axis_name, [])
+        if not pairs:
+            continue
+        sub_blocks.append(axis_titles[axis_name])
+        sub_blocks.append("")
+        for pair in pairs:
+            _emit_axis_delta_table(sub_blocks, pair, per_group, tools)
+
+    # 3) Deterministic findings derived from axes.
+    findings = _compute_dynamic_findings(axes, per_group, tools)
+    if findings:
+        sub_blocks.append("### 핵심 발견 (정량 그룹 비교)")
+        sub_blocks.append("")
+        for line in findings:
+            sub_blocks.append(f"- {line}")
+        sub_blocks.append("")
+        sub_blocks.append(
+            "> 본 발견은 분석기가 ``per_group_tool`` + 자동 도출된 axes 에서 추출한 "
+            "결정론적 결과입니다 (LLM 미사용)."
+        )
+        sub_blocks.append("")
+
+    if not sub_blocks:
+        # Nothing emit-worthy. Don't even drop the wrapper header.
+        return False
+
+    block: List[str] = [
+        "",
+        "---",
+        "",
+        "## 그룹 비교 (자동 집계)",
+        "",
+        "> 본 섹션은 ``study_profile``에서 자동 발견된 (mode × backend_model) 그룹과 "
+        "그들 사이의 비교 가능한 axis만 emit합니다. 발견되지 않은 axis는 출력되지 않습니다. "
+        "모든 수치는 ``per_group_tool`` 결정론적 집계 (LLM 미사용).",
+        "",
     ]
-    sonnet_th_valid = [d for d in sonnet_th_deltas if d is not None]
-    if sonnet_th_valid:
-        avg_th = sum(sonnet_th_valid) / len(sonnet_th_valid)
-        if abs(avg_th) < 1.0:
-            findings.append(
-                f"**Sonnet 4.6에서 thinking 효과 미미** "
-                f"(3 도구 평균 ΔOverall {avg_th:+.2f}). Aider Polyglot 사전 기대(+4.9pt) "
-                f"대비 본 실험 agentic 시나리오에서는 reasoning_effort=xhigh 영향이 적음. "
-                f"hypothesis H3 (thinking 효과 긍정) 의 sonnet 부분은 약한 지지 또는 기각 후보."
-            )
-
-    # Finding 6+: opus 4.6 → 4.8 patterns (copilot-cli only, when opus-4.8 data exists)
-    opus48_th = _delta_for_tool("copilot-cli", "NT_opus48", "TH_opus48")
-    opus48_nt_upgrade = _delta_for_tool("copilot-cli", "NT_opus46", "NT_opus48")
-    opus48_th_upgrade = _delta_for_tool("copilot-cli", "TH_opus46", "TH_opus48")
-    if opus48_nt_upgrade is not None:
-        if opus48_nt_upgrade > 1.0:
-            findings.append(
-                f"**copilot-cli opus 4.6 → 4.8 모델 업그레이드 (NT)** — "
-                f"ΔOverall {opus48_nt_upgrade:+.1f}. "
-                f"reasoning 미적용 baseline에서 신모델 우위 확인."
-            )
-        elif opus48_nt_upgrade < -1.0:
-            findings.append(
-                f"**copilot-cli opus 4.6 → 4.8 모델 업그레이드가 NT에서 역효과** — "
-                f"ΔOverall {opus48_nt_upgrade:+.1f}. opus 4.8 응답 형식이 하네스/채점기와 어긋날 가능성."
-            )
-    if opus48_th is not None and opus48_nt_upgrade is not None:
-        # thinking effect on opus 4.8 vs on opus 4.6
-        opus46_th = _delta_for_tool("copilot-cli", "NT_opus46", "TH_opus46")
-        if opus46_th is not None:
-            findings.append(
-                f"**copilot-cli thinking 효과 비교** — "
-                f"opus 4.6에서 ΔOverall {opus46_th:+.1f}, opus 4.8에서 ΔOverall {opus48_th:+.1f}. "
-                f"두 모델에서 reasoning_effort 적용 효과 일관성 관측."
-            )
-
-    if not findings:
-        lines.append("> _그룹 데이터가 부족하여 자동 발견을 생성할 수 없습니다._")
-        lines.append("")
-        return
-
-    for i, txt in enumerate(findings, 1):
-        lines.append(f"{i}. {txt}")
-        lines.append("")
-    lines.append(
-        "> 이 발견은 분석기가 `per_group_tool` 수치에서 자동 추출한 결정론적 결과입니다 "
-        "(LLM 미사용). 정성적 해석과 권장 사항은 §정성 인사이트(insights.md) 섹션 참조."
+    block.extend(sub_blocks)
+    md_path.write_text(
+        md_path.read_text(encoding="utf-8") + "\n".join(block) + "\n",
+        encoding="utf-8",
     )
+    return True
+
+
+def _classify_group(e: SessionEval) -> str:
+    """Return the canonical group key for an eval (NT_opus48 / TH_sonnet / …).
+
+    Falls back to "—" when no predicate in GROUP_KEYS matches (typically when
+    mode or backend_model is missing on legacy manifests).
+    """
+    for group_name, predicate in GROUP_KEYS.items():
+        if predicate(e):
+            return group_name
+    return "—"
+
+
+def _round_group_boundaries(
+    evals: List[SessionEval],
+    rounds: List[int],
+) -> List[Tuple[str, List[int]]]:
+    """Walk ``rounds`` in order and return contiguous-same-group runs.
+
+    Example: ``[(TH_opus46, [1,2,3,4,5]), (NT_opus46, [6,7,8,9,10]), ...]``.
+    Assumes a round's group is consistent across its sessions (the e2e runner
+    keeps mode/backend_model fixed within a round). The first eval encountered
+    for each round wins; rounds with no evals get group "—".
+    """
+    round_to_group: Dict[int, str] = {}
+    for e in evals:
+        if e.round_index not in round_to_group:
+            round_to_group[e.round_index] = _classify_group(e)
+    boundaries: List[Tuple[str, List[int]]] = []
+    current_group: Optional[str] = None
+    current_runs: List[int] = []
+    for r in rounds:
+        g = round_to_group.get(r, "—")
+        if g == current_group:
+            current_runs.append(r)
+        else:
+            if current_runs:
+                boundaries.append((current_group or "—", current_runs))
+            current_group = g
+            current_runs = [r]
+    if current_runs:
+        boundaries.append((current_group or "—", current_runs))
+    return boundaries
+
+
+def _emit_round_output_dirs_collapsible(
+    lines: List[str],
+    evals: List[SessionEval],
+    rounds: List[int],
+    tools: List[str],
+) -> None:
+    """Append a hidden-by-default <details> block listing per (round, tool)
+    summary statistics and the session symlink directory.
+
+    Two-row layout per entry (raw HTML so we can use rowspan/colspan):
+      Row 1: Round | Tool | Score | Group | Comp % | Qual % | Exec % | Runn %
+      Row 2 (colspan=4 under the first 4 rowspan'd cells):
+             Session 디렉토리  (results/<run_id>/<session_id>/)
+
+    Score columns are the average across the 6 scenarios of that round/tool.
+    """
+    # (round, tool) -> running aggregates
+    bucket: Dict[Tuple[int, str], Dict[str, object]] = {}
+    for e in evals:
+        if not e.result_session_dir:
+            continue
+        key = (e.round_index, e.tool)
+        slot = bucket.setdefault(key, {
+            "dir": e.result_session_dir,
+            "n": 0,
+            "group": _classify_group(e),
+            "overall": 0.0,
+            "comp": 0.0,
+            "qual": 0.0,
+            "exec": 0.0,
+            "runn": 0.0,
+        })
+        slot["overall"] += float(e.overall_score or 0)
+        slot["comp"]    += float(e.compliance_score_pct or 0)
+        slot["qual"]    += float(e.quality_score or 0)
+        slot["exec"]    += float(e.execution_score or 0)
+        slot["runn"]    += float(e.runnability_score or 0)
+        slot["n"]       += 1
+    if not bucket:
+        return
+    lines.append("<details>")
+    lines.append("<summary>📁 라운드별 results 디렉토리 (session symlink) — 클릭하여 펼치기</summary>")
+    lines.append("")
+    lines.append("<table>")
+    lines.append("<thead>")
+    lines.append(
+        "<tr>"
+        "<th>Round</th><th>Tool</th><th>Score</th><th>Group</th>"
+        "<th>Comp %</th><th>Qual %</th><th>Exec %</th><th>Runn %</th>"
+        "</tr>"
+    )
+    lines.append("</thead>")
+    lines.append("<tbody>")
+    for r in rounds:
+        for tool in tools:
+            slot = bucket.get((r, tool))
+            if not slot:
+                continue
+            n = slot["n"] or 1
+            avg_overall = slot["overall"] / n
+            avg_comp = slot["comp"] / n
+            avg_qual = slot["qual"] / n
+            avg_exec = slot["exec"] / n
+            avg_runn = slot["runn"] / n
+            # Row 1 — first 4 cells span both rows; metric cells only here
+            lines.append(
+                f'<tr>'
+                f'<td rowspan="2">R{r}</td>'
+                f'<td rowspan="2"><code>{tool}</code></td>'
+                f'<td rowspan="2">{_fmt_num(avg_overall)}</td>'
+                f'<td rowspan="2"><code>{slot["group"]}</code></td>'
+                f'<td>{_fmt_num(avg_comp)}</td>'
+                f'<td>{_fmt_num(avg_qual)}</td>'
+                f'<td>{_fmt_num(avg_exec)}</td>'
+                f'<td>{_fmt_num(avg_runn)}</td>'
+                f'</tr>'
+            )
+            # Row 2 — session symlink directory under colspan
+            lines.append(
+                f'<tr><td colspan="4"><small>'
+                f'<strong>Session 디렉토리</strong>: <code>{slot["dir"]}</code>'
+                f'</small></td></tr>'
+            )
+    lines.append("</tbody>")
+    lines.append("</table>")
+    lines.append("")
+    lines.append("</details>")
+    lines.append("")
+
+
+def _emit_scenario_output_dirs_collapsible(
+    lines: List[str],
+    evals: List[SessionEval],
+    scenario: str,
+    rounds: List[int],
+    tools: List[str],
+) -> None:
+    """Per-scenario collapsible — listed under each §4 verdict subsection.
+
+    Three-row HTML layout per (round, tool) entry:
+      Row 1: Round (rs=3) | Tool | Score | Group | Model · Exec · Runn · Comp · Qual
+      Row 2: Duration · S/D · pytest · ToolCalls · LOC · PH · Eng · Reason  (colspan=4)
+      Row 3: Symlink + 실제 경로  (colspan=4)
+
+    Row 1 first column (Round) spans all 3 rows so the entry is visually a
+    single block. Row 2 / Row 3 receive a colspan=4 cell that covers the
+    Tool/Score/Group/Detail columns.
+    """
+    # (round, tool) -> SessionEval (first match per (round, tool, scenario))
+    bucket: Dict[Tuple[int, str], SessionEval] = {}
+    for e in evals:
+        if e.scenario != scenario:
+            continue
+        if not e.result_scenario_dir and not e.output_dirs:
+            continue
+        bucket.setdefault((e.round_index, e.tool), e)
+    if not bucket:
+        return
+    verdict_emoji = {"PASS": "✅", "PARTIAL": "🟡", "FAIL": "❌", "UNKNOWN": "❓"}
+    lines.append("<details>")
+    lines.append(f"<summary>📁 {scenario} — 라운드별 results 디렉토리 (펼치기)</summary>")
+    lines.append("")
+    lines.append("<table>")
+    lines.append("<thead>")
+    lines.append(
+        "<tr>"
+        "<th>Round</th><th>Tool</th><th>Score</th><th>Group</th>"
+        "<th>Exec %</th><th>Runn %</th><th>Comp %</th><th>Qual %</th>"
+        "</tr>"
+    )
+    lines.append("</thead>")
+    lines.append("<tbody>")
+    for r in rounds:
+        for tool in tools:
+            e = bucket.get((r, tool))
+            if e is None:
+                continue
+            score_cell = (
+                f"{verdict_emoji.get(e.verdict, '')} {_fmt_num(e.overall_score)}".strip()
+            )
+            group_disp = _classify_group(e)
+            sd_marker = ("✓" if e.has_start else "✗") + "/" + ("✓" if e.has_done else "✗")
+            pytest_disp = str(e.exit_status) if e.exit_status is not None else "-"
+            runn_disp = _fmt_num(e.runnability_score) if e.runnability_score > 0 else "-"
+            reason = (e.verdict_reason or "").strip() or "—"
+            sym_cell = (
+                f"<code>{e.result_scenario_dir}</code>" if e.result_scenario_dir else "—"
+            )
+            abs_cell = (
+                "<br>".join(f"<code>{d}</code>" for d in e.output_dirs)
+                if e.output_dirs else "—"
+            )
+            # Row 1 — 8 cells (Round rowspan=3 covers row 2/3 first column)
+            lines.append(
+                f'<tr>'
+                f'<td rowspan="3">R{r}</td>'
+                f'<td><code>{tool}</code></td>'
+                f'<td>{score_cell}</td>'
+                f'<td><code>{group_disp}</code></td>'
+                f'<td>{_fmt_num(e.execution_score)}</td>'
+                f'<td>{runn_disp}</td>'
+                f'<td>{_fmt_num(e.compliance_score_pct)}</td>'
+                f'<td>{_fmt_num(e.quality_score)}</td>'
+                f'</tr>'
+            )
+            # Row 2 — runtime / volume / failure context (colspan=7 covers
+            # everything except the rowspan'd Round cell).
+            row2_detail = " · ".join([
+                f"<strong>Duration</strong>: {_fmt_duration(e.duration_sec)}",
+                f"<strong>S/D</strong>: {sd_marker}",
+                f"<strong>pytest</strong>: {pytest_disp}",
+                f"<strong>ToolCalls</strong>: {e.tool_call_count}",
+                f"<strong>LOC</strong>: {e.python_loc}",
+                f"<strong>PH</strong>: {e.placeholder_hits}",
+                f"<strong>Eng</strong>: {e.direct_engine_use}",
+                f"<strong>Reason</strong>: {reason}",
+            ])
+            lines.append(
+                f'<tr><td colspan="7"><small>{row2_detail}</small></td></tr>'
+            )
+            # Row 3 — paths (symlink + resolved abs)
+            row3_paths = (
+                f"<strong>Symlink</strong>: {sym_cell}<br>"
+                f"<strong>실제 경로</strong>: {abs_cell}"
+            )
+            lines.append(
+                f'<tr><td colspan="7"><small>{row3_paths}</small></td></tr>'
+            )
+    lines.append("</tbody>")
+    lines.append("</table>")
+    lines.append("")
+    lines.append("</details>")
     lines.append("")
 
 
@@ -733,10 +908,10 @@ def write_markdown(evals: List[SessionEval], out_path: Path, meta: Dict) -> None
     lines.append("")
     _metric_table("Overall %", "avg_overall_score")
 
-    # Per-group (A/B/C) tool rankings for §2.1
-    per_group = aggregate_per_group_tool(evals)
-    if per_group:
-        _emit_group_rank_subsections(lines, per_group)
+    # NOTE: Per-group (A/B/C) tool rankings were previously emitted here as
+    # §2.1, but moved to ``append_group_sections_to_md`` so that group-level
+    # comparisons only appear when the insights step runs (and reflect the
+    # actual groups discovered in the data instead of a hardcoded layout).
 
     # --- 2.2 Compliance % ---
     lines.append("### 2.2 Compliance % (HARD GATE 체크 통과율, 가중치 30%)")
@@ -926,12 +1101,32 @@ def write_markdown(evals: List[SessionEval], out_path: Path, meta: Dict) -> None
     lines.append("### 3.1 Overall %")
     lines.append("")
     rows_s2 = _ranked_round_rows("avg_overall_score")
-    lines.append(header)
-    lines.append(sep)
+    # Raw HTML table with a group-name banner row using colspan over the
+    # rounds that share the same (mode × backend_model) group. The data row
+    # cells are reused verbatim from _ranked_round_rows (already markdown-
+    # free numeric strings).
+    _boundaries = _round_group_boundaries(evals, rounds)
+    lines.append("<table>")
+    lines.append("<thead>")
+    _group_row = '<tr><th rowspan="2">Rank</th><th rowspan="2">Tool</th>'
+    for _g, _rs in _boundaries:
+        _group_row += f'<th colspan="{len(_rs)}">{_g}</th>'
+    _group_row += '<th rowspan="2">평균</th></tr>'
+    lines.append(_group_row)
+    lines.append('<tr>' + ''.join(f'<th>R{r}</th>' for r in rounds) + '</tr>')
+    lines.append("</thead>")
+    lines.append("<tbody>")
     for rank, (tool, cells, avg) in enumerate(rows_s2, 1):
         medal = _medals_rt.get(rank, str(rank))
-        lines.append(f"| {medal} | **{tool}** | " + " | ".join(cells) + f" | {_fmt_num(avg)} |")
+        _row = f'<tr><td>{medal}</td><td><strong>{tool}</strong></td>'
+        for c in cells:
+            _row += f'<td>{c}</td>'
+        _row += f'<td>{_fmt_num(avg)}</td></tr>'
+        lines.append(_row)
+    lines.append("</tbody>")
+    lines.append("</table>")
     lines.append("")
+    _emit_round_output_dirs_collapsible(lines, evals, rounds, tools)
 
     lines.append("### 3.2 Compliance %")
     lines.append("")
@@ -943,7 +1138,25 @@ def write_markdown(evals: List[SessionEval], out_path: Path, meta: Dict) -> None
         lines.append(f"| {medal} | **{tool}** | " + " | ".join(cells) + f" | {_fmt_num(avg)} |")
     lines.append("")
 
-    lines.append("### 3.3 Avg Duration")
+    # Sub-metric tables (§3.3-3.5) — same per-round-per-tool ranking layout as
+    # Compliance, using the new aggregate keys. Each is sorted by row average
+    # descending so the best tool ranks first.
+    for _sub_title, _metric_key in [
+        ("### 3.3 Quality %",        "avg_quality_score"),
+        ("### 3.4 ExecutionTrace %", "avg_execution_score"),
+        ("### 3.5 Runnability %",    "avg_runnability_score"),
+    ]:
+        lines.append(_sub_title)
+        lines.append("")
+        _rows_sub = _ranked_round_rows(_metric_key)
+        lines.append(header)
+        lines.append(sep)
+        for rank, (tool, cells, avg) in enumerate(_rows_sub, 1):
+            medal = _medals_rt.get(rank, str(rank))
+            lines.append(f"| {medal} | **{tool}** | " + " | ".join(cells) + f" | {_fmt_num(avg)} |")
+        lines.append("")
+
+    lines.append("### 3.6 Avg Duration")
     lines.append("")
     _dur_rows = []
     for tool in tools:
@@ -970,10 +1183,12 @@ def write_markdown(evals: List[SessionEval], out_path: Path, meta: Dict) -> None
         )
     lines.append("")
 
-    # ----------------------------------------------------------
-    # 3.X — Group comparison (NT/TH × model tier)
-    # ----------------------------------------------------------
-    _emit_group_comparison_section(lines, evals)
+    # NOTE: Group comparison sections (§3.5/§3.6/§3.7 Thinking/Model/Combined,
+    # §3.8 Opus 4.8 axes, §3.9 핵심 발견) used to be emitted right here but
+    # were moved into ``append_group_sections_to_md`` so they only appear
+    # alongside the insights step. Running with ``--insights off`` therefore
+    # produces a strictly quantitative analysis.md with no opinionated group
+    # rollups.
 
     # ----------------------------------------------------------
     # 4. Verdict 매트릭스
@@ -981,21 +1196,34 @@ def write_markdown(evals: List[SessionEval], out_path: Path, meta: Dict) -> None
     lines.append("## 4. 회차 × 시나리오 × 도구 — Verdict 매트릭스")
     lines.append("")
     verdict_emoji = {"PASS": "✅", "PARTIAL": "🟡", "FAIL": "❌", "UNKNOWN": "❓"}
+    _boundaries_v = _round_group_boundaries(evals, rounds)
     for sc in scenarios:
         lines.append(f"### {sc}")
         lines.append("")
-        lines.append("| Tool | " + " | ".join(f"R{r}" for r in rounds) + " |")
-        lines.append("|------|" + "|".join(":-----:" for _ in rounds) + "|")
+        lines.append("<table>")
+        lines.append("<thead>")
+        _group_row = '<tr><th rowspan="2">Tool</th>'
+        for _g, _rs in _boundaries_v:
+            _group_row += f'<th colspan="{len(_rs)}">{_g}</th>'
+        _group_row += '</tr>'
+        lines.append(_group_row)
+        lines.append('<tr>' + ''.join(f'<th>R{r}</th>' for r in rounds) + '</tr>')
+        lines.append("</thead>")
+        lines.append("<tbody>")
         for tool in tools:
-            cells = []
+            _row = f'<tr><td><strong>{tool}</strong></td>'
             for r in rounds:
                 m = per_rst.get((r, sc, tool))
                 if m:
-                    cells.append(f"{verdict_emoji.get(m['verdict'], '?')} {_fmt_num(m['overall_score'])}")
+                    _row += f'<td>{verdict_emoji.get(m["verdict"], "?")} {_fmt_num(m["overall_score"])}</td>'
                 else:
-                    cells.append("-")
-            lines.append(f"| **{tool}** | " + " | ".join(cells) + " |")
+                    _row += '<td>-</td>'
+            _row += '</tr>'
+            lines.append(_row)
+        lines.append("</tbody>")
+        lines.append("</table>")
         lines.append("")
+        _emit_scenario_output_dirs_collapsible(lines, evals, sc, rounds, tools)
 
     # ----------------------------------------------------------
     # 5. FAIL 분석
@@ -1330,53 +1558,102 @@ def write_markdown(evals: List[SessionEval], out_path: Path, meta: Dict) -> None
     lines.append("")
 
     # ----------------------------------------------------------
-    # 7. 세션별 상세 (전체) — 접기
+    # 7. 세션별 상세 — 헤더는 목차에 노출, 본문은 <details>로 접어둠.
     # ----------------------------------------------------------
-    lines.append("## 7. 세션별 상세 (전체)")
+    lines.append("## 7. 세션별 상세")
     lines.append("")
     lines.append(f"> 총 {len(evals)}개 세션. HTML 보고서에서는 접기/펼치기로 제공됩니다.")
     lines.append("")
-    # Multi-run aggregation: include run_id column when 2+ run_ids are present
+    lines.append("<details>")
+    lines.append("<summary>전체 (클릭하여 펼치기)</summary>")
+    lines.append("")
+    # Multi-run aggregation: include run_id column when 2+ run_ids are present.
+    # Three-row layout per session:
+    #   Row 1 — dense numeric metrics
+    #   Row 2 — runtime / volume / failure detail (S/D · ToolCalls · LOC ·
+    #            PH · Eng · Reason)
+    #   Row 3 — copyable Symlink path on its own line
+    # The Model column is intentionally absent: ``e.model`` is the config
+    # default and the actual backend is already encoded in the Group cell
+    # (e.g. ``NT_opus46`` / ``TH_opus48``).
     distinct_run_ids = sorted({e.run_id for e in evals})
     multi_run = len(distinct_run_ids) > 1
-    if multi_run:
-        lines.append("| Run | R | Tool | Scenario | Model | Verdict | Exec % | Runn % | ⏱ | pytest | Duration | Comp % | Qual % | Overall % | S/D | ToolCalls | LOC | PH | Eng | Reason |")
-        lines.append("|-----|--:|------|----------|-------|:------:|------:|------:|:--:|:------:|---------:|------:|------:|---------:|:--:|---------:|---:|---:|----:|-------|")
-    else:
-        lines.append("| R | Tool | Scenario | Model | Verdict | Exec % | Runn % | ⏱ | pytest | Duration | Comp % | Qual % | Overall % | S/D | ToolCalls | LOC | PH | Eng | Reason |")
-        lines.append("|--:|------|----------|-------|:------:|------:|------:|:--:|:------:|---------:|------:|------:|---------:|:--:|---------:|---:|---:|----:|-------|")
+    primary_cols = (["Run"] if multi_run else []) + [
+        "R", "Tool", "Group", "Scenario", "Verdict",
+        "Exec %", "Runn %", "⏱", "pytest", "Duration",
+        "Comp %", "Qual %", "Overall %",
+    ]
+    total_cols = len(primary_cols)
+    lines.append("<table>")
+    lines.append("<thead>")
+    lines.append("<tr>" + "".join(f"<th>{c}</th>" for c in primary_cols) + "</tr>")
+    lines.append("</thead>")
+    lines.append("<tbody>")
     for e in sorted(evals, key=lambda x: (x.run_id, x.round_index, x.tool, x.scenario)):
-        model_short = (e.model or "").replace("claude-sonnet-", "").replace("(non-standard)", "⚠")[:18]
         verdict_disp = f"{verdict_emoji.get(e.verdict, '?')} {e.verdict[:4]}"
         sd_marker = ("✓" if e.has_start else "✗") + "/" + ("✓" if e.has_done else "✗")
         timeout_mark = "⏱" if e.suspected_timeout else ""
         runn_disp = _fmt_num(e.runnability_score) if e.runnability_score > 0 else "-"
-        run_col = f"{e.run_id} | " if multi_run else ""
-        lines.append(
-            f"| {run_col}{e.round_index} | {e.tool} | {e.scenario} | {model_short} | "
-            f"{verdict_disp} | "
-            f"{_fmt_num(e.execution_score)} | "
-            f"{runn_disp} | "
-            f"{timeout_mark} | "
-            f"{e.exit_status if e.exit_status is not None else '-'} | "
-            f"{_fmt_duration(e.duration_sec)} | "
-            f"{_fmt_num(e.compliance_score_pct)} | "
-            f"{_fmt_num(e.quality_score)} | "
-            f"{_fmt_num(e.overall_score)} | "
-            f"{sd_marker} | "
-            f"{e.tool_call_count} | "
-            f"{e.python_loc} | "
-            f"{e.placeholder_hits} | {e.direct_engine_use} | "
-            f"{e.verdict_reason[:60]} |"
+        group_disp = _classify_group(e)
+        symlink_disp = f"<code>{e.result_scenario_dir}</code>" if e.result_scenario_dir else "-"
+        pytest_disp = str(e.exit_status) if e.exit_status is not None else "-"
+        # Row 1 — dense numeric snapshot (Model column intentionally removed).
+        row1 = "<tr>"
+        if multi_run:
+            row1 += f"<td>{e.run_id}</td>"
+        row1 += (
+            f"<td>{e.round_index}</td>"
+            f"<td>{e.tool}</td>"
+            f"<td><code>{group_disp}</code></td>"
+            f"<td>{e.scenario}</td>"
+            f"<td>{verdict_disp}</td>"
+            f"<td>{_fmt_num(e.execution_score)}</td>"
+            f"<td>{runn_disp}</td>"
+            f"<td>{timeout_mark}</td>"
+            f"<td>{pytest_disp}</td>"
+            f"<td>{_fmt_duration(e.duration_sec)}</td>"
+            f"<td>{_fmt_num(e.compliance_score_pct)}</td>"
+            f"<td>{_fmt_num(e.quality_score)}</td>"
+            f"<td>{_fmt_num(e.overall_score)}</td>"
+            f"</tr>"
         )
+        lines.append(row1)
+        # Row 2 — runtime / volume / failure detail (no Symlink).
+        reason = (e.verdict_reason or "").strip()
+        detail_parts = [
+            f"<strong>S/D</strong>: {sd_marker}",
+            f"<strong>ToolCalls</strong>: {e.tool_call_count}",
+            f"<strong>LOC</strong>: {e.python_loc}",
+            f"<strong>PH</strong>: {e.placeholder_hits}",
+            f"<strong>Eng</strong>: {e.direct_engine_use}",
+            f"<strong>Reason</strong>: {reason or '—'}",
+        ]
+        lines.append(
+            f'<tr><td colspan="{total_cols}"><small>'
+            + " · ".join(detail_parts)
+            + "</small></td></tr>"
+        )
+        # Row 3 — symlink on its own row so the path can be copied without
+        # collateral text in the way.
+        lines.append(
+            f'<tr><td colspan="{total_cols}"><small>'
+            f'<strong>Symlink</strong>: {symlink_disp}'
+            f'</small></td></tr>'
+        )
+    lines.append("</tbody>")
+    lines.append("</table>")
+    lines.append("")
+    lines.append("</details>")
     lines.append("")
 
     out_path.write_text("\n".join(lines), encoding="utf-8")
 
 
 def write_json(evals: List[SessionEval], out_path: Path, meta: Dict) -> None:
+    from .aggregate import build_study_profile
     payload = {
         "meta": meta,
+        "study_profile": build_study_profile(evals),
         "per_tool": aggregate_per_tool(evals),
         "per_round_tool": {
             f"R{k[0]}__{k[1]}": v for k, v in aggregate_per_round_tool(evals).items()
@@ -1556,6 +1833,24 @@ def _md_to_html(md_text: str) -> str:
                 in_list = False
             continue
 
+        # Raw HTML pass-through for <details>/<summary> collapsibles AND
+        # raw <table> blocks (used by §3.1 / §4 main tables that need colspan
+        # group headers). Tags are emitted verbatim so the browser respects
+        # them; markdown content between the tags continues to flow through
+        # the normal converter below.
+        if re.match(
+            r"^</?(details|summary|table|thead|tbody|tfoot|tr|th|td|colgroup|col|caption)\b",
+            stripped,
+        ):
+            if in_table:
+                html_parts.append("</tbody></table>")
+                in_table = False
+            if in_list:
+                html_parts.append("</ul>")
+                in_list = False
+            html_parts.append(stripped)
+            continue
+
         # Table separator (|---|...)
         if re.match(r"^\|[\s\-:|]+\|$", stripped):
             continue
@@ -1601,12 +1896,11 @@ def _md_to_html(md_text: str) -> str:
                     elif "향후 운영" in raw and raw.startswith(("8.", "8 ")):
                         html_parts.append('<a id="recommendations"></a>')
 
-                # Wrap §7 in collapsible <details>
-                if "세션별 상세" in m.group(2) and level == 2:
-                    html_parts.append(f'<details id="{hid}"><summary><h{level} style="display:inline">{text}</h{level}> (클릭하여 펼치기)</summary>')
-                    in_details = True
-                else:
-                    html_parts.append(f'<h{level} id="{hid}">{text}</h{level}>')
+                # §7 ("## 7. 세션별 상세") and others all flow through as a
+                # regular heading. The collapsing is now done by explicit
+                # <details>/<summary> emitted in write_markdown itself, which
+                # keeps the heading visible in the sidebar TOC.
+                html_parts.append(f'<h{level} id="{hid}">{text}</h{level}>')
                 continue
 
         # Blockquote
@@ -1647,6 +1941,9 @@ def _md_to_html(md_text: str) -> str:
 def _inline_md(text: str) -> str:
     """Convert inline Markdown (bold, code, links) to HTML."""
     text = html_mod.escape(text)
+    # Restore intentional <br> tokens (used in table cells to stack multiple
+    # paths). Escape happens first so any other tags stay as text.
+    text = re.sub(r"&lt;br\s*/?&gt;", "<br>", text)
     text = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", text)
     text = re.sub(r"`(.+?)`", r"<code>\1</code>", text)
     # Markdown links: [text](url) → <a href="url">text</a>.

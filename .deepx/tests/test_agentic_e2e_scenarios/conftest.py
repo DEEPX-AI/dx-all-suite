@@ -338,6 +338,52 @@ DEFAULT_OPENCODE_EXTRA_ARGS: List[str] = shlex.split(os.environ.get("DX_AGENTIC_
 DEFAULT_CODEX_EXTRA_ARGS: List[str] = shlex.split(os.environ.get("DX_AGENTIC_E2E_CODEX_EXTRA_ARGS", ""))
 
 
+# ---------------------------------------------------------------------------
+# Runner-supplied metadata accessor — surfaced in session.md / session.html
+# ---------------------------------------------------------------------------
+
+_TOOL_MODEL_ENV = {
+    "copilot-cli":  "DX_AGENTIC_E2E_MODEL",
+    "codex-cli":    "DX_AGENTIC_E2E_MODEL",
+    "claude-code":  "DX_AGENTIC_E2E_CLAUDE_CODE_MODEL",
+    "opencode-cli": "DX_AGENTIC_E2E_OPENCODE_MODEL",
+    "cursor-cli":   "DX_AGENTIC_E2E_CURSOR_MODEL",
+}
+
+
+def _thinking_render_kwargs(tool: str = "") -> Dict[str, object]:
+    """Return ``thinking_mode``/``thinking_args``/``intended_model`` kwargs
+    sourced from the e2e_runner-supplied environment.
+
+    Returns empty defaults when the variables are absent (e.g. manual pytest
+    runs), in which case the parsers silently omit the extra meta-table rows.
+    The ``tool`` hint picks the right ``DX_AGENTIC_E2E_*_MODEL`` env var; if
+    omitted or unmapped it falls back to ``DX_AGENTIC_E2E_MODEL`` and then to
+    any of the per-tool overrides that happen to be set.
+    """
+    mode = os.environ.get("DX_THINKING_MODE", "")
+    args_raw = os.environ.get("DX_THINKING_ENV_APPLIED", "") or ""
+    try:
+        applied = json.loads(args_raw) if args_raw else {}
+    except (json.JSONDecodeError, TypeError):
+        applied = {}
+    if not isinstance(applied, dict):
+        applied = {}
+    env_var = _TOOL_MODEL_ENV.get(tool, "DX_AGENTIC_E2E_MODEL")
+    intended = (
+        os.environ.get(env_var, "")
+        or os.environ.get("DX_AGENTIC_E2E_MODEL", "")
+        or os.environ.get("DX_AGENTIC_E2E_CLAUDE_CODE_MODEL", "")
+        or os.environ.get("DX_AGENTIC_E2E_OPENCODE_MODEL", "")
+        or os.environ.get("DX_AGENTIC_E2E_CURSOR_MODEL", "")
+    )
+    return {
+        "thinking_mode": mode,
+        "thinking_args": applied or None,
+        "intended_model": intended,
+    }
+
+
 
 # ---------------------------------------------------------------------------
 # Session auto-detection: dx-agentic-dev/<session_id>/ discovery
@@ -1409,6 +1455,7 @@ class CursorRunnerAutopilot:
                     session_events_log, html_path,
                     session_id_override=session_uuid,
                     scenario_key=scenario_key,
+                    **_thinking_render_kwargs("cursor-cli"),
                 )
             except Exception:
                 pass
@@ -1480,6 +1527,7 @@ class CursorRunnerAutopilot:
                     session_events_log, html_path,
                     session_id_override=session_uuid,
                     scenario_key=scenario_key,
+                    **_thinking_render_kwargs("cursor-cli"),
                 )
             except Exception:
                 pass
@@ -1771,6 +1819,7 @@ class OpenCodeRunnerAutopilot:
                     workdir=workdir,
                     after_utc=start_utc,
                     before_utc=end_utc,
+                    **_thinking_render_kwargs("opencode-cli"),
                 )
             except Exception:
                 pass
@@ -1861,6 +1910,7 @@ class OpenCodeRunnerAutopilot:
                     workdir=workdir,
                     after_utc=start_utc,
                     before_utc=end_utc,
+                    **_thinking_render_kwargs("opencode-cli"),
                 )
             except Exception:
                 pass
@@ -2132,7 +2182,10 @@ class ClaudeCodeRunnerAutopilot:
                 else:
                     _cc_parsed = _parse_cc(_cc_sessions[0])
                     _cc_html_path = log_dir / f"{scenario_key}-claude-code-session.html"
-                    _cc_html_path.write_text(_render_cc_html(_cc_parsed), encoding="utf-8")
+                    _cc_html_path.write_text(
+                        _render_cc_html(_cc_parsed, **_thinking_render_kwargs("claude-code")),
+                        encoding="utf-8",
+                    )
                     _logger.info("claude HTML written: %s", _cc_html_path)
             except Exception as _e:
                 _logger.warning("claude HTML render failed: %s", _e)
@@ -2264,7 +2317,10 @@ class ClaudeCodeRunnerAutopilot:
                 else:
                     _cc_parsed_t = _parse_cc_t(_cc_sessions_t[0])
                     _cc_html_t = log_dir / f"{scenario_key}-claude-code-session.html"
-                    _cc_html_t.write_text(_render_cc_html_t(_cc_parsed_t), encoding="utf-8")
+                    _cc_html_t.write_text(
+                        _render_cc_html_t(_cc_parsed_t, **_thinking_render_kwargs("claude-code")),
+                        encoding="utf-8",
+                    )
                     _logger.info("claude HTML written (timeout-path): %s", _cc_html_t)
             except Exception as _e:
                 _logger.warning("claude HTML render failed (timeout-path): %s", _e)
@@ -2611,12 +2667,16 @@ def _parse_session_events(
     detected session directory as ``session.html`` for self-contained
     output archival.
 
+    Runner thinking/model metadata is forwarded so the rendered Copilot
+    meta-table reflects ``--thinking`` / ``--copilot-model``.
+
     This is best-effort — failures are silently ignored so they never
     block test execution or validation.
     """
+    _meta_kwargs = _thinking_render_kwargs("copilot-cli")
     try:
         # Markdown (original)
-        parse_and_render(cwd=cwd, after=after, before=before, output=output)
+        parse_and_render(cwd=cwd, after=after, before=before, output=output, **_meta_kwargs)
     except Exception:
         pass  # Best-effort: never fail the test
 
@@ -2625,6 +2685,7 @@ def _parse_session_events(
         html_output = output.with_suffix(".html")
         parse_and_render(
             cwd=cwd, after=after, before=before, output=html_output, fmt="html",
+            **_meta_kwargs,
         )
         # Copy HTML into detected session dir(s)
         if output_dirs and html_output.exists():
@@ -3121,6 +3182,7 @@ class CodexRunnerAutopilot:
                     session_id_override=thread_id or None,
                     scenario_key=scenario_key,
                     title=f"Codex CLI: {scenario_key}",
+                    **_thinking_render_kwargs("codex-cli"),
                 )
             except Exception:
                 pass
@@ -3133,6 +3195,7 @@ class CodexRunnerAutopilot:
                     session_md,
                     session_id_override=thread_id or None,
                     scenario_key=scenario_key,
+                    **_thinking_render_kwargs("codex-cli"),
                 )
             except Exception:
                 pass
@@ -3237,6 +3300,7 @@ class CodexRunnerAutopilot:
                     session_id_override=thread_id or None,
                     scenario_key=scenario_key,
                     title=f"Codex CLI: {scenario_key}",
+                    **_thinking_render_kwargs("codex-cli"),
                 )
             except Exception:
                 pass
@@ -3249,6 +3313,7 @@ class CodexRunnerAutopilot:
                     session_md,
                     session_id_override=thread_id or None,
                     scenario_key=scenario_key,
+                    **_thinking_render_kwargs("codex-cli"),
                 )
             except Exception:
                 pass

@@ -35,6 +35,12 @@ class SessionEval:
     transcript_length: int
     # Run-id grouping (propagated from ResultDir.run_id)
     run_id: str = "legacy"
+    # Stable copyable symlink paths under results/<run_id>/<session_id>/.
+    # result_session_dir   = results/<run_id>/<session_id>/                 (round-level)
+    # result_scenario_dir  = results/<run_id>/<session_id>/<artifact_key>/  (scenario-level symlink)
+    # Empty string for legacy analysis.json files written before this field existed.
+    result_session_dir: str = ""
+    result_scenario_dir: str = ""
     # Thinking mode + canonical backend model — used by §4 group comparison
     # tables and the hypothesis verification prompt to slice (NT vs TH) and
     # (sonnet vs opus). "NA" for cursor-cli (Composer 2.5 has no thinking
@@ -362,6 +368,8 @@ def aggregate_per_round_tool(evals: List[SessionEval]) -> Dict[tuple, Dict[str, 
             "env_failures": n_total - len(scored),
             "avg_compliance_pct": sum(e.compliance_score_pct for e in scored) / n,
             "avg_quality_score": sum(e.quality_score for e in scored) / n,
+            "avg_execution_score": sum(e.execution_score for e in scored) / n,
+            "avg_runnability_score": sum(e.runnability_score for e in scored) / n,
             # None when all sessions are env-failures (no scored data → gap in trend chart)
             "avg_overall_score": (sum(e.overall_score for e in scored) / n) if scored else None,
             "avg_duration_sec":
@@ -422,3 +430,70 @@ def aggregate_per_round_scenario_tool(evals: List[SessionEval]) -> Dict[tuple, D
             "python_loc": e.python_loc,
         }
     return out
+
+
+def build_study_profile(evals: List[SessionEval]) -> Dict[str, object]:
+    """Return a JSON-serialisable profile describing the actual experiment.
+
+    The analyzer originally hardcoded a "5 tools × 3 groups × 5 rounds"
+    layout, which breaks for single-tool sweeps or opus-4.8 evaluations.
+    This helper inspects the loaded evals and returns the *real* shape so
+    the hypothesis prompt and the experiment-conditions section can adapt
+    to whichever subset was actually run.
+    """
+    tools = sorted({e.tool for e in evals if e.tool})
+    run_ids = sorted({e.run_id for e in evals if e.run_id})
+    scenarios = sorted({e.scenario for e in evals if e.scenario})
+    rounds = sorted({e.round_index for e in evals if e.round_index})
+    thinking_modes = sorted({e.mode for e in evals if e.mode})
+    backend_models = sorted({e.backend_model for e in evals if e.backend_model})
+
+    # Discovered groups (only those with at least one matching session).
+    groups: Dict[str, Dict[str, object]] = {}
+    for group_name, predicate in GROUP_KEYS.items():
+        members = [e for e in evals if predicate(e)]
+        if not members:
+            continue
+        groups[group_name] = {
+            "session_count": len(members),
+            "rounds": sorted({e.round_index for e in members}),
+            "tools": sorted({e.tool for e in members}),
+            "run_ids": sorted({e.run_id for e in members}),
+            "thinking_mode": next(iter({e.mode for e in members if e.mode}), ""),
+            "backend_model": next(iter({e.backend_model for e in members if e.backend_model}), ""),
+        }
+
+    # (run_id, tool) → mode/backend_model pairing for run-level summary
+    runs: List[Dict[str, object]] = []
+    seen: set = set()
+    for e in evals:
+        key = (e.run_id, e.tool, e.mode, e.backend_model)
+        if key in seen:
+            continue
+        seen.add(key)
+        runs.append({
+            "run_id": e.run_id,
+            "tool": e.tool,
+            "mode": e.mode,
+            "backend_model": e.backend_model,
+            "round_count": sum(
+                1 for rr in {x.round_index for x in evals
+                             if x.run_id == e.run_id and x.tool == e.tool}
+            ),
+        })
+
+    return {
+        "tools": tools,
+        "run_ids": run_ids,
+        "scenarios": scenarios,
+        "rounds": rounds,
+        "thinking_modes": thinking_modes,
+        "backend_models": backend_models,
+        "groups": groups,
+        "runs": runs,
+        "session_count": len(evals),
+        # Quick flags so callers can branch without recomputing
+        "is_single_tool": len(tools) == 1,
+        "has_thinking_axis": len(thinking_modes) > 1,
+        "has_model_axis": len(backend_models) > 1,
+    }

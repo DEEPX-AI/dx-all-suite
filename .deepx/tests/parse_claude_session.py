@@ -490,8 +490,19 @@ def _extract_user_text(content) -> str:
 # ---------------------------------------------------------------------------
 
 
-def render_html(session: ParsedSession) -> str:
+def render_html(
+    session: ParsedSession,
+    *,
+    thinking_mode: str = "",
+    thinking_args: Optional[Dict[str, str]] = None,
+    intended_model: str = "",
+) -> str:
     """Render a ParsedSession as a self-contained HTML page.
+
+    ``thinking_mode`` / ``thinking_args`` / ``intended_model`` are optional
+    runner-supplied metadata. When empty the corresponding meta-table rows
+    are simply omitted, so calling render_html(session) without kwargs (the
+    historical signature) continues to work.
 
     Returns:
         Complete HTML document string.
@@ -620,6 +631,7 @@ def render_html(session: ParsedSession) -> str:
         meta_rows.append(f"<tr><td>Start</td><td>{_html_escape(session.start_time)}</td></tr>")
     if session.end_time:
         meta_rows.append(f"<tr><td>End</td><td>{_html_escape(session.end_time)}</td></tr>")
+    meta_rows.extend(_thinking_html_rows(thinking_mode, thinking_args, intended_model))
 
     meta_html = '<table class="meta-table">' + "\n".join(meta_rows) + "</table>"
 
@@ -684,8 +696,72 @@ def _format_tool_args(tool_name: str, args_json: str) -> str:
 # ---------------------------------------------------------------------------
 
 
-def render_markdown(session: ParsedSession) -> str:
-    """Render a ParsedSession as Markdown text."""
+def _thinking_md_lines(
+    thinking_mode: str,
+    thinking_args: Optional[Dict[str, str]],
+    intended_model: str,
+) -> List[str]:
+    """Return markdown bullet items describing runner-provided thinking metadata.
+
+    The CLI itself never knows whether the user ran with ``--thinking``; this
+    information arrives from e2e_runner via environment variables. Emit it in
+    the "Session Info" block so the rendered session.md is self-describing.
+    """
+    out: List[str] = []
+    if thinking_mode:
+        label = (
+            "ON (TH — extended thinking / high reasoning effort)" if thinking_mode == "TH"
+            else "OFF (NT — default reasoning)" if thinking_mode == "NT"
+            else thinking_mode
+        )
+        out.append(f"- **확장사고 (Thinking):** {label}")
+    if thinking_args:
+        for k, v in thinking_args.items():
+            out.append(f"- **Reasoning Arg:** `{k}={v}`")
+    if intended_model:
+        out.append(f"- **Intended Model (runner-set):** `{intended_model}`")
+    return out
+
+
+def _thinking_html_rows(
+    thinking_mode: str,
+    thinking_args: Optional[Dict[str, str]],
+    intended_model: str,
+) -> List[str]:
+    """Return HTML <tr> rows describing thinking metadata for the meta-table."""
+    out: List[str] = []
+    if thinking_mode:
+        label = (
+            "ON (TH — extended thinking / high reasoning effort)" if thinking_mode == "TH"
+            else "OFF (NT — default reasoning)" if thinking_mode == "NT"
+            else thinking_mode
+        )
+        out.append(f"<tr><td>확장사고 (Thinking)</td><td>{_html_escape(label)}</td></tr>")
+    if thinking_args:
+        for k, v in thinking_args.items():
+            out.append(
+                f"<tr><td>Reasoning Arg</td><td><code>{_html_escape(k)}={_html_escape(v)}</code></td></tr>"
+            )
+    if intended_model:
+        out.append(
+            f"<tr><td>Intended Model</td><td><code>{_html_escape(intended_model)}</code></td></tr>"
+        )
+    return out
+
+
+def render_markdown(
+    session: ParsedSession,
+    *,
+    thinking_mode: str = "",
+    thinking_args: Optional[Dict[str, str]] = None,
+    intended_model: str = "",
+) -> str:
+    """Render a ParsedSession as Markdown text.
+
+    ``thinking_mode`` / ``thinking_args`` / ``intended_model`` are optional
+    metadata supplied by the test runner (not derivable from the transcript
+    itself). When empty they are silently omitted from the output.
+    """
     meta = session.metadata
     lines: List[str] = []
 
@@ -709,6 +785,7 @@ def render_markdown(session: ParsedSession) -> str:
         lines.append(f"- **Start:** {session.start_time}")
     if session.end_time:
         lines.append(f"- **End:** {session.end_time}")
+    lines.extend(_thinking_md_lines(thinking_mode, thinking_args, intended_model))
     lines.append("")
 
     # Conversation
