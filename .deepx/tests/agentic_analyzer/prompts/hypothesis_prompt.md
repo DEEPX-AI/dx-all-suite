@@ -52,25 +52,22 @@ DEEPX는 5개의 AI 코딩 도구(Claude Code, Copilot CLI, Cursor CLI, OpenCode
   - Sonnet 4.6 대비 **~2× 빠른 응답 속도** (긴 reasoning 챕터 없는 형태)
   - "frontier intelligence" 수준 — agentic coding 워크플로에 특화
   - **Cursor Pro 무제한 사용 가능** (API 호출 비용 없음) — 자체 호스팅
-- 가용 변형: `composer-2.5`, `composer-2.5-fast` (`fast`는 reasoning이 짧은 별도 모델, thinking on/off 아님)
-- 시사: Cursor는 sonnet-4.6 미사용 — 모든 cursor-cli 세션은 Composer 2.5 backend로 처리.
-  따라서 cursor와 sonnet 도구의 점수 차이는 **모델 자체 차이 + 하네스 차이**가 섞여 있어 confounder.
+- 가용 변형: `composer-2.5`, `composer-2.5-fast` (두 가지뿐; `fast`는 reasoning이 짧은 변종)
 
-### 1.6 Cursor CLI의 thinking 토글 한계 (잠재 confounder)
+### 1.6 Cursor CLI의 thinking 토글 한계 (잠재적 confounder)
 
-Cursor `agent --list-models`에 따르면:
-- Composer 2.5 계열은 thinking variant 미존재 (`composer-2.5`, `composer-2.5-fast` 두 가지)
+Cursor `agent --list-models` 공식 정보:
+- **Composer 2.5 계열은 thinking variant가 모델에 존재하지 않음** — `fast`는 thinking on/off가 아닌 별도 모델
 - thinking variant가 있는 모델: `claude-4.6-sonnet-medium-thinking`, `claude-opus-4-7-thinking-*`, `gpt-5.3-codex-{low,high,xhigh}` 등 — Cursor의 다른 backend 옵션
 - `--model auto` (quota 폴백)는 Composer 2.5 family로 떨어지므로 **thinking 토글 인자 자체가 무의미**
 
-본 실험 하네스(`e2e_runner.py` `THINKING_ENV`)는 4개 sonnet-4.6 도구에만
-reasoning_effort 인자(--effort xhigh 등)를 적용하고 cursor-cli는 빈 dict(`{}`)로
-NT와 TH 라운드에서 동일 실행합니다. 즉 cursor의 NT vs TH 비교는 thinking
-효과를 분리할 수 없습니다.
+본 실험 하네스 (`e2e_runner.py` `THINKING_ENV`)는 4개 sonnet-4.6 도구에만 reasoning_effort
+인자(--effort xhigh 등)를 적용하고 cursor-cli는 빈 dict(`{}`)로 NT와 TH 라운드에서
+동일 실행. 즉 cursor의 NT(R1-R5) vs TH(R6+) 비교는 thinking 효과 분리 불가.
 
 가설 작성 시 반드시 반영:
 - "thinking 효과" 가설은 **claude-code / copilot-cli / opencode / codex-cli 4개 도구로 한정**해 해석
-- cursor의 NT→TH 차이는 "thinking 모드 효과"로 해석 금지 — 모델·인자 동일
+- cursor의 NT→TH 변화는 "thinking 모드 효과"로 해석 금지 — 모델·인자 동일
 
 ### 2. SWE-Bench Verified Leaderboard (May 2026)
 - URL: https://www.swebench.com/  (live JS 페이지)
@@ -81,9 +78,9 @@ NT와 TH 라운드에서 동일 실행합니다. 즉 cursor의 NT vs TH 비교�
   - GPT-5.3 Codex: **85.0%**
   - Claude Opus 4.5: **80.9%**
   - (claude-sonnet-4-6은 Verified 최상단 미게재 — Sonnet은 Pro보다 Verified에서 약함)
-- 시사: 4개 sonnet-4.6 도구의 backend는 SWE-Bench Verified 최상위(Opus 4.7 / GPT-5.3)
-  대비 ~10-15pt 낮은 영역으로 추정. 동일 backend 도구 간 차이는
-  **모델 능력이 아닌 도구 하네스(자동 승인, instruction loop 등)에서 발생** 예상.
+- 시사: 4개 도구의 backend인 Sonnet 4.6은 SWE-Bench Verified 최상위(Opus 4.7 / GPT-5.3)
+  대비 ~10-15pt 낮은 영역으로 추정되며, 모든 도구가 동일 backend이므로
+  도구 간 차이는 **모델 능력이 아닌 도구 하네스(자동 승인, instruction loop 등)에서 발생**할 가능성이 높음.
 
 ### 3. Aider Polyglot Leaderboard (live)
 - URL: https://aider.chat/docs/leaderboards/
@@ -151,9 +148,8 @@ NT와 TH 라운드에서 동일 실행합니다. 즉 cursor의 NT vs TH 비교�
 - 동일 backend의 4 sonnet 도구끼리 비교가 harness 영향 측정에 적합
 - C 그룹의 모델 등급 효과는 Anthropic(sonnet→opus)와 OpenAI(gpt-5.3-codex→gpt-5.5)가 독립적으로 변하므로 두 family를 분리해 해석
 
-### Thinking 효과 사전 기대 (Aider 데이터)
-
-- thinking은 Sonnet 4의 percent_correct를 ~5pt 상승시킴 (56.4% → 61.3%, +4.9pt)
+이 실험의 **non-thinking 라운드와 thinking 라운드** 비교가 핵심:
+- thinking은 percent_correct를 일반적으로 ~5pt 상승시킴 (Aider 데이터: claude-sonnet-4 56.4 → 61.3)
 - 단 duration·token cost가 ~2배 증가 — efficiency 트레이드오프
 
 `experiment.background` 필드 작성 시 위 3-라운드 설계와 backend 전환을 반드시 명시.
@@ -225,7 +221,12 @@ NT와 TH 라운드에서 동일 실행합니다. 즉 cursor의 NT vs TH 비교�
    — Composer 2.5 클레임(2× 속도, Pro 무제한)을 cursor의 cost/duration 가설에 활용 가능.
 8. **thinking 효과 가설은 cursor 제외**:
    — Composer 2.5에 thinking variant 자체가 없고, 하네스도 cursor의 TH 라운드에
-     reasoning_effort 인자를 추가하지 않음(§1.6 코드 인용).
+     reasoning_effort 인자를 추가하지 않음(§1.6 참조).
    — 따라서 "thinking 모드가 X 점수를 +N pt 상승시킨다" 같은 가설의
      expected_ranking에서 cursor는 NT와 TH 모두 동일한 점수로 예상해야 함.
-   — cursor의 NT→TH 차이가 +Δ 또는 -Δ로 관측되더라도 stochastic noise로 해석.
+9. **사전 가설(prior) 원칙 — HARD GATE**:
+   — rationale은 **외부 벤치마크 · 도구 통신 특성 · 모델 클레임** 등 사전에 알 수 있는
+     정보만 인용. 본 실험의 결과 분석 데이터(observed compliance %, runnability %,
+     session 수, 도구별 관측 점수 등)는 절대 인용 금지.
+   — "X-session 분석에서 ~Y%가 관측되었다" 같은 표현은 모두 prior 가설 위반.
+   — Prior는 미래 결과를 예측하는 글이지, 과거 결과를 설명하는 글이 아님.

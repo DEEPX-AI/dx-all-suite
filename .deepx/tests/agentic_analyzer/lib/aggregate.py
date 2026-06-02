@@ -62,13 +62,12 @@ class SessionEval:
     reasoning_tokens: int = 0
     # Cost / billing
     premium_requests: int = 0           # Copilot CLI only (actual from stream)
-    estimated_premium_requests: float = 0.0  # Primary PR estimate used for USD calc (method 1 → 2 → 3 priority)
-    # All three PR-estimation methods kept side-by-side for §6.1 transparency
+    estimated_premium_requests: float = 0.0  # Primary PR estimate used for USD calc (method 1 → 2 priority)
+    # PR estimation methods kept side-by-side for §6.1 transparency
     pr_observed: float = 0.0            # method 0 — totalPremiumRequests (copilot-cli only)
-    pr_by_tool_call: float = 0.0        # method 1 — tool_call × 0.741 (calibrated)
-    pr_by_user_turn: float = 0.0        # method 2 — user_turn × model_multiplier
-    pr_by_token_ratio: float = 0.0      # method 3 — (input+output) / tokens_per_premium
-    user_turn_count: int = 0            # User turns for PR estimation (user_turns × multiplier)
+    pr_by_tool_call: float = 0.0        # method 1 — tool_call × 0.741 (calibrated, primary)
+    pr_by_token_ratio: float = 0.0      # method 2 — (input+output) / tokens_per_premium (fallback)
+    user_turn_count: int = 0            # Informational metadata (not used for PR estimation in agentic loops)
     cost_units: float = 0.0             # Copilot: requests.cost, OpenCode: part.cost sum
     estimated_usd: float = 0.0          # Computed from pricing config (informational)
     cost_basis: str = "unknown"         # Which pricing rule was applied
@@ -337,7 +336,6 @@ def aggregate_per_tool(evals: List[SessionEval]) -> Dict[str, Dict[str, float]]:
             # PR estimation methods — averaged for §6.1 cross-method comparison
             "avg_pr_observed": sum(e.pr_observed for e in scored) / n,
             "avg_pr_by_tool_call": sum(e.pr_by_tool_call for e in scored) / n,
-            "avg_pr_by_user_turn": sum(e.pr_by_user_turn for e in scored) / n,
             "avg_pr_by_token_ratio": sum(e.pr_by_token_ratio for e in scored) / n,
             "avg_overall_score": sum(overalls) / n,
             "stdev_overall_score": _stdev(overalls),

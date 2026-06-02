@@ -1284,14 +1284,11 @@ def write_markdown(evals: List[SessionEval], out_path: Path, meta: Dict) -> None
     lines.append("")
 
     copilot_tools = ["copilot-cli", "opencode-cli", "codex-cli"]
-    # All three PR-estimation methods + the observed value are shown side-by-side
-    # so the user can directly compare how much they diverge. In practice
-    # method 1 (tool_call × 0.741) tracks copilot's observed value within ~15%,
-    # while method 2 (user_turn × multiplier) understates by ~35× for agentic
-    # multi-turn sessions. The "USD 기준" column marks which estimate the cost
-    # calculator actually used.
-    lines.append("| 도구 | E2E Overall | 관측 PR | 예측 1: tool_call × 0.741 | 예측 2: user_turn × mult | 예측 3: token ratio | USD 기준 |")
-    lines.append("|------|----------:|--------:|-----------------:|-----------------:|----------------:|----------|")
+    # Method 1 (tool_call × 0.741) is calibrated against copilot-cli's observed
+    # totalPremiumRequests and tracks it within ~15% — used as the primary
+    # ranking basis. Method 2 (token ratio) is shown only for reference.
+    # Efficiency = Overall / PR (higher = more score per premium request).
+    rows = []
     for tool in copilot_tools:
         if tool not in tools:
             continue
@@ -1300,43 +1297,45 @@ def write_markdown(evals: List[SessionEval], out_path: Path, meta: Dict) -> None
         ov = tool_overall.get(tool, 0)
         total_obs = sum(e.premium_requests for e in ev)
         avg_obs = total_obs / n if total_obs > 0 else 0.0
-        avg_tc  = sum(e.pr_by_tool_call    for e in ev) / n
-        avg_ut  = sum(e.pr_by_user_turn    for e in ev) / n
-        avg_tr  = sum(e.pr_by_token_ratio  for e in ev) / n
+        avg_tc  = sum(e.pr_by_tool_call   for e in ev) / n
+        avg_tr  = sum(e.pr_by_token_ratio for e in ev) / n
+        eff_tc  = (ov / avg_tc) if avg_tc > 0 else 0.0
+        eff_tr  = (ov / avg_tr) if avg_tr > 0 else 0.0
+        rows.append((tool, ov, avg_obs, avg_tc, eff_tc, avg_tr, eff_tr))
 
-        # Pick the basis label from any session's cost_basis (they share it per tool)
-        basis_label = "—"
-        for e in ev:
-            if e.cost_basis and e.cost_basis != "unknown":
-                if "actual" in e.cost_basis:
-                    basis_label = "관측치"
-                elif "tool_call" in e.cost_basis:
-                    basis_label = "예측 1"
-                elif "user_turn" in e.cost_basis:
-                    basis_label = "예측 2"
-                elif "token ratio" in e.cost_basis:
-                    basis_label = "예측 3"
-                break
+    # Rank by efficiency under method 1 (primary)
+    rows.sort(key=lambda r: r[4], reverse=True)
+    medals = ["🥇", "🥈", "🥉"]
 
+    lines.append(
+        "| Rank | 도구 | E2E Overall | 관측 PR | 예측 1: tool_call × 0.741 | "
+        "효율 (Overall ÷ 예측 1) | 참고: 예측 2 (token ratio) | 참고: 효율 (Overall ÷ 예측 2) |"
+    )
+    lines.append(
+        "|:----:|------|----------:|--------:|-----------------:|----------------------:|"
+        "----------------:|----------------------:|"
+    )
+    for i, (tool, ov, avg_obs, avg_tc, eff_tc, avg_tr, eff_tr) in enumerate(rows, 1):
+        rank = medals[i - 1] if i <= len(medals) else str(i)
         cell_obs = f"{avg_obs:.1f}" if avg_obs > 0 else "—"
         cell_tc  = f"{avg_tc:.1f}"  if avg_tc > 0  else "—"
-        cell_ut  = f"{avg_ut:.1f}"  if avg_ut > 0  else "—"
+        cell_ef1 = f"{eff_tc:.2f}"  if eff_tc > 0  else "—"
         cell_tr  = f"{avg_tr:.1f}"  if avg_tr > 0  else "—"
+        cell_ef2 = f"{eff_tr:.2f}"  if eff_tr > 0  else "—"
         lines.append(
-            f"| **{tool}** | {ov:.1f} | {cell_obs} | {cell_tc} | {cell_ut} | {cell_tr} | {basis_label} |"
+            f"| {rank} | **{tool}** | {ov:.1f} | {cell_obs} | {cell_tc} | "
+            f"**{cell_ef1}** | {cell_tr} | {cell_ef2} |"
         )
     lines.append("")
     lines.append(
-        "> **3가지 예측 방식을 모두 노출**한 이유: "
-        "**예측 1 (tool_call × 0.741)** 이 copilot 관측치와 자릿수 일치(±15%)로 agentic 도구에서 "
-        "가장 신뢰성 있는 방식 — USD 산정에 우선 사용됩니다. "
-        "**예측 2 (user_turn × multiplier)** 는 GitHub 공식 정책 공식이나 agentic loop에서는 "
-        "user_turn 1회당 LLM round-trip이 수십 회 발생해 자릿수 35배 과소평가 (50 tool_call 세션에서 "
-        "user_turn=1 × 1× = 1 PR vs 실측 ~35 PR) — **신뢰성 결여로 USD 산정 미사용**, 참고치로만 노출. "
-        "**예측 3 (token ratio 역산)** 은 tool_call=0인 예외 세션의 fallback. "
-        "copilot-cli만 `session.shutdown.totalPremiumRequests`로 실측을 제공하며, "
-        "opencode/codex는 stream에 PR 미노출이므로 3가지 예측만 가능합니다 (§6.2 참조). "
-        "'USD 기준' 열은 cost USD 산정에 실제 사용된 방식을 표시합니다."
+        "> **랭킹 기준**: 예측 1(tool_call × 0.741) 기반의 '효율' 컬럼(Overall ÷ PR) 내림차순. "
+        "값이 클수록 한 PR(Premium Request)당 더 높은 Overall 점수를 만든다는 의미. "
+        "**예측 1**은 copilot-cli 관측치와 자릿수 일치(±15%) 입증된 calibrated ratio라 "
+        "agentic 도구에서 가장 신뢰성 있는 비교 기준입니다. "
+        "**예측 2(token ratio)** 와 그 효율 컬럼은 참고용 — 도구별 token 보고 의미론이 달라 "
+        "자릿수 변동이 큽니다 (§6.4 참조). "
+        "copilot-cli는 `session.shutdown.totalPremiumRequests` 실측을 제공하지만, opencode/codex는 "
+        "stream에 PR 미노출이라 예측에 의존합니다."
     )
     lines.append("")
 
@@ -1373,55 +1372,40 @@ def write_markdown(evals: List[SessionEval], out_path: Path, meta: Dict) -> None
     lines.append("")
     lines.append("> 참고: claude-code (Anthropic Team Plan), cursor-cli (Cursor Team Plan)는 PR 개념이 없는 정액 구독입니다.")
     lines.append("")
-    lines.append("#### 예측 1순위 — tool_call × 0.741 (calibrated)")
+    lines.append("#### 예측 공식 1순위 — tool_call × 0.741 (calibrated)")
     lines.append("")
-    lines.append("**0.741 산정 방식 (copilot-cli 실측 calibration)**:")
+    lines.append("agentic 도구는 한 번의 사용자 프롬프트 안에서 수십 회의 LLM round-trip을 "
+                 "발생시킵니다. GitHub의 청구도 round-trip 단위로 누적되므로, **세션의 tool_call 수**를 "
+                 "PR 예측 지표로 사용하는 것이 자연스럽습니다.")
+    lines.append("")
+    lines.append("copilot-cli의 실측 데이터(관측 PR / tool_call 비율)로 calibration ratio를 산출:")
     lines.append("")
     lines.append("```")
-    lines.append("TOOL_CALL_PR_RATIO = (copilot-cli 모든 세션의 관측 PR 합) / (copilot-cli 모든 세션의 tool_call 합)")
-    lines.append("                   = 5,232 PR / 7,061 tool_calls")
-    lines.append("                   ≈ 0.741")
-    lines.append("estimated_PR(opencode/codex) = tool_call_count × 0.741")
+    lines.append("TOOL_CALL_PR_RATIO ≈ 0.741   # = 5232 PR / 7061 tool_calls (copilot-cli 실측)")
+    lines.append("estimated_PR = tool_call_count × TOOL_CALL_PR_RATIO")
     lines.append("```")
     lines.append("")
-    lines.append("- copilot-cli는 `session.shutdown.totalPremiumRequests`로 PR 실측치를 제공 → 보정 기준점")
-    lines.append("- opencode/codex는 동일 GitHub Copilot backend 사용 → 동일 ratio 적용 합리적")
-    lines.append("- 검증: 신규 multi 분석에서 copilot 관측 PR vs 예측 PR(tool_call×0.741)이 ±15% 이내 일치")
+    lines.append("이 방식은 copilot 관측치(38.7)와 자릿수 일치(~41, ±15%)를 보이며, "
+                 "동일 backend의 opencode/codex에도 일관성 있게 적용됩니다.")
     lines.append("")
-    lines.append("#### 예측 2순위 — token ratio 역산 (fallback)")
+    lines.append("#### 예측 공식 2순위 — token ratio (fallback)")
     lines.append("")
-    lines.append("tool_call_count가 0인 예외 세션의 경우만 사용:")
+    lines.append("tool_call_count가 0인 예외 세션을 위해 token-ratio 역산을 보조로 둡니다:")
     lines.append("")
     lines.append("```")
     lines.append("calibration_ratio = copilot-cli 총 (input+output) tokens / 총 premium requests")
     lines.append("estimated_PR = (input+output) tokens / calibration_ratio")
     lines.append("```")
     lines.append("")
-    lines.append("> ⚠ **한계**: 도구별 token 보고 의미론(per-turn cumulative vs cumulative-only)이 달라 자릿수 변동이 큼.")
+    lines.append("> ⚠ **한계**: 도구별 token 보고 의미론이 다르기 때문에 자릿수 변동이 큽니다. "
+                 "tool_call 신호가 있는 모든 세션은 1순위 공식을 사용하며, fallback은 1% 미만 케이스에서만 사용됩니다.")
     lines.append("")
-    lines.append("#### 시도되었으나 폐기된 방식 — user_turn × multiplier")
+    lines.append("#### 참고 — copilot-cli 관측 PR의 USD 단가 (multiplier 적용 대상)")
     lines.append("")
-    lines.append("session 파서(`parse_claude_session.py`/`parse_copilot_session.py`/`parse_codex_session.py` 등)에는 "
-                 "**user_turn_count 추출이 모두 구현되어 있음**. 그러나:")
+    lines.append("copilot-cli의 실측 PR 수치에 USD를 부여할 때 모델별 multiplier가 적용됩니다 "
+                 "(예측치 계산에는 사용되지 않음).")
     lines.append("")
-    lines.append("- agentic 도구는 **1개 user_turn(초기 프롬프트)당 수십 회의 LLM round-trip**을 발생시킴")
-    lines.append("- 실측 비교: copilot-cli 세션의 평균 user_turn=1, tool_calls≈55, 실측 PR≈35 → user_turn × 1× multiplier = 1 PR vs 실측 35 PR (자릿수 35배 과소평가)")
-    lines.append("- 따라서 GitHub Copilot 정책상의 \"user_turn당 1 PR\" 공식은 단순 chat에는 유효하나 **agentic loop에는 부적용**")
-    lines.append("")
-    lines.append("→ 본 분석기는 예측 1순위(tool_call × 0.741)를 사용하며, user_turn × multiplier 방식은 신뢰성 결여로 USD 산정에서 제외됨.")
-    lines.append("")
-    lines.append("#### 참고 — copilot-cli 관측 PR의 USD 단가 (multiplier 적용)")
-    lines.append("")
-    lines.append("copilot-cli의 실측 PR 수치에 USD를 부여할 때 모델별 multiplier가 적용됨 (예측치 계산에는 사용되지 않음).")
-    lines.append("")
-    lines.append("| Model | Multiplier | 비고 |")
-    lines.append("|-------|----------:|------|")
-    lines.append("| GPT-5 mini / GPT-4.1 / GPT-4o | 0× | 무료 모델 |")
-    lines.append("| Claude Haiku 4.5, Gemini 3 Flash | 0.33× | |")
-    lines.append("| **Claude Sonnet 4.6** (그룹 A/B 기본 모델) | **1×** | |")
-    lines.append("| Claude Opus 4.5/4.6 (그룹 C 상위 모델) | 3× | |")
-    lines.append("| GPT-5.5 (그룹 C codex 상위 모델) | 7.5× | |")
-    lines.append("| Claude Opus 4.7 | 15× | |")
+    lines.append("#### 예측 2순위 — token ratio 역산 (fallback)")
     lines.append("")
     lines.append("#### 향후 개선 계획")
     lines.append("")

@@ -33,7 +33,8 @@ class SessionData:
     # Cost / billing
     premium_requests: int = 0           # Copilot CLI: data.modelMetrics.<model>.requests.count
     cost_units: float = 0.0             # Tool-specific cost (Copilot: requests.cost; OpenCode: part.cost sum)
-    # User turn count (for PR estimation via user_turns × multiplier)
+    # User turn count — informational metadata (not used for PR estimation;
+    # agentic loops accumulate PR per LLM round-trip, not per user turn)
     user_turn_count: int = 0
     # Tool call count (sum of distinct tool invocations)
     tool_call_count: int = 0

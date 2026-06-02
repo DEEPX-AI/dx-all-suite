@@ -24,15 +24,16 @@ from typing import Optional, List
 # tool_calls across pilot runs). Used as method-1 PR estimator for tools that
 # share GitHub Copilot backend but don't expose `totalPremiumRequests` in their
 # stream (opencode-cli, codex-cli). In practice this method tracks copilot's
-# own observed PR within ~15% — much closer than user_turn × multiplier which
-# is order-of-magnitude lower for agentic multi-turn sessions.
+# own observed PR within ~15% — by far the most reliable estimator for
+# agentic multi-turn sessions.
 TOOL_CALL_PR_RATIO = 0.741
 
 
 def _resolve_multiplier(model: str, mult_cfg: dict) -> float:
     """Look up the GitHub Copilot Premium Request multiplier for *model*.
 
-    Falls back to 1.0 if the model isn't listed in config_pricing.
+    Used by the copilot-cli observed-PR USD calculation to scale the per-request
+    rate by model class (e.g. Sonnet 1×, Opus 3×). Falls back to 1.0 if not listed.
     """
     if not mult_cfg or not model:
         return 1.0
@@ -60,16 +61,15 @@ class CostBreakdown:
     total_usd: float = 0.0
     pricing_basis: str = "unknown"          # how we computed
     notes: str = ""                         # human-readable
-    estimated_premium_requests: float = 0.0 # final PR used for USD calc (1순위 method)
+    estimated_premium_requests: float = 0.0 # final PR used for USD calc
 
-    # PR estimates from each method — all 3 always computed for transparency.
-    # Reported side-by-side in §6.1 so user can judge methodology divergence
-    # (in practice tool_call calibration matches copilot observation by an order
-    # of magnitude better than user_turn × multiplier).
+    # PR estimates from each method — kept side-by-side in §6.1 for transparency.
+    # Note: a user_turn × multiplier estimator was tried and removed — it
+    # understated agentic loops by ~35× vs copilot-cli's observed PR, making
+    # it meaningless for this domain.
     pr_observed: float = 0.0                # method 0 — copilot-cli totalPremiumRequests
-    pr_by_tool_call: float = 0.0            # method 1 — tool_call × 0.741 (calibrated)
-    pr_by_user_turn: float = 0.0            # method 2 — user_turn × model_multiplier
-    pr_by_token_ratio: float = 0.0          # method 3 — (input+output) / tokens_per_premium
+    pr_by_tool_call: float = 0.0            # method 1 — tool_call × 0.741 (calibrated, primary)
+    pr_by_token_ratio: float = 0.0          # method 2 — (input+output) / tokens_per_premium (fallback)
 
 
 @dataclass
@@ -164,7 +164,7 @@ def estimate_cost(
         - else → Anthropic rates (proxy — Cursor doesn't bill per-token directly)
 
     - **opencode-cli / codex-cli** (uses copilot provider):
-        - Primary: user_turn_count × model_multiplier (if user_turn_count > 0)
+        - Primary: tool_call_count × TOOL_CALL_PR_RATIO (calibrated from copilot-cli)
         - Fallback: token ratio reverse-engineering (input+output) / tokens_per_premium
         - cost = est_premium × usd_per_request
 
@@ -196,10 +196,9 @@ def estimate_cost(
             f"{premium_requests} actual premium requests × ${usd_per:.3f}"
             + (f" × {mult}" if mult != 1.0 else "")
         )
-        # All 3 predictions also computed for §6.1 cross-method comparison
+        # Compute both predictions for §6.1 cross-method comparison
         cb.pr_observed = float(premium_requests)
         cb.pr_by_tool_call = (tool_call_count * TOOL_CALL_PR_RATIO) if tool_call_count > 0 else 0.0
-        cb.pr_by_user_turn = (user_turn_count * mult) if user_turn_count > 0 else 0.0
         if calibration and calibration.tokens_per_premium:
             cb.pr_by_token_ratio = (input_tokens + output_tokens) / calibration.tokens_per_premium
         cb.estimated_premium_requests = cb.pr_observed
@@ -210,16 +209,11 @@ def estimate_cost(
         tool_label = "OpenCode" if tool == "opencode-cli" else "Codex CLI"
         prem_cfg = config_pricing.get("copilot_premium_request", {}) or {}
         usd_per = float(prem_cfg.get("usd_per_request", 0.033))
-        mult_cfg = config_pricing.get("copilot_request_multiplier", {}) or {}
-        mult = _resolve_multiplier(model, mult_cfg)
 
-        # Compute ALL 3 prediction methods for transparency — they're reported
-        # side-by-side in §6.1 so the user can see how much they diverge.
-        # Method 1 (tool_call calibration) is treated as primary because empirically
-        # it matches copilot-cli's observed totalPremiumRequests within ~15%, while
-        # method 2 (user_turn × multiplier) understates by ~35× for agentic loops.
+        # Compute both prediction methods for transparency — reported side-by-side
+        # in §6.1. Method 1 (tool_call calibration) is primary because empirically
+        # it matches copilot-cli's observed totalPremiumRequests within ~15%.
         pr_tc = (tool_call_count * TOOL_CALL_PR_RATIO) if tool_call_count > 0 else 0.0
-        pr_ut = (user_turn_count * mult) if user_turn_count > 0 else 0.0
         pr_tr = 0.0
         if calibration and calibration.tokens_per_premium:
             tpr = calibration.tokens_per_premium
@@ -228,38 +222,29 @@ def estimate_cost(
 
         cb.pr_observed = 0.0  # not exposed by these tools
         cb.pr_by_tool_call = pr_tc
-        cb.pr_by_user_turn = pr_ut
         cb.pr_by_token_ratio = pr_tr
 
-        # Choose primary estimate (method 1 → 2 → 3 priority) for USD computation
+        # Choose primary estimate (method 1 → 2 priority) for USD computation
         if pr_tc > 0:
             est_premium = pr_tc
             cb.pricing_basis = "copilot_premium_request (tool_call calibration — primary)"
             cb.notes = (
                 f"{tool_label}: {tool_call_count} tool_calls × {TOOL_CALL_PR_RATIO:.3f} "
-                f"= {pr_tc:.1f} PR (primary). user_turn estimate: {pr_ut:.1f}, "
-                f"token_ratio estimate: {pr_tr:.1f}."
-            )
-        elif pr_ut > 0:
-            est_premium = pr_ut
-            cb.pricing_basis = "copilot_premium_request (user_turn × multiplier — fallback)"
-            cb.notes = (
-                f"{tool_label}: {user_turn_count} user_turns × {mult} multiplier "
-                f"= {pr_ut:.1f} PR (fallback, tool_call unavailable)."
+                f"= {pr_tc:.1f} PR (primary). token_ratio estimate: {pr_tr:.1f}."
             )
         elif pr_tr > 0:
             est_premium = pr_tr
             cb.pricing_basis = "copilot_premium_request (token ratio fallback)"
             cb.notes = (
                 f"{tool_label}: token-ratio fallback = {pr_tr:.1f} PR "
-                f"(tool_call & user_turn both unavailable)."
+                f"(tool_call unavailable)."
             )
         else:
             est_premium = 0.0
             cb.pricing_basis = f"{tool.replace('-', '_')}_calibration_unavailable"
             cb.notes = (
                 f"{tool_label} uses copilot provider but no signal available "
-                f"(tool_call=0, user_turn=0, no calibration)."
+                f"(tool_call=0, no token calibration)."
             )
 
         cb.estimated_premium_requests = est_premium
