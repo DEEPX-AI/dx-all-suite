@@ -298,12 +298,24 @@ cost and quality:
 
 | Stage | Default `allow_paid` | Default CLI + Model | Rationale |
 |-------|---------------------|---------------------|-----------|
-| Runnability (Stage 5) | `False` (free) | copilot + gpt-4.1 | High volume — evaluates every session |
-| Insights (Stage 7) | `True` (paid) | copilot + claude-sonnet-4.6 | Quality matters — single comprehensive analysis |
-| Hypothesis (Stage 4.5) | `True` (paid) | copilot + claude-sonnet-4.6 | Benchmark synthesis requires reasoning |
+| Runnability (Stage 5) | `True` (paid) | claude-code + claude-sonnet-4-6 | High volume — evaluates every session |
+| Insights (Stage 7) | `True` (paid) | claude-code + claude-sonnet-4-6 | Single comprehensive analysis |
+| Hypothesis (Stage 4.5) | `True` (paid) | claude-code + claude-sonnet-4-6 | Benchmark synthesis |
 
-Override with `--insights-allow-paid` / `--no-insights-allow-paid` in `analyze.py`,
-or `--allow-paid` / `--no-allow-paid` in `insights.py`.
+> **Model policy (2026-06):** No working *free* judge model is available right now, so all
+> three LLM stages default to **claude-code + `claude-sonnet-4-6`** (paid). Invoke with
+> `--insights claude --insights-model claude-sonnet-4-6 --insights-allow-paid`. Notes:
+> - copilot `gpt-4.1` (the former free default) was **deprecated** — `Model "gpt-4.1" ... is not available`.
+> - cursor `auto` (the preferred *free* option) currently **fails in headless `agent -p`** with
+>   `Connection lost, reconnecting` — the agent session can't reach its backend (NOT fixed by the
+>   CA bundle / stdin redirect / empty cwd; `agent --list-models` succeeds but `agent -p` sessions
+>   time out at 180s). Re-enable `cursor + auto` as the free default once that connectivity is restored.
+> - The claude model id must use **hyphens** (`claude-sonnet-4-6`); the dotted form `claude-sonnet-4.6`
+>   is rejected by the claude CLI (`...may not exist or you may not have access`).
+
+Override the CLI/model with `--insights <cli>` + `--insights-model <model>`, and toggle
+paid models with `--insights-allow-paid` / `--no-insights-allow-paid` in `analyze.py`
+(or `--allow-paid` / `--no-allow-paid` in `insights.py`).
 
 ## 5. Analysis Dimensions
 
