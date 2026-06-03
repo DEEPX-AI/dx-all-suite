@@ -110,8 +110,12 @@ def pricing_config(multiplier_table):
     }
 
 
-def test_opencode_user_turn_primary(pricing_config):
-    """PRIMARY path: user_turn_count × multiplier."""
+# NOTE: the user_turn × multiplier PR estimator was removed (commit "drop
+# user_turn × multiplier PR estimator"). tool_call × 0.741 is now the PRIMARY
+# estimate; token-ratio is the fallback. These tests assert that landed behavior.
+
+def test_opencode_tool_call_primary(pricing_config):
+    """PRIMARY path: tool_call × 0.741 calibration (user_turn no longer used)."""
     cb = estimate_cost(
         tool="opencode-cli", model="claude-sonnet-4.6",
         input_tokens=1000, output_tokens=500,
@@ -120,13 +124,16 @@ def test_opencode_user_turn_primary(pricing_config):
         config_pricing=pricing_config,
         user_turn_count=3, tool_call_count=50,
     )
-    assert cb.estimated_premium_requests == 3.0  # 3 × 1.0
-    assert "user_turn × multiplier" in cb.pricing_basis
-    assert cb.usd_premium == pytest.approx(3 * 0.033)
+    assert cb.estimated_premium_requests == pytest.approx(37.05)  # 50 × 0.741
+    assert "tool_call calibration" in cb.pricing_basis
+    assert cb.usd_premium == pytest.approx(37.05 * 0.033)
 
 
-def test_opencode_opus_multiplier(pricing_config):
-    """Opus 4.7 (15×) cost should be 15× sonnet baseline."""
+def test_opencode_no_signal_when_tool_call_zero(pricing_config):
+    """tool_call=0 + no token signal → no calibration signal (0 PR).
+
+    Replaces the removed user_turn × opus-multiplier path: the request
+    multiplier is no longer applied (the estimator it fed was removed)."""
     cb = estimate_cost(
         tool="opencode-cli", model="claude-opus-4.7",
         input_tokens=0, output_tokens=0, cache_read_tokens=0, cache_write_tokens=0,
@@ -134,12 +141,12 @@ def test_opencode_opus_multiplier(pricing_config):
         config_pricing=pricing_config,
         user_turn_count=2, tool_call_count=0,
     )
-    assert cb.estimated_premium_requests == 30.0   # 2 × 15
-    assert cb.usd_premium == pytest.approx(30 * 0.033)
+    assert cb.estimated_premium_requests == 0.0
+    assert "calibration_unavailable" in cb.pricing_basis
 
 
-def test_codex_user_turn_path(pricing_config):
-    """codex-cli also follows user_turn primary path."""
+def test_codex_tool_call_primary(pricing_config):
+    """codex-cli also uses tool_call × 0.741 calibration (primary)."""
     cb = estimate_cost(
         tool="codex-cli", model="gpt-5.3-codex",
         input_tokens=0, output_tokens=0, cache_read_tokens=0, cache_write_tokens=0,
@@ -147,23 +154,23 @@ def test_codex_user_turn_path(pricing_config):
         config_pricing=pricing_config,
         user_turn_count=4, tool_call_count=10,
     )
-    assert cb.estimated_premium_requests == 4.0  # placeholder 1.0
+    assert cb.estimated_premium_requests == pytest.approx(7.41)  # 10 × 0.741
     assert "Codex CLI" in cb.notes
 
 
-def test_fallback_to_tool_call_calibration(pricing_config):
-    """SECONDARY: no user_turn_count → fall back to tool_call × 0.741."""
+def test_tool_call_calibration_is_primary(pricing_config):
+    """tool_call × 0.741 is the PRIMARY premium-request estimate."""
     cb = estimate_cost(
         tool="opencode-cli", model="claude-sonnet-4.6",
         input_tokens=1000, output_tokens=500,
         cache_read_tokens=0, cache_write_tokens=0,
         premium_requests=0,
         config_pricing=pricing_config,
-        user_turn_count=0, tool_call_count=100,   # ← user_turn missing
+        user_turn_count=0, tool_call_count=100,
     )
-    assert cb.estimated_premium_requests == pytest.approx(74.1)
-    assert "calibration fallback" in cb.pricing_basis
-    assert "user_turn_count unavailable" in cb.notes
+    assert cb.estimated_premium_requests == pytest.approx(74.1)  # 100 × 0.741
+    assert "tool_call calibration" in cb.pricing_basis
+    assert "primary" in cb.pricing_basis
 
 
 def test_fallback_to_token_ratio(pricing_config):

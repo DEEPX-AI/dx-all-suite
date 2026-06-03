@@ -291,6 +291,17 @@ When you run `python3 analyze.py`, the following stages execute in order:
 - PyYAML (`pip install pyyaml`)
 - `bash` (for code quality checks via `bash -n`)
 
+### Running the unit-test suite
+
+All analyzer unit tests live under `tests/` and are wired via `pytest.ini`
+(`testpaths = tests`). Run the whole suite with:
+
+```bash
+cd .deepx/tests/agentic_analyzer && pytest        # auto-discovers tests/
+# or from anywhere:
+python -m pytest .deepx/tests/agentic_analyzer/tests/ -q
+```
+
 ## 4. Default Model Policy
 
 The analyzer uses different default models depending on the stage to balance

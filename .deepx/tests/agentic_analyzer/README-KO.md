@@ -286,6 +286,17 @@ LLM 호출 없음 — CSV 단순 집계만. 프롬프트/설정 변경, thinking
 - PyYAML (`pip install pyyaml`)
 - `bash` (코드 품질 검사용 `bash -n`)
 
+### unit-test 스위트 실행
+
+analyzer unit test는 모두 `tests/` 아래에 있으며 `pytest.ini`(`testpaths = tests`)로
+배선되어 있습니다. 전체 스위트 실행:
+
+```bash
+cd .deepx/tests/agentic_analyzer && pytest        # tests/ 자동 탐색
+# 또는 어디서든:
+python -m pytest .deepx/tests/agentic_analyzer/tests/ -q
+```
+
 ## 4. 기본 모델 정책
 
 analyzer는 비용과 품질의 균형을 위해 stage별로 서로 다른 기본 모델 정책을 사용합니다:

@@ -16,7 +16,7 @@ from pathlib import Path
 
 import pytest
 
-_ANALYZER_DIR = Path(__file__).resolve().parent
+_ANALYZER_DIR = Path(__file__).resolve().parents[1]  # agentic_analyzer/ (this file lives in tests/)
 if str(_ANALYZER_DIR) not in sys.path:
     sys.path.insert(0, str(_ANALYZER_DIR))
 
@@ -44,13 +44,21 @@ def _write_session(tmp_path: Path, log_body: str = "", extra_files: dict = None)
 # ---------- 1. New v3 markers: Overall FPS / RESULT: PASS / EOS ----------
 
 def test_inference_overall_fps_marker_v3(tmp_path):
-    """v3 must recognize `Overall FPS` as inference evidence; v2 must not."""
+    """v3 must recognize the `Overall FPS` / `Total Frames` / `PERFORMANCE SUMMARY`
+    markers as inference evidence; v2 must not.
+
+    NOTE: v2's marker set was later extended (v3.1) to also recognize a bare
+    ``<number> FPS`` token, so the log here deliberately avoids any bare
+    ``N FPS`` (e.g. ``54.5 FPS``) — otherwise v2 would legitimately match it and
+    the regression guard would be meaningless. We isolate the v3-only prefixed
+    markers (``Overall FPS : 40.3`` has no number-then-FPS token).
+    """
     log = """
     ==================================================
                    PERFORMANCE SUMMARY
     ==================================================
-     Inference         18.34 ms       54.5 FPS
-     Overall FPS     :   40.3 FPS
+     Total Frames    :   500
+     Overall FPS     :   40.3
     ==================================================
     All validations PASSED
     """
@@ -60,9 +68,9 @@ def test_inference_overall_fps_marker_v3(tmp_path):
     v2 = evaluate_execution(d, "dx_app", rubric_version="v2")
 
     assert v3.score_breakdown.get("inference_run_evidence", 0) > 0, \
-        f"v3 should recognize Overall FPS: breakdown={v3.score_breakdown}"
+        f"v3 should recognize Overall FPS / Total Frames: breakdown={v3.score_breakdown}"
     assert v2.score_breakdown.get("inference_run_evidence", 0) == 0, \
-        f"v2 should NOT recognize Overall FPS (regression guard): breakdown={v2.score_breakdown}"
+        f"v2 should NOT recognize the v3-only prefixed markers (regression guard): breakdown={v2.score_breakdown}"
 
 
 def test_inference_result_pass_marker_v3(tmp_path):
