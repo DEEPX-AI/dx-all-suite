@@ -301,21 +301,26 @@ python -m pytest .deepx/tests/agentic_analyzer/tests/ -q
 
 analyzer는 비용과 품질의 균형을 위해 stage별로 서로 다른 기본 모델 정책을 사용합니다:
 
-| Stage | 기본 `allow_paid` | 기본 CLI + Model | 이유 |
+| Stage | 기본 `allow_paid` | 동작 확인된 CLI + Model | 이유 |
 |-------|-------------------|-------------------|------|
-| Runnability (Stage 5) | `True` (paid) | claude-code + claude-sonnet-4-6 | 처리량이 큼 — 모든 세션을 평가 |
-| Insights (Stage 7) | `True` (paid) | claude-code + claude-sonnet-4-6 | 단일 종합 분석 |
-| Hypothesis (Stage 4.5) | `True` (paid) | claude-code + claude-sonnet-4-6 | benchmark synthesis |
+| Runnability (Stage 5) | `True` (paid) | claude-code + `claude-sonnet-4-6` (작은 호출 다수) | 세션당 짧은 호출 1회 — 처리량 큼 |
+| Insights (Stage 7) | `True` (paid) | copilot + `claude-sonnet-4.6` | 단일 거대 프롬프트 — claude-code `-p`는 여기서 timeout |
+| Hypothesis (Stage 4.5) | `True` (paid) | copilot + `claude-sonnet-4.6` | 단일 거대 프롬프트 — 동일 |
 
-> **모델 정책 (2026-06):** 현재 동작하는 *free* judge 모델이 없어, 세 LLM stage 모두 기본값을
-> **claude-code + `claude-sonnet-4-6`** (paid)로 둡니다. 호출:
-> `--insights claude --insights-model claude-sonnet-4-6 --insights-allow-paid`. 참고:
+> **모델 정책 (2026-06):** 현재 동작하는 *free* judge가 없음(paid only). 검증된 조합:
+> - **Runnability** — claude-code + `claude-sonnet-4-6`(하이픈!) 동작: 세션당 짧은 호출 120회.
+> - **Insights / Hypothesis** — claude-code `-p`는 전체 리포트가 담긴 단일 거대 프롬프트에서
+>   **timeout(>900s)**. **copilot + `claude-sonnet-4.6`**(copilot은 점 형식) 사용 — 검증됨
+>   (§8 가설 검증 포함 400~500줄 insights 생성).
+> - **가장 간단한 단일 명령 완전 리포트:** `--insights copilot --insights-model claude-sonnet-4.6
+>   --insights-allow-paid` (copilot+sonnet이 3개 stage 모두 처리). 기존 runnability 평가를 재사용하려면
+>   `--existing-runnability <prev>/runnability_report.md` 추가.
+>
+> 기타 참고:
 > - copilot `gpt-4.1`(기존 free default)은 **deprecated** — `Model "gpt-4.1" ... is not available`.
-> - cursor `auto`(선호되는 *free* 옵션)는 현재 headless `agent -p`에서 `Connection lost, reconnecting`로
->   **실패** — agent 세션이 backend에 연결 못 함 (CA bundle / stdin redirect / 빈 cwd로도 해결 안 됨;
->   `agent --list-models`는 되지만 `agent -p` 세션은 180s timeout). 해당 연결이 복구되면 `cursor + auto`를
->   free default로 재전환.
-> - claude 모델 id는 **하이픈**(`claude-sonnet-4-6`) 사용; 점 형식 `claude-sonnet-4.6`은 claude CLI가 거부함.
+> - cursor `auto`(선호 *free* 옵션)는 headless `agent -p`에서 `Connection lost, reconnecting`로 **실패**
+>   (backend 방화벽 차단; `agent --list-models`는 되지만 `agent -p` 세션 timeout). 복구되면 free default로 재전환.
+> - claude CLI 모델 id는 **하이픈**(`claude-sonnet-4-6`), copilot은 **점**(`claude-sonnet-4.6`) — 형식 불일치 시 거부됨.
 
 `analyze.py`에서는 `--insights <cli>` + `--insights-model <model>`로 CLI/모델을,
 `--insights-allow-paid` / `--no-insights-allow-paid`로 paid 여부를 override할 수 있습니다

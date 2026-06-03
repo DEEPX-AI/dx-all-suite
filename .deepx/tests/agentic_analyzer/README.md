@@ -307,22 +307,29 @@ python -m pytest .deepx/tests/agentic_analyzer/tests/ -q
 The analyzer uses different default models depending on the stage to balance
 cost and quality:
 
-| Stage | Default `allow_paid` | Default CLI + Model | Rationale |
+| Stage | Default `allow_paid` | Working CLI + Model | Rationale |
 |-------|---------------------|---------------------|-----------|
-| Runnability (Stage 5) | `True` (paid) | claude-code + claude-sonnet-4-6 | High volume — evaluates every session |
-| Insights (Stage 7) | `True` (paid) | claude-code + claude-sonnet-4-6 | Single comprehensive analysis |
-| Hypothesis (Stage 4.5) | `True` (paid) | claude-code + claude-sonnet-4-6 | Benchmark synthesis |
+| Runnability (Stage 5) | `True` (paid) | claude-code + `claude-sonnet-4-6` (many small calls) | High volume — one short call per session |
+| Insights (Stage 7) | `True` (paid) | copilot + `claude-sonnet-4.6` | Single LARGE prompt — claude-code `-p` times out here |
+| Hypothesis (Stage 4.5) | `True` (paid) | copilot + `claude-sonnet-4.6` | Single large prompt — same |
 
-> **Model policy (2026-06):** No working *free* judge model is available right now, so all
-> three LLM stages default to **claude-code + `claude-sonnet-4-6`** (paid). Invoke with
-> `--insights claude --insights-model claude-sonnet-4-6 --insights-allow-paid`. Notes:
-> - copilot `gpt-4.1` (the former free default) was **deprecated** — `Model "gpt-4.1" ... is not available`.
+> **Model policy (2026-06):** No working *free* judge model is available right now (paid only).
+> Verified working split:
+> - **Runnability** — claude-code + `claude-sonnet-4-6` (hyphens!) works: 120 short per-session calls.
+> - **Insights / Hypothesis** — claude-code `-p` **times out (>900s)** on the single huge prompt
+>   (whole-report content). Use **copilot + `claude-sonnet-4.6`** (dotted form for copilot) — proven
+>   reliable (it generated 400–500-line insights with the §8 hypothesis-verification section).
+> - **Simplest single-command full report:** `--insights copilot --insights-model claude-sonnet-4.6
+>   --insights-allow-paid` (copilot+sonnet handles all three stages). To reuse an existing runnability
+>   eval instead of re-judging, add `--existing-runnability <prev>/runnability_report.md`.
+>
+> Other notes:
+> - copilot `gpt-4.1` (former free default) was **deprecated** — `Model "gpt-4.1" ... is not available`.
 > - cursor `auto` (the preferred *free* option) currently **fails in headless `agent -p`** with
->   `Connection lost, reconnecting` — the agent session can't reach its backend (NOT fixed by the
->   CA bundle / stdin redirect / empty cwd; `agent --list-models` succeeds but `agent -p` sessions
->   time out at 180s). Re-enable `cursor + auto` as the free default once that connectivity is restored.
-> - The claude model id must use **hyphens** (`claude-sonnet-4-6`); the dotted form `claude-sonnet-4.6`
->   is rejected by the claude CLI (`...may not exist or you may not have access`).
+>   `Connection lost, reconnecting` (backend firewall-blocked; `agent --list-models` works but
+>   `agent -p` sessions time out). Re-enable `cursor + auto` as the free default once restored.
+> - claude CLI model id uses **hyphens** (`claude-sonnet-4-6`); copilot uses the **dotted** form
+>   (`claude-sonnet-4.6`). Mismatched forms are rejected.
 
 Override the CLI/model with `--insights <cli>` + `--insights-model <model>`, and toggle
 paid models with `--insights-allow-paid` / `--no-insights-allow-paid` in `analyze.py`
