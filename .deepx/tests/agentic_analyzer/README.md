@@ -26,8 +26,8 @@ python3 analyze.py --results-root /path/to/results --output-dir ./reports/custom
 # Skip runnability evaluation (faster — reuse existing runnability_report.md)
 python3 analyze.py --no-insights-runnability
 
-# Override insights CLI agent / model
-python3 analyze.py --insights claude --insights-model claude-sonnet-4.6
+# Override insights CLI agent / model (paid fallback — copilot uses the dotted id)
+python3 analyze.py --insights copilot --insights-model claude-sonnet-4.6 --insights-allow-paid
 ```
 
 Output files (default: `<suite-root>/dx-agentic-dev/e2e-tests/analyzer_reports/<timestamp>/`):
@@ -273,8 +273,8 @@ When you run `python3 analyze.py`, the following stages execute in order:
 > 10-round report), pass a previous `runnability_report.md` to skip
 > already-evaluated sessions:
 > ```bash
-> # Via analyze.py (full pipeline — recommended)
-> python3 analyze.py results/ --insights auto \
+> # Via analyze.py (full pipeline — recommended; --insights defaults to cursor)
+> python3 analyze.py results/ --insights cursor \
 >     --existing-runnability path/to/old/runnability_report.md
 >
 > # Via insights.py directly

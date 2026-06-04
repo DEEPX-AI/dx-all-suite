@@ -25,8 +25,8 @@ python3 analyze.py --results-root /path/to/results --output-dir ./reports/custom
 # Runnability 평가 건너뛰기 (빠름 — 기존 runnability_report.md 재사용)
 python3 analyze.py --no-insights-runnability
 
-# Insights CLI agent / 모델 지정
-python3 analyze.py --insights claude --insights-model claude-sonnet-4.6
+# Insights CLI agent / 모델 지정 (paid fallback — copilot은 점 형식 id 사용)
+python3 analyze.py --insights copilot --insights-model claude-sonnet-4.6 --insights-allow-paid
 ```
 
 산출물 (기본 위치 `<suite-root>/dx-agentic-dev/e2e-tests/analyzer_reports/<timestamp>/`):
@@ -268,8 +268,8 @@ LLM 호출 없음 — CSV 단순 집계만. 프롬프트/설정 변경, thinking
 > 기존 데이터셋에 새 라운드를 추가할 때 (예: 10라운드 리포트에 11-20라운드 추가),
 > 이전 `runnability_report.md`를 지정하면 이미 평가된 세션을 건너뜁니다:
 > ```bash
-> # analyze.py 경유 (전체 pipeline — 권장)
-> python3 analyze.py results/ --insights auto \
+> # analyze.py 경유 (전체 pipeline — 권장; --insights 기본값은 cursor)
+> python3 analyze.py results/ --insights cursor \
 >     --existing-runnability path/to/old/runnability_report.md
 >
 > # insights.py 직접 실행
