@@ -26,6 +26,23 @@ Since the **DEEPX SDK** maintains strict version dependencies between modules, i
   </thead>
   <tbody align="center">
     <tr>
+      <td rowspan="3">2026-05-14</td>
+      <td colspan="7">v2.3.3</td>
+    </tr>
+    <tr>
+      <td colspan="2">v2.3.1</td>
+      <td colspan="5"><b>v2.3.3</b></td>
+    </tr>
+    <tr>
+      <td>v2.3.0</td>
+      <td>v2.0.1</td>
+      <td>v2.5.6</td>
+      <td>v2.4.1</td>
+      <td>v3.3.2</td>
+      <td>v3.0.1</td>
+      <td>v3.1.1</td>
+    </tr>
+    <tr>
       <td rowspan="3">2026-05-11</td>
       <td colspan="7">v2.3.2</td>
     </tr>
