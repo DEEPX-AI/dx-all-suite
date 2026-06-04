@@ -106,7 +106,9 @@ CLI_CONFIG = {
         "prompt_via_arg": True,
         "model_flag": "--model",
         "free_default_model": "auto",         # subscription composer-2-fast, no extra charge
-        "paid_default_model": "sonnet-4.6",
+        # 'auto' (Composer) is the only confirmed cursor model id (`agent --list-models`);
+        # sonnet-4.6 is not exposed there, so keep paid == auto for cursor.
+        "paid_default_model": "auto",
     },
     "opencode": {
         "binary": "opencode",
@@ -539,6 +541,19 @@ def invoke_cli(cli: str, prompt: str, *, model: Optional[str] = None,
         cmd.extend([model_flag, effective_model])
     cmd.extend(conf["args"])
 
+    # Node-based CLIs (cursor/opencode/copilot) need the system CA bundle to
+    # verify TLS behind the corporate cert — without it they fail with
+    # "unable to verify the first certificate" / "Connection lost, reconnecting".
+    # Mirrors _cli_env.agent_subprocess_env so judge calls work without the
+    # caller having to export NODE_EXTRA_CA_CERTS / NODE_OPTIONS first.
+    _env = {**os.environ, "NO_COLOR": "1"}
+    _ca_bundle = "/etc/ssl/certs/ca-certificates.crt"
+    if os.path.isfile(_ca_bundle):
+        _env.setdefault("NODE_EXTRA_CA_CERTS", _ca_bundle)
+        _node_opts = _env.get("NODE_OPTIONS", "") or ""
+        if "--use-system-ca" not in _node_opts:
+            _env["NODE_OPTIONS"] = (_node_opts + " --use-system-ca").strip()
+
     # OS arg-length safety: if prompt > 100 KB, write to temp file and
     # replace the positional prompt arg with a file-read instruction.
     _MAX_ARG_BYTES = 100_000
@@ -557,14 +572,17 @@ def invoke_cli(cli: str, prompt: str, *, model: Optional[str] = None,
                 if cmd[-1] == "-p":
                     cmd = cmd[:-1]
                 r = subprocess.run(cmd, input=prompt, capture_output=True, text=True,
-                                   timeout=timeout_sec)
+                                   timeout=timeout_sec, env=_env)
             else:
                 cmd.append(prompt)
-                r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout_sec)
+                # stdin=DEVNULL: when the prompt is a positional arg, node CLIs may
+                # still read stdin and block (claude warns + 3s-proceeds; others hang).
+                r = subprocess.run(cmd, stdin=subprocess.DEVNULL, capture_output=True,
+                                   text=True, timeout=timeout_sec, env=_env)
         else:
             # Pass via stdin
             r = subprocess.run(cmd, input=prompt, capture_output=True, text=True,
-                               timeout=timeout_sec)
+                               timeout=timeout_sec, env=_env)
         if r.returncode != 0:
             print(f"WARN: CLI '{cli}' (model={effective_model}) returned exit "
                   f"{r.returncode}: {r.stderr[:300]}", file=sys.stderr)

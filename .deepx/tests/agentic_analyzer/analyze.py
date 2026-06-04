@@ -285,11 +285,15 @@ def main(argv: Optional[List[str]] = None) -> int:
     parser.add_argument(
         "--insights",
         choices=["off", "auto", "copilot", "claude", "cursor", "opencode", "codex"],
-        default="auto",
+        default="cursor",
         help=(
-            "Automatically invoke insights.py after analysis (default: auto). "
-            "'auto' tries copilot first, falls back to other CLIs if missing. "
-            "'off' skips entirely."
+            "Automatically invoke insights.py after analysis (default: cursor — the free "
+            "judge: cursor 'auto'/Composer for runnability + insights + hypothesis). "
+            "copilot's former free model gpt-4.1 was deprecated, and claude-code times out "
+            "on the large insights prompt, so cursor is the working free default. "
+            "'auto' tries copilot first then falls back; 'off' skips entirely. "
+            "NOTE: cursor runnability is ~24s/call (slow over 120 sessions) — pass "
+            "--existing-runnability <prev>/runnability_report.md to reuse a prior eval."
         ),
     )
     parser.add_argument(

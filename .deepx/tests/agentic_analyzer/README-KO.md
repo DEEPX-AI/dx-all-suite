@@ -301,26 +301,31 @@ python -m pytest .deepx/tests/agentic_analyzer/tests/ -q
 
 analyzer는 비용과 품질의 균형을 위해 stage별로 서로 다른 기본 모델 정책을 사용합니다:
 
-| Stage | 기본 `allow_paid` | 동작 확인된 CLI + Model | 이유 |
-|-------|-------------------|-------------------|------|
-| Runnability (Stage 5) | `True` (paid) | claude-code + `claude-sonnet-4-6` (작은 호출 다수) | 세션당 짧은 호출 1회 — 처리량 큼 |
-| Insights (Stage 7) | `True` (paid) | copilot + `claude-sonnet-4.6` | 단일 거대 프롬프트 — claude-code `-p`는 여기서 timeout |
-| Hypothesis (Stage 4.5) | `True` (paid) | copilot + `claude-sonnet-4.6` | 단일 거대 프롬프트 — 동일 |
+| Stage | 기본 CLI + Model | 비용 | 이유 |
+|-------|-------------------|------|------|
+| Runnability (Stage 5) | **cursor + `auto`** | free (구독) | 세션당 짧은 호출 1회 |
+| Insights (Stage 7) | **cursor + `auto`** | free | 단일 거대 프롬프트 |
+| Hypothesis (Stage 4.5) | **cursor + `auto`** | free | 단일 거대 프롬프트 |
 
-> **모델 정책 (2026-06):** 현재 동작하는 *free* judge가 없음(paid only). 검증된 조합:
-> - **Runnability** — claude-code + `claude-sonnet-4-6`(하이픈!) 동작: 세션당 짧은 호출 120회.
-> - **Insights / Hypothesis** — claude-code `-p`는 전체 리포트가 담긴 단일 거대 프롬프트에서
->   **timeout(>900s)**. **copilot + `claude-sonnet-4.6`**(copilot은 점 형식) 사용 — 검증됨
->   (§8 가설 검증 포함 400~500줄 insights 생성).
-> - **가장 간단한 단일 명령 완전 리포트:** `--insights copilot --insights-model claude-sonnet-4.6
->   --insights-allow-paid` (copilot+sonnet이 3개 stage 모두 처리). 기존 runnability 평가를 재사용하려면
->   `--existing-runnability <prev>/runnability_report.md` 추가.
+> **모델 정책 (2026-06):** 기본값은 3개 stage 모두 **cursor + `auto`** (Composer, 구독→free) — 현재
+> `--insights` 기본값. free vs paid 비교 결과 cursor `auto` 출력이 paid sonnet에 **뒤지지 않아**
+> (§1–8 insights + §8 가설 검증 완비, 핵심 결론 동일) free를 디폴트로 유지.
 >
-> 기타 참고:
-> - copilot `gpt-4.1`(기존 free default)은 **deprecated** — `Model "gpt-4.1" ... is not available`.
-> - cursor `auto`(선호 *free* 옵션)는 headless `agent -p`에서 `Connection lost, reconnecting`로 **실패**
->   (backend 방화벽 차단; `agent --list-models`는 되지만 `agent -p` 세션 timeout). 복구되면 free default로 재전환.
-> - claude CLI 모델 id는 **하이픈**(`claude-sonnet-4-6`), copilot은 **점**(`claude-sonnet-4.6`) — 형식 불일치 시 거부됨.
+> - **기본(free):** `python analyze.py --run-id ...` → 전 stage cursor `auto`. ⚠ cursor runnability는
+>   ~24s/call(120세션이면 느림) + 가끔 timeout — `--existing-runnability <prev>/runnability_report.md`로
+>   기존 평가 재사용 권장.
+> - **Paid fallback** (cursor 불가/최대 상세 필요 시): runnability → claude-code + `claude-sonnet-4-6`
+>   (하이픈; 작은 호출 다수 OK); insights/hypothesis → copilot + `claude-sonnet-4.6` (점). 단일 명령:
+>   `--insights copilot --insights-model claude-sonnet-4.6 --insights-allow-paid`.
+>   (claude-code `-p`는 거대 insights 프롬프트에서 **timeout(>900s)** → 거기엔 안 씀.)
+>
+> 참고 / gotcha:
+> - `invoke_cli`가 이제 시스템 **CA bundle** env(`NODE_EXTRA_CA_CERTS` + `--use-system-ca`)와
+>   `stdin=DEVNULL`을 직접 세팅 → 호출자가 env를 export하지 않아도 node CLI(cursor/copilot/opencode)가
+>   headless 동작. (이전엔 cursor가 TLS로 `Connection lost, reconnecting` 실패.)
+> - copilot `gpt-4.1`(구 free default)은 **deprecated** — `Model "gpt-4.1" ... is not available`.
+> - cursor 모델 id = `auto`(`agent --list-models`에 노출되는 유일 id); claude CLI는 하이픈
+>   (`claude-sonnet-4-6`), copilot은 점(`claude-sonnet-4.6`). 형식 불일치 시 거부됨.
 
 `analyze.py`에서는 `--insights <cli>` + `--insights-model <model>`로 CLI/모델을,
 `--insights-allow-paid` / `--no-insights-allow-paid`로 paid 여부를 override할 수 있습니다

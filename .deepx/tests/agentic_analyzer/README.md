@@ -307,29 +307,33 @@ python -m pytest .deepx/tests/agentic_analyzer/tests/ -q
 The analyzer uses different default models depending on the stage to balance
 cost and quality:
 
-| Stage | Default `allow_paid` | Working CLI + Model | Rationale |
-|-------|---------------------|---------------------|-----------|
-| Runnability (Stage 5) | `True` (paid) | claude-code + `claude-sonnet-4-6` (many small calls) | High volume — one short call per session |
-| Insights (Stage 7) | `True` (paid) | copilot + `claude-sonnet-4.6` | Single LARGE prompt — claude-code `-p` times out here |
-| Hypothesis (Stage 4.5) | `True` (paid) | copilot + `claude-sonnet-4.6` | Single large prompt — same |
+| Stage | Default CLI + Model | Cost | Rationale |
+|-------|---------------------|------|-----------|
+| Runnability (Stage 5) | **cursor + `auto`** | free (subscription) | one short call per session |
+| Insights (Stage 7) | **cursor + `auto`** | free | single large prompt |
+| Hypothesis (Stage 4.5) | **cursor + `auto`** | free | single large prompt |
 
-> **Model policy (2026-06):** No working *free* judge model is available right now (paid only).
-> Verified working split:
-> - **Runnability** — claude-code + `claude-sonnet-4-6` (hyphens!) works: 120 short per-session calls.
-> - **Insights / Hypothesis** — claude-code `-p` **times out (>900s)** on the single huge prompt
->   (whole-report content). Use **copilot + `claude-sonnet-4.6`** (dotted form for copilot) — proven
->   reliable (it generated 400–500-line insights with the §8 hypothesis-verification section).
-> - **Simplest single-command full report:** `--insights copilot --insights-model claude-sonnet-4.6
->   --insights-allow-paid` (copilot+sonnet handles all three stages). To reuse an existing runnability
->   eval instead of re-judging, add `--existing-runnability <prev>/runnability_report.md`.
+> **Model policy (2026-06):** Default is **cursor + `auto`** (Composer, subscription → free) for all
+> three LLM stages — it is now the `--insights` default. A free-vs-paid comparison showed cursor `auto`
+> output is **not inferior** to paid sonnet (complete §1–8 insights + §8 hypothesis verification,
+> same key conclusions), so free is kept as default.
 >
-> Other notes:
-> - copilot `gpt-4.1` (former free default) was **deprecated** — `Model "gpt-4.1" ... is not available`.
-> - cursor `auto` (the preferred *free* option) currently **fails in headless `agent -p`** with
->   `Connection lost, reconnecting` (backend firewall-blocked; `agent --list-models` works but
->   `agent -p` sessions time out). Re-enable `cursor + auto` as the free default once restored.
-> - claude CLI model id uses **hyphens** (`claude-sonnet-4-6`); copilot uses the **dotted** form
->   (`claude-sonnet-4.6`). Mismatched forms are rejected.
+> - **Default (free):** `python analyze.py --run-id ...` → cursor `auto` for all stages. ⚠ cursor
+>   runnability is ~24s/call (~slow over 120 sessions) and occasionally times out — add
+>   `--existing-runnability <prev>/runnability_report.md` to reuse a prior eval and skip re-judging.
+> - **Paid fallback** (cursor unavailable / want max detail): runnability → claude-code +
+>   `claude-sonnet-4-6` (hyphens; many small calls OK); insights/hypothesis → copilot +
+>   `claude-sonnet-4.6` (dotted). Simplest single command:
+>   `--insights copilot --insights-model claude-sonnet-4.6 --insights-allow-paid`.
+>   (claude-code `-p` **times out (>900s)** on the single huge insights prompt, so it is NOT used there.)
+>
+> Notes / gotchas:
+> - `invoke_cli` now sets the system **CA bundle** env (`NODE_EXTRA_CA_CERTS` + `--use-system-ca`) and
+>   `stdin=DEVNULL` itself, so node CLIs (cursor/copilot/opencode) work headless without the caller
+>   exporting env. (Previously cursor failed TLS with `Connection lost, reconnecting`.)
+> - copilot `gpt-4.1` (the old free default) was **deprecated** — `Model "gpt-4.1" ... is not available`.
+> - cursor model id = `auto` (only id exposed by `agent --list-models`); claude CLI uses hyphens
+>   (`claude-sonnet-4-6`); copilot uses the dotted form (`claude-sonnet-4.6`). Mismatched forms are rejected.
 
 Override the CLI/model with `--insights <cli>` + `--insights-model <model>`, and toggle
 paid models with `--insights-allow-paid` / `--no-insights-allow-paid` in `analyze.py`
