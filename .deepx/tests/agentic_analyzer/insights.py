@@ -95,7 +95,9 @@ CLI_CONFIG = {
         "stdin_prompt": False,
         "prompt_via_arg": True,
         "model_flag": "--model",
-        "free_default_model": "gpt-4.1",      # Enterprise free
+        # gpt-4.1 (former Enterprise free) was deprecated/removed → None (no free tier).
+        # Use --allow-paid → paid_default (claude-sonnet-4.6), or pass an explicit --model.
+        "free_default_model": None,
         "paid_default_model": "claude-sonnet-4.6",
     },
     # cursor agent:  -p "<prompt>" (similar)
@@ -116,8 +118,9 @@ CLI_CONFIG = {
         "stdin_prompt": False,
         "prompt_via_arg": True,
         "model_flag": "--model",
-        # opencode routes through copilot provider → can use free copilot models
-        "free_default_model": "github-copilot/gpt-4.1",
+        # opencode routes through copilot provider; its free model github-copilot/gpt-4.1
+        # was deprecated → None (use --allow-paid → paid_default, or pass --model).
+        "free_default_model": None,
         "paid_default_model": "github-copilot/claude-sonnet-4.6",
     },
     "codex": {
@@ -126,8 +129,9 @@ CLI_CONFIG = {
         "stdin_prompt": False,
         "prompt_via_arg": True,
         "model_flag": "--model",
-        # codex CLI authenticates via `gh auth token` → uses copilot provider models
-        "free_default_model": "gpt-4.1",
+        # codex CLI uses copilot provider models; the gpt-4.1 free model was deprecated →
+        # None (use --allow-paid → paid_default gpt-5.3-codex, or pass --model).
+        "free_default_model": None,
         "paid_default_model": "gpt-5.3-codex",
     },
 }
