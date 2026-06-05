@@ -141,7 +141,7 @@ verification gate**에서 더 많이 나옵니다.
 | 요구사항 | 세부사항 |
 |---|---|
 | **DEEPX 개발 환경** | DX-RT SDK 설치 및 `setup_env.sh` 소싱 완료 |
-| **AI 코딩 에이전트** (택1) | Claude Code, GitHub Copilot (VS Code), Cursor, 또는 OpenCode |
+| **AI 코딩 에이전트** (택1) | Claude Code, GitHub Copilot (VS Code), Cursor, OpenCode, 또는 Codex CLI |
 | **Python** | 3.10+ (dx-all-suite 패키지 설치 완료) |
 
 ## 아키텍처 개요
@@ -253,7 +253,7 @@ dx-all-suite는 작업을 분류하고 적절한 서브모듈로 디스패치하
 | **GitHub Copilot** | VS Code | `.github/copilot-instructions.md` | Copilot Chat에서 `@에이전트명 "프롬프트"` | — |
 | **Cursor** | IDE | `.cursor/rules/*.mdc` | 자유 형식 대화; `alwaysApply` 또는 `globs`로 규칙 로드 | — |
 | **OpenCode** | CLI | `AGENTS.md` + `opencode.json` | `@에이전트명 "프롬프트"` | `/스킬명` 슬래시 명령 |
-| **Codex CLI** | CLI | `AGENTS.md` + `.codex/skills/dx-codex-identity/SKILL.md` | 자유 형식 대화 (`codex exec ...`) | `cat .deepx/skills/<name>/SKILL.md` 로 직접 읽기 |
+| **Codex CLI** | CLI | `AGENTS.md` + `.codex/skills/dx-codex-identity/SKILL.md` | 자유 형식 대화 (`~/bin/codex exec ...`) | `cat .deepx/skills/<name>/SKILL.md` 로 직접 읽기 |
 
 ### 자동 로드되는 항목
 
@@ -272,18 +272,23 @@ dx-all-suite는 작업을 분류하고 적절한 서브모듈로 디스패치하
 
 ```bash
 # Claude Code
-cd dx-all-suite/dx-runtime/dx_app
+cd dx-all-suite
 claude
 
 # OpenCode
-cd dx-all-suite/dx-runtime/dx_app
+cd dx-all-suite
 opencode
 
-# GitHub Copilot — VS Code에서 폴더 열기
-code dx-all-suite/dx-runtime/dx_app
+# Codex CLI
+cd dx-all-suite
+~/bin/codex
 
-# Cursor — Cursor에서 폴더 열기
-cursor dx-all-suite/dx-runtime/dx_app
+# GitHub Copilot — VS Code에서 폴더 열기
+code dx-all-suite
+
+# Cursor CLI
+cd dx-all-suite
+cursor-agent
 ```
 
 ### 플랫폼별 파일 참조
@@ -292,7 +297,7 @@ cursor dx-all-suite/dx-runtime/dx_app
 **Auto**로 표시된 파일은 매 대화마다 자동 로딩되고, **@mention** 파일은
 에이전트 또는 스킬 명령으로 수동 호출됩니다.
 
-> **Git 서브모듈 경계**: Copilot Chat/CLI와 Claude Code는 현재 git 루트의 파일만
+> **Git 서브모듈 경계**: Copilot Chat/CLI, Claude Code, Codex CLI는 현재 git 루트의 파일만
 > 인식합니다. `dx-all-suite/`에서 열면 `dx-compiler/`, `dx-runtime/` 등의 하위
 > 프로젝트 파일은 자동 로딩되지 않습니다 (별도 git 서브모듈). OpenCode만
 > `opencode.json`의 명시적 경로 참조로 이 경계를 넘을 수 있습니다.
@@ -389,6 +394,7 @@ pre-commit 훅이 생성된 파일의 동기화를 강제합니다:
 | **GitHub Copilot** | Copilot Chat에서 `@dx-suite-builder` 뒤에 프롬프트 입력. 에이전트가 작업을 분류하고 적절한 서브모듈들로 라우팅. |
 | **Cursor** | `dx-all-suite/`를 열고 프롬프트 입력. `alwaysApply` 규칙이 적절한 서브모듈들로 라우팅. |
 | **OpenCode** | `dx-all-suite/` 열기: `@dx-suite-builder` 뒤에 프롬프트 입력. 에이전트가 자동 라우팅. |
+| **Codex CLI** | `dx-all-suite/`를 열고 프롬프트 입력 (또는 `~/bin/codex exec "<프롬프트>"`). `AGENTS.md`가 자동으로 읽히며 서브모듈들로 라우팅. |
 
 ### 서브모듈에서 (직접 접근)
 
@@ -406,6 +412,7 @@ pre-commit 훅이 생성된 파일의 동기화를 강제합니다:
 | **GitHub Copilot** | Copilot Chat 열기: `@dx-app-builder`, `@dx-stream-builder`, 또는 `@dx-compiler-builder` 뒤에 프롬프트 입력. 모든 채팅에서 `.github/copilot-instructions.md` 자동 읽기. |
 | **Cursor** | 서브모듈 폴더를 열고 프롬프트를 직접 입력. `alwaysApply: true` 규칙은 모든 대화에서 로드. `globs:` 패턴이 있는 규칙은 매칭 파일 편집 시 활성화. |
 | **OpenCode** | 서브모듈 디렉토리를 열고 적절한 에이전트(`@dx-app-builder`, `@dx-stream-builder`, 또는 `@dx-compiler-builder`)를 사용하거나, 해당 스킬 슬래시 명령 사용. |
+| **Codex CLI** | 서브모듈 디렉토리를 열고 프롬프트를 직접 입력 (또는 `~/bin/codex exec "<프롬프트>"`). `AGENTS.md`가 자동으로 읽히며, 필요 시 해당 `.deepx/skills/<name>/SKILL.md`를 직접 `cat`. |
 
 ## 엔드투엔드 시나리오
 
@@ -429,6 +436,7 @@ pre-commit 훅이 생성된 파일의 동기화를 강제합니다:
 | **GitHub Copilot** | `@dx-suite-builder` 뒤에 프롬프트 입력. 에이전트가 컴파일은 dx-compiler로, 포팅은 dx_app으로 라우팅. |
 | **Cursor** | `dx-all-suite/`를 열고 프롬프트 입력. 라우터가 적절한 서브모듈로 디스패치. |
 | **OpenCode** | `@dx-suite-builder` 뒤에 프롬프트 입력. |
+| **Codex CLI** | `dx-all-suite/`를 열고 프롬프트 입력. `AGENTS.md`가 서브모듈 간 작업을 오케스트레이션. |
 
 이 시나리오는 3단계로 구성됩니다:
 1. **dx-compiler**: `yolo26x-custom.onnx` → `yolo26x-custom.dxnn` 컴파일 (자동 추론 설정)
@@ -452,6 +460,7 @@ dx-compiler와 dx_app에 걸치는 크로스 프로젝트 시나리오입니다.
 | **GitHub Copilot** | `@dx-suite-builder` 뒤에 프롬프트 입력. 컴파일은 dx-compiler로, 앱 생성은 dx_app으로 라우팅. |
 | **Cursor** | `dx-all-suite/`를 열고 프롬프트 입력. 라우터가 두 서브모듈로 디스패치. |
 | **OpenCode** | `@dx-suite-builder` 뒤에 프롬프트 입력. |
+| **Codex CLI** | `dx-all-suite/`를 열고 프롬프트 입력. `AGENTS.md`가 서브모듈 간 작업을 오케스트레이션. |
 
 이 시나리오는 2단계로 구성됩니다:
 1. **dx-compiler**: `yolo26n.onnx` → `yolo26n.dxnn` 컴파일 (자동 추론 설정)
@@ -474,6 +483,7 @@ dx-compiler와 dx_stream에 걸치는 크로스 프로젝트 시나리오입니�
 | **GitHub Copilot** | `@dx-suite-builder` 뒤에 프롬프트 입력. 컴파일은 dx-compiler로, 파이프라인은 dx_stream으로 라우팅. |
 | **Cursor** | `dx-all-suite/`를 열고 프롬프트 입력. 라우터가 두 서브모듈로 디스패치. |
 | **OpenCode** | `@dx-suite-builder` 뒤에 프롬프트 입력. |
+| **Codex CLI** | `dx-all-suite/`를 열고 프롬프트 입력. `AGENTS.md`가 서브모듈 간 작업을 오케스트레이션. |
 
 이 시나리오는 2단계로 구성됩니다:
 1. **dx-compiler**: `yolo26n.onnx` → `yolo26n.dxnn` 컴파일 (자동 추론 설정)
@@ -496,6 +506,7 @@ dx-compiler와 dx_stream에 걸치는 크로스 프로젝트 시나리오입니�
 | **GitHub Copilot** | `@dx-suite-builder` 뒤에 프롬프트 입력. PPU 컴파일은 dx-compiler로, PPU 앱 생성은 dx_app으로 라우팅. |
 | **Cursor** | `dx-all-suite/`를 열고 프롬프트 입력. 라우터가 두 서브모듈로 디스패치. |
 | **OpenCode** | `@dx-suite-builder` 뒤에 프롬프트 입력. |
+| **Codex CLI** | `dx-all-suite/`를 열고 프롬프트 입력. `AGENTS.md`가 서브모듈 간 작업을 오케스트레이션. |
 
 이 시나리오는 2단계로 구성됩니다:
 1. **dx-compiler**: PPU 설정으로 컴파일 — 에이전트가 PPU 유형 자동 감지 (앵커 기반 YOLO는 Type 0, 앵커 프리 YOLO는 Type 1)

@@ -106,7 +106,7 @@ DX-AllSuite는 우리 NPU에서 최고 성능을 내도록 최적화된, 업계 
 - **Step 3. [Running Your First NPU Model](./docs/source/03_Running_Your_First_NPU_Model.md)**: 단계별 hands-on 스크립트 실행
 - **Step 4. [Checking Version Compatibility](./docs/source/04_Version_Compatibility.md)**: SDK, Driver, Firmware 의존성 매트릭스
 - **Step 5. [FAQ Troubleshooting Guide](./docs/source/05_FAQ_Troubleshooting_Guide.md)**: 환경 충돌 및 GUI 세션(X11) 오류 해결책
-- **★ [Agentic Development (Beta)](./docs/source/agentic_development-KO.md)**: AI coding agent(Claude Code, Cursor, GitHub Copilot, OpenCode)로 자연어 프롬프트를 사용해 DEEPX 앱 만들기
+- **★ [Agentic Development (Beta)](./docs/source/agentic_development-KO.md)**: AI coding agent(Claude Code, Cursor, GitHub Copilot, OpenCode, Codex CLI)로 자연어 프롬프트를 사용해 DEEPX 앱 만들기
 
 ## 지원
 

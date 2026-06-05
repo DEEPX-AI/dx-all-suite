@@ -150,7 +150,7 @@ more from the **instructions, skills, and verification gates** the harness impos
 | Requirement | Details |
 |---|---|
 | **DEEPX development environment** | DX-RT SDK installed and `setup_env.sh` sourced |
-| **AI coding agent** (one of) | Claude Code, GitHub Copilot (VS Code), Cursor, or OpenCode |
+| **AI coding agent** (one of) | Claude Code, GitHub Copilot (VS Code), Cursor, OpenCode, or Codex CLI |
 | **Python** | 3.10+ with the dx-all-suite packages installed |
 
 ## Architecture Overview
@@ -265,7 +265,7 @@ the `.deepx/` knowledge base through its own configuration mechanism.
 | **GitHub Copilot** | VS Code | `.github/copilot-instructions.md` | `@agent-name "prompt"` in Copilot Chat | — |
 | **Cursor** | IDE | `.cursor/rules/*.mdc` | Free-form conversation; rules loaded by `alwaysApply` or `globs` | — |
 | **OpenCode** | CLI | `AGENTS.md` + `opencode.json` | `@agent-name "prompt"` | `/skill-name` slash command |
-| **Codex CLI** | CLI | `AGENTS.md` + `.codex/skills/dx-codex-identity/SKILL.md` | Free-form conversation (`codex exec ...`) | `cat .deepx/skills/<name>/SKILL.md` (read directly) |
+| **Codex CLI** | CLI | `AGENTS.md` + `.codex/skills/dx-codex-identity/SKILL.md` | Free-form conversation (`~/bin/codex exec ...`) | `cat .deepx/skills/<name>/SKILL.md` (read directly) |
 
 ### What Gets Auto-Loaded
 
@@ -284,18 +284,23 @@ preferred tool and the configuration files are loaded automatically:
 
 ```bash
 # Claude Code
-cd dx-all-suite/dx-runtime/dx_app
+cd dx-all-suite
 claude
 
 # OpenCode
-cd dx-all-suite/dx-runtime/dx_app
+cd dx-all-suite
 opencode
 
-# GitHub Copilot — open folder in VS Code
-code dx-all-suite/dx-runtime/dx_app
+# Codex CLI
+cd dx-all-suite
+~/bin/codex
 
-# Cursor — open folder in Cursor
-cursor dx-all-suite/dx-runtime/dx_app
+# GitHub Copilot — open folder in VS Code
+code dx-all-suite
+
+# Cursor CLI
+cd dx-all-suite
+cursor-agent
 ```
 
 ### Platform File Loading Reference
@@ -304,8 +309,8 @@ Each AI coding agent auto-loads different configuration files at the suite level
 Files marked **Auto** are loaded on every conversation; **@mention** files are invoked
 manually via agent or skill commands.
 
-> **Git submodule boundary**: Copilot Chat/CLI and Claude Code only see files at
-> the current git root. When opened at `dx-all-suite/`, they do NOT auto-load
+> **Git submodule boundary**: Copilot Chat/CLI, Claude Code, and Codex CLI only see
+> files at the current git root. When opened at `dx-all-suite/`, they do NOT auto-load
 > sub-project files in `dx-compiler/`, `dx-runtime/`, etc. (these are separate
 > git submodules). OpenCode bridges this boundary via explicit path references
 > in `opencode.json`.
@@ -403,6 +408,7 @@ automatically route to the correct submodule:
 | **GitHub Copilot** | Open Copilot Chat: `@dx-suite-builder` followed by the prompt. The agent classifies the task and routes to the correct submodules. |
 | **Cursor** | Open `dx-all-suite/` and type the prompt. The `alwaysApply` rule routes to the appropriate submodules. |
 | **OpenCode** | Open `dx-all-suite/`: `@dx-suite-builder` followed by the prompt. The agent routes automatically. |
+| **Codex CLI** | Open `dx-all-suite/` and type the prompt (or `~/bin/codex exec "<prompt>"`). `AGENTS.md` is read automatically and routes across submodules. |
 
 ### From a Submodule (Direct Access)
 
@@ -420,6 +426,7 @@ When working directly in a submodule, use prompts tailored to that submodule's s
 | **GitHub Copilot** | Open Copilot Chat: `@dx-app-builder`, `@dx-stream-builder`, or `@dx-compiler-builder` followed by the prompt. Copilot reads `.github/copilot-instructions.md` on every chat. |
 | **Cursor** | Open the submodule folder and type the prompt directly. Rules with `alwaysApply: true` are loaded on every conversation. Rules with `globs:` patterns activate when editing matching files. |
 | **OpenCode** | Open the submodule directory and use the appropriate agent (`@dx-app-builder`, `@dx-stream-builder`, or `@dx-compiler-builder`) or the corresponding skill slash command. |
+| **Codex CLI** | Open the submodule directory and type the prompt (or `~/bin/codex exec "<prompt>"`). `AGENTS.md` is read automatically; `cat` the relevant `.deepx/skills/<name>/SKILL.md` directly as needed. |
 
 ## End-to-End Scenarios
 
@@ -443,6 +450,7 @@ and validates the result.
 | **GitHub Copilot** | `@dx-suite-builder` followed by the prompt. The agent routes compilation to dx-compiler and porting to dx_app. |
 | **Cursor** | Open `dx-all-suite/` and type the prompt. The router dispatches to the correct submodules. |
 | **OpenCode** | `@dx-suite-builder` followed by the prompt. |
+| **Codex CLI** | Open `dx-all-suite/` and type the prompt. `AGENTS.md` orchestrates the cross-submodule work. |
 
 This scenario involves three stages:
 1. **dx-compiler**: Compile `yolo26x-custom.onnx` → `yolo26x-custom.dxnn` with auto-inferred config
@@ -466,6 +474,7 @@ This cross-project scenario spans dx-compiler and dx_app.
 | **GitHub Copilot** | `@dx-suite-builder` followed by the prompt. Routes compilation to dx-compiler and app generation to dx_app. |
 | **Cursor** | Open `dx-all-suite/` and type the prompt. The router dispatches to both submodules. |
 | **OpenCode** | `@dx-suite-builder` followed by the prompt. |
+| **Codex CLI** | Open `dx-all-suite/` and type the prompt. `AGENTS.md` orchestrates the cross-submodule work. |
 
 This scenario involves two stages:
 1. **dx-compiler**: Compile `yolo26n.onnx` → `yolo26n.dxnn` with auto-inferred config
@@ -488,6 +497,7 @@ This cross-project scenario spans dx-compiler and dx_stream.
 | **GitHub Copilot** | `@dx-suite-builder` followed by the prompt. Routes compilation to dx-compiler and pipeline to dx_stream. |
 | **Cursor** | Open `dx-all-suite/` and type the prompt. The router dispatches to both submodules. |
 | **OpenCode** | `@dx-suite-builder` followed by the prompt. |
+| **Codex CLI** | Open `dx-all-suite/` and type the prompt. `AGENTS.md` orchestrates the cross-submodule work. |
 
 This scenario involves two stages:
 1. **dx-compiler**: Compile `yolo26n.onnx` → `yolo26n.dxnn` with auto-inferred config
@@ -510,6 +520,7 @@ post-processing, then generate an app that uses the PPU model.
 | **GitHub Copilot** | `@dx-suite-builder` followed by the prompt. Routes to dx-compiler for PPU compilation and dx_app for PPU app generation. |
 | **Cursor** | Open `dx-all-suite/` and type the prompt. The router dispatches to both submodules. |
 | **OpenCode** | `@dx-suite-builder` followed by the prompt. |
+| **Codex CLI** | Open `dx-all-suite/` and type the prompt. `AGENTS.md` orchestrates the cross-submodule work. |
 
 This scenario involves two stages:
 1. **dx-compiler**: Compile with PPU config — the agent auto-detects PPU type (Type 0 for anchor-based YOLO, Type 1 for anchor-free YOLO)
