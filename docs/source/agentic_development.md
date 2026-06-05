@@ -17,6 +17,134 @@ Supported workflows include:
 - Cross-project builds that span dx_app, dx_stream, and dx-runtime
 - Model compilation from ONNX to DXNN format using DX-COM (in dx-compiler)
 
+## Demo: A Squat Mini-Game, Built From One Prompt
+
+The fastest way to understand `dx-agentic-dev` is to watch it work. Everything
+below — the application code, the pose-based game logic, and the on-device NPU
+run — was generated **end-to-end from a single natural-language prompt**, with no
+hand-written code.
+
+**The prompt** (given to Claude Code in the `dx_app` directory):
+
+> Using the yolo26n-pose model on the DEEPX NPU, build a simple squat-counting
+> fitness mini-game. Implement and validate it using the sample video at
+> `sample/squat_demo.mp4`. The generated app must support **both a video-file
+> input and a live camera input, selectable at runtime via command-line options**
+> (e.g. `--video <file>` or `--camera <id>`). Detect squat repetitions from body
+> keypoints (use knee and hip angles to recognize the down then up motion), count
+> the reps in real time, and overlay an arcade-style fitness game UI on each frame
+> (rep counter, target reps, a score, and DOWN / UP / GOOD! feedback text). When
+> run on a video file, save an annotated output video so the result can be reviewed.
+
+The agent named its game **"SQUAT CHALLENGE"** and added a `yolo26n-pose · DX-M1 NPU`
+badge to the HUD — all from that single prompt.
+
+<div align="center">
+<table>
+<tr>
+<td align="center"><img src="./img/dx-agentic-dev-squat-build.gif" width="520"><br><sub><b>The agent building the app — brainstorm → plan → TDD → verify (timelapse)</b></sub></td>
+<td align="center"><img src="./img/dx-agentic-dev-squat-gameplay.gif" width="205"><br><sub><b>The generated app running on the DX-M1 NPU</b></sub></td>
+</tr>
+</table>
+</div>
+
+### What the agent did
+
+Prompted once, the agent ran the full DEEPX agentic workflow on its own:
+
+1. **`dx-skill-router`** → **`dx-agentic-brainstorm`** — inspected the existing
+   `yolo26n_pose` example, confirmed the model and framework APIs, and wrote a design spec.
+2. **`dx-swe-writing-plans`** — produced a step-by-step implementation plan.
+3. **`dx-agentic-tdd`** — generated the app file-by-file, verifying each one.
+4. **`dx-agentic-verify`** — ran the framework validator and a fresh on-NPU run,
+   confirming the app counts squats and saves an annotated video before declaring done.
+
+The result lands in an isolated session directory
+(`dx_app/dx-agentic-dev/<session>/`) and never touches existing source.
+
+### How the generated app is structured
+
+The agent followed the dx_app **skeleton-first + `IFactory`** rules — it did *not*
+write a standalone script. The generated app:
+
+- **reuses** the framework's standard pose preprocessor/postprocessor (the DXNN
+  model self-describes its input size; the YOLO-pose postprocessor emits COCO
+  17-point body keypoints);
+- adds **only a custom visualizer** that carries the game's logic — a knee-angle
+  **squat rep counter** (one rep per full DOWN→UP cycle) plus the on-frame HUD
+  (reps / target / score / DOWN·UP·GOOD! feedback);
+- executes through the framework's **`SyncRunner`** (single ordered video →
+  sequential, stateful counting), which drives the read → NPU inference →
+  visualize → save loop;
+- keeps game tuning (target reps, knee-angle thresholds, score per rep) in
+  `config.json`, so behavior changes without touching code.
+
+Run it like any other dx_app example — point the generated `*_sync.py` app at the
+`.dxnn` model and the input video with `--save`, and it writes an annotated
+output video.
+
+> **Note:** dx-agentic-dev generates fresh code on each run, so the exact class
+> names, filenames, and config values vary between builds. What stays constant is
+> the **pattern** above — `IFactory` reuse + a custom visualizer + `SyncRunner` —
+> which is what these docs describe.
+
+> **Reproducibility note:** this build was repeated multiple times from the same
+> prompt; each run independently produced a runnable app that correctly counts the
+> squats — with different but valid code structures, confirming the result is
+> re-derived from the knowledge base rather than memorized.
+
+### Run the generated sample yourself
+
+One representative build of this demo is **checked into the suite** so you can run
+it without re-generating anything:
+
+📂 **[`dx-agentic-dev-showcase/squat-fitness-mini-game/`](../../dx-agentic-dev-showcase/squat-fitness-mini-game/)**
+ — start with its **[README](../../dx-agentic-dev-showcase/squat-fitness-mini-game/README.md)**.
+
+```bash
+cd dx-agentic-dev-showcase/squat-fitness-mini-game
+
+./setup.sh                       # verify the dx-runtime venv + NPU sanity, install deps
+./run.sh                         # video demo on the bundled sample -> annotated output.mp4
+./run.sh --camera 0              # live camera (needs a display)
+./run.sh --video /path/clip.mp4 --save
+```
+
+The sample video is **bundled** with the showcase, and `run.sh` auto-detects the
+suite root (so it works from this relocated path) and prints a clear hint if the
+`yolo26n-pose.dxnn` model still needs to be downloaded. Because dx-agentic-dev
+generates fresh code each run, the class names and filenames in that directory are
+one concrete instance of the **pattern** described above — yours may differ.
+
+### Inspect the agent's session — how it followed the harness
+
+The showcase also ships the **complete Claude Code session** that produced the app.
+This is the most direct way to see how much of the result comes from *harness
+engineering* — the layered `CLAUDE.md` / `.deepx/` instructions, agents, and skills
+that steer the model — rather than the model improvising:
+
+- **[`claude-code-session.md`](../../dx-agentic-dev-showcase/squat-fitness-mini-game/claude-code-session.md)**
+  — renders directly on GitHub *(recommended for a quick read)*.
+- **`claude-code-session.html`** — the same transcript; **open it locally in a
+  browser** for a richer, styled view (GitHub shows HTML as source, not rendered).
+
+Reading the transcript, you can watch the harness in action:
+
+- **Instruction-following** — the agent honors the suite HARD GATES: it emits the
+  `[DX-AGENTIC-DEV: START]` / `DONE` session sentinels, keeps all output inside an
+  isolated session directory (never touching existing source), and refuses to write
+  placeholder/stub code.
+- **Skill & agent utilization** — it invokes the mandatory skill sequence as real
+  tool calls — `dx-skill-router` → `dx-agentic-brainstorm` → `dx-swe-writing-plans`
+  → `dx-agentic-tdd` → `dx-agentic-verify` — instead of just *mentioning* them.
+- **Actual reasoning** — you can follow how it inspected the existing
+  `yolo26n_pose` example, confirmed the real framework APIs from the knowledge base,
+  calibrated the knee-angle thresholds from measured data, wrote unit tests first
+  (RED), then generated and verified the app file-by-file before declaring done.
+
+This is the point of the showcase: the quality comes less from the raw model and
+more from the **instructions, skills, and verification gates** the harness imposes.
+
 ## Prerequisites
 
 | Requirement | Details |

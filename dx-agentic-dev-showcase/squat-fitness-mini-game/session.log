@@ -1,0 +1,91 @@
+########################################################
+# Squat Fitness Mini-Game — session validation log
+# Fri Jun  5 05:59:56 PM KST 2026
+# model: assets/models/yolo26n-pose.dxnn  | NPU: DX-M1 (sanity PASSED)
+########################################################
+
+$ pytest tests/test_squat_counter.py -v
+===== [1] Unit tests (SquatCounter: angle math + hysteresis state machine) =====
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.0.3, pluggy-1.6.0 -- /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260605-174754_claude_opus48_yolo26n_pose_squatgame/../../../venv-dx-runtime/bin/python
+cachedir: .pytest_cache
+rootdir: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260605-174754_claude_opus48_yolo26n_pose_squatgame
+collecting ... collected 10 items
+
+tests/test_squat_counter.py::test_straight_leg_is_180 PASSED             [ 10%]
+tests/test_squat_counter.py::test_right_angle_is_90 PASSED               [ 20%]
+tests/test_squat_counter.py::test_degenerate_zero_length_returns_180 PASSED [ 30%]
+tests/test_squat_counter.py::test_one_full_squat_counts_one_rep PASSED   [ 40%]
+tests/test_squat_counter.py::test_two_full_squats_count_two_reps PASSED  [ 50%]
+tests/test_squat_counter.py::test_jitter_in_deadband_does_not_double_count PASSED [ 60%]
+tests/test_squat_counter.py::test_shallow_dip_above_down_threshold_counts_zero PASSED [ 70%]
+tests/test_squat_counter.py::test_update_returns_true_only_on_completion PASSED [ 80%]
+tests/test_squat_counter.py::test_none_angle_is_ignored PASSED           [ 90%]
+tests/test_squat_counter.py::test_invalid_thresholds_raise PASSED        [100%]
+
+============================== 10 passed in 0.10s ==============================
+
+$ python yolo26n_pose_squat_sync.py --help
+===== [2] Import-resolution test (no PYTHONPATH) =====
+usage: yolo26n_pose_squat_sync.py [-h] --model MODEL
+                                  [--image IMAGE | --video VIDEO | --camera CAMERA | --rtsp RTSP]
+                                  [--display] [--no-display] [--save]
+                                  [--save-dir SAVE_DIR] [--loop [LOOP]]
+                                  [--dump-tensors] [--config CONFIG]
+                                  [--show-log]
+
+
+$ python measure_angles.py -m ../../assets/models/yolo26n-pose.dxnn --video ../../sample/squat_demo.mp4
+===== [3] NPU calibration: re-measure clip + cross-check counters =====
+[INFO] 
+[INFO] ============================================================
+[INFO] SQUAT ANGLE CALIBRATION
+[INFO] ============================================================
+[INFO] video                : ../../sample/squat_demo.mp4
+[INFO] frames               : 240
+[INFO] frames with pose     : 238
+[INFO] thresholds           : down=140.0  up=160.0
+[INFO] knee angle min       : 132.1 deg
+[INFO] knee angle median    : 166.3 deg
+[INFO] knee angle max       : 179.7 deg
+[INFO] knee angle p10/p90   : 135.8 / 177.8 deg
+[INFO] ------------------------------------------------------------
+[INFO] reps (hysteresis)    : 2
+[INFO] reps (valley detect) : 2
+[INFO] counters agree       : True
+[INFO] ============================================================
+[INFO] RESULT: PASS  (recommended target_reps = 2)
+
+$ python yolo26n_pose_squat_sync.py -m <model> --video ../../sample/squat_demo.mp4 --save --no-display
+===== [4] End-to-end game run on sample video (saves annotated output.mp4) =====
+[INFO] 
+Model loaded: ../../assets/models/yolo26n-pose.dxnn
+[INFO] Model input size (WxH): 640x640
+[INFO] 
+Starting inference...
+[INFO] Processing... Only FPS will be displayed.
+
+==================================================
+               PERFORMANCE SUMMARY                
+==================================================
+ Pipeline Step   Avg Latency     Throughput     
+--------------------------------------------------
+ Read                0.54 ms     1860.5 FPS
+ Preprocess          0.50 ms     1983.6 FPS
+ Inference          14.58 ms       68.6 FPS
+ Postprocess         0.33 ms     2998.2 FPS
+ Render              1.70 ms      587.8 FPS
+ Save                4.72 ms      211.9 FPS
+--------------------------------------------------
+ Total Frames    :    240
+ Total Time      :    5.4 s
+ Overall FPS     :   44.6 FPS
+==================================================
+
+===== [5] Framework validator (dx_app) =====
+  !! [FAIL] app_yaml [INFO]
+          No app.yaml metadata file
+  !! [FAIL] unreachable_code [WARNING]
+          9 potentially unreachable line(s): measure_angles.py:49, measure_angles.py:76, measure_angles.py:140, squat_game/squat_counter.py:22, squat_game/squat_counter.py:44
+
+  Validation: 9/11 checks passed, 0 errors, 1 warnings

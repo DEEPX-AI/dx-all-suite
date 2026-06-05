@@ -17,6 +17,125 @@ InferenceEngine 설정, DxPreprocess/DxInfer 엘리먼트 연결 — 따라서 *
 - dx_app, dx_stream, dx-runtime에 걸친 크로스 프로젝트 빌드
 - DX-COM을 통한 ONNX → DXNN 포맷 모델 컴파일 (dx-compiler)
 
+## 데모: 프롬프트 하나로 만든 스쿼트 미니게임
+
+`dx-agentic-dev`를 가장 빠르게 이해하는 방법은 동작하는 모습을 직접 보는 것입니다.
+아래의 모든 것 — 애플리케이션 코드, pose 기반 게임 로직, 그리고 on-device NPU 실행 —
+은 **자연어 프롬프트 하나로 end-to-end 생성**되었으며, 직접 작성한 코드는 없습니다.
+
+**사용한 프롬프트** (`dx_app` 디렉터리에서 Claude Code에 전달):
+
+> DEEPX NPU에서 yolo26n-pose 모델을 사용해 간단한 스쿼트 카운팅 피트니스 미니게임을
+> 만들어줘. 구현과 검증은 `sample/squat_demo.mp4` 샘플 영상으로 진행해줘. 생성된 앱은
+> **비디오 파일 input과 라이브 카메라 input을 모두 지원**하고, **실행 시 CLI 옵션으로
+> input 소스를 선택**할 수 있어야 해(예: `--video <file>` 또는 `--camera <id>`). 신체
+> keypoint(무릎과 엉덩이 각도로 down 다음 up 동작을 인식)를 분석해 스쿼트 횟수를
+> 실시간으로 세고, 각 프레임 위에 아케이드 스타일 피트니스 게임 UI(횟수, 목표 횟수,
+> 점수, DOWN / UP / GOOD! 피드백 텍스트)를 오버레이해줘. 비디오 파일로 실행할 때는
+> 결과를 확인할 수 있도록 주석이 표시된 출력 영상도 저장해줘.
+
+에이전트는 게임 이름을 **"SQUAT CHALLENGE"**로 짓고 HUD에 `yolo26n-pose · DX-M1 NPU`
+배지까지 추가했습니다 — 모두 이 프롬프트 하나에서 나온 결과입니다.
+
+<div align="center">
+<table>
+<tr>
+<td align="center"><img src="./img/dx-agentic-dev-squat-build.gif" width="520"><br><sub><b>앱을 빌드하는 에이전트 — brainstorm → plan → TDD → verify (타임랩스)</b></sub></td>
+<td align="center"><img src="./img/dx-agentic-dev-squat-gameplay.gif" width="205"><br><sub><b>DX-M1 NPU에서 실행되는 생성된 앱</b></sub></td>
+</tr>
+</table>
+</div>
+
+### 에이전트가 수행한 작업
+
+한 번의 프롬프트로, 에이전트는 전체 DEEPX 에이전틱 워크플로우를 스스로 실행했습니다:
+
+1. **`dx-skill-router`** → **`dx-agentic-brainstorm`** — 기존 `yolo26n_pose`
+   예제를 살펴보고, 모델과 framework API를 확인한 뒤 design spec을 작성.
+2. **`dx-swe-writing-plans`** — 단계별 구현 plan 작성.
+3. **`dx-agentic-tdd`** — 앱을 파일 단위로 생성하며 각각 검증.
+4. **`dx-agentic-verify`** — framework validator와 새로운 on-NPU 실행을 수행하여,
+   앱이 스쿼트를 세고 주석 영상을 저장하는 것을 확인한 후 완료 선언.
+
+결과물은 격리된 session 디렉터리(`dx_app/dx-agentic-dev/<session>/`)에 생성되며
+기존 소스에는 전혀 영향을 주지 않습니다.
+
+### 생성된 앱의 구조
+
+에이전트는 dx_app의 **skeleton-first + `IFactory`** 규칙을 따랐습니다 — standalone
+스크립트를 작성하지 않았습니다. 생성된 앱은:
+
+- framework의 표준 pose preprocessor/postprocessor를 **재사용**합니다 (DXNN
+  모델이 입력 크기를 self-describe하고, YOLO-pose postprocessor가 COCO 17-point
+  body keypoint를 출력);
+- 게임 로직을 담은 **커스텀 visualizer만** 추가합니다 — 무릎 각도 기반
+  **스쿼트 rep counter**(완전한 DOWN→UP 사이클마다 1회)와 프레임 위 HUD
+  (횟수 / 목표 / 점수 / DOWN·UP·GOOD! 피드백);
+- framework의 **`SyncRunner`**(단일 순차 비디오 → 순차·stateful 카운팅)로
+  실행되며, 읽기 → NPU 추론 → visualize → 저장 루프를 처리합니다;
+- 게임 튜닝 값(목표 횟수, 무릎 각도 임계값, rep당 점수)을 `config.json`에 두어
+  코드 수정 없이 동작을 바꿀 수 있습니다.
+
+다른 dx_app 예제와 동일하게 실행합니다 — 생성된 `*_sync.py` 앱에 `.dxnn` 모델과
+입력 영상을 `--save`와 함께 지정하면 주석이 표시된 출력 영상이 저장됩니다.
+
+> **참고:** dx-agentic-dev는 매 실행마다 새 코드를 생성하므로, 정확한 클래스명·
+> 파일명·config 값은 빌드마다 달라집니다. 변하지 않는 것은 위의 **패턴**
+> (`IFactory` 재사용 + 커스텀 visualizer + `SyncRunner`)이며, 이 문서가 설명하는
+> 것이 바로 그 패턴입니다.
+
+> **재현성(reproducibility) 참고:** 이 빌드는 동일한 프롬프트로 여러 번 반복했으며,
+> 매번 독립적으로 스쿼트를 정확히 세는 실행 가능한 앱이 생성되었습니다 — 코드 구조는
+> 매번 달랐지만 모두 유효했고, 이는 결과가 암기된 것이 아니라 knowledge base에서
+> 재유도(re-derive)됨을 확인해 줍니다.
+
+### 생성된 샘플을 직접 실행해보기
+
+이 데모의 대표 빌드 하나가 **suite에 그대로 포함**되어 있어, 재생성 없이 바로 실행할 수 있습니다:
+
+📂 **[`dx-agentic-dev-showcase/squat-fitness-mini-game/`](../../dx-agentic-dev-showcase/squat-fitness-mini-game/)**
+ — 먼저 **[README](../../dx-agentic-dev-showcase/squat-fitness-mini-game/README.md)**부터 보세요.
+
+```bash
+cd dx-agentic-dev-showcase/squat-fitness-mini-game
+
+./setup.sh                       # dx-runtime venv + NPU sanity 확인, 의존성 설치
+./run.sh                         # 동봉 샘플 비디오 데모 -> annotated output.mp4
+./run.sh --camera 0              # 라이브 카메라 (display 필요)
+./run.sh --video /path/clip.mp4 --save
+```
+
+샘플 비디오는 showcase에 **동봉**되어 있고, `run.sh`는 suite root를 자동 탐지하므로
+(이 이동된 경로에서도 동작) `yolo26n-pose.dxnn` 모델을 아직 받아야 한다면 명확한 안내를
+출력합니다. dx-agentic-dev는 실행할 때마다 새 코드를 생성하므로, 이 디렉토리의 클래스명·
+파일명은 위에서 설명한 **패턴**의 한 가지 구체적 인스턴스일 뿐이며, 직접 생성하면 달라질 수 있습니다.
+
+### agent의 세션 들여다보기 — harness를 어떻게 따랐는가
+
+showcase에는 앱을 만들어 낸 **전체 Claude Code 세션**도 함께 들어 있습니다. 이는 결과가
+모델의 즉흥 능력이 아니라 *harness 엔지니어링* — 모델을 이끄는 계층적 `CLAUDE.md` / `.deepx/`
+instruction, agent, skill — 에서 얼마나 비롯되는지 가장 직접적으로 확인하는 방법입니다:
+
+- **[`claude-code-session.md`](../../dx-agentic-dev-showcase/squat-fitness-mini-game/claude-code-session.md)**
+  — GitHub에서 바로 렌더링됨 *(빠르게 읽기 권장)*.
+- **`claude-code-session.html`** — 동일한 transcript를 **로컬 브라우저에서 열면** 더 보기 좋게
+  스타일된 형태로 볼 수 있습니다 (GitHub는 HTML을 렌더링하지 않고 소스로 표시함).
+
+transcript를 읽으면 harness가 동작하는 모습을 직접 볼 수 있습니다:
+
+- **Instruction-following** — agent는 suite의 HARD GATE를 준수합니다: `[DX-AGENTIC-DEV: START]`
+  / `DONE` 세션 sentinel을 출력하고, 모든 산출물을 격리된 세션 디렉토리 안에 유지하며(기존 소스를
+  건드리지 않음), placeholder/stub 코드 작성을 거부합니다.
+- **Skill·agent 활용** — 필수 skill 시퀀스를 *언급*만 하는 게 아니라 실제 tool call로 invoke합니다 —
+  `dx-skill-router` → `dx-agentic-brainstorm` → `dx-swe-writing-plans` → `dx-agentic-tdd`
+  → `dx-agentic-verify`.
+- **실제 추론 과정** — 기존 `yolo26n_pose` 예제를 어떻게 살펴보고, knowledge base에서 실제 framework
+  API를 확인하고, 측정 데이터로 무릎 각도 threshold를 보정하고, unit test를 먼저 작성(RED)한 뒤,
+  앱을 파일 단위로 생성·검증하고 나서야 완료를 선언했는지 따라갈 수 있습니다.
+
+이것이 showcase의 핵심입니다: 품질은 raw 모델보다 harness가 부과하는 **instruction, skill,
+verification gate**에서 더 많이 나옵니다.
+
 ## 사전 요구사항
 
 | 요구사항 | 세부사항 |

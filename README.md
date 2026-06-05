@@ -63,6 +63,46 @@ DX-AllSuite supports a vast array of industry-standard AI architectures, optimiz
     Instead of compiling models yourself, you can download ready-to-use binaries from the [**DEEPX ModelZoo**](https://developer.deepx.ai/modelzoo/), which features **over 270 optimized models**.  
 
 
+## ✨ Build Apps with Natural Language — dx-agentic-dev (Beta)
+
+**New in DX-AllSuite:** describe the app you want in plain language and let an AI
+coding agent build it on the DEEPX SDK — `.dxnn` model resolution,
+`IFactory`/`SyncRunner` wiring, pre/post-processing, and on-device NPU inference
+all handled for you.
+
+The clips below were produced **end-to-end by `dx-agentic-dev`** from a single
+prompt — no hand-written code. **Left:** the agent autonomously building the app
+(brainstorm → plan → TDD → verify). **Right:** the generated app running on the
+DX-M1 NPU — a squat-counting fitness mini-game (**DEEPX SQUAT CHALLENGE**) that
+counts reps from `yolo26n-pose` body keypoints.
+
+<div align="center">
+<table>
+<tr>
+<td align="center"><img src="./docs/source/img/dx-agentic-dev-squat-build.gif" width="470"><br><sub><b>dx-agentic-dev building the app (timelapse)</b></sub></td>
+<td align="center"><img src="./docs/source/img/dx-agentic-dev-squat-gameplay.gif" width="188"><br><sub><b>Generated app running on NPU</b></sub></td>
+</tr>
+</table>
+</div>
+
+> **Prompt used:** *"Using the yolo26n-pose model on the DEEPX NPU, build a simple
+> squat-counting fitness mini-game. Implement and validate it using the sample
+> video … the generated app must support both a video-file input and a live camera
+> input, selectable via `--video <file>` or `--camera <id>` … overlay an
+> arcade-style fitness game UI …"*
+
+**▶️ Run it yourself** — the generated app is checked in at
+**[`dx-agentic-dev-showcase/squat-fitness-mini-game/`](./dx-agentic-dev-showcase/squat-fitness-mini-game/)**.
+Read its [README](./dx-agentic-dev-showcase/squat-fitness-mini-game/README.md),
+then `./setup.sh` and `./run.sh` (or `./run.sh --camera 0` for a live camera).
+
+**🔍 See how the agent built it** — the full Claude Code session is included so you
+can watch how it followed the harness instructions and used the project skills/agents:
+**[`claude-code-session.md`](./dx-agentic-dev-showcase/squat-fitness-mini-game/claude-code-session.md)**
+(renders on GitHub; an HTML copy `claude-code-session.html` opens in a local browser).
+
+➡️ **[Get started with Agentic Development (Beta)](./docs/source/agentic_development.md)**
+
 ## Documentation Navigation
 
 If you are a first-time user, we recommend following the documentation in this order.  
@@ -72,6 +112,7 @@ If you are a first-time user, we recommend following the documentation in this o
 - **Step 3. [Running Your First NPU Model](./docs/source/03_Running_Your_First_NPU_Model.md)**: Step-by-step hands-on script execution  
 - **Step 4. [Checking Version Compatibility](./docs/source/04_Version_Compatibility.md)**: SDK, Driver, and Firmware dependency matrix  
 - **Step 5. [FAQ Troubleshooting Guide](./docs/source/05_FAQ_Troubleshooting_Guide.md)**: Solutions for environment conflicts and GUI session (X11) errors  
+- **★ [Agentic Development (Beta)](./docs/source/agentic_development.md)**: Build DEEPX apps with natural-language prompts using AI coding agents (Claude Code, Cursor, GitHub Copilot, OpenCode)  
 
 ## Support
 
