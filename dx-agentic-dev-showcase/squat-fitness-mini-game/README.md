@@ -17,6 +17,26 @@
 > **See how the agent built it:** [`claude-code-session.md`](./claude-code-session.md)
 > (renders on GitHub; `claude-code-session.html` opens in a local browser).
 
+### How this app was built — session metrics
+
+Extracted from the build session transcript (`claude-code-session.*`):
+
+| Metric | Value |
+|--------|-------|
+| Coding agent | **Claude Code** (`claude` CLI, headless `-p`) |
+| Model | **Claude Opus 4.8** (`claude-opus-4-8`) |
+| Human input | **1 natural-language prompt** — fully autonomous, no hand-written code |
+| Build wall-clock | **≈ 20 min** (1,188,799 ms) |
+| Agent turns | **81** |
+| Clarifying questions | 1 (`AskUserQuestion`, auto-resolved from the knowledge base) |
+| Tools used | `Bash` ×33, `Write` ×17, `Read` ×15, `Skill` ×5, `Edit` ×3, `TaskCreate` ×1, `AskUserQuestion` ×1 |
+| Skills invoked (in order) | `dx-skill-router` → `dx-agentic-brainstorm` → `dx-swe-writing-plans` → `dx-agentic-tdd` → `dx-agentic-verify` |
+| Output tokens | **≈ 85.3K** (input 7.9K; cached-context reads ≈ 12.5M) |
+| Approx. cost | **≈ $9.9** |
+
+The full brainstorm → plan → TDD → verify skill sequence ran end-to-end before the
+app was declared done — the transcript shows each step as a real tool call.
+
 An arcade-style squat counter. Runs **yolo26n-pose** on the DEEPX NPU, detects
 squat repetitions from body keypoints (knee + hip angles), counts reps in real
 time, and overlays a game HUD (rep counter, target, score, **DOWN / UP / GOOD!**

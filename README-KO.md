@@ -95,9 +95,15 @@ DX-AllSuite는 우리 NPU에서 최고 성능을 내도록 최적화된, 업계 
 **[`claude-code-session.md`](./dx-agentic-dev-showcase/squat-fitness-mini-game/claude-code-session.md)**
 (GitHub에서 바로 렌더링됨; HTML 사본 `claude-code-session.html`은 로컬 브라우저에서 열어 보세요).
 
-**추가 showcase** — 같은 방식으로 만든 두 번째 앱: 애니메이션 coach 아바타가 세 가지
-스트레칭을 안내하는 아케이드 **스트레칭 coach 미니게임**:
+**추가 showcase** — 같은 방식으로 만든 두 번째 앱: 애니메이션 coach 아바타가 따라할 목표
+포즈를 보여주며 세 가지 스트레칭을 안내하는 아케이드 **스트레칭 coach 미니게임**:
 **[`dx-agentic-dev-showcase/stretching-coach-mini-game/`](./dx-agentic-dev-showcase/stretching-coach-mini-game/)**.
+
+> **한눈에** — 각 showcase는 **Claude Code (Claude Opus 4.8)**가 **프롬프트 1개**로 완전
+> 자율로 **약 20분** 만에 빌드했으며, `brainstorm → plan → TDD → verify` 전체 skill 시퀀스를
+> 실행했습니다(각 ~$9–10, output ~85K 토큰). 생성된 모든 앱은 **self-contained & portable**
+> — 프레임워크를 `./common`으로 vendoring하므로 이 repo 밖으로 복사해도 동작합니다. 빌드별
+> 메트릭은 각 showcase의 `README.md` 참조.
 
 ➡️ **[Agentic Development (Beta) 시작하기](./docs/source/agentic_development-KO.md)**
 

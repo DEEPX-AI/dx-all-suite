@@ -102,8 +102,16 @@ can watch how it followed the harness instructions and used the project skills/a
 (renders on GitHub; an HTML copy `claude-code-session.html` opens in a local browser).
 
 **More showcases** — a second app built the same way: an arcade **stretching coach
-mini-game** that guides you through three stretches with an animated coach avatar:
+mini-game** that guides you through three stretches with an animated coach avatar
+(it shows the target pose for you to follow):
 **[`dx-agentic-dev-showcase/stretching-coach-mini-game/`](./dx-agentic-dev-showcase/stretching-coach-mini-game/)**.
+
+> **At a glance** — each showcase was built by **Claude Code (Claude Opus 4.8)** from
+> a **single prompt**, fully autonomously in **~20 minutes**, running the complete
+> `brainstorm → plan → TDD → verify` skill sequence (~$9–10, ~85K output tokens each).
+> Every generated app is **self-contained & portable** — it vendors the framework
+> into `./common`, so the folder runs even when copied outside this repo. Per-build
+> metrics are in each showcase's `README.md`.
 
 ➡️ **[Get started with Agentic Development (Beta)](./docs/source/agentic_development.md)**
 

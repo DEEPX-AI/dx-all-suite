@@ -17,6 +17,26 @@
 > **See how the agent built it:** [`claude-code-session.md`](./claude-code-session.md)
 > (renders on GitHub; `claude-code-session.html` opens in a local browser).
 
+### How this app was built — session metrics
+
+Extracted from the build session transcript (`claude-code-session.*`):
+
+| Metric | Value |
+|--------|-------|
+| Coding agent | **Claude Code** (`claude` CLI, headless `-p`) |
+| Model | **Claude Opus 4.8** (`claude-opus-4-8`) |
+| Human input | **1 natural-language prompt** — fully autonomous, no hand-written code |
+| Build wall-clock | **≈ 21 min** (1,257,117 ms) |
+| Agent turns | **75** |
+| Clarifying questions | 1 (`AskUserQuestion`, auto-resolved from the knowledge base) |
+| Tools used | `Bash` ×30, `Write` ×16, `Read` ×10, `Edit` ×7, `Skill` ×5, `AskUserQuestion` ×1 |
+| Skills invoked (in order) | `dx-skill-router` → `dx-agentic-brainstorm` → `dx-swe-writing-plans` → `dx-agentic-tdd` → `dx-agentic-verify` |
+| Output tokens | **≈ 84.6K** (input 5.7K; cached-context reads ≈ 11.8M) |
+| Approx. cost | **≈ $9.4** |
+
+The full brainstorm → plan → TDD → verify skill sequence ran end-to-end before the
+app was declared done — including deriving the coach poses from the sample clips.
+
 An arcade-style stretching mini-game running `yolo26n-pose` on the DEEPX NPU. It
 guides the player through **three stretches, one stage at a time**, with an
 animated stick-figure **coach** demonstrating each target pose:

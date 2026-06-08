@@ -122,6 +122,18 @@ A second showcase built the same way — an arcade **stretching coach mini-game*
 (a stick-figure derived from the sample clips) that demonstrates each target pose.
 It likewise supports both `--video` and `--camera` input.
 
+**What each build actually took** (from the session transcripts shipped in each
+showcase — coding agent **Claude Code**, model **Claude Opus 4.8**, **one** prompt,
+fully autonomous):
+
+| Showcase | Wall-clock | Agent turns | Skills (in order) | Output tokens | ~Cost |
+|----------|-----------|-------------|-------------------|---------------|-------|
+| squat-fitness-mini-game | ≈ 20 min | 81 | router → brainstorm → writing-plans → tdd → verify | ≈ 85K | ≈ $9.9 |
+| stretching-coach-mini-game | ≈ 21 min | 75 | router → brainstorm → writing-plans → tdd → verify | ≈ 85K | ≈ $9.4 |
+
+Each ran the full brainstorm → plan → TDD → verify skill sequence as real tool calls
+before declaring done. Per-app details are in each showcase's `README.md`.
+
 ### Inspect the agent's session — how it followed the harness
 
 The showcase also ships the **complete Claude Code session** that produced the app.

@@ -115,6 +115,17 @@ cd dx-agentic-dev-showcase/squat-fitness-mini-game
 — 은 세 가지 스트레칭을 안내하며, 샘플 영상에서 유도한 스틱피겨 **coach 아바타**가 각 목표
 포즈를 시연합니다. 이 앱도 `--video`와 `--camera` 입력을 모두 지원합니다.
 
+**각 빌드가 실제로 든 비용** (각 showcase에 동봉된 세션 transcript 기준 — 코딩 에이전트
+**Claude Code**, 모델 **Claude Opus 4.8**, 프롬프트 **1개**, 완전 자율):
+
+| Showcase | Wall-clock | Agent turn | Skill (순서) | Output 토큰 | ~비용 |
+|----------|-----------|------------|--------------|-------------|-------|
+| squat-fitness-mini-game | ≈ 20분 | 81 | router → brainstorm → writing-plans → tdd → verify | ≈ 85K | ≈ $9.9 |
+| stretching-coach-mini-game | ≈ 21분 | 75 | router → brainstorm → writing-plans → tdd → verify | ≈ 85K | ≈ $9.4 |
+
+각 빌드는 완료 선언 전에 brainstorm → plan → TDD → verify 전체 skill 시퀀스를 실제 tool
+call로 실행했습니다. 앱별 상세는 각 showcase의 `README.md` 참조.
+
 ### agent의 세션 들여다보기 — harness를 어떻게 따랐는가
 
 showcase에는 앱을 만들어 낸 **전체 Claude Code 세션**도 함께 들어 있습니다. 이는 결과가
