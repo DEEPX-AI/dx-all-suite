@@ -1,9 +1,9 @@
 # Squat Fitness Mini-Game — built by dx-agentic-dev
 
 > **This whole app was generated end-to-end by [dx-agentic-dev](../../docs/source/agentic_development.md)
-> from a single natural-language prompt** — no hand-written code. It runs the
-> **yolo26n-pose** model on the **DEEPX NPU**, counts squat reps from body
-> keypoints, and overlays an arcade-style **SQUAT CHALLENGE** game HUD.
+> from a single natural-language prompt** — no hand-written code. It runs
+> `yolo26n-pose` on the **DEEPX NPU**, counts squat reps from body keypoints, and
+> overlays an arcade-style game HUD.
 
 <div align="center">
 <table>
@@ -14,133 +14,124 @@
 </table>
 </div>
 
-The agent detects body keypoints, recognizes the squat down→up motion from
-knee/hip angles, counts reps in real time, and overlays a game HUD (rep counter,
-target, score, DOWN / UP / GOOD! / WIN! feedback, depth gauge). On a video file
-it saves an annotated output video for review; it also runs on a live camera.
+Real-time **squat rep counter** running on the DEEPX DX-M1 NPU with the
+`yolo26n-pose` model. Detects squats from body keypoints (knee + hip angles),
+counts reps live, and overlays an arcade-style game HUD on every frame.
 
 ## See how the agent built it (session transcript)
 
-This directory ships the **full Claude Code session** that produced the app, so
-you can see exactly how the agent followed the harness instructions, used the
-project skills/agents, and reasoned through brainstorm → plan → TDD → verify:
+The **full Claude Code session** that produced this app is included, so you can see
+how it followed the harness instructions, used the project skills/agents, and reasoned
+through brainstorm → plan → TDD → verify:
 
-- **[`claude-code-session.md`](./claude-code-session.md)** — renders directly on GitHub *(recommended)*
-- **`claude-code-session.html`** — same content; **open locally in a browser** for a richer view
+- **[`claude-code-session.md`](./claude-code-session.md)** — renders on GitHub *(recommended)*
+- **`claude-code-session.html`** — same content; open locally in a browser for a richer view
 
-See the [Agentic Development guide](../../docs/source/agentic_development.md) for
-what to look for in the transcript.
-
-## Prerequisites
-
-- **dx-runtime built** with a working `dx_engine` venv at `dx-runtime/venv-dx-runtime`
-  (see the suite setup). `setup.sh` verifies this and the NPU sanity check.
-- **Model**: `yolo26n-pose.dxnn` (a large binary, not committed). Download it once:
-  ```bash
-  (cd ../../dx-runtime/dx_app && ./setup.sh --models yolo26n-pose)
-  ```
-  `run.sh` checks for it and prints this hint if it is missing.
-- **Sample video**: `sample/squat_demo.mp4` is bundled here, so the video demo is
-  self-contained.
+```
+ ┌─────────────────────────────────────────────┐
+ │ SQUAT ARCADE        REPS 02/10   SCORE 0020  │   ← translucent HUD panel
+ │ ████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  bar │   ← progress to target
+ │ knee 134.0deg                                │
+ │                                              │
+ │                 (skeleton overlay)           │
+ │                    DOWN / UP                 │   ← big feedback text
+ │                  GOOD!  /  GOAL!             │
+ └─────────────────────────────────────────────┘
+```
 
 ## Quick start
 
 ```bash
-# 1. one-time environment setup (reuses dx-runtime/venv-dx-runtime)
+# 0. one-time sanity check (venv / dx_engine / OpenCV / model)
 ./setup.sh
 
-# 2a. run on the bundled sample video -> saves annotated output.mp4 (headless)
+# 1. run on the bundled demo clip — saves an annotated output video
 ./run.sh
+#    -> output video: ./output/.../output.mp4
 
-# 2b. run on a live camera (needs a display)
+# 2. run on a custom video (also saves annotated output)
+./run.sh --video /path/to/clip.mp4
+
+# 3. run on a live camera
 ./run.sh --camera 0
 
-# 2c. custom video, saving annotated output
-./run.sh --video /path/to/clip.mp4 --save
+# stop the window any time with 'q' or ESC
 ```
 
-The annotated video is written under `artifacts/<run-dir>/output.mp4`.
+`run.sh` is **relocatable**: it auto-detects the dx_app root, falls back across
+venvs (local `venv`/`.venv` → `dx-runtime/venv-dx-runtime`), guards against a
+missing model with a download hint, and prefers a bundled `sample/` clip.
 
-### Run the app directly
+## How it works (framework-compliant)
 
+Built strictly on the dx_app **IFactory + SyncRunner** pattern — no standalone
+inference loops, no direct engine calls.
+
+| Stage | Component | Notes |
+|-------|-----------|-------|
+| preprocess | `LetterboxPreprocessor` | framework default, unchanged |
+| infer | `dx_engine.InferenceEngine` | yolo26n-pose on NPU (driven by SyncRunner) |
+| postprocess | `YOLOv8PosePostprocessor` | → `PoseResult` (COCO-17 keypoints) |
+| **game + draw** | **`SquatGameVisualizer`** | rep state machine + arcade HUD, called per frame |
+
+The squat logic is split into two pieces:
+
+* **`squat_rep_counter.py`** — pure, dependency-free `SquatRepCounter` state
+  machine (`UP`↔`DOWN`) with sliding-window smoothing, hysteresis, and a
+  consecutive-frame debounce. Fully unit-tested.
+* **`squat_game_visualizer.py`** — extracts knee angle = ∠(hip, knee, ankle) and
+  hip angle = ∠(shoulder, hip, knee) from COCO keypoints (averaged L/R by
+  confidence), drives the counter, and renders the HUD on the skeleton frame.
+
+### Rep detection & calibration
+
+A squat is one full `UP → DOWN → UP` knee cycle. Thresholds were **calibrated
+from `sample/squat_demo.mp4`** (`calibrate_squat.py`), not guessed — in a 2D
+view the knee angle bottoms out around **133°**, never 90°:
+
+| param | value | meaning |
+|-------|-------|---------|
+| `knee_down_angle` | 148° | enter DOWN when smoothed knee ≤ this |
+| `knee_up_angle` | 160° | DOWN→UP (rep counted) when smoothed knee ≥ this |
+| `smoothing_window` | 5 | sliding-mean frames |
+| `min_state_frames` | 3 | debounce: frames a transition must persist |
+
+On the demo clip these detect **2 reps** (two complete squats; a third
+incomplete dip at clip-end is correctly not counted).
+
+Re-calibrate for a new clip:
 ```bash
-source ../../dx-runtime/venv-dx-runtime/bin/activate
-MODEL=../../dx-runtime/dx_app/assets/models/yolo26n-pose.dxnn
-
-# video file (annotated output saved) — uses the bundled sample
-python yolo26n_pose_squat_sync.py -m $MODEL --video sample/squat_demo.mp4 --save --no-display
-
-# live camera
-python yolo26n_pose_squat_sync.py -m $MODEL --camera 0
+python calibrate_squat.py --model ../../assets/models/yolo26n-pose.dxnn --video <clip.mp4>
 ```
 
-## Architecture (skeleton-first, IFactory + SyncRunner)
+## Game tuning (`config.json`)
 
-Built by copying the stock `src/python_example/pose_estimation/yolo26n_pose/`
-skeleton and customizing only the game-specific parts:
-
-| Component | Source |
-|-----------|--------|
-| Preprocessor | `LetterboxPreprocessor` (framework, unchanged) |
-| Postprocessor | `YOLOv8PosePostprocessor` (framework, unchanged) |
-| **Visualizer** | `SquatGameVisualizer` — **custom**: rep state machine + arcade HUD |
-| Factory | `SquatGameFactory(IPoseFactory)` |
-| Runner | `SyncRunner` (framework) |
-
-The game state lives in `SquatGameVisualizer`, which `SyncRunner` instantiates
-once and calls per frame — so the rep count and score persist across the stream.
-Input source (`--video` / `--camera`) and annotated-video saving (`--save`) come
-from the framework's `parse_common_args()` + `SyncRunner`; no custom I/O.
-
-## Squat detection
-
-- **Knee angle** = `angle(hip, knee, ankle)`; left = COCO (11,13,15), right = (12,14,16),
-  averaged over whichever side has confident keypoints.
-- **Hip angle** = `angle(shoulder, hip, knee)` — informs the depth gauge.
-- **Hysteresis state machine** (`SquatCounter`): `UP → DOWN` when knee angle
-  `< down_angle`; `DOWN → UP` (rep++) when knee angle `> up_angle`. The
-  `down_angle < up_angle` dead-band rejects jitter.
-- **Calibration**: 2D YOLO-pose knee angles bottom out near **120–140°** (not the
-  textbook 90°) due to camera projection. Defaults `down_angle=140`, `up_angle=160`.
-  `target_reps` is set from a **data-driven measurement** of the demo clip
-  (`measure_angles.py`), cross-checked between the hysteresis counter and an
-  independent valley detector.
-
-## Configuration (`config.json`)
-
-| Key | Default | Meaning |
-|-----|---------|---------|
-| `down_angle` | 140.0 | knee angle below which the player is "DOWN" |
-| `up_angle` | 160.0 | knee angle above which a rep completes |
-| `target_reps` | 2 | reps to win (= measured completed reps in `sample/squat_demo.mp4`; raise for live play) |
-| `points_per_rep` | 10 | score awarded per completed rep |
-| `keypoint_confidence` | 0.3 | min keypoint confidence to use a joint |
-| `score_threshold` / `nms_threshold` | 0.4 / 0.45 | pose detection thresholds |
+```json
+{
+  "game": {
+    "target_reps": 10, "score_per_rep": 10,
+    "knee_down_angle": 148.0, "knee_up_angle": 160.0,
+    "smoothing_window": 5, "min_state_frames": 3,
+    "keypoint_confidence_threshold": 0.3
+  }
+}
+```
 
 ## Files
 
-```
-yolo26n_pose_squat_sync.py     entry wrapper (SyncRunner + SquatGameFactory)
-factory/squat_game_factory.py  IFactory (5 methods)
-factory/__init__.py
-squat_game/squat_counter.py    pure-Python angle math + hysteresis counter
-squat_game/game_visualizer.py  SquatGameVisualizer (rep logic + arcade HUD)
-squat_game/__init__.py
-config.json                    thresholds, target, scoring
-measure_angles.py              NPU calibration / rep cross-check
-tests/test_squat_counter.py    unit tests (10) for the rep core
-conftest.py                    pytest path setup
-setup.sh / run.sh              environment + launcher
-sample/squat_demo.mp4          bundled demo input
-session.log                    real validation output
-claude-code-session.md / .html the full agent session that built this app
-```
+| File | Purpose |
+|------|---------|
+| `yolo26n_pose_squat_sync.py` | App entrypoint (IFactory + SyncRunner) |
+| `factory/yolo26n_pose_squat_factory.py` | `Yolo26nPoseSquatFactory` (5 IFactory methods) |
+| `squat_game_visualizer.py` | Arcade HUD + per-frame game logic |
+| `squat_rep_counter.py` | Pure rep state machine |
+| `test_squat_rep_counter.py` | Unit tests (pytest or standalone) |
+| `calibrate_squat.py` | Knee-angle threshold calibration tool |
+| `config.json` | Model + game configuration |
+| `setup.sh` / `run.sh` | Environment check / launcher |
+| `session.json` / `session.log` | Build metadata / run log |
 
-## Validation
+## Requirements
 
-- **Unit tests**: `python -m pytest tests/ -v` → 10 passed (angle math + state machine).
-- **Calibration** (`measure_angles.py` on the demo clip): 240 frames, 238 with pose,
-  knee min 132.1° / median 166.3°; hysteresis count = valley count = **2 reps** (agree).
-- **End-to-end**: ran on `sample/squat_demo.mp4`, ~53 FPS overall (13 ms NPU
-  inference/frame), annotated `output.mp4` written, HUD reaches **REPS 2/2,
-  SCORE 20, WIN!** See `session.log`.
+DEEPX DX-M1 NPU + dx-runtime (`dx_engine`), Python 3.12, GUI-capable
+`opencv-python` (display is auto-skipped on headless hosts; `--save` still works).

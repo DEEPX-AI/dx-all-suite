@@ -1,1 +1,1 @@
-"""yolo26n_pose squat fitness mini-game session package."""
+# YOLO26n-Pose squat-counting fitness mini-game (dx_app session package)

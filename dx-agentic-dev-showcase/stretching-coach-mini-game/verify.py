@@ -1,156 +1,142 @@
 #!/usr/bin/env python3
 # Copyright (C) 2018- DEEPX Ltd. All rights reserved.
 """
-Headless validation for the stretch mini-game.
+End-to-end game-logic verification on the real NPU pipeline.
 
-Drives the actual game engine (StretchGameVisualizer) over the three sample
-clips on the NPU and asserts:
-  1. Per clip: starting at that clip's stage, the stage is cleared.
-  2. End-to-end: one game instance fed [overhead, fold, neck] clips in order
-     reaches GAME_CLEAR.
+1. Per-clip recognition separation: for each stretch's sample clip, the matching
+   stretch must be the DOMINANT one (fires on the most frames), proving the
+   recognizers are well separated.
+2. End-to-end: drive StretchGameVisualizer over stretching_demo.mp4 (all three
+   stretches in sequence) and assert it reaches CLEAR! (stage_idx advanced 0->3).
 
-Exit 0 + "RESULT: PASS" only if every assertion holds; else exit 1 + FAIL.
-
-Usage:
-    python verify.py [-m <model.dxnn>]
+Exit 0 + "RESULT: PASS" only if all checks pass; otherwise exit 1 + "RESULT: FAIL".
 """
 
-import argparse
-import json
-import os
 import sys
 from pathlib import Path
 
-# Stay headless even if a display is exported (avoids GUI calls in cv2).
-os.environ.pop("DISPLAY", None)
-os.environ.pop("WAYLAND_DISPLAY", None)
+import numpy as np
 
-import numpy as np   # noqa: E402
-import cv2           # noqa: E402
+_HERE = Path(__file__).resolve().parent
 
 
-def _setup_paths():
-    here = Path(__file__).resolve().parent
-    pe_root = None
-    for parent in [here, *here.parents]:
-        if (parent / "src" / "python_example" / "common").is_dir():
-            pe_root = parent / "src" / "python_example"
-            break
-    if pe_root is None:
-        raise RuntimeError("Could not locate src/python_example/common")
-    for p in (str(here), str(pe_root)):
-        if p not in sys.path:
-            sys.path.insert(0, p)
-    return pe_root
+def _bootstrap():
+    d = _HERE
+    for _ in range(8):
+        if (d / "src" / "python_example" / "common").is_dir():
+            pe = d / "src" / "python_example"
+            for p in (str(pe), str(_HERE)):
+                if p not in sys.path:
+                    sys.path.insert(0, p)
+            return d / "dx_app" if (d / "dx_app").is_dir() else d
+        d = d.parent
+    raise RuntimeError("cannot find src/python_example/common")
 
 
-HERE = Path(__file__).resolve().parent
-PE_ROOT = _setup_paths()
-SAMPLE_DIR = PE_ROOT.parent.parent / "sample"
+_bootstrap()
 
-from dx_engine import InferenceEngine                       # noqa: E402
+import cv2  # noqa: E402
+import json  # noqa: E402
 from common.processors import LetterboxPreprocessor, YOLOv8PosePostprocessor  # noqa: E402
-from stretch_game_engine import StretchGameVisualizer, STAGES  # noqa: E402
+from stretch_pose_rules import (  # noqa: E402
+    is_overhead_reach, is_forward_fold, is_neck_stretch, DEFAULT_RULE_CFG,
+)
 
-STAGE_CLIP = {
+_DXAPP = _HERE.parents[1]  # session = dx_app/dx-agentic-dev/<sid> -> parents[1] = dx_app
+MODEL = _DXAPP / "assets" / "models" / "yolo26n-pose.dxnn"
+SAMPLE = _DXAPP / "sample"
+CLIPS = {
     "overhead": "stretching_extending_both_arms.mp4",
     "fold": "stretching_bending_at_the_waist.mp4",
     "neck": "stretching_pulling_the_head.mp4",
 }
-STAGE_IDX = {key: i for i, (key, _, _) in enumerate(STAGES)}
+RECOG = {"overhead": is_overhead_reach, "fold": is_forward_fold, "neck": is_neck_stretch}
 
 
-def _make_io(model):
-    ie = InferenceEngine(model)
-    ti = ie.get_input_tensors_info()[0]["shape"]
-    if ti[-1] in (1, 3, 4):
-        ih, iw = ti[1], ti[2]
-    else:
-        ih, iw = ti[2], ti[3]
-    return ie, iw, ih
+def _kp(pose):
+    a = np.zeros((17, 3), dtype=np.float32)
+    for i, k in enumerate(pose.keypoints[:17]):
+        a[i] = (k.x, k.y, k.confidence)
+    return a
 
 
-def _drive_clip(ie, pre, post, vis, clip_path, save_writer=None):
-    """Feed every frame of a clip through the game engine. Returns frame count."""
-    cap = cv2.VideoCapture(clip_path)
-    if not cap.isOpened():
-        raise RuntimeError(f"cannot open {clip_path}")
-    n = 0
-    while True:
-        ret, frame = cap.read()
-        if not ret:
-            break
-        n += 1
-        tensor, ctx = pre.process(frame)
-        outputs = ie.run([tensor])
-        results = post.process(outputs, ctx)
-        out = vis.visualize(frame, results)
-        if save_writer is not None:
-            save_writer.write(out)
-    cap.release()
-    return n
+def _largest(results):
+    ppl = [r for r in results if r.keypoints and len(r.keypoints) >= 17]
+    return max(ppl, key=lambda r: (r.box[2]-r.box[0])*(r.box[3]-r.box[1])) if ppl else None
 
 
 def main():
-    ap = argparse.ArgumentParser(description="Verify the stretch game")
-    ap.add_argument("--model", "-m",
-                    default=str(PE_ROOT.parent.parent / "assets" / "models" / "yolo26n-pose.dxnn"))
-    ap.add_argument("--config", default=str(HERE / "config.json"))
-    args = ap.parse_args()
-
-    config = json.load(open(args.config)) if os.path.isfile(args.config) else {}
-    templates = str(HERE / "pose_templates.json")
-
-    if not os.path.isfile(args.model):
-        print(f"DXNN model not found: {args.model}")
+    if not MODEL.is_file():
+        print(f"ONNX/DXNN inference failed: model missing {MODEL}")
         print("RESULT: FAIL")
-        sys.exit(1)
-
-    ie, iw, ih = _make_io(args.model)
+        return 1
+    from dx_engine import InferenceEngine
+    ie = InferenceEngine(str(MODEL))
+    shp = ie.get_input_tensors_info()[0]["shape"]
+    ih, iw = (shp[1], shp[2]) if shp[-1] in (1, 3, 4) else (shp[2], shp[3])
     pre = LetterboxPreprocessor(iw, ih)
-    post = YOLOv8PosePostprocessor(iw, ih, config)
+    post = YOLOv8PosePostprocessor(iw, ih, {"score_threshold": 0.4, "nms_threshold": 0.45})
 
     ok = True
 
-    # --- Test 1: per-clip stage clear ---
-    print("== Test 1: per-clip stage clear ==")
-    for key, clip in STAGE_CLIP.items():
-        path = str(SAMPLE_DIR / clip)
-        if not os.path.isfile(path):
-            print(f"  [{key}] MISSING clip {path}")
+    # ---- 1. per-clip separation ----
+    print("== per-clip recognizer separation ==")
+    for key, fname in CLIPS.items():
+        cap = cv2.VideoCapture(str(SAMPLE / fname))
+        counts = {k: 0 for k in RECOG}
+        n = 0
+        while True:
+            ret, frame = cap.read()
+            if not ret:
+                break
+            n += 1
+            t, ctx = pre.process(frame)
+            pose = _largest(post.process(ie.run([t]), ctx))
+            if pose is None:
+                continue
+            kp = _kp(pose)
+            for k, fn in RECOG.items():
+                if fn(kp, DEFAULT_RULE_CFG):
+                    counts[k] += 1
+        cap.release()
+        dominant = max(counts, key=counts.get)
+        share = counts[key] / max(1, n)
+        verdict = "OK" if (dominant == key and counts[key] > 0) else "BAD"
+        if verdict == "BAD":
             ok = False
-            continue
-        vis = StretchGameVisualizer(config, start_stage=STAGE_IDX[key],
-                                    templates_path=templates)
-        frames = _drive_clip(ie, pre, post, vis, path)
-        cleared = vis.completed >= 1
-        print(f"  [{key}] frames={frames} cleared={cleared} "
-              f"(completed={vis.completed})")
-        ok = ok and cleared
+        print(f"  {key:9s} clip: counts={counts} dominant={dominant} "
+              f"({share*100:.1f}% own) -> {verdict}")
 
-    # --- Test 2: end-to-end full sequence -> GAME_CLEAR ---
-    print("== Test 2: end-to-end sequence -> CLEAR ==")
-    vis = StretchGameVisualizer(config, start_stage=0, templates_path=templates)
-    seq = ["overhead", "fold", "neck"]
-    for key in seq:
-        path = str(SAMPLE_DIR / STAGE_CLIP[key])
-        if not os.path.isfile(path):
-            print(f"  MISSING clip {path}")
+    # ---- 2. end-to-end CLEAR! on the combined demo ----
+    print("== end-to-end (stretching_demo.mp4) ==")
+    demo = SAMPLE / "stretching_demo.mp4"
+    if demo.is_file():
+        cfg = json.loads((_HERE / "config.json").read_text())
+        coach = json.loads((_HERE / "coach_poses.json").read_text())
+        from game_visualizer import StretchGameVisualizer
+        viz = StretchGameVisualizer(cfg, coach)
+        cap = cv2.VideoCapture(str(demo))
+        frames = 0
+        while True:
+            ret, frame = cap.read()
+            if not ret:
+                break
+            frames += 1
+            t, ctx = pre.process(frame)
+            results = post.process(ie.run([t]), ctx)
+            viz.visualize(frame, results)
+        cap.release()
+        print(f"  processed {frames} frames; final stage_idx={viz.stage_idx} "
+              f"cleared={viz.cleared}")
+        if not viz.cleared:
             ok = False
-            break
-        _drive_clip(ie, pre, post, vis, path)
-        print(f"  after {key}: stage={vis.stage} completed={vis.completed} "
-              f"mode={vis.mode}")
-    game_clear = vis.is_game_clear()
-    print(f"  GAME_CLEAR reached: {game_clear}")
-    ok = ok and game_clear
+            print("  end-to-end did NOT reach CLEAR!")
+    else:
+        print(f"  SKIP: {demo} not found (per-clip checks still apply)")
 
-    if ok:
-        print("RESULT: PASS")
-        sys.exit(0)
-    print("RESULT: FAIL")
-    sys.exit(1)
+    print("RESULT: PASS" if ok else "RESULT: FAIL")
+    return 0 if ok else 1
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

@@ -1,14 +1,15 @@
 #!/usr/bin/env bash
 # Copyright (C) 2018- DEEPX Ltd. All rights reserved.
-# Environment setup for the yolo26n-pose stretch game.
-#   - creates an isolated python3.12 venv in this session dir
-#   - installs numpy / opencv-python (GUI build) / onnxruntime / requests
-#   - builds + installs the ABI-matched dx_engine wheel from dx_rt
+# Environment setup for the yolo26n-pose arcade stretching game.
+#   - creates a local python3.12 venv
+#   - installs GUI-capable opencv-python (NOT headless) + deps
+#   - provides dx_engine: builds the ABI-matched wheel from dx_rt if missing
+#   - checks the model file exists
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd -P)"
 
-# --- Locate the suite root (dx-runtime/ and dx-compiler/ siblings) ---
+# Auto-detect suite root (dx-runtime/ and dx-compiler/ siblings).
 SUITE_ROOT="$SCRIPT_DIR"
 while [ "$SUITE_ROOT" != "/" ]; do
     if [ -d "$SUITE_ROOT/dx-runtime" ] && [ -d "$SUITE_ROOT/dx-compiler" ]; then
@@ -17,72 +18,56 @@ while [ "$SUITE_ROOT" != "/" ]; do
     SUITE_ROOT="$(dirname "$SUITE_ROOT")"
 done
 if [ "$SUITE_ROOT" = "/" ]; then
-    # Fallback: dx-runtime only (no compiler in this checkout layout).
-    SUITE_ROOT="$SCRIPT_DIR"
-    while [ "$SUITE_ROOT" != "/" ]; do
-        [ -d "$SUITE_ROOT/dx-runtime" ] && break
-        SUITE_ROOT="$(dirname "$SUITE_ROOT")"
-    done
-fi
-if [ "$SUITE_ROOT" = "/" ]; then
-    echo "ERROR: cannot find suite root (expected dx-runtime/ ancestor)"; exit 1
+    echo "ERROR: cannot find suite root (dx-runtime/ + dx-compiler/ siblings)"; exit 1
 fi
 RUNTIME_DIR="$SUITE_ROOT/dx-runtime"
-DXRT_PKG="$RUNTIME_DIR/dx_rt/python_package"
-echo "[setup] SUITE_ROOT = $SUITE_ROOT"
+DXAPP_DIR="$RUNTIME_DIR/dx_app"
+MODEL_PATH="$DXAPP_DIR/assets/models/yolo26n-pose.dxnn"
 
-# --- Sanity check (informational; do not hard-fail the env setup) ---
-if [ -f "$RUNTIME_DIR/scripts/sanity_check.sh" ]; then
-    echo "[setup] running dx_rt sanity check..."
-    bash "$RUNTIME_DIR/scripts/sanity_check.sh" --dx_rt 2>&1 | tail -3 || true
-fi
+echo "==> suite root : $SUITE_ROOT"
+echo "==> session dir: $SCRIPT_DIR"
 
-# --- Create venv (python3.12 required for ABI-matched dx_engine) ---
-PY=python3.12
-command -v "$PY" >/dev/null 2>&1 || PY=python3
+# 1. venv (prefer python3.12 to match the prebuilt dx_engine ABI)
+PYBIN="$(command -v python3.12 || command -v python3)"
 VENV="$SCRIPT_DIR/venv"
-if [ ! -d "$VENV" ]; then
-    echo "[setup] creating venv with $PY ..."
-    "$PY" -m venv "$VENV"
+if [ ! -x "$VENV/bin/python" ]; then
+    echo "==> creating venv with $PYBIN"
+    "$PYBIN" -m venv "$VENV"
 fi
 # shellcheck disable=SC1091
 source "$VENV/bin/activate"
-python -m pip install --quiet --upgrade pip
+python -m pip install --quiet --upgrade pip wheel setuptools
 
-echo "[setup] installing python deps (numpy, opencv-python, onnxruntime, requests)..."
-# GUI-capable opencv-python (NOT headless) per suite policy.
-python -m pip install --quiet numpy "opencv-python" onnxruntime requests packaging
+# 2. runtime deps — GUI opencv-python (headless is PROHIBITED in this project)
+echo "==> installing python deps (numpy, opencv-python [GUI], onnxruntime, requests, pytest)"
+python -m pip install --quiet numpy "opencv-python>=4.8" onnxruntime requests pytest
 
-# --- Build + install dx_engine wheel (ABI-matched to installed dx_rt) ---
-if python -c "import dx_engine" 2>/dev/null; then
-    echo "[setup] dx_engine already importable in venv."
-else
-    if [ -d "$DXRT_PKG" ]; then
-        echo "[setup] building dx_engine wheel from $DXRT_PKG ..."
-        WHEEL_DIR="$SCRIPT_DIR/_wheels"
-        mkdir -p "$WHEEL_DIR"
-        ( cd "$DXRT_PKG" && python -m pip wheel . --no-deps -w "$WHEEL_DIR" )
-        WHL="$(ls -t "$WHEEL_DIR"/dx_engine-*.whl 2>/dev/null | head -1 || true)"
+# 3. dx_engine — build the ABI-matched wheel if not importable
+if ! python -c "import dx_engine" >/dev/null 2>&1; then
+    echo "==> dx_engine not importable; building ABI-matched wheel from dx_rt"
+    PKG_DIR="$RUNTIME_DIR/dx_rt/python_package"
+    if [ -d "$PKG_DIR" ]; then
+        WHL_DIR="$SCRIPT_DIR/.wheels"
+        mkdir -p "$WHL_DIR"
+        ( cd "$PKG_DIR" && python -m pip wheel . --no-deps -w "$WHL_DIR" ) || \
+            echo "WARN: wheel build failed; run.sh will fall back to dx-runtime/venv-dx-runtime"
+        WHL="$(ls -t "$WHL_DIR"/dx_engine-*.whl 2>/dev/null | head -1 || true)"
         if [ -n "$WHL" ]; then
             python -m pip install --quiet --force-reinstall --no-deps "$WHL"
-        else
-            echo "[setup] WARN: no dx_engine wheel produced."
         fi
     else
-        echo "[setup] WARN: $DXRT_PKG not found; cannot build dx_engine wheel."
+        echo "WARN: $PKG_DIR not found; run.sh will fall back to dx-runtime/venv-dx-runtime"
     fi
 fi
+python -c "import dx_engine; print('==> dx_engine OK')" 2>/dev/null || \
+    echo "==> dx_engine NOT in local venv (run.sh falls back to dx-runtime/venv-dx-runtime)"
 
-echo "[setup] verifying imports..."
-python - <<'PY'
-import numpy, cv2
-print("numpy", numpy.__version__, "| opencv", cv2.__version__)
-try:
-    import dx_engine
-    print("dx_engine OK")
-except Exception as e:
-    print("dx_engine import FAILED:", e)
-    raise SystemExit(1)
-PY
+# 4. model presence
+if [ -f "$MODEL_PATH" ]; then
+    echo "==> model present: $MODEL_PATH"
+else
+    echo "WARN: model missing: $MODEL_PATH"
+    echo "      download with: ( cd '$DXAPP_DIR' && ./setup.sh --models yolo26n-pose )"
+fi
 
-echo "[setup] DONE. Activate with: source \"$VENV/bin/activate\""
+echo "==> setup complete."

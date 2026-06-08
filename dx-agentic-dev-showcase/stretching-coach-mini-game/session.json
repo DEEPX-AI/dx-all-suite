@@ -1,24 +1,31 @@
 {
-  "session_id": "20260608-153048_claude_opus48_yolo26n_pose_stretch_game",
+  "session_id": "20260608-183316_claude_opus48_yolo26npose_stretchgame",
   "agent": "claude",
   "coding_model": "opus48",
   "target_model": "yolo26n_pose",
-  "task": "arcade_stretching_mini_game",
+  "task": "arcade_stretching_game",
   "task_type": "pose_estimation",
   "variant": "sync",
+  "variant_rationale": "Game is stateful and frame-sequential (hold timers, stage progression); SyncRunner preserves frame order. AsyncRunner reorders frames and would corrupt hold-timing, so async/cpp variants are intentionally not generated.",
   "model_file": "assets/models/yolo26n-pose.dxnn",
-  "model_input": "[1,640,640,3] uint8 (NHWC, letterbox)",
-  "model_output": "[1,300,57] float32 (YOLO26 post-NMS, 17 keypoints)",
-  "stages": ["overhead_reach", "forward_fold", "neck_stretch"],
-  "inputs_supported": ["--video", "--camera"],
+  "num_keypoints": 17,
+  "pattern": "IFactory + SyncRunner; game logic in StretchGameVisualizer(PoseVisualizer)",
+  "stretches": ["overhead_reach", "forward_fold", "neck_stretch"],
+  "inputs": ["--video", "--camera", "--image", "--rtsp"],
   "saves_annotated_video": true,
-  "sample_clips": [
-    "sample/stretching_extending_both_arms.mp4",
-    "sample/stretching_bending_at_the_waist.mp4",
-    "sample/stretching_pulling_the_head.mp4"
-  ],
-  "calibration": {"overhead_frames": 114, "fold_frames": 97, "neck_frames": 121},
-  "verification": {"per_clip": "PASS", "end_to_end_game_clear": true, "result": "PASS"},
-  "annotated_output": "./artifacts/yolo26n_pose_stretch_game_sync-stream-stretching_demo-20260608-154100/output.mp4",
-  "framework": "IFactory + SyncRunner (dx_app)"
+  "coach_poses_source": "clip-calibrated (median of matching normalized skeletons)",
+  "calibration_matches": {"overhead": "115/240", "fold": "98/240", "neck": "122/240", "neutral_frames": 382},
+  "validation": {
+    "pytest": "7 passed",
+    "verify_py": "RESULT: PASS (exit 0)",
+    "per_clip_separation": {"overhead": 115, "fold": 98, "neck": 122},
+    "end_to_end_demo": {"frames": 721, "cleared": true, "fps": 34.8}
+  },
+  "deliverables": [
+    "stretch_game_sync.py", "factory/stretch_game_factory.py", "factory/__init__.py",
+    "game_visualizer.py", "stretch_pose_rules.py", "coach_avatar.py",
+    "coach_poses.json", "calibrate_coach_poses.py", "config.json",
+    "test_stretch_rules.py", "verify.py", "setup.sh", "run.sh",
+    "README.md", "session.json", "session.log", "runs/"
+  ]
 }
