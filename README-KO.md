@@ -95,6 +95,10 @@ DX-AllSuite는 우리 NPU에서 최고 성능을 내도록 최적화된, 업계 
 **[`claude-code-session.md`](./dx-agentic-dev-showcase/squat-fitness-mini-game/claude-code-session.md)**
 (GitHub에서 바로 렌더링됨; HTML 사본 `claude-code-session.html`은 로컬 브라우저에서 열어 보세요).
 
+**추가 showcase** — 같은 방식으로 만든 두 번째 앱: 애니메이션 coach 아바타가 세 가지
+스트레칭을 안내하는 아케이드 **스트레칭 coach 미니게임**:
+**[`dx-agentic-dev-showcase/stretching-coach-mini-game/`](./dx-agentic-dev-showcase/stretching-coach-mini-game/)**.
+
 ➡️ **[Agentic Development (Beta) 시작하기](./docs/source/agentic_development-KO.md)**
 
 ## 문서 내비게이션

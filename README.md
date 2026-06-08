@@ -101,6 +101,10 @@ can watch how it followed the harness instructions and used the project skills/a
 **[`claude-code-session.md`](./dx-agentic-dev-showcase/squat-fitness-mini-game/claude-code-session.md)**
 (renders on GitHub; an HTML copy `claude-code-session.html` opens in a local browser).
 
+**More showcases** — a second app built the same way: an arcade **stretching coach
+mini-game** that guides you through three stretches with an animated coach avatar:
+**[`dx-agentic-dev-showcase/stretching-coach-mini-game/`](./dx-agentic-dev-showcase/stretching-coach-mini-game/)**.
+
 ➡️ **[Get started with Agentic Development (Beta)](./docs/source/agentic_development.md)**
 
 ## Documentation Navigation

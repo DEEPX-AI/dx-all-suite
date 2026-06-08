@@ -110,6 +110,11 @@ cd dx-agentic-dev-showcase/squat-fitness-mini-game
 출력합니다. dx-agentic-dev는 실행할 때마다 새 코드를 생성하므로, 이 디렉토리의 클래스명·
 파일명은 위에서 설명한 **패턴**의 한 가지 구체적 인스턴스일 뿐이며, 직접 생성하면 달라질 수 있습니다.
 
+같은 방식으로 만든 두 번째 showcase — 아케이드 **스트레칭 coach 미니게임**
+([`dx-agentic-dev-showcase/stretching-coach-mini-game/`](../../dx-agentic-dev-showcase/stretching-coach-mini-game/))
+— 은 세 가지 스트레칭을 안내하며, 샘플 영상에서 유도한 스틱피겨 **coach 아바타**가 각 목표
+포즈를 시연합니다. 이 앱도 `--video`와 `--camera` 입력을 모두 지원합니다.
+
 ### agent의 세션 들여다보기 — harness를 어떻게 따랐는가
 
 showcase에는 앱을 만들어 낸 **전체 Claude Code 세션**도 함께 들어 있습니다. 이는 결과가

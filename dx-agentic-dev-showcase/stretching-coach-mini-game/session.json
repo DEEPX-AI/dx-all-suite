@@ -1,0 +1,24 @@
+{
+  "session_id": "20260608-153048_claude_opus48_yolo26n_pose_stretch_game",
+  "agent": "claude",
+  "coding_model": "opus48",
+  "target_model": "yolo26n_pose",
+  "task": "arcade_stretching_mini_game",
+  "task_type": "pose_estimation",
+  "variant": "sync",
+  "model_file": "assets/models/yolo26n-pose.dxnn",
+  "model_input": "[1,640,640,3] uint8 (NHWC, letterbox)",
+  "model_output": "[1,300,57] float32 (YOLO26 post-NMS, 17 keypoints)",
+  "stages": ["overhead_reach", "forward_fold", "neck_stretch"],
+  "inputs_supported": ["--video", "--camera"],
+  "saves_annotated_video": true,
+  "sample_clips": [
+    "sample/stretching_extending_both_arms.mp4",
+    "sample/stretching_bending_at_the_waist.mp4",
+    "sample/stretching_pulling_the_head.mp4"
+  ],
+  "calibration": {"overhead_frames": 114, "fold_frames": 97, "neck_frames": 121},
+  "verification": {"per_clip": "PASS", "end_to_end_game_clear": true, "result": "PASS"},
+  "annotated_output": "./artifacts/yolo26n_pose_stretch_game_sync-stream-stretching_demo-20260608-154100/output.mp4",
+  "framework": "IFactory + SyncRunner (dx_app)"
+}

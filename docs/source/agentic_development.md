@@ -116,6 +116,12 @@ suite root (so it works from this relocated path) and prints a clear hint if the
 generates fresh code each run, the class names and filenames in that directory are
 one concrete instance of the **pattern** described above — yours may differ.
 
+A second showcase built the same way — an arcade **stretching coach mini-game**
+([`dx-agentic-dev-showcase/stretching-coach-mini-game/`](../../dx-agentic-dev-showcase/stretching-coach-mini-game/))
+— guides the player through three stretches and draws an animated **coach avatar**
+(a stick-figure derived from the sample clips) that demonstrates each target pose.
+It likewise supports both `--video` and `--camera` input.
+
 ### Inspect the agent's session — how it followed the harness
 
 The showcase also ships the **complete Claude Code session** that produced the app.

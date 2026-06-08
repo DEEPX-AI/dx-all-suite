@@ -1,0 +1,40 @@
+===== Stretch game: full annotated run on stretching_demo.mp4 =====
+[INFO] 
+Model loaded: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/assets/models/yolo26n-pose.dxnn
+[INFO] Model input size (WxH): 640x640
+[INFO] Config loaded: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-153048_claude_opus48_yolo26n_pose_stretch_game/config.json (13 keys)
+[INFO] 
+Starting inference...
+[INFO] Input: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/sample/stretching_demo.mp4
+[INFO] Resolution: 1280x720, FPS: 24.0, Frames: 721
+[INFO] Saving output video: artifacts/yolo26n_pose_stretch_game_sync-stream-stretching_demo-20260608-154100/output.mp4
+
+==================================================
+               PERFORMANCE SUMMARY                
+==================================================
+ Pipeline Step   Avg Latency     Throughput     
+--------------------------------------------------
+ Read                0.63 ms     1596.0 FPS
+ Preprocess          0.65 ms     1547.6 FPS
+ Inference          18.05 ms       55.4 FPS
+ Postprocess         0.58 ms     1718.3 FPS
+ Render              3.32 ms      300.8 FPS
+ Save                5.75 ms      174.0 FPS
+--------------------------------------------------
+ Total Frames    :    721
+ Total Time      :   20.9 s
+ Overall FPS     :   34.5 FPS
+==================================================
+./artifacts/yolo26n_pose_stretch_game_sync-stream-stretching_demo-20260608-154100/output.mp4
+
+===== verify.py (session venv, NPU) =====
+== Test 1: per-clip stage clear ==
+  [overhead] frames=240 cleared=True (completed=1)
+  [fold] frames=240 cleared=True (completed=1)
+  [neck] frames=240 cleared=True (completed=1)
+== Test 2: end-to-end sequence -> CLEAR ==
+  after overhead: stage=1 completed=1 mode=PLAYING
+  after fold: stage=2 completed=2 mode=PLAYING
+  after neck: stage=2 completed=3 mode=GAME_CLEAR
+  GAME_CLEAR reached: True
+RESULT: PASS

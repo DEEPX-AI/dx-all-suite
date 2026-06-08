@@ -1,0 +1,15 @@
+{
+    "score_threshold": 0.4,
+    "nms_threshold": 0.45,
+    "num_keypoints": 17,
+    "kpt_conf": 0.3,
+    "fps": 30.0,
+    "hold_seconds": 1.2,
+    "release_grace": 0.3,
+    "flash_seconds": 0.8,
+    "coach_cycle": 1.6,
+    "overhead_margin": 0.05,
+    "fold_shoulder_hip": 0.55,
+    "fold_wrist": 0.15,
+    "neck_x": 0.55
+}
