@@ -488,23 +488,44 @@ Rules:
    mandatory deliverables exist in the session directory. If any mandatory file is
    missing, create it before outputting DONE. Each sub-project defines its own mandatory
    file list in its skill document (e.g., `dx-agentic-stream-build-pipeline.md` File Creation Checklist).
-8. **Session export guidance**: Immediately before the DONE sentinel line, output
-   the appropriate session-save instruction based on the CLI platform:
+8. **Session transcript — generate it RIGHT AFTER the DONE line (claude / copilot)**:
 
-   | Platform | Command | Format |
-   |----------|---------|--------|
-   | **Copilot CLI** | `/share html` | HTML transcript |
-   | **Cursor CLI** (`agent`) | No built-in export — session is saved automatically by the test harness via `--output-format stream-json` | JSON stream |
-   | **OpenCode** | `/export` | JSON |
-   | **Claude Code** (`claude`) | `/export` | TXT transcript — written to `<workdir>/YYYY-MM-DD-HHMMSS-<title>.txt` |
+   **Auto-transcript is supported on `claude` and `copilot` only.** Emit the DONE
+   sentinel line FIRST, then — as the single final housekeeping step — render this
+   session's transcript with the shared generator **directly into the session output
+   dir(s)** (the same dir(s) you listed in DONE). Running it *after* DONE means the
+   CLI's session store has already committed the DONE turn, so the rendered transcript
+   is complete (rendering *before* DONE truncates the tail). Needs **no hook**:
 
-   For Copilot CLI, output: `To save this session as HTML, type: /share html`
-   For OpenCode, output: `To save this session as JSON, type: /export`
-   For Claude Code, output: `To save this session as a text transcript, type: /export`
-   For Cursor CLI, no user action is needed — the test harness captures output automatically.
+   ```bash
+   # Locate the shared generator (walk up to the suite root), then render THIS
+   # session's transcript INTO the session output dir(s). Pass EVERY output dir you
+   # created (space-separated) — the transcript is copied into each (cross-project:
+   # both the compiler and app dirs). The session id is auto-resolved from this CLI's
+   # own env var (CLAUDE_CODE_SESSION_ID / COPILOT_AGENT_SESSION_ID).
+   GT="$(d="$PWD"; while [ "$d" != / ]; do [ -f "$d/.deepx/tests/generate_transcripts.py" ] && { echo "$d/.deepx/tests/generate_transcripts.py"; break; }; d="$(dirname "$d")"; done)"
+   python3 "$GT" --tool <CLI> --project "$PWD" \
+       --into-output-dirs <output-dir> [<output-dir-2> ...]
+   ```
 
-   The test harness (`test.sh`) will automatically detect and copy exported artifacts
-   to the session output directory.
+   `<CLI>` is `claude` or `copilot`. The generator reuses the **same renderers as the
+   test harness** (`parse_<tool>_session`) and writes `<CLI>-session.md` +
+   `<CLI>-session.html` + `<CLI>-stream.jsonl` into each output dir. **If you produced
+   NO output dir** (e.g. a pure question with no files), pass no dir and generation is
+   **skipped** — expected, not an error. After it runs, state the path on the final
+   line, e.g. `Session transcript (md/html/jsonl) saved to: <output-dir>/<CLI>-session.*`.
+
+   **`codex`, `opencode`, `cursor` are NOT auto-supported** — do NOT run the generator
+   in-session for them (it cannot produce a complete/usable transcript: codex and
+   opencode commit their final turn only at process exit; cursor redacts the assistant
+   text in its store). Instead, tell the user how to generate it manually:
+   - **codex / opencode**: after the session ends, run
+     `python3 <generate_transcripts.py> --tool <codex|opencode> --project . --out-dir <DIR>`
+     — the finalized store then renders a complete transcript.
+   - **cursor**: capture the run with `agent -p --output-format stream-json > run.jsonl`
+     and render with `--tool cursor --stream-json run.jsonl`, or use IDE session history.
+   (If you invoke the generator with `--into-output-dirs` on these tools, it safely
+   skips and prints this same guidance — that is expected.)
 
 ## Mandatory Deliverables
 

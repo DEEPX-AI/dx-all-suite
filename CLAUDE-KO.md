@@ -485,23 +485,42 @@ Artifact Verification Gate는 각 artifact가 **어떻게** 검증되는지 정�
    ```
    산출물 중 MISSING이 있으면, 돌아가서 생성하세요. 누락된 산출물이 있는 상태에서
    최종 보고서를 제시하거나 DONE을 출력하지 마세요.
-8. **세션 내보내기 안내**: DONE 센티넬 줄 바로 앞에, CLI 플랫폼에 맞는 세션 저장
-   안내를 출력하세요:
+8. **세션 transcript — DONE 줄 바로 뒤에서 생성 (claude / copilot 전용)**:
 
-   | 플랫폼 | 명령 | 형식 |
-   |--------|------|------|
-   | **Copilot CLI** | `/share html` | HTML 트랜스크립트 |
-   | **Cursor CLI** (`agent`) | 내장 내보내기 없음 — 테스트 하네스가 `--output-format stream-json`으로 자동 저장 | JSON stream |
-   | **OpenCode** | `/export` | JSON |
-   | **Claude Code** (`claude`) | `/export` | TXT 트랜스크립트 — `<workdir>/YYYY-MM-DD-HHMMSS-<title>.txt`로 저장 |
+   **자동 transcript는 `claude`, `copilot`에서만 지원됩니다.** DONE 센티넬 줄을 **먼저**
+   출력하고, 마지막 마무리 단계로 공통 generator를 써서 이 세션의 transcript를 **세션 output
+   dir 안에 직접**(DONE에 적은 그 dir들) 렌더링하세요. DONE *뒤에* 실행해야 CLI 세션 저장소에
+   DONE 턴까지 커밋되어 transcript가 완전해집니다(DONE *앞에서* 렌더하면 끝부분이 잘림).
+   hook은 **필요 없습니다**:
 
-   Copilot CLI의 경우: `To save this session as HTML, type: /share html`
-   OpenCode의 경우: `To save this session as JSON, type: /export`
-   Claude Code의 경우: `To save this session as a text transcript, type: /export`
-   Cursor CLI의 경우: 사용자 작업이 필요 없습니다 — 테스트 하네스가 출력을 자동 캡처합니다.
+   ```bash
+   # 공통 generator를 찾고(상위로 올라가 suite root 탐색) 이 세션의 transcript를 output
+   # dir(들) 안에 렌더링. 생성한 output dir을 모두(공백 구분) 넘기세요 — 각 dir에 복사됩니다
+   # (cross-project: 컴파일러 dir + 앱 dir 둘 다). session id는 이 CLI 자신의 env var에서
+   # 자동 추출됩니다(CLAUDE_CODE_SESSION_ID / COPILOT_AGENT_SESSION_ID).
+   GT="$(d="$PWD"; while [ "$d" != / ]; do [ -f "$d/.deepx/tests/generate_transcripts.py" ] && { echo "$d/.deepx/tests/generate_transcripts.py"; break; }; d="$(dirname "$d")"; done)"
+   python3 "$GT" --tool <CLI> --project "$PWD" \
+       --into-output-dirs <output-dir> [<output-dir-2> ...]
+   ```
 
-   테스트 하네스 (`test.sh`)는 내보낸 아티팩트를 자동으로 감지하고
-   세션 출력 디렉토리에 복사합니다.
+   `<CLI>`는 `claude` 또는 `copilot`입니다. generator는 **테스트 하네스와 동일한
+   renderer**(`parse_<tool>_session`)를 재사용해 각 output dir에 `<CLI>-session.md` +
+   `<CLI>-session.html` + `<CLI>-stream.jsonl`을 생성합니다. **output dir이 하나도 없으면**(예:
+   파일을 만들지 않는 순수 질문) dir을 넘기지 말고 생성을 **생략**하세요 — 정상이며 오류가
+   아닙니다. 실행 후 마지막 줄에 저장 경로를 안내하세요. 예:
+   `Session transcript (md/html/jsonl) saved to: <output-dir>/<CLI>-session.*`.
+
+   **`codex`, `opencode`, `cursor`는 자동 지원 대상이 아닙니다** — 세션 중에는 generator를
+   실행하지 마세요(완전한/유효한 transcript를 못 만듭니다: codex·opencode는 마지막 턴을
+   프로세스 종료 시점에만 커밋, cursor는 저장소에서 assistant 텍스트를 redact). 대신 사용자에게
+   수동 생성법을 안내하세요:
+   - **codex / opencode**: 세션 종료 후
+     `python3 <generate_transcripts.py> --tool <codex|opencode> --project . --out-dir <DIR>`
+     — 종료 후 완성된 저장소에서 완전한 transcript가 렌더됩니다.
+   - **cursor**: `agent -p --output-format stream-json > run.jsonl`로 캡처 후
+     `--tool cursor --stream-json run.jsonl`로 렌더하거나 IDE 세션 기록을 사용하세요.
+   (이 도구들에 `--into-output-dirs`로 generator를 호출하면 안전하게 건너뛰고 같은 안내를
+   출력합니다 — 정상 동작입니다.)
 
 ## 필수 산출물
 
