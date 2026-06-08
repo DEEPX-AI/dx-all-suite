@@ -462,13 +462,36 @@ boundary detection by the test harness:
 - **Last line after ALL work is complete**: `[DX-AGENTIC-DEV: DONE (output-dir: <relative_path>)]`
   where `<relative_path>` is the session output directory (e.g., `dx-agentic-dev/20260409-143022_yolo26n_detection/`)
 
+### DEEPX Banner (MANDATORY — print with the sentinels)
+
+Render the DEEPX logo banner **verbatim** at two points: **immediately after** the
+`[DX-AGENTIC-DEV: START]` line, and **immediately before** the
+`[DX-AGENTIC-DEV: DONE ...]` line. Print it exactly as below (a fenced block is fine):
+
+```
+ ███████████   █████████ ████████ ████████  ████      ████
+ ███     █████ ███░░░░░░░███░░░░░░███   ███  ░████   ████░░
+ ███        ██░███░      ██░░     ███   ███░   █████████░░
+ ███        ████████████ ████████ ████████░░    ░█████░░░
+ ███        ██░███░░░░░░░██░░░░░░░███░░░░░░  ██████████
+ ███     █████░███░      ██░      ███░   ████████░░░░████
+ ███████████░░░█████████ ████████ ██████████░░░░░░    ████
+  ░░░░░░░░░░░   ░░░░░░░░░ ░░░░░░░░ ░░░░░░░░░░          ░░░░
+        DX-AGENTIC-DEV · on-device NPU
+```
+
+The banner is decorative; it never replaces or moves the sentinel lines (START stays
+the absolute first line, DONE stays the very last line).
+
 Rules:
 1. **CRITICAL — Output `[DX-AGENTIC-DEV: START]` as the absolute first line of your
    first response.** This must appear before ANY other text, tool calls, or reasoning.
    Even if the user instructs you to "just proceed" or "use your own judgment",
    the START sentinel is non-negotiable — automated tests WILL fail without it.
-2. Output `[DX-AGENTIC-DEV: DONE (output-dir: <path>)]` as the very last line after all work, validation,
-   and file generation is complete
+   **Immediately after the START line, print the DEEPX banner** (see "DEEPX Banner" above).
+2. **Immediately before the DONE line, print the DEEPX banner again**, then output
+   `[DX-AGENTIC-DEV: DONE (output-dir: <path>)]` as the very last line after all work,
+   validation, and file generation is complete
 3. If you are a **sub-agent** invoked via handoff/routing from a higher-level agent,
    do NOT output these sentinels — only the top-level agent outputs them
 4. If the user sends multiple prompts in a session, output START/DONE for each prompt
