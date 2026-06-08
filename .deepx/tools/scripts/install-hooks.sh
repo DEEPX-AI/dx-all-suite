@@ -49,27 +49,31 @@ install_hook() {
 echo "Installing dx-agentic-gen pre-commit hooks..."
 echo ""
 
-# Suite root
-install_hook "$SUITE_ROOT/.git/hooks" "suite root"
+# Resolve each repo's hooks dir via git itself so this works for plain clones,
+# git worktrees (.git is a file), AND submodules/nested submodules — instead of
+# hardcoding "$ROOT/.git/hooks" / "$ROOT/.git/modules/...", which breaks on
+# worktrees (where .git is a file, not a directory).
+#   suite root + the four .deepx-bearing repos.
+REPO_PATHS=(
+    "$SUITE_ROOT"
+    "$SUITE_ROOT/dx-compiler"
+    "$SUITE_ROOT/dx-runtime"
+    "$SUITE_ROOT/dx-runtime/dx_app"
+    "$SUITE_ROOT/dx-runtime/dx_stream"
+)
 
-# Top-level submodules
-for module in dx-compiler dx-runtime; do
-    module_hooks="$SUITE_ROOT/.git/modules/$module/hooks"
-    if [ -d "$(dirname "$module_hooks")" ]; then
-        install_hook "$module_hooks" "$module"
-    else
-        echo "  $module: submodule not found, skipping"
+for repo in "${REPO_PATHS[@]}"; do
+    label="${repo#$SUITE_ROOT}"; label="${label#/}"; label="${label:-suite root}"
+    if [ ! -e "$repo/.git" ]; then
+        echo "  $label: not checked out, skipping"; continue
     fi
-done
-
-# Nested submodules under dx-runtime (dx_app, dx_stream)
-for nested in dx_app dx_stream; do
-    nested_hooks="$SUITE_ROOT/.git/modules/dx-runtime/modules/$nested/hooks"
-    if [ -d "$(dirname "$nested_hooks")" ]; then
-        install_hook "$nested_hooks" "dx-runtime/$nested"
-    else
-        echo "  dx-runtime/$nested: nested submodule not found, skipping"
+    if ! git -C "$repo" rev-parse --git-dir >/dev/null 2>&1; then
+        echo "  $label: not a git repo, skipping"; continue
     fi
+    # worktree-aware hooks dir (absolute)
+    hooks_dir="$(git -C "$repo" rev-parse --git-path hooks)"
+    case "$hooks_dir" in /*) ;; *) hooks_dir="$repo/$hooks_dir" ;; esac
+    install_hook "$hooks_dir" "$label"
 done
 
 echo ""

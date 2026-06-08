@@ -50,12 +50,46 @@ fi
 # Drift check: ensure .deepx/ changes are propagated to generated outputs
 # ---------------------------------------------------------------------------
 
-# Check if dx-agentic-gen is available
-if ! command -v dx-agentic-gen &>/dev/null; then
-    echo "WARNING: dx-agentic-gen not found in PATH. Skipping drift check."
-    echo "  Install: pip install -e .deepx/tools"
-    exit 0
+# Resolve a working dx-agentic-gen invocation. FAIL CLOSED if none works —
+# a drift-integrity gate that silently no-ops when the tool is missing is a hole
+# (this is exactly how stale generated files got committed before).
+find_suite_root() {
+    local d="$1"
+    while [ "$d" != / ]; do
+        if [ -f "$d/.deepx/tools/src/dx_agentic_dev_gen/cli.py" ]; then echo "$d"; return 0; fi
+        d="$(dirname "$d")"
+    done
+    return 1
+}
+
+GEN_BIN=""
+GEN_PYPATH=""
+_suite="$(find_suite_root "$REPO_ROOT" || true)"
+if [ -n "$_suite" ] && \
+   PYTHONPATH="$_suite/.deepx/tools/src" python3 -c "import dx_agentic_dev_gen.cli" 2>/dev/null; then
+    # Prefer the in-tree source: it is version-matched to this checkout and avoids
+    # a stale/broken globally-installed shim (command -v can pass while the binary
+    # fails at runtime with ModuleNotFoundError).
+    GEN_PYPATH="$_suite/.deepx/tools/src"
+elif command -v dx-agentic-gen &>/dev/null && dx-agentic-gen --help >/dev/null 2>&1; then
+    GEN_BIN="dx-agentic-gen"
+else
+    echo "ERROR: dx-agentic-gen is not runnable (no importable .deepx/tools/src and no"
+    echo "       working dx-agentic-gen on PATH). The drift check cannot run."
+    echo "       Refusing to commit (fail-closed) to avoid committing stale generated files."
+    echo "  Fix: commit from a checkout that has .deepx/tools/src, or pip install -e <suite>/.deepx/tools"
+    echo "  To skip this check (NOT recommended): git commit --no-verify"
+    exit 1
 fi
+
+# gen <subcommand> [args...] — dispatch to the resolved invocation
+gen() {
+    if [ -n "$GEN_BIN" ]; then
+        "$GEN_BIN" "$@"
+    else
+        PYTHONPATH="$GEN_PYPATH" python3 -c "import sys; from dx_agentic_dev_gen.cli import main; sys.exit(main(sys.argv[1:]))" "$@"
+    fi
+}
 
 # Determine which repos to check based on the git root
 check_repos=()
@@ -81,9 +115,9 @@ fi
 failed=0
 for repo in "${check_repos[@]}"; do
     rel=$(python3 -c "import os; print(os.path.relpath('$repo', '$REPO_ROOT'))")
-    if ! dx-agentic-gen check --repo "$repo" >/dev/null 2>&1; then
+    if ! gen check --repo "$repo" >/dev/null 2>&1; then
         echo "ERROR: Generated files out-of-date in $rel"
-        dx-agentic-gen check --repo "$repo" 2>&1 | grep -E '^(CHANGED|MISSING):' || true
+        gen check --repo "$repo" 2>&1 | grep -E '^(CHANGED|MISSING):' || true
         failed=1
     fi
 done
@@ -105,9 +139,9 @@ if [ -n "${deepx_staged:-}" ]; then
     lint_failed=0
     for repo in "${check_repos[@]}"; do
         rel=$(python3 -c "import os; print(os.path.relpath('$repo', '$REPO_ROOT'))")
-        if ! dx-agentic-gen lint --repo "$repo" >/dev/null 2>&1; then
+        if ! gen lint --repo "$repo" >/dev/null 2>&1; then
             echo "ERROR: EN/KO fragment parity issues in $rel"
-            dx-agentic-gen lint --repo "$repo" 2>&1 | grep '\[ERROR\]' || true
+            gen lint --repo "$repo" 2>&1 | grep '\[ERROR\]' || true
             lint_failed=1
         fi
     done
