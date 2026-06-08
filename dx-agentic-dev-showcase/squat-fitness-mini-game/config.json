@@ -1,13 +1,10 @@
 {
     "score_threshold": 0.4,
     "nms_threshold": 0.45,
-    "game": {
-        "target_reps": 10,
-        "score_per_rep": 10,
-        "knee_down_angle": 148.0,
-        "knee_up_angle": 160.0,
-        "smoothing_window": 5,
-        "min_state_frames": 3,
-        "keypoint_confidence_threshold": 0.3
-    }
+    "knee_down_angle": 152.1,
+    "knee_up_angle": 165.8,
+    "hip_down_angle": 163.0,
+    "kpt_conf_threshold": 0.3,
+    "target_reps": 10,
+    "score_per_rep": 10
 }

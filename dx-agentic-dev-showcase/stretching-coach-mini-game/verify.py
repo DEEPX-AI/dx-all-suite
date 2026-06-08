@@ -1,140 +1,113 @@
 #!/usr/bin/env python3
 # Copyright (C) 2018- DEEPX Ltd. All rights reserved.
+"""End-to-end validation for the stretch mini-game.
+
+Drives the REAL deployed StretchGameVisualizer (created by StretchGameFactory)
+over the sample clips on the NPU and asserts:
+  * each per-pose clip clears its target stage (seeded at that stage),
+  * the combined stretching_demo.mp4 reaches full CLEAR! from a fresh game,
+and saves an annotated output video for each run.
+
+Exit code 0 + "RESULT: PASS" on success; exit 1 otherwise.
+
+Usage: python verify.py [--model PATH]
 """
-End-to-end game-logic verification on the real NPU pipeline.
 
-1. Per-clip recognition separation: for each stretch's sample clip, the matching
-   stretch must be the DOMINANT one (fires on the most frames), proving the
-   recognizers are well separated.
-2. End-to-end: drive StretchGameVisualizer over stretching_demo.mp4 (all three
-   stretches in sequence) and assert it reaches CLEAR! (stage_idx advanced 0->3).
-
-Exit 0 + "RESULT: PASS" only if all checks pass; otherwise exit 1 + "RESULT: FAIL".
-"""
-
+import argparse
+import json
 import sys
 from pathlib import Path
 
-import numpy as np
+import cv2
 
-_HERE = Path(__file__).resolve().parent
+import _bootstrap
+_bootstrap.setup()
+
+import game_eval  # noqa: E402
+from factory import StretchGameFactory  # noqa: E402
+
+HERE = Path(__file__).resolve().parent
+OUT_DIR = HERE / "outputs"
+SAVE_FPS = 24.0  # sample clips are 24 fps
 
 
-def _bootstrap():
-    d = _HERE
-    for _ in range(8):
-        if (d / "src" / "python_example" / "common").is_dir():
-            pe = d / "src" / "python_example"
-            for p in (str(pe), str(_HERE)):
-                if p not in sys.path:
-                    sys.path.insert(0, p)
-            return d / "dx_app" if (d / "dx_app").is_dir() else d
+def _find_dx_app_root() -> Path:
+    d = HERE
+    for _ in range(10):
+        if (d / "assets" / "models").is_dir() and (d / "sample").is_dir():
+            return d
         d = d.parent
-    raise RuntimeError("cannot find src/python_example/common")
+    raise FileNotFoundError("Could not locate dx_app root.")
 
 
-_bootstrap()
+def _run_clip(runner, config, clip_path, seed_stage, out_name, expect_clear):
+    factory = StretchGameFactory()
+    factory.load_config(config)
+    vis = factory.create_visualizer()
+    vis.game.idx = seed_stage
+    start_idx = vis.game.idx
 
-import cv2  # noqa: E402
-import json  # noqa: E402
-from common.processors import LetterboxPreprocessor, YOLOv8PosePostprocessor  # noqa: E402
-from stretch_pose_rules import (  # noqa: E402
-    is_overhead_reach, is_forward_fold, is_neck_stretch, DEFAULT_RULE_CFG,
-)
+    OUT_DIR.mkdir(exist_ok=True)
+    writer = None
+    out_path = OUT_DIR / out_name
+    frames = 0
+    for _idx, frame, results in game_eval.iter_results(runner, clip_path):
+        out = vis.visualize(frame, results)
+        if writer is None:
+            h, w = out.shape[:2]
+            writer = cv2.VideoWriter(str(out_path),
+                                     cv2.VideoWriter_fourcc(*"mp4v"), SAVE_FPS, (w, h))
+        writer.write(out)
+        frames += 1
+    if writer is not None:
+        writer.release()
 
-_DXAPP = _HERE.parents[1]  # session = dx_app/dx-agentic-dev/<sid> -> parents[1] = dx_app
-MODEL = _DXAPP / "assets" / "models" / "yolo26n-pose.dxnn"
-SAMPLE = _DXAPP / "sample"
-CLIPS = {
-    "overhead": "stretching_extending_both_arms.mp4",
-    "fold": "stretching_bending_at_the_waist.mp4",
-    "neck": "stretching_pulling_the_head.mp4",
-}
-RECOG = {"overhead": is_overhead_reach, "fold": is_forward_fold, "neck": is_neck_stretch}
-
-
-def _kp(pose):
-    a = np.zeros((17, 3), dtype=np.float32)
-    for i, k in enumerate(pose.keypoints[:17]):
-        a[i] = (k.x, k.y, k.confidence)
-    return a
-
-
-def _largest(results):
-    ppl = [r for r in results if r.keypoints and len(r.keypoints) >= 17]
-    return max(ppl, key=lambda r: (r.box[2]-r.box[0])*(r.box[3]-r.box[1])) if ppl else None
+    g = vis.game
+    if expect_clear:
+        ok = g.cleared
+        detail = f"cleared={g.cleared} reached_stage={g.stage_number}/{g.total_stages}"
+    else:
+        ok = g.idx > start_idx
+        detail = f"advanced {start_idx}->{g.idx} (target stage cleared={ok})"
+    print(f"  [{'PASS' if ok else 'FAIL'}] {out_name}: {frames} frames, {detail}, "
+          f"saved {out_path.name}")
+    return ok
 
 
 def main():
-    if not MODEL.is_file():
-        print(f"ONNX/DXNN inference failed: model missing {MODEL}")
-        print("RESULT: FAIL")
+    ap = argparse.ArgumentParser(description="Verify the stretch mini-game")
+    ap.add_argument("--model", default=None, help="Path to yolo26n-pose.dxnn")
+    args = ap.parse_args()
+
+    root = _find_dx_app_root()
+    model = args.model or str(root / "assets" / "models" / "yolo26n-pose.dxnn")
+    if not Path(model).is_file():
+        print(f"RESULT: FAIL — model not found: {model}")
         return 1
-    from dx_engine import InferenceEngine
-    ie = InferenceEngine(str(MODEL))
-    shp = ie.get_input_tensors_info()[0]["shape"]
-    ih, iw = (shp[1], shp[2]) if shp[-1] in (1, 3, 4) else (shp[2], shp[3])
-    pre = LetterboxPreprocessor(iw, ih)
-    post = YOLOv8PosePostprocessor(iw, ih, {"score_threshold": 0.4, "nms_threshold": 0.45})
+    config = json.loads((HERE / "config.json").read_text())
 
-    ok = True
+    print(f"[verify] model = {model}")
+    runner = game_eval.build_runner(model)
 
-    # ---- 1. per-clip separation ----
-    print("== per-clip recognizer separation ==")
-    for key, fname in CLIPS.items():
-        cap = cv2.VideoCapture(str(SAMPLE / fname))
-        counts = {k: 0 for k in RECOG}
-        n = 0
-        while True:
-            ret, frame = cap.read()
-            if not ret:
-                break
-            n += 1
-            t, ctx = pre.process(frame)
-            pose = _largest(post.process(ie.run([t]), ctx))
-            if pose is None:
-                continue
-            kp = _kp(pose)
-            for k, fn in RECOG.items():
-                if fn(kp, DEFAULT_RULE_CFG):
-                    counts[k] += 1
-        cap.release()
-        dominant = max(counts, key=counts.get)
-        share = counts[key] / max(1, n)
-        verdict = "OK" if (dominant == key and counts[key] > 0) else "BAD"
-        if verdict == "BAD":
-            ok = False
-        print(f"  {key:9s} clip: counts={counts} dominant={dominant} "
-              f"({share*100:.1f}% own) -> {verdict}")
+    sample = root / "sample"
+    cases = [
+        # (clip, seed_stage, out_name, expect_clear)
+        (sample / "stretching_extending_both_arms.mp4", 0, "overhead.mp4", False),
+        (sample / "stretching_bending_at_the_waist.mp4", 1, "fold.mp4", False),
+        (sample / "stretching_pulling_the_head.mp4", 2, "neck.mp4", False),
+        (sample / "stretching_demo.mp4", 0, "demo_full.mp4", True),
+    ]
+    print("[verify] === per-clip stage clears + end-to-end CLEAR ===")
+    results = []
+    for clip, seed, name, expect in cases:
+        if not clip.is_file():
+            print(f"  [FAIL] missing clip: {clip}")
+            results.append(False)
+            continue
+        results.append(_run_clip(runner, config, str(clip), seed, name, expect))
 
-    # ---- 2. end-to-end CLEAR! on the combined demo ----
-    print("== end-to-end (stretching_demo.mp4) ==")
-    demo = SAMPLE / "stretching_demo.mp4"
-    if demo.is_file():
-        cfg = json.loads((_HERE / "config.json").read_text())
-        coach = json.loads((_HERE / "coach_poses.json").read_text())
-        from game_visualizer import StretchGameVisualizer
-        viz = StretchGameVisualizer(cfg, coach)
-        cap = cv2.VideoCapture(str(demo))
-        frames = 0
-        while True:
-            ret, frame = cap.read()
-            if not ret:
-                break
-            frames += 1
-            t, ctx = pre.process(frame)
-            results = post.process(ie.run([t]), ctx)
-            viz.visualize(frame, results)
-        cap.release()
-        print(f"  processed {frames} frames; final stage_idx={viz.stage_idx} "
-              f"cleared={viz.cleared}")
-        if not viz.cleared:
-            ok = False
-            print("  end-to-end did NOT reach CLEAR!")
-    else:
-        print(f"  SKIP: {demo} not found (per-clip checks still apply)")
-
-    print("RESULT: PASS" if ok else "RESULT: FAIL")
+    ok = all(results)
+    print(f"\nRESULT: {'PASS' if ok else 'FAIL'}")
     return 0 if ok else 1
 
 

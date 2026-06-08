@@ -1,80 +1,83 @@
 #!/usr/bin/env bash
 # Copyright (C) 2018- DEEPX Ltd. All rights reserved.
+# setup.sh — prepare a self-contained, portable squat-game app folder.
 #
-# setup.sh — environment sanity check for the YOLO26n-Pose squat game.
-#
-# Verifies (does NOT reinstall) the dx-runtime environment this app depends on:
-#   * a usable Python venv with dx_engine importable
-#   * GUI-capable OpenCV (opencv-python, NOT opencv-python-headless)
-#   * the yolo26n-pose .dxnn model present
-#
+# Steps:
+#   1. Resolve the suite root + dx_app root (SUITE_ROOT autodetect).
+#   2. Pick a Python with dx_engine (reuse dx-runtime/venv-dx-runtime).
+#   3. Vendor the shared framework into ./common so the app runs even when
+#      copied entirely outside dx-all-suite.
+#   4. Bundle the demo video into ./sample and the model into ./ (best effort).
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd -P)"
+cd "$SCRIPT_DIR"
+echo "[setup] app dir: $SCRIPT_DIR"
 
-# --- locate dx_app root (dir containing src/python_example/common) ----------
-DX_APP_ROOT="$SCRIPT_DIR"
-while [ "$DX_APP_ROOT" != "/" ]; do
-    if [ -d "$DX_APP_ROOT/src/python_example/common" ]; then break; fi
-    DX_APP_ROOT="$(dirname "$DX_APP_ROOT")"
-done
-
-# --- locate suite root (dx-runtime/ and dx-compiler/ siblings) --------------
+# --- 1. SUITE_ROOT + dx_app root autodetect ---------------------------------
 SUITE_ROOT="$SCRIPT_DIR"
 while [ "$SUITE_ROOT" != "/" ]; do
-    if [ -d "$SUITE_ROOT/dx-runtime" ] && [ -d "$SUITE_ROOT/dx-compiler" ]; then break; fi
+    if [ -d "$SUITE_ROOT/dx-runtime" ] && [ -d "$SUITE_ROOT/dx-compiler" ]; then
+        break
+    fi
     SUITE_ROOT="$(dirname "$SUITE_ROOT")"
 done
-RUNTIME_DIR="$SUITE_ROOT/dx-runtime"
 
-echo "==> dx_app root : $DX_APP_ROOT"
-echo "==> suite root  : $SUITE_ROOT"
-
-# --- pick a Python venv -----------------------------------------------------
-VENV_PY=""
-for cand in "$SCRIPT_DIR/venv/bin/python" "$SCRIPT_DIR/.venv/bin/python" \
-            "$RUNTIME_DIR/venv-dx-runtime/bin/python"; do
-    if [ -x "$cand" ]; then VENV_PY="$cand"; break; fi
+DX_APP_ROOT=""
+d="$SCRIPT_DIR"
+for _ in $(seq 1 8); do
+    if [ -d "$d/src/python_example/common" ]; then DX_APP_ROOT="$d"; break; fi
+    d="$(dirname "$d")"
 done
-if [ -z "$VENV_PY" ]; then
-    echo "[WARN] No project venv found (looked for local venv/.venv and"
-    echo "       dx-runtime/venv-dx-runtime). Falling back to system python3."
-    VENV_PY="$(command -v python3 || true)"
-fi
-echo "==> python      : $VENV_PY"
-[ -n "$VENV_PY" ] || { echo "[ERROR] No python3 available."; exit 1; }
+echo "[setup] suite root: $SUITE_ROOT"
+echo "[setup] dx_app root: ${DX_APP_ROOT:-<not found>}"
 
-# --- dx_engine import check -------------------------------------------------
-if "$VENV_PY" -c "import dx_engine" 2>/dev/null; then
-    echo "[OK] dx_engine importable"
-else
-    echo "[ERROR] dx_engine not importable with $VENV_PY"
-    echo "        Build/install dx_app runtime: (cd $DX_APP_ROOT && ./install.sh && ./build.sh)"
-    exit 1
-fi
-
-# --- OpenCV check (must be GUI-capable, not headless) -----------------------
-if "$VENV_PY" -c "import cv2" 2>/dev/null; then
-    echo "[OK] OpenCV importable ($("$VENV_PY" -c 'import cv2;print(cv2.__version__)'))"
-    if "$VENV_PY" - <<'PY' 2>/dev/null
-import cv2, sys
-sys.exit(0 if hasattr(cv2, "imshow") else 1)
-PY
-    then echo "[OK] OpenCV is GUI-capable"
-    else echo "[WARN] OpenCV lacks GUI (headless build) — live --display will be skipped; --save still works"
+# --- 2. Python with dx_engine ------------------------------------------------
+PYBIN=""
+for cand in "$SCRIPT_DIR/venv/bin/python" "$SCRIPT_DIR/.venv/bin/python" \
+            "$SUITE_ROOT/dx-runtime/venv-dx-runtime/bin/python"; do
+    if [ -x "$cand" ]; then PYBIN="$cand"; break; fi
+done
+if [ -n "$PYBIN" ]; then
+    echo "[setup] python: $PYBIN"
+    if "$PYBIN" -c "import dx_engine" >/dev/null 2>&1; then
+        echo "[setup] dx_engine import: OK"
+    else
+        echo "[setup] WARN: dx_engine not importable with $PYBIN."
+        echo "        Build/install dx_engine (see dx-runtime/dx_rt/python_package)."
     fi
 else
-    echo "[ERROR] OpenCV (cv2) not importable. Install GUI-capable opencv-python (NOT opencv-python-headless)."
-    exit 1
+    echo "[setup] WARN: no venv with python found."
+    echo "        Expected dx-runtime/venv-dx-runtime or a local ./venv."
 fi
 
-# --- model presence ---------------------------------------------------------
-MODEL="${MODEL:-$DX_APP_ROOT/assets/models/yolo26n-pose.dxnn}"
-if [ -f "$MODEL" ]; then
-    echo "[OK] model present: $MODEL"
+# --- 3. Vendor shared framework into ./common --------------------------------
+if [ -n "$DX_APP_ROOT" ] && [ -d "$DX_APP_ROOT/src/python_example/common" ]; then
+    echo "[setup] vendoring common/ -> ./common"
+    rm -rf "$SCRIPT_DIR/common"
+    cp -r "$DX_APP_ROOT/src/python_example/common" "$SCRIPT_DIR/common"
+    find "$SCRIPT_DIR/common" -name "__pycache__" -type d -prune -exec rm -rf {} + 2>/dev/null || true
+    echo "[setup] vendored common/ ($(find "$SCRIPT_DIR/common" -name '*.py' | wc -l) py files)"
 else
-    echo "[WARN] model not found: $MODEL"
-    echo "       Download with: (cd $DX_APP_ROOT && ./setup.sh --models yolo26n-pose)"
+    echo "[setup] WARN: could not locate src/python_example/common to vendor."
 fi
 
-echo "==> setup.sh complete."
+# --- 4. Bundle demo video + model (best effort) ------------------------------
+mkdir -p "$SCRIPT_DIR/sample"
+if [ -n "$DX_APP_ROOT" ] && [ -f "$DX_APP_ROOT/sample/squat_demo.mp4" ]; then
+    if [ ! -f "$SCRIPT_DIR/sample/squat_demo.mp4" ]; then
+        cp "$DX_APP_ROOT/sample/squat_demo.mp4" "$SCRIPT_DIR/sample/squat_demo.mp4"
+        echo "[setup] bundled sample/squat_demo.mp4"
+    fi
+fi
+if [ -n "$DX_APP_ROOT" ] && [ -f "$DX_APP_ROOT/assets/models/yolo26n-pose.dxnn" ]; then
+    if [ ! -f "$SCRIPT_DIR/yolo26n-pose.dxnn" ]; then
+        cp "$DX_APP_ROOT/assets/models/yolo26n-pose.dxnn" "$SCRIPT_DIR/yolo26n-pose.dxnn"
+        echo "[setup] bundled yolo26n-pose.dxnn"
+    fi
+else
+    echo "[setup] NOTE: model yolo26n-pose.dxnn not bundled; run.sh will locate it"
+    echo "        in assets/models or you can set DXNN_MODEL=<path>."
+fi
+
+echo "[setup] done. Run the game with: ./run.sh"

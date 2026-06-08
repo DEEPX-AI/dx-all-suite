@@ -1,64 +1,48 @@
 {
-    "session_id": "20260608-181422_claude_opus48_yolo26npose_squatgame",
+    "session_id": "20260608-194643_claude_opus48_yolo26n_pose_squat_game",
     "agent": "claude",
     "coding_model": "opus48",
     "target_model": "yolo26n_pose",
     "task": "squat_counting_fitness_game",
-    "ai_task_type": "pose_estimation",
-    "model_file": "assets/models/yolo26n-pose.dxnn",
+    "date": "2026-06-08",
+    "app_type": "python",
     "variant": "sync",
-    "variant_scope_note": "sync-only by design (recommended default): deterministic frame-by-frame rep counting on a single stream. Game logic lives in the visualizer and is runner-agnostic; async/cpp_postprocess variants were intentionally out of scope for this game.",
-    "framework_pattern": "IFactory + SyncRunner",
-    "components": {
-        "preprocessor": "LetterboxPreprocessor",
-        "postprocessor": "YOLOv8PosePostprocessor",
-        "visualizer": "SquatGameVisualizer (extends PoseVisualizer)",
-        "factory": "Yolo26nPoseSquatFactory (IPoseFactory)",
-        "rep_logic": "SquatRepCounter (pure state machine, unit-tested)"
+    "ai_task": "pose_estimation",
+    "model": {
+        "name": "yolo26n_pose",
+        "dxnn_file": "yolo26n-pose.dxnn",
+        "postprocessor": "yolov8pose",
+        "input_size": [640, 640],
+        "keypoints": 17
     },
-    "inputs_supported": ["--video <file>", "--camera <id>"],
-    "output_video": "saved via --save (output/.../output.mp4)",
+    "skeleton_source": "src/python_example/pose_estimation/yolo26n_pose/",
+    "spec": "docs/superpowers/specs/2026-06-08-squat-game-design.md",
+    "plan": "docs/superpowers/plans/2026-06-08-squat-game.md",
+    "inputs": ["--video", "--camera", "--image"],
+    "features": [
+        "knee+hip angle squat rep detection",
+        "two-state FSM with hysteresis",
+        "real-time arcade HUD (reps, target, score, DOWN/UP/GOOD!)",
+        "annotated output video on --save",
+        "thresholds auto-calibrated from sample/squat_demo.mp4"
+    ],
     "calibration": {
         "source_video": "sample/squat_demo.mp4",
-        "knee_angle_min_deg": 133.1,
-        "knee_angle_max_deg": 179.2,
-        "knee_down_angle": 148.0,
-        "knee_up_angle": 160.0,
-        "smoothing_window": 5,
-        "min_state_frames": 3,
-        "note": "2D knee bottoms ~133 deg, not 90; thresholds measured, not assumed"
+        "knee_down_angle": 152.1,
+        "knee_up_angle": 165.8,
+        "hip_down_angle": 163.0
     },
-    "validation": {
-        "sanity_check_dx_rt": "PASS",
-        "dx_engine_import": "OK",
-        "setup_sh": "executed, exit 0",
-        "run_sh_syntax": "bash -n PASS",
-        "unit_tests": "9/9 passed (pytest + standalone)",
-        "end_to_end_run": {
-            "frames": 240,
-            "overall_fps": 40.5,
-            "npu_inference_ms": 15.14,
-            "reps_detected": 2,
-            "score": 20,
-            "exit_code": 0,
-            "annotated_video": "output/yolo26n_pose_squat_sync-stream-squat_demo-20260608-182257/output.mp4",
-            "video_props": "240 frames, 720x1280, 24 fps, 11.4 MB"
-        }
+    "verification": {
+        "unit_tests": "10 passed (test_squat_logic.py)",
+        "npu_e2e": "verify.py RESULT: PASS (exit 0)",
+        "reps_on_sample": 2,
+        "annotated_video": "saved (output.mp4)"
     },
-    "files": [
-        "yolo26n_pose_squat_sync.py",
-        "factory/yolo26n_pose_squat_factory.py",
-        "factory/__init__.py",
-        "squat_game_visualizer.py",
-        "squat_rep_counter.py",
-        "test_squat_rep_counter.py",
-        "calibrate_squat.py",
-        "config.json",
-        "__init__.py",
-        "setup.sh",
-        "run.sh",
-        "README.md",
-        "session.json",
-        "session.log"
+    "deliverables": [
+        "yolo26n_pose_squat_sync.py", "factory/squat_game_factory.py",
+        "factory/squat_game_visualizer.py", "factory/squat_logic.py",
+        "factory/__init__.py", "config.json", "calibrate.py", "verify.py",
+        "test_squat_logic.py", "setup.sh", "run.sh", "README.md",
+        "session.json", "session.log"
     ]
 }

@@ -1,31 +1,22 @@
 {
-  "session_id": "20260608-183316_claude_opus48_yolo26npose_stretchgame",
+  "session_id": "20260608-201249_claude_opus48_yolo26npose_stretchgame",
   "agent": "claude",
   "coding_model": "opus48",
-  "target_model": "yolo26n_pose",
-  "task": "arcade_stretching_game",
-  "task_type": "pose_estimation",
-  "variant": "sync",
-  "variant_rationale": "Game is stateful and frame-sequential (hold timers, stage progression); SyncRunner preserves frame order. AsyncRunner reorders frames and would corrupt hold-timing, so async/cpp variants are intentionally not generated.",
-  "model_file": "assets/models/yolo26n-pose.dxnn",
-  "num_keypoints": 17,
-  "pattern": "IFactory + SyncRunner; game logic in StretchGameVisualizer(PoseVisualizer)",
-  "stretches": ["overhead_reach", "forward_fold", "neck_stretch"],
-  "inputs": ["--video", "--camera", "--image", "--rtsp"],
-  "saves_annotated_video": true,
-  "coach_poses_source": "clip-calibrated (median of matching normalized skeletons)",
-  "calibration_matches": {"overhead": "115/240", "fold": "98/240", "neck": "122/240", "neutral_frames": 382},
+  "target_model": "yolo26n-pose",
+  "task": "pose_estimation",
+  "app": "Stretch Arcade — 3-stage stretching mini-game",
+  "variant": "sync (SyncRunner, stateful game requires ordered frames)",
+  "framework_pattern": "IFactory (LetterboxPreprocessor + YOLOv8PosePostprocessor + StretchGameVisualizer)",
+  "model_path": "assets/models/yolo26n-pose.dxnn",
+  "input_modes": ["--video <file>", "--camera <id>"],
+  "stages": ["overhead reach", "forward fold at the waist", "one-hand neck stretch"],
+  "recognition": "COCO-17 keypoints, leg-normalized scale, thresholds measured fresh from the 3 sample clips",
   "validation": {
-    "pytest": "7 passed",
-    "verify_py": "RESULT: PASS (exit 0)",
-    "per_clip_separation": {"overhead": 115, "fold": 98, "neck": 122},
-    "end_to_end_demo": {"frames": 721, "cleared": true, "fps": 34.8}
+    "unit_tests": "7 passed (test_pose_logic.py)",
+    "pose_separation_own_clip_pct": {"overhead": 47.9, "fold": 40.8, "neck": 50.8},
+    "verify": "RESULT: PASS — each clip clears its stage; stretching_demo.mp4 reaches full CLEAR (3/3)",
+    "runtime_fps": 35.3,
+    "portability": "runs outside the suite on vendored ./common (saved annotated output.mp4)"
   },
-  "deliverables": [
-    "stretch_game_sync.py", "factory/stretch_game_factory.py", "factory/__init__.py",
-    "game_visualizer.py", "stretch_pose_rules.py", "coach_avatar.py",
-    "coach_poses.json", "calibrate_coach_poses.py", "config.json",
-    "test_stretch_rules.py", "verify.py", "setup.sh", "run.sh",
-    "README.md", "session.json", "session.log", "runs/"
-  ]
+  "saved_videos": ["outputs/overhead.mp4", "outputs/fold.mp4", "outputs/neck.mp4", "outputs/demo_full.mp4"]
 }

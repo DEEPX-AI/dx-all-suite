@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
 # Copyright (C) 2018- DEEPX Ltd. All rights reserved.
-# Environment setup for the yolo26n-pose arcade stretching game.
-#   - creates a local python3.12 venv
-#   - installs GUI-capable opencv-python (NOT headless) + deps
-#   - provides dx_engine: builds the ABI-matched wheel from dx_rt if missing
-#   - checks the model file exists
+# Environment setup for the yolo26n-pose Stretch Arcade mini-game.
+#   1. sanity check (informational)
+#   2. resolve a Python that imports dx_engine (reuse shared venv, else local venv)
+#   3. ensure Python deps (numpy, opencv-python)
+#   4. vendor the dx_app `common` framework into ./common  -> portable app folder
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd -P)"
 
-# Auto-detect suite root (dx-runtime/ and dx-compiler/ siblings).
+# --- Suite root (dx-runtime/ + dx-compiler/ siblings) ----------------------
 SUITE_ROOT="$SCRIPT_DIR"
 while [ "$SUITE_ROOT" != "/" ]; do
     if [ -d "$SUITE_ROOT/dx-runtime" ] && [ -d "$SUITE_ROOT/dx-compiler" ]; then
@@ -17,57 +17,76 @@ while [ "$SUITE_ROOT" != "/" ]; do
     fi
     SUITE_ROOT="$(dirname "$SUITE_ROOT")"
 done
-if [ "$SUITE_ROOT" = "/" ]; then
-    echo "ERROR: cannot find suite root (dx-runtime/ + dx-compiler/ siblings)"; exit 1
-fi
+
+# --- dx_app root (contains src/python_example/common) ----------------------
+DX_APP_ROOT="$SCRIPT_DIR"
+while [ "$DX_APP_ROOT" != "/" ]; do
+    if [ -d "$DX_APP_ROOT/src/python_example/common" ]; then
+        break
+    fi
+    DX_APP_ROOT="$(dirname "$DX_APP_ROOT")"
+done
+
 RUNTIME_DIR="$SUITE_ROOT/dx-runtime"
-DXAPP_DIR="$RUNTIME_DIR/dx_app"
-MODEL_PATH="$DXAPP_DIR/assets/models/yolo26n-pose.dxnn"
+echo "[setup] SCRIPT_DIR  = $SCRIPT_DIR"
+echo "[setup] SUITE_ROOT  = $SUITE_ROOT"
+echo "[setup] DX_APP_ROOT = $DX_APP_ROOT"
 
-echo "==> suite root : $SUITE_ROOT"
-echo "==> session dir: $SCRIPT_DIR"
-
-# 1. venv (prefer python3.12 to match the prebuilt dx_engine ABI)
-PYBIN="$(command -v python3.12 || command -v python3)"
-VENV="$SCRIPT_DIR/venv"
-if [ ! -x "$VENV/bin/python" ]; then
-    echo "==> creating venv with $PYBIN"
-    "$PYBIN" -m venv "$VENV"
+# --- 1. sanity check (informational; never blocks setup) -------------------
+if [ -f "$RUNTIME_DIR/scripts/sanity_check.sh" ]; then
+    echo "[setup] running dx_rt sanity check..."
+    bash "$RUNTIME_DIR/scripts/sanity_check.sh" --dx_rt 2>&1 | tail -3 || \
+        echo "[setup] WARN: sanity check reported issues (NPU needed only at run time)"
 fi
-# shellcheck disable=SC1091
-source "$VENV/bin/activate"
-python -m pip install --quiet --upgrade pip wheel setuptools
 
-# 2. runtime deps — GUI opencv-python (headless is PROHIBITED in this project)
-echo "==> installing python deps (numpy, opencv-python [GUI], onnxruntime, requests, pytest)"
-python -m pip install --quiet numpy "opencv-python>=4.8" onnxruntime requests pytest
+# --- 2. pick a Python that imports dx_engine -------------------------------
+imports_dx_engine() { "$1" -c "import dx_engine" >/dev/null 2>&1; }
 
-# 3. dx_engine — build the ABI-matched wheel if not importable
-if ! python -c "import dx_engine" >/dev/null 2>&1; then
-    echo "==> dx_engine not importable; building ABI-matched wheel from dx_rt"
-    PKG_DIR="$RUNTIME_DIR/dx_rt/python_package"
-    if [ -d "$PKG_DIR" ]; then
-        WHL_DIR="$SCRIPT_DIR/.wheels"
-        mkdir -p "$WHL_DIR"
-        ( cd "$PKG_DIR" && python -m pip wheel . --no-deps -w "$WHL_DIR" ) || \
-            echo "WARN: wheel build failed; run.sh will fall back to dx-runtime/venv-dx-runtime"
-        WHL="$(ls -t "$WHL_DIR"/dx_engine-*.whl 2>/dev/null | head -1 || true)"
-        if [ -n "$WHL" ]; then
-            python -m pip install --quiet --force-reinstall --no-deps "$WHL"
-        fi
-    else
-        echo "WARN: $PKG_DIR not found; run.sh will fall back to dx-runtime/venv-dx-runtime"
+PYBIN=""
+for cand in "$SCRIPT_DIR/venv/bin/python" "$SCRIPT_DIR/.venv/bin/python" \
+            "$RUNTIME_DIR/venv-dx-runtime/bin/python"; do
+    if [ -x "$cand" ] && imports_dx_engine "$cand"; then
+        PYBIN="$cand"; break
+    fi
+done
+
+if [ -z "$PYBIN" ]; then
+    echo "[setup] no existing venv imports dx_engine — creating local ./venv"
+    python3 -m venv "$SCRIPT_DIR/venv"
+    PYBIN="$SCRIPT_DIR/venv/bin/python"
+    "$PYBIN" -m pip install --upgrade pip >/dev/null
+    "$PYBIN" -m pip install numpy "opencv-python" onnxruntime requests
+    # ABI-matched dx_engine wheel (built from the in-suite python_package)
+    if [ -d "$RUNTIME_DIR/dx_rt/python_package" ] && ! imports_dx_engine "$PYBIN"; then
+        echo "[setup] building dx_engine wheel from dx_rt/python_package ..."
+        ( cd "$RUNTIME_DIR/dx_rt/python_package" && "$PYBIN" -m pip wheel . --no-deps -w /tmp/dxw )
+        "$PYBIN" -m pip install /tmp/dxw/dx_engine-*.whl || true
     fi
 fi
-python -c "import dx_engine; print('==> dx_engine OK')" 2>/dev/null || \
-    echo "==> dx_engine NOT in local venv (run.sh falls back to dx-runtime/venv-dx-runtime)"
+echo "[setup] PYBIN = $PYBIN"
+"$PYBIN" -c "import dx_engine; print('[setup] dx_engine OK')" || \
+    echo "[setup] WARN: dx_engine not importable — NPU runs will fail until resolved"
+"$PYBIN" -c "import numpy, cv2; print('[setup] numpy + opencv OK')"
 
-# 4. model presence
-if [ -f "$MODEL_PATH" ]; then
-    echo "==> model present: $MODEL_PATH"
+# --- 3. vendor the common framework into ./common --------------------------
+SRC_COMMON="$DX_APP_ROOT/src/python_example/common"
+if [ -d "$SRC_COMMON" ]; then
+    echo "[setup] vendoring common framework -> $SCRIPT_DIR/common"
+    rm -rf "$SCRIPT_DIR/common"
+    if command -v rsync >/dev/null 2>&1; then
+        rsync -a --exclude='__pycache__' --exclude='*.pyc' "$SRC_COMMON/" "$SCRIPT_DIR/common/"
+    else
+        cp -r "$SRC_COMMON" "$SCRIPT_DIR/common"
+        find "$SCRIPT_DIR/common" -name '__pycache__' -type d -prune -exec rm -rf {} + 2>/dev/null || true
+    fi
+    echo "[setup] common vendored: $("$PYBIN" - <<PY
+import os; print(sum(len(f) for _,_,f in os.walk("$SCRIPT_DIR/common")), "files")
+PY
+)"
 else
-    echo "WARN: model missing: $MODEL_PATH"
-    echo "      download with: ( cd '$DXAPP_DIR' && ./setup.sh --models yolo26n-pose )"
+    echo "[setup] WARN: $SRC_COMMON not found — cannot vendor common (in-place dev still works)"
 fi
 
-echo "==> setup complete."
+# record the resolved interpreter for run.sh
+echo "$PYBIN" > "$SCRIPT_DIR/.python_path"
+echo "[setup] DONE. Launch with: ./run.sh --video <file>   or   ./run.sh --camera 0"

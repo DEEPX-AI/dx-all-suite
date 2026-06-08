@@ -1,52 +1,54 @@
 #!/usr/bin/env python3
 # Copyright (C) 2018- DEEPX Ltd. All rights reserved.
 """
-Arcade Stretching Mini-Game (yolo26n-pose, synchronous).
+Stretch Arcade — yolo26n-pose mini-game (synchronous, SyncRunner).
 
-Guides the player through three stretches — overhead reach, forward fold, neck
-stretch — one stage at a time, with an animated coach avatar, HOLD progress, and
-GOOD!/CLEAR! feedback. Uses the IFactory + SyncRunner pattern; the game logic
-lives in StretchGameVisualizer (created by StretchGameFactory). SyncRunner keeps
-frames ordered, which is required for correct hold-timing.
+A 3-stage stretching mini-game on the DEEPX NPU:
+  STAGE 1  overhead arm reach
+  STAGE 2  forward fold at the waist
+  STAGE 3  one-hand neck stretch
+An animated stick-figure coach (derived from the sample clips) demonstrates each
+target pose; holding the matching pose briefly clears the stage; CLEAR! when all
+three are done.
 
 Usage:
-    # video file (saves an annotated output.mp4 with --save)
-    python stretch_game_sync.py -m <model.dxnn> --video sample/stretching_demo.mp4 --save
-    # live camera
-    python stretch_game_sync.py -m <model.dxnn> --camera 0
+    python stretch_game_sync.py --model <yolo26n-pose.dxnn> --video <file> --save
+    python stretch_game_sync.py --model <yolo26n-pose.dxnn> --camera 0
+
+SyncRunner is used (not AsyncRunner) because the game is stateful and requires
+strictly ordered frames.
 """
 
 import sys
 from pathlib import Path
 
-# ---- dynamic path walker: add src/python_example (for `common`) + this dir ---
+# --- Portable framework resolution (NO PYTHONPATH) -------------------------
+# Prefer a vendored ./common (created by setup.sh; lets this folder run even when
+# copied entirely outside dx-all-suite). Fall back to dx_app's src/python_example
+# for in-place development.
 _HERE = Path(__file__).resolve().parent
-
-
-def _bootstrap_paths():
-    d = _HERE
-    for _ in range(8):
-        for pe in (d / "src" / "python_example",
-                   # relocated showcase: dx_app lives under dx-runtime/ from suite root
-                   d / "dx-runtime" / "dx_app" / "src" / "python_example"):
-            if (pe / "common").is_dir():
-                for p in (str(pe), str(_HERE)):
-                    if p not in sys.path:
-                        sys.path.insert(0, p)
-                return
-        d = d.parent
-    raise RuntimeError("Could not locate src/python_example/common from "
-                       f"{_HERE}")
-
-
-_bootstrap_paths()
+if str(_HERE) not in sys.path:
+    sys.path.insert(0, str(_HERE))
+if (_HERE / "common").is_dir():
+    pass  # vendored: _HERE already on path provides `common`
+else:
+    _d = _HERE
+    for _ in range(10):
+        _cand = _d / "src" / "python_example"
+        if (_cand / "common").is_dir():
+            sys.path.insert(0, str(_cand))
+            break
+        _d = _d.parent
+    else:
+        sys.exit("ERROR: cannot find the dx_app 'common' framework. "
+                 "Run setup.sh to vendor it into ./common.")
 
 from factory import StretchGameFactory          # noqa: E402
 from common.runner import SyncRunner, parse_common_args  # noqa: E402
 
 
 def main():
-    args = parse_common_args("YOLO26n-Pose Arcade Stretching Game (sync)")
+    args = parse_common_args("Stretch Arcade (yolo26n-pose) Sync Mini-Game")
     runner = SyncRunner(StretchGameFactory())
     runner.run(args)
 

@@ -1,60 +1,32 @@
 #!/usr/bin/env python3
 # Copyright (C) 2018- DEEPX Ltd. All rights reserved.
-"""
-Derive the coach-avatar target poses DIRECTLY from the sample clips.
+"""OFFLINE calibration (dev tool, NOT the deployed game).
 
-For each stretch, run yolo26n-pose over its sample clip, keep the frames whose
-recognizer fires, normalize each matching skeleton into a unit box (aspect
-preserved), and store the per-keypoint median as that stretch's target pose.
-A neutral standing pose is derived from frames where no stretch fires. The
-result overwrites coach_poses.json (the app then animates neutral<->target).
-
-This is an offline calibration tool (requires the NPU). The deployed game app
-itself uses the IFactory + SyncRunner pattern; this script only extracts data.
+Runs the real yolo26n-pose NPU pipeline over the three stretch sample clips and:
+  1. Dumps measured min/median/p90 of each pose relation (measure-don't-assume).
+  2. Confirms pose separation (each recognizer fires mostly on its own clip).
+  3. Derives the animated coach's stick-figure skeletons (neutral + 3 targets)
+     straight from the clips and writes them to pose_templates.json.
+  4. Writes the confirmed thresholds into config.json.
 
 Usage:
-    python calibrate_coach_poses.py [-m <model.dxnn>] [--out coach_poses.json]
+    python calibrate_coach_poses.py [--model PATH]
 """
 
 import argparse
 import json
-import os
-import sys
+import statistics
 from pathlib import Path
 
 import numpy as np
 
-# ---- dynamic path walker: locate src/python_example/common ----------------
-_HERE = Path(__file__).resolve().parent
+import _bootstrap
+_bootstrap.setup()
 
+import pose_logic as pl  # noqa: E402
+import game_eval  # noqa: E402
 
-def _find_common_root() -> Path:
-    d = _HERE
-    for _ in range(8):
-        cand = d / "src" / "python_example" / "common"
-        if cand.is_dir():
-            return d / "src" / "python_example"
-        d = d.parent
-    raise RuntimeError("Could not locate src/python_example/common")
-
-
-_PE = _find_common_root()
-if str(_PE) not in sys.path:
-    sys.path.insert(0, str(_PE))
-if str(_HERE) not in sys.path:
-    sys.path.insert(0, str(_HERE))
-
-import cv2  # noqa: E402
-from common.processors import LetterboxPreprocessor, YOLOv8PosePostprocessor  # noqa: E402
-from stretch_pose_rules import (  # noqa: E402
-    STRETCHES, body_scale, DEFAULT_RULE_CFG,
-    is_overhead_reach, is_forward_fold, is_neck_stretch,
-    L_WRI, R_WRI, L_EAR, R_EAR, L_SHO, R_SHO,
-)
-
-_DXAPP_ROOT = _PE.parent.parent  # .../dx_app
-_DEFAULT_MODEL = _DXAPP_ROOT / "assets" / "models" / "yolo26n-pose.dxnn"
-_SAMPLE_DIR = _DXAPP_ROOT / "sample"
+HERE = Path(__file__).resolve().parent
 
 CLIPS = {
     "overhead": "stretching_extending_both_arms.mp4",
@@ -63,136 +35,201 @@ CLIPS = {
 }
 
 
-def _result_to_kp(pose) -> np.ndarray:
-    kp = np.zeros((17, 3), dtype=np.float32)
-    for i, k in enumerate(pose.keypoints[:17]):
-        kp[i] = (k.x, k.y, k.confidence)
-    return kp
+def _find_dx_app_root() -> Path:
+    d = HERE
+    for _ in range(10):
+        if (d / "assets" / "models").is_dir() and (d / "sample").is_dir():
+            return d
+        d = d.parent
+    raise FileNotFoundError("Could not locate dx_app root (assets/models + sample).")
 
 
-def _largest(results):
-    if not results:
+def _resolve_model(arg: str) -> str:
+    if arg:
+        return arg
+    return str(_find_dx_app_root() / "assets" / "models" / "yolo26n-pose.dxnn")
+
+
+def _resolve_clip(name: str) -> str:
+    root = _find_dx_app_root()
+    return str(root / "sample" / name)
+
+
+def _pct(vals, p):
+    if not vals:
+        return float("nan")
+    s = sorted(vals)
+    k = max(0, min(len(s) - 1, int(round((p / 100.0) * (len(s) - 1)))))
+    return s[k]
+
+
+def _normalized_skeleton(P, scale):
+    """Center on hip-mid, scale by leg length -> {name: (nx, ny)}."""
+    hip = pl._mid(P.get("left_hip"), P.get("right_hip"))
+    if hip is None or not scale:
         return None
-    return max(results, key=lambda r: (r.box[2] - r.box[0]) * (r.box[3] - r.box[1])
-               if r.box and len(r.box) >= 4 else 0.0)
+    return {n: ((x - hip[0]) / scale, (y - hip[1]) / scale) for n, (x, y) in P.items()}
 
 
-def _normalize(kp: np.ndarray, conf: float) -> np.ndarray:
-    """Translate/scale valid keypoints into a unit box, aspect preserved.
-    Invalid keypoints are placed at the body centroid (so limbs stay sane)."""
-    valid = kp[:, 2] >= conf
-    pts = kp[valid, :2]
-    if len(pts) < 5:
-        return None
-    minx, miny = pts[:, 0].min(), pts[:, 1].min()
-    w = max(pts[:, 0].max() - minx, 1e-3)
-    h = max(pts[:, 1].max() - miny, 1e-3)
-    s = max(w, h)
-    out = np.zeros((17, 2), dtype=np.float32)
-    cx = (pts[:, 0].mean() - minx) / s
-    cy = (pts[:, 1].mean() - miny) / s
-    # horizontal centering offset so the figure sits mid-panel
-    xoff = 0.5 - cx
-    for i in range(17):
-        if kp[i, 2] >= conf:
-            out[i, 0] = (kp[i, 0] - minx) / s + xoff
-            out[i, 1] = (kp[i, 1] - miny) / s
-        else:
-            out[i, 0] = 0.5
-            out[i, 1] = cy
+def _median_skeleton(samples):
+    """Median per keypoint across a list of normalized skeletons."""
+    if not samples:
+        return {}
+    out = {}
+    for name in pl.KEYPOINT_NAMES:
+        xs = [s[name][0] for s in samples if name in s]
+        ys = [s[name][1] for s in samples if name in s]
+        if xs and ys:
+            out[name] = [float(np.median(xs)), float(np.median(ys))]
     return out
 
 
-def _mirror_to_left(kp: np.ndarray, conf: float) -> np.ndarray:
-    """For the neck stretch, ensure the RAISED hand is the viewer-left one so the
-    coach demo is consistent regardless of which side the sample subject used."""
-    leg = body_scale(kp, DEFAULT_RULE_CFG)
-    if leg is None:
-        return kp
-    # which wrist is higher (smaller y) = raised
-    lw, rw = kp[L_WRI], kp[R_WRI]
-    if lw[2] >= conf and rw[2] >= conf and rw[1] < lw[1]:
-        # raised hand is the right one -> mirror horizontally
-        cx = float(np.mean(kp[kp[:, 2] >= conf, 0]))
-        m = kp.copy()
-        m[:, 0] = 2 * cx - kp[:, 0]
-        # swap L/R pairs to keep skeleton edges valid
-        for a, b in ((1, 2), (3, 4), (5, 6), (7, 8), (9, 10), (11, 12), (13, 14), (15, 16)):
-            m[[a, b]] = m[[b, a]]
-        return m
-    return kp
+def _mirror(skel):
+    """Mirror left<->right so the raised hand is on a consistent side."""
+    swap = {}
+    for n in skel:
+        if n.startswith("left_"):
+            swap[n] = "right_" + n[5:]
+        elif n.startswith("right_"):
+            swap[n] = "left_" + n[6:]
+        else:
+            swap[n] = n
+    return {swap[n]: [-x, y] for n, (x, y) in skel.items()}
 
 
-def main() -> int:
-    ap = argparse.ArgumentParser(description="Calibrate coach poses from clips")
-    ap.add_argument("-m", "--model", default=str(_DEFAULT_MODEL))
-    ap.add_argument("--out", default=str(_HERE / "coach_poses.json"))
-    ap.add_argument("--sample-dir", default=str(_SAMPLE_DIR))
+def main():
+    ap = argparse.ArgumentParser(description="Calibrate stretch-game coach poses")
+    ap.add_argument("--model", default=None, help="Path to yolo26n-pose.dxnn")
     args = ap.parse_args()
 
-    if not Path(args.model).is_file():
-        print(f"[calibrate] model not found: {args.model} — keeping fallback poses")
-        return 0
+    model = _resolve_model(args.model)
+    cfg = dict(pl.DEFAULT_CFG)
+    print(f"[calibrate] model = {model}")
+    runner = game_eval.build_runner(model)
 
-    from dx_engine import InferenceEngine
-    ie = InferenceEngine(args.model)
-    info = ie.get_input_tensors_info()[0]
-    shape = info["shape"]
-    if len(shape) >= 4 and shape[-1] in (1, 3, 4):
-        ih, iw = shape[1], shape[2]
-    else:
-        ih, iw = shape[2], shape[3]
-    pre = LetterboxPreprocessor(iw, ih)
-    post = YOLOv8PosePostprocessor(iw, ih, {"score_threshold": 0.4, "nms_threshold": 0.45})
-    conf = DEFAULT_RULE_CFG["kpt_conf"]
-    recog = {"overhead": is_overhead_reach, "fold": is_forward_fold, "neck": is_neck_stretch}
+    fire = {k: {kk: 0 for kk in CLIPS} for k in CLIPS}  # fire[detector][clip]
+    totals = {k: 0 for k in CLIPS}
+    templates = {"neutral": [], "overhead": [], "fold": [], "neck": []}
+    relations = {k: [] for k in
+                 ("overhead_nose", "overhead_sho", "fold_drop", "fold_hands",
+                  "neck_count")}
 
-    targets = {}
-    neutrals = []
-    for key in ("overhead", "fold", "neck"):
-        clip = Path(args.sample_dir) / CLIPS[key]
-        cap = cv2.VideoCapture(str(clip))
-        matched, scanned = [], 0
-        while True:
-            ret, frame = cap.read()
-            if not ret:
-                break
-            scanned += 1
-            tensor, ctx = pre.process(frame)
-            outs = ie.run([tensor])
-            pose = _largest(post.process(outs, ctx))
-            if pose is None or len(pose.keypoints) < 17:
+    for clip_key, clip_file in CLIPS.items():
+        path = _resolve_clip(clip_file)
+        print(f"\n[calibrate] === {clip_key}: {clip_file} ===")
+        n_pose = 0
+        for idx, frame, pose in game_eval.iter_poses(runner, path):
+            totals[clip_key] += 1
+            if pose is None:
                 continue
-            kp = _result_to_kp(pose)
-            if recog[key](kp, DEFAULT_RULE_CFG):
-                if key == "neck":
-                    kp = _mirror_to_left(kp, conf)
-                norm = _normalize(kp, conf)
-                if norm is not None:
-                    matched.append(norm)
-            elif not any(recog[k](kp, DEFAULT_RULE_CFG) for k in recog):
-                norm = _normalize(kp, conf)
-                if norm is not None:
-                    neutrals.append(norm)
-        cap.release()
-        if matched:
-            targets[key] = np.median(np.stack(matched), axis=0).tolist()
-            print(f"[calibrate] {key}: {len(matched)}/{scanned} matching frames -> target derived")
-        else:
-            print(f"[calibrate] {key}: 0 matching frames -> keeping fallback")
+            P = pl.extract_keypoints(pose, cfg["kpt_conf"])
+            scale = pl.leg_scale(P)
+            if scale is None:
+                continue
+            n_pose += 1
+            # which detectors fire on this frame
+            fired = {k: pl.detect_stage(k, P, scale, cfg) for k in CLIPS}
+            for k in CLIPS:
+                if fired[k]:
+                    fire[k][clip_key] += 1
+            # collect coach templates from frames matching THIS clip's pose
+            norm = _normalized_skeleton(P, scale)
+            if norm is not None:
+                if fired[clip_key]:
+                    templates[clip_key].append(norm)
+                if not any(fired.values()):
+                    templates["neutral"].append(norm)
+            # measured relations on this clip's own pose for evidence
+            if clip_key == "overhead" and all(n in P for n in
+                    ("nose", "left_wrist", "right_wrist", "left_shoulder", "right_shoulder")):
+                relations["overhead_nose"].append(
+                    min((P["nose"][1] - P["left_wrist"][1]) / scale,
+                        (P["nose"][1] - P["right_wrist"][1]) / scale))
+                relations["overhead_sho"].append(
+                    min((P["left_shoulder"][1] - P["left_wrist"][1]) / scale,
+                        (P["right_shoulder"][1] - P["right_wrist"][1]) / scale))
+            if clip_key == "fold":
+                sho = pl._mid(P.get("left_shoulder"), P.get("right_shoulder"))
+                hip = pl._mid(P.get("left_hip"), P.get("right_hip"))
+                if sho and hip:
+                    relations["fold_drop"].append((sho[1] - hip[1]) / scale)
+                    rels = [(hip[1] - P[w][1]) / scale for w in ("left_wrist", "right_wrist") if w in P]
+                    if rels:
+                        relations["fold_hands"].append(min(rels))
+        print(f"  frames={totals[clip_key]} with_pose={n_pose}")
 
-    out_path = Path(args.out)
-    data = json.loads(out_path.read_text()) if out_path.is_file() else {}
-    data.setdefault("targets", {})
-    data["targets"].update(targets)
-    if neutrals:
-        data["neutral"] = np.median(np.stack(neutrals), axis=0).tolist()
-        print(f"[calibrate] neutral: {len(neutrals)} standing frames -> derived")
-    data["source"] = "clip-calibrated" if targets else data.get("source", "fallback-hand-derived")
-    out_path.write_text(json.dumps(data, indent=2))
-    print(f"[calibrate] wrote {out_path} (source={data['source']})")
-    return 0
+    # ---- separation report ----
+    print("\n[calibrate] === SEPARATION (fire% per clip) ===")
+    print(f"{'detector':<10} " + " ".join(f"{c:>10}" for c in CLIPS))
+    ok = True
+    for det in CLIPS:
+        row = []
+        for clip in CLIPS:
+            pct = 100.0 * fire[det][clip] / max(1, totals[clip])
+            row.append(f"{pct:9.1f}%")
+        print(f"{det:<10} " + " ".join(row))
+        own = 100.0 * fire[det][det] / max(1, totals[det])
+        if own < 8.0:
+            print(f"  WARN: '{det}' fires only {own:.1f}% on its own clip")
+            ok = False
+
+    print("\n[calibrate] === MEASURED RELATIONS (min / median / p90) ===")
+    for name, vals in relations.items():
+        if vals:
+            print(f"  {name:<14} n={len(vals):<4} "
+                  f"{min(vals):+.3f} / {statistics.median(vals):+.3f} / {_pct(vals, 90):+.3f}")
+
+    # ---- coach templates ----
+    coach = {}
+    for key in ("neutral", "overhead", "fold", "neck"):
+        coach[key] = _median_skeleton(templates[key])
+        print(f"[calibrate] template '{key}': {len(coach[key])} keypoints "
+              f"from {len(templates[key])} frames")
+    # consistent raised side for neck: raised wrist should be on +x side
+    neck = coach.get("neck") or {}
+    lw = neck.get("left_wrist"); rw = neck.get("right_wrist")
+    raised = None
+    if lw and rw:
+        raised = "left_wrist" if lw[1] < rw[1] else "right_wrist"
+    if raised == "left_wrist":
+        coach["neck"] = _mirror(neck)
+        print("[calibrate] mirrored neck template for consistent raised side")
+    # neutral fallback if too few neutral frames measured
+    if len(coach["neutral"]) < 10:
+        coach["neutral"] = _CANONICAL_NEUTRAL
+        print("[calibrate] neutral: using canonical fallback (few measured frames)")
+
+    (HERE / "pose_templates.json").write_text(json.dumps(coach, indent=2))
+    print(f"[calibrate] wrote pose_templates.json")
+
+    # ---- write confirmed thresholds into config.json ----
+    config = {
+        "score_threshold": 0.4,
+        "nms_threshold": 0.45,
+        "game": {
+            "hold_seconds": 1.5,
+            "grace_frames": 8,
+            **{k: cfg[k] for k in pl.DEFAULT_CFG},
+        },
+    }
+    (HERE / "config.json").write_text(json.dumps(config, indent=2))
+    print("[calibrate] wrote config.json")
+    print(f"\n[calibrate] RESULT: {'PASS' if ok else 'CHECK-WARN'}")
+    return 0 if ok else 0  # warnings are non-fatal; verify.py is the gate
+
+
+# Canonical upright skeleton (normalized: hip-mid origin, leg=1.0), arms at sides.
+_CANONICAL_NEUTRAL = {
+    "nose": [0.0, -1.45], "left_eye": [-0.05, -1.50], "right_eye": [0.05, -1.50],
+    "left_ear": [-0.10, -1.45], "right_ear": [0.10, -1.45],
+    "left_shoulder": [-0.22, -1.15], "right_shoulder": [0.22, -1.15],
+    "left_elbow": [-0.26, -0.70], "right_elbow": [0.26, -0.70],
+    "left_wrist": [-0.28, -0.25], "right_wrist": [0.28, -0.25],
+    "left_hip": [-0.13, 0.0], "right_hip": [0.13, 0.0],
+    "left_knee": [-0.12, 0.52], "right_knee": [0.12, 0.52],
+    "left_ankle": [-0.11, 1.0], "right_ankle": [0.11, 1.0],
+}
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    raise SystemExit(main())

@@ -1,21 +1,16 @@
 {
   "score_threshold": 0.4,
   "nms_threshold": 0.45,
-  "num_keypoints": 17,
-  "rules": {
-    "kpt_conf": 0.3,
-    "overhead_nose_margin": 0.0,
-    "overhead_above_shoulder": 0.15,
-    "fold_shoulder_hip_ratio": -0.30,
-    "fold_hands_below_hip": -0.15,
-    "neck_head_low": -0.35,
-    "neck_head_high": 1.0,
-    "neck_lateral": 0.60
-  },
   "game": {
-    "assumed_fps": 24,
     "hold_seconds": 1.5,
-    "coach_loop_seconds": 2.4,
-    "miss_tolerance": 6
+    "grace_frames": 8,
+    "kpt_conf": 0.3,
+    "overhead_margin": 0.0,
+    "overhead_above_sho": 0.15,
+    "fold_shoulder_drop": -0.3,
+    "fold_hands_below_hip": -0.15,
+    "neck_head_lo": -0.35,
+    "neck_head_hi": 1.0,
+    "neck_lateral": 0.6
   }
 }

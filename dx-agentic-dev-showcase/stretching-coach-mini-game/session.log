@@ -1,50 +1,96 @@
-############################################################
-# Stretch Arcade Game — session validation log
-# date: 2026-06-08 18:46:10 KST
-# model: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/assets/models/yolo26n-pose.dxnn
-############################################################
+######## SESSION LOG — Mon Jun  8 08:28:21 PM KST 2026 ########
+## session: 20260608-201249_claude_opus48_yolo26npose_stretchgame
 
-===== 1. unit tests (pose recognizers + hold tracker) =====
+$ ls -1 (deliverables)
+_bootstrap.py
+calibrate_coach_poses.py
+coach.py
+common
+config.json
+factory
+game_eval.py
+__init__.py
+outputs
+PLAN.md
+pose_logic.py
+pose_templates.json
+README.md
+run.sh
+session.json
+session.log
+setup.sh
+stretch_game_sync.py
+stretch_game_visualizer.py
+test_pose_logic.py
+verify.py
+
+$ py_compile all *.py
+OK: ./calibrate_coach_poses.py
+OK: ./test_pose_logic.py
+OK: ./coach.py
+OK: ./stretch_game_sync.py
+OK: ./factory/stretch_game_factory.py
+OK: ./factory/__init__.py
+OK: ./pose_logic.py
+OK: ./_bootstrap.py
+OK: ./stretch_game_visualizer.py
+OK: ./game_eval.py
+OK: ./verify.py
+OK: ./__init__.py
+
+$ json validate
+OK: config.json
+OK: pose_templates.json
+OK: session.json
+
+$ factory 5-method compliance
+PASS: all 5 IFactory methods present
+
+$ bash -n setup.sh run.sh
+OK setup.sh
+OK run.sh
+
+$ import-resolution test (no PYTHONPATH): stretch_game_sync.py --help
+usage: stretch_game_sync.py [-h] --model MODEL
+                            [--image IMAGE | --video VIDEO | --camera CAMERA | --rtsp RTSP]
+                            [--display] [--no-display] [--save]
+                            [--save-dir SAVE_DIR] [--loop [LOOP]]
+                            [--dump-tensors] [--config CONFIG] [--show-log]
+
+
+$ pytest test_pose_logic.py
 .......                                                                  [100%]
-7 passed in 0.04s
+7 passed in 0.00s
 
-===== 2. verify.py (per-clip separation + end-to-end CLEAR) =====
-== per-clip recognizer separation ==
-  overhead  clip: counts={'overhead': 115, 'fold': 0, 'neck': 1} dominant=overhead (47.9% own) -> OK
-  fold      clip: counts={'overhead': 0, 'fold': 98, 'neck': 0} dominant=fold (40.8% own) -> OK
-  neck      clip: counts={'overhead': 0, 'fold': 0, 'neck': 122} dominant=neck (50.8% own) -> OK
-== end-to-end (stretching_demo.mp4) ==
-  processed 721 frames; final stage_idx=2 cleared=True
+$ python .deepx/scripts/validate_app.py dx-agentic-dev/20260608-201249_claude_opus48_yolo26npose_stretchgame
+
+Validating: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_claude_opus48_yolo26npose_stretchgame
+
+  !! [FAIL] logging [WARNING]
+          21 print() call(s) found — use logging: calibrate_coach_poses.py:107, calibrate_coach_poses.py:119, calibrate_coach_poses.py:159, calibrate_coach_poses.py:162, calibrate_coach_poses.py:163
+  !! [FAIL] no_hardcoded_paths [ERROR]
+          4 hardcoded path(s): calibrate_coach_poses.py:50, calibrate_coach_poses.py:102, verify.py:79, verify.py:83
+  !! [FAIL] parse_common_args [ERROR]
+          2 script(s) use custom argparse: calibrate_coach_poses.py: uses custom argparse instead of parse_common_args(); verify.py: uses custom argparse instead of parse_common_args()
+  !! [FAIL] unused_imports [WARNING]
+          1 potentially unused import(s): coach.py: unused import 'Optional'
+  !! [FAIL] app_yaml [INFO]
+          No app.yaml metadata file
+  !! [FAIL] unreachable_code [WARNING]
+          186 potentially unreachable line(s): calibrate_coach_poses.py:43, calibrate_coach_poses.py:50, calibrate_coach_poses.py:61, calibrate_coach_poses.py:71, calibrate_coach_poses.py:78
+
+  Validation: 5/11 checks passed, 2 errors, 3 warnings
+validate_app exit: 1
+
+$ python verify.py   (real NPU end-to-end gate)
+Model loaded: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/assets/models/yolo26n-pose.dxnn
+[INFO] Model input size (WxH): 640x640
+[verify] model = /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/assets/models/yolo26n-pose.dxnn
+[verify] === per-clip stage clears + end-to-end CLEAR ===
+  [PASS] overhead.mp4: 240 frames, advanced 0->1 (target stage cleared=True), saved overhead.mp4
+  [PASS] fold.mp4: 240 frames, advanced 1->2 (target stage cleared=True), saved fold.mp4
+  [PASS] neck.mp4: 240 frames, advanced 2->3 (target stage cleared=True), saved neck.mp4
+  [PASS] demo_full.mp4: 721 frames, cleared=True reached_stage=3/3, saved demo_full.mp4
+
 RESULT: PASS
-
-===== 3. annotated video runs (--save --no-display) =====
---- stretching_demo.mp4 ---
- Total Frames    :    721
- Total Time      :   20.7 s
- Overall FPS     :   34.8 FPS
-==================================================
---- stretching_extending_both_arms.mp4 ---
- Total Frames    :    240
- Total Time      :    6.5 s
- Overall FPS     :   37.0 FPS
-==================================================
---- stretching_bending_at_the_waist.mp4 ---
- Total Frames    :    240
- Total Time      :    7.1 s
- Overall FPS     :   33.8 FPS
-==================================================
---- stretching_pulling_the_head.mp4 ---
- Total Frames    :    240
- Total Time      :    6.9 s
- Overall FPS     :   34.8 FPS
-==================================================
-
-===== 4. post-fix re-verify (added __init__.py, removed unused import) =====
-$ python verify.py
-== per-clip recognizer separation ==
-  overhead  clip: counts={'overhead': 115, 'fold': 0, 'neck': 1} dominant=overhead (47.9% own) -> OK
-  fold      clip: counts={'overhead': 0, 'fold': 98, 'neck': 0} dominant=fold (40.8% own) -> OK
-  neck      clip: counts={'overhead': 0, 'fold': 0, 'neck': 122} dominant=neck (50.8% own) -> OK
-== end-to-end (stretching_demo.mp4) ==
-  processed 721 frames; final stage_idx=2 cleared=True
-RESULT: PASS
+verify.py exit: 0
