@@ -32,7 +32,7 @@ It is installed once and used across all 5 repos in dx-all-suite.
 │   └── dx_agentic_dev_gen/        ← Python package
 │       ├── __init__.py
 │       ├── cli.py                 ← `dx-agentic-gen` entry point
-│       ├── generator.py           ← Core generate/check/lint orchestration
+│       ├── generator.py           ← Core generate/check/lint/prune orchestration
 │       ├── transformers.py        ← Per-platform output transformers
 │       ├── frontmatter.py         ← YAML frontmatter handling
 │       └── constants.py           ← Platform paths, repo definitions
@@ -49,12 +49,13 @@ It is installed once and used across all 5 repos in dx-all-suite.
 
 ### `cli.py`
 Entry point exposed via `pyproject.toml` as `dx-agentic-gen`. Parses arguments
-and dispatches to the `generate`, `check`, or `lint` action in `generator.py`.
+and dispatches to the `generate`, `check`, `lint`, or `prune` action in `generator.py`.
 
 ```bash
-dx-agentic-gen generate [--repo <path>]
+dx-agentic-gen generate [--repo <path>] [--prune] [--dry-run]
 dx-agentic-gen check    [--repo <path>]
 dx-agentic-gen lint     [--repo <path>]
+dx-agentic-gen prune    [--repo <path>] [--dry-run]
 ```
 
 Without `--repo`, the CLI operates on the current working directory's `.deepx/`.
@@ -148,6 +149,29 @@ Checks:
 
 See [`../docs/fragment-authoring-guide.md`](../docs/fragment-authoring-guide.md)
 for the full rule set.
+
+### `prune`
+Remove **stale orphan outputs** — platform files the generator no longer produces
+because their `.deepx/` source was renamed or removed. `check` cannot catch these
+(it only verifies files it *would* generate), so a rename leaves the old output behind.
+
+```bash
+dx-agentic-gen prune --dry-run     # list what would be removed (recommended first)
+dx-agentic-gen prune               # delete the orphans
+bash .deepx/tools/scripts/run_all.sh prune   # suite-wide
+
+# Or fold it into generate so a rename self-cleans in one pass:
+dx-agentic-gen generate --prune
+dx-agentic-gen generate --prune --dry-run    # preview generate + prune together
+```
+
+Safety — prune only deletes inside locations the generator solely owns, matched by
+generator-specific patterns, and absent from the current expected output set:
+- skill dirs `.github/skills/<name>/`, `.claude/skills/<name>/` (one dir == one skill)
+- cursor skill rules `.cursor/rules/skill-*.mdc` (the `skill-` prefix is ours)
+- agent files `.github/agents/*.agent.md`, `.claude/agents/*.md`, `.opencode/agents/*.md`
+- cursor agent rules `.cursor/rules/<stem>.mdc` **only if they carry the
+  `AUTO-GENERATED` header** — so hand-authored `.mdc` rules are never touched
 
 ---
 

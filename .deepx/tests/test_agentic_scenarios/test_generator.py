@@ -338,3 +338,126 @@ class TestInstructionGeneratorClean:
         assert clean, (
             f"{project}: Instruction drift:\n" + "\n".join(report)
         )
+
+
+# ---------------------------------------------------------------------------
+# Prune — remove stale generator outputs (orphans), never hand-authored files
+# ---------------------------------------------------------------------------
+
+
+def _write(path: Path, text: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text, encoding="utf-8")
+
+
+def _make_min_repo(tmp_path: Path) -> Path:
+    """A minimal repo with one skill + one agent so generate() produces outputs."""
+    deepx = tmp_path / ".deepx"
+    _write(
+        deepx / "skills" / "dx-foo" / "SKILL.md",
+        "---\nname: dx-foo\ndescription: Foo skill for tests.\n---\n\nBody of foo.\n",
+    )
+    _write(
+        deepx / "agents" / "dx-bar.md",
+        "---\nname: dx-bar\ndescription: Bar agent for tests.\n"
+        "capabilities: [read, execute]\n---\n\nBar agent body.\n",
+    )
+    return tmp_path
+
+
+class TestGeneratorPrune:
+    """`prune` removes orphan outputs (renamed/removed source) but preserves
+    live generated files AND hand-authored files."""
+
+    AUTO_MARKER = "AUTO-GENERATED from .deepx/"
+
+    def _inject_orphans(self, repo: Path):
+        """Returns (orphans, keepers) path lists."""
+        orphans = [
+            repo / ".github" / "skills" / "dx-old" / "SKILL.md",
+            repo / ".claude" / "skills" / "dx-old" / "SKILL.md",
+            repo / ".cursor" / "rules" / "skill-dx-old.mdc",
+            repo / ".github" / "agents" / "dx-oldagent.agent.md",
+            repo / ".claude" / "agents" / "dx-oldagent.md",
+            repo / ".opencode" / "agents" / "dx-oldagent.md",
+            repo / ".cursor" / "rules" / "dx-oldagent.mdc",  # orphan agent rule
+        ]
+        for o in orphans:
+            # orphan agent rule must carry the gen marker to be eligible
+            body = f"<!-- {self.AUTO_MARKER} -->\nstale\n" if o.suffix == ".mdc" else "stale\n"
+            _write(o, body)
+        # hand-authored cursor rule WITHOUT the gen marker — must be preserved
+        hand = repo / ".cursor" / "rules" / "python-example.mdc"
+        _write(hand, "---\ndescription: hand-authored\n---\nKeep me.\n")
+        return orphans, [hand]
+
+    def test_prune_dry_run_lists_orphans_only(self, tmp_path):
+        from dx_agentic_dev_gen.generator import Generator
+
+        repo = _make_min_repo(tmp_path)
+        gen = Generator(repo)
+        gen.generate(platform="all")
+        live = set(gen._collect_expected("all"))
+        orphans, keepers = self._inject_orphans(repo)
+
+        removed, report = gen.prune(platform="all", dry_run=True)
+        removed = set(removed)
+
+        def _covered(p: Path) -> bool:
+            # prune may remove a whole skill dir, which subsumes its SKILL.md
+            return p in removed or any(parent in removed for parent in p.parents)
+
+        # every injected orphan is flagged (directly or via its parent dir)
+        for o in orphans:
+            assert _covered(o), f"orphan not flagged: {o.relative_to(repo)}\n{report}"
+        # hand-authored + live outputs are NOT flagged
+        for k in keepers:
+            assert k not in removed, f"hand-authored wrongly flagged: {k}"
+        assert not (live & removed), "live generated output wrongly flagged for prune"
+        # dry-run must not delete anything
+        for o in orphans:
+            assert o.exists(), "dry-run deleted a file"
+
+    def test_prune_deletes_orphans_preserves_rest(self, tmp_path):
+        from dx_agentic_dev_gen.generator import Generator
+
+        repo = _make_min_repo(tmp_path)
+        gen = Generator(repo)
+        gen.generate(platform="all")
+        live = set(gen._collect_expected("all"))
+        orphans, keepers = self._inject_orphans(repo)
+
+        gen.prune(platform="all", dry_run=False)
+
+        for o in orphans:
+            assert not o.exists(), f"orphan not pruned: {o.relative_to(repo)}"
+        for k in keepers:
+            assert k.exists(), f"hand-authored file wrongly deleted: {k}"
+        for f in live:
+            assert f.exists(), f"live generated file wrongly deleted: {f}"
+
+    def test_prune_is_idempotent(self, tmp_path):
+        from dx_agentic_dev_gen.generator import Generator
+
+        repo = _make_min_repo(tmp_path)
+        gen = Generator(repo)
+        gen.generate(platform="all")
+        self._inject_orphans(repo)
+        gen.prune(platform="all", dry_run=False)
+        removed2, _ = gen.prune(platform="all", dry_run=False)
+        assert removed2 == [], "second prune should find nothing"
+
+    def test_generate_prune_integration_via_cli(self, tmp_path):
+        from dx_agentic_dev_gen.cli import main
+
+        repo = _make_min_repo(tmp_path)
+        # first generate to lay down live outputs
+        assert main(["generate", "--repo", str(repo)]) == 0
+        orphans, keepers = self._inject_orphans(repo)
+        # generate --prune should remove orphans in one pass
+        rc = main(["generate", "--repo", str(repo), "--prune"])
+        assert rc == 0
+        for o in orphans:
+            assert not o.exists(), f"generate --prune left orphan: {o.relative_to(repo)}"
+        for k in keepers:
+            assert k.exists(), f"generate --prune deleted hand-authored: {k}"

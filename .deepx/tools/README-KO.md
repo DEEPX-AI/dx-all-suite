@@ -31,7 +31,7 @@
 │   └── dx_agentic_dev_gen/        ← Python 패키지
 │       ├── __init__.py
 │       ├── cli.py                 ← `dx-agentic-gen` 엔트리포인트
-│       ├── generator.py           ← 핵심 generate/check/lint 오케스트레이션
+│       ├── generator.py           ← 핵심 generate/check/lint/prune 오케스트레이션
 │       ├── transformers.py        ← 플랫폼별 출력 transformer
 │       ├── frontmatter.py         ← YAML frontmatter 처리
 │       └── constants.py           ← 플랫폼 경로, 저장소 정의
@@ -48,12 +48,13 @@
 
 ### `cli.py`
 `pyproject.toml`을 통해 `dx-agentic-gen`으로 노출되는 엔트리포인트. 인자를 파싱하여
-`generator.py`의 `generate`, `check`, `lint` 액션으로 디스패치한다.
+`generator.py`의 `generate`, `check`, `lint`, `prune` 액션으로 디스패치한다.
 
 ```bash
-dx-agentic-gen generate [--repo <path>]
+dx-agentic-gen generate [--repo <path>] [--prune] [--dry-run]
 dx-agentic-gen check    [--repo <path>]
 dx-agentic-gen lint     [--repo <path>]
+dx-agentic-gen prune    [--repo <path>] [--dry-run]
 ```
 
 `--repo` 없이 실행하면 CLI는 현재 작업 디렉터리의 `.deepx/`에 대해 동작한다.
@@ -148,6 +149,29 @@ dx-agentic-gen lint
 전체 규칙 세트는
 [`../docs/fragment-authoring-guide.md`](../docs/fragment-authoring-guide.md)
 를 참고하라.
+
+### `prune`
+**stale orphan 출력물**을 제거한다 — `.deepx/` 소스가 rename/삭제되어 생성기가 더는
+만들지 않는 플랫폼 파일. `check`는 "생성할 파일"만 검증하므로 이런 orphan을 잡지 못하고,
+rename 시 구 출력물이 남는다.
+
+```bash
+dx-agentic-gen prune --dry-run     # 삭제 대상 목록만 출력 (먼저 권장)
+dx-agentic-gen prune               # orphan 삭제
+bash .deepx/tools/scripts/run_all.sh prune   # suite 전체
+
+# rename 시 한 번에 self-clean 하려면 generate에 연동:
+dx-agentic-gen generate --prune
+dx-agentic-gen generate --prune --dry-run    # generate + prune 미리보기
+```
+
+안전성 — prune은 생성기가 단독 소유하는 위치에서, 생성기 고유 패턴에 맞고, 현재 기대
+출력 집합에 없는 파일만 삭제한다:
+- skill 디렉터리 `.github/skills/<name>/`, `.claude/skills/<name>/` (1 디렉터리 == 1 skill)
+- cursor skill 규칙 `.cursor/rules/skill-*.mdc` (`skill-` 접두어는 생성기 전용)
+- agent 파일 `.github/agents/*.agent.md`, `.claude/agents/*.md`, `.opencode/agents/*.md`
+- cursor agent 규칙 `.cursor/rules/<stem>.mdc` 은 **`AUTO-GENERATED` 헤더가 있을 때만** —
+  따라서 hand-authored `.mdc` 규칙은 절대 건드리지 않는다
 
 ---
 

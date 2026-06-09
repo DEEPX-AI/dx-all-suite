@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import shutil
 from pathlib import Path
 from typing import Any
 
@@ -60,6 +61,110 @@ class Generator:
                     results[path] = "written"
 
         return results
+
+    _PLATFORMS = ["copilot", "claude", "opencode", "cursor", "instructions"]
+
+    def _platform_list(self, platform: str) -> list[str]:
+        return self._PLATFORMS if platform == "all" else [platform]
+
+    def _collect_expected(self, platform: str = "all") -> set[Path]:
+        """The exact set of paths the generator would write for `platform`."""
+        expected: set[Path] = set()
+        for plat in self._platform_list(platform):
+            expected |= set(getattr(self, f"_generate_{plat}")().keys())
+        return expected
+
+    def prune(
+        self,
+        *,
+        platform: str = "all",
+        dry_run: bool = False,
+    ) -> tuple[list[Path], list[str]]:
+        """Remove stale generator outputs (orphans) — files in generator-owned
+        locations that the generator would no longer produce (e.g. left over
+        after a skill/agent was renamed). Hand-authored files are never touched.
+
+        Returns (removed_paths, report_lines).
+
+        Safety model — only delete inside locations the generator solely owns,
+        matched by generator-specific patterns, and absent from the expected set:
+          * skill dirs   .github/skills/<n>/, .claude/skills/<n>/  (1 dir == 1 skill)
+          * cursor skill rules  .cursor/rules/skill-*.mdc          (skill- is ours)
+          * agent files  .github/agents/*.agent.md, .claude/agents/*.md,
+                         .opencode/agents/*.md                     (pure-generated dirs)
+          * cursor agent rules  .cursor/rules/<stem>.mdc           (only if it carries
+                         the AUTO-GENERATED header — protects hand-authored .mdc)
+        """
+        expected = self._collect_expected(platform)
+        plats = set(self._platform_list(platform))
+        candidates: list[Path] = []
+
+        # 1. skill output dirs (copilot -> .github, claude -> .claude)
+        skill_bases = []
+        if "copilot" in plats:
+            skill_bases.append(self.repo / ".github" / "skills")
+        if "claude" in plats:
+            skill_bases.append(self.repo / ".claude" / "skills")
+        for base in skill_bases:
+            if base.is_dir():
+                for d in sorted(base.iterdir()):
+                    if d.is_dir() and (d / "SKILL.md") not in expected:
+                        candidates.append(d)
+
+        # 2. cursor skill rules (skill- prefix is generator-exclusive)
+        if "cursor" in plats:
+            cur = self.repo / ".cursor" / "rules"
+            if cur.is_dir():
+                for f in sorted(cur.glob("skill-*.mdc")):
+                    if f not in expected:
+                        candidates.append(f)
+
+        # 3. agent files in pure-generated dirs
+        agent_scopes = []
+        if "copilot" in plats:
+            agent_scopes.append((self.repo / ".github" / "agents", "*.agent.md"))
+        if "claude" in plats:
+            agent_scopes.append((self.repo / ".claude" / "agents", "*.md"))
+        if "opencode" in plats:
+            agent_scopes.append((self.repo / ".opencode" / "agents", "*.md"))
+        for base, pat in agent_scopes:
+            if base.is_dir():
+                for f in sorted(base.glob(pat)):
+                    if f not in expected:
+                        candidates.append(f)
+
+        # 4. cursor agent rules (non-skill) — header-gated so hand-authored
+        #    .mdc files (no AUTO-GENERATED header) are never removed
+        if "cursor" in plats:
+            cur = self.repo / ".cursor" / "rules"
+            if cur.is_dir():
+                for f in sorted(cur.glob("*.mdc")):
+                    if f.name.startswith("skill-") or f in expected:
+                        continue
+                    try:
+                        text = f.read_text(encoding="utf-8")
+                    except Exception:
+                        continue
+                    if "AUTO-GENERATED from .deepx/" in text:
+                        candidates.append(f)
+
+        report: list[str] = []
+        removed: list[Path] = []
+        for path in candidates:
+            rel = path.relative_to(self.repo)
+            if dry_run:
+                report.append(f"WOULD PRUNE: {rel}")
+            else:
+                if path.is_dir():
+                    shutil.rmtree(path)
+                else:
+                    path.unlink()
+                report.append(f"PRUNED: {rel}")
+            removed.append(path)
+
+        if not removed:
+            report.append("No orphan generated files to prune.")
+        return removed, report
 
     def check(self, *, platform: str = "all") -> tuple[bool, list[str]]:
         """Check if generated files match on-disk. Returns (clean, report_lines)."""

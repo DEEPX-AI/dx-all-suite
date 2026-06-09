@@ -37,6 +37,33 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="Show what would be generated without writing files",
     )
+    gen_parser.add_argument(
+        "--prune",
+        action="store_true",
+        help="After generating, remove stale orphan outputs (renamed/removed sources). "
+        "Hand-authored files are never touched. Honors --dry-run.",
+    )
+
+    # prune
+    prune_parser = sub.add_parser(
+        "prune",
+        help="Remove stale generator outputs (orphans) with no current .deepx/ source",
+    )
+    prune_parser.add_argument(
+        "--platform",
+        choices=["copilot", "claude", "opencode", "cursor", "instructions", "all"],
+        default="all",
+    )
+    prune_parser.add_argument(
+        "--repo",
+        type=Path,
+        default=Path("."),
+    )
+    prune_parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Show what would be pruned without deleting",
+    )
 
     # check
     chk_parser = sub.add_parser("check", help="Check if generated files are up-to-date")
@@ -84,6 +111,20 @@ def main(argv: list[str] | None = None) -> int:
             print(f"\n{len(results)} files would be generated.")
         else:
             print(f"Generated {len(results)} files.")
+        if getattr(args, "prune", False):
+            removed, report = gen.prune(platform=args.platform, dry_run=args.dry_run)
+            for line in report:
+                print(f"  {line}")
+            verb = "would be pruned" if args.dry_run else "pruned"
+            print(f"{len(removed)} orphan file(s)/dir(s) {verb}.")
+        return 0
+
+    elif args.command == "prune":
+        removed, report = gen.prune(platform=args.platform, dry_run=args.dry_run)
+        for line in report:
+            print(line)
+        verb = "would be pruned" if args.dry_run else "pruned"
+        print(f"{len(removed)} orphan file(s)/dir(s) {verb}.")
         return 0
 
     elif args.command == "check":

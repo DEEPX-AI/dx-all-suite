@@ -2,6 +2,8 @@
 # run_all.sh — Run dx-agentic-gen across all 5 repos in dx-all-suite
 # Usage: bash .deepx/tools/scripts/run_all.sh generate
 #        bash .deepx/tools/scripts/run_all.sh check
+#        bash .deepx/tools/scripts/run_all.sh lint
+#        bash .deepx/tools/scripts/run_all.sh prune
 set -e
 
 SUITE_ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"

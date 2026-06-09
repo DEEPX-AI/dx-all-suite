@@ -155,11 +155,14 @@ pip install -e .deepx/tools
 dx-agentic-gen generate    # Regenerate platform files
 dx-agentic-gen check       # Verify no drift
 dx-agentic-gen lint        # Verify EN/KO fragment parity
+dx-agentic-gen prune       # Remove stale orphan outputs (renamed/removed sources)
+dx-agentic-gen generate --prune   # Regenerate AND self-clean orphans in one pass
 
 # 3. Suite-wide (process all 5 repos)
 bash .deepx/tools/scripts/run_all.sh generate
 bash .deepx/tools/scripts/run_all.sh check
 bash .deepx/tools/scripts/run_all.sh lint
+bash .deepx/tools/scripts/run_all.sh prune
 
 # 4. Install pre-commit hooks (one-time)
 bash .deepx/tools/scripts/install-hooks.sh
