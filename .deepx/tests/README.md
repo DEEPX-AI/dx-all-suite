@@ -18,16 +18,17 @@ Validates the agentic development infrastructure across all 5 project levels (su
 - Scenario references: agent/skill references in guides match actual infrastructure
 - Cross-project scenarios: handoff chains, validation scripts, output isolation
 
-**Total tests:** 199 (186 passed, 13 skipped)
+**Total tests:** ~700 infra checks — run `pytest .deepx/tests/test_agentic_scenarios/ --collect-only -q` for the live count. These need no CLI/NPU, so effectively all pass; a few skip when an optional dependency is absent.
 
-### 2. test_agentic_e2e_scenarios — Agentic End-to-End Scenario Tests (Copilot CLI + Cursor CLI + OpenCode CLI + Claude Code CLI)
+### 2. test_agentic_e2e_scenarios — Agentic End-to-End Scenario Tests (Copilot CLI + Cursor CLI + OpenCode CLI + Claude Code CLI + Codex CLI)
 Runs actual CLI agent invocations for representative scenarios from each project level, then statically verifies the generated output files.
 
-**Six modes:**
+**Modes:** five CLI autopilot modes (pytest) + interactive manual modes (shell).
 - **copilot autopilot**: Fully autonomous with `--no-ask-user`. CI/CD optimized. Uses Copilot CLI (`copilot`). Runs via pytest.
 - **cursor autopilot**: Fully autonomous via Cursor CLI (`agent -p --force`). Same scenarios and assertions. Runs via pytest.
 - **opencode autopilot**: Fully autonomous via OpenCode CLI (`opencode run --format json`). Same scenarios and assertions. Runs via pytest.
 - **claude-code autopilot**: Fully autonomous via Claude Code CLI (`claude -p --dangerously-skip-permissions`). Same scenarios and assertions. Runs via pytest.
+- **codex autopilot**: Fully autonomous via Codex CLI (`codex exec`). Same scenarios and assertions. Runs via pytest.
 - **copilot manual**: Interactive shell-based mode (no pytest). User interacts with Copilot CLI TUI directly, then shell validates output.
 - **cursor manual**: Interactive shell-based mode (no pytest). User interacts with Cursor CLI TUI directly, then shell validates output.
 - **opencode manual**: Interactive shell-based mode (no pytest). User interacts with OpenCode TUI, types `/export` to save session, then shell validates output.
@@ -44,13 +45,14 @@ Runs actual CLI agent invocations for representative scenarios from each project
 
 **Verification approach:** Static analysis only (file existence, Python syntax via `ast.parse`, JSON structure, required patterns). No actual HW inference.
 
-**Total tests:** 67 (copilot) + 63 (cursor) + 112 (opencode) + 110 (claude-code) = 352 (pytest), plus shell: manual mode
+**Total tests:** ~586 collected across the five CLI autopilot markers (copilot, cursor, opencode, claude-code, codex) — run `pytest .deepx/tests/test_agentic_e2e_scenarios/ --collect-only -q` for the live count; plus shell-based manual modes.
 
 **Markers (pytest only):**
 - `pytest.mark.agentic_e2e_copilot_cli_autopilot` — Copilot CLI fully autonomous (CI/CD)
 - `pytest.mark.agentic_e2e_cursor_cli_autopilot` — Cursor CLI fully autonomous (CI/CD)
 - `pytest.mark.agentic_e2e_opencode_cli_autopilot` — OpenCode CLI fully autonomous (CI/CD)
 - `pytest.mark.agentic_e2e_claude_code_autopilot` — Claude Code CLI fully autonomous (CI/CD)
+- `pytest.mark.agentic_e2e_codex_cli_autopilot` — Codex CLI fully autonomous (CI/CD)
 
 ## 🔄 E2E Runner & Monitor
 
@@ -288,7 +290,7 @@ the per-session detail table.
 ```bash
 cd tests
 
-# Agentic infrastructure validation (199 tests, ~1 second)
+# Agentic infrastructure validation (~704 tests, ~1 second)
 ./test.sh agentic
 
 # Agentic E2E scenario tests
@@ -296,10 +298,12 @@ cd tests
 ./test.sh agentic-e2e-cursor-cli-autopilot      # Cursor CLI, fully autonomous (CI/CD)
 ./test.sh agentic-e2e-opencode-cli-autopilot    # OpenCode CLI, fully autonomous (CI/CD)
 ./test.sh agentic-e2e-claude-code-autopilot     # Claude Code CLI, fully autonomous (CI/CD)
+./test.sh agentic-e2e-codex-cli-autopilot       # Codex CLI, fully autonomous (CI/CD)
 ./test.sh agentic-e2e-copilot-cli-manual        # Copilot CLI, interactive (shell-based)
 ./test.sh agentic-e2e-cursor-cli-manual         # Cursor CLI, interactive (shell-based)
 ./test.sh agentic-e2e-opencode-cli-manual       # OpenCode CLI, interactive (shell-based)
 ./test.sh agentic-e2e-claude-code-manual        # Claude Code CLI, interactive (shell-based)
+./test.sh agentic-e2e-codex-cli-manual          # Codex CLI, interactive (shell-based)
 ```
 
 ## 💡 Key Commands
@@ -307,11 +311,12 @@ cd tests
 ### Test Suite Commands
 
 ```bash
-./test.sh agentic          # Agentic infrastructure (199 tests, ~1 second)
+./test.sh agentic          # Agentic infrastructure (~704 tests, ~1 second)
 ./test.sh agentic-e2e-claude-code-autopilot   # Agentic E2E Claude Code autonomous
 ./test.sh agentic-e2e-copilot-cli-autopilot   # Agentic E2E Copilot CLI autonomous
 ./test.sh agentic-e2e-opencode-cli-autopilot  # Agentic E2E Opencode CLI autonomous
 ./test.sh agentic-e2e-cursor-cli-autopilot    # Agentic E2E Cursor CLI autonomous
+./test.sh agentic-e2e-codex-cli-autopilot     # Agentic E2E Codex CLI autonomous
 ./test.sh agentic-e2e-claude-code-manual      # Agentic E2E Claude Code interactive
 ./test.sh agentic-e2e-copilot-cli-manual      # Agentic E2E Copilot CLI interactive
 ./test.sh agentic-e2e-opencode-cli-manual     # Agentic E2E OpenCode CLI interactive
@@ -814,11 +819,12 @@ In manual mode, Claude Code saves a TXT transcript
 
 | Test Suite | Test Count | Expected Time | Use Case |
 |-----------|------------|---------------|----------|
-| **agentic** | 199 | ~1 second | Agentic infrastructure validation |
-| **agentic_e2e (copilot-cli)** | 67 | ~30-45 minutes | Agentic E2E Copilot CLI scenario tests |
-| **agentic_e2e (cursor-cli)** | 63 | ~40-45 minutes | Agentic E2E Cursor CLI scenario tests (Claude Sonnet 4.6) |
-| **agentic_e2e (opencode-cli)** | 112 | ~45-60 minutes | Agentic E2E OpenCode CLI scenario tests |
-| **agentic_e2e (claude-code-cli)** | 110 | ~45-60 minutes | Agentic E2E Claude Code CLI scenario tests |
+| **agentic** | ~704 | ~1 second | Agentic infrastructure validation |
+| **agentic_e2e (copilot-cli)** | ~114 | ~30-45 minutes | Agentic E2E Copilot CLI scenario tests |
+| **agentic_e2e (cursor-cli)** | ~113 | ~40-45 minutes | Agentic E2E Cursor CLI scenario tests (Claude Sonnet 4.6) |
+| **agentic_e2e (opencode-cli)** | ~116 | ~45-60 minutes | Agentic E2E OpenCode CLI scenario tests |
+| **agentic_e2e (claude-code-cli)** | ~116 | ~45-60 minutes | Agentic E2E Claude Code CLI scenario tests |
+| **agentic_e2e (codex-cli)** | ~116 | ~45-60 minutes | Agentic E2E Codex CLI scenario tests |
 
 ## 🔧 Environment Variables
 
@@ -990,4 +996,4 @@ tests/
 ---
 
 **Total Agentic Tests:**
-551 (agentic: 199 | agentic_e2e_copilot_cli: 67 | agentic_e2e_cursor_cli: 63 | agentic_e2e_opencode_cli: 112 | agentic_e2e_claude_code_cli: 110)
+~1279 (agentic: ~704 | agentic_e2e_copilot_cli: ~114 | agentic_e2e_cursor_cli: ~113 | agentic_e2e_opencode_cli: ~116 | agentic_e2e_claude_code_cli: ~116 | agentic_e2e_codex_cli: ~116) — run `pytest --collect-only -q` for live counts

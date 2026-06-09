@@ -262,7 +262,7 @@ python .deepx/tests/e2e_monitor.py --once
 ```bash
 cd .deepx/tests
 
-# 에이전트 인프라 검증 (199개 테스트, ~1초)
+# 에이전트 인프라 검증 (~704개 테스트, ~1초)
 ./test.sh agentic
 
 # 에이전트 E2E 시나리오 테스트 (도구별)
@@ -386,4 +386,4 @@ export DX_AGENTIC_E2E_CODEX_EXTRA_ARGS='-c model_reasoning_effort="xhigh"'  # xh
 ---
 
 **총 에이전트 테스트 수:**
-551개 (agentic: 199 | copilot_cli: 67 | cursor_cli: 63 | opencode_cli: 112 | claude_code_cli: 110)
+~1279개 (agentic: ~704 | copilot_cli: ~114 | cursor_cli: ~113 | opencode_cli: ~116 | claude_code_cli: ~116 | codex_cli: ~116) — 정확한 수치는 `pytest --collect-only -q`로 확인
