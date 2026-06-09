@@ -9,40 +9,40 @@ fidelity.
 
 Usage examples:
     # Run 5 rounds for all tools sequentially (default)
-    python .deepx/tests/e2e_runner.py --rounds 5
+    python .deepx/e2e/e2e_runner.py --rounds 5
 
     # Run 5 rounds in parallel mode
-    python .deepx/tests/e2e_runner.py --rounds 5 --parallel
+    python .deepx/e2e/e2e_runner.py --rounds 5 --parallel
 
     # Run 5 rounds for specific tools only
-    python .deepx/tests/e2e_runner.py --rounds 5 --tools claude-code,copilot-cli
+    python .deepx/e2e/e2e_runner.py --rounds 5 --tools claude-code,copilot-cli
 
     # Run with thinking / high-reasoning mode
-    python .deepx/tests/e2e_runner.py --rounds 5 --thinking
+    python .deepx/e2e/e2e_runner.py --rounds 5 --thinking
 
     # Resume: auto-detect completed rounds and continue to target
-    python .deepx/tests/e2e_runner.py --rounds 5 --resume
+    python .deepx/e2e/e2e_runner.py --rounds 5 --resume
 
     # Resume a specific previous run
-    python .deepx/tests/e2e_runner.py --rounds 5 --resume --run-id 20260521_100000
+    python .deepx/e2e/e2e_runner.py --rounds 5 --resume --run-id 20260521_100000
 
     # Show current run status (no --rounds needed)
-    python .deepx/tests/e2e_runner.py --status
+    python .deepx/e2e/e2e_runner.py --status
 
     # List all previous runs
-    python .deepx/tests/e2e_runner.py --list
+    python .deepx/e2e/e2e_runner.py --list
 
     # Gracefully stop the current run after the active round finishes
-    python .deepx/tests/e2e_runner.py --stop --run-id 20260521_100000
+    python .deepx/e2e/e2e_runner.py --stop --run-id 20260521_100000
 
     # Abort the current run immediately
-    python .deepx/tests/e2e_runner.py --abort --run-id 20260521_100000 --force
+    python .deepx/e2e/e2e_runner.py --abort --run-id 20260521_100000 --force
 
     # Delete artifacts for round 3 of all tools
-    python .deepx/tests/e2e_runner.py --cleanup --round 3
+    python .deepx/e2e/e2e_runner.py --cleanup --round 3
 
     # Delete artifacts for round 3 of a specific tool set
-    python .deepx/tests/e2e_runner.py --cleanup --round 3 --tools claude-code
+    python .deepx/e2e/e2e_runner.py --cleanup --round 3 --tools claude-code
 
 See .deepx/tests/README.md for full documentation.
 """

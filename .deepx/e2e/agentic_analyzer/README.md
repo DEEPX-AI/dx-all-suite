@@ -12,7 +12,7 @@
 ### 1.1 Static Analysis (analyze.py)
 
 ```bash
-cd .deepx/tests/agentic_analyzer
+cd .deepx/e2e/agentic_analyzer
 
 # Analyze all rounds (default: ../results)
 python3 analyze.py
@@ -39,7 +39,7 @@ Output files (default: `<suite-root>/dx-agentic-dev/e2e-tests/analyzer_reports/<
 - `comprehensive_report.html` — HTML version with Chart.js interactive charts (Executive Summary + visual comparisons)
 - `dashboard.html` — Standalone interactive dashboard (Chart.js — overall ranking, radar, round trends, scenario breakdown)
 
-> **I/O directories**: Tool code lives in `.deepx/tests/agentic_analyzer/` (git tracked).
+> **I/O directories**: Tool code lives in `.deepx/e2e/agentic_analyzer/` (git tracked).
 > Input (results) and output (analyzer_reports) live in `dx-agentic-dev/e2e-tests/` (gitignored).
 > Tools are deployed to all clones; runtime data stays local.
 
@@ -297,9 +297,9 @@ All analyzer unit tests live under `tests/` and are wired via `pytest.ini`
 (`testpaths = tests`). Run the whole suite with:
 
 ```bash
-cd .deepx/tests/agentic_analyzer && pytest        # auto-discovers tests/
+cd .deepx/e2e/agentic_analyzer && pytest        # auto-discovers tests/
 # or from anywhere:
-python -m pytest .deepx/tests/agentic_analyzer/tests/ -q
+python -m pytest .deepx/e2e/agentic_analyzer/tests/ -q
 ```
 
 ## 4. Default Model Policy

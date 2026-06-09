@@ -11,7 +11,7 @@
 ### 1.1 정적 분석 (analyze.py)
 
 ```bash
-cd .deepx/tests/agentic_analyzer
+cd .deepx/e2e/agentic_analyzer
 
 # 모든 회차 일괄 분석 (기본: ../results)
 python3 analyze.py
@@ -38,7 +38,7 @@ python3 analyze.py --insights copilot --insights-model claude-sonnet-4.6 --insig
 - `comprehensive_report.html` — 통합 보고서 HTML 버전 (Chart.js 인터랙티브 차트 포함 — Executive Summary + 시각 비교)
 - `dashboard.html` — 독립 실행형 인터랙티브 대시보드 (Chart.js — 종합 순위, 레이더, 라운드 추이, 시나리오 비교)
 
-> **입출력 디렉토리**: 도구 코드는 `.deepx/tests/agentic_analyzer/` (git tracked)에,
+> **입출력 디렉토리**: 도구 코드는 `.deepx/e2e/agentic_analyzer/` (git tracked)에,
 > 입력(results) + 출력(analyzer_reports)은 `dx-agentic-dev/e2e-tests/` (gitignored)에 위치.
 > 도구는 모든 클론에 배포되고, 런타임 데이터는 로컬에 격리됩니다.
 
@@ -292,9 +292,9 @@ analyzer unit test는 모두 `tests/` 아래에 있으며 `pytest.ini`(`testpath
 배선되어 있습니다. 전체 스위트 실행:
 
 ```bash
-cd .deepx/tests/agentic_analyzer && pytest        # tests/ 자동 탐색
+cd .deepx/e2e/agentic_analyzer && pytest        # tests/ 자동 탐색
 # 또는 어디서든:
-python -m pytest .deepx/tests/agentic_analyzer/tests/ -q
+python -m pytest .deepx/e2e/agentic_analyzer/tests/ -q
 ```
 
 ## 4. 기본 모델 정책

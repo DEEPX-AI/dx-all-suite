@@ -5,7 +5,7 @@ Usage:
     python analyze.py [--results-root PATH] [--config PATH] [--output-dir PATH]
                        [--tool TOOL ...] [--scenario SCEN ...] [--round N ...]
 
-Defaults (when invoked from .deepx/tests/agentic_analyzer/):
+Defaults (when invoked from .deepx/e2e/agentic_analyzer/):
     --results-root: <suite-root>/dx-agentic-dev/e2e-tests/results
     --config:       ./config.yaml
     --output-dir:   <suite-root>/dx-agentic-dev/e2e-tests/analyzer_reports/<UTC ts>/
@@ -70,7 +70,7 @@ def _normalize_hypothesis_tools(hypothesis_data: dict) -> dict:
 def _find_suite_root() -> Path:
     """Walk up from HERE to find dx-all-suite root.
     Marker: presence of both `.deepx/` AND `dx-runtime/` siblings.
-    Fallback: HERE.parent.parent.parent (3 levels up from .deepx/tests/agentic_analyzer/).
+    Fallback: HERE.parent.parent.parent (3 levels up from .deepx/e2e/agentic_analyzer/).
     """
     p = HERE
     for _ in range(8):

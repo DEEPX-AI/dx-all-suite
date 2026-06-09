@@ -8,12 +8,12 @@ Reads state.json from the latest (or specified) run and displays:
   - Optional per-scenario timing for a focused tool
 
 Usage:
-    python .deepx/tests/e2e_monitor.py
-    python .deepx/tests/e2e_monitor.py --run-id 20260521_100000
-    python .deepx/tests/e2e_monitor.py --tool all
-    python .deepx/tests/e2e_monitor.py --tool claude-code --tail 30
-    python .deepx/tests/e2e_monitor.py --list
-    python .deepx/tests/e2e_monitor.py --once
+    python .deepx/e2e/e2e_monitor.py
+    python .deepx/e2e/e2e_monitor.py --run-id 20260521_100000
+    python .deepx/e2e/e2e_monitor.py --tool all
+    python .deepx/e2e/e2e_monitor.py --tool claude-code --tail 30
+    python .deepx/e2e/e2e_monitor.py --list
+    python .deepx/e2e/e2e_monitor.py --once
 """
 
 from __future__ import annotations
