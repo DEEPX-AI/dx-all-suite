@@ -14,6 +14,7 @@ intranet_CA_SSL.crt
 
 tests/venv/
 .deepx/tests/venv/
+.deepx/e2e/venv/
 dx-agentic-dev/
 docs/superpowers/
 copilot-session-*.html
