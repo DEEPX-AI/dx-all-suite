@@ -63,13 +63,7 @@ python pipeline.py --help 2>/dev/null && echo "OK: argparse"
 ## Verification Checklist — Cross-Project Integration
 
 ```bash
-# 1. Cross-project imports
-python -c "
-from dx_app.src.python_example.common.utils.model_utils import load_model_config
-print('OK: dx_stream can import from dx_app')
-"
-
-# 2. Shared model configuration consistency
+# 1. Cross-project model consistency (sub-projects share .dxnn models via the registries, NOT Python imports)
 python -c "
 import json
 app_reg = json.load(open('dx-runtime/dx_app/config/model_registry.json'))
@@ -77,7 +71,7 @@ stream_list = json.load(open('dx-runtime/dx_stream/model_list.json'))
 print(f'OK: dx_app has {len(app_reg)} models, dx_stream has {len(stream_list)} models')
 "
 
-# 3. Build order verification (dx_app first, then dx_stream)
+# 2. Build order verification (dx_app first, then dx_stream)
 cd dx-runtime/dx_app && ./install.sh && ./build.sh && echo "OK: dx_app build"
 cd dx-runtime/dx_stream && ./install.sh && echo "OK: dx_stream install"
 ```
