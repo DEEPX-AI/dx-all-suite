@@ -58,6 +58,24 @@ is included, showing how it followed the harness instructions and used the proje
 **[`dx-agentic-dev-showcase/stretching-coach-mini-game/`](./dx-agentic-dev-showcase/stretching-coach-mini-game/)**
 ([README](./dx-agentic-dev-showcase/stretching-coach-mini-game/README.md)).
 
+### Showcase 3: Ultralytics YOLO → DeepX Export (one-shot `format=deepx`)
+
+DEEPX × **Ultralytics** technical integration: an Ultralytics YOLO `.pt` becomes a
+deployable DeepX NPU model in a **single command** —
+
+```bash
+yolo export model=yolo26n.pt format=deepx   # → yolo26n_deepx_model/ (.dxnn + config + metadata)
+```
+
+From the prompt *"export my YOLO26n model to DeepX and run inference"*, the agent
+routes through the knowledge base to the
+[`ultralytics-deepx-export`](./dx-compiler/.deepx/toolsets/ultralytics-deepx-export.md)
+toolset and drives the export + deployment — no hand-rolled pipeline.
+
+**▶️ Run it yourself** — checked in at
+**[`dx-agentic-dev-showcase/ultralytics-yolo-deepx-export/`](./dx-agentic-dev-showcase/ultralytics-yolo-deepx-export/)**
+([README](./dx-agentic-dev-showcase/ultralytics-yolo-deepx-export/README.md)).
+
 ➡️ **[Get started with Agentic Development (Beta)](./docs/source/00_Agentic_Development.md)**
 
 ## Getting Started

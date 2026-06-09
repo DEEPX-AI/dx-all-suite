@@ -205,6 +205,7 @@ stub code — produce the real `.dxnn` file.
 | Task mentions... | Route to |
 |---|---|
 | ONNX → DXNN, compile, dxcom | `@dx-compiler-builder` in `dx-compiler/` |
+| YOLO `.pt` → DeepX, `format=deepx`, ultralytics export | `@dx-compiler-builder` in `dx-compiler/` |
 | Python app, factory, inference | `@dx-app-builder` in `dx-runtime/dx_app/` |
 | GStreamer pipeline, stream | `@dx-stream-builder` in `dx-runtime/dx_stream/` |
 

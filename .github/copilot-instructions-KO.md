@@ -204,6 +204,7 @@ DXNN 컴파일 (ONNX → .dxnn)이 포함된 작업의 경우, **컴파일러 �
 | 작업에서 언급하는 내용... | 라우팅 대상 |
 |---|---|
 | ONNX → DXNN, compile, dxcom | `@dx-compiler-builder` (`dx-compiler/`) |
+| YOLO `.pt` → DeepX, `format=deepx`, ultralytics export | `@dx-compiler-builder` (`dx-compiler/`) |
 | Python app, factory, inference | `@dx-app-builder` (`dx-runtime/dx_app/`) |
 | GStreamer pipeline, stream | `@dx-stream-builder` (`dx-runtime/dx_stream/`) |
 

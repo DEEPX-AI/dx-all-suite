@@ -1,0 +1,70 @@
+# Ultralytics YOLO → DeepX Export — built by dx-agentic-dev
+
+> **Showcase of the Ultralytics × DEEPX technical integration.** From a single
+> natural-language prompt, a coding agent (Claude Code / Copilot / Cursor /
+> OpenCode / Codex) routes to the DEEPX knowledge base and drives the **one-shot
+> `format=deepx` export** — turning an Ultralytics YOLO `.pt` into a deployable
+> DeepX NPU model (`.dxnn`) in a single command, then running inference on it.
+
+This folder is **self-contained**: the two scripts below run on any x86-64 Linux
+host with `pip` — no checkout of dx-all-suite required.
+
+## The prompt
+
+```
+Export my Ultralytics YOLO26n detection model to DeepX NPU format,
+then run inference on the bus sample image.
+```
+
+## What the agent does (KB-driven workflow)
+
+With the Ultralytics integration knowledge added to `.deepx/`, the agent resolves
+this prompt **without fabricating a pipeline**:
+
+1. **`/dx-skill-router`** → classifies the task as model compilation.
+2. **Suite routing** → `Ultralytics YOLO .pt → DeepX (format=deepx)` row points to
+   `dx-compiler/CLAUDE.md`.
+3. **dx-compiler routing** → `Ultralytics, YOLO, .pt, format=deepx` row →
+   [`.deepx/toolsets/ultralytics-deepx-export.md`](../../dx-compiler/.deepx/toolsets/ultralytics-deepx-export.md).
+4. **`/dx-agentic-compiler-convert` Phase 0** → recognises a YOLO **detection**
+   model targeting DeepX and selects the **one-shot path** instead of the manual
+   PT→ONNX→`dxcom` pipeline.
+5. **Export** → `yolo export model=yolo26n.pt format=deepx` → `yolo26n_deepx_model/`.
+6. **Deploy** → `YOLO("yolo26n_deepx_model")` runs inference on the `dx_engine` runtime.
+
+The agent knows the integration's hard constraints from the KB: **x86-64 Linux
+only**, **detection models only**, **INT8 enforced**, and that the output is a
+**directory** (`*_deepx_model/`), not a bare `.dxnn`.
+
+## Run it
+
+```bash
+# 1. Export the YOLO .pt to a DeepX model directory (x86-64 Linux only)
+bash export_deepx.sh                 # creates ./yolo26n_deepx_model/
+
+# 2. Run inference on the exported DeepX model
+python3 predict_deepx.py             # prints detections on the bus sample
+```
+
+`export_deepx.sh` creates a venv, installs `ultralytics` (which pulls `dx_com` on
+first export), and runs the one-shot export. `predict_deepx.py` loads the exported
+`yolo26n_deepx_model/` and runs detection on the Ultralytics bus sample.
+
+## Expected output
+
+See [`expected_output.txt`](./expected_output.txt) for the produced model-directory
+tree and a sample detection summary.
+
+## Knowledge base behind this showcase
+
+| KB artifact | Role |
+|---|---|
+| `dx-compiler/.deepx/toolsets/ultralytics-deepx-export.md` | Authoritative `format=deepx` reference (API, args, constraints, deploy). |
+| `.deepx/templates/fragments/{en,ko}/ultralytics-deepx-export.md` | One-shot path blurb surfaced in every platform's instructions. |
+| `dx-compiler/.deepx/skills/dx-agentic-compiler-convert` Phase 0 | Routes YOLO-detection→DeepX to the one-shot path. |
+| `dx-compiler/.deepx/memory/common_pitfalls.md` #25 | Don't hand-roll PT→ONNX→dxcom for a YOLO detection model. |
+| Suite + dx-compiler routing tables | `Ultralytics / YOLO / format=deepx` → dx-compiler. |
+
+Authoritative upstream doc: `ultralytics/docs/en/integrations/deepx.md`.
+
+Korean: [`README-ko.md`](./README-ko.md).

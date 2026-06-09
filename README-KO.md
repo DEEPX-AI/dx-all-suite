@@ -61,6 +61,25 @@
 에 들어 있습니다
 ([README](./dx-agentic-dev-showcase/stretching-coach-mini-game/README.md)).
 
+### Showcase 3: Ultralytics YOLO → DeepX Export (one-shot `format=deepx`)
+
+DEEPX × **Ultralytics** 기술 통합: Ultralytics YOLO `.pt`를 **명령 한 번**으로 배포
+가능한 DeepX NPU 모델로 변환합니다 —
+
+```bash
+yolo export model=yolo26n.pt format=deepx   # → yolo26n_deepx_model/ (.dxnn + config + metadata)
+```
+
+*"내 YOLO26n 모델을 DeepX로 export하고 inference 실행해줘"* 프롬프트 하나로, 에이전트는
+knowledge base를 통해
+[`ultralytics-deepx-export`](./dx-compiler/.deepx/toolsets/ultralytics-deepx-export.md)
+toolset으로 라우팅되어 export + 배포를 수행합니다 — 수작업 파이프라인 없이.
+
+**▶️ 직접 실행해보기** —
+**[`dx-agentic-dev-showcase/ultralytics-yolo-deepx-export/`](./dx-agentic-dev-showcase/ultralytics-yolo-deepx-export/)**
+에 들어 있습니다
+([README](./dx-agentic-dev-showcase/ultralytics-yolo-deepx-export/README-ko.md)).
+
 ➡️ **[Agentic Development (Beta) 시작하기](./docs/source/00_Agentic_Development_kor.md)**
 
 ## 시작하기
