@@ -1342,11 +1342,11 @@ class TestAutopilotSWEGatesCrossReference:
     """
 
     FRAGMENT_ROOTS = [
-        Path("/data/home/dhyang/github/dx-all-suite/.deepx/templates/fragments/en"),
-        Path("/data/home/dhyang/github/dx-all-suite/dx-runtime/.deepx/templates/fragments/en"),
-        Path("/data/home/dhyang/github/dx-all-suite/dx-compiler/.deepx/templates/fragments/en"),
-        Path("/data/home/dhyang/github/dx-all-suite/dx-runtime/dx_app/.deepx/templates/fragments/en"),
-        Path("/data/home/dhyang/github/dx-all-suite/dx-runtime/dx_stream/.deepx/templates/fragments/en"),
+        SUITE_ROOT / ".deepx/templates/fragments/en",
+        SUITE_ROOT / "dx-runtime/.deepx/templates/fragments/en",
+        SUITE_ROOT / "dx-compiler/.deepx/templates/fragments/en",
+        SUITE_ROOT / "dx-runtime/dx_app/.deepx/templates/fragments/en",
+        SUITE_ROOT / "dx-runtime/dx_stream/.deepx/templates/fragments/en",
     ]
 
     def _read_fragment(self, fragment_dir: Path, name: str) -> str | None:
@@ -1552,10 +1552,7 @@ class TestAutopilotSWEGatesCrossReference:
         committed together with intended .deepx/ changes. The hook only checked
         for drift but did not warn about mixed staged files.
         """
-        hook_path = Path(
-            "/data/home/dhyang/github/dx-all-suite/"
-            ".deepx/tools/scripts/pre-commit-hook.sh"
-        )
+        hook_path = SUITE_ROOT / ".deepx/tools/scripts/pre-commit-hook.sh"
         assert hook_path.exists(), f"pre-commit-hook.sh not found at {hook_path}"
         text = hook_path.read_text(encoding="utf-8")
         has_scope_check = (
@@ -1584,9 +1581,7 @@ class TestAutopilotSWEGatesCrossReference:
         Fix: create .deepx/templates/fragments/en/skill-router-mandatory.md
         with language like 'every user message' making the mandate unconditional.
         """
-        suite_root_frag_dir = Path(
-            "/data/home/dhyang/github/dx-all-suite/.deepx/templates/fragments/en"
-        )
+        suite_root_frag_dir = SUITE_ROOT / ".deepx/templates/fragments/en"
 
         text = self._read_fragment(suite_root_frag_dir, "skill-router-mandatory")
         assert text is not None, (

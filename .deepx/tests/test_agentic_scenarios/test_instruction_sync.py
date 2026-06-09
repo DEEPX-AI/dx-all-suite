@@ -555,28 +555,28 @@ class TestPreFlightClassificationSync:
 
     INSTRUCTION_PAIRS_COPILOT = [
         (
-            Path("/data/home/dhyang/github/dx-all-suite/.github/copilot-instructions.md"),
-            Path("/data/home/dhyang/github/dx-all-suite/.github/copilot-instructions-KO.md"),
+            SUITE_ROOT / ".github/copilot-instructions.md",
+            SUITE_ROOT / ".github/copilot-instructions-KO.md",
             "suite",
         ),
         (
-            Path("/data/home/dhyang/github/dx-all-suite/dx-compiler/.github/copilot-instructions.md"),
-            Path("/data/home/dhyang/github/dx-all-suite/dx-compiler/.github/copilot-instructions-KO.md"),
+            SUITE_ROOT / "dx-compiler/.github/copilot-instructions.md",
+            SUITE_ROOT / "dx-compiler/.github/copilot-instructions-KO.md",
             "compiler",
         ),
         (
-            Path("/data/home/dhyang/github/dx-all-suite/dx-runtime/.github/copilot-instructions.md"),
-            Path("/data/home/dhyang/github/dx-all-suite/dx-runtime/.github/copilot-instructions-KO.md"),
+            SUITE_ROOT / "dx-runtime/.github/copilot-instructions.md",
+            SUITE_ROOT / "dx-runtime/.github/copilot-instructions-KO.md",
             "runtime",
         ),
         (
-            Path("/data/home/dhyang/github/dx-all-suite/dx-runtime/dx_app/.github/copilot-instructions.md"),
-            Path("/data/home/dhyang/github/dx-all-suite/dx-runtime/dx_app/.github/copilot-instructions-KO.md"),
+            SUITE_ROOT / "dx-runtime/dx_app/.github/copilot-instructions.md",
+            SUITE_ROOT / "dx-runtime/dx_app/.github/copilot-instructions-KO.md",
             "app",
         ),
         (
-            Path("/data/home/dhyang/github/dx-all-suite/dx-runtime/dx_stream/.github/copilot-instructions.md"),
-            Path("/data/home/dhyang/github/dx-all-suite/dx-runtime/dx_stream/.github/copilot-instructions-KO.md"),
+            SUITE_ROOT / "dx-runtime/dx_stream/.github/copilot-instructions.md",
+            SUITE_ROOT / "dx-runtime/dx_stream/.github/copilot-instructions-KO.md",
             "stream",
         ),
     ]
