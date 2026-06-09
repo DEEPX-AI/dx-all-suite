@@ -296,6 +296,7 @@ API hallucination 방지용 grounding 문서. 검증된 심볼만 나열:
 4. **`model_registry.json` 쿼리 필수**: 모델명 위조 금지
 5. **Output Isolation**: `dx-agentic-dev/<session_id>/` 외 작성 금지
 6. **PPU 자동 감지**: `_ppu` suffix → `src/python_example/ppu/` 경로 사용
+7. **self-contained & portable**: `setup.sh`가 `common` → `./common` vendoring + `<model>_sync.py` walker가 vendored `./common` 우선(`PYTHONPATH` 불필요) → suite 밖으로 복사해도 동작, out-of-suite 검증(`dx_engine`만 외부 의존)
 
 ---
 

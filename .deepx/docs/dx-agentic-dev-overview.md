@@ -296,6 +296,7 @@ Mapping from verification patterns (regex) → `.deepx/` file updates. 8 action 
 4. **`model_registry.json` query required**: model name fabrication forbidden
 5. **Output Isolation**: writing outside `dx-agentic-dev/<session_id>/` forbidden
 6. **PPU auto-detection**: `_ppu` suffix → use `src/python_example/ppu/` path
+7. **Self-contained & portable**: `setup.sh` vendors `common` → `./common` and the `<model>_sync.py` walker prefers that vendored `./common` (no `PYTHONPATH`), so the app runs even when copied outside the suite — verified out-of-suite (`dx_engine` is the only external dep)
 
 ---
 
