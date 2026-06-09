@@ -669,9 +669,9 @@ dx-all-suite/dx-agentic-dev/
 
 | 증상 | 원인 | 해결 방법 |
 |---|---|---|
-| 에이전트가 `.dxnn` 모델을 찾지 못함 | 모델 이름 또는 아키텍처 불일치 | `resources/models/`에 모델이 존재하고 대상 칩(DX-M1, DX-H1)과 일치하는지 확인 |
-| `DxInfer` 엘리먼트가 "device not found" 보고 | DX-RT SDK 미로딩 또는 디바이스 미연결 | `source setup_env.sh` 실행 후 `dx-rt list-devices`로 가속기 확인 |
-| 파이프라인 시작 후 검은 화면 출력 | 카메라 소스 설정 오류 | `/dev/video` 경로를 하드코딩하지 말고 `--input usb`로 자동 감지 사용 |
+| 에이전트가 `.dxnn` 모델을 찾지 못함 | 모델 이름 또는 아키텍처 불일치 | `dx_app/assets/models/`에 모델이 존재하고 대상 칩(DX-M1, DX-H1)과 일치하는지 확인 |
+| `DxInfer` 엘리먼트가 "device not found" 보고 | DX-RT SDK 미로딩 또는 디바이스 미연결 | `source setup_env.sh` 실행 후 `bash dx-runtime/scripts/sanity_check.sh --dx_rt`로 NPU 확인 |
+| 카메라 입력에서 검은 화면 출력 | 카메라 소스 설정 오류 | `/dev/video` 경로를 하드코딩하지 말고 `--camera <id>`로 카메라 선택 |
 | 에이전트가 잘못된 서브 프로젝트에 코드 생성 | 모호한 프롬프트 | 최상위에서 `@dx-suite-builder`로 자동 라우팅 사용, 또는 대상 빌더 이름을 접두사로 사용 (예: `@dx-stream-builder`, `@dx-app-builder`) |
 | "unsupported opset" 오류로 컴파일 실패 | ONNX opset 버전이 11-21 범위 밖 | `opset_version=17`로 모델 재변환 |
 | 컴파일된 DXNN 정확도 낮음 | 캘리브레이션 데이터가 실제 추론 데이터를 대표하지 못함 | 실제 추론 이미지 사용 및 `calibration_num`을 200 이상으로 증가 |

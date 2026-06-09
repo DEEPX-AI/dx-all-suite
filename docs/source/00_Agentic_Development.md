@@ -686,9 +686,9 @@ plans, design documents) without implementing actual code, DONE must NOT be outp
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| Agent cannot find `.dxnn` model | Model name or architecture mismatch | Verify the model exists in `resources/models/` and matches your target chip (DX-M1, DX-H1) |
-| `DxInfer` element reports "device not found" | DX-RT SDK not loaded or device not connected | Run `source setup_env.sh` and confirm `dx-rt list-devices` shows your accelerator |
-| Pipeline starts but produces black frames | Camera source misconfigured | Use `--input usb` for auto-detection instead of hardcoding a `/dev/video` path |
+| Agent cannot find `.dxnn` model | Model name or architecture mismatch | Verify the model exists in `dx_app/assets/models/` and matches your target chip (DX-M1, DX-H1) |
+| `DxInfer` element reports "device not found" | DX-RT SDK not loaded or device not connected | Run `source setup_env.sh`, then confirm the NPU with `bash dx-runtime/scripts/sanity_check.sh --dx_rt` |
+| Camera input shows black frames | Camera source misconfigured | Select the camera with `--camera <id>` instead of hardcoding a `/dev/video` path |
 | Agent generates code for the wrong sub-project | Ambiguous prompt | Use `@dx-suite-builder` at the top level for automatic routing, or prefix with the target builder name, e.g. `@dx-stream-builder` or `@dx-app-builder` |
 | Compilation fails with "unsupported opset" | ONNX opset version outside 11-21 range | Re-export the model with `opset_version=17` |
 | Compiled DXNN has low accuracy | Calibration data not representative | Use real inference images and increase `calibration_num` to 200+ |
