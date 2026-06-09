@@ -106,6 +106,22 @@ mini-game** that guides you through three stretches with an animated coach avata
 (it shows the target pose for you to follow):
 **[`dx-agentic-dev-showcase/stretching-coach-mini-game/`](./dx-agentic-dev-showcase/stretching-coach-mini-game/)**.
 
+<div align="center">
+<table>
+<tr>
+<td align="center"><img src="./docs/source/img/dx-agentic-dev-stretch-build.gif" width="470"><br><sub><b>dx-agentic-dev building the stretching game (timelapse)</b></sub></td>
+<td align="center"><img src="./docs/source/img/dx-agentic-dev-stretch-gameplay.gif" width="188"><br><sub><b>The generated app running on the NPU (coach avatar + 3 stages)</b></sub></td>
+</tr>
+</table>
+</div>
+
+> **Prompt used:** *"Using the yolo26n-pose model on the DEEPX NPU, build a simple
+> arcade-style stretching mini-game … guide the user through three stretch poses
+> (overhead reach, forward fold, neck stretch), one stage at a time … render a small
+> human-figure **'coach' avatar** that demonstrates the current target stretch (an
+> animated stick-figure derived from the sample clips) … support both a video-file
+> input and a live camera input (`--video <file>` / `--camera <id>`) …"*
+
 > **At a glance** — each showcase was built by **Claude Code (Claude Opus 4.8)** from
 > a **single prompt**, fully autonomously in **~20 minutes**, running the complete
 > `brainstorm → plan → TDD → verify` skill sequence (~$9–10, ~85K output tokens each).

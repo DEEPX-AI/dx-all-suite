@@ -122,6 +122,30 @@ A second showcase built the same way — an arcade **stretching coach mini-game*
 (a stick-figure derived from the sample clips) that demonstrates each target pose.
 It likewise supports both `--video` and `--camera` input.
 
+<div align="center">
+<table>
+<tr>
+<td align="center"><img src="./img/dx-agentic-dev-stretch-build.gif" width="520"><br><sub><b>The agent building the stretching game (timelapse)</b></sub></td>
+<td align="center"><img src="./img/dx-agentic-dev-stretch-gameplay.gif" width="205"><br><sub><b>The generated app on the DX-M1 NPU — coach avatar + 3 stages</b></sub></td>
+</tr>
+</table>
+</div>
+
+**The prompt** (given to Claude Code in the `dx_app` directory):
+
+> Using the yolo26n-pose model on the DEEPX NPU, build a simple arcade-style
+> stretching mini-game. The game guides the user through three stretch poses, one
+> stage at a time: (1) extend both arms straight overhead, (2) bend forward at the
+> waist (forward fold), and (3) pull the head to one side with one hand for a neck
+> stretch. For each stage, **render a small human-figure "coach" avatar** in a
+> top-left panel that demonstrates the current target stretch — a clean stick-figure
+> posed in the target stretch, **animated** between a neutral standing pose and the
+> full target pose, with each target shape **derived from the corresponding sample
+> clip**. Show the stretch name + a short instruction and a HOLD progress bar; when
+> the user holds the matching pose, advance; clear when all three are done. The app
+> **must support both a video-file input and a live camera input** (`--video <file>`
+> or `--camera <id>`). When run on a video file, save an annotated output video.
+
 **What each build actually took** (from the session transcripts shipped in each
 showcase — coding agent **Claude Code**, model **Claude Opus 4.8**, **one** prompt,
 fully autonomous):

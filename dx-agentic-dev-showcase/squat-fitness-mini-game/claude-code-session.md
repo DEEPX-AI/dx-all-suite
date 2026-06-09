@@ -1,5 +1,18 @@
 # Build squat-counting fitness game with YOLO pose
 
+## Session summary
+
+| Metric | Value |
+|---|---|
+| Model | `claude-opus-4-8` |
+| Wall-clock | ~19.8 min |
+| Agent turns | 81 |
+| Output tokens | 85,269 |
+| Cost (reported) | $9.86 |
+| Tools | Bash×33, Write×17, Read×15, Skill×5, Edit×3, AskUserQuestion×1, TaskCreate×1 |
+| Skills | dx-skill-router → dx-agentic-brainstorm → dx-swe-writing-plans → dx-agentic-tdd → dx-agentic-verify |
+
+
 ## Session Info
 
 - **Session ID:** `9dc70e64-cdd9-4ba5-8321-32530130eac4`

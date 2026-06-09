@@ -28,6 +28,7 @@ API
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import shutil
 import sys
@@ -164,7 +165,139 @@ def _copy_jsonl(out_dir: Path, prefix: str, src) -> Optional[Path]:
         return None
     p = out_dir / f"{prefix}-stream.jsonl"
     shutil.copy2(str(src), str(p))
+    # Also emit a session-stem alias so the jsonl naming matches the md/html
+    # (`<prefix>-session.md/.html`). `-stream.jsonl` is kept for back-compat
+    # (several tools/tests reference it).
+    try:
+        shutil.copy2(str(src), str(out_dir / f"{prefix}-session.jsonl"))
+    except Exception:
+        pass
     return p
+
+
+def _session_metrics(jsonl_path) -> Optional[dict]:
+    """Pull usage/cost/tool metrics from a session jsonl.
+
+    Works for both the `-p --output-format stream-json` stdout (has a top-level
+    ``result`` event with ``usage`` + ``total_cost_usd``) and a session-store
+    jsonl (no result event — output tokens summed from per-message usage, cost
+    left None). Returns None if nothing useful is found. Best-effort."""
+    import collections
+    if not jsonl_path or not Path(jsonl_path).exists():
+        return None
+    model = None
+    result = None
+    tools = collections.Counter()
+    skills = []
+    out_sum = 0
+    turns = 0
+    try:
+        with open(jsonl_path, encoding="utf-8", errors="replace") as fh:
+            for line in fh:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    o = json.loads(line)
+                except Exception:
+                    continue
+                t = o.get("type")
+                if t == "system" and o.get("subtype") == "init":
+                    model = model or o.get("model")
+                if t == "result":
+                    result = o
+                msg = o.get("message") if isinstance(o.get("message"), dict) else None
+                if msg:
+                    model = model or msg.get("model")
+                    u = msg.get("usage") or {}
+                    if u.get("output_tokens"):
+                        out_sum += u.get("output_tokens", 0)
+                    if t == "assistant" or msg.get("role") == "assistant":
+                        turns += 1
+                        for c in (msg.get("content") or []):
+                            if isinstance(c, dict) and c.get("type") == "tool_use":
+                                nm = c.get("name")
+                                tools[nm] += 1
+                                if nm == "Skill":
+                                    sk = (c.get("input") or {}).get("skill")
+                                    if sk and sk not in skills:
+                                        skills.append(sk)
+    except Exception:
+        return None
+    m = {"model": model, "tools": dict(tools), "skills": skills,
+         "output_tokens": None, "total_cost_usd": None,
+         "num_turns": turns or None, "duration_ms": None}
+    if result:
+        u = result.get("usage") or {}
+        m["output_tokens"] = u.get("output_tokens")
+        m["total_cost_usd"] = result.get("total_cost_usd")
+        m["num_turns"] = result.get("num_turns") or m["num_turns"]
+        m["duration_ms"] = result.get("duration_ms")
+    if not m["output_tokens"] and out_sum:
+        m["output_tokens"] = out_sum
+    if not m["model"] and not m["output_tokens"]:
+        return None
+    return m
+
+
+def _metrics_rows(m):
+    rows = []
+    if m.get("model"):
+        rows.append(("Model", f"`{m['model']}`"))
+    if m.get("duration_ms"):
+        rows.append(("Wall-clock", f"~{round(m['duration_ms'] / 60000, 1)} min"))
+    if m.get("num_turns"):
+        rows.append(("Agent turns", str(m["num_turns"])))
+    if m.get("output_tokens"):
+        rows.append(("Output tokens", f"{m['output_tokens']:,}"))
+    if m.get("total_cost_usd") is not None:
+        rows.append(("Cost (reported)", f"${m['total_cost_usd']:.2f}"))
+    if m.get("tools"):
+        rows.append(("Tools", ", ".join(f"{k}×{v}" for k, v in
+                                         sorted(m["tools"].items(), key=lambda x: -x[1]))))
+    if m.get("skills"):
+        rows.append(("Skills", " → ".join(m["skills"])))
+    return rows
+
+
+def _inject_metrics(written: dict, jsonl_path) -> None:
+    """Prepend a 'Session summary' block (model/turns/tools/tokens/cost) to the
+    rendered md + html, computed from the session jsonl. Best-effort; never raises."""
+    try:
+        m = _session_metrics(jsonl_path)
+        rows = _metrics_rows(m) if m else []
+        if not rows:
+            return
+        md = ("## Session summary\n\n| Metric | Value |\n|---|---|\n"
+              + "\n".join(f"| {k} | {v} |" for k, v in rows) + "\n\n")
+        import html as _html
+        hrows = "".join(
+            f"<tr><td><b>{_html.escape(k)}</b></td><td>{_html.escape(v)}</td></tr>"
+            for k, v in rows)
+        hblock = ('<div class="session-summary"><h2>Session summary</h2>'
+                  '<table border="1" cellpadding="4" style="border-collapse:collapse">'
+                  + hrows + "</table></div>\n")
+        mdp = written.get("md")
+        if mdp and Path(mdp).exists():
+            txt = Path(mdp).read_text(encoding="utf-8")
+            lines = txt.split("\n")
+            if lines and lines[0].startswith("#"):
+                txt = lines[0] + "\n\n" + md + "\n".join(lines[1:])
+            else:
+                txt = md + txt
+            Path(mdp).write_text(txt, encoding="utf-8")
+        hp = written.get("html")
+        if hp and Path(hp).exists():
+            h = Path(hp).read_text(encoding="utf-8")
+            bi = h.lower().find("<body")
+            if bi != -1:
+                ins = h.find(">", bi) + 1
+                h = h[:ins] + "\n" + hblock + h[ins:]
+            else:
+                h = hblock + h
+            Path(hp).write_text(h, encoding="utf-8")
+    except Exception:
+        return
 
 
 def _turns_to_md(label: str, session_id, turns) -> str:
@@ -217,9 +350,11 @@ def _load_claude(out_dir, prefix, session_id, project_path, include_thinking, st
         "md": _write_text(out_dir, prefix, "session.md", render_markdown(parsed)),
         "html": _write_text(out_dir, prefix, "session.html", render_html(parsed)),
     }
-    jl = _copy_jsonl(out_dir, prefix, stream_json or getattr(meta, "jsonl_path", None))
+    _src = stream_json or getattr(meta, "jsonl_path", None)
+    jl = _copy_jsonl(out_dir, prefix, _src)
     if jl:
         written["jsonl"] = jl
+    _inject_metrics(written, _src)
     return written
 
 
@@ -253,6 +388,7 @@ def _load_copilot(out_dir, prefix, session_id, project_path, include_thinking, s
     jl = _copy_jsonl(out_dir, prefix, events)
     if jl:
         written["jsonl"] = jl
+    _inject_metrics(written, events)
     return written
 
 

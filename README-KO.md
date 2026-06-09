@@ -99,6 +99,21 @@ DX-AllSuite는 우리 NPU에서 최고 성능을 내도록 최적화된, 업계 
 포즈를 보여주며 세 가지 스트레칭을 안내하는 아케이드 **스트레칭 coach 미니게임**:
 **[`dx-agentic-dev-showcase/stretching-coach-mini-game/`](./dx-agentic-dev-showcase/stretching-coach-mini-game/)**.
 
+<div align="center">
+<table>
+<tr>
+<td align="center"><img src="./docs/source/img/dx-agentic-dev-stretch-build.gif" width="470"><br><sub><b>dx-agentic-dev가 스트레칭 게임을 빌드하는 모습 (timelapse)</b></sub></td>
+<td align="center"><img src="./docs/source/img/dx-agentic-dev-stretch-gameplay.gif" width="188"><br><sub><b>생성된 앱이 NPU에서 실행 (coach 아바타 + 3단계)</b></sub></td>
+</tr>
+</table>
+</div>
+
+> **사용한 프롬프트:** *"DEEPX NPU에서 yolo26n-pose 모델을 사용해 간단한 아케이드 스타일
+> 스트레칭 미니게임을 만들어줘 … 세 가지 스트레칭 포즈(머리 위로 뻗기, forward fold, 목
+> 스트레칭)를 한 단계씩 안내 … 화면 좌상단에 현재 목표 스트레칭을 시연하는 작은 사람 모양
+> **'coach' 아바타**(샘플 영상에서 유도한 애니메이션 스틱피겨)를 그려줘 … 비디오 파일 input과
+> 라이브 카메라 input을 모두 지원(`--video <file>` / `--camera <id>`) …"*
+
 > **한눈에** — 각 showcase는 **Claude Code (Claude Opus 4.8)**가 **프롬프트 1개**로 완전
 > 자율로 **약 20분** 만에 빌드했으며, `brainstorm → plan → TDD → verify` 전체 skill 시퀀스를
 > 실행했습니다(각 ~$9–10, output ~85K 토큰). 생성된 모든 앱은 **self-contained & portable**

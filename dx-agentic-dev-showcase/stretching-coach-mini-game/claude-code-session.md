@@ -1,5 +1,18 @@
 # Build arcade stretching mini-game with pose detection
 
+## Session summary
+
+| Metric | Value |
+|---|---|
+| Model | `claude-opus-4-8` |
+| Wall-clock | ~21.0 min |
+| Agent turns | 75 |
+| Output tokens | 84,578 |
+| Cost (reported) | $9.41 |
+| Tools | Bash×30, Write×16, Read×10, Edit×7, Skill×5, AskUserQuestion×1 |
+| Skills | dx-skill-router → dx-agentic-brainstorm → dx-swe-writing-plans → dx-agentic-tdd → dx-agentic-verify |
+
+
 ## Session Info
 
 - **Session ID:** `a97c4b6c-6ca2-46e8-8a7e-eee44df654ce`
