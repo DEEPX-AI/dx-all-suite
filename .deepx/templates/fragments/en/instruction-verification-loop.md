@@ -16,7 +16,7 @@ When modifying the canonical source — files in `**/.deepx/**/*.md`
    If drift is detected, return to step 1.
 3. **Automated test loop** — Tests verify generator output satisfies policies:
    ```bash
-   python -m pytest .deepx/tests/test_agentic_scenarios/ -v --tb=short
+   python -m pytest .deepx/tests/conformance/ .deepx/tools/tests/ -v --tb=short
    ```
    Failure handling:
    - Generator bug → fix generator → step 1

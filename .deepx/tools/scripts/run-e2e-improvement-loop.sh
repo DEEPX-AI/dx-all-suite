@@ -669,7 +669,7 @@ Do NOT re-add them under any name, description, or structural variant:
    - It was removed because it tested a hallucinated log marker.
 
 **Verification gate**: After applying any .deepx/ or test file changes, run:
-  python -m pytest .deepx/tests/test_agentic_scenarios/test_sdk_grounding.py .deepx/tests/test_agentic_scenarios/test_forbidden_patterns.py -v
+  python -m pytest .deepx/tests/conformance/test_sdk_grounding.py .deepx/tests/conformance/test_forbidden_patterns.py -v
 If either file fails, REVERT the change and mark the improvement as blocked.
 
 ## Task

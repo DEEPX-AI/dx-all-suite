@@ -170,7 +170,7 @@ lint 실패는 (drift check 실패와 마찬가지로) **commit을 차단합니�
 [ ] bash .deepx/tools/scripts/run_all.sh generate  → OK
 [ ] dx-agentic-gen check   → "All generated files are up-to-date."
 [ ] dx-agentic-gen lint    → "All EN/KO fragment pairs are consistent."
-[ ] python -m pytest .deepx/tests/test_agentic_scenarios/ -q  → 모두 통과
+[ ] python -m pytest .deepx/tests/conformance/ -q  → 모두 통과
 ```
 
 ---

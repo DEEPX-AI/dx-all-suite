@@ -169,7 +169,7 @@ These 16 fragments are **selectively injected** into the `CLAUDE.md` / `AGENTS.m
 
 ### 3.7 tests/ — Infrastructure Verification + E2E
 
-- `test_agentic_scenarios/`: 199 tests (~1 sec) — guide document structure, routing consistency, scenario references, cross-project handoff
+- `conformance/`: 199 tests (~1 sec) — guide document structure, routing consistency, scenario references, cross-project handoff
 - `test_agentic_e2e_scenarios/`: **463 pytest tests** (Copilot 67 + Cursor 63 + OpenCode 112 + Claude Code 110 + Codex 111) — real CLI invocation → static verification (file existence, AST, JSON structure)
 - 4 modes × 2 (autopilot / manual) = 8 execution modes
 - **Total of 662 agentic tests**

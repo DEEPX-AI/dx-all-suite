@@ -9,7 +9,7 @@ Cursor (IDE), OpenCode, 기타 모든 도구)를 사용하여 내부 dx-agentic-
 | 경로 | 예시 |
 |------|------|
 | `.deepx/e2e/test_agentic_e2e_scenarios/` | `conftest.py`, `test_*.py` fixture |
-| `.deepx/tests/test_agentic_scenarios/` | 시나리오 테스트 케이스 |
+| `.deepx/tests/conformance/` | KB / 생성물 적합성 + 정책 검사 |
 | `.deepx/e2e/test.sh` | 수동/자동 shell runner |
 | `.deepx/tests/conftest.py`, `.deepx/tools/src/dx_transcripts/session_common.py`, `.deepx/tools/src/dx_transcripts/parse_copilot_session.py`, `.deepx/tools/src/dx_transcripts/parse_cursor_session.py`, `.deepx/tools/src/dx_transcripts/parse_claude_session.py` | 공유 테스트 인프라 |
 | `.deepx/tools/` (dx-agentic-dev-gen) | generator 소스, CLI, transformer |

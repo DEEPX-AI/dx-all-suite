@@ -210,7 +210,7 @@ instruction fragment의 **path matching**으로 결정됩니다:
     session_common.py     — 공유 session 파싱 유틸리티
     parse_*_session.py    — agent별 session parser
     reports/              — test 리포트 출력
-    test_agentic_scenarios/       — 정적 harness test
+    conformance/       — 정적 harness test
     test_agentic_e2e_scenarios/   — E2E agent 실행 test
   tools/            — harness 개발 도구
     README.md                     — dx-agentic-gen 패키지 가이드

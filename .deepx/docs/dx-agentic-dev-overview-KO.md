@@ -169,7 +169,7 @@ API hallucination 방지용 grounding 문서. 검증된 심볼만 나열:
 
 ### 3.7 tests/ — 인프라 검증 + E2E
 
-- `test_agentic_scenarios/`: 199 tests (~1초) — 가이드 문서 구조, 라우팅 일관성, 시나리오 참조, cross-project handoff
+- `conformance/`: 199 tests (~1초) — 가이드 문서 구조, 라우팅 일관성, 시나리오 참조, cross-project handoff
 - `test_agentic_e2e_scenarios/`: **463 pytest tests** (Copilot 67 + Cursor 63 + OpenCode 112 + Claude Code 110 + Codex 111) — 실제 CLI 호출 → 정적 검증 (file existence, AST, JSON 구조)
 - 5개 모드 × 2 (autopilot / manual) = 10개 실행 모드
 - **총 662 agentic tests**

@@ -1032,7 +1032,7 @@ discipline):
 | Path | Examples |
 |------|---------|
 | `.deepx/e2e/test_agentic_e2e_scenarios/` | `conftest.py`, `test_*.py` fixtures |
-| `.deepx/tests/test_agentic_scenarios/` | scenario test cases |
+| `.deepx/tests/conformance/` | KB / generated-output conformance + policy checks |
 | `.deepx/e2e/test.sh` | manual/autopilot shell runner |
 | `.deepx/tests/conftest.py`, `.deepx/tools/src/dx_transcripts/session_common.py`, `.deepx/tools/src/dx_transcripts/parse_copilot_session.py`, `.deepx/tools/src/dx_transcripts/parse_cursor_session.py`, `.deepx/tools/src/dx_transcripts/parse_claude_session.py` | shared test infrastructure |
 | `.deepx/tools/` (dx-agentic-dev-gen) | generator source, CLI, transformers |
@@ -1173,7 +1173,7 @@ When modifying the canonical source — files in `**/.deepx/**/*.md`
    If drift is detected, return to step 1.
 3. **Automated test loop** — Tests verify generator output satisfies policies:
    ```bash
-   python -m pytest .deepx/tests/test_agentic_scenarios/ -v --tb=short
+   python -m pytest .deepx/tests/conformance/ .deepx/tools/tests/ -v --tb=short
    ```
    Failure handling:
    - Generator bug → fix generator → step 1

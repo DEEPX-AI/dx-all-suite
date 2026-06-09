@@ -6,7 +6,7 @@ A comprehensive pytest-based test suite for automated verification of the dx-all
 
 **Purpose:** End-to-end validation of Docker builds, local installations, and getting-started workflows across multiple components and OS platforms.
 
-> **Note:** For agentic development tests (test_agentic_scenarios, test_agentic_e2e_scenarios), see [`.deepx/tests/README.md`](../.deepx/tests/README.md).
+> **Note:** For agentic development tests (conformance, test_agentic_e2e_scenarios), see [`.deepx/tests/README.md`](../.deepx/tests/README.md).
 
 ## ✅ Test Suite Categories
 

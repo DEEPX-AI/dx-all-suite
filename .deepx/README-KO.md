@@ -90,7 +90,7 @@ dx-all-suite는 5개의 repo를 포함하며, 각각 자체 `.deepx/`를 가집�
 │
 ├── tests/                       ← Test infrastructure
 │   ├── README.md                ← Test categories and how to run them
-│   ├── test_agentic_scenarios/  ← 199 static infra tests
+│   ├── conformance/  ← 199 static infra tests
 │   ├── test_agentic_e2e_scenarios/  ← 352 E2E tests (4 CLIs × 5 scenarios)
 │   ├── agentic_analyzer/        ← E2E 결과 분석기 (리포트, 차트, 대시보드)
 │   ├── test.sh                  ← Manual + autopilot runner

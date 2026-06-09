@@ -1047,7 +1047,7 @@ fragments 포함) — 작업 완료 선언 전에 다음 루프를 **반드시**
    drift 발견 시 1단계로 복귀.
 3. **자동화 테스트 루프** — 테스트는 generator 출력이 정책을 만족하는지 검증:
    ```bash
-   python -m pytest .deepx/tests/test_agentic_scenarios/ -v --tb=short
+   python -m pytest .deepx/tests/conformance/ .deepx/tools/tests/ -v --tb=short
    ```
    실패 처리:
    - generator 버그 → generator 수정 → 1단계

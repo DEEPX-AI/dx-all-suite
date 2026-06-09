@@ -11,7 +11,7 @@ DX-ALL-SUITE 프로젝트용 에이전트 개발 테스트 모음입니다. AI �
 
 ## ✅ 테스트 범주
 
-### 1. test_agentic_scenarios — 에이전트 개발 인프라 검증
+### 1. conformance — 에이전트 개발 인프라 검증
 5개 프로젝트 레벨(suite, compiler, runtime, dx_app, dx_stream) 전반의 에이전트 개발 인프라를 검증합니다.
 
 **검증 항목:**
@@ -357,7 +357,7 @@ export DX_AGENTIC_E2E_CODEX_EXTRA_ARGS='-c model_reasoning_effort="xhigh"'  # xh
 │   └── <run_id>/                    # 실행별 상태 디렉토리 (YYYYMMDD_HHMMSS)
 │       ├── state.json               # 라운드 완료 상태 + artifact 경로
 │       └── logs/<tool>.log          # 도구별 stdout/stderr 로그
-├── 🐍 test_agentic_scenarios/       # 에이전트 인프라 검증
+├── 🐍 conformance/       # 에이전트 인프라 검증
 │   ├── conftest.py
 │   ├── test_guide_structure.py
 │   ├── test_routing_consistency.py

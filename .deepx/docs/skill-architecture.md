@@ -211,7 +211,7 @@ All harness development files live under `.deepx/`:
     session_common.py     — shared session parsing utilities
     parse_*_session.py    — per-agent session parsers
     reports/              — test report output
-    test_agentic_scenarios/       — static harness tests
+    conformance/       — static harness tests
     test_agentic_e2e_scenarios/   — E2E agent execution tests
   tools/            — harness development tools
     README.md                     — dx-agentic-gen package guide

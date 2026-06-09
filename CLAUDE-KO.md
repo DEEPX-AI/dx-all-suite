@@ -1023,7 +1023,7 @@ Cursor (IDE), OpenCode, 기타 모든 도구)를 사용하여 내부 dx-agentic-
 | 경로 | 예시 |
 |------|------|
 | `.deepx/e2e/test_agentic_e2e_scenarios/` | `conftest.py`, `test_*.py` fixture |
-| `.deepx/tests/test_agentic_scenarios/` | 시나리오 테스트 케이스 |
+| `.deepx/tests/conformance/` | KB / 생성물 적합성 + 정책 검사 |
 | `.deepx/e2e/test.sh` | 수동/자동 shell runner |
 | `.deepx/tests/conftest.py`, `.deepx/tools/src/dx_transcripts/session_common.py`, `.deepx/tools/src/dx_transcripts/parse_copilot_session.py`, `.deepx/tools/src/dx_transcripts/parse_cursor_session.py`, `.deepx/tools/src/dx_transcripts/parse_claude_session.py` | 공유 테스트 인프라 |
 | `.deepx/tools/` (dx-agentic-dev-gen) | generator 소스, CLI, transformer |
@@ -1161,7 +1161,7 @@ fragments 포함) — 작업 완료 선언 전에 다음 루프를 **반드시**
    drift 발견 시 1단계로 복귀.
 3. **자동화 테스트 루프** — 테스트는 generator 출력이 정책을 만족하는지 검증:
    ```bash
-   python -m pytest .deepx/tests/test_agentic_scenarios/ -v --tb=short
+   python -m pytest .deepx/tests/conformance/ .deepx/tools/tests/ -v --tb=short
    ```
    실패 처리:
    - generator 버그 → generator 수정 → 1단계

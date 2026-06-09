@@ -9,7 +9,7 @@ For product tests (docker_install, local_install, getting_started), see [`tests/
 
 ## ✅ Test Suite Categories
 
-### 1. test_agentic_scenarios — Agentic Development Infrastructure Validation
+### 1. conformance — Agentic Development Infrastructure Validation
 Validates the agentic development infrastructure across all 5 project levels (suite, compiler, runtime, dx_app, dx_stream).
 
 **What it tests:**
@@ -18,7 +18,7 @@ Validates the agentic development infrastructure across all 5 project levels (su
 - Scenario references: agent/skill references in guides match actual infrastructure
 - Cross-project scenarios: handoff chains, validation scripts, output isolation
 
-**Total tests:** ~700 infra checks — run `pytest .deepx/tests/test_agentic_scenarios/ --collect-only -q` for the live count. These need no CLI/NPU, so effectively all pass; a few skip when an optional dependency is absent.
+**Total tests:** ~700 infra checks — run `pytest .deepx/tests/conformance/ --collect-only -q` for the live count. These need no CLI/NPU, so effectively all pass; a few skip when an optional dependency is absent.
 
 ### 2. test_agentic_e2e_scenarios — Agentic End-to-End Scenario Tests (Copilot CLI + Cursor CLI + OpenCode CLI + Claude Code CLI + Codex CLI)
 Runs actual CLI agent invocations for representative scenarios from each project level, then statically verifies the generated output files.
@@ -288,7 +288,7 @@ the per-session detail table.
 ## 🚀 Quick Start
 
 ```bash
-cd tests
+cd .deepx/e2e
 
 # Agentic infrastructure validation (~704 tests, ~1 second)
 ./test.sh agentic
@@ -959,7 +959,7 @@ tests/
 │   └── <run_id>/                    # Per-run state dir (YYYYMMDD_HHMMSS)
 │       ├── state.json               # Round completion, artifact dirs, exit codes
 │       └── logs/<tool>.log          # Per-tool stdout/stderr log
-├── 🐍 test_agentic_scenarios/       # Agentic infrastructure validation
+├── 🐍 conformance/       # Agentic infrastructure validation
 │   ├── conftest.py                  # ProjectInfra dataclass, path constants, helpers
 │   ├── test_guide_structure.py      # Guide existence, headings, numbering, EN/KO sync
 │   ├── test_routing_consistency.py  # CLAUDE.md, AGENTS.md, copilot-instructions consistency

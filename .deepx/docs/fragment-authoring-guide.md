@@ -171,7 +171,7 @@ A lint failure **blocks the commit** (same as a drift check failure).
 [ ] bash .deepx/tools/scripts/run_all.sh generate  → OK
 [ ] dx-agentic-gen check   → "All generated files are up-to-date."
 [ ] dx-agentic-gen lint    → "All EN/KO fragment pairs are consistent."
-[ ] python -m pytest .deepx/tests/test_agentic_scenarios/ -q  → all pass
+[ ] python -m pytest .deepx/tests/conformance/ -q  → all pass
 ```
 
 ---
