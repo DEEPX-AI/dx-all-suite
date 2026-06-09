@@ -11,7 +11,7 @@ import sys
 
 import pytest
 
-_TESTS_DIR = Path(__file__).resolve().parent
+_TESTS_DIR = Path(__file__).resolve().parents[1]  # .deepx/tests/
 if str(_TESTS_DIR) not in sys.path:
     sys.path.insert(0, str(_TESTS_DIR))
 
