@@ -167,17 +167,18 @@ class TestScenarioNumbering:
 # These are checked case-insensitively. Each guide must have:
 #   1. An overview or introduction section
 #   2. A scenarios section (the core purpose of these guides)
-#   3. A troubleshooting section
+# NOTE: a Troubleshooting section is intentionally NOT required — those tables
+# mostly covered module-external concerns (dx_app/dx_stream/compiler, NPU driver,
+# GStreamer) that belong in each module's own docs, and duplicating them in the
+# agentic-dev guides created a sync burden, so they were removed.
 REQUIRED_SECTION_PATTERNS_EN = [
     r"(?:overview|introduction|how it works)",  # Overview/Introduction
     r"scenario",                                  # Scenarios (section heading)
-    r"troubleshoot",                              # Troubleshooting
 ]
 
 REQUIRED_SECTION_PATTERNS_KO = [
     r"(?:개요|소개|작동\s*방식)",   # Overview/Introduction (KO)
     r"시나리오",                     # Scenarios (KO)
-    r"(?:문제\s*해결|트러블슈팅)",   # Troubleshooting (KO)
 ]
 
 

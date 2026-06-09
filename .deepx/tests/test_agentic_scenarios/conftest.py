@@ -51,8 +51,8 @@ class GuidePair:
 GUIDE_PAIRS: List[GuidePair] = [
     GuidePair(
         project="suite",
-        en_path=SUITE_ROOT / "docs/source/agentic_development.md",
-        ko_path=SUITE_ROOT / "docs/source/agentic_development-KO.md",
+        en_path=SUITE_ROOT / "docs/source/00_Agentic_Development.md",
+        ko_path=SUITE_ROOT / "docs/source/00_Agentic_Development_kor.md",
         label="DX All Suite (top-level)",
     ),
     GuidePair(

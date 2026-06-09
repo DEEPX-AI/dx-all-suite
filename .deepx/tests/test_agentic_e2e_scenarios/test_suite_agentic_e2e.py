@@ -12,7 +12,7 @@ Mode behaviour:
 - manual: follows brainstorming workflow, then download + compile + app (shell-based)
 
 Guide reference:
-    dx-all-suite/docs/source/agentic_development.md — Scenario 2
+    dx-all-suite/docs/source/00_Agentic_Development.md — Scenario 2
 """
 
 from __future__ import annotations
@@ -42,7 +42,7 @@ SCENARIO_PROMPT = (
     "Compile yolo26n and build an inference app"
 )
 
-# Prompt source: dx-all-suite/docs/source/agentic_development.md — Scenario 2
+# Prompt source: dx-all-suite/docs/source/00_Agentic_Development.md — Scenario 2
 # The --no-ask-user CLI flag ensures fully autonomous execution (no brainstorming).
 # Manual mode uses the same base prompt via test.sh (shell-based, copilot -i).
 

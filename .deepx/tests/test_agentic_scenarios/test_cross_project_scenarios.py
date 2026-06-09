@@ -201,8 +201,8 @@ class TestHandoffChains:
     # Skill names follow the pattern dx-agentic-*, dx-build-*, dx-validate-*,
     # dx-convert-*, dx-model-*. These are invoked as /skill-name, not @agent.
     _SKILL_PREFIXES = (
-        "dx-agentic-", "dx-build-", "dx-validate-", "dx-compile-", "dx-convert-",
-        "dx-model-", "dx-brainstorm-", "dx-tdd", "dx-verify-",
+        "dx-agentic-", "dx-swe-", "dx-build-", "dx-validate-", "dx-compile-",
+        "dx-convert-", "dx-model-", "dx-brainstorm-", "dx-tdd", "dx-verify-",
     )
 
     def _extract_handoff_targets(self, text: str) -> Set[str]:
