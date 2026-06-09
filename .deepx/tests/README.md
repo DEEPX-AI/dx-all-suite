@@ -45,7 +45,7 @@ Runs actual CLI agent invocations for representative scenarios from each project
 
 **Verification approach:** Static analysis only (file existence, Python syntax via `ast.parse`, JSON structure, required patterns). No actual HW inference.
 
-**Total tests:** ~586 collected across the five CLI autopilot markers (copilot, cursor, opencode, claude-code, codex) — run `pytest .deepx/tests/test_agentic_e2e_scenarios/ --collect-only -q` for the live count; plus shell-based manual modes.
+**Total tests:** ~586 collected across the five CLI autopilot markers (copilot, cursor, opencode, claude-code, codex) — run `pytest .deepx/e2e/test_agentic_e2e_scenarios/ --collect-only -q` for the live count; plus shell-based manual modes.
 
 **Markers (pytest only):**
 - `pytest.mark.agentic_e2e_copilot_cli_autopilot` — Copilot CLI fully autonomous (CI/CD)
@@ -57,7 +57,7 @@ Runs actual CLI agent invocations for representative scenarios from each project
 ## 🔄 E2E Runner & Monitor
 
 Reusable tools for running multiple rounds in parallel and monitoring progress in real time.
-Located at `.deepx/tests/e2e_runner.py` and `.deepx/tests/e2e_monitor.py`.
+Located at `.deepx/e2e/e2e_runner.py` and `.deepx/e2e/e2e_monitor.py`.
 
 ### e2e_runner.py
 
@@ -71,42 +71,42 @@ stop/abort/cleanup do not need it).
 
 ```bash
 # Run all tools for 5 rounds sequentially (default)
-python .deepx/tests/e2e_runner.py --rounds 5
+python .deepx/e2e/e2e_runner.py --rounds 5
 
 # Parallel mode — fan out across all 5 tools at once
 #   → faster wall-clock but per-tool durations include contention overhead
-python .deepx/tests/e2e_runner.py --rounds 5 --parallel
+python .deepx/e2e/e2e_runner.py --rounds 5 --parallel
 
 # Run specific tools only
-python .deepx/tests/e2e_runner.py --rounds 5 --tools claude-code,copilot-cli
+python .deepx/e2e/e2e_runner.py --rounds 5 --tools claude-code,copilot-cli
 
 # Enable thinking / high-reasoning mode (xhigh effort)
-python .deepx/tests/e2e_runner.py --rounds 5 --thinking
+python .deepx/e2e/e2e_runner.py --rounds 5 --thinking
 
 # Resume: auto-detect completed rounds, continue to target
-python .deepx/tests/e2e_runner.py --rounds 10 --resume
+python .deepx/e2e/e2e_runner.py --rounds 10 --resume
 
 # Resume a specific previous run
-python .deepx/tests/e2e_runner.py --rounds 10 --resume --run-id 20260521_100000
+python .deepx/e2e/e2e_runner.py --rounds 10 --resume --run-id 20260521_100000
 
 # List all run IDs
-python .deepx/tests/e2e_runner.py --list
+python .deepx/e2e/e2e_runner.py --list
 
 # Show detailed status (mode/per-round/scenario timing)
-python .deepx/tests/e2e_runner.py --status
-python .deepx/tests/e2e_runner.py --status --run-id 20260521_135734
+python .deepx/e2e/e2e_runner.py --status
+python .deepx/e2e/e2e_runner.py --status --run-id 20260521_135734
 
 # Graceful stop (finish current round, then exit)
-python .deepx/tests/e2e_runner.py --stop
+python .deepx/e2e/e2e_runner.py --stop
 
 # Immediate abort (kill processes, remove in-progress artifacts)
-python .deepx/tests/e2e_runner.py --abort
-python .deepx/tests/e2e_runner.py --abort --force   # skip confirmation prompt
+python .deepx/e2e/e2e_runner.py --abort
+python .deepx/e2e/e2e_runner.py --abort --force   # skip confirmation prompt
 
 # Delete artifacts for specific rounds
-python .deepx/tests/e2e_runner.py --cleanup --round 3
-python .deepx/tests/e2e_runner.py --cleanup --round 3 --tool claude-code
-python .deepx/tests/e2e_runner.py --cleanup --round 2,3,4
+python .deepx/e2e/e2e_runner.py --cleanup --round 3
+python .deepx/e2e/e2e_runner.py --cleanup --round 3 --tool claude-code
+python .deepx/e2e/e2e_runner.py --cleanup --round 2,3,4
 ```
 
 **Sequential vs Parallel:**
@@ -134,7 +134,7 @@ and shows it in `--status` output.
 Defaults are tuned for **sequential** baseline durations. Parallel mode may need
 longer timeouts due to contention — bump them as needed:
 ```bash
-DX_TIMEOUT_COMPILER=3600 DX_TIMEOUT_SUITE=4800 python .deepx/tests/e2e_runner.py --rounds 5
+DX_TIMEOUT_COMPILER=3600 DX_TIMEOUT_SUITE=4800 python .deepx/e2e/e2e_runner.py --rounds 5
 ```
 
 **Stop & Resume:**
@@ -155,7 +155,7 @@ DX_TIMEOUT_COMPILER=3600 DX_TIMEOUT_SUITE=4800 python .deepx/tests/e2e_runner.py
 | `codex-cli` | `DX_AGENTIC_E2E_CODEX_EXTRA_ARGS=-c model_reasoning_effort="xhigh"` |
 | `cursor-cli` | No thinking mode (quota exceeded; auto fallback) |
 
-**State files** (`.deepx/tests/runner_state/<run_id>/`):
+**State files** (`.deepx/e2e/runner_state/<run_id>/`):
 - `state.json` — round completion status, timing, artifact paths, exit codes, PIDs
 - `logs/<tool>.log` — per-tool full stdout/stderr log
 - `STOP` / `ABORT` — sentinel files (created by --stop/--abort)
@@ -196,13 +196,13 @@ Mechanism: `e2e_runner.py` propagates `DX_RUN_ID=<run_id>` to the subprocess env
 
 ```bash
 # Dry-run preview
-python .deepx/tests/migrate_results_to_run_id.py
+python .deepx/e2e/migrate_results_to_run_id.py
 
 # Apply moves (matched → results/<run_id>/, unmatched → results/legacy/)
-python .deepx/tests/migrate_results_to_run_id.py --apply
+python .deepx/e2e/migrate_results_to_run_id.py --apply
 
 # Keep unmatched sessions flat (do not create legacy/)
-python .deepx/tests/migrate_results_to_run_id.py --apply --skip-legacy
+python .deepx/e2e/migrate_results_to_run_id.py --apply --skip-legacy
 ```
 
 The migration script reads `runner_state/*/state.json` to build a
@@ -215,22 +215,22 @@ Rich-based Live TUI monitor for real-time runner progress.
 
 ```bash
 # Monitor latest run (progress table only, no logs)
-python .deepx/tests/e2e_monitor.py
+python .deepx/e2e/e2e_monitor.py
 
 # Monitor specific run
-python .deepx/tests/e2e_monitor.py --run-id 20260521_100000
+python .deepx/e2e/e2e_monitor.py --run-id 20260521_100000
 
 # Show all tool logs
-python .deepx/tests/e2e_monitor.py --tool all
+python .deepx/e2e/e2e_monitor.py --tool all
 
 # Focus on specific tool (logs + scenario timing)
-python .deepx/tests/e2e_monitor.py --tool claude-code --tail 30
+python .deepx/e2e/e2e_monitor.py --tool claude-code --tail 30
 
 # List all run IDs
-python .deepx/tests/e2e_monitor.py --list
+python .deepx/e2e/e2e_monitor.py --list
 
 # Print snapshot once and exit (no live update)
-python .deepx/tests/e2e_monitor.py --once
+python .deepx/e2e/e2e_monitor.py --once
 ```
 
 **`--tool` option:**
@@ -253,7 +253,7 @@ python .deepx/tests/e2e_monitor.py --once
 Generate quantitative + qualitative reports after one or more E2E runs:
 
 ```bash
-cd .deepx/tests/agentic_analyzer
+cd .deepx/e2e/agentic_analyzer
 
 # Aggregate every run (and legacy flat results)
 #   → analyzer_reports/_all/<timestamp>/
@@ -852,7 +852,7 @@ export DX_AGENTIC_E2E_CLAUDE_CODE_TIMEOUT=600  # Claude Code CLI timeout in seco
 ## 🔄 E2E Runner & Monitor
 
 Reusable tools for running multi-round E2E tests and monitoring progress.
-Located at `.deepx/tests/e2e_runner.py` and `.deepx/tests/e2e_monitor.py`.
+Located at `.deepx/e2e/e2e_runner.py` and `.deepx/e2e/e2e_monitor.py`.
 
 ### e2e_runner.py
 
@@ -862,30 +862,30 @@ Runs all 5 tools for N rounds with state tracking and resume support.
 
 ```bash
 # Run 5 rounds for all tools sequentially (default)
-python .deepx/tests/e2e_runner.py --rounds 5
+python .deepx/e2e/e2e_runner.py --rounds 5
 
 # Parallel mode (one thread per tool — original behavior)
-python .deepx/tests/e2e_runner.py --rounds 5 --parallel
+python .deepx/e2e/e2e_runner.py --rounds 5 --parallel
 
 # Run for specific tools only
-python .deepx/tests/e2e_runner.py --rounds 5 --tools claude-code,copilot-cli
+python .deepx/e2e/e2e_runner.py --rounds 5 --tools claude-code,copilot-cli
 
 # Enable thinking / high-reasoning mode (xhigh effort)
-python .deepx/tests/e2e_runner.py --rounds 5 --thinking
+python .deepx/e2e/e2e_runner.py --rounds 5 --thinking
 
 # Resume: auto-detect completed rounds and continue to target
-python .deepx/tests/e2e_runner.py --rounds 10 --resume
+python .deepx/e2e/e2e_runner.py --rounds 10 --resume
 
 # Resume a specific previous run by ID
-python .deepx/tests/e2e_runner.py --rounds 10 --resume --run-id 20260521_100000
+python .deepx/e2e/e2e_runner.py --rounds 10 --resume --run-id 20260521_100000
 
 # Show status of the latest run
-python .deepx/tests/e2e_runner.py --status
+python .deepx/e2e/e2e_runner.py --status
 
 # Delete artifacts for a specific round
-python .deepx/tests/e2e_runner.py --cleanup --round 3
-python .deepx/tests/e2e_runner.py --cleanup --round 3 --tool claude-code
-python .deepx/tests/e2e_runner.py --cleanup --round 2,3,4
+python .deepx/e2e/e2e_runner.py --cleanup --round 3
+python .deepx/e2e/e2e_runner.py --cleanup --round 3 --tool claude-code
+python .deepx/e2e/e2e_runner.py --cleanup --round 2,3,4
 ```
 
 **Thinking mode** per tool:
@@ -898,7 +898,7 @@ python .deepx/tests/e2e_runner.py --cleanup --round 2,3,4
 | `codex-cli` | `DX_AGENTIC_E2E_CODEX_EXTRA_ARGS=-c model_reasoning_effort="xhigh"` |
 | `cursor-cli` | No thinking mode (quota fallback to auto) |
 
-**State files** are stored under `.deepx/tests/runner_state/<run_id>/`:
+**State files** are stored under `.deepx/e2e/runner_state/<run_id>/`:
 - `state.json` — round completion status, artifact dirs, exit codes
 - `logs/<tool>.log` — full stdout/stderr per tool
 - `latest` symlink — always points to the most recent run
@@ -914,16 +914,16 @@ Live TUI monitor (using `rich`) to watch runner progress in real-time.
 
 ```bash
 # Watch latest run (live TUI, updates every 3 seconds)
-python .deepx/tests/e2e_monitor.py
+python .deepx/e2e/e2e_monitor.py
 
 # Watch a specific run
-python .deepx/tests/e2e_monitor.py --run-id 20260521_100000
+python .deepx/e2e/e2e_monitor.py --run-id 20260521_100000
 
 # Focus on one tool's log
-python .deepx/tests/e2e_monitor.py --tool claude-code --tail 30
+python .deepx/e2e/e2e_monitor.py --tool claude-code --tail 30
 
 # Print snapshot once and exit (no live update)
-python .deepx/tests/e2e_monitor.py --once
+python .deepx/e2e/e2e_monitor.py --once
 ```
 
 **Monitor layout:**

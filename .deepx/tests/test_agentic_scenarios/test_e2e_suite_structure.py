@@ -27,7 +27,14 @@ from .conftest import SUITE_ROOT
 # Suite test files to check
 # ---------------------------------------------------------------------------
 
-E2E_DIR = SUITE_ROOT / ".deepx" / "tests" / "test_agentic_e2e_scenarios"
+E2E_DIR = SUITE_ROOT / ".deepx" / "e2e" / "test_agentic_e2e_scenarios"
+
+# The e2e harness now lives under .deepx/e2e/; put it on sys.path so the
+# `test_agentic_e2e_scenarios` package (and its conftest) is importable here.
+import sys as _sys
+_E2E_PARENT = str(SUITE_ROOT / ".deepx" / "e2e")
+if _E2E_PARENT not in _sys.path:
+    _sys.path.insert(0, _E2E_PARENT)
 
 SUITE_TEST_FILES = {
     "copilot":     E2E_DIR / "test_suite_agentic_e2e.py",
@@ -153,9 +160,18 @@ class TestConftestSymbols:
         after subprocess.run() to guarantee session_uuid is always bound.
         """
         import ast
-        import inspect
-        from test_agentic_e2e_scenarios.conftest import OpenCodeRunnerAutopilot
-        src = inspect.getsource(OpenCodeRunnerAutopilot.run)
+        # Read the run() source straight from conftest.py on disk. (Importing the
+        # module + inspect.getsource is unreliable under pytest, whose assertion
+        # rewriter intercepts any `conftest.py` and strips linecache source.)
+        _conftest_src = (E2E_DIR / "conftest.py").read_text(encoding="utf-8")
+        _tree = ast.parse(_conftest_src)
+        src = None
+        for _node in ast.walk(_tree):
+            if isinstance(_node, ast.ClassDef) and _node.name == "OpenCodeRunnerAutopilot":
+                for _item in _node.body:
+                    if isinstance(_item, (ast.FunctionDef, ast.AsyncFunctionDef)) and _item.name == "run":
+                        src = ast.get_source_segment(_conftest_src, _item)
+        assert src, "OpenCodeRunnerAutopilot.run() not found in conftest.py"
         # Split on the first conditional block to check initialization order.
         # session_uuid must be assigned (via parse) before any 'if' or 'for' branch
         # in the success path that leads to _save_opencode_session_log.

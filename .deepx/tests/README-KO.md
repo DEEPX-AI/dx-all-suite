@@ -47,7 +47,7 @@ DX-ALL-SUITE 프로젝트용 에이전트 개발 테스트 모음입니다. AI �
 ## 🔄 E2E Runner & Monitor
 
 여러 라운드를 병렬로 실행하고 진행 현황을 모니터링하는 재사용 가능한 도구입니다.
-`.deepx/tests/e2e_runner.py` 및 `.deepx/tests/e2e_monitor.py`에 위치합니다.
+`.deepx/e2e/e2e_runner.py` 및 `.deepx/e2e/e2e_monitor.py`에 위치합니다.
 
 ### e2e_runner.py
 
@@ -60,41 +60,41 @@ DX-ALL-SUITE 프로젝트용 에이전트 개발 테스트 모음입니다. AI �
 
 ```bash
 # 모든 도구 5 라운드 순차 실행 (기본)
-python .deepx/tests/e2e_runner.py --rounds 5
+python .deepx/e2e/e2e_runner.py --rounds 5
 
 # 병렬 실행 — 5개 도구 동시 실행 (빠른 batch, 측정값은 경합으로 왜곡 가능)
-python .deepx/tests/e2e_runner.py --rounds 5 --parallel
+python .deepx/e2e/e2e_runner.py --rounds 5 --parallel
 
 # 특정 도구만 실행
-python .deepx/tests/e2e_runner.py --rounds 5 --tools claude-code,copilot-cli
+python .deepx/e2e/e2e_runner.py --rounds 5 --tools claude-code,copilot-cli
 
 # Thinking / 고추론 모드 활성화 (xhigh effort)
-python .deepx/tests/e2e_runner.py --rounds 5 --thinking
+python .deepx/e2e/e2e_runner.py --rounds 5 --thinking
 
 # Resume: 완료된 라운드 자동 감지 후 목표까지 이어서 실행
-python .deepx/tests/e2e_runner.py --rounds 10 --resume
+python .deepx/e2e/e2e_runner.py --rounds 10 --resume
 
 # 특정 이전 run ID로 resume
-python .deepx/tests/e2e_runner.py --rounds 10 --resume --run-id 20260521_100000
+python .deepx/e2e/e2e_runner.py --rounds 10 --resume --run-id 20260521_100000
 
 # Run ID 목록 조회
-python .deepx/tests/e2e_runner.py --list
+python .deepx/e2e/e2e_runner.py --list
 
 # 상세 상태 확인 (mode/라운드/시나리오별 timing 포함)
-python .deepx/tests/e2e_runner.py --status
-python .deepx/tests/e2e_runner.py --status --run-id 20260521_135734
+python .deepx/e2e/e2e_runner.py --status
+python .deepx/e2e/e2e_runner.py --status --run-id 20260521_135734
 
 # Graceful 중단 (현재 라운드 완료 후 종료)
-python .deepx/tests/e2e_runner.py --stop
+python .deepx/e2e/e2e_runner.py --stop
 
 # 즉시 중단 (진행중 라운드 결과물 삭제)
-python .deepx/tests/e2e_runner.py --abort
-python .deepx/tests/e2e_runner.py --abort --force   # 확인 프롬프트 생략
+python .deepx/e2e/e2e_runner.py --abort
+python .deepx/e2e/e2e_runner.py --abort --force   # 확인 프롬프트 생략
 
 # 특정 라운드 산출물 삭제
-python .deepx/tests/e2e_runner.py --cleanup --round 3
-python .deepx/tests/e2e_runner.py --cleanup --round 3 --tool claude-code
-python .deepx/tests/e2e_runner.py --cleanup --round 2,3,4
+python .deepx/e2e/e2e_runner.py --cleanup --round 3
+python .deepx/e2e/e2e_runner.py --cleanup --round 3 --tool claude-code
+python .deepx/e2e/e2e_runner.py --cleanup --round 2,3,4
 ```
 
 **Sequential vs Parallel 비교:**
@@ -120,7 +120,7 @@ python .deepx/tests/e2e_runner.py --cleanup --round 2,3,4
 
 기본값은 **sequential 실행 baseline 기준**으로 설정되어 있습니다. 병렬 모드는 NPU/CPU 경합으로 인해 더 긴 시간이 필요할 수 있어, 필요 시 환경변수로 늘려서 사용하세요:
 ```bash
-DX_TIMEOUT_COMPILER=3600 DX_TIMEOUT_SUITE=4800 python .deepx/tests/e2e_runner.py --rounds 5
+DX_TIMEOUT_COMPILER=3600 DX_TIMEOUT_SUITE=4800 python .deepx/e2e/e2e_runner.py --rounds 5
 ```
 
 **중단 및 재개:**
@@ -145,7 +145,7 @@ DX_TIMEOUT_COMPILER=3600 DX_TIMEOUT_SUITE=4800 python .deepx/tests/e2e_runner.py
 | `codex-cli` | `DX_AGENTIC_E2E_CODEX_EXTRA_ARGS=-c model_reasoning_effort="xhigh"` |
 | `cursor-cli` | Thinking 모드 없음 (quota 초과 시 auto fallback) |
 
-**State 파일** (`.deepx/tests/runner_state/<run_id>/`):
+**State 파일** (`.deepx/e2e/runner_state/<run_id>/`):
 - `state.json` — 라운드 완료 상태, timing, artifact 경로, exit code, PID
 - `logs/<tool>.log` — 도구별 전체 stdout/stderr 로그
 - `STOP` / `ABORT` — sentinel 파일 (--stop/--abort 시 생성)
@@ -205,13 +205,13 @@ dx-agentic-dev/e2e-tests/results/
 
 ```bash
 # Dry-run으로 이동 계획 미리보기
-python .deepx/tests/migrate_results_to_run_id.py
+python .deepx/e2e/migrate_results_to_run_id.py
 
 # 실제 이동 (run-id 매칭 + 미매칭 → legacy/)
-python .deepx/tests/migrate_results_to_run_id.py --apply
+python .deepx/e2e/migrate_results_to_run_id.py --apply
 
 # 미매칭은 legacy/로 옮기지 않고 그대로 두기
-python .deepx/tests/migrate_results_to_run_id.py --apply --skip-legacy
+python .deepx/e2e/migrate_results_to_run_id.py --apply --skip-legacy
 ```
 
 스크립트는 `runner_state/*/state.json`의 `completed[*].result_dir_name`을 통해 매핑을 구성하며, 매칭되지 않은 디렉터리는 `legacy/`로 이동합니다. 분석기는 두 레이아웃을 모두 지원하므로 마이그레이션은 권장 사항이지 필수가 아닙니다.
@@ -222,22 +222,22 @@ python .deepx/tests/migrate_results_to_run_id.py --apply --skip-legacy
 
 ```bash
 # 최신 실행 실시간 모니터 (progress table만, 로그 없음)
-python .deepx/tests/e2e_monitor.py
+python .deepx/e2e/e2e_monitor.py
 
 # 특정 run 모니터
-python .deepx/tests/e2e_monitor.py --run-id 20260521_100000
+python .deepx/e2e/e2e_monitor.py --run-id 20260521_100000
 
 # 모든 도구 로그 표시
-python .deepx/tests/e2e_monitor.py --tool all
+python .deepx/e2e/e2e_monitor.py --tool all
 
 # 특정 도구 로그 집중 표시 + 시나리오 timing (tail 30줄)
-python .deepx/tests/e2e_monitor.py --tool claude-code --tail 30
+python .deepx/e2e/e2e_monitor.py --tool claude-code --tail 30
 
 # Run ID 목록 조회
-python .deepx/tests/e2e_monitor.py --list
+python .deepx/e2e/e2e_monitor.py --list
 
 # 스냅샷 1회 출력 후 종료 (실시간 갱신 없음)
-python .deepx/tests/e2e_monitor.py --once
+python .deepx/e2e/e2e_monitor.py --once
 ```
 
 **`--tool` 옵션:**
@@ -273,9 +273,9 @@ cd .deepx/tests
 ./test.sh agentic-e2e-codex-cli-autopilot       # Codex CLI
 
 # 여러 라운드 병렬 실행 (e2e_runner.py)
-python .deepx/tests/e2e_runner.py --rounds 5
-python .deepx/tests/e2e_runner.py --status
-python .deepx/tests/e2e_monitor.py             # 별도 터미널에서 실시간 모니터링
+python .deepx/e2e/e2e_runner.py --rounds 5
+python .deepx/e2e/e2e_runner.py --status
+python .deepx/e2e/e2e_monitor.py             # 별도 터미널에서 실시간 모니터링
 ```
 
 ---
@@ -285,7 +285,7 @@ python .deepx/tests/e2e_monitor.py             # 별도 터미널에서 실시�
 E2E 실행 완료 후 아래 명령으로 종합 분석 리포트를 생성합니다:
 
 ```bash
-cd .deepx/tests/agentic_analyzer
+cd .deepx/e2e/agentic_analyzer
 
 # 기본 옵션 — 모든 run_id 합산 (가설 생성 + 정량 비교 + runnability + 정성 insight + 가설 비교)
 #   출력: analyzer_reports/_all/<timestamp>/

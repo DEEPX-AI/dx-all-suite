@@ -28,6 +28,9 @@ __pycache__/
 .deepx/tools/e2e-loop-results/
 tests/reports/
 .deepx/tests/reports/
+.deepx/e2e/reports/
+.deepx/e2e/runner_state/
+.deepx/e2e/analyzer_reports/
 compile.pid
 *.onnx
 *.pt

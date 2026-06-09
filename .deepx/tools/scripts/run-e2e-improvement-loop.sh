@@ -291,7 +291,7 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-TESTS_DIR="$SUITE_ROOT/.deepx/tests"
+E2E_DIR="$SUITE_ROOT/.deepx/e2e"
 RUN_BASE="$SUITE_ROOT/.deepx/tools/e2e-loop-results"
 
 # Resolve STATE_DIR: explicit --run-dir > --resume (latest) > new timestamped dir
@@ -314,7 +314,7 @@ preflight() {
     local ok=1
 
     command -v python3 &>/dev/null || { fail "python3 not found"; ok=0; }
-    [ -f "$TESTS_DIR/test.sh" ]    || { fail "tests/test.sh not found at $TESTS_DIR"; ok=0; }
+    [ -f "$E2E_DIR/test.sh" ]    || { fail "e2e/test.sh not found at $E2E_DIR"; ok=0; }
 
     case "$ORCHESTRATOR" in
         copilot)
@@ -406,7 +406,7 @@ run_tool_test() {
     log "Running $tool ($suite_name) ..."
 
     if [ "$DRY_RUN" -eq 1 ]; then
-        warn "[dry-run] would run: bash .deepx/tests/test.sh $suite_name -k $SCENARIO"
+        warn "[dry-run] would run: bash .deepx/e2e/test.sh $suite_name -k $SCENARIO"
         echo '{"summary":{"total":0},"exitcode":0}' > "$json_file"
         return 0
     fi
@@ -421,7 +421,7 @@ run_tool_test() {
     > "$out_log"
     (
         cd "$SUITE_ROOT"
-        bash "$TESTS_DIR/test.sh" \
+        bash "$E2E_DIR/test.sh" \
             "$suite_name" \
             -k "$SCENARIO" \
             --json-report \
@@ -879,7 +879,7 @@ main() {
         set +e
         (
             cd "$SUITE_ROOT"
-            python3 -m pytest .deepx/tests/test_agentic_e2e_scenarios/ \
+            python3 -m pytest .deepx/e2e/test_agentic_e2e_scenarios/ \
                 --collect-only -q 2>&1
         )
         local _collect_rc=$?
@@ -953,8 +953,8 @@ main() {
         (
             cd "$SUITE_ROOT"
             python3 -m py_compile \
-                .deepx/tests/test_agentic_e2e_scenarios/test_*suite*.py \
-                .deepx/tests/test_agentic_e2e_scenarios/conftest.py 2>&1
+                .deepx/e2e/test_agentic_e2e_scenarios/test_*suite*.py \
+                .deepx/e2e/test_agentic_e2e_scenarios/conftest.py 2>&1
         )
         local _syntax_rc=$?
         set -e
@@ -974,7 +974,7 @@ main() {
             cd "$SUITE_ROOT"
             python3 -c "
 import importlib, sys
-sys.path.insert(0, '.deepx/tests')
+sys.path.insert(0, '.deepx/e2e')
 m = importlib.import_module('test_agentic_e2e_scenarios.conftest')
 for name in ('_snapshot_sessions', '_detect_new_sessions', '_wait_for_background_compilation'):
     assert hasattr(m, name), f'Missing: {name}'
