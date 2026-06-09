@@ -664,15 +664,3 @@ dx-all-suite/dx-agentic-dev/
 **중요**: DONE은 모든 산출물(구현 코드, 스크립트, 설정 파일, 검증 결과)이 생성된
 후에만 출력합니다. 기획 산출물(spec, plan, 설계 문서)만 작성하고 실제 코드를
 구현하지 않은 상태에서는 DONE을 출력하면 안 됩니다.
-
-## 문제 해결
-
-| 증상 | 원인 | 해결 방법 |
-|---|---|---|
-| 에이전트가 `.dxnn` 모델을 찾지 못함 | 모델 이름 또는 아키텍처 불일치 | `dx_app/assets/models/`에 모델이 존재하고 대상 칩(DX-M1, DX-H1)과 일치하는지 확인 |
-| `DxInfer` 엘리먼트가 "device not found" 보고 | DX-RT SDK 미로딩 또는 디바이스 미연결 | `source setup_env.sh` 실행 후 `bash dx-runtime/scripts/sanity_check.sh --dx_rt`로 NPU 확인 |
-| 카메라 입력에서 검은 화면 출력 | 카메라 소스 설정 오류 | `/dev/video` 경로를 하드코딩하지 말고 `--camera <id>`로 카메라 선택 |
-| 에이전트가 잘못된 서브 프로젝트에 코드 생성 | 모호한 프롬프트 | 최상위에서 `@dx-suite-builder`로 자동 라우팅 사용, 또는 대상 빌더 이름을 접두사로 사용 (예: `@dx-stream-builder`, `@dx-app-builder`) |
-| "unsupported opset" 오류로 컴파일 실패 | ONNX opset 버전이 11-21 범위 밖 | `opset_version=17`로 모델 재변환 |
-| 컴파일된 DXNN 정확도 낮음 | 캘리브레이션 데이터가 실제 추론 데이터를 대표하지 못함 | 실제 추론 이미지 사용 및 `calibration_num`을 200 이상으로 증가 |
-| 에이전트가 필수 질문을 건너뜀 | 에이전트 지침에 HARD-GATE 적용 안 됨 | 에이전트 파일의 필수 질문 섹션에 `<HARD-GATE>` 태그가 포함되어 있는지 확인 |
