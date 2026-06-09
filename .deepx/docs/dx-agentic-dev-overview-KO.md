@@ -98,8 +98,9 @@ AGENTS.md          instructions.md        (Cursor)
 | `prompts/` | — | — | ✅ | ✅ | — | 에이전트 입력 템플릿 |
 | `scripts/` | — | ✅ | ✅ | ✅ | ✅ | validate / feedback / generate |
 | `docs/` | ✅ | — | — | — | — | 프레임워크 자체 가이드 (skill-architecture 등) |
-| `tools/` | ✅ | — | — | — | — | `dx-agentic-dev-gen` 제너레이터 |
-| `tests/` | ✅ | — | — | — | — | 인프라 검증 + E2E |
+| `tools/` | ✅ | — | — | — | — | 툴링 패키지: `src/{dx_agentic_dev_gen, dx_transcripts}` + 미러 `tests/` + `scripts/` |
+| `tests/` | ✅ | — | — | — | — | suite **conformance** 테스트 (`conformance/`) — KB / 생성물 정책 검사 |
+| `e2e/` | ✅ | — | — | — | — | E2E 하니스: `e2e_runner`/`e2e_monitor`, `test_agentic_e2e_scenarios/`, `agentic_analyzer/`, `test.sh` |
 
 ---
 
@@ -158,21 +159,30 @@ API hallucination 방지용 grounding 문서. 검증된 심볼만 나열:
 | **하네스** | `dx-harness-validate` / `dx-harness-writing-skills` | `.deepx/` 자체 무결성 검증 / 스킬 생성 |
 | **메타** | `dx-skill-router` | "1% 확률이라도 적용 가능하면 invoke" 규칙 |
 
-### 3.6 tools/ — 제너레이터 (`dx-agentic-dev-gen`)
+### 3.6 tools/ — 툴링 패키지 + 제너레이터
+
+`tools/src/`에 import 가능한 패키지 2개, 각각 `tools/tests/`에 미러:
+
+| 패키지 (`tools/src/`) | 테스트 (`tools/tests/`) | 역할 |
+|----------------------|-------------------------|------|
+| `dx_agentic_dev_gen` | `dx_agentic_dev_gen/` | `dx-agentic-gen` 제너레이터 (cli, generator, transformers, frontmatter, constants) |
+| `dx_transcripts` | `dx_transcripts/` | 공유 세션 파서 + transcript 렌더러 (`parse_*_session`, `session_common`, `generate_transcripts`, `backfill_claude_html`) — session-sentinel DONE-라인 생성, e2e 하니스, analyzer가 공유 |
 
 | 컴포넌트 | 역할 |
 |----------|------|
-| `pyproject.toml` | `dx-agentic-gen` CLI (Python 3.10+, jinja2/pyyaml 의존) |
-| `scripts/run_all.sh generate|check` | 5개 repo 일괄 generate/check (`.`, dx-compiler, dx-runtime, dx-runtime/dx_app, dx-runtime/dx_stream) |
-| `scripts/install-hooks.sh` | suite root + 4개 submodule에 pre-commit 훅 설치 |
-| `scripts/pre-commit-hook.sh` | 커밋 시 3단계 검사: ① `.deepx/` ↔ 비-`.deepx/` 혼재 경고 ② drift check ③ EN/KO fragment parity lint |
+| `pyproject.toml` | `dx-agentic-gen` CLI (Python 3.10+); `packages.find where=["src"]`가 두 패키지 자동 발견 |
+| `scripts/run_all.sh generate\|check\|lint\|prune` | 5개 repo 일괄 작업 |
+| `scripts/install-hooks.sh` / `pre-commit-hook.sh` | pre-commit 훅: `.deepx/`↔비-`.deepx/` 혼재 경고 + drift check + EN/KO lint |
 
-### 3.7 tests/ — 인프라 검증 + E2E
+### 3.7 tests/ — suite conformance
 
-- `conformance/`: 199 tests (~1초) — 가이드 문서 구조, 라우팅 일관성, 시나리오 참조, cross-project handoff
-- `test_agentic_e2e_scenarios/`: **463 pytest tests** (Copilot 67 + Cursor 63 + OpenCode 112 + Claude Code 110 + Codex 111) — 실제 CLI 호출 → 정적 검증 (file existence, AST, JSON 구조)
-- 5개 모드 × 2 (autopilot / manual) = 10개 실행 모드
-- **총 662 agentic tests**
+- `conformance/`: CLI/NPU 불필요한 빠른 정적 검사 ~700개 — 가이드 구조, 라우팅 일관성, 시나리오 참조, cross-project handoff, instruction sync, sdk grounding, forbidden patterns. 정확한 수치는 `pytest .deepx/tests/conformance/ --collect-only -q`.
+
+### 3.8 e2e/ — End-to-End 하니스 (분리됨)
+
+- `e2e_runner.py` / `e2e_monitor.py` / `migrate_results_to_run_id.py` / `_cli_env.py` / `test.sh` — 라운드 오케스트레이션·모니터링·결과 이주·공유 러너.
+- `test_agentic_e2e_scenarios/`: 5개 CLI autopilot 마커(copilot, cursor, opencode, claude-code, codex)로 ~586 collected — 실제 CLI 호출 → 정적 검증. 추가로 인터랙티브 manual 모드(shell).
+- `agentic_analyzer/`: run-id 인지 결과 분석기 (리포트/인사이트; 자체 `lib/` + `tests/`).
 
 ---
 
@@ -431,7 +441,7 @@ API hallucination 방지용 grounding 문서. 검증된 심볼만 나열:
 
 ## 9. 검증 인프라 (`.deepx/tests/`)
 
-### 9.1 인프라 검증 (199 tests, ~1초)
+### 9.1 Conformance (~700 tests, ~1초)
 
 | 모듈 | 검증 항목 |
 |------|----------|
@@ -440,7 +450,7 @@ API hallucination 방지용 grounding 문서. 검증된 심볼만 나열:
 | `test_scenario_references.py` | 에이전트/스킬 참조와 실제 인프라 매칭 |
 | `test_cross_project_scenarios.py` | handoff 체인, validation 스크립트, output isolation |
 
-### 9.2 E2E 시나리오 (352 pytest + manual)
+### 9.2 E2E 시나리오 (~586 pytest + manual)
 
 | 도구 | autopilot 플래그 | 자동승인 / 질문 차단 | 세션 export |
 |------|------------------|---------------------|------------|
@@ -475,7 +485,7 @@ API hallucination 방지용 grounding 문서. 검증된 심볼만 나열:
 
 1. **단일 출처(SoT) 설계가 견고**: `.deepx/` → `dx-agentic-gen` → 4개 플랫폼. drift는 pre-commit 훅이 차단.
 2. **HARD GATE 다층 강제**: skill router(메타) → 프로세스 시퀀스 → 도메인 규칙(IFactory, preprocess-id 등) → 산출물 검증. 무성한 실패(silent failure) 방지에 집중.
-3. **테스트 자동화 폭이 넓다**: 199 infra + 352 E2E + 4개 도구 cross-validation. 자율 모드(`--yolo`)에서도 동일 규칙 강제.
+3. **테스트 자동화 폭이 넓다**: ~700 conformance + ~586 E2E + 5개 도구 cross-validation. 자율 모드(`--yolo`)에서도 동일 규칙 강제.
 4. **모듈별 자율성 + 공통 백본**: 각 sub-project가 자체 `.deepx/`를 보유해 독립 작업 가능하나, 16개 fragment + skill router + Output Isolation 규칙으로 일관성 유지.
 5. **확장 지점**: 새 도메인 추가 시 ① `.deepx/agents/` ② `.deepx/skills/` ③ `.deepx/memory/common_pitfalls.md` ④ `.deepx/toolsets/` ⑤ `instructions/` 5가지를 작성하면 자동으로 4개 플랫폼에 반영.
 
@@ -500,8 +510,8 @@ python dx-compiler/.deepx/scripts/validate_framework.py
 python dx-runtime/.deepx/scripts/feedback_collector.py --framework-only
 
 # 테스트
-cd .deepx/tests
-./test.sh agentic                                       # 199 infra tests
+cd .deepx/e2e
+./test.sh agentic                                       # ~700 conformance tests
 ./test.sh agentic-e2e-claude-code-autopilot             # Claude Code E2E
 ./test.sh agentic-e2e-copilot-cli-autopilot
 ./test.sh agentic-e2e-cursor-cli-autopilot

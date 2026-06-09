@@ -204,19 +204,19 @@ All harness development files live under `.deepx/`:
   memory/           — knowledge base
   skills/           — skill definitions (canonical source)
   templates/        — generator templates + fragments
-  tests/            — agentic test infrastructure
-    conftest.py           — agentic marker registration
-    requirements.txt      — pytest dependencies
-    test.sh               — test runner (manual + autopilot)
-    session_common.py     — shared session parsing utilities
-    parse_*_session.py    — per-agent session parsers
-    reports/              — test report output
-    conformance/       — static harness tests
+  tests/            — suite conformance tests
+    conftest.py           — agentic marker registration + collect_ignore
+    conformance/          — static KB/generated-output policy checks
+  e2e/              — end-to-end harness (separated)
+    e2e_runner.py · e2e_monitor.py · test.sh   — round orchestration + runner
     test_agentic_e2e_scenarios/   — E2E agent execution tests
-  tools/            — harness development tools
-    README.md                     — dx-agentic-gen package guide
-    pyproject.toml                — package definition (dx-agentic-dev-gen)
+    agentic_analyzer/     — run-id-aware result analyzer
+  tools/            — tooling packages + dev scripts
+    README.md                     — tooling guide
+    pyproject.toml                — package definition; discovers both src/ packages
     src/dx_agentic_dev_gen/       — generator package (cli, generator, transformers, frontmatter, constants)
+    src/dx_transcripts/           — shared session parsers + transcript renderer
+    tests/                        — mirrors src/ (dx_agentic_dev_gen/, dx_transcripts/)
     scripts/
       README.md                       — scripts/ guide
       run_all.sh                      — multi-repo generate/check/lint wrapper

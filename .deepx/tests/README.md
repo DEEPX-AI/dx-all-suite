@@ -951,47 +951,31 @@ python .deepx/e2e/e2e_monitor.py --once
 ## 📁 File Structure
 
 ```
-tests/
-├── 🐍 e2e_runner.py                 # Multi-round parallel E2E runner (--rounds, --thinking, --resume, --cleanup)
-├── 🐍 e2e_monitor.py                # Live TUI monitor for runner progress (rich-based)
-├── 📁 runner_state/                 # Runner state files (auto-created, gitignored)
-│   ├── latest -> <run_id>/          # Symlink to most recent run
-│   └── <run_id>/                    # Per-run state dir (YYYYMMDD_HHMMSS)
-│       ├── state.json               # Round completion, artifact dirs, exit codes
-│       └── logs/<tool>.log          # Per-tool stdout/stderr log
-├── 🐍 conformance/       # Agentic infrastructure validation
-│   ├── conftest.py                  # ProjectInfra dataclass, path constants, helpers
-│   ├── test_guide_structure.py      # Guide existence, headings, numbering, EN/KO sync
-│   ├── test_routing_consistency.py  # CLAUDE.md, AGENTS.md, copilot-instructions consistency
-│   ├── test_scenario_references.py  # Agent/skill references match infrastructure
-│   └── test_cross_project_scenarios.py  # Handoff chains, validation scripts
-├── 🐍 test_agentic_e2e_scenarios/   # Agentic E2E scenario tests (Copilot + Cursor CLI)
-│   ├── conftest.py                  # CopilotRunnerAutopilot, CursorRunnerAutopilot, ScenarioResult, helpers
-│   ├── test_dx_app_agentic_e2e.py   # dx_app — Copilot CLI (11 tests)
-│   ├── test_dx_stream_agentic_e2e.py # dx_stream — Copilot CLI (18 tests)
-│   ├── test_compiler_agentic_e2e.py # dx-compiler — Copilot CLI (14 tests)
-│   ├── test_runtime_agentic_e2e.py  # dx-runtime — Copilot CLI (10 tests)
-│   ├── test_suite_agentic_e2e.py    # dx-all-suite — Copilot CLI (14 tests)
-│   ├── test_cursor_dx_app_agentic_e2e.py    # dx_app — Cursor CLI (10 tests)
-│   ├── test_cursor_dx_stream_agentic_e2e.py # dx_stream — Cursor CLI (15 tests)
-│   ├── test_cursor_compiler_agentic_e2e.py  # dx-compiler — Cursor CLI (14 tests)
-│   ├── test_cursor_runtime_agentic_e2e.py   # dx-runtime — Cursor CLI (10 tests)
-│   ├── test_cursor_suite_agentic_e2e.py     # dx-all-suite — Cursor CLI (14 tests)
-│   ├── test_opencode_dx_app_agentic_e2e.py       # dx_app — OpenCode CLI (10 tests)
-│   ├── test_opencode_dx_stream_agentic_e2e.py    # dx_stream — OpenCode CLI (32 tests)
-│   ├── test_opencode_dx_stream_cascaded_e2e.py   # dx_stream cascaded — OpenCode CLI (25 tests)
-│   ├── test_opencode_compiler_agentic_e2e.py     # dx-compiler — OpenCode CLI (14 tests)
-│   ├── test_opencode_runtime_agentic_e2e.py      # dx-runtime — OpenCode CLI (9 tests)
-│   ├── test_opencode_suite_agentic_e2e.py        # dx-all-suite — OpenCode CLI (22 tests)
-│   ├── test_claude_code_dx_app_agentic_e2e.py    # dx_app — Claude Code CLI (10 tests)
-│   ├── test_claude_code_dx_stream_agentic_e2e.py # dx_stream — Claude Code CLI (32 tests)
-│   ├── test_claude_code_dx_stream_cascaded_e2e.py # dx_stream cascaded — Claude Code CLI (24 tests)
-│   ├── test_claude_code_compiler_agentic_e2e.py  # dx-compiler — Claude Code CLI (14 tests)
-│   ├── test_claude_code_runtime_agentic_e2e.py   # dx-runtime — Claude Code CLI (9 tests)
-│   └── test_claude_code_suite_agentic_e2e.py     # dx-all-suite — Claude Code CLI (21 tests)
-├── 🔍 parse_copilot_session.py        # Copilot CLI events.jsonl → Markdown report parser
-└── 🔧 conftest.py                   # Shared pytest fixtures and utilities
+.deepx/
+├── tests/                          # ← suite conformance (this README)
+│   ├── conftest.py                 # marker registration + collect_ignore
+│   └── conformance/                # KB / generated-output policy checks (~700, no CLI/NPU)
+│       ├── conftest.py             # ProjectInfra/GuidePair, path constants, helpers
+│       ├── test_guide_structure.py · test_routing_consistency.py
+│       ├── test_scenario_references.py · test_instruction_sync.py
+│       ├── test_sdk_grounding.py · test_forbidden_patterns.py
+│       └── test_cross_project_scenarios.py · test_e2e_suite_structure.py
+│
+├── e2e/                            # ← end-to-end harness (sections above)
+│   ├── e2e_runner.py · e2e_monitor.py · migrate_results_to_run_id.py · _cli_env.py · test.sh
+│   ├── runner_state/               # per-run state (auto-created, gitignored)
+│   ├── test_agentic_e2e_scenarios/ # ~586 across 5 CLIs — conftest + test_<cli>_<scenario>.py
+│   ├── agentic_analyzer/           # run-id-aware result analyzer (lib/ + tests/)
+│   └── tests/test_e2e_runner_env_redo.py
+│
+└── tools/                          # ← tooling packages (see tools/README.md)
+    ├── src/{dx_agentic_dev_gen, dx_transcripts}     # generator + shared transcript lib
+    └── tests/{dx_agentic_dev_gen, dx_transcripts}   # mirrors src/
 ```
+
+> The session parsers + transcript renderer (`parse_*_session`,
+> `generate_transcripts`, …) now live in the `dx_transcripts` package under
+> `.deepx/tools/src/` (shared by the sentinel, the e2e harness, and the analyzer).
 
 ---
 

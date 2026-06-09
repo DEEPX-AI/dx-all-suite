@@ -98,8 +98,9 @@ The `dx-agentic-gen` package (`.deepx/tools/`) handles the conversion, and the p
 | `prompts/` | — | — | ✅ | ✅ | — | Agent input templates |
 | `scripts/` | — | ✅ | ✅ | ✅ | ✅ | validate / feedback / generate |
 | `docs/` | ✅ | — | — | — | — | Framework self-guides (skill-architecture, etc.) |
-| `tools/` | ✅ | — | — | — | — | `dx-agentic-dev-gen` generator |
-| `tests/` | ✅ | — | — | — | — | Infrastructure verification + E2E |
+| `tools/` | ✅ | — | — | — | — | Tooling packages: `src/{dx_agentic_dev_gen, dx_transcripts}` + mirrored `tests/` + `scripts/` |
+| `tests/` | ✅ | — | — | — | — | Suite **conformance** tests (`conformance/`) — KB / generated-output policy checks |
+| `e2e/` | ✅ | — | — | — | — | E2E harness: `e2e_runner`/`e2e_monitor`, `test_agentic_e2e_scenarios/`, `agentic_analyzer/`, `test.sh` |
 
 ---
 
@@ -158,21 +159,30 @@ These 16 fragments are **selectively injected** into the `CLAUDE.md` / `AGENTS.m
 | **Harness** | `dx-harness-validate` / `dx-harness-writing-skills` | `.deepx/` self-integrity verification / skill creation |
 | **Meta** | `dx-skill-router` | "Invoke if even 1% probability of applicability" rule |
 
-### 3.6 tools/ — Generator (`dx-agentic-dev-gen`)
+### 3.6 tools/ — Tooling Packages + Generator
+
+`tools/src/` holds two importable packages, each mirrored under `tools/tests/`:
+
+| Package (`tools/src/`) | Tests (`tools/tests/`) | Role |
+|------------------------|------------------------|------|
+| `dx_agentic_dev_gen` | `dx_agentic_dev_gen/` | The `dx-agentic-gen` generator (cli, generator, transformers, frontmatter, constants) |
+| `dx_transcripts` | `dx_transcripts/` | Shared session parsers + transcript renderer (`parse_*_session`, `session_common`, `generate_transcripts`, `backfill_claude_html`) — used by the session-sentinel DONE-line generation, the e2e harness, and the analyzer |
 
 | Component | Role |
 |-----------|------|
-| `pyproject.toml` | `dx-agentic-gen` CLI (Python 3.10+, jinja2/pyyaml dependencies) |
-| `scripts/run_all.sh generate|check` | Batch generate/check across 5 repos (`.`, dx-compiler, dx-runtime, dx-runtime/dx_app, dx-runtime/dx_stream) |
-| `scripts/install-hooks.sh` | Installs pre-commit hooks in suite root + 4 submodules |
-| `scripts/pre-commit-hook.sh` | 3-step check on commit: ① `.deepx/` ↔ non-`.deepx/` mix warning ② drift check ③ EN/KO fragment parity lint |
+| `pyproject.toml` | `dx-agentic-gen` CLI (Python 3.10+); `packages.find where=["src"]` discovers both packages |
+| `scripts/run_all.sh generate\|check\|lint\|prune` | Batch ops across 5 repos (`.`, dx-compiler, dx-runtime, dx-runtime/dx_app, dx-runtime/dx_stream) |
+| `scripts/install-hooks.sh` / `pre-commit-hook.sh` | Pre-commit hooks: `.deepx/`↔non-`.deepx/` mix warning + drift check + EN/KO lint |
 
-### 3.7 tests/ — Infrastructure Verification + E2E
+### 3.7 tests/ — Suite Conformance
 
-- `conformance/`: 199 tests (~1 sec) — guide document structure, routing consistency, scenario references, cross-project handoff
-- `test_agentic_e2e_scenarios/`: **463 pytest tests** (Copilot 67 + Cursor 63 + OpenCode 112 + Claude Code 110 + Codex 111) — real CLI invocation → static verification (file existence, AST, JSON structure)
-- 4 modes × 2 (autopilot / manual) = 8 execution modes
-- **Total of 662 agentic tests**
+- `conformance/`: ~700 fast static checks (no CLI/NPU needed) — guide structure, routing consistency, scenario references, cross-project handoff, instruction sync, sdk grounding, forbidden patterns. Run `pytest .deepx/tests/conformance/ --collect-only -q` for the live count.
+
+### 3.8 e2e/ — End-to-End Harness (separated)
+
+- `e2e_runner.py` / `e2e_monitor.py` / `migrate_results_to_run_id.py` / `_cli_env.py` / `test.sh` — round orchestration, monitoring, results migration, shared runner.
+- `test_agentic_e2e_scenarios/`: ~586 collected across 5 CLI autopilot markers (copilot, cursor, opencode, claude-code, codex) — real CLI invocation → static verification (file existence, AST, JSON). Plus interactive manual modes (shell).
+- `agentic_analyzer/`: run-id-aware result analyzer (reports / insights; its own `lib/` + `tests/`).
 
 ---
 
@@ -431,7 +441,7 @@ Additional messaging elements (`architecture.md`): `DxMsgConv`, `DxMsgBroker`.
 
 ## 9. Verification Infrastructure (`.deepx/tests/`)
 
-### 9.1 Infrastructure Verification (199 tests, ~1 sec)
+### 9.1 Conformance (~700 tests, ~1 sec)
 
 | Module | Verification items |
 |--------|--------------------|
@@ -440,7 +450,7 @@ Additional messaging elements (`architecture.md`): `DxMsgConv`, `DxMsgBroker`.
 | `test_scenario_references.py` | Agent/skill references matched to actual infrastructure |
 | `test_cross_project_scenarios.py` | Handoff chain, validation scripts, output isolation |
 
-### 9.2 E2E Scenarios (463 pytest + manual)
+### 9.2 E2E Scenarios (~586 pytest + manual)
 
 | Tool | autopilot flags | Auto-approve / question blocking | Session export |
 |------|------------------|---------------------------------|----------------|
@@ -475,7 +485,7 @@ Additional messaging elements (`architecture.md`): `DxMsgConv`, `DxMsgBroker`.
 
 1. **Single-Source-of-Truth (SoT) design is robust**: `.deepx/` → `dx-agentic-gen` → 4 platforms. Drift is blocked by the pre-commit hook.
 2. **Multi-layered HARD GATE enforcement**: skill router (meta) → process sequence → domain rules (IFactory, preprocess-id, etc.) → artifact verification. Focused on preventing silent failures.
-3. **Wide test automation coverage**: 199 infra + 352 E2E + 4-tool cross-validation. The same rules are enforced even in autonomous mode (`--yolo`).
+3. **Wide test automation coverage**: ~700 conformance + ~586 E2E + 5-tool cross-validation. The same rules are enforced even in autonomous mode (`--yolo`).
 4. **Per-module autonomy + common backbone**: Each sub-project has its own `.deepx/` enabling independent work, while consistency is maintained via 16 fragments + skill router + Output Isolation rule.
 5. **Extension points**: When adding a new domain, writing the 5 items — ① `.deepx/agents/` ② `.deepx/skills/` ③ `.deepx/memory/common_pitfalls.md` ④ `.deepx/toolsets/` ⑤ `instructions/` — is automatically reflected on all 4 platforms.
 
@@ -500,8 +510,8 @@ python dx-compiler/.deepx/scripts/validate_framework.py
 python dx-runtime/.deepx/scripts/feedback_collector.py --framework-only
 
 # Tests
-cd .deepx/tests
-./test.sh agentic                                       # 199 infra tests
+cd .deepx/e2e
+./test.sh agentic                                       # ~700 conformance tests
 ./test.sh agentic-e2e-claude-code-autopilot             # Claude Code E2E
 ./test.sh agentic-e2e-copilot-cli-autopilot
 ./test.sh agentic-e2e-cursor-cli-autopilot

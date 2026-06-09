@@ -260,7 +260,7 @@ python .deepx/e2e/e2e_monitor.py --once
 ## 🚀 빠른 시작
 
 ```bash
-cd .deepx/tests
+cd .deepx/e2e
 
 # 에이전트 인프라 검증 (~704개 테스트, ~1초)
 ./test.sh agentic
@@ -349,39 +349,30 @@ export DX_AGENTIC_E2E_CODEX_EXTRA_ARGS='-c model_reasoning_effort="xhigh"'  # xh
 ## 📁 파일 구조
 
 ```
-.deepx/tests/
-├── 🐍 e2e_runner.py                 # 멀티 라운드 병렬 E2E runner
-├── 🐍 e2e_monitor.py                # Live TUI 모니터 (rich 기반)
-├── 📁 runner_state/                 # Runner 상태 파일 (자동 생성)
-│   ├── latest -> <run_id>/          # 최신 실행 symlink
-│   └── <run_id>/                    # 실행별 상태 디렉토리 (YYYYMMDD_HHMMSS)
-│       ├── state.json               # 라운드 완료 상태 + artifact 경로
-│       └── logs/<tool>.log          # 도구별 stdout/stderr 로그
-├── 🐍 conformance/       # 에이전트 인프라 검증
-│   ├── conftest.py
-│   ├── test_guide_structure.py
-│   ├── test_routing_consistency.py
-│   ├── test_scenario_references.py
-│   └── test_cross_project_scenarios.py
-├── 🐍 test_agentic_e2e_scenarios/   # 에이전트 E2E 시나리오 테스트
-│   ├── conftest.py                  # Runner, ScenarioResult, helpers
-│   ├── test_dx_app_agentic_e2e.py   # dx_app — Copilot CLI
-│   ├── test_dx_stream_agentic_e2e.py
-│   ├── test_compiler_agentic_e2e.py
-│   ├── test_runtime_agentic_e2e.py
-│   ├── test_suite_agentic_e2e.py
-│   ├── test_cursor_*.py             # Cursor CLI
-│   ├── test_opencode_*.py           # OpenCode CLI
-│   └── test_claude_code_*.py        # Claude Code CLI
-├── 🔍 agentic_analyzer/             # 분석 리포트 생성기
-│   ├── analyze.py                   # 메인 분석 스크립트
-│   ├── lib/                         # 정량/정성 분석 라이브러리
-│   └── README.md                    # 분석기 문서
-├── 🔧 test.sh                       # 단일 도구 단일 라운드 실행 진입점
-├── 📋 requirements.txt
-├── 📋 README.md                     # 영문 문서 (이 파일의 영문 버전)
-└── 📋 README-KO.md                  # 한국어 문서 (이 파일)
+.deepx/
+├── tests/                          # ← suite conformance (이 README)
+│   ├── conftest.py                 # 마커 등록 + collect_ignore
+│   └── conformance/                # KB / 생성물 정책 검사 (~700, CLI/NPU 불필요)
+│       ├── conftest.py             # ProjectInfra/GuidePair, 경로 상수, helper
+│       ├── test_guide_structure.py · test_routing_consistency.py
+│       ├── test_scenario_references.py · test_instruction_sync.py
+│       ├── test_sdk_grounding.py · test_forbidden_patterns.py
+│       └── test_cross_project_scenarios.py · test_e2e_suite_structure.py
+│
+├── e2e/                            # ← end-to-end 하니스 (위 섹션들)
+│   ├── e2e_runner.py · e2e_monitor.py · migrate_results_to_run_id.py · _cli_env.py · test.sh
+│   ├── runner_state/               # 실행별 상태 (자동 생성, gitignored)
+│   ├── test_agentic_e2e_scenarios/ # 5 CLI ~586 — conftest + test_<cli>_<scenario>.py
+│   ├── agentic_analyzer/           # run-id 인지 결과 분석기 (lib/ + tests/)
+│   └── tests/test_e2e_runner_env_redo.py
+│
+└── tools/                          # ← 툴링 패키지 (tools/README.md 참조)
+    ├── src/{dx_agentic_dev_gen, dx_transcripts}     # 제너레이터 + 공유 transcript lib
+    └── tests/{dx_agentic_dev_gen, dx_transcripts}   # src/ 미러
 ```
+
+> 세션 파서 + transcript 렌더러(`parse_*_session`, `generate_transcripts`, …)는
+> 이제 `.deepx/tools/src/`의 `dx_transcripts` 패키지에 있습니다(sentinel·e2e 하니스·analyzer 공유).
 
 ---
 

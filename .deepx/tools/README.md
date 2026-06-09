@@ -27,21 +27,35 @@ It is installed once and used across all 5 repos in dx-all-suite.
 .deepx/tools/
 ├── README.md                      ← This file
 ├── README-KO.md                   ← Korean translation
-├── pyproject.toml                 ← Package definition (dx-agentic-dev-gen)
+├── pyproject.toml                 ← Package definition; `packages.find where=["src"]` discovers BOTH packages
 ├── src/
-│   └── dx_agentic_dev_gen/        ← Python package
-│       ├── __init__.py
-│       ├── cli.py                 ← `dx-agentic-gen` entry point
-│       ├── generator.py           ← Core generate/check/lint/prune orchestration
-│       ├── transformers.py        ← Per-platform output transformers
-│       ├── frontmatter.py         ← YAML frontmatter handling
-│       └── constants.py           ← Platform paths, repo definitions
+│   ├── dx_agentic_dev_gen/        ← Generator package
+│   │   ├── __init__.py
+│   │   ├── cli.py                 ← `dx-agentic-gen` entry point
+│   │   ├── generator.py           ← Core generate/check/lint/prune orchestration
+│   │   ├── transformers.py        ← Per-platform output transformers
+│   │   ├── frontmatter.py         ← YAML frontmatter handling
+│   │   └── constants.py           ← Platform paths, repo definitions
+│   └── dx_transcripts/            ← Shared session-parsing + transcript-rendering library
+│       ├── session_common.py      ← shared session model/utilities
+│       ├── parse_{claude,codex,copilot,cursor,opencode}_session.py
+│       ├── generate_transcripts.py ← DONE-line transcript renderer (run by the session sentinel)
+│       └── backfill_claude_html.py
+├── tests/                         ← Mirrors src/ — each tool's tests beside its package
+│   ├── dx_agentic_dev_gen/        ← test_generator.py, test_generator_lint.py
+│   └── dx_transcripts/            ← test_parse_*, test_generate_transcripts
 └── scripts/                       ← Operational scripts (see scripts/README.md)
     ├── run_all.sh
     ├── install-hooks.sh
     ├── pre-commit-hook.sh
     └── run-e2e-improvement-loop.sh
 ```
+
+> **Two packages, one workspace.** `dx_agentic_dev_gen` is the generator;
+> `dx_transcripts` is the session-parsing/transcript library shared by the
+> session-sentinel DONE-line generation, the e2e harness (`.deepx/e2e/`), and the
+> analyzer. Both are discovered by `packages.find where=["src"]`. Tests live in
+> `tools/tests/<package>/` mirroring `tools/src/<package>/`.
 
 ---
 
@@ -265,8 +279,8 @@ See [`../docs/fragment-authoring-guide.md`](../docs/fragment-authoring-guide.md)
 ## 9. Testing the Generator
 
 ```bash
-# Suite-wide infra tests (199, ~1s)
-cd .deepx/tests
+# Suite-wide conformance tests (~700, ~1s)
+cd .deepx/e2e
 ./test.sh agentic
 
 # What this checks (relevant to the generator):

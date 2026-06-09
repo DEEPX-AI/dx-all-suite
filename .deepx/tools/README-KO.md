@@ -26,21 +26,34 @@
 .deepx/tools/
 ├── README.md                      ← 이 파일
 ├── README-KO.md                   ← 한국어 번역
-├── pyproject.toml                 ← 패키지 정의 (dx-agentic-dev-gen)
+├── pyproject.toml                 ← 패키지 정의; `packages.find where=["src"]`가 두 패키지 모두 발견
 ├── src/
-│   └── dx_agentic_dev_gen/        ← Python 패키지
-│       ├── __init__.py
-│       ├── cli.py                 ← `dx-agentic-gen` 엔트리포인트
-│       ├── generator.py           ← 핵심 generate/check/lint/prune 오케스트레이션
-│       ├── transformers.py        ← 플랫폼별 출력 transformer
-│       ├── frontmatter.py         ← YAML frontmatter 처리
-│       └── constants.py           ← 플랫폼 경로, 저장소 정의
+│   ├── dx_agentic_dev_gen/        ← 제너레이터 패키지
+│   │   ├── __init__.py
+│   │   ├── cli.py                 ← `dx-agentic-gen` 엔트리포인트
+│   │   ├── generator.py           ← 핵심 generate/check/lint/prune 오케스트레이션
+│   │   ├── transformers.py        ← 플랫폼별 출력 transformer
+│   │   ├── frontmatter.py         ← YAML frontmatter 처리
+│   │   └── constants.py           ← 플랫폼 경로, 저장소 정의
+│   └── dx_transcripts/            ← 공유 세션 파싱 + transcript 렌더링 라이브러리
+│       ├── session_common.py      ← 공유 세션 모델/유틸
+│       ├── parse_{claude,codex,copilot,cursor,opencode}_session.py
+│       ├── generate_transcripts.py ← DONE-라인 transcript 렌더러 (session sentinel이 실행)
+│       └── backfill_claude_html.py
+├── tests/                         ← src/ 미러 — 도구별 테스트를 패키지 옆에
+│   ├── dx_agentic_dev_gen/        ← test_generator.py, test_generator_lint.py
+│   └── dx_transcripts/            ← test_parse_*, test_generate_transcripts
 └── scripts/                       ← 운영 스크립트 (scripts/README.md 참조)
     ├── run_all.sh
     ├── install-hooks.sh
     ├── pre-commit-hook.sh
     └── run-e2e-improvement-loop.sh
 ```
+
+> **워크스페이스에 패키지 2개.** `dx_agentic_dev_gen`은 제너레이터, `dx_transcripts`는
+> session-sentinel DONE-라인 생성·e2e 하니스(`.deepx/e2e/`)·analyzer가 공유하는
+> 세션 파싱/transcript 라이브러리. 둘 다 `packages.find where=["src"]`로 발견되고,
+> 테스트는 `tools/tests/<package>/`가 `tools/src/<package>/`를 미러합니다.
 
 ---
 
@@ -265,8 +278,8 @@ Python 3.10+ 필요. 의존성 (자동 설치됨):
 ## 9. Generator 테스트
 
 ```bash
-# 스위트 전반의 인프라 테스트 (199개, ~1초)
-cd .deepx/tests
+# 스위트 전반의 conformance 테스트 (~700개, ~1초)
+cd .deepx/e2e
 ./test.sh agentic
 
 # 이것이 검사하는 것 (generator 관련):

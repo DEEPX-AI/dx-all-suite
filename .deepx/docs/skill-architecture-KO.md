@@ -203,19 +203,19 @@ instruction fragment의 **path matching**으로 결정됩니다:
   memory/           — knowledge base
   skills/           — skill 정의 (canonical source)
   templates/        — generator template + fragment
-  tests/            — agentic test infrastructure
-    conftest.py           — agentic marker 등록
-    requirements.txt      — pytest 의존성
-    test.sh               — test runner (manual + autopilot)
-    session_common.py     — 공유 session 파싱 유틸리티
-    parse_*_session.py    — agent별 session parser
-    reports/              — test 리포트 출력
-    conformance/       — 정적 harness test
+  tests/            — suite conformance test
+    conftest.py           — agentic marker 등록 + collect_ignore
+    conformance/          — 정적 KB/생성물 정책 검사
+  e2e/              — end-to-end 하니스 (분리됨)
+    e2e_runner.py · e2e_monitor.py · test.sh   — 라운드 오케스트레이션 + 러너
     test_agentic_e2e_scenarios/   — E2E agent 실행 test
-  tools/            — harness 개발 도구
-    README.md                     — dx-agentic-gen 패키지 가이드
-    pyproject.toml                — 패키지 정의 (dx-agentic-dev-gen)
+    agentic_analyzer/     — run-id 인지 결과 분석기
+  tools/            — 툴링 패키지 + 개발 스크립트
+    README.md                     — 툴링 가이드
+    pyproject.toml                — 패키지 정의; src/ 두 패키지 자동 발견
     src/dx_agentic_dev_gen/       — generator 패키지 (cli, generator, transformers, frontmatter, constants)
+    src/dx_transcripts/           — 공유 세션 파서 + transcript 렌더러
+    tests/                        — src/ 미러 (dx_agentic_dev_gen/, dx_transcripts/)
     scripts/
       README.md                       — scripts/ 가이드
       run_all.sh                      — 멀티-repo generate/check/lint 래퍼

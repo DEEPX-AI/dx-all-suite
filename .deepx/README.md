@@ -19,7 +19,7 @@ that powers DEEPX Agentic Development:
 - Instruction templates (`CLAUDE.md`, `AGENTS.md`, `copilot-instructions.md`)
 - Shared fragments injected into every platform output (4 tools × 5 repos)
 - Memory (pitfalls, knowledge base entries)
-- Tests (199 infra + 352 E2E)
+- Tests (~700 conformance + ~586 E2E)
 - The `dx-agentic-gen` generator that fans out `.deepx/` content to all platforms
 
 > **Never edit generator output directly.** Files like `CLAUDE.md`, `AGENTS.md`,
@@ -46,7 +46,7 @@ Each sub-project `.deepx/` is self-contained. This top-level `.deepx/` adds:
 - 16 shared fragments injected into all 5 repos (rename gates, session sentinels,
   process gates, autopilot guard, etc.)
 - The `dx-agentic-gen` generator (single tool that processes all 5 repos)
-- All agentic test infrastructure (`tests/`)
+- All agentic test infrastructure (`tests/` conformance + `e2e/`)
 
 ---
 
@@ -88,20 +88,22 @@ Each sub-project `.deepx/` is self-contained. This top-level `.deepx/` adds:
 │   ├── fragment-authoring-guide.md       ← Rules for writing fragments
 │   └── dx-agentic-dev-overview.md        ← Comprehensive .deepx/ walk-through
 │
-├── tests/                       ← Test infrastructure
+├── tests/                       ← Suite conformance tests
 │   ├── README.md                ← Test categories and how to run them
-│   ├── conformance/  ← 199 static infra tests
-│   ├── test_agentic_e2e_scenarios/  ← 352 E2E tests (4 CLIs × 5 scenarios)
-│   ├── agentic_analyzer/        ← E2E result analyzer (reports, charts, dashboard)
-│   ├── test.sh                  ← Manual + autopilot runner
-│   └── …
+│   └── conformance/             ← ~700 static KB/generated-output policy checks (no CLI/NPU)
 │
-└── tools/                       ← Generator and orchestration scripts
-    ├── README.md                ← dx-agentic-dev-gen package guide
-    ├── pyproject.toml           ← `dx-agentic-gen` CLI package definition
+├── e2e/                         ← End-to-end harness (separated)
+│   ├── e2e_runner.py · e2e_monitor.py · test.sh   ← round orchestration + runner
+│   ├── test_agentic_e2e_scenarios/  ← ~586 E2E tests (5 CLIs × scenarios)
+│   └── agentic_analyzer/        ← E2E result analyzer (reports, insights)
+│
+└── tools/                       ← Tooling packages + orchestration scripts
+    ├── README.md                ← tooling guide
+    ├── pyproject.toml           ← `dx-agentic-gen` CLI; discovers both src/ packages
     ├── src/
-    │   └── dx_agentic_dev_gen/  ← Generator package (constants, transformers,
-    │                              generator, frontmatter, cli)
+    │   ├── dx_agentic_dev_gen/  ← generator (cli, generator, transformers, frontmatter, constants)
+    │   └── dx_transcripts/      ← shared session parsers + transcript renderer
+    ├── tests/                   ← mirrors src/ (dx_agentic_dev_gen/, dx_transcripts/)
     └── scripts/
         ├── README.md                          ← scripts/ guide
         ├── run_all.sh                         ← Multi-repo generate/check/lint
@@ -168,8 +170,8 @@ bash .deepx/tools/scripts/run_all.sh prune
 bash .deepx/tools/scripts/install-hooks.sh
 
 # 5. Tests
-cd .deepx/tests
-./test.sh agentic                          # 199 static infra tests (~1s)
+cd .deepx/e2e
+./test.sh agentic                          # ~700 conformance tests (~1s)
 ./test.sh agentic-e2e-claude-code-autopilot # Claude Code E2E
 ./test.sh agentic-e2e-copilot-cli-autopilot # Copilot CLI E2E
 ```
@@ -249,7 +251,7 @@ how to add or modify a fragment.
 | How to author a new fragment | [`docs/fragment-authoring-guide.md`](docs/fragment-authoring-guide.md) |
 | `dx-agentic-gen` generator package | [`tools/README.md`](tools/README.md) |
 | Operational scripts (`run_all.sh`, hooks, E2E loop) | [`tools/scripts/README.md`](tools/scripts/README.md) |
-| E2E result analyzer (reports, charts, dashboard) | [`tests/agentic_analyzer/README.md`](tests/agentic_analyzer/README.md) |
+| E2E result analyzer (reports, charts, dashboard) | [`e2e/agentic_analyzer/README.md`](e2e/agentic_analyzer/README.md) |
 | Test categories and how to run them | [`tests/README.md`](tests/README.md) |
 | Sub-project specifics | the sub-project `.deepx/README.md` (linked above in §2) |
 
