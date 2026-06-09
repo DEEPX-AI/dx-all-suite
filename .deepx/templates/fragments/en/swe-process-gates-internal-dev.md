@@ -12,7 +12,7 @@ discipline):
 | `.deepx/tests/test_agentic_e2e_scenarios/` | `conftest.py`, `test_*.py` fixtures |
 | `.deepx/tests/test_agentic_scenarios/` | scenario test cases |
 | `.deepx/tests/test.sh` | manual/autopilot shell runner |
-| `.deepx/tests/conftest.py`, `.deepx/tests/session_common.py`, `.deepx/tests/parse_copilot_session.py`, `.deepx/tests/parse_cursor_session.py`, `.deepx/tests/parse_claude_session.py` | shared test infrastructure |
+| `.deepx/tests/conftest.py`, `.deepx/tools/src/dx_transcripts/session_common.py`, `.deepx/tools/src/dx_transcripts/parse_copilot_session.py`, `.deepx/tools/src/dx_transcripts/parse_cursor_session.py`, `.deepx/tools/src/dx_transcripts/parse_claude_session.py` | shared test infrastructure |
 | `.deepx/tools/` (dx-agentic-dev-gen) | generator source, CLI, transformers |
 | `.deepx/tools/scripts/*.sh` | loop scripts and orchestration runners (e.g. `run-e2e-improvement-loop.sh`, `run_all.sh`, `install-hooks.sh`, `pre-commit-hook.sh`) |
 | `.deepx/` | agents, skills, templates, fragments (canonical source) |

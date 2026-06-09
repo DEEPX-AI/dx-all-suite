@@ -526,7 +526,7 @@ Rules:
    # created (space-separated) — the transcript is copied into each (cross-project:
    # both the compiler and app dirs). The session id is auto-resolved from this CLI's
    # own env var (CLAUDE_CODE_SESSION_ID / COPILOT_AGENT_SESSION_ID).
-   GT="$(d="$PWD"; while [ "$d" != / ]; do [ -f "$d/.deepx/tests/generate_transcripts.py" ] && { echo "$d/.deepx/tests/generate_transcripts.py"; break; }; d="$(dirname "$d")"; done)"
+   GT="$(d="$PWD"; while [ "$d" != / ]; do [ -f "$d/.deepx/tools/src/dx_transcripts/generate_transcripts.py" ] && { echo "$d/.deepx/tools/src/dx_transcripts/generate_transcripts.py"; break; }; d="$(dirname "$d")"; done)"
    python3 "$GT" --tool <CLI> --project "$PWD" \
        --into-output-dirs <output-dir> [<output-dir-2> ...]
    ```
@@ -1034,7 +1034,7 @@ discipline):
 | `.deepx/tests/test_agentic_e2e_scenarios/` | `conftest.py`, `test_*.py` fixtures |
 | `.deepx/tests/test_agentic_scenarios/` | scenario test cases |
 | `.deepx/tests/test.sh` | manual/autopilot shell runner |
-| `.deepx/tests/conftest.py`, `.deepx/tests/session_common.py`, `.deepx/tests/parse_copilot_session.py`, `.deepx/tests/parse_cursor_session.py`, `.deepx/tests/parse_claude_session.py` | shared test infrastructure |
+| `.deepx/tests/conftest.py`, `.deepx/tools/src/dx_transcripts/session_common.py`, `.deepx/tools/src/dx_transcripts/parse_copilot_session.py`, `.deepx/tools/src/dx_transcripts/parse_cursor_session.py`, `.deepx/tools/src/dx_transcripts/parse_claude_session.py` | shared test infrastructure |
 | `.deepx/tools/` (dx-agentic-dev-gen) | generator source, CLI, transformers |
 | `.deepx/tools/scripts/*.sh` | loop scripts and orchestration runners (e.g. `run-e2e-improvement-loop.sh`, `run_all.sh`, `install-hooks.sh`, `pre-commit-hook.sh`) |
 | `.deepx/` | agents, skills, templates, fragments (canonical source) |

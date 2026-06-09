@@ -13,6 +13,14 @@ stream JSONL parsing.
 
 from __future__ import annotations
 
+# --- self-bootstrap: make the `dx_transcripts` package importable when this
+# --- module is run as a standalone script (parents[1] == .deepx/tools/src).
+import sys as _sys
+from pathlib import Path as _Path
+_SRC = str(_Path(__file__).resolve().parents[1])
+if _SRC not in _sys.path:
+    _sys.path.insert(0, _SRC)
+
 import json
 import logging
 import sqlite3
@@ -21,7 +29,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional
 
-from session_common import (
+from dx_transcripts.session_common import (
     HTML_CSS,
     HTML_JS,
     ToolCall,

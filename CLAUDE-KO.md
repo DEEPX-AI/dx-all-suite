@@ -520,7 +520,7 @@ DONE은 맨 마지막 줄 유지).
    # dir(들) 안에 렌더링. 생성한 output dir을 모두(공백 구분) 넘기세요 — 각 dir에 복사됩니다
    # (cross-project: 컴파일러 dir + 앱 dir 둘 다). session id는 이 CLI 자신의 env var에서
    # 자동 추출됩니다(CLAUDE_CODE_SESSION_ID / COPILOT_AGENT_SESSION_ID).
-   GT="$(d="$PWD"; while [ "$d" != / ]; do [ -f "$d/.deepx/tests/generate_transcripts.py" ] && { echo "$d/.deepx/tests/generate_transcripts.py"; break; }; d="$(dirname "$d")"; done)"
+   GT="$(d="$PWD"; while [ "$d" != / ]; do [ -f "$d/.deepx/tools/src/dx_transcripts/generate_transcripts.py" ] && { echo "$d/.deepx/tools/src/dx_transcripts/generate_transcripts.py"; break; }; d="$(dirname "$d")"; done)"
    python3 "$GT" --tool <CLI> --project "$PWD" \
        --into-output-dirs <output-dir> [<output-dir-2> ...]
    ```
@@ -1025,7 +1025,7 @@ Cursor (IDE), OpenCode, 기타 모든 도구)를 사용하여 내부 dx-agentic-
 | `.deepx/tests/test_agentic_e2e_scenarios/` | `conftest.py`, `test_*.py` fixture |
 | `.deepx/tests/test_agentic_scenarios/` | 시나리오 테스트 케이스 |
 | `.deepx/tests/test.sh` | 수동/자동 shell runner |
-| `.deepx/tests/conftest.py`, `.deepx/tests/session_common.py`, `.deepx/tests/parse_copilot_session.py`, `.deepx/tests/parse_cursor_session.py`, `.deepx/tests/parse_claude_session.py` | 공유 테스트 인프라 |
+| `.deepx/tests/conftest.py`, `.deepx/tools/src/dx_transcripts/session_common.py`, `.deepx/tools/src/dx_transcripts/parse_copilot_session.py`, `.deepx/tools/src/dx_transcripts/parse_cursor_session.py`, `.deepx/tools/src/dx_transcripts/parse_claude_session.py` | 공유 테스트 인프라 |
 | `.deepx/tools/` (dx-agentic-dev-gen) | generator 소스, CLI, transformer |
 | `.deepx/tools/scripts/*.sh` | loop 스크립트 및 orchestration runner (예: `run-e2e-improvement-loop.sh`, `run_all.sh`, `install-hooks.sh`, `pre-commit-hook.sh`) |
 | `.deepx/` | agent, skill, 템플릿, fragment (canonical source) |

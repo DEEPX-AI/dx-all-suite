@@ -27,6 +27,14 @@ API
 
 from __future__ import annotations
 
+# --- self-bootstrap: make the `dx_transcripts` package importable when this
+# --- module is run as a standalone script (parents[1] == .deepx/tools/src).
+import sys as _sys
+from pathlib import Path as _Path
+_SRC = str(_Path(__file__).resolve().parents[1])
+if _SRC not in _sys.path:
+    _sys.path.insert(0, _SRC)
+
 import argparse
 import json
 import os
@@ -331,7 +339,7 @@ def _turns_to_md(label: str, session_id, turns) -> str:
 # ---------------------------------------------------------------------------
 
 def _load_claude(out_dir, prefix, session_id, project_path, include_thinking, stream_json, wait_settle=False):
-    from parse_claude_session import (
+    from dx_transcripts.parse_claude_session import (
         find_sessions, parse_session, render_html, render_markdown,
     )
     if session_id:
@@ -359,7 +367,7 @@ def _load_claude(out_dir, prefix, session_id, project_path, include_thinking, st
 
 
 def _load_copilot(out_dir, prefix, session_id, project_path, include_thinking, stream_json, wait_settle=False):
-    from parse_copilot_session import (
+    from dx_transcripts.parse_copilot_session import (
         find_sessions, parse_session, render_html, render_markdown,
     )
     if session_id:
@@ -410,7 +418,7 @@ def _load_codex(out_dir, prefix, session_id, project_path, include_thinking, str
         raise NoSessionFound(f"codex: no rollout jsonl (id={session_id!r})")
     if wait_settle and not stream_json:
         _settle_file(jsonl)
-    from parse_codex_session import render_codex_html, render_codex_md
+    from dx_transcripts.parse_codex_session import render_codex_html, render_codex_md
     written = {}
     md_p = out_dir / f"{prefix}-session.md"
     render_codex_md(Path(jsonl), md_p)
@@ -466,7 +474,7 @@ def _load_cursor(out_dir, prefix, session_id, project_path, include_thinking, st
     # session uuid — surface it so the md/html carry the real id, not "unknown".
     if not session_id:
         session_id = Path(jsonl).stem
-    from parse_cursor_session import render_cursor_html, parse_cursor_transcript
+    from dx_transcripts.parse_cursor_session import render_cursor_html, parse_cursor_transcript
     written = {}
     # md: cursor has no render_markdown — build from ParsedSession.turns
     try:
@@ -556,7 +564,7 @@ def _settle_opencode(db_path, session_id, max_wait: float = 5.0, interval: float
 
 
 def _load_opencode(out_dir, prefix, session_id, project_path, include_thinking, stream_json, wait_settle=False):
-    from parse_opencode_session import (
+    from dx_transcripts.parse_opencode_session import (
         OPENCODE_DB_PATH, render_opencode_html, parse_opencode_db,
     )
     if not session_id:

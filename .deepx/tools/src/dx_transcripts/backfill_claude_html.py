@@ -17,6 +17,14 @@ Default mode is dry-run; pass ``--apply`` to actually write files. Pass
 
 from __future__ import annotations
 
+# --- self-bootstrap: make the `dx_transcripts` package importable when this
+# --- module is run as a standalone script (parents[1] == .deepx/tools/src).
+import sys as _sys
+from pathlib import Path as _Path
+_SRC = str(_Path(__file__).resolve().parents[1])
+if _SRC not in _sys.path:
+    _sys.path.insert(0, _SRC)
+
 import argparse
 import json
 import sys
@@ -26,7 +34,7 @@ from typing import List, Optional
 _TESTS_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(_TESTS_DIR))
 
-from parse_claude_session import find_sessions, parse_session, render_html  # noqa: E402
+from dx_transcripts.parse_claude_session import find_sessions, parse_session, render_html  # noqa: E402
 
 
 RESULTS_ROOT = Path(__file__).resolve().parents[2] / "dx-agentic-dev" / "e2e-tests" / "results"

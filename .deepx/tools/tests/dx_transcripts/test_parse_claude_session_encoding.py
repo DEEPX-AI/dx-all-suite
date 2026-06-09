@@ -11,15 +11,11 @@ sub-project workdirs like ``dx-runtime/dx_app`` never resolved.
 from __future__ import annotations
 
 from pathlib import Path
-import sys
 
 import pytest
 
-_TESTS_DIR = Path(__file__).resolve().parents[1]  # .deepx/tests/
-if str(_TESTS_DIR) not in sys.path:
-    sys.path.insert(0, str(_TESTS_DIR))
-
-import parse_claude_session as pcs
+# dx_transcripts is on PYTHONPATH=.deepx/tools/src (see tools/tests run command)
+from dx_transcripts import parse_claude_session as pcs
 
 
 def test_encode_underscore_to_dash():

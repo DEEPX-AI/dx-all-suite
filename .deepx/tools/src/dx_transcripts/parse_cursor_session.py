@@ -10,7 +10,7 @@ Supports two input sources:
 Usage::
 
     # As a library
-    from parse_cursor_session import parse_cursor_session, render_cursor_html
+    from dx_transcripts.parse_cursor_session import parse_cursor_session, render_cursor_html
     session = parse_cursor_session(Path("path/to/stream.jsonl"))
     html = render_html(session)
 
@@ -26,7 +26,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from session_common import (
+from dx_transcripts.session_common import (
     HTML_CSS,
     HTML_JS,
     ToolCall,

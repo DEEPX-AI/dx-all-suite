@@ -22,7 +22,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from session_common import (
+from dx_transcripts.session_common import (
     HTML_CSS,
     HTML_JS,
     ToolCall,

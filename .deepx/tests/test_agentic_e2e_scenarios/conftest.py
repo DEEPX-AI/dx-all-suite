@@ -100,15 +100,21 @@ _TESTS_DIR = Path(__file__).resolve().parents[1]
 if str(_TESTS_DIR) not in sys.path:
     sys.path.insert(0, str(_TESTS_DIR))
 
-from parse_copilot_session import (  # noqa: E402
+# Session parsers now live in the dx_transcripts package (.deepx/tools/src);
+# put it on sys.path so the e2e harness imports them without needing PYTHONPATH.
+_SRC_DIR = Path(__file__).resolve().parents[2] / "tools" / "src"
+if str(_SRC_DIR) not in sys.path:
+    sys.path.insert(0, str(_SRC_DIR))
+
+from dx_transcripts.parse_copilot_session import (  # noqa: E402
     find_sessions,
     has_start_sentinel,
     parse_and_render,
     parse_session,
 )
-from parse_codex_session import render_codex_html, render_codex_md  # noqa: E402
-from parse_cursor_session import render_cursor_html  # noqa: E402
-from parse_opencode_session import OPENCODE_DB_PATH, render_opencode_html  # noqa: E402
+from dx_transcripts.parse_codex_session import render_codex_html, render_codex_md  # noqa: E402
+from dx_transcripts.parse_cursor_session import render_cursor_html  # noqa: E402
+from dx_transcripts.parse_opencode_session import OPENCODE_DB_PATH, render_opencode_html  # noqa: E402
 from _cli_env import agent_subprocess_env  # noqa: E402
 
 
@@ -2161,7 +2167,7 @@ class ClaudeCodeRunnerAutopilot:
             #       constrained by before=end_utc could filter the file out.
             # UUID lookup uses no time filter and walks all project dirs.
             try:
-                from parse_claude_session import (
+                from dx_transcripts.parse_claude_session import (
                     find_sessions as _find_cc_sessions,
                     find_project_dir as _find_cc_proj_dir,
                     parse_session as _parse_cc,
@@ -2296,7 +2302,7 @@ class ClaudeCodeRunnerAutopilot:
             # the matching normal-path block above for the rationale (encoding
             # bug + jsonl-flush time race).
             try:
-                from parse_claude_session import (
+                from dx_transcripts.parse_claude_session import (
                     find_sessions as _find_cc_sessions_t,
                     find_project_dir as _find_cc_proj_dir_t,
                     parse_session as _parse_cc_t,

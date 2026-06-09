@@ -7,15 +7,8 @@ captures shell stdout, edit diff, and grep matches in addition to read content.
 
 from __future__ import annotations
 
-import sys
-from pathlib import Path
-
-# Make the .deepx/tests directory importable from this nested test module.
-_TESTS_DIR = Path(__file__).resolve().parents[1]
-if str(_TESTS_DIR) not in sys.path:
-    sys.path.insert(0, str(_TESTS_DIR))
-
-from parse_cursor_session import _extract_cursor_tool_result  # noqa: E402
+# dx_transcripts is on PYTHONPATH=.deepx/tools/src (see tools/tests run command)
+from dx_transcripts.parse_cursor_session import _extract_cursor_tool_result
 
 
 def test_read_tool_extracts_content():

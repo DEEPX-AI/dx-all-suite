@@ -77,7 +77,7 @@ DONE은 맨 마지막 줄 유지).
    # dir(들) 안에 렌더링. 생성한 output dir을 모두(공백 구분) 넘기세요 — 각 dir에 복사됩니다
    # (cross-project: 컴파일러 dir + 앱 dir 둘 다). session id는 이 CLI 자신의 env var에서
    # 자동 추출됩니다(CLAUDE_CODE_SESSION_ID / COPILOT_AGENT_SESSION_ID).
-   GT="$(d="$PWD"; while [ "$d" != / ]; do [ -f "$d/.deepx/tests/generate_transcripts.py" ] && { echo "$d/.deepx/tests/generate_transcripts.py"; break; }; d="$(dirname "$d")"; done)"
+   GT="$(d="$PWD"; while [ "$d" != / ]; do [ -f "$d/.deepx/tools/src/dx_transcripts/generate_transcripts.py" ] && { echo "$d/.deepx/tools/src/dx_transcripts/generate_transcripts.py"; break; }; d="$(dirname "$d")"; done)"
    python3 "$GT" --tool <CLI> --project "$PWD" \
        --into-output-dirs <output-dir> [<output-dir-2> ...]
    ```

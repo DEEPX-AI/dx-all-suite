@@ -541,7 +541,7 @@ Rules:
    # created (space-separated) — the transcript is copied into each (cross-project:
    # both the compiler and app dirs). The session id is auto-resolved from this CLI's
    # own env var (CLAUDE_CODE_SESSION_ID / COPILOT_AGENT_SESSION_ID).
-   GT="$(d="$PWD"; while [ "$d" != / ]; do [ -f "$d/.deepx/tests/generate_transcripts.py" ] && { echo "$d/.deepx/tests/generate_transcripts.py"; break; }; d="$(dirname "$d")"; done)"
+   GT="$(d="$PWD"; while [ "$d" != / ]; do [ -f "$d/.deepx/tools/src/dx_transcripts/generate_transcripts.py" ] && { echo "$d/.deepx/tools/src/dx_transcripts/generate_transcripts.py"; break; }; d="$(dirname "$d")"; done)"
    python3 "$GT" --tool <CLI> --project "$PWD" \
        --into-output-dirs <output-dir> [<output-dir-2> ...]
    ```
