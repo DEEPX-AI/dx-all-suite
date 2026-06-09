@@ -5,6 +5,8 @@
 
 ## 소개
 
+> **단 20분, 약 $10의 비용으로, 자연어를 통해 DEEPX NPU용 앱을 완전 자율형으로 만드세요.**
+
 자연어 지시만으로 DEEPX AI 애플리케이션을 구축할 수 있습니다. AI 코딩 에이전트는
 DEEPX SDK 생태계를 이해합니다 — GStreamer 파이프라인 구성, `.dxnn` 모델 해석,
 InferenceEngine 설정, DxPreprocess/DxInfer 엘리먼트 연결 — 따라서 *무엇*을

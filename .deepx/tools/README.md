@@ -262,5 +262,5 @@ cd .deepx/tests
 | Operational scripts (`run_all.sh`, hooks, E2E loop) | [`scripts/README.md`](scripts/README.md) |
 | Skill 3-tier architecture | [`../docs/skill-architecture.md`](../docs/skill-architecture.md) |
 | Fragment authoring rules | [`../docs/fragment-authoring-guide.md`](../docs/fragment-authoring-guide.md) |
-| End-user feature documentation | [`../../docs/source/agentic_development.md`](../../docs/source/agentic_development.md) |
+| End-user feature documentation | [`../../docs/source/00_Agentic_Development.md`](../../docs/source/00_Agentic_Development.md) |
 | Comprehensive `.deepx/` walk-through | [`../docs/dx-agentic-dev-overview.md`](../docs/dx-agentic-dev-overview.md) |

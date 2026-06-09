@@ -3,7 +3,7 @@
 > dx-all-suite 최상위 레벨의 DEEPX Agentic Development (`dx-agentic-dev`)
 > canonical source에 대한 마스터 인덱스.
 >
-> 최종 사용자 사용법은 [`docs/source/agentic_development.md`](../docs/source/agentic_development.md)를 참조.
+> 최종 사용자 사용법은 [`docs/source/00_Agentic_Development.md`](../docs/source/00_Agentic_Development.md)를 참조.
 > 5개 repo 전반의 모든 `.deepx/` 디렉토리에 대한 포괄적인 워크스루는
 > [`docs/dx-agentic-dev-overview.md`](docs/dx-agentic-dev-overview.md)를 참조.
 
@@ -240,7 +240,7 @@ Fragment를 추가하거나 수정하는 방법은
 
 | Topic | Document |
 |-------|----------|
-| 최종 사용자 사용법 (one-liner prompts, scenarios) | [`docs/source/agentic_development.md`](../docs/source/agentic_development.md) |
+| 최종 사용자 사용법 (one-liner prompts, scenarios) | [`docs/source/00_Agentic_Development.md`](../docs/source/00_Agentic_Development.md) |
 | 포괄적인 `.deepx/` 워크스루 (5개의 모든 repo) | [`docs/dx-agentic-dev-overview.md`](docs/dx-agentic-dev-overview.md) |
 | 3-tier skill 아키텍처 및 네이밍 | [`docs/skill-architecture.md`](docs/skill-architecture.md) |
 | 새로운 fragment 작성 방법 | [`docs/fragment-authoring-guide.md`](docs/fragment-authoring-guide.md) |

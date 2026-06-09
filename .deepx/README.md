@@ -3,7 +3,7 @@
 > Master index for the DEEPX Agentic Development (`dx-agentic-dev`) canonical
 > source at the dx-all-suite top level.
 >
-> For end-user usage, see [`docs/source/agentic_development.md`](../docs/source/agentic_development.md).
+> For end-user usage, see [`docs/source/00_Agentic_Development.md`](../docs/source/00_Agentic_Development.md).
 > For a comprehensive walk-through of every `.deepx/` directory across all 5
 > repos, see [`docs/dx-agentic-dev-overview.md`](docs/dx-agentic-dev-overview.md).
 
@@ -240,7 +240,7 @@ how to add or modify a fragment.
 
 | Topic | Document |
 |-------|----------|
-| End-user usage (one-liner prompts, scenarios) | [`docs/source/agentic_development.md`](../docs/source/agentic_development.md) |
+| End-user usage (one-liner prompts, scenarios) | [`docs/source/00_Agentic_Development.md`](../docs/source/00_Agentic_Development.md) |
 | Comprehensive `.deepx/` walk-through (all 5 repos) | [`docs/dx-agentic-dev-overview.md`](docs/dx-agentic-dev-overview.md) |
 | 3-tier skill architecture and naming | [`docs/skill-architecture.md`](docs/skill-architecture.md) |
 | How to author a new fragment | [`docs/fragment-authoring-guide.md`](docs/fragment-authoring-guide.md) |

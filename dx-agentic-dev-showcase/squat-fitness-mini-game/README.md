@@ -1,6 +1,6 @@
 # Squat Fitness Mini-Game — built by dx-agentic-dev
 
-> **Generated end-to-end by [dx-agentic-dev](../../docs/source/agentic_development.md)
+> **Generated end-to-end by [dx-agentic-dev](../../docs/source/00_Agentic_Development.md)
 > from a single natural-language prompt** — no hand-written code. The folder is
 > **self-contained & portable**: it vendors the framework into `./common`, so it runs
 > even when copied outside dx-all-suite (any machine with the DEEPX runtime).

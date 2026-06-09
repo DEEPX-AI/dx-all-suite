@@ -1,6 +1,6 @@
 # 스쿼트 피트니스 미니게임 — dx-agentic-dev로 제작
 
-> **단일 자연어 프롬프트로 [dx-agentic-dev](../../docs/source/agentic_development-KO.md)가
+> **단일 자연어 프롬프트로 [dx-agentic-dev](../../docs/source/00_Agentic_Development_kor.md)가
 > end-to-end로 생성** — 손으로 작성한 코드 없음. 이 폴더는 **self-contained & portable**입니다:
 > 프레임워크를 `./common`으로 vendoring하므로 dx-all-suite 밖으로 복사해도 동작합니다
 > (DEEPX 런타임이 있는 임의 머신).

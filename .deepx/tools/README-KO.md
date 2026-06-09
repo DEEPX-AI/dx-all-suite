@@ -262,5 +262,5 @@ cd .deepx/tests
 | 운영 스크립트 (`run_all.sh`, 훅, E2E 루프) | [`scripts/README.md`](scripts/README.md) |
 | Skill 3-tier 아키텍처 | [`../docs/skill-architecture.md`](../docs/skill-architecture.md) |
 | Fragment 작성 규칙 | [`../docs/fragment-authoring-guide.md`](../docs/fragment-authoring-guide.md) |
-| 최종 사용자 기능 문서 | [`../../docs/source/agentic_development.md`](../../docs/source/agentic_development.md) |
+| 최종 사용자 기능 문서 | [`../../docs/source/00_Agentic_Development.md`](../../docs/source/00_Agentic_Development.md) |
 | 종합 `.deepx/` 안내 | [`../docs/dx-agentic-dev-overview.md`](../docs/dx-agentic-dev-overview.md) |

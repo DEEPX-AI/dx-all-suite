@@ -18,6 +18,51 @@
   <p><strong>그림. DXNN SDK 간략 아키텍처 개요.</strong></p>
 </div>
 
+## ✨ 자연어로 앱 만들기 — dx-agentic-dev (Beta)
+
+> **단 20분, 약 $10의 비용으로, 자연어를 통해 DEEPX NPU용 피트니스 게임을 완전 자율형으로
+> 개발할 수 있습니다.** 원하는 앱을 평범한 자연어로 설명하면, AI coding agent가 DEEPX SDK
+> 위에서 end-to-end로 만들어 줍니다.
+
+### Showcase 1: 스쿼트 카운팅 피트니스 미니게임(DEEPX SQUAT CHALLENGE)
+
+<div align="center">
+<table>
+<tr>
+<td align="center"><img src="./docs/source/img/dx-agentic-dev-squat-build.gif" width="470"><br><sub><b>dx-agentic-dev가 앱을 빌드하는 모습 (timelapse)</b></sub></td>
+<td align="center"><img src="./docs/source/img/dx-agentic-dev-squat-gameplay.gif" width="188"><br><sub><b>생성된 앱이 NPU에서 실행되는 모습</b></sub></td>
+</tr>
+</table>
+</div>
+
+**▶️ 직접 실행해보기** — 생성된 앱이
+**[`dx-agentic-dev-showcase/squat-fitness-mini-game/`](./dx-agentic-dev-showcase/squat-fitness-mini-game/)**
+에 그대로 들어 있습니다.
+[README](./dx-agentic-dev-showcase/squat-fitness-mini-game/README.md)를 읽고 실행하세요.
+
+**🔍 agent가 어떻게 만들었는지 확인하기** — agent가 harness instruction을 어떻게 따르고
+프로젝트 skill/agent를 어떻게 활용했는지 볼 수 있도록 전체
+[Claude Code 세션](./dx-agentic-dev-showcase/squat-fitness-mini-game/claude-code-session.md)이
+포함되어 있습니다.
+
+### Showcase 2: 아케이드 스트레칭 coach 미니게임(STRETCH ARCADE)
+
+<div align="center">
+<table>
+<tr>
+<td align="center"><img src="./docs/source/img/dx-agentic-dev-stretch-build.gif" width="470"><br><sub><b>dx-agentic-dev가 스트레칭 게임을 빌드하는 모습 (timelapse)</b></sub></td>
+<td align="center"><img src="./docs/source/img/dx-agentic-dev-stretch-gameplay.gif" width="188"><br><sub><b>생성된 앱이 NPU에서 실행 (coach 아바타 + 3단계)</b></sub></td>
+</tr>
+</table>
+</div>
+
+**▶️ 직접 실행해보기** — 생성된 앱이
+**[`dx-agentic-dev-showcase/stretching-coach-mini-game/`](./dx-agentic-dev-showcase/stretching-coach-mini-game/)**
+에 들어 있습니다
+([README](./dx-agentic-dev-showcase/stretching-coach-mini-game/README.md)).
+
+➡️ **[Agentic Development (Beta) 시작하기](./docs/source/00_Agentic_Development_kor.md)**
+
 ## 시작하기
 
 **DX-AllSuite**는 사용 목적에 따라 두 가지 환경을 제공합니다. 필요에 맞는 환경을 선택해 시작하세요.
@@ -62,79 +107,16 @@ DX-AllSuite는 우리 NPU에서 최고 성능을 내도록 최적화된, 업계 
 !!! note "Pro Tip"
     모델을 직접 컴파일하는 대신, [**DEEPX ModelZoo**](https://developer.deepx.ai/modelzoo/)에서 **270개 이상의 최적화된 모델** 중 바로 사용 가능한 binary를 다운로드할 수 있습니다.
 
-
-## ✨ 자연어로 앱 만들기 — dx-agentic-dev (Beta)
-
-> **단 20분, 약 $10의 비용으로, 자연어를 통해 DEEPX NPU용 피트니스 게임을 완전 자율형으로
-> 개발할 수 있습니다.** 원하는 앱을 평범한 자연어로 설명하면, AI coding agent가 DEEPX SDK
-> 위에서 end-to-end로 만들어 줍니다 — `.dxnn` 모델 resolution, `IFactory`/`SyncRunner` 연결,
-> pre/post-processing, on-device NPU inference까지 모두 처리되며, 손으로 작성한 코드는 없습니다.
-
-아래 클립은 단일 프롬프트로부터 **`dx-agentic-dev`가 end-to-end로 생성**한 결과입니다 — 손으로 작성한 코드는 없습니다. **왼쪽:** agent가 앱을 자율적으로 빌드하는 모습(brainstorm → plan → TDD → verify). **오른쪽:** 생성된 앱이 DX-M1 NPU에서 실행되는 모습 — `yolo26n-pose` body keypoint로부터 횟수를 세는 스쿼트 카운팅 피트니스 미니게임(**DEEPX SQUAT CHALLENGE**).
-
-<div align="center">
-<table>
-<tr>
-<td align="center"><img src="./docs/source/img/dx-agentic-dev-squat-build.gif" width="470"><br><sub><b>dx-agentic-dev가 앱을 빌드하는 모습 (timelapse)</b></sub></td>
-<td align="center"><img src="./docs/source/img/dx-agentic-dev-squat-gameplay.gif" width="188"><br><sub><b>생성된 앱이 NPU에서 실행되는 모습</b></sub></td>
-</tr>
-</table>
-</div>
-
-> **사용한 프롬프트:** *"Using the yolo26n-pose model on the DEEPX NPU, build a simple
-> squat-counting fitness mini-game. Implement and validate it using the sample
-> video … the generated app must support both a video-file input and a live camera
-> input, selectable via `--video <file>` or `--camera <id>` … overlay an
-> arcade-style fitness game UI …"*
-
-**▶️ 직접 실행해보기** — 생성된 앱이
-**[`dx-agentic-dev-showcase/squat-fitness-mini-game/`](./dx-agentic-dev-showcase/squat-fitness-mini-game/)**
-에 그대로 들어 있습니다.
-[README](./dx-agentic-dev-showcase/squat-fitness-mini-game/README.md)를 읽고
-`./setup.sh` 후 `./run.sh`(라이브 카메라는 `./run.sh --camera 0`)를 실행하세요.
-
-**🔍 agent가 어떻게 만들었는지 확인하기** — agent가 harness instruction을 어떻게 따르고
-프로젝트 skill/agent를 어떻게 활용했는지 볼 수 있도록 전체 Claude Code 세션이 포함되어 있습니다:
-**[`claude-code-session.md`](./dx-agentic-dev-showcase/squat-fitness-mini-game/claude-code-session.md)**
-(GitHub에서 바로 렌더링됨; HTML 사본 `claude-code-session.html`은 로컬 브라우저에서 열어 보세요).
-
-**추가 showcase** — 같은 방식으로 만든 두 번째 앱: 애니메이션 coach 아바타가 따라할 목표
-포즈를 보여주며 세 가지 스트레칭을 안내하는 아케이드 **스트레칭 coach 미니게임**:
-**[`dx-agentic-dev-showcase/stretching-coach-mini-game/`](./dx-agentic-dev-showcase/stretching-coach-mini-game/)**.
-
-<div align="center">
-<table>
-<tr>
-<td align="center"><img src="./docs/source/img/dx-agentic-dev-stretch-build.gif" width="470"><br><sub><b>dx-agentic-dev가 스트레칭 게임을 빌드하는 모습 (timelapse)</b></sub></td>
-<td align="center"><img src="./docs/source/img/dx-agentic-dev-stretch-gameplay.gif" width="188"><br><sub><b>생성된 앱이 NPU에서 실행 (coach 아바타 + 3단계)</b></sub></td>
-</tr>
-</table>
-</div>
-
-> **사용한 프롬프트:** *"DEEPX NPU에서 yolo26n-pose 모델을 사용해 간단한 아케이드 스타일
-> 스트레칭 미니게임을 만들어줘 … 세 가지 스트레칭 포즈(머리 위로 뻗기, forward fold, 목
-> 스트레칭)를 한 단계씩 안내 … 화면 좌상단에 현재 목표 스트레칭을 시연하는 작은 사람 모양
-> **'coach' 아바타**(샘플 영상에서 유도한 애니메이션 스틱피겨)를 그려줘 … 비디오 파일 input과
-> 라이브 카메라 input을 모두 지원(`--video <file>` / `--camera <id>`) …"*
-
-> **한눈에** — 각 showcase는 **Claude Code (Claude Opus 4.8)**가 **프롬프트 1개**로 완전
-> 자율로 **약 20분** 만에 빌드했으며, `brainstorm → plan → TDD → verify` 전체 skill 시퀀스를
-> 실행했습니다(각 ~$9–10, output ~85K 토큰). 생성된 모든 앱은 **self-contained & portable**
-> — 프레임워크를 `./common`으로 vendoring하므로 이 repo 밖으로 복사해도 동작합니다. 빌드별
-> 메트릭은 각 showcase의 `README.md` 참조.
-
-➡️ **[Agentic Development (Beta) 시작하기](./docs/source/agentic_development-KO.md)**
-
 ## 문서 내비게이션
 
 처음 사용하는 분께는 다음 순서로 문서를 보시길 권장합니다.
 
+- **★ [Agentic Development (Beta)](./docs/source/00_Agentic_Development_kor.md)**: AI coding agent(Claude Code, Cursor, GitHub Copilot, OpenCode, Codex CLI)로 자연어 프롬프트를 사용해 DEEPX 앱 만들기
 - **Step 1. [DX-AllSuite Architecture Overview](./docs/source/01_DX-AllSuite_Architecture_Overview.md)**: SDK 개요, 모듈 설명, ModelZoo 사용법
 - **Step 2. [Setting Up Environment](./docs/source/02_Setting_Up_Environment.md)**: Local/Docker 설치 상세 및 트러블슈팅
 - **Step 3. [Running Your First NPU Model](./docs/source/03_Running_Your_First_NPU_Model.md)**: 단계별 hands-on 스크립트 실행
 - **Step 4. [Checking Version Compatibility](./docs/source/04_Version_Compatibility.md)**: SDK, Driver, Firmware 의존성 매트릭스
 - **Step 5. [FAQ Troubleshooting Guide](./docs/source/05_FAQ_Troubleshooting_Guide.md)**: 환경 충돌 및 GUI 세션(X11) 오류 해결책
-- **★ [Agentic Development (Beta)](./docs/source/agentic_development-KO.md)**: AI coding agent(Claude Code, Cursor, GitHub Copilot, OpenCode, Codex CLI)로 자연어 프롬프트를 사용해 DEEPX 앱 만들기
 
 ## 지원
 

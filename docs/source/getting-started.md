@@ -2,6 +2,9 @@
 
 ## Overall
 
+> **Build apps for the DEEPX NPU fully autonomously, by natural language — in about
+> 20 minutes for roughly $10.** (See [Agentic Development (Beta)](./00_Agentic_Development.md).)
+
 **🔄 Full Execution Order**
 
 ```bash
