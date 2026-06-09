@@ -65,10 +65,11 @@ DX-AllSuite supports a vast array of industry-standard AI architectures, optimiz
 
 ## ✨ Build Apps with Natural Language — dx-agentic-dev (Beta)
 
-**New in DX-AllSuite:** describe the app you want in plain language and let an AI
-coding agent build it on the DEEPX SDK — `.dxnn` model resolution,
-`IFactory`/`SyncRunner` wiring, pre/post-processing, and on-device NPU inference
-all handled for you.
+> **Develop a complete fitness game on the DEEPX NPU — fully autonomously, by natural
+> language — in about 20 minutes for roughly $10.** Describe the app in plain language
+> and an AI coding agent builds it on the DEEPX SDK end-to-end: `.dxnn` model
+> resolution, `IFactory`/`SyncRunner` wiring, pre/post-processing, and on-device NPU
+> inference — all handled for you, with no hand-written code.
 
 The clips below were produced **end-to-end by `dx-agentic-dev`** from a single
 prompt — no hand-written code. **Left:** the agent autonomously building the app

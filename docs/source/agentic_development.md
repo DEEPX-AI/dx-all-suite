@@ -17,12 +17,28 @@ Supported workflows include:
 - Cross-project builds that span dx_app, dx_stream, and dx-runtime
 - Model compilation from ONNX to DXNN format using DX-COM (in dx-compiler)
 
-## Demo: A Squat Mini-Game, Built From One Prompt
+## Demo: a fitness game from one prompt — fully autonomous, ~20 min, ~$10
 
-The fastest way to understand `dx-agentic-dev` is to watch it work. Everything
-below — the application code, the pose-based game logic, and the on-device NPU
-run — was generated **end-to-end from a single natural-language prompt**, with no
-hand-written code.
+**You can develop a complete fitness game on the DEEPX NPU — fully autonomously, by
+natural language — in about 20 minutes for roughly $10.** No hand-written code: from a
+single prompt, the AI coding agent runs the entire brainstorm → plan → TDD → verify
+workflow and ships a runnable, on-device-NPU app.
+
+To show what that looks like, here are **two mini-games** built exactly this way. Each is
+checked into the suite as a runnable showcase, with its full build-session transcript:
+
+| Showcase | What it is | Build time | Agent turns | Output tokens | ~Cost |
+|----------|-----------|-----------|-------------|---------------|-------|
+| **[Squat-counting mini-game](../../dx-agentic-dev-showcase/squat-fitness-mini-game/)** | Counts squat reps from knee/hip angles + arcade HUD (reps / score / DOWN·UP·GOOD!) | ≈ 20 min | 81 | ≈ 85K | ≈ $9.9 |
+| **[Stretching coach mini-game](../../dx-agentic-dev-showcase/stretching-coach-mini-game/)** | Guides 3 stretches with an animated **coach avatar** that demonstrates each target pose | ≈ 21 min | 75 | ≈ 85K | ≈ $9.4 |
+
+Both were built by **Claude Code** (model **Claude Opus 4.8**) from **one** prompt, fully
+autonomously, running the full `dx-skill-router → dx-agentic-brainstorm →
+dx-swe-writing-plans → dx-agentic-tdd → dx-agentic-verify` sequence, and both support a
+**video-file input and a live camera input** (`--video <file>` / `--camera <id>`).
+Per-app metrics + transcripts are in each showcase's `README.md`.
+
+### Showcase 1 — Squat-counting mini-game
 
 **The prompt** (given to Claude Code in the `dx_app` directory):
 
@@ -44,6 +60,36 @@ badge to the HUD — all from that single prompt.
 <tr>
 <td align="center"><img src="./img/dx-agentic-dev-squat-build.gif" width="520"><br><sub><b>The agent building the app — brainstorm → plan → TDD → verify (timelapse)</b></sub></td>
 <td align="center"><img src="./img/dx-agentic-dev-squat-gameplay.gif" width="205"><br><sub><b>The generated app running on the DX-M1 NPU</b></sub></td>
+</tr>
+</table>
+</div>
+
+### Showcase 2 — Stretching coach mini-game
+
+An arcade stretching game that guides the player through three stretches, one stage at
+a time, drawing an animated stick-figure **coach avatar** (derived from the sample
+clips) that demonstrates each target pose for the user to follow.
+
+**The prompt** (given to Claude Code in the `dx_app` directory):
+
+> Using the yolo26n-pose model on the DEEPX NPU, build a simple arcade-style
+> stretching mini-game. The game guides the user through three stretch poses, one
+> stage at a time: (1) extend both arms straight overhead, (2) bend forward at the
+> waist (forward fold), and (3) pull the head to one side with one hand for a neck
+> stretch. For each stage, **render a small human-figure "coach" avatar** in a
+> top-left panel that demonstrates the current target stretch — a clean stick-figure
+> posed in the target stretch, **animated** between a neutral standing pose and the
+> full target pose, with each target shape **derived from the corresponding sample
+> clip**. Show the stretch name + a short instruction and a HOLD progress bar; when
+> the user holds the matching pose, advance; clear when all three are done. The app
+> **must support both a video-file input and a live camera input** (`--video <file>`
+> or `--camera <id>`). When run on a video file, save an annotated output video.
+
+<div align="center">
+<table>
+<tr>
+<td align="center"><img src="./img/dx-agentic-dev-stretch-build.gif" width="520"><br><sub><b>The agent building the stretching game (timelapse)</b></sub></td>
+<td align="center"><img src="./img/dx-agentic-dev-stretch-gameplay.gif" width="205"><br><sub><b>The generated app on the DX-M1 NPU — coach avatar + 3 stages</b></sub></td>
 </tr>
 </table>
 </div>
@@ -116,47 +162,11 @@ suite root (so it works from this relocated path) and prints a clear hint if the
 generates fresh code each run, the class names and filenames in that directory are
 one concrete instance of the **pattern** described above — yours may differ.
 
-A second showcase built the same way — an arcade **stretching coach mini-game**
-([`dx-agentic-dev-showcase/stretching-coach-mini-game/`](../../dx-agentic-dev-showcase/stretching-coach-mini-game/))
-— guides the player through three stretches and draws an animated **coach avatar**
-(a stick-figure derived from the sample clips) that demonstrates each target pose.
-It likewise supports both `--video` and `--camera` input.
-
-<div align="center">
-<table>
-<tr>
-<td align="center"><img src="./img/dx-agentic-dev-stretch-build.gif" width="520"><br><sub><b>The agent building the stretching game (timelapse)</b></sub></td>
-<td align="center"><img src="./img/dx-agentic-dev-stretch-gameplay.gif" width="205"><br><sub><b>The generated app on the DX-M1 NPU — coach avatar + 3 stages</b></sub></td>
-</tr>
-</table>
-</div>
-
-**The prompt** (given to Claude Code in the `dx_app` directory):
-
-> Using the yolo26n-pose model on the DEEPX NPU, build a simple arcade-style
-> stretching mini-game. The game guides the user through three stretch poses, one
-> stage at a time: (1) extend both arms straight overhead, (2) bend forward at the
-> waist (forward fold), and (3) pull the head to one side with one hand for a neck
-> stretch. For each stage, **render a small human-figure "coach" avatar** in a
-> top-left panel that demonstrates the current target stretch — a clean stick-figure
-> posed in the target stretch, **animated** between a neutral standing pose and the
-> full target pose, with each target shape **derived from the corresponding sample
-> clip**. Show the stretch name + a short instruction and a HOLD progress bar; when
-> the user holds the matching pose, advance; clear when all three are done. The app
-> **must support both a video-file input and a live camera input** (`--video <file>`
-> or `--camera <id>`). When run on a video file, save an annotated output video.
-
-**What each build actually took** (from the session transcripts shipped in each
-showcase — coding agent **Claude Code**, model **Claude Opus 4.8**, **one** prompt,
-fully autonomous):
-
-| Showcase | Wall-clock | Agent turns | Skills (in order) | Output tokens | ~Cost |
-|----------|-----------|-------------|-------------------|---------------|-------|
-| squat-fitness-mini-game | ≈ 20 min | 81 | router → brainstorm → writing-plans → tdd → verify | ≈ 85K | ≈ $9.9 |
-| stretching-coach-mini-game | ≈ 21 min | 75 | router → brainstorm → writing-plans → tdd → verify | ≈ 85K | ≈ $9.4 |
-
-Each ran the full brainstorm → plan → TDD → verify skill sequence as real tool calls
-before declaring done. Per-app details are in each showcase's `README.md`.
+The **stretching coach mini-game** showcase (Showcase 2 above) runs exactly the same
+way — `./setup.sh` then `./run.sh` (or `./run.sh --camera 0`) from
+[`dx-agentic-dev-showcase/stretching-coach-mini-game/`](../../dx-agentic-dev-showcase/stretching-coach-mini-game/).
+Build/run metrics for both showcases are in the table at the top and in each
+showcase's `README.md`.
 
 ### Inspect the agent's session — how it followed the harness
 

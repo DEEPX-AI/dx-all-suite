@@ -65,7 +65,10 @@ DX-AllSuite는 우리 NPU에서 최고 성능을 내도록 최적화된, 업계 
 
 ## ✨ 자연어로 앱 만들기 — dx-agentic-dev (Beta)
 
-**DX-AllSuite의 신규 기능:** 원하는 앱을 평범한 자연어로 설명하면, AI coding agent가 DEEPX SDK 위에서 직접 만들어 줍니다 — `.dxnn` 모델 resolution, `IFactory`/`SyncRunner` 연결, pre/post-processing, 그리고 on-device NPU inference까지 모두 처리됩니다.
+> **단 20분, 약 $10의 비용으로, 자연어를 통해 DEEPX NPU용 피트니스 게임을 완전 자율형으로
+> 개발할 수 있습니다.** 원하는 앱을 평범한 자연어로 설명하면, AI coding agent가 DEEPX SDK
+> 위에서 end-to-end로 만들어 줍니다 — `.dxnn` 모델 resolution, `IFactory`/`SyncRunner` 연결,
+> pre/post-processing, on-device NPU inference까지 모두 처리되며, 손으로 작성한 코드는 없습니다.
 
 아래 클립은 단일 프롬프트로부터 **`dx-agentic-dev`가 end-to-end로 생성**한 결과입니다 — 손으로 작성한 코드는 없습니다. **왼쪽:** agent가 앱을 자율적으로 빌드하는 모습(brainstorm → plan → TDD → verify). **오른쪽:** 생성된 앱이 DX-M1 NPU에서 실행되는 모습 — `yolo26n-pose` body keypoint로부터 횟수를 세는 스쿼트 카운팅 피트니스 미니게임(**DEEPX SQUAT CHALLENGE**).
 

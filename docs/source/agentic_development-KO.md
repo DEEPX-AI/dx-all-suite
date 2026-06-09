@@ -17,11 +17,28 @@ InferenceEngine 설정, DxPreprocess/DxInfer 엘리먼트 연결 — 따라서 *
 - dx_app, dx_stream, dx-runtime에 걸친 크로스 프로젝트 빌드
 - DX-COM을 통한 ONNX → DXNN 포맷 모델 컴파일 (dx-compiler)
 
-## 데모: 프롬프트 하나로 만든 스쿼트 미니게임
+## 데모: 프롬프트 하나로 만든 피트니스 게임 — 완전 자율, 약 20분, 약 $10
 
-`dx-agentic-dev`를 가장 빠르게 이해하는 방법은 동작하는 모습을 직접 보는 것입니다.
-아래의 모든 것 — 애플리케이션 코드, pose 기반 게임 로직, 그리고 on-device NPU 실행 —
-은 **자연어 프롬프트 하나로 end-to-end 생성**되었으며, 직접 작성한 코드는 없습니다.
+**단 20분, 약 $10의 비용으로, 자연어를 통해 DEEPX NPU용 피트니스 게임을 완전 자율형으로
+개발할 수 있습니다.** 직접 작성한 코드는 없습니다 — 프롬프트 하나로 AI 코딩 에이전트가
+brainstorm → plan → TDD → verify 전체 워크플로우를 스스로 수행하고, 실행 가능한 on-device
+NPU 앱을 만들어 냅니다.
+
+그 모습을 보여드리기 위해, 같은 방식으로 만든 **두 가지 미니게임**을 소개합니다. 각각은
+전체 빌드 세션 transcript와 함께 suite에 실행 가능한 showcase로 포함되어 있습니다:
+
+| Showcase | 내용 | 빌드 시간 | Agent turn | Output 토큰 | ~비용 |
+|----------|------|-----------|------------|-------------|-------|
+| **[스쿼트 카운팅 미니게임](../../dx-agentic-dev-showcase/squat-fitness-mini-game/)** | 무릎/엉덩이 각도로 스쿼트 횟수 카운트 + 아케이드 HUD(횟수/점수/DOWN·UP·GOOD!) | ≈ 20분 | 81 | ≈ 85K | ≈ $9.9 |
+| **[스트레칭 coach 미니게임](../../dx-agentic-dev-showcase/stretching-coach-mini-game/)** | 애니메이션 **coach 아바타**가 각 목표 포즈를 시연하며 3가지 스트레칭 안내 | ≈ 21분 | 75 | ≈ 85K | ≈ $9.4 |
+
+둘 다 **Claude Code**(모델 **Claude Opus 4.8**)가 **프롬프트 1개**로 완전 자율로,
+`dx-skill-router → dx-agentic-brainstorm → dx-swe-writing-plans → dx-agentic-tdd →
+dx-agentic-verify` 전체 시퀀스를 실행해 만들었고, 둘 다 **비디오 파일 input과 라이브
+카메라 input**(`--video <file>` / `--camera <id>`)을 지원합니다. 앱별 메트릭 + transcript는
+각 showcase의 `README.md`에 있습니다.
+
+### Showcase 1 — 스쿼트 카운팅 미니게임
 
 **사용한 프롬프트** (`dx_app` 디렉터리에서 Claude Code에 전달):
 
@@ -42,6 +59,32 @@ InferenceEngine 설정, DxPreprocess/DxInfer 엘리먼트 연결 — 따라서 *
 <tr>
 <td align="center"><img src="./img/dx-agentic-dev-squat-build.gif" width="520"><br><sub><b>앱을 빌드하는 에이전트 — brainstorm → plan → TDD → verify (타임랩스)</b></sub></td>
 <td align="center"><img src="./img/dx-agentic-dev-squat-gameplay.gif" width="205"><br><sub><b>DX-M1 NPU에서 실행되는 생성된 앱</b></sub></td>
+</tr>
+</table>
+</div>
+
+### Showcase 2 — 스트레칭 coach 미니게임
+
+세 가지 스트레칭을 한 단계씩 안내하는 아케이드 게임으로, 샘플 영상에서 유도한 애니메이션
+스틱피겨 **coach 아바타**가 각 목표 포즈를 시연해 사용자가 따라할 수 있게 합니다.
+
+**사용한 프롬프트** (`dx_app` 디렉터리에서 Claude Code에 전달):
+
+> DEEPX NPU에서 yolo26n-pose 모델을 사용해 간단한 아케이드 스타일 스트레칭 미니게임을
+> 만들어줘. 게임은 세 가지 스트레칭 포즈를 한 단계씩 안내해: (1) 양팔을 머리 위로 곧게 뻗기,
+> (2) 허리를 앞으로 굽히는 forward fold, (3) 한 손으로 머리를 옆으로 당기는 목 스트레칭. 각
+> 단계마다 화면 좌상단 패널에 현재 목표 스트레칭을 시연하는 작은 사람 모양 **"coach" 아바타**를
+> 그려줘 — 목표 포즈를 취한 깔끔한 스틱피겨를 중립 자세와 목표 포즈 사이에서 **애니메이션**하고,
+> 각 목표 형태는 **해당 샘플 영상에서 유도**해. 스트레칭 이름 + 짧은 안내와 HOLD 진행바를
+> 표시하고, 사용자가 해당 포즈를 유지하면 다음 단계로, 셋 다 끝나면 클리어해. 앱은 **비디오
+> 파일 input과 라이브 카메라 input을 모두 지원**해야 해(`--video <file>` 또는 `--camera <id>`).
+> 비디오 파일로 실행하면 주석이 표시된 출력 영상을 저장해.
+
+<div align="center">
+<table>
+<tr>
+<td align="center"><img src="./img/dx-agentic-dev-stretch-build.gif" width="520"><br><sub><b>agent가 스트레칭 게임을 빌드하는 모습 (timelapse)</b></sub></td>
+<td align="center"><img src="./img/dx-agentic-dev-stretch-gameplay.gif" width="205"><br><sub><b>생성된 앱이 DX-M1 NPU에서 실행 — coach 아바타 + 3단계</b></sub></td>
 </tr>
 </table>
 </div>
@@ -110,42 +153,10 @@ cd dx-agentic-dev-showcase/squat-fitness-mini-game
 출력합니다. dx-agentic-dev는 실행할 때마다 새 코드를 생성하므로, 이 디렉토리의 클래스명·
 파일명은 위에서 설명한 **패턴**의 한 가지 구체적 인스턴스일 뿐이며, 직접 생성하면 달라질 수 있습니다.
 
-같은 방식으로 만든 두 번째 showcase — 아케이드 **스트레칭 coach 미니게임**
-([`dx-agentic-dev-showcase/stretching-coach-mini-game/`](../../dx-agentic-dev-showcase/stretching-coach-mini-game/))
-— 은 세 가지 스트레칭을 안내하며, 샘플 영상에서 유도한 스틱피겨 **coach 아바타**가 각 목표
-포즈를 시연합니다. 이 앱도 `--video`와 `--camera` 입력을 모두 지원합니다.
-
-<div align="center">
-<table>
-<tr>
-<td align="center"><img src="./img/dx-agentic-dev-stretch-build.gif" width="520"><br><sub><b>agent가 스트레칭 게임을 빌드하는 모습 (timelapse)</b></sub></td>
-<td align="center"><img src="./img/dx-agentic-dev-stretch-gameplay.gif" width="205"><br><sub><b>생성된 앱이 DX-M1 NPU에서 실행 — coach 아바타 + 3단계</b></sub></td>
-</tr>
-</table>
-</div>
-
-**프롬프트** (`dx_app` 디렉토리에서 Claude Code에 전달):
-
-> DEEPX NPU에서 yolo26n-pose 모델을 사용해 간단한 아케이드 스타일 스트레칭 미니게임을
-> 만들어줘. 게임은 세 가지 스트레칭 포즈를 한 단계씩 안내해: (1) 양팔을 머리 위로 곧게 뻗기,
-> (2) 허리를 앞으로 굽히는 forward fold, (3) 한 손으로 머리를 옆으로 당기는 목 스트레칭. 각
-> 단계마다 화면 좌상단 패널에 현재 목표 스트레칭을 시연하는 작은 사람 모양 **"coach" 아바타**를
-> 그려줘 — 목표 포즈를 취한 깔끔한 스틱피겨를 중립 자세와 목표 포즈 사이에서 **애니메이션**하고,
-> 각 목표 형태는 **해당 샘플 영상에서 유도**해. 스트레칭 이름 + 짧은 안내와 HOLD 진행바를
-> 표시하고, 사용자가 해당 포즈를 유지하면 다음 단계로, 셋 다 끝나면 클리어해. 앱은 **비디오
-> 파일 input과 라이브 카메라 input을 모두 지원**해야 해(`--video <file>` 또는 `--camera <id>`).
-> 비디오 파일로 실행하면 주석이 표시된 출력 영상을 저장해.
-
-**각 빌드가 실제로 든 비용** (각 showcase에 동봉된 세션 transcript 기준 — 코딩 에이전트
-**Claude Code**, 모델 **Claude Opus 4.8**, 프롬프트 **1개**, 완전 자율):
-
-| Showcase | Wall-clock | Agent turn | Skill (순서) | Output 토큰 | ~비용 |
-|----------|-----------|------------|--------------|-------------|-------|
-| squat-fitness-mini-game | ≈ 20분 | 81 | router → brainstorm → writing-plans → tdd → verify | ≈ 85K | ≈ $9.9 |
-| stretching-coach-mini-game | ≈ 21분 | 75 | router → brainstorm → writing-plans → tdd → verify | ≈ 85K | ≈ $9.4 |
-
-각 빌드는 완료 선언 전에 brainstorm → plan → TDD → verify 전체 skill 시퀀스를 실제 tool
-call로 실행했습니다. 앱별 상세는 각 showcase의 `README.md` 참조.
+**스트레칭 coach 미니게임** showcase(위 Showcase 2)도 동일하게 실행합니다 —
+[`dx-agentic-dev-showcase/stretching-coach-mini-game/`](../../dx-agentic-dev-showcase/stretching-coach-mini-game/)에서
+`./setup.sh` 후 `./run.sh`(또는 `./run.sh --camera 0`). 두 showcase의 빌드/실행 메트릭은
+상단 표와 각 showcase의 `README.md`에 있습니다.
 
 ### agent의 세션 들여다보기 — harness를 어떻게 따랐는가
 
