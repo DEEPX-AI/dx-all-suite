@@ -16,7 +16,7 @@ from pathlib import Path
 
 import pytest
 
-REPO_ROOT = Path(__file__).resolve().parents[3]
+REPO_ROOT = Path(__file__).resolve().parents[4]  # .deepx/tools/tests/dx_agentic_dev_gen/ → suite root
 FRAGMENTS_EN = REPO_ROOT / ".deepx/templates/fragments/en"
 FRAGMENTS_KO = REPO_ROOT / ".deepx/templates/fragments/ko"
 

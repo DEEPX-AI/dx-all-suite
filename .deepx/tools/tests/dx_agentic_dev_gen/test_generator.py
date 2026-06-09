@@ -22,7 +22,17 @@ from pathlib import Path
 
 import pytest
 
-from .conftest import PROJECT_ROOTS, SUITE_ROOT
+# Co-located tool tests — no test-package (avoid shadowing the real
+# `dx_agentic_dev_gen` import package), so define the repo roots locally.
+# .deepx/tools/tests/dx_agentic_dev_gen/test_generator.py → parents[4] == suite root
+SUITE_ROOT = Path(__file__).resolve().parents[4]
+PROJECT_ROOTS = {
+    "suite": SUITE_ROOT,
+    "compiler": SUITE_ROOT / "dx-compiler",
+    "runtime": SUITE_ROOT / "dx-runtime",
+    "app": SUITE_ROOT / "dx-runtime" / "dx_app",
+    "stream": SUITE_ROOT / "dx-runtime" / "dx_stream",
+}
 
 
 # ---------------------------------------------------------------------------
