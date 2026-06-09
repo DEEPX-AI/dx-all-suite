@@ -119,10 +119,16 @@ dx-agentic-verify` 전체 시퀀스를 실행해 만들었고, 둘 다 **비디�
 - framework의 **`SyncRunner`**(단일 순차 비디오 → 순차·stateful 카운팅)로
   실행되며, 읽기 → NPU 추론 → visualize → 저장 루프를 처리합니다;
 - 게임 튜닝 값(목표 횟수, 무릎 각도 임계값, rep당 점수)을 `config.json`에 두어
-  코드 수정 없이 동작을 바꿀 수 있습니다.
+  코드 수정 없이 동작을 바꿀 수 있습니다;
+- **self-contained & portable**합니다 — `setup.sh`가 공용 framework를 `./common`으로
+  vendoring하고 entry 스크립트(`*_sync.py`)가 이 vendored `./common`을 **최우선**으로
+  import하므로(`PYTHONPATH` 불필요), 폴더를 dx-all-suite **밖으로 통째로 복사해도**
+  동작합니다. 외부 전제는 `dx_engine`(DEEPX 런타임) 하나뿐입니다.
 
-다른 dx_app 예제와 동일하게 실행합니다 — 생성된 `*_sync.py` 앱에 `.dxnn` 모델과
-입력 영상을 `--save`와 함께 지정하면 주석이 표시된 출력 영상이 저장됩니다.
+실행은 `./setup.sh`(framework를 `./common`으로 vendoring + 샘플·모델 번들) 후 `./run.sh`로
+합니다. `run.sh`는 **relocatable** 런처로 venv fallback chain, 모델 존재 가드,
+bundled-sample-first input을 처리합니다. 생성된 `*_sync.py`를 직접 실행할 수도 있으며,
+`.dxnn` 모델과 입력 영상을 `--save`와 함께 지정하면 주석이 표시된 출력 영상이 저장됩니다.
 
 > **참고:** dx-agentic-dev는 매 실행마다 새 코드를 생성하므로, 정확한 클래스명·
 > 파일명·config 값은 빌드마다 달라집니다. 변하지 않는 것은 위의 **패턴**
@@ -144,16 +150,18 @@ dx-agentic-verify` 전체 시퀀스를 실행해 만들었고, 둘 다 **비디�
 ```bash
 cd dx-agentic-dev-showcase/squat-fitness-mini-game
 
-./setup.sh                       # dx-runtime venv + NPU sanity 확인, 의존성 설치
+./setup.sh                       # dx_engine venv 탐지 + framework를 ./common으로 vendoring + 샘플·모델 번들
 ./run.sh                         # 동봉 샘플 비디오 데모 -> annotated output.mp4
 ./run.sh --camera 0              # 라이브 카메라 (display 필요)
 ./run.sh --video /path/clip.mp4 --save
 ```
 
-샘플 비디오는 showcase에 **동봉**되어 있고, `run.sh`는 suite root를 자동 탐지하므로
-(이 이동된 경로에서도 동작) `yolo26n-pose.dxnn` 모델을 아직 받아야 한다면 명확한 안내를
-출력합니다. dx-agentic-dev는 실행할 때마다 새 코드를 생성하므로, 이 디렉토리의 클래스명·
-파일명은 위에서 설명한 **패턴**의 한 가지 구체적 인스턴스일 뿐이며, 직접 생성하면 달라질 수 있습니다.
+이 폴더는 **self-contained & portable**합니다 — `setup.sh`가 공용 framework를 `./common`으로
+vendoring하므로 dx-all-suite **밖으로 복사해도** 동작합니다(`dx_engine`이 유일한 외부 전제).
+샘플 비디오는 showcase에 **동봉**되어 있고, `run.sh`는 venv fallback chain·모델 존재 가드를
+갖춘 relocatable 런처라 `yolo26n-pose.dxnn` 모델을 아직 받아야 한다면 명확한 안내를 출력합니다.
+dx-agentic-dev는 실행할 때마다 새 코드를 생성하므로, 이 디렉토리의 클래스명·파일명은 위에서
+설명한 **패턴**의 한 가지 구체적 인스턴스일 뿐이며, 직접 생성하면 달라질 수 있습니다.
 
 **스트레칭 coach 미니게임** showcase(위 Showcase 2)도 동일하게 실행합니다 —
 [`dx-agentic-dev-showcase/stretching-coach-mini-game/`](../../dx-agentic-dev-showcase/stretching-coach-mini-game/)에서

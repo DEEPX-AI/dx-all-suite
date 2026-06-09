@@ -123,11 +123,17 @@ write a standalone script. The generated app:
   sequential, stateful counting), which drives the read → NPU inference →
   visualize → save loop;
 - keeps game tuning (target reps, knee-angle thresholds, score per rep) in
-  `config.json`, so behavior changes without touching code.
+  `config.json`, so behavior changes without touching code;
+- is **self-contained & portable** — `setup.sh` vendors the shared framework into
+  `./common` and the entry script (`*_sync.py`) imports that vendored `./common`
+  **first** (no `PYTHONPATH` needed), so the folder runs even when copied **entirely
+  outside** dx-all-suite. The only external requirement is `dx_engine` (the DEEPX runtime).
 
-Run it like any other dx_app example — point the generated `*_sync.py` app at the
-`.dxnn` model and the input video with `--save`, and it writes an annotated
-output video.
+Run it with `./setup.sh` (vendors the framework into `./common` + bundles the sample
+and model) then `./run.sh` — a **relocatable** launcher that handles a venv fallback
+chain, a model-existence guard, and bundled-sample-first input. You can also invoke the
+generated `*_sync.py` directly: point it at the `.dxnn` model and the input video with
+`--save`, and it writes an annotated output video.
 
 > **Note:** dx-agentic-dev generates fresh code on each run, so the exact class
 > names, filenames, and config values vary between builds. What stays constant is
@@ -150,17 +156,19 @@ it without re-generating anything:
 ```bash
 cd dx-agentic-dev-showcase/squat-fitness-mini-game
 
-./setup.sh                       # verify the dx-runtime venv + NPU sanity, install deps
+./setup.sh                       # detect a dx_engine venv + vendor framework into ./common + bundle sample/model
 ./run.sh                         # video demo on the bundled sample -> annotated output.mp4
 ./run.sh --camera 0              # live camera (needs a display)
 ./run.sh --video /path/clip.mp4 --save
 ```
 
-The sample video is **bundled** with the showcase, and `run.sh` auto-detects the
-suite root (so it works from this relocated path) and prints a clear hint if the
-`yolo26n-pose.dxnn` model still needs to be downloaded. Because dx-agentic-dev
-generates fresh code each run, the class names and filenames in that directory are
-one concrete instance of the **pattern** described above — yours may differ.
+This folder is **self-contained & portable** — `setup.sh` vendors the shared framework
+into `./common`, so it runs even when copied **outside** dx-all-suite (`dx_engine` is the
+only external requirement). The sample video is **bundled** with the showcase, and
+`run.sh` is a relocatable launcher (venv fallback chain + model-existence guard) that
+prints a clear hint if the `yolo26n-pose.dxnn` model still needs to be downloaded.
+Because dx-agentic-dev generates fresh code each run, the class names and filenames in
+that directory are one concrete instance of the **pattern** described above — yours may differ.
 
 The **stretching coach mini-game** showcase (Showcase 2 above) runs exactly the same
 way — `./setup.sh` then `./run.sh` (or `./run.sh --camera 0`) from
