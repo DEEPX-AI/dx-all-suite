@@ -9,12 +9,8 @@
 호스트라면 dx-all-suite checkout 없이도 실행됩니다.
 
 <div align="center">
-<!-- Build timelapse GIF — docs/source/img/dx-agentic-dev-ultralytics-build.gif 에
-     녹화본을 두고 아래 주석을 해제:
-<img src="../../docs/source/img/dx-agentic-dev-ultralytics-build.gif" width="470"><br>
-<sub><b>dx-agentic-dev가 이 showcase를 만드는 과정 (timelapse)</b></sub>
--->
-<sub><i>▶️ Build timelapse GIF — 준비 중 (display 환경에서 녹화 예정).</i></sub>
+<img src="../../docs/source/img/dx-agentic-dev-ultralytics-build.gif" width="760"><br>
+<sub><b>dx-agentic-dev가 이 showcase를 만드는 과정 (timelapse) — export → compile → NPU inference → verify</b></sub>
 </div>
 
 > **에이전트가 만든 과정 보기:** [`claude-code-session.md`](./claude-code-session.md)
@@ -30,10 +26,10 @@
 | Coding agent | **Claude Code** (`claude` CLI, headless `-p`) |
 | Model | **Claude Sonnet 4.6** (`claude-sonnet-4-6`) |
 | 사람 입력 | **자연어 프롬프트 1개** — 완전 자율, 수기 코드 없음 |
-| Build 소요 | **약 16분** |
-| Agent turns | **161** |
+| Build 소요 | **약 10분** |
+| Agent turns | **110** |
 | 사용 skill | `dx-skill-router` → `dx-agentic-brainstorm` → `dx-swe-writing-plans` → `dx-agentic-tdd` → `dx-agentic-verify` |
-| 결과 | **`yolo26n.dxnn`**(6.6 MB) export + **NPU inference**(6 detections, DX-M1에서 21.7 ms) + `verify.py` **PASS** |
+| 결과 | **`yolo26n.dxnn`**(6.6 MB) export + **NPU inference**(6 detections, DX-M1에서 22.6 ms) + `verify.py` **PASS** (PT=5/DeepX=6, classes match) |
 
 ## 프롬프트
 

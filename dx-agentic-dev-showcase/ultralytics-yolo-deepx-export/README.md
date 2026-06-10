@@ -10,12 +10,8 @@ This folder is **self-contained**: the two scripts below run on any x86-64 Linux
 host with `pip` — no checkout of dx-all-suite required.
 
 <div align="center">
-<!-- Build timelapse GIF — drop the recording at
-     docs/source/img/dx-agentic-dev-ultralytics-build.gif, then uncomment:
-<img src="../../docs/source/img/dx-agentic-dev-ultralytics-build.gif" width="470"><br>
-<sub><b>dx-agentic-dev building this showcase (timelapse)</b></sub>
--->
-<sub><i>▶️ Build timelapse GIF — coming soon (recorded in a display environment).</i></sub>
+<img src="../../docs/source/img/dx-agentic-dev-ultralytics-build.gif" width="760"><br>
+<sub><b>dx-agentic-dev building this showcase (timelapse) — export → compile → NPU inference → verify</b></sub>
 </div>
 
 > **See how the agent built it:** [`claude-code-session.md`](./claude-code-session.md)
@@ -31,10 +27,10 @@ Captured from the real build session transcript (`claude-code-session.*`):
 | Coding agent | **Claude Code** (`claude` CLI, headless `-p`) |
 | Model | **Claude Sonnet 4.6** (`claude-sonnet-4-6`) |
 | Human input | **1 natural-language prompt** — fully autonomous, no hand-written code |
-| Build wall-clock | **≈ 16 min** |
-| Agent turns | **161** |
+| Build wall-clock | **≈ 10 min** |
+| Agent turns | **110** |
 | Skills used | `dx-skill-router` → `dx-agentic-brainstorm` → `dx-swe-writing-plans` → `dx-agentic-tdd` → `dx-agentic-verify` |
-| Result | Exported **`yolo26n.dxnn`** (6.6 MB) + **NPU inference** (6 detections, 21.7 ms on DX-M1) + `verify.py` **PASS** |
+| Result | Exported **`yolo26n.dxnn`** (6.6 MB) + **NPU inference** (6 detections, 22.6 ms on DX-M1) + `verify.py` **PASS** (PT=5/DeepX=6, classes match) |
 
 ## The prompt
 
