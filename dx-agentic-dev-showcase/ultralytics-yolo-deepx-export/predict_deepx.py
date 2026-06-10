@@ -31,10 +31,14 @@ def main() -> int:
         model = YOLO(MODEL_DIR)
         results = model(SOURCE)
     except (ImportError, ModuleNotFoundError, RuntimeError, OSError) as e:
-        if "dx_engine" in str(e) or "dx_engine" in repr(e):
-            print(f"ERROR: dx_engine runtime unavailable ({e}).")
-            print("       dx_engine is a built dx-runtime artifact, NOT a pip package.")
-            print("       Recover (do NOT 'pip install dx_engine'):")
+        msg = str(e)
+        # Ultralytics' DeepX backend raises OSError on non-Debian-Trixie/arm64 hosts:
+        #   "dx_engine is not installed. ... Please install dx_engine manually and try again."
+        #   "DeepX runtime auto-install is only supported on Debian Trixie (arm64)."
+        if "dx_engine" in msg or "DeepX runtime" in msg:
+            print(f"ERROR: DeepX runtime / dx_engine unavailable ({e}).")
+            print("       On x86-64, Ultralytics does NOT auto-install the runtime —")
+            print("       'install manually' here means BUILD dx-runtime (not pip):")
             print("         bash dx-runtime/scripts/sanity_check.sh --dx_rt")
             print("         bash dx-runtime/install.sh --all --exclude-app --exclude-stream --skip-uninstall --venv-reuse")
             print("         cd dx-runtime/dx_app && ./install.sh && ./build.sh")

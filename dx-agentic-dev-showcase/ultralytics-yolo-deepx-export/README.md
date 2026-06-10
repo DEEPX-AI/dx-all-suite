@@ -50,17 +50,20 @@ python3 predict_deepx.py             # prints detections on the bus sample
 first export), and runs the one-shot export. `predict_deepx.py` loads the exported
 `yolo26n_deepx_model/` and runs detection on the Ultralytics bus sample.
 
-> **Deployment prerequisite (NPU present but no dx-runtime).** Step 1 (export) needs
-> only `ultralytics` + `dx_com`. Step 2 (inference) needs the **`dx_engine` runtime**,
-> which is a **built dx-runtime artifact — NOT a pip package**. If step 2 fails with
-> `No module named 'dx_engine'`, do not `pip install dx_engine`; instead:
+> **Deployment prerequisite (NPU present but no dx-runtime).** Step 1 (export)
+> auto-installs `dx_com` via pip. Step 2 (inference) needs the **DeepX runtime**
+> (`dxrt-cli` + `dx_engine`), which Ultralytics auto-installs **only on Debian
+> Trixie/arm64**. On x86-64, step 2 raises
+> `OSError: dx_engine is not installed. … Please install dx_engine manually and try
+> again` — and here "install manually" means **build dx-runtime** (do NOT
+> `pip install dx_engine`):
 > ```bash
 > bash dx-runtime/scripts/sanity_check.sh --dx_rt          # judge by TEXT output
 > bash dx-runtime/install.sh --all --exclude-app --exclude-stream --skip-uninstall --venv-reuse
-> cd dx-runtime/dx_app && ./install.sh && ./build.sh       # builds dx_engine
+> cd dx-runtime/dx_app && ./install.sh && ./build.sh       # provides dxrt-cli + dx_engine
 > ```
 > An NPU "Device initialization failed" needs a **cold boot** (full power cycle).
-> `predict_deepx.py` detects this case and prints the same recovery steps.
+> `predict_deepx.py` detects this error and prints the same recovery steps.
 
 ## Expected output
 

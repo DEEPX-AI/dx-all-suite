@@ -24,8 +24,11 @@ Key facts (full reference: `.deepx/toolsets/ultralytics-deepx-export.md`):
 - Calibration: EMA, default 100 images (`data` / `fraction` to tune).
 - Deploy: `YOLO("<model>_deepx_model")` → `model(source)` on the `dx_engine` runtime
   (backend converts BCHW float `[0,1]` → HWC uint8 `[0,255]`). Inference is not ARM64-restricted.
-- **Deployment prerequisite**: `dx_engine` is a **built dx-runtime artifact**, NOT a pip
-  package (export needs only `ultralytics`+`dx_com`). If deploy hits `No module named
-  'dx_engine'`, run `dx-runtime/scripts/sanity_check.sh --dx_rt`; if missing/FAIL, build it
-  (`dx-runtime/install.sh …` + `cd dx-runtime/dx_app && ./install.sh && ./build.sh`). NPU
-  init failure → cold boot. Never `pip install dx_engine` or fake the import via PYTHONPATH.
+- **Deployment prerequisite**: export auto-installs `dx_com` (pip), but the `dx_engine`
+  **runtime** is end-user-installed — Ultralytics auto-installs it **only on Debian
+  Trixie/arm64** (sixfab-dx). On the x86-64 dx-all-suite the backend raises
+  `OSError: dx_engine is not installed. … Please install dx_engine manually and try again`
+  → here "install manually" = **build dx-runtime**: `dx-runtime/scripts/sanity_check.sh
+  --dx_rt`, then `dx-runtime/install.sh …` + `cd dx-runtime/dx_app && ./install.sh &&
+  ./build.sh` (provides `dxrt-cli`+`dx_engine`), then retry. NPU init failure → cold boot.
+  Never `pip install dx_engine` on x86-64 or fake the import via PYTHONPATH.
