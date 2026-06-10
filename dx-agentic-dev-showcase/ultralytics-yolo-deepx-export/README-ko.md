@@ -4,18 +4,19 @@
 > (Claude Code / Copilot / Cursor / OpenCode / Codex)가 DEEPX knowledge base로
 > 라우팅하여 **one-shot `format=deepx` export**를 수행합니다 — Ultralytics YOLO `.pt`를
 > 명령 한 번으로 배포 가능한 DeepX NPU 모델(`.dxnn`)로 변환하고 inference까지 실행합니다.
-
-이 폴더는 **self-contained**입니다: 아래 두 스크립트는 `pip`이 있는 x86-64 Linux
-호스트라면 dx-all-suite checkout 없이도 실행됩니다.
+>
+> **이 README를 제외한 모든 파일은 에이전트가** 단일 자율 빌드 세션에서 생성했습니다
+> (아래 transcript + timelapse 참고) — 수기 코드 없음.
 
 <div align="center">
 <img src="../../docs/source/img/dx-agentic-dev-ultralytics-build.gif" width="760"><br>
-<sub><b>dx-agentic-dev가 이 showcase를 만드는 과정 (timelapse) — export → compile → NPU inference → verify</b></sub>
+<sub><b>dx-agentic-dev가 이 showcase를 만드는 과정 (timelapse) — export → dx_com compile → NPU inference → verify</b></sub>
 </div>
 
 > **에이전트가 만든 과정 보기:** [`claude-code-session.md`](./claude-code-session.md)
-> (GitHub에서 렌더; `claude-code-session.html`은 로컬 브라우저에서 열림; raw
-> `claude-code-session.jsonl`은 stream log).
+> (GitHub에서 렌더; `claude-code-session.html`은 로컬 브라우저; raw
+> `claude-code-session.jsonl`은 stream log). DONE 센티넬의 transcript 단계가
+> in-session으로 생성했습니다.
 
 ### 이 showcase 제작 메트릭
 
@@ -26,16 +27,16 @@
 | Coding agent | **Claude Code** (`claude` CLI, headless `-p`) |
 | Model | **Claude Sonnet 4.6** (`claude-sonnet-4-6`) |
 | 사람 입력 | **자연어 프롬프트 1개** — 완전 자율, 수기 코드 없음 |
-| Build 소요 | **약 10분** |
-| Agent turns | **110** |
+| Build 소요 | **약 12분** |
+| Agent turns | **107** |
 | 사용 skill | `dx-skill-router` → `dx-agentic-brainstorm` → `dx-swe-writing-plans` → `dx-agentic-tdd` → `dx-agentic-verify` |
-| 결과 | **`yolo26n.dxnn`**(6.6 MB) export + **NPU inference**(6 detections, DX-M1에서 22.6 ms) + `verify.py` **PASS** (PT=5/DeepX=6, classes match) |
+| 결과 | **`yolo26n.dxnn`**(6.6 MB) export + **NPU inference**(5 detections, DX-M1에서 ~23 ms) + `verify.py` **PASS** |
 
 ## 프롬프트
 
 ```
-내 Ultralytics YOLO26n detection 모델을 DeepX NPU 포맷으로 export하고,
-bus 샘플 이미지로 inference를 실행해줘.
+Export the Ultralytics YOLO26n detection model to DeepX NPU format using the
+one-shot format=deepx export path, then run inference on the bus sample image.
 ```
 
 ## 에이전트의 동작 (KB 기반 워크플로)
@@ -44,51 +45,39 @@ bus 샘플 이미지로 inference를 실행해줘.
 이 프롬프트를 해결합니다:
 
 1. **`/dx-skill-router`** → 모델 컴파일 task로 분류.
-2. **Suite 라우팅** → `Ultralytics YOLO .pt → DeepX (format=deepx)` 행이
-   `dx-compiler/CLAUDE.md`를 가리킴.
-3. **dx-compiler 라우팅** → `Ultralytics, YOLO, .pt, format=deepx` 행 →
+2. **Suite 라우팅** → `Ultralytics YOLO .pt → DeepX (format=deepx)` → `dx-compiler/CLAUDE.md`.
+3. **dx-compiler 라우팅** → `Ultralytics, YOLO, .pt, format=deepx` →
    [`.deepx/toolsets/ultralytics-deepx-export.md`](../../dx-compiler/.deepx/toolsets/ultralytics-deepx-export.md).
-4. **`/dx-agentic-compiler-convert` Phase 0** → YOLO **detection** 모델 + DeepX
-   대상임을 인식하고, 수작업 PT→ONNX→`dxcom` 대신 **one-shot 경로**를 선택.
-5. **Export** → `yolo export model=yolo26n.pt format=deepx` → `yolo26n_deepx_model/`.
-6. **배포** → `YOLO("yolo26n_deepx_model")`로 `dx_engine` runtime에서 inference.
+4. **`/dx-agentic-compiler-convert` Phase 0** → YOLO **detection** + DeepX 인식 →
+   수작업 PT→ONNX→`dxcom` 대신 one-shot 경로 선택.
+5. **export → compile → deploy → verify** 후 아래 파일 생성.
 
-에이전트는 통합의 hard 제약을 KB에서 알고 있습니다: **x86-64 Linux 전용**,
-**detection 모델 전용**, **INT8 강제**, 그리고 출력은 단일 `.dxnn`가 아니라
-**디렉토리**(`*_deepx_model/`)라는 점.
+에이전트는 KB의 hard 제약을 적용합니다: **x86-64 Linux 전용**, **detection 전용**,
+**INT8 강제**, 출력은 **디렉토리**(`*_deepx_model/`), 그리고 `dx_engine` runtime은
+pip가 아니라 **`dx_rt`**(`dx-runtime/install.sh --exclude-app --exclude-stream`)에서 옴.
+
+## 파일 (모두 에이전트 생성)
+
+| 파일 | 역할 |
+|------|------|
+| `export.py` | one-shot `YOLO("yolo26n.pt").export(format="deepx")` → `yolo26n_deepx_model/` |
+| `infer.py` | `yolo26n_deepx_model/` 로드 후 bus 샘플로 NPU inference |
+| `verify.py` | export 산출물 검증(`.dxnn` / `config.json` / `metadata.yaml`) |
+| `setup.sh` | `dx_rt` venv 의존성 확인(ultralytics + dx_engine + dx_com) |
+| `run.sh` | 원커맨드: export → verify → inference |
+| `expected_output.txt` | 실제 run 출력(export + 5 detections + verify PASS) |
 
 ## 실행 방법
 
 ```bash
-# 1. YOLO .pt를 DeepX 모델 디렉토리로 export (x86-64 Linux 전용)
-bash export_deepx.sh                 # ./yolo26n_deepx_model/ 생성
-
-# 2. export된 DeepX 모델로 inference 실행
-python3 predict_deepx.py             # bus 샘플에 대한 detection 출력
+bash setup.sh     # 의존성 확인(dx_rt venv의 ultralytics + dx_engine + dx_com)
+bash run.sh       # yolo26n.pt export → verify → bus.jpg inference
 ```
 
-`export_deepx.sh`는 venv를 만들고 `ultralytics`(첫 export 시 `dx_com` 자동 설치)를
-설치한 뒤 one-shot export를 실행합니다. `predict_deepx.py`는 export된
-`yolo26n_deepx_model/`을 로드하여 Ultralytics bus 샘플로 detection을 수행합니다.
-
-> **배포 전제조건 (NPU는 있지만 dx-runtime 미설치인 경우).** 1단계(export)는 `dx_com`을
-> pip 자동설치합니다. 2단계(inference)는 **DeepX runtime**(`dxrt-cli` + `dx_engine`)이
-> 필요하며, Ultralytics는 이를 **Debian Trixie/arm64에서만** 자동설치합니다. x86-64에서는
-> 2단계가 `OSError: dx_engine is not installed. … Please install dx_engine manually and
-> try again`를 raise하며, 여기서 "수동 설치"는 **`dx_rt` runtime 설치**를 의미합니다
-> (`pip install dx_engine` 금지):
-> ```bash
-> bash dx-runtime/scripts/sanity_check.sh --dx_rt          # TEXT 출력으로 판정
-> bash dx-runtime/install.sh --all --exclude-app --exclude-stream --skip-uninstall --venv-reuse
-> # dx_rt가 dxrt-cli + dx_engine 제공; dx_app/dx_stream은 불필요(제외 → 더 빠름).
-> ```
-> NPU "Device initialization failed"는 **cold boot**(완전 전원 차단)가 필요합니다.
-> `predict_deepx.py`도 이 에러를 감지해 동일한 복구 절차를 출력합니다.
-
-## 예상 출력
-
-생성되는 모델 디렉토리 트리와 detection 요약은
-[`expected_output.txt`](./expected_output.txt)를 참고하세요.
+`run.sh`는 suite root를 auto-detect하고 `dx-runtime/venv-dx-runtime`을 활성화합니다.
+`dx_engine`이 없으면 runtime을 빌드하세요: `cd dx-runtime && bash install.sh --all
+--exclude-app --exclude-stream` (dx_rt가 `dxrt-cli` + `dx_engine` 제공; dx_app/dx_stream
+불필요). [`expected_output.txt`](./expected_output.txt) 참고.
 
 ## 이 showcase의 기반 지식
 
@@ -98,8 +87,6 @@ python3 predict_deepx.py             # bus 샘플에 대한 detection 출력
 | `.deepx/templates/fragments/{en,ko}/ultralytics-deepx-export.md` | 모든 플랫폼 instruction에 노출되는 one-shot 경로 요약. |
 | `dx-compiler/.deepx/skills/dx-agentic-compiler-convert` Phase 0 | YOLO-detection→DeepX를 one-shot 경로로 라우팅. |
 | `dx-compiler/.deepx/memory/common_pitfalls.md` #25 | YOLO detection 모델을 수작업 PT→ONNX→dxcom으로 만들지 말 것. |
-| Suite + dx-compiler 라우팅 테이블 | `Ultralytics / YOLO / format=deepx` → dx-compiler. |
 
 권위 upstream 문서: `ultralytics/docs/en/integrations/deepx.md`.
-
 English: [`README.md`](./README.md).

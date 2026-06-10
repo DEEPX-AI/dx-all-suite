@@ -1,46 +1,44 @@
 ==============================================================================
  Expected output — Ultralytics YOLO -> DeepX export showcase
- (captured from a real dx-agentic-dev build session, 2026-06-10, DX-M1 NPU)
+ (captured from the real dx-agentic-dev build session, 2026-06-10, DX-M1 NPU)
 ==============================================================================
 
-$ bash export_deepx.sh
-Exporting yolo26n.pt to DeepX format (format=deepx)...
-Ultralytics 8.x ... PyTorch ... CPU
-DeepX: starting export with DeepX...
-DeepX: INT8 EMA calibration ...
+$ bash run.sh
+======================================================
+ YOLO26n → DeepX NPU  (Ultralytics format=deepx)
+======================================================
+
+=== STEP 1: Export (format=deepx) ===
+[export] Loading model: .../yolo26n.pt
+[export] Starting format=deepx export ...
+[export]   INT8 calibration with coco128.yaml (enforced by Ultralytics)
 [INFO] - Final result: 1 NPU groups, 1 CPU groups
-DEEPX: export success, saved as 'yolo26n_deepx_model' (6.6 MB)
+[export] ✓ yolo26n.dxnn  (6,890,634 bytes)
+[export] ✓ config.json
+[export] ✓ metadata.yaml
+[export] DONE — yolo26n_deepx_model/ is ready for inference
 
-Done. Exported model directory: yolo26n_deepx_model/
+=== STEP 2: Verify artifacts ===
+[verify] ✓ yolo26n.dxnn  (6,890,634 bytes)
+[verify] ✓ config.json   valid JSON
+[verify] ✓ metadata.yaml
+[verify] RESULT: PASS — all artifacts verified
 
-yolo26n_deepx_model/
-├── yolo26n.dxnn     # Compiled DeepX NPU binary (6.6 MB) — loaded by dx_engine
-├── config.json      # Calibration + preprocessing configuration
-└── metadata.yaml    # Class names, image size, task
+=== STEP 3: Inference on bus.jpg ===
+image 1/1 bus.jpg: 640x640 4 persons, 1 bus, 24.2ms
+[infer] Detected 5 object(s) in image
+  [  5] bus                   conf=0.951  bbox=[5,228,801,750]
+  [  0] person                conf=0.935  bbox=[49,400,239,902]
+  [  0] person                conf=0.895  bbox=[670,391,810,879]
+  [  0] person                conf=0.885  bbox=[226,408,347,862]
+  [  0] person                conf=0.531  bbox=[0,552,64,878]
+[infer] Total detections: 5
+[infer] PASS
 
-------------------------------------------------------------------------------
+======================================================
+ ALL DONE
+======================================================
 
-$ python3 predict_deepx.py
-Loading yolo26n_deepx_model for DEEPX inference...
-image 1/1 bus.jpg: 640x640 4 persons, 2 buss, 22.6ms
-Speed: 2.1ms preprocess, 22.6ms inference, 0.3ms postprocess per image at shape (1, 3, 640, 640)
-
-Detected 6 objects:
-  bus       conf=0.93
-  person    conf=0.92
-  person    conf=0.91
-  person    conf=0.86
-  bus       conf=0.70
-  person    conf=0.51
-RESULT: 6 detections on the bus sample
-
-------------------------------------------------------------------------------
-Verification (PT vs DeepX):
-  PT detections: 5, classes [0, 5]
-  DeepX detections: 6, classes [0, 5]
-  Count within 30%: True   Class match: True
-  RESULT: PASS
-
-(Real run on a DX-M1 NPU: 22.6 ms inference. Exact counts/confidences vary slightly
+(Real run on a DX-M1 NPU: ~23 ms inference. Exact counts/confidences vary slightly
 with the INT8-quantized model and the calibration set. The exported .dxnn runs on the
 DeepX dx_engine runtime and reproduces the detection on the bus sample.)
