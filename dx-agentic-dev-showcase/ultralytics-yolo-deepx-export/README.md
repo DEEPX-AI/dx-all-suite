@@ -39,10 +39,8 @@ Captured from the real build session transcript (`claude-code-session.*`):
 > The exact natural-language prompt given to the agent (verbatim):
 
 ```
-Export the Ultralytics YOLO26n detection model to DeepX NPU format using the one-shot format=deepx export path, then run inference on the Ultralytics bus sample image. Work autonomously to completion without asking for confirmation or approval; make default decisions per the knowledge base and PRODUCE THE ACTUAL ARTIFACTS (the compiled .dxnn model directory and real inference detections), not just a plan. Respond in English.
+Export the Ultralytics YOLO26n detection model to DeepX NPU format using the one-shot format=deepx export path, then run inference on the Ultralytics bus sample image.
 ```
-
-_(The trailing "work autonomously … / Respond in English" clauses are operator directives for the unattended headless recording — the core task is the first sentence.)_
 
 ## What the agent does (KB-driven workflow)
 

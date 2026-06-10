@@ -29,7 +29,7 @@
 
 **User:**
 
-> Export the Ultralytics YOLO26n detection model to DeepX NPU format using the one-shot format=deepx export path, then run inference on the Ultralytics bus sample image. Work autonomously to completion without asking for confirmation or approval; make default decisions per the knowledge base and PRODUCE THE ACTUAL ARTIFACTS (the compiled .dxnn model directory and real inference detections), not just a plan. Respond in English.
+> Export the Ultralytics YOLO26n detection model to DeepX NPU format using the one-shot format=deepx export path, then run inference on the Ultralytics bus sample image.
 
 ✅ **Skill** `dx-skill-router`
   > Launching skill: dx-skill-router
