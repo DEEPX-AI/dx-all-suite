@@ -103,6 +103,22 @@ DEEPX × **Ultralytics** Option 1(로컬 Python 패키지): `yolo26n`을 도메�
 에 들어 있습니다
 ([README](./dx-agentic-dev-showcase/ultralytics-retrain-deepx/README-ko.md)).
 
+### Showcase 5: Ultralytics PPE 탐지 → DeepX NPU (건설 안전)
+
+<!-- dx-showcase:ultralytics-ppe-deepx:gif:start -->
+<div align="center">
+<img src="./docs/source/img/dx-agentic-dev-ultralytics-ppe-build.gif" width="700"><br><sub><b>dx-agentic-dev가 이 showcase를 만드는 과정 — 재학습 → DeepX → 4-way 평가</b></sub>
+</div>
+<!-- dx-showcase:ultralytics-ppe-deepx:gif:end -->
+
+
+**건설 현장 안전 카메라**용 도메인 최적화: `construction-ppe`로 `yolo26n` 재학습 후
+DX-M1 NPU 배포 — stock COCO **mAP50-95 0.0001 → 재학습 0.256**(INT8 NPU), **+32% FPS**
+(58 → 76); base/재학습 × fp32-GPU / INT8-NPU **4-way 평가**.
+
+**▶️ 직접 실행해보기** — **[`dx-agentic-dev-showcase/ultralytics-ppe-deepx/`](./dx-agentic-dev-showcase/ultralytics-ppe-deepx/)**
+([README](./dx-agentic-dev-showcase/ultralytics-ppe-deepx/README-ko.md)).
+
 ➡️ **[Agentic Development (Beta) 시작하기](./docs/source/00_Agentic_Development_kor.md)**
 
 ## 시작하기

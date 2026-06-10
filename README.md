@@ -99,6 +99,23 @@ fp32-accurate. *This showcase was itself built + recorded by the
 **[`dx-agentic-dev-showcase/ultralytics-retrain-deepx/`](./dx-agentic-dev-showcase/ultralytics-retrain-deepx/)**
 ([README](./dx-agentic-dev-showcase/ultralytics-retrain-deepx/README.md)).
 
+### Showcase 5: Ultralytics PPE Detection → DeepX NPU (construction safety)
+
+<!-- dx-showcase:ultralytics-ppe-deepx:gif:start -->
+<div align="center">
+<img src="./docs/source/img/dx-agentic-dev-ultralytics-ppe-build.gif" width="700"><br><sub><b>dx-agentic-dev building this showcase — retrain → DeepX → 4-way eval</b></sub>
+</div>
+<!-- dx-showcase:ultralytics-ppe-deepx:gif:end -->
+
+
+Domain optimization for a **construction site-safety camera**: retrain `yolo26n` on the
+`construction-ppe` dataset and deploy on the DX-M1 NPU — stock COCO model **mAP50-95
+0.0001 → retrained 0.256** (INT8 NPU), **+32% FPS** (58 → 76); evaluated 4 ways
+(base/retrained × fp32-GPU / INT8-NPU).
+
+**▶️ Run it yourself** — **[`dx-agentic-dev-showcase/ultralytics-ppe-deepx/`](./dx-agentic-dev-showcase/ultralytics-ppe-deepx/)**
+([README](./dx-agentic-dev-showcase/ultralytics-ppe-deepx/README.md)).
+
 ➡️ **[Get started with Agentic Development (Beta)](./docs/source/00_Agentic_Development.md)**
 
 ## Getting Started

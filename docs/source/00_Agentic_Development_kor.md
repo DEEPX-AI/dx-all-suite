@@ -33,6 +33,7 @@ NPU 앱을 만들어 냅니다.
 |----------|------|-----------|------------|-------------|-------|
 | **[스쿼트 카운팅 미니게임](../../dx-agentic-dev-showcase/squat-fitness-mini-game/)** | 무릎/엉덩이 각도로 스쿼트 횟수 카운트 + 아케이드 HUD(횟수/점수/DOWN·UP·GOOD!) | ≈ 20분 | 81 | ≈ 85K | ≈ $9.9 |
 | **[스트레칭 coach 미니게임](../../dx-agentic-dev-showcase/stretching-coach-mini-game/)** | 애니메이션 **coach 아바타**가 각 목표 포즈를 시연하며 3가지 스트레칭 안내 | ≈ 21분 | 75 | ≈ 85K | ≈ $9.4 |
+| **[Ultralytics PPE → DeepX NPU](../../dx-agentic-dev-showcase/ultralytics-ppe-deepx/)** | `yolo26n`을 건설 PPE 안전용 재학습, 4-way 평가(base/재학습 × fp32/INT8); stock mAP 0.0001 → 0.256, +32% NPU FPS | ≈ 14분 | — | — | ≈ $5 |
 | **[Ultralytics 재학습 → DeepX NPU](../../dx-agentic-dev-showcase/ultralytics-retrain-deepx/)** | `yolo26n`을 도메인 셋으로 재학습→`format=deepx` export→NPU FPS+mAP 측정(stock mAP 0.001 → 0.79, +41% FPS) | ≈ 18.5분 | 72 | ≈ 51K | ≈ $6.7 |
 
 둘 다 **Claude Code**(모델 **Claude Opus 4.8**)가 **프롬프트 1개**로 완전 자율로,

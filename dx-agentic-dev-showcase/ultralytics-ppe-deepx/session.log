@@ -1,0 +1,4046 @@
+==================================================================
+FINISH PIPELINE start Wed Jun 10 08:23:32 PM KST 2026
+==================================================================
+[wait] training PID=102860
+[wait] training PID=102860 exited
+[ok] best.pt present: /data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agentic-dev/20260610-201747_claude_opus48_yolo26n_ppe_retrain_bench/runs/retrained/weights/best.pt
+=== export base yolo26n -> DeepX ===
+Ultralytics 8.4.63 🚀 Python-3.12.3 torch-2.12.0+cu130 CPU (Intel Core(TM) i7-14700K)
+WARNING ⚠️ deepx export requires int8=True, setting int8=True.
+YOLO26n summary (fused): 122 layers, 2,408,932 parameters, 0 gradients, 5.4 GFLOPs
+
+[34m[1mPyTorch:[0m starting from '/data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agentic-dev/20260610-201747_claude_opus48_yolo26n_ppe_retrain_bench/yolo26n.pt' with input shape (1, 3, 640, 640) BCHW and output shape(s) (1, 300, 6) (5.3 MB)
+
+[34m[1mONNX:[0m starting export with onnx 1.21.0 opset 20...
+/data/home/dhyang/github/dx-all-suite-ultralytics/dx-runtime/venv-dx-runtime/lib/python3.12/site-packages/torch/onnx/_internal/torchscript_exporter/symbolic_opset11.py:954: UserWarning: Exporting aten::index operator of advanced indexing in opset 20 is achieved by combination of multiple ONNX operators, including Reshape, Transpose, Concat, and Gather. If indices include negative values, the exported graph will produce incorrect results.
+  return opset9.index(g, self, index)
+[34m[1mONNX:[0m slimming with onnxslim 0.1.94...
+[34m[1mONNX:[0m export success ✅ 0.6s, saved as '/data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agentic-dev/20260610-201747_claude_opus48_yolo26n_ppe_retrain_bench/yolo26n.onnx' (9.5 MB)
+[34m[1mDEEPX:[0m collecting INT8 calibration images from 'data=construction-ppe.yaml'
+[34m[1mval: [0mFast image access ✅ (ping: 0.0±0.0 ms, read: 7394.0±1353.7 MB/s, size: 102.3 KB)
+[K[34m[1mval: [0mScanning /data/home/dhyang/github/datasets/construction-ppe/labels/val.cache... 143 images, 0 backgrounds, 0 corrupt: 100% ━━━━━━━━━━━━ 143/143 46.1Mit/s 0.0s
+WARNING ⚠️ [34m[1mDEEPX:[0m >300 images recommended for INT8 calibration, found 143 images.
+
+[34m[1mDEEPX:[0m starting export with DEEPX...
+[INFO] - 
+[INFO] - ================================================================================
+[INFO] -   COMPILATION CONFIGURATION
+[INFO] - ================================================================================
+[INFO] -   Compiler Version : 2.3.0
+[INFO] -   ONNX Model       : /data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agentic-dev/20260610-201747_claude_opus48_yolo26n_ppe_retrain_bench/yolo26n.onnx
+[INFO] -   Config File      : /data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agentic-dev/20260610-201747_claude_opus48_yolo26n_ppe_retrain_bench/yolo26n_deepx_model/config.json
+[INFO] -   Output Directory : /data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agentic-dev/20260610-201747_claude_opus48_yolo26n_ppe_retrain_bench/yolo26n_deepx_model
+[INFO] - ================================================================================
+[INFO] - 
+Loading ONNX model:   0%|          | 0/4 [00:00<?, ?step/s]Loading ONNX model and Validating:   0%|          | 0/4 [00:00<?, ?step/s]Try to change opset and IR version to 21 and 10:  25%|██▌       | 1/4 [00:00<00:00, 28.61step/s]Try to change opset and IR version to 21 and 10:  50%|█████     | 2/4 [00:00<00:00, 19.64step/s]Running shape inference:  50%|█████     | 2/4 [00:00<00:00, 19.64step/s]                        Converting ONNX to Internal IR:  75%|███████▌  | 3/4 [00:00<00:00, 19.64step/s]                                                                               Compiling Model :   0%|          | 0.0/1.0 [00:00<?, ?model/s ]
+Running Surgeon:   0%|          | 0/3 [00:00<?, ?step/s][A
+                                                        [A                                                               Compiling Model :  20%|██        | 0.2/1.0 [00:00<00:01,  1.53s/model ][WARNING] - After surgeon, cosine similarity for output index 0 is below 0.99: 0.9156. This may be due to NPU constraints requiring resize approximation, which can cause slight variations in outputs.
+
+Classifying nodes:   0%|          | 0/309 [00:00<?, ?node/s][A
+                                                            [A                                                                       Compiling Model :  20%|██        | 0.2/1.0 [00:00<00:01,  1.60s/model ][INFO] - Infection complete: Marked 19 MemoryOp(s) from NPU to CPU
+
+Partitioning graph:   0%|          | 0/3 [00:00<?, ?step/s][A
+Separating nodes:   0%|          | 0/3 [00:00<?, ?step/s]  [A
+Grouping nodes:  33%|███▎      | 1/3 [00:00<00:00, 2255.00step/s][A                                                                       
+                                                                 [ACompiling Model :  20%|██        | 0.2/1.0 [00:00<00:01,  1.62s/model ]
+Grouping nodes:  33%|███▎      | 1/3 [00:00<00:00, 329.25step/s][A
+Setting up Group connections:  67%|██████▋   | 2/3 [00:00<00:00, 647.97step/s][A
+                                                                              [ACompiling Model :  30%|███       | 0.3/1.0 [00:00<00:00,  1.11s/model ][INFO] - Final result: 1 NPU groups, 1 CPU groups
+
+Quantizing graph:   0%|          | 0/4 [00:00<?, ?step/s][A
+Finding Quantization Positions:   0%|          | 0/4 [00:00<?, ?step/s][A
+Finding Quantization Positions:   0%|          | 0/4 [00:00<?, ?step/s, Current Graph=N/A][A
+Finding Quantization Positions:   0%|          | 0/4 [00:00<?, ?step/s, Current Graph=npu_0][A
+Finding Quantization Positions:  25%|██▌       | 1/4 [00:04<00:14,  4.97s/step, Current Graph=npu_0][A
+Finding Quantization Positions:  25%|██▌       | 1/4 [00:04<00:14,  4.97s/step]                     [A
+Running Calibration:  25%|██▌       | 1/4 [00:04<00:14,  4.97s/step]           [A
+
+Calibration:   0%|          | 0/100 [00:00<?, ?data/s][A[A
+
+Calibration:   1%|          | 1/100 [00:01<02:10,  1.32s/data][A[A
+
+Calibration:   2%|▏         | 2/100 [00:02<01:57,  1.20s/data][A[A
+
+Calibration:   3%|▎         | 3/100 [00:03<01:56,  1.20s/data][A[A
+
+Calibration:   4%|▍         | 4/100 [00:04<01:55,  1.20s/data][A[A
+
+Calibration:   5%|▌         | 5/100 [00:06<01:53,  1.19s/data][A[A
+
+Calibration:   6%|▌         | 6/100 [00:07<01:49,  1.16s/data][A[A
+
+Calibration:   7%|▋         | 7/100 [00:08<01:48,  1.16s/data][A[A
+
+Calibration:   8%|▊         | 8/100 [00:09<01:49,  1.19s/data][A[A
+
+Calibration:   9%|▉         | 9/100 [00:10<01:47,  1.19s/data][A[A
+
+Calibration:  10%|█         | 10/100 [00:11<01:48,  1.20s/data][A[A
+
+Calibration:  11%|█         | 11/100 [00:13<01:46,  1.20s/data][A[A
+
+Calibration:  12%|█▏        | 12/100 [00:14<01:42,  1.16s/data][A[A
+
+Calibration:  13%|█▎        | 13/100 [00:15<01:39,  1.14s/data][A[A
+
+Calibration:  14%|█▍        | 14/100 [00:16<01:40,  1.17s/data][A[A
+
+Calibration:  15%|█▌        | 15/100 [00:17<01:40,  1.18s/data][A[A
+
+Calibration:  16%|█▌        | 16/100 [00:18<01:36,  1.15s/data][A[A
+
+Calibration:  17%|█▋        | 17/100 [00:19<01:34,  1.13s/data][A[A
+
+Calibration:  18%|█▊        | 18/100 [00:21<01:34,  1.15s/data][A[A
+
+Calibration:  19%|█▉        | 19/100 [00:22<01:34,  1.17s/data][A[A
+
+Calibration:  20%|██        | 20/100 [00:23<01:29,  1.12s/data][A[A
+
+Calibration:  21%|██        | 21/100 [00:24<01:30,  1.14s/data][A[A
+
+Calibration:  22%|██▏       | 22/100 [00:25<01:28,  1.14s/data][A[A
+
+Calibration:  23%|██▎       | 23/100 [00:26<01:28,  1.15s/data][A[A
+
+Calibration:  24%|██▍       | 24/100 [00:27<01:27,  1.15s/data][A[A
+
+Calibration:  25%|██▌       | 25/100 [00:28<01:22,  1.10s/data][A[A
+
+Calibration:  26%|██▌       | 26/100 [00:30<01:22,  1.11s/data][A[A
+
+Calibration:  27%|██▋       | 27/100 [00:31<01:23,  1.14s/data][A[A
+
+Calibration:  28%|██▊       | 28/100 [00:32<01:23,  1.16s/data][A[A
+
+Calibration:  29%|██▉       | 29/100 [00:33<01:21,  1.14s/data][A[A
+
+Calibration:  30%|███       | 30/100 [00:34<01:23,  1.19s/data][A[A
+
+Calibration:  31%|███       | 31/100 [00:36<01:21,  1.18s/data][A[A
+
+Calibration:  32%|███▏      | 32/100 [00:37<01:16,  1.12s/data][A[A
+
+Calibration:  33%|███▎      | 33/100 [00:38<01:16,  1.15s/data][A[A
+
+Calibration:  34%|███▍      | 34/100 [00:39<01:17,  1.17s/data][A[A
+
+Calibration:  35%|███▌      | 35/100 [00:40<01:15,  1.17s/data][A[A
+
+Calibration:  36%|███▌      | 36/100 [00:41<01:16,  1.19s/data][A[A
+
+Calibration:  37%|███▋      | 37/100 [00:43<01:15,  1.20s/data][A[A
+
+Calibration:  38%|███▊      | 38/100 [00:44<01:12,  1.17s/data][A[A
+
+Calibration:  39%|███▉      | 39/100 [00:45<01:12,  1.18s/data][A[A
+
+Calibration:  40%|████      | 40/100 [00:46<01:10,  1.17s/data][A[A
+
+Calibration:  41%|████      | 41/100 [00:47<01:09,  1.18s/data][A[A
+
+Calibration:  42%|████▏     | 42/100 [00:48<01:08,  1.17s/data][A[A
+
+Calibration:  43%|████▎     | 43/100 [00:50<01:08,  1.20s/data][A[A
+
+Calibration:  44%|████▍     | 44/100 [00:51<01:06,  1.20s/data][A[A
+
+Calibration:  45%|████▌     | 45/100 [00:52<01:04,  1.18s/data][A[A
+
+Calibration:  46%|████▌     | 46/100 [00:53<01:03,  1.18s/data][A[A
+
+Calibration:  47%|████▋     | 47/100 [00:54<01:02,  1.19s/data][A[A
+
+Calibration:  48%|████▊     | 48/100 [00:56<01:01,  1.19s/data][A[A
+
+Calibration:  49%|████▉     | 49/100 [00:57<01:01,  1.20s/data][A[A
+
+Calibration:  50%|█████     | 50/100 [00:58<00:58,  1.17s/data][A[A
+
+Calibration:  51%|█████     | 51/100 [00:59<00:57,  1.18s/data][A[A
+
+Calibration:  52%|█████▏    | 52/100 [01:00<00:57,  1.19s/data][A[A
+
+Calibration:  53%|█████▎    | 53/100 [01:02<00:59,  1.26s/data][A[A
+
+Calibration:  54%|█████▍    | 54/100 [01:03<00:56,  1.24s/data][A[A
+
+Calibration:  55%|█████▌    | 55/100 [01:04<00:55,  1.23s/data][A[A
+
+Calibration:  56%|█████▌    | 56/100 [01:05<00:52,  1.19s/data][A[A
+
+Calibration:  57%|█████▋    | 57/100 [01:06<00:51,  1.20s/data][A[A
+
+Calibration:  58%|█████▊    | 58/100 [01:08<00:50,  1.20s/data][A[A
+
+Calibration:  59%|█████▉    | 59/100 [01:09<00:48,  1.19s/data][A[A
+
+Calibration:  60%|██████    | 60/100 [01:10<00:46,  1.16s/data][A[A
+
+Calibration:  61%|██████    | 61/100 [01:11<00:44,  1.14s/data][A[A
+
+Calibration:  62%|██████▏   | 62/100 [01:12<00:44,  1.18s/data][A[A
+
+Calibration:  63%|██████▎   | 63/100 [01:14<00:44,  1.19s/data][A[A
+
+Calibration:  64%|██████▍   | 64/100 [01:15<00:42,  1.19s/data][A[A
+
+Calibration:  65%|██████▌   | 65/100 [01:16<00:42,  1.22s/data][A[A
+
+Calibration:  66%|██████▌   | 66/100 [01:17<00:40,  1.19s/data][A[A
+
+Calibration:  67%|██████▋   | 67/100 [01:18<00:39,  1.19s/data][A[A
+
+Calibration:  68%|██████▊   | 68/100 [01:20<00:38,  1.20s/data][A[A
+
+Calibration:  69%|██████▉   | 69/100 [01:21<00:37,  1.20s/data][A[A
+
+Calibration:  70%|███████   | 70/100 [01:22<00:35,  1.20s/data][A[A
+
+Calibration:  71%|███████   | 71/100 [01:23<00:34,  1.19s/data][A[A
+
+Calibration:  72%|███████▏  | 72/100 [01:24<00:33,  1.19s/data][A[A
+
+Calibration:  73%|███████▎  | 73/100 [01:25<00:31,  1.17s/data][A[A
+
+Calibration:  74%|███████▍  | 74/100 [01:27<00:30,  1.19s/data][A[A
+
+Calibration:  75%|███████▌  | 75/100 [01:28<00:29,  1.18s/data][A[A
+
+Calibration:  76%|███████▌  | 76/100 [01:29<00:28,  1.17s/data][A[A
+
+Calibration:  77%|███████▋  | 77/100 [01:30<00:26,  1.17s/data][A[A
+
+Calibration:  78%|███████▊  | 78/100 [01:31<00:25,  1.18s/data][A[A
+
+Calibration:  79%|███████▉  | 79/100 [01:33<00:24,  1.19s/data][A[A
+
+Calibration:  80%|████████  | 80/100 [01:34<00:24,  1.20s/data][A[A
+
+Calibration:  81%|████████  | 81/100 [01:35<00:22,  1.18s/data][A[A
+
+Calibration:  82%|████████▏ | 82/100 [01:36<00:21,  1.18s/data][A[A
+
+Calibration:  83%|████████▎ | 83/100 [01:37<00:19,  1.17s/data][A[A
+
+Calibration:  84%|████████▍ | 84/100 [01:38<00:18,  1.16s/data][A[A
+
+Calibration:  85%|████████▌ | 85/100 [01:39<00:16,  1.13s/data][A[A
+
+Calibration:  86%|████████▌ | 86/100 [01:41<00:16,  1.15s/data][A[A
+
+Calibration:  87%|████████▋ | 87/100 [01:42<00:14,  1.13s/data][A[A
+
+Calibration:  88%|████████▊ | 88/100 [01:43<00:12,  1.07s/data][A[A
+
+Calibration:  89%|████████▉ | 89/100 [01:44<00:11,  1.07s/data][A[A
+
+Calibration:  90%|█████████ | 90/100 [01:45<00:11,  1.11s/data][A[A
+
+Calibration:  91%|█████████ | 91/100 [01:46<00:10,  1.12s/data][A[A
+
+Calibration:  92%|█████████▏| 92/100 [01:47<00:09,  1.14s/data][A[A
+
+Calibration:  93%|█████████▎| 93/100 [01:48<00:08,  1.15s/data][A[A
+
+Calibration:  94%|█████████▍| 94/100 [01:50<00:06,  1.13s/data][A[A
+
+Calibration:  95%|█████████▌| 95/100 [01:51<00:05,  1.12s/data][A[A
+
+Calibration:  96%|█████████▌| 96/100 [01:52<00:04,  1.13s/data][A[A
+
+Calibration:  97%|█████████▋| 97/100 [01:53<00:03,  1.16s/data][A[A
+
+Calibration:  98%|█████████▊| 98/100 [01:54<00:02,  1.15s/data][A[A
+
+Calibration:  99%|█████████▉| 99/100 [01:55<00:01,  1.19s/data][A[A
+
+Calibration: 100%|██████████| 100/100 [01:57<00:00,  1.21s/data][A[A
+
+                                                                [A[A
+Running Calibration:  50%|█████     | 2/4 [02:02<02:22, 71.01s/step][A
+Extracting Quantization Parameters:  50%|█████     | 2/4 [02:02<02:22, 71.01s/step][A
+Quantizing NPU Graphs:  75%|███████▌  | 3/4 [02:02<01:11, 71.01s/step]             [A
+Quantizing NPU Graphs:  75%|███████▌  | 3/4 [02:02<01:11, 71.01s/step, Current Graph=N/A][A
+Quantizing NPU Graphs:  75%|███████▌  | 3/4 [02:02<01:11, 71.01s/step, Current Graph=npu_0][A
+Quantizing NPU Graphs:  75%|███████▌  | 3/4 [02:02<01:11, 71.01s/step]                     [A
+Quantizing NPU Graphs: 100%|██████████| 4/4 [02:02<00:00, 26.62s/step][A
+                                                                      [ACompiling Model :  40%|████      | 0.4/1.0 [02:03<03:58, 397.00s/model ]
+Optimizing NPU models:   0%|          | 0/1 [00:00<?, ?model/s][A
+
+Optimizing graph:   0%|          | 0/4 [00:00<?, ?step/s][A[A
+
+Running initial node optimizer:   0%|          | 0/4 [00:00<?, ?step/s][A[A
+
+Running initial node optimizer:  25%|██▌       | 1/4 [00:01<00:03,  1.02s/step][A[A                                                                        
+
+                                                                               [A[A
+                                                               [ACompiling Model :  40%|████      | 0.4/1.0 [02:04<03:58, 397.00s/model ]
+
+Running initial node optimizer:  25%|██▌       | 1/4 [00:01<00:03,  1.02s/step][A[A
+Optimizing NPU models:   0%|          | 0/1 [00:01<?, ?model/s][A                                                                        
+
+                                                                               [A[A
+                                                               [ACompiling Model :  40%|████      | 0.4/1.0 [02:04<03:58, 397.00s/model ]
+
+Running initial node optimizer:  25%|██▌       | 1/4 [00:01<00:03,  1.02s/step][A[A
+Optimizing NPU models:   0%|          | 0/1 [00:01<?, ?model/s][A                                                                        
+
+                                                                               [A[A
+                                                               [ACompiling Model :  40%|████      | 0.4/1.0 [02:04<03:58, 397.00s/model ]
+
+Running initial node optimizer:  25%|██▌       | 1/4 [00:01<00:03,  1.02s/step][A[A
+Optimizing NPU models:   0%|          | 0/1 [00:01<?, ?model/s][A
+
+Change Ops to Internal Ops:  25%|██▌       | 1/4 [00:01<00:03,  1.02s/step]    [A[A
+
+Change Ops to Internal Ops:  50%|█████     | 2/4 [00:01<00:01,  1.62step/s][A[A
+
+Data Format Conversion for NPU:  50%|█████     | 2/4 [00:01<00:01,  1.62step/s][A[A
+
+Data Format Conversion for PPU:  75%|███████▌  | 3/4 [00:01<00:00,  1.62step/s][A[A
+
+Deciding Input Formats for NPU:  75%|███████▌  | 3/4 [00:01<00:00,  1.62step/s][A[A
+
+                                                                               [A[A
+Optimizing NPU models: 100%|██████████| 1/1 [00:01<00:00,  1.39s/model][A
+                                                                       [A[INFO] - Inserting preprocessing operations to NPU graph: 1 nodes added
+[INFO] - Added nodes: Div(x=255.0)
+[INFO] - Skipped nodes (cannot be inserted in NPU graph): resize, convertColor, transpose, expandDim
+
+Lowering for Backend:   0%|          | 0/1 [00:00<?, ?model/s][A
+                                                              [ACompiling Model :  70%|███████   | 0.7/1.0 [02:04<00:50, 169.36s/model ]
+Preparing Frontend IR:   0%|          | 0/800 [00:00<?, ?op/s][A
+Preparing Frontend IR:   3%|▎         | 24/800 [00:00<00:03, 229.58op/s][A
+Preparing Frontend IR:   6%|▌         | 47/800 [00:00<00:03, 224.13op/s][A
+Preparing Frontend IR:   9%|▉         | 70/800 [00:00<00:03, 220.73op/s][A
+Preparing Frontend IR:  12%|█▏        | 93/800 [00:00<00:03, 220.13op/s][A
+Preparing Frontend IR:  14%|█▍        | 116/800 [00:00<00:03, 220.29op/s][A
+Preparing Frontend IR:  17%|█▋        | 139/800 [00:00<00:02, 220.40op/s][A
+Preparing Frontend IR:  20%|██        | 162/800 [00:00<00:02, 220.27op/s][A
+Preparing Frontend IR:  23%|██▎       | 185/800 [00:00<00:02, 220.11op/s][A
+Preparing Frontend IR:  26%|██▌       | 208/800 [00:00<00:02, 220.10op/s][A
+Preparing Frontend IR:  29%|██▉       | 231/800 [00:01<00:02, 220.11op/s][A
+Preparing Frontend IR:  32%|███▏      | 254/800 [00:01<00:02, 220.13op/s][A
+Preparing Frontend IR:  35%|███▍      | 277/800 [00:01<00:02, 220.09op/s][A
+Preparing Frontend IR:  38%|███▊      | 300/800 [00:01<00:02, 219.95op/s][A
+Preparing Frontend IR:  40%|████      | 322/800 [00:01<00:02, 219.90op/s][A
+Preparing Frontend IR:  43%|████▎     | 345/800 [00:01<00:02, 220.01op/s][A
+Preparing Frontend IR:  46%|████▌     | 368/800 [00:01<00:01, 219.80op/s][A
+Preparing Frontend IR:  49%|████▉     | 390/800 [00:01<00:01, 219.84op/s][A
+Preparing Frontend IR:  52%|█████▏    | 412/800 [00:01<00:01, 219.83op/s][A
+Preparing Frontend IR:  54%|█████▍    | 434/800 [00:02<00:02, 173.83op/s][A
+Preparing Frontend IR:  57%|█████▋    | 453/800 [00:02<00:02, 127.31op/s][A
+Preparing Frontend IR:  59%|█████▊    | 469/800 [00:02<00:03, 94.94op/s] [A
+Preparing Frontend IR:  60%|██████    | 482/800 [00:02<00:03, 94.42op/s][A
+Preparing Frontend IR:  62%|██████▏   | 494/800 [00:02<00:03, 83.57op/s][A
+Preparing Frontend IR:  63%|██████▎   | 504/800 [00:03<00:03, 85.96op/s][A
+Preparing Frontend IR:  64%|██████▍   | 515/800 [00:03<00:03, 90.27op/s][A
+Preparing Frontend IR:  66%|██████▌   | 527/800 [00:03<00:02, 96.21op/s][A
+Preparing Frontend IR:  68%|██████▊   | 544/800 [00:03<00:02, 113.72op/s][A
+Preparing Frontend IR:  70%|███████   | 560/800 [00:03<00:01, 124.93op/s][A
+Preparing Frontend IR:  72%|███████▏  | 576/800 [00:03<00:01, 133.93op/s][A
+Preparing Frontend IR:  74%|███████▍  | 591/800 [00:03<00:01, 128.93op/s][A
+Preparing Frontend IR:  76%|███████▌  | 605/800 [00:03<00:01, 121.77op/s][A
+Preparing Frontend IR:  77%|███████▋  | 618/800 [00:04<00:01, 91.73op/s] [A
+Preparing Frontend IR:  79%|███████▉  | 630/800 [00:04<00:01, 96.16op/s][A
+Preparing Frontend IR:  80%|████████  | 641/800 [00:04<00:02, 77.17op/s][A
+Preparing Frontend IR:  82%|████████▏ | 652/800 [00:04<00:01, 81.63op/s][A
+Preparing Frontend IR:  83%|████████▎ | 662/800 [00:04<00:01, 84.03op/s][A
+Preparing Frontend IR:  84%|████████▍ | 672/800 [00:04<00:01, 68.07op/s][A
+Preparing Frontend IR:  85%|████████▌ | 683/800 [00:04<00:01, 76.12op/s][A
+Preparing Frontend IR:  87%|████████▋ | 693/800 [00:05<00:01, 80.76op/s][A
+Preparing Frontend IR:  88%|████████▊ | 702/800 [00:05<00:01, 78.65op/s][A
+Preparing Frontend IR:  90%|█████████ | 720/800 [00:05<00:00, 101.95op/s][A
+Preparing Frontend IR:  91%|█████████▏| 731/800 [00:05<00:00, 92.63op/s] [A
+Preparing Frontend IR:  93%|█████████▎| 747/800 [00:05<00:00, 108.79op/s][A
+Preparing Frontend IR:  96%|█████████▌| 767/800 [00:05<00:00, 132.08op/s][A
+Preparing Frontend IR:  98%|█████████▊| 782/800 [00:05<00:00, 107.07op/s][A
+Preparing Frontend IR:  99%|█████████▉| 795/800 [00:06<00:00, 86.59op/s] [A
+                                                                        [ACompiling Model :  73%|███████▎  | 0.7/1.0 [02:12<00:47, 176.04s/model ]
+Building layer attributes:   0%|          | 0/371 [00:00<?, ?layer/s][A
+                                                                     [A
+Building connections:   0%|          | 0/371 [00:00<?, ?connection/s][A
+                                                                     [A
+Build attributes:   0%|          | 0/371 [00:00<?, ?layer/s][A
+                                                            [A
+Memory Management:   0%|          | 0/371 [00:00<?, ?schedule/s][A
+Memory Management:   0%|          | 1/371 [00:00<01:46,  3.48schedule/s][A
+Memory Management:   1%|          | 2/371 [00:00<01:30,  4.07schedule/s][A
+Memory Management:   1%|          | 3/371 [00:00<01:16,  4.83schedule/s][A
+Memory Management:   1%|          | 4/371 [00:00<01:11,  5.14schedule/s][A
+Memory Management:   2%|▏         | 6/371 [00:01<00:48,  7.46schedule/s][A
+Memory Management:   2%|▏         | 8/371 [00:01<00:37,  9.63schedule/s][A
+Memory Management:   3%|▎         | 10/371 [00:01<00:36,  9.94schedule/s][A
+Memory Management:   4%|▎         | 13/371 [00:01<00:35, 10.04schedule/s][A
+Memory Management:   4%|▍         | 16/371 [00:01<00:27, 12.69schedule/s][A
+Memory Management:   6%|▌         | 21/371 [00:01<00:18, 18.81schedule/s][A
+Memory Management:   7%|▋         | 25/371 [00:02<00:17, 19.99schedule/s][A
+Memory Management:   8%|▊         | 29/371 [00:02<00:15, 22.01schedule/s][A
+Memory Management:   9%|▉         | 35/371 [00:02<00:11, 29.91schedule/s][A
+Memory Management:  11%|█         | 40/371 [00:02<00:10, 32.90schedule/s][A
+Memory Management:  15%|█▍        | 55/371 [00:02<00:05, 60.25schedule/s][A
+Memory Management:  20%|██        | 75/371 [00:02<00:03, 95.42schedule/s][A
+Memory Management:  26%|██▋       | 98/371 [00:02<00:02, 102.09schedule/s][A
+Memory Management:  36%|███▌      | 133/371 [00:02<00:01, 156.23schedule/s][A
+Memory Management:  44%|████▍     | 163/371 [00:03<00:01, 189.25schedule/s][A
+Memory Management:  50%|████▉     | 184/371 [00:03<00:01, 168.34schedule/s][A
+Memory Management:  55%|█████▍    | 203/371 [00:03<00:01, 143.60schedule/s][A
+Memory Management:  59%|█████▉    | 220/371 [00:04<00:02, 63.99schedule/s] [A
+Memory Management:  63%|██████▎   | 232/371 [00:04<00:02, 54.23schedule/s][A
+Memory Management:  65%|██████▌   | 242/371 [00:04<00:02, 56.17schedule/s][A
+Memory Management:  68%|██████▊   | 254/371 [00:04<00:01, 63.80schedule/s][A
+Memory Management:  72%|███████▏  | 266/371 [00:04<00:01, 71.38schedule/s][A
+Memory Management:  80%|████████  | 298/371 [00:04<00:00, 115.72schedule/s][A
+Memory Management:  85%|████████▍ | 314/371 [00:05<00:00, 113.43schedule/s][A
+Memory Management:  93%|█████████▎| 344/371 [00:05<00:00, 151.13schedule/s][A
+Memory Management:  98%|█████████▊| 363/371 [00:05<00:00, 128.47schedule/s][A
+                                                                           [ACompiling Model :  81%|████████▏ | 0.8/1.0 [02:18<00:28, 150.84s/model ]
+Processing datablocks:   0%|          | 0/371 [00:00<?, ?schedule/s][A
+
+Processing:   0%|          | 0/3 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/9 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/14 [00:00<?, ?it/s][A[A
+
+                                                  [A[A
+
+Processing:   0%|          | 0/9 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/4 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/4 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/4 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/4 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/7 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/3 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/7 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+Processing datablocks:   4%|▍         | 15/371 [00:00<00:03, 98.66schedule/s][A
+
+Processing:   0%|          | 0/3 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/2 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/3 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/2 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/2 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/2 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+Processing datablocks:  15%|█▍        | 55/371 [00:00<00:01, 243.53schedule/s][A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/11 [00:00<?, ?it/s][A[A
+
+                                                  [A[A
+
+Processing:   0%|          | 0/7 [00:00<?, ?it/s][A[A
+
+Processing: 100%|██████████| 7/7 [00:00<00:00, 58.61it/s][A[A
+
+                                                         [A[A
+Processing datablocks:  27%|██▋       | 99/371 [00:00<00:01, 245.94schedule/s][A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/2 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/4 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/6 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/2 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/2 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/4 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+Processing datablocks:  34%|███▍      | 126/371 [00:00<00:01, 233.72schedule/s][A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/2 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/3 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/5 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/6 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/2 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/2 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/14 [00:00<?, ?it/s][A[A
+
+                                                  [A[A
+
+Processing:   0%|          | 0/2 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/4 [00:00<?, ?it/s][A[A
+
+Processing: 100%|██████████| 4/4 [00:00<00:00, 27.08it/s][A[A
+
+                                                         [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/2 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/4 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/6 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/2 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+Processing datablocks:  41%|████      | 151/371 [00:01<00:02, 107.65schedule/s][A
+
+Processing:   0%|          | 0/2 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/2 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/2 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/2 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/2 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+Processing datablocks:  55%|█████▍    | 204/371 [00:01<00:00, 172.72schedule/s][A
+
+Processing:   0%|          | 0/2 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/2 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/2 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/2 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/2 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/2 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/3 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/2 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+Processing datablocks:  67%|██████▋   | 249/371 [00:01<00:00, 222.29schedule/s][A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/11 [00:00<?, ?it/s][A[A
+
+                                                  [A[A
+
+Processing:   0%|          | 0/7 [00:00<?, ?it/s][A[A
+
+Processing: 100%|██████████| 7/7 [00:00<00:00, 59.08it/s][A[A
+
+                                                         [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/2 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+Processing datablocks:  76%|███████▋  | 283/371 [00:01<00:00, 198.11schedule/s][A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/4 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/6 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/2 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/2 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/4 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/2 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/3 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/5 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/6 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/2 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/2 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+Processing datablocks:  85%|████████▌ | 316/371 [00:01<00:00, 221.72schedule/s][A
+
+Processing:   0%|          | 0/14 [00:00<?, ?it/s][A[A
+
+                                                  [A[A
+
+Processing:   0%|          | 0/2 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/4 [00:00<?, ?it/s][A[A
+
+Processing:  75%|███████▌  | 3/4 [00:00<00:00, 14.62it/s][A[A
+
+                                                         [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/2 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/4 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/6 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/2 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/2 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/2 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/2 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+Processing datablocks:  93%|█████████▎| 346/371 [00:02<00:00, 128.04schedule/s][A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/2 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/2 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/2 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/2 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/5 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+                                                                               [A
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A
+                                                 [ACompiling Model :  84%|████████▎ | 0.8/1.0 [02:20<00:24, 147.19s/model ]
+Setting DMA Registers:   0%|          | 0/371 [00:00<?, ?schedule/s][A
+Setting DMA Registers:   1%|▏         | 5/371 [00:00<01:02,  5.90schedule/s][A
+Setting DMA Registers:   2%|▏         | 8/371 [00:02<02:21,  2.57schedule/s][A
+Setting DMA Registers:   3%|▎         | 10/371 [00:03<02:32,  2.37schedule/s][A
+Setting DMA Registers:   5%|▍         | 17/371 [00:03<01:04,  5.48schedule/s][A
+Setting DMA Registers:   6%|▌         | 22/371 [00:04<00:44,  7.90schedule/s][A
+Setting DMA Registers:   8%|▊         | 31/371 [00:04<00:25, 13.54schedule/s][A
+Setting DMA Registers:  12%|█▏        | 45/371 [00:04<00:13, 24.87schedule/s][A
+Setting DMA Registers:  25%|██▌       | 94/371 [00:04<00:03, 71.05schedule/s][A
+Setting DMA Registers:  29%|██▊       | 106/371 [00:10<00:26,  9.84schedule/s][A
+Setting DMA Registers:  31%|███▏      | 116/371 [00:11<00:26,  9.49schedule/s][A
+Setting DMA Registers:  33%|███▎      | 122/371 [00:12<00:30,  8.20schedule/s][A
+Setting DMA Registers:  35%|███▌      | 131/371 [00:12<00:23, 10.38schedule/s][A
+Setting DMA Registers:  37%|███▋      | 137/371 [00:13<00:26,  8.83schedule/s][A
+Setting DMA Registers:  38%|███▊      | 141/371 [00:14<00:25,  8.93schedule/s][A
+Setting DMA Registers:  39%|███▉      | 145/371 [00:15<00:32,  6.88schedule/s][A
+Setting DMA Registers:  40%|███▉      | 148/371 [00:16<00:43,  5.17schedule/s][A
+Setting DMA Registers:  41%|████      | 151/371 [00:16<00:36,  6.04schedule/s][A
+Setting DMA Registers:  42%|████▏     | 155/371 [00:17<00:30,  7.15schedule/s][A
+Setting DMA Registers:  43%|████▎     | 158/371 [00:17<00:25,  8.46schedule/s][A
+Setting DMA Registers:  47%|████▋     | 175/371 [00:17<00:10, 19.36schedule/s][A
+Setting DMA Registers:  51%|█████     | 188/371 [00:17<00:06, 28.75schedule/s][A
+Setting DMA Registers:  54%|█████▍    | 200/371 [00:17<00:05, 33.31schedule/s][A
+Setting DMA Registers:  56%|█████▌    | 206/371 [00:18<00:05, 32.22schedule/s][A
+Setting DMA Registers:  57%|█████▋    | 211/371 [00:18<00:05, 31.23schedule/s][A
+Setting DMA Registers:  58%|█████▊    | 215/371 [00:18<00:06, 24.61schedule/s][A
+Setting DMA Registers:  59%|█████▉    | 219/371 [00:18<00:06, 24.01schedule/s][A
+Setting DMA Registers:  61%|██████▏   | 228/371 [00:19<00:05, 24.66schedule/s][A
+Setting DMA Registers:  62%|██████▏   | 231/371 [00:19<00:06, 21.46schedule/s][A
+Setting DMA Registers:  66%|██████▌   | 244/371 [00:19<00:03, 34.66schedule/s][A
+Setting DMA Registers:  70%|██████▉   | 259/371 [00:19<00:02, 40.87schedule/s][A
+Setting DMA Registers:  74%|███████▍  | 275/371 [00:19<00:01, 54.43schedule/s][A
+Setting DMA Registers:  76%|███████▌  | 282/371 [00:25<00:15,  5.83schedule/s][A
+Setting DMA Registers:  80%|████████  | 297/371 [00:26<00:10,  7.21schedule/s][A
+Setting DMA Registers:  81%|████████  | 301/371 [00:27<00:11,  6.21schedule/s][A
+Setting DMA Registers:  83%|████████▎ | 307/371 [00:28<00:08,  7.68schedule/s][A
+Setting DMA Registers:  84%|████████▍ | 313/371 [00:28<00:06,  9.59schedule/s][A
+Setting DMA Registers:  86%|████████▌ | 318/371 [00:29<00:06,  7.65schedule/s][A
+Setting DMA Registers:  87%|████████▋ | 321/371 [00:29<00:06,  7.96schedule/s][A
+Setting DMA Registers:  88%|████████▊ | 326/371 [00:30<00:07,  6.32schedule/s][A
+Setting DMA Registers:  88%|████████▊ | 328/371 [00:32<00:09,  4.50schedule/s][A
+Setting DMA Registers:  89%|████████▉ | 330/371 [00:32<00:08,  4.81schedule/s][A
+Setting DMA Registers:  89%|████████▉ | 332/371 [00:32<00:07,  5.56schedule/s][A
+Setting DMA Registers:  91%|█████████ | 336/371 [00:32<00:04,  7.86schedule/s][A
+Setting DMA Registers:  91%|█████████▏| 339/371 [00:32<00:03,  9.69schedule/s][A
+Setting DMA Registers:  99%|█████████▊| 366/371 [00:32<00:00, 38.70schedule/s][A
+                                                                              [A
+Building RF data:   0%|          | 0/371 [00:00<?, ?schedule/s][A
+                                                               [ACompiling Model :  85%|████████▌ | 0.8/1.0 [02:53<00:44, 297.03s/model ]
+Generate Register Data:   0%|          | 0/371 [00:00<?, ?schedule/s][ACompiling Model :  90%|█████████ | 0.9/1.0 [02:53<00:21, 219.62s/model ]
+Generate Register Data:  35%|███▌      | 131/371 [00:00<00:00, 519.86schedule/s][ACompiling Model :  97%|█████████▋| 1.0/1.0 [02:53<00:03, 144.70s/model ]
+Generate Register Data:  84%|████████▍ | 312/371 [00:00<00:00, 970.21schedule/s][A
+                                                                                [A
+Saving outputs:   0%|          | 0/12 [00:00<?, ?step/s][A
+Creating directories:   0%|          | 0/12 [00:00<?, ?step/s][A
+Generating RMAP:   0%|          | 0/12 [00:00<?, ?step/s]     [A
+Generating RMAP:  17%|█▋        | 2/12 [00:00<00:04,  2.31step/s][A
+Writing RMAP:  17%|█▋        | 2/12 [00:00<00:04,  2.31step/s]   [A
+Generating RMAP meta info:  17%|█▋        | 2/12 [00:00<00:04,  2.31step/s][A
+Generating simulator info:  17%|█▋        | 2/12 [00:00<00:04,  2.31step/s][A
+Writing simulator info:  17%|█▋        | 2/12 [00:00<00:04,  2.31step/s]   [A
+Generating weights:  17%|█▋        | 2/12 [00:00<00:04,  2.31step/s]    [A
+Writing weights:  17%|█▋        | 2/12 [00:00<00:04,  2.31step/s]   [A
+Generating dummy bit mask:  17%|█▋        | 2/12 [00:00<00:04,  2.31step/s][A
+Writing dummy bit mask:  17%|█▋        | 2/12 [00:00<00:04,  2.31step/s]   [A
+Generating PPU data:  17%|█▋        | 2/12 [00:00<00:04,  2.31step/s]   [A
+Writing PPU data:  17%|█▋        | 2/12 [00:00<00:04,  2.31step/s]   [A
+                                                                  [ACompiling Model : 100%|█████████▉| 1.0/1.0 [02:54<00:00, 175.08s/model ]
+[34m[1mDEEPX:[0m export success ✅ 175.3s, saved as '/data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agentic-dev/20260610-201747_claude_opus48_yolo26n_ppe_retrain_bench/yolo26n_deepx_model' (6.6 MB)
+
+Export complete (175.4s)
+Results saved to [1m/data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agentic-dev/20260610-201747_claude_opus48_yolo26n_ppe_retrain_bench/yolo26n_deepx_model[0m
+Predict:         yolo predict task=detect model=/data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agentic-dev/20260610-201747_claude_opus48_yolo26n_ppe_retrain_bench/yolo26n_deepx_model imgsz=640 int8
+Validate:        yolo val task=detect model=/data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agentic-dev/20260610-201747_claude_opus48_yolo26n_ppe_retrain_bench/yolo26n_deepx_model imgsz=640 data=/home/lq/codes/ultralytics/ultralytics/cfg/datasets/coco.yaml int8 
+Visualize:       https://netron.app
+EXPORT_DONE dir=/data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agentic-dev/20260610-201747_claude_opus48_yolo26n_ppe_retrain_bench/yolo26n_deepx_model dxnn=yolo26n.dxnn size=6890789
+=== export retrained -> DeepX ===
+Ultralytics 8.4.63 🚀 Python-3.12.3 torch-2.12.0+cu130 CPU (Intel Core(TM) i7-14700K)
+WARNING ⚠️ deepx export requires int8=True, setting int8=True.
+YOLO26n summary (fused): 122 layers, 2,376,981 parameters, 0 gradients, 5.2 GFLOPs
+
+[34m[1mPyTorch:[0m starting from '/data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agentic-dev/20260610-201747_claude_opus48_yolo26n_ppe_retrain_bench/runs/retrained/weights/best.pt' with input shape (1, 3, 640, 640) BCHW and output shape(s) (1, 300, 6) (5.1 MB)
+
+[34m[1mONNX:[0m starting export with onnx 1.21.0 opset 20...
+/data/home/dhyang/github/dx-all-suite-ultralytics/dx-runtime/venv-dx-runtime/lib/python3.12/site-packages/torch/onnx/_internal/torchscript_exporter/symbolic_opset11.py:954: UserWarning: Exporting aten::index operator of advanced indexing in opset 20 is achieved by combination of multiple ONNX operators, including Reshape, Transpose, Concat, and Gather. If indices include negative values, the exported graph will produce incorrect results.
+  return opset9.index(g, self, index)
+[34m[1mONNX:[0m slimming with onnxslim 0.1.94...
+[34m[1mONNX:[0m export success ✅ 0.6s, saved as '/data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agentic-dev/20260610-201747_claude_opus48_yolo26n_ppe_retrain_bench/runs/retrained/weights/best.onnx' (9.4 MB)
+[34m[1mDEEPX:[0m collecting INT8 calibration images from 'data=construction-ppe.yaml'
+[34m[1mval: [0mFast image access ✅ (ping: 0.0±0.0 ms, read: 6549.0±1491.9 MB/s, size: 73.9 KB)
+[K[34m[1mval: [0mScanning /data/home/dhyang/github/datasets/construction-ppe/labels/val.cache... 143 images, 0 backgrounds, 0 corrupt: 100% ━━━━━━━━━━━━ 143/143 54.5Mit/s 0.0s
+WARNING ⚠️ [34m[1mDEEPX:[0m >300 images recommended for INT8 calibration, found 143 images.
+
+[34m[1mDEEPX:[0m starting export with DEEPX...
+[INFO] - 
+[INFO] - ================================================================================
+[INFO] -   COMPILATION CONFIGURATION
+[INFO] - ================================================================================
+[INFO] -   Compiler Version : 2.3.0
+[INFO] -   ONNX Model       : /data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agentic-dev/20260610-201747_claude_opus48_yolo26n_ppe_retrain_bench/runs/retrained/weights/best.onnx
+[INFO] -   Config File      : /data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agentic-dev/20260610-201747_claude_opus48_yolo26n_ppe_retrain_bench/runs/retrained/weights/best_deepx_model/config.json
+[INFO] -   Output Directory : /data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agentic-dev/20260610-201747_claude_opus48_yolo26n_ppe_retrain_bench/runs/retrained/weights/best_deepx_model
+[INFO] - ================================================================================
+[INFO] - 
+Loading ONNX model:   0%|          | 0/4 [00:00<?, ?step/s]Loading ONNX model and Validating:   0%|          | 0/4 [00:00<?, ?step/s]Try to change opset and IR version to 21 and 10:  25%|██▌       | 1/4 [00:00<00:00, 26.67step/s]Running shape inference:  50%|█████     | 2/4 [00:00<00:00, 20.07step/s]                        Running shape inference:  75%|███████▌  | 3/4 [00:00<00:00, 23.16step/s]Converting ONNX to Internal IR:  75%|███████▌  | 3/4 [00:00<00:00, 23.16step/s]                                                                               Compiling Model :   0%|          | 0.0/1.0 [00:00<?, ?model/s ]
+Running Surgeon:   0%|          | 0/3 [00:00<?, ?step/s][A
+                                                        [A                                                               Compiling Model :  20%|██        | 0.2/1.0 [00:00<00:01,  1.62s/model ][WARNING] - After surgeon, cosine similarity for output index 0 is below 0.99: 0.9831. This may be due to NPU constraints requiring resize approximation, which can cause slight variations in outputs.
+
+Classifying nodes:   0%|          | 0/309 [00:00<?, ?node/s][A
+                                                            [A                                                                       Compiling Model :  20%|██        | 0.2/1.0 [00:00<00:01,  1.69s/model ][INFO] - Infection complete: Marked 19 MemoryOp(s) from NPU to CPU
+
+Partitioning graph:   0%|          | 0/3 [00:00<?, ?step/s][A
+Separating nodes:   0%|          | 0/3 [00:00<?, ?step/s]  [A
+Grouping nodes:  33%|███▎      | 1/3 [00:00<00:00, 2264.74step/s][A                                                                       
+                                                                 [ACompiling Model :  20%|██        | 0.2/1.0 [00:00<00:01,  1.71s/model ]
+Grouping nodes:  33%|███▎      | 1/3 [00:00<00:00, 329.97step/s][A
+Setting up Group connections:  67%|██████▋   | 2/3 [00:00<00:00, 653.17step/s][A
+                                                                              [ACompiling Model :  30%|███       | 0.3/1.0 [00:00<00:00,  1.17s/model ][INFO] - Final result: 1 NPU groups, 1 CPU groups
+
+Quantizing graph:   0%|          | 0/4 [00:00<?, ?step/s][A
+Finding Quantization Positions:   0%|          | 0/4 [00:00<?, ?step/s][A
+Finding Quantization Positions:   0%|          | 0/4 [00:00<?, ?step/s, Current Graph=N/A][A
+Finding Quantization Positions:   0%|          | 0/4 [00:00<?, ?step/s, Current Graph=npu_0][A
+Finding Quantization Positions:  25%|██▌       | 1/4 [00:05<00:15,  5.00s/step, Current Graph=npu_0][A
+Finding Quantization Positions:  25%|██▌       | 1/4 [00:05<00:15,  5.00s/step]                     [A
+Running Calibration:  25%|██▌       | 1/4 [00:05<00:15,  5.00s/step]           [A
+
+Calibration:   0%|          | 0/100 [00:00<?, ?data/s][A[A
+
+Calibration:   1%|          | 1/100 [00:01<02:04,  1.25s/data][A[A
+
+Calibration:   2%|▏         | 2/100 [00:02<01:53,  1.16s/data][A[A
+
+Calibration:   3%|▎         | 3/100 [00:03<01:53,  1.17s/data][A[A
+
+Calibration:   4%|▍         | 4/100 [00:04<01:51,  1.17s/data][A[A
+
+Calibration:   5%|▌         | 5/100 [00:05<01:48,  1.15s/data][A[A
+
+Calibration:   6%|▌         | 6/100 [00:06<01:45,  1.12s/data][A[A
+
+Calibration:   7%|▋         | 7/100 [00:08<01:48,  1.17s/data][A[A
+
+Calibration:   8%|▊         | 8/100 [00:09<01:48,  1.18s/data][A[A
+
+Calibration:   9%|▉         | 9/100 [00:10<01:46,  1.17s/data][A[A
+
+Calibration:  10%|█         | 10/100 [00:11<01:45,  1.17s/data][A[A
+
+Calibration:  11%|█         | 11/100 [00:12<01:42,  1.16s/data][A[A
+
+Calibration:  12%|█▏        | 12/100 [00:13<01:41,  1.15s/data][A[A
+
+Calibration:  13%|█▎        | 13/100 [00:15<01:39,  1.14s/data][A[A
+
+Calibration:  14%|█▍        | 14/100 [00:16<01:39,  1.16s/data][A[A
+
+Calibration:  15%|█▌        | 15/100 [00:17<01:39,  1.17s/data][A[A
+
+Calibration:  16%|█▌        | 16/100 [00:18<01:35,  1.14s/data][A[A
+
+Calibration:  17%|█▋        | 17/100 [00:19<01:32,  1.11s/data][A[A
+
+Calibration:  18%|█▊        | 18/100 [00:20<01:33,  1.14s/data][A[A
+
+Calibration:  19%|█▉        | 19/100 [00:21<01:33,  1.15s/data][A[A
+
+Calibration:  20%|██        | 20/100 [00:22<01:27,  1.09s/data][A[A
+
+Calibration:  21%|██        | 21/100 [00:24<01:29,  1.13s/data][A[A
+
+Calibration:  22%|██▏       | 22/100 [00:25<01:29,  1.14s/data][A[A
+
+Calibration:  23%|██▎       | 23/100 [00:26<01:29,  1.16s/data][A[A
+
+Calibration:  24%|██▍       | 24/100 [00:27<01:25,  1.13s/data][A[A
+
+Calibration:  25%|██▌       | 25/100 [00:28<01:18,  1.05s/data][A[A
+
+Calibration:  26%|██▌       | 26/100 [00:29<01:19,  1.07s/data][A[A
+
+Calibration:  27%|██▋       | 27/100 [00:30<01:20,  1.10s/data][A[A
+
+Calibration:  28%|██▊       | 28/100 [00:31<01:21,  1.13s/data][A[A
+
+Calibration:  29%|██▉       | 29/100 [00:32<01:19,  1.12s/data][A[A
+
+Calibration:  30%|███       | 30/100 [00:34<01:20,  1.15s/data][A[A
+
+Calibration:  31%|███       | 31/100 [00:35<01:18,  1.14s/data][A[A
+
+Calibration:  32%|███▏      | 32/100 [00:36<01:13,  1.08s/data][A[A
+
+Calibration:  33%|███▎      | 33/100 [00:37<01:14,  1.11s/data][A[A
+
+Calibration:  34%|███▍      | 34/100 [00:38<01:15,  1.14s/data][A[A
+
+Calibration:  35%|███▌      | 35/100 [00:39<01:14,  1.15s/data][A[A
+
+Calibration:  36%|███▌      | 36/100 [00:41<01:15,  1.17s/data][A[A
+
+Calibration:  37%|███▋      | 37/100 [00:42<01:13,  1.17s/data][A[A
+
+Calibration:  38%|███▊      | 38/100 [00:43<01:10,  1.14s/data][A[A
+
+Calibration:  39%|███▉      | 39/100 [00:44<01:11,  1.18s/data][A[A
+
+Calibration:  40%|████      | 40/100 [00:45<01:08,  1.15s/data][A[A
+
+Calibration:  41%|████      | 41/100 [00:46<01:08,  1.16s/data][A[A
+
+Calibration:  42%|████▏     | 42/100 [00:47<01:05,  1.14s/data][A[A
+
+Calibration:  43%|████▎     | 43/100 [00:49<01:04,  1.14s/data][A[A
+
+Calibration:  44%|████▍     | 44/100 [00:50<01:05,  1.16s/data][A[A
+
+Calibration:  45%|████▌     | 45/100 [00:51<01:04,  1.17s/data][A[A
+
+Calibration:  46%|████▌     | 46/100 [00:52<01:03,  1.17s/data][A[A
+
+Calibration:  47%|████▋     | 47/100 [00:53<01:02,  1.18s/data][A[A
+
+Calibration:  48%|████▊     | 48/100 [00:55<01:01,  1.18s/data][A[A
+
+Calibration:  49%|████▉     | 49/100 [00:56<01:00,  1.19s/data][A[A
+
+Calibration:  50%|█████     | 50/100 [00:57<00:58,  1.18s/data][A[A
+
+Calibration:  51%|█████     | 51/100 [00:58<00:57,  1.17s/data][A[A
+
+Calibration:  52%|█████▏    | 52/100 [00:59<00:56,  1.17s/data][A[A
+
+Calibration:  53%|█████▎    | 53/100 [01:00<00:55,  1.19s/data][A[A
+
+Calibration:  54%|█████▍    | 54/100 [01:02<00:54,  1.19s/data][A[A
+
+Calibration:  55%|█████▌    | 55/100 [01:03<00:52,  1.17s/data][A[A
+
+Calibration:  56%|█████▌    | 56/100 [01:04<00:50,  1.14s/data][A[A
+
+Calibration:  57%|█████▋    | 57/100 [01:05<00:49,  1.15s/data][A[A
+
+Calibration:  58%|█████▊    | 58/100 [01:06<00:48,  1.17s/data][A[A
+
+Calibration:  59%|█████▉    | 59/100 [01:07<00:46,  1.15s/data][A[A
+
+Calibration:  60%|██████    | 60/100 [01:08<00:45,  1.13s/data][A[A
+
+Calibration:  61%|██████    | 61/100 [01:09<00:43,  1.11s/data][A[A
+
+Calibration:  62%|██████▏   | 62/100 [01:11<00:43,  1.14s/data][A[A
+
+Calibration:  63%|██████▎   | 63/100 [01:12<00:42,  1.14s/data][A[A
+
+Calibration:  64%|██████▍   | 64/100 [01:13<00:41,  1.15s/data][A[A
+
+Calibration:  65%|██████▌   | 65/100 [01:14<00:40,  1.15s/data][A[A
+
+Calibration:  66%|██████▌   | 66/100 [01:15<00:38,  1.12s/data][A[A
+
+Calibration:  67%|██████▋   | 67/100 [01:16<00:37,  1.14s/data][A[A
+
+Calibration:  68%|██████▊   | 68/100 [01:18<00:36,  1.14s/data][A[A
+
+Calibration:  69%|██████▉   | 69/100 [01:19<00:35,  1.15s/data][A[A
+
+Calibration:  70%|███████   | 70/100 [01:20<00:35,  1.17s/data][A[A
+
+Calibration:  71%|███████   | 71/100 [01:21<00:34,  1.18s/data][A[A
+
+Calibration:  72%|███████▏  | 72/100 [01:22<00:33,  1.19s/data][A[A
+
+Calibration:  73%|███████▎  | 73/100 [01:23<00:31,  1.17s/data][A[A
+
+Calibration:  74%|███████▍  | 74/100 [01:25<00:31,  1.19s/data][A[A
+
+Calibration:  75%|███████▌  | 75/100 [01:26<00:29,  1.18s/data][A[A
+
+Calibration:  76%|███████▌  | 76/100 [01:27<00:27,  1.14s/data][A[A
+
+Calibration:  77%|███████▋  | 77/100 [01:28<00:26,  1.14s/data][A[A
+
+Calibration:  78%|███████▊  | 78/100 [01:29<00:25,  1.15s/data][A[A
+
+Calibration:  79%|███████▉  | 79/100 [01:30<00:24,  1.16s/data][A[A
+
+Calibration:  80%|████████  | 80/100 [01:32<00:23,  1.17s/data][A[A
+
+Calibration:  81%|████████  | 81/100 [01:33<00:21,  1.15s/data][A[A
+
+Calibration:  82%|████████▏ | 82/100 [01:34<00:20,  1.14s/data][A[A
+
+Calibration:  83%|████████▎ | 83/100 [01:35<00:19,  1.13s/data][A[A
+
+Calibration:  84%|████████▍ | 84/100 [01:36<00:17,  1.12s/data][A[A
+
+Calibration:  85%|████████▌ | 85/100 [01:37<00:16,  1.09s/data][A[A
+
+Calibration:  86%|████████▌ | 86/100 [01:38<00:15,  1.12s/data][A[A
+
+Calibration:  87%|████████▋ | 87/100 [01:39<00:14,  1.08s/data][A[A
+
+Calibration:  88%|████████▊ | 88/100 [01:40<00:12,  1.03s/data][A[A
+
+Calibration:  89%|████████▉ | 89/100 [01:41<00:11,  1.02s/data][A[A
+
+Calibration:  90%|█████████ | 90/100 [01:42<00:10,  1.07s/data][A[A
+
+Calibration:  91%|█████████ | 91/100 [01:43<00:09,  1.07s/data][A[A
+
+Calibration:  92%|█████████▏| 92/100 [01:45<00:08,  1.11s/data][A[A
+
+Calibration:  93%|█████████▎| 93/100 [01:46<00:07,  1.12s/data][A[A
+
+Calibration:  94%|█████████▍| 94/100 [01:47<00:06,  1.10s/data][A[A
+
+Calibration:  95%|█████████▌| 95/100 [01:48<00:05,  1.10s/data][A[A
+
+Calibration:  96%|█████████▌| 96/100 [01:49<00:04,  1.08s/data][A[A
+
+Calibration:  97%|█████████▋| 97/100 [01:50<00:03,  1.11s/data][A[A
+
+Calibration:  98%|█████████▊| 98/100 [01:51<00:02,  1.10s/data][A[A
+
+Calibration:  99%|█████████▉| 99/100 [01:52<00:01,  1.13s/data][A[A
+
+Calibration: 100%|██████████| 100/100 [01:54<00:00,  1.14s/data][A[A
+
+                                                                [A[A
+Running Calibration:  50%|█████     | 2/4 [01:59<02:18, 69.18s/step][A
+Extracting Quantization Parameters:  50%|█████     | 2/4 [01:59<02:18, 69.18s/step][A
+Quantizing NPU Graphs:  75%|███████▌  | 3/4 [01:59<01:09, 69.18s/step]             [A
+Quantizing NPU Graphs:  75%|███████▌  | 3/4 [01:59<01:09, 69.18s/step, Current Graph=N/A][A
+Quantizing NPU Graphs:  75%|███████▌  | 3/4 [01:59<01:09, 69.18s/step, Current Graph=npu_0][A
+Quantizing NPU Graphs:  75%|███████▌  | 3/4 [01:59<01:09, 69.18s/step]                     [A
+Quantizing NPU Graphs: 100%|██████████| 4/4 [01:59<00:00, 25.96s/step][A
+                                                                      [ACompiling Model :  40%|████      | 0.4/1.0 [02:00<03:52, 387.23s/model ]
+Optimizing NPU models:   0%|          | 0/1 [00:00<?, ?model/s][A
+
+Optimizing graph:   0%|          | 0/4 [00:00<?, ?step/s][A[A
+
+Running initial node optimizer:   0%|          | 0/4 [00:00<?, ?step/s][A[A
+
+Running initial node optimizer:  25%|██▌       | 1/4 [00:01<00:03,  1.02s/step][A[A                                                                        
+
+                                                                               [A[A
+                                                               [ACompiling Model :  40%|████      | 0.4/1.0 [02:01<03:52, 387.23s/model ]
+
+Running initial node optimizer:  25%|██▌       | 1/4 [00:01<00:03,  1.02s/step][A[A
+Optimizing NPU models:   0%|          | 0/1 [00:01<?, ?model/s][A                                                                        
+
+                                                                               [A[A
+                                                               [ACompiling Model :  40%|████      | 0.4/1.0 [02:01<03:52, 387.23s/model ]
+
+Running initial node optimizer:  25%|██▌       | 1/4 [00:01<00:03,  1.02s/step][A[A
+Optimizing NPU models:   0%|          | 0/1 [00:01<?, ?model/s][A                                                                        
+
+                                                                               [A[A
+                                                               [ACompiling Model :  40%|████      | 0.4/1.0 [02:01<03:52, 387.23s/model ]
+
+Running initial node optimizer:  25%|██▌       | 1/4 [00:01<00:03,  1.02s/step][A[A
+Optimizing NPU models:   0%|          | 0/1 [00:01<?, ?model/s][A
+
+Change Ops to Internal Ops:  25%|██▌       | 1/4 [00:01<00:03,  1.02s/step]    [A[A
+
+Change Ops to Internal Ops:  50%|█████     | 2/4 [00:01<00:01,  1.62step/s][A[A
+
+Data Format Conversion for NPU:  50%|█████     | 2/4 [00:01<00:01,  1.62step/s][A[A
+
+Data Format Conversion for PPU:  75%|███████▌  | 3/4 [00:01<00:00,  1.62step/s][A[A
+
+Deciding Input Formats for NPU:  75%|███████▌  | 3/4 [00:01<00:00,  1.62step/s][A[A
+
+                                                                               [A[A
+Optimizing NPU models: 100%|██████████| 1/1 [00:01<00:00,  1.37s/model][A
+                                                                       [A[INFO] - Inserting preprocessing operations to NPU graph: 1 nodes added
+[INFO] - Added nodes: Div(x=255.0)
+[INFO] - Skipped nodes (cannot be inserted in NPU graph): resize, convertColor, transpose, expandDim
+
+Lowering for Backend:   0%|          | 0/1 [00:00<?, ?model/s][A
+                                                              [ACompiling Model :  70%|███████   | 0.7/1.0 [02:01<00:49, 165.22s/model ]
+Preparing Frontend IR:   0%|          | 0/809 [00:00<?, ?op/s][A
+Preparing Frontend IR:   3%|▎         | 23/809 [00:00<00:03, 229.50op/s][A
+Preparing Frontend IR:   6%|▌         | 46/809 [00:00<00:03, 229.39op/s][A
+Preparing Frontend IR:   9%|▊         | 69/809 [00:00<00:03, 222.25op/s][A
+Preparing Frontend IR:  11%|█▏        | 92/809 [00:00<00:03, 221.03op/s][A
+Preparing Frontend IR:  14%|█▍        | 115/809 [00:00<00:03, 220.37op/s][A
+Preparing Frontend IR:  17%|█▋        | 138/809 [00:00<00:03, 219.93op/s][A
+Preparing Frontend IR:  20%|█▉        | 161/809 [00:00<00:02, 219.74op/s][A
+Preparing Frontend IR:  23%|██▎       | 183/809 [00:00<00:02, 219.48op/s][A
+Preparing Frontend IR:  25%|██▌       | 205/809 [00:00<00:02, 219.52op/s][A
+Preparing Frontend IR:  28%|██▊       | 228/809 [00:01<00:02, 221.72op/s][A
+Preparing Frontend IR:  31%|███       | 251/809 [00:01<00:02, 224.04op/s][A
+Preparing Frontend IR:  34%|███▍      | 274/809 [00:01<00:02, 225.08op/s][A
+Preparing Frontend IR:  37%|███▋      | 297/809 [00:01<00:02, 226.43op/s][A
+Preparing Frontend IR:  40%|███▉      | 320/809 [00:01<00:02, 227.27op/s][A
+Preparing Frontend IR:  42%|████▏     | 343/809 [00:01<00:02, 227.84op/s][A
+Preparing Frontend IR:  45%|████▌     | 366/809 [00:01<00:01, 228.09op/s][A
+Preparing Frontend IR:  48%|████▊     | 389/809 [00:01<00:01, 228.41op/s][A
+Preparing Frontend IR:  51%|█████     | 412/809 [00:01<00:01, 228.55op/s][A
+Preparing Frontend IR:  54%|█████▍    | 435/809 [00:02<00:02, 180.60op/s][A
+Preparing Frontend IR:  56%|█████▌    | 455/809 [00:02<00:02, 127.14op/s][A
+Preparing Frontend IR:  58%|█████▊    | 471/809 [00:02<00:03, 98.11op/s] [A
+Preparing Frontend IR:  60%|█████▉    | 484/809 [00:02<00:03, 91.42op/s][A
+Preparing Frontend IR:  61%|██████▏   | 496/809 [00:02<00:03, 84.15op/s][A
+Preparing Frontend IR:  63%|██████▎   | 507/809 [00:03<00:03, 87.98op/s][A
+Preparing Frontend IR:  64%|██████▍   | 517/809 [00:03<00:03, 86.52op/s][A
+Preparing Frontend IR:  66%|██████▌   | 535/809 [00:03<00:02, 106.55op/s][A
+Preparing Frontend IR:  68%|██████▊   | 552/809 [00:03<00:02, 118.47op/s][A
+Preparing Frontend IR:  70%|███████   | 570/809 [00:03<00:01, 133.05op/s][A
+Preparing Frontend IR:  73%|███████▎  | 589/809 [00:03<00:01, 142.07op/s][A
+Preparing Frontend IR:  75%|███████▍  | 604/809 [00:03<00:01, 122.63op/s][A
+Preparing Frontend IR:  76%|███████▋  | 618/809 [00:04<00:01, 96.71op/s] [A
+Preparing Frontend IR:  78%|███████▊  | 630/809 [00:04<00:01, 100.76op/s][A
+Preparing Frontend IR:  79%|███████▉  | 642/809 [00:04<00:02, 77.81op/s] [A
+Preparing Frontend IR:  81%|████████  | 653/809 [00:04<00:01, 82.72op/s][A
+Preparing Frontend IR:  82%|████████▏ | 663/809 [00:04<00:01, 85.38op/s][A
+Preparing Frontend IR:  83%|████████▎ | 673/809 [00:04<00:01, 71.86op/s][A
+Preparing Frontend IR:  84%|████████▍ | 683/809 [00:04<00:01, 76.97op/s][A
+Preparing Frontend IR:  86%|████████▌ | 693/809 [00:04<00:01, 80.46op/s][A
+Preparing Frontend IR:  87%|████████▋ | 702/809 [00:05<00:01, 77.72op/s][A
+Preparing Frontend IR:  89%|████████▉ | 720/809 [00:05<00:00, 100.71op/s][A
+Preparing Frontend IR:  90%|█████████ | 731/809 [00:05<00:00, 91.99op/s] [A
+Preparing Frontend IR:  92%|█████████▏| 747/809 [00:05<00:00, 107.92op/s][A
+Preparing Frontend IR:  95%|█████████▍| 767/809 [00:05<00:00, 131.02op/s][A
+Preparing Frontend IR:  97%|█████████▋| 781/809 [00:05<00:00, 104.78op/s][A
+Preparing Frontend IR:  98%|█████████▊| 793/809 [00:05<00:00, 97.70op/s] [A
+Preparing Frontend IR:  99%|█████████▉| 804/809 [00:06<00:00, 83.54op/s][A
+                                                                        [ACompiling Model :  73%|███████▎  | 0.7/1.0 [02:09<00:46, 172.19s/model ]
+Building layer attributes:   0%|          | 0/380 [00:00<?, ?layer/s][A
+                                                                     [A
+Building connections:   0%|          | 0/380 [00:00<?, ?connection/s][A
+                                                                     [A
+Build attributes:   0%|          | 0/380 [00:00<?, ?layer/s][A
+                                                            [A
+Memory Management:   0%|          | 0/380 [00:00<?, ?schedule/s][A
+Memory Management:   0%|          | 1/380 [00:00<01:51,  3.39schedule/s][A
+Memory Management:   1%|          | 2/380 [00:00<01:34,  4.01schedule/s][A
+Memory Management:   1%|          | 3/380 [00:00<01:18,  4.77schedule/s][A
+Memory Management:   1%|          | 4/380 [00:00<01:16,  4.89schedule/s][A
+Memory Management:   2%|▏         | 6/380 [00:01<00:51,  7.21schedule/s][A
+Memory Management:   2%|▏         | 8/380 [00:01<00:39,  9.39schedule/s][A
+Memory Management:   3%|▎         | 10/380 [00:01<00:38,  9.73schedule/s][A
+Memory Management:   3%|▎         | 13/380 [00:01<00:37,  9.85schedule/s][A
+Memory Management:   4%|▍         | 16/380 [00:01<00:29, 12.52schedule/s][A
+Memory Management:   6%|▌         | 21/380 [00:01<00:19, 18.64schedule/s][A
+Memory Management:   7%|▋         | 25/380 [00:02<00:17, 19.78schedule/s][A
+Memory Management:   8%|▊         | 29/380 [00:02<00:16, 21.91schedule/s][A
+Memory Management:   9%|▉         | 36/380 [00:02<00:11, 30.55schedule/s][A
+Memory Management:  11%|█▏        | 43/380 [00:02<00:08, 38.77schedule/s][A
+Memory Management:  15%|█▍        | 56/380 [00:02<00:05, 59.44schedule/s][A
+Memory Management:  20%|██        | 77/380 [00:02<00:03, 96.20schedule/s][A
+Memory Management:  26%|██▌       | 98/380 [00:02<00:02, 103.09schedule/s][A
+Memory Management:  35%|███▌      | 133/380 [00:02<00:01, 158.77schedule/s][A
+Memory Management:  43%|████▎     | 163/380 [00:03<00:01, 192.15schedule/s][A
+Memory Management:  49%|████▊     | 185/380 [00:03<00:01, 166.14schedule/s][A
+Memory Management:  54%|█████▎    | 204/380 [00:03<00:01, 141.31schedule/s][A
+Memory Management:  58%|█████▊    | 220/380 [00:04<00:02, 65.05schedule/s] [A
+Memory Management:  61%|██████    | 232/380 [00:04<00:02, 55.29schedule/s][A
+Memory Management:  64%|██████▎   | 242/380 [00:04<00:02, 57.14schedule/s][A
+Memory Management:  67%|██████▋   | 254/380 [00:04<00:01, 64.86schedule/s][A
+Memory Management:  70%|███████   | 266/380 [00:04<00:01, 72.64schedule/s][A
+Memory Management:  78%|███████▊  | 298/380 [00:04<00:00, 117.79schedule/s][A
+Memory Management:  83%|████████▎ | 315/380 [00:05<00:00, 117.11schedule/s][A
+Memory Management:  91%|█████████ | 344/380 [00:05<00:00, 153.43schedule/s][A
+Memory Management:  96%|█████████▌| 363/380 [00:05<00:00, 148.85schedule/s][A
+                                                                           [ACompiling Model :  81%|████████▏ | 0.8/1.0 [02:15<00:27, 148.06s/model ]
+Processing datablocks:   0%|          | 0/380 [00:00<?, ?schedule/s][A
+
+Processing:   0%|          | 0/3 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/9 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/14 [00:00<?, ?it/s][A[A
+
+                                                  [A[A
+
+Processing:   0%|          | 0/9 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/4 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/4 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/4 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/4 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/7 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/3 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/7 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+Processing datablocks:   4%|▍         | 15/380 [00:00<00:03, 98.72schedule/s][A
+
+Processing:   0%|          | 0/3 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/2 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/3 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/2 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/2 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/2 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+Processing datablocks:  14%|█▍        | 55/380 [00:00<00:01, 243.99schedule/s][A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/11 [00:00<?, ?it/s][A[A
+
+                                                  [A[A
+
+Processing:   0%|          | 0/7 [00:00<?, ?it/s][A[A
+
+Processing: 100%|██████████| 7/7 [00:00<00:00, 58.87it/s][A[A
+
+                                                         [A[A
+Processing datablocks:  26%|██▌       | 99/380 [00:00<00:01, 246.08schedule/s][A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/2 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/4 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/6 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/2 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/2 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/4 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+Processing datablocks:  33%|███▎      | 126/380 [00:00<00:01, 234.53schedule/s][A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/2 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/3 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/5 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/6 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/2 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/2 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/14 [00:00<?, ?it/s][A[A
+
+                                                  [A[A
+
+Processing:   0%|          | 0/2 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/4 [00:00<?, ?it/s][A[A
+
+Processing: 100%|██████████| 4/4 [00:00<00:00, 27.85it/s][A[A
+
+                                                         [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/2 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/4 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/6 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/2 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+Processing datablocks:  40%|███▉      | 151/380 [00:00<00:01, 126.81schedule/s][A
+
+Processing:   0%|          | 0/2 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/2 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/2 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/2 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+Processing datablocks:  53%|█████▎    | 201/380 [00:01<00:00, 192.69schedule/s][A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/2 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/2 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/2 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/2 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/2 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/2 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/2 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/3 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/2 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+Processing datablocks:  62%|██████▏   | 237/380 [00:01<00:00, 226.17schedule/s][A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/11 [00:00<?, ?it/s][A[A
+
+                                                  [A[A
+
+Processing:   0%|          | 0/7 [00:00<?, ?it/s][A[A
+
+Processing: 100%|██████████| 7/7 [00:00<00:00, 30.77it/s][A[A
+
+                                                         [A[A
+Processing datablocks:  74%|███████▎  | 280/380 [00:01<00:00, 190.86schedule/s][A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/2 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/4 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/6 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/2 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/2 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/4 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+Processing datablocks:  81%|████████  | 307/380 [00:01<00:00, 195.21schedule/s][A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/2 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/3 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/5 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/6 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/2 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/2 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/14 [00:00<?, ?it/s][A[A
+
+                                                  [A[A
+
+Processing:   0%|          | 0/2 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/4 [00:00<?, ?it/s][A[A
+
+Processing: 100%|██████████| 4/4 [00:00<00:00, 27.73it/s][A[A
+
+                                                         [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/2 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/4 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/6 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/2 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+Processing datablocks:  87%|████████▋ | 332/380 [00:01<00:00, 127.46schedule/s][A
+
+Processing:   0%|          | 0/2 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/2 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/2 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/3 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/2 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+                                                 [A[A
+                                                                               [A
+Processing:   0%|          | 0/1 [00:00<?, ?it/s][A
+                                                 [ACompiling Model :  84%|████████▎ | 0.8/1.0 [02:17<00:23, 144.26s/model ]
+Setting DMA Registers:   0%|          | 0/380 [00:00<?, ?schedule/s][A
+Setting DMA Registers:   1%|▏         | 5/380 [00:00<01:11,  5.22schedule/s][A
+Setting DMA Registers:   2%|▏         | 8/380 [00:02<02:21,  2.63schedule/s][A
+Setting DMA Registers:   3%|▎         | 10/380 [00:03<02:33,  2.41schedule/s][A
+Setting DMA Registers:   4%|▍         | 17/380 [00:04<01:09,  5.25schedule/s][A
+Setting DMA Registers:   6%|▌         | 22/380 [00:04<00:47,  7.60schedule/s][A
+Setting DMA Registers:  11%|█         | 40/380 [00:04<00:16, 20.21schedule/s][A
+Setting DMA Registers:  18%|█▊        | 68/380 [00:04<00:07, 44.47schedule/s][A
+Setting DMA Registers:  25%|██▍       | 94/380 [00:04<00:04, 58.50schedule/s][A
+Setting DMA Registers:  28%|██▊       | 106/380 [00:10<00:31,  8.82schedule/s][A
+Setting DMA Registers:  31%|███       | 116/380 [00:11<00:30,  8.67schedule/s][A
+Setting DMA Registers:  32%|███▏      | 122/380 [00:12<00:33,  7.61schedule/s][A
+Setting DMA Registers:  34%|███▍      | 131/380 [00:12<00:25,  9.80schedule/s][A
+Setting DMA Registers:  36%|███▌      | 137/380 [00:13<00:29,  8.38schedule/s][A
+Setting DMA Registers:  37%|███▋      | 141/380 [00:14<00:26,  8.87schedule/s][A
+Setting DMA Registers:  38%|███▊      | 145/380 [00:15<00:34,  6.75schedule/s][A
+Setting DMA Registers:  39%|███▉      | 148/380 [00:16<00:46,  5.01schedule/s][A
+Setting DMA Registers:  40%|███▉      | 151/380 [00:17<00:40,  5.59schedule/s][A
+Setting DMA Registers:  41%|████      | 155/380 [00:17<00:31,  7.16schedule/s][A
+Setting DMA Registers:  42%|████▏     | 158/380 [00:17<00:26,  8.49schedule/s][A
+Setting DMA Registers:  46%|████▌     | 175/380 [00:17<00:10, 19.53schedule/s][A
+Setting DMA Registers:  48%|████▊     | 181/380 [00:17<00:09, 20.82schedule/s][A
+Setting DMA Registers:  52%|█████▏    | 198/380 [00:17<00:05, 35.73schedule/s][A
+Setting DMA Registers:  54%|█████▍    | 205/380 [00:18<00:05, 34.01schedule/s][A
+Setting DMA Registers:  56%|█████▌    | 211/380 [00:18<00:05, 28.94schedule/s][A
+Setting DMA Registers:  57%|█████▋    | 216/380 [00:18<00:05, 28.83schedule/s][A
+Setting DMA Registers:  58%|█████▊    | 220/380 [00:18<00:06, 23.32schedule/s][A
+Setting DMA Registers:  60%|██████    | 228/380 [00:19<00:05, 27.52schedule/s][A
+Setting DMA Registers:  61%|██████    | 232/380 [00:19<00:05, 25.08schedule/s][A
+Setting DMA Registers:  62%|██████▏   | 235/380 [00:19<00:06, 22.83schedule/s][A
+Setting DMA Registers:  66%|██████▌   | 249/380 [00:19<00:03, 39.52schedule/s][A
+Setting DMA Registers:  69%|██████▊   | 261/380 [00:19<00:02, 52.30schedule/s][A
+Setting DMA Registers:  72%|███████▏  | 275/380 [00:19<00:01, 65.20schedule/s][A
+Setting DMA Registers:  74%|███████▍  | 283/380 [00:25<00:17,  5.61schedule/s][A
+Setting DMA Registers:  78%|███████▊  | 297/380 [00:26<00:11,  6.92schedule/s][A
+Setting DMA Registers:  79%|███████▉  | 302/380 [00:27<00:12,  6.12schedule/s][A
+Setting DMA Registers:  81%|████████▏ | 309/380 [00:28<00:09,  7.87schedule/s][A
+Setting DMA Registers:  83%|████████▎ | 314/380 [00:28<00:07,  8.45schedule/s][A
+Setting DMA Registers:  84%|████████▎ | 318/380 [00:29<00:08,  7.47schedule/s][A
+Setting DMA Registers:  84%|████████▍ | 321/380 [00:29<00:07,  7.38schedule/s][A
+Setting DMA Registers:  86%|████████▌ | 326/380 [00:30<00:09,  5.92schedule/s][A
+Setting DMA Registers:  86%|████████▋ | 328/380 [00:32<00:12,  4.26schedule/s][A
+Setting DMA Registers:  87%|████████▋ | 330/380 [00:32<00:10,  4.87schedule/s][A
+Setting DMA Registers:  87%|████████▋ | 332/380 [00:32<00:08,  5.63schedule/s][A
+Setting DMA Registers:  88%|████████▊ | 336/380 [00:32<00:05,  7.99schedule/s][A
+Setting DMA Registers:  89%|████████▉ | 339/380 [00:32<00:04,  8.69schedule/s][A
+Setting DMA Registers:  97%|█████████▋| 369/380 [00:33<00:00, 37.80schedule/s][A
+Setting DMA Registers:  99%|█████████▉| 378/380 [00:33<00:00, 39.01schedule/s][A
+                                                                              [A
+Building RF data:   0%|          | 0/380 [00:00<?, ?schedule/s][A
+                                                               [ACompiling Model :  85%|████████▌ | 0.8/1.0 [02:50<00:44, 297.47s/model ]
+Generate Register Data:   0%|          | 0/380 [00:00<?, ?schedule/s][ACompiling Model :  90%|█████████ | 0.9/1.0 [02:50<00:21, 220.56s/model ]
+Generate Register Data:  34%|███▍      | 131/380 [00:00<00:00, 1271.20schedule/s][ACompiling Model :  97%|█████████▋| 1.0/1.0 [02:50<00:04, 146.20s/model ]
+Generate Register Data:  82%|████████▏ | 312/380 [00:00<00:00, 1551.50schedule/s][A
+                                                                                 [A
+Saving outputs:   0%|          | 0/12 [00:00<?, ?step/s][A
+Creating directories:   0%|          | 0/12 [00:00<?, ?step/s][A
+Generating RMAP:   0%|          | 0/12 [00:00<?, ?step/s]     [A
+Generating RMAP:  17%|█▋        | 2/12 [00:00<00:04,  2.35step/s][A
+Writing RMAP:  17%|█▋        | 2/12 [00:00<00:04,  2.35step/s]   [A
+Generating RMAP meta info:  17%|█▋        | 2/12 [00:00<00:04,  2.35step/s][A
+Generating simulator info:  17%|█▋        | 2/12 [00:00<00:04,  2.35step/s][A
+Writing simulator info:  17%|█▋        | 2/12 [00:00<00:04,  2.35step/s]   [A
+Generating weights:  17%|█▋        | 2/12 [00:00<00:04,  2.35step/s]    [A
+Writing weights:  17%|█▋        | 2/12 [00:00<00:04,  2.35step/s]   [A
+Generating dummy bit mask:  17%|█▋        | 2/12 [00:00<00:04,  2.35step/s][A
+Writing dummy bit mask:  17%|█▋        | 2/12 [00:00<00:04,  2.35step/s]   [A
+Generating PPU data:  17%|█▋        | 2/12 [00:00<00:04,  2.35step/s]   [A
+Writing PPU data:  17%|█▋        | 2/12 [00:00<00:04,  2.35step/s]   [A
+                                                                  [ACompiling Model : 100%|█████████▉| 1.0/1.0 [02:51<00:00, 172.45s/model ]
+[34m[1mDEEPX:[0m export success ✅ 172.7s, saved as '/data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agentic-dev/20260610-201747_claude_opus48_yolo26n_ppe_retrain_bench/runs/retrained/weights/best_deepx_model' (6.0 MB)
+
+Export complete (172.8s)
+Results saved to [1m/data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agentic-dev/20260610-201747_claude_opus48_yolo26n_ppe_retrain_bench/runs/retrained/weights/best_deepx_model[0m
+Predict:         yolo predict task=detect model=/data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agentic-dev/20260610-201747_claude_opus48_yolo26n_ppe_retrain_bench/runs/retrained/weights/best_deepx_model imgsz=640 int8
+Validate:        yolo val task=detect model=/data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agentic-dev/20260610-201747_claude_opus48_yolo26n_ppe_retrain_bench/runs/retrained/weights/best_deepx_model imgsz=640 data=/data/home/dhyang/github/dx-all-suite-ultralytics/dx-runtime/venv-dx-runtime/lib/python3.12/site-packages/ultralytics/cfg/datasets/construction-ppe.yaml int8 
+Visualize:       https://netron.app
+EXPORT_DONE dir=/data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agentic-dev/20260610-201747_claude_opus48_yolo26n_ppe_retrain_bench/yolo26n_ppe_deepx_model dxnn=best.dxnn size=6320619
+=== benchmark base fp32 (GPU) ===
+Ultralytics 8.4.63 🚀 Python-3.12.3 torch-2.12.0+cu130 CUDA:0 (NVIDIA GeForce RTX 5060 Ti, 15848MiB)
+YOLO26n summary (fused): 122 layers, 2,408,932 parameters, 0 gradients, 5.4 GFLOPs
+[34m[1mval: [0mFast image access ✅ (ping: 0.0±0.0 ms, read: 7076.4±2001.9 MB/s, size: 227.4 KB)
+[K[34m[1mval: [0mScanning /data/home/dhyang/github/datasets/construction-ppe/labels/val.cache... 143 images, 0 backgrounds, 0 corrupt: 100% ━━━━━━━━━━━━ 143/143 54.5Mit/s 0.0s
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 11% ━─────────── 1/9 2.4it/s 0.1s<3.3s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 44% ━━━━━─────── 4/9 9.7it/s 0.2s<0.5s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 78% ━━━━━━━━━─── 7/9 14.9it/s 0.3s<0.1s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% ━━━━━━━━━━━━ 9/9 19.6it/s 0.5s
+                   all        143       1172     0.0104     0.0167   0.000786   0.000121
+Speed: 0.3ms preprocess, 1.9ms inference, 0.0ms loss, 0.0ms postprocess per image
+BENCH_DONE base_fp32_gpu: map50_95=0.00012 map50=0.00079 fps=515.9 status=ok
+=== benchmark base INT8 (DX-M1 NPU) ===
+WARNING ⚠️ Unable to automatically guess model task, assuming 'task=detect'. Explicitly define task for your model, i.e. 'task=detect', 'segment', 'classify', 'pose', 'obb' or 'semantic'.
+Ultralytics 8.4.63 🚀 Python-3.12.3 torch-2.12.0+cu130 CUDA:0 (NVIDIA GeForce RTX 5060 Ti, 15848MiB)
+Loading /data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agentic-dev/20260610-201747_claude_opus48_yolo26n_ppe_retrain_bench/yolo26n_deepx_model for DEEPX inference...
+Setting batch=1 input of shape (1, 3, 640, 640)
+[34m[1mval: [0mFast image access ✅ (ping: 0.0±0.0 ms, read: 4260.2±1994.4 MB/s, size: 53.9 KB)
+[K[34m[1mval: [0mScanning /data/home/dhyang/github/datasets/construction-ppe/labels/val.cache... 143 images, 0 backgrounds, 0 corrupt: 100% ━━━━━━━━━━━━ 143/143 54.5Mit/s 0.0s
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 3% ──────────── 5/143 12.5it/s 0.1s<11.1s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 7% ╸─────────── 10/143 22.6it/s 0.2s<5.9s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 10% ━─────────── 15/143 29.8it/s 0.3s<4.3s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 14% ━╸────────── 20/143 33.7it/s 0.5s<3.6s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 17% ━━────────── 25/143 37.2it/s 0.6s<3.2s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 21% ━━╸───────── 30/143 39.1it/s 0.7s<2.9s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 24% ━━╸───────── 35/143 40.1it/s 0.8s<2.7s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 28% ━━━───────── 40/143 41.1it/s 0.9s<2.5s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 31% ━━━╸──────── 45/143 42.3it/s 1.0s<2.3s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 35% ━━━━──────── 50/143 43.2it/s 1.1s<2.2s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 38% ━━━━╸─────── 55/143 44.0it/s 1.2s<2.0s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 42% ━━━━━─────── 60/143 44.1it/s 1.4s<1.9s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 45% ━━━━━─────── 65/143 43.4it/s 1.5s<1.8s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 49% ━━━━━╸────── 70/143 43.6it/s 1.6s<1.7s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 52% ━━━━━━────── 75/143 43.2it/s 1.7s<1.6s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 56% ━━━━━━╸───── 80/143 43.4it/s 1.8s<1.5s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 59% ━━━━━━━───── 85/143 44.2it/s 1.9s<1.3s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 63% ━━━━━━━╸──── 90/143 43.7it/s 2.0s<1.2s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 66% ━━━━━━━╸──── 95/143 44.6it/s 2.2s<1.1s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 70% ━━━━━━━━──── 100/143 45.4it/s 2.3s<0.9s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 73% ━━━━━━━━╸─── 105/143 45.9it/s 2.4s<0.8s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 77% ━━━━━━━━━─── 110/143 46.1it/s 2.5s<0.7s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 80% ━━━━━━━━━╸── 115/143 46.7it/s 2.6s<0.6s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 84% ━━━━━━━━━━── 120/143 46.9it/s 2.7s<0.5s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 87% ━━━━━━━━━━── 125/143 46.9it/s 2.8s<0.4s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 91% ━━━━━━━━━━╸─ 130/143 46.7it/s 2.9s<0.3s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 94% ━━━━━━━━━━━─ 135/143 46.5it/s 3.0s<0.2s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 98% ━━━━━━━━━━━╸ 140/143 46.3it/s 3.1s<0.1s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% ━━━━━━━━━━━━ 143/143 45.0it/s 3.2s
+                   all        143       1172     0.0049     0.0173   0.000356   6.25e-05
+Speed: 2.0ms preprocess, 17.3ms inference, 0.0ms loss, 0.1ms postprocess per image
+BENCH_DONE base_int8_npu: map50_95=6e-05 map50=0.00036 fps=57.76 status=ok
+=== benchmark retrained fp32 (GPU) ===
+Ultralytics 8.4.63 🚀 Python-3.12.3 torch-2.12.0+cu130 CUDA:0 (NVIDIA GeForce RTX 5060 Ti, 15848MiB)
+YOLO26n summary (fused): 122 layers, 2,376,981 parameters, 0 gradients, 5.2 GFLOPs
+[34m[1mval: [0mFast image access ✅ (ping: 0.0±0.0 ms, read: 7585.3±2565.2 MB/s, size: 117.0 KB)
+[K[34m[1mval: [0mScanning /data/home/dhyang/github/datasets/construction-ppe/labels/val.cache... 143 images, 0 backgrounds, 0 corrupt: 100% ━━━━━━━━━━━━ 143/143 60.0Mit/s 0.0s
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 22% ━━╸───────── 2/9 4.5it/s 0.1s<1.6s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 56% ━━━━━━╸───── 5/9 10.6it/s 0.3s<0.4s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 89% ━━━━━━━━━━╸─ 8/9 15.5it/s 0.4s<0.1s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% ━━━━━━━━━━━━ 9/9 22.2it/s 0.4s
+                   all        143       1172      0.538      0.502      0.487      0.251
+Speed: 0.3ms preprocess, 1.8ms inference, 0.0ms loss, 0.0ms postprocess per image
+BENCH_DONE retrained_fp32_gpu: map50_95=0.25146 map50=0.48682 fps=568.62 status=ok
+=== benchmark retrained INT8 (DX-M1 NPU) ===
+WARNING ⚠️ Unable to automatically guess model task, assuming 'task=detect'. Explicitly define task for your model, i.e. 'task=detect', 'segment', 'classify', 'pose', 'obb' or 'semantic'.
+Ultralytics 8.4.63 🚀 Python-3.12.3 torch-2.12.0+cu130 CUDA:0 (NVIDIA GeForce RTX 5060 Ti, 15848MiB)
+Loading /data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agentic-dev/20260610-201747_claude_opus48_yolo26n_ppe_retrain_bench/yolo26n_ppe_deepx_model for DEEPX inference...
+Setting batch=1 input of shape (1, 3, 640, 640)
+[34m[1mval: [0mFast image access ✅ (ping: 0.0±0.0 ms, read: 3945.3±2276.6 MB/s, size: 106.2 KB)
+[K[34m[1mval: [0mScanning /data/home/dhyang/github/datasets/construction-ppe/labels/val.cache... 143 images, 0 backgrounds, 0 corrupt: 100% ━━━━━━━━━━━━ 143/143 66.6Mit/s 0.0s
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 4% ╸─────────── 6/143 14.9it/s 0.1s<9.2s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 8% ━─────────── 12/143 27.9it/s 0.2s<4.7s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 13% ━╸────────── 18/143 35.4it/s 0.3s<3.5s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 17% ━━────────── 24/143 40.0it/s 0.5s<3.0s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 21% ━━╸───────── 30/143 43.7it/s 0.6s<2.6s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 25% ━━━───────── 36/143 46.1it/s 0.7s<2.3s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 29% ━━━╸──────── 42/143 48.8it/s 0.8s<2.1s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 34% ━━━━──────── 48/143 51.5it/s 0.9s<1.8s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 38% ━━━━╸─────── 54/143 53.8it/s 1.0s<1.7s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 42% ━━━━━─────── 60/143 54.8it/s 1.1s<1.5s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 46% ━━━━━╸────── 66/143 55.9it/s 1.2s<1.4s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 50% ━━━━━━────── 72/143 56.2it/s 1.3s<1.3s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 55% ━━━━━━╸───── 78/143 56.0it/s 1.4s<1.2s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 59% ━━━━━━━───── 84/143 56.3it/s 1.5s<1.0s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 63% ━━━━━━━╸──── 90/143 56.1it/s 1.6s<0.9s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 67% ━━━━━━━━──── 96/143 56.7it/s 1.7s<0.8s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 71% ━━━━━━━━╸─── 102/143 56.4it/s 1.8s<0.7s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 76% ━━━━━━━━━─── 108/143 57.3it/s 1.9s<0.6s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 80% ━━━━━━━━━╸── 114/143 57.2it/s 2.1s<0.5s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 84% ━━━━━━━━━━── 120/143 56.4it/s 2.2s<0.4s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 88% ━━━━━━━━━━╸─ 126/143 56.2it/s 2.3s<0.3s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 92% ━━━━━━━━━━━─ 132/143 55.9it/s 2.4s<0.2s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 97% ━━━━━━━━━━━╸ 138/143 56.7it/s 2.5s<0.1s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% ━━━━━━━━━━━━ 143/143 55.5it/s 2.6s
+                   all        143       1172      0.611      0.498      0.511      0.256
+Speed: 1.9ms preprocess, 13.1ms inference, 0.0ms loss, 0.1ms postprocess per image
+BENCH_DONE retrained_int8_npu: map50_95=0.25577 map50=0.51144 fps=76.2 status=ok
+=== build report.md ===
+REPORT_DONE /data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agentic-dev/20260610-201747_claude_opus48_yolo26n_ppe_retrain_bench/report.md rows=4
+=== verify ===
+[OK] yolo26n_deepx_model/yolo26n.dxnn (6890789 bytes)
+[OK] yolo26n_ppe_deepx_model/best.dxnn (6320619 bytes)
+[OK] base_fp32_gpu: mAP50-95=0.0001 fps=515.90
+[OK] base_int8_npu: mAP50-95=0.0001 fps=57.76
+[OK] retrained_fp32_gpu: mAP50-95=0.2515 fps=568.62
+[OK] retrained_int8_npu: mAP50-95=0.2558 fps=76.20
+[OK] domain retrain improved fp32 mAP50-95: 0.0001 -> 0.2515
+[OK] retrained INT8 NPU mAP sane vs fp32: 0.2558 vs 0.2515
+[OK] report.md present with comparison table
+RESULT: PASS
+FINISH PIPELINE done Wed Jun 10 08:30:19 PM KST 2026
