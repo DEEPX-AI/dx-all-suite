@@ -63,6 +63,10 @@
 
 ### Showcase 3: Ultralytics YOLO → DeepX Export (one-shot `format=deepx`)
 
+<div align="center">
+<img src="./docs/source/img/dx-agentic-dev-ultralytics-build.gif" width="640"><br><sub><b>dx-agentic-dev가 이 showcase를 만드는 과정 (timelapse) — export → dx_com compile → NPU inference → verify</b></sub>
+</div>
+
 DEEPX × **Ultralytics** 기술 통합: Ultralytics YOLO `.pt`를 **명령 한 번**으로 배포
 가능한 DeepX NPU 모델로 변환합니다 —
 

@@ -60,6 +60,10 @@ is included, showing how it followed the harness instructions and used the proje
 
 ### Showcase 3: Ultralytics YOLO → DeepX Export (one-shot `format=deepx`)
 
+<div align="center">
+<img src="./docs/source/img/dx-agentic-dev-ultralytics-build.gif" width="640"><br><sub><b>dx-agentic-dev building this showcase (timelapse) — export → dx_com compile → NPU inference → verify</b></sub>
+</div>
+
 DEEPX × **Ultralytics** technical integration: an Ultralytics YOLO `.pt` becomes a
 deployable DeepX NPU model in a **single command** —
 
