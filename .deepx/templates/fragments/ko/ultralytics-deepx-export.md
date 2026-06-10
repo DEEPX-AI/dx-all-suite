@@ -24,11 +24,14 @@ task, 비(非)-YOLO/custom graph, 또는 `config.json` 세밀 제어가 필요�
 - Calibration: EMA, 기본 100장 (`data` / `fraction`으로 조정).
 - 배포: `YOLO("<model>_deepx_model")` → `model(source)`로 `dx_engine` runtime에서 실행
   (backend가 BCHW float `[0,1]` → HWC uint8 `[0,255]` 변환). inference는 ARM64 제약 없음.
-- **배포 전제조건**: export는 `dx_com`을 pip 자동설치하지만, `dx_engine` **runtime**은
-  end-user 설치 — Ultralytics는 **Debian Trixie/arm64(sixfab-dx)에서만** 자동설치합니다.
-  x86-64 dx-all-suite에서는 backend가
+- `dx_com`은 Ultralytics export가 자동설치(버전은 설치된 `ultralytics` 릴리스에 고정).
+  **하드코딩된 SDK URL/버전으로 직접 `pip install dx-com` 금지** — 구버전 compiler가
+  고정됩니다. 업데이트하려면 `ultralytics`를 upgrade 하세요.
+- **배포 전제조건**: `dx_engine` **runtime**은 end-user 설치 — Ultralytics는
+  **Debian Trixie/arm64(sixfab-dx)에서만** 자동설치합니다. x86-64 dx-all-suite에서는 backend가
   `OSError: dx_engine is not installed. … Please install dx_engine manually and try again`
-  를 raise → 여기서 "수동 설치" = **dx-runtime 빌드**: `dx-runtime/scripts/sanity_check.sh
-  --dx_rt` → `dx-runtime/install.sh …` + `cd dx-runtime/dx_app && ./install.sh &&
-  ./build.sh`(`dxrt-cli`+`dx_engine` 제공) → 재시도. NPU 초기화 실패는 cold boot.
-  x86-64에서 `pip install dx_engine`이나 PYTHONPATH import 위장 금지.
+  를 raise → 여기서 "수동 설치" = **`dx_rt` runtime 설치**(`dxrt-cli`+`dx_engine` 제공):
+  `dx-runtime/scripts/sanity_check.sh --dx_rt` → `dx-runtime/install.sh --all
+  --exclude-app --exclude-stream --skip-uninstall --venv-reuse`(dx_app/dx_stream 불필요 →
+  제외로 시간 절약) → 재시도. NPU 초기화 실패는 cold boot. x86-64에서 `pip install
+  dx_engine`이나 PYTHONPATH import 위장 금지.

@@ -55,12 +55,12 @@ first export), and runs the one-shot export. `predict_deepx.py` loads the export
 > (`dxrt-cli` + `dx_engine`), which Ultralytics auto-installs **only on Debian
 > Trixie/arm64**. On x86-64, step 2 raises
 > `OSError: dx_engine is not installed. … Please install dx_engine manually and try
-> again` — and here "install manually" means **build dx-runtime** (do NOT
+> again` — and here "install manually" means **install the `dx_rt` runtime** (do NOT
 > `pip install dx_engine`):
 > ```bash
 > bash dx-runtime/scripts/sanity_check.sh --dx_rt          # judge by TEXT output
 > bash dx-runtime/install.sh --all --exclude-app --exclude-stream --skip-uninstall --venv-reuse
-> cd dx-runtime/dx_app && ./install.sh && ./build.sh       # provides dxrt-cli + dx_engine
+> # dx_rt provides dxrt-cli + dx_engine; dx_app/dx_stream are NOT needed (skip → faster).
 > ```
 > An NPU "Device initialization failed" needs a **cold boot** (full power cycle).
 > `predict_deepx.py` detects this error and prints the same recovery steps.

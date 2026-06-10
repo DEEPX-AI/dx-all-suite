@@ -1,0 +1,33 @@
+==============================================================================
+ Expected output — Ultralytics YOLO -> DeepX export showcase
+==============================================================================
+
+$ bash export_deepx.sh
+Exporting yolo26n.pt to DeepX format (format=deepx)...
+Ultralytics ... Python-3.x torch-2.x CPU
+... export to DeepX (int8=True enforced) ...
+... INT8 EMA calibration with 100 images ...
+... dx_com compilation -> yolo26n.dxnn ...
+
+Done. Exported model directory: yolo26n_deepx_model/
+
+yolo26n_deepx_model/
+├── yolo26n.dxnn     # Compiled DeepX NPU binary (loaded by dx_engine)
+├── config.json      # Calibration + preprocessing configuration
+└── metadata.yaml    # Class names, image size, task
+
+------------------------------------------------------------------------------
+
+$ python3 predict_deepx.py
+Detected 6 objects
+  - bus: 0.95
+  - person: 0.90
+  - person: 0.87
+  - person: 0.85
+  - person: 0.55
+  - stop sign: 0.35
+RESULT: 6 detections on https://ultralytics.com/images/bus.jpg
+
+(Exact counts/confidences vary slightly with the INT8-quantized model and the
+calibration set. The key result is that the exported .dxnn runs on the DeepX
+runtime and reproduces the detection on the bus sample.)

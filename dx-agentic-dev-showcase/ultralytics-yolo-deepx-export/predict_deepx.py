@@ -38,10 +38,10 @@ def main() -> int:
         if "dx_engine" in msg or "DeepX runtime" in msg:
             print(f"ERROR: DeepX runtime / dx_engine unavailable ({e}).")
             print("       On x86-64, Ultralytics does NOT auto-install the runtime —")
-            print("       'install manually' here means BUILD dx-runtime (not pip):")
+            print("       'install manually' here means install the dx_rt runtime (not pip):")
             print("         bash dx-runtime/scripts/sanity_check.sh --dx_rt")
             print("         bash dx-runtime/install.sh --all --exclude-app --exclude-stream --skip-uninstall --venv-reuse")
-            print("         cd dx-runtime/dx_app && ./install.sh && ./build.sh")
+            print("       (dx_rt provides dxrt-cli + dx_engine; dx_app/dx_stream are not needed.)")
             print("       NPU 'Device initialization failed' → cold boot (full power cycle), then re-run.")
             return 1
         raise

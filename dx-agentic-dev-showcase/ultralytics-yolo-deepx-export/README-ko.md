@@ -52,12 +52,12 @@ python3 predict_deepx.py             # bus 샘플에 대한 detection 출력
 > pip 자동설치합니다. 2단계(inference)는 **DeepX runtime**(`dxrt-cli` + `dx_engine`)이
 > 필요하며, Ultralytics는 이를 **Debian Trixie/arm64에서만** 자동설치합니다. x86-64에서는
 > 2단계가 `OSError: dx_engine is not installed. … Please install dx_engine manually and
-> try again`를 raise하며, 여기서 "수동 설치"는 **dx-runtime 빌드**를 의미합니다
+> try again`를 raise하며, 여기서 "수동 설치"는 **`dx_rt` runtime 설치**를 의미합니다
 > (`pip install dx_engine` 금지):
 > ```bash
 > bash dx-runtime/scripts/sanity_check.sh --dx_rt          # TEXT 출력으로 판정
 > bash dx-runtime/install.sh --all --exclude-app --exclude-stream --skip-uninstall --venv-reuse
-> cd dx-runtime/dx_app && ./install.sh && ./build.sh       # dxrt-cli + dx_engine 제공
+> # dx_rt가 dxrt-cli + dx_engine 제공; dx_app/dx_stream은 불필요(제외 → 더 빠름).
 > ```
 > NPU "Device initialization failed"는 **cold boot**(완전 전원 차단)가 필요합니다.
 > `predict_deepx.py`도 이 에러를 감지해 동일한 복구 절차를 출력합니다.

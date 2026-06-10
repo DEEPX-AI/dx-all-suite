@@ -37,6 +37,8 @@ compile.pid
 *.pt
 *.txt
 !requirements.txt
+# Showcase expected-output fixtures are tracked despite the global *.txt ignore
+!dx-agentic-dev-showcase/**/expected_output.txt
 session-ses_*.md
 
 archives/
