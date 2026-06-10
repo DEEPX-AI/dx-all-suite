@@ -14,6 +14,7 @@ dependencies = [
 
 [project.scripts]
 dx-agentic-gen = "dx_agentic_dev_gen.cli:main"
+dx-showcase-gen = "dx_showcase_gen.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
