@@ -58,7 +58,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
 </style>
 </head>
 <body>
-<div class="session-summary"><h2>Session summary</h2><table border="1" cellpadding="4" style="border-collapse:collapse"><tr><td><b>Model</b></td><td>`claude-sonnet-4-6`</td></tr><tr><td><b>Agent turns</b></td><td>107</td></tr><tr><td><b>Output tokens</b></td><td>83,802</td></tr><tr><td><b>Tools</b></td><td>Bash×27, Write×10, Read×9, Skill×5, Glob×2</td></tr><tr><td><b>Skills</b></td><td>dx-skill-router → dx-agentic-brainstorm → dx-swe-writing-plans → dx-agentic-tdd → dx-agentic-verify</td></tr></table></div>
+<div class="session-summary"><h2>Session summary</h2><table border="1" cellpadding="4" style="border-collapse:collapse"><tr><td><b>Model</b></td><td>`claude-sonnet-4-6`</td></tr><tr><td><b>Wall-clock</b></td><td>~11.6 min</td></tr><tr><td><b>Agent turns</b></td><td>59</td></tr><tr><td><b>Output tokens</b></td><td>29,207</td></tr><tr><td><b>Cost (reported)</b></td><td>$2.41</td></tr><tr><td><b>Tools</b></td><td>Bash×27, Write×10, Read×9, Skill×5, Glob×2</td></tr><tr><td><b>Skills</b></td><td>dx-skill-router → dx-agentic-brainstorm → dx-swe-writing-plans → dx-agentic-tdd → dx-agentic-verify</td></tr></table></div>
 
 <div class="container">
 <h1>Export YOLO26n model to DeepX NPU format</h1>
@@ -68,7 +68,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
 <tr><td>Claude Code</td><td>v2.1.156</td></tr>
 <tr><td>Permission Mode</td><td>bypassPermissions</td></tr>
 <tr><td>Start</td><td>2026-06-10T05:05:47.922Z</td></tr>
-<tr><td>End</td><td>2026-06-10T05:17:12.973Z</td></tr></table>
+<tr><td>End</td><td>2026-06-10T05:17:23.142Z</td></tr></table>
 <hr />
 <div class="entry user" id="entry-1"><div class="entry-hdr"><span class="icon">&#x1F464;</span><span class="label">User</span><span class="time">2026-06-10 05:05:47 UTC</span></div><div class="entry-body">Export the Ultralytics YOLO26n detection model to DeepX NPU format using the one-shot format=deepx export path, then run inference on the Ultralytics bus sample image. Work autonomously to completion without asking for confirmation or approval; make default decisions per the knowledge base and PRODUCE THE ACTUAL ARTIFACTS (the compiled .dxnn model directory and real inference detections), not just a plan. Respond in English.</div></div>
 <div class="entry tool-ok collapsed" id="entry-2"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Skill</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>dx-skill-router</code></div><div class="tool-result"><pre>Launching skill: dx-skill-router</pre></div></div></div>
@@ -620,10 +620,12 @@ $ bash setup.sh
 <div class="entry tool-ok collapsed" id="entry-63"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>COMPILER_SESSION=&quot;/data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agentic-dev/20260610-140724_claude_sonnet46_yolo26n_ultralytics&quot;
 test -f &quot;${COMPILER_SESSION}/yolo26n_deepx_model/yolo26n.dxnn&quot; \
   &amp;&amp; echo &quot;PRE-DONE CHECK: yolo26n.dxnn EXISTS ($(du -sh &quot;${COMPILER_SESSION}/yolo26n_…</code></div><div class="tool-result"><pre>PRE-DONE CHECK: yolo26n.dxnn EXISTS (6.6M) — OK to emit DONE</pre></div></div></div>
-<div class="entry tool-ok collapsed" id="entry-64"><div class="entry-hdr"><span class="icon">&#x2699;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>GENROOT=&quot;$(d=&quot;$PWD&quot;; while [ &quot;$d&quot; != / ]; do [ -f &quot;$d/.deepx/tools/src/dx_transcripts/generate_transcripts.py&quot; ] &amp;&amp; { echo &quot;$d&quot;; break; }; d=&quot;$(dirname &quot;$d&quot;)&quot;; done)&quot;
+<div class="entry tool-ok collapsed" id="entry-64"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>GENROOT=&quot;$(d=&quot;$PWD&quot;; while [ &quot;$d&quot; != / ]; do [ -f &quot;$d/.deepx/tools/src/dx_transcripts/generate_transcripts.py&quot; ] &amp;&amp; { echo &quot;$d&quot;; break; }; d=&quot;$(dirname &quot;$d&quot;)&quot;; done)&quot;
 GT=&quot;$GENROOT/.deepx/tools/src/dx_transcripts/generate_transcripts.py&quot;
 python3 &quot;$GT&quot; --tool claude --project &quot;$GENROOT&quot; \
-    --into-…</code></div></div></div>
+    --into-…</code></div><div class="tool-result"><pre>jsonl: /data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agentic-dev/20260610-140724_claude_sonnet46_yolo26n_ultralytics/claude-stream.jsonl
+md: /data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agentic-dev/20260610-140724_claude_sonnet46_yolo26n_ultralytics/claude-session.md
+html: /data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agentic-dev/20260610-140724_claude_sonnet46_yolo26n_ultralytics/claude-session.html</pre></div></div></div>
 <div class="entry assistant" id="entry-65"><div class="entry-hdr"><span class="icon">&#x1F4AC;</span><span class="label">Claude</span><span class="time">2026-06-10 05:16:35 UTC</span></div><div class="entry-body"><p>Running the complete verification checklist.
 All 7 verification checks pass. Pre-DONE dxnn check:
 All checks pass. Now generating the session transcript.</p>
@@ -637,15 +639,26 @@ All checks pass. Now generating the session transcript.</p>
   ░░░░░░░░░░░   ░░░░░░░░░ ░░░░░░░░ ░░░░░░░░░░          ░░░░
         DX-AGENTIC-DEV · on-device NPU
 </code></pre>
-<p>[DX-AGENTIC-DEV: DONE (output-dir: dx-compiler/dx-agentic-dev/20260610-140724_claude_sonnet46_yolo26n_ultralytics/)]</p></div></div>
+<p>[DX-AGENTIC-DEV: DONE (output-dir: dx-compiler/dx-agentic-dev/20260610-140724_claude_sonnet46_yolo26n_ultralytics/)]
+Session transcript saved to: <code>dx-compiler/dx-agentic-dev/20260610-140724_claude_sonnet46_yolo26n_ultralytics/claude-session.{md,html,jsonl}</code></p>
+<p>---</p>
+<p><strong>Summary of what was built:</strong></p>
+<p><strong>Export</strong> — <code>yolo26n.pt</code> exported to DeepX NPU format using Ultralytics one-shot <code>format=deepx</code> path:
+- INT8 quantization with EMA calibration (coco128.yaml, 100 images)
+- Compiled by <code>dx_com 2.3.0-rc.5</code> in ~179 seconds
+- Output: <code>yolo26n_deepx_model/</code> with <code>yolo26n.dxnn</code> (6.6 MB), <code>config.json</code>, <code>metadata.yaml</code></p>
+<p><strong>Inference</strong> — <code>bus.jpg</code> via Ultralytics YOLO + dx_engine NPU backend:
+- <strong>5 detections</strong>: 1 bus (conf=0.951) + 4 persons (conf=0.935/0.895/0.885/0.531)
+- <strong>NPU inference time: 22.9 ms</strong></p>
+<p><strong>Session:</strong> <code>dx-compiler/dx-agentic-dev/20260610-140724_claude_sonnet46_yolo26n_ultralytics/</code></p></div></div>
 <hr />
 <div class="summary-section"><h2>Session Summary</h2><table class="summary-table"><tr><td>Turns</td><td>6</td></tr>
 <tr><td>Tool calls</td><td>53</td></tr>
-<tr><td>Messages (raw)</td><td>227</td></tr>
+<tr><td>Messages (raw)</td><td>231</td></tr>
 <tr><td>Skills invoked</td><td>dx-agentic-brainstorm, dx-agentic-tdd, dx-agentic-verify, dx-skill-router, dx-swe-writing-plans</td></tr>
 <tr><td>Tool breakdown</td><td>Bash: 27, Write: 10, Read: 9, Skill: 5, Glob: 2</td></tr></table></div>
 <div class="footer">
-Generated by parse_claude_session.py &middot; 2026-06-10 14:17:13
+Generated by parse_claude_session.py &middot; 2026-06-10 15:23:45
 </div>
 </div>
 <script>document.addEventListener('DOMContentLoaded', function() {

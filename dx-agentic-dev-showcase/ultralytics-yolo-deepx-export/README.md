@@ -28,8 +28,9 @@ Captured from the real build session transcript (`claude-code-session.*`):
 | Coding agent | **Claude Code** (`claude` CLI, headless `-p`) |
 | Model | **Claude Sonnet 4.6** (`claude-sonnet-4-6`) |
 | Human input | **1 natural-language prompt** — fully autonomous, no hand-written code |
-| Build wall-clock | **≈ 12 min** |
-| Agent turns | **107** |
+| Build wall-clock | **~11.6 min** |
+| Agent turns | **59** |
+| Cost (reported) | **$2.41** |
 | Skills used | `dx-skill-router` → `dx-agentic-brainstorm` → `dx-swe-writing-plans` → `dx-agentic-tdd` → `dx-agentic-verify` |
 | Result | Exported **`yolo26n.dxnn`** (6.6 MB) + **NPU inference** (5 detections, ~23 ms on DX-M1) + `verify.py` **PASS** |
 

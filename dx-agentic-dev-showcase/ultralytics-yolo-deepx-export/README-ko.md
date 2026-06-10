@@ -27,8 +27,9 @@
 | Coding agent | **Claude Code** (`claude` CLI, headless `-p`) |
 | Model | **Claude Sonnet 4.6** (`claude-sonnet-4-6`) |
 | 사람 입력 | **자연어 프롬프트 1개** — 완전 자율, 수기 코드 없음 |
-| Build 소요 | **약 12분** |
-| Agent turns | **107** |
+| Build 소요 | **~11.6분** |
+| Agent turns | **59** |
+| Cost (reported) | **$2.41** |
 | 사용 skill | `dx-skill-router` → `dx-agentic-brainstorm` → `dx-swe-writing-plans` → `dx-agentic-tdd` → `dx-agentic-verify` |
 | 결과 | **`yolo26n.dxnn`**(6.6 MB) export + **NPU inference**(5 detections, DX-M1에서 ~23 ms) + `verify.py` **PASS** |
 

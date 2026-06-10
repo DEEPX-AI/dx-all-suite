@@ -5,8 +5,10 @@
 | Metric | Value |
 |---|---|
 | Model | `claude-sonnet-4-6` |
-| Agent turns | 107 |
-| Output tokens | 83,802 |
+| Wall-clock | ~11.6 min |
+| Agent turns | 59 |
+| Output tokens | 29,207 |
+| Cost (reported) | $2.41 |
 | Tools | Bash×27, Write×10, Read×9, Skill×5, Glob×2 |
 | Skills | dx-skill-router → dx-agentic-brainstorm → dx-swe-writing-plans → dx-agentic-tdd → dx-agentic-verify |
 
@@ -19,7 +21,7 @@
 - **Claude Code:** v2.1.156
 - **Permission Mode:** bypassPermissions
 - **Start:** 2026-06-10T05:05:47.922Z
-- **End:** 2026-06-10T05:17:12.973Z
+- **End:** 2026-06-10T05:17:23.142Z
 
 ## Conversation
 
@@ -435,7 +437,9 @@ S…`
 ✅ **Bash** `COMPILER_SESSION="/data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agentic-dev/2026…`
   > PRE-DONE CHECK: yolo26n.dxnn EXISTS (6.6M) — OK to emit DONE
 
-⚙️ **Bash** `GENROOT="$(d="$PWD"; while [ "$d" != / ]; do [ -f "$d/.deepx/tools/src/dx_transcripts/generate_tran…`
+✅ **Bash** `GENROOT="$(d="$PWD"; while [ "$d" != / ]; do [ -f "$d/.deepx/tools/src/dx_transcripts/generate_tran…`
+  > jsonl: /data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agentic-dev/20260610-140724_claude_sonnet46_yolo26n_ultralytics/claude-stream.jsonl
+md: /data/home/dhyang/github/dx-all-suite-u…
 
 **Claude:**
 
@@ -456,6 +460,22 @@ All checks pass. Now generating the session transcript.
 ```
 
 [DX-AGENTIC-DEV: DONE (output-dir: dx-compiler/dx-agentic-dev/20260610-140724_claude_sonnet46_yolo26n_ultralytics/)]
+Session transcript saved to: `dx-compiler/dx-agentic-dev/20260610-140724_claude_sonnet46_yolo26n_ultralytics/claude-session.{md,html,jsonl}`
+
+---
+
+**Summary of what was built:**
+
+**Export** — `yolo26n.pt` exported to DeepX NPU format using Ultralytics one-shot `format=deepx` path:
+- INT8 quantization with EMA calibration (coco128.yaml, 100 images)
+- Compiled by `dx_com 2.3.0-rc.5` in ~179 seconds
+- Output: `yolo26n_deepx_model/` with `yolo26n.dxnn` (6.6 MB), `config.json`, `metadata.yaml`
+
+**Inference** — `bus.jpg` via Ultralytics YOLO + dx_engine NPU backend:
+- **5 detections**: 1 bus (conf=0.951) + 4 persons (conf=0.935/0.895/0.885/0.531)
+- **NPU inference time: 22.9 ms**
+
+**Session:** `dx-compiler/dx-agentic-dev/20260610-140724_claude_sonnet46_yolo26n_ultralytics/`
 
 ---
 
@@ -463,4 +483,4 @@ All checks pass. Now generating the session transcript.
 
 - **Turns:** 6
 - **Tool calls:** 53
-- **Raw messages:** 227
+- **Raw messages:** 231
