@@ -557,6 +557,18 @@ DONE은 맨 마지막 줄 유지).
    아닙니다. 실행 후 마지막 줄에 저장 경로를 안내하세요. 예:
    `Session transcript (md/html/jsonl) saved to: <output-dir>/<CLI>-session.*`.
 
+   > **알려진 한계 — in-session transcript는 store 기반이라 불완전합니다.** 라이브 세션
+   > 안에서 실행하면 generator가 세션 **store**를 읽는데, 여기엔 합성 `result` 이벤트가
+   > **없습니다**. 그 이벤트(`duration_ms` → *Wall-clock*, `total_cost_usd` → *Cost*)는
+   > `claude -p --output-format stream-json` **stdout**에만, 프로세스 종료 시점에 방출됩니다.
+   > 또한 렌더가 transcript tool-call **도중**에 일어나므로 바로 이 "saved to …" narration
+   > 직전에서 잘립니다. 결과적으로 in-session transcript는 **Wall-clock + Cost와 종료 narration이
+   > 빠집니다** — 버그가 아니라 정상입니다. **완전한** transcript(Wall-clock + Cost + tail,
+   > showcase 수준)가 필요하면, run의 stdout을 캡처해 프로세스 종료 **후** 외부에서 렌더하세요:
+   > `python3 "$GT" --tool <CLI> --session-id <uuid> --project "$GENROOT" --stream-json <captured-stdout.jsonl> --out-dir <output-dir>`
+   > (테스트 하네스/빌드 레코더가 이 방식을 씀). in-session 에이전트는 자기 stdout 스트림에
+   > 접근할 수 없어 불가능합니다.
+
    **`codex`, `opencode`, `cursor`는 자동 지원 대상이 아닙니다** — 세션 중에는 generator를
    실행하지 마세요(완전한/유효한 transcript를 못 만듭니다: codex·opencode는 마지막 턴을
    프로세스 종료 시점에만 커밋, cursor는 저장소에서 assistant 텍스트를 redact). 대신 사용자에게

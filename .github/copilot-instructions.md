@@ -562,6 +562,20 @@ Rules:
    **skipped** — expected, not an error. After it runs, state the path on the final
    line, e.g. `Session transcript (md/html/jsonl) saved to: <output-dir>/<CLI>-session.*`.
 
+   > **Known limitation — the in-session transcript is store-based and therefore
+   > incomplete.** Run from inside the live session, the generator reads the session
+   > **store**, which has NO synthetic `result` event — that event (carrying
+   > `duration_ms` → *Wall-clock* and `total_cost_usd` → *Cost*) exists only in the
+   > `claude -p --output-format stream-json` **stdout**, emitted at process exit. The
+   > render also happens *during* the transcript tool-call, so it truncates just before
+   > this very "saved to …" narration. Net effect: the in-session transcript **omits
+   > Wall-clock + Cost and the closing narration** — expected, not a bug. For a
+   > **complete** transcript (Wall-clock + Cost + tail, like the showcase ones),
+   > capture the run's stdout and render it externally **after** the process exits:
+   > `python3 "$GT" --tool <CLI> --session-id <uuid> --project "$GENROOT" --stream-json <captured-stdout.jsonl> --out-dir <output-dir>`
+   > (the test harness / build recorders do this). An in-session agent cannot — it has
+   > no handle on its own stdout stream.
+
    **`codex`, `opencode`, `cursor` are NOT auto-supported** — do NOT run the generator
    in-session for them (it cannot produce a complete/usable transcript: codex and
    opencode commit their final turn only at process exit; cursor redacts the assistant
