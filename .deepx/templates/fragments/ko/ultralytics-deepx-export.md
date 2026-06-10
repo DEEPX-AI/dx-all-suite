@@ -24,3 +24,8 @@ task, 비(非)-YOLO/custom graph, 또는 `config.json` 세밀 제어가 필요�
 - Calibration: EMA, 기본 100장 (`data` / `fraction`으로 조정).
 - 배포: `YOLO("<model>_deepx_model")` → `model(source)`로 `dx_engine` runtime에서 실행
   (backend가 BCHW float `[0,1]` → HWC uint8 `[0,255]` 변환). inference는 ARM64 제약 없음.
+- **배포 전제조건**: `dx_engine`은 pip package가 아니라 **dx-runtime 빌드 산출물**입니다
+  (export는 `ultralytics`+`dx_com`만 필요). 배포 시 `No module named 'dx_engine'`이 나면
+  `dx-runtime/scripts/sanity_check.sh --dx_rt` 실행 → 없거나 FAIL이면 빌드
+  (`dx-runtime/install.sh …` + `cd dx-runtime/dx_app && ./install.sh && ./build.sh`). NPU
+  초기화 실패는 cold boot. `pip install dx_engine`이나 PYTHONPATH로 import 위장 금지.

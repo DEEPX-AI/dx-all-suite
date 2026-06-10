@@ -25,8 +25,22 @@ def main() -> int:
         return 1
 
     # Load the exported DeepX model directory (dx_engine runtime loads the .dxnn).
-    model = YOLO(MODEL_DIR)
-    results = model(SOURCE)
+    # dx_engine is a BUILT dx-runtime artifact, not a pip package — if it is missing
+    # the load/inference call fails. Guide the user to the dx-runtime build, not pip.
+    try:
+        model = YOLO(MODEL_DIR)
+        results = model(SOURCE)
+    except (ImportError, ModuleNotFoundError, RuntimeError, OSError) as e:
+        if "dx_engine" in str(e) or "dx_engine" in repr(e):
+            print(f"ERROR: dx_engine runtime unavailable ({e}).")
+            print("       dx_engine is a built dx-runtime artifact, NOT a pip package.")
+            print("       Recover (do NOT 'pip install dx_engine'):")
+            print("         bash dx-runtime/scripts/sanity_check.sh --dx_rt")
+            print("         bash dx-runtime/install.sh --all --exclude-app --exclude-stream --skip-uninstall --venv-reuse")
+            print("         cd dx-runtime/dx_app && ./install.sh && ./build.sh")
+            print("       NPU 'Device initialization failed' → cold boot (full power cycle), then re-run.")
+            return 1
+        raise
 
     total = 0
     for r in results:
