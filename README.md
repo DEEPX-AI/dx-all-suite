@@ -80,6 +80,25 @@ toolset and drives the export + deployment — no hand-rolled pipeline.
 **[`dx-agentic-dev-showcase/ultralytics-yolo-deepx-export/`](./dx-agentic-dev-showcase/ultralytics-yolo-deepx-export/)**
 ([README](./dx-agentic-dev-showcase/ultralytics-yolo-deepx-export/README.md)).
 
+### Showcase 4: Ultralytics Retrain → DeepX NPU (domain optimization)
+
+<!-- dx-showcase:ultralytics-retrain-deepx:gif:start -->
+<div align="center">
+<img src="./docs/source/img/dx-agentic-dev-ultralytics-retrain-build.gif" width="760"><br><sub><b>dx-agentic-dev building this showcase — retrain → DeepX → NPU FPS/mAP</b></sub>
+</div>
+<!-- dx-showcase:ultralytics-retrain-deepx:gif:end -->
+
+
+DEEPX × **Ultralytics** Option 1 (local Python package): retrain `yolo26n` on a domain
+dataset, export to DeepX (`format=deepx`), and measure on the DX-M1 NPU — stock COCO
+model **mAP50-95 0.001 → retrained 0.791**, with **+41% FPS** (57 → 80.6); INT8 stays
+fp32-accurate. *This showcase was itself built + recorded by the
+`dx-agentic-showcase-build` skill + `dx-showcase-gen` tool.*
+
+**▶️ Run it yourself** — checked in at
+**[`dx-agentic-dev-showcase/ultralytics-retrain-deepx/`](./dx-agentic-dev-showcase/ultralytics-retrain-deepx/)**
+([README](./dx-agentic-dev-showcase/ultralytics-retrain-deepx/README.md)).
+
 ➡️ **[Get started with Agentic Development (Beta)](./docs/source/00_Agentic_Development.md)**
 
 ## Getting Started

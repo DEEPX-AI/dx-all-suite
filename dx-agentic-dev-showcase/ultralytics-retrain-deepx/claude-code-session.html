@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Benchmark YOLO26n on DeepX NPU with African wildlife</title>
+<style>:root {
+  --bg: #0d1117; --bg-muted: #151b23; --fg: #f0f6fc; --fg-muted: #9198a1;
+  --border: #3d444d; --accent: #4493f8; --success: #3fb950; --warning: #d29922;
+  --error: #f85149; --brand: #ab7df8; --code-bg: #1c2128;
+}
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #ffffff; --bg-muted: #f6f8fa; --fg: #1f2328; --fg-muted: #59636e;
+    --border: #d1d9e0; --accent: #0969da; --success: #1a7f37; --warning: #9a6700;
+    --error: #cf222e; --brand: #8250df; --code-bg: #f6f8fa;
+  }
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+       background: var(--bg); color: var(--fg); line-height: 1.5; padding: 0; }
+.container { max-width: 960px; margin: 0 auto; padding: 16px; }
+h1 { font-size: 1.4em; margin: 0 0 8px; }
+h2 { font-size: 1.15em; margin: 16px 0 8px; color: var(--fg-muted); }
+.meta-table { width: 100%; border-collapse: collapse; font-size: 0.85em; margin-bottom: 16px; }
+.meta-table td { padding: 4px 8px; border-bottom: 1px solid var(--border); }
+.meta-table td:first-child { color: var(--fg-muted); white-space: nowrap; width: 140px; }
+.entry { border-left: 3px solid var(--border); margin: 12px 0; padding: 8px 12px;
+         background: var(--bg-muted); border-radius: 0 6px 6px 0; }
+.entry.user { border-left-color: var(--accent); }
+.entry.assistant { border-left-color: var(--brand); }
+.entry.tool-ok { border-left-color: var(--success); }
+.entry.tool-fail { border-left-color: var(--error); }
+.entry.subagent { border-left-color: var(--warning); }
+.entry.thinking { border-left-color: var(--warning); }
+.entry-hdr { display: flex; gap: 8px; align-items: center; font-size: 0.82em;
+             color: var(--fg-muted); cursor: pointer; user-select: none; }
+.entry-hdr .icon { font-size: 1.1em; }
+.entry-hdr .label { font-weight: 600; color: var(--fg); }
+.entry-hdr .time { margin-left: auto; }
+.entry-body { margin-top: 6px; white-space: pre-wrap; word-break: break-word; font-size: 0.9em; }
+.entry.collapsed .entry-body { display: none; }
+pre, code { font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace; font-size: 0.88em; }
+pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 6px;
+      padding: 10px; overflow-x: auto; margin: 6px 0; }
+code { background: var(--code-bg); padding: 2px 5px; border-radius: 3px; }
+.tool-args { color: var(--fg-muted); font-size: 0.82em; margin-top: 4px; }
+.tool-result { margin-top: 4px; }
+.token-badge { display: inline-block; font-size: 0.75em; color: var(--fg-muted);
+               border: 1px solid var(--border); border-radius: 10px; padding: 1px 8px; margin-left: 4px; }
+.summary-section { margin: 16px 0; padding: 12px; background: var(--bg-muted);
+                   border: 1px solid var(--border); border-radius: 6px; }
+.summary-table { width: 100%; border-collapse: collapse; font-size: 0.85em; }
+.summary-table th, .summary-table td { padding: 4px 8px; border-bottom: 1px solid var(--border); text-align: left; }
+.summary-table th { color: var(--fg-muted); font-weight: 500; }
+hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+.footer { font-size: 0.78em; color: var(--fg-muted); margin-top: 24px; text-align: center; }
+</style>
+</head>
+<body>
+<div class="session-summary"><h2>Session summary</h2><table border="1" cellpadding="4" style="border-collapse:collapse"><tr><td><b>Model</b></td><td>`claude-opus-4-8`</td></tr><tr><td><b>Wall-clock</b></td><td>~18.5 min</td></tr><tr><td><b>Agent turns</b></td><td>72</td></tr><tr><td><b>Output tokens</b></td><td>51,153</td></tr><tr><td><b>Cost (reported)</b></td><td>$6.66</td></tr><tr><td><b>Tools</b></td><td>Bash×19, Write×12, TaskUpdate×11, Read×8, TaskCreate×6, Skill×5, Glob×2, Edit×2, ToolSearch×1</td></tr><tr><td><b>Skills</b></td><td>dx-skill-router → dx-agentic-brainstorm → dx-swe-writing-plans → dx-agentic-tdd → dx-agentic-verify</td></tr></table></div>
+
+<div class="container">
+<h1>Benchmark YOLO26n on DeepX NPU with African wildlife</h1>
+<table class="meta-table"><tr><td>Session ID</td><td><code>04f4494e-a3c7-40db-96ca-457058ca3977</code></td></tr>
+<tr><td>Working Dir</td><td><code>/data/home/dhyang/github/dx-all-suite-ultralytics</code></td></tr>
+<tr><td>Branch</td><td>feature/ultralytics-integration</td></tr>
+<tr><td>Claude Code</td><td>v2.1.156</td></tr>
+<tr><td>Permission Mode</td><td>bypassPermissions</td></tr>
+<tr><td>Start</td><td>2026-06-10T09:32:10.964Z</td></tr>
+<tr><td>End</td><td>2026-06-10T09:50:41.648Z</td></tr></table>
+<hr />
+<div class="entry user" id="entry-1"><div class="entry-hdr"><span class="icon">&#x1F464;</span><span class="label">User</span><span class="time">2026-06-10 09:32:10 UTC</span></div><div class="entry-body">Build a domain-optimized YOLO26n detection showcase on DEEPX NPU using the Ultralytics local Python package (Option 1). Do ALL of: (1) BASELINE — take stock yolo26n.pt, export to DeepX with format=deepx, then measure NPU inference FPS and accuracy (mAP50-95) on the Ultralytics African-wildlife validation split; (2) RETRAIN yolo26n on the Ultralytics African-wildlife dataset on the local GPU with a modest epoch count (around 40) so it finishes promptly; (3) IMPROVED — export the retrained model with format=deepx, then measure NPU FPS and accuracy the same way; (4) write report.md comparing baseline vs improved (FPS, mAP) with a short analysis. Work autonomously to completion without asking for confirmation or approval; make default decisions per the knowledge base and PRODUCE THE ACTUAL ARTIFACTS (both .dxnn model dirs, measured FPS/mAP numbers, report.md), not just a plan. Respond in English.</div></div>
+<div class="entry tool-ok collapsed" id="entry-2"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Skill</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>dx-skill-router</code></div><div class="tool-result"><pre>Launching skill: dx-skill-router</pre></div></div></div>
+<div class="entry assistant" id="entry-3"><div class="entry-hdr"><span class="icon">&#x1F4AC;</span><span class="label">Claude</span><span class="time">2026-06-10 09:32:10 UTC</span></div><div class="entry-body"><p>[DX-AGENTIC-DEV: START]</p>
+<pre><code> ███████████   █████████ ████████ ████████  ████      ████
+ ███     █████ ███░░░░░░░███░░░░░░███   ███  ░████   ████░░
+ ███        ██░███░      ██░░     ███   ███░   █████████░░
+ ███        ████████████ ████████ ████████░░    ░█████░░░
+ ███        ██░███░░░░░░░██░░░░░░░███░░░░░░  ██████████
+ ███     █████░███░      ██░      ███░   ████████░░░░████
+ ███████████░░░█████████ ████████ ██████████░░░░░░    ████
+        DX-AGENTIC-DEV · on-device NPU
+</code></pre>
+<p>Invoking the skill router first, as required.</p></div></div>
+<div class="entry user" id="entry-4"><div class="entry-hdr"><span class="icon">&#x1F464;</span><span class="label">User</span><span class="time">2026-06-10 09:32:23 UTC</span></div><div class="entry-body">Base directory for this skill: /data/home/dhyang/github/dx-all-suite-ultralytics/.claude/skills/dx-skill-router
+
+&lt;!-- Thin Claude Code wrapper — canonical skill doc lives in .deepx/ --&gt;
+
+Read and follow the complete skill documentation at `.deepx/skills/dx-skill-router/SKILL.md`.
+
+
+ARGUMENTS: Build a domain-optimized YOLO26n detection showcase on DEEPX NPU: baseline export+measure, retrain on African-wildlife, improved export+measure, report.md comparison</div></div>
+<div class="entry tool-ok collapsed" id="entry-5"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Read</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>/data/home/dhyang/github/dx-all-suite-ultralytics/.deepx/skills/dx-skill-router/SKILL.md</code></div><div class="tool-result"><pre>1	---
+2	name: dx-skill-router
+3	description: Use when starting any conversation - establishes how to discover and invoke dx-* skills, requiring skill invocation before ANY response including clarifying questions
+4	---
+5	
+6	# Skill: dx-skill-router
+7	
+8	&lt;EXTREMELY-IMPORTANT&gt;
+9	If you think there is even a 1% chance a skill might apply to what you are doing, you ABSOLUTELY MUST invoke the skill.
+10	
+11	IF A SKILL APPLIES TO YOUR TASK, YOU DO NOT HAVE A CHOICE. YOU MUST USE IT.
+12	
+13	This is not negotiable. This is not optional. You cannot rationalize your way out of this.
+14	&lt;/EXTREMELY-IMPORTANT&gt;
+15	
+16	## Instruction Priority
+17	
+18	dx-* skills override default system prompt behavior, but **user instructions always take precedence**:
+19	
+20	1. **User's explicit instructions** (CLAUDE.md, GEMINI.md, AGENTS.md, direct requests) — highest priority
+21	2. **dx-* skills** — override default system behavior where they conflict
+22	3. **Default system prompt** — lowest priority
+23	
+24	If proj…</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-6"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Skill</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>dx-agentic-brainstorm</code></div><div class="tool-result"><pre>Launching skill: dx-agentic-brainstorm</pre></div></div></div>
+<div class="entry assistant" id="entry-7"><div class="entry-hdr"><span class="icon">&#x1F4AC;</span><span class="label">Claude</span><span class="time">2026-06-10 09:32:23 UTC</span></div><div class="entry-body"><p>Using <strong>dx-agentic-brainstorm</strong> to scope this cross-project build (baseline export → retrain → improved export → report) per the mandatory skill sequence.</p></div></div>
+<div class="entry user" id="entry-8"><div class="entry-hdr"><span class="icon">&#x1F464;</span><span class="label">User</span><span class="time">2026-06-10 09:32:44 UTC</span></div><div class="entry-body">Base directory for this skill: /data/home/dhyang/github/dx-all-suite-ultralytics/.claude/skills/dx-agentic-brainstorm
+
+&lt;!-- Thin Claude Code wrapper — canonical skill doc lives in .deepx/ --&gt;
+
+Read and follow the complete skill documentation at `.deepx/skills/dx-agentic-brainstorm/SKILL.md`.
+
+
+ARGUMENTS: Domain-optimized YOLO26n detection showcase on DEEPX NPU. (1) Baseline: stock yolo26n.pt → format=deepx export → measure NPU FPS + mAP50-95 on Ultralytics African-wildlife val split. (2) Retrain yolo26n on African-wildlife (~40 epochs, local GPU). (3) Improved: export retrained → measure FPS + mAP. (4) report.md comparing baseline vs improved. Autopilot — produce actual artifacts.</div></div>
+<div class="entry tool-ok collapsed" id="entry-9"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Read</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>/data/home/dhyang/github/dx-all-suite-ultralytics/.deepx/skills/dx-agentic-brainstorm/SKILL.md</code></div><div class="tool-result"><pre>1	---
+2	name: dx-agentic-brainstorm
+3	description: &quot;DEEPX build brainstorming with model registry check and sub-project routing.&quot;
+4	---
+5	
+6	# Skill: DEEPX Build Brainstorming
+7	
+8	&gt; For the general brainstorming process (key decisions, propose approaches,
+9	&gt; present plan, get approval, spec self-review), see `dx-swe-brainstorm`.
+10	&gt; This skill covers DEEPX-specific pre-flight checks and routing.
+11	
+12	## Scope
+13	
+14	This is the **top-level suite** version covering all sub-projects. When working
+15	in a single sub-project, prefer the project-level version:
+16	
+17	| Working on... | Use this skill |
+18	|---|---|
+19	| dx_app (standalone inference) | `dx-runtime/dx_app/.deepx/skills/dx-brainstorm-and-plan.md` |
+20	| dx_stream (GStreamer pipelines) | `dx-runtime/dx_stream/.deepx/skills/dx-brainstorm-and-plan.md` |
+21	| Cross-project integration | `dx-runtime/.deepx/skills/dx-brainstorm-and-plan.md` |
+22	
+23	## When to Use
+24	
+25	Use this skill (in addition to `dx-swe-brainstorm`) when …</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-10"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Read</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>/data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/CLAUDE.md</code></div><div class="tool-result"><pre>1	# DEEPX DX-COM Compiler — Claude Code Entry Point
+2	
+3	&gt; Self-contained entry point for Claude Code / OpenCode. Read this file first.
+4	
+5	## Response Language
+6	
+7	Match your response language to the user's prompt language — when asking questions
+8	or responding, use the same language the user is using.
+9	
+10	**Technical term rule**: When responding in Korean, keep English technical terms in
+11	their original English form. Do NOT transliterate English terms into Korean phonetics
+12	(한글 음차 표기 금지). Established Korean loanwords (모델, 서버, 파일, 데이터) are acceptable. &lt;!-- KOREAN-OK: rule text intentionally references Korean notation terms that agents must recognize --&gt;
+13	
+14	## Recommended Model (Pre-Flight Check)
+15	
+16	DX Agentic Development requires strong instruction following and knowledge base
+17	utilization. Before starting any task, check if you are running as one of the
+18	recommended models:
+19	
+20	- **Claude Sonnet 4.6** or later
+21	- **Claude Opus 4.6** or later
+22	
+23	If you a…</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-11"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Glob</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>{&quot;pattern&quot;: &quot;dx-compiler/.deepx/**/*ultralytics*&quot;}</code></div><div class="tool-result"><pre>dx-compiler/.deepx/toolsets/ultralytics-deepx-export.md</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-12"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Glob</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>{&quot;pattern&quot;: &quot;dx-compiler/.deepx/**/*yolo*&quot;}</code></div><div class="tool-result"><pre>No files found</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-13"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Read</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>/data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/.deepx/toolsets/ultralytics-deepx-export.md</code></div><div class="tool-result"><pre>1	# Ultralytics → DeepX Export Reference
+2	
+3	&gt; One-shot `format=deepx` exporter built into Ultralytics YOLO. Converts a YOLO
+4	&gt; `.pt` to a deployable DeepX NPU model (`.dxnn`) in a single command —
+5	&gt; internally running ONNX export → INT8 EMA calibration → `dx_com` compilation →
+6	&gt; packaging. Use this BEFORE hand-rolling the PT→ONNX→`dxcom` pipeline for
+7	&gt; Ultralytics YOLO **detection** models.
+8	
+9	## When to use this path (decision matrix)
+10	
+11	| Situation | Path |
+12	|---|---|
+13	| Ultralytics YOLO **detection** model (`.pt`) → DeepX NPU | **`format=deepx` one-shot** (this doc) |
+14	| Non-detection task (seg/pose/cls/obb), or export currently unsupported | Manual PT→ONNX (`dx-agentic-compiler-convert`) → `dxcom` (`dxcom-cli.md`) |
+15	| Arbitrary / non-YOLO ONNX, custom graph, or fine control over config.json | Direct `dxcom` / `dx_com.compile()` (`dxcom-api.md`, `config-schema.md`) |
+16	| Already have a clean `.onnx` and just need `.dxnn` | Direct `dxcom` |
+17	
+18	The one-sh…</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-14"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>echo &quot;===== GPU =====&quot; ; nvidia-smi --query-gpu=name,memory.total,memory.used --format=csv 2&gt;/dev/null || echo &quot;NO nvidia-smi / NO GPU&quot;
+echo &quot;&quot;
+echo &quot;===== which python / pip =====&quot; ; which python python3 pip pip3 2&gt;/dev/null ; python3 --version
+echo &quot;&quot;
+echo &quot;===== ultralytics =====&quot; ; python3 -c &quot;…</code></div><div class="tool-result"><pre>===== GPU =====
+name, memory.total [MiB], memory.used [MiB]
+NVIDIA GeForce RTX 5060 Ti, 16311 MiB, 15 MiB
+
+===== which python / pip =====
+/usr/bin/python
+/usr/bin/python3
+/usr/bin/pip
+/usr/bin/pip3
+Python 3.12.3
+
+===== ultralytics =====
+Traceback (most recent call last):
+  File &quot;&lt;string&gt;&quot;, line 1, in &lt;module&gt;
+ModuleNotFoundError: No module named 'ultralytics'
+
+===== ultralytics deepx exporter present? =====
+Traceback (most recent call last):
+  File &quot;&lt;string&gt;&quot;, line 1, in &lt;module&gt;
+ModuleNotFoundError: No module named 'ultralytics'
+
+===== dx_engine =====
+Traceback (most recent call last):
+  File &quot;&lt;string&gt;&quot;, line 1, in &lt;module&gt;
+ModuleNotFoundError: No module named 'dx_engine'
+
+===== dx_com =====
+Traceback (most recent call last):
+  File &quot;&lt;string&gt;&quot;, line 1, in &lt;module&gt;
+ModuleNotFoundError: No module named 'dx_com'
+
+===== torch / cuda =====
+Traceback (most recent call last):
+  File &quot;&lt;string&gt;&quot;, line 1, in &lt;module&gt;
+ModuleNotFoundError: No module named 'torch'</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-15"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>cd /data/home/dhyang/github/dx-all-suite-ultralytics
+echo &quot;===== venvs in tree =====&quot; ; find . -maxdepth 4 -name &quot;activate&quot; -path &quot;*/bin/*&quot; 2&gt;/dev/null | grep -v node_modules | head -40
+echo &quot;&quot;
+echo &quot;===== ultralytics local repo/package dirs =====&quot; ; find . -maxdepth 5 -type d -name &quot;ultralytics&quot; 2…</code></div><div class="tool-result"><pre>===== venvs in tree =====
+./dx-runtime/venv-dx-runtime/bin/activate
+
+===== ultralytics local repo/package dirs =====
+
+===== top-level dirs =====
+total 508
+drwxrwxr-x 18 dhyang dhyang  4096 Jun 10 11:06 .
+drwxrwxr-x 23 dhyang dhyang  4096 Jun 10 07:06 ..
+-rw-r--r--  1 dhyang dhyang 75975 Jun 10 18:27 AGENTS-KO.md
+-rw-r--r--  1 dhyang dhyang 68934 Jun 10 18:27 AGENTS.md
+drwxrwxr-x  5 dhyang dhyang  4096 Jun 10 07:06 .claude
+-rw-r--r--  1 dhyang dhyang 74841 Jun 10 18:27 CLAUDE-KO.md
+-rw-r--r--  1 dhyang dhyang 68249 Jun 10 18:27 CLAUDE.md
+drwxrwxr-x  3 dhyang dhyang  4096 Jun 10 07:06 .codex
+drwxrwxr-x  3 dhyang dhyang  4096 Jun 10 07:06 .cursor
+drwxrwxr-x 10 dhyang dhyang  4096 Jun 10 07:06 .deepx
+drwxrwxr-x  2 dhyang dhyang  4096 Jun 10 07:06 docker
+-rwxrwxr-x  1 dhyang dhyang 16840 Jun 10 07:06 docker_build.sh
+-rwxrwxr-x  1 dhyang dhyang 12012 Jun 10 07:06 docker_down.sh
+-rw-rw-r--  1 dhyang dhyang   617 Jun 10 07:06 .dockerignore
+-rwxrwxr-x  1 dhyang dhyang 23138 Jun 10 07:06 docker…</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-16"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>cd /data/home/dhyang/github
+echo &quot;===== dx-runtime venv contents (dx_engine? torch? ultralytics?) =====&quot;
+V=/data/home/dhyang/github/dx-all-suite-ultralytics/dx-runtime/venv-dx-runtime
+&quot;$V/bin/python&quot; -c &quot;import sys; print('py', sys.version.split()[0])&quot; 2&gt;&amp;1 | head -1
+&quot;$V/bin/python&quot; -c &quot;import dx_e…</code></div><div class="tool-result"><pre>===== dx-runtime venv contents (dx_engine? torch? ultralytics?) =====
+py 3.12.3
+dx_engine OK /data/home/dhyang/github/dx-all-suite-ultralytics/dx-runtime/venv-dx-runtime/lib/python3.12/site-packages/dx_engine/__init__.py
+torch 2.12.0+cu130 cuda True
+ultralytics 8.4.63
+
+===== ultralytics-deepx fork: deepx integration modules? =====
+--- ultralytics ---
+/data/home/dhyang/github/ultralytics/ultralytics/utils/export/deepx.py
+  has export/deepx.py
+/data/home/dhyang/github/ultralytics/ultralytics/nn/backends/deepx.py
+  has backends/deepx.py
+806d676f0 Merge branch 'main' into deepx-export
+deepx-export
+--- ultralytics-deepx ---
+/data/home/dhyang/github/ultralytics-deepx/ultralytics/utils/export/deepx.py
+  has export/deepx.py
+/data/home/dhyang/github/ultralytics-deepx/ultralytics/nn/backends/deepx.py
+  has backends/deepx.py
+806d676f0 Merge branch 'main' into deepx-export
+deepx-export
+--- ultralytics-integration ---
+  NO export/deepx.py
+  NO backends/deepx.py
+Shell cwd was reset to /data/home/dh…</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-17"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>cd /data/home/dhyang/github/dx-all-suite-ultralytics
+V=dx-runtime/venv-dx-runtime
+echo &quot;===== is venv ultralytics the local deepx fork (editable)? =====&quot;
+&quot;$V/bin/python&quot; -c &quot;import ultralytics, os; p=os.path.dirname(ultralytics.__file__); print('path:', p); print('export/deepx.py:', os.path.exists(…</code></div><div class="tool-result"><pre>===== is venv ultralytics the local deepx fork (editable)? =====
+path: /data/home/dhyang/github/dx-all-suite-ultralytics/dx-runtime/venv-dx-runtime/lib/python3.12/site-packages/ultralytics
+export/deepx.py: True
+backends/deepx.py: True
+
+===== deepx in export formats table? =====
+Traceback (most recent call last):
+  File &quot;&lt;string&gt;&quot;, line 3, in &lt;module&gt;
+ModuleNotFoundError: No module named 'pandas'
+Arguments: ['-', 'torchscript', 'onnx', 'openvino', 'engine', 'coreml', 'saved_model', 'pb', 'tflite', 'edgetpu', 'tfjs', 'paddle', 'mnn', 'ncnn', 'imx', 'rknn', 'executorch', 'axelera', 'deepx', 'qnn']
+
+===== dx_com in venv? =====
+dx_com OK /data/home/dhyang/github/dx-all-suite-ultralytics/dx-runtime/venv-dx-runtime/lib/python3.12/site-packages/dx_com/__init__.py
+
+===== african-wildlife.yaml built into ultralytics cfg? =====
+exists: True /data/home/dhyang/github/dx-all-suite-ultralytics/dx-runtime/venv-dx-runtime/lib/python3.12/site-packages/ultralytics/cfg/datasets/african-wildlife.yaml
+
+===…</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-18"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>cd /data/home/dhyang/github/dx-all-suite-ultralytics
+TS=$(date +%Y%m%d-%H%M%S)
+echo &quot;TS=$TS&quot;
+SID=&quot;${TS}_claude_opus48_yolo26n_awildlife_showcase&quot;
+echo &quot;SESSION_ID=$SID&quot;
+echo &quot;$SID&quot; &gt; /tmp/dx_session_id.txt
+mkdir -p &quot;dx-compiler/dx-agentic-dev/$SID&quot;
+mkdir -p docs/superpowers/specs
+echo &quot;session dir:…</code></div><div class="tool-result"><pre>TS=20260610-183518
+SESSION_ID=20260610-183518_claude_opus48_yolo26n_awildlife_showcase
+session dir: dx-compiler/dx-agentic-dev/20260610-183518_claude_opus48_yolo26n_awildlife_showcase
+dx-compiler/dx-agentic-dev/20260610-183518_claude_opus48_yolo26n_awildlife_showcase</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-19"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Write</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>/data/home/dhyang/github/dx-all-suite-ultralytics/docs/superpowers/specs/2026-06-10-yolo26n-african-wildlife-deepx-showcase-design.md</code></div><div class="tool-result"><pre>File created successfully at: /data/home/dhyang/github/dx-all-suite-ultralytics/docs/superpowers/specs/2026-06-10-yolo26n-african-wildlife-deepx-showcase-design.md (file state is current in your context — no need to Read it back)</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-20"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Skill</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>dx-swe-writing-plans</code></div><div class="tool-result"><pre>Launching skill: dx-swe-writing-plans</pre></div></div></div>
+<div class="entry assistant" id="entry-21"><div class="entry-hdr"><span class="icon">&#x1F4AC;</span><span class="label">Claude</span><span class="time">2026-06-10 09:32:44 UTC</span></div><div class="entry-body"><p>This is a cross-project task (DeepX export/compile + NPU measurement + GPU retrain). Reading the routing context and the Ultralytics integration KB before forming the plan.
+Environment context loaded. Now I must verify the <strong>Prerequisites Check (HARD GATE)</strong> before any planning — this task needs (a) Ultralytics with <code>format=deepx</code>, (b) a GPU for retraining, (c) the <code>dx_engine</code> runtime + working NPU for inference measurement. Probing all of these now.
+System Python is bare. There's an RTX 5060 Ti (16GB) GPU. The user referenced "Ultralytics local Python package (Option 1)" — there's likely a local ultralytics repo/venv. Let me locate the venvs and the local ultralytics package.
+Found local Ultralytics repos. <code>ultralytics-deepx/</code> is likely the DeepX-integration fork (Option 1). And <code>dx-runtime/venv-dx-runtime</code> likely holds <code>dx_engine</code>. Probing both.
+The <code>dx-runtime/venv-dx-runtime</code> venv already has the full stack: Python 3.12, <code>dx_engine</code> OK, torch 2.12+cu130 with CUDA available, and ultralytics 8.4.63. Now verifying this venv's ultralytics has the <code>format=deepx</code> exporter (Option 1 = local package), that <code>dx_com</code> is present, the NPU sanity check passes, and that yolo26n + African-wildlife are reachable.
+<strong>Prerequisites Check (HARD GATE): ALL PASS.</strong></p>
+<p>| Check | Result |
+|---|---|
+| GPU for retrain | ✅ RTX 5060 Ti, 16 GB, <code>torch 2.12+cu130</code>, CUDA available |
+| Local Ultralytics package w/ <code>format=deepx</code> | ✅ <code>venv-dx-runtime</code> ultralytics 8.4.63 — <code>deepx</code> in export formats, <code>export/deepx.py</code> + <code>backends/deepx.py</code> present |
+| <code>dx_com</code> (compiler) | ✅ present in venv |
+| <code>dx_engine</code> (NPU runtime) | ✅ importable |
+| NPU hardware | ✅ <strong>Sanity check PASSED</strong> (firmware v2.5.6, driver v2.4.1) |
+| African-wildlife dataset cfg | ✅ <code>african-wildlife.yaml</code> bundled in ultralytics cfg |
+| Base <code>yolo26n.pt</code> | available in sibling repos (will fetch fresh into session) |</p>
+<p>The single <code>venv-dx-runtime</code> holds the entire stack (ultralytics+deepx export, dx_com, dx_engine, torch+cuda) — ideal, since the measurement step needs ultralytics' DeepX backend *and* <code>dx_engine</code> in the same interpreter. Environment is GO.</p>
+<p>Now completing the mandatory sequence: <strong>spec → plan → tdd → implement → verify</strong>. Writing the brainstorm spec (autopilot self-review).
+Spec written and self-reviewed (no HARD GATE conflicts). Now invoking the planning skill.</p></div></div>
+<div class="entry user" id="entry-22"><div class="entry-hdr"><span class="icon">&#x1F464;</span><span class="label">User</span><span class="time">2026-06-10 09:35:52 UTC</span></div><div class="entry-body">Base directory for this skill: /data/home/dhyang/github/dx-all-suite-ultralytics/.claude/skills/dx-swe-writing-plans
+
+&lt;!-- Thin Claude Code wrapper — canonical skill doc lives in .deepx/ --&gt;
+
+Read and follow the complete skill documentation at `.deepx/skills/dx-swe-writing-plans/SKILL.md`.
+
+
+ARGUMENTS: Plan the YOLO26n African-wildlife DeepX showcase: baseline export+measure, 40-epoch retrain, improved export+measure, report.md. Spec at docs/superpowers/specs/2026-06-10-yolo26n-african-wildlife-deepx-showcase-design.md</div></div>
+<div class="entry tool-ok collapsed" id="entry-23"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Read</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>/data/home/dhyang/github/dx-all-suite-ultralytics/.deepx/skills/dx-swe-writing-plans/SKILL.md</code></div><div class="tool-result"><pre>1	---
+2	name: dx-swe-writing-plans
+3	description: Use when you have a spec or requirements for a multi-step task, before touching code
+4	---
+5	
+6	# Writing Plans
+7	
+8	## Overview
+9	
+10	Write comprehensive implementation plans assuming the engineer has zero context for our codebase and questionable taste. Document everything they need to know: which files to touch for each task, code, testing, docs they might need to check, how to test it. Give them the whole plan as bite-sized tasks. DRY. YAGNI. TDD. Frequent commits.
+11	
+12	Assume they are a skilled developer, but know almost nothing about our toolset or problem domain. Assume they don't know good test design very well.
+13	
+14	**Announce at start:** &quot;I'm using the writing-plans skill to create the implementation plan.&quot;
+15	
+16	**Context:** This should be run in a dedicated worktree (created by brainstorming skill).
+17	
+18	**Save plans to:** `docs/superpowers/plans/YYYY-MM-DD-&lt;feature-name&gt;.md`
+19	- (User preferences for plan location …</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-24"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>mkdir -p docs/superpowers/plans &amp;&amp; echo ok</code></div><div class="tool-result"><pre>ok</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-25"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Write</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>/data/home/dhyang/github/dx-all-suite-ultralytics/docs/superpowers/plans/2026-06-10-yolo26n-african-wildlife-deepx-showcase.md</code></div><div class="tool-result"><pre>File created successfully at: /data/home/dhyang/github/dx-all-suite-ultralytics/docs/superpowers/plans/2026-06-10-yolo26n-african-wildlife-deepx-showcase.md (file state is current in your context — no need to Read it back)</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-26"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Skill</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>dx-agentic-tdd</code></div><div class="tool-result"><pre>Launching skill: dx-agentic-tdd</pre></div></div></div>
+<div class="entry assistant" id="entry-27"><div class="entry-hdr"><span class="icon">&#x1F4AC;</span><span class="label">Claude</span><span class="time">2026-06-10 09:35:52 UTC</span></div><div class="entry-body"><p>I'm using the writing-plans skill to create the implementation plan.
+Plan saved and self-reviewed against the spec — all 7 pipeline steps and every mandatory deliverable map to a task; no placeholders. <strong>Autopilot self-approval: APPROVED. Execution mode: inline.</strong></p>
+<p>Plan (full content shown above in the file write) — 8 tasks: infra → acquire → baseline export → baseline measure → retrain(40ep) → improved export → improved measure → report/verify/run/README.</p>
+<p>Now invoking the TDD skill to lock acceptance criteria before generating artifacts.</p></div></div>
+<div class="entry user" id="entry-28"><div class="entry-hdr"><span class="icon">&#x1F464;</span><span class="label">User</span><span class="time">2026-06-10 09:36:32 UTC</span></div><div class="entry-body">Base directory for this skill: /data/home/dhyang/github/dx-all-suite-ultralytics/.claude/skills/dx-agentic-tdd
+
+&lt;!-- Thin Claude Code wrapper — canonical skill doc lives in .deepx/ --&gt;
+
+Read and follow the complete skill documentation at `.deepx/skills/dx-agentic-tdd/SKILL.md`.
+
+
+ARGUMENTS: Define Red acceptance criteria for the YOLO26n African-wildlife DeepX showcase: both .dxnn model dirs load via YOLO(), both NPU val metric JSONs numeric (mAP50-95 + FPS), report.md has measured table, verify.py exits 0 only when artifacts present.</div></div>
+<div class="entry tool-ok collapsed" id="entry-29"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Read</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>/data/home/dhyang/github/dx-all-suite-ultralytics/.deepx/skills/dx-agentic-tdd/SKILL.md</code></div><div class="tool-result"><pre>1	---
+2	name: dx-agentic-tdd
+3	description: &quot;DEEPX build validation order — factory, pipeline, and integration checks.&quot;
+4	---
+5	
+6	# Skill: DEEPX Build Validation Order
+7	
+8	&gt; For the general Red-Green-Verify cycle and classic TDD process, see `dx-swe-tdd`.
+9	&gt; This skill covers DEEPX-specific validation order and checks.
+10	
+11	## Scope
+12	
+13	This is the **top-level suite** version covering all sub-projects. When working
+14	in a single sub-project, prefer the project-level version:
+15	
+16	| Working on... | Use this skill |
+17	|---|---|
+18	| dx_app (standalone inference) | `dx-runtime/dx_app/.deepx/skills/dx-tdd.md` |
+19	| dx_stream (GStreamer pipelines) | `dx-runtime/dx_stream/.deepx/skills/dx-tdd.md` |
+20	| Cross-project integration | `dx-runtime/.deepx/skills/dx-tdd.md` |
+21	
+22	## DEEPX Validation Checks
+23	
+24	In the DEEPX context, validation checks include:
+25	
+26	**Per-project:**
+27	- Syntax check (`py_compile`) for every Python file
+28	- JSON validation for every config.json
+…</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-30"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">ToolSearch</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>{&quot;query&quot;: &quot;select:TaskCreate,TaskUpdate&quot;, &quot;max_results&quot;: 5}</code></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-31"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">TaskCreate</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>{&quot;subject&quot;: &quot;setup.sh + env verify&quot;, &quot;description&quot;: &quot;Write setup.sh (SUITE_ROOT, venv-dx-runtime reuse, import asserts, NPU sanity) and run it clean.&quot;, &quot;activeForm&quot;: &quot;Writing/running setup.sh&quot;}</code></div><div class="tool-result"><pre>Task #1 created successfully: setup.sh + env verify</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-32"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">TaskCreate</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>{&quot;subject&quot;: &quot;Acquire yolo26n.pt + dataset&quot;, &quot;description&quot;: &quot;Fetch yolo26n.pt into session dir; ensure african-wildlife dataset downloaded.&quot;, &quot;activeForm&quot;: &quot;Acquiring base model + dataset&quot;}</code></div><div class="tool-result"><pre>Task #2 created successfully: Acquire yolo26n.pt + dataset</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-33"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">TaskCreate</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>{&quot;subject&quot;: &quot;Retrain yolo26n (40 epochs, GPU)&quot;, &quot;description&quot;: &quot;Background train on african-wildlife, device=0, 40 epochs, imgsz640, batch16 → best.pt.&quot;, &quot;activeForm&quot;: &quot;Retraining on GPU&quot;}</code></div><div class="tool-result"><pre>Task #3 created successfully: Retrain yolo26n (40 epochs, GPU)</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-34"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">TaskCreate</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>{&quot;subject&quot;: &quot;Baseline export + measure&quot;, &quot;description&quot;: &quot;Export stock yolo26n.pt format=deepx; val on NPU → metrics_baseline.json (mAP+FPS).&quot;, &quot;activeForm&quot;: &quot;Baseline export+measure&quot;}</code></div><div class="tool-result"><pre>Task #4 created successfully: Baseline export + measure</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-35"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">TaskCreate</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>{&quot;subject&quot;: &quot;Improved export + measure&quot;, &quot;description&quot;: &quot;Export best.pt format=deepx; val on NPU → metrics_improved.json.&quot;, &quot;activeForm&quot;: &quot;Improved export+measure&quot;}</code></div><div class="tool-result"><pre>Task #5 created successfully: Improved export + measure</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-36"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">TaskCreate</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>{&quot;subject&quot;: &quot;report.md + verify.py + run.sh + README + session.log&quot;, &quot;description&quot;: &quot;Comparison report, verify.py (exit-code contract), run.sh, README, real session.log.&quot;, &quot;activeForm&quot;: &quot;Writing repo…</code></div><div class="tool-result"><pre>Task #6 created successfully: report.md + verify.py + run.sh + README + session.log</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-37"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">TaskUpdate</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>{&quot;taskId&quot;: &quot;1&quot;, &quot;status&quot;: &quot;in_progress&quot;}</code></div><div class="tool-result"><pre>Updated task #1 status</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-38"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Write</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>/data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agentic-dev/20260610-183518_claude_opus48_yolo26n_awildlife_showcase/setup.sh</code></div><div class="tool-result"><pre>File created successfully at: /data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agentic-dev/20260610-183518_claude_opus48_yolo26n_awildlife_showcase/setup.sh (file state is current in your context — no need to Read it back)</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-39"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>cd /data/home/dhyang/github/dx-all-suite-ultralytics
+SD=&quot;dx-compiler/dx-agentic-dev/20260610-183518_claude_opus48_yolo26n_awildlife_showcase&quot;
+bash -n &quot;$SD/setup.sh&quot; &amp;&amp; echo &quot;syntax OK&quot;
+bash &quot;$SD/setup.sh&quot; 2&gt;&amp;1 | tee &quot;$SD/session.log&quot;</code></div><div class="tool-result"><pre>syntax OK
+==== Showcase setup ====
+SUITE_ROOT = /data/home/dhyang/github/dx-all-suite-ultralytics
+VENV       = /data/home/dhyang/github/dx-all-suite-ultralytics/dx-runtime/venv-dx-runtime
+==== Dependency import asserts ====
+[OK] ultralytics[deepx]: 8.4.63 (deepx export present)
+[OK] dx_com: /data/home/dhyang/github/dx-all-suite-ultralytics/dx-runtime/venv-dx-runtime/lib/python3.12/site-packages/dx_com/__init__.py
+[OK] dx_engine: /data/home/dhyang/github/dx-all-suite-ultralytics/dx-runtime/venv-dx-runtime/lib/python3.12/site-packages/dx_engine/__init__.py
+[OK] torch+cuda: 2.12.0+cu130 cuda=NVIDIA GeForce RTX 5060 Ti
+==== NPU sanity check (dx_rt) ====
+[44m[INFO][0m[94m Checking required packages for SanityCheck... [0m
+[44m[INFO][0m[94m ✅ lsmod command is available (kmod package is installed). [0m
+[44m[INFO][0m[94m ✅ lspci command is available (pciutils package is installed). [0m
+[44m[INFO][0m[94m ✅ dkms command is available (dkms package is installed). [0m
+
+/data/home/dh…</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-40"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">TaskUpdate</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>{&quot;taskId&quot;: &quot;1&quot;, &quot;status&quot;: &quot;completed&quot;}</code></div><div class="tool-result"><pre>Updated task #1 status</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-41"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">TaskUpdate</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>{&quot;taskId&quot;: &quot;2&quot;, &quot;status&quot;: &quot;in_progress&quot;}</code></div><div class="tool-result"><pre>Updated task #2 status</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-42"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Write</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>/data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agentic-dev/20260610-183518_claude_opus48_yolo26n_awildlife_showcase/acquire.py</code></div><div class="tool-result"><pre>File created successfully at: /data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agentic-dev/20260610-183518_claude_opus48_yolo26n_awildlife_showcase/acquire.py (file state is current in your context — no need to Read it back)</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-43"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>cd /data/home/dhyang/github/dx-all-suite-ultralytics
+SD=&quot;dx-compiler/dx-agentic-dev/20260610-183518_claude_opus48_yolo26n_awildlife_showcase&quot;
+V=dx-runtime/venv-dx-runtime/bin/python
+&quot;$V&quot; &quot;$SD/acquire.py&quot; 2&gt;&amp;1 | tee -a &quot;$SD/session.log&quot;</code></div><div class="tool-result"><pre>
+[KDownloading https://github.com/ultralytics/assets/releases/download/v8.4.0/yolo26n.pt to 'yolo26n.pt': 10% ━─────────── 528.0KB/5.3MB 2.7MB/s 0.2s&lt;1.8s
+[KDownloading https://github.com/ultralytics/assets/releases/download/v8.4.0/yolo26n.pt to 'yolo26n.pt': 64% ━━━━━━━╸──── 3.4/5.3MB 28.6MB/s 0.3s&lt;0.1s
+[KDownloading https://github.com/ultralytics/assets/releases/download/v8.4.0/yolo26n.pt to 'yolo26n.pt': 100% ━━━━━━━━━━━━ 5.3MB 14.8MB/s 0.4s
+[acquire] downloaded base model -&gt; /data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agentic-dev/20260610-183518_claude_opus48_yolo26n_awildlife_showcase/yolo26n.pt
+
+WARNING ⚠️ Dataset 'african-wildlife.yaml' images not found, missing path '/data/home/dhyang/github/datasets/african-wildlife/images/val'
+
+[KDownloading https://ultralytics.com/assets/african-wildlife.zip to '/data/home/dhyang/github/datasets/african-wildlife.zip': 1% ──────────── 1.4/100.2MB 13.0MB/s 0.1s&lt;7.6s
+[KDownloading https://ultralytics.com/assets/africa…</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-44"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">TaskUpdate</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>{&quot;taskId&quot;: &quot;2&quot;, &quot;status&quot;: &quot;completed&quot;}</code></div><div class="tool-result"><pre>Updated task #2 status</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-45"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">TaskUpdate</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>{&quot;taskId&quot;: &quot;3&quot;, &quot;status&quot;: &quot;in_progress&quot;}</code></div><div class="tool-result"><pre>Updated task #3 status</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-46"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Write</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>/data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agentic-dev/20260610-183518_claude_opus48_yolo26n_awildlife_showcase/train.py</code></div><div class="tool-result"><pre>File created successfully at: /data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agentic-dev/20260610-183518_claude_opus48_yolo26n_awildlife_showcase/train.py (file state is current in your context — no need to Read it back)</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-47"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>cd /data/home/dhyang/github/dx-all-suite-ultralytics
+SD=&quot;$PWD/dx-compiler/dx-agentic-dev/20260610-183518_claude_opus48_yolo26n_awildlife_showcase&quot;
+V=&quot;$PWD/dx-runtime/venv-dx-runtime/bin/python&quot;
+python3 -c &quot;import py_compile; py_compile.compile('$SD/train.py', doraise=True); print('train.py syntax O…</code></div><div class="tool-result"><pre>train.py syntax OK
+Training launched PID=57930
+--- early train.log ---
+Ultralytics 8.4.63 🚀 Python-3.12.3 torch-2.12.0+cu130 CUDA:0 (NVIDIA GeForce RTX 5060 Ti, 15848MiB)
+[34m[1mengine/trainer: [0magnostic_nms=False, amp=True, angle=1.0, augment=False, auto_augment=randaugment, batch=16, bgr=0.0, box=7.5, cache=False, cfg=None, classes=None, close_mosaic=10, cls=0.5, cls_pw=0.0, compile=False, conf=None, copy_paste=0.0, copy_paste_mode=flip, cos_lr=False, cutmix=0.0, data=african-wildlife.yaml, degrees=0.0, deterministic=True, device=0, dfl=1.5, dnn=False, dropout=0.0, dynamic=False, embed=None, end2end=None, epochs=40, erasing=0.4, exist_ok=True, fliplr=0.5, flipud=0.0, format=torchscript, fraction=1.0, freeze=None, half=False, hsv_h=0.015, hsv_s=0.7, hsv_v=0.4, imgsz=640, int8=False, iou=0.7, keras=False, kobj=1.0, line_width=None, lr0=0.01, lrf=0.01, mask_ratio=4, max_det=300, mixup=0.0, mode=train, model=/data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agentic-d…</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-48"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Write</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>/data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agentic-dev/20260610-183518_claude_opus48_yolo26n_awildlife_showcase/export_deepx.py</code></div><div class="tool-result"><pre>File created successfully at: /data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agentic-dev/20260610-183518_claude_opus48_yolo26n_awildlife_showcase/export_deepx.py (file state is current in your context — no need to Read it back)</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-49"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Write</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>/data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agentic-dev/20260610-183518_claude_opus48_yolo26n_awildlife_showcase/measure.py</code></div><div class="tool-result"><pre>File created successfully at: /data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agentic-dev/20260610-183518_claude_opus48_yolo26n_awildlife_showcase/measure.py (file state is current in your context — no need to Read it back)</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-50"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>cd /data/home/dhyang/github/dx-all-suite-ultralytics
+SD=&quot;$PWD/dx-compiler/dx-agentic-dev/20260610-183518_claude_opus48_yolo26n_awildlife_showcase&quot;
+V=&quot;$PWD/dx-runtime/venv-dx-runtime/bin/python&quot;
+for f in export_deepx.py measure.py; do
+  python3 -c &quot;import py_compile; py_compile.compile('$SD/$f', dor…</code></div><div class="tool-result"><pre>export_deepx.py syntax OK
+measure.py syntax OK
+--- training alive? ---
+train PID alive</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-51"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>cd /data/home/dhyang/github/dx-all-suite-ultralytics
+SD=&quot;$PWD/dx-compiler/dx-agentic-dev/20260610-183518_claude_opus48_yolo26n_awildlife_showcase&quot;
+V=&quot;$PWD/dx-runtime/venv-dx-runtime/bin/python&quot;
+cd &quot;$SD&quot;
+echo &quot;===== BASELINE EXPORT (stock yolo26n.pt -&gt; deepx) =====&quot; | tee -a session.log
+&quot;$V&quot; export_…</code></div><div class="tool-result"><pre>===== BASELINE EXPORT (stock yolo26n.pt -&gt; deepx) =====
+
+Setting DMA Registers:  74%|███████▍  | 275/371 [00:20&lt;00:01, 54.09schedule/s][A
+
+Setting DMA Registers:  76%|███████▌  | 282/371 [00:26&lt;00:15,  5.63schedule/s][A
+
+Setting DMA Registers:  80%|████████  | 297/371 [00:27&lt;00:10,  7.02schedule/s][A
+
+Setting DMA Registers:  81%|████████  | 301/371 [00:28&lt;00:11,  6.02schedule/s][A
+
+Setting DMA Registers:  83%|████████▎ | 309/371 [00:29&lt;00:07,  7.93schedule/s][A
+
+Setting DMA Registers:  85%|████████▍ | 314/371 [00:29&lt;00:06,  8.91schedule/s][A
+
+Setting DMA Registers:  86%|████████▌ | 318/371 [00:30&lt;00:07,  7.37schedule/s][A
+
+Setting DMA Registers:  87%|████████▋ | 321/371 [00:30&lt;00:06,  7.69schedule/s][A
+
+Setting DMA Registers:  88%|████████▊ | 326/371 [00:31&lt;00:07,  6.09schedule/s][A
+
+Setting DMA Registers:  88%|████████▊ | 328/371 [00:33&lt;00:09,  4.35schedule/s][A
+
+Setting DMA Registers:  89%|████████▉ | 330/371 [00:33&lt;00:08,  4.65schedule/s][A
+
+Setting DMA Registers:  89%|█…</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-52"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>cd /data/home/dhyang/github/dx-all-suite-ultralytics
+SD=&quot;$PWD/dx-compiler/dx-agentic-dev/20260610-183518_claude_opus48_yolo26n_awildlife_showcase&quot;
+V=&quot;$PWD/dx-runtime/venv-dx-runtime/bin/python&quot;
+cd &quot;$SD&quot;
+echo &quot;===== BASELINE MEASURE (NPU val) =====&quot; | tee -a session.log
+&quot;$V&quot; measure.py yolo26n_basel…</code></div><div class="tool-result"><pre>===== BASELINE MEASURE (NPU val) =====
+WARNING ⚠️ Unable to automatically guess model task, assuming 'task=detect'. Explicitly define task for your model, i.e. 'task=detect', 'segment', 'classify', 'pose', 'obb' or 'semantic'.
+Ultralytics 8.4.63 🚀 Python-3.12.3 torch-2.12.0+cu130 CPU (Intel Core(TM) i7-14700K)
+Loading yolo26n_baseline_deepx_model for DEEPX inference...
+Setting batch=1 input of shape (1, 3, 640, 640)
+[34m[1mval: [0mFast image access ✅ (ping: 0.0±0.0 ms, read: 5158.9±2804.0 MB/s, size: 87.3 KB)
+
+[K[34m[1mval: [0mScanning /data/home/dhyang/github/datasets/african-wildlife/labels/val.cache... 225 images, 0 backgrounds, 0 corrupt: 100% ━━━━━━━━━━━━ 225/225 94.4Mit/s 0.0s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 2% ──────────── 5/225 13.1it/s 0.1s&lt;16.8s
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 5% ╸─────────── 11/225 24.9it/s 0.2s&lt;8.6s
+[K                 Class    …</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-53"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">TaskUpdate</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>{&quot;taskId&quot;: &quot;4&quot;, &quot;status&quot;: &quot;completed&quot;}</code></div><div class="tool-result"><pre>Updated task #4 status</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-54"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>cd /data/home/dhyang/github/dx-all-suite-ultralytics
+SD=&quot;$PWD/dx-compiler/dx-agentic-dev/20260610-183518_claude_opus48_yolo26n_awildlife_showcase&quot;
+echo &quot;===== train.log tail =====&quot;
+tail -40 &quot;$SD/train.log&quot;
+echo &quot;&quot;
+echo &quot;===== best.pt =====&quot;
+ls -la &quot;$SD/runs/train/weights/&quot; 2&gt;/dev/null</code></div><div class="tool-result"><pre>===== train.log tail =====
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 25% ━━━───────── 2/8 5.9it/s 0.1s&lt;1.0s
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 50% ━━━━━━────── 4/8 10.0it/s 0.2s&lt;0.4s
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 75% ━━━━━━━━━─── 6/8 12.4it/s 0.3s&lt;0.2s
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% ━━━━━━━━━━━━ 8/8 20.1it/s 0.4s
+                   all        225        379      0.931      0.871      0.947      0.792
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K      37/40      3.25G      0.486     0.3704    0.01054         23        640: 2% ──────────── 1/66 1.8it/s 0.2s&lt;35.7s
+[K      37/40      3.25G     0.5508     0.4055   0.009609         42        640: 5% ╸─────────── 3/66 5.1it/s 0.3s&lt;12.3s
+[K      37/40      3.25G     0…</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-55"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">TaskUpdate</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>{&quot;taskId&quot;: &quot;3&quot;, &quot;status&quot;: &quot;completed&quot;}</code></div><div class="tool-result"><pre>Updated task #3 status</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-56"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">TaskUpdate</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>{&quot;taskId&quot;: &quot;5&quot;, &quot;status&quot;: &quot;in_progress&quot;}</code></div><div class="tool-result"><pre>Updated task #5 status</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-57"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>cd /data/home/dhyang/github/dx-all-suite-ultralytics
+SD=&quot;$PWD/dx-compiler/dx-agentic-dev/20260610-183518_claude_opus48_yolo26n_awildlife_showcase&quot;
+V=&quot;$PWD/dx-runtime/venv-dx-runtime/bin/python&quot;
+cd &quot;$SD&quot;
+# Fold the real training output into session.log (genuine command output, not hand-written)
+{ ec…</code></div><div class="tool-result"><pre>===== IMPROVED EXPORT (retrained best.pt -&gt; deepx) =====
+
+Generating RMAP:   0%|          | 0/12 [00:00&lt;?, ?step/s]     [A
+
+Generating RMAP:  17%|█▋        | 2/12 [00:00&lt;00:04,  2.37step/s][A
+
+Writing RMAP:  17%|█▋        | 2/12 [00:00&lt;00:04,  2.37step/s]   [A
+
+Generating RMAP meta info:  17%|█▋        | 2/12 [00:00&lt;00:04,  2.37step/s][A
+
+Generating simulator info:  17%|█▋        | 2/12 [00:00&lt;00:04,  2.37step/s][A
+
+Writing simulator info:  17%|█▋        | 2/12 [00:00&lt;00:04,  2.37step/s]   [A
+
+Generating weights:  17%|█▋        | 2/12 [00:00&lt;00:04,  2.37step/s]    [A
+
+Writing weights:  17%|█▋        | 2/12 [00:00&lt;00:04,  2.37step/s]   [A
+
+Generating dummy bit mask:  17%|█▋        | 2/12 [00:00&lt;00:04,  2.37step/s][A
+
+Writing dummy bit mask:  17%|█▋        | 2/12 [00:00&lt;00:04,  2.37step/s]   [A
+
+Generating PPU data:  17%|█▋        | 2/12 [00:00&lt;00:04,  2.37step/s]   [A
+
+Writing PPU data:  17%|█▋        | 2/12 [00:00&lt;00:04,  2.37step/s]   [A
+
+                                 …</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-58"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>cd /data/home/dhyang/github/dx-all-suite-ultralytics
+SD=&quot;$PWD/dx-compiler/dx-agentic-dev/20260610-183518_claude_opus48_yolo26n_awildlife_showcase&quot;
+V=&quot;$PWD/dx-runtime/venv-dx-runtime/bin/python&quot;
+cd &quot;$SD&quot;
+echo &quot;===== IMPROVED MEASURE (NPU val) =====&quot; | tee -a session.log
+&quot;$V&quot; measure.py yolo26n_impro…</code></div><div class="tool-result"><pre>===== IMPROVED MEASURE (NPU val) =====
+                 rhino         55         85      0.952      0.943      0.973      0.856
+                 zebra         59        114      0.883      0.863      0.925      0.729
+Speed: 0.1ms preprocess, 12.4ms inference, 0.0ms loss, 0.1ms postprocess per image
+Results saved to [1m/data/home/dhyang/git/github/yolov11l_poc/runs/detect/val-2[0m
+{
+  &quot;tag&quot;: &quot;improved&quot;,
+  &quot;deepx_dir&quot;: &quot;yolo26n_improved_deepx_model&quot;,
+  &quot;dataset&quot;: &quot;african-wildlife.yaml&quot;,
+  &quot;split&quot;: &quot;val&quot;,
+  &quot;imgsz&quot;: 640,
+  &quot;batch&quot;: 1,
+  &quot;device&quot;: &quot;DX-M1 NPU (dx_engine)&quot;,
+  &quot;map50_95&quot;: 0.79073,
+  &quot;map50&quot;: 0.9432,
+  &quot;map75&quot;: 0.8581,
+  &quot;per_class_map50_95&quot;: {
+    &quot;buffalo&quot;: 0.77739,
+    &quot;elephant&quot;: 0.80046,
+    &quot;rhino&quot;: 0.85574,
+    &quot;zebra&quot;: 0.72931
+  },
+  &quot;speed_ms_per_image&quot;: {
+    &quot;preprocess&quot;: 0.1436,
+    &quot;inference&quot;: 12.4152,
+    &quot;loss&quot;: 0.0004,
+    &quot;postprocess&quot;: 0.0706
+  },
+  &quot;npu_inference_fps&quot;: 80.55
+}
+[measure] OK -&gt; metrics_improved.json</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-59"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>cd /data/home/dhyang/github/dx-all-suite-ultralytics
+SD=&quot;$PWD/dx-compiler/dx-agentic-dev/20260610-183518_claude_opus48_yolo26n_awildlife_showcase&quot;
+V=&quot;$PWD/dx-runtime/venv-dx-runtime/bin/python&quot;
+cd &quot;$SD&quot;
+echo &quot;--- any GPU/python load now? ---&quot;; nvidia-smi --query-gpu=utilization.gpu,memory.used --fo…</code></div><div class="tool-result"><pre>--- any GPU/python load now? ---
+0 %, 15 MiB
+===== BASELINE RE-MEASURE (idle system, fair FPS) =====
+  &quot;split&quot;: &quot;val&quot;,
+  &quot;imgsz&quot;: 640,
+  &quot;batch&quot;: 1,
+  &quot;device&quot;: &quot;DX-M1 NPU (dx_engine)&quot;,
+  &quot;map50_95&quot;: 0.001,
+  &quot;map50&quot;: 0.00149,
+  &quot;map75&quot;: 0.00103,
+  &quot;per_class_map50_95&quot;: {
+    &quot;person&quot;: 0.00337,
+    &quot;bicycle&quot;: 0.0,
+    &quot;car&quot;: 0.00064,
+    &quot;motorcycle&quot;: 0.0
+  },
+  &quot;speed_ms_per_image&quot;: {
+    &quot;preprocess&quot;: 0.2515,
+    &quot;inference&quot;: 17.548,
+    &quot;loss&quot;: 0.0005,
+    &quot;postprocess&quot;: 0.0928
+  },
+  &quot;npu_inference_fps&quot;: 56.99
+}
+[measure] OK -&gt; metrics_baseline.json</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-60"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">TaskUpdate</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>{&quot;taskId&quot;: &quot;5&quot;, &quot;status&quot;: &quot;completed&quot;}</code></div><div class="tool-result"><pre>Updated task #5 status</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-61"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">TaskUpdate</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>{&quot;taskId&quot;: &quot;6&quot;, &quot;status&quot;: &quot;in_progress&quot;}</code></div><div class="tool-result"><pre>Updated task #6 status</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-62"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Write</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>/data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agentic-dev/20260610-183518_claude_opus48_yolo26n_awildlife_showcase/verify.py</code></div><div class="tool-result"><pre>File created successfully at: /data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agentic-dev/20260610-183518_claude_opus48_yolo26n_awildlife_showcase/verify.py (file state is current in your context — no need to Read it back)</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-63"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Write</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>/data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agentic-dev/20260610-183518_claude_opus48_yolo26n_awildlife_showcase/report.md</code></div><div class="tool-result"><pre>File created successfully at: /data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agentic-dev/20260610-183518_claude_opus48_yolo26n_awildlife_showcase/report.md (file state is current in your context — no need to Read it back)</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-64"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Write</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>/data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agentic-dev/20260610-183518_claude_opus48_yolo26n_awildlife_showcase/run.sh</code></div><div class="tool-result"><pre>File created successfully at: /data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agentic-dev/20260610-183518_claude_opus48_yolo26n_awildlife_showcase/run.sh (file state is current in your context — no need to Read it back)</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-65"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Write</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>/data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agentic-dev/20260610-183518_claude_opus48_yolo26n_awildlife_showcase/README.md</code></div><div class="tool-result"><pre>File created successfully at: /data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agentic-dev/20260610-183518_claude_opus48_yolo26n_awildlife_showcase/README.md (file state is current in your context — no need to Read it back)</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-66"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>cd /data/home/dhyang/github/dx-all-suite-ultralytics
+SD=&quot;$PWD/dx-compiler/dx-agentic-dev/20260610-183518_claude_opus48_yolo26n_awildlife_showcase&quot;
+V=&quot;$PWD/dx-runtime/venv-dx-runtime/bin/python&quot;
+cd &quot;$SD&quot;
+echo &quot;===== bash -n run.sh =====&quot; ; bash -n run.sh &amp;&amp; echo &quot;run.sh syntax OK&quot;
+echo &quot;===== py_com…</code></div><div class="tool-result"><pre>===== bash -n run.sh =====
+run.sh syntax OK
+===== py_compile verify.py &amp; all py =====
+setup.sh syntax OK
+acquire.py syntax OK
+train.py syntax OK
+export_deepx.py syntax OK
+measure.py syntax OK
+verify.py syntax OK
+===== config.json valid JSON? =====
+config.json valid JSON
+===== RUN verify.py =====
+[OK] baseline deepx dir + .dxnn
+[OK] improved deepx dir + .dxnn
+[OK] metrics_baseline.json exists
+[OK] metrics_improved.json exists
+[OK] baseline metrics numeric
+[OK] improved metrics numeric
+[OK] improved mAP50-95 (0.79073) &gt;&gt; baseline (0.001)
+
+--- measured summary ---
+  baseline: mAP50-95=0.0010  mAP50=0.0015  FPS=56.99
+  improved: mAP50-95=0.7907  mAP50=0.9432  FPS=80.55
+[OK] report.md exists
+
+RESULT: PASS
+verify exit: 0</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-67"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Skill</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>dx-agentic-verify</code></div><div class="tool-result"><pre>Launching skill: dx-agentic-verify</pre></div></div></div>
+<div class="entry assistant" id="entry-68"><div class="entry-hdr"><span class="icon">&#x1F4AC;</span><span class="label">Claude</span><span class="time">2026-06-10 09:36:32 UTC</span></div><div class="entry-body"><p>TDD acceptance criteria locked (encoded in <code>verify.py</code>: both <code>.dxnn</code> dirs load, both metric JSONs numeric, <code>report.md</code> has measured table, exit-code contract). Beginning execution (Green phase). Setting up progress tracking.
+Task #1: writing <code>setup.sh</code>.
+✅ Task 1 done — <code>setup.sh</code> runs clean (all imports OK, NPU sanity PASSED). Task 2: acquire base model + dataset.
+✅ Task 2 done — base <code>yolo26n.pt</code> downloaded into session dir; African-wildlife dataset ready (4 classes: buffalo, elephant, rhino, zebra; train+val splits).</p>
+<p>Task 3: launching the 40-epoch retrain in the background now, so baseline export+measure overlaps with it.
+Training is running (PID 57930, model rebuilt with nc=4 for the 4 wildlife classes). Now Task 4 in parallel: writing the reusable export + measure scripts and running the <strong>baseline</strong> export (on CPU, to avoid GPU contention with training) + NPU measurement.
+Baseline DeepX export succeeded → <code>yolo26n_baseline_deepx_model/</code> (<code>yolo26n.dxnn</code> + config + metadata). Now measuring it on the NPU.
+Baseline measured on NPU: <strong>mAP50-95 = 0.001, FPS = 59.11</strong>. As predicted, the stock COCO model scores near-zero on the wildlife domain (its predictions are COCO classes — person/bicycle/etc. — vs wildlife ground truth). That's the domain-mismatch baseline. ✅ Task 4 done.</p>
+<p>Training has finished. Checking the result before the improved export.
+Training complete — 40 epochs in ~4.1 min. <code>best.pt</code> GPU validation: <strong>mAP50-95 = 0.792, mAP50 = 0.948</strong> (buffalo .79 / elephant .79 / rhino .84 / zebra .75). Strong domain fit. ✅ Task 3 done.</p>
+<p>Now Task 5: export the retrained <code>best.pt</code> to DeepX (INT8) and measure on the NPU. Appending the real training log into session.log first.
+Improved export succeeded → <code>yolo26n_improved_deepx_model/</code> (<code>best.dxnn</code> + config + metadata). Measuring on NPU now.
+Improved on NPU: <strong>mAP50-95 = 0.79073, mAP50 = 0.9432, FPS = 80.55</strong>. The INT8 NPU accuracy (0.791) matches the fp32 GPU result (0.792) — quantization preserved accuracy.</p>
+<p>One integrity issue: baseline FPS (59.11) was measured *while GPU training was still running* (host-pipeline contention), while improved (80.55) ran on an idle system. Same yolo26n architecture → NPU FPS should be ~equal. For a fair comparison I'll <strong>re-measure the baseline now that the system is idle</strong>.
+Re-measured on idle system: baseline still <strong>57 FPS (17.5 ms)</strong> vs improved <strong>80.55 FPS (12.4 ms)</strong>. So the FPS gap is *real and architectural*, not contention: the retrained model has a 4-class detection head (<code>nc=4</code>) vs the stock 80-class COCO head (<code>nc=80</code>), so its final layers + decode are lighter. The domain model is both more accurate <strong>and</strong> faster. ✅ Task 5 done.</p>
+<p>Now Task 6: report + verify.py + run.sh + README, then finalize.
+Now running the Artifact Verification Gate: syntax-check <code>run.sh</code>, compile-check <code>verify.py</code>, validate <code>config.json</code>, and execute <code>verify.py</code> (must print RESULT: PASS).
+All gate checks pass — <code>verify.py</code> → <strong>RESULT: PASS</strong> (exit 0). Invoking the verify-completion skill (mandatory sequence step 5).</p></div></div>
+<div class="entry user" id="entry-69"><div class="entry-hdr"><span class="icon">&#x1F464;</span><span class="label">User</span><span class="time">2026-06-10 09:49:20 UTC</span></div><div class="entry-body">Base directory for this skill: /data/home/dhyang/github/dx-all-suite-ultralytics/.claude/skills/dx-agentic-verify
+
+&lt;!-- Thin Claude Code wrapper — canonical skill doc lives in .deepx/ --&gt;
+
+Read and follow the complete skill documentation at `.deepx/skills/dx-agentic-verify/SKILL.md`.
+
+
+ARGUMENTS: Verify completion of the YOLO26n African-wildlife DeepX showcase: both .dxnn model dirs, measured baseline/improved metrics JSONs, report.md, mandatory deliverables, verify.py PASS.</div></div>
+<div class="entry tool-ok collapsed" id="entry-70"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Read</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>/data/home/dhyang/github/dx-all-suite-ultralytics/.deepx/skills/dx-agentic-verify/SKILL.md</code></div><div class="tool-result"><pre>1	---
+2	name: dx-agentic-verify
+3	description: &quot;DEEPX build verification checklists — dx_app, dx_stream, and cross-project.&quot;
+4	---
+5	
+6	# Skill: DEEPX Build Verification Checklists
+7	
+8	&gt; For the general verification gate function and completion report template,
+9	&gt; see `dx-swe-verify`. This skill covers DEEPX-specific verification checklists.
+10	
+11	## Scope
+12	
+13	This is the **top-level suite** version covering all sub-projects. When working
+14	in a single sub-project, prefer the project-level version:
+15	
+16	| Working on... | Use this skill |
+17	|---|---|
+18	| dx_app (standalone inference) | `dx-runtime/dx_app/.deepx/skills/dx-verify-completion.md` |
+19	| dx_stream (GStreamer pipelines) | `dx-runtime/dx_stream/.deepx/skills/dx-verify-completion.md` |
+20	| Cross-project integration | `dx-runtime/.deepx/skills/dx-verify-completion.md` |
+21	
+22	## Verification Checklist — dx_app Python Apps
+23	
+24	```bash
+25	# 1. Syntax check all Python files
+26	for f in factory/*_factory.py *_sync.p…</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-71"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>cd /data/home/dhyang/github/dx-all-suite-ultralytics
+SD=&quot;dx-compiler/dx-agentic-dev/20260610-183518_claude_opus48_yolo26n_awildlife_showcase&quot;
+echo &quot;===== Session dir tree (depth 2) =====&quot;
+( cd &quot;$SD&quot; &amp;&amp; find . -maxdepth 2 -not -path '*/runs/train/*' | sort )
+echo &quot;&quot;
+echo &quot;===== Mandatory deliverable…</code></div><div class="tool-result"><pre>===== Session dir tree (depth 2) =====
+.
+./acquire.py
+./config.json
+./export_deepx.py
+./measure.py
+./metrics_baseline.json
+./metrics_improved.json
+./__pycache__
+./__pycache__/acquire.cpython-312.pyc
+./__pycache__/export_deepx.cpython-312.pyc
+./__pycache__/measure.cpython-312.pyc
+./__pycache__/train.cpython-312.pyc
+./__pycache__/verify.cpython-312.pyc
+./README.md
+./report.md
+./runs
+./run.sh
+./runs/train
+./session.log
+./setup.sh
+./train.log
+./train.pid
+./train.py
+./verify.py
+./yolo26n_baseline_deepx_model
+./yolo26n_baseline_deepx_model/config.json
+./yolo26n_baseline_deepx_model/metadata.yaml
+./yolo26n_baseline_deepx_model/yolo26n.dxnn
+./yolo26n_improved_deepx_model
+./yolo26n_improved_deepx_model/best.dxnn
+./yolo26n_improved_deepx_model/config.json
+./yolo26n_improved_deepx_model/metadata.yaml
+./yolo26n.onnx
+./yolo26n.pt
+
+===== Mandatory deliverable presence =====
+[OK] setup.sh (2655 bytes)
+[OK] run.sh (1570 bytes)
+[OK] README.md (2983 bytes)
+[OK] verify.py (2538 bytes)
+[OK] session.log (…</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-72"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">TaskUpdate</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>{&quot;taskId&quot;: &quot;6&quot;, &quot;status&quot;: &quot;completed&quot;}</code></div><div class="tool-result"><pre>Updated task #6 status</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-73"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Write</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>/home/dhyang/.claude/projects/-data-home-dhyang-github-dx-all-suite/memory/project_yolo26n_awildlife_showcase_finding.md</code></div><div class="tool-result"><pre>File created successfully at: /home/dhyang/.claude/projects/-data-home-dhyang-github-dx-all-suite/memory/project_yolo26n_awildlife_showcase_finding.md (file state is current in your context — no need to Read it back)</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-74"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Edit</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>/home/dhyang/.claude/projects/-data-home-dhyang-github-dx-all-suite/memory/MEMORY.md</code></div><div class="tool-result"><pre>&lt;tool_use_error&gt;File has not been read yet. Read it first before writing to it.&lt;/tool_use_error&gt;</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-75"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Read</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>/home/dhyang/.claude/projects/-data-home-dhyang-github-dx-all-suite/memory/MEMORY.md</code></div><div class="tool-result"><pre>12	- [dx-agentic-gen invocation traps](project_dx_agentic_gen_invocation.md) — `-m cli` is a silent no-op (no __main__ guard); use PYTHONPATH + main() directly
+13	- [DONE: Ultralytics × DeepX KB + showcase](project_ultralytics_deepx_integration.md) — format=deepx one-shot export KB in dx-compiler/.deepx + suite routing + showcase + README (2026-06-10, feature/ultralytics-integration)
+14	- [Cross-import + orphan-skills cleanup DONE](project_crossimport_path_followup.md) — fabricated cross-Python-import examples removed (real coupling = shared .dxnn registries) + 108 stale orphan skill/cursor outputs swept across 4 repos; durable TODO: add --prune to dx-agentic-gen
+15	</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-76"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Edit</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>/home/dhyang/.claude/projects/-data-home-dhyang-github-dx-all-suite/memory/MEMORY.md</code></div><div class="tool-result"><pre>The file /home/dhyang/.claude/projects/-data-home-dhyang-github-dx-all-suite/memory/MEMORY.md has been updated successfully. (file state is current in your context — no need to Read it back)</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-77"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>cd /data/home/dhyang/github/dx-all-suite-ultralytics
+GENROOT=&quot;$(d=&quot;$PWD&quot;; while [ &quot;$d&quot; != / ]; do [ -f &quot;$d/.deepx/tools/src/dx_transcripts/generate_transcripts.py&quot; ] &amp;&amp; { echo &quot;$d&quot;; break; }; d=&quot;$(dirname &quot;$d&quot;)&quot;; done)&quot;
+GT=&quot;$GENROOT/.deepx/tools/src/dx_transcripts/generate_transcripts.py&quot;
+echo &quot;GEN…</code></div><div class="tool-result"><pre>GENROOT=/data/home/dhyang/github/dx-all-suite-ultralytics
+jsonl: /data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agentic-dev/20260610-183518_claude_opus48_yolo26n_awildlife_showcase/claude-stream.jsonl
+md: /data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agentic-dev/20260610-183518_claude_opus48_yolo26n_awildlife_showcase/claude-session.md
+html: /data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agentic-dev/20260610-183518_claude_opus48_yolo26n_awildlife_showcase/claude-session.html</pre></div></div></div>
+<div class="entry assistant" id="entry-78"><div class="entry-hdr"><span class="icon">&#x1F4AC;</span><span class="label">Claude</span><span class="time">2026-06-10 09:49:20 UTC</span></div><div class="entry-body"><p>All mandatory deliverables present and verified. <code>session.log</code> is authentic (4463 lines of real <code>tee</code> output, 0 heredoc markers). Both <code>.dxnn</code> files, both metrics JSONs, <code>report.md</code>, <code>best.pt</code> — all present.
+All work complete and verified. Final summary below.</p>
+<p>## Summary — YOLO26n African-Wildlife DeepX NPU Showcase</p>
+<p>Everything was built and <strong>measured for real</strong> on the DX-M1 NPU (no placeholders). Single dx-compiler session, using the local Ultralytics <code>format=deepx</code> one-shot path (Option 1) from <code>venv-dx-runtime</code>, which already bundles the entire stack.</p>
+<p>| Metric (african-wildlife val, 225 imgs, INT8, batch=1, NPU) | <strong>Baseline</strong> (stock COCO <code>yolo26n</code>) | <strong>Improved</strong> (retrained 40 ep) |
+|---|---|---|
+| mAP50-95 | 0.0010 | <strong>0.7907</strong> |
+| mAP50 | 0.0015 | <strong>0.9432</strong> |
+| NPU inference FPS | 56.99 | <strong>80.55</strong> |</p>
+<p><strong>Findings (in <code>report.md</code>):</strong>
+1. Stock model ≈ 0 mAP on the domain (COCO classes ≠ wildlife classes) — proves the need for fine-tuning.
+2. 40-epoch retrain (~4.1 min on RTX 5060 Ti) → mAP50-95 0.79 / mAP50 0.94.
+3. INT8 NPU accuracy (0.791) ≈ fp32 GPU accuracy (0.792) — quantization lossless here.
+4. Domain model is also <strong>+41% faster</strong> on the NPU (nc=4 head vs nc=80) — verified on an idle host.</p>
+<p><strong>Artifacts</strong> (all in the session dir): <code>yolo26n_baseline_deepx_model/yolo26n.dxnn</code>, <code>yolo26n_improved_deepx_model/best.dxnn</code>, <code>runs/train/weights/best.pt</code>, <code>metrics_baseline.json</code>, <code>metrics_improved.json</code>, <code>report.md</code>, plus mandatory <code>setup.sh</code>/<code>run.sh</code>/<code>README.md</code>/<code>verify.py</code>/<code>config.json</code>/<code>session.log</code>. <strong><code>verify.py</code> → RESULT: PASS.</strong></p>
+<p>Process gates honored: skill-router → brainstorm (spec, self-reviewed) → writing-plans → tdd → verify; Prerequisites HARD GATE passed (GPU + NPU sanity + dx_com/dx_engine/ultralytics-deepx all green); Output Isolation respected.</p>
+<pre><code> ███████████   █████████ ████████ ████████  ████      ████
+ ███     █████ ███░░░░░░░███░░░░░░███   ███  ░████   ████░░
+ ███        ██░███░      ██░░     ███   ███░   █████████░░
+ ███        ████████████ ████████ ████████░░    ░█████░░░
+ ███        ██░███░░░░░░░██░░░░░░░███░░░░░░  ██████████
+ ███     █████░███░      ██░      ███░   ████████░░░░████
+ ███████████░░░█████████ ████████ ██████████░░░░░░    ████
+  ░░░░░░░░░░░   ░░░░░░░░░ ░░░░░░░░ ░░░░░░░░░░          ░░░░
+        DX-AGENTIC-DEV · on-device NPU
+</code></pre>
+<p>[DX-AGENTIC-DEV: DONE (output-dir: dx-compiler/dx-agentic-dev/20260610-183518_claude_opus48_yolo26n_awildlife_showcase/)]</p>
+<p>Now generating this session's transcript into the output dir (final housekeeping step).
+Session transcript (md/html/jsonl) saved to: <code>dx-compiler/dx-agentic-dev/20260610-183518_claude_opus48_yolo26n_awildlife_showcase/claude-session.*</code></p>
+<p>(Per the known limitation, the in-session transcript omits Wall-clock + Cost + this closing line, since they're only emitted at process exit — expected, not a bug.)</p></div></div>
+<hr />
+<div class="summary-section"><h2>Session Summary</h2><table class="summary-table"><tr><td>Turns</td><td>6</td></tr>
+<tr><td>Tool calls</td><td>66</td></tr>
+<tr><td>Messages (raw)</td><td>260</td></tr>
+<tr><td>Skills invoked</td><td>dx-agentic-brainstorm, dx-agentic-tdd, dx-agentic-verify, dx-skill-router, dx-swe-writing-plans</td></tr>
+<tr><td>Tool breakdown</td><td>Bash: 19, Write: 12, TaskUpdate: 11, Read: 8, TaskCreate: 6, Skill: 5, Glob: 2, Edit: 2, ToolSearch: 1</td></tr></table></div>
+<div class="footer">
+Generated by parse_claude_session.py &middot; 2026-06-10 18:53:32
+</div>
+</div>
+<script>document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('.entry-hdr').forEach(function(hdr) {
+    hdr.addEventListener('click', function() {
+      hdr.parentElement.classList.toggle('collapsed');
+    });
+  });
+});
+</script>
+</body>
+</html>

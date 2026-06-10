@@ -1,0 +1,25 @@
+{
+  "tag": "improved",
+  "deepx_dir": "yolo26n_improved_deepx_model",
+  "dataset": "african-wildlife.yaml",
+  "split": "val",
+  "imgsz": 640,
+  "batch": 1,
+  "device": "DX-M1 NPU (dx_engine)",
+  "map50_95": 0.79073,
+  "map50": 0.9432,
+  "map75": 0.8581,
+  "per_class_map50_95": {
+    "buffalo": 0.77739,
+    "elephant": 0.80046,
+    "rhino": 0.85574,
+    "zebra": 0.72931
+  },
+  "speed_ms_per_image": {
+    "preprocess": 0.1436,
+    "inference": 12.4152,
+    "loss": 0.0004,
+    "postprocess": 0.0706
+  },
+  "npu_inference_fps": 80.55
+}

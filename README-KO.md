@@ -84,6 +84,25 @@ toolset으로 라우팅되어 export + 배포를 수행합니다 — 수작업 �
 에 들어 있습니다
 ([README](./dx-agentic-dev-showcase/ultralytics-yolo-deepx-export/README-ko.md)).
 
+### Showcase 4: Ultralytics 재학습 → DeepX NPU (도메인 최적화)
+
+<!-- dx-showcase:ultralytics-retrain-deepx:gif:start -->
+<div align="center">
+<img src="./docs/source/img/dx-agentic-dev-ultralytics-retrain-build.gif" width="760"><br><sub><b>dx-agentic-dev가 이 showcase를 만드는 과정 — 재학습 → DeepX → NPU FPS/mAP</b></sub>
+</div>
+<!-- dx-showcase:ultralytics-retrain-deepx:gif:end -->
+
+
+DEEPX × **Ultralytics** Option 1(로컬 Python 패키지): `yolo26n`을 도메인 데이터셋으로
+재학습하고 DeepX(`format=deepx`)로 export해 DX-M1 NPU에서 측정 — stock COCO 모델
+**mAP50-95 0.001 → 재학습 0.791**, **+41% FPS**(57 → 80.6); INT8가 fp32 정확도 유지.
+*이 showcase 자체가 `dx-agentic-showcase-build` skill + `dx-showcase-gen` 도구로 제작·녹화됨.*
+
+**▶️ 직접 실행해보기** —
+**[`dx-agentic-dev-showcase/ultralytics-retrain-deepx/`](./dx-agentic-dev-showcase/ultralytics-retrain-deepx/)**
+에 들어 있습니다
+([README](./dx-agentic-dev-showcase/ultralytics-retrain-deepx/README-ko.md)).
+
 ➡️ **[Agentic Development (Beta) 시작하기](./docs/source/00_Agentic_Development_kor.md)**
 
 ## 시작하기
