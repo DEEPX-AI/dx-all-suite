@@ -50,6 +50,14 @@ animated stick-figure **coach** demonstrating each target pose:
 Hold the matching pose briefly (a frame-based HOLD bar fills) → **GOOD!**, advance
 to the next stage. Finish all three → **CLEAR!**
 
+## The prompt
+
+> The exact natural-language prompt given to the agent (verbatim):
+
+```
+Using the yolo26n-pose model on the DEEPX NPU, build a simple arcade-style stretching mini-game. The game guides the user through three stretch poses, one stage at a time: (1) extend both arms straight overhead, (2) bend forward at the waist (forward fold, reaching the hands down toward the feet), and (3) pull the head to one side with one hand for a neck stretch. For each stage, render a small human-figure "coach" avatar in a top-left panel that demonstrates the current target stretch: draw it as a clean stick-figure / skeleton (head, torso, arms, legs) posed in the target stretch, so the user can see the motion and copy it. Make the coach feel alive — animate it by cycling between a neutral standing pose and the full target pose (a simple looped demonstration), and derive each target pose shape from the corresponding sample clip. Next to or below the coach avatar, also show the stretch name and a short text instruction. When the user holds the matching pose briefly, advance to the next stage; clear the game when all three stretches are completed. Implement and validate it using the sample videos sample/stretching_extending_both_arms.mp4, sample/stretching_bending_at_the_waist.mp4, and sample/stretching_pulling_the_head.mp4. Recognize each pose from the player's body keypoints (e.g. wrists above the head for the overhead reach; torso folded forward with the shoulders dropped toward the hips for the waist bend; one hand raised beside the head for the neck stretch). Overlay an arcade-style game UI on each frame: the current stage number (e.g. STAGE 1/3), the animated coach avatar demonstrating the target pose, the target stretch name and instruction, a HOLD progress indicator while the pose is held, and GOOD! / CLEAR! feedback text. The generated app must support both a video-file input and a live camera input, selectable at runtime via command-line options (e.g. --video <file> or --camera <id>). When run on a video file, save an annotated output video so the result can be reviewed.
+```
+
 ## Arcade UI (overlaid on every frame)
 - Top banner: title + `STAGE n/3` (→ `COMPLETE`).
 - Top-left **coach panel**: an animated stick figure that cycles between a neutral

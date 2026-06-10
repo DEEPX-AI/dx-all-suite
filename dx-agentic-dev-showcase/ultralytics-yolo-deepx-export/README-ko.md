@@ -35,10 +35,13 @@
 
 ## 프롬프트
 
+> 에이전트에게 준 실제 자연어 프롬프트 (verbatim):
+
 ```
-Export the Ultralytics YOLO26n detection model to DeepX NPU format using the
-one-shot format=deepx export path, then run inference on the bus sample image.
+Export the Ultralytics YOLO26n detection model to DeepX NPU format using the one-shot format=deepx export path, then run inference on the Ultralytics bus sample image. Work autonomously to completion without asking for confirmation or approval; make default decisions per the knowledge base and PRODUCE THE ACTUAL ARTIFACTS (the compiled .dxnn model directory and real inference detections), not just a plan. Respond in English.
 ```
+
+_(끝부분 "work autonomously … / Respond in English"은 무인 headless 녹화를 위한 operator 지시이며, 핵심 task는 첫 문장입니다.)_
 
 ## 에이전트의 동작 (KB 기반 워크플로)
 

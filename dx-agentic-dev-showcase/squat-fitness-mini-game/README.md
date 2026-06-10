@@ -43,6 +43,14 @@ time, and overlays a game HUD (rep counter, target, score, **DOWN / UP / GOOD!**
 feedback, progress bar). Works on a **video file** or a **live camera**,
 selectable at runtime. On a video file it saves an **annotated output video**.
 
+## The prompt
+
+> The exact natural-language prompt given to the agent (verbatim):
+
+```
+Build a squat-counting fitness mini-game using yolo26n-pose on DEEPX NPU, validate with sample/squat_demo.mp4
+```
+
 ## Quick start
 
 ```bash

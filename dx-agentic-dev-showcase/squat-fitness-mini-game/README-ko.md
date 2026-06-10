@@ -42,6 +42,14 @@ brainstorm → plan → TDD → verify 전체 skill 시퀀스가 앱 완료 선�
 **DOWN / UP / GOOD!** 피드백, 진행바)를 오버레이합니다. **비디오 파일** 또는 **라이브 카메라**에서
 동작하며 런타임에 선택 가능합니다. 비디오 파일로 실행하면 **주석이 표시된 출력 영상**을 저장합니다.
 
+## 프롬프트
+
+> 에이전트에게 준 실제 자연어 프롬프트 (verbatim):
+
+```
+Build a squat-counting fitness mini-game using yolo26n-pose on DEEPX NPU, validate with sample/squat_demo.mp4
+```
+
 ## 빠른 시작
 
 ```bash
