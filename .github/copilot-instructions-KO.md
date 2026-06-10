@@ -534,13 +534,20 @@ DONE은 맨 마지막 줄 유지).
    hook은 **필요 없습니다**:
 
    ```bash
-   # 공통 generator를 찾고(상위로 올라가 suite root 탐색) 이 세션의 transcript를 output
-   # dir(들) 안에 렌더링. 생성한 output dir을 모두(공백 구분) 넘기세요 — 각 dir에 복사됩니다
-   # (cross-project: 컴파일러 dir + 앱 dir 둘 다). session id는 이 CLI 자신의 env var에서
-   # 자동 추출됩니다(CLAUDE_CODE_SESSION_ID / COPILOT_AGENT_SESSION_ID).
-   GT="$(d="$PWD"; while [ "$d" != / ]; do [ -f "$d/.deepx/tools/src/dx_transcripts/generate_transcripts.py" ] && { echo "$d/.deepx/tools/src/dx_transcripts/generate_transcripts.py"; break; }; d="$(dirname "$d")"; done)"
-   python3 "$GT" --tool <CLI> --project "$PWD" \
-       --into-output-dirs <output-dir> [<output-dir-2> ...]
+   # 공통 generator를 상위로 올라가 찾습니다: GENROOT = .deepx/tools를 포함한 디렉토리.
+   # 이 세션의 transcript를 output dir(들) 안에 렌더링. 생성한 output dir을 모두 넘기세요 —
+   # 각 dir에 복사됩니다(cross-project: 컴파일러 dir + 앱 dir 둘 다). session id는 이 CLI
+   # 자신의 env var에서 자동 추출됩니다(CLAUDE_CODE_SESSION_ID / COPILOT_AGENT_SESSION_ID).
+   #
+   # 중요 — --project와 --into-output-dirs에 반드시 절대경로를 쓰세요. 상대경로 output dir은
+   # 에이전트의 현재 cwd 기준으로 해석되므로, cwd가 suite root가 아닐 때(예: setup.sh/run.sh
+   # 실행하려고 세션 dir로 cd한 뒤) "no output dir produced — transcript generation skipped"로
+   # 조용히 건너뜁니다. 모든 output dir 앞에 "$GENROOT/"를 붙이세요(또는 artifact를 쓸 때
+   # 사용한 절대 SESSION_DIR을 그대로 전달).
+   GENROOT="$(d="$PWD"; while [ "$d" != / ]; do [ -f "$d/.deepx/tools/src/dx_transcripts/generate_transcripts.py" ] && { echo "$d"; break; }; d="$(dirname "$d")"; done)"
+   GT="$GENROOT/.deepx/tools/src/dx_transcripts/generate_transcripts.py"
+   python3 "$GT" --tool <CLI> --project "$GENROOT" \
+       --into-output-dirs "$GENROOT/<output-dir>" ["$GENROOT/<output-dir-2>" ...]
    ```
 
    `<CLI>`는 `claude` 또는 `copilot`입니다. generator는 **테스트 하네스와 동일한
