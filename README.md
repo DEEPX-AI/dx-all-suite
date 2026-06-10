@@ -132,6 +132,22 @@ retrained 0.40** (INT8 NPU), **+34% FPS** (58 → 78); 4-way (base/retrained × 
 **▶️ Run it yourself** — **[`dx-agentic-dev-showcase/ultralytics-braintumor-deepx/`](./dx-agentic-dev-showcase/ultralytics-braintumor-deepx/)**
 ([README](./dx-agentic-dev-showcase/ultralytics-braintumor-deepx/README.md)).
 
+### Showcase 7: Ultralytics Pill Detection → DeepX NPU (pharma)
+
+<!-- dx-showcase:ultralytics-pills-deepx:gif:start -->
+<div align="center">
+<img src="./docs/source/img/dx-agentic-dev-ultralytics-pills-build.gif" width="700"><br><sub><b>dx-agentic-dev building this showcase — retrain → DeepX → 4-way eval</b></sub>
+</div>
+<!-- dx-showcase:ultralytics-pills-deepx:gif:end -->
+
+
+Domain optimization for a **pharmaceutical pill counting station**: retrain `yolo26n` on
+`medical-pills` and deploy on the DX-M1 NPU — stock COCO model **mAP50-95 ~0.001 →
+retrained 0.75** (mAP50 0.97, INT8 NPU), **+38% FPS** (56 → 77.5); 4-way eval.
+
+**▶️ Run it yourself** — **[`dx-agentic-dev-showcase/ultralytics-pills-deepx/`](./dx-agentic-dev-showcase/ultralytics-pills-deepx/)**
+([README](./dx-agentic-dev-showcase/ultralytics-pills-deepx/README.md)).
+
 ➡️ **[Get started with Agentic Development (Beta)](./docs/source/00_Agentic_Development.md)**
 
 ## Getting Started

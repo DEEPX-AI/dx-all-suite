@@ -35,6 +35,7 @@ NPU 앱을 만들어 냅니다.
 | **[스트레칭 coach 미니게임](../../dx-agentic-dev-showcase/stretching-coach-mini-game/)** | 애니메이션 **coach 아바타**가 각 목표 포즈를 시연하며 3가지 스트레칭 안내 | ≈ 21분 | 75 | ≈ 85K | ≈ $9.4 |
 | **[Ultralytics PPE → DeepX NPU](../../dx-agentic-dev-showcase/ultralytics-ppe-deepx/)** | `yolo26n`을 건설 PPE 안전용 재학습, 4-way 평가(base/재학습 × fp32/INT8); stock mAP 0.0001 → 0.256, +32% NPU FPS | ≈ 14분 | — | — | ≈ $5 |
 | **[Ultralytics 뇌종양 → DeepX NPU](../../dx-agentic-dev-showcase/ultralytics-braintumor-deepx/)** | `yolo26n`을 MRI/CT 뇌종양 스크리닝용 재학습, 4-way 평가; stock mAP ~0.0005 → 0.40, +34% NPU FPS | ≈ 12분 | — | — | ≈ $5 |
+| **[Ultralytics 알약 → DeepX NPU](../../dx-agentic-dev-showcase/ultralytics-pills-deepx/)** | `yolo26n`을 제약 알약 탐지용 재학습, 4-way 평가; stock mAP ~0.001 → 0.75 (mAP50 0.97), +38% NPU FPS | ≈ 9분 | — | — | ≈ $4 |
 | **[Ultralytics 재학습 → DeepX NPU](../../dx-agentic-dev-showcase/ultralytics-retrain-deepx/)** | `yolo26n`을 도메인 셋으로 재학습→`format=deepx` export→NPU FPS+mAP 측정(stock mAP 0.001 → 0.79, +41% FPS) | ≈ 18.5분 | 72 | ≈ 51K | ≈ $6.7 |
 
 둘 다 **Claude Code**(모델 **Claude Opus 4.8**)가 **프롬프트 1개**로 완전 자율로,

@@ -135,6 +135,22 @@ NPU 배포 — stock COCO **mAP50-95 ~0.0005 → 재학습 0.40**(INT8 NPU), **+
 **▶️ 직접 실행해보기** — **[`dx-agentic-dev-showcase/ultralytics-braintumor-deepx/`](./dx-agentic-dev-showcase/ultralytics-braintumor-deepx/)**
 ([README](./dx-agentic-dev-showcase/ultralytics-braintumor-deepx/README-ko.md)).
 
+### Showcase 7: Ultralytics 알약 탐지 → DeepX NPU (제약)
+
+<!-- dx-showcase:ultralytics-pills-deepx:gif:start -->
+<div align="center">
+<img src="./docs/source/img/dx-agentic-dev-ultralytics-pills-build.gif" width="700"><br><sub><b>dx-agentic-dev가 이 showcase를 만드는 과정 — 재학습 → DeepX → 4-way 평가</b></sub>
+</div>
+<!-- dx-showcase:ultralytics-pills-deepx:gif:end -->
+
+
+**제약 알약 계수 스테이션**용 도메인 최적화: `medical-pills`로 `yolo26n` 재학습 후 DX-M1
+NPU 배포 — stock COCO **mAP50-95 ~0.001 → 재학습 0.75**(mAP50 0.97, INT8 NPU), **+38% FPS**
+(56 → 77.5); 4-way 평가.
+
+**▶️ 직접 실행해보기** — **[`dx-agentic-dev-showcase/ultralytics-pills-deepx/`](./dx-agentic-dev-showcase/ultralytics-pills-deepx/)**
+([README](./dx-agentic-dev-showcase/ultralytics-pills-deepx/README-ko.md)).
+
 ➡️ **[Agentic Development (Beta) 시작하기](./docs/source/00_Agentic_Development_kor.md)**
 
 ## 시작하기
