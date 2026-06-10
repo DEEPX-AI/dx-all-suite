@@ -1,33 +1,38 @@
 ==============================================================================
  Expected output — Ultralytics YOLO -> DeepX export showcase
+ (captured from a real dx-agentic-dev build session, 2026-06-10, DX-M1 NPU)
 ==============================================================================
 
 $ bash export_deepx.sh
 Exporting yolo26n.pt to DeepX format (format=deepx)...
-Ultralytics ... Python-3.x torch-2.x CPU
-... export to DeepX (int8=True enforced) ...
-... INT8 EMA calibration with 100 images ...
-... dx_com compilation -> yolo26n.dxnn ...
+Ultralytics 8.4.63 ... PyTorch ... CPU
+DeepX: starting export with DeepX...
+DeepX: INT8 EMA calibration ...
+DeepX: dx_com compilation -> yolo26n.dxnn ...
+DEEPX: export success ✅ 82.0s, saved as 'yolo26n_deepx_model' (6.6 MB)
 
 Done. Exported model directory: yolo26n_deepx_model/
 
 yolo26n_deepx_model/
-├── yolo26n.dxnn     # Compiled DeepX NPU binary (loaded by dx_engine)
+├── yolo26n.dxnn     # Compiled DeepX NPU binary (6.6 MB) — loaded by dx_engine
 ├── config.json      # Calibration + preprocessing configuration
 └── metadata.yaml    # Class names, image size, task
 
 ------------------------------------------------------------------------------
 
 $ python3 predict_deepx.py
+Loading yolo26n_deepx_model for DEEPX inference...
+image 1/1 bus.jpg: 640x640 4 persons, 2 buss, 21.7ms
+Speed: 2.1ms preprocess, 21.7ms inference, 0.3ms postprocess per image at shape (1, 3, 640, 640)
 Detected 6 objects
-  - bus: 0.95
-  - person: 0.90
-  - person: 0.87
-  - person: 0.85
-  - person: 0.55
-  - stop sign: 0.35
+  - bus: 0.93
+  - person: 0.92
+  - person: 0.91
+  - person: 0.86
+  - bus: 0.70
+  - person: 0.51
 RESULT: 6 detections on https://ultralytics.com/images/bus.jpg
 
-(Exact counts/confidences vary slightly with the INT8-quantized model and the
-calibration set. The key result is that the exported .dxnn runs on the DeepX
-runtime and reproduces the detection on the bus sample.)
+(Real run on a DX-M1 NPU: 21.7 ms inference. Exact counts/confidences vary slightly
+with the INT8-quantized model and the calibration set. The exported .dxnn runs on the
+DeepX dx_engine runtime and reproduces the detection on the bus sample.)
