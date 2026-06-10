@@ -152,6 +152,7 @@ Use `@agent-name` in Copilot Chat to invoke these agents:
 | Skill | Description |
 |-------|-------------|
 | `/dx-harness-validate` | Internal: validate .deepx/ framework integrity |
+| `/dx-agentic-showcase-build` | Build a dx-agentic-dev showcase end-to-end (record real build → complete transcript → GIFs → README/docs) with verify gates |
 | `/dx-swe-brainstorm` | Brainstorm, propose 2-3 approaches, spec self-review, then plan |
 | `/dx-swe-tdd` | Validation-driven development with optional Red-Green-Refactor for unit tests |
 | `/dx-swe-verify` | Process: verify before claiming completion — evidence before assertions |

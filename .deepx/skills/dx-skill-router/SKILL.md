@@ -87,6 +87,7 @@ digraph skill_flow {
 | `dx-agentic-brainstorm` | DEEPX build brainstorming — model registry check, sub-project routing |
 | `dx-agentic-tdd` | DEEPX build validation order — factory, pipeline, integration checks |
 | `dx-agentic-verify` | DEEPX build verification checklists — dx_app, dx_stream, cross-project |
+| `dx-agentic-showcase-build` | Build a dx-agentic-dev showcase end-to-end (prompt→recorded build→transcript→GIFs→README/docs) with verify gates |
 
 ### Internal Harness Development (dx-harness-*)
 

@@ -120,6 +120,7 @@ API accuracy. Please switch to a recommended model.
 | 스킬 | 설명 |
 |---|---|
 | `/dx-harness-validate` | 내부개발: .deepx/ framework 무결성 검증 |
+| `/dx-agentic-showcase-build` | dx-agentic-dev showcase를 end-to-end로 제작(실제 빌드 녹화 → complete transcript → GIF → README/docs) + verify 게이트 |
 | `/dx-swe-brainstorm` | 브레인스토밍, 2-3가지 접근법 제안, 스펙 자체 검토 후 계획 |
 | `/dx-swe-tdd` | 검증 주도 개발, 선택적 Red-Green-Refactor 단위 테스트 |
 | `/dx-swe-verify` | 완료 선언 전 검증 — 주장 전 증거 |
