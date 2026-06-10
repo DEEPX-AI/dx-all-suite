@@ -116,6 +116,22 @@ Domain optimization for a **construction site-safety camera**: retrain `yolo26n`
 **▶️ Run it yourself** — **[`dx-agentic-dev-showcase/ultralytics-ppe-deepx/`](./dx-agentic-dev-showcase/ultralytics-ppe-deepx/)**
 ([README](./dx-agentic-dev-showcase/ultralytics-ppe-deepx/README.md)).
 
+### Showcase 6: Ultralytics Brain-Tumor Screening → DeepX NPU (medical edge)
+
+<!-- dx-showcase:ultralytics-braintumor-deepx:gif:start -->
+<div align="center">
+<img src="./docs/source/img/dx-agentic-dev-ultralytics-braintumor-build.gif" width="700"><br><sub><b>dx-agentic-dev building this showcase — retrain → DeepX → 4-way eval</b></sub>
+</div>
+<!-- dx-showcase:ultralytics-braintumor-deepx:gif:end -->
+
+
+Domain optimization for a **medical edge device**: retrain `yolo26n` on the `brain-tumor`
+dataset (MRI/CT) and deploy on the DX-M1 NPU — stock COCO model **mAP50-95 ~0.0005 →
+retrained 0.40** (INT8 NPU), **+34% FPS** (58 → 78); 4-way (base/retrained × fp32/INT8) eval.
+
+**▶️ Run it yourself** — **[`dx-agentic-dev-showcase/ultralytics-braintumor-deepx/`](./dx-agentic-dev-showcase/ultralytics-braintumor-deepx/)**
+([README](./dx-agentic-dev-showcase/ultralytics-braintumor-deepx/README.md)).
+
 ➡️ **[Get started with Agentic Development (Beta)](./docs/source/00_Agentic_Development.md)**
 
 ## Getting Started

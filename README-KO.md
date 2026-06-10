@@ -119,6 +119,22 @@ DX-M1 NPU 배포 — stock COCO **mAP50-95 0.0001 → 재학습 0.256**(INT8 NPU
 **▶️ 직접 실행해보기** — **[`dx-agentic-dev-showcase/ultralytics-ppe-deepx/`](./dx-agentic-dev-showcase/ultralytics-ppe-deepx/)**
 ([README](./dx-agentic-dev-showcase/ultralytics-ppe-deepx/README-ko.md)).
 
+### Showcase 6: Ultralytics 뇌종양 스크리닝 → DeepX NPU (의료 edge)
+
+<!-- dx-showcase:ultralytics-braintumor-deepx:gif:start -->
+<div align="center">
+<img src="./docs/source/img/dx-agentic-dev-ultralytics-braintumor-build.gif" width="700"><br><sub><b>dx-agentic-dev가 이 showcase를 만드는 과정 — 재학습 → DeepX → 4-way 평가</b></sub>
+</div>
+<!-- dx-showcase:ultralytics-braintumor-deepx:gif:end -->
+
+
+**의료 edge 디바이스**용 도메인 최적화: `brain-tumor`(MRI/CT)로 `yolo26n` 재학습 후 DX-M1
+NPU 배포 — stock COCO **mAP50-95 ~0.0005 → 재학습 0.40**(INT8 NPU), **+34% FPS**
+(58 → 78); base/재학습 × fp32/INT8 **4-way 평가**.
+
+**▶️ 직접 실행해보기** — **[`dx-agentic-dev-showcase/ultralytics-braintumor-deepx/`](./dx-agentic-dev-showcase/ultralytics-braintumor-deepx/)**
+([README](./dx-agentic-dev-showcase/ultralytics-braintumor-deepx/README-ko.md)).
+
 ➡️ **[Agentic Development (Beta) 시작하기](./docs/source/00_Agentic_Development_kor.md)**
 
 ## 시작하기
