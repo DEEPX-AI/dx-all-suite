@@ -1,77 +1,77 @@
 #!/usr/bin/env python3
-"""verify.py — gate for the YOLO26n African-wildlife DeepX showcase.
+"""verify.py — Post-compilation verification for the exported DeepX models.
 
-Exit 0 ONLY when:
-  - both DeepX model dirs exist and each contains a *.dxnn,
-  - both metric JSONs exist with a numeric map50_95 and numeric npu_inference_fps,
-  - the improved model's mAP50-95 is materially better than the baseline's.
-Exit 1 otherwise.
+Confirms each <name>_deepx_model/ directory:
+  (a) contains a .dxnn binary,
+  (b) loads on the dx_engine runtime and runs INT8 inference on a sample wildlife
+      image without error, returning a valid Results object.
+
+Exits 0 and prints "RESULT: PASS" only if every present model verifies; exits 1 on any
+failure (missing .dxnn, dx_engine import error, inference error). At least the retrained
+model must verify for PASS.
 """
-import json
-import os
 import sys
+from pathlib import Path
 
-SD = os.path.dirname(os.path.abspath(__file__))
-BASE_DIR = os.path.join(SD, "yolo26n_baseline_deepx_model")
-IMPR_DIR = os.path.join(SD, "yolo26n_improved_deepx_model")
-BASE_JSON = os.path.join(SD, "metrics_baseline.json")
-IMPR_JSON = os.path.join(SD, "metrics_improved.json")
+from ultralytics import YOLO
 
-failures = []
+HERE = Path(__file__).resolve().parent
+MODEL_DIRS = ["base_yolo26n_deepx_model", "retrained_yolo26n_deepx_model"]
 
 
-def has_dxnn(d):
-    return os.path.isdir(d) and any(f.endswith(".dxnn") for f in os.listdir(d))
-
-
-def load_metrics(p):
-    with open(p) as f:
-        m = json.load(f)
-    assert isinstance(m["map50_95"], (int, float)), "map50_95 not numeric"
-    assert isinstance(m["npu_inference_fps"], (int, float)), "npu_inference_fps not numeric"
-    return m
-
-
-def check(name, ok):
-    print(f"[{'OK' if ok else 'FAIL'}] {name}")
-    if not ok:
-        failures.append(name)
-
-
-check("baseline deepx dir + .dxnn", has_dxnn(BASE_DIR))
-check("improved deepx dir + .dxnn", has_dxnn(IMPR_DIR))
-check("metrics_baseline.json exists", os.path.exists(BASE_JSON))
-check("metrics_improved.json exists", os.path.exists(IMPR_JSON))
-
-base = impr = None
-if os.path.exists(BASE_JSON):
+def find_sample() -> str:
+    """A wildlife val image from the Ultralytics datasets dir, else a stock URL."""
     try:
-        base = load_metrics(BASE_JSON)
-        check("baseline metrics numeric", True)
-    except Exception as e:  # noqa: BLE001
-        check(f"baseline metrics numeric ({e})", False)
-if os.path.exists(IMPR_JSON):
-    try:
-        impr = load_metrics(IMPR_JSON)
-        check("improved metrics numeric", True)
-    except Exception as e:  # noqa: BLE001
-        check(f"improved metrics numeric ({e})", False)
+        from ultralytics.utils import SETTINGS
+        val = Path(SETTINGS["datasets_dir"]) / "african-wildlife" / "images" / "val"
+        if val.is_dir():
+            imgs = sorted(val.glob("*.jpg"))
+            if imgs:
+                return str(imgs[0])
+    except Exception:
+        pass
+    return "https://ultralytics.com/images/zidane.jpg"
 
-if base and impr:
-    check(
-        f"improved mAP50-95 ({impr['map50_95']}) >> baseline ({base['map50_95']})",
-        impr["map50_95"] > base["map50_95"] + 0.1,
-    )
-    print("\n--- measured summary ---")
-    print(f"  baseline: mAP50-95={base['map50_95']:.4f}  mAP50={base['map50']:.4f}  "
-          f"FPS={base['npu_inference_fps']}")
-    print(f"  improved: mAP50-95={impr['map50_95']:.4f}  mAP50={impr['map50']:.4f}  "
-          f"FPS={impr['npu_inference_fps']}")
 
-check("report.md exists", os.path.exists(os.path.join(SD, "report.md")))
+def main() -> int:
+    sample = find_sample()
+    print(f"[verify] sample image: {sample}")
+    any_present = False
+    all_ok = True
+    retrained_ok = False
 
-if failures:
-    print(f"\nRESULT: FAIL ({len(failures)} check(s) failed)")
-    sys.exit(1)
-print("\nRESULT: PASS")
-sys.exit(0)
+    for name in MODEL_DIRS:
+        d = HERE / name
+        if not d.is_dir():
+            print(f"[verify] SKIP {name}: directory absent")
+            continue
+        any_present = True
+        dxnn = list(d.glob("*.dxnn"))
+        if not dxnn:
+            print(f"[verify] FAIL {name}: no .dxnn binary in {d}")
+            all_ok = False
+            continue
+        try:
+            model = YOLO(str(d))
+            results = model(sample, verbose=False)
+            n = len(results[0].boxes)
+            print(f"[verify] PASS {name}: {dxnn[0].name} loaded; {n} detections on sample")
+            if name.startswith("retrained"):
+                retrained_ok = True
+        except Exception as e:
+            print(f"[verify] FAIL {name}: {type(e).__name__}: {e}")
+            all_ok = False
+
+    if not any_present:
+        print("[verify] FAIL: no exported model directories found")
+        print("RESULT: FAIL")
+        return 1
+    if all_ok and retrained_ok:
+        print("RESULT: PASS")
+        return 0
+    print("RESULT: FAIL")
+    return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

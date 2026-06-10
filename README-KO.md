@@ -93,10 +93,9 @@ toolset으로 라우팅되어 export + 배포를 수행합니다 — 수작업 �
 <!-- dx-showcase:ultralytics-retrain-deepx:gif:end -->
 
 
-DEEPX × **Ultralytics** Option 1(로컬 Python 패키지): `yolo26n`을 도메인 데이터셋으로
-재학습하고 DeepX(`format=deepx`)로 export해 DX-M1 NPU에서 측정 — stock COCO 모델
-**mAP50-95 0.001 → 재학습 0.791**, **+41% FPS**(57 → 80.6); INT8가 fp32 정확도 유지.
-*이 showcase 자체가 `dx-agentic-showcase-build` skill + `dx-showcase-gen` 도구로 제작·녹화됨.*
+**야생동물 모니터링**: stock COCO `yolo26n`은 야생동물 종을 안정적으로 못 잡으므로
+`african-wildlife`로 재학습 후 DX-M1 NPU 배포 — **mAP50-95 ~0.001 → 0.79**(mAP50 0.94,
+INT8 NPU), **+38% FPS**(59 → 82); base/재학습 × fp32-GPU / INT8-NPU **4-way 평가**, INT8 ≈ fp32.
 
 **▶️ 직접 실행해보기** —
 **[`dx-agentic-dev-showcase/ultralytics-retrain-deepx/`](./dx-agentic-dev-showcase/ultralytics-retrain-deepx/)**

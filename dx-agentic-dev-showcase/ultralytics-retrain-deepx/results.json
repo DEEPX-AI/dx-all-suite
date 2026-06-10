@@ -1,0 +1,86 @@
+{
+  "base_fp32_gpu": {
+    "map50_95": 0.0007,
+    "map50": 0.001,
+    "per_class_map50_95": {
+      "buffalo": 0.0025,
+      "elephant": 0.0,
+      "rhino": 0.0002,
+      "zebra": 0.0
+    },
+    "inference_ms": 4.198,
+    "fps": 238.18,
+    "speed_ms": {
+      "preprocess": 0.232,
+      "inference": 4.198,
+      "loss": 0.002,
+      "postprocess": 0.068
+    },
+    "status": "ok",
+    "form": "pt",
+    "device": "0"
+  },
+  "base_int8_npu": {
+    "map50_95": 0.001,
+    "map50": 0.0015,
+    "per_class_map50_95": {
+      "buffalo": 0.0034,
+      "elephant": 0.0,
+      "rhino": 0.0006,
+      "zebra": 0.0
+    },
+    "inference_ms": 16.822,
+    "fps": 59.44,
+    "speed_ms": {
+      "preprocess": 0.154,
+      "inference": 16.822,
+      "loss": 0.001,
+      "postprocess": 0.087
+    },
+    "status": "ok",
+    "form": "dxnn",
+    "device": "cpu"
+  },
+  "retrained_fp32_gpu": {
+    "map50_95": 0.7928,
+    "map50": 0.9425,
+    "per_class_map50_95": {
+      "buffalo": 0.7927,
+      "elephant": 0.793,
+      "rhino": 0.8387,
+      "zebra": 0.7467
+    },
+    "inference_ms": 3.045,
+    "fps": 328.37,
+    "speed_ms": {
+      "preprocess": 0.228,
+      "inference": 3.045,
+      "loss": 0.002,
+      "postprocess": 0.067
+    },
+    "status": "ok",
+    "form": "pt",
+    "device": "0"
+  },
+  "retrained_int8_npu": {
+    "map50_95": 0.7904,
+    "map50": 0.9431,
+    "per_class_map50_95": {
+      "buffalo": 0.7792,
+      "elephant": 0.797,
+      "rhino": 0.8535,
+      "zebra": 0.732
+    },
+    "inference_ms": 12.217,
+    "fps": 81.85,
+    "speed_ms": {
+      "preprocess": 0.147,
+      "inference": 12.217,
+      "loss": 0.001,
+      "postprocess": 0.079
+    },
+    "status": "ok",
+    "form": "dxnn",
+    "device": "cpu"
+  }
+}

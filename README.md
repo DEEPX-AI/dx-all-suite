@@ -89,11 +89,10 @@ toolset and drives the export + deployment — no hand-rolled pipeline.
 <!-- dx-showcase:ultralytics-retrain-deepx:gif:end -->
 
 
-DEEPX × **Ultralytics** Option 1 (local Python package): retrain `yolo26n` on a domain
-dataset, export to DeepX (`format=deepx`), and measure on the DX-M1 NPU — stock COCO
-model **mAP50-95 0.001 → retrained 0.791**, with **+41% FPS** (57 → 80.6); INT8 stays
-fp32-accurate. *This showcase was itself built + recorded by the
-`dx-agentic-showcase-build` skill + `dx-showcase-gen` tool.*
+**Wildlife monitoring**: stock COCO `yolo26n` can't reliably detect wildlife species, so
+retrain it on `african-wildlife` and deploy on the DX-M1 NPU — **mAP50-95 ~0.001 → 0.79**
+(mAP50 0.94, INT8 NPU), **+38% FPS** (59 → 82); 4-way (base/retrained × fp32-GPU /
+INT8-NPU) eval, INT8 ≈ fp32.
 
 **▶️ Run it yourself** — checked in at
 **[`dx-agentic-dev-showcase/ultralytics-retrain-deepx/`](./dx-agentic-dev-showcase/ultralytics-retrain-deepx/)**
