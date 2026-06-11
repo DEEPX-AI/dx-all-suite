@@ -29,6 +29,15 @@ InferenceEngine 설정, DxPreprocess/DxInfer 엘리먼트 연결 — 따라서 *
 
 <!-- showcase-table -->
 <!-- dx-showcase:docs:table:start -->
+#### NPU 활용 AI 앱 (미니게임)
+
+**단 20분, 약 $10의 비용으로, 자연어를 통해 DEEPX NPU용 앱을 완전 자율형으로 만드세요.** 프롬프트 하나로 만든 포즈 기반 미니게임 + 아케이드 HUD.
+
+| Showcase | 설명 | 빌드 시간 | Agent turns | Output tokens | ~비용 |
+|---|---|---|---|---|---|
+| **[스쿼트 카운팅 미니게임](../../dx-agentic-dev-showcase/squat-fitness-mini-game/)** | 무릎/엉덩이 각도로 스쿼트 횟수 카운트 + 아케이드 HUD(횟수 / 점수 / DOWN·UP·GOOD!). | ≈ 20 min | 81 | ≈ 85K | ≈ $9.9 |
+| **[스트레칭 coach 미니게임](../../dx-agentic-dev-showcase/stretching-coach-mini-game/)** | 애니메이션 coach 아바타가 각 목표 포즈를 시연하며 3가지 스트레칭 안내. | ≈ 21 min | 75 | ≈ 85K | ≈ $9.4 |
+
 #### Ultralytics 생태계 통합
 
 **Ultralytics YOLO를 한 줄로 DEEPX NPU에 올리거나, 도메인에 맞게 재학습하세요 — 모두 자연어로.** `format=deepx` export + 4-way 평가(base/재학습 × fp32-GPU / INT8-NPU); INT8 ≈ fp32, 도메인 모델은 NPU에서 더 빠릅니다.
@@ -40,15 +49,6 @@ InferenceEngine 설정, DxPreprocess/DxInfer 엘리먼트 연결 — 따라서 *
 | **[건설 PPE 안전](../../dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-ppe/)** | 현장 안전 카메라용으로 `yolo26n`을 `construction-ppe`(helmet/vest/...)로 재학습; base/재학습 × fp32/INT8 4-way 평가. | ≈ 13 min | 19 | ≈ 8.8K | ≈ $5.1 |
 | **[뇌종양 스크리닝](../../dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-braintumor/)** | 의료 edge 디바이스용으로 `yolo26n`을 `brain-tumor`(MRI/CT)로 재학습; base/재학습 × fp32/INT8 4-way 평가. | ≈ 12 min | 11 | ≈ 8.9K | ≈ $3.7 |
 | **[의약품 알약 검사](../../dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-pills/)** | 제약 카운팅 스테이션용으로 `yolo26n`을 `medical-pills`로 재학습; base/재학습 × fp32/INT8 4-way 평가. | ≈ 10 min | 12 | ≈ 6.0K | ≈ $5.1 |
-
-#### NPU 활용 AI 앱 (미니게임)
-
-**단 20분, 약 $10의 비용으로, 자연어를 통해 DEEPX NPU용 앱을 완전 자율형으로 만드세요.** 프롬프트 하나로 만든 포즈 기반 미니게임 + 아케이드 HUD.
-
-| Showcase | 설명 | 빌드 시간 | Agent turns | Output tokens | ~비용 |
-|---|---|---|---|---|---|
-| **[스쿼트 카운팅 미니게임](../../dx-agentic-dev-showcase/squat-fitness-mini-game/)** | 무릎/엉덩이 각도로 스쿼트 횟수 카운트 + 아케이드 HUD(횟수 / 점수 / DOWN·UP·GOOD!). | ≈ 20 min | 81 | ≈ 85K | ≈ $9.9 |
-| **[스트레칭 coach 미니게임](../../dx-agentic-dev-showcase/stretching-coach-mini-game/)** | 애니메이션 coach 아바타가 각 목표 포즈를 시연하며 3가지 스트레칭 안내. | ≈ 21 min | 75 | ≈ 85K | ≈ $9.4 |
 
 #### PaddlePaddle 생태계 통합
 

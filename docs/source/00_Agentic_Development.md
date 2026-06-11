@@ -31,6 +31,15 @@ transcript.
 
 <!-- showcase-table -->
 <!-- dx-showcase:docs:table:start -->
+#### NPU-powered AI apps (mini-games)
+
+**Build a fully autonomous DEEPX-NPU app from natural language — in ~20 minutes, for ~$10.** Pose-driven mini-games with arcade HUDs, built end to end from a single prompt.
+
+| Showcase | What it is | Build time | Agent turns | Output tokens | ~Cost |
+|---|---|---|---|---|---|
+| **[Squat-Counting Mini-Game](../../dx-agentic-dev-showcase/squat-fitness-mini-game/)** | Counts squat reps from knee/hip angles with an arcade HUD (reps / score / DOWN·UP·GOOD!). | ≈ 20 min | 81 | ≈ 85K | ≈ $9.9 |
+| **[Stretching Coach Mini-Game](../../dx-agentic-dev-showcase/stretching-coach-mini-game/)** | Guides 3 stretches with an animated coach avatar that demonstrates each target pose. | ≈ 21 min | 75 | ≈ 85K | ≈ $9.4 |
+
 #### Ultralytics ecosystem integration
 
 **Take any Ultralytics YOLO to the DEEPX NPU in one command — or retrain it for your domain — all in natural language.** `format=deepx` export + 4-way eval (base/retrained × fp32-GPU / INT8-NPU); INT8 ≈ fp32, and the domain model runs faster on the NPU.
@@ -42,15 +51,6 @@ transcript.
 | **[Construction PPE Safety](../../dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-ppe/)** | Retrains `yolo26n` on `construction-ppe` for a site-safety camera (helmet/vest/...); 4-way eval base/retrained × fp32/INT8. | ≈ 13 min | 19 | ≈ 8.8K | ≈ $5.1 |
 | **[Brain-Tumor Screening](../../dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-braintumor/)** | Retrains `yolo26n` on `brain-tumor` (MRI/CT) for a medical edge device; 4-way eval base/retrained × fp32/INT8. | ≈ 12 min | 11 | ≈ 8.9K | ≈ $3.7 |
 | **[Pharmaceutical Pill Inspection](../../dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-pills/)** | Retrains `yolo26n` on `medical-pills` for a pharma counting station; 4-way eval base/retrained × fp32/INT8. | ≈ 10 min | 12 | ≈ 6.0K | ≈ $5.1 |
-
-#### NPU-powered AI apps (mini-games)
-
-**Build a fully autonomous DEEPX-NPU app from natural language — in ~20 minutes, for ~$10.** Pose-driven mini-games with arcade HUDs, built end to end from a single prompt.
-
-| Showcase | What it is | Build time | Agent turns | Output tokens | ~Cost |
-|---|---|---|---|---|---|
-| **[Squat-Counting Mini-Game](../../dx-agentic-dev-showcase/squat-fitness-mini-game/)** | Counts squat reps from knee/hip angles with an arcade HUD (reps / score / DOWN·UP·GOOD!). | ≈ 20 min | 81 | ≈ 85K | ≈ $9.9 |
-| **[Stretching Coach Mini-Game](../../dx-agentic-dev-showcase/stretching-coach-mini-game/)** | Guides 3 stretches with an animated coach avatar that demonstrates each target pose. | ≈ 21 min | 75 | ≈ 85K | ≈ $9.4 |
 
 #### PaddlePaddle ecosystem integration
 

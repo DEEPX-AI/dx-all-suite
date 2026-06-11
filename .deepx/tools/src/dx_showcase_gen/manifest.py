@@ -80,6 +80,8 @@ class Category:
     blurb_ko: str = ""
     note_en: str = ""
     note_ko: str = ""
+    root_layout: str = ""   # "" = uniform grid; "feature-first" = first showcase gets a
+                            # 2-cell feature row (primary media | its build GIF)
 
     def title(self, lang: str) -> str:
         return self.title_ko if lang == "ko" else self.title_en

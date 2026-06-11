@@ -11,6 +11,35 @@ Each card below links to that showcase's own README (full detail + transcript).
 
 <!-- catalog -->
 <!-- dx-showcase:docs:catalog:start -->
+## NPU-powered AI apps (mini-games)
+
+**Build a fully autonomous DEEPX-NPU app from natural language — in ~20 minutes, for ~$10.** Pose-driven mini-games with arcade HUDs, built end to end from a single prompt.
+
+| Showcase | Kind | Highlight |
+|---|---|---|
+| [Squat-Counting Mini-Game](./squat-fitness-mini-game/README.md) | game | pose game + arcade HUD |
+| [Stretching Coach Mini-Game](./stretching-coach-mini-game/README.md) | game | coach avatar + 3 stages |
+
+### Squat-Counting Mini-Game
+
+<a href="./squat-fitness-mini-game/README.md"><img src="../docs/source/img/dx-agentic-dev-squat-gameplay.gif" height="170" align="right"></a>
+
+Counts squat reps from knee/hip angles with an arcade HUD (reps / score / DOWN·UP·GOOD!).
+
+**Highlight:** pose game + arcade HUD · **Claude Opus 4.8** · ≈ 20 min · ≈ $9.9 — [details →](./squat-fitness-mini-game/README.md)
+
+<br clear="right">
+
+### Stretching Coach Mini-Game
+
+<a href="./stretching-coach-mini-game/README.md"><img src="../docs/source/img/dx-agentic-dev-stretch-gameplay.gif" height="170" align="right"></a>
+
+Guides 3 stretches with an animated coach avatar that demonstrates each target pose.
+
+**Highlight:** coach avatar + 3 stages · **Claude Opus 4.8** · ≈ 21 min · ≈ $9.4 — [details →](./stretching-coach-mini-game/README.md)
+
+<br clear="right">
+
 ## Ultralytics ecosystem integration
 
 **Take any Ultralytics YOLO to the DEEPX NPU in one command — or retrain it for your domain — all in natural language.** `format=deepx` export + 4-way eval (base/retrained × fp32-GPU / INT8-NPU); INT8 ≈ fp32, and the domain model runs faster on the NPU.
@@ -70,35 +99,6 @@ Retrains `yolo26n` on `brain-tumor` (MRI/CT) for a medical edge device; 4-way ev
 Retrains `yolo26n` on `medical-pills` for a pharma counting station; 4-way eval base/retrained × fp32/INT8.
 
 **Highlight:** mAP ~0.001→0.75 (mAP50 0.97), 55→78 FPS · **Claude Opus 4.8** · ≈ 10 min · ≈ $5.1 — [details →](./ultralytics-retrain-eval-deepx-export-pills/README.md)
-
-<br clear="right">
-
-## NPU-powered AI apps (mini-games)
-
-**Build a fully autonomous DEEPX-NPU app from natural language — in ~20 minutes, for ~$10.** Pose-driven mini-games with arcade HUDs, built end to end from a single prompt.
-
-| Showcase | Kind | Highlight |
-|---|---|---|
-| [Squat-Counting Mini-Game](./squat-fitness-mini-game/README.md) | game | pose game + arcade HUD |
-| [Stretching Coach Mini-Game](./stretching-coach-mini-game/README.md) | game | coach avatar + 3 stages |
-
-### Squat-Counting Mini-Game
-
-<a href="./squat-fitness-mini-game/README.md"><img src="../docs/source/img/dx-agentic-dev-squat-gameplay.gif" height="170" align="right"></a>
-
-Counts squat reps from knee/hip angles with an arcade HUD (reps / score / DOWN·UP·GOOD!).
-
-**Highlight:** pose game + arcade HUD · **Claude Opus 4.8** · ≈ 20 min · ≈ $9.9 — [details →](./squat-fitness-mini-game/README.md)
-
-<br clear="right">
-
-### Stretching Coach Mini-Game
-
-<a href="./stretching-coach-mini-game/README.md"><img src="../docs/source/img/dx-agentic-dev-stretch-gameplay.gif" height="170" align="right"></a>
-
-Guides 3 stretches with an animated coach avatar that demonstrates each target pose.
-
-**Highlight:** coach avatar + 3 stages · **Claude Opus 4.8** · ≈ 21 min · ≈ $9.4 — [details →](./stretching-coach-mini-game/README.md)
 
 <br clear="right">
 

@@ -10,6 +10,35 @@
 
 <!-- catalog -->
 <!-- dx-showcase:docs:catalog:start -->
+## NPU 활용 AI 앱 (미니게임)
+
+**단 20분, 약 $10의 비용으로, 자연어를 통해 DEEPX NPU용 앱을 완전 자율형으로 만드세요.** 프롬프트 하나로 만든 포즈 기반 미니게임 + 아케이드 HUD.
+
+| Showcase | 유형 | 핵심 결과 |
+|---|---|---|
+| [스쿼트 카운팅 미니게임](./squat-fitness-mini-game/README-ko.md) | 게임 | 포즈 게임 + 아케이드 HUD |
+| [스트레칭 coach 미니게임](./stretching-coach-mini-game/README-ko.md) | 게임 | coach 아바타 + 3단계 |
+
+### 스쿼트 카운팅 미니게임
+
+<a href="./squat-fitness-mini-game/README-ko.md"><img src="../docs/source/img/dx-agentic-dev-squat-gameplay.gif" height="170" align="right"></a>
+
+무릎/엉덩이 각도로 스쿼트 횟수 카운트 + 아케이드 HUD(횟수 / 점수 / DOWN·UP·GOOD!).
+
+**핵심:** 포즈 게임 + 아케이드 HUD · **Claude Opus 4.8** · ≈ 20 min · ≈ $9.9 — [상세 →](./squat-fitness-mini-game/README-ko.md)
+
+<br clear="right">
+
+### 스트레칭 coach 미니게임
+
+<a href="./stretching-coach-mini-game/README-ko.md"><img src="../docs/source/img/dx-agentic-dev-stretch-gameplay.gif" height="170" align="right"></a>
+
+애니메이션 coach 아바타가 각 목표 포즈를 시연하며 3가지 스트레칭 안내.
+
+**핵심:** coach 아바타 + 3단계 · **Claude Opus 4.8** · ≈ 21 min · ≈ $9.4 — [상세 →](./stretching-coach-mini-game/README-ko.md)
+
+<br clear="right">
+
 ## Ultralytics 생태계 통합
 
 **Ultralytics YOLO를 한 줄로 DEEPX NPU에 올리거나, 도메인에 맞게 재학습하세요 — 모두 자연어로.** `format=deepx` export + 4-way 평가(base/재학습 × fp32-GPU / INT8-NPU); INT8 ≈ fp32, 도메인 모델은 NPU에서 더 빠릅니다.
@@ -69,35 +98,6 @@ Ultralytics YOLO `.pt`를 단일 `yolo export ... format=deepx` 명령으로 배
 제약 카운팅 스테이션용으로 `yolo26n`을 `medical-pills`로 재학습; base/재학습 × fp32/INT8 4-way 평가.
 
 **핵심:** mAP ~0.001→0.75 (mAP50 0.97), 55→78 FPS · **Claude Opus 4.8** · ≈ 10 min · ≈ $5.1 — [상세 →](./ultralytics-retrain-eval-deepx-export-pills/README-ko.md)
-
-<br clear="right">
-
-## NPU 활용 AI 앱 (미니게임)
-
-**단 20분, 약 $10의 비용으로, 자연어를 통해 DEEPX NPU용 앱을 완전 자율형으로 만드세요.** 프롬프트 하나로 만든 포즈 기반 미니게임 + 아케이드 HUD.
-
-| Showcase | 유형 | 핵심 결과 |
-|---|---|---|
-| [스쿼트 카운팅 미니게임](./squat-fitness-mini-game/README-ko.md) | 게임 | 포즈 게임 + 아케이드 HUD |
-| [스트레칭 coach 미니게임](./stretching-coach-mini-game/README-ko.md) | 게임 | coach 아바타 + 3단계 |
-
-### 스쿼트 카운팅 미니게임
-
-<a href="./squat-fitness-mini-game/README-ko.md"><img src="../docs/source/img/dx-agentic-dev-squat-gameplay.gif" height="170" align="right"></a>
-
-무릎/엉덩이 각도로 스쿼트 횟수 카운트 + 아케이드 HUD(횟수 / 점수 / DOWN·UP·GOOD!).
-
-**핵심:** 포즈 게임 + 아케이드 HUD · **Claude Opus 4.8** · ≈ 20 min · ≈ $9.9 — [상세 →](./squat-fitness-mini-game/README-ko.md)
-
-<br clear="right">
-
-### 스트레칭 coach 미니게임
-
-<a href="./stretching-coach-mini-game/README-ko.md"><img src="../docs/source/img/dx-agentic-dev-stretch-gameplay.gif" height="170" align="right"></a>
-
-애니메이션 coach 아바타가 각 목표 포즈를 시연하며 3가지 스트레칭 안내.
-
-**핵심:** coach 아바타 + 3단계 · **Claude Opus 4.8** · ≈ 21 min · ≈ $9.4 — [상세 →](./stretching-coach-mini-game/README-ko.md)
 
 <br clear="right">
 

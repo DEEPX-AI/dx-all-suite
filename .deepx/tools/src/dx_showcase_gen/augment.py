@@ -130,22 +130,36 @@ def _media_html(s, *, surface: str, height: int, extra: str = "") -> str:
     return f'<img src="{_media_src(surface, s.card_asset())}" height="{height}"{extra}>'
 
 
-def card_grid(showcases, *, lang: str, surface: str = "root", cols: int = 3,
-              height: int = 150) -> str:
-    """An N-column HTML card grid (media + title + tagline, linked to the showcase).
-    Media is rendered at a uniform HEIGHT so rows align across mixed aspect ratios."""
-    cells = []
-    for s in showcases:
-        media = _media_html(s, surface=surface, height=height)
-        cells.append(
-            f'<td width="{100 // cols}%" align="center">'
-            f'<a href="{_showcase_link(surface, s.name, lang)}">{media}</a><br>'
-            f'<b>{s.title(lang)}</b><br><sub>{s.tagline(lang)}</sub></td>')
+def _cells_table(cells, cols: int) -> str:
     rows = []
     for i in range(0, len(cells), cols):
         row = cells[i:i + cols] + ["<td></td>"] * (cols - len(cells[i:i + cols]))
         rows.append("<tr>\n " + "\n ".join(row) + "\n</tr>")
     return "<table>\n" + "\n".join(rows) + "\n</table>"
+
+
+def _card_cell(s, *, lang: str, surface: str, height: int, cols: int) -> str:
+    media = _media_html(s, surface=surface, height=height)
+    return (f'<td width="{100 // cols}%" align="center">'
+            f'<a href="{_showcase_link(surface, s.name, lang)}">{media}</a><br>'
+            f'<b>{s.title(lang)}</b><br><sub>{s.tagline(lang)}</sub></td>')
+
+
+def _gif_cell(s, *, lang: str, surface: str, height: int, cols: int, caption: str) -> str:
+    """A cell showing a showcase's build GIF (used by the feature-first layout)."""
+    return (f'<td width="{100 // cols}%" align="center">'
+            f'<a href="{_showcase_link(surface, s.name, lang)}">'
+            f'<img src="{_media_src(surface, s.gif)}" height="{height}"></a><br>'
+            f'<sub><b>{caption}</b></sub></td>')
+
+
+def card_grid(showcases, *, lang: str, surface: str = "root", cols: int = 3,
+              height: int = 150) -> str:
+    """An N-column HTML card grid (media + title + tagline, linked to the showcase).
+    Media is rendered at a uniform HEIGHT so rows align across mixed aspect ratios."""
+    return _cells_table(
+        [_card_cell(s, lang=lang, surface=surface, height=height, cols=cols)
+         for s in showcases], cols)
 
 
 def intro_region(manifest, *, lang: str) -> str:
@@ -159,9 +173,11 @@ def _coming_soon_label(lang: str) -> str:
     return "곧 공개" if lang == "ko" else "coming soon"
 
 
-def cardgrid_region(manifest, *, lang: str) -> str:
-    """Root-README marker region: hero (catchphrase + announcement) + per-category
-    card grids + links."""
+def cardgrid_region(manifest, *, lang: str, cols: int = 2) -> str:
+    """Root-README marker region: Beta announcement + per-category card grids (2-col)
+    + links. A category with root_layout='feature-first' gives its first showcase a
+    2-cell feature row (primary media | its build GIF) before the rest of the grid."""
+    build_cap = "빌드 캡처 (timelapse)" if lang == "ko" else "build capture (timelapse)"
     sections = []
     for cat in manifest.categories:
         scs = manifest.by_category(cat.id)
@@ -170,8 +186,17 @@ def cardgrid_region(manifest, *, lang: str) -> str:
             sections.append(f"#### {cat.title(lang)} — _{note}_")
             continue
         blurb = f"{cat.blurb(lang)}\n\n" if cat.blurb(lang) else ""
-        sections.append(f"#### {cat.title(lang)}\n\n"
-                        f"{blurb}{card_grid(scs, lang=lang, surface='root')}")
+        if cat.root_layout == "feature-first":
+            feat, rest = scs[0], scs[1:]
+            cells = [_card_cell(feat, lang=lang, surface="root", height=150, cols=cols),
+                     _gif_cell(feat, lang=lang, surface="root", height=150, cols=cols,
+                               caption=build_cap)]
+            cells += [_card_cell(s, lang=lang, surface="root", height=150, cols=cols)
+                      for s in rest]
+            grid = _cells_table(cells, cols)
+        else:
+            grid = card_grid(scs, lang=lang, surface="root", cols=cols)
+        sections.append(f"#### {cat.title(lang)}\n\n{blurb}{grid}")
     body = "\n\n".join(sections)
     if lang == "ko":
         link = ("**전체 showcase 목록 + 요약 →** "
