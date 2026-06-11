@@ -82,11 +82,11 @@ toolset and drives the export + deployment — no hand-rolled pipeline.
 
 ### Showcase 4: Ultralytics Retrain → DeepX NPU (domain optimization)
 
-<!-- dx-showcase:ultralytics-retrain-deepx:gif:start -->
+<!-- dx-showcase:ultralytics-retrain-eval-deepx-export-wildlife:gif:start -->
 <div align="center">
 <img src="./docs/source/img/dx-agentic-dev-ultralytics-retrain-build.gif" width="760"><br><sub><b>dx-agentic-dev building this showcase — retrain → DeepX → NPU FPS/mAP</b></sub>
 </div>
-<!-- dx-showcase:ultralytics-retrain-deepx:gif:end -->
+<!-- dx-showcase:ultralytics-retrain-eval-deepx-export-wildlife:gif:end -->
 
 
 **Wildlife monitoring**: stock COCO `yolo26n` can't reliably detect wildlife species, so
@@ -95,16 +95,16 @@ retrain it on `african-wildlife` and deploy on the DX-M1 NPU — **mAP50-95 ~0.0
 INT8-NPU) eval, INT8 ≈ fp32.
 
 **▶️ Run it yourself** — checked in at
-**[`dx-agentic-dev-showcase/ultralytics-retrain-deepx/`](./dx-agentic-dev-showcase/ultralytics-retrain-deepx/)**
-([README](./dx-agentic-dev-showcase/ultralytics-retrain-deepx/README.md)).
+**[`dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-wildlife/`](./dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-wildlife/)**
+([README](./dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-wildlife/README.md)).
 
 ### Showcase 5: Ultralytics PPE Detection → DeepX NPU (construction safety)
 
-<!-- dx-showcase:ultralytics-ppe-deepx:gif:start -->
+<!-- dx-showcase:ultralytics-retrain-eval-deepx-export-ppe:gif:start -->
 <div align="center">
 <img src="./docs/source/img/dx-agentic-dev-ultralytics-ppe-build.gif" width="700"><br><sub><b>dx-agentic-dev building this showcase — retrain → DeepX → 4-way eval</b></sub>
 </div>
-<!-- dx-showcase:ultralytics-ppe-deepx:gif:end -->
+<!-- dx-showcase:ultralytics-retrain-eval-deepx-export-ppe:gif:end -->
 
 
 Domain optimization for a **construction site-safety camera**: retrain `yolo26n` on the
@@ -112,40 +112,40 @@ Domain optimization for a **construction site-safety camera**: retrain `yolo26n`
 0.0001 → retrained 0.256** (INT8 NPU), **+32% FPS** (58 → 76); evaluated 4 ways
 (base/retrained × fp32-GPU / INT8-NPU).
 
-**▶️ Run it yourself** — **[`dx-agentic-dev-showcase/ultralytics-ppe-deepx/`](./dx-agentic-dev-showcase/ultralytics-ppe-deepx/)**
-([README](./dx-agentic-dev-showcase/ultralytics-ppe-deepx/README.md)).
+**▶️ Run it yourself** — **[`dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-ppe/`](./dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-ppe/)**
+([README](./dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-ppe/README.md)).
 
 ### Showcase 6: Ultralytics Brain-Tumor Screening → DeepX NPU (medical edge)
 
-<!-- dx-showcase:ultralytics-braintumor-deepx:gif:start -->
+<!-- dx-showcase:ultralytics-retrain-eval-deepx-export-braintumor:gif:start -->
 <div align="center">
 <img src="./docs/source/img/dx-agentic-dev-ultralytics-braintumor-build.gif" width="700"><br><sub><b>dx-agentic-dev building this showcase — retrain → DeepX → 4-way eval</b></sub>
 </div>
-<!-- dx-showcase:ultralytics-braintumor-deepx:gif:end -->
+<!-- dx-showcase:ultralytics-retrain-eval-deepx-export-braintumor:gif:end -->
 
 
 Domain optimization for a **medical edge device**: retrain `yolo26n` on the `brain-tumor`
 dataset (MRI/CT) and deploy on the DX-M1 NPU — stock COCO model **mAP50-95 ~0.0005 →
 retrained 0.40** (INT8 NPU), **+34% FPS** (58 → 78); 4-way (base/retrained × fp32/INT8) eval.
 
-**▶️ Run it yourself** — **[`dx-agentic-dev-showcase/ultralytics-braintumor-deepx/`](./dx-agentic-dev-showcase/ultralytics-braintumor-deepx/)**
-([README](./dx-agentic-dev-showcase/ultralytics-braintumor-deepx/README.md)).
+**▶️ Run it yourself** — **[`dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-braintumor/`](./dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-braintumor/)**
+([README](./dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-braintumor/README.md)).
 
 ### Showcase 7: Ultralytics Pill Detection → DeepX NPU (pharma)
 
-<!-- dx-showcase:ultralytics-pills-deepx:gif:start -->
+<!-- dx-showcase:ultralytics-retrain-eval-deepx-export-pills:gif:start -->
 <div align="center">
 <img src="./docs/source/img/dx-agentic-dev-ultralytics-pills-build.gif" width="700"><br><sub><b>dx-agentic-dev building this showcase — retrain → DeepX → 4-way eval</b></sub>
 </div>
-<!-- dx-showcase:ultralytics-pills-deepx:gif:end -->
+<!-- dx-showcase:ultralytics-retrain-eval-deepx-export-pills:gif:end -->
 
 
 Domain optimization for a **pharmaceutical pill counting station**: retrain `yolo26n` on
 `medical-pills` and deploy on the DX-M1 NPU — stock COCO model **mAP50-95 ~0.001 →
 retrained 0.75** (mAP50 0.97, INT8 NPU), **+38% FPS** (56 → 77.5); 4-way eval.
 
-**▶️ Run it yourself** — **[`dx-agentic-dev-showcase/ultralytics-pills-deepx/`](./dx-agentic-dev-showcase/ultralytics-pills-deepx/)**
-([README](./dx-agentic-dev-showcase/ultralytics-pills-deepx/README.md)).
+**▶️ Run it yourself** — **[`dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-pills/`](./dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-pills/)**
+([README](./dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-pills/README.md)).
 
 ➡️ **[Get started with Agentic Development (Beta)](./docs/source/00_Agentic_Development.md)**
 

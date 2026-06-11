@@ -86,11 +86,11 @@ toolset으로 라우팅되어 export + 배포를 수행합니다 — 수작업 �
 
 ### Showcase 4: Ultralytics 재학습 → DeepX NPU (도메인 최적화)
 
-<!-- dx-showcase:ultralytics-retrain-deepx:gif:start -->
+<!-- dx-showcase:ultralytics-retrain-eval-deepx-export-wildlife:gif:start -->
 <div align="center">
 <img src="./docs/source/img/dx-agentic-dev-ultralytics-retrain-build.gif" width="760"><br><sub><b>dx-agentic-dev가 이 showcase를 만드는 과정 — 재학습 → DeepX → NPU FPS/mAP</b></sub>
 </div>
-<!-- dx-showcase:ultralytics-retrain-deepx:gif:end -->
+<!-- dx-showcase:ultralytics-retrain-eval-deepx-export-wildlife:gif:end -->
 
 
 **야생동물 모니터링**: stock COCO `yolo26n`은 야생동물 종을 안정적으로 못 잡으므로
@@ -98,57 +98,57 @@ toolset으로 라우팅되어 export + 배포를 수행합니다 — 수작업 �
 INT8 NPU), **+38% FPS**(59 → 82); base/재학습 × fp32-GPU / INT8-NPU **4-way 평가**, INT8 ≈ fp32.
 
 **▶️ 직접 실행해보기** —
-**[`dx-agentic-dev-showcase/ultralytics-retrain-deepx/`](./dx-agentic-dev-showcase/ultralytics-retrain-deepx/)**
+**[`dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-wildlife/`](./dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-wildlife/)**
 에 들어 있습니다
-([README](./dx-agentic-dev-showcase/ultralytics-retrain-deepx/README-ko.md)).
+([README](./dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-wildlife/README-ko.md)).
 
 ### Showcase 5: Ultralytics PPE 탐지 → DeepX NPU (건설 안전)
 
-<!-- dx-showcase:ultralytics-ppe-deepx:gif:start -->
+<!-- dx-showcase:ultralytics-retrain-eval-deepx-export-ppe:gif:start -->
 <div align="center">
 <img src="./docs/source/img/dx-agentic-dev-ultralytics-ppe-build.gif" width="700"><br><sub><b>dx-agentic-dev가 이 showcase를 만드는 과정 — 재학습 → DeepX → 4-way 평가</b></sub>
 </div>
-<!-- dx-showcase:ultralytics-ppe-deepx:gif:end -->
+<!-- dx-showcase:ultralytics-retrain-eval-deepx-export-ppe:gif:end -->
 
 
 **건설 현장 안전 카메라**용 도메인 최적화: `construction-ppe`로 `yolo26n` 재학습 후
 DX-M1 NPU 배포 — stock COCO **mAP50-95 0.0001 → 재학습 0.256**(INT8 NPU), **+32% FPS**
 (58 → 76); base/재학습 × fp32-GPU / INT8-NPU **4-way 평가**.
 
-**▶️ 직접 실행해보기** — **[`dx-agentic-dev-showcase/ultralytics-ppe-deepx/`](./dx-agentic-dev-showcase/ultralytics-ppe-deepx/)**
-([README](./dx-agentic-dev-showcase/ultralytics-ppe-deepx/README-ko.md)).
+**▶️ 직접 실행해보기** — **[`dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-ppe/`](./dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-ppe/)**
+([README](./dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-ppe/README-ko.md)).
 
 ### Showcase 6: Ultralytics 뇌종양 스크리닝 → DeepX NPU (의료 edge)
 
-<!-- dx-showcase:ultralytics-braintumor-deepx:gif:start -->
+<!-- dx-showcase:ultralytics-retrain-eval-deepx-export-braintumor:gif:start -->
 <div align="center">
 <img src="./docs/source/img/dx-agentic-dev-ultralytics-braintumor-build.gif" width="700"><br><sub><b>dx-agentic-dev가 이 showcase를 만드는 과정 — 재학습 → DeepX → 4-way 평가</b></sub>
 </div>
-<!-- dx-showcase:ultralytics-braintumor-deepx:gif:end -->
+<!-- dx-showcase:ultralytics-retrain-eval-deepx-export-braintumor:gif:end -->
 
 
 **의료 edge 디바이스**용 도메인 최적화: `brain-tumor`(MRI/CT)로 `yolo26n` 재학습 후 DX-M1
 NPU 배포 — stock COCO **mAP50-95 ~0.0005 → 재학습 0.40**(INT8 NPU), **+34% FPS**
 (58 → 78); base/재학습 × fp32/INT8 **4-way 평가**.
 
-**▶️ 직접 실행해보기** — **[`dx-agentic-dev-showcase/ultralytics-braintumor-deepx/`](./dx-agentic-dev-showcase/ultralytics-braintumor-deepx/)**
-([README](./dx-agentic-dev-showcase/ultralytics-braintumor-deepx/README-ko.md)).
+**▶️ 직접 실행해보기** — **[`dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-braintumor/`](./dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-braintumor/)**
+([README](./dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-braintumor/README-ko.md)).
 
 ### Showcase 7: Ultralytics 알약 탐지 → DeepX NPU (제약)
 
-<!-- dx-showcase:ultralytics-pills-deepx:gif:start -->
+<!-- dx-showcase:ultralytics-retrain-eval-deepx-export-pills:gif:start -->
 <div align="center">
 <img src="./docs/source/img/dx-agentic-dev-ultralytics-pills-build.gif" width="700"><br><sub><b>dx-agentic-dev가 이 showcase를 만드는 과정 — 재학습 → DeepX → 4-way 평가</b></sub>
 </div>
-<!-- dx-showcase:ultralytics-pills-deepx:gif:end -->
+<!-- dx-showcase:ultralytics-retrain-eval-deepx-export-pills:gif:end -->
 
 
 **제약 알약 계수 스테이션**용 도메인 최적화: `medical-pills`로 `yolo26n` 재학습 후 DX-M1
 NPU 배포 — stock COCO **mAP50-95 ~0.001 → 재학습 0.75**(mAP50 0.97, INT8 NPU), **+38% FPS**
 (56 → 77.5); 4-way 평가.
 
-**▶️ 직접 실행해보기** — **[`dx-agentic-dev-showcase/ultralytics-pills-deepx/`](./dx-agentic-dev-showcase/ultralytics-pills-deepx/)**
-([README](./dx-agentic-dev-showcase/ultralytics-pills-deepx/README-ko.md)).
+**▶️ 직접 실행해보기** — **[`dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-pills/`](./dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-pills/)**
+([README](./dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-pills/README-ko.md)).
 
 ➡️ **[Agentic Development (Beta) 시작하기](./docs/source/00_Agentic_Development_kor.md)**
 

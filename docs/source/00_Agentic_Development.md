@@ -31,10 +31,10 @@ checked into the suite as a runnable showcase, with its full build-session trans
 |----------|-----------|-----------|-------------|---------------|-------|
 | **[Squat-counting mini-game](../../dx-agentic-dev-showcase/squat-fitness-mini-game/)** | Counts squat reps from knee/hip angles + arcade HUD (reps / score / DOWN·UP·GOOD!) | ≈ 20 min | 81 | ≈ 85K | ≈ $9.9 |
 | **[Stretching coach mini-game](../../dx-agentic-dev-showcase/stretching-coach-mini-game/)** | Guides 3 stretches with an animated **coach avatar** that demonstrates each target pose | ≈ 21 min | 75 | ≈ 85K | ≈ $9.4 |
-| **[Ultralytics PPE → DeepX NPU](../../dx-agentic-dev-showcase/ultralytics-ppe-deepx/)** | Retrains `yolo26n` for construction-PPE safety, 4-way eval (base/retrained × fp32/INT8); stock mAP 0.0001 → 0.256, +32% NPU FPS | ≈ 14 min | — | — | ≈ $5 |
-| **[Ultralytics brain-tumor → DeepX NPU](../../dx-agentic-dev-showcase/ultralytics-braintumor-deepx/)** | Retrains `yolo26n` for MRI/CT brain-tumor screening, 4-way eval; stock mAP ~0.0005 → 0.40, +34% NPU FPS | ≈ 12 min | — | — | ≈ $5 |
-| **[Ultralytics pill → DeepX NPU](../../dx-agentic-dev-showcase/ultralytics-pills-deepx/)** | Retrains `yolo26n` for pharma pill detection, 4-way eval; stock mAP ~0.001 → 0.75 (mAP50 0.97), +38% NPU FPS | ≈ 9 min | — | — | ≈ $4 |
-| **[Ultralytics retrain → DeepX NPU](../../dx-agentic-dev-showcase/ultralytics-retrain-deepx/)** | Retrains `yolo26n` on a domain set, exports `format=deepx`, measures NPU FPS+mAP (stock mAP 0.001 → 0.79, +41% FPS) | ≈ 18.5 min | 72 | ≈ 51K | ≈ $6.7 |
+| **[Ultralytics PPE → DeepX NPU](../../dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-ppe/)** | Retrains `yolo26n` for construction-PPE safety, 4-way eval (base/retrained × fp32/INT8); stock mAP 0.0001 → 0.256, +32% NPU FPS | ≈ 14 min | — | — | ≈ $5 |
+| **[Ultralytics brain-tumor → DeepX NPU](../../dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-braintumor/)** | Retrains `yolo26n` for MRI/CT brain-tumor screening, 4-way eval; stock mAP ~0.0005 → 0.40, +34% NPU FPS | ≈ 12 min | — | — | ≈ $5 |
+| **[Ultralytics pill → DeepX NPU](../../dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-pills/)** | Retrains `yolo26n` for pharma pill detection, 4-way eval; stock mAP ~0.001 → 0.75 (mAP50 0.97), +38% NPU FPS | ≈ 9 min | — | — | ≈ $4 |
+| **[Ultralytics retrain → DeepX NPU](../../dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-wildlife/)** | Retrains `yolo26n` on a domain set, exports `format=deepx`, measures NPU FPS+mAP (stock mAP 0.001 → 0.79, +41% FPS) | ≈ 18.5 min | 72 | ≈ 51K | ≈ $6.7 |
 
 Both were built by **Claude Code** (model **Claude Opus 4.8**) from **one** prompt, fully
 autonomously, running the full `dx-skill-router → dx-agentic-brainstorm →
