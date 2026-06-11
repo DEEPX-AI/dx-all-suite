@@ -32,10 +32,14 @@ KB-based judgment, and the human-in-the-loop steps a tool cannot do.
    COMPLETE transcript (with Wall-clock + Cost + the closing narration) is rendered
    from that capture AFTER the process exits — the in-session sentinel reads the
    session store, which has no `result` event and is therefore incomplete.
-3. **Tool/model are explicit and verified**: `tool=claude`, `model=claude-opus-4-8`
+3. **MUST read the routed `.github/toolsets/*` before generating code** — the build
+   reads the canonical KB (e.g. `ultralytics-train-eval.md`, `ultralytics-deepx-export.md`)
+   rather than improvising from prior outputs/memory. `verify` FAILS a showcase whose
+   transcript read **no** toolset (the pills gap).
+4. **Tool/model are explicit and verified**: `tool=claude`, `model=claude-opus-4-8`
    (the recommended model) unless the user overrides. `verify` checks them.
-4. **Artifacts must actually be copied** into the showcase dir and made portable.
-5. **No DONE without `dx-showcase-gen verify` PASS.**
+5. **Artifacts must actually be copied** into the showcase dir and made portable.
+6. **No DONE without `dx-showcase-gen verify` PASS.**
 
 ## Setup
 
@@ -52,6 +56,9 @@ SG() { python3 -m dx_showcase_gen.cli "$@"; }   # or the installed `dx-showcase-
   user would type, no operator scaffolding. (Headless/unattended runs may append
   "work autonomously … / Respond in English"; if so, that scaffolding is **trimmed
   from the displayed prompt** in the showcase README — see Phase 7.)
+- The prompt MUST also require a **visualized detection sample**: an annotated image of
+  the (retrained/exported) model run on a representative domain sample, saved as
+  `sample_detect.jpg` — this is shown beside the build GIF in the README (Phase 7).
 - Fix `tool=claude`, `model=claude-opus-4-8`.
 - In autopilot (user absent), pick scenario defaults from the KB; do not block.
 
