@@ -107,6 +107,11 @@ def verify_showcase(showcase_dir: str, *, stream_json: Optional[str] = None,
         nb = recorder.gif_first_frame_nonblack(g, at_secs=0.0)
         if nb is not None:
             rep.add(f"gif non-black: {gp.name}", nb, "frame extrema check")
+        st = recorder.gif_is_static(g)
+        if st is not None:
+            rep.add(f"gif not static: {gp.name}", not st,
+                    "frames differ (build rendered live)" if not st
+                    else "STATIC — recording didn't show the build live (skill Phase 3)")
 
     # 4. artifacts copied + scripts syntax
     for rf in (require_files or []):

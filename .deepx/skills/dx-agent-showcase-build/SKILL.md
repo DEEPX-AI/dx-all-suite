@@ -86,10 +86,18 @@ SG gif  --input /tmp/sc.crop.mp4 --output docs/source/img/dx-agent-dev-<name>-bu
 ```
 
 - **Headless unattended fallback** (no human to run the interactive TUI): launch a
-  titled gnome-terminal that `tail -f`s a styled render of the streamed events while
-  `claude -p … --output-format stream-json | tee … | render >> log` runs separately.
-  This is still a real screen capture. The render MUST preserve newlines (so the
-  DEEPX banner renders) and must be cropped to the terminal rect.
+  titled gnome-terminal that runs the build while **LIVE-rendering the stream to the
+  screen** so the recording captures the build AS IT HAPPENS. The build command MUST pipe
+  stream-json through the renderer to the terminal in real time, NOT redirect-to-file:
+  ```bash
+  # CORRECT — live: render prints to the terminal as events arrive (tee keeps the raw for the transcript)
+  stdbuf -oL claude -p "<PROMPT>" … --output-format stream-json --verbose --dangerously-skip-permissions \
+    | tee stream.jsonl | stdbuf -oL python3 render.py
+  ```
+  The render MUST preserve newlines (so the DEEPX banner renders) and be cropped to the
+  terminal rect. **HARD: never `claude … > stream.jsonl` then render at the end** — that
+  leaves the screen static during the build, so the GIF shows a frozen "BUILDING" screen
+  instead of the real build (a recurring mistake). `verify` rejects a static (no-motion) GIF.
 - If the agent stops at the brainstorm approval gate, add
   "work autonomously to completion; produce the actual artifacts" to the prompt.
 
@@ -170,6 +178,9 @@ present + syntax-OK, README/docs carry the showcase marker. Fix any FAIL and re-
 
 - Using the in-session sentinel transcript for the showcase (missing Wall-clock/Cost).
 - A synthetic/rendered "build screen" presented as the real claude UI.
+- A **static build GIF** — redirecting the stream to a file and rendering only after the
+  build leaves the screen frozen on "BUILDING …". The screen MUST be live-rendered during
+  the build (Phase 3); `verify`'s gif-not-static check fails otherwise.
 - Declaring DONE before `verify` PASS.
 - Committing model binaries (`*.pt`/`*.onnx`/`*.dxnn`) or `venv/` into the showcase.
 - Leaving absolute / `/tmp` / session-specific paths in the copied scripts.

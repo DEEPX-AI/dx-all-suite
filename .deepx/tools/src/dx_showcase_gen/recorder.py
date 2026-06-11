@@ -175,3 +175,33 @@ def gif_first_frame_nonblack(gif_or_mp4: str, at_secs: float = 1.0) -> Optional[
         im = Image.open(frame).convert("RGB")
         ex = im.getextrema()
         return max(c[1] for c in ex) > 40
+
+
+def gif_is_static(gif_or_mp4: str, a_secs: float = 0.5, b_secs: float = 2.5,
+                  thresh: float = 2.0) -> Optional[bool]:
+    """Best-effort: sample two frames at different times and report whether the GIF is
+    STATIC (no motion) — catches the "redirect stream to file, render at end" recording
+    bug that leaves the build screen frozen. Returns True if static (frames ~identical),
+    False if there is motion, None when ffmpeg/PIL is unavailable (check skipped)."""
+    if not have("ffmpeg"):
+        return None
+    try:
+        from PIL import Image, ImageChops  # noqa
+    except Exception:
+        return None
+    import tempfile
+    with tempfile.TemporaryDirectory() as td:
+        fa, fb = str(Path(td) / "a.png"), str(Path(td) / "b.png")
+        for ss, out in ((a_secs, fa), (b_secs, fb)):
+            _run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-y",
+                  "-ss", str(ss), "-i", gif_or_mp4, "-frames:v", "1", out])
+        if not (Path(fa).exists() and Path(fb).exists()):
+            return None
+        from PIL import Image, ImageChops
+        a = Image.open(fa).convert("RGB"); b = Image.open(fb).convert("RGB")
+        if a.size != b.size:
+            return False
+        hist = ImageChops.difference(a, b).convert("L").histogram()  # 256 bins
+        total = sum(hist) or 1
+        mean_abs = sum(i * hist[i] for i in range(256)) / total
+        return mean_abs < thresh
