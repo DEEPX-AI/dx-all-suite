@@ -5,7 +5,12 @@
 
 ## 소개
 
+<!-- intro -->
+<!-- dx-showcase:docs:intro:start -->
 > **단 20분, 약 $10의 비용으로, 자연어를 통해 DEEPX NPU용 앱을 완전 자율형으로 만드세요.**
+
+**`dx-agentic-dev` (Beta) 출시.** 앱이나 모델 태스크를 자연어로 설명하면 AI 코딩 에이전트(Claude Code, Cursor, GitHub Copilot, OpenCode, Codex)가 DEEPX 지식 베이스를 end-to-end로 구동합니다: brainstorm → plan → TDD → verify, ONNX/`.pt` 컴파일부터 on-device DX-M1 NPU 배포까지. **Ultralytics** 모델 생태계와 통합된 DEEPX NPU를 위한 에이전틱 개발 워크플로이며, 아래 모든 showcase가 이 방식으로 — 프롬프트·실측 결과·전체 빌드 transcript와 함께 — 만들어졌습니다.
+<!-- dx-showcase:docs:intro:end -->
 
 자연어 지시만으로 DEEPX AI 애플리케이션을 구축할 수 있습니다. AI 코딩 에이전트는
 DEEPX SDK 생태계를 이해합니다 — GStreamer 파이프라인 구성, `.dxnn` 모델 해석,

@@ -22,7 +22,7 @@
 
 ### 스쿼트 카운팅 미니게임
 
-<a href="./squat-fitness-mini-game/README-ko.md"><img src="../docs/source/img/dx-agentic-dev-squat-gameplay.gif" width="320" align="right"></a>
+<a href="./squat-fitness-mini-game/README-ko.md"><img src="../docs/source/img/dx-agentic-dev-squat-gameplay.gif" height="170" align="right"></a>
 
 무릎/엉덩이 각도로 스쿼트 횟수 카운트 + 아케이드 HUD(횟수 / 점수 / DOWN·UP·GOOD!).
 
@@ -31,7 +31,7 @@
 <br clear="right">
 ### 스트레칭 coach 미니게임
 
-<a href="./stretching-coach-mini-game/README-ko.md"><img src="../docs/source/img/dx-agentic-dev-stretch-gameplay.gif" width="320" align="right"></a>
+<a href="./stretching-coach-mini-game/README-ko.md"><img src="../docs/source/img/dx-agentic-dev-stretch-gameplay.gif" height="170" align="right"></a>
 
 애니메이션 coach 아바타가 각 목표 포즈를 시연하며 3가지 스트레칭 안내.
 
@@ -40,7 +40,7 @@
 <br clear="right">
 ### Ultralytics YOLO → DeepX Export
 
-<a href="./ultralytics-yolo-deepx-export/README-ko.md"><img src="../docs/source/img/dx-agentic-dev-ultralytics-build.gif" width="320" align="right"></a>
+<a href="./ultralytics-yolo-deepx-export/README-ko.md"><video height="170" autoplay muted loop playsinline poster="../docs/source/img/dx-agentic-dev-ultralytics-yolo-poster.jpg" align="right"><source src="../docs/source/img/dx-agentic-dev-ultralytics-yolo.mp4" type="video/mp4"><img src="../docs/source/img/dx-agentic-dev-ultralytics-yolo-poster.jpg" height="170"></video></a>
 
 Ultralytics YOLO `.pt`를 단일 `yolo export ... format=deepx` 명령으로 배포 가능한 DeepX NPU 모델(`.dxnn`)로 변환, NPU 추론 + verify.
 
@@ -49,7 +49,7 @@ Ultralytics YOLO `.pt`를 단일 `yolo export ... format=deepx` 명령으로 배
 <br clear="right">
 ### 아프리카 야생동물 모니터링
 
-<a href="./ultralytics-retrain-eval-deepx-export-wildlife/README-ko.md"><img src="../docs/source/img/dx-agentic-dev-ultralytics-wildlife-build.gif" width="320" align="right"></a>
+<a href="./ultralytics-retrain-eval-deepx-export-wildlife/README-ko.md"><img src="../docs/source/img/dx-agentic-dev-ultralytics-wildlife-sample.jpg" height="170" align="right"></a>
 
 사파리/보전 카메라용으로 `yolo26n`을 `african-wildlife`(buffalo/elephant/rhino/zebra)로 재학습; base/재학습 × fp32/INT8 4-way 평가.
 
@@ -58,7 +58,7 @@ Ultralytics YOLO `.pt`를 단일 `yolo export ... format=deepx` 명령으로 배
 <br clear="right">
 ### 건설 PPE 안전
 
-<a href="./ultralytics-retrain-eval-deepx-export-ppe/README-ko.md"><img src="../docs/source/img/dx-agentic-dev-ultralytics-ppe-build.gif" width="320" align="right"></a>
+<a href="./ultralytics-retrain-eval-deepx-export-ppe/README-ko.md"><img src="../docs/source/img/dx-agentic-dev-ultralytics-ppe-sample.jpg" height="170" align="right"></a>
 
 현장 안전 카메라용으로 `yolo26n`을 `construction-ppe`(helmet/vest/...)로 재학습; base/재학습 × fp32/INT8 4-way 평가.
 
@@ -67,7 +67,7 @@ Ultralytics YOLO `.pt`를 단일 `yolo export ... format=deepx` 명령으로 배
 <br clear="right">
 ### 뇌종양 스크리닝
 
-<a href="./ultralytics-retrain-eval-deepx-export-braintumor/README-ko.md"><img src="../docs/source/img/dx-agentic-dev-ultralytics-braintumor-build.gif" width="320" align="right"></a>
+<a href="./ultralytics-retrain-eval-deepx-export-braintumor/README-ko.md"><img src="../docs/source/img/dx-agentic-dev-ultralytics-braintumor-sample.jpg" height="170" align="right"></a>
 
 의료 edge 디바이스용으로 `yolo26n`을 `brain-tumor`(MRI/CT)로 재학습; base/재학습 × fp32/INT8 4-way 평가.
 
@@ -76,7 +76,7 @@ Ultralytics YOLO `.pt`를 단일 `yolo export ... format=deepx` 명령으로 배
 <br clear="right">
 ### 의약품 알약 검사
 
-<a href="./ultralytics-retrain-eval-deepx-export-pills/README-ko.md"><img src="../docs/source/img/dx-agentic-dev-ultralytics-pills-build.gif" width="320" align="right"></a>
+<a href="./ultralytics-retrain-eval-deepx-export-pills/README-ko.md"><img src="../docs/source/img/dx-agentic-dev-ultralytics-pills-sample.jpg" height="170" align="right"></a>
 
 제약 카운팅 스테이션용으로 `yolo26n`을 `medical-pills`로 재학습; base/재학습 × fp32/INT8 4-way 평가.
 

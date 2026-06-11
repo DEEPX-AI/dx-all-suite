@@ -8,10 +8,10 @@
 > **이 README를 제외한 모든 파일은 에이전트가** 단일 자율 빌드 세션에서 생성했습니다
 > (아래 transcript + timelapse 참고) — 수기 코드 없음.
 
-<div align="center">
-<img src="../../docs/source/img/dx-agentic-dev-ultralytics-build.gif" width="760"><br>
-<sub><b>dx-agentic-dev가 이 showcase를 만드는 과정 (timelapse) — export → dx_com compile → NPU inference → verify</b></sub>
-</div>
+<div align="center"><table><tr>
+<td align="center"><img src="../../docs/source/img/dx-agentic-dev-ultralytics-build.gif" width="430"><br><sub><b>dx-agentic-dev가 이 showcase를 만드는 과정 (timelapse) — export → dx_com compile → NPU inference → verify</b></sub></td>
+<td align="center"><video src="../../docs/source/img/dx-agentic-dev-ultralytics-yolo.mp4" width="360" controls muted loop playsinline poster="../../docs/source/img/dx-agentic-dev-ultralytics-yolo-poster.jpg"></video><br><sub><b>DEEPX × Ultralytics — DX-M1 NPU 위의 YOLO (파트너 데모)</b></sub></td>
+</tr></table></div>
 
 > **에이전트가 만든 과정 보기:** [`claude-code-session.md`](./claude-code-session.md)
 > (GitHub에서 렌더; `claude-code-session.html`은 로컬 브라우저; raw

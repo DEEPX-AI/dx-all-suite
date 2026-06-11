@@ -136,8 +136,12 @@ one manifest — never hand-edited.
    prompt** (scaffolding trimmed), the session-metrics table (model, **Wall-clock**,
    **Cost**, turns, skills), the **2-column GIF | sample** block, transcript links, run steps.
 2. Add an entry to **`dx-agentic-dev-showcase/showcases.json`** (order = display order):
-   `name, kind (game|export|retrain), title_en/ko, tagline_en/ko, gif (basename under
-   docs/source/img/), what_en/ko, highlight_en/ko, model, build, turns, tokens, cost`.
+   `name, kind (game|export|retrain), title_en/ko, tagline_en/ko, what_en/ko,
+   highlight_en/ko, model, build, turns, tokens, cost`, plus the **card media**:
+   `card_media` = `gif` (games → `gif` basename), `sample` (retrain → `sample` basename,
+   prefer a **landscape** annotated detection image), or `video` (export → `video` +
+   `poster` basenames, an mp4 clip). All media basenames live under `docs/source/img/`;
+   the card grid renders them at a **uniform height** so mixed aspect ratios still align.
 3. Regenerate all three surfaces (EN+KO), idempotently:
    ```bash
    SG regen-docs --repo-root "$(git rev-parse --show-toplevel)"

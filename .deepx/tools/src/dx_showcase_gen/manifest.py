@@ -26,7 +26,6 @@ class Showcase:
     title_ko: str
     tagline_en: str
     tagline_ko: str
-    gif: str           # basename under docs/source/img/
     what_en: str
     what_ko: str
     highlight_en: str
@@ -36,6 +35,20 @@ class Showcase:
     turns: str
     tokens: str
     cost: str
+    # card media: which asset the card grid / catalog shows for this showcase.
+    #   gif    -> `gif`    (games: the gameplay GIF)
+    #   sample -> `sample` (retrain: the annotated detection sample image)
+    #   video  -> `video` (+ `poster`) (export: an mp4 clip)
+    card_media: str = "gif"
+    gif: str = ""      # basename under docs/source/img/
+    sample: str = ""   # basename under docs/source/img/
+    video: str = ""    # basename under docs/source/img/
+    poster: str = ""   # basename under docs/source/img/
+
+    def card_asset(self) -> str:
+        """Basename of the primary card media (the gif/sample/video)."""
+        return {"gif": self.gif, "sample": self.sample,
+                "video": self.video}.get(self.card_media, self.gif)
 
     def _pick(self, stem: str, lang: str) -> str:
         return getattr(self, f"{stem}_{'ko' if lang == 'ko' else 'en'}")
@@ -66,6 +79,9 @@ class Manifest:
 
     def catchphrase(self, lang: str) -> str:
         return self.section["catchphrase_ko" if lang == "ko" else "catchphrase_en"]
+
+    def announcement(self, lang: str) -> str:
+        return self.section.get("announcement_ko" if lang == "ko" else "announcement_en", "")
 
 
 _FIELDS = {f.name for f in fields(Showcase)}

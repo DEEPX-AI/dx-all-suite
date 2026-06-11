@@ -100,8 +100,8 @@ def augment_readme_gif(path: str, *, name: str, anchor: str, gif_rel: str,
 _IMG_PREFIX = {"root": "./docs/source/img", "catalog": "../docs/source/img", "docs": "./img"}
 
 
-def _gif_src(surface: str, gif: str) -> str:
-    return f"{_IMG_PREFIX[surface]}/{gif}"
+def _media_src(surface: str, basename: str) -> str:
+    return f"{_IMG_PREFIX[surface]}/{basename}"
 
 
 def _showcase_link(surface: str, name: str, lang: str) -> str:
@@ -113,15 +113,33 @@ def _showcase_link(surface: str, name: str, lang: str) -> str:
     return f"../../dx-agentic-dev-showcase/{name}/"   # docs surface → dir link
 
 
+def _media_html(s, *, surface: str, height: int, extra: str = "") -> str:
+    """Render a showcase's card media (gif/sample image, or an mp4 <video>) at a
+    UNIFORM HEIGHT so cards line up regardless of portrait/landscape aspect.
+    A video autoplays muted/looped like a GIF, with a poster as the first paint
+    and a fallback link if the browser/renderer won't play it."""
+    if s.card_media == "video" and s.video:
+        poster = f' poster="{_media_src(surface, s.poster)}"' if s.poster else ""
+        src = _media_src(surface, s.video)
+        # plain <img> fallback (no inner <a>) so the element can be wrapped in an
+        # outer showcase link without producing invalid nested anchors.
+        fallback = (f'<img src="{_media_src(surface, s.poster)}" height="{height}">'
+                    if s.poster else "")
+        return (f'<video height="{height}" autoplay muted loop playsinline{poster}{extra}>'
+                f'<source src="{src}" type="video/mp4">{fallback}</video>')
+    return f'<img src="{_media_src(surface, s.card_asset())}" height="{height}"{extra}>'
+
+
 def card_grid(showcases, *, lang: str, surface: str = "root", cols: int = 3,
-              gif_w: int = 230) -> str:
-    """An N-column HTML card grid (GIF + title + tagline, linked to the showcase)."""
+              height: int = 150) -> str:
+    """An N-column HTML card grid (media + title + tagline, linked to the showcase).
+    Media is rendered at a uniform HEIGHT so rows align across mixed aspect ratios."""
     cells = []
     for s in showcases:
+        media = _media_html(s, surface=surface, height=height)
         cells.append(
             f'<td width="{100 // cols}%" align="center">'
-            f'<a href="{_showcase_link(surface, s.name, lang)}">'
-            f'<img src="{_gif_src(surface, s.gif)}" width="{gif_w}"></a><br>'
+            f'<a href="{_showcase_link(surface, s.name, lang)}">{media}</a><br>'
             f'<b>{s.title(lang)}</b><br><sub>{s.tagline(lang)}</sub></td>')
     rows = []
     for i in range(0, len(cells), cols):
@@ -130,8 +148,14 @@ def card_grid(showcases, *, lang: str, surface: str = "root", cols: int = 3,
     return "<table>\n" + "\n".join(rows) + "\n</table>"
 
 
+def intro_region(manifest, *, lang: str) -> str:
+    """Shared hero block (catchphrase + Beta announcement) reused in the root
+    README and the docs 00_Agentic_Development intro."""
+    return f"> {manifest.catchphrase(lang)}\n\n{manifest.announcement(lang)}"
+
+
 def cardgrid_region(manifest, *, lang: str) -> str:
-    """Root-README marker region: catchphrase + 3-col card grid + catalog link."""
+    """Root-README marker region: hero (catchphrase + announcement) + card grid + links."""
     grid = card_grid(manifest.showcases, lang=lang, surface="root")
     if lang == "ko":
         link = ("**전체 showcase 목록 + 요약 →** "
@@ -141,7 +165,7 @@ def cardgrid_region(manifest, *, lang: str) -> str:
         link = ("**All showcases + summaries →** "
                 "[`dx-agentic-dev-showcase/README.md`](./dx-agentic-dev-showcase/README.md)  ·  "
                 "**About the feature →** [Agentic Development docs](./docs/source/00_Agentic_Development.md)")
-    return f"> {manifest.catchphrase(lang)}\n\n{grid}\n\n{link}"
+    return f"{intro_region(manifest, lang=lang)}\n\n{grid}\n\n{link}"
 
 
 def showcase_table(showcases, *, lang: str, surface: str = "docs") -> str:
@@ -178,9 +202,12 @@ def catalog_region(manifest, *, lang: str) -> str:
     blocks = ["\n".join(table), ""]
     for s in sc:
         link = _showcase_link("catalog", s.name, lang)
+        # uniform-height media floated right — keeps portrait (squat) from leaving a
+        # big empty left column the way a fixed-width portrait GIF did.
+        media = _media_html(s, surface="catalog", height=170, extra=' align="right"')
         blocks.append(
             f'### {s.title(lang)}\n\n'
-            f'<a href="{link}"><img src="{_gif_src("catalog", s.gif)}" width="320" align="right"></a>\n\n'
+            f'<a href="{link}">{media}</a>\n\n'
             f'{s.what(lang)}\n\n'
             f'**{("핵심" if lang=="ko" else "Highlight")}:** {s.highlight(lang)} · '
             f'**{s.model}** · {s.build} · {s.cost} — '

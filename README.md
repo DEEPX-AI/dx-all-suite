@@ -21,21 +21,23 @@
 ## ✨ Build NPU Apps with Natural Language — dx-agentic-dev (Beta)
 
 <!-- dx-showcase:docs:cardgrid:start -->
-> **One prompt → a working DX-M1 NPU app.** No boilerplate, no hand-rolled pipeline — an AI coding agent drives the DEEPX knowledge base end to end (brainstorm → plan → TDD → verify).
+> **Build a fully autonomous DEEPX-NPU app from natural language — in ~20 minutes, for ~$10.**
+
+**`dx-agentic-dev` (Beta) is here.** Describe the app or model task in plain language and an AI coding agent — Claude Code, Cursor, GitHub Copilot, OpenCode, or Codex — drives the DEEPX knowledge base end to end: brainstorm → plan → TDD → verify, from ONNX/`.pt` compilation to on-device DX-M1 NPU deployment. It is agentic development purpose-built for DEEPX NPUs in the **Ultralytics** model ecosystem, and every showcase below was produced this way — checked in with its prompt, measured results, and full build transcript.
 
 <table>
 <tr>
- <td width="33%" align="center"><a href="dx-agentic-dev-showcase/squat-fitness-mini-game/README.md"><img src="./docs/source/img/dx-agentic-dev-squat-gameplay.gif" width="230"></a><br><b>Squat-Counting Mini-Game</b><br><sub>rep-counting fitness on NPU</sub></td>
- <td width="33%" align="center"><a href="dx-agentic-dev-showcase/stretching-coach-mini-game/README.md"><img src="./docs/source/img/dx-agentic-dev-stretch-gameplay.gif" width="230"></a><br><b>Stretching Coach Mini-Game</b><br><sub>pose-guided arcade coach</sub></td>
- <td width="33%" align="center"><a href="dx-agentic-dev-showcase/ultralytics-yolo-deepx-export/README.md"><img src="./docs/source/img/dx-agentic-dev-ultralytics-build.gif" width="230"></a><br><b>Ultralytics YOLO → DeepX Export</b><br><sub>one-command format=deepx</sub></td>
+ <td width="33%" align="center"><a href="dx-agentic-dev-showcase/squat-fitness-mini-game/README.md"><img src="./docs/source/img/dx-agentic-dev-squat-gameplay.gif" height="150"></a><br><b>Squat-Counting Mini-Game</b><br><sub>rep-counting fitness on NPU</sub></td>
+ <td width="33%" align="center"><a href="dx-agentic-dev-showcase/stretching-coach-mini-game/README.md"><img src="./docs/source/img/dx-agentic-dev-stretch-gameplay.gif" height="150"></a><br><b>Stretching Coach Mini-Game</b><br><sub>pose-guided arcade coach</sub></td>
+ <td width="33%" align="center"><a href="dx-agentic-dev-showcase/ultralytics-yolo-deepx-export/README.md"><video height="150" autoplay muted loop playsinline poster="./docs/source/img/dx-agentic-dev-ultralytics-yolo-poster.jpg"><source src="./docs/source/img/dx-agentic-dev-ultralytics-yolo.mp4" type="video/mp4"><img src="./docs/source/img/dx-agentic-dev-ultralytics-yolo-poster.jpg" height="150"></video></a><br><b>Ultralytics YOLO → DeepX Export</b><br><sub>one-command format=deepx</sub></td>
 </tr>
 <tr>
- <td width="33%" align="center"><a href="dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-wildlife/README.md"><img src="./docs/source/img/dx-agentic-dev-ultralytics-wildlife-build.gif" width="230"></a><br><b>African Wildlife Monitoring</b><br><sub>safari camera retrain</sub></td>
- <td width="33%" align="center"><a href="dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-ppe/README.md"><img src="./docs/source/img/dx-agentic-dev-ultralytics-ppe-build.gif" width="230"></a><br><b>Construction PPE Safety</b><br><sub>site-safety camera retrain</sub></td>
- <td width="33%" align="center"><a href="dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-braintumor/README.md"><img src="./docs/source/img/dx-agentic-dev-ultralytics-braintumor-build.gif" width="230"></a><br><b>Brain-Tumor Screening</b><br><sub>medical edge retrain</sub></td>
+ <td width="33%" align="center"><a href="dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-wildlife/README.md"><img src="./docs/source/img/dx-agentic-dev-ultralytics-wildlife-sample.jpg" height="150"></a><br><b>African Wildlife Monitoring</b><br><sub>safari camera retrain</sub></td>
+ <td width="33%" align="center"><a href="dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-ppe/README.md"><img src="./docs/source/img/dx-agentic-dev-ultralytics-ppe-sample.jpg" height="150"></a><br><b>Construction PPE Safety</b><br><sub>site-safety camera retrain</sub></td>
+ <td width="33%" align="center"><a href="dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-braintumor/README.md"><img src="./docs/source/img/dx-agentic-dev-ultralytics-braintumor-sample.jpg" height="150"></a><br><b>Brain-Tumor Screening</b><br><sub>medical edge retrain</sub></td>
 </tr>
 <tr>
- <td width="33%" align="center"><a href="dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-pills/README.md"><img src="./docs/source/img/dx-agentic-dev-ultralytics-pills-build.gif" width="230"></a><br><b>Pharmaceutical Pill Inspection</b><br><sub>pharma counting retrain</sub></td>
+ <td width="33%" align="center"><a href="dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-pills/README.md"><img src="./docs/source/img/dx-agentic-dev-ultralytics-pills-sample.jpg" height="150"></a><br><b>Pharmaceutical Pill Inspection</b><br><sub>pharma counting retrain</sub></td>
  <td></td>
  <td></td>
 </tr>

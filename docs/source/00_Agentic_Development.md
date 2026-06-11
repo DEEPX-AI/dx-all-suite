@@ -5,6 +5,13 @@
 
 ## Introduction
 
+<!-- intro -->
+<!-- dx-showcase:docs:intro:start -->
+> **Build a fully autonomous DEEPX-NPU app from natural language — in ~20 minutes, for ~$10.**
+
+**`dx-agentic-dev` (Beta) is here.** Describe the app or model task in plain language and an AI coding agent — Claude Code, Cursor, GitHub Copilot, OpenCode, or Codex — drives the DEEPX knowledge base end to end: brainstorm → plan → TDD → verify, from ONNX/`.pt` compilation to on-device DX-M1 NPU deployment. It is agentic development purpose-built for DEEPX NPUs in the **Ultralytics** model ecosystem, and every showcase below was produced this way — checked in with its prompt, measured results, and full build transcript.
+<!-- dx-showcase:docs:intro:end -->
+
 Build DEEPX AI applications using natural language instructions. AI coding agents
 understand the DEEPX SDK ecosystem — GStreamer pipeline construction, `.dxnn` model
 resolution, InferenceEngine configuration, and DxPreprocess/DxInfer element wiring —

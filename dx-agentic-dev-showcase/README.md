@@ -23,7 +23,7 @@ Each card below links to that showcase's own README (full detail + transcript).
 
 ### Squat-Counting Mini-Game
 
-<a href="./squat-fitness-mini-game/README.md"><img src="../docs/source/img/dx-agentic-dev-squat-gameplay.gif" width="320" align="right"></a>
+<a href="./squat-fitness-mini-game/README.md"><img src="../docs/source/img/dx-agentic-dev-squat-gameplay.gif" height="170" align="right"></a>
 
 Counts squat reps from knee/hip angles with an arcade HUD (reps / score / DOWN·UP·GOOD!).
 
@@ -32,7 +32,7 @@ Counts squat reps from knee/hip angles with an arcade HUD (reps / score / DOWN·
 <br clear="right">
 ### Stretching Coach Mini-Game
 
-<a href="./stretching-coach-mini-game/README.md"><img src="../docs/source/img/dx-agentic-dev-stretch-gameplay.gif" width="320" align="right"></a>
+<a href="./stretching-coach-mini-game/README.md"><img src="../docs/source/img/dx-agentic-dev-stretch-gameplay.gif" height="170" align="right"></a>
 
 Guides 3 stretches with an animated coach avatar that demonstrates each target pose.
 
@@ -41,7 +41,7 @@ Guides 3 stretches with an animated coach avatar that demonstrates each target p
 <br clear="right">
 ### Ultralytics YOLO → DeepX Export
 
-<a href="./ultralytics-yolo-deepx-export/README.md"><img src="../docs/source/img/dx-agentic-dev-ultralytics-build.gif" width="320" align="right"></a>
+<a href="./ultralytics-yolo-deepx-export/README.md"><video height="170" autoplay muted loop playsinline poster="../docs/source/img/dx-agentic-dev-ultralytics-yolo-poster.jpg" align="right"><source src="../docs/source/img/dx-agentic-dev-ultralytics-yolo.mp4" type="video/mp4"><img src="../docs/source/img/dx-agentic-dev-ultralytics-yolo-poster.jpg" height="170"></video></a>
 
 Turns an Ultralytics YOLO `.pt` into a deployable DeepX NPU model (`.dxnn`) in a single `yolo export ... format=deepx` command, then runs NPU inference + verify.
 
@@ -50,7 +50,7 @@ Turns an Ultralytics YOLO `.pt` into a deployable DeepX NPU model (`.dxnn`) in a
 <br clear="right">
 ### African Wildlife Monitoring
 
-<a href="./ultralytics-retrain-eval-deepx-export-wildlife/README.md"><img src="../docs/source/img/dx-agentic-dev-ultralytics-wildlife-build.gif" width="320" align="right"></a>
+<a href="./ultralytics-retrain-eval-deepx-export-wildlife/README.md"><img src="../docs/source/img/dx-agentic-dev-ultralytics-wildlife-sample.jpg" height="170" align="right"></a>
 
 Retrains `yolo26n` on `african-wildlife` (buffalo/elephant/rhino/zebra) for a safari/conservation camera; 4-way eval base/retrained × fp32/INT8.
 
@@ -59,7 +59,7 @@ Retrains `yolo26n` on `african-wildlife` (buffalo/elephant/rhino/zebra) for a sa
 <br clear="right">
 ### Construction PPE Safety
 
-<a href="./ultralytics-retrain-eval-deepx-export-ppe/README.md"><img src="../docs/source/img/dx-agentic-dev-ultralytics-ppe-build.gif" width="320" align="right"></a>
+<a href="./ultralytics-retrain-eval-deepx-export-ppe/README.md"><img src="../docs/source/img/dx-agentic-dev-ultralytics-ppe-sample.jpg" height="170" align="right"></a>
 
 Retrains `yolo26n` on `construction-ppe` for a site-safety camera (helmet/vest/...); 4-way eval base/retrained × fp32/INT8.
 
@@ -68,7 +68,7 @@ Retrains `yolo26n` on `construction-ppe` for a site-safety camera (helmet/vest/.
 <br clear="right">
 ### Brain-Tumor Screening
 
-<a href="./ultralytics-retrain-eval-deepx-export-braintumor/README.md"><img src="../docs/source/img/dx-agentic-dev-ultralytics-braintumor-build.gif" width="320" align="right"></a>
+<a href="./ultralytics-retrain-eval-deepx-export-braintumor/README.md"><img src="../docs/source/img/dx-agentic-dev-ultralytics-braintumor-sample.jpg" height="170" align="right"></a>
 
 Retrains `yolo26n` on `brain-tumor` (MRI/CT) for a medical edge device; 4-way eval base/retrained × fp32/INT8.
 
@@ -77,7 +77,7 @@ Retrains `yolo26n` on `brain-tumor` (MRI/CT) for a medical edge device; 4-way ev
 <br clear="right">
 ### Pharmaceutical Pill Inspection
 
-<a href="./ultralytics-retrain-eval-deepx-export-pills/README.md"><img src="../docs/source/img/dx-agentic-dev-ultralytics-pills-build.gif" width="320" align="right"></a>
+<a href="./ultralytics-retrain-eval-deepx-export-pills/README.md"><img src="../docs/source/img/dx-agentic-dev-ultralytics-pills-sample.jpg" height="170" align="right"></a>
 
 Retrains `yolo26n` on `medical-pills` for a pharma counting station; 4-way eval base/retrained × fp32/INT8.
 

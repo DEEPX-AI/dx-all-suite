@@ -50,6 +50,41 @@ def test_card_grid_ko_uses_korean_titles_and_ko_readme():
     assert 'src="../docs/source/img/s0.gif"' in grid   # catalog surface = one dir deep
 
 
+# ---- card media: uniform height, sample, video ----------------------------
+
+def test_card_grid_uses_uniform_height_not_width():
+    grid = augment.card_grid(_man(2).showcases, lang="en", height=150)
+    assert 'height="150"' in grid
+    assert 'width="230"' not in grid          # no per-image width (heights align rows)
+
+
+def test_sample_card_uses_sample_image():
+    s = _sc("wild", card_media="sample", sample="wild-sample.jpg", gif="wild-build.gif")
+    grid = augment.card_grid([s], lang="en", surface="root", height=150)
+    assert 'src="./docs/source/img/wild-sample.jpg"' in grid   # sample, not the build gif
+    assert "wild-build.gif" not in grid
+
+
+def test_video_card_renders_video_with_poster_and_no_nested_anchor():
+    s = _sc("exp", kind="export", card_media="video",
+            video="v.mp4", poster="p.jpg")
+    grid = augment.card_grid([s], lang="en", surface="root", height=150)
+    assert "<video " in grid and 'type="video/mp4"' in grid
+    assert 'poster="./docs/source/img/p.jpg"' in grid
+    # the video sits inside the outer showcase <a>; its fallback must be a plain
+    # <img>, NOT an inner <a> (nested anchors are invalid HTML)
+    assert "<a href" in grid and grid.count("<a ") == 1
+
+
+def test_intro_region_has_catchphrase_and_announcement():
+    man = manifest.Manifest(section={
+        "title_en": "T", "title_ko": "T", "catchphrase_en": "HERO", "catchphrase_ko": "히어로",
+        "announcement_en": "ANNOUNCE", "announcement_ko": "공지"}, showcases=[_sc("a")])
+    assert "HERO" in augment.intro_region(man, lang="en")
+    assert "ANNOUNCE" in augment.intro_region(man, lang="en")
+    assert "공지" in augment.intro_region(man, lang="ko")
+
+
 # ---- showcase_table --------------------------------------------------------
 
 def test_showcase_table_has_header_and_one_row_per_showcase():
