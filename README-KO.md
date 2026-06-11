@@ -144,7 +144,10 @@ NPU 배포 — stock COCO **mAP50-95 ~0.0005 → 재학습 0.40**(INT8 NPU), **+
 
 <!-- dx-showcase:ultralytics-retrain-eval-deepx-export-pills:gif:start -->
 <div align="center">
-<img src="./docs/source/img/dx-agentic-dev-ultralytics-pills-build.gif" width="700"><br><sub><b>dx-agentic-dev가 이 showcase를 만드는 과정 — 재학습 → DeepX → 4-way 평가</b></sub>
+<table><tr>
+<td align="center"><img src="./docs/source/img/dx-agentic-dev-ultralytics-pills-build.gif" width="470"><br><sub><b>빌드 (timelapse)</b></sub></td>
+<td align="center"><img src="./docs/source/img/dx-agentic-dev-ultralytics-pills-sample.jpg" width="280"><br><sub><b>DX-M1 NPU 알약 검출</b></sub></td>
+</tr></table>
 </div>
 <!-- dx-showcase:ultralytics-retrain-eval-deepx-export-pills:gif:end -->
 

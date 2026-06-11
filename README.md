@@ -141,7 +141,10 @@ retrained 0.40** (INT8 NPU), **+34% FPS** (58 → 78); 4-way (base/retrained × 
 
 <!-- dx-showcase:ultralytics-retrain-eval-deepx-export-pills:gif:start -->
 <div align="center">
-<img src="./docs/source/img/dx-agentic-dev-ultralytics-pills-build.gif" width="700"><br><sub><b>dx-agentic-dev building this showcase — retrain → DeepX → 4-way eval</b></sub>
+<table><tr>
+<td align="center"><img src="./docs/source/img/dx-agentic-dev-ultralytics-pills-build.gif" width="470"><br><sub><b>building (timelapse)</b></sub></td>
+<td align="center"><img src="./docs/source/img/dx-agentic-dev-ultralytics-pills-sample.jpg" width="280"><br><sub><b>pill detection on DX-M1 NPU</b></sub></td>
+</tr></table>
 </div>
 <!-- dx-showcase:ultralytics-retrain-eval-deepx-export-pills:gif:end -->
 
