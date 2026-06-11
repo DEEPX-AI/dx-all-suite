@@ -23,6 +23,17 @@ def gif_block(gif_rel: str, caption: str, width: int = 760) -> str:
             '</div>')
 
 
+def two_col_block(gif_rel: str, sample_rel: str, caption_gif: str,
+                  caption_sample: str, gif_w: int = 470, sample_w: int = 280) -> str:
+    """A 2-column block (build GIF | result sample image), like the squat showcase."""
+    return ('<div align="center">\n<table><tr>\n'
+            f'<td align="center"><img src="{gif_rel}" width="{gif_w}"><br>'
+            f'<sub><b>{caption_gif}</b></sub></td>\n'
+            f'<td align="center"><img src="{sample_rel}" width="{sample_w}"><br>'
+            f'<sub><b>{caption_sample}</b></sub></td>\n'
+            '</tr></table>\n</div>')
+
+
 def upsert_block(path: str, *, anchor: str, block: str, mk: str) -> bool:
     """Insert ``block`` (wrapped in markers ``mk``) after the first line containing
     ``anchor`` — or replace the existing marked region. Returns True if changed."""
@@ -64,7 +75,12 @@ def has_marker(path: str, name: str, kind: str = "gif") -> bool:
 
 
 def augment_readme_gif(path: str, *, name: str, anchor: str, gif_rel: str,
-                       caption: str, width: int = 760) -> bool:
-    """Upsert a GIF block under ``anchor`` (e.g. the showcase heading line)."""
-    return upsert_block(path, anchor=anchor, block=gif_block(gif_rel, caption, width),
-                        mk=marker(name, "gif"))
+                       caption: str, width: int = 760, sample_rel: str = "",
+                       sample_caption: str = "") -> bool:
+    """Upsert a GIF block under ``anchor``. With ``sample_rel`` → a 2-column
+    block (build GIF | result sample image)."""
+    if sample_rel:
+        block = two_col_block(gif_rel, sample_rel, caption, sample_caption or "result sample")
+    else:
+        block = gif_block(gif_rel, caption, width)
+    return upsert_block(path, anchor=anchor, block=block, mk=marker(name, "gif"))

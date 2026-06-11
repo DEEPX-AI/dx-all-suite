@@ -63,7 +63,9 @@ def _cmd_copy_artifacts(a) -> int:
 
 def _cmd_augment(a) -> int:
     changed = augment.augment_readme_gif(a.readme, name=a.name, anchor=a.anchor,
-                                         gif_rel=a.gif, caption=a.caption, width=a.width)
+                                         gif_rel=a.gif, caption=a.caption, width=a.width,
+                                         sample_rel=a.sample or "",
+                                         sample_caption=a.sample_caption or "")
     print(f"{'updated' if changed else 'unchanged'}: {a.readme}")
     return 0
 
@@ -178,6 +180,8 @@ def main(argv=None) -> int:
     g.add_argument("--gif", required=True)
     g.add_argument("--caption", required=True)
     g.add_argument("--width", type=int, default=760)
+    g.add_argument("--sample", help="optional 2nd image (result sample) → 2-column block")
+    g.add_argument("--sample-caption", default="")
 
     gi = sub.add_parser("gif"); gi.set_defaults(fn=_cmd_gif)
     gi.add_argument("--input", required=True); gi.add_argument("--output", required=True)

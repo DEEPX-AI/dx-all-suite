@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# Environment setup for the YOLO26n construction-PPE retrain -> DeepX 4-way benchmark.
-# Reuses dx-runtime/venv-dx-runtime, which already carries the full stack
-# (ultralytics + torch-cuda + dx_com + dx_engine). No system pip installs (PEP 668 safe).
+# setup.sh — environment setup + sanity check for the PPE retrain/export/eval session.
+# Uses the suite's prebuilt venv-dx-runtime (full stack: ultralytics + torch+cuda +
+# dx_com + dx_engine). Does NOT pip-install dx_engine (a dx_rt build artifact).
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd -P)"
 
-# Auto-detect the suite root (dx-runtime/ and dx-compiler/ siblings) — never hardcode ../../
+# --- Cross-project path resolution: auto-detect suite root (SUITE_ROOT pattern) ---
 SUITE_ROOT="$SCRIPT_DIR"
 while [ "$SUITE_ROOT" != "/" ]; do
     if [ -d "$SUITE_ROOT/dx-runtime" ] && [ -d "$SUITE_ROOT/dx-compiler" ]; then
@@ -15,53 +15,42 @@ while [ "$SUITE_ROOT" != "/" ]; do
     SUITE_ROOT="$(dirname "$SUITE_ROOT")"
 done
 if [ "$SUITE_ROOT" = "/" ]; then
-    echo "ERROR: cannot find dx-all-suite root (expected dx-runtime/ and dx-compiler/ siblings)"
+    echo "ERROR: Cannot find dx-all-suite root (expected dx-runtime/ and dx-compiler/ siblings)"
     exit 1
 fi
-
 RUNTIME_DIR="$SUITE_ROOT/dx-runtime"
 VENV="$RUNTIME_DIR/venv-dx-runtime"
-echo "[setup] SUITE_ROOT=$SUITE_ROOT"
-echo "[setup] VENV=$VENV"
 
-# 1. venv presence — it is built by dx-runtime/install.sh (provides dx_engine too)
+echo "=== PPE retrain/export/eval — setup ==="
+echo "SUITE_ROOT = $SUITE_ROOT"
+echo "VENV       = $VENV"
+
 if [ ! -x "$VENV/bin/python" ]; then
-    echo "ERROR: $VENV not found. Build it with:"
-    echo "  bash $RUNTIME_DIR/install.sh --all --exclude-app --exclude-stream --skip-uninstall --venv-reuse"
+    echo "ERROR: venv-dx-runtime not found at $VENV"
+    echo "Build dx_rt first: bash $RUNTIME_DIR/install.sh --all --exclude-app --exclude-stream --skip-uninstall --venv-reuse"
     exit 1
 fi
 PY="$VENV/bin/python"
 
-# 2. dependency check — ultralytics (train/export/eval) + dx_com (compile) + dx_engine (NPU)
-echo "[setup] checking ML stack ..."
+echo "--- Stack sanity ---"
 "$PY" - <<'PYEOF'
-import importlib, sys
-mods = {"ultralytics": "ultralytics", "torch": "torch",
-        "dx_com": "dx_com (DeepX compiler)", "dx_engine": "dx_engine (NPU runtime)"}
-ok = True
-for m, label in mods.items():
+import sys
+def chk(label, fn):
     try:
-        mod = importlib.import_module(m)
-        ver = getattr(mod, "__version__", "?")
-        print(f"  [OK] {label} {ver}")
+        print(f"[OK] {label}: {fn()}")
     except Exception as e:
-        print(f"  [MISSING] {label}: {e}"); ok = False
-import torch
-print(f"  [INFO] CUDA available: {torch.cuda.is_available()} "
-      f"({torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'cpu only'})")
-sys.exit(0 if ok else 1)
+        print(f"[ERROR] {label}: {e}"); raise
+chk("python", lambda: sys.version.split()[0])
+import ultralytics; chk("ultralytics", lambda: ultralytics.__version__)
+import torch; chk("torch", lambda: f"{torch.__version__} cuda={torch.cuda.is_available()} dev={torch.cuda.get_device_name(0) if torch.cuda.is_available() else '-'}")
+import dx_com; chk("dx_com", lambda: getattr(dx_com,'__version__','?'))
+import dx_engine; chk("dx_engine", lambda: "import OK")
+import os
+p = os.path.join(os.path.dirname(ultralytics.__file__), "cfg", "datasets", "construction-ppe.yaml")
+chk("construction-ppe.yaml", lambda: ("found" if os.path.exists(p) else (_ for _ in ()).throw(FileNotFoundError(p))))
 PYEOF
 
-# 3. DeepX runtime / NPU sanity (needed for the INT8 .dxnn evaluation)
-# NOTE: sanity_check.sh returns a non-zero exit code even on PASS, so judge by the
-# TEXT OUTPUT (per suite CLAUDE.md), never by exit status / a pipefail-carried code.
-echo "[setup] dx_rt sanity check (NPU) ..."
-bash "$RUNTIME_DIR/scripts/sanity_check.sh" --dx_rt > "$SCRIPT_DIR/sanity_check.log" 2>&1 || true
-if grep -q "Sanity check PASSED!" "$SCRIPT_DIR/sanity_check.log"; then
-    echo "[setup] NPU sanity: PASS"
-else
-    echo "[setup] WARNING: NPU sanity check did not report PASS — INT8 .dxnn eval may fail."
-    echo "        See sanity_check.log; a cold boot may be required for NPU init."
-fi
+echo "--- NPU sanity check (dx_rt) ---"
+bash "$RUNTIME_DIR/scripts/sanity_check.sh" --dx_rt 2>&1 | grep -E "Sanity check (PASSED|FAILED)" || true
 
-echo "[setup] done. Run ./run.sh to reproduce the benchmark."
+echo "=== setup complete ==="

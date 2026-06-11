@@ -1,0 +1,38 @@
+{
+  "data": "construction-ppe.yaml",
+  "imgsz": 640,
+  "base_pt": {
+    "map": 0.00012132044873385655,
+    "map50": 0.0007858283387379479,
+    "map75": 2.5393600812595226e-06,
+    "inference_ms": 1.8584463705465042,
+    "fps": 538.08386179362
+  },
+  "retrained_pt": {
+    "map": 0.2514600420387023,
+    "map50": 0.4868159893798207,
+    "map75": 0.22909003834832314,
+    "inference_ms": 1.5755098321641163,
+    "fps": 634.7151757386385
+  },
+  "base_dxnn_dir": "/data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agentic-dev/20260611-101032_claude_opus48_yolo26n_ppe_retrain_eval/base_deepx_model",
+  "retrained_dxnn_dir": "/data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agentic-dev/20260611-101032_claude_opus48_yolo26n_ppe_retrain_eval/retrained_deepx_model",
+  "base_dxnn": {
+    "map": 6.520211974639135e-05,
+    "map50": 0.0003949205454408489,
+    "map75": 1.7554686541309595e-06,
+    "inference_ms": 17.28392979683732,
+    "fps": 57.85721255260964
+  },
+  "retrained_dxnn": {
+    "map": 0.25657886799842944,
+    "map50": 0.5136418441735764,
+    "map75": 0.21702475199344554,
+    "inference_ms": 12.55143544770178,
+    "fps": 79.67216213370274
+  },
+  "sample": {
+    "image": "/data/home/dhyang/github/datasets/construction-ppe/images/val/image1010.jpg",
+    "num_detections": 8
+  }
+}

@@ -106,7 +106,10 @@ INT8 NPU), **+38% FPS**(59 → 82); base/재학습 × fp32-GPU / INT8-NPU **4-wa
 
 <!-- dx-showcase:ultralytics-retrain-eval-deepx-export-ppe:gif:start -->
 <div align="center">
-<img src="./docs/source/img/dx-agentic-dev-ultralytics-ppe-build.gif" width="700"><br><sub><b>dx-agentic-dev가 이 showcase를 만드는 과정 — 재학습 → DeepX → 4-way 평가</b></sub>
+<table><tr>
+<td align="center"><img src="./docs/source/img/dx-agentic-dev-ultralytics-ppe-build.gif" width="470"><br><sub><b>빌드 (timelapse)</b></sub></td>
+<td align="center"><img src="./docs/source/img/dx-agentic-dev-ultralytics-ppe-sample.jpg" width="280"><br><sub><b>DX-M1 NPU PPE 검출</b></sub></td>
+</tr></table>
 </div>
 <!-- dx-showcase:ultralytics-retrain-eval-deepx-export-ppe:gif:end -->
 

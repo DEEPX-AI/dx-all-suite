@@ -1,37 +1,55 @@
-# Construction-PPE Detection — YOLO26n Domain Retrain & DeepX INT8 Benchmark
+# Report — yolo26n Construction-PPE: Base vs Retrained, fp32 vs INT8
 
-**Task:** adapt the COCO-pretrained `yolo26n` general detector into a construction site-safety **PPE-compliance** detector (helmet, gloves, vest, boots, goggles, …) by fine-tuning on the Ultralytics `construction-ppe` dataset, then compare accuracy and speed across four model forms.
+**Task:** Adapt the COCO-pretrained `yolo26n` general detector into a construction/factory
+site-safety PPE-compliance detector by fine-tuning on the Ultralytics `construction-ppe`
+dataset, then compare accuracy (mAP50-95) and speed (FPS) across four measurement points.
 
-- **Base model:** `yolo26n.pt` (COCO, 80 classes) — general detector
-- **Retrained model:** `yolo26n` fine-tuned 40 epochs on `construction-ppe` (`nc=11`: helmet, gloves, vest, boots, goggles, none, Person, no_helmet, no_goggle, no_gloves, no_boots)
-- **Dataset:** `construction-ppe` (1132 train / 143 val), imgsz 640
-- **DeepX export:** `format=deepx` one-shot — ONNX → INT8 EMA calibration → `dx_com` → `.dxnn`, run on **DX-M1** NPU
-- **Metric:** mAP50-95 / mAP50 via `model.val()`; FPS = 1000 / inference-ms/img
+- **Dataset:** `construction-ppe.yaml` (built-in Ultralytics; classes incl. helmet, gloves, vest,
+  boots, goggles + person/negation classes), imgsz=640, identical val split for all.
+- **fp32:** PyTorch on NVIDIA RTX 5060 Ti (GPU). **INT8:** DeepX `.dxnn` on DX-M1 NPU
+  (via Ultralytics `format=deepx` export, INT8 EMA calibration on construction-ppe images).
+- FPS = 1000 / single-image inference latency reported by `model.val()`.
 
+## Results — four measurement points
 
-## Results — base vs retrained × fp32 (GPU) vs INT8 (DX-M1 NPU)
-
-| # | Model | Form | Device | mAP50-95 | mAP50 | Inf ms/img | FPS |
-|---|-------|------|--------|---------:|------:|-----------:|----:|
-| 1 | base yolo26n | .pt (fp32) | RTX 5060 Ti GPU | 0.0001 | 0.0008 | 1.94 | 515.90 |
-| 2 | base yolo26n | .dxnn (INT8) | DX-M1 NPU | 0.0001 | 0.0004 | 17.31 | 57.76 |
-| 3 | retrained yolo26n-ppe | .pt (fp32) | RTX 5060 Ti GPU | 0.2515 | 0.4868 | 1.76 | 568.62 |
-| 4 | retrained yolo26n-ppe | .dxnn (INT8) | DX-M1 NPU | 0.2558 | 0.5114 | 13.12 | 76.20 |
+| Model | Form | Device | mAP50-95 | mAP50 | inf (ms) | FPS |
+|---|---|---|---|---|---|---|
+| base yolo26n | .pt fp32 | RTX 5060 Ti | 0.0001 | 0.0008 | 1.86 | 538.1 |
+| base yolo26n | .dxnn INT8 | DX-M1 NPU | 0.0001 | 0.0004 | 17.28 | 57.9 |
+| retrained | .pt fp32 | RTX 5060 Ti | 0.2515 | 0.4868 | 1.58 | 634.7 |
+| retrained | .dxnn INT8 | DX-M1 NPU | 0.2566 | 0.5136 | 12.55 | 79.7 |
 
 ## Analysis
 
-### Accuracy gain from domain retraining
+### Accuracy gain (domain optimization)
+- **Base `yolo26n` (fp32) mAP50-95 = 0.0001** on construction-ppe. The stock model
+  is COCO-trained (80 general classes); its class indices do not align with the PPE classes,
+  so as expected a general detector scores ~0 on unseen domain classes.
+- **Retrained (fp32) mAP50-95 = 0.2515** — fine-tuning for 40 epochs adapts the
+  detector to the PPE domain. **Δ accuracy = +0.2513 mAP50-95** over the base model.
+  This is the value of domain optimization: the same nano backbone, retargeted to the
+  classes the safety camera actually needs.
 
-- **fp32 (GPU):** base mAP50-95 = **0.0001** → retrained = **0.2515** (Δ = **+0.2513**).
-- **INT8 (DX-M1 NPU):** base mAP50-95 = **0.0001** → retrained = **0.2558** (Δ = **+0.2557**).
-- The stock `yolo26n` is COCO-trained and has **never seen** construction-PPE classes, so its mAP on this domain is near zero — it cannot detect helmets, vests, etc. Fine-tuning rebuilds the detection head for the PPE classes, which is the entire accuracy gain shown above.
-
-### INT8 quantization effect (fp32 → DeepX INT8)
-
-- **Retrained:** fp32 = **0.2515** vs INT8 = **0.2558** → quantization loss = **-0.0043** (**-1.7%** relative). EMA INT8 calibration on the DX-M1 typically keeps this gap small.
-- **Speed (NPU):** base 80-class `.dxnn` = **57.76 FPS** vs retrained 11-class `.dxnn` = **76.20 FPS** (Δ = **+18.44 FPS**). A smaller `nc` head usually makes the domain model at least as fast on the NPU as the stock detector.
+### INT8 quantization effect (fp32 → DX-M1 NPU)
+- Retrained: **fp32 0.2515 → INT8 0.2566** on the NPU — essentially **no quantization loss** — the INT8 model is within noise of fp32 (Δ=-0.0051 mAP50-95, i.e. a tiny 2.0% *gain*, attributable to calibration/eval variance).
+  The deployable on-device model retains effectively all of the fp32 accuracy while running
+  on the NPU.
+- Speed: the retrained `.dxnn` runs at **79.7 FPS** on DX-M1 vs the base `.dxnn`
+  at **57.9 FPS** (1.38× ratio). The retrained head has fewer effective
+  output classes than stock COCO (nc=80), which can make the domain model as fast as or
+  faster than the stock model on the NPU, with far higher domain accuracy.
 
 ### Takeaway
+Domain fine-tuning turns a useless-for-PPE stock detector (mAP≈0.000) into a
+usable PPE detector (mAP≈0.251 fp32), and the DeepX INT8 export deploys that gain
+on the DX-M1 NPU with no measurable accuracy cost at on-device speed
+(79.7 FPS) — the right tradeoff for an always-on site-safety camera.
 
-Domain fine-tuning turns a useless-on-PPE general detector into a working PPE-compliance model, and the DeepX INT8 export deploys it on the DX-M1 NPU with only a small accuracy trade-off — the deployable (#4) result is the one to ship to a site-safety camera.
+## Annotated sample
+`sample_detect.jpg` — retrained model on val image `image1010.jpg`
+(8 detections, boxes + class labels drawn).
 
+---
+*Numbers are measured (not estimated): fp32 via `model.val()` on GPU, INT8 via the same
+`model.val()` on the exported `.dxnn` through the dx_engine NPU backend. See `results.json`,
+`train.log`, `export_eval.log`.*
