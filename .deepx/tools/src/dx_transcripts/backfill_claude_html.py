@@ -37,7 +37,7 @@ sys.path.insert(0, str(_TESTS_DIR))
 from dx_transcripts.parse_claude_session import find_sessions, parse_session, render_html  # noqa: E402
 
 
-RESULTS_ROOT = Path(__file__).resolve().parents[2] / "dx-agentic-dev" / "e2e-tests" / "results"
+RESULTS_ROOT = Path(__file__).resolve().parents[2] / "dx-agent-dev" / "e2e-tests" / "results"
 
 
 def _extract_session_uuid(jsonl_path: Path) -> Optional[str]:

@@ -1,4 +1,4 @@
-# DEEPX Agentic Development - dx-agentic-dev (Beta)
+# DEEPX Agent-Driven Development - dx-agent-dev (Beta)
 
 > **베타 기능** — 에이전틱 개발 지원은 현재 활발히 개발 중입니다.
 > 스킬 정의와 라우팅 동작은 릴리스 간에 변경될 수 있습니다.
@@ -7,7 +7,7 @@
 
 <!-- intro -->
 <!-- dx-showcase:docs:intro:start -->
-**`dx-agentic-dev` (Beta) 출시.** 앱이나 모델 태스크를 자연어로 설명하면 AI 코딩 에이전트(Claude Code, Cursor, GitHub Copilot, OpenCode, Codex)가 DEEPX 지식 베이스를 end-to-end로 구동합니다: brainstorm → plan → TDD → verify, ONNX/`.pt` 컴파일부터 on-device DX-M1 NPU 배포까지. **Ultralytics** 모델 생태계와 통합된 DEEPX NPU를 위한 에이전틱 개발 워크플로이며, 아래 모든 showcase가 이 방식으로 — 프롬프트·실측 결과·전체 빌드 transcript와 함께 — 만들어졌습니다.
+**`dx-agent-dev` (Beta) 출시.** 앱이나 모델 태스크를 자연어로 설명하면 AI 코딩 에이전트(Claude Code, Cursor, GitHub Copilot, OpenCode, Codex)가 DEEPX 지식 베이스를 end-to-end로 구동합니다: brainstorm → plan → TDD → verify, ONNX/`.pt` 컴파일부터 on-device DX-M1 NPU 배포까지. **Ultralytics** 모델 생태계와 통합된 DEEPX NPU를 위한 에이전틱 개발 워크플로이며, 아래 모든 showcase가 이 방식으로 — 프롬프트·실측 결과·전체 빌드 transcript와 함께 — 만들어졌습니다.
 <!-- dx-showcase:docs:intro:end -->
 
 자연어 지시만으로 DEEPX AI 애플리케이션을 구축할 수 있습니다. AI 코딩 에이전트는
@@ -35,8 +35,8 @@ InferenceEngine 설정, DxPreprocess/DxInfer 엘리먼트 연결 — 따라서 *
 
 | Showcase | 설명 | 빌드 시간 | Agent turns | Output tokens | ~비용 |
 |---|---|---|---|---|---|
-| **[스쿼트 카운팅 미니게임](../../dx-agentic-dev-showcase/squat-fitness-mini-game/)** | 무릎/엉덩이 각도로 스쿼트 횟수 카운트 + 아케이드 HUD(횟수 / 점수 / DOWN·UP·GOOD!). | ≈ 20 min | 81 | ≈ 85K | ≈ $9.9 |
-| **[스트레칭 coach 미니게임](../../dx-agentic-dev-showcase/stretching-coach-mini-game/)** | 애니메이션 coach 아바타가 각 목표 포즈를 시연하며 3가지 스트레칭 안내. | ≈ 21 min | 75 | ≈ 85K | ≈ $9.4 |
+| **[스쿼트 카운팅 미니게임](../../dx-agent-dev-showcase/squat-fitness-mini-game/)** | 무릎/엉덩이 각도로 스쿼트 횟수 카운트 + 아케이드 HUD(횟수 / 점수 / DOWN·UP·GOOD!). | ≈ 20 min | 81 | ≈ 85K | ≈ $9.9 |
+| **[스트레칭 coach 미니게임](../../dx-agent-dev-showcase/stretching-coach-mini-game/)** | 애니메이션 coach 아바타가 각 목표 포즈를 시연하며 3가지 스트레칭 안내. | ≈ 21 min | 75 | ≈ 85K | ≈ $9.4 |
 
 #### Ultralytics 생태계 통합
 
@@ -44,11 +44,11 @@ InferenceEngine 설정, DxPreprocess/DxInfer 엘리먼트 연결 — 따라서 *
 
 | Showcase | 설명 | 빌드 시간 | Agent turns | Output tokens | ~비용 |
 |---|---|---|---|---|---|
-| **[Ultralytics YOLO → DeepX Export](../../dx-agentic-dev-showcase/ultralytics-yolo-deepx-export/)** | Ultralytics YOLO `.pt`를 단일 `yolo export ... format=deepx` 명령으로 배포 가능한 DeepX NPU 모델(`.dxnn`)로 변환, NPU 추론 + verify. | ≈ 11.6 min | 59 | — | ≈ $2.4 |
-| **[아프리카 야생동물 모니터링](../../dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-wildlife/)** | 사파리/보전 카메라용으로 `yolo26n`을 `african-wildlife`(buffalo/elephant/rhino/zebra)로 재학습; base/재학습 × fp32/INT8 4-way 평가. | ≈ 12 min | 8 | ≈ 6.9K | ≈ $3.3 |
-| **[건설 PPE 안전](../../dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-ppe/)** | 현장 안전 카메라용으로 `yolo26n`을 `construction-ppe`(helmet/vest/...)로 재학습; base/재학습 × fp32/INT8 4-way 평가. | ≈ 13 min | 19 | ≈ 8.8K | ≈ $5.1 |
-| **[뇌종양 스크리닝](../../dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-braintumor/)** | 의료 edge 디바이스용으로 `yolo26n`을 `brain-tumor`(MRI/CT)로 재학습; base/재학습 × fp32/INT8 4-way 평가. | ≈ 12 min | 11 | ≈ 8.9K | ≈ $3.7 |
-| **[의약품 알약 검사](../../dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-pills/)** | 제약 카운팅 스테이션용으로 `yolo26n`을 `medical-pills`로 재학습; base/재학습 × fp32/INT8 4-way 평가. | ≈ 10 min | 12 | ≈ 6.0K | ≈ $5.1 |
+| **[Ultralytics YOLO → DeepX Export](../../dx-agent-dev-showcase/ultralytics-yolo-deepx-export/)** | Ultralytics YOLO `.pt`를 단일 `yolo export ... format=deepx` 명령으로 배포 가능한 DeepX NPU 모델(`.dxnn`)로 변환, NPU 추론 + verify. | ≈ 11.6 min | 59 | — | ≈ $2.4 |
+| **[아프리카 야생동물 모니터링](../../dx-agent-dev-showcase/ultralytics-retrain-eval-deepx-export-wildlife/)** | 사파리/보전 카메라용으로 `yolo26n`을 `african-wildlife`(buffalo/elephant/rhino/zebra)로 재학습; base/재학습 × fp32/INT8 4-way 평가. | ≈ 12 min | 8 | ≈ 6.9K | ≈ $3.3 |
+| **[건설 PPE 안전](../../dx-agent-dev-showcase/ultralytics-retrain-eval-deepx-export-ppe/)** | 현장 안전 카메라용으로 `yolo26n`을 `construction-ppe`(helmet/vest/...)로 재학습; base/재학습 × fp32/INT8 4-way 평가. | ≈ 13 min | 19 | ≈ 8.8K | ≈ $5.1 |
+| **[뇌종양 스크리닝](../../dx-agent-dev-showcase/ultralytics-retrain-eval-deepx-export-braintumor/)** | 의료 edge 디바이스용으로 `yolo26n`을 `brain-tumor`(MRI/CT)로 재학습; base/재학습 × fp32/INT8 4-way 평가. | ≈ 12 min | 11 | ≈ 8.9K | ≈ $3.7 |
+| **[의약품 알약 검사](../../dx-agent-dev-showcase/ultralytics-retrain-eval-deepx-export-pills/)** | 제약 카운팅 스테이션용으로 `yolo26n`을 `medical-pills`로 재학습; base/재학습 × fp32/INT8 4-way 평가. | ≈ 10 min | 12 | ≈ 6.0K | ≈ $5.1 |
 
 #### PaddlePaddle 생태계 통합
 
@@ -58,7 +58,7 @@ PaddlePaddle/PaddleOCR 모델의 DEEPX NPU 통합.
 <!-- dx-showcase:docs:table:end -->
 
 **전체 카탈로그 + showcase별 요약(빌드 GIF 포함) →**
-[`dx-agentic-dev-showcase/README-ko.md`](../../dx-agentic-dev-showcase/README-ko.md). 각 행의
+[`dx-agent-dev-showcase/README-ko.md`](../../dx-agent-dev-showcase/README-ko.md). 각 행의
 링크는 해당 showcase README(정확한 프롬프트, 4-way 평가 / 게임플레이 상세, 세션 transcript)로 연결됩니다.
 
 ### 동작 방식 — 모델이 아니라 harness
@@ -71,8 +71,8 @@ PaddlePaddle/PaddleOCR 모델의 DEEPX NPU 통합.
   (`[DX-AGENTIC-DEV: START]` / `DONE`), 출력은 세션 디렉터리에 격리(기존 소스 미접촉),
   placeholder/stub 코드 금지.
 - **skill·agent 활용** — 필수 시퀀스를 실제 tool call로 호출 —
-  `dx-skill-router → dx-agentic-brainstorm → dx-swe-writing-plans → dx-agentic-tdd →
-  dx-agentic-verify` — 단순 *언급*이 아니라.
+  `dx-skill-router → dx-agent-brainstorm → dx-swe-writing-plans → dx-agent-tdd →
+  dx-agent-verify` — 단순 *언급*이 아니라.
 - **실제 추론** — 가장 가까운 기존 예제 분석, 지식 베이스에서 실제 framework API 확인,
   검증부터 작성(RED), 그 후 파일 단위로 생성·검증 후 완료 선언.
 
@@ -150,19 +150,19 @@ dx-all-suite는 작업을 분류하고 적절한 서브모듈로 디스패치하
 
 | 레벨 | 스킬 | 설명 |
 |---|---|---|
-| **dx-runtime** | `/dx-agentic-runtime-validate` | 검증, 피드백 수집, 수정 적용, 결과 확인 |
-| **dx_app** | `/dx-agentic-app-build-python` | Python 추론 앱 빌드 |
-| **dx_app** | `/dx-agentic-app-build-cpp` | C++ 추론 앱 빌드 |
-| **dx_app** | `/dx-agentic-app-build-async` | 비동기 고성능 앱 빌드 |
-| **dx_app** | `/dx-agentic-app-model-management` | 모델 다운로드 및 설정 |
-| **dx_app** | `/dx-agentic-app-validate` | 검증 체크 실행 |
-| **dx_stream** | `/dx-agentic-stream-build-pipeline` | GStreamer 파이프라인 앱 빌드 |
-| **dx_stream** | `/dx-agentic-stream-build-mqtt-kafka` | MQTT/Kafka 파이프라인 앱 빌드 |
-| **dx_stream** | `/dx-agentic-stream-validate` | 검증 체크 실행 |
-| **dx_stream** | `/dx-agentic-stream-model-management` | 모델 다운로드 및 설정 |
-| **dx-compiler** | `/dx-agentic-compiler-convert` | PyTorch 모델을 ONNX로 변환 |
-| **dx-compiler** | `/dx-agentic-compiler-compile` | ONNX 모델을 DXNN으로 컴파일 |
-| **dx-compiler** | `/dx-agentic-compiler-validate` | 컴파일된 DXNN 출력 검증 |
+| **dx-runtime** | `/dx-agent-runtime-validate` | 검증, 피드백 수집, 수정 적용, 결과 확인 |
+| **dx_app** | `/dx-agent-app-build-python` | Python 추론 앱 빌드 |
+| **dx_app** | `/dx-agent-app-build-cpp` | C++ 추론 앱 빌드 |
+| **dx_app** | `/dx-agent-app-build-async` | 비동기 고성능 앱 빌드 |
+| **dx_app** | `/dx-agent-app-model-management` | 모델 다운로드 및 설정 |
+| **dx_app** | `/dx-agent-app-validate` | 검증 체크 실행 |
+| **dx_stream** | `/dx-agent-stream-build-pipeline` | GStreamer 파이프라인 앱 빌드 |
+| **dx_stream** | `/dx-agent-stream-build-mqtt-kafka` | MQTT/Kafka 파이프라인 앱 빌드 |
+| **dx_stream** | `/dx-agent-stream-validate` | 검증 체크 실행 |
+| **dx_stream** | `/dx-agent-stream-model-management` | 모델 다운로드 및 설정 |
+| **dx-compiler** | `/dx-agent-compiler-convert` | PyTorch 모델을 ONNX로 변환 |
+| **dx-compiler** | `/dx-agent-compiler-compile` | ONNX 모델을 DXNN으로 컴파일 |
+| **dx-compiler** | `/dx-agent-compiler-validate` | 컴파일된 DXNN 출력 검증 |
 | **DX All Suite** | `/dx-swe-brainstorm` | 프로세스: 모든 작업 전 협업 설계 세션 |
 | **DX All Suite** | `/dx-swe-tdd` | 프로세스: 테스트 주도 개발 — 점진적 검증 |
 | **DX All Suite** | `/dx-swe-verify` | 프로세스: 완료 전 검증 — 증거 먼저, 주장 나중에 |
@@ -282,7 +282,7 @@ cursor-agent
 
 `.deepx/` 디렉토리는 모든 플랫폼별 파일의 **정규 소스** (단일 진실 공급원)입니다.
 에이전트, 스킬, 템플릿, 프래그먼트를 플랫폼 중립 형식으로 포함합니다.
-`dx-agentic-gen` 생성기가 이를 Copilot (`.github/`), Claude Code (`.claude/`),
+`dx-agent-gen` 생성기가 이를 Copilot (`.github/`), Claude Code (`.claude/`),
 OpenCode (`.opencode/`), Cursor (`.cursor/rules/`) 용 플랫폼별 파일로 변환합니다.
 
 | 디렉토리 | 내용 |
@@ -301,13 +301,13 @@ OpenCode (`.opencode/`), Cursor (`.cursor/rules/`) 용 플랫폼별 파일로 �
 
 #### 플랫폼 파일 생성
 
-모든 플랫폼별 파일은 `dx-agentic-dev-gen` 패키지에 의해 `.deepx/`에서 생성됩니다.
+모든 플랫폼별 파일은 `dx-agent-dev-gen` 패키지에 의해 `.deepx/`에서 생성됩니다.
 생성된 파일을 직접 편집하지 마세요.
 
 ```bash
 pip install -e .deepx/tools   # 생성기 설치
-dx-agentic-gen generate                    # 플랫폼 파일 생성
-dx-agentic-gen check                       # 드리프트 없는지 확인
+dx-agent-gen generate                    # 플랫폼 파일 생성
+dx-agent-gen check                       # 드리프트 없는지 확인
 ```
 
 pre-commit 훅이 생성된 파일의 동기화를 강제합니다:
@@ -485,20 +485,20 @@ dx-all-suite 메타 가이드는 모든 서브 프로젝트 시나리오로 라�
 
 | 문서 | 범위 |
 |---|---|
-| [`.deepx/docs/dx-agentic-dev-overview.md`](../../.deepx/docs/dx-agentic-dev-overview.md) | 5개 repo 전체의 `.deepx/` 디렉토리 종합 안내 |
+| [`.deepx/docs/dx-agent-dev-overview.md`](../../.deepx/docs/dx-agent-dev-overview.md) | 5개 repo 전체의 `.deepx/` 디렉토리 종합 안내 |
 | [`.deepx/README.md`](../../.deepx/README.md) | `.deepx/` knowledge base 최상위 마스터 인덱스 |
-| [`.deepx/docs/skill-architecture.md`](../../.deepx/docs/skill-architecture.md) | 3-tier skill 모델 (SWE / Agentic / Harness) |
-| [`.deepx/tools/README.md`](../../.deepx/tools/README.md) | `dx-agentic-gen` generator 패키지 가이드 |
+| [`.deepx/docs/skill-architecture.md`](../../.deepx/docs/skill-architecture.md) | 3-tier skill 모델 (SWE / Agent-Driven / Harness) |
+| [`.deepx/tools/README.md`](../../.deepx/tools/README.md) | `dx-agent-gen` generator 패키지 가이드 |
 | [`.deepx/tools/scripts/README.md`](../../.deepx/tools/scripts/README.md) | 운영 스크립트 (`run_all.sh`, hooks, E2E loop) |
 
 ## 산출물 격리
 
-기본적으로 모든 에이전트 생성 코드는 대상 서브 프로젝트 내 `dx-agentic-dev/<session_id>/`에
+기본적으로 모든 에이전트 생성 코드는 대상 서브 프로젝트 내 `dx-agent-dev/<session_id>/`에
 배치됩니다. 이는 기존 프로덕션 코드의 의도치 않은 수정을 방지합니다.
 
 | 출력 유형 | 경로 | 시점 |
 |---|---|---|
-| **기본 (격리)** | `dx-agentic-dev/<session_id>/` | 사용자가 달리 지정하지 않는 한 항상 |
+| **기본 (격리)** | `dx-agent-dev/<session_id>/` | 사용자가 달리 지정하지 않는 한 항상 |
 | **프로덕션** | `src/` | 사용자가 명시적으로 요청한 경우에만 |
 
 세션 ID 형식: `YYYYMMDD-HHMMSS_<agent>_<model>_<task>` — `<agent>`는 `claude`, `codex`, `copilot`, `cursor`, `opencode` 중 하나.
@@ -507,7 +507,7 @@ dx-all-suite 메타 가이드는 모든 서브 프로젝트 시나리오로 라�
 - `README.md` — 세션 메타데이터, 생성된 파일 목록, 실행 지침
 - `session.json` — 기계 판독 가능한 세션 설정
 
-`dx-agentic-dev/` 디렉토리는 dx_app과 dx_stream 모두에서 git-ignore됩니다.
+`dx-agent-dev/` 디렉토리는 dx_app과 dx_stream 모두에서 git-ignore됩니다.
 
 ### dx-compiler 세션 디렉토리
 
@@ -522,14 +522,14 @@ dx-compiler의 경우 세션 디렉토리에 추가로 다음이 포함됩니다
 ### Suite 레벨 크로스 프로젝트 산출물
 
 dx-all-suite 레벨에서 크로스 프로젝트 작업(예: 컴파일 + 배포)을 실행하면,
-각 대상 서브 프로젝트의 `dx-agentic-dev/` 디렉토리에 산출물이 생성됩니다.
-또한 `dx-all-suite/dx-agentic-dev/`에 심볼릭 링크가 생성되어 통합 접근이
+각 대상 서브 프로젝트의 `dx-agent-dev/` 디렉토리에 산출물이 생성됩니다.
+또한 `dx-all-suite/dx-agent-dev/`에 심볼릭 링크가 생성되어 통합 접근이
 가능합니다:
 
 ```
-dx-all-suite/dx-agentic-dev/
-├── dx-compiler_20260409-070940_yolo26n_pt_to_dxnn -> ../dx-compiler/dx-agentic-dev/20260409-...
-└── dx_app_20260409-071500_yolo26n_detection_app -> ../dx-runtime/dx_app/dx-agentic-dev/20260409-...
+dx-all-suite/dx-agent-dev/
+├── dx-compiler_20260409-070940_yolo26n_pt_to_dxnn -> ../dx-compiler/dx-agent-dev/20260409-...
+└── dx_app_20260409-071500_yolo26n_detection_app -> ../dx-runtime/dx_app/dx-agent-dev/20260409-...
 ```
 
 심볼릭 링크 명명 규칙: `{subproject}_{session_id}`.

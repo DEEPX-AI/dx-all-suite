@@ -1,4 +1,4 @@
-# DX-ALL-SUITE Agentic Development 테스트
+# DX-ALL-SUITE Agent-Driven Development 테스트
 
 ## 📋 개요
 
@@ -184,7 +184,7 @@ DX_TIMEOUT_COMPILER=3600 DX_TIMEOUT_SUITE=4800 python .deepx/e2e/e2e_runner.py -
 각 run의 결과물은 run-id 디렉터리 아래에 격리됩니다 — run 간 결과가 섞이지 않아 분석 정합성이 보장됩니다.
 
 ```
-dx-agentic-dev/e2e-tests/results/
+dx-agent-dev/e2e-tests/results/
 ├── 20260521_135734/                       ← e2e_runner의 run_id
 │   ├── 20260521_174857_e25076_claude-code-autopilot/
 │   │   ├── manifest.json
@@ -263,14 +263,14 @@ python .deepx/e2e/e2e_monitor.py --once
 cd .deepx/e2e
 
 # 에이전트 인프라 검증 (~704개 테스트, ~1초)
-./test.sh agentic
+./test.sh agent-driven
 
 # 에이전트 E2E 시나리오 테스트 (도구별)
-./test.sh agentic-e2e-copilot-cli-autopilot     # Copilot CLI
-./test.sh agentic-e2e-cursor-cli-autopilot      # Cursor CLI
-./test.sh agentic-e2e-opencode-cli-autopilot    # OpenCode CLI
-./test.sh agentic-e2e-claude-code-autopilot     # Claude Code CLI
-./test.sh agentic-e2e-codex-cli-autopilot       # Codex CLI
+./test.sh agent-driven-e2e-copilot-cli-autopilot     # Copilot CLI
+./test.sh agent-driven-e2e-cursor-cli-autopilot      # Cursor CLI
+./test.sh agent-driven-e2e-opencode-cli-autopilot    # OpenCode CLI
+./test.sh agent-driven-e2e-claude-code-autopilot     # Claude Code CLI
+./test.sh agent-driven-e2e-codex-cli-autopilot       # Codex CLI
 
 # 여러 라운드 병렬 실행 (e2e_runner.py)
 python .deepx/e2e/e2e_runner.py --rounds 5
@@ -307,7 +307,7 @@ python analyze.py --tool claude-code,copilot-cli
 **analyzer_reports/ 디렉터리 레이아웃:**
 
 ```
-dx-agentic-dev/e2e-tests/analyzer_reports/
+dx-agent-dev/e2e-tests/analyzer_reports/
 ├── _all/<timestamp>/                     ← --run-id 미지정 (모든 run 합산)
 ├── 20260521_135734/<timestamp>/          ← --run-id 단일
 ├── multi_a3f2b1c4/<timestamp>/           ← --run-id 다중 (SHA-8 해시)
@@ -367,8 +367,8 @@ export DX_AGENTIC_E2E_CODEX_EXTRA_ARGS='-c model_reasoning_effort="xhigh"'  # xh
 │   └── tests/test_e2e_runner_env_redo.py
 │
 └── tools/                          # ← 툴링 패키지 (tools/README.md 참조)
-    ├── src/{dx_agentic_dev_gen, dx_transcripts}     # 제너레이터 + 공유 transcript lib
-    └── tests/{dx_agentic_dev_gen, dx_transcripts}   # src/ 미러
+    ├── src/{dx_agent_dev_gen, dx_transcripts}     # 제너레이터 + 공유 transcript lib
+    └── tests/{dx_agent_dev_gen, dx_transcripts}   # src/ 미러
 ```
 
 > 세션 파서 + transcript 렌더러(`parse_*_session`, `generate_transcripts`, …)는
@@ -377,4 +377,4 @@ export DX_AGENTIC_E2E_CODEX_EXTRA_ARGS='-c model_reasoning_effort="xhigh"'  # xh
 ---
 
 **총 에이전트 테스트 수:**
-~1279개 (agentic: ~704 | copilot_cli: ~114 | cursor_cli: ~113 | opencode_cli: ~116 | claude_code_cli: ~116 | codex_cli: ~116) — 정확한 수치는 `pytest --collect-only -q`로 확인
+~1279개 (agent-driven: ~704 | copilot_cli: ~114 | cursor_cli: ~113 | opencode_cli: ~116 | claude_code_cli: ~116 | codex_cli: ~116) — 정확한 수치는 `pytest --collect-only -q`로 확인

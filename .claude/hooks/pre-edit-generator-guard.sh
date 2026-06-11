@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# PreToolUse hook: block direct edits to dx-agentic-gen generator output files.
+# PreToolUse hook: block direct edits to dx-agent-gen generator output files.
 #
 # Generator output paths (Q2 from the Pre-flight Classification rule):
 #   .github/agents/   .github/skills/
@@ -20,9 +20,9 @@ if echo "$FILE_PATH" | grep -qE '/\.(github/(skills|agents)|opencode/agents|clau
     echo "BLOCKED: Direct edit to a generator-output file is forbidden."
     echo ""
     echo "  File : $FILE_PATH"
-    echo "  Rule : This file is auto-generated from .deepx/ by dx-agentic-gen."
+    echo "  Rule : This file is auto-generated from .deepx/ by dx-agent-gen."
     echo "  Fix  : Edit the canonical source in .deepx/ instead, then run:"
-    echo "           dx-agentic-gen generate"
+    echo "           dx-agent-gen generate"
     echo "         or: .deepx/tools/scripts/run_all.sh generate"
     exit 2
 fi
@@ -34,9 +34,9 @@ case "$BASENAME" in
         echo "BLOCKED: Direct edit to a generator-output file is forbidden."
         echo ""
         echo "  File : $FILE_PATH"
-        echo "  Rule : This file is auto-generated from .deepx/ by dx-agentic-gen."
+        echo "  Rule : This file is auto-generated from .deepx/ by dx-agent-gen."
         echo "  Fix  : Edit the canonical template in .deepx/ instead, then run:"
-        echo "           dx-agentic-gen generate"
+        echo "           dx-agent-gen generate"
         echo "         or: .deepx/tools/scripts/run_all.sh generate"
         exit 2
         ;;

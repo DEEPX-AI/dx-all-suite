@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 """
-Agentic E2E Test: dx-all-suite Scenario #2 — Model Compilation + Sample App Generation
+Agent-Driven E2E Test: dx-all-suite Scenario #2 — Model Compilation + Sample App Generation
 
 Runs Copilot CLI at the suite root with a cross-project prompt that requires
 both dx-compiler (download + ONNX → DXNN compilation) and dx_app (detection

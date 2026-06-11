@@ -7,7 +7,7 @@ When the user is absent — autopilot mode, `--yolo` flag, or system auto-respon
    Every mandatory gate still applies: brainstorming spec, plan, TDD, mandatory
    artifacts, execution verification, and self-verification checks.
    **This includes the SWE Process Gates Mandatory Skill Sequence** — in autopilot,
-   `/dx-skill-router` → `/dx-agentic-brainstorm` → `/dx-agentic-tdd` must be followed
+   `/dx-skill-router` → `/dx-agent-brainstorm` → `/dx-agent-tdd` must be followed
    exactly as in interactive mode. Autopilot mode does NOT waive this sequence.
 2. **Do NOT call `ask_user`** — Make decisions using knowledge base defaults and
    documented best practices. Calling `ask_user` in autopilot wastes a turn and

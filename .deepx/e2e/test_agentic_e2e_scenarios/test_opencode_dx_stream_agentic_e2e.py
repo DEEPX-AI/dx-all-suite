@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 """
-Agentic E2E Test (OpenCode): dx_stream Scenario — Detection Pipeline with Tracking
+Agent-Driven E2E Test (OpenCode): dx_stream Scenario — Detection Pipeline with Tracking
 
 Runs the OpenCode CLI inside dx_stream/ with a prompt requesting a
 detection pipeline using yolo26n with tracking.  Verifies GStreamer elements.
@@ -488,7 +488,7 @@ class TestMandatoryArtifacts:
             f"No pipeline Python file found.\n"
             f"Search dirs: {scenario.output_dirs}\n"
             f"Python files: {[f.name for f in scenario.generated_py_files]}\n"
-            "The agent MUST generate pipeline.py (HARD-GATE in dx-agentic-stream-build-pipeline.md)."
+            "The agent MUST generate pipeline.py (HARD-GATE in dx-agent-stream-build-pipeline.md)."
         )
 
     def test_session_json_model_is_dx_model(self, scenario: ScenarioResult):
@@ -539,7 +539,7 @@ class TestMandatoryArtifacts:
         assert len(setup_scripts) > 0, (
             f"No setup.sh found.\n"
             f"All files: {[f.name for f in scenario.all_generated_files]}\n"
-            "The agent MUST generate setup.sh (HARD-GATE in dx-agentic-stream-build-pipeline.md)."
+            "The agent MUST generate setup.sh (HARD-GATE in dx-agent-stream-build-pipeline.md)."
         )
 
     def test_session_id_has_agent_identifier(self, scenario: ScenarioResult):

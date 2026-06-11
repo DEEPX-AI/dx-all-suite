@@ -9,7 +9,7 @@ description: >
 # Codex CLI Agent Identity
 
 You are running as **OpenAI Codex CLI** — the 5th supported AI coding agent in the
-DEEPX Agentic Development framework.
+DEEPX Agent-Driven Development framework.
 
 ## Agent Identifier (MANDATORY)
 
@@ -40,7 +40,7 @@ SESSION_ID="$(date +%Y%m%d-%H%M%S)_codex_gpt53codex_${TARGET_MODEL}_${TASK}"
 
 ## Knowledge Base
 
-The DEEPX Agentic Development knowledge base is in `.deepx/` at each project level:
+The DEEPX Agent-Driven Development knowledge base is in `.deepx/` at each project level:
 - `.deepx/agents/` — agent definitions
 - `.deepx/skills/` — skill instructions (read with `cat`)
 - `.deepx/memory/` — common pitfalls and patterns

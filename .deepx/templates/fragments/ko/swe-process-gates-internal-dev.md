@@ -1,9 +1,9 @@
 ## SWE 프로세스 게이트 — 내부 개발 (HARD GATE)
 
 AI 에이전트(Claude Code, Copilot CLI, Cursor CLI, Copilot Chat (VS Code),
-Cursor (IDE), OpenCode, 기타 모든 도구)를 사용하여 내부 dx-agentic-dev 기능을
+Cursor (IDE), OpenCode, 기타 모든 도구)를 사용하여 내부 dx-agent-dev 기능을
 개발하거나 수정할 때는 전체 소프트웨어 엔지니어링 규율이 **필수**입니다.
-내부 dx-agentic-dev 기능에 해당하거나 관련된 모든 작업에 적용됩니다.
+내부 dx-agent-dev 기능에 해당하거나 관련된 모든 작업에 적용됩니다.
 다음 경로들이 적용 대상입니다 (비-완전 목록 — 확실하지 않을 경우 SWE 규율을 적용하세요):
 
 | 경로 | 예시 |
@@ -12,7 +12,7 @@ Cursor (IDE), OpenCode, 기타 모든 도구)를 사용하여 내부 dx-agentic-
 | `.deepx/tests/conformance/` | KB / 생성물 적합성 + 정책 검사 |
 | `.deepx/e2e/test.sh` | 수동/자동 shell runner |
 | `.deepx/tests/conftest.py`, `.deepx/tools/src/dx_transcripts/session_common.py`, `.deepx/tools/src/dx_transcripts/parse_copilot_session.py`, `.deepx/tools/src/dx_transcripts/parse_cursor_session.py`, `.deepx/tools/src/dx_transcripts/parse_claude_session.py` | 공유 테스트 인프라 |
-| `.deepx/tools/` (dx-agentic-dev-gen) | generator 소스, CLI, transformer |
+| `.deepx/tools/` (dx-agent-dev-gen) | generator 소스, CLI, transformer |
 | `.deepx/tools/scripts/*.sh` | loop 스크립트 및 orchestration runner (예: `run-e2e-improvement-loop.sh`, `run_all.sh`, `install-hooks.sh`, `pre-commit-hook.sh`) |
 | `.deepx/` | agent, skill, 템플릿, fragment (canonical source) |
 
@@ -48,7 +48,7 @@ Non-trivial로 간주하며, Trivial 변경 예외가 적용되지 않습니다.
 
 - **`tests/` 변경** — 기존 suite를 실행하여 구현 전 **RED** 상태를 확인합니다.
   코드를 작성하기 전에 예상된 이유로 테스트가 실패해야 합니다.
-- **`.deepx/` 변경** — 편집 전 `dx-agentic-gen check` 기준 출력을 캡처합니다.
+- **`.deepx/` 변경** — 편집 전 `dx-agent-gen check` 기준 출력을 캡처합니다.
   변경 후 재실행하여 의도한 drift만 나타나는지 확인합니다.
 - **`tools/` 변경** — 변경이 해소해야 할 구체적인 실패 모드(잘못된 경로, 잘못된 출력,
   누락된 규칙)를 식별합니다. 이를 포착하는 테스트를 작성하거나 가리킵니다.
@@ -105,14 +105,14 @@ SWE Pre-Implementation Checklist:
 
 - "변경이 명확하다"는 이유로 `/dx-swe-brainstorm` 건너뛰기 — 절대 명확하지 않음
 - 테스트 suite 실행 없이 fixture 추가 또는 `conftest.py` 변경 (눈먼 변경)
-- 실제 pytest 출력 또는 `dx-agentic-gen check` 출력 없이 완료 주장
+- 실제 pytest 출력 또는 `dx-agent-gen check` 출력 없이 완료 주장
 - "마지막에 검증하겠다" 방식 — `/dx-swe-tdd`에 따라 파일별로 검증
-- generator 출력 파일 직접 편집 — 다음 `dx-agentic-gen generate` 실행 시 덮어씌워짐
+- generator 출력 파일 직접 편집 — 다음 `dx-agent-gen generate` 실행 시 덮어씌워짐
 - `/dx-skill-router` 호출 전 구현 시작
 - **Autopilot mode를 면제로 오해** — autopilot은 "묻지 않기"를 의미할 뿐,
   "규칙 없음"이 아닙니다. Autopilot에서도 필수 Skill 시퀀스는 완전히 적용됩니다.
 - `.deepx/tools/scripts/*.sh` 스크립트를 "내부 개발 아님"으로 취급하기 —
-  `.deepx/tools/scripts/` 하위의 모든 loop 및 orchestration 스크립트는 내부 dx-agentic-dev 기능이며 SWE 규율이 적용됩니다
+  `.deepx/tools/scripts/` 하위의 모든 loop 및 orchestration 스크립트는 내부 dx-agent-dev 기능이며 SWE 규율이 적용됩니다
 - **`dx-swe-debugging` 완료를 SWE gate 면제로 취급** — Phase 1–3 (근본 원인 파악)을
   완료했다고 해서 구현 작업이 SWE 필수 시퀀스에서 면제되는 것은 아닙니다. Phase 4 구현이
   `.deepx/`, `tests/`, 또는 `tools/`를 포함할 경우, 이는 **새로운 내부 개발 작업**으로서

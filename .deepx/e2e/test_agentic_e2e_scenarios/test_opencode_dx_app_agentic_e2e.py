@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 """
-Agentic E2E Test (OpenCode): dx_app Scenario — Build a Python Detection App
+Agent-Driven E2E Test (OpenCode): dx_app Scenario — Build a Python Detection App
 
 Runs the OpenCode CLI inside dx_app/ with a prompt that requests a
 yolo26n person detection app.  Verifies that the generated code follows the

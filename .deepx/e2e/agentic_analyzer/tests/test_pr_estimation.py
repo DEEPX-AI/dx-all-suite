@@ -223,7 +223,7 @@ def test_cursor_auto_zero_cost(pricing_config):
 
 # Real result-dir samples (skip if not present — keeps test portable across CI)
 _RESULTS_ROOT = Path(
-    "/data/home/dhyang/github/dx-all-suite-full-e2e/dx-agentic-dev/e2e-tests/results"
+    "/data/home/dhyang/github/dx-all-suite-full-e2e/dx-agent-dev/e2e-tests/results"
 )
 
 

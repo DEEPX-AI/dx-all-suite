@@ -36,7 +36,7 @@
 | 스킬 | 설명 |
 |---|---|
 | `/dx-harness-validate` | 내부개발: .deepx/ framework 무결성 검증 |
-| `/dx-agentic-showcase-build` | dx-agentic-dev showcase를 end-to-end로 제작(실제 빌드 녹화 → complete transcript → GIF → README/docs) + verify 게이트 |
+| `/dx-agent-showcase-build` | dx-agent-dev showcase를 end-to-end로 제작(실제 빌드 녹화 → complete transcript → GIF → README/docs) + verify 게이트 |
 | `/dx-swe-brainstorm` | 브레인스토밍, 2-3가지 접근법 제안, 스펙 자체 검토 후 계획 |
 | `/dx-swe-tdd` | 검증 주도 개발, 선택적 Red-Green-Refactor 단위 테스트 |
 | `/dx-swe-verify` | 완료 선언 전 검증 — 주장 전 증거 |
@@ -78,7 +78,7 @@ python dx-runtime/.deepx/scripts/feedback_collector.py --framework-only
 
 ## 출력 격리 (HARD GATE)
 
-모든 AI 생성 파일은 대상 서브 프로젝트 내의 `dx-agentic-dev/<session_id>/`에
+모든 AI 생성 파일은 대상 서브 프로젝트 내의 `dx-agent-dev/<session_id>/`에
 작성되어야 합니다. 생성된 코드를 기존 소스 디렉토리 (예: `src/`, `pipelines/`,
 `semseg_260323/`, 또는 사용자의 기존 코드가 포함된 디렉토리)에 직접 작성하지 마세요.
 
@@ -89,7 +89,7 @@ python dx-runtime/.deepx/scripts/feedback_collector.py --framework-only
 - **`<agent>`**: 코딩 에이전트 식별자 — `claude`, `codex`, `copilot`, `cursor`, `opencode` 중 하나를 사용하세요.
 - **`<coding_model>`**: 코딩 모델 축약명 — 예: `sonnet46`, `opus46`, `gpt53codex`, `gpt55`.
 
-- **올바름**: `dx-runtime/dx_app/dx-agentic-dev/20260413-093000_claude_opus46_plantseg_inference/demo_dxnn_sync.py`
+- **올바름**: `dx-runtime/dx_app/dx-agent-dev/20260413-093000_claude_opus46_plantseg_inference/demo_dxnn_sync.py`
 - **잘못됨**: `dx-runtime/dx_app/semseg_260323/demo_dxnn_sync.py`
 
 유일한 예외: 사용자가 명시적으로 "소스 디렉토리에 작성하라" 또는 "기존 파일을
@@ -114,8 +114,8 @@ python dx-runtime/.deepx/scripts/feedback_collector.py --framework-only
 **"ONNX 컴파일 + app 빌드"** (suite 시나리오) 작업 시, **두 개의 별도 session 디렉토리**를
 반드시 생성해야 합니다:
 
-1. **Compiler session** → `dx-compiler/dx-agentic-dev/<session_id>/`
-2. **App session** → `dx-runtime/dx_app/dx-agentic-dev/<session_id>/`
+1. **Compiler session** → `dx-compiler/dx-agent-dev/<session_id>/`
+2. **App session** → `dx-runtime/dx_app/dx-agent-dev/<session_id>/`
 
 **절대 두 가지를 단일 `dx_app/` session에 합치지 마세요.** 실패할 test assertion:
 ```python
@@ -129,8 +129,8 @@ compiler agent 문서 (`dx-compiler/CLAUDE.md`)의 R31 Session Layout HARD GATE�
 
 session ID에 `_auto_`를 사용하지 마세요. 올바른 suite session은 두 개의 별도 ID를
 생성합니다:
-- `<ts>_<agent>_<coding_model>_<target_model>_compile` in `dx-compiler/dx-agentic-dev/`
-- `<ts>_<agent>_<coding_model>_<target_model>_inference` in `dx-runtime/dx_app/dx-agentic-dev/`
+- `<ts>_<agent>_<coding_model>_<target_model>_compile` in `dx-compiler/dx-agent-dev/`
+- `<ts>_<agent>_<coding_model>_<target_model>_inference` in `dx-runtime/dx_app/dx-agent-dev/`
 
 {{FRAGMENT:no-placeholder-code}}
 
@@ -154,7 +154,7 @@ session ID에 `_auto_`를 사용하지 마세요. 올바른 suite session은 두
 ## 필수 산출물
 
 모든 컴파일 또는 앱 생성 세션은 DONE을 출력하기 전에 세션 출력 디렉토리
-(`dx-agentic-dev/<session_id>/`)에 다음 파일을 반드시 생성해야 합니다.
+(`dx-agent-dev/<session_id>/`)에 다음 파일을 반드시 생성해야 합니다.
 이것은 **모든 작업 유형**에 적용됩니다 — compiler-only, app-only, cross-project.
 
 | 파일 | 목적 | 필요 시점 |
@@ -179,7 +179,7 @@ GStreamer pipeline 코드 등)에 추가됩니다.
 compiler session 디렉토리에 존재하는지 확인하세요:
 
 ```bash
-COMPILER_SESSION="<compiler_session_dir>"   # 예: dx-compiler/dx-agentic-dev/20260430-..._compile
+COMPILER_SESSION="<compiler_session_dir>"   # 예: dx-compiler/dx-agent-dev/20260430-..._compile
 test -f "${COMPILER_SESSION}/yolo26n.dxnn" \
   || { echo "BLOCKED: yolo26n.dxnn not found — 컴파일이 아직 실행 중입니다. compile.pid가 종료될 때까지 기다리세요."; exit 1; }
 ```
@@ -347,7 +347,7 @@ timeout 방지를 위해 background 컴파일이 권장됩니다.
 
 ### dx_app 규칙 (Standalone Inference)
 
-1. **Skeleton-first 개발** — 코드를 작성하기 전에 `dx-runtime/dx_app/.deepx/skills/dx-agentic-app-build-python.md`
+1. **Skeleton-first 개발** — 코드를 작성하기 전에 `dx-runtime/dx_app/.deepx/skills/dx-agent-app-build-python.md`
    skeleton 템플릿을 읽으세요. `src/python_example/<task>/<model>/`에서 가장 유사한
    기존 예제를 복사하고 모델별 부분 (factory, postprocessor)만 수정하세요.
    데모 스크립트를 처음부터 절대 작성하지 마세요. 프레임워크를 우회하는 standalone
@@ -371,14 +371,14 @@ timeout 방지를 위해 background 컴파일이 권장됩니다.
    동일한 AI 태스크의 기존 예제를 검색하세요. 참조로 사용하세요.
 7. **DXNN 입력 형식 자동 감지** — 전처리 차원이나 형식을 절대 하드코딩하지 마세요.
    DXNN 모델은 `dx_engine`을 통해 입력 요구사항을 자체 설명합니다.
-8. **출력 격리** — 모든 생성된 코드는 `dx-agentic-dev/<session_id>/`에 넣어야 합니다.
+8. **출력 격리** — 모든 생성된 코드는 `dx-agent-dev/<session_id>/`에 넣어야 합니다.
    사용자가 명시적으로 "소스 디렉토리에 작성하라"고 말하지 않는 한, 기존 소스
    디렉토리 (예: `src/`, `semseg_260323/`, 또는 사용자의 기존 코드가 포함된
    디렉토리)에 절대 쓰지 마세요.
 
 ### dx-compiler 규칙 (모델 컴파일)
 
-1. **이전 세션 참조 금지** — 이전 agentic 세션의 결과를 절대 참조하거나 재사용하지
+1. **이전 세션 참조 금지** — 이전 agent-driven 세션의 결과를 절대 참조하거나 재사용하지
    마세요. 각 세션은 새로 시작합니다.
 2. **session.log = 실제 명령 출력** — 세션 로그는 실제 터미널 출력을 포함해야 합니다.
    직접 작성한 요약이나 `cat << 'EOF'` 블록을 절대 생성하지 마세요.

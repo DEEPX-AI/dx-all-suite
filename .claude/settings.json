@@ -9,7 +9,7 @@
     "PostToolUse": [
       {
         "matcher": "Edit|Write",
-        "hooks": [{"type": "command", "command": "bash .claude/hooks/post-edit-dx-agentic-gen.sh"}]
+        "hooks": [{"type": "command", "command": "bash .claude/hooks/post-edit-dx-agent-gen.sh"}]
       }
     ]
   }

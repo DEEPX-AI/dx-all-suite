@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 """
-Tests for agentic development guide document structure.
+Tests for agent-driven development guide document structure.
 
 Validates:
 - EN/KO guide pairs exist
@@ -170,7 +170,7 @@ class TestScenarioNumbering:
 # NOTE: a Troubleshooting section is intentionally NOT required — those tables
 # mostly covered module-external concerns (dx_app/dx_stream/compiler, NPU driver,
 # GStreamer) that belong in each module's own docs, and duplicating them in the
-# agentic-dev guides created a sync burden, so they were removed.
+# agent-driven-dev guides created a sync burden, so they were removed.
 REQUIRED_SECTION_PATTERNS_EN = [
     r"(?:overview|introduction|how it works)",  # Overview/Introduction
     r"scenario",                                  # Scenarios (section heading)

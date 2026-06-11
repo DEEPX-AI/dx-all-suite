@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Install dx-agentic-gen pre-commit hooks for the suite and its submodules.
+# Install dx-agent-gen pre-commit hooks for the suite and its submodules.
 #
 # Usage (from suite root):
 #   .deepx/tools/scripts/install-hooks.sh
@@ -31,11 +31,11 @@ install_hook() {
 
     if [ -f "$target" ]; then
         # Check if it's already our hook
-        if grep -q "dx-agentic-gen" "$target" 2>/dev/null; then
+        if grep -q "dx-agent-gen" "$target" 2>/dev/null; then
             echo "  $label: already installed (updating)"
         else
-            echo "  $label: existing pre-commit hook found, creating pre-commit.dx-agentic-gen instead"
-            target="$hooks_dir/pre-commit.dx-agentic-gen"
+            echo "  $label: existing pre-commit hook found, creating pre-commit.dx-agent-gen instead"
+            target="$hooks_dir/pre-commit.dx-agent-gen"
             echo "  NOTE: Manually add 'source $target' to your pre-commit hook"
         fi
     else
@@ -46,7 +46,7 @@ install_hook() {
     chmod +x "$target"
 }
 
-echo "Installing dx-agentic-gen pre-commit hooks..."
+echo "Installing dx-agent-gen pre-commit hooks..."
 echo ""
 
 # Resolve each repo's hooks dir via git itself so this works for plain clones,
@@ -77,5 +77,5 @@ for repo in "${REPO_PATHS[@]}"; do
 done
 
 echo ""
-echo "Done. Hooks will run dx-agentic-gen check before each commit."
+echo "Done. Hooks will run dx-agent-gen check before each commit."
 echo "Skip with: git commit --no-verify"

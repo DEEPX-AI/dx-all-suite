@@ -60,8 +60,8 @@ def _collect_all_skills() -> Dict[str, Path]:
     """Collect all skill names -> file path from .deepx/skills/ dirs.
 
     Supports two layouts:
-    - Flat .md files: .deepx/skills/dx-agentic-app-validate.md → "dx-agentic-app-validate"
-    - Subdirectories with SKILL.md: .deepx/skills/dx-agentic-app-validate/SKILL.md → "dx-agentic-app-validate"
+    - Flat .md files: .deepx/skills/dx-agent-app-validate.md → "dx-agent-app-validate"
+    - Subdirectories with SKILL.md: .deepx/skills/dx-agent-app-validate/SKILL.md → "dx-agent-app-validate"
     """
     skills: Dict[str, Path] = {}
     for name, root in PROJECT_ROOTS.items():

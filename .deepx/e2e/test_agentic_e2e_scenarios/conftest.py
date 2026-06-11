@@ -1,18 +1,18 @@
 # SPDX-License-Identifier: Apache-2.0
 """
-Shared fixtures and utilities for agentic E2E scenario tests.
+Shared fixtures and utilities for agent-driven E2E scenario tests.
 
 Provides:
 - CopilotRunnerAutopilot: subprocess wrapper for ``copilot`` (Copilot CLI, autopilot mode)
 - CursorRunnerAutopilot: subprocess wrapper for ``agent`` (Cursor CLI, autopilot mode,
   default model: claude-4.6-sonnet-medium)
-- Session auto-detection: finds new ``dx-agentic-dev/<session_id>/`` dirs
+- Session auto-detection: finds new ``dx-agent-dev/<session_id>/`` dirs
 - Verification helpers: syntax, JSON structure, pattern matching
 - ScenarioResult: dataclass holding execution outcome + output directories
 - Session-scoped fixtures for runner and output management
 
-Note: Manual (interactive) modes are handled by ``test.sh agentic-e2e-copilot-manual``
-and ``test.sh agentic-e2e-cursor-manual`` as shell-based scripts (no pytest).
+Note: Manual (interactive) modes are handled by ``test.sh agent-driven-e2e-copilot-manual``
+and ``test.sh agent-driven-e2e-cursor-manual`` as shell-based scripts (no pytest).
 
 Parallelism (pytest-xdist):
   Supports ``pytest -n <N> --dist loadscope`` for parallel execution.
@@ -119,18 +119,18 @@ from _cli_env import agent_subprocess_env  # noqa: E402
 
 
 def pytest_configure(config):
-    """Register custom markers for agentic E2E tests.
+    """Register custom markers for agent-driven E2E tests.
 
     This duplicates the registration in tests/conftest.py to suppress
     PytestUnknownMarkWarning when tests are collected from a working directory
     that doesn't traverse the parent conftest (e.g., running from tests/venv/).
     """
     markers = [
-        "agentic_e2e_copilot_cli_autopilot: Agentic E2E tests via Copilot CLI autopilot",
-        "agentic_e2e_cursor_cli_autopilot: Agentic E2E tests via Cursor CLI autopilot",
-        "agentic_e2e_opencode_cli_autopilot: Agentic E2E tests via OpenCode CLI autopilot",
-        "agentic_e2e_claude_code_autopilot: Agentic E2E tests via Claude Code CLI autopilot",
-        "agentic_e2e_codex_cli_autopilot: Agentic E2E tests via Codex CLI autopilot",
+        "agentic_e2e_copilot_cli_autopilot: Agent-Driven E2E tests via Copilot CLI autopilot",
+        "agentic_e2e_cursor_cli_autopilot: Agent-Driven E2E tests via Cursor CLI autopilot",
+        "agentic_e2e_opencode_cli_autopilot: Agent-Driven E2E tests via OpenCode CLI autopilot",
+        "agentic_e2e_claude_code_autopilot: Agent-Driven E2E tests via Claude Code CLI autopilot",
+        "agentic_e2e_codex_cli_autopilot: Agent-Driven E2E tests via Codex CLI autopilot",
     ]
     for marker in markers:
         config.addinivalue_line("markers", marker)
@@ -234,12 +234,12 @@ RUNTIME_ROOT = SUITE_ROOT / "dx-runtime"
 APP_ROOT = RUNTIME_ROOT / "dx_app"
 STREAM_ROOT = RUNTIME_ROOT / "dx_stream"
 
-# Base directories for agentic E2E test artifacts (gitignored via dx-agentic-dev/).
+# Base directories for agent-driven E2E test artifacts (gitignored via dx-agent-dev/).
 # Suite/runtime scenarios: SUITE_ROOT; sub-project scenarios: per-project roots.
-AGENTIC_E2E_ARTIFACTS_BASE = SUITE_ROOT / "dx-agentic-dev" / "e2e-tests"
-COMPILER_E2E_ARTIFACTS_BASE = COMPILER_ROOT / "dx-agentic-dev" / "e2e-tests"
-APP_E2E_ARTIFACTS_BASE = APP_ROOT / "dx-agentic-dev" / "e2e-tests"
-STREAM_E2E_ARTIFACTS_BASE = STREAM_ROOT / "dx-agentic-dev" / "e2e-tests"
+AGENTIC_E2E_ARTIFACTS_BASE = SUITE_ROOT / "dx-agent-dev" / "e2e-tests"
+COMPILER_E2E_ARTIFACTS_BASE = COMPILER_ROOT / "dx-agent-dev" / "e2e-tests"
+APP_E2E_ARTIFACTS_BASE = APP_ROOT / "dx-agent-dev" / "e2e-tests"
+STREAM_E2E_ARTIFACTS_BASE = STREAM_ROOT / "dx-agent-dev" / "e2e-tests"
 
 # ---------------------------------------------------------------------------
 # Safety-net timeouts — prevents pytest hanging if an agent process never exits
@@ -288,8 +288,8 @@ def _resolve_done_sentinel_dirs(
     """Resolve ``[DX-AGENTIC-DEV: DONE (output-dir: ...)]`` to real directories.
 
     Handles the three input shapes agents emit in practice:
-      * workdir-relative (e.g. ``dx-agentic-dev/<sid>/``)
-      * suite-root-relative (e.g. ``dx-runtime/dx_stream/dx-agentic-dev/<sid>/``)
+      * workdir-relative (e.g. ``dx-agent-dev/<sid>/``)
+      * suite-root-relative (e.g. ``dx-runtime/dx_stream/dx-agent-dev/<sid>/``)
       * multi-path cross-project (``compile_dir + app_dir``)
 
     Resolution order per path (after splitting by `` + ``):
@@ -330,7 +330,7 @@ def _resolve_done_sentinel_dirs(
 # machine can cause 3-4x slowdown vs single-agent baseline of ~600s).
 DEFAULT_COMPILE_DURATION_LIMIT = int(os.environ.get("DX_COMPILE_DURATION_LIMIT", "2400"))
 
-# Model to use for agentic E2E tests (override via env var)
+# Model to use for agent-driven E2E tests (override via env var)
 DEFAULT_COPILOT_MODEL = os.environ.get("DX_AGENTIC_E2E_MODEL", "claude-sonnet-4.6")
 
 # Extra CLI args per tool — e.g. for thinking/reasoning modes (space-separated):
@@ -392,26 +392,26 @@ def _thinking_render_kwargs(tool: str = "") -> Dict[str, object]:
 
 
 # ---------------------------------------------------------------------------
-# Session auto-detection: dx-agentic-dev/<session_id>/ discovery
+# Session auto-detection: dx-agent-dev/<session_id>/ discovery
 # ---------------------------------------------------------------------------
 
-# Each scenario may produce output in one or more dx-agentic-dev/ directories.
+# Each scenario may produce output in one or more dx-agent-dev/ directories.
 # Cross-project scenarios (suite, runtime) may route to sub-projects.
 AGENTIC_DEV_SEARCH_PATHS: Dict[str, List[Path]] = {
-    "compiler": [COMPILER_ROOT / "dx-agentic-dev"],
-    "dx_app": [APP_ROOT / "dx-agentic-dev"],
-    "dx_stream": [STREAM_ROOT / "dx-agentic-dev"],
+    "compiler": [COMPILER_ROOT / "dx-agent-dev"],
+    "dx_app": [APP_ROOT / "dx-agent-dev"],
+    "dx_stream": [STREAM_ROOT / "dx-agent-dev"],
     "runtime": [
-        RUNTIME_ROOT / "dx-agentic-dev",
-        APP_ROOT / "dx-agentic-dev",
-        STREAM_ROOT / "dx-agentic-dev",
+        RUNTIME_ROOT / "dx-agent-dev",
+        APP_ROOT / "dx-agent-dev",
+        STREAM_ROOT / "dx-agent-dev",
     ],
     "suite": [
-        SUITE_ROOT / "dx-agentic-dev",
-        COMPILER_ROOT / "dx-agentic-dev",
-        APP_ROOT / "dx-agentic-dev",
-        STREAM_ROOT / "dx-agentic-dev",
-        RUNTIME_ROOT / "dx-agentic-dev",
+        SUITE_ROOT / "dx-agent-dev",
+        COMPILER_ROOT / "dx-agent-dev",
+        APP_ROOT / "dx-agent-dev",
+        STREAM_ROOT / "dx-agent-dev",
+        RUNTIME_ROOT / "dx-agent-dev",
     ],
 }
 
@@ -550,7 +550,7 @@ def _detect_new_sessions(
     REC-W3: When *require_session_id_format* is True, only directories whose
     name matches the canonical session ID format ``YYYYMMDD-HHMMSS_*`` are
     accepted.  This prevents false positives from non-session directories that
-    happen to be created inside ``dx-agentic-dev/`` during execution — for
+    happen to be created inside ``dx-agent-dev/`` during execution — for
     example a Python venv created at the wrong level (e.g. ``.venv_<ts>_...``).
     Tools that rely only on *exclude_filters* (no *agent_filter*) should set
     this to True, since they have no name-based positive filter to guard against
@@ -584,7 +584,7 @@ def _detect_new_sessions(
 # When enabled, asserts every output_dir's session_id timestamp falls within
 # the round's execution window (subprocess start_utc minus DX_SESSION_SKEW_SEC
 # tolerance, default 60s). Catches the "agent reused a prior round's
-# dx-agentic-dev/<sid>/ dir" bug — see AGENTS.md:957 "Previous session
+# dx-agent-dev/<sid>/ dir" bug — see AGENTS.md:957 "Previous session
 # reference PROHIBITED". Disabled by default so this check can ship without
 # disrupting in-flight batches.
 
@@ -858,7 +858,7 @@ class CopilotRunnerAutopilot:
     the agent from asking questions via plain text output (which ``--no-ask-user``
     alone does not prevent — it only disables the ``ask_user`` tool call).
 
-    Output files are auto-detected in ``dx-agentic-dev/<session_id>/`` under
+    Output files are auto-detected in ``dx-agent-dev/<session_id>/`` under
     the relevant sub-project directories.  The prompt does NOT need to specify
     an output directory — copilot-instructions.md enforces Output Isolation.
 
@@ -917,18 +917,18 @@ class CopilotRunnerAutopilot:
 
         The prompt should NOT include an output directory — Copilot's
         ``copilot-instructions.md`` Output Isolation rule automatically writes
-        generated files to ``dx-agentic-dev/<session_id>/`` within the target
+        generated files to ``dx-agent-dev/<session_id>/`` within the target
         sub-project.
 
         After execution, this method auto-detects the new session directory
-        by comparing a pre-run snapshot of ``dx-agentic-dev/`` contents with
+        by comparing a pre-run snapshot of ``dx-agent-dev/`` contents with
         the post-run state.
 
         Args:
             prompt: The instruction to send to Copilot.
             workdir: Working directory (determines which copilot-instructions load).
             scenario_key: One of ``"compiler"``, ``"dx_app"``, ``"dx_stream"``,
-                ``"runtime"``, ``"suite"``.  Determines which ``dx-agentic-dev/``
+                ``"runtime"``, ``"suite"``.  Determines which ``dx-agent-dev/``
                 paths to search for output.
             session_log_dir: Directory to store the session transcript.
                 If ``None``, uses a temp directory.
@@ -950,7 +950,7 @@ class CopilotRunnerAutopilot:
 
         # Determine search paths for this scenario
         search_paths = AGENTIC_DEV_SEARCH_PATHS.get(
-            scenario_key, [workdir / "dx-agentic-dev"],
+            scenario_key, [workdir / "dx-agent-dev"],
         )
 
         # Pre-snapshot: record existing session directories
@@ -1260,7 +1260,7 @@ class CursorRunnerAutopilot:
     An autopilot directive is appended to every prompt to prevent the agent
     from asking questions via plain text output.
 
-    Output files are auto-detected in ``dx-agentic-dev/<session_id>/`` under
+    Output files are auto-detected in ``dx-agent-dev/<session_id>/`` under
     the relevant sub-project directories — same mechanism as Copilot.
 
     The ``stream-json`` output format provides structured NDJSON events that
@@ -1358,7 +1358,7 @@ class CursorRunnerAutopilot:
         effective_prompt = prompt + self.AUTOPILOT_DIRECTIVE
 
         search_paths = AGENTIC_DEV_SEARCH_PATHS.get(
-            scenario_key, [workdir / "dx-agentic-dev"],
+            scenario_key, [workdir / "dx-agent-dev"],
         )
 
         snapshot = _snapshot_sessions(search_paths)
@@ -1616,7 +1616,7 @@ class OpenCodeRunnerAutopilot:
     An autopilot directive is appended to every prompt to prevent the agent
     from asking questions via plain text output.
 
-    Output files are auto-detected in ``dx-agentic-dev/<session_id>/`` under
+    Output files are auto-detected in ``dx-agent-dev/<session_id>/`` under
     the relevant sub-project directories — same mechanism as Copilot.
 
     Usage::
@@ -1684,7 +1684,7 @@ class OpenCodeRunnerAutopilot:
         effective_prompt = prompt + self.AUTOPILOT_DIRECTIVE
 
         search_paths = AGENTIC_DEV_SEARCH_PATHS.get(
-            scenario_key, [workdir / "dx-agentic-dev"],
+            scenario_key, [workdir / "dx-agent-dev"],
         )
 
         snapshot = _snapshot_sessions(search_paths)
@@ -1988,7 +1988,7 @@ class ClaudeCodeRunnerAutopilot:
     An autopilot directive is appended to every prompt to prevent the agent
     from asking questions.
 
-    Output files are auto-detected in ``dx-agentic-dev/<session_id>/`` under
+    Output files are auto-detected in ``dx-agent-dev/<session_id>/`` under
     the relevant sub-project directories — same mechanism as Copilot.
 
     Usage::
@@ -2075,7 +2075,7 @@ class ClaudeCodeRunnerAutopilot:
         effective_prompt = prompt + self.AUTOPILOT_DIRECTIVE
 
         search_paths = AGENTIC_DEV_SEARCH_PATHS.get(
-            scenario_key, [workdir / "dx-agentic-dev"],
+            scenario_key, [workdir / "dx-agent-dev"],
         )
 
         snapshot = _snapshot_sessions(search_paths)
@@ -3034,7 +3034,7 @@ class CodexRunnerAutopilot:
     An autopilot directive is appended to every prompt to prevent the agent
     from asking questions.
 
-    Output files are auto-detected in ``dx-agentic-dev/<session_id>/`` under
+    Output files are auto-detected in ``dx-agent-dev/<session_id>/`` under
     the relevant sub-project directories — same mechanism as other runners.
 
     Usage::
@@ -3118,7 +3118,7 @@ class CodexRunnerAutopilot:
         effective_prompt = prompt + self.AUTOPILOT_DIRECTIVE
 
         search_paths = AGENTIC_DEV_SEARCH_PATHS.get(
-            scenario_key, [workdir / "dx-agentic-dev"],
+            scenario_key, [workdir / "dx-agent-dev"],
         )
 
         snapshot = _snapshot_sessions(search_paths)
@@ -3406,8 +3406,8 @@ def copilot_runner():
     Uses ``--yolo --no-ask-user -s`` flags for fully autonomous execution.
     Mode is determined by ``DX_AGENTIC_E2E_MODE`` env var (set by test.sh).
 
-    Manual modes are handled by ``test.sh agentic-e2e-copilot-manual`` and
-    ``test.sh agentic-e2e-cursor-manual`` (shell-based interactive, no pytest).
+    Manual modes are handled by ``test.sh agent-driven-e2e-copilot-manual`` and
+    ``test.sh agent-driven-e2e-cursor-manual`` (shell-based interactive, no pytest).
     """
     runner_cls = _RUNNER_CLASSES.get(AGENTIC_E2E_MODE, CopilotRunnerAutopilot)
     if not runner_cls.is_available():
@@ -3452,7 +3452,7 @@ def _register_artifacts_dir(request, key: str, artifacts_dir: "Path") -> None:
 def pytest_sessionfinish(session, exitstatus):
     """Create a consolidated results directory after all tests complete.
 
-    Generates ``dx-agentic-dev/e2e-tests/results/<session_id>/`` containing:
+    Generates ``dx-agent-dev/e2e-tests/results/<session_id>/`` containing:
     - Symlinks to each per-scenario artifacts directory
     - ``manifest.json`` with all artifacts locations and test results
     - ``SUMMARY.md`` for quick human review
@@ -3653,7 +3653,7 @@ def _make_artifacts_dir_fixture(tool: str, mode: str, base: Path = None):
 def copilot_cli_artifacts_dir(request):
     """Session-scoped artifacts dir for Copilot CLI autopilot runs.
 
-    Path: ``dx-agentic-dev/e2e-tests/copilot_cli/autopilot/<session_id>/``
+    Path: ``dx-agent-dev/e2e-tests/copilot_cli/autopilot/<session_id>/``
 
     T3: Suite and runtime use separate directories to prevent artifact collision.
     """
@@ -3677,7 +3677,7 @@ def copilot_cli_artifacts_dir(request):
 def cursor_cli_artifacts_dir(request):
     """Session-scoped artifacts dir for Cursor CLI autopilot runs.
 
-    Path: ``dx-agentic-dev/e2e-tests/cursor_cli/autopilot/<session_id>/``
+    Path: ``dx-agent-dev/e2e-tests/cursor_cli/autopilot/<session_id>/``
 
     T3: Suite and runtime use separate directories to prevent artifact collision.
     """
@@ -3759,7 +3759,7 @@ def codex_runner():
 def opencode_artifacts_dir(request):
     """Session-scoped artifacts dir for OpenCode autopilot runs.
 
-    Path: ``dx-agentic-dev/e2e-tests/opencode/autopilot/<session_id>/``
+    Path: ``dx-agent-dev/e2e-tests/opencode/autopilot/<session_id>/``
 
     T3: Suite and runtime use separate directories to prevent artifact collision.
     """
@@ -3783,7 +3783,7 @@ def opencode_artifacts_dir(request):
 def claude_code_artifacts_dir(request):
     """Session-scoped artifacts dir for Claude Code autopilot runs.
 
-    Path: ``dx-agentic-dev/e2e-tests/claude_code/autopilot/<session_id>/``
+    Path: ``dx-agent-dev/e2e-tests/claude_code/autopilot/<session_id>/``
 
     T3: Suite and runtime use separate directories to prevent artifact collision.
     """
@@ -3807,7 +3807,7 @@ def claude_code_artifacts_dir(request):
 def codex_cli_artifacts_dir(request):
     """Session-scoped artifacts dir for Codex CLI autopilot runs.
 
-    Path: ``dx-agentic-dev/e2e-tests/codex_cli/autopilot/<session_id>/``
+    Path: ``dx-agent-dev/e2e-tests/codex_cli/autopilot/<session_id>/``
 
     T3: Suite and runtime use separate directories to prevent artifact collision.
     """
@@ -3874,7 +3874,7 @@ def agentic_e2e_artifacts_dir(copilot_cli_artifacts_dir):
 # ---------------------------------------------------------------------------
 # Per-project artifacts dir fixtures
 # Route each sub-project's test artifacts into that project's own
-# dx-agentic-dev/e2e-tests/<tool>/<mode>/<session_id>/ directory so the
+# dx-agent-dev/e2e-tests/<tool>/<mode>/<session_id>/ directory so the
 # hierarchy mirrors the manual-mode layout used by test.sh.
 # ---------------------------------------------------------------------------
 
@@ -3882,7 +3882,7 @@ def agentic_e2e_artifacts_dir(copilot_cli_artifacts_dir):
 
 @pytest.fixture(scope="session")
 def compiler_copilot_cli_artifacts_dir(request):
-    """Path: dx-compiler/dx-agentic-dev/e2e-tests/copilot_cli/autopilot/<session_id>/"""
+    """Path: dx-compiler/dx-agent-dev/e2e-tests/copilot_cli/autopilot/<session_id>/"""
     session_id = time.strftime("%Y%m%d_%H%M%S") + f"_{uuid.uuid4().hex[:6]}"
     artifacts_dir = COMPILER_E2E_ARTIFACTS_BASE / "copilot_cli" / "autopilot" / session_id
     artifacts_dir.mkdir(parents=True, exist_ok=True)
@@ -3894,7 +3894,7 @@ def compiler_copilot_cli_artifacts_dir(request):
 
 @pytest.fixture(scope="session")
 def compiler_cursor_cli_artifacts_dir(request):
-    """Path: dx-compiler/dx-agentic-dev/e2e-tests/cursor_cli/autopilot/<session_id>/"""
+    """Path: dx-compiler/dx-agent-dev/e2e-tests/cursor_cli/autopilot/<session_id>/"""
     session_id = time.strftime("%Y%m%d_%H%M%S") + f"_{uuid.uuid4().hex[:6]}"
     artifacts_dir = COMPILER_E2E_ARTIFACTS_BASE / "cursor_cli" / "autopilot" / session_id
     artifacts_dir.mkdir(parents=True, exist_ok=True)
@@ -3906,7 +3906,7 @@ def compiler_cursor_cli_artifacts_dir(request):
 
 @pytest.fixture(scope="session")
 def compiler_opencode_artifacts_dir(request):
-    """Path: dx-compiler/dx-agentic-dev/e2e-tests/opencode/autopilot/<session_id>/"""
+    """Path: dx-compiler/dx-agent-dev/e2e-tests/opencode/autopilot/<session_id>/"""
     session_id = time.strftime("%Y%m%d_%H%M%S") + f"_{uuid.uuid4().hex[:6]}"
     artifacts_dir = COMPILER_E2E_ARTIFACTS_BASE / "opencode" / "autopilot" / session_id
     artifacts_dir.mkdir(parents=True, exist_ok=True)
@@ -3918,7 +3918,7 @@ def compiler_opencode_artifacts_dir(request):
 
 @pytest.fixture(scope="session")
 def compiler_claude_code_artifacts_dir(request):
-    """Path: dx-compiler/dx-agentic-dev/e2e-tests/claude_code/autopilot/<session_id>/"""
+    """Path: dx-compiler/dx-agent-dev/e2e-tests/claude_code/autopilot/<session_id>/"""
     session_id = time.strftime("%Y%m%d_%H%M%S") + f"_{uuid.uuid4().hex[:6]}"
     artifacts_dir = COMPILER_E2E_ARTIFACTS_BASE / "claude_code" / "autopilot" / session_id
     artifacts_dir.mkdir(parents=True, exist_ok=True)
@@ -3930,7 +3930,7 @@ def compiler_claude_code_artifacts_dir(request):
 
 @pytest.fixture(scope="session")
 def compiler_codex_cli_artifacts_dir(request):
-    """Path: dx-compiler/dx-agentic-dev/e2e-tests/codex_cli/autopilot/<session_id>/"""
+    """Path: dx-compiler/dx-agent-dev/e2e-tests/codex_cli/autopilot/<session_id>/"""
     session_id = time.strftime("%Y%m%d_%H%M%S") + f"_{uuid.uuid4().hex[:6]}"
     artifacts_dir = COMPILER_E2E_ARTIFACTS_BASE / "codex_cli" / "autopilot" / session_id
     artifacts_dir.mkdir(parents=True, exist_ok=True)
@@ -3944,7 +3944,7 @@ def compiler_codex_cli_artifacts_dir(request):
 
 @pytest.fixture(scope="session")
 def app_copilot_cli_artifacts_dir(request):
-    """Path: dx-runtime/dx_app/dx-agentic-dev/e2e-tests/copilot_cli/autopilot/<session_id>/"""
+    """Path: dx-runtime/dx_app/dx-agent-dev/e2e-tests/copilot_cli/autopilot/<session_id>/"""
     session_id = time.strftime("%Y%m%d_%H%M%S") + f"_{uuid.uuid4().hex[:6]}"
     artifacts_dir = APP_E2E_ARTIFACTS_BASE / "copilot_cli" / "autopilot" / session_id
     artifacts_dir.mkdir(parents=True, exist_ok=True)
@@ -3956,7 +3956,7 @@ def app_copilot_cli_artifacts_dir(request):
 
 @pytest.fixture(scope="session")
 def app_cursor_cli_artifacts_dir(request):
-    """Path: dx-runtime/dx_app/dx-agentic-dev/e2e-tests/cursor_cli/autopilot/<session_id>/"""
+    """Path: dx-runtime/dx_app/dx-agent-dev/e2e-tests/cursor_cli/autopilot/<session_id>/"""
     session_id = time.strftime("%Y%m%d_%H%M%S") + f"_{uuid.uuid4().hex[:6]}"
     artifacts_dir = APP_E2E_ARTIFACTS_BASE / "cursor_cli" / "autopilot" / session_id
     artifacts_dir.mkdir(parents=True, exist_ok=True)
@@ -3968,7 +3968,7 @@ def app_cursor_cli_artifacts_dir(request):
 
 @pytest.fixture(scope="session")
 def app_opencode_artifacts_dir(request):
-    """Path: dx-runtime/dx_app/dx-agentic-dev/e2e-tests/opencode/autopilot/<session_id>/"""
+    """Path: dx-runtime/dx_app/dx-agent-dev/e2e-tests/opencode/autopilot/<session_id>/"""
     session_id = time.strftime("%Y%m%d_%H%M%S") + f"_{uuid.uuid4().hex[:6]}"
     artifacts_dir = APP_E2E_ARTIFACTS_BASE / "opencode" / "autopilot" / session_id
     artifacts_dir.mkdir(parents=True, exist_ok=True)
@@ -3980,7 +3980,7 @@ def app_opencode_artifacts_dir(request):
 
 @pytest.fixture(scope="session")
 def app_claude_code_artifacts_dir(request):
-    """Path: dx-runtime/dx_app/dx-agentic-dev/e2e-tests/claude_code/autopilot/<session_id>/"""
+    """Path: dx-runtime/dx_app/dx-agent-dev/e2e-tests/claude_code/autopilot/<session_id>/"""
     session_id = time.strftime("%Y%m%d_%H%M%S") + f"_{uuid.uuid4().hex[:6]}"
     artifacts_dir = APP_E2E_ARTIFACTS_BASE / "claude_code" / "autopilot" / session_id
     artifacts_dir.mkdir(parents=True, exist_ok=True)
@@ -3992,7 +3992,7 @@ def app_claude_code_artifacts_dir(request):
 
 @pytest.fixture(scope="session")
 def app_codex_cli_artifacts_dir(request):
-    """Path: dx-runtime/dx_app/dx-agentic-dev/e2e-tests/codex_cli/autopilot/<session_id>/"""
+    """Path: dx-runtime/dx_app/dx-agent-dev/e2e-tests/codex_cli/autopilot/<session_id>/"""
     session_id = time.strftime("%Y%m%d_%H%M%S") + f"_{uuid.uuid4().hex[:6]}"
     artifacts_dir = APP_E2E_ARTIFACTS_BASE / "codex_cli" / "autopilot" / session_id
     artifacts_dir.mkdir(parents=True, exist_ok=True)
@@ -4006,7 +4006,7 @@ def app_codex_cli_artifacts_dir(request):
 
 @pytest.fixture(scope="session")
 def stream_copilot_cli_artifacts_dir(request):
-    """Path: dx-runtime/dx_stream/dx-agentic-dev/e2e-tests/copilot_cli/autopilot/<session_id>/"""
+    """Path: dx-runtime/dx_stream/dx-agent-dev/e2e-tests/copilot_cli/autopilot/<session_id>/"""
     session_id = time.strftime("%Y%m%d_%H%M%S") + f"_{uuid.uuid4().hex[:6]}"
     artifacts_dir = STREAM_E2E_ARTIFACTS_BASE / "copilot_cli" / "autopilot" / session_id
     artifacts_dir.mkdir(parents=True, exist_ok=True)
@@ -4018,7 +4018,7 @@ def stream_copilot_cli_artifacts_dir(request):
 
 @pytest.fixture(scope="session")
 def stream_cursor_cli_artifacts_dir(request):
-    """Path: dx-runtime/dx_stream/dx-agentic-dev/e2e-tests/cursor_cli/autopilot/<session_id>/"""
+    """Path: dx-runtime/dx_stream/dx-agent-dev/e2e-tests/cursor_cli/autopilot/<session_id>/"""
     session_id = time.strftime("%Y%m%d_%H%M%S") + f"_{uuid.uuid4().hex[:6]}"
     artifacts_dir = STREAM_E2E_ARTIFACTS_BASE / "cursor_cli" / "autopilot" / session_id
     artifacts_dir.mkdir(parents=True, exist_ok=True)
@@ -4030,7 +4030,7 @@ def stream_cursor_cli_artifacts_dir(request):
 
 @pytest.fixture(scope="session")
 def stream_opencode_artifacts_dir(request):
-    """Path: dx-runtime/dx_stream/dx-agentic-dev/e2e-tests/opencode/autopilot/<session_id>/"""
+    """Path: dx-runtime/dx_stream/dx-agent-dev/e2e-tests/opencode/autopilot/<session_id>/"""
     session_id = time.strftime("%Y%m%d_%H%M%S") + f"_{uuid.uuid4().hex[:6]}"
     artifacts_dir = STREAM_E2E_ARTIFACTS_BASE / "opencode" / "autopilot" / session_id
     artifacts_dir.mkdir(parents=True, exist_ok=True)
@@ -4042,7 +4042,7 @@ def stream_opencode_artifacts_dir(request):
 
 @pytest.fixture(scope="session")
 def stream_claude_code_artifacts_dir(request):
-    """Path: dx-runtime/dx_stream/dx-agentic-dev/e2e-tests/claude_code/autopilot/<session_id>/"""
+    """Path: dx-runtime/dx_stream/dx-agent-dev/e2e-tests/claude_code/autopilot/<session_id>/"""
     session_id = time.strftime("%Y%m%d_%H%M%S") + f"_{uuid.uuid4().hex[:6]}"
     artifacts_dir = STREAM_E2E_ARTIFACTS_BASE / "claude_code" / "autopilot" / session_id
     artifacts_dir.mkdir(parents=True, exist_ok=True)
@@ -4054,7 +4054,7 @@ def stream_claude_code_artifacts_dir(request):
 
 @pytest.fixture(scope="session")
 def stream_codex_cli_artifacts_dir(request):
-    """Path: dx-runtime/dx_stream/dx-agentic-dev/e2e-tests/codex_cli/autopilot/<session_id>/"""
+    """Path: dx-runtime/dx_stream/dx-agent-dev/e2e-tests/codex_cli/autopilot/<session_id>/"""
     session_id = time.strftime("%Y%m%d_%H%M%S") + f"_{uuid.uuid4().hex[:6]}"
     artifacts_dir = STREAM_E2E_ARTIFACTS_BASE / "codex_cli" / "autopilot" / session_id
     artifacts_dir.mkdir(parents=True, exist_ok=True)
@@ -4070,7 +4070,7 @@ def stream_codex_cli_artifacts_dir(request):
 def stream_copilot_cascaded_artifacts_dir(request):
     """Cascaded scenario artifacts dir for Copilot CLI.
 
-    Path: dx-runtime/dx_stream/dx-agentic-dev/e2e-tests/copilot_cli/autopilot_cascaded/<session_id>/
+    Path: dx-runtime/dx_stream/dx-agent-dev/e2e-tests/copilot_cli/autopilot_cascaded/<session_id>/
     """
     session_id = time.strftime("%Y%m%d_%H%M%S") + f"_{uuid.uuid4().hex[:6]}"
     artifacts_dir = STREAM_E2E_ARTIFACTS_BASE / "copilot_cli" / "autopilot_cascaded" / session_id
@@ -4085,7 +4085,7 @@ def stream_copilot_cascaded_artifacts_dir(request):
 def stream_cursor_cascaded_artifacts_dir(request):
     """Cascaded scenario artifacts dir for Cursor CLI.
 
-    Path: dx-runtime/dx_stream/dx-agentic-dev/e2e-tests/cursor_cli/autopilot_cascaded/<session_id>/
+    Path: dx-runtime/dx_stream/dx-agent-dev/e2e-tests/cursor_cli/autopilot_cascaded/<session_id>/
     """
     session_id = time.strftime("%Y%m%d_%H%M%S") + f"_{uuid.uuid4().hex[:6]}"
     artifacts_dir = STREAM_E2E_ARTIFACTS_BASE / "cursor_cli" / "autopilot_cascaded" / session_id
@@ -4100,7 +4100,7 @@ def stream_cursor_cascaded_artifacts_dir(request):
 def stream_opencode_cascaded_artifacts_dir(request):
     """Cascaded scenario artifacts dir for OpenCode.
 
-    Path: dx-runtime/dx_stream/dx-agentic-dev/e2e-tests/opencode/autopilot_cascaded/<session_id>/
+    Path: dx-runtime/dx_stream/dx-agent-dev/e2e-tests/opencode/autopilot_cascaded/<session_id>/
     """
     session_id = time.strftime("%Y%m%d_%H%M%S") + f"_{uuid.uuid4().hex[:6]}"
     artifacts_dir = STREAM_E2E_ARTIFACTS_BASE / "opencode" / "autopilot_cascaded" / session_id
@@ -4115,7 +4115,7 @@ def stream_opencode_cascaded_artifacts_dir(request):
 def stream_claude_code_cascaded_artifacts_dir(request):
     """Cascaded scenario artifacts dir for Claude Code.
 
-    Path: dx-runtime/dx_stream/dx-agentic-dev/e2e-tests/claude_code/autopilot_cascaded/<session_id>/
+    Path: dx-runtime/dx_stream/dx-agent-dev/e2e-tests/claude_code/autopilot_cascaded/<session_id>/
     """
     session_id = time.strftime("%Y%m%d_%H%M%S") + f"_{uuid.uuid4().hex[:6]}"
     artifacts_dir = STREAM_E2E_ARTIFACTS_BASE / "claude_code" / "autopilot_cascaded" / session_id
@@ -4130,7 +4130,7 @@ def stream_claude_code_cascaded_artifacts_dir(request):
 def stream_codex_cascaded_artifacts_dir(request):
     """Cascaded scenario artifacts dir for Codex CLI.
 
-    Path: dx-runtime/dx_stream/dx-agentic-dev/e2e-tests/codex_cli/autopilot_cascaded/<session_id>/
+    Path: dx-runtime/dx_stream/dx-agent-dev/e2e-tests/codex_cli/autopilot_cascaded/<session_id>/
     """
     session_id = time.strftime("%Y%m%d_%H%M%S") + f"_{uuid.uuid4().hex[:6]}"
     artifacts_dir = STREAM_E2E_ARTIFACTS_BASE / "codex_cli" / "autopilot_cascaded" / session_id

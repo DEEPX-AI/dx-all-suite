@@ -18,10 +18,10 @@
   <p><strong>Figure. DXNN SDK Simple Architecture Overview.</strong></p>
 </div>
 
-## ✨ Build NPU Apps with Natural Language — dx-agentic-dev (Beta)
+## ✨ Build NPU Apps with Natural Language — dx-agent-dev (Beta)
 
 <!-- dx-showcase:docs:cardgrid:start -->
-**`dx-agentic-dev` (Beta) is here.** Describe the app or model task in plain language and an AI coding agent — Claude Code, Cursor, GitHub Copilot, OpenCode, or Codex — drives the DEEPX knowledge base end to end: brainstorm → plan → TDD → verify, from ONNX/`.pt` compilation to on-device DX-M1 NPU deployment. It is agentic development purpose-built for DEEPX NPUs in the **Ultralytics** model ecosystem, and every showcase below was produced this way — checked in with its prompt, measured results, and full build transcript.
+**`dx-agent-dev` (Beta) is here.** Describe the app or model task in plain language and an AI coding agent — Claude Code, Cursor, GitHub Copilot, OpenCode, or Codex — drives the DEEPX knowledge base end to end: brainstorm → plan → TDD → verify, from ONNX/`.pt` compilation to on-device DX-M1 NPU deployment. It is agent-driven development purpose-built for DEEPX NPUs in the **Ultralytics** model ecosystem, and every showcase below was produced this way — checked in with its prompt, measured results, and full build transcript.
 
 #### NPU-powered AI apps (mini-games)
 
@@ -29,8 +29,8 @@
 
 <table>
 <tr>
- <td width="50%" align="center"><a href="dx-agentic-dev-showcase/squat-fitness-mini-game/README.md"><img src="./docs/source/img/dx-agentic-dev-squat-gameplay.gif" height="150"></a><br><b>Squat-Counting Mini-Game</b><br><sub>rep-counting fitness on NPU</sub></td>
- <td width="50%" align="center"><a href="dx-agentic-dev-showcase/stretching-coach-mini-game/README.md"><img src="./docs/source/img/dx-agentic-dev-stretch-gameplay.gif" height="150"></a><br><b>Stretching Coach Mini-Game</b><br><sub>pose-guided arcade coach</sub></td>
+ <td width="50%" align="center"><a href="dx-agent-dev-showcase/squat-fitness-mini-game/README.md"><img src="./docs/source/img/dx-agent-dev-squat-gameplay.gif" height="150"></a><br><b>Squat-Counting Mini-Game</b><br><sub>rep-counting fitness on NPU</sub></td>
+ <td width="50%" align="center"><a href="dx-agent-dev-showcase/stretching-coach-mini-game/README.md"><img src="./docs/source/img/dx-agent-dev-stretch-gameplay.gif" height="150"></a><br><b>Stretching Coach Mini-Game</b><br><sub>pose-guided arcade coach</sub></td>
 </tr>
 </table>
 
@@ -40,22 +40,22 @@
 
 <table>
 <tr>
- <td width="50%" align="center"><a href="dx-agentic-dev-showcase/ultralytics-yolo-deepx-export/README.md"><video height="150" autoplay muted loop playsinline poster="./docs/source/img/dx-agentic-dev-ultralytics-yolo-poster.jpg"><source src="./docs/source/img/dx-agentic-dev-ultralytics-yolo.mp4" type="video/mp4"><img src="./docs/source/img/dx-agentic-dev-ultralytics-yolo-poster.jpg" height="150"></video></a><br><b>Ultralytics YOLO → DeepX Export</b><br><sub>one-command format=deepx</sub></td>
- <td width="50%" align="center"><a href="dx-agentic-dev-showcase/ultralytics-yolo-deepx-export/README.md"><img src="./docs/source/img/dx-agentic-dev-ultralytics-build.gif" height="150"></a><br><sub><b>build capture (timelapse)</b></sub></td>
+ <td width="50%" align="center"><a href="dx-agent-dev-showcase/ultralytics-yolo-deepx-export/README.md"><video height="150" autoplay muted loop playsinline poster="./docs/source/img/dx-agent-dev-ultralytics-yolo-poster.jpg"><source src="./docs/source/img/dx-agent-dev-ultralytics-yolo.mp4" type="video/mp4"><img src="./docs/source/img/dx-agent-dev-ultralytics-yolo-poster.jpg" height="150"></video></a><br><b>Ultralytics YOLO → DeepX Export</b><br><sub>one-command format=deepx</sub></td>
+ <td width="50%" align="center"><a href="dx-agent-dev-showcase/ultralytics-yolo-deepx-export/README.md"><img src="./docs/source/img/dx-agent-dev-ultralytics-build.gif" height="150"></a><br><sub><b>build capture (timelapse)</b></sub></td>
 </tr>
 <tr>
- <td width="50%" align="center"><a href="dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-wildlife/README.md"><img src="./docs/source/img/dx-agentic-dev-ultralytics-wildlife-sample.jpg" height="150"></a><br><b>African Wildlife Monitoring</b><br><sub>safari camera retrain</sub></td>
- <td width="50%" align="center"><a href="dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-ppe/README.md"><img src="./docs/source/img/dx-agentic-dev-ultralytics-ppe-sample.jpg" height="150"></a><br><b>Construction PPE Safety</b><br><sub>site-safety camera retrain</sub></td>
+ <td width="50%" align="center"><a href="dx-agent-dev-showcase/ultralytics-retrain-eval-deepx-export-wildlife/README.md"><img src="./docs/source/img/dx-agent-dev-ultralytics-wildlife-sample.jpg" height="150"></a><br><b>African Wildlife Monitoring</b><br><sub>safari camera retrain</sub></td>
+ <td width="50%" align="center"><a href="dx-agent-dev-showcase/ultralytics-retrain-eval-deepx-export-ppe/README.md"><img src="./docs/source/img/dx-agent-dev-ultralytics-ppe-sample.jpg" height="150"></a><br><b>Construction PPE Safety</b><br><sub>site-safety camera retrain</sub></td>
 </tr>
 <tr>
- <td width="50%" align="center"><a href="dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-braintumor/README.md"><img src="./docs/source/img/dx-agentic-dev-ultralytics-braintumor-sample.jpg" height="150"></a><br><b>Brain-Tumor Screening</b><br><sub>medical edge retrain</sub></td>
- <td width="50%" align="center"><a href="dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-pills/README.md"><img src="./docs/source/img/dx-agentic-dev-ultralytics-pills-sample.jpg" height="150"></a><br><b>Pharmaceutical Pill Inspection</b><br><sub>pharma counting retrain</sub></td>
+ <td width="50%" align="center"><a href="dx-agent-dev-showcase/ultralytics-retrain-eval-deepx-export-braintumor/README.md"><img src="./docs/source/img/dx-agent-dev-ultralytics-braintumor-sample.jpg" height="150"></a><br><b>Brain-Tumor Screening</b><br><sub>medical edge retrain</sub></td>
+ <td width="50%" align="center"><a href="dx-agent-dev-showcase/ultralytics-retrain-eval-deepx-export-pills/README.md"><img src="./docs/source/img/dx-agent-dev-ultralytics-pills-sample.jpg" height="150"></a><br><b>Pharmaceutical Pill Inspection</b><br><sub>pharma counting retrain</sub></td>
 </tr>
 </table>
 
 #### PaddlePaddle ecosystem integration — _Coming soon._
 
-**All showcases + summaries →** [`dx-agentic-dev-showcase/README.md`](./dx-agentic-dev-showcase/README.md)  ·  **About the feature →** [Agentic Development docs](./docs/source/00_Agentic_Development.md)
+**All showcases + summaries →** [`dx-agent-dev-showcase/README.md`](./dx-agent-dev-showcase/README.md)  ·  **About the feature →** [Agent-Driven Development docs](./docs/source/00_Agentic_Development.md)
 <!-- dx-showcase:docs:cardgrid:end -->
 
 ## Getting Started
@@ -107,7 +107,7 @@ DX-AllSuite supports a vast array of industry-standard AI architectures, optimiz
 
 If you are a first-time user, we recommend following the documentation in this order.  
 
-- **★ [Agentic Development (Beta)](./docs/source/00_Agentic_Development.md)**: Build DEEPX apps with natural-language prompts using AI coding agents (Claude Code, Cursor, GitHub Copilot, OpenCode, Codex CLI)  
+- **★ [Agent-Driven Development (Beta)](./docs/source/00_Agentic_Development.md)**: Build DEEPX apps with natural-language prompts using AI coding agents (Claude Code, Cursor, GitHub Copilot, OpenCode, Codex CLI)  
 - **Step 1. [DX-AllSuite Architecture Overview](./docs/source/01_DX-AllSuite_Architecture_Overview.md)**: SDK overview, module descriptions, and ModelZoo usage  
 - **Step 2. [Setting Up Environment](./docs/source/02_Setting_Up_Environment.md)**: Detailed Local/Docker installation and troubleshooting  
 - **Step 3. [Running Your First NPU Model](./docs/source/03_Running_Your_First_NPU_Model.md)**: Step-by-step hands-on script execution  

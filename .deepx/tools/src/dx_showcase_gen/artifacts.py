@@ -20,7 +20,7 @@ NONPORTABLE = [
     re.compile(r"/tmp/"),
     re.compile(r"/data/home/"),
     re.compile(r"/home/\w+/"),
-    re.compile(r"dx-agentic-dev/\d{8}-\d{6}_"),   # a specific session dir
+    re.compile(r"dx-agent-dev/\d{8}-\d{6}_"),   # a specific session dir
 ]
 
 

@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 """
-Agentic E2E Test: dx_stream Scenario #1 — Build a Detection Pipeline with Tracking
+Agent-Driven E2E Test: dx_stream Scenario #1 — Build a Detection Pipeline with Tracking
 
 Runs Copilot CLI inside dx_stream/ with a prompt requesting a detection
 pipeline using yolo26n with tracking on an RTSP camera.  Verifies that the
@@ -382,7 +382,7 @@ class TestCodeQuality:
 class TestMandatoryArtifacts:
     """Verify mandatory deliverable files exist in session directory.
 
-    Phase 11c: The File Creation Checklist in dx-agentic-stream-build-pipeline.md
+    Phase 11c: The File Creation Checklist in dx-agent-stream-build-pipeline.md
     is a MANDATORY HARD-GATE. All four files MUST be present.
     """
 
@@ -400,7 +400,7 @@ class TestMandatoryArtifacts:
             f"No session.json found.\n"
             f"Search dirs: {scenario.output_dirs}\n"
             f"All files: {[f.name for f in scenario.all_generated_files]}\n"
-            "The agent MUST generate session.json (HARD-GATE in dx-agentic-stream-build-pipeline.md)."
+            "The agent MUST generate session.json (HARD-GATE in dx-agent-stream-build-pipeline.md)."
         )
 
     def test_session_json_structure(self, scenario: ScenarioResult):
@@ -457,7 +457,7 @@ class TestMandatoryArtifacts:
             f"No README.md found.\n"
             f"Search dirs: {scenario.output_dirs}\n"
             f"All files: {[f.name for f in scenario.all_generated_files]}\n"
-            "The agent MUST generate README.md (HARD-GATE in dx-agentic-stream-build-pipeline.md)."
+            "The agent MUST generate README.md (HARD-GATE in dx-agent-stream-build-pipeline.md)."
         )
 
     def test_readme_has_run_instructions(self, scenario: ScenarioResult):
@@ -524,7 +524,7 @@ class TestMandatoryArtifacts:
             f"No run_*.sh script found.\n"
             f"Search dirs: {scenario.output_dirs}\n"
             f"All files: {[f.name for f in scenario.all_generated_files]}\n"
-            "The agent MUST generate run_<app>.sh (HARD-GATE in dx-agentic-stream-build-pipeline.md)."
+            "The agent MUST generate run_<app>.sh (HARD-GATE in dx-agent-stream-build-pipeline.md)."
         )
 
     def test_run_script_is_executable_or_has_shebang(self, scenario: ScenarioResult):
@@ -564,7 +564,7 @@ class TestMandatoryArtifacts:
             f"No pipeline Python file found.\n"
             f"Search dirs: {scenario.output_dirs}\n"
             f"Python files: {[f.name for f in scenario.generated_py_files]}\n"
-            "The agent MUST generate pipeline.py (HARD-GATE in dx-agentic-stream-build-pipeline.md)."
+            "The agent MUST generate pipeline.py (HARD-GATE in dx-agent-stream-build-pipeline.md)."
         )
 
     def test_session_json_model_is_dx_model(self, scenario: ScenarioResult):
@@ -623,7 +623,7 @@ class TestMandatoryArtifacts:
         assert len(setup_scripts) > 0, (
             f"No setup.sh found.\n"
             f"All files: {[f.name for f in scenario.all_generated_files]}\n"
-            "The agent MUST generate setup.sh (HARD-GATE in dx-agentic-stream-build-pipeline.md)."
+            "The agent MUST generate setup.sh (HARD-GATE in dx-agent-stream-build-pipeline.md)."
         )
 
     def test_session_id_has_agent_identifier(self, scenario: ScenarioResult):

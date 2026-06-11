@@ -6,7 +6,7 @@ description: 'Internal harness development: validate .deepx/ framework integrity
 
 <!-- AUTO-GENERATED from .deepx/ — DO NOT EDIT DIRECTLY -->
 <!-- Source: .deepx/skills/dx-harness-validate/SKILL.md -->
-<!-- Run: dx-agentic-gen generate -->
+<!-- Run: dx-agent-gen generate -->
 
 # Internal Validate — Suite-Wide Framework Validation
 
@@ -85,17 +85,17 @@ After any `.deepx/` edit, always run:
 
 ```bash
 # Propagate changes
-dx-agentic-gen generate
+dx-agent-gen generate
 # or suite-wide:
 bash .deepx/tools/scripts/run_all.sh generate
 
 # Verify no drift
-dx-agentic-gen check
+dx-agent-gen check
 ```
 
 ## When to Use
 
 - After modifying any file under `**/.deepx/**`
-- After running `dx-agentic-gen generate`
+- After running `dx-agent-gen generate`
 - During the SWE Process Gates "Verification Loop" step
 - Before claiming internal development work is complete

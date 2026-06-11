@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Shared environment-failure detection for the agentic E2E pipeline (PR2).
+"""Shared environment-failure detection for the agent-driven E2E pipeline (PR2).
 
 Single source of truth used by BOTH:
   - the analyzer (skip_analyzer.is_env_failure_eval) to exclude env-failed

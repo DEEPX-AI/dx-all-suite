@@ -1,14 +1,14 @@
-# `.deepx/tools/` — DEEPX Agentic Development Generator
+# `.deepx/tools/` — DEEPX Agent-Driven Development Generator
 
 > `.deepx/` 정본(canonical) 소스를 Claude Code, GitHub Copilot, Cursor, OpenCode용
-> 플랫폼별 파일로 변환하는 `dx-agentic-gen` Python CLI로, dx-all-suite의 5개
+> 플랫폼별 파일로 변환하는 `dx-agent-gen` Python CLI로, dx-all-suite의 5개
 > 저장소 전체에 걸쳐 동작한다.
 
 ---
 
 ## 1. 개요
 
-`dx-agentic-gen`은 generator 경계 아래의 모든 작업을 책임지는 **단일 도구**이다:
+`dx-agent-gen`은 generator 경계 아래의 모든 작업을 책임지는 **단일 도구**이다:
 
 - `.deepx/agents/` 와 `.deepx/skills/` 에서 agent/skill 읽기
 - fragment 플레이스홀더(`{{FRAGMENT:<name>}}`)를
@@ -28,9 +28,9 @@
 ├── README-KO.md                   ← 한국어 번역
 ├── pyproject.toml                 ← 패키지 정의; `packages.find where=["src"]`가 두 패키지 모두 발견
 ├── src/
-│   ├── dx_agentic_dev_gen/        ← 제너레이터 패키지
+│   ├── dx_agent_dev_gen/        ← 제너레이터 패키지
 │   │   ├── __init__.py
-│   │   ├── cli.py                 ← `dx-agentic-gen` 엔트리포인트
+│   │   ├── cli.py                 ← `dx-agent-gen` 엔트리포인트
 │   │   ├── generator.py           ← 핵심 generate/check/lint/prune 오케스트레이션
 │   │   ├── transformers.py        ← 플랫폼별 출력 transformer
 │   │   ├── frontmatter.py         ← YAML frontmatter 처리
@@ -41,7 +41,7 @@
 │       ├── generate_transcripts.py ← DONE-라인 transcript 렌더러 (session sentinel이 실행)
 │       └── backfill_claude_html.py
 ├── tests/                         ← src/ 미러 — 도구별 테스트를 패키지 옆에
-│   ├── dx_agentic_dev_gen/        ← test_generator.py, test_generator_lint.py
+│   ├── dx_agent_dev_gen/        ← test_generator.py, test_generator_lint.py
 │   └── dx_transcripts/            ← test_parse_*, test_generate_transcripts
 └── scripts/                       ← 운영 스크립트 (scripts/README.md 참조)
     ├── run_all.sh
@@ -50,7 +50,7 @@
     └── run-e2e-improvement-loop.sh
 ```
 
-> **워크스페이스에 패키지 2개.** `dx_agentic_dev_gen`은 제너레이터, `dx_transcripts`는
+> **워크스페이스에 패키지 2개.** `dx_agent_dev_gen`은 제너레이터, `dx_transcripts`는
 > session-sentinel DONE-라인 생성·e2e 하니스(`.deepx/e2e/`)·analyzer가 공유하는
 > 세션 파싱/transcript 라이브러리. 둘 다 `packages.find where=["src"]`로 발견되고,
 > 테스트는 `tools/tests/<package>/`가 `tools/src/<package>/`를 미러합니다.
@@ -60,14 +60,14 @@
 ## 3. 모듈 책임
 
 ### `cli.py`
-`pyproject.toml`을 통해 `dx-agentic-gen`으로 노출되는 엔트리포인트. 인자를 파싱하여
+`pyproject.toml`을 통해 `dx-agent-gen`으로 노출되는 엔트리포인트. 인자를 파싱하여
 `generator.py`의 `generate`, `check`, `lint`, `prune` 액션으로 디스패치한다.
 
 ```bash
-dx-agentic-gen generate [--repo <path>] [--prune] [--dry-run]
-dx-agentic-gen check    [--repo <path>]
-dx-agentic-gen lint     [--repo <path>]
-dx-agentic-gen prune    [--repo <path>] [--dry-run]
+dx-agent-gen generate [--repo <path>] [--prune] [--dry-run]
+dx-agent-gen check    [--repo <path>]
+dx-agent-gen lint     [--repo <path>]
+dx-agent-gen prune    [--repo <path>] [--dry-run]
 ```
 
 `--repo` 없이 실행하면 CLI는 현재 작업 디렉터리의 `.deepx/`에 대해 동작한다.
@@ -116,10 +116,10 @@ skill의 `name`, `description`, 그리고 플랫폼별 필드(예: Cursor `globs
 
 ```bash
 # 저장소 루트에서:
-dx-agentic-gen generate
+dx-agent-gen generate
 
 # 또는 명시적으로:
-dx-agentic-gen generate --repo /abs/path/to/repo
+dx-agent-gen generate --repo /abs/path/to/repo
 
 # 스위트 전체 (5개 저장소 모두):
 bash .deepx/tools/scripts/run_all.sh generate
@@ -136,7 +136,7 @@ bash .deepx/tools/scripts/run_all.sh generate
 생성된 출력이 최신 상태인지 수정하지 않고 검증한다.
 
 ```bash
-dx-agentic-gen check
+dx-agent-gen check
 ```
 
 - 종료 코드 0 + `All generated files are up-to-date.` → OK
@@ -149,7 +149,7 @@ pre-commit 훅 (`scripts/pre-commit-hook.sh`)은 모든 `git commit` 시 이를
 EN/KO fragment 패리티와 "EN 파일에 한국어 없음" 규칙을 검증한다.
 
 ```bash
-dx-agentic-gen lint
+dx-agent-gen lint
 ```
 
 검사 항목:
@@ -169,13 +169,13 @@ dx-agentic-gen lint
 rename 시 구 출력물이 남는다.
 
 ```bash
-dx-agentic-gen prune --dry-run     # 삭제 대상 목록만 출력 (먼저 권장)
-dx-agentic-gen prune               # orphan 삭제
+dx-agent-gen prune --dry-run     # 삭제 대상 목록만 출력 (먼저 권장)
+dx-agent-gen prune               # orphan 삭제
 bash .deepx/tools/scripts/run_all.sh prune   # suite 전체
 
 # rename 시 한 번에 self-clean 하려면 generate에 연동:
-dx-agentic-gen generate --prune
-dx-agentic-gen generate --prune --dry-run    # generate + prune 미리보기
+dx-agent-gen generate --prune
+dx-agent-gen generate --prune --dry-run    # generate + prune 미리보기
 ```
 
 안전성 — prune은 생성기가 단독 소유하는 위치에서, 생성기 고유 패턴에 맞고, 현재 기대
@@ -211,9 +211,9 @@ KO 카운터파트가 없으면 **KO 출력이 조용히 망가진다** (플레�
 
 ```
 1. .deepx/ 소스 편집                  ← 정본
-2. dx-agentic-gen generate           ← 전파
-3. dx-agentic-gen check              ← 검증 (clean 이어야 함)
-4. dx-agentic-gen lint               ← EN/KO 패리티 검증
+2. dx-agent-gen generate           ← 전파
+3. dx-agent-gen check              ← 검증 (clean 이어야 함)
+4. dx-agent-gen lint               ← EN/KO 패리티 검증
 5. git commit                        ← pre-commit 훅이 check + lint 재실행
 ```
 
@@ -244,7 +244,7 @@ KO 카운터파트가 없으면 **KO 출력이 조용히 망가진다** (플레�
 pip install -e .deepx/tools
 
 # 설치 검증
-dx-agentic-gen --help
+dx-agent-gen --help
 ```
 
 Python 3.10+ 필요. 의존성 (자동 설치됨):
@@ -261,7 +261,7 @@ Python 3.10+ 필요. 의존성 (자동 설치됨):
    클래스를 `transformers.py` 에 추가한다.
 2. `generator.py` 의 디스패치 테이블에 transformer를 등록한다.
 3. `constants.py` 에 타깃 경로를 추가한다.
-4. `dx-agentic-gen generate` 를 실행하고 새 출력을 검증한다.
+4. `dx-agent-gen generate` 를 실행하고 새 출력을 검증한다.
 
 ### 새 fragment 추가
 
@@ -271,7 +271,7 @@ Python 3.10+ 필요. 의존성 (자동 설치됨):
 
 1. `.deepx/skills/<name>/SKILL.md` 또는 `.deepx/agents/<name>.md` 아래에
    정본 `.md` 를 작성한다.
-2. `dx-agentic-gen generate` 실행 — 플랫폼별 복사본이 자동으로 나타난다.
+2. `dx-agent-gen generate` 실행 — 플랫폼별 복사본이 자동으로 나타난다.
 
 ---
 
@@ -280,7 +280,7 @@ Python 3.10+ 필요. 의존성 (자동 설치됨):
 ```bash
 # 스위트 전반의 conformance 테스트 (~700개, ~1초)
 cd .deepx/e2e
-./test.sh agentic
+./test.sh agent-driven
 
 # 이것이 검사하는 것 (generator 관련):
 # - 가이드 문서 구조: 존재 여부, 헤딩, 시나리오 번호 매김
@@ -300,4 +300,4 @@ cd .deepx/e2e
 | Skill 3-tier 아키텍처 | [`../docs/skill-architecture.md`](../docs/skill-architecture.md) |
 | Fragment 작성 규칙 | [`../docs/fragment-authoring-guide.md`](../docs/fragment-authoring-guide.md) |
 | 최종 사용자 기능 문서 | [`../../docs/source/00_Agentic_Development.md`](../../docs/source/00_Agentic_Development.md) |
-| 종합 `.deepx/` 안내 | [`../docs/dx-agentic-dev-overview.md`](../docs/dx-agentic-dev-overview.md) |
+| 종합 `.deepx/` 안내 | [`../docs/dx-agent-dev-overview.md`](../docs/dx-agent-dev-overview.md) |

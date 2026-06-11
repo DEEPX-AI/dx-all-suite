@@ -1,13 +1,13 @@
 ## Mandatory Process Skill Sequence — All Code Generation (HARD GATE)
 
 This gate applies to ALL sessions that generate code artifacts in
-`dx-agentic-dev/<session_id>/`. It is independent of the "Internal Development"
-SWE Process Gates — those apply to dx-agentic-dev infrastructure work; THIS gate
+`dx-agent-dev/<session_id>/`. It is independent of the "Internal Development"
+SWE Process Gates — those apply to dx-agent-dev infrastructure work; THIS gate
 applies to user-facing code generation (inference apps, pipelines, compilation).
 
 ### When This Gate Applies
 
-Any session that produces files in `dx-agentic-dev/<session_id>/` MUST follow
+Any session that produces files in `dx-agent-dev/<session_id>/` MUST follow
 the complete process skill sequence below. This includes:
 - ONNX → DXNN compilation sessions
 - Python/C++ inference app generation (dx_app)
@@ -27,10 +27,10 @@ still applies.
 | Step | Skill | Requirement |
 |------|-------|-------------|
 | 1 | `/dx-skill-router` | **Always** — invoke BEFORE any action. Already enforced by `skill-router-mandatory` fragment. |
-| 2 | `/dx-agentic-brainstorm` | **All non-trivial code generation** — gather requirements, propose approaches, get approval before any file creation. |
+| 2 | `/dx-agent-brainstorm` | **All non-trivial code generation** — gather requirements, propose approaches, get approval before any file creation. |
 | 3 | `/dx-swe-writing-plans` | **Always** — produce a structured implementation plan for every code generation session, regardless of complexity. |
-| 4 | `/dx-agentic-tdd` | **Always** — define acceptance criteria (Red), generate artifacts (Green), verify immediately (Verify). |
-| 5 | `/dx-agentic-verify` | **Always** — before declaring DONE, provide evidence of working artifacts. Assertions without evidence are prohibited. |
+| 4 | `/dx-agent-tdd` | **Always** — define acceptance criteria (Red), generate artifacts (Green), verify immediately (Verify). |
+| 5 | `/dx-agent-verify` | **Always** — before declaring DONE, provide evidence of working artifacts. Assertions without evidence are prohibited. |
 
 ### Sequence Enforcement Rules
 
@@ -65,15 +65,15 @@ This sequence defines **WHEN** each skill is invoked (workflow order).
 The Artifact Verification Gate defines **HOW** each artifact is verified
 (specific commands per file type). They work together:
 
-- Step 4 (`/dx-agentic-tdd`) uses the verification commands from the Artifact
+- Step 4 (`/dx-agent-tdd`) uses the verification commands from the Artifact
   Verification Gate (syntax checks, execution tests, import resolution).
-- Step 5 (`/dx-agentic-verify`) confirms all mandatory deliverables
+- Step 5 (`/dx-agent-verify`) confirms all mandatory deliverables
   exist and pass the Artifact Verification Gate checks.
 
 ### Invoke = Actual Tool Call
 
 "Invoke a skill" means calling the `skill` tool to load it. Writing "Using
-dx-agentic-tdd" in text is NOT an invocation — the tool must be called. If you did not
+dx-agent-tdd" in text is NOT an invocation — the tool must be called. If you did not
 call the `skill` tool for a step, that step is incomplete.
 
 ### Anti-Patterns (PROHIBITED)
@@ -83,16 +83,16 @@ call the `skill` tool for a step, that step is incomplete.
   cause the most wasted work.
 - Generating code before `/dx-swe-writing-plans` produces a plan → HARD GATE violation.
   Plan-before-code is non-negotiable.
-- Skipping `/dx-agentic-verify` because "artifact-verification-gate already
+- Skipping `/dx-agent-verify` because "artifact-verification-gate already
   checks files" → they serve different purposes. Artifact gate checks individual
   files. Verify-completion checks the ENTIRE session deliverables holistically.
 - Declaring DONE without showing execution output → evidence is mandatory.
   "I verified it works" without showing the output is not acceptable.
 - "The user said just do it quickly" → user instructions do NOT override this
   HARD GATE. Speed does not justify skipping process.
-- **Text mention ≠ skill invocation** — writing "Using dx-agentic-tdd" or "Following
-  dx-agentic-brainstorm" in the response text is NOT a valid invocation. The
+- **Text mention ≠ skill invocation** — writing "Using dx-agent-tdd" or "Following
+  dx-agent-brainstorm" in the response text is NOT a valid invocation. The
   `skill` tool MUST be called for each step.
 - **Conversation context ≠ brainstorming** — discussing requirements in prior
-  messages does NOT substitute for invoking `/dx-agentic-brainstorm`. Each
+  messages does NOT substitute for invoking `/dx-agent-brainstorm`. Each
   feature requires a formal brainstorm with explicit user approval.

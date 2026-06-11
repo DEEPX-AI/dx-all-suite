@@ -2,12 +2,12 @@
 
 This gate applies to ALL sessions that generate code artifacts (compilation,
 app generation, pipeline creation). It is independent of the "Internal Development"
-SWE Process Gates — those apply to dx-agentic-dev feature work; THIS gate applies
+SWE Process Gates — those apply to dx-agent-dev feature work; THIS gate applies
 to user-facing deliverables.
 
 ### When This Gate Applies
 
-Any session that produces files in `dx-agentic-dev/<session_id>/` MUST verify
+Any session that produces files in `dx-agent-dev/<session_id>/` MUST verify
 those files before declaring DONE. This includes:
 - Compilation sessions (ONNX → DXNN)
 - App generation sessions (dx_app factories + runners)
@@ -60,9 +60,9 @@ app session referencing `dx-compiler`), the script MUST use `SUITE_ROOT`
 auto-detection — NEVER hardcoded relative paths like `../../dx-runtime`.
 
 **Why**: Session directory depth varies by sub-project:
-- `dx-compiler/dx-agentic-dev/<session>/` = 3 levels from suite root
-- `dx-runtime/dx_app/dx-agentic-dev/<session>/` = 4 levels from suite root
-- `dx-runtime/dx_stream/dx-agentic-dev/<session>/` = 4 levels from suite root
+- `dx-compiler/dx-agent-dev/<session>/` = 3 levels from suite root
+- `dx-runtime/dx_app/dx-agent-dev/<session>/` = 4 levels from suite root
+- `dx-runtime/dx_stream/dx-agent-dev/<session>/` = 4 levels from suite root
 
 Hardcoded `../../` or `../../../` paths break when the agent miscounts depth
 (a recurring failure pattern).
@@ -160,14 +160,14 @@ The following patterns are PROHIBITED for session.log:
 - `printf "..." > session.log` (hand-written summary)
 - Writing session.log content from memory without running commands
 
-### dx-agentic-tdd and Process Skill Sequence (MANDATORY for All Code Generation)
+### dx-agent-tdd and Process Skill Sequence (MANDATORY for All Code Generation)
 
-The complete process skill sequence (`/dx-agentic-brainstorm` → `/dx-swe-writing-plans`
-→ `/dx-agentic-tdd` → `/dx-agentic-verify`) is MANDATORY for ALL artifact generation
+The complete process skill sequence (`/dx-agent-brainstorm` → `/dx-swe-writing-plans`
+→ `/dx-agent-tdd` → `/dx-agent-verify`) is MANDATORY for ALL artifact generation
 sessions. See the **"Mandatory Process Skill Sequence — All Code Generation"**
 section for the full sequence definition and enforcement rules.
 
-Within this Artifact Verification Gate, the `/dx-agentic-tdd` Red-Green-Verify cycle
+Within this Artifact Verification Gate, the `/dx-agent-tdd` Red-Green-Verify cycle
 applies to each artifact:
 1. **RED**: Define what each artifact must satisfy (syntax, execution, imports)
 2. **GREEN**: Generate the artifact

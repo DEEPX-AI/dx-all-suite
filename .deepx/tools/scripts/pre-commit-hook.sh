@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Pre-commit hook: verify dx-agentic-gen generated files are up-to-date.
+# Pre-commit hook: verify dx-agent-gen generated files are up-to-date.
 #
 # Checks .deepx/ → platform files drift for the repo being committed.
 # If drift is detected, the commit is blocked with instructions to fix.
@@ -50,13 +50,13 @@ fi
 # Drift check: ensure .deepx/ changes are propagated to generated outputs
 # ---------------------------------------------------------------------------
 
-# Resolve a working dx-agentic-gen invocation. FAIL CLOSED if none works —
+# Resolve a working dx-agent-gen invocation. FAIL CLOSED if none works —
 # a drift-integrity gate that silently no-ops when the tool is missing is a hole
 # (this is exactly how stale generated files got committed before).
 find_suite_root() {
     local d="$1"
     while [ "$d" != / ]; do
-        if [ -f "$d/.deepx/tools/src/dx_agentic_dev_gen/cli.py" ]; then echo "$d"; return 0; fi
+        if [ -f "$d/.deepx/tools/src/dx_agent_dev_gen/cli.py" ]; then echo "$d"; return 0; fi
         d="$(dirname "$d")"
     done
     return 1
@@ -66,16 +66,16 @@ GEN_BIN=""
 GEN_PYPATH=""
 _suite="$(find_suite_root "$REPO_ROOT" || true)"
 if [ -n "$_suite" ] && \
-   PYTHONPATH="$_suite/.deepx/tools/src" python3 -c "import dx_agentic_dev_gen.cli" 2>/dev/null; then
+   PYTHONPATH="$_suite/.deepx/tools/src" python3 -c "import dx_agent_dev_gen.cli" 2>/dev/null; then
     # Prefer the in-tree source: it is version-matched to this checkout and avoids
     # a stale/broken globally-installed shim (command -v can pass while the binary
     # fails at runtime with ModuleNotFoundError).
     GEN_PYPATH="$_suite/.deepx/tools/src"
-elif command -v dx-agentic-gen &>/dev/null && dx-agentic-gen --help >/dev/null 2>&1; then
-    GEN_BIN="dx-agentic-gen"
+elif command -v dx-agent-gen &>/dev/null && dx-agent-gen --help >/dev/null 2>&1; then
+    GEN_BIN="dx-agent-gen"
 else
-    echo "ERROR: dx-agentic-gen is not runnable (no importable .deepx/tools/src and no"
-    echo "       working dx-agentic-gen on PATH). The drift check cannot run."
+    echo "ERROR: dx-agent-gen is not runnable (no importable .deepx/tools/src and no"
+    echo "       working dx-agent-gen on PATH). The drift check cannot run."
     echo "       Refusing to commit (fail-closed) to avoid committing stale generated files."
     echo "  Fix: commit from a checkout that has .deepx/tools/src, or pip install -e <suite>/.deepx/tools"
     echo "  To skip this check (NOT recommended): git commit --no-verify"
@@ -87,7 +87,7 @@ gen() {
     if [ -n "$GEN_BIN" ]; then
         "$GEN_BIN" "$@"
     else
-        PYTHONPATH="$GEN_PYPATH" python3 -c "import sys; from dx_agentic_dev_gen.cli import main; sys.exit(main(sys.argv[1:]))" "$@"
+        PYTHONPATH="$GEN_PYPATH" python3 -c "import sys; from dx_agent_dev_gen.cli import main; sys.exit(main(sys.argv[1:]))" "$@"
     fi
 }
 
@@ -134,7 +134,7 @@ if [ $failed -ne 0 ]; then
     echo "Fix (regenerate EVERY level — a shared .deepx/ fragment edit drifts all of them):"
     echo "  .deepx/tools/scripts/run_all.sh generate"
     echo ""
-    echo "  Per-repo 'dx-agentic-gen generate --repo <repo>' fixes only ONE level and is"
+    echo "  Per-repo 'dx-agent-gen generate --repo <repo>' fixes only ONE level and is"
     echo "  how stale files slip in — use it only if you are certain a single level is affected."
     echo ""
     echo "To skip this check: git commit --no-verify"
@@ -159,7 +159,7 @@ if [ -n "${deepx_staged:-}" ]; then
     if [ $lint_failed -ne 0 ]; then
         echo ""
         echo "Fix: update the KO fragment in .deepx/templates/fragments/ko/"
-        echo "  then: dx-agentic-gen generate"
+        echo "  then: dx-agent-gen generate"
         echo ""
         echo "To skip this check: git commit --no-verify"
         exit 1

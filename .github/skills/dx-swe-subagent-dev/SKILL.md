@@ -5,7 +5,7 @@ description: Use when executing implementation plans with independent tasks in t
 
 <!-- AUTO-GENERATED from .deepx/ — DO NOT EDIT DIRECTLY -->
 <!-- Source: .deepx/skills/dx-swe-subagent-dev/SKILL.md -->
-<!-- Run: dx-agentic-gen generate -->
+<!-- Run: dx-agent-gen generate -->
 
 # Subagent-Driven Development
 

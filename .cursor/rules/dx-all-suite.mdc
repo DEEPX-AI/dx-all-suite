@@ -33,7 +33,7 @@ This is the top-level DEEPX All Suite repository.
 - Ask 2-3 questions before building
 - Present plan, get approval
 - Validate after generation
-- Output to `dx-agentic-dev/<session_id>/` by default
+- Output to `dx-agent-dev/<session_id>/` by default
 
 ## Session Sentinels (MANDATORY for Automated Testing)
 

@@ -6,7 +6,7 @@ description: Use when receiving code review feedback, before implementing sugges
 
 <!-- AUTO-GENERATED from .deepx/ — DO NOT EDIT DIRECTLY -->
 <!-- Source: .deepx/skills/dx-swe-receiving-review/SKILL.md -->
-<!-- Run: dx-agentic-gen generate -->
+<!-- Run: dx-agent-gen generate -->
 
 # Code Review Reception
 

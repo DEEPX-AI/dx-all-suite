@@ -1,6 +1,0 @@
----
-description: "DEEPX build brainstorming with model registry check and sub-project routing."
-alwaysApply: false
----
-
-Read and follow the skill documentation at `.deepx/skills/dx-agentic-brainstorm/SKILL.md`.

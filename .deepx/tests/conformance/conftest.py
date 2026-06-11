@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 """
-Shared fixtures and constants for agentic scenario tests.
+Shared fixtures and constants for agent-driven scenario tests.
 
 Provides project path constants, guide file paths, and agent/skill file
 listing fixtures used across all test modules in this suite.
@@ -88,7 +88,7 @@ GUIDE_PAIRS: List[GuidePair] = [
 
 @dataclass
 class ProjectInfra:
-    """Describes expected agentic infrastructure for a project."""
+    """Describes expected agent-driven infrastructure for a project."""
     project: str
     root: Path
     has_deepx: bool = True  # whether .deepx/ is expected
@@ -172,7 +172,7 @@ def extract_agent_references(text: str) -> List[str]:
 def extract_skill_references(text: str) -> List[str]:
     """Extract /skill-name references from guide text.
 
-    Skills are invoked with a leading slash: `/dx-agentic-app-build-python`.
+    Skills are invoked with a leading slash: `/dx-agent-app-build-python`.
     We require the slash to distinguish skill invocations from project names
     (dx-compiler), agent names (dx-app-builder), and prose mentions.
     """
@@ -181,7 +181,7 @@ def extract_skill_references(text: str) -> List[str]:
     # Exclude project/module names and known non-skill patterns
     exclusions = {
         "dx-all-suite", "dx-compiler", "dx-runtime", "dx-app", "dx-stream",
-        "dx-m1", "dx-m1a", "dx-rt", "dx-com", "dx-agentic-dev",
+        "dx-m1", "dx-m1a", "dx-rt", "dx-com", "dx-agent-dev",
     }
     return [m for m in matches if m not in exclusions]
 
@@ -275,7 +275,7 @@ def skill_names_from_dir(directory: Path) -> List[str]:
     or from subdirectory names in a .opencode/skills directory."""
     if not directory.exists():
         return []
-    # .deepx/skills/ uses flat .md files: dx-agentic-app-validate.md → "dx-agentic-app-validate"
+    # .deepx/skills/ uses flat .md files: dx-agent-app-validate.md → "dx-agent-app-validate"
     md_names = [p.stem for p in list_md_files(directory)]
     # .opencode/skills/ uses subdirectories with SKILL.md: dx-validate-all/SKILL.md → "dx-validate-all"
     subdir_names = [

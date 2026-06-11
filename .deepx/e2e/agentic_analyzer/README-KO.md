@@ -1,6 +1,6 @@
-# dx-agentic-dev E2E Analyzer
+# dx-agent-dev E2E Analyzer
 
-> 재사용 가능한 분석 도구 — `dx-agentic-dev/e2e-tests/results/` 의 autopilot 테스트 결과를
+> 재사용 가능한 분석 도구 — `dx-agent-dev/e2e-tests/results/` 의 autopilot 테스트 결과를
 > **도구 × 회차 × 시나리오** 차원으로 평가하고, HARD GATE 준수도 / 코드 품질 / 실행 흔적 /
 > runnability / 토큰 비용 / 종합 점수를 산출합니다.
 
@@ -29,7 +29,7 @@ python3 analyze.py --no-insights-runnability
 python3 analyze.py --insights copilot --insights-model claude-sonnet-4.6 --insights-allow-paid
 ```
 
-산출물 (기본 위치 `<suite-root>/dx-agentic-dev/e2e-tests/analyzer_reports/<timestamp>/`):
+산출물 (기본 위치 `<suite-root>/dx-agent-dev/e2e-tests/analyzer_reports/<timestamp>/`):
 - `analysis.md` — 마크다운 리포트 (사람이 읽는 메인 산출물)
 - `analysis.html` — analysis.md의 HTML 버전
 - `analysis.json` — 머신 판독용 전체 데이터
@@ -39,10 +39,10 @@ python3 analyze.py --insights copilot --insights-model claude-sonnet-4.6 --insig
 - `dashboard.html` — 독립 실행형 인터랙티브 대시보드 (Chart.js — 종합 순위, 레이더, 라운드 추이, 시나리오 비교)
 
 > **입출력 디렉토리**: 도구 코드는 `.deepx/e2e/agentic_analyzer/` (git tracked)에,
-> 입력(results) + 출력(analyzer_reports)은 `dx-agentic-dev/e2e-tests/` (gitignored)에 위치.
+> 입력(results) + 출력(analyzer_reports)은 `dx-agent-dev/e2e-tests/` (gitignored)에 위치.
 > 도구는 모든 클론에 배포되고, 런타임 데이터는 로컬에 격리됩니다.
 
-### 1.2 Agentic 인사이트 도출 (insights.py)
+### 1.2 Agent-Driven 인사이트 도출 (insights.py)
 
 분석 리포트(analysis.md)를 LLM agent에게 넘겨 도구별 강점/약점 분석 또는 end-user
 runnability 판정을 받습니다.
@@ -96,7 +96,7 @@ python3 analyze.py --hypothesis prompts/hypothesis_prompt.md
 
 | 플래그 | 기본값 | 설명 |
 |--------|--------|------|
-| `--results-root` | `dx-agentic-dev/e2e-tests/results` | results 디렉토리 경로 |
+| `--results-root` | `dx-agent-dev/e2e-tests/results` | results 디렉토리 경로 |
 | `--config` | `./config.yaml` | 설정 파일 경로 |
 | `--output-dir` | `<reports_base>/<timestamp>/` | 리포트 출력 디렉토리 |
 | `--tool` | 전체 | 도구 필터 (반복 가능) |
@@ -345,7 +345,7 @@ analyzer는 비용과 품질의 균형을 위해 stage별로 서로 다른 기�
 | **T6 Verdict (산출물 PASS)** | 시나리오 1차 산출물 존재성 PASS/PARTIAL/FAIL/UNKNOWN | `functional.py` |
 | **T7 ExecutionTrace** | session.log + compile_out.log 등 실제 명령 실행 흔적 + 성공/실패 마커 | `execution.py` |
 | **T9 Bias check** | Cursor auto 모델 편향 점검 (도구간 메트릭 비교 분석) | `bias_check.py` |
-| **T10 Agentic insight** | 2차 CLI agent 호출로 도구별 강점/약점 + end-user runnability 판정 | `insights.py` |
+| **T10 Agent-Driven insight** | 2차 CLI agent 호출로 도구별 강점/약점 + end-user runnability 판정 | `insights.py` |
 | **T11 비용** | 토큰 사용량 → 추정 USD 비용 + premium request calibration 기반 추정 | `cost.py` |
 
 ### 5.2 집계 차원
@@ -379,7 +379,7 @@ agentic_analyzer/
 ├── README.md                 # 영문 버전
 ├── README-KO.md              # 이 문서 (한국어)
 ├── analyze.py                # 메인 CLI 진입점 — 정적 분석 + 리포트 생성
-├── insights.py               # 2차 agentic CLI 호출 — 도구별 강점/약점 + 산출물 runnability
+├── insights.py               # 2차 agent-driven CLI 호출 — 도구별 강점/약점 + 산출물 runnability
 ├── config.yaml               # 도구/시나리오/모델/룰 정의 (코드 수정 없이 확장)
 ├── lib/
 │   ├── discover.py           # results/ 스캔 → ResultDir + ScenarioRef 생성, 회차 grouping
@@ -492,7 +492,7 @@ python3 analyze.py --round 6 7 8 9 10     # 추가 5 라운드
 
 1. `sentinel_start` — 응답 첫 줄에 `[DX-AGENTIC-DEV: START]`
 2. `sentinel_done` — 마지막 줄에 `[DX-AGENTIC-DEV: DONE (output-dir: ...)]`
-3. `output_isolation_present` — 산출물이 `dx-agentic-dev/<session_id>/` 하위
+3. `output_isolation_present` — 산출물이 `dx-agent-dev/<session_id>/` 하위
 4. `session_id_format` — `YYYYMMDD-HHMMSS_<agent>_<model>_<task>` 패턴
 5. `mandatory_deliverables` — 시나리오별 필수 파일 모두 존재
 6. `ifactory_5_methods` — dx_app/runtime/suite의 factory가 5-method 패턴 준수
@@ -557,5 +557,5 @@ Overall = 0.25 × Compliance% + 0.20 × Quality% + 0.10 × Verdict%
 
 ## 12. 라이선스/소유권
 
-내부 도구. dx-all-suite의 `dx-agentic-dev` 인프라에 속함. 본 디렉토리는 dx-agentic-dev/
+내부 도구. dx-all-suite의 `dx-agent-dev` 인프라에 속함. 본 디렉토리는 dx-agent-dev/
 의 일부로서 dx-all-suite repo의 `.gitignore` 정책을 따릅니다.

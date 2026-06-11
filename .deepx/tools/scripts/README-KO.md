@@ -1,6 +1,6 @@
 # `.deepx/tools/scripts/` — 운영 스크립트
 
-> dx-all-suite의 5개 repo 전체에 걸쳐 `dx-agentic-gen` generator를 오케스트레이션하고,
+> dx-all-suite의 5개 repo 전체에 걸쳐 `dx-agent-gen` generator를 오케스트레이션하고,
 > git hook을 설치하며, 자가 개선 E2E loop을 실행하는 shell 스크립트.
 
 ---
@@ -9,7 +9,7 @@
 
 | 스크립트 | 목적 |
 |--------|---------|
-| `run_all.sh` | dx-all-suite의 5개 repo 전체에서 `dx-agentic-gen <action>` 실행 |
+| `run_all.sh` | dx-all-suite의 5개 repo 전체에서 `dx-agent-gen <action>` 실행 |
 | `install-hooks.sh` | suite root와 모든 submodule에 pre-commit drift+lint hook 설치 |
 | `pre-commit-hook.sh` | pre-commit hook 본체 — git이 호출하며 사용자가 직접 호출하지 않음 |
 | `run-e2e-improvement-loop.sh` | 자가 개선 E2E loop (4개 CLI 병렬 실행 + 자동 수정) |
@@ -20,7 +20,7 @@
 ## 2. `run_all.sh` — 멀티 repo wrapper
 
 dx-all-suite의 5개 repo 전체 (suite root + dx-compiler + dx-runtime +
-dx-runtime/dx_app + dx-runtime/dx_stream)에서 `dx-agentic-gen` action을 실행한다.
+dx-runtime/dx_app + dx-runtime/dx_stream)에서 `dx-agent-gen` action을 실행한다.
 
 ### 사용법
 
@@ -38,7 +38,7 @@ bash .deepx/tools/scripts/run_all.sh lint
 | `.deepx/templates/fragments/` 아래의 공유 fragment를 편집한 경우 | `generate` (5개 repo 전체에 전파) |
 | push 전에 어떤 repo에도 drift가 없는지 검증하고 싶을 때 | `check` |
 | fragment를 추가/편집하고 전 repo에서 EN/KO 정합성을 검증하고 싶을 때 | `lint` |
-| 단일 repo workflow (현재 repo만) | `run_all.sh` 대신 `dx-agentic-gen <action>`을 직접 사용 |
+| 단일 repo workflow (현재 repo만) | `run_all.sh` 대신 `dx-agent-gen <action>`을 직접 사용 |
 
 ### Exit code
 
@@ -52,7 +52,7 @@ bash .deepx/tools/scripts/run_all.sh lint
 entry point로 호출한다 (CLI shim이 `PATH`에 등록되기 전에도 동작하도록):
 
 ```python
-from dx_agentic_dev_gen.cli import main
+from dx_agent_dev_gen.cli import main
 sys.exit(main(['<action>', '--repo', '<repo>']))
 ```
 
@@ -83,7 +83,7 @@ bash .deepx/tools/scripts/install-hooks.sh
 | `.git/modules/dx-runtime/modules/dx_stream/hooks/pre-commit` | dx_stream (중첩 submodule) |
 
 특정 위치에 이미 pre-commit hook이 존재하면, 스크립트는 대신
-`pre-commit.dx-agentic-gen`로 기록하고 기존 hook에서 chain하는 방법을 안내한다.
+`pre-commit.dx-agent-gen`로 기록하고 기존 hook에서 chain하는 방법을 안내한다.
 
 ### Hook 건너뛰기 (필요 시)
 
@@ -110,7 +110,7 @@ drift 결과를 이해한 경우에만 사용 (예: WIP commit).
 `.deepx/`가 범위에 포함된 각 repo에 대해:
 
 ```bash
-dx-agentic-gen check --repo <repo>
+dx-agent-gen check --repo <repo>
 ```
 
 어떤 repo라도 drift를 보고하면, commit이 **차단**되며 다음 안내가 표시된다:
@@ -118,7 +118,7 @@ dx-agentic-gen check --repo <repo>
 ```
 ERROR: Generated files out-of-date in <repo>
 
-Fix: dx-agentic-gen generate --repo <repo>
+Fix: dx-agent-gen generate --repo <repo>
   or: .deepx/tools/scripts/run_all.sh generate
 ```
 
@@ -127,7 +127,7 @@ Fix: dx-agentic-gen generate --repo <repo>
 staged된 `.deepx/` 변경이 있는 각 repo에 대해:
 
 ```bash
-dx-agentic-gen lint --repo <repo>
+dx-agent-gen lint --repo <repo>
 ```
 
 lint가 `[ERROR]` (KO 짝 누락, KO가 너무 짧음, EN 파일에 한국어 텍스트 존재)를
@@ -143,7 +143,7 @@ git commit --no-verify
 
 ## 5. `run-e2e-improvement-loop.sh` — 자가 개선 E2E loop
 
-4개 CLI (Copilot, Cursor, OpenCode, Claude Code) 전체에 걸쳐 agentic E2E
+4개 CLI (Copilot, Cursor, OpenCode, Claude Code) 전체에 걸쳐 agent-driven E2E
 테스트를 병렬로 실행하고, 비교 리포트를 생성하며, orchestrator 에이전트를 통해
 자동 개선을 적용한다. 그리고 이를 반복한다.
 
@@ -219,7 +219,7 @@ git commit
 
 | 주제 | 문서 |
 |-------|----------|
-| `dx-agentic-gen` 패키지 (CLI 내부 동작) | [`../README.md`](../README.md) |
+| `dx-agent-gen` 패키지 (CLI 내부 동작) | [`../README.md`](../README.md) |
 | 최상위 `.deepx/` 인덱스 | [`../../README.md`](../../README.md) |
 | Fragment 작성 규칙 | [`../../docs/fragment-authoring-guide.md`](../../docs/fragment-authoring-guide.md) |
 | 내부 SWE 프로세스 gate | CLAUDE.md / AGENTS.md에 임베드됨 (fragment: `swe-process-gates-internal-dev`) |

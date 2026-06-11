@@ -5,7 +5,7 @@
 
 - **응답의 첫 번째 줄**: `[DX-AGENTIC-DEV: START]`
 - **모든 작업 완료 후 마지막 줄**: `[DX-AGENTIC-DEV: DONE (output-dir: <relative_path>)]`
-  여기서 `<relative_path>`는 세션 출력 디렉토리입니다 (예: `dx-agentic-dev/20260409-143022_yolo26n_detection/`)
+  여기서 `<relative_path>`는 세션 출력 디렉토리입니다 (예: `dx-agent-dev/20260409-143022_yolo26n_detection/`)
 
 ### DEEPX 배너 (MANDATORY — 센티넬과 함께 출력)
 
@@ -44,7 +44,7 @@ DONE은 맨 마지막 줄 유지).
    **Cross-project 태스크** (예: compile + app 생성)의 경우, 모든 output directory를
    ` + ` 구분자로 나열하세요:
    ```
-   [DX-AGENTIC-DEV: DONE (output-dir: dx-compiler/dx-agentic-dev/20260409-143022_copilot_yolo26n_compile/ + dx-runtime/dx_app/dx-agentic-dev/20260409-143022_copilot_yolo26n_inference/)]
+   [DX-AGENTIC-DEV: DONE (output-dir: dx-compiler/dx-agent-dev/20260409-143022_copilot_yolo26n_compile/ + dx-runtime/dx_app/dx-agent-dev/20260409-143022_copilot_yolo26n_inference/)]
    ```
 6. **계획 산출물만 생성한 후에는 절대 DONE을 출력하지 마세요** (spec, plan, 설계
    문서). DONE은 모든 산출물이 생성되었음을 의미합니다 — 구현 코드, 스크립트,

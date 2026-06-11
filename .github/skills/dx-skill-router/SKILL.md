@@ -6,7 +6,7 @@ description: Use when starting any conversation - establishes how to discover an
 
 <!-- AUTO-GENERATED from .deepx/ — DO NOT EDIT DIRECTLY -->
 <!-- Source: .deepx/skills/dx-skill-router/SKILL.md -->
-<!-- Run: dx-agentic-gen generate -->
+<!-- Run: dx-agent-gen generate -->
 
 # Skill: dx-skill-router
 
@@ -85,14 +85,14 @@ digraph skill_flow {
 | `dx-swe-receiving-review` | When receiving code review feedback |
 | `dx-swe-requesting-review` | When completing tasks or before merging |
 
-### DEEPX Build (dx-agentic-*)
+### DEEPX Build (dx-agent-*)
 
 | Skill | When to use |
 |-------|-------------|
-| `dx-agentic-brainstorm` | DEEPX build brainstorming — model registry check, sub-project routing |
-| `dx-agentic-tdd` | DEEPX build validation order — factory, pipeline, integration checks |
-| `dx-agentic-verify` | DEEPX build verification checklists — dx_app, dx_stream, cross-project |
-| `dx-agentic-showcase-build` | Build a dx-agentic-dev showcase end-to-end (prompt→recorded build→transcript→GIFs→README/docs) with verify gates |
+| `dx-agent-brainstorm` | DEEPX build brainstorming — model registry check, sub-project routing |
+| `dx-agent-tdd` | DEEPX build validation order — factory, pipeline, integration checks |
+| `dx-agent-verify` | DEEPX build verification checklists — dx_app, dx_stream, cross-project |
+| `dx-agent-showcase-build` | Build a dx-agent-dev showcase end-to-end (prompt→recorded build→transcript→GIFs→README/docs) with verify gates |
 
 ### Internal Harness Development (dx-harness-*)
 

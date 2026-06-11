@@ -1,7 +1,7 @@
 # `dx-showcase-gen` — Showcase-Generation Automation
 
-> Deterministic mechanics for building **dx-agentic-dev showcases**, paired with the
-> RIGID skill [`dx-agentic-showcase-build`](../../../skills/dx-agentic-showcase-build/SKILL.md).
+> Deterministic mechanics for building **dx-agent-dev showcases**, paired with the
+> RIGID skill [`dx-agent-showcase-build`](../../../skills/dx-agent-showcase-build/SKILL.md).
 > Together they turn "add a showcase" into a repeatable, verified workflow whose
 > recurring mistakes are caught by code + gates instead of by memory.
 
@@ -9,14 +9,14 @@ Korean: [`README-ko.md`](./README-ko.md).
 
 ## Why (the split)
 
-A showcase = a real agentic build of a DEEPX app, captured as a build GIF + a complete
+A showcase = a real agent-driven build of a DEEPX app, captured as a build GIF + a complete
 transcript + the generated artifacts, then promoted in the READMEs and docs. Some of
-that is **non-deterministic / human** (the agentic build itself, the KB-based prompt,
+that is **non-deterministic / human** (the agent-driven build itself, the KB-based prompt,
 clearing the screen for recording, writing prose); the rest is **deterministic and was
 the source of every recurring mistake** we hit. So:
 
 - **Tool (`dx-showcase-gen`, this package)** owns the deterministic mechanics — tested.
-- **Skill (`dx-agentic-showcase-build`)** owns the orchestration + judgment + the
+- **Skill (`dx-agent-showcase-build`)** owns the orchestration + judgment + the
   human-in-the-loop gates, and runs the tool's `verify` before declaring DONE.
 
 ## Recurring mistakes this prevents
@@ -84,4 +84,4 @@ file / wrong model. x11grab/ffmpeg side-effects are thin wrappers (not unit-test
 `keepawake`/`capture`/`crop`/`gif`) → 4. `transcript` (complete) → 5. `copy-artifacts`
 + portability fixes → 6. run GIF → 7. `augment` README/docs → 8. `verify` PASS.
 
-See the skill: [`dx-agentic-showcase-build`](../../../skills/dx-agentic-showcase-build/SKILL.md).
+See the skill: [`dx-agent-showcase-build`](../../../skills/dx-agent-showcase-build/SKILL.md).

@@ -5,7 +5,7 @@ description: 'Test-driven development. Iron Law: no code without validation chec
 
 <!-- AUTO-GENERATED from .deepx/ — DO NOT EDIT DIRECTLY -->
 <!-- Source: .deepx/skills/dx-swe-tdd/SKILL.md -->
-<!-- Run: dx-agentic-gen generate -->
+<!-- Run: dx-agent-gen generate -->
 
 # Skill: Test-Driven Development
 

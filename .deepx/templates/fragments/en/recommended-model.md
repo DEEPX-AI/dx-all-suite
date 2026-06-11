@@ -1,6 +1,6 @@
 ## Recommended Model (Pre-Flight Check)
 
-DX Agentic Development requires strong instruction following and knowledge base
+DX Agent-Driven Development requires strong instruction following and knowledge base
 utilization. Before starting any task, check if you are running as one of the
 recommended models:
 
@@ -14,7 +14,7 @@ output the following notice at the beginning of your first response:
 ══════════════════════════════════════════════════════════════
 ⚠  DX-AGENTIC-DEV: MODEL NOTICE
 
-DX Agentic Development recommends Claude Sonnet 4.6+ or
+DX Agent-Driven Development recommends Claude Sonnet 4.6+ or
 Opus 4.6+. Your current model may produce lower quality
 in instruction following, knowledge base utilization, and
 API accuracy. Please switch to a recommended model.

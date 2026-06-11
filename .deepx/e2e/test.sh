@@ -1,8 +1,8 @@
 #!/bin/bash
 #
-# Agentic E2E Test Command Wrapper
+# Agent-Driven E2E Test Command Wrapper
 #
-# This script provides shortcuts for agentic E2E test scenarios.
+# This script provides shortcuts for agent-driven E2E test scenarios.
 # For product tests (sanity, local_install, docker_install, getting_started),
 # use tests/test.sh instead.
 #
@@ -10,16 +10,16 @@
 #   ./test.sh <command> [additional_args...]
 #
 # Commands:
-#   agentic-e2e-claude-code-autopilot  - Run agentic E2E tests via Claude Code CLI (fully autonomous)
-#   agentic-e2e-copilot-cli-autopilot  - Run agentic E2E tests via Copilot CLI (fully autonomous)
-#   agentic-e2e-opencode-cli-autopilot - Run agentic E2E tests via OpenCode CLI (fully autonomous)
-#   agentic-e2e-cursor-cli-autopilot   - Run agentic E2E tests via Cursor CLI (fully autonomous)
-#   agentic-e2e-codex-cli-autopilot    - Run agentic E2E tests via Codex CLI (fully autonomous)
-#   agentic-e2e-claude-code-manual     - Run agentic E2E interactively via Claude Code CLI (/export txt archive)
-#   agentic-e2e-copilot-cli-manual     - Run agentic E2E interactively via Copilot CLI (shell-based, no pytest)
-#   agentic-e2e-opencode-cli-manual    - Run agentic E2E interactively via OpenCode CLI (/export HTML archive)
-#   agentic-e2e-cursor-cli-manual      - Run agentic E2E interactively via Cursor CLI (shell-based, no pytest)
-#   agentic-e2e-codex-cli-manual       - Run agentic E2E interactively via Codex CLI (shell-based)
+#   agent-driven-e2e-claude-code-autopilot  - Run agent-driven E2E tests via Claude Code CLI (fully autonomous)
+#   agent-driven-e2e-copilot-cli-autopilot  - Run agent-driven E2E tests via Copilot CLI (fully autonomous)
+#   agent-driven-e2e-opencode-cli-autopilot - Run agent-driven E2E tests via OpenCode CLI (fully autonomous)
+#   agent-driven-e2e-cursor-cli-autopilot   - Run agent-driven E2E tests via Cursor CLI (fully autonomous)
+#   agent-driven-e2e-codex-cli-autopilot    - Run agent-driven E2E tests via Codex CLI (fully autonomous)
+#   agent-driven-e2e-claude-code-manual     - Run agent-driven E2E interactively via Claude Code CLI (/export txt archive)
+#   agent-driven-e2e-copilot-cli-manual     - Run agent-driven E2E interactively via Copilot CLI (shell-based, no pytest)
+#   agent-driven-e2e-opencode-cli-manual    - Run agent-driven E2E interactively via OpenCode CLI (/export HTML archive)
+#   agent-driven-e2e-cursor-cli-manual      - Run agent-driven E2E interactively via Cursor CLI (shell-based, no pytest)
+#   agent-driven-e2e-codex-cli-manual       - Run agent-driven E2E interactively via Codex CLI (shell-based)
 #   list            - List all available tests
 #   report          - Run all tests and generate HTML report
 #   json            - Run all tests and generate JSON report
@@ -124,7 +124,7 @@ EOF
 }
 
 print_usage() {
-    echo -e "${YELLOW}Agentic E2E Test Command Wrapper${NC}"
+    echo -e "${YELLOW}Agent-Driven E2E Test Command Wrapper${NC}"
     echo -e ""
     echo -e "Usage: ./test.sh [OPTIONS] <command> [additional_args...]"
     echo -e ""
@@ -143,16 +143,16 @@ print_usage() {
     echo -e ""
     echo -e ""
     echo -e "Target-Specific Commands:"
-    echo -e "  ${GREEN}agentic-e2e-claude-code-autopilot${NC}  - Run agentic E2E via Claude Code CLI (fully autonomous)"
-    echo -e "  ${GREEN}agentic-e2e-copilot-cli-autopilot${NC}  - Run agentic E2E via Copilot CLI (fully autonomous, CI/CD)"
-    echo -e "  ${GREEN}agentic-e2e-opencode-cli-autopilot${NC} - Run agentic E2E via OpenCode CLI (fully autonomous)"
-    echo -e "  ${GREEN}agentic-e2e-cursor-cli-autopilot${NC}   - Run agentic E2E via Cursor CLI (fully autonomous)"
-    echo -e "  ${GREEN}agentic-e2e-codex-cli-autopilot${NC}    - Run agentic E2E via Codex CLI (fully autonomous)"
-    echo -e "  ${GREEN}agentic-e2e-claude-code-manual${NC}     - Run agentic E2E interactively via Claude Code CLI (/export txt)"
-    echo -e "  ${GREEN}agentic-e2e-copilot-cli-manual${NC}    - Run agentic E2E interactively via Copilot CLI (shell-based)"
-    echo -e "  ${GREEN}agentic-e2e-opencode-cli-manual${NC}    - Run agentic E2E interactively via OpenCode CLI (/export HTML)"
-    echo -e "  ${GREEN}agentic-e2e-cursor-cli-manual${NC}      - Run agentic E2E interactively via Cursor CLI (shell-based)"
-    echo -e "  ${GREEN}agentic-e2e-codex-cli-manual${NC}       - Run agentic E2E interactively via Codex CLI (shell-based)"
+    echo -e "  ${GREEN}agent-driven-e2e-claude-code-autopilot${NC}  - Run agent-driven E2E via Claude Code CLI (fully autonomous)"
+    echo -e "  ${GREEN}agent-driven-e2e-copilot-cli-autopilot${NC}  - Run agent-driven E2E via Copilot CLI (fully autonomous, CI/CD)"
+    echo -e "  ${GREEN}agent-driven-e2e-opencode-cli-autopilot${NC} - Run agent-driven E2E via OpenCode CLI (fully autonomous)"
+    echo -e "  ${GREEN}agent-driven-e2e-cursor-cli-autopilot${NC}   - Run agent-driven E2E via Cursor CLI (fully autonomous)"
+    echo -e "  ${GREEN}agent-driven-e2e-codex-cli-autopilot${NC}    - Run agent-driven E2E via Codex CLI (fully autonomous)"
+    echo -e "  ${GREEN}agent-driven-e2e-claude-code-manual${NC}     - Run agent-driven E2E interactively via Claude Code CLI (/export txt)"
+    echo -e "  ${GREEN}agent-driven-e2e-copilot-cli-manual${NC}    - Run agent-driven E2E interactively via Copilot CLI (shell-based)"
+    echo -e "  ${GREEN}agent-driven-e2e-opencode-cli-manual${NC}    - Run agent-driven E2E interactively via OpenCode CLI (/export HTML)"
+    echo -e "  ${GREEN}agent-driven-e2e-cursor-cli-manual${NC}      - Run agent-driven E2E interactively via Cursor CLI (shell-based)"
+    echo -e "  ${GREEN}agent-driven-e2e-codex-cli-manual${NC}       - Run agent-driven E2E interactively via Codex CLI (shell-based)"
     echo -e ""
     echo -e "Utility Commands:"
     echo -e "  ${GREEN}list${NC}            - List all available tests"
@@ -164,17 +164,17 @@ print_usage() {
     echo -e "  ${GREEN}Target keywords${NC}     - compiler | modelzoo | runtime (e.g. -k \"compiler\") "
     echo -e ""
     echo -e "Examples:"
-    echo -e "  ./test.sh agentic-e2e-claude-code-autopilot"
-    echo -e "  ./test.sh agentic-e2e-copilot-cli-autopilot"
-    echo -e "  ./test.sh agentic-e2e-opencode-cli-autopilot"
-    echo -e "  ./test.sh agentic-e2e-cursor-cli-autopilot"
-    echo -e "  ./test.sh agentic-e2e-codex-cli-autopilot"
-    echo -e "  ./test.sh agentic-e2e-claude-code-manual"
-    echo -e "  ./test.sh agentic-e2e-copilot-cli-manual"
-    echo -e "  ./test.sh agentic-e2e-opencode-cli-manual"
-    echo -e "  ./test.sh agentic-e2e-cursor-cli-manual"
-    echo -e "  ./test.sh agentic-e2e-copilot-cli-autopilot -k dx_app"
-    echo -e "  ./test.sh --cleanup agentic-e2e-claude-code-autopilot -k dx_stream"
+    echo -e "  ./test.sh agent-driven-e2e-claude-code-autopilot"
+    echo -e "  ./test.sh agent-driven-e2e-copilot-cli-autopilot"
+    echo -e "  ./test.sh agent-driven-e2e-opencode-cli-autopilot"
+    echo -e "  ./test.sh agent-driven-e2e-cursor-cli-autopilot"
+    echo -e "  ./test.sh agent-driven-e2e-codex-cli-autopilot"
+    echo -e "  ./test.sh agent-driven-e2e-claude-code-manual"
+    echo -e "  ./test.sh agent-driven-e2e-copilot-cli-manual"
+    echo -e "  ./test.sh agent-driven-e2e-opencode-cli-manual"
+    echo -e "  ./test.sh agent-driven-e2e-cursor-cli-manual"
+    echo -e "  ./test.sh agent-driven-e2e-copilot-cli-autopilot -k dx_app"
+    echo -e "  ./test.sh --cleanup agent-driven-e2e-claude-code-autopilot -k dx_stream"
     echo -e "  ./test.sh report"
     echo -e ""
     echo -e "${YELLOW}Per-tool Model Selection (env vars)${NC}"
@@ -186,13 +186,13 @@ print_usage() {
     echo -e "  ${GREEN}DX_AGENTIC_E2E_CODEX_MODEL${NC}       = gpt-5.3-codex (default; Claude not supported via Codex)"
     echo -e ""
     echo -e "  Cursor auto model (built-in composite LLM):"
-    echo -e "    DX_AGENTIC_E2E_CURSOR_MODEL=auto ./test.sh agentic-e2e-cursor-cli-autopilot"
+    echo -e "    DX_AGENTIC_E2E_CURSOR_MODEL=auto ./test.sh agent-driven-e2e-cursor-cli-autopilot"
     echo -e ""
     echo -e "  Cursor Opus 4.7 thinking (strongest reasoning):"
-    echo -e "    DX_AGENTIC_E2E_CURSOR_MODEL=claude-opus-4-7-thinking-high ./test.sh agentic-e2e-cursor-cli-autopilot"
+    echo -e "    DX_AGENTIC_E2E_CURSOR_MODEL=claude-opus-4-7-thinking-high ./test.sh agent-driven-e2e-cursor-cli-autopilot"
     echo -e ""
     echo -e "  GPT-5.3-codex via Copilot provider (OpenCode):"
-    echo -e "    DX_AGENTIC_E2E_OPENCODE_MODEL=github-copilot/gpt-5.3-codex ./test.sh agentic-e2e-opencode-cli-autopilot"
+    echo -e "    DX_AGENTIC_E2E_OPENCODE_MODEL=github-copilot/gpt-5.3-codex ./test.sh agent-driven-e2e-opencode-cli-autopilot"
     echo -e ""
     echo -e "${YELLOW}Reports — JSON report enabled by default${NC}"
     echo -e "  Per-test pass/fail/xfailed/skipped JSON is automatically saved to ${SCRIPT_DIR}/reports/test_report_<TS>.json."
@@ -425,9 +425,9 @@ SCENARIO_TIMEOUTS[cascaded]=900
 SCENARIO_TIMEOUTS[runtime]=600
 SCENARIO_TIMEOUTS[suite]=900
 
-# Prompts from each component's Agentic Development guide (User Scenarios).
+# Prompts from each component's Agent-Driven Development guide (User Scenarios).
 # No output_dir directive — copilot-instructions.md enforces Output Isolation
-# (auto-creates dx-agentic-dev/<session_id>/ in the target sub-project).
+# (auto-creates dx-agent-dev/<session_id>/ in the target sub-project).
 declare -A SCENARIO_PROMPTS
 SCENARIO_PROMPTS[compiler]="Compile yolo26n model to dxnn"
 SCENARIO_PROMPTS[dx_app]="Build a yolo26n detection app"
@@ -445,16 +445,16 @@ SCENARIO_CHECK_MODELS[cascaded]=0
 SCENARIO_CHECK_MODELS[runtime]=0
 SCENARIO_CHECK_MODELS[suite]=1
 
-# Search paths for dx-agentic-dev/ session auto-detection.
+# Search paths for dx-agent-dev/ session auto-detection.
 # Each scenario may write to one or more sub-project directories.
-# Values are space-separated lists of dx-agentic-dev/ parent dirs.
+# Values are space-separated lists of dx-agent-dev/ parent dirs.
 declare -A SCENARIO_SEARCH_PATHS
-SCENARIO_SEARCH_PATHS[compiler]="${REPO_ROOT}/dx-compiler/dx-agentic-dev"
-SCENARIO_SEARCH_PATHS[dx_app]="${REPO_ROOT}/dx-runtime/dx_app/dx-agentic-dev"
-SCENARIO_SEARCH_PATHS[dx_stream]="${REPO_ROOT}/dx-runtime/dx_stream/dx-agentic-dev"
-SCENARIO_SEARCH_PATHS[cascaded]="${REPO_ROOT}/dx-runtime/dx_stream/dx-agentic-dev"
-SCENARIO_SEARCH_PATHS[runtime]="${REPO_ROOT}/dx-runtime/dx-agentic-dev ${REPO_ROOT}/dx-runtime/dx_app/dx-agentic-dev ${REPO_ROOT}/dx-runtime/dx_stream/dx-agentic-dev"
-SCENARIO_SEARCH_PATHS[suite]="${REPO_ROOT}/dx-agentic-dev ${REPO_ROOT}/dx-compiler/dx-agentic-dev ${REPO_ROOT}/dx-runtime/dx_app/dx-agentic-dev ${REPO_ROOT}/dx-runtime/dx_stream/dx-agentic-dev ${REPO_ROOT}/dx-runtime/dx-agentic-dev"
+SCENARIO_SEARCH_PATHS[compiler]="${REPO_ROOT}/dx-compiler/dx-agent-dev"
+SCENARIO_SEARCH_PATHS[dx_app]="${REPO_ROOT}/dx-runtime/dx_app/dx-agent-dev"
+SCENARIO_SEARCH_PATHS[dx_stream]="${REPO_ROOT}/dx-runtime/dx_stream/dx-agent-dev"
+SCENARIO_SEARCH_PATHS[cascaded]="${REPO_ROOT}/dx-runtime/dx_stream/dx-agent-dev"
+SCENARIO_SEARCH_PATHS[runtime]="${REPO_ROOT}/dx-runtime/dx-agent-dev ${REPO_ROOT}/dx-runtime/dx_app/dx-agent-dev ${REPO_ROOT}/dx-runtime/dx_stream/dx-agent-dev"
+SCENARIO_SEARCH_PATHS[suite]="${REPO_ROOT}/dx-agent-dev ${REPO_ROOT}/dx-compiler/dx-agent-dev ${REPO_ROOT}/dx-runtime/dx_app/dx-agent-dev ${REPO_ROOT}/dx-runtime/dx_stream/dx-agent-dev ${REPO_ROOT}/dx-runtime/dx-agent-dev"
 
 # --- Session auto-detection helpers ---
 # Snapshot existing session dirs under the search paths
@@ -538,7 +538,7 @@ validate_scenario() {
         done
         pass_count=$((pass_count + 1))
     else
-        echo -e "  ${RED}[FAIL]${NC} No session directories detected in dx-agentic-dev/"
+        echo -e "  ${RED}[FAIL]${NC} No session directories detected in dx-agent-dev/"
         fail_count=$((fail_count + 1))
         echo ""
         echo -e "  ${YELLOW}Summary: ${pass_count}/${total_checks} passed, ${fail_count} failed${NC}"
@@ -690,8 +690,8 @@ validate_scenario() {
 
 case "$COMMAND" in
 
-    agentic-e2e-copilot-cli-autopilot)
-        print_info "Running agentic E2E tests via Copilot CLI (autopilot, fully autonomous)..."
+    agent-driven-e2e-copilot-cli-autopilot)
+        print_info "Running agent-driven E2E tests via Copilot CLI (autopilot, fully autonomous)..."
         if ! command -v copilot &> /dev/null; then
             print_error "Copilot CLI (copilot) not found on PATH. Install it first."
             exit 1
@@ -710,8 +710,8 @@ case "$COMMAND" in
         exit $EXIT_CODE
         ;;
 
-    agentic-e2e-cursor-cli-autopilot)
-        print_info "Running agentic E2E tests via Cursor CLI (autopilot, fully autonomous)..."
+    agent-driven-e2e-cursor-cli-autopilot)
+        print_info "Running agent-driven E2E tests via Cursor CLI (autopilot, fully autonomous)..."
         if ! command -v agent &> /dev/null; then
             print_error "Cursor CLI (agent) not found on PATH. Install it first:"
             print_error "  curl https://cursor.com/install -fsS | bash"
@@ -731,7 +731,7 @@ case "$COMMAND" in
         exit $EXIT_CODE
         ;;
 
-    agentic-e2e-copilot-cli-manual)
+    agent-driven-e2e-copilot-cli-manual)
         # ---------------------------------------------------------------
         # Shell-based interactive mode — runs Copilot CLI directly (no pytest)
         # User interacts with copilot TUI, then shell validates output.
@@ -747,7 +747,7 @@ case "$COMMAND" in
         TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
         # ARTIFACTS_BASE is computed per-scenario inside the loop (based on workdir)
         declare -A SCENARIO_ARTIFACTS
-        GLOBAL_SUMMARY_BASE="${REPO_ROOT}/dx-agentic-dev/e2e-tests/copilot_cli/manual/${TIMESTAMP}"
+        GLOBAL_SUMMARY_BASE="${REPO_ROOT}/dx-agent-dev/e2e-tests/copilot_cli/manual/${TIMESTAMP}"
 
         # --- Scenario selection ---
         # If -k filter matches a scenario key, auto-select it
@@ -768,7 +768,7 @@ case "$COMMAND" in
         else
             # Show interactive menu
             echo ""
-            echo -e "${YELLOW}Agentic E2E Manual Mode — Interactive Copilot CLI${NC}"
+            echo -e "${YELLOW}Agent-Driven E2E Manual Mode — Interactive Copilot CLI${NC}"
             echo ""
             echo -e "Available scenarios:"
             for i in "${!SCENARIO_KEYS[@]}"; do
@@ -811,7 +811,7 @@ case "$COMMAND" in
             _prompt="${SCENARIO_PROMPTS[$scenario_key]}"
 
             # Per-scenario artifact base: under each scenario's workdir
-            ARTIFACTS_BASE="${_workdir}/dx-agentic-dev/e2e-tests/copilot_cli/manual/${TIMESTAMP}"
+            ARTIFACTS_BASE="${_workdir}/dx-agent-dev/e2e-tests/copilot_cli/manual/${TIMESTAMP}"
             SCENARIO_ARTIFACTS[$scenario_key]="$ARTIFACTS_BASE"
 
             # Create artifact base (session-logs subdir created later with UUID)
@@ -970,7 +970,7 @@ case "$COMMAND" in
                 for _dd in "${_detected_arr[@]}"; do
                     _session_name=$(basename "$_dd")
                     # Determine parent sub-project name (e.g. dx-compiler, dx_app)
-                    _parent_dir=$(dirname "$_dd")         # .../dx-compiler/dx-agentic-dev
+                    _parent_dir=$(dirname "$_dd")         # .../dx-compiler/dx-agent-dev
                     _parent_name=$(basename "$(dirname "$_parent_dir")")  # dx-compiler
                     _link_name="${scenario_key}-copilot-session_${_parent_name}_${_session_name}"
                     ln -sfn "$(realpath "$_dd")" "${ARTIFACTS_BASE}/${_link_name}"
@@ -1006,7 +1006,7 @@ case "$COMMAND" in
             # --- Per-scenario README.md ---
             _readme="${ARTIFACTS_BASE}/README.md"
             {
-                echo "# Agentic E2E Manual — ${scenario_key} Results"
+                echo "# Agent-Driven E2E Manual — ${scenario_key} Results"
                 echo ""
                 echo "- **Date:** $(date '+%Y-%m-%d %H:%M:%S')"
                 echo "- **Model:** ${AGENTIC_MODEL}"
@@ -1029,7 +1029,7 @@ case "$COMMAND" in
                 echo ""
                 echo "- **Session logs:** \`session-logs-${_uuid_suffix}/\`"
                 echo "- **Events log:** \`${scenario_key}-copilot-events-${_uuid_suffix}.jsonl\`"
-                echo "- **Symlinks:** Point to actual \`dx-agentic-dev/\` session directories"
+                echo "- **Symlinks:** Point to actual \`dx-agent-dev/\` session directories"
                 echo "- **Copilot /share html:** \`${scenario_key}-copilot-shared-${_uuid_suffix}.html\` (exported via \`/share html\` in Copilot CLI only)"
                 echo "- **Copilot session UUID:** \`${_uuid_suffix}\`"
             } > "$_readme"
@@ -1040,7 +1040,7 @@ case "$COMMAND" in
             mkdir -p "$GLOBAL_SUMMARY_BASE"
             _global_readme="${GLOBAL_SUMMARY_BASE}/README.md"
             {
-                echo "# Agentic E2E Manual — Global Summary"
+                echo "# Agent-Driven E2E Manual — Global Summary"
                 echo ""
                 echo "- **Date:** $(date '+%Y-%m-%d %H:%M:%S')"
                 echo "- **Model:** ${AGENTIC_MODEL}"
@@ -1074,7 +1074,7 @@ case "$COMMAND" in
         # --- Summary (console) ---
         echo ""
         echo -e "${BLUE}================================================================${NC}"
-        echo -e "${BLUE}=== Agentic E2E Manual — Final Summary${NC}"
+        echo -e "${BLUE}=== Agent-Driven E2E Manual — Final Summary${NC}"
         echo -e "${BLUE}================================================================${NC}"
         echo -e "  Scenarios run:    ${#SELECTED_SCENARIOS[@]}"
         echo -e "  ${GREEN}Passed:${NC}           ${TOTAL_PASS}"
@@ -1093,7 +1093,7 @@ case "$COMMAND" in
         fi
         echo ""
 
-        # Cleanup session logs unless kept (generated files are in dx-agentic-dev/)
+        # Cleanup session logs unless kept (generated files are in dx-agent-dev/)
         if [ "$CLEANUP_ARTIFACTS" = "1" ] && [ "$TOTAL_FAIL" -eq 0 ]; then
             print_info "Cleaning up artifacts (DX_AGENTIC_E2E_CLEANUP_ARTIFACTS=1)"
             for _ab in "${SCENARIO_ARTIFACTS[@]}"; do
@@ -1110,7 +1110,7 @@ case "$COMMAND" in
         exit 0
         ;;
 
-    agentic-e2e-cursor-cli-manual)
+    agent-driven-e2e-cursor-cli-manual)
         # ---------------------------------------------------------------
         # Shell-based interactive mode — runs Cursor CLI directly (no pytest)
         # User interacts with Cursor agent, then shell validates output.
@@ -1125,7 +1125,7 @@ case "$COMMAND" in
         CLEANUP_ARTIFACTS="${DX_AGENTIC_E2E_CLEANUP_ARTIFACTS:-0}"
         TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
         declare -A SCENARIO_ARTIFACTS
-        GLOBAL_SUMMARY_BASE="${REPO_ROOT}/dx-agentic-dev/e2e-tests/cursor_cli/manual/${TIMESTAMP}"
+        GLOBAL_SUMMARY_BASE="${REPO_ROOT}/dx-agent-dev/e2e-tests/cursor_cli/manual/${TIMESTAMP}"
 
         # --- Scenario selection ---
         SELECTED_SCENARIOS=()
@@ -1144,7 +1144,7 @@ case "$COMMAND" in
             print_info "Auto-selected by -k filter: ${SELECTED_SCENARIOS[*]}"
         else
             echo ""
-            echo -e "${YELLOW}Agentic E2E Manual Mode — Interactive Cursor CLI${NC}"
+            echo -e "${YELLOW}Agent-Driven E2E Manual Mode — Interactive Cursor CLI${NC}"
             echo ""
             echo -e "Available scenarios:"
             for i in "${!SCENARIO_KEYS[@]}"; do
@@ -1186,7 +1186,7 @@ case "$COMMAND" in
             _search_paths="${SCENARIO_SEARCH_PATHS[$scenario_key]}"
             _prompt="${SCENARIO_PROMPTS[$scenario_key]}"
 
-            ARTIFACTS_BASE="${_workdir}/dx-agentic-dev/e2e-tests/cursor_cli/manual/${TIMESTAMP}"
+            ARTIFACTS_BASE="${_workdir}/dx-agent-dev/e2e-tests/cursor_cli/manual/${TIMESTAMP}"
             SCENARIO_ARTIFACTS[$scenario_key]="$ARTIFACTS_BASE"
             mkdir -p "$ARTIFACTS_BASE"
 
@@ -1267,7 +1267,7 @@ case "$COMMAND" in
             # --- Per-scenario README.md ---
             _readme="${ARTIFACTS_BASE}/README.md"
             {
-                echo "# Agentic E2E Manual — ${scenario_key} Results"
+                echo "# Agent-Driven E2E Manual — ${scenario_key} Results"
                 echo ""
                 echo "- **Date:** $(date '+%Y-%m-%d %H:%M:%S')"
                 echo "- **Model:** ${AGENTIC_MODEL}"
@@ -1288,7 +1288,7 @@ case "$COMMAND" in
                 echo ""
                 echo "## Artifacts"
                 echo ""
-                echo "- **Symlinks:** Point to actual \`dx-agentic-dev/\` session directories"
+                echo "- **Symlinks:** Point to actual \`dx-agent-dev/\` session directories"
                 echo "- **Export:** (Cursor agent does not provide a built-in /export — session captured by test harness)"
             } > "$_readme"
 
@@ -1297,7 +1297,7 @@ case "$COMMAND" in
             mkdir -p "$GLOBAL_SUMMARY_BASE"
             _global_readme="${GLOBAL_SUMMARY_BASE}/README.md"
             {
-                echo "# Agentic E2E Manual — Global Summary"
+                echo "# Agent-Driven E2E Manual — Global Summary"
                 echo ""
                 echo "- **Date:** $(date '+%Y-%m-%d %H:%M:%S')"
                 echo "- **Model:** ${AGENTIC_MODEL}"
@@ -1331,7 +1331,7 @@ case "$COMMAND" in
         # --- Summary ---
         echo ""
         echo -e "${BLUE}================================================================${NC}"
-        echo -e "${BLUE}=== Agentic E2E Cursor Manual — Final Summary${NC}"
+        echo -e "${BLUE}=== Agent-Driven E2E Cursor Manual — Final Summary${NC}"
         echo -e "${BLUE}================================================================${NC}"
         echo -e "  Model:            ${AGENTIC_MODEL}"
         echo -e "  Scenarios run:    ${#SELECTED_SCENARIOS[@]}"
@@ -1353,8 +1353,8 @@ case "$COMMAND" in
         exit 0
         ;;
 
-    agentic-e2e-opencode-cli-autopilot)
-        print_info "Running agentic E2E tests via OpenCode CLI (autopilot, fully autonomous)..."
+    agent-driven-e2e-opencode-cli-autopilot)
+        print_info "Running agent-driven E2E tests via OpenCode CLI (autopilot, fully autonomous)..."
         if ! command -v opencode &> /dev/null; then
             print_error "OpenCode CLI (opencode) not found on PATH. Install it first."
             exit 1
@@ -1373,8 +1373,8 @@ case "$COMMAND" in
         exit $EXIT_CODE
         ;;
 
-    agentic-e2e-claude-code-autopilot)
-        print_info "Running agentic E2E tests via Claude Code CLI (autopilot, fully autonomous)..."
+    agent-driven-e2e-claude-code-autopilot)
+        print_info "Running agent-driven E2E tests via Claude Code CLI (autopilot, fully autonomous)..."
         if ! command -v claude &> /dev/null; then
             print_error "Claude Code CLI (claude) not found on PATH. Install it first:"
             print_error "  npm install -g @anthropic-ai/claude-code"
@@ -1401,8 +1401,8 @@ case "$COMMAND" in
         exit $EXIT_CODE
         ;;
 
-    agentic-e2e-codex-cli-autopilot)
-        print_info "Running agentic E2E tests via Codex CLI (autopilot, fully autonomous)..."
+    agent-driven-e2e-codex-cli-autopilot)
+        print_info "Running agent-driven E2E tests via Codex CLI (autopilot, fully autonomous)..."
         CODEX_BIN="${HOME}/bin/codex"
         if [ ! -x "$CODEX_BIN" ] && ! command -v codex &> /dev/null; then
             print_error "Codex CLI (codex) not found. Install from https://github.com/openai/codex"
@@ -1432,7 +1432,7 @@ case "$COMMAND" in
         ;;
 
 
-    agentic-e2e-opencode-cli-manual)
+    agent-driven-e2e-opencode-cli-manual)
         # ---------------------------------------------------------------
         # Shell-based interactive mode — runs OpenCode CLI directly (no pytest)
         # User interacts with OpenCode TUI, types /export to save HTML archive,
@@ -1447,7 +1447,7 @@ case "$COMMAND" in
         CLEANUP_ARTIFACTS="${DX_AGENTIC_E2E_CLEANUP_ARTIFACTS:-0}"
         TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
         declare -A SCENARIO_ARTIFACTS
-        GLOBAL_SUMMARY_BASE="${REPO_ROOT}/dx-agentic-dev/e2e-tests/opencode/manual/${TIMESTAMP}"
+        GLOBAL_SUMMARY_BASE="${REPO_ROOT}/dx-agent-dev/e2e-tests/opencode/manual/${TIMESTAMP}"
 
         # --- Scenario selection ---
         SELECTED_SCENARIOS=()
@@ -1466,7 +1466,7 @@ case "$COMMAND" in
             print_info "Auto-selected by -k filter: ${SELECTED_SCENARIOS[*]}"
         else
             echo ""
-            echo -e "${YELLOW}Agentic E2E Manual Mode — Interactive OpenCode CLI${NC}"
+            echo -e "${YELLOW}Agent-Driven E2E Manual Mode — Interactive OpenCode CLI${NC}"
             echo ""
             echo -e "Available scenarios:"
             for i in "${!SCENARIO_KEYS[@]}"; do
@@ -1504,7 +1504,7 @@ case "$COMMAND" in
             _search_paths="${SCENARIO_SEARCH_PATHS[$scenario_key]}"
             _prompt="${SCENARIO_PROMPTS[$scenario_key]}"
 
-            ARTIFACTS_BASE="${_workdir}/dx-agentic-dev/e2e-tests/opencode/manual/${TIMESTAMP}"
+            ARTIFACTS_BASE="${_workdir}/dx-agent-dev/e2e-tests/opencode/manual/${TIMESTAMP}"
             SCENARIO_ARTIFACTS[$scenario_key]="$ARTIFACTS_BASE"
             mkdir -p "$ARTIFACTS_BASE"
 
@@ -1597,7 +1597,7 @@ case "$COMMAND" in
             # --- Per-scenario README.md ---
             _readme="${ARTIFACTS_BASE}/README.md"
             {
-                echo "# Agentic E2E Manual — ${scenario_key} Results"
+                echo "# Agent-Driven E2E Manual — ${scenario_key} Results"
                 echo ""
                 echo "- **Date:** $(date '+%Y-%m-%d %H:%M:%S')"
                 echo "- **Model:** ${AGENTIC_MODEL}"
@@ -1618,7 +1618,7 @@ case "$COMMAND" in
                 echo ""
                 echo "## Artifacts"
                 echo ""
-                echo "- **Symlinks:** Point to actual \`dx-agentic-dev/\` session directories"
+                echo "- **Symlinks:** Point to actual \`dx-agent-dev/\` session directories"
                 echo "- **Export:** \`${scenario_key}-opencode-session.md\` (exported via \`/export\` in OpenCode)"
             } > "$_readme"
 
@@ -1627,7 +1627,7 @@ case "$COMMAND" in
             mkdir -p "$GLOBAL_SUMMARY_BASE"
             _global_readme="${GLOBAL_SUMMARY_BASE}/README.md"
             {
-                echo "# Agentic E2E Manual — Global Summary"
+                echo "# Agent-Driven E2E Manual — Global Summary"
                 echo ""
                 echo "- **Date:** $(date '+%Y-%m-%d %H:%M:%S')"
                 echo "- **Model:** ${AGENTIC_MODEL}"
@@ -1660,7 +1660,7 @@ case "$COMMAND" in
 
         echo ""
         echo -e "${BLUE}================================================================${NC}"
-        echo -e "${BLUE}=== Agentic E2E OpenCode Manual — Final Summary${NC}"
+        echo -e "${BLUE}=== Agent-Driven E2E OpenCode Manual — Final Summary${NC}"
         echo -e "${BLUE}================================================================${NC}"
         echo -e "  Model:            ${AGENTIC_MODEL}"
         echo -e "  Scenarios run:    ${#SELECTED_SCENARIOS[@]}"
@@ -1680,7 +1680,7 @@ case "$COMMAND" in
         exit 0
         ;;
 
-    agentic-e2e-claude-code-manual)
+    agent-driven-e2e-claude-code-manual)
         # ---------------------------------------------------------------
         # Shell-based interactive mode — runs Claude Code CLI directly (no pytest)
         # User interacts with Claude Code TUI, types /export to save txt transcript,
@@ -1704,7 +1704,7 @@ case "$COMMAND" in
         CLEANUP_ARTIFACTS="${DX_AGENTIC_E2E_CLEANUP_ARTIFACTS:-0}"
         TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
         declare -A SCENARIO_ARTIFACTS
-        GLOBAL_SUMMARY_BASE="${REPO_ROOT}/dx-agentic-dev/e2e-tests/claude_code/manual/${TIMESTAMP}"
+        GLOBAL_SUMMARY_BASE="${REPO_ROOT}/dx-agent-dev/e2e-tests/claude_code/manual/${TIMESTAMP}"
 
         # --- Scenario selection ---
         SELECTED_SCENARIOS=()
@@ -1721,7 +1721,7 @@ case "$COMMAND" in
             print_info "Auto-selected by -k filter: ${SELECTED_SCENARIOS[*]}"
         else
             echo ""
-            echo -e "${YELLOW}Agentic E2E Manual Mode — Interactive Claude Code CLI${NC}"
+            echo -e "${YELLOW}Agent-Driven E2E Manual Mode — Interactive Claude Code CLI${NC}"
             echo ""
             echo -e "Available scenarios:"
             for i in "${!SCENARIO_KEYS[@]}"; do
@@ -1758,7 +1758,7 @@ case "$COMMAND" in
             _search_paths="${SCENARIO_SEARCH_PATHS[$scenario_key]}"
             _prompt="${SCENARIO_PROMPTS[$scenario_key]}"
 
-            ARTIFACTS_BASE="${_workdir}/dx-agentic-dev/e2e-tests/claude_code/manual/${TIMESTAMP}"
+            ARTIFACTS_BASE="${_workdir}/dx-agent-dev/e2e-tests/claude_code/manual/${TIMESTAMP}"
             SCENARIO_ARTIFACTS[$scenario_key]="$ARTIFACTS_BASE"
             mkdir -p "$ARTIFACTS_BASE"
 
@@ -1862,7 +1862,7 @@ case "$COMMAND" in
             # --- Per-scenario README.md ---
             _readme="${ARTIFACTS_BASE}/README.md"
             {
-                echo "# Agentic E2E Manual — ${scenario_key} Results"
+                echo "# Agent-Driven E2E Manual — ${scenario_key} Results"
                 echo ""
                 echo "- **Date:** $(date '+%Y-%m-%d %H:%M:%S')"
                 echo "- **Model:** ${AGENTIC_MODEL}"
@@ -1883,7 +1883,7 @@ case "$COMMAND" in
                 echo ""
                 echo "## Artifacts"
                 echo ""
-                echo "- **Symlinks:** Point to actual \`dx-agentic-dev/\` session directories"
+                echo "- **Symlinks:** Point to actual \`dx-agent-dev/\` session directories"
                 echo "- **Export:** \`${scenario_key}-claude-export.txt\` (exported via \`/export\` in Claude Code)"
                 echo "- **Session HTML:** \`${scenario_key}-claude-session.html\` (parsed from JSONL via \`parse_claude_session.py\`)"
             } > "$_readme"
@@ -1893,7 +1893,7 @@ case "$COMMAND" in
             mkdir -p "$GLOBAL_SUMMARY_BASE"
             _global_readme="${GLOBAL_SUMMARY_BASE}/README.md"
             {
-                echo "# Agentic E2E Manual — Global Summary"
+                echo "# Agent-Driven E2E Manual — Global Summary"
                 echo ""
                 echo "- **Date:** $(date '+%Y-%m-%d %H:%M:%S')"
                 echo "- **Model:** ${AGENTIC_MODEL}"
@@ -1926,7 +1926,7 @@ case "$COMMAND" in
 
         echo ""
         echo -e "${BLUE}================================================================${NC}"
-        echo -e "${BLUE}=== Agentic E2E Claude Code Manual — Final Summary${NC}"
+        echo -e "${BLUE}=== Agent-Driven E2E Claude Code Manual — Final Summary${NC}"
         echo -e "${BLUE}================================================================${NC}"
         echo -e "  Model:            ${AGENTIC_MODEL}"
         echo -e "  Scenarios run:    ${#SELECTED_SCENARIOS[@]}"

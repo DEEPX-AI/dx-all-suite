@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-e2e_runner.py — Reusable multi-round E2E test runner for DEEPX Agentic Dev.
+e2e_runner.py — Reusable multi-round E2E test runner for DEEPX Agent-Driven Dev.
 
 Default execution model is SEQUENTIAL (one tool at a time) so per-tool
 duration metrics are not skewed by NPU/CPU contention. Use --parallel to
@@ -81,7 +81,7 @@ except ImportError:
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = (SCRIPT_DIR / "../..").resolve()
 TEST_SH = SCRIPT_DIR / "test.sh"
-RESULTS_ROOT = REPO_ROOT / "dx-agentic-dev/e2e-tests/results"
+RESULTS_ROOT = REPO_ROOT / "dx-agent-dev/e2e-tests/results"
 RUNNER_STATE_DIR = SCRIPT_DIR / "runner_state"
 
 # ---------------------------------------------------------------------------
@@ -98,11 +98,11 @@ ALL_TOOLS: List[str] = [
 
 # test.sh command name for each tool
 TOOL_CMD: Dict[str, str] = {
-    "claude-code": "agentic-e2e-claude-code-autopilot",
-    "copilot-cli": "agentic-e2e-copilot-cli-autopilot",
-    "cursor-cli": "agentic-e2e-cursor-cli-autopilot",
-    "opencode-cli": "agentic-e2e-opencode-cli-autopilot",
-    "codex-cli": "agentic-e2e-codex-cli-autopilot",
+    "claude-code": "agent-driven-e2e-claude-code-autopilot",
+    "copilot-cli": "agent-driven-e2e-copilot-cli-autopilot",
+    "cursor-cli": "agent-driven-e2e-cursor-cli-autopilot",
+    "opencode-cli": "agent-driven-e2e-opencode-cli-autopilot",
+    "codex-cli": "agent-driven-e2e-codex-cli-autopilot",
 }
 
 # Thinking / high-reasoning mode env vars per tool
@@ -354,7 +354,7 @@ def _read_exit_from_manifest(manifest_path: Path) -> int:
 
 
 def _collect_artifact_dirs(manifest_path: Path) -> List[str]:
-    """Extract generated agentic-dev session dirs from manifest symlink targets."""
+    """Extract generated agent-driven-dev session dirs from manifest symlink targets."""
     if not manifest_path.exists():
         return []
     try:
@@ -363,15 +363,15 @@ def _collect_artifact_dirs(manifest_path: Path) -> List[str]:
         return []
     dirs: List[str] = []
     for artifact in data.get("artifacts", {}).values():
-        # artifact.path = autopilot staging dir (e.g. .../dx_app/dx-agentic-dev/e2e-tests/.../autopilot/<ts>)
+        # artifact.path = autopilot staging dir (e.g. .../dx_app/dx-agent-dev/e2e-tests/.../autopilot/<ts>)
         ap = artifact.get("path", "")
         if ap:
             dirs.append(ap)
-        # contents[*].target = actual generated session dir (e.g. .../dx-agentic-dev/20260521-..._yolo26n_detection)
+        # contents[*].target = actual generated session dir (e.g. .../dx-agent-dev/20260521-..._yolo26n_detection)
         for c in artifact.get("contents", []):
             if c.get("type") == "symlink":
                 tgt = c.get("target", "")
-                if tgt and "dx-agentic-dev" in tgt and tgt not in dirs:
+                if tgt and "dx-agent-dev" in tgt and tgt not in dirs:
                     dirs.append(tgt)
     return dirs
 
@@ -1774,7 +1774,7 @@ def _summarize_log_timings(log_path: Path) -> Optional[str]:
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="e2e_runner.py",
-        description="Reusable multi-round E2E test runner for DEEPX Agentic Dev (sequential by default).",
+        description="Reusable multi-round E2E test runner for DEEPX Agent-Driven Dev (sequential by default).",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=__doc__,
     )

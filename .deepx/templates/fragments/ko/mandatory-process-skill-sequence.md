@@ -1,13 +1,13 @@
 ## 필수 프로세스 스킬 시퀀스 — 모든 코드 생성 (HARD GATE)
 
-이 gate는 `dx-agentic-dev/<session_id>/`에 코드 artifact를 생성하는 모든 세션에
+이 gate는 `dx-agent-dev/<session_id>/`에 코드 artifact를 생성하는 모든 세션에
 적용됩니다. "내부 개발" SWE Process Gates와 독립적입니다 — 내부 개발 gate는
-dx-agentic-dev infrastructure 작업에 적용되고, 이 gate는 user-facing 코드 생성
+dx-agent-dev infrastructure 작업에 적용되고, 이 gate는 user-facing 코드 생성
 (inference app, pipeline, compilation)에 적용됩니다.
 
 ### 적용 시점
 
-`dx-agentic-dev/<session_id>/`에 파일을 생성하는 모든 세션은 아래의 완전한
+`dx-agent-dev/<session_id>/`에 파일을 생성하는 모든 세션은 아래의 완전한
 프로세스 스킬 시퀀스를 반드시 따라야 합니다:
 - ONNX → DXNN compilation session
 - Python/C++ inference app 생성 (dx_app)
@@ -27,10 +27,10 @@ dx-agentic-dev infrastructure 작업에 적용되고, 이 gate는 user-facing �
 | Step | Skill | 요구사항 |
 |------|-------|----------|
 | 1 | `/dx-skill-router` | **항상** — 어떤 action보다 먼저 호출. `skill-router-mandatory` fragment로 이미 강제됨. |
-| 2 | `/dx-agentic-brainstorm` | **모든 non-trivial 코드 생성** — 요구사항 수집, approach 제안, 승인 후 파일 생성. |
+| 2 | `/dx-agent-brainstorm` | **모든 non-trivial 코드 생성** — 요구사항 수집, approach 제안, 승인 후 파일 생성. |
 | 3 | `/dx-swe-writing-plans` | **항상** — 복잡도와 무관하게 모든 코드 생성 세션에서 구조화된 구현 계획 작성 필수. |
-| 4 | `/dx-agentic-tdd` | **항상** — 합격 기준 정의 (Red), artifact 생성 (Green), 즉시 검증 (Verify). |
-| 5 | `/dx-agentic-verify` | **항상** — DONE 선언 전, 동작하는 artifact의 증거 제시 필수. 증거 없는 주장 금지. |
+| 4 | `/dx-agent-tdd` | **항상** — 합격 기준 정의 (Red), artifact 생성 (Green), 즉시 검증 (Verify). |
+| 5 | `/dx-agent-verify` | **항상** — DONE 선언 전, 동작하는 artifact의 증거 제시 필수. 증거 없는 주장 금지. |
 
 ### 시퀀스 강제 규칙
 
@@ -65,15 +65,15 @@ Autopilot 모드 (사용자 부재, `--yolo` 플래그, auto-response):
 Artifact Verification Gate는 각 artifact가 **어떻게** 검증되는지 정의합니다
 (파일 유형별 구체적 command). 함께 작동합니다:
 
-- Step 4 (`/dx-agentic-tdd`)는 Artifact Verification Gate의 검증 command 사용
+- Step 4 (`/dx-agent-tdd`)는 Artifact Verification Gate의 검증 command 사용
   (syntax check, execution test, import resolution).
-- Step 5 (`/dx-agentic-verify`)는 모든 mandatory deliverable이 존재하고
+- Step 5 (`/dx-agent-verify`)는 모든 mandatory deliverable이 존재하고
   Artifact Verification Gate check를 통과하는지 확인.
 
 ### Invoke = 실제 Tool Call
 
 "skill을 호출한다"는 것은 `skill` tool을 호출하여 load하는 것을 의미합니다.
-텍스트에 "dx-agentic-tdd를 사용합니다"라고 쓰는 것은 호출이 **아닙니다** — tool이
+텍스트에 "dx-agent-tdd를 사용합니다"라고 쓰는 것은 호출이 **아닙니다** — tool이
 반드시 호출되어야 합니다. `skill` tool을 호출하지 않았다면 해당 단계는
 미완료입니다.
 
@@ -83,15 +83,15 @@ Artifact Verification Gate는 각 artifact가 **어떻게** 검증되는지 정�
   항상 필요. "간단한" 프로젝트에서 검토되지 않은 가정이 가장 많은 재작업을 유발.
 - `/dx-swe-writing-plans` 이전에 코드 생성 → HARD GATE 위반.
   Plan-before-code는 협상 불가.
-- "artifact-verification-gate가 이미 파일을 확인하니까" `/dx-agentic-verify`
+- "artifact-verification-gate가 이미 파일을 확인하니까" `/dx-agent-verify`
   생략 → 목적이 다름. Artifact gate는 개별 파일 확인. Verify-completion은
   전체 세션 deliverable을 총체적으로 확인.
 - 실행 출력 없이 DONE 선언 → 증거 필수. "검증했다"는 출력 없이는 불가.
 - "사용자가 빨리 하라고 했다" → 사용자 지시가 이 HARD GATE를 override하지 않음.
   속도가 프로세스 생략을 정당화하지 않음.
-- **텍스트 언급 ≠ skill 호출** — 응답 텍스트에 "dx-agentic-tdd를 사용합니다" 또는
-  "dx-agentic-brainstorm을 따릅니다"라고 작성하는 것은 유효한 호출이 아닙니다.
+- **텍스트 언급 ≠ skill 호출** — 응답 텍스트에 "dx-agent-tdd를 사용합니다" 또는
+  "dx-agent-brainstorm을 따릅니다"라고 작성하는 것은 유효한 호출이 아닙니다.
   각 단계마다 `skill` tool이 반드시 호출되어야 합니다.
 - **대화 맥락 ≠ brainstorming** — 이전 메시지에서 요구사항을 논의했다고 해서
-  `/dx-agentic-brainstorm` 호출을 대체할 수 없습니다. 각 기능에는 명시적
+  `/dx-agent-brainstorm` 호출을 대체할 수 없습니다. 각 기능에는 명시적
   사용자 승인이 포함된 정식 brainstorm이 필요합니다.

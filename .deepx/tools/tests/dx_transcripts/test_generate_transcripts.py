@@ -96,7 +96,7 @@ def test_claude_is_registered():
 
 
 def test_all_five_tools_registered():
-    """All five agentic CLIs have a registered loader (stage 2a)."""
+    """All five agent-driven CLIs have a registered loader (stage 2a)."""
     assert set(gt.SUPPORTED_TOOLS) == {"claude", "copilot", "codex", "cursor", "opencode"}
 
 

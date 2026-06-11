@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 """
-Agentic E2E Test: dx-runtime Scenario #2 — Route to dx_app AND dx_stream
+Agent-Driven E2E Test: dx-runtime Scenario #2 — Route to dx_app AND dx_stream
 
 Runs Copilot CLI inside dx-runtime/ with a prompt that requires BOTH a
 standalone detection app (dx_app routing) and a real-time streaming pipeline

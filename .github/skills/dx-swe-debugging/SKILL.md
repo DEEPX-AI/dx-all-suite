@@ -5,7 +5,7 @@ description: Use when encountering any bug, test failure, or unexpected behavior
 
 <!-- AUTO-GENERATED from .deepx/ — DO NOT EDIT DIRECTLY -->
 <!-- Source: .deepx/skills/dx-swe-debugging/SKILL.md -->
-<!-- Run: dx-agentic-gen generate -->
+<!-- Run: dx-agent-gen generate -->
 
 # Systematic Debugging
 

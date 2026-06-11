@@ -1,17 +1,17 @@
-# `.deepx/` — DEEPX All Suite Agentic Knowledge (최상위 레벨)
+# `.deepx/` — DEEPX All Suite Agent-Driven Knowledge (최상위 레벨)
 
-> dx-all-suite 최상위 레벨의 DEEPX Agentic Development (`dx-agentic-dev`)
+> dx-all-suite 최상위 레벨의 DEEPX Agent-Driven Development (`dx-agent-dev`)
 > canonical source에 대한 마스터 인덱스.
 >
 > 최종 사용자 사용법은 [`docs/source/00_Agentic_Development.md`](../docs/source/00_Agentic_Development.md)를 참조.
 > 5개 repo 전반의 모든 `.deepx/` 디렉토리에 대한 포괄적인 워크스루는
-> [`docs/dx-agentic-dev-overview.md`](docs/dx-agentic-dev-overview.md)를 참조.
+> [`docs/dx-agent-dev-overview.md`](docs/dx-agent-dev-overview.md)를 참조.
 
 ---
 
 ## 1. 목적
 
-`.deepx/` 디렉토리는 DEEPX Agentic Development를 구동하는 모든 것의
+`.deepx/` 디렉토리는 DEEPX Agent-Driven Development를 구동하는 모든 것의
 **canonical source of truth (SoT)** 입니다:
 
 - 에이전트 정의 (router agents, builder agents, validators)
@@ -20,12 +20,12 @@
 - 모든 플랫폼 출력에 주입되는 공유 fragment (4개 tool × 5개 repo)
 - Memory (pitfalls, knowledge base 항목)
 - Tests (~700개 conformance + ~586개 E2E)
-- `.deepx/` 콘텐츠를 모든 플랫폼으로 fan-out하는 `dx-agentic-gen` generator
+- `.deepx/` 콘텐츠를 모든 플랫폼으로 fan-out하는 `dx-agent-gen` generator
 
 > **Generator 출력을 직접 수정하지 마세요.** `CLAUDE.md`, `AGENTS.md`,
 > `.claude/agents/`, `.github/agents/`, `.opencode/agents/`, `.cursor/rules/`
 > 같은 파일은 `.deepx/`로부터 생성됩니다. `.deepx/` 하위의 해당 source를 수정한 뒤,
-> `dx-agentic-gen generate`를 실행하세요.
+> `dx-agent-gen generate`를 실행하세요.
 
 ---
 
@@ -45,8 +45,8 @@ dx-all-suite는 5개의 repo를 포함하며, 각각 자체 `.deepx/`를 가집�
 - Suite 전역 router agents (`dx-suite-builder`, `dx-suite-validator`)
 - 5개의 모든 repo에 주입되는 16개의 공유 fragment (rename gates, session sentinels,
   process gates, autopilot guard 등)
-- `dx-agentic-gen` generator (5개의 모든 repo를 처리하는 단일 도구)
-- 모든 agentic 테스트 인프라 (`tests/` conformance + `e2e/`)
+- `dx-agent-gen` generator (5개의 모든 repo를 처리하는 단일 도구)
+- 모든 agent-driven 테스트 인프라 (`tests/` conformance + `e2e/`)
 
 ---
 
@@ -64,7 +64,7 @@ dx-all-suite는 5개의 repo를 포함하며, 각각 자체 `.deepx/`를 가집�
 ├── skills/                      ← Reusable skill workflows (14)
 │   ├── dx-skill-router/         ← Meta — universal pre-flight
 │   ├── dx-swe-*/                ← General SWE process (10: brainstorm/tdd/verify/…)
-│   ├── dx-agentic-*/            ← DEEPX-specific (3: brainstorm/tdd/verify)
+│   ├── dx-agent-*/            ← DEEPX-specific (3: brainstorm/tdd/verify)
 │   └── dx-harness-*/            ← Internal harness dev (2: validate/writing-skills)
 │
 ├── templates/                   ← Generator templates
@@ -86,7 +86,7 @@ dx-all-suite는 5개의 repo를 포함하며, 각각 자체 `.deepx/`를 가집�
 ├── docs/                        ← Harness design docs (not auto-loaded)
 │   ├── skill-architecture.md             ← 3-tier skill model
 │   ├── fragment-authoring-guide.md       ← Rules for writing fragments
-│   └── dx-agentic-dev-overview.md        ← Comprehensive .deepx/ walk-through
+│   └── dx-agent-dev-overview.md        ← Comprehensive .deepx/ walk-through
 │
 ├── tests/                       ← suite conformance 테스트
 │   ├── README.md                ← 테스트 범주 및 실행법
@@ -99,11 +99,11 @@ dx-all-suite는 5개의 repo를 포함하며, 각각 자체 `.deepx/`를 가집�
 │
 └── tools/                       ← 툴링 패키지 + 오케스트레이션 스크립트
     ├── README.md                ← 툴링 가이드
-    ├── pyproject.toml           ← `dx-agentic-gen` CLI; src/ 두 패키지 자동 발견
+    ├── pyproject.toml           ← `dx-agent-gen` CLI; src/ 두 패키지 자동 발견
     ├── src/
-    │   ├── dx_agentic_dev_gen/  ← 제너레이터 (cli, generator, transformers, frontmatter, constants)
+    │   ├── dx_agent_dev_gen/  ← 제너레이터 (cli, generator, transformers, frontmatter, constants)
     │   └── dx_transcripts/      ← 공유 세션 파서 + transcript 렌더러
-    ├── tests/                   ← src/ 미러 (dx_agentic_dev_gen/, dx_transcripts/)
+    ├── tests/                   ← src/ 미러 (dx_agent_dev_gen/, dx_transcripts/)
     └── scripts/
         ├── README.md                          ← scripts/ guide
         ├── run_all.sh                         ← Multi-repo generate/check/lint
@@ -121,7 +121,7 @@ dx-all-suite는 5개의 repo를 포함하며, 각각 자체 `.deepx/`를 가집�
 ```
                     .deepx/  (canonical source)
                        │
-                       │  dx-agentic-gen generate
+                       │  dx-agent-gen generate
                        ▼
    ┌────────────────────────────────────────────────────────────┐
    │                                                            │
@@ -154,11 +154,11 @@ drift된 경우 `git commit`을 차단합니다.
 pip install -e .deepx/tools
 
 # 2. Single-repo operations (from the repo root)
-dx-agentic-gen generate    # Regenerate platform files
-dx-agentic-gen check       # Verify no drift
-dx-agentic-gen lint        # Verify EN/KO fragment parity
-dx-agentic-gen prune       # Remove stale orphan outputs (renamed/removed sources)
-dx-agentic-gen generate --prune   # Regenerate AND self-clean orphans in one pass
+dx-agent-gen generate    # Regenerate platform files
+dx-agent-gen check       # Verify no drift
+dx-agent-gen lint        # Verify EN/KO fragment parity
+dx-agent-gen prune       # Remove stale orphan outputs (renamed/removed sources)
+dx-agent-gen generate --prune   # Regenerate AND self-clean orphans in one pass
 
 # 3. Suite-wide (process all 5 repos)
 bash .deepx/tools/scripts/run_all.sh generate
@@ -171,9 +171,9 @@ bash .deepx/tools/scripts/install-hooks.sh
 
 # 5. Tests
 cd .deepx/e2e
-./test.sh agentic                          # ~700 conformance tests (~1s)
-./test.sh agentic-e2e-claude-code-autopilot # Claude Code E2E
-./test.sh agentic-e2e-copilot-cli-autopilot # Copilot CLI E2E
+./test.sh agent-driven                          # ~700 conformance tests (~1s)
+./test.sh agent-driven-e2e-claude-code-autopilot # Claude Code E2E
+./test.sh agent-driven-e2e-copilot-cli-autopilot # Copilot CLI E2E
 ```
 
 ---
@@ -183,11 +183,11 @@ cd .deepx/e2e
 | Tier | Prefix | Scope | Example |
 |------|--------|-------|---------|
 | **General SWE** | `dx-swe-*` | 모든 SDK / docs / general coding | `dx-swe-tdd` |
-| **End-User (Agentic Dev)** | `dx-agentic-*` | dx-agentic-dev를 통한 앱/파이프라인 빌드 | `dx-agentic-tdd` |
+| **End-User (Agent-Driven Dev)** | `dx-agent-*` | dx-agent-dev를 통한 앱/파이프라인 빌드 | `dx-agent-tdd` |
 | **Harness Eng** | `dx-harness-*` | 내부 `.deepx/`, `tests/`, `tools/` 유지보수 | `dx-harness-validate` |
 | **Meta** | `dx-skill-router` | 모든 tier에서 사용 (universal pre-flight) | — |
 
-`dx-agentic-*` skill은 대응하는 `dx-swe-*` skill을 참조하고 DEEPX 고유 콘텐츠
+`dx-agent-*` skill은 대응하는 `dx-swe-*` skill을 참조하고 DEEPX 고유 콘텐츠
 (model registry 검사, sub-project 라우팅 등)를 추가합니다.
 
 전체 설계는 [`docs/skill-architecture.md`](docs/skill-architecture.md)를 참조.
@@ -201,7 +201,7 @@ cd .deepx/e2e
 
 | Scenario | Trigger | Mandatory Sequence |
 |----------|---------|--------------------|
-| **End-User** | `dx-agentic-dev/<session_id>/`에 쓰는 task | router → `dx-agentic-brainstorm` → `dx-swe-writing-plans` → `dx-agentic-tdd` → `dx-agentic-verify` |
+| **End-User** | `dx-agent-dev/<session_id>/`에 쓰는 task | router → `dx-agent-brainstorm` → `dx-swe-writing-plans` → `dx-agent-tdd` → `dx-agent-verify` |
 | **Harness Dev** | `.deepx/`, `tests/`, `tools/`를 건드리는 task | router → `dx-swe-brainstorm` → `dx-swe-writing-plans` → `dx-swe-tdd` → `dx-swe-verify` → `dx-harness-validate` |
 | **SDK Dev** | SDK source / docs를 건드리는 task (general) | router → `dx-swe-brainstorm` → `dx-swe-writing-plans` → `dx-swe-tdd` → `dx-swe-verify` |
 
@@ -214,7 +214,7 @@ fragment에 의해 강제됩니다.
 ## 8. 공유 Fragments (16 EN + 16 KO)
 
 Fragment는 5개의 모든 repo의 명령어 파일에 주입되는 재사용 가능한 rule block입니다.
-Fragment를 한 번 수정하면 `dx-agentic-gen generate`를 통해 변경 사항이 모든 곳에
+Fragment를 한 번 수정하면 `dx-agent-gen generate`를 통해 변경 사항이 모든 곳에
 전파됩니다.
 
 | Fragment | Purpose |
@@ -246,10 +246,10 @@ Fragment를 추가하거나 수정하는 방법은
 | Topic | Document |
 |-------|----------|
 | 최종 사용자 사용법 (one-liner prompts, scenarios) | [`docs/source/00_Agentic_Development.md`](../docs/source/00_Agentic_Development.md) |
-| 포괄적인 `.deepx/` 워크스루 (5개의 모든 repo) | [`docs/dx-agentic-dev-overview.md`](docs/dx-agentic-dev-overview.md) |
+| 포괄적인 `.deepx/` 워크스루 (5개의 모든 repo) | [`docs/dx-agent-dev-overview.md`](docs/dx-agent-dev-overview.md) |
 | 3-tier skill 아키텍처 및 네이밍 | [`docs/skill-architecture.md`](docs/skill-architecture.md) |
 | 새로운 fragment 작성 방법 | [`docs/fragment-authoring-guide.md`](docs/fragment-authoring-guide.md) |
-| `dx-agentic-gen` generator 패키지 | [`tools/README.md`](tools/README.md) |
+| `dx-agent-gen` generator 패키지 | [`tools/README.md`](tools/README.md) |
 | 운영 스크립트 (`run_all.sh`, hooks, E2E loop) | [`tools/scripts/README.md`](tools/scripts/README.md) |
 | E2E 결과 분석기 (리포트, 차트, 대시보드) | [`e2e/agentic_analyzer/README-KO.md`](e2e/agentic_analyzer/README-KO.md) |
 | 테스트 카테고리 및 실행 방법 | [`tests/README.md`](tests/README.md) |
@@ -261,8 +261,8 @@ Fragment를 추가하거나 수정하는 방법은
 
 | Term | Meaning |
 |------|---------|
-| `dx-agentic-dev` | DEEPX Agentic Development 기능 (이 시스템 전체). 세션별 출력 디렉토리이기도 함: `dx-agentic-dev/<session_id>/`. |
-| `dx-agentic-gen` | `.deepx/`를 모든 플랫폼별 파일로 fan-out하는 Python CLI. 패키지 source는 `tools/src/dx_agentic_dev_gen/` 하위. |
+| `dx-agent-dev` | DEEPX Agent-Driven Development 기능 (이 시스템 전체). 세션별 출력 디렉토리이기도 함: `dx-agent-dev/<session_id>/`. |
+| `dx-agent-gen` | `.deepx/`를 모든 플랫폼별 파일로 fan-out하는 Python CLI. 패키지 source는 `tools/src/dx_agent_dev_gen/` 하위. |
 | Fragment | `.deepx/templates/fragments/{en,ko}/` 하위의 재사용 가능한 rule block. 항상 EN + KO 쌍으로 작성됨. |
 | Canonical source | `**/.deepx/**` 하위의 파일 — 수정해야 할 유일한 위치. |
 | Generator output | 플랫폼별 파일 (`CLAUDE.md`, `.claude/`, `.github/`, `.cursor/`, `.opencode/`). 직접 수정 금지. |

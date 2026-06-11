@@ -36,10 +36,10 @@ def test_workdir_relative_resolves(tmp_path, monkeypatch):
     monkeypatch.setattr("test_agentic_e2e_scenarios.conftest.SUITE_ROOT", suite)
 
     sid = "20260521-205059_claude_sonnet46_yolo26n_cascaded"
-    out = stream / "dx-agentic-dev" / sid
+    out = stream / "dx-agent-dev" / sid
     out.mkdir(parents=True)
 
-    stdout = _DONE_TEMPLATE.format(f"dx-agentic-dev/{sid}/")
+    stdout = _DONE_TEMPLATE.format(f"dx-agent-dev/{sid}/")
     dirs, found = _resolve_done_sentinel_dirs(stdout, stream, [], name_filter="cascaded")
 
     assert found is True
@@ -56,10 +56,10 @@ def test_suite_root_relative_resolves(tmp_path, monkeypatch):
     monkeypatch.setattr("test_agentic_e2e_scenarios.conftest.SUITE_ROOT", suite)
 
     sid = "20260521-205059_claude_sonnet46_yolo26n_cascaded"
-    out = stream / "dx-agentic-dev" / sid
+    out = stream / "dx-agent-dev" / sid
     out.mkdir(parents=True)
 
-    stdout = _DONE_TEMPLATE.format(f"dx-runtime/dx_stream/dx-agentic-dev/{sid}/")
+    stdout = _DONE_TEMPLATE.format(f"dx-runtime/dx_stream/dx-agent-dev/{sid}/")
     dirs, found = _resolve_done_sentinel_dirs(stdout, stream, [], name_filter="cascaded")
 
     assert found is True
@@ -71,13 +71,13 @@ def test_multi_path_split(tmp_path, monkeypatch):
     suite, stream = _make_suite(tmp_path)
     monkeypatch.setattr("test_agentic_e2e_scenarios.conftest.SUITE_ROOT", suite)
 
-    compile_dir = suite / "dx-compiler" / "dx-agentic-dev" / "20260521-205059_c_compile"
-    app_dir = suite / "dx-runtime" / "dx_app" / "dx-agentic-dev" / "20260521-205059_c_inference"
+    compile_dir = suite / "dx-compiler" / "dx-agent-dev" / "20260521-205059_c_compile"
+    app_dir = suite / "dx-runtime" / "dx_app" / "dx-agent-dev" / "20260521-205059_c_inference"
     compile_dir.mkdir(parents=True)
     app_dir.mkdir(parents=True)
 
-    rel_compile = "dx-compiler/dx-agentic-dev/20260521-205059_c_compile/"
-    rel_app = "dx-runtime/dx_app/dx-agentic-dev/20260521-205059_c_inference/"
+    rel_compile = "dx-compiler/dx-agent-dev/20260521-205059_c_compile/"
+    rel_app = "dx-runtime/dx_app/dx-agent-dev/20260521-205059_c_inference/"
     stdout = _DONE_TEMPLATE.format(f"{rel_compile} + {rel_app}")
 
     dirs, found = _resolve_done_sentinel_dirs(stdout, stream, [], name_filter="")
@@ -91,8 +91,8 @@ def test_no_sentinel_returns_filtered_runner_dirs(tmp_path, monkeypatch):
     suite, stream = _make_suite(tmp_path)
     monkeypatch.setattr("test_agentic_e2e_scenarios.conftest.SUITE_ROOT", suite)
 
-    a = stream / "dx-agentic-dev" / "20260521-101010_x_cascaded"
-    b = stream / "dx-agentic-dev" / "20260521-111111_y_single_model"
+    a = stream / "dx-agent-dev" / "20260521-101010_x_cascaded"
+    b = stream / "dx-agent-dev" / "20260521-111111_y_single_model"
     a.mkdir(parents=True)
     b.mkdir(parents=True)
 
@@ -114,8 +114,8 @@ def test_sentinel_unresolvable_falls_back_to_runner_dirs(tmp_path, monkeypatch):
     suite, stream = _make_suite(tmp_path)
     monkeypatch.setattr("test_agentic_e2e_scenarios.conftest.SUITE_ROOT", suite)
 
-    a = stream / "dx-agentic-dev" / "20260521-101010_x_cascaded"
-    b = stream / "dx-agentic-dev" / "20260521-111111_y_other"
+    a = stream / "dx-agent-dev" / "20260521-101010_x_cascaded"
+    b = stream / "dx-agent-dev" / "20260521-111111_y_other"
     a.mkdir(parents=True)
     b.mkdir(parents=True)
 

@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
-"""dx-agentic-dev E2E Analyzer — main entry point.
+"""dx-agent-dev E2E Analyzer — main entry point.
 
 Usage:
     python analyze.py [--results-root PATH] [--config PATH] [--output-dir PATH]
                        [--tool TOOL ...] [--scenario SCEN ...] [--round N ...]
 
 Defaults (when invoked from .deepx/e2e/agentic_analyzer/):
-    --results-root: <suite-root>/dx-agentic-dev/e2e-tests/results
+    --results-root: <suite-root>/dx-agent-dev/e2e-tests/results
     --config:       ./config.yaml
-    --output-dir:   <suite-root>/dx-agentic-dev/e2e-tests/analyzer_reports/<UTC ts>/
+    --output-dir:   <suite-root>/dx-agent-dev/e2e-tests/analyzer_reports/<UTC ts>/
 
 Examples:
     # Analyze all current sessions
@@ -83,8 +83,8 @@ def _find_suite_root() -> Path:
 
 
 SUITE_ROOT = _find_suite_root()
-DEFAULT_RESULTS_ROOT = SUITE_ROOT / "dx-agentic-dev" / "e2e-tests" / "results"
-DEFAULT_REPORTS_BASE = SUITE_ROOT / "dx-agentic-dev" / "e2e-tests" / "analyzer_reports"
+DEFAULT_RESULTS_ROOT = SUITE_ROOT / "dx-agent-dev" / "e2e-tests" / "results"
+DEFAULT_REPORTS_BASE = SUITE_ROOT / "dx-agent-dev" / "e2e-tests" / "analyzer_reports"
 
 from lib.discover import discover_all, ScenarioRef
 from lib.session import parse_session
@@ -252,7 +252,7 @@ def evaluate_scenario(
 
 
 def main(argv: Optional[List[str]] = None) -> int:
-    parser = argparse.ArgumentParser(description="dx-agentic-dev E2E Analyzer")
+    parser = argparse.ArgumentParser(description="dx-agent-dev E2E Analyzer")
     parser.add_argument(
         "--results-root",
         default=str(DEFAULT_RESULTS_ROOT),
@@ -617,7 +617,7 @@ _DEFAULT_EXPERIMENT_TITLE = """\
 
 ## 실험 제목
 
-DEEPX Agentic Development E2E 평가
+DEEPX Agent-Driven Development E2E 평가
 """
 
 
@@ -868,7 +868,7 @@ def _generate_comprehensive_report(report_dir: Path) -> None:
     a digestible single document while still pointing to the full data.
     """
     parts: List[str] = []
-    parts.append("# DEEPX Agentic Development — 종합 보고서 (Comprehensive Report)")
+    parts.append("# DEEPX Agent-Driven Development — 종합 보고서 (Comprehensive Report)")
     parts.append("")
     parts.append(f"> 생성 시각: {datetime.now().isoformat(timespec='seconds')}")
     parts.append("> 이 보고서는 analysis.md(정량) + insights.md(정성) + runnability 요약을 통합한 종합본입니다.")
@@ -1225,7 +1225,7 @@ def _write_runnability_html(md_path: Path, html_path: Path) -> None:
         return
     md_content = md_path.read_text(encoding="utf-8")
     body = _md_to_html_import(md_content)
-    title = "DEEPX Agentic Development — Runnability Report"
+    title = "DEEPX Agent-Driven Development — Runnability Report"
     html = f"""<!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -1260,7 +1260,7 @@ def _write_comprehensive_html(md_path: Path, html_path: Path, report_dir: Path) 
 
     md_content = md_path.read_text(encoding="utf-8")
     body = _md_to_html_import(md_content)
-    title = "DEEPX Agentic Development — 종합 보고서"
+    title = "DEEPX Agent-Driven Development — 종합 보고서"
 
     # Load analysis.json for chart data
     json_path = report_dir / "analysis.json"
@@ -1790,7 +1790,7 @@ _DASHBOARD_TEMPLATE = r"""<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DEEPX Agentic Development — E2E Dashboard</title>
+<title>DEEPX Agent-Driven Development — E2E Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -1837,7 +1837,7 @@ a { color: #60a5fa; }
 </head>
 <body>
 <div class="header">
-  <h1>📊 DEEPX Agentic Development — E2E Dashboard</h1>
+  <h1>📊 DEEPX Agent-Driven Development — E2E Dashboard</h1>
   <p id="subtitle">Loading...</p>
 </div>
 <div class="main">
@@ -2254,7 +2254,7 @@ def _resolve_insights_cli(mode: str, *, allow_paid: Optional[bool] = None) -> Op
 
     chain_label = "paid" if effective_allow_paid else "free"
     print()
-    print(f"⚠ No agentic CLI available in {chain_label} chain ({candidates}). "
+    print(f"⚠ No agent-driven CLI available in {chain_label} chain ({candidates}). "
           f"Skipping insights/runnability steps.")
     return None
 

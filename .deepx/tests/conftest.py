@@ -1,8 +1,8 @@
 # SPDX-License-Identifier: Apache-2.0
 """
-Shared configuration for agentic test suites (.deepx/tests/).
+Shared configuration for agent-driven test suites (.deepx/tests/).
 
-Registers agentic-specific pytest markers and prevents pytest from crawling
+Registers agent-driven-specific pytest markers and prevents pytest from crawling
 into sub-project test directories that have unrelated dependencies.
 """
 
@@ -18,13 +18,13 @@ collect_ignore_glob = [
 
 
 def pytest_configure(config):
-    """Register agentic-specific custom markers."""
+    """Register agent-driven-specific custom markers."""
     markers = [
-        "agentic_e2e_copilot_cli_autopilot: Agentic E2E tests via Copilot CLI autopilot (fully autonomous, CI/CD)",
-        "agentic_e2e_cursor_cli_autopilot: Agentic E2E tests via Cursor CLI autopilot (fully autonomous)",
-        "agentic_e2e_opencode_cli_autopilot: Agentic E2E tests via OpenCode CLI autopilot (fully autonomous)",
-        "agentic_e2e_claude_code_autopilot: Agentic E2E tests via Claude Code CLI autopilot (fully autonomous)",
-        "agentic_e2e_codex_cli_autopilot: Agentic E2E tests via Codex CLI autopilot (fully autonomous)",
+        "agentic_e2e_copilot_cli_autopilot: Agent-Driven E2E tests via Copilot CLI autopilot (fully autonomous, CI/CD)",
+        "agentic_e2e_cursor_cli_autopilot: Agent-Driven E2E tests via Cursor CLI autopilot (fully autonomous)",
+        "agentic_e2e_opencode_cli_autopilot: Agent-Driven E2E tests via OpenCode CLI autopilot (fully autonomous)",
+        "agentic_e2e_claude_code_autopilot: Agent-Driven E2E tests via Claude Code CLI autopilot (fully autonomous)",
+        "agentic_e2e_codex_cli_autopilot: Agent-Driven E2E tests via Codex CLI autopilot (fully autonomous)",
     ]
     for marker in markers:
         config.addinivalue_line("markers", marker)

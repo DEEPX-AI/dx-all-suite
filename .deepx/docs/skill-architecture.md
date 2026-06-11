@@ -9,13 +9,13 @@ Skills are organized into three tiers by naming convention:
 | Tier | Prefix | Scope | Example |
 |------|--------|-------|---------|
 | **General SWE** | `dx-swe-*` | All development tasks (SDK, docs, general coding) | `dx-swe-tdd` |
-| **End-User (Agentic Dev)** | `dx-agentic-*` | Building apps/pipelines via dx-agentic-dev features | `dx-agentic-tdd` |
+| **End-User (Agent-Driven Dev)** | `dx-agent-*` | Building apps/pipelines via dx-agent-dev features | `dx-agent-tdd` |
 | **Harness Eng** | `dx-harness-*` | Internal `.deepx/`, `tests/`, `tools/` maintenance | `dx-harness-validate` |
 | **Meta** | `dx-skill-router` | Used in all tiers | — |
 
 ### Design Principles
 
-1. **`dx-agentic-*` references `dx-swe-*`** — The agentic skill contains
+1. **`dx-agent-*` references `dx-swe-*`** — The agent-driven skill contains
    DEEPX-specific content only and states "for general SWE process, see
    `dx-swe-*`".
 
@@ -25,9 +25,9 @@ Skills are organized into three tiers by naming convention:
 
 3. **`dx-harness-*` is internal-only** — These skills are never invoked for
    end-user tasks. They use internal tools (`validate_framework.py`,
-   `feedback_collector.py`, `dx-agentic-gen`).
+   `feedback_collector.py`, `dx-agent-gen`).
 
-4. **Domain-specific skills follow `dx-agentic-{subproject}-*` convention** — Each
+4. **Domain-specific skills follow `dx-agent-{subproject}-*` convention** — Each
    sub-project's build/validate/model skills are prefixed with their sub-project
    identifier for clear namespace separation.
 
@@ -50,13 +50,13 @@ Skills are organized into three tiers by naming convention:
 | `dx-swe-receiving-review` | Evaluate code review feedback with rigor |
 | `dx-swe-requesting-review` | Request code review after completing features |
 
-#### End-User (`dx-agentic-*`)
+#### End-User (`dx-agent-*`)
 
 | Skill | Purpose | References |
 |-------|---------|------------|
-| `dx-agentic-brainstorm` | Sub-project routing, model registry, Pre-Flight check | `dx-swe-brainstorm` |
-| `dx-agentic-tdd` | Validation Order for dx_app, dx_stream, Integration | `dx-swe-tdd` |
-| `dx-agentic-verify` | Checklists for dx_app, dx_stream, Cross-Project | `dx-swe-verify` |
+| `dx-agent-brainstorm` | Sub-project routing, model registry, Pre-Flight check | `dx-swe-brainstorm` |
+| `dx-agent-tdd` | Validation Order for dx_app, dx_stream, Integration | `dx-swe-tdd` |
+| `dx-agent-verify` | Checklists for dx_app, dx_stream, Cross-Project | `dx-swe-verify` |
 
 #### Harness Eng (`dx-harness-*`)
 
@@ -75,8 +75,8 @@ Skills are organized into three tiers by naming convention:
 
 Sub-project skills follow the same naming convention. Key differences:
 
-- **`dx-agentic-*`** at sub-project level contains project-specific details
-  (e.g., dx_app's `dx-agentic-tdd` has 133-model validation details)
+- **`dx-agent-*`** at sub-project level contains project-specific details
+  (e.g., dx_app's `dx-agent-tdd` has 133-model validation details)
 - **`dx-swe-*`** at sub-project level are typically identical to suite level
 - **Domain-specific skills** are unique per sub-project
 
@@ -86,57 +86,57 @@ Sub-project skills follow the same naming convention. Key differences:
 
 | Skill | Purpose |
 |-------|---------|
-| `dx-agentic-compiler-compile` | Step-by-step ONNX to DXNN compilation workflow |
-| `dx-agentic-compiler-convert` | Step-by-step PyTorch to ONNX conversion workflow |
-| `dx-agentic-compiler-validate` | Validate compiled .dxnn model output |
+| `dx-agent-compiler-compile` | Step-by-step ONNX to DXNN compilation workflow |
+| `dx-agent-compiler-convert` | Step-by-step PyTorch to ONNX conversion workflow |
+| `dx-agent-compiler-validate` | Validate compiled .dxnn model output |
 
 #### dx-runtime Domain Skills
 
 | Skill | Purpose |
 |-------|---------|
-| `dx-agentic-runtime-validate` | Validate, collect feedback, apply fixes, verify |
+| `dx-agent-runtime-validate` | Validate, collect feedback, apply fixes, verify |
 
 #### dx_app Domain Skills
 
 | Skill | Purpose |
 |-------|---------|
-| `dx-agentic-app-build-python` | Build Python inference app (IFactory + SyncRunner) |
-| `dx-agentic-app-build-cpp` | Build C++ inference app |
-| `dx-agentic-app-build-async` | Build async high-performance app (AsyncRunner) |
-| `dx-agentic-app-model-management` | Download and configure models |
-| `dx-agentic-app-validate` | Run dx_app validation checks |
+| `dx-agent-app-build-python` | Build Python inference app (IFactory + SyncRunner) |
+| `dx-agent-app-build-cpp` | Build C++ inference app |
+| `dx-agent-app-build-async` | Build async high-performance app (AsyncRunner) |
+| `dx-agent-app-model-management` | Download and configure models |
+| `dx-agent-app-validate` | Run dx_app validation checks |
 
 #### dx_stream Domain Skills
 
 | Skill | Purpose |
 |-------|---------|
-| `dx-agentic-stream-build-pipeline` | Build GStreamer pipeline app |
-| `dx-agentic-stream-build-mqtt-kafka` | Build MQTT/Kafka pipeline app |
-| `dx-agentic-stream-model-management` | Download and configure models |
-| `dx-agentic-stream-validate` | Run dx_stream validation checks |
+| `dx-agent-stream-build-pipeline` | Build GStreamer pipeline app |
+| `dx-agent-stream-build-mqtt-kafka` | Build MQTT/Kafka pipeline app |
+| `dx-agent-stream-model-management` | Download and configure models |
+| `dx-agent-stream-validate` | Run dx_stream validation checks |
 
 ## Mandatory Skill Sequences
 
 ### End-User Scenario
 
-Triggered when: task produces files in `dx-agentic-dev/<session_id>/`
+Triggered when: task produces files in `dx-agent-dev/<session_id>/`
 
 ```
 dx-skill-router
-  → dx-agentic-brainstorm    (routes to sub-project, refs dx-swe-brainstorm)
+  → dx-agent-brainstorm    (routes to sub-project, refs dx-swe-brainstorm)
   → dx-swe-writing-plans
-  → dx-agentic-tdd           (refs dx-swe-tdd)
-  → dx-agentic-{subproject}-* (domain build skills: compile, build-python, etc.)
-  → dx-agentic-verify        (refs dx-swe-verify)
+  → dx-agent-tdd           (refs dx-swe-tdd)
+  → dx-agent-{subproject}-* (domain build skills: compile, build-python, etc.)
+  → dx-agent-verify        (refs dx-swe-verify)
 ```
 
 **Enforced by:** `mandatory-process-skill-sequence.md` fragment (path match:
-`dx-agentic-dev/<session_id>/`)
+`dx-agent-dev/<session_id>/`)
 
 ### SDK Development Scenario
 
 Triggered when: task modifies SDK source, docs, or general code (NOT
-`.deepx/`, `tests/`, `tools/`, or `dx-agentic-dev/`)
+`.deepx/`, `tests/`, `tools/`, or `dx-agent-dev/`)
 
 ```
 dx-skill-router
@@ -159,7 +159,7 @@ dx-skill-router
   → dx-swe-writing-plans
   → dx-swe-tdd
   → dx-swe-verify
-  → dx-harness-validate      (+ validate_framework.py, dx-agentic-gen check)
+  → dx-harness-validate      (+ validate_framework.py, dx-agent-gen check)
 ```
 
 **Enforced by:** `swe-process-gates-internal-dev.md` fragment (path match:
@@ -172,16 +172,16 @@ matching** in instruction fragments embedded in `AGENTS.md` / `CLAUDE.md`:
 
 | Fragment | Path Match | Scenario |
 |----------|-----------|----------|
-| `mandatory-process-skill-sequence.md` | `dx-agentic-dev/<session_id>/` | End-User |
+| `mandatory-process-skill-sequence.md` | `dx-agent-dev/<session_id>/` | End-User |
 | `swe-process-gates-internal-dev.md` | `.deepx/`, `tests/`, `tools/` | Harness Dev |
 | Neither matches | — | SDK Dev (General) |
 
 ## Reference Pattern
 
-`dx-agentic-*` skills reference `dx-swe-*` directly:
+`dx-agent-*` skills reference `dx-swe-*` directly:
 
 ```markdown
-# dx-agentic-tdd
+# dx-agent-tdd
 
 > For the general Red-Green-Verify cycle, see `dx-swe-tdd`.
 > This skill adds DEEPX build-specific validation order and checks.
@@ -205,7 +205,7 @@ All harness development files live under `.deepx/`:
   skills/           — skill definitions (canonical source)
   templates/        — generator templates + fragments
   tests/            — suite conformance tests
-    conftest.py           — agentic marker registration + collect_ignore
+    conftest.py           — agent-driven marker registration + collect_ignore
     conformance/          — static KB/generated-output policy checks
   e2e/              — end-to-end harness (separated)
     e2e_runner.py · e2e_monitor.py · test.sh   — round orchestration + runner
@@ -214,9 +214,9 @@ All harness development files live under `.deepx/`:
   tools/            — tooling packages + dev scripts
     README.md                     — tooling guide
     pyproject.toml                — package definition; discovers both src/ packages
-    src/dx_agentic_dev_gen/       — generator package (cli, generator, transformers, frontmatter, constants)
+    src/dx_agent_dev_gen/       — generator package (cli, generator, transformers, frontmatter, constants)
     src/dx_transcripts/           — shared session parsers + transcript renderer
-    tests/                        — mirrors src/ (dx_agentic_dev_gen/, dx_transcripts/)
+    tests/                        — mirrors src/ (dx_agent_dev_gen/, dx_transcripts/)
     scripts/
       README.md                       — scripts/ guide
       run_all.sh                      — multi-repo generate/check/lint wrapper
@@ -228,5 +228,5 @@ All harness development files live under `.deepx/`:
 ```
 
 Product test infrastructure remains at `tests/` (Docker, local install,
-getting-started tests). `dx-agentic-dev/e2e-tests/` remains at its current
+getting-started tests). `dx-agent-dev/e2e-tests/` remains at its current
 location (test data and results, not harness source code).

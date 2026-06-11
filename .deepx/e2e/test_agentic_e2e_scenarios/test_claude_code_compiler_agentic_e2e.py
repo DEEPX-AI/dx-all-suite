@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 """
-Agentic E2E Test (Claude Code): dx-compiler Scenario — Download + Compile Model
+Agent-Driven E2E Test (Claude Code): dx-compiler Scenario — Download + Compile Model
 
 Runs the Claude Code CLI inside dx-compiler/ with a prompt requesting
 end-to-end compilation of a yolo26n model to DXNN format.

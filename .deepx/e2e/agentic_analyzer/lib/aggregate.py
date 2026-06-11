@@ -67,7 +67,7 @@ class SessionEval:
     pr_observed: float = 0.0            # method 0 — totalPremiumRequests (copilot-cli only)
     pr_by_tool_call: float = 0.0        # method 1 — tool_call × 0.741 (calibrated, primary)
     pr_by_token_ratio: float = 0.0      # method 2 — (input+output) / tokens_per_premium (fallback)
-    user_turn_count: int = 0            # Informational metadata (not used for PR estimation in agentic loops)
+    user_turn_count: int = 0            # Informational metadata (not used for PR estimation in agent-driven loops)
     cost_units: float = 0.0             # Copilot: requests.cost, OpenCode: part.cost sum
     estimated_usd: float = 0.0          # Computed from pricing config (informational)
     cost_basis: str = "unknown"         # Which pricing rule was applied

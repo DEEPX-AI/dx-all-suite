@@ -1,16 +1,16 @@
-# DX-ALL-SUITE Agentic Development Tests
+# DX-ALL-SUITE Agent-Driven Development Tests
 
 ## 📋 Overview
 
-Agentic development test suite for the DX-ALL-SUITE project. These tests validate
+Agent-Driven development test suite for the DX-ALL-SUITE project. These tests validate
 the AI coding agent infrastructure and run end-to-end scenarios with multiple CLI tools.
 
 For product tests (docker_install, local_install, getting_started), see [`tests/README.md`](../../tests/README.md).
 
 ## ✅ Test Suite Categories
 
-### 1. conformance — Agentic Development Infrastructure Validation
-Validates the agentic development infrastructure across all 5 project levels (suite, compiler, runtime, dx_app, dx_stream).
+### 1. conformance — Agent-Driven Development Infrastructure Validation
+Validates the agent-driven development infrastructure across all 5 project levels (suite, compiler, runtime, dx_app, dx_stream).
 
 **What it tests:**
 - Guide document structure: existence, headings, scenario numbering, EN/KO synchronization
@@ -20,7 +20,7 @@ Validates the agentic development infrastructure across all 5 project levels (su
 
 **Total tests:** ~700 infra checks — run `pytest .deepx/tests/conformance/ --collect-only -q` for the live count. These need no CLI/NPU, so effectively all pass; a few skip when an optional dependency is absent.
 
-### 2. test_agentic_e2e_scenarios — Agentic End-to-End Scenario Tests (Copilot CLI + Cursor CLI + OpenCode CLI + Claude Code CLI + Codex CLI)
+### 2. test_agentic_e2e_scenarios — Agent-Driven End-to-End Scenario Tests (Copilot CLI + Cursor CLI + OpenCode CLI + Claude Code CLI + Codex CLI)
 Runs actual CLI agent invocations for representative scenarios from each project level, then statically verifies the generated output files.
 
 **Modes:** five CLI autopilot modes (pytest) + interactive manual modes (shell).
@@ -34,7 +34,7 @@ Runs actual CLI agent invocations for representative scenarios from each project
 - **opencode manual**: Interactive shell-based mode (no pytest). User interacts with OpenCode TUI, types `/export` to save session, then shell validates output.
 - **claude-code manual**: Interactive shell-based mode (no pytest). User interacts with Claude Code CLI, types `/export` to save transcript, then shell validates output.
 
-**Output isolation:** Prompts do NOT specify an output directory. Each sub-project's agent configuration (`copilot-instructions.md` for OpenCode, `.cursor/rules/*.mdc` for Cursor) enforces Output Isolation, automatically writing generated files to `dx-agentic-dev/<session_id>/`. The test framework auto-detects new session directories by comparing pre/post snapshots of each scenario's search paths.
+**Output isolation:** Prompts do NOT specify an output directory. Each sub-project's agent configuration (`copilot-instructions.md` for OpenCode, `.cursor/rules/*.mdc` for Cursor) enforces Output Isolation, automatically writing generated files to `dx-agent-dev/<session_id>/`. The test framework auto-detects new session directories by comparing pre/post snapshots of each scenario's search paths.
 
 **What it tests:**
 - **dx_app Scenario #1:** Build a yolo26n person detection app (IFactory pattern, config.json, runner)
@@ -173,7 +173,7 @@ Per-round outputs are isolated under a run-id directory so different batches no
 longer mix in the same flat namespace:
 
 ```
-dx-agentic-dev/e2e-tests/results/
+dx-agent-dev/e2e-tests/results/
 ├── 20260521_135734/                       ← run_id from e2e_runner
 │   ├── 20260521_174857_e25076_claude-code-autopilot/
 │   │   ├── manifest.json
@@ -274,7 +274,7 @@ python analyze.py --run-id 20260521_135734 --tool claude-code --round 1 --round 
 **analyzer_reports/ layout:**
 
 ```
-dx-agentic-dev/e2e-tests/analyzer_reports/
+dx-agent-dev/e2e-tests/analyzer_reports/
 ├── _all/<timestamp>/                     ← no --run-id (everything aggregated)
 ├── 20260521_135734/<timestamp>/          ← single --run-id
 ├── multi_a3f2b1c4/<timestamp>/           ← multiple --run-id (SHA-8 of sorted IDs)
@@ -290,20 +290,20 @@ the per-session detail table.
 ```bash
 cd .deepx/e2e
 
-# Agentic infrastructure validation (~704 tests, ~1 second)
-./test.sh agentic
+# Agent-Driven infrastructure validation (~704 tests, ~1 second)
+./test.sh agent-driven
 
-# Agentic E2E scenario tests
-./test.sh agentic-e2e-copilot-cli-autopilot     # Copilot CLI, fully autonomous (CI/CD)
-./test.sh agentic-e2e-cursor-cli-autopilot      # Cursor CLI, fully autonomous (CI/CD)
-./test.sh agentic-e2e-opencode-cli-autopilot    # OpenCode CLI, fully autonomous (CI/CD)
-./test.sh agentic-e2e-claude-code-autopilot     # Claude Code CLI, fully autonomous (CI/CD)
-./test.sh agentic-e2e-codex-cli-autopilot       # Codex CLI, fully autonomous (CI/CD)
-./test.sh agentic-e2e-copilot-cli-manual        # Copilot CLI, interactive (shell-based)
-./test.sh agentic-e2e-cursor-cli-manual         # Cursor CLI, interactive (shell-based)
-./test.sh agentic-e2e-opencode-cli-manual       # OpenCode CLI, interactive (shell-based)
-./test.sh agentic-e2e-claude-code-manual        # Claude Code CLI, interactive (shell-based)
-./test.sh agentic-e2e-codex-cli-manual          # Codex CLI, interactive (shell-based)
+# Agent-Driven E2E scenario tests
+./test.sh agent-driven-e2e-copilot-cli-autopilot     # Copilot CLI, fully autonomous (CI/CD)
+./test.sh agent-driven-e2e-cursor-cli-autopilot      # Cursor CLI, fully autonomous (CI/CD)
+./test.sh agent-driven-e2e-opencode-cli-autopilot    # OpenCode CLI, fully autonomous (CI/CD)
+./test.sh agent-driven-e2e-claude-code-autopilot     # Claude Code CLI, fully autonomous (CI/CD)
+./test.sh agent-driven-e2e-codex-cli-autopilot       # Codex CLI, fully autonomous (CI/CD)
+./test.sh agent-driven-e2e-copilot-cli-manual        # Copilot CLI, interactive (shell-based)
+./test.sh agent-driven-e2e-cursor-cli-manual         # Cursor CLI, interactive (shell-based)
+./test.sh agent-driven-e2e-opencode-cli-manual       # OpenCode CLI, interactive (shell-based)
+./test.sh agent-driven-e2e-claude-code-manual        # Claude Code CLI, interactive (shell-based)
+./test.sh agent-driven-e2e-codex-cli-manual          # Codex CLI, interactive (shell-based)
 ```
 
 ## 💡 Key Commands
@@ -311,81 +311,81 @@ cd .deepx/e2e
 ### Test Suite Commands
 
 ```bash
-./test.sh agentic          # Agentic infrastructure (~704 tests, ~1 second)
-./test.sh agentic-e2e-claude-code-autopilot   # Agentic E2E Claude Code autonomous
-./test.sh agentic-e2e-copilot-cli-autopilot   # Agentic E2E Copilot CLI autonomous
-./test.sh agentic-e2e-opencode-cli-autopilot  # Agentic E2E Opencode CLI autonomous
-./test.sh agentic-e2e-cursor-cli-autopilot    # Agentic E2E Cursor CLI autonomous
-./test.sh agentic-e2e-codex-cli-autopilot     # Agentic E2E Codex CLI autonomous
-./test.sh agentic-e2e-claude-code-manual      # Agentic E2E Claude Code interactive
-./test.sh agentic-e2e-copilot-cli-manual      # Agentic E2E Copilot CLI interactive
-./test.sh agentic-e2e-opencode-cli-manual     # Agentic E2E OpenCode CLI interactive
-./test.sh agentic-e2e-cursor-cli-manual       # Agentic E2E Cursor CLI interactive
+./test.sh agent-driven          # Agent-Driven infrastructure (~704 tests, ~1 second)
+./test.sh agent-driven-e2e-claude-code-autopilot   # Agent-Driven E2E Claude Code autonomous
+./test.sh agent-driven-e2e-copilot-cli-autopilot   # Agent-Driven E2E Copilot CLI autonomous
+./test.sh agent-driven-e2e-opencode-cli-autopilot  # Agent-Driven E2E Opencode CLI autonomous
+./test.sh agent-driven-e2e-cursor-cli-autopilot    # Agent-Driven E2E Cursor CLI autonomous
+./test.sh agent-driven-e2e-codex-cli-autopilot     # Agent-Driven E2E Codex CLI autonomous
+./test.sh agent-driven-e2e-claude-code-manual      # Agent-Driven E2E Claude Code interactive
+./test.sh agent-driven-e2e-copilot-cli-manual      # Agent-Driven E2E Copilot CLI interactive
+./test.sh agent-driven-e2e-opencode-cli-manual     # Agent-Driven E2E OpenCode CLI interactive
+./test.sh agent-driven-e2e-cursor-cli-manual       # Agent-Driven E2E Cursor CLI interactive
 ```
 
 ### Marker Filters
 
 ```bash
-./test.sh -m "agentic_e2e_copilot_cli_autopilot"  # Only Copilot CLI agentic E2E
-./test.sh -m "agentic_e2e_cursor_cli_autopilot"   # Only Cursor CLI agentic E2E
-./test.sh -m "agentic_e2e_opencode_cli_autopilot" # Only OpenCode CLI agentic E2E
-./test.sh -m "agentic_e2e_claude_code_autopilot"  # Only Claude Code CLI agentic E2E
+./test.sh -m "agentic_e2e_copilot_cli_autopilot"  # Only Copilot CLI agent-driven E2E
+./test.sh -m "agentic_e2e_cursor_cli_autopilot"   # Only Cursor CLI agent-driven E2E
+./test.sh -m "agentic_e2e_opencode_cli_autopilot" # Only OpenCode CLI agent-driven E2E
+./test.sh -m "agentic_e2e_claude_code_autopilot"  # Only Claude Code CLI agent-driven E2E
 ```
 
 ## 🎨 Usage Examples
 
-### Example 1: Agentic E2E — Copilot CLI Autopilot (CI/CD)
+### Example 1: Agent-Driven E2E — Copilot CLI Autopilot (CI/CD)
 
 ```bash
 # Run all Copilot CLI E2E tests in autopilot mode (fully autonomous)
-./test.sh agentic-e2e-copilot-cli-autopilot
+./test.sh agent-driven-e2e-copilot-cli-autopilot
 
 # Filter to compiler scenario only
-./test.sh agentic-e2e-copilot-cli-autopilot -k compiler
+./test.sh agent-driven-e2e-copilot-cli-autopilot -k compiler
 
 # With custom model and extended timeout
 DX_AGENTIC_E2E_TIMEOUT=900 DX_AGENTIC_E2E_MODEL="claude-opus-4.6" \
-  ./test.sh agentic-e2e-copilot-cli-autopilot
+  ./test.sh agent-driven-e2e-copilot-cli-autopilot
 ```
 
-### Example 2: Agentic E2E — Cursor CLI Autopilot (CI/CD)
+### Example 2: Agent-Driven E2E — Cursor CLI Autopilot (CI/CD)
 
 ```bash
 # Run all Cursor CLI E2E tests (default model: claude-4.6-sonnet-medium)
-./test.sh agentic-e2e-cursor-cli-autopilot
+./test.sh agent-driven-e2e-cursor-cli-autopilot
 
 # Filter to dx_stream scenario only
-./test.sh agentic-e2e-cursor-cli-autopilot -k dx_stream
+./test.sh agent-driven-e2e-cursor-cli-autopilot -k dx_stream
 
 # With different model
 DX_AGENTIC_E2E_CURSOR_MODEL="claude-opus-4-7-thinking-high" \
-  ./test.sh agentic-e2e-cursor-cli-autopilot
+  ./test.sh agent-driven-e2e-cursor-cli-autopilot
 ```
 
-### Example 3: Agentic E2E — Copilot CLI Manual (Interactive)
+### Example 3: Agent-Driven E2E — Copilot CLI Manual (Interactive)
 
 ```bash
 # Interactive mode — runs Copilot CLI TUI directly (no pytest)
-./test.sh agentic-e2e-copilot-cli-manual
+./test.sh agent-driven-e2e-copilot-cli-manual
 
 # Auto-select a specific scenario
-./test.sh agentic-e2e-copilot-cli-manual -k compiler
-./test.sh agentic-e2e-copilot-cli-manual -k dx_app
+./test.sh agent-driven-e2e-copilot-cli-manual -k compiler
+./test.sh agent-driven-e2e-copilot-cli-manual -k dx_app
 ```
 
-### Example 4: Agentic E2E — Cursor CLI Manual (Interactive)
+### Example 4: Agent-Driven E2E — Cursor CLI Manual (Interactive)
 
 ```bash
 # Interactive mode — runs Cursor CLI TUI directly (no pytest)
-./test.sh agentic-e2e-cursor-cli-manual
+./test.sh agent-driven-e2e-cursor-cli-manual
 
 # Auto-select a specific scenario
-./test.sh agentic-e2e-cursor-cli-manual -k dx_stream
+./test.sh agent-driven-e2e-cursor-cli-manual -k dx_stream
 ```
 
-## 🤖 Agentic E2E — Copilot CLI Autonomous Execution
+## 🤖 Agent-Driven E2E — Copilot CLI Autonomous Execution
 
-The agentic E2E test suite (`test_agentic_e2e_scenarios/`) runs real Copilot CLI
+The agent-driven E2E test suite (`test_agentic_e2e_scenarios/`) runs real Copilot CLI
 sessions against the dx-all-suite codebase. This section explains how autonomous
 (auto-approve) execution works.
 
@@ -393,8 +393,8 @@ sessions against the dx-all-suite codebase. This section explains how autonomous
 
 | Mode | Entry Point | OpenCode Flags | User Interaction |
 |------|-------------|----------------|------------------|
-| **Autopilot** | `./test.sh agentic-e2e-copilot-cli-autopilot` | `--yolo --no-ask-user -s` | None (fully autonomous) |
-| **Manual** | `./test.sh agentic-e2e-copilot-cli-manual` | `--yolo` | Interactive TUI |
+| **Autopilot** | `./test.sh agent-driven-e2e-copilot-cli-autopilot` | `--yolo --no-ask-user -s` | None (fully autonomous) |
+| **Manual** | `./test.sh agent-driven-e2e-copilot-cli-manual` | `--yolo` | Interactive TUI |
 
 ### Copilot CLI Flags Explained
 
@@ -454,27 +454,27 @@ Key behaviors:
 |----------|---------|-------------|
 | `DX_AGENTIC_E2E_MODEL` | `claude-sonnet-4.6` | LLM model for Copilot CLI |
 | `DX_AGENTIC_E2E_TIMEOUT` | `300` | Timeout in seconds per scenario |
-| `DX_AGENTIC_E2E_CLEANUP_ARTIFACTS` | (unset) | Set to `1` to delete generated `dx-agentic-dev/` directories after test run (default: keep) |
+| `DX_AGENTIC_E2E_CLEANUP_ARTIFACTS` | (unset) | Set to `1` to delete generated `dx-agent-dev/` directories after test run (default: keep) |
 | `DX_AGENTIC_E2E_MODE` | (set by test.sh) | `autopilot` or `manual` — set automatically by `test.sh` |
 
 ### Running with Different Models
 
 ```bash
 # Claude Sonnet 4.6 (recommended)
-DX_AGENTIC_E2E_MODEL="claude-sonnet-4.6" ./test.sh agentic-e2e-copilot-cli-autopilot
+DX_AGENTIC_E2E_MODEL="claude-sonnet-4.6" ./test.sh agent-driven-e2e-copilot-cli-autopilot
 
 # GPT-4.1 (not recommended — may fabricate APIs)
 DX_AGENTIC_E2E_MODEL="gpt-4.1" DX_AGENTIC_E2E_TIMEOUT=600 \
-  ./test.sh agentic-e2e-copilot-cli-autopilot
+  ./test.sh agent-driven-e2e-copilot-cli-autopilot
 
 # Claude Opus 4.6 (highest quality, slower)
 DX_AGENTIC_E2E_MODEL="claude-opus-4.6" DX_AGENTIC_E2E_TIMEOUT=900 \
-  ./test.sh agentic-e2e-copilot-cli-autopilot
+  ./test.sh agent-driven-e2e-copilot-cli-autopilot
 ```
 
 ### Session Output and Artifacts
 
-Each scenario generates artifacts in `dx-agentic-dev/<session_id>/` within
+Each scenario generates artifacts in `dx-agent-dev/<session_id>/` within
 the target sub-project. The test framework auto-detects new session directories
 by comparing pre/post directory snapshots.
 
@@ -494,7 +494,7 @@ the Copilot CLI tests, but using the Cursor CLI (`agent`) instead.
 
 ---
 
-## 🖥 Agentic E2E — Cursor CLI Autonomous Execution
+## 🖥 Agent-Driven E2E — Cursor CLI Autonomous Execution
 
 The Cursor CLI E2E tests (`test_cursor_*_agentic_e2e.py`) run the same scenarios as
 the Copilot CLI tests, but using the Cursor CLI (`agent`) instead.
@@ -523,19 +523,19 @@ Key behaviors:
 
 ```bash
 # Run all Cursor CLI scenarios (uses claude-4.6-sonnet-medium by default)
-./test.sh agentic-e2e-cursor-cli-autopilot
+./test.sh agent-driven-e2e-cursor-cli-autopilot
 
 # Filter to specific scenario
-./test.sh agentic-e2e-cursor-cli-autopilot -k dx_app
-./test.sh agentic-e2e-cursor-cli-autopilot -k compiler
+./test.sh agent-driven-e2e-cursor-cli-autopilot -k dx_app
+./test.sh agent-driven-e2e-cursor-cli-autopilot -k compiler
 
 # With custom model (override default)
 DX_AGENTIC_E2E_CURSOR_MODEL="claude-opus-4-7-thinking-high" \
-  ./test.sh agentic-e2e-cursor-cli-autopilot
+  ./test.sh agent-driven-e2e-cursor-cli-autopilot
 
 # With extended timeout
 DX_AGENTIC_E2E_CURSOR_TIMEOUT=900 \
-  ./test.sh agentic-e2e-cursor-cli-autopilot
+  ./test.sh agent-driven-e2e-cursor-cli-autopilot
 ```
 
 ### Environment Variables (Cursor-specific)
@@ -619,7 +619,7 @@ Common model IDs for E2E testing:
 
 ---
 
-## 🖥 Agentic E2E — OpenCode CLI Autonomous Execution
+## 🖥 Agent-Driven E2E — OpenCode CLI Autonomous Execution
 
 The OpenCode CLI E2E tests (`test_opencode_*_agentic_e2e.py`) run the same scenarios
 using the OpenCode CLI (`opencode`) with structured JSON output.
@@ -644,19 +644,19 @@ Key behaviors:
 
 ```bash
 # Run all OpenCode CLI scenarios (uses github-copilot/claude-sonnet-4.6 by default)
-./test.sh agentic-e2e-opencode-cli-autopilot
+./test.sh agent-driven-e2e-opencode-cli-autopilot
 
 # Filter to specific scenario
-./test.sh agentic-e2e-opencode-cli-autopilot -k dx_app
-./test.sh agentic-e2e-opencode-cli-autopilot -k compiler
+./test.sh agent-driven-e2e-opencode-cli-autopilot -k dx_app
+./test.sh agent-driven-e2e-opencode-cli-autopilot -k compiler
 
 # With custom model
 DX_AGENTIC_E2E_OPENCODE_MODEL="anthropic/claude-opus-4.6" \
-  ./test.sh agentic-e2e-opencode-cli-autopilot
+  ./test.sh agent-driven-e2e-opencode-cli-autopilot
 
 # With extended timeout
 DX_AGENTIC_E2E_OPENCODE_TIMEOUT=900 \
-  ./test.sh agentic-e2e-opencode-cli-autopilot
+  ./test.sh agent-driven-e2e-opencode-cli-autopilot
 ```
 
 ### Manual Mode — How It Works
@@ -715,7 +715,7 @@ detects and archives this file to the scenario artifact directory.
 
 ---
 
-## 🖥 Agentic E2E — Claude Code CLI Autonomous Execution
+## 🖥 Agent-Driven E2E — Claude Code CLI Autonomous Execution
 
 The Claude Code CLI E2E tests (`test_claude_code_*_agentic_e2e.py`) run the same
 scenarios using the Claude Code CLI (`claude`) from Anthropic.
@@ -745,19 +745,19 @@ Key behaviors:
 
 ```bash
 # Run all Claude Code CLI scenarios (uses claude-sonnet-4-6 by default)
-./test.sh agentic-e2e-claude-code-autopilot
+./test.sh agent-driven-e2e-claude-code-autopilot
 
 # Filter to specific scenario
-./test.sh agentic-e2e-claude-code-autopilot -k dx_app
-./test.sh agentic-e2e-claude-code-autopilot -k compiler
+./test.sh agent-driven-e2e-claude-code-autopilot -k dx_app
+./test.sh agent-driven-e2e-claude-code-autopilot -k compiler
 
 # With custom model
 DX_AGENTIC_E2E_CLAUDE_CODE_MODEL="claude-opus-4-6" \
-  ./test.sh agentic-e2e-claude-code-autopilot
+  ./test.sh agent-driven-e2e-claude-code-autopilot
 
 # With extended timeout and cleanup
 DX_AGENTIC_E2E_CLAUDE_CODE_TIMEOUT=900 DX_AGENTIC_E2E_CLEANUP_ARTIFACTS=1 \
-  ./test.sh agentic-e2e-claude-code-autopilot -k dx_stream
+  ./test.sh agent-driven-e2e-claude-code-autopilot -k dx_stream
 ```
 
 ### Manual Mode — How It Works
@@ -819,32 +819,32 @@ In manual mode, Claude Code saves a TXT transcript
 
 | Test Suite | Test Count | Expected Time | Use Case |
 |-----------|------------|---------------|----------|
-| **agentic** | ~704 | ~1 second | Agentic infrastructure validation |
-| **agentic_e2e (copilot-cli)** | ~114 | ~30-45 minutes | Agentic E2E Copilot CLI scenario tests |
-| **agentic_e2e (cursor-cli)** | ~113 | ~40-45 minutes | Agentic E2E Cursor CLI scenario tests (Claude Sonnet 4.6) |
-| **agentic_e2e (opencode-cli)** | ~116 | ~45-60 minutes | Agentic E2E OpenCode CLI scenario tests |
-| **agentic_e2e (claude-code-cli)** | ~116 | ~45-60 minutes | Agentic E2E Claude Code CLI scenario tests |
-| **agentic_e2e (codex-cli)** | ~116 | ~45-60 minutes | Agentic E2E Codex CLI scenario tests |
+| **agent-driven** | ~704 | ~1 second | Agent-Driven infrastructure validation |
+| **agentic_e2e (copilot-cli)** | ~114 | ~30-45 minutes | Agent-Driven E2E Copilot CLI scenario tests |
+| **agentic_e2e (cursor-cli)** | ~113 | ~40-45 minutes | Agent-Driven E2E Cursor CLI scenario tests (Claude Sonnet 4.6) |
+| **agentic_e2e (opencode-cli)** | ~116 | ~45-60 minutes | Agent-Driven E2E OpenCode CLI scenario tests |
+| **agentic_e2e (claude-code-cli)** | ~116 | ~45-60 minutes | Agent-Driven E2E Claude Code CLI scenario tests |
+| **agentic_e2e (codex-cli)** | ~116 | ~45-60 minutes | Agent-Driven E2E Codex CLI scenario tests |
 
 ## 🔧 Environment Variables
 
 ```bash
-# Agentic E2E test configuration (Copilot CLI)
+# Agent-Driven E2E test configuration (Copilot CLI)
 export DX_AGENTIC_E2E_TIMEOUT=900           # Copilot CLI timeout in seconds (default: 300)
 export DX_AGENTIC_E2E_MODEL="claude-opus-4.6"       # OpenCode model to use (default: claude-sonnet-4.6)
 # export DX_AGENTIC_E2E_CLEANUP_ARTIFACTS=1  # Delete artifacts after successful run (default: keep)
 
-# Agentic E2E test configuration (Cursor CLI)
+# Agent-Driven E2E test configuration (Cursor CLI)
 export DX_AGENTIC_E2E_CURSOR_MODEL="claude-4.6-sonnet-medium"  # Cursor model (default: claude-4.6-sonnet-medium)
 export DX_AGENTIC_E2E_CURSOR_TIMEOUT=300    # Cursor CLI timeout in seconds (default: 300)
 export CURSOR_API_KEY="your-api-key"        # API key for headless/CI (alternative to 'agent login')
 
-# Agentic E2E test configuration (OpenCode CLI)
+# Agent-Driven E2E test configuration (OpenCode CLI)
 export DX_AGENTIC_E2E_OPENCODE_MODEL="github-copilot/claude-sonnet-4.6"  # OpenCode model (default)
 export DX_AGENTIC_E2E_OPENCODE_TIMEOUT=600  # OpenCode CLI timeout in seconds (default: 600)
 export DX_OPENCODE_CASCADED_TIMEOUT=720     # OpenCode cascaded scenario timeout (default: 720)
 
-# Agentic E2E test configuration (Claude Code CLI)
+# Agent-Driven E2E test configuration (Claude Code CLI)
 export DX_AGENTIC_E2E_CLAUDE_CODE_MODEL="claude-sonnet-4-6"  # Claude Code model (default)
 export DX_AGENTIC_E2E_CLAUDE_CODE_TIMEOUT=600  # Claude Code CLI timeout in seconds (default: 600)
 ```
@@ -906,7 +906,7 @@ python .deepx/e2e/e2e_runner.py --cleanup --round 2,3,4
 **Resume logic:**
 1. If `--run-id` given: load that state.json
 2. Otherwise: load via `runner_state/latest` symlink
-3. Fallback: scan `dx-agentic-dev/e2e-tests/results/` and build state from existing dirs
+3. Fallback: scan `dx-agent-dev/e2e-tests/results/` and build state from existing dirs
 
 ### e2e_monitor.py
 
@@ -939,13 +939,13 @@ python .deepx/e2e/e2e_monitor.py --once
 
 **Pull Request (Fast Feedback):**
 ```bash
-./test.sh agentic                     # Agentic infrastructure (~1 sec)
+./test.sh agent-driven                     # Agent-Driven infrastructure (~1 sec)
 ```
 
 **Main/Develop Branch (Comprehensive):**
 ```bash
-./test.sh agentic-e2e-copilot-cli-autopilot    # Agentic E2E Copilot CLI scenarios
-./test.sh agentic-e2e-cursor-cli-autopilot     # Agentic E2E Cursor CLI scenarios
+./test.sh agent-driven-e2e-copilot-cli-autopilot    # Agent-Driven E2E Copilot CLI scenarios
+./test.sh agent-driven-e2e-cursor-cli-autopilot     # Agent-Driven E2E Cursor CLI scenarios
 ```
 
 ## 📁 File Structure
@@ -969,8 +969,8 @@ python .deepx/e2e/e2e_monitor.py --once
 │   └── tests/test_e2e_runner_env_redo.py
 │
 └── tools/                          # ← tooling packages (see tools/README.md)
-    ├── src/{dx_agentic_dev_gen, dx_transcripts}     # generator + shared transcript lib
-    └── tests/{dx_agentic_dev_gen, dx_transcripts}   # mirrors src/
+    ├── src/{dx_agent_dev_gen, dx_transcripts}     # generator + shared transcript lib
+    └── tests/{dx_agent_dev_gen, dx_transcripts}   # mirrors src/
 ```
 
 > The session parsers + transcript renderer (`parse_*_session`,
@@ -979,5 +979,5 @@ python .deepx/e2e/e2e_monitor.py --once
 
 ---
 
-**Total Agentic Tests:**
-~1279 (agentic: ~704 | agentic_e2e_copilot_cli: ~114 | agentic_e2e_cursor_cli: ~113 | agentic_e2e_opencode_cli: ~116 | agentic_e2e_claude_code_cli: ~116 | agentic_e2e_codex_cli: ~116) — run `pytest --collect-only -q` for live counts
+**Total Agent-Driven Tests:**
+~1279 (agent-driven: ~704 | agentic_e2e_copilot_cli: ~114 | agentic_e2e_cursor_cli: ~113 | agentic_e2e_opencode_cli: ~116 | agentic_e2e_claude_code_cli: ~116 | agentic_e2e_codex_cli: ~116) — run `pytest --collect-only -q` for live counts

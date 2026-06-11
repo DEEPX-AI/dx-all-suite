@@ -1,13 +1,13 @@
-# DEEPX Agentic Development E2E 실험 가설 생성
+# DEEPX Agent-Driven Development E2E 실험 가설 생성
 
 ## 지시사항
 
-아래 정보를 바탕으로 DEEPX Agentic Development E2E 테스트의 실험 가설을 JSON 형식으로 생성하세요.
+아래 정보를 바탕으로 DEEPX Agent-Driven Development E2E 테스트의 실험 가설을 JSON 형식으로 생성하세요.
 
 ## 실험 배경
 
 DEEPX는 5개의 AI 코딩 도구(Claude Code, Copilot CLI, Cursor CLI, OpenCode, Codex CLI)를
-사용하여 NPU(Neural Processing Unit) 추론 앱을 자동 생성하는 "Agentic Development" 워크플로우를
+사용하여 NPU(Neural Processing Unit) 추론 앱을 자동 생성하는 "Agent-Driven Development" 워크플로우를
 평가합니다. 각 도구는 동일한 6개 시나리오(compiler, app-python 4종, cross-project)를
 수행하며, 규칙 준수(compliance), 코드 품질(quality), 실행 가능성(runnability)을 측정합니다.
 
@@ -22,7 +22,7 @@ DEEPX는 5개의 AI 코딩 도구(Claude Code, Copilot CLI, Cursor CLI, OpenCode
 - Methodology: 10개 평가(GDPval-AA, τ²-Bench Telecom, Terminal-Bench Hard, SciCode,
   AA-LCR, AA-Omniscience, IFBench, Humanity's Last Exam, GPQA Diamond, CritPt) 통합 지수
 - 최신 순위 요약 (2026-05):
-  - **GPT-5.5** (high): Intelligence Index 1위, Terminal-Bench 2.0 82.7% (agentic terminal workflows 최강)
+  - **GPT-5.5** (high): Intelligence Index 1위, Terminal-Bench 2.0 82.7% (agent-driven terminal workflows 최강)
   - **Claude Opus 4.7** (Adaptive): SWE-Bench Pro 64.3% — 복잡한 SE 1위
   - **Gemini 3.1 Pro**: GPQA Diamond 94.3% — 과학 추론 1위
   - **Claude Sonnet 4.6**: Opus 4.7 코딩 능력의 ~79.6% / 비용 20% — "best value for everyday coding"
@@ -50,7 +50,7 @@ DEEPX는 5개의 AI 코딩 도구(Claude Code, Copilot CLI, Cursor CLI, OpenCode
 - Cursor 자체 학습한 coding-specialized 모델 (sonnet-4.6 미사용)
 - 회사 공식 클레임:
   - Sonnet 4.6 대비 **~2× 빠른 응답 속도** (긴 reasoning 챕터 없는 형태)
-  - "frontier intelligence" 수준 — agentic coding 워크플로에 특화
+  - "frontier intelligence" 수준 — agent-driven coding 워크플로에 특화
   - **Cursor Pro 무제한 사용 가능** (API 호출 비용 없음) — 자체 호스팅
 - 가용 변형: `composer-2.5`, `composer-2.5-fast` (두 가지뿐; `fast`는 reasoning이 짧은 변종)
 
@@ -112,7 +112,7 @@ Cursor `agent --list-models` 공식 정보:
 - HumanEval 절대값 (참고):
   - Claude Sonnet 4.5: **97.6%** (2026-05-11)
   - Kimi K2 Base: EvalPlus 종합 0.803 (현재 최상위)
-- 시사: HumanEval은 짧은 함수 단위 — agentic E2E 변별력 낮음. 보조 지표로만 활용.
+- 시사: HumanEval은 짧은 함수 단위 — agent-driven E2E 변별력 낮음. 보조 지표로만 활용.
 
 ## 실험에 사용된 도구-모델 조합
 
@@ -161,7 +161,7 @@ Cursor `agent --list-models` 공식 정보:
 ```json
 {
   "experiment": {
-    "title": "DEEPX Agentic Development E2E 평가",
+    "title": "DEEPX Agent-Driven Development E2E 평가",
     "purpose": "5개 AI 코딩 도구의 NPU 추론 앱 자동 생성 능력을 비교 평가",
     "background": "... (2-3문장, 왜 이 실험이 필요한지)",
     "tools": ["claude-code", "copilot-cli", "cursor-cli", "opencode", "codex-cli"]
@@ -212,7 +212,7 @@ Cursor `agent --list-models` 공식 정보:
    - **그룹 A vs C**: thinking + 모델 두 변수 동시 변경 — 참고용
    - **provider 통신 특성** (Anthropic direct vs Copilot backend vs Cursor 자체)
    - **도구 자체 하네스**: 자동 승인 모드, sentinel 형식, NDJSON vs stream-json
-   - **agentic 차원**: Terminal-Bench 2.0이 가장 이 실험과 직결 (GPT-5.5 우위)
+   - **agent-driven 차원**: Terminal-Bench 2.0이 가장 이 실험과 직결 (GPT-5.5 우위)
    - **cursor-cli는 모든 라운드에서 Composer 2.5 backend** — 모든 비교에서 confounder
 7. **4개 도구(claude-code/copilot-cli/opencode/codex-cli)는 sonnet-4.6 공유**,
    **cursor-cli만 Composer 2.5** — 이를 가설에 명시적으로 반영

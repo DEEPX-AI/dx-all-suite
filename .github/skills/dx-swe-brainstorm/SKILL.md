@@ -5,7 +5,7 @@ description: 'Brainstorm and plan before any code generation. HARD-GATE: no code
 
 <!-- AUTO-GENERATED from .deepx/ — DO NOT EDIT DIRECTLY -->
 <!-- Source: .deepx/skills/dx-swe-brainstorm/SKILL.md -->
-<!-- Run: dx-agentic-gen generate -->
+<!-- Run: dx-agent-gen generate -->
 
 # Skill: Brainstorm and Plan
 

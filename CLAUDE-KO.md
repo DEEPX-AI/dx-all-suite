@@ -13,7 +13,7 @@
 
 ## 권장 모델 (사전 비행 점검)
 
-DX Agentic Development는 강력한 instruction following과 knowledge base 활용 능력을
+DX Agent-Driven Development는 강력한 instruction following과 knowledge base 활용 능력을
 요구합니다. 작업을 시작하기 전에 권장 모델 중 하나로 실행 중인지 확인하세요:
 
 - **Claude Sonnet 4.6** 이상
@@ -26,7 +26,7 @@ DX Agentic Development는 강력한 instruction following과 knowledge base 활�
 ══════════════════════════════════════════════════════════════
 ⚠  DX-AGENTIC-DEV: MODEL NOTICE
 
-DX Agentic Development recommends Claude Sonnet 4.6+ or
+DX Agent-Driven Development recommends Claude Sonnet 4.6+ or
 Opus 4.6+. Your current model may produce lower quality
 in instruction following, knowledge base utilization, and
 API accuracy. Please switch to a recommended model.
@@ -120,7 +120,7 @@ API accuracy. Please switch to a recommended model.
 | 스킬 | 설명 |
 |---|---|
 | `/dx-harness-validate` | 내부개발: .deepx/ framework 무결성 검증 |
-| `/dx-agentic-showcase-build` | dx-agentic-dev showcase를 end-to-end로 제작(실제 빌드 녹화 → complete transcript → GIF → README/docs) + verify 게이트 |
+| `/dx-agent-showcase-build` | dx-agent-dev showcase를 end-to-end로 제작(실제 빌드 녹화 → complete transcript → GIF → README/docs) + verify 게이트 |
 | `/dx-swe-brainstorm` | 브레인스토밍, 2-3가지 접근법 제안, 스펙 자체 검토 후 계획 |
 | `/dx-swe-tdd` | 검증 주도 개발, 선택적 Red-Green-Refactor 단위 테스트 |
 | `/dx-swe-verify` | 완료 선언 전 검증 — 주장 전 증거 |
@@ -162,7 +162,7 @@ python dx-runtime/.deepx/scripts/feedback_collector.py --framework-only
 
 ## 출력 격리 (HARD GATE)
 
-모든 AI 생성 파일은 대상 서브 프로젝트 내의 `dx-agentic-dev/<session_id>/`에
+모든 AI 생성 파일은 대상 서브 프로젝트 내의 `dx-agent-dev/<session_id>/`에
 작성되어야 합니다. 생성된 코드를 기존 소스 디렉토리 (예: `src/`, `pipelines/`,
 `semseg_260323/`, 또는 사용자의 기존 코드가 포함된 디렉토리)에 직접 작성하지 마세요.
 
@@ -173,7 +173,7 @@ python dx-runtime/.deepx/scripts/feedback_collector.py --framework-only
 - **`<agent>`**: 코딩 에이전트 식별자 — `claude`, `codex`, `copilot`, `cursor`, `opencode` 중 하나를 사용하세요.
 - **`<coding_model>`**: 코딩 모델 축약명 — 예: `sonnet46`, `opus46`, `gpt53codex`, `gpt55`.
 
-- **올바름**: `dx-runtime/dx_app/dx-agentic-dev/20260413-093000_claude_opus46_plantseg_inference/demo_dxnn_sync.py`
+- **올바름**: `dx-runtime/dx_app/dx-agent-dev/20260413-093000_claude_opus46_plantseg_inference/demo_dxnn_sync.py`
 - **잘못됨**: `dx-runtime/dx_app/semseg_260323/demo_dxnn_sync.py`
 
 유일한 예외: 사용자가 명시적으로 "소스 디렉토리에 작성하라" 또는 "기존 파일을
@@ -198,8 +198,8 @@ python dx-runtime/.deepx/scripts/feedback_collector.py --framework-only
 **"ONNX 컴파일 + app 빌드"** (suite 시나리오) 작업 시, **두 개의 별도 session 디렉토리**를
 반드시 생성해야 합니다:
 
-1. **Compiler session** → `dx-compiler/dx-agentic-dev/<session_id>/`
-2. **App session** → `dx-runtime/dx_app/dx-agentic-dev/<session_id>/`
+1. **Compiler session** → `dx-compiler/dx-agent-dev/<session_id>/`
+2. **App session** → `dx-runtime/dx_app/dx-agent-dev/<session_id>/`
 
 **절대 두 가지를 단일 `dx_app/` session에 합치지 마세요.** 실패할 test assertion:
 ```python
@@ -213,8 +213,8 @@ compiler agent 문서 (`dx-compiler/CLAUDE.md`)의 R31 Session Layout HARD GATE�
 
 session ID에 `_auto_`를 사용하지 마세요. 올바른 suite session은 두 개의 별도 ID를
 생성합니다:
-- `<ts>_<agent>_<coding_model>_<target_model>_compile` in `dx-compiler/dx-agentic-dev/`
-- `<ts>_<agent>_<coding_model>_<target_model>_inference` in `dx-runtime/dx_app/dx-agentic-dev/`
+- `<ts>_<agent>_<coding_model>_<target_model>_compile` in `dx-compiler/dx-agent-dev/`
+- `<ts>_<agent>_<coding_model>_<target_model>_inference` in `dx-runtime/dx_app/dx-agent-dev/`
 
 ## 플레이스홀더 코드 금지 (MANDATORY)
 
@@ -273,14 +273,14 @@ superpowers `brainstorming` 스킬 또는 `/dx-swe-brainstorm` 사용 시:
    조용히 따르지 마세요. 위의 "규칙 충돌 해결"을 참조하세요.
 ## 필수 프로세스 스킬 시퀀스 — 모든 코드 생성 (HARD GATE)
 
-이 gate는 `dx-agentic-dev/<session_id>/`에 코드 artifact를 생성하는 모든 세션에
+이 gate는 `dx-agent-dev/<session_id>/`에 코드 artifact를 생성하는 모든 세션에
 적용됩니다. "내부 개발" SWE Process Gates와 독립적입니다 — 내부 개발 gate는
-dx-agentic-dev infrastructure 작업에 적용되고, 이 gate는 user-facing 코드 생성
+dx-agent-dev infrastructure 작업에 적용되고, 이 gate는 user-facing 코드 생성
 (inference app, pipeline, compilation)에 적용됩니다.
 
 ### 적용 시점
 
-`dx-agentic-dev/<session_id>/`에 파일을 생성하는 모든 세션은 아래의 완전한
+`dx-agent-dev/<session_id>/`에 파일을 생성하는 모든 세션은 아래의 완전한
 프로세스 스킬 시퀀스를 반드시 따라야 합니다:
 - ONNX → DXNN compilation session
 - Python/C++ inference app 생성 (dx_app)
@@ -300,10 +300,10 @@ dx-agentic-dev infrastructure 작업에 적용되고, 이 gate는 user-facing �
 | Step | Skill | 요구사항 |
 |------|-------|----------|
 | 1 | `/dx-skill-router` | **항상** — 어떤 action보다 먼저 호출. `skill-router-mandatory` fragment로 이미 강제됨. |
-| 2 | `/dx-agentic-brainstorm` | **모든 non-trivial 코드 생성** — 요구사항 수집, approach 제안, 승인 후 파일 생성. |
+| 2 | `/dx-agent-brainstorm` | **모든 non-trivial 코드 생성** — 요구사항 수집, approach 제안, 승인 후 파일 생성. |
 | 3 | `/dx-swe-writing-plans` | **항상** — 복잡도와 무관하게 모든 코드 생성 세션에서 구조화된 구현 계획 작성 필수. |
-| 4 | `/dx-agentic-tdd` | **항상** — 합격 기준 정의 (Red), artifact 생성 (Green), 즉시 검증 (Verify). |
-| 5 | `/dx-agentic-verify` | **항상** — DONE 선언 전, 동작하는 artifact의 증거 제시 필수. 증거 없는 주장 금지. |
+| 4 | `/dx-agent-tdd` | **항상** — 합격 기준 정의 (Red), artifact 생성 (Green), 즉시 검증 (Verify). |
+| 5 | `/dx-agent-verify` | **항상** — DONE 선언 전, 동작하는 artifact의 증거 제시 필수. 증거 없는 주장 금지. |
 
 ### 시퀀스 강제 규칙
 
@@ -338,15 +338,15 @@ Autopilot 모드 (사용자 부재, `--yolo` 플래그, auto-response):
 Artifact Verification Gate는 각 artifact가 **어떻게** 검증되는지 정의합니다
 (파일 유형별 구체적 command). 함께 작동합니다:
 
-- Step 4 (`/dx-agentic-tdd`)는 Artifact Verification Gate의 검증 command 사용
+- Step 4 (`/dx-agent-tdd`)는 Artifact Verification Gate의 검증 command 사용
   (syntax check, execution test, import resolution).
-- Step 5 (`/dx-agentic-verify`)는 모든 mandatory deliverable이 존재하고
+- Step 5 (`/dx-agent-verify`)는 모든 mandatory deliverable이 존재하고
   Artifact Verification Gate check를 통과하는지 확인.
 
 ### Invoke = 실제 Tool Call
 
 "skill을 호출한다"는 것은 `skill` tool을 호출하여 load하는 것을 의미합니다.
-텍스트에 "dx-agentic-tdd를 사용합니다"라고 쓰는 것은 호출이 **아닙니다** — tool이
+텍스트에 "dx-agent-tdd를 사용합니다"라고 쓰는 것은 호출이 **아닙니다** — tool이
 반드시 호출되어야 합니다. `skill` tool을 호출하지 않았다면 해당 단계는
 미완료입니다.
 
@@ -356,17 +356,17 @@ Artifact Verification Gate는 각 artifact가 **어떻게** 검증되는지 정�
   항상 필요. "간단한" 프로젝트에서 검토되지 않은 가정이 가장 많은 재작업을 유발.
 - `/dx-swe-writing-plans` 이전에 코드 생성 → HARD GATE 위반.
   Plan-before-code는 협상 불가.
-- "artifact-verification-gate가 이미 파일을 확인하니까" `/dx-agentic-verify`
+- "artifact-verification-gate가 이미 파일을 확인하니까" `/dx-agent-verify`
   생략 → 목적이 다름. Artifact gate는 개별 파일 확인. Verify-completion은
   전체 세션 deliverable을 총체적으로 확인.
 - 실행 출력 없이 DONE 선언 → 증거 필수. "검증했다"는 출력 없이는 불가.
 - "사용자가 빨리 하라고 했다" → 사용자 지시가 이 HARD GATE를 override하지 않음.
   속도가 프로세스 생략을 정당화하지 않음.
-- **텍스트 언급 ≠ skill 호출** — 응답 텍스트에 "dx-agentic-tdd를 사용합니다" 또는
-  "dx-agentic-brainstorm을 따릅니다"라고 작성하는 것은 유효한 호출이 아닙니다.
+- **텍스트 언급 ≠ skill 호출** — 응답 텍스트에 "dx-agent-tdd를 사용합니다" 또는
+  "dx-agent-brainstorm을 따릅니다"라고 작성하는 것은 유효한 호출이 아닙니다.
   각 단계마다 `skill` tool이 반드시 호출되어야 합니다.
 - **대화 맥락 ≠ brainstorming** — 이전 메시지에서 요구사항을 논의했다고 해서
-  `/dx-agentic-brainstorm` 호출을 대체할 수 없습니다. 각 기능에는 명시적
+  `/dx-agent-brainstorm` 호출을 대체할 수 없습니다. 각 기능에는 명시적
   사용자 승인이 포함된 정식 brainstorm이 필요합니다.
 
 ## 자율 모드 보호 (MANDATORY)
@@ -378,7 +378,7 @@ Artifact Verification Gate는 각 artifact가 **어떻게** 검증되는지 정�
    모든 필수 게이트가 여전히 적용됩니다: brainstorming spec, 계획, TDD, 필수 산출물,
    실행 검증, 자체 검증 확인.
    **SWE Process Gates의 필수 Skill 시퀀스도 포함됩니다** — autopilot에서도
-   `/dx-skill-router` → `/dx-agentic-brainstorm` → `/dx-agentic-tdd`를 interactive mode와
+   `/dx-skill-router` → `/dx-agent-brainstorm` → `/dx-agent-tdd`를 interactive mode와
    동일하게 따라야 합니다. Autopilot mode는 이 시퀀스를 면제하지 않습니다.
 2. **`ask_user`를 호출하지 마세요** — knowledge base 기본값과 문서화된 모범 사례를
    사용하여 결정하세요. autopilot에서 `ask_user`를 호출하면 한 턴을 낭비하며
@@ -451,7 +451,7 @@ Artifact Verification Gate는 각 artifact가 **어떻게** 검증되는지 정�
 
 - **응답의 첫 번째 줄**: `[DX-AGENTIC-DEV: START]`
 - **모든 작업 완료 후 마지막 줄**: `[DX-AGENTIC-DEV: DONE (output-dir: <relative_path>)]`
-  여기서 `<relative_path>`는 세션 출력 디렉토리입니다 (예: `dx-agentic-dev/20260409-143022_yolo26n_detection/`)
+  여기서 `<relative_path>`는 세션 출력 디렉토리입니다 (예: `dx-agent-dev/20260409-143022_yolo26n_detection/`)
 
 ### DEEPX 배너 (MANDATORY — 센티넬과 함께 출력)
 
@@ -490,7 +490,7 @@ DONE은 맨 마지막 줄 유지).
    **Cross-project 태스크** (예: compile + app 생성)의 경우, 모든 output directory를
    ` + ` 구분자로 나열하세요:
    ```
-   [DX-AGENTIC-DEV: DONE (output-dir: dx-compiler/dx-agentic-dev/20260409-143022_copilot_yolo26n_compile/ + dx-runtime/dx_app/dx-agentic-dev/20260409-143022_copilot_yolo26n_inference/)]
+   [DX-AGENTIC-DEV: DONE (output-dir: dx-compiler/dx-agent-dev/20260409-143022_copilot_yolo26n_compile/ + dx-runtime/dx_app/dx-agent-dev/20260409-143022_copilot_yolo26n_inference/)]
    ```
 6. **계획 산출물만 생성한 후에는 절대 DONE을 출력하지 마세요** (spec, plan, 설계
    문서). DONE은 모든 산출물이 생성되었음을 의미합니다 — 구현 코드, 스크립트,
@@ -569,7 +569,7 @@ DONE은 맨 마지막 줄 유지).
 ## 필수 산출물
 
 모든 컴파일 또는 앱 생성 세션은 DONE을 출력하기 전에 세션 출력 디렉토리
-(`dx-agentic-dev/<session_id>/`)에 다음 파일을 반드시 생성해야 합니다.
+(`dx-agent-dev/<session_id>/`)에 다음 파일을 반드시 생성해야 합니다.
 이것은 **모든 작업 유형**에 적용됩니다 — compiler-only, app-only, cross-project.
 
 | 파일 | 목적 | 필요 시점 |
@@ -594,7 +594,7 @@ GStreamer pipeline 코드 등)에 추가됩니다.
 compiler session 디렉토리에 존재하는지 확인하세요:
 
 ```bash
-COMPILER_SESSION="<compiler_session_dir>"   # 예: dx-compiler/dx-agentic-dev/20260430-..._compile
+COMPILER_SESSION="<compiler_session_dir>"   # 예: dx-compiler/dx-agent-dev/20260430-..._compile
 test -f "${COMPILER_SESSION}/yolo26n.dxnn" \
   || { echo "BLOCKED: yolo26n.dxnn not found — 컴파일이 아직 실행 중입니다. compile.pid가 종료될 때까지 기다리세요."; exit 1; }
 ```
@@ -607,12 +607,12 @@ Phase 5.8을 참조하세요: `dx-compiler/.deepx/agents/dx-dxnn-compiler.md`.
 
 이 게이트는 코드 artifact를 생성하는 모든 session에 적용됩니다 (compilation,
 app 생성, pipeline 생성). "Internal Development" SWE Process Gates와 독립적입니다
-— 그것은 dx-agentic-dev feature 작업에 적용되고, 이 게이트는 사용자 대상
+— 그것은 dx-agent-dev feature 작업에 적용되고, 이 게이트는 사용자 대상
 deliverable에 적용됩니다.
 
 ### 이 게이트가 적용되는 경우
 
-`dx-agentic-dev/<session_id>/`에 파일을 생성하는 모든 session은 DONE 선언 전에
+`dx-agent-dev/<session_id>/`에 파일을 생성하는 모든 session은 DONE 선언 전에
 해당 파일을 검증해야 합니다:
 - Compilation session (ONNX → DXNN)
 - App 생성 session (dx_app factory + runner)
@@ -664,9 +664,9 @@ verify.py가 "ONNX inference failed" 또는 "DXNN inference failed"를 출력하
 하드코딩된 상대 경로는 절대 금지입니다.
 
 **이유**: Session 디렉토리 depth가 sub-project마다 다릅니다:
-- `dx-compiler/dx-agentic-dev/<session>/` = suite root에서 3단계
-- `dx-runtime/dx_app/dx-agentic-dev/<session>/` = suite root에서 4단계
-- `dx-runtime/dx_stream/dx-agentic-dev/<session>/` = suite root에서 4단계
+- `dx-compiler/dx-agent-dev/<session>/` = suite root에서 3단계
+- `dx-runtime/dx_app/dx-agent-dev/<session>/` = suite root에서 4단계
+- `dx-runtime/dx_stream/dx-agent-dev/<session>/` = suite root에서 4단계
 
 하드코딩된 `../../` 또는 `../../../` 경로는 agent가 depth를 잘못 계산하면
 깨집니다 (반복적인 실패 패턴).
@@ -764,14 +764,14 @@ command 2>&1 | tee session.log
 - `printf "..." > session.log` (수작업 요약)
 - 명령을 실행하지 않고 메모리에서 session.log 내용 작성
 
-### dx-agentic-tdd 및 프로세스 스킬 시퀀스 (모든 코드 생성에 MANDATORY)
+### dx-agent-tdd 및 프로세스 스킬 시퀀스 (모든 코드 생성에 MANDATORY)
 
-완전한 프로세스 스킬 시퀀스 (`/dx-agentic-brainstorm` → `/dx-swe-writing-plans`
-→ `/dx-agentic-tdd` → `/dx-agentic-verify`)는 모든 artifact 생성 session에서
+완전한 프로세스 스킬 시퀀스 (`/dx-agent-brainstorm` → `/dx-swe-writing-plans`
+→ `/dx-agent-tdd` → `/dx-agent-verify`)는 모든 artifact 생성 session에서
 MANDATORY입니다. 전체 시퀀스 정의와 강제 규칙은 **"필수 프로세스 스킬 시퀀스 —
 모든 코드 생성"** 섹션을 참조하세요.
 
-이 Artifact Verification Gate 내에서 `/dx-agentic-tdd` Red-Green-Verify cycle은
+이 Artifact Verification Gate 내에서 `/dx-agent-tdd` Red-Green-Verify cycle은
 각 artifact에 적용됩니다:
 1. **RED**: 각 artifact가 만족해야 할 조건 정의 (문법, 실행, import)
 2. **GREEN**: artifact 생성
@@ -966,7 +966,7 @@ timeout 방지를 위해 background 컴파일이 권장됩니다.
 
 ### dx_app 규칙 (Standalone Inference)
 
-1. **Skeleton-first 개발** — 코드를 작성하기 전에 `dx-runtime/dx_app/.deepx/skills/dx-agentic-app-build-python.md`
+1. **Skeleton-first 개발** — 코드를 작성하기 전에 `dx-runtime/dx_app/.deepx/skills/dx-agent-app-build-python.md`
    skeleton 템플릿을 읽으세요. `src/python_example/<task>/<model>/`에서 가장 유사한
    기존 예제를 복사하고 모델별 부분 (factory, postprocessor)만 수정하세요.
    데모 스크립트를 처음부터 절대 작성하지 마세요. 프레임워크를 우회하는 standalone
@@ -990,14 +990,14 @@ timeout 방지를 위해 background 컴파일이 권장됩니다.
    동일한 AI 태스크의 기존 예제를 검색하세요. 참조로 사용하세요.
 7. **DXNN 입력 형식 자동 감지** — 전처리 차원이나 형식을 절대 하드코딩하지 마세요.
    DXNN 모델은 `dx_engine`을 통해 입력 요구사항을 자체 설명합니다.
-8. **출력 격리** — 모든 생성된 코드는 `dx-agentic-dev/<session_id>/`에 넣어야 합니다.
+8. **출력 격리** — 모든 생성된 코드는 `dx-agent-dev/<session_id>/`에 넣어야 합니다.
    사용자가 명시적으로 "소스 디렉토리에 작성하라"고 말하지 않는 한, 기존 소스
    디렉토리 (예: `src/`, `semseg_260323/`, 또는 사용자의 기존 코드가 포함된
    디렉토리)에 절대 쓰지 마세요.
 
 ### dx-compiler 규칙 (모델 컴파일)
 
-1. **이전 세션 참조 금지** — 이전 agentic 세션의 결과를 절대 참조하거나 재사용하지
+1. **이전 세션 참조 금지** — 이전 agent-driven 세션의 결과를 절대 참조하거나 재사용하지
    마세요. 각 세션은 새로 시작합니다.
 2. **session.log = 실제 명령 출력** — 세션 로그는 실제 터미널 출력을 포함해야 합니다.
    직접 작성한 요약이나 `cat << 'EOF'` 블록을 절대 생성하지 마세요.
@@ -1037,9 +1037,9 @@ timeout 방지를 위해 background 컴파일이 권장됩니다.
 ## SWE 프로세스 게이트 — 내부 개발 (HARD GATE)
 
 AI 에이전트(Claude Code, Copilot CLI, Cursor CLI, Copilot Chat (VS Code),
-Cursor (IDE), OpenCode, 기타 모든 도구)를 사용하여 내부 dx-agentic-dev 기능을
+Cursor (IDE), OpenCode, 기타 모든 도구)를 사용하여 내부 dx-agent-dev 기능을
 개발하거나 수정할 때는 전체 소프트웨어 엔지니어링 규율이 **필수**입니다.
-내부 dx-agentic-dev 기능에 해당하거나 관련된 모든 작업에 적용됩니다.
+내부 dx-agent-dev 기능에 해당하거나 관련된 모든 작업에 적용됩니다.
 다음 경로들이 적용 대상입니다 (비-완전 목록 — 확실하지 않을 경우 SWE 규율을 적용하세요):
 
 | 경로 | 예시 |
@@ -1048,7 +1048,7 @@ Cursor (IDE), OpenCode, 기타 모든 도구)를 사용하여 내부 dx-agentic-
 | `.deepx/tests/conformance/` | KB / 생성물 적합성 + 정책 검사 |
 | `.deepx/e2e/test.sh` | 수동/자동 shell runner |
 | `.deepx/tests/conftest.py`, `.deepx/tools/src/dx_transcripts/session_common.py`, `.deepx/tools/src/dx_transcripts/parse_copilot_session.py`, `.deepx/tools/src/dx_transcripts/parse_cursor_session.py`, `.deepx/tools/src/dx_transcripts/parse_claude_session.py` | 공유 테스트 인프라 |
-| `.deepx/tools/` (dx-agentic-dev-gen) | generator 소스, CLI, transformer |
+| `.deepx/tools/` (dx-agent-dev-gen) | generator 소스, CLI, transformer |
 | `.deepx/tools/scripts/*.sh` | loop 스크립트 및 orchestration runner (예: `run-e2e-improvement-loop.sh`, `run_all.sh`, `install-hooks.sh`, `pre-commit-hook.sh`) |
 | `.deepx/` | agent, skill, 템플릿, fragment (canonical source) |
 
@@ -1084,7 +1084,7 @@ Non-trivial로 간주하며, Trivial 변경 예외가 적용되지 않습니다.
 
 - **`tests/` 변경** — 기존 suite를 실행하여 구현 전 **RED** 상태를 확인합니다.
   코드를 작성하기 전에 예상된 이유로 테스트가 실패해야 합니다.
-- **`.deepx/` 변경** — 편집 전 `dx-agentic-gen check` 기준 출력을 캡처합니다.
+- **`.deepx/` 변경** — 편집 전 `dx-agent-gen check` 기준 출력을 캡처합니다.
   변경 후 재실행하여 의도한 drift만 나타나는지 확인합니다.
 - **`tools/` 변경** — 변경이 해소해야 할 구체적인 실패 모드(잘못된 경로, 잘못된 출력,
   누락된 규칙)를 식별합니다. 이를 포착하는 테스트를 작성하거나 가리킵니다.
@@ -1141,14 +1141,14 @@ SWE Pre-Implementation Checklist:
 
 - "변경이 명확하다"는 이유로 `/dx-swe-brainstorm` 건너뛰기 — 절대 명확하지 않음
 - 테스트 suite 실행 없이 fixture 추가 또는 `conftest.py` 변경 (눈먼 변경)
-- 실제 pytest 출력 또는 `dx-agentic-gen check` 출력 없이 완료 주장
+- 실제 pytest 출력 또는 `dx-agent-gen check` 출력 없이 완료 주장
 - "마지막에 검증하겠다" 방식 — `/dx-swe-tdd`에 따라 파일별로 검증
-- generator 출력 파일 직접 편집 — 다음 `dx-agentic-gen generate` 실행 시 덮어씌워짐
+- generator 출력 파일 직접 편집 — 다음 `dx-agent-gen generate` 실행 시 덮어씌워짐
 - `/dx-skill-router` 호출 전 구현 시작
 - **Autopilot mode를 면제로 오해** — autopilot은 "묻지 않기"를 의미할 뿐,
   "규칙 없음"이 아닙니다. Autopilot에서도 필수 Skill 시퀀스는 완전히 적용됩니다.
 - `.deepx/tools/scripts/*.sh` 스크립트를 "내부 개발 아님"으로 취급하기 —
-  `.deepx/tools/scripts/` 하위의 모든 loop 및 orchestration 스크립트는 내부 dx-agentic-dev 기능이며 SWE 규율이 적용됩니다
+  `.deepx/tools/scripts/` 하위의 모든 loop 및 orchestration 스크립트는 내부 dx-agent-dev 기능이며 SWE 규율이 적용됩니다
 - **`dx-swe-debugging` 완료를 SWE gate 면제로 취급** — Phase 1–3 (근본 원인 파악)을
   완료했다고 해서 구현 작업이 SWE 필수 시퀀스에서 면제되는 것은 아닙니다. Phase 4 구현이
   `.deepx/`, `tests/`, 또는 `tools/`를 포함할 경우, 이는 **새로운 내부 개발 작업**으로서
@@ -1173,12 +1173,12 @@ fragments 포함) — 작업 완료 선언 전에 다음 루프를 **반드시**
 
 1. **Generator 실행** — `.deepx/` 변경을 모든 플랫폼으로 전파:
    ```bash
-   dx-agentic-gen generate
+   dx-agent-gen generate
    # Suite 전체: bash .deepx/tools/scripts/run_all.sh generate
    ```
 2. **Drift 검증** — 생성물과 commit 상태 일치 확인:
    ```bash
-   dx-agentic-gen check
+   dx-agent-gen check
    ```
    drift 발견 시 1단계로 복귀.
 3. **자동화 테스트 루프** — 테스트는 generator 출력이 정책을 만족하는지 검증:
@@ -1206,7 +1206,7 @@ fragments 포함) — 작업 완료 선언 전에 다음 루프를 **반드시**
 **모든 파일 편집 전 다음 세 가지 질문에 순서대로 답하세요:**
 
 > **Q1. 파일 경로가 `**/.deepx/**` 내부에 있나요?**
-> - YES → **Canonical source.** 직접 수정 후 `dx-agentic-gen generate` + `check` 실행.
+> - YES → **Canonical source.** 직접 수정 후 `dx-agent-gen generate` + `check` 실행.
 > - NO → Q2로 이동.
 >
 > **Q2. 파일 경로 또는 이름이 다음 중 하나와 일치하나요?**
@@ -1218,12 +1218,12 @@ fragments 포함) — 작업 완료 선언 전에 다음 루프를 **반드시**
 > ```
 > - YES → **Generator output. 직접 수정 금지.**
 >   `.deepx/` source(template, fragment, 또는 agent/skill)를 찾아 수정한 후
->   `dx-agentic-gen generate`를 실행하세요.
+>   `dx-agent-gen generate`를 실행하세요.
 > - NO → Q3으로 이동.
 >
 > **Q3. 파일이 `<!-- AUTO-GENERATED`로 시작하나요?**
 > - YES → **Generator output. 직접 수정 금지.** Q2와 동일.
-> - NO → **Independent source.** 직접 수정 가능. 수정 후 `dx-agentic-gen check`를 한 번 실행.
+> - NO → **Independent source.** 직접 수정 가능. 수정 후 `dx-agent-gen check`를 한 번 실행.
 
 1. **Canonical source** (`**/.deepx/**/*.md`) — 직접 수정 후 위의 Verification
    Loop을 실행합니다.
@@ -1232,14 +1232,14 @@ fragments 포함) — 작업 완료 선언 전에 다음 루프를 **반드시**
    `copilot-instructions.md`, `.github/agents/`, `.github/skills/`,
    `.claude/agents/`, `.claude/skills/`, `.opencode/agents/`, `.cursor/rules/`
    → **직접 수정 금지.** `.deepx/` source(template, fragment, 또는
-   agent/skill)를 찾아 수정한 후 `dx-agentic-gen generate`를 실행하세요.
+   agent/skill)를 찾아 수정한 후 `dx-agent-gen generate`를 실행하세요.
 3. **독립 소스** — 위 두 카테고리에 해당하지 않는 모든 파일 (`docs/source/`,
    `source/docs/`, `tests/`, 서브 프로젝트의 `README.md` 등)
-   → 직접 수정 가능. 수정 후 `dx-agentic-gen check`를 한 번 실행하여 예상치
+   → 직접 수정 가능. 수정 후 `dx-agent-gen check`를 한 번 실행하여 예상치
    못한 drift가 없는지 확인하세요.
 
 **Anti-pattern**: 분류 없이 바로 파일을 수정하는 것. 해당 파일이 generator
-output인지 확실하지 않으면, 수정 전후에 `dx-agentic-gen check`를 실행하세요
+output인지 확실하지 않으면, 수정 전후에 `dx-agent-gen check`를 실행하세요
 — check가 수정 내용을 덮어쓰면 해당 파일은 generator가 관리하는 파일이므로
 `.deepx/` source를 통해 수정해야 합니다.
 
@@ -1251,7 +1251,7 @@ Pre-commit hook이 generator output 무결성을 강제합니다: 생성된 파�
 
 > **KO 대응 파일 규칙**: EN fragment를 편집할 때, KO 대응 파일도 업데이트가
 > 필요한지 확인하세요. 단락 1개 이상을 추가하거나 제거했다면, 커밋 전에
-> `.deepx/templates/fragments/ko/<stem>.md`를 업데이트하세요. `dx-agentic-gen lint`를
+> `.deepx/templates/fragments/ko/<stem>.md`를 업데이트하세요. `dx-agent-gen lint`를
 > 실행하여 `[OK]`를 확인하세요 — EN이 KO보다 10줄 이상 많으면 lint가 ERROR를
 > 반환합니다.
 

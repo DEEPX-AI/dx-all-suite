@@ -18,10 +18,10 @@
   <p><strong>그림. DXNN SDK 간략 아키텍처 개요.</strong></p>
 </div>
 
-## ✨ 자연어로 NPU 앱 만들기 — dx-agentic-dev (Beta)
+## ✨ 자연어로 NPU 앱 만들기 — dx-agent-dev (Beta)
 
 <!-- dx-showcase:docs:cardgrid:start -->
-**`dx-agentic-dev` (Beta) 출시.** 앱이나 모델 태스크를 자연어로 설명하면 AI 코딩 에이전트(Claude Code, Cursor, GitHub Copilot, OpenCode, Codex)가 DEEPX 지식 베이스를 end-to-end로 구동합니다: brainstorm → plan → TDD → verify, ONNX/`.pt` 컴파일부터 on-device DX-M1 NPU 배포까지. **Ultralytics** 모델 생태계와 통합된 DEEPX NPU를 위한 에이전틱 개발 워크플로이며, 아래 모든 showcase가 이 방식으로 — 프롬프트·실측 결과·전체 빌드 transcript와 함께 — 만들어졌습니다.
+**`dx-agent-dev` (Beta) 출시.** 앱이나 모델 태스크를 자연어로 설명하면 AI 코딩 에이전트(Claude Code, Cursor, GitHub Copilot, OpenCode, Codex)가 DEEPX 지식 베이스를 end-to-end로 구동합니다: brainstorm → plan → TDD → verify, ONNX/`.pt` 컴파일부터 on-device DX-M1 NPU 배포까지. **Ultralytics** 모델 생태계와 통합된 DEEPX NPU를 위한 에이전틱 개발 워크플로이며, 아래 모든 showcase가 이 방식으로 — 프롬프트·실측 결과·전체 빌드 transcript와 함께 — 만들어졌습니다.
 
 #### NPU 활용 AI 앱 (미니게임)
 
@@ -29,8 +29,8 @@
 
 <table>
 <tr>
- <td width="50%" align="center"><a href="dx-agentic-dev-showcase/squat-fitness-mini-game/README-ko.md"><img src="./docs/source/img/dx-agentic-dev-squat-gameplay.gif" height="150"></a><br><b>스쿼트 카운팅 미니게임</b><br><sub>NPU 위 스쿼트 카운팅</sub></td>
- <td width="50%" align="center"><a href="dx-agentic-dev-showcase/stretching-coach-mini-game/README-ko.md"><img src="./docs/source/img/dx-agentic-dev-stretch-gameplay.gif" height="150"></a><br><b>스트레칭 coach 미니게임</b><br><sub>포즈 가이드 아케이드 coach</sub></td>
+ <td width="50%" align="center"><a href="dx-agent-dev-showcase/squat-fitness-mini-game/README-ko.md"><img src="./docs/source/img/dx-agent-dev-squat-gameplay.gif" height="150"></a><br><b>스쿼트 카운팅 미니게임</b><br><sub>NPU 위 스쿼트 카운팅</sub></td>
+ <td width="50%" align="center"><a href="dx-agent-dev-showcase/stretching-coach-mini-game/README-ko.md"><img src="./docs/source/img/dx-agent-dev-stretch-gameplay.gif" height="150"></a><br><b>스트레칭 coach 미니게임</b><br><sub>포즈 가이드 아케이드 coach</sub></td>
 </tr>
 </table>
 
@@ -40,22 +40,22 @@
 
 <table>
 <tr>
- <td width="50%" align="center"><a href="dx-agentic-dev-showcase/ultralytics-yolo-deepx-export/README-ko.md"><video height="150" autoplay muted loop playsinline poster="./docs/source/img/dx-agentic-dev-ultralytics-yolo-poster.jpg"><source src="./docs/source/img/dx-agentic-dev-ultralytics-yolo.mp4" type="video/mp4"><img src="./docs/source/img/dx-agentic-dev-ultralytics-yolo-poster.jpg" height="150"></video></a><br><b>Ultralytics YOLO → DeepX Export</b><br><sub>한 줄 format=deepx</sub></td>
- <td width="50%" align="center"><a href="dx-agentic-dev-showcase/ultralytics-yolo-deepx-export/README-ko.md"><img src="./docs/source/img/dx-agentic-dev-ultralytics-build.gif" height="150"></a><br><sub><b>빌드 캡처 (timelapse)</b></sub></td>
+ <td width="50%" align="center"><a href="dx-agent-dev-showcase/ultralytics-yolo-deepx-export/README-ko.md"><video height="150" autoplay muted loop playsinline poster="./docs/source/img/dx-agent-dev-ultralytics-yolo-poster.jpg"><source src="./docs/source/img/dx-agent-dev-ultralytics-yolo.mp4" type="video/mp4"><img src="./docs/source/img/dx-agent-dev-ultralytics-yolo-poster.jpg" height="150"></video></a><br><b>Ultralytics YOLO → DeepX Export</b><br><sub>한 줄 format=deepx</sub></td>
+ <td width="50%" align="center"><a href="dx-agent-dev-showcase/ultralytics-yolo-deepx-export/README-ko.md"><img src="./docs/source/img/dx-agent-dev-ultralytics-build.gif" height="150"></a><br><sub><b>빌드 캡처 (timelapse)</b></sub></td>
 </tr>
 <tr>
- <td width="50%" align="center"><a href="dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-wildlife/README-ko.md"><img src="./docs/source/img/dx-agentic-dev-ultralytics-wildlife-sample.jpg" height="150"></a><br><b>아프리카 야생동물 모니터링</b><br><sub>사파리 카메라 재학습</sub></td>
- <td width="50%" align="center"><a href="dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-ppe/README-ko.md"><img src="./docs/source/img/dx-agentic-dev-ultralytics-ppe-sample.jpg" height="150"></a><br><b>건설 PPE 안전</b><br><sub>현장 안전 카메라 재학습</sub></td>
+ <td width="50%" align="center"><a href="dx-agent-dev-showcase/ultralytics-retrain-eval-deepx-export-wildlife/README-ko.md"><img src="./docs/source/img/dx-agent-dev-ultralytics-wildlife-sample.jpg" height="150"></a><br><b>아프리카 야생동물 모니터링</b><br><sub>사파리 카메라 재학습</sub></td>
+ <td width="50%" align="center"><a href="dx-agent-dev-showcase/ultralytics-retrain-eval-deepx-export-ppe/README-ko.md"><img src="./docs/source/img/dx-agent-dev-ultralytics-ppe-sample.jpg" height="150"></a><br><b>건설 PPE 안전</b><br><sub>현장 안전 카메라 재학습</sub></td>
 </tr>
 <tr>
- <td width="50%" align="center"><a href="dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-braintumor/README-ko.md"><img src="./docs/source/img/dx-agentic-dev-ultralytics-braintumor-sample.jpg" height="150"></a><br><b>뇌종양 스크리닝</b><br><sub>의료 edge 재학습</sub></td>
- <td width="50%" align="center"><a href="dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-pills/README-ko.md"><img src="./docs/source/img/dx-agentic-dev-ultralytics-pills-sample.jpg" height="150"></a><br><b>의약품 알약 검사</b><br><sub>제약 카운팅 재학습</sub></td>
+ <td width="50%" align="center"><a href="dx-agent-dev-showcase/ultralytics-retrain-eval-deepx-export-braintumor/README-ko.md"><img src="./docs/source/img/dx-agent-dev-ultralytics-braintumor-sample.jpg" height="150"></a><br><b>뇌종양 스크리닝</b><br><sub>의료 edge 재학습</sub></td>
+ <td width="50%" align="center"><a href="dx-agent-dev-showcase/ultralytics-retrain-eval-deepx-export-pills/README-ko.md"><img src="./docs/source/img/dx-agent-dev-ultralytics-pills-sample.jpg" height="150"></a><br><b>의약품 알약 검사</b><br><sub>제약 카운팅 재학습</sub></td>
 </tr>
 </table>
 
 #### PaddlePaddle 생태계 통합 — _추후 추가 예정._
 
-**전체 showcase 목록 + 요약 →** [`dx-agentic-dev-showcase/README-ko.md`](./dx-agentic-dev-showcase/README-ko.md)  ·  **기능 설명 →** [Agentic Development 문서](./docs/source/00_Agentic_Development_kor.md)
+**전체 showcase 목록 + 요약 →** [`dx-agent-dev-showcase/README-ko.md`](./dx-agent-dev-showcase/README-ko.md)  ·  **기능 설명 →** [Agent-Driven Development 문서](./docs/source/00_Agentic_Development_kor.md)
 <!-- dx-showcase:docs:cardgrid:end -->
 
 ## 시작하기
@@ -106,7 +106,7 @@ DX-AllSuite는 우리 NPU에서 최고 성능을 내도록 최적화된, 업계 
 
 처음 사용하는 분께는 다음 순서로 문서를 보시길 권장합니다.
 
-- **★ [Agentic Development (Beta)](./docs/source/00_Agentic_Development_kor.md)**: AI coding agent(Claude Code, Cursor, GitHub Copilot, OpenCode, Codex CLI)로 자연어 프롬프트를 사용해 DEEPX 앱 만들기
+- **★ [Agent-Driven Development (Beta)](./docs/source/00_Agentic_Development_kor.md)**: AI coding agent(Claude Code, Cursor, GitHub Copilot, OpenCode, Codex CLI)로 자연어 프롬프트를 사용해 DEEPX 앱 만들기
 - **Step 1. [DX-AllSuite Architecture Overview](./docs/source/01_DX-AllSuite_Architecture_Overview.md)**: SDK 개요, 모듈 설명, ModelZoo 사용법
 - **Step 2. [Setting Up Environment](./docs/source/02_Setting_Up_Environment.md)**: Local/Docker 설치 상세 및 트러블슈팅
 - **Step 3. [Running Your First NPU Model](./docs/source/03_Running_Your_First_NPU_Model.md)**: 단계별 hands-on 스크립트 실행

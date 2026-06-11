@@ -39,7 +39,7 @@ Each submodule also has its own agents (accessible when working within that subm
 | Skill | Description |
 |---|---|
 | `/dx-harness-validate` | Internal: validate .deepx/ framework integrity across all levels |
-| `/dx-agentic-showcase-build` | Build a dx-agentic-dev showcase end-to-end (record real build → complete transcript → GIFs → README/docs) with verify gates |
+| `/dx-agent-showcase-build` | Build a dx-agent-dev showcase end-to-end (record real build → complete transcript → GIFs → README/docs) with verify gates |
 | `/dx-swe-brainstorm` | Brainstorm, propose 2-3 approaches, spec self-review, then plan |
 | `/dx-swe-tdd` | Validation-driven development with optional Red-Green-Refactor for unit tests |
 | `/dx-swe-verify` | Verify before claiming completion — evidence before assertions |
@@ -91,7 +91,7 @@ python dx-runtime/.deepx/scripts/feedback_collector.py --framework-only
 
 ## Output Isolation (HARD GATE)
 
-ALL AI-generated files MUST be written to `dx-agentic-dev/<session_id>/` within the
+ALL AI-generated files MUST be written to `dx-agent-dev/<session_id>/` within the
 target sub-project. NEVER write generated code directly into existing source directories
 (e.g., `src/`, `pipelines/`, `semseg_260323/`, or any directory containing user's
 existing code).
@@ -103,7 +103,7 @@ existing code).
 - **`<agent>`**: the coding agent identifier — use `claude`, `codex`, `copilot`, `cursor`, or `opencode`.
 - **`<coding_model>`**: shortened coding model name — e.g., `sonnet46`, `opus46`, `gpt53codex`, `gpt55`.
 
-- **Correct**: `dx-runtime/dx_app/dx-agentic-dev/20260413-093000_claude_opus46_plantseg_inference/demo_dxnn_sync.py`
+- **Correct**: `dx-runtime/dx_app/dx-agent-dev/20260413-093000_claude_opus46_plantseg_inference/demo_dxnn_sync.py`
 - **Wrong**: `dx-runtime/dx_app/semseg_260323/demo_dxnn_sync.py`
 
 The ONLY exception: when the user EXPLICITLY says "write to the source directory" or
@@ -128,9 +128,9 @@ placeholder compilation scripts or stub code — produce the real `.dxnn` file.
 When the task is **"compile ONNX + build app"** (suite scenario), you MUST produce
 **two separate session directories**:
 
-1. **Compiler session** → `dx-compiler/dx-agentic-dev/<session_id>/` (contains
+1. **Compiler session** → `dx-compiler/dx-agent-dev/<session_id>/` (contains
    `compile.py`, `config.json`, `yolo26n.dxnn`, `verify.py`, `session.log`)
-2. **App session** → `dx-runtime/dx_app/dx-agentic-dev/<session_id>/` (contains
+2. **App session** → `dx-runtime/dx_app/dx-agent-dev/<session_id>/` (contains
    factory, `<model>_sync.py`, `setup.sh`, `run.sh`)
 
 **NEVER merge both into a single `dx_app/` session.** The test assertion that will fail:
@@ -146,8 +146,8 @@ HARD GATE. You MUST read and apply it before writing any files.
 
 Do NOT use `_auto_` in the session ID. The `_auto_` prefix indicates the tool bypassed
 the cross-project routing workflow. A correct suite session produces TWO separate IDs:
-- `<ts>_<agent>_<coding_model>_<target_model>_compile` in `dx-compiler/dx-agentic-dev/`
-- `<ts>_<agent>_<coding_model>_<target_model>_inference` in `dx-runtime/dx_app/dx-agentic-dev/`
+- `<ts>_<agent>_<coding_model>_<target_model>_compile` in `dx-compiler/dx-agent-dev/`
+- `<ts>_<agent>_<coding_model>_<target_model>_inference` in `dx-runtime/dx_app/dx-agent-dev/`
 
 {{FRAGMENT:no-placeholder-code}}
 
@@ -171,7 +171,7 @@ the cross-project routing workflow. A correct suite session produces TWO separat
 ## Mandatory Deliverables
 
 ALL compilation or app-generation sessions MUST produce the following files in the
-session output directory (`dx-agentic-dev/<session_id>/`) before outputting DONE.
+session output directory (`dx-agent-dev/<session_id>/`) before outputting DONE.
 This applies to **every task type** — compiler-only, app-only, and cross-project.
 
 | File | Purpose | Required when |
@@ -196,7 +196,7 @@ Each sub-project also defines templates for these files in its agent/skill docum
 the `.dxnn` file exists in the compiler session directory:
 
 ```bash
-COMPILER_SESSION="<compiler_session_dir>"   # e.g., dx-compiler/dx-agentic-dev/20260430-..._compile
+COMPILER_SESSION="<compiler_session_dir>"   # e.g., dx-compiler/dx-agent-dev/20260430-..._compile
 test -f "${COMPILER_SESSION}/yolo26n.dxnn" \
   || { echo "BLOCKED: yolo26n.dxnn not found — compilation still running. Wait for compile.pid to exit before emitting DONE."; exit 1; }
 ```
@@ -366,7 +366,7 @@ sub-project files.
 
 ### dx_app Rules (Standalone Inference)
 
-1. **Skeleton-first development** — Read `dx-runtime/dx_app/.deepx/skills/dx-agentic-app-build-python.md`
+1. **Skeleton-first development** — Read `dx-runtime/dx_app/.deepx/skills/dx-agent-app-build-python.md`
    skeleton template BEFORE writing any code. Copy the closest existing example from
    `src/python_example/<task>/<model>/` and modify ONLY model-specific parts (factory,
    postprocessor). NEVER write demo scripts from scratch. NEVER propose standalone
@@ -389,7 +389,7 @@ sub-project files.
    `src/python_example/` for existing examples of the same AI task. Use them as reference.
 7. **DXNN input format auto-detection** — NEVER hardcode preprocessing dimensions or
    formats. The DXNN model self-describes its input requirements via `dx_engine`.
-8. **Output Isolation** — ALL generated code MUST go to `dx-agentic-dev/<session_id>/`.
+8. **Output Isolation** — ALL generated code MUST go to `dx-agent-dev/<session_id>/`.
    NEVER write into existing source directories (e.g., `src/`, `semseg_260323/`, or
    any directory containing user's existing code) unless the user EXPLICITLY says
    "write to the source directory".
@@ -397,7 +397,7 @@ sub-project files.
 ### dx-compiler Rules (Model Compilation)
 
 1. **Previous session reference PROHIBITED** — Never reference or reuse results from
-   previous agentic sessions. Each session starts fresh.
+   previous agent-driven sessions. Each session starts fresh.
 2. **session.log = actual command output** — Session logs MUST contain real terminal
    output. NEVER generate hand-written summaries or `cat << 'EOF'` blocks.
 3. **config.json schema** — Always read `dx-compiler/.deepx/toolsets/config-schema.md`

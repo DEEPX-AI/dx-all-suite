@@ -80,17 +80,17 @@ After any `.deepx/` edit, always run:
 
 ```bash
 # Propagate changes
-dx-agentic-gen generate
+dx-agent-gen generate
 # or suite-wide:
 bash .deepx/tools/scripts/run_all.sh generate
 
 # Verify no drift
-dx-agentic-gen check
+dx-agent-gen check
 ```
 
 ## When to Use
 
 - After modifying any file under `**/.deepx/**`
-- After running `dx-agentic-gen generate`
+- After running `dx-agent-gen generate`
 - During the SWE Process Gates "Verification Loop" step
 - Before claiming internal development work is complete

@@ -125,7 +125,7 @@ def verify_showcase(showcase_dir: str, *, stream_json: Optional[str] = None,
 
     # 6. manifest coverage — the showcase MUST be listed in showcases.json so the
     # card grid / catalog / docs table include it (the yolo-export omission class of bug)
-    root = sc.resolve().parent.parent  # dx-agentic-dev-showcase/<name> -> repo root
+    root = sc.resolve().parent.parent  # dx-agent-dev-showcase/<name> -> repo root
     man_path = root / manifest.MANIFEST_REL
     if man_path.exists():
         try:

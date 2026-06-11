@@ -59,7 +59,7 @@ class ScenarioRef:
     transcript_html: Optional[Path] = None
     stream_jsonl: Optional[Path] = None
     secondary_jsonl: Optional[Path] = None  # Codex: persistent JSONL (timestamps, model)
-    output_dirs: List[Path] = field(default_factory=list)  # symlink targets → dx-agentic-dev/<sid>/
+    output_dirs: List[Path] = field(default_factory=list)  # symlink targets → dx-agent-dev/<sid>/
     output_dir_names: List[str] = field(default_factory=list)  # session_id portion
 
 
@@ -207,7 +207,7 @@ def extract_scenarios(rd: ResultDir, tools_cfg: dict, scenarios_cfg: dict) -> Li
             full = art_path / name
             if ctype == "symlink":
                 target = Path(c.get("target", ""))
-                if target.parts and "dx-agentic-dev" in target.parts:
+                if target.parts and "dx-agent-dev" in target.parts:
                     ref.output_dirs.append(target)
                     ref.output_dir_names.append(target.name)
             elif name.endswith(".md") and "session" in name:
@@ -243,7 +243,7 @@ def extract_scenarios(rd: ResultDir, tools_cfg: dict, scenarios_cfg: dict) -> Li
         out.append(ref)
 
     # Filter each ref's output_dirs by DONE sentinel when present. Agents that
-    # retry a scenario produce multiple dx-agentic-dev/<sid>/ directories within
+    # retry a scenario produce multiple dx-agent-dev/<sid>/ directories within
     # the test's time window; conftest captures all of them as symlinks, so
     # output_dirs ends up with both the abandoned attempts and the final ones.
     # The DONE sentinel emitted by the agent is the authoritative list — anything
@@ -319,7 +319,7 @@ def _filter_output_dirs_by_done_sentinel(ref: "ScenarioRef") -> None:
     sentinel_paths = _parse_done_sentinel_paths(ref)
 
     # Case 2: fallback recovery — output_dirs is empty (symlink omitted because
-    # the agent reused a pre-existing dx-agentic-dev/<sid>/ dir that conftest's
+    # the agent reused a pre-existing dx-agent-dev/<sid>/ dir that conftest's
     # _detect_new_sessions did not classify as "new"). Use the agent's DONE
     # sentinel as the authoritative claim of what it produced.
     if not ref.output_dirs:

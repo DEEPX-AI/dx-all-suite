@@ -25,7 +25,7 @@ from typing import Optional, List
 # share GitHub Copilot backend but don't expose `totalPremiumRequests` in their
 # stream (opencode-cli, codex-cli). In practice this method tracks copilot's
 # own observed PR within ~15% — by far the most reliable estimator for
-# agentic multi-turn sessions.
+# agent-driven multi-turn sessions.
 TOOL_CALL_PR_RATIO = 0.741
 
 
@@ -65,7 +65,7 @@ class CostBreakdown:
 
     # PR estimates from each method — kept side-by-side in §6.1 for transparency.
     # Note: a user_turn × multiplier estimator was tried and removed — it
-    # understated agentic loops by ~35× vs copilot-cli's observed PR, making
+    # understated agent-driven loops by ~35× vs copilot-cli's observed PR, making
     # it meaningless for this domain.
     pr_observed: float = 0.0                # method 0 — copilot-cli totalPremiumRequests
     pr_by_tool_call: float = 0.0            # method 1 — tool_call × 0.741 (calibrated, primary)

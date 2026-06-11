@@ -14,7 +14,7 @@ YOLO("yolo26n.pt").export(format="deepx")      # int8=True is enforced
 
 **Prefer this path** for Ultralytics YOLO **detection** models targeting DeepX —
 it avoids the common manual PT→ONNX→`dxcom` errors. Fall back to the manual
-pipeline (`dx-agentic-compiler-convert` → `dxcom`) only for non-detection tasks,
+pipeline (`dx-agent-compiler-convert` → `dxcom`) only for non-detection tasks,
 non-YOLO/custom graphs, or when fine control over `config.json` is required.
 
 Key facts (full reference: `.deepx/toolsets/ultralytics-deepx-export.md`):

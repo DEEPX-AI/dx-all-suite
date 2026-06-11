@@ -6,12 +6,12 @@ When modifying the canonical source — files in `**/.deepx/**/*.md`
 
 1. **Generator execution** — Propagate `.deepx/` changes to all platforms:
    ```bash
-   dx-agentic-gen generate
+   dx-agent-gen generate
    # Suite-wide: bash .deepx/tools/scripts/run_all.sh generate
    ```
 2. **Drift verification** — Confirm generated output matches committed state:
    ```bash
-   dx-agentic-gen check
+   dx-agent-gen check
    ```
    If drift is detected, return to step 1.
 3. **Automated test loop** — Tests verify generator output satisfies policies:
@@ -39,7 +39,7 @@ file directly is a silent corruption that will be overwritten on next generate.
 **Answer these three questions in order before every file edit:**
 
 > **Q1. Is the file path inside `**/.deepx/**`?**
-> - YES → **Canonical source.** Edit directly, then run `dx-agentic-gen generate` + `check`.
+> - YES → **Canonical source.** Edit directly, then run `dx-agent-gen generate` + `check`.
 > - NO → go to Q2.
 >
 > **Q2. Does the file path or name match any of these?**
@@ -51,12 +51,12 @@ file directly is a silent corruption that will be overwritten on next generate.
 > ```
 > - YES → **Generator output. DO NOT edit directly.**
 >   Find the `.deepx/` source (template, fragment, or agent/skill) and edit that instead,
->   then run `dx-agentic-gen generate`.
+>   then run `dx-agent-gen generate`.
 > - NO → go to Q3.
 >
 > **Q3. Does the file begin with `<!-- AUTO-GENERATED`?**
 > - YES → **Generator output. DO NOT edit directly.** Same as Q2.
-> - NO → **Independent source.** Edit directly. Run `dx-agentic-gen check` once afterward.
+> - NO → **Independent source.** Edit directly. Run `dx-agent-gen check` once afterward.
 
 1. **Canonical source** (`**/.deepx/**/*.md`) — Modify directly, then run the
    Verification Loop above.
@@ -65,14 +65,14 @@ file directly is a silent corruption that will be overwritten on next generate.
    `copilot-instructions.md`, `.github/agents/`, `.github/skills/`,
    `.claude/agents/`, `.claude/skills/`, `.opencode/agents/`, `.cursor/rules/`
    → **Do NOT edit directly.** Find and modify the `.deepx/` source
-   (template, fragment, or agent/skill), then `dx-agentic-gen generate`.
+   (template, fragment, or agent/skill), then `dx-agent-gen generate`.
 3. **Independent source** — Everything else (`docs/source/`, `source/docs/`,
    `tests/`, `README.md` in sub-projects, etc.)
-   → Edit directly. Run `dx-agentic-gen check` once afterward to confirm no
+   → Edit directly. Run `dx-agent-gen check` once afterward to confirm no
    unexpected drift.
 
 **Anti-pattern**: Modifying a file without first classifying it. If you are
-unsure whether a file is generator output, run `dx-agentic-gen check` before
+unsure whether a file is generator output, run `dx-agent-gen check` before
 AND after the edit — if the check overwrites your change, the file is managed
 by the generator and must be edited via `.deepx/` source instead.
 
@@ -85,7 +85,7 @@ if generated files are out-of-date. Install hooks with:
 > **KO counterpart rule**: When editing any EN fragment, check whether the KO
 > counterpart also needs updating. If you added or removed ≥ 1 paragraph, update
 > `.deepx/templates/fragments/ko/<stem>.md` before committing. Run
-> `dx-agentic-gen lint` to verify `[OK]` — lint will ERROR if EN exceeds KO by
+> `dx-agent-gen lint` to verify `[OK]` — lint will ERROR if EN exceeds KO by
 > ≥ 10 lines.
 
 This gate applies when `.deepx/` files are the *primary deliverable* (e.g., adding

@@ -1,4 +1,4 @@
-"""HARD GATE compliance checks against the dx-agentic-dev harness intent.
+"""HARD GATE compliance checks against the dx-agent-dev harness intent.
 
 Computes a compliance score per scenario, where each check contributes points.
 """
@@ -44,11 +44,11 @@ def _check_session_id_format(name: str) -> tuple[bool, str]:
 
 
 def _check_output_dir_under_session_id(out_dir: Path) -> tuple[bool, str]:
-    """Verify the path is dx-agentic-dev/<session_id>/ with valid agent prefix."""
+    """Verify the path is dx-agent-dev/<session_id>/ with valid agent prefix."""
     parts = out_dir.parts
-    if "dx-agentic-dev" not in parts:
-        return False, "not under dx-agentic-dev/"
-    idx = parts.index("dx-agentic-dev")
+    if "dx-agent-dev" not in parts:
+        return False, "not under dx-agent-dev/"
+    idx = parts.index("dx-agent-dev")
     if idx + 1 >= len(parts):
         return False, "no session_id segment"
     sid = parts[idx + 1]
@@ -173,10 +173,10 @@ def evaluate_compliance(
     # 2. DONE sentinel emitted (skip for sessions that produced no files)
     rep.add("sentinel_done", session_data.has_done_sentinel)
 
-    # 3. At least one output dir under dx-agentic-dev/<session_id>/
+    # 3. At least one output dir under dx-agent-dev/<session_id>/
     out_dirs = scenario_ref.output_dirs
     rep.add("output_isolation_present",
-            any("dx-agentic-dev" in str(p) for p in out_dirs),
+            any("dx-agent-dev" in str(p) for p in out_dirs),
             note=f"{len(out_dirs)} symlinks")
 
     # 4. Session ID format for each output dir

@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 """
-Agentic E2E Test (OpenCode): dx-runtime Scenario — Route to dx_app AND dx_stream
+Agent-Driven E2E Test (OpenCode): dx-runtime Scenario — Route to dx_app AND dx_stream
 
 Runs the OpenCode CLI inside dx-runtime/ with a prompt that requires
 BOTH a standalone detection app and a streaming pipeline.

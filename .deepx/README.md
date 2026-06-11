@@ -1,18 +1,18 @@
-# `.deepx/` — DEEPX All Suite Agentic Knowledge (Top-Level)
+# `.deepx/` — DEEPX All Suite Agent-Driven Knowledge (Top-Level)
 
-> Master index for the DEEPX Agentic Development (`dx-agentic-dev`) canonical
+> Master index for the DEEPX Agent-Driven Development (`dx-agent-dev`) canonical
 > source at the dx-all-suite top level.
 >
 > For end-user usage, see [`docs/source/00_Agentic_Development.md`](../docs/source/00_Agentic_Development.md).
 > For a comprehensive walk-through of every `.deepx/` directory across all 5
-> repos, see [`docs/dx-agentic-dev-overview.md`](docs/dx-agentic-dev-overview.md).
+> repos, see [`docs/dx-agent-dev-overview.md`](docs/dx-agent-dev-overview.md).
 
 ---
 
 ## 1. Purpose
 
 The `.deepx/` directory is the **canonical source of truth (SoT)** for everything
-that powers DEEPX Agentic Development:
+that powers DEEPX Agent-Driven Development:
 
 - Agent definitions (router agents, builder agents, validators)
 - Skill workflows (build, validate, brainstorm, TDD, etc.)
@@ -20,12 +20,12 @@ that powers DEEPX Agentic Development:
 - Shared fragments injected into every platform output (4 tools × 5 repos)
 - Memory (pitfalls, knowledge base entries)
 - Tests (~700 conformance + ~586 E2E)
-- The `dx-agentic-gen` generator that fans out `.deepx/` content to all platforms
+- The `dx-agent-gen` generator that fans out `.deepx/` content to all platforms
 
 > **Never edit generator output directly.** Files like `CLAUDE.md`, `AGENTS.md`,
 > `.claude/agents/`, `.github/agents/`, `.opencode/agents/`, `.cursor/rules/`
 > are produced from `.deepx/`. Edit the corresponding source under `.deepx/`,
-> then run `dx-agentic-gen generate`.
+> then run `dx-agent-gen generate`.
 
 ---
 
@@ -45,8 +45,8 @@ Each sub-project `.deepx/` is self-contained. This top-level `.deepx/` adds:
 - Suite-wide router agents (`dx-suite-builder`, `dx-suite-validator`)
 - 16 shared fragments injected into all 5 repos (rename gates, session sentinels,
   process gates, autopilot guard, etc.)
-- The `dx-agentic-gen` generator (single tool that processes all 5 repos)
-- All agentic test infrastructure (`tests/` conformance + `e2e/`)
+- The `dx-agent-gen` generator (single tool that processes all 5 repos)
+- All agent-driven test infrastructure (`tests/` conformance + `e2e/`)
 
 ---
 
@@ -64,7 +64,7 @@ Each sub-project `.deepx/` is self-contained. This top-level `.deepx/` adds:
 ├── skills/                      ← Reusable skill workflows (14)
 │   ├── dx-skill-router/         ← Meta — universal pre-flight
 │   ├── dx-swe-*/                ← General SWE process (10: brainstorm/tdd/verify/…)
-│   ├── dx-agentic-*/            ← DEEPX-specific (3: brainstorm/tdd/verify)
+│   ├── dx-agent-*/            ← DEEPX-specific (3: brainstorm/tdd/verify)
 │   └── dx-harness-*/            ← Internal harness dev (2: validate/writing-skills)
 │
 ├── templates/                   ← Generator templates
@@ -86,7 +86,7 @@ Each sub-project `.deepx/` is self-contained. This top-level `.deepx/` adds:
 ├── docs/                        ← Harness design docs (not auto-loaded)
 │   ├── skill-architecture.md             ← 3-tier skill model
 │   ├── fragment-authoring-guide.md       ← Rules for writing fragments
-│   └── dx-agentic-dev-overview.md        ← Comprehensive .deepx/ walk-through
+│   └── dx-agent-dev-overview.md        ← Comprehensive .deepx/ walk-through
 │
 ├── tests/                       ← Suite conformance tests
 │   ├── README.md                ← Test categories and how to run them
@@ -99,11 +99,11 @@ Each sub-project `.deepx/` is self-contained. This top-level `.deepx/` adds:
 │
 └── tools/                       ← Tooling packages + orchestration scripts
     ├── README.md                ← tooling guide
-    ├── pyproject.toml           ← `dx-agentic-gen` CLI; discovers both src/ packages
+    ├── pyproject.toml           ← `dx-agent-gen` CLI; discovers both src/ packages
     ├── src/
-    │   ├── dx_agentic_dev_gen/  ← generator (cli, generator, transformers, frontmatter, constants)
+    │   ├── dx_agent_dev_gen/  ← generator (cli, generator, transformers, frontmatter, constants)
     │   └── dx_transcripts/      ← shared session parsers + transcript renderer
-    ├── tests/                   ← mirrors src/ (dx_agentic_dev_gen/, dx_transcripts/)
+    ├── tests/                   ← mirrors src/ (dx_agent_dev_gen/, dx_transcripts/)
     └── scripts/
         ├── README.md                          ← scripts/ guide
         ├── run_all.sh                         ← Multi-repo generate/check/lint
@@ -121,7 +121,7 @@ Each sub-project `.deepx/` is self-contained. This top-level `.deepx/` adds:
 ```
                     .deepx/  (canonical source)
                        │
-                       │  dx-agentic-gen generate
+                       │  dx-agent-gen generate
                        ▼
    ┌────────────────────────────────────────────────────────────┐
    │                                                            │
@@ -154,11 +154,11 @@ outputs drift from source.
 pip install -e .deepx/tools
 
 # 2. Single-repo operations (from the repo root)
-dx-agentic-gen generate    # Regenerate platform files
-dx-agentic-gen check       # Verify no drift
-dx-agentic-gen lint        # Verify EN/KO fragment parity
-dx-agentic-gen prune       # Remove stale orphan outputs (renamed/removed sources)
-dx-agentic-gen generate --prune   # Regenerate AND self-clean orphans in one pass
+dx-agent-gen generate    # Regenerate platform files
+dx-agent-gen check       # Verify no drift
+dx-agent-gen lint        # Verify EN/KO fragment parity
+dx-agent-gen prune       # Remove stale orphan outputs (renamed/removed sources)
+dx-agent-gen generate --prune   # Regenerate AND self-clean orphans in one pass
 
 # 3. Suite-wide (process all 5 repos)
 bash .deepx/tools/scripts/run_all.sh generate
@@ -171,9 +171,9 @@ bash .deepx/tools/scripts/install-hooks.sh
 
 # 5. Tests
 cd .deepx/e2e
-./test.sh agentic                          # ~700 conformance tests (~1s)
-./test.sh agentic-e2e-claude-code-autopilot # Claude Code E2E
-./test.sh agentic-e2e-copilot-cli-autopilot # Copilot CLI E2E
+./test.sh agent-driven                          # ~700 conformance tests (~1s)
+./test.sh agent-driven-e2e-claude-code-autopilot # Claude Code E2E
+./test.sh agent-driven-e2e-copilot-cli-autopilot # Copilot CLI E2E
 ```
 
 ---
@@ -183,11 +183,11 @@ cd .deepx/e2e
 | Tier | Prefix | Scope | Example |
 |------|--------|-------|---------|
 | **General SWE** | `dx-swe-*` | Any SDK / docs / general coding | `dx-swe-tdd` |
-| **End-User (Agentic Dev)** | `dx-agentic-*` | Building apps/pipelines via dx-agentic-dev | `dx-agentic-tdd` |
+| **End-User (Agent-Driven Dev)** | `dx-agent-*` | Building apps/pipelines via dx-agent-dev | `dx-agent-tdd` |
 | **Harness Eng** | `dx-harness-*` | Internal `.deepx/`, `tests/`, `tools/` maintenance | `dx-harness-validate` |
 | **Meta** | `dx-skill-router` | Used in all tiers (universal pre-flight) | — |
 
-`dx-agentic-*` skills reference the corresponding `dx-swe-*` skill and add DEEPX-
+`dx-agent-*` skills reference the corresponding `dx-swe-*` skill and add DEEPX-
 specific content (model registry checks, sub-project routing, etc.).
 
 See [`docs/skill-architecture.md`](docs/skill-architecture.md) for the full design.
@@ -201,7 +201,7 @@ message**. This applies to all scenarios:
 
 | Scenario | Trigger | Mandatory Sequence |
 |----------|---------|--------------------|
-| **End-User** | task writes to `dx-agentic-dev/<session_id>/` | router → `dx-agentic-brainstorm` → `dx-swe-writing-plans` → `dx-agentic-tdd` → `dx-agentic-verify` |
+| **End-User** | task writes to `dx-agent-dev/<session_id>/` | router → `dx-agent-brainstorm` → `dx-swe-writing-plans` → `dx-agent-tdd` → `dx-agent-verify` |
 | **Harness Dev** | task touches `.deepx/`, `tests/`, `tools/` | router → `dx-swe-brainstorm` → `dx-swe-writing-plans` → `dx-swe-tdd` → `dx-swe-verify` → `dx-harness-validate` |
 | **SDK Dev** | task touches SDK source / docs (general) | router → `dx-swe-brainstorm` → `dx-swe-writing-plans` → `dx-swe-tdd` → `dx-swe-verify` |
 
@@ -215,7 +215,7 @@ Enforced by the `mandatory-process-skill-sequence.md` and
 
 Fragments are reusable rule blocks injected into instruction files across all 5
 repos. Editing a fragment once propagates the change everywhere via
-`dx-agentic-gen generate`.
+`dx-agent-gen generate`.
 
 | Fragment | Purpose |
 |----------|---------|
@@ -246,10 +246,10 @@ how to add or modify a fragment.
 | Topic | Document |
 |-------|----------|
 | End-user usage (one-liner prompts, scenarios) | [`docs/source/00_Agentic_Development.md`](../docs/source/00_Agentic_Development.md) |
-| Comprehensive `.deepx/` walk-through (all 5 repos) | [`docs/dx-agentic-dev-overview.md`](docs/dx-agentic-dev-overview.md) |
+| Comprehensive `.deepx/` walk-through (all 5 repos) | [`docs/dx-agent-dev-overview.md`](docs/dx-agent-dev-overview.md) |
 | 3-tier skill architecture and naming | [`docs/skill-architecture.md`](docs/skill-architecture.md) |
 | How to author a new fragment | [`docs/fragment-authoring-guide.md`](docs/fragment-authoring-guide.md) |
-| `dx-agentic-gen` generator package | [`tools/README.md`](tools/README.md) |
+| `dx-agent-gen` generator package | [`tools/README.md`](tools/README.md) |
 | Operational scripts (`run_all.sh`, hooks, E2E loop) | [`tools/scripts/README.md`](tools/scripts/README.md) |
 | E2E result analyzer (reports, charts, dashboard) | [`e2e/agentic_analyzer/README.md`](e2e/agentic_analyzer/README.md) |
 | Test categories and how to run them | [`tests/README.md`](tests/README.md) |
@@ -261,8 +261,8 @@ how to add or modify a fragment.
 
 | Term | Meaning |
 |------|---------|
-| `dx-agentic-dev` | The DEEPX Agentic Development feature (this whole system). Also the per-session output directory: `dx-agentic-dev/<session_id>/`. |
-| `dx-agentic-gen` | The Python CLI that fans `.deepx/` out to all platform-specific files. Package source under `tools/src/dx_agentic_dev_gen/`. |
+| `dx-agent-dev` | The DEEPX Agent-Driven Development feature (this whole system). Also the per-session output directory: `dx-agent-dev/<session_id>/`. |
+| `dx-agent-gen` | The Python CLI that fans `.deepx/` out to all platform-specific files. Package source under `tools/src/dx_agent_dev_gen/`. |
 | Fragment | A reusable rule block under `.deepx/templates/fragments/{en,ko}/`. Always written in EN + KO pairs. |
 | Canonical source | Files under `**/.deepx/**` — the only place to edit. |
 | Generator output | Platform-specific files (`CLAUDE.md`, `.claude/`, `.github/`, `.cursor/`, `.opencode/`). Never edit directly. |

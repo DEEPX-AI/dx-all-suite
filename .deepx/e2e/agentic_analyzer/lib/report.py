@@ -715,7 +715,7 @@ def write_markdown(evals: List[SessionEval], out_path: Path, meta: Dict) -> None
     scenarios = sorted({e.scenario for e in evals})
 
     lines: List[str] = []
-    lines.append(f"# DEEPX Agentic Development — E2E Autopilot 분석 리포트")
+    lines.append(f"# DEEPX Agent-Driven Development — E2E Autopilot 분석 리포트")
     lines.append("")
     lines.append(f"> 생성 시각: {meta.get('generated_at')}  ·  Rubric: **{meta.get('rubric_version', 'v1')}** (시나리오별 ExecutionTrace + Overall 가중치 v2)")
     lines.append(f"> 분석 대상 sessions: **{len(evals)}** "
@@ -918,7 +918,7 @@ def write_markdown(evals: List[SessionEval], out_path: Path, meta: Dict) -> None
     lines.append("")
     lines.append("- `sentinel_start` — 응답 첫 줄 `[DX-AGENTIC-DEV: START]`")
     lines.append("- `sentinel_done` — 마지막 줄 `[DX-AGENTIC-DEV: DONE (output-dir: ...)]`")
-    lines.append("- `output_isolation_present` — 산출물이 `dx-agentic-dev/<session_id>/` 하위")
+    lines.append("- `output_isolation_present` — 산출물이 `dx-agent-dev/<session_id>/` 하위")
     lines.append("- `session_id_format` — `YYYYMMDD-HHMMSS_<agent>_<model>_<task>` 패턴")
     lines.append("- `mandatory_deliverables` — 시나리오별 필수 파일 존재 (setup.sh, run.sh, README.md, session.log, factory, *_sync.py 등)")
     lines.append("- `ifactory_5_methods` — dx_app factory 5-method 패턴")
@@ -1331,7 +1331,7 @@ def write_markdown(evals: List[SessionEval], out_path: Path, meta: Dict) -> None
         "> **랭킹 기준**: 예측 1(tool_call × 0.741) 기반의 '효율' 컬럼(Overall ÷ PR) 내림차순. "
         "값이 클수록 한 PR(Premium Request)당 더 높은 Overall 점수를 만든다는 의미. "
         "**예측 1**은 copilot-cli 관측치와 자릿수 일치(±15%) 입증된 calibrated ratio라 "
-        "agentic 도구에서 가장 신뢰성 있는 비교 기준입니다. "
+        "agent-driven 도구에서 가장 신뢰성 있는 비교 기준입니다. "
         "**예측 2(token ratio)** 와 그 효율 컬럼은 참고용 — 도구별 token 보고 의미론이 달라 "
         "자릿수 변동이 큽니다 (§6.4 참조). "
         "copilot-cli는 `session.shutdown.totalPremiumRequests` 실측을 제공하지만, opencode/codex는 "
@@ -1374,7 +1374,7 @@ def write_markdown(evals: List[SessionEval], out_path: Path, meta: Dict) -> None
     lines.append("")
     lines.append("#### 예측 공식 1순위 — tool_call × 0.741 (calibrated)")
     lines.append("")
-    lines.append("agentic 도구는 한 번의 사용자 프롬프트 안에서 수십 회의 LLM round-trip을 "
+    lines.append("agent-driven 도구는 한 번의 사용자 프롬프트 안에서 수십 회의 LLM round-trip을 "
                  "발생시킵니다. GitHub의 청구도 round-trip 단위로 누적되므로, **세션의 tool_call 수**를 "
                  "PR 예측 지표로 사용하는 것이 자연스럽습니다.")
     lines.append("")
@@ -1958,7 +1958,7 @@ def write_html(evals: List[SessionEval], out_path: Path, meta: Dict) -> None:
 
     md_content = md_path.read_text(encoding="utf-8")
     body = _md_to_html(md_content)
-    title = "DEEPX Agentic Development — E2E Autopilot Analysis"
+    title = "DEEPX Agent-Driven Development — E2E Autopilot Analysis"
 
     html = f"""<!DOCTYPE html>
 <html lang="ko">

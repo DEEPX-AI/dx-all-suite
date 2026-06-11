@@ -1,6 +1,6 @@
-# `.deepx/tools/` — DEEPX Agentic Development Generator
+# `.deepx/tools/` — DEEPX Agent-Driven Development Generator
 
-> The `dx-agentic-gen` Python CLI that transforms `.deepx/` canonical source
+> The `dx-agent-gen` Python CLI that transforms `.deepx/` canonical source
 > into platform-specific files for Claude Code, GitHub Copilot, Cursor, and
 > OpenCode across all 5 dx-all-suite repos.
 
@@ -8,7 +8,7 @@
 
 ## 1. Overview
 
-`dx-agentic-gen` is the **single tool** responsible for everything under the
+`dx-agent-gen` is the **single tool** responsible for everything under the
 generator boundary:
 
 - Reading agents/skills from `.deepx/agents/` and `.deepx/skills/`
@@ -29,9 +29,9 @@ It is installed once and used across all 5 repos in dx-all-suite.
 ├── README-KO.md                   ← Korean translation
 ├── pyproject.toml                 ← Package definition; `packages.find where=["src"]` discovers BOTH packages
 ├── src/
-│   ├── dx_agentic_dev_gen/        ← Generator package
+│   ├── dx_agent_dev_gen/        ← Generator package
 │   │   ├── __init__.py
-│   │   ├── cli.py                 ← `dx-agentic-gen` entry point
+│   │   ├── cli.py                 ← `dx-agent-gen` entry point
 │   │   ├── generator.py           ← Core generate/check/lint/prune orchestration
 │   │   ├── transformers.py        ← Per-platform output transformers
 │   │   ├── frontmatter.py         ← YAML frontmatter handling
@@ -42,7 +42,7 @@ It is installed once and used across all 5 repos in dx-all-suite.
 │       ├── generate_transcripts.py ← DONE-line transcript renderer (run by the session sentinel)
 │       └── backfill_claude_html.py
 ├── tests/                         ← Mirrors src/ — each tool's tests beside its package
-│   ├── dx_agentic_dev_gen/        ← test_generator.py, test_generator_lint.py
+│   ├── dx_agent_dev_gen/        ← test_generator.py, test_generator_lint.py
 │   └── dx_transcripts/            ← test_parse_*, test_generate_transcripts
 └── scripts/                       ← Operational scripts (see scripts/README.md)
     ├── run_all.sh
@@ -51,7 +51,7 @@ It is installed once and used across all 5 repos in dx-all-suite.
     └── run-e2e-improvement-loop.sh
 ```
 
-> **Two packages, one workspace.** `dx_agentic_dev_gen` is the generator;
+> **Two packages, one workspace.** `dx_agent_dev_gen` is the generator;
 > `dx_transcripts` is the session-parsing/transcript library shared by the
 > session-sentinel DONE-line generation, the e2e harness (`.deepx/e2e/`), and the
 > analyzer. Both are discovered by `packages.find where=["src"]`. Tests live in
@@ -62,14 +62,14 @@ It is installed once and used across all 5 repos in dx-all-suite.
 ## 3. Module Responsibilities
 
 ### `cli.py`
-Entry point exposed via `pyproject.toml` as `dx-agentic-gen`. Parses arguments
+Entry point exposed via `pyproject.toml` as `dx-agent-gen`. Parses arguments
 and dispatches to the `generate`, `check`, `lint`, or `prune` action in `generator.py`.
 
 ```bash
-dx-agentic-gen generate [--repo <path>] [--prune] [--dry-run]
-dx-agentic-gen check    [--repo <path>]
-dx-agentic-gen lint     [--repo <path>]
-dx-agentic-gen prune    [--repo <path>] [--dry-run]
+dx-agent-gen generate [--repo <path>] [--prune] [--dry-run]
+dx-agent-gen check    [--repo <path>]
+dx-agent-gen lint     [--repo <path>]
+dx-agent-gen prune    [--repo <path>] [--dry-run]
 ```
 
 Without `--repo`, the CLI operates on the current working directory's `.deepx/`.
@@ -119,10 +119,10 @@ Regenerate all platform-specific files for the target repo.
 
 ```bash
 # In a repo root:
-dx-agentic-gen generate
+dx-agent-gen generate
 
 # Or explicitly:
-dx-agentic-gen generate --repo /abs/path/to/repo
+dx-agent-gen generate --repo /abs/path/to/repo
 
 # Suite-wide (all 5 repos):
 bash .deepx/tools/scripts/run_all.sh generate
@@ -138,7 +138,7 @@ Effects:
 Verify generated outputs are up-to-date without modifying them.
 
 ```bash
-dx-agentic-gen check
+dx-agent-gen check
 ```
 
 - Exit code 0 + `All generated files are up-to-date.` → OK
@@ -151,7 +151,7 @@ commit` and blocks the commit on drift.
 Verify EN/KO fragment parity and "no Korean in EN files" rule.
 
 ```bash
-dx-agentic-gen lint
+dx-agent-gen lint
 ```
 
 Checks:
@@ -170,13 +170,13 @@ because their `.deepx/` source was renamed or removed. `check` cannot catch thes
 (it only verifies files it *would* generate), so a rename leaves the old output behind.
 
 ```bash
-dx-agentic-gen prune --dry-run     # list what would be removed (recommended first)
-dx-agentic-gen prune               # delete the orphans
+dx-agent-gen prune --dry-run     # list what would be removed (recommended first)
+dx-agent-gen prune               # delete the orphans
 bash .deepx/tools/scripts/run_all.sh prune   # suite-wide
 
 # Or fold it into generate so a rename self-cleans in one pass:
-dx-agentic-gen generate --prune
-dx-agentic-gen generate --prune --dry-run    # preview generate + prune together
+dx-agent-gen generate --prune
+dx-agent-gen generate --prune --dry-run    # preview generate + prune together
 ```
 
 Safety — prune only deletes inside locations the generator solely owns, matched by
@@ -212,9 +212,9 @@ disappears or shows as raw text). The `lint` action catches this, and
 
 ```
 1. Edit .deepx/ source              ← canonical
-2. dx-agentic-gen generate           ← propagate
-3. dx-agentic-gen check              ← verify (must be clean)
-4. dx-agentic-gen lint               ← verify EN/KO parity
+2. dx-agent-gen generate           ← propagate
+3. dx-agent-gen check              ← verify (must be clean)
+4. dx-agent-gen lint               ← verify EN/KO parity
 5. git commit                        ← pre-commit hook runs check + lint again
 ```
 
@@ -245,7 +245,7 @@ Generated paths: `CLAUDE.md`, `CLAUDE-KO.md`, `AGENTS.md`, `AGENTS-KO.md`,
 pip install -e .deepx/tools
 
 # Verify installation
-dx-agentic-gen --help
+dx-agent-gen --help
 ```
 
 Python 3.10+ required. Dependencies (installed automatically):
@@ -262,7 +262,7 @@ Python 3.10+ required. Dependencies (installed automatically):
    source and writes to the new platform's directory layout.
 2. Register the transformer in `generator.py`'s dispatch table.
 3. Add target paths to `constants.py`.
-4. Run `dx-agentic-gen generate` and verify the new outputs.
+4. Run `dx-agent-gen generate` and verify the new outputs.
 
 ### Adding a new fragment
 
@@ -272,7 +272,7 @@ See [`../docs/fragment-authoring-guide.md`](../docs/fragment-authoring-guide.md)
 
 1. Write the canonical `.md` under `.deepx/skills/<name>/SKILL.md` or
    `.deepx/agents/<name>.md`.
-2. Run `dx-agentic-gen generate` — platform-specific copies appear automatically.
+2. Run `dx-agent-gen generate` — platform-specific copies appear automatically.
 
 ---
 
@@ -281,7 +281,7 @@ See [`../docs/fragment-authoring-guide.md`](../docs/fragment-authoring-guide.md)
 ```bash
 # Suite-wide conformance tests (~700, ~1s)
 cd .deepx/e2e
-./test.sh agentic
+./test.sh agent-driven
 
 # What this checks (relevant to the generator):
 # - Guide document structure: existence, headings, scenario numbering
@@ -301,4 +301,4 @@ cd .deepx/e2e
 | Skill 3-tier architecture | [`../docs/skill-architecture.md`](../docs/skill-architecture.md) |
 | Fragment authoring rules | [`../docs/fragment-authoring-guide.md`](../docs/fragment-authoring-guide.md) |
 | End-user feature documentation | [`../../docs/source/00_Agentic_Development.md`](../../docs/source/00_Agentic_Development.md) |
-| Comprehensive `.deepx/` walk-through | [`../docs/dx-agentic-dev-overview.md`](../docs/dx-agentic-dev-overview.md) |
+| Comprehensive `.deepx/` walk-through | [`../docs/dx-agent-dev-overview.md`](../docs/dx-agent-dev-overview.md) |

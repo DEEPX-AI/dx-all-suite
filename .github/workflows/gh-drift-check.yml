@@ -1,4 +1,4 @@
-name: dx-agentic-gen drift check
+name: dx-agent-gen drift check
 
 # Second line of defense behind the local pre-commit hook: the hook can be
 # bypassed (`git commit --no-verify`) or skipped if not installed, so this CI
@@ -39,7 +39,7 @@ jobs:
 
       - name: Drift check (all levels)
         run: |
-          # run_all.sh resolves dx-agentic-gen from the in-tree source
+          # run_all.sh resolves dx-agent-gen from the in-tree source
           # (.deepx/tools/src) via PYTHONPATH — no pip install required.
           bash .deepx/tools/scripts/run_all.sh check
 

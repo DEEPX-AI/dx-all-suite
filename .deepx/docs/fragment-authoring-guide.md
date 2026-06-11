@@ -41,8 +41,8 @@ vim .deepx/templates/ko/CLAUDE-KO.md.tmpl # add {{FRAGMENT:my-new-rule}}
 
 # 4. Generate and verify
 bash .deepx/tools/scripts/run_all.sh generate
-dx-agentic-gen check      # must report "All generated files are up-to-date."
-dx-agentic-gen lint       # must report "All EN/KO fragment pairs are consistent."
+dx-agent-gen check      # must report "All generated files are up-to-date."
+dx-agent-gen lint       # must report "All EN/KO fragment pairs are consistent."
 ```
 
 ---
@@ -82,7 +82,7 @@ Answer three questions:
 **Answer these three questions in order before every file edit:**
 
 > **Q1. Is the file path inside `**/.deepx/**`?**
-> - YES → **Canonical source.** Edit directly, then run `dx-agentic-gen generate` + `check`.
+> - YES → **Canonical source.** Edit directly, then run `dx-agent-gen generate` + `check`.
 > - NO → go to Q2.
 >
 > **Q2. Does the file path or name match any of these?**
@@ -101,7 +101,7 @@ Answer three questions:
 
 English fragment files (`.deepx/templates/fragments/en/`) and all non-KO
 `.deepx/` files MUST contain only English text. This rule is enforced by
-`dx-agentic-gen lint` (Check 4) and the pre-commit hook.
+`dx-agent-gen lint` (Check 4) and the pre-commit hook.
 
 **Prohibited** — inserting Korean text into an EN fragment or agent file:
 
@@ -140,7 +140,7 @@ Placing it on a preceding comment line does NOT exempt the Korean line.
 
 ### What lint checks (Check 4)
 
-`dx-agentic-gen lint` scans all `.deepx/**/*.md` files that are not KO files
+`dx-agent-gen lint` scans all `.deepx/**/*.md` files that are not KO files
 (filename contains `-KO`/`_KO`, or file is under a `/ko/` directory) and reports
 `[ERROR]` for any Korean character found without a `<!-- KOREAN-OK: ... -->` annotation.
 
@@ -151,7 +151,7 @@ Placing it on a preceding comment line does NOT exempt the Korean line.
 After any fragment change, always run lint before committing:
 
 ```bash
-dx-agentic-gen lint        # Check EN/KO parity for current repo
+dx-agent-gen lint        # Check EN/KO parity for current repo
 # or suite-wide:
 bash .deepx/tools/scripts/run_all.sh lint
 ```
@@ -169,8 +169,8 @@ A lint failure **blocks the commit** (same as a drift check failure).
 [ ] Template placeholder added to EN template(s)
 [ ] Template placeholder added to KO template(s)
 [ ] bash .deepx/tools/scripts/run_all.sh generate  → OK
-[ ] dx-agentic-gen check   → "All generated files are up-to-date."
-[ ] dx-agentic-gen lint    → "All EN/KO fragment pairs are consistent."
+[ ] dx-agent-gen check   → "All generated files are up-to-date."
+[ ] dx-agent-gen lint    → "All EN/KO fragment pairs are consistent."
 [ ] python -m pytest .deepx/tests/conformance/ -q  → all pass
 ```
 

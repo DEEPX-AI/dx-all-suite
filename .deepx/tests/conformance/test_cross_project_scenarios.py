@@ -6,7 +6,7 @@ Validates:
 - DX All Suite Scenarios 1-4 have required submodule infrastructure
 - Handoff chains: when agent A references agent B, B's file exists
 - PPU scenarios: PPU-related agents, skills, and paths exist
-- Output isolation: dx-agentic-dev/ related .gitignore rules
+- Output isolation: dx-agent-dev/ related .gitignore rules
 - Validation scripts exist and are executable
 """
 
@@ -152,7 +152,7 @@ class TestScenario4Infrastructure:
             pytest.skip("dx-compiler guide not found")
         text = compiler_guide.read_text(encoding="utf-8")
         assert re.search(r"[Pp][Pp][Uu]", text), (
-            "dx-compiler agentic development guide does not mention PPU"
+            "dx-compiler agent-driven development guide does not mention PPU"
         )
 
     def test_app_handles_ppu(self):
@@ -195,13 +195,13 @@ class TestHandoffChains:
     # Project/module names that should not be treated as agent references
     _NON_AGENT_NAMES = {
         "dx-compiler", "dx-runtime", "dx-stream", "dx-app",
-        "dx-all-suite", "dx-agentic-dev", "dx-com", "dx-rt",
+        "dx-all-suite", "dx-agent-dev", "dx-com", "dx-rt",
     }
 
-    # Skill names follow the pattern dx-agentic-*, dx-build-*, dx-validate-*,
+    # Skill names follow the pattern dx-agent-*, dx-build-*, dx-validate-*,
     # dx-convert-*, dx-model-*. These are invoked as /skill-name, not @agent.
     _SKILL_PREFIXES = (
-        "dx-agentic-", "dx-swe-", "dx-build-", "dx-validate-", "dx-compile-",
+        "dx-agent-", "dx-swe-", "dx-build-", "dx-validate-", "dx-compile-",
         "dx-convert-", "dx-model-", "dx-brainstorm-", "dx-tdd", "dx-verify-",
     )
 
@@ -258,12 +258,12 @@ class TestHandoffChains:
 
 
 # ---------------------------------------------------------------------------
-# Output isolation (.gitignore for dx-agentic-dev/)
+# Output isolation (.gitignore for dx-agent-dev/)
 # ---------------------------------------------------------------------------
 
 
 class TestOutputIsolation:
-    """Projects should have .gitignore rules for agentic development output."""
+    """Projects should have .gitignore rules for agent-driven development output."""
 
     @pytest.mark.parametrize(
         "project,root",
@@ -271,18 +271,18 @@ class TestOutputIsolation:
         ids=[k for k in PROJECT_ROOTS if k != "suite"],
     )
     def test_gitignore_has_agentic_output_rule(self, project: str, root: Path):
-        """Each project should have .gitignore rules for dx-agentic-dev/ output."""
+        """Each project should have .gitignore rules for dx-agent-dev/ output."""
         gitignore = root / ".gitignore"
         if not gitignore.exists():
             pytest.xfail(f"{project}: No .gitignore file found")
             return
 
         text = gitignore.read_text(encoding="utf-8")
-        # Check for dx-agentic-dev/ or similar pattern
-        has_rule = bool(re.search(r"dx-agentic-dev", text))
+        # Check for dx-agent-dev/ or similar pattern
+        has_rule = bool(re.search(r"dx-agent-dev", text))
         if not has_rule:
             pytest.xfail(
-                f"{project}/.gitignore does not have dx-agentic-dev/ exclusion rule"
+                f"{project}/.gitignore does not have dx-agent-dev/ exclusion rule"
             )
 
 

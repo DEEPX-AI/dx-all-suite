@@ -42,7 +42,7 @@ def test_card_grid_three_columns_pads_last_row():
 
 def test_card_grid_links_and_gif_paths_root_surface():
     grid = augment.card_grid(_man(1).showcases, lang="en", surface="root")
-    assert 'href="dx-agentic-dev-showcase/s0/README.md"' in grid
+    assert 'href="dx-agent-dev-showcase/s0/README.md"' in grid
     assert 'src="./docs/source/img/s0.gif"' in grid
 
 
@@ -153,7 +153,7 @@ def test_showcase_table_has_header_and_one_row_per_showcase():
 
 def test_showcase_table_docs_surface_links_to_dir():
     table = augment.showcase_table(_man(1).showcases, lang="en")
-    assert "(../../dx-agentic-dev-showcase/s0/)" in table
+    assert "(../../dx-agent-dev-showcase/s0/)" in table
 
 
 # ---- catalog_region --------------------------------------------------------
@@ -181,7 +181,7 @@ def test_upsert_block_idempotent(tmp_path):
 # ---- manifest loading + coverage ------------------------------------------
 
 def _write_manifest(root, names):
-    (root / "dx-agentic-dev-showcase").mkdir(parents=True, exist_ok=True)
+    (root / "dx-agent-dev-showcase").mkdir(parents=True, exist_ok=True)
     entries = [dict(
         name=n, kind="retrain", category="ultralytics", title_en="t", title_ko="t",
         tagline_en="t", tagline_ko="t", gif="g.gif", what_en="w", what_ko="w",
@@ -202,8 +202,8 @@ def test_missing_from_manifest_detects_unlisted_dir(tmp_path):
     _write_manifest(tmp_path, ["a"])
     # two dirs on disk, only "a" in the manifest -> "b" is missing
     for d in ("a", "b"):
-        (tmp_path / "dx-agentic-dev-showcase" / d).mkdir(parents=True)
-        (tmp_path / "dx-agentic-dev-showcase" / d / "README.md").write_text("x")
+        (tmp_path / "dx-agent-dev-showcase" / d).mkdir(parents=True)
+        (tmp_path / "dx-agent-dev-showcase" / d / "README.md").write_text("x")
     assert manifest.missing_from_manifest(str(tmp_path)) == ["b"]
 
 

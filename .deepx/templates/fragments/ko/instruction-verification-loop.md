@@ -5,12 +5,12 @@ fragments 포함) — 작업 완료 선언 전에 다음 루프를 **반드시**
 
 1. **Generator 실행** — `.deepx/` 변경을 모든 플랫폼으로 전파:
    ```bash
-   dx-agentic-gen generate
+   dx-agent-gen generate
    # Suite 전체: bash .deepx/tools/scripts/run_all.sh generate
    ```
 2. **Drift 검증** — 생성물과 commit 상태 일치 확인:
    ```bash
-   dx-agentic-gen check
+   dx-agent-gen check
    ```
    drift 발견 시 1단계로 복귀.
 3. **자동화 테스트 루프** — 테스트는 generator 출력이 정책을 만족하는지 검증:
@@ -38,7 +38,7 @@ fragments 포함) — 작업 완료 선언 전에 다음 루프를 **반드시**
 **모든 파일 편집 전 다음 세 가지 질문에 순서대로 답하세요:**
 
 > **Q1. 파일 경로가 `**/.deepx/**` 내부에 있나요?**
-> - YES → **Canonical source.** 직접 수정 후 `dx-agentic-gen generate` + `check` 실행.
+> - YES → **Canonical source.** 직접 수정 후 `dx-agent-gen generate` + `check` 실행.
 > - NO → Q2로 이동.
 >
 > **Q2. 파일 경로 또는 이름이 다음 중 하나와 일치하나요?**
@@ -50,12 +50,12 @@ fragments 포함) — 작업 완료 선언 전에 다음 루프를 **반드시**
 > ```
 > - YES → **Generator output. 직접 수정 금지.**
 >   `.deepx/` source(template, fragment, 또는 agent/skill)를 찾아 수정한 후
->   `dx-agentic-gen generate`를 실행하세요.
+>   `dx-agent-gen generate`를 실행하세요.
 > - NO → Q3으로 이동.
 >
 > **Q3. 파일이 `<!-- AUTO-GENERATED`로 시작하나요?**
 > - YES → **Generator output. 직접 수정 금지.** Q2와 동일.
-> - NO → **Independent source.** 직접 수정 가능. 수정 후 `dx-agentic-gen check`를 한 번 실행.
+> - NO → **Independent source.** 직접 수정 가능. 수정 후 `dx-agent-gen check`를 한 번 실행.
 
 1. **Canonical source** (`**/.deepx/**/*.md`) — 직접 수정 후 위의 Verification
    Loop을 실행합니다.
@@ -64,14 +64,14 @@ fragments 포함) — 작업 완료 선언 전에 다음 루프를 **반드시**
    `copilot-instructions.md`, `.github/agents/`, `.github/skills/`,
    `.claude/agents/`, `.claude/skills/`, `.opencode/agents/`, `.cursor/rules/`
    → **직접 수정 금지.** `.deepx/` source(template, fragment, 또는
-   agent/skill)를 찾아 수정한 후 `dx-agentic-gen generate`를 실행하세요.
+   agent/skill)를 찾아 수정한 후 `dx-agent-gen generate`를 실행하세요.
 3. **독립 소스** — 위 두 카테고리에 해당하지 않는 모든 파일 (`docs/source/`,
    `source/docs/`, `tests/`, 서브 프로젝트의 `README.md` 등)
-   → 직접 수정 가능. 수정 후 `dx-agentic-gen check`를 한 번 실행하여 예상치
+   → 직접 수정 가능. 수정 후 `dx-agent-gen check`를 한 번 실행하여 예상치
    못한 drift가 없는지 확인하세요.
 
 **Anti-pattern**: 분류 없이 바로 파일을 수정하는 것. 해당 파일이 generator
-output인지 확실하지 않으면, 수정 전후에 `dx-agentic-gen check`를 실행하세요
+output인지 확실하지 않으면, 수정 전후에 `dx-agent-gen check`를 실행하세요
 — check가 수정 내용을 덮어쓰면 해당 파일은 generator가 관리하는 파일이므로
 `.deepx/` source를 통해 수정해야 합니다.
 
@@ -83,7 +83,7 @@ Pre-commit hook이 generator output 무결성을 강제합니다: 생성된 파�
 
 > **KO 대응 파일 규칙**: EN fragment를 편집할 때, KO 대응 파일도 업데이트가
 > 필요한지 확인하세요. 단락 1개 이상을 추가하거나 제거했다면, 커밋 전에
-> `.deepx/templates/fragments/ko/<stem>.md`를 업데이트하세요. `dx-agentic-gen lint`를
+> `.deepx/templates/fragments/ko/<stem>.md`를 업데이트하세요. `dx-agent-gen lint`를
 > 실행하여 `[OK]`를 확인하세요 — EN이 KO보다 10줄 이상 많으면 lint가 ERROR를
 > 반환합니다.
 

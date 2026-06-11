@@ -5,7 +5,7 @@ description: 'Internal harness development: create, edit, and verify .deepx/ ski
 
 <!-- AUTO-GENERATED from .deepx/ — DO NOT EDIT DIRECTLY -->
 <!-- Source: .deepx/skills/dx-harness-writing-skills/SKILL.md -->
-<!-- Run: dx-agentic-gen generate -->
+<!-- Run: dx-agent-gen generate -->
 
 # Writing Skills
 

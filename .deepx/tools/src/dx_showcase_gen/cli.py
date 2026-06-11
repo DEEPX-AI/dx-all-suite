@@ -76,11 +76,11 @@ def _cmd_regen_docs(a) -> int:
     root = Path(a.repo_root).resolve()
     man = M.load_manifest(str(root))
     surfaces = [
-        ("README.md", "cardgrid", augment.cardgrid_region(man, lang="en"), "dx-agentic-dev (Beta)"),
-        ("README-KO.md", "cardgrid", augment.cardgrid_region(man, lang="ko"), "dx-agentic-dev (Beta)"),
-        ("dx-agentic-dev-showcase/README.md", "catalog",
+        ("README.md", "cardgrid", augment.cardgrid_region(man, lang="en"), "dx-agent-dev (Beta)"),
+        ("README-KO.md", "cardgrid", augment.cardgrid_region(man, lang="ko"), "dx-agent-dev (Beta)"),
+        ("dx-agent-dev-showcase/README.md", "catalog",
          augment.catalog_region(man, lang="en"), "<!-- catalog -->"),
-        ("dx-agentic-dev-showcase/README-ko.md", "catalog",
+        ("dx-agent-dev-showcase/README-ko.md", "catalog",
          augment.catalog_region(man, lang="ko"), "<!-- catalog -->"),
         ("docs/source/00_Agentic_Development.md", "intro",
          augment.intro_region(man, lang="en"), "<!-- intro -->"),
@@ -183,7 +183,7 @@ def _cmd_keepawake(a) -> int:
 
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(prog="dx-showcase-gen",
-                                 description="Deterministic mechanics for dx-agentic-dev showcases.")
+                                 description="Deterministic mechanics for dx-agent-dev showcases.")
     sub = ap.add_subparsers(dest="cmd", required=True)
 
     t = sub.add_parser("transcript"); t.set_defaults(fn=_cmd_transcript)
@@ -221,7 +221,7 @@ def main(argv=None) -> int:
 
     rd = sub.add_parser("regen-docs"); rd.set_defaults(fn=_cmd_regen_docs)
     rd.add_argument("--repo-root", default=".",
-                    help="suite root containing dx-agentic-dev-showcase/showcases.json")
+                    help="suite root containing dx-agent-dev-showcase/showcases.json")
 
     gi = sub.add_parser("gif"); gi.set_defaults(fn=_cmd_gif)
     gi.add_argument("--input", required=True); gi.add_argument("--output", required=True)

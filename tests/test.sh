@@ -380,9 +380,9 @@ SCENARIO_TIMEOUTS[cascaded]=900
 SCENARIO_TIMEOUTS[runtime]=600
 SCENARIO_TIMEOUTS[suite]=900
 
-# Prompts from each component's Agentic Development guide (User Scenarios).
+# Prompts from each component's Agent-Driven Development guide (User Scenarios).
 # No output_dir directive — copilot-instructions.md enforces Output Isolation
-# (auto-creates dx-agentic-dev/<session_id>/ in the target sub-project).
+# (auto-creates dx-agent-dev/<session_id>/ in the target sub-project).
 declare -A SCENARIO_PROMPTS
 SCENARIO_PROMPTS[compiler]="Compile yolo26n model to dxnn"
 SCENARIO_PROMPTS[dx_app]="Build a yolo26n detection app"
@@ -400,16 +400,16 @@ SCENARIO_CHECK_MODELS[cascaded]=0
 SCENARIO_CHECK_MODELS[runtime]=0
 SCENARIO_CHECK_MODELS[suite]=1
 
-# Search paths for dx-agentic-dev/ session auto-detection.
+# Search paths for dx-agent-dev/ session auto-detection.
 # Each scenario may write to one or more sub-project directories.
-# Values are space-separated lists of dx-agentic-dev/ parent dirs.
+# Values are space-separated lists of dx-agent-dev/ parent dirs.
 declare -A SCENARIO_SEARCH_PATHS
-SCENARIO_SEARCH_PATHS[compiler]="${SCRIPT_DIR}/../dx-compiler/dx-agentic-dev"
-SCENARIO_SEARCH_PATHS[dx_app]="${SCRIPT_DIR}/../dx-runtime/dx_app/dx-agentic-dev"
-SCENARIO_SEARCH_PATHS[dx_stream]="${SCRIPT_DIR}/../dx-runtime/dx_stream/dx-agentic-dev"
-SCENARIO_SEARCH_PATHS[cascaded]="${SCRIPT_DIR}/../dx-runtime/dx_stream/dx-agentic-dev"
-SCENARIO_SEARCH_PATHS[runtime]="${SCRIPT_DIR}/../dx-runtime/dx-agentic-dev ${SCRIPT_DIR}/../dx-runtime/dx_app/dx-agentic-dev ${SCRIPT_DIR}/../dx-runtime/dx_stream/dx-agentic-dev"
-SCENARIO_SEARCH_PATHS[suite]="${SCRIPT_DIR}/../dx-agentic-dev ${SCRIPT_DIR}/../dx-compiler/dx-agentic-dev ${SCRIPT_DIR}/../dx-runtime/dx_app/dx-agentic-dev ${SCRIPT_DIR}/../dx-runtime/dx_stream/dx-agentic-dev ${SCRIPT_DIR}/../dx-runtime/dx-agentic-dev"
+SCENARIO_SEARCH_PATHS[compiler]="${SCRIPT_DIR}/../dx-compiler/dx-agent-dev"
+SCENARIO_SEARCH_PATHS[dx_app]="${SCRIPT_DIR}/../dx-runtime/dx_app/dx-agent-dev"
+SCENARIO_SEARCH_PATHS[dx_stream]="${SCRIPT_DIR}/../dx-runtime/dx_stream/dx-agent-dev"
+SCENARIO_SEARCH_PATHS[cascaded]="${SCRIPT_DIR}/../dx-runtime/dx_stream/dx-agent-dev"
+SCENARIO_SEARCH_PATHS[runtime]="${SCRIPT_DIR}/../dx-runtime/dx-agent-dev ${SCRIPT_DIR}/../dx-runtime/dx_app/dx-agent-dev ${SCRIPT_DIR}/../dx-runtime/dx_stream/dx-agent-dev"
+SCENARIO_SEARCH_PATHS[suite]="${SCRIPT_DIR}/../dx-agent-dev ${SCRIPT_DIR}/../dx-compiler/dx-agent-dev ${SCRIPT_DIR}/../dx-runtime/dx_app/dx-agent-dev ${SCRIPT_DIR}/../dx-runtime/dx_stream/dx-agent-dev ${SCRIPT_DIR}/../dx-runtime/dx-agent-dev"
 
 # --- Session auto-detection helpers ---
 # Snapshot existing session dirs under the search paths
@@ -493,7 +493,7 @@ validate_scenario() {
         done
         pass_count=$((pass_count + 1))
     else
-        echo -e "  ${RED}[FAIL]${NC} No session directories detected in dx-agentic-dev/"
+        echo -e "  ${RED}[FAIL]${NC} No session directories detected in dx-agent-dev/"
         fail_count=$((fail_count + 1))
         echo ""
         echo -e "  ${YELLOW}Summary: ${pass_count}/${total_checks} passed, ${fail_count} failed${NC}"

@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 """
-Agentic E2E Test: dx-compiler Scenario #2 — Download + Compile Model to DXNN
+Agent-Driven E2E Test: dx-compiler Scenario #2 — Download + Compile Model to DXNN
 
 Runs Copilot CLI inside dx-compiler/ with a prompt requesting end-to-end
 compilation of a yolo26n model to DXNN format.  The agent is expected to:

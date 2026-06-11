@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # .deepx/tools/run-e2e-improvement-loop.sh
 #
-# Self-improving Agentic E2E test loop.
+# Self-improving Agent-Driven E2E test loop.
 #
 # Each iteration:
 #   1. Run all 4 autopilot E2E tests (copilot / cursor / opencode / claude)
@@ -393,10 +393,10 @@ run_tool_test() {
     local timeout_env=""
 
     case "$tool" in
-        copilot)    suite_name="agentic-e2e-copilot-cli-autopilot" ;;
-        cursor)     suite_name="agentic-e2e-cursor-cli-autopilot" ;;
-        opencode)   suite_name="agentic-e2e-opencode-cli-autopilot" ;;
-        claude_code) suite_name="agentic-e2e-claude-code-autopilot" ;;
+        copilot)    suite_name="agent-driven-e2e-copilot-cli-autopilot" ;;
+        cursor)     suite_name="agent-driven-e2e-cursor-cli-autopilot" ;;
+        opencode)   suite_name="agent-driven-e2e-opencode-cli-autopilot" ;;
+        claude_code) suite_name="agent-driven-e2e-claude-code-autopilot" ;;
         *) fail "Unknown tool: $tool"; return 1 ;;
     esac
 
@@ -495,8 +495,8 @@ collect_artifacts() {
         echo ""
 
         for tool_dir in \
-            "$SUITE_ROOT/dx-runtime/dx_stream/dx-agentic-dev" \
-            "$SUITE_ROOT/dx-runtime/dx_app/dx-agentic-dev"
+            "$SUITE_ROOT/dx-runtime/dx_stream/dx-agent-dev" \
+            "$SUITE_ROOT/dx-runtime/dx_app/dx-agent-dev"
         do
             [ -d "$tool_dir" ] || continue
             echo "## $tool_dir"
@@ -565,7 +565,7 @@ print("Context written to $context_file")
 EOF
 
     # Short prompt — Claude reads all large data via its tools (Read/Bash)
-    local prompt="You are an automated analysis agent for the Agentic E2E test suite.
+    local prompt="You are an automated analysis agent for the Agent-Driven E2E test suite.
 
 Read the context from this file first: $context_file
 
@@ -640,7 +640,7 @@ pathlib.Path('$applied_file').write_text(json.dumps(s.get('improvements_applied'
 "
 
     # Short prompt — Claude reads report and applied list via its tools
-    local prompt="You are an automated improvement agent for the Agentic E2E test suite.
+    local prompt="You are an automated improvement agent for the Agent-Driven E2E test suite.
 Suite root: $SUITE_ROOT
 
 ## Files to read first
@@ -804,7 +804,7 @@ import json, datetime, pathlib
 
 state = json.load(open("$STATE_FILE"))
 lines = []
-lines.append("# Agentic E2E Improvement Loop — Final Summary")
+lines.append("# Agent-Driven E2E Improvement Loop — Final Summary")
 lines.append("")
 lines.append(f"**Started:** {state.get('started_at','?')}")
 lines.append(f"**Finished:** {datetime.datetime.now().isoformat()}")
@@ -836,7 +836,7 @@ EOF
 # ── Main loop ─────────────────────────────────────────────────────────────────
 main() {
     sep
-    log "Agentic E2E Self-Improvement Loop"
+    log "Agent-Driven E2E Self-Improvement Loop"
     log "Suite root   : $SUITE_ROOT"
     log "Scenario     : $SCENARIO"
     log "Max iter     : $MAX_ITERATIONS"
@@ -938,10 +938,10 @@ main() {
 
         # Guard: regenerate all platform outputs after improvements to fix any generator drift
         # (claude -p subprocess may bypass PreToolUse hooks and directly edit .github/ outputs)
-        log "Post-improvement: running dx-agentic-gen generate to sync all platform outputs ..."
+        log "Post-improvement: running dx-agent-gen generate to sync all platform outputs ..."
         for _repo in dx-runtime/dx_stream dx-runtime/dx_app; do
             if [ -d "$SUITE_ROOT/$_repo/.deepx" ]; then
-                ( cd "$SUITE_ROOT" && dx-agentic-gen generate --repo "$_repo" 2>&1 ) \
+                ( cd "$SUITE_ROOT" && dx-agent-gen generate --repo "$_repo" 2>&1 ) \
                     | grep -E "CHANGED|UNCHANGED|ERROR|Generated|error" || true
             fi
         done

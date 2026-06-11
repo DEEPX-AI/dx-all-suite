@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 """
-Agentic E2E Test (Cursor CLI): dx_stream Scenario #2 — Cascaded Detection + Classification Pipeline
+Agent-Driven E2E Test (Cursor CLI): dx_stream Scenario #2 — Cascaded Detection + Classification Pipeline
 
 Runs the Cursor CLI ``agent`` inside dx_stream/ with a prompt requesting a cascaded
 pipeline using yolo26n for primary detection and a secondary classification stage.
@@ -392,7 +392,7 @@ class TestMandatoryArtifacts:
         assert len(setup_scripts) > 0, (
             f"No setup.sh found.\n"
             f"All files: {[f.name for f in scenario.all_generated_files]}\n"
-            "The agent MUST generate setup.sh (HARD-GATE in dx-agentic-stream-build-pipeline.md)."
+            "The agent MUST generate setup.sh (HARD-GATE in dx-agent-stream-build-pipeline.md)."
         )
 
     def test_readme_has_sufficient_length(self, scenario: ScenarioResult):

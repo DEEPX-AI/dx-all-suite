@@ -1,7 +1,7 @@
 # `dx-showcase-gen` — Showcase 생성 자동화
 
-> **dx-agentic-dev showcase** 제작의 결정적(deterministic) 기계작업을 담당하는 도구로,
-> RIGID skill [`dx-agentic-showcase-build`](../../../skills/dx-agentic-showcase-build/SKILL.md)와
+> **dx-agent-dev showcase** 제작의 결정적(deterministic) 기계작업을 담당하는 도구로,
+> RIGID skill [`dx-agent-showcase-build`](../../../skills/dx-agent-showcase-build/SKILL.md)와
 > 짝을 이룹니다. 둘이 함께 "showcase 추가"를 **반복 가능·검증된 워크플로**로 만들고,
 > 반복적으로 발생하던 실수를 (기억이 아니라) 코드+게이트로 차단합니다.
 
@@ -9,13 +9,13 @@ English: [`README.md`](./README.md).
 
 ## 왜 도구+skill로 나눴나
 
-showcase = DEEPX 앱의 실제 agentic 빌드를 build GIF + complete transcript + 생성
+showcase = DEEPX 앱의 실제 agent-driven 빌드를 build GIF + complete transcript + 생성
 산출물로 캡처한 뒤 README·docs에서 홍보하는 것입니다. 이 중 일부는 **비결정적/사람**
-영역(agentic 빌드 자체, KB 기반 프롬프트, 녹화용 화면 비우기, 산문 작성)이고, 나머지는
+영역(agent-driven 빌드 자체, KB 기반 프롬프트, 녹화용 화면 비우기, 산문 작성)이고, 나머지는
 **결정적이며 우리가 겪은 모든 반복 실수의 근원**이었습니다. 그래서:
 
 - **도구(`dx-showcase-gen`, 이 패키지)** = 결정적 기계작업 — 테스트됨.
-- **skill(`dx-agentic-showcase-build`)** = 오케스트레이션 + 판단 + human-in-the-loop
+- **skill(`dx-agent-showcase-build`)** = 오케스트레이션 + 판단 + human-in-the-loop
   게이트, 그리고 DONE 선언 전 도구의 `verify` 실행.
 
 ## 이 도구가 막는 반복 실수
@@ -83,4 +83,4 @@ augment, verify 게이트의 누락 파일/잘못된 model 탐지)을 커버합�
 `keepawake`/`capture`/`crop`/`gif`) → 4. `transcript`(complete) → 5. `copy-artifacts`
 + portability 수정 → 6. run GIF → 7. `augment` README/docs → 8. `verify` PASS.
 
-skill 문서: [`dx-agentic-showcase-build`](../../../skills/dx-agentic-showcase-build/SKILL.md).
+skill 문서: [`dx-agent-showcase-build`](../../../skills/dx-agent-showcase-build/SKILL.md).

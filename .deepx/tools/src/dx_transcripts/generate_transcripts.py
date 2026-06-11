@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: Apache-2.0
-"""Generate jsonl + md + html transcripts for an agentic CLI session.
+"""Generate jsonl + md + html transcripts for an agent-driven CLI session.
 
 Reusable *dispatcher* over the SAME per-CLI rendering logic the e2e harness
 already uses (``parse_<tool>_session`` modules) — there is NO parallel renderer
@@ -753,7 +753,7 @@ def copy_into_output_dirs(log_dir, filenames, output_dirs) -> Dict[str, Dict[str
 
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(
-        description="Generate jsonl+md+html transcripts for an agentic CLI session."
+        description="Generate jsonl+md+html transcripts for an agent-driven CLI session."
     )
     ap.add_argument("--tool", default="claude",
                     help=f"CLI tool ({', '.join(SUPPORTED_TOOLS)})")

@@ -15,7 +15,7 @@ YOLO("yolo26n.pt").export(format="deepx")      # int8=True 강제 적용
 Ultralytics YOLO **detection** 모델을 DeepX로 변환할 때는 **이 경로를 우선 사용**하세요 —
 수작업 PT→ONNX→`dxcom` 파이프라인에서 흔한 오류를 피할 수 있습니다. detection이 아닌
 task, 비(非)-YOLO/custom graph, 또는 `config.json` 세밀 제어가 필요한 경우에만
-수작업 파이프라인(`dx-agentic-compiler-convert` → `dxcom`)으로 fallback 하세요.
+수작업 파이프라인(`dx-agent-compiler-convert` → `dxcom`)으로 fallback 하세요.
 
 핵심 사항 (전체 reference: `.deepx/toolsets/ultralytics-deepx-export.md`):
 

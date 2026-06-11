@@ -1,6 +1,6 @@
 # run-e2e-improvement-loop.sh
 
-Self-improving Agentic E2E test loop. Runs all 4 AI coding tools, generates a comparison report, and applies improvements — then repeats until no actionable improvements remain or the iteration limit is reached.
+Self-improving Agent-Driven E2E test loop. Runs all 4 AI coding tools, generates a comparison report, and applies improvements — then repeats until no actionable improvements remain or the iteration limit is reached.
 
 ## How It Works
 
@@ -17,7 +17,7 @@ Step 3  Call Claude → generate comparison report
           iteration-N-report.md  +  iteration-N-report-KO.md
 
 Step 4  Call Claude → apply improvements to test files / SKILL.md
-          Followed by: dx-agentic-gen generate (drift guard)
+          Followed by: dx-agent-gen generate (drift guard)
 ```
 
 **Stop conditions:**
@@ -72,7 +72,7 @@ doc/reports/e2e-loop/
     ├── iteration-N-cursor-pytest.json
     ├── iteration-N-opencode-pytest.json
     ├── iteration-N-claude_code-pytest.json
-    ├── iteration-N-artifacts.txt           — listing of generated files in dx-agentic-dev/
+    ├── iteration-N-artifacts.txt           — listing of generated files in dx-agent-dev/
     ├── iteration-N-context.json            — context passed to Claude for report generation
     ├── iteration-N-report.md               — Claude's comparison report (EN)
     ├── iteration-N-report-KO.md            — Korean translation
@@ -163,7 +163,7 @@ Claude tags each recommendation with one of these categories:
 - `copilot` CLI installed and authenticated — if using `--orchestrator copilot`
 - `agent` (Cursor CLI) installed and authenticated — if using `--orchestrator cursor`
 - `opencode` CLI installed — if using `--orchestrator opencode`
-- `dx-agentic-gen` on PATH (for post-improvement drift guard)
+- `dx-agent-gen` on PATH (for post-improvement drift guard)
 - `tests/test.sh` present in suite root
 
 ## Running with Copilot CLI Orchestrator

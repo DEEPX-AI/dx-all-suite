@@ -2,12 +2,12 @@
 
 이 게이트는 코드 artifact를 생성하는 모든 session에 적용됩니다 (compilation,
 app 생성, pipeline 생성). "Internal Development" SWE Process Gates와 독립적입니다
-— 그것은 dx-agentic-dev feature 작업에 적용되고, 이 게이트는 사용자 대상
+— 그것은 dx-agent-dev feature 작업에 적용되고, 이 게이트는 사용자 대상
 deliverable에 적용됩니다.
 
 ### 이 게이트가 적용되는 경우
 
-`dx-agentic-dev/<session_id>/`에 파일을 생성하는 모든 session은 DONE 선언 전에
+`dx-agent-dev/<session_id>/`에 파일을 생성하는 모든 session은 DONE 선언 전에
 해당 파일을 검증해야 합니다:
 - Compilation session (ONNX → DXNN)
 - App 생성 session (dx_app factory + runner)
@@ -59,9 +59,9 @@ verify.py가 "ONNX inference failed" 또는 "DXNN inference failed"를 출력하
 하드코딩된 상대 경로는 절대 금지입니다.
 
 **이유**: Session 디렉토리 depth가 sub-project마다 다릅니다:
-- `dx-compiler/dx-agentic-dev/<session>/` = suite root에서 3단계
-- `dx-runtime/dx_app/dx-agentic-dev/<session>/` = suite root에서 4단계
-- `dx-runtime/dx_stream/dx-agentic-dev/<session>/` = suite root에서 4단계
+- `dx-compiler/dx-agent-dev/<session>/` = suite root에서 3단계
+- `dx-runtime/dx_app/dx-agent-dev/<session>/` = suite root에서 4단계
+- `dx-runtime/dx_stream/dx-agent-dev/<session>/` = suite root에서 4단계
 
 하드코딩된 `../../` 또는 `../../../` 경로는 agent가 depth를 잘못 계산하면
 깨집니다 (반복적인 실패 패턴).
@@ -159,14 +159,14 @@ command 2>&1 | tee session.log
 - `printf "..." > session.log` (수작업 요약)
 - 명령을 실행하지 않고 메모리에서 session.log 내용 작성
 
-### dx-agentic-tdd 및 프로세스 스킬 시퀀스 (모든 코드 생성에 MANDATORY)
+### dx-agent-tdd 및 프로세스 스킬 시퀀스 (모든 코드 생성에 MANDATORY)
 
-완전한 프로세스 스킬 시퀀스 (`/dx-agentic-brainstorm` → `/dx-swe-writing-plans`
-→ `/dx-agentic-tdd` → `/dx-agentic-verify`)는 모든 artifact 생성 session에서
+완전한 프로세스 스킬 시퀀스 (`/dx-agent-brainstorm` → `/dx-swe-writing-plans`
+→ `/dx-agent-tdd` → `/dx-agent-verify`)는 모든 artifact 생성 session에서
 MANDATORY입니다. 전체 시퀀스 정의와 강제 규칙은 **"필수 프로세스 스킬 시퀀스 —
 모든 코드 생성"** 섹션을 참조하세요.
 
-이 Artifact Verification Gate 내에서 `/dx-agentic-tdd` Red-Green-Verify cycle은
+이 Artifact Verification Gate 내에서 `/dx-agent-tdd` Red-Green-Verify cycle은
 각 artifact에 적용됩니다:
 1. **RED**: 각 artifact가 만족해야 할 조건 정의 (문법, 실행, import)
 2. **GREEN**: artifact 생성

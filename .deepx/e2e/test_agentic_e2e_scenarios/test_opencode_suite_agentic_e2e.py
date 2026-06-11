@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 """
-Agentic E2E Test (OpenCode): dx-all-suite Scenario — Cross-Project Compile + App
+Agent-Driven E2E Test (OpenCode): dx-all-suite Scenario — Cross-Project Compile + App
 
 Runs the OpenCode CLI at the suite root with a cross-project prompt
 requiring both dx-compiler and dx_app.
@@ -100,11 +100,11 @@ class TestCrossProjectOutput:
             f"No compilation artifacts found.\n"
             f"All files: {[f.name for f in all_files]}"
         )
-        # R38: Enforce dual-session layout — compiler artifacts must be in dx-compiler/dx-agentic-dev/,
-        # not merged into dx_app/dx-agentic-dev/. opencode (iter-6) produced a single-session layout.
+        # R38: Enforce dual-session layout — compiler artifacts must be in dx-compiler/dx-agent-dev/,
+        # not merged into dx_app/dx-agent-dev/. opencode (iter-6) produced a single-session layout.
         assert any("dx-compiler" in str(d) for d in scenario.output_dirs), (
             "No dx-compiler session found in output_dirs — compiler artifacts must be in "
-            "dx-compiler/dx-agentic-dev/, not merged with app artifacts in dx_app/. "
+            "dx-compiler/dx-agent-dev/, not merged with app artifacts in dx_app/. "
             f"Current output_dirs: {[str(d) for d in scenario.output_dirs]}"
         )
 

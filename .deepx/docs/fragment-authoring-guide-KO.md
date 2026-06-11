@@ -40,8 +40,8 @@ vim .deepx/templates/ko/CLAUDE-KO.md.tmpl # {{FRAGMENT:my-new-rule}} 추가
 
 # 4. Generate 및 검증
 bash .deepx/tools/scripts/run_all.sh generate
-dx-agentic-gen check      # "All generated files are up-to-date." 가 출력되어야 함
-dx-agentic-gen lint       # "All EN/KO fragment pairs are consistent." 가 출력되어야 함
+dx-agent-gen check      # "All generated files are up-to-date." 가 출력되어야 함
+dx-agent-gen lint       # "All EN/KO fragment pairs are consistent." 가 출력되어야 함
 ```
 
 ---
@@ -81,7 +81,7 @@ structural marker는 `**Q<digit>.` 패턴과 일치하는 모든 라인을 의�
 **모든 파일 편집 전 다음 세 가지 질문에 순서대로 답하세요:**
 
 > **Q1. 파일 경로가 `**/.deepx/**` 내부에 있나요?**
-> - YES → **Canonical source.** 직접 수정 후 `dx-agentic-gen generate` + `check` 실행.
+> - YES → **Canonical source.** 직접 수정 후 `dx-agent-gen generate` + `check` 실행.
 > - NO → Q2로 이동.
 >
 > **Q2. 파일 경로 또는 이름이 다음 중 하나와 일치하나요?**
@@ -99,7 +99,7 @@ structural marker는 `**Q<digit>.` 패턴과 일치하는 모든 라인을 의�
 ## Rule 4: KO가 아닌 파일에는 한국어 텍스트 금지 (MANDATORY)
 
 English fragment 파일 (`.deepx/templates/fragments/en/`) 과 모든 비-KO `.deepx/` 파일은
-**오직 영문만 포함해야 합니다**. 이 규칙은 `dx-agentic-gen lint` (Check 4) 와 pre-commit
+**오직 영문만 포함해야 합니다**. 이 규칙은 `dx-agent-gen lint` (Check 4) 와 pre-commit
 hook 으로 강제됩니다.
 
 **금지** — EN fragment 또는 agent 파일에 한국어 텍스트 삽입:
@@ -139,7 +139,7 @@ Do NOT transliterate into Korean phonetics (한글 음차 표기 금지). <!-- K
 
 ### lint Check 4 동작
 
-`dx-agentic-gen lint` 는 KO가 아닌 모든 `.deepx/**/*.md` 파일을 스캔합니다
+`dx-agent-gen lint` 는 KO가 아닌 모든 `.deepx/**/*.md` 파일을 스캔합니다
 (파일명에 `-KO`/`_KO` 가 포함되거나 `/ko/` 디렉토리 하위인 파일은 제외).
 `<!-- KOREAN-OK: ... -->` 어노테이션 없는 한국어 문자가 발견되면 `[ERROR]` 를 보고합니다.
 
@@ -150,7 +150,7 @@ Do NOT transliterate into Korean phonetics (한글 음차 표기 금지). <!-- K
 Fragment 변경 후에는 항상 commit 전에 lint를 실행하세요:
 
 ```bash
-dx-agentic-gen lint        # 현재 repo에 대한 EN/KO parity check
+dx-agent-gen lint        # 현재 repo에 대한 EN/KO parity check
 # 또는 suite 전체:
 bash .deepx/tools/scripts/run_all.sh lint
 ```
@@ -168,8 +168,8 @@ lint 실패는 (drift check 실패와 마찬가지로) **commit을 차단합니�
 [ ] EN template(s)에 placeholder 추가
 [ ] KO template(s)에 placeholder 추가
 [ ] bash .deepx/tools/scripts/run_all.sh generate  → OK
-[ ] dx-agentic-gen check   → "All generated files are up-to-date."
-[ ] dx-agentic-gen lint    → "All EN/KO fragment pairs are consistent."
+[ ] dx-agent-gen check   → "All generated files are up-to-date."
+[ ] dx-agent-gen lint    → "All EN/KO fragment pairs are consistent."
 [ ] python -m pytest .deepx/tests/conformance/ -q  → 모두 통과
 ```
 

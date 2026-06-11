@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 """
-Agentic E2E Test (Cursor CLI): dx_app Scenario — Build a Python Detection App
+Agent-Driven E2E Test (Cursor CLI): dx_app Scenario — Build a Python Detection App
 
 Runs the Cursor CLI ``agent`` inside dx_app/ with a prompt that requests a
 yolo26n person detection app.  Verifies that the generated code follows the

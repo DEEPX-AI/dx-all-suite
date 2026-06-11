@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 """
-Agentic E2E Test (Codex): dx_stream Scenario #2 — Cascaded Detection + Classification Pipeline
+Agent-Driven E2E Test (Codex): dx_stream Scenario #2 — Cascaded Detection + Classification Pipeline
 
 Runs the Codex CLI inside dx_stream/ with a prompt requesting a cascaded
 pipeline using yolo26n for primary detection and a secondary classification stage.
@@ -417,7 +417,7 @@ class TestMandatoryArtifacts:
         assert len(setup_scripts) > 0, (
             f"No setup.sh found.\n"
             f"All files: {[f.name for f in scenario.all_generated_files]}\n"
-            "The agent MUST generate setup.sh (HARD-GATE in dx-agentic-stream-build-pipeline.md)."
+            "The agent MUST generate setup.sh (HARD-GATE in dx-agent-stream-build-pipeline.md)."
         )
 
     def test_session_txt_export_exists(self, scenario: ScenarioResult):

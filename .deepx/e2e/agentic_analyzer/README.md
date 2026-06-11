@@ -1,7 +1,7 @@
-# dx-agentic-dev E2E Analyzer
+# dx-agent-dev E2E Analyzer
 
 > Reusable analysis tool — evaluates autopilot test results in
-> `dx-agentic-dev/e2e-tests/results/` across **tool × round × scenario** dimensions,
+> `dx-agent-dev/e2e-tests/results/` across **tool × round × scenario** dimensions,
 > producing comprehensive reports on HARD GATE compliance, code quality, execution
 > traces, runnability, token costs, and overall scores.
 
@@ -30,7 +30,7 @@ python3 analyze.py --no-insights-runnability
 python3 analyze.py --insights copilot --insights-model claude-sonnet-4.6 --insights-allow-paid
 ```
 
-Output files (default: `<suite-root>/dx-agentic-dev/e2e-tests/analyzer_reports/<timestamp>/`):
+Output files (default: `<suite-root>/dx-agent-dev/e2e-tests/analyzer_reports/<timestamp>/`):
 - `analysis.md` — Markdown report (main human-readable output)
 - `analysis.html` — HTML version of analysis.md
 - `analysis.json` — Machine-readable full data
@@ -40,10 +40,10 @@ Output files (default: `<suite-root>/dx-agentic-dev/e2e-tests/analyzer_reports/<
 - `dashboard.html` — Standalone interactive dashboard (Chart.js — overall ranking, radar, round trends, scenario breakdown)
 
 > **I/O directories**: Tool code lives in `.deepx/e2e/agentic_analyzer/` (git tracked).
-> Input (results) and output (analyzer_reports) live in `dx-agentic-dev/e2e-tests/` (gitignored).
+> Input (results) and output (analyzer_reports) live in `dx-agent-dev/e2e-tests/` (gitignored).
 > Tools are deployed to all clones; runtime data stays local.
 
-### 1.2 Agentic Insights (insights.py)
+### 1.2 Agent-Driven Insights (insights.py)
 
 Passes the analysis report to an LLM agent for per-tool strengths/weaknesses analysis
 or end-user runnability evaluation.
@@ -97,7 +97,7 @@ When `hypothesis.json` exists in the report directory:
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `--results-root` | `dx-agentic-dev/e2e-tests/results` | Path to results directory |
+| `--results-root` | `dx-agent-dev/e2e-tests/results` | Path to results directory |
 | `--config` | `./config.yaml` | Config file path |
 | `--output-dir` | `<reports_base>/<timestamp>/` | Report output directory |
 | `--tool` | all | Filter by tool (repeatable) |
@@ -353,7 +353,7 @@ paid models with `--insights-allow-paid` / `--no-insights-allow-paid` in `analyz
 | **T6 Verdict** | Scenario artifact existence → PASS/PARTIAL/FAIL/UNKNOWN | `functional.py` |
 | **T7 ExecutionTrace** | Actual command execution evidence in session.log + compile_out.log + success/failure markers | `execution.py` |
 | **T9 Bias check** | Cursor "auto" model bias detection (cross-tool metric comparison) | `bias_check.py` |
-| **T10 Agentic insight** | Secondary CLI agent call for per-tool strengths/weaknesses + end-user runnability | `insights.py` |
+| **T10 Agent-Driven insight** | Secondary CLI agent call for per-tool strengths/weaknesses + end-user runnability | `insights.py` |
 | **T11 Cost** | Token usage → estimated USD cost + premium request estimation via calibration | `cost.py` |
 
 ### 5.2 Aggregation Dimensions
@@ -389,7 +389,7 @@ agentic_analyzer/
 ├── README.md                 # This document (English)
 ├── README-KO.md              # Korean version
 ├── analyze.py                # Main CLI entry — static analysis + report generation
-├── insights.py               # Secondary agentic CLI call — insights + runnability
+├── insights.py               # Secondary agent-driven CLI call — insights + runnability
 ├── config.yaml               # Tool/scenario/model/rule definitions (extend without code changes)
 ├── lib/
 │   ├── discover.py           # results/ scan → ResultDir + ScenarioRef, round grouping
@@ -502,7 +502,7 @@ Check items (variable by scenario; up to ~8):
 
 1. `sentinel_start` — `[DX-AGENTIC-DEV: START]` in first line of response
 2. `sentinel_done` — `[DX-AGENTIC-DEV: DONE (output-dir: ...)]` in last line
-3. `output_isolation_present` — Artifacts under `dx-agentic-dev/<session_id>/`
+3. `output_isolation_present` — Artifacts under `dx-agent-dev/<session_id>/`
 4. `session_id_format` — `YYYYMMDD-HHMMSS_<agent>_<model>_<task>` pattern
 5. `mandatory_deliverables` — All scenario-required files exist
 6. `ifactory_5_methods` — factory in dx_app/runtime/suite implements 5-method pattern
@@ -567,5 +567,5 @@ Token usage is converted to estimated USD using pricing tables in `config.yaml`:
 
 ## 12. License / Ownership
 
-Internal tool. Part of the dx-all-suite `dx-agentic-dev` infrastructure. This
+Internal tool. Part of the dx-all-suite `dx-agent-dev` infrastructure. This
 directory follows the `.gitignore` policy of the dx-all-suite repo.

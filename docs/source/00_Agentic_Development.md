@@ -1,13 +1,13 @@
-# DEEPX Agentic Development - dx-agentic-dev (Beta)
+# DEEPX Agent-Driven Development - dx-agent-dev (Beta)
 
-> **Beta Feature** — Agentic development support is under active development.
+> **Beta Feature** — Agent-Driven development support is under active development.
 > Skill definitions and routing behavior may change between releases.
 
 ## Introduction
 
 <!-- intro -->
 <!-- dx-showcase:docs:intro:start -->
-**`dx-agentic-dev` (Beta) is here.** Describe the app or model task in plain language and an AI coding agent — Claude Code, Cursor, GitHub Copilot, OpenCode, or Codex — drives the DEEPX knowledge base end to end: brainstorm → plan → TDD → verify, from ONNX/`.pt` compilation to on-device DX-M1 NPU deployment. It is agentic development purpose-built for DEEPX NPUs in the **Ultralytics** model ecosystem, and every showcase below was produced this way — checked in with its prompt, measured results, and full build transcript.
+**`dx-agent-dev` (Beta) is here.** Describe the app or model task in plain language and an AI coding agent — Claude Code, Cursor, GitHub Copilot, OpenCode, or Codex — drives the DEEPX knowledge base end to end: brainstorm → plan → TDD → verify, from ONNX/`.pt` compilation to on-device DX-M1 NPU deployment. It is agent-driven development purpose-built for DEEPX NPUs in the **Ultralytics** model ecosystem, and every showcase below was produced this way — checked in with its prompt, measured results, and full build transcript.
 <!-- dx-showcase:docs:intro:end -->
 
 Build DEEPX AI applications using natural language instructions. AI coding agents
@@ -37,8 +37,8 @@ transcript.
 
 | Showcase | What it is | Build time | Agent turns | Output tokens | ~Cost |
 |---|---|---|---|---|---|
-| **[Squat-Counting Mini-Game](../../dx-agentic-dev-showcase/squat-fitness-mini-game/)** | Counts squat reps from knee/hip angles with an arcade HUD (reps / score / DOWN·UP·GOOD!). | ≈ 20 min | 81 | ≈ 85K | ≈ $9.9 |
-| **[Stretching Coach Mini-Game](../../dx-agentic-dev-showcase/stretching-coach-mini-game/)** | Guides 3 stretches with an animated coach avatar that demonstrates each target pose. | ≈ 21 min | 75 | ≈ 85K | ≈ $9.4 |
+| **[Squat-Counting Mini-Game](../../dx-agent-dev-showcase/squat-fitness-mini-game/)** | Counts squat reps from knee/hip angles with an arcade HUD (reps / score / DOWN·UP·GOOD!). | ≈ 20 min | 81 | ≈ 85K | ≈ $9.9 |
+| **[Stretching Coach Mini-Game](../../dx-agent-dev-showcase/stretching-coach-mini-game/)** | Guides 3 stretches with an animated coach avatar that demonstrates each target pose. | ≈ 21 min | 75 | ≈ 85K | ≈ $9.4 |
 
 #### Ultralytics ecosystem integration
 
@@ -46,11 +46,11 @@ transcript.
 
 | Showcase | What it is | Build time | Agent turns | Output tokens | ~Cost |
 |---|---|---|---|---|---|
-| **[Ultralytics YOLO → DeepX Export](../../dx-agentic-dev-showcase/ultralytics-yolo-deepx-export/)** | Turns an Ultralytics YOLO `.pt` into a deployable DeepX NPU model (`.dxnn`) in a single `yolo export ... format=deepx` command, then runs NPU inference + verify. | ≈ 11.6 min | 59 | — | ≈ $2.4 |
-| **[African Wildlife Monitoring](../../dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-wildlife/)** | Retrains `yolo26n` on `african-wildlife` (buffalo/elephant/rhino/zebra) for a safari/conservation camera; 4-way eval base/retrained × fp32/INT8. | ≈ 12 min | 8 | ≈ 6.9K | ≈ $3.3 |
-| **[Construction PPE Safety](../../dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-ppe/)** | Retrains `yolo26n` on `construction-ppe` for a site-safety camera (helmet/vest/...); 4-way eval base/retrained × fp32/INT8. | ≈ 13 min | 19 | ≈ 8.8K | ≈ $5.1 |
-| **[Brain-Tumor Screening](../../dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-braintumor/)** | Retrains `yolo26n` on `brain-tumor` (MRI/CT) for a medical edge device; 4-way eval base/retrained × fp32/INT8. | ≈ 12 min | 11 | ≈ 8.9K | ≈ $3.7 |
-| **[Pharmaceutical Pill Inspection](../../dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-pills/)** | Retrains `yolo26n` on `medical-pills` for a pharma counting station; 4-way eval base/retrained × fp32/INT8. | ≈ 10 min | 12 | ≈ 6.0K | ≈ $5.1 |
+| **[Ultralytics YOLO → DeepX Export](../../dx-agent-dev-showcase/ultralytics-yolo-deepx-export/)** | Turns an Ultralytics YOLO `.pt` into a deployable DeepX NPU model (`.dxnn`) in a single `yolo export ... format=deepx` command, then runs NPU inference + verify. | ≈ 11.6 min | 59 | — | ≈ $2.4 |
+| **[African Wildlife Monitoring](../../dx-agent-dev-showcase/ultralytics-retrain-eval-deepx-export-wildlife/)** | Retrains `yolo26n` on `african-wildlife` (buffalo/elephant/rhino/zebra) for a safari/conservation camera; 4-way eval base/retrained × fp32/INT8. | ≈ 12 min | 8 | ≈ 6.9K | ≈ $3.3 |
+| **[Construction PPE Safety](../../dx-agent-dev-showcase/ultralytics-retrain-eval-deepx-export-ppe/)** | Retrains `yolo26n` on `construction-ppe` for a site-safety camera (helmet/vest/...); 4-way eval base/retrained × fp32/INT8. | ≈ 13 min | 19 | ≈ 8.8K | ≈ $5.1 |
+| **[Brain-Tumor Screening](../../dx-agent-dev-showcase/ultralytics-retrain-eval-deepx-export-braintumor/)** | Retrains `yolo26n` on `brain-tumor` (MRI/CT) for a medical edge device; 4-way eval base/retrained × fp32/INT8. | ≈ 12 min | 11 | ≈ 8.9K | ≈ $3.7 |
+| **[Pharmaceutical Pill Inspection](../../dx-agent-dev-showcase/ultralytics-retrain-eval-deepx-export-pills/)** | Retrains `yolo26n` on `medical-pills` for a pharma counting station; 4-way eval base/retrained × fp32/INT8. | ≈ 10 min | 12 | ≈ 6.0K | ≈ $5.1 |
 
 #### PaddlePaddle ecosystem integration
 
@@ -60,7 +60,7 @@ PaddlePaddle/PaddleOCR models on the DEEPX NPU.
 <!-- dx-showcase:docs:table:end -->
 
 **Full catalog + per-showcase summaries (with build GIFs) →**
-[`dx-agentic-dev-showcase/README.md`](../../dx-agentic-dev-showcase/README.md). Each row's
+[`dx-agent-dev-showcase/README.md`](../../dx-agent-dev-showcase/README.md). Each row's
 link opens that showcase's own README — the verbatim prompt, the 4-way eval / gameplay
 detail, and its session transcript.
 
@@ -74,8 +74,8 @@ verification gates** the harness imposes. Reading a transcript you can watch:
   (`[DX-AGENTIC-DEV: START]` / `DONE`), output isolated to a session directory (never
   touching existing source), and no placeholder/stub code.
 - **Skill & agent utilization** — it invokes the mandatory sequence as real tool calls —
-  `dx-skill-router → dx-agentic-brainstorm → dx-swe-writing-plans → dx-agentic-tdd →
-  dx-agentic-verify` — rather than just *mentioning* them.
+  `dx-skill-router → dx-agent-brainstorm → dx-swe-writing-plans → dx-agent-tdd →
+  dx-agent-verify` — rather than just *mentioning* them.
 - **Actual reasoning** — inspecting the closest existing example, confirming real
   framework APIs from the knowledge base, writing validation first (RED), then
   generating + verifying file-by-file before declaring done.
@@ -90,7 +90,7 @@ verification gates** the harness imposes. Reading a transcript you can watch:
 
 ## Architecture Overview
 
-The agentic knowledge base is organized into three independent layers. Each layer
+The agent-driven knowledge base is organized into three independent layers. Each layer
 ships its own `.deepx/` directory containing skills, instructions, and memory files
 that the agent reads at task time.
 
@@ -157,19 +157,19 @@ correct submodule.
 
 | Level | Skill | Description |
 |---|---|---|
-| **dx-runtime** | `/dx-agentic-runtime-validate` | Validate, collect feedback, apply fixes, verify |
-| **dx_app** | `/dx-agentic-app-build-python` | Build Python inference app |
-| **dx_app** | `/dx-agentic-app-build-cpp` | Build C++ inference app |
-| **dx_app** | `/dx-agentic-app-build-async` | Build async high-performance app |
-| **dx_app** | `/dx-agentic-app-model-management` | Download and configure models |
-| **dx_app** | `/dx-agentic-app-validate` | Run validation checks |
-| **dx_stream** | `/dx-agentic-stream-build-pipeline` | Build GStreamer pipeline app |
-| **dx_stream** | `/dx-agentic-stream-build-mqtt-kafka` | Build MQTT/Kafka pipeline app |
-| **dx_stream** | `/dx-agentic-stream-validate` | Run validation checks |
-| **dx_stream** | `/dx-agentic-stream-model-management` | Download and configure models |
-| **dx-compiler** | `/dx-agentic-compiler-convert` | Convert PyTorch model to ONNX |
-| **dx-compiler** | `/dx-agentic-compiler-compile` | Compile ONNX model to DXNN |
-| **dx-compiler** | `/dx-agentic-compiler-validate` | Validate compiled DXNN output |
+| **dx-runtime** | `/dx-agent-runtime-validate` | Validate, collect feedback, apply fixes, verify |
+| **dx_app** | `/dx-agent-app-build-python` | Build Python inference app |
+| **dx_app** | `/dx-agent-app-build-cpp` | Build C++ inference app |
+| **dx_app** | `/dx-agent-app-build-async` | Build async high-performance app |
+| **dx_app** | `/dx-agent-app-model-management` | Download and configure models |
+| **dx_app** | `/dx-agent-app-validate` | Run validation checks |
+| **dx_stream** | `/dx-agent-stream-build-pipeline` | Build GStreamer pipeline app |
+| **dx_stream** | `/dx-agent-stream-build-mqtt-kafka` | Build MQTT/Kafka pipeline app |
+| **dx_stream** | `/dx-agent-stream-validate` | Run validation checks |
+| **dx_stream** | `/dx-agent-stream-model-management` | Download and configure models |
+| **dx-compiler** | `/dx-agent-compiler-convert` | Convert PyTorch model to ONNX |
+| **dx-compiler** | `/dx-agent-compiler-compile` | Compile ONNX model to DXNN |
+| **dx-compiler** | `/dx-agent-compiler-validate` | Validate compiled DXNN output |
 | **DX All Suite** | `/dx-swe-brainstorm` | Process: collaborative design session before any work |
 | **DX All Suite** | `/dx-swe-tdd` | Process: test-driven development — validate incrementally |
 | **DX All Suite** | `/dx-swe-verify` | Process: verify before claiming completion — evidence before assertions |
@@ -191,7 +191,7 @@ correct submodule.
 
 ## Supported AI Tools
 
-Agentic development works with five AI coding tools. Each tool auto-loads
+Agent-Driven development works with five AI coding tools. Each tool auto-loads
 the `.deepx/` knowledge base through its own configuration mechanism.
 
 | Tool | Type | Auto-Load Mechanism | Agent Invocation | Skill Invocation |
@@ -290,7 +290,7 @@ manually via agent or skill commands.
 
 The `.deepx/` directory is the **canonical source** (single source of truth) for all
 platform-specific files. It contains agents, skills, templates, and fragments in a
-platform-agnostic format. The `dx-agentic-gen` generator transforms this into
+platform-agnostic format. The `dx-agent-gen` generator transforms this into
 platform-specific files for Copilot (`.github/`), Claude Code (`.claude/`),
 OpenCode (`.opencode/`), and Cursor (`.cursor/rules/`).
 
@@ -310,13 +310,13 @@ also generated from templates and fragments — they should not be edited direct
 
 #### Platform File Generation
 
-All platform-specific files are generated from `.deepx/` by the `dx-agentic-dev-gen`
+All platform-specific files are generated from `.deepx/` by the `dx-agent-dev-gen`
 package. Never edit generated files directly.
 
 ```bash
 pip install -e .deepx/tools   # Install generator
-dx-agentic-gen generate                    # Generate platform files
-dx-agentic-gen check                       # Verify no drift
+dx-agent-gen generate                    # Generate platform files
+dx-agent-gen check                       # Verify no drift
 ```
 
 A pre-commit hook enforces that generated files stay in sync:
@@ -477,7 +477,7 @@ there automatically.
 
 ## Sub-Project Guides
 
-Each sub-project has a detailed agentic development guide covering its specific
+Each sub-project has a detailed agent-driven development guide covering its specific
 skills, element catalogs, and worked examples:
 
 | Sub-Project | Guide |
@@ -494,21 +494,21 @@ harness development model (intended for contributors, not end users):
 
 | Document | Scope |
 |---|---|
-| [`.deepx/docs/dx-agentic-dev-overview.md`](../../.deepx/docs/dx-agentic-dev-overview.md) | Comprehensive walk-through of every `.deepx/` directory across all 5 repos |
+| [`.deepx/docs/dx-agent-dev-overview.md`](../../.deepx/docs/dx-agent-dev-overview.md) | Comprehensive walk-through of every `.deepx/` directory across all 5 repos |
 | [`.deepx/README.md`](../../.deepx/README.md) | Top-level master index for the `.deepx/` knowledge base |
-| [`.deepx/docs/skill-architecture.md`](../../.deepx/docs/skill-architecture.md) | 3-tier skill model (SWE / Agentic / Harness) |
-| [`.deepx/tools/README.md`](../../.deepx/tools/README.md) | `dx-agentic-gen` generator package guide |
+| [`.deepx/docs/skill-architecture.md`](../../.deepx/docs/skill-architecture.md) | 3-tier skill model (SWE / Agent-Driven / Harness) |
+| [`.deepx/tools/README.md`](../../.deepx/tools/README.md) | `dx-agent-gen` generator package guide |
 | [`.deepx/tools/scripts/README.md`](../../.deepx/tools/scripts/README.md) | Operational scripts (`run_all.sh`, hooks, E2E loop) |
 
 ## Output Isolation
 
-By default, all agent-generated code is placed in `dx-agentic-dev/<session_id>/`
+By default, all agent-generated code is placed in `dx-agent-dev/<session_id>/`
 within the target sub-project. This prevents accidental modifications to existing
 production code.
 
 | Output Type | Path | When |
 |---|---|---|
-| **Default (isolated)** | `dx-agentic-dev/<session_id>/` | Always, unless user says otherwise |
+| **Default (isolated)** | `dx-agent-dev/<session_id>/` | Always, unless user says otherwise |
 | **Production** | `src/` | Only when explicitly requested by the user |
 
 Session ID format: `YYYYMMDD-HHMMSS_<agent>_<model>_<task>` where `<agent>` is `claude`, `codex`, `copilot`, `cursor`, or `opencode`.
@@ -517,7 +517,7 @@ Each session directory contains:
 - `README.md` — session metadata, generated file list, run instructions
 - `session.json` — machine-readable session configuration
 
-The `dx-agentic-dev/` directory is git-ignored in both dx_app and dx_stream.
+The `dx-agent-dev/` directory is git-ignored in both dx_app and dx_stream.
 
 ### dx-compiler Session Directories
 
@@ -532,14 +532,14 @@ running setup scripts if needed, and creating symlinks with relative paths).
 ### Suite-Level Cross-Project Output
 
 When running cross-project tasks from the dx-all-suite level (e.g., compile + deploy),
-artifacts are created in each target sub-project's `dx-agentic-dev/` directory.
-Additionally, symbolic links are created in `dx-all-suite/dx-agentic-dev/` for
+artifacts are created in each target sub-project's `dx-agent-dev/` directory.
+Additionally, symbolic links are created in `dx-all-suite/dx-agent-dev/` for
 unified access:
 
 ```
-dx-all-suite/dx-agentic-dev/
-├── dx-compiler_20260409-070940_yolo26n_pt_to_dxnn -> ../dx-compiler/dx-agentic-dev/20260409-...
-└── dx_app_20260409-071500_yolo26n_detection_app -> ../dx-runtime/dx_app/dx-agentic-dev/20260409-...
+dx-all-suite/dx-agent-dev/
+├── dx-compiler_20260409-070940_yolo26n_pt_to_dxnn -> ../dx-compiler/dx-agent-dev/20260409-...
+└── dx_app_20260409-071500_yolo26n_detection_app -> ../dx-runtime/dx_app/dx-agent-dev/20260409-...
 ```
 
 Symlink naming convention: `{subproject}_{session_id}`.

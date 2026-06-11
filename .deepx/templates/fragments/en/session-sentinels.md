@@ -5,7 +5,7 @@ boundary detection by the test harness:
 
 - **First line of your response**: `[DX-AGENTIC-DEV: START]`
 - **Last line after ALL work is complete**: `[DX-AGENTIC-DEV: DONE (output-dir: <relative_path>)]`
-  where `<relative_path>` is the session output directory (e.g., `dx-agentic-dev/20260409-143022_yolo26n_detection/`)
+  where `<relative_path>` is the session output directory (e.g., `dx-agent-dev/20260409-143022_yolo26n_detection/`)
 
 ### DEEPX Banner (MANDATORY — print with the sentinels)
 
@@ -45,7 +45,7 @@ Rules:
    **For cross-project tasks** (e.g., compile + app generation), list ALL output directories
    separated by ` + `:
    ```
-   [DX-AGENTIC-DEV: DONE (output-dir: dx-compiler/dx-agentic-dev/20260409-143022_copilot_yolo26n_compile/ + dx-runtime/dx_app/dx-agentic-dev/20260409-143022_copilot_yolo26n_inference/)]
+   [DX-AGENTIC-DEV: DONE (output-dir: dx-compiler/dx-agent-dev/20260409-143022_copilot_yolo26n_compile/ + dx-runtime/dx_app/dx-agent-dev/20260409-143022_copilot_yolo26n_inference/)]
    ```
 6. **NEVER output DONE after only producing planning artifacts** (specs, plans, design
    documents). DONE means all deliverables are produced — implementation code, scripts,
@@ -55,7 +55,7 @@ Rules:
 7. **Pre-DONE mandatory deliverable check**: Before outputting DONE, verify that all
    mandatory deliverables exist in the session directory. If any mandatory file is
    missing, create it before outputting DONE. Each sub-project defines its own mandatory
-   file list in its skill document (e.g., `dx-agentic-stream-build-pipeline.md` File Creation Checklist).
+   file list in its skill document (e.g., `dx-agent-stream-build-pipeline.md` File Creation Checklist).
 8. **Session transcript — generate it RIGHT AFTER the DONE line (claude / copilot)**:
 
    **Auto-transcript is supported on `claude` and `copilot` only.** Emit the DONE

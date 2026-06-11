@@ -1,6 +1,6 @@
 # run-e2e-improvement-loop.sh
 
-자가수정 Agentic E2E 테스트 루프. 4개 AI 코딩 도구를 병렬 실행하고, 비교 분석 리포트를 생성하고, 개선 사항을 자동 적용합니다. 더 이상 적용할 개선 사항이 없거나 반복 횟수 제한에 도달할 때까지 이 과정을 반복합니다.
+자가수정 Agent-Driven E2E 테스트 루프. 4개 AI 코딩 도구를 병렬 실행하고, 비교 분석 리포트를 생성하고, 개선 사항을 자동 적용합니다. 더 이상 적용할 개선 사항이 없거나 반복 횟수 제한에 도달할 때까지 이 과정을 반복합니다.
 
 ## 동작 방식
 
@@ -17,7 +17,7 @@ Step 3  Claude 호출 → 비교 분석 리포트 생성
           iteration-N-report.md  +  iteration-N-report-KO.md
 
 Step 4  Claude 호출 → 테스트 파일 / SKILL.md 개선 적용
-          이후: dx-agentic-gen generate 실행 (generator drift 방지)
+          이후: dx-agent-gen generate 실행 (generator drift 방지)
 ```
 
 **종료 조건:**
@@ -72,7 +72,7 @@ doc/reports/e2e-loop/
     ├── iteration-N-cursor-pytest.json
     ├── iteration-N-opencode-pytest.json
     ├── iteration-N-claude_code-pytest.json
-    ├── iteration-N-artifacts.txt           — dx-agentic-dev/ 생성 파일 목록
+    ├── iteration-N-artifacts.txt           — dx-agent-dev/ 생성 파일 목록
     ├── iteration-N-context.json            — 리포트 생성 시 Claude에 전달된 컨텍스트
     ├── iteration-N-report.md               — Claude가 생성한 비교 분석 리포트 (EN)
     ├── iteration-N-report-KO.md            — 한국어 번역
@@ -165,7 +165,7 @@ Claude는 각 권고 사항에 다음 태그 중 하나를 붙입니다:
 - `copilot` CLI 설치 및 인증 완료 — `--orchestrator copilot` 사용 시
 - `agent` (Cursor CLI) 설치 및 인증 완료 — `--orchestrator cursor` 사용 시
 - `opencode` CLI 설치 완료 — `--orchestrator opencode` 사용 시
-- `dx-agentic-gen`이 PATH에 있어야 함 (post-improvement drift guard용)
+- `dx-agent-gen`이 PATH에 있어야 함 (post-improvement drift guard용)
 - `tests/test.sh`가 suite root에 존재해야 함
 
 ## Copilot CLI 오케스트레이터로 실행하기

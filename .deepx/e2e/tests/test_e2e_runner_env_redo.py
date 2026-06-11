@@ -28,7 +28,7 @@ def _make_scenario(parent: Path, name: str, *, files: dict | None = None,
                    empty_unknown: bool = False) -> Path:
     """Create a <prefix>__<scenario> subdir with the given files.
 
-    files: {filename: text}. session_subdir: name of a dx-agentic-dev output
+    files: {filename: text}. session_subdir: name of a dx-agent-dev output
     dir to create (empty). empty_unknown: create an empty session-logs-unknown/.
     """
     sd = parent / name
@@ -42,7 +42,7 @@ def _make_scenario(parent: Path, name: str, *, files: dict | None = None,
     return sd
 
 
-DONE_MD = "Run complete.\n[DX-AGENTIC-DEV: DONE (output-dir: dx-compiler/dx-agentic-dev/x)]\n"
+DONE_MD = "Run complete.\n[DX-AGENTIC-DEV: DONE (output-dir: dx-compiler/dx-agent-dev/x)]\n"
 START_ONLY_MD = "[DX-AGENTIC-DEV: START]\nworking...\n"
 REAL_WORK_JSONL = (
     '{"type":"assistant","content":"..."}\n' * 30
@@ -74,7 +74,7 @@ def test_classify_incomplete_real_work(tmp_path):
     sd = _make_scenario(tmp_path, "cursor_cli__suite",
                         files={"x-session.md": START_ONLY_MD,
                                "x-stream.jsonl": REAL_WORK_JSONL},
-                        session_subdir="dx-agentic-dev-out")
+                        session_subdir="dx-agent-dev-out")
     verdict, sigs = er._classify_round_scenario(sd)
     assert verdict == "incomplete"
     assert not sigs
@@ -110,7 +110,7 @@ def test_classify_codex_modelrefresh_with_cmd_incomplete(tmp_path):
           + "**Commands:** 96 total\n")
     sd = _make_scenario(tmp_path, "codex_cli__compiler",
                         files={"x-session.md": md, "x-stream.jsonl": REAL_WORK_JSONL},
-                        session_subdir="dx-agentic-dev-out")
+                        session_subdir="dx-agent-dev-out")
     verdict, sigs = er._classify_round_scenario(sd)
     assert verdict == "incomplete"
 

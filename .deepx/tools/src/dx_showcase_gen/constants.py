@@ -20,7 +20,7 @@ SCREEN_W = 1920
 SCREEN_H = 1080
 
 # Repo-relative locations.
-SHOWCASE_ROOT = "dx-agentic-dev-showcase"
+SHOWCASE_ROOT = "dx-agent-dev-showcase"
 IMG_DIR = "docs/source/img"
 SUITE_README = "README.md"
 SUITE_README_KO = "README-KO.md"

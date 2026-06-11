@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 """
-Agentic E2E Test (Cursor CLI): dx-compiler Scenario — Download + Compile Model
+Agent-Driven E2E Test (Cursor CLI): dx-compiler Scenario — Download + Compile Model
 
 Runs the Cursor CLI ``agent`` inside dx-compiler/ with a prompt requesting
 end-to-end compilation of a yolo26n model to DXNN format.

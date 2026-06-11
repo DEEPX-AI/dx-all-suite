@@ -1,6 +1,6 @@
 """Showcase manifest — single source of truth for the showcase catalog.
 
-`dx-agentic-dev-showcase/showcases.json` lists every showcase in display order.
+`dx-agent-dev-showcase/showcases.json` lists every showcase in display order.
 The doc builders in `augment.py` render the root-README card grid, the showcase
 catalog README, and the docs/source/00_Agentic_Development table from it, so a new
 showcase is added in ONE place and regenerated everywhere via `dx-showcase-gen
@@ -14,8 +14,8 @@ from dataclasses import dataclass, field, fields
 from pathlib import Path
 from typing import Dict, List
 
-MANIFEST_REL = "dx-agentic-dev-showcase/showcases.json"
-SHOWCASE_DIR = "dx-agentic-dev-showcase"
+MANIFEST_REL = "dx-agent-dev-showcase/showcases.json"
+SHOWCASE_DIR = "dx-agent-dev-showcase"
 
 
 @dataclass

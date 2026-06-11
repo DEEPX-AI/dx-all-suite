@@ -1,4 +1,4 @@
-# dx-agentic-dev E2E Analyzer — Configuration
+# dx-agent-dev E2E Analyzer — Configuration
 #
 # Edit this file to add new tools, scenarios, or model mappings without code changes.
 
@@ -44,7 +44,7 @@ tools:
 # ---------------------------------------------------------------------------
 # Scenarios — name + mandatory deliverables under the session output dir
 # ---------------------------------------------------------------------------
-# mandatory_files: paths relative to session output dir (dx-agentic-dev/<session_id>/)
+# mandatory_files: paths relative to session output dir (dx-agent-dev/<session_id>/)
 # 'OR' lists are alternatives — at least one must exist
 scenarios:
   compiler:

@@ -1,6 +1,6 @@
 # `.deepx/tools/scripts/` — Operational Scripts
 
-> Shell scripts that orchestrate the `dx-agentic-gen` generator across all 5
+> Shell scripts that orchestrate the `dx-agent-gen` generator across all 5
 > dx-all-suite repos, install git hooks, and run the self-improving E2E loop.
 
 ---
@@ -9,7 +9,7 @@
 
 | Script | Purpose |
 |--------|---------|
-| `run_all.sh` | Run `dx-agentic-gen <action>` across all 5 repos in dx-all-suite |
+| `run_all.sh` | Run `dx-agent-gen <action>` across all 5 repos in dx-all-suite |
 | `install-hooks.sh` | Install the pre-commit drift+lint hook into suite root and all submodules |
 | `pre-commit-hook.sh` | The pre-commit hook itself — invoked by git, not by users |
 | `run-e2e-improvement-loop.sh` | Self-improving E2E loop (4 CLIs in parallel + auto-fix) |
@@ -19,7 +19,7 @@
 
 ## 2. `run_all.sh` — Multi-Repo Wrapper
 
-Runs a `dx-agentic-gen` action across all 5 repos in dx-all-suite (suite root +
+Runs a `dx-agent-gen` action across all 5 repos in dx-all-suite (suite root +
 dx-compiler + dx-runtime + dx-runtime/dx_app + dx-runtime/dx_stream).
 
 ### Usage
@@ -38,7 +38,7 @@ bash .deepx/tools/scripts/run_all.sh lint
 | You edited a shared fragment under `.deepx/templates/fragments/` | `generate` (propagate to all 5 repos) |
 | You want to verify no repo has drift before pushing | `check` |
 | You added/edited a fragment and want to verify EN/KO parity everywhere | `lint` |
-| Single-repo workflow (just your current repo) | Use `dx-agentic-gen <action>` directly, not `run_all.sh` |
+| Single-repo workflow (just your current repo) | Use `dx-agent-gen <action>` directly, not `run_all.sh` |
 
 ### Exit code
 
@@ -53,7 +53,7 @@ its Python module entry point (so it works even before the CLI shim is on
 `PATH`):
 
 ```python
-from dx_agentic_dev_gen.cli import main
+from dx_agent_dev_gen.cli import main
 sys.exit(main(['<action>', '--repo', '<repo>']))
 ```
 
@@ -84,7 +84,7 @@ Copies `pre-commit-hook.sh` to:
 | `.git/modules/dx-runtime/modules/dx_stream/hooks/pre-commit` | dx_stream (nested submodule) |
 
 If a pre-commit hook already exists at any location, the script writes
-`pre-commit.dx-agentic-gen` instead and prints instructions to chain it from
+`pre-commit.dx-agent-gen` instead and prints instructions to chain it from
 your existing hook.
 
 ### Skipping the hook (when needed)
@@ -113,7 +113,7 @@ unrelated changes.
 For each repo whose `.deepx/` is in scope:
 
 ```bash
-dx-agentic-gen check --repo <repo>
+dx-agent-gen check --repo <repo>
 ```
 
 If any repo reports drift, the commit is **blocked** with instructions:
@@ -121,7 +121,7 @@ If any repo reports drift, the commit is **blocked** with instructions:
 ```
 ERROR: Generated files out-of-date in <repo>
 
-Fix: dx-agentic-gen generate --repo <repo>
+Fix: dx-agent-gen generate --repo <repo>
   or: .deepx/tools/scripts/run_all.sh generate
 ```
 
@@ -130,7 +130,7 @@ Fix: dx-agentic-gen generate --repo <repo>
 For each repo with staged `.deepx/` changes:
 
 ```bash
-dx-agentic-gen lint --repo <repo>
+dx-agent-gen lint --repo <repo>
 ```
 
 If lint reports `[ERROR]` (missing KO counterpart, KO too short, Korean text
@@ -146,7 +146,7 @@ git commit --no-verify
 
 ## 5. `run-e2e-improvement-loop.sh` — Self-Improving E2E Loop
 
-Runs the agentic E2E tests across all 4 CLIs (Copilot, Cursor, OpenCode, Claude
+Runs the agent-driven E2E tests across all 4 CLIs (Copilot, Cursor, OpenCode, Claude
 Code) in parallel, generates a comparison report, and applies auto-improvements
 via an orchestrator agent. Then repeats.
 
@@ -223,7 +223,7 @@ git commit
 
 | Topic | Document |
 |-------|----------|
-| `dx-agentic-gen` package (CLI internals) | [`../README.md`](../README.md) |
+| `dx-agent-gen` package (CLI internals) | [`../README.md`](../README.md) |
 | Top-level `.deepx/` index | [`../../README.md`](../../README.md) |
 | Fragment authoring rules | [`../../docs/fragment-authoring-guide.md`](../../docs/fragment-authoring-guide.md) |
 | Internal SWE process gates | embedded in CLAUDE.md / AGENTS.md (fragment: `swe-process-gates-internal-dev`) |

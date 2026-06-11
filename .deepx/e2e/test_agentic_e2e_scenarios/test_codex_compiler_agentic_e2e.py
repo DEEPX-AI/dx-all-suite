@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 """
-Agentic E2E Test (Codex): dx-compiler Scenario — Download + Compile Model
+Agent-Driven E2E Test (Codex): dx-compiler Scenario — Download + Compile Model
 
 Runs the Codex CLI inside dx-compiler/ with a prompt requesting
 end-to-end compilation of a yolo26n model to DXNN format.

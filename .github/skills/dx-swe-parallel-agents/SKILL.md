@@ -5,7 +5,7 @@ description: Use when facing 2+ independent tasks that can be worked on without 
 
 <!-- AUTO-GENERATED from .deepx/ — DO NOT EDIT DIRECTLY -->
 <!-- Source: .deepx/skills/dx-swe-parallel-agents/SKILL.md -->
-<!-- Run: dx-agentic-gen generate -->
+<!-- Run: dx-agent-gen generate -->
 
 # Dispatching Parallel Agents
 

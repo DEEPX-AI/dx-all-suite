@@ -2,8 +2,8 @@
 
 When any AI agent (Claude Code, Copilot CLI, Cursor CLI, Copilot Chat (VS Code),
 Cursor (IDE), OpenCode, or any other tool) is used to develop or modify internal
-dx-agentic-dev features, the full Software Engineering discipline is **MANDATORY**.
-This applies to any task that IS or INVOLVES an internal dx-agentic-dev feature.
+dx-agent-dev features, the full Software Engineering discipline is **MANDATORY**.
+This applies to any task that IS or INVOLVES an internal dx-agent-dev feature.
 The following paths are covered (non-exhaustive — when in doubt, apply the SWE
 discipline):
 
@@ -13,7 +13,7 @@ discipline):
 | `.deepx/tests/conformance/` | KB / generated-output conformance + policy checks |
 | `.deepx/e2e/test.sh` | manual/autopilot shell runner |
 | `.deepx/tests/conftest.py`, `.deepx/tools/src/dx_transcripts/session_common.py`, `.deepx/tools/src/dx_transcripts/parse_copilot_session.py`, `.deepx/tools/src/dx_transcripts/parse_cursor_session.py`, `.deepx/tools/src/dx_transcripts/parse_claude_session.py` | shared test infrastructure |
-| `.deepx/tools/` (dx-agentic-dev-gen) | generator source, CLI, transformers |
+| `.deepx/tools/` (dx-agent-dev-gen) | generator source, CLI, transformers |
 | `.deepx/tools/scripts/*.sh` | loop scripts and orchestration runners (e.g. `run-e2e-improvement-loop.sh`, `run_all.sh`, `install-hooks.sh`, `pre-commit-hook.sh`) |
 | `.deepx/` | agents, skills, templates, fragments (canonical source) |
 
@@ -49,7 +49,7 @@ listed paths but touching ≥2 files still requires `/dx-swe-brainstorm`.
 
 - **`tests/` changes** — run the existing suite to confirm **RED** before implementing.
   The test must fail for the expected reason before you write any code.
-- **`.deepx/` changes** — capture `dx-agentic-gen check` baseline output before editing.
+- **`.deepx/` changes** — capture `dx-agent-gen check` baseline output before editing.
   After the change, re-run and confirm only the intended drift appears.
 - **`tools/` changes** — identify the specific failure mode (wrong path, wrong output,
   missing rule) that the change must close. Write or point to the test that catches it.
@@ -106,14 +106,14 @@ If ANY box cannot be checked, STOP and complete the missing step before proceedi
 
 - Skipping `/dx-swe-brainstorm` because "the change is obvious" — it is never obvious
 - Adding fixtures or changing `conftest.py` without running the test suite first (blind changes)
-- Claiming completion without showing actual pytest output or `dx-agentic-gen check` output
+- Claiming completion without showing actual pytest output or `dx-agent-gen check` output
 - Treating "I'll validate at the end" as acceptable — validate file-by-file, per `/dx-swe-tdd`
-- Editing generator output files directly — they are overwritten on next `dx-agentic-gen generate`
+- Editing generator output files directly — they are overwritten on next `dx-agent-gen generate`
 - Starting implementation before `/dx-skill-router` has been invoked
 - **Treating autopilot mode as a waiver** — autopilot means "no asking",
   NOT "no rules". The Mandatory Skill Sequence applies in full in autopilot mode.
 - Treating `.deepx/tools/scripts/*.sh` scripts as "not internal dev" — all loop and
-  orchestration scripts under `.deepx/tools/scripts/` are internal dx-agentic-dev
+  orchestration scripts under `.deepx/tools/scripts/` are internal dx-agent-dev
   features and the SWE discipline applies
 - **Treating `dx-swe-debugging` completion as a SWE gate waiver** — finishing
   Phases 1–3 (root cause identified) does NOT exempt the implementation from the

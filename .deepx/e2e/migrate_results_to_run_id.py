@@ -3,13 +3,13 @@
 migrate_results_to_run_id.py — Migrate legacy flat results/ layout to run-id-keyed.
 
 Before:
-    dx-agentic-dev/e2e-tests/results/
+    dx-agent-dev/e2e-tests/results/
         20260521_000935_911a91_copilot-cli-autopilot/manifest.json
         20260521_015901_f5c6cd_claude-code-autopilot/manifest.json
         ...   (all runs mixed together)
 
 After:
-    dx-agentic-dev/e2e-tests/results/
+    dx-agent-dev/e2e-tests/results/
         20260521_135734/                                       ← run_id from state.json
             20260521_174857_e25076_claude-code-autopilot/
         20260520_193327/
@@ -39,7 +39,7 @@ from typing import Dict, List, Optional, Tuple
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = (SCRIPT_DIR / "../..").resolve()
-RESULTS_ROOT = REPO_ROOT / "dx-agentic-dev/e2e-tests/results"
+RESULTS_ROOT = REPO_ROOT / "dx-agent-dev/e2e-tests/results"
 RUNNER_STATE_DIR = SCRIPT_DIR / "runner_state"
 
 

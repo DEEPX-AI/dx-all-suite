@@ -5,7 +5,7 @@ description: 'Verify before claiming completion. Iron Law: no claims without fre
 
 <!-- AUTO-GENERATED from .deepx/ — DO NOT EDIT DIRECTLY -->
 <!-- Source: .deepx/skills/dx-swe-verify/SKILL.md -->
-<!-- Run: dx-agentic-gen generate -->
+<!-- Run: dx-agent-gen generate -->
 
 # Skill: Verify Before Completion
 

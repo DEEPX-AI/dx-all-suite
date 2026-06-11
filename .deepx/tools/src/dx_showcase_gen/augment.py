@@ -89,11 +89,11 @@ def augment_readme_gif(path: str, *, name: str, anchor: str, gif_rel: str,
 # ---------------------------------------------------------------------------
 # Manifest-driven doc regions (root README card grid / catalog / 00-docs table)
 #
-# One manifest (dx-agentic-dev-showcase/showcases.json) feeds three surfaces.
+# One manifest (dx-agent-dev-showcase/showcases.json) feeds three surfaces.
 # Each surface references the same GIFs and showcase dirs but from a different
 # location, so paths are computed per "surface":
 #   root    — repo-root README.md / README-KO.md
-#   catalog — dx-agentic-dev-showcase/README.md / README-ko.md  (one dir deep)
+#   catalog — dx-agent-dev-showcase/README.md / README-ko.md  (one dir deep)
 #   docs    — docs/source/00_Agentic_Development.md / _kor.md
 # ---------------------------------------------------------------------------
 
@@ -107,10 +107,10 @@ def _media_src(surface: str, basename: str) -> str:
 def _showcase_link(surface: str, name: str, lang: str) -> str:
     rd = "README-ko.md" if lang == "ko" else "README.md"
     if surface == "root":
-        return f"dx-agentic-dev-showcase/{name}/{rd}"
+        return f"dx-agent-dev-showcase/{name}/{rd}"
     if surface == "catalog":
         return f"./{name}/{rd}"
-    return f"../../dx-agentic-dev-showcase/{name}/"   # docs surface → dir link
+    return f"../../dx-agent-dev-showcase/{name}/"   # docs surface → dir link
 
 
 def _media_html(s, *, surface: str, height: int, extra: str = "") -> str:
@@ -200,12 +200,12 @@ def cardgrid_region(manifest, *, lang: str, cols: int = 2) -> str:
     body = "\n\n".join(sections)
     if lang == "ko":
         link = ("**전체 showcase 목록 + 요약 →** "
-                "[`dx-agentic-dev-showcase/README-ko.md`](./dx-agentic-dev-showcase/README-ko.md)  ·  "
-                "**기능 설명 →** [Agentic Development 문서](./docs/source/00_Agentic_Development_kor.md)")
+                "[`dx-agent-dev-showcase/README-ko.md`](./dx-agent-dev-showcase/README-ko.md)  ·  "
+                "**기능 설명 →** [Agent-Driven Development 문서](./docs/source/00_Agentic_Development_kor.md)")
     else:
         link = ("**All showcases + summaries →** "
-                "[`dx-agentic-dev-showcase/README.md`](./dx-agentic-dev-showcase/README.md)  ·  "
-                "**About the feature →** [Agentic Development docs](./docs/source/00_Agentic_Development.md)")
+                "[`dx-agent-dev-showcase/README.md`](./dx-agent-dev-showcase/README.md)  ·  "
+                "**About the feature →** [Agent-Driven Development docs](./docs/source/00_Agentic_Development.md)")
     return f"{intro_region(manifest, lang=lang)}\n\n{body}\n\n{link}"
 
 

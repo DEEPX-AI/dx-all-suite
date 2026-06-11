@@ -801,7 +801,7 @@ class TestCriticalRulesParity:
         ("skeleton-first", "Skeleton-first development"),
         ("ifactory-pattern", "IFactory pattern"),
         ("syncrunner-asyncrunner", "SyncRunner"),
-        ("output-isolation", "dx-agentic-dev/"),
+        ("output-isolation", "dx-agent-dev/"),
         ("no-standalone-scripts", "NEVER write demo scripts from scratch"),
     ]
 
@@ -1216,7 +1216,7 @@ class TestGitHubSkillsSymlink:
         assert github_skills.exists(), (
             f"{project}: .github/skills does not exist. "
             f"Copilot CLI discovers skills from .github/skills/. "
-            f"Run: dx-agentic-gen generate"
+            f"Run: dx-agent-gen generate"
         )
 
     @pytest.mark.parametrize(
@@ -1232,7 +1232,7 @@ class TestGitHubSkillsSymlink:
         assert not github_skills.is_symlink(), (
             f"{project}: .github/skills is still a symlink. "
             f"Generator should produce inline copies, not symlinks. "
-            f"Remove symlink and run: dx-agentic-gen generate"
+            f"Remove symlink and run: dx-agent-gen generate"
         )
 
     @pytest.mark.parametrize(
@@ -1753,7 +1753,7 @@ class TestENKOLinecountParity:
 
     def test_lint_errors_on_line_count_divergence(self, tmp_path):
         """lint() must return clean=False when EN has ≥10 more lines than KO."""
-        from dx_agentic_dev_gen.generator import Generator
+        from dx_agent_dev_gen.generator import Generator
 
         deepx = tmp_path / ".deepx"
         frags_en = deepx / "templates" / "fragments" / "en"
@@ -1780,7 +1780,7 @@ class TestENKOLinecountParity:
 
     def test_lint_ok_when_ko_longer_than_en(self, tmp_path):
         """lint() must NOT flag when KO is longer than EN (normal translation verbosity)."""
-        from dx_agentic_dev_gen.generator import Generator
+        from dx_agent_dev_gen.generator import Generator
 
         deepx = tmp_path / ".deepx"
         frags_en = deepx / "templates" / "fragments" / "en"
@@ -1803,7 +1803,7 @@ class TestENKOLinecountParity:
 
     def test_lint_ok_when_diff_under_threshold(self, tmp_path):
         """lint() must NOT flag when EN > KO by fewer than 10 lines (normal variation)."""
-        from dx_agentic_dev_gen.generator import Generator
+        from dx_agent_dev_gen.generator import Generator
 
         deepx = tmp_path / ".deepx"
         frags_en = deepx / "templates" / "fragments" / "en"
