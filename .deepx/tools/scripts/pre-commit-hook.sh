@@ -99,9 +99,16 @@ if [ -d "$REPO_ROOT/.deepx" ]; then
     check_repos+=("$REPO_ROOT")
 fi
 
-# If this is the suite root or dx-runtime, also check nested repos
-# (dx_app and dx_stream are directories within dx-runtime, not separate git repos)
-for sub in dx-runtime/dx_app dx-runtime/dx_stream dx_app dx_stream; do
+# Cross-level propagation guard: a shared .deepx/ fragment edit must regenerate
+# EVERY level it feeds, not just the repo being committed. When committing from a
+# parent that contains sub-levels, check ALL of them — otherwise a fragment that
+# drifts (e.g.) dx-compiler's or dx-runtime's generated files slips through a
+# suite-root commit. This is exactly the gap that let stale generated files get
+# committed before (dx-compiler and dx-runtime were previously NOT checked from
+# a suite-root commit).
+#   suite root → dx-compiler, dx-runtime, dx-runtime/dx_app, dx-runtime/dx_stream
+#   dx-runtime → dx_app, dx_stream
+for sub in dx-compiler dx-runtime dx-runtime/dx_app dx-runtime/dx_stream dx_app dx_stream; do
     candidate="$REPO_ROOT/$sub"
     if [ -d "$candidate/.deepx" ]; then
         check_repos+=("$candidate")
@@ -124,8 +131,11 @@ done
 
 if [ $failed -ne 0 ]; then
     echo ""
-    echo "Fix: dx-agentic-gen generate --repo <repo>"
-    echo "  or: .deepx/tools/scripts/run_all.sh generate"
+    echo "Fix (regenerate EVERY level — a shared .deepx/ fragment edit drifts all of them):"
+    echo "  .deepx/tools/scripts/run_all.sh generate"
+    echo ""
+    echo "  Per-repo 'dx-agentic-gen generate --repo <repo>' fixes only ONE level and is"
+    echo "  how stale files slip in — use it only if you are certain a single level is affected."
     echo ""
     echo "To skip this check: git commit --no-verify"
     exit 1

@@ -1,0 +1,48 @@
+name: dx-agentic-gen drift check
+
+# Second line of defense behind the local pre-commit hook: the hook can be
+# bypassed (`git commit --no-verify`) or skipped if not installed, so this CI
+# gate re-runs the suite-wide drift + lint check on every PR/push. If any
+# `.deepx/` source change was not propagated to its generated outputs across
+# ALL levels (suite, dx-compiler, dx-runtime, dx_app, dx_stream), the job fails.
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - staging
+      - 'feature/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  drift-check:
+    runs-on:
+      - self-hosted
+      - sdk
+    timeout-minutes: 10
+    steps:
+      - name: Clean Workspace
+        run: |
+          sudo rm -rf ${{ github.workspace }}
+          mkdir -p ${{ github.workspace }}
+
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+          token: ${{ secrets.GC_DCI_TOKEN }}
+
+      - name: Drift check (all levels)
+        run: |
+          # run_all.sh resolves dx-agentic-gen from the in-tree source
+          # (.deepx/tools/src) via PYTHONPATH — no pip install required.
+          bash .deepx/tools/scripts/run_all.sh check
+
+      - name: EN/KO fragment parity lint (all levels)
+        run: |
+          bash .deepx/tools/scripts/run_all.sh lint
