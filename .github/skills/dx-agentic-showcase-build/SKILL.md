@@ -40,6 +40,12 @@ KB-based judgment, and the human-in-the-loop steps a tool cannot do.
    (the recommended model) unless the user overrides. `verify` checks them.
 5. **Artifacts must actually be copied** into the showcase dir and made portable.
 6. **No DONE without `dx-showcase-gen verify` PASS.**
+7. **Every showcase MUST have an entry in `dx-agentic-dev-showcase/showcases.json`** —
+   the manifest is the single source for the root-README card grid, the showcase catalog,
+   and the docs `00_Agentic_Development` table. `verify` fails (and `regen-docs` warns) if
+   a showcase dir is missing from it — this is how `ultralytics-yolo-deepx-export` once went
+   missing from the docs table. NEVER hand-edit the generated `dx-showcase:docs:*` marker
+   regions; add to the manifest and run `regen-docs`.
 
 ## Setup
 
@@ -120,20 +126,30 @@ SG copy-artifacts --session-dir <build_session_dir> --showcase-dir dx-agentic-de
   `docs/source/img/dx-agentic-dev-<name>-run.gif` via the same capture→crop→gif path.
   Optional when the showcase has no visual runtime (then the build GIF suffices).
 
-## Phase 7 — Augment READMEs + docs
+## Phase 7 — Catalog + docs (manifest-driven, single source)
 
-```bash
-SG augment --readme README.md            --name <name> --anchor "### Showcase N: …" \
-   --gif ./docs/source/img/dx-agentic-dev-<name>-build.gif --caption "…"
-SG augment --readme README-KO.md         --name <name> --anchor "### Showcase N: …" --gif … --caption "…"
-```
+The showcase's OWN README is written in its dir; the THREE cross-showcase surfaces (root
+README card grid, showcase catalog, docs `00_Agentic_Development` table) are GENERATED from
+one manifest — never hand-edited.
 
-- Suite `README.md` / `README-KO.md`: add (or upsert) the showcase section with the
-  build GIF, matching the existing showcases' layout.
-- Showcase `README.md` / `README-ko.md`: the **verbatim end-user prompt** (scaffolding
-  trimmed), the session-metrics table (model, **Wall-clock**, **Cost**, turns, skills),
-  transcript links, file list, run instructions.
-- `docs/source/00_Agentic_Development.md` + `_kor.md`: add the showcase to the demo list.
+1. Write the showcase's `README.md` / `README-ko.md` in its dir: the **verbatim end-user
+   prompt** (scaffolding trimmed), the session-metrics table (model, **Wall-clock**,
+   **Cost**, turns, skills), the **2-column GIF | sample** block, transcript links, run steps.
+2. Add an entry to **`dx-agentic-dev-showcase/showcases.json`** (order = display order):
+   `name, kind (game|export|retrain), title_en/ko, tagline_en/ko, gif (basename under
+   docs/source/img/), what_en/ko, highlight_en/ko, model, build, turns, tokens, cost`.
+3. Regenerate all three surfaces (EN+KO), idempotently:
+   ```bash
+   SG regen-docs --repo-root "$(git rev-parse --show-toplevel)"
+   ```
+   This fills the `dx-showcase:docs:{cardgrid,catalog,table}` marker regions in the root
+   README(-KO), `dx-agentic-dev-showcase/README(.md/-ko.md)`, and
+   `docs/source/00_Agentic_Development(.md/_kor.md)`. The catalog is surfaced in the mkdocs
+   nav via `docs/source/00b_Agentic_Development_Showcases.md` (include-markdown) — no nav
+   edit needed per showcase.
+
+Do NOT duplicate per-showcase detail into the suite README or 00_Agentic_Development, and
+do NOT hand-edit the marker regions — they are regenerated from the manifest.
 
 ## Phase 8 — VERIFY gate (no DONE without PASS)
 

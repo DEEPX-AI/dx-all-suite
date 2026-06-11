@@ -18,148 +18,31 @@
   <p><strong>Figure. DXNN SDK Simple Architecture Overview.</strong></p>
 </div>
 
-## ✨ Build Apps with Natural Language — dx-agentic-dev (Beta)
+## ✨ Build NPU Apps with Natural Language — dx-agentic-dev (Beta)
 
-> **Develop a complete fitness game on the DEEPX NPU — fully autonomously, by natural
-> language — in about 20 minutes for roughly $10.** Describe the app in plain language
-> and an AI coding agent builds it on the DEEPX SDK end-to-end.
+<!-- dx-showcase:docs:cardgrid:start -->
+> **One prompt → a working DX-M1 NPU app.** No boilerplate, no hand-rolled pipeline — an AI coding agent drives the DEEPX knowledge base end to end (brainstorm → plan → TDD → verify).
 
-### Showcase 1: Squat-Counting Fitness Mini-Game (DEEPX SQUAT CHALLENGE)
-
-<div align="center">
 <table>
 <tr>
-<td align="center"><img src="./docs/source/img/dx-agentic-dev-squat-build.gif" width="470"><br><sub><b>dx-agentic-dev building the app (timelapse)</b></sub></td>
-<td align="center"><img src="./docs/source/img/dx-agentic-dev-squat-gameplay.gif" width="188"><br><sub><b>Generated app running on NPU</b></sub></td>
+ <td width="33%" align="center"><a href="dx-agentic-dev-showcase/squat-fitness-mini-game/README.md"><img src="./docs/source/img/dx-agentic-dev-squat-gameplay.gif" width="230"></a><br><b>Squat-Counting Mini-Game</b><br><sub>rep-counting fitness on NPU</sub></td>
+ <td width="33%" align="center"><a href="dx-agentic-dev-showcase/stretching-coach-mini-game/README.md"><img src="./docs/source/img/dx-agentic-dev-stretch-gameplay.gif" width="230"></a><br><b>Stretching Coach Mini-Game</b><br><sub>pose-guided arcade coach</sub></td>
+ <td width="33%" align="center"><a href="dx-agentic-dev-showcase/ultralytics-yolo-deepx-export/README.md"><img src="./docs/source/img/dx-agentic-dev-ultralytics-build.gif" width="230"></a><br><b>Ultralytics YOLO → DeepX Export</b><br><sub>one-command format=deepx</sub></td>
 </tr>
-</table>
-</div>
-
-**▶️ Run it yourself** — checked in at
-**[`dx-agentic-dev-showcase/squat-fitness-mini-game/`](./dx-agentic-dev-showcase/squat-fitness-mini-game/)**.
-Read its [README](./dx-agentic-dev-showcase/squat-fitness-mini-game/README.md) and run it.
-
-**🔍 See how the agent built it** — the full
-[Claude Code session](./dx-agentic-dev-showcase/squat-fitness-mini-game/claude-code-session.md)
-is included, showing how it followed the harness instructions and used the project skills/agents.
-
-### Showcase 2: Arcade Stretching Coach Mini-Game (STRETCH ARCADE)
-
-<div align="center">
-<table>
 <tr>
-<td align="center"><img src="./docs/source/img/dx-agentic-dev-stretch-build.gif" width="470"><br><sub><b>dx-agentic-dev building the stretching game (timelapse)</b></sub></td>
-<td align="center"><img src="./docs/source/img/dx-agentic-dev-stretch-gameplay.gif" width="188"><br><sub><b>Generated app on NPU (coach avatar + 3 stages)</b></sub></td>
+ <td width="33%" align="center"><a href="dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-wildlife/README.md"><img src="./docs/source/img/dx-agentic-dev-ultralytics-wildlife-build.gif" width="230"></a><br><b>African Wildlife Monitoring</b><br><sub>safari camera retrain</sub></td>
+ <td width="33%" align="center"><a href="dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-ppe/README.md"><img src="./docs/source/img/dx-agentic-dev-ultralytics-ppe-build.gif" width="230"></a><br><b>Construction PPE Safety</b><br><sub>site-safety camera retrain</sub></td>
+ <td width="33%" align="center"><a href="dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-braintumor/README.md"><img src="./docs/source/img/dx-agentic-dev-ultralytics-braintumor-build.gif" width="230"></a><br><b>Brain-Tumor Screening</b><br><sub>medical edge retrain</sub></td>
+</tr>
+<tr>
+ <td width="33%" align="center"><a href="dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-pills/README.md"><img src="./docs/source/img/dx-agentic-dev-ultralytics-pills-build.gif" width="230"></a><br><b>Pharmaceutical Pill Inspection</b><br><sub>pharma counting retrain</sub></td>
+ <td></td>
+ <td></td>
 </tr>
 </table>
-</div>
 
-**▶️ Run it yourself** — checked in at
-**[`dx-agentic-dev-showcase/stretching-coach-mini-game/`](./dx-agentic-dev-showcase/stretching-coach-mini-game/)**
-([README](./dx-agentic-dev-showcase/stretching-coach-mini-game/README.md)).
-
-### Showcase 3: Ultralytics YOLO → DeepX Export (one-shot `format=deepx`)
-
-<div align="center">
-<img src="./docs/source/img/dx-agentic-dev-ultralytics-build.gif" width="640"><br><sub><b>dx-agentic-dev building this showcase (timelapse) — export → dx_com compile → NPU inference → verify</b></sub>
-</div>
-
-DEEPX × **Ultralytics** technical integration: an Ultralytics YOLO `.pt` becomes a
-deployable DeepX NPU model in a **single command** —
-
-```bash
-yolo export model=yolo26n.pt format=deepx   # → yolo26n_deepx_model/ (.dxnn + config + metadata)
-```
-
-From the prompt *"export my YOLO26n model to DeepX and run inference"*, the agent
-routes through the knowledge base to the
-[`ultralytics-deepx-export`](./dx-compiler/.deepx/toolsets/ultralytics-deepx-export.md)
-toolset and drives the export + deployment — no hand-rolled pipeline.
-
-**▶️ Run it yourself** — checked in at
-**[`dx-agentic-dev-showcase/ultralytics-yolo-deepx-export/`](./dx-agentic-dev-showcase/ultralytics-yolo-deepx-export/)**
-([README](./dx-agentic-dev-showcase/ultralytics-yolo-deepx-export/README.md)).
-
-### Showcase 4: Ultralytics Retrain → DeepX NPU (domain optimization)
-
-<!-- dx-showcase:ultralytics-retrain-eval-deepx-export-wildlife:gif:start -->
-<div align="center">
-<table><tr>
-<td align="center"><img src="./docs/source/img/dx-agentic-dev-ultralytics-wildlife-build.gif" width="470"><br><sub><b>building (timelapse)</b></sub></td>
-<td align="center"><img src="./docs/source/img/dx-agentic-dev-ultralytics-wildlife-sample.jpg" width="280"><br><sub><b>wildlife detection on DX-M1 NPU</b></sub></td>
-</tr></table>
-</div>
-<!-- dx-showcase:ultralytics-retrain-eval-deepx-export-wildlife:gif:end -->
-
-
-**Wildlife monitoring**: stock COCO `yolo26n` can't reliably detect wildlife species, so
-retrain it on `african-wildlife` (buffalo, elephant, rhino, zebra) and deploy on the
-DX-M1 NPU — **mAP50-95 ~0.0007 → 0.79** (mAP50 0.94, INT8 NPU), **+35% FPS** (59 → 80);
-4-way (base/retrained × fp32-GPU / INT8-NPU) eval, INT8 ≈ fp32.
-
-**▶️ Run it yourself** — checked in at
-**[`dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-wildlife/`](./dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-wildlife/)**
-([README](./dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-wildlife/README.md)).
-
-### Showcase 5: Ultralytics PPE Detection → DeepX NPU (construction safety)
-
-<!-- dx-showcase:ultralytics-retrain-eval-deepx-export-ppe:gif:start -->
-<div align="center">
-<table><tr>
-<td align="center"><img src="./docs/source/img/dx-agentic-dev-ultralytics-ppe-build.gif" width="470"><br><sub><b>building (timelapse)</b></sub></td>
-<td align="center"><img src="./docs/source/img/dx-agentic-dev-ultralytics-ppe-sample.jpg" width="280"><br><sub><b>PPE detection on DX-M1 NPU</b></sub></td>
-</tr></table>
-</div>
-<!-- dx-showcase:ultralytics-retrain-eval-deepx-export-ppe:gif:end -->
-
-
-Domain optimization for a **construction site-safety camera**: retrain `yolo26n` on the
-`construction-ppe` dataset and deploy on the DX-M1 NPU — stock COCO model **mAP50-95
-0.0001 → retrained 0.257** (mAP50 0.51, INT8 NPU), **+38% FPS** (58 → 80); evaluated 4 ways
-(base/retrained × fp32-GPU / INT8-NPU).
-
-**▶️ Run it yourself** — **[`dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-ppe/`](./dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-ppe/)**
-([README](./dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-ppe/README.md)).
-
-### Showcase 6: Ultralytics Brain-Tumor Screening → DeepX NPU (medical edge)
-
-<!-- dx-showcase:ultralytics-retrain-eval-deepx-export-braintumor:gif:start -->
-<div align="center">
-<table><tr>
-<td align="center"><img src="./docs/source/img/dx-agentic-dev-ultralytics-braintumor-build.gif" width="470"><br><sub><b>building (timelapse)</b></sub></td>
-<td align="center"><img src="./docs/source/img/dx-agentic-dev-ultralytics-braintumor-sample.jpg" width="280"><br><sub><b>tumor detection on DX-M1 NPU</b></sub></td>
-</tr></table>
-</div>
-<!-- dx-showcase:ultralytics-retrain-eval-deepx-export-braintumor:gif:end -->
-
-
-Domain optimization for a **medical edge device**: retrain `yolo26n` on the `brain-tumor`
-dataset (MRI/CT) and deploy on the DX-M1 NPU — stock COCO model **mAP50-95 ~0.0005 →
-retrained 0.40** (mAP50 0.54, INT8 NPU), **+41% FPS** (59 → 83); 4-way (base/retrained × fp32/INT8) eval.
-
-**▶️ Run it yourself** — **[`dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-braintumor/`](./dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-braintumor/)**
-([README](./dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-braintumor/README.md)).
-
-### Showcase 7: Ultralytics Pill Detection → DeepX NPU (pharma)
-
-<!-- dx-showcase:ultralytics-retrain-eval-deepx-export-pills:gif:start -->
-<div align="center">
-<table><tr>
-<td align="center"><img src="./docs/source/img/dx-agentic-dev-ultralytics-pills-build.gif" width="470"><br><sub><b>building (timelapse)</b></sub></td>
-<td align="center"><img src="./docs/source/img/dx-agentic-dev-ultralytics-pills-sample.jpg" width="280"><br><sub><b>pill detection on DX-M1 NPU</b></sub></td>
-</tr></table>
-</div>
-<!-- dx-showcase:ultralytics-retrain-eval-deepx-export-pills:gif:end -->
-
-
-Domain optimization for a **pharmaceutical pill counting station**: retrain `yolo26n` on
-`medical-pills` and deploy on the DX-M1 NPU — stock COCO model **mAP50-95 ~0.001 →
-retrained 0.75** (mAP50 0.97, INT8 NPU), **+42% FPS** (55 → 78); 4-way eval.
-
-**▶️ Run it yourself** — **[`dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-pills/`](./dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-pills/)**
-([README](./dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-pills/README.md)).
-
-➡️ **[Get started with Agentic Development (Beta)](./docs/source/00_Agentic_Development.md)**
+**All showcases + summaries →** [`dx-agentic-dev-showcase/README.md`](./dx-agentic-dev-showcase/README.md)  ·  **About the feature →** [Agentic Development docs](./docs/source/00_Agentic_Development.md)
+<!-- dx-showcase:docs:cardgrid:end -->
 
 ## Getting Started
 

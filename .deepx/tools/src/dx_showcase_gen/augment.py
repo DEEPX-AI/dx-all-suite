@@ -84,3 +84,106 @@ def augment_readme_gif(path: str, *, name: str, anchor: str, gif_rel: str,
     else:
         block = gif_block(gif_rel, caption, width)
     return upsert_block(path, anchor=anchor, block=block, mk=marker(name, "gif"))
+
+
+# ---------------------------------------------------------------------------
+# Manifest-driven doc regions (root README card grid / catalog / 00-docs table)
+#
+# One manifest (dx-agentic-dev-showcase/showcases.json) feeds three surfaces.
+# Each surface references the same GIFs and showcase dirs but from a different
+# location, so paths are computed per "surface":
+#   root    — repo-root README.md / README-KO.md
+#   catalog — dx-agentic-dev-showcase/README.md / README-ko.md  (one dir deep)
+#   docs    — docs/source/00_Agentic_Development.md / _kor.md
+# ---------------------------------------------------------------------------
+
+_IMG_PREFIX = {"root": "./docs/source/img", "catalog": "../docs/source/img", "docs": "./img"}
+
+
+def _gif_src(surface: str, gif: str) -> str:
+    return f"{_IMG_PREFIX[surface]}/{gif}"
+
+
+def _showcase_link(surface: str, name: str, lang: str) -> str:
+    rd = "README-ko.md" if lang == "ko" else "README.md"
+    if surface == "root":
+        return f"dx-agentic-dev-showcase/{name}/{rd}"
+    if surface == "catalog":
+        return f"./{name}/{rd}"
+    return f"../../dx-agentic-dev-showcase/{name}/"   # docs surface → dir link
+
+
+def card_grid(showcases, *, lang: str, surface: str = "root", cols: int = 3,
+              gif_w: int = 230) -> str:
+    """An N-column HTML card grid (GIF + title + tagline, linked to the showcase)."""
+    cells = []
+    for s in showcases:
+        cells.append(
+            f'<td width="{100 // cols}%" align="center">'
+            f'<a href="{_showcase_link(surface, s.name, lang)}">'
+            f'<img src="{_gif_src(surface, s.gif)}" width="{gif_w}"></a><br>'
+            f'<b>{s.title(lang)}</b><br><sub>{s.tagline(lang)}</sub></td>')
+    rows = []
+    for i in range(0, len(cells), cols):
+        row = cells[i:i + cols] + ["<td></td>"] * (cols - len(cells[i:i + cols]))
+        rows.append("<tr>\n " + "\n ".join(row) + "\n</tr>")
+    return "<table>\n" + "\n".join(rows) + "\n</table>"
+
+
+def cardgrid_region(manifest, *, lang: str) -> str:
+    """Root-README marker region: catchphrase + 3-col card grid + catalog link."""
+    grid = card_grid(manifest.showcases, lang=lang, surface="root")
+    if lang == "ko":
+        link = ("**전체 showcase 목록 + 요약 →** "
+                "[`dx-agentic-dev-showcase/README-ko.md`](./dx-agentic-dev-showcase/README-ko.md)  ·  "
+                "**기능 설명 →** [Agentic Development 문서](./docs/source/00_Agentic_Development_kor.md)")
+    else:
+        link = ("**All showcases + summaries →** "
+                "[`dx-agentic-dev-showcase/README.md`](./dx-agentic-dev-showcase/README.md)  ·  "
+                "**About the feature →** [Agentic Development docs](./docs/source/00_Agentic_Development.md)")
+    return f"> {manifest.catchphrase(lang)}\n\n{grid}\n\n{link}"
+
+
+def showcase_table(showcases, *, lang: str, surface: str = "docs") -> str:
+    """The all-showcase table (Showcase | what | build | turns | tokens | cost)."""
+    if lang == "ko":
+        head = "| Showcase | 설명 | 빌드 시간 | Agent turns | Output tokens | ~비용 |"
+    else:
+        head = "| Showcase | What it is | Build time | Agent turns | Output tokens | ~Cost |"
+    rows = [head, "|---|---|---|---|---|---|"]
+    for s in showcases:
+        link = _showcase_link(surface, s.name, lang)
+        rows.append(f"| **[{s.title(lang)}]({link})** | {s.what(lang)} | "
+                    f"{s.build} | {s.turns} | {s.tokens} | {s.cost} |")
+    return "\n".join(rows)
+
+
+def catalog_region(manifest, *, lang: str) -> str:
+    """Catalog README marker region: summary table + per-showcase short blocks
+    (build GIF + what + detail link). This is the showcase index that mkdocs
+    surfaces via include-markdown."""
+    sc = manifest.showcases
+    if lang == "ko":
+        thead = ("| Showcase | 유형 | 핵심 결과 |\n|---|---|---|")
+        kind_ko = {"game": "게임", "export": "export", "retrain": "재학습"}
+        detail = "상세"
+    else:
+        thead = ("| Showcase | Kind | Highlight |\n|---|---|---|")
+        kind_ko = {"game": "game", "export": "export", "retrain": "retrain"}
+        detail = "details"
+    table = [thead]
+    for s in sc:
+        link = _showcase_link("catalog", s.name, lang)
+        table.append(f"| [{s.title(lang)}]({link}) | {kind_ko[s.kind]} | {s.highlight(lang)} |")
+    blocks = ["\n".join(table), ""]
+    for s in sc:
+        link = _showcase_link("catalog", s.name, lang)
+        blocks.append(
+            f'### {s.title(lang)}\n\n'
+            f'<a href="{link}"><img src="{_gif_src("catalog", s.gif)}" width="320" align="right"></a>\n\n'
+            f'{s.what(lang)}\n\n'
+            f'**{("핵심" if lang=="ko" else "Highlight")}:** {s.highlight(lang)} · '
+            f'**{s.model}** · {s.build} · {s.cost} — '
+            f'[{detail} →]({link})\n\n'
+            '<br clear="right">')
+    return "\n".join(blocks)

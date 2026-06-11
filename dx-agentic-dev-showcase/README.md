@@ -1,0 +1,100 @@
+# dx-agentic-dev Showcases
+
+> Real apps built on the **DEEPX NPU SDK** by an AI coding agent from a **single
+> natural-language prompt** — each checked in with the prompt, measured results, a
+> one-command reproduce, and the full recorded build-session transcript.
+
+These demonstrate **dx-agentic-dev (Beta)**: you describe the app/task in plain language
+and the agent drives the DEEPX knowledge base end to end (brainstorm → plan → TDD →
+verify). What the feature is and how it works → [Agentic Development docs](../docs/source/00_Agentic_Development.md).
+Each card below links to that showcase's own README (full detail + transcript).
+
+<!-- catalog -->
+<!-- dx-showcase:docs:catalog:start -->
+| Showcase | Kind | Highlight |
+|---|---|---|
+| [Squat-Counting Mini-Game](./squat-fitness-mini-game/README.md) | game | pose game + arcade HUD |
+| [Stretching Coach Mini-Game](./stretching-coach-mini-game/README.md) | game | coach avatar + 3 stages |
+| [Ultralytics YOLO → DeepX Export](./ultralytics-yolo-deepx-export/README.md) | export | 1-cmd .pt → .dxnn |
+| [African Wildlife Monitoring](./ultralytics-retrain-eval-deepx-export-wildlife/README.md) | retrain | mAP ~0.0007→0.79, 59→80 FPS |
+| [Construction PPE Safety](./ultralytics-retrain-eval-deepx-export-ppe/README.md) | retrain | mAP 0.0001→0.257, 58→80 FPS |
+| [Brain-Tumor Screening](./ultralytics-retrain-eval-deepx-export-braintumor/README.md) | retrain | mAP ~0.0005→0.40, 59→83 FPS |
+| [Pharmaceutical Pill Inspection](./ultralytics-retrain-eval-deepx-export-pills/README.md) | retrain | mAP ~0.001→0.75 (mAP50 0.97), 55→78 FPS |
+
+### Squat-Counting Mini-Game
+
+<a href="./squat-fitness-mini-game/README.md"><img src="../docs/source/img/dx-agentic-dev-squat-gameplay.gif" width="320" align="right"></a>
+
+Counts squat reps from knee/hip angles with an arcade HUD (reps / score / DOWN·UP·GOOD!).
+
+**Highlight:** pose game + arcade HUD · **Claude Opus 4.8** · ≈ 20 min · ≈ $9.9 — [details →](./squat-fitness-mini-game/README.md)
+
+<br clear="right">
+### Stretching Coach Mini-Game
+
+<a href="./stretching-coach-mini-game/README.md"><img src="../docs/source/img/dx-agentic-dev-stretch-gameplay.gif" width="320" align="right"></a>
+
+Guides 3 stretches with an animated coach avatar that demonstrates each target pose.
+
+**Highlight:** coach avatar + 3 stages · **Claude Opus 4.8** · ≈ 21 min · ≈ $9.4 — [details →](./stretching-coach-mini-game/README.md)
+
+<br clear="right">
+### Ultralytics YOLO → DeepX Export
+
+<a href="./ultralytics-yolo-deepx-export/README.md"><img src="../docs/source/img/dx-agentic-dev-ultralytics-build.gif" width="320" align="right"></a>
+
+Turns an Ultralytics YOLO `.pt` into a deployable DeepX NPU model (`.dxnn`) in a single `yolo export ... format=deepx` command, then runs NPU inference + verify.
+
+**Highlight:** 1-cmd .pt → .dxnn · **Claude Sonnet 4.6** · ≈ 11.6 min · ≈ $2.4 — [details →](./ultralytics-yolo-deepx-export/README.md)
+
+<br clear="right">
+### African Wildlife Monitoring
+
+<a href="./ultralytics-retrain-eval-deepx-export-wildlife/README.md"><img src="../docs/source/img/dx-agentic-dev-ultralytics-wildlife-build.gif" width="320" align="right"></a>
+
+Retrains `yolo26n` on `african-wildlife` (buffalo/elephant/rhino/zebra) for a safari/conservation camera; 4-way eval base/retrained × fp32/INT8.
+
+**Highlight:** mAP ~0.0007→0.79, 59→80 FPS · **Claude Opus 4.8** · ≈ 12 min · ≈ $3.3 — [details →](./ultralytics-retrain-eval-deepx-export-wildlife/README.md)
+
+<br clear="right">
+### Construction PPE Safety
+
+<a href="./ultralytics-retrain-eval-deepx-export-ppe/README.md"><img src="../docs/source/img/dx-agentic-dev-ultralytics-ppe-build.gif" width="320" align="right"></a>
+
+Retrains `yolo26n` on `construction-ppe` for a site-safety camera (helmet/vest/...); 4-way eval base/retrained × fp32/INT8.
+
+**Highlight:** mAP 0.0001→0.257, 58→80 FPS · **Claude Opus 4.8** · ≈ 13 min · ≈ $5.1 — [details →](./ultralytics-retrain-eval-deepx-export-ppe/README.md)
+
+<br clear="right">
+### Brain-Tumor Screening
+
+<a href="./ultralytics-retrain-eval-deepx-export-braintumor/README.md"><img src="../docs/source/img/dx-agentic-dev-ultralytics-braintumor-build.gif" width="320" align="right"></a>
+
+Retrains `yolo26n` on `brain-tumor` (MRI/CT) for a medical edge device; 4-way eval base/retrained × fp32/INT8.
+
+**Highlight:** mAP ~0.0005→0.40, 59→83 FPS · **Claude Opus 4.8** · ≈ 12 min · ≈ $3.7 — [details →](./ultralytics-retrain-eval-deepx-export-braintumor/README.md)
+
+<br clear="right">
+### Pharmaceutical Pill Inspection
+
+<a href="./ultralytics-retrain-eval-deepx-export-pills/README.md"><img src="../docs/source/img/dx-agentic-dev-ultralytics-pills-build.gif" width="320" align="right"></a>
+
+Retrains `yolo26n` on `medical-pills` for a pharma counting station; 4-way eval base/retrained × fp32/INT8.
+
+**Highlight:** mAP ~0.001→0.75 (mAP50 0.97), 55→78 FPS · **Claude Opus 4.8** · ≈ 10 min · ≈ $5.1 — [details →](./ultralytics-retrain-eval-deepx-export-pills/README.md)
+
+<br clear="right">
+<!-- dx-showcase:docs:catalog:end -->
+
+## Reproduce any showcase
+
+```bash
+cd dx-agentic-dev-showcase/<showcase>
+bash setup.sh && bash run.sh        # retrain/export showcases
+# games: ./setup.sh then ./run.sh (or ./run.sh --camera 0)
+```
+
+Requires x86-64 Linux + the DeepX runtime (`dx_engine`). Per-showcase prerequisites and
+the exact prompt are in each showcase's README.
+
+> Korean: [`README-ko.md`](./README-ko.md).

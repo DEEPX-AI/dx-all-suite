@@ -17,197 +17,46 @@ Supported workflows include:
 - Cross-project builds that span dx_app, dx_stream, and dx-runtime
 - Model compilation from ONNX to DXNN format using DX-COM (in dx-compiler)
 
-## Demo: a fitness game from one prompt — fully autonomous, ~20 min, ~$10
+## Showcases
 
-**You can develop a complete fitness game on the DEEPX NPU — fully autonomously, by
-natural language — in about 20 minutes for roughly $10.** No hand-written code: from a
-single prompt, the AI coding agent runs the entire brainstorm → plan → TDD → verify
-workflow and ships a runnable, on-device-NPU app.
+Every showcase below is a real app built on the DEEPX NPU SDK from a **single
+natural-language prompt** — fully autonomously — and checked into the suite with the
+prompt, measured results, a one-command reproduce, and the full recorded build-session
+transcript.
 
-To show what that looks like, here are **two mini-games** built exactly this way. Each is
-checked into the suite as a runnable showcase, with its full build-session transcript:
-
+<!-- showcase-table -->
+<!-- dx-showcase:docs:table:start -->
 | Showcase | What it is | Build time | Agent turns | Output tokens | ~Cost |
-|----------|-----------|-----------|-------------|---------------|-------|
-| **[Squat-counting mini-game](../../dx-agentic-dev-showcase/squat-fitness-mini-game/)** | Counts squat reps from knee/hip angles + arcade HUD (reps / score / DOWN·UP·GOOD!) | ≈ 20 min | 81 | ≈ 85K | ≈ $9.9 |
-| **[Stretching coach mini-game](../../dx-agentic-dev-showcase/stretching-coach-mini-game/)** | Guides 3 stretches with an animated **coach avatar** that demonstrates each target pose | ≈ 21 min | 75 | ≈ 85K | ≈ $9.4 |
-| **[Ultralytics African-wildlife → DeepX NPU](../../dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-wildlife/)** | Retrains `yolo26n` on `african-wildlife` (buffalo/elephant/rhino/zebra), 4-way eval (base/retrained × fp32-GPU / INT8-NPU); stock mAP ~0.0007 → 0.79 (mAP50 0.94), +35% NPU FPS | ≈ 12 min | 8 | ≈ 6.9K | ≈ $3.3 |
-| **[Ultralytics PPE → DeepX NPU](../../dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-ppe/)** | Retrains `yolo26n` for construction-PPE safety, 4-way eval; stock mAP 0.0001 → 0.257 (mAP50 0.51), +38% NPU FPS | ≈ 13 min | 19 | ≈ 8.8K | ≈ $5.1 |
-| **[Ultralytics brain-tumor → DeepX NPU](../../dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-braintumor/)** | Retrains `yolo26n` for MRI/CT brain-tumor screening, 4-way eval; stock mAP ~0.0005 → 0.40 (mAP50 0.54), +41% NPU FPS | ≈ 12 min | 11 | ≈ 8.9K | ≈ $3.7 |
-| **[Ultralytics pill → DeepX NPU](../../dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-pills/)** | Retrains `yolo26n` for pharma pill detection, 4-way eval; stock mAP ~0.001 → 0.75 (mAP50 0.97), +42% NPU FPS | ≈ 10 min | 12 | ≈ 6.0K | ≈ $5.1 |
+|---|---|---|---|---|---|
+| **[Squat-Counting Mini-Game](../../dx-agentic-dev-showcase/squat-fitness-mini-game/)** | Counts squat reps from knee/hip angles with an arcade HUD (reps / score / DOWN·UP·GOOD!). | ≈ 20 min | 81 | ≈ 85K | ≈ $9.9 |
+| **[Stretching Coach Mini-Game](../../dx-agentic-dev-showcase/stretching-coach-mini-game/)** | Guides 3 stretches with an animated coach avatar that demonstrates each target pose. | ≈ 21 min | 75 | ≈ 85K | ≈ $9.4 |
+| **[Ultralytics YOLO → DeepX Export](../../dx-agentic-dev-showcase/ultralytics-yolo-deepx-export/)** | Turns an Ultralytics YOLO `.pt` into a deployable DeepX NPU model (`.dxnn`) in a single `yolo export ... format=deepx` command, then runs NPU inference + verify. | ≈ 11.6 min | 59 | — | ≈ $2.4 |
+| **[African Wildlife Monitoring](../../dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-wildlife/)** | Retrains `yolo26n` on `african-wildlife` (buffalo/elephant/rhino/zebra) for a safari/conservation camera; 4-way eval base/retrained × fp32/INT8. | ≈ 12 min | 8 | ≈ 6.9K | ≈ $3.3 |
+| **[Construction PPE Safety](../../dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-ppe/)** | Retrains `yolo26n` on `construction-ppe` for a site-safety camera (helmet/vest/...); 4-way eval base/retrained × fp32/INT8. | ≈ 13 min | 19 | ≈ 8.8K | ≈ $5.1 |
+| **[Brain-Tumor Screening](../../dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-braintumor/)** | Retrains `yolo26n` on `brain-tumor` (MRI/CT) for a medical edge device; 4-way eval base/retrained × fp32/INT8. | ≈ 12 min | 11 | ≈ 8.9K | ≈ $3.7 |
+| **[Pharmaceutical Pill Inspection](../../dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-pills/)** | Retrains `yolo26n` on `medical-pills` for a pharma counting station; 4-way eval base/retrained × fp32/INT8. | ≈ 10 min | 12 | ≈ 6.0K | ≈ $5.1 |
+<!-- dx-showcase:docs:table:end -->
 
-Both were built by **Claude Code** (model **Claude Opus 4.8**) from **one** prompt, fully
-autonomously, running the full `dx-skill-router → dx-agentic-brainstorm →
-dx-swe-writing-plans → dx-agentic-tdd → dx-agentic-verify` sequence, and both support a
-**video-file input and a live camera input** (`--video <file>` / `--camera <id>`).
-Per-app metrics + transcripts are in each showcase's `README.md`.
+**Full catalog + per-showcase summaries (with build GIFs) →**
+[`dx-agentic-dev-showcase/README.md`](../../dx-agentic-dev-showcase/README.md). Each row's
+link opens that showcase's own README — the verbatim prompt, the 4-way eval / gameplay
+detail, and its session transcript.
 
-### Showcase 1 — Squat-counting mini-game
+### How it works — the harness, not (just) the model
 
-**The prompt** (given to Claude Code in the `dx_app` directory):
+Each app ships its **complete agent session transcript**, the most direct way to see that
+the result comes less from the raw model and more from the **instructions, skills, and
+verification gates** the harness imposes. Reading a transcript you can watch:
 
-> Using the yolo26n-pose model on the DEEPX NPU, build a simple squat-counting
-> fitness mini-game. Implement and validate it using the sample video at
-> `sample/squat_demo.mp4`. The generated app must support **both a video-file
-> input and a live camera input, selectable at runtime via command-line options**
-> (e.g. `--video <file>` or `--camera <id>`). Detect squat repetitions from body
-> keypoints (use knee and hip angles to recognize the down then up motion), count
-> the reps in real time, and overlay an arcade-style fitness game UI on each frame
-> (rep counter, target reps, a score, and DOWN / UP / GOOD! feedback text). When
-> run on a video file, save an annotated output video so the result can be reviewed.
-
-The agent named its game **"SQUAT CHALLENGE"** and added a `yolo26n-pose · DX-M1 NPU`
-badge to the HUD — all from that single prompt.
-
-<div align="center">
-<table>
-<tr>
-<td align="center"><img src="./img/dx-agentic-dev-squat-build.gif" width="520"><br><sub><b>The agent building the app — brainstorm → plan → TDD → verify (timelapse)</b></sub></td>
-<td align="center"><img src="./img/dx-agentic-dev-squat-gameplay.gif" width="205"><br><sub><b>The generated app running on the DX-M1 NPU</b></sub></td>
-</tr>
-</table>
-</div>
-
-### Showcase 2 — Stretching coach mini-game
-
-An arcade stretching game that guides the player through three stretches, one stage at
-a time, drawing an animated stick-figure **coach avatar** (derived from the sample
-clips) that demonstrates each target pose for the user to follow.
-
-**The prompt** (given to Claude Code in the `dx_app` directory):
-
-> Using the yolo26n-pose model on the DEEPX NPU, build a simple arcade-style
-> stretching mini-game. The game guides the user through three stretch poses, one
-> stage at a time: (1) extend both arms straight overhead, (2) bend forward at the
-> waist (forward fold), and (3) pull the head to one side with one hand for a neck
-> stretch. For each stage, **render a small human-figure "coach" avatar** in a
-> top-left panel that demonstrates the current target stretch — a clean stick-figure
-> posed in the target stretch, **animated** between a neutral standing pose and the
-> full target pose, with each target shape **derived from the corresponding sample
-> clip**. Show the stretch name + a short instruction and a HOLD progress bar; when
-> the user holds the matching pose, advance; clear when all three are done. The app
-> **must support both a video-file input and a live camera input** (`--video <file>`
-> or `--camera <id>`). When run on a video file, save an annotated output video.
-
-<div align="center">
-<table>
-<tr>
-<td align="center"><img src="./img/dx-agentic-dev-stretch-build.gif" width="520"><br><sub><b>The agent building the stretching game (timelapse)</b></sub></td>
-<td align="center"><img src="./img/dx-agentic-dev-stretch-gameplay.gif" width="205"><br><sub><b>The generated app on the DX-M1 NPU — coach avatar + 3 stages</b></sub></td>
-</tr>
-</table>
-</div>
-
-### What the agent did
-
-Prompted once, the agent ran the full DEEPX agentic workflow on its own:
-
-1. **`dx-skill-router`** → **`dx-agentic-brainstorm`** — inspected the existing
-   `yolo26n_pose` example, confirmed the model and framework APIs, and wrote a design spec.
-2. **`dx-swe-writing-plans`** — produced a step-by-step implementation plan.
-3. **`dx-agentic-tdd`** — generated the app file-by-file, verifying each one.
-4. **`dx-agentic-verify`** — ran the framework validator and a fresh on-NPU run,
-   confirming the app counts squats and saves an annotated video before declaring done.
-
-The result lands in an isolated session directory
-(`dx_app/dx-agentic-dev/<session>/`) and never touches existing source.
-
-### How the generated app is structured
-
-The agent followed the dx_app **skeleton-first + `IFactory`** rules — it did *not*
-write a standalone script. The generated app:
-
-- **reuses** the framework's standard pose preprocessor/postprocessor (the DXNN
-  model self-describes its input size; the YOLO-pose postprocessor emits COCO
-  17-point body keypoints);
-- adds **only a custom visualizer** that carries the game's logic — a knee-angle
-  **squat rep counter** (one rep per full DOWN→UP cycle) plus the on-frame HUD
-  (reps / target / score / DOWN·UP·GOOD! feedback);
-- executes through the framework's **`SyncRunner`** (single ordered video →
-  sequential, stateful counting), which drives the read → NPU inference →
-  visualize → save loop;
-- keeps game tuning (target reps, knee-angle thresholds, score per rep) in
-  `config.json`, so behavior changes without touching code;
-- is **self-contained & portable** — `setup.sh` vendors the shared framework into
-  `./common` and the entry script (`*_sync.py`) imports that vendored `./common`
-  **first** (no `PYTHONPATH` needed), so the folder runs even when copied **entirely
-  outside** dx-all-suite. The only external requirement is `dx_engine` (the DEEPX runtime).
-
-Run it with `./setup.sh` (vendors the framework into `./common` + bundles the sample
-and model) then `./run.sh` — a **relocatable** launcher that handles a venv fallback
-chain, a model-existence guard, and bundled-sample-first input. You can also invoke the
-generated `*_sync.py` directly: point it at the `.dxnn` model and the input video with
-`--save`, and it writes an annotated output video.
-
-> **Note:** dx-agentic-dev generates fresh code on each run, so the exact class
-> names, filenames, and config values vary between builds. What stays constant is
-> the **pattern** above — `IFactory` reuse + a custom visualizer + `SyncRunner` —
-> which is what these docs describe.
-
-> **Reproducibility note:** this build was repeated multiple times from the same
-> prompt; each run independently produced a runnable app that correctly counts the
-> squats — with different but valid code structures, confirming the result is
-> re-derived from the knowledge base rather than memorized.
-
-### Run the generated sample yourself
-
-One representative build of this demo is **checked into the suite** so you can run
-it without re-generating anything:
-
-📂 **[`dx-agentic-dev-showcase/squat-fitness-mini-game/`](../../dx-agentic-dev-showcase/squat-fitness-mini-game/)**
- — start with its **[README](../../dx-agentic-dev-showcase/squat-fitness-mini-game/README.md)**.
-
-```bash
-cd dx-agentic-dev-showcase/squat-fitness-mini-game
-
-./setup.sh                       # detect a dx_engine venv + vendor framework into ./common + bundle sample/model
-./run.sh                         # video demo on the bundled sample -> annotated output.mp4
-./run.sh --camera 0              # live camera (needs a display)
-./run.sh --video /path/clip.mp4 --save
-```
-
-This folder is **self-contained & portable** — `setup.sh` vendors the shared framework
-into `./common`, so it runs even when copied **outside** dx-all-suite (`dx_engine` is the
-only external requirement). The sample video is **bundled** with the showcase, and
-`run.sh` is a relocatable launcher (venv fallback chain + model-existence guard) that
-prints a clear hint if the `yolo26n-pose.dxnn` model still needs to be downloaded.
-Because dx-agentic-dev generates fresh code each run, the class names and filenames in
-that directory are one concrete instance of the **pattern** described above — yours may differ.
-
-The **stretching coach mini-game** showcase (Showcase 2 above) runs exactly the same
-way — `./setup.sh` then `./run.sh` (or `./run.sh --camera 0`) from
-[`dx-agentic-dev-showcase/stretching-coach-mini-game/`](../../dx-agentic-dev-showcase/stretching-coach-mini-game/).
-Build/run metrics for both showcases are in the table at the top and in each
-showcase's `README.md`.
-
-### Inspect the agent's session — how it followed the harness
-
-The showcase also ships the **complete Claude Code session** that produced the app.
-This is the most direct way to see how much of the result comes from *harness
-engineering* — the layered `CLAUDE.md` / `.deepx/` instructions, agents, and skills
-that steer the model — rather than the model improvising:
-
-- **[`claude-code-session.md`](../../dx-agentic-dev-showcase/squat-fitness-mini-game/claude-code-session.md)**
-  — renders directly on GitHub *(recommended for a quick read)*.
-- **`claude-code-session.html`** — the same transcript; **open it locally in a
-  browser** for a richer, styled view (GitHub shows HTML as source, not rendered).
-
-Reading the transcript, you can watch the harness in action:
-
-- **Instruction-following** — the agent honors the suite HARD GATES: it emits the
-  `[DX-AGENTIC-DEV: START]` / `DONE` session sentinels, keeps all output inside an
-  isolated session directory (never touching existing source), and refuses to write
-  placeholder/stub code.
-- **Skill & agent utilization** — it invokes the mandatory skill sequence as real
-  tool calls — `dx-skill-router` → `dx-agentic-brainstorm` → `dx-swe-writing-plans`
-  → `dx-agentic-tdd` → `dx-agentic-verify` — instead of just *mentioning* them.
-- **Actual reasoning** — you can follow how it inspected the existing
-  `yolo26n_pose` example, confirmed the real framework APIs from the knowledge base,
-  calibrated the knee-angle thresholds from measured data, wrote unit tests first
-  (RED), then generated and verified the app file-by-file before declaring done.
-
-This is the point of the showcase: the quality comes less from the raw model and
-more from the **instructions, skills, and verification gates** the harness imposes.
+- **Instruction-following** — the agent honors the suite HARD GATES: session sentinels
+  (`[DX-AGENTIC-DEV: START]` / `DONE`), output isolated to a session directory (never
+  touching existing source), and no placeholder/stub code.
+- **Skill & agent utilization** — it invokes the mandatory sequence as real tool calls —
+  `dx-skill-router → dx-agentic-brainstorm → dx-swe-writing-plans → dx-agentic-tdd →
+  dx-agentic-verify` — rather than just *mentioning* them.
+- **Actual reasoning** — inspecting the closest existing example, confirming real
+  framework APIs from the knowledge base, writing validation first (RED), then
+  generating + verifying file-by-file before declaring done.
 
 ## Prerequisites
 

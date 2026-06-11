@@ -18,152 +18,31 @@
   <p><strong>그림. DXNN SDK 간략 아키텍처 개요.</strong></p>
 </div>
 
-## ✨ 자연어로 앱 만들기 — dx-agentic-dev (Beta)
+## ✨ 자연어로 NPU 앱 만들기 — dx-agentic-dev (Beta)
 
-> **단 20분, 약 $10의 비용으로, 자연어를 통해 DEEPX NPU용 피트니스 게임을 완전 자율형으로
-> 개발할 수 있습니다.** 원하는 앱을 평범한 자연어로 설명하면, AI coding agent가 DEEPX SDK
-> 위에서 end-to-end로 만들어 줍니다.
+<!-- dx-showcase:docs:cardgrid:start -->
+> **프롬프트 하나 → 동작하는 DX-M1 NPU 앱.** 보일러플레이트도, 손으로 짠 파이프라인도 없이 — AI 코딩 에이전트가 DEEPX 지식 베이스를 end-to-end로 구동(brainstorm → plan → TDD → verify).
 
-### Showcase 1: 스쿼트 카운팅 피트니스 미니게임(DEEPX SQUAT CHALLENGE)
-
-<div align="center">
 <table>
 <tr>
-<td align="center"><img src="./docs/source/img/dx-agentic-dev-squat-build.gif" width="470"><br><sub><b>dx-agentic-dev가 앱을 빌드하는 모습 (timelapse)</b></sub></td>
-<td align="center"><img src="./docs/source/img/dx-agentic-dev-squat-gameplay.gif" width="188"><br><sub><b>생성된 앱이 NPU에서 실행되는 모습</b></sub></td>
+ <td width="33%" align="center"><a href="dx-agentic-dev-showcase/squat-fitness-mini-game/README-ko.md"><img src="./docs/source/img/dx-agentic-dev-squat-gameplay.gif" width="230"></a><br><b>스쿼트 카운팅 미니게임</b><br><sub>NPU 위 스쿼트 카운팅</sub></td>
+ <td width="33%" align="center"><a href="dx-agentic-dev-showcase/stretching-coach-mini-game/README-ko.md"><img src="./docs/source/img/dx-agentic-dev-stretch-gameplay.gif" width="230"></a><br><b>스트레칭 coach 미니게임</b><br><sub>포즈 가이드 아케이드 coach</sub></td>
+ <td width="33%" align="center"><a href="dx-agentic-dev-showcase/ultralytics-yolo-deepx-export/README-ko.md"><img src="./docs/source/img/dx-agentic-dev-ultralytics-build.gif" width="230"></a><br><b>Ultralytics YOLO → DeepX Export</b><br><sub>한 줄 format=deepx</sub></td>
 </tr>
-</table>
-</div>
-
-**▶️ 직접 실행해보기** — 생성된 앱이
-**[`dx-agentic-dev-showcase/squat-fitness-mini-game/`](./dx-agentic-dev-showcase/squat-fitness-mini-game/)**
-에 그대로 들어 있습니다.
-[README](./dx-agentic-dev-showcase/squat-fitness-mini-game/README.md)를 읽고 실행하세요.
-
-**🔍 agent가 어떻게 만들었는지 확인하기** — agent가 harness instruction을 어떻게 따르고
-프로젝트 skill/agent를 어떻게 활용했는지 볼 수 있도록 전체
-[Claude Code 세션](./dx-agentic-dev-showcase/squat-fitness-mini-game/claude-code-session.md)이
-포함되어 있습니다.
-
-### Showcase 2: 아케이드 스트레칭 coach 미니게임(STRETCH ARCADE)
-
-<div align="center">
-<table>
 <tr>
-<td align="center"><img src="./docs/source/img/dx-agentic-dev-stretch-build.gif" width="470"><br><sub><b>dx-agentic-dev가 스트레칭 게임을 빌드하는 모습 (timelapse)</b></sub></td>
-<td align="center"><img src="./docs/source/img/dx-agentic-dev-stretch-gameplay.gif" width="188"><br><sub><b>생성된 앱이 NPU에서 실행 (coach 아바타 + 3단계)</b></sub></td>
+ <td width="33%" align="center"><a href="dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-wildlife/README-ko.md"><img src="./docs/source/img/dx-agentic-dev-ultralytics-wildlife-build.gif" width="230"></a><br><b>아프리카 야생동물 모니터링</b><br><sub>사파리 카메라 재학습</sub></td>
+ <td width="33%" align="center"><a href="dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-ppe/README-ko.md"><img src="./docs/source/img/dx-agentic-dev-ultralytics-ppe-build.gif" width="230"></a><br><b>건설 PPE 안전</b><br><sub>현장 안전 카메라 재학습</sub></td>
+ <td width="33%" align="center"><a href="dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-braintumor/README-ko.md"><img src="./docs/source/img/dx-agentic-dev-ultralytics-braintumor-build.gif" width="230"></a><br><b>뇌종양 스크리닝</b><br><sub>의료 edge 재학습</sub></td>
+</tr>
+<tr>
+ <td width="33%" align="center"><a href="dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-pills/README-ko.md"><img src="./docs/source/img/dx-agentic-dev-ultralytics-pills-build.gif" width="230"></a><br><b>의약품 알약 검사</b><br><sub>제약 카운팅 재학습</sub></td>
+ <td></td>
+ <td></td>
 </tr>
 </table>
-</div>
 
-**▶️ 직접 실행해보기** — 생성된 앱이
-**[`dx-agentic-dev-showcase/stretching-coach-mini-game/`](./dx-agentic-dev-showcase/stretching-coach-mini-game/)**
-에 들어 있습니다
-([README](./dx-agentic-dev-showcase/stretching-coach-mini-game/README.md)).
-
-### Showcase 3: Ultralytics YOLO → DeepX Export (one-shot `format=deepx`)
-
-<div align="center">
-<img src="./docs/source/img/dx-agentic-dev-ultralytics-build.gif" width="640"><br><sub><b>dx-agentic-dev가 이 showcase를 만드는 과정 (timelapse) — export → dx_com compile → NPU inference → verify</b></sub>
-</div>
-
-DEEPX × **Ultralytics** 기술 통합: Ultralytics YOLO `.pt`를 **명령 한 번**으로 배포
-가능한 DeepX NPU 모델로 변환합니다 —
-
-```bash
-yolo export model=yolo26n.pt format=deepx   # → yolo26n_deepx_model/ (.dxnn + config + metadata)
-```
-
-*"내 YOLO26n 모델을 DeepX로 export하고 inference 실행해줘"* 프롬프트 하나로, 에이전트는
-knowledge base를 통해
-[`ultralytics-deepx-export`](./dx-compiler/.deepx/toolsets/ultralytics-deepx-export.md)
-toolset으로 라우팅되어 export + 배포를 수행합니다 — 수작업 파이프라인 없이.
-
-**▶️ 직접 실행해보기** —
-**[`dx-agentic-dev-showcase/ultralytics-yolo-deepx-export/`](./dx-agentic-dev-showcase/ultralytics-yolo-deepx-export/)**
-에 들어 있습니다
-([README](./dx-agentic-dev-showcase/ultralytics-yolo-deepx-export/README-ko.md)).
-
-### Showcase 4: Ultralytics 재학습 → DeepX NPU (도메인 최적화)
-
-<!-- dx-showcase:ultralytics-retrain-eval-deepx-export-wildlife:gif:start -->
-<div align="center">
-<table><tr>
-<td align="center"><img src="./docs/source/img/dx-agentic-dev-ultralytics-wildlife-build.gif" width="470"><br><sub><b>빌드 (timelapse)</b></sub></td>
-<td align="center"><img src="./docs/source/img/dx-agentic-dev-ultralytics-wildlife-sample.jpg" width="280"><br><sub><b>DX-M1 NPU 야생동물 검출</b></sub></td>
-</tr></table>
-</div>
-<!-- dx-showcase:ultralytics-retrain-eval-deepx-export-wildlife:gif:end -->
-
-
-**야생동물 모니터링**: stock COCO `yolo26n`은 야생동물 종을 안정적으로 못 잡으므로
-`african-wildlife`(buffalo, elephant, rhino, zebra)로 재학습 후 DX-M1 NPU 배포 —
-**mAP50-95 ~0.0007 → 0.79**(mAP50 0.94, INT8 NPU), **+35% FPS**(59 → 80);
-base/재학습 × fp32-GPU / INT8-NPU **4-way 평가**, INT8 ≈ fp32.
-
-**▶️ 직접 실행해보기** —
-**[`dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-wildlife/`](./dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-wildlife/)**
-에 들어 있습니다
-([README](./dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-wildlife/README-ko.md)).
-
-### Showcase 5: Ultralytics PPE 탐지 → DeepX NPU (건설 안전)
-
-<!-- dx-showcase:ultralytics-retrain-eval-deepx-export-ppe:gif:start -->
-<div align="center">
-<table><tr>
-<td align="center"><img src="./docs/source/img/dx-agentic-dev-ultralytics-ppe-build.gif" width="470"><br><sub><b>빌드 (timelapse)</b></sub></td>
-<td align="center"><img src="./docs/source/img/dx-agentic-dev-ultralytics-ppe-sample.jpg" width="280"><br><sub><b>DX-M1 NPU PPE 검출</b></sub></td>
-</tr></table>
-</div>
-<!-- dx-showcase:ultralytics-retrain-eval-deepx-export-ppe:gif:end -->
-
-
-**건설 현장 안전 카메라**용 도메인 최적화: `construction-ppe`로 `yolo26n` 재학습 후
-DX-M1 NPU 배포 — stock COCO **mAP50-95 0.0001 → 재학습 0.257**(mAP50 0.51, INT8 NPU), **+38% FPS**
-(58 → 80); base/재학습 × fp32-GPU / INT8-NPU **4-way 평가**.
-
-**▶️ 직접 실행해보기** — **[`dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-ppe/`](./dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-ppe/)**
-([README](./dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-ppe/README-ko.md)).
-
-### Showcase 6: Ultralytics 뇌종양 스크리닝 → DeepX NPU (의료 edge)
-
-<!-- dx-showcase:ultralytics-retrain-eval-deepx-export-braintumor:gif:start -->
-<div align="center">
-<table><tr>
-<td align="center"><img src="./docs/source/img/dx-agentic-dev-ultralytics-braintumor-build.gif" width="470"><br><sub><b>빌드 (timelapse)</b></sub></td>
-<td align="center"><img src="./docs/source/img/dx-agentic-dev-ultralytics-braintumor-sample.jpg" width="280"><br><sub><b>DX-M1 NPU 종양 검출</b></sub></td>
-</tr></table>
-</div>
-<!-- dx-showcase:ultralytics-retrain-eval-deepx-export-braintumor:gif:end -->
-
-
-**의료 edge 디바이스**용 도메인 최적화: `brain-tumor`(MRI/CT)로 `yolo26n` 재학습 후 DX-M1
-NPU 배포 — stock COCO **mAP50-95 ~0.0005 → 재학습 0.40**(mAP50 0.54, INT8 NPU), **+41% FPS**
-(59 → 83); base/재학습 × fp32/INT8 **4-way 평가**.
-
-**▶️ 직접 실행해보기** — **[`dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-braintumor/`](./dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-braintumor/)**
-([README](./dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-braintumor/README-ko.md)).
-
-### Showcase 7: Ultralytics 알약 탐지 → DeepX NPU (제약)
-
-<!-- dx-showcase:ultralytics-retrain-eval-deepx-export-pills:gif:start -->
-<div align="center">
-<table><tr>
-<td align="center"><img src="./docs/source/img/dx-agentic-dev-ultralytics-pills-build.gif" width="470"><br><sub><b>빌드 (timelapse)</b></sub></td>
-<td align="center"><img src="./docs/source/img/dx-agentic-dev-ultralytics-pills-sample.jpg" width="280"><br><sub><b>DX-M1 NPU 알약 검출</b></sub></td>
-</tr></table>
-</div>
-<!-- dx-showcase:ultralytics-retrain-eval-deepx-export-pills:gif:end -->
-
-
-**제약 알약 계수 스테이션**용 도메인 최적화: `medical-pills`로 `yolo26n` 재학습 후 DX-M1
-NPU 배포 — stock COCO **mAP50-95 ~0.001 → 재학습 0.75**(mAP50 0.97, INT8 NPU), **+42% FPS**
-(55 → 78); 4-way 평가.
-
-**▶️ 직접 실행해보기** — **[`dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-pills/`](./dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-pills/)**
-([README](./dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-pills/README-ko.md)).
-
-➡️ **[Agentic Development (Beta) 시작하기](./docs/source/00_Agentic_Development_kor.md)**
+**전체 showcase 목록 + 요약 →** [`dx-agentic-dev-showcase/README-ko.md`](./dx-agentic-dev-showcase/README-ko.md)  ·  **기능 설명 →** [Agentic Development 문서](./docs/source/00_Agentic_Development_kor.md)
+<!-- dx-showcase:docs:cardgrid:end -->
 
 ## 시작하기
 

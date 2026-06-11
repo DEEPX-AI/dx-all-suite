@@ -5,6 +5,7 @@ Subcommands (deterministic mechanics; the skill orchestrates them):
   verify          run the showcase verification gate (exit 1 on any failure)
   copy-artifacts  copy a build session's files into the showcase dir (+portability scan)
   augment         upsert a GIF block into a README/doc (idempotent, marker-anchored)
+  regen-docs      regenerate the card grid / catalog / 00-docs table from showcases.json
   gif             encode a timelapse GIF from a captured mp4
   crop            post-crop a full-screen capture to a window rect
   window-rect     print a window's rect (xwininfo) as WxH+X+Y
@@ -67,6 +68,37 @@ def _cmd_augment(a) -> int:
                                          sample_rel=a.sample or "",
                                          sample_caption=a.sample_caption or "")
     print(f"{'updated' if changed else 'unchanged'}: {a.readme}")
+    return 0
+
+
+def _cmd_regen_docs(a) -> int:
+    from . import manifest as M
+    root = Path(a.repo_root).resolve()
+    man = M.load_manifest(str(root))
+    surfaces = [
+        ("README.md", "cardgrid", augment.cardgrid_region(man, lang="en"), "dx-agentic-dev (Beta)"),
+        ("README-KO.md", "cardgrid", augment.cardgrid_region(man, lang="ko"), "dx-agentic-dev (Beta)"),
+        ("dx-agentic-dev-showcase/README.md", "catalog",
+         augment.catalog_region(man, lang="en"), "<!-- catalog -->"),
+        ("dx-agentic-dev-showcase/README-ko.md", "catalog",
+         augment.catalog_region(man, lang="ko"), "<!-- catalog -->"),
+        ("docs/source/00_Agentic_Development.md", "table",
+         augment.showcase_table(man.showcases, lang="en"), "<!-- showcase-table -->"),
+        ("docs/source/00_Agentic_Development_kor.md", "table",
+         augment.showcase_table(man.showcases, lang="ko"), "<!-- showcase-table -->"),
+    ]
+    changed = []
+    for relpath, kind, block, anchor in surfaces:
+        mk = f"dx-showcase:docs:{kind}"
+        if augment.upsert_block(str(root / relpath), anchor=anchor, block=block, mk=mk):
+            changed.append(relpath)
+    missing = M.missing_from_manifest(str(root))
+    if missing:
+        print("WARNING: showcase dirs missing from manifest:", ", ".join(missing))
+    for c in changed:
+        print(f"updated: {c}")
+    if not changed:
+        print("unchanged (idempotent)")
     return 0
 
 
@@ -182,6 +214,10 @@ def main(argv=None) -> int:
     g.add_argument("--width", type=int, default=760)
     g.add_argument("--sample", help="optional 2nd image (result sample) → 2-column block")
     g.add_argument("--sample-caption", default="")
+
+    rd = sub.add_parser("regen-docs"); rd.set_defaults(fn=_cmd_regen_docs)
+    rd.add_argument("--repo-root", default=".",
+                    help="suite root containing dx-agentic-dev-showcase/showcases.json")
 
     gi = sub.add_parser("gif"); gi.set_defaults(fn=_cmd_gif)
     gi.add_argument("--input", required=True); gi.add_argument("--output", required=True)

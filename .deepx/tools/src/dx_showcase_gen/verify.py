@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import List, Optional
 
 from . import constants as C
-from . import augment, recorder, transcript
+from . import augment, manifest, recorder, transcript
 
 
 @dataclass
@@ -122,4 +122,16 @@ def verify_showcase(showcase_dir: str, *, stream_json: Optional[str] = None,
         tp = Path(tgt)
         rep.add(f"augmented: {tp.name}", augment.has_marker(tgt, name),
                 f"marker dx-showcase:{name}:gif")
+
+    # 6. manifest coverage — the showcase MUST be listed in showcases.json so the
+    # card grid / catalog / docs table include it (the yolo-export omission class of bug)
+    root = sc.resolve().parent.parent  # dx-agentic-dev-showcase/<name> -> repo root
+    man_path = root / manifest.MANIFEST_REL
+    if man_path.exists():
+        try:
+            listed = {s.name for s in manifest.load_manifest(str(root)).showcases}
+            rep.add("listed in showcases.json", name in listed,
+                    "present" if name in listed else f"'{name}' missing — add it + run regen-docs")
+        except Exception as e:  # malformed manifest is itself a failure
+            rep.add("listed in showcases.json", False, f"manifest error: {e}")
     return rep
