@@ -33,10 +33,10 @@ NPU 앱을 만들어 냅니다.
 |----------|------|-----------|------------|-------------|-------|
 | **[스쿼트 카운팅 미니게임](../../dx-agentic-dev-showcase/squat-fitness-mini-game/)** | 무릎/엉덩이 각도로 스쿼트 횟수 카운트 + 아케이드 HUD(횟수/점수/DOWN·UP·GOOD!) | ≈ 20분 | 81 | ≈ 85K | ≈ $9.9 |
 | **[스트레칭 coach 미니게임](../../dx-agentic-dev-showcase/stretching-coach-mini-game/)** | 애니메이션 **coach 아바타**가 각 목표 포즈를 시연하며 3가지 스트레칭 안내 | ≈ 21분 | 75 | ≈ 85K | ≈ $9.4 |
-| **[Ultralytics PPE → DeepX NPU](../../dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-ppe/)** | `yolo26n`을 건설 PPE 안전용 재학습, 4-way 평가(base/재학습 × fp32/INT8); stock mAP 0.0001 → 0.256, +32% NPU FPS | ≈ 14분 | — | — | ≈ $5 |
-| **[Ultralytics 뇌종양 → DeepX NPU](../../dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-braintumor/)** | `yolo26n`을 MRI/CT 뇌종양 스크리닝용 재학습, 4-way 평가; stock mAP ~0.0005 → 0.40, +34% NPU FPS | ≈ 12분 | — | — | ≈ $5 |
-| **[Ultralytics 알약 → DeepX NPU](../../dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-pills/)** | `yolo26n`을 제약 알약 탐지용 재학습, 4-way 평가; stock mAP ~0.001 → 0.75 (mAP50 0.97), +38% NPU FPS | ≈ 9분 | — | — | ≈ $4 |
-| **[Ultralytics 재학습 → DeepX NPU](../../dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-wildlife/)** | `yolo26n`을 도메인 셋으로 재학습→`format=deepx` export→NPU FPS+mAP 측정(stock mAP 0.001 → 0.79, +41% FPS) | ≈ 18.5분 | 72 | ≈ 51K | ≈ $6.7 |
+| **[Ultralytics 아프리카 야생동물 → DeepX NPU](../../dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-wildlife/)** | `yolo26n`을 `african-wildlife`(buffalo/elephant/rhino/zebra)로 재학습, 4-way 평가(base/재학습 × fp32-GPU / INT8-NPU); stock mAP ~0.0007 → 0.79 (mAP50 0.94), +35% NPU FPS | ≈ 12분 | 8 | ≈ 6.9K | ≈ $3.3 |
+| **[Ultralytics PPE → DeepX NPU](../../dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-ppe/)** | `yolo26n`을 건설 PPE 안전용 재학습, 4-way 평가; stock mAP 0.0001 → 0.257 (mAP50 0.51), +38% NPU FPS | ≈ 13분 | 19 | ≈ 8.8K | ≈ $5.1 |
+| **[Ultralytics 뇌종양 → DeepX NPU](../../dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-braintumor/)** | `yolo26n`을 MRI/CT 뇌종양 스크리닝용 재학습, 4-way 평가; stock mAP ~0.0005 → 0.40 (mAP50 0.54), +41% NPU FPS | ≈ 12분 | 11 | ≈ 8.9K | ≈ $3.7 |
+| **[Ultralytics 알약 → DeepX NPU](../../dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-pills/)** | `yolo26n`을 제약 알약 탐지용 재학습, 4-way 평가; stock mAP ~0.001 → 0.75 (mAP50 0.97), +42% NPU FPS | ≈ 10분 | 12 | ≈ 6.0K | ≈ $5.1 |
 
 둘 다 **Claude Code**(모델 **Claude Opus 4.8**)가 **프롬프트 1개**로 완전 자율로,
 `dx-skill-router → dx-agentic-brainstorm → dx-swe-writing-plans → dx-agentic-tdd →

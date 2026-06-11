@@ -97,8 +97,9 @@ toolset으로 라우팅되어 export + 배포를 수행합니다 — 수작업 �
 
 
 **야생동물 모니터링**: stock COCO `yolo26n`은 야생동물 종을 안정적으로 못 잡으므로
-`african-wildlife`로 재학습 후 DX-M1 NPU 배포 — **mAP50-95 ~0.001 → 0.79**(mAP50 0.94,
-INT8 NPU), **+38% FPS**(59 → 82); base/재학습 × fp32-GPU / INT8-NPU **4-way 평가**, INT8 ≈ fp32.
+`african-wildlife`(buffalo, elephant, rhino, zebra)로 재학습 후 DX-M1 NPU 배포 —
+**mAP50-95 ~0.0007 → 0.79**(mAP50 0.94, INT8 NPU), **+35% FPS**(59 → 80);
+base/재학습 × fp32-GPU / INT8-NPU **4-way 평가**, INT8 ≈ fp32.
 
 **▶️ 직접 실행해보기** —
 **[`dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-wildlife/`](./dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-wildlife/)**
@@ -118,8 +119,8 @@ INT8 NPU), **+38% FPS**(59 → 82); base/재학습 × fp32-GPU / INT8-NPU **4-wa
 
 
 **건설 현장 안전 카메라**용 도메인 최적화: `construction-ppe`로 `yolo26n` 재학습 후
-DX-M1 NPU 배포 — stock COCO **mAP50-95 0.0001 → 재학습 0.256**(INT8 NPU), **+32% FPS**
-(58 → 76); base/재학습 × fp32-GPU / INT8-NPU **4-way 평가**.
+DX-M1 NPU 배포 — stock COCO **mAP50-95 0.0001 → 재학습 0.257**(mAP50 0.51, INT8 NPU), **+38% FPS**
+(58 → 80); base/재학습 × fp32-GPU / INT8-NPU **4-way 평가**.
 
 **▶️ 직접 실행해보기** — **[`dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-ppe/`](./dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-ppe/)**
 ([README](./dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-ppe/README-ko.md)).
@@ -137,8 +138,8 @@ DX-M1 NPU 배포 — stock COCO **mAP50-95 0.0001 → 재학습 0.256**(INT8 NPU
 
 
 **의료 edge 디바이스**용 도메인 최적화: `brain-tumor`(MRI/CT)로 `yolo26n` 재학습 후 DX-M1
-NPU 배포 — stock COCO **mAP50-95 ~0.0005 → 재학습 0.40**(INT8 NPU), **+34% FPS**
-(58 → 78); base/재학습 × fp32/INT8 **4-way 평가**.
+NPU 배포 — stock COCO **mAP50-95 ~0.0005 → 재학습 0.40**(mAP50 0.54, INT8 NPU), **+41% FPS**
+(59 → 83); base/재학습 × fp32/INT8 **4-way 평가**.
 
 **▶️ 직접 실행해보기** — **[`dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-braintumor/`](./dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-braintumor/)**
 ([README](./dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-braintumor/README-ko.md)).
@@ -156,8 +157,8 @@ NPU 배포 — stock COCO **mAP50-95 ~0.0005 → 재학습 0.40**(INT8 NPU), **+
 
 
 **제약 알약 계수 스테이션**용 도메인 최적화: `medical-pills`로 `yolo26n` 재학습 후 DX-M1
-NPU 배포 — stock COCO **mAP50-95 ~0.001 → 재학습 0.75**(mAP50 0.97, INT8 NPU), **+38% FPS**
-(56 → 77.5); 4-way 평가.
+NPU 배포 — stock COCO **mAP50-95 ~0.001 → 재학습 0.75**(mAP50 0.97, INT8 NPU), **+42% FPS**
+(55 → 78); 4-way 평가.
 
 **▶️ 직접 실행해보기** — **[`dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-pills/`](./dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-pills/)**
 ([README](./dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-pills/README-ko.md)).

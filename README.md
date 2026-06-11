@@ -93,9 +93,9 @@ toolset and drives the export + deployment — no hand-rolled pipeline.
 
 
 **Wildlife monitoring**: stock COCO `yolo26n` can't reliably detect wildlife species, so
-retrain it on `african-wildlife` and deploy on the DX-M1 NPU — **mAP50-95 ~0.001 → 0.79**
-(mAP50 0.94, INT8 NPU), **+38% FPS** (59 → 82); 4-way (base/retrained × fp32-GPU /
-INT8-NPU) eval, INT8 ≈ fp32.
+retrain it on `african-wildlife` (buffalo, elephant, rhino, zebra) and deploy on the
+DX-M1 NPU — **mAP50-95 ~0.0007 → 0.79** (mAP50 0.94, INT8 NPU), **+35% FPS** (59 → 80);
+4-way (base/retrained × fp32-GPU / INT8-NPU) eval, INT8 ≈ fp32.
 
 **▶️ Run it yourself** — checked in at
 **[`dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-wildlife/`](./dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-wildlife/)**
@@ -115,7 +115,7 @@ INT8-NPU) eval, INT8 ≈ fp32.
 
 Domain optimization for a **construction site-safety camera**: retrain `yolo26n` on the
 `construction-ppe` dataset and deploy on the DX-M1 NPU — stock COCO model **mAP50-95
-0.0001 → retrained 0.256** (INT8 NPU), **+32% FPS** (58 → 76); evaluated 4 ways
+0.0001 → retrained 0.257** (mAP50 0.51, INT8 NPU), **+38% FPS** (58 → 80); evaluated 4 ways
 (base/retrained × fp32-GPU / INT8-NPU).
 
 **▶️ Run it yourself** — **[`dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-ppe/`](./dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-ppe/)**
@@ -135,7 +135,7 @@ Domain optimization for a **construction site-safety camera**: retrain `yolo26n`
 
 Domain optimization for a **medical edge device**: retrain `yolo26n` on the `brain-tumor`
 dataset (MRI/CT) and deploy on the DX-M1 NPU — stock COCO model **mAP50-95 ~0.0005 →
-retrained 0.40** (INT8 NPU), **+34% FPS** (58 → 78); 4-way (base/retrained × fp32/INT8) eval.
+retrained 0.40** (mAP50 0.54, INT8 NPU), **+41% FPS** (59 → 83); 4-way (base/retrained × fp32/INT8) eval.
 
 **▶️ Run it yourself** — **[`dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-braintumor/`](./dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-braintumor/)**
 ([README](./dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-braintumor/README.md)).
@@ -154,7 +154,7 @@ retrained 0.40** (INT8 NPU), **+34% FPS** (58 → 78); 4-way (base/retrained × 
 
 Domain optimization for a **pharmaceutical pill counting station**: retrain `yolo26n` on
 `medical-pills` and deploy on the DX-M1 NPU — stock COCO model **mAP50-95 ~0.001 →
-retrained 0.75** (mAP50 0.97, INT8 NPU), **+38% FPS** (56 → 77.5); 4-way eval.
+retrained 0.75** (mAP50 0.97, INT8 NPU), **+42% FPS** (55 → 78); 4-way eval.
 
 **▶️ Run it yourself** — **[`dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-pills/`](./dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-pills/)**
 ([README](./dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-pills/README.md)).
