@@ -84,7 +84,10 @@ toolset and drives the export + deployment — no hand-rolled pipeline.
 
 <!-- dx-showcase:ultralytics-retrain-eval-deepx-export-wildlife:gif:start -->
 <div align="center">
-<img src="./docs/source/img/dx-agentic-dev-ultralytics-retrain-build.gif" width="760"><br><sub><b>dx-agentic-dev building this showcase — retrain → DeepX → NPU FPS/mAP</b></sub>
+<table><tr>
+<td align="center"><img src="./docs/source/img/dx-agentic-dev-ultralytics-wildlife-build.gif" width="470"><br><sub><b>building (timelapse)</b></sub></td>
+<td align="center"><img src="./docs/source/img/dx-agentic-dev-ultralytics-wildlife-sample.jpg" width="280"><br><sub><b>wildlife detection on DX-M1 NPU</b></sub></td>
+</tr></table>
 </div>
 <!-- dx-showcase:ultralytics-retrain-eval-deepx-export-wildlife:gif:end -->
 

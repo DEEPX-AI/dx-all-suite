@@ -1,14 +1,11 @@
 #!/usr/bin/env bash
-# run.sh — one-command relauncher for the 4-way evaluation. Assumes train.py +
-# export_deepx.py have already produced runs/train/weights/best.pt and the two
-# *_deepx_model/ dirs. Re-runs evaluate.py (+ verify.py) against the existing models.
-#
-# To rebuild from scratch instead:  python train.py && python export_deepx.py all
+# run.sh — one-command launcher for the YOLO26n african-wildlife retrain + DeepX benchmark.
+# Activates dx-runtime/venv-dx-runtime and runs pipeline.py, teeing output to session.log.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd -P)"
 
-# --- Auto-detect suite root (cross-project reference to dx-runtime venv) ---
+# Auto-detect suite root (walks up until dx-runtime/ and dx-compiler/ siblings are found)
 SUITE_ROOT="$SCRIPT_DIR"
 while [ "$SUITE_ROOT" != "/" ]; do
     if [ -d "$SUITE_ROOT/dx-runtime" ] && [ -d "$SUITE_ROOT/dx-compiler" ]; then
@@ -20,22 +17,16 @@ if [ "$SUITE_ROOT" = "/" ]; then
     echo "ERROR: Cannot find dx-all-suite root (expected dx-runtime/ and dx-compiler/ siblings)"
     exit 1
 fi
-VENV="$SUITE_ROOT/dx-runtime/venv-dx-runtime"
-VPY="$VENV/bin/python"
 
-if [ ! -x "$VPY" ]; then
-    echo "ERROR: venv-dx-runtime not found at $VENV — run setup.sh first."
+VENV="$SUITE_ROOT/dx-runtime/venv-dx-runtime"
+if [ ! -x "$VENV/bin/python" ]; then
+    echo "ERROR: venv not found at $VENV. Run setup.sh first."
     exit 1
 fi
-# Activate the venv if not already active (provides dx_engine for NPU eval).
-if [ "${VIRTUAL_ENV:-}" != "$VENV" ]; then
-    # shellcheck disable=SC1091
-    source "$VENV/bin/activate"
-fi
+# shellcheck disable=SC1091
+source "$VENV/bin/activate"
 
 cd "$SCRIPT_DIR"
-echo "=== Verifying exported DeepX models on the NPU ==="
-python verify.py
-echo "=== Running 4-way evaluation (base/retrained x fp32-GPU/INT8-NPU) ==="
-python evaluate.py
-echo "=== Done. See results.json and report.md ==="
+echo "==== Running YOLO26n retrain + DeepX benchmark pipeline ===="
+python pipeline.py 2>&1 | tee session.log
+echo "==== Pipeline finished. See report.md / results.json / sample_detect.jpg ===="

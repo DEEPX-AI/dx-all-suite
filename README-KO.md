@@ -88,7 +88,10 @@ toolset으로 라우팅되어 export + 배포를 수행합니다 — 수작업 �
 
 <!-- dx-showcase:ultralytics-retrain-eval-deepx-export-wildlife:gif:start -->
 <div align="center">
-<img src="./docs/source/img/dx-agentic-dev-ultralytics-retrain-build.gif" width="760"><br><sub><b>dx-agentic-dev가 이 showcase를 만드는 과정 — 재학습 → DeepX → NPU FPS/mAP</b></sub>
+<table><tr>
+<td align="center"><img src="./docs/source/img/dx-agentic-dev-ultralytics-wildlife-build.gif" width="470"><br><sub><b>빌드 (timelapse)</b></sub></td>
+<td align="center"><img src="./docs/source/img/dx-agentic-dev-ultralytics-wildlife-sample.jpg" width="280"><br><sub><b>DX-M1 NPU 야생동물 검출</b></sub></td>
+</tr></table>
 </div>
 <!-- dx-showcase:ultralytics-retrain-eval-deepx-export-wildlife:gif:end -->
 

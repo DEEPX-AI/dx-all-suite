@@ -1,98 +1,79 @@
-# YOLO26n African-Wildlife Domain Optimization — 4-Way Accuracy/Speed Report
+# YOLO26n African-Wildlife — Domain Retrain + DeepX 4-Way Benchmark Report
 
-**Scenario:** wildlife-monitoring / safari camera. The stock `yolo26n` is a general
-COCO-trained detector that does not reliably recognize African wildlife species, so it was
-fine-tuned on the Ultralytics **african-wildlife** dataset (nc=4: buffalo, elephant, rhino,
-zebra) to produce a domain-optimized model, then exported to the DeepX DX-M1 NPU.
+**Date:** 2026-06-11 · **Session:** `20260611-104801_claude_opus48_yolo26n_retrain_eval`
+**Scenario:** wildlife-monitoring / safari camera — detect buffalo, elephant, rhino, zebra.
 
-- **Base model:** `yolo26n.pt` (COCO-pretrained, nc=80)
-- **Retrained model:** `yolo26n` fine-tuned 40 epochs on african-wildlife (nc=4), `best.pt`
-- **DeepX export:** Ultralytics one-shot `format=deepx` → INT8 (EMA calibration on
-  african-wildlife images), DX-M1 NPU
-- **Eval set:** african-wildlife `val` split — 225 images, 379 instances — `imgsz=640,
-  batch=1` for **all four** points (identical data ⇒ fair comparison)
-- **Hardware:** GPU = NVIDIA RTX 5060 Ti (fp32); NPU = DeepX DX-M1 (INT8); host CPU = i7-14700K
-- **Stack:** ultralytics 8.4.63, torch 2.12.0+cu130, dx_com 2.3.0-rc.5, dx_engine 3.3.2
+## Setup
 
-## Results — the four points
+| Item | Value |
+|------|-------|
+| Base model | `yolo26n.pt` (COCO-pretrained, 80 classes, NMS-free) |
+| Dataset | Ultralytics `african-wildlife` (nc=4: buffalo, elephant, rhino, zebra) — 1052 train / 225 val images |
+| Fine-tune | 40 epochs, imgsz=640, batch=16, AdamW (auto), GPU = RTX 5060 Ti |
+| DeepX export | `format=deepx` (Ultralytics one-shot) → INT8, EMA calibration on domain images, batch=1 |
+| NPU | DX-M1 (`dx_engine` 3.3.2, dx_com 2.3.0-rc.5) |
+| Eval | `model.val(split=val, imgsz=640, batch=1)`; FPS = 1000 / `speed['inference']` (single-image latency) |
+
+## Results — all four points
 
 | # | Model | Form | Device | mAP50-95 | mAP50 | Inference (ms/img) | FPS |
-|---|---|---|---|---|---|---|---|
-| 1 | base `yolo26n` | `.pt` fp32 | GPU | **0.0007** | 0.0010 | 4.198 | 238.2 |
-| 2 | base `yolo26n` | `.dxnn` INT8 | DX-M1 NPU | **0.0010** | 0.0015 | 16.822 | 59.4 |
-| 3 | retrained | `.pt` fp32 | GPU | **0.7928** | 0.9425 | 3.045 | 328.4 |
-| 4 | retrained | `.dxnn` INT8 | DX-M1 NPU | **0.7904** | 0.9431 | 12.217 | 81.9 |
+|---|-------|------|--------|---------:|------:|-------------------:|----:|
+| 1 | base `yolo26n` | `.pt` fp32 | GPU | **0.0007** | 0.0010 | 4.338 | 230.5 |
+| 2 | base `yolo26n` | `.dxnn` INT8 | DX-M1 NPU | **0.0008** | 0.0012 | 16.914 | 59.1 |
+| 3 | retrained | `.pt` fp32 | GPU | **0.7928** | 0.9425 | 3.038 | 329.2 |
+| 4 | retrained | `.dxnn` INT8 | DX-M1 NPU | **0.7912** | 0.9441 | 12.511 | 79.9 |
 
 ### Per-class mAP50-95 (retrained)
 
-| Class | fp32 GPU | INT8 NPU |
-|---|---|---|
-| buffalo | 0.793 | 0.779 |
-| elephant | 0.793 | 0.797 |
-| rhino | 0.839 | 0.854 |
-| zebra | 0.747 | 0.732 |
+| Class | fp32 (GPU) | INT8 (NPU) |
+|-------|-----------:|-----------:|
+| buffalo | 0.7927 | 0.7851 |
+| elephant | 0.7930 | 0.7987 |
+| rhino | 0.8387 | 0.8538 |
+| zebra | 0.7467 | 0.7271 |
 
 ## Analysis
 
-### 1. Accuracy gain from domain fine-tuning (the headline)
+### 1. Accuracy gain from domain fine-tuning
 
-The stock COCO `yolo26n` is **effectively blind** to this domain: **mAP50-95 ≈ 0.0007**
-(fp32) / **0.0010** (INT8). COCO does contain *elephant* and *zebra*, but the model emits
-**COCO class indices** (e.g. elephant=20, zebra=22) that do not match the wildlife dataset's
-indices (0–3), and it has never seen *buffalo* or *rhino* at all — so virtually nothing is
-counted as a correct detection. This is exactly why domain fine-tuning is required.
+Fine-tuning lifts mAP50-95 from **0.0007 → 0.7928** (fp32 GPU) — effectively from "cannot
+detect the domain at all" to a strong **0.79** detector. The base COCO model scores
+near-zero because its 80-class head was never trained on these wildlife labels: the
+per-class table for the base model shows a flat ~0.0007 smeared across all 80 COCO
+classes (the dataset's 4 class indices simply do not line up with COCO's), confirming the
+score is noise, not signal. This is exactly why a general detector must be domain-adapted
+before deployment on a safari camera. The same gain holds on the NPU: **0.0008 → 0.7912**
+INT8. mAP50 reaches **0.94**, so at the looser IoU threshold the retrained model is highly
+reliable; the gap to mAP50-95 is the usual tighter-localization penalty.
 
-Fine-tuning for 40 epochs lifts mAP50-95 to **0.7928** (fp32) — a **+0.792 absolute gain**
-(~1100×), and mAP50 to **0.9425**. Every class is now well detected (rhino best at 0.839,
-zebra hardest at 0.747). **This is the core result: domain optimization turns an unusable
-0.0007 detector into a deployable 0.79 one.**
+### 2. INT8 quantization effect (fp32 → DeepX INT8)
 
-### 2. INT8 quantization effect (fp32 GPU → INT8 NPU)
+The DeepX INT8 export is **effectively lossless** on this domain model:
 
-For the retrained model, INT8 on the NPU is **essentially lossless**:
+- retrained mAP50-95: **0.7928 (fp32) → 0.7912 (INT8)** — Δ = **−0.0016** (≈ **0.2 %** relative).
+- retrained mAP50: **0.9425 → 0.9441** — actually **+0.0016** (within run-to-run noise).
+- Per class the INT8 model is within ±0.02 of fp32, and even *higher* on rhino/elephant.
 
-- mAP50-95: 0.7928 → **0.7904** — a drop of just **0.0024 (−0.30 %)**.
-- mAP50: 0.9425 → **0.9431** — statistically flat (the INT8 number is marginally *higher*,
-  within run-to-run noise).
-- Per-class: rhino and elephant actually tick up under INT8; buffalo/zebra dip ~1–2 pts —
-  all within calibration noise.
-
-The DeepX EMA calibration on representative african-wildlife images preserves accuracy, so
-the deployable on-device model keeps the full fp32 domain accuracy. The base model's INT8
-number stays ≈0 (0.0007 → 0.0010) — quantization can't recover an accuracy the weights never
-had; it confirms the export pipeline itself is faithful.
+EMA calibration on representative domain images keeps the quantization error far below the
+model's own localization variance, so deploying the INT8 `.dxnn` costs essentially no
+accuracy versus the fp32 PyTorch model. (The base model's INT8 vs fp32 numbers are both
+noise — 0.0007 vs 0.0008 — and not meaningful to compare.)
 
 ### 3. Speed
 
-- **GPU fp32 is fastest in raw throughput** (238–328 FPS) — a discrete 16 GB GPU vastly
-  outpowers an embedded NPU; the relevant value of the NPU is on-device, low-power inference,
-  not beating a dGPU.
-- **The domain `.dxnn` (nc=4) runs markedly faster on the NPU than the stock `.dxnn` (nc=80):
-  81.9 vs 59.4 FPS** (12.2 vs 16.8 ms/img), **+37.7 %**, same yolo26n backbone, both INT8
-  batch=1. Cause: the retrained head has 4 class channels instead of 80, so the on-device
-  detection-head compute and decode are lighter. **Fewer classes ⇒ higher NPU FPS**, an
-  effect independent of the accuracy gain.
-- Note the same nc effect on the GPU (retrained 328 FPS vs base 238 FPS): the 80-class
-  decode is heavier there too.
+- **On the NPU**, the retrained `nc=4` model runs **79.9 FPS** vs the stock `nc=80` model's
+  **59.1 FPS** (12.5 vs 16.9 ms/img) on the same yolo26n backbone. Fewer detection-head
+  class channels ⇒ lighter on-device decode ⇒ **the domain model is ~35 % faster on the
+  NPU than the stock model**, independent of accuracy.
+- GPU fp32 latency (3–4 ms) is lower than NPU latency in absolute terms, but that is a
+  GPU-vs-NPU hardware comparison, not the deployment question. The DX-M1 delivers a
+  real-time **~80 FPS** single-stream INT8 detector at essentially fp32 accuracy — the
+  deployable result for an embedded safari camera.
 
-### Bottom line
+## Conclusion
 
-| Question | Answer |
-|---|---|
-| Does fine-tuning help? | Yes — **+0.792 mAP50-95** (0.0007 → 0.7928), unusable → deployable. |
-| Is INT8 deployment safe? | Yes — **−0.30 %** mAP50-95 vs fp32; effectively lossless. |
-| What is the deployable result? | **retrained `.dxnn`: mAP50-95 0.7904, 81.9 FPS on DX-M1.** |
-| Surprising? | The domain model is **37.7 % faster on the NPU** than stock (smaller nc=4 head). |
-
-## Reproduce
-
-```bash
-bash setup.sh                 # verify stack + NPU sanity
-python train.py               # 40-epoch fine-tune on african-wildlife (GPU)
-python export_deepx.py all    # base + retrained -> *_deepx_model/ (.dxnn, INT8)
-python verify.py              # NPU load sanity -> RESULT: PASS
-python evaluate.py            # 4-way mAP + FPS -> results.json
-```
-
-Numbers above are read directly from `results.json` (this session). Eval split:
-african-wildlife `val`, 225 images / 379 instances, imgsz=640, batch=1.
+Domain fine-tuning is mandatory (0.0007 → 0.79 mAP50-95). The DeepX INT8 export preserves
+that accuracy (−0.2 % relative) while running at ~80 FPS on the DX-M1 NPU, and the smaller
+4-class head makes the domain model *faster* on the NPU than the stock 80-class model.
+Deployable artifact: `wildlife_yolo26n_deepx_model/wildlife_yolo26n.dxnn`. See
+`sample_detect.jpg` for a qualitative detection example.

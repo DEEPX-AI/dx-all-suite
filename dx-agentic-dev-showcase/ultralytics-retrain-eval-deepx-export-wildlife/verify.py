@@ -1,76 +1,73 @@
 #!/usr/bin/env python3
-"""verify.py — Post-compilation verification for the exported DeepX models.
-
-Confirms each <name>_deepx_model/ directory:
-  (a) contains a .dxnn binary,
-  (b) loads on the dx_engine runtime and runs INT8 inference on a sample wildlife
-      image without error, returning a valid Results object.
-
-Exits 0 and prints "RESULT: PASS" only if every present model verifies; exits 1 on any
-failure (missing .dxnn, dx_engine import error, inference error). At least the retrained
-model must verify for PASS.
 """
+verify.py — acceptance check for the YOLO26n african-wildlife retrain + DeepX session.
+
+Verifies (exit 0 + "RESULT: PASS" only if ALL hold):
+  1. Both DeepX export dirs contain a real .dxnn binary.
+  2. results.json has all 4 measured points, each with a numeric map5095 and fps.
+  3. The retrained model is more accurate on the domain than the base model
+     (retrained mAP50-95 > base mAP50-95, both fp32 and INT8).
+  4. sample_detect.jpg exists and is non-empty.
+"""
+import json
 import sys
 from pathlib import Path
 
-from ultralytics import YOLO
-
 HERE = Path(__file__).resolve().parent
-MODEL_DIRS = ["base_yolo26n_deepx_model", "retrained_yolo26n_deepx_model"]
+FAIL = []
 
 
-def find_sample() -> str:
-    """A wildlife val image from the Ultralytics datasets dir, else a stock URL."""
-    try:
-        from ultralytics.utils import SETTINGS
-        val = Path(SETTINGS["datasets_dir"]) / "african-wildlife" / "images" / "val"
-        if val.is_dir():
-            imgs = sorted(val.glob("*.jpg"))
-            if imgs:
-                return str(imgs[0])
-    except Exception:
-        pass
-    return "https://ultralytics.com/images/zidane.jpg"
+def check(cond, msg):
+    print(f"  [{'PASS' if cond else 'FAIL'}] {msg}")
+    if not cond:
+        FAIL.append(msg)
 
 
-def main() -> int:
-    sample = find_sample()
-    print(f"[verify] sample image: {sample}")
-    any_present = False
-    all_ok = True
-    retrained_ok = False
+def main():
+    print("==== verify.py — YOLO26n african-wildlife retrain + DeepX ====")
 
-    for name in MODEL_DIRS:
-        d = HERE / name
-        if not d.is_dir():
-            print(f"[verify] SKIP {name}: directory absent")
-            continue
-        any_present = True
-        dxnn = list(d.glob("*.dxnn"))
-        if not dxnn:
-            print(f"[verify] FAIL {name}: no .dxnn binary in {d}")
-            all_ok = False
-            continue
-        try:
-            model = YOLO(str(d))
-            results = model(sample, verbose=False)
-            n = len(results[0].boxes)
-            print(f"[verify] PASS {name}: {dxnn[0].name} loaded; {n} detections on sample")
-            if name.startswith("retrained"):
-                retrained_ok = True
-        except Exception as e:
-            print(f"[verify] FAIL {name}: {type(e).__name__}: {e}")
-            all_ok = False
+    # 1. .dxnn binaries
+    base_dxnn = HERE / "yolo26n_deepx_model" / "yolo26n.dxnn"
+    retr_dxnn = HERE / "wildlife_yolo26n_deepx_model" / "wildlife_yolo26n.dxnn"
+    check(base_dxnn.exists() and base_dxnn.stat().st_size > 0,
+          f"base .dxnn exists & non-empty: {base_dxnn}")
+    check(retr_dxnn.exists() and retr_dxnn.stat().st_size > 0,
+          f"retrained .dxnn exists & non-empty: {retr_dxnn}")
 
-    if not any_present:
-        print("[verify] FAIL: no exported model directories found")
-        print("RESULT: FAIL")
+    # 2. results.json with 4 measured points
+    rj = HERE / "results.json"
+    check(rj.exists(), f"results.json exists: {rj}")
+    results = json.loads(rj.read_text()) if rj.exists() else {}
+    keys = ["base_pt_fp32_gpu", "base_dxnn_int8_npu",
+            "retrained_pt_fp32_gpu", "retrained_dxnn_int8_npu"]
+    for k in keys:
+        e = results.get(k, {})
+        ok = isinstance(e.get("map5095"), (int, float)) and \
+            isinstance(e.get("fps"), (int, float))
+        check(ok, f"results['{k}'] has numeric map5095 & fps")
+
+    # 3. retrained > base accuracy
+    if all(k in results for k in keys):
+        base_fp = results["base_pt_fp32_gpu"]["map5095"]
+        retr_fp = results["retrained_pt_fp32_gpu"]["map5095"]
+        base_q = results["base_dxnn_int8_npu"]["map5095"]
+        retr_q = results["retrained_dxnn_int8_npu"]["map5095"]
+        check(retr_fp > base_fp,
+              f"retrained fp32 mAP ({retr_fp}) > base fp32 mAP ({base_fp})")
+        check(retr_q > base_q,
+              f"retrained INT8 mAP ({retr_q}) > base INT8 mAP ({base_q})")
+
+    # 4. sample image
+    sample = HERE / "sample_detect.jpg"
+    check(sample.exists() and sample.stat().st_size > 0,
+          f"sample_detect.jpg exists & non-empty: {sample}")
+
+    print("=" * 60)
+    if FAIL:
+        print(f"RESULT: FAIL ({len(FAIL)} check(s) failed)")
         return 1
-    if all_ok and retrained_ok:
-        print("RESULT: PASS")
-        return 0
-    print("RESULT: FAIL")
-    return 1
+    print("RESULT: PASS")
+    return 0
 
 
 if __name__ == "__main__":
