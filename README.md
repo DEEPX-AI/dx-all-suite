@@ -122,7 +122,10 @@ Domain optimization for a **construction site-safety camera**: retrain `yolo26n`
 
 <!-- dx-showcase:ultralytics-retrain-eval-deepx-export-braintumor:gif:start -->
 <div align="center">
-<img src="./docs/source/img/dx-agentic-dev-ultralytics-braintumor-build.gif" width="700"><br><sub><b>dx-agentic-dev building this showcase — retrain → DeepX → 4-way eval</b></sub>
+<table><tr>
+<td align="center"><img src="./docs/source/img/dx-agentic-dev-ultralytics-braintumor-build.gif" width="470"><br><sub><b>building (timelapse)</b></sub></td>
+<td align="center"><img src="./docs/source/img/dx-agentic-dev-ultralytics-braintumor-sample.jpg" width="280"><br><sub><b>tumor detection on DX-M1 NPU</b></sub></td>
+</tr></table>
 </div>
 <!-- dx-showcase:ultralytics-retrain-eval-deepx-export-braintumor:gif:end -->
 
