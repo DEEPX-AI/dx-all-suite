@@ -197,6 +197,7 @@ def _session_metrics(jsonl_path) -> Optional[dict]:
     result = None
     tools = collections.Counter()
     skills = []
+    toolsets = []
     out_sum = 0
     turns = 0
     try:
@@ -226,13 +227,20 @@ def _session_metrics(jsonl_path) -> Optional[dict]:
                             if isinstance(c, dict) and c.get("type") == "tool_use":
                                 nm = c.get("name")
                                 tools[nm] += 1
+                                inp = c.get("input") or {}
                                 if nm == "Skill":
-                                    sk = (c.get("input") or {}).get("skill")
+                                    sk = inp.get("skill")
                                     if sk and sk not in skills:
                                         skills.append(sk)
+                                elif nm == "Read":
+                                    fp = inp.get("file_path") or ""
+                                    if "/.deepx/toolsets/" in fp and fp.endswith(".md"):
+                                        ts = fp.rsplit("/", 1)[-1][:-3]
+                                        if ts not in toolsets:
+                                            toolsets.append(ts)
     except Exception:
         return None
-    m = {"model": model, "tools": dict(tools), "skills": skills,
+    m = {"model": model, "tools": dict(tools), "skills": skills, "toolsets": toolsets,
          "output_tokens": None, "total_cost_usd": None,
          "num_turns": turns or None, "duration_ms": None}
     if result:
@@ -265,6 +273,11 @@ def _metrics_rows(m):
                                          sorted(m["tools"].items(), key=lambda x: -x[1]))))
     if m.get("skills"):
         rows.append(("Skills", " → ".join(m["skills"])))
+    if m.get("toolsets"):
+        rows.append(("Toolsets", ", ".join(f"`{ts}`" for ts in m["toolsets"])))
+    elif m.get("skills"):
+        # KB-driven session (skills used) that read no .deepx/toolsets — surface it
+        rows.append(("Toolsets", "— (none read)"))
     return rows
 
 

@@ -69,4 +69,7 @@ def render(out_dir: str, *, stream_json: str, session_id: Optional[str] = None,
             src.replace(dst)
             kind = dst.suffix.lstrip(".")
             result[kind] = str(dst)
+    # remove any leftover intermediates (e.g. the `<gprefix>-session.jsonl` alias)
+    for leftover in out.glob(f"{gprefix}-*"):
+        leftover.unlink()
     return result

@@ -11,6 +11,7 @@
 | Cost (reported) | $3.55 |
 | Tools | Bash×15, Write×10, Read×9, Skill×5, ScheduleWakeup×1 |
 | Skills | dx-skill-router → dx-agentic-brainstorm → dx-swe-writing-plans → dx-agentic-tdd → dx-agentic-verify |
+| Toolsets | — (none read) |
 
 
 ## Session Info

@@ -11,6 +11,7 @@
 | Cost (reported) | $3.85 |
 | Tools | Bash×17, Write×11, Read×6, Skill×5, ScheduleWakeup×1 |
 | Skills | dx-skill-router → dx-agentic-brainstorm → dx-swe-writing-plans → dx-agentic-tdd → dx-agentic-verify |
+| Toolsets | `ultralytics-train-eval`, `ultralytics-deepx-export` |
 
 
 ## Session Info
