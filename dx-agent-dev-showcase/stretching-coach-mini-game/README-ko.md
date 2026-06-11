@@ -1,6 +1,6 @@
 # 스트레칭 아케이드 미니게임 — dx-agent-dev로 제작
 
-> **단일 자연어 프롬프트로 [dx-agent-dev](../../docs/source/00_Agentic_Development_kor.md)가
+> **단일 자연어 프롬프트로 [dx-agent-dev](../../docs/source/00_Agent_Driven_Development_kor.md)가
 > end-to-end로 생성** — 손으로 작성한 코드 없음. 이 폴더는 **self-contained & portable**입니다
 > (vendored `./common`): dx-all-suite 밖으로 복사해도 동작합니다(DEEPX 런타임이 있는 임의 머신).
 

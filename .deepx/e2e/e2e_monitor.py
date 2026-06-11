@@ -62,7 +62,7 @@ SCENARIO_KEYS: List[str] = ["compiler", "dx_app", "dx_stream", "cascaded", "runt
 SCENARIO_FILE_PATTERNS: Dict[str, str] = {
     "compiler": "_compiler_",
     "dx_app": "_dx_app_",
-    "dx_stream": "_dx_stream_agentic",  # not cascaded
+    "dx_stream": "_dx_stream_agent",  # not cascaded
     "cascaded": "_dx_stream_cascaded",
     "runtime": "_runtime_",
     "suite": "_suite_",

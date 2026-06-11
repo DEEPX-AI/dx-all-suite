@@ -37,7 +37,7 @@
 
 **Claude:**
 
-`[DX-AGENTIC-DEV: START]`
+`[DX-AGENT-DEV: START]`
 
 ```
  ███████████   █████████ ████████ ████████  ████      ████
@@ -48,7 +48,7 @@
  ███     █████░███░      ██░      ███░   ████████░░░░████
  ███████████░░░█████████ ████████ ██████████░░░░░░    ████
   ░░░░░░░░░░░   ░░░░░░░░░ ░░░░░░░░ ░░░░░░░░░░          ░░░░
-        DX-AGENTIC-DEV · on-device NPU
+        DX-AGENT-DEV · on-device NPU
 ```
 
 Per the universal pre-flight HARD GATE, my first action is to invoke the skill router.
@@ -427,10 +427,10 @@ Deployable artifact: `yolo26n_braintumor_deepx_model/yolo26n_braintumor.dxnn`.
  ███     █████░███░      ██░      ███░   ████████░░░░████
  ███████████░░░█████████ ████████ ██████████░░░░░░    ████
   ░░░░░░░░░░░   ░░░░░░░░░ ░░░░░░░░ ░░░░░░░░░░          ░░░░
-        DX-AGENTIC-DEV · on-device NPU
+        DX-AGENT-DEV · on-device NPU
 ```
 
-[DX-AGENTIC-DEV: DONE (output-dir: dx-compiler/dx-agent-dev/20260611-102324_claude_opus48_yolo26n_braintumor/)]
+[DX-AGENT-DEV: DONE (output-dir: dx-compiler/dx-agent-dev/20260611-102324_claude_opus48_yolo26n_braintumor/)]
 
 Now the final housekeeping step — rendering this session's transcript into the output dir:
 Session transcript (md/html/jsonl) saved to: `dx-compiler/dx-agent-dev/20260611-102324_claude_opus48_yolo26n_braintumor/claude-session.*`

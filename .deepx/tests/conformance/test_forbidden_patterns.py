@@ -22,7 +22,7 @@ from pathlib import Path
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-E2E_TEST_DIR = REPO_ROOT / ".deepx" / "tests" / "test_agentic_e2e_scenarios"
+E2E_TEST_DIR = REPO_ROOT / ".deepx" / "tests" / "test_agent_e2e_scenarios"
 
 # Banned test function names — these were deliberately removed from the e2e suite
 # because they tested hallucinated SDK behavior. The loop must NOT re-add them.

@@ -3,7 +3,7 @@
 > dx-all-suite 최상위 레벨의 DEEPX Agent-Driven Development (`dx-agent-dev`)
 > canonical source에 대한 마스터 인덱스.
 >
-> 최종 사용자 사용법은 [`docs/source/00_Agentic_Development.md`](../docs/source/00_Agentic_Development.md)를 참조.
+> 최종 사용자 사용법은 [`docs/source/00_Agent_Driven_Development.md`](../docs/source/00_Agent_Driven_Development.md)를 참조.
 > 5개 repo 전반의 모든 `.deepx/` 디렉토리에 대한 포괄적인 워크스루는
 > [`docs/dx-agent-dev-overview.md`](docs/dx-agent-dev-overview.md)를 참조.
 
@@ -94,8 +94,8 @@ dx-all-suite는 5개의 repo를 포함하며, 각각 자체 `.deepx/`를 가집�
 │
 ├── e2e/                         ← End-to-end 하니스 (분리됨)
 │   ├── e2e_runner.py · e2e_monitor.py · test.sh   ← 라운드 오케스트레이션 + 러너
-│   ├── test_agentic_e2e_scenarios/  ← ~586 E2E 테스트 (5 CLI × 시나리오)
-│   └── agentic_analyzer/        ← E2E 결과 분석기 (리포트, 인사이트)
+│   ├── test_agent_e2e_scenarios/  ← ~586 E2E 테스트 (5 CLI × 시나리오)
+│   └── agent_analyzer/        ← E2E 결과 분석기 (리포트, 인사이트)
 │
 └── tools/                       ← 툴링 패키지 + 오케스트레이션 스크립트
     ├── README.md                ← 툴링 가이드
@@ -222,7 +222,7 @@ Fragment를 한 번 수정하면 `dx-agent-gen generate`를 통해 변경 사항
 | `mandatory-process-skill-sequence` | 코드 생성을 위한 필수 skill 순서 |
 | `swe-process-gates-internal-dev` | 내부 harness 작업을 위한 SWE 규율 |
 | `skill-router-mandatory` | Universal pre-flight rule |
-| `session-sentinels` | `[DX-AGENTIC-DEV: START/DONE]` 마커 |
+| `session-sentinels` | `[DX-AGENT-DEV: START/DONE]` 마커 |
 | `artifact-verification-gate` | Artifact별 검증 명령어 |
 | `brainstorming-spec-before-plan` | Spec → user approval → plan 순서 |
 | `rule-conflict-resolution` | 사용자 요청이 HARD GATE와 충돌할 때 수행할 동작 |
@@ -245,13 +245,13 @@ Fragment를 추가하거나 수정하는 방법은
 
 | Topic | Document |
 |-------|----------|
-| 최종 사용자 사용법 (one-liner prompts, scenarios) | [`docs/source/00_Agentic_Development.md`](../docs/source/00_Agentic_Development.md) |
+| 최종 사용자 사용법 (one-liner prompts, scenarios) | [`docs/source/00_Agent_Driven_Development.md`](../docs/source/00_Agent_Driven_Development.md) |
 | 포괄적인 `.deepx/` 워크스루 (5개의 모든 repo) | [`docs/dx-agent-dev-overview.md`](docs/dx-agent-dev-overview.md) |
 | 3-tier skill 아키텍처 및 네이밍 | [`docs/skill-architecture.md`](docs/skill-architecture.md) |
 | 새로운 fragment 작성 방법 | [`docs/fragment-authoring-guide.md`](docs/fragment-authoring-guide.md) |
 | `dx-agent-gen` generator 패키지 | [`tools/README.md`](tools/README.md) |
 | 운영 스크립트 (`run_all.sh`, hooks, E2E loop) | [`tools/scripts/README.md`](tools/scripts/README.md) |
-| E2E 결과 분석기 (리포트, 차트, 대시보드) | [`e2e/agentic_analyzer/README-KO.md`](e2e/agentic_analyzer/README-KO.md) |
+| E2E 결과 분석기 (리포트, 차트, 대시보드) | [`e2e/agent_analyzer/README-KO.md`](e2e/agent_analyzer/README-KO.md) |
 | 테스트 카테고리 및 실행 방법 | [`tests/README.md`](tests/README.md) |
 | Sub-project 세부 사항 | sub-project `.deepx/README.md` (위 §2에 링크됨) |
 
@@ -266,5 +266,5 @@ Fragment를 추가하거나 수정하는 방법은
 | Fragment | `.deepx/templates/fragments/{en,ko}/` 하위의 재사용 가능한 rule block. 항상 EN + KO 쌍으로 작성됨. |
 | Canonical source | `**/.deepx/**` 하위의 파일 — 수정해야 할 유일한 위치. |
 | Generator output | 플랫폼별 파일 (`CLAUDE.md`, `.claude/`, `.github/`, `.cursor/`, `.opencode/`). 직접 수정 금지. |
-| Session sentinel | 테스트 harness가 사용하는 `[DX-AGENTIC-DEV: START]` / `[DX-AGENTIC-DEV: DONE]` 마커. |
+| Session sentinel | 테스트 harness가 사용하는 `[DX-AGENT-DEV: START]` / `[DX-AGENT-DEV: DONE]` 마커. |
 | HARD GATE | 협상 불가능한 rule. 사용자가 "그냥 진행"으로 override할 수 없음. |

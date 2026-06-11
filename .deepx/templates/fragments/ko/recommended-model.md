@@ -11,7 +11,7 @@ DX Agent-Driven Development는 강력한 instruction following과 knowledge base
 
 ```
 ══════════════════════════════════════════════════════════════
-⚠  DX-AGENTIC-DEV: MODEL NOTICE
+⚠  DX-AGENT-DEV: MODEL NOTICE
 
 DX Agent-Driven Development recommends Claude Sonnet 4.6+ or
 Opus 4.6+. Your current model may produce lower quality
@@ -40,7 +40,7 @@ API accuracy. Please switch to a recommended model.
 
 **예시 — 잘못됨** (반복이 상자와 함께 스크롤되어 지나감):
 ```
-[DX-AGENTIC-DEV: START]
+[DX-AGENT-DEV: START]
 ══ MODEL NOTICE ══
 ---  ⚠ Non-recommended model ---     ← 너무 이름, 스크롤되어 지나감
 ... (파일 읽기, 컨텍스트 분석) ...
@@ -49,7 +49,7 @@ API accuracy. Please switch to a recommended model.
 
 **예시 — 올바름** (반복이 질문 바로 앞에 나타남):
 ```
-[DX-AGENTIC-DEV: START]
+[DX-AGENT-DEV: START]
 ══ MODEL NOTICE ══
 ... (파일 읽기, 컨텍스트 분석) ...
 ---  ⚠ Non-recommended model ---     ← 질문 바로 앞

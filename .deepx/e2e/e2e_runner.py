@@ -107,10 +107,10 @@ TOOL_CMD: Dict[str, str] = {
 
 # Thinking / high-reasoning mode env vars per tool
 THINKING_ENV: Dict[str, Dict[str, str]] = {
-    "claude-code": {"DX_AGENTIC_E2E_CLAUDE_CODE_EXTRA_ARGS": "--effort xhigh"},
-    "copilot-cli": {"DX_AGENTIC_E2E_COPILOT_EXTRA_ARGS": "--effort xhigh"},
-    "opencode-cli": {"DX_AGENTIC_E2E_OPENCODE_EXTRA_ARGS": "--variant high"},
-    "codex-cli": {"DX_AGENTIC_E2E_CODEX_EXTRA_ARGS": '-c model_reasoning_effort="xhigh"'},
+    "claude-code": {"DX_AGENT_E2E_CLAUDE_CODE_EXTRA_ARGS": "--effort xhigh"},
+    "copilot-cli": {"DX_AGENT_E2E_COPILOT_EXTRA_ARGS": "--effort xhigh"},
+    "opencode-cli": {"DX_AGENT_E2E_OPENCODE_EXTRA_ARGS": "--variant high"},
+    "codex-cli": {"DX_AGENT_E2E_CODEX_EXTRA_ARGS": '-c model_reasoning_effort="xhigh"'},
     "cursor-cli": {},  # quota exceeded; auto fallback, no thinking mode
 }
 
@@ -1024,7 +1024,7 @@ def _cleanup_from_results(round_nums: List[int], tools: List[str]) -> int:
 # Detect rounds lost to environment issues (corporate TLS/SSL cert, codex
 # model-refresh timeout, copilot empty-unknown) and delete them so --resume
 # re-runs to target. Classification primitives are imported from the shared SSOT
-# (agentic_analyzer/lib/env_failure.py) so the runner and the analyzer agree on
+# (agent_analyzer/lib/env_failure.py) so the runner and the analyzer agree on
 # what counts as an env failure. The dir-structure heuristics (rendered-DONE,
 # real-work markers, empty-unknown, output-session-dir presence) live here
 # because they are runner orchestration, not text-signature detection.
@@ -1032,8 +1032,8 @@ def _cleanup_from_results(round_nums: List[int], tools: List[str]) -> int:
 # Mirror lib/session.py SENTINEL_* — DONE detection scans RENDERED transcripts
 # only (never raw stream.jsonl, whose `read`-tool outputs can echo doc text
 # containing the sentinel format → false positive).
-_SENTINEL_START = "[DX-AGENTIC-DEV: START]"
-_SENTINEL_DONE_RE = re.compile(r"\[DX-AGENTIC-DEV:\s*DONE(?:\s*\(output-dir:\s*[^)]*\))?\]")
+_SENTINEL_START = "[DX-AGENT-DEV: START]"
+_SENTINEL_DONE_RE = re.compile(r"\[DX-AGENT-DEV:\s*DONE(?:\s*\(output-dir:\s*[^)]*\))?\]")
 # Rendered-transcript filename suffixes (what the harness scans for sentinels)
 _TRANSCRIPT_SUFFIXES = ("-session.md", "-session.txt", "-session.html",
                         "session.md", "session.txt", "session.html")
@@ -1049,7 +1049,7 @@ _ENV_FAILURE_MOD = None  # memoized SSOT module (loaded once per process)
 
 
 def _load_env_failure():
-    """Load the shared env-failure SSOT (agentic_analyzer/lib/env_failure.py).
+    """Load the shared env-failure SSOT (agent_analyzer/lib/env_failure.py).
 
     Loaded by explicit file path via importlib so the runner has no hard
     package-import dependency on the analyzer and no sys.path pollution.
@@ -1060,7 +1060,7 @@ def _load_env_failure():
     if _ENV_FAILURE_MOD is not None:
         return _ENV_FAILURE_MOD
     import importlib.util
-    ef_path = SCRIPT_DIR / "agentic_analyzer" / "lib" / "env_failure.py"
+    ef_path = SCRIPT_DIR / "agent_analyzer" / "lib" / "env_failure.py"
     spec = importlib.util.spec_from_file_location("dx_e2e_env_failure", ef_path)
     if spec is None or spec.loader is None:
         raise ImportError(f"cannot load env_failure SSOT from {ef_path}")
@@ -1788,19 +1788,19 @@ def build_parser() -> argparse.ArgumentParser:
         help=f"Comma-separated tool list (default: all). Options: {', '.join(ALL_TOOLS)}",
     )
     p.add_argument("--thinking", action="store_true", help="Enable thinking/high-reasoning mode for each tool")
-    # Per-tool model overrides — translate to the matching DX_AGENTIC_E2E_*_MODEL env
+    # Per-tool model overrides — translate to the matching DX_AGENT_E2E_*_MODEL env
     # var when the subprocess is launched. Useful for sweeping a single tool across
     # multiple backend models (e.g. opus-4.6 vs opus-4.8 in copilot-cli).
     p.add_argument("--copilot-model",  dest="copilot_model",  default=None,
-                   help="Override copilot-cli backend model (sets DX_AGENTIC_E2E_MODEL)")
+                   help="Override copilot-cli backend model (sets DX_AGENT_E2E_MODEL)")
     p.add_argument("--codex-model",    dest="codex_model",    default=None,
-                   help="Override codex-cli backend model (sets DX_AGENTIC_E2E_MODEL for codex)")
+                   help="Override codex-cli backend model (sets DX_AGENT_E2E_MODEL for codex)")
     p.add_argument("--opencode-model", dest="opencode_model", default=None,
-                   help="Override opencode-cli backend model (sets DX_AGENTIC_E2E_OPENCODE_MODEL)")
+                   help="Override opencode-cli backend model (sets DX_AGENT_E2E_OPENCODE_MODEL)")
     p.add_argument("--claude-model",   dest="claude_model",   default=None,
-                   help="Override claude-code backend model (sets DX_AGENTIC_E2E_CLAUDE_CODE_MODEL)")
+                   help="Override claude-code backend model (sets DX_AGENT_E2E_CLAUDE_CODE_MODEL)")
     p.add_argument("--cursor-model",   dest="cursor_model",   default=None,
-                   help="Override cursor-cli backend model (sets DX_AGENTIC_E2E_CURSOR_MODEL)")
+                   help="Override cursor-cli backend model (sets DX_AGENT_E2E_CURSOR_MODEL)")
     p.add_argument(
         "--parallel",
         action="store_true",
@@ -1894,14 +1894,14 @@ def main() -> int:
         return 2
 
     # Translate --<tool>-model CLI flags into the env vars conftest reads.
-    # Note: copilot and codex both consume DX_AGENTIC_E2E_MODEL, so running
+    # Note: copilot and codex both consume DX_AGENT_E2E_MODEL, so running
     # both tools in the same invocation with conflicting overrides is unsupported.
     _MODEL_ENV_MAP = {
-        "copilot_model":  "DX_AGENTIC_E2E_MODEL",
-        "codex_model":    "DX_AGENTIC_E2E_MODEL",
-        "opencode_model": "DX_AGENTIC_E2E_OPENCODE_MODEL",
-        "claude_model":   "DX_AGENTIC_E2E_CLAUDE_CODE_MODEL",
-        "cursor_model":   "DX_AGENTIC_E2E_CURSOR_MODEL",
+        "copilot_model":  "DX_AGENT_E2E_MODEL",
+        "codex_model":    "DX_AGENT_E2E_MODEL",
+        "opencode_model": "DX_AGENT_E2E_OPENCODE_MODEL",
+        "claude_model":   "DX_AGENT_E2E_CLAUDE_CODE_MODEL",
+        "cursor_model":   "DX_AGENT_E2E_CURSOR_MODEL",
     }
     for arg_name, env_name in _MODEL_ENV_MAP.items():
         val = getattr(args, arg_name, None)

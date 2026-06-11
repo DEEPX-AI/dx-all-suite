@@ -163,7 +163,7 @@ dx-skill-router
 ```
 
 **Enforced by:** `swe-process-gates-internal-dev.md` fragment (path match:
-`.deepx/`, `.deepx/tests/test_agentic_*/`, `.deepx/tools/`)
+`.deepx/`, `.deepx/tests/test_agent_*/`, `.deepx/tools/`)
 
 ## Scenario Classification
 
@@ -209,8 +209,8 @@ All harness development files live under `.deepx/`:
     conformance/          — static KB/generated-output policy checks
   e2e/              — end-to-end harness (separated)
     e2e_runner.py · e2e_monitor.py · test.sh   — round orchestration + runner
-    test_agentic_e2e_scenarios/   — E2E agent execution tests
-    agentic_analyzer/     — run-id-aware result analyzer
+    test_agent_e2e_scenarios/   — E2E agent execution tests
+    agent_analyzer/     — run-id-aware result analyzer
   tools/            — tooling packages + dev scripts
     README.md                     — tooling guide
     pyproject.toml                — package definition; discovers both src/ packages

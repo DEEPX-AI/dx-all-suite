@@ -42,7 +42,7 @@ KB-based judgment, and the human-in-the-loop steps a tool cannot do.
 6. **No DONE without `dx-showcase-gen verify` PASS.**
 7. **Every showcase MUST have an entry in `dx-agent-dev-showcase/showcases.json`** —
    the manifest is the single source for the root-README card grid, the showcase catalog,
-   and the docs `00_Agentic_Development` table. `verify` fails (and `regen-docs` warns) if
+   and the docs `00_Agent_Driven_Development` table. `verify` fails (and `regen-docs` warns) if
    a showcase dir is missing from it — this is how `ultralytics-yolo-deepx-export` once went
    missing from the docs table. NEVER hand-edit the generated `dx-showcase:docs:*` marker
    regions; add to the manifest and run `regen-docs`.
@@ -129,7 +129,7 @@ SG copy-artifacts --session-dir <build_session_dir> --showcase-dir dx-agent-dev-
 ## Phase 7 — Catalog + docs (manifest-driven, single source)
 
 The showcase's OWN README is written in its dir; the THREE cross-showcase surfaces (root
-README card grid, showcase catalog, docs `00_Agentic_Development` table) are GENERATED from
+README card grid, showcase catalog, docs `00_Agent_Driven_Development` table) are GENERATED from
 one manifest — never hand-edited.
 
 1. Write the showcase's `README.md` / `README-ko.md` in its dir: the **verbatim end-user
@@ -150,11 +150,11 @@ one manifest — never hand-edited.
    ```
    This fills the `dx-showcase:docs:{cardgrid,catalog,table}` marker regions in the root
    README(-KO), `dx-agent-dev-showcase/README(.md/-ko.md)`, and
-   `docs/source/00_Agentic_Development(.md/_kor.md)`. The catalog is surfaced in the mkdocs
-   nav via `docs/source/00b_Agentic_Development_Showcases.md` (include-markdown) — no nav
+   `docs/source/00_Agent_Driven_Development(.md/_kor.md)`. The catalog is surfaced in the mkdocs
+   nav via `docs/source/00b_Agent_Driven_Development_Showcases.md` (include-markdown) — no nav
    edit needed per showcase.
 
-Do NOT duplicate per-showcase detail into the suite README or 00_Agentic_Development, and
+Do NOT duplicate per-showcase detail into the suite README or 00_Agent_Driven_Development, and
 do NOT hand-edit the marker regions — they are regenerated from the manifest.
 
 ## Phase 8 — VERIFY gate (no DONE without PASS)

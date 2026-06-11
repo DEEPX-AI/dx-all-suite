@@ -178,25 +178,25 @@ print_usage() {
     echo -e "  ./test.sh report"
     echo -e ""
     echo -e "${YELLOW}Per-tool Model Selection (env vars)${NC}"
-    echo -e "  ${GREEN}DX_AGENTIC_E2E_CLAUDE_CODE_MODEL${NC} = claude-sonnet-4-6 (default)"
-    echo -e "  ${GREEN}DX_AGENTIC_E2E_COPILOT_MODEL${NC}     = claude-sonnet-4.6 (default)"
-    echo -e "  ${GREEN}DX_AGENTIC_E2E_CURSOR_MODEL${NC}      = claude-4.6-sonnet-medium-thinking (default)"
-    echo -e "  ${GREEN}DX_AGENTIC_E2E_CURSOR_FALLBACK_MODEL${NC} = auto (used on quota cap)"
-    echo -e "  ${GREEN}DX_AGENTIC_E2E_OPENCODE_MODEL${NC}    = github-copilot/claude-sonnet-4.6 (default)"
-    echo -e "  ${GREEN}DX_AGENTIC_E2E_CODEX_MODEL${NC}       = gpt-5.3-codex (default; Claude not supported via Codex)"
+    echo -e "  ${GREEN}DX_AGENT_E2E_CLAUDE_CODE_MODEL${NC} = claude-sonnet-4-6 (default)"
+    echo -e "  ${GREEN}DX_AGENT_E2E_COPILOT_MODEL${NC}     = claude-sonnet-4.6 (default)"
+    echo -e "  ${GREEN}DX_AGENT_E2E_CURSOR_MODEL${NC}      = claude-4.6-sonnet-medium-thinking (default)"
+    echo -e "  ${GREEN}DX_AGENT_E2E_CURSOR_FALLBACK_MODEL${NC} = auto (used on quota cap)"
+    echo -e "  ${GREEN}DX_AGENT_E2E_OPENCODE_MODEL${NC}    = github-copilot/claude-sonnet-4.6 (default)"
+    echo -e "  ${GREEN}DX_AGENT_E2E_CODEX_MODEL${NC}       = gpt-5.3-codex (default; Claude not supported via Codex)"
     echo -e ""
     echo -e "  Cursor auto model (built-in composite LLM):"
-    echo -e "    DX_AGENTIC_E2E_CURSOR_MODEL=auto ./test.sh agent-driven-e2e-cursor-cli-autopilot"
+    echo -e "    DX_AGENT_E2E_CURSOR_MODEL=auto ./test.sh agent-driven-e2e-cursor-cli-autopilot"
     echo -e ""
     echo -e "  Cursor Opus 4.7 thinking (strongest reasoning):"
-    echo -e "    DX_AGENTIC_E2E_CURSOR_MODEL=claude-opus-4-7-thinking-high ./test.sh agent-driven-e2e-cursor-cli-autopilot"
+    echo -e "    DX_AGENT_E2E_CURSOR_MODEL=claude-opus-4-7-thinking-high ./test.sh agent-driven-e2e-cursor-cli-autopilot"
     echo -e ""
     echo -e "  GPT-5.3-codex via Copilot provider (OpenCode):"
-    echo -e "    DX_AGENTIC_E2E_OPENCODE_MODEL=github-copilot/gpt-5.3-codex ./test.sh agent-driven-e2e-opencode-cli-autopilot"
+    echo -e "    DX_AGENT_E2E_OPENCODE_MODEL=github-copilot/gpt-5.3-codex ./test.sh agent-driven-e2e-opencode-cli-autopilot"
     echo -e ""
     echo -e "${YELLOW}Reports — JSON report enabled by default${NC}"
     echo -e "  Per-test pass/fail/xfailed/skipped JSON is automatically saved to ${SCRIPT_DIR}/reports/test_report_<TS>.json."
-    echo -e "  Opt-out: DX_AGENTIC_E2E_NO_JSON_REPORT=1 ./test.sh ..."
+    echo -e "  Opt-out: DX_AGENT_E2E_NO_JSON_REPORT=1 ./test.sh ..."
 }
 
 if [ $# -eq 0 ]; then
@@ -342,7 +342,7 @@ fi
 
 # Export cleanup flag — CLI --cleanup takes precedence over env var
 if [ $CLEANUP_ARTIFACTS_FLAG -eq 1 ]; then
-    export DX_AGENTIC_E2E_CLEANUP_ARTIFACTS=1
+    export DX_AGENT_E2E_CLEANUP_ARTIFACTS=1
 fi
 
 # Export debug mode as environment variable
@@ -371,8 +371,8 @@ if [ $GENERATE_REPORT -eq 1 ]; then
 fi
 
 # Setup JSON report — ALWAYS active by default (used by analyzer for per-test PASS/FAIL).
-# Opt-out: set DX_AGENTIC_E2E_NO_JSON_REPORT=1 in environment.
-if [ -z "${DX_AGENTIC_E2E_NO_JSON_REPORT}" ]; then
+# Opt-out: set DX_AGENT_E2E_NO_JSON_REPORT=1 in environment.
+if [ -z "${DX_AGENT_E2E_NO_JSON_REPORT}" ]; then
     if [ -z "${JSON_FILE}" ]; then
         REPORT_DIR="${SCRIPT_DIR}/reports"
         mkdir -p "${REPORT_DIR}"
@@ -696,13 +696,13 @@ case "$COMMAND" in
             print_error "Copilot CLI (copilot) not found on PATH. Install it first."
             exit 1
         fi
-        export DX_AGENTIC_E2E_MODE=autopilot
+        export DX_AGENT_E2E_MODE=autopilot
         if [ -n "${M_EXPR}" ]; then
-            COMBINED_M_ARGS=(-m "agentic_e2e_copilot_cli_autopilot and (${M_EXPR})")
+            COMBINED_M_ARGS=(-m "agent_e2e_copilot_cli_autopilot and (${M_EXPR})")
         else
-            COMBINED_M_ARGS=(-m agentic_e2e_copilot_cli_autopilot)
+            COMBINED_M_ARGS=(-m agent_e2e_copilot_cli_autopilot)
         fi
-        pytest "${SCRIPT_DIR}/test_agentic_e2e_scenarios/" -v "${PARALLEL_ARGS[@]}" "${CAPTURE_ARGS[@]}" "${COLLECT_ONLY_ARGS[@]}" "${COMBINED_M_ARGS[@]}" "${K_ARGS[@]}" "${REPORT_ARGS[@]}" "${JSON_ARGS[@]}" "$@"
+        pytest "${SCRIPT_DIR}/test_agent_e2e_scenarios/" -v "${PARALLEL_ARGS[@]}" "${CAPTURE_ARGS[@]}" "${COLLECT_ONLY_ARGS[@]}" "${COMBINED_M_ARGS[@]}" "${K_ARGS[@]}" "${REPORT_ARGS[@]}" "${JSON_ARGS[@]}" "$@"
         EXIT_CODE=$?
         if [ $GENERATE_REPORT -eq 1 ] && [ $EXIT_CODE -eq 0 ]; then
             print_success "HTML report generated: ${REPORT_FILE}"
@@ -717,13 +717,13 @@ case "$COMMAND" in
             print_error "  curl https://cursor.com/install -fsS | bash"
             exit 1
         fi
-        export DX_AGENTIC_E2E_MODE=autopilot
+        export DX_AGENT_E2E_MODE=autopilot
         if [ -n "${M_EXPR}" ]; then
-            COMBINED_M_ARGS=(-m "agentic_e2e_cursor_cli_autopilot and (${M_EXPR})")
+            COMBINED_M_ARGS=(-m "agent_e2e_cursor_cli_autopilot and (${M_EXPR})")
         else
-            COMBINED_M_ARGS=(-m agentic_e2e_cursor_cli_autopilot)
+            COMBINED_M_ARGS=(-m agent_e2e_cursor_cli_autopilot)
         fi
-        pytest "${SCRIPT_DIR}/test_agentic_e2e_scenarios/" -v "${PARALLEL_ARGS[@]}" "${CAPTURE_ARGS[@]}" "${COLLECT_ONLY_ARGS[@]}" "${COMBINED_M_ARGS[@]}" "${K_ARGS[@]}" "${REPORT_ARGS[@]}" "${JSON_ARGS[@]}" "$@"
+        pytest "${SCRIPT_DIR}/test_agent_e2e_scenarios/" -v "${PARALLEL_ARGS[@]}" "${CAPTURE_ARGS[@]}" "${COLLECT_ONLY_ARGS[@]}" "${COMBINED_M_ARGS[@]}" "${K_ARGS[@]}" "${REPORT_ARGS[@]}" "${JSON_ARGS[@]}" "$@"
         EXIT_CODE=$?
         if [ $GENERATE_REPORT -eq 1 ] && [ $EXIT_CODE -eq 0 ]; then
             print_success "HTML report generated: ${REPORT_FILE}"
@@ -742,8 +742,8 @@ case "$COMMAND" in
         fi
 
         # Model and artifact settings
-        AGENTIC_MODEL="${DX_AGENTIC_E2E_MODEL:-claude-sonnet-4.6}"
-        CLEANUP_ARTIFACTS="${DX_AGENTIC_E2E_CLEANUP_ARTIFACTS:-0}"
+        AGENT_MODEL="${DX_AGENT_E2E_MODEL:-claude-sonnet-4.6}"
+        CLEANUP_ARTIFACTS="${DX_AGENT_E2E_CLEANUP_ARTIFACTS:-0}"
         TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
         # ARTIFACTS_BASE is computed per-scenario inside the loop (based on workdir)
         declare -A SCENARIO_ARTIFACTS
@@ -840,7 +840,7 @@ case "$COMMAND" in
             _timeout="${SCENARIO_TIMEOUTS[$scenario_key]}"
             (cd "$_workdir" && copilot -i "$_prompt" \
                 --yolo \
-                --model "$AGENTIC_MODEL")
+                --model "$AGENT_MODEL")
             _copilot_exit=$?
 
             # Record end timestamp
@@ -1009,7 +1009,7 @@ case "$COMMAND" in
                 echo "# Agent-Driven E2E Manual — ${scenario_key} Results"
                 echo ""
                 echo "- **Date:** $(date '+%Y-%m-%d %H:%M:%S')"
-                echo "- **Model:** ${AGENTIC_MODEL}"
+                echo "- **Model:** ${AGENT_MODEL}"
                 echo "- **Scenario:** ${scenario_key}"
                 echo "- **Workdir:** ${_workdir}"
                 echo "- **Result:** ${SCENARIO_RESULTS[$scenario_key]}"
@@ -1043,7 +1043,7 @@ case "$COMMAND" in
                 echo "# Agent-Driven E2E Manual — Global Summary"
                 echo ""
                 echo "- **Date:** $(date '+%Y-%m-%d %H:%M:%S')"
-                echo "- **Model:** ${AGENTIC_MODEL}"
+                echo "- **Model:** ${AGENT_MODEL}"
                 echo "- **Scenarios:** ${#SELECTED_SCENARIOS[@]}"
                 echo "- **Passed:** ${TOTAL_PASS}"
                 echo "- **Failed:** ${TOTAL_FAIL}"
@@ -1095,7 +1095,7 @@ case "$COMMAND" in
 
         # Cleanup session logs unless kept (generated files are in dx-agent-dev/)
         if [ "$CLEANUP_ARTIFACTS" = "1" ] && [ "$TOTAL_FAIL" -eq 0 ]; then
-            print_info "Cleaning up artifacts (DX_AGENTIC_E2E_CLEANUP_ARTIFACTS=1)"
+            print_info "Cleaning up artifacts (DX_AGENT_E2E_CLEANUP_ARTIFACTS=1)"
             for _ab in "${SCENARIO_ARTIFACTS[@]}"; do
                 rm -rf "$_ab"
             done
@@ -1121,8 +1121,8 @@ case "$COMMAND" in
             exit 1
         fi
 
-        AGENTIC_MODEL="${DX_AGENTIC_E2E_CURSOR_MODEL:-claude-4.6-sonnet-medium}"
-        CLEANUP_ARTIFACTS="${DX_AGENTIC_E2E_CLEANUP_ARTIFACTS:-0}"
+        AGENT_MODEL="${DX_AGENT_E2E_CURSOR_MODEL:-claude-4.6-sonnet-medium}"
+        CLEANUP_ARTIFACTS="${DX_AGENT_E2E_CLEANUP_ARTIFACTS:-0}"
         TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
         declare -A SCENARIO_ARTIFACTS
         GLOBAL_SUMMARY_BASE="${REPO_ROOT}/dx-agent-dev/e2e-tests/cursor_cli/manual/${TIMESTAMP}"
@@ -1194,7 +1194,7 @@ case "$COMMAND" in
             echo -e "${BLUE}================================================================${NC}"
             echo -e "${BLUE}=== Scenario: ${scenario_key}${NC}"
             echo -e "${BLUE}=== Workdir:  ${_workdir}${NC}"
-            echo -e "${BLUE}=== Model:    ${AGENTIC_MODEL}${NC}"
+            echo -e "${BLUE}=== Model:    ${AGENT_MODEL}${NC}"
             echo -e "${BLUE}=== Prompt:   ${_prompt}${NC}"
             echo -e "${BLUE}================================================================${NC}"
             echo ""
@@ -1207,7 +1207,7 @@ case "$COMMAND" in
 
             # Run Cursor agent session (interactive TUI)
             (cd "$_workdir" && agent \
-                --model "$AGENTIC_MODEL" \
+                --model "$AGENT_MODEL" \
                 "$_prompt")
             _cursor_exit=$?
 
@@ -1270,7 +1270,7 @@ case "$COMMAND" in
                 echo "# Agent-Driven E2E Manual — ${scenario_key} Results"
                 echo ""
                 echo "- **Date:** $(date '+%Y-%m-%d %H:%M:%S')"
-                echo "- **Model:** ${AGENTIC_MODEL}"
+                echo "- **Model:** ${AGENT_MODEL}"
                 echo "- **Scenario:** ${scenario_key}"
                 echo "- **Workdir:** ${_workdir}"
                 echo "- **Result:** ${SCENARIO_RESULTS[$scenario_key]}"
@@ -1300,7 +1300,7 @@ case "$COMMAND" in
                 echo "# Agent-Driven E2E Manual — Global Summary"
                 echo ""
                 echo "- **Date:** $(date '+%Y-%m-%d %H:%M:%S')"
-                echo "- **Model:** ${AGENTIC_MODEL}"
+                echo "- **Model:** ${AGENT_MODEL}"
                 echo "- **Scenarios:** ${#SELECTED_SCENARIOS[@]}"
                 echo "- **Passed:** ${TOTAL_PASS}"
                 echo "- **Failed:** ${TOTAL_FAIL}"
@@ -1333,7 +1333,7 @@ case "$COMMAND" in
         echo -e "${BLUE}================================================================${NC}"
         echo -e "${BLUE}=== Agent-Driven E2E Cursor Manual — Final Summary${NC}"
         echo -e "${BLUE}================================================================${NC}"
-        echo -e "  Model:            ${AGENTIC_MODEL}"
+        echo -e "  Model:            ${AGENT_MODEL}"
         echo -e "  Scenarios run:    ${#SELECTED_SCENARIOS[@]}"
         echo -e "  ${GREEN}Passed:${NC}           ${TOTAL_PASS}"
         if [ "$TOTAL_FAIL" -gt 0 ]; then
@@ -1359,13 +1359,13 @@ case "$COMMAND" in
             print_error "OpenCode CLI (opencode) not found on PATH. Install it first."
             exit 1
         fi
-        export DX_AGENTIC_E2E_MODE=autopilot
+        export DX_AGENT_E2E_MODE=autopilot
         if [ -n "${M_EXPR}" ]; then
-            COMBINED_M_ARGS=(-m "agentic_e2e_opencode_cli_autopilot and (${M_EXPR})")
+            COMBINED_M_ARGS=(-m "agent_e2e_opencode_cli_autopilot and (${M_EXPR})")
         else
-            COMBINED_M_ARGS=(-m agentic_e2e_opencode_cli_autopilot)
+            COMBINED_M_ARGS=(-m agent_e2e_opencode_cli_autopilot)
         fi
-        pytest "${SCRIPT_DIR}/test_agentic_e2e_scenarios/" -v "${PARALLEL_ARGS[@]}" "${CAPTURE_ARGS[@]}" "${COLLECT_ONLY_ARGS[@]}" "${COMBINED_M_ARGS[@]}" "${K_ARGS[@]}" "${REPORT_ARGS[@]}" "${JSON_ARGS[@]}" "$@"
+        pytest "${SCRIPT_DIR}/test_agent_e2e_scenarios/" -v "${PARALLEL_ARGS[@]}" "${CAPTURE_ARGS[@]}" "${COLLECT_ONLY_ARGS[@]}" "${COMBINED_M_ARGS[@]}" "${K_ARGS[@]}" "${REPORT_ARGS[@]}" "${JSON_ARGS[@]}" "$@"
         EXIT_CODE=$?
         if [ $GENERATE_REPORT -eq 1 ] && [ $EXIT_CODE -eq 0 ]; then
             print_success "HTML report generated: ${REPORT_FILE}"
@@ -1387,13 +1387,13 @@ case "$COMMAND" in
             print_error "Claude Code is not authenticated. Run: claude auth login"
             exit 77
         fi
-        export DX_AGENTIC_E2E_MODE=autopilot
+        export DX_AGENT_E2E_MODE=autopilot
         if [ -n "${M_EXPR}" ]; then
-            COMBINED_M_ARGS=(-m "agentic_e2e_claude_code_autopilot and (${M_EXPR})")
+            COMBINED_M_ARGS=(-m "agent_e2e_claude_code_autopilot and (${M_EXPR})")
         else
-            COMBINED_M_ARGS=(-m agentic_e2e_claude_code_autopilot)
+            COMBINED_M_ARGS=(-m agent_e2e_claude_code_autopilot)
         fi
-        pytest "${SCRIPT_DIR}/test_agentic_e2e_scenarios/" -v "${PARALLEL_ARGS[@]}" "${CAPTURE_ARGS[@]}" "${COLLECT_ONLY_ARGS[@]}" "${COMBINED_M_ARGS[@]}" "${K_ARGS[@]}" "${REPORT_ARGS[@]}" "${JSON_ARGS[@]}" "$@"
+        pytest "${SCRIPT_DIR}/test_agent_e2e_scenarios/" -v "${PARALLEL_ARGS[@]}" "${CAPTURE_ARGS[@]}" "${COLLECT_ONLY_ARGS[@]}" "${COMBINED_M_ARGS[@]}" "${K_ARGS[@]}" "${REPORT_ARGS[@]}" "${JSON_ARGS[@]}" "$@"
         EXIT_CODE=$?
         if [ $GENERATE_REPORT -eq 1 ] && [ $EXIT_CODE -eq 0 ]; then
             print_success "HTML report generated: ${REPORT_FILE}"
@@ -1413,17 +1413,17 @@ case "$COMMAND" in
             print_error "GitHub auth failed. Run: gh auth login"
             exit 77
         fi
-        export DX_AGENTIC_E2E_MODE=autopilot
+        export DX_AGENT_E2E_MODE=autopilot
         # Ensure codex is on PATH
         if [ -x "$CODEX_BIN" ]; then
             export PATH="${HOME}/bin:${PATH}"
         fi
         if [ -n "${M_EXPR}" ]; then
-            COMBINED_M_ARGS=(-m "agentic_e2e_codex_cli_autopilot and (${M_EXPR})")
+            COMBINED_M_ARGS=(-m "agent_e2e_codex_cli_autopilot and (${M_EXPR})")
         else
-            COMBINED_M_ARGS=(-m agentic_e2e_codex_cli_autopilot)
+            COMBINED_M_ARGS=(-m agent_e2e_codex_cli_autopilot)
         fi
-        pytest "${SCRIPT_DIR}/test_agentic_e2e_scenarios/" -v "${PARALLEL_ARGS[@]}" "${CAPTURE_ARGS[@]}" "${COLLECT_ONLY_ARGS[@]}" "${COMBINED_M_ARGS[@]}" "${K_ARGS[@]}" "${REPORT_ARGS[@]}" "${JSON_ARGS[@]}" "$@"
+        pytest "${SCRIPT_DIR}/test_agent_e2e_scenarios/" -v "${PARALLEL_ARGS[@]}" "${CAPTURE_ARGS[@]}" "${COLLECT_ONLY_ARGS[@]}" "${COMBINED_M_ARGS[@]}" "${K_ARGS[@]}" "${REPORT_ARGS[@]}" "${JSON_ARGS[@]}" "$@"
         EXIT_CODE=$?
         if [ $GENERATE_REPORT -eq 1 ] && [ $EXIT_CODE -eq 0 ]; then
             print_success "HTML report generated: ${REPORT_FILE}"
@@ -1443,8 +1443,8 @@ case "$COMMAND" in
             exit 1
         fi
 
-        AGENTIC_MODEL="${DX_AGENTIC_E2E_OPENCODE_MODEL:-github-copilot/claude-sonnet-4.6}"
-        CLEANUP_ARTIFACTS="${DX_AGENTIC_E2E_CLEANUP_ARTIFACTS:-0}"
+        AGENT_MODEL="${DX_AGENT_E2E_OPENCODE_MODEL:-github-copilot/claude-sonnet-4.6}"
+        CLEANUP_ARTIFACTS="${DX_AGENT_E2E_CLEANUP_ARTIFACTS:-0}"
         TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
         declare -A SCENARIO_ARTIFACTS
         GLOBAL_SUMMARY_BASE="${REPO_ROOT}/dx-agent-dev/e2e-tests/opencode/manual/${TIMESTAMP}"
@@ -1512,7 +1512,7 @@ case "$COMMAND" in
             echo -e "${BLUE}================================================================${NC}"
             echo -e "${BLUE}=== Scenario: ${scenario_key}${NC}"
             echo -e "${BLUE}=== Workdir:  ${_workdir}${NC}"
-            echo -e "${BLUE}=== Model:    ${AGENTIC_MODEL}${NC}"
+            echo -e "${BLUE}=== Model:    ${AGENT_MODEL}${NC}"
             echo -e "${BLUE}=== Prompt:   ${_prompt}${NC}"
             echo -e "${BLUE}================================================================${NC}"
             echo ""
@@ -1531,7 +1531,7 @@ case "$COMMAND" in
             # Run OpenCode interactively (pre-fill with initial prompt)
             # OpenCode TUI does not support prompt pre-fill via positional arg
             # (positional = project directory). Use --prompt flag instead.
-            (cd "$_workdir" && opencode --model "$AGENTIC_MODEL" --prompt "$_prompt")
+            (cd "$_workdir" && opencode --model "$AGENT_MODEL" --prompt "$_prompt")
             _oc_exit=$?
 
             # Give a moment for async file writes (e.g. /export markdown)
@@ -1600,7 +1600,7 @@ case "$COMMAND" in
                 echo "# Agent-Driven E2E Manual — ${scenario_key} Results"
                 echo ""
                 echo "- **Date:** $(date '+%Y-%m-%d %H:%M:%S')"
-                echo "- **Model:** ${AGENTIC_MODEL}"
+                echo "- **Model:** ${AGENT_MODEL}"
                 echo "- **Scenario:** ${scenario_key}"
                 echo "- **Workdir:** ${_workdir}"
                 echo "- **Result:** ${SCENARIO_RESULTS[$scenario_key]}"
@@ -1630,7 +1630,7 @@ case "$COMMAND" in
                 echo "# Agent-Driven E2E Manual — Global Summary"
                 echo ""
                 echo "- **Date:** $(date '+%Y-%m-%d %H:%M:%S')"
-                echo "- **Model:** ${AGENTIC_MODEL}"
+                echo "- **Model:** ${AGENT_MODEL}"
                 echo "- **Scenarios:** ${#SELECTED_SCENARIOS[@]}"
                 echo "- **Passed:** ${TOTAL_PASS}"
                 echo "- **Failed:** ${TOTAL_FAIL}"
@@ -1662,7 +1662,7 @@ case "$COMMAND" in
         echo -e "${BLUE}================================================================${NC}"
         echo -e "${BLUE}=== Agent-Driven E2E OpenCode Manual — Final Summary${NC}"
         echo -e "${BLUE}================================================================${NC}"
-        echo -e "  Model:            ${AGENTIC_MODEL}"
+        echo -e "  Model:            ${AGENT_MODEL}"
         echo -e "  Scenarios run:    ${#SELECTED_SCENARIOS[@]}"
         echo -e "  ${GREEN}Passed:${NC}           ${TOTAL_PASS}"
         if [ "$TOTAL_FAIL" -gt 0 ]; then
@@ -1700,8 +1700,8 @@ case "$COMMAND" in
             exit 77
         fi
 
-        AGENTIC_MODEL="${DX_AGENTIC_E2E_CLAUDE_CODE_MODEL:-claude-sonnet-4-6}"
-        CLEANUP_ARTIFACTS="${DX_AGENTIC_E2E_CLEANUP_ARTIFACTS:-0}"
+        AGENT_MODEL="${DX_AGENT_E2E_CLAUDE_CODE_MODEL:-claude-sonnet-4-6}"
+        CLEANUP_ARTIFACTS="${DX_AGENT_E2E_CLEANUP_ARTIFACTS:-0}"
         TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
         declare -A SCENARIO_ARTIFACTS
         GLOBAL_SUMMARY_BASE="${REPO_ROOT}/dx-agent-dev/e2e-tests/claude_code/manual/${TIMESTAMP}"
@@ -1766,7 +1766,7 @@ case "$COMMAND" in
             echo -e "${BLUE}================================================================${NC}"
             echo -e "${BLUE}=== Scenario: ${scenario_key}${NC}"
             echo -e "${BLUE}=== Workdir:  ${_workdir}${NC}"
-            echo -e "${BLUE}=== Model:    ${AGENTIC_MODEL}${NC}"
+            echo -e "${BLUE}=== Model:    ${AGENT_MODEL}${NC}"
             echo -e "${BLUE}=== Prompt:   ${_prompt}${NC}"
             echo -e "${BLUE}================================================================${NC}"
             echo ""
@@ -1784,7 +1784,7 @@ case "$COMMAND" in
             find "$_workdir" -maxdepth 1 -name "????-??-??-*.txt" 2>/dev/null > "$_export_snapshot_file"
 
             # Run Claude Code interactively (positional prompt = initial message pre-fill)
-            (cd "$_workdir" && claude --dangerously-skip-permissions --model "$AGENTIC_MODEL" "$_prompt")
+            (cd "$_workdir" && claude --dangerously-skip-permissions --model "$AGENT_MODEL" "$_prompt")
             _cc_exit=$?
 
             sleep 2
@@ -1865,7 +1865,7 @@ case "$COMMAND" in
                 echo "# Agent-Driven E2E Manual — ${scenario_key} Results"
                 echo ""
                 echo "- **Date:** $(date '+%Y-%m-%d %H:%M:%S')"
-                echo "- **Model:** ${AGENTIC_MODEL}"
+                echo "- **Model:** ${AGENT_MODEL}"
                 echo "- **Scenario:** ${scenario_key}"
                 echo "- **Workdir:** ${_workdir}"
                 echo "- **Result:** ${SCENARIO_RESULTS[$scenario_key]}"
@@ -1896,7 +1896,7 @@ case "$COMMAND" in
                 echo "# Agent-Driven E2E Manual — Global Summary"
                 echo ""
                 echo "- **Date:** $(date '+%Y-%m-%d %H:%M:%S')"
-                echo "- **Model:** ${AGENTIC_MODEL}"
+                echo "- **Model:** ${AGENT_MODEL}"
                 echo "- **Scenarios:** ${#SELECTED_SCENARIOS[@]}"
                 echo "- **Passed:** ${TOTAL_PASS}"
                 echo "- **Failed:** ${TOTAL_FAIL}"
@@ -1928,7 +1928,7 @@ case "$COMMAND" in
         echo -e "${BLUE}================================================================${NC}"
         echo -e "${BLUE}=== Agent-Driven E2E Claude Code Manual — Final Summary${NC}"
         echo -e "${BLUE}================================================================${NC}"
-        echo -e "  Model:            ${AGENTIC_MODEL}"
+        echo -e "  Model:            ${AGENT_MODEL}"
         echo -e "  Scenarios run:    ${#SELECTED_SCENARIOS[@]}"
         echo -e "  ${GREEN}Passed:${NC}           ${TOTAL_PASS}"
         if [ "$TOTAL_FAIL" -gt 0 ]; then

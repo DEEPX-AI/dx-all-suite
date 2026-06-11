@@ -25,7 +25,7 @@ output the following notice at the beginning of your first response:
 
 ```
 ══════════════════════════════════════════════════════════════
-⚠  DX-AGENTIC-DEV: MODEL NOTICE
+⚠  DX-AGENT-DEV: MODEL NOTICE
 
 DX Agent-Driven Development recommends Claude Sonnet 4.6+ or
 Opus 4.6+. Your current model may produce lower quality
@@ -54,7 +54,7 @@ the line that contains the `?` (the actual question), insert this reminder:
 
 **Example — WRONG** (repeat scrolls past with the box):
 ```
-[DX-AGENTIC-DEV: START]
+[DX-AGENT-DEV: START]
 ══ MODEL NOTICE ══
 ---  ⚠ Non-recommended model ---     ← TOO EARLY, scrolls past
 ... (reads files, analyzes context) ...
@@ -63,7 +63,7 @@ First question: ...?
 
 **Example — CORRECT** (repeat appears right before the question):
 ```
-[DX-AGENTIC-DEV: START]
+[DX-AGENT-DEV: START]
 ══ MODEL NOTICE ══
 ... (reads files, analyzes context) ...
 ---  ⚠ Non-recommended model ---     ← RIGHT BEFORE the question
@@ -474,15 +474,15 @@ files is fine — committing them is forbidden.
 When processing a user prompt, output these exact markers for automated session
 boundary detection by the test harness:
 
-- **First line of your response**: `[DX-AGENTIC-DEV: START]`
-- **Last line after ALL work is complete**: `[DX-AGENTIC-DEV: DONE (output-dir: <relative_path>)]`
+- **First line of your response**: `[DX-AGENT-DEV: START]`
+- **Last line after ALL work is complete**: `[DX-AGENT-DEV: DONE (output-dir: <relative_path>)]`
   where `<relative_path>` is the session output directory (e.g., `dx-agent-dev/20260409-143022_yolo26n_detection/`)
 
 ### DEEPX Banner (MANDATORY — print with the sentinels)
 
 Render the DEEPX logo banner **verbatim** at two points: **immediately after** the
-`[DX-AGENTIC-DEV: START]` line, and **immediately before** the
-`[DX-AGENTIC-DEV: DONE ...]` line. Print it exactly as below (a fenced block is fine):
+`[DX-AGENT-DEV: START]` line, and **immediately before** the
+`[DX-AGENT-DEV: DONE ...]` line. Print it exactly as below (a fenced block is fine):
 
 ```
  ███████████   █████████ ████████ ████████  ████      ████
@@ -493,20 +493,20 @@ Render the DEEPX logo banner **verbatim** at two points: **immediately after** t
  ███     █████░███░      ██░      ███░   ████████░░░░████
  ███████████░░░█████████ ████████ ██████████░░░░░░    ████
   ░░░░░░░░░░░   ░░░░░░░░░ ░░░░░░░░ ░░░░░░░░░░          ░░░░
-        DX-AGENTIC-DEV · on-device NPU
+        DX-AGENT-DEV · on-device NPU
 ```
 
 The banner is decorative; it never replaces or moves the sentinel lines (START stays
 the absolute first line, DONE stays the very last line).
 
 Rules:
-1. **CRITICAL — Output `[DX-AGENTIC-DEV: START]` as the absolute first line of your
+1. **CRITICAL — Output `[DX-AGENT-DEV: START]` as the absolute first line of your
    first response.** This must appear before ANY other text, tool calls, or reasoning.
    Even if the user instructs you to "just proceed" or "use your own judgment",
    the START sentinel is non-negotiable — automated tests WILL fail without it.
    **Immediately after the START line, print the DEEPX banner** (see "DEEPX Banner" above).
 2. **Immediately before the DONE line, print the DEEPX banner again**, then output
-   `[DX-AGENTIC-DEV: DONE (output-dir: <path>)]` as the very last line after all work,
+   `[DX-AGENT-DEV: DONE (output-dir: <path>)]` as the very last line after all work,
    validation, and file generation is complete
 3. If you are a **sub-agent** invoked via handoff/routing from a higher-level agent,
    do NOT output these sentinels — only the top-level agent outputs them
@@ -516,7 +516,7 @@ Rules:
    **For cross-project tasks** (e.g., compile + app generation), list ALL output directories
    separated by ` + `:
    ```
-   [DX-AGENTIC-DEV: DONE (output-dir: dx-compiler/dx-agent-dev/20260409-143022_copilot_yolo26n_compile/ + dx-runtime/dx_app/dx-agent-dev/20260409-143022_copilot_yolo26n_inference/)]
+   [DX-AGENT-DEV: DONE (output-dir: dx-compiler/dx-agent-dev/20260409-143022_copilot_yolo26n_compile/ + dx-runtime/dx_app/dx-agent-dev/20260409-143022_copilot_yolo26n_inference/)]
    ```
 6. **NEVER output DONE after only producing planning artifacts** (specs, plans, design
    documents). DONE means all deliverables are produced — implementation code, scripts,
@@ -1069,7 +1069,7 @@ discipline):
 
 | Path | Examples |
 |------|---------|
-| `.deepx/e2e/test_agentic_e2e_scenarios/` | `conftest.py`, `test_*.py` fixtures |
+| `.deepx/e2e/test_agent_e2e_scenarios/` | `conftest.py`, `test_*.py` fixtures |
 | `.deepx/tests/conformance/` | KB / generated-output conformance + policy checks |
 | `.deepx/e2e/test.sh` | manual/autopilot shell runner |
 | `.deepx/tests/conftest.py`, `.deepx/tools/src/dx_transcripts/session_common.py`, `.deepx/tools/src/dx_transcripts/parse_copilot_session.py`, `.deepx/tools/src/dx_transcripts/parse_cursor_session.py`, `.deepx/tools/src/dx_transcripts/parse_claude_session.py` | shared test infrastructure |

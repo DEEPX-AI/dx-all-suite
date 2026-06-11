@@ -146,7 +146,7 @@ class TestScenario4Infrastructure:
         This test checks that the compiler's guide or agent files mention PPU.
         """
         compiler_guide = (
-            COMPILER_ROOT / "source/docs/05_DX-COMPILER_Agentic_Development.md"
+            COMPILER_ROOT / "source/docs/05_DX-COMPILER_Agent_Driven_Development.md"
         )
         if not compiler_guide.exists():
             pytest.skip("dx-compiler guide not found")
@@ -162,7 +162,7 @@ class TestScenario4Infrastructure:
         """
         # Check guide first
         app_guide = (
-            APP_ROOT / "docs/source/docs/12_DX-APP_Agentic_Development.md"
+            APP_ROOT / "docs/source/docs/12_DX-APP_Agent_Driven_Development.md"
         )
         guide_has_ppu = False
         if app_guide.exists():
@@ -270,7 +270,7 @@ class TestOutputIsolation:
         [(k, v) for k, v in PROJECT_ROOTS.items() if k != "suite"],
         ids=[k for k in PROJECT_ROOTS if k != "suite"],
     )
-    def test_gitignore_has_agentic_output_rule(self, project: str, root: Path):
+    def test_gitignore_has_agent_output_rule(self, project: str, root: Path):
         """Each project should have .gitignore rules for dx-agent-dev/ output."""
         gitignore = root / ".gitignore"
         if not gitignore.exists():

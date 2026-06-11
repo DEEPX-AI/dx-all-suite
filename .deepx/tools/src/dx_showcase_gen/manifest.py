@@ -2,7 +2,7 @@
 
 `dx-agent-dev-showcase/showcases.json` lists every showcase in display order.
 The doc builders in `augment.py` render the root-README card grid, the showcase
-catalog README, and the docs/source/00_Agentic_Development table from it, so a new
+catalog README, and the docs/source/00_Agent_Driven_Development table from it, so a new
 showcase is added in ONE place and regenerated everywhere via `dx-showcase-gen
 regen-docs`. This is what keeps the three doc surfaces from drifting as showcases
 are added (the recurring "long README" / "missing from the table" problem).

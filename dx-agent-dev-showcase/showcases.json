@@ -1,5 +1,5 @@
 {
-  "_comment": "Single source of truth for the dx-agent-dev showcase catalog. Edit this + run `dx-showcase-gen regen-docs` to regenerate the root README card grid + intro, this dir's catalog README, and the docs/source/00_Agentic_Development intro+table (EN+KO). Do NOT hand-edit those generated regions. Order = display order. card_media: gif|sample|video. gif/sample use a basename under docs/source/img/; video uses 'video'(+'poster') basenames there.",
+  "_comment": "Single source of truth for the dx-agent-dev showcase catalog. Edit this + run `dx-showcase-gen regen-docs` to regenerate the root README card grid + intro, this dir's catalog README, and the docs/source/00_Agent_Driven_Development intro+table (EN+KO). Do NOT hand-edit those generated regions. Order = display order. card_media: gif|sample|video. gif/sample use a basename under docs/source/img/; video uses 'video'(+'poster') basenames there.",
   "section": {
     "title_en": "✨ Build NPU Apps with Natural Language — dx-agent-dev (Beta)",
     "title_ko": "✨ 자연어로 NPU 앱 만들기 — dx-agent-dev (Beta)",

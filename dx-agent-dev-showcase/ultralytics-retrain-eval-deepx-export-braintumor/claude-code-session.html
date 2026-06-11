@@ -72,7 +72,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
 <hr />
 <div class="entry user" id="entry-1"><div class="entry-hdr"><span class="icon">&#x1F464;</span><span class="label">User</span><span class="time">2026-06-11 01:22:18 UTC</span></div><div class="entry-body">Using the Ultralytics Python package, adapt the base yolo26n model for a medical edge device that screens MRI/CT brain scans for tumors. The stock yolo26n is a general COCO-trained detector that does not recognize brain tumors, so fine-tune (retrain) it on the Ultralytics brain-tumor dataset (classes: negative, positive) on the local GPU for about 40 epochs to produce a domain-optimized tumor-detection model. Then evaluate accuracy (mAP50-95) and speed (FPS) for BOTH the base model and the retrained model in two forms each: (a) the PyTorch model in fp32 on the GPU, and (b) its DeepX export (.dxnn, INT8 on the DX-M1 NPU, via format=deepx). Write report.md comparing all four results (base vs retrained, fp32 vs INT8) with a short analysis of the accuracy gain and the INT8 quantization effect. Work autonomously to completion without asking for confirmation or approval; make default decisions per the knowledge base and PRODUCE THE ACTUAL ARTIFACTS (both .dxnn model dirs, the measured FPS/mAP numbers, report.md), not just a plan. Before writing any code, READ the dx-compiler knowledge base toolsets dx-compiler/.deepx/toolsets/ultralytics-train-eval.md and dx-compiler/.deepx/toolsets/ultralytics-deepx-export.md and follow them. Also, after evaluation, save an annotated detection SAMPLE IMAGE — the retrained model run on a representative validation image with bounding boxes + class labels drawn — as sample_detect.jpg in the session directory. Respond in English.</div></div>
 <div class="entry tool-ok collapsed" id="entry-2"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Skill</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>dx-skill-router</code></div><div class="tool-result"><pre>Launching skill: dx-skill-router</pre></div></div></div>
-<div class="entry assistant" id="entry-3"><div class="entry-hdr"><span class="icon">&#x1F4AC;</span><span class="label">Claude</span><span class="time">2026-06-11 01:22:18 UTC</span></div><div class="entry-body"><p><code>[DX-AGENTIC-DEV: START]</code></p>
+<div class="entry assistant" id="entry-3"><div class="entry-hdr"><span class="icon">&#x1F4AC;</span><span class="label">Claude</span><span class="time">2026-06-11 01:22:18 UTC</span></div><div class="entry-body"><p><code>[DX-AGENT-DEV: START]</code></p>
 <pre><code> ███████████   █████████ ████████ ████████  ████      ████
  ███     █████ ███░░░░░░░███░░░░░░███   ███  ░████   ████░░
  ███        ██░███░      ██░░     ███   ███░   █████████░░
@@ -81,7 +81,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
  ███     █████░███░      ██░      ███░   ████████░░░░████
  ███████████░░░█████████ ████████ ██████████░░░░░░    ████
   ░░░░░░░░░░░   ░░░░░░░░░ ░░░░░░░░ ░░░░░░░░░░          ░░░░
-        DX-AGENTIC-DEV · on-device NPU
+        DX-AGENT-DEV · on-device NPU
 </code></pre>
 <p>Per the universal pre-flight HARD GATE, my first action is to invoke the skill router.</p></div></div>
 <div class="entry user" id="entry-4"><div class="entry-hdr"><span class="icon">&#x1F464;</span><span class="label">User</span><span class="time">2026-06-11 01:22:29 UTC</span></div><div class="entry-body">Base directory for this skill: /data/home/dhyang/github/dx-all-suite-ultralytics/.claude/skills/dx-skill-router
@@ -591,9 +591,9 @@ All verification gates pass:
  ███     █████░███░      ██░      ███░   ████████░░░░████
  ███████████░░░█████████ ████████ ██████████░░░░░░    ████
   ░░░░░░░░░░░   ░░░░░░░░░ ░░░░░░░░ ░░░░░░░░░░          ░░░░
-        DX-AGENTIC-DEV · on-device NPU
+        DX-AGENT-DEV · on-device NPU
 </code></pre>
-<p>[DX-AGENTIC-DEV: DONE (output-dir: dx-compiler/dx-agent-dev/20260611-102324_claude_opus48_yolo26n_braintumor/)]</p>
+<p>[DX-AGENT-DEV: DONE (output-dir: dx-compiler/dx-agent-dev/20260611-102324_claude_opus48_yolo26n_braintumor/)]</p>
 <p>Now the final housekeeping step — rendering this session's transcript into the output dir:
 Session transcript (md/html/jsonl) saved to: <code>dx-compiler/dx-agent-dev/20260611-102324_claude_opus48_yolo26n_braintumor/claude-session.*</code></p></div></div>
 <hr />

@@ -82,13 +82,13 @@ def _cmd_regen_docs(a) -> int:
          augment.catalog_region(man, lang="en"), "<!-- catalog -->"),
         ("dx-agent-dev-showcase/README-ko.md", "catalog",
          augment.catalog_region(man, lang="ko"), "<!-- catalog -->"),
-        ("docs/source/00_Agentic_Development.md", "intro",
+        ("docs/source/00_Agent_Driven_Development.md", "intro",
          augment.intro_region(man, lang="en"), "<!-- intro -->"),
-        ("docs/source/00_Agentic_Development_kor.md", "intro",
+        ("docs/source/00_Agent_Driven_Development_kor.md", "intro",
          augment.intro_region(man, lang="ko"), "<!-- intro -->"),
-        ("docs/source/00_Agentic_Development.md", "table",
+        ("docs/source/00_Agent_Driven_Development.md", "table",
          augment.categorized_table(man, lang="en"), "<!-- showcase-table -->"),
-        ("docs/source/00_Agentic_Development_kor.md", "table",
+        ("docs/source/00_Agent_Driven_Development_kor.md", "table",
          augment.categorized_table(man, lang="ko"), "<!-- showcase-table -->"),
     ]
     changed = []

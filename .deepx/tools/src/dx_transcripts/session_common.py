@@ -23,10 +23,10 @@ from typing import Any, List, Optional, Protocol, runtime_checkable
 # ---------------------------------------------------------------------------
 
 _SENTINEL_OUTPUT_DIR_RE = re.compile(
-    r"\[DX-AGENTIC-DEV:\s*DONE\s*\(output-dir:\s*([^)]+)\)\]"
+    r"\[DX-AGENT-DEV:\s*DONE\s*\(output-dir:\s*([^)]+)\)\]"
 )
 
-_SENTINEL_START_RE = re.compile(r"\[DX-AGENTIC-DEV:\s*START\]")
+_SENTINEL_START_RE = re.compile(r"\[DX-AGENT-DEV:\s*START\]")
 
 
 @runtime_checkable

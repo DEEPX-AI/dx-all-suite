@@ -36,7 +36,7 @@
 
 **Claude:**
 
-[DX-AGENTIC-DEV: START]
+[DX-AGENT-DEV: START]
 
 ```
  ███████████   █████████ ████████ ████████  ████      ████
@@ -47,7 +47,7 @@
  ███     █████░███░      ██░      ███░   ████████░░░░████
  ███████████░░░█████████ ████████ ██████████░░░░░░    ████
   ░░░░░░░░░░░   ░░░░░░░░░ ░░░░░░░░ ░░░░░░░░░░          ░░░░
-        DX-AGENTIC-DEV · on-device NPU
+        DX-AGENT-DEV · on-device NPU
 ```
 
 I'll start by invoking the skill router as the mandatory first action.
@@ -698,10 +698,10 @@ The app uses the IFactory + SyncRunner pattern (skeleton-first from `yolo26n_pos
  ███     █████░███░      ██░      ███░   ████████░░░░████
  ███████████░░░█████████ ████████ ██████████░░░░░░    ████
   ░░░░░░░░░░░   ░░░░░░░░░ ░░░░░░░░ ░░░░░░░░░░          ░░░░
-        DX-AGENTIC-DEV · on-device NPU
+        DX-AGENT-DEV · on-device NPU
 ```
 
-[DX-AGENTIC-DEV: DONE (output-dir: dx-runtime/dx_app/dx-agent-dev/20260608-194643_claude_opus48_yolo26n_pose_squat_game/)]
+[DX-AGENT-DEV: DONE (output-dir: dx-runtime/dx_app/dx-agent-dev/20260608-194643_claude_opus48_yolo26n_pose_squat_game/)]
 
 Now the final housekeeping step — render this session's transcript into the output dir (claude is auto-supported):
 Session transcript (md/html/jsonl) saved to: `dx-agent-dev/20260608-194643_claude_opus48_yolo26n_pose_squat_game/claude-session.*`

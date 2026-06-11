@@ -36,7 +36,7 @@
 
 **Claude:**
 
-[DX-AGENTIC-DEV: START]
+[DX-AGENT-DEV: START]
 
 ```
  ███████████   █████████ ████████ ████████  ████      ████
@@ -47,7 +47,7 @@
  ███     █████░███░      ██░      ███░   ████████░░░░████
  ███████████░░░█████████ ████████ ██████████░░░░░░    ████
   ░░░░░░░░░░░   ░░░░░░░░░ ░░░░░░░░ ░░░░░░░░░░          ░░░░
-        DX-AGENTIC-DEV · on-device NPU
+        DX-AGENT-DEV · on-device NPU
 ```
 
 ---
@@ -456,10 +456,10 @@ All checks pass. Now generating the session transcript.
  ███     █████░███░      ██░      ███░   ████████░░░░████
  ███████████░░░█████████ ████████ ██████████░░░░░░    ████
   ░░░░░░░░░░░   ░░░░░░░░░ ░░░░░░░░ ░░░░░░░░░░          ░░░░
-        DX-AGENTIC-DEV · on-device NPU
+        DX-AGENT-DEV · on-device NPU
 ```
 
-[DX-AGENTIC-DEV: DONE (output-dir: dx-compiler/dx-agent-dev/20260610-140724_claude_sonnet46_yolo26n_ultralytics/)]
+[DX-AGENT-DEV: DONE (output-dir: dx-compiler/dx-agent-dev/20260610-140724_claude_sonnet46_yolo26n_ultralytics/)]
 Session transcript saved to: `dx-compiler/dx-agent-dev/20260610-140724_claude_sonnet46_yolo26n_ultralytics/claude-session.{md,html,jsonl}`
 
 ---

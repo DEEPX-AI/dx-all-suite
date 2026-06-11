@@ -5,7 +5,7 @@
 
 이들은 **dx-agent-dev (Beta)**를 보여줍니다: 앱/태스크를 자연어로 설명하면 에이전트가 DEEPX
 지식 베이스를 end-to-end로 구동(brainstorm → plan → TDD → verify)합니다. 기능 자체와 동작
-방식 → [Agent-Driven Development 문서](../docs/source/00_Agentic_Development_kor.md). 아래 각 카드는
+방식 → [Agent-Driven Development 문서](../docs/source/00_Agent_Driven_Development_kor.md). 아래 각 카드는
 해당 showcase의 README(상세 + transcript)로 연결됩니다.
 
 <!-- catalog -->

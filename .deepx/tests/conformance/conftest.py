@@ -51,32 +51,32 @@ class GuidePair:
 GUIDE_PAIRS: List[GuidePair] = [
     GuidePair(
         project="suite",
-        en_path=SUITE_ROOT / "docs/source/00_Agentic_Development.md",
-        ko_path=SUITE_ROOT / "docs/source/00_Agentic_Development_kor.md",
+        en_path=SUITE_ROOT / "docs/source/00_Agent_Driven_Development.md",
+        ko_path=SUITE_ROOT / "docs/source/00_Agent_Driven_Development_kor.md",
         label="DX All Suite (top-level)",
     ),
     GuidePair(
         project="compiler",
-        en_path=COMPILER_ROOT / "source/docs/05_DX-COMPILER_Agentic_Development.md",
-        ko_path=COMPILER_ROOT / "source/docs/05_DX-COMPILER_Agentic_Development-KO.md",
+        en_path=COMPILER_ROOT / "source/docs/05_DX-COMPILER_Agent_Driven_Development.md",
+        ko_path=COMPILER_ROOT / "source/docs/05_DX-COMPILER_Agent_Driven_Development-KO.md",
         label="DX-COMPILER",
     ),
     GuidePair(
         project="runtime",
-        en_path=RUNTIME_ROOT / "docs/source/agentic_development.md",
-        ko_path=RUNTIME_ROOT / "docs/source/agentic_development-KO.md",
+        en_path=RUNTIME_ROOT / "docs/source/agent_development.md",
+        ko_path=RUNTIME_ROOT / "docs/source/agent_development-KO.md",
         label="DX-Runtime",
     ),
     GuidePair(
         project="app",
-        en_path=APP_ROOT / "docs/source/docs/12_DX-APP_Agentic_Development.md",
-        ko_path=APP_ROOT / "docs/source/docs/12_DX-APP_Agentic_Development-KO.md",
+        en_path=APP_ROOT / "docs/source/docs/12_DX-APP_Agent_Driven_Development.md",
+        ko_path=APP_ROOT / "docs/source/docs/12_DX-APP_Agent_Driven_Development-KO.md",
         label="DX-APP",
     ),
     GuidePair(
         project="stream",
-        en_path=STREAM_ROOT / "docs/source/docs/08_DX-STREAM_Agentic_Development.md",
-        ko_path=STREAM_ROOT / "docs/source/docs/08_DX-STREAM_Agentic_Development-KO.md",
+        en_path=STREAM_ROOT / "docs/source/docs/08_DX-STREAM_Agent_Driven_Development.md",
+        ko_path=STREAM_ROOT / "docs/source/docs/08_DX-STREAM_Agent_Driven_Development-KO.md",
         label="DX-STREAM",
     ),
 ]

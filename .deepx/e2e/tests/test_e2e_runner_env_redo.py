@@ -4,7 +4,7 @@
 Detect env-failed rounds (cert/SSL, codex model-refresh, copilot empty-unknown)
 from a completed run, delete their records + result dirs, and reset state so
 --resume re-runs them to the target count. Classification delegates to the
-shared SSOT (agentic_analyzer/lib/env_failure.py) so the runner and the analyzer
+shared SSOT (agent_analyzer/lib/env_failure.py) so the runner and the analyzer
 agree on what an env failure is.
 """
 from __future__ import annotations
@@ -42,8 +42,8 @@ def _make_scenario(parent: Path, name: str, *, files: dict | None = None,
     return sd
 
 
-DONE_MD = "Run complete.\n[DX-AGENTIC-DEV: DONE (output-dir: dx-compiler/dx-agent-dev/x)]\n"
-START_ONLY_MD = "[DX-AGENTIC-DEV: START]\nworking...\n"
+DONE_MD = "Run complete.\n[DX-AGENT-DEV: DONE (output-dir: dx-compiler/dx-agent-dev/x)]\n"
+START_ONLY_MD = "[DX-AGENT-DEV: START]\nworking...\n"
 REAL_WORK_JSONL = (
     '{"type":"assistant","content":"..."}\n' * 30
     + '{"type":"tool_use","name":"bash"}\n' * 30

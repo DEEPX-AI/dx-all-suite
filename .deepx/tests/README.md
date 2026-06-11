@@ -20,7 +20,7 @@ Validates the agent-driven development infrastructure across all 5 project level
 
 **Total tests:** ~700 infra checks — run `pytest .deepx/tests/conformance/ --collect-only -q` for the live count. These need no CLI/NPU, so effectively all pass; a few skip when an optional dependency is absent.
 
-### 2. test_agentic_e2e_scenarios — Agent-Driven End-to-End Scenario Tests (Copilot CLI + Cursor CLI + OpenCode CLI + Claude Code CLI + Codex CLI)
+### 2. test_agent_e2e_scenarios — Agent-Driven End-to-End Scenario Tests (Copilot CLI + Cursor CLI + OpenCode CLI + Claude Code CLI + Codex CLI)
 Runs actual CLI agent invocations for representative scenarios from each project level, then statically verifies the generated output files.
 
 **Modes:** five CLI autopilot modes (pytest) + interactive manual modes (shell).
@@ -45,14 +45,14 @@ Runs actual CLI agent invocations for representative scenarios from each project
 
 **Verification approach:** Static analysis only (file existence, Python syntax via `ast.parse`, JSON structure, required patterns). No actual HW inference.
 
-**Total tests:** ~586 collected across the five CLI autopilot markers (copilot, cursor, opencode, claude-code, codex) — run `pytest .deepx/e2e/test_agentic_e2e_scenarios/ --collect-only -q` for the live count; plus shell-based manual modes.
+**Total tests:** ~586 collected across the five CLI autopilot markers (copilot, cursor, opencode, claude-code, codex) — run `pytest .deepx/e2e/test_agent_e2e_scenarios/ --collect-only -q` for the live count; plus shell-based manual modes.
 
 **Markers (pytest only):**
-- `pytest.mark.agentic_e2e_copilot_cli_autopilot` — Copilot CLI fully autonomous (CI/CD)
-- `pytest.mark.agentic_e2e_cursor_cli_autopilot` — Cursor CLI fully autonomous (CI/CD)
-- `pytest.mark.agentic_e2e_opencode_cli_autopilot` — OpenCode CLI fully autonomous (CI/CD)
-- `pytest.mark.agentic_e2e_claude_code_autopilot` — Claude Code CLI fully autonomous (CI/CD)
-- `pytest.mark.agentic_e2e_codex_cli_autopilot` — Codex CLI fully autonomous (CI/CD)
+- `pytest.mark.agent_e2e_copilot_cli_autopilot` — Copilot CLI fully autonomous (CI/CD)
+- `pytest.mark.agent_e2e_cursor_cli_autopilot` — Cursor CLI fully autonomous (CI/CD)
+- `pytest.mark.agent_e2e_opencode_cli_autopilot` — OpenCode CLI fully autonomous (CI/CD)
+- `pytest.mark.agent_e2e_claude_code_autopilot` — Claude Code CLI fully autonomous (CI/CD)
+- `pytest.mark.agent_e2e_codex_cli_autopilot` — Codex CLI fully autonomous (CI/CD)
 
 ## 🔄 E2E Runner & Monitor
 
@@ -149,10 +149,10 @@ DX_TIMEOUT_COMPILER=3600 DX_TIMEOUT_SUITE=4800 python .deepx/e2e/e2e_runner.py -
 
 | Tool | Thinking mode env var |
 |---|---|
-| `claude-code` | `DX_AGENTIC_E2E_CLAUDE_CODE_EXTRA_ARGS=--effort xhigh` |
-| `copilot-cli` | `DX_AGENTIC_E2E_COPILOT_EXTRA_ARGS=--effort xhigh` |
-| `opencode-cli` | `DX_AGENTIC_E2E_OPENCODE_EXTRA_ARGS=--variant high` |
-| `codex-cli` | `DX_AGENTIC_E2E_CODEX_EXTRA_ARGS=-c model_reasoning_effort="xhigh"` |
+| `claude-code` | `DX_AGENT_E2E_CLAUDE_CODE_EXTRA_ARGS=--effort xhigh` |
+| `copilot-cli` | `DX_AGENT_E2E_COPILOT_EXTRA_ARGS=--effort xhigh` |
+| `opencode-cli` | `DX_AGENT_E2E_OPENCODE_EXTRA_ARGS=--variant high` |
+| `codex-cli` | `DX_AGENT_E2E_CODEX_EXTRA_ARGS=-c model_reasoning_effort="xhigh"` |
 | `cursor-cli` | No thinking mode (quota exceeded; auto fallback) |
 
 **State files** (`.deepx/e2e/runner_state/<run_id>/`):
@@ -253,7 +253,7 @@ python .deepx/e2e/e2e_monitor.py --once
 Generate quantitative + qualitative reports after one or more E2E runs:
 
 ```bash
-cd .deepx/e2e/agentic_analyzer
+cd .deepx/e2e/agent_analyzer
 
 # Aggregate every run (and legacy flat results)
 #   → analyzer_reports/_all/<timestamp>/
@@ -326,10 +326,10 @@ cd .deepx/e2e
 ### Marker Filters
 
 ```bash
-./test.sh -m "agentic_e2e_copilot_cli_autopilot"  # Only Copilot CLI agent-driven E2E
-./test.sh -m "agentic_e2e_cursor_cli_autopilot"   # Only Cursor CLI agent-driven E2E
-./test.sh -m "agentic_e2e_opencode_cli_autopilot" # Only OpenCode CLI agent-driven E2E
-./test.sh -m "agentic_e2e_claude_code_autopilot"  # Only Claude Code CLI agent-driven E2E
+./test.sh -m "agent_e2e_copilot_cli_autopilot"  # Only Copilot CLI agent-driven E2E
+./test.sh -m "agent_e2e_cursor_cli_autopilot"   # Only Cursor CLI agent-driven E2E
+./test.sh -m "agent_e2e_opencode_cli_autopilot" # Only OpenCode CLI agent-driven E2E
+./test.sh -m "agent_e2e_claude_code_autopilot"  # Only Claude Code CLI agent-driven E2E
 ```
 
 ## 🎨 Usage Examples
@@ -344,7 +344,7 @@ cd .deepx/e2e
 ./test.sh agent-driven-e2e-copilot-cli-autopilot -k compiler
 
 # With custom model and extended timeout
-DX_AGENTIC_E2E_TIMEOUT=900 DX_AGENTIC_E2E_MODEL="claude-opus-4.6" \
+DX_AGENT_E2E_TIMEOUT=900 DX_AGENT_E2E_MODEL="claude-opus-4.6" \
   ./test.sh agent-driven-e2e-copilot-cli-autopilot
 ```
 
@@ -358,7 +358,7 @@ DX_AGENTIC_E2E_TIMEOUT=900 DX_AGENTIC_E2E_MODEL="claude-opus-4.6" \
 ./test.sh agent-driven-e2e-cursor-cli-autopilot -k dx_stream
 
 # With different model
-DX_AGENTIC_E2E_CURSOR_MODEL="claude-opus-4-7-thinking-high" \
+DX_AGENT_E2E_CURSOR_MODEL="claude-opus-4-7-thinking-high" \
   ./test.sh agent-driven-e2e-cursor-cli-autopilot
 ```
 
@@ -385,7 +385,7 @@ DX_AGENTIC_E2E_CURSOR_MODEL="claude-opus-4-7-thinking-high" \
 
 ## 🤖 Agent-Driven E2E — Copilot CLI Autonomous Execution
 
-The agent-driven E2E test suite (`test_agentic_e2e_scenarios/`) runs real Copilot CLI
+The agent-driven E2E test suite (`test_agent_e2e_scenarios/`) runs real Copilot CLI
 sessions against the dx-all-suite codebase. This section explains how autonomous
 (auto-approve) execution works.
 
@@ -429,7 +429,7 @@ Key behaviors:
 - The **AUTOPILOT_DIRECTIVE** (appended to every prompt) reinforces autonomous
   behavior at the prompt level.
 - The session runs with a **timeout** (default 300s, configurable via
-  `DX_AGENTIC_E2E_TIMEOUT`). If the agent exceeds the timeout, the process
+  `DX_AGENT_E2E_TIMEOUT`). If the agent exceeds the timeout, the process
   is killed and the test fails.
 
 ### Manual Mode — How It Works
@@ -452,23 +452,23 @@ Key behaviors:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `DX_AGENTIC_E2E_MODEL` | `claude-sonnet-4.6` | LLM model for Copilot CLI |
-| `DX_AGENTIC_E2E_TIMEOUT` | `300` | Timeout in seconds per scenario |
-| `DX_AGENTIC_E2E_CLEANUP_ARTIFACTS` | (unset) | Set to `1` to delete generated `dx-agent-dev/` directories after test run (default: keep) |
-| `DX_AGENTIC_E2E_MODE` | (set by test.sh) | `autopilot` or `manual` — set automatically by `test.sh` |
+| `DX_AGENT_E2E_MODEL` | `claude-sonnet-4.6` | LLM model for Copilot CLI |
+| `DX_AGENT_E2E_TIMEOUT` | `300` | Timeout in seconds per scenario |
+| `DX_AGENT_E2E_CLEANUP_ARTIFACTS` | (unset) | Set to `1` to delete generated `dx-agent-dev/` directories after test run (default: keep) |
+| `DX_AGENT_E2E_MODE` | (set by test.sh) | `autopilot` or `manual` — set automatically by `test.sh` |
 
 ### Running with Different Models
 
 ```bash
 # Claude Sonnet 4.6 (recommended)
-DX_AGENTIC_E2E_MODEL="claude-sonnet-4.6" ./test.sh agent-driven-e2e-copilot-cli-autopilot
+DX_AGENT_E2E_MODEL="claude-sonnet-4.6" ./test.sh agent-driven-e2e-copilot-cli-autopilot
 
 # GPT-4.1 (not recommended — may fabricate APIs)
-DX_AGENTIC_E2E_MODEL="gpt-4.1" DX_AGENTIC_E2E_TIMEOUT=600 \
+DX_AGENT_E2E_MODEL="gpt-4.1" DX_AGENT_E2E_TIMEOUT=600 \
   ./test.sh agent-driven-e2e-copilot-cli-autopilot
 
 # Claude Opus 4.6 (highest quality, slower)
-DX_AGENTIC_E2E_MODEL="claude-opus-4.6" DX_AGENTIC_E2E_TIMEOUT=900 \
+DX_AGENT_E2E_MODEL="claude-opus-4.6" DX_AGENT_E2E_TIMEOUT=900 \
   ./test.sh agent-driven-e2e-copilot-cli-autopilot
 ```
 
@@ -485,18 +485,18 @@ After a test run, artifacts include:
 - HTML export (if `test.sh` detects it was generated via `/share html`)
 
 Generated artifacts are preserved by default for debugging.
-Set `DX_AGENTIC_E2E_CLEANUP_ARTIFACTS=1` to delete them after a successful run.
+Set `DX_AGENT_E2E_CLEANUP_ARTIFACTS=1` to delete them after a successful run.
 
 ### Differences from Copilot CLI Tests
 
-The Cursor CLI E2E tests (`test_cursor_*_agentic_e2e.py`) run the same scenarios as
+The Cursor CLI E2E tests (`test_cursor_*_agent_e2e.py`) run the same scenarios as
 the Copilot CLI tests, but using the Cursor CLI (`agent`) instead.
 
 ---
 
 ## 🖥 Agent-Driven E2E — Cursor CLI Autonomous Execution
 
-The Cursor CLI E2E tests (`test_cursor_*_agentic_e2e.py`) run the same scenarios as
+The Cursor CLI E2E tests (`test_cursor_*_agent_e2e.py`) run the same scenarios as
 the Copilot CLI tests, but using the Cursor CLI (`agent`) instead.
 
 ### How It Works
@@ -530,11 +530,11 @@ Key behaviors:
 ./test.sh agent-driven-e2e-cursor-cli-autopilot -k compiler
 
 # With custom model (override default)
-DX_AGENTIC_E2E_CURSOR_MODEL="claude-opus-4-7-thinking-high" \
+DX_AGENT_E2E_CURSOR_MODEL="claude-opus-4-7-thinking-high" \
   ./test.sh agent-driven-e2e-cursor-cli-autopilot
 
 # With extended timeout
-DX_AGENTIC_E2E_CURSOR_TIMEOUT=900 \
+DX_AGENT_E2E_CURSOR_TIMEOUT=900 \
   ./test.sh agent-driven-e2e-cursor-cli-autopilot
 ```
 
@@ -542,9 +542,9 @@ DX_AGENTIC_E2E_CURSOR_TIMEOUT=900 \
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `DX_AGENTIC_E2E_CURSOR_MODEL` | `claude-4.6-sonnet-medium` | LLM model for Cursor CLI |
-| `DX_AGENTIC_E2E_CURSOR_TIMEOUT` | `300` | Timeout in seconds per scenario |
-| `DX_AGENTIC_E2E_CLEANUP_ARTIFACTS` | (unset) | Set to `1` to delete generated artifacts after a successful run (default: keep) |
+| `DX_AGENT_E2E_CURSOR_MODEL` | `claude-4.6-sonnet-medium` | LLM model for Cursor CLI |
+| `DX_AGENT_E2E_CURSOR_TIMEOUT` | `300` | Timeout in seconds per scenario |
+| `DX_AGENT_E2E_CLEANUP_ARTIFACTS` | (unset) | Set to `1` to delete generated artifacts after a successful run (default: keep) |
 | `CURSOR_API_KEY` | (from login) | API key for headless authentication |
 
 ### Prerequisites
@@ -621,7 +621,7 @@ Common model IDs for E2E testing:
 
 ## 🖥 Agent-Driven E2E — OpenCode CLI Autonomous Execution
 
-The OpenCode CLI E2E tests (`test_opencode_*_agentic_e2e.py`) run the same scenarios
+The OpenCode CLI E2E tests (`test_opencode_*_agent_e2e.py`) run the same scenarios
 using the OpenCode CLI (`opencode`) with structured JSON output.
 
 ### How It Works
@@ -651,11 +651,11 @@ Key behaviors:
 ./test.sh agent-driven-e2e-opencode-cli-autopilot -k compiler
 
 # With custom model
-DX_AGENTIC_E2E_OPENCODE_MODEL="anthropic/claude-opus-4.6" \
+DX_AGENT_E2E_OPENCODE_MODEL="anthropic/claude-opus-4.6" \
   ./test.sh agent-driven-e2e-opencode-cli-autopilot
 
 # With extended timeout
-DX_AGENTIC_E2E_OPENCODE_TIMEOUT=900 \
+DX_AGENT_E2E_OPENCODE_TIMEOUT=900 \
   ./test.sh agent-driven-e2e-opencode-cli-autopilot
 ```
 
@@ -678,10 +678,10 @@ Key behaviors:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `DX_AGENTIC_E2E_OPENCODE_MODEL` | `github-copilot/claude-sonnet-4.6` | LLM model for OpenCode CLI |
-| `DX_AGENTIC_E2E_OPENCODE_TIMEOUT` | `600` | Timeout in seconds per scenario |
+| `DX_AGENT_E2E_OPENCODE_MODEL` | `github-copilot/claude-sonnet-4.6` | LLM model for OpenCode CLI |
+| `DX_AGENT_E2E_OPENCODE_TIMEOUT` | `600` | Timeout in seconds per scenario |
 | `DX_OPENCODE_CASCADED_TIMEOUT` | `720` | Timeout for cascaded (multi-session) scenarios |
-| `DX_AGENTIC_E2E_CLEANUP_ARTIFACTS` | (unset) | Set to `1` to delete generated artifacts after a successful run (default: keep) |
+| `DX_AGENT_E2E_CLEANUP_ARTIFACTS` | (unset) | Set to `1` to delete generated artifacts after a successful run (default: keep) |
 
 ### Prerequisites
 
@@ -717,7 +717,7 @@ detects and archives this file to the scenario artifact directory.
 
 ## 🖥 Agent-Driven E2E — Claude Code CLI Autonomous Execution
 
-The Claude Code CLI E2E tests (`test_claude_code_*_agentic_e2e.py`) run the same
+The Claude Code CLI E2E tests (`test_claude_code_*_agent_e2e.py`) run the same
 scenarios using the Claude Code CLI (`claude`) from Anthropic.
 
 ### How It Works
@@ -752,11 +752,11 @@ Key behaviors:
 ./test.sh agent-driven-e2e-claude-code-autopilot -k compiler
 
 # With custom model
-DX_AGENTIC_E2E_CLAUDE_CODE_MODEL="claude-opus-4-6" \
+DX_AGENT_E2E_CLAUDE_CODE_MODEL="claude-opus-4-6" \
   ./test.sh agent-driven-e2e-claude-code-autopilot
 
 # With extended timeout and cleanup
-DX_AGENTIC_E2E_CLAUDE_CODE_TIMEOUT=900 DX_AGENTIC_E2E_CLEANUP_ARTIFACTS=1 \
+DX_AGENT_E2E_CLAUDE_CODE_TIMEOUT=900 DX_AGENT_E2E_CLEANUP_ARTIFACTS=1 \
   ./test.sh agent-driven-e2e-claude-code-autopilot -k dx_stream
 ```
 
@@ -777,11 +777,11 @@ After the session, `test.sh` runs shell-based validation on the generated artifa
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `DX_AGENTIC_E2E_CLAUDE_CODE_MODEL` | `claude-sonnet-4-6` | LLM model for Claude Code CLI |
-| `DX_AGENTIC_E2E_CLAUDE_CODE_TIMEOUT` | `600` | Timeout in seconds per scenario |
-| `DX_AGENTIC_E2E_CLAUDE_QUOTA_POLL_INTERVAL` | `3600` | Seconds to wait between quota-limit retries |
-| `DX_AGENTIC_E2E_CLAUDE_QUOTA_MAX_POLLS` | `8` | Max retry polls on quota/rate limit |
-| `DX_AGENTIC_E2E_CLEANUP_ARTIFACTS` | (unset) | Set to `1` to delete generated artifacts after a successful run (default: keep) |
+| `DX_AGENT_E2E_CLAUDE_CODE_MODEL` | `claude-sonnet-4-6` | LLM model for Claude Code CLI |
+| `DX_AGENT_E2E_CLAUDE_CODE_TIMEOUT` | `600` | Timeout in seconds per scenario |
+| `DX_AGENT_E2E_CLAUDE_QUOTA_POLL_INTERVAL` | `3600` | Seconds to wait between quota-limit retries |
+| `DX_AGENT_E2E_CLAUDE_QUOTA_MAX_POLLS` | `8` | Max retry polls on quota/rate limit |
+| `DX_AGENT_E2E_CLEANUP_ARTIFACTS` | (unset) | Set to `1` to delete generated artifacts after a successful run (default: keep) |
 
 ### Prerequisites
 
@@ -820,33 +820,33 @@ In manual mode, Claude Code saves a TXT transcript
 | Test Suite | Test Count | Expected Time | Use Case |
 |-----------|------------|---------------|----------|
 | **agent-driven** | ~704 | ~1 second | Agent-Driven infrastructure validation |
-| **agentic_e2e (copilot-cli)** | ~114 | ~30-45 minutes | Agent-Driven E2E Copilot CLI scenario tests |
-| **agentic_e2e (cursor-cli)** | ~113 | ~40-45 minutes | Agent-Driven E2E Cursor CLI scenario tests (Claude Sonnet 4.6) |
-| **agentic_e2e (opencode-cli)** | ~116 | ~45-60 minutes | Agent-Driven E2E OpenCode CLI scenario tests |
-| **agentic_e2e (claude-code-cli)** | ~116 | ~45-60 minutes | Agent-Driven E2E Claude Code CLI scenario tests |
-| **agentic_e2e (codex-cli)** | ~116 | ~45-60 minutes | Agent-Driven E2E Codex CLI scenario tests |
+| **agent_e2e (copilot-cli)** | ~114 | ~30-45 minutes | Agent-Driven E2E Copilot CLI scenario tests |
+| **agent_e2e (cursor-cli)** | ~113 | ~40-45 minutes | Agent-Driven E2E Cursor CLI scenario tests (Claude Sonnet 4.6) |
+| **agent_e2e (opencode-cli)** | ~116 | ~45-60 minutes | Agent-Driven E2E OpenCode CLI scenario tests |
+| **agent_e2e (claude-code-cli)** | ~116 | ~45-60 minutes | Agent-Driven E2E Claude Code CLI scenario tests |
+| **agent_e2e (codex-cli)** | ~116 | ~45-60 minutes | Agent-Driven E2E Codex CLI scenario tests |
 
 ## 🔧 Environment Variables
 
 ```bash
 # Agent-Driven E2E test configuration (Copilot CLI)
-export DX_AGENTIC_E2E_TIMEOUT=900           # Copilot CLI timeout in seconds (default: 300)
-export DX_AGENTIC_E2E_MODEL="claude-opus-4.6"       # OpenCode model to use (default: claude-sonnet-4.6)
-# export DX_AGENTIC_E2E_CLEANUP_ARTIFACTS=1  # Delete artifacts after successful run (default: keep)
+export DX_AGENT_E2E_TIMEOUT=900           # Copilot CLI timeout in seconds (default: 300)
+export DX_AGENT_E2E_MODEL="claude-opus-4.6"       # OpenCode model to use (default: claude-sonnet-4.6)
+# export DX_AGENT_E2E_CLEANUP_ARTIFACTS=1  # Delete artifacts after successful run (default: keep)
 
 # Agent-Driven E2E test configuration (Cursor CLI)
-export DX_AGENTIC_E2E_CURSOR_MODEL="claude-4.6-sonnet-medium"  # Cursor model (default: claude-4.6-sonnet-medium)
-export DX_AGENTIC_E2E_CURSOR_TIMEOUT=300    # Cursor CLI timeout in seconds (default: 300)
+export DX_AGENT_E2E_CURSOR_MODEL="claude-4.6-sonnet-medium"  # Cursor model (default: claude-4.6-sonnet-medium)
+export DX_AGENT_E2E_CURSOR_TIMEOUT=300    # Cursor CLI timeout in seconds (default: 300)
 export CURSOR_API_KEY="your-api-key"        # API key for headless/CI (alternative to 'agent login')
 
 # Agent-Driven E2E test configuration (OpenCode CLI)
-export DX_AGENTIC_E2E_OPENCODE_MODEL="github-copilot/claude-sonnet-4.6"  # OpenCode model (default)
-export DX_AGENTIC_E2E_OPENCODE_TIMEOUT=600  # OpenCode CLI timeout in seconds (default: 600)
+export DX_AGENT_E2E_OPENCODE_MODEL="github-copilot/claude-sonnet-4.6"  # OpenCode model (default)
+export DX_AGENT_E2E_OPENCODE_TIMEOUT=600  # OpenCode CLI timeout in seconds (default: 600)
 export DX_OPENCODE_CASCADED_TIMEOUT=720     # OpenCode cascaded scenario timeout (default: 720)
 
 # Agent-Driven E2E test configuration (Claude Code CLI)
-export DX_AGENTIC_E2E_CLAUDE_CODE_MODEL="claude-sonnet-4-6"  # Claude Code model (default)
-export DX_AGENTIC_E2E_CLAUDE_CODE_TIMEOUT=600  # Claude Code CLI timeout in seconds (default: 600)
+export DX_AGENT_E2E_CLAUDE_CODE_MODEL="claude-sonnet-4-6"  # Claude Code model (default)
+export DX_AGENT_E2E_CLAUDE_CODE_TIMEOUT=600  # Claude Code CLI timeout in seconds (default: 600)
 ```
 
 ## 🔄 E2E Runner & Monitor
@@ -892,10 +892,10 @@ python .deepx/e2e/e2e_runner.py --cleanup --round 2,3,4
 
 | Tool | Thinking mode env var |
 |---|---|
-| `claude-code` | `DX_AGENTIC_E2E_CLAUDE_CODE_EXTRA_ARGS=--effort xhigh` |
-| `copilot-cli` | `DX_AGENTIC_E2E_COPILOT_EXTRA_ARGS=--effort xhigh` |
-| `opencode-cli` | `DX_AGENTIC_E2E_OPENCODE_EXTRA_ARGS=--variant high` |
-| `codex-cli` | `DX_AGENTIC_E2E_CODEX_EXTRA_ARGS=-c model_reasoning_effort="xhigh"` |
+| `claude-code` | `DX_AGENT_E2E_CLAUDE_CODE_EXTRA_ARGS=--effort xhigh` |
+| `copilot-cli` | `DX_AGENT_E2E_COPILOT_EXTRA_ARGS=--effort xhigh` |
+| `opencode-cli` | `DX_AGENT_E2E_OPENCODE_EXTRA_ARGS=--variant high` |
+| `codex-cli` | `DX_AGENT_E2E_CODEX_EXTRA_ARGS=-c model_reasoning_effort="xhigh"` |
 | `cursor-cli` | No thinking mode (quota fallback to auto) |
 
 **State files** are stored under `.deepx/e2e/runner_state/<run_id>/`:
@@ -964,8 +964,8 @@ python .deepx/e2e/e2e_monitor.py --once
 ├── e2e/                            # ← end-to-end harness (sections above)
 │   ├── e2e_runner.py · e2e_monitor.py · migrate_results_to_run_id.py · _cli_env.py · test.sh
 │   ├── runner_state/               # per-run state (auto-created, gitignored)
-│   ├── test_agentic_e2e_scenarios/ # ~586 across 5 CLIs — conftest + test_<cli>_<scenario>.py
-│   ├── agentic_analyzer/           # run-id-aware result analyzer (lib/ + tests/)
+│   ├── test_agent_e2e_scenarios/ # ~586 across 5 CLIs — conftest + test_<cli>_<scenario>.py
+│   ├── agent_analyzer/           # run-id-aware result analyzer (lib/ + tests/)
 │   └── tests/test_e2e_runner_env_redo.py
 │
 └── tools/                          # ← tooling packages (see tools/README.md)
@@ -980,4 +980,4 @@ python .deepx/e2e/e2e_monitor.py --once
 ---
 
 **Total Agent-Driven Tests:**
-~1279 (agent-driven: ~704 | agentic_e2e_copilot_cli: ~114 | agentic_e2e_cursor_cli: ~113 | agentic_e2e_opencode_cli: ~116 | agentic_e2e_claude_code_cli: ~116 | agentic_e2e_codex_cli: ~116) — run `pytest --collect-only -q` for live counts
+~1279 (agent-driven: ~704 | agent_e2e_copilot_cli: ~114 | agent_e2e_cursor_cli: ~113 | agent_e2e_opencode_cli: ~116 | agent_e2e_claude_code_cli: ~116 | agent_e2e_codex_cli: ~116) — run `pytest --collect-only -q` for live counts

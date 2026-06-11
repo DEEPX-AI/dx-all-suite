@@ -3,7 +3,7 @@
 ## Overall
 
 > **단 20분, 약 $10의 비용으로, 자연어를 통해 DEEPX NPU용 앱을 완전 자율형으로 만드세요.**
-> ([Agent-Driven Development (Beta)](./00_Agentic_Development_kor.md) 참조)
+> ([Agent-Driven Development (Beta)](./00_Agent_Driven_Development_kor.md) 참조)
 
 **🔄 Full Execution Order**
 

@@ -300,5 +300,5 @@ cd .deepx/e2e
 | Operational scripts (`run_all.sh`, hooks, E2E loop) | [`scripts/README.md`](scripts/README.md) |
 | Skill 3-tier architecture | [`../docs/skill-architecture.md`](../docs/skill-architecture.md) |
 | Fragment authoring rules | [`../docs/fragment-authoring-guide.md`](../docs/fragment-authoring-guide.md) |
-| End-user feature documentation | [`../../docs/source/00_Agentic_Development.md`](../../docs/source/00_Agentic_Development.md) |
+| End-user feature documentation | [`../../docs/source/00_Agent_Driven_Development.md`](../../docs/source/00_Agent_Driven_Development.md) |
 | Comprehensive `.deepx/` walk-through | [`../docs/dx-agent-dev-overview.md`](../docs/dx-agent-dev-overview.md) |

@@ -55,7 +55,7 @@
 
 #### PaddlePaddle ecosystem integration — _Coming soon._
 
-**All showcases + summaries →** [`dx-agent-dev-showcase/README.md`](./dx-agent-dev-showcase/README.md)  ·  **About the feature →** [Agent-Driven Development docs](./docs/source/00_Agentic_Development.md)
+**All showcases + summaries →** [`dx-agent-dev-showcase/README.md`](./dx-agent-dev-showcase/README.md)  ·  **About the feature →** [Agent-Driven Development docs](./docs/source/00_Agent_Driven_Development.md)
 <!-- dx-showcase:docs:cardgrid:end -->
 
 ## Getting Started
@@ -107,7 +107,7 @@ DX-AllSuite supports a vast array of industry-standard AI architectures, optimiz
 
 If you are a first-time user, we recommend following the documentation in this order.  
 
-- **★ [Agent-Driven Development (Beta)](./docs/source/00_Agentic_Development.md)**: Build DEEPX apps with natural-language prompts using AI coding agents (Claude Code, Cursor, GitHub Copilot, OpenCode, Codex CLI)  
+- **★ [Agent-Driven Development (Beta)](./docs/source/00_Agent_Driven_Development.md)**: Build DEEPX apps with natural-language prompts using AI coding agents (Claude Code, Cursor, GitHub Copilot, OpenCode, Codex CLI)  
 - **Step 1. [DX-AllSuite Architecture Overview](./docs/source/01_DX-AllSuite_Architecture_Overview.md)**: SDK overview, module descriptions, and ModelZoo usage  
 - **Step 2. [Setting Up Environment](./docs/source/02_Setting_Up_Environment.md)**: Detailed Local/Docker installation and troubleshooting  
 - **Step 3. [Running Your First NPU Model](./docs/source/03_Running_Your_First_NPU_Model.md)**: Step-by-step hands-on script execution  

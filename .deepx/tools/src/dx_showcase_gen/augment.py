@@ -3,7 +3,7 @@
 Each inserted block is wrapped in ``<!-- dx-showcase:<name>:start/end -->`` markers
 so re-running replaces (not duplicates) it. Used to drop the build-GIF block + the
 metrics line into the suite README (EN/KO), the showcase README (EN/KO), and the
-00_Agentic_Development docs.
+00_Agent_Driven_Development docs.
 """
 from __future__ import annotations
 
@@ -94,7 +94,7 @@ def augment_readme_gif(path: str, *, name: str, anchor: str, gif_rel: str,
 # location, so paths are computed per "surface":
 #   root    — repo-root README.md / README-KO.md
 #   catalog — dx-agent-dev-showcase/README.md / README-ko.md  (one dir deep)
-#   docs    — docs/source/00_Agentic_Development.md / _kor.md
+#   docs    — docs/source/00_Agent_Driven_Development.md / _kor.md
 # ---------------------------------------------------------------------------
 
 _IMG_PREFIX = {"root": "./docs/source/img", "catalog": "../docs/source/img", "docs": "./img"}
@@ -164,7 +164,7 @@ def card_grid(showcases, *, lang: str, surface: str = "root", cols: int = 3,
 
 def intro_region(manifest, *, lang: str) -> str:
     """Shared hero block (Beta announcement) reused in the root README and the docs
-    00_Agentic_Development intro. The per-category catchphrases live under each
+    00_Agent_Driven_Development intro. The per-category catchphrases live under each
     category heading (the "~20 min / ~$10" line belongs to the mini-games)."""
     return manifest.announcement(lang)
 
@@ -201,11 +201,11 @@ def cardgrid_region(manifest, *, lang: str, cols: int = 2) -> str:
     if lang == "ko":
         link = ("**전체 showcase 목록 + 요약 →** "
                 "[`dx-agent-dev-showcase/README-ko.md`](./dx-agent-dev-showcase/README-ko.md)  ·  "
-                "**기능 설명 →** [Agent-Driven Development 문서](./docs/source/00_Agentic_Development_kor.md)")
+                "**기능 설명 →** [Agent-Driven Development 문서](./docs/source/00_Agent_Driven_Development_kor.md)")
     else:
         link = ("**All showcases + summaries →** "
                 "[`dx-agent-dev-showcase/README.md`](./dx-agent-dev-showcase/README.md)  ·  "
-                "**About the feature →** [Agent-Driven Development docs](./docs/source/00_Agentic_Development.md)")
+                "**About the feature →** [Agent-Driven Development docs](./docs/source/00_Agent_Driven_Development.md)")
     return f"{intro_region(manifest, lang=lang)}\n\n{body}\n\n{link}"
 
 

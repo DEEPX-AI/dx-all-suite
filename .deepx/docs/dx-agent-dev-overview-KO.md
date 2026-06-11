@@ -57,8 +57,8 @@ DEEPX Agent-Driven Development (dx-agent-dev) 기능은 **`.deepx/`를 canonical
 
 | 마커 | 출력 위치 |
 |------|----------|
-| `[DX-AGENTIC-DEV: START]` | 첫 응답의 **절대 첫 줄** |
-| `[DX-AGENTIC-DEV: DONE (output-dir: <relative_path>)]` | 모든 작업·검증·파일 생성 완료 후 마지막 줄 |
+| `[DX-AGENT-DEV: START]` | 첫 응답의 **절대 첫 줄** |
+| `[DX-AGENT-DEV: DONE (output-dir: <relative_path>)]` | 모든 작업·검증·파일 생성 완료 후 마지막 줄 |
 
 ---
 
@@ -100,7 +100,7 @@ AGENTS.md          instructions.md        (Cursor)
 | `docs/` | ✅ | — | — | — | — | 프레임워크 자체 가이드 (skill-architecture 등) |
 | `tools/` | ✅ | — | — | — | — | 툴링 패키지: `src/{dx_agent_dev_gen, dx_transcripts}` + 미러 `tests/` + `scripts/` |
 | `tests/` | ✅ | — | — | — | — | suite **conformance** 테스트 (`conformance/`) — KB / 생성물 정책 검사 |
-| `e2e/` | ✅ | — | — | — | — | E2E 하니스: `e2e_runner`/`e2e_monitor`, `test_agentic_e2e_scenarios/`, `agentic_analyzer/`, `test.sh` |
+| `e2e/` | ✅ | — | — | — | — | E2E 하니스: `e2e_runner`/`e2e_monitor`, `test_agent_e2e_scenarios/`, `agent_analyzer/`, `test.sh` |
 
 ---
 
@@ -181,8 +181,8 @@ API hallucination 방지용 grounding 문서. 검증된 심볼만 나열:
 ### 3.8 e2e/ — End-to-End 하니스 (분리됨)
 
 - `e2e_runner.py` / `e2e_monitor.py` / `migrate_results_to_run_id.py` / `_cli_env.py` / `test.sh` — 라운드 오케스트레이션·모니터링·결과 이주·공유 러너.
-- `test_agentic_e2e_scenarios/`: 5개 CLI autopilot 마커(copilot, cursor, opencode, claude-code, codex)로 ~586 collected — 실제 CLI 호출 → 정적 검증. 추가로 인터랙티브 manual 모드(shell).
-- `agentic_analyzer/`: run-id 인지 결과 분석기 (리포트/인사이트; 자체 `lib/` + `tests/`).
+- `test_agent_e2e_scenarios/`: 5개 CLI autopilot 마커(copilot, cursor, opencode, claude-code, codex)로 ~586 collected — 실제 CLI 호출 → 정적 검증. 추가로 인터랙티브 manual 모드(shell).
+- `agent_analyzer/`: run-id 인지 결과 분석기 (리포트/인사이트; 자체 `lib/` + `tests/`).
 
 ---
 
@@ -523,14 +523,14 @@ cd .deepx/e2e
 
 | 변수 | 기본값 | 용도 |
 |------|--------|------|
-| `DX_AGENTIC_E2E_MODEL` | `claude-sonnet-4.6` | Copilot CLI 모델 |
-| `DX_AGENTIC_E2E_TIMEOUT` | `300` | Copilot CLI 타임아웃 |
-| `DX_AGENTIC_E2E_CURSOR_MODEL` | `claude-4.6-sonnet-medium` | Cursor CLI 모델 |
-| `DX_AGENTIC_E2E_OPENCODE_MODEL` | `github-copilot/claude-sonnet-4.6` | OpenCode 모델 |
-| `DX_AGENTIC_E2E_CLAUDE_CODE_MODEL` | `claude-sonnet-4-6` | Claude Code 모델 |
-| `DX_AGENTIC_E2E_CODEX_MODEL` | `gpt-5.3-codex` | Codex CLI 모델 |
-| `DX_AGENTIC_E2E_CODEX_TIMEOUT` | `600` | Codex CLI 타임아웃 (초) |
-| `DX_AGENTIC_E2E_CLEANUP_ARTIFACTS` | (unset) | 1 = 성공 후 산출물 삭제 |
+| `DX_AGENT_E2E_MODEL` | `claude-sonnet-4.6` | Copilot CLI 모델 |
+| `DX_AGENT_E2E_TIMEOUT` | `300` | Copilot CLI 타임아웃 |
+| `DX_AGENT_E2E_CURSOR_MODEL` | `claude-4.6-sonnet-medium` | Cursor CLI 모델 |
+| `DX_AGENT_E2E_OPENCODE_MODEL` | `github-copilot/claude-sonnet-4.6` | OpenCode 모델 |
+| `DX_AGENT_E2E_CLAUDE_CODE_MODEL` | `claude-sonnet-4-6` | Claude Code 모델 |
+| `DX_AGENT_E2E_CODEX_MODEL` | `gpt-5.3-codex` | Codex CLI 모델 |
+| `DX_AGENT_E2E_CODEX_TIMEOUT` | `600` | Codex CLI 타임아웃 (초) |
+| `DX_AGENT_E2E_CLEANUP_ARTIFACTS` | (unset) | 1 = 성공 후 산출물 삭제 |
 
 ---
 

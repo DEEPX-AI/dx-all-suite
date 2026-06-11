@@ -12,7 +12,7 @@ output the following notice at the beginning of your first response:
 
 ```
 ══════════════════════════════════════════════════════════════
-⚠  DX-AGENTIC-DEV: MODEL NOTICE
+⚠  DX-AGENT-DEV: MODEL NOTICE
 
 DX Agent-Driven Development recommends Claude Sonnet 4.6+ or
 Opus 4.6+. Your current model may produce lower quality
@@ -41,7 +41,7 @@ the line that contains the `?` (the actual question), insert this reminder:
 
 **Example — WRONG** (repeat scrolls past with the box):
 ```
-[DX-AGENTIC-DEV: START]
+[DX-AGENT-DEV: START]
 ══ MODEL NOTICE ══
 ---  ⚠ Non-recommended model ---     ← TOO EARLY, scrolls past
 ... (reads files, analyzes context) ...
@@ -50,7 +50,7 @@ First question: ...?
 
 **Example — CORRECT** (repeat appears right before the question):
 ```
-[DX-AGENTIC-DEV: START]
+[DX-AGENT-DEV: START]
 ══ MODEL NOTICE ══
 ... (reads files, analyzes context) ...
 ---  ⚠ Non-recommended model ---     ← RIGHT BEFORE the question

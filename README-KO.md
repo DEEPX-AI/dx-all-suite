@@ -55,7 +55,7 @@
 
 #### PaddlePaddle 생태계 통합 — _추후 추가 예정._
 
-**전체 showcase 목록 + 요약 →** [`dx-agent-dev-showcase/README-ko.md`](./dx-agent-dev-showcase/README-ko.md)  ·  **기능 설명 →** [Agent-Driven Development 문서](./docs/source/00_Agentic_Development_kor.md)
+**전체 showcase 목록 + 요약 →** [`dx-agent-dev-showcase/README-ko.md`](./dx-agent-dev-showcase/README-ko.md)  ·  **기능 설명 →** [Agent-Driven Development 문서](./docs/source/00_Agent_Driven_Development_kor.md)
 <!-- dx-showcase:docs:cardgrid:end -->
 
 ## 시작하기
@@ -106,7 +106,7 @@ DX-AllSuite는 우리 NPU에서 최고 성능을 내도록 최적화된, 업계 
 
 처음 사용하는 분께는 다음 순서로 문서를 보시길 권장합니다.
 
-- **★ [Agent-Driven Development (Beta)](./docs/source/00_Agentic_Development_kor.md)**: AI coding agent(Claude Code, Cursor, GitHub Copilot, OpenCode, Codex CLI)로 자연어 프롬프트를 사용해 DEEPX 앱 만들기
+- **★ [Agent-Driven Development (Beta)](./docs/source/00_Agent_Driven_Development_kor.md)**: AI coding agent(Claude Code, Cursor, GitHub Copilot, OpenCode, Codex CLI)로 자연어 프롬프트를 사용해 DEEPX 앱 만들기
 - **Step 1. [DX-AllSuite Architecture Overview](./docs/source/01_DX-AllSuite_Architecture_Overview.md)**: SDK 개요, 모듈 설명, ModelZoo 사용법
 - **Step 2. [Setting Up Environment](./docs/source/02_Setting_Up_Environment.md)**: Local/Docker 설치 상세 및 트러블슈팅
 - **Step 3. [Running Your First NPU Model](./docs/source/03_Running_Your_First_NPU_Model.md)**: 단계별 hands-on 스크립트 실행

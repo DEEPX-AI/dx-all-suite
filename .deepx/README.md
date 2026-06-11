@@ -3,7 +3,7 @@
 > Master index for the DEEPX Agent-Driven Development (`dx-agent-dev`) canonical
 > source at the dx-all-suite top level.
 >
-> For end-user usage, see [`docs/source/00_Agentic_Development.md`](../docs/source/00_Agentic_Development.md).
+> For end-user usage, see [`docs/source/00_Agent_Driven_Development.md`](../docs/source/00_Agent_Driven_Development.md).
 > For a comprehensive walk-through of every `.deepx/` directory across all 5
 > repos, see [`docs/dx-agent-dev-overview.md`](docs/dx-agent-dev-overview.md).
 
@@ -94,8 +94,8 @@ Each sub-project `.deepx/` is self-contained. This top-level `.deepx/` adds:
 │
 ├── e2e/                         ← End-to-end harness (separated)
 │   ├── e2e_runner.py · e2e_monitor.py · test.sh   ← round orchestration + runner
-│   ├── test_agentic_e2e_scenarios/  ← ~586 E2E tests (5 CLIs × scenarios)
-│   └── agentic_analyzer/        ← E2E result analyzer (reports, insights)
+│   ├── test_agent_e2e_scenarios/  ← ~586 E2E tests (5 CLIs × scenarios)
+│   └── agent_analyzer/        ← E2E result analyzer (reports, insights)
 │
 └── tools/                       ← Tooling packages + orchestration scripts
     ├── README.md                ← tooling guide
@@ -222,7 +222,7 @@ repos. Editing a fragment once propagates the change everywhere via
 | `mandatory-process-skill-sequence` | Required skill order for code generation |
 | `swe-process-gates-internal-dev` | SWE discipline for internal harness work |
 | `skill-router-mandatory` | Universal pre-flight rule |
-| `session-sentinels` | `[DX-AGENTIC-DEV: START/DONE]` markers |
+| `session-sentinels` | `[DX-AGENT-DEV: START/DONE]` markers |
 | `artifact-verification-gate` | Per-artifact verification commands |
 | `brainstorming-spec-before-plan` | Spec → user approval → plan order |
 | `rule-conflict-resolution` | What to do when user request conflicts with HARD GATE |
@@ -245,13 +245,13 @@ how to add or modify a fragment.
 
 | Topic | Document |
 |-------|----------|
-| End-user usage (one-liner prompts, scenarios) | [`docs/source/00_Agentic_Development.md`](../docs/source/00_Agentic_Development.md) |
+| End-user usage (one-liner prompts, scenarios) | [`docs/source/00_Agent_Driven_Development.md`](../docs/source/00_Agent_Driven_Development.md) |
 | Comprehensive `.deepx/` walk-through (all 5 repos) | [`docs/dx-agent-dev-overview.md`](docs/dx-agent-dev-overview.md) |
 | 3-tier skill architecture and naming | [`docs/skill-architecture.md`](docs/skill-architecture.md) |
 | How to author a new fragment | [`docs/fragment-authoring-guide.md`](docs/fragment-authoring-guide.md) |
 | `dx-agent-gen` generator package | [`tools/README.md`](tools/README.md) |
 | Operational scripts (`run_all.sh`, hooks, E2E loop) | [`tools/scripts/README.md`](tools/scripts/README.md) |
-| E2E result analyzer (reports, charts, dashboard) | [`e2e/agentic_analyzer/README.md`](e2e/agentic_analyzer/README.md) |
+| E2E result analyzer (reports, charts, dashboard) | [`e2e/agent_analyzer/README.md`](e2e/agent_analyzer/README.md) |
 | Test categories and how to run them | [`tests/README.md`](tests/README.md) |
 | Sub-project specifics | the sub-project `.deepx/README.md` (linked above in §2) |
 
@@ -266,5 +266,5 @@ how to add or modify a fragment.
 | Fragment | A reusable rule block under `.deepx/templates/fragments/{en,ko}/`. Always written in EN + KO pairs. |
 | Canonical source | Files under `**/.deepx/**` — the only place to edit. |
 | Generator output | Platform-specific files (`CLAUDE.md`, `.claude/`, `.github/`, `.cursor/`, `.opencode/`). Never edit directly. |
-| Session sentinel | `[DX-AGENTIC-DEV: START]` / `[DX-AGENTIC-DEV: DONE]` markers used by test harness. |
+| Session sentinel | `[DX-AGENT-DEV: START]` / `[DX-AGENT-DEV: DONE]` markers used by test harness. |
 | HARD GATE | A non-negotiable rule. User cannot override with "just proceed". |

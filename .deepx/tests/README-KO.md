@@ -20,7 +20,7 @@ DX-ALL-SUITE 프로젝트용 에이전트 개발 테스트 모음입니다. AI �
 - 시나리오 참조: 가이드의 agent/skill 참조가 실제 인프라와 일치하는지
 - 크로스 프로젝트 시나리오: handoff 체인, 검증 스크립트, output isolation
 
-### 2. test_agentic_e2e_scenarios — 에이전트 E2E 시나리오 테스트
+### 2. test_agent_e2e_scenarios — 에이전트 E2E 시나리오 테스트
 
 5개 CLI 도구(Copilot CLI, Cursor CLI, OpenCode CLI, Claude Code CLI, Codex CLI)로
 실제 에이전트 호출을 실행하고 생성된 출력 파일을 정적으로 검증합니다.
@@ -139,10 +139,10 @@ DX_TIMEOUT_COMPILER=3600 DX_TIMEOUT_SUITE=4800 python .deepx/e2e/e2e_runner.py -
 
 | 도구 | Thinking 모드 env var |
 |---|---|
-| `claude-code` | `DX_AGENTIC_E2E_CLAUDE_CODE_EXTRA_ARGS=--effort xhigh` |
-| `copilot-cli` | `DX_AGENTIC_E2E_COPILOT_EXTRA_ARGS=--effort xhigh` |
-| `opencode-cli` | `DX_AGENTIC_E2E_OPENCODE_EXTRA_ARGS=--variant high` |
-| `codex-cli` | `DX_AGENTIC_E2E_CODEX_EXTRA_ARGS=-c model_reasoning_effort="xhigh"` |
+| `claude-code` | `DX_AGENT_E2E_CLAUDE_CODE_EXTRA_ARGS=--effort xhigh` |
+| `copilot-cli` | `DX_AGENT_E2E_COPILOT_EXTRA_ARGS=--effort xhigh` |
+| `opencode-cli` | `DX_AGENT_E2E_OPENCODE_EXTRA_ARGS=--variant high` |
+| `codex-cli` | `DX_AGENT_E2E_CODEX_EXTRA_ARGS=-c model_reasoning_effort="xhigh"` |
 | `cursor-cli` | Thinking 모드 없음 (quota 초과 시 auto fallback) |
 
 **State 파일** (`.deepx/e2e/runner_state/<run_id>/`):
@@ -285,7 +285,7 @@ python .deepx/e2e/e2e_monitor.py             # 별도 터미널에서 실시간 
 E2E 실행 완료 후 아래 명령으로 종합 분석 리포트를 생성합니다:
 
 ```bash
-cd .deepx/e2e/agentic_analyzer
+cd .deepx/e2e/agent_analyzer
 
 # 기본 옵션 — 모든 run_id 합산 (가설 생성 + 정량 비교 + runnability + 정성 insight + 가설 비교)
 #   출력: analyzer_reports/_all/<timestamp>/
@@ -322,26 +322,26 @@ dx-agent-dev/e2e-tests/analyzer_reports/
 
 ```bash
 # Claude Code CLI
-export DX_AGENTIC_E2E_CLAUDE_CODE_MODEL="claude-sonnet-4-6"
-export DX_AGENTIC_E2E_CLAUDE_CODE_TIMEOUT=600
-export DX_AGENTIC_E2E_CLAUDE_CODE_EXTRA_ARGS="--effort xhigh"  # thinking 모드
+export DX_AGENT_E2E_CLAUDE_CODE_MODEL="claude-sonnet-4-6"
+export DX_AGENT_E2E_CLAUDE_CODE_TIMEOUT=600
+export DX_AGENT_E2E_CLAUDE_CODE_EXTRA_ARGS="--effort xhigh"  # thinking 모드
 
 # Copilot CLI
-export DX_AGENTIC_E2E_TIMEOUT=900
-export DX_AGENTIC_E2E_COPILOT_EXTRA_ARGS="--effort xhigh"  # thinking 모드
+export DX_AGENT_E2E_TIMEOUT=900
+export DX_AGENT_E2E_COPILOT_EXTRA_ARGS="--effort xhigh"  # thinking 모드
 
 # Cursor CLI
-export DX_AGENTIC_E2E_CURSOR_MODEL="claude-4.6-sonnet-medium"
-export DX_AGENTIC_E2E_CURSOR_TIMEOUT=300
+export DX_AGENT_E2E_CURSOR_MODEL="claude-4.6-sonnet-medium"
+export DX_AGENT_E2E_CURSOR_TIMEOUT=300
 export CURSOR_API_KEY="your-api-key"
 
 # OpenCode CLI
-export DX_AGENTIC_E2E_OPENCODE_MODEL="github-copilot/claude-sonnet-4.6"
-export DX_AGENTIC_E2E_OPENCODE_TIMEOUT=600
-export DX_AGENTIC_E2E_OPENCODE_EXTRA_ARGS="--variant high"  # thinking 모드
+export DX_AGENT_E2E_OPENCODE_MODEL="github-copilot/claude-sonnet-4.6"
+export DX_AGENT_E2E_OPENCODE_TIMEOUT=600
+export DX_AGENT_E2E_OPENCODE_EXTRA_ARGS="--variant high"  # thinking 모드
 
 # Codex CLI
-export DX_AGENTIC_E2E_CODEX_EXTRA_ARGS='-c model_reasoning_effort="xhigh"'  # xhigh 모드
+export DX_AGENT_E2E_CODEX_EXTRA_ARGS='-c model_reasoning_effort="xhigh"'  # xhigh 모드
 ```
 
 ---
@@ -362,8 +362,8 @@ export DX_AGENTIC_E2E_CODEX_EXTRA_ARGS='-c model_reasoning_effort="xhigh"'  # xh
 ├── e2e/                            # ← end-to-end 하니스 (위 섹션들)
 │   ├── e2e_runner.py · e2e_monitor.py · migrate_results_to_run_id.py · _cli_env.py · test.sh
 │   ├── runner_state/               # 실행별 상태 (자동 생성, gitignored)
-│   ├── test_agentic_e2e_scenarios/ # 5 CLI ~586 — conftest + test_<cli>_<scenario>.py
-│   ├── agentic_analyzer/           # run-id 인지 결과 분석기 (lib/ + tests/)
+│   ├── test_agent_e2e_scenarios/ # 5 CLI ~586 — conftest + test_<cli>_<scenario>.py
+│   ├── agent_analyzer/           # run-id 인지 결과 분석기 (lib/ + tests/)
 │   └── tests/test_e2e_runner_env_redo.py
 │
 └── tools/                          # ← 툴링 패키지 (tools/README.md 참조)

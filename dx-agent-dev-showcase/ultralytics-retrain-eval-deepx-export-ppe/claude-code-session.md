@@ -37,7 +37,7 @@
 
 **Claude:**
 
-`[DX-AGENTIC-DEV: START]`
+`[DX-AGENT-DEV: START]`
 
 ```
  ███████████   █████████ ████████ ████████  ████      ████
@@ -48,7 +48,7 @@
  ███     █████░███░      ██░      ███░   ████████░░░░████
  ███████████░░░█████████ ████████ ██████████░░░░░░    ████
   ░░░░░░░░░░░   ░░░░░░░░░ ░░░░░░░░ ░░░░░░░░░░          ░░░░
-        DX-AGENTIC-DEV · on-device NPU
+        DX-AGENT-DEV · on-device NPU
 ```
 
 I'll start by invoking the skill router as the mandatory first action.
@@ -513,10 +513,10 @@ Adapted COCO-pretrained **yolo26n** into a construction-PPE detector and benchma
  ███     █████░███░      ██░      ███░   ████████░░░░████
  ███████████░░░█████████ ████████ ██████████░░░░░░    ████
   ░░░░░░░░░░░   ░░░░░░░░░ ░░░░░░░░ ░░░░░░░░░░          ░░░░
-        DX-AGENTIC-DEV · on-device NPU
+        DX-AGENT-DEV · on-device NPU
 ```
 
-[DX-AGENTIC-DEV: DONE (output-dir: dx-compiler/dx-agent-dev/20260611-101032_claude_opus48_yolo26n_ppe_retrain_eval/)]
+[DX-AGENT-DEV: DONE (output-dir: dx-compiler/dx-agent-dev/20260611-101032_claude_opus48_yolo26n_ppe_retrain_eval/)]
 
 Now the final housekeeping step — rendering this session's transcript into the output dir.
 Session transcript (md/html/jsonl) saved to: `dx-compiler/dx-agent-dev/20260611-101032_claude_opus48_yolo26n_ppe_retrain_eval/claude-session.*`

@@ -36,7 +36,7 @@
 
 **Claude:**
 
-[DX-AGENTIC-DEV: START]
+[DX-AGENT-DEV: START]
 
 ```
  ███████████   █████████ ████████ ████████  ████      ████
@@ -47,7 +47,7 @@
  ███     █████░███░      ██░      ███░   ████████░░░░████
  ███████████░░░█████████ ████████ ██████████░░░░░░    ████
   ░░░░░░░░░░░   ░░░░░░░░░ ░░░░░░░░ ░░░░░░░░░░          ░░░░
-        DX-AGENTIC-DEV · on-device NPU
+        DX-AGENT-DEV · on-device NPU
 ```
 
 Invoking the mandatory skill router as the absolute first action.
@@ -643,10 +643,10 @@ The build is complete and fully validated on the NPU.
  ███     █████░███░      ██░      ███░   ████████░░░░████
  ███████████░░░█████████ ████████ ██████████░░░░░░    ████
   ░░░░░░░░░░░   ░░░░░░░░░ ░░░░░░░░ ░░░░░░░░░░          ░░░░
-        DX-AGENTIC-DEV · on-device NPU
+        DX-AGENT-DEV · on-device NPU
 ```
 
-[DX-AGENTIC-DEV: DONE (output-dir: dx-agent-dev/20260608-201249_claude_opus48_yolo26npose_stretchgame/)]
+[DX-AGENT-DEV: DONE (output-dir: dx-agent-dev/20260608-201249_claude_opus48_yolo26npose_stretchgame/)]
 
 Now generating the session transcript into the output dir (final housekeeping step).
 Session transcript (md/html/jsonl) saved to: `dx-agent-dev/20260608-201249_claude_opus48_yolo26npose_stretchgame/claude-session.*`

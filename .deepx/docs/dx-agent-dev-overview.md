@@ -57,8 +57,8 @@ All AI-generated code is written under `dx-agent-dev/<session_id>/` (default). T
 
 | Marker | Output position |
 |--------|-----------------|
-| `[DX-AGENTIC-DEV: START]` | the **absolute first line** of the first response |
-| `[DX-AGENTIC-DEV: DONE (output-dir: <relative_path>)]` | the last line after all work, validation, and file generation is complete |
+| `[DX-AGENT-DEV: START]` | the **absolute first line** of the first response |
+| `[DX-AGENT-DEV: DONE (output-dir: <relative_path>)]` | the last line after all work, validation, and file generation is complete |
 
 ---
 
@@ -100,7 +100,7 @@ The `dx-agent-gen` package (`.deepx/tools/`) handles the conversion, and the pre
 | `docs/` | ✅ | — | — | — | — | Framework self-guides (skill-architecture, etc.) |
 | `tools/` | ✅ | — | — | — | — | Tooling packages: `src/{dx_agent_dev_gen, dx_transcripts}` + mirrored `tests/` + `scripts/` |
 | `tests/` | ✅ | — | — | — | — | Suite **conformance** tests (`conformance/`) — KB / generated-output policy checks |
-| `e2e/` | ✅ | — | — | — | — | E2E harness: `e2e_runner`/`e2e_monitor`, `test_agentic_e2e_scenarios/`, `agentic_analyzer/`, `test.sh` |
+| `e2e/` | ✅ | — | — | — | — | E2E harness: `e2e_runner`/`e2e_monitor`, `test_agent_e2e_scenarios/`, `agent_analyzer/`, `test.sh` |
 
 ---
 
@@ -181,8 +181,8 @@ These 16 fragments are **selectively injected** into the `CLAUDE.md` / `AGENTS.m
 ### 3.8 e2e/ — End-to-End Harness (separated)
 
 - `e2e_runner.py` / `e2e_monitor.py` / `migrate_results_to_run_id.py` / `_cli_env.py` / `test.sh` — round orchestration, monitoring, results migration, shared runner.
-- `test_agentic_e2e_scenarios/`: ~586 collected across 5 CLI autopilot markers (copilot, cursor, opencode, claude-code, codex) — real CLI invocation → static verification (file existence, AST, JSON). Plus interactive manual modes (shell).
-- `agentic_analyzer/`: run-id-aware result analyzer (reports / insights; its own `lib/` + `tests/`).
+- `test_agent_e2e_scenarios/`: ~586 collected across 5 CLI autopilot markers (copilot, cursor, opencode, claude-code, codex) — real CLI invocation → static verification (file existence, AST, JSON). Plus interactive manual modes (shell).
+- `agent_analyzer/`: run-id-aware result analyzer (reports / insights; its own `lib/` + `tests/`).
 
 ---
 
@@ -523,14 +523,14 @@ cd .deepx/e2e
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
-| `DX_AGENTIC_E2E_MODEL` | `claude-sonnet-4.6` | Copilot CLI model |
-| `DX_AGENTIC_E2E_TIMEOUT` | `300` | Copilot CLI timeout |
-| `DX_AGENTIC_E2E_CURSOR_MODEL` | `claude-4.6-sonnet-medium` | Cursor CLI model |
-| `DX_AGENTIC_E2E_OPENCODE_MODEL` | `github-copilot/claude-sonnet-4.6` | OpenCode model |
-| `DX_AGENTIC_E2E_CLAUDE_CODE_MODEL` | `claude-sonnet-4-6` | Claude Code model |
-| `DX_AGENTIC_E2E_CODEX_MODEL` | `gpt-5.3-codex` | Codex CLI model |
-| `DX_AGENTIC_E2E_CODEX_TIMEOUT` | `600` | Codex CLI timeout (sec) |
-| `DX_AGENTIC_E2E_CLEANUP_ARTIFACTS` | (unset) | 1 = delete artifacts after success |
+| `DX_AGENT_E2E_MODEL` | `claude-sonnet-4.6` | Copilot CLI model |
+| `DX_AGENT_E2E_TIMEOUT` | `300` | Copilot CLI timeout |
+| `DX_AGENT_E2E_CURSOR_MODEL` | `claude-4.6-sonnet-medium` | Cursor CLI model |
+| `DX_AGENT_E2E_OPENCODE_MODEL` | `github-copilot/claude-sonnet-4.6` | OpenCode model |
+| `DX_AGENT_E2E_CLAUDE_CODE_MODEL` | `claude-sonnet-4-6` | Claude Code model |
+| `DX_AGENT_E2E_CODEX_MODEL` | `gpt-5.3-codex` | Codex CLI model |
+| `DX_AGENT_E2E_CODEX_TIMEOUT` | `600` | Codex CLI timeout (sec) |
+| `DX_AGENT_E2E_CLEANUP_ARTIFACTS` | (unset) | 1 = delete artifacts after success |
 
 ---
 

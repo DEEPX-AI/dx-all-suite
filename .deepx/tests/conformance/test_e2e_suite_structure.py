@@ -27,20 +27,20 @@ from .conftest import SUITE_ROOT
 # Suite test files to check
 # ---------------------------------------------------------------------------
 
-E2E_DIR = SUITE_ROOT / ".deepx" / "e2e" / "test_agentic_e2e_scenarios"
+E2E_DIR = SUITE_ROOT / ".deepx" / "e2e" / "test_agent_e2e_scenarios"
 
 # The e2e harness now lives under .deepx/e2e/; put it on sys.path so the
-# `test_agentic_e2e_scenarios` package (and its conftest) is importable here.
+# `test_agent_e2e_scenarios` package (and its conftest) is importable here.
 import sys as _sys
 _E2E_PARENT = str(SUITE_ROOT / ".deepx" / "e2e")
 if _E2E_PARENT not in _sys.path:
     _sys.path.insert(0, _E2E_PARENT)
 
 SUITE_TEST_FILES = {
-    "copilot":     E2E_DIR / "test_suite_agentic_e2e.py",
-    "cursor":      E2E_DIR / "test_cursor_suite_agentic_e2e.py",
-    "opencode":    E2E_DIR / "test_opencode_suite_agentic_e2e.py",
-    "claude_code": E2E_DIR / "test_claude_code_suite_agentic_e2e.py",
+    "copilot":     E2E_DIR / "test_suite_agent_e2e.py",
+    "cursor":      E2E_DIR / "test_cursor_suite_agent_e2e.py",
+    "opencode":    E2E_DIR / "test_opencode_suite_agent_e2e.py",
+    "claude_code": E2E_DIR / "test_claude_code_suite_agent_e2e.py",
 }
 
 REQUIRED_CLASSES = ["TestExecution", "TestMandatoryArtifacts"]
@@ -144,7 +144,7 @@ class TestConftestSymbols:
     ])
     def test_conftest_has_symbol(self, symbol: str):
         """conftest.py defines the expected helper function at module scope."""
-        from test_agentic_e2e_scenarios import conftest
+        from test_agent_e2e_scenarios import conftest
         assert hasattr(conftest, symbol), (
             f"conftest.py missing symbol: {symbol}\n"
             "This causes NameError at fixture setup time, blocking all tests.\n"

@@ -72,7 +72,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
 <hr />
 <div class="entry user" id="entry-1"><div class="entry-hdr"><span class="icon">&#x1F464;</span><span class="label">User</span><span class="time">2026-06-11 01:46:43 UTC</span></div><div class="entry-body">Using the Ultralytics Python package, adapt the base yolo26n model for a wildlife-monitoring / safari camera scenario. The stock yolo26n is a general COCO-trained detector that does not reliably recognize African wildlife species, so fine-tune (retrain) it on the Ultralytics african-wildlife dataset (classes: buffalo, elephant, rhino, zebra) on the local GPU for about 40 epochs to produce a domain-optimized model. Then evaluate accuracy (mAP50-95) and speed (FPS) for BOTH the base model and the retrained model in two forms each: (a) the PyTorch model in fp32 on the GPU, and (b) its DeepX export (.dxnn, INT8 on the DX-M1 NPU, via format=deepx). Write report.md comparing all four results (base vs retrained, fp32 vs INT8) with a short analysis of the accuracy gain and the INT8 quantization effect. Work autonomously to completion without asking for confirmation or approval; make default decisions per the knowledge base and PRODUCE THE ACTUAL ARTIFACTS (both .dxnn model dirs, the measured FPS/mAP numbers, report.md), not just a plan. Before writing any code, READ the dx-compiler knowledge base toolsets dx-compiler/.deepx/toolsets/ultralytics-train-eval.md and dx-compiler/.deepx/toolsets/ultralytics-deepx-export.md and follow them. Also, after evaluation, save an annotated detection SAMPLE IMAGE — the retrained model run on a representative validation image with bounding boxes + class labels drawn — as sample_detect.jpg in the session directory. Respond in English.</div></div>
 <div class="entry tool-ok collapsed" id="entry-2"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Skill</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>dx-skill-router</code></div><div class="tool-result"><pre>Launching skill: dx-skill-router</pre></div></div></div>
-<div class="entry assistant" id="entry-3"><div class="entry-hdr"><span class="icon">&#x1F4AC;</span><span class="label">Claude</span><span class="time">2026-06-11 01:46:43 UTC</span></div><div class="entry-body"><p><code>[DX-AGENTIC-DEV: START]</code></p>
+<div class="entry assistant" id="entry-3"><div class="entry-hdr"><span class="icon">&#x1F4AC;</span><span class="label">Claude</span><span class="time">2026-06-11 01:46:43 UTC</span></div><div class="entry-body"><p><code>[DX-AGENT-DEV: START]</code></p>
 <pre><code> ███████████   █████████ ████████ ████████  ████      ████
  ███     █████ ███░░░░░░░███░░░░░░███   ███  ░████   ████░░
  ███        ██░███░      ██░░     ███   ███░   █████████░░
@@ -81,7 +81,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
  ███     █████░███░      ██░      ███░   ████████░░░░████
  ███████████░░░█████████ ████████ ██████████░░░░░░    ████
   ░░░░░░░░░░░   ░░░░░░░░░ ░░░░░░░░ ░░░░░░░░░░          ░░░░
-        DX-AGENTIC-DEV · on-device NPU
+        DX-AGENT-DEV · on-device NPU
 </code></pre>
 <p>I'll start by invoking the mandatory skill router as the absolute first action.</p></div></div>
 <div class="entry user" id="entry-4"><div class="entry-hdr"><span class="icon">&#x1F464;</span><span class="label">User</span><span class="time">2026-06-11 01:46:56 UTC</span></div><div class="entry-body">Base directory for this skill: /data/home/dhyang/github/dx-all-suite-ultralytics/.claude/skills/dx-skill-router
@@ -510,9 +510,9 @@ All verification <strong>PASS</strong>:
  ███     █████░███░      ██░      ███░   ████████░░░░████
  ███████████░░░█████████ ████████ ██████████░░░░░░    ████
   ░░░░░░░░░░░   ░░░░░░░░░ ░░░░░░░░ ░░░░░░░░░░          ░░░░
-        DX-AGENTIC-DEV · on-device NPU
+        DX-AGENT-DEV · on-device NPU
 </code></pre>
-<p>[DX-AGENTIC-DEV: DONE (output-dir: dx-compiler/dx-agent-dev/20260611-104801_claude_opus48_yolo26n_retrain_eval/)]</p>
+<p>[DX-AGENT-DEV: DONE (output-dir: dx-compiler/dx-agent-dev/20260611-104801_claude_opus48_yolo26n_retrain_eval/)]</p>
 <p>Now the final housekeeping step — render this session's transcript into the output dir:
 Session complete. All deliverables produced and verified in <code>dx-compiler/dx-agent-dev/20260611-104801_claude_opus48_yolo26n_retrain_eval/</code>:</p>
 <p>- <strong>Artifacts</strong>: <code>yolo26n_deepx_model/yolo26n.dxnn</code> + <code>wildlife_yolo26n_deepx_model/wildlife_yolo26n.dxnn</code> (real INT8 NPU binaries), <code>yolo26n.pt</code> + <code>wildlife_yolo26n.pt</code>, <code>runs/train/</code> (40-epoch fine-tune)

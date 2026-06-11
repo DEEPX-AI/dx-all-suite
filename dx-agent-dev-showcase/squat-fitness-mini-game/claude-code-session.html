@@ -72,7 +72,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
 <hr />
 <div class="entry user" id="entry-1"><div class="entry-hdr"><span class="icon">&#x1F464;</span><span class="label">User</span><span class="time">2026-06-08 10:44:03 UTC</span></div><div class="entry-body">Using the yolo26n-pose model on the DEEPX NPU, build a simple squat-counting fitness mini-game. Implement and validate it using the sample video at sample/squat_demo.mp4. The generated app must support both a video-file input and a live camera input, selectable at runtime via command-line options (e.g. --video &lt;file&gt; or --camera &lt;id&gt;). Detect squat repetitions from body keypoints (use knee and hip angles to recognize the down then up motion), count the reps in real time, and overlay an arcade-style fitness game UI on each frame (rep counter, target reps, a score, and DOWN / UP / GOOD! feedback text). When run on a video file, save an annotated output video so the result can be reviewed.</div></div>
 <div class="entry tool-ok collapsed" id="entry-2"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Skill</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>dx-skill-router</code></div><div class="tool-result"><pre>Launching skill: dx-skill-router</pre></div></div></div>
-<div class="entry assistant" id="entry-3"><div class="entry-hdr"><span class="icon">&#x1F4AC;</span><span class="label">Claude</span><span class="time">2026-06-08 10:44:03 UTC</span></div><div class="entry-body"><p>[DX-AGENTIC-DEV: START]</p>
+<div class="entry assistant" id="entry-3"><div class="entry-hdr"><span class="icon">&#x1F4AC;</span><span class="label">Claude</span><span class="time">2026-06-08 10:44:03 UTC</span></div><div class="entry-body"><p>[DX-AGENT-DEV: START]</p>
 <pre><code> ███████████   █████████ ████████ ████████  ████      ████
  ███     █████ ███░░░░░░░███░░░░░░███   ███  ░████   ████░░
  ███        ██░███░      ██░░     ███   ███░   █████████░░
@@ -81,7 +81,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
  ███     █████░███░      ██░      ███░   ████████░░░░████
  ███████████░░░█████████ ████████ ██████████░░░░░░    ████
   ░░░░░░░░░░░   ░░░░░░░░░ ░░░░░░░░ ░░░░░░░░░░          ░░░░
-        DX-AGENTIC-DEV · on-device NPU
+        DX-AGENT-DEV · on-device NPU
 </code></pre>
 <p>I'll start by invoking the skill router as the mandatory first action.</p></div></div>
 <div class="entry user" id="entry-4"><div class="entry-hdr"><span class="icon">&#x1F464;</span><span class="label">User</span><span class="time">2026-06-08 10:44:16 UTC</span></div><div class="entry-body">Base directory for this skill: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/.claude/skills/dx-skill-router
@@ -1288,9 +1288,9 @@ All verification complete. Here is the completion report.</p>
  ███     █████░███░      ██░      ███░   ████████░░░░████
  ███████████░░░█████████ ████████ ██████████░░░░░░    ████
   ░░░░░░░░░░░   ░░░░░░░░░ ░░░░░░░░ ░░░░░░░░░░          ░░░░
-        DX-AGENTIC-DEV · on-device NPU
+        DX-AGENT-DEV · on-device NPU
 </code></pre>
-<p>[DX-AGENTIC-DEV: DONE (output-dir: dx-runtime/dx_app/dx-agent-dev/20260608-194643_claude_opus48_yolo26n_pose_squat_game/)]</p>
+<p>[DX-AGENT-DEV: DONE (output-dir: dx-runtime/dx_app/dx-agent-dev/20260608-194643_claude_opus48_yolo26n_pose_squat_game/)]</p>
 <p>Now the final housekeeping step — render this session's transcript into the output dir (claude is auto-supported):
 Session transcript (md/html/jsonl) saved to: <code>dx-agent-dev/20260608-194643_claude_opus48_yolo26n_pose_squat_game/claude-session.*</code></p></div></div>
 <hr />

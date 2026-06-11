@@ -25,7 +25,7 @@ DX Agent-Driven Development는 강력한 instruction following과 knowledge base
 
 ```
 ══════════════════════════════════════════════════════════════
-⚠  DX-AGENTIC-DEV: MODEL NOTICE
+⚠  DX-AGENT-DEV: MODEL NOTICE
 
 DX Agent-Driven Development recommends Claude Sonnet 4.6+ or
 Opus 4.6+. Your current model may produce lower quality
@@ -54,7 +54,7 @@ API accuracy. Please switch to a recommended model.
 
 **예시 — 잘못됨** (반복이 상자와 함께 스크롤되어 지나감):
 ```
-[DX-AGENTIC-DEV: START]
+[DX-AGENT-DEV: START]
 ══ MODEL NOTICE ══
 ---  ⚠ Non-recommended model ---     ← 너무 이름, 스크롤되어 지나감
 ... (파일 읽기, 컨텍스트 분석) ...
@@ -63,7 +63,7 @@ API accuracy. Please switch to a recommended model.
 
 **예시 — 올바름** (반복이 질문 바로 앞에 나타남):
 ```
-[DX-AGENTIC-DEV: START]
+[DX-AGENT-DEV: START]
 ══ MODEL NOTICE ══
 ... (파일 읽기, 컨텍스트 분석) ...
 ---  ⚠ Non-recommended model ---     ← 질문 바로 앞
@@ -465,14 +465,14 @@ Artifact Verification Gate는 각 artifact가 **어떻게** 검증되는지 정�
 사용자 프롬프트를 처리할 때, 테스트 하네스의 자동화된 세션 경계 감지를 위해
 이 정확한 마커를 출력하세요:
 
-- **응답의 첫 번째 줄**: `[DX-AGENTIC-DEV: START]`
-- **모든 작업 완료 후 마지막 줄**: `[DX-AGENTIC-DEV: DONE (output-dir: <relative_path>)]`
+- **응답의 첫 번째 줄**: `[DX-AGENT-DEV: START]`
+- **모든 작업 완료 후 마지막 줄**: `[DX-AGENT-DEV: DONE (output-dir: <relative_path>)]`
   여기서 `<relative_path>`는 세션 출력 디렉토리입니다 (예: `dx-agent-dev/20260409-143022_yolo26n_detection/`)
 
 ### DEEPX 배너 (MANDATORY — 센티넬과 함께 출력)
 
-DEEPX 로고 배너를 두 지점에서 **그대로(verbatim)** 출력하세요: `[DX-AGENTIC-DEV: START]`
-줄 **직후**, 그리고 `[DX-AGENTIC-DEV: DONE ...]` 줄 **직전**. 아래와 정확히 동일하게
+DEEPX 로고 배너를 두 지점에서 **그대로(verbatim)** 출력하세요: `[DX-AGENT-DEV: START]`
+줄 **직후**, 그리고 `[DX-AGENT-DEV: DONE ...]` 줄 **직전**. 아래와 정확히 동일하게
 출력하세요(코드 펜스 사용 가능):
 
 ```
@@ -484,20 +484,20 @@ DEEPX 로고 배너를 두 지점에서 **그대로(verbatim)** 출력하세요:
  ███     █████░███░      ██░      ███░   ████████░░░░████
  ███████████░░░█████████ ████████ ██████████░░░░░░    ████
   ░░░░░░░░░░░   ░░░░░░░░░ ░░░░░░░░ ░░░░░░░░░░          ░░░░
-        DX-AGENTIC-DEV · on-device NPU
+        DX-AGENT-DEV · on-device NPU
 ```
 
 배너는 장식이며, 센티넬 줄을 대체하거나 이동시키지 않습니다(START는 절대적 첫 줄,
 DONE은 맨 마지막 줄 유지).
 
 규칙:
-1. **중요 — `[DX-AGENTIC-DEV: START]`를 첫 번째 응답의 절대적인 첫 줄로 출력하세요.**
+1. **중요 — `[DX-AGENT-DEV: START]`를 첫 번째 응답의 절대적인 첫 줄로 출력하세요.**
    이것은 다른 어떤 텍스트, 도구 호출, 추론보다 먼저 나타나야 합니다.
    사용자가 "그냥 진행하라" 또는 "자체 판단을 사용하라"고 지시해도,
    START 센티넬은 협상 불가입니다 — 자동화 테스트는 이것 없이 실패합니다.
    **START 줄 직후 DEEPX 배너를 출력하세요**(위 "DEEPX 배너" 참조).
 2. **DONE 줄 직전에 DEEPX 배너를 다시 출력**한 뒤, 모든 작업·검증·파일 생성이 완료된 후
-   맨 마지막 줄에 `[DX-AGENTIC-DEV: DONE (output-dir: <path>)]`를 출력하세요
+   맨 마지막 줄에 `[DX-AGENT-DEV: DONE (output-dir: <path>)]`를 출력하세요
 3. 상위 레벨 agent에 의해 handoff/routing으로 호출된 **서브 agent**인 경우,
    이 센티넬을 출력하지 마세요 — 최상위 agent만 출력합니다
 4. 사용자가 세션에서 여러 프롬프트를 보내면, 각 프롬프트에 대해 START/DONE을 출력하세요
@@ -506,7 +506,7 @@ DONE은 맨 마지막 줄 유지).
    **Cross-project 태스크** (예: compile + app 생성)의 경우, 모든 output directory를
    ` + ` 구분자로 나열하세요:
    ```
-   [DX-AGENTIC-DEV: DONE (output-dir: dx-compiler/dx-agent-dev/20260409-143022_copilot_yolo26n_compile/ + dx-runtime/dx_app/dx-agent-dev/20260409-143022_copilot_yolo26n_inference/)]
+   [DX-AGENT-DEV: DONE (output-dir: dx-compiler/dx-agent-dev/20260409-143022_copilot_yolo26n_compile/ + dx-runtime/dx_app/dx-agent-dev/20260409-143022_copilot_yolo26n_inference/)]
    ```
 6. **계획 산출물만 생성한 후에는 절대 DONE을 출력하지 마세요** (spec, plan, 설계
    문서). DONE은 모든 산출물이 생성되었음을 의미합니다 — 구현 코드, 스크립트,

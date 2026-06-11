@@ -162,7 +162,7 @@ dx-skill-router
 ```
 
 **강제 수단:** `swe-process-gates-internal-dev.md` fragment (path match:
-`.deepx/`, `.deepx/tests/test_agentic_*/`, `.deepx/tools/`)
+`.deepx/`, `.deepx/tests/test_agent_*/`, `.deepx/tools/`)
 
 ## Scenario 분류
 
@@ -208,8 +208,8 @@ instruction fragment의 **path matching**으로 결정됩니다:
     conformance/          — 정적 KB/생성물 정책 검사
   e2e/              — end-to-end 하니스 (분리됨)
     e2e_runner.py · e2e_monitor.py · test.sh   — 라운드 오케스트레이션 + 러너
-    test_agentic_e2e_scenarios/   — E2E agent 실행 test
-    agentic_analyzer/     — run-id 인지 결과 분석기
+    test_agent_e2e_scenarios/   — E2E agent 실행 test
+    agent_analyzer/     — run-id 인지 결과 분석기
   tools/            — 툴링 패키지 + 개발 스크립트
     README.md                     — 툴링 가이드
     pyproject.toml                — 패키지 정의; src/ 두 패키지 자동 발견

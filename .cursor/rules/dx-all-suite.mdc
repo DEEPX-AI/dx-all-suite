@@ -38,8 +38,8 @@ This is the top-level DEEPX All Suite repository.
 ## Session Sentinels (MANDATORY for Automated Testing)
 
 When processing a user prompt, output these exact markers:
-- **First line of response**: `[DX-AGENTIC-DEV: START]`
-- **Last line after ALL work complete**: `[DX-AGENTIC-DEV: DONE]`
+- **First line of response**: `[DX-AGENT-DEV: START]`
+- **Last line after ALL work complete**: `[DX-AGENT-DEV: DONE]`
 - Sub-agents invoked via routing do NOT output sentinels
 - Before DONE: verify all mandatory deliverables exist; create any missing ones
 - Before DONE line: output `To save this session as HTML, type: /share html` (Copilot CLI only)

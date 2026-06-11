@@ -21,7 +21,7 @@ tools:
 Routes tasks to the appropriate submodule based on task type.
 
 ### Step 0: Session Sentinel (START)
-Output `[DX-AGENTIC-DEV: START]` as the first line of your response.
+Output `[DX-AGENT-DEV: START]` as the first line of your response.
 Skip this if you were invoked as a sub-agent via handoff from a higher-level agent.
 
 ## Repository Structure
@@ -99,9 +99,9 @@ python dx-compiler/.deepx/scripts/validate_framework.py
 
 ### Final Step: Session Sentinel (DONE)
 After ALL work is complete (including validation and file generation), output
-`[DX-AGENTIC-DEV: DONE (output-dir: <relative_path>)]` as the very last line,
+`[DX-AGENT-DEV: DONE (output-dir: <relative_path>)]` as the very last line,
 where `<relative_path>` is the session output directory (e.g., `dx-agent-dev/20260409-143022_yolo26n_detection/`).
-If no files were generated, output `[DX-AGENTIC-DEV: DONE]` without the output-dir part.
+If no files were generated, output `[DX-AGENT-DEV: DONE]` without the output-dir part.
 Skip this if you were invoked as a sub-agent via handoff from a higher-level agent.
 **CRITICAL**: Do NOT output DONE if you only produced planning artifacts (specs,
 plans, design documents) without implementing actual code. Planning is not completion.

@@ -8,7 +8,7 @@ Cursor (IDE), OpenCode, 기타 모든 도구)를 사용하여 내부 dx-agent-de
 
 | 경로 | 예시 |
 |------|------|
-| `.deepx/e2e/test_agentic_e2e_scenarios/` | `conftest.py`, `test_*.py` fixture |
+| `.deepx/e2e/test_agent_e2e_scenarios/` | `conftest.py`, `test_*.py` fixture |
 | `.deepx/tests/conformance/` | KB / 생성물 적합성 + 정책 검사 |
 | `.deepx/e2e/test.sh` | 수동/자동 shell runner |
 | `.deepx/tests/conftest.py`, `.deepx/tools/src/dx_transcripts/session_common.py`, `.deepx/tools/src/dx_transcripts/parse_copilot_session.py`, `.deepx/tools/src/dx_transcripts/parse_cursor_session.py`, `.deepx/tools/src/dx_transcripts/parse_claude_session.py` | 공유 테스트 인프라 |

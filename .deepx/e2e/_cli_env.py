@@ -24,7 +24,7 @@ from typing import Dict, Optional
 # System CA bundle that includes the corporate/proxy root CA. Overridable for
 # tests and for hosts that keep the bundle elsewhere.
 SYSTEM_CA_BUNDLE = os.environ.get(
-    "DX_AGENTIC_E2E_CA_BUNDLE", "/etc/ssl/certs/ca-certificates.crt"
+    "DX_AGENT_E2E_CA_BUNDLE", "/etc/ssl/certs/ca-certificates.crt"
 )
 
 

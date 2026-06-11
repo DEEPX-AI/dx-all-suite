@@ -6,7 +6,7 @@
 
 These demonstrate **dx-agent-dev (Beta)**: you describe the app/task in plain language
 and the agent drives the DEEPX knowledge base end to end (brainstorm → plan → TDD →
-verify). What the feature is and how it works → [Agent-Driven Development docs](../docs/source/00_Agentic_Development.md).
+verify). What the feature is and how it works → [Agent-Driven Development docs](../docs/source/00_Agent_Driven_Development.md).
 Each card below links to that showcase's own README (full detail + transcript).
 
 <!-- catalog -->

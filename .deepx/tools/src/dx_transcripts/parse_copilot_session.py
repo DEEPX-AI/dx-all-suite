@@ -1402,7 +1402,7 @@ def main() -> int:
             return 0
         else:
             print(
-                "FAIL: No [DX-AGENTIC-DEV: START] sentinel found in any session.",
+                "FAIL: No [DX-AGENT-DEV: START] sentinel found in any session.",
                 file=sys.stderr,
             )
             return 1

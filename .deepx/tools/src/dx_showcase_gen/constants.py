@@ -24,8 +24,8 @@ SHOWCASE_ROOT = "dx-agent-dev-showcase"
 IMG_DIR = "docs/source/img"
 SUITE_README = "README.md"
 SUITE_README_KO = "README-KO.md"
-DOCS_OVERVIEW = "docs/source/00_Agentic_Development.md"
-DOCS_OVERVIEW_KO = "docs/source/00_Agentic_Development_kor.md"
+DOCS_OVERVIEW = "docs/source/00_Agent_Driven_Development.md"
+DOCS_OVERVIEW_KO = "docs/source/00_Agent_Driven_Development_kor.md"
 
 # Transcript filenames inside a showcase dir (matches squat/stretch convention).
 TRANSCRIPT_PREFIX = "claude-code-session"   # -> claude-code-session.{md,html,jsonl}

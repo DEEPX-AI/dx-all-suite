@@ -144,7 +144,7 @@ def extract_output_dirs(parsed: ParsedSession) -> List[str]:
 
 
 def has_start_sentinel(parsed: ParsedSession) -> bool:
-    """Check if the session has a [DX-AGENTIC-DEV: START] sentinel."""
+    """Check if the session has a [DX-AGENT-DEV: START] sentinel."""
     return has_start_sentinel_in_turns(parsed.turns)
 
 

@@ -9,7 +9,7 @@ discipline):
 
 | Path | Examples |
 |------|---------|
-| `.deepx/e2e/test_agentic_e2e_scenarios/` | `conftest.py`, `test_*.py` fixtures |
+| `.deepx/e2e/test_agent_e2e_scenarios/` | `conftest.py`, `test_*.py` fixtures |
 | `.deepx/tests/conformance/` | KB / generated-output conformance + policy checks |
 | `.deepx/e2e/test.sh` | manual/autopilot shell runner |
 | `.deepx/tests/conftest.py`, `.deepx/tools/src/dx_transcripts/session_common.py`, `.deepx/tools/src/dx_transcripts/parse_copilot_session.py`, `.deepx/tools/src/dx_transcripts/parse_cursor_session.py`, `.deepx/tools/src/dx_transcripts/parse_claude_session.py` | shared test infrastructure |

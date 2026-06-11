@@ -879,7 +879,7 @@ main() {
         set +e
         (
             cd "$SUITE_ROOT"
-            python3 -m pytest .deepx/e2e/test_agentic_e2e_scenarios/ \
+            python3 -m pytest .deepx/e2e/test_agent_e2e_scenarios/ \
                 --collect-only -q 2>&1
         )
         local _collect_rc=$?
@@ -953,8 +953,8 @@ main() {
         (
             cd "$SUITE_ROOT"
             python3 -m py_compile \
-                .deepx/e2e/test_agentic_e2e_scenarios/test_*suite*.py \
-                .deepx/e2e/test_agentic_e2e_scenarios/conftest.py 2>&1
+                .deepx/e2e/test_agent_e2e_scenarios/test_*suite*.py \
+                .deepx/e2e/test_agent_e2e_scenarios/conftest.py 2>&1
         )
         local _syntax_rc=$?
         set -e
@@ -975,7 +975,7 @@ main() {
             python3 -c "
 import importlib, sys
 sys.path.insert(0, '.deepx/e2e')
-m = importlib.import_module('test_agentic_e2e_scenarios.conftest')
+m = importlib.import_module('test_agent_e2e_scenarios.conftest')
 for name in ('_snapshot_sessions', '_detect_new_sessions', '_wait_for_background_compilation'):
     assert hasattr(m, name), f'Missing: {name}'
 print('conftest symbol check OK')
