@@ -11,15 +11,76 @@ Each card below links to that showcase's own README (full detail + transcript).
 
 <!-- catalog -->
 <!-- dx-showcase:docs:catalog:start -->
+## Ultralytics ecosystem integration
+
+Ultralytics YOLO models compiled to and deployed on the DEEPX NPU (`format=deepx`), including domain retraining + 4-way eval.
+
 | Showcase | Kind | Highlight |
 |---|---|---|
-| [Squat-Counting Mini-Game](./squat-fitness-mini-game/README.md) | game | pose game + arcade HUD |
-| [Stretching Coach Mini-Game](./stretching-coach-mini-game/README.md) | game | coach avatar + 3 stages |
 | [Ultralytics YOLO → DeepX Export](./ultralytics-yolo-deepx-export/README.md) | export | 1-cmd .pt → .dxnn |
 | [African Wildlife Monitoring](./ultralytics-retrain-eval-deepx-export-wildlife/README.md) | retrain | mAP ~0.0007→0.79, 59→80 FPS |
 | [Construction PPE Safety](./ultralytics-retrain-eval-deepx-export-ppe/README.md) | retrain | mAP 0.0001→0.257, 58→80 FPS |
 | [Brain-Tumor Screening](./ultralytics-retrain-eval-deepx-export-braintumor/README.md) | retrain | mAP ~0.0005→0.40, 59→83 FPS |
 | [Pharmaceutical Pill Inspection](./ultralytics-retrain-eval-deepx-export-pills/README.md) | retrain | mAP ~0.001→0.75 (mAP50 0.97), 55→78 FPS |
+
+### Ultralytics YOLO → DeepX Export
+
+<a href="./ultralytics-yolo-deepx-export/README.md"><video height="170" autoplay muted loop playsinline poster="../docs/source/img/dx-agentic-dev-ultralytics-yolo-poster.jpg" align="right"><source src="../docs/source/img/dx-agentic-dev-ultralytics-yolo.mp4" type="video/mp4"><img src="../docs/source/img/dx-agentic-dev-ultralytics-yolo-poster.jpg" height="170"></video></a>
+
+Turns an Ultralytics YOLO `.pt` into a deployable DeepX NPU model (`.dxnn`) in a single `yolo export ... format=deepx` command, then runs NPU inference + verify.
+
+**Highlight:** 1-cmd .pt → .dxnn · **Claude Sonnet 4.6** · ≈ 11.6 min · ≈ $2.4 — [details →](./ultralytics-yolo-deepx-export/README.md)
+
+<br clear="right">
+
+### African Wildlife Monitoring
+
+<a href="./ultralytics-retrain-eval-deepx-export-wildlife/README.md"><img src="../docs/source/img/dx-agentic-dev-ultralytics-wildlife-sample.jpg" height="170" align="right"></a>
+
+Retrains `yolo26n` on `african-wildlife` (buffalo/elephant/rhino/zebra) for a safari/conservation camera; 4-way eval base/retrained × fp32/INT8.
+
+**Highlight:** mAP ~0.0007→0.79, 59→80 FPS · **Claude Opus 4.8** · ≈ 12 min · ≈ $3.3 — [details →](./ultralytics-retrain-eval-deepx-export-wildlife/README.md)
+
+<br clear="right">
+
+### Construction PPE Safety
+
+<a href="./ultralytics-retrain-eval-deepx-export-ppe/README.md"><img src="../docs/source/img/dx-agentic-dev-ultralytics-ppe-sample.jpg" height="170" align="right"></a>
+
+Retrains `yolo26n` on `construction-ppe` for a site-safety camera (helmet/vest/...); 4-way eval base/retrained × fp32/INT8.
+
+**Highlight:** mAP 0.0001→0.257, 58→80 FPS · **Claude Opus 4.8** · ≈ 13 min · ≈ $5.1 — [details →](./ultralytics-retrain-eval-deepx-export-ppe/README.md)
+
+<br clear="right">
+
+### Brain-Tumor Screening
+
+<a href="./ultralytics-retrain-eval-deepx-export-braintumor/README.md"><img src="../docs/source/img/dx-agentic-dev-ultralytics-braintumor-sample.jpg" height="170" align="right"></a>
+
+Retrains `yolo26n` on `brain-tumor` (MRI/CT) for a medical edge device; 4-way eval base/retrained × fp32/INT8.
+
+**Highlight:** mAP ~0.0005→0.40, 59→83 FPS · **Claude Opus 4.8** · ≈ 12 min · ≈ $3.7 — [details →](./ultralytics-retrain-eval-deepx-export-braintumor/README.md)
+
+<br clear="right">
+
+### Pharmaceutical Pill Inspection
+
+<a href="./ultralytics-retrain-eval-deepx-export-pills/README.md"><img src="../docs/source/img/dx-agentic-dev-ultralytics-pills-sample.jpg" height="170" align="right"></a>
+
+Retrains `yolo26n` on `medical-pills` for a pharma counting station; 4-way eval base/retrained × fp32/INT8.
+
+**Highlight:** mAP ~0.001→0.75 (mAP50 0.97), 55→78 FPS · **Claude Opus 4.8** · ≈ 10 min · ≈ $5.1 — [details →](./ultralytics-retrain-eval-deepx-export-pills/README.md)
+
+<br clear="right">
+
+## NPU-powered AI apps (mini-games)
+
+End-to-end on-device NPU applications built from one prompt — pose-driven mini-games with arcade HUDs.
+
+| Showcase | Kind | Highlight |
+|---|---|---|
+| [Squat-Counting Mini-Game](./squat-fitness-mini-game/README.md) | game | pose game + arcade HUD |
+| [Stretching Coach Mini-Game](./stretching-coach-mini-game/README.md) | game | coach avatar + 3 stages |
 
 ### Squat-Counting Mini-Game
 
@@ -30,6 +91,7 @@ Counts squat reps from knee/hip angles with an arcade HUD (reps / score / DOWN·
 **Highlight:** pose game + arcade HUD · **Claude Opus 4.8** · ≈ 20 min · ≈ $9.9 — [details →](./squat-fitness-mini-game/README.md)
 
 <br clear="right">
+
 ### Stretching Coach Mini-Game
 
 <a href="./stretching-coach-mini-game/README.md"><img src="../docs/source/img/dx-agentic-dev-stretch-gameplay.gif" height="170" align="right"></a>
@@ -39,51 +101,12 @@ Guides 3 stretches with an animated coach avatar that demonstrates each target p
 **Highlight:** coach avatar + 3 stages · **Claude Opus 4.8** · ≈ 21 min · ≈ $9.4 — [details →](./stretching-coach-mini-game/README.md)
 
 <br clear="right">
-### Ultralytics YOLO → DeepX Export
 
-<a href="./ultralytics-yolo-deepx-export/README.md"><video height="170" autoplay muted loop playsinline poster="../docs/source/img/dx-agentic-dev-ultralytics-yolo-poster.jpg" align="right"><source src="../docs/source/img/dx-agentic-dev-ultralytics-yolo.mp4" type="video/mp4"><img src="../docs/source/img/dx-agentic-dev-ultralytics-yolo-poster.jpg" height="170"></video></a>
+## PaddlePaddle ecosystem integration
 
-Turns an Ultralytics YOLO `.pt` into a deployable DeepX NPU model (`.dxnn`) in a single `yolo export ... format=deepx` command, then runs NPU inference + verify.
+PaddlePaddle/PaddleOCR models on the DEEPX NPU.
 
-**Highlight:** 1-cmd .pt → .dxnn · **Claude Sonnet 4.6** · ≈ 11.6 min · ≈ $2.4 — [details →](./ultralytics-yolo-deepx-export/README.md)
-
-<br clear="right">
-### African Wildlife Monitoring
-
-<a href="./ultralytics-retrain-eval-deepx-export-wildlife/README.md"><img src="../docs/source/img/dx-agentic-dev-ultralytics-wildlife-sample.jpg" height="170" align="right"></a>
-
-Retrains `yolo26n` on `african-wildlife` (buffalo/elephant/rhino/zebra) for a safari/conservation camera; 4-way eval base/retrained × fp32/INT8.
-
-**Highlight:** mAP ~0.0007→0.79, 59→80 FPS · **Claude Opus 4.8** · ≈ 12 min · ≈ $3.3 — [details →](./ultralytics-retrain-eval-deepx-export-wildlife/README.md)
-
-<br clear="right">
-### Construction PPE Safety
-
-<a href="./ultralytics-retrain-eval-deepx-export-ppe/README.md"><img src="../docs/source/img/dx-agentic-dev-ultralytics-ppe-sample.jpg" height="170" align="right"></a>
-
-Retrains `yolo26n` on `construction-ppe` for a site-safety camera (helmet/vest/...); 4-way eval base/retrained × fp32/INT8.
-
-**Highlight:** mAP 0.0001→0.257, 58→80 FPS · **Claude Opus 4.8** · ≈ 13 min · ≈ $5.1 — [details →](./ultralytics-retrain-eval-deepx-export-ppe/README.md)
-
-<br clear="right">
-### Brain-Tumor Screening
-
-<a href="./ultralytics-retrain-eval-deepx-export-braintumor/README.md"><img src="../docs/source/img/dx-agentic-dev-ultralytics-braintumor-sample.jpg" height="170" align="right"></a>
-
-Retrains `yolo26n` on `brain-tumor` (MRI/CT) for a medical edge device; 4-way eval base/retrained × fp32/INT8.
-
-**Highlight:** mAP ~0.0005→0.40, 59→83 FPS · **Claude Opus 4.8** · ≈ 12 min · ≈ $3.7 — [details →](./ultralytics-retrain-eval-deepx-export-braintumor/README.md)
-
-<br clear="right">
-### Pharmaceutical Pill Inspection
-
-<a href="./ultralytics-retrain-eval-deepx-export-pills/README.md"><img src="../docs/source/img/dx-agentic-dev-ultralytics-pills-sample.jpg" height="170" align="right"></a>
-
-Retrains `yolo26n` on `medical-pills` for a pharma counting station; 4-way eval base/retrained × fp32/INT8.
-
-**Highlight:** mAP ~0.001→0.75 (mAP50 0.97), 55→78 FPS · **Claude Opus 4.8** · ≈ 10 min · ≈ $5.1 — [details →](./ultralytics-retrain-eval-deepx-export-pills/README.md)
-
-<br clear="right">
+> _Coming soon._
 <!-- dx-showcase:docs:catalog:end -->
 
 ## Reproduce any showcase

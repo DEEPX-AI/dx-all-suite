@@ -31,15 +31,32 @@ InferenceEngine 설정, DxPreprocess/DxInfer 엘리먼트 연결 — 따라서 *
 
 <!-- showcase-table -->
 <!-- dx-showcase:docs:table:start -->
+#### Ultralytics 생태계 통합
+
+Ultralytics YOLO 모델을 DEEPX NPU로 컴파일·배포(`format=deepx`) — 도메인 재학습 + 4-way 평가 포함.
+
 | Showcase | 설명 | 빌드 시간 | Agent turns | Output tokens | ~비용 |
 |---|---|---|---|---|---|
-| **[스쿼트 카운팅 미니게임](../../dx-agentic-dev-showcase/squat-fitness-mini-game/)** | 무릎/엉덩이 각도로 스쿼트 횟수 카운트 + 아케이드 HUD(횟수 / 점수 / DOWN·UP·GOOD!). | ≈ 20 min | 81 | ≈ 85K | ≈ $9.9 |
-| **[스트레칭 coach 미니게임](../../dx-agentic-dev-showcase/stretching-coach-mini-game/)** | 애니메이션 coach 아바타가 각 목표 포즈를 시연하며 3가지 스트레칭 안내. | ≈ 21 min | 75 | ≈ 85K | ≈ $9.4 |
 | **[Ultralytics YOLO → DeepX Export](../../dx-agentic-dev-showcase/ultralytics-yolo-deepx-export/)** | Ultralytics YOLO `.pt`를 단일 `yolo export ... format=deepx` 명령으로 배포 가능한 DeepX NPU 모델(`.dxnn`)로 변환, NPU 추론 + verify. | ≈ 11.6 min | 59 | — | ≈ $2.4 |
 | **[아프리카 야생동물 모니터링](../../dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-wildlife/)** | 사파리/보전 카메라용으로 `yolo26n`을 `african-wildlife`(buffalo/elephant/rhino/zebra)로 재학습; base/재학습 × fp32/INT8 4-way 평가. | ≈ 12 min | 8 | ≈ 6.9K | ≈ $3.3 |
 | **[건설 PPE 안전](../../dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-ppe/)** | 현장 안전 카메라용으로 `yolo26n`을 `construction-ppe`(helmet/vest/...)로 재학습; base/재학습 × fp32/INT8 4-way 평가. | ≈ 13 min | 19 | ≈ 8.8K | ≈ $5.1 |
 | **[뇌종양 스크리닝](../../dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-braintumor/)** | 의료 edge 디바이스용으로 `yolo26n`을 `brain-tumor`(MRI/CT)로 재학습; base/재학습 × fp32/INT8 4-way 평가. | ≈ 12 min | 11 | ≈ 8.9K | ≈ $3.7 |
 | **[의약품 알약 검사](../../dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-pills/)** | 제약 카운팅 스테이션용으로 `yolo26n`을 `medical-pills`로 재학습; base/재학습 × fp32/INT8 4-way 평가. | ≈ 10 min | 12 | ≈ 6.0K | ≈ $5.1 |
+
+#### NPU 활용 AI 앱 (미니게임)
+
+프롬프트 하나로 만든 on-device NPU 앱 — 포즈 기반 미니게임 + 아케이드 HUD.
+
+| Showcase | 설명 | 빌드 시간 | Agent turns | Output tokens | ~비용 |
+|---|---|---|---|---|---|
+| **[스쿼트 카운팅 미니게임](../../dx-agentic-dev-showcase/squat-fitness-mini-game/)** | 무릎/엉덩이 각도로 스쿼트 횟수 카운트 + 아케이드 HUD(횟수 / 점수 / DOWN·UP·GOOD!). | ≈ 20 min | 81 | ≈ 85K | ≈ $9.9 |
+| **[스트레칭 coach 미니게임](../../dx-agentic-dev-showcase/stretching-coach-mini-game/)** | 애니메이션 coach 아바타가 각 목표 포즈를 시연하며 3가지 스트레칭 안내. | ≈ 21 min | 75 | ≈ 85K | ≈ $9.4 |
+
+#### PaddlePaddle 생태계 통합
+
+PaddlePaddle/PaddleOCR 모델의 DEEPX NPU 통합.
+
+> _추후 추가 예정._
 <!-- dx-showcase:docs:table:end -->
 
 **전체 카탈로그 + showcase별 요약(빌드 GIF 포함) →**

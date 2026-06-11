@@ -154,9 +154,23 @@ def intro_region(manifest, *, lang: str) -> str:
     return f"> {manifest.catchphrase(lang)}\n\n{manifest.announcement(lang)}"
 
 
+def _coming_soon_label(lang: str) -> str:
+    return "곧 공개" if lang == "ko" else "coming soon"
+
+
 def cardgrid_region(manifest, *, lang: str) -> str:
-    """Root-README marker region: hero (catchphrase + announcement) + card grid + links."""
-    grid = card_grid(manifest.showcases, lang=lang, surface="root")
+    """Root-README marker region: hero (catchphrase + announcement) + per-category
+    card grids + links."""
+    sections = []
+    for cat in manifest.categories:
+        scs = manifest.by_category(cat.id)
+        if cat.status == "coming-soon" or not scs:
+            note = cat.note(lang) or _coming_soon_label(lang)
+            sections.append(f"#### {cat.title(lang)} — _{note}_")
+            continue
+        sections.append(f"#### {cat.title(lang)}\n\n"
+                        f"{card_grid(scs, lang=lang, surface='root')}")
+    body = "\n\n".join(sections)
     if lang == "ko":
         link = ("**전체 showcase 목록 + 요약 →** "
                 "[`dx-agentic-dev-showcase/README-ko.md`](./dx-agentic-dev-showcase/README-ko.md)  ·  "
@@ -165,7 +179,7 @@ def cardgrid_region(manifest, *, lang: str) -> str:
         link = ("**All showcases + summaries →** "
                 "[`dx-agentic-dev-showcase/README.md`](./dx-agentic-dev-showcase/README.md)  ·  "
                 "**About the feature →** [Agentic Development docs](./docs/source/00_Agentic_Development.md)")
-    return f"{intro_region(manifest, lang=lang)}\n\n{grid}\n\n{link}"
+    return f"{intro_region(manifest, lang=lang)}\n\n{body}\n\n{link}"
 
 
 def showcase_table(showcases, *, lang: str, surface: str = "docs") -> str:
@@ -182,35 +196,60 @@ def showcase_table(showcases, *, lang: str, surface: str = "docs") -> str:
     return "\n".join(rows)
 
 
+def categorized_table(manifest, *, lang: str, surface: str = "docs") -> str:
+    """The all-showcase table grouped under per-category sub-headings, with a
+    'coming soon' line for categories that have no showcases yet."""
+    out = []
+    for cat in manifest.categories:
+        scs = manifest.by_category(cat.id)
+        out.append(f"#### {cat.title(lang)}")
+        if cat.blurb(lang):
+            out.append(f"{cat.blurb(lang)}")
+        if cat.status == "coming-soon" or not scs:
+            out.append(f"> _{cat.note(lang) or _coming_soon_label(lang)}_")
+        else:
+            out.append(showcase_table(scs, lang=lang, surface=surface))
+    return "\n\n".join(out)
+
+
 def catalog_region(manifest, *, lang: str) -> str:
-    """Catalog README marker region: summary table + per-showcase short blocks
-    (build GIF + what + detail link). This is the showcase index that mkdocs
-    surfaces via include-markdown."""
-    sc = manifest.showcases
+    """Catalog README marker region: per-category sections, each a summary table +
+    per-showcase short blocks (media + what + detail link). Coming-soon categories
+    show a note. This is the showcase index that mkdocs surfaces via include-markdown."""
     if lang == "ko":
-        thead = ("| Showcase | 유형 | 핵심 결과 |\n|---|---|---|")
-        kind_ko = {"game": "게임", "export": "export", "retrain": "재학습"}
-        detail = "상세"
+        thead = "| Showcase | 유형 | 핵심 결과 |\n|---|---|---|"
+        kind_label = {"game": "게임", "export": "export", "retrain": "재학습"}
+        detail, hi = "상세", "핵심"
     else:
-        thead = ("| Showcase | Kind | Highlight |\n|---|---|---|")
-        kind_ko = {"game": "game", "export": "export", "retrain": "retrain"}
-        detail = "details"
-    table = [thead]
-    for s in sc:
-        link = _showcase_link("catalog", s.name, lang)
-        table.append(f"| [{s.title(lang)}]({link}) | {kind_ko[s.kind]} | {s.highlight(lang)} |")
-    blocks = ["\n".join(table), ""]
-    for s in sc:
-        link = _showcase_link("catalog", s.name, lang)
-        # uniform-height media floated right — keeps portrait (squat) from leaving a
-        # big empty left column the way a fixed-width portrait GIF did.
-        media = _media_html(s, surface="catalog", height=170, extra=' align="right"')
-        blocks.append(
-            f'### {s.title(lang)}\n\n'
-            f'<a href="{link}">{media}</a>\n\n'
-            f'{s.what(lang)}\n\n'
-            f'**{("핵심" if lang=="ko" else "Highlight")}:** {s.highlight(lang)} · '
-            f'**{s.model}** · {s.build} · {s.cost} — '
-            f'[{detail} →]({link})\n\n'
-            '<br clear="right">')
-    return "\n".join(blocks)
+        thead = "| Showcase | Kind | Highlight |\n|---|---|---|"
+        kind_label = {"game": "game", "export": "export", "retrain": "retrain"}
+        detail, hi = "details", "Highlight"
+
+    out = []
+    for cat in manifest.categories:
+        scs = manifest.by_category(cat.id)
+        out.append(f"## {cat.title(lang)}")
+        if cat.blurb(lang):
+            out.append(cat.blurb(lang))
+        if cat.status == "coming-soon" or not scs:
+            out.append(f"> _{cat.note(lang) or _coming_soon_label(lang)}_")
+            continue
+        table = [thead]
+        for s in scs:
+            link = _showcase_link("catalog", s.name, lang)
+            table.append(f"| [{s.title(lang)}]({link}) | {kind_label[s.kind]} | {s.highlight(lang)} |")
+        out.append("\n".join(table))
+        for s in scs:
+            link = _showcase_link("catalog", s.name, lang)
+            # uniform-height media floated right — keeps portrait (squat) from leaving a
+            # big empty left column the way a fixed-width portrait GIF did.
+            media = _media_html(s, surface="catalog", height=170, extra=' align="right"')
+            out.append(
+                f'### {s.title(lang)}\n\n'
+                f'<a href="{link}">{media}</a>\n\n'
+                f'{s.what(lang)}\n\n'
+                f'**{hi}:** {s.highlight(lang)} · '
+                f'**{s.model}** · {s.build} · {s.cost} — '
+                f'[{detail} →]({link})\n\n'
+                '<br clear="right">')
+    return "\n\n".join(out)

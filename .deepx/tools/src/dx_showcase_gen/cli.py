@@ -87,9 +87,9 @@ def _cmd_regen_docs(a) -> int:
         ("docs/source/00_Agentic_Development_kor.md", "intro",
          augment.intro_region(man, lang="ko"), "<!-- intro -->"),
         ("docs/source/00_Agentic_Development.md", "table",
-         augment.showcase_table(man.showcases, lang="en"), "<!-- showcase-table -->"),
+         augment.categorized_table(man, lang="en"), "<!-- showcase-table -->"),
         ("docs/source/00_Agentic_Development_kor.md", "table",
-         augment.showcase_table(man.showcases, lang="ko"), "<!-- showcase-table -->"),
+         augment.categorized_table(man, lang="ko"), "<!-- showcase-table -->"),
     ]
     changed = []
     for relpath, kind, block, anchor in surfaces:

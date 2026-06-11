@@ -33,15 +33,32 @@ transcript.
 
 <!-- showcase-table -->
 <!-- dx-showcase:docs:table:start -->
+#### Ultralytics ecosystem integration
+
+Ultralytics YOLO models compiled to and deployed on the DEEPX NPU (`format=deepx`), including domain retraining + 4-way eval.
+
 | Showcase | What it is | Build time | Agent turns | Output tokens | ~Cost |
 |---|---|---|---|---|---|
-| **[Squat-Counting Mini-Game](../../dx-agentic-dev-showcase/squat-fitness-mini-game/)** | Counts squat reps from knee/hip angles with an arcade HUD (reps / score / DOWN·UP·GOOD!). | ≈ 20 min | 81 | ≈ 85K | ≈ $9.9 |
-| **[Stretching Coach Mini-Game](../../dx-agentic-dev-showcase/stretching-coach-mini-game/)** | Guides 3 stretches with an animated coach avatar that demonstrates each target pose. | ≈ 21 min | 75 | ≈ 85K | ≈ $9.4 |
 | **[Ultralytics YOLO → DeepX Export](../../dx-agentic-dev-showcase/ultralytics-yolo-deepx-export/)** | Turns an Ultralytics YOLO `.pt` into a deployable DeepX NPU model (`.dxnn`) in a single `yolo export ... format=deepx` command, then runs NPU inference + verify. | ≈ 11.6 min | 59 | — | ≈ $2.4 |
 | **[African Wildlife Monitoring](../../dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-wildlife/)** | Retrains `yolo26n` on `african-wildlife` (buffalo/elephant/rhino/zebra) for a safari/conservation camera; 4-way eval base/retrained × fp32/INT8. | ≈ 12 min | 8 | ≈ 6.9K | ≈ $3.3 |
 | **[Construction PPE Safety](../../dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-ppe/)** | Retrains `yolo26n` on `construction-ppe` for a site-safety camera (helmet/vest/...); 4-way eval base/retrained × fp32/INT8. | ≈ 13 min | 19 | ≈ 8.8K | ≈ $5.1 |
 | **[Brain-Tumor Screening](../../dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-braintumor/)** | Retrains `yolo26n` on `brain-tumor` (MRI/CT) for a medical edge device; 4-way eval base/retrained × fp32/INT8. | ≈ 12 min | 11 | ≈ 8.9K | ≈ $3.7 |
 | **[Pharmaceutical Pill Inspection](../../dx-agentic-dev-showcase/ultralytics-retrain-eval-deepx-export-pills/)** | Retrains `yolo26n` on `medical-pills` for a pharma counting station; 4-way eval base/retrained × fp32/INT8. | ≈ 10 min | 12 | ≈ 6.0K | ≈ $5.1 |
+
+#### NPU-powered AI apps (mini-games)
+
+End-to-end on-device NPU applications built from one prompt — pose-driven mini-games with arcade HUDs.
+
+| Showcase | What it is | Build time | Agent turns | Output tokens | ~Cost |
+|---|---|---|---|---|---|
+| **[Squat-Counting Mini-Game](../../dx-agentic-dev-showcase/squat-fitness-mini-game/)** | Counts squat reps from knee/hip angles with an arcade HUD (reps / score / DOWN·UP·GOOD!). | ≈ 20 min | 81 | ≈ 85K | ≈ $9.9 |
+| **[Stretching Coach Mini-Game](../../dx-agentic-dev-showcase/stretching-coach-mini-game/)** | Guides 3 stretches with an animated coach avatar that demonstrates each target pose. | ≈ 21 min | 75 | ≈ 85K | ≈ $9.4 |
+
+#### PaddlePaddle ecosystem integration
+
+PaddlePaddle/PaddleOCR models on the DEEPX NPU.
+
+> _Coming soon._
 <!-- dx-showcase:docs:table:end -->
 
 **Full catalog + per-showcase summaries (with build GIFs) →**

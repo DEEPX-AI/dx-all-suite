@@ -6,9 +6,9 @@ import pytest
 from dx_showcase_gen import augment, manifest
 
 
-def _sc(name, kind="retrain", **kw):
+def _sc(name, kind="retrain", category="ultralytics", **kw):
     base = dict(
-        name=name, kind=kind,
+        name=name, kind=kind, category=category,
         title_en=f"{name} T", title_ko=f"{name} 제목",
         tagline_en="tag en", tagline_ko="tag ko",
         gif=f"{name}.gif",
@@ -22,10 +22,13 @@ def _sc(name, kind="retrain", **kw):
 
 
 def _man(n=4):
-    scs = [_sc(f"s{i}") for i in range(n)]
+    scs = [_sc(f"s{i}") for i in range(n)]   # _sc default category = "ultralytics"
+    cats = [manifest.Category(id="ultralytics", status="active",
+                              title_en="Ultralytics", title_ko="Ultralytics")]
     return manifest.Manifest(section={
         "title_en": "T", "title_ko": "T",
-        "catchphrase_en": "CP en", "catchphrase_ko": "CP ko"}, showcases=scs)
+        "catchphrase_en": "CP en", "catchphrase_ko": "CP ko"},
+        showcases=scs, categories=cats)
 
 
 # ---- card_grid -------------------------------------------------------------
@@ -85,6 +88,49 @@ def test_intro_region_has_catchphrase_and_announcement():
     assert "공지" in augment.intro_region(man, lang="ko")
 
 
+# ---- categories ------------------------------------------------------------
+
+def _man_cat():
+    cats = [
+        manifest.Category(id="ultralytics", status="active",
+                          title_en="Ultralytics ecosystem", title_ko="Ultralytics 생태계"),
+        manifest.Category(id="paddle", status="coming-soon",
+                          title_en="PaddlePaddle ecosystem", title_ko="PaddlePaddle 생태계",
+                          note_en="Coming soon.", note_ko="추후 추가 예정."),
+    ]
+    scs = [_sc("u1", category="ultralytics"), _sc("u2", category="ultralytics")]
+    return manifest.Manifest(section={
+        "title_en": "T", "title_ko": "T", "catchphrase_en": "CP", "catchphrase_ko": "CP",
+        "announcement_en": "AN", "announcement_ko": "AN"}, showcases=scs, categories=cats)
+
+
+def test_by_category_filters():
+    man = _man_cat()
+    assert [s.name for s in man.by_category("ultralytics")] == ["u1", "u2"]
+    assert man.by_category("paddle") == []
+
+
+def test_cardgrid_region_groups_by_category_with_coming_soon():
+    body = augment.cardgrid_region(_man_cat(), lang="en")
+    assert "#### Ultralytics ecosystem" in body
+    assert "#### PaddlePaddle ecosystem — _Coming soon._" in body   # empty cat -> note, no grid
+
+
+def test_categorized_table_renders_coming_soon_note_not_table():
+    out = augment.categorized_table(_man_cat(), lang="ko")
+    assert "#### Ultralytics 생태계" in out
+    assert "#### PaddlePaddle 생태계" in out
+    assert "추후 추가 예정." in out
+    # the coming-soon category has no data rows
+    assert out.count("| **[") == 2     # only the 2 ultralytics rows
+
+
+def test_catalog_region_groups_by_category():
+    body = augment.catalog_region(_man_cat(), lang="en")
+    assert "## Ultralytics ecosystem" in body
+    assert "## PaddlePaddle ecosystem" in body and "Coming soon." in body
+
+
 # ---- showcase_table --------------------------------------------------------
 
 def test_showcase_table_has_header_and_one_row_per_showcase():
@@ -125,7 +171,7 @@ def test_upsert_block_idempotent(tmp_path):
 def _write_manifest(root, names):
     (root / "dx-agentic-dev-showcase").mkdir(parents=True, exist_ok=True)
     entries = [dict(
-        name=n, kind="retrain", title_en="t", title_ko="t",
+        name=n, kind="retrain", category="ultralytics", title_en="t", title_ko="t",
         tagline_en="t", tagline_ko="t", gif="g.gif", what_en="w", what_ko="w",
         highlight_en="h", highlight_ko="h", model="m", build="b",
         turns="1", tokens="1", cost="$1") for n in names]

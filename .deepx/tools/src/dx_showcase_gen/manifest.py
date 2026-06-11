@@ -10,7 +10,7 @@ are added (the recurring "long README" / "missing from the table" problem).
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass, fields
+from dataclasses import dataclass, field, fields
 from pathlib import Path
 from typing import Dict, List
 
@@ -22,6 +22,7 @@ SHOWCASE_DIR = "dx-agentic-dev-showcase"
 class Showcase:
     name: str          # showcase directory name
     kind: str          # game | export | retrain
+    category: str      # category id (see Manifest.categories)
     title_en: str
     title_ko: str
     tagline_en: str
@@ -70,9 +71,31 @@ class Showcase:
 
 
 @dataclass
+class Category:
+    id: str
+    status: str        # active | coming-soon
+    title_en: str
+    title_ko: str
+    blurb_en: str = ""
+    blurb_ko: str = ""
+    note_en: str = ""
+    note_ko: str = ""
+
+    def title(self, lang: str) -> str:
+        return self.title_ko if lang == "ko" else self.title_en
+
+    def blurb(self, lang: str) -> str:
+        return self.blurb_ko if lang == "ko" else self.blurb_en
+
+    def note(self, lang: str) -> str:
+        return self.note_ko if lang == "ko" else self.note_en
+
+
+@dataclass
 class Manifest:
     section: Dict[str, str]
     showcases: List[Showcase]
+    categories: List[Category] = field(default_factory=list)
 
     def title(self, lang: str) -> str:
         return self.section["title_ko" if lang == "ko" else "title_en"]
@@ -83,15 +106,21 @@ class Manifest:
     def announcement(self, lang: str) -> str:
         return self.section.get("announcement_ko" if lang == "ko" else "announcement_en", "")
 
+    def by_category(self, cat_id: str) -> List[Showcase]:
+        return [s for s in self.showcases if s.category == cat_id]
+
 
 _FIELDS = {f.name for f in fields(Showcase)}
+_CAT_FIELDS = {f.name for f in fields(Category)}
 
 
 def load_manifest(repo_root: str) -> Manifest:
     data = json.loads((Path(repo_root) / MANIFEST_REL).read_text())
     scs = [Showcase(**{k: v for k, v in s.items() if k in _FIELDS})
            for s in data["showcases"]]
-    return Manifest(section=data["section"], showcases=scs)
+    cats = [Category(**{k: v for k, v in c.items() if k in _CAT_FIELDS})
+            for c in data.get("categories", [])]
+    return Manifest(section=data["section"], showcases=scs, categories=cats)
 
 
 def showcase_dirs(repo_root: str) -> List[str]:

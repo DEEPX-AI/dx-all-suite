@@ -10,15 +10,76 @@
 
 <!-- catalog -->
 <!-- dx-showcase:docs:catalog:start -->
+## Ultralytics 생태계 통합
+
+Ultralytics YOLO 모델을 DEEPX NPU로 컴파일·배포(`format=deepx`) — 도메인 재학습 + 4-way 평가 포함.
+
 | Showcase | 유형 | 핵심 결과 |
 |---|---|---|
-| [스쿼트 카운팅 미니게임](./squat-fitness-mini-game/README-ko.md) | 게임 | 포즈 게임 + 아케이드 HUD |
-| [스트레칭 coach 미니게임](./stretching-coach-mini-game/README-ko.md) | 게임 | coach 아바타 + 3단계 |
 | [Ultralytics YOLO → DeepX Export](./ultralytics-yolo-deepx-export/README-ko.md) | export | 1-cmd .pt → .dxnn |
 | [아프리카 야생동물 모니터링](./ultralytics-retrain-eval-deepx-export-wildlife/README-ko.md) | 재학습 | mAP ~0.0007→0.79, 59→80 FPS |
 | [건설 PPE 안전](./ultralytics-retrain-eval-deepx-export-ppe/README-ko.md) | 재학습 | mAP 0.0001→0.257, 58→80 FPS |
 | [뇌종양 스크리닝](./ultralytics-retrain-eval-deepx-export-braintumor/README-ko.md) | 재학습 | mAP ~0.0005→0.40, 59→83 FPS |
 | [의약품 알약 검사](./ultralytics-retrain-eval-deepx-export-pills/README-ko.md) | 재학습 | mAP ~0.001→0.75 (mAP50 0.97), 55→78 FPS |
+
+### Ultralytics YOLO → DeepX Export
+
+<a href="./ultralytics-yolo-deepx-export/README-ko.md"><video height="170" autoplay muted loop playsinline poster="../docs/source/img/dx-agentic-dev-ultralytics-yolo-poster.jpg" align="right"><source src="../docs/source/img/dx-agentic-dev-ultralytics-yolo.mp4" type="video/mp4"><img src="../docs/source/img/dx-agentic-dev-ultralytics-yolo-poster.jpg" height="170"></video></a>
+
+Ultralytics YOLO `.pt`를 단일 `yolo export ... format=deepx` 명령으로 배포 가능한 DeepX NPU 모델(`.dxnn`)로 변환, NPU 추론 + verify.
+
+**핵심:** 1-cmd .pt → .dxnn · **Claude Sonnet 4.6** · ≈ 11.6 min · ≈ $2.4 — [상세 →](./ultralytics-yolo-deepx-export/README-ko.md)
+
+<br clear="right">
+
+### 아프리카 야생동물 모니터링
+
+<a href="./ultralytics-retrain-eval-deepx-export-wildlife/README-ko.md"><img src="../docs/source/img/dx-agentic-dev-ultralytics-wildlife-sample.jpg" height="170" align="right"></a>
+
+사파리/보전 카메라용으로 `yolo26n`을 `african-wildlife`(buffalo/elephant/rhino/zebra)로 재학습; base/재학습 × fp32/INT8 4-way 평가.
+
+**핵심:** mAP ~0.0007→0.79, 59→80 FPS · **Claude Opus 4.8** · ≈ 12 min · ≈ $3.3 — [상세 →](./ultralytics-retrain-eval-deepx-export-wildlife/README-ko.md)
+
+<br clear="right">
+
+### 건설 PPE 안전
+
+<a href="./ultralytics-retrain-eval-deepx-export-ppe/README-ko.md"><img src="../docs/source/img/dx-agentic-dev-ultralytics-ppe-sample.jpg" height="170" align="right"></a>
+
+현장 안전 카메라용으로 `yolo26n`을 `construction-ppe`(helmet/vest/...)로 재학습; base/재학습 × fp32/INT8 4-way 평가.
+
+**핵심:** mAP 0.0001→0.257, 58→80 FPS · **Claude Opus 4.8** · ≈ 13 min · ≈ $5.1 — [상세 →](./ultralytics-retrain-eval-deepx-export-ppe/README-ko.md)
+
+<br clear="right">
+
+### 뇌종양 스크리닝
+
+<a href="./ultralytics-retrain-eval-deepx-export-braintumor/README-ko.md"><img src="../docs/source/img/dx-agentic-dev-ultralytics-braintumor-sample.jpg" height="170" align="right"></a>
+
+의료 edge 디바이스용으로 `yolo26n`을 `brain-tumor`(MRI/CT)로 재학습; base/재학습 × fp32/INT8 4-way 평가.
+
+**핵심:** mAP ~0.0005→0.40, 59→83 FPS · **Claude Opus 4.8** · ≈ 12 min · ≈ $3.7 — [상세 →](./ultralytics-retrain-eval-deepx-export-braintumor/README-ko.md)
+
+<br clear="right">
+
+### 의약품 알약 검사
+
+<a href="./ultralytics-retrain-eval-deepx-export-pills/README-ko.md"><img src="../docs/source/img/dx-agentic-dev-ultralytics-pills-sample.jpg" height="170" align="right"></a>
+
+제약 카운팅 스테이션용으로 `yolo26n`을 `medical-pills`로 재학습; base/재학습 × fp32/INT8 4-way 평가.
+
+**핵심:** mAP ~0.001→0.75 (mAP50 0.97), 55→78 FPS · **Claude Opus 4.8** · ≈ 10 min · ≈ $5.1 — [상세 →](./ultralytics-retrain-eval-deepx-export-pills/README-ko.md)
+
+<br clear="right">
+
+## NPU 활용 AI 앱 (미니게임)
+
+프롬프트 하나로 만든 on-device NPU 앱 — 포즈 기반 미니게임 + 아케이드 HUD.
+
+| Showcase | 유형 | 핵심 결과 |
+|---|---|---|
+| [스쿼트 카운팅 미니게임](./squat-fitness-mini-game/README-ko.md) | 게임 | 포즈 게임 + 아케이드 HUD |
+| [스트레칭 coach 미니게임](./stretching-coach-mini-game/README-ko.md) | 게임 | coach 아바타 + 3단계 |
 
 ### 스쿼트 카운팅 미니게임
 
@@ -29,6 +90,7 @@
 **핵심:** 포즈 게임 + 아케이드 HUD · **Claude Opus 4.8** · ≈ 20 min · ≈ $9.9 — [상세 →](./squat-fitness-mini-game/README-ko.md)
 
 <br clear="right">
+
 ### 스트레칭 coach 미니게임
 
 <a href="./stretching-coach-mini-game/README-ko.md"><img src="../docs/source/img/dx-agentic-dev-stretch-gameplay.gif" height="170" align="right"></a>
@@ -38,51 +100,12 @@
 **핵심:** coach 아바타 + 3단계 · **Claude Opus 4.8** · ≈ 21 min · ≈ $9.4 — [상세 →](./stretching-coach-mini-game/README-ko.md)
 
 <br clear="right">
-### Ultralytics YOLO → DeepX Export
 
-<a href="./ultralytics-yolo-deepx-export/README-ko.md"><video height="170" autoplay muted loop playsinline poster="../docs/source/img/dx-agentic-dev-ultralytics-yolo-poster.jpg" align="right"><source src="../docs/source/img/dx-agentic-dev-ultralytics-yolo.mp4" type="video/mp4"><img src="../docs/source/img/dx-agentic-dev-ultralytics-yolo-poster.jpg" height="170"></video></a>
+## PaddlePaddle 생태계 통합
 
-Ultralytics YOLO `.pt`를 단일 `yolo export ... format=deepx` 명령으로 배포 가능한 DeepX NPU 모델(`.dxnn`)로 변환, NPU 추론 + verify.
+PaddlePaddle/PaddleOCR 모델의 DEEPX NPU 통합.
 
-**핵심:** 1-cmd .pt → .dxnn · **Claude Sonnet 4.6** · ≈ 11.6 min · ≈ $2.4 — [상세 →](./ultralytics-yolo-deepx-export/README-ko.md)
-
-<br clear="right">
-### 아프리카 야생동물 모니터링
-
-<a href="./ultralytics-retrain-eval-deepx-export-wildlife/README-ko.md"><img src="../docs/source/img/dx-agentic-dev-ultralytics-wildlife-sample.jpg" height="170" align="right"></a>
-
-사파리/보전 카메라용으로 `yolo26n`을 `african-wildlife`(buffalo/elephant/rhino/zebra)로 재학습; base/재학습 × fp32/INT8 4-way 평가.
-
-**핵심:** mAP ~0.0007→0.79, 59→80 FPS · **Claude Opus 4.8** · ≈ 12 min · ≈ $3.3 — [상세 →](./ultralytics-retrain-eval-deepx-export-wildlife/README-ko.md)
-
-<br clear="right">
-### 건설 PPE 안전
-
-<a href="./ultralytics-retrain-eval-deepx-export-ppe/README-ko.md"><img src="../docs/source/img/dx-agentic-dev-ultralytics-ppe-sample.jpg" height="170" align="right"></a>
-
-현장 안전 카메라용으로 `yolo26n`을 `construction-ppe`(helmet/vest/...)로 재학습; base/재학습 × fp32/INT8 4-way 평가.
-
-**핵심:** mAP 0.0001→0.257, 58→80 FPS · **Claude Opus 4.8** · ≈ 13 min · ≈ $5.1 — [상세 →](./ultralytics-retrain-eval-deepx-export-ppe/README-ko.md)
-
-<br clear="right">
-### 뇌종양 스크리닝
-
-<a href="./ultralytics-retrain-eval-deepx-export-braintumor/README-ko.md"><img src="../docs/source/img/dx-agentic-dev-ultralytics-braintumor-sample.jpg" height="170" align="right"></a>
-
-의료 edge 디바이스용으로 `yolo26n`을 `brain-tumor`(MRI/CT)로 재학습; base/재학습 × fp32/INT8 4-way 평가.
-
-**핵심:** mAP ~0.0005→0.40, 59→83 FPS · **Claude Opus 4.8** · ≈ 12 min · ≈ $3.7 — [상세 →](./ultralytics-retrain-eval-deepx-export-braintumor/README-ko.md)
-
-<br clear="right">
-### 의약품 알약 검사
-
-<a href="./ultralytics-retrain-eval-deepx-export-pills/README-ko.md"><img src="../docs/source/img/dx-agentic-dev-ultralytics-pills-sample.jpg" height="170" align="right"></a>
-
-제약 카운팅 스테이션용으로 `yolo26n`을 `medical-pills`로 재학습; base/재학습 × fp32/INT8 4-way 평가.
-
-**핵심:** mAP ~0.001→0.75 (mAP50 0.97), 55→78 FPS · **Claude Opus 4.8** · ≈ 10 min · ≈ $5.1 — [상세 →](./ultralytics-retrain-eval-deepx-export-pills/README-ko.md)
-
-<br clear="right">
+> _추후 추가 예정._
 <!-- dx-showcase:docs:catalog:end -->
 
 ## showcase 재현

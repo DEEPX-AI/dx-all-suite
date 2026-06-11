@@ -136,7 +136,9 @@ one manifest — never hand-edited.
    prompt** (scaffolding trimmed), the session-metrics table (model, **Wall-clock**,
    **Cost**, turns, skills), the **2-column GIF | sample** block, transcript links, run steps.
 2. Add an entry to **`dx-agentic-dev-showcase/showcases.json`** (order = display order):
-   `name, kind (game|export|retrain), title_en/ko, tagline_en/ko, what_en/ko,
+   `name, kind (game|export|retrain), category (one of the `categories[].id`, e.g.
+   `ultralytics` / `npu-apps` — showcases are grouped by category in every surface;
+   add a new category to `categories[]` if none fits), title_en/ko, tagline_en/ko, what_en/ko,
    highlight_en/ko, model, build, turns, tokens, cost`, plus the **card media**:
    `card_media` = `gif` (games → `gif` basename), `sample` (retrain → `sample` basename,
    prefer a **landscape** annotated detection image), or `video` (export → `video` +

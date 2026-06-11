@@ -8,10 +8,39 @@
     "announcement_en": "**`dx-agentic-dev` (Beta) is here.** Describe the app or model task in plain language and an AI coding agent — Claude Code, Cursor, GitHub Copilot, OpenCode, or Codex — drives the DEEPX knowledge base end to end: brainstorm → plan → TDD → verify, from ONNX/`.pt` compilation to on-device DX-M1 NPU deployment. It is agentic development purpose-built for DEEPX NPUs in the **Ultralytics** model ecosystem, and every showcase below was produced this way — checked in with its prompt, measured results, and full build transcript.",
     "announcement_ko": "**`dx-agentic-dev` (Beta) 출시.** 앱이나 모델 태스크를 자연어로 설명하면 AI 코딩 에이전트(Claude Code, Cursor, GitHub Copilot, OpenCode, Codex)가 DEEPX 지식 베이스를 end-to-end로 구동합니다: brainstorm → plan → TDD → verify, ONNX/`.pt` 컴파일부터 on-device DX-M1 NPU 배포까지. **Ultralytics** 모델 생태계와 통합된 DEEPX NPU를 위한 에이전틱 개발 워크플로이며, 아래 모든 showcase가 이 방식으로 — 프롬프트·실측 결과·전체 빌드 transcript와 함께 — 만들어졌습니다."
   },
+  "categories": [
+    {
+      "id": "ultralytics",
+      "status": "active",
+      "title_en": "Ultralytics ecosystem integration",
+      "title_ko": "Ultralytics 생태계 통합",
+      "blurb_en": "Ultralytics YOLO models compiled to and deployed on the DEEPX NPU (`format=deepx`), including domain retraining + 4-way eval.",
+      "blurb_ko": "Ultralytics YOLO 모델을 DEEPX NPU로 컴파일·배포(`format=deepx`) — 도메인 재학습 + 4-way 평가 포함."
+    },
+    {
+      "id": "npu-apps",
+      "status": "active",
+      "title_en": "NPU-powered AI apps (mini-games)",
+      "title_ko": "NPU 활용 AI 앱 (미니게임)",
+      "blurb_en": "End-to-end on-device NPU applications built from one prompt — pose-driven mini-games with arcade HUDs.",
+      "blurb_ko": "프롬프트 하나로 만든 on-device NPU 앱 — 포즈 기반 미니게임 + 아케이드 HUD."
+    },
+    {
+      "id": "paddlepaddle",
+      "status": "coming-soon",
+      "title_en": "PaddlePaddle ecosystem integration",
+      "title_ko": "PaddlePaddle 생태계 통합",
+      "blurb_en": "PaddlePaddle/PaddleOCR models on the DEEPX NPU.",
+      "blurb_ko": "PaddlePaddle/PaddleOCR 모델의 DEEPX NPU 통합.",
+      "note_en": "Coming soon.",
+      "note_ko": "추후 추가 예정."
+    }
+  ],
   "showcases": [
     {
       "name": "squat-fitness-mini-game",
       "kind": "game",
+      "category": "npu-apps",
       "card_media": "gif",
       "gif": "dx-agentic-dev-squat-gameplay.gif",
       "title_en": "Squat-Counting Mini-Game",
@@ -23,11 +52,15 @@
       "highlight_en": "pose game + arcade HUD",
       "highlight_ko": "포즈 게임 + 아케이드 HUD",
       "model": "Claude Opus 4.8",
-      "build": "≈ 20 min", "turns": "81", "tokens": "≈ 85K", "cost": "≈ $9.9"
+      "build": "≈ 20 min",
+      "turns": "81",
+      "tokens": "≈ 85K",
+      "cost": "≈ $9.9"
     },
     {
       "name": "stretching-coach-mini-game",
       "kind": "game",
+      "category": "npu-apps",
       "card_media": "gif",
       "gif": "dx-agentic-dev-stretch-gameplay.gif",
       "title_en": "Stretching Coach Mini-Game",
@@ -39,11 +72,15 @@
       "highlight_en": "coach avatar + 3 stages",
       "highlight_ko": "coach 아바타 + 3단계",
       "model": "Claude Opus 4.8",
-      "build": "≈ 21 min", "turns": "75", "tokens": "≈ 85K", "cost": "≈ $9.4"
+      "build": "≈ 21 min",
+      "turns": "75",
+      "tokens": "≈ 85K",
+      "cost": "≈ $9.4"
     },
     {
       "name": "ultralytics-yolo-deepx-export",
       "kind": "export",
+      "category": "ultralytics",
       "card_media": "video",
       "video": "dx-agentic-dev-ultralytics-yolo.mp4",
       "poster": "dx-agentic-dev-ultralytics-yolo-poster.jpg",
@@ -56,11 +93,15 @@
       "highlight_en": "1-cmd .pt → .dxnn",
       "highlight_ko": "1-cmd .pt → .dxnn",
       "model": "Claude Sonnet 4.6",
-      "build": "≈ 11.6 min", "turns": "59", "tokens": "—", "cost": "≈ $2.4"
+      "build": "≈ 11.6 min",
+      "turns": "59",
+      "tokens": "—",
+      "cost": "≈ $2.4"
     },
     {
       "name": "ultralytics-retrain-eval-deepx-export-wildlife",
       "kind": "retrain",
+      "category": "ultralytics",
       "card_media": "sample",
       "gif": "dx-agentic-dev-ultralytics-wildlife-build.gif",
       "sample": "dx-agentic-dev-ultralytics-wildlife-sample.jpg",
@@ -73,11 +114,15 @@
       "highlight_en": "mAP ~0.0007→0.79, 59→80 FPS",
       "highlight_ko": "mAP ~0.0007→0.79, 59→80 FPS",
       "model": "Claude Opus 4.8",
-      "build": "≈ 12 min", "turns": "8", "tokens": "≈ 6.9K", "cost": "≈ $3.3"
+      "build": "≈ 12 min",
+      "turns": "8",
+      "tokens": "≈ 6.9K",
+      "cost": "≈ $3.3"
     },
     {
       "name": "ultralytics-retrain-eval-deepx-export-ppe",
       "kind": "retrain",
+      "category": "ultralytics",
       "card_media": "sample",
       "gif": "dx-agentic-dev-ultralytics-ppe-build.gif",
       "sample": "dx-agentic-dev-ultralytics-ppe-sample.jpg",
@@ -90,11 +135,15 @@
       "highlight_en": "mAP 0.0001→0.257, 58→80 FPS",
       "highlight_ko": "mAP 0.0001→0.257, 58→80 FPS",
       "model": "Claude Opus 4.8",
-      "build": "≈ 13 min", "turns": "19", "tokens": "≈ 8.8K", "cost": "≈ $5.1"
+      "build": "≈ 13 min",
+      "turns": "19",
+      "tokens": "≈ 8.8K",
+      "cost": "≈ $5.1"
     },
     {
       "name": "ultralytics-retrain-eval-deepx-export-braintumor",
       "kind": "retrain",
+      "category": "ultralytics",
       "card_media": "sample",
       "gif": "dx-agentic-dev-ultralytics-braintumor-build.gif",
       "sample": "dx-agentic-dev-ultralytics-braintumor-sample.jpg",
@@ -107,11 +156,15 @@
       "highlight_en": "mAP ~0.0005→0.40, 59→83 FPS",
       "highlight_ko": "mAP ~0.0005→0.40, 59→83 FPS",
       "model": "Claude Opus 4.8",
-      "build": "≈ 12 min", "turns": "11", "tokens": "≈ 8.9K", "cost": "≈ $3.7"
+      "build": "≈ 12 min",
+      "turns": "11",
+      "tokens": "≈ 8.9K",
+      "cost": "≈ $3.7"
     },
     {
       "name": "ultralytics-retrain-eval-deepx-export-pills",
       "kind": "retrain",
+      "category": "ultralytics",
       "card_media": "sample",
       "gif": "dx-agentic-dev-ultralytics-pills-build.gif",
       "sample": "dx-agentic-dev-ultralytics-pills-sample.jpg",
@@ -124,7 +177,10 @@
       "highlight_en": "mAP ~0.001→0.75 (mAP50 0.97), 55→78 FPS",
       "highlight_ko": "mAP ~0.001→0.75 (mAP50 0.97), 55→78 FPS",
       "model": "Claude Opus 4.8",
-      "build": "≈ 10 min", "turns": "12", "tokens": "≈ 6.0K", "cost": "≈ $5.1"
+      "build": "≈ 10 min",
+      "turns": "12",
+      "tokens": "≈ 6.0K",
+      "cost": "≈ $5.1"
     }
   ]
 }
