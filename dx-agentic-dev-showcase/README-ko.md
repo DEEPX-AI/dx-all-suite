@@ -12,7 +12,7 @@
 <!-- dx-showcase:docs:catalog:start -->
 ## Ultralytics 생태계 통합
 
-Ultralytics YOLO 모델을 DEEPX NPU로 컴파일·배포(`format=deepx`) — 도메인 재학습 + 4-way 평가 포함.
+**Ultralytics YOLO를 한 줄로 DEEPX NPU에 올리거나, 도메인에 맞게 재학습하세요 — 모두 자연어로.** `format=deepx` export + 4-way 평가(base/재학습 × fp32-GPU / INT8-NPU); INT8 ≈ fp32, 도메인 모델은 NPU에서 더 빠릅니다.
 
 | Showcase | 유형 | 핵심 결과 |
 |---|---|---|
@@ -74,7 +74,7 @@ Ultralytics YOLO `.pt`를 단일 `yolo export ... format=deepx` 명령으로 배
 
 ## NPU 활용 AI 앱 (미니게임)
 
-프롬프트 하나로 만든 on-device NPU 앱 — 포즈 기반 미니게임 + 아케이드 HUD.
+**단 20분, 약 $10의 비용으로, 자연어를 통해 DEEPX NPU용 앱을 완전 자율형으로 만드세요.** 프롬프트 하나로 만든 포즈 기반 미니게임 + 아케이드 HUD.
 
 | Showcase | 유형 | 핵심 결과 |
 |---|---|---|

@@ -149,9 +149,10 @@ def card_grid(showcases, *, lang: str, surface: str = "root", cols: int = 3,
 
 
 def intro_region(manifest, *, lang: str) -> str:
-    """Shared hero block (catchphrase + Beta announcement) reused in the root
-    README and the docs 00_Agentic_Development intro."""
-    return f"> {manifest.catchphrase(lang)}\n\n{manifest.announcement(lang)}"
+    """Shared hero block (Beta announcement) reused in the root README and the docs
+    00_Agentic_Development intro. The per-category catchphrases live under each
+    category heading (the "~20 min / ~$10" line belongs to the mini-games)."""
+    return manifest.announcement(lang)
 
 
 def _coming_soon_label(lang: str) -> str:
@@ -168,8 +169,9 @@ def cardgrid_region(manifest, *, lang: str) -> str:
             note = cat.note(lang) or _coming_soon_label(lang)
             sections.append(f"#### {cat.title(lang)} — _{note}_")
             continue
+        blurb = f"{cat.blurb(lang)}\n\n" if cat.blurb(lang) else ""
         sections.append(f"#### {cat.title(lang)}\n\n"
-                        f"{card_grid(scs, lang=lang, surface='root')}")
+                        f"{blurb}{card_grid(scs, lang=lang, surface='root')}")
     body = "\n\n".join(sections)
     if lang == "ko":
         link = ("**전체 showcase 목록 + 요약 →** "

@@ -21,11 +21,11 @@
 ## ✨ Build NPU Apps with Natural Language — dx-agentic-dev (Beta)
 
 <!-- dx-showcase:docs:cardgrid:start -->
-> **Build a fully autonomous DEEPX-NPU app from natural language — in ~20 minutes, for ~$10.**
-
 **`dx-agentic-dev` (Beta) is here.** Describe the app or model task in plain language and an AI coding agent — Claude Code, Cursor, GitHub Copilot, OpenCode, or Codex — drives the DEEPX knowledge base end to end: brainstorm → plan → TDD → verify, from ONNX/`.pt` compilation to on-device DX-M1 NPU deployment. It is agentic development purpose-built for DEEPX NPUs in the **Ultralytics** model ecosystem, and every showcase below was produced this way — checked in with its prompt, measured results, and full build transcript.
 
 #### Ultralytics ecosystem integration
+
+**Take any Ultralytics YOLO to the DEEPX NPU in one command — or retrain it for your domain — all in natural language.** `format=deepx` export + 4-way eval (base/retrained × fp32-GPU / INT8-NPU); INT8 ≈ fp32, and the domain model runs faster on the NPU.
 
 <table>
 <tr>
@@ -41,6 +41,8 @@
 </table>
 
 #### NPU-powered AI apps (mini-games)
+
+**Build a fully autonomous DEEPX-NPU app from natural language — in ~20 minutes, for ~$10.** Pose-driven mini-games with arcade HUDs, built end to end from a single prompt.
 
 <table>
 <tr>

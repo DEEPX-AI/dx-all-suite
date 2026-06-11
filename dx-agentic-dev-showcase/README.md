@@ -13,7 +13,7 @@ Each card below links to that showcase's own README (full detail + transcript).
 <!-- dx-showcase:docs:catalog:start -->
 ## Ultralytics ecosystem integration
 
-Ultralytics YOLO models compiled to and deployed on the DEEPX NPU (`format=deepx`), including domain retraining + 4-way eval.
+**Take any Ultralytics YOLO to the DEEPX NPU in one command — or retrain it for your domain — all in natural language.** `format=deepx` export + 4-way eval (base/retrained × fp32-GPU / INT8-NPU); INT8 ≈ fp32, and the domain model runs faster on the NPU.
 
 | Showcase | Kind | Highlight |
 |---|---|---|
@@ -75,7 +75,7 @@ Retrains `yolo26n` on `medical-pills` for a pharma counting station; 4-way eval 
 
 ## NPU-powered AI apps (mini-games)
 
-End-to-end on-device NPU applications built from one prompt — pose-driven mini-games with arcade HUDs.
+**Build a fully autonomous DEEPX-NPU app from natural language — in ~20 minutes, for ~$10.** Pose-driven mini-games with arcade HUDs, built end to end from a single prompt.
 
 | Showcase | Kind | Highlight |
 |---|---|---|

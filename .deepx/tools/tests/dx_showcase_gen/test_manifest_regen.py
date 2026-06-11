@@ -79,13 +79,25 @@ def test_video_card_renders_video_with_poster_and_no_nested_anchor():
     assert "<a href" in grid and grid.count("<a ") == 1
 
 
-def test_intro_region_has_catchphrase_and_announcement():
+def test_intro_region_is_announcement_only():
+    # the catchphrase now lives under each category heading, not in the top intro
     man = manifest.Manifest(section={
         "title_en": "T", "title_ko": "T", "catchphrase_en": "HERO", "catchphrase_ko": "히어로",
         "announcement_en": "ANNOUNCE", "announcement_ko": "공지"}, showcases=[_sc("a")])
-    assert "HERO" in augment.intro_region(man, lang="en")
-    assert "ANNOUNCE" in augment.intro_region(man, lang="en")
-    assert "공지" in augment.intro_region(man, lang="ko")
+    assert augment.intro_region(man, lang="en") == "ANNOUNCE"
+    assert augment.intro_region(man, lang="ko") == "공지"
+
+
+def test_cardgrid_region_shows_category_blurb_under_heading():
+    cats = [manifest.Category(id="ultralytics", status="active",
+                              title_en="Ultralytics", title_ko="U",
+                              blurb_en="**ONE-CMD hook.**", blurb_ko="훅")]
+    man = manifest.Manifest(section={
+        "title_en": "T", "title_ko": "T", "catchphrase_en": "", "catchphrase_ko": "",
+        "announcement_en": "A", "announcement_ko": "A"},
+        showcases=[_sc("u1", category="ultralytics")], categories=cats)
+    body = augment.cardgrid_region(man, lang="en")
+    assert "#### Ultralytics" in body and "**ONE-CMD hook.**" in body
 
 
 # ---- categories ------------------------------------------------------------
