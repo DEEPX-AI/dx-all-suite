@@ -5,10 +5,9 @@
 > **DX-M1 NPU**, guiding the player through **3 stretches** (overhead reach → forward fold →
 > neck stretch) with a HOLD-to-advance loop and GOOD!/CLEAR! feedback.
 >
-> **What's new in this build:** the top-left "coach" is now a **filled, person-like
-> humanoid avatar** — a round head, a filled torso/pelvis, and tapered limb capsules with
-> shaded joints — instead of a thin stick-figure skeleton, so it reads as a real coach
-> demonstrating the move.
+> A top-left **coach avatar** — a filled, person-like humanoid (round head, filled
+> torso/pelvis, tapered limb capsules with shaded joints) — demonstrates each target
+> stretch, looping between a neutral stance and the pose so the player can copy it.
 
 <div align="center"><table><tr>
 <td align="center"><img src="../../docs/source/img/dx-agent-dev-stretch-gameplay.gif" width="460"><br><sub><b>gameplay — filled humanoid coach (top-left) + live NPU pose tracking</b></sub></td>
@@ -28,8 +27,8 @@
 
 ## The prompt
 
-The avatar requirement is the only thing that changed from a plain stick-figure game — the
-prompt asks for a **filled procedural humanoid** built from the pose keypoints:
+The prompt (verbatim below) asks for the coach avatar to be a **filled procedural
+humanoid** built from the pose keypoints:
 
 ```
 Using the yolo26n-pose model on the DEEPX NPU, build a simple arcade-style stretching

@@ -5,9 +5,9 @@
 > (머리 위로 뻗기 → 앞으로 굽히기 → 목 스트레칭)을 HOLD-투-어드밴스 루프 + GOOD!/CLEAR!
 > 피드백으로 안내합니다.
 >
-> **이번 빌드의 변화:** 좌상단 "코치"가 이제 가는 stick-figure skeleton이 아니라 **채워진,
-> 사람 같은 휴머노이드 아바타**(원형 머리, 채워진 몸통/골반, 음영 처리된 관절의 테이퍼드 limb
-> capsule)로 렌더되어 실제 코치가 동작을 시연하는 것처럼 보입니다.
+> 좌상단 **코치 아바타** — 채워진, 사람 같은 휴머노이드(원형 머리, 채워진 몸통/골반, 음영
+> 처리된 관절의 테이퍼드 limb capsule) — 가 각 목표 스트레칭을 시연하며, 중립 자세와 목표
+> pose 사이를 부드럽게 반복해 플레이어가 따라 할 수 있게 합니다.
 
 <div align="center"><table><tr>
 <td align="center"><img src="../../docs/source/img/dx-agent-dev-stretch-gameplay.gif" width="460"><br><sub><b>게임플레이 — 채워진 휴머노이드 코치(좌상단) + 실시간 NPU pose 추적</b></sub></td>
@@ -27,8 +27,8 @@
 
 ## 프롬프트
 
-stick-figure 게임에서 바뀐 핵심은 아바타뿐 — 프롬프트가 pose keypoint로부터 **채워진 절차적
-휴머노이드**를 그리도록 요구합니다:
+프롬프트(아래 원문)는 코치 아바타를 pose keypoint로부터 **채워진 절차적 휴머노이드**로
+그리도록 요구합니다:
 
 ```
 Using the yolo26n-pose model on the DEEPX NPU, build a simple arcade-style stretching
