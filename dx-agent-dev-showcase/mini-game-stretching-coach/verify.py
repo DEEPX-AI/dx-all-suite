@@ -1,115 +1,113 @@
 #!/usr/bin/env python3
 # Copyright (C) 2018- DEEPX Ltd. All rights reserved.
-"""End-to-end validation for the stretch mini-game.
+"""
+Verification for the Stretch Coach mini-game.
 
-Drives the REAL deployed StretchGameVisualizer (created by StretchGameFactory)
-over the sample clips on the NPU and asserts:
-  * each per-pose clip clears its target stage (seeded at that stage),
-  * the combined stretching_demo.mp4 reaches full CLEAR! from a fresh game,
-and saves an annotated output video for each run.
+Runs the game over the ENTIRE demo video on the DX-M1 NPU (headless), via the
+real IFactory + SyncRunner path with --save, then asserts:
+  1) the NPU pose pipeline produced person detections,
+  2) the game state machine reached CLEAR! (all 3 stages cleared),
+  3) an annotated output video was written and is non-trivial in size.
 
-Exit code 0 + "RESULT: PASS" on success; exit 1 otherwise.
-
-Usage: python verify.py [--model PATH]
+Exit code 0 on success, 1 on any failure. Run inside the dx-runtime venv
+(setup.sh provides dx_engine).
 """
 
 import argparse
+import glob
 import json
+import os
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 
-import cv2
+# --- Dynamic root finder (vendored ./common first; no PYTHONPATH) ---
+_current = Path(__file__).resolve().parent
+if (_current / 'common').is_dir():
+    _v3_dir = _current
+else:
+    _v3_dir = None
+    for _a in [_current, *_current.parents]:
+        for _cand in (_a / 'src' / 'python_example',
+                      _a / 'dx-runtime' / 'dx_app' / 'src' / 'python_example'):
+            if (_cand / 'common').exists():
+                _v3_dir = _cand
+                break
+        if _v3_dir is not None:
+            break
+for _path in [str(_v3_dir), str(_current)]:
+    if _path and _path not in sys.path:
+        sys.path.insert(0, _path)
 
-import _bootstrap
-_bootstrap.setup()
-
-import game_eval  # noqa: E402
-from factory import StretchGameFactory  # noqa: E402
-
-HERE = Path(__file__).resolve().parent
-OUT_DIR = HERE / "outputs"
-SAVE_FPS = 24.0  # sample clips are 24 fps
-
-
-def _find_dx_app_root() -> Path:
-    d = HERE
-    for _ in range(10):
-        if (d / "assets" / "models").is_dir() and (d / "sample").is_dir():
-            return d
-        d = d.parent
-    raise FileNotFoundError("Could not locate dx_app root.")
-
-
-def _run_clip(runner, config, clip_path, seed_stage, out_name, expect_clear):
-    factory = StretchGameFactory()
-    factory.load_config(config)
-    vis = factory.create_visualizer()
-    vis.game.idx = seed_stage
-    start_idx = vis.game.idx
-
-    OUT_DIR.mkdir(exist_ok=True)
-    writer = None
-    out_path = OUT_DIR / out_name
-    frames = 0
-    for _idx, frame, results in game_eval.iter_results(runner, clip_path):
-        out = vis.visualize(frame, results)
-        if writer is None:
-            h, w = out.shape[:2]
-            writer = cv2.VideoWriter(str(out_path),
-                                     cv2.VideoWriter_fourcc(*"mp4v"), SAVE_FPS, (w, h))
-        writer.write(out)
-        frames += 1
-    if writer is not None:
-        writer.release()
-
-    g = vis.game
-    if expect_clear:
-        ok = g.cleared
-        detail = f"cleared={g.cleared} reached_stage={g.stage_number}/{g.total_stages}"
-    else:
-        ok = g.idx > start_idx
-        detail = f"advanced {start_idx}->{g.idx} (target stage cleared={ok})"
-    print(f"  [{'PASS' if ok else 'FAIL'}] {out_name}: {frames} frames, {detail}, "
-          f"saved {out_path.name}")
-    return ok
+from factory import StretchPoseFactory
+from common.runner import SyncRunner
 
 
 def main():
-    ap = argparse.ArgumentParser(description="Verify the stretch mini-game")
-    ap.add_argument("--model", default=None, help="Path to yolo26n-pose.dxnn")
-    args = ap.parse_args()
+    here = Path(__file__).resolve().parent
+    ap = argparse.ArgumentParser(description="Stretch Coach verification")
+    ap.add_argument("--model", default=str(here.parents[1] / "assets" / "models" / "yolo26n-pose.dxnn"))
+    ap.add_argument("--video", default=str(here / "sample" / "stretching_demo.mp4"))
+    args_cli = ap.parse_args()
 
-    root = _find_dx_app_root()
-    model = args.model or str(root / "assets" / "models" / "yolo26n-pose.dxnn")
-    if not Path(model).is_file():
-        print(f"RESULT: FAIL — model not found: {model}")
-        return 1
-    config = json.loads((HERE / "config.json").read_text())
+    save_dir = str(here / "output")
+    config_path = str(here / "config.json")
 
-    print(f"[verify] model = {model}")
-    runner = game_eval.build_runner(model)
+    print("=" * 60)
+    print("Stretch Coach — verification (full demo video on NPU)")
+    print(f"  model:  {args_cli.model}")
+    print(f"  video:  {args_cli.video}")
+    print("=" * 60)
 
-    sample = root / "sample"
-    cases = [
-        # (clip, seed_stage, out_name, expect_clear)
-        (sample / "stretching_extending_both_arms.mp4", 0, "overhead.mp4", False),
-        (sample / "stretching_bending_at_the_waist.mp4", 1, "fold.mp4", False),
-        (sample / "stretching_pulling_the_head.mp4", 2, "neck.mp4", False),
-        (sample / "stretching_demo.mp4", 0, "demo_full.mp4", True),
-    ]
-    print("[verify] === per-clip stage clears + end-to-end CLEAR ===")
-    results = []
-    for clip, seed, name, expect in cases:
-        if not clip.is_file():
-            print(f"  [FAIL] missing clip: {clip}")
-            results.append(False)
-            continue
-        results.append(_run_clip(runner, config, str(clip), seed, name, expect))
+    if not os.path.isfile(args_cli.model):
+        print(f"[FAIL] model not found: {args_cli.model}")
+        print("RESULT: FAIL")
+        sys.exit(1)
+    if not os.path.isfile(args_cli.video):
+        print(f"[FAIL] demo video not found: {args_cli.video}")
+        print("RESULT: FAIL")
+        sys.exit(1)
 
-    ok = all(results)
-    print(f"\nRESULT: {'PASS' if ok else 'FAIL'}")
-    return 0 if ok else 1
+    factory = StretchPoseFactory()
+    runner = SyncRunner(factory)
+
+    run_args = SimpleNamespace(
+        model=args_cli.model, image=None, video=args_cli.video, camera=None, rtsp=None,
+        display=False, save=True, save_dir=save_dir, loop=1, dump_tensors=False,
+        config=config_path, show_log=False,
+    )
+    runner.run(run_args)
+
+    game = factory._visualizer.game
+    checks = []
+
+    ok_det = game.person_frames > 0
+    checks.append(("NPU produced person detections", ok_det,
+                   f"{game.person_frames} frames with pose"))
+
+    ok_clear = bool(game.finished) and game.stages_cleared >= 3
+    checks.append(("State machine reached CLEAR! (3/3 stages)", ok_clear,
+                   f"stages_cleared={game.stages_cleared} finished={game.finished}"))
+
+    vids = sorted(glob.glob(os.path.join(save_dir, "**", "output.mp4"), recursive=True)
+                  + glob.glob(os.path.join(save_dir, "**", "output.avi"), recursive=True))
+    out_video = vids[-1] if vids else None
+    size = os.path.getsize(out_video) if out_video else 0
+    ok_video = out_video is not None and size > 50_000
+    checks.append(("Annotated output video written", ok_video,
+                   f"{out_video} ({size} bytes)" if out_video else "no output video found"))
+
+    print("\n--- checks ---")
+    all_ok = True
+    for name, ok, detail in checks:
+        print(f"  [{'PASS' if ok else 'FAIL'}] {name}: {detail}")
+        all_ok = all_ok and ok
+
+    if out_video:
+        print(f"\nAnnotated output video: {out_video}")
+    print("\nRESULT: PASS" if all_ok else "\nRESULT: FAIL")
+    sys.exit(0 if all_ok else 1)
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    main()

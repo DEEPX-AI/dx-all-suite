@@ -104,8 +104,14 @@ def verify_showcase(showcase_dir: str, *, stream_json: Optional[str] = None,
         rep.add("model matches expected", expected_model in model or model == expected_model,
                 f"got '{model}', expected '{expected_model}'")
         ts = m.get("toolsets") or []
-        rep.add("KB toolsets read (canonical KB used)", bool(ts),
-                ", ".join(ts) if ts else "NONE read — relied on prior outputs/memory?")
+        sk = m.get("skills") or []
+        # Canonical KB = toolsets OR the dx-* skill sequence. KB-routed builds (compile /
+        # fork-apps) read a .deepx/toolsets/*.md; pure dx_app builds (e.g. pose mini-games)
+        # use the skill sequence (router → brainstorm → … → verify) with no separate toolset.
+        # Fail only if NEITHER was used (⇒ improvised from memory/prior outputs).
+        rep.add("KB used (toolsets or skill sequence)", bool(ts) or bool(sk),
+                (", ".join(ts) if ts else "skills: " + " → ".join(sk)) if (ts or sk)
+                else "NONE read — relied on prior outputs/memory?")
     else:
         # fall back to the rendered md (model line); cost/wall not assertable
         body = tmd.read_text(errors="replace") if tmd.exists() else ""

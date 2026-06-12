@@ -81,10 +81,10 @@
       "highlight_en": "coach avatar + 3 stages",
       "highlight_ko": "coach 아바타 + 3단계",
       "model": "Claude Opus 4.8",
-      "build": "≈ 21 min",
-      "turns": "163",
-      "tokens": "≈ 220K",
-      "cost": "≈ $9.4"
+      "build": "≈ 17 min",
+      "turns": "148",
+      "tokens": "≈ 188K",
+      "cost": "≈ $9.3"
     },
     {
       "name": "ultralytics-yolo-deepx-export",

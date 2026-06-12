@@ -1,112 +1,90 @@
-# Stretch Arcade Mini-Game — built by dx-agent-dev
+# Stretch Coach — Arcade Stretching Mini-Game (yolo26n-pose · DX-M1 NPU)
 
-> **Generated end-to-end by [dx-agent-dev](../../docs/source/00_Agent_Driven_Development.md)
-> from a single natural-language prompt** — no hand-written code. The folder is
-> **self-contained & portable** (vendored `./common`): it runs even when copied
-> outside dx-all-suite (any machine with the DEEPX runtime).
+> **The story.** From a single natural-language prompt, dx-agent-dev builds a complete
+> on-device **arcade stretching game**: `yolo26n-pose` COCO-17 keypoints run on the DEEPX
+> **DX-M1 NPU**, guiding the player through **3 stretches** (overhead reach → forward fold →
+> neck stretch) with a HOLD-to-advance loop and GOOD!/CLEAR! feedback.
+>
+> **What's new in this build:** the top-left "coach" is now a **filled, person-like
+> humanoid avatar** — a round head, a filled torso/pelvis, and tapered limb capsules with
+> shaded joints — instead of a thin stick-figure skeleton, so it reads as a real coach
+> demonstrating the move.
 
-<div align="center">
-<table>
-<tr>
-<td align="center"><img src="../../docs/source/img/dx-agent-dev-stretch-build.gif" width="470"><br><sub><b>dx-agent-dev building this app (timelapse)</b></sub></td>
-<td align="center"><img src="../../docs/source/img/dx-agent-dev-stretch-gameplay.gif" width="300"><br><sub><b>The generated app running on the DX-M1 NPU</b></sub></td>
-</tr>
-</table>
-</div>
+<div align="center"><table><tr>
+<td align="center"><img src="../../docs/source/img/dx-agent-dev-stretch-gameplay.gif" width="460"><br><sub><b>gameplay — filled humanoid coach (top-left) + live NPU pose tracking</b></sub></td>
+<td align="center"><img src="../../docs/source/img/dx-agent-dev-stretch-build.gif" width="320"><br><sub><b>dx-agent-dev building it (timelapse)</b></sub></td>
+</tr></table></div>
 
-> **See how the agent built it:** [`claude-code-session.md`](./claude-code-session.md)
-> (renders on GitHub; `claude-code-session.html` opens in a local browser).
+> **See how the agent built it:** [`claude-code-session.md`](./claude-code-session.md).
 
-### How this app was built — session metrics
-
-Extracted from the build session transcript (`claude-code-session.*`):
+### Session metrics
 
 | Metric | Value |
 |--------|-------|
-| Coding agent | **Claude Code** (`claude` CLI, headless `-p`) |
-| Model | **Claude Opus 4.8** (`claude-opus-4-8`) |
-| Human input | **1 natural-language prompt** — fully autonomous, no hand-written code |
-| Build wall-clock | **≈ 21 min** (1,257,117 ms) |
-| Agent turns | **75** |
-| Clarifying questions | 1 (`AskUserQuestion`, auto-resolved from the knowledge base) |
-| Tools used | `Bash` ×30, `Write` ×16, `Read` ×10, `Edit` ×7, `Skill` ×5, `AskUserQuestion` ×1 |
-| Skills invoked (in order) | `dx-skill-router` → `dx-agent-brainstorm` → `dx-swe-writing-plans` → `dx-agent-tdd` → `dx-agent-verify` |
-| Output tokens | **≈ 84.6K** (input 5.7K; cached-context reads ≈ 11.8M) |
-| Approx. cost | **≈ $9.4** |
-
-The full brainstorm → plan → TDD → verify skill sequence ran end-to-end before the
-app was declared done — including deriving the coach poses from the sample clips.
-
-An arcade-style stretching mini-game running `yolo26n-pose` on the DEEPX NPU. It
-guides the player through **three stretches, one stage at a time**, with an
-animated stick-figure **coach** demonstrating each target pose:
-
-| Stage | Stretch | How it's recognised (COCO-17, leg-normalized) |
-|-------|---------|------------------------------------------------|
-| 1/3 | **Overhead reach** | both wrists above the nose **and** the shoulders |
-| 2/3 | **Forward fold** | shoulders dropped toward the hips **and** hands reaching to/below hip level |
-| 3/3 | **Neck stretch** | exactly **one** hand raised beside the head (near head height + close to an ear) |
-
-Hold the matching pose briefly (a frame-based HOLD bar fills) → **GOOD!**, advance
-to the next stage. Finish all three → **CLEAR!**
+| Coding agent / model | **Claude Code** / **Claude Opus 4.8** (`claude-opus-4-8`) |
+| Human input | **1 natural-language prompt** — fully autonomous |
+| Skills | `dx-skill-router` → `dx-agent-brainstorm` → `dx-swe-writing-plans` → `dx-agent-tdd` → `dx-agent-verify` |
+| Wall-clock / turns / cost | ~17 min / 148 / ≈ $9.3 |
 
 ## The prompt
 
-> The exact natural-language prompt given to the agent (verbatim):
+The avatar requirement is the only thing that changed from a plain stick-figure game — the
+prompt asks for a **filled procedural humanoid** built from the pose keypoints:
 
 ```
-Using the yolo26n-pose model on the DEEPX NPU, build a simple arcade-style stretching mini-game. The game guides the user through three stretch poses, one stage at a time: (1) extend both arms straight overhead, (2) bend forward at the waist (forward fold, reaching the hands down toward the feet), and (3) pull the head to one side with one hand for a neck stretch. For each stage, render a small human-figure "coach" avatar in a top-left panel that demonstrates the current target stretch: draw it as a clean stick-figure / skeleton (head, torso, arms, legs) posed in the target stretch, so the user can see the motion and copy it. Make the coach feel alive — animate it by cycling between a neutral standing pose and the full target pose (a simple looped demonstration), and derive each target pose shape from the corresponding sample clip. Next to or below the coach avatar, also show the stretch name and a short text instruction. When the user holds the matching pose briefly, advance to the next stage; clear the game when all three stretches are completed. Implement and validate it using the sample videos sample/stretching_extending_both_arms.mp4, sample/stretching_bending_at_the_waist.mp4, and sample/stretching_pulling_the_head.mp4. Recognize each pose from the player's body keypoints (e.g. wrists above the head for the overhead reach; torso folded forward with the shoulders dropped toward the hips for the waist bend; one hand raised beside the head for the neck stretch). Overlay an arcade-style game UI on each frame: the current stage number (e.g. STAGE 1/3), the animated coach avatar demonstrating the target pose, the target stretch name and instruction, a HOLD progress indicator while the pose is held, and GOOD! / CLEAR! feedback text. The generated app must support both a video-file input and a live camera input, selectable at runtime via command-line options (e.g. --video <file> or --camera <id>). When run on a video file, save an annotated output video so the result can be reviewed.
+Using the yolo26n-pose model on the DEEPX NPU, build a simple arcade-style stretching
+mini-game ... For each stage, render a small "coach" avatar that demonstrates the current
+target stretch. IMPORTANT — the coach must look like a REAL PERSON, not a stick figure:
+draw it as a FILLED, PROCEDURAL HUMANOID built from the pose keypoints — a round head, a
+filled torso/pelvis body, and tapered LIMB CAPSULES (filled rounded segments for
+upper-arm/forearm and thigh/shin) with smooth filled joints ... Do NOT draw it as thin
+stick-figure lines or a bare keypoint skeleton. Animate the coach ... Recognize each pose
+from the player's keypoints ... HOLD to advance, CLEAR! when all three are done. Support
+both --video <file> and --camera <id>; save an annotated output video.
 ```
 
-## Arcade UI (overlaid on every frame)
-- Top banner: title + `STAGE n/3` (→ `COMPLETE`).
-- Top-left **coach panel**: an animated stick figure that cycles between a neutral
-  standing pose and the target stretch (both **derived from the sample clips** by
-  `calibrate_coach_poses.py` → `pose_templates.json`), plus the stretch **name** and
-  a short **instruction**, and a **HOLD %** progress bar.
-- Center **GOOD! / CLEAR!** feedback text.
-- The player's live skeleton is drawn over the video.
+## The game
 
-## Architecture (framework-compliant)
-- **IFactory** `StretchGameFactory`: `LetterboxPreprocessor` + `YOLOv8PosePostprocessor`
-  + custom `StretchGameVisualizer`.
-- **SyncRunner** (not AsyncRunner): the game is stateful and needs strictly ordered
-  frames. The visualizer instance persists across frames and holds the game state.
-- Recognition + state machine live in `pose_logic.py` (pure, NPU-free, unit-tested).
+| Stage | Stretch | Recognised from keypoints |
+|------:|---------|---------------------------|
+| 1/3 | **OVERHEAD REACH** | both wrists above the head |
+| 2/3 | **FORWARD FOLD** | head/shoulders drop toward the hips (torso folds) |
+| 3/3 | **NECK STRETCH** | one hand raised beside the head, other arm low |
 
-## Quick start
+Hold the matching pose ~1.2 s → **GOOD!** + advance; finish all three → **CLEAR!**
+On-screen: STAGE n/3, the animated **humanoid coach** (top-left), stretch name + instruction,
+a HOLD progress bar, your live skeleton, and a model · NPU · FPS status line.
+
+## Architecture
+
+Standard dx_app pose pipeline — `StretchPoseFactory` (`IPoseFactory`, reusing Letterbox +
+YOLOv8Pose post-process) + `SyncRunner`. The game core (`game/stretch_game.py`) adds
+`PoseClassifier`, the `HumanoidCoach` renderer (`cv2.fillConvexPoly` torso + tapered limb
+capsules), and the `StretchGame` state machine + arcade overlay.
+
+## Reproduce
+
 ```bash
-./setup.sh                                   # resolve dx_engine venv + vendor ./common
-./run.sh --video sample/stretching_demo.mp4  # video file → saves annotated output/
-./run.sh --camera 0                          # live camera input
-# explicit model: MODEL=/path/yolo26n-pose.dxnn ./run.sh --camera 0
+bash setup.sh        # venv (dx-runtime) + GUI OpenCV + vendor framework
+bash run.sh          # runs the bundled demo video → annotated output/<run>/output.mp4
+bash run.sh --camera 0          # live camera
+bash run.sh --video clip.mp4    # any video
 ```
-`run.sh` is **relocatable**: venv fallback chain, a model-existence guard with a
-download hint, bundled-sample-first input, and it saves into the app's own `output/`
-so the folder runs even when copied outside dx-all-suite (it carries a vendored
-`./common`; `dx_engine` is the one external prerequisite).
+
+> x86-64 Linux + DeepX DX-M1 runtime (`yolo26n-pose.dxnn`). Self-contained: `common/` is
+> vendored and `sample/stretching_demo.mp4` is bundled; the app runs once moved out of the suite.
 
 ## Files
-| File | Role |
-|------|------|
-| `stretch_game_sync.py` | Entry point (SyncRunner + factory; portable `common` walker). |
-| `factory/stretch_game_factory.py`, `factory/__init__.py` | IFactory (5 methods). |
-| `stretch_game_visualizer.py` | Stateful game + arcade UI overlay. |
-| `coach.py` | Animated stick-figure coach avatar. |
-| `pose_logic.py` | NPU-free recognizers + `StretchGame` state machine. |
-| `config.json` | thresholds + game params (hold, grace). |
-| `pose_templates.json` | coach skeletons baked from the clips. |
-| `calibrate_coach_poses.py` | OFFLINE dev tool: measure clips → thresholds + templates. |
-| `verify.py` | end-to-end validation (per-clip clears + demo CLEAR), saves videos. |
-| `game_eval.py` | dev helper: drives the real SyncRunner pipeline over a video. |
-| `test_pose_logic.py` | unit tests (7) for the recognizers + state machine. |
-| `setup.sh`, `run.sh` | env setup (vendors `common`) + relocatable launcher. |
-| `sample/stretching_demo.mp4` | bundled demo input (3 stretches concatenated). |
-| `claude-code-session.md` / `.html` | the full agent session that built this app. |
 
-## Validation evidence (see `session.log`)
-- Unit tests: **7 passed**.
-- Fresh clip measurement — pose separation on own clip: **overhead 47.9% / fold 40.8% / neck 50.8%**, ~0 cross-talk.
-- `verify.py`: **RESULT: PASS** — each clip clears its target stage; `stretching_demo.mp4` reaches full **CLEAR (3/3)**.
-- Runtime: **~35 FPS** on the NPU. Annotated `output.mp4` saved for video inputs.
-- Portability: runs outside the suite on the vendored `./common`.
+| File | Purpose |
+|------|---------|
+| `yolo26n_pose_stretch_sync.py` | Entry — `StretchPoseFactory` + `SyncRunner` |
+| `factory/` | `IPoseFactory` (Letterbox + YOLOv8Pose) + game visualizer |
+| `game/stretch_game.py` | `PoseClassifier`, **`HumanoidCoach`** (filled-humanoid renderer), `StretchGame` |
+| `config.json` | pose thresholds + hold timing (calibrated from the demo) |
+| `calibrate.py` / `verify.py` | metric probe / headless validation (asserts CLEAR! + saves video) |
+| `setup.sh` / `run.sh` | relocatable setup / one-command launcher |
+| `sample/stretching_demo.mp4` | bundled demo input |
+| `claude-code-session.md` | full agent build transcript (Wall-clock + Cost) |
+
+Korean: [`README-ko.md`](./README-ko.md).

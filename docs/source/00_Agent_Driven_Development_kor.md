@@ -36,7 +36,7 @@ InferenceEngine 설정, DxPreprocess/DxInfer 엘리먼트 연결 — 따라서 *
 | Showcase | 설명 | 빌드 시간 | Agent turns | Output tokens | ~비용 |
 |---|---|---|---|---|---|
 | **[스쿼트 카운팅 미니게임](../../dx-agent-dev-showcase/mini-game-squat-fitness/)** | 무릎/엉덩이 각도로 스쿼트 횟수 카운트 + 아케이드 HUD(횟수 / 점수 / DOWN·UP·GOOD!). | ≈ 20 min | 166 | ≈ 238K | ≈ $9.9 |
-| **[스트레칭 coach 미니게임](../../dx-agent-dev-showcase/mini-game-stretching-coach/)** | 애니메이션 coach 아바타가 각 목표 포즈를 시연하며 3가지 스트레칭 안내. | ≈ 21 min | 163 | ≈ 220K | ≈ $9.4 |
+| **[스트레칭 coach 미니게임](../../dx-agent-dev-showcase/mini-game-stretching-coach/)** | 애니메이션 coach 아바타가 각 목표 포즈를 시연하며 3가지 스트레칭 안내. | ≈ 17 min | 148 | ≈ 188K | ≈ $9.3 |
 
 #### Ultralytics 생태계 통합
 

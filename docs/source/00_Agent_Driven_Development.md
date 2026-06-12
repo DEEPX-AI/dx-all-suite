@@ -38,7 +38,7 @@ transcript.
 | Showcase | What it is | Build time | Agent turns | Output tokens | ~Cost |
 |---|---|---|---|---|---|
 | **[Squat-Counting Mini-Game](../../dx-agent-dev-showcase/mini-game-squat-fitness/)** | Counts squat reps from knee/hip angles with an arcade HUD (reps / score / DOWN·UP·GOOD!). | ≈ 20 min | 166 | ≈ 238K | ≈ $9.9 |
-| **[Stretching Coach Mini-Game](../../dx-agent-dev-showcase/mini-game-stretching-coach/)** | Guides 3 stretches with an animated coach avatar that demonstrates each target pose. | ≈ 21 min | 163 | ≈ 220K | ≈ $9.4 |
+| **[Stretching Coach Mini-Game](../../dx-agent-dev-showcase/mini-game-stretching-coach/)** | Guides 3 stretches with an animated coach avatar that demonstrates each target pose. | ≈ 17 min | 148 | ≈ 188K | ≈ $9.3 |
 
 #### Ultralytics ecosystem integration
 

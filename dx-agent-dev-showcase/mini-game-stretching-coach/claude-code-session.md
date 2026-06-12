@@ -1,43 +1,51 @@
-# Build arcade stretching mini-game with pose detection
+# Build arcade stretching game with pose detection
 
 ## Session summary
 
 | Metric | Value |
 |---|---|
 | Model | `claude-opus-4-8` |
-| Wall-clock | ~21.0 min |
-| Agent turns | 163 |
-| Output tokens | 220,316 |
-| Cost (reported) | $9.41 |
-| Tools | Bash×30, Write×16, Read×10, Edit×7, Skill×5, AskUserQuestion×1 |
-| Skills | dx-skill-router → dx-agentic-brainstorm → dx-swe-writing-plans → dx-agentic-tdd → dx-agentic-verify |
+| Wall-clock | ~17.3 min |
+| Agent turns | 148 |
+| Output tokens | 188,080 |
+| Cost (reported) | $9.30 |
+| Tools | Bash×32, Read×22, Write×16, Skill×5, Edit×3 |
+| Skills | dx-skill-router → dx-agent-brainstorm → dx-swe-writing-plans → dx-agent-tdd → dx-agent-verify |
 | Toolsets | — (none read) |
 
 
 ## Session Info
 
-- **Session ID:** `a97c4b6c-6ca2-46e8-8a7e-eee44df654ce`
-- **Working Dir:** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app`
+- **Session ID:** `e41df617-05fb-410b-8133-0874d59f6906`
+- **Working Dir:** `/data/home/dhyang/github/dx-all-suite-full-e2e`
 - **Branch:** feature/dx-agentic-dev
 - **Claude Code:** v2.1.156
 - **Permission Mode:** bypassPermissions
-- **Start:** 2026-06-08T11:10:00.542Z
-- **End:** 2026-06-08T11:30:57.329Z
+- **Start:** 2026-06-12T07:38:07.152Z
+- **End:** 2026-06-12T07:55:22.524Z
 
 ## Conversation
 
-### Turn 1 [2026-06-08 11:10:00 UTC]
+### Turn 1 [2026-06-12 07:38:07 UTC]
 
 **User:**
 
-> Using the yolo26n-pose model on the DEEPX NPU, build a simple arcade-style stretching mini-game. The game guides the user through three stretch poses, one stage at a time: (1) extend both arms straight overhead, (2) bend forward at the waist (forward fold, reaching the hands down toward the feet), and (3) pull the head to one side with one hand for a neck stretch. For each stage, render a small human-figure "coach" avatar in a top-left panel that demonstrates the current target stretch: draw it as a clean stick-figure / skeleton (head, torso, arms, legs) posed in the target stretch, so the user can see the motion and copy it. Make the coach feel alive — animate it by cycling between a neutral standing pose and the full target pose (a simple looped demonstration), and derive each target pose shape from the corresponding sample clip. Next to or below the coach avatar, also show the stretch name and a short text instruction. When the user holds the matching pose briefly, advance to the next stage; clear the game when all three stretches are completed. Implement and validate it using the sample videos sample/stretching_extending_both_arms.mp4, sample/stretching_bending_at_the_waist.mp4, and sample/stretching_pulling_the_head.mp4. Recognize each pose from the player's body keypoints (e.g. wrists above the head for the overhead reach; torso folded forward with the shoulders dropped toward the hips for the waist bend; one hand raised beside the head for the neck stretch). Overlay an arcade-style game UI on each frame: the current stage number (e.g. STAGE 1/3), the animated coach avatar demonstrating the target pose, the target stretch name and instruction, a HOLD progress indicator while the pose is held, and GOOD! / CLEAR! feedback text. The generated app must support both a video-file input and a live camera input, selectable at runtime via command-line options (e.g. --video <file> or --camera <id>). When run on a video file, save an annotated output video so the result can be reviewed.
+> Using the yolo26n-pose model on the DEEPX NPU, build a simple arcade-style stretching mini-game. The game guides the user through three stretch poses, one stage at a time: (1) extend both arms straight overhead, (2) bend forward at the waist (forward fold), and (3) pull the head to one side with one hand for a neck stretch.
+
+For each stage, render a small coach avatar in a top-left panel that demonstrates the current target stretch. IMPORTANT — the coach must look like a REAL PERSON, not a stick figure: draw it as a FILLED, PROCEDURAL HUMANOID built from the pose keypoints — a round head, a filled torso/pelvis body, and tapered LIMB CAPSULES (filled rounded segments for upper-arm/forearm and thigh/shin) with smooth filled joints, shaded so it reads as a human body silhouette. Do NOT draw it as thin stick-figure lines or a bare keypoint skeleton. Animate the coach so it feels alive — cycle smoothly between a neutral standing pose and the full target stretch pose (a looped demonstration). Show the stretch name and a short text instruction next to the coach.
+
+Recognize each pose from the player's body keypoints (wrists above the head for the overhead reach; torso folded forward with shoulders dropped toward hips for the waist bend; one hand raised beside the head for the neck stretch). When the user holds the matching pose briefly, advance to the next stage; clear the game when all three are done.
+
+Overlay an arcade-style UI on each frame: STAGE n/3, the animated humanoid coach avatar, the target stretch name + instruction, a HOLD progress indicator, and GOOD! / CLEAR! feedback. The generated app must support both a video-file input and a live camera input, selectable at runtime (e.g. --video <file> or --camera <id>). Implement and validate it using the provided demo video at /tmp/sc-build/stretch_input/stretching_demo.mp4, which contains a person performing the three stretches in sequence; derive the coach target-pose shapes as needed (procedurally or from representative frames of that video). When run on a video file, save an annotated output video so the result can be reviewed.
+
+Work autonomously to completion without asking for confirmation or approval; make default decisions per the knowledge base and produce the actual working app + the annotated output video. Respond in English.
 
 ✅ **Skill** `dx-skill-router`
   > Launching skill: dx-skill-router
 
 **Claude:**
 
-[DX-AGENTIC-DEV: START]
+[DX-AGENT-DEV: START]
 
 ```
  ███████████   █████████ ████████ ████████  ████      ████
@@ -47,201 +55,318 @@
  ███        ██░███░░░░░░░██░░░░░░░███░░░░░░  ██████████
  ███     █████░███░      ██░      ███░   ████████░░░░████
  ███████████░░░█████████ ████████ ██████████░░░░░░    ████
-  ░░░░░░░░░░░   ░░░░░░░░░ ░░░░░░░░ ░░░░░░░░░░          ░░░░
-        DX-AGENTIC-DEV · on-device NPU
+        DX-AGENT-DEV · on-device NPU
 ```
 
-Invoking the mandatory skill router as the absolute first action.
+Per the universal pre-flight HARD GATE, I'm invoking the skill router as my first action.
 
 ---
 
-### Turn 2 [2026-06-08 11:10:13 UTC]
+### Turn 2 [2026-06-12 07:38:18 UTC]
 
 **User:**
 
-> Base directory for this skill: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/.claude/skills/dx-skill-router
+> Base directory for this skill: /data/home/dhyang/github/dx-all-suite-full-e2e/.claude/skills/dx-skill-router
 
 <!-- Thin Claude Code wrapper — canonical skill doc lives in .deepx/ -->
 
 Read and follow the complete skill documentation at `.deepx/skills/dx-skill-router/SKILL.md`.
 
 
-✅ **Read** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/.deepx/skills/dx-skill-router/SKIL…`
+✅ **Read** `/data/home/dhyang/github/dx-all-suite-full-e2e/.deepx/skills/dx-skill-router/SKILL.md`
   > 1	---
 2	name: dx-skill-router
 3	description: Use when starting any conversation - establishes how to discover and invoke dx-* skills, requiring skill invocation before ANY response including clarifyi…
 
-✅ **Skill** `dx-agentic-brainstorm`
-  > Launching skill: dx-agentic-brainstorm
+✅ **Skill** `dx-agent-brainstorm`
+  > Launching skill: dx-agent-brainstorm
 
 **Claude:**
 
-The router directs me to brainstorm first for "build X" tasks. Invoking the brainstorm skill.
+Using **dx-agent-brainstorm** to gather requirements and route the build. This is a DEEPX inference-app build (yolo26n-pose keypoints → arcade stretching mini-game) running autonomously, so I'll make default decisions per the knowledge base rather than asking.
 
 ---
 
-### Turn 3 [2026-06-08 11:10:20 UTC]
+### Turn 3 [2026-06-12 07:38:28 UTC]
 
 **User:**
 
-> Base directory for this skill: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/.claude/skills/dx-agentic-brainstorm
+> Base directory for this skill: /data/home/dhyang/github/dx-all-suite-full-e2e/.claude/skills/dx-agent-brainstorm
 
 <!-- Thin Claude Code wrapper — canonical skill doc lives in .deepx/ -->
 
-Read and follow the complete skill documentation at `.deepx/skills/dx-agentic-brainstorm/SKILL.md`.
+Read and follow the complete skill documentation at `.deepx/skills/dx-agent-brainstorm/SKILL.md`.
 
 
-✅ **Read** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/.deepx/skills/dx-agentic-brainstor…`
+✅ **Read** `/data/home/dhyang/github/dx-all-suite-full-e2e/.deepx/skills/dx-agent-brainstorm/SKILL.md`
   > 1	---
-2	name: dx-agentic-brainstorm
-3	description: Brainstorm and plan before implementation
+2	name: dx-agent-brainstorm
+3	description: "DEEPX build brainstorming with model registry check and sub-project routing."
 4	---
 5	
-6	# Skill: Brainstorm and Plan for dx_app
+6	# Skill: DEEPX Build Brainstorming
 7	
-8	> **Type: RIGID — HARD-GATE.** No code generation …
+8	> For the general br…
+
+✅ **Read** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/.deepx/skills/dx-brainstorm-and-pl…`
+  > File does not exist. Note: your current working directory is /data/home/dhyang/github/dx-all-suite-full-e2e.
+
+✅ **Bash** `ls -la /tmp/sc-build/stretch_input/ 2>&1; echo "---FFPROBE---"; ffprobe -v error -show_entries form…`
+  > total 2300
+drwxrwxr-x  2 dhyang dhyang    4096 Jun 12 16:37 .
+drwxrwxr-x 12 dhyang dhyang    4096 Jun 12 16:38 ..
+-rw-rw-r--  1 dhyang dhyang 2343233 Jun 12 16:37 stretching_demo.mp4
+---FFPROBE---
+wi…
+
+✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app; grep -ri "pose" model_registry…`
+  > ===REGISTRY FILES===
+./config/model_registry.json
+
+✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app; python3 -c "
+import json
+r=jso…`
+  > === grep pose in registry ===
+1671:    "model_name": "yolov8m_pose",
+1672:    "dxnn_file": "yolov8m_pose.dxnn",
+1673:    "original_name": "yolov8m_pose",
+1674:    "csv_task": "POSE",
+1675:    "add_mo…
+
+✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app; echo "=== python_example tasks…`
+  > === python_example tasks ===
+attribute_recognition
+classification
+common
+depth_estimation
+embedding
+face_alignment
+face_detection
+hand_landmark
+image_denoising
+image_enhancement
+instance_segmentation…
 
 ✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app
-echo "=== registry: pose entrie…`
-  > === registry: pose entries ===
-=== existing pose examples ===
-src/python_example/pose_estimation/centerpose_regnetx_1_6gf_fpn/
-src/python_example/pose_estimation/centerpose_regnetx_800mf/
-src/python_…
+sed -n '3340,3420p' config/mode…`
+  > === yolo26n_pose registry entry ===
+{
+  "model_name": "yolo26n_pose",
+  "dxnn_file": "yolo26n-pose.dxnn",
+  "original_name": "yolo26n-pose",
+  "csv_task": "POSE",
+  "add_model_task": "pose_estimation…
 
-✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app
-echo "=== yolo26n_pose example …`
-  > === yolo26n_pose example files ===
-total 32
-drwxrwxr-x  3 dhyang dhyang 4096 May 13 18:40 .
-drwxrwxr-x 13 dhyang dhyang 4096 Jun  4 17:44 ..
--rw-rw-r--  1 dhyang dhyang   57 May 13 18:40 config.json
+✅ **Read** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/src/python_example/pose_estimation…`
+  > 1	#!/usr/bin/env python3
+2	# Copyright (C) 2018- DEEPX Ltd. All rights reserved.
+3	"""
+4	Yolo26n_pose Synchronous Inference Example
+5	
+6	Usage:
+7	    python yolo26n_pose_sync.py --model model.dxnn --…
+
+✅ **Read** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/src/python_example/pose_estimation…`
+  > 1	"""YOLOv8s-Pose Factory"""
+2	
+3	from common.base import IPoseFactory
+4	from common.processors import LetterboxPreprocessor, YOLOv8PosePostprocessor
+5	from common.visualizers import PoseVisualizer
+6…
+
+✅ **Read** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/.deepx/skills/dx-agent-app-build-p…`
+  > File does not exist. Note: your current working directory is /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app. Did you mean dx-agent-app-build-python?
+
+✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/.deepx/skills/dx-agent-app-buil…`
+  > total 60
+drwxrwxr-x  2 dhyang dhyang  4096 Jun 11 18:01 .
+drwxrwxr-x 19 dhyang dhyang  4096 Jun 11 18:01 ..
+-rw-rw-r--  1 dhyang dhyang 50465 Jun 11 18:01 SKILL.md
+===
+./SKILL.md
+
+✅ **Read** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/src/python_example/common/runner/a…`
+  > 1	#!/usr/bin/env python3
+2	# Copyright (C) 2018- DEEPX Ltd. All rights reserved.
+3	"""
+4	Common argument parser for DX-APP inference examples.
+5	
+6	Consolidates per-model ``parse_args()`` into one re…
+
+✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/src/python_example; echo "=== r…`
+  > === runner dir ===
+args.py
+async_runner.py
+__init__.py
+__pycache__
+run_dir.py
+sync_runner.py
+verify_serialize.py
+=== base ===
+i_factory.py
+i_input_source.py
+__init__.py
+i_processor.py
+i_visualizer.py…
+
+✅ **Read** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/src/python_example/common/processo…`
+  > 1	"""
+2	Pose Estimation Postprocessors
+3	
+4	Supports different pose estimation architectures:
+5	- YOLOv5PosePostprocessor: YOLOv5-pose style (17 keypoints)
+6	- YOLOv8PosePostprocessor: YOLOv8-pose st…
+
+✅ **Read** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/src/python_example/common/visualiz…`
+  > 1	"""
+2	Pose Estimation Visualizer
+3	
+4	Draws bounding boxes, skeleton connections, and keypoints for pose estimation results.
+5	Used by YOLOv5-pose, YOLOv8-pose, etc.
+6	"""
+7	
+8	import numpy as np
+9…
+
+✅ **Read** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/src/python_example/common/base/i_v…`
+  > 1	"""
+2	Abstract interface for result visualization
+3	
+4	This interface defines the contract for visualizing inference results.
+5	"""
+6	
+7	from abc import ABC, abstractmethod
+8	from typing import Lis…
+
+✅ **Read** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/src/python_example/common/runner/s…`
+  > 1	#!/usr/bin/env python3
+2	# Copyright (C) 2018- DEEPX Ltd. All rights reserved.
+3	"""
+4	Synchronous inference runner using factory pattern.
+5	
+6	Provides a generic runner that accepts any factory im…
+
+✅ **Read** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/src/python_example/common/base/i_f…`
+  > 1	"""
+2	Abstract Factory interface for model component creation
+3	
+4	This interface defines the Abstract Factory pattern for creating
+5	matching sets of preprocessor, postprocessor, and visualizer co…
+
+✅ **Read** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/src/python_example/common/base/i_p…`
+  > 1	"""
+2	Abstract interfaces for pre-processor and post-processor
+3	
+4	These interfaces define the contract for all preprocessing and postprocessing operations.
+5	"""
+6	
+7	from abc import ABC, abstrac…
+
+✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/src/python_example/common
+echo …`
+  > === PoseResult / Keypoint ===
+13:@dataclass
+39:@dataclass
+73:@dataclass
+74:class Keypoint:
+81:@dataclass
+82:class PoseResult:
+102:@dataclass
+117:@dataclass
+127:@dataclass
+136:@dataclass
+class Keypoin…
+
+✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e
+echo "=== sanity check (dx_rt) ==="
+bash dx-runti…`
+  > === sanity check (dx_rt) ===
+   Device Driver Version: v2.4.1
+   Firmware Version: device-id=0 v2.5.6
+   Device Driver Version: v2.4.1
+   Firmware Version: device-id=0 v2.5.6
+** Sanity check PASSED!
 …
 
 ✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app
-echo "=== sync.py ==="; cat src…`
-  > === sync.py ===
-#!/usr/bin/env python3
-# Copyright (C) 2018- DEEPX Ltd. All rights reserved.
-"""
-Yolo26n_pose Synchronous Inference Example
+echo "=== dx_engine import (sys…`
+  > === dx_engine import (system) ===
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+ModuleNotFoundError: No module named 'dx_engine'
+=== shared venv? ===
+../venv-dx-runtime
+ve…
 
-Usage:
-    python yolo26n_pose_sync.py --model model.dxnn …
+✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/.deepx/skills/dx-agent-app-buil…`
+  > === Mandatory artifacts / file checklist ===
+26:├── setup.sh              # Environment setup (venv, pip dependencies)
+27:├── run.sh                # One-command inference launcher
+28:├── session.jso…
+
+✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/.deepx/skills/dx-agent-app-buil…`
+  > production `src/` directory. This prevents accidental modification of existing code.
+
+### Session Directory
+
+```
+dx-agent-dev/<YYYYMMDD-HHMMSS>_<model>_<task>/
+├── setup.sh              # Environment…
+
+✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/.deepx/skills/dx-agent-app-buil…`
+  > /bin/bash: line 3: bash|: command not found
+26:├── setup.sh              # Environment setup (venv, pip dependencies)
+27:├── run.sh                # One-command inference launcher
+78:# app is relocat…
+
+✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/.deepx/skills/dx-agent-app-buil…`
+  > ## setup.sh Template (MANDATORY)
+
+> **PEP 668 PROHIBITION (Ubuntu 24.04+)**: NEVER use bare `pip install` without
+> a virtual environment in `setup.sh`. Ubuntu 24.04+ blocks system-wide pip installs
+…
 
 ✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app
-echo "=== factory __init__ ==="…`
-  > === factory __init__ ===
-from .yolo26n_pose_factory import Yolo26n_poseFactory
-=== factory impl ===
-"""YOLOv8s-Pose Factory"""
+TS=$(date +%Y%m%d-%H%M%S)
+SID="…`
+  > SESSION_ID=20260612-164133_claude_opus48_yolo26npose_stretchgame
+created:
+drwxrwxr-x 5 dhyang dhyang 4096 Jun 12 16:41 dx-agent-dev/20260612-164133_claude_opus48_yolo26npose_stretchgame
 
-from common.base import IPoseFactory
-from common.processors import Lett…
-
-✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/src/python_example/common
-echo …`
-  > === common tree ===
-./base/i_factory.py
-./base/i_input_source.py
-./base/__init__.py
-./base/i_processor.py
-./base/i_visualizer.py
-./config/config_schema.py
-./config/__init__.py
-./config/model_config.p…
-
-✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/src/python_example/common
-echo …`
-  > <persisted-output>
-Output too large (51.4KB). Full output saved to: /home/dhyang/.claude/projects/-data-home-dhyang-github-dx-all-suite-full-e2e-dx-runtime-dx-app/a97c4b6c-6ca2-46e8-8a7e-eee44df654ce…
-
-✅ **Read** `/home/dhyang/.claude/projects/-data-home-dhyang-github-dx-all-suite-full-e2e-dx-runtime-dx-app/a97c…`
-  > 1	===== sync_runner.py =====
-2	#!/usr/bin/env python3
-3	# Copyright (C) 2018- DEEPX Ltd. All rights reserved.
-4	"""
-5	Synchronous inference runner using factory pattern.
-6	
-7	Provides a generic runne…
-
-✅ **Bash** `cd /home/dhyang/.claude/projects/-data-home-dhyang-github-dx-all-suite-full-e2e-dx-runtime-dx-app/m…`
-  > ===== pose-stretch-game-calibration =====
----
-name: pose-stretch-game-calibration
-description: Calibrated yolo26n-pose thresholds for 3 stretch poses (overhead/fold/neck) + the leg-scale fix
-metadata…
-
-✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e
-echo "=== venv check ==="; ls -d dx-runtime/venv-…`
-  > === venv check ===
-dx-runtime/venv-dx-runtime
-dx_engine OK in venv-dx-runtime
-=== sanity check (dx_rt) ===
-   Firmware Version: device-id=0 v2.5.6
-   ONNX Runtime Version: v1.23.2
-==== Runtime Execut…
-
-✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/src/python_example/common
-echo …`
-  > ===== i_processor.py (Keypoint/PoseResult) =====
-74:class Keypoint:
-75-    """Single keypoint with position and confidence."""
-76-    x: float = 0.0
-77-    y: float = 0.0
-78-    confidence: float = 0…
-
-✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/src/python_example/common
-echo …`
-  > ===== args.py =====
-#!/usr/bin/env python3
-# Copyright (C) 2018- DEEPX Ltd. All rights reserved.
-"""
-Common argument parser for DX-APP inference examples.
-
-Consolidates per-model ``parse_args()`` int…
-
-✅ **AskUserQuestion** `{"questions": [{"question": "Which variant(s) should I generate? A stateful arcade game needs order…`
-  > Answer questions?
+✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/docs/superpowers/specs/2026-06-12-stretch-coach-mini…`
+  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/docs/superpowers/specs/2026-06-12-stretch-coach-minigame-design.md (file state is current in your context — no need to Rea…
 
 ✅ **Skill** `dx-swe-writing-plans`
   > Launching skill: dx-swe-writing-plans
 
 **Claude:**
 
-Now let me gather context: the model registry, existing pose examples, and the sample videos.
-There's an existing `yolo26n_pose` example to use as skeleton. `dx_engine` isn't in the base Python — my memory notes a venv setup. Let me read the existing example and the relevant memory.
-The model `yolo26n-pose.dxnn` exists. Let me read the existing example's source and my venv-setup memory.
-Now I need to understand the framework's data flow — SyncRunner, the visualizer hook, and the pose result structure. Let me explore the common framework.
-Let me read the core flow files: sync_runner, args, the visualizer interface, the PoseResult/Keypoint dataclasses, and the pose visualizer.
-This is a stateful game — the cleanest framework-compliant hook is a custom visualizer holding game state, fed pose results each frame. Let me read my calibration memory (directly relevant) and the pose result structures.
-My memory holds calibrated reference thresholds for this exact task — that's knowledge-base reference, and the prescribed method is to **re-measure freshly each session** (no prior-session artifact reuse, per HARD GATE). Now the mandatory Prerequisites Check (sanity + dx_engine), plus reading the remaining framework contracts.
-Sanity check PASSED, `dx_engine` imports in `venv-dx-runtime`. Prerequisites satisfied. Now the remaining framework contracts.
-I now have every framework contract I need. Let me classify the key decisions and confirm them with you before writing any code (brainstorm HARD-GATE).
-
-Here's what's already pinned down by your prompt + the framework rules:
-- **Model**: `yolo26n-pose` (`assets/models/yolo26n-pose.dxnn` ✓ present), **task**: `pose_estimation`.
-- **Architecture** (mandatory framework pattern): IFactory → `LetterboxPreprocessor` + `YOLOv8PosePostprocessor` + a **custom `StretchGameVisualizer`** (subclass of `PoseVisualizer`) that holds the game state across frames, run by **SyncRunner** (ordered frames are required for a stateful game — `AsyncRunner` reorders frames and would break hold/stage logic).
-- **Input**: `--video <file>` and `--camera <id>` both via the standard `parse_common_args()`; `--save` writes the annotated output video.
-- **Pose recognizers**: from COCO-17 keypoints, **leg-normalized** scale (legs stay vertical during a waist bend; torso-normalizing collapses to garbage during a fold), thresholds **measured fresh** from the three sample clips (no prior-session reuse).
-
-A few real choices remain:
-I'll proceed with the **recommended defaults** (sync-only game, coach poses measured from the clips, per-clip + combined validation with saved annotated videos) — your prompt was already a complete spec. Moving to the planning step.
+This is a **dx_app-only** task (standalone Python inference using yolo26n-pose keypoints). Let me check the model registry, the demo video, and existing pose examples in parallel.
+`yolo26n-pose.dxnn` exists in `assets/models/` and there's a full `yolo26n_pose` example. Let me read the key reference files to understand the IFactory pattern, pose keypoint output, and the SyncRunner API.
+Now let me read the Python build skill doc and the key framework APIs (runner, args, pose postprocessor/visualizer) — essential for a custom game built on the IFactory pattern.
+Now the critical piece — how SyncRunner drives the per-frame loop, video saving, and visualizer invocation. Let me read it plus the factory interface.
+The framework is clear: `SyncRunner` calls `visualizer.visualize(frame, results)` per frame for both video and camera, and saves an annotated `output.mp4` when `--save` is set. The clean, IFactory-compliant design is a **custom `IVisualizer`** that holds the game state machine + arcade overlay + animated humanoid coach. Let me read the factory interface, the data classes, the skeleton utility, and the mandatory-deliverables section of the build skill.
+Now the data classes and skeleton utility, plus the mandatory-artifacts and setup.sh/run.sh template sections of the build skill.
+Let me run the **Prerequisites HARD GATE** (NPU sanity + dx_engine) and read the build skill's mandatory-deliverables / setup.sh / run.sh template sections in parallel.
+Sanity check **PASSED**, NPU available, dx_engine works in `dx-runtime/venv-dx-runtime`, model present. Let me read the key template sections of the build skill (file structure, session.json, setup.sh, run.sh, entry-walker).
+I now have complete framework knowledge. Let me set up the session directory and write the mandatory brainstorm spec, then continue the gate sequence.
+Now the brainstorm spec (mandatory HARD GATE before plan). Autopilot mode — I make default decisions per the knowledge base and self-review.
+Spec written and self-approved (autopilot). Now the plan — invoking the writing-plans skill.
 
 ---
 
-### Turn 4 [2026-06-08 11:12:35 UTC]
+### Turn 4 [2026-06-12 07:42:23 UTC]
 
 **User:**
 
-> Base directory for this skill: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/.claude/skills/dx-swe-writing-plans
+> Base directory for this skill: /data/home/dhyang/github/dx-all-suite-full-e2e/.claude/skills/dx-swe-writing-plans
 
 <!-- Thin Claude Code wrapper — canonical skill doc lives in .deepx/ -->
 
 Read and follow the complete skill documentation at `.deepx/skills/dx-swe-writing-plans/SKILL.md`.
 
 
-✅ **Read** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/.deepx/skills/dx-swe-writing-plans…`
+✅ **Read** `/data/home/dhyang/github/dx-all-suite-full-e2e/.deepx/skills/dx-swe-writing-plans/SKILL.md`
   > 1	---
 2	name: dx-swe-writing-plans
 3	description: Use when you have a spec or requirements for a multi-step task, before touching code
@@ -253,387 +378,294 @@ Read and follow the complete skill documentation at `.deepx/skills/dx-swe-writin
 9	
 10	Write comprehe…
 
-✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app
-TS=$(date +%Y%m%d-%H%M%S)
-SESSI…`
-  > SESSION=20260608-201249_claude_opus48_yolo26npose_stretchgame
-dx-agentic-dev/20260608-201249_claude_opus48_yolo26npose_stretchgame
-sample/stretching_extending_both_arms.mp4: 1280x720  fps=24.0  frame…
+✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/docs/superpowers/plans/2026-06-12-stretch-coach-mini…`
+  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/docs/superpowers/plans/2026-06-12-stretch-coach-minigame.md (file state is current in your context — no need to Read it ba…
 
-✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_cla…`
-  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_claude_opus48_yolo26npose_stretchgame/PLAN.md (file state is current in y…
-
-✅ **Skill** `dx-agentic-tdd`
-  > Launching skill: dx-agentic-tdd
+✅ **Skill** `dx-agent-tdd`
+  > Launching skill: dx-agent-tdd
 
 **Claude:**
 
-I'm using the writing-plans skill to create the implementation plan. First, the session directory and timestamp.
-Clip metadata confirms my reference (1280×720, 24fps, 240/240/240/721). Writing the plan now.
-Plan saved to the session dir. Full plan:
+I'm using the writing-plans skill to create the implementation plan.
+Plan saved and self-approved (autopilot). Here is the plan at a glance:
 
-**Goal:** Arcade 3-stage stretch mini-game on `yolo26n-pose`/NPU — overhead reach → forward fold → neck stretch; animated stick-figure coach (derived from the clips); hold-to-clear each stage; CLEAR! when all done. `--video` saves an annotated video, `--camera <id>` runs live.
+**Stretch Coach Mini-Game — 7 tasks**
+1. **Infra**: `setup.sh` + `config.json` (calibratable thresholds) + bundle demo video into `sample/`
+2. **Calibrate**: `calibrate.py` runs the real NPU model over demo frames → derive/confirm pose thresholds
+3. **Game core** (`game/stretch_game.py`): pose classifier, canonical target poses, **filled animated humanoid coach**, state machine (hold→advance→GOOD!/CLEAR!)
+4. **Factory + custom visualizer** (IFactory-compliant): `StretchPoseFactory` reusing Letterbox + YOLOv8Pose, `StretchGameVisualizer`
+5. **Entry app + run.sh**: SyncRunner, dynamic walker, `--video`/`--camera`/`--save`
+6. **verify.py**: full-video headless run, assert NPU detections + reaches CLEAR! + annotated `output.mp4`
+7. **Docs/metadata**: README, session.json, session.log
 
-**Architecture:** IFactory (`LetterboxPreprocessor` + `YOLOv8PosePostprocessor` + custom `StretchGameVisualizer` holding game state) driven by **SyncRunner**. Recognition from COCO-17, **leg-normalized**. Thresholds + coach skeletons **measured fresh** from the 3 clips.
-
-**Tasks:** (1) pure NPU-free `pose_logic.py` + unit tests → (2) offline NPU calibrate → thresholds + `pose_templates.json` → (3) `coach.py` avatar → (4) `StretchGameVisualizer` + factory → (5) entry/config/setup/run → (6) `verify.py` (per-clip clears + demo CLEAR, save videos) → (7) verify-completion gate.
-
-Now invoking TDD to drive the build.
+Now invoking the TDD skill to set acceptance criteria before generating code.
 
 ---
 
-### Turn 5 [2026-06-08 11:14:05 UTC]
+### Turn 5 [2026-06-12 07:43:16 UTC]
 
 **User:**
 
-> Base directory for this skill: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/.claude/skills/dx-agentic-tdd
+> Base directory for this skill: /data/home/dhyang/github/dx-all-suite-full-e2e/.claude/skills/dx-agent-tdd
 
 <!-- Thin Claude Code wrapper — canonical skill doc lives in .deepx/ -->
 
-Read and follow the complete skill documentation at `.deepx/skills/dx-agentic-tdd/SKILL.md`.
+Read and follow the complete skill documentation at `.deepx/skills/dx-agent-tdd/SKILL.md`.
 
 
-✅ **Read** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/.deepx/skills/dx-agentic-tdd/SKILL…`
+✅ **Read** `/data/home/dhyang/github/dx-all-suite-full-e2e/.deepx/skills/dx-agent-tdd/SKILL.md`
   > 1	---
-2	name: dx-agentic-tdd
-3	description: Test-driven development for dx_app
+2	name: dx-agent-tdd
+3	description: "DEEPX build validation order — factory, pipeline, and integration checks."
 4	---
 5	
-6	# Skill: Test-Driven Development for dx_app
+6	# Skill: DEEPX Build Validation Order
 7	
-8	> **Type: RIGID — Iron Law.** No file is written until its v…
+8	> For the general Red-Green…
 
-✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_cla…`
-  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_claude_opus48_yolo26npose_stretchgame/pose_logic.py (file state is curren…
-
-✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_cla…`
-  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_claude_opus48_yolo26npose_stretchgame/test_pose_logic.py (file state is c…
-
-✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_…`
-  > PASS py_compile pose_logic.py
-============================= test session starts ==============================
-platform linux -- Python 3.12.3, pytest-9.0.3, pluggy-1.6.0 -- /data/home/dhyang/github/…
-
-✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/src/python_example/common
-echo …`
-  > === LetterboxPreprocessor.process ===
-73:    def process(self, input_image: np.ndarray) -> Tuple[np.ndarray, PreprocessContext]:
-74-        """
-75-        Preprocess image with letterbox transformati…
-
-✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_cla…`
-  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_claude_opus48_yolo26npose_stretchgame/_bootstrap.py (file state is curren…
-
-✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_cla…`
-  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_claude_opus48_yolo26npose_stretchgame/game_eval.py (file state is current…
-
-✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_cla…`
-  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_claude_opus48_yolo26npose_stretchgame/calibrate_coach_poses.py (file stat…
-
-✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_…`
-  > OK py_compile: _bootstrap.py
-OK py_compile: game_eval.py
-OK py_compile: calibrate_coach_poses.py
-=== running calibration on NPU (3 clips) ===
-[INFO] 
-Model loaded: /data/home/dhyang/github/dx-all-sui…
-
-✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_…`
-  > PASS config.json keys: ['score_threshold', 'nms_threshold', 'game'] | game keys: ['hold_seconds', 'grace_frames', 'kpt_conf', 'overhead_margin', 'overhead_above_sho', 'fold_shoulder_drop', 'fold_hand…
-
-✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_cla…`
-  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_claude_opus48_yolo26npose_stretchgame/coach.py (file state is current in …
-
-✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/src/python_example/common
-sed -…`
-  > """
-Pose Estimation Visualizer
-
-Draws bounding boxes, skeleton connections, and keypoints for pose estimation results.
-Used by YOLOv5-pose, YOLOv8-pose, etc.
+✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/src/python_example
+echo "=== co…`
+  > === common.processors exports ===
+## common/processors/__init__.py
+"""
+Common Processors - Reusable preprocessors and postprocessors
+DX-APP
 """
 
-import numpy as np
-import cv2
-from t…
+from .letterbox_preprocessor import LetterboxPreproces…
 
-✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_cla…`
-  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_claude_opus48_yolo26npose_stretchgame/stretch_game_visualizer.py (file st…
+✅ **Bash** `SDIR=/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-164133_…`
+  > total 2.3M
+-rw-rw-r-- 1 dhyang dhyang 2.3M Jun 12 16:43 stretching_demo.mp4
 
-✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_cla…`
-  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_claude_opus48_yolo26npose_stretchgame/factory/stretch_game_factory.py (fi…
+✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-164133_claud…`
+  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-164133_claude_opus48_yolo26npose_stretchgame/config.json (file state is current in…
 
-✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_cla…`
-  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_claude_opus48_yolo26npose_stretchgame/factory/__init__.py (file state is …
+✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-164133_claud…`
+  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-164133_claude_opus48_yolo26npose_stretchgame/setup.sh (file state is current in yo…
 
-✅ **Edit** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_cla…`
-  > The file /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_claude_opus48_yolo26npose_stretchgame/factory/__init__.py has been updated successfully. (file…
+✅ **Bash** `SDIR=/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-164133_…`
+  > config.json valid JSON
+setup.sh syntax OK
+=== running setup.sh ===
+[INFO] Activating dx-runtime venv: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/venv-dx-runtime
+[setup] vendoring frame…
 
-✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_cla…`
-  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_claude_opus48_yolo26npose_stretchgame/stretch_game_sync.py (file state is…
+✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-164133_claud…`
+  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-164133_claude_opus48_yolo26npose_stretchgame/calibrate.py (file state is current i…
 
-✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_…`
+✅ **Bash** `SDIR=/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-164133_…`
+  > Traceback (most recent call last):
+  File "/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/venv-dx-runtime/lib/python3.12/site-packages/dx_engine/inference_engine.py", line 72, in __init__
+…
+
+✅ **Edit** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-164133_claud…`
+  > The file /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-164133_claude_opus48_yolo26npose_stretchgame/calibrate.py has been updated successfully. (file state is…
+
+✅ **Bash** `SDIR=/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-164133_…`
+  > Model 640x640 | video fps=24.0 frames=721 | sampling every 10 frames
+ t(s) det  foldR lwAboveN rwAboveN minHeadD  lwLow  rwLow  guess
+  0.0   1   2.21    -2.35    -2.31     2.42   1.67   1.64  stand
+…
+
+✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-164133_claud…`
+  > The file /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-164133_claude_opus48_yolo26npose_stretchgame/config.json has been updated successfully. (file state is …
+
+✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-164133_claud…`
+  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-164133_claude_opus48_yolo26npose_stretchgame/game/__init__.py (file state is curre…
+
+✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-164133_claud…`
+  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-164133_claude_opus48_yolo26npose_stretchgame/game/stretch_game.py (file state is c…
+
+✅ **Bash** `SDIR=/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-164133_…`
+  > game/* compile OK
+
+✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-164133_claud…`
+  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-164133_claude_opus48_yolo26npose_stretchgame/factory/stretch_pose_factory.py (file…
+
+✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-164133_claud…`
+  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-164133_claude_opus48_yolo26npose_stretchgame/factory/__init__.py (file state is cu…
+
+✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-164133_claud…`
+  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-164133_claude_opus48_yolo26npose_stretchgame/yolo26n_pose_stretch_sync.py (file st…
+
+✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-164133_claud…`
+  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-164133_claude_opus48_yolo26npose_stretchgame/__init__.py (file state is current in…
+
+✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-164133_claud…`
+  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-164133_claude_opus48_yolo26npose_stretchgame/run.sh (file state is current in your…
+
+✅ **Bash** `SDIR=/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-164133_…`
   > === py_compile ===
-OK: coach.py
-OK: stretch_game_visualizer.py
-OK: factory/stretch_game_factory.py
-OK: factory/__init__.py
-OK: stretch_game_sync.py
-=== 5-method IFactory check ===
-PASS: all 5 IFactor…
+compile OK
+=== run.sh syntax ===
+run.sh syntax OK
+=== import-resolution / --help with NO PYTHONPATH (dynamic walker) ===
+usage: yolo26n_pose_stretch_sync.py [-h] --model MODEL
+    …
 
-✅ **Edit** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_cla…`
-  > The file /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_claude_opus48_yolo26npose_stretchgame/game_eval.py has been updated successfully. (file state …
+✅ **Edit** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-164133_claud…`
+  > The file /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-164133_claude_opus48_yolo26npose_stretchgame/game/stretch_game.py has been updated successfully. (file …
 
-✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_cla…`
-  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_claude_opus48_yolo26npose_stretchgame/verify.py (file state is current in…
+✅ **Edit** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-164133_claud…`
+  > The file /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-164133_claude_opus48_yolo26npose_stretchgame/game/stretch_game.py has been updated successfully. (file …
 
-✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_…`
-  > OK py_compile verify.py + game_eval.py
-=== running verify.py on NPU ===
+✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-164133_claud…`
+  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-164133_claude_opus48_yolo26npose_stretchgame/verify.py (file state is current in y…
+
+✅ **Bash** `SDIR=/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-164133_…`
+  > verify.py compile OK
+=== running verify.py (full video on NPU, headless) ===
 [INFO] 
 Model loaded: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/assets/models/yolo26n-pose.dxnn
-[INFO] M…
+[IN…
 
-✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_…`
-  > === real app: stretch_game_sync.py on demo clip, --save --no-display ===
-               PERFORMANCE SUMMARY                
-==================================================
- Pipeline Step   Avg Lat…
+✅ **Bash** `SDIR=/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-164133_…`
+  > video: output/verify-stream-stretching_demo-20260612-165048/output.mp4
+total 304K
+-rw-rw-r-- 1 dhyang dhyang 43K Jun 12 16:51 frame_14s.jpg
+-rw-rw-r-- 1 dhyang dhyang 46K Jun 12 16:51 frame_19s.jpg
+-…
 
-✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_…`
-  > frames 721
-wrote stage1_overhead (720, 1280, 3)
-wrote stage2_fold (720, 1280, 3)
-wrote stage3_neck (720, 1280, 3)
-wrote clear (720, 1280, 3)
+✅ **Read** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-164133_claud…`
 
-✅ **Read** `/tmp/frame_stage1_overhead.png`
+✅ **Read** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-164133_claud…`
 
-✅ **Read** `/tmp/frame_stage2_fold.png`
+✅ **Read** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-164133_claud…`
 
-✅ **Read** `/tmp/frame_clear.png`
+✅ **Read** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-164133_claud…`
 
-✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_cla…`
-  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_claude_opus48_yolo26npose_stretchgame/setup.sh (file state is current in …
+✅ **Bash** `SDIR=/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-164133_…`
+  > -rw-rw-r-- 1 dhyang dhyang 44K Jun 12 16:52 frames/frame_1_5s.jpg
 
-✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_cla…`
-  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_claude_opus48_yolo26npose_stretchgame/run.sh (file state is current in yo…
+✅ **Read** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-164133_claud…`
 
-✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_…`
-  > === bash -n ===
-OK setup.sh
-OK run.sh
-=== run setup.sh (execution test) ===
-[setup] SCRIPT_DIR  = /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_claud…
+✅ **Bash** `date +"%Y-%m-%dT%H:%M:%S%:z"`
+  > 2026-06-12T16:52:23+09:00
 
-✅ **Edit** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_cla…`
-  > The file /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_claude_opus48_yolo26npose_stretchgame/run.sh has been updated successfully. (file state is cur…
+✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-164133_claud…`
+  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-164133_claude_opus48_yolo26npose_stretchgame/session.json (file state is current i…
 
-✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_…`
-  > OK run.sh syntax
-=== portable app tree (top) ===
-_bootstrap.py
-calibrate_coach_poses.py
-coach.py
-common
-config.json
-factory
-game_eval.py
-PLAN.md
-pose_logic.py
-pose_templates.json
-run.sh
-sample
-setup.…
+✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-164133_claud…`
+  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-164133_claude_opus48_yolo26npose_stretchgame/README.md (file state is current in y…
 
-✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/src/python_example/common
-sed -…`
-  > 12:    artifacts/python_example/
-36:def _default_base_dir() -> Path:
-37:    """Return ``PROJECT_ROOT / artifacts / python_example``."""
-38:    # Walk up from this file to the project root
-41:    proj…
+✅ **Bash** `SDIR=/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-164133_…`
+  > session.log built (phase 1)
 
-✅ **Edit** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_cla…`
-  > The file /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_claude_opus48_yolo26npose_stretchgame/run.sh has been updated successfully. (file state is cur…
+✅ **Bash** `SDIR=/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-164133_…`
+  > session.log complete:
+120 session.log
 
-✅ **Bash** `SRC=/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249…`
-  > OK run.sh syntax
-=== portable run.sh on demo, outside suite ===
- Postprocess         0.56 ms     1795.6 FPS
- Render              4.74 ms      211.1 FPS
- Save                5.22 ms      191.4 FPS
----…
+✅ **Read** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-164133_claud…`
+  > 1	===== SESSION LOG: 20260612-164133_claude_opus48_yolo26npose_stretchgame =====
+2	Date: Fri Jun 12 04:53:17 PM KST 2026
+3	App: Arcade stretching mini-game (yolo26n-pose, DX-M1 NPU)
+4	
+5	--- sanity_c…
 
-✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_…`
-  > created __init__.py; cleaned app_run + portable test dir
-_bootstrap.py
-calibrate_coach_poses.py
-coach.py
-common
-config.json
-factory
-game_eval.py
-__init__.py
-outputs
-PLAN.md
-pose_logic.py
-pose_templat…
+✅ **Bash** `SDIR=/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-164133_…`
+  > verify-stream-stretching_demo-20260612-165329
+=== final output video ===
+-rw-rw-r-- 1 dhyang dhyang 11M Jun 12 16:53 output/verify-stream-stretching_demo-20260612-165329/output.mp4
 
-✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_cla…`
-  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_claude_opus48_yolo26npose_stretchgame/session.json (file state is current…
-
-✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_cla…`
-  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_claude_opus48_yolo26npose_stretchgame/README.md (file state is current in…
-
-✅ **Skill** `dx-agentic-verify`
-  > Launching skill: dx-agentic-verify
+✅ **Skill** `dx-agent-verify`
+  > Launching skill: dx-agent-verify
 
 **Claude:**
 
-Iron Law TDD — write, validate, proceed. **Task 1: pure pose logic + unit tests** (NPU-free).
-Verify (Red→Green): py_compile + run the unit tests.
-All 7 unit tests pass. **Task 2: offline NPU calibration tool.** First I need the exact preprocessor/postprocessor signatures to drive the pipeline directly.
-Reusing the real `SyncRunner` pipeline keeps measurement DRY and identical to the deployed path. Creating the shared bootstrap + eval helper, then the calibrator.
-**Task 2: the calibrator** — runs the real NPU pipeline over each clip, dumps measured distributions, confirms pose separation, and bakes coach skeletons.
-Verify syntax, then run the calibrator on the NPU (this measures all three clips).
-Fresh re-measurement → clean separation (**overhead 47.9 / fold 40.8 / neck 50.8%** on own clips, ~0 cross-talk), templates from 115/98/122 matching frames + 384 neutral. Validate the written JSON, then **Task 3: coach avatar**.
-**Task 4: game visualizer + factory.** First check how `PoseVisualizer.visualize` draws the player so I subclass it correctly.
-`PoseVisualizer.visualize(image, results)` returns a copy with the player skeleton drawn — I'll subclass it (box off), then overlay the game. Writing the visualizer.
-Now the factory + its `__init__.py`.
-The package `__init__` must use a relative import (only the session dir is on `sys.path`, not `factory/`) — matching the framework convention.
-**Task 5: entry point + infra.** Writing the relocatable entry (inline walker per the portability gate).
-Now validate Task 4+5 files together: syntax, the 5-method factory check, and the critical import-resolution test (`--help` with no PYTHONPATH).
-Entry imports cleanly with no PYTHONPATH — the full chain (factory → visualizer → coach → pose_logic → common) resolves. **Task 6: verify.py.** First add a full-results iterator to the eval helper.
-Verify syntax, then run `verify.py` on the NPU (the real validation gate).
-**verify.py RESULT: PASS (exit 0)** — every per-clip stage clears and the demo reaches full CLEAR! (3/3), 4 annotated videos saved. Now confirm the actual deployed entry path (SyncRunner + `--save`) works end-to-end.
-App runs at **35.3 FPS** on the NPU and saved an annotated `output.mp4`. Let me visually confirm the overlay/coach actually render correctly by extracting a couple of frames.
-STAGE 1 overlay renders correctly — banner, coach panel with stick figure, stretch name, instruction, HOLD bar, player skeleton. Let me check the fold stage and the CLEAR! frame.
-All three stages + CLEAR! render correctly (banner, animated coach, names, HOLD bar, GOOD!/CLEAR!). Now the infra files. Writing `setup.sh` (vendors `common` for portability) and the relocatable `run.sh`.
-Now syntax-check both scripts, run `setup.sh` (mandatory execution test — vendors `common`), then test the relocatable `run.sh` end-to-end.
-setup.sh succeeded — sanity PASS, `common` vendored (77 files). Let me refine `run.sh` to auto-save on an explicit `--video` (the prompt requires saving when run on a file), then run the portability TDD: copy the app **outside the suite** and confirm it runs on the vendored `common`.
-The portable app **imports and runs** on the vendored `common` (NPU pipeline started) — but `create_run_dir` defaults the save path to `/artifacts` when it can't find the dx_app root outside the suite. Let me check that resolution and have `run.sh` pass a writable default `--save-dir`.
-Confirmed — default save dir resolves to `/artifacts` outside the suite. Fixing `run.sh` to always pass a writable, app-local `--save-dir`.
-Re-run the portability TDD with the fixed `run.sh` (sync the edited script into the portable copy first).
-**Portability HARD GATE satisfied** — the app, copied entirely outside the suite to `/tmp`, runs via `run.sh` on the vendored `./common` (33.6 FPS) and saves the annotated video inside its own folder.
+Acceptance criteria are set (per plan §7 + this validation order); I'll verify each artifact immediately after creation (Red→Green→Verify). Let me track progress and start **Task 1 (infra)**.
+Imports confirmed. Now Task 1 — copy demo video, write `config.json` and `setup.sh`, then run setup.
+Task 1 ✓ (setup clean, `common/` vendored, dx_engine OK). **Task 2 — calibration probe** on the real NPU model:
+Default model path was off by one level. Let me fix it (session dir is `dx_app/dx-agent-dev/<session>/`, so `assets/models` is under `parents[1]`).
+Calibration is excellent — the NPU pipeline works and the three stretches are **cleanly separable** in the exact game order:
 
-Now the final deliverables. Writing `__init__.py`, `README.md`, `session.json`, and cleaning the redundant test dir.
-All deliverables written. Now the mandatory verify-completion step.
+| Time | Pose | Signature |
+|---|---|---|
+| 2.9–7.1s | **OVERHEAD** | both wrists `above_nose` ≈ +0.9…+1.4 (S units) |
+| 12.1–16.2s | **FORWARD FOLD** | `fold_ratio` drops 0.8 → −0.6 (standing ≈ 2.2) |
+| 22.1–26.2s | **NECK** | one wrist near head (`min_head_dist` ≈ 0.5), other wrist low (≈ +1.7), not both up |
+
+Let me lock the calibrated thresholds into `config.json`.
+Task 2 ✓ — pipeline verified on NPU, thresholds calibrated. Now **Task 3 — the game core** (`game/stretch_game.py`): pose classifier, canonical target poses, the filled animated humanoid coach, and the state machine.
+Task 3 ✓. **Task 4 — factory + custom visualizer** (IFactory-compliant):
+Now Task 5 — the entry app, package `__init__.py`, and `run.sh`.
+Now validate Task 4+5 — byte-compile factory/entry, JSON, run.sh syntax, and the import-resolution test (no PYTHONPATH, dynamic walker).
+Tasks 4+5 validated — compile OK, `run.sh` OK, and the dynamic walker resolves `common`+`factory` with **no PYTHONPATH**. Let me add a detection counter to the game (so `verify.py` can assert NPU detections), then write `verify.py`.
+All three checks **PASS** — 551 detection frames, reached **CLEAR! 3/3**, annotated `output.mp4` (10.9 MB), NPU inference 58 FPS. Let me extract sample frames from the annotated video and visually confirm the humanoid coach + overlay render correctly.
+The overlay renders beautifully — the coach is a **filled humanoid** (round head, filled torso, tapered limb capsules), clearly not a stick figure, with the full arcade UI (STAGE n/3, coach panel + name + instruction, HOLD bar, NPU status, live player skeleton). Let me check the neck stage and the CLEAR! frame.
+CLEAR! banner and the filled humanoid coach (raised-arm neck-stretch pose visible in panel) render correctly. Let me confirm the overhead-reach coach pose at the very start (stage 1).
+**STAGE 1/3 OVERHEAD REACH** coach shows the filled humanoid with both arms raised (mid-morph in the looping demo animation). All three coach poses + full game flow render correctly end-to-end.
+
+**Task 6 ✓.** Now **Task 7** — README, session.json, and the real session.log. First the docs:
+Now the **session.log** — captured from real command execution (not hand-written). Running the build phases and tee-ing actual output:
+session.log captured with real output. All deliverables present and validated. Let me tidy the duplicate verify output and invoke the final verification gate.
 
 ---
 
-### Turn 6 [2026-06-08 11:27:59 UTC]
+### Turn 6 [2026-06-12 07:54:11 UTC]
 
 **User:**
 
-> Base directory for this skill: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/.claude/skills/dx-agentic-verify
+> Base directory for this skill: /data/home/dhyang/github/dx-all-suite-full-e2e/.claude/skills/dx-agent-verify
 
 <!-- Thin Claude Code wrapper — canonical skill doc lives in .deepx/ -->
 
-Read and follow the complete skill documentation at `.deepx/skills/dx-agentic-verify/SKILL.md`.
+Read and follow the complete skill documentation at `.deepx/skills/dx-agent-verify/SKILL.md`.
 
 
-✅ **Read** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/.deepx/skills/dx-agentic-verify/SK…`
+✅ **Read** `/data/home/dhyang/github/dx-all-suite-full-e2e/.deepx/skills/dx-agent-verify/SKILL.md`
   > 1	---
-2	name: dx-agentic-verify
-3	description: Verify work before claiming done
+2	name: dx-agent-verify
+3	description: "DEEPX build verification checklists — dx_app, dx_stream, and cross-project."
 4	---
 5	
-6	# Skill: Verify Before Completion for dx_app
+6	# Skill: DEEPX Build Verification Checklists
 7	
-8	> **Type: RIGID — Iron Law.** No completion claims without…
+8	> For the gener…
 
-✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_…`
-  > ######## SESSION LOG — Mon Jun  8 08:28:21 PM KST 2026 ########
-## session: 20260608-201249_claude_opus48_yolo26npose_stretchgame
+✅ **Bash** `SDIR=/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-164133_…`
+  > === 1. Syntax check (session .py) ===
+OK: factory/stretch_pose_factory.py
+OK: factory/__init__.py
+OK: game/stretch_game.py
+OK: game/__init__.py
+OK: yolo26n_pose_stretch_sync.py
+OK: calibrate.py
+OK: v…
 
-$ ls -1 (deliverables)
-_bootstrap.py
-calibrate_coach_poses.py
-coach.…
+✅ **Bash** `SDIR=/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-164133_…`
+  > Copied to OUTSIDE the suite: /tmp/stretch_portable_ZFmO/app
+=== import factory + game from relocated copy (NO PYTHONPATH, vendored ./common) ===
+OK: relocated app imports + renders. stages= ['OVERHEA…
 
-✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app
-V=/data/home/dhyang/github/dx-a…`
-  > $ python .deepx/scripts/validate_app.py dx-agentic-dev/20260608-201249_claude_opus48_yolo26npose_stretchgame
-
-Validating: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-d…
-
-✅ **Edit** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_cla…`
-  > The file /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_claude_opus48_yolo26npose_stretchgame/coach.py has been updated successfully. (file state is c…
-
-✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_…`
-  > $ python verify.py   (real NPU end-to-end gate)
-Model loaded: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/assets/models/yolo26n-pose.dxnn
-[INFO] Model input size (WxH): 640x640
-[…
-
-✅ **Edit** `/home/dhyang/.claude/projects/-data-home-dhyang-github-dx-all-suite-full-e2e-dx-runtime-dx-app/memo…`
-  > <tool_use_error>File has not been read yet. Read it first before writing to it.</tool_use_error>
-
-✅ **Read** `/home/dhyang/.claude/projects/-data-home-dhyang-github-dx-all-suite-full-e2e-dx-runtime-dx-app/memo…`
-  > 40	reuse: separation 47.9/40.8/43.1, verify.py RESULT PASS exit 0, demo 721f -> CLEAR! @34.8fps;
-41	exact thresholds overhead_margin=0.0 & above_sho=0.15, fold_ratio=-0.30 & hands_below_hip=-0.15,
-42…
-
-✅ **Edit** `/home/dhyang/.claude/projects/-data-home-dhyang-github-dx-all-suite-full-e2e-dx-runtime-dx-app/memo…`
-  > The file /home/dhyang/.claude/projects/-data-home-dhyang-github-dx-all-suite-full-e2e-dx-runtime-dx-app/memory/pose-stretch-game-calibration.md has been updated successfully. (file state is current i…
-
-✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_…`
-  > === deliverables ===
-_bootstrap.py
-calibrate_coach_poses.py
-coach.py
-common
-config.json
-factory
-game_eval.py
-__init__.py
-outputs
-PLAN.md
-pose_logic.py
-pose_templates.json
-README.md
-run.sh
-session.jso…
-
-✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app
-GT="$(d="$PWD"; while [ "$d" !=…`
-  > generator: /data/home/dhyang/github/dx-all-suite-full-e2e/.deepx/tests/generate_transcripts.py
-jsonl: dx-agentic-dev/20260608-201249_claude_opus48_yolo26npose_stretchgame/claude-stream.jsonl
-md: dx-a…
+✅ **Bash** `GENROOT="$(d="/data/home/dhyang/github/dx-all-suite-full-e2e"; while [ "$d" != / ]; do [ -f "$d/.de…`
+  > GENROOT=/data/home/dhyang/github/dx-all-suite-full-e2e
+jsonl: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-164133_claude_opus48_yolo26npose_stretchgame/claud…
 
 **Claude:**
 
-Running the full verify gate with fresh output captured to `session.log` via tee.
-Now append the NPU `verify.py` run and the framework `validate_app.py` to the log for complete evidence.
-The `validate_app.py` flags are the predicted benign ones — all the ERROR/print() hits are on the **offline dev tools** (`calibrate_coach_poses.py`, `verify.py`), which legitimately use their own argparse + computed default model paths and aren't inference apps. The deployed app (`stretch_game_sync.py` + factory + visualizer) is compliant. One real nit: an unused `Optional` import in `coach.py`. Fixing it.
-Now the final end-to-end NPU gate — `verify.py` — appended to `session.log`.
-verify.py **RESULT: PASS (exit 0)** — all stages clear, demo full CLEAR (3/3), 4 annotated videos saved. Let me record this re-confirmation in memory (appending to the existing calibration note, not duplicating).
-All gates green. Let me do the final inventory and completion report.
-The build is complete and fully validated on the NPU.
+Running the dx_app verification checklist (factory 5-method compliance + JSON validation) as the final gate.
+All verification checks **PASS**. One final HARD-GATE check from the dx_app skill — **portability** (the app must import/run when copied outside the suite, via the vendored `common/`):
+Portability confirmed — the relocated copy imports and renders using only the vendored `./common`, no PYTHONPATH.
 
-## Completion Report: Stretch Arcade — yolo26n-pose Mini-Game
+The full mandatory process sequence is complete and every gate passed:
 
-**Status: PASS** | **Output dir:** `dx-agentic-dev/20260608-201249_claude_opus48_yolo26npose_stretchgame/`
+| Gate | Result |
+|---|---|
+| `/dx-skill-router` → `/dx-agent-brainstorm` (spec) → `/dx-swe-writing-plans` (plan) → `/dx-agent-tdd` → `/dx-agent-verify` | ✅ all invoked, in order |
+| Prerequisites (NPU sanity, dx_engine) | ✅ PASS |
+| Skeleton-first, IFactory 5+1, SyncRunner, Output Isolation | ✅ compliant |
+| Pose thresholds calibrated from the real demo video on NPU | ✅ `calibrate.py` |
+| `verify.py` over full demo video | ✅ 551 pose frames, **CLEAR! 3/3**, annotated `output.mp4` |
+| Visual review (overhead / fold / neck coach + CLEAR!) | ✅ filled humanoid, not a stick figure |
+| Portability (runs from a copy outside the suite) | ✅ vendored `common/` |
 
-| File | Status | | File | Status |
-|------|--------|--|------|--------|
-| `factory/stretch_game_factory.py` | PASS (5/5 IFactory) | | `stretch_game_sync.py` | PASS (SyncRunner, no-PYTHONPATH import OK) |
-| `factory/__init__.py` | PASS | | `config.json` / `pose_templates.json` / `session.json` | PASS (valid JSON) |
-| `stretch_game_visualizer.py` | PASS | | `setup.sh` / `run.sh` | PASS (`bash -n`, executed) |
-| `coach.py` | PASS | | `README.md` / `session.log` / `__init__.py` | PASS |
-| `pose_logic.py` + `test_pose_logic.py` | PASS (7 unit tests) | | `verify.py` (NPU end-to-end) | **PASS, exit 0** |
-
-**What it does:** 3 stages (overhead reach → forward fold → neck stretch). Top-left panel shows an **animated stick-figure coach** (cycles neutral↔target, skeletons **derived from the sample clips**), the stretch name + instruction, and a HOLD bar. Recognizes the player's pose from COCO-17 keypoints, advances on a brief hold (GOOD!), and shows CLEAR! after all three. Supports `--video <file>` (saves an annotated `output.mp4`) and `--camera <id>`.
-
-**Evidence (fresh, this session — no prior-session reuse):**
-- Pose separation re-measured on the 3 clips: **overhead 47.9% / fold 40.8% / neck 50.8%** on own clip, ~0 cross-talk.
-- `verify.py`: each clip clears its target stage; `stretching_demo.mp4` reaches full **CLEAR (3/3)**; 4 annotated videos in `outputs/`.
-- Runtime **~35 FPS** on the NPU; rendered frames visually confirmed (banner, coach, HOLD, GOOD!/CLEAR!).
-- **Portability HARD GATE:** app copied entirely outside the suite (`/tmp`) ran via `run.sh` on vendored `./common` @33.6 FPS and saved its output.
-
-**Notes / deviations (Rule Conflict Resolution):** I generated the **sync variant only**, not all 4. A stateful arcade game requires strictly ordered frames, which only `SyncRunner` guarantees — `AsyncRunner` reorders frames and would corrupt stage/hold tracking. The `validate_app.py` 5/11 result is benign: every ERROR/print flag lands on the **offline dev tools** (`calibrate_coach_poses.py`, `verify.py` — own argparse + computed default model path); the deployed app is fully framework-compliant.
+**What was built** — `yolo26n-pose` arcade stretching mini-game on the DX-M1 NPU:
+- 3 stages (OVERHEAD REACH → FORWARD FOLD → NECK STRETCH), recognized from COCO-17 keypoints, hold-to-advance with GOOD!/CLEAR! feedback.
+- An **animated filled humanoid coach** (round head, filled torso/pelvis, tapered limb capsules + shaded joints) that loops neutral↔target to demonstrate each stretch, with name + instruction beside it.
+- Arcade overlay (STAGE n/3, HOLD bar, live player skeleton, NPU/FPS status).
+- Runs on `--video <file>` and `--camera <id>`; on video it saves an annotated `output.mp4`.
+- NPU inference ≈ 58 FPS.
 
 ```
  ███████████   █████████ ████████ ████████  ████      ████
@@ -644,20 +676,18 @@ The build is complete and fully validated on the NPU.
  ███     █████░███░      ██░      ███░   ████████░░░░████
  ███████████░░░█████████ ████████ ██████████░░░░░░    ████
   ░░░░░░░░░░░   ░░░░░░░░░ ░░░░░░░░ ░░░░░░░░░░          ░░░░
-        DX-AGENTIC-DEV · on-device NPU
+        DX-AGENT-DEV · on-device NPU
 ```
 
-[DX-AGENTIC-DEV: DONE (output-dir: dx-agentic-dev/20260608-201249_claude_opus48_yolo26npose_stretchgame/)]
+[DX-AGENT-DEV: DONE (output-dir: dx-runtime/dx_app/dx-agent-dev/20260612-164133_claude_opus48_yolo26npose_stretchgame/)]
 
-Now generating the session transcript into the output dir (final housekeeping step).
-Session transcript (md/html/jsonl) saved to: `dx-agentic-dev/20260608-201249_claude_opus48_yolo26npose_stretchgame/claude-session.*`
-
-The Stretch Arcade mini-game is complete, validated on the DEEPX NPU (verify.py PASS, full CLEAR on the demo, ~35 FPS), portable outside the suite, with all three stretches recognized and an animated coach derived from the sample clips. Run it with `./setup.sh` then `./run.sh --camera 0` (live) or `./run.sh --video sample/stretching_demo.mp4` (saves an annotated video).
+Final housekeeping — generating this session's transcript into the output dir:
+Session transcript (md/html/jsonl) saved to: `dx-runtime/dx_app/dx-agent-dev/20260612-164133_claude_opus48_yolo26npose_stretchgame/claude-session.*`
 
 ---
 
 ## Summary
 
 - **Turns:** 6
-- **Tool calls:** 69
-- **Raw messages:** 311
+- **Tool calls:** 78
+- **Raw messages:** 345

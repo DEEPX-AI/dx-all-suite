@@ -1,3 +1,5 @@
-from .stretch_game_factory import StretchGameFactory
+"""Factory package for the Stretch Coach mini-game."""
 
-__all__ = ["StretchGameFactory"]
+from .stretch_pose_factory import StretchPoseFactory, StretchGameVisualizer
+
+__all__ = ["StretchPoseFactory", "StretchGameVisualizer"]
