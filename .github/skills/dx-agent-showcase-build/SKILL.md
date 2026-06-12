@@ -46,6 +46,15 @@ KB-based judgment, and the human-in-the-loop steps a tool cannot do.
    a showcase dir is missing from it — this is how `ultralytics-yolo-deepx-export` once went
    missing from the docs table. NEVER hand-edit the generated `dx-showcase:docs:*` marker
    regions; add to the manifest and run `regen-docs`.
+8. **External repos: clone fresh into the build's session dir; NEVER touch a user repo.**
+   When the build needs a third-party/DEEPX-fork checkout (e.g. RapidDoc, PaddleOCR-deepx),
+   the prompt/build MUST `git clone` it into the **isolated session dir** — it MUST NOT
+   discover (`find /`) and **reuse, modify, or delete** a pre-existing repo elsewhere on
+   disk (e.g. under `~/git/`). Deleting a user's repo is a destructive action and has
+   happened. And **provision models with the fork's `./setup.sh` in the FOREGROUND** — never
+   hand-compile `.dxnn`, and never launch the download/compile as a **background task**: a
+   headless `claude -p` cannot resume on the completion notification and deadlocks (the
+   recurring PaddlePaddle build freeze).
 
 ## Setup
 
@@ -59,9 +68,12 @@ SG() { python3 -m dx_showcase_gen.cli "$@"; }   # or the installed `dx-showcase-
 
 - Gather the showcase scenario (what the showcase demonstrates, the target user).
 - Synthesize the **end-user-style** natural-language build prompt — the prompt a real
-  user would type, no operator scaffolding. (Headless/unattended runs may append
-  "work autonomously … / Respond in English"; if so, that scaffolding is **trimmed
-  from the displayed prompt** in the showcase README — see Phase 7.)
+  user would type, no operator scaffolding. Keep it **short and goal-only**: name NO
+  toolset path, KB file, repo branch, or env script — the skill + the routing table supply
+  those from the task vocabulary, and a concise prompt that still builds correctly is the
+  whole point of the showcase. (Headless/unattended runs may append "work autonomously … /
+  Respond in English"; if so, that scaffolding is **trimmed from the displayed prompt** in
+  the showcase README — see Phase 7.)
 - The prompt MUST also require a **visualized detection sample**: an annotated image of
   the (retrained/exported) model run on a representative domain sample, saved as
   `sample_detect.jpg` — this is shown beside the build GIF in the README (Phase 7).
@@ -189,6 +201,10 @@ present + syntax-OK, README/docs carry the showcase marker. Fix any FAIL and re-
 - Declaring DONE before `verify` PASS.
 - Committing model binaries (`*.pt`/`*.onnx`/`*.dxnn`) or `venv/` into the showcase.
 - Leaving absolute / `/tmp` / session-specific paths in the copied scripts.
+- **Reusing or deleting a pre-existing user repo** found via `find` — clone fresh into the
+  session dir instead (see hard rule 8).
+- **Backgrounding the model download/compile** in a headless build, or hand-compiling
+  `.dxnn` instead of running the fork's `./setup.sh` in the foreground — both deadlock the build.
 
 ## Verification loop (this skill is `.deepx/` source)
 
