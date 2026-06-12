@@ -35,7 +35,7 @@
 
 애니메이션 coach 아바타가 각 목표 포즈를 시연하며 3가지 스트레칭 안내.
 
-**핵심:** coach 아바타 + 3단계 · **Claude Opus 4.8** · ≈ 21 min · ≈ $9.4 — [상세 →](./mini-game-stretching-coach/README-ko.md)
+**핵심:** coach 아바타 + 3단계 · **Claude Opus 4.8** · ≈ 17 min · ≈ $9.3 — [상세 →](./mini-game-stretching-coach/README-ko.md)
 
 <br clear="right">
 

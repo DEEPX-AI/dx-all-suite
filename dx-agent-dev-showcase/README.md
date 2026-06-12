@@ -36,7 +36,7 @@ Counts squat reps from knee/hip angles with an arcade HUD (reps / score / DOWN·
 
 Guides 3 stretches with an animated coach avatar that demonstrates each target pose.
 
-**Highlight:** coach avatar + 3 stages · **Claude Opus 4.8** · ≈ 21 min · ≈ $9.4 — [details →](./mini-game-stretching-coach/README.md)
+**Highlight:** coach avatar + 3 stages · **Claude Opus 4.8** · ≈ 17 min · ≈ $9.3 — [details →](./mini-game-stretching-coach/README.md)
 
 <br clear="right">
 
