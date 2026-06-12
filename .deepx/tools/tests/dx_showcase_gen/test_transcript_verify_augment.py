@@ -28,6 +28,27 @@ def test_metrics_from_stream_complete(tmp_path):
     assert m["model"] == "claude-opus-4-8"
 
 
+def test_metrics_from_stream_multiple_results(tmp_path):
+    """A long/resumed `-p` session emits several result events: duration, turns and
+    output_tokens are per-segment (summed); total_cost_usd is cumulative (last).
+    Regression: using only the last result under-reported a 17-min build as its 3.5s
+    final fragment (Wall-clock ~0.1 min, 1 turn)."""
+    lines = [{"type": "system", "subtype": "init", "model": "claude-opus-4-8",
+              "session_id": "abc"}]
+    segs = [(720294, 70, 8.93, 49039), (320117, 38, 14.20, 20294), (3566, 1, 14.34, 162)]
+    for dur, turns, cost, otok in segs:
+        lines.append({"type": "result", "subtype": "success", "duration_ms": dur,
+                      "num_turns": turns, "total_cost_usd": cost,
+                      "usage": {"output_tokens": otok}})
+    p = tmp_path / "multi.jsonl"
+    p.write_text("\n".join(json.dumps(x) for x in lines))
+    m = transcript.metrics_from_stream(str(p))
+    assert m["duration_ms"] == 720294 + 320117 + 3566        # summed (~17.4 min)
+    assert m["num_turns"] == 70 + 38 + 1                     # summed
+    assert m["output_tokens"] == 49039 + 20294 + 162         # summed
+    assert m["total_cost_usd"] == 14.34                      # cumulative → last
+
+
 def test_is_complete(tmp_path):
     assert transcript.is_complete(_stream(tmp_path, with_result=True))
     assert not transcript.is_complete(_stream(tmp_path, with_result=False))

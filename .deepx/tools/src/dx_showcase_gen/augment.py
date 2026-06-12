@@ -245,11 +245,11 @@ def catalog_region(manifest, *, lang: str) -> str:
     show a note. This is the showcase index that mkdocs surfaces via include-markdown."""
     if lang == "ko":
         thead = "| Showcase | 유형 | 핵심 결과 |\n|---|---|---|"
-        kind_label = {"game": "게임", "export": "export", "retrain": "재학습"}
+        kind_label = {"game": "게임", "export": "export", "retrain": "재학습", "app": "앱"}
         detail, hi = "상세", "핵심"
     else:
         thead = "| Showcase | Kind | Highlight |\n|---|---|---|"
-        kind_label = {"game": "game", "export": "export", "retrain": "retrain"}
+        kind_label = {"game": "game", "export": "export", "retrain": "retrain", "app": "app"}
         detail, hi = "details", "Highlight"
 
     out = []
@@ -264,7 +264,7 @@ def catalog_region(manifest, *, lang: str) -> str:
         table = [thead]
         for s in scs:
             link = _showcase_link("catalog", s.name, lang)
-            table.append(f"| [{s.title(lang)}]({link}) | {kind_label[s.kind]} | {s.highlight(lang)} |")
+            table.append(f"| [{s.title(lang)}]({link}) | {kind_label.get(s.kind, s.kind)} | {s.highlight(lang)} |")
         out.append("\n".join(table))
         for s in scs:
             link = _showcase_link("catalog", s.name, lang)

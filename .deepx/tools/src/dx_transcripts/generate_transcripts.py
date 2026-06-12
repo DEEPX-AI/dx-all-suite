@@ -194,7 +194,7 @@ def _session_metrics(jsonl_path) -> Optional[dict]:
     if not jsonl_path or not Path(jsonl_path).exists():
         return None
     model = None
-    result = None
+    results = []
     tools = collections.Counter()
     skills = []
     toolsets = []
@@ -214,7 +214,7 @@ def _session_metrics(jsonl_path) -> Optional[dict]:
                 if t == "system" and o.get("subtype") == "init":
                     model = model or o.get("model")
                 if t == "result":
-                    result = o
+                    results.append(o)
                 msg = o.get("message") if isinstance(o.get("message"), dict) else None
                 if msg:
                     model = model or msg.get("model")
@@ -243,12 +243,19 @@ def _session_metrics(jsonl_path) -> Optional[dict]:
     m = {"model": model, "tools": dict(tools), "skills": skills, "toolsets": toolsets,
          "output_tokens": None, "total_cost_usd": None,
          "num_turns": turns or None, "duration_ms": None}
-    if result:
-        u = result.get("usage") or {}
-        m["output_tokens"] = u.get("output_tokens")
-        m["total_cost_usd"] = result.get("total_cost_usd")
-        m["num_turns"] = result.get("num_turns") or m["num_turns"]
-        m["duration_ms"] = result.get("duration_ms")
+    if results:
+        # A long build can emit MULTIPLE result events (e.g. a resumed `-p` session):
+        # duration/turns/output_tokens are PER-SEGMENT (sum them); total_cost_usd is
+        # CUMULATIVE (take the last). Using only the last result would under-report a
+        # 20-min build as the few-second final fragment.
+        last = results[-1]
+        dur = sum(r.get("duration_ms") or 0 for r in results)
+        nturns = sum(r.get("num_turns") or 0 for r in results)
+        otok = sum((r.get("usage") or {}).get("output_tokens") or 0 for r in results)
+        m["output_tokens"] = otok or None
+        m["total_cost_usd"] = last.get("total_cost_usd")
+        m["num_turns"] = nturns or m["num_turns"]
+        m["duration_ms"] = dur or None
     if not m["output_tokens"] and out_sum:
         m["output_tokens"] = out_sum
     if not m["model"] and not m["output_tokens"]:

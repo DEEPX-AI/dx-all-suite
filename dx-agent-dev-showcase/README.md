@@ -104,9 +104,21 @@ Retrains `yolo26n` on `medical-pills` for a pharma counting station; 4-way eval 
 
 ## PaddlePaddle ecosystem integration
 
-PaddlePaddle/PaddleOCR models on the DEEPX NPU.
+**Document AI on the DEEPX NPU — from a single, concise natural-language prompt.** PaddleOCR / RapidDoc (PP-OCRv5, PP-StructureV3) document parsing — layout, OCR, tables, formulas — on the DX-M1 NPU.
 
-> _Coming soon._
+| Showcase | Kind | Highlight |
+|---|---|---|
+| [PDF → Markdown (Document AI)](./rapiddoc-pdf2md/README.md) | app | 9-page financial report parsed on-device in 12.7s; 21 headings + 9 tables preserved (auto) |
+
+### PDF → Markdown (Document AI)
+
+<a href="./rapiddoc-pdf2md/README.md"><img src="../docs/source/img/dx-agent-dev-rapiddoc-pdf2md-build.gif" height="170" align="right"></a>
+
+Converts a PDF (digital or scanned) to structured Markdown + JSON — layout analysis + OCR + table/formula recognition — running on the DEEPX DX-M1 NPU via the RapidDoc fork. Supports `--parse-method auto|txt|ocr`.
+
+**Highlight:** 9-page financial report parsed on-device in 12.7s; 21 headings + 9 tables preserved (auto) · **Claude Opus 4.8** · ≈ 17 min · ≈ $14.3 — [details →](./rapiddoc-pdf2md/README.md)
+
+<br clear="right">
 <!-- dx-showcase:docs:catalog:end -->
 
 ## Reproduce any showcase
