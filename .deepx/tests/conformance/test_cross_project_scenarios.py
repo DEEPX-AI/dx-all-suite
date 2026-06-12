@@ -203,6 +203,7 @@ class TestHandoffChains:
     _SKILL_PREFIXES = (
         "dx-agent-", "dx-swe-", "dx-build-", "dx-validate-", "dx-compile-",
         "dx-convert-", "dx-model-", "dx-brainstorm-", "dx-tdd", "dx-verify-",
+        "dx-harness-", "dx-internal-",
     )
 
     def _extract_handoff_targets(self, text: str) -> Set[str]:
@@ -227,6 +228,43 @@ class TestHandoffChains:
             if not any(t.startswith(p) for p in self._SKILL_PREFIXES)
         }
         return targets
+
+    def test_skill_prefix_allowlist_includes_dx_internal(self):
+        """dx-internal-* must be an accepted skill prefix in the allowlist.
+
+        dx-internal-model-eval is a valid skill in the dx-internal-* namespace.
+        Any skill name starting with 'dx-internal-' must be treated as a skill
+        (not an agent handoff target) by _extract_handoff_targets.
+        """
+        # Verify dx-internal- is in the allowlist
+        assert "dx-internal-" in self._SKILL_PREFIXES, (
+            "'dx-internal-' is missing from _SKILL_PREFIXES. "
+            "The dx-internal-model-eval skill requires this prefix to be registered."
+        )
+        # Verify dx-internal-model-eval is treated as a skill (filtered out as handoff target)
+        dummy_text = "routes to `dx-internal-model-eval` for evaluation"
+        targets = self._extract_handoff_targets(dummy_text)
+        assert "dx-internal-model-eval" not in targets, (
+            "'dx-internal-model-eval' was not filtered as a skill name — "
+            "it should be excluded from handoff targets because it starts with 'dx-internal-'."
+        )
+
+    def test_skill_prefix_allowlist_includes_dx_harness(self):
+        """dx-harness-* must be an accepted skill prefix in the allowlist.
+
+        dx-harness-validate and dx-harness-writing-skills already exist;
+        ensure the prefix is registered so they are not mistaken for agent names.
+        """
+        assert "dx-harness-" in self._SKILL_PREFIXES, (
+            "'dx-harness-' is missing from _SKILL_PREFIXES. "
+            "Skills dx-harness-validate and dx-harness-writing-skills require this prefix."
+        )
+        dummy_text = "routes to `dx-harness-validate` for framework checks"
+        targets = self._extract_handoff_targets(dummy_text)
+        assert "dx-harness-validate" not in targets, (
+            "'dx-harness-validate' was not filtered as a skill name — "
+            "it should be excluded from handoff targets because it starts with 'dx-harness-'."
+        )
 
     @pytest.mark.parametrize(
         "pair", GUIDE_PAIRS, ids=[g.label for g in GUIDE_PAIRS]
