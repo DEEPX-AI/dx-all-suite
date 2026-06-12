@@ -37,8 +37,18 @@ compile.pid
 *.pt
 *.txt
 !requirements.txt
-# Showcase expected-output fixtures are tracked despite the global *.txt ignore
-!dx-agent-dev-showcase/**/expected_output.txt
+# Showcase deliverables are tracked despite the global ignores above (*.txt, etc.) —
+# a showcase dir is a curated, runnable artifact, so everything in it is committed...
+!dx-agent-dev-showcase/**
+# ...except heavy model/venv artifacts that must never be committed (downloaded by setup.sh):
+dx-agent-dev-showcase/**/*.onnx
+dx-agent-dev-showcase/**/*.dxnn
+dx-agent-dev-showcase/**/*.pt
+dx-agent-dev-showcase/**/venv/
+dx-agent-dev-showcase/**/dxnn_models/
+dx-agent-dev-showcase/**/onnx_models/
+dx-agent-dev-showcase/**/download/
+dx-agent-dev-showcase/**/__pycache__/
 session-ses_*.md
 
 archives/

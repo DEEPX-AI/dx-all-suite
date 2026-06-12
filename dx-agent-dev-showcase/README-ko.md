@@ -113,7 +113,7 @@ Ultralytics YOLO `.pt`를 단일 `yolo export ... format=deepx` 명령으로 배
 
 | Showcase | 유형 | 핵심 결과 |
 |---|---|---|
-| [PDF → Markdown (문서 변환 앱)](./rapiddoc-pdf2md/README-ko.md) | 앱 | 16페이지 물리 논문 온디바이스 파싱(41.3s); standalone 앱 — vendored rapid_doc·자체 entry·포크 clone 없음; abstract + 섹션 + 수식 164개 보존 |
+| [PDF → Markdown (문서 변환 앱)](./rapiddoc-pdf2md/README-ko.md) | 앱 | 9페이지 재무보고서 온디바이스 파싱; standalone 앱 — vendored rapid_doc·자체 entry·포크 clone 없음; 제목 21개 + HTML 표 9개 보존 (auto 12.6s / ocr 14.7s) |
 
 ### PDF → Markdown (문서 변환 앱)
 
@@ -121,7 +121,7 @@ Ultralytics YOLO `.pt`를 단일 `yolo export ... format=deepx` 명령으로 배
 
 PDF(디지털/스캔)를 구조화된 Markdown + JSON으로 변환 — 레이아웃 분석·OCR·표·수식 — 을 RapidDoc fork로 DEEPX DX-M1 NPU에서 실행. `--parse-method auto|txt|ocr` 지원.
 
-**핵심:** 16페이지 물리 논문 온디바이스 파싱(41.3s); standalone 앱 — vendored rapid_doc·자체 entry·포크 clone 없음; abstract + 섹션 + 수식 164개 보존 · **Claude Opus 4.8** · ≈ 12 min · ≈ $6.2 — [상세 →](./rapiddoc-pdf2md/README-ko.md)
+**핵심:** 9페이지 재무보고서 온디바이스 파싱; standalone 앱 — vendored rapid_doc·자체 entry·포크 clone 없음; 제목 21개 + HTML 표 9개 보존 (auto 12.6s / ocr 14.7s) · **Claude Opus 4.8** · ≈ 12 min · ≈ $6.2 — [상세 →](./rapiddoc-pdf2md/README-ko.md)
 
 <br clear="right">
 <!-- dx-showcase:docs:catalog:end -->

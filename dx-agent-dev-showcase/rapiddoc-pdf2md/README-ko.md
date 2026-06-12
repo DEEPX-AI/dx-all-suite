@@ -67,38 +67,34 @@ pip 의존성 설치 + **NPU 모델 다운로드**(16 `.dxnn` + 8 `.onnx`, 커�
 
 ## 측정된 NPU 성능
 
-`sample_input.pdf` = `physics0409110_origin.pdf` (영문 물리 논문, *"High-precision Absolute
-Distance and Vibration Measurement using Frequency Scanned Interferometry"*, **16페이지**,
-수식 위주), **이 앱의 `pdf_to_markdown.py`** 가 DX-M1에서 직접 생성(`DXNN_DEVICES=0`, runtime
-3.3.2 / FW v2.5.6). `auto` end-to-end **41.3 s** (2.58 s/page):
+`sample_input.pdf` = **9페이지 재무보고서**(BYD 2025 Q1, **제목 21개, 표 9개**) — 에이전트
+빌드가 생성한 문서로, **이 앱의 `pdf_to_markdown.py`** 가 DX-M1에서 렌더(`DXNN_DEVICES=0`,
+runtime 3.3.2 / FW v2.5.6). `session.log` / `timings.md`에 기록.
+
+**`auto` (text layer + layout + table NPU) — 12.63 s wall, 9페이지 (1.29 s/page):**
 
 | Stage | Count | 평균 latency | Throughput | Engine | 비중 |
 |---|---:|---:|---:|---|---:|
-| Formula recognition | 164 | 213.82 ms | 4.7 FPS | ONNX/CPU | 85.0% |
-| Layout analysis | 16 | 317.42 ms | 3.2 FPS | **NPU** | 12.3% |
-| Table recognition | 1 | 848.05 ms | 1.2 FPS | **NPU** | 2.1% |
-| OCR det / PDF text-det | 100 | ~2–108 ms | — | **NPU** | 0.7% |
+| Table recognition | 13 | 692.97 ms | 1.4 FPS | **NPU** | 77.3% |
+| Layout analysis | 9 | 289.71 ms | 3.5 FPS | **NPU** | 22.4% |
+| PDF text-det | 82 | 0.45 ms | 2232 FPS | **NPU** | 0.3% |
 
-이 논문은 **수식이 많아**(수식 region 164개 → 85%) formula recognition + NPU layout/OCR/table을
-함께 보여줍니다. 모델 load 1.75 s.
+**`ocr` (전체 OCR det + rec NPU) — 14.65 s wall, 9페이지 (2.15 s/page):** Layout 374.81 ms,
+OCR det 55.73 ms (×63), OCR rec 16.14 ms (×102), Table 833.94 ms — 모두 DX-M1 NPU. 모델 load 1.75 s.
 
 ## 샘플 출력 (`sample_output.md` 발췌)
 
-제목·저자·abstract·섹션 제목이 보존되며, 수식은 formula region으로 인식됩니다(Markdown에서는
-잘린 이미지로 렌더):
+제목과 재무 표가 그대로 보존됩니다 (HTML `<table>` markup — PP-StructureV3 관례; rowspan/colspan 유지):
 
 ```markdown
-# High-precision Absolute Distance and Vibration Measurement using Frequency Scanned Interferometry
+# 比亚迪股份有限公司
+# 2025 年第一季度报告
+# 一、主要财务数据
 
-Hai-Jun Yang, Jason Deibel, Sven Nyberg, Keith Riles
-Department of Physics, University of Michigan, Ann Arbor, MI 48109-1120, USA
-
-In this paper, we report high-precision absolute distance and vibration measurements
-performed with frequency scanned interferometry using a pair of single-mode optical fibers...
-
-# 1. Introduction
-# 2. Principles
-# 3. Demonstration System of FSI
+<table><tr><td></td><td>本报告期</td><td>上年同期</td><td>本报告期比上年同期增减（%）</td></tr>
+<tr><td>营业收入（元）</td><td>170,360,448,000.00</td><td>124,944,397,000.00</td><td>36.35%</td></tr>
+<tr><td>归属于上市公司股东的净利润（元）</td><td>9,154,985,000.00</td><td>4,568,793,000.00</td><td>100.38%</td></tr>
+...
 ```
 
 ## 동작 방식 (standalone)
@@ -129,7 +125,7 @@ bash run.sh          # sample_input.pdf를 NPU에서 파싱 → output/<stem>/<m
 | `deepx_scripts/`, `setup_sample_models.sh` | DX env 설정 + NPU/ONNX 모델 다운로더 |
 | `setup.sh` | venv + `requirements.deepx.txt` + dx_engine `.pth` bridge + 모델 다운로드 |
 | `run.sh` | 런처: `set_env.sh` source, `DXNN_DEVICES=0`, `pdf_to_markdown.py` 실행 |
-| `sample_input.pdf` / `sample_output.md` | 영문 물리 논문 + 렌더된 Markdown |
+| `sample_input.pdf` / `sample_output.md` | 샘플 재무보고서(BYD 2025 Q1, 9페이지) + 렌더된 Markdown |
 | `images/sample_before_after.png` | before/after: PDF 페이지 → 파싱된 Markdown |
 | `timings.md` | per-stage NPU 처리시간 리포트 (실제 run) |
 | `session.log` | 추론 run의 실제 캡처 출력 |

@@ -68,38 +68,36 @@ only installs pip deps and **downloads the NPU models** (16 `.dxnn` + 8 `.onnx`,
 
 ## Measured NPU performance
 
-`sample_input.pdf` = `physics0409110_origin.pdf` (an English physics paper, *"High-precision
-Absolute Distance and Vibration Measurement using Frequency Scanned Interferometry"*, **16
-pages**, equation-heavy), produced by **this app's own `pdf_to_markdown.py`** on DX-M1
-(`DXNN_DEVICES=0`, runtime 3.3.2 / FW v2.5.6). `auto` end-to-end **41.3 s** (2.58 s/page):
+`sample_input.pdf` = a **9-page financial report** (BYD 2025 Q1, **21 headings, 9 tables**) —
+the document the agent's build generated, rendered by **this app's own `pdf_to_markdown.py`**
+on DX-M1 (`DXNN_DEVICES=0`, runtime 3.3.2 / FW v2.5.6). Captured in `session.log` / `timings.md`.
+
+**`auto` (text layer + layout + table on NPU) — 12.63 s wall, 9 pages (1.29 s/page):**
 
 | Stage | Count | Avg latency | Throughput | Engine | Share |
 |---|---:|---:|---:|---|---:|
-| Formula recognition | 164 | 213.82 ms | 4.7 FPS | ONNX/CPU | 85.0% |
-| Layout analysis | 16 | 317.42 ms | 3.2 FPS | **NPU** | 12.3% |
-| Table recognition | 1 | 848.05 ms | 1.2 FPS | **NPU** | 2.1% |
-| OCR det / PDF text-det | 100 | ~2–108 ms | — | **NPU** | 0.7% |
+| Table recognition | 13 | 692.97 ms | 1.4 FPS | **NPU** | 77.3% |
+| Layout analysis | 9 | 289.71 ms | 3.5 FPS | **NPU** | 22.4% |
+| PDF text-det | 82 | 0.45 ms | 2232 FPS | **NPU** | 0.3% |
 
-This paper is **formula-dense** (164 equation regions → 85% of the time), showcasing
-formula recognition alongside NPU layout/OCR/table. Model load: 1.75 s.
+**`ocr` (full OCR det + rec on NPU) — 14.65 s wall, 9 pages (2.15 s/page):** Layout 374.81 ms,
+OCR det 55.73 ms (×63), OCR rec 16.14 ms (×102), Table 833.94 ms — all on the DX-M1 NPU.
+Model load: 1.75 s.
 
 ## Sample output (excerpt from `sample_output.md`)
 
-Title, authors, abstract and section headings are preserved; equations are recognized as
-formula regions (rendered as cropped images in the Markdown):
+Headings and financial tables are preserved verbatim (HTML `<table>` markup, the
+PP-StructureV3 convention; rowspan/colspan retained):
 
 ```markdown
-# High-precision Absolute Distance and Vibration Measurement using Frequency Scanned Interferometry
+# 比亚迪股份有限公司
+# 2025 年第一季度报告
+# 一、主要财务数据
 
-Hai-Jun Yang, Jason Deibel, Sven Nyberg, Keith Riles
-Department of Physics, University of Michigan, Ann Arbor, MI 48109-1120, USA
-
-In this paper, we report high-precision absolute distance and vibration measurements
-performed with frequency scanned interferometry using a pair of single-mode optical fibers...
-
-# 1. Introduction
-# 2. Principles
-# 3. Demonstration System of FSI
+<table><tr><td></td><td>本报告期</td><td>上年同期</td><td>本报告期比上年同期增减（%）</td></tr>
+<tr><td>营业收入（元）</td><td>170,360,448,000.00</td><td>124,944,397,000.00</td><td>36.35%</td></tr>
+<tr><td>归属于上市公司股东的净利润（元）</td><td>9,154,985,000.00</td><td>4,568,793,000.00</td><td>100.38%</td></tr>
+...
 ```
 
 ## How it works (standalone)
@@ -130,7 +128,7 @@ bash run.sh          # parse sample_input.pdf on the NPU → output/<stem>/<meth
 | `deepx_scripts/`, `setup_sample_models.sh` | DX env setup + NPU/ONNX model downloader |
 | `setup.sh` | venv + `requirements.deepx.txt` + dx_engine `.pth` bridge + model download |
 | `run.sh` | launcher: sources `set_env.sh`, `DXNN_DEVICES=0`, runs `pdf_to_markdown.py` |
-| `sample_input.pdf` / `sample_output.md` | English physics paper + its rendered Markdown |
+| `sample_input.pdf` / `sample_output.md` | sample financial report (BYD 2025 Q1, 9 pages) + its rendered Markdown |
 | `images/sample_before_after.png` | before/after: PDF page → parsed Markdown |
 | `timings.md` | per-stage NPU timing report (real run) |
 | `session.log` | captured real output of the inference runs |

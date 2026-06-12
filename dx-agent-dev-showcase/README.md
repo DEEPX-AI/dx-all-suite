@@ -114,7 +114,7 @@ Retrains `yolo26n` on `medical-pills` for a pharma counting station; 4-way eval 
 
 | Showcase | Kind | Highlight |
 |---|---|---|
-| [PDF → Markdown (document conversion app)](./rapiddoc-pdf2md/README.md) | app | 16-page physics paper parsed on-device (41.3s); standalone app — vendored rapid_doc, own entry, no fork clone; abstract + sections + 164 equations preserved |
+| [PDF → Markdown (document conversion app)](./rapiddoc-pdf2md/README.md) | app | 9-page financial report parsed on-device; standalone app — vendored rapid_doc, own entry, no fork clone; 21 headings + 9 HTML tables preserved (auto 12.6s / ocr 14.7s) |
 
 ### PDF → Markdown (document conversion app)
 
@@ -122,7 +122,7 @@ Retrains `yolo26n` on `medical-pills` for a pharma counting station; 4-way eval 
 
 Converts a PDF (digital or scanned) to structured Markdown + JSON — layout analysis, OCR, tables and formulas — on the DEEPX DX-M1 NPU via the RapidDoc fork. Supports `--parse-method auto|txt|ocr`.
 
-**Highlight:** 16-page physics paper parsed on-device (41.3s); standalone app — vendored rapid_doc, own entry, no fork clone; abstract + sections + 164 equations preserved · **Claude Opus 4.8** · ≈ 12 min · ≈ $6.2 — [details →](./rapiddoc-pdf2md/README.md)
+**Highlight:** 9-page financial report parsed on-device; standalone app — vendored rapid_doc, own entry, no fork clone; 21 headings + 9 HTML tables preserved (auto 12.6s / ocr 14.7s) · **Claude Opus 4.8** · ≈ 12 min · ≈ $6.2 — [details →](./rapiddoc-pdf2md/README.md)
 
 <br clear="right">
 <!-- dx-showcase:docs:catalog:end -->
