@@ -47,10 +47,10 @@ transcript.
 | Showcase | What it is | Build time | Agent turns | Output tokens | ~Cost |
 |---|---|---|---|---|---|
 | **[Ultralytics YOLO → DeepX Export](../../dx-agent-dev-showcase/ultralytics-yolo-deepx-export/)** | Turns an Ultralytics YOLO `.pt` into a deployable DeepX NPU model (`.dxnn`) in a single `yolo export ... format=deepx` command, then runs NPU inference + verify. | ≈ 11.6 min | 59 | — | ≈ $2.4 |
-| **[African Wildlife Monitoring](../../dx-agent-dev-showcase/ultralytics-retrain-eval-deepx-export-wildlife/)** | Retrains `yolo26n` on `african-wildlife` (buffalo/elephant/rhino/zebra) for a safari/conservation camera; 4-way eval base/retrained × fp32/INT8. | ≈ 12 min | 8 | ≈ 6.9K | ≈ $3.3 |
-| **[Construction PPE Safety](../../dx-agent-dev-showcase/ultralytics-retrain-eval-deepx-export-ppe/)** | Retrains `yolo26n` on `construction-ppe` for a site-safety camera (helmet/vest/...); 4-way eval base/retrained × fp32/INT8. | ≈ 13 min | 19 | ≈ 8.8K | ≈ $5.1 |
-| **[Brain-Tumor Screening](../../dx-agent-dev-showcase/ultralytics-retrain-eval-deepx-export-braintumor/)** | Retrains `yolo26n` on `brain-tumor` (MRI/CT) for a medical edge device; 4-way eval base/retrained × fp32/INT8. | ≈ 12 min | 11 | ≈ 8.9K | ≈ $3.7 |
-| **[Pharmaceutical Pill Inspection](../../dx-agent-dev-showcase/ultralytics-retrain-eval-deepx-export-pills/)** | Retrains `yolo26n` on `medical-pills` for a pharma counting station; 4-way eval base/retrained × fp32/INT8. | ≈ 10 min | 12 | ≈ 6.0K | ≈ $5.1 |
+| **[African Wildlife Monitoring](../../dx-agent-dev-showcase/ultralytics-retrain-eval-deepx-export-wildlife/)** | Retrains `yolo26n` on `african-wildlife` (buffalo/elephant/rhino/zebra) for a safari/conservation camera; 4-way eval base/retrained × fp32/INT8. | ≈ 7 min | 78 | ≈ 85K | ≈ $3.2 |
+| **[Construction PPE Safety](../../dx-agent-dev-showcase/ultralytics-retrain-eval-deepx-export-ppe/)** | Retrains `yolo26n` on `construction-ppe` for a site-safety camera (helmet/vest/...); 4-way eval base/retrained × fp32/INT8. | ≈ 9 min | 117 | ≈ 113K | ≈ $5.1 |
+| **[Brain-Tumor Screening](../../dx-agent-dev-showcase/ultralytics-retrain-eval-deepx-export-braintumor/)** | Retrains `yolo26n` on `brain-tumor` (MRI/CT) for a medical edge device; 4-way eval base/retrained × fp32/INT8. | ≈ 9 min | 91 | ≈ 103K | ≈ $3.7 |
+| **[Pharmaceutical Pill Inspection](../../dx-agent-dev-showcase/ultralytics-retrain-eval-deepx-export-pills/)** | Retrains `yolo26n` on `medical-pills` for a pharma counting station; 4-way eval base/retrained × fp32/INT8. | ≈ 8 min | 118 | ≈ 103K | ≈ $5.1 |
 
 #### PaddlePaddle ecosystem integration
 

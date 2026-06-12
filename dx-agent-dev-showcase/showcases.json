@@ -124,10 +124,10 @@
       "highlight_en": "mAP ~0.0007→0.79, 59→80 FPS",
       "highlight_ko": "mAP ~0.0007→0.79, 59→80 FPS",
       "model": "Claude Opus 4.8",
-      "build": "≈ 12 min",
-      "turns": "8",
-      "tokens": "≈ 6.9K",
-      "cost": "≈ $3.3"
+      "build": "≈ 7 min",
+      "turns": "78",
+      "tokens": "≈ 85K",
+      "cost": "≈ $3.2"
     },
     {
       "name": "ultralytics-retrain-eval-deepx-export-ppe",
@@ -145,9 +145,9 @@
       "highlight_en": "mAP 0.0001→0.257, 58→80 FPS",
       "highlight_ko": "mAP 0.0001→0.257, 58→80 FPS",
       "model": "Claude Opus 4.8",
-      "build": "≈ 13 min",
-      "turns": "19",
-      "tokens": "≈ 8.8K",
+      "build": "≈ 9 min",
+      "turns": "117",
+      "tokens": "≈ 113K",
       "cost": "≈ $5.1"
     },
     {
@@ -166,9 +166,9 @@
       "highlight_en": "mAP ~0.0005→0.40, 59→83 FPS",
       "highlight_ko": "mAP ~0.0005→0.40, 59→83 FPS",
       "model": "Claude Opus 4.8",
-      "build": "≈ 12 min",
-      "turns": "11",
-      "tokens": "≈ 8.9K",
+      "build": "≈ 9 min",
+      "turns": "91",
+      "tokens": "≈ 103K",
       "cost": "≈ $3.7"
     },
     {
@@ -187,9 +187,9 @@
       "highlight_en": "mAP ~0.001→0.75 (mAP50 0.97), 55→78 FPS",
       "highlight_ko": "mAP ~0.001→0.75 (mAP50 0.97), 55→78 FPS",
       "model": "Claude Opus 4.8",
-      "build": "≈ 10 min",
-      "turns": "12",
-      "tokens": "≈ 6.0K",
+      "build": "≈ 8 min",
+      "turns": "118",
+      "tokens": "≈ 103K",
       "cost": "≈ $5.1"
     },
     {

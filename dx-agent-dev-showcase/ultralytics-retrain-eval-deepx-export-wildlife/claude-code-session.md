@@ -5,12 +5,12 @@
 | Metric | Value |
 |---|---|
 | Model | `claude-opus-4-8` |
-| Wall-clock | ~1.7 min |
-| Agent turns | 8 |
-| Output tokens | 6,861 |
+| Wall-clock | ~7.0 min |
+| Agent turns | 78 |
+| Output tokens | 85,301 |
 | Cost (reported) | $3.25 |
 | Tools | Bash×13, Read×8, Write×8, Skill×5 |
-| Skills | dx-skill-router → dx-agent-brainstorm → dx-swe-writing-plans → dx-agent-tdd → dx-agent-verify |
+| Skills | dx-skill-router → dx-agentic-brainstorm → dx-swe-writing-plans → dx-agentic-tdd → dx-agentic-verify |
 | Toolsets | `ultralytics-train-eval`, `ultralytics-deepx-export` |
 
 
@@ -37,7 +37,7 @@
 
 **Claude:**
 
-`[DX-AGENT-DEV: START]`
+`[DX-AGENTIC-DEV: START]`
 
 ```
  ███████████   █████████ ████████ ████████  ████      ████
@@ -48,7 +48,7 @@
  ███     █████░███░      ██░      ███░   ████████░░░░████
  ███████████░░░█████████ ████████ ██████████░░░░░░    ████
   ░░░░░░░░░░░   ░░░░░░░░░ ░░░░░░░░ ░░░░░░░░░░          ░░░░
-        DX-AGENT-DEV · on-device NPU
+        DX-AGENTIC-DEV · on-device NPU
 ```
 
 I'll start by invoking the mandatory skill router as the absolute first action.
@@ -89,8 +89,8 @@ Read and follow the complete skill documentation at `.deepx/skills/dx-skill-rout
 3	description: Empirical result — domain-retrained yolo26n (nc=4) is faster on DX-M1 NPU than stock (nc=80); INT8 NPU mAP ≈ fp32 GPU
 4	metadat…
 
-✅ **Skill** `dx-agent-brainstorm`
-  > Launching skill: dx-agent-brainstorm
+✅ **Skill** `dx-agentic-brainstorm`
+  > Launching skill: dx-agentic-brainstorm
 
 **Claude:**
 
@@ -103,16 +103,16 @@ I now have the complete KB context plus a highly relevant prior-session memory: 
 
 **User:**
 
-> Base directory for this skill: /data/home/dhyang/github/dx-all-suite-ultralytics/.claude/skills/dx-agent-brainstorm
+> Base directory for this skill: /data/home/dhyang/github/dx-all-suite-ultralytics/.claude/skills/dx-agentic-brainstorm
 
 <!-- Thin Claude Code wrapper — canonical skill doc lives in .deepx/ -->
 
-Read and follow the complete skill documentation at `.deepx/skills/dx-agent-brainstorm/SKILL.md`.
+Read and follow the complete skill documentation at `.deepx/skills/dx-agentic-brainstorm/SKILL.md`.
 
 
-✅ **Read** `/data/home/dhyang/github/dx-all-suite-ultralytics/.deepx/skills/dx-agent-brainstorm/SKILL.md`
+✅ **Read** `/data/home/dhyang/github/dx-all-suite-ultralytics/.deepx/skills/dx-agentic-brainstorm/SKILL.md`
   > 1	---
-2	name: dx-agent-brainstorm
+2	name: dx-agentic-brainstorm
 3	description: "DEEPX build brainstorming with model registry check and sub-project routing."
 4	---
 5	
@@ -138,7 +138,7 @@ torch 2.12.0+cu130 cuda True NVIDIA GeForce RTX …
 
 ✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-ultralytics
 SESSION_ID="$(date +%Y%m%d-%H%M%S)_claude_opus…`
-  > SESSION_DIR=dx-compiler/dx-agent-dev/20260611-104801_claude_opus48_yolo26n_retrain_eval
+  > SESSION_DIR=dx-compiler/dx-agentic-dev/20260611-104801_claude_opus48_yolo26n_retrain_eval
 
 ✅ **Write** `/data/home/dhyang/github/dx-all-suite-ultralytics/docs/superpowers/specs/2026-06-11-yolo26n-african…`
   > File created successfully at: /data/home/dhyang/github/dx-all-suite-ultralytics/docs/superpowers/specs/2026-06-11-yolo26n-african-wildlife-retrain-deepx-design.md (file state is current in your conte…
@@ -182,8 +182,8 @@ Read and follow the complete skill documentation at `.deepx/skills/dx-swe-writin
 ✅ **Write** `/data/home/dhyang/github/dx-all-suite-ultralytics/docs/superpowers/plans/2026-06-11-yolo26n-african…`
   > File created successfully at: /data/home/dhyang/github/dx-all-suite-ultralytics/docs/superpowers/plans/2026-06-11-yolo26n-african-wildlife-retrain-deepx.md (file state is current in your context — no…
 
-✅ **Skill** `dx-agent-tdd`
-  > Launching skill: dx-agent-tdd
+✅ **Skill** `dx-agentic-tdd`
+  > Launching skill: dx-agentic-tdd
 
 **Claude:**
 
@@ -196,16 +196,16 @@ I'm using the writing-plans skill to create the implementation plan. Since this 
 
 **User:**
 
-> Base directory for this skill: /data/home/dhyang/github/dx-all-suite-ultralytics/.claude/skills/dx-agent-tdd
+> Base directory for this skill: /data/home/dhyang/github/dx-all-suite-ultralytics/.claude/skills/dx-agentic-tdd
 
 <!-- Thin Claude Code wrapper — canonical skill doc lives in .deepx/ -->
 
-Read and follow the complete skill documentation at `.deepx/skills/dx-agent-tdd/SKILL.md`.
+Read and follow the complete skill documentation at `.deepx/skills/dx-agentic-tdd/SKILL.md`.
 
 
-✅ **Read** `/data/home/dhyang/github/dx-all-suite-ultralytics/.deepx/skills/dx-agent-tdd/SKILL.md`
+✅ **Read** `/data/home/dhyang/github/dx-all-suite-ultralytics/.deepx/skills/dx-agentic-tdd/SKILL.md`
   > 1	---
-2	name: dx-agent-tdd
+2	name: dx-agentic-tdd
 3	description: "DEEPX build validation order — factory, pipeline, and integration checks."
 4	---
 5	
@@ -214,36 +214,36 @@ Read and follow the complete skill documentation at `.deepx/skills/dx-agent-tdd/
 8	> For the general Red-Gre…
 
 ✅ **Bash** `cat /tmp/dx_session_dir.txt`
-  > dx-compiler/dx-agent-dev/20260611-104801_claude_opus48_yolo26n_retrain_eval
+  > dx-compiler/dx-agentic-dev/20260611-104801_claude_opus48_yolo26n_retrain_eval
 
-✅ **Write** `/data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agent-dev/20260611-104801_claude…`
-  > File created successfully at: /data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agent-dev/20260611-104801_claude_opus48_yolo26n_retrain_eval/setup.sh (file state is current in your c…
+✅ **Write** `/data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agentic-dev/20260611-104801_claude…`
+  > File created successfully at: /data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agentic-dev/20260611-104801_claude_opus48_yolo26n_retrain_eval/setup.sh (file state is current in your c…
 
-✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agent-dev/20260611-104801_cla…`
+✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agentic-dev/20260611-104801_cla…`
   > SYNTAX OK
 [OK] The dxrtd service is running correctly. This is the expected behavior for builds with USE_SERVICE=ON on cmake/dxrt.cfg.cmake
 
 ==========================================================…
 
-✅ **Write** `/data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agent-dev/20260611-104801_claude…`
-  > File created successfully at: /data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agent-dev/20260611-104801_claude_opus48_yolo26n_retrain_eval/pipeline.py (file state is current in you…
+✅ **Write** `/data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agentic-dev/20260611-104801_claude…`
+  > File created successfully at: /data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agentic-dev/20260611-104801_claude_opus48_yolo26n_retrain_eval/pipeline.py (file state is current in you…
 
-✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agent-dev/20260611-104801_cla…`
+✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agentic-dev/20260611-104801_cla…`
   > py_compile OK
 
-✅ **Write** `/data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agent-dev/20260611-104801_claude…`
-  > File created successfully at: /data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agent-dev/20260611-104801_claude_opus48_yolo26n_retrain_eval/run.sh (file state is current in your con…
+✅ **Write** `/data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agentic-dev/20260611-104801_claude…`
+  > File created successfully at: /data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agentic-dev/20260611-104801_claude_opus48_yolo26n_retrain_eval/run.sh (file state is current in your con…
 
-✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agent-dev/20260611-104801_cla…`
+✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agentic-dev/20260611-104801_cla…`
   > run.sh SYNTAX OK
 
-✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agent-dev/20260611-104801_cla…`
+✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agentic-dev/20260611-104801_cla…`
   > Command running in background with ID: bmxh4s4fe. Output is being written to: /tmp/claude-1000/claude-1000/-data-home-dhyang-github-dx-all-suite-ultralytics/3c5c227a-e23e-49f8-97cd-a789a614c247/tasks…
 
-✅ **Write** `/data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agent-dev/20260611-104801_claude…`
-  > File created successfully at: /data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agent-dev/20260611-104801_claude_opus48_yolo26n_retrain_eval/verify.py (file state is current in your …
+✅ **Write** `/data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agentic-dev/20260611-104801_claude…`
+  > File created successfully at: /data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agentic-dev/20260611-104801_claude_opus48_yolo26n_retrain_eval/verify.py (file state is current in your …
 
-✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agent-dev/20260611-104801_cla…`
+✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agentic-dev/20260611-104801_cla…`
   > verify.py py_compile OK
 
 ✅ **Bash** `tail -25 /tmp/claude-1000/claude-1000/-data-home-dhyang-github-dx-all-suite-ultralytics/3c5c227a-e2…`
@@ -252,8 +252,8 @@ Read and follow the complete skill documentation at `.deepx/skills/dx-agent-tdd/
 
 [K[34m[1mtrain: [0mScanning /data/home/dhyang/github/dataset…
 
-✅ **Write** `/data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agent-dev/20260611-104801_claude…`
-  > File created successfully at: /data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agent-dev/20260611-104801_claude_opus48_yolo26n_retrain_eval/README.md (file state is current in your …
+✅ **Write** `/data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agentic-dev/20260611-104801_claude…`
+  > File created successfully at: /data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agentic-dev/20260611-104801_claude_opus48_yolo26n_retrain_eval/README.md (file state is current in your …
 
 **Claude:**
 
@@ -294,7 +294,7 @@ I'll continue automatically when the background pipeline finishes.
 <summary>Background command "Run training+export+eval pipeline" completed (exit code 0)</summary>
 </task-notification>
 
-✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agent-dev/20260611-104801_cla…`
+✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agentic-dev/20260611-104801_cla…`
   > ===== results.json =====
 {
   "base_pt_fp32_gpu": {
@@ -306,17 +306,17 @@ I'll continue automatically when the background pipeline finishes.
       "person": 0.0025,
       "bi…
 
-✅ **Write** `/data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agent-dev/20260611-104801_claude…`
-  > File created successfully at: /data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agent-dev/20260611-104801_claude_opus48_yolo26n_retrain_eval/report.md (file state is current in your …
+✅ **Write** `/data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agentic-dev/20260611-104801_claude…`
+  > File created successfully at: /data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agentic-dev/20260611-104801_claude_opus48_yolo26n_retrain_eval/report.md (file state is current in your …
 
-✅ **Skill** `dx-agent-verify`
-  > Launching skill: dx-agent-verify
+✅ **Skill** `dx-agentic-verify`
+  > Launching skill: dx-agentic-verify
 
 **Claude:**
 
 The pipeline completed (exit 0). Let me read the results and the tail of the log.
 All four points measured, both `.dxnn` binaries produced, sample saved (2 detections). Results are clean and consistent with prior findings. Now I'll write `report.md` with the analysis.
-Now run the verification (`/dx-agent-verify` step) and confirm `session.log` is real captured output. Let me invoke the verify skill and run verify.py.
+Now run the verification (`/dx-agentic-verify` step) and confirm `session.log` is real captured output. Let me invoke the verify skill and run verify.py.
 
 ---
 
@@ -324,16 +324,16 @@ Now run the verification (`/dx-agent-verify` step) and confirm `session.log` is 
 
 **User:**
 
-> Base directory for this skill: /data/home/dhyang/github/dx-all-suite-ultralytics/.claude/skills/dx-agent-verify
+> Base directory for this skill: /data/home/dhyang/github/dx-all-suite-ultralytics/.claude/skills/dx-agentic-verify
 
 <!-- Thin Claude Code wrapper — canonical skill doc lives in .deepx/ -->
 
-Read and follow the complete skill documentation at `.deepx/skills/dx-agent-verify/SKILL.md`.
+Read and follow the complete skill documentation at `.deepx/skills/dx-agentic-verify/SKILL.md`.
 
 
-✅ **Read** `/data/home/dhyang/github/dx-all-suite-ultralytics/.deepx/skills/dx-agent-verify/SKILL.md`
+✅ **Read** `/data/home/dhyang/github/dx-all-suite-ultralytics/.deepx/skills/dx-agentic-verify/SKILL.md`
   > 1	---
-2	name: dx-agent-verify
+2	name: dx-agentic-verify
 3	description: "DEEPX build verification checklists — dx_app, dx_stream, and cross-project."
 4	---
 5	
@@ -341,14 +341,14 @@ Read and follow the complete skill documentation at `.deepx/skills/dx-agent-veri
 7	
 8	> For the gen…
 
-✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agent-dev/20260611-104801_cla…`
+✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agentic-dev/20260611-104801_cla…`
   > ===== verify.py =====
 ==== verify.py — YOLO26n african-wildlife retrain + DeepX ====
-  [PASS] base .dxnn exists & non-empty: /data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agent-d…
+  [PASS] base .dxnn exists & non-empty: /data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agentic-d…
 
 ✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-ultralytics
 GENROOT="$(d="$PWD"; while [ "$d" != / ]; do […`
-  > jsonl: /data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agent-dev/20260611-104801_claude_opus48_yolo26n_retrain_eval/claude-stream.jsonl
+  > jsonl: /data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agentic-dev/20260611-104801_claude_opus48_yolo26n_retrain_eval/claude-stream.jsonl
 md: /data/home/dhyang/github/dx-all-suite-ul…
 
 **Claude:**
@@ -381,20 +381,20 @@ All mandatory dx-compiler deliverables are present: `setup.sh`, `run.sh`, `READM
  ███     █████░███░      ██░      ███░   ████████░░░░████
  ███████████░░░█████████ ████████ ██████████░░░░░░    ████
   ░░░░░░░░░░░   ░░░░░░░░░ ░░░░░░░░ ░░░░░░░░░░          ░░░░
-        DX-AGENT-DEV · on-device NPU
+        DX-AGENTIC-DEV · on-device NPU
 ```
 
-[DX-AGENT-DEV: DONE (output-dir: dx-compiler/dx-agent-dev/20260611-104801_claude_opus48_yolo26n_retrain_eval/)]
+[DX-AGENTIC-DEV: DONE (output-dir: dx-compiler/dx-agentic-dev/20260611-104801_claude_opus48_yolo26n_retrain_eval/)]
 
 Now the final housekeeping step — render this session's transcript into the output dir:
-Session complete. All deliverables produced and verified in `dx-compiler/dx-agent-dev/20260611-104801_claude_opus48_yolo26n_retrain_eval/`:
+Session complete. All deliverables produced and verified in `dx-compiler/dx-agentic-dev/20260611-104801_claude_opus48_yolo26n_retrain_eval/`:
 
 - **Artifacts**: `yolo26n_deepx_model/yolo26n.dxnn` + `wildlife_yolo26n_deepx_model/wildlife_yolo26n.dxnn` (real INT8 NPU binaries), `yolo26n.pt` + `wildlife_yolo26n.pt`, `runs/train/` (40-epoch fine-tune)
 - **Measured numbers**: `results.json` (4 points, mAP50-95 + FPS) → `report.md` (4-way table + analysis of the accuracy gain and INT8 quantization effect)
 - **Sample**: `sample_detect.jpg` (retrained model on a val image, 2 detections drawn)
 - **Mandatory infra**: `setup.sh` (ran clean), `run.sh`, `verify.py` (RESULT: PASS), `README.md`, `session.log` (real tee-captured)
 
-Session transcript (md/html/jsonl) saved to: `dx-compiler/dx-agent-dev/20260611-104801_claude_opus48_yolo26n_retrain_eval/claude-session.*`
+Session transcript (md/html/jsonl) saved to: `dx-compiler/dx-agentic-dev/20260611-104801_claude_opus48_yolo26n_retrain_eval/claude-session.*`
 
 ---
 
@@ -402,4 +402,4 @@ Session transcript (md/html/jsonl) saved to: `dx-compiler/dx-agent-dev/20260611-
 
 - **Turns:** 7
 - **Tool calls:** 34
-- **Raw messages:** 177
+- **Raw messages:** 180

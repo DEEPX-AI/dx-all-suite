@@ -68,7 +68,7 @@ Turns an Ultralytics YOLO `.pt` into a deployable DeepX NPU model (`.dxnn`) in a
 
 Retrains `yolo26n` on `african-wildlife` (buffalo/elephant/rhino/zebra) for a safari/conservation camera; 4-way eval base/retrained × fp32/INT8.
 
-**Highlight:** mAP ~0.0007→0.79, 59→80 FPS · **Claude Opus 4.8** · ≈ 12 min · ≈ $3.3 — [details →](./ultralytics-retrain-eval-deepx-export-wildlife/README.md)
+**Highlight:** mAP ~0.0007→0.79, 59→80 FPS · **Claude Opus 4.8** · ≈ 7 min · ≈ $3.2 — [details →](./ultralytics-retrain-eval-deepx-export-wildlife/README.md)
 
 <br clear="right">
 
@@ -78,7 +78,7 @@ Retrains `yolo26n` on `african-wildlife` (buffalo/elephant/rhino/zebra) for a sa
 
 Retrains `yolo26n` on `construction-ppe` for a site-safety camera (helmet/vest/...); 4-way eval base/retrained × fp32/INT8.
 
-**Highlight:** mAP 0.0001→0.257, 58→80 FPS · **Claude Opus 4.8** · ≈ 13 min · ≈ $5.1 — [details →](./ultralytics-retrain-eval-deepx-export-ppe/README.md)
+**Highlight:** mAP 0.0001→0.257, 58→80 FPS · **Claude Opus 4.8** · ≈ 9 min · ≈ $5.1 — [details →](./ultralytics-retrain-eval-deepx-export-ppe/README.md)
 
 <br clear="right">
 
@@ -88,7 +88,7 @@ Retrains `yolo26n` on `construction-ppe` for a site-safety camera (helmet/vest/.
 
 Retrains `yolo26n` on `brain-tumor` (MRI/CT) for a medical edge device; 4-way eval base/retrained × fp32/INT8.
 
-**Highlight:** mAP ~0.0005→0.40, 59→83 FPS · **Claude Opus 4.8** · ≈ 12 min · ≈ $3.7 — [details →](./ultralytics-retrain-eval-deepx-export-braintumor/README.md)
+**Highlight:** mAP ~0.0005→0.40, 59→83 FPS · **Claude Opus 4.8** · ≈ 9 min · ≈ $3.7 — [details →](./ultralytics-retrain-eval-deepx-export-braintumor/README.md)
 
 <br clear="right">
 
@@ -98,7 +98,7 @@ Retrains `yolo26n` on `brain-tumor` (MRI/CT) for a medical edge device; 4-way ev
 
 Retrains `yolo26n` on `medical-pills` for a pharma counting station; 4-way eval base/retrained × fp32/INT8.
 
-**Highlight:** mAP ~0.001→0.75 (mAP50 0.97), 55→78 FPS · **Claude Opus 4.8** · ≈ 10 min · ≈ $5.1 — [details →](./ultralytics-retrain-eval-deepx-export-pills/README.md)
+**Highlight:** mAP ~0.001→0.75 (mAP50 0.97), 55→78 FPS · **Claude Opus 4.8** · ≈ 8 min · ≈ $5.1 — [details →](./ultralytics-retrain-eval-deepx-export-pills/README.md)
 
 <br clear="right">
 
