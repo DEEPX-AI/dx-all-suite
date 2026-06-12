@@ -61,6 +61,40 @@ def test_runsh_wraps_fork_demo(tmp_path):
     assert verify.runsh_wraps_fork_demo(tmp_path / "nope.sh") is None
 
 
+def test_inject_metrics_merges_store_tokens_with_stream_cost(tmp_path):
+    """A -p stream's result.usage under-reports total output on multi-segment builds; the
+    session store has accurate per-message tokens/turns but no cost/wall. _inject_metrics
+    must merge: store → output_tokens/turns, stream → cost/wall."""
+    from dx_transcripts.generate_transcripts import _inject_metrics
+    # stream: 2 result segments (final-result usage only → undercount) + cumulative cost
+    stream = tmp_path / "stream.jsonl"
+    stream.write_text("\n".join(json.dumps(x) for x in [
+        {"type": "system", "subtype": "init", "model": "claude-opus-4-8"},
+        {"type": "result", "subtype": "success", "duration_ms": 400000, "num_turns": 44,
+         "total_cost_usd": 4.19, "usage": {"output_tokens": 38861}},
+        {"type": "result", "subtype": "success", "duration_ms": 311000, "num_turns": 17,
+         "total_cost_usd": 6.18, "usage": {"output_tokens": 12969}},
+    ]))
+    # store: per-message usage (accurate total) — 3 assistant msgs, 148,000 output
+    store = tmp_path / "store.jsonl"
+    store.write_text("\n".join(json.dumps(x) for x in [
+        {"type": "assistant", "message": {"role": "assistant", "model": "claude-opus-4-8",
+         "usage": {"output_tokens": 100000}, "content": [{"type": "text", "text": "a"}]}},
+        {"type": "assistant", "message": {"role": "assistant",
+         "usage": {"output_tokens": 40000}, "content": [{"type": "text", "text": "b"}]}},
+        {"type": "assistant", "message": {"role": "assistant",
+         "usage": {"output_tokens": 8000}, "content": [{"type": "text", "text": "c"}]}},
+    ]))
+    md = tmp_path / "out.md"; md.write_text("# T\n\nbody\n")
+    written = {"md": str(md), "html": None}
+    _inject_metrics(written, str(stream), store_jsonl=str(store))
+    body = md.read_text()
+    assert "148,000" in body          # store output_tokens (NOT the stream's 51,830)
+    assert "| Agent turns | 3 |" in body   # store turn count (NOT 61)
+    assert "$6.18" in body            # stream cumulative cost (store has none)
+    assert "~11.8 min" in body        # stream wall (711000ms → ~11.8), store has none
+
+
 def test_is_complete(tmp_path):
     assert transcript.is_complete(_stream(tmp_path, with_result=True))
     assert not transcript.is_complete(_stream(tmp_path, with_result=False))

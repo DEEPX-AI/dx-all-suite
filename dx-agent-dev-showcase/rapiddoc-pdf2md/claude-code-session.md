@@ -6,8 +6,8 @@
 |---|---|
 | Model | `claude-opus-4-8` |
 | Wall-clock | ~11.9 min |
-| Agent turns | 61 |
-| Output tokens | 51,830 |
+| Agent turns | 133 |
+| Output tokens | 148,549 |
 | Cost (reported) | $6.18 |
 | Tools | Bash×27, Read×9, Write×7, Edit×6, Skill×5 |
 | Skills | dx-skill-router → dx-agent-brainstorm → dx-swe-writing-plans → dx-agent-tdd → dx-agent-verify |

@@ -288,11 +288,31 @@ def _metrics_rows(m):
     return rows
 
 
-def _inject_metrics(written: dict, jsonl_path) -> None:
+def _inject_metrics(written: dict, jsonl_path, store_jsonl=None) -> None:
     """Prepend a 'Session summary' block (model/turns/tools/tokens/cost) to the
-    rendered md + html, computed from the session jsonl. Best-effort; never raises."""
+    rendered md + html, computed from the session jsonl. Best-effort; never raises.
+
+    When ``jsonl_path`` is a ``-p`` STREAM capture and ``store_jsonl`` is the session
+    store, MERGE the two: the stream's ``result`` events carry the authoritative
+    cumulative **cost** + **wall-clock** (the store has neither), while the store carries
+    the accurate per-message **output_tokens** + **turns** + full **tool/skill** history.
+    The stream's ``result.usage`` is only the final-result usage per segment, so on a
+    multi-segment build it badly under-reports total output tokens — hence we prefer the
+    store for tokens/turns whenever it is available."""
     try:
         m = _session_metrics(jsonl_path)
+        if store_jsonl and str(store_jsonl) != str(jsonl_path):
+            ms = _session_metrics(store_jsonl)
+            if ms:
+                base = dict(m or {})
+                # store-accurate fields override the stream's result-based ones
+                for k in ("output_tokens", "num_turns", "tools", "skills", "toolsets"):
+                    if ms.get(k):
+                        base[k] = ms[k]
+                if not base.get("model"):
+                    base["model"] = ms.get("model")
+                # keep duration_ms + total_cost_usd from the stream (m); store lacks them
+                m = base
         rows = _metrics_rows(m) if m else []
         if not rows:
             return
@@ -382,7 +402,8 @@ def _load_claude(out_dir, prefix, session_id, project_path, include_thinking, st
     jl = _copy_jsonl(out_dir, prefix, _src)
     if jl:
         written["jsonl"] = jl
-    _inject_metrics(written, _src)
+    # When rendering from a stream capture, merge store-accurate tokens/turns in.
+    _inject_metrics(written, _src, store_jsonl=getattr(meta, "jsonl_path", None))
     return written
 
 
