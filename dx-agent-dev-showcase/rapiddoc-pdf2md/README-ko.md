@@ -71,13 +71,13 @@ pip 의존성 설치 + **NPU 모델 다운로드**(16 `.dxnn` + 8 `.onnx`, 커�
 빌드가 생성한 문서로, **이 앱의 `pdf_to_markdown.py`** 가 DX-M1에서 렌더(`DXNN_DEVICES=0`,
 runtime 3.3.2 / FW v2.5.6). `session.log` / `timings.md`에 기록.
 
-**`auto` (text layer + layout + table NPU) — 12.63 s wall, 9페이지 (1.29 s/page):**
+**`auto` (text layer + layout + table NPU) — 12.50 s wall, 9페이지 (1.28 s/page):**
 
 | Stage | Count | 평균 latency | Throughput | Engine | 비중 |
 |---|---:|---:|---:|---|---:|
-| Table recognition | 13 | 692.97 ms | 1.4 FPS | **NPU** | 77.3% |
-| Layout analysis | 9 | 289.71 ms | 3.5 FPS | **NPU** | 22.4% |
-| PDF text-det | 82 | 0.45 ms | 2232 FPS | **NPU** | 0.3% |
+| Table recognition | 13 | 689.69 ms | 1.4 FPS | **NPU** | 77.7% |
+| Layout analysis | 9 | 281.81 ms | 3.5 FPS | **NPU** | 22.0% |
+| PDF text-det | 82 | 0.46 ms | 2157 FPS | **NPU** | 0.3% |
 
 **`ocr` (전체 OCR det + rec NPU) — 14.65 s wall, 9페이지 (2.15 s/page):** Layout 374.81 ms,
 OCR det 55.73 ms (×63), OCR rec 16.14 ms (×102), Table 833.94 ms — 모두 DX-M1 NPU. 모델 load 1.75 s.

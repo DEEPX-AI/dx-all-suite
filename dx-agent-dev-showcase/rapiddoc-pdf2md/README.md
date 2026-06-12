@@ -72,13 +72,13 @@ only installs pip deps and **downloads the NPU models** (16 `.dxnn` + 8 `.onnx`,
 the document the agent's build generated, rendered by **this app's own `pdf_to_markdown.py`**
 on DX-M1 (`DXNN_DEVICES=0`, runtime 3.3.2 / FW v2.5.6). Captured in `session.log` / `timings.md`.
 
-**`auto` (text layer + layout + table on NPU) — 12.63 s wall, 9 pages (1.29 s/page):**
+**`auto` (text layer + layout + table on NPU) — 12.50 s wall, 9 pages (1.28 s/page):**
 
 | Stage | Count | Avg latency | Throughput | Engine | Share |
 |---|---:|---:|---:|---|---:|
-| Table recognition | 13 | 692.97 ms | 1.4 FPS | **NPU** | 77.3% |
-| Layout analysis | 9 | 289.71 ms | 3.5 FPS | **NPU** | 22.4% |
-| PDF text-det | 82 | 0.45 ms | 2232 FPS | **NPU** | 0.3% |
+| Table recognition | 13 | 689.69 ms | 1.4 FPS | **NPU** | 77.7% |
+| Layout analysis | 9 | 281.81 ms | 3.5 FPS | **NPU** | 22.0% |
+| PDF text-det | 82 | 0.46 ms | 2157 FPS | **NPU** | 0.3% |
 
 **`ocr` (full OCR det + rec on NPU) — 14.65 s wall, 9 pages (2.15 s/page):** Layout 374.81 ms,
 OCR det 55.73 ms (×63), OCR rec 16.14 ms (×102), Table 833.94 ms — all on the DX-M1 NPU.
