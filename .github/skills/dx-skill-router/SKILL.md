@@ -101,6 +101,12 @@ digraph skill_flow {
 | `dx-harness-validate` | Validate .deepx/ framework integrity (generator, tests, drift check) |
 | `dx-harness-writing-skills` | Create/edit .deepx/ skill files |
 
+### Internal Business (dx-internal-*)
+
+| Skill | When to use |
+|-------|-------------|
+| `dx-internal-model-eval` | Evaluate/compare coding-agent or model performance via the e2e-test harness — agent-vs-agent, model-vs-model (new frontier vs existing), or thinking/reasoning-effort comparison |
+
 ### Meta
 
 | Skill | When to use |

@@ -178,13 +178,14 @@ cd .deepx/e2e
 
 ---
 
-## 6. Skill Tiers (3-Tier Model)
+## 6. Skill Tiers (Tiered Model)
 
 | Tier | Prefix | Scope | Example |
 |------|--------|-------|---------|
 | **General SWE** | `dx-swe-*` | Any SDK / docs / general coding | `dx-swe-tdd` |
 | **End-User (Agent-Driven Dev)** | `dx-agent-*` | Building apps/pipelines via dx-agent-dev | `dx-agent-tdd` |
 | **Harness Eng** | `dx-harness-*` | Internal `.deepx/`, `tests/`, `tools/` maintenance | `dx-harness-validate` |
+| **Internal Business** | `dx-internal-*` | Internal ops that USE the harness (model/agent perf evals) | `dx-internal-model-eval` |
 | **Meta** | `dx-skill-router` | Used in all tiers (universal pre-flight) | — |
 
 `dx-agent-*` skills reference the corresponding `dx-swe-*` skill and add DEEPX-

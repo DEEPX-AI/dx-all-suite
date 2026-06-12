@@ -178,13 +178,14 @@ cd .deepx/e2e
 
 ---
 
-## 6. Skill 계층 (3-Tier 모델)
+## 6. Skill 계층 (Tiered 모델)
 
 | Tier | Prefix | Scope | Example |
 |------|--------|-------|---------|
 | **General SWE** | `dx-swe-*` | 모든 SDK / docs / general coding | `dx-swe-tdd` |
 | **End-User (Agent-Driven Dev)** | `dx-agent-*` | dx-agent-dev를 통한 앱/파이프라인 빌드 | `dx-agent-tdd` |
 | **Harness Eng** | `dx-harness-*` | 내부 `.deepx/`, `tests/`, `tools/` 유지보수 | `dx-harness-validate` |
+| **Internal Business** | `dx-internal-*` | 하네스를 *사용하는* 내부 업무 (model/agent 성능 eval) | `dx-internal-model-eval` |
 | **Meta** | `dx-skill-router` | 모든 tier에서 사용 (universal pre-flight) | — |
 
 `dx-agent-*` skill은 대응하는 `dx-swe-*` skill을 참조하고 DEEPX 고유 콘텐츠
