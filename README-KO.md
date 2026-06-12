@@ -53,9 +53,11 @@
 </tr>
 </table>
 
-#### PaddlePaddle 생태계 통합
+#### PaddlePaddle 생태계 통합 — _PaddleOCR 영상/웹캠 OCR showcase — 추후 추가 예정._
 
-**단 하나의 간결한 자연어 프롬프트로 만드는, DEEPX NPU를 활용한 PDF → Markdown 문서 변환 앱.** PaddleOCR / RapidDoc (PP-OCRv5, PP-StructureV3): 레이아웃·OCR·표·수식을 DX-M1 NPU에서 실행.
+#### RapidAI 생태계 통합
+
+**단 하나의 간결한 자연어 프롬프트로 만드는, DEEPX NPU를 활용한 PDF → Markdown 문서 변환 앱.** RapidAI의 RapidDoc (PP-StructureV3): 레이아웃·OCR·표·수식 — PaddlePaddle로 학습된 모델을 DX-M1 NPU에서 실행. 포크 파이프라인으로부터 생성한 standalone·self-contained 앱.
 
 <table>
 <tr>

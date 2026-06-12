@@ -7,6 +7,7 @@ before declaring a showcase DONE.
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -53,6 +54,24 @@ def _py_ok(path: Path) -> bool:
 def _bash_ok(path: Path) -> bool:
     cp = subprocess.run(["bash", "-n", str(path)], capture_output=True, text=True)
     return cp.returncode == 0
+
+
+# Fork-based showcases (RapidDoc / PaddleOCR) MUST ship a GENERATED standalone app, not a
+# run.sh that shells out to the fork's own demo/example. Match an invocation of a fork demo
+# script (e.g. `python demo/demo_offline.py`, `.../demo/foo.py`, `examples/bar.py`).
+_FORK_DEMO_RE = re.compile(
+    r"(?:python\d?|python3)\s+\S*(?:demo|examples?)/\S*\.py", re.MULTILINE)
+
+
+def runsh_wraps_fork_demo(run_sh: Path) -> Optional[bool]:
+    """True if run.sh invokes a fork demo/example script instead of a generated app entry.
+    None if run.sh is absent (check skipped)."""
+    if not run_sh.exists():
+        return None
+    try:
+        return bool(_FORK_DEMO_RE.search(run_sh.read_text(errors="replace")))
+    except Exception:
+        return None
 
 
 def verify_showcase(showcase_dir: str, *, stream_json: Optional[str] = None,
@@ -121,6 +140,14 @@ def verify_showcase(showcase_dir: str, *, stream_json: Optional[str] = None,
             rep.add(f"py syntax: {rf}", _py_ok(p))
         elif p.exists() and p.suffix == ".sh":
             rep.add(f"bash syntax: {rf}", _bash_ok(p))
+
+    # 4b. fork-based apps: run.sh must run a GENERATED entry, not the fork's demo/example
+    # (RapidDoc/PaddleOCR — wrapping demo_offline.py is not a standalone app; skill rule 9).
+    wraps = runsh_wraps_fork_demo(sc / "run.sh")
+    if wraps is not None:
+        rep.add("run.sh runs a generated app (not a fork demo)", not wraps,
+                "own entry" if not wraps
+                else "run.sh shells out to a fork demo/example — generate a standalone entry")
 
     # 5. README/docs augmented (idempotent marker present for this showcase)
     for tgt in (augment_targets or []):

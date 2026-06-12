@@ -104,7 +104,13 @@ Retrains `yolo26n` on `medical-pills` for a pharma counting station; 4-way eval 
 
 ## PaddlePaddle ecosystem integration
 
-**A PDF → Markdown document-conversion app on the DEEPX NPU — from a single, concise natural-language prompt.** PaddleOCR / RapidDoc (PP-OCRv5, PP-StructureV3): layout, OCR, tables, formulas on the DX-M1 NPU.
+**PaddleOCR (PP-OCRv5) on the DEEPX NPU — video & webcam OCR from a single prompt.** Baidu's PaddlePaddle OCR models, run on the DX-M1 NPU.
+
+> _PaddleOCR video/webcam OCR showcase — coming soon._
+
+## RapidAI ecosystem integration
+
+**A PDF → Markdown document-conversion app on the DEEPX NPU — from a single, concise natural-language prompt.** RapidAI's RapidDoc (PP-StructureV3): layout, OCR, tables, formulas — running PaddlePaddle-trained models on the DX-M1 NPU. A standalone, self-contained app generated from the fork's pipeline.
 
 | Showcase | Kind | Highlight |
 |---|---|---|

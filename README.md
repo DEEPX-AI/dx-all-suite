@@ -53,9 +53,11 @@
 </tr>
 </table>
 
-#### PaddlePaddle ecosystem integration
+#### PaddlePaddle ecosystem integration — _PaddleOCR video/webcam OCR showcase — coming soon._
 
-**A PDF → Markdown document-conversion app on the DEEPX NPU — from a single, concise natural-language prompt.** PaddleOCR / RapidDoc (PP-OCRv5, PP-StructureV3): layout, OCR, tables, formulas on the DX-M1 NPU.
+#### RapidAI ecosystem integration
+
+**A PDF → Markdown document-conversion app on the DEEPX NPU — from a single, concise natural-language prompt.** RapidAI's RapidDoc (PP-StructureV3): layout, OCR, tables, formulas — running PaddlePaddle-trained models on the DX-M1 NPU. A standalone, self-contained app generated from the fork's pipeline.
 
 <table>
 <tr>

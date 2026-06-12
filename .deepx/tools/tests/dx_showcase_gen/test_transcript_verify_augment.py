@@ -49,6 +49,18 @@ def test_metrics_from_stream_multiple_results(tmp_path):
     assert m["total_cost_usd"] == 14.34                      # cumulative → last
 
 
+def test_runsh_wraps_fork_demo(tmp_path):
+    rs = tmp_path / "run.sh"
+    # wrapping the fork's demo → flagged (FAIL the gate)
+    rs.write_text("#!/bin/bash\ncd RapidDoc\npython demo/demo_offline.py in.pdf --finegrained\n")
+    assert verify.runsh_wraps_fork_demo(rs) is True
+    # a generated standalone entry → OK
+    rs.write_text("#!/bin/bash\nsource deepx_scripts/set_env.sh 1 2 1 3 2 4\npython pdf_to_markdown.py --input x.pdf\n")
+    assert verify.runsh_wraps_fork_demo(rs) is False
+    # absent → skipped
+    assert verify.runsh_wraps_fork_demo(tmp_path / "nope.sh") is None
+
+
 def test_is_complete(tmp_path):
     assert transcript.is_complete(_stream(tmp_path, with_result=True))
     assert not transcript.is_complete(_stream(tmp_path, with_result=False))

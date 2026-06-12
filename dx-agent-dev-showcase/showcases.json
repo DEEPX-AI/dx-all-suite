@@ -28,11 +28,21 @@
     },
     {
       "id": "paddlepaddle",
-      "status": "active",
+      "status": "coming-soon",
       "title_en": "PaddlePaddle ecosystem integration",
       "title_ko": "PaddlePaddle 생태계 통합",
-      "blurb_en": "**A PDF → Markdown document-conversion app on the DEEPX NPU — from a single, concise natural-language prompt.** PaddleOCR / RapidDoc (PP-OCRv5, PP-StructureV3): layout, OCR, tables, formulas on the DX-M1 NPU.",
-      "blurb_ko": "**단 하나의 간결한 자연어 프롬프트로 만드는, DEEPX NPU를 활용한 PDF → Markdown 문서 변환 앱.** PaddleOCR / RapidDoc (PP-OCRv5, PP-StructureV3): 레이아웃·OCR·표·수식을 DX-M1 NPU에서 실행."
+      "blurb_en": "**PaddleOCR (PP-OCRv5) on the DEEPX NPU — video & webcam OCR from a single prompt.** Baidu's PaddlePaddle OCR models, run on the DX-M1 NPU.",
+      "blurb_ko": "**DEEPX NPU에서 동작하는 PaddleOCR (PP-OCRv5) — 단일 프롬프트로 만드는 영상·웹캠 OCR.** Baidu PaddlePaddle OCR 모델을 DX-M1 NPU에서 실행.",
+      "note_en": "PaddleOCR video/webcam OCR showcase — coming soon.",
+      "note_ko": "PaddleOCR 영상/웹캠 OCR showcase — 추후 추가 예정."
+    },
+    {
+      "id": "rapidai",
+      "status": "active",
+      "title_en": "RapidAI ecosystem integration",
+      "title_ko": "RapidAI 생태계 통합",
+      "blurb_en": "**A PDF → Markdown document-conversion app on the DEEPX NPU — from a single, concise natural-language prompt.** RapidAI's RapidDoc (PP-StructureV3): layout, OCR, tables, formulas — running PaddlePaddle-trained models on the DX-M1 NPU. A standalone, self-contained app generated from the fork's pipeline.",
+      "blurb_ko": "**단 하나의 간결한 자연어 프롬프트로 만드는, DEEPX NPU를 활용한 PDF → Markdown 문서 변환 앱.** RapidAI의 RapidDoc (PP-StructureV3): 레이아웃·OCR·표·수식 — PaddlePaddle로 학습된 모델을 DX-M1 NPU에서 실행. 포크 파이프라인으로부터 생성한 standalone·self-contained 앱."
     }
   ],
   "showcases": [
@@ -185,7 +195,7 @@
     {
       "name": "rapiddoc-pdf2md",
       "kind": "app",
-      "category": "paddlepaddle",
+      "category": "rapidai",
       "card_media": "sample",
       "gif": "dx-agent-dev-rapiddoc-pdf2md-build.gif",
       "title_en": "PDF → Markdown (document conversion app)",

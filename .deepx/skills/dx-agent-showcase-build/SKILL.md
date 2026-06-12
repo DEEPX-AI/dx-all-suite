@@ -43,13 +43,22 @@ KB-based judgment, and the human-in-the-loop steps a tool cannot do.
    regions; add to the manifest and run `regen-docs`.
 8. **External repos: clone fresh into the build's session dir; NEVER touch a user repo.**
    When the build needs a third-party/DEEPX-fork checkout (e.g. RapidDoc, PaddleOCR-deepx),
-   the prompt/build MUST `git clone` it into the **isolated session dir** — it MUST NOT
+   the prompt/build MUST `git clone` it into a **temp/isolated dir** — it MUST NOT
    discover (`find /`) and **reuse, modify, or delete** a pre-existing repo elsewhere on
    disk (e.g. under `~/git/`). Deleting a user's repo is a destructive action and has
-   happened. And **provision models with the fork's `./setup.sh` in the FOREGROUND** — never
-   hand-compile `.dxnn`, and never launch the download/compile as a **background task**: a
-   headless `claude -p` cannot resume on the completion notification and deadlocks (the
-   recurring PaddlePaddle build freeze).
+   happened. And **provision models with the fork's model-download script in the FOREGROUND**
+   — never hand-compile `.dxnn`, and never launch the download/compile as a **background
+   task**: a headless `claude -p` cannot resume on the completion notification and deadlocks
+   (the recurring PaddlePaddle build freeze).
+9. **Fork-based apps MUST be a GENERATED standalone app — not a wrapper around the fork's
+   demo.** When the showcase is "build an app on a third-party fork" (RapidDoc, PaddleOCR),
+   the deliverable is the agent's **own entry program** that imports the fork's pipeline API
+   as a library; the showcase must be **runnable from its own dir**. Concretely: (a) the
+   build clones the fork only to obtain source, then **vendors the importable package** into
+   the app (the fork is not re-cloned at run time); (b) `run.sh` runs the **generated entry**
+   (`pdf_to_markdown.py` / `ocr_video.py`) — a `run.sh` that shells out to the fork's
+   `demo/demo_offline.py` (or any `demo/*`/example) is a **FAIL**, not an app; (c) only the
+   NPU **models** are downloaded by `setup.sh` (never committed). `verify` enforces (b).
 
 ## Setup
 
@@ -199,7 +208,10 @@ present + syntax-OK, README/docs carry the showcase marker. Fix any FAIL and re-
 - **Reusing or deleting a pre-existing user repo** found via `find` — clone fresh into the
   session dir instead (see hard rule 8).
 - **Backgrounding the model download/compile** in a headless build, or hand-compiling
-  `.dxnn` instead of running the fork's `./setup.sh` in the foreground — both deadlock the build.
+  `.dxnn` instead of running the fork's model-download script in the foreground — both deadlock the build.
+- **A fork-based showcase whose `run.sh` just calls the fork's `demo/demo_offline.py`** — that
+  is wrapping the example, not generating an app, and the showcase isn't runnable once moved
+  (the clone isn't copied). Generate a standalone entry over the vendored package (hard rule 9).
 
 ## Verification loop (this skill is `.deepx/` source)
 
