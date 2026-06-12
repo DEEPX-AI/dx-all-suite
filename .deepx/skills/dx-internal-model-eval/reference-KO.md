@@ -173,6 +173,62 @@ python3 analyze.py --run-id <RID> --tool copilot-cli --round 1 2 3 --scenario co
 
 ---
 
+## Usage-limit resilience (long runs)
+
+긴 multi-round 실행 중에 Claude session/usage limit에 걸릴 수 있다. 두 개의 레이어가 이를 방어한다.
+
+**Layer 1 — 시나리오별 in-place polling (conftest.py, 내장, 자동)**
+
+`conftest.py`는 이미 `_CLAUDE_QUOTA_POLL_INTERVAL` = 3600 s 간격으로 최대
+`_CLAUDE_QUOTA_MAX_POLLS` = 8회(최대 8시간) polling하며, usage-limit 신호가 감지되면
+현재 시나리오를 in-place로 재시도한다. 일반적인 5시간 session cap은 이 레이어가 투명하게 흡수하며
+별도 조치가 필요 없다. `env_failure` 분류는 모든 poll이 소진됐을 때만 e2e_runner 출력에 나타난다.
+
+**Layer 2 — 외부 resilient controller (`.deepx/e2e/e2e_resilient_run.py`)**
+
+rate-limit env-failure로 끝나는 round(내부 poll 소진, 또는 더 긴 weekly cap)를 위해,
+outer controller가 `--redo-env-failures`, `--resume`, reset-time 파싱을 하나의 자동 복구 루프로
+묶는다:
+
+1. 목표 round 수만큼 `e2e_runner`를 실행한다.
+2. 완료된 round < 목표 AND 미달분이 rate-limit env-failure인 경우:
+   - `e2e_runner --redo-env-failures --run-id <id>` 실행 — 실패 round 데이터를 삭제하고
+     state를 reset해서 다음 `--resume`이 빠진 round를 채울 수 있게 한다.
+   - 실패 round transcript에서 reset time을 파싱하고, reset까지 대기한다. 파싱 불가 시
+     (자유 형식 "resets in ~2 hours", 불명확한 bare "resets at 3", timezone 포함 시각 등)
+     `--fallback-wait`(기본 3600 s)으로 대기한다.
+   - `e2e_runner --resume --run-id <id>` 실행으로 남은 round를 채운다.
+   - `--max-attempts`(기본 6회)까지 반복한다.
+3. 세 가지 status 중 하나를 반환한다:
+   - `complete` — 목표 round 달성.
+   - `incomplete-nonenv` — usage-limit이 아닌 실패로 중단; controller가 loop를 지속하지 않는다.
+   - `max-attempts` — 목표 미달 상태로 loop 소진.
+
+**사용법:**
+
+```bash
+# 기본 — 5 round, usage limit 발생 시 자동 복구
+python3 .deepx/e2e/e2e_resilient_run.py \
+    --tool claude-code --model <id> --rounds N
+
+# thinking 모드 포함
+python3 .deepx/e2e/e2e_resilient_run.py \
+    --tool claude-code --model <id> --rounds N --thinking
+
+# dry-run (계획된 첫 번째 커맨드 출력 후 종료)
+python3 .deepx/e2e/e2e_resilient_run.py \
+    --tool claude-code --model <id> --rounds N --dry-run
+```
+
+`run_model_eval.sh` wrapper도 `--dry-run`을 받아 controller에 그대로 전달한다.
+Controller는 최종 `run_id`를 stderr(e2e_runner에서 forwarding)에 `run_id=<id>` 형태로 출력하며,
+`grep -oP 'run_id=\K[^ ]+'`로 캡처할 수 있다.
+
+**규칙:** multi-round 실제 실행에는 resilient controller(또는 이를 사용하는 `run_model_eval.sh`)를
+우선 사용한다. 이렇게 하면 usage limit에 걸려도 자동 복구되며, 실패 round가 리포트를 오염시키지 않는다.
+
+---
+
 ## 4. STEP 5 — 비교 리포트 (`build_comparison.py`)
 
 두 분석 리포트 디렉토리(각각 `per_session.csv` + `comprehensive_report.html` 포함) 간 delta.

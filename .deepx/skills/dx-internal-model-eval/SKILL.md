@@ -28,7 +28,9 @@ description: >
 
 1. Confirm: purpose, tool scope (`--tools`), OLD/NEW model ids (hyphen for claude CLI,
    dot for copilot), round count, thinking on/off.
-2. Run e2e_runner once per model/condition → record each `run_id` ↔ model.
+2. Run each model/condition via the resilient controller (auto-recovers from usage limits):
+   `python3 .deepx/e2e/e2e_resilient_run.py --tool claude-code --model <id> --rounds N [--thinking]`
+   (wraps e2e_runner with redo-env-failures + wait-for-reset + --resume; see reference.md "Usage-limit resilience"). Record each run_id ↔ model.
 3. Analyze each run_id, **writing into the durable archive** (never the gitignored worktree):
    `python3 analyze.py --run-id <RID> --output-dir "$DX_MODEL_EVAL_ARCHIVE/<label>/"`
    where `DX_MODEL_EVAL_ARCHIVE` defaults to `$HOME/shared/coding_agent_diff_report`.

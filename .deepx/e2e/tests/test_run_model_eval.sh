@@ -51,16 +51,20 @@ OUTPUT="$(bash "$TARGET" \
     --rounds 5 \
     --dry-run 2>&1)"
 
-# Runner invocations — OLD model
+# Runner invocations go through resilient controller — OLD model
 _assert_contains \
-    "e2e_runner invocation with --claude-model claude-opus-4-6" \
-    "--claude-model claude-opus-4-6" \
+    "e2e_resilient_run.py invocation with --model claude-opus-4-6" \
+    "e2e_resilient_run.py" \
+    "$OUTPUT"
+_assert_contains \
+    "resilient controller --model claude-opus-4-6" \
+    "--model claude-opus-4-6" \
     "$OUTPUT"
 
 # Runner invocations — NEW model
 _assert_contains \
-    "e2e_runner invocation with --claude-model claude-opus-4-8" \
-    "--claude-model claude-opus-4-8" \
+    "resilient controller --model claude-opus-4-8" \
+    "--model claude-opus-4-8" \
     "$OUTPUT"
 
 # analyze.py invocation with --output-dir
@@ -91,12 +95,6 @@ _assert_contains \
 _assert_contains \
     "NTH in derived label" \
     "NTH" \
-    "$OUTPUT"
-
-# e2e_runner.py must appear in runner invocations
-_assert_contains \
-    "e2e_runner.py used" \
-    "e2e_runner.py" \
     "$OUTPUT"
 
 # ---------------------------------------------------------------------------
@@ -191,12 +189,16 @@ OUTPUT_COPILOT="$(bash "$TARGET" \
     --rounds 3 \
     --dry-run 2>&1)"
 _assert_contains \
-    "--copilot-model gpt-4o in runner invocation" \
-    "--copilot-model gpt-4o" \
+    "resilient controller --tool copilot-cli in invocation" \
+    "--tool copilot-cli" \
     "$OUTPUT_COPILOT"
 _assert_contains \
-    "--copilot-model gpt-4-1 in runner invocation" \
-    "--copilot-model gpt-4-1" \
+    "resilient controller --model gpt-4o in invocation" \
+    "--model gpt-4o" \
+    "$OUTPUT_COPILOT"
+_assert_contains \
+    "resilient controller --model gpt-4-1 in invocation" \
+    "--model gpt-4-1" \
     "$OUTPUT_COPILOT"
 
 # ---------------------------------------------------------------------------

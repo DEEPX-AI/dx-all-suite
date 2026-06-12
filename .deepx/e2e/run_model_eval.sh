@@ -92,6 +92,7 @@ fi
 # ---------------------------------------------------------------------------
 E2E_DIR="$SUITE_ROOT/.deepx/e2e"
 RUNNER="$E2E_DIR/e2e_runner.py"
+RESILIENT_RUNNER="$E2E_DIR/e2e_resilient_run.py"
 ANALYZE="$E2E_DIR/agent_analyzer/analyze.py"
 BUILD_COMPARISON="$E2E_DIR/agent_analyzer/build_comparison.py"
 BUNDLE="$E2E_DIR/bundle_raw_results.py"
@@ -185,21 +186,21 @@ if [[ "$DRY_RUN" -eq 1 ]]; then
     echo "  ARCHIVE    : $ARCHIVE"
     echo ""
 
-    # Step 1: Run OLD model
+    # Step 1: Run OLD model (via resilient controller)
     echo "--- Step 1: Run OLD model ---"
-    _run python3 "$RUNNER" \
+    _run python3 "$RESILIENT_RUNNER" \
+        --tool "$TOOL" \
+        --model "$OLD_MODEL" \
         --rounds "$ROUNDS" \
-        --tools "$TOOL" \
-        $THINKING_ARG \
-        $MODEL_FLAG "$OLD_MODEL"
+        $THINKING_ARG
 
-    # Step 2: Run NEW model
+    # Step 2: Run NEW model (via resilient controller)
     echo "--- Step 2: Run NEW model ---"
-    _run python3 "$RUNNER" \
+    _run python3 "$RESILIENT_RUNNER" \
+        --tool "$TOOL" \
+        --model "$NEW_MODEL" \
         --rounds "$ROUNDS" \
-        --tools "$TOOL" \
-        $THINKING_ARG \
-        $MODEL_FLAG "$NEW_MODEL"
+        $THINKING_ARG
 
     # Placeholder run IDs for dry-run
     RID_OLD="<RID_OLD>"
@@ -276,15 +277,15 @@ echo ""
 
 mkdir -p "$ARCHIVE/$LABEL/raw"
 
-# --- Step 1: Run OLD model ---
+# --- Step 1: Run OLD model (via resilient controller) ---
 echo "=== Step 1: Run OLD model ($OLD_MODEL) ==="
 OLD_LOG="$ARCHIVE/$LABEL/runner_old.log"
 RID_OLD_OUT="$(
-    python3 "$RUNNER" \
+    python3 "$RESILIENT_RUNNER" \
+        --tool "$TOOL" \
+        --model "$OLD_MODEL" \
         --rounds "$ROUNDS" \
-        --tools "$TOOL" \
-        $THINKING_ARG \
-        $MODEL_FLAG "$OLD_MODEL" 2>&1 | tee "$OLD_LOG"
+        $THINKING_ARG 2>&1 | tee "$OLD_LOG"
 )"
 RID_OLD="$(echo "$RID_OLD_OUT" | grep -oP 'run_id=\K[^ ]+' | tail -1)"
 if [[ -z "$RID_OLD" ]]; then
@@ -293,15 +294,15 @@ if [[ -z "$RID_OLD" ]]; then
 fi
 echo "  RID_OLD=$RID_OLD"
 
-# --- Step 2: Run NEW model ---
+# --- Step 2: Run NEW model (via resilient controller) ---
 echo "=== Step 2: Run NEW model ($NEW_MODEL) ==="
 NEW_LOG="$ARCHIVE/$LABEL/runner_new.log"
 RID_NEW_OUT="$(
-    python3 "$RUNNER" \
+    python3 "$RESILIENT_RUNNER" \
+        --tool "$TOOL" \
+        --model "$NEW_MODEL" \
         --rounds "$ROUNDS" \
-        --tools "$TOOL" \
-        $THINKING_ARG \
-        $MODEL_FLAG "$NEW_MODEL" 2>&1 | tee "$NEW_LOG"
+        $THINKING_ARG 2>&1 | tee "$NEW_LOG"
 )"
 RID_NEW="$(echo "$RID_NEW_OUT" | grep -oP 'run_id=\K[^ ]+' | tail -1)"
 if [[ -z "$RID_NEW" ]]; then

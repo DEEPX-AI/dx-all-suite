@@ -174,6 +174,64 @@ Reports + bundles MUST be written to the durable archive, NOT the gitignored wor
 
 ---
 
+## Usage-limit resilience (long runs)
+
+Long multi-round runs can hit Claude session/usage limits mid-run. Two layers protect against this:
+
+**Layer 1 — per-scenario in-place polling (conftest.py, built-in, automatic)**
+
+`conftest.py` already polls `_CLAUDE_QUOTA_POLL_INTERVAL` = 3600 s, up to
+`_CLAUDE_QUOTA_MAX_POLLS` = 8 times (total up to 8 h), retrying the current scenario in place
+when a usage-limit signal is detected. A normal 5-hour session cap is absorbed transparently —
+no action needed. The e2e_runner output contains `env_failure` classifications only when all polls
+have been exhausted.
+
+**Layer 2 — outer resilient controller (`.deepx/e2e/e2e_resilient_run.py`)**
+
+For rounds that still end as rate-limit env-failures (inner polls exhausted, or a longer/weekly cap),
+the outer controller ties `--redo-env-failures`, `--resume`, and reset-time parsing into one
+auto-recovering loop:
+
+1. Run `e2e_runner` for the target rounds.
+2. If completed rounds < target AND the shortfall is rate-limit env-failures:
+   - Run `e2e_runner --redo-env-failures --run-id <id>` — deletes the failed-round data and resets
+     state so the next `--resume` can refill the missing rounds.
+   - Parse the reset time from the failed-round transcripts. Sleep until reset. If no parseable reset
+     time is found (free-form "resets in ~2 hours", ambiguous bare "resets at 3", timezone-qualified
+     times), fall back to `--fallback-wait` (default 3600 s).
+   - Run `e2e_runner --resume --run-id <id>` to fill the remaining rounds.
+   - Repeat up to `--max-attempts` (default 6).
+3. Return one of three statuses:
+   - `complete` — target rounds reached.
+   - `incomplete-nonenv` — a non-usage-limit failure stopped the run; the controller does NOT loop.
+   - `max-attempts` — loop exhausted without reaching the target.
+
+**Usage:**
+
+```bash
+# Basic — 5 rounds, auto-recover on usage limits
+python3 .deepx/e2e/e2e_resilient_run.py \
+    --tool claude-code --model <id> --rounds N
+
+# With thinking mode
+python3 .deepx/e2e/e2e_resilient_run.py \
+    --tool claude-code --model <id> --rounds N --thinking
+
+# Dry-run (print planned first command, exit 0)
+python3 .deepx/e2e/e2e_resilient_run.py \
+    --tool claude-code --model <id> --rounds N --dry-run
+```
+
+The `run_model_eval.sh` wrapper also accepts `--dry-run` and passes it through to the controller.
+The controller surfaces the final `run_id` in its stderr output (forwarded from e2e_runner) as
+`run_id=<id>`, parseable with `grep -oP 'run_id=\K[^ ]+'`.
+
+**Rule:** prefer the resilient controller (or `run_model_eval.sh`, which uses it) for any
+multi-round real run. This ensures a usage-limit mid-run auto-recovers instead of leaving the
+report corrupted with failed rounds.
+
+---
+
 ## 4. STEP 5 — Comparison report (`build_comparison.py`)
 
 Delta between two analysis report dirs (each containing `per_session.csv` + `comprehensive_report.html`).
