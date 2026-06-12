@@ -16,26 +16,26 @@
 
 | Showcase | 유형 | 핵심 결과 |
 |---|---|---|
-| [스쿼트 카운팅 미니게임](./squat-fitness-mini-game/README-ko.md) | 게임 | 포즈 게임 + 아케이드 HUD |
-| [스트레칭 coach 미니게임](./stretching-coach-mini-game/README-ko.md) | 게임 | coach 아바타 + 3단계 |
+| [스쿼트 카운팅 미니게임](./mini-game-squat-fitness/README-ko.md) | 게임 | 포즈 게임 + 아케이드 HUD |
+| [스트레칭 coach 미니게임](./mini-game-stretching-coach/README-ko.md) | 게임 | coach 아바타 + 3단계 |
 
 ### 스쿼트 카운팅 미니게임
 
-<a href="./squat-fitness-mini-game/README-ko.md"><img src="../docs/source/img/dx-agent-dev-squat-gameplay.gif" height="170" align="right"></a>
+<a href="./mini-game-squat-fitness/README-ko.md"><img src="../docs/source/img/dx-agent-dev-squat-gameplay.gif" height="170" align="right"></a>
 
 무릎/엉덩이 각도로 스쿼트 횟수 카운트 + 아케이드 HUD(횟수 / 점수 / DOWN·UP·GOOD!).
 
-**핵심:** 포즈 게임 + 아케이드 HUD · **Claude Opus 4.8** · ≈ 20 min · ≈ $9.9 — [상세 →](./squat-fitness-mini-game/README-ko.md)
+**핵심:** 포즈 게임 + 아케이드 HUD · **Claude Opus 4.8** · ≈ 20 min · ≈ $9.9 — [상세 →](./mini-game-squat-fitness/README-ko.md)
 
 <br clear="right">
 
 ### 스트레칭 coach 미니게임
 
-<a href="./stretching-coach-mini-game/README-ko.md"><img src="../docs/source/img/dx-agent-dev-stretch-gameplay.gif" height="170" align="right"></a>
+<a href="./mini-game-stretching-coach/README-ko.md"><img src="../docs/source/img/dx-agent-dev-stretch-gameplay.gif" height="170" align="right"></a>
 
 애니메이션 coach 아바타가 각 목표 포즈를 시연하며 3가지 스트레칭 안내.
 
-**핵심:** coach 아바타 + 3단계 · **Claude Opus 4.8** · ≈ 21 min · ≈ $9.4 — [상세 →](./stretching-coach-mini-game/README-ko.md)
+**핵심:** coach 아바타 + 3단계 · **Claude Opus 4.8** · ≈ 21 min · ≈ $9.4 — [상세 →](./mini-game-stretching-coach/README-ko.md)
 
 <br clear="right">
 
@@ -57,7 +57,7 @@
 
 Ultralytics YOLO `.pt`를 단일 `yolo export ... format=deepx` 명령으로 배포 가능한 DeepX NPU 모델(`.dxnn`)로 변환, NPU 추론 + verify.
 
-**핵심:** 1-cmd .pt → .dxnn · **Claude Sonnet 4.6** · ≈ 11.6 min · ≈ $2.4 — [상세 →](./ultralytics-yolo-deepx-export/README-ko.md)
+**핵심:** 1-cmd .pt → .dxnn · **Claude Sonnet 4.6** · ≈ 12 min · ≈ $2.4 — [상세 →](./ultralytics-yolo-deepx-export/README-ko.md)
 
 <br clear="right">
 

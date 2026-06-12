@@ -6,18 +6,19 @@
 |---|---|
 | Model | `claude-opus-4-8` |
 | Wall-clock | ~21.0 min |
-| Agent turns | 75 |
-| Output tokens | 84,578 |
+| Agent turns | 163 |
+| Output tokens | 220,316 |
 | Cost (reported) | $9.41 |
 | Tools | Bash×30, Write×16, Read×10, Edit×7, Skill×5, AskUserQuestion×1 |
-| Skills | dx-skill-router → dx-agent-brainstorm → dx-swe-writing-plans → dx-agent-tdd → dx-agent-verify |
+| Skills | dx-skill-router → dx-agentic-brainstorm → dx-swe-writing-plans → dx-agentic-tdd → dx-agentic-verify |
+| Toolsets | — (none read) |
 
 
 ## Session Info
 
 - **Session ID:** `a97c4b6c-6ca2-46e8-8a7e-eee44df654ce`
 - **Working Dir:** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app`
-- **Branch:** feature/dx-agent-dev
+- **Branch:** feature/dx-agentic-dev
 - **Claude Code:** v2.1.156
 - **Permission Mode:** bypassPermissions
 - **Start:** 2026-06-08T11:10:00.542Z
@@ -36,7 +37,7 @@
 
 **Claude:**
 
-[DX-AGENT-DEV: START]
+[DX-AGENTIC-DEV: START]
 
 ```
  ███████████   █████████ ████████ ████████  ████      ████
@@ -47,7 +48,7 @@
  ███     █████░███░      ██░      ███░   ████████░░░░████
  ███████████░░░█████████ ████████ ██████████░░░░░░    ████
   ░░░░░░░░░░░   ░░░░░░░░░ ░░░░░░░░ ░░░░░░░░░░          ░░░░
-        DX-AGENT-DEV · on-device NPU
+        DX-AGENTIC-DEV · on-device NPU
 ```
 
 Invoking the mandatory skill router as the absolute first action.
@@ -70,8 +71,8 @@ Read and follow the complete skill documentation at `.deepx/skills/dx-skill-rout
 2	name: dx-skill-router
 3	description: Use when starting any conversation - establishes how to discover and invoke dx-* skills, requiring skill invocation before ANY response including clarifyi…
 
-✅ **Skill** `dx-agent-brainstorm`
-  > Launching skill: dx-agent-brainstorm
+✅ **Skill** `dx-agentic-brainstorm`
+  > Launching skill: dx-agentic-brainstorm
 
 **Claude:**
 
@@ -83,16 +84,16 @@ The router directs me to brainstorm first for "build X" tasks. Invoking the brai
 
 **User:**
 
-> Base directory for this skill: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/.claude/skills/dx-agent-brainstorm
+> Base directory for this skill: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/.claude/skills/dx-agentic-brainstorm
 
 <!-- Thin Claude Code wrapper — canonical skill doc lives in .deepx/ -->
 
-Read and follow the complete skill documentation at `.deepx/skills/dx-agent-brainstorm/SKILL.md`.
+Read and follow the complete skill documentation at `.deepx/skills/dx-agentic-brainstorm/SKILL.md`.
 
 
-✅ **Read** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/.deepx/skills/dx-agent-brainstor…`
+✅ **Read** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/.deepx/skills/dx-agentic-brainstor…`
   > 1	---
-2	name: dx-agent-brainstorm
+2	name: dx-agentic-brainstorm
 3	description: Brainstorm and plan before implementation
 4	---
 5	
@@ -256,14 +257,14 @@ Read and follow the complete skill documentation at `.deepx/skills/dx-swe-writin
 TS=$(date +%Y%m%d-%H%M%S)
 SESSI…`
   > SESSION=20260608-201249_claude_opus48_yolo26npose_stretchgame
-dx-agent-dev/20260608-201249_claude_opus48_yolo26npose_stretchgame
+dx-agentic-dev/20260608-201249_claude_opus48_yolo26npose_stretchgame
 sample/stretching_extending_both_arms.mp4: 1280x720  fps=24.0  frame…
 
-✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-201249_cla…`
-  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-201249_claude_opus48_yolo26npose_stretchgame/PLAN.md (file state is current in y…
+✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_cla…`
+  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_claude_opus48_yolo26npose_stretchgame/PLAN.md (file state is current in y…
 
-✅ **Skill** `dx-agent-tdd`
-  > Launching skill: dx-agent-tdd
+✅ **Skill** `dx-agentic-tdd`
+  > Launching skill: dx-agentic-tdd
 
 **Claude:**
 
@@ -285,16 +286,16 @@ Now invoking TDD to drive the build.
 
 **User:**
 
-> Base directory for this skill: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/.claude/skills/dx-agent-tdd
+> Base directory for this skill: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/.claude/skills/dx-agentic-tdd
 
 <!-- Thin Claude Code wrapper — canonical skill doc lives in .deepx/ -->
 
-Read and follow the complete skill documentation at `.deepx/skills/dx-agent-tdd/SKILL.md`.
+Read and follow the complete skill documentation at `.deepx/skills/dx-agentic-tdd/SKILL.md`.
 
 
-✅ **Read** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/.deepx/skills/dx-agent-tdd/SKILL…`
+✅ **Read** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/.deepx/skills/dx-agentic-tdd/SKILL…`
   > 1	---
-2	name: dx-agent-tdd
+2	name: dx-agentic-tdd
 3	description: Test-driven development for dx_app
 4	---
 5	
@@ -302,13 +303,13 @@ Read and follow the complete skill documentation at `.deepx/skills/dx-agent-tdd/
 7	
 8	> **Type: RIGID — Iron Law.** No file is written until its v…
 
-✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-201249_cla…`
-  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-201249_claude_opus48_yolo26npose_stretchgame/pose_logic.py (file state is curren…
+✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_cla…`
+  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_claude_opus48_yolo26npose_stretchgame/pose_logic.py (file state is curren…
 
-✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-201249_cla…`
-  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-201249_claude_opus48_yolo26npose_stretchgame/test_pose_logic.py (file state is c…
+✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_cla…`
+  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_claude_opus48_yolo26npose_stretchgame/test_pose_logic.py (file state is c…
 
-✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-201249_…`
+✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_…`
   > PASS py_compile pose_logic.py
 ============================= test session starts ==============================
 platform linux -- Python 3.12.3, pytest-9.0.3, pluggy-1.6.0 -- /data/home/dhyang/github/…
@@ -320,16 +321,16 @@ echo …`
 74-        """
 75-        Preprocess image with letterbox transformati…
 
-✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-201249_cla…`
-  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-201249_claude_opus48_yolo26npose_stretchgame/_bootstrap.py (file state is curren…
+✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_cla…`
+  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_claude_opus48_yolo26npose_stretchgame/_bootstrap.py (file state is curren…
 
-✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-201249_cla…`
-  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-201249_claude_opus48_yolo26npose_stretchgame/game_eval.py (file state is current…
+✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_cla…`
+  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_claude_opus48_yolo26npose_stretchgame/game_eval.py (file state is current…
 
-✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-201249_cla…`
-  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-201249_claude_opus48_yolo26npose_stretchgame/calibrate_coach_poses.py (file stat…
+✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_cla…`
+  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_claude_opus48_yolo26npose_stretchgame/calibrate_coach_poses.py (file stat…
 
-✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-201249_…`
+✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_…`
   > OK py_compile: _bootstrap.py
 OK py_compile: game_eval.py
 OK py_compile: calibrate_coach_poses.py
@@ -337,11 +338,11 @@ OK py_compile: calibrate_coach_poses.py
 [INFO] 
 Model loaded: /data/home/dhyang/github/dx-all-sui…
 
-✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-201249_…`
+✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_…`
   > PASS config.json keys: ['score_threshold', 'nms_threshold', 'game'] | game keys: ['hold_seconds', 'grace_frames', 'kpt_conf', 'overhead_margin', 'overhead_above_sho', 'fold_shoulder_drop', 'fold_hand…
 
-✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-201249_cla…`
-  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-201249_claude_opus48_yolo26npose_stretchgame/coach.py (file state is current in …
+✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_cla…`
+  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_claude_opus48_yolo26npose_stretchgame/coach.py (file state is current in …
 
 ✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/src/python_example/common
 sed -…`
@@ -356,22 +357,22 @@ import numpy as np
 import cv2
 from t…
 
-✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-201249_cla…`
-  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-201249_claude_opus48_yolo26npose_stretchgame/stretch_game_visualizer.py (file st…
+✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_cla…`
+  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_claude_opus48_yolo26npose_stretchgame/stretch_game_visualizer.py (file st…
 
-✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-201249_cla…`
-  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-201249_claude_opus48_yolo26npose_stretchgame/factory/stretch_game_factory.py (fi…
+✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_cla…`
+  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_claude_opus48_yolo26npose_stretchgame/factory/stretch_game_factory.py (fi…
 
-✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-201249_cla…`
-  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-201249_claude_opus48_yolo26npose_stretchgame/factory/__init__.py (file state is …
+✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_cla…`
+  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_claude_opus48_yolo26npose_stretchgame/factory/__init__.py (file state is …
 
-✅ **Edit** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-201249_cla…`
-  > The file /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-201249_claude_opus48_yolo26npose_stretchgame/factory/__init__.py has been updated successfully. (file…
+✅ **Edit** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_cla…`
+  > The file /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_claude_opus48_yolo26npose_stretchgame/factory/__init__.py has been updated successfully. (file…
 
-✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-201249_cla…`
-  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-201249_claude_opus48_yolo26npose_stretchgame/stretch_game_sync.py (file state is…
+✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_cla…`
+  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_claude_opus48_yolo26npose_stretchgame/stretch_game_sync.py (file state is…
 
-✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-201249_…`
+✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_…`
   > === py_compile ===
 OK: coach.py
 OK: stretch_game_visualizer.py
@@ -381,26 +382,26 @@ OK: stretch_game_sync.py
 === 5-method IFactory check ===
 PASS: all 5 IFactor…
 
-✅ **Edit** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-201249_cla…`
-  > The file /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-201249_claude_opus48_yolo26npose_stretchgame/game_eval.py has been updated successfully. (file state …
+✅ **Edit** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_cla…`
+  > The file /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_claude_opus48_yolo26npose_stretchgame/game_eval.py has been updated successfully. (file state …
 
-✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-201249_cla…`
-  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-201249_claude_opus48_yolo26npose_stretchgame/verify.py (file state is current in…
+✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_cla…`
+  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_claude_opus48_yolo26npose_stretchgame/verify.py (file state is current in…
 
-✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-201249_…`
+✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_…`
   > OK py_compile verify.py + game_eval.py
 === running verify.py on NPU ===
 [INFO] 
 Model loaded: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/assets/models/yolo26n-pose.dxnn
 [INFO] M…
 
-✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-201249_…`
+✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_…`
   > === real app: stretch_game_sync.py on demo clip, --save --no-display ===
                PERFORMANCE SUMMARY                
 ==================================================
  Pipeline Step   Avg Lat…
 
-✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-201249_…`
+✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_…`
   > frames 721
 wrote stage1_overhead (720, 1280, 3)
 wrote stage2_fold (720, 1280, 3)
@@ -413,23 +414,23 @@ wrote clear (720, 1280, 3)
 
 ✅ **Read** `/tmp/frame_clear.png`
 
-✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-201249_cla…`
-  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-201249_claude_opus48_yolo26npose_stretchgame/setup.sh (file state is current in …
+✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_cla…`
+  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_claude_opus48_yolo26npose_stretchgame/setup.sh (file state is current in …
 
-✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-201249_cla…`
-  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-201249_claude_opus48_yolo26npose_stretchgame/run.sh (file state is current in yo…
+✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_cla…`
+  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_claude_opus48_yolo26npose_stretchgame/run.sh (file state is current in yo…
 
-✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-201249_…`
+✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_…`
   > === bash -n ===
 OK setup.sh
 OK run.sh
 === run setup.sh (execution test) ===
-[setup] SCRIPT_DIR  = /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-201249_claud…
+[setup] SCRIPT_DIR  = /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_claud…
 
-✅ **Edit** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-201249_cla…`
-  > The file /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-201249_claude_opus48_yolo26npose_stretchgame/run.sh has been updated successfully. (file state is cur…
+✅ **Edit** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_cla…`
+  > The file /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_claude_opus48_yolo26npose_stretchgame/run.sh has been updated successfully. (file state is cur…
 
-✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-201249_…`
+✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_…`
   > OK run.sh syntax
 === portable app tree (top) ===
 _bootstrap.py
@@ -454,10 +455,10 @@ sed -…`
 38:    # Walk up from this file to the project root
 41:    proj…
 
-✅ **Edit** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-201249_cla…`
-  > The file /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-201249_claude_opus48_yolo26npose_stretchgame/run.sh has been updated successfully. (file state is cur…
+✅ **Edit** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_cla…`
+  > The file /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_claude_opus48_yolo26npose_stretchgame/run.sh has been updated successfully. (file state is cur…
 
-✅ **Bash** `SRC=/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-201249…`
+✅ **Bash** `SRC=/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249…`
   > OK run.sh syntax
 === portable run.sh on demo, outside suite ===
  Postprocess         0.56 ms     1795.6 FPS
@@ -465,7 +466,7 @@ sed -…`
  Save                5.22 ms      191.4 FPS
 ---…
 
-✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-201249_…`
+✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_…`
   > created __init__.py; cleaned app_run + portable test dir
 _bootstrap.py
 calibrate_coach_poses.py
@@ -480,14 +481,14 @@ PLAN.md
 pose_logic.py
 pose_templat…
 
-✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-201249_cla…`
-  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-201249_claude_opus48_yolo26npose_stretchgame/session.json (file state is current…
+✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_cla…`
+  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_claude_opus48_yolo26npose_stretchgame/session.json (file state is current…
 
-✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-201249_cla…`
-  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-201249_claude_opus48_yolo26npose_stretchgame/README.md (file state is current in…
+✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_cla…`
+  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_claude_opus48_yolo26npose_stretchgame/README.md (file state is current in…
 
-✅ **Skill** `dx-agent-verify`
-  > Launching skill: dx-agent-verify
+✅ **Skill** `dx-agentic-verify`
+  > Launching skill: dx-agentic-verify
 
 **Claude:**
 
@@ -526,16 +527,16 @@ All deliverables written. Now the mandatory verify-completion step.
 
 **User:**
 
-> Base directory for this skill: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/.claude/skills/dx-agent-verify
+> Base directory for this skill: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/.claude/skills/dx-agentic-verify
 
 <!-- Thin Claude Code wrapper — canonical skill doc lives in .deepx/ -->
 
-Read and follow the complete skill documentation at `.deepx/skills/dx-agent-verify/SKILL.md`.
+Read and follow the complete skill documentation at `.deepx/skills/dx-agentic-verify/SKILL.md`.
 
 
-✅ **Read** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/.deepx/skills/dx-agent-verify/SK…`
+✅ **Read** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/.deepx/skills/dx-agentic-verify/SK…`
   > 1	---
-2	name: dx-agent-verify
+2	name: dx-agentic-verify
 3	description: Verify work before claiming done
 4	---
 5	
@@ -543,7 +544,7 @@ Read and follow the complete skill documentation at `.deepx/skills/dx-agent-veri
 7	
 8	> **Type: RIGID — Iron Law.** No completion claims without…
 
-✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-201249_…`
+✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_…`
   > ######## SESSION LOG — Mon Jun  8 08:28:21 PM KST 2026 ########
 ## session: 20260608-201249_claude_opus48_yolo26npose_stretchgame
 
@@ -554,14 +555,14 @@ coach.…
 
 ✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app
 V=/data/home/dhyang/github/dx-a…`
-  > $ python .deepx/scripts/validate_app.py dx-agent-dev/20260608-201249_claude_opus48_yolo26npose_stretchgame
+  > $ python .deepx/scripts/validate_app.py dx-agentic-dev/20260608-201249_claude_opus48_yolo26npose_stretchgame
 
-Validating: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-d…
+Validating: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-d…
 
-✅ **Edit** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-201249_cla…`
-  > The file /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-201249_claude_opus48_yolo26npose_stretchgame/coach.py has been updated successfully. (file state is c…
+✅ **Edit** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_cla…`
+  > The file /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_claude_opus48_yolo26npose_stretchgame/coach.py has been updated successfully. (file state is c…
 
-✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-201249_…`
+✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_…`
   > $ python verify.py   (real NPU end-to-end gate)
 Model loaded: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/assets/models/yolo26n-pose.dxnn
 [INFO] Model input size (WxH): 640x640
@@ -578,7 +579,7 @@ Model loaded: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/a
 ✅ **Edit** `/home/dhyang/.claude/projects/-data-home-dhyang-github-dx-all-suite-full-e2e-dx-runtime-dx-app/memo…`
   > The file /home/dhyang/.claude/projects/-data-home-dhyang-github-dx-all-suite-full-e2e-dx-runtime-dx-app/memory/pose-stretch-game-calibration.md has been updated successfully. (file state is current i…
 
-✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-201249_…`
+✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-201249_…`
   > === deliverables ===
 _bootstrap.py
 calibrate_coach_poses.py
@@ -599,7 +600,7 @@ session.jso…
 ✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app
 GT="$(d="$PWD"; while [ "$d" !=…`
   > generator: /data/home/dhyang/github/dx-all-suite-full-e2e/.deepx/tests/generate_transcripts.py
-jsonl: dx-agent-dev/20260608-201249_claude_opus48_yolo26npose_stretchgame/claude-stream.jsonl
+jsonl: dx-agentic-dev/20260608-201249_claude_opus48_yolo26npose_stretchgame/claude-stream.jsonl
 md: dx-a…
 
 **Claude:**
@@ -614,7 +615,7 @@ The build is complete and fully validated on the NPU.
 
 ## Completion Report: Stretch Arcade — yolo26n-pose Mini-Game
 
-**Status: PASS** | **Output dir:** `dx-agent-dev/20260608-201249_claude_opus48_yolo26npose_stretchgame/`
+**Status: PASS** | **Output dir:** `dx-agentic-dev/20260608-201249_claude_opus48_yolo26npose_stretchgame/`
 
 | File | Status | | File | Status |
 |------|--------|--|------|--------|
@@ -643,13 +644,13 @@ The build is complete and fully validated on the NPU.
  ███     █████░███░      ██░      ███░   ████████░░░░████
  ███████████░░░█████████ ████████ ██████████░░░░░░    ████
   ░░░░░░░░░░░   ░░░░░░░░░ ░░░░░░░░ ░░░░░░░░░░          ░░░░
-        DX-AGENT-DEV · on-device NPU
+        DX-AGENTIC-DEV · on-device NPU
 ```
 
-[DX-AGENT-DEV: DONE (output-dir: dx-agent-dev/20260608-201249_claude_opus48_yolo26npose_stretchgame/)]
+[DX-AGENTIC-DEV: DONE (output-dir: dx-agentic-dev/20260608-201249_claude_opus48_yolo26npose_stretchgame/)]
 
 Now generating the session transcript into the output dir (final housekeeping step).
-Session transcript (md/html/jsonl) saved to: `dx-agent-dev/20260608-201249_claude_opus48_yolo26npose_stretchgame/claude-session.*`
+Session transcript (md/html/jsonl) saved to: `dx-agentic-dev/20260608-201249_claude_opus48_yolo26npose_stretchgame/claude-session.*`
 
 The Stretch Arcade mini-game is complete, validated on the DEEPX NPU (verify.py PASS, full CLEAR on the demo, ~35 FPS), portable outside the suite, with all three stretches recognized and an animated coach derived from the sample clips. Run it with `./setup.sh` then `./run.sh --camera 0` (live) or `./run.sh --video sample/stretching_demo.mp4` (saves an annotated video).
 

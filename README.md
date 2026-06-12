@@ -29,8 +29,8 @@
 
 <table>
 <tr>
- <td width="50%" align="center"><a href="dx-agent-dev-showcase/squat-fitness-mini-game/README.md"><img src="./docs/source/img/dx-agent-dev-squat-gameplay.gif" height="150"></a><br><b>Squat-Counting Mini-Game</b><br><sub>rep-counting fitness on NPU</sub></td>
- <td width="50%" align="center"><a href="dx-agent-dev-showcase/stretching-coach-mini-game/README.md"><img src="./docs/source/img/dx-agent-dev-stretch-gameplay.gif" height="150"></a><br><b>Stretching Coach Mini-Game</b><br><sub>pose-guided arcade coach</sub></td>
+ <td width="50%" align="center"><a href="dx-agent-dev-showcase/mini-game-squat-fitness/README.md"><img src="./docs/source/img/dx-agent-dev-squat-gameplay.gif" height="150"></a><br><b>Squat-Counting Mini-Game</b><br><sub>rep-counting fitness on NPU</sub></td>
+ <td width="50%" align="center"><a href="dx-agent-dev-showcase/mini-game-stretching-coach/README.md"><img src="./docs/source/img/dx-agent-dev-stretch-gameplay.gif" height="150"></a><br><b>Stretching Coach Mini-Game</b><br><sub>pose-guided arcade coach</sub></td>
 </tr>
 </table>
 

@@ -17,26 +17,26 @@ Each card below links to that showcase's own README (full detail + transcript).
 
 | Showcase | Kind | Highlight |
 |---|---|---|
-| [Squat-Counting Mini-Game](./squat-fitness-mini-game/README.md) | game | pose game + arcade HUD |
-| [Stretching Coach Mini-Game](./stretching-coach-mini-game/README.md) | game | coach avatar + 3 stages |
+| [Squat-Counting Mini-Game](./mini-game-squat-fitness/README.md) | game | pose game + arcade HUD |
+| [Stretching Coach Mini-Game](./mini-game-stretching-coach/README.md) | game | coach avatar + 3 stages |
 
 ### Squat-Counting Mini-Game
 
-<a href="./squat-fitness-mini-game/README.md"><img src="../docs/source/img/dx-agent-dev-squat-gameplay.gif" height="170" align="right"></a>
+<a href="./mini-game-squat-fitness/README.md"><img src="../docs/source/img/dx-agent-dev-squat-gameplay.gif" height="170" align="right"></a>
 
 Counts squat reps from knee/hip angles with an arcade HUD (reps / score / DOWN·UP·GOOD!).
 
-**Highlight:** pose game + arcade HUD · **Claude Opus 4.8** · ≈ 20 min · ≈ $9.9 — [details →](./squat-fitness-mini-game/README.md)
+**Highlight:** pose game + arcade HUD · **Claude Opus 4.8** · ≈ 20 min · ≈ $9.9 — [details →](./mini-game-squat-fitness/README.md)
 
 <br clear="right">
 
 ### Stretching Coach Mini-Game
 
-<a href="./stretching-coach-mini-game/README.md"><img src="../docs/source/img/dx-agent-dev-stretch-gameplay.gif" height="170" align="right"></a>
+<a href="./mini-game-stretching-coach/README.md"><img src="../docs/source/img/dx-agent-dev-stretch-gameplay.gif" height="170" align="right"></a>
 
 Guides 3 stretches with an animated coach avatar that demonstrates each target pose.
 
-**Highlight:** coach avatar + 3 stages · **Claude Opus 4.8** · ≈ 21 min · ≈ $9.4 — [details →](./stretching-coach-mini-game/README.md)
+**Highlight:** coach avatar + 3 stages · **Claude Opus 4.8** · ≈ 21 min · ≈ $9.4 — [details →](./mini-game-stretching-coach/README.md)
 
 <br clear="right">
 
@@ -58,7 +58,7 @@ Guides 3 stretches with an animated coach avatar that demonstrates each target p
 
 Turns an Ultralytics YOLO `.pt` into a deployable DeepX NPU model (`.dxnn`) in a single `yolo export ... format=deepx` command, then runs NPU inference + verify.
 
-**Highlight:** 1-cmd .pt → .dxnn · **Claude Sonnet 4.6** · ≈ 11.6 min · ≈ $2.4 — [details →](./ultralytics-yolo-deepx-export/README.md)
+**Highlight:** 1-cmd .pt → .dxnn · **Claude Sonnet 4.6** · ≈ 12 min · ≈ $2.4 — [details →](./ultralytics-yolo-deepx-export/README.md)
 
 <br clear="right">
 

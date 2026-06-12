@@ -29,8 +29,8 @@
 
 <table>
 <tr>
- <td width="50%" align="center"><a href="dx-agent-dev-showcase/squat-fitness-mini-game/README-ko.md"><img src="./docs/source/img/dx-agent-dev-squat-gameplay.gif" height="150"></a><br><b>스쿼트 카운팅 미니게임</b><br><sub>NPU 위 스쿼트 카운팅</sub></td>
- <td width="50%" align="center"><a href="dx-agent-dev-showcase/stretching-coach-mini-game/README-ko.md"><img src="./docs/source/img/dx-agent-dev-stretch-gameplay.gif" height="150"></a><br><b>스트레칭 coach 미니게임</b><br><sub>포즈 가이드 아케이드 coach</sub></td>
+ <td width="50%" align="center"><a href="dx-agent-dev-showcase/mini-game-squat-fitness/README-ko.md"><img src="./docs/source/img/dx-agent-dev-squat-gameplay.gif" height="150"></a><br><b>스쿼트 카운팅 미니게임</b><br><sub>NPU 위 스쿼트 카운팅</sub></td>
+ <td width="50%" align="center"><a href="dx-agent-dev-showcase/mini-game-stretching-coach/README-ko.md"><img src="./docs/source/img/dx-agent-dev-stretch-gameplay.gif" height="150"></a><br><b>스트레칭 coach 미니게임</b><br><sub>포즈 가이드 아케이드 coach</sub></td>
 </tr>
 </table>
 

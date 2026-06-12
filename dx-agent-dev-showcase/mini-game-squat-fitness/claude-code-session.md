@@ -6,18 +6,19 @@
 |---|---|
 | Model | `claude-opus-4-8` |
 | Wall-clock | ~19.8 min |
-| Agent turns | 81 |
-| Output tokens | 85,269 |
+| Agent turns | 166 |
+| Output tokens | 238,075 |
 | Cost (reported) | $9.86 |
 | Tools | Bash×33, Write×17, Read×15, Skill×5, Edit×3, AskUserQuestion×1, TaskCreate×1 |
-| Skills | dx-skill-router → dx-agent-brainstorm → dx-swe-writing-plans → dx-agent-tdd → dx-agent-verify |
+| Skills | dx-skill-router → dx-agentic-brainstorm → dx-swe-writing-plans → dx-agentic-tdd → dx-agentic-verify |
+| Toolsets | — (none read) |
 
 
 ## Session Info
 
 - **Session ID:** `9dc70e64-cdd9-4ba5-8321-32530130eac4`
 - **Working Dir:** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app`
-- **Branch:** feature/dx-agent-dev
+- **Branch:** feature/dx-agentic-dev
 - **Claude Code:** v2.1.156
 - **Permission Mode:** bypassPermissions
 - **Start:** 2026-06-08T10:44:03.873Z
@@ -36,7 +37,7 @@
 
 **Claude:**
 
-[DX-AGENT-DEV: START]
+[DX-AGENTIC-DEV: START]
 
 ```
  ███████████   █████████ ████████ ████████  ████      ████
@@ -47,7 +48,7 @@
  ███     █████░███░      ██░      ███░   ████████░░░░████
  ███████████░░░█████████ ████████ ██████████░░░░░░    ████
   ░░░░░░░░░░░   ░░░░░░░░░ ░░░░░░░░ ░░░░░░░░░░          ░░░░
-        DX-AGENT-DEV · on-device NPU
+        DX-AGENTIC-DEV · on-device NPU
 ```
 
 I'll start by invoking the skill router as the mandatory first action.
@@ -72,8 +73,8 @@ ARGUMENTS: Build a squat-counting fitness mini-game using yolo26n-pose on DEEPX 
 2	name: dx-skill-router
 3	description: Use when starting any conversation - establishes how to discover and invoke dx-* skills, requiring skill invocation before ANY response including clarifyi…
 
-✅ **Skill** `dx-agent-brainstorm`
-  > Launching skill: dx-agent-brainstorm
+✅ **Skill** `dx-agentic-brainstorm`
+  > Launching skill: dx-agentic-brainstorm
 
 **Claude:**
 
@@ -85,18 +86,18 @@ Skill router complete. This is an app-building task, so per the mandatory sequen
 
 **User:**
 
-> Base directory for this skill: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/.claude/skills/dx-agent-brainstorm
+> Base directory for this skill: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/.claude/skills/dx-agentic-brainstorm
 
 <!-- Thin Claude Code wrapper — canonical skill doc lives in .deepx/ -->
 
-Read and follow the complete skill documentation at `.deepx/skills/dx-agent-brainstorm/SKILL.md`.
+Read and follow the complete skill documentation at `.deepx/skills/dx-agentic-brainstorm/SKILL.md`.
 
 
 ARGUMENTS: Squat-counting fitness mini-game using yolo26n-pose on DEEPX NPU. Video-file + live-camera input via CLI. Knee/hip angle squat rep detection, arcade game UI overlay, annotated output video. Validate with sample/squat_demo.mp4
 
-✅ **Read** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/.deepx/skills/dx-agent-brainstor…`
+✅ **Read** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/.deepx/skills/dx-agentic-brainstor…`
   > 1	---
-2	name: dx-agent-brainstorm
+2	name: dx-agentic-brainstorm
 3	description: Brainstorm and plan before implementation
 4	---
 5	
@@ -228,7 +229,7 @@ KEYPOINT_NAMES: List[str] = [
 ✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app
 SID="$(date +%Y%m%d-%H%M%S)_cla…`
   > SESSION_ID=20260608-194643_claude_opus48_yolo26n_pose_squat_game
-Created: dx-agent-dev/20260608-194643_claude_opus48_yolo26n_pose_squat_game
+Created: dx-agentic-dev/20260608-194643_claude_opus48_yolo26n_pose_squat_game
 --- dx_engine availability (per memory: use suite venv) …
 
 ✅ **Read** `/home/dhyang/.claude/projects/-data-home-dhyang-github-dx-all-suite-full-e2e-dx-runtime-dx-app/memo…`
@@ -317,8 +318,8 @@ ARGUMENTS: Implementation plan for yolo26n-pose squat-counting fitness mini-game
 ✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/docs/superpowers/plans/2026-06-08-…`
   > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/docs/superpowers/plans/2026-06-08-squat-game.md (file state is current in your context — no need to Read…
 
-✅ **Skill** `dx-agent-tdd`
-  > Launching skill: dx-agent-tdd
+✅ **Skill** `dx-agentic-tdd`
+  > Launching skill: dx-agentic-tdd
 
 **Claude:**
 
@@ -331,18 +332,18 @@ I'm using the writing-plans skill to create the implementation plan.
 
 **User:**
 
-> Base directory for this skill: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/.claude/skills/dx-agent-tdd
+> Base directory for this skill: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/.claude/skills/dx-agentic-tdd
 
 <!-- Thin Claude Code wrapper — canonical skill doc lives in .deepx/ -->
 
-Read and follow the complete skill documentation at `.deepx/skills/dx-agent-tdd/SKILL.md`.
+Read and follow the complete skill documentation at `.deepx/skills/dx-agentic-tdd/SKILL.md`.
 
 
 ARGUMENTS: TDD for squat-game: angle math + squat FSM unit tests first, then visualizer/factory/entry, calibrate, E2E verify on NPU
 
-✅ **Read** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/.deepx/skills/dx-agent-tdd/SKILL…`
+✅ **Read** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/.deepx/skills/dx-agentic-tdd/SKILL…`
   > 1	---
-2	name: dx-agent-tdd
+2	name: dx-agentic-tdd
 3	description: Test-driven development for dx_app
 4	---
 5	
@@ -358,40 +359,40 @@ echo …`
 67:    'LetterboxPreprocessor',
 85:    'YOLOv8PosePost…
 
-✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-194643_cla…`
-  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-194643_claude_opus48_yolo26n_pose_squat_game/test_squat_logic.py (file state is …
+✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-194643_cla…`
+  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-194643_claude_opus48_yolo26n_pose_squat_game/test_squat_logic.py (file state is …
 
-✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-194643_…`
+✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-194643_…`
   > ==================================== ERRORS ====================================
 _____________________ ERROR collecting test_squat_logic.py _____________________
 ImportError while importing test modu…
 
-✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-194643_cla…`
-  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-194643_claude_opus48_yolo26n_pose_squat_game/factory/squat_logic.py (file state …
+✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-194643_cla…`
+  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-194643_claude_opus48_yolo26n_pose_squat_game/factory/squat_logic.py (file state …
 
-✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-194643_…`
+✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-194643_…`
   > ============================= test session starts ==============================
 platform linux -- Python 3.12.3, pytest-9.0.3, pluggy-1.6.0 -- /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runti…
 
-✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-194643_cla…`
-  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-194643_claude_opus48_yolo26n_pose_squat_game/factory/squat_game_visualizer.py (f…
+✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-194643_cla…`
+  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-194643_claude_opus48_yolo26n_pose_squat_game/factory/squat_game_visualizer.py (f…
 
-✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-194643_…`
+✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-194643_…`
   > PASS: squat_game_visualizer.py compiles
 
-✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-194643_cla…`
-  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-194643_claude_opus48_yolo26n_pose_squat_game/factory/squat_game_factory.py (file…
+✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-194643_cla…`
+  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-194643_claude_opus48_yolo26n_pose_squat_game/factory/squat_game_factory.py (file…
 
-✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-194643_cla…`
-  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-194643_claude_opus48_yolo26n_pose_squat_game/factory/__init__.py (file state is …
+✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-194643_cla…`
+  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-194643_claude_opus48_yolo26n_pose_squat_game/factory/__init__.py (file state is …
 
-✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-194643_cla…`
-  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-194643_claude_opus48_yolo26n_pose_squat_game/config.json (file state is current …
+✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-194643_cla…`
+  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-194643_claude_opus48_yolo26n_pose_squat_game/config.json (file state is current …
 
-✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-194643_cla…`
-  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-194643_claude_opus48_yolo26n_pose_squat_game/yolo26n_pose_squat_sync.py (file st…
+✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-194643_cla…`
+  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-194643_claude_opus48_yolo26n_pose_squat_game/yolo26n_pose_squat_sync.py (file st…
 
-✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-194643_…`
+✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-194643_…`
   > === Check 1: factory compile + 5 IFactory methods ===
 PASS: 5 IFactory methods present
 === Check 2: factory/__init__.py ===
@@ -399,15 +400,15 @@ PASS
 === Check 3: config.json parse ===
 PASS: config.json keys= ['hip_down_…
 
-✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-194643_…`
+✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-194643_…`
   > usage: yolo26n_pose_squat_sync.py [-h] --model MODEL
                                   [--image IMAGE | --video VIDEO | --camera CAMERA | --rtsp RTSP]
                                   [--display] [-…
 
-✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-194643_cla…`
-  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-194643_claude_opus48_yolo26n_pose_squat_game/calibrate.py (file state is current…
+✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-194643_cla…`
+  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-194643_claude_opus48_yolo26n_pose_squat_game/calibrate.py (file state is current…
 
-✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-194643_…`
+✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-194643_…`
   > compiles OK
 === run calibration on sample/squat_demo.mp4 (NPU) ===
 
@@ -416,64 +417,64 @@ Knee angle distribution (deg):
    p05 =  134.6
    p15 =  1…
 
-✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-194643_…`
+✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-194643_…`
   > === full app run (headless, save) ===
 Model loaded: ../../assets/models/yolo26n-pose.dxnn
 [INFO] Model input size (WxH): 640x640
 [INFO] Config loaded: /data/home/dhyang/github/dx-all-suite-full-e2e/d…
 
-✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-194643_cla…`
-  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-194643_claude_opus48_yolo26n_pose_squat_game/verify.py (file state is current in…
+✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-194643_cla…`
+  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-194643_claude_opus48_yolo26n_pose_squat_game/verify.py (file state is current in…
 
-✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-194643_…`
+✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-194643_…`
   > compiles OK
 === run verify.py (NPU E2E) ===
 [verify] frames=240  frames_with_pose=238  saw_17_keypoints=True  reps_counted=2  score=20
 [verify] thresholds: knee_down=152.1 knee_up=165.8 hip_down=163.…
 
-✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-194643_…`
+✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-194643_…`
   > frames: 238 true down-up cycles (robust 145/168): 2
 knee angle every 8th frame:
 176 177 178 177 178 178 179 169 145 134 137 158 160 141 137 133 138 152 164 174 179 176 176 176 175 177 163 148 141 139
 
-✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-194643_cla…`
-  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-194643_claude_opus48_yolo26n_pose_squat_game/setup.sh (file state is current in …
+✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-194643_cla…`
+  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-194643_claude_opus48_yolo26n_pose_squat_game/setup.sh (file state is current in …
 
-✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-194643_cla…`
-  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-194643_claude_opus48_yolo26n_pose_squat_game/run.sh (file state is current in yo…
+✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-194643_cla…`
+  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-194643_claude_opus48_yolo26n_pose_squat_game/run.sh (file state is current in yo…
 
-✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-194643_cla…`
-  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-194643_claude_opus48_yolo26n_pose_squat_game/README.md (file state is current in…
+✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-194643_cla…`
+  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-194643_claude_opus48_yolo26n_pose_squat_game/README.md (file state is current in…
 
-✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-194643_cla…`
-  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-194643_claude_opus48_yolo26n_pose_squat_game/session.json (file state is current…
+✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-194643_cla…`
+  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-194643_claude_opus48_yolo26n_pose_squat_game/session.json (file state is current…
 
-✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-194643_…`
+✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-194643_…`
   > ########## bash -n setup.sh / run.sh ##########
 PASS: setup.sh syntax
 PASS: run.sh syntax
 ########## setup.sh execution ##########
 [setup] app dir: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-r…
 
-✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-194643_…`
+✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-194643_…`
   > ########## unit tests (test_squat_logic.py) ##########
 ..........                                                               [100%]
 10 passed in 0.16s
 ########## import resolution (no PYTHONPATH, …
 
-✅ **Bash** `SRC=/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-194643…`
+✅ **Bash** `SRC=/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-194643…`
   > === copied outside suite to: /tmp/squat_game_portable_test ===
 suite siblings present here? dx-runtime:no
 bundled: common=y model=y sample=y
 === run verify.py from OUTSIDE the suite (venv python = ex…
 
-✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-194643_…`
+✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-194643_…`
   > === saved annotated video(s) in session dir ===
 output/yolo26n_pose_squat_sync-stream-squat_demo-20260608-195815/output.mp4
 11903680 output/yolo26n_pose_squat_sync-stream-squat_demo-20260608-195815/o…
 
 ✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app
-PY=dx-agent-dev/20260608-1946…`
+PY=dx-agentic-dev/20260608-1946…`
   > === validate_app.py present? ===
 .deepx/scripts/validate_app.py
 === final deliverable listing ===
@@ -500,7 +501,7 @@ positional …
 
 ✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app
 PY=../venv-dx-runtime/bin/pytho…`
-  > Validating: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-194643_claude_opus48_yolo26n_pose_squat_game
+  > Validating: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-194643_claude_opus48_yolo26n_pose_squat_game
 
   !! [FAIL] required_files [ERROR]
           Missing…
@@ -528,35 +529,35 @@ grep -n "parse_common_args\|har…`
 453	            content = f.read()
 454	      …
 
-✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-194643_cla…`
-  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-194643_claude_opus48_yolo26n_pose_squat_game/__init__.py (file state is current …
+✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-194643_cla…`
+  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-194643_claude_opus48_yolo26n_pose_squat_game/__init__.py (file state is current …
 
-✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-194643_cla…`
-  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-194643_claude_opus48_yolo26n_pose_squat_game/app.yaml (file state is current in …
+✅ **Write** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-194643_cla…`
+  > File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-194643_claude_opus48_yolo26n_pose_squat_game/app.yaml (file state is current in …
 
 ✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app
 PY=../venv-dx-runtime/bin/pytho…`
-  > Validating: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-194643_claude_opus48_yolo26n_pose_squat_game
+  > Validating: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-194643_claude_opus48_yolo26n_pose_squat_game
 
   !! [FAIL] logging [WARNING]
           20 print() c…
 
-✅ **Edit** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-194643_cla…`
-  > The file /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-194643_claude_opus48_yolo26n_pose_squat_game/verify.py has been updated successfully. (file state is …
+✅ **Edit** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-194643_cla…`
+  > The file /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-194643_claude_opus48_yolo26n_pose_squat_game/verify.py has been updated successfully. (file state is …
 
-✅ **Edit** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-194643_cla…`
-  > The file /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-194643_claude_opus48_yolo26n_pose_squat_game/calibrate.py has been updated successfully. (file state …
+✅ **Edit** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-194643_cla…`
+  > The file /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-194643_claude_opus48_yolo26n_pose_squat_game/calibrate.py has been updated successfully. (file state …
 
-✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-194643_…`
+✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-194643_…`
   > === verify.py still PASS after refactor ===
 [verify] frames=240  frames_with_pose=238  saw_17_keypoints=True  reps_counted=2  score=20
 [verify] thresholds: knee_down=152.1 knee_up=165.8 hip_down=163.…
 
-✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-194643_…`
+✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-194643_…`
   > session.log size: 51 lines
 
-✅ **Skill** `dx-agent-verify`
-  > Launching skill: dx-agent-verify
+✅ **Skill** `dx-agentic-verify`
+  > Launching skill: dx-agentic-verify
 
 **Claude:**
 
@@ -599,18 +600,18 @@ Now the final mandatory step — the verify skill (evidence before claiming done
 
 **User:**
 
-> Base directory for this skill: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/.claude/skills/dx-agent-verify
+> Base directory for this skill: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/.claude/skills/dx-agentic-verify
 
 <!-- Thin Claude Code wrapper — canonical skill doc lives in .deepx/ -->
 
-Read and follow the complete skill documentation at `.deepx/skills/dx-agent-verify/SKILL.md`.
+Read and follow the complete skill documentation at `.deepx/skills/dx-agentic-verify/SKILL.md`.
 
 
 ARGUMENTS: Verify squat-game session deliverables: unit tests, NPU E2E verify.py, calibration, portability, annotated video, validator
 
-✅ **Read** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/.deepx/skills/dx-agent-verify/SK…`
+✅ **Read** `/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/.deepx/skills/dx-agentic-verify/SK…`
   > 1	---
-2	name: dx-agent-verify
+2	name: dx-agentic-verify
 3	description: Verify work before claiming done
 4	---
 5	
@@ -618,7 +619,7 @@ ARGUMENTS: Verify squat-game session deliverables: unit tests, NPU E2E verify.py
 7	
 8	> **Type: RIGID — Iron Law.** No completion claims without…
 
-✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260608-194643_…`
+✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agentic-dev/20260608-194643_…`
   > ===== STEP 1: file inventory =====
 app.yaml
 calibrate.py
@@ -646,7 +647,7 @@ ru…
 ✅ **Bash** `cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app
 GT="$(d="$PWD"; while [ "$d" !=…`
   > generator: /data/home/dhyang/github/dx-all-suite-full-e2e/.deepx/tests/generate_transcripts.py
-jsonl: dx-agent-dev/20260608-194643_claude_opus48_yolo26n_pose_squat_game/claude-stream.jsonl
+jsonl: dx-agentic-dev/20260608-194643_claude_opus48_yolo26n_pose_squat_game/claude-stream.jsonl
 md: dx-a…
 
 **Claude:**
@@ -659,7 +660,7 @@ All verification complete. Here is the completion report.
 
 ## Completion Report: yolo26n-pose Squat-Counting Fitness Mini-Game
 
-**Status: PASS** | **Output dir**: `dx-agent-dev/20260608-194643_claude_opus48_yolo26n_pose_squat_game/`
+**Status: PASS** | **Output dir**: `dx-agentic-dev/20260608-194643_claude_opus48_yolo26n_pose_squat_game/`
 
 | File | Status | | File | Status |
 |------|--------|--|------|--------|
@@ -680,7 +681,7 @@ All verification complete. Here is the completion report.
 
 ### How to run
 ```bash
-cd dx-agent-dev/20260608-194643_claude_opus48_yolo26n_pose_squat_game
+cd dx-agentic-dev/20260608-194643_claude_opus48_yolo26n_pose_squat_game
 ./setup.sh                    # vendor framework, bundle model + sample
 ./run.sh                      # play on bundled video, saves annotated output.mp4
 ./run.sh --camera 0           # live camera
@@ -698,13 +699,13 @@ The app uses the IFactory + SyncRunner pattern (skeleton-first from `yolo26n_pos
  ███     █████░███░      ██░      ███░   ████████░░░░████
  ███████████░░░█████████ ████████ ██████████░░░░░░    ████
   ░░░░░░░░░░░   ░░░░░░░░░ ░░░░░░░░ ░░░░░░░░░░          ░░░░
-        DX-AGENT-DEV · on-device NPU
+        DX-AGENTIC-DEV · on-device NPU
 ```
 
-[DX-AGENT-DEV: DONE (output-dir: dx-runtime/dx_app/dx-agent-dev/20260608-194643_claude_opus48_yolo26n_pose_squat_game/)]
+[DX-AGENTIC-DEV: DONE (output-dir: dx-runtime/dx_app/dx-agentic-dev/20260608-194643_claude_opus48_yolo26n_pose_squat_game/)]
 
 Now the final housekeeping step — render this session's transcript into the output dir (claude is auto-supported):
-Session transcript (md/html/jsonl) saved to: `dx-agent-dev/20260608-194643_claude_opus48_yolo26n_pose_squat_game/claude-session.*`
+Session transcript (md/html/jsonl) saved to: `dx-agentic-dev/20260608-194643_claude_opus48_yolo26n_pose_squat_game/claude-session.*`
 
 ---
 

@@ -47,7 +47,7 @@
   ],
   "showcases": [
     {
-      "name": "squat-fitness-mini-game",
+      "name": "mini-game-squat-fitness",
       "kind": "game",
       "category": "npu-apps",
       "card_media": "gif",
@@ -62,12 +62,12 @@
       "highlight_ko": "포즈 게임 + 아케이드 HUD",
       "model": "Claude Opus 4.8",
       "build": "≈ 20 min",
-      "turns": "81",
-      "tokens": "≈ 85K",
+      "turns": "166",
+      "tokens": "≈ 238K",
       "cost": "≈ $9.9"
     },
     {
-      "name": "stretching-coach-mini-game",
+      "name": "mini-game-stretching-coach",
       "kind": "game",
       "category": "npu-apps",
       "card_media": "gif",
@@ -82,8 +82,8 @@
       "highlight_ko": "coach 아바타 + 3단계",
       "model": "Claude Opus 4.8",
       "build": "≈ 21 min",
-      "turns": "75",
-      "tokens": "≈ 85K",
+      "turns": "163",
+      "tokens": "≈ 220K",
       "cost": "≈ $9.4"
     },
     {
@@ -103,9 +103,9 @@
       "highlight_en": "1-cmd .pt → .dxnn",
       "highlight_ko": "1-cmd .pt → .dxnn",
       "model": "Claude Sonnet 4.6",
-      "build": "≈ 11.6 min",
-      "turns": "59",
-      "tokens": "—",
+      "build": "≈ 12 min",
+      "turns": "108",
+      "tokens": "≈ 84K",
       "cost": "≈ $2.4"
     },
     {
