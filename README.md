@@ -53,7 +53,16 @@
 </tr>
 </table>
 
-#### PaddlePaddle ecosystem integration — _PaddleOCR video/webcam OCR showcase — coming soon._
+#### PaddlePaddle ecosystem integration
+
+**PaddleOCR (PP-OCRv5) on the DEEPX NPU — real-time video & webcam OCR from a single, concise prompt.** Baidu's PaddlePaddle OCR (text detection → orientation → recognition) running on the DX-M1 NPU.
+
+<table>
+<tr>
+ <td width="50%" align="center"><a href="dx-agent-dev-showcase/paddleocr-video-ocr/README.md"><img src="./docs/source/img/dx-agent-dev-paddleocr-gameplay.gif" height="150"></a><br><b>Video / Webcam OCR (PP-OCRv5)</b><br><sub>PaddleOCR PP-OCRv5 on the NPU</sub></td>
+ <td></td>
+</tr>
+</table>
 
 #### RapidAI ecosystem integration
 

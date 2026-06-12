@@ -53,7 +53,16 @@
 </tr>
 </table>
 
-#### PaddlePaddle 생태계 통합 — _PaddleOCR 영상/웹캠 OCR showcase — 추후 추가 예정._
+#### PaddlePaddle 생태계 통합
+
+**단 하나의 간결한 프롬프트로 만드는 DEEPX NPU 실시간 영상·웹캠 OCR.** Baidu PaddlePaddle OCR(PP-OCRv5: detection → orientation → recognition)을 DX-M1 NPU에서 실행.
+
+<table>
+<tr>
+ <td width="50%" align="center"><a href="dx-agent-dev-showcase/paddleocr-video-ocr/README-ko.md"><img src="./docs/source/img/dx-agent-dev-paddleocr-gameplay.gif" height="150"></a><br><b>영상 / 웹캠 OCR (PP-OCRv5)</b><br><sub>PaddleOCR PP-OCRv5 NPU 추론</sub></td>
+ <td></td>
+</tr>
+</table>
 
 #### RapidAI 생태계 통합
 

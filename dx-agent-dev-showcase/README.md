@@ -104,9 +104,21 @@ Retrains `yolo26n` on `medical-pills` for a pharma counting station; 4-way eval 
 
 ## PaddlePaddle ecosystem integration
 
-**PaddleOCR (PP-OCRv5) on the DEEPX NPU — video & webcam OCR from a single prompt.** Baidu's PaddlePaddle OCR models, run on the DX-M1 NPU.
+**PaddleOCR (PP-OCRv5) on the DEEPX NPU — real-time video & webcam OCR from a single, concise prompt.** Baidu's PaddlePaddle OCR (text detection → orientation → recognition) running on the DX-M1 NPU.
 
-> _PaddleOCR video/webcam OCR showcase — coming soon._
+| Showcase | Kind | Highlight |
+|---|---|---|
+| [Video / Webcam OCR (PP-OCRv5)](./paddleocr-video-ocr/README.md) | app | PP-OCRv5 det→cls→rec on-device (~2.8 FPS, 341 ms/frame); 14 text regions/frame; video + webcam from one --source flag |
+
+### Video / Webcam OCR (PP-OCRv5)
+
+<a href="./paddleocr-video-ocr/README.md"><img src="../docs/source/img/dx-agent-dev-paddleocr-gameplay.gif" height="170" align="right"></a>
+
+Real-time text detection + recognition on the DX-M1 NPU — one code path for a video file and a live webcam, overlaying detected boxes + recognized strings.
+
+**Highlight:** PP-OCRv5 det→cls→rec on-device (~2.8 FPS, 341 ms/frame); 14 text regions/frame; video + webcam from one --source flag · **Claude Opus 4.8** · ≈ 18 min · ≈ $12.0 — [details →](./paddleocr-video-ocr/README.md)
+
+<br clear="right">
 
 ## RapidAI ecosystem integration
 

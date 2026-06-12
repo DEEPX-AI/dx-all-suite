@@ -28,13 +28,11 @@
     },
     {
       "id": "paddlepaddle",
-      "status": "coming-soon",
+      "status": "active",
       "title_en": "PaddlePaddle ecosystem integration",
       "title_ko": "PaddlePaddle 생태계 통합",
-      "blurb_en": "**PaddleOCR (PP-OCRv5) on the DEEPX NPU — video & webcam OCR from a single prompt.** Baidu's PaddlePaddle OCR models, run on the DX-M1 NPU.",
-      "blurb_ko": "**DEEPX NPU에서 동작하는 PaddleOCR (PP-OCRv5) — 단일 프롬프트로 만드는 영상·웹캠 OCR.** Baidu PaddlePaddle OCR 모델을 DX-M1 NPU에서 실행.",
-      "note_en": "PaddleOCR video/webcam OCR showcase — coming soon.",
-      "note_ko": "PaddleOCR 영상/웹캠 OCR showcase — 추후 추가 예정."
+      "blurb_en": "**PaddleOCR (PP-OCRv5) on the DEEPX NPU — real-time video & webcam OCR from a single, concise prompt.** Baidu's PaddlePaddle OCR (text detection → orientation → recognition) running on the DX-M1 NPU.",
+      "blurb_ko": "**단 하나의 간결한 프롬프트로 만드는 DEEPX NPU 실시간 영상·웹캠 OCR.** Baidu PaddlePaddle OCR(PP-OCRv5: detection → orientation → recognition)을 DX-M1 NPU에서 실행."
     },
     {
       "id": "rapidai",
@@ -212,6 +210,26 @@
       "tokens": "≈ 148.5K",
       "cost": "≈ $6.2",
       "sample": "dx-agent-dev-rapiddoc-pdf2md-sample.png"
+    },
+    {
+      "name": "paddleocr-video-ocr",
+      "kind": "app",
+      "category": "paddlepaddle",
+      "card_media": "gif",
+      "gif": "dx-agent-dev-paddleocr-gameplay.gif",
+      "title_en": "Video / Webcam OCR (PP-OCRv5)",
+      "title_ko": "영상 / 웹캠 OCR (PP-OCRv5)",
+      "tagline_en": "PaddleOCR PP-OCRv5 on the NPU",
+      "tagline_ko": "PaddleOCR PP-OCRv5 NPU 추론",
+      "what_en": "Real-time text detection + recognition on the DX-M1 NPU — one code path for a video file and a live webcam, overlaying detected boxes + recognized strings.",
+      "what_ko": "DX-M1 NPU에서 실시간 텍스트 detection + recognition — 비디오 파일과 라이브 웹캠을 단일 코드 경로로 처리하며 검출 박스 + 인식 문자열을 오버레이.",
+      "highlight_en": "PP-OCRv5 det→cls→rec on-device (~2.8 FPS, 341 ms/frame); 14 text regions/frame; video + webcam from one --source flag",
+      "highlight_ko": "PP-OCRv5 det→cls→rec 온디바이스(~2.8 FPS, 341 ms/frame); 프레임당 텍스트 14개; --source 하나로 영상 + 웹캠",
+      "model": "Claude Opus 4.8",
+      "build": "≈ 18 min",
+      "turns": "175",
+      "tokens": "≈ 184K",
+      "cost": "≈ $12.0"
     }
   ]
 }

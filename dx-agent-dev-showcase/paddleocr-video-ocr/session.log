@@ -1,0 +1,56 @@
+===== run.sh on demo video (full pipeline, captured) =====
+[run] source=/tmp/sc-build/ocr_input/ocr_demo.mp4  output=/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-182217_claude_opus48_ppocrv5_ocr_video/ocr_output.mp4  DXNN_DEVICES=0
+[DXRT] Using DXRT_TASK_MAX_LOAD (I/O buffer-count)=3 from environment
+2026-06-12 18:28:16,430 INFO Loading NPU model: det_v5_640.dxnn
+[DXRT] Using CUSTOM_INTRA_OP_THREADS_COUNT=2 from environment
+[DXRT] Using CUSTOM_INTER_OP_THREADS_COUNT=1 from environment
+[DXRT] Using NFH_INPUT_WORKER_THREADS=2 from environment
+[DXRT] Using NFH_OUTPUT_WORKER_THREADS=4 from environment
+2026-06-12 18:28:16,497 INFO Loading NPU model: det_v5_960.dxnn
+2026-06-12 18:28:16,560 INFO Loading NPU model: textline_ori.dxnn
+2026-06-12 18:28:16,565 INFO Loading NPU model: rec_v5_ratio_3.dxnn
+2026-06-12 18:28:16,618 INFO Loading NPU model: rec_v5_ratio_5.dxnn
+2026-06-12 18:28:16,665 INFO Loading NPU model: rec_v5_ratio_10.dxnn
+2026-06-12 18:28:16,710 INFO Loading NPU model: rec_v5_ratio_15.dxnn
+2026-06-12 18:28:16,756 INFO Loading NPU model: rec_v5_ratio_25.dxnn
+2026-06-12 18:28:16,803 INFO Loading NPU model: rec_v5_ratio_35.dxnn
+2026-06-12 18:28:16,855 INFO PP-OCRv5 NPU pipeline ready (det 640/960 + textline-ori cls + rec x6).
+2026-06-12 18:28:16,877 INFO Source opened: file[/tmp/sc-build/ocr_input/ocr_demo.mp4]  (15.0 fps)
+2026-06-12 18:28:17,256 INFO Saved annotated sample frame -> /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-182217_claude_opus48_ppocrv5_ocr_video/sample_detect.jpg (14 texts)
+2026-06-12 18:28:25,348 INFO frame 25 | 3.0 FPS | last 330.9 ms | texts 14
+2026-06-12 18:28:33,544 INFO frame 50 | 3.0 FPS | last 304.1 ms | texts 8
+2026-06-12 18:28:41,315 INFO frame 75 | 3.1 FPS | last 299.3 ms | texts 8
+2026-06-12 18:28:49,370 INFO frame 100 | 3.1 FPS | last 323.1 ms | texts 8
+2026-06-12 18:28:57,753 INFO frame 125 | 3.1 FPS | last 325.7 ms | texts 8
+2026-06-12 18:29:05,776 INFO frame 150 | 3.1 FPS | last 309.5 ms | texts 12
+2026-06-12 18:29:13,714 INFO frame 175 | 3.1 FPS | last 309.7 ms | texts 12
+2026-06-12 18:29:14,032 INFO ================================================================
+2026-06-12 18:29:14,032 INFO Processed 176 frames (176 OCR'd) in 57.15s
+2026-06-12 18:29:14,032 INFO Per-frame NPU OCR latency: 316.9 ms  (det 223.0 + cls 7.7 + rec 73.4)
+2026-06-12 18:29:14,032 INFO NPU OCR throughput: 3.16 FPS | total recognized strings: 1858
+2026-06-12 18:29:14,032 INFO Annotated video: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-182217_claude_opus48_ppocrv5_ocr_video/ocr_output.mp4 | sample frame: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-182217_claude_opus48_ppocrv5_ocr_video/sample_detect.jpg
+2026-06-12 18:29:14,032 INFO ================================================================
+
+===== verify.py (NPU OCR smoke test) =====
+[DXRT] Using DXRT_TASK_MAX_LOAD (I/O buffer-count)=3 from environment
+2026-06-12 18:31:49,829 INFO Loading NPU model: det_v5_640.dxnn
+[DXRT] Using CUSTOM_INTRA_OP_THREADS_COUNT=2 from environment
+[DXRT] Using CUSTOM_INTER_OP_THREADS_COUNT=1 from environment
+[DXRT] Using NFH_INPUT_WORKER_THREADS=2 from environment
+[DXRT] Using NFH_OUTPUT_WORKER_THREADS=4 from environment
+2026-06-12 18:31:49,904 INFO Loading NPU model: det_v5_960.dxnn
+2026-06-12 18:31:49,962 INFO Loading NPU model: textline_ori.dxnn
+2026-06-12 18:31:49,966 INFO Loading NPU model: rec_v5_ratio_3.dxnn
+2026-06-12 18:31:50,018 INFO Loading NPU model: rec_v5_ratio_5.dxnn
+2026-06-12 18:31:50,063 INFO Loading NPU model: rec_v5_ratio_10.dxnn
+2026-06-12 18:31:50,111 INFO Loading NPU model: rec_v5_ratio_15.dxnn
+2026-06-12 18:31:50,158 INFO Loading NPU model: rec_v5_ratio_25.dxnn
+2026-06-12 18:31:50,206 INFO Loading NPU model: rec_v5_ratio_35.dxnn
+2026-06-12 18:31:50,258 INFO PP-OCRv5 NPU pipeline ready (det 640/960 + textline-ori cls + rec x6).
+== verify.py : PP-OCRv5 OCR on DX-M1 NPU ==
+  [OK] all 10 model/dict files present
+  [OK] PP-OCRv5 pipeline loaded on the NPU
+  [OK] detected 14 text region(s) on one frame
+       per-frame NPU latency: total=340.1 ms (det=224.4, cls=10.2, rec=89.5)
+       recognized 14 string(s); sample: ['CENTRAL', 'STATION', 'Platform', '3', 'Track B']
+RESULT: PASS

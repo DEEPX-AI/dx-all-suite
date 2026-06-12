@@ -52,9 +52,11 @@ InferenceEngine 설정, DxPreprocess/DxInfer 엘리먼트 연결 — 따라서 *
 
 #### PaddlePaddle 생태계 통합
 
-**DEEPX NPU에서 동작하는 PaddleOCR (PP-OCRv5) — 단일 프롬프트로 만드는 영상·웹캠 OCR.** Baidu PaddlePaddle OCR 모델을 DX-M1 NPU에서 실행.
+**단 하나의 간결한 프롬프트로 만드는 DEEPX NPU 실시간 영상·웹캠 OCR.** Baidu PaddlePaddle OCR(PP-OCRv5: detection → orientation → recognition)을 DX-M1 NPU에서 실행.
 
-> _PaddleOCR 영상/웹캠 OCR showcase — 추후 추가 예정._
+| Showcase | 설명 | 빌드 시간 | Agent turns | Output tokens | ~비용 |
+|---|---|---|---|---|---|
+| **[영상 / 웹캠 OCR (PP-OCRv5)](../../dx-agent-dev-showcase/paddleocr-video-ocr/)** | DX-M1 NPU에서 실시간 텍스트 detection + recognition — 비디오 파일과 라이브 웹캠을 단일 코드 경로로 처리하며 검출 박스 + 인식 문자열을 오버레이. | ≈ 18 min | 175 | ≈ 184K | ≈ $12.0 |
 
 #### RapidAI 생태계 통합
 

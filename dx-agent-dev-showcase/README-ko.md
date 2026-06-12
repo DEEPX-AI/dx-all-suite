@@ -103,9 +103,21 @@ Ultralytics YOLO `.pt`를 단일 `yolo export ... format=deepx` 명령으로 배
 
 ## PaddlePaddle 생태계 통합
 
-**DEEPX NPU에서 동작하는 PaddleOCR (PP-OCRv5) — 단일 프롬프트로 만드는 영상·웹캠 OCR.** Baidu PaddlePaddle OCR 모델을 DX-M1 NPU에서 실행.
+**단 하나의 간결한 프롬프트로 만드는 DEEPX NPU 실시간 영상·웹캠 OCR.** Baidu PaddlePaddle OCR(PP-OCRv5: detection → orientation → recognition)을 DX-M1 NPU에서 실행.
 
-> _PaddleOCR 영상/웹캠 OCR showcase — 추후 추가 예정._
+| Showcase | 유형 | 핵심 결과 |
+|---|---|---|
+| [영상 / 웹캠 OCR (PP-OCRv5)](./paddleocr-video-ocr/README-ko.md) | 앱 | PP-OCRv5 det→cls→rec 온디바이스(~2.8 FPS, 341 ms/frame); 프레임당 텍스트 14개; --source 하나로 영상 + 웹캠 |
+
+### 영상 / 웹캠 OCR (PP-OCRv5)
+
+<a href="./paddleocr-video-ocr/README-ko.md"><img src="../docs/source/img/dx-agent-dev-paddleocr-gameplay.gif" height="170" align="right"></a>
+
+DX-M1 NPU에서 실시간 텍스트 detection + recognition — 비디오 파일과 라이브 웹캠을 단일 코드 경로로 처리하며 검출 박스 + 인식 문자열을 오버레이.
+
+**핵심:** PP-OCRv5 det→cls→rec 온디바이스(~2.8 FPS, 341 ms/frame); 프레임당 텍스트 14개; --source 하나로 영상 + 웹캠 · **Claude Opus 4.8** · ≈ 18 min · ≈ $12.0 — [상세 →](./paddleocr-video-ocr/README-ko.md)
+
+<br clear="right">
 
 ## RapidAI 생태계 통합
 
