@@ -103,19 +103,19 @@ Ultralytics YOLO `.pt`를 단일 `yolo export ... format=deepx` 명령으로 배
 
 ## PaddlePaddle 생태계 통합
 
-**단 하나의 간결한 자연어 프롬프트로 만드는 DEEPX NPU 문서 AI.** PaddleOCR / RapidDoc (PP-OCRv5, PP-StructureV3) 문서 파싱 — 레이아웃·OCR·표·수식 — 을 DX-M1 NPU에서 실행.
+**단 하나의 간결한 자연어 프롬프트로 만드는, DEEPX NPU를 활용한 PDF → Markdown 문서 변환 앱.** PaddleOCR / RapidDoc (PP-OCRv5, PP-StructureV3): 레이아웃·OCR·표·수식을 DX-M1 NPU에서 실행.
 
 | Showcase | 유형 | 핵심 결과 |
 |---|---|---|
-| [PDF → Markdown (문서 AI)](./rapiddoc-pdf2md/README-ko.md) | 앱 | 9페이지 재무보고서 온디바이스 12.7초 파싱; 제목 21개 + 표 9개 보존 (auto) |
+| [PDF → Markdown (문서 변환 앱)](./rapiddoc-pdf2md/README-ko.md) | 앱 | 16페이지 물리 논문 온디바이스 36.9초 파싱; 제목 + abstract + 섹션 + 수식 164개(formula recognition) + 그림 보존 |
 
-### PDF → Markdown (문서 AI)
+### PDF → Markdown (문서 변환 앱)
 
-<a href="./rapiddoc-pdf2md/README-ko.md"><img src="../docs/source/img/dx-agent-dev-rapiddoc-pdf2md-build.gif" height="170" align="right"></a>
+<a href="./rapiddoc-pdf2md/README-ko.md"><img src="../docs/source/img/dx-agent-dev-rapiddoc-pdf2md-sample.png" height="170" align="right"></a>
 
-PDF(디지털/스캔)를 구조화된 Markdown + JSON으로 변환 — 레이아웃 분석 + OCR + 표/수식 인식을 RapidDoc fork로 DEEPX DX-M1 NPU에서 실행. `--parse-method auto|txt|ocr` 지원.
+PDF(디지털/스캔)를 구조화된 Markdown + JSON으로 변환 — 레이아웃 분석·OCR·표·수식 — 을 RapidDoc fork로 DEEPX DX-M1 NPU에서 실행. `--parse-method auto|txt|ocr` 지원.
 
-**핵심:** 9페이지 재무보고서 온디바이스 12.7초 파싱; 제목 21개 + 표 9개 보존 (auto) · **Claude Opus 4.8** · ≈ 17 min · ≈ $14.3 — [상세 →](./rapiddoc-pdf2md/README-ko.md)
+**핵심:** 16페이지 물리 논문 온디바이스 36.9초 파싱; 제목 + abstract + 섹션 + 수식 164개(formula recognition) + 그림 보존 · **Claude Opus 4.8** · ≈ 17 min · ≈ $14.3 — [상세 →](./rapiddoc-pdf2md/README-ko.md)
 
 <br clear="right">
 <!-- dx-showcase:docs:catalog:end -->

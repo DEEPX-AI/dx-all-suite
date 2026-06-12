@@ -55,11 +55,11 @@
 
 #### PaddlePaddle ecosystem integration
 
-**Document AI on the DEEPX NPU — from a single, concise natural-language prompt.** PaddleOCR / RapidDoc (PP-OCRv5, PP-StructureV3) document parsing — layout, OCR, tables, formulas — on the DX-M1 NPU.
+**A PDF → Markdown document-conversion app on the DEEPX NPU — from a single, concise natural-language prompt.** PaddleOCR / RapidDoc (PP-OCRv5, PP-StructureV3): layout, OCR, tables, formulas on the DX-M1 NPU.
 
 <table>
 <tr>
- <td width="50%" align="center"><a href="dx-agent-dev-showcase/rapiddoc-pdf2md/README.md"><img src="./docs/source/img/dx-agent-dev-rapiddoc-pdf2md-build.gif" height="150"></a><br><b>PDF → Markdown (Document AI)</b><br><sub>RapidDoc PP-StructureV3 on the NPU</sub></td>
+ <td width="50%" align="center"><a href="dx-agent-dev-showcase/rapiddoc-pdf2md/README.md"><img src="./docs/source/img/dx-agent-dev-rapiddoc-pdf2md-sample.png" height="150"></a><br><b>PDF → Markdown (document conversion app)</b><br><sub>RapidDoc PP-StructureV3 on the NPU</sub></td>
  <td></td>
 </tr>
 </table>

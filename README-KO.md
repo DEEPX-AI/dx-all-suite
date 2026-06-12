@@ -55,11 +55,11 @@
 
 #### PaddlePaddle 생태계 통합
 
-**단 하나의 간결한 자연어 프롬프트로 만드는 DEEPX NPU 문서 AI.** PaddleOCR / RapidDoc (PP-OCRv5, PP-StructureV3) 문서 파싱 — 레이아웃·OCR·표·수식 — 을 DX-M1 NPU에서 실행.
+**단 하나의 간결한 자연어 프롬프트로 만드는, DEEPX NPU를 활용한 PDF → Markdown 문서 변환 앱.** PaddleOCR / RapidDoc (PP-OCRv5, PP-StructureV3): 레이아웃·OCR·표·수식을 DX-M1 NPU에서 실행.
 
 <table>
 <tr>
- <td width="50%" align="center"><a href="dx-agent-dev-showcase/rapiddoc-pdf2md/README-ko.md"><img src="./docs/source/img/dx-agent-dev-rapiddoc-pdf2md-build.gif" height="150"></a><br><b>PDF → Markdown (문서 AI)</b><br><sub>RapidDoc PP-StructureV3 NPU 추론</sub></td>
+ <td width="50%" align="center"><a href="dx-agent-dev-showcase/rapiddoc-pdf2md/README-ko.md"><img src="./docs/source/img/dx-agent-dev-rapiddoc-pdf2md-sample.png" height="150"></a><br><b>PDF → Markdown (문서 변환 앱)</b><br><sub>RapidDoc PP-StructureV3 NPU 추론</sub></td>
  <td></td>
 </tr>
 </table>

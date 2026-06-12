@@ -9,7 +9,7 @@
 
 <div align="center"><table><tr>
 <td align="center"><img src="../../docs/source/img/dx-agent-dev-rapiddoc-pdf2md-build.gif" width="470"><br><sub><b>dx-agent-dev가 이 showcase를 빌드하는 과정 (타임랩스)</b></sub></td>
-<td align="center"><img src="./images/sample_table_region.jpg" width="300"><br><sub><b>DX-M1 NPU에서 인식한 재무 표</b></sub></td>
+<td align="center"><img src="./images/sample_before_after.png" width="470"><br><sub><b>PDF 페이지 → Markdown, DX-M1 NPU에서 파싱</b></sub></td>
 </tr></table></div>
 
 > **에이전트가 어떻게 만들었는지 보기:** [`claude-code-session.md`](./claude-code-session.md).
@@ -79,35 +79,42 @@ Markdown output (sample_output.md), and a README reporting NPU stage timings.
 
 ## 측정된 NPU 성능
 
-이번 session의 실제 수치 — `sample_input.pdf` = `比亚迪财报_origin.pdf`
-(BYD 2025 Q1 보고서, **9페이지**, 제목 21개, 표 9개), DX-M1, `DXNN_DEVICES=0`,
+이번 session의 실제 수치 — `sample_input.pdf` = `physics0409110_origin.pdf`
+(영문 물리 논문, *"High-precision Absolute Distance and Vibration Measurement using
+Frequency Scanned Interferometry"*, **16페이지**, 수식 위주), DX-M1, `DXNN_DEVICES=0`,
 runtime 3.3.2 / FW v2.5.6. `session.log` / `timings.md`에 기록됨.
 
-**parse-method별 end-to-end (9페이지):**
+**end-to-end (auto, 16페이지): 36.9 s** wall, 0.4 pages/s. NPU 단계별:
 
-| Method | 총 시간 | Throughput | 페이지당 평균 | 제목 | 표 |
-|---|---:|---:|---:|---:|---:|
-| `txt`  | 9.5 s  | 0.9 pages/s | 1.29 s | 21 | 9 |
-| `auto` | 9.7 s  | 0.9 pages/s | 1.31 s | 21 | 9 |
-| `ocr`  | 12.3 s | 0.7 pages/s | 2.19 s | 17 | 9 |
+| Stage | Count | 평균 latency | Throughput | 비중 |
+|---|---:|---:|---:|---:|
+| Formula recognition | 164 | 201.21 ms | 5.0 FPS | 84.5% |
+| Layout analysis | 16 | 311.62 ms | 3.2 FPS | 12.8% |
+| Table recognition | 1 | 795.29 ms | 1.3 FPS | 2.0% |
+| PDF-det / OCR-det | 100 | ~2 ms | — | 0.7% |
 
-(`ocr`은 PDF text layer를 재사용하지 않고 모든 페이지에 PP-OCRv5 det+rec를 강제하므로 느립니다.)
-단계별(auto): Layout 289.51 ms/page (NPU, 22%), Table 703.03 ms/region (NPU, 78%);
-1회성 model load 1.74 s.
+이 논문은 **수식이 많은** 문서로, 164개 수식 region이 84.5%를 차지해 pipeline의
+**formula recognition**(+ layout/OCR)을 잘 보여줍니다. 1회성 model load 1.75 s.
+(`txt`는 PDF text layer를 재사용해 더 빠르고, `ocr`은 전체 페이지 OCR을 강제해 더 느립니다.)
 
 ## 샘플 출력 (`sample_output.md` 발췌)
 
-제목과 재무 표가 그대로 보존됩니다 (HTML table markup — PP-StructureV3 관례; rowspan/colspan 유지):
+제목·저자·abstract·섹션 제목이 보존되며, 수식은 formula region으로 인식됩니다
+(Markdown에서는 잘린 이미지로 렌더):
 
 ```markdown
-# 比亚迪股份有限公司
-# 2025 年第一季度报告
-# 一、主要财务数据
+# High-precision Absolute Distance and Vibration Measurement using Frequency Scanned Interferometry
 
-<table><tr><td></td><td>本报告期</td><td>上年同期</td><td>本报告期比上年同期增减（%）</td></tr>
-<tr><td>营业收入（元）</td><td>170,360,448,000.00</td><td>124,944,397,000.00</td><td>36.35%</td></tr>
-<tr><td>归属于上市公司股东的净利润（元）</td><td>9,154,985,000.00</td><td>4,568,793,000.00</td><td>100.38%</td></tr>
-...
+Hai-Jun Yang, Jason Deibel, Sven Nyberg, Keith Riles
+
+Department of Physics, University of Michigan, Ann Arbor, MI 48109-1120, USA
+
+In this paper, we report high-precision absolute distance and vibration measurements
+performed with frequency scanned interferometry using a pair of single-mode optical fibers...
+
+# 1. Introduction
+# 2. Principles
+# 3. Demonstration System of FSI
 ```
 
 ## 재현

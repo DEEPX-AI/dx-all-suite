@@ -31,8 +31,8 @@
       "status": "active",
       "title_en": "PaddlePaddle ecosystem integration",
       "title_ko": "PaddlePaddle 생태계 통합",
-      "blurb_en": "**Document AI on the DEEPX NPU — from a single, concise natural-language prompt.** PaddleOCR / RapidDoc (PP-OCRv5, PP-StructureV3) document parsing — layout, OCR, tables, formulas — on the DX-M1 NPU.",
-      "blurb_ko": "**단 하나의 간결한 자연어 프롬프트로 만드는 DEEPX NPU 문서 AI.** PaddleOCR / RapidDoc (PP-OCRv5, PP-StructureV3) 문서 파싱 — 레이아웃·OCR·표·수식 — 을 DX-M1 NPU에서 실행."
+      "blurb_en": "**A PDF → Markdown document-conversion app on the DEEPX NPU — from a single, concise natural-language prompt.** PaddleOCR / RapidDoc (PP-OCRv5, PP-StructureV3): layout, OCR, tables, formulas on the DX-M1 NPU.",
+      "blurb_ko": "**단 하나의 간결한 자연어 프롬프트로 만드는, DEEPX NPU를 활용한 PDF → Markdown 문서 변환 앱.** PaddleOCR / RapidDoc (PP-OCRv5, PP-StructureV3): 레이아웃·OCR·표·수식을 DX-M1 NPU에서 실행."
     }
   ],
   "showcases": [
@@ -186,21 +186,22 @@
       "name": "rapiddoc-pdf2md",
       "kind": "app",
       "category": "paddlepaddle",
-      "card_media": "gif",
+      "card_media": "sample",
       "gif": "dx-agent-dev-rapiddoc-pdf2md-build.gif",
-      "title_en": "PDF → Markdown (Document AI)",
-      "title_ko": "PDF → Markdown (문서 AI)",
+      "title_en": "PDF → Markdown (document conversion app)",
+      "title_ko": "PDF → Markdown (문서 변환 앱)",
       "tagline_en": "RapidDoc PP-StructureV3 on the NPU",
       "tagline_ko": "RapidDoc PP-StructureV3 NPU 추론",
-      "what_en": "Converts a PDF (digital or scanned) to structured Markdown + JSON — layout analysis + OCR + table/formula recognition — running on the DEEPX DX-M1 NPU via the RapidDoc fork. Supports `--parse-method auto|txt|ocr`.",
-      "what_ko": "PDF(디지털/스캔)를 구조화된 Markdown + JSON으로 변환 — 레이아웃 분석 + OCR + 표/수식 인식을 RapidDoc fork로 DEEPX DX-M1 NPU에서 실행. `--parse-method auto|txt|ocr` 지원.",
-      "highlight_en": "9-page financial report parsed on-device in 12.7s; 21 headings + 9 tables preserved (auto)",
-      "highlight_ko": "9페이지 재무보고서 온디바이스 12.7초 파싱; 제목 21개 + 표 9개 보존 (auto)",
+      "what_en": "Converts a PDF (digital or scanned) to structured Markdown + JSON — layout analysis, OCR, tables and formulas — on the DEEPX DX-M1 NPU via the RapidDoc fork. Supports `--parse-method auto|txt|ocr`.",
+      "what_ko": "PDF(디지털/스캔)를 구조화된 Markdown + JSON으로 변환 — 레이아웃 분석·OCR·표·수식 — 을 RapidDoc fork로 DEEPX DX-M1 NPU에서 실행. `--parse-method auto|txt|ocr` 지원.",
+      "highlight_en": "16-page physics paper parsed on-device in 36.9s; title + abstract + sections + 164 equations (formula recognition) + figures preserved",
+      "highlight_ko": "16페이지 물리 논문 온디바이스 36.9초 파싱; 제목 + abstract + 섹션 + 수식 164개(formula recognition) + 그림 보존",
       "model": "Claude Opus 4.8",
       "build": "≈ 17 min",
       "turns": "109",
       "tokens": "≈ 69.5K",
-      "cost": "≈ $14.3"
+      "cost": "≈ $14.3",
+      "sample": "dx-agent-dev-rapiddoc-pdf2md-sample.png"
     }
   ]
 }

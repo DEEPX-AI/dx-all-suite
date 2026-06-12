@@ -52,11 +52,11 @@ InferenceEngine 설정, DxPreprocess/DxInfer 엘리먼트 연결 — 따라서 *
 
 #### PaddlePaddle 생태계 통합
 
-**단 하나의 간결한 자연어 프롬프트로 만드는 DEEPX NPU 문서 AI.** PaddleOCR / RapidDoc (PP-OCRv5, PP-StructureV3) 문서 파싱 — 레이아웃·OCR·표·수식 — 을 DX-M1 NPU에서 실행.
+**단 하나의 간결한 자연어 프롬프트로 만드는, DEEPX NPU를 활용한 PDF → Markdown 문서 변환 앱.** PaddleOCR / RapidDoc (PP-OCRv5, PP-StructureV3): 레이아웃·OCR·표·수식을 DX-M1 NPU에서 실행.
 
 | Showcase | 설명 | 빌드 시간 | Agent turns | Output tokens | ~비용 |
 |---|---|---|---|---|---|
-| **[PDF → Markdown (문서 AI)](../../dx-agent-dev-showcase/rapiddoc-pdf2md/)** | PDF(디지털/스캔)를 구조화된 Markdown + JSON으로 변환 — 레이아웃 분석 + OCR + 표/수식 인식을 RapidDoc fork로 DEEPX DX-M1 NPU에서 실행. `--parse-method auto|txt|ocr` 지원. | ≈ 17 min | 109 | ≈ 69.5K | ≈ $14.3 |
+| **[PDF → Markdown (문서 변환 앱)](../../dx-agent-dev-showcase/rapiddoc-pdf2md/)** | PDF(디지털/스캔)를 구조화된 Markdown + JSON으로 변환 — 레이아웃 분석·OCR·표·수식 — 을 RapidDoc fork로 DEEPX DX-M1 NPU에서 실행. `--parse-method auto|txt|ocr` 지원. | ≈ 17 min | 109 | ≈ 69.5K | ≈ $14.3 |
 <!-- dx-showcase:docs:table:end -->
 
 **전체 카탈로그 + showcase별 요약(빌드 GIF 포함) →**

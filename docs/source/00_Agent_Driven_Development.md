@@ -54,11 +54,11 @@ transcript.
 
 #### PaddlePaddle ecosystem integration
 
-**Document AI on the DEEPX NPU — from a single, concise natural-language prompt.** PaddleOCR / RapidDoc (PP-OCRv5, PP-StructureV3) document parsing — layout, OCR, tables, formulas — on the DX-M1 NPU.
+**A PDF → Markdown document-conversion app on the DEEPX NPU — from a single, concise natural-language prompt.** PaddleOCR / RapidDoc (PP-OCRv5, PP-StructureV3): layout, OCR, tables, formulas on the DX-M1 NPU.
 
 | Showcase | What it is | Build time | Agent turns | Output tokens | ~Cost |
 |---|---|---|---|---|---|
-| **[PDF → Markdown (Document AI)](../../dx-agent-dev-showcase/rapiddoc-pdf2md/)** | Converts a PDF (digital or scanned) to structured Markdown + JSON — layout analysis + OCR + table/formula recognition — running on the DEEPX DX-M1 NPU via the RapidDoc fork. Supports `--parse-method auto|txt|ocr`. | ≈ 17 min | 109 | ≈ 69.5K | ≈ $14.3 |
+| **[PDF → Markdown (document conversion app)](../../dx-agent-dev-showcase/rapiddoc-pdf2md/)** | Converts a PDF (digital or scanned) to structured Markdown + JSON — layout analysis, OCR, tables and formulas — on the DEEPX DX-M1 NPU via the RapidDoc fork. Supports `--parse-method auto|txt|ocr`. | ≈ 17 min | 109 | ≈ 69.5K | ≈ $14.3 |
 <!-- dx-showcase:docs:table:end -->
 
 **Full catalog + per-showcase summaries (with build GIFs) →**

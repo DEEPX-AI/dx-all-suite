@@ -9,7 +9,7 @@
 
 <div align="center"><table><tr>
 <td align="center"><img src="../../docs/source/img/dx-agent-dev-rapiddoc-pdf2md-build.gif" width="470"><br><sub><b>dx-agent-dev building this showcase (timelapse)</b></sub></td>
-<td align="center"><img src="./images/sample_table_region.jpg" width="300"><br><sub><b>a financial table recognized on the DX-M1 NPU</b></sub></td>
+<td align="center"><img src="./images/sample_before_after.png" width="470"><br><sub><b>PDF page → Markdown, parsed on the DX-M1 NPU</b></sub></td>
 </tr></table></div>
 
 > **See how the agent built it:** [`claude-code-session.md`](./claude-code-session.md).
@@ -80,36 +80,42 @@ Outputs land in `output-<method>/<doc>/<method>/`; the rendered Markdown is copi
 
 ## Measured NPU performance
 
-Real numbers from this session — `sample_input.pdf` = `比亚迪财报_origin.pdf`
-(BYD 2025 Q1 report, **9 pages**, 21 headings, 9 tables), DX-M1, `DXNN_DEVICES=0`,
-runtime 3.3.2 / FW v2.5.6. Captured in `session.log` / `timings.md`.
+Real numbers from this session — `sample_input.pdf` = `physics0409110_origin.pdf`
+(an English physics paper, *"High-precision Absolute Distance and Vibration Measurement
+using Frequency Scanned Interferometry"*, **16 pages**, equation-heavy), DX-M1,
+`DXNN_DEVICES=0`, runtime 3.3.2 / FW v2.5.6. Captured in `session.log` / `timings.md`.
 
-**End-to-end by parse-method (9 pages):**
+**End-to-end (auto, 16 pages): 36.9 s** wall, 0.4 pages/s. Per-stage on the NPU:
 
-| Method | Total time | Throughput | Avg/page | Headings | Tables |
-|---|---:|---:|---:|---:|---:|
-| `txt`  | 9.5 s  | 0.9 pages/s | 1.29 s | 21 | 9 |
-| `auto` | 9.7 s  | 0.9 pages/s | 1.31 s | 21 | 9 |
-| `ocr`  | 12.3 s | 0.7 pages/s | 2.19 s | 17 | 9 |
+| Stage | Count | Avg latency | Throughput | Share |
+|---|---:|---:|---:|---:|
+| Formula recognition | 164 | 201.21 ms | 5.0 FPS | 84.5% |
+| Layout analysis | 16 | 311.62 ms | 3.2 FPS | 12.8% |
+| Table recognition | 1 | 795.29 ms | 1.3 FPS | 2.0% |
+| PDF-det / OCR-det | 100 | ~2 ms | — | 0.7% |
 
-(`ocr` is slower because it forces PP-OCRv5 det+rec on every page instead of reusing
-the PDF text layer.) Per-stage breakdown (auto): Layout 289.51 ms/page (NPU, 22%),
-Table 703.03 ms/region (NPU, 78%); one-time model load 1.74 s.
+This paper is **formula-dense** — 164 equation regions dominate (84.5%), showcasing the
+pipeline's **formula recognition** alongside layout/OCR. One-time model load: 1.75 s.
+(`txt` reuses the PDF text layer and is faster; `ocr` forces full-page OCR and is slower.)
 
 ## Sample output (excerpt from `sample_output.md`)
 
-Headings and a financial table are preserved verbatim (HTML table markup, the
-PP-StructureV3 convention; rowspan/colspan retained):
+Title, authors, abstract and section headings are preserved; equations are recognized as
+formula regions (rendered as cropped images in the Markdown):
 
 ```markdown
-# 比亚迪股份有限公司
-# 2025 年第一季度报告
-# 一、主要财务数据
+# High-precision Absolute Distance and Vibration Measurement using Frequency Scanned Interferometry
 
-<table><tr><td></td><td>本报告期</td><td>上年同期</td><td>本报告期比上年同期增减（%）</td></tr>
-<tr><td>营业收入（元）</td><td>170,360,448,000.00</td><td>124,944,397,000.00</td><td>36.35%</td></tr>
-<tr><td>归属于上市公司股东的净利润（元）</td><td>9,154,985,000.00</td><td>4,568,793,000.00</td><td>100.38%</td></tr>
-...
+Hai-Jun Yang, Jason Deibel, Sven Nyberg, Keith Riles
+
+Department of Physics, University of Michigan, Ann Arbor, MI 48109-1120, USA
+
+In this paper, we report high-precision absolute distance and vibration measurements
+performed with frequency scanned interferometry using a pair of single-mode optical fibers...
+
+# 1. Introduction
+# 2. Principles
+# 3. Demonstration System of FSI
 ```
 
 ## Reproduce
@@ -130,9 +136,10 @@ bash run.sh          # parse sample_input.pdf on the NPU → sample_output.md + 
 |---|---|
 | `setup.sh` | Clone fork + venv + deps + foreground model download + pick sample PDF |
 | `run.sh` | One-command launcher: venv + DX-RT env + `DXNN_DEVICES` + `--parse-method` |
-| `sample_input.pdf` | Sample input (BYD 2025 Q1 report, 9 pages) |
+| `sample_input.pdf` | Sample input (English physics paper, 16 pages, equation-heavy) |
 | `sample_output.md` | Rendered Markdown (auto) — headings + 9 tables preserved |
-| `images/sample_table_region.jpg` | A table region recognized on the NPU (referenced by `sample_output.md`) |
+| `images/sample_before_after.png` | Before/after sample: PDF page → parsed Markdown (NPU) |
+| `images/*.jpg` | Formula/figure regions recognized on the NPU (referenced by `sample_output.md`) |
 | `timings.md` | Per-stage NPU timing report (from the real run) |
 | `session.log` | Captured real command output (setup + all runs) |
 | `claude-code-session.md` | Full agent build transcript (Wall-clock + Cost) |
