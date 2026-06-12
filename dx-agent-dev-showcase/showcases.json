@@ -204,13 +204,13 @@
       "tagline_ko": "RapidDoc PP-StructureV3 NPU 추론",
       "what_en": "Converts a PDF (digital or scanned) to structured Markdown + JSON — layout analysis, OCR, tables and formulas — on the DEEPX DX-M1 NPU via the RapidDoc fork. Supports `--parse-method auto|txt|ocr`.",
       "what_ko": "PDF(디지털/스캔)를 구조화된 Markdown + JSON으로 변환 — 레이아웃 분석·OCR·표·수식 — 을 RapidDoc fork로 DEEPX DX-M1 NPU에서 실행. `--parse-method auto|txt|ocr` 지원.",
-      "highlight_en": "16-page physics paper parsed on-device in 36.9s; title + abstract + sections + 164 equations (formula recognition) + figures preserved",
-      "highlight_ko": "16페이지 물리 논문 온디바이스 36.9초 파싱; 제목 + abstract + 섹션 + 수식 164개(formula recognition) + 그림 보존",
+      "highlight_en": "16-page physics paper parsed on-device (41.3s); standalone app — vendored rapid_doc, own entry, no fork clone; abstract + sections + 164 equations preserved",
+      "highlight_ko": "16페이지 물리 논문 온디바이스 파싱(41.3s); standalone 앱 — vendored rapid_doc·자체 entry·포크 clone 없음; abstract + 섹션 + 수식 164개 보존",
       "model": "Claude Opus 4.8",
-      "build": "≈ 17 min",
-      "turns": "109",
-      "tokens": "≈ 69.5K",
-      "cost": "≈ $14.3",
+      "build": "≈ 12 min",
+      "turns": "61",
+      "tokens": "≈ 51.8K",
+      "cost": "≈ $6.2",
       "sample": "dx-agent-dev-rapiddoc-pdf2md-sample.png"
     }
   ]

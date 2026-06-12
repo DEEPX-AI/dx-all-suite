@@ -2,10 +2,12 @@
 
 > **The story.** A user types a **short, goal-only prompt** — "build a PDF→Markdown app
 > that runs on the DEEPX NPU" — naming **no toolset, no file, no repo branch, no env
-> script.** From that alone, dx-agent-dev routes to the right knowledge base, clones the
-> DEEPX **RapidDoc** fork, provisions the NPU models, and produces a working app that turns
-> a PDF (digital or scanned) into structured **Markdown + JSON** — **layout analysis, OCR,
-> and table/formula recognition all on the DX-M1 NPU** (PP-StructureV3).
+> script.** From that alone, dx-agent-dev routes to the right knowledge base and generates
+> a **standalone, self-contained app**: it **vendors** the RapidAI **RapidDoc** pipeline
+> package (`rapid_doc`, PP-StructureV3) into the app, writes its **own entry**
+> (`pdf_to_markdown.py`) that imports it, and runs **layout analysis, OCR, and table
+> recognition on the DX-M1 NPU** (formula recognition on ONNX Runtime). The result turns a
+> PDF (digital or scanned) into structured **Markdown + JSON** — no runtime clone of the fork.
 
 <div align="center"><table><tr>
 <td align="center"><img src="../../docs/source/img/dx-agent-dev-rapiddoc-pdf2md-build.gif" width="470"><br><sub><b>dx-agent-dev building this showcase (timelapse)</b></sub></td>
@@ -22,12 +24,13 @@
 | Human input | **1 short natural-language prompt** — fully autonomous |
 | KB toolsets read | `paddleocr-rapiddoc-app` — **discovered via routing**, not named in the prompt |
 | Skills | `dx-skill-router` → `dx-agent-brainstorm` → `dx-swe-writing-plans` → `dx-agent-tdd` → `dx-agent-verify` |
-| Wall-clock / turns / cost | ~17 min / 109 / ≈ $14.3 |
+| Wall-clock / turns / cost | ~12 min / 61 / ≈ $6.2 |
 
 ## The prompt
 
 The whole point of this showcase: the prompt is **concise** and names no toolset path,
-file, branch, or env script — the skill + KB routing supply all of that.
+file, branch, or env script — the skill + KB routing supply all of that, including the
+decision to **generate a standalone app** (not wrap the fork's demo).
 
 ```
 Build a PDF-to-Markdown app whose document-parsing pipeline (layout analysis + OCR +
@@ -37,66 +40,48 @@ output structured Markdown (+ JSON) preserving headings and tables. Support
 Markdown output (sample_output.md), and a README reporting NPU stage timings.
 ```
 
-> **Architecture note.** RapidDoc ships its *own* NPU pipeline (the PP-StructureV3 models
-> run on the DX-M1 through the fork's runtime). Per the dx_app knowledge base
-> (`paddleocr-rapiddoc-app.md`) this is the documented **exception** to the IFactory /
-> SyncRunner pattern: the app is a thin standalone launcher that drives the fork's
-> pipeline — it does not wrap a single `.dxnn` in a factory.
+> **Architecture note.** RapidDoc ships its *own* NPU pipeline (PP-StructureV3 on the
+> DX-M1), so this is the documented **exception** to the dx_app IFactory / SyncRunner
+> pattern. The deliverable is **our own entry** (`pdf_to_markdown.py`) over the **vendored**
+> `rapid_doc` package — *not* a wrapper around the fork's `demo/demo_offline.py`.
 
 ## Quick start
 
 ```bash
-./setup.sh                          # clone fork + venv + deps + download NPU models (foreground, one-shot)
-./run.sh                            # parse sample_input.pdf with --parse-method auto (default)
-./run.sh --parse-method ocr         # force full-page OCR (scanned docs)
-./run.sh --parse-method txt         # text-layer only (fast, digital PDFs)
-./run.sh --input my.pdf --parse-method auto
+./setup.sh                       # venv + deps + dx_engine bridge + NPU model download
+./run.sh                         # parse the bundled sample_input.pdf (auto method)
+./run.sh mydoc.pdf auto          # digital PDF (text layer first, OCR fallback)
+./run.sh scan.pdf  ocr           # scanned PDF (force full OCR on the NPU)
+./run.sh doc.pdf   txt           # text-layer extraction only (no OCR)
 ```
 
-Outputs land in `output-<method>/<doc>/<method>/`; the rendered Markdown is copied to
-`./sample_output.md` and the per-stage NPU timing report to `./timings.md`.
+The fork is **not** cloned at run time — `rapid_doc/` is vendored in this folder; `setup.sh`
+only installs pip deps and **downloads the NPU models** (16 `.dxnn` + 8 `.onnx`, not committed).
 
 ## `--parse-method`
 
 | Method | Behavior | Use for |
 |---|---|---|
-| `auto` *(default)* | Try the PDF text layer first, fall back to NPU OCR per region | Mixed / unknown PDFs |
-| `txt`  | Use the embedded text layer only (no OCR) | Born-digital PDFs (fastest) |
-| `ocr`  | Force full-page OCR (PP-OCRv5 det+rec) on the NPU for every page | Scanned / image-only PDFs |
-
-## On-device pipeline (DX-M1)
-
-`--finegrained` (default) runs a 7-stage streaming pipeline. Engine assignment:
-
-| Stage | Engine | Device |
-|---|---|---|
-| Layout analysis (`pp_doclayout_l`) | dxengine | **NPU** |
-| OCR detection (`ch_PP-OCRv5_server_det`) | dxengine | **NPU** |
-| OCR recognition (`ch_PP-OCRv5_rec_server`) | dxengine | **NPU** |
-| Table recognition (`unet` + structure) | dxengine | **NPU** |
-| Formula recognition (`pp_formulanet_plus_l`) | onnxruntime | CPU |
-
-16 `.dxnn` models are provisioned by `setup.sh` into `RapidDoc/dxnn_models/`.
+| `auto` *(default)* | Embedded text layer per page, OCR fallback where missing | digital / mixed PDFs |
+| `txt`  | Text layer only, no OCR | known-digital PDFs (fastest) |
+| `ocr`  | Force full OCR (det + rec) on every page on the NPU | scanned / image-only PDFs |
 
 ## Measured NPU performance
 
-Real numbers from this session — `sample_input.pdf` = `physics0409110_origin.pdf`
-(an English physics paper, *"High-precision Absolute Distance and Vibration Measurement
-using Frequency Scanned Interferometry"*, **16 pages**, equation-heavy), DX-M1,
-`DXNN_DEVICES=0`, runtime 3.3.2 / FW v2.5.6. Captured in `session.log` / `timings.md`.
+`sample_input.pdf` = `physics0409110_origin.pdf` (an English physics paper, *"High-precision
+Absolute Distance and Vibration Measurement using Frequency Scanned Interferometry"*, **16
+pages**, equation-heavy), produced by **this app's own `pdf_to_markdown.py`** on DX-M1
+(`DXNN_DEVICES=0`, runtime 3.3.2 / FW v2.5.6). `auto` end-to-end **41.3 s** (2.58 s/page):
 
-**End-to-end (auto, 16 pages): 36.9 s** wall, 0.4 pages/s. Per-stage on the NPU:
+| Stage | Count | Avg latency | Throughput | Engine | Share |
+|---|---:|---:|---:|---|---:|
+| Formula recognition | 164 | 213.82 ms | 4.7 FPS | ONNX/CPU | 85.0% |
+| Layout analysis | 16 | 317.42 ms | 3.2 FPS | **NPU** | 12.3% |
+| Table recognition | 1 | 848.05 ms | 1.2 FPS | **NPU** | 2.1% |
+| OCR det / PDF text-det | 100 | ~2–108 ms | — | **NPU** | 0.7% |
 
-| Stage | Count | Avg latency | Throughput | Share |
-|---|---:|---:|---:|---:|
-| Formula recognition | 164 | 201.21 ms | 5.0 FPS | 84.5% |
-| Layout analysis | 16 | 311.62 ms | 3.2 FPS | 12.8% |
-| Table recognition | 1 | 795.29 ms | 1.3 FPS | 2.0% |
-| PDF-det / OCR-det | 100 | ~2 ms | — | 0.7% |
-
-This paper is **formula-dense** — 164 equation regions dominate (84.5%), showcasing the
-pipeline's **formula recognition** alongside layout/OCR. One-time model load: 1.75 s.
-(`txt` reuses the PDF text layer and is faster; `ocr` forces full-page OCR and is slower.)
+This paper is **formula-dense** (164 equation regions → 85% of the time), showcasing
+formula recognition alongside NPU layout/OCR/table. Model load: 1.75 s.
 
 ## Sample output (excerpt from `sample_output.md`)
 
@@ -107,7 +92,6 @@ formula regions (rendered as cropped images in the Markdown):
 # High-precision Absolute Distance and Vibration Measurement using Frequency Scanned Interferometry
 
 Hai-Jun Yang, Jason Deibel, Sven Nyberg, Keith Riles
-
 Department of Physics, University of Michigan, Ann Arbor, MI 48109-1120, USA
 
 In this paper, we report high-precision absolute distance and vibration measurements
@@ -118,30 +102,38 @@ performed with frequency scanned interferometry using a pair of single-mode opti
 # 3. Demonstration System of FSI
 ```
 
+## How it works (standalone)
+
+1. `pdf_to_markdown.py` puts the **vendored `./rapid_doc`** on `sys.path` (no install, no
+   runtime clone) and checks the DX-RT threading env.
+2. Builds per-model engine configs (layout `PP-DocLayout-L`, OCR `PP-OCRv5` det+rec, table
+   `UNET`, formula `PP-FormulaNet+`), pointing layout/OCR/table at the local `dxnn_models/` (NPU).
+3. Runs `rapid_doc.backend.pipeline.pipeline_analyze.doc_analyze(...)` on the NPU.
+4. Renders Markdown (`MakeMode.MM_MD`) + a JSON content list via `FileBasedDataWriter`.
+
 ## Reproduce
 
 ```bash
-bash setup.sh        # clone DEEPX-AI/RapidDoc@rapid_doc_deepx fresh + venv + deps + foreground model download
-bash run.sh          # parse sample_input.pdf on the NPU → sample_output.md + timings.md
+bash setup.sh        # venv + deps + dx_engine bridge + download NPU models (foreground)
+bash run.sh          # parse sample_input.pdf on the NPU → output/<stem>/<method>/<stem>.md
 ```
 
 > x86-64 Linux + DeepX runtime; `dx_engine` missing: `cd dx-runtime && bash install.sh --all --exclude-app --exclude-stream`.
-> Models come from the fork's `./setup.sh` (prebuilt `onnx_models/` + `dxnn_models/`) —
-> **not** hand-compiled with `dxcom`. The fork is cloned fresh into this dir (output
-> isolation); no pre-existing user repo is reused or deleted.
+> Models come from `setup_sample_models.sh` (prebuilt onnx+dxnn) — **not** hand-compiled with `dxcom`.
 
 ## Files
 
-| File | Purpose |
+| File | Role |
 |---|---|
-| `setup.sh` | Clone fork + venv + deps + foreground model download + pick sample PDF |
-| `run.sh` | One-command launcher: venv + DX-RT env + `DXNN_DEVICES` + `--parse-method` |
-| `sample_input.pdf` | Sample input (English physics paper, 16 pages, equation-heavy) |
-| `sample_output.md` | Rendered Markdown (auto) — headings + 9 tables preserved |
-| `images/sample_before_after.png` | Before/after sample: PDF page → parsed Markdown (NPU) |
-| `images/*.jpg` | Formula/figure regions recognized on the NPU (referenced by `sample_output.md`) |
-| `timings.md` | Per-stage NPU timing report (from the real run) |
-| `session.log` | Captured real command output (setup + all runs) |
-| `claude-code-session.md` | Full agent build transcript (Wall-clock + Cost) |
+| `pdf_to_markdown.py` | **our** standalone entry over the vendored NPU pipeline |
+| `rapid_doc/` | **vendored** RapidDoc pipeline package (pure Python, ~2.5 MB) |
+| `deepx_scripts/`, `setup_sample_models.sh` | DX env setup + NPU/ONNX model downloader |
+| `setup.sh` | venv + `requirements.deepx.txt` + dx_engine `.pth` bridge + model download |
+| `run.sh` | launcher: sources `set_env.sh`, `DXNN_DEVICES=0`, runs `pdf_to_markdown.py` |
+| `sample_input.pdf` / `sample_output.md` | English physics paper + its rendered Markdown |
+| `images/sample_before_after.png` | before/after: PDF page → parsed Markdown |
+| `timings.md` | per-stage NPU timing report (real run) |
+| `session.log` | captured real output of the inference runs |
+| `claude-code-session.md` | full agent build transcript (Wall-clock + Cost) |
 
 Korean: [`README-ko.md`](./README-ko.md).

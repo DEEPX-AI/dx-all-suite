@@ -2,10 +2,11 @@
 
 > **스토리.** 사용자가 **짧고 목표만 담은 프롬프트** — "DEEPX NPU에서 동작하는 PDF→Markdown
 > 앱을 만들어줘" — 를 입력합니다. **toolset도, 파일도, repo 브랜치도, env script도 적지
-> 않습니다.** 그것만으로 dx-agent-dev는 알맞은 knowledge base로 routing하고, DEEPX
-> **RapidDoc** fork를 clone하고, NPU 모델을 provisioning한 뒤, PDF(디지털 또는 스캔)를
-> 구조화된 **Markdown + JSON**으로 변환하는 동작하는 앱을 만들어냅니다 — **layout 분석, OCR,
-> 표/수식 인식을 모두 DX-M1 NPU에서** 실행 (PP-StructureV3).
+> 않습니다.** 그것만으로 dx-agent-dev는 알맞은 knowledge base로 routing해 **standalone·
+> self-contained 앱**을 생성합니다: RapidAI **RapidDoc** 파이프라인 패키지(`rapid_doc`,
+> PP-StructureV3)를 앱에 **vendoring**하고, 이를 import하는 **자체 entry**(`pdf_to_markdown.py`)
+> 를 작성해, **layout 분석·OCR·표 인식을 DX-M1 NPU에서** 실행(수식 인식은 ONNX Runtime).
+> PDF(디지털/스캔)를 구조화된 **Markdown + JSON**으로 변환하며, 런타임에 포크를 clone하지 않습니다.
 
 <div align="center"><table><tr>
 <td align="center"><img src="../../docs/source/img/dx-agent-dev-rapiddoc-pdf2md-build.gif" width="470"><br><sub><b>dx-agent-dev가 이 showcase를 빌드하는 과정 (타임랩스)</b></sub></td>
@@ -22,12 +23,13 @@
 | 사람 입력 | **짧은 자연어 프롬프트 1개** — 완전 자율 |
 | 읽은 KB toolset | `paddleocr-rapiddoc-app` — 프롬프트에 적지 않았으나 **routing으로 스스로 찾음** |
 | Skills | `dx-skill-router` → `dx-agent-brainstorm` → `dx-swe-writing-plans` → `dx-agent-tdd` → `dx-agent-verify` |
-| Wall-clock / turns / cost | ~17분 / 109 / ≈ $14.3 |
+| Wall-clock / turns / cost | ~12분 / 61 / ≈ $6.2 |
 
 ## 프롬프트
 
 이 showcase의 핵심: 프롬프트는 **간결**하며 toolset 경로·파일·브랜치·env script를 적지
-않습니다 — 그 부분은 skill + KB routing이 채웁니다.
+않습니다 — 그 부분(그리고 **포크 demo를 래핑하지 않고 standalone 앱을 생성**한다는 결정까지)은
+skill + KB routing이 채웁니다.
 
 ```
 Build a PDF-to-Markdown app whose document-parsing pipeline (layout analysis + OCR +
@@ -37,76 +39,58 @@ output structured Markdown (+ JSON) preserving headings and tables. Support
 Markdown output (sample_output.md), and a README reporting NPU stage timings.
 ```
 
-> **아키텍처 노트.** RapidDoc는 *자체* NPU pipeline을 제공합니다(PP-StructureV3 모델이 fork
-> runtime을 통해 DX-M1에서 실행). dx_app knowledge base(`paddleocr-rapiddoc-app.md`)에 따르면
-> 이는 IFactory / SyncRunner 패턴의 문서화된 **예외**입니다 — 앱은 fork의 pipeline을 구동하는
-> 얇은 standalone launcher이며, 단일 `.dxnn`을 factory로 감싸지 않습니다.
+> **아키텍처 노트.** RapidDoc는 *자체* NPU 파이프라인(DX-M1 위 PP-StructureV3)을 제공하므로
+> dx_app IFactory / SyncRunner 패턴의 문서화된 **예외**입니다. 산출물은 **vendored** `rapid_doc`
+> 패키지를 구동하는 **자체 entry**(`pdf_to_markdown.py`)이며, 포크의 `demo/demo_offline.py`
+> 래퍼가 **아닙니다**.
 
 ## 빠른 시작
 
 ```bash
-./setup.sh                          # fork clone + venv + deps + NPU 모델 다운로드 (foreground, 1회)
-./run.sh                            # sample_input.pdf를 --parse-method auto(기본)로 파싱
-./run.sh --parse-method ocr         # 전체 페이지 강제 OCR (스캔 문서)
-./run.sh --parse-method txt         # text layer만 사용 (빠름, 디지털 PDF)
-./run.sh --input my.pdf --parse-method auto
+./setup.sh                       # venv + deps + dx_engine bridge + NPU 모델 다운로드
+./run.sh                         # 번들된 sample_input.pdf 파싱 (auto)
+./run.sh mydoc.pdf auto          # 디지털 PDF (text layer 우선, OCR fallback)
+./run.sh scan.pdf  ocr           # 스캔 PDF (전체 페이지 NPU OCR 강제)
+./run.sh doc.pdf   txt           # text layer만 추출 (OCR 없음)
 ```
 
-출력은 `output-<method>/<doc>/<method>/`에 생성되며, 렌더된 Markdown은 `./sample_output.md`,
-단계별 NPU 처리시간 리포트는 `./timings.md`로 복사됩니다.
+런타임에 포크를 clone하지 않습니다 — `rapid_doc/`가 이 폴더에 vendoring되어 있고, `setup.sh`는
+pip 의존성 설치 + **NPU 모델 다운로드**(16 `.dxnn` + 8 `.onnx`, 커밋 안 함)만 수행합니다.
 
 ## `--parse-method`
 
 | Method | 동작 | 용도 |
 |---|---|---|
-| `auto` *(기본)* | PDF text layer를 먼저 시도, region별로 NPU OCR로 fallback | 혼합/미상 PDF |
-| `txt`  | 내장 text layer만 사용 (OCR 없음) | born-digital PDF (가장 빠름) |
-| `ocr`  | 모든 페이지에 NPU에서 전체 OCR(PP-OCRv5 det+rec) 강제 | 스캔/이미지 PDF |
-
-## On-device pipeline (DX-M1)
-
-`--finegrained`(기본)는 7-stage streaming pipeline을 실행합니다. Engine 배치:
-
-| Stage | Engine | Device |
-|---|---|---|
-| Layout 분석 (`pp_doclayout_l`) | dxengine | **NPU** |
-| OCR detection (`ch_PP-OCRv5_server_det`) | dxengine | **NPU** |
-| OCR recognition (`ch_PP-OCRv5_rec_server`) | dxengine | **NPU** |
-| Table recognition (`unet` + structure) | dxengine | **NPU** |
-| Formula recognition (`pp_formulanet_plus_l`) | onnxruntime | CPU |
-
-16개의 `.dxnn` 모델이 `setup.sh`에 의해 `RapidDoc/dxnn_models/`로 provisioning됩니다.
+| `auto` *(기본)* | 페이지별 text layer 사용, 없으면 OCR fallback | 디지털/혼합 PDF |
+| `txt`  | text layer만, OCR 없음 | 디지털 PDF (가장 빠름) |
+| `ocr`  | 모든 페이지 NPU OCR(det+rec) 강제 | 스캔/이미지 PDF |
 
 ## 측정된 NPU 성능
 
-이번 session의 실제 수치 — `sample_input.pdf` = `physics0409110_origin.pdf`
-(영문 물리 논문, *"High-precision Absolute Distance and Vibration Measurement using
-Frequency Scanned Interferometry"*, **16페이지**, 수식 위주), DX-M1, `DXNN_DEVICES=0`,
-runtime 3.3.2 / FW v2.5.6. `session.log` / `timings.md`에 기록됨.
+`sample_input.pdf` = `physics0409110_origin.pdf` (영문 물리 논문, *"High-precision Absolute
+Distance and Vibration Measurement using Frequency Scanned Interferometry"*, **16페이지**,
+수식 위주), **이 앱의 `pdf_to_markdown.py`** 가 DX-M1에서 직접 생성(`DXNN_DEVICES=0`, runtime
+3.3.2 / FW v2.5.6). `auto` end-to-end **41.3 s** (2.58 s/page):
 
-**end-to-end (auto, 16페이지): 36.9 s** wall, 0.4 pages/s. NPU 단계별:
+| Stage | Count | 평균 latency | Throughput | Engine | 비중 |
+|---|---:|---:|---:|---|---:|
+| Formula recognition | 164 | 213.82 ms | 4.7 FPS | ONNX/CPU | 85.0% |
+| Layout analysis | 16 | 317.42 ms | 3.2 FPS | **NPU** | 12.3% |
+| Table recognition | 1 | 848.05 ms | 1.2 FPS | **NPU** | 2.1% |
+| OCR det / PDF text-det | 100 | ~2–108 ms | — | **NPU** | 0.7% |
 
-| Stage | Count | 평균 latency | Throughput | 비중 |
-|---|---:|---:|---:|---:|
-| Formula recognition | 164 | 201.21 ms | 5.0 FPS | 84.5% |
-| Layout analysis | 16 | 311.62 ms | 3.2 FPS | 12.8% |
-| Table recognition | 1 | 795.29 ms | 1.3 FPS | 2.0% |
-| PDF-det / OCR-det | 100 | ~2 ms | — | 0.7% |
-
-이 논문은 **수식이 많은** 문서로, 164개 수식 region이 84.5%를 차지해 pipeline의
-**formula recognition**(+ layout/OCR)을 잘 보여줍니다. 1회성 model load 1.75 s.
-(`txt`는 PDF text layer를 재사용해 더 빠르고, `ocr`은 전체 페이지 OCR을 강제해 더 느립니다.)
+이 논문은 **수식이 많아**(수식 region 164개 → 85%) formula recognition + NPU layout/OCR/table을
+함께 보여줍니다. 모델 load 1.75 s.
 
 ## 샘플 출력 (`sample_output.md` 발췌)
 
-제목·저자·abstract·섹션 제목이 보존되며, 수식은 formula region으로 인식됩니다
-(Markdown에서는 잘린 이미지로 렌더):
+제목·저자·abstract·섹션 제목이 보존되며, 수식은 formula region으로 인식됩니다(Markdown에서는
+잘린 이미지로 렌더):
 
 ```markdown
 # High-precision Absolute Distance and Vibration Measurement using Frequency Scanned Interferometry
 
 Hai-Jun Yang, Jason Deibel, Sven Nyberg, Keith Riles
-
 Department of Physics, University of Michigan, Ann Arbor, MI 48109-1120, USA
 
 In this paper, we report high-precision absolute distance and vibration measurements
@@ -117,16 +101,38 @@ performed with frequency scanned interferometry using a pair of single-mode opti
 # 3. Demonstration System of FSI
 ```
 
+## 동작 방식 (standalone)
+
+1. `pdf_to_markdown.py`가 **vendored `./rapid_doc`** 를 `sys.path`에 추가(설치·런타임 clone 없음)하고
+   DX-RT threading env를 확인.
+2. per-model engine config 구성(layout `PP-DocLayout-L`, OCR `PP-OCRv5` det+rec, table `UNET`,
+   formula `PP-FormulaNet+`), layout/OCR/table은 로컬 `dxnn_models/`(NPU)를 가리킴.
+3. `rapid_doc.backend.pipeline.pipeline_analyze.doc_analyze(...)`를 NPU에서 실행.
+4. `FileBasedDataWriter`로 Markdown(`MakeMode.MM_MD`) + JSON content list 렌더.
+
 ## 재현
 
 ```bash
-bash setup.sh        # DEEPX-AI/RapidDoc@rapid_doc_deepx를 fresh clone + venv + deps + foreground 모델 다운로드
-bash run.sh          # sample_input.pdf를 NPU에서 파싱 → sample_output.md + timings.md
+bash setup.sh        # venv + deps + dx_engine bridge + NPU 모델 다운로드 (foreground)
+bash run.sh          # sample_input.pdf를 NPU에서 파싱 → output/<stem>/<method>/<stem>.md
 ```
 
 > x86-64 Linux + DeepX runtime 필요; `dx_engine` 없으면: `cd dx-runtime && bash install.sh --all --exclude-app --exclude-stream`.
-> 모델은 fork의 `./setup.sh`(prebuilt `onnx_models/` + `dxnn_models/`)로 받으며 `dxcom`으로 직접
-> 컴파일하지 않습니다. fork는 이 디렉터리에 fresh clone되며(output isolation), 기존 사용자 repo를
-> 재사용하거나 삭제하지 않습니다.
+> 모델은 `setup_sample_models.sh`(prebuilt onnx+dxnn)로 받으며 `dxcom`으로 직접 컴파일하지 않습니다.
+
+## 파일
+
+| 파일 | 역할 |
+|---|---|
+| `pdf_to_markdown.py` | vendored NPU 파이프라인을 구동하는 **자체** entry |
+| `rapid_doc/` | **vendored** RapidDoc 파이프라인 패키지 (순수 Python, ~2.5 MB) |
+| `deepx_scripts/`, `setup_sample_models.sh` | DX env 설정 + NPU/ONNX 모델 다운로더 |
+| `setup.sh` | venv + `requirements.deepx.txt` + dx_engine `.pth` bridge + 모델 다운로드 |
+| `run.sh` | 런처: `set_env.sh` source, `DXNN_DEVICES=0`, `pdf_to_markdown.py` 실행 |
+| `sample_input.pdf` / `sample_output.md` | 영문 물리 논문 + 렌더된 Markdown |
+| `images/sample_before_after.png` | before/after: PDF 페이지 → 파싱된 Markdown |
+| `timings.md` | per-stage NPU 처리시간 리포트 (실제 run) |
+| `session.log` | 추론 run의 실제 캡처 출력 |
+| `claude-code-session.md` | 전체 에이전트 빌드 transcript (Wall-clock + Cost) |
 
 영어: [`README.md`](./README.md).

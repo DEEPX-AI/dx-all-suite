@@ -1,44 +1,30 @@
-# finegrained Performance Summary
+# RapidDoc PDF->Markdown — NPU Performance Summary
 
-- **Date**: 2026-06-12 14:18:54
+- **Date**: 2026-06-12 15:03:20
 - **Pipeline Mode**: finegrained
-- **Total Files**: 1
+- **Files**: 1 (physics0409110_origin)
 - **Total Pages**: 16
-- **Total Wall Time**: 36.94 s
-- **Overall Throughput**: 0.4 pages/s
+- **Wall Time**: 38.94 s
+- **Throughput**: 0.41 pages/s
 
 ## Model Loading
 
 | Model | Load Time |
 |:---|---:|
 | formula | 1.02 s |
-| layout | 0.16 s |
-| ocr | 0.53 s |
+| layout | 0.15 s |
+| ocr | 0.55 s |
 | table | 0.04 s |
-| **Total** | **1.75 s** |
 
-## Overall Pipeline Performance
-
-| Pipeline Step | Count | Avg Latency | Throughput | Time (s) | Ratio |
-|:---|---:|---:|---:|---:|---:|
-| Layout | 16 | 311.62 ms | 3.2 FPS | 4.99 | 12.8% |
-| Formula | 164 | 201.21 ms | 5.0 FPS | 33.00 | 84.5% |
-| PDF-det | 99 | 1.74 ms | 574.1 FPS | 0.17 | 0.4% |
-| OCR-det | 1 | 109.59 ms | 9.1 FPS | 0.11 | 0.3% |
-| Table | 1 | 795.29 ms | 1.3 FPS | 0.80 | 2.0% |
-
-- **Total Stages**: 39.06 s
-
-## physics0409110_origin
+## Per-Stage Performance (NPU pipeline)
 
 | Pipeline Step | Count | Avg Latency | Throughput | Time (s) | Ratio |
 |:---|---:|---:|---:|---:|---:|
-| Layout | 16 | 311.62 ms | 3.2 FPS | 4.99 | 12.8% |
-| Formula | 164 | 201.21 ms | 5.0 FPS | 33.00 | 84.5% |
-| PDF-det | 99 | 1.74 ms | 574.1 FPS | 0.17 | 0.4% |
-| OCR-det | 1 | 109.59 ms | 9.1 FPS | 0.11 | 0.3% |
-| Table | 1 | 795.29 ms | 1.3 FPS | 0.80 | 2.0% |
+| Layout (NPU) | 16 | 317.42 ms | 3.2 FPS | 5.08 | 12.3% |
+| Formula (ONNX/CPU) | 164 | 213.82 ms | 4.7 FPS | 35.07 | 85.0% |
+| PDF text-det | 99 | 1.62 ms | 616.5 FPS | 0.16 | 0.4% |
+| OCR det (NPU) | 1 | 108.18 ms | 9.2 FPS | 0.11 | 0.3% |
+| Table (NPU) | 1 | 848.05 ms | 1.2 FPS | 0.85 | 2.1% |
 
-- **Total Stage Time**: 39.06 s
-- **Pages**: 16
-- **Avg per Page**: 2.44 s
+- **Total Stage Time**: 41.26 s
+- **Avg per Page**: 2.58 s

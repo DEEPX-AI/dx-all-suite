@@ -64,7 +64,7 @@ transcript.
 
 | Showcase | What it is | Build time | Agent turns | Output tokens | ~Cost |
 |---|---|---|---|---|---|
-| **[PDF → Markdown (document conversion app)](../../dx-agent-dev-showcase/rapiddoc-pdf2md/)** | Converts a PDF (digital or scanned) to structured Markdown + JSON — layout analysis, OCR, tables and formulas — on the DEEPX DX-M1 NPU via the RapidDoc fork. Supports `--parse-method auto|txt|ocr`. | ≈ 17 min | 109 | ≈ 69.5K | ≈ $14.3 |
+| **[PDF → Markdown (document conversion app)](../../dx-agent-dev-showcase/rapiddoc-pdf2md/)** | Converts a PDF (digital or scanned) to structured Markdown + JSON — layout analysis, OCR, tables and formulas — on the DEEPX DX-M1 NPU via the RapidDoc fork. Supports `--parse-method auto|txt|ocr`. | ≈ 12 min | 61 | ≈ 51.8K | ≈ $6.2 |
 <!-- dx-showcase:docs:table:end -->
 
 **Full catalog + per-showcase summaries (with build GIFs) →**
