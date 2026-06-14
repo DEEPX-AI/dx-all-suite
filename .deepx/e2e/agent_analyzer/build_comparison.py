@@ -139,6 +139,28 @@ def fmt_delta(a: float, b: float) -> str:
     return f'<span style="color:{color};font-weight:600">{sign}{d:.1f}</span>'
 
 
+def _report_rel(report_dir: Path) -> str:
+    """Return a relative URL from the comparison.html location to report_dir's
+    comprehensive_report.html.
+
+    The comparison.html is written alongside the two report dirs (e.g.
+    <label>/comparison.html with <label>/old/ and <label>/new/).
+
+    When report_dir is inside an ``analyzer_reports/`` tree the original
+    depth-counting logic is preserved.  When ``analyzer_reports`` is absent
+    from the path (e.g. a durable archive at $HOME/shared/…/<label>/old/) we
+    fall back to ``<dirname>/comprehensive_report.html``, which is the correct
+    sibling-relative path from the comparison file location.
+    """
+    try:
+        idx = report_dir.parts.index("analyzer_reports")
+        depth = len(report_dir.parts[idx + 1:])
+        return "../" * depth + str(report_dir.relative_to(report_dir.parents[2])) + "/comprehensive_report.html"
+    except ValueError:
+        # "analyzer_reports" not in path — fall back to sibling-relative link
+        return f"{report_dir.name}/comprehensive_report.html"
+
+
 def render_html(non_thinking_dir: Path, thinking_dir: Path, non_thinking_run_id: str, thinking_run_id: str) -> str:
     nt_csv = load_per_session(non_thinking_dir / "per_session.csv")
     th_csv = load_per_session(thinking_dir / "per_session.csv")
@@ -193,8 +215,8 @@ def render_html(non_thinking_dir: Path, thinking_dir: Path, non_thinking_run_id:
         f'<th colspan="3">{metric_labels[m]}</th>' for m in metrics
     ) + "</tr>"
 
-    nt_report_rel = "../" * len(non_thinking_dir.parts[non_thinking_dir.parts.index("analyzer_reports") + 1:]) + str(non_thinking_dir.relative_to(non_thinking_dir.parents[2])) + "/comprehensive_report.html"
-    th_report_rel = "../" * len(thinking_dir.parts[thinking_dir.parts.index("analyzer_reports") + 1:]) + str(thinking_dir.relative_to(thinking_dir.parents[2])) + "/comprehensive_report.html"
+    nt_report_rel = _report_rel(non_thinking_dir)
+    th_report_rel = _report_rel(thinking_dir)
 
     html_str = f"""<!DOCTYPE html>
 <html lang="ko"><head>

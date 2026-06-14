@@ -1201,8 +1201,10 @@ def _render_executive_summary(report_dir: Path) -> str:
     lines.append("")
     lines.append(f"- **최고 종합 점수**: {best['tool']} ({best['overall']:.1f})")
     lines.append(f"- **최저 종합 점수**: {worst['tool']} ({worst['overall']:.1f})")
-    lines.append(f"- **점수 차이**: {best['overall'] - worst['overall']:.1f}점 "
-                 f"({((best['overall'] - worst['overall']) / worst['overall'] * 100):.1f}% 격차)")
+    _gap_abs = best['overall'] - worst['overall']
+    _gap_pct = ((_gap_abs / worst['overall'] * 100) if worst['overall'] != 0 else 0.0)
+    lines.append(f"- **점수 차이**: {_gap_abs:.1f}점 "
+                 f"({_gap_pct:.1f}% 격차)")
     # Find best per dimension
     best_compliance = max(ranked, key=lambda x: x["compliance"])
     best_quality = max(ranked, key=lambda x: x["quality"])
@@ -2046,7 +2048,7 @@ const bestQual = D.tools_alpha.reduce((a,b) => D.per_tool[a].quality > D.per_too
 [
   ['최고 종합 점수', `${best} (${bm.overall})`],
   ['최저 종합 점수', `${worst} (${wm.overall})`],
-  ['점수 격차', `${(bm.overall-wm.overall).toFixed(1)}점 (${((bm.overall-wm.overall)/wm.overall*100).toFixed(1)}%)`],
+  ['점수 격차', `${(bm.overall-wm.overall).toFixed(1)}점 (${(wm.overall !== 0 ? ((bm.overall-wm.overall)/wm.overall*100).toFixed(1) : '0.0')}%)`],
   ['최고 Compliance', `${bestComp} (${D.per_tool[bestComp].compliance}%)`],
   ['최고 Quality', `${bestQual} (${D.per_tool[bestQual].quality})`],
   ['최단 평균 실행시간', `${fastest} (${Math.floor(D.per_tool[fastest].duration_min)}m ${Math.round((D.per_tool[fastest].duration_min%1)*60)}s)`],
