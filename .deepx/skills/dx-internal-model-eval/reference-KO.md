@@ -140,7 +140,8 @@ python3 analyze.py --run-id <RID_OLD>
 python3 analyze.py --run-id <RID_NEW>
 
 # 여러 run_id 묶음 분석 → analyzer_reports/multi_<sha8>/<ts>/  (+ multi_manifest.json)
-python3 analyze.py --run-id <RID_OLD> <RID_NEW>
+# 주의: --run-id는 반복 플래그 — run_id마다 반복 (space 구분 아님)
+python3 analyze.py --run-id <RID_OLD> --run-id <RID_NEW>
 
 # tool/시나리오/라운드 필터
 python3 analyze.py --run-id <RID> --tool copilot-cli --round 1 2 3 --scenario compiler dx_app

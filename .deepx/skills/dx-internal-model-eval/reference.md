@@ -141,7 +141,8 @@ python3 analyze.py --run-id <RID_OLD>
 python3 analyze.py --run-id <RID_NEW>
 
 # multiple run_ids combined → analyzer_reports/multi_<sha8>/<ts>/  (+ multi_manifest.json)
-python3 analyze.py --run-id <RID_OLD> <RID_NEW>
+# NOTE: --run-id is a REPEATABLE flag — repeat it per run_id (NOT space-separated)
+python3 analyze.py --run-id <RID_OLD> --run-id <RID_NEW>
 
 # tool/scenario/round filters
 python3 analyze.py --run-id <RID> --tool copilot-cli --round 1 2 3 --scenario compiler dx_app
