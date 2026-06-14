@@ -28,6 +28,7 @@ sys.path.insert(0, str(_E2E_DIR))
 from e2e_resilient_run import (
     build_runner_cmd,
     completed_rounds,
+    parse_env_failed_count,
     parse_reset_seconds,
     run_resilient,
     RUNNER_STATE_DIR,
@@ -121,6 +122,48 @@ class TestParseResetSeconds:
         """'USAGE LIMIT REACHED|4600' should match (case-insensitive)."""
         text = "USAGE LIMIT REACHED|4600"
         assert parse_reset_seconds(text, now_epoch=1000.0) == 3600
+
+
+# ===========================================================================
+# parse_env_failed_count
+# ===========================================================================
+
+
+class TestParseEnvFailedCount:
+    """Tests for parse_env_failed_count(text) -> int."""
+
+    def test_five_env_failure_rounds(self):
+        """'run <RID>: 5 env-failure round(s)' → 5."""
+        text = "[redo-env] run abc123: 5 env-failure round(s) (dry-run — nothing deleted):"
+        assert parse_env_failed_count(text) == 5
+
+    def test_one_env_failure_round(self):
+        """'run <RID>: 1 env-failure round(s)' → 1."""
+        text = "[redo-env] run 20260612_120000: 1 env-failure round(s) (dry-run — nothing deleted):"
+        assert parse_env_failed_count(text) == 1
+
+    def test_no_env_failure_rounds(self):
+        """'no env-failure rounds detected' → 0."""
+        text = "no env-failure rounds detected — all clean."
+        assert parse_env_failed_count(text) == 0
+
+    def test_garbage_text_returns_zero(self):
+        """Unrecognisable text → 0."""
+        assert parse_env_failed_count("totally unrelated output") == 0
+
+    def test_empty_string_returns_zero(self):
+        """Empty string → 0."""
+        assert parse_env_failed_count("") == 0
+
+    def test_multiline_output(self):
+        """Parse count from multi-line dry-run output."""
+        text = (
+            "[redo-env] run 20260612_120000: 3 env-failure round(s) (dry-run — nothing deleted):\n"
+            "  claude-code    R1  (0v/0i/6e of 6, sigs=['rate-limit'])\n"
+            "  claude-code    R2  (0v/0i/6e of 6, sigs=['rate-limit'])\n"
+            "  claude-code    R3  (0v/0i/6e of 6, sigs=['rate-limit'])\n"
+        )
+        assert parse_env_failed_count(text) == 3
 
 
 # ===========================================================================
@@ -404,11 +447,18 @@ class TestRunResilient:
         }
         (state_dir / "state.json").write_text(json.dumps(state), encoding="utf-8")
 
-    def _call(self, runner_fn, sleep_fn, tmp_path, *, transcript="", **kwargs):
-        """Helper to call run_resilient with injected fakes + tmp RUNNER_STATE_DIR."""
+    def _call(self, runner_fn, sleep_fn, tmp_path, *, transcript="",
+              env_failed_fn=None, **kwargs):
+        """Helper to call run_resilient with injected fakes + tmp RUNNER_STATE_DIR.
+
+        env_failed_fn defaults to always returning 0 (no env-failures) so that
+        existing tests are unaffected by the new parameter.
+        """
         import e2e_resilient_run as m
         orig = m.RUNNER_STATE_DIR
         m.RUNNER_STATE_DIR = tmp_path
+        if env_failed_fn is None:
+            env_failed_fn = lambda rid: 0  # noqa: E731
         try:
             return run_resilient(
                 runner=self.RUNNER,
@@ -420,6 +470,7 @@ class TestRunResilient:
                 sleep_fn=sleep_fn,
                 now_fn=lambda: self.NOW,
                 transcript_reader=lambda rid: transcript,
+                env_failed_fn=env_failed_fn,
                 **kwargs,
             )
         finally:
@@ -449,112 +500,126 @@ class TestRunResilient:
     # --- (b) One rate-limit then success ---
 
     def test_one_rate_limit_then_success(self, tmp_path):
-        """Attempt 0: incomplete → redo removes 1 → sleep ~1800s → attempt 1 resumes → complete."""
-        call_count = [0]
+        """Attempt 1: 1 valid + 1 env-failed → redo+sleep → attempt 2 resumes → complete.
 
-        def fake_run(cmd):
-            call_count[0] += 1
-            n = call_count[0]
+        With new valid-round logic:
+          - env_failed_fn returns 1 on attempt 1 (1 rate-limited round)
+          - completed=2 (1 valid + 1 env-failed) but valid=1, target=3 → not complete
+          - redo is called (destructive), then sleep, then resume
+          - env_failed_fn returns 0 on attempt 2, completed=3 → valid=3 → complete
+        """
+        run_call_no = [0]
+        redo_calls = [0]
+        all_cmds: List[List[str]] = []
+
+        def fake_runner(cmd):
+            all_cmds.append(list(cmd))
+            if "--redo-env-failures" in cmd and "--dry-run" not in cmd:
+                # Destructive redo call
+                redo_calls[0] += 1
+                return (0, "[redo-env] removed 1 round(s); state reset to 'running'", "")
+            run_call_no[0] += 1
+            n = run_call_no[0]
             if n == 1:
-                # Fresh run: completes 1 of ROUNDS
-                self._make_state(tmp_path, completed=1)
+                # Fresh run: 2 completed (1 valid, 1 will be reported as env-failed)
+                self._make_state(tmp_path, completed=2)
                 return (0, f"E2E Runner  run_id={self.RUN_ID}", self.RUN_ID)
             elif n == 2:
-                # redo-env-failures: removes 1
-                return (0, f"[redo-env] removed 1 round(s); state reset to 'running'", "")
-            elif n == 3:
-                # Resume: completes all rounds
+                # Resume: completes all ROUNDS
                 self._make_state(tmp_path, completed=self.ROUNDS)
                 return (0, f"E2E Runner  run_id={self.RUN_ID}", self.RUN_ID)
             else:
-                raise AssertionError(f"Unexpected call #{n}")
+                raise AssertionError(f"Unexpected run call #{n}")
 
-        fake_runner = FakeRunner([fake_run, fake_run, fake_run])
         fake_sleep = FakeSleep()
 
-        # Transcript has a parseable reset time: now=1000, epoch 2800 → 1800s
-        transcript = "usage limit reached|2800"
+        # env_failed_fn: attempt 1 → 1 env-failed; attempt 2 → 0
+        env_seq = [1, 0]
+        env_idx = [0]
+
+        def env_failed_fn(run_id):
+            idx = min(env_idx[0], len(env_seq) - 1)
+            val = env_seq[idx]
+            env_idx[0] += 1
+            return val
+
+        transcript = "usage limit reached|2800"  # now=1000 → wait=1800s
 
         result = self._call(
             fake_runner, fake_sleep, tmp_path,
             transcript=transcript,
+            env_failed_fn=env_failed_fn,
         )
 
         assert result["status"] == "complete"
         assert result["attempts"] == 2
-        # Sleep was called once with ~1800s
+        # Sleep was called once with 1800s
         assert len(fake_sleep.calls) == 1
         assert fake_sleep.calls[0] == 1800
 
-        # 2nd attempt should use --resume and --run-id
-        resume_cmd = fake_runner.calls[2]  # call index 2 = 3rd call = resume run
+        # Redo was called once
+        assert redo_calls[0] == 1
+
+        # 2nd run (resume) must use --resume and --run-id
+        run_cmds = [c for c in all_cmds if "--redo-env-failures" not in c]
+        resume_cmd = run_cmds[1]
         assert "--resume" in resume_cmd
         assert "--run-id" in resume_cmd
         idx = resume_cmd.index("--run-id")
         assert resume_cmd[idx + 1] == self.RUN_ID
 
-    # --- (c) Non-env incomplete: redo reports 0 removed → stop ---
+    # --- (c) Non-env incomplete: env_failed_fn returns 0 → stop immediately ---
 
     def test_non_env_incomplete_stops_immediately(self, tmp_path):
-        """redo-env-failures removes 0 rounds → status=incomplete-nonenv, no loop."""
+        """env_failed_fn returns 0 and valid < target → status=incomplete-nonenv, no redo/sleep."""
         call_count = [0]
 
-        def fake_run(cmd):
+        def fake_runner(cmd):
             call_count[0] += 1
-            n = call_count[0]
-            if n == 1:
+            if call_count[0] == 1:
                 # Fresh run: only 1 of ROUNDS
                 self._make_state(tmp_path, completed=1)
                 return (1, f"E2E Runner  run_id={self.RUN_ID}", self.RUN_ID)
-            elif n == 2:
-                # redo: no env-failure rounds
-                return (0, "no env-failure rounds detected — all clean.", "")
             else:
-                raise AssertionError(f"Unexpected call #{n}: should have stopped after 2")
+                raise AssertionError(f"Should not be called again (call #{call_count[0]})")
 
-        fake_runner = FakeRunner([fake_run, fake_run])
         fake_sleep = FakeSleep()
 
-        result = self._call(fake_runner, fake_sleep, tmp_path)
+        # env_failed_fn returns 0 → not a usage-limit issue
+        result = self._call(fake_runner, fake_sleep, tmp_path,
+                            env_failed_fn=lambda rid: 0)
 
         assert result["status"] == "incomplete-nonenv"
         assert result["attempts"] == 1
-        # No sleep
+        # No sleep, no redo
         assert fake_sleep.calls == []
-        # Only 2 calls: fresh run + redo check
-        assert len(fake_runner.calls) == 2
+        assert call_count[0] == 1, "Only one runner call expected (the initial run)"
 
     # --- (d) max-attempts: always rate-limited → stops at max_attempts ---
 
     def test_max_attempts_exhausted(self, tmp_path):
-        """Always incomplete + redo removes rounds → exhausts max_attempts."""
-        call_count = [0]
+        """Always incomplete + env_failed_fn > 0 → exhausts max_attempts."""
+        run_call_no = [0]
 
-        def fake_run(cmd):
-            call_count[0] += 1
-            n = call_count[0]
-            # Alternate: odd = run (partial), even = redo (removes 1)
-            if n % 2 == 1:
-                # Run call: always incomplete
-                self._make_state(tmp_path, completed=1)
-                return (0, f"E2E Runner  run_id={self.RUN_ID}", self.RUN_ID)
-            else:
-                # Redo call: always removes 1
+        def fake_runner(cmd):
+            if "--redo-env-failures" in cmd and "--dry-run" not in cmd:
+                # Destructive redo
                 return (0, "[redo-env] removed 1 round(s)", "")
+            run_call_no[0] += 1
+            # Run call: always incomplete (1 of ROUNDS)
+            self._make_state(tmp_path, completed=1)
+            return (0, f"E2E Runner  run_id={self.RUN_ID}", self.RUN_ID)
 
         max_attempts = 3
-        # For 3 attempts: 3 runs + 2 redos (no redo after last run, but loop exits)
-        # Actually: attempt 1 run, attempt 1 redo+sleep, attempt 2 run,
-        # attempt 2 redo+sleep, attempt 3 run → max_attempts reached.
-        # Total runner calls = 3 runs + 2 redos = 5
-        scripts = [fake_run] * 10  # more than enough
-        fake_runner = FakeRunner(scripts)
+        fake_runner_obj = FakeRunner([fake_runner] * 20)
         fake_sleep = FakeSleep()
 
+        # env_failed_fn always returns 1 (always rate-limited)
         result = self._call(
-            fake_runner, fake_sleep, tmp_path,
+            fake_runner_obj, fake_sleep, tmp_path,
             max_attempts=max_attempts,
             fallback_wait=60,
+            env_failed_fn=lambda rid: 1,
         )
 
         assert result["status"] == "max-attempts"
@@ -562,33 +627,143 @@ class TestRunResilient:
         # Sleep was called max_attempts-1 times (between attempts)
         assert len(fake_sleep.calls) == max_attempts - 1
 
+    # --- (e) NEW: all rounds rate-limited → valid=0 → redo+wait+resume → valid=target → complete ---
+
+    def test_all_rounds_rate_limited_then_valid_on_second_attempt(self, tmp_path):
+        """
+        Bug scenario:
+          Attempt 1: completed=ROUNDS but ALL rounds are rate-limited → env_failed_fn returns ROUNDS
+          → valid = ROUNDS - ROUNDS = 0 → must NOT declare complete
+          → must call real redo + sleep + resume
+          Attempt 2: env_failed_fn returns 0 and completed=ROUNDS → valid=ROUNDS → complete
+
+        Assert: sleep called once, resume used on 2nd run, status=complete, attempts=2,
+                result includes valid_rounds=ROUNDS and env_failed=0.
+        """
+        attempt_no = [0]
+        redo_called = [False]
+
+        RUN_ID = self.RUN_ID
+        ROUNDS = self.ROUNDS
+
+        def fake_runner(cmd):
+            # Detect redo call by presence of --redo-env-failures
+            if "--redo-env-failures" in cmd and "--dry-run" not in cmd:
+                redo_called[0] = True
+                return (0, "[redo-env] removed 3 round(s); state reset to 'running'", "")
+            # Real run call
+            attempt_no[0] += 1
+            self._make_state(tmp_path, completed=ROUNDS)
+            return (0, f"E2E Runner  run_id={RUN_ID}", RUN_ID)
+
+        fake_sleep = FakeSleep()
+
+        # Attempt 1: all ROUNDS env-failed. Attempt 2: none env-failed.
+        env_fail_seq = [ROUNDS, 0]
+        env_fail_calls = [0]
+
+        def env_failed_fn(run_id):
+            idx = min(env_fail_calls[0], len(env_fail_seq) - 1)
+            val = env_fail_seq[idx]
+            env_fail_calls[0] += 1
+            return val
+
+        transcript = "usage limit reached|2800"  # now=1000 → wait=1800s
+
+        result = self._call(
+            fake_runner, fake_sleep, tmp_path,
+            transcript=transcript,
+            env_failed_fn=env_failed_fn,
+        )
+
+        assert result["status"] == "complete", f"expected complete, got {result['status']}"
+        assert result["attempts"] == 2, f"expected 2 attempts, got {result['attempts']}"
+        assert fake_sleep.calls != [], "sleep must be called (rate-limit wait)"
+        assert fake_sleep.calls[0] == 1800, f"expected 1800s sleep, got {fake_sleep.calls[0]}"
+        assert redo_called[0], "real redo (without --dry-run) must be called"
+        assert result["valid_rounds"] == ROUNDS
+        assert result["env_failed"] == 0
+
+        # 2nd run (resume) must use --resume and --run-id
+        # attempt_no tracks actual run calls (excludes redo calls)
+        assert attempt_no[0] == 2, f"expected 2 run calls, got {attempt_no[0]}"
+
+    def test_all_rounds_rate_limited_result_has_observability_fields(self, tmp_path):
+        """Result dict must include valid_rounds and env_failed for observability."""
+        def fake_runner(cmd):
+            self._make_state(tmp_path, completed=self.ROUNDS)
+            return (0, f"E2E Runner  run_id={self.RUN_ID}", self.RUN_ID)
+
+        fake_sleep = FakeSleep()
+        result = self._call(fake_runner, fake_sleep, tmp_path,
+                            env_failed_fn=lambda rid: 0)
+
+        assert "valid_rounds" in result, "result must include valid_rounds"
+        assert "env_failed" in result, "result must include env_failed"
+        assert result["valid_rounds"] == self.ROUNDS
+        assert result["env_failed"] == 0
+
+    def test_valid_rounds_shortfall_with_no_env_failures_is_incomplete_nonenv(self, tmp_path):
+        """
+        completed < target AND env_failed_fn returns 0 → status=incomplete-nonenv.
+        Should NOT loop forever — stop immediately.
+        """
+        call_count = [0]
+
+        def fake_runner(cmd):
+            call_count[0] += 1
+            n = call_count[0]
+            if n == 1:
+                self._make_state(tmp_path, completed=1)  # only 1 of ROUNDS
+                return (1, f"E2E Runner  run_id={self.RUN_ID}", self.RUN_ID)
+            else:
+                raise AssertionError(f"Should not be called again (call #{n})")
+
+        fake_sleep = FakeSleep()
+        result = self._call(fake_runner, fake_sleep, tmp_path,
+                            env_failed_fn=lambda rid: 0)
+
+        assert result["status"] == "incomplete-nonenv"
+        assert fake_sleep.calls == [], "no sleep expected"
+
     # --- fallback_wait used when no transcript reset time ---
 
     def test_fallback_wait_used_when_no_reset_in_transcript(self, tmp_path):
         """When transcript has no parseable reset time, fallback_wait is used."""
-        call_count = [0]
+        run_call_no = [0]
 
-        def fake_run(cmd):
-            call_count[0] += 1
-            n = call_count[0]
+        def fake_runner(cmd):
+            if "--redo-env-failures" in cmd and "--dry-run" not in cmd:
+                return (0, "[redo-env] removed 1 round(s)", "")
+            run_call_no[0] += 1
+            n = run_call_no[0]
             if n == 1:
                 self._make_state(tmp_path, completed=1)
                 return (0, f"E2E Runner  run_id={self.RUN_ID}", self.RUN_ID)
             elif n == 2:
-                return (0, "[redo-env] removed 1 round(s)", "")
-            elif n == 3:
                 self._make_state(tmp_path, completed=self.ROUNDS)
                 return (0, f"E2E Runner  run_id={self.RUN_ID}", self.RUN_ID)
             else:
-                raise AssertionError(f"Unexpected call #{n}")
+                raise AssertionError(f"Unexpected run call #{n}")
 
-        fake_runner = FakeRunner([fake_run, fake_run, fake_run])
+        fake_runner_obj = FakeRunner([fake_runner] * 10)
         fake_sleep = FakeSleep()
 
+        # env_failed_fn: first call returns 1 (rate-limited), second returns 0
+        env_seq = [1, 0]
+        env_idx = [0]
+
+        def env_failed_fn(run_id):
+            idx = min(env_idx[0], len(env_seq) - 1)
+            val = env_seq[idx]
+            env_idx[0] += 1
+            return val
+
         result = self._call(
-            fake_runner, fake_sleep, tmp_path,
+            fake_runner_obj, fake_sleep, tmp_path,
             transcript="No reset info here",
             fallback_wait=7777,
+            env_failed_fn=env_failed_fn,
         )
 
         assert result["status"] == "complete"

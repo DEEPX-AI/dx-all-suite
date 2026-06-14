@@ -144,6 +144,32 @@ def parse_reset_seconds(text: str, now_epoch: float) -> Optional[int]:
 
 
 # ---------------------------------------------------------------------------
+# 1b. parse_env_failed_count
+# ---------------------------------------------------------------------------
+
+# Match "[redo-env] run <RID>: N env-failure round(s)"
+_RE_ENV_FAILED_COUNT = re.compile(
+    r":\s+(\d+)\s+env-failure\s+round",
+    re.IGNORECASE,
+)
+
+
+def parse_env_failed_count(text: str) -> int:
+    """Return N from '[redo-env] run <RID>: N env-failure round(s)', else 0.
+
+    Returns 0 for "no env-failure rounds detected" or any unmatched text.
+    This is used to parse the output of:
+        e2e_runner.py --redo-env-failures --dry-run --run-id <RID>
+    """
+    if "no env-failure rounds detected" in text.lower():
+        return 0
+    m = _RE_ENV_FAILED_COUNT.search(text)
+    if m:
+        return int(m.group(1))
+    return 0
+
+
+# ---------------------------------------------------------------------------
 # 2. completed_rounds
 # ---------------------------------------------------------------------------
 
@@ -218,6 +244,7 @@ def run_resilient(
     sleep_fn: Callable[[float], None],
     now_fn: Callable[[], float],
     transcript_reader: Callable[[str], str],
+    env_failed_fn: Callable[[str], int],
 ) -> dict:
     """Resilient run loop: run → detect rate-limit → redo-env → wait → resume.
 
@@ -241,16 +268,25 @@ def run_resilient(
     transcript_reader:
         Callable(run_id: str) -> str.  Returns recent transcript text for
         reset-time parsing.
+    env_failed_fn:
+        Callable(run_id: str) -> int.  Returns the number of env-failure
+        (rate-limited) rounds in the current run.  In real mode this calls
+        ``e2e_runner --redo-env-failures --dry-run --run-id <RID>`` and parses
+        via parse_env_failed_count.  Injected so tests run instantly.
 
     Returns
     -------
     dict with keys:
-        status: "complete" | "incomplete-nonenv" | "max-attempts"
-        run_id: the last run_id used (or None if never started)
-        attempts: number of run attempts made
+        status:       "complete" | "incomplete-nonenv" | "max-attempts"
+        run_id:       the last run_id used (or None if never started)
+        attempts:     number of run attempts made
+        valid_rounds: completed_rounds minus env_failed (last check)
+        env_failed:   number of env-failure rounds detected (last check)
     """
     run_id: Optional[str] = None
     attempt = 0
+    last_valid = 0
+    last_env_failed = 0
 
     while attempt < max_attempts:
         attempt += 1
@@ -281,17 +317,53 @@ def run_resilient(
         else:
             done = 0
 
-        print(f"[resilient] completed_rounds={done}  target={rounds}")
+        # Check how many of those rounds were env-failures (rate-limited)
+        env_failed_count = env_failed_fn(run_id) if run_id else 0
+        valid = done - env_failed_count
+        last_valid = valid
+        last_env_failed = env_failed_count
 
-        if done >= rounds:
-            print(f"[resilient] target reached — COMPLETE after {attempt} attempt(s).")
-            return {"status": "complete", "run_id": run_id, "attempts": attempt}
+        print(
+            f"[resilient] completed={done}  env_failed={env_failed_count}"
+            f"  valid={valid}  target={rounds}"
+        )
 
-        # Not yet done — try redo-env-failures
+        if valid >= rounds:
+            print(f"[resilient] valid target reached — COMPLETE after {attempt} attempt(s).")
+            return {
+                "status": "complete",
+                "run_id": run_id,
+                "attempts": attempt,
+                "valid_rounds": valid,
+                "env_failed": env_failed_count,
+            }
+
+        # Not yet done — decide path based on env_failed_count
         if not run_id:
             print("[resilient] no run_id captured; cannot redo-env-failures — stopping.")
-            return {"status": "incomplete-nonenv", "run_id": run_id, "attempts": attempt}
+            return {
+                "status": "incomplete-nonenv",
+                "run_id": run_id,
+                "attempts": attempt,
+                "valid_rounds": valid,
+                "env_failed": env_failed_count,
+            }
 
+        if env_failed_count == 0:
+            # Shortfall is NOT due to rate/usage limits — stop, don't loop forever
+            print(
+                "[resilient] valid < target but no env-failure rounds detected"
+                " — non-usage-limit failure; stopping."
+            )
+            return {
+                "status": "incomplete-nonenv",
+                "run_id": run_id,
+                "attempts": attempt,
+                "valid_rounds": valid,
+                "env_failed": env_failed_count,
+            }
+
+        # env_failed_count > 0: rate/usage-limit rounds exist — redo them, wait, resume
         redo_cmd = [
             sys.executable, runner,
             "--redo-env-failures",
@@ -302,10 +374,6 @@ def run_resilient(
 
         removed = _parse_redo_removed(redo_stdout)
         print(f"[resilient] redo-env-failures removed={removed}")
-
-        if removed == 0:
-            print("[resilient] no env-failure rounds removed — non-usage-limit failure; stopping.")
-            return {"status": "incomplete-nonenv", "run_id": run_id, "attempts": attempt}
 
         # Env/rate-limit rounds were removed — wait for reset
         transcript_text = transcript_reader(run_id)
@@ -324,7 +392,13 @@ def run_resilient(
             print(f"[resilient] max_attempts={max_attempts} exhausted — skip sleep.")
 
     print(f"[resilient] max_attempts={max_attempts} exhausted — giving up.")
-    return {"status": "max-attempts", "run_id": run_id, "attempts": attempt}
+    return {
+        "status": "max-attempts",
+        "run_id": run_id,
+        "attempts": attempt,
+        "valid_rounds": last_valid,
+        "env_failed": last_env_failed,
+    }
 
 
 def _parse_redo_removed(stdout: str) -> int:
@@ -373,6 +447,29 @@ def _real_runner_fn(cmd: List[str]) -> Tuple[int, str, str]:
     except Exception as exc:
         print(f"[resilient] runner_fn error: {exc}", file=sys.stderr)
         return 1, "", ""
+
+
+def _real_env_failed_fn(run_id: str) -> int:
+    """Call e2e_runner --redo-env-failures --dry-run --run-id RID; parse count."""
+    runner = str(SCRIPT_DIR / "e2e_runner.py")
+    cmd = [
+        sys.executable, runner,
+        "--redo-env-failures",
+        "--dry-run",
+        "--run-id", run_id,
+    ]
+    try:
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+        output = result.stdout + result.stderr
+        return parse_env_failed_count(output)
+    except Exception as exc:
+        print(f"[resilient] env_failed_fn error: {exc}", file=sys.stderr)
+        return 0
 
 
 def _real_transcript_reader(run_id: str) -> str:
@@ -476,6 +573,7 @@ def main() -> None:
         sleep_fn=time.sleep,
         now_fn=time.time,
         transcript_reader=_real_transcript_reader,
+        env_failed_fn=_real_env_failed_fn,
     )
 
     print(f"\n[resilient] DONE — {result}")
