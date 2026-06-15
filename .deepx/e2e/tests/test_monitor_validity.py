@@ -234,3 +234,23 @@ def test_validity_summary_mixed():
 def test_validity_summary_all_valid():
     statuses = [{"round_index": i, "status": "valid"} for i in range(1, 6)]
     assert mon._validity_summary(statuses) == "valid:5/5"
+
+
+# --- _monitor_should_exit (live loop should keep refreshing during salvage) ---
+
+def _data(*statuses):
+    return {"tools": [f"t{i}" for i in range(len(statuses))],
+            "tool_states": {f"t{i}": {"status": s} for i, s in enumerate(statuses)}}
+
+def test_monitor_should_exit_all_done_no_salvage():
+    assert mon._monitor_should_exit(_data("done"), False) is True
+
+def test_monitor_should_exit_all_done_but_salvage_active():
+    # state says done, but a salvage is re-running in place → keep refreshing
+    assert mon._monitor_should_exit(_data("done"), True) is False
+
+def test_monitor_should_exit_not_all_done():
+    assert mon._monitor_should_exit(_data("done", "running"), False) is False
+
+def test_monitor_should_exit_not_done_and_salvage():
+    assert mon._monitor_should_exit(_data("running"), True) is False

@@ -1219,6 +1219,22 @@ def run_selector() -> int:
 
 
 
+def _monitor_should_exit(data: dict, salvage_active: bool) -> bool:
+    """Whether the live monitor loop should stop refreshing.
+
+    Stop ONLY when every tool's state is "done" AND no salvage is actively
+    re-running. A force-killed/rate-limited run is recorded as state "done"
+    even while a scenario salvage (cleanup_resume) re-runs it in place — in that
+    case keep refreshing so the live view tracks the active re-run instead of
+    exiting immediately (which made the default monitor behave like --list).
+    """
+    if salvage_active:
+        return False
+    tool_states = data.get("tool_states", {})
+    tools = data.get("tools", ALL_TOOLS)
+    return all(tool_states.get(t, {}).get("status") == "done" for t in tools)
+
+
 def run_monitor(run_id: Optional[str], tool_filter: Optional[str], tail_n: int, once: bool) -> None:
     reader = StateReader(run_id)
 
@@ -1288,11 +1304,12 @@ def run_monitor(run_id: Optional[str], tool_filter: Optional[str], tail_n: int, 
 
                 live.update(Group(*renderables))
 
-                all_done = all(
-                    tool_states.get(tool, {}).get("status") == "done"
-                    for tool in data.get("tools", ALL_TOOLS)
+                salvage = _load_salvage(run_id_str)
+                salvage_active = bool(
+                    salvage and salvage.get("status") == "running"
+                    and _pid_alive(salvage.get("pid"))
                 )
-                if all_done:
+                if _monitor_should_exit(data, salvage_active):
                     time.sleep(1)
                     break
                 time.sleep(refresh_secs)
