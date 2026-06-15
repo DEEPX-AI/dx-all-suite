@@ -194,6 +194,26 @@ def test_run_round_statuses_five_rounds(tmp_path):
     ]
 
 
+def test_run_round_statuses_state_excludes_scratch_dir(tmp_path):
+    """With state, enumerate ONLY the canonical rounds — a transient salvage
+    scratch autopilot dir on disk must NOT appear as a phantom extra round."""
+    results = tmp_path / "results" / "20260612_194959"
+    results.mkdir(parents=True)
+    six = ("compiler", "dx_app", "dx_stream", "dx_stream_cascaded", "runtime", "suite")
+    r1 = _round(results, "20260612_210247", {s: "valid" for s in six})
+    r2 = _round(results, "20260612_215200", {s: "valid" for s in six})
+    # A transient cleanup_resume scratch dir on disk (NOT in state.completed):
+    _round(results, "20260615_141417", {"runtime": "valid"})
+
+    state = {"tool_states": {"claude-code": {"completed": [
+        {"round": 1, "result_dir_name": r1.name},
+        {"round": 2, "result_dir_name": r2.name},
+    ]}}}
+    statuses = mon._run_round_statuses(results, None, state)
+    assert [s["round_index"] for s in statuses] == [1, 2]
+    assert {s["round_dir"] for s in statuses} == {r1.name, r2.name}  # scratch excluded
+
+
 def test_run_round_statuses_missing_dir(tmp_path):
     assert mon._run_round_statuses(tmp_path / "nope", None) == []
 

@@ -257,12 +257,15 @@ def _round_status(round_dir: Path, salvage: Optional[dict], salvage_pid_alive: b
     return {"round_dir": name, "status": "empty", "detail": "no scenarios", "counts": counts}
 
 
-def _run_round_statuses(run_results_dir: Path, salvage: Optional[dict]) -> List[dict]:
-    """Classify every round dir under a run's results dir, in chronological order.
+def _run_round_statuses(run_results_dir: Path, salvage: Optional[dict],
+                        state: Optional[dict] = None) -> List[dict]:
+    """Classify a run's CANONICAL rounds, in chronological order.
 
-    Enumerates ``*_<tool>-autopilot`` dirs sorted by name (timestamp prefix →
-    chronological), assigns a 1-based round_index, and classifies each round.
-    Returns a list of _round_status dicts, each with an added "round_index".
+    Prefers the rounds recorded in ``state.json`` (``tool_states[*].completed``
+    ``result_dir_name``) so that transient salvage scratch dirs (a cleanup_resume
+    re-run writes a fresh ``*-autopilot`` dir that is later merged back + removed)
+    do NOT appear as phantom extra rounds. Falls back to globbing ``*-autopilot``
+    dirs when no state is available. Assigns a 1-based round_index, classifies each.
     """
     statuses: List[dict] = []
     if not run_results_dir.is_dir():
@@ -270,16 +273,35 @@ def _run_round_statuses(run_results_dir: Path, salvage: Optional[dict]) -> List[
 
     salvage_pid_alive = _pid_alive(salvage.get("pid")) if salvage else False
 
-    round_dirs = sorted(
-        (d for d in run_results_dir.iterdir() if d.is_dir() and d.name.endswith("-autopilot")),
-        key=lambda d: d.name,
-    )
-    for idx, rd in enumerate(round_dirs, start=1):
+    # Canonical round dir names from state (excludes transient salvage scratch dirs).
+    round_dir_names: List[str] = []
+    if state:
+        seen = set()
+        entries = []
+        for ts in (state.get("tool_states") or {}).values():
+            for c in ts.get("completed", []):
+                rdn = c.get("result_dir_name")
+                if rdn and rdn not in seen:
+                    seen.add(rdn)
+                    entries.append((c.get("round", 0), rdn))
+        entries.sort(key=lambda e: (e[0], e[1]))
+        round_dir_names = [rdn for _, rdn in entries]
+    if not round_dir_names:
+        round_dir_names = [
+            d.name for d in sorted(
+                (d for d in run_results_dir.iterdir()
+                 if d.is_dir() and d.name.endswith("-autopilot")),
+                key=lambda d: d.name,
+            )
+        ]
+
+    for idx, name in enumerate(round_dir_names, start=1):
+        rd = run_results_dir / name
         try:
             entry = _round_status(rd, salvage, salvage_pid_alive)
         except Exception:
             entry = {
-                "round_dir": rd.name,
+                "round_dir": name,
                 "status": "empty",
                 "detail": "classification error",
                 "counts": (0, 0, 0, 0),
@@ -789,7 +811,7 @@ def _print_validity_block(run_id_str: str, data: dict) -> None:
             return
         salvage = _load_salvage(run_id_str)
         results_dir = _E2E_RUNNER.run_results_dir(run_id_str)
-        statuses = _run_round_statuses(results_dir, salvage)
+        statuses = _run_round_statuses(results_dir, salvage, data)
         if not statuses:
             return
 
@@ -981,7 +1003,7 @@ def show_list() -> None:
         try:
             if _E2E_RUNNER is not None and hasattr(_E2E_RUNNER, "run_results_dir"):
                 results_dir = _E2E_RUNNER.run_results_dir(run_id)
-                round_statuses = _run_round_statuses(results_dir, salvage)
+                round_statuses = _run_round_statuses(results_dir, salvage, {"tool_states": tool_states})
                 if round_statuses:
                     validity_suffix = "  " + _validity_summary(round_statuses)
         except Exception:
