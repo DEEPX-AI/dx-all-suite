@@ -1333,32 +1333,91 @@ def _pid_alive(pid: Optional[int]) -> bool:
     return True
 
 
+# Control-command flags that indicate a *non-launcher* e2e_runner.py invocation
+# (abort, stop, status, list, cleanup, redo-env-failures).  A real *running*
+# launcher has --rounds and none of these flags.
+_CONTROL_FLAGS: tuple = (
+    "--abort",
+    "--stop",
+    "--status",
+    "--list",
+    "--cleanup",
+    "--redo-env-failures",
+)
+
+
+def _cmdline_is_running_launcher(cmdline_str: str, run_id: str, self_pid: int, pid: int) -> bool:
+    """Return True iff *cmdline_str* looks like a live launcher for *run_id*.
+
+    Criteria (all must hold):
+    - Is not the current process (pid != self_pid).
+    - Contains "e2e_runner.py".
+    - Contains the run_id string.
+    - Does NOT contain any control flag (--abort / --stop / --status /
+      --list / --cleanup / --redo-env-failures) — those indicate a sibling
+      control-command invocation, not a running launcher.
+    """
+    if pid == self_pid:
+        return False
+    if "e2e_runner.py" not in cmdline_str:
+        return False
+    if run_id not in cmdline_str:
+        return False
+    if any(flag in cmdline_str for flag in _CONTROL_FLAGS):
+        return False
+    return True
+
+
 def _find_runner_pids_by_cmdline(run_id: str) -> List[int]:
-    """Find live e2e_runner.py processes that aren't this one.
+    """Find live e2e_runner.py launcher processes that aren't this one.
 
     Used as a fallback when state.json's runner_pid is null/stale (a known
     race where runner_pid gets cleared prematurely). Scans /proc/<pid>/cmdline
-    for "e2e_runner.py" and excludes the current process. Caller still has to
-    decide whether to signal; this just enumerates candidates.
+    for "e2e_runner.py" + run_id and excludes the current process AND any
+    sibling control-command invocations (--abort, --stop, --status, --list,
+    --cleanup, --redo-env-failures).  Caller still has to decide whether to
+    signal; this just enumerates candidates.
     """
     candidates: List[int] = []
     proc_root = Path("/proc")
     if not proc_root.is_dir():
         return candidates
+    self_pid = os.getpid()
     for entry in proc_root.iterdir():
         if not entry.name.isdigit():
             continue
         pid = int(entry.name)
-        if pid == os.getpid():
-            continue
         try:
             cmd = (entry / "cmdline").read_bytes().replace(b"\0", b" ").decode(errors="replace")
         except OSError:
             continue
-        if "e2e_runner.py" in cmd:
+        if _cmdline_is_running_launcher(cmd, run_id, self_pid, pid):
             candidates.append(pid)
     return candidates
 
+
+
+def _finalize_dead_run(state: "RunState", terminal_status: str) -> int:
+    """Reconcile a stale (force-killed) run to a terminal state.
+
+    Sets run-level status to *terminal_status* and, for every tool whose
+    per-tool status is "running" or whose *in_progress* slot is non-None,
+    sets that tool's status to *terminal_status* and clears *in_progress*.
+    Saves via the existing _state_lock + state.save() pattern.
+
+    Returns the number of per-tool states that were finalized (0 if the run
+    was already in a clean state).
+    """
+    finalized = 0
+    with _state_lock:
+        state.data["status"] = terminal_status
+        for _tool, ts in (state.data.get("tool_states") or {}).items():
+            if ts.get("status") == "running" or ts.get("in_progress"):
+                ts["status"] = terminal_status
+                ts["in_progress"] = None
+                finalized += 1
+        state.save()
+    return finalized
 
 
 def do_stop(run_id: Optional[str]) -> int:
@@ -1374,8 +1433,19 @@ def do_stop(run_id: Optional[str]) -> int:
 
     runner_pid = state.data.get("runner_pid")
     if not _pid_alive(runner_pid):
-        print(f"Runner is not active for run_id={state.run_id} (runner_pid={runner_pid}).", file=sys.stderr)
-        return 1
+        # No live runner found via runner_pid.  Also try /proc cmdline scan.
+        cmdline_pids = _find_runner_pids_by_cmdline(state.run_id)
+        if not cmdline_pids:
+            # Truly dead — reconcile stale state so --status no longer shows "running".
+            n = _finalize_dead_run(state, "stopped")
+            print(
+                f"No live runner/worker — reconciled stale state to 'stopped' "
+                f"({n} tool state(s) finalized).",
+                file=sys.stderr,
+            )
+            return 0
+        # Live processes found via cmdline; fall through to normal STOP sentinel path.
+        runner_pid = None  # will signal via cmdline fallback below if needed
 
     stop_path = state.path.parent / "STOP"
     payload = {
@@ -1459,16 +1529,24 @@ def do_abort(run_id: Optional[str], force: bool) -> int:
         for tool, pid, pgid in killed_groups:
             print(f"Fallback: SIGTERM sent to {tool} process group (PID={pid}, PGID={pgid}).")
 
-    with _state_lock:
-        state.data["status"] = "abort-requested"
-        state.save()
-
     if not signaled_runner and not killed_groups:
+        # No live process found at all — the run was force-killed (e.g. SIGKILL /
+        # TaskStop / exit 144).  Reconcile stale state immediately so that
+        # e2e_monitor.py no longer shows the run as "running".
+        n = _finalize_dead_run(state, "aborted")
         print(
-            "WARNING: ABORT sentinel written but no live runner/worker process was found. "
-            "Subprocesses (if any) may need manual cleanup.",
+            f"No live runner/worker — reconciled stale state to 'aborted' "
+            f"({n} tool state(s) finalized).",
             file=sys.stderr,
         )
+    else:
+        # A live worker was signaled; it will finalize per-tool states when it
+        # detects the ABORT sentinel.  Set run-level status to abort-requested
+        # so --status surfaces the intent immediately.
+        with _state_lock:
+            state.data["status"] = "abort-requested"
+            state.save()
+
     print(f"ABORT requested for run_id={state.run_id}.")
     return 0
 
