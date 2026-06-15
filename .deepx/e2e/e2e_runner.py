@@ -1211,17 +1211,26 @@ def _analyze_round_env(result_dir: Path) -> Tuple[int, int, int, int, set]:
 
 def _round_delete_worthy(valid: int, incomplete: int, envfail: int,
                          total: int, sigs: set) -> bool:
-    """Round-level deletion criterion. Delete-worthy when EITHER:
+    """Round-level deletion criterion. Delete-worthy when ANY of:
       (1) env failures are the MAJORITY (envfail > valid + incomplete), or
       (2) ANY cert/SSL scenario is present — cert is a transient FIXABLE issue
           (NODE_EXTRA_CA_CERTS), so re-running the whole round yields a clean
           set, preferable to keeping a round with a permanently-broken scenario.
-    KEPT: rounds with only incomplete (real-but-no-DONE) scenarios and no cert
-    (e.g. cursor R1/R5: 5 valid + 1 incomplete; codex R5: 5 valid + 1
-    model-refresh incomplete) — no fixable cert taint."""
+      (3) ANY rate-limit/usage-limit scenario is present — like cert, this is a
+          transient FIXABLE issue (wait for the quota reset, then re-run yields a
+          clean round). Without this, a round with e.g. 4 valid + 2 rate-limited
+          scenarios (envfail not a majority) would be KEPT, silently polluting a
+          model-eval comparison with environment-failed scenarios. Round-level
+          redo is coarse (it re-runs the valid scenarios too), but a clean round
+          is worth more than salvaging a few scenarios for eval integrity.
+    KEPT: rounds with only incomplete (real-but-no-DONE) scenarios and no cert /
+    rate-limit (e.g. cursor R1/R5: 5 valid + 1 incomplete; codex R5: 5 valid + 1
+    model-refresh incomplete) — no fixable env taint."""
     if total <= 0:
         return False
-    return envfail > (valid + incomplete) or ("cert" in sigs)
+    return (envfail > (valid + incomplete)
+            or ("cert" in sigs)
+            or ("rate-limit" in sigs))
 
 
 def detect_env_failed_rounds(state: "RunState", run_id: str) -> List[dict]:

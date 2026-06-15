@@ -144,8 +144,16 @@ def test_delete_worthy_env_majority():
                                    sigs={"model-refresh-timeout"}) is True
 
 
+def test_delete_worthy_rate_limit_minority():
+    # 4 valid + 2 rate-limit envfail (MINORITY, not >valid) → still delete-worthy:
+    # rate-limit is transient-fixable like cert, and a partially rate-limited round
+    # must not silently pollute a model-eval comparison (real case: opus4.8 R2).
+    assert er._round_delete_worthy(valid=4, incomplete=0, envfail=2, total=6,
+                                   sigs={"rate-limit"}) is True
+
+
 def test_keep_incomplete_no_cert():
-    # 5 valid + 1 incomplete, no cert → keep (analyzer handles per-session)
+    # 5 valid + 1 incomplete, no cert/rate-limit → keep (analyzer handles per-session)
     assert er._round_delete_worthy(valid=5, incomplete=1, envfail=0, total=6,
                                    sigs=set()) is False
 
