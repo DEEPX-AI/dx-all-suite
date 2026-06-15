@@ -269,17 +269,21 @@ def _scenario_cells(scenarios: Dict[str, str],
 
     PURE. Produces e.g. ``"cmp✓ app✓ str✓ csc✓ rt✗ ste✗"`` using the
     abbreviation + verdict icon for each of the 6 canonical scenario keys.
-    Any scenario in *rerun_targets* (the active salvage's target scenarios)
-    shows the re-running icon (⟳) regardless of its on-disk verdict.
+    A scenario in *rerun_targets* (the active salvage's target scenarios) shows
+    the re-running icon (⟳) ONLY when it is not already valid on disk; a target
+    that has already completed (merged back, verdict ``valid``) shows ✓. This
+    matches the Round Progress current-round detail — a salvage that targets all
+    6 scenarios but has only `suite` left renders ``cmp✓ … rt✓ ste⟳`` (not all ⟳).
     """
     targets = rerun_targets or set()
     cells: List[str] = []
     for key in ROUND_SCENARIO_KEYS:
         abbr = SCENARIO_ABBREV[key]
-        if key in targets:
-            verdict = "re-running"
+        on_disk = scenarios.get(key, "skip")
+        if key in targets and on_disk != "valid":
+            verdict = "re-running"  # being re-run, not yet completed
         else:
-            verdict = scenarios.get(key, "skip")
+            verdict = on_disk       # valid target → ✓; non-target → its verdict
         icon = SCENARIO_ICON.get(verdict, "?")
         cells.append(f"{abbr}{icon}")
     return " ".join(cells)
@@ -1039,6 +1043,7 @@ def _make_completed_rounds_table(data: dict, statuses: Optional[List[dict]] = No
     detail_tbl = Table(title="Completed Rounds", expand=True, border_style="dim")
     detail_tbl.add_column("Tool", style="cyan", no_wrap=True)
     detail_tbl.add_column("Round", justify="right")
+    detail_tbl.add_column("Dir", no_wrap=True, style="dim")
     detail_tbl.add_column("Start", no_wrap=True)
     detail_tbl.add_column("End", no_wrap=True)
     detail_tbl.add_column("Duration", no_wrap=True)
@@ -1055,7 +1060,10 @@ def _make_completed_rounds_table(data: dict, statuses: Optional[List[dict]] = No
             exit_code = str(r.get("exit_code", "?"))
             exit_style = "green" if exit_code == "0" else "red"
             validity = _validity_cell(by_dir.get(r.get("result_dir_name")))
-            detail_tbl.add_row(tool, f"R{r.get('round', '?')}", start, end, dur,
+            rdn = r.get("result_dir_name") or "—"
+            # Drop the redundant "_<tool>-autopilot" suffix for a compact R#↔dir map.
+            dir_short = rdn[:-len("-autopilot")].rsplit("_", 1)[0] if rdn.endswith("-autopilot") else rdn
+            detail_tbl.add_row(tool, f"R{r.get('round', '?')}", dir_short, start, end, dur,
                                Text(exit_code, style=exit_style), validity)
     return detail_tbl if has_rows else None
 

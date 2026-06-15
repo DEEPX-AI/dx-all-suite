@@ -169,8 +169,19 @@ def test_scenario_cells_rerun_targets_override():
         "suite": "envfail",
     }
     out = mon._scenario_cells(scn, rerun_targets={"runtime", "suite"})
-    # runtime + suite show ⟳ regardless of on-disk verdict; others unchanged
+    # runtime + suite are targets AND not-yet-valid → ⟳; others unchanged
     assert out == "cmp✓ app✓ str✓ csc✓ rt⟳ ste⟳"
+
+
+def test_scenario_cells_valid_target_shows_done_not_rerunning():
+    # Real R4 case: salvage targeted ALL 6, but cmp..rt already merged (valid);
+    # only suite still re-running. A VALID target must show ✓, not ⟳.
+    scn = {
+        "compiler": "valid", "dx_app": "valid", "dx_stream": "valid",
+        "dx_stream_cascaded": "valid", "runtime": "valid", "suite": "skip",
+    }
+    out = mon._scenario_cells(scn, rerun_targets=set(mon.ROUND_SCENARIO_KEYS))
+    assert out == "cmp✓ app✓ str✓ csc✓ rt✓ ste⟳"
 
 
 # --- _round_status carries scenarios (+ rerun_targets when re-running) ------
