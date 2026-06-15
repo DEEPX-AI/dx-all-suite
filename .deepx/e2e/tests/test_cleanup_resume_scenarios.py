@@ -620,3 +620,36 @@ class TestScenarioSubdir:
     def test_different_prefix(self, tmp_path):
         p = crs.scenario_subdir(tmp_path, "copilot_cli", "suite")
         assert p == tmp_path / "copilot_cli__suite"
+
+
+# --- _supersede_partial_dir (retire scratch dir post-merge) ------------------
+import cleanup_resume_scenarios as _crs
+
+def test_supersede_renames_nonempty_scratch_dir(tmp_path):
+    d = tmp_path / "20260615_141417_da18c2_claude-code-autopilot"
+    d.mkdir()
+    (d / "manifest.json").write_text("{}")
+    (d / "SUMMARY.md").write_text("x")
+    _crs._supersede_partial_dir(d)
+    assert not d.exists()
+    renamed = tmp_path / "superseded__20260615_141417_da18c2_claude-code-autopilot"
+    assert renamed.is_dir() and (renamed / "manifest.json").exists()
+
+def test_supersede_removes_empty_scratch_dir(tmp_path):
+    d = tmp_path / "20260615_999999_aaaaaa_claude-code-autopilot"
+    d.mkdir()
+    _crs._supersede_partial_dir(d)
+    assert not d.exists()
+    assert not (tmp_path / ("superseded__" + d.name)).exists()
+
+def test_supersede_idempotent_on_already_superseded(tmp_path):
+    d = tmp_path / "superseded__20260615_141417_da18c2_claude-code-autopilot"
+    d.mkdir(); (d / "manifest.json").write_text("{}")
+    _crs._supersede_partial_dir(d)
+    assert d.is_dir()  # left as-is, no double prefix
+
+def test_find_newest_excludes_superseded(tmp_path):
+    (tmp_path / "20260615_100000_aaaaaa_claude-code-autopilot").mkdir()
+    (tmp_path / "superseded__20260615_120000_bbbbbb_claude-code-autopilot").mkdir()
+    newest = _crs.find_newest_autopilot_dir(tmp_path, set())
+    assert newest is not None and not newest.name.startswith("superseded__")

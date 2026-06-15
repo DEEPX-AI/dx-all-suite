@@ -298,7 +298,7 @@ def find_newest_autopilot_dir(
             continue
         if entry.name in exclude:
             continue
-        if "autopilot" in entry.name:
+        if "autopilot" in entry.name and not entry.name.startswith(SUPERSEDED_PREFIX):
             candidates.append(entry)
     if not candidates:
         return None
@@ -392,8 +392,10 @@ def run_cleanup_resume(
         # Step 3: merge back into round_dir
         merge_scenarios(round_dir, partial_dir, prefix, target_scenarios)
 
-        # Clean up the now-(mostly-)empty partial dir if it's empty
-        _try_remove_empty_dir(partial_dir)
+        # Retire the scratch partial dir (scenarios merged out): remove if empty,
+        # else rename with a superseded__ prefix so it is not discovered as a
+        # phantom round and is clearly marked as a cleaned-up artifact.
+        _supersede_partial_dir(partial_dir)
 
         # Step 4: classify the merged results
         verdicts = classify_scenarios(round_dir, prefix, target_scenarios)
@@ -424,11 +426,32 @@ def run_cleanup_resume(
     return {"status": "max-attempts", "still_failed": still_failed, "attempts": max_attempts}
 
 
-def _try_remove_empty_dir(path: Path) -> None:
-    """Remove *path* if it is an empty directory (best-effort)."""
+SUPERSEDED_PREFIX = "superseded__"
+
+
+def _supersede_partial_dir(path: Path) -> None:
+    """Retire the scratch partial round dir after its scenarios were merged out.
+
+    ``merge_scenarios`` moves the re-run scenario subdirs INTO the canonical round
+    dir, leaving the scratch dir with only ``manifest.json`` + ``SUMMARY.md``. That
+    shell still matches the analyzer's round regex
+    (``^<date>_<time>_<hash>_<tool>-autopilot$`` + a manifest) and would be
+    discovered as a PHANTOM extra round.
+
+    So: if the dir is now empty -> remove it; otherwise RENAME it with a
+    ``superseded__`` prefix. The prefix (a) breaks the analyzer's ``^\\d{8}`` anchor
+    so it is no longer discovered as a round, and (b) clearly marks it as a
+    cleaned-up/merged artifact while preserving the re-run record (audit trail).
+    """
     try:
-        if path.is_dir() and not any(path.iterdir()):
+        if not path.is_dir():
+            return
+        if not any(path.iterdir()):
             path.rmdir()
+            return
+        if path.name.startswith(SUPERSEDED_PREFIX):
+            return
+        path.rename(path.with_name(SUPERSEDED_PREFIX + path.name))
     except OSError:
         pass
 
