@@ -439,6 +439,16 @@ Artifact Verification Gate는 각 artifact가 **어떻게** 검증되는지 정�
      while pgrep -f "compile.py" >/dev/null 2>&1; do sleep 20; done   # 금지
      pgrep -f "session_dir/compile.py"                                 # 금지
      ```
+   - **백그라운드 작업을 기다리려고 턴을 종료하지 말 것 (HARD GATE)** — headless
+     `claude -p` 실행에는 resume이 없습니다: 턴이 끝나면 세션이 종료되므로,
+     예약한 wakeup이나 "완료 알림을 기다린다"는 동작은 결코 발동되지 않고 DONE
+     sentinel도 찍지 못합니다 — 해당 라운드는 *incomplete*으로 기록됩니다 (가장
+     어려운 시나리오, 예: `suite`에서 반복 발생한 실제 실패). 금지: `ScheduleWakeup`
+     호출(또는 "백그라운드 작업이 알려주면 이어서 하겠다"는 류의 알림 대기 패턴) 후
+     턴 종료. 백그라운드 컴파일을 꼭 기다려야 하면 **같은 턴 안에서**
+     `while kill -0 "$COMPILE_PID" 2>/dev/null; do sleep 10; done`로 블록하거나,
+     더 권장되는 방식으로 다른 산출물을 먼저 모두 생성한 뒤 `.dxnn`을 1회만
+     확인하세요. 재호출을 기대하며 턴을 양보하지 마세요.
    - **필수 산출물은 컴파일과 독립적** — `setup.sh`, `run.sh`, `verify.py`, factory,
      app 코드는 `.dxnn` 파일이 존재할 필요가 없습니다. 알려진 모델 이름
      (예: `yolo26n.dxnn`)을 플레이스홀더 경로로 사용하여 생성하세요. 실행 검증만

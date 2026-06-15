@@ -56,6 +56,18 @@ When the user is absent — autopilot mode, `--yolo` flag, or system auto-respon
      while pgrep -f "compile.py" >/dev/null 2>&1; do sleep 20; done   # PROHIBITED
      pgrep -f "session_dir/compile.py"                                 # PROHIBITED
      ```
+   - **NEVER end your turn to wait for a background task (HARD GATE)** — a
+     headless `claude -p` run has NO resume: ending the turn terminates the
+     session, so a scheduled wakeup or a "wait for the completion notification"
+     never fires and the DONE sentinel is never emitted — the round is recorded
+     as *incomplete* (this is a real, recurring failure on the hardest scenarios,
+     e.g. `suite`). PROHIBITED: calling `ScheduleWakeup` (or any
+     wait-for-notification / "I'll continue once the background task notifies me"
+     pattern) and then ending the turn. If you genuinely must wait for a
+     backgrounded compile, block IN THE SAME TURN with
+     `while kill -0 "$COMPILE_PID" 2>/dev/null; do sleep 10; done` — or,
+     preferably, generate every other artifact first and check `.dxnn` ONCE.
+     Never yield the turn expecting to be re-invoked.
    - **Mandatory artifacts are compilation-independent** — `setup.sh`, `run.sh`,
      `verify.py`, factory, and app code do NOT require the `.dxnn` file to exist.
      Generate them using the known model name (e.g., `yolo26n.dxnn`) as a
