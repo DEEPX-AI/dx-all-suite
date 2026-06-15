@@ -311,6 +311,36 @@ def _run_round_statuses(run_results_dir: Path, salvage: Optional[dict],
     return statuses
 
 
+def _statuses_for(run_id_str: str, data: dict):
+    """Resolve (statuses, salvage, salvage_active) for a run — fully guarded.
+
+    Centralizes the salvage + per-round-validity lookup shared by the live
+    monitor loop, :func:`print_snapshot`, and :func:`_print_validity_block`:
+
+      1. load ``salvage.json`` (or None),
+      2. resolve ``results/<run_id>/`` via the runner and classify its rounds
+         with :func:`_run_round_statuses` (passing *data* so transient salvage
+         scratch dirs are excluded),
+      3. compute ``salvage_active`` (marker ``status=running`` AND pid alive).
+
+    Returns ``([], None, False)`` on ANY error (missing runner import, missing
+    results dir, malformed state) so a caller never crashes the monitor.
+    """
+    try:
+        salvage = _load_salvage(run_id_str)
+        salvage_active = bool(
+            salvage and salvage.get("status") == "running"
+            and _pid_alive(salvage.get("pid"))
+        )
+        statuses: List[dict] = []
+        if _E2E_RUNNER is not None and hasattr(_E2E_RUNNER, "run_results_dir"):
+            results_dir = _E2E_RUNNER.run_results_dir(run_id_str)
+            statuses = _run_round_statuses(results_dir, salvage, data)
+        return statuses, salvage, salvage_active
+    except Exception:
+        return [], None, False
+
+
 def _validity_summary(statuses: List[dict]) -> str:
     """Compact one-line validity summary for --list.
 
@@ -731,7 +761,21 @@ class LogTailer:
 # ---------------------------------------------------------------------------
 
 
-def _make_progress_table(data: dict, log_dir: Optional[Path] = None) -> Table:
+def _progress_status_label(state_status: str, salvage_active: bool) -> str:
+    """Effective per-tool Status label for the Round Progress table.
+
+    PURE. Mirrors :func:`_effective_status` semantics for the per-tool cell:
+    when a salvage is actively re-running this run, ANY state status (including
+    ``done``) is displayed as ``"re-running"``; otherwise the raw state status
+    is returned unchanged.
+    """
+    if salvage_active:
+        return "re-running"
+    return state_status
+
+
+def _make_progress_table(data: dict, log_dir: Optional[Path] = None,
+                         salvage_active: bool = False) -> Table:
     tbl = Table(title=None, expand=True, border_style="dim")
     tbl.add_column("Tool", style="cyan", no_wrap=True, min_width=14)
     tbl.add_column("Done", justify="right", style="green", min_width=4)
@@ -750,16 +794,23 @@ def _make_progress_table(data: dict, log_dir: Optional[Path] = None) -> Table:
         ng = sum(1 for r in completed if r.get("exit_code") != 0)
         rem = _remaining_rounds(target, len(completed))
         status = ts.get("status", "pending")
+        # Effective status: an active salvage re-runs rounds in place even when
+        # state.json already reads "done" — show "re-running" so the live view
+        # tracks the salvage instead of looking finished.
+        status = _progress_status_label(status, salvage_active)
 
         status_style = {
             "done": "[green]done[/green]",
             "running": "[yellow]running[/yellow]",
+            "re-running": "[yellow]re-running[/yellow]",
             "pending": "[dim]pending[/dim]",
             "aborted": "[red]aborted[/red]",
             "stopped": "[red]stopped[/red]",
         }.get(status, status)
 
-        if status == "running" and log_dir:
+        if salvage_active:
+            scenario_str = "[yellow]re-running…[/yellow]"
+        elif status == "running" and log_dir:
             scenario_str = _scenario_status_text(tool, log_dir)
         elif status == "done":
             scenario_str = "[green]all complete[/green]"
@@ -779,8 +830,38 @@ def _make_progress_table(data: dict, log_dir: Optional[Path] = None) -> Table:
 
 
 
-def _make_completed_rounds_table(data: dict) -> Optional[Table]:
-    """Build a Rich Table showing completed rounds across all tools. Returns None if no completions."""
+def _validity_cell(status: Optional[str]) -> "Text":
+    """Render a per-round Validity cell (icon + color) for a status string.
+
+    Returns a dim ``—`` when *status* is None/unknown (no matching round status).
+    """
+    if status is None:
+        return Text("—", style="dim")
+    label = _VALIDITY_ICON.get(status, status)
+    if status == "valid":
+        style = "green"
+    elif status == "re-running":
+        style = "yellow"
+    elif status in ("env-failed", "incomplete"):
+        style = "red"
+    else:
+        style = "dim"
+    return Text(label, style=style)
+
+
+def _make_completed_rounds_table(data: dict, statuses: Optional[List[dict]] = None) -> Optional[Table]:
+    """Build a Rich Table showing completed rounds across all tools. Returns None if no completions.
+
+    When *statuses* (from :func:`_run_round_statuses`) is provided, a per-round
+    "Validity" column is added; each completed row is matched to its status
+    entry by ``result_dir_name`` == ``round_dir``. Unmatched rows show ``—``.
+    """
+    by_dir: Dict[str, str] = {}
+    for s in (statuses or []):
+        rdn = s.get("round_dir")
+        if rdn:
+            by_dir[rdn] = s.get("status", "empty")
+
     tool_states = data.get("tool_states", {})
     detail_tbl = Table(title="Completed Rounds", expand=True, border_style="dim")
     detail_tbl.add_column("Tool", style="cyan", no_wrap=True)
@@ -789,6 +870,7 @@ def _make_completed_rounds_table(data: dict) -> Optional[Table]:
     detail_tbl.add_column("End", no_wrap=True)
     detail_tbl.add_column("Duration", no_wrap=True)
     detail_tbl.add_column("Exit", justify="right")
+    detail_tbl.add_column("Validity")
     has_rows = False
     for tool in data.get("tools", ALL_TOOLS):
         ts = tool_states.get(tool, {})
@@ -799,7 +881,9 @@ def _make_completed_rounds_table(data: dict) -> Optional[Table]:
             dur = _duration_str(r.get("start_utc") or r.get("started_at"), r.get("end_utc") or r.get("ended_at"))
             exit_code = str(r.get("exit_code", "?"))
             exit_style = "green" if exit_code == "0" else "red"
-            detail_tbl.add_row(tool, f"R{r.get('round', '?')}", start, end, dur, Text(exit_code, style=exit_style))
+            validity = _validity_cell(by_dir.get(r.get("result_dir_name")))
+            detail_tbl.add_row(tool, f"R{r.get('round', '?')}", start, end, dur,
+                               Text(exit_code, style=exit_style), validity)
     return detail_tbl if has_rows else None
 
 
@@ -871,18 +955,9 @@ def _print_validity_block(run_id_str: str, data: dict) -> None:
     success line only when ALL rounds are valid AND no active salvage.
     """
     try:
-        if _E2E_RUNNER is None or not hasattr(_E2E_RUNNER, "run_results_dir"):
-            return
-        salvage = _load_salvage(run_id_str)
-        results_dir = _E2E_RUNNER.run_results_dir(run_id_str)
-        statuses = _run_round_statuses(results_dir, salvage, data)
+        statuses, salvage, salvage_active = _statuses_for(run_id_str, data)
         if not statuses:
             return
-
-        salvage_active = bool(
-            salvage and salvage.get("status") == "running"
-            and _pid_alive(salvage.get("pid"))
-        )
 
         # completed-from-state count (for context line)
         tool_states = data.get("tool_states", {})
@@ -946,6 +1021,9 @@ def print_snapshot(data: dict) -> None:
     run_id_str = data.get("run_id", "?")
     tool_states = data.get("tool_states", {})
 
+    # Salvage-aware per-round validity (shared with the live loop).
+    statuses, salvage, salvage_active = _statuses_for(run_id_str, data)
+
     if _RICH:
         from rich.console import Console as RConsole
         console = RConsole()
@@ -953,16 +1031,15 @@ def print_snapshot(data: dict) -> None:
         console.print(header)
 
         log_dir = StateReader(run_id_str).log_dir()
-        tbl = _make_progress_table(data, log_dir)
+        tbl = _make_progress_table(data, log_dir, salvage_active=salvage_active)
         console.print(Panel(tbl, title="Round Progress", border_style="green"))
 
-        # Per-tool completed round detail
-        detail_tbl = _make_completed_rounds_table(data)
+        # Per-tool completed round detail (with per-round validity column)
+        detail_tbl = _make_completed_rounds_table(data, statuses)
         if detail_tbl:
             console.print(detail_tbl)
 
         # Salvage status (after round table)
-        salvage = _load_salvage(run_id_str)
         if salvage:
             alive = _pid_alive(salvage.get("pid"))
             salvage_line = _format_salvage(salvage, alive)
@@ -982,11 +1059,10 @@ def print_snapshot(data: dict) -> None:
             ok = sum(1 for r in completed if r.get("exit_code") == 0)
             ng = sum(1 for r in completed if r.get("exit_code") != 0)
             rem = _remaining_rounds(target, len(completed))
-            status = ts.get("status", "pending")
+            status = _progress_status_label(ts.get("status", "pending"), salvage_active)
             print(f"{tool:<16} {ok:>5} {ng:>5} {rem:>5} {status:<10} {_format_tool_timing(ts):<22}")
         print()
         # Salvage status (after round table)
-        salvage = _load_salvage(run_id_str)
         if salvage:
             alive = _pid_alive(salvage.get("pid"))
             print(_format_salvage(salvage, alive))
@@ -1285,10 +1361,17 @@ def run_monitor(run_id: Optional[str], tool_filter: Optional[str], tail_n: int, 
                     style="bold",
                 )
 
-                prog_panel = Panel(_make_progress_table(data, log_dir), title="Round Progress", border_style="green")
+                # Salvage-aware per-round validity (shared with print_snapshot
+                # / _print_validity_block). Guarded → never crashes the loop.
+                statuses, salvage, salvage_active = _statuses_for(run_id_str, data)
+
+                prog_panel = Panel(
+                    _make_progress_table(data, log_dir, salvage_active=salvage_active),
+                    title="Round Progress", border_style="green",
+                )
 
                 renderables = [header, prog_panel]
-                completed_tbl = _make_completed_rounds_table(data)
+                completed_tbl = _make_completed_rounds_table(data, statuses)
                 if completed_tbl:
                     renderables.append(completed_tbl)
                 display_tools = _tool_display_list(tool_filter, data.get("tools", ALL_TOOLS))
@@ -1302,13 +1385,17 @@ def run_monitor(run_id: Optional[str], tool_filter: Optional[str], tail_n: int, 
                     if tool_filter not in (None, "all") and tool_filter in tool_states:
                         renderables.append(_make_scenario_timing_panel(tool_filter, tool_states[tool_filter], log_dir))
 
+                # Round Validity table + summary line, shown live (not only post-loop).
+                if statuses:
+                    completed_state = max(
+                        (len(ts.get("completed", [])) for ts in tool_states.values()),
+                        default=0,
+                    )
+                    renderables.append(_make_validity_table(statuses))
+                    renderables.append(Text(_validity_line(statuses, completed_state, target)))
+
                 live.update(Group(*renderables))
 
-                salvage = _load_salvage(run_id_str)
-                salvage_active = bool(
-                    salvage and salvage.get("status") == "running"
-                    and _pid_alive(salvage.get("pid"))
-                )
                 if _monitor_should_exit(data, salvage_active):
                     time.sleep(1)
                     break
