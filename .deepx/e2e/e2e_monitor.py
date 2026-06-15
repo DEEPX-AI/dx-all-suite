@@ -73,6 +73,50 @@ TIMESTAMP_RE = re.compile(r"^\[(\d{2}:\d{2}:\d{2})\]")
 
 
 # ---------------------------------------------------------------------------
+# e2e_runner import (for round-validity classification reuse)
+# ---------------------------------------------------------------------------
+#
+# We reuse e2e_runner._classify_round_scenario / _analyze_round_env so the
+# monitor and the runner agree on what "valid" / "env-failed" / "incomplete"
+# mean. Import by file path via importlib (memoized at module load) and guard
+# the whole thing so the monitor still works if the import fails.
+
+
+def _import_e2e_runner():
+    """Import e2e_runner.py (same dir) by file path; return module or None."""
+    try:
+        import importlib.util
+
+        runner_path = SCRIPT_DIR / "e2e_runner.py"
+        if not runner_path.exists():
+            return None
+        spec = importlib.util.spec_from_file_location("_e2e_runner_for_monitor", runner_path)
+        if spec is None or spec.loader is None:
+            return None
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        return mod
+    except Exception:
+        return None
+
+
+_E2E_RUNNER = _import_e2e_runner()
+
+
+def _analyze_round_env(round_dir: Path):
+    """Delegate to e2e_runner._analyze_round_env; fall back to a neutral tuple.
+
+    Returns (valid, incomplete, envfail, total, sigs).
+    """
+    if _E2E_RUNNER is not None and hasattr(_E2E_RUNNER, "_analyze_round_env"):
+        try:
+            return _E2E_RUNNER._analyze_round_env(round_dir)
+        except Exception:
+            pass
+    return (0, 0, 0, 0, set())
+
+
+# ---------------------------------------------------------------------------
 # Salvage helpers
 # ---------------------------------------------------------------------------
 
@@ -143,6 +187,126 @@ def _format_salvage(salvage: dict, pid_alive: bool) -> str:
             f"Salvage: round {round_dir} scenarios=[{scenarios_str}] "
             f"status={status}{pid_part}"
         )
+
+
+# ---------------------------------------------------------------------------
+# Per-round validity (salvage-aware)
+# ---------------------------------------------------------------------------
+
+
+def _round_status(round_dir: Path, salvage: Optional[dict], salvage_pid_alive: bool) -> dict:
+    """Classify a single round dir's validity, salvage-aware.
+
+    Args:
+        round_dir: the per-round results dir (``*_<tool>-autopilot``).
+        salvage: contents of salvage.json (or None).
+        salvage_pid_alive: whether the salvage process PID is live.
+
+    Returns a dict:
+        {"round_dir": <name>, "status": <STATUS>, "detail": <str>,
+         "counts": (valid, incomplete, envfail, total)}
+
+    STATUS is one of: "re-running", "valid", "env-failed", "incomplete", "empty".
+
+    A round that matches an ACTIVE salvage marker (status=running, pid alive,
+    round_dir matches) is reported as "re-running" WITHOUT classification —
+    its scenarios are mid-cleanup and would mis-classify; we trust the marker.
+    """
+    name = round_dir.name
+
+    # Active-salvage short-circuit: do not classify a round being re-run.
+    if (
+        salvage is not None
+        and salvage.get("status") == "running"
+        and salvage_pid_alive
+        and salvage.get("round_dir") == name
+    ):
+        attempt = salvage.get("attempt", "?")
+        scenarios = salvage.get("scenarios", [])
+        scenarios_str = ",".join(scenarios) if isinstance(scenarios, list) else str(scenarios)
+        return {
+            "round_dir": name,
+            "status": "re-running",
+            "detail": f"attempt {attempt}, scenarios={scenarios_str}",
+            "counts": (0, 0, 0, 0),
+        }
+
+    valid, incomplete, envfail, total, sigs = _analyze_round_env(round_dir)
+    counts = (valid, incomplete, envfail, total)
+
+    if total > 0 and envfail == 0 and incomplete == 0:
+        return {"round_dir": name, "status": "valid", "detail": "valid", "counts": counts}
+
+    if envfail > 0:
+        sig_str = ",".join(sorted(sigs)) if sigs else "env"
+        return {
+            "round_dir": name,
+            "status": "env-failed",
+            "detail": f"{sig_str} — pending re-run",
+            "counts": counts,
+        }
+
+    if incomplete > 0:
+        return {
+            "round_dir": name,
+            "status": "incomplete",
+            "detail": f"{incomplete} incomplete scenario(s)",
+            "counts": counts,
+        }
+
+    return {"round_dir": name, "status": "empty", "detail": "no scenarios", "counts": counts}
+
+
+def _run_round_statuses(run_results_dir: Path, salvage: Optional[dict]) -> List[dict]:
+    """Classify every round dir under a run's results dir, in chronological order.
+
+    Enumerates ``*_<tool>-autopilot`` dirs sorted by name (timestamp prefix →
+    chronological), assigns a 1-based round_index, and classifies each round.
+    Returns a list of _round_status dicts, each with an added "round_index".
+    """
+    statuses: List[dict] = []
+    if not run_results_dir.is_dir():
+        return statuses
+
+    salvage_pid_alive = _pid_alive(salvage.get("pid")) if salvage else False
+
+    round_dirs = sorted(
+        (d for d in run_results_dir.iterdir() if d.is_dir() and d.name.endswith("-autopilot")),
+        key=lambda d: d.name,
+    )
+    for idx, rd in enumerate(round_dirs, start=1):
+        try:
+            entry = _round_status(rd, salvage, salvage_pid_alive)
+        except Exception:
+            entry = {
+                "round_dir": rd.name,
+                "status": "empty",
+                "detail": "classification error",
+                "counts": (0, 0, 0, 0),
+            }
+        entry["round_index"] = idx
+        statuses.append(entry)
+    return statuses
+
+
+def _validity_summary(statuses: List[dict]) -> str:
+    """Compact one-line validity summary for --list.
+
+    Examples:
+        "valid:2/5 ⟳R3 ✗R4,R5"   (mixed)
+        "valid:5/5"               (all valid)
+    """
+    total = len(statuses)
+    valid = sum(1 for s in statuses if s.get("status") == "valid")
+    rerunning = [s for s in statuses if s.get("status") == "re-running"]
+    failing = [s for s in statuses if s.get("status") in ("env-failed", "incomplete")]
+
+    parts = [f"valid:{valid}/{total}"]
+    if rerunning:
+        parts.append("⟳" + ",".join(f"R{s['round_index']}" for s in rerunning))
+    if failing:
+        parts.append("✗" + ",".join(f"R{s['round_index']}" for s in failing))
+    return " ".join(parts)
 
 
 # ---------------------------------------------------------------------------
@@ -553,6 +717,127 @@ def _make_completed_rounds_table(data: dict) -> Optional[Table]:
     return detail_tbl if has_rows else None
 
 
+_VALIDITY_ICON = {
+    "valid": "✓ valid",
+    "re-running": "⟳ re-running",
+    "env-failed": "✗ env-failed",
+    "incomplete": "✗ incomplete",
+    "empty": "· empty",
+}
+
+
+def _validity_line(statuses: List[dict], completed_state: Optional[int] = None,
+                   target: object = None) -> str:
+    """One-line validity summary line (plain text) for the single-run view."""
+    total = len(statuses)
+    valid = sum(1 for s in statuses if s.get("status") == "valid")
+    rerunning = sum(1 for s in statuses if s.get("status") == "re-running")
+    pending = sum(1 for s in statuses if s.get("status") in ("env-failed", "incomplete"))
+    parts = [f"valid {valid}/{total}"]
+    if rerunning:
+        parts.append(f"re-running {rerunning}")
+    if pending:
+        parts.append(f"pending {pending}")
+    line = "Validity summary: " + " · ".join(parts)
+    if completed_state is not None and target is not None:
+        line += f"   (state: {completed_state}/{target} completed)"
+    return line
+
+
+def _all_rounds_valid(statuses: List[dict]) -> bool:
+    return bool(statuses) and all(s.get("status") == "valid" for s in statuses)
+
+
+def _make_validity_table(statuses: List[dict]) -> "Table":
+    """Rich per-round VALIDITY table (Round / Dir / Validity)."""
+    tbl = Table(title="Round Validity", expand=True, border_style="dim")
+    tbl.add_column("Round", style="cyan", no_wrap=True, min_width=5)
+    tbl.add_column("Dir", no_wrap=True)
+    tbl.add_column("Validity")
+    for s in statuses:
+        status = s.get("status", "empty")
+        label = _VALIDITY_ICON.get(status, status)
+        detail = s.get("detail", "")
+        if status == "re-running":
+            text = f"⟳ re-running ({detail})"
+            style = "yellow"
+        elif status == "valid":
+            text = "✓ valid"
+            style = "green"
+        elif status == "env-failed":
+            text = f"✗ env-failed ({detail})"
+            style = "red"
+        elif status == "incomplete":
+            text = f"✗ incomplete ({detail})"
+            style = "red"
+        else:
+            text = label
+            style = "dim"
+        tbl.add_row(f"R{s.get('round_index', '?')}", s.get("round_dir", "?"),
+                    Text(text, style=style))
+    return tbl
+
+
+def _print_validity_block(run_id_str: str, data: dict) -> None:
+    """Render the per-round validity table + summary for a single run.
+
+    Guarded so the monitor never crashes if a round dir is odd. Prints the
+    success line only when ALL rounds are valid AND no active salvage.
+    """
+    try:
+        if _E2E_RUNNER is None or not hasattr(_E2E_RUNNER, "run_results_dir"):
+            return
+        salvage = _load_salvage(run_id_str)
+        results_dir = _E2E_RUNNER.run_results_dir(run_id_str)
+        statuses = _run_round_statuses(results_dir, salvage)
+        if not statuses:
+            return
+
+        salvage_active = bool(
+            salvage and salvage.get("status") == "running"
+            and _pid_alive(salvage.get("pid"))
+        )
+
+        # completed-from-state count (for context line)
+        tool_states = data.get("tool_states", {})
+        completed_state = max(
+            (len(ts.get("completed", [])) for ts in tool_states.values()),
+            default=0,
+        )
+        target = data.get("target_rounds", "?")
+
+        if _all_rounds_valid(statuses) and not salvage_active:
+            if _RICH:
+                from rich.console import Console as RConsole
+                RConsole().print("[green]All rounds valid![/green]")
+            else:
+                print("All rounds valid!")
+            return
+
+        if _RICH:
+            from rich.console import Console as RConsole
+            console = RConsole()
+            console.print(_make_validity_table(statuses))
+            console.print(_validity_line(statuses, completed_state, target))
+        else:
+            print()
+            print(f"{'Round':<6} {'Dir':<32} Validity")
+            for s in statuses:
+                status = s.get("status", "empty")
+                detail = s.get("detail", "")
+                base = _VALIDITY_ICON.get(status, status)
+                if status in ("re-running", "env-failed", "incomplete"):
+                    label = f"{base} ({detail})"
+                else:
+                    label = base
+                rdir = (s.get("round_dir", "?"))[:31]
+                print(f"R{s.get('round_index', '?'):<5} {rdir:<32} {label}")
+            print(_validity_line(statuses, completed_state, target))
+    except Exception:
+        # Never crash the monitor on validity rendering.
+        pass
+
+
 def _make_log_panel(tool: str, lines: List[str], n: int = 4) -> Panel:
     content = "\n".join(lines[-n:]) or "(no output yet)"
     return Panel(content, title=f"[bold]{tool}[/bold] — tail log", border_style="blue")
@@ -597,6 +882,9 @@ def print_snapshot(data: dict) -> None:
             salvage_line = _format_salvage(salvage, alive)
             style = "yellow" if salvage.get("status") == "running" and alive else "dim"
             console.print(Text(salvage_line, style=style))
+
+        # Per-round validity (salvage-aware)
+        _print_validity_block(run_id_str, data)
     else:
         print(f"\n=== E2E Monitor  run_id={run_id_str} ===")
         print(f"Target: {target} rounds  Thinking: {thinking}\n")
@@ -617,6 +905,9 @@ def print_snapshot(data: dict) -> None:
             alive = _pid_alive(salvage.get("pid"))
             print(_format_salvage(salvage, alive))
             print()
+
+        # Per-round validity (salvage-aware)
+        _print_validity_block(run_id_str, data)
 
 
 # ---------------------------------------------------------------------------
@@ -683,28 +974,37 @@ def show_list() -> None:
             for t in tools
         )
 
-        # Salvage annotation
-        salvage_suffix = ""
+        # Round-based validity summary (replaces the raw salvage annotation).
+        # Best-effort: fall back to the state-based salvage text on any error.
         salvage = _load_salvage(run_id)
-        if salvage:
-            s_status = salvage.get("status", "")
-            s_scenarios = salvage.get("scenarios", [])
-            s_scenarios_str = ",".join(s_scenarios) if isinstance(s_scenarios, list) else str(s_scenarios)
-            if s_status == "running":
-                alive = _pid_alive(salvage.get("pid"))
-                if alive:
-                    salvage_suffix = f" (salvaging: {s_scenarios_str})"
-                else:
-                    salvage_suffix = " (salvage stale)"
-            elif s_status == "complete":
-                salvage_suffix = " (salvaged)"
+        validity_suffix = ""
+        try:
+            if _E2E_RUNNER is not None and hasattr(_E2E_RUNNER, "run_results_dir"):
+                results_dir = _E2E_RUNNER.run_results_dir(run_id)
+                round_statuses = _run_round_statuses(results_dir, salvage)
+                if round_statuses:
+                    validity_suffix = "  " + _validity_summary(round_statuses)
+        except Exception:
+            validity_suffix = ""
 
-        overall_display = f"{overall}{salvage_suffix}"
+        if not validity_suffix:
+            # Fall back to the prior state-based salvage annotation.
+            if salvage:
+                s_status = salvage.get("status", "")
+                s_scenarios = salvage.get("scenarios", [])
+                s_scenarios_str = ",".join(s_scenarios) if isinstance(s_scenarios, list) else str(s_scenarios)
+                if s_status == "running":
+                    alive = _pid_alive(salvage.get("pid"))
+                    validity_suffix = (
+                        f"  (salvaging: {s_scenarios_str})" if alive else "  (salvage stale)"
+                    )
+                elif s_status == "complete":
+                    validity_suffix = "  (salvaged)"
 
         marker = "*" if str(latest_target) == run_id else ""
         print(
             f"{marker:<7} {run_id:<18} {created:<20} {str(target):<10} {thinking:<9} "
-            f"{overall_display:<12} {progress}"
+            f"{overall:<12} {progress}{validity_suffix}"
         )
     print()
 
@@ -795,7 +1095,15 @@ def run_monitor(run_id: Optional[str], tool_filter: Optional[str], tail_n: int, 
     except KeyboardInterrupt:
         pass
     else:
-        console.print("\n[green]All tools completed![/green]")
+        # Replace the bare "All tools completed!" with a salvage-aware
+        # per-round validity view. The success line is printed by
+        # _print_validity_block only when ALL rounds are valid and no salvage
+        # is active; otherwise the validity table is shown instead.
+        final = reader.load()
+        if final is not None:
+            _print_validity_block(final.get("run_id", run_id or "?"), final)
+        else:
+            console.print("\n[green]All tools completed![/green]")
 
 
 # ---------------------------------------------------------------------------
