@@ -1129,6 +1129,66 @@ def show_list() -> None:
     _print_list_table(rows, indexed=False)
 
 
+def _should_prompt_default(
+    run_id_arg: Optional[str],
+    is_list: bool,
+    is_select: bool,
+    is_status: bool,
+    isatty: bool,
+    num_runs: int,
+) -> bool:
+    """Decide whether the DEFAULT (no-arg) path should prompt to pick a run.
+
+    PURE. Returns True ONLY when the invocation is the bare default path on an
+    interactive terminal with a real choice to make:
+      - no ``--run-id`` was given, and
+      - none of ``--list`` / ``--select`` / ``--status`` were given, and
+      - stdin is a TTY, and
+      - more than one run exists.
+
+    Any other combination returns False — so piped/scripted invocations,
+    explicit run-id/list/select/status, and the single-run case all keep the
+    current latest-run behavior and never block on input.
+    """
+    if run_id_arg:
+        return False
+    if is_list or is_select or is_status:
+        return False
+    if not isatty:
+        return False
+    return num_runs > 1
+
+
+def _select_run_id(run_ids, input_fn=input) -> Optional[str]:
+    """List + prompt + resolve → a chosen run_id (or None).
+
+    Prints the indexed run table (via the freshly-collected rows so the display
+    matches ``--list``), prompts ONCE using *input_fn* (injectable for tests),
+    and resolves the answer with :func:`_resolve_selection`. ``q`` / empty /
+    out-of-range, plus ``EOFError`` / ``KeyboardInterrupt`` from *input_fn*, all
+    return None (clean quit). When *run_ids* is empty, returns None without
+    prompting.
+
+    Note: the indexed table is rendered from the live run rows; *run_ids* is the
+    authoritative ordered list used for resolution (the caller passes the run_id
+    column extracted from those same rows, so indices line up).
+    """
+    if not run_ids:
+        return None
+
+    rows = _collect_run_rows()
+    if rows:
+        _print_list_table(rows, indexed=True)
+
+    try:
+        choice = input_fn(f"Select run [1-{len(run_ids)}], or q to quit: ")
+    except (EOFError, KeyboardInterrupt):
+        print()  # clean newline after an interrupted prompt
+        return None
+
+    return _resolve_selection(choice, run_ids)
+
+
 def run_selector() -> int:
     """Interactive run picker: numbered list → prompt → single-run detail.
 
@@ -1142,16 +1202,8 @@ def run_selector() -> int:
         print("No runs found.")
         return 0
 
-    _print_list_table(rows, indexed=True)
     run_ids = [row["run_id"] for row in rows]
-
-    try:
-        choice = input(f"Select run [1-{len(run_ids)}], or q to quit: ")
-    except (EOFError, KeyboardInterrupt):
-        print()  # clean newline after an interrupted prompt
-        return 0
-
-    chosen = _resolve_selection(choice, run_ids)
+    chosen = _select_run_id(run_ids)
     if chosen is None:
         print("No selection.")
         return 0
@@ -1293,7 +1345,28 @@ def main() -> int:
     if args.list:
         show_list()
         return 0
-    run_monitor(args.run_id, args.tool, args.tail, args.once)
+
+    effective_run_id = args.run_id
+    # Default path (no run-id, no --list/--select/--status): on an interactive
+    # TTY with >1 run, let the user pick a run (like --select) and then
+    # live-monitor it. Piped/scripted, single-run, or explicit-arg invocations
+    # fall through to the current latest-run behavior and never prompt.
+    if _should_prompt_default(
+        args.run_id,
+        is_list=args.list,
+        is_select=args.select,
+        is_status=False,  # no --status flag in this CLI yet
+        isatty=sys.stdin.isatty(),
+        num_runs=len(_collect_run_rows()),
+    ):
+        rows = _collect_run_rows()
+        run_ids = [row["run_id"] for row in rows]
+        chosen = _select_run_id(run_ids)
+        if chosen is None:
+            return 0  # clean quit, no monitoring
+        effective_run_id = chosen
+
+    run_monitor(effective_run_id, args.tool, args.tail, args.once)
     return 0
 
 
