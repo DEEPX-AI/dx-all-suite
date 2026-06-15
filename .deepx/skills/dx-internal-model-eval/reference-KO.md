@@ -116,6 +116,25 @@ python .deepx/e2e/e2e_runner.py --rounds 5 --tools claude-code --claude-model cl
 > sequential 실행은 **round-major**(라운드 우선)로 도는 게 바람직하다 — tool quota 벽을 라운드에
 > 분산하고 mid-run partial report가 가능하다.
 
+### 실행을 안전하게 멈추기 (stale "running" 방지)
+
+**run을 멈출 땐 항상 runner를 통해서 — 절대 강제 종료(TaskStop / `kill -9`)하지 말 것.**
+- `python3 .deepx/e2e/e2e_runner.py --stop --run-id <id>` — graceful (현재 라운드 마치고 종료, state 갱신).
+- `python3 .deepx/e2e/e2e_runner.py --abort --run-id <id> --force` — 즉시 종료지만 runner가 자기 state는 갱신.
+
+**강제 종료**(SIGKILL/TaskStop)는 runner가 `state.json`을 갱신할 틈을 안 주므로 `status="running"` +
+죽은 pid가 남아 → `e2e_monitor.py`가 유령 "running"을 계속 표시한다.
+
+**강제 종료돼 stale "running"이 남은 경우 복구:** `--abort --run-id <id> --force` 실행. runner에
+**dead-pid fallback**이 추가됨 — 살아있는 runner/worker가 없으면 state를 terminal(`aborted`)로
+정리하고 per-tool 상태도 finalize하며 `"No live runner/worker — reconciled stale state to 'aborted' (N …)"`를
+출력한다.
+
+> Headless 하네스 주의: 일부 sandbox에선 foreground `--abort`/`--stop`이 signal 16(**exit 144**
+> =128+16, SIGSTKFLT)로 죽는데, state 기록은 대개 그 전에 끝난다 — **background로 실행**한 뒤
+> `state.json`의 `status`가 terminal로 바뀌었는지 재확인하라. (0라운드에서 강제 종료된 run은
+> `results/<run_id>/` 디렉토리도 **없다** — runner는 라운드가 완료돼야 라운드 디렉토리를 기록.)
+
 ### 2.5 실행 결과 위치 (현재 경로)
 
 ```

@@ -117,6 +117,26 @@ python .deepx/e2e/e2e_runner.py --rounds 5 --tools claude-code --claude-model cl
 > Sequential execution should run **round-major** — spreads tool quota walls across rounds and
 > enables mid-run partial reports.
 
+### Stopping a run SAFELY (avoid stale "running" state)
+
+**Always stop a run through the runner — never force-kill (TaskStop / `kill -9`) the process.**
+- `python3 .deepx/e2e/e2e_runner.py --stop --run-id <id>` — graceful (finishes current round, updates state).
+- `python3 .deepx/e2e/e2e_runner.py --abort --run-id <id> --force` — immediate, but still lets the runner update its own state.
+
+A **force-kill** (SIGKILL/TaskStop) does NOT let the runner update `state.json`, so it is left
+`status="running"` with a DEAD pid → `e2e_monitor.py` shows a phantom "running" run forever.
+
+**Recovery if a run was force-killed and shows a stale "running":** run
+`--abort --run-id <id> --force`. The runner now has a **dead-pid fallback**: when no live
+runner/worker is found it reconciles the state to a terminal status (`aborted`) and finalizes the
+per-tool states — prints `"No live runner/worker — reconciled stale state to 'aborted' (N …)"`.
+
+> Headless-harness note: running `--abort`/`--stop` in the foreground of some sandboxes is itself
+> killed by signal 16 (**exit 144** = 128+16, SIGSTKFLT) — the state write usually still happens, but
+> run it in the **background** and then re-check `state.json` to confirm `status` went terminal.
+> (A force-killed run that completed 0 rounds also has **no** `results/<run_id>/` dir — the runner
+> writes a round dir only when a round completes.)
+
 ### 2.5 Result location (current path)
 
 ```
