@@ -190,6 +190,102 @@ def _format_salvage(salvage: dict, pid_alive: bool) -> str:
 
 
 # ---------------------------------------------------------------------------
+# Per-scenario classification (round-dir scenario subdirs)
+# ---------------------------------------------------------------------------
+#
+# These are the CANONICAL round-dir scenario keys — the names that appear as
+# ``claude_code__<scenario>`` subdirs inside a round results dir. They are
+# DISTINCT from SCENARIO_KEYS above (which drives log-tail scenario timing and
+# uses the short "cascaded" form). Order is the test.sh execution order.
+
+ROUND_SCENARIO_KEYS: List[str] = [
+    "compiler",
+    "dx_app",
+    "dx_stream",
+    "dx_stream_cascaded",
+    "runtime",
+    "suite",
+]
+
+# Compact abbreviations for per-scenario display, in canonical order.
+SCENARIO_ABBREV: Dict[str, str] = {
+    "compiler": "cmp",
+    "dx_app": "app",
+    "dx_stream": "str",
+    "dx_stream_cascaded": "csc",
+    "runtime": "rt",
+    "suite": "ste",
+}
+
+# Per-scenario verdict → icon. Verdicts come from
+# e2e_runner._classify_round_scenario (valid / incomplete / envfail / skip);
+# "re-running" is a display-only verdict injected for active salvage targets.
+SCENARIO_ICON: Dict[str, str] = {
+    "valid": "✓",
+    "envfail": "✗",
+    "incomplete": "△",
+    "re-running": "⟳",
+    "skip": "·",
+}
+
+
+def _classify_round_scenario(scen_dir: Path) -> str:
+    """Classify one scenario subdir via e2e_runner; "skip" on any failure.
+
+    Returns one of "valid" / "incomplete" / "envfail" / "skip". Delegates to
+    e2e_runner._classify_round_scenario so the monitor and runner agree on what
+    each verdict means; falls back to "skip" if the runner import is missing or
+    raises (so the monitor never crashes on an odd scenario dir).
+    """
+    if _E2E_RUNNER is not None and hasattr(_E2E_RUNNER, "_classify_round_scenario"):
+        try:
+            verdict, _sigs = _E2E_RUNNER._classify_round_scenario(scen_dir)
+            return verdict
+        except Exception:
+            return "skip"
+    return "skip"
+
+
+def _round_scenarios(round_dir: Path) -> Dict[str, str]:
+    """Classify every canonical scenario subdir of *round_dir*.
+
+    PURE (filesystem read only). For each of the 6 canonical scenario keys,
+    classify ``round_dir/claude_code__<scenario>`` — a missing subdir maps to
+    "skip". Returns ``{scenario_key: verdict}`` covering all 6 keys.
+    """
+    result: Dict[str, str] = {}
+    for key in ROUND_SCENARIO_KEYS:
+        scen_dir = round_dir / f"claude_code__{key}"
+        if scen_dir.is_dir():
+            result[key] = _classify_round_scenario(scen_dir)
+        else:
+            result[key] = "skip"
+    return result
+
+
+def _scenario_cells(scenarios: Dict[str, str],
+                    rerun_targets: Optional[set] = None) -> str:
+    """Render a compact per-scenario string in canonical order.
+
+    PURE. Produces e.g. ``"cmp✓ app✓ str✓ csc✓ rt✗ ste✗"`` using the
+    abbreviation + verdict icon for each of the 6 canonical scenario keys.
+    Any scenario in *rerun_targets* (the active salvage's target scenarios)
+    shows the re-running icon (⟳) regardless of its on-disk verdict.
+    """
+    targets = rerun_targets or set()
+    cells: List[str] = []
+    for key in ROUND_SCENARIO_KEYS:
+        abbr = SCENARIO_ABBREV[key]
+        if key in targets:
+            verdict = "re-running"
+        else:
+            verdict = scenarios.get(key, "skip")
+        icon = SCENARIO_ICON.get(verdict, "?")
+        cells.append(f"{abbr}{icon}")
+    return " ".join(cells)
+
+
+# ---------------------------------------------------------------------------
 # Per-round validity (salvage-aware)
 # ---------------------------------------------------------------------------
 
@@ -214,6 +310,10 @@ def _round_status(round_dir: Path, salvage: Optional[dict], salvage_pid_alive: b
     """
     name = round_dir.name
 
+    # Per-scenario breakdown — always attached so the Scenarios column can be
+    # rendered for every round regardless of overall verdict.
+    scenarios = _round_scenarios(round_dir)
+
     # Active-salvage short-circuit: do not classify a round being re-run.
     if (
         salvage is not None
@@ -222,20 +322,23 @@ def _round_status(round_dir: Path, salvage: Optional[dict], salvage_pid_alive: b
         and salvage.get("round_dir") == name
     ):
         attempt = salvage.get("attempt", "?")
-        scenarios = salvage.get("scenarios", [])
-        scenarios_str = ",".join(scenarios) if isinstance(scenarios, list) else str(scenarios)
+        targets = salvage.get("scenarios", [])
+        targets_str = ",".join(targets) if isinstance(targets, list) else str(targets)
         return {
             "round_dir": name,
             "status": "re-running",
-            "detail": f"attempt {attempt}, scenarios={scenarios_str}",
+            "detail": f"attempt {attempt}, scenarios={targets_str}",
             "counts": (0, 0, 0, 0),
+            "scenarios": scenarios,
+            "rerun_targets": set(targets) if isinstance(targets, list) else set(),
         }
 
     valid, incomplete, envfail, total, sigs = _analyze_round_env(round_dir)
     counts = (valid, incomplete, envfail, total)
 
     if total > 0 and envfail == 0 and incomplete == 0:
-        return {"round_dir": name, "status": "valid", "detail": "valid", "counts": counts}
+        return {"round_dir": name, "status": "valid", "detail": "valid",
+                "counts": counts, "scenarios": scenarios}
 
     if envfail > 0:
         sig_str = ",".join(sorted(sigs)) if sigs else "env"
@@ -244,6 +347,7 @@ def _round_status(round_dir: Path, salvage: Optional[dict], salvage_pid_alive: b
             "status": "env-failed",
             "detail": f"{sig_str} — pending re-run",
             "counts": counts,
+            "scenarios": scenarios,
         }
 
     if incomplete > 0:
@@ -252,9 +356,11 @@ def _round_status(round_dir: Path, salvage: Optional[dict], salvage_pid_alive: b
             "status": "incomplete",
             "detail": f"{incomplete} incomplete scenario(s)",
             "counts": counts,
+            "scenarios": scenarios,
         }
 
-    return {"round_dir": name, "status": "empty", "detail": "no scenarios", "counts": counts}
+    return {"round_dir": name, "status": "empty", "detail": "no scenarios",
+            "counts": counts, "scenarios": scenarios}
 
 
 def _run_round_statuses(run_results_dir: Path, salvage: Optional[dict],
@@ -774,7 +880,68 @@ def _progress_status_label(state_status: str, salvage_active: bool) -> str:
     return state_status
 
 
+def _salvage_rerun_scenarios_text(data: dict, salvage: dict) -> Optional[str]:
+    """Per-scenario re-running detail for the salvage's CURRENT round, or None.
+
+    PURE-ish (filesystem read only, fully guarded). Locates the round being
+    re-run (``salvage["round_dir"]``) within the run's CANONICAL results dir,
+    derives its 1-based R-index from the canonical round order, classifies each
+    TARGET scenario (``salvage["scenarios"]``) in that round dir — valid →
+    merged/done (✓), anything else → still re-running/pending (⟳) — and renders
+    the targets via :func:`_scenario_cells`, prefixed ``re-running R<idx>:``.
+
+    Returns None on any failure (missing runner import, missing dir, bad data),
+    so the caller can fall back to the plain ``re-running…`` text.
+    """
+    try:
+        run_id = data.get("run_id")
+        round_name = salvage.get("round_dir")
+        targets = salvage.get("scenarios") or []
+        if not run_id or not round_name or not targets:
+            return None
+        if _E2E_RUNNER is None or not hasattr(_E2E_RUNNER, "run_results_dir"):
+            return None
+        results_dir = _E2E_RUNNER.run_results_dir(run_id)
+        round_dir = results_dir / round_name
+        if not round_dir.is_dir():
+            return None
+
+        # R-index from the canonical round order (chronological dir-name sort).
+        canonical = sorted(
+            (d.name for d in results_dir.iterdir()
+             if d.is_dir() and d.name.endswith("-autopilot"))
+        )
+        try:
+            r_idx = canonical.index(round_name) + 1
+        except ValueError:
+            r_idx = "?"
+
+        # Classify only the TARGET scenarios: valid (merged) → ✓, else → ⟳.
+        target_set = set(targets)
+        scenarios: Dict[str, str] = {}
+        rerun_targets: set = set()
+        for key in ROUND_SCENARIO_KEYS:
+            if key not in target_set:
+                continue
+            scen_dir = round_dir / f"claude_code__{key}"
+            verdict = _classify_round_scenario(scen_dir) if scen_dir.is_dir() else "skip"
+            if verdict == "valid":
+                scenarios[key] = "valid"
+            else:
+                rerun_targets.add(key)
+        cells = _scenario_cells(scenarios, rerun_targets)
+        # Restrict the rendered cells to the target scenarios only.
+        order = {SCENARIO_ABBREV[k]: i for i, k in enumerate(ROUND_SCENARIO_KEYS)}
+        kept = [c for c in cells.split() if c[:-1] in order
+                and any(SCENARIO_ABBREV[k] == c[:-1] for k in target_set)]
+        cells = " ".join(kept)
+        return f"re-running R{r_idx}: {cells}"
+    except Exception:
+        return None
+
+
 def _make_progress_table(data: dict, log_dir: Optional[Path] = None,
+                         salvage: Optional[dict] = None,
                          salvage_active: bool = False) -> Table:
     tbl = Table(title=None, expand=True, border_style="dim")
     tbl.add_column("Tool", style="cyan", no_wrap=True, min_width=14)
@@ -809,7 +976,13 @@ def _make_progress_table(data: dict, log_dir: Optional[Path] = None,
         }.get(status, status)
 
         if salvage_active:
-            scenario_str = "[yellow]re-running…[/yellow]"
+            detail_text = (
+                _salvage_rerun_scenarios_text(data, salvage) if salvage else None
+            )
+            if detail_text:
+                scenario_str = f"[yellow]{detail_text}[/yellow]"
+            else:
+                scenario_str = "[yellow]re-running…[/yellow]"
         elif status == "running" and log_dir:
             scenario_str = _scenario_status_text(tool, log_dir)
         elif status == "done":
@@ -924,6 +1097,7 @@ def _make_validity_table(statuses: List[dict]) -> "Table":
     tbl.add_column("Round", style="cyan", no_wrap=True, min_width=5)
     tbl.add_column("Dir", no_wrap=True)
     tbl.add_column("Validity")
+    tbl.add_column("Scenarios")
     for s in statuses:
         status = s.get("status", "empty")
         label = _VALIDITY_ICON.get(status, status)
@@ -943,8 +1117,12 @@ def _make_validity_table(statuses: List[dict]) -> "Table":
         else:
             text = label
             style = "dim"
+        # Per-scenario breakdown; targeted scenarios show ⟳ for a re-running round.
+        scenarios = s.get("scenarios") or {}
+        rerun_targets = s.get("rerun_targets") if status == "re-running" else None
+        scen_cell = _scenario_cells(scenarios, rerun_targets) if scenarios else "—"
         tbl.add_row(f"R{s.get('round_index', '?')}", s.get("round_dir", "?"),
-                    Text(text, style=style))
+                    Text(text, style=style), Text(scen_cell))
     return tbl
 
 
@@ -1031,7 +1209,8 @@ def print_snapshot(data: dict) -> None:
         console.print(header)
 
         log_dir = StateReader(run_id_str).log_dir()
-        tbl = _make_progress_table(data, log_dir, salvage_active=salvage_active)
+        tbl = _make_progress_table(data, log_dir, salvage=salvage,
+                                   salvage_active=salvage_active)
         console.print(Panel(tbl, title="Round Progress", border_style="green"))
 
         # Per-tool completed round detail (with per-round validity column)
@@ -1366,7 +1545,8 @@ def run_monitor(run_id: Optional[str], tool_filter: Optional[str], tail_n: int, 
                 statuses, salvage, salvage_active = _statuses_for(run_id_str, data)
 
                 prog_panel = Panel(
-                    _make_progress_table(data, log_dir, salvage_active=salvage_active),
+                    _make_progress_table(data, log_dir, salvage=salvage,
+                                         salvage_active=salvage_active),
                     title="Round Progress", border_style="green",
                 )
 
