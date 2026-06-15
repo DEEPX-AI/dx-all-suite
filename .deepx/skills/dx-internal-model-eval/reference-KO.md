@@ -345,3 +345,41 @@ python3 build_comparison.py \
 - [ ] `build_comparison.py`로 delta HTML (라벨 caveat 인지) 또는 multi-run analyze
 - [ ] 과거 점수는 `~/shared/coding_agent_diff_report/`에서 참조, 경로는 `dx-agent-dev`로 치환 해석
 - [ ] `model` 컬럼 폴백(§6.2) 여부 확인 — run_id 기준으로 모델 귀속 판단
+
+## 8. 복구 도구 — 시나리오 살리기, 라운드 이식, 모니터링
+
+run이 일부 env-failed(rate-limit)/incomplete 라운드·시나리오로 끝나도 run 전체를 재실행할 필요는
+없습니다. 세 도구(모두 rate-limit 복원력 내장, `.deepx/e2e/` 하위):
+
+### `cleanup_resume_scenarios.py` — 한 라운드의 특정 시나리오만 살리기
+지정 시나리오만 라운드 dir에서 삭제 → `test.sh -k`로 재실행 → **같은 라운드 dir에 병합**(in-place로
+valid화). `--scenarios`로 env-failed인 것만 지정(이미 valid인 건 보존)하거나 `all`로 전체 재실행.
+```bash
+python3 .deepx/e2e/cleanup_resume_scenarios.py \
+  --run-id <RID> --round-dir <ts_hash>_claude-code-autopilot \
+  --scenarios runtime,suite --tool claude-code --model <id> [--thinking] [--dry-run]
+```
+- rate-limit 복원력 (삭제 → 재실행 → 여전히 env-failed면 리셋 대기 → 재시도, max-attempts).
+- `runner_state/<run_id>/salvage.json` 기록 → `e2e_monitor.py`가 진행 상황 표시.
+- 병합 후 scratch 라운드 dir을 `superseded__<name>`으로 rename (analyzer discovery 제외 + audit 보존).
+- 주의: `incomplete` 시나리오(작업은 했으나 DONE 없음 — 예: 시나리오 timeout 초과한 컴파일)는
+  **자동 retry 안 함**(env 실패가 아니라 model/timeout 행동). 필요하면 `--scenarios <name>`로 명시 재실행.
+
+### `move_round.py` — 라운드를 run_id 간 이식
+완전 valid 라운드를 한 run_id에서 다른 run_id로 이동(이동 dir의 manifest `run_id` 재작성, **양쪽
+state.json 정합**, 대상 라운드 교체 옵션). 비-valid 소스 라운드는 거부(`--require-valid` 기본).
+라운드 번호는 autopilot-dir timestamp 순.
+```bash
+python3 .deepx/e2e/move_round.py \
+  --from-run-id <A> --from-round-dir <ts_hash>_claude-code-autopilot \
+  --to-run-id <B> --replace-round-dir <B의 ts_hash>_claude-code-autopilot [--dry-run]
+```
+
+### 모니터링 — `e2e_monitor.py`
+monitor는 validity·salvage 인지 (state "completed" ≠ "valid"):
+- `python3 .deepx/e2e/e2e_monitor.py` (인자 없음, TTY) → 목록에서 run 선택 후 라이브 모니터링.
+  `--list`는 effective status(salvage 활성 시 `re-running`) + `valid:X/N ⟳Ra ✗Rb` 표시.
+  `--select`는 목록+선택, `--run-id <id>`는 직접 모니터링.
+- 단일 뷰에 **Round Validity** 표(라운드별 `✓ valid`/`⟳ re-running`/`✗ env-failed`/`△ incomplete`)
+  + per-scenario 셀(`cmp✓ app✓ str✓ csc✓ rt✓ ste⟳`) + R#↔폴더 매핑 Dir 컬럼. 라이브 루프는
+  salvage 진행 중에는 계속 refresh.

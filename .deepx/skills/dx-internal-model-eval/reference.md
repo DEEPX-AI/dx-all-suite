@@ -353,3 +353,43 @@ Best-effort manual alternative (incomplete): `cp -rL --exclude='*.dxnn' …`.
 - [ ] `build_comparison.py` delta HTML (aware of the label caveat) or multi-run analyze
 - [ ] Reference past scores under `~/shared/coding_agent_diff_report/`, reinterpreting paths as `dx-agent-dev`
 - [ ] Check for `model` column fallback (§6.2) — attribute models by run_id
+
+## 8. Recovery tools — scenario salvage, round transplant, monitoring
+
+When a run completes with some env-failed (rate-limit) or incomplete rounds/scenarios, you do
+NOT have to re-run whole runs. Three tools (all rate-limit resilient, all under `.deepx/e2e/`):
+
+### `cleanup_resume_scenarios.py` — salvage specific scenarios in ONE round
+Deletes only the chosen scenarios from a round dir, re-runs them via `test.sh -k`, and merges
+them back into the SAME round dir (so the round becomes valid in place). Use `--scenarios` to
+target only the env-failed ones (keeps the already-valid scenarios) or `all` for a full round.
+```bash
+python3 .deepx/e2e/cleanup_resume_scenarios.py \
+  --run-id <RID> --round-dir <ts_hash>_claude-code-autopilot \
+  --scenarios runtime,suite --tool claude-code --model <id> [--thinking] [--dry-run]
+```
+- Rate-limit resilient (delete → re-run → if still env-failed, wait for reset → retry, max-attempts).
+- Writes `runner_state/<run_id>/salvage.json` so `e2e_monitor.py` shows live progress.
+- After merge it renames the scratch round dir to `superseded__<name>` (excluded from analyzer discovery; audit trail kept).
+- NOTE: `incomplete` scenarios (real work, no DONE — e.g. a compile that exceeded the scenario
+  timeout) are NOT auto-retried (they are model/timeout behavior, not env failures). Re-run them
+  explicitly with `--scenarios <name>` if desired.
+
+### `move_round.py` — transplant a fully-valid round across run_ids
+Move a FULLY-valid round from one run_id to another (rewrites the moved dir's manifest `run_id`,
+reconciles BOTH `state.json`s, optionally replaces a round in the target). Refuses a non-valid
+source round (`--require-valid`, default). Round numbering is by autopilot-dir timestamp.
+```bash
+python3 .deepx/e2e/move_round.py \
+  --from-run-id <A> --from-round-dir <ts_hash>_claude-code-autopilot \
+  --to-run-id <B> --replace-round-dir <ts_hash-in-B>_claude-code-autopilot [--dry-run]
+```
+
+### Monitoring salvage/validity — `e2e_monitor.py`
+The monitor is validity- and salvage-aware (state "completed" ≠ "valid"):
+- `python3 .deepx/e2e/e2e_monitor.py` (no args, TTY) → pick a run from the list, then live-monitor it.
+  `--list` shows effective status (`re-running` when a salvage is live) + `valid:X/N ⟳Ra ✗Rb`.
+  `--select` lists + picks; `--run-id <id>` monitors directly.
+- Single-run view shows a **Round Validity** table (per round: `✓ valid` / `⟳ re-running` /
+  `✗ env-failed` / `△ incomplete`) + a per-scenario cell (`cmp✓ app✓ str✓ csc✓ rt✓ ste⟳`) and a
+  Dir column mapping R# ↔ folder. The live loop keeps refreshing WHILE a salvage is active.
