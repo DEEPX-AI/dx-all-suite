@@ -331,6 +331,70 @@ def _validity_summary(statuses: List[dict]) -> str:
     return " ".join(parts)
 
 
+def _effective_status(state_status: str, salvage: Optional[dict],
+                      salvage_pid_alive: bool) -> str:
+    """Effective run status for --list, accounting for an active salvage.
+
+    PURE. If a salvage is actively re-running rounds for this run (its marker
+    says ``status=running`` AND its process is alive), the run is being
+    re-worked — report ``"re-running"`` regardless of what state.json's
+    top-level status says (which may already read ``done``). Otherwise the
+    state status is returned unchanged.
+    """
+    if salvage and salvage.get("status") == "running" and salvage_pid_alive:
+        return "re-running"
+    return state_status
+
+
+def _list_progress_cell(statuses: List[dict], completed_count: int,
+                        tool: str, target: object) -> str:
+    """Build the --list Progress cell, leading with the VALID count.
+
+    PURE. When per-round validity classification is available, the headline is
+    the validity summary (``valid:2/5 ⟳R3 ✗R4,R5``) followed by a small
+    ``(N ran)`` context showing how many rounds the state recorded as completed.
+    When classification is unavailable (empty ``statuses``), fall back to the
+    legacy ``<tool>:<completed>/<target>`` text so the column is never blank.
+    """
+    if not statuses:
+        return f"{tool}:{completed_count}/{target}"
+    return f"{_validity_summary(statuses)}  ({completed_count} ran)"
+
+
+def _resolve_selection(choice: str, run_ids: List[str]) -> Optional[str]:
+    """Resolve an interactive selection to a run_id (or None).
+
+    PURE. Accepts, in order:
+      1. ``"q"`` / empty / whitespace → None (quit)
+      2. a 1-based index string (``"3"`` → ``run_ids[2]``); out-of-range → None
+      3. an exact run_id → itself
+      4. a UNIQUE substring of exactly one run_id → that run_id; ambiguous
+         (matches >1) or no match → None
+    """
+    if choice is None:
+        return None
+    s = choice.strip()
+    if not s or s.lower() == "q":
+        return None
+
+    # 1-based index (only when it resolves in range; an out-of-range digit
+    # falls through to substring matching, e.g. a numeric run_id fragment).
+    if s.isdigit():
+        idx = int(s)
+        if 1 <= idx <= len(run_ids):
+            return run_ids[idx - 1]
+
+    # exact match
+    if s in run_ids:
+        return s
+
+    # unique substring match
+    matches = [rid for rid in run_ids if s in rid]
+    if len(matches) == 1:
+        return matches[0]
+    return None
+
+
 # ---------------------------------------------------------------------------
 # Shared helpers
 # ---------------------------------------------------------------------------
@@ -938,10 +1002,15 @@ def print_snapshot(data: dict) -> None:
 
 
 
-def show_list() -> None:
+def _collect_run_rows() -> List[dict]:
+    """Gather one summary row per run (mtime-desc), for --list / --select.
+
+    Each row dict carries the precomputed display fields plus the raw run_id so
+    callers can both render the table and resolve an interactive selection.
+    Returns [] when there are no runs.
+    """
     if not RUNNER_STATE_DIR.exists():
-        print("No runs found.")
-        return
+        return []
 
     latest_target = None
     latest_link = RUNNER_STATE_DIR / "latest"
@@ -953,13 +1022,8 @@ def show_list() -> None:
         key=lambda p: p.stat().st_mtime,
         reverse=True,
     )
-    if not states:
-        print("No runs found.")
-        return
 
-    print(f"\n{'Latest':<7} {'Run ID':<18} {'Created':<20} {'Rounds':<10} {'Thinking':<9} {'Status':<12} Progress")
-    print(f"{'-'*7} {'-'*18} {'-'*20} {'-'*10} {'-'*9} {'-'*12} {'-'*40}")
-
+    rows: List[dict] = []
     for state_file in states:
         try:
             data = json.loads(state_file.read_text())
@@ -991,44 +1055,110 @@ def show_list() -> None:
             else:
                 overall = "pending"
 
-        progress = ", ".join(
-            f"{t}:{len(tool_states.get(t, {}).get('completed', []))}/{target}"
-            for t in tools
-        )
-
-        # Round-based validity summary (replaces the raw salvage annotation).
-        # Best-effort: fall back to the state-based salvage text on any error.
+        # Per-round validity classification (best-effort).
         salvage = _load_salvage(run_id)
-        validity_suffix = ""
+        salvage_pid_alive = _pid_alive(salvage.get("pid")) if salvage else False
+        round_statuses: List[dict] = []
         try:
             if _E2E_RUNNER is not None and hasattr(_E2E_RUNNER, "run_results_dir"):
                 results_dir = _E2E_RUNNER.run_results_dir(run_id)
-                round_statuses = _run_round_statuses(results_dir, salvage, {"tool_states": tool_states})
-                if round_statuses:
-                    validity_suffix = "  " + _validity_summary(round_statuses)
+                round_statuses = _run_round_statuses(
+                    results_dir, salvage, {"tool_states": tool_states}
+                )
         except Exception:
-            validity_suffix = ""
+            round_statuses = []
 
-        if not validity_suffix:
-            # Fall back to the prior state-based salvage annotation.
-            if salvage:
-                s_status = salvage.get("status", "")
-                s_scenarios = salvage.get("scenarios", [])
-                s_scenarios_str = ",".join(s_scenarios) if isinstance(s_scenarios, list) else str(s_scenarios)
-                if s_status == "running":
-                    alive = _pid_alive(salvage.get("pid"))
-                    validity_suffix = (
-                        f"  (salvaging: {s_scenarios_str})" if alive else "  (salvage stale)"
-                    )
-                elif s_status == "complete":
-                    validity_suffix = "  (salvaged)"
+        # Effective status: reflect an active salvage as "re-running".
+        effective = _effective_status(overall, salvage, salvage_pid_alive)
 
-        marker = "*" if str(latest_target) == run_id else ""
-        print(
-            f"{marker:<7} {run_id:<18} {created:<20} {str(target):<10} {thinking:<9} "
-            f"{overall:<12} {progress}{validity_suffix}"
+        # Progress cell: lead with the valid count; fall back to legacy text.
+        primary_tool = tools[0] if tools else "?"
+        completed_count = max(
+            (len(tool_states.get(t, {}).get("completed", [])) for t in tools),
+            default=0,
         )
+        progress = _list_progress_cell(
+            round_statuses, completed_count, primary_tool, target
+        )
+
+        rows.append({
+            "run_id": run_id,
+            "created": created,
+            "target": target,
+            "thinking": thinking,
+            "status": effective,
+            "progress": progress,
+            "is_latest": str(latest_target) == run_id,
+        })
+    return rows
+
+
+def _print_list_table(rows: List[dict], indexed: bool = False) -> None:
+    """Print the --list table. When *indexed*, prepend a 1-based ``#`` column."""
+    if indexed:
+        print(f"\n{'#':<4} {'Latest':<7} {'Run ID':<18} {'Created':<20} "
+              f"{'Rounds':<8} {'Thinking':<9} {'Status':<12} Progress")
+        print(f"{'-'*4} {'-'*7} {'-'*18} {'-'*20} {'-'*8} {'-'*9} {'-'*12} {'-'*40}")
+    else:
+        print(f"\n{'Latest':<7} {'Run ID':<18} {'Created':<20} {'Rounds':<10} "
+              f"{'Thinking':<9} {'Status':<12} Progress")
+        print(f"{'-'*7} {'-'*18} {'-'*20} {'-'*10} {'-'*9} {'-'*12} {'-'*40}")
+
+    for i, row in enumerate(rows, start=1):
+        marker = "*" if row["is_latest"] else ""
+        if indexed:
+            print(
+                f"{i:<4} {marker:<7} {row['run_id']:<18} {row['created']:<20} "
+                f"{str(row['target']):<8} {row['thinking']:<9} "
+                f"{row['status']:<12} {row['progress']}"
+            )
+        else:
+            print(
+                f"{marker:<7} {row['run_id']:<18} {row['created']:<20} "
+                f"{str(row['target']):<10} {row['thinking']:<9} "
+                f"{row['status']:<12} {row['progress']}"
+            )
     print()
+
+
+def show_list() -> None:
+    rows = _collect_run_rows()
+    if not rows:
+        print("No runs found.")
+        return
+    _print_list_table(rows, indexed=False)
+
+
+def run_selector() -> int:
+    """Interactive run picker: numbered list → prompt → single-run detail.
+
+    Prints the indexed --list table, prompts for a 1-based index / run_id /
+    substring, resolves it via :func:`_resolve_selection`, then renders the
+    chosen run's DETAILED single-run view one-shot (no live loop). ``q`` /
+    empty / EOF / Ctrl-C all quit cleanly. Returns a process exit code.
+    """
+    rows = _collect_run_rows()
+    if not rows:
+        print("No runs found.")
+        return 0
+
+    _print_list_table(rows, indexed=True)
+    run_ids = [row["run_id"] for row in rows]
+
+    try:
+        choice = input(f"Select run [1-{len(run_ids)}], or q to quit: ")
+    except (EOFError, KeyboardInterrupt):
+        print()  # clean newline after an interrupted prompt
+        return 0
+
+    chosen = _resolve_selection(choice, run_ids)
+    if chosen is None:
+        print("No selection.")
+        return 0
+
+    # Render the chosen run's detailed single-run view, one-shot.
+    run_monitor(chosen, tool_filter=None, tail_n=4, once=True)
+    return 0
 
 
 # ---------------------------------------------------------------------------
@@ -1144,12 +1274,22 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--tail", type=int, default=4, help="Number of log lines to show (default: 4)")
     p.add_argument("--once", action="store_true", help="Print snapshot once and exit (no live update)")
     p.add_argument("--list", action="store_true", help="List all run IDs")
+    p.add_argument(
+        "--select",
+        action="store_true",
+        help="Interactively pick a run from the list and show its detailed view",
+    )
     return p
 
 
 
 def main() -> int:
     args = build_parser().parse_args()
+    # Interactive selector: explicit --select, OR plain --list on an interactive
+    # TTY (so scripts that pipe --list never get a prompt). Plain --list without
+    # a TTY stays non-interactive and scriptable (one row per run).
+    if args.select or (args.list and sys.stdin.isatty()):
+        return run_selector()
     if args.list:
         show_list()
         return 0
