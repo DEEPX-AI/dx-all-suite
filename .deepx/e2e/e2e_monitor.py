@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import sys
 import time
@@ -69,6 +70,79 @@ SCENARIO_FILE_PATTERNS: Dict[str, str] = {
 }
 
 TIMESTAMP_RE = re.compile(r"^\[(\d{2}:\d{2}:\d{2})\]")
+
+
+# ---------------------------------------------------------------------------
+# Salvage helpers
+# ---------------------------------------------------------------------------
+
+
+def _pid_alive(pid: Optional[int]) -> bool:
+    """Return True if *pid* is a live process (send signal 0)."""
+    if not pid:
+        return False
+    try:
+        os.kill(int(pid), 0)
+    except (OSError, ValueError, TypeError):
+        return False
+    return True
+
+
+def _load_salvage(run_id: str) -> Optional[dict]:
+    """Load RUNNER_STATE_DIR/<run_id>/salvage.json; return None on any error."""
+    try:
+        p = RUNNER_STATE_DIR / run_id / "salvage.json"
+        if not p.exists():
+            return None
+        return json.loads(p.read_text(encoding="utf-8"))
+    except Exception:
+        return None
+
+
+def _format_salvage(salvage: dict, pid_alive: bool) -> str:
+    """Format a one-line salvage status string for display.
+
+    Args:
+        salvage: Contents of salvage.json.
+        pid_alive: Whether the salvage process is still running.
+
+    Returns:
+        A human-readable line such as:
+        "Salvage: round 20260612_215200_... scenarios=[runtime,suite] status=running (attempt 2) pid=12345 [LIVE]"
+    """
+    status = salvage.get("status", "unknown")
+    attempt = salvage.get("attempt", "?")
+    pid = salvage.get("pid")
+    round_dir = salvage.get("round_dir", "?")
+    scenarios = salvage.get("scenarios", [])
+    scenarios_str = ",".join(scenarios) if isinstance(scenarios, list) else str(scenarios)
+
+    pid_part = f" pid={pid}" if pid else ""
+
+    if status == "running":
+        if pid_alive:
+            liveness = "[LIVE]"
+        else:
+            liveness = "[stale — pid dead]"
+        return (
+            f"Salvage: round {round_dir} scenarios=[{scenarios_str}] "
+            f"status=running (attempt {attempt}){pid_part} {liveness}"
+        )
+    elif status == "complete":
+        return (
+            f"Salvage: round {round_dir} scenarios=[{scenarios_str}] "
+            f"status=complete (attempt {attempt}){pid_part}"
+        )
+    elif status == "max-attempts":
+        return (
+            f"Salvage: round {round_dir} scenarios=[{scenarios_str}] "
+            f"status=max-attempts (exhausted){pid_part}"
+        )
+    else:
+        return (
+            f"Salvage: round {round_dir} scenarios=[{scenarios_str}] "
+            f"status={status}{pid_part}"
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -515,6 +589,14 @@ def print_snapshot(data: dict) -> None:
         detail_tbl = _make_completed_rounds_table(data)
         if detail_tbl:
             console.print(detail_tbl)
+
+        # Salvage status (after round table)
+        salvage = _load_salvage(run_id_str)
+        if salvage:
+            alive = _pid_alive(salvage.get("pid"))
+            salvage_line = _format_salvage(salvage, alive)
+            style = "yellow" if salvage.get("status") == "running" and alive else "dim"
+            console.print(Text(salvage_line, style=style))
     else:
         print(f"\n=== E2E Monitor  run_id={run_id_str} ===")
         print(f"Target: {target} rounds  Thinking: {thinking}\n")
@@ -529,6 +611,12 @@ def print_snapshot(data: dict) -> None:
             status = ts.get("status", "pending")
             print(f"{tool:<16} {ok:>5} {ng:>5} {rem:>5} {status:<10} {_format_tool_timing(ts):<22}")
         print()
+        # Salvage status (after round table)
+        salvage = _load_salvage(run_id_str)
+        if salvage:
+            alive = _pid_alive(salvage.get("pid"))
+            print(_format_salvage(salvage, alive))
+            print()
 
 
 # ---------------------------------------------------------------------------
@@ -595,10 +683,28 @@ def show_list() -> None:
             for t in tools
         )
 
+        # Salvage annotation
+        salvage_suffix = ""
+        salvage = _load_salvage(run_id)
+        if salvage:
+            s_status = salvage.get("status", "")
+            s_scenarios = salvage.get("scenarios", [])
+            s_scenarios_str = ",".join(s_scenarios) if isinstance(s_scenarios, list) else str(s_scenarios)
+            if s_status == "running":
+                alive = _pid_alive(salvage.get("pid"))
+                if alive:
+                    salvage_suffix = f" (salvaging: {s_scenarios_str})"
+                else:
+                    salvage_suffix = " (salvage stale)"
+            elif s_status == "complete":
+                salvage_suffix = " (salvaged)"
+
+        overall_display = f"{overall}{salvage_suffix}"
+
         marker = "*" if str(latest_target) == run_id else ""
         print(
             f"{marker:<7} {run_id:<18} {created:<20} {str(target):<10} {thinking:<9} "
-            f"{overall:<12} {progress}"
+            f"{overall_display:<12} {progress}"
         )
     print()
 

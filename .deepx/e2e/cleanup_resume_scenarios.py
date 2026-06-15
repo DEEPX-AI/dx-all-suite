@@ -35,6 +35,7 @@ import shutil
 import subprocess
 import sys
 import time
+from datetime import datetime
 from pathlib import Path
 from typing import Callable, Dict, List, Optional, Tuple
 
@@ -46,6 +47,7 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = (SCRIPT_DIR / "../..").resolve()
 TEST_SH = SCRIPT_DIR / "test.sh"
 RESULTS_ROOT = REPO_ROOT / "dx-agent-dev/e2e-tests/results"
+RUNNER_STATE_DIR = SCRIPT_DIR / "runner_state"
 
 # Mapping: tool → artifact key prefix (used in subdir names and manifest keys)
 TOOL_PREFIX: Dict[str, str] = {
@@ -84,6 +86,46 @@ TOOL_THINKING_ENV: Dict[str, Dict[str, str]] = {
 }
 
 ALL_SCENARIOS = ["compiler", "dx_app", "dx_stream", "dx_stream_cascaded", "runtime", "suite"]
+
+
+# ---------------------------------------------------------------------------
+# Salvage status file helpers
+# ---------------------------------------------------------------------------
+
+def _now_iso() -> str:
+    """Return current local time as ISO-8601 string (no UTC offset needed for display)."""
+    return datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+
+
+def _write_salvage_status(run_id: str, **fields) -> None:
+    """Write/merge fields into RUNNER_STATE_DIR/<run_id>/salvage.json.
+
+    Refreshes ``updated_at`` on every call. Creates the state dir if absent.
+    Existing fields not present in *fields* are preserved (merge semantics).
+
+    Args:
+        run_id: e2e run ID (directory name under RUNNER_STATE_DIR).
+        **fields: Key-value pairs to set/overwrite in the salvage file.
+    """
+    state_dir = RUNNER_STATE_DIR / run_id
+    state_dir.mkdir(parents=True, exist_ok=True)
+    salvage_path = state_dir / "salvage.json"
+
+    # Load existing content (tolerate missing/corrupt)
+    existing: dict = {}
+    if salvage_path.exists():
+        try:
+            existing = json.loads(salvage_path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            existing = {}
+
+    existing.update(fields)
+    existing["updated_at"] = _now_iso()
+
+    salvage_path.write_text(
+        json.dumps(existing, indent=2, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -300,6 +342,7 @@ def run_cleanup_resume(
     transcript_reader: Callable[[Path, List[str]], str] = _default_transcript_reader,
     max_attempts: int = 4,
     fallback_wait: int = 3600,
+    status_cb: Optional[Callable[..., None]] = None,
 ) -> Dict:
     """Delete env-failed scenarios, re-run them, merge back. Rate-limit resilient.
 
@@ -315,6 +358,10 @@ def run_cleanup_resume(
                            rate-limit reset parsing.
         max_attempts: Maximum retry attempts before giving up.
         fallback_wait: Seconds to wait if no reset time can be parsed.
+        status_cb: Optional callable(status, attempt, **extra) invoked at start, each
+                   loop iteration after classify, and on terminal status. Injected so
+                   callers can write salvage.json or capture calls in tests without
+                   touching disk. Signature: ``status_cb(status=..., attempt=..., **kw)``.
 
     Returns:
         dict with keys:
@@ -327,7 +374,15 @@ def run_cleanup_resume(
 
     target_scenarios = list(scenarios)
 
+    # Notify: salvage starting (attempt 1)
+    if status_cb is not None:
+        status_cb(status="running", attempt=1)
+
     for attempt in range(1, max_attempts + 1):
+        # Notify current attempt (after first, update attempt counter)
+        if status_cb is not None and attempt > 1:
+            status_cb(status="running", attempt=attempt)
+
         # Step 1: delete the target scenarios from round_dir
         delete_scenarios(round_dir, prefix, target_scenarios)
 
@@ -345,6 +400,8 @@ def run_cleanup_resume(
         still_failed = [s for s, v in verdicts.items() if v == "envfail"]
 
         if not still_failed:
+            if status_cb is not None:
+                status_cb(status="complete", attempt=attempt)
             return {"status": "complete", "attempts": attempt}
 
         if attempt == max_attempts:
@@ -362,6 +419,8 @@ def run_cleanup_resume(
         sleep_fn(float(wait_secs))
         target_scenarios = still_failed
 
+    if status_cb is not None:
+        status_cb(status="max-attempts", attempt=max_attempts, still_failed=still_failed)
     return {"status": "max-attempts", "still_failed": still_failed, "attempts": max_attempts}
 
 
@@ -593,7 +652,20 @@ def main(argv: Optional[List[str]] = None) -> int:
         print(f"Max attempts: {args.max_attempts}, fallback wait: {args.fallback_wait}s")
         return 0
 
-    # Real mode
+    # Real mode — build salvage status callback
+    _salvage_base = {
+        "tool": args.tool,
+        "model": args.model or "",
+        "round_dir": round_dir.name,
+        "scenarios": scenarios,
+        "pid": os.getpid(),
+        "started_at": _now_iso(),
+    }
+    _write_salvage_status(args.run_id, **_salvage_base)
+
+    def _status_cb(status: str, attempt: int, **_extra: object) -> None:
+        _write_salvage_status(args.run_id, status=status, attempt=attempt)
+
     runner_fn = _make_real_runner_fn(
         run_id=args.run_id,
         tool=args.tool,
@@ -608,6 +680,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         runner_fn=runner_fn,
         max_attempts=args.max_attempts,
         fallback_wait=args.fallback_wait,
+        status_cb=_status_cb,
     )
 
     print(f"\n[cleanup_resume] Result: {json.dumps(result, indent=2)}")
