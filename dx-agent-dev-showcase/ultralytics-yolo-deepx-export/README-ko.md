@@ -10,7 +10,7 @@
 
 <div align="center"><table><tr>
 <td align="center"><img src="../../docs/source/img/dx-agent-dev-ultralytics-build.gif" width="430"><br><sub><b>dx-agent-dev가 이 showcase를 만드는 과정 (timelapse) — export → dx_com compile → NPU inference → verify</b></sub></td>
-<td align="center"><video src="../../docs/source/img/dx-agent-dev-ultralytics-yolo.mp4" width="360" controls muted loop playsinline poster="../../docs/source/img/dx-agent-dev-ultralytics-yolo-poster.jpg"></video><br><sub><b>DEEPX × Ultralytics — DX-M1 NPU 위의 YOLO (파트너 데모)</b></sub></td>
+<td align="center"><img src="../../docs/source/img/dx-agent-dev-ultralytics-yolo.gif" width="360"><br><sub><b>DEEPX × Ultralytics — DX-M1 NPU 위의 YOLO (파트너 데모)</b></sub></td>
 </tr></table></div>
 
 > **에이전트가 만든 과정 보기:** [`claude-code-session.md`](./claude-code-session.md)

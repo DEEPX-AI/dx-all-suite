@@ -45,6 +45,8 @@ class Showcase:
     sample: str = ""   # basename under docs/source/img/
     video: str = ""    # basename under docs/source/img/
     poster: str = ""   # basename under docs/source/img/
+    build_gif: str = ""  # optional build-capture GIF for the feature-first 2nd cell
+                         # (when the primary `gif` is a gameplay/demo, not the build)
 
     def card_asset(self) -> str:
         """Basename of the primary card media (the gif/sample/video)."""

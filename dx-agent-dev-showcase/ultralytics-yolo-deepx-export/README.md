@@ -11,7 +11,7 @@
 
 <div align="center"><table><tr>
 <td align="center"><img src="../../docs/source/img/dx-agent-dev-ultralytics-build.gif" width="430"><br><sub><b>dx-agent-dev building this showcase (timelapse) — export → dx_com compile → NPU inference → verify</b></sub></td>
-<td align="center"><video src="../../docs/source/img/dx-agent-dev-ultralytics-yolo.mp4" width="360" controls muted loop playsinline poster="../../docs/source/img/dx-agent-dev-ultralytics-yolo-poster.jpg"></video><br><sub><b>DEEPX × Ultralytics — YOLO on the DX-M1 NPU (partner demo)</b></sub></td>
+<td align="center"><img src="../../docs/source/img/dx-agent-dev-ultralytics-yolo.gif" width="360"><br><sub><b>DEEPX × Ultralytics — YOLO on the DX-M1 NPU (partner demo)</b></sub></td>
 </tr></table></div>
 
 > **See how the agent built it:** [`claude-code-session.md`](./claude-code-session.md)

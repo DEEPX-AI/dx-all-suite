@@ -114,19 +114,16 @@ def _showcase_link(surface: str, name: str, lang: str) -> str:
 
 
 def _media_html(s, *, surface: str, height: int, extra: str = "") -> str:
-    """Render a showcase's card media (gif/sample image, or an mp4 <video>) at a
-    UNIFORM HEIGHT so cards line up regardless of portrait/landscape aspect.
-    A video autoplays muted/looped like a GIF, with a poster as the first paint
-    and a fallback link if the browser/renderer won't play it."""
+    """Render a showcase's card media (gif/sample image) at a UNIFORM HEIGHT so
+    cards line up regardless of portrait/landscape aspect.
+
+    For ``card_media == "video"`` we render the GIF rendition of the clip (same
+    basename, ``.gif``) rather than an HTML5 ``<video>`` — GitHub's Markdown
+    renderer does NOT play inline ``<video>`` tags, so an autoplaying GIF is the
+    portable equivalent. (The source ``.mp4`` is not committed.)"""
     if s.card_media == "video" and s.video:
-        poster = f' poster="{_media_src(surface, s.poster)}"' if s.poster else ""
-        src = _media_src(surface, s.video)
-        # plain <img> fallback (no inner <a>) so the element can be wrapped in an
-        # outer showcase link without producing invalid nested anchors.
-        fallback = (f'<img src="{_media_src(surface, s.poster)}" height="{height}">'
-                    if s.poster else "")
-        return (f'<video height="{height}" autoplay muted loop playsinline{poster}{extra}>'
-                f'<source src="{src}" type="video/mp4">{fallback}</video>')
+        gif_name = s.video.rsplit(".", 1)[0] + ".gif"
+        return f'<img src="{_media_src(surface, gif_name)}" height="{height}"{extra}>'
     return f'<img src="{_media_src(surface, s.card_asset())}" height="{height}"{extra}>'
 
 
@@ -146,10 +143,11 @@ def _card_cell(s, *, lang: str, surface: str, height: int, cols: int) -> str:
 
 
 def _gif_cell(s, *, lang: str, surface: str, height: int, cols: int, caption: str) -> str:
-    """A cell showing a showcase's build GIF (used by the feature-first layout)."""
+    """A cell showing a showcase's build GIF (used by the feature-first layout).
+    Prefers ``build_gif`` (when the primary ``gif`` is a gameplay/demo clip)."""
     return (f'<td width="{100 // cols}%" align="center">'
             f'<a href="{_showcase_link(surface, s.name, lang)}">'
-            f'<img src="{_media_src(surface, s.gif)}" height="{height}"></a><br>'
+            f'<img src="{_media_src(surface, s.build_gif or s.gif)}" height="{height}"></a><br>'
             f'<sub><b>{caption}</b></sub></td>')
 
 

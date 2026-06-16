@@ -54,7 +54,7 @@ Guides 3 stretches with an animated coach avatar that demonstrates each target p
 
 ### Ultralytics YOLO → DeepX Export
 
-<a href="./ultralytics-yolo-deepx-export/README.md"><video height="170" autoplay muted loop playsinline poster="../docs/source/img/dx-agent-dev-ultralytics-yolo-poster.jpg" align="right"><source src="../docs/source/img/dx-agent-dev-ultralytics-yolo.mp4" type="video/mp4"><img src="../docs/source/img/dx-agent-dev-ultralytics-yolo-poster.jpg" height="170"></video></a>
+<a href="./ultralytics-yolo-deepx-export/README.md"><img src="../docs/source/img/dx-agent-dev-ultralytics-yolo.gif" height="170" align="right"></a>
 
 Turns an Ultralytics YOLO `.pt` into a deployable DeepX NPU model (`.dxnn`) in a single `yolo export ... format=deepx` command, then runs NPU inference + verify.
 

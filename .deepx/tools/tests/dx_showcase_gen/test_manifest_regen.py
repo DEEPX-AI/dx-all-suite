@@ -68,15 +68,26 @@ def test_sample_card_uses_sample_image():
     assert "wild-build.gif" not in grid
 
 
-def test_video_card_renders_video_with_poster_and_no_nested_anchor():
+def test_video_card_renders_gif_rendition_not_video_tag():
+    # GitHub does NOT render inline <video>; a card_media="video" showcase renders
+    # the GIF rendition of the clip (same basename, .gif), never a <video>/.mp4.
     s = _sc("exp", kind="export", card_media="video",
             video="v.mp4", poster="p.jpg")
     grid = augment.card_grid([s], lang="en", surface="root", height=150)
-    assert "<video " in grid and 'type="video/mp4"' in grid
-    assert 'poster="./docs/source/img/p.jpg"' in grid
-    # the video sits inside the outer showcase <a>; its fallback must be a plain
-    # <img>, NOT an inner <a> (nested anchors are invalid HTML)
-    assert "<a href" in grid and grid.count("<a ") == 1
+    assert "<video" not in grid and ".mp4" not in grid
+    assert '<img src="./docs/source/img/v.gif"' in grid
+    # single outer showcase anchor, no nested anchors
+    assert grid.count("<a ") == 1
+
+
+def test_feature_first_uses_build_gif_when_set():
+    # When a showcase's primary `gif` is a gameplay/demo, the feature-first 2nd
+    # cell uses `build_gif` for the build-capture cell.
+    s = _sc("ocr", kind="app", card_media="gif", gif="play.gif")
+    s.build_gif = "build.gif"
+    cell = augment._gif_cell(s, lang="en", surface="root", height=150, cols=2,
+                             caption="build capture (timelapse)")
+    assert "build.gif" in cell and "play.gif" not in cell
 
 
 def test_intro_region_is_announcement_only():

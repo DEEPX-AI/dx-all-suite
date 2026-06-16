@@ -53,7 +53,7 @@
 
 ### Ultralytics YOLO → DeepX Export
 
-<a href="./ultralytics-yolo-deepx-export/README-ko.md"><video height="170" autoplay muted loop playsinline poster="../docs/source/img/dx-agent-dev-ultralytics-yolo-poster.jpg" align="right"><source src="../docs/source/img/dx-agent-dev-ultralytics-yolo.mp4" type="video/mp4"><img src="../docs/source/img/dx-agent-dev-ultralytics-yolo-poster.jpg" height="170"></video></a>
+<a href="./ultralytics-yolo-deepx-export/README-ko.md"><img src="../docs/source/img/dx-agent-dev-ultralytics-yolo.gif" height="170" align="right"></a>
 
 Ultralytics YOLO `.pt`를 단일 `yolo export ... format=deepx` 명령으로 배포 가능한 DeepX NPU 모델(`.dxnn`)로 변환, NPU 추론 + verify.
 

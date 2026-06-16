@@ -40,7 +40,7 @@
 
 <table>
 <tr>
- <td width="50%" align="center"><a href="dx-agent-dev-showcase/ultralytics-yolo-deepx-export/README.md"><video height="150" autoplay muted loop playsinline poster="./docs/source/img/dx-agent-dev-ultralytics-yolo-poster.jpg"><source src="./docs/source/img/dx-agent-dev-ultralytics-yolo.mp4" type="video/mp4"><img src="./docs/source/img/dx-agent-dev-ultralytics-yolo-poster.jpg" height="150"></video></a><br><b>Ultralytics YOLO → DeepX Export</b><br><sub>one-command format=deepx</sub></td>
+ <td width="50%" align="center"><a href="dx-agent-dev-showcase/ultralytics-yolo-deepx-export/README.md"><img src="./docs/source/img/dx-agent-dev-ultralytics-yolo.gif" height="150"></a><br><b>Ultralytics YOLO → DeepX Export</b><br><sub>one-command format=deepx</sub></td>
  <td width="50%" align="center"><a href="dx-agent-dev-showcase/ultralytics-yolo-deepx-export/README.md"><img src="./docs/source/img/dx-agent-dev-ultralytics-build.gif" height="150"></a><br><sub><b>build capture (timelapse)</b></sub></td>
 </tr>
 <tr>
@@ -60,7 +60,7 @@
 <table>
 <tr>
  <td width="50%" align="center"><a href="dx-agent-dev-showcase/paddleocr-video-ocr/README.md"><img src="./docs/source/img/dx-agent-dev-paddleocr-gameplay.gif" height="150"></a><br><b>Video / Webcam OCR (PP-OCRv5)</b><br><sub>PaddleOCR PP-OCRv5 on the NPU</sub></td>
- <td></td>
+ <td width="50%" align="center"><a href="dx-agent-dev-showcase/paddleocr-video-ocr/README.md"><img src="./docs/source/img/dx-agent-dev-paddleocr-build.gif" height="150"></a><br><sub><b>build capture (timelapse)</b></sub></td>
 </tr>
 </table>
 
@@ -71,7 +71,7 @@
 <table>
 <tr>
  <td width="50%" align="center"><a href="dx-agent-dev-showcase/rapiddoc-pdf2md/README.md"><img src="./docs/source/img/dx-agent-dev-rapiddoc-pdf2md-sample.png" height="150"></a><br><b>PDF → Markdown (document conversion app)</b><br><sub>RapidDoc PP-StructureV3 on the NPU</sub></td>
- <td></td>
+ <td width="50%" align="center"><a href="dx-agent-dev-showcase/rapiddoc-pdf2md/README.md"><img src="./docs/source/img/dx-agent-dev-rapiddoc-pdf2md-build.gif" height="150"></a><br><sub><b>build capture (timelapse)</b></sub></td>
 </tr>
 </table>
 
