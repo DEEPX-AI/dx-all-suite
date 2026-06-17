@@ -9,9 +9,9 @@
     "batch": 16,
     "seed": 0,
     "train_save_dir": "/data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agent-dev/20260611-103742_claude_opus48_yolo26n_pill_retrain/runs/train_pill",
-    "sample_image_source": "/data/home/dhyang/github/datasets/medical-pills/images/val/Frame_24.jpg",
+    "sample_image_source": "/data/home/dhyang/github/datasets/medical-pills/images/val/Frame_416.jpg",
     "sample_detect": "/data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agent-dev/20260611-103742_claude_opus48_yolo26n_pill_retrain/sample_detect.jpg",
-    "sample_num_boxes": 16,
+    "sample_num_boxes": 18,
     "wall_clock_sec": 166.3
   },
   "points": {
