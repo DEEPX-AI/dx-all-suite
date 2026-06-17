@@ -69,7 +69,7 @@ pill detector (**0.7583 fp32 /
 0.7484 INT8**), and the DeepX INT8
 export deploys on the DX-M1 NPU while keeping **98.7 % of the fp32 accuracy**.
 The deployable artifact is `yolo26n_pill_deepx_model/` (`yolo26n_pill.dxnn`). See
-`sample_detect.jpg` for an annotated detection (18 pill box(es)) and `metrics.json`
+`sample_detect.jpg` for an annotated detection (16 pill box(es)) and `metrics.json`
 for the raw measurements.
 
 ## Artifacts
