@@ -64,6 +64,16 @@ KB-based judgment, and the human-in-the-loop steps a tool cannot do.
    (`pdf_to_markdown.py` / `ocr_video.py`) — a `run.sh` that shells out to the fork's
    `demo/demo_offline.py` (or any `demo/*`/example) is a **FAIL**, not an app; (c) only the
    NPU **models** are downloaded by `setup.sh` (never committed). `verify` enforces (b).
+10. **dx_app-based showcases MUST follow the dx_app relocatable script patterns.** A
+    showcase whose app uses a dx_app model / `dx_engine` MUST author `setup.sh`/`run.sh` per
+    `dx-runtime/dx_app/.github/skills/dx-agent-app-build-python/SKILL.md` — run.sh: derive the
+    model path from `$SUITE_ROOT/dx-runtime/dx_app/assets/models/…`, NEVER an ancestor-walked
+    `${DX_APP_ROOT:-}/…` (collapses to an unresolvable path once relocated — the squat
+    model-not-found bug); setup.sh: reuse `venv-dx-runtime` or write a `dx_runtime_bridge.pth`,
+    NEVER a local venv that only FATALs on missing `dx_engine` (the stretching
+    `ModuleNotFoundError` bug). Retrain-eval showcases MUST be self-contained per
+    `dx-compiler/.github/toolsets/ultralytics-train-eval.md` §6 (no absolute paths in `*.json`;
+    regenerate-if-missing). `verify` enforces all three (model-discovery / venv-bridge / abs-paths).
 
 ## Setup
 
@@ -146,8 +156,9 @@ SG copy-artifacts --session-dir <build_session_dir> --showcase-dir dx-agent-dev-
 ```
 
 - Copies the generated files (skips venv / *.pt / *.onnx / *.dxnn / caches) and prints
-  any absolute/session-specific path refs. **Fix every flagged ref** so the showcase
-  runs standalone (SCRIPT_DIR / SUITE_ROOT relative; auto-download instead of /tmp).
+  any absolute/session-specific path refs **in scripts AND data files (`*.json`)**. **Fix
+  every flagged ref** so the showcase runs standalone (SCRIPT_DIR / SUITE_ROOT relative;
+  auto-download instead of /tmp; no absolute `best_pt`/`save_dir` in `train_result.json`).
 
 ## Phase 6 — Run/result GIF
 
@@ -217,6 +228,11 @@ present + syntax-OK, README/docs carry the showcase marker. Fix any FAIL and re-
 - **A fork-based showcase whose `run.sh` just calls the fork's `demo/demo_offline.py`** — that
   is wrapping the example, not generating an app, and the showcase isn't runnable once moved
   (the clone isn't copied). Generate a standalone entry over the vendored package (hard rule 9).
+- **A dx_app-based showcase whose `run.sh` ancestor-walks for `DX_APP_ROOT`** (model not found
+  once relocated) or whose `setup.sh` makes a local venv without a `dx_engine` bridge — follow
+  the dx_app skill's relocatable templates (hard rule 10).
+- **An absolute build-session path serialized into a showcase data file** (`train_result.json`
+  `best_pt`) — the showcase must be self-contained (regenerate-if-missing; ultralytics §6).
 
 ## Verification loop (this skill is `.deepx/` source)
 
