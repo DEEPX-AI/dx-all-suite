@@ -195,3 +195,36 @@ def test_verify_showcase_fails_on_relocatability_regressions(tmp_path):
     assert names.get("run.sh model discovery (dx_app asset) resolvable") is False
     assert names.get("setup.sh local venv bridges dx_engine") is False
     assert names.get("portable (no build-session/absolute paths)") is False
+
+
+def test_scan_nonportable_strict_flags_build_session_path(tmp_path):
+    from dx_showcase_gen import artifacts
+    (tmp_path / "train_result.json").write_text(
+        '{"best_pt": "/data/home/x/dx-all-suite-ultralytics/dx-compiler/'
+        'dx-agent-dev/20260611-101032_x/runs/train/weights/best.pt"}')
+    flags = artifacts.scan_nonportable(str(tmp_path), strict=True)
+    assert any(f["file"].endswith("train_result.json") for f in flags)
+
+def test_scan_nonportable_strict_ignores_dataset_and_worktree_paths(tmp_path):
+    # a committed results.json that records a dataset val image + a current-worktree
+    # output path — absolute but NOT a build-session dir → strict mode must NOT flag.
+    from dx_showcase_gen import artifacts
+    (tmp_path / "results.json").write_text(
+        '{"source": "/data/home/dhyang/github/datasets/african-wildlife/images/val/x.jpg",'
+        ' "output": "/data/home/dhyang/github/dx-all-suite-full-e2e/dx-agent-dev-showcase/wildlife/sample_detect.jpg"}')
+    assert artifacts.scan_nonportable(str(tmp_path), strict=True) == []
+
+def test_scan_nonportable_skips_ephemeral_venv_dir(tmp_path):
+    # files inside .venv / venv / __pycache__ are run artifacts, never scanned (either mode).
+    from dx_showcase_gen import artifacts
+    venvf = tmp_path / ".venv" / "lib" / "site.py"
+    venvf.parent.mkdir(parents=True)
+    venvf.write_text('p = "/tmp/build-env-abc/bin/python"\n')
+    assert artifacts.scan_nonportable(str(tmp_path), strict=True) == []
+    assert artifacts.scan_nonportable(str(tmp_path)) == []  # broad mode skips it too
+
+def test_scan_nonportable_broad_still_flags_home_paths(tmp_path):
+    # broad (default) mode is unchanged — still flags a plain /data/home path in a script.
+    from dx_showcase_gen import artifacts
+    (tmp_path / "run.sh").write_text('M=/data/home/dhyang/x/model.dxnn\n')
+    assert any(f["file"].endswith("run.sh") for f in artifacts.scan_nonportable(str(tmp_path)))

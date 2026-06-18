@@ -203,7 +203,7 @@ def verify_showcase(showcase_dir: str, *, stream_json: Optional[str] = None,
                 "reuses venv-dx-runtime or writes a bridge .pth" if not no_bridge
                 else "creates a local venv with no dx_engine bridge .pth — import will FATAL")
     from . import artifacts
-    flags = artifacts.scan_nonportable(str(sc))
+    flags = artifacts.scan_nonportable(str(sc), strict=True)
     rep.add("portable (no build-session/absolute paths)", not flags,
             "clean" if not flags
             else f"{len(flags)} nonportable ref(s), e.g. {flags[0]['file'].split('/')[-1]}:{flags[0]['line']}")

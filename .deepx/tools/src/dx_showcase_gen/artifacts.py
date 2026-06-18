@@ -25,6 +25,18 @@ NONPORTABLE = [
     re.compile(r"dx-agent-dev/\d{8}-\d{6}_"),   # a specific session dir
 ]
 
+# Strict set for the verify GATE: only the unambiguous relocatability killers — a build
+# session dir (points into a vanished build worktree) and /tmp paths. Dataset / current-
+# worktree absolute paths in committed result files are recorded metadata, not load-bearing,
+# so the gate does not flag them (the broad NONPORTABLE set still does, at copy time).
+NONPORTABLE_STRICT = [
+    re.compile(r"dx-agent-dev/\d{8}-\d{6}_"),
+    re.compile(r"/tmp/"),
+]
+
+# Directory components that are run artifacts / envs — never scanned for portability.
+_EPHEMERAL_DIR_PARTS = {"venv", ".venv", "__pycache__", ".git", "node_modules"}
+
 
 def _skip(p: Path) -> bool:
     return p.name in SKIP_NAMES or p.suffix in SKIP_SUFFIXES
@@ -55,18 +67,33 @@ def copy_session_artifacts(session_dir: str, showcase_dir: str,
     return {"copied": copied, "skipped": skipped}
 
 
-def scan_nonportable(showcase_dir: str) -> List[Dict[str, str]]:
-    """Flag absolute / session-specific path refs in scripts for the agent to fix."""
+def scan_nonportable(showcase_dir: str, strict: bool = False) -> List[Dict[str, str]]:
+    """Flag absolute / session-specific path refs in scripts for the agent to fix.
+
+    ``strict=True`` (used by the verify GATE) checks only the unambiguous
+    relocatability killers: build-session dir paths and ``/tmp/`` refs.  Dataset
+    paths and current-worktree absolute paths recorded in committed result files
+    are recorded metadata, not load-bearing — the gate ignores them.
+
+    ``strict=False`` (default, used at copy time) applies the broader
+    ``NONPORTABLE`` set including ``/data/home/`` and ``/home/<user>/`` patterns.
+
+    Either mode silently skips files inside ephemeral directory components
+    (``venv``, ``.venv``, ``__pycache__``, ``.git``, ``node_modules``).
+    """
+    patterns = NONPORTABLE_STRICT if strict else NONPORTABLE
     flags: List[Dict[str, str]] = []
     for p in Path(showcase_dir).rglob("*"):
         if p.is_dir() or p.suffix not in {".py", ".sh", ".json"}:
+            continue
+        if any(part in _EPHEMERAL_DIR_PARTS for part in p.parts):
             continue
         try:
             text = p.read_text(errors="replace")
         except Exception:
             continue
         for i, line in enumerate(text.splitlines(), 1):
-            for pat in NONPORTABLE:
+            for pat in patterns:
                 if pat.search(line):
                     flags.append({"file": str(p), "line": str(i),
                                   "text": line.strip()[:120]})
