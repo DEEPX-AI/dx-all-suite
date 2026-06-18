@@ -229,6 +229,31 @@ present + syntax-OK, README/docs carry the showcase marker. Fix any FAIL and re-
 - **An absolute build-session path serialized into a showcase data file** (`train_result.json`
   `best_pt`) — the showcase must be self-contained (regenerate-if-missing; ultralytics §6).
 
+## Fixing the KB when a build repeats a mistake (template > prose)
+
+A showcase build is the KB's test: when the generated `setup.sh` / `run.sh` / app **repeats
+a known mistake**, the fix belongs in the KB — but HOW you write it decides whether the
+NEXT build is actually different. This was proven the hard way (squat/stretching/ppe
+regeneration):
+
+- **Template code or a concrete copy-paste pattern changes agent output. A bare "don't do
+  X" prose note usually does NOT.** The squat `run.sh` regenerated the exact
+  `${DX_APP_ROOT:-}/assets/models` ancestor-walk **despite** a prose anti-pattern note — it
+  only changed once the KB shipped a **canonical model-resolution block + a WRONG✗/RIGHT✓
+  example**. By contrast the stretching fix landed first try (a setup.sh **template code**
+  change: venv-search broadening + dx_engine bridge) and the ppe fix landed first try (the
+  KB gave a **concrete pattern to copy** — the wildlife self-contained `pipeline.py`,
+  HERE-relative, regenerate-if-missing).
+- **Pair every KB fix with a `dx-showcase-gen verify` check** that statically fails the
+  mistake. The gate is the backstop when a regenerated build still drifts; prose + no gate
+  = a silent regression that ships. (`verify` already enforces the run.sh model-discovery /
+  setup.sh dx_engine-bridge / build-session-path checks — extend it when you add a rule.)
+- **Order**: (1) add/strengthen a `verify` check that FAILS the current artifact (RED),
+  (2) put the corrected pattern in the KB as **template code or a copy-paste block with a
+  WRONG✗/RIGHT✓ pair** (not just a warning), (3) regenerate via the build prompt and confirm
+  the check now PASSES (GREEN). If the rebuild still repeats the mistake, the KB statement
+  was prose — make it concrete code, do not just reword it.
+
 ## Verification loop (this skill is `.deepx/` source)
 
 Edits here propagate via `dx-agent-gen generate` → `check` (drift 0) →
