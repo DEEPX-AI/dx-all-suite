@@ -181,3 +181,17 @@ def test_scan_nonportable_flags_absolute_path_in_json(tmp_path):
         'dx-agent-dev/20260611-101032_x/runs/train/weights/best.pt"}')
     flags = artifacts.scan_nonportable(str(tmp_path))
     assert any(f["file"].endswith("train_result.json") for f in flags)
+
+
+def test_verify_showcase_fails_on_relocatability_regressions(tmp_path):
+    from dx_showcase_gen import verify
+    sc = tmp_path / "dx-agent-dev-showcase" / "bad"
+    sc.mkdir(parents=True)
+    (sc / "run.sh").write_text('for c in "${DX_APP_ROOT:-}/assets/models/m.dxnn"; do :; done\n')
+    (sc / "setup.sh").write_text('python3 -m venv "$LOCAL_VENV"\n')
+    (sc / "train_result.json").write_text('{"best_pt":"/data/home/x/dx-agent-dev/20260611-101032_x/best.pt"}')
+    rep = verify.verify_showcase(str(sc), require_files=["run.sh", "setup.sh"])
+    names = {c.name: c.ok for c in rep.checks}
+    assert names.get("run.sh model discovery (dx_app asset) resolvable") is False
+    assert names.get("setup.sh local venv bridges dx_engine") is False
+    assert names.get("portable (no build-session/absolute paths)") is False

@@ -189,6 +189,25 @@ def verify_showcase(showcase_dir: str, *, stream_json: Optional[str] = None,
                 "own entry" if not wraps
                 else "run.sh shells out to a fork demo/example — generate a standalone entry")
 
+    # 4c. relocatability regressions (squat / stretching / ppe classes)
+    rs = sc / "run.sh"
+    broken_model = runsh_model_discovery_broken(rs)
+    if broken_model is not None:
+        rep.add("run.sh model discovery (dx_app asset) resolvable", not broken_model,
+                "derives from $SUITE_ROOT/dx-runtime/dx_app" if not broken_model
+                else "uses empty-default ${VAR:-}/assets/models — collapses to an unresolvable path")
+    ss = sc / "setup.sh"
+    no_bridge = setupsh_local_venv_without_bridge(ss)
+    if no_bridge is not None:
+        rep.add("setup.sh local venv bridges dx_engine", not no_bridge,
+                "reuses venv-dx-runtime or writes a bridge .pth" if not no_bridge
+                else "creates a local venv with no dx_engine bridge .pth — import will FATAL")
+    from . import artifacts
+    flags = artifacts.scan_nonportable(str(sc))
+    rep.add("portable (no build-session/absolute paths)", not flags,
+            "clean" if not flags
+            else f"{len(flags)} nonportable ref(s), e.g. {flags[0]['file'].split('/')[-1]}:{flags[0]['line']}")
+
     # 5. README/docs augmented (idempotent marker present for this showcase)
     for tgt in (augment_targets or []):
         tp = Path(tgt)
