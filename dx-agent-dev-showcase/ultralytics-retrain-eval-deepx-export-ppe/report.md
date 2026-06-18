@@ -30,7 +30,7 @@
 Domain fine-tuning turns a useless-for-PPE stock detector (mAP≈0.000) into a usable PPE detector (mAP≈0.252 fp32), and the DeepX INT8 export deploys that gain on the DX-M1 NPU at on-device speed (62.3 FPS) with negligible accuracy cost — the right tradeoff for an always-on site-safety camera.
 
 ## Annotated sample
-`sample_detect.jpg` — retrained model on val image `image318.jpg` (4 detections, boxes + class labels drawn).
+`sample_detect.jpg` — retrained model on val image `image804.jpg` (27 detections, boxes + class labels drawn) — the busiest val scene (5 workers in hi-vis + helmets), selected as the best-detections image.
 
 ---
 *Numbers are measured (not estimated): fp32 via `model.val()` on GPU, INT8 via the same `model.val()` on the exported `.dxnn` through the dx_engine NPU backend. See `results.json`, `session.log`.*

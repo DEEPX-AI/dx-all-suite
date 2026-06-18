@@ -129,7 +129,7 @@ def main():
                                         device="cpu", batch=1, verbose=False))
 
     print("=" * 70)
-    print("STAGE 4 — Annotated detection sample (retrained model)")
+    print("STAGE 4 — Annotated detection sample (retrained model, best-detections image)")
     print("=" * 70)
     d = check_det_dataset(DATA)
     val_path = Path(d["val"])
@@ -137,9 +137,18 @@ def main():
                   [p for p in val_path.rglob("*.png")])
     if not imgs:
         raise RuntimeError(f"No validation images found under {val_path}")
-    sample_src = imgs[len(imgs) // 2]     # a representative middle image
-    print(f"[sample] source val image: {sample_src}")
-    pred = YOLO(str(retrained_pt)).predict(
+    # Pick the val image with the MOST detections (deterministic given fixed weights +
+    # val set) — a busy, representative scene reads far better as a showcase image than a
+    # fixed/middle index. (Scan once on the retrained model, then re-predict with save.)
+    sample_model = YOLO(str(retrained_pt))
+    sample_src, best_n = imgs[0], -1
+    for p in imgs:
+        nb = len(sample_model.predict(source=str(p), imgsz=IMGSZ, conf=0.25,
+                                      device=0, save=False, verbose=False)[0].boxes)
+        if nb > best_n:
+            sample_src, best_n = p, nb
+    print(f"[sample] best-detections val image: {sample_src} ({best_n} detections)")
+    pred = sample_model.predict(
         source=str(sample_src), imgsz=IMGSZ, conf=0.25, device=0,
         save=True, project=str(HERE / "runs"), name="predict", exist_ok=True,
     )

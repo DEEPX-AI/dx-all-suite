@@ -223,8 +223,8 @@
     }
   },
   "sample": {
-    "source": "image1010.jpg",
-    "detections": 8,
+    "source": "image804.jpg",
+    "detections": 27,
     "output": "sample_detect.jpg"
   }
 }
