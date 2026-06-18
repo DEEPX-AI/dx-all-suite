@@ -73,10 +73,15 @@ python -c "import dx_engine; print('      dx_engine OK', getattr(dx_engine,'__ve
 # --- Step 5: download NPU + ONNX models (foreground, never background) ---
 echo "[5/5] Downloading NPU + ONNX models (setup_sample_models.sh, foreground) ..."
 chmod +x "$SCRIPT_DIR"/*.sh "$SCRIPT_DIR"/deepx_scripts/*.sh 2>/dev/null || true
-if [ -d "$SCRIPT_DIR/dxnn_models" ] && [ -n "$(ls -A "$SCRIPT_DIR/dxnn_models" 2>/dev/null)" ]; then
-    echo "      dxnn_models/ already present — skipping download."
+# Skip ONLY when BOTH model sets are present — the download provides dxnn_models/ AND
+# onnx_models/ (the formula model `onnx_models/pp_formulanet_plus_m.onnx` lives in the
+# latter). Keying the skip on dxnn_models alone leaves onnx_models/ empty after a partial
+# download and run.sh then fails with a missing-formula-model FileNotFoundError.
+if [ -n "$(ls -A "$SCRIPT_DIR/dxnn_models" 2>/dev/null)" ] && \
+   [ -n "$(ls -A "$SCRIPT_DIR/onnx_models" 2>/dev/null)" ]; then
+    echo "      dxnn_models/ + onnx_models/ already present — skipping download."
 else
-    ( cd "$SCRIPT_DIR" && ./setup_sample_models.sh --output="$SCRIPT_DIR" )
+    ( cd "$SCRIPT_DIR" && ./setup_sample_models.sh --output="$SCRIPT_DIR" --force )
 fi
 
 echo "============================================================"

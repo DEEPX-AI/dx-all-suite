@@ -134,9 +134,10 @@ download() {
 
     mkdir -p "$DOWNLOAD_DIR" || exit_with_message "Failed to create directory '$DOWNLOAD_DIR'. Check permissions."
 
-    # download file
+    # download file (resilient: the CDN intermittently resets large transfers, so retry
+    # all errors and resume from the partial file (-C -) instead of failing the whole pull)
     print_colored "Downloading $FILENAME from $URL..."
-    curl -o "$DOWNLOAD_PATH" "$URL"
+    curl -fSL --retry 15 --retry-all-errors --retry-delay 4 -C - -o "$DOWNLOAD_PATH" "$URL"
 
     # download failed check
     if [ $? -ne 0 ]; then

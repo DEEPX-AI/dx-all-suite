@@ -96,7 +96,10 @@ else
     echo "[setup] Downloading PP-OCRv5 server models from sdk.deepx.ai (~302 MB)"
     DL="$SCRIPT_DIR/engine/model_files/download"
     mkdir -p "$DL" "$MODEL_DIR"
-    curl -fsSL "https://sdk.deepx.ai/res/assets/dx_baidu_PPOCR/server.tar.gz" -o "$DL/server.tar.gz"
+    # Resilient download: the CDN intermittently resets large transfers — plain
+    # `curl -fsSL` fails the whole 302 MB pull on a single reset. Retry + resume (-C -).
+    curl -fSL --retry 15 --retry-all-errors --retry-delay 4 -C - \
+        "https://sdk.deepx.ai/res/assets/dx_baidu_PPOCR/server.tar.gz" -o "$DL/server.tar.gz"
     tar -xzf "$DL/server.tar.gz" -C "$MODEL_DIR"
     echo "[setup] Extracted models to $MODEL_DIR"
 fi
