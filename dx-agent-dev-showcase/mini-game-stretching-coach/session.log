@@ -1,120 +1,58 @@
-===== SESSION LOG: 20260612-164133_claude_opus48_yolo26npose_stretchgame =====
-Date: Fri Jun 12 04:53:17 PM KST 2026
-App: Arcade stretching mini-game (yolo26n-pose, DX-M1 NPU)
+===== SESSION LOG: 20260618-121845_claude_opus48_yolo26npose_stretchgame =====
+Date: Thu Jun 18 12:29:27 PM KST 2026
+Model: yolo26n-pose (yolo26n_pose) | Task: pose_estimation | DX-M1 NPU
 
 --- sanity_check ---
 $ bash dx-runtime/scripts/sanity_check.sh --dx_rt
+   Runtime Framework Version: 3.3.2
    Device Driver Version: v2.4.1
-   PCIe Driver Version: v2.2.0
-   Firmware Version: device-id=0 v2.5.6
+   Runtime Framework Version: 3.3.2
    Device Driver Version: v2.4.1
-   PCIe Driver Version: v2.2.0
-   Firmware Version: device-id=0 v2.5.6
 ** Sanity check PASSED!
 [92m ✅ PASS: All sanity checks passed successfully. [0m
 RESULT: PASS
 
---- setup.sh (venv + GUI opencv + vendor common + dx_engine) ---
-$ bash setup.sh
-[INFO] Activating dx-runtime venv: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/venv-dx-runtime
-[OK] dx_engine available
-[INFO] Setup complete. Run: bash run.sh
-RESULT: PASS
+--- inference (bash run.sh — default: demo video, headless, save) ---
+$ bash run.sh
+[INFO] Model: /data/home/dhyang/github/dx-all-suite-frontier-eval/dx-runtime/dx_app/assets/models/yolo26n-pose.dxnn
+ Read                0.52 ms     1916.6 FPS
+ Preprocess          0.51 ms     1964.5 FPS
+ Inference          18.04 ms       55.4 FPS
+ Postprocess         0.52 ms     1930.6 FPS
+ Render              7.19 ms      139.0 FPS
+ Save                3.66 ms      272.9 FPS
+ Overall FPS     :   32.8 FPS
+exit_code: 0
+annotated_output: output/yolo26n_pose_sync-stream-stretching_demo-20260618-122937/output.mp4
+RESULT: PASS  (annotated output.mp4 produced)
 
---- py_compile (all .py) ---
-all session .py compile OK
-RESULT: PASS
+--- recognizer_unit_test ---
+$ python test_recognizers.py
+[PASS] standing       overhead=False fold=False neck=False (expected False/False/False)
+[PASS] overhead       overhead=True fold=False neck=False (expected True/False/False)
+[PASS] forward_fold   overhead=False fold=True neck=False (expected False/True/False)
+[PASS] neck_stretch   overhead=False fold=False neck=True (expected False/False/True)
+RESULT: PASS — all recognizers behave correctly
 
---- calibrate.py (NPU: derive pose thresholds from demo video) ---
-$ python calibrate.py
- 26.2   1   2.14    -2.35     0.23     0.52   1.81  -0.77  NECK
- 26.7   1   2.22    -2.44    -0.51     1.44   1.76  -0.16  stand
- 27.1   1   2.18    -2.41    -2.33     2.48   1.74   1.66  stand
- 27.5   1   2.18    -2.35    -2.27     2.37   1.70   1.62  stand
- 27.9   1   2.17    -2.32    -2.26     2.35   1.69   1.63  stand
- 28.3   1   2.14    -2.28    -2.22     2.31   1.64   1.58  stand
- 28.8   1   2.26    -2.39    -2.34     2.43   1.71   1.66  stand
- 29.2   1   2.24    -2.41    -2.32     2.41   1.72   1.63  stand
- 29.6   1   2.18    -2.33    -2.26     2.35   1.69   1.62  stand
- 30.0   1   2.25    -2.40    -2.34     2.43   1.73   1.67  stand
-
-Frames with detection: 73
-  fold_ratio     min= -0.64 median=  2.18 max=  2.90
-  overhead_min   min= -2.49 median= -2.30 max=  1.37
-  neck_min_head  min=  0.50 median=  2.31 max=  2.61
-RESULT: PASS
-
-head -28 calibrate.py output (stage transitions):
-ok — full distributions above
-
---- import resolution (NO PYTHONPATH; dynamic walker) ---
-$ env -u PYTHONPATH python yolo26n_pose_stretch_sync.py --help | head -3
-usage: yolo26n_pose_stretch_sync.py [-h] --model MODEL
-                                    [--image IMAGE | --video VIDEO | --camera CAMERA | --rtsp RTSP]
-                                    [--display] [--no-display] [--save]
-RESULT: PASS (common + factory resolved, no PYTHONPATH)
-
---- verify.py (full demo video on NPU, headless, --save) ---
-$ python verify.py
-[INFO] 
-Starting inference...
-[INFO] Processing... Only FPS will be displayed.
-============================================================
-Stretch Coach — verification (full demo video on NPU)
-  model:  /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/assets/models/yolo26n-pose.dxnn
-  video:  /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-164133_claude_opus48_yolo26npose_stretchgame/sample/stretching_demo.mp4
-============================================================
-
-==================================================
-               PERFORMANCE SUMMARY                
-==================================================
- Pipeline Step   Avg Latency     Throughput     
---------------------------------------------------
- Read                0.55 ms     1804.1 FPS
- Preprocess          0.55 ms     1822.8 FPS
- Inference          17.73 ms       56.4 FPS
- Postprocess         0.57 ms     1741.5 FPS
- Render              6.97 ms      143.5 FPS
- Save                4.46 ms      224.4 FPS
---------------------------------------------------
- Total Frames    :    721
- Total Time      :   22.2 s
- Overall FPS     :   32.4 FPS
-==================================================
-
---- checks ---
-  [PASS] NPU produced person detections: 551 frames with pose
-  [PASS] State machine reached CLEAR! (3/3 stages): stages_cleared=3 finished=True
-  [PASS] Annotated output video written: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-164133_claude_opus48_yolo26npose_stretchgame/output/verify-stream-stretching_demo-20260612-165329/output.mp4 (10920743 bytes)
-
-Annotated output video: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-164133_claude_opus48_yolo26npose_stretchgame/output/verify-stream-stretching_demo-20260612-165329/output.mp4
-
+--- import_walker (no PYTHONPATH) ---
+$ python yolo26n_pose_sync.py --help
+usage: yolo26n_pose_sync.py [-h] --model MODEL
 RESULT: PASS
 
 --- artifacts ---
-$ ls -lh (session dir)
 total 80K
--rw-rw-r--  1 dhyang dhyang 6.5K Jun 12 16:44 calibrate.py
-drwxrwxr-x 10 dhyang dhyang 4.0K Jun 12 16:44 common
--rw-rw-r--  1 dhyang dhyang  468 Jun 12 16:45 config.json
-drwxrwxr-x  3 dhyang dhyang 4.0K Jun 12 16:49 factory
-drwxrwxr-x  2 dhyang dhyang 4.0K Jun 12 16:52 frames
-drwxrwxr-x  3 dhyang dhyang 4.0K Jun 12 16:50 game
--rw-rw-r--  1 dhyang dhyang   69 Jun 12 16:49 __init__.py
-drwxrwxr-x  4 dhyang dhyang 4.0K Jun 12 16:53 output
-drwxrwxr-x  2 dhyang dhyang 4.0K Jun 12 16:53 __pycache__
--rw-rw-r--  1 dhyang dhyang 4.2K Jun 12 16:52 README.md
--rw-rw-r--  1 dhyang dhyang 3.3K Jun 12 16:49 run.sh
-drwxrwxr-x  2 dhyang dhyang 4.0K Jun 12 16:43 sample
--rw-rw-r--  1 dhyang dhyang  974 Jun 12 16:52 session.json
--rw-rw-r--  1 dhyang dhyang 4.3K Jun 12 16:53 session.log
--rw-rw-r--  1 dhyang dhyang 2.5K Jun 12 16:43 setup.sh
--rw-rw-r--  1 dhyang dhyang 4.0K Jun 12 16:50 verify.py
--rw-rw-r--  1 dhyang dhyang 2.1K Jun 12 16:49 yolo26n_pose_stretch_sync.py
-
-annotated output video:
--rw-rw-r-- 1 dhyang dhyang 11M Jun 12 16:51 output/verify-stream-stretching_demo-20260612-165048/output.mp4
--rw-rw-r-- 1 dhyang dhyang 11M Jun 12 16:53 output/verify-stream-stretching_demo-20260612-165329/output.mp4
+drwxrwxr-x 10 dhyang dhyang 4.0K Jun 18 12:26 common
+-rw-rw-r--  1 dhyang dhyang  274 Jun 18 12:20 config.json
+drwxrwxr-x  3 dhyang dhyang 4.0K Jun 18 12:26 factory
+drwxrwxr-x  3 dhyang dhyang 4.0K Jun 18 12:29 output
+drwxrwxr-x  2 dhyang dhyang 4.0K Jun 18 12:26 __pycache__
+-rw-rw-r--  1 dhyang dhyang 4.8K Jun 18 12:29 README.md
+-rw-rw-r--  1 dhyang dhyang 2.9K Jun 18 12:26 run.sh
+drwxrwxr-x  2 dhyang dhyang 4.0K Jun 18 12:20 sample
+-rw-rw-r--  1 dhyang dhyang  540 Jun 18 12:26 session.json
+-rw-rw-r--  1 dhyang dhyang 1.8K Jun 18 12:30 session.log
+-rw-rw-r--  1 dhyang dhyang 3.4K Jun 18 12:26 setup.sh
+-rw-rw-r--  1 dhyang dhyang  24K Jun 18 12:25 stretch_coach.py
+-rw-rw-r--  1 dhyang dhyang 3.4K Jun 18 12:22 test_recognizers.py
+-rw-rw-r--  1 dhyang dhyang 2.0K Jun 18 12:25 yolo26n_pose_sync.py
 RESULT: PASS
-
-===== END SESSION LOG =====

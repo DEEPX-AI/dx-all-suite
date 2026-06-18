@@ -1,46 +1,22 @@
 #!/usr/bin/env bash
-# run.sh — one-command launcher: (optional) train -> export+eval -> report -> verify.
-# Re-runs the pipeline against the suite's venv-dx-runtime. Training is skipped if
-# best.pt already exists (pass --retrain to force).
+# run.sh — one-command launcher for the YOLO26n construction-PPE retrain + DeepX benchmark.
+# Uses the interpreter resolved by setup.sh (.venv_path) and runs pipeline.py, teeing to session.log.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd -P)"
 
-SUITE_ROOT="$SCRIPT_DIR"
-while [ "$SUITE_ROOT" != "/" ]; do
-    if [ -d "$SUITE_ROOT/dx-runtime" ] && [ -d "$SUITE_ROOT/dx-compiler" ]; then
-        break
-    fi
-    SUITE_ROOT="$(dirname "$SUITE_ROOT")"
-done
-if [ "$SUITE_ROOT" = "/" ]; then
-    echo "ERROR: Cannot find dx-all-suite root (dx-runtime/ + dx-compiler/ siblings)"
+if [ ! -f "$SCRIPT_DIR/.venv_path" ]; then
+    echo "ERROR: .venv_path missing. Run setup.sh first."
     exit 1
 fi
-VENV="$SUITE_ROOT/dx-runtime/venv-dx-runtime"
-PY="$VENV/bin/python"
+PY="$(cat "$SCRIPT_DIR/.venv_path")"
 if [ ! -x "$PY" ]; then
-    echo "ERROR: venv-dx-runtime missing. Run setup.sh / build dx_rt first."
+    echo "ERROR: interpreter $PY not executable. Re-run setup.sh."
     exit 1
 fi
 
 cd "$SCRIPT_DIR"
-FORCE_RETRAIN=0
-[ "${1:-}" = "--retrain" ] && FORCE_RETRAIN=1
-
-if [ "$FORCE_RETRAIN" = "1" ] || [ ! -f train_result.json ]; then
-    echo "=== Training (40 epochs) ==="
-    "$PY" -u train.py 2>&1 | tee train.log
-else
-    echo "=== Skipping training (train_result.json exists; use --retrain to force) ==="
-fi
-
-echo "=== Export + 4-way eval + sample ==="
-"$PY" -u export_eval.py 2>&1 | tee export_eval.log
-
-echo "=== Report ==="
-"$PY" -u make_report.py 2>&1 | tee -a export_eval.log
-
-echo "=== Verify ==="
-"$PY" -u verify.py
-echo "Exit: $?"
+echo "==== Running YOLO26n construction-PPE retrain + DeepX benchmark pipeline ===="
+echo "Interpreter: $PY"
+"$PY" pipeline.py 2>&1 | tee session.log
+echo "==== Pipeline finished. See report.md / results.json / sample_detect.jpg ===="

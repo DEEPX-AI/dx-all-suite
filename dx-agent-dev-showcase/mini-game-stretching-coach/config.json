@@ -1,17 +1,10 @@
 {
-  "score_threshold": 0.4,
-  "nms_threshold": 0.45,
-  "num_keypoints": 17,
-  "kp_conf": 0.30,
-
-  "overhead_margin": 0.35,
-  "fold_ratio_max": 1.25,
-  "neck_head_dist": 1.10,
-  "neck_other_low": 0.55,
-
-  "hold_seconds": 1.2,
-  "good_seconds": 0.8,
-  "debounce_frames": 6,
-
-  "_calibration": "Derived from sample/stretching_demo.mp4 on DX-M1: standing fold_ratio~2.2, fold<1.0; overhead both-wrists-above-nose>0.9; neck one-wrist head_dist~0.5 + other wrist low~1.7"
+    "score_threshold": 0.4,
+    "nms_threshold": 0.45,
+    "num_keypoints": 17,
+    "keypoint_confidence_threshold": 0.3,
+    "hold_seconds": 1.2,
+    "overhead_wrist_above_nose_ratio": 0.15,
+    "fold_torso_collapse_ratio": 0.45,
+    "neck_hand_horizontal_ratio": 0.95
 }

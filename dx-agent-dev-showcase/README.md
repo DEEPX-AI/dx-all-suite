@@ -26,7 +26,7 @@ Each card below links to that showcase's own README (full detail + transcript).
 
 Counts squat reps from knee/hip angles with an arcade HUD (reps / score / DOWN·UP·GOOD!).
 
-**Highlight:** pose game + arcade HUD · **Claude Opus 4.8** · ≈ 20 min · ≈ $9.9 — [details →](./mini-game-squat-fitness/README.md)
+**Highlight:** pose game + arcade HUD · **Claude Opus 4.8** · ≈ 12 min · ≈ $7.3 — [details →](./mini-game-squat-fitness/README.md)
 
 <br clear="right">
 
@@ -36,7 +36,7 @@ Counts squat reps from knee/hip angles with an arcade HUD (reps / score / DOWN·
 
 Guides 3 stretches with an animated coach avatar that demonstrates each target pose.
 
-**Highlight:** coach avatar + 3 stages · **Claude Opus 4.8** · ≈ 17 min · ≈ $9.3 — [details →](./mini-game-stretching-coach/README.md)
+**Highlight:** coach avatar + 3 stages · **Claude Opus 4.8** · ≈ 15 min · ≈ $8.1 — [details →](./mini-game-stretching-coach/README.md)
 
 <br clear="right">
 
@@ -78,7 +78,7 @@ Retrains `yolo26n` on `african-wildlife` (buffalo/elephant/rhino/zebra) for a sa
 
 Retrains `yolo26n` on `construction-ppe` for a site-safety camera (helmet/vest/...); 4-way eval base/retrained × fp32/INT8.
 
-**Highlight:** mAP 0.0001→0.257, 58→80 FPS · **Claude Opus 4.8** · ≈ 9 min · ≈ $5.1 — [details →](./ultralytics-retrain-eval-deepx-export-ppe/README.md)
+**Highlight:** mAP 0.0001→0.257, 58→80 FPS · **Claude Opus 4.8** · ≈ 17 min · ≈ $4.0 — [details →](./ultralytics-retrain-eval-deepx-export-ppe/README.md)
 
 <br clear="right">
 

@@ -1,206 +1,139 @@
 # Copyright (C) 2018- DEEPX Ltd. All rights reserved.
 """
-SquatGameVisualizer — arcade-style squat-counting fitness mini-game overlay.
+SquatGameVisualizer — draws the pose skeleton + a squat-game HUD.
 
-This is the stateful game hook. ``SyncRunner`` calls ``visualize(frame, results)``
-once per frame with ``PoseResult`` keypoints already scaled to original-image
-coordinates. The visualizer:
+Subclasses the framework `PoseVisualizer` so the COCO skeleton/keypoints are
+rendered by proven code, then overlays the game layer:
+  - rep counter, current state (UP/DOWN), live knee angle
+  - a vertical squat-depth bar
+  - a transient "GOOD REP! +N" banner after each counted rep
 
-  1. selects the most prominent person (largest box),
-  2. computes the knee (hip-knee-ankle) and hip (shoulder-hip-knee) angles from
-     COCO-17 keypoints, averaging the left + right sides when both are visible,
-  3. advances the squat FSM (``SquatCounter``) with hysteresis,
-  4. tracks reps / score / a "GOOD!" feedback flash,
-  5. draws the pose skeleton (via the parent ``PoseVisualizer``) plus an
-     arcade HUD (rep counter, target, score, DOWN/UP/GOOD! banner, progress bar).
-
-All inference stays in the IFactory + SyncRunner framework — this class only
-consumes the decoded keypoints.
+The squat detection itself is delegated to the pure `SquatCounter`
+(squat_logic.py); this class only translates per-frame `PoseResult`s into a knee
+angle and renders. It is stateful across frames because the SyncRunner creates
+one visualizer and calls `visualize()` for every frame.
 """
 
-import numpy as np
+import logging
+from typing import List, Optional
+
 import cv2
+import numpy as np
 
 from common.visualizers import PoseVisualizer
-from .squat_logic import angle_3pt, SquatCounter
+from common.base import PoseResult
 
-# COCO-17 keypoint indices
-L_SHOULDER, R_SHOULDER = 5, 6
-L_HIP, R_HIP = 11, 12
-L_KNEE, R_KNEE = 13, 14
-L_ANKLE, R_ANKLE = 15, 16
+from .squat_logic import (
+    SquatCounter, compute_angle,
+    L_HIP, R_HIP, L_KNEE, R_KNEE, L_ANKLE, R_ANKLE,
+)
+
+logger = logging.getLogger(__name__)
 
 
 class SquatGameVisualizer(PoseVisualizer):
-    """Pose visualizer that turns squats into an arcade rep-counting game."""
+    def __init__(self, stand_angle: float = 160.0, squat_angle: float = 100.0,
+                 keypoint_confidence: float = 0.3):
+        super().__init__(keypoint_confidence_threshold=keypoint_confidence)
+        self.counter = SquatCounter(stand_angle=stand_angle, squat_angle=squat_angle)
+        self.kpt_conf = keypoint_confidence
+        self.frame_idx = 0
+        self.last_angle: Optional[float] = None
+        self._banner_frames = 0          # countdown for the GOOD REP banner
 
-    def __init__(self, config: dict = None):
-        super().__init__(keypoint_confidence_threshold=0.3)
-        cfg = config or {}
-        self.knee_down = float(cfg.get("knee_down_angle", 140.0))
-        self.knee_up = float(cfg.get("knee_up_angle", 160.0))
-        self.hip_down = cfg.get("hip_down_angle", 150.0)
-        self.hip_down = float(self.hip_down) if self.hip_down is not None else None
-        self.target_reps = int(cfg.get("target_reps", 10))
-        self.kpt_conf_threshold = float(cfg.get("kpt_conf_threshold", 0.3))
-
-        self.counter = SquatCounter(self.knee_down, self.knee_up, self.hip_down)
-        self.score = 0
-        self.score_per_rep = int(cfg.get("score_per_rep", 10))
-        self._good_flash = 0          # frames remaining to show "GOOD!"
-        self._good_flash_frames = 12
-        self._last_knee = None
-        self._last_hip = None
-        self._won = False
-
-    # ------------------------------------------------------------------
-    # Angle extraction
-    # ------------------------------------------------------------------
-
-    def _kp(self, keypoints, idx):
-        """Return (x, y) if keypoint idx is confident enough, else None."""
-        if idx >= len(keypoints):
-            return None
-        kp = keypoints[idx]
-        if kp.confidence < self.kpt_conf_threshold:
-            return None
-        return (float(kp.x), float(kp.y))
-
-    def _side_angle(self, keypoints, a_idx, b_idx, c_idx):
-        a = self._kp(keypoints, a_idx)
-        b = self._kp(keypoints, b_idx)
-        c = self._kp(keypoints, c_idx)
-        if a is None or b is None or c is None:
-            return None
-        return angle_3pt(a, b, c)
-
-    def _knee_angle(self, keypoints):
-        left = self._side_angle(keypoints, L_HIP, L_KNEE, L_ANKLE)
-        right = self._side_angle(keypoints, R_HIP, R_KNEE, R_ANKLE)
-        vals = [v for v in (left, right) if v is not None]
-        return sum(vals) / len(vals) if vals else None
-
-    def _hip_angle(self, keypoints):
-        left = self._side_angle(keypoints, L_SHOULDER, L_HIP, L_KNEE)
-        right = self._side_angle(keypoints, R_SHOULDER, R_HIP, R_KNEE)
-        vals = [v for v in (left, right) if v is not None]
-        return sum(vals) / len(vals) if vals else None
+    # ---- geometry helpers --------------------------------------------------
 
     @staticmethod
-    def _largest_person(results):
-        best = None
-        best_area = -1.0
-        for pose in results:
-            if not getattr(pose, "keypoints", None):
+    def _primary_pose(results: List[PoseResult]) -> Optional[PoseResult]:
+        """Largest-box person = the main subject."""
+        best, best_area = None, -1.0
+        for p in results:
+            if not p.keypoints or len(p.keypoints) < 17:
                 continue
-            box = getattr(pose, "box", None)
-            area = 0.0
-            if box and len(box) >= 4:
-                area = abs((box[2] - box[0]) * (box[3] - box[1]))
-            if area >= best_area:
-                best_area = area
-                best = pose
+            if p.box and len(p.box) >= 4:
+                area = abs((p.box[2] - p.box[0]) * (p.box[3] - p.box[1]))
+            else:
+                area = 0.0
+            if area > best_area:
+                best, best_area = p, area
         return best
 
-    # ------------------------------------------------------------------
-    # Per-frame entry
-    # ------------------------------------------------------------------
+    def _leg_angle(self, kps, hip_i, knee_i, ankle_i) -> Optional[float]:
+        h, k, a = kps[hip_i], kps[knee_i], kps[ankle_i]
+        if min(h.confidence, k.confidence, a.confidence) < self.kpt_conf:
+            return None
+        return compute_angle((h.x, h.y), (k.x, k.y), (a.x, a.y))
 
-    def visualize(self, image: np.ndarray, results) -> np.ndarray:
-        # 1) draw the skeleton/keypoints using the parent implementation
-        output = super().visualize(image, results)
+    def _knee_angle(self, pose: PoseResult) -> Optional[float]:
+        kps = pose.keypoints
+        angles = [
+            a for a in (
+                self._leg_angle(kps, L_HIP, L_KNEE, L_ANKLE),
+                self._leg_angle(kps, R_HIP, R_KNEE, R_ANKLE),
+            ) if a is not None
+        ]
+        if not angles:
+            return None
+        return sum(angles) / len(angles)
 
-        # 2) game logic on the most prominent person
-        knee = hip = None
-        state = self.counter.state
-        person = self._largest_person(results) if results else None
-        if person is not None:
-            knee = self._knee_angle(person.keypoints)
-            hip = self._hip_angle(person.keypoints)
-            if knee is not None:
-                # hip may be missing (e.g. occluded shoulder); if so, pass a
-                # value that satisfies the gate so the knee drives detection.
-                hip_for_fsm = hip if hip is not None else 0.0
-                prev_reps = self.counter.reps
-                state, completed = self.counter.update(knee, hip_for_fsm)
-                if completed:
-                    self.score += self.score_per_rep
-                    self._good_flash = self._good_flash_frames
-                if self.counter.reps >= self.target_reps:
-                    self._won = True
-                self._last_knee = knee
-                self._last_hip = hip
+    # ---- main entry --------------------------------------------------------
 
-        if self._good_flash > 0:
-            self._good_flash -= 1
+    def visualize(self, image: np.ndarray, results: List[PoseResult]) -> np.ndarray:
+        self.frame_idx += 1
+        output = super().visualize(image, results)   # skeleton + keypoints
 
-        # 3) arcade HUD
-        self._draw_hud(output, state, knee, hip)
+        pose = self._primary_pose(results)
+        angle = self._knee_angle(pose) if pose is not None else None
+        self.last_angle = angle
+        if self.counter.update(angle):
+            self._banner_frames = 18      # show banner for ~18 frames
+            logger.info("Squat #%d counted (frame %d, knee=%.1f deg)",
+                        self.counter.count, self.frame_idx,
+                        angle if angle is not None else float("nan"))
+
+        self._draw_hud(output, angle)
         return output
 
-    # ------------------------------------------------------------------
-    # HUD rendering
-    # ------------------------------------------------------------------
+    # ---- HUD ---------------------------------------------------------------
 
-    def _draw_hud(self, img, state, knee, hip):
+    def _draw_hud(self, img: np.ndarray, angle: Optional[float]) -> None:
         h, w = img.shape[:2]
-        font = cv2.FONT_HERSHEY_SIMPLEX
 
-        # --- top translucent header bar ---
-        bar_h = max(70, int(h * 0.13))
-        overlay = img.copy()
-        cv2.rectangle(overlay, (0, 0), (w, bar_h), (28, 28, 28), -1)
-        cv2.addWeighted(overlay, 0.55, img, 0.45, 0, img)
-        cv2.line(img, (0, bar_h), (w, bar_h), (0, 215, 255), 2)
+        # translucent top-left panel
+        panel = img.copy()
+        cv2.rectangle(panel, (10, 10), (330, 120), (20, 20, 20), -1)
+        cv2.addWeighted(panel, 0.55, img, 0.45, 0, img)
 
-        title = "SQUAT  CHALLENGE"
-        cv2.putText(img, title, (16, int(bar_h * 0.42)), font,
-                    0.9, (0, 215, 255), 2, cv2.LINE_AA)
+        green, white, yellow = (80, 255, 80), (255, 255, 255), (60, 230, 255)
+        state_color = green if self.counter.state == SquatCounter.UP else yellow
 
-        # REPS counter (big)
-        reps_txt = f"REPS  {self.counter.reps:02d}/{self.target_reps:02d}"
-        cv2.putText(img, reps_txt, (16, int(bar_h * 0.85)), font,
-                    1.0, (255, 255, 255), 2, cv2.LINE_AA)
+        cv2.putText(img, f"SQUATS: {self.counter.count}", (22, 50),
+                    cv2.FONT_HERSHEY_SIMPLEX, 1.1, green, 3, cv2.LINE_AA)
+        cv2.putText(img, f"STATE: {self.counter.state}", (22, 82),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, state_color, 2, cv2.LINE_AA)
+        angle_txt = f"{angle:5.1f} deg" if angle is not None else "  --"
+        cv2.putText(img, f"KNEE:  {angle_txt}", (22, 108),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, white, 2, cv2.LINE_AA)
 
-        # SCORE (right aligned-ish)
-        score_txt = f"SCORE  {self.score:04d}"
-        (sw, _), _ = cv2.getTextSize(score_txt, font, 0.9, 2)
-        cv2.putText(img, score_txt, (w - sw - 16, int(bar_h * 0.85)), font,
-                    0.9, (80, 255, 80), 2, cv2.LINE_AA)
+        # vertical depth bar (right edge)
+        bx2, by1, by2 = w - 25, 30, h - 30
+        bx1 = bx2 - 26
+        cv2.rectangle(img, (bx1, by1), (bx2, by2), white, 2)
+        pct = self.counter.depth_pct(angle) / 100.0
+        fill_h = int((by2 - by1) * pct)
+        if fill_h > 0:
+            cv2.rectangle(img, (bx1 + 2, by2 - fill_h),
+                          (bx2 - 2, by2 - 2), yellow, -1)
+        cv2.putText(img, "DEPTH", (bx1 - 12, by1 - 8),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, white, 1, cv2.LINE_AA)
 
-        # --- progress bar ---
-        pb_x1, pb_x2 = 16, w - 16
-        pb_y = bar_h + 14
-        frac = min(1.0, self.counter.reps / max(1, self.target_reps))
-        cv2.rectangle(img, (pb_x1, pb_y), (pb_x2, pb_y + 16), (70, 70, 70), -1)
-        fill_x = int(pb_x1 + (pb_x2 - pb_x1) * frac)
-        cv2.rectangle(img, (pb_x1, pb_y), (fill_x, pb_y + 16), (0, 215, 255), -1)
-        cv2.rectangle(img, (pb_x1, pb_y), (pb_x2, pb_y + 16), (255, 255, 255), 1)
-
-        # --- center feedback banner ---
-        if self._won:
-            text, color = "WIN!  COMPLETE", (80, 255, 80)
-        elif self._good_flash > 0:
-            text, color = "GOOD!", (80, 255, 80)
-        elif state == "DOWN":
-            text, color = "DOWN", (255, 200, 0)
-        else:
-            text, color = "UP", (0, 215, 255)
-
-        scale = 2.4 if text in ("GOOD!", "WIN!  COMPLETE") else 1.8
-        (tw, th), _ = cv2.getTextSize(text, font, scale, 5)
-        tx = (w - tw) // 2
-        ty = int(h * 0.62)
-        # shadow then text for arcade pop
-        cv2.putText(img, text, (tx + 3, ty + 3), font, scale, (0, 0, 0), 8, cv2.LINE_AA)
-        cv2.putText(img, text, (tx, ty), font, scale, color, 5, cv2.LINE_AA)
-
-        # --- angle readout (bottom-left) ---
-        if knee is not None:
-            ka = f"knee {knee:5.1f}"
-            ha = f"hip {hip:5.1f}" if hip is not None else "hip   --"
-            cv2.putText(img, f"{ka}   {ha}", (16, h - 16), font,
-                        0.6, (200, 200, 200), 1, cv2.LINE_AA)
-        else:
-            cv2.putText(img, "no person detected", (16, h - 16), font,
-                        0.6, (60, 60, 230), 2, cv2.LINE_AA)
+        # transient GOOD REP banner
+        if self._banner_frames > 0:
+            self._banner_frames -= 1
+            txt = f"GOOD REP!  +{self.counter.count}"
+            (tw, th), _ = cv2.getTextSize(txt, cv2.FONT_HERSHEY_SIMPLEX, 1.2, 3)
+            cx = (w - tw) // 2
+            cv2.putText(img, txt, (cx, h // 2), cv2.FONT_HERSHEY_SIMPLEX,
+                        1.2, (0, 0, 0), 6, cv2.LINE_AA)
+            cv2.putText(img, txt, (cx, h // 2), cv2.FONT_HERSHEY_SIMPLEX,
+                        1.2, green, 3, cv2.LINE_AA)

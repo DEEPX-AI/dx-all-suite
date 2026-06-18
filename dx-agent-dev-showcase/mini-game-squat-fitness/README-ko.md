@@ -26,21 +26,20 @@
 | 코딩 에이전트 | **Claude Code** (`claude` CLI, headless `-p`) |
 | 모델 | **Claude Opus 4.8** (`claude-opus-4-8`) |
 | 사람 입력 | **자연어 프롬프트 1개** — 완전 자율, 손으로 작성한 코드 없음 |
-| 빌드 wall-clock | **≈ 20분** (1,188,799 ms) |
-| Agent turn 수 | **81** |
-| 확인 질문 | 1회 (`AskUserQuestion`, knowledge base 기본값으로 자동 해결) |
-| 사용 도구 | `Bash` ×33, `Write` ×17, `Read` ×15, `Skill` ×5, `Edit` ×3, `TaskCreate` ×1, `AskUserQuestion` ×1 |
+| 빌드 wall-clock | **≈ 11.5분** |
+| Agent turn 수 | **132** |
+| 사용 도구 | `Bash` ×25, `Read` ×14, `Write` ×13, `Skill` ×5, `Edit` ×2 |
 | 호출한 skill (순서) | `dx-skill-router` → `dx-agent-brainstorm` → `dx-swe-writing-plans` → `dx-agent-tdd` → `dx-agent-verify` |
-| Output 토큰 | **≈ 85.3K** (input 7.9K; cached-context read ≈ 12.5M) |
-| 대략 비용 | **≈ $9.9** |
+| Output 토큰 | **≈ 109K** |
+| 대략 비용 | **≈ $7.3** |
 
 brainstorm → plan → TDD → verify 전체 skill 시퀀스가 앱 완료 선언 전에 end-to-end로
 실행됐습니다 — transcript에 각 단계가 실제 tool call로 기록돼 있습니다.
 
 아케이드 스타일 스쿼트 카운터. DEEPX NPU에서 **yolo26n-pose**를 실행해 신체 keypoint(무릎+엉덩이
-각도)로 스쿼트 횟수를 검출하고, 실시간으로 횟수를 세며, 게임 HUD(횟수, 목표, 점수,
-**DOWN / UP / GOOD!** 피드백, 진행바)를 오버레이합니다. **비디오 파일** 또는 **라이브 카메라**에서
-동작하며 런타임에 선택 가능합니다. 비디오 파일로 실행하면 **주석이 표시된 출력 영상**을 저장합니다.
+각도)로 스쿼트 횟수를 검출하고, 실시간으로 횟수를 세며, 게임 HUD(횟수, depth bar,
+**GOOD REP** 배너)를 오버레이합니다. **비디오 파일** 또는 **라이브 카메라**에서 동작합니다.
+비디오 파일로 실행하면 **주석이 표시된 출력 영상**을 저장합니다.
 
 ## 프롬프트
 
@@ -53,54 +52,43 @@ Build a squat-counting fitness mini-game using yolo26n-pose on DEEPX NPU, valida
 ## 빠른 시작
 
 ```bash
-./setup.sh                 # 프레임워크를 ./common으로 vendoring, 모델+샘플 준비
-./run.sh                   # 동봉 데모 영상으로 플레이 (annotated output.mp4 저장)
-./run.sh --camera 0        # 라이브 카메라
-./run.sh --video my.mp4 --save
-./run.sh --target-reps 15 --camera 0
+./setup.sh                          # 프레임워크를 ./common으로 vendoring, dx_engine bridge, deps 설치
+./run.sh                            # 동봉 데모 영상으로 headless 검증 (annotated output 저장)
+DISPLAY_MODE=1 ./run.sh             # 라이브 on-screen 창
+VIDEO=/path/to/clip.mp4 ./run.sh    # 다른 비디오 사용
+DXNN_MODEL=/path/to/yolo26n-pose.dxnn ./run.sh   # 명시적 모델 지정
 ```
+
+`run.sh`는 모델을 자동으로 resolve합니다: 동봉된 `./yolo26n-pose.dxnn`를 우선 사용하고,
+없으면 `$SUITE_ROOT/dx-runtime/dx_app/assets/models/`(및 `models-*/`)로 fallback합니다.
+input은 기본적으로 동봉된 `sample/squat_demo.mp4`를 사용합니다.
 
 직접 실행 (동등):
 
 ```bash
-python yolo26n_pose_squat_sync.py -m yolo26n-pose.dxnn --video sample/squat_demo.mp4 --save
-python yolo26n_pose_squat_sync.py -m yolo26n-pose.dxnn --camera 0
+python yolo26n_pose_squat_sync.py --model yolo26n-pose.dxnn --video sample/squat_demo.mp4 --no-display --save
+python yolo26n_pose_squat_sync.py --model yolo26n-pose.dxnn --camera 0 --display
 ```
 
-## 런타임 옵션
+## 런타임 옵션 (run.sh)
 
-| 옵션 | 의미 |
+| 변수 | 의미 |
 |------|------|
-| `--video, -v <file>` | 비디오 파일을 input으로 사용 |
-| `--camera, -c <id>` | 라이브 카메라 사용 (예: `0`) |
-| `--image, -i <path>` | 단일 이미지 / 이미지 디렉토리 |
-| `--save, -s` | 주석 출력 영상 저장 (video/camera) |
-| `--no-display` | headless 실행(창 없음); `--save`로 여전히 저장 |
-| `--target-reps <N>` | 게임 목표 (기본값은 `config.json`, 10) |
-| `--config <path>` | config.json 재정의 |
+| `DISPLAY_MODE=1` | 라이브 on-screen 창 (기본값은 headless + annotated 영상 저장) |
+| `VIDEO=<file>` | input으로 사용할 비디오 파일 지정 (기본: `sample/squat_demo.mp4`) |
+| `DXNN_MODEL=<path>` | 사용할 `.dxnn` 모델 지정 (기본: 자동 resolve) |
 
 display 창에서 **q** 또는 **ESC**로 종료.
 
 ## 스쿼트 검출 방식
 
-- **무릎 각도** = 무릎에서 hip→knee와 ankle→knee 사이 각도(COCO-17 인덱스: hip 11/12,
-  knee 13/14, ankle 15/16). 양 다리가 보이면 좌+우 평균.
-- **엉덩이 각도** = hip에서의 각도(shoulder 5/6 → hip → knee). 보강 게이트로 사용.
-- 2-state FSM(UP↔DOWN) + **hysteresis**로 DOWN→UP 한 사이클당 1회 카운트. threshold는
-  `sample/squat_demo.mp4`에서 **자동 calibration**됨(2D 무릎 각도는 교과서적 90°가 아니라
-  ~135°에서 바닥을 치므로 고정 컷오프는 오카운트 — `calibrate.py` 참조).
-
-## threshold 재calibration
-
-```bash
-python calibrate.py --video sample/squat_demo.mp4   # config.json 갱신
-```
-
-## 검증
-
-```bash
-python verify.py        # NPU E2E: 17-keypoint pose + 횟수 카운트 -> RESULT: PASS
-```
+- **무릎 각도** = 무릎에서 hip→knee와 ankle→knee 사이 interior 각도(COCO-17 인덱스: hip 11/12,
+  knee 13/14, ankle 15/16). 양 다리가 보이면 좌+우 평균(`min_visible_legs` 설정 가능).
+- 2-state hysteresis FSM(`SquatCounter`)이 DOWN→UP 한 사이클당 1회 카운트하며,
+  `squat_angle`(down)과 `stand_angle`(up)로 게이트합니다. 기본값(`squat_angle=140`,
+  `stand_angle=160`)은 샘플 클립의 front-facing 카메라에 맞춰졌습니다 — 2D-projected
+  무릎 각도가 교과서적 90°가 아니라 ~126–179°로 읽히기 때문입니다. side-view처럼 bend가
+  더 깊게 읽히는 setup에서는 `config.json`의 threshold를 조정하세요.
 
 ## 아키텍처 (IFactory + SyncRunner, skeleton-first)
 
@@ -113,7 +101,9 @@ python verify.py        # NPU E2E: 17-keypoint pose + 횟수 카운트 -> RESULT
 | Runner | `SyncRunner` (단일 모델, frame-ordered) |
 
 게임 로직은 전부 visualizer의 `visualize(frame, results)` hook 안에 있습니다 — 직접적인
-`InferenceEngine` 호출 없이 프레임워크 패턴을 완전히 따릅니다.
+`InferenceEngine` 호출 없이 프레임워크 패턴을 완전히 따릅니다. 순수 geometry + FSM
+(`compute_angle`, `SquatCounter`)은 hardware 없이 unit-test 가능하도록 `squat_logic.py`에
+분리돼 있습니다.
 
 ## 파일
 
@@ -122,17 +112,17 @@ python verify.py        # NPU E2E: 17-keypoint pose + 횟수 카운트 -> RESULT
 | `yolo26n_pose_squat_sync.py` | 진입점 — factory 생성, `SyncRunner` 실행 |
 | `factory/squat_game_factory.py` | `SquatGameFactory` (IFactory) |
 | `factory/squat_game_visualizer.py` | `SquatGameVisualizer` (게임 hook + HUD) |
-| `factory/squat_logic.py` | 순수 `angle_3pt` + `SquatCounter` FSM |
+| `factory/squat_logic.py` | 순수 `compute_angle` + `SquatCounter` FSM |
 | `factory/__init__.py` | factory export |
-| `config.json` | threshold(calibrated) + target_reps |
-| `calibrate.py` | 샘플 영상에서 threshold 도출 |
-| `verify.py` | NPU end-to-end 검증 |
+| `config.json` | 검출 + `squat_game` threshold (target reps, 각도) |
 | `test_squat_logic.py` | angle 수학 + FSM unit test (10개) |
 | `setup.sh` / `run.sh` | self-contained 셋업 + relocatable 런처 |
 | `session.json` / `session.log` | 세션 메타데이터 + 명령 로그 |
 
 ## Self-contained / portable
 
-`setup.sh`가 공용 프레임워크를 `./common`으로 vendoring하고, entry walker가 그 vendored
-`./common`을 우선 사용합니다(`PYTHONPATH` 불필요). 모델+샘플 동봉으로, 폴더를 dx-all-suite
-밖으로 복사해도 동작합니다 — `dx_engine`(DEEPX 런타임)이 유일한 외부 전제입니다.
+`setup.sh`가 공용 프레임워크를 `./common`으로 vendoring하고 dx-runtime venv에서 `dx_engine`을
+bridge합니다. entry walker는 그 vendored `./common`을 우선 사용합니다(`PYTHONPATH` 불필요).
+샘플 동봉 + 모델 자동 resolve로, 폴더를 dx-all-suite 밖으로 복사해도 동작합니다 —
+`dx_engine`(DEEPX 런타임)이 유일한 외부 전제입니다.
+</content>

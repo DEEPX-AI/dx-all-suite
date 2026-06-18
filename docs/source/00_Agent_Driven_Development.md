@@ -37,8 +37,8 @@ transcript.
 
 | Showcase | What it is | Build time | Agent turns | Output tokens | ~Cost |
 |---|---|---|---|---|---|
-| **[Squat-Counting Mini-Game](../../dx-agent-dev-showcase/mini-game-squat-fitness/)** | Counts squat reps from knee/hip angles with an arcade HUD (reps / score / DOWN·UP·GOOD!). | ≈ 20 min | 166 | ≈ 238K | ≈ $9.9 |
-| **[Stretching Coach Mini-Game](../../dx-agent-dev-showcase/mini-game-stretching-coach/)** | Guides 3 stretches with an animated coach avatar that demonstrates each target pose. | ≈ 17 min | 148 | ≈ 188K | ≈ $9.3 |
+| **[Squat-Counting Mini-Game](../../dx-agent-dev-showcase/mini-game-squat-fitness/)** | Counts squat reps from knee/hip angles with an arcade HUD (reps / score / DOWN·UP·GOOD!). | ≈ 12 min | 132 | ≈ 109K | ≈ $7.3 |
+| **[Stretching Coach Mini-Game](../../dx-agent-dev-showcase/mini-game-stretching-coach/)** | Guides 3 stretches with an animated coach avatar that demonstrates each target pose. | ≈ 15 min | 130 | ≈ 142K | ≈ $8.1 |
 
 #### Ultralytics ecosystem integration
 
@@ -48,7 +48,7 @@ transcript.
 |---|---|---|---|---|---|
 | **[Ultralytics YOLO → DeepX Export](../../dx-agent-dev-showcase/ultralytics-yolo-deepx-export/)** | Turns an Ultralytics YOLO `.pt` into a deployable DeepX NPU model (`.dxnn`) in a single `yolo export ... format=deepx` command, then runs NPU inference + verify. | ≈ 12 min | 108 | ≈ 84K | ≈ $2.4 |
 | **[African Wildlife Monitoring](../../dx-agent-dev-showcase/ultralytics-retrain-eval-deepx-export-wildlife/)** | Retrains `yolo26n` on `african-wildlife` (buffalo/elephant/rhino/zebra) for a safari/conservation camera; 4-way eval base/retrained × fp32/INT8. | ≈ 7 min | 78 | ≈ 85K | ≈ $3.2 |
-| **[Construction PPE Safety](../../dx-agent-dev-showcase/ultralytics-retrain-eval-deepx-export-ppe/)** | Retrains `yolo26n` on `construction-ppe` for a site-safety camera (helmet/vest/...); 4-way eval base/retrained × fp32/INT8. | ≈ 9 min | 117 | ≈ 113K | ≈ $5.1 |
+| **[Construction PPE Safety](../../dx-agent-dev-showcase/ultralytics-retrain-eval-deepx-export-ppe/)** | Retrains `yolo26n` on `construction-ppe` for a site-safety camera (helmet/vest/...); 4-way eval base/retrained × fp32/INT8. | ≈ 17 min | 102 | ≈ 93K | ≈ $4.0 |
 | **[Brain-Tumor Screening](../../dx-agent-dev-showcase/ultralytics-retrain-eval-deepx-export-braintumor/)** | Retrains `yolo26n` on `brain-tumor` (MRI/CT) for a medical edge device; 4-way eval base/retrained × fp32/INT8. | ≈ 9 min | 91 | ≈ 103K | ≈ $3.7 |
 | **[Pharmaceutical Pill Inspection](../../dx-agent-dev-showcase/ultralytics-retrain-eval-deepx-export-pills/)** | Retrains `yolo26n` on `medical-pills` for a pharma counting station; 4-way eval base/retrained × fp32/INT8. | ≈ 8 min | 118 | ≈ 103K | ≈ $5.1 |
 

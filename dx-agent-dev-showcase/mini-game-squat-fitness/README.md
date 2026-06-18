@@ -26,22 +26,21 @@ Extracted from the build session transcript (`claude-code-session.*`):
 | Coding agent | **Claude Code** (`claude` CLI, headless `-p`) |
 | Model | **Claude Opus 4.8** (`claude-opus-4-8`) |
 | Human input | **1 natural-language prompt** — fully autonomous, no hand-written code |
-| Build wall-clock | **≈ 20 min** (1,188,799 ms) |
-| Agent turns | **81** |
-| Clarifying questions | 1 (`AskUserQuestion`, auto-resolved from the knowledge base) |
-| Tools used | `Bash` ×33, `Write` ×17, `Read` ×15, `Skill` ×5, `Edit` ×3, `TaskCreate` ×1, `AskUserQuestion` ×1 |
+| Build wall-clock | **≈ 11.5 min** |
+| Agent turns | **132** |
+| Tools used | `Bash` ×25, `Read` ×14, `Write` ×13, `Skill` ×5, `Edit` ×2 |
 | Skills invoked (in order) | `dx-skill-router` → `dx-agent-brainstorm` → `dx-swe-writing-plans` → `dx-agent-tdd` → `dx-agent-verify` |
-| Output tokens | **≈ 85.3K** (input 7.9K; cached-context reads ≈ 12.5M) |
-| Approx. cost | **≈ $9.9** |
+| Output tokens | **≈ 109K** |
+| Approx. cost | **≈ $7.3** |
 
 The full brainstorm → plan → TDD → verify skill sequence ran end-to-end before the
 app was declared done — the transcript shows each step as a real tool call.
 
 An arcade-style squat counter. Runs **yolo26n-pose** on the DEEPX NPU, detects
 squat repetitions from body keypoints (knee + hip angles), counts reps in real
-time, and overlays a game HUD (rep counter, target, score, **DOWN / UP / GOOD!**
-feedback, progress bar). Works on a **video file** or a **live camera**,
-selectable at runtime. On a video file it saves an **annotated output video**.
+time, and overlays a game HUD (rep counter, depth bar, **GOOD REP** banner).
+Works on a **video file** or a **live camera**. On a video file it saves an
+**annotated output video**.
 
 ## The prompt
 
@@ -54,57 +53,46 @@ Build a squat-counting fitness mini-game using yolo26n-pose on DEEPX NPU, valida
 ## Quick start
 
 ```bash
-./setup.sh                 # vendor framework into ./common, bundle model + sample
-./run.sh                   # play on the bundled demo video (saves annotated output.mp4)
-./run.sh --camera 0        # live camera
-./run.sh --video my.mp4 --save
-./run.sh --target-reps 15 --camera 0
+./setup.sh                          # vendor framework into ./common, bridge dx_engine, install deps
+./run.sh                            # headless validation on the bundled demo video (saves annotated output)
+DISPLAY_MODE=1 ./run.sh             # live on-screen window
+VIDEO=/path/to/clip.mp4 ./run.sh    # use a different video
+DXNN_MODEL=/path/to/yolo26n-pose.dxnn ./run.sh   # point at an explicit model
 ```
+
+`run.sh` resolves the model automatically: it prefers a bundled
+`./yolo26n-pose.dxnn`, then falls back to
+`$SUITE_ROOT/dx-runtime/dx_app/assets/models/` (including `models-*/`). The input
+defaults to the bundled `sample/squat_demo.mp4`.
 
 Direct invocation (equivalent):
 
 ```bash
-python yolo26n_pose_squat_sync.py -m yolo26n-pose.dxnn --video sample/squat_demo.mp4 --save
-python yolo26n_pose_squat_sync.py -m yolo26n-pose.dxnn --camera 0
+python yolo26n_pose_squat_sync.py --model yolo26n-pose.dxnn --video sample/squat_demo.mp4 --no-display --save
+python yolo26n_pose_squat_sync.py --model yolo26n-pose.dxnn --camera 0 --display
 ```
 
-## Runtime options
+## Runtime options (run.sh)
 
-| Option | Meaning |
-|--------|---------|
-| `--video, -v <file>` | Use a video file as input |
-| `--camera, -c <id>` | Use a live camera (e.g. `0`) |
-| `--image, -i <path>` | Single image / image directory |
-| `--save, -s` | Save an annotated output video (video/camera) |
-| `--no-display` | Run headless (no window); still saves with `--save` |
-| `--target-reps <N>` | Game goal (default from `config.json`, 10) |
-| `--config <path>` | Override config.json |
+| Variable | Meaning |
+|----------|---------|
+| `DISPLAY_MODE=1` | Live on-screen window (default is headless + save annotated video) |
+| `VIDEO=<file>` | Use a specific video file as input (default: `sample/squat_demo.mp4`) |
+| `DXNN_MODEL=<path>` | Use a specific `.dxnn` model (default: auto-resolved) |
 
 Press **q** or **ESC** in the display window to quit.
 
 ## How squat detection works
 
-- **Knee angle** = angle at the knee between hip→knee and ankle→knee (COCO-17
-  indices: hip 11/12, knee 13/14, ankle 15/16). Left + right are averaged when
-  both legs are visible.
-- **Hip angle** = angle at the hip (shoulder 5/6 → hip → knee). Used as a
-  corroborating gate.
-- A two-state FSM (UP↔DOWN) with **hysteresis** counts one rep per full
-  DOWN→UP cycle. Thresholds are **auto-calibrated** from `sample/squat_demo.mp4`
-  (2D knee angles bottom out near ~135°, not the textbook 90°, so fixed cutoffs
-  miscount — see `calibrate.py`).
-
-## Recalibrate thresholds
-
-```bash
-python calibrate.py --video sample/squat_demo.mp4   # rewrites config.json
-```
-
-## Verify
-
-```bash
-python verify.py        # NPU E2E: 17-keypoint pose + reps counted -> RESULT: PASS
-```
+- **Knee angle** = interior angle at the knee between hip→knee and ankle→knee
+  (COCO-17 indices: hip 11/12, knee 13/14, ankle 15/16). Left + right are
+  averaged when both legs are visible (`min_visible_legs` configurable).
+- A two-state hysteresis FSM (`SquatCounter`) counts one rep per full DOWN→UP
+  cycle, gated by `squat_angle` (down) and `stand_angle` (up). Defaults
+  (`squat_angle=140`, `stand_angle=160`) are tuned to the sample clip's
+  front-facing camera, where the 2D-projected knee angle reads ~126–179° rather
+  than the textbook 90°. Adjust the thresholds in `config.json` for steeper
+  side-view setups.
 
 ## Architecture (IFactory + SyncRunner, skeleton-first)
 
@@ -118,6 +106,8 @@ python verify.py        # NPU E2E: 17-keypoint pose + reps counted -> RESULT: PA
 
 Game logic lives entirely inside the visualizer's `visualize(frame, results)`
 hook — no direct `InferenceEngine` calls, fully within the framework pattern.
+The pure geometry + FSM (`compute_angle`, `SquatCounter`) is isolated in
+`squat_logic.py` so it is unit-testable without hardware.
 
 ## Files
 
@@ -126,18 +116,19 @@ hook — no direct `InferenceEngine` calls, fully within the framework pattern.
 | `yolo26n_pose_squat_sync.py` | Entry — builds factory, runs `SyncRunner` |
 | `factory/squat_game_factory.py` | `SquatGameFactory` (IFactory) |
 | `factory/squat_game_visualizer.py` | `SquatGameVisualizer` (game hook + HUD) |
-| `factory/squat_logic.py` | Pure `angle_3pt` + `SquatCounter` FSM |
+| `factory/squat_logic.py` | Pure `compute_angle` + `SquatCounter` FSM |
 | `factory/__init__.py` | Factory export |
-| `config.json` | Thresholds (calibrated) + target_reps |
-| `calibrate.py` | Derive thresholds from the sample video |
-| `verify.py` | NPU end-to-end verification |
+| `config.json` | Detection + `squat_game` thresholds (target reps, angles) |
 | `test_squat_logic.py` | Unit tests for angle math + FSM (10 tests) |
 | `setup.sh` / `run.sh` | Self-contained setup + relocatable launcher |
 | `session.json` / `session.log` | Session metadata + command log |
 
 ## Self-contained / portable
 
-`setup.sh` vendors the shared framework into `./common`; the entry walker prefers
-that vendored `./common` (no `PYTHONPATH`). With the model + sample bundled, the
-folder runs even when copied outside dx-all-suite — `dx_engine` (DEEPX runtime)
-is the one external prerequisite.
+`setup.sh` vendors the shared framework into `./common` and bridges `dx_engine`
+from the dx-runtime venv; the entry walker prefers that vendored `./common` (no
+`PYTHONPATH`). With the sample bundled and the model auto-resolved, the folder
+runs even when copied outside dx-all-suite — `dx_engine` (DEEPX runtime) is the
+one external prerequisite.
+</content>
+</invoke>

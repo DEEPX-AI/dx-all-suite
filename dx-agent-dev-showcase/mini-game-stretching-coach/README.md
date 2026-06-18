@@ -23,7 +23,9 @@
 | Coding agent / model | **Claude Code** / **Claude Opus 4.8** (`claude-opus-4-8`) |
 | Human input | **1 natural-language prompt** — fully autonomous |
 | Skills | `dx-skill-router` → `dx-agent-brainstorm` → `dx-swe-writing-plans` → `dx-agent-tdd` → `dx-agent-verify` |
-| Wall-clock / turns / cost | ~17 min / 148 / ≈ $9.3 |
+| Build wall-clock / turns | ≈ 15.3 min / 130 |
+| Output tokens / approx. cost | ≈ 142K / ≈ $8.1 |
+| Tools | `Bash`×27, `Read`×17, `Write`×12, `Skill`×5, `Edit`×2 |
 
 ## The prompt
 
@@ -53,22 +55,31 @@ both --video <file> and --camera <id>; save an annotated output video.
 Hold the matching pose ~1.2 s → **GOOD!** + advance; finish all three → **CLEAR!**
 On-screen: STAGE n/3, the animated **humanoid coach** (top-left), stretch name + instruction,
 a HOLD progress bar, your live skeleton, and a model · NPU · FPS status line.
+Recognition is **scale-invariant** — every threshold is normalized by the player's
+shoulder width, so the game works regardless of distance from the camera.
 
 ## Architecture
 
-Standard dx_app pose pipeline — `StretchPoseFactory` (`IPoseFactory`, reusing Letterbox +
-YOLOv8Pose post-process) + `SyncRunner`. The game core (`game/stretch_game.py`) adds
-`PoseClassifier`, the `HumanoidCoach` renderer (`cv2.fillConvexPoly` torso + tapered limb
-capsules), and the `StretchGame` state machine + arcade overlay.
+Standard dx_app pose pipeline — `StretchGameFactory` (`IPoseFactory`, reusing
+`LetterboxPreprocessor` + `YOLOv8PosePostprocessor`) + `SyncRunner`. The entry
+(`yolo26n_pose_sync.py`) only wires the factory into `SyncRunner`; all game logic lives
+in the visualizer. `stretch_coach.py` holds `StretchCoachVisualizer` — the per-frame
+state machine, the pose recognizers, the filled-humanoid coach renderer
+(`cv2.fillConvexPoly` torso + tapered limb capsules), and the arcade HUD.
 
 ## Reproduce
 
 ```bash
 bash setup.sh        # venv (dx-runtime) + GUI OpenCV + vendor framework
 bash run.sh          # runs the bundled demo video → annotated output/<run>/output.mp4
-bash run.sh --camera 0          # live camera
+bash run.sh --camera 0          # live camera (needs a display)
 bash run.sh --video clip.mp4    # any video
 ```
+
+`run.sh` with **no arguments** plays the bundled `sample/stretching_demo.mp4` headless and
+saves an annotated mp4 under `output/<run>/`. Any arguments you pass are forwarded to the
+app (e.g. `--camera 0`, `--video path.mp4`). Override the model with
+`DXNN_MODEL=/path/yolo26n-pose.dxnn bash run.sh`.
 
 > x86-64 Linux + DeepX DX-M1 runtime (`yolo26n-pose.dxnn`). Self-contained: `common/` is
 > vendored and `sample/stretching_demo.mp4` is bundled; the app runs once moved out of the suite.
@@ -77,13 +88,15 @@ bash run.sh --video clip.mp4    # any video
 
 | File | Purpose |
 |------|---------|
-| `yolo26n_pose_stretch_sync.py` | Entry — `StretchPoseFactory` + `SyncRunner` |
-| `factory/` | `IPoseFactory` (Letterbox + YOLOv8Pose) + game visualizer |
-| `game/stretch_game.py` | `PoseClassifier`, **`HumanoidCoach`** (filled-humanoid renderer), `StretchGame` |
+| `yolo26n_pose_sync.py` | Entry — `StretchGameFactory` + `SyncRunner` (standalone import walker) |
+| `stretch_coach.py` | `StretchCoachVisualizer` — pose recognizers, **filled-humanoid coach renderer**, `StretchGame` state machine + arcade HUD |
+| `factory/` | `IPoseFactory` base + `StretchGameFactory` (Letterbox + YOLOv8Pose) |
+| `common/` | vendored dx_app framework (runner, processors, base, …) |
 | `config.json` | pose thresholds + hold timing (calibrated from the demo) |
-| `calibrate.py` / `verify.py` | metric probe / headless validation (asserts CLEAR! + saves video) |
+| `test_recognizers.py` | unit test — asserts each stage recognizer fires on the right pose |
 | `setup.sh` / `run.sh` | relocatable setup / one-command launcher |
 | `sample/stretching_demo.mp4` | bundled demo input |
-| `claude-code-session.md` | full agent build transcript (Wall-clock + Cost) |
+| `session.json` / `session.log` | build metadata / real command output log |
+| `claude-code-session.md` | full agent build transcript |
 
 Korean: [`README-ko.md`](./README-ko.md).

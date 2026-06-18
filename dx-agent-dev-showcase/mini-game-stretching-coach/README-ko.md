@@ -23,7 +23,9 @@
 | Coding agent / model | **Claude Code** / **Claude Opus 4.8** (`claude-opus-4-8`) |
 | 사람 입력 | **자연어 프롬프트 1개** — 완전 자율 |
 | Skills | `dx-skill-router` → `dx-agent-brainstorm` → `dx-swe-writing-plans` → `dx-agent-tdd` → `dx-agent-verify` |
-| Wall-clock / turns / cost | ~17분 / 148 / ≈ $9.3 |
+| Build wall-clock / turns | ≈ 15.3분 / 130 |
+| Output tokens / 대략 비용 | ≈ 142K / ≈ $8.1 |
+| Tools | `Bash`×27, `Read`×17, `Write`×12, `Skill`×5, `Edit`×2 |
 
 ## 프롬프트
 
@@ -53,22 +55,30 @@ both --video <file> and --camera <id>; save an annotated output video.
 해당 pose를 ~1.2초 유지 → **GOOD!** + 다음 단계; 3개 모두 완료 → **CLEAR!**
 화면: STAGE n/3, 애니메이션 **휴머노이드 코치**(좌상단), 스트레칭 이름 + 안내, HOLD 진행 바,
 플레이어 실시간 skeleton, model · NPU · FPS 상태줄.
+인식은 **scale-invariant** — 모든 임계값이 플레이어의 어깨 너비로 정규화되어, 카메라와의
+거리에 관계없이 동작합니다.
 
 ## 아키텍처
 
-표준 dx_app pose 파이프라인 — `StretchPoseFactory`(`IPoseFactory`, Letterbox + YOLOv8Pose
-post-process 재사용) + `SyncRunner`. 게임 코어(`game/stretch_game.py`)에 `PoseClassifier`,
-`HumanoidCoach` 렌더러(`cv2.fillConvexPoly` 몸통 + 테이퍼드 limb capsule), `StretchGame` 상태머신
-+ 아케이드 overlay 추가.
+표준 dx_app pose 파이프라인 — `StretchGameFactory`(`IPoseFactory`, `LetterboxPreprocessor`
++ `YOLOv8PosePostprocessor` 재사용) + `SyncRunner`. 엔트리(`yolo26n_pose_sync.py`)는 factory를
+`SyncRunner`에 연결만 하고, 모든 게임 로직은 visualizer에 있습니다. `stretch_coach.py`의
+`StretchCoachVisualizer`가 per-frame 상태머신, pose 인식기, 채워진 휴머노이드 코치 렌더러
+(`cv2.fillConvexPoly` 몸통 + 테이퍼드 limb capsule), 아케이드 HUD를 담당합니다.
 
 ## 재현
 
 ```bash
 bash setup.sh        # venv(dx-runtime) + GUI OpenCV + framework vendoring
 bash run.sh          # 번들 데모 비디오 실행 → annotated output/<run>/output.mp4
-bash run.sh --camera 0          # 라이브 카메라
+bash run.sh --camera 0          # 라이브 카메라 (디스플레이 필요)
 bash run.sh --video clip.mp4    # 임의 비디오
 ```
+
+인자 없이 `run.sh`를 실행하면 번들 `sample/stretching_demo.mp4`를 headless로 재생하고
+`output/<run>/`에 annotated mp4를 저장합니다. 전달한 인자는 그대로 앱으로 전달됩니다
+(예: `--camera 0`, `--video path.mp4`). 모델은 `DXNN_MODEL=/path/yolo26n-pose.dxnn bash run.sh`로
+override할 수 있습니다.
 
 > x86-64 Linux + DeepX DX-M1 runtime(`yolo26n-pose.dxnn`) 필요. self-contained: `common/`이
 > vendoring되고 `sample/stretching_demo.mp4`가 번들 → suite 밖으로 옮겨도 실행됨.
@@ -77,13 +87,15 @@ bash run.sh --video clip.mp4    # 임의 비디오
 
 | 파일 | 용도 |
 |------|---------|
-| `yolo26n_pose_stretch_sync.py` | 엔트리 — `StretchPoseFactory` + `SyncRunner` |
-| `factory/` | `IPoseFactory`(Letterbox + YOLOv8Pose) + 게임 visualizer |
-| `game/stretch_game.py` | `PoseClassifier`, **`HumanoidCoach`**(채워진 휴머노이드 렌더러), `StretchGame` |
+| `yolo26n_pose_sync.py` | 엔트리 — `StretchGameFactory` + `SyncRunner` (standalone import walker) |
+| `stretch_coach.py` | `StretchCoachVisualizer` — pose 인식기, **채워진 휴머노이드 코치 렌더러**, `StretchGame` 상태머신 + 아케이드 HUD |
+| `factory/` | `IPoseFactory` base + `StretchGameFactory`(Letterbox + YOLOv8Pose) |
+| `common/` | vendoring된 dx_app framework (runner, processors, base, …) |
 | `config.json` | pose 임계값 + hold 타이밍(데모에서 calibrate) |
-| `calibrate.py` / `verify.py` | metric probe / headless 검증(CLEAR! 도달 + 비디오 저장 assert) |
+| `test_recognizers.py` | unit test — 각 stage 인식기가 올바른 pose에서 동작하는지 assert |
 | `setup.sh` / `run.sh` | relocatable 셋업 / 원커맨드 런처 |
 | `sample/stretching_demo.mp4` | 번들 데모 입력 |
-| `claude-code-session.md` | 전체 에이전트 빌드 transcript (Wall-clock + Cost) |
+| `session.json` / `session.log` | 빌드 메타데이터 / 실제 명령 출력 로그 |
+| `claude-code-session.md` | 전체 에이전트 빌드 transcript |
 
 영어: [`README.md`](./README.md).

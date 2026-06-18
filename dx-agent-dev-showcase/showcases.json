@@ -61,10 +61,10 @@
       "highlight_en": "pose game + arcade HUD",
       "highlight_ko": "포즈 게임 + 아케이드 HUD",
       "model": "Claude Opus 4.8",
-      "build": "≈ 20 min",
-      "turns": "166",
-      "tokens": "≈ 238K",
-      "cost": "≈ $9.9"
+      "build": "≈ 12 min",
+      "turns": "132",
+      "tokens": "≈ 109K",
+      "cost": "≈ $7.3"
     },
     {
       "name": "mini-game-stretching-coach",
@@ -81,10 +81,10 @@
       "highlight_en": "coach avatar + 3 stages",
       "highlight_ko": "coach 아바타 + 3단계",
       "model": "Claude Opus 4.8",
-      "build": "≈ 17 min",
-      "turns": "148",
-      "tokens": "≈ 188K",
-      "cost": "≈ $9.3"
+      "build": "≈ 15 min",
+      "turns": "130",
+      "tokens": "≈ 142K",
+      "cost": "≈ $8.1"
     },
     {
       "name": "ultralytics-yolo-deepx-export",
@@ -144,10 +144,10 @@
       "highlight_en": "mAP 0.0001→0.257, 58→80 FPS",
       "highlight_ko": "mAP 0.0001→0.257, 58→80 FPS",
       "model": "Claude Opus 4.8",
-      "build": "≈ 9 min",
-      "turns": "117",
-      "tokens": "≈ 113K",
-      "cost": "≈ $5.1"
+      "build": "≈ 17 min",
+      "turns": "102",
+      "tokens": "≈ 93K",
+      "cost": "≈ $4.0"
     },
     {
       "name": "ultralytics-retrain-eval-deepx-export-braintumor",

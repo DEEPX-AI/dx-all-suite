@@ -35,8 +35,8 @@ InferenceEngine 설정, DxPreprocess/DxInfer 엘리먼트 연결 — 따라서 *
 
 | Showcase | 설명 | 빌드 시간 | Agent turns | Output tokens | ~비용 |
 |---|---|---|---|---|---|
-| **[스쿼트 카운팅 미니게임](../../dx-agent-dev-showcase/mini-game-squat-fitness/)** | 무릎/엉덩이 각도로 스쿼트 횟수 카운트 + 아케이드 HUD(횟수 / 점수 / DOWN·UP·GOOD!). | ≈ 20 min | 166 | ≈ 238K | ≈ $9.9 |
-| **[스트레칭 coach 미니게임](../../dx-agent-dev-showcase/mini-game-stretching-coach/)** | 애니메이션 coach 아바타가 각 목표 포즈를 시연하며 3가지 스트레칭 안내. | ≈ 17 min | 148 | ≈ 188K | ≈ $9.3 |
+| **[스쿼트 카운팅 미니게임](../../dx-agent-dev-showcase/mini-game-squat-fitness/)** | 무릎/엉덩이 각도로 스쿼트 횟수 카운트 + 아케이드 HUD(횟수 / 점수 / DOWN·UP·GOOD!). | ≈ 12 min | 132 | ≈ 109K | ≈ $7.3 |
+| **[스트레칭 coach 미니게임](../../dx-agent-dev-showcase/mini-game-stretching-coach/)** | 애니메이션 coach 아바타가 각 목표 포즈를 시연하며 3가지 스트레칭 안내. | ≈ 15 min | 130 | ≈ 142K | ≈ $8.1 |
 
 #### Ultralytics 생태계 통합
 
@@ -46,7 +46,7 @@ InferenceEngine 설정, DxPreprocess/DxInfer 엘리먼트 연결 — 따라서 *
 |---|---|---|---|---|---|
 | **[Ultralytics YOLO → DeepX Export](../../dx-agent-dev-showcase/ultralytics-yolo-deepx-export/)** | Ultralytics YOLO `.pt`를 단일 `yolo export ... format=deepx` 명령으로 배포 가능한 DeepX NPU 모델(`.dxnn`)로 변환, NPU 추론 + verify. | ≈ 12 min | 108 | ≈ 84K | ≈ $2.4 |
 | **[아프리카 야생동물 모니터링](../../dx-agent-dev-showcase/ultralytics-retrain-eval-deepx-export-wildlife/)** | 사파리/보전 카메라용으로 `yolo26n`을 `african-wildlife`(buffalo/elephant/rhino/zebra)로 재학습; base/재학습 × fp32/INT8 4-way 평가. | ≈ 7 min | 78 | ≈ 85K | ≈ $3.2 |
-| **[건설 PPE 안전](../../dx-agent-dev-showcase/ultralytics-retrain-eval-deepx-export-ppe/)** | 현장 안전 카메라용으로 `yolo26n`을 `construction-ppe`(helmet/vest/...)로 재학습; base/재학습 × fp32/INT8 4-way 평가. | ≈ 9 min | 117 | ≈ 113K | ≈ $5.1 |
+| **[건설 PPE 안전](../../dx-agent-dev-showcase/ultralytics-retrain-eval-deepx-export-ppe/)** | 현장 안전 카메라용으로 `yolo26n`을 `construction-ppe`(helmet/vest/...)로 재학습; base/재학습 × fp32/INT8 4-way 평가. | ≈ 17 min | 102 | ≈ 93K | ≈ $4.0 |
 | **[뇌종양 스크리닝](../../dx-agent-dev-showcase/ultralytics-retrain-eval-deepx-export-braintumor/)** | 의료 edge 디바이스용으로 `yolo26n`을 `brain-tumor`(MRI/CT)로 재학습; base/재학습 × fp32/INT8 4-way 평가. | ≈ 9 min | 91 | ≈ 103K | ≈ $3.7 |
 | **[의약품 알약 검사](../../dx-agent-dev-showcase/ultralytics-retrain-eval-deepx-export-pills/)** | 제약 카운팅 스테이션용으로 `yolo26n`을 `medical-pills`로 재학습; base/재학습 × fp32/INT8 4-way 평가. | ≈ 8 min | 118 | ≈ 103K | ≈ $5.1 |
 
