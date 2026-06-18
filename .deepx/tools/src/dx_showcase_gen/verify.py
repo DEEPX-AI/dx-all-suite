@@ -74,6 +74,40 @@ def runsh_wraps_fork_demo(run_sh: Path) -> Optional[bool]:
         return None
 
 
+# A dx_app-asset model path resolved through an EMPTY-default var expansion
+# (e.g. `${DX_APP_ROOT:-}/assets/models/x.dxnn`) collapses to an absolute `/assets/...`
+# when the var is unset — the squat model-discovery regression. The correct pattern
+# derives the path from `$SUITE_ROOT/dx-runtime/dx_app` (always resolvable).
+_BROKEN_MODEL_RE = re.compile(r"\$\{[A-Za-z_][A-Za-z0-9_]*:-\}[^\n]*assets/models", re.MULTILINE)
+
+
+def runsh_model_discovery_broken(run_sh: Path) -> Optional[bool]:
+    """True if run.sh resolves a dx_app model via an empty-default var expansion
+    (collapses to an unresolvable absolute path). None if run.sh is absent."""
+    if not run_sh.exists():
+        return None
+    try:
+        return bool(_BROKEN_MODEL_RE.search(run_sh.read_text(errors="replace")))
+    except Exception:
+        return None
+
+
+def setupsh_local_venv_without_bridge(setup_sh: Path) -> Optional[bool]:
+    """True if setup.sh creates a local venv (`python3 -m venv`) but never writes a
+    dx_engine bridge `*.pth` — so dx_engine is unimportable in the new venv (the
+    stretching FATAL). None if setup.sh is absent. False if no local venv is created
+    (reuses venv-dx-runtime) or a bridge .pth is written."""
+    if not setup_sh.exists():
+        return None
+    try:
+        text = setup_sh.read_text(errors="replace")
+    except Exception:
+        return None
+    creates_local_venv = bool(re.search(r"python3?\s+-m\s+venv\b", text))
+    writes_bridge = ".pth" in text
+    return creates_local_venv and not writes_bridge
+
+
 def verify_showcase(showcase_dir: str, *, stream_json: Optional[str] = None,
                     expected_tool: str = C.DEFAULT_TOOL,
                     expected_model: str = C.DEFAULT_MODEL,

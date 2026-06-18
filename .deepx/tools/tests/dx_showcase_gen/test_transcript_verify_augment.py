@@ -135,3 +135,49 @@ def test_verify_flags_missing_and_wrong_model(tmp_path):
     assert names["transcript files present"] is False      # html/jsonl missing
     assert names["artifact present: run.sh"] is False
     assert rep.passed is False
+
+
+def test_runsh_model_discovery_broken_flags_empty_default_in_assets_path(tmp_path):
+    from dx_showcase_gen import verify
+    run = tmp_path / "run.sh"
+    run.write_text('MODEL=""\nfor c in "${DX_APP_ROOT:-}/assets/models/yolo26n-pose.dxnn"; do :; done\n')
+    assert verify.runsh_model_discovery_broken(run) is True
+
+def test_runsh_model_discovery_ok_for_suite_root_path(tmp_path):
+    from dx_showcase_gen import verify
+    run = tmp_path / "run.sh"
+    run.write_text('RUNTIME_DIR="$SUITE_ROOT/dx-runtime"\n'
+                   'DEFAULT_MODEL="$RUNTIME_DIR/dx_app/assets/models/yolo26n-pose.dxnn"\n')
+    assert verify.runsh_model_discovery_broken(run) is False
+
+def test_runsh_model_discovery_none_when_absent(tmp_path):
+    from dx_showcase_gen import verify
+    assert verify.runsh_model_discovery_broken(tmp_path / "nope.sh") is None
+
+def test_setupsh_local_venv_without_bridge_flags_missing_pth(tmp_path):
+    from dx_showcase_gen import verify
+    s = tmp_path / "setup.sh"
+    s.write_text('python3 -m venv "$LOCAL_VENV"\npip install opencv-python numpy\n'
+                 'python -c "import dx_engine" || { echo FATAL; exit 1; }\n')
+    assert verify.setupsh_local_venv_without_bridge(s) is True
+
+def test_setupsh_local_venv_with_bridge_ok(tmp_path):
+    from dx_showcase_gen import verify
+    s = tmp_path / "setup.sh"
+    s.write_text('python3 -m venv "$LOCAL_VENV"\n'
+                 'echo "$RT_SP" > "$VENV_SP/dx_runtime_bridge.pth"\n')
+    assert verify.setupsh_local_venv_without_bridge(s) is False
+
+def test_setupsh_reusing_runtime_venv_ok(tmp_path):
+    from dx_showcase_gen import verify
+    s = tmp_path / "setup.sh"
+    s.write_text('source "$RUNTIME_VENV/bin/activate"\npip install opencv-python\n')
+    assert verify.setupsh_local_venv_without_bridge(s) is False
+
+def test_scan_nonportable_flags_absolute_path_in_json(tmp_path):
+    from dx_showcase_gen import artifacts
+    (tmp_path / "train_result.json").write_text(
+        '{"best_pt": "/data/home/x/dx-all-suite-ultralytics/dx-compiler/'
+        'dx-agent-dev/20260611-101032_x/runs/train/weights/best.pt"}')
+    flags = artifacts.scan_nonportable(str(tmp_path))
+    assert any(f["file"].endswith("train_result.json") for f in flags)

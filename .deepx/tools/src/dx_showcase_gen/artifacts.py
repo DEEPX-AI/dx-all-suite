@@ -3,6 +3,8 @@
 Skips heavy binaries / environments (venv, *.pt, *.onnx, *.dxnn, __pycache__) that
 should not be committed, and flags absolute / session-specific path references the
 agent must make portable before the showcase can run standalone.
+``scan_nonportable`` scans .py, .sh, and .json files — the ppe regression showed that
+absolute build-session paths can leak into committed data files (*.json) too.
 """
 from __future__ import annotations
 
@@ -57,7 +59,7 @@ def scan_nonportable(showcase_dir: str) -> List[Dict[str, str]]:
     """Flag absolute / session-specific path refs in scripts for the agent to fix."""
     flags: List[Dict[str, str]] = []
     for p in Path(showcase_dir).rglob("*"):
-        if p.is_dir() or p.suffix not in {".py", ".sh"}:
+        if p.is_dir() or p.suffix not in {".py", ".sh", ".json"}:
             continue
         try:
             text = p.read_text(errors="replace")
