@@ -45,10 +45,12 @@ dx-agent-dev-showcase/**/*.onnx
 dx-agent-dev-showcase/**/*.dxnn
 dx-agent-dev-showcase/**/*.pt
 dx-agent-dev-showcase/**/venv/
+dx-agent-dev-showcase/**/.venv/
 dx-agent-dev-showcase/**/dxnn_models/
 dx-agent-dev-showcase/**/onnx_models/
 dx-agent-dev-showcase/**/download/
 dx-agent-dev-showcase/**/__pycache__/
+dx-agent-dev-showcase/**/output/
 session-ses_*.md
 
 archives/
