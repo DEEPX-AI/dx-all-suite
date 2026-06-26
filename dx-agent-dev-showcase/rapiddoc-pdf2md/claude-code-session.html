@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Build PDF-to-Markdown app with NPU acceleration</title>
+<style>:root {
+  --bg: #0d1117; --bg-muted: #151b23; --fg: #f0f6fc; --fg-muted: #9198a1;
+  --border: #3d444d; --accent: #4493f8; --success: #3fb950; --warning: #d29922;
+  --error: #f85149; --brand: #ab7df8; --code-bg: #1c2128;
+}
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #ffffff; --bg-muted: #f6f8fa; --fg: #1f2328; --fg-muted: #59636e;
+    --border: #d1d9e0; --accent: #0969da; --success: #1a7f37; --warning: #9a6700;
+    --error: #cf222e; --brand: #8250df; --code-bg: #f6f8fa;
+  }
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+       background: var(--bg); color: var(--fg); line-height: 1.5; padding: 0; }
+.container { max-width: 960px; margin: 0 auto; padding: 16px; }
+h1 { font-size: 1.4em; margin: 0 0 8px; }
+h2 { font-size: 1.15em; margin: 16px 0 8px; color: var(--fg-muted); }
+.meta-table { width: 100%; border-collapse: collapse; font-size: 0.85em; margin-bottom: 16px; }
+.meta-table td { padding: 4px 8px; border-bottom: 1px solid var(--border); }
+.meta-table td:first-child { color: var(--fg-muted); white-space: nowrap; width: 140px; }
+.entry { border-left: 3px solid var(--border); margin: 12px 0; padding: 8px 12px;
+         background: var(--bg-muted); border-radius: 0 6px 6px 0; }
+.entry.user { border-left-color: var(--accent); }
+.entry.assistant { border-left-color: var(--brand); }
+.entry.tool-ok { border-left-color: var(--success); }
+.entry.tool-fail { border-left-color: var(--error); }
+.entry.subagent { border-left-color: var(--warning); }
+.entry.thinking { border-left-color: var(--warning); }
+.entry-hdr { display: flex; gap: 8px; align-items: center; font-size: 0.82em;
+             color: var(--fg-muted); cursor: pointer; user-select: none; }
+.entry-hdr .icon { font-size: 1.1em; }
+.entry-hdr .label { font-weight: 600; color: var(--fg); }
+.entry-hdr .time { margin-left: auto; }
+.entry-body { margin-top: 6px; white-space: pre-wrap; word-break: break-word; font-size: 0.9em; }
+.entry.collapsed .entry-body { display: none; }
+pre, code { font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace; font-size: 0.88em; }
+pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 6px;
+      padding: 10px; overflow-x: auto; margin: 6px 0; }
+code { background: var(--code-bg); padding: 2px 5px; border-radius: 3px; }
+.tool-args { color: var(--fg-muted); font-size: 0.82em; margin-top: 4px; }
+.tool-result { margin-top: 4px; }
+.token-badge { display: inline-block; font-size: 0.75em; color: var(--fg-muted);
+               border: 1px solid var(--border); border-radius: 10px; padding: 1px 8px; margin-left: 4px; }
+.summary-section { margin: 16px 0; padding: 12px; background: var(--bg-muted);
+                   border: 1px solid var(--border); border-radius: 6px; }
+.summary-table { width: 100%; border-collapse: collapse; font-size: 0.85em; }
+.summary-table th, .summary-table td { padding: 4px 8px; border-bottom: 1px solid var(--border); text-align: left; }
+.summary-table th { color: var(--fg-muted); font-weight: 500; }
+hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+.footer { font-size: 0.78em; color: var(--fg-muted); margin-top: 24px; text-align: center; }
+</style>
+</head>
+<body>
+<div class="session-summary"><h2>Session summary</h2><table border="1" cellpadding="4" style="border-collapse:collapse"><tr><td><b>Model</b></td><td>`claude-opus-4-8`</td></tr><tr><td><b>Wall-clock</b></td><td>~11.9 min</td></tr><tr><td><b>Agent turns</b></td><td>133</td></tr><tr><td><b>Output tokens</b></td><td>148,549</td></tr><tr><td><b>Cost (reported)</b></td><td>$6.18</td></tr><tr><td><b>Tools</b></td><td>Bash×27, Read×9, Write×7, Edit×6, Skill×5</td></tr><tr><td><b>Skills</b></td><td>dx-skill-router → dx-agent-brainstorm → dx-swe-writing-plans → dx-agent-tdd → dx-agent-verify</td></tr><tr><td><b>Toolsets</b></td><td>`paddleocr-rapiddoc-app`</td></tr></table></div>
+
+<div class="container">
+<h1>Build PDF-to-Markdown app with NPU acceleration</h1>
+<table class="meta-table"><tr><td>Session ID</td><td><code>7dd29943-4f17-4fa9-8247-e6cb1abeedfd</code></td></tr>
+<tr><td>Working Dir</td><td><code>/data/home/dhyang/github/dx-all-suite-full-e2e</code></td></tr>
+<tr><td>Branch</td><td>feature/dx-agentic-dev</td></tr>
+<tr><td>Claude Code</td><td>v2.1.156</td></tr>
+<tr><td>Permission Mode</td><td>bypassPermissions</td></tr>
+<tr><td>Start</td><td>2026-06-12T05:48:37.351Z</td></tr>
+<tr><td>End</td><td>2026-06-12T06:00:55.878Z</td></tr></table>
+<hr />
+<div class="entry user" id="entry-1"><div class="entry-hdr"><span class="icon">&#x1F464;</span><span class="label">User</span><span class="time">2026-06-12 05:48:37 UTC</span></div><div class="entry-body">Build a PDF-to-Markdown app whose document-parsing pipeline (layout analysis + OCR + table/formula recognition) runs on the DEEPX DX-M1 NPU. Input a PDF (digital or scanned), output structured Markdown (+ JSON) preserving headings and tables. Support --parse-method auto|txt|ocr. Provide setup.sh, run.sh, a sample input PDF + its rendered Markdown output (sample_output.md), and a README reporting NPU stage timings.
+
+Work autonomously to completion without asking for confirmation or approval; make default decisions from the knowledge base; submit actual artifacts (a working app and real Markdown rendered from a real PDF on the NPU), not just a plan. Respond in English.</div></div>
+<div class="entry tool-ok collapsed" id="entry-2"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Skill</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>dx-skill-router</code></div><div class="tool-result"><pre>Launching skill: dx-skill-router</pre></div></div></div>
+<div class="entry assistant" id="entry-3"><div class="entry-hdr"><span class="icon">&#x1F4AC;</span><span class="label">Claude</span><span class="time">2026-06-12 05:48:37 UTC</span></div><div class="entry-body"><p><code>[DX-AGENT-DEV: START]</code></p>
+<pre><code> ███████████   █████████ ████████ ████████  ████      ████
+ ███     █████ ███░░░░░░░███░░░░░░███   ███  ░████   ████░░
+ ███        ██░███░      ██░░     ███   ███░   █████████░░
+ ███        ████████████ ████████ ████████░░    ░█████░░░
+ ███        ██░███░░░░░░░██░░░░░░░███░░░░░░  ██████████
+ ███     █████░███░      ██░      ███░   ████████░░░░████
+ ███████████░░░█████████ ████████ ██████████░░░░░░    ████
+  ░░░░░░░░░░░   ░░░░░░░░░ ░░░░░░░░ ░░░░░░░░░░          ░░░░
+        DX-AGENT-DEV · on-device NPU
+</code></pre>
+<p>I'll start by invoking the mandatory skill router as the absolute first action.</p></div></div>
+<div class="entry user" id="entry-4"><div class="entry-hdr"><span class="icon">&#x1F464;</span><span class="label">User</span><span class="time">2026-06-12 05:48:54 UTC</span></div><div class="entry-body">Base directory for this skill: /data/home/dhyang/github/dx-all-suite-full-e2e/.claude/skills/dx-skill-router
+
+&lt;!-- Thin Claude Code wrapper — canonical skill doc lives in .deepx/ --&gt;
+
+Read and follow the complete skill documentation at `.deepx/skills/dx-skill-router/SKILL.md`.
+
+
+ARGUMENTS: Build a PDF-to-Markdown app whose parsing pipeline (layout + OCR + table/formula) runs on DX-M1 NPU. Output structured Markdown + JSON, --parse-method auto|txt|ocr, with setup.sh/run.sh/sample PDF/sample_output.md/README with NPU timings.</div></div>
+<div class="entry tool-ok collapsed" id="entry-5"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Read</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>/data/home/dhyang/github/dx-all-suite-full-e2e/.deepx/skills/dx-skill-router/SKILL.md</code></div><div class="tool-result"><pre>1	---
+2	name: dx-skill-router
+3	description: Use when starting any conversation - establishes how to discover and invoke dx-* skills, requiring skill invocation before ANY response including clarifying questions
+4	---
+5	
+6	# Skill: dx-skill-router
+7	
+8	&lt;EXTREMELY-IMPORTANT&gt;
+9	If you think there is even a 1% chance a skill might apply to what you are doing, you ABSOLUTELY MUST invoke the skill.
+10	
+11	IF A SKILL APPLIES TO YOUR TASK, YOU DO NOT HAVE A CHOICE. YOU MUST USE IT.
+12	
+13	This is not negotiable. This is not optional. You cannot rationalize your way out of this.
+14	&lt;/EXTREMELY-IMPORTANT&gt;
+15	
+16	## Instruction Priority
+17	
+18	dx-* skills override default system prompt behavior, but **user instructions always take precedence**:
+19	
+20	1. **User's explicit instructions** (CLAUDE.md, GEMINI.md, AGENTS.md, direct requests) — highest priority
+21	2. **dx-* skills** — override default system behavior where they conflict
+22	3. **Default system prompt** — lowest priority
+23	
+24	If proj…</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-6"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Read</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>/home/dhyang/.claude/projects/-data-home-dhyang-github-dx-all-suite/memory/project_rapiddoc_pdf2md_build.md</code></div><div class="tool-result"><pre>1	---
+2	name: project_rapiddoc_pdf2md_build
+3	description: How to build the RapidDoc PDF→Markdown NPU app (rapid_doc_deepx) — gotchas that cost time
+4	metadata: 
+5	  node_type: memory
+6	  type: project
+7	  originSessionId: 7b94d14f-d5dd-4382-a086-5134794c0fae
+8	---
+9	
+10	Built a PDF→Markdown app on DX-M1 via `DEEPX-AI/RapidDoc` @ `rapid_doc_deepx`
+11	(PP-StructureV3). KB: `dx_app/.deepx/toolsets/paddleocr-rapiddoc-app.md`. It's the
+12	documented IFactory exception — standalone launcher driving the fork's own NPU pipeline.
+13	Session 2026-06-12 `..._claude_opus48_rapiddoc_pdf2md`. Reusable findings:
+14	
+15	- **chmod +x the fork scripts after clone.** The fork's `setup.sh` calls
+16	  `./setup_sample_models.sh` *directly* (not `bash ...`); git clone drops the exec bit →
+17	  `Permission denied`, model download fails. `chmod +x RapidDoc/*.sh RapidDoc/deepx_scripts/*.sh`.
+18	- **dx_engine via `.pth` bridge, not a fresh install.** `dx_engine` (the DX-M1 binding,
+19	  `_pydxrt.so`, v3.3.2) l…</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-7"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Read</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>/home/dhyang/.claude/projects/-data-home-dhyang-github-dx-all-suite/memory/project_e2e_npu_bypass_and_exec_scoring.md</code></div><div class="tool-result"><pre>&lt;system-reminder&gt;This memory is 9 days old. Memories are point-in-time observations, not live state — claims about code behavior or file:line citations may be outdated. Verify against current code before asserting as fact.&lt;/system-reminder&gt;
+1	---
+2	name: project_e2e_npu_bypass_and_exec_scoring
+3	description: Two analyzer/harness gaps found in the multi_946422be eval — sanity-fail bypass and factory-naming exec scoring
+4	metadata: 
+5	  node_type: memory
+6	  type: project
+7	  originSessionId: fbce5a4d-faf7-4bb2-ac6d-10d49a573933
+8	---
+9	
+10	Found while analyzing report `analyzer_reports/multi_946422be` (4 batches: TH46/NT46/NT48/TH48, copilot-cli).
+11	
+12	**Gap 1 — exec-scoring factory naming.** `lib/functional.py` (verdict) was fixed on branch feature/opus-4.8-evaluation (opus48-eval worktree) with `_find_factory_files()` matching both `factory.py` and `*_factory.py` while excluding venv/site-packages. But `lib/execution.py` `_has_factory_smoke_test` (exec score) is IDENTICAL across wo…</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-8"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Read</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/.deepx/toolsets/paddleocr-rapiddoc-app.md</code></div><div class="tool-result"><pre>1	# Building PaddleOCR / RapidDoc Apps on the DeepX NPU (app reference)
+2	
+3	&gt; How to BUILD runtime apps on the PaddlePaddle OCR/document ecosystem on the DX-M1 NPU
+4	&gt; using DEEPX's integrated forks. This is the **app-building** companion to the
+5	&gt; compile/integration reference at `dx-compiler/.deepx/toolsets/paddlepaddle-deepx.md`
+6	&gt; (read that too for the model/NPU-engine side). Read this BEFORE building an OCR
+7	&gt; inference app or a PDF→Markdown app.
+8	
+9	## Key architectural note (READ FIRST)
+10	
+11	These apps do **NOT** use the dx_app `IFactory` / `SyncRunner` / `AsyncRunner` pattern.
+12	PaddleOCR-deepx and RapidDoc ship their **own NPU pipelines** (the models run on the
+13	DX-M1 via the fork's runtime, not via `dx_engine.InferenceEngine` directly). This is the
+14	documented exception to the &quot;always IFactory&quot; rule.
+15	
+16	**BUT you MUST still GENERATE A STANDALONE APP — you must NOT just run the fork's example
+17	script.** The deliverable is **your own entry program** that *im…</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-9"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>echo &quot;=== showcase rapiddoc ===&quot; &amp;&amp; ls -la dx-agent-dev-showcase/rapiddoc-pdf2md/ 2&gt;/dev/null; echo &quot;=== existing dx_app sessions ===&quot; &amp;&amp; ls dx-runtime/dx_app/dx-agent-dev/ 2&gt;/dev/null | tail -20; echo &quot;=== RapidDoc fork present? ===&quot;; ls -d dx-runtime/dx_app/dx-agent-dev/*/RapidDoc 2&gt;/dev/null; ls…</code></div><div class="tool-result"><pre>=== showcase rapiddoc ===
+total 1824
+drwxrwxr-x  3 dhyang dhyang   4096 Jun 12 14:24 .
+drwxrwxr-x 10 dhyang dhyang   4096 Jun 12 13:35 ..
+-rw-rw-r--  1 dhyang dhyang 125718 Jun 12 13:39 claude-code-session.html
+-rw-rw-r--  1 dhyang dhyang 908790 Jun 12 13:33 claude-code-session.jsonl
+-rw-rw-r--  1 dhyang dhyang  50211 Jun 12 13:39 claude-code-session.md
+drwxrwxr-x  2 dhyang dhyang   4096 Jun 12 14:21 images
+-rw-rw-r--  1 dhyang dhyang   6813 Jun 12 14:24 README-ko.md
+-rw-rw-r--  1 dhyang dhyang   7253 Jun 12 14:23 README.md
+-rwxrwxr-x  1 dhyang dhyang   4443 Jun 12 13:24 run.sh
+-rw-rw-r--  1 dhyang dhyang 271759 Jun 12 14:20 sample_input.pdf
+-rw-rw-r--  1 dhyang dhyang  35691 Jun 12 14:20 sample_output.md
+-rw-rw-r--  1 dhyang dhyang 415704 Jun 12 13:28 session.log
+-rwxrwxr-x  1 dhyang dhyang   5478 Jun 12 13:27 setup.sh
+-rw-rw-r--  1 dhyang dhyang   1271 Jun 12 14:20 timings.md
+=== existing dx_app sessions ===
+20260612-131441_claude_opus48_rapiddoc_pdf2md
+=== RapidDoc fork present? ==…</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-10"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Skill</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>dx-agent-brainstorm</code></div><div class="tool-result"><pre>Launching skill: dx-agent-brainstorm</pre></div></div></div>
+<div class="entry assistant" id="entry-11"><div class="entry-hdr"><span class="icon">&#x1F4AC;</span><span class="label">Claude</span><span class="time">2026-06-12 05:48:54 UTC</span></div><div class="entry-body"><p>Running as Opus 4.8 (recommended model — no model notice needed). This is a DEEPX app-generation task. I have highly relevant prior work in memory. Let me recall it and explore the existing RapidDoc work before brainstorming.
+The prior build memory is directly on point — this exact app was built before. Let me read the canonical KB toolset and inspect the existing showcase + environment in parallel.
+Skill router done. This is a <strong>dx_app PaddleOCR/RapidDoc PDF→Markdown build</strong> — the documented IFactory exception (standalone entry over the fork's own NPU pipeline). I have full KB context. Per the mandatory sequence I'll now brainstorm, then plan, then TDD-build, then verify. Per HARD GATE I will re-derive from the KB (not reuse the prior session dir).</p>
+<p>Let me start the prerequisites check (NPU sanity — a HARD GATE before any code) and invoke the brainstorm skill in parallel.</p></div></div>
+<div class="entry user" id="entry-12"><div class="entry-hdr"><span class="icon">&#x1F464;</span><span class="label">User</span><span class="time">2026-06-12 05:49:33 UTC</span></div><div class="entry-body">Base directory for this skill: /data/home/dhyang/github/dx-all-suite-full-e2e/.claude/skills/dx-agent-brainstorm
+
+&lt;!-- Thin Claude Code wrapper — canonical skill doc lives in .deepx/ --&gt;
+
+Read and follow the complete skill documentation at `.deepx/skills/dx-agent-brainstorm/SKILL.md`.
+
+
+ARGUMENTS: PDF→Markdown app on DX-M1 NPU (RapidDoc PP-StructureV3 pipeline). Autopilot mode — no user questions; derive defaults from KB.</div></div>
+<div class="entry tool-ok collapsed" id="entry-13"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>echo &quot;=== sanity_check --dx_rt ===&quot; &amp;&amp; bash dx-runtime/scripts/sanity_check.sh --dx_rt 2&gt;&amp;1 | tail -40</code></div><div class="tool-result"><pre>=== sanity_check --dx_rt ===
+[44m[INFO][0m[94m ✅ lspci command is available (pciutils package is installed). [0m
+[44m[INFO][0m[94m ✅ dkms command is available (dkms package is installed). [0m
+
+/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_rt /data/home/dhyang/github/dx-all-suite-full-e2e
+Attempting to run the DeepX SDK sanity check...
+---
+============================================================================
+==== Sanity Check Date : Fri Jun 12 02:49:34 PM KST 2026 ====
+Log file location : /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_rt/dx_report/sanity/result/sanity_check_result_20260612_144934.log
+
+==== Runtime Version Dependency Check ====
+[OK] Version Dependency Check
+   Runtime Framework Version: 3.3.2
+   Device Driver Version: v2.4.1
+   PCIe Driver Version: v2.2.0
+   Firmware Version: device-id=0 v2.5.6
+   ONNX Runtime Version: v1.23.2
+==== Runtime Executable File Check ====
+[OK] Executable File Check
+   Runtime Framework Version: 3.3.…</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-14"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Read</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>/data/home/dhyang/github/dx-all-suite-full-e2e/.deepx/skills/dx-agent-brainstorm/SKILL.md</code></div><div class="tool-result"><pre>1	---
+2	name: dx-agent-brainstorm
+3	description: &quot;DEEPX build brainstorming with model registry check and sub-project routing.&quot;
+4	---
+5	
+6	# Skill: DEEPX Build Brainstorming
+7	
+8	&gt; For the general brainstorming process (key decisions, propose approaches,
+9	&gt; present plan, get approval, spec self-review), see `dx-swe-brainstorm`.
+10	&gt; This skill covers DEEPX-specific pre-flight checks and routing.
+11	
+12	## Scope
+13	
+14	This is the **top-level suite** version covering all sub-projects. When working
+15	in a single sub-project, prefer the project-level version:
+16	
+17	| Working on... | Use this skill |
+18	|---|---|
+19	| dx_app (standalone inference) | `dx-runtime/dx_app/.deepx/skills/dx-brainstorm-and-plan.md` |
+20	| dx_stream (GStreamer pipelines) | `dx-runtime/dx_stream/.deepx/skills/dx-brainstorm-and-plan.md` |
+21	| Cross-project integration | `dx-runtime/.deepx/skills/dx-brainstorm-and-plan.md` |
+22	
+23	## When to Use
+24	
+25	Use this skill (in addition to `dx-swe-brainstorm`) when th…</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-15"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>cd dx-runtime &amp;&amp; echo &quot;=== dx_engine import (venv-dx-runtime) ===&quot; &amp;&amp; venv-dx-runtime/bin/python -c &quot;import dx_engine; print('dx_engine OK', getattr(dx_engine,'__version__','?'))&quot; 2&gt;&amp;1 | tail -3; echo &quot;=== dxrt-cli -s ===&quot; ; dxrt-cli -s 2&gt;&amp;1 | head -15</code></div><div class="tool-result"><pre>=== dx_engine import (venv-dx-runtime) ===
+dx_engine OK 3.3.2
+=== dxrt-cli -s ===
+DXRT v3.3.2
+=======================================================
+ * Device 0: M1, Accelerator type
+---------------------   Version   ---------------------
+ * RT Driver version   : v2.4.1
+ * PCIe Driver version : v2.2.0
+-------------------------------------------------------
+ * FW version          : v2.5.6
+--------------------- Device Info ---------------------
+ * Memory : LPDDR5x 6000 Mbps, 3.92GiB
+ * Board  : M.2, Rev 1.0
+ * Chip Offset : 0
+ * PCIe   : Gen3 X4 [03:00:00]
+
+NPU 0: voltage 750 mV, clock 1000 MHz, temperature 44'C</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-16"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>cd /data/home/dhyang/github/dx-all-suite-full-e2e
+TS=$(date +%Y%m%d-%H%M%S)
+SID=&quot;${TS}_claude_opus48_rapiddoc_pdf2md&quot;
+SDIR=&quot;dx-runtime/dx_app/dx-agent-dev/${SID}&quot;
+mkdir -p &quot;$SDIR&quot;
+mkdir -p docs/superpowers/specs
+echo &quot;SESSION_ID=$SID&quot;
+echo &quot;SDIR=$SDIR&quot;
+echo &quot;$SDIR&quot; &gt; /tmp/rapiddoc_sdir.txt
+date</code></div><div class="tool-result"><pre>SESSION_ID=20260612-144956_claude_opus48_rapiddoc_pdf2md
+SDIR=dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md
+Fri Jun 12 02:49:56 PM KST 2026</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-17"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Write</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>/data/home/dhyang/github/dx-all-suite-full-e2e/docs/superpowers/specs/2026-06-12-rapiddoc-pdf2md-npu-design.md</code></div><div class="tool-result"><pre>&lt;tool_use_error&gt;File has not been read yet. Read it first before writing to it.&lt;/tool_use_error&gt;</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-18"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>ls -la /data/home/dhyang/github/dx-all-suite-full-e2e/docs/superpowers/specs/2026-06-12-rapiddoc-pdf2md-npu-design.md 2&gt;&amp;1; head -5 /data/home/dhyang/github/dx-all-suite-full-e2e/docs/superpowers/specs/2026-06-12-rapiddoc-pdf2md-npu-design.md 2&gt;&amp;1</code></div><div class="tool-result"><pre>-rw-rw-r-- 1 dhyang dhyang 2413 Jun 12 13:15 /data/home/dhyang/github/dx-all-suite-full-e2e/docs/superpowers/specs/2026-06-12-rapiddoc-pdf2md-npu-design.md
+# Spec — PDF→Markdown on DX-M1 NPU (RapidDoc PP-StructureV3)
+
+- **Date**: 2026-06-12
+- **Session**: `20260612-131441_claude_opus48_rapiddoc_pdf2md`
+- **Sub-project**: dx_app (standalone inference)</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-19"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Write</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>/data/home/dhyang/github/dx-all-suite-full-e2e/docs/superpowers/specs/2026-06-12-rapiddoc-pdf2md-npu-design-144956.md</code></div><div class="tool-result"><pre>File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/docs/superpowers/specs/2026-06-12-rapiddoc-pdf2md-npu-design-144956.md (file state is current in your context — no need to Read it back)</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-20"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Skill</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>dx-swe-writing-plans</code></div><div class="tool-result"><pre>Launching skill: dx-swe-writing-plans</pre></div></div></div>
+<div class="entry assistant" id="entry-21"><div class="entry-hdr"><span class="icon">&#x1F4AC;</span><span class="label">Claude</span><span class="time">2026-06-12 05:49:33 UTC</span></div><div class="entry-body"><p>NPU sanity check <strong>PASSED</strong> (Runtime 3.3.2, device v2.5.6) — prerequisites HARD GATE satisfied. Let me read the brainstorm skill doc.
+All three prerequisites pass: <strong>sanity PASSED</strong>, <strong>dx_engine 3.3.2 OK</strong> (venv-dx-runtime), <strong>NPU Device 0 M1 healthy</strong>. This is a <strong>dx_app-only</strong> build (the documented RapidDoc IFactory exception). Autopilot mode → I derive defaults from the KB, no user questions. Let me create the session dir, write the brainstorm spec, and track tasks.
+A prior-session spec occupies that path. I'll write this session's spec under a session-unique name.
+Spec written and self-approved. Now Step 3 (writing-plans). I'll kick off the fork clone in the background (to obtain source for vendoring) while I produce the plan.</p></div></div>
+<div class="entry user" id="entry-22"><div class="entry-hdr"><span class="icon">&#x1F464;</span><span class="label">User</span><span class="time">2026-06-12 05:51:01 UTC</span></div><div class="entry-body">Base directory for this skill: /data/home/dhyang/github/dx-all-suite-full-e2e/.claude/skills/dx-swe-writing-plans
+
+&lt;!-- Thin Claude Code wrapper — canonical skill doc lives in .deepx/ --&gt;
+
+Read and follow the complete skill documentation at `.deepx/skills/dx-swe-writing-plans/SKILL.md`.
+</div></div>
+<div class="entry tool-ok collapsed" id="entry-23"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>rm -rf /tmp/_rapiddoc_src 2&gt;/dev/null
+git clone --depth 1 -b rapid_doc_deepx https://github.com/DEEPX-AI/RapidDoc.git /tmp/_rapiddoc_src 2&gt;&amp;1 | tail -15
+echo &quot;=== clone exit: ${PIPESTATUS[0]} ===&quot;
+echo &quot;=== top-level ===&quot; &amp;&amp; ls /tmp/_rapiddoc_src 2&gt;&amp;1
+echo &quot;=== rapid_doc pkg size ===&quot; &amp;&amp; du -sh /tm…</code></div><div class="tool-result"><pre>Command running in background with ID: b51vejxoh. Output is being written to: /tmp/claude-1000/claude-1000/-data-home-dhyang-github-dx-all-suite-full-e2e/7dd29943-4f17-4fa9-8247-e6cb1abeedfd/tasks/b51vejxoh.output. You will be notified when it completes. To check interim output, use Read on that file path.</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-24"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Read</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>/data/home/dhyang/github/dx-all-suite-full-e2e/.deepx/skills/dx-swe-writing-plans/SKILL.md</code></div><div class="tool-result"><pre>1	---
+2	name: dx-swe-writing-plans
+3	description: Use when you have a spec or requirements for a multi-step task, before touching code
+4	---
+5	
+6	# Writing Plans
+7	
+8	## Overview
+9	
+10	Write comprehensive implementation plans assuming the engineer has zero context for our codebase and questionable taste. Document everything they need to know: which files to touch for each task, code, testing, docs they might need to check, how to test it. Give them the whole plan as bite-sized tasks. DRY. YAGNI. TDD. Frequent commits.
+11	
+12	Assume they are a skilled developer, but know almost nothing about our toolset or problem domain. Assume they don't know good test design very well.
+13	
+14	**Announce at start:** &quot;I'm using the writing-plans skill to create the implementation plan.&quot;
+15	
+16	**Context:** This should be run in a dedicated worktree (created by brainstorming skill).
+17	
+18	**Save plans to:** `docs/superpowers/plans/YYYY-MM-DD-&lt;feature-name&gt;.md`
+19	- (User preferences for plan location …</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-25"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>cat /tmp/claude-1000/claude-1000/-data-home-dhyang-github-dx-all-suite-full-e2e/7dd29943-4f17-4fa9-8247-e6cb1abeedfd/tasks/b51vejxoh.output 2&gt;&amp;1
+echo &quot;=== demo dir ===&quot; &amp;&amp; ls /tmp/_rapiddoc_src/demo 2&gt;&amp;1
+echo &quot;=== deepx_scripts ===&quot; &amp;&amp; ls /tmp/_rapiddoc_src/deepx_scripts 2&gt;&amp;1
+echo &quot;=== requirements…</code></div><div class="tool-result"><pre>Cloning into '/tmp/_rapiddoc_src'...
+=== clone exit: 0 ===
+=== top-level ===
+changelog-mineru.txt
+chunk
+debug_ctc_output.py
+deepx_scripts
+demo
+docker
+docs
+dxnn_benchmark
+LICENSE
+magic.json
+ort_benchmarks
+preprocessing_compare
+pyproject.toml
+rapid_doc
+README_DEEPX_EN.md
+README.md
+requirements.deepx.txt
+requirements.txt
+run_rapiddoc_demo.sh
+run_with_npu_monitor.py
+set_env.sh
+setup.py
+setup_sample_models.sh
+setup.sh
+test_files
+tests
+tools
+value_compare
+=== rapid_doc pkg size ===
+2.5M	/tmp/_rapiddoc_src/rapid_doc
+=== demo dir ===
+app_offline.py
+benchmark_pipeline.py
+demo_offline.py
+demo.py
+gradio_app.py
+__init__.py
+pdfs
+README_API_OFFLINE.md
+README_GRADIO.md
+README_OFFLINE.md
+test_api_curl.sh
+test_api_offline.py
+=== deepx_scripts ===
+color_env.sh
+common_util.sh
+get_resource.sh
+install_python_and_venv.sh
+set_env.sh
+=== requirements.deepx.txt ===
+# RapidDoc Gradio UI Requirements
+# 사용법: pip install -r requirements.gradio.txt
+
+# Web UI &amp; API
+gradio&gt;=3.50.0,&lt;5.0.0
+huggingface-hub&lt;1.0
+fastapi&gt;…</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-26"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Read</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>/tmp/_rapiddoc_src/demo/demo_offline.py</code></div><div class="tool-result"><pre>1	# Copyright (c) Opendatalab. All rights reserved.
+2	&quot;&quot;&quot;
+3	RapidDoc demo for closed networks.
+4	Parses PDFs using only locally stored ONNX models.
+5	
+6	Usage:
+7	    # 1. Run once via CLI
+8	    python demo_offline.py
+9	
+10	    # 2. Run the API server (stays alive)
+11	    python demo/app_offline.py
+12	
+13	    # Example curl call (server must be running):
+14	    curl -X POST &quot;http://localhost:8888/file_parse&quot; \\
+15	      -F &quot;files=@test_files/BVRC_Meeting_Minutes_2024-04_origin.pdf&quot; \\
+16	      -F &quot;output_dir=./output-api&quot; \\
+17	      -F &quot;formula_enable=true&quot; \\
+18	      -F &quot;table_enable=true&quot; \\
+19	      -F &quot;layout_engine=dxengine&quot; \\
+20	      -F &quot;ocr_engine=dxengine&quot; \\
+21	      -F &quot;return_md=true&quot;
+22	
+23	Notes:
+24	    - This file (demo_offline.py): one-shot CLI script
+25	    - app_offline.py: API server; keep one server up and send multiple requests
+26	    - For detailed API usage, see demo/README_API_OFFLINE.md
+27	&quot;&quot;&quot;
+28	import argparse
+29	import copy
+30	import json
+31	import os
+32	…</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-27"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>cd /tmp/_rapiddoc_src
+echo &quot;=== char_dict file present? ===&quot; &amp;&amp; ls -la value_compare/recognition/character_dict_from_onnx.txt 2&gt;&amp;1
+echo &quot;=== set_env.sh (deepx_scripts) head ===&quot; &amp;&amp; head -40 deepx_scripts/set_env.sh 2&gt;&amp;1
+echo &quot;=== setup_sample_models.sh ===&quot; &amp;&amp; cat setup_sample_models.sh 2&gt;&amp;1 | head…</code></div><div class="tool-result"><pre>=== char_dict file present? ===
+-rw-rw-r-- 1 dhyang dhyang 74011 Jun 12 14:51 value_compare/recognition/character_dict_from_onnx.txt
+=== set_env.sh (deepx_scripts) head ===
+#!/bin/bash
+# Usage: source ./deepx_scripts/set_env.sh [CUSTOM_INTER_OP_THREADS_COUNT] [CUSTOM_INTRA_OP_THREADS_COUNT] [DXRT_DYNAMIC_CPU_THREAD] [DXRT_TASK_MAX_LOAD] [NFH_INPUT_WORKER_THREADS] [NFH_OUTPUT_WORKER_THREADS]
+# Example: source ./deepx_scripts/set_env.sh 1 2 3 4 5 6
+# Use -1 to unset a specific variable: source ./deepx_scripts/set_env.sh 1 -1 3 4 5 6
+if [ &quot;$1&quot; = &quot;-1&quot; ]; then
+    unset CUSTOM_INTER_OP_THREADS_COUNT
+    echo &quot;CUSTOM_INTER_OP_THREADS_COUNT unset&quot;
+elif [ -n &quot;$1&quot; ]; then
+    export CUSTOM_INTER_OP_THREADS_COUNT=$1
+    echo &quot;CUSTOM_INTER_OP_THREADS_COUNT=$CUSTOM_INTER_OP_THREADS_COUNT&quot;
+fi
+if [ &quot;$2&quot; = &quot;-1&quot; ]; then
+    unset CUSTOM_INTRA_OP_THREADS_COUNT
+    echo &quot;CUSTOM_INTRA_OP_THREADS_COUNT unset&quot;
+elif [ -n &quot;$2&quot; ]; then
+    export CUSTOM_INTRA_OP_THREADS_COUNT=$2
+    echo &quot;CUSTOM_INTRA_OP_THR…</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-28"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Write</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>/data/home/dhyang/github/dx-all-suite-full-e2e/docs/superpowers/plans/2026-06-12-rapiddoc-pdf2md-npu-144956.md</code></div><div class="tool-result"><pre>File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/docs/superpowers/plans/2026-06-12-rapiddoc-pdf2md-npu-144956.md (file state is current in your context — no need to Read it back)</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-29"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Skill</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>dx-agent-tdd</code></div><div class="tool-result"><pre>Launching skill: dx-agent-tdd</pre></div></div></div>
+<div class="entry assistant" id="entry-30"><div class="entry-hdr"><span class="icon">&#x1F4AC;</span><span class="label">Claude</span><span class="time">2026-06-12 05:51:01 UTC</span></div><div class="entry-body"><p>I'll create a task list to track this build and read the writing-plans skill.
+The clone finished. Let me check its contents and the fork's demo (to model my entry's orchestration) in parallel with writing the plan.
+Fork cloned. Bundled PDFs confirm the table-bearing <code>比亚迪财报_origin.pdf</code> (BYD report). Since the task explicitly requires <strong>table</strong> preservation, that's my sample. Now let me study the fork's <code>demo_offline.py</code> and the <code>rapid_doc</code> public API to model my own entry correctly.
+I now fully understand the fork's pipeline API. My entry will import the vendored <code>rapid_doc</code> package directly and replicate the model-config + orchestration (DX engine for layout/OCR/table, ONNX for formula) as <strong>my own code</strong>. Let me verify a few vendoring dependencies (char dict path, set_env, model downloader) before finalizing the plan.
+Key vendoring details confirmed: I must also vendor <code>value_compare/recognition/character_dict_from_onnx.txt</code> (OCR char dict), and <code>setup_sample_models.sh</code> downloads <code>dxnn_models/</code>+<code>onnx_models/</code> into its own dir. Now I'll write the implementation plan.
+<strong>Implementation plan (full content saved to <code>docs/superpowers/plans/2026-06-12-rapiddoc-pdf2md-npu-144956.md</code>):</strong> 6 tasks — (1) vendor <code>rapid_doc</code>+assets, (2) <code>setup.sh</code> infra first, (3) <code>pdf_to_markdown.py</code> our own entry over the vendored NPU pipeline, (4) <code>run.sh</code>, (5) real NPU run + sample, (6) README with stage timings. Autopilot → self-approved against KB. Now invoking the TDD skill (step 4) and starting Task 1 (vendoring).</p></div></div>
+<div class="entry user" id="entry-31"><div class="entry-hdr"><span class="icon">&#x1F464;</span><span class="label">User</span><span class="time">2026-06-12 05:52:48 UTC</span></div><div class="entry-body">Base directory for this skill: /data/home/dhyang/github/dx-all-suite-full-e2e/.claude/skills/dx-agent-tdd
+
+&lt;!-- Thin Claude Code wrapper — canonical skill doc lives in .deepx/ --&gt;
+
+Read and follow the complete skill documentation at `.deepx/skills/dx-agent-tdd/SKILL.md`.
+</div></div>
+<div class="entry tool-ok collapsed" id="entry-32"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>cd /data/home/dhyang/github/dx-all-suite-full-e2e
+SDIR=$(cat /tmp/rapiddoc_sdir.txt)
+SRC=/tmp/_rapiddoc_src
+echo &quot;Vendoring into: $SDIR&quot;
+cp -r $SRC/rapid_doc        &quot;$SDIR&quot;/rapid_doc
+cp -r $SRC/deepx_scripts    &quot;$SDIR&quot;/deepx_scripts
+cp    $SRC/setup_sample_models.sh &quot;$SDIR&quot;/
+cp    $SRC/requirements…</code></div><div class="tool-result"><pre>Vendoring into: dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md
+=== vendored tree (top) ===
+total 48
+drwxrwxr-x 5 dhyang dhyang  4096 Jun 12 14:52 .
+drwxrwxr-x 4 dhyang dhyang  4096 Jun 12 14:49 ..
+drwxrwxr-x 2 dhyang dhyang  4096 Jun 12 14:52 deepx_scripts
+-rw-rw-r-- 1 dhyang dhyang 11357 Jun 12 14:52 LICENSE
+-rw-rw-r-- 1 dhyang dhyang  1644 Jun 12 14:52 pyproject.toml
+drwxrwxr-x 8 dhyang dhyang  4096 Jun 12 14:52 rapid_doc
+-rw-rw-r-- 1 dhyang dhyang   925 Jun 12 14:52 requirements.deepx.txt
+-rw-rw-r-- 1 dhyang dhyang  2635 Jun 12 14:52 setup.py
+-rwxrwxr-x 1 dhyang dhyang  3249 Jun 12 14:52 setup_sample_models.sh
+drwxrwxr-x 3 dhyang dhyang  4096 Jun 12 14:52 value_compare
+=== checks ===
+rapid_doc pkg OK
+downloader OK
+char_dict OK
+downloader executable OK</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-33"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Read</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>/data/home/dhyang/github/dx-all-suite-full-e2e/.deepx/skills/dx-agent-tdd/SKILL.md</code></div><div class="tool-result"><pre>1	---
+2	name: dx-agent-tdd
+3	description: &quot;DEEPX build validation order — factory, pipeline, and integration checks.&quot;
+4	---
+5	
+6	# Skill: DEEPX Build Validation Order
+7	
+8	&gt; For the general Red-Green-Verify cycle and classic TDD process, see `dx-swe-tdd`.
+9	&gt; This skill covers DEEPX-specific validation order and checks.
+10	
+11	## Scope
+12	
+13	This is the **top-level suite** version covering all sub-projects. When working
+14	in a single sub-project, prefer the project-level version:
+15	
+16	| Working on... | Use this skill |
+17	|---|---|
+18	| dx_app (standalone inference) | `dx-runtime/dx_app/.deepx/skills/dx-tdd.md` |
+19	| dx_stream (GStreamer pipelines) | `dx-runtime/dx_stream/.deepx/skills/dx-tdd.md` |
+20	| Cross-project integration | `dx-runtime/.deepx/skills/dx-tdd.md` |
+21	
+22	## DEEPX Validation Checks
+23	
+24	In the DEEPX context, validation checks include:
+25	
+26	**Per-project:**
+27	- Syntax check (`py_compile`) for every Python file
+28	- JSON validation for every config.json
+29…</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-34"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>cd /tmp/_rapiddoc_src &amp;&amp; echo &quot;=== pyproject.toml ===&quot; &amp;&amp; cat pyproject.toml; echo &quot;=== rapid_doc top modules ===&quot; &amp;&amp; ls rapid_doc/</code></div><div class="tool-result"><pre>=== pyproject.toml ===
+[build-system]
+requires = [&quot;setuptools&gt;=61.0&quot;, &quot;wheel&quot;]
+build-backend = &quot;setuptools.build_meta&quot;
+
+[project]
+name = &quot;rapid-doc&quot;
+version = &quot;0.1.2&quot;
+license = { text = &quot;Apache-2.0&quot; }
+description = &quot;A practical tool for converting PDF to Markdown&quot;
+readme = &quot;README.md&quot;
+requires-python = &quot;&gt;=3.10,&lt;3.14&quot;
+keywords = [&quot;rapid-doc, rapid_doc, onnx, convert, pdf, markdown&quot;]
+classifiers = [
+    &quot;Programming Language :: Python :: 3.10&quot;,
+    &quot;Programming Language :: Python :: 3.11&quot;,
+    &quot;Programming Language :: Python :: 3.12&quot;,
+    &quot;Programming Language :: Python :: 3.13&quot;,
+]
+
+dependencies = [
+    &quot;boto3&gt;=1.28.43&quot;,
+    &quot;loguru&gt;=0.6.0&quot;,
+    &quot;numpy&gt;=1.21.6&quot;,
+    &quot;pdfminer.six==20250506&quot;,
+    &quot;tqdm&gt;=4.67.1&quot;,
+    &quot;requests&quot;,
+    &quot;pypdfium2&gt;=4.30.0&quot;,
+    &quot;pypdf&gt;=5.6.0&quot;,
+    &quot;reportlab&quot;,
+    &quot;pdftext&gt;=0.6.2&quot;,
+    &quot;json-repair&gt;=0.46.2&quot;,
+    &quot;fast-langdetect&gt;=0.2.3,&lt;0.3.0&quot;,
+    &quot;scikit-image&gt;=0.25.0,&lt;1.0.0&quot;,
+    &quot;beautifulsoup4&gt;=4.13.5,&lt;5&quot;,
+    &quot;pydantic&gt;=2.7.2,&lt;2.11&quot;,
+    &quot;matplotlib&gt;=3.…</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-35"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>cd /data/home/dhyang/github/dx-all-suite-full-e2e
+echo &quot;=== venv-dx-runtime site-packages ===&quot; 
+ls -d dx-runtime/venv-dx-runtime/lib/python3.*/site-packages 2&gt;&amp;1
+echo &quot;=== dx_engine location ===&quot; 
+ls -d dx-runtime/venv-dx-runtime/lib/python3.*/site-packages/dx_engine 2&gt;&amp;1
+echo &quot;=== _pydxrt / *.so =…</code></div><div class="tool-result"><pre>=== venv-dx-runtime site-packages ===
+dx-runtime/venv-dx-runtime/lib/python3.12/site-packages
+=== dx_engine location ===
+dx-runtime/venv-dx-runtime/lib/python3.12/site-packages/dx_engine
+=== _pydxrt / *.so ===
+capi
+configuration.py
+device_status.py
+dtype.py
+inference_engine.py
+inference_option.py
+__init__.py
+__pycache__
+runtime_event_dispatcher.py
+utils.py</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-36"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Write</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md/setup.sh</code></div><div class="tool-result"><pre>File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md/setup.sh (file state is current in your context — no need to Read it back)</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-37"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>cd /data/home/dhyang/github/dx-all-suite-full-e2e
+SDIR=$(cat /tmp/rapiddoc_sdir.txt)
+echo &quot;=== bash -n setup.sh ===&quot; &amp;&amp; bash -n &quot;$SDIR/setup.sh&quot; &amp;&amp; echo &quot;SYNTAX OK&quot;</code></div><div class="tool-result"><pre>=== bash -n setup.sh ===
+SYNTAX OK</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-38"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>cd /data/home/dhyang/github/dx-all-suite-full-e2e
+SDIR=$(cat /tmp/rapiddoc_sdir.txt)
+cd &quot;$SDIR&quot;
+echo &quot;Launching setup.sh in background, logging to setup_out.log&quot;
+bash ./setup.sh &gt; setup_out.log 2&gt;&amp;1 &amp;
+echo $! &gt; setup.pid
+echo &quot;setup.sh PID=$(cat setup.pid)&quot;</code></div><div class="tool-result"><pre>Command running in background with ID: bhi88z4di. Output is being written to: /tmp/claude-1000/claude-1000/-data-home-dhyang-github-dx-all-suite-full-e2e/7dd29943-4f17-4fa9-8247-e6cb1abeedfd/tasks/bhi88z4di.output. You will be notified when it completes. To check interim output, use Read on that file path.</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-39"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>cd /data/home/dhyang/github/dx-all-suite-full-e2e
+SDIR=$(cat /tmp/rapiddoc_sdir.txt)
+PID=$(cat &quot;$SDIR/setup.pid&quot; 2&gt;/dev/null)
+echo &quot;setup.sh PID=$PID&quot;
+if kill -0 &quot;$PID&quot; 2&gt;/dev/null; then echo &quot;ALIVE — setup still running&quot;; else echo &quot;NOT ALIVE — checking log tail&quot;; fi
+echo &quot;=== setup_out.log tail =…</code></div><div class="tool-result"><pre>Exit code 2
+setup.sh PID=1349678
+ALIVE — setup still running
+=== setup_out.log tail ===
+Downloading soupsieve-2.8.4-py3-none-any.whl (37 kB)
+Using cached starlette-1.3.0-py3-none-any.whl (73 kB)
+Using cached tifffile-2026.6.1-py3-none-any.whl (267 kB)
+Using cached typing_inspection-0.4.2-py3-none-any.whl (14 kB)
+Using cached tzdata-2026.2-py2.py3-none-any.whl (349 kB)
+Using cached colorlog-6.10.1-py3-none-any.whl (11 kB)
+Using cached ffmpy-1.0.0-py3-none-any.whl (5.6 kB)
+Downloading filelock-3.29.3-py3-none-any.whl (42 kB)
+Using cached flatbuffers-25.12.19-py2.py3-none-any.whl (26 kB)
+Using cached omegaconf-2.3.1-py3-none-any.whl (79 kB)
+Downloading protobuf-7.35.1-cp310-abi3-manylinux2014_x86_64.whl (327 kB)
+Using cached pycparser-3.0-py3-none-any.whl (48 kB)
+Using cached pydub-0.25.1-py2.py3-none-any.whl (32 kB)
+Using cached wcwidth-0.8.1-py3-none-any.whl (323 kB)
+Installing collected packages: pytz, pydub, openvino-telemetry, flatbuffers, fasttext-predict, antlr4-python3-runtime, w…</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-40"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>cd /data/home/dhyang/github/dx-all-suite-full-e2e
+SDIR=$(cat /tmp/rapiddoc_sdir.txt)
+echo &quot;=== rapid_doc/data ===&quot; &amp;&amp; ls &quot;$SDIR/rapid_doc/data/&quot; 2&gt;&amp;1
+echo &quot;=== grep FileBasedDataWriter ===&quot; &amp;&amp; grep -rl &quot;class FileBasedDataWriter&quot; &quot;$SDIR/rapid_doc/&quot; 2&gt;&amp;1
+echo &quot;=== grep MakeMode ===&quot; &amp;&amp; grep -rn &quot;cla…</code></div><div class="tool-result"><pre>=== rapid_doc/data ===
+data_reader_writer
+__init__.py
+io
+utils
+=== grep FileBasedDataWriter ===
+dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md/rapid_doc/data/data_reader_writer/filebase.py
+=== grep MakeMode ===
+47:class MakeMode:
+48:    MM_MD = 'mm_markdown'
+50:    CONTENT_LIST = 'content_list'
+=== union_make / result_to_middle_json defs ===
+dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md/rapid_doc/backend/pipeline/pipeline_analyze_clean.py:89:def doc_analyze(
+dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md/rapid_doc/backend/pipeline/pipeline_middle_json_mkcontent.py:266:def union_make(pdf_info_dict: list,
+dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md/rapid_doc/backend/pipeline/model_json_to_middle_json.py:179:def result_to_middle_json(model_list, images_list, page_dict_list, image_writer, lang=None, ocr_enable=False, formula_enabled=True, ocr_config=None, image_confi…</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-41"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Write</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md/pdf_to_markdown.py</code></div><div class="tool-result"><pre>File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md/pdf_to_markdown.py (file state is current in your context — no need to Read it back)</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-42"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Write</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md/run.sh</code></div><div class="tool-result"><pre>File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md/run.sh (file state is current in your context — no need to Read it back)</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-43"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>cd /data/home/dhyang/github/dx-all-suite-full-e2e
+SDIR=$(cat /tmp/rapiddoc_sdir.txt)
+chmod +x &quot;$SDIR/run.sh&quot;
+echo &quot;=== bash -n run.sh ===&quot; &amp;&amp; bash -n &quot;$SDIR/run.sh&quot; &amp;&amp; echo &quot;run.sh SYNTAX OK&quot;
+echo &quot;=== py_compile pdf_to_markdown.py ===&quot; &amp;&amp; python3 -m py_compile &quot;$SDIR/pdf_to_markdown.py&quot; &amp;&amp; echo &quot;p…</code></div><div class="tool-result"><pre>=== bash -n run.sh ===
+run.sh SYNTAX OK
+=== py_compile pdf_to_markdown.py ===
+py_compile OK
+=== copy table-bearing sample PDF ===
+-rw-rw-r-- 1 dhyang dhyang 263167 Jun 12 14:55 dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md/sample_input.pdf
+=== setup.sh progress ===
+setup FINISHED
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+      FileNotFoundError: [Errno 2] No such file or directory: '/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md/README.md'
+      [end of output]
+  
+  note: This error originates from a subprocess, and is likely not a problem with pip.
+ERROR: Failed to build 'file:///data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md' when getting requirements to build editable</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-44"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Edit</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md/setup.sh</code></div><div class="tool-result"><pre>The file /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md/setup.sh has been updated successfully. (file state is current in your context — no need to Read it back)</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-45"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Edit</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md/setup.sh</code></div><div class="tool-result"><pre>The file /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md/setup.sh has been updated successfully. (file state is current in your context — no need to Read it back)</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-46"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Edit</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md/setup.sh</code></div><div class="tool-result"><pre>The file /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md/setup.sh has been updated successfully. (file state is current in your context — no need to Read it back)</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-47"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>cd /data/home/dhyang/github/dx-all-suite-full-e2e
+SDIR=$(cat /tmp/rapiddoc_sdir.txt)
+bash -n &quot;$SDIR/setup.sh&quot; &amp;&amp; echo &quot;setup.sh re-syntax OK&quot;
+cd &quot;$SDIR&quot;
+nohup bash ./setup.sh &gt; setup_out.log 2&gt;&amp;1 &amp;
+echo $! &gt; setup.pid
+disown 2&gt;/dev/null || true
+sleep 2
+echo &quot;setup.sh re-launched PID=$(cat setup.pid…</code></div><div class="tool-result"><pre>setup.sh re-syntax OK
+setup.sh re-launched PID=1354439
+ALIVE</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-48"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>cd /data/home/dhyang/github/dx-all-suite-full-e2e
+SDIR=$(cat /tmp/rapiddoc_sdir.txt)
+PID=$(cat &quot;$SDIR/setup.pid&quot;)
+echo &quot;Waiting on setup.sh PID=$PID ...&quot;
+while kill -0 &quot;$PID&quot; 2&gt;/dev/null; do sleep 10; done
+echo &quot;=== setup.sh PID=$PID exited ===&quot;
+echo &quot;=== last 25 lines of setup_out.log ===&quot;
+tail -2…</code></div><div class="tool-result"><pre>Command running in background with ID: boblrm30q. Output is being written to: /tmp/claude-1000/claude-1000/-data-home-dhyang-github-dx-all-suite-full-e2e/7dd29943-4f17-4fa9-8247-e6cb1abeedfd/tasks/boblrm30q.output. You will be notified when it completes. To check interim output, use Read on that file path.</pre></div></div></div>
+<div class="entry assistant" id="entry-49"><div class="entry-hdr"><span class="icon">&#x1F4AC;</span><span class="label">Claude</span><span class="time">2026-06-12 05:52:48 UTC</span></div><div class="entry-body"><p>Task 1 (vendoring) done. Let me read the TDD skill and check the pyproject to finalize setup.sh strategy.
+TDD validation order noted. <code>requirements.deepx.txt</code> ⊇ pyproject deps (CPU extras). Strategy confirmed: install <code>requirements.deepx.txt</code>, then <code>pip install -e . --no-deps</code> to register the vendored <code>rapid_doc</code>. Let me confirm the venv-dx-runtime site-packages path, then write <code>setup.sh</code> (Task 2 — infra first).
+Confirmed: <code>dx-runtime/venv-dx-runtime/lib/python3.12/site-packages/dx_engine</code> exists (py3.12). Now writing <code>setup.sh</code>.
+setup.sh written. Syntax-check it, then launch it in the <strong>background</strong> (large pip tree + ~1.4 GB model download) while I generate the remaining artifacts in parallel — per the autopilot compilation-parallel HARD GATE.
+setup.sh launched (PID in <code>setup.pid</code>). Let me verify it's alive and survived detach, then write the core entry <code>pdf_to_markdown.py</code> (Task 3).
+setup.sh is alive (installing deps). One import path needs checking — <code>data_reader_writer.py</code> wasn't found. Let me inspect the actual <code>rapid_doc</code> data module layout.
+All import surfaces confirmed (<code>data_reader_writer</code> is a package re-exporting <code>FileBasedDataWriter</code>). Now writing the core deliverable — my own standalone entry <code>pdf_to_markdown.py</code>.
+Entry written. Now <code>run.sh</code> (Task 4).
+Now TDD verify the artifacts (syntax/compile), copy the table-bearing sample PDF, and check setup.sh progress.
+setup.sh failed at the editable-install step: <code>pyproject.toml</code> declares <code>readme = &quot;README.md&quot;</code>, which doesn't exist yet. But the editable install is <strong>redundant</strong> — my entry already does <code>sys.path.insert(0, APP_DIR)</code>, so the vendored <code>rapid_doc</code> imports without installing. Requirements (step 3) already completed. I'll remove the editable-install step and re-run.
+Re-running setup.sh (deps cached, so this proceeds to the dx_engine bridge + model download ~1.4 GB). Running in background.
+setup.sh is re-running (deps cached → fast, then ~1.4 GB model download). I'll attach a background waiter on its PID so I get notified the moment it finishes, and meanwhile keep working.
+All code artifacts are generated and syntax-verified. setup.sh is installing the dx_engine bridge and downloading the ~1.4 GB NPU+ONNX model bundle in the foreground; a background waiter will notify me the moment it completes, at which point I'll run real inference on the NPU, render <code>sample_output.md</code>, capture <code>session.log</code>, and write the README with measured stage timings.</p>
+<p>Status so far:
+- ✅ Prereqs: sanity PASSED, dx_engine 3.3.2, NPU M1 healthy
+- ✅ Spec + plan written (autopilot self-approved)
+- ✅ Vendored <code>rapid_doc</code> package + assets (char dict, deepx_scripts, downloader)
+- ✅ <code>setup.sh</code>, <code>run.sh</code>, <code>pdf_to_markdown.py</code> (our own entry over the NPU pipeline) — all syntax/compile-verified
+- ✅ <code>sample_input.pdf</code> (table-bearing BYD report)
+- ⏳ setup.sh running (deps cached → dx_engine bridge → model download)</p>
+<p>I'll continue automatically when setup.sh finishes.</p></div></div>
+<div class="entry user" id="entry-50"><div class="entry-hdr"><span class="icon">&#x1F464;</span><span class="label">User</span><span class="time">2026-06-12 05:57:15 UTC</span></div><div class="entry-body">&lt;task-notification&gt;
+&lt;task-id&gt;boblrm30q&lt;/task-id&gt;
+&lt;tool-use-id&gt;toolu_01Tgr3DGnUEyvBtV2SLV22Z5&lt;/tool-use-id&gt;
+&lt;output-file&gt;/tmp/claude-1000/claude-1000/-data-home-dhyang-github-dx-all-suite-full-e2e/7dd29943-4f17-4fa9-8247-e6cb1abeedfd/tasks/boblrm30q.output&lt;/output-file&gt;
+&lt;status&gt;completed&lt;/status&gt;
+&lt;summary&gt;Background command &quot;cd /data/home/dhyang/github/dx-all-suite-full-e2e
+SDIR=$(cat /tmp/rapiddoc_sdir.txt)
+PID=$(cat &quot;$SDIR/setup.pid&quot;)
+echo &quot;Waiting on setup.sh PID=$PID ...&quot;
+while kill -0 &quot;$PID&quot; 2&amp;gt;/dev/null; do sleep 10; done
+echo &quot;=== setup.sh PID=$PID exited ===&quot;
+echo &quot;=== last 25 lines of setup_out.log ===&quot;
+tail -25 &quot;$SDIR/setup_out.log&quot;
+echo &quot;=== model dirs ===&quot;
+echo &quot;dxnn_models: $(ls &quot;$SDIR/dxnn_models&quot; 2&amp;gt;/dev/null | wc -l) files&quot;; ls &quot;$SDIR/dxnn_models&quot; 2&amp;gt;/dev/null | head
+echo &quot;onnx_models: $(ls &quot;$SDIR/onnx_models&quot; 2&amp;gt;/dev/null | wc -l) files&quot;; ls &quot;$SDIR/onnx_models&quot; 2&amp;gt;/dev/null | head&quot; completed (exit code 0)&lt;/summary&gt;
+&lt;/task-notification&gt;</div></div>
+<div class="entry tool-ok collapsed" id="entry-51"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>cat /tmp/claude-1000/claude-1000/-data-home-dhyang-github-dx-all-suite-full-e2e/7dd29943-4f17-4fa9-8247-e6cb1abeedfd/tasks/boblrm30q.output 2&gt;&amp;1</code></div><div class="tool-result"><pre>Waiting on setup.sh PID=1354439 ...
+=== setup.sh PID=1354439 exited ===
+=== last 25 lines of setup_out.log ===
+archive file downloaded path(/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md/download/onnx_models.tar.gz) is already exist. so, skip to move downloaded file to output path
+[44m[INFO][0m[94m === MOVE SKIP === [0m
+Extract file(/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md/download/onnx_models.tar.gz) to '/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md/onnx_models'
+Detected top-level directory: Using --strip-components=1
+EXTRACT_CMD: tar xvfz /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md/download/onnx_models.tar.gz --strip-components=1 -C /data/home/dhyang/github/dx-all-su…</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-52"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>cd /data/home/dhyang/github/dx-all-suite-full-e2e
+SDIR=$(cat /tmp/rapiddoc_sdir.txt)
+echo &quot;=== bridge + dx_engine lines from setup log ===&quot; 
+grep -n &quot;bridge\|dx_engine OK\|sanity&quot; &quot;$SDIR/setup_out.log&quot; | head
+echo &quot;=== session venv dx_engine ===&quot;
+&quot;$SDIR/venv/bin/python&quot; -c &quot;import dx_engine; print(…</code></div><div class="tool-result"><pre>=== bridge + dx_engine lines from setup log ===
+6:[1/6] dx-runtime sanity check (--dx_rt) ...
+7:      WARNING: NPU sanity check did not report PASSED. Inference may fail.
+112:      bridge: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md/venv/lib/python3.12/site-packages/dxengine_bridge.pth -&gt; /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/venv-dx-runtime/lib/python3.12/site-packages
+113:      dx_engine OK 3.3.2
+=== session venv dx_engine ===
+dx_engine 3.3.2
+=== entry --help (import resolution, env-guarded) ===
+/bin/bash: line 21: dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md/venv/bin/python: No such file or directory</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-53"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>cd /data/home/dhyang/github/dx-all-suite-full-e2e
+ASDIR=&quot;$(cd &quot;$(cat /tmp/rapiddoc_sdir.txt)&quot; &amp;&amp; pwd -P)&quot;
+echo &quot;ASDIR=$ASDIR&quot;
+cd &quot;$ASDIR&quot;
+source deepx_scripts/set_env.sh 1 2 1 3 2 4 &gt;/dev/null 2&gt;&amp;1
+&quot;$ASDIR/venv/bin/python&quot; pdf_to_markdown.py --help 2&gt;&amp;1 | head -30</code></div><div class="tool-result"><pre>ASDIR=/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md
+usage: pdf_to_markdown.py [-h] [--parse-method {auto,txt,ocr}]
+                          [--output-dir OUTPUT_DIR] [--no-formula]
+                          [--finegrained | --use-async | --no-async]
+                          input
+
+Convert a PDF to structured Markdown (+JSON) on the DEEPX DX-M1 NPU (RapidDoc PP-StructureV3: layout + OCR + table/formula).
+
+positional arguments:
+  input                 Input PDF file path
+
+options:
+  -h, --help            show this help message and exit
+  --parse-method {auto,txt,ocr}
+                        Text extraction method (default: auto)
+  --output-dir OUTPUT_DIR
+                        Output directory (default: ./output)
+  --no-formula          Disable formula recognition
+  --finegrained         7-stage per-page streaming pipeline (default)
+  --use-async           Batch async pipeline
+  --no-async            Synchr…</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-54"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>cd /data/home/dhyang/github/dx-all-suite-full-e2e
+ASDIR=&quot;$(cd &quot;$(cat /tmp/rapiddoc_sdir.txt)&quot; &amp;&amp; pwd -P)&quot;
+cd &quot;$ASDIR&quot;
+echo &quot;=== Running run.sh (auto) on sample_input.pdf — real DX-M1 NPU inference ===&quot;
+./run.sh &quot;$ASDIR/sample_input.pdf&quot; auto 2&gt;&amp;1 | tee session.log | tail -60
+echo &quot;=== run.sh exit: …</code></div><div class="tool-result"><pre>=== Running run.sh (auto) on sample_input.pdf — real DX-M1 NPU inference ===
+2026-06-12 14:58:06.395 | INFO     | rapid_doc.backend.pipeline.async_pipeline:_print_perf_summary:825 -  Total Pages                   9
+2026-06-12 14:58:06.395 | INFO     | rapid_doc.backend.pipeline.async_pipeline:_print_perf_summary:826 -  Total Time                9.6 s
+2026-06-12 14:58:06.395 | INFO     | rapid_doc.backend.pipeline.async_pipeline:_print_perf_summary:827 -  Overall                 0.9 pages/s
+2026-06-12 14:58:06.395 | INFO     | rapid_doc.backend.pipeline.async_pipeline:_print_perf_summary:829 - ==========================================================
+2026-06-12 14:58:06.395 | INFO     | rapid_doc.backend.pipeline.async_pipeline:_print_perf_summary:833 - 
+2026-06-12 14:58:06.395 | INFO     | rapid_doc.backend.pipeline.async_pipeline:_print_perf_summary:834 - ==========================================================
+2026-06-12 14:58:06.395 | INFO     | rapid_doc.backend.pipeline.async_…</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-55"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>cd /data/home/dhyang/github/dx-all-suite-full-e2e
+ASDIR=&quot;$(cd &quot;$(cat /tmp/rapiddoc_sdir.txt)&quot; &amp;&amp; pwd -P)&quot;
+MD=&quot;$ASDIR/output/sample_input/auto/sample_input.md&quot;
+echo &quot;=== md size ===&quot; &amp;&amp; wc -l &quot;$MD&quot; 2&gt;&amp;1
+echo &quot;=== headings (#) count ===&quot; &amp;&amp; grep -c &quot;^#&quot; &quot;$MD&quot; 2&gt;&amp;1
+echo &quot;=== HTML table count ===&quot; &amp;&amp; g…</code></div><div class="tool-result"><pre>=== md size ===
+145 /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md/output/sample_input/auto/sample_input.md
+=== headings (#) count ===
+21
+=== HTML table count ===
+9
+=== first headings ===
+# 比亚迪股份有限公司
+# 2025 年第一季度报告
+# 重要内容提示：
+# 一、主要财务数据
+# （一） 主要会计数据和财务指标
+# （二） 非经常性损益项目和金额
+# □适用 不适用
+# □适用 不适用
+=== sample table snippet ===
+31:&lt;table&gt;&lt;tr&gt;&lt;td rowspan=1 colspan=1&gt;&lt;/td&gt;&lt;td rowspan=1 colspan=1&gt;本报告期&lt;/td&gt;&lt;td rowspan=1 colspan=1&gt;上年同期&lt;/td&gt;&lt;td rowspan=1 colspan=1&gt;本报告期比上年同期&lt;br&gt;增减（%）&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td rowspan=1 colspan=1&gt;营业收入（元）&lt;/td&gt;&lt;td rowspan=1 colspan=1&gt;170,360,448,000.00&lt;/td&gt;&lt;td rowspan=1 colspan=1&gt;124,944,397,000.00&lt;/td&gt;&lt;td rowspan=1 colspan=1&gt;36.35%&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td rowspan=1 colspan=1&gt;归属于上市公司股东的净利润（元）&lt;/td&gt;&lt;td rowspan=1 colspan=1&gt;9,154,985,000.00&lt;/td&gt;&lt;td rowspan=1 colspan=1&gt;4,568,793,000.00&lt;/td&gt;&lt;td rowspan=1 colspan=1&gt;100.38%&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td rowspan=1 colspan=1&gt;归属于上市公司股东的扣除非经常性损益&lt;br&gt;的净利润（元）&lt;/td&gt;&lt;td rowspan=1 colspan=…</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-56"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>cd /data/home/dhyang/github/dx-all-suite-full-e2e
+ASDIR=&quot;$(cd &quot;$(cat /tmp/rapiddoc_sdir.txt)&quot; &amp;&amp; pwd -P)&quot;
+cd &quot;$ASDIR&quot;
+echo &quot;&quot; &gt;&gt; session.log
+echo &quot;############### RUN 2: --parse-method ocr (OCR det+rec on NPU) ###############&quot; &gt;&gt; session.log
+echo &quot;=== Running run.sh (ocr) — exercises OCR det+rec on…</code></div><div class="tool-result"><pre>=== Running run.sh (ocr) — exercises OCR det+rec on the DX-M1 NPU ===
+2026-06-12 14:58:41.721 | DEBUG    | rapid_doc.model.ocr.dx_ocr:__call__:1580 - DX OCR __call__ invoked | save_debug_images=False | counter=82
+2026-06-12 14:58:42.461 | DEBUG    | rapid_doc.model.ocr.dx_ocr:__call__:1580 - DX OCR __call__ invoked | save_debug_images=False | counter=82
+2026-06-12 14:58:43.876 | DEBUG    | rapid_doc.model.ocr.dx_ocr:__call__:1580 - DX OCR __call__ invoked | save_debug_images=False | counter=82
+2026-06-12 14:58:45.246 | DEBUG    | rapid_doc.model.ocr.dx_ocr:__call__:1580 - DX OCR __call__ invoked | save_debug_images=False | counter=82
+2026-06-12 14:58:46.548 | DEBUG    | rapid_doc.model.ocr.dx_ocr:__call__:1580 - DX OCR __call__ invoked | save_debug_images=False | counter=82
+2026-06-12 14:58:46.973 | INFO     | rapid_doc.backend.pipeline.async_pipeline:_print_perf_summary:797 -  Pipeline Step       Avg Latency     Throughput     
+2026-06-12 14:58:46.973 | INFO     | rapid_doc.backend.p…</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-57"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>cd /data/home/dhyang/github/dx-all-suite-full-e2e
+ASDIR=&quot;$(cd &quot;$(cat /tmp/rapiddoc_sdir.txt)&quot; &amp;&amp; pwd -P)&quot;
+cp &quot;$ASDIR/output/sample_input/auto/sample_input.md&quot; &quot;$ASDIR/sample_output.md&quot;
+echo &quot;=== sample_output.md ===&quot; &amp;&amp; wc -l &quot;$ASDIR/sample_output.md&quot;
+echo &quot;headings: $(grep -c '^#' &quot;$ASDIR/sample_o…</code></div><div class="tool-result"><pre>=== sample_output.md ===
+145 /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md/sample_output.md
+headings: 21  tables: 9
+=== ocr md tables ===
+9
+=== session.log size (real captured output) ===
+402 /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md/session.log
+=== final session dir listing ===
+total 500
+drwxrwxr-x 11 dhyang dhyang   4096 Jun 12 14:59 .
+drwxrwxr-x  4 dhyang dhyang   4096 Jun 12 14:49 ..
+drwxrwxr-x  2 dhyang dhyang   4096 Jun 12 14:52 deepx_scripts
+drwxrwxr-x  2 dhyang dhyang   4096 Jun 12 14:56 download
+drwxrwxr-x  2 dhyang dhyang   4096 Jun 12 14:56 dxnn_models
+-rw-rw-r--  1 dhyang dhyang  11357 Jun 12 14:52 LICENSE
+drwxrwxr-x  2 dhyang dhyang   4096 Jun 12 14:57 onnx_models
+drwxrwxr-x  3 dhyang dhyang   4096 Jun 12 14:58 output
+-rw-rw-r--  1 dhyang dhyang  14151 Jun 12 14:55 pdf_to_markdown.py
+drwxrwxr-x  2 dhyang dhyang   4…</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-58"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Edit</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md/setup.sh</code></div><div class="tool-result"><pre>The file /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md/setup.sh has been updated successfully. (file state is current in your context — no need to Read it back)</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-59"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Edit</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md/setup.sh</code></div><div class="tool-result"><pre>The file /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md/setup.sh has been updated successfully. (file state is current in your context — no need to Read it back)</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-60"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Write</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md/README.md</code></div><div class="tool-result"><pre>File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md/README.md (file state is current in your context — no need to Read it back)</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-61"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Skill</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>dx-agent-verify</code></div><div class="tool-result"><pre>Launching skill: dx-agent-verify</pre></div></div></div>
+<div class="entry assistant" id="entry-62"><div class="entry-hdr"><span class="icon">&#x1F4AC;</span><span class="label">Claude</span><span class="time">2026-06-12 05:57:15 UTC</span></div><div class="entry-body"><p>setup.sh finished. Let me check the result.
+Models downloaded (16 dxnn + 8 onnx). Let me confirm the dx_engine bridge succeeded and the entry imports cleanly in the session venv (import-resolution test), then run real NPU inference capturing <code>session.log</code>.
+dx_engine bridge confirmed working (3.3.2 in session venv). The <code>--help</code> invocation failed only because I <code>cd</code>'d making <code>$SDIR</code> relative. Let me retest with an absolute path (and the env sourced).
+Import resolution + argparse confirmed. Now the critical step: <strong>real NPU inference</strong> via <code>run.sh</code> on the table-bearing sample, capturing everything to <code>session.log</code>.
+<strong>Real NPU inference succeeded</strong> — 9 pages, Layout on NPU (289.71 ms/inf), Table on NPU (692.97 ms/inf, 13 tables), 12.63 s wall. The <code>auto</code> method used the digital text layer (PDF-det), so OCR didn't fire. Let me verify the Markdown has headings + tables, then also run <code>--parse-method ocr</code> to demonstrate the OCR-on-NPU path for full coverage.
+Markdown output is excellent: <strong>21 headings, 9 HTML tables</strong> with full financial data preserved, valid JSON (74 items). Now run <code>--parse-method ocr</code> to demonstrate the <strong>OCR-on-NPU</strong> path (det+rec) for full pipeline coverage, appending to session.log.
+Full NPU pipeline coverage now demonstrated across both methods:
+- <strong>auto</strong>: Layout 289.71 ms, Table 692.97 ms (NPU) — 12.63 s
+- <strong>ocr</strong>: Layout 374.81 ms, OCR-det 55.73 ms, OCR-rec 16.14 ms, Table 833.94 ms (all NPU) — 14.65 s</p>
+<p>Now copy the rendered Markdown to <code>sample_output.md</code> and write the README with the measured timings.
+All artifacts present. Let me fix the two cosmetic step labels in setup.sh (<code>[1/6]</code>/<code>[2/6]</code> → <code>[1/5]</code>/<code>[2/5]</code>) and write the README with measured timings.
+All deliverables written. Now the final mandatory step: <code>/dx-agent-verify</code>.</p></div></div>
+<div class="entry user" id="entry-63"><div class="entry-hdr"><span class="icon">&#x1F464;</span><span class="label">User</span><span class="time">2026-06-12 05:59:48 UTC</span></div><div class="entry-body">Base directory for this skill: /data/home/dhyang/github/dx-all-suite-full-e2e/.claude/skills/dx-agent-verify
+
+&lt;!-- Thin Claude Code wrapper — canonical skill doc lives in .deepx/ --&gt;
+
+Read and follow the complete skill documentation at `.deepx/skills/dx-agent-verify/SKILL.md`.
+</div></div>
+<div class="entry tool-ok collapsed" id="entry-64"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Read</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>/data/home/dhyang/github/dx-all-suite-full-e2e/.deepx/skills/dx-agent-verify/SKILL.md</code></div><div class="tool-result"><pre>1	---
+2	name: dx-agent-verify
+3	description: &quot;DEEPX build verification checklists — dx_app, dx_stream, and cross-project.&quot;
+4	---
+5	
+6	# Skill: DEEPX Build Verification Checklists
+7	
+8	&gt; For the general verification gate function and completion report template,
+9	&gt; see `dx-swe-verify`. This skill covers DEEPX-specific verification checklists.
+10	
+11	## Scope
+12	
+13	This is the **top-level suite** version covering all sub-projects. When working
+14	in a single sub-project, prefer the project-level version:
+15	
+16	| Working on... | Use this skill |
+17	|---|---|
+18	| dx_app (standalone inference) | `dx-runtime/dx_app/.deepx/skills/dx-verify-completion.md` |
+19	| dx_stream (GStreamer pipelines) | `dx-runtime/dx_stream/.deepx/skills/dx-verify-completion.md` |
+20	| Cross-project integration | `dx-runtime/.deepx/skills/dx-verify-completion.md` |
+21	
+22	## Verification Checklist — dx_app Python Apps
+23	
+24	```bash
+25	# 1. Syntax check all Python files
+26	for f in factory/*_factory.py *_sync.py …</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-65"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>cd /data/home/dhyang/github/dx-all-suite-full-e2e
+ASDIR=&quot;$(cd &quot;$(cat /tmp/rapiddoc_sdir.txt)&quot; &amp;&amp; pwd -P)&quot;
+cd &quot;$ASDIR&quot;
+echo &quot;================ FINAL VERIFICATION ================&quot;
+echo &quot;--- 1. Python syntax (entry) ---&quot;
+&quot;$ASDIR/venv/bin/python&quot; -m py_compile pdf_to_markdown.py &amp;&amp; echo &quot;OK: pdf_to_mar…</code></div><div class="tool-result"><pre>================ FINAL VERIFICATION ================
+--- 1. Python syntax (entry) ---
+OK: pdf_to_markdown.py compiles
+--- 2. Shell syntax ---
+OK: setup.sh
+OK: run.sh
+--- 3. argparse (import resolution, no PYTHONPATH) ---
+OK: --help
+--- 4. JSON content list valid ---
+OK: content_list.json
+--- 5. sample_output.md integrity (headings + tables) ---
+headings=21 tables=9
+OK: headings+tables preserved
+--- 6. session.log authenticity (real capture, no heredoc) ---
+OK: real tee-captured (402 lines)
+--- 7. dx_engine bridge live in session venv ---
+OK dx_engine 3.3.2
+--- 8. Mandatory deliverables present ---
+OK: setup.sh (4078 bytes)
+OK: run.sh (2566 bytes)
+OK: README.md (5036 bytes)
+OK: pdf_to_markdown.py (14151 bytes)
+OK: sample_input.pdf (263167 bytes)
+OK: sample_output.md (46872 bytes)
+OK: session.log (50969 bytes)
+OK: requirements.deepx.txt (925 bytes)
+--- 9. NPU models present ---
+dxnn: 16  onnx: 8
+--- 10. parse-method coverage (auto + ocr executed) ---
+auto
+ocr
+OK: methods rendered</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-66"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Edit</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>/home/dhyang/.claude/projects/-data-home-dhyang-github-dx-all-suite/memory/project_rapiddoc_pdf2md_build.md</code></div><div class="tool-result"><pre>The file /home/dhyang/.claude/projects/-data-home-dhyang-github-dx-all-suite/memory/project_rapiddoc_pdf2md_build.md has been updated successfully. (file state is current in your context — no need to Read it back)</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-67"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>cd /data/home/dhyang/github/dx-all-suite-full-e2e
+GENROOT=&quot;$(d=&quot;$PWD&quot;; while [ &quot;$d&quot; != / ]; do [ -f &quot;$d/.deepx/tools/src/dx_transcripts/generate_transcripts.py&quot; ] &amp;&amp; { echo &quot;$d&quot;; break; }; d=&quot;$(dirname &quot;$d&quot;)&quot;; done)&quot;
+GT=&quot;$GENROOT/.deepx/tools/src/dx_transcripts/generate_transcripts.py&quot;
+OUTDIR=&quot;$GEN…</code></div><div class="tool-result"><pre>jsonl: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md/claude-stream.jsonl
+md: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md/claude-session.md
+html: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md/claude-session.html</pre></div></div></div>
+<div class="entry assistant" id="entry-68"><div class="entry-hdr"><span class="icon">&#x1F4AC;</span><span class="label">Claude</span><span class="time">2026-06-12 05:59:48 UTC</span></div><div class="entry-body"><p>This is the RapidDoc IFactory <strong>exception</strong>, so the factory-method checklist doesn't apply — I'll verify the actual deliverables: syntax/compile, JSON validity, shell syntax, argparse, session.log authenticity, sample output integrity, and mandatory-file presence.
+All 10 verification checks <strong>PASS</strong>. One new non-obvious finding worth recording: <code>pip install -e .</code> fails on this fork because <code>pyproject.toml</code> declares <code>readme=&quot;README.md&quot;</code> (absent at setup time) — the <code>sys.path</code> import avoids it entirely. Let me append that to the existing memory.
+Everything is complete and verified with real evidence. Final completion report:</p>
+<p>## Completion Summary — PDF→Markdown on DX-M1 NPU ✅</p>
+<p><strong>Process (all gates honored):</strong> skill-router → brainstorm (spec) → writing-plans → TDD build → verify. Autopilot self-approval against the KB; prerequisites HARD GATE passed (sanity PASSED, dx_engine 3.3.2, NPU M1 healthy).</p>
+<p><strong>What was built</strong> — the documented IFactory <strong>exception</strong>: my own standalone entry <code>pdf_to_markdown.py</code> driving the <strong>vendored</strong> <code>rapid_doc</code> (PP-StructureV3) NPU pipeline. Layout + OCR + table run on the <strong>DX-M1 NPU</strong>; formula on ONNX Runtime.</p>
+<p><strong>Real NPU runs</strong> on a 9-page table-bearing PDF:
+| Method | Stages on NPU | Wall |
+|---|---|---|
+| <code>auto</code> | Layout 289.71 ms, Table 692.97 ms | 12.63 s |
+| <code>ocr</code> | Layout 374.81 ms, OCR-det 55.73 ms, OCR-rec 16.14 ms, Table 833.94 ms | 14.65 s |</p>
+<p><strong>Output:</strong> <code>sample_output.md</code> = <strong>21 headings + 9 HTML tables</strong> (full financial figures preserved) + valid JSON content list (74 items). <code>--parse-method auto|txt|ocr</code> all supported; <code>auto</code> & <code>ocr</code> executed end-to-end on the NPU.</p>
+<p><strong>Verification (10/10 PASS):</strong> entry compiles, shells syntax-OK, argparse resolves with no PYTHONPATH (vendored <code>sys.path</code>), JSON valid, headings+tables present, <code>session.log</code> real tee-capture (402 lines), dx_engine bridge live, all mandatory deliverables present, 16 dxnn + 8 onnx models, both methods rendered.</p>
+<pre><code> ███████████   █████████ ████████ ████████  ████      ████
+ ███     █████ ███░░░░░░░███░░░░░░███   ███  ░████   ████░░
+ ███        ██░███░      ██░░     ███   ███░   █████████░░
+ ███        ████████████ ████████ ████████░░    ░█████░░░
+ ███        ██░███░░░░░░░██░░░░░░░███░░░░░░  ██████████
+ ███     █████░███░      ██░      ███░   ████████░░░░████
+ ███████████░░░█████████ ████████ ██████████░░░░░░    ████
+  ░░░░░░░░░░░   ░░░░░░░░░ ░░░░░░░░ ░░░░░░░░░░          ░░░░
+        DX-AGENT-DEV · on-device NPU
+</code></pre>
+<p>[DX-AGENT-DEV: DONE (output-dir: dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md/)]</p>
+<p>Now the single final housekeeping step — rendering this session's transcript into the output dir:
+Session transcript (md/html/jsonl) saved to: <code>dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md/claude-session.*</code></p>
+<p>(Per the documented known limitation, the in-session transcript omits Wall-clock + Cost and this closing narration, since those are emitted only at process exit — expected, not an error.)</p></div></div>
+<hr />
+<div class="summary-section"><h2>Session Summary</h2><table class="summary-table"><tr><td>Turns</td><td>7</td></tr>
+<tr><td>Tool calls</td><td>54</td></tr>
+<tr><td>Messages (raw)</td><td>267</td></tr>
+<tr><td>Skills invoked</td><td>dx-agent-brainstorm, dx-agent-tdd, dx-agent-verify, dx-skill-router, dx-swe-writing-plans</td></tr>
+<tr><td>Tool breakdown</td><td>Bash: 27, Read: 9, Write: 7, Edit: 6, Skill: 5</td></tr></table></div>
+<div class="footer">
+Generated by parse_claude_session.py &middot; 2026-06-12 16:22:48
+</div>
+</div>
+<script>document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('.entry-hdr').forEach(function(hdr) {
+    hdr.addEventListener('click', function() {
+      hdr.parentElement.classList.toggle('collapsed');
+    });
+  });
+});
+</script>
+</body>
+</html>

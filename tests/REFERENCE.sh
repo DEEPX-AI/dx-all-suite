@@ -37,6 +37,9 @@ TEST SUITE COMMANDS:
 # Getting-started workflow (11 tests, ~30-60 minutes)
 ./test.sh getting_started
 
+# Version compatibility tests (13 tests, <1 minute)
+./test.sh version_compatibility
+
 
 COMPONENT-SPECIFIC TESTS:
 -------------------------
@@ -148,6 +151,7 @@ MARKER FILTERS (-m option):
 ./test.sh all -m "docker_install"
 ./test.sh all -m "local_install"
 ./test.sh all -m "getting_started"
+./test.sh all -m "version_compatibility"
 
 # Run compiler or runtime workflow tests
 ./test.sh getting_started -m "compiler"
@@ -185,6 +189,8 @@ pytest -v                              # All tests verbose
 pytest -m docker_install               # Docker install tests
 pytest -m local_install                # Local install tests
 pytest -m getting_started              # Getting-started tests
+pytest -m version_compatibility        # Version compatibility tests
+pytest test_version_compatibility/ -v  # Version compatibility suite
 pytest -k "runtime and ubuntu"         # Keyword filter
 pytest --collect-only                  # List tests without running
 pytest -v --tb=short                   # Short traceback
@@ -217,6 +223,9 @@ COMBINING OPTIONS - EXAMPLES:
 # Getting-started compiler workflow with JSON report
 ./test.sh --json=compiler_workflow.json getting_started -k "compiler"
 
+# Version compatibility with JSON report
+./test.sh --json=version_compatibility.json version_compatibility
+
 # Local install with internal network and credentials
 ./test.sh --internal --dx_username=admin --dx_password=secret local_install -k "compiler"
 
@@ -243,7 +252,12 @@ getting_started (11 tests):
   - 6 compiler workflow tests
   - 5 runtime workflow tests
 
-Total: 78 tests
+version_compatibility (13 tests):
+  - 4 parser tests
+  - 7 release.ver tests
+  - 2 optional CLI tests
+
+Total: 91 tests
 
 
 FILE LOCATIONS:
@@ -252,6 +266,7 @@ Test suites:
   - test_docker_install/test_docker_install.py
   - test_local_install/test_local_install.py
   - test_getting-started/test_getting_started.py
+  - test_version_compatibility/test_version_compatibility.py
 
 Documentation:
   - README.md (main test suite documentation)
@@ -317,7 +332,8 @@ Sanity tests:           ~5-10 seconds
 docker_install:         ~6-8 hours (15 tests)
 local_install:          ~8-12 hours (48 tests)
 getting_started:        ~30-60 minutes (11 tests)
-Full suite (all):       ~12-20 hours (78 tests)
+version_compatibility:  <1 minute (13 tests)
+Full suite (all):       ~12-20 hours (91 tests)
 
 
 =============================================================================

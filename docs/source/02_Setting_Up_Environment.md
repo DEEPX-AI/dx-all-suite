@@ -261,9 +261,9 @@ ENTRYPOINT ["tail", "-f", "/dev/null"]
 If you are using Docker Compose, you can overwrite the default Entrypoint directly in `docker/docker-compose.yml` within the corresponding service section.  
 ```YAML
 services:
-dx-runtime:
-		entrypoint: ["/bin/sh", "-c"]
-		command: ["sleep infinity"]
+  dx-runtime:
+    entrypoint: ["/bin/sh", "-c"]
+    command: ["sleep infinity"]
 ```
 
 !!! note "Manual Startup"  

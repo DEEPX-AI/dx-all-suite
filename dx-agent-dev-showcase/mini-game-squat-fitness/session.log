@@ -1,0 +1,315 @@
+===== SESSION LOG: 20260618-120437_claude_opus48_yolo26npose_squatgame =====
+Date: Thu Jun 18 12:11:29 PM KST 2026
+
+--- sanity_check ---
+$ bash dx-runtime/scripts/sanity_check.sh --dx_rt
+Sanity check PASSED!  (Runtime 3.3.2, Driver v2.4.1, FW v2.5.6 — NPU operational)
+RESULT: PASS
+
+--- unit_tests (squat logic, TDD) ---
+$ python -m pytest test_squat_logic.py
+10/10 squat-logic unit tests passed
+RESULT: PASS
+
+--- inference (headless, NPU, sample/squat_demo.mp4) ---
+$ bash run.sh
+[INFO] Model: /data/home/dhyang/github/dx-all-suite-frontier-eval/dx-runtime/dx_app/assets/models/yolo26n-pose.dxnn
+[INFO] Video: /data/home/dhyang/github/dx-all-suite-frontier-eval/dx-runtime/dx_app/dx-agent-dev/20260618-120437_claude_opus48_yolo26npose_squatgame/sample/squat_demo.mp4
+[INFO] 
+Model loaded: /data/home/dhyang/github/dx-all-suite-frontier-eval/dx-runtime/dx_app/assets/models/yolo26n-pose.dxnn
+[INFO] Model input size (WxH): 640x640
+[INFO] Config loaded: /data/home/dhyang/github/dx-all-suite-frontier-eval/dx-runtime/dx_app/dx-agent-dev/20260618-120437_claude_opus48_yolo26npose_squatgame/config.json (3 keys)
+[INFO] 
+Starting inference...
+[INFO] Input: /data/home/dhyang/github/dx-all-suite-frontier-eval/dx-runtime/dx_app/dx-agent-dev/20260618-120437_claude_opus48_yolo26npose_squatgame/sample/squat_demo.mp4
+[INFO] Resolution: 1080x1920, FPS: 25.0, Frames: 313
+[INFO] Saving output video: /data/home/dhyang/github/dx-all-suite-frontier-eval/dx-runtime/dx_app/dx-agent-dev/20260618-120437_claude_opus48_yolo26npose_squatgame/output/yolo26n_pose_squat_sync-stream-squat_demo-20260618-121129/output.mp4
+[INFO] Squat #1 counted (frame 45, knee=164.0 deg)
+[INFO] Squat #2 counted (frame 127, knee=162.4 deg)
+[INFO] Squat #3 counted (frame 202, knee=162.0 deg)
+[INFO] Squat #4 counted (frame 280, knee=163.5 deg)
+
+==================================================
+               PERFORMANCE SUMMARY                
+==================================================
+ Pipeline Step   Avg Latency     Throughput     
+--------------------------------------------------
+ Read                1.03 ms      966.6 FPS
+ Preprocess          1.23 ms      810.6 FPS
+ Inference          15.54 ms       64.3 FPS
+ Postprocess         0.36 ms     2777.5 FPS
+ Render              4.56 ms      219.4 FPS
+ Save                8.39 ms      119.2 FPS
+--------------------------------------------------
+ Total Frames    :    313
+ Total Time      :    9.8 s
+ Overall FPS     :   32.1 FPS
+==================================================
+
+[SQUAT GAME] Final score — total squats counted: 4
+
+--- artifacts ---
+  .:
+  total 44K
+  drwxrwxr-x 10 dhyang dhyang 4.0K Jun 18 12:09 common
+  -rw-rw-r--  1 dhyang dhyang  421 Jun 18 12:11 config.json
+  drwxrwxr-x  3 dhyang dhyang 4.0K Jun 18 12:08 factory
+  drwxrwxr-x  3 dhyang dhyang 4.0K Jun 18 12:11 output
+  drwxrwxr-x  2 dhyang dhyang 4.0K Jun 18 12:09 __pycache__
+  -rwxrwxr-x  1 dhyang dhyang 3.2K Jun 18 12:09 run.sh
+  drwxrwxr-x  2 dhyang dhyang 4.0K Jun 18 12:06 sample
+  -rw-rw-r--  1 dhyang dhyang 2.6K Jun 18 12:11 session.log
+  -rwxrwxr-x  1 dhyang dhyang 3.7K Jun 18 12:06 setup.sh
+  -rw-rw-r--  1 dhyang dhyang 2.7K Jun 18 12:07 test_squat_logic.py
+  -rw-rw-r--  1 dhyang dhyang 2.0K Jun 18 12:09 yolo26n_pose_squat_sync.py
+  
+  ./common:
+  total 36K
+  drwxrwxr-x 3 dhyang dhyang 4.0K Jun 18 12:09 base
+  drwxrwxr-x 3 dhyang dhyang 4.0K Jun 18 12:09 config
+  -rw-rw-r-- 1 dhyang dhyang  160 Jun 18 12:06 __init__.py
+  drwxrwxr-x 3 dhyang dhyang 4.0K Jun 18 12:09 inputs
+  drwxrwxr-x 3 dhyang dhyang 4.0K Jun 18 12:09 processors
+  drwxrwxr-x 2 dhyang dhyang 4.0K Jun 18 12:09 __pycache__
+  drwxrwxr-x 3 dhyang dhyang 4.0K Jun 18 12:09 runner
+  drwxrwxr-x 3 dhyang dhyang 4.0K Jun 18 12:09 utility
+  drwxrwxr-x 3 dhyang dhyang 4.0K Jun 18 12:09 visualizers
+  
+  ./common/base:
+  total 36K
+  -rw-rw-r-- 1 dhyang dhyang  12K Jun 18 12:06 i_factory.py
+  -rw-rw-r-- 1 dhyang dhyang 2.2K Jun 18 12:06 i_input_source.py
+  -rw-rw-r-- 1 dhyang dhyang 1.5K Jun 18 12:06 __init__.py
+  -rw-rw-r-- 1 dhyang dhyang 7.8K Jun 18 12:06 i_processor.py
+  -rw-rw-r-- 1 dhyang dhyang  729 Jun 18 12:06 i_visualizer.py
+  drwxrwxr-x 2 dhyang dhyang 4.0K Jun 18 12:09 __pycache__
+  
+  ./common/base/__pycache__:
+  total 48K
+  -rw-rw-r-- 1 dhyang dhyang  17K Jun 18 12:09 i_factory.cpython-312.pyc
+  -rw-rw-r-- 1 dhyang dhyang 3.9K Jun 18 12:09 i_input_source.cpython-312.pyc
+  -rw-rw-r-- 1 dhyang dhyang 1.5K Jun 18 12:09 __init__.cpython-312.pyc
+  -rw-rw-r-- 1 dhyang dhyang  14K Jun 18 12:09 i_processor.cpython-312.pyc
+  -rw-rw-r-- 1 dhyang dhyang 1.4K Jun 18 12:09 i_visualizer.cpython-312.pyc
+  
+  ./common/config:
+  total 16K
+  -rw-rw-r-- 1 dhyang dhyang 2.1K Jun 18 12:06 config_schema.py
+  -rw-rw-r-- 1 dhyang dhyang  255 Jun 18 12:06 __init__.py
+  -rw-rw-r-- 1 dhyang dhyang 3.0K Jun 18 12:06 model_config.py
+  drwxrwxr-x 2 dhyang dhyang 4.0K Jun 18 12:09 __pycache__
+  
+  ./common/config/__pycache__:
+  total 16K
+  -rw-rw-r-- 1 dhyang dhyang 2.5K Jun 18 12:09 config_schema.cpython-312.pyc
+  -rw-rw-r-- 1 dhyang dhyang  530 Jun 18 12:09 __init__.cpython-312.pyc
+  -rw-rw-r-- 1 dhyang dhyang 5.1K Jun 18 12:09 model_config.cpython-312.pyc
+  
+  ./common/inputs:
+  total 32K
+  -rw-rw-r-- 1 dhyang dhyang 3.6K Jun 18 12:06 camera_source.py
+  -rw-rw-r-- 1 dhyang dhyang 3.0K Jun 18 12:06 image_source.py
+  -rw-rw-r-- 1 dhyang dhyang  396 Jun 18 12:06 __init__.py
+  -rw-rw-r-- 1 dhyang dhyang 5.3K Jun 18 12:06 input_factory.py
+  drwxrwxr-x 2 dhyang dhyang 4.0K Jun 18 12:09 __pycache__
+  -rw-rw-r-- 1 dhyang dhyang 3.6K Jun 18 12:06 rtsp_source.py
+  -rw-rw-r-- 1 dhyang dhyang 3.4K Jun 18 12:06 video_source.py
+  
+  ./common/inputs/__pycache__:
+  total 44K
+  -rw-rw-r-- 1 dhyang dhyang 6.4K Jun 18 12:09 camera_source.cpython-312.pyc
+  -rw-rw-r-- 1 dhyang dhyang 5.5K Jun 18 12:09 image_source.cpython-312.pyc
+  -rw-rw-r-- 1 dhyang dhyang  664 Jun 18 12:09 __init__.cpython-312.pyc
+  -rw-rw-r-- 1 dhyang dhyang 6.7K Jun 18 12:09 input_factory.cpython-312.pyc
+  -rw-rw-r-- 1 dhyang dhyang 6.6K Jun 18 12:09 rtsp_source.cpython-312.pyc
+  -rw-rw-r-- 1 dhyang dhyang 6.8K Jun 18 12:09 video_source.cpython-312.pyc
+  
+  ./common/processors:
+  total 388K
+  -rw-rw-r-- 1 dhyang dhyang 1.1K Jun 18 12:06 arcface_postprocessor.py
+  -rw-rw-r-- 1 dhyang dhyang 5.2K Jun 18 12:06 attribute_postprocessor.py
+  -rw-rw-r-- 1 dhyang dhyang  58K Jun 18 12:06 _bfm_data.py
+  -rw-rw-r-- 1 dhyang dhyang 5.5K Jun 18 12:06 centernet_postprocessor.py
+  -rw-rw-r-- 1 dhyang dhyang  12K Jun 18 12:06 centerpose_postprocessor.py
+  -rw-rw-r-- 1 dhyang dhyang 2.4K Jun 18 12:06 classification_postprocessor.py
+  -rw-rw-r-- 1 dhyang dhyang 3.9K Jun 18 12:06 clip_postprocessor.py
+  -rw-rw-r-- 1 dhyang dhyang 5.5K Jun 18 12:06 cpp_compat.py
+  -rw-rw-r-- 1 dhyang dhyang 3.8K Jun 18 12:06 damoyolo_postprocessor.py
+  -rw-rw-r-- 1 dhyang dhyang 2.1K Jun 18 12:06 depth_postprocessor.py
+  -rw-rw-r-- 1 dhyang dhyang  15K Jun 18 12:06 efficientdet_postprocessor.py
+  -rw-rw-r-- 1 dhyang dhyang 2.3K Jun 18 12:06 embedding_postprocessor.py
+  -rw-rw-r-- 1 dhyang dhyang 3.5K Jun 18 12:06 espcn_postprocessor.py
+  -rw-rw-r-- 1 dhyang dhyang  18K Jun 18 12:06 face_postprocessor.py
+  -rw-rw-r-- 1 dhyang dhyang 2.2K Jun 18 12:06 grayscale_preprocessor.py
+  -rw-rw-r-- 1 dhyang dhyang 2.9K Jun 18 12:06 hand_landmark_postprocessor.py
+  -rw-rw-r-- 1 dhyang dhyang 5.1K Jun 18 12:06 __init__.py
+  -rw-rw-r-- 1 dhyang dhyang  13K Jun 18 12:06 instance_seg_postprocessor.py
+  -rw-rw-r-- 1 dhyang dhyang 3.4K Jun 18 12:06 letterbox_preprocessor.py
+  -rw-rw-r-- 1 dhyang dhyang 9.7K Jun 18 12:06 nanodet_postprocessor.py
+  -rw-rw-r-- 1 dhyang dhyang 1.9K Jun 18 12:06 nms_utils.py
+  -rw-rw-r-- 1 dhyang dhyang 4.4K Jun 18 12:06 obb_postprocessor.py
+  -rw-rw-r-- 1 dhyang dhyang 7.2K Jun 18 12:06 palm_postprocessor.py
+  -rw-rw-r-- 1 dhyang dhyang 9.1K Jun 18 12:06 pose_postprocessor.py
+  -rw-rw-r-- 1 dhyang dhyang  29K Jun 18 12:06 ppu_postprocessor.py
+  drwxrwxr-x 2 dhyang dhyang 4.0K Jun 18 12:09 __pycache__
+  -rw-rw-r-- 1 dhyang dhyang 2.7K Jun 18 12:06 restoration_postprocessor.py
+  -rw-rw-r-- 1 dhyang dhyang 7.9K Jun 18 12:06 retinaface_postprocessor.py
+  -rw-rw-r-- 1 dhyang dhyang 1.6K Jun 18 12:06 segformer_postprocessor.py
+  -rw-rw-r-- 1 dhyang dhyang 8.3K Jun 18 12:06 segmentation_postprocessor.py
+  -rw-rw-r-- 1 dhyang dhyang 2.9K Jun 18 12:06 simple_resize_preprocessor.py
+  -rw-rw-r-- 1 dhyang dhyang 7.7K Jun 18 12:06 ssd_postprocessor.py
+  -rw-rw-r-- 1 dhyang dhyang 3.7K Jun 18 12:06 tddfa_postprocessor.py
+  -rw-rw-r-- 1 dhyang dhyang 3.7K Jun 18 12:06 tflite_det_postprocessor.py
+  -rw-rw-r-- 1 dhyang dhyang 8.0K Jun 18 12:06 ulfg_postprocessor.py
+  -rw-rw-r-- 1 dhyang dhyang  17K Jun 18 12:06 yolact_postprocessor.py
+  -rw-rw-r-- 1 dhyang dhyang  32K Jun 18 12:06 yolo_postprocessor.py
+  -rw-rw-r-- 1 dhyang dhyang 4.0K Jun 18 12:06 zero_dce_postprocessor.py
+  
+  ./common/processors/__pycache__:
+  total 472K
+  -rw-rw-r-- 1 dhyang dhyang 1.7K Jun 18 12:09 arcface_postprocessor.cpython-312.pyc
+  -rw-rw-r-- 1 dhyang dhyang 4.7K Jun 18 12:09 attribute_postprocessor.cpython-312.pyc
+  -rw-rw-r-- 1 dhyang dhyang  54K Jun 18 12:09 _bfm_data.cpython-312.pyc
+  -rw-rw-r-- 1 dhyang dhyang 7.4K Jun 18 12:09 centernet_postprocessor.cpython-312.pyc
+  -rw-rw-r-- 1 dhyang dhyang  17K Jun 18 12:09 centerpose_postprocessor.cpython-312.pyc
+  -rw-rw-r-- 1 dhyang dhyang 3.6K Jun 18 12:09 classification_postprocessor.cpython-312.pyc
+  -rw-rw-r-- 1 dhyang dhyang 4.9K Jun 18 12:09 clip_postprocessor.cpython-312.pyc
+  -rw-rw-r-- 1 dhyang dhyang 7.6K Jun 18 12:09 cpp_compat.cpython-312.pyc
+  -rw-rw-r-- 1 dhyang dhyang 5.5K Jun 18 12:09 damoyolo_postprocessor.cpython-312.pyc
+  -rw-rw-r-- 1 dhyang dhyang 3.4K Jun 18 12:09 depth_postprocessor.cpython-312.pyc
+  -rw-rw-r-- 1 dhyang dhyang  20K Jun 18 12:09 efficientdet_postprocessor.cpython-312.pyc
+  -rw-rw-r-- 1 dhyang dhyang 3.2K Jun 18 12:09 embedding_postprocessor.cpython-312.pyc
+  -rw-rw-r-- 1 dhyang dhyang 4.4K Jun 18 12:09 espcn_postprocessor.cpython-312.pyc
+  -rw-rw-r-- 1 dhyang dhyang  26K Jun 18 12:09 face_postprocessor.cpython-312.pyc
+  -rw-rw-r-- 1 dhyang dhyang 3.3K Jun 18 12:09 grayscale_preprocessor.cpython-312.pyc
+  -rw-rw-r-- 1 dhyang dhyang 3.9K Jun 18 12:09 hand_landmark_postprocessor.cpython-312.pyc
+  -rw-rw-r-- 1 dhyang dhyang 3.6K Jun 18 12:09 __init__.cpython-312.pyc
+  -rw-rw-r-- 1 dhyang dhyang  16K Jun 18 12:09 instance_seg_postprocessor.cpython-312.pyc
+  -rw-rw-r-- 1 dhyang dhyang 4.9K Jun 18 12:09 letterbox_preprocessor.cpython-312.pyc
+  -rw-rw-r-- 1 dhyang dhyang  13K Jun 18 12:09 nanodet_postprocessor.cpython-312.pyc
+  -rw-rw-r-- 1 dhyang dhyang 3.4K Jun 18 12:09 nms_utils.cpython-312.pyc
+  -rw-rw-r-- 1 dhyang dhyang 6.0K Jun 18 12:09 obb_postprocessor.cpython-312.pyc
+  -rw-rw-r-- 1 dhyang dhyang 9.8K Jun 18 12:09 palm_postprocessor.cpython-312.pyc
+  -rw-rw-r-- 1 dhyang dhyang  12K Jun 18 12:09 pose_postprocessor.cpython-312.pyc
+  -rw-rw-r-- 1 dhyang dhyang  40K Jun 18 12:09 ppu_postprocessor.cpython-312.pyc
+  -rw-rw-r-- 1 dhyang dhyang 3.8K Jun 18 12:09 restoration_postprocessor.cpython-312.pyc
+  -rw-rw-r-- 1 dhyang dhyang  12K Jun 18 12:09 retinaface_postprocessor.cpython-312.pyc
+  -rw-rw-r-- 1 dhyang dhyang 2.3K Jun 18 12:09 segformer_postprocessor.cpython-312.pyc
+  -rw-rw-r-- 1 dhyang dhyang 9.9K Jun 18 12:09 segmentation_postprocessor.cpython-312.pyc
+  -rw-rw-r-- 1 dhyang dhyang 4.0K Jun 18 12:09 simple_resize_preprocessor.cpython-312.pyc
+  -rw-rw-r-- 1 dhyang dhyang  11K Jun 18 12:09 ssd_postprocessor.cpython-312.pyc
+  -rw-rw-r-- 1 dhyang dhyang 5.5K Jun 18 12:09 tddfa_postprocessor.cpython-312.pyc
+  -rw-rw-r-- 1 dhyang dhyang 5.0K Jun 18 12:09 tflite_det_postprocessor.cpython-312.pyc
+  -rw-rw-r-- 1 dhyang dhyang  13K Jun 18 12:09 ulfg_postprocessor.cpython-312.pyc
+  -rw-rw-r-- 1 dhyang dhyang  23K Jun 18 12:09 yolact_postprocessor.cpython-312.pyc
+  -rw-rw-r-- 1 dhyang dhyang  43K Jun 18 12:09 yolo_postprocessor.cpython-312.pyc
+  -rw-rw-r-- 1 dhyang dhyang 6.3K Jun 18 12:09 zero_dce_postprocessor.cpython-312.pyc
+  
+  ./common/__pycache__:
+  total 4.0K
+  -rw-rw-r-- 1 dhyang dhyang 426 Jun 18 12:09 __init__.cpython-312.pyc
+  
+  ./common/runner:
+  total 140K
+  -rw-rw-r-- 1 dhyang dhyang 4.3K Jun 18 12:06 args.py
+  -rw-rw-r-- 1 dhyang dhyang  52K Jun 18 12:06 async_runner.py
+  -rw-rw-r-- 1 dhyang dhyang  493 Jun 18 12:06 __init__.py
+  drwxrwxr-x 2 dhyang dhyang 4.0K Jun 18 12:09 __pycache__
+  -rw-rw-r-- 1 dhyang dhyang 5.8K Jun 18 12:06 run_dir.py
+  -rw-rw-r-- 1 dhyang dhyang  52K Jun 18 12:06 sync_runner.py
+  -rw-rw-r-- 1 dhyang dhyang 9.5K Jun 18 12:06 verify_serialize.py
+  
+  ./common/runner/__pycache__:
+  total 172K
+  -rw-rw-r-- 1 dhyang dhyang 4.6K Jun 18 12:09 args.cpython-312.pyc
+  -rw-rw-r-- 1 dhyang dhyang  65K Jun 18 12:09 async_runner.cpython-312.pyc
+  -rw-rw-r-- 1 dhyang dhyang  669 Jun 18 12:09 __init__.cpython-312.pyc
+  -rw-rw-r-- 1 dhyang dhyang 7.9K Jun 18 12:09 run_dir.cpython-312.pyc
+  -rw-rw-r-- 1 dhyang dhyang  65K Jun 18 12:09 sync_runner.cpython-312.pyc
+  -rw-rw-r-- 1 dhyang dhyang  15K Jun 18 12:09 verify_serialize.cpython-312.pyc
+  
+  ./common/utility:
+  total 100K
+  -rw-rw-r-- 1 dhyang dhyang  19K Jun 18 12:06 common_util.py
+  -rw-rw-r-- 1 dhyang dhyang 2.3K Jun 18 12:06 __init__.py
+  -rw-rw-r-- 1 dhyang dhyang  21K Jun 18 12:06 labels.py
+  -rw-rw-r-- 1 dhyang dhyang 7.1K Jun 18 12:06 preprocessing.py
+  -rw-rw-r-- 1 dhyang dhyang  15K Jun 18 12:06 profiling.py
+  drwxrwxr-x 2 dhyang dhyang 4.0K Jun 18 12:09 __pycache__
+  -rw-rw-r-- 1 dhyang dhyang 3.8K Jun 18 12:06 safe_queue.py
+  -rw-rw-r-- 1 dhyang dhyang 4.0K Jun 18 12:06 skeleton.py
+  -rw-rw-r-- 1 dhyang dhyang  13K Jun 18 12:06 visualization.py
+  
+  ./common/utility/__pycache__:
+  total 132K
+  -rw-rw-r-- 1 dhyang dhyang  27K Jun 18 12:09 common_util.cpython-312.pyc
+  -rw-rw-r-- 1 dhyang dhyang 2.1K Jun 18 12:09 __init__.cpython-312.pyc
+  -rw-rw-r-- 1 dhyang dhyang  39K Jun 18 12:09 labels.cpython-312.pyc
+  -rw-rw-r-- 1 dhyang dhyang 8.0K Jun 18 12:09 preprocessing.cpython-312.pyc
+  -rw-rw-r-- 1 dhyang dhyang  24K Jun 18 12:09 profiling.cpython-312.pyc
+  -rw-rw-r-- 1 dhyang dhyang 6.1K Jun 18 12:09 safe_queue.cpython-312.pyc
+  -rw-rw-r-- 1 dhyang dhyang 2.0K Jun 18 12:09 skeleton.cpython-312.pyc
+  -rw-rw-r-- 1 dhyang dhyang  16K Jun 18 12:09 visualization.cpython-312.pyc
+  
+  ./common/visualizers:
+  total 72K
+  -rw-rw-r-- 1 dhyang dhyang 1.6K Jun 18 12:06 attribute_visualizer.py
+  -rw-rw-r-- 1 dhyang dhyang 2.5K Jun 18 12:06 classification_visualizer.py
+  -rw-rw-r-- 1 dhyang dhyang 2.9K Jun 18 12:06 detection_visualizer.py
+  -rw-rw-r-- 1 dhyang dhyang  11K Jun 18 12:06 embedding_enhancement_visualizer.py
+  -rw-rw-r-- 1 dhyang dhyang 4.9K Jun 18 12:06 face_visualizer.py
+  -rw-rw-r-- 1 dhyang dhyang 1.2K Jun 18 12:06 __init__.py
+  -rw-rw-r-- 1 dhyang dhyang 4.4K Jun 18 12:06 instance_seg_visualizer.py
+  -rw-rw-r-- 1 dhyang dhyang 4.1K Jun 18 12:06 obb_visualizer.py
+  -rw-rw-r-- 1 dhyang dhyang 6.7K Jun 18 12:06 pose_visualizer.py
+  drwxrwxr-x 2 dhyang dhyang 4.0K Jun 18 12:09 __pycache__
+  -rw-rw-r-- 1 dhyang dhyang 1.9K Jun 18 12:06 restoration_depth_visualizer.py
+  -rw-rw-r-- 1 dhyang dhyang 3.5K Jun 18 12:06 segmentation_visualizer.py
+  
+  ./common/visualizers/__pycache__:
+  total 80K
+  -rw-rw-r-- 1 dhyang dhyang 2.6K Jun 18 12:09 attribute_visualizer.cpython-312.pyc
+  -rw-rw-r-- 1 dhyang dhyang 3.3K Jun 18 12:09 classification_visualizer.cpython-312.pyc
+  -rw-rw-r-- 1 dhyang dhyang 3.7K Jun 18 12:09 detection_visualizer.cpython-312.pyc
+  -rw-rw-r-- 1 dhyang dhyang  16K Jun 18 12:09 embedding_enhancement_visualizer.cpython-312.pyc
+  -rw-rw-r-- 1 dhyang dhyang 7.1K Jun 18 12:09 face_visualizer.cpython-312.pyc
+  -rw-rw-r-- 1 dhyang dhyang 1.3K Jun 18 12:09 __init__.cpython-312.pyc
+  -rw-rw-r-- 1 dhyang dhyang 5.5K Jun 18 12:09 instance_seg_visualizer.cpython-312.pyc
+  -rw-rw-r-- 1 dhyang dhyang 5.4K Jun 18 12:09 obb_visualizer.cpython-312.pyc
+  -rw-rw-r-- 1 dhyang dhyang 8.9K Jun 18 12:09 pose_visualizer.cpython-312.pyc
+  -rw-rw-r-- 1 dhyang dhyang 3.1K Jun 18 12:09 restoration_depth_visualizer.cpython-312.pyc
+  -rw-rw-r-- 1 dhyang dhyang 4.6K Jun 18 12:09 segmentation_visualizer.cpython-312.pyc
+  
+  ./factory:
+  total 24K
+  -rw-rw-r-- 1 dhyang dhyang   81 Jun 18 12:08 __init__.py
+  drwxrwxr-x 2 dhyang dhyang 4.0K Jun 18 12:09 __pycache__
+  -rw-rw-r-- 1 dhyang dhyang 2.0K Jun 18 12:08 squat_game_factory.py
+  -rw-rw-r-- 1 dhyang dhyang 5.7K Jun 18 12:08 squat_game_visualizer.py
+  -rw-rw-r-- 1 dhyang dhyang 3.1K Jun 18 12:07 squat_logic.py
+  
+  ./factory/__pycache__:
+  total 28K
+  -rw-rw-r-- 1 dhyang dhyang  206 Jun 18 12:09 __init__.cpython-312.pyc
+  -rw-rw-r-- 1 dhyang dhyang 3.0K Jun 18 12:09 squat_game_factory.cpython-312.pyc
+  -rw-rw-r-- 1 dhyang dhyang 8.2K Jun 18 12:09 squat_game_visualizer.cpython-312.pyc
+  -rw-rw-r-- 1 dhyang dhyang 4.2K Jun 18 12:09 squat_logic.cpython-312.pyc
+  
+  ./output:
+  total 4.0K
+  drwxrwxr-x 2 dhyang dhyang 4.0K Jun 18 12:11 yolo26n_pose_squat_sync-stream-squat_demo-20260618-121129
+  
+  ./output/yolo26n_pose_squat_sync-stream-squat_demo-20260618-121129:
+  total 20M
+  -rw-rw-r-- 1 dhyang dhyang  20M Jun 18 12:11 output.mp4
+  -rw-rw-r-- 1 dhyang dhyang 1.1K Jun 18 12:11 run_info.txt
+  
+  ./__pycache__:
+  total 12K
+  -rw-rw-r-- 1 dhyang dhyang 4.5K Jun 18 12:09 test_squat_logic.cpython-312.pyc
+  -rw-rw-r-- 1 dhyang dhyang 2.4K Jun 18 12:09 yolo26n_pose_squat_sync.cpython-312.pyc
+  
+  ./sample:
+  total 6.8M
+  -rw-rw-r-- 1 dhyang dhyang 6.8M Jun 18 12:06 squat_demo.mp4
+RESULT: PASS

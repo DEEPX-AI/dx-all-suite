@@ -1,0 +1,7 @@
+---
+description: 'Build a dx-agent-dev showcase end-to-end: KB-based prompt → recorded real build → complete transcript → artifacts
+  → GIFs → README/docs. RIGID gates prevent recurring mistakes.'
+alwaysApply: false
+---
+
+Read and follow the skill documentation at `.deepx/skills/dx-agent-showcase-build/SKILL.md`.

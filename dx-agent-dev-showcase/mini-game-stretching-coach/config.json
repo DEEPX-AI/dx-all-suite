@@ -1,0 +1,10 @@
+{
+    "score_threshold": 0.4,
+    "nms_threshold": 0.45,
+    "num_keypoints": 17,
+    "keypoint_confidence_threshold": 0.3,
+    "hold_seconds": 1.2,
+    "overhead_wrist_above_nose_ratio": 0.15,
+    "fold_torso_collapse_ratio": 0.45,
+    "neck_hand_horizontal_ratio": 0.95
+}

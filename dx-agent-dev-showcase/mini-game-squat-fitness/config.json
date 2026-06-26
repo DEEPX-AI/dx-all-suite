@@ -1,0 +1,11 @@
+{
+  "score_threshold": 0.4,
+  "nms_threshold": 0.45,
+  "squat_game": {
+    "keypoint_confidence": 0.3,
+    "stand_angle": 160.0,
+    "squat_angle": 140.0,
+    "min_visible_legs": 1,
+    "_note": "Thresholds calibrated to sample/squat_demo.mp4 (front-facing camera; 2D-projected knee angle ranges ~126-179 deg). Adjust squat_angle (down) / stand_angle (up) for steeper side-view setups where the bend reads deeper."
+  }
+}

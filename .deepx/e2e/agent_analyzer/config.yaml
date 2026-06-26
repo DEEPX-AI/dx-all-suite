@@ -1,0 +1,284 @@
+# dx-agent-dev E2E Analyzer — Configuration
+#
+# Edit this file to add new tools, scenarios, or model mappings without code changes.
+
+# ---------------------------------------------------------------------------
+# Tools
+# ---------------------------------------------------------------------------
+# Each tool has:
+#   - dir_suffix: result directory name suffix (matches <ts>_<hash>_<dir_suffix>)
+#   - artifact_prefix: manifest artifacts key prefix (e.g., "claude_code" → "claude_code__compiler")
+#   - transcript_pattern: filename pattern for session transcripts
+tools:
+  claude-code:
+    dir_suffix: "claude-code-autopilot"
+    artifact_prefix: "claude_code"
+    binary: "claude"
+    notes: "Claude Code CLI (Anthropic)"
+    known_false_positives: []
+  copilot-cli:
+    dir_suffix: "copilot-cli-autopilot"
+    artifact_prefix: "copilot_cli"
+    binary: "copilot"
+    notes: "GitHub Copilot CLI"
+    known_false_positives: []
+  cursor-cli:
+    dir_suffix: "cursor-cli-autopilot"
+    artifact_prefix: "cursor_cli"
+    binary: "agent"
+    notes: "Cursor CLI"
+    known_false_positives: []
+  opencode-cli:
+    dir_suffix: "opencode-cli-autopilot"
+    artifact_prefix: "opencode"
+    binary: "opencode"
+    notes: "OpenCode CLI"
+    known_false_positives: []
+  codex-cli:
+    dir_suffix: "codex-cli-autopilot"
+    artifact_prefix: "codex_cli"
+    binary: "codex"
+    notes: "OpenAI Codex CLI (via copilot provider, gpt-5.3-codex)"
+    known_false_positives: []
+
+# ---------------------------------------------------------------------------
+# Scenarios — name + mandatory deliverables under the session output dir
+# ---------------------------------------------------------------------------
+# mandatory_files: paths relative to session output dir (dx-agent-dev/<session_id>/)
+# 'OR' lists are alternatives — at least one must exist
+scenarios:
+  compiler:
+    description: "ONNX → DXNN compilation"
+    expected_output_dirs: ["dx-compiler"]
+    mandatory_files:
+      - "setup.sh"
+      - "run.sh"
+      - "README.md"
+      - "session.log"
+      - "config.json"
+      - "verify.py"
+    file_globs:
+      - "*.dxnn"     # compiled model
+  dx_app:
+    description: "Python inference app (IFactory)"
+    expected_output_dirs: ["dx-runtime/dx_app"]
+    mandatory_files:
+      - "setup.sh"
+      - "run.sh"
+      - "README.md"
+      - "session.log"
+      - "session.json"
+    file_globs:
+      - "**/*_factory.py"
+      - "**/*_sync.py"
+      - "**/config.json"
+  dx_stream:
+    description: "GStreamer single-network pipeline"
+    expected_output_dirs: ["dx-runtime/dx_stream"]
+    mandatory_files:
+      - "setup.sh"
+      - "run.sh"
+      - "README.md"
+      - "session.log"
+      - "session.json"
+      - "pipeline.py"
+    file_globs:
+      - "run_*.sh"
+  dx_stream_cascaded:
+    description: "GStreamer cascaded (multi-model) pipeline"
+    expected_output_dirs: ["dx-runtime/dx_stream"]
+    mandatory_files:
+      - "setup.sh"
+      - "run.sh"
+      - "README.md"
+      - "session.log"
+      - "pipeline.py"
+  runtime:
+    description: "dx-runtime routing (should hand off to dx_app or dx_stream)"
+    expected_output_dirs: ["dx-runtime/dx_app", "dx-runtime/dx_stream"]
+    # Runtime sessions delegate — verify any single sub-project output exists
+    mandatory_files: []  # delegated to sub-project verdict
+  suite:
+    description: "Cross-project: compile (dx-compiler) + deploy (dx_app)"
+    expected_output_dirs: ["dx-compiler", "dx-runtime/dx_app"]
+    # Suite MUST produce TWO separate session dirs (R41 HARD GATE)
+    mandatory_files: []  # delegated to component verdicts
+    requires_two_outputs: true
+
+# ---------------------------------------------------------------------------
+# Model mapping per (tool, session_id_pattern OR round_index)
+# ---------------------------------------------------------------------------
+# Used to flag sessions that ran on non-standard models (e.g., Cursor "auto")
+default_models:
+  claude-code: "claude-sonnet-4.6"
+  copilot-cli: "claude-sonnet-4.6"
+  cursor-cli: "claude-sonnet-4.6"
+  opencode-cli: "claude-sonnet-4.6"
+  codex-cli: "gpt-5.3-codex"
+
+# Per-session overrides (session_id substring → model)
+# Cursor used "auto" model in initial 5 rounds due to subscription cap
+model_overrides:
+  - session_id_pattern: "cursor-cli-autopilot"
+    model: "cursor-auto (non-standard)"
+    note: "Cursor subscription cap exceeded — auto model used instead of claude-sonnet-4.6. Flagged for re-run."
+
+# ---------------------------------------------------------------------------
+# Compliance rules — HARD GATE patterns expected in transcripts/artifacts
+# ---------------------------------------------------------------------------
+compliance_rules:
+  session_id_pattern: '^\d{8}-\d{6}_(claude|copilot|cursor|opencode|codex)_[a-zA-Z0-9_]+_[a-zA-Z0-9_]+$'
+  sentinel_start: "[DX-AGENT-DEV: START]"
+  sentinel_done_pattern: '\[DX-AGENT-DEV: DONE \(output-dir: ([^)]+)\)\]'
+  # Patterns matched against the CONTENT of the agent's own session.log
+  # (which should be tee-captured stdout from actual command execution).
+  # These detect fabrication — agent wrote a template/heredoc to session.log
+  # instead of capturing real output. False-positive guard in compliance.py:
+  # matches inside paths that point to OTHER session.logs (e.g. when the agent
+  # legitimately writes a sub-project's session.log) are NOT counted.
+  prohibited_in_session_log:
+    # Heredoc-style writes (most common)
+    - "cat << 'EOF' > session.log"
+    - "cat << 'LOGEOF'"
+    - "cat <<EOF > session.log"
+    - "cat <<-EOF > session.log"
+    - "cat <<\\EOF > session.log"
+    # echo / printf direct writes
+    - "echo .* > session.log"
+    - "echo -e .* > session.log"
+    - "printf .* > session.log"
+    - "printf .* \\| tee session.log"
+    # Python-driven writes
+    - "open\\(['\"]session\\.log['\"], ['\"]w"
+    - "write_text\\(.*session\\.log"
+    - "Path\\(['\"]session\\.log['\"]\\)\\.write_text"
+    # awk/sed template generation
+    - "awk .* > session.log"
+    - "sed .* > session.log"
+    # base64-decoded payload
+    - "base64 -d.* > session.log"
+    - "base64 --decode.* > session.log"
+  prohibited_in_code:
+    - "TODO: implement"
+    - "# from dxnn_sdk"
+    - "result = np.zeros"
+  required_in_factory:
+    - "create_preprocessor"
+    - "create_postprocessor"
+    - "create_visualizer"
+    - "get_model_name"
+    - "get_task_type"
+
+# ---------------------------------------------------------------------------
+# Output / report settings
+# ---------------------------------------------------------------------------
+report:
+  output_dir: "reports"
+  include_per_session_dumps: true
+  csv_columns:
+    - "round"
+    - "tool"
+    - "scenario"
+    - "model"
+    - "exit_status"
+    - "duration_sec"
+    - "mandatory_files_pct"
+    - "syntax_pass_pct"
+    - "compliance_score"
+    - "quality_score"
+    - "overall_score"
+
+# ---------------------------------------------------------------------------
+# Pricing tables — used to convert tokens / requests → estimated USD
+# ---------------------------------------------------------------------------
+# IMPORTANT: prices are **estimates** based on publicly published rates.
+# Verify against your actual contract / subscription. Edit to match.
+# All values: USD per 1,000,000 tokens (per-million pricing convention),
+# except `usd_per_request` which is USD per Copilot premium request.
+pricing:
+  # ----- Anthropic Claude (Sonnet 4.6 reference rates, May 2026) -----
+  # Source: anthropic.com/pricing (verify on your contract)
+  anthropic_claude_sonnet_4_6:
+    input_per_1m: 3.00
+    output_per_1m: 15.00
+    cache_read_per_1m: 0.30      # 90% discount on cached input
+    cache_write_per_1m: 3.75     # 25% premium on cache creation
+  anthropic_claude_opus_4_6:
+    input_per_1m: 15.00
+    output_per_1m: 75.00
+    cache_read_per_1m: 1.50
+    cache_write_per_1m: 18.75
+
+  # ----- GitHub Copilot Premium Requests -----
+  # Personal Pro:  300 premium req / month / $10  → $0.033/req
+  # Personal Pro+: 1500 premium req / month / $39 → $0.026/req
+  # Business / Enterprise: subscription-based per seat
+  copilot_premium_request:
+    usd_per_request: 0.033       # Pro tier reference
+  # ---- Premium Request multipliers (GitHub Copilot Paid plan, 2026-05) ----
+  # Used by lib/cost.py:compute_estimated_pr() to estimate PR consumption as
+  # ``user_turn_count × multiplier``.  Replaces the older token-ratio
+  # calibration which had high variance across tools.
+  #
+  # Source: GitHub Copilot pricing docs (2026-05) — verify periodically.
+  # When a tool's reported model is missing here, the analyzer falls back to
+  # the "_default" entry (sonnet-4.6 1× — most common case in this experiment).
+  copilot_request_multiplier:
+    # Free models — 0× (no PR consumed)
+    "gpt-5-mini": 0
+    "gpt-4.1": 0
+    "gpt-4o": 0
+    # Low-cost — 0.33×
+    "claude-haiku-4.5": 0.33
+    "gemini-3-flash": 0.33
+    # Standard — 1× (this experiment's default backend)
+    "claude-sonnet-4.6": 1.0
+    "claude-sonnet-4-6": 1.0      # alias used by some session.json files
+    "sonnet46": 1.0               # alias from session dir naming convention
+    "gpt-5.3-codex": 1.0          # placeholder — verify against current pricing
+    # Mid-high — 3×
+    "claude-opus-4.5": 3.0
+    "claude-opus-4.6": 3.0
+    # High — 7.5× / 15×
+    "gpt-5.5": 7.5
+    "claude-opus-4.7": 15.0
+    # opus 4.8 — placeholder pending GitHub Copilot's official multiplier publication.
+    # Defaulting to 15× (same tier as opus 4.7) until confirmed; revise when known.
+    "claude-opus-4.8": 15.0
+    # Cursor Composer 2.5 — NOT a Copilot PR model; subscription-based ($20/mo
+    # Pro unlimited).  Multiplier 0 ensures these sessions are not counted in
+    # PR-based cost calculations even though they have user_turn_count > 0.
+    "composer-2.5": 0
+    "composer-2.5-fast": 0
+    "composer25": 0
+    "composer25fast": 0
+    "comp25": 0
+    "composer": 0
+    # Default fallback for unknown model strings
+    "_default": 1.0
+
+# ---------------------------------------------------------------------------
+# External usage dashboards / APIs (for ground-truth verification)
+# ---------------------------------------------------------------------------
+# The analyzer does NOT auto-fetch these — informational reference only.
+external_usage_sources:
+  anthropic:
+    dashboard: "https://console.anthropic.com/settings/usage"
+    api_doc: "https://docs.anthropic.com/en/api/admin-api/usage-cost"
+    api_endpoint: "GET /v1/organizations/{org_id}/usage_report/messages"
+    cli: "(no direct claude CLI usage subcommand; /usage available inside interactive session)"
+    notes: "Admin API key required for org-level reports."
+  github_copilot:
+    dashboard_personal: "https://github.com/settings/copilot/usage"
+    dashboard_org: "https://github.com/organizations/<ORG>/settings/copilot/usage"
+    api_doc: "https://docs.github.com/en/rest/copilot/copilot-usage"
+    api_endpoint: "GET /orgs/{org}/copilot/usage  (org admin only)"
+    cli: "(no per-session usage subcommand; org metrics via 'gh api')"
+    notes: "User-level usage API not public. Org admins can fetch daily aggregates."
+  cursor:
+    dashboard: "https://cursor.com/dashboard"
+    cli: "agent status (auth info only — not usage)"
+    notes: "No official public usage API. Verify via web dashboard 'Usage' tab."
+  opencode:
+    cli: "opencode stats [--days N] [--models] [--project PATH]"
+    notes: "Built-in command shows token + USD cost (all-time or last N days). Most accurate among the 4 tools."

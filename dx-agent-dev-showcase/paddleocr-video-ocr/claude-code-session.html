@@ -1,0 +1,1302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Build OCR inference app for DEEPX DX-M1 NPU</title>
+<style>:root {
+  --bg: #0d1117; --bg-muted: #151b23; --fg: #f0f6fc; --fg-muted: #9198a1;
+  --border: #3d444d; --accent: #4493f8; --success: #3fb950; --warning: #d29922;
+  --error: #f85149; --brand: #ab7df8; --code-bg: #1c2128;
+}
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #ffffff; --bg-muted: #f6f8fa; --fg: #1f2328; --fg-muted: #59636e;
+    --border: #d1d9e0; --accent: #0969da; --success: #1a7f37; --warning: #9a6700;
+    --error: #cf222e; --brand: #8250df; --code-bg: #f6f8fa;
+  }
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+       background: var(--bg); color: var(--fg); line-height: 1.5; padding: 0; }
+.container { max-width: 960px; margin: 0 auto; padding: 16px; }
+h1 { font-size: 1.4em; margin: 0 0 8px; }
+h2 { font-size: 1.15em; margin: 16px 0 8px; color: var(--fg-muted); }
+.meta-table { width: 100%; border-collapse: collapse; font-size: 0.85em; margin-bottom: 16px; }
+.meta-table td { padding: 4px 8px; border-bottom: 1px solid var(--border); }
+.meta-table td:first-child { color: var(--fg-muted); white-space: nowrap; width: 140px; }
+.entry { border-left: 3px solid var(--border); margin: 12px 0; padding: 8px 12px;
+         background: var(--bg-muted); border-radius: 0 6px 6px 0; }
+.entry.user { border-left-color: var(--accent); }
+.entry.assistant { border-left-color: var(--brand); }
+.entry.tool-ok { border-left-color: var(--success); }
+.entry.tool-fail { border-left-color: var(--error); }
+.entry.subagent { border-left-color: var(--warning); }
+.entry.thinking { border-left-color: var(--warning); }
+.entry-hdr { display: flex; gap: 8px; align-items: center; font-size: 0.82em;
+             color: var(--fg-muted); cursor: pointer; user-select: none; }
+.entry-hdr .icon { font-size: 1.1em; }
+.entry-hdr .label { font-weight: 600; color: var(--fg); }
+.entry-hdr .time { margin-left: auto; }
+.entry-body { margin-top: 6px; white-space: pre-wrap; word-break: break-word; font-size: 0.9em; }
+.entry.collapsed .entry-body { display: none; }
+pre, code { font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace; font-size: 0.88em; }
+pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 6px;
+      padding: 10px; overflow-x: auto; margin: 6px 0; }
+code { background: var(--code-bg); padding: 2px 5px; border-radius: 3px; }
+.tool-args { color: var(--fg-muted); font-size: 0.82em; margin-top: 4px; }
+.tool-result { margin-top: 4px; }
+.token-badge { display: inline-block; font-size: 0.75em; color: var(--fg-muted);
+               border: 1px solid var(--border); border-radius: 10px; padding: 1px 8px; margin-left: 4px; }
+.summary-section { margin: 16px 0; padding: 12px; background: var(--bg-muted);
+                   border: 1px solid var(--border); border-radius: 6px; }
+.summary-table { width: 100%; border-collapse: collapse; font-size: 0.85em; }
+.summary-table th, .summary-table td { padding: 4px 8px; border-bottom: 1px solid var(--border); text-align: left; }
+.summary-table th { color: var(--fg-muted); font-weight: 500; }
+hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+.footer { font-size: 0.78em; color: var(--fg-muted); margin-top: 24px; text-align: center; }
+</style>
+</head>
+<body>
+<div class="session-summary"><h2>Session summary</h2><table border="1" cellpadding="4" style="border-collapse:collapse"><tr><td><b>Model</b></td><td>`claude-opus-4-8`</td></tr><tr><td><b>Wall-clock</b></td><td>~18.1 min</td></tr><tr><td><b>Agent turns</b></td><td>175</td></tr><tr><td><b>Output tokens</b></td><td>184,185</td></tr><tr><td><b>Cost (reported)</b></td><td>$12.04</td></tr><tr><td><b>Tools</b></td><td>Bash×35, Read×12, TaskUpdate×10, Write×8, TaskCreate×5, Skill×3, Edit×3, ToolSearch×2</td></tr><tr><td><b>Skills</b></td><td>dx-skill-router → dx-agent-brainstorm → dx-agent-verify</td></tr><tr><td><b>Toolsets</b></td><td>`paddleocr-rapiddoc-app`, `paddlepaddle-deepx`</td></tr></table></div>
+
+<div class="container">
+<h1>Build OCR inference app for DEEPX DX-M1 NPU</h1>
+<table class="meta-table"><tr><td>Session ID</td><td><code>ce265611-d273-4923-8574-564d20aaeb1a</code></td></tr>
+<tr><td>Working Dir</td><td><code>/data/home/dhyang/github/dx-all-suite-full-e2e</code></td></tr>
+<tr><td>Branch</td><td>feature/dx-agentic-dev</td></tr>
+<tr><td>Claude Code</td><td>v2.1.156</td></tr>
+<tr><td>Permission Mode</td><td>bypassPermissions</td></tr>
+<tr><td>Start</td><td>2026-06-12T09:16:27.587Z</td></tr>
+<tr><td>End</td><td>2026-06-12T09:34:34.384Z</td></tr></table>
+<hr />
+<div class="entry user" id="entry-1"><div class="entry-hdr"><span class="icon">&#x1F464;</span><span class="label">User</span><span class="time">2026-06-12 09:16:27 UTC</span></div><div class="entry-body">Build an OCR inference app whose text detection + recognition runs on the DEEPX DX-M1 NPU. The app must accept BOTH a video file (--source &lt;path.mp4&gt;) and a live webcam (--source &lt;camera_index&gt;), run NPU OCR on each frame, overlay the detected text boxes and the recognized strings, and write an annotated output video (optionally show a live window). Save one annotated sample frame as sample_detect.jpg. Validate it on the provided demo video at /tmp/sc-build/ocr_input/ocr_demo.mp4. Provide setup.sh, run.sh, and a short README reporting the measured per-frame latency / FPS on the NPU.
+
+Work autonomously to completion without asking for confirmation or approval; make default decisions from the knowledge base; produce the actual working app and the annotated output video, not just a plan. Respond in English.</div></div>
+<div class="entry tool-ok collapsed" id="entry-2"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Skill</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>dx-skill-router</code></div><div class="tool-result"><pre>Launching skill: dx-skill-router</pre></div></div></div>
+<div class="entry assistant" id="entry-3"><div class="entry-hdr"><span class="icon">&#x1F4AC;</span><span class="label">Claude</span><span class="time">2026-06-12 09:16:27 UTC</span></div><div class="entry-body"><p><code>[DX-AGENT-DEV: START]</code></p>
+<pre><code> ███████████   █████████ ████████ ████████  ████      ████
+ ███     █████ ███░░░░░░░███░░░░░░███   ███  ░████   ████░░
+ ███        ██░███░      ██░░     ███   ███░   █████████░░
+ ███        ████████████ ████████ ████████░░    ░█████░░░
+ ███        ██░███░░░░░░░██░░░░░░░███░░░░░░  ██████████
+ ███     █████░███░      ██░      ███░   ████████░░░░████
+ ███████████░░░█████████ ████████ ██████████░░░░░░    ████
+  ░░░░░░░░░░░   ░░░░░░░░░ ░░░░░░░░ ░░░░░░░░░░          ░░░░
+        DX-AGENT-DEV · on-device NPU
+</code></pre>
+<p>I'll start by invoking the mandatory skill router as the first action.</p></div></div>
+<div class="entry user" id="entry-4"><div class="entry-hdr"><span class="icon">&#x1F464;</span><span class="label">User</span><span class="time">2026-06-12 09:16:39 UTC</span></div><div class="entry-body">Base directory for this skill: /data/home/dhyang/github/dx-all-suite-full-e2e/.claude/skills/dx-skill-router
+
+&lt;!-- Thin Claude Code wrapper — canonical skill doc lives in .deepx/ --&gt;
+
+Read and follow the complete skill documentation at `.deepx/skills/dx-skill-router/SKILL.md`.
+
+
+ARGUMENTS: Build OCR inference app (text detection + recognition) on DX-M1 NPU, video + webcam input, annotated output video</div></div>
+<div class="entry tool-ok collapsed" id="entry-5"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Read</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>/data/home/dhyang/github/dx-all-suite-full-e2e/.deepx/skills/dx-skill-router/SKILL.md</code></div><div class="tool-result"><pre>1	---
+2	name: dx-skill-router
+3	description: Use when starting any conversation - establishes how to discover and invoke dx-* skills, requiring skill invocation before ANY response including clarifying questions
+4	---
+5	
+6	# Skill: dx-skill-router
+7	
+8	&lt;EXTREMELY-IMPORTANT&gt;
+9	If you think there is even a 1% chance a skill might apply to what you are doing, you ABSOLUTELY MUST invoke the skill.
+10	
+11	IF A SKILL APPLIES TO YOUR TASK, YOU DO NOT HAVE A CHOICE. YOU MUST USE IT.
+12	
+13	This is not negotiable. This is not optional. You cannot rationalize your way out of this.
+14	&lt;/EXTREMELY-IMPORTANT&gt;
+15	
+16	## Instruction Priority
+17	
+18	dx-* skills override default system prompt behavior, but **user instructions always take precedence**:
+19	
+20	1. **User's explicit instructions** (CLAUDE.md, GEMINI.md, AGENTS.md, direct requests) — highest priority
+21	2. **dx-* skills** — override default system behavior where they conflict
+22	3. **Default system prompt** — lowest priority
+23	
+24	If proj…</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-6"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Skill</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>dx-agent-brainstorm</code></div><div class="tool-result"><pre>Launching skill: dx-agent-brainstorm</pre></div></div></div>
+<div class="entry assistant" id="entry-7"><div class="entry-hdr"><span class="icon">&#x1F4AC;</span><span class="label">Claude</span><span class="time">2026-06-12 09:16:39 UTC</span></div><div class="entry-body"><p>Using <code>dx-agent-brainstorm</code> to gather requirements and route this OCR build.</p></div></div>
+<div class="entry user" id="entry-8"><div class="entry-hdr"><span class="icon">&#x1F464;</span><span class="label">User</span><span class="time">2026-06-12 09:16:52 UTC</span></div><div class="entry-body">Base directory for this skill: /data/home/dhyang/github/dx-all-suite-full-e2e/.claude/skills/dx-agent-brainstorm
+
+&lt;!-- Thin Claude Code wrapper — canonical skill doc lives in .deepx/ --&gt;
+
+Read and follow the complete skill documentation at `.deepx/skills/dx-agent-brainstorm/SKILL.md`.
+
+
+ARGUMENTS: OCR inference app: text detection + recognition on DX-M1 NPU. Inputs: video file (--source path.mp4) AND webcam (--source camera_index). Overlay detected text boxes + recognized strings, write annotated output video, save sample_detect.jpg. Validate on /tmp/sc-build/ocr_input/ocr_demo.mp4. Autopilot mode.</div></div>
+<div class="entry tool-ok collapsed" id="entry-9"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Read</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>/data/home/dhyang/github/dx-all-suite-full-e2e/.deepx/skills/dx-agent-brainstorm/SKILL.md</code></div><div class="tool-result"><pre>1	---
+2	name: dx-agent-brainstorm
+3	description: &quot;DEEPX build brainstorming with model registry check and sub-project routing.&quot;
+4	---
+5	
+6	# Skill: DEEPX Build Brainstorming
+7	
+8	&gt; For the general brainstorming process (key decisions, propose approaches,
+9	&gt; present plan, get approval, spec self-review), see `dx-swe-brainstorm`.
+10	&gt; This skill covers DEEPX-specific pre-flight checks and routing.
+11	
+12	## Scope
+13	
+14	This is the **top-level suite** version covering all sub-projects. When working
+15	in a single sub-project, prefer the project-level version:
+16	
+17	| Working on... | Use this skill |
+18	|---|---|
+19	| dx_app (standalone inference) | `dx-runtime/dx_app/.deepx/skills/dx-brainstorm-and-plan.md` |
+20	| dx_stream (GStreamer pipelines) | `dx-runtime/dx_stream/.deepx/skills/dx-brainstorm-and-plan.md` |
+21	| Cross-project integration | `dx-runtime/.deepx/skills/dx-brainstorm-and-plan.md` |
+22	
+23	## When to Use
+24	
+25	Use this skill (in addition to `dx-swe-brainstorm`) when th…</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-10"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>ls -la /tmp/sc-build/ocr_input/ 2&gt;&amp;1; echo &quot;---VIDEO INFO---&quot;; ffprobe -v error -show_entries format=duration,size -show_entries stream=width,height,codec_name,nb_frames,avg_frame_rate /tmp/sc-build/ocr_input/ocr_demo.mp4 2&gt;&amp;1 | head -40</code></div><div class="tool-result"><pre>total 144
+drwxrwxr-x  2 dhyang dhyang   4096 Jun 12 18:15 .
+drwxrwxr-x 15 dhyang dhyang   4096 Jun 12 18:16 ..
+-rw-rw-r--  1 dhyang dhyang 135290 Jun 12 18:15 ocr_demo.mp4
+---VIDEO INFO---
+[STREAM]
+codec_name=h264
+width=1280
+height=720
+avg_frame_rate=15/1
+nb_frames=176
+[/STREAM]
+[FORMAT]
+duration=11.733333
+size=135290
+[/FORMAT]</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-11"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app
+echo &quot;=== OCR-related entries in model registry ===&quot;
+grep -ri &quot;ocr\|text\|recogn\|detect&quot; assets/model_registry.json 2&gt;/dev/null | head -40
+echo &quot;=== registry file location ===&quot;
+find . -name &quot;model_registry.json&quot; 2&gt;/dev/null | head</code></div><div class="tool-result"><pre>=== OCR-related entries in model registry ===
+=== registry file location ===
+./config/model_registry.json</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-12"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app
+echo &quot;=== registry keys (top-level model names) ===&quot;
+python3 -c &quot;import json; d=json.load(open('config/model_registry.json')); print('\n'.join(sorted(d.keys())))&quot; 2&gt;&amp;1 | head -200</code></div><div class="tool-result"><pre>=== registry keys (top-level model names) ===
+Traceback (most recent call last):
+  File &quot;&lt;string&gt;&quot;, line 1, in &lt;module&gt;
+AttributeError: 'list' object has no attribute 'keys'</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-13"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app
+echo &quot;=== registry structure ===&quot;
+python3 -c &quot;
+import json
+d=json.load(open('config/model_registry.json'))
+print('type:', type(d), 'len:', len(d))
+# find OCR/text related
+for item in d:
+    if isinstance(item, dict):
+        s=json…</code></div><div class="tool-result"><pre>=== registry structure ===
+type: &lt;class 'list'&gt; len: 280
+{
+ &quot;model_name&quot;: &quot;deepmar_resnet50&quot;,
+ &quot;dxnn_file&quot;: &quot;deepmar_resnet50.dxnn&quot;,
+ &quot;original_name&quot;: &quot;deepmar_resnet50&quot;,
+ &quot;csv_task&quot;: &quot;MCL&quot;,
+ &quot;add_model_task&quot;: &quot;attribute_recognition&quot;,
+ &quot;postprocessor&quot;: &quot;deepmar&quot;,
+ &quot;input_width&quot;: 224,
+ &quot;input_height&quot;: 224,
+ &quot;config&quot;: {},
+ &quot;source&quot;: &quot;csv&quot;,
+ &quot;supported&quot;: true
+}
+---
+{
+ &quot;model_name&quot;: &quot;deepmar_resnet18_person_attr_resnet_v1_18&quot;,
+ &quot;dxnn_file&quot;: &quot;deepmar_resnet18_person_attr_resnet_v1_18.dxnn&quot;,
+ &quot;original_name&quot;: &quot;deepmar_resnet18_person_attr_resnet_v1_18&quot;,
+ &quot;csv_task&quot;: &quot;ATTR&quot;,
+ &quot;add_model_task&quot;: &quot;attribute_recognition&quot;,
+ &quot;postprocessor&quot;: &quot;deepmar&quot;,
+ &quot;input_width&quot;: 0,
+ &quot;input_height&quot;: 0,
+ &quot;config&quot;: {},
+ &quot;source&quot;: &quot;auto_classify&quot;,
+ &quot;supported&quot;: true
+}
+---
+{
+ &quot;model_name&quot;: &quot;face_attr_resnet_v1_18&quot;,
+ &quot;dxnn_file&quot;: &quot;face_attr_resnet_v1_18.dxnn&quot;,
+ &quot;original_name&quot;: &quot;face_attr_resnet_v1_18&quot;,
+ &quot;csv_task&quot;: &quot;ATTR&quot;,
+ &quot;add_model_task&quot;: &quot;attribute_recognition&quot;,
+ &quot;postprocessor&quot;: &quot;deepmar&quot;,
+ &quot;input_width&quot;: 0,…</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-14"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app
+echo &quot;=== distinct add_model_task values ===&quot;
+python3 -c &quot;
+import json
+d=json.load(open('config/model_registry.json'))
+tasks={}
+for item in d:
+    t=item.get('add_model_task','?')
+    tasks[t]=tasks.get(t,0)+1
+for k,v in sorted(tas…</code></div><div class="tool-result"><pre>=== distinct add_model_task values ===
+   3  attribute_recognition
+  88  classification
+   2  depth_estimation
+   4  embedding
+   2  face_alignment
+  15  face_detection
+   1  hand_landmark
+   6  image_denoising
+   1  image_enhancement
+  15  instance_segmentation
+   5  obb_detection
+  98  object_detection
+  10  pose_estimation
+  16  ppu
+   4  reid
+   8  semantic_segmentation
+   2  super_resolution
+=== distinct postprocessors ===
+['arcface', 'bisenetv1', 'bisenetv2', 'casvit', 'centerpose', 'damoyolo', 'deeplabv3', 'deepmar', 'depth', 'dncnn', 'efficientdet', 'efficientnet', 'espcn', 'fastdepth', 'hand_landmark', 'nanodet', 'obb', 'retinaface', 'scrfd', 'scrfd_ppu', 'segformer', 'ssd', 'tddfa', 'ulfgfd', 'yolact', 'yolov10', 'yolov26', 'yolov26obb', 'yolov26pose', 'yolov26seg', 'yolov5', 'yolov5_ppu', 'yolov5face', 'yolov5pose_ppu', 'yolov5seg', 'yolov7', 'yolov7_ppu', 'yolov7face', 'yolov8', 'yolov8_ppu', 'yolov8pose', 'yolov8seg', 'yolov9', 'yolox', 'zero_dce']</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-15"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>cd /data/home/dhyang/github/dx-all-suite-full-e2e
+echo &quot;=== any OCR/text .dxnn or onnx on disk ===&quot;
+find . -iname &quot;*.dxnn&quot; \( -iname &quot;*ocr*&quot; -o -iname &quot;*text*&quot; -o -iname &quot;*craft*&quot; -o -iname &quot;*db*net*&quot; -o -iname &quot;*crnn*&quot; -o -iname &quot;*ppocr*&quot; -o -iname &quot;*paddle*&quot; \) 2&gt;/dev/null | head
+echo &quot;=== ALL .d…</code></div><div class="tool-result"><pre>=== any OCR/text .dxnn or onnx on disk ===
+./dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md/dxnn_models/ch_PP-OCRv5_server_det.dxnn
+./dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md/dxnn_models/ch_PP-OCRv5_rec_server_infer.dxnn
+./dx-runtime/dx_app/dx-agent-dev/20260612-131441_claude_opus48_rapiddoc_pdf2md/RapidDoc/dxnn_models/ch_PP-OCRv5_server_det.dxnn
+./dx-runtime/dx_app/dx-agent-dev/20260612-131441_claude_opus48_rapiddoc_pdf2md/RapidDoc/dxnn_models/ch_PP-OCRv5_rec_server_infer.dxnn
+=== ALL .dxnn files present (any model) ===
+./workspace/res/models/models-2_3_0/YOLOv5s_Face.dxnn
+./workspace/res/models/models-2_3_0/YoloV5S_PPU.dxnn
+./workspace/res/models/models-2_3_0/SCRFD500M_PPU.dxnn
+./workspace/res/models/models-2_3_0/yolov8m_pose.dxnn
+./workspace/res/models/models-2_3_0/YOLOV11N.dxnn
+./workspace/res/models/models-2_3_0/EfficientNet_Lite0.dxnn
+./workspace/res/models/models-2_3_0/YoloV8N.dxnn
+./workspace/res/models/models-2…</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-16"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>cd /data/home/dhyang/github/dx-all-suite-full-e2e
+echo &quot;=== SANITY CHECK (dx_rt) ===&quot;
+bash dx-runtime/scripts/sanity_check.sh --dx_rt 2&gt;&amp;1 | tail -30</code></div><div class="tool-result"><pre>=== SANITY CHECK (dx_rt) ===
+==== Runtime Version Dependency Check ====
+[OK] Version Dependency Check
+   Runtime Framework Version: 3.3.2
+   Device Driver Version: v2.4.1
+   PCIe Driver Version: v2.2.0
+   Firmware Version: device-id=0 v2.5.6
+   ONNX Runtime Version: v1.23.2
+==== Runtime Executable File Check ====
+[OK] Executable File Check
+   Runtime Framework Version: 3.3.2
+   Device Driver Version: v2.4.1
+   PCIe Driver Version: v2.2.0
+   Firmware Version: device-id=0 v2.5.6
+   ONNX Runtime Version: v1.23.2
+   dxrt-cli ...OK
+   run_model ...OK
+   parse_model ...OK
+   dxtop ...OK
+   dxrtd ...OK
+   Header: /usr/local/include/dxrt ...OK
+==== Runtime dxrtd Service Check ====
+[OK] The dxrtd service is running correctly. This is the expected behavior for builds with USE_SERVICE=ON on cmake/dxrt.cfg.cmake
+
+============================================================================
+** Sanity check PASSED!
+============================================================================
+/data/ho…</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-17"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md
+echo &quot;=== session tree (depth 2) ===&quot;
+find . -maxdepth 2 -not -path '*/venv*' -not -path '*/.git*' | head -80
+echo; echo &quot;=== README head ===&quot;
+head -60 README.md 2&gt;/dev/null</code></div><div class="tool-result"><pre>=== session tree (depth 2) ===
+.
+./download
+./download/dxnn_models.tar.gz
+./download/onnx_models.tar.gz
+./pdf_to_markdown.py
+./session.log
+./deepx_scripts
+./deepx_scripts/common_util.sh
+./deepx_scripts/color_env.sh
+./deepx_scripts/install_python_and_venv.sh
+./deepx_scripts/get_resource.sh
+./deepx_scripts/set_env.sh
+./setup_sample_models.sh
+./setup.py
+./setup_out.log
+./value_compare
+./value_compare/recognition
+./claude-session.html
+./README.md
+./setup.sh
+./pyproject.toml
+./output
+./output/sample_input
+./output/performance_summary.md
+./__pycache__
+./__pycache__/pdf_to_markdown.cpython-312.pyc
+./sample_input.pdf
+./sample_output.md
+./claude-session.md
+./requirements.deepx.txt
+./LICENSE
+./rapid_doc
+./rapid_doc/utils
+./rapid_doc/resources
+./rapid_doc/data
+./rapid_doc/cli
+./rapid_doc/__pycache__
+./rapid_doc/model
+./rapid_doc/version.py
+./rapid_doc/backend
+./rapid_doc/__init__.py
+./dxnn_models
+./dxnn_models/rec_v5_ratio_10.dxnn
+./dxnn_models/rec_v5_ratio_35.dxnn
+./dxnn_models/det_v5_640_640.d…</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-18"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Read</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>/home/dhyang/.claude/projects/-data-home-dhyang-github-dx-all-suite/memory/project_rapiddoc_pdf2md_build.md</code></div><div class="tool-result"><pre>1	---
+2	name: project_rapiddoc_pdf2md_build
+3	description: How to build the RapidDoc PDF→Markdown NPU app (rapid_doc_deepx) — gotchas that cost time
+4	metadata: 
+5	  node_type: memory
+6	  type: project
+7	  originSessionId: 7b94d14f-d5dd-4382-a086-5134794c0fae
+8	---
+9	
+10	Built a PDF→Markdown app on DX-M1 via `DEEPX-AI/RapidDoc` @ `rapid_doc_deepx`
+11	(PP-StructureV3). KB: `dx_app/.deepx/toolsets/paddleocr-rapiddoc-app.md`. It's the
+12	documented IFactory exception — standalone launcher driving the fork's own NPU pipeline.
+13	Session 2026-06-12 `..._claude_opus48_rapiddoc_pdf2md`. Reusable findings:
+14	
+15	- **chmod +x the fork scripts after clone.** The fork's `setup.sh` calls
+16	  `./setup_sample_models.sh` *directly* (not `bash ...`); git clone drops the exec bit →
+17	  `Permission denied`, model download fails. `chmod +x RapidDoc/*.sh RapidDoc/deepx_scripts/*.sh`.
+18	- **dx_engine via `.pth` bridge, not a fresh install.** `dx_engine` (the DX-M1 binding,
+19	  `_pydxrt.so`, v3.3.2) l…</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-19"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md/rapid_doc
+echo &quot;=== backend dir ===&quot;
+ls -la backend/ model/ 2&gt;&amp;1
+echo; echo &quot;=== grep for dx_engine / InferenceEngine usage ===&quot;
+grep -rln &quot;InferenceEngine\|dx_engine\|from…</code></div><div class="tool-result"><pre>=== backend dir ===
+backend/:
+total 20
+drwxrwxr-x 4 dhyang dhyang 4096 Jun 12 14:57 .
+drwxrwxr-x 9 dhyang dhyang 4096 Jun 12 14:57 ..
+-rw-rw-r-- 1 dhyang dhyang   50 Jun 12 14:52 __init__.py
+drwxrwxr-x 3 dhyang dhyang 4096 Jun 12 14:57 pipeline
+drwxrwxr-x 2 dhyang dhyang 4096 Jun 12 14:57 __pycache__
+
+model/:
+total 36
+drwxrwxr-x 8 dhyang dhyang 4096 Jun 12 14:57 .
+drwxrwxr-x 9 dhyang dhyang 4096 Jun 12 14:57 ..
+drwxrwxr-x 4 dhyang dhyang 4096 Jun 12 14:57 formula
+-rw-rw-r-- 1 dhyang dhyang   50 Jun 12 14:52 __init__.py
+drwxrwxr-x 4 dhyang dhyang 4096 Jun 12 14:57 layout
+drwxrwxr-x 3 dhyang dhyang 4096 Jun 12 14:57 ocr
+drwxrwxr-x 2 dhyang dhyang 4096 Jun 12 14:57 __pycache__
+drwxrwxr-x 3 dhyang dhyang 4096 Jun 12 14:57 reading_order
+drwxrwxr-x 5 dhyang dhyang 4096 Jun 12 14:57 table
+
+=== grep for dx_engine / InferenceEngine usage ===
+./utils/device_utils.py
+./utils/device_allocator.py
+./utils/__pycache__/device_utils.cpython-312.pyc
+./model/table/rapid_table_self/wired_table_rec/utils/…</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-20"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Read</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md/rapid_doc/model/ocr/dx_ocr.py</code></div><div class="tool-result"><pre>1	&quot;&quot;&quot;
+2	DX Engine 기반 OCR 모델
+3	RapidOCR의 구조를 참고하여 DX Engine으로 구현
+4	&quot;&quot;&quot;
+5	import math
+6	import time
+7	import copy
+8	import threading
+9	from enum import Enum
+10	from pathlib import Path
+11	from typing import List, Optional, Tuple, Callable, Any
+12	import warnings
+13	
+14	import cv2
+15	import numpy as np
+16	from loguru import logger
+17	from tqdm import tqdm
+18	
+19	from rapid_doc.utils.config_reader import get_device
+20	from rapidocr.ch_ppocr_rec.utils import CTCLabelDecode
+21	from rapid_doc.utils.ocr_utils import (
+22	    check_img,
+23	    preprocess_image,
+24	    sorted_boxes,
+25	    merge_det_boxes,
+26	    update_det_boxes,
+27	    get_rotate_crop_image,
+28	)
+29	
+30	try:
+31	    from dx_engine import InferenceEngine, InferenceOption
+32	except ImportError:
+33	    logger.warning(&quot;dx_engine not installed. DxOcrModel will not work.&quot;)
+34	    InferenceEngine = None
+35	
+36	from rapid_doc.utils.device_utils import get_dxnn_devices
+37	
+38	
+39	class DxOcrEngineType(Enum):
+40	    &quot;&quot;&quot;DX Engine OCR 엔진 …</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-21"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Read</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/.deepx/toolsets/paddleocr-rapiddoc-app.md</code></div><div class="tool-result"><pre>1	# Building PaddleOCR / RapidDoc Apps on the DeepX NPU (app reference)
+2	
+3	&gt; How to BUILD runtime apps on the PaddlePaddle OCR/document ecosystem on the DX-M1 NPU
+4	&gt; using DEEPX's integrated forks. This is the **app-building** companion to the
+5	&gt; compile/integration reference at `dx-compiler/.deepx/toolsets/paddlepaddle-deepx.md`
+6	&gt; (read that too for the model/NPU-engine side). Read this BEFORE building an OCR
+7	&gt; inference app or a PDF→Markdown app.
+8	
+9	## Key architectural note (READ FIRST)
+10	
+11	These apps do **NOT** use the dx_app `IFactory` / `SyncRunner` / `AsyncRunner` pattern.
+12	PaddleOCR-deepx and RapidDoc ship their **own NPU pipelines** (the models run on the
+13	DX-M1 via the fork's runtime, not via `dx_engine.InferenceEngine` directly). This is the
+14	documented exception to the &quot;always IFactory&quot; rule.
+15	
+16	**BUT you MUST still GENERATE A STANDALONE APP — you must NOT just run the fork's example
+17	script.** The deliverable is **your own entry program** that *im…</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-22"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Read</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>/data/home/dhyang/github/dx-all-suite-full-e2e/dx-compiler/.deepx/toolsets/paddlepaddle-deepx.md</code></div><div class="tool-result"><pre>1	# PaddlePaddle Ecosystem → DeepX NPU Reference
+2	
+3	&gt; How to build apps on the **PaddlePaddle OCR/document ecosystem** running on the
+4	&gt; DeepX **DX-M1 NPU**, using DEEPX's integrated forks:
+5	&gt; **PaddleOCR-deepx** (text detection + recognition, PP-OCRv5 / PP-StructureV3) and
+6	&gt; **RapidDoc** (PDF → Markdown document parsing). Read this BEFORE improvising a
+7	&gt; PaddleOCR/RapidDoc integration from the upstream repos.
+8	
+9	## Canonical sources (READ the DEEPX branch — not upstream main)
+10	
+11	| Repo | DEEPX branch | What it provides |
+12	|---|---|---|
+13	| [DEEPX-AI/PaddleOCR-deepx](https://github.com/DEEPX-AI/PaddleOCR-deepx) | **`deepx`** | PaddleOCR 3.0 (PP-OCRv5 det+rec, PP-StructureV3) with DX-M1 NPU inference. |
+14	| [DEEPX-AI/RapidDoc](https://github.com/DEEPX-AI/RapidDoc) | **`rapid_doc_deepx`** | PDF/scanned-doc → **Markdown + JSON** via a 7-stage NPU pipeline (layout, OCR det/rec, table, formula). See `README_DEEPX_EN.md`. |
+15	| Upstream (reference only) | [PaddleOCR](http…</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-23"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>cd /data/home/dhyang/github/dx-all-suite-full-e2e
+echo &quot;=== GitHub reachability (PaddleOCR-deepx deepx branch) ===&quot;
+timeout 25 git ls-remote --heads https://github.com/DEEPX-AI/PaddleOCR-deepx.git deepx 2&gt;&amp;1 | head
+echo &quot;rc=$?&quot;
+echo &quot;=== paddleocr already installed anywhere? ===&quot;
+for v in dx-runtim…</code></div><div class="tool-result"><pre>=== GitHub reachability (PaddleOCR-deepx deepx branch) ===
+6083fc8e36449b5fd9cfa0d6168f5f39ea58574a	refs/heads/deepx
+rc=0
+=== paddleocr already installed anywhere? ===
+-- dx-runtime/venv-dx-runtime
+cv2
+opencv_python-4.13.0.92.dist-info
+opencv_python.libs
+-- dx-runtime/dx_stream/venv-dx_stream
+=== existing /tmp clone? ===</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-24"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>cd /tmp
+rm -rf _paddleocr_src 2&gt;/dev/null
+echo &quot;=== cloning PaddleOCR-deepx @ deepx (depth 1) ===&quot;
+timeout 180 git clone --depth 1 -b deepx https://github.com/DEEPX-AI/PaddleOCR-deepx.git _paddleocr_src 2&gt;&amp;1 | tail -8
+echo &quot;rc=$?&quot;
+echo; echo &quot;=== top-level ===&quot;
+ls -F /tmp/_paddleocr_src 2&gt;/dev/null…</code></div><div class="tool-result"><pre>=== cloning PaddleOCR-deepx @ deepx (depth 1) ===
+Cloning into '_paddleocr_src'...
+rc=0
+
+=== top-level ===
+applications/
+awesome_projects.md
+benchmark/
+CNAME
+configs/
+deploy/
+doc/
+docs/
+LICENSE
+MANIFEST.in
+mcp_server/
+mkdocs.yml
+overrides/
+paddleocr/
+ppocr/
+ppstructure/
+pyproject.toml
+readme/
+README.md
+requirements.txt
+setup.py
+tests/
+test_tipc/
+tools/
+train.sh
+Shell cwd was reset to /data/home/dhyang/github/dx-all-suite-full-e2e</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-25"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>cd /tmp/_paddleocr_src
+echo &quot;=== DEEPX-specific docs/scripts ===&quot;
+find . -maxdepth 2 \( -iname &quot;*deepx*&quot; -o -iname &quot;set_env.sh&quot; -o -iname &quot;setup.sh&quot; \) 2&gt;/dev/null | grep -v node_modules | head -40
+echo; echo &quot;=== deepx_scripts dir? ===&quot;
+ls -F deepx_scripts/ 2&gt;/dev/null
+echo; echo &quot;=== git log (dee…</code></div><div class="tool-result"><pre>=== DEEPX-specific docs/scripts ===
+
+=== deepx_scripts dir? ===
+
+=== git log (deepx branch recent) ===
+6083fc8 fix: Add force option for model downloads and handle broken symlinks in resource scripts
+
+=== grep for dx_engine / DX-M1 / npu in paddleocr pkg ===
+Shell cwd was reset to /data/home/dhyang/github/dx-all-suite-full-e2e</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-26"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>cd /tmp/_paddleocr_src
+echo &quot;=== repo-wide deepx/dxnn/npu references (filenames) ===&quot;
+grep -rli &quot;dxnn\|dx_engine\|DXNN_DEVICES\|deepx&quot; . 2&gt;/dev/null | grep -v &quot;\.git/&quot; | head -40
+echo; echo &quot;=== README*DEEPX* / *deepx* docs ===&quot;
+find . -iname &quot;readme*&quot; 2&gt;/dev/null | grep -vi &quot;\.git/&quot; | head
+echo; e…</code></div><div class="tool-result"><pre>=== repo-wide deepx/dxnn/npu references (filenames) ===
+./deploy/fastapi/docker_run.sh
+./deploy/fastapi/run_tests.sh
+./deploy/fastapi/test_ocr_service.py
+./deploy/fastapi/conftest.py
+./deploy/fastapi/test_ocr_with_curl_cmd.sh
+./deploy/fastapi/deepx/setup.sh
+./deploy/fastapi/deepx/scripts/get_resource.sh
+./deploy/fastapi/deepx/engine/paddleocr.py
+./deploy/fastapi/deepx/engine/document_preprocessing.py
+./deploy/fastapi/Dockerfile
+./deploy/fastapi/local_setup.sh
+./deploy/fastapi/ocr_service.py
+./deploy/fastapi/docs/MODEL_PATHS_EXPLANATION.md
+./deploy/fastapi/docs/ko/TEST_README_KO.md
+./deploy/fastapi/docs/ko/DEEPX_NPU_GUIDE_ko.md
+./deploy/fastapi/docs/ko/MODEL_PATHS_EXPLANATION_ko.md
+./deploy/fastapi/docs/TEST_README.md
+./deploy/fastapi/docs/DEEPX_NPU_GUIDE.md
+./deploy/fastapi/local_deepx_setup.sh
+./deploy/fastapi/.env.deepx
+./deploy/fastapi/.gitignore
+./deploy/fastapi/README.md
+./deploy/fastapi/run.sh
+./deploy/fastapi/docker_build.sh
+./deploy/fastapi/README_ko.md
+./deploy/fastapi/setup_…</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-27"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Read</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>/tmp/_paddleocr_src/deploy/fastapi/docs/DEEPX_NPU_GUIDE.md</code></div><div class="tool-result"><pre>1	# DEEPX NPU Support - Complete Guide
+2	
+3	Complete guide for adding DEEPX NPU hardware acceleration to PaddleOCR FastAPI service
+4	
+5	## 📚 Table of Contents
+6	
+7	1. [Quick Start](#quick-start)
+8	2. [Automatic Installation](#automatic-installation)
+9	3. [Components](#components)
+10	4. [Environment Variables](#environment-variables)
+11	5. [Model Structure](#model-structure)
+12	6. [Usage](#usage)
+13	7. [Testing](#testing)
+14	8. [Troubleshooting](#troubleshooting)
+15	9. [References](#references)
+16	
+17	---
+18	
+19	## Quick Start
+20	
+21	### Step 1: Automatic Installation
+22	
+23	Use the DEEPX NPU dedicated setup script to automatically install all dependencies:
+24	
+25	```bash
+26	# Automatic setup of complete NPU environment
+27	./local_deepx_setup.sh --dx_rt /path/to/dx_rt
+28	```
+29	
+30	**What the setup script automatically does:**
+31	- ✅ Create and activate python 3.10+ venv
+32	- ✅ Build DX_RT (auto-install dx-engine)
+33	- ✅ Install PaddlePaddle 3.0.0
+34	- ✅ Download PaddleOCR v5 models (s…</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-28"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>cd /tmp/_paddleocr_src/deploy/fastapi
+echo &quot;=== deepx/ tree (depth 3, no model binaries) ===&quot;
+find deepx -maxdepth 3 -type f 2&gt;/dev/null | grep -v &quot;\.dxnn\|\.bin\|\.onnx&quot; | head -60
+echo; echo &quot;=== engine dir ===&quot;
+ls -F deepx/engine/ 2&gt;/dev/null
+echo; echo &quot;=== get_resource.sh ===&quot;
+sed -n '1,120p' …</code></div><div class="tool-result"><pre>=== deepx/ tree (depth 3, no model binaries) ===
+deepx/images/image_16.png
+deepx/images/image_7.png
+deepx/images/labels.json
+deepx/images/image_9.png
+deepx/images/image_15.png
+deepx/images/image_18.png
+deepx/images/image_3.png
+deepx/images/image_10.png
+deepx/images/image_14.png
+deepx/images/image_2.png
+deepx/images/image_19.png
+deepx/images/image_5.png
+deepx/images/image_12.png
+deepx/images/image_4.png
+deepx/images/image_1.png
+deepx/images/image_8.png
+deepx/images/image_6.png
+deepx/images/image_20.png
+deepx/images/image_17.png
+deepx/images/image_11.png
+deepx/images/image_13.png
+deepx/BVRC_Meeting_Minutes_2024-04.pdf
+deepx/general_ocr_002.png
+deepx/baidu-AI-Studio-OCR-API-en.md
+deepx/pp-ocrv5-review.md
+deepx/setup.sh
+deepx/.gitignore
+deepx/scripts/common_util.sh
+deepx/scripts/color_env.sh
+deepx/scripts/get_resource.sh
+deepx/engine/utils.py
+deepx/engine/paddleocr.py
+deepx/engine/draw_utils.py
+deepx/engine/document_preprocessing.py
+deepx/engine/preprocessing/__init__.py
+deepx/engine/prep…</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-29"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>cd /tmp/_paddleocr_src/deploy/fastapi/deepx
+echo &quot;=========== deepx/setup.sh ===========&quot;
+cat setup.sh
+echo &quot;=========== get_resource.sh model-download invocations (grep) ===========&quot;
+grep -n &quot;sdk.deepx.ai\|src_path\|get_resource\|model_files\|\.tar&quot; setup.sh scripts/*.sh 2&gt;/dev/null | head -40</code></div><div class="tool-result"><pre>=========== deepx/setup.sh ===========
+#!/bin/bash
+SCRIPT_DIR=$(realpath &quot;$(dirname &quot;$0&quot;)&quot;)
+
+
+# color env settings
+source ${SCRIPT_DIR}/scripts/color_env.sh
+source ${SCRIPT_DIR}/scripts/common_util.sh
+
+BASE_URL=&quot;https://sdk.deepx.ai/&quot;
+
+# default value
+SOURCE_PATH=&quot;res/assets/dx_baidu_PPOCR/server.tar.gz&quot;
+MOBILE_SOURCE_PATH=&quot;res/assets/dx_baidu_PPOCR/mobile.tar.gz&quot;
+OUTPUT_DIR=&quot;$SCRIPT_DIR/engine/model_files&quot;
+SYMLINK_TARGET_PATH=&quot;$SCRIPT_DIR/.temp/&quot;
+SYMLINK_ARGS=&quot;--symlink_target_path=$SYMLINK_TARGET_PATH&quot;
+FORCE_ARGS=&quot;&quot;
+USE_FORCE=0
+
+# Function to display help message
+show_help() {
+  
+  echo &quot;Usage: $(basename &quot;$0&quot;) [OPTIONS]&quot;
+  echo &quot;Options:&quot;
+  echo &quot;  [--dest]                   Destination path for received files (default : $OUTPUT_DIR)&quot;
+  echo &quot;  [--force]                  Force re-download and overwrite existing files&quot;
+  echo &quot;  [--help]                   Show this help message&quot;
+
+  if [ &quot;$1&quot; == &quot;error&quot; ]; then
+    echo &quot;Error: Invalid or missing arguments.&quot;
+    exit 1
+  fi
+  exit 0
+…</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-30"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Read</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>/tmp/_paddleocr_src/deploy/fastapi/deepx/engine/paddleocr.py</code></div><div class="tool-result"><pre>&lt;system-reminder&gt;[Truncated: PARTIAL view — showing lines 1-1412 of 1956 total (29422 tokens, cap 25000). Call Read with offset=1413 limit=1412 for the next page, or Grep to find a specific section. Do NOT answer from this page alone if the answer may be further in the file.]&lt;/system-reminder&gt;
+
+1	import os
+2	import sys
+3	import time
+4	import queue
+5	import threading
+6	from concurrent.futures import ThreadPoolExecutor
+7	
+8	from dx_engine import InferenceEngine as IE
+9	
+10	from .utils import get_rotate_crop_image, filter_tag_det_res
+11	from .utils import det_router, rec_router, split_bbox_for_recognition, merge_recognition_results
+12	from .utils import convert_boxes_to_quad_format, sorted_boxes, rotate_if_vertical
+13	
+14	from typing import List, Tuple, Dict, Optional, Any, cast
+15	import numpy as np
+16	import cv2
+17	import json
+18	from datetime import datetime
+19	
+20	engine_path = os.path.dirname(os.path.abspath(__file__))
+21	sys.path.append(engine_path)
+22	
+23	from baidu import det_pre…</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-31"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>cd /tmp/_paddleocr_src/deploy/fastapi
+echo &quot;=== where PaddleOcr / AsyncPipelineOCR is instantiated ===&quot;
+grep -rn &quot;PaddleOcr(\|AsyncPipelineOCR(\|InferenceEngine(\|IE(\|load_model\|model_files\|build_models\|def.*model&quot; deepx/engine/*.py | grep -v &quot;^.*#&quot; | head -50
+echo; echo &quot;=== files in engine th…</code></div><div class="tool-result"><pre>=== where PaddleOcr / AsyncPipelineOCR is instantiated ===
+deepx/engine/paddleocr.py:60:    def __init__(self, models:dict, det_db_thresh: float = 0.3, det_db_box_thresh: float = 0.6, det_db_unclip_ratio: float = 1.5):
+deepx/engine/paddleocr.py:165:    def __init__(self, model:IE):
+deepx/engine/paddleocr.py:215:    def __init__(self, models:dict, dict_dir:str, rec_score_thresh: float = 0.0):
+deepx/engine/paddleocr.py:308:    def __init__(self, model: IE):
+deepx/engine/paddleocr.py:374:    def __init__(self, model: IE):
+deepx/engine/paddleocr.py:499:class PaddleOcr():
+deepx/engine/utils.py:255:        default=str(module_dir / &quot;models/onnx/det.onnx&quot;),
+deepx/engine/utils.py:295:        default=str(module_dir / &quot;models/onnx/rec.onnx&quot;),
+deepx/engine/utils.py:304:        default=str(module_dir / &quot;models/ppocrv5_dict.txt&quot;),
+deepx/engine/utils.py:333:        default=str(module_dir / &quot;models/onnx/cls.onnx&quot;),
+
+=== files in engine that mention model loading ===
+deepx/engine/paddleocr.py
+deepx/en…</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-32"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>cd /tmp/_paddleocr_src
+echo &quot;=== fork-wide: PaddleOcr( / AsyncPipelineOCR( construction sites ===&quot;
+grep -rn &quot;PaddleOcr(\|AsyncPipelineOCR(&quot; --include=*.py . | grep -v &quot;class \|deepx/engine/paddleocr.py&quot; | head
+echo; echo &quot;=== fork-wide: InferenceEngine/IE( loading .dxnn from model_files ===&quot;
+grep -…</code></div><div class="tool-result"><pre>=== fork-wide: PaddleOcr( / AsyncPipelineOCR( construction sites ===
+./deploy/fastapi/ocr_service.py:336:            npu_ocr = PaddleOcr(
+./deploy/fastapi/ocr_service.py:354:            npu_ocr = AsyncPipelineOCR(
+
+=== fork-wide: InferenceEngine/IE( loading .dxnn from model_files ===
+./deploy/fastapi/ocr_service.py:127:    model_dir = deepx_path / 'engine' / 'model_files' / model_type
+./deploy/fastapi/ocr_service.py:146:            return IE(str(path))
+./benchmark/PaddleOCR_DBNet/tools/infer.py:35:class InferenceEngine(object):
+./benchmark/PaddleOCR_DBNet/tools/infer.py:261:    inference_engine = InferenceEngine(args)
+
+=== files referencing model_files + building dicts ===
+./paddleocr/_pipelines/pp_structurev3.py
+./paddleocr/_pipelines/ocr.py
+./deploy/fastapi/deepx/engine/utils.py
+./deploy/fastapi/deepx/engine/paddleocr.py
+./deploy/fastapi/ocr_service.py
+./deploy/hubserving/ocr_det/params.py
+./deploy/hubserving/ocr_system/params.py
+./tools/infer_kie_token_ser.py
+./tools/infer/predict_…</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-33"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Read</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>/tmp/_paddleocr_src/deploy/fastapi/ocr_service.py</code></div><div class="tool-result"><pre>100	        return _npu_models
+101	    
+102	    print(&quot;🔧 Loading DEEPX NPU models (ONE-TIME INITIALIZATION)...&quot;)
+103	    
+104	    # Import dx_engine
+105	    from dx_engine import InferenceEngine as IE
+106	    
+107	    # Get model type from environment
+108	    use_mobile = os.getenv('USE_MOBILE', 'false').lower() == 'true'
+109	    model_type = 'mobile' if use_mobile else 'server'
+110	    
+111	    # Import deepx engine
+112	    # Use DEEPX_PATH environment variable if set, otherwise use relative path (for local development)
+113	    deepx_path_str = os.getenv('DEEPX_PATH')
+114	    if deepx_path_str:
+115	        deepx_path = Path(deepx_path_str)
+116	    else:
+117	        deepx_path = Path(__file__).parent / 'deepx'
+118	    
+119	    if not deepx_path.exists():
+120	        error_msg = f&quot;DEEPX NPU not available: deepx directory not found at {deepx_path}. Please set DEEPX_PATH environment variable or ensure deepx folder is present.&quot;
+121	        print(f&quot;❌ {error_msg}&quot;)
+122	        raise HTTPExc…</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-34"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>cd /tmp/_paddleocr_src/deploy/fastapi/deepx/engine
+echo &quot;=== external (non-relative) imports across engine package ===&quot;
+grep -rhn &quot;^import \|^from &quot; *.py preprocessing/*.py models/*.py 2&gt;/dev/null \
+  | grep -v &quot;from \.\|from engine\|import engine\|from models\|from preprocessing\|from baidu\|from …</code></div><div class="tool-result"><pre>=== external (non-relative) imports across engine package ===
+12:import time
+14:from typing import List, Tuple, Dict, Optional, Any, cast
+15:import numpy
+16:import cv2
+17:import json
+17:import numpy
+18:from datetime import datetime
+18:from PIL import Image
+1:from abc import ABC, abstractmethod
+1:from copy import deepcopy
+1:from dataclasses import dataclass
+1:from enum import IntEnum
+1:from enum import IntEnum, auto
+1:from typing import Callable, Dict, List
+1:from typing import Dict, List
+1:from typing import List
+1:import logging
+1:import numpy
+1:import os
+2:from PIL import Image
+2:from typing import Callable, List, Optional, Tuple
+2:from typing import List
+2:from typing import List, Tuple
+2:import cv2
+2:import random
+2:import sys
+3:from dataclasses import dataclass
+3:from dx_engine import InferenceEngine
+3:from shapely.geometry import Polygon
+3:import argparse
+3:import numpy
+3:import time
+4:from PIL import Image, ImageOps
+4:from typing import List
+4:import math
+4:import numpy
+4:impor…</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-35"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>VR=/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/venv-dx-runtime
+SP=$(ls -d $VR/lib/python*/site-packages 2&gt;/dev/null | head -1)
+echo &quot;site-packages: $SP&quot;
+echo &quot;=== relevant pkgs in venv-dx-runtime ===&quot;
+for p in dx_engine numpy cv2 PIL Pillow shapely pyclipper loguru tqdm; do
+  if ls &quot;$…</code></div><div class="tool-result"><pre>site-packages: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/venv-dx-runtime/lib/python3.12/site-packages
+=== relevant pkgs in venv-dx-runtime ===
+  [yes] dx_engine
+  [yes] numpy
+  [yes] cv2
+  [yes] PIL
+  [yes] Pillow
+  [NO ] shapely
+  [NO ] pyclipper
+  [NO ] loguru
+  [yes] tqdm
+=== python version of venv-dx-runtime ===
+Python 3.12.3
+=== numpy version there ===
+numpy 2.4.6 cv2 4.13.0
+=== model tarball reachable? (HEAD) ===
+HTTP/2 200 
+content-type: application/x-gzip
+content-length: 302923626
+date: Fri, 12 Jun 2026 09:21:46 GMT
+last-modified: Wed, 17 Dec 2025 02:50:34 GMT</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-36"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app
+TS=$(date +%Y%m%d-%H%M%S)
+SID=&quot;${TS}_claude_opus48_ppocrv5_ocr_video&quot;
+SDIR=&quot;dx-agent-dev/${SID}&quot;
+mkdir -p &quot;${SDIR}&quot;
+echo &quot;SESSION_ID=${SID}&quot;
+echo &quot;SDIR=${SDIR}&quot;
+echo &quot;${SDIR}&quot; &gt; /tmp/_ocr_sdir.txt
+# Vendor the engine package + mode…</code></div><div class="tool-result"><pre>SESSION_ID=20260612-182217_claude_opus48_ppocrv5_ocr_video
+SDIR=dx-agent-dev/20260612-182217_claude_opus48_ppocrv5_ocr_video
+=== vendored layout ===
+dx-agent-dev/20260612-182217_claude_opus48_ppocrv5_ocr_video
+dx-agent-dev/20260612-182217_claude_opus48_ppocrv5_ocr_video/engine
+dx-agent-dev/20260612-182217_claude_opus48_ppocrv5_ocr_video/engine/fonts
+dx-agent-dev/20260612-182217_claude_opus48_ppocrv5_ocr_video/engine/models
+dx-agent-dev/20260612-182217_claude_opus48_ppocrv5_ocr_video/engine/preprocessing
+dx-agent-dev/20260612-182217_claude_opus48_ppocrv5_ocr_video/scripts
+=== engine files ===
+baidu.py
+document_preprocessing.py
+draw_utils.py
+fonts
+models
+onnx_session.py
+paddleocr.py
+preprocessing
+readme.md
+utils.py</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-37"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app
+SDIR=$(cat /tmp/_ocr_sdir.txt)
+MODELDIR=&quot;${SDIR}/engine/model_files&quot;
+mkdir -p &quot;${MODELDIR}/download&quot;
+URL=&quot;https://sdk.deepx.ai/res/assets/dx_baidu_PPOCR/server.tar.gz&quot;
+echo &quot;Downloading server.tar.gz (302MB) -&gt; ${MODELDIR}/download…</code></div><div class="tool-result"><pre>Command running in background with ID: bgaopxykb. Output is being written to: /tmp/claude-1000/claude-1000/-data-home-dhyang-github-dx-all-suite-full-e2e/ce265611-d273-4923-8574-564d20aaeb1a/tasks/bgaopxykb.output. You will be notified when it completes. To check interim output, use Read on that file path.</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-38"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">ToolSearch</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>{&quot;query&quot;: &quot;select:TaskCreate&quot;, &quot;max_results&quot;: 3}</code></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-39"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">TaskCreate</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>{&quot;subject&quot;: &quot;Write design spec + plan (brainstorm/plan gates)&quot;, &quot;description&quot;: &quot;Autopilot: write spec doc to docs/superpowers/specs/, self-review vs KB, then plan doc. Spec-before-plan HARD GATE.&quot;, &quot;…</code></div><div class="tool-result"><pre>Task #1 created successfully: Write design spec + plan (brainstorm/plan gates)</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-40"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">TaskCreate</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>{&quot;subject&quot;: &quot;Generate setup.sh (venv + deps + dx_engine bridge + models)&quot;, &quot;description&quot;: &quot;setup.sh FIRST: create session venv, pip install shapely+pyclipper, write dxengine_bridge.pth to venv-dx-run…</code></div><div class="tool-result"><pre>Task #2 created successfully: Generate setup.sh (venv + deps + dx_engine bridge + models)</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-41"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">TaskCreate</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>{&quot;subject&quot;: &quot;Write ocr_video.py entry (video+webcam NPU OCR)&quot;, &quot;description&quot;: &quot;Own entry importing engine.paddleocr.PaddleOcr; open_source() handles path.mp4 and webcam int; per-frame predict on NPU;…</code></div><div class="tool-result"><pre>Task #3 created successfully: Write ocr_video.py entry (video+webcam NPU OCR)</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-42"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">TaskCreate</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>{&quot;subject&quot;: &quot;Generate run.sh + verify.py + README.md&quot;, &quot;description&quot;: &quot;run.sh: venv activate + RT env + DXNN_DEVICES + run entry on demo video. verify.py: model presence + single-frame NPU OCR smoke.…</code></div><div class="tool-result"><pre>Task #4 created successfully: Generate run.sh + verify.py + README.md</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-43"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">TaskCreate</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>{&quot;subject&quot;: &quot;Run on demo video + verify (NPU) + transcript&quot;, &quot;description&quot;: &quot;Execute setup.sh, run.sh on /tmp/sc-build/ocr_input/ocr_demo.mp4; confirm annotated mp4 + sample_detect.jpg produced with …</code></div><div class="tool-result"><pre>Task #5 created successfully: Run on demo video + verify (NPU) + transcript</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-44"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>cat /tmp/claude-1000/claude-1000/-data-home-dhyang-github-dx-all-suite-full-e2e/ce265611-d273-4923-8574-564d20aaeb1a/tasks/bgaopxykb.output 2&gt;&amp;1 | tail -50</code></div><div class="tool-result"><pre>Downloading server.tar.gz (302MB) -&gt; dx-agent-dev/20260612-182217_claude_opus48_ppocrv5_ocr_video/engine/model_files/download/server.tar.gz
+DOWNLOAD_OK size=302923626
+EXTRACT_OK
+total 385908
+drwxrwxr-x 2 dhyang dhyang     4096 Jun 12 18:22 .
+drwxrwxr-x 4 dhyang dhyang     4096 Jun 12 18:22 ..
+-rw-rw-r-- 1 dhyang dhyang 47973031 Nov 27  2025 det_v5_640.dxnn
+-rw-rw-r-- 1 dhyang dhyang 51463272 Nov 27  2025 det_v5_960.dxnn
+-rw-rw-r-- 1 dhyang dhyang  3683107 Nov 10  2025 doc_ori_fixed.dxnn
+-rw-rw-r-- 1 dhyang dhyang    74012 Dec  3  2025 ppocrv5_dict.txt
+-rw-rw-r-- 1 dhyang dhyang 44731440 Nov 10  2025 rec_v5_ratio_10.dxnn
+-rw-rw-r-- 1 dhyang dhyang 45296727 Nov 10  2025 rec_v5_ratio_15.dxnn
+-rw-rw-r-- 1 dhyang dhyang 45852924 Nov 10  2025 rec_v5_ratio_25.dxnn
+-rw-rw-r-- 1 dhyang dhyang 46838424 Nov 10  2025 rec_v5_ratio_35.dxnn
+-rw-rw-r-- 1 dhyang dhyang 44517461 Nov 10  2025 rec_v5_ratio_3.dxnn
+-rw-rw-r-- 1 dhyang dhyang 44450592 Dec  3  2025 rec_v5_ratio_5.dxnn
+-rw-rw-r-- 1 dhyang dhy…</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-45"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">ToolSearch</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>{&quot;query&quot;: &quot;select:TaskUpdate&quot;, &quot;max_results&quot;: 3}</code></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-46"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">TaskUpdate</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>{&quot;taskId&quot;: &quot;1&quot;, &quot;status&quot;: &quot;in_progress&quot;}</code></div><div class="tool-result"><pre>Updated task #1 status</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-47"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>cd /tmp/_paddleocr_src/deploy/fastapi/deepx/engine
+echo &quot;=== det_router / rec_router ===&quot;
+sed -n '/def det_router/,/return/p;/def rec_router/,/return/p' utils.py | head -60</code></div><div class="tool-result"><pre>=== det_router / rec_router ===
+def det_router(width, height):
+    if all([width &lt; 800, height &lt; 800]):
+        return 640
+def rec_router(width, height):
+    ratio = width / height
+
+    if ratio &lt;= 3:
+        ratio_res = 3
+    elif ratio &lt;= 5:
+        ratio_res = 5
+    elif ratio &lt;= 10:
+        ratio_res = 10
+    elif ratio &lt;= 15:
+        ratio_res = 15
+    elif ratio &lt;= 25:
+        ratio_res = 25
+    else:
+        ratio_res = 35
+
+    return ratio_res
+Shell cwd was reset to /data/home/dhyang/github/dx-all-suite-full-e2e</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-48"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Write</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>/data/home/dhyang/github/dx-all-suite-full-e2e/docs/superpowers/specs/2026-06-12-ocr-video-npu-design.md</code></div><div class="tool-result"><pre>File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/docs/superpowers/specs/2026-06-12-ocr-video-npu-design.md (file state is current in your context — no need to Read it back)</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-49"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Write</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>/data/home/dhyang/github/dx-all-suite-full-e2e/docs/superpowers/specs/2026-06-12-ocr-video-npu-plan.md</code></div><div class="tool-result"><pre>File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/docs/superpowers/specs/2026-06-12-ocr-video-npu-plan.md (file state is current in your context — no need to Read it back)</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-50"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">TaskUpdate</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>{&quot;taskId&quot;: &quot;1&quot;, &quot;status&quot;: &quot;completed&quot;}</code></div><div class="tool-result"><pre>Updated task #1 status</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-51"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">TaskUpdate</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>{&quot;taskId&quot;: &quot;2&quot;, &quot;status&quot;: &quot;in_progress&quot;}</code></div><div class="tool-result"><pre>Updated task #2 status</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-52"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Write</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-182217_claude_opus48_ppocrv5_ocr_video/setup.sh</code></div><div class="tool-result"><pre>File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-182217_claude_opus48_ppocrv5_ocr_video/setup.sh (file state is current in your context — no need to Read it back)</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-53"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-182217_claude_opus48_ppocrv5_ocr_video
+bash -n setup.sh &amp;&amp; echo &quot;syntax OK&quot;
+echo &quot;=== running setup.sh ===&quot;
+bash setup.sh 2&gt;&amp;1 | tee setup_out.log | tail -40</code></div><div class="tool-result"><pre>syntax OK
+=== running setup.sh ===
+[setup] SUITE_ROOT      = /data/home/dhyang/github/dx-all-suite-full-e2e
+[setup] venv-dx-runtime = /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/venv-dx-runtime
+[setup] === NPU sanity check ===
+[setup] WARNING: NPU sanity check did not report PASS — inference may fail.
+[setup] If device init failed, a cold boot (full power cycle) is required.
+[setup] Creating session venv at /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-182217_claude_opus48_ppocrv5_ocr_video/venv
+[setup] Installing shapely + pyclipper (--no-deps)
+[setup] Wrote bridge: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-182217_claude_opus48_ppocrv5_ocr_video/venv/lib/python3.12/site-packages/dxengine_bridge.pth -&gt; /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/venv-dx-runtime/lib/python3.12/site-packages
+[setup] Verifying imports (dx_engine, numpy, cv2, PIL, shapely, pyclipper)
+  dx_engi…</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-54"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>echo &quot;=== captured sanity log tail ===&quot;; tail -25 /tmp/_ocr_sanity.log
+echo &quot;=== grep for PASSED/FAILED/ERROR ===&quot;; grep -i &quot;passed\|failed\|\[error\]&quot; /tmp/_ocr_sanity.log | head</code></div><div class="tool-result"><pre>=== captured sanity log tail ===
+==== Runtime Version Dependency Check ====
+[OK] Version Dependency Check
+   Runtime Framework Version: 3.3.2
+   Device Driver Version: v2.4.1
+   PCIe Driver Version: v2.2.0
+   Firmware Version: device-id=0 v2.5.6
+   ONNX Runtime Version: v1.23.2
+==== Runtime Executable File Check ====
+[OK] Executable File Check
+   Runtime Framework Version: 3.3.2
+   Device Driver Version: v2.4.1
+   PCIe Driver Version: v2.2.0
+   Firmware Version: device-id=0 v2.5.6
+   ONNX Runtime Version: v1.23.2
+   dxrt-cli ...OK
+   run_model ...OK
+   parse_model ...OK
+   dxtop ...OK
+   dxrtd ...OK
+   Header: /usr/local/include/dxrt ...OK
+==== Runtime dxrtd Service Check ====
+[OK] The dxrtd service is running correctly. This is the expected behavior for builds with USE_SERVICE=ON on cmake/dxrt.cfg.cmake
+
+============================================================================
+** Sanity check PASSED!
+=== grep for PASSED/FAILED/ERROR ===
+** Sanity check PASSED!</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-55"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Edit</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-182217_claude_opus48_ppocrv5_ocr_video/setup.sh</code></div><div class="tool-result"><pre>The file /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-182217_claude_opus48_ppocrv5_ocr_video/setup.sh has been updated successfully. (file state is current in your context — no need to Read it back)</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-56"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">TaskUpdate</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>{&quot;taskId&quot;: &quot;2&quot;, &quot;status&quot;: &quot;completed&quot;}</code></div><div class="tool-result"><pre>Updated task #2 status</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-57"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">TaskUpdate</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>{&quot;taskId&quot;: &quot;3&quot;, &quot;status&quot;: &quot;in_progress&quot;}</code></div><div class="tool-result"><pre>Updated task #3 status</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-58"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Write</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-182217_claude_opus48_ppocrv5_ocr_video/ocr_video.py</code></div><div class="tool-result"><pre>File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-182217_claude_opus48_ppocrv5_ocr_video/ocr_video.py (file state is current in your context — no need to Read it back)</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-59"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-182217_claude_opus48_ppocrv5_ocr_video
+source venv/bin/activate
+python -c &quot;import py_compile; py_compile.compile('ocr_video.py', doraise=True); print('py_compile OK')&quot;
+echo &quot;=== --help (no PYTHONPATH) ===&quot;
+pyt…</code></div><div class="tool-result"><pre>py_compile OK
+=== --help (no PYTHONPATH) ===
+usage: ocr_video.py [-h] --source SOURCE [--output OUTPUT] [--sample SAMPLE]
+                    [--show] [--max-frames MAX_FRAMES]
+                    [--frame-skip FRAME_SKIP] [--model-dir MODEL_DIR]
+                    [--rec-thresh REC_THRESH]
+
+Video-file + webcam OCR on the DEEPX DX-M1 NPU (PP-OCRv5).
+
+options:
+  -h, --help            show this help message and exit
+  --source SOURCE       Video file path (e.g. clip.mp4) OR webcam index (e.g.
+                        0).
+  --output OUTPUT       Annotated output video path (default: ocr_output.mp4).
+  --sample SAMPLE       Path to save one annotated sample frame.
+  --show                Show a live preview window (needs a display).
+  --max-frames MAX_FRAMES
+                        Stop after N frames (0 = all). Useful for webcam /
+                        quick runs.
+  --frame-skip FRAME_SKIP
+                        Run NPU OCR every Nth frame; reuse last result in
+                       …</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-60"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">TaskUpdate</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>{&quot;taskId&quot;: &quot;3&quot;, &quot;status&quot;: &quot;completed&quot;}</code></div><div class="tool-result"><pre>Updated task #3 status</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-61"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">TaskUpdate</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>{&quot;taskId&quot;: &quot;4&quot;, &quot;status&quot;: &quot;in_progress&quot;}</code></div><div class="tool-result"><pre>Updated task #4 status</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-62"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Write</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-182217_claude_opus48_ppocrv5_ocr_video/run.sh</code></div><div class="tool-result"><pre>File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-182217_claude_opus48_ppocrv5_ocr_video/run.sh (file state is current in your context — no need to Read it back)</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-63"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Write</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-182217_claude_opus48_ppocrv5_ocr_video/verify.py</code></div><div class="tool-result"><pre>File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-182217_claude_opus48_ppocrv5_ocr_video/verify.py (file state is current in your context — no need to Read it back)</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-64"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-182217_claude_opus48_ppocrv5_ocr_video
+chmod +x setup.sh run.sh ocr_video.py verify.py
+bash -n run.sh &amp;&amp; echo &quot;run.sh syntax OK&quot;
+source venv/bin/activate
+python -c &quot;import py_compile; py_compile.compile('verif…</code></div><div class="tool-result"><pre>run.sh syntax OK
+verify.py py_compile OK</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-65"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-182217_claude_opus48_ppocrv5_ocr_video
+echo &quot;===== run.sh on demo video (full pipeline, captured) =====&quot; | tee session.log
+./run.sh /tmp/sc-build/ocr_input/ocr_demo.mp4 &quot;$PWD/ocr_output.mp4&quot; 2&gt;&amp;1 | tee -a sess…</code></div><div class="tool-result"><pre>===== run.sh on demo video (full pipeline, captured) =====
+[run] source=/tmp/sc-build/ocr_input/ocr_demo.mp4  output=/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-182217_claude_opus48_ppocrv5_ocr_video/ocr_output.mp4  DXNN_DEVICES=0
+[DXRT] Using DXRT_TASK_MAX_LOAD (I/O buffer-count)=3 from environment
+2026-06-12 18:28:16,430 INFO Loading NPU model: det_v5_640.dxnn
+[DXRT] Using CUSTOM_INTRA_OP_THREADS_COUNT=2 from environment
+[DXRT] Using CUSTOM_INTER_OP_THREADS_COUNT=1 from environment
+[DXRT] Using NFH_INPUT_WORKER_THREADS=2 from environment
+[DXRT] Using NFH_OUTPUT_WORKER_THREADS=4 from environment
+2026-06-12 18:28:16,497 INFO Loading NPU model: det_v5_960.dxnn
+2026-06-12 18:28:16,560 INFO Loading NPU model: textline_ori.dxnn
+2026-06-12 18:28:16,565 INFO Loading NPU model: rec_v5_ratio_3.dxnn
+2026-06-12 18:28:16,618 INFO Loading NPU model: rec_v5_ratio_5.dxnn
+2026-06-12 18:28:16,665 INFO Loading NPU model: rec_v5_ratio_10.dxnn
+2026-06-12 18:28:…</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-66"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-182217_claude_opus48_ppocrv5_ocr_video
+echo &quot;=== output video ===&quot;
+ffprobe -v error -show_entries format=duration,size -show_entries stream=width,height,codec_name,nb_frames,avg_frame_rate ocr_output.mp4 2&gt;&amp;1 …</code></div><div class="tool-result"><pre>=== output video ===
+[STREAM]
+codec_name=mpeg4
+width=1280
+height=720
+avg_frame_rate=15/1
+nb_frames=176
+[/STREAM]
+[FORMAT]
+duration=11.733333
+size=3609287
+[/FORMAT]
+=== sample_detect.jpg ===
+shape (720, 1280, 3)
+-rw-rw-r-- 1 dhyang dhyang 3609287 Jun 12 18:29 ocr_output.mp4
+-rw-rw-r-- 1 dhyang dhyang  185599 Jun 12 18:28 sample_detect.jpg
+
+=== verify.py ===
+[RuntimeEventDispatcher] level=CRITICAL type=DEVICE_MEMORY code=MEMORY_OVERFLOW message=&quot;Ran out of NPU memory&quot; timestamp=&quot;2026-06-12 18:30:04.866&quot;
+verify exit: 0</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-67"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-182217_claude_opus48_ppocrv5_ocr_video
+source venv/bin/activate
+python verify.py &gt; /tmp/_verify_out.log 2&gt;&amp;1
+echo &quot;verify.py REAL exit: $?&quot;
+echo &quot;=== output (filtered) ===&quot;
+grep -v &quot;Loading NPU model\|DXRT\]&quot; …</code></div><div class="tool-result"><pre>/bin/bash: line 8: 1446685 Aborted                 (core dumped) python verify.py &gt; /tmp/_verify_out.log 2&gt;&amp;1
+verify.py REAL exit: 134
+=== output (filtered) ===
+[RuntimeEventDispatcher] level=CRITICAL type=DEVICE_MEMORY code=MEMORY_OVERFLOW message=&quot;Ran out of NPU memory&quot; timestamp=&quot;2026-06-12 18:31:06.065&quot;</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-68"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>echo &quot;=== python/ocr processes holding NPU? ===&quot;
+ps -eo pid,etimes,rss,cmd | grep -iE &quot;ocr_video|verify\.py|paddle&quot; | grep -v grep
+echo &quot;=== dxrt-cli status ===&quot;
+dxrt-cli -s 2&gt;&amp;1 | head -40</code></div><div class="tool-result"><pre>=== python/ocr processes holding NPU? ===
+=== dxrt-cli status ===
+DXRT v3.3.2
+=======================================================
+ * Device 0: M1, Accelerator type
+---------------------   Version   ---------------------
+ * RT Driver version   : v2.4.1
+ * PCIe Driver version : v2.2.0
+-------------------------------------------------------
+ * FW version          : v2.5.6
+--------------------- Device Info ---------------------
+ * Memory : LPDDR5x 6000 Mbps, 3.92GiB
+ * Board  : M.2, Rev 1.0
+ * Chip Offset : 0
+ * PCIe   : Gen3 X4 [03:00:00]
+
+NPU 0: voltage 750 mV, clock 1000 MHz, temperature 46'C
+NPU 1: voltage 750 mV, clock 1000 MHz, temperature 46'C
+NPU 2: voltage 750 mV, clock 1000 MHz, temperature 46'C
+=======================================================</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-69"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Edit</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-182217_claude_opus48_ppocrv5_ocr_video/verify.py</code></div><div class="tool-result"><pre>The file /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-182217_claude_opus48_ppocrv5_ocr_video/verify.py has been updated successfully. (file state is current in your context — no need to Read it back)</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-70"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-182217_claude_opus48_ppocrv5_ocr_video
+source venv/bin/activate
+python verify.py &gt; /tmp/_verify_out.log 2&gt;&amp;1
+echo &quot;verify.py REAL exit: $?&quot;
+grep -v &quot;Loading NPU model\|DXRT\]&quot; /tmp/_verify_out.log</code></div><div class="tool-result"><pre>verify.py REAL exit: 0
+2026-06-12 18:31:50,258 INFO PP-OCRv5 NPU pipeline ready (det 640/960 + textline-ori cls + rec x6).
+== verify.py : PP-OCRv5 OCR on DX-M1 NPU ==
+  [OK] all 10 model/dict files present
+  [OK] PP-OCRv5 pipeline loaded on the NPU
+  [OK] detected 14 text region(s) on one frame
+       per-frame NPU latency: total=340.1 ms (det=224.4, cls=10.2, rec=89.5)
+       recognized 14 string(s); sample: ['CENTRAL', 'STATION', 'Platform', '3', 'Track B']
+RESULT: PASS</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-71"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Read</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-182217_claude_opus48_ppocrv5_ocr_video/sample_detect.jpg</code></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-72"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-182217_claude_opus48_ppocrv5_ocr_video
+{ echo; echo &quot;===== verify.py (NPU OCR smoke test) =====&quot;; cat /tmp/_verify_out.log; } &gt;&gt; session.log
+echo &quot;=== reclaim space: drop the 302MB model tarball (keep extracte…</code></div><div class="tool-result"><pre>=== reclaim space: drop the 302MB model tarball (keep extracted .dxnn) ===
+=== final session dir (no venv/model binaries) ===
+439M	.
+./fork_setup_models.sh
+./ocr_output.mp4
+./ocr_video.py
+./run.sh
+./sample_detect.jpg
+./session.log
+./setup_out.log
+./setup.sh
+./verify.py
+--- size of session.log ---
+56 session.log</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-73"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Write</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-182217_claude_opus48_ppocrv5_ocr_video/README.md</code></div><div class="tool-result"><pre>File created successfully at: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-182217_claude_opus48_ppocrv5_ocr_video/README.md (file state is current in your context — no need to Read it back)</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-74"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">TaskUpdate</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>{&quot;taskId&quot;: &quot;4&quot;, &quot;status&quot;: &quot;completed&quot;}</code></div><div class="tool-result"><pre>Updated task #4 status</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-75"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">TaskUpdate</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>{&quot;taskId&quot;: &quot;5&quot;, &quot;status&quot;: &quot;in_progress&quot;}</code></div><div class="tool-result"><pre>Updated task #5 status</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-76"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Skill</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>dx-agent-verify</code></div><div class="tool-result"><pre>Launching skill: dx-agent-verify</pre></div></div></div>
+<div class="entry assistant" id="entry-77"><div class="entry-hdr"><span class="icon">&#x1F4AC;</span><span class="label">Claude</span><span class="time">2026-06-12 09:16:52 UTC</span></div><div class="entry-body"><p>This routes to <strong>dx_app</strong> (standalone inference). Let me gather context — model registry, the demo video, existing OCR examples, and run the mandatory prerequisite checks in parallel.
+Demo video confirmed: 1280×720, 15fps, 176 frames, ~11.7s. Let me examine the model registry and existing OCR examples.
+No dedicated OCR model in the registry. This is a critical pre-flight finding. Let me search the whole suite for any OCR/text-detection assets (compiled <code>.dxnn</code>, dx_stream support, sample apps) before deciding the approach.
+Key finding: a prior RapidDoc session already compiled <strong>real PP-OCRv5 detection + recognition <code>.dxnn</code> models</strong> for the NPU. This is a genuine OCR NPU implementation I can build the video app around. Let me run the prerequisite HARD GATE checks and explore the proven OCR inference code in parallel.
+Sanity check <strong>PASSED</strong> — NPU operational (DX-M1, FW v2.5.6, runtime 3.3.2). And there's a proven OCR-on-NPU pipeline (<code>rapid_doc</code>) with measured det ~17.9 FPS. Let me understand how <code>rapid_doc</code> exposes text detection + recognition so I can drive it per-frame, and read the build memory.
+<code>model/ocr/dx_ocr.py</code> is the NPU OCR engine — and the memory even notes a "future PaddleOCR video/webcam OCR showcase" was reserved. This task is exactly that. Let me read the OCR NPU engine and its interface.
+Critical: the dx_app KB has a <strong>dedicated toolset for exactly this</strong> — "PaddleOCR OCR app (video/webcam)" → <code>.deepx/toolsets/paddleocr-rapiddoc-app.md</code>. And there's a HARD GATE: <strong>previous-session reuse is PROHIBITED</strong> — I must re-derive from the KB, not copy the prior session. Let me read the canonical toolset.
+The KB is explicit: OCR video/webcam app uses <strong>PaddleOCR-deepx</strong> (<code>deepx</code> branch), pip-installable, entry <code>ocr_video.py</code> with <code>PaddleOCR.predict(frame)</code> on NPU. Let me read the compiler companion toolset for install/model specifics and check whether the fork is reachable.
+I now have the complete, authoritative picture. The canonical build path (from the dedicated KB toolset) is:
+- <strong>PaddleOCR-deepx</strong> (<code>deepx</code> branch), <code>paddleocr</code> pip-installable → DX-M1 NPU OCR
+- Own entry <code>ocr_video.py</code>: OpenCV capture → <code>PaddleOCR.predict(frame)</code> → overlay → write annotated video + <code>sample_detect.jpg</code>
+- <code>--source &lt;path.mp4&gt;</code> and <code>--source &lt;int&gt;</code> via one <code>open_source()</code> path
+- <code>setup.sh</code> (venv + deps + NPU model download), <code>run.sh</code> (source <code>set_env.sh</code> + <code>DXNN_DEVICES</code> → entry), README with latency/FPS</p>
+<p>Let me check feasibility: GitHub reachability for the fork, and whether <code>paddleocr</code> is already available anywhere.
+GitHub reachable; <code>paddleocr</code> not yet installed; <code>venv-dx-runtime</code> has cv2 + dx_engine. Let me clone the fork (to obtain source + read its DEEPX docs) and create a task list to track this multi-step build.
+The DEEPX NPU integration lives under <code>deploy/fastapi/deepx/</code>. Let me read the NPU guide, the engine, and the model-download + setup scripts — these are authoritative.
+The real NPU OCR engine is <code>deploy/fastapi/deepx/engine/paddleocr.py</code> (sync class <code>PaddleOcr</code>) + <code>async_paddleocr.py</code>. Let me read the engine, the model-download scripts, and the engine dir layout to understand the predict API and result format.
+Let me read the fork's <code>deepx/setup.sh</code> (model provisioning), the <code>PaddleOcr</code> engine class, and <code>draw_utils.py</code>.
+Model download = <code>sdk.deepx.ai/res/assets/dx_baidu_PPOCR/{server,mobile}.tar.gz</code> → <code>engine/model_files/</code>. Now the core: the <code>PaddleOcr</code> engine class and the draw utility.
+The sync <code>PaddleOcr.__call__(img)</code> returns <code>(boxes, crops, rec_results, processed_img, debug_data)</code> where <code>rec_results</code> = <code>[{'bbox_index','bbox','text','score'},...]</code> and <code>debug_data['latency_ms']</code> has det/cls/rec/total. But its constructor needs pre-built model dicts. Let me find the model loader that builds det/cls/rec IE dicts from <code>model_files/</code>.
+The model loader isn't in the engine package. Let me find where <code>PaddleOcr(</code>/<code>AsyncPipelineOCR(</code> is actually constructed with loaded <code>.dxnn</code> models across the whole fork.
+The model loader is in <code>ocr_service.py</code> (lines ~120–360). Let me read that section — it shows exactly how to build det/cls/rec IE model dicts from <code>model_files/</code> and construct <code>PaddleOcr</code>.
+Complete recipe obtained. Models in <code>model_files/server/</code>: <code>det_v5_640/960.dxnn</code>, <code>textline_ori.dxnn</code> (cls), <code>rec_v5_ratio_{3,5,10,15,25,35}.dxnn</code>, dict <code>ppocrv5_dict.txt</code>. For video frames I need det+cls+rec only (skip doc-orientation/unwarping). Let me verify the engine package is self-contained (its external deps) and check the draw helper + what the demo video contains.
+Engine external deps: <code>numpy, cv2, Pillow, shapely, pyclipper, dx_engine</code> — package is self-contained otherwise. Let me check what <code>venv-dx-runtime</code> already provides (to design the venv + <code>dx_engine</code> bridge per the proven RapidDoc approach) and confirm the model-download URL is reachable.
+Everything checks out: <code>venv-dx-runtime</code> (py3.12) provides <code>dx_engine</code>, numpy 2.4.6, cv2 4.13, PIL, tqdm — my session venv only needs <strong>shapely + pyclipper</strong>. Model tarball (server, 302MB) is reachable.</p>
+<p>Now I'll complete the process gates. Let me set up tracking + the session dir, vendor the freshly-cloned engine, and kick off the model download in the background (parallel to artifact generation, per autopilot rules).
+Now let me start the 302 MB model download in the background and create the task list to track the build.
+Download completed. Let me verify the extracted model files.
+All PP-OCRv5 NPU models are in place. Now completing the <strong>brainstorm spec</strong> (autopilot: write + self-review) and <strong>plan</strong> gates. Let me invoke the writing-plans skill and write the spec + plan docs.
+Let me quickly confirm the <code>det_router</code>/<code>rec_router</code> return values match the model dict keys (avoid KeyError at runtime).
+Routers match the loaded model dicts (det→640/960, rec→3/5/10/15/25/35). 1280×720 frames route to det_960. I have full understanding. Writing the <strong>spec</strong> now.
+Now the implementation plan (references the spec, per HARD GATE):
+<strong>Plan (saved & referenced to spec):</strong> ① provision [done] ② <code>setup.sh</code> (venv + shapely/pyclipper + <code>dx_engine</code> bridge) ③ <code>ocr_video.py</code> entry ④ <code>run.sh</code> ⑤ <code>verify.py</code> ⑥ <code>README.md</code> ⑦ execute on demo video + capture ⑧ verify + transcript + DONE. Each step is verified immediately (TDD).</p>
+<p>Marking provision/plan done; generating <code>setup.sh</code> first (infrastructure-first).
+Let me run <code>setup.sh</code> immediately to verify it (TDD — verify each artifact on creation). Models are already present so this is just venv + deps + bridge.
+setup.sh works (venv + shapely 2.1.2 + pyclipper + bridge all import; models present). But the sanity check showed a WARNING here though it PASSED earlier — let me check why before relying on the NPU.
+Found it: the NPU is healthy (log shows "Sanity check PASSED!"). The WARNING is a false negative — <code>set -o pipefail</code> + <code>grep -q</code> early-exit sends SIGPIPE to <code>tee</code> (exit 141), which pipefail surfaces. Let me fix that sanity block to grep the file instead of the pipe.
+NPU confirmed healthy; setup.sh fixed. Now the core entry <code>ocr_video.py</code>.
+<code>py_compile</code> + <code>--help</code> (no PYTHONPATH, under the session venv — proves self-contained imports):
+<code>ocr_video.py</code> compiles and is self-contained. Now <code>run.sh</code> + <code>verify.py</code>.
+Syntax-check <code>run.sh</code> + <code>verify.py</code>, then run the <strong>full end-to-end</strong> on the demo video (the main execution, captured to <code>session.log</code>).
+Now the full end-to-end run on the demo video, captured to <code>session.log</code>:
+Full run succeeded — 176 frames, all OCR'd on the NPU, <strong>316.9 ms/frame (3.16 FPS)</strong>, 1858 recognized strings, sample frame saved. Let me validate the output artifacts and run <code>verify.py</code>.
+The <code>verify exit: 0</code> was the <code>grep</code> exit, not <code>verify.py</code> — and a "Ran out of NPU memory" CRITICAL appeared. Let me re-run <code>verify.py</code> cleanly (no pipe) to see its real output and exit code.
+<code>verify.py</code> aborted with NPU <code>MEMORY_OVERFLOW</code> (exit 134) — yet <code>run.sh</code> loaded the same 9 models fine moments earlier. Likely lingering NPU allocation from a prior process. Let me check for stuck processes / NPU memory state.
+No lingering processes; NPU healthy (3.92 GiB). Root cause: I ran <code>verify.py</code> <strong>without the DX-RT env</strong> that <code>run.sh</code> exports — notably <code>DXRT_TASK_MAX_LOAD=3</code>, which caps per-model I/O buffer count. Without it the default allocates more NPU memory → overflow. Fix: make <code>verify.py</code> self-sufficient by setting those RT defaults before importing <code>dx_engine</code>.
+<code>verify.py</code> now <strong>PASSES</strong> (exit 0) — recognized real text: <code>CENTRAL</code>, <code>STATION</code>, <code>Platform</code>, <code>3</code>, <code>Track B</code>. Let me visually confirm the annotated sample frame renders boxes + text correctly.
+Excellent — the annotated frame is exactly right: green quad boxes, recognized strings with confidence (CENTRAL 0.97, STATION 0.98, Platform 1.00, Track B 0.93, Departures, Express, 09:45, On Time, Local, 10:12, Delayed, EXIT, Main Hall), plus the live NPU FPS/latency HUD. All on the DX-M1 NPU.</p>
+<p>Let me append verify output to <code>session.log</code>, trim the 302 MB tarball, and write the README.
+Now the README with measured NPU performance:
+Now the <strong>dx-agent-verify</strong> gate (evidence-based completion check) before declaring DONE.</p></div></div>
+<div class="entry user" id="entry-78"><div class="entry-hdr"><span class="icon">&#x1F464;</span><span class="label">User</span><span class="time">2026-06-12 09:32:53 UTC</span></div><div class="entry-body">Base directory for this skill: /data/home/dhyang/github/dx-all-suite-full-e2e/.claude/skills/dx-agent-verify
+
+&lt;!-- Thin Claude Code wrapper — canonical skill doc lives in .deepx/ --&gt;
+
+Read and follow the complete skill documentation at `.deepx/skills/dx-agent-verify/SKILL.md`.
+
+
+ARGUMENTS: Verify OCR video/webcam NPU app session: mandatory deliverables + artifact gate + execution evidence before DONE</div></div>
+<div class="entry tool-ok collapsed" id="entry-79"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Read</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>/data/home/dhyang/github/dx-all-suite-full-e2e/.deepx/skills/dx-agent-verify/SKILL.md</code></div><div class="tool-result"><pre>1	---
+2	name: dx-agent-verify
+3	description: &quot;DEEPX build verification checklists — dx_app, dx_stream, and cross-project.&quot;
+4	---
+5	
+6	# Skill: DEEPX Build Verification Checklists
+7	
+8	&gt; For the general verification gate function and completion report template,
+9	&gt; see `dx-swe-verify`. This skill covers DEEPX-specific verification checklists.
+10	
+11	## Scope
+12	
+13	This is the **top-level suite** version covering all sub-projects. When working
+14	in a single sub-project, prefer the project-level version:
+15	
+16	| Working on... | Use this skill |
+17	|---|---|
+18	| dx_app (standalone inference) | `dx-runtime/dx_app/.deepx/skills/dx-verify-completion.md` |
+19	| dx_stream (GStreamer pipelines) | `dx-runtime/dx_stream/.deepx/skills/dx-verify-completion.md` |
+20	| Cross-project integration | `dx-runtime/.deepx/skills/dx-verify-completion.md` |
+21	
+22	## Verification Checklist — dx_app Python Apps
+23	
+24	```bash
+25	# 1. Syntax check all Python files
+26	for f in factory/*_factory.py *_sync.py …</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-80"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>cd /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-182217_claude_opus48_ppocrv5_ocr_video
+source venv/bin/activate
+echo &quot;===== FINAL VERIFICATION SWEEP =====&quot;
+echo &quot;--- 1. Python syntax ---&quot;
+for f in ocr_video.py verify.py; do python -c &quot;import py_compile; py_…</code></div><div class="tool-result"><pre>===== FINAL VERIFICATION SWEEP =====
+--- 1. Python syntax ---
+  OK: ocr_video.py
+  OK: verify.py
+--- 2. Shell syntax ---
+  OK: setup.sh
+  OK: run.sh
+--- 3. ocr_video --help (no PYTHONPATH, self-contained imports) ---
+  OK: argparse/imports
+--- 4. Mandatory deliverables present ---
+  OK: setup.sh (4922 bytes)
+  OK: run.sh (3194 bytes)
+  OK: README.md (5533 bytes)
+  OK: session.log (4339 bytes)
+  OK: verify.py (3964 bytes)
+  OK: ocr_video.py (11070 bytes)
+  OK: sample_detect.jpg (185599 bytes)
+  OK: ocr_output.mp4 (3609287 bytes)
+--- 5. session.log authenticity (real capture, not heredoc) ---
+  OK: session.log holds real run + verify output
+--- 6. output video integrity ---
+  OK: ocr_output.mp4 frames=176 1280x720
+--- 7. session-id freshness ---
+  session dir = 20260612-182217_claude_opus48_ppocrv5_ocr_video  (fresh local timestamp)</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-81"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Write</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>/home/dhyang/.claude/projects/-data-home-dhyang-github-dx-all-suite/memory/project_paddleocr_video_ocr_build.md</code></div><div class="tool-result"><pre>File created successfully at: /home/dhyang/.claude/projects/-data-home-dhyang-github-dx-all-suite/memory/project_paddleocr_video_ocr_build.md (file state is current in your context — no need to Read it back)</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-82"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Read</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>/home/dhyang/.claude/projects/-data-home-dhyang-github-dx-all-suite/memory/MEMORY.md</code></div><div class="tool-result"><pre>1	- [Prefer --stop over --abort for e2e_runner](feedback_e2e_runner_stop_vs_abort.md) — graceful shutdown preserves partial round data
+2	- [e2e_runner sequential must be round-major](project_runner_round_major_scheduling.md) — distribute tool quota walls across rounds + enable mid-run partial reports
+3	- [copilot loads submodule instructions, not suite, when submodule is git-initialized](project_copilot_submodule_instruction_loading.md) — why stream/app E2E scenarios sometimes run with no harness rules
+4	- [Eval gaps: factory exec-scoring not fixed + sanity-fail bypass scored PASS](project_e2e_npu_bypass_and_exec_scoring.md) — multi_946422be root causes + fix plan + 2026-06-01 status/blockers
+5	- [Never git stash in a shared-worktree repo with concurrent sessions](feedback_no_git_stash_shared_worktree.md) — stash ref is shared across worktrees</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-83"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Edit</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>/home/dhyang/.claude/projects/-data-home-dhyang-github-dx-all-suite/memory/MEMORY.md</code></div><div class="tool-result"><pre>The file /home/dhyang/.claude/projects/-data-home-dhyang-github-dx-all-suite/memory/MEMORY.md has been updated successfully. (file state is current in your context — no need to Read it back)</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-84"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">TaskUpdate</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>{&quot;taskId&quot;: &quot;5&quot;, &quot;status&quot;: &quot;completed&quot;}</code></div><div class="tool-result"><pre>Updated task #5 status</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-85"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>cd /data/home/dhyang/github/dx-all-suite-full-e2e
+GENROOT=&quot;$(d=&quot;$PWD&quot;; while [ &quot;$d&quot; != / ]; do [ -f &quot;$d/.deepx/tools/src/dx_transcripts/generate_transcripts.py&quot; ] &amp;&amp; { echo &quot;$d&quot;; break; }; d=&quot;$(dirname &quot;$d&quot;)&quot;; done)&quot;
+GT=&quot;$GENROOT/.deepx/tools/src/dx_transcripts/generate_transcripts.py&quot;
+OUT=&quot;$GENROO…</code></div><div class="tool-result"><pre>jsonl: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-182217_claude_opus48_ppocrv5_ocr_video/claude-stream.jsonl
+md: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-182217_claude_opus48_ppocrv5_ocr_video/claude-session.md
+html: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-182217_claude_opus48_ppocrv5_ocr_video/claude-session.html</pre></div></div></div>
+<div class="entry assistant" id="entry-86"><div class="entry-hdr"><span class="icon">&#x1F4AC;</span><span class="label">Claude</span><span class="time">2026-06-12 09:32:53 UTC</span></div><div class="entry-body"><p>This is the OCR IFactory-exception path (no factory/SyncRunner by design), so the factory-compliance check doesn't apply. Let me run the applicable checks as a final evidence sweep before DONE.
+All checks pass. Let me save the reusable build knowledge to memory, then finalize.
+All gates passed. Here's the completed build.</p>
+<p>## Summary — Video/Webcam OCR on the DX-M1 NPU (PP-OCRv5)</p>
+<p><strong>What was built</strong> (routed from task vocabulary to the dedicated KB toolset <code>paddleocr-rapiddoc-app.md</code> — the documented IFactory exception; PaddleOCR-deepx ships its own NPU pipeline):</p>
+<p>- <strong><code>ocr_video.py</code></strong> — our own standalone entry. Single <code>open_source()</code> path handles <strong>both</strong> <code>--source video.mp4</code> and <code>--source &lt;webcam_index&gt;</code>. Each frame runs PP-OCRv5 <strong>detection → textline-orientation cls → recognition on the DX-M1 NPU</strong> (<code>dx_engine.InferenceEngine</code> via the vendored <code>engine.paddleocr.PaddleOcr</code>), overlays green quad boxes + recognized strings + a live FPS/latency HUD, writes an annotated MP4, and saves <code>sample_detect.jpg</code>.
+- Vendored <code>engine/</code> (freshly cloned, not reused from a prior session) + <code>setup.sh</code> (venv + <code>shapely</code>/<code>pyclipper</code> + <code>dx_engine</code> bridge + 302 MB model download) + <code>run.sh</code> + <code>verify.py</code> + <code>README.md</code>.</p>
+<p><strong>Measured on the NPU</strong> (demo <code>ocr_demo.mp4</code>, 1280×720, 176 frames — all OCR'd):</p>
+<p>| Metric | Value |
+|---|---|
+| Per-frame OCR latency | <strong>316.9 ms</strong> (det 223.0 + cls 7.7 + rec 73.4) |
+| OCR throughput | <strong>3.16 FPS</strong> |
+| Recognized strings (176 frames) | 1858 |
+| <code>verify.py</code> | <strong>RESULT: PASS</strong> (14 regions on frame 1: CENTRAL, STATION, Platform, Track B, …) |</p>
+<p>Verification sweep: Python/shell syntax OK · self-contained imports OK · all 8 deliverables present · <code>session.log</code> is real captured output · output video 176 frames 1280×720 · fresh session id. Two issues hit and fixed during the build: a spurious sanity-check SIGPIPE warning, and a 9-model NPU <code>MEMORY_OVERFLOW</code> resolved by setting <code>DXRT_TASK_MAX_LOAD=3</code> in <code>verify.py</code> (matching <code>run.sh</code>).</p>
+<pre><code> ███████████   █████████ ████████ ████████  ████      ████
+ ███     █████ ███░░░░░░░███░░░░░░███   ███  ░████   ████░░
+ ███        ██░███░      ██░░     ███   ███░   █████████░░
+ ███        ████████████ ████████ ████████░░    ░█████░░░
+ ███        ██░███░░░░░░░██░░░░░░░███░░░░░░  ██████████
+ ███     █████░███░      ██░      ███░   ████████░░░░████
+ ███████████░░░█████████ ████████ ██████████░░░░░░    ████
+  ░░░░░░░░░░░   ░░░░░░░░░ ░░░░░░░░ ░░░░░░░░░░          ░░░░
+        DX-AGENT-DEV · on-device NPU
+</code></pre>
+<p>[DX-AGENT-DEV: DONE (output-dir: dx-runtime/dx_app/dx-agent-dev/20260612-182217_claude_opus48_ppocrv5_ocr_video/)]</p>
+<p>Now the final housekeeping step — render this session's transcript into the output dir:
+Session transcript (md/html/jsonl) saved to: <code>dx-runtime/dx_app/dx-agent-dev/20260612-182217_claude_opus48_ppocrv5_ocr_video/claude-session.*</code></p>
+<p>The OCR video/webcam app is complete and verified working on the DX-M1 NPU. <code>./run.sh</code> processes the bundled demo video; <code>./run.sh 0 webcam_out.mp4 --show</code> runs a live webcam — both through the same NPU OCR path, producing an annotated output video plus <code>sample_detect.jpg</code>.</p></div></div>
+<hr />
+<div class="summary-section"><h2>Session Summary</h2><table class="summary-table"><tr><td>Turns</td><td>4</td></tr>
+<tr><td>Tool calls</td><td>78</td></tr>
+<tr><td>Messages (raw)</td><td>345</td></tr>
+<tr><td>Skills invoked</td><td>dx-agent-brainstorm, dx-agent-verify, dx-skill-router</td></tr>
+<tr><td>Tool breakdown</td><td>Bash: 35, Read: 12, TaskUpdate: 10, Write: 8, TaskCreate: 5, Skill: 3, Edit: 3, ToolSearch: 2</td></tr></table></div>
+<div class="footer">
+Generated by parse_claude_session.py &middot; 2026-06-12 18:38:58
+</div>
+</div>
+<script>document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('.entry-hdr').forEach(function(hdr) {
+    hdr.addEventListener('click', function() {
+      hdr.parentElement.classList.toggle('collapsed');
+    });
+  });
+});
+</script>
+</body>
+</html>
