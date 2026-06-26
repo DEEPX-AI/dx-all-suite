@@ -12,7 +12,7 @@ This guide addresses common errors and symptoms encountered while using the **DX
 
 ---
 
-## Q1. Container 'Restarting' Error (`dxrtd` Conflict)
+## Q1. Container 'Restarting' Error (dxrtd Conflict)
 
 This issue occurs when the container status is continuously displayed as Restarting after running docker_run.sh, making it impossible to enter the container.  
 

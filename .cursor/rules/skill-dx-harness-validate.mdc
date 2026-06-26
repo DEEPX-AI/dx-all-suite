@@ -1,0 +1,7 @@
+---
+description: 'Internal harness development: validate .deepx/ framework integrity across all levels, collect feedback, apply
+  fixes, verify results'
+alwaysApply: false
+---
+
+Read and follow the skill documentation at `.deepx/skills/dx-harness-validate/SKILL.md`.

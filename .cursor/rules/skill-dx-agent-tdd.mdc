@@ -1,0 +1,6 @@
+---
+description: DEEPX build validation order — factory, pipeline, and integration checks.
+alwaysApply: false
+---
+
+Read and follow the skill documentation at `.deepx/skills/dx-agent-tdd/SKILL.md`.

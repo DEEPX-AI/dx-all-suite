@@ -90,7 +90,7 @@ services:
     # (By default, the dxrtd service runs within the dx-runtime container)
     # If you want to run the dxrtd service in a different container or host,
     # uncomment the 'entrypoint' and 'command' lines below.
-    # for more details, please refer to the [FAQ section of the dx-all-suite documentation](https://github.com/DEEPX-AI/dx-all-suite/blob/main/docs/source/faq.md)."
+    # for more details, please refer to the [FAQ section of the dx-all-suite documentation](https://github.com/DEEPX-AI/dx-all-suite/blob/main/docs/source/05_FAQ_Troubleshooting_Guide.md)."
     # **********************************************************************************
     # entrypoint: ["/bin/sh", "-c"]
     # command: ["sleep infinity"]
@@ -139,7 +139,7 @@ services:
     # override 'entrypoint' command "/usr/local/bin/dxrtd" to "/bin/sh -c sleep infinity"
     # cause: Instead of launching the standalone dxrtd (DX-RT Service), 
     #        utilize the dxrtd service provided within the dx-runtime container.
-    # for more details, please refer to the [FAQ section of the dx-all-suite documentation](https://github.com/DEEPX-AI/dx-all-suite/blob/main/docs/source/faq.md).
+    # for more details, please refer to the [FAQ section of the dx-all-suite documentation](https://github.com/DEEPX-AI/dx-all-suite/blob/main/docs/source/05_FAQ_Troubleshooting_Guide.md).
     # **********************************************************************************
     entrypoint: ["/bin/sh", "-c"]
     command: ["sleep infinity"]

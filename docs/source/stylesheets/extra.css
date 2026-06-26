@@ -22,3 +22,9 @@
   .md-typeset code {
       font-size: 12px;
   }
+
+  .md-typeset table:not([class]) td:not([align]),
+  .md-typeset table:not([class]) th:not([align]) {
+      text-align: center;
+      vertical-align: middle;
+  }

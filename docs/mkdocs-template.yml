@@ -35,6 +35,8 @@ theme:
      - content.code.copy
 site_url: 'https://developer.deepx.ai/'
 nav:
+  - Agent-Driven Development (Beta): 00_Agent_Driven_Development.md
+  - Agent-Driven Development Showcases: 00b_Agent_Driven_Development_Showcases.md
   - DX-AllSuite Architecture Overview: 01_DX-AllSuite_Architecture_Overview.md
   - Setting Up Environment: 02_Setting_Up_Environment.md
   - Running Your First NPU Model: 03_Running_Your_First_NPU_Model.md

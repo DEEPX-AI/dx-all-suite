@@ -27,7 +27,32 @@ show_help() {
   exit 0
 }
 
+check_and_install_deps() {
+    local packages=(
+        mkdocs
+        mkdocs-material
+        mkdocs-video
+        pymdown-extensions
+        mkdocs-to-pdf
+        mkdocs-include-markdown-plugin
+    )
+    local missing=()
+
+    for pkg in "${packages[@]}"; do
+        if ! pip show "$pkg" &>/dev/null; then
+            missing+=("$pkg")
+        fi
+    done
+
+    if [ ${#missing[@]} -gt 0 ]; then
+        echo -e "${COLOR_YELLOW}Installing missing packages: ${missing[*]}${COLOR_RESET}"
+        pip install "${missing[@]}" || { echo -e "${COLOR_RED}Failed to install packages. Please run 'pip install ${missing[*]}' manually.${COLOR_RESET}"; exit 1; }
+    fi
+}
+
 main() {
+    check_and_install_deps
+
     VERSION=$(head -n 1 ${PROJECT_ROOT}/release.ver | tr -d '\r\n')
     echo "VERSION=${VERSION}"
 

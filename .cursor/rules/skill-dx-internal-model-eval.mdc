@@ -1,0 +1,11 @@
+---
+description: 'Internal skill — evaluate and compare coding-agent / model performance via the e2e-test autopilot harness. Use
+  when comparing coding agents (claude-code vs copilot vs cursor vs opencode vs codex), comparing models (e.g. a new frontier
+  model vs the existing one, "opus4.8 vs fable5"), or comparing thinking / reasoning-effort levels (TH vs NTH). Triggers (EN):
+  "model eval", "coding agent comparison", "frontier model", "thinking mode comparison". Triggers (KO): "신규/프론티어 모델 성능 비교",
+  "thinking 모드 비교", "reasoning effort 비교", "e2e 비교평가".  <!-- KOREAN-OK: KO trigger phrases enable Korean-prompt auto-detection
+  --> Explicit: /dx-internal-model-eval.'
+alwaysApply: false
+---
+
+Read and follow the skill documentation at `.deepx/skills/dx-internal-model-eval/SKILL.md`.

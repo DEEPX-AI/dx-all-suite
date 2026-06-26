@@ -2,13 +2,15 @@
 
 ## 📋 Overview
 
-A comprehensive pytest-based test suite for automated verification of the dx-all-suite project, covering three major test categories:
+A comprehensive pytest-based test suite for automated verification of the dx-all-suite project, covering four major test categories:
 
-**Purpose:** End-to-end validation of Docker builds, local installations, and getting-started workflows across multiple components and OS platforms.
+**Purpose:** End-to-end validation of Docker builds, local installations, getting-started workflows, and release version compatibility across multiple components and OS platforms.
+
+> **Note:** For agent-driven development tests (conformance, test_agent_e2e_scenarios), see [`.deepx/tests/README.md`](../.deepx/tests/README.md).
 
 ## ✅ Test Suite Categories
 
-This repository includes three primary pytest suites for CI/CD and local validation:
+This repository includes four primary pytest suites for CI/CD and local validation:
 
 ### 1. **test_docker_install** — Docker Image Build Validation
 Validates Docker image builds using `docker_build.sh` for all supported components and OS versions.
@@ -41,6 +43,16 @@ Validates the complete getting-started user workflow from compilation to executi
 - Sequential execution ensuring proper workflow order
 
 **Total tests:** 11 (6 compiler + 5 runtime tests)
+
+### 4. **test_version_compatibility** — Version Matrix Validation
+Validates component versions against the compatibility matrix in `docs/source/04_Version_Compatibility.md`.
+
+**What it tests:**
+- Parses the DX-AllSuite compatibility matrix
+- Compares component `release.ver` files against the expected versions
+- Optionally checks installed `dxcom` and `dxrt-cli` versions when available
+
+**Total tests:** 13 (4 parser + 7 release.ver + 2 optional CLI tests)
 
 ## 🎯 Test Scope
 
@@ -76,12 +88,13 @@ Validates the complete getting-started user workflow from compilation to executi
 
 ### Test Composition Summary
 
-| Test Suite | Sanity | Build | Run | Install | Workflow | Total |
-|------------|--------|-------|-----|---------|----------|-------|
-| **docker_install** | 4 | 15 | - | - | - | **19** |
-| **local_install** | 3 | 15 | 15 | 15 | - | **48** |
-| **getting_started** | - | - | - | - | 11 | **11** |
-| **Grand Total** | **7** | **30** | **15** | **15** | **11** | **78** |
+| Test Suite | Sanity | Build | Run | Install | Workflow | Version | Total |
+|------------|--------|-------|-----|---------|----------|---------|-------|
+| **docker_install** | 4 | 15 | - | - | - | - | **19** |
+| **local_install** | 3 | 15 | 15 | 15 | - | - | **48** |
+| **getting_started** | - | - | - | - | 11 | - | **11** |
+| **version_compatibility** | - | - | - | - | - | 13 | **13** |
+| **Grand Total** | **7** | **30** | **15** | **15** | **11** | **13** | **91** |
 
 ## 📁 File Structure
 
@@ -96,6 +109,9 @@ tests/
 ├── 🐍 test_getting-started/         # Getting-started workflow tests
 │   ├── test_getting_started.py      # 11 tests (6 compiler + 5 runtime)
 │   └── README.md                    # Getting-started test documentation
+├── 🐍 test_version_compatibility/    # Version compatibility tests
+│   ├── test_version_compatibility.py # 13 tests (parser + release.ver + optional CLI)
+│   └── version_compatibility.py      # Compatibility parsing helpers
 ├── 🔧 conftest.py                   # Shared pytest fixtures and utilities
 ├── ⚡ test.sh                       # Unified test command wrapper (main entry point)
 ├── 🐳 docker/                       # Docker compose files for test containers
@@ -132,12 +148,15 @@ cd tests
 
 # Getting-started workflow (11 tests, ~30-60 minutes)
 ./test.sh getting_started
+
+# Version compatibility tests (13 tests, <1 minute)
+./test.sh version_compatibility
 ```
 
 ### Step 3: Full Test Suite
 
 ```bash
-./test.sh all          # All 79 tests (~12-20 hours)
+./test.sh all          # All tests (12-20 hours)
 ```
 
 ### Step 4: Generate Reports
@@ -153,7 +172,7 @@ cd tests
 
 ```bash
 ./test.sh sanity           # ⚡ Quick validation (5-10 seconds)
-./test.sh all              # 🔥 Full test suite (12-20 hours, 79 tests)
+./test.sh all              # 🔥 Full test suite (12-20 hours)
 ./test.sh list             # 📋 List all available tests
 ./test.sh help             # ❓ Show detailed help
 ```
@@ -162,8 +181,9 @@ cd tests
 
 ```bash
 ./test.sh docker_install   # Docker build tests (15 tests, ~6-8 hours)
-./test.sh local_install    # Local install tests (49 tests, ~8-12 hours)
+./test.sh local_install    # Local install tests (48 tests, ~8-12 hours)
 ./test.sh getting_started  # Getting-started workflow (11 tests, ~30-60 min)
+./test.sh version_compatibility # Version compatibility tests (13 tests, <1 min)
 ```
 
 ### Advanced Options
@@ -219,6 +239,7 @@ Use `-m` to filter tests by pytest markers:
 ./test.sh -m "docker_install"      # Only docker install tests
 ./test.sh -m "local_install"       # Only local install tests
 ./test.sh -m "getting_started"     # Only getting-started tests
+./test.sh -m "version_compatibility" # Only version compatibility tests
 ./test.sh -m "compiler"            # Compiler-related tests
 ./test.sh -m "runtime"             # Runtime-related tests
 ```
@@ -291,15 +312,23 @@ Use `-m` to filter tests by pytest markers:
 ./test.sh --list --internal -m "sanity" docker_install
 ```
 
+### Example 9: Version Compatibility Validation
+
+```bash
+# Check release.ver files and available installed CLI versions
+./test.sh version_compatibility
+```
+
 ## 📊 Expected Execution Time
 
 | Test Suite | Test Count | Expected Time | Use Case |
 |-----------|------------|---------------|----------|
 | **Sanity** | 7 | ~5-10 seconds | Quick prerequisite check |
 | **docker_install** | 19 | ~6-8 hours | Docker build validation |
-| **local_install** | 49 | ~8-12 hours | Installation script validation |
+| **local_install** | 48 | ~8-12 hours | Installation script validation |
 | **getting_started** | 11 | ~30-60 minutes | End-to-end workflow |
-| **Full Suite (all)** | 79 | ~12-20 hours | Complete validation |
+| **version_compatibility** | 13 | <1 minute | Release compatibility validation |
+| **Full Suite (all)** | 91 | ~12-20 hours | Complete validation |
 
 ### Per-Component Breakdown
 
@@ -412,21 +441,40 @@ Sequential execution ensures proper workflow:
 - YOLOV5S_Face-1 (Face Detection)
 - MobileNetV2-1 (Image Classification)
 
+---
+
+### Test Suite 4: version_compatibility (13 tests)
+
+#### Parser Tests (4 tests)
+
+- ✅ `test_parse_version_matrix_extracts_current_suite_row` - Parse the compatibility matrix row for the current suite version
+- ✅ `test_parse_version_matrix_ignores_unexpected_trailing_cells` - Ignore extra trailing cells after the expected component columns
+- ✅ `test_parse_dxcom_version_normalizes_missing_v_prefix` - Normalize `dxcom -v` output
+- ✅ `test_parse_dxrt_cli_versions_extracts_component_versions` - Parse `dxrt-cli -s` output
+
+#### Release File Tests (7 tests)
+
+Validates `release.ver` for dx-compiler, dx-runtime, npu-driver, dx-rt, dx-fw, dx-app, and dx-stream.
+
+#### Optional CLI Tests (2 tests)
+
+Checks installed `dxcom` and `dxrt-cli` versions when those commands are available; otherwise the tests are skipped.
+
 ## 🛠 Technology Stack
 
 - **Test Framework:** pytest 7.4.3+
 - **Reporting:** pytest-html, pytest-json-report, pytest-timeout
 - **Languages:** Python 3.8+, Bash
-- **Required Tools:** Docker, Docker Compose
+- **Required Tools:** Docker and Docker Compose for install/build suites; `dxcom` and `dxrt-cli` are optional for version compatibility checks
 - **Platform:** Ubuntu/Debian Linux (tested on Ubuntu 20.04, 22.04, 24.04)
 
 ## 📚 Documentation
 
 | Document | Description |
 |----------|-------------|
-| `README.md` | 📝 This comprehensive guide (all test suites) |
-| `test.sh` | ⚡ Main test runner with all options |
-| `conftest.py` | 🔧 Shared pytest fixtures and utilities |
+| `README.md` | This comprehensive guide (all test suites) |
+| `test.sh` | Main test runner with all options |
+| `conftest.py` | Shared pytest fixtures and utilities |
 | `pytest.ini` | ⚙️ Pytest configuration and markers |
 | `README_DOCKER_BUILD_TESTS.md` | 📘 Legacy docker build guide |
 | `CI_CD_EXAMPLES.md` | 🔄 CI/CD integration examples |
@@ -444,11 +492,13 @@ source ./venv/bin/activate
 pytest test_docker_install/ -v
 pytest test_local_install/ -v
 pytest test_getting-started/ -v
+pytest test_version_compatibility/ -v
 
 # Filter by markers
 pytest -m "docker_install" -v
 pytest -m "local_install and sanity" -v
 pytest -m "getting_started and compiler" -v
+pytest -m "version_compatibility" -v
 
 # Filter by keywords
 pytest -k "ubuntu and 24.04" -v
@@ -488,7 +538,6 @@ export DX_TEST_NO_CACHE=1
 
 # Custom volume mount path
 export LOCAL_VOLUME_PATH="/path/to/dx-all-suite"
-
 ```
 
 **Using --internal flag:**
@@ -730,7 +779,7 @@ See [CI_CD_EXAMPLES.md](CI_CD_EXAMPLES.md) for detailed examples.
 ---
 
 **Last Updated:**
-2026-01-29
+2026-05-06
 **Total Tests:**
 78 (docker_install: 19 | local_install: 48 | getting_started: 11)
 **Supported OS:**
