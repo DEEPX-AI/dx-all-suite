@@ -1,13 +1,14 @@
 services:
   dx-compiler:
-    container_name: dx-compiler-${BASE_IMAGE_NAME}-${OS_VERSION}
-    image: dx-compiler:${BASE_IMAGE_NAME}-${OS_VERSION}
+    container_name: dx-compiler-${IMAGE_TAG_SUFFIX:-${BASE_IMAGE_NAME}-${OS_VERSION}}
+    image: dx-compiler:${IMAGE_TAG_SUFFIX:-${BASE_IMAGE_NAME}-${OS_VERSION}}
     build:
       context: ..
       dockerfile: docker/Dockerfile.dx-compiler
       args:
         BASE_IMAGE_NAME: ${BASE_IMAGE_NAME:-ubuntu}
         OS_VERSION: ${OS_VERSION}
+        TAG_NAME: ${TAG_NAME:-${OS_VERSION}}
         FILE_DXCOM: ${FILE_DXCOM:-/should/be/set/path}
         FILE_DXTRON: ${FILE_DXTRON:-/should/be/set/path}
         HOST_UID: ${HOST_UID:-1000}
@@ -35,19 +36,20 @@ services:
       - /tmp/.X11-unix:/tmp/.X11-unix         # X11
       - $HOME/.Xauthority:/root/.Xauthority   # X11
       - $XAUTHORITY:$XAUTHORITY_TARGET        # X11
-      - /etc/timezone:/etc/timezone:ro
+      - ${TIMEZONE_MOUNT:-/dev/null}:${TIMEZONE_MOUNT_TARGET:-/dev/null}:ro  # /etc/timezone (Debian/Ubuntu only)
       - /etc/localtime:/etc/localtime:ro
       - /var/run/docker.sock:/var/run/docker.sock
       - ${LOCAL_VOLUME_PATH:-../workspace}:${DOCKER_VOLUME_PATH:-/deepx/workspace} # mount volume
     network_mode: "host"
     privileged: true                          # fuse (for DX-Tron)
     restart: on-failure
+    # shm_size: '256m'                          # Uncomment if DX-COM compilation fails with "[ResourceError]: Insufficient shared memory (shm)"
     devices:
       - "/dev/dri:/dev/dri"                   # GPU    
 
   dx-runtime:
-    container_name: dx-runtime-${BASE_IMAGE_NAME}-${OS_VERSION}
-    image: dx-runtime:${BASE_IMAGE_NAME}-${OS_VERSION}
+    container_name: dx-runtime-${IMAGE_TAG_SUFFIX:-${BASE_IMAGE_NAME}-${OS_VERSION}}
+    image: dx-runtime:${IMAGE_TAG_SUFFIX:-${BASE_IMAGE_NAME}-${OS_VERSION}}
     build:
       context: ..
       dockerfile: docker/Dockerfile.dx-runtime
@@ -71,7 +73,7 @@ services:
       - /dev:/dev                             # NPU, Camera, GPU
       - /lib/udev/rules.d:/lib/udev/rules.d   # auto detect device(USB CAM)
       - /lib/modules:/lib/modules             # GPU
-      - /etc/timezone:/etc/timezone:ro
+      - ${TIMEZONE_MOUNT:-/dev/null}:${TIMEZONE_MOUNT_TARGET:-/dev/null}:ro  # /etc/timezone (Debian/Ubuntu only)
       - /etc/localtime:/etc/localtime:ro
       - /var/run/docker.sock:/var/run/docker.sock
       - /etc/machine-id:/etc/machine-id:ro    # NPU dbus
@@ -90,14 +92,14 @@ services:
     # (By default, the dxrtd service runs within the dx-runtime container)
     # If you want to run the dxrtd service in a different container or host,
     # uncomment the 'entrypoint' and 'command' lines below.
-    # for more details, please refer to the [FAQ section of the dx-all-suite documentation](https://github.com/DEEPX-AI/dx-all-suite/blob/main/docs/source/faq.md)."
+    # for more details, please refer to the [FAQ section of the dx-all-suite documentation](https://github.com/DEEPX-AI/dx-all-suite/blob/main/docs/source/05_FAQ_Troubleshooting_Guide.md)."
     # **********************************************************************************
     # entrypoint: ["/bin/sh", "-c"]
     # command: ["sleep infinity"]
 
   dx-modelzoo:
-    container_name: dx-modelzoo-${BASE_IMAGE_NAME}-${OS_VERSION}
-    image: dx-modelzoo:${BASE_IMAGE_NAME}-${OS_VERSION}
+    container_name: dx-modelzoo-${IMAGE_TAG_SUFFIX:-${BASE_IMAGE_NAME}-${OS_VERSION}}
+    image: dx-modelzoo:${IMAGE_TAG_SUFFIX:-${BASE_IMAGE_NAME}-${OS_VERSION}}
     build:
       context: ..
       dockerfile: docker/Dockerfile.dx-modelzoo
@@ -121,7 +123,7 @@ services:
       - /dev:/dev                             # NPU, Camera, GPU
       - /lib/udev/rules.d:/lib/udev/rules.d   # auto detect device(USB CAM)
       - /lib/modules:/lib/modules             # GPU
-      - /etc/timezone:/etc/timezone:ro
+      - ${TIMEZONE_MOUNT:-/dev/null}:${TIMEZONE_MOUNT_TARGET:-/dev/null}:ro  # /etc/timezone (Debian/Ubuntu only)
       - /etc/localtime:/etc/localtime:ro
       - /var/run/docker.sock:/var/run/docker.sock
       - /etc/machine-id:/etc/machine-id:ro    # NPU dbus
@@ -139,7 +141,7 @@ services:
     # override 'entrypoint' command "/usr/local/bin/dxrtd" to "/bin/sh -c sleep infinity"
     # cause: Instead of launching the standalone dxrtd (DX-RT Service), 
     #        utilize the dxrtd service provided within the dx-runtime container.
-    # for more details, please refer to the [FAQ section of the dx-all-suite documentation](https://github.com/DEEPX-AI/dx-all-suite/blob/main/docs/source/faq.md).
+    # for more details, please refer to the [FAQ section of the dx-all-suite documentation](https://github.com/DEEPX-AI/dx-all-suite/blob/main/docs/source/05_FAQ_Troubleshooting_Guide.md).
     # **********************************************************************************
     entrypoint: ["/bin/sh", "-c"]
     command: ["sleep infinity"]

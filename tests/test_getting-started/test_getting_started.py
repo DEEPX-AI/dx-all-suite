@@ -8,7 +8,6 @@ This test suite validates the getting-started workflow:
 All tests run sequentially to maintain proper workflow order.
 """
 
-import os
 import pytest
 import sys
 from pathlib import Path
@@ -93,18 +92,20 @@ def test_compiler_clean():
 # ============================================================================
 
 @pytest.mark.runtime
-def test_runtime_0_install_dx_runtime():
+def test_runtime_0_install_dx_runtime(install_host_npu_stack, capsys):
+    # Ensure the host NPU driver (and firmware unless excluded) once, version-gated and
+    # lock-serialized so getting-started never races local_install on the NPU singleton.
+    install_host_npu_stack(capsys=capsys)
+
     script_name = "runtime-0_install_dx-runtime.sh"
     script_path = GETTING_STARTED_DIR / script_name
 
     if not script_path.exists():
         pytest.fail(f"Script not found: {script_path}")
 
-    cmd = ["bash", str(script_path)]
-
-    # Add --exclude-fw flag if environment variable is set
-    if os.getenv("DX_EXCLUDE_FW", "0") == "1":
-        cmd.append("--exclude-fw")
+    # Driver/fw are owned by the shared prerequisite fixture above, so this step only
+    # installs the userland (dx_rt/stream/app).
+    cmd = ["bash", str(script_path), "--exclude-driver", "--exclude-fw"]
 
     banner_msg = f"Running script: {script_name}"
     result = run_command(cmd, banner_msg=banner_msg, cwd=GETTING_STARTED_DIR)
@@ -137,7 +138,7 @@ def test_runtime_2_setup_assets():
 @pytest.mark.runtime
 def test_runtime_3_run_example_using_dxrt():
     result = run_command(
-        ["bash", str(GETTING_STARTED_DIR / "runtime-3_run_example_using_dxrt.sh")],
+        ["bash", "-c", "printf '\n' | bash " + str(GETTING_STARTED_DIR / "runtime-3_run_example_using_dxrt.sh") + " --no-display"],
         banner_msg="Running script: runtime-3_run_example_using_dxrt.sh",
         timeout=DEFAULT_TIMEOUT,
         cwd=GETTING_STARTED_DIR

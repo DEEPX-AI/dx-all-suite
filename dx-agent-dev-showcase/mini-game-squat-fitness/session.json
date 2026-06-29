@@ -1,0 +1,20 @@
+{
+  "session_id": "20260618-120437_claude_opus48_yolo26npose_squatgame",
+  "created_at": "2026-06-18T12:04:37+09:00",
+  "model": "yolo26n_pose",
+  "task": "pose_estimation",
+  "variants": ["sync"],
+  "agent": "claude",
+  "coding_model": "claude-opus-4-8",
+  "app": "Squat-counting fitness mini-game",
+  "status": "complete",
+  "validation": {
+    "sanity_check": "PASS",
+    "unit_tests": "10/10 PASS",
+    "headless_run": "PASS (sample/squat_demo.mp4, 313 frames)",
+    "squats_counted": 4,
+    "npu_inference_fps": 64.3,
+    "output_video": "output/yolo26n_pose_squat_sync-stream-squat_demo-<ts>/output.mp4"
+  },
+  "notes": "Custom SquatGameVisualizer (IPoseFactory + SyncRunner). Squat thresholds calibrated to the sample clip's front-facing camera (2D knee angle 126-179 deg): squat_angle=140, stand_angle=160. No compilation performed (precompiled yolo26n-pose.dxnn used)."
+}

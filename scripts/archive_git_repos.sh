@@ -38,7 +38,7 @@ git_archive() {
     if [ -f "$base_path/.git" ] || [ -d "$base_path/.git" ]; then
         archive_file="$OUTPUT_DIR/${dir_name}.tar.gz"
         echo -e "${TAG_INFO} Archiving repository: $dir_name"
-        (cd "$base_path" && git archive --format=tar.gz --output="$archive_file" $(git symbolic-ref --short HEAD || git rev-parse HEAD))
+        (cd "$base_path" && git archive --format=tar.gz --output="$archive_file" $(git symbolic-ref --short HEAD 2>/dev/null || git rev-parse HEAD))
         if [[ $? -eq 0 ]]; then
             echo -e "${TAG_SUCC} Archive created successfully: $archive_file"
             return 0

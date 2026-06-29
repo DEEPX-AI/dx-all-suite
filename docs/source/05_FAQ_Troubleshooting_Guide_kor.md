@@ -9,10 +9,11 @@
 - [Q3. Firmware Version Mismatch Error](#q3-firmware-version-mismatch-error)  
 - [Q4. Device Driver Update Error](#q4-device-driver-update-error)  
 - [Q5. Model-Runtime Version Compatibility Error](#q5-model-runtime-version-compatibility-error)  
+- [Q6. Insufficient Shared Memory (shm) Error](#q6-insufficient-shared-memory-shm-error)  
 
 ---
 
-## Q1. Container 'Restarting' Error (`dxrtd` Conflict)
+## Q1. Container 'Restarting' Error (dxrtd Conflict)
 
 `docker_run.sh` 실행 후 컨테이너 상태가 계속 `Restarting`으로 표시되어 컨테이너에 진입할 수 없는 문제입니다.  
 
@@ -236,6 +237,46 @@ Please downgrade the RT library version to X.X.X or use a model file generated w
 
 **버전 확인 가이드**  
 각 모듈에 대한 정확한 호환 조합은 [**DXNN SDK Component Version Compatibility Matrix**](04_Version_Compatibility.md#dxnn-sdk-component-version-compatibility-matrix) 를 참조하십시오.  
+
+Copyright © DEEPX. All rights reserved.
+
+---
+
+## Q6. Insufficient Shared Memory (shm) Error
+
+Docker 환경에서 모델 컴파일 시 **DX-COM**의 공유 메모리 요구량이 기본 `/dev/shm` 크기를 초과할 때 발생하는 오류입니다.
+
+### 진단 단계
+
+터미널에서 다음 에러 메시지를 확인하십시오.
+```plaintext
+[ResourceError]: Insufficient shared memory (shm). Increase the available /dev/shm size (e.g. --shm-size for Docker).
+```
+
+### 원인
+
+Docker 컨테이너의 기본 `/dev/shm` 크기는 **64 MB**입니다. **DX-COM**은 모델 컴파일 과정에서 공유 메모리를 사용합니다. 크거나 복잡한 모델을 컴파일할 때 이 기본 한도를 초과할 수 있습니다.
+
+### 해결 방법: Docker 공유 메모리 크기 증가
+
+**방법 1: `docker run`에 `--shm-size` 옵션 사용 (권장)**  
+컨테이너 시작 시 `--shm-size` 플래그를 전달합니다. 모델 크기에 따라 값을 조정하며, `256m`부터 시작하고 대형 모델의 경우 `1g` 이상으로 늘리십시오.  
+```bash
+docker run --shm-size=256m ...
+# 대형 모델의 경우
+docker run --shm-size=1g ...
+```
+
+**방법 2: `docker-compose.yml` 수정**  
+Docker Compose로 컨테이너를 관리하는 경우(예: `docker_run.sh` 사용), `dx-compiler` 서비스 정의에 `shm_size` 항목을 추가합니다.  
+```yaml
+services:
+  dx-compiler:
+    shm_size: '1gb'
+```
+
+!!! tip "적절한 크기 선택"  
+    대부분의 경우 `256m`으로 해결됩니다. 대용량 모델이나 배치 처리 시 오류가 지속된다면 `1g` 이상으로 늘리십시오.
 
 Copyright © DEEPX. All rights reserved.
 

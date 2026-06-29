@@ -342,7 +342,7 @@ sudo apt-get install -y --no-install-recommends libgl1-mesa-glx libglib2.0-0 mak
 **지원 환경**  
 
 - **OS**: Linux (x86_64)  
-- **Python 버전**: 3.8, 3.9, 3.10, 3.11, 3.12 (설치 스크립트가 버전을 자동으로 감지함)  
+- **Python 버전**: 3.8, 3.9, 3.10, 3.11, 3.12, 3.13, 3.14 (설치 스크립트가 버전을 자동으로 감지함)
 
 **통합 패키지 설치**  
 제공된 `install.sh` 스크립트는 Python 버전 감지 및 패키지 설치를 포함한 모든 과정을 한 번에 처리합니다.  

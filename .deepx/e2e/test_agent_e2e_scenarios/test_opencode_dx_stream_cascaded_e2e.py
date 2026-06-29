@@ -1,0 +1,476 @@
+# SPDX-License-Identifier: Apache-2.0
+"""
+Agent-Driven E2E Test (OpenCode): dx_stream Scenario #2 — Cascaded Detection + Classification Pipeline
+
+Runs the OpenCode CLI inside dx_stream/ with a prompt requesting a cascaded
+pipeline using yolo26n for primary detection and a secondary classification stage.
+
+R24: Expands E2E coverage beyond single_model to exercise the cascaded category.
+"""
+
+from __future__ import annotations
+
+import os
+import pytest
+
+from .conftest import (
+    DEFAULT_TIMEOUT,
+    STREAM_ROOT,
+    ScenarioResult,
+    _resolve_done_sentinel_dirs,
+    format_scenario_failure,
+    verify_python_syntax,
+    verify_start_sentinel,)
+
+pytestmark = [
+    pytest.mark.agent_e2e_opencode_cli_autopilot,
+]
+
+SCENARIO_PROMPT = (
+    "Build a cascaded pipeline using yolo26n for primary object detection "
+    "and a secondary classification stage for detected objects"
+)
+
+
+@pytest.fixture(scope="module")
+def scenario(opencode_runner, stream_opencode_cascaded_artifacts_dir) -> ScenarioResult:
+    """Execute dx_stream cascaded Scenario via OpenCode CLI."""
+    import re as _re
+    import json as _json
+    # R43: cascaded scenarios need more time than single_model (720s vs 600s default)
+    _cascaded_timeout = DEFAULT_TIMEOUT
+    result = opencode_runner.run(
+        prompt=SCENARIO_PROMPT,
+        workdir=STREAM_ROOT,
+        scenario_key="dx_stream",
+        session_log_dir=stream_opencode_cascaded_artifacts_dir,
+        timeout=_cascaded_timeout,
+    )
+    # R36: if DONE sentinel not in stdout, scan raw NDJSON events log — OpenCode's
+    # DONE line may be inside a JSON event field that the text extractor did not
+    # surface into result.stdout.  Build a corpus that includes any such fields,
+    # then hand it to the shared helper for path resolution (R33/R76).
+    _DONE_RE = _re.compile(r'\[DX-AGENT-DEV: DONE \(output-dir: ([^)]+)\)\]')
+    _search_text = result.stdout or ""
+    if not _DONE_RE.search(_search_text) and result.session_events_log and result.session_events_log.exists():
+        try:
+            _raw = result.session_events_log.read_text(encoding="utf-8")
+            for _line in _raw.splitlines():
+                try:
+                    _ev = _json.loads(_line)
+                    for _field in ("content", "text", "result", "output"):
+                        _val = _ev.get(_field, "")
+                        if isinstance(_val, str) and _DONE_RE.search(_val):
+                            _search_text = _val
+                            break
+                    if _DONE_RE.search(_search_text):
+                        break
+                except (_json.JSONDecodeError, AttributeError):
+                    continue
+        except Exception:
+            pass
+    result.output_dirs, _ = _resolve_done_sentinel_dirs(
+        _search_text, result.workdir, result.output_dirs, name_filter="cascaded"
+    )
+    # R63: de-duplicate when fallback resolves multiple cascaded dirs (cross-tool contamination)
+    if len(result.output_dirs) > 1:
+        import logging as _logging
+        _logging.getLogger(__name__).warning(
+            "Multiple cascaded dirs found (%d): %s — selecting most recently created",
+            len(result.output_dirs), [d.name for d in result.output_dirs],
+        )
+        result.output_dirs = [max(result.output_dirs, key=lambda d: d.stat().st_mtime)]
+    return result
+
+
+class TestExecution:
+    """OpenCode CLI execution basics."""
+
+    def test_exit_code_zero(self, scenario: ScenarioResult):
+        """OpenCode CLI exits successfully."""
+        assert scenario.succeeded, format_scenario_failure(scenario)
+
+
+    def test_session_log_saved(self, scenario: ScenarioResult):
+        """Session transcript is saved via /export."""
+        if not scenario.succeeded:
+            pytest.skip("OpenCode execution failed — skipping log check")
+        if scenario.session_log:
+            assert scenario.session_log.stat().st_size > 0, (
+                "Session log exists but is empty"
+            )
+
+    def test_session_log_has_meaningful_content(self, scenario: ScenarioResult):
+        """session.log must contain at least 10 non-empty lines of actual output."""
+        if not scenario.succeeded:
+            pytest.skip("OpenCode execution failed")
+        agent_log = scenario.output_dir / "session.log" if scenario.output_dir else None
+        if agent_log and agent_log.exists():
+            log_path = agent_log
+        elif scenario.session_log and scenario.session_log.exists():
+            log_path = scenario.session_log
+        else:
+            pytest.skip("No session.log found")
+        log = log_path.read_text(encoding="utf-8")
+        lines = [line for line in log.splitlines() if line.strip()]
+        assert len(lines) >= 10, (
+            f"session.log has only {len(lines)} non-empty lines (minimum: 10).\n"
+            "Fix: session.log should contain actual command output, not just EOS markers."
+        )
+        # R55: content pattern checks — extended marker vocabulary covers skip/ok paths.
+        assert "Pipeline" in log, (
+            "session.log must contain pipeline execution output (missing 'Pipeline')"
+        )
+        assert any(kw in log for kw in (
+            "End of stream", "Pipeline stopped", "complete", "PASS",
+            "Pipeline execution", "[OK]",
+        )), (
+            "session.log must contain a completion marker "
+            "(expected: 'End of stream', 'Pipeline stopped', 'complete', 'PASS', "
+            "'Pipeline execution', or '[OK]')"
+        )
+
+    def test_duration_metric(self, scenario: ScenarioResult):
+        """Record execution duration as a warning metric (never fails)."""
+        import warnings
+        warnings.warn(
+            f"Duration: {scenario.duration_seconds:.0f}s",
+            UserWarning,
+            stacklevel=2,
+        )
+
+    def test_start_sentinel_emitted(self, scenario: ScenarioResult):
+        """Agent emits [DX-AGENT-DEV: START] before any other text."""
+        if not scenario.succeeded:
+            pytest.skip("OpenCode execution failed")
+        verify_start_sentinel(scenario)
+
+    def test_session_log_has_pipeline_execution_evidence(self, scenario: ScenarioResult):
+        """R88: session.log must contain evidence of actual GStreamer pipeline execution.
+
+        Mirrors R69 for single_model — catches validator-only cascaded logs that satisfy
+        line count but lack any 'python pipeline.py' execution output.
+        """
+        if not scenario.succeeded:
+            pytest.skip("OpenCode execution failed")
+        agent_log = scenario.output_dir / "session.log" if scenario.output_dir else None
+        if agent_log and agent_log.exists():
+            log_path = agent_log
+        elif scenario.session_log and scenario.session_log.exists():
+            log_path = scenario.session_log
+        else:
+            pytest.skip("No session.log found")
+        log = log_path.read_text(encoding="utf-8")
+        has_gst = any(m in log for m in (
+            "Pipeline", "End of stream", "Pipeline stopped", "PLAYING", "GST_",
+        ))
+        has_launch = "pipeline.py" in log and (
+            "=== pipeline" in log or "execution" in log.lower()
+        )
+        assert has_gst or has_launch, (
+            "session.log shows no evidence of GStreamer pipeline execution. "
+            "The agent likely ran only validation tooling. "
+            "Fix: SKILL.md Verification Step requires explicit "
+            "'python pipeline.py ... | tee -a session.log' (R68)."
+        )
+
+    def test_harness_transcript_extracts_session_uuid(self, scenario: ScenarioResult):
+        """Harness must extract a non-empty session UUID from OpenCode's NDJSON stream."""
+        if not scenario.succeeded:
+            pytest.skip("OpenCode execution failed")
+        assert scenario.session_uuid, (
+            "No session UUID extracted from OpenCode NDJSON stream — "
+            "check _parse_opencode_stream_json for step_start / sessionID handling"
+        )
+
+
+class TestGeneratedFiles:
+    """Verify expected pipeline files were generated."""
+
+    def test_python_files_exist(self, scenario: ScenarioResult):
+        """At least one Python file is generated."""
+        if not scenario.succeeded:
+            pytest.skip("OpenCode execution failed")
+        assert len(scenario.generated_py_files) > 0, (
+            f"No .py files found.\nSearch dirs: {scenario.output_dirs}"
+        )
+
+    def test_pipeline_script_exists(self, scenario: ScenarioResult):
+        """A pipeline-related Python file is generated."""
+        if not scenario.succeeded:
+            pytest.skip("OpenCode execution failed")
+        pipeline_files = [
+            f for f in scenario.generated_py_files
+            if any(kw in f.name.lower() for kw in [
+                "pipeline", "stream", "detect", "main", "app", "cascade",
+            ])
+        ]
+        target = pipeline_files if pipeline_files else scenario.generated_py_files
+        assert len(target) > 0, (
+            f"No pipeline script found.\nPython files: {[f.name for f in scenario.generated_py_files]}"
+        )
+
+
+class TestCodeQuality:
+    """Validate generated cascaded pipeline code quality."""
+
+    def test_all_python_files_valid_syntax(self, scenario: ScenarioResult):
+        """All generated .py files parse without SyntaxError."""
+        if not scenario.succeeded:
+            pytest.skip("OpenCode execution failed")
+        for py_file in scenario.generated_py_files:
+            verify_python_syntax(py_file)
+
+    def test_pipeline_has_gstreamer_elements(self, scenario: ScenarioResult):
+        """Pipeline script references expected DX GStreamer elements."""
+        if not scenario.succeeded:
+            pytest.skip("OpenCode execution failed")
+        py_files = scenario.generated_py_files
+        if not py_files:
+            pytest.skip("No Python files generated")
+        dx_elements = ["dxinfer", "dxpreprocess", "dxosd", "DxInfer", "DxPreprocess", "DxOsd"]
+        found = False
+        for f in py_files:
+            content = f.read_text(encoding="utf-8")
+            if any(elem in content for elem in dx_elements):
+                found = True
+                break
+        assert found, "No DX GStreamer elements found in generated files"
+
+    def test_pipeline_has_secondary_mode(self, scenario: ScenarioResult):
+        """Cascaded pipeline must use secondary-mode=true on the secondary DxPreprocess/DxInfer/DxPostprocess."""
+        if not scenario.succeeded:
+            pytest.skip("OpenCode execution failed")
+        py_files = scenario.generated_py_files
+        if not py_files:
+            pytest.skip("No Python files generated")
+        found = False
+        for f in py_files:
+            content = f.read_text(encoding="utf-8")
+            if "secondary-mode=true" in content or "secondary_mode=True" in content or "secondary_mode=true" in content:
+                found = True
+                break
+        assert found, (
+            "Cascaded pipeline missing secondary-mode=true.\n"
+            "Fix: the secondary DxPreprocess, DxInfer, and DxPostprocess elements "
+            "MUST have secondary-mode=true. ROI extraction is handled automatically "
+            "by DxPreprocess when secondary-mode=true — no separate ROI element needed."
+        )
+
+    def test_pipeline_has_two_inference_stages(self, scenario: ScenarioResult):
+        """Cascaded pipeline must have at least two DxInfer elements."""
+        if not scenario.succeeded:
+            pytest.skip("OpenCode execution failed")
+        py_files = scenario.generated_py_files
+        if not py_files:
+            pytest.skip("No Python files generated")
+        for f in py_files:
+            content = f.read_text(encoding="utf-8").lower()
+            if content.count("dxinfer") >= 2:
+                return
+        pytest.fail(
+            "Cascaded pipeline should contain at least 2 DxInfer elements "
+            "(primary detection + secondary classification)."
+        )
+
+    def test_pipeline_has_output_recording(self, scenario: ScenarioResult):
+        """pipeline.py must support --output file recording via tee."""
+        if not scenario.succeeded:
+            pytest.skip("OpenCode execution failed")
+        py_files = scenario.generated_py_files
+        if not py_files:
+            pytest.skip("No Python files generated")
+        pipeline_files = [
+            f for f in py_files
+            if any(kw in f.name.lower() for kw in ["pipeline", "detect", "app", "main", "stream", "cascade"])
+        ]
+        target = pipeline_files if pipeline_files else py_files
+        found = False
+        for f in target:
+            content = f.read_text(encoding="utf-8")
+            if "--output" in content or "tee name=" in content:
+                found = True
+                break
+        assert found, "pipeline.py must implement tee-based file recording."
+
+    def test_run_script_invokes_pipeline(self, scenario: ScenarioResult):
+        """run_<app>.sh or run_cascaded.sh should invoke pipeline.py."""
+        if not scenario.succeeded:
+            pytest.skip("OpenCode execution failed")
+        scripts = list(scenario.output_dir.glob("run_*.sh")) if scenario.output_dir else []
+        scripts = [s for s in scripts if s.name != "run.sh"]
+        if not scripts:
+            pytest.skip("No run_<app>.sh script found")
+        content = scripts[0].read_text(encoding="utf-8")
+        pipeline_patterns = ["pipeline.py", "gst-launch", "python.*pipeline", ".py"]
+        has_pipeline = any(p in content for p in pipeline_patterns)
+        if not has_pipeline:
+            import warnings
+            warnings.warn(
+                f"{scripts[0].name} does not invoke any recognized pipeline pattern "
+                f"(pipeline.py, gst-launch, *.py). The run script may use an "
+                f"alternative invocation method."
+            )
+
+    def test_x264enc_has_tune_zerolatency(self, scenario: ScenarioResult):
+        """If x264enc is used anywhere, it MUST have tune=zerolatency."""
+        if not scenario.succeeded:
+            pytest.skip("OpenCode execution failed")
+        for f in scenario.all_generated_files:
+            if not f.is_file() or f.suffix not in (".py", ".sh"):
+                continue
+            content = f.read_text(encoding="utf-8")
+            if "x264enc" not in content:
+                continue
+            lines_with_x264 = [
+                (i + 1, line) for i, line in enumerate(content.splitlines())
+                if "x264enc" in line
+            ]
+            for lineno, line in lines_with_x264:
+                if "tune=zerolatency" not in line and "tune = zerolatency" not in line:
+                    context_start = max(0, lineno - 5)
+                    context_end = min(len(content.splitlines()), lineno + 5)
+                    context = "\n".join(content.splitlines()[context_start:context_end])
+                    if "tune=zerolatency" not in context and "tune = zerolatency" not in context:
+                        pytest.fail(
+                            f"{f.name}:{lineno}: x264enc used without tune=zerolatency\n"
+                            f"  Line: {line.strip()}"
+                        )
+
+    def test_pipeline_has_dxrate_for_rtsp(self, scenario: ScenarioResult):
+        """R87: Cascaded RTSP pipeline path must include dxrate element.
+
+        Cascaded pipelines reference RTSP input — the same dxrate requirement that
+        applies to single_model pipelines must be enforced here too.
+        """
+        if not scenario.succeeded:
+            pytest.skip("OpenCode execution failed")
+        py_files = scenario.generated_py_files
+        if not py_files:
+            pytest.skip("No Python files generated")
+        for f in py_files:
+            content = f.read_text(encoding="utf-8")
+            if "rtsp://" in content:
+                assert "dxrate" in content.lower(), (
+                    f"{f.name}: cascaded pipeline handles RTSP but is missing dxrate element.\n"
+                    "Fix: add 'dxrate max-rate=30' after decodebin in the RTSP source branch."
+                )
+
+
+class TestMandatoryArtifacts:
+    """Verify mandatory deliverable files exist in cascaded session directory."""
+
+    def test_session_json_exists(self, scenario: ScenarioResult):
+        """session.json build metadata file is generated."""
+        if not scenario.succeeded:
+            pytest.skip("OpenCode execution failed")
+        session_files = [f for f in scenario.all_generated_files if f.name == "session.json"]
+        assert len(session_files) > 0, (
+            f"No session.json found.\nAll files: {[f.name for f in scenario.all_generated_files]}"
+        )
+
+    def test_session_json_pipeline_category_is_cascaded(self, scenario: ScenarioResult):
+        """session.json pipeline_category must be 'cascaded'."""
+        if not scenario.succeeded:
+            pytest.skip("OpenCode execution failed")
+        import json
+        session_files = [f for f in scenario.all_generated_files if f.name == "session.json"]
+        if not session_files:
+            pytest.skip("No session.json generated")
+        data = json.loads(session_files[0].read_text(encoding="utf-8"))
+        category = data.get("pipeline_category", "")
+        assert "cascaded" in category.lower(), (
+            f"session.json pipeline_category '{category}' is not 'cascaded'."
+        )
+
+    def test_session_json_model_is_dx_model(self, scenario: ScenarioResult):
+        """session.json 'model' must be the DX model name, not the AI agent model."""
+        if not scenario.succeeded:
+            pytest.skip("OpenCode execution failed")
+        import json
+        import re as _re
+        session_files = [f for f in scenario.all_generated_files if f.name == "session.json"]
+        if not session_files:
+            pytest.skip("No session.json generated")
+        data = json.loads(session_files[0].read_text(encoding="utf-8"))
+        model = data.get("model", "")
+        forbidden = ("claude", "gpt", "gemini", "sonnet", "opus", "haiku")
+        assert not any(kw in model.lower() for kw in forbidden), (
+            f"session.json 'model' field '{model}' contains an AI model name."
+        )
+        # R77: positive assertion — must look like a DXNN model name (alphanumeric + underscore)
+        assert _re.match(r'^[A-Za-z0-9_]+$', model), (
+            f"session.json 'model' field '{model}' does not look like a DXNN model name "
+            "(expected alphanumeric + underscore only, e.g., 'yolo26n', 'EfficientNet_Lite0')."
+        )
+
+    def test_readme_md_exists(self, scenario: ScenarioResult):
+        """README.md usage documentation file is generated."""
+        if not scenario.succeeded:
+            pytest.skip("OpenCode execution failed")
+        readme_files = [f for f in scenario.all_generated_files if f.name.lower() == "readme.md"]
+        assert len(readme_files) > 0, (
+            f"No README.md found.\nAll files: {[f.name for f in scenario.all_generated_files]}"
+        )
+
+    def test_run_script_exists(self, scenario: ScenarioResult):
+        """run_<app>.sh shell script wrapper is generated."""
+        if not scenario.succeeded:
+            pytest.skip("OpenCode execution failed")
+        run_scripts = [
+            f for f in scenario.all_generated_files
+            if f.name.startswith("run_") and f.name.endswith(".sh")
+        ]
+        assert len(run_scripts) > 0, (
+            f"No run_*.sh script found.\nAll files: {[f.name for f in scenario.all_generated_files]}"
+        )
+
+    def test_setup_sh_exists(self, scenario: ScenarioResult):
+        """setup.sh environment setup script is generated."""
+        if not scenario.succeeded:
+            pytest.skip("OpenCode execution failed")
+        setup_scripts = [f for f in scenario.all_generated_files if f.name == "setup.sh"]
+        assert len(setup_scripts) > 0, (
+            f"No setup.sh found.\n"
+            f"All files: {[f.name for f in scenario.all_generated_files]}\n"
+            "The agent MUST generate setup.sh (HARD-GATE in dx-agent-stream-build-pipeline.md)."
+        )
+
+    def test_session_id_has_agent_identifier(self, scenario: ScenarioResult):
+        """R80: session.json session_id must include the agent identifier 'opencode'."""
+        if not scenario.succeeded:
+            pytest.skip("OpenCode execution failed")
+        import json
+        # R92: Use scenario.output_dir directly to eliminate latent contamination risk
+        # under concurrent execution (same R73 pattern applied to all 4 tools).
+        session_path = scenario.output_dir / "session.json"
+        if not session_path.exists():
+            pytest.skip("No session.json found")
+        data = json.loads(session_path.read_text(encoding="utf-8"))
+        sid = data.get("session_id", "")
+        assert "opencode" in sid, (
+            f"session.json session_id '{sid}' does not contain agent identifier 'opencode'.\n"
+            "Fix: session_id must use format YYYYMMDD-HHMMSS_<agent>_<model>_<task> "
+            "where <agent> is 'opencode'."
+        )
+
+    def test_readme_has_sufficient_length(self, scenario: ScenarioResult):
+        """R89: OpenCode cascaded README.md should be substantive (>= 40 lines).
+
+        OpenCode cascaded README was 149 L in iter 19 — this guard establishes
+        a regression baseline. Uses output_dir directly (per R73) to prevent false PASS
+        from a co-located README belonging to another tool's directory.
+        """
+        if not scenario.succeeded:
+            pytest.skip("OpenCode execution failed")
+        if not scenario.output_dir or not scenario.output_dir.exists():
+            pytest.skip("No output directory resolved")
+        readme = scenario.output_dir / "README.md"
+        if not readme.exists():
+            pytest.skip("No README.md in OpenCode output directory")
+        lines = len(readme.read_text(encoding="utf-8").splitlines())
+        assert lines >= 40, (
+            f"README.md too short: {lines} lines (expected >= 40). "
+            "A substantive README should include prerequisites, pipeline diagram, "
+            "run instructions, configuration table, and files table."
+        )

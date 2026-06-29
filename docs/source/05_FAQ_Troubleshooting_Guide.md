@@ -9,10 +9,11 @@ This guide addresses common errors and symptoms encountered while using the **DX
 - [Q3. Firmware Version Mismatch Error](#q3-firmware-version-mismatch-error)  
 - [Q4. Device Driver Update Error](#q4-device-driver-update-error)  
 - [Q5. Model-Runtime Version Compatibility Error](#q5-model-runtime-version-compatibility-error)  
+- [Q6. Insufficient Shared Memory (shm) Error](#q6-insufficient-shared-memory-shm-error)  
 
 ---
 
-## Q1. Container 'Restarting' Error (`dxrtd` Conflict)
+## Q1. Container 'Restarting' Error (dxrtd Conflict)
 
 This issue occurs when the container status is continuously displayed as Restarting after running docker_run.sh, making it impossible to enter the container.  
 
@@ -240,3 +241,44 @@ To find the exact compatible combinations for each module, please refer to the [
 Copyright © DEEPX. All rights reserved.
 
 ---
+
+## Q6. Insufficient Shared Memory (shm) Error
+
+This error occurs when Docker's default `/dev/shm` size is too small for **DX-COM** (the DEEPX compiler) during model compilation.
+
+### Diagnostic Steps
+
+Check the terminal for the following error message.
+```plaintext
+[ResourceError]: Insufficient shared memory (shm). Increase the available /dev/shm size (e.g. --shm-size for Docker).
+```
+
+### Cause
+
+Docker containers are allocated a default `/dev/shm` of **64 MB**. **DX-COM** uses shared memory during the model compilation process. When compiling large or complex models, this default limit can be exceeded.
+
+### Solution: Increase the Docker Shared Memory Size
+
+**Method 1: `docker run` with `--shm-size` (Recommended)**  
+Pass the `--shm-size` flag when starting the container. Set the value based on your model size — `256m` is a common starting point; increase to `1g` or more for large models.  
+```bash
+docker run --shm-size=256m ...
+# For larger models
+docker run --shm-size=1g ...
+```
+
+**Method 2: `docker-compose.yml`**  
+If you manage containers with Docker Compose (e.g., via `docker_run.sh`), add the `shm_size` field to the `dx-compiler` service definition.  
+```yaml
+services:
+  dx-compiler:
+    shm_size: '1gb'
+```
+
+!!! tip "Choosing the Right Size"  
+    A value of `256m` resolves most cases. If the error persists with larger or batch-processed models, increase to `1g` or higher.
+
+Copyright © DEEPX. All rights reserved.
+
+---
+

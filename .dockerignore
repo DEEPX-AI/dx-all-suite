@@ -58,5 +58,8 @@ Thumbs.db
 
 # Submodule contents (already archived)
 dx-compiler/
+!dx-compiler/example/
+!dx-compiler/scripts/
+!dx-compiler/run_dxtron_web.sh
 dx-runtime/
 dx-modelzoo/

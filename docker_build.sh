@@ -12,12 +12,16 @@ pushd "$DX_AS_PATH" >&2
 OUTPUT_DIR="$DX_AS_PATH/archives"
 UBUNTU_VERSION=""
 DEBIAN_VERSION=""
+FEDORA_VERSION=""
+RHEL_VERSION=""
+CENTOS_VERSION=""
 BASE_IMAGE_NAME=""
 OS_VERSION=""
 
 NVIDIA_GPU_MODE=0
 INTERNAL_MODE=0
 RE_ARCHIVE_ARGS=""
+PYPI_ARGS=""
 
 # Properties file path
 VERSION_FILE="$COMPILER_PATH/compiler.properties"
@@ -46,7 +50,7 @@ else
 fi
 
 FILE_DXCOM="archives/dx_com_M1_v${COM_VERSION}.tar.gz"
-FILE_DXTRON="archives/DXTron-${TRON_VERSION}.AppImage"
+FILE_DXTRON="archives/dxtron_${TRON_VERSION}.tar.gz"
 HOST_UID=$(id -u)
 HOST_GID=$(id -g)
 TARGET_USER=deepx
@@ -55,7 +59,7 @@ TARGET_HOME=/deepx
 # Function to display help message
 show_help() {
     echo -e "Usage: ${COLOR_CYAN}$(basename "$0") ${COLOR_GREEN}--all${COLOR_RESET} ${COLOR_YELLOW}--ubuntu_version=<version>${COLOR_RESET}"
-    echo -e "   or: ${COLOR_CYAN}$(basename "$0") ${COLOR_GREEN}--target=<dx-compiler>${COLOR_RESET} ${COLOR_YELLOW}--ubuntu_version=<version>${COLOR_RESET}"
+    echo -e "   or: ${COLOR_CYAN}$(basename "$0") ${COLOR_GREEN}--target=<dx-compiler>${COLOR_RESET} ${COLOR_YELLOW}(--ubuntu_version=<version> | --fedora_version=<version> | --rhel_version=<version> | --centos_version=<version>)${COLOR_RESET}"
     echo -e "   or: ${COLOR_CYAN}$(basename "$0") ${COLOR_GREEN}--target=<dx-runtime | dx-modelzoo>${COLOR_RESET} ${COLOR_YELLOW}(--ubuntu_version=<version> | --debian_version=<version>)${COLOR_RESET}"
     echo -e ""
     echo -e "${COLOR_BOLD}Required (choose one target option):${COLOR_RESET}"
@@ -64,9 +68,13 @@ show_help() {
     echo -e "                                   Available: ${COLOR_CYAN}dx-compiler${COLOR_RESET} | ${COLOR_CYAN}dx-runtime${COLOR_RESET} | ${COLOR_CYAN}dx-modelzoo${COLOR_RESET}"
     echo -e ""
     echo -e "${COLOR_BOLD}Required (choose one OS option):${COLOR_RESET}"
-    echo -e "  ${COLOR_YELLOW}--ubuntu_version=<version>${COLOR_RESET}     Specify Ubuntu version (ex: 24.04, 22.04, 20.04)"
+    echo -e "  ${COLOR_YELLOW}--ubuntu_version=<version>${COLOR_RESET}     Specify Ubuntu version (ex: 26.04, 24.04, 22.04, 20.04)"
     echo -e "  ${COLOR_YELLOW}--debian_version=<version>${COLOR_RESET}     Specify Debian version (ex: 12)"
-    echo -e "                                   Note: ${COLOR_CYAN}dx-compiler${COLOR_RESET} only supports Ubuntu ${COLOR_RED}(Debian is not supported)${COLOR_RESET}"
+    echo -e "  ${COLOR_YELLOW}--fedora_version=<version>${COLOR_RESET}     Specify Fedora version (ex: 42, 43, 44, 45) ${COLOR_RED}(dx-compiler only)${COLOR_RESET}"
+    echo -e "  ${COLOR_YELLOW}--rhel_version=<version>${COLOR_RESET}       Specify RHEL/UBI version (ex: 9, 10) ${COLOR_RED}(dx-compiler only)${COLOR_RESET}"
+    echo -e "  ${COLOR_YELLOW}--centos_version=<version>${COLOR_RESET}     Specify CentOS Stream version (ex: stream9, stream10) ${COLOR_RED}(dx-compiler only)${COLOR_RESET}"
+    echo -e "                                   Note: ${COLOR_CYAN}dx-compiler${COLOR_RESET} supports Ubuntu, Fedora, RHEL, and CentOS Stream"
+    echo -e "                                   Note: ${COLOR_CYAN}dx-runtime${COLOR_RESET} and ${COLOR_CYAN}dx-modelzoo${COLOR_RESET} support Ubuntu and Debian only"
     echo -e ""
     echo -e "${COLOR_BOLD}Optional:${COLOR_RESET}"
     echo -e "  ${COLOR_GREEN}[--driver_update]${COLOR_RESET}              Install 'dx_rt_npu_linux_driver' in the host environment"
@@ -78,6 +86,9 @@ show_help() {
     echo -e "${COLOR_BOLD}Examples:${COLOR_RESET}"
     echo -e "  ${COLOR_YELLOW}$0 --all --ubuntu_version=24.04${COLOR_RESET}"
     echo -e "  ${COLOR_YELLOW}$0 --target=dx-compiler --ubuntu_version=24.04${COLOR_RESET}"
+    echo -e "  ${COLOR_YELLOW}$0 --target=dx-compiler --fedora_version=42${COLOR_RESET}"
+    echo -e "  ${COLOR_YELLOW}$0 --target=dx-compiler --rhel_version=9${COLOR_RESET}"
+    echo -e "  ${COLOR_YELLOW}$0 --target=dx-compiler --centos_version=stream9${COLOR_RESET}"
     echo -e "  ${COLOR_YELLOW}$0 --target=dx-runtime --ubuntu_version=24.04 --driver_update${COLOR_RESET}"
     echo -e "  ${COLOR_YELLOW}$0 --target=dx-runtime --debian_version=12 --driver_update${COLOR_RESET}"
     echo -e "  ${COLOR_YELLOW}$0 --target=dx-modelzoo --ubuntu_version=24.04 --driver_update${COLOR_RESET}"
@@ -119,12 +130,23 @@ docker_build_impl()
     export COMPOSE_BAKE=true
     export BASE_IMAGE_NAME=${BASE_IMAGE_NAME}
     export OS_VERSION=${OS_VERSION}
+    export TAG_NAME=${TAG_NAME:-${OS_VERSION}}
+    export IMAGE_TAG_SUFFIX=${IMAGE_TAG_SUFFIX:-${BASE_IMAGE_NAME}-${OS_VERSION}}
     export FILE_DXCOM=${FILE_DXCOM}
     export FILE_DXTRON=${FILE_DXTRON}
     export HOST_UID=${HOST_UID}
     export HOST_GID=${HOST_GID}
     export TARGET_USER=${TARGET_USER}
     export TARGET_HOME=${TARGET_HOME}
+
+    # Timezone mount: only mount /etc/timezone if it exists on the host
+    if [ -f /etc/timezone ]; then
+        export TIMEZONE_MOUNT="/etc/timezone"
+        export TIMEZONE_MOUNT_TARGET="/etc/timezone"
+    else
+        export TIMEZONE_MOUNT="/dev/null"
+        export TIMEZONE_MOUNT_TARGET="/dev/null"
+    fi
 
     # XAUTHORITY setup ...
     if [ ! -n "${XAUTHORITY}" ]; then
@@ -154,43 +176,97 @@ docker_build_all()
 
 archive_dx-compiler()
 {
-    # dx-compiler only supports ubuntu
-    if [ "${BASE_IMAGE_NAME}" != "ubuntu" ]; then
-        print_colored_v2 "SKIP" "dx-compiler only supports Ubuntu. Skipping archive for ${BASE_IMAGE_NAME}."
+    # dx-compiler supports ubuntu, fedora, rhel, centos
+    if [ "${BASE_IMAGE_NAME}" != "ubuntu" ] && [ "${BASE_IMAGE_NAME}" != "fedora" ] && \
+       [ "${BASE_IMAGE_NAME}" != "redhat/ubi9" ] && [ "${BASE_IMAGE_NAME}" != "redhat/ubi10" ] && \
+       [ "${BASE_IMAGE_NAME}" != "quay.io/centos/centos" ]; then
+        print_colored_v2 "SKIP" "dx-compiler does not support ${BASE_IMAGE_NAME}. Skipping archive."
         return 0
     fi
 
     print_colored_v2 "INFO" "Archiving dx-compiler"
-    # this function is defined in scripts/common_util.sh
-    # Usage: os_check "supported_os_names" "ubuntu_versions" "debian_versions"
-    os_check "ubuntu" "20.04 22.04 24.04" "" || {
-        print_colored_v2 "SKIP" "Current OS is not supported. Skip and continue to next target."
-        return 0
-    }
 
-    # this function is defined in scripts/common_util.sh
-    # Usage: arch_check "supported_arch_names"
+    # Internal mode: archive runs pip/requests on the HOST (venv setup upgrades
+    # setuptools/wheel from PyPI; downloader.py fetches dx-tron tarball). pip uses
+    # certifi (not the OS trust store), so it can't verify the FortiGate MITM cert
+    # on inspected hosts (pypi.org). But some hosts are NOT MITM'd and serve a real
+    # public cert (sdk.deepx.ai -> Amazon CA), so pointing at the lone FortiGate cert
+    # breaks those. The OS trust bundle already contains BOTH the FortiGate CA (IT
+    # installed it) and the public roots, so build a combined bundle from the OS
+    # bundle + the intranet CA and point pip/requests at that.
+    if [ "${INTERNAL_MODE}" -eq 1 ]; then
+        local INTRANET_CA="${DX_AS_PATH}/intranet_CA_SSL.crt"
+        local OS_CA_BUNDLE=""
+        for c in /etc/ssl/certs/ca-certificates.crt /etc/pki/tls/certs/ca-bundle.crt; do
+            [ -f "$c" ] && { OS_CA_BUNDLE="$c"; break; }
+        done
+        if [ -f "${INTRANET_CA}" ] && [ -n "${OS_CA_BUNDLE}" ]; then
+            local COMBINED_CA="${OUTPUT_DIR}/.intranet_ca_bundle.crt"
+            mkdir -p "${OUTPUT_DIR}"
+            cat "${OS_CA_BUNDLE}" "${INTRANET_CA}" > "${COMBINED_CA}"
+            print_colored_v2 "INFO" "Internal mode: using combined CA bundle for host pip/requests (${COMBINED_CA})"
+            export PIP_CERT="${COMBINED_CA}"
+            export REQUESTS_CA_BUNDLE="${COMBINED_CA}"
+            export CURL_CA_BUNDLE="${COMBINED_CA}"
+        else
+            print_colored_v2 "WARNING" "Internal mode but intranet CA (${INTRANET_CA}) or OS CA bundle not found. Host pip/requests may fail SSL verification."
+        fi
+    fi
+
+    # Architecture check (archive downloads x86_64 binaries only)
     arch_check "amd64 x86_64" || {
         print_colored_v2 "SKIP" "Current architecture is not supported. Skip and continue to next target."
         return 0
     }
 
     # Determine default Python version based on OS version
-    # Ubuntu 20.04: 3.8, Ubuntu 22.04: 3.10, Ubuntu 24.04: 3.12
     local PYTHON_VERSION_ARG=""
-    case "${OS_VERSION}" in
-        20.04) PYTHON_VERSION_ARG="--python_version=3.8" ;;
-        22.04) PYTHON_VERSION_ARG="--python_version=3.10" ;;
-        24.04) PYTHON_VERSION_ARG="--python_version=3.12" ;;
-        *)
-            print_colored_v2 "ERROR" "Unsupported OS version: ${BASE_IMAGE_NAME} ${OS_VERSION}. Supported versions: Ubuntu 20.04, 22.04, 24.04"
-            return 1
+    case "${BASE_IMAGE_NAME}" in
+        ubuntu)
+            case "${OS_VERSION}" in
+                20.04) PYTHON_VERSION_ARG="--python_version=3.8" ;;
+                22.04) PYTHON_VERSION_ARG="--python_version=3.10" ;;
+                24.04) PYTHON_VERSION_ARG="--python_version=3.12" ;;
+                26.04) PYTHON_VERSION_ARG="--python_version=3.14" ;;
+                *)
+                    print_colored_v2 "ERROR" "Unsupported OS version: ${BASE_IMAGE_NAME} ${OS_VERSION}. Supported versions: Ubuntu 20.04, 22.04, 24.04, 26.04"
+                    return 1
+                    ;;
+            esac
+            ;;
+        fedora)
+            case "${OS_VERSION}" in
+                42) PYTHON_VERSION_ARG="--python_version=3.13" ;;
+                43) PYTHON_VERSION_ARG="--python_version=3.14" ;;
+                44) PYTHON_VERSION_ARG="--python_version=3.14" ;;
+                45) PYTHON_VERSION_ARG="--python_version=3.14" ;;
+                *)
+                    print_colored_v2 "ERROR" "Unsupported Fedora version: ${OS_VERSION}. Supported: 42, 43, 44, 45"
+                    return 1
+                    ;;
+            esac
+            ;;
+        redhat/ubi9)
+            PYTHON_VERSION_ARG="--python_version=3.9"
+            ;;
+        redhat/ubi10)
+            PYTHON_VERSION_ARG="--python_version=3.12"
+            ;;
+        quay.io/centos/centos)
+            case "${OS_VERSION}" in
+                stream9) PYTHON_VERSION_ARG="--python_version=3.9" ;;
+                stream10) PYTHON_VERSION_ARG="--python_version=3.12" ;;
+                *)
+                    print_colored_v2 "ERROR" "Unsupported CentOS Stream version: ${OS_VERSION}. Supported: stream9, stream10"
+                    return 1
+                    ;;
+            esac
             ;;
     esac
     print_colored_v2 "INFO" "Using Python version for ${BASE_IMAGE_NAME} ${OS_VERSION}: ${PYTHON_VERSION_ARG:-default}"
 
     # Capture output from archive script
-    ARCHIVE_OUTPUT=$(${DX_AS_PATH}/scripts/archive_dx-compiler.sh ${RE_ARCHIVE_ARGS} ${PYTHON_VERSION_ARG})
+    ARCHIVE_OUTPUT=$(${DX_AS_PATH}/scripts/archive_dx-compiler.sh ${RE_ARCHIVE_ARGS} ${PYTHON_VERSION_ARG} ${PYPI_ARGS})
     ARCHIVE_EXIT_CODE=$?
     
     if [ $ARCHIVE_EXIT_CODE -ne 0 ]; then
@@ -219,25 +295,37 @@ archive_dx-compiler()
 
 docker_build_dx-compiler() 
 {
-    # dx-compiler only supports ubuntu
-    if [ "${BASE_IMAGE_NAME}" != "ubuntu" ]; then
-        print_colored_v2 "SKIP" "dx-compiler only supports Ubuntu. Skipping build for ${BASE_IMAGE_NAME}."
+    # dx-compiler supports ubuntu, fedora, rhel, centos
+    if [ "${BASE_IMAGE_NAME}" != "ubuntu" ] && [ "${BASE_IMAGE_NAME}" != "fedora" ] && \
+       [ "${BASE_IMAGE_NAME}" != "redhat/ubi9" ] && [ "${BASE_IMAGE_NAME}" != "redhat/ubi10" ] && \
+       [ "${BASE_IMAGE_NAME}" != "quay.io/centos/centos" ]; then
+        print_colored_v2 "SKIP" "dx-compiler does not support ${BASE_IMAGE_NAME}. Skipping build."
         return 0
     fi
 
-    # this function is defined in scripts/common_util.sh
-    # Usage: os_check "supported_os_names" "ubuntu_versions" "debian_versions"
-    os_check "ubuntu" "20.04 22.04 24.04" "" || {
-        print_colored_v2 "SKIP" "Current OS is not supported. Skip and continue to next target."
-        return 0
-    }
-
-    # this function is defined in scripts/common_util.sh
-    # Usage: arch_check "supported_arch_names"
+    # Architecture check (x86_64 only)
     arch_check "amd64 x86_64" || {
         print_colored_v2 "SKIP" "Current architecture is not supported. Skip and continue to next target."
         return 0
     }
+
+    # Validate that archive files exist before building
+    if [ ! -f "${DX_AS_PATH}/${FILE_DXCOM}" ]; then
+        print_colored_v2 "ERROR" "Archive file not found: ${FILE_DXCOM}. Please run archive step first."
+        return 1
+    fi
+    if [ ! -f "${DX_AS_PATH}/${FILE_DXTRON}" ]; then
+        # For non-Debian (Fedora/RHEL/CentOS), DX-Tron .deb is not supported.
+        # Create a dummy empty archive so Docker ADD doesn't fail.
+        if [ "${BASE_IMAGE_NAME}" != "ubuntu" ] && [ "${BASE_IMAGE_NAME}" != "debian" ]; then
+            print_colored_v2 "INFO" "DX-Tron not supported on ${BASE_IMAGE_NAME}. Creating dummy archive."
+            mkdir -p "$(dirname "${DX_AS_PATH}/${FILE_DXTRON}")"
+            tar czf "${DX_AS_PATH}/${FILE_DXTRON}" -T /dev/null
+        else
+            print_colored_v2 "ERROR" "Archive file not found: ${FILE_DXTRON}. Please run archive step first."
+            return 1
+        fi
+    fi
 
     local docker_compose_args="-f docker/docker-compose.yml"
     docker_build_impl "compiler" "${docker_compose_args}"
@@ -246,12 +334,28 @@ docker_build_dx-compiler()
 
 docker_build_dx-runtime()
 {
+    # dx-runtime supports ubuntu and debian only
+    if [ "${BASE_IMAGE_NAME}" == "fedora" ] || \
+       [ "${BASE_IMAGE_NAME}" == "redhat/ubi9" ] || [ "${BASE_IMAGE_NAME}" == "redhat/ubi10" ] || \
+       [ "${BASE_IMAGE_NAME}" == "quay.io/centos/centos" ]; then
+        print_colored_v2 "ERROR" "dx-runtime does not support '${BASE_IMAGE_NAME}'. Only Ubuntu and Debian are supported for dx-runtime."
+        exit 1
+    fi
+
     local docker_compose_args="-f docker/docker-compose.yml"
     docker_build_impl "runtime" "${docker_compose_args}"
 }
 
 docker_build_dx-modelzoo()
 {
+    # dx-modelzoo supports ubuntu and debian only
+    if [ "${BASE_IMAGE_NAME}" == "fedora" ] || \
+       [ "${BASE_IMAGE_NAME}" == "redhat/ubi9" ] || [ "${BASE_IMAGE_NAME}" == "redhat/ubi10" ] || \
+       [ "${BASE_IMAGE_NAME}" == "quay.io/centos/centos" ]; then
+        print_colored_v2 "ERROR" "dx-modelzoo does not support '${BASE_IMAGE_NAME}'. Only Ubuntu and Debian are supported for dx-modelzoo."
+        exit 1
+    fi
+
     local docker_compose_args="-f docker/docker-compose.yml"
     docker_build_impl "modelzoo" "${docker_compose_args}"
 }
@@ -283,13 +387,20 @@ main() {
     # check docker compose command
     check_docker_compose_command
 
-    # Validate OS version options
-    if [ -n "$UBUNTU_VERSION" ] && [ -n "$DEBIAN_VERSION" ]; then
-        show_help "error" "Cannot specify both --ubuntu_version and --debian_version. Please choose one."
+    # Validate OS version options - only one can be specified
+    local OS_OPTIONS_COUNT=0
+    [ -n "$UBUNTU_VERSION" ] && OS_OPTIONS_COUNT=$((OS_OPTIONS_COUNT + 1))
+    [ -n "$DEBIAN_VERSION" ] && OS_OPTIONS_COUNT=$((OS_OPTIONS_COUNT + 1))
+    [ -n "$FEDORA_VERSION" ] && OS_OPTIONS_COUNT=$((OS_OPTIONS_COUNT + 1))
+    [ -n "$RHEL_VERSION" ] && OS_OPTIONS_COUNT=$((OS_OPTIONS_COUNT + 1))
+    [ -n "$CENTOS_VERSION" ] && OS_OPTIONS_COUNT=$((OS_OPTIONS_COUNT + 1))
+
+    if [ "$OS_OPTIONS_COUNT" -gt 1 ]; then
+        show_help "error" "Cannot specify multiple OS version options. Please choose one of: --ubuntu_version, --debian_version, --fedora_version, --rhel_version, --centos_version."
     fi
 
-    if [ -z "$UBUNTU_VERSION" ] && [ -z "$DEBIAN_VERSION" ]; then
-        show_help "error" "Either --ubuntu_version or --debian_version option must be specified."
+    if [ "$OS_OPTIONS_COUNT" -eq 0 ]; then
+        show_help "error" "An OS version option must be specified (--ubuntu_version, --debian_version, --fedora_version, --rhel_version, or --centos_version)."
     fi
 
     # Set BASE_IMAGE_NAME and OS_VERSION based on input
@@ -299,6 +410,20 @@ main() {
     elif [ -n "$DEBIAN_VERSION" ]; then
         BASE_IMAGE_NAME="debian"
         OS_VERSION="$DEBIAN_VERSION"
+    elif [ -n "$FEDORA_VERSION" ]; then
+        BASE_IMAGE_NAME="fedora"
+        OS_VERSION="$FEDORA_VERSION"
+    elif [ -n "$RHEL_VERSION" ]; then
+        case "$RHEL_VERSION" in
+            9)  BASE_IMAGE_NAME="redhat/ubi9"; OS_VERSION="9"; TAG_NAME="latest" ;;
+            10) BASE_IMAGE_NAME="redhat/ubi10"; OS_VERSION="10"; TAG_NAME="latest" ;;
+            *)  show_help "error" "Unsupported RHEL version: $RHEL_VERSION. Supported: 9, 10" ;;
+        esac
+        IMAGE_TAG_SUFFIX="redhat-ubi${RHEL_VERSION}"
+    elif [ -n "$CENTOS_VERSION" ]; then
+        BASE_IMAGE_NAME="quay.io/centos/centos"
+        OS_VERSION="$CENTOS_VERSION"
+        IMAGE_TAG_SUFFIX="centos-${CENTOS_VERSION}"
     fi
 
     print_colored_v2 "INFO" "BASE_IMAGE_NAME($BASE_IMAGE_NAME) is set."
@@ -379,7 +504,7 @@ main() {
 }
 
 # parse args
-for i in "$@"; do
+while [ $# -gt 0 ]; do
     case "$1" in
         --all)
             TARGET_ENV=all
@@ -392,6 +517,15 @@ for i in "$@"; do
             ;;
         --debian_version=*)
             DEBIAN_VERSION="${1#*=}"
+            ;;
+        --fedora_version=*)
+            FEDORA_VERSION="${1#*=}"
+            ;;
+        --rhel_version=*)
+            RHEL_VERSION="${1#*=}"
+            ;;
+        --centos_version=*)
+            CENTOS_VERSION="${1#*=}"
             ;;
         --driver_update)
             DRIVER_UPDATE=y
@@ -422,6 +556,11 @@ for i in "$@"; do
             else
                 RE_ARCHIVE_ARGS="--re-archive"
             fi
+            ;;
+        --pypi=*)
+            # Select dx-com/dx-tron source: true=public PyPI (default), false=DEEPX
+            # release index (e.g. for staging versions not yet published to PyPI).
+            PYPI_ARGS="--pypi=${1#*=}"
             ;;
         *)
             show_help "error" "Invalid option '$1'"

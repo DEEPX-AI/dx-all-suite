@@ -1,5 +1,48 @@
 # RELEASE_NOTES
 
+## DX-All-Suite v2.4.0 / 2026-07-14
+
+- DX-Compiler: v2.4.0
+    - DX-COM: v2.4.0
+    - DX-TRON: v2.0.1 (Deprecated)
+- DX-Runtime: v2.4.0
+    - DX_FW: v2.7.0
+    - NPU Driver: v2.5.0
+    - DX-RT: v3.4.0
+    - DX-Stream: v3.1.0
+    - DX-APP: v3.2.0
+
+---
+
+Here are the **DX-All-Suite v2.3.3** Release Note.
+
+### What's New?
+
+#### ✨ New: Build DEEPX NPU apps with natural language
+
+**DEEPX Agent-Driven Development (`dx-agent-dev`) is now available in Beta.**
+
+Describe an app or model task in plain language, and an AI coding agent drives the DEEPX knowledge base from start to finish — **brainstorm → plan → TDD → verify** — taking you from ONNX/`.pt` model compilation all the way to on-device **DX-M1 NPU** deployment.
+
+**Highlights**
+- **Natural-language workflow** — turn a plain-language prompt into a working, on-device NPU app.
+- **Multi-agent support** — works with Claude Code, Cursor, GitHub Copilot, OpenCode, and Codex.
+- **End-to-end coverage** — model compilation (ONNX/`.pt` → `.dxnn`), inference app generation, and DX-M1 NPU deployment.
+- **Ultralytics ecosystem** — purpose-built for the Ultralytics model ecosystem on DEEPX NPUs.
+- **Reproducible showcases** — every bundled showcase ships with its prompt, measured results, and full build transcript.
+
+> **Beta notice:** `dx-agent-dev` is currently in Beta. Behavior and APIs may change as the feature matures.
+
+**Learn more** — see [Agent-Driven Development docs](docs/source/00_Agent_Driven_Development.md) and the [showcase gallery](dx-agent-dev-showcase/README.md).
+
+---
+
+### Key Updates
+
+TBD
+
+---
+
 ##  DX-All-Suite v2.3.3 / 2026-05-14
 
 - DX-Compiler: v2.3.1
@@ -284,7 +327,7 @@ This release introduces a **Python-Centric Ecosystem** and a **Complete Example 
 **New Features & Tools**
 - Installation & Deployment:
     - DX-COM Wheel: Install the compiler via `pip` for automated ML pipelines and Jupyter environments.
-    - DX-TRON Debian: Added `.deb` package support for Ubuntu 20.04/22.04/24.04.
+    - DX-TRON Debian: Added `.deb` package support for Ubuntu 20.04/22.04/24.04/26.04.
 - Development Tools:
     - YOLO26 Support: Integration of the latest Ultralytics model optimized for edge deployment.
     - `RuntimeEventDispatcher`: A new centralized C++/Python singleton for handling system events, errors, and warnings.

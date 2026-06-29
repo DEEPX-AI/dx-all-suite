@@ -1,0 +1,2 @@
+{"type": "system", "subtype": "init", "model": "claude-opus-4-8"}
+{"type": "result", "subtype": "success", "duration_ms": 696000, "num_turns": 59, "total_cost_usd": 2.41, "usage": {"output_tokens": 29207}}

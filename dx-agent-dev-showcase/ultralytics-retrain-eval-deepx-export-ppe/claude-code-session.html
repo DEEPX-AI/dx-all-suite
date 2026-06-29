@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Fine-tune YOLOv8n for construction PPE detection</title>
+<style>:root {
+  --bg: #0d1117; --bg-muted: #151b23; --fg: #f0f6fc; --fg-muted: #9198a1;
+  --border: #3d444d; --accent: #4493f8; --success: #3fb950; --warning: #d29922;
+  --error: #f85149; --brand: #ab7df8; --code-bg: #1c2128;
+}
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #ffffff; --bg-muted: #f6f8fa; --fg: #1f2328; --fg-muted: #59636e;
+    --border: #d1d9e0; --accent: #0969da; --success: #1a7f37; --warning: #9a6700;
+    --error: #cf222e; --brand: #8250df; --code-bg: #f6f8fa;
+  }
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+       background: var(--bg); color: var(--fg); line-height: 1.5; padding: 0; }
+.container { max-width: 960px; margin: 0 auto; padding: 16px; }
+h1 { font-size: 1.4em; margin: 0 0 8px; }
+h2 { font-size: 1.15em; margin: 16px 0 8px; color: var(--fg-muted); }
+.meta-table { width: 100%; border-collapse: collapse; font-size: 0.85em; margin-bottom: 16px; }
+.meta-table td { padding: 4px 8px; border-bottom: 1px solid var(--border); }
+.meta-table td:first-child { color: var(--fg-muted); white-space: nowrap; width: 140px; }
+.entry { border-left: 3px solid var(--border); margin: 12px 0; padding: 8px 12px;
+         background: var(--bg-muted); border-radius: 0 6px 6px 0; }
+.entry.user { border-left-color: var(--accent); }
+.entry.assistant { border-left-color: var(--brand); }
+.entry.tool-ok { border-left-color: var(--success); }
+.entry.tool-fail { border-left-color: var(--error); }
+.entry.subagent { border-left-color: var(--warning); }
+.entry.thinking { border-left-color: var(--warning); }
+.entry-hdr { display: flex; gap: 8px; align-items: center; font-size: 0.82em;
+             color: var(--fg-muted); cursor: pointer; user-select: none; }
+.entry-hdr .icon { font-size: 1.1em; }
+.entry-hdr .label { font-weight: 600; color: var(--fg); }
+.entry-hdr .time { margin-left: auto; }
+.entry-body { margin-top: 6px; white-space: pre-wrap; word-break: break-word; font-size: 0.9em; }
+.entry.collapsed .entry-body { display: none; }
+pre, code { font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace; font-size: 0.88em; }
+pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 6px;
+      padding: 10px; overflow-x: auto; margin: 6px 0; }
+code { background: var(--code-bg); padding: 2px 5px; border-radius: 3px; }
+.tool-args { color: var(--fg-muted); font-size: 0.82em; margin-top: 4px; }
+.tool-result { margin-top: 4px; }
+.token-badge { display: inline-block; font-size: 0.75em; color: var(--fg-muted);
+               border: 1px solid var(--border); border-radius: 10px; padding: 1px 8px; margin-left: 4px; }
+.summary-section { margin: 16px 0; padding: 12px; background: var(--bg-muted);
+                   border: 1px solid var(--border); border-radius: 6px; }
+.summary-table { width: 100%; border-collapse: collapse; font-size: 0.85em; }
+.summary-table th, .summary-table td { padding: 4px 8px; border-bottom: 1px solid var(--border); text-align: left; }
+.summary-table th { color: var(--fg-muted); font-weight: 500; }
+hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+.footer { font-size: 0.78em; color: var(--fg-muted); margin-top: 24px; text-align: center; }
+</style>
+</head>
+<body>
+<div class="session-summary"><h2>Session summary</h2><table border="1" cellpadding="4" style="border-collapse:collapse"><tr><td><b>Model</b></td><td>`claude-opus-4-8`</td></tr><tr><td><b>Wall-clock</b></td><td>~17.4 min</td></tr><tr><td><b>Agent turns</b></td><td>102</td></tr><tr><td><b>Output tokens</b></td><td>92,960</td></tr><tr><td><b>Cost (reported)</b></td><td>$4.00</td></tr><tr><td><b>Tools</b></td><td>Bash×18, Read×13, Write×8, Skill×5</td></tr><tr><td><b>Skills</b></td><td>dx-skill-router → dx-agent-brainstorm → dx-swe-writing-plans → dx-agent-tdd → dx-agent-verify</td></tr><tr><td><b>Toolsets</b></td><td>`ultralytics-train-eval`</td></tr></table></div>
+
+<div class="container">
+<h1>Fine-tune YOLOv8n for construction PPE detection</h1>
+<table class="meta-table"><tr><td>Session ID</td><td><code>1144a391-c1d2-4ef5-b0a4-d7712e368299</code></td></tr>
+<tr><td>Working Dir</td><td><code>/data/home/dhyang/github/dx-all-suite-frontier-eval</code></td></tr>
+<tr><td>Branch</td><td>feature/frontier-model-eval</td></tr>
+<tr><td>Claude Code</td><td>v2.1.156</td></tr>
+<tr><td>Permission Mode</td><td>bypassPermissions</td></tr>
+<tr><td>Start</td><td>2026-06-18T03:32:45.102Z</td></tr>
+<tr><td>End</td><td>2026-06-18T03:50:08.705Z</td></tr></table>
+<hr />
+<div class="entry user" id="entry-1"><div class="entry-hdr"><span class="icon">&#x1F464;</span><span class="label">User</span><span class="time">2026-06-18 03:32:45 UTC</span></div><div class="entry-body">Using the Ultralytics Python package, adapt the base yolo26n model for a construction/factory site-safety camera that checks PPE (personal protective equipment) compliance. The stock yolo26n is a general COCO-trained detector that does not recognize construction PPE items, so fine-tune (retrain) it on the Ultralytics construction-ppe dataset (classes: helmet, gloves, vest, boots, goggles) on the local GPU for about 40 epochs to produce a domain-optimized PPE-detection model. Then evaluate accuracy (mAP50-95) and speed (FPS) for BOTH the base model and the retrained model in two forms each: (a) the PyTorch model in fp32 on the GPU, and (b) its DeepX export (.dxnn, INT8 on the DX-M1 NPU, via format=deepx). Write report.md comparing all four results (base vs retrained, fp32 vs INT8) with a short analysis of the accuracy gain and the INT8 quantization effect. Work autonomously to completion without asking for confirmation or approval; make default decisions per the knowledge base and PRODUCE THE ACTUAL ARTIFACTS (both .dxnn model dirs, the measured FPS/mAP numbers, report.md), not just a plan.
+
+Respond in English.</div></div>
+<div class="entry tool-ok collapsed" id="entry-2"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Skill</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>dx-skill-router</code></div><div class="tool-result"><pre>Launching skill: dx-skill-router</pre></div></div></div>
+<div class="entry assistant" id="entry-3"><div class="entry-hdr"><span class="icon">&#x1F4AC;</span><span class="label">Claude</span><span class="time">2026-06-18 03:32:45 UTC</span></div><div class="entry-body"><p>[DX-AGENT-DEV: START]</p>
+<pre><code> ███████████   █████████ ████████ ████████  ████      ████
+ ███     █████ ███░░░░░░░███░░░░░░███   ███  ░████   ████░░
+ ███        ██░███░      ██░░     ███   ███░   █████████░░
+ ███        ████████████ ████████ ████████░░    ░█████░░░
+ ███        ██░███░░░░░░░██░░░░░░░███░░░░░░  ██████████
+ ███     █████░███░      ██░      ███░   ████████░░░░████
+ ███████████░░░█████████ ████████ ██████████░░░░░░    ████
+        DX-AGENT-DEV · on-device NPU
+</code></pre>
+<p>Per project HARD GATE, my first action is the skill router.</p></div></div>
+<div class="entry user" id="entry-4"><div class="entry-hdr"><span class="icon">&#x1F464;</span><span class="label">User</span><span class="time">2026-06-18 03:33:00 UTC</span></div><div class="entry-body">Base directory for this skill: /data/home/dhyang/github/dx-all-suite-frontier-eval/.claude/skills/dx-skill-router
+
+&lt;!-- Thin Claude Code wrapper — canonical skill doc lives in .deepx/ --&gt;
+
+Read and follow the complete skill documentation at `.deepx/skills/dx-skill-router/SKILL.md`.
+</div></div>
+<div class="entry tool-ok collapsed" id="entry-5"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Read</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>/data/home/dhyang/github/dx-all-suite-frontier-eval/.deepx/skills/dx-skill-router/SKILL.md</code></div><div class="tool-result"><pre>1	---
+2	name: dx-skill-router
+3	description: Use when starting any conversation - establishes how to discover and invoke dx-* skills, requiring skill invocation before ANY response including clarifying questions
+4	---
+5	
+6	# Skill: dx-skill-router
+7	
+8	&lt;EXTREMELY-IMPORTANT&gt;
+9	If you think there is even a 1% chance a skill might apply to what you are doing, you ABSOLUTELY MUST invoke the skill.
+10	
+11	IF A SKILL APPLIES TO YOUR TASK, YOU DO NOT HAVE A CHOICE. YOU MUST USE IT.
+12	
+13	This is not negotiable. This is not optional. You cannot rationalize your way out of this.
+14	&lt;/EXTREMELY-IMPORTANT&gt;
+15	
+16	## Instruction Priority
+17	
+18	dx-* skills override default system prompt behavior, but **user instructions always take precedence**:
+19	
+20	1. **User's explicit instructions** (CLAUDE.md, GEMINI.md, AGENTS.md, direct requests) — highest priority
+21	2. **dx-* skills** — override default system behavior where they conflict
+22	3. **Default system prompt** — lowest priority
+23	
+24	If proj…</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-6"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Skill</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>dx-agent-brainstorm</code></div><div class="tool-result"><pre>Launching skill: dx-agent-brainstorm</pre></div></div></div>
+<div class="entry assistant" id="entry-7"><div class="entry-hdr"><span class="icon">&#x1F4AC;</span><span class="label">Claude</span><span class="time">2026-06-18 03:33:00 UTC</span></div><div class="entry-body"><p>This is a cross-project DEEPX build task (Ultralytics retrain → DeepX compile → NPU eval). Following the mandatory skill sequence: brainstorm → plan → tdd → verify. In autopilot mode I make default decisions per the KB.</p></div></div>
+<div class="entry user" id="entry-8"><div class="entry-hdr"><span class="icon">&#x1F464;</span><span class="label">User</span><span class="time">2026-06-18 03:33:16 UTC</span></div><div class="entry-body">Base directory for this skill: /data/home/dhyang/github/dx-all-suite-frontier-eval/.claude/skills/dx-agent-brainstorm
+
+&lt;!-- Thin Claude Code wrapper — canonical skill doc lives in .deepx/ --&gt;
+
+Read and follow the complete skill documentation at `.deepx/skills/dx-agent-brainstorm/SKILL.md`.
+</div></div>
+<div class="entry tool-ok collapsed" id="entry-9"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Read</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>/data/home/dhyang/github/dx-all-suite-frontier-eval/.deepx/skills/dx-agent-brainstorm/SKILL.md</code></div><div class="tool-result"><pre>1	---
+2	name: dx-agent-brainstorm
+3	description: &quot;DEEPX build brainstorming with model registry check and sub-project routing.&quot;
+4	---
+5	
+6	# Skill: DEEPX Build Brainstorming
+7	
+8	&gt; For the general brainstorming process (key decisions, propose approaches,
+9	&gt; present plan, get approval, spec self-review), see `dx-swe-brainstorm`.
+10	&gt; This skill covers DEEPX-specific pre-flight checks and routing.
+11	
+12	## Scope
+13	
+14	This is the **top-level suite** version covering all sub-projects. When working
+15	in a single sub-project, prefer the project-level version:
+16	
+17	| Working on... | Use this skill |
+18	|---|---|
+19	| dx_app (standalone inference) | `dx-runtime/dx_app/.deepx/skills/dx-brainstorm-and-plan.md` |
+20	| dx_stream (GStreamer pipelines) | `dx-runtime/dx_stream/.deepx/skills/dx-brainstorm-and-plan.md` |
+21	| Cross-project integration | `dx-runtime/.deepx/skills/dx-brainstorm-and-plan.md` |
+22	
+23	## When to Use
+24	
+25	Use this skill (in addition to `dx-swe-brainstorm`) when th…</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-10"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Read</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>/home/dhyang/.claude/projects/-data-home-dhyang-github-dx-all-suite/memory/project_ultralytics_deepx_integration.md</code></div><div class="tool-result"><pre>&lt;system-reminder&gt;This memory is 7 days old. Memories are point-in-time observations, not live state — claims about code behavior or file:line citations may be outdated. Verify against current code before asserting as fact.&lt;/system-reminder&gt;
+1	---
+2	name: project_ultralytics_deepx_integration
+3	description: Ultralytics × DeepX integration KB + showcase added 2026-06-10
+4	metadata: 
+5	  node_type: memory
+6	  type: project
+7	  originSessionId: e8e4d921-f290-418d-bb08-8af849abde75
+8	---
+9	
+10	Ultralytics × DEEPX partnership integration: Ultralytics YOLO ships a built-in
+11	`format=deepx` exporter — `yolo export model=yolo26n.pt format=deepx` →
+12	`yolo26n_deepx_model/{*.dxnn,config.json,metadata.yaml}` in one command (ONNX export
+13	→ INT8 EMA calib → `dx_com` → package). x86-64 Linux only, detection-only, INT8
+14	enforced. Deploy via `YOLO(&quot;..._deepx_model&quot;)`. Source: `ultralytics/docs/en/integrations/deepx.md`.
+15	
+16	KB added on branch `feature/ultralytics-integration` (worktree
+17	`/d…</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-11"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Read</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>/home/dhyang/.claude/projects/-data-home-dhyang-github-dx-all-suite/memory/project_yolo26n_awildlife_showcase_finding.md</code></div><div class="tool-result"><pre>&lt;system-reminder&gt;This memory is 7 days old. Memories are point-in-time observations, not live state — claims about code behavior or file:line citations may be outdated. Verify against current code before asserting as fact.&lt;/system-reminder&gt;
+1	---
+2	name: project_yolo26n_awildlife_showcase_finding
+3	description: Empirical result — domain-retrained yolo26n (nc=4) is faster on DX-M1 NPU than stock (nc=80); INT8 NPU mAP ≈ fp32 GPU
+4	metadata: 
+5	  node_type: memory
+6	  type: reference
+7	  originSessionId: 04f4494e-a3c7-40db-96ca-457058ca3977
+8	---
+9	
+10	YOLO26n African-wildlife DeepX showcase (2026-06-10, built via Ultralytics one-shot
+11	`format=deepx` from `dx-runtime/venv-dx-runtime` which already bundles ultralytics[deepx
+12	fork] + dx_com + dx_engine + torch+cuda — no separate install needed).
+13	
+14	Two non-obvious empirical findings worth reusing:
+15	
+16	1. **INT8 quantization was effectively lossless**: retrained model scored mAP50-95
+17	   0.792 fp32 (GPU train val) and 0.791 INT…</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-12"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Read</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>/home/dhyang/.claude/projects/-data-home-dhyang-github-dx-all-suite/memory/project_showcase_enduser_verification.md</code></div><div class="tool-result"><pre>1	---
+2	name: project_showcase_enduser_verification
+3	description: 7-showcase end-user verification (2026-06-18) results + 3 actionable defects
+4	metadata: 
+5	  node_type: memory
+6	  type: project
+7	  originSessionId: 9079b572-44d1-4566-91a3-5f8bcc110bb9
+8	---
+9	
+10	End-user verification of 7 showcases in `dx-all-suite-full-e2e` (ran setup.sh+run.sh
+11	headless per README). Report: `dx-agent-dev-showcase/VERIFICATION_REPORT.md`; traces:
+12	each showcase's `verify_setup.log`/`verify_run.log` (untracked, not committed).
+13	
+14	**PASS (2)**: ultralytics-yolo-deepx-export (.dxnn 6.89MB + verify PASS + infer PASS),
+15	wildlife retrain-eval (full pipeline, map50 0.955/0.940).
+16	
+17	**Showcase DEFECTS (3) — actionable, assets already present, fix is SWE-gated:**
+18	- **squat**: run.sh `DX_APP_ROOT` autodetect walks only ANCESTOR dirs → never finds
+19	  `dx-runtime/dx_app/assets/models/yolo26n-pose.dxnn` (the model EXISTS). Sibling
+20	  stretching resolves it via `$SUITE_ROOT/dx-runtime/dx_a…</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-13"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>find /data/home/dhyang/github/dx-all-suite-frontier-eval -name &quot;ultralytics-train-eval.md&quot; 2&gt;/dev/null; echo &quot;---SHOWCASE---&quot;; find /data/home/dhyang/github/dx-all-suite-frontier-eval -type d \( -iname &quot;*wildlife*&quot; -o -iname &quot;*ppe*&quot; -o -iname &quot;*ultralytics*&quot; \) 2&gt;/dev/null | grep -i showcase</code></div><div class="tool-result"><pre>/data/home/dhyang/github/dx-all-suite-frontier-eval/dx-compiler/.deepx/toolsets/ultralytics-train-eval.md
+---SHOWCASE---
+/data/home/dhyang/github/dx-all-suite-frontier-eval/dx-agent-dev-showcase/ultralytics-retrain-eval-deepx-export-wildlife
+/data/home/dhyang/github/dx-all-suite-frontier-eval/dx-agent-dev-showcase/ultralytics-retrain-eval-deepx-export-braintumor
+/data/home/dhyang/github/dx-all-suite-frontier-eval/dx-agent-dev-showcase/ultralytics-retrain-eval-deepx-export-pills
+/data/home/dhyang/github/dx-all-suite-frontier-eval/dx-agent-dev-showcase/ultralytics-yolo-deepx-export
+/data/home/dhyang/github/dx-all-suite-frontier-eval/dx-agent-dev-showcase/ultralytics-retrain-eval-deepx-export-ppe</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-14"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Read</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>/home/dhyang/.claude/projects/-data-home-dhyang-github-dx-all-suite/memory/project_frontier_eval_worktree.md</code></div><div class="tool-result"><pre>&lt;system-reminder&gt;This memory is 2 days old. Memories are point-in-time observations, not live state — claims about code behavior or file:line citations may be outdated. Verify against current code before asserting as fact.&lt;/system-reminder&gt;
+1	---
+2	name: project_frontier_eval_worktree
+3	description: dx-all-suite-frontier-eval worktree — dx-internal-model-eval skill + frontier model eval roadmap
+4	metadata: 
+5	  node_type: memory
+6	  type: project
+7	  originSessionId: f35d67d1-0038-409d-84c1-0f815fefdb6d
+8	---
+9	
+10	Worktree `dx-all-suite-frontier-eval` (branch `feature/frontier-model-eval`) exists to compare
+11	NEW frontier models vs existing ones when released, using `.deepx/e2e/e2e_runner.py` (autopilot E2E)
+12	+ `.deepx/e2e/agent_analyzer/` and report it.
+13	
+14	**fable5 export-controlled → suspended (2026-06-15):** NTH comparison (opus4.8 vs fable5) deferred — fable5 (`claude-fable-5`) usage halted by export control. opus4.8 run 194959 finalized to 4/5 valid (215213 compiler incom…</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-15"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Read</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>/data/home/dhyang/github/dx-all-suite-frontier-eval/dx-compiler/.deepx/toolsets/ultralytics-train-eval.md</code></div><div class="tool-result"><pre>1	# Ultralytics Retrain + Evaluate (domain optimization) → DeepX
+2	
+3	&gt; How to **adapt a base YOLO model to a specific domain** with the Ultralytics Python
+4	&gt; package and **evaluate it fairly** — both the PyTorch model (fp32) and its DeepX
+5	&gt; `.dxnn` (INT8 on DX-M1). Pairs with [`ultralytics-deepx-export.md`](./ultralytics-deepx-export.md)
+6	&gt; (the `format=deepx` compile step). Use this for &quot;retrain on my dataset / optimize for
+7	&gt; my domain / measure accuracy + FPS&quot; requests.
+8	
+9	&gt; **Get the latest knowledge first (do not fabricate APIs).** Ultralytics evolves. Before
+10	&gt; writing training/eval code, read the current docs:
+11	&gt; - Local clone (preferred): `git clone https://github.com/ultralytics/ultralytics` then read
+12	&gt;   `docs/en/modes/train.md`, `docs/en/modes/val.md`, `docs/en/modes/benchmark.md`,
+13	&gt;   `docs/en/datasets/detect/*.md`, and `ultralytics/cfg/datasets/*.yaml`.
+14	&gt; - Or web search &quot;ultralytics train mode&quot; / &quot;ultralytics val mAP&quot; / the dataset name.
+15	&gt; The sni…</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-16"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>cd /data/home/dhyang/github/dx-all-suite-frontier-eval/dx-agent-dev-showcase
+echo &quot;=== wildlife ===&quot;; ls -la ultralytics-retrain-eval-deepx-export-wildlife/
+echo &quot;=== ppe ===&quot;; ls -la ultralytics-retrain-eval-deepx-export-ppe/</code></div><div class="tool-result"><pre>=== wildlife ===
+total 1168
+drwxrwxr-x  2 dhyang dhyang   4096 Jun 12 16:41 .
+drwxrwxr-x 11 dhyang dhyang   4096 Jun 16 17:02 ..
+-rw-rw-r--  1 dhyang dhyang  55107 Jun 12 16:41 claude-code-session.html
+-rw-rw-r--  1 dhyang dhyang 368516 Jun 12 16:41 claude-code-session.jsonl
+-rw-rw-r--  1 dhyang dhyang  23089 Jun 12 16:41 claude-code-session.md
+-rwxrwxr-x  1 dhyang dhyang   6457 Jun 12 16:41 pipeline.py
+-rw-rw-r--  1 dhyang dhyang   4138 Jun 12 16:41 README-ko.md
+-rw-rw-r--  1 dhyang dhyang   4100 Jun 12 16:41 README.md
+-rw-rw-r--  1 dhyang dhyang   4255 Jun 12 16:41 report.md
+-rw-rw-r--  1 dhyang dhyang   5048 Jun 12 16:41 results.json
+-rwxrwxr-x  1 dhyang dhyang   1145 Jun 12 16:41 run.sh
+-rw-rw-r--  1 dhyang dhyang 273024 Jun 12 16:41 sample_detect.jpg
+-rw-rw-r--  1 dhyang dhyang 407486 Jun 12 16:41 session.log
+-rwxrwxr-x  1 dhyang dhyang   1902 Jun 12 16:41 setup.sh
+-rw-rw-r--  1 dhyang dhyang   2673 Jun 12 16:41 verify.py
+=== ppe ===
+total 1864
+drwxrwxr-x  2 dhyang dhyang   4096 …</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-17"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Read</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>/data/home/dhyang/github/dx-all-suite-frontier-eval/dx-agent-dev-showcase/ultralytics-retrain-eval-deepx-export-wildlife/pipeline.py</code></div><div class="tool-result"><pre>1	#!/usr/bin/env python3
+2	&quot;&quot;&quot;
+3	pipeline.py — YOLO26n African-Wildlife domain retrain + DeepX 4-way benchmark.
+4	
+5	Stages (all artifacts land in this session directory, which is the cwd):
+6	  1. Train  yolo26n.pt on african-wildlife (nc=4) for 40 epochs on the local GPU.
+7	  2. Export BOTH base yolo26n.pt and the retrained best.pt with format=deepx
+8	     -&gt; &lt;stem&gt;_deepx_model/ (INT8, EMA calibration on domain images).
+9	  3. Evaluate FOUR points with model.val() (mAP50-95 + single-image FPS):
+10	        base .pt (fp32, GPU) | base .dxnn (INT8, DX-M1 NPU)
+11	        retrained .pt (fp32, GPU) | retrained .dxnn (INT8, DX-M1 NPU)
+12	  4. Save an annotated detection sample from the retrained model on a val image.
+13	  5. Dump results.json (written incrementally so partial progress survives).
+14	
+15	FPS = 1000 / speed['inference']  (single-image inference latency, batch=1).
+16	&quot;&quot;&quot;
+17	import json
+18	import shutil
+19	import sys
+20	from pathlib import Path
+21	
+22	from ultralytics import YOL…</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-18"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Read</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>/data/home/dhyang/github/dx-all-suite-frontier-eval/dx-agent-dev-showcase/ultralytics-retrain-eval-deepx-export-wildlife/setup.sh</code></div><div class="tool-result"><pre>1	#!/usr/bin/env bash
+2	# setup.sh — environment setup for the YOLO26n african-wildlife retrain + DeepX benchmark.
+3	# Uses dx-runtime/venv-dx-runtime which bundles the full stack (ultralytics[deepx] +
+4	# dx_com + dx_engine + torch+cuda) — no separate install needed.
+5	set -euo pipefail
+6	
+7	SCRIPT_DIR=&quot;$(cd &quot;$(dirname &quot;$0&quot;)&quot; &amp;&amp; pwd -P)&quot;
+8	
+9	# Auto-detect suite root (walks up until dx-runtime/ and dx-compiler/ siblings are found)
+10	SUITE_ROOT=&quot;$SCRIPT_DIR&quot;
+11	while [ &quot;$SUITE_ROOT&quot; != &quot;/&quot; ]; do
+12	    if [ -d &quot;$SUITE_ROOT/dx-runtime&quot; ] &amp;&amp; [ -d &quot;$SUITE_ROOT/dx-compiler&quot; ]; then
+13	        break
+14	    fi
+15	    SUITE_ROOT=&quot;$(dirname &quot;$SUITE_ROOT&quot;)&quot;
+16	done
+17	if [ &quot;$SUITE_ROOT&quot; = &quot;/&quot; ]; then
+18	    echo &quot;ERROR: Cannot find dx-all-suite root (expected dx-runtime/ and dx-compiler/ siblings)&quot;
+19	    exit 1
+20	fi
+21	
+22	RUNTIME_DIR=&quot;$SUITE_ROOT/dx-runtime&quot;
+23	VENV=&quot;$RUNTIME_DIR/venv-dx-runtime&quot;
+24	PY=&quot;$VENV/bin/python&quot;
+25	
+26	echo &quot;==== Setup: YOLO26n african-wildlife retrain + DeepX ben…</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-19"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Read</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>/data/home/dhyang/github/dx-all-suite-frontier-eval/dx-agent-dev-showcase/ultralytics-retrain-eval-deepx-export-wildlife/run.sh</code></div><div class="tool-result"><pre>1	#!/usr/bin/env bash
+2	# run.sh — one-command launcher for the YOLO26n african-wildlife retrain + DeepX benchmark.
+3	# Activates dx-runtime/venv-dx-runtime and runs pipeline.py, teeing output to session.log.
+4	set -euo pipefail
+5	
+6	SCRIPT_DIR=&quot;$(cd &quot;$(dirname &quot;$0&quot;)&quot; &amp;&amp; pwd -P)&quot;
+7	
+8	# Auto-detect suite root (walks up until dx-runtime/ and dx-compiler/ siblings are found)
+9	SUITE_ROOT=&quot;$SCRIPT_DIR&quot;
+10	while [ &quot;$SUITE_ROOT&quot; != &quot;/&quot; ]; do
+11	    if [ -d &quot;$SUITE_ROOT/dx-runtime&quot; ] &amp;&amp; [ -d &quot;$SUITE_ROOT/dx-compiler&quot; ]; then
+12	        break
+13	    fi
+14	    SUITE_ROOT=&quot;$(dirname &quot;$SUITE_ROOT&quot;)&quot;
+15	done
+16	if [ &quot;$SUITE_ROOT&quot; = &quot;/&quot; ]; then
+17	    echo &quot;ERROR: Cannot find dx-all-suite root (expected dx-runtime/ and dx-compiler/ siblings)&quot;
+18	    exit 1
+19	fi
+20	
+21	VENV=&quot;$SUITE_ROOT/dx-runtime/venv-dx-runtime&quot;
+22	if [ ! -x &quot;$VENV/bin/python&quot; ]; then
+23	    echo &quot;ERROR: venv not found at $VENV. Run setup.sh first.&quot;
+24	    exit 1
+25	fi
+26	# shellcheck disable=SC1091
+27	source &quot;$VENV/bin/activat…</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-20"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Read</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>/data/home/dhyang/github/dx-all-suite-frontier-eval/dx-agent-dev-showcase/ultralytics-retrain-eval-deepx-export-ppe/report.md</code></div><div class="tool-result"><pre>1	# Report — yolo26n Construction-PPE: Base vs Retrained, fp32 vs INT8
+2	
+3	**Task:** Adapt the COCO-pretrained `yolo26n` general detector into a construction/factory
+4	site-safety PPE-compliance detector by fine-tuning on the Ultralytics `construction-ppe`
+5	dataset, then compare accuracy (mAP50-95) and speed (FPS) across four measurement points.
+6	
+7	- **Dataset:** `construction-ppe.yaml` (built-in Ultralytics; classes incl. helmet, gloves, vest,
+8	  boots, goggles + person/negation classes), imgsz=640, identical val split for all.
+9	- **fp32:** PyTorch on NVIDIA RTX 5060 Ti (GPU). **INT8:** DeepX `.dxnn` on DX-M1 NPU
+10	  (via Ultralytics `format=deepx` export, INT8 EMA calibration on construction-ppe images).
+11	- FPS = 1000 / single-image inference latency reported by `model.val()`.
+12	
+13	## Results — four measurement points
+14	
+15	| Model | Form | Device | mAP50-95 | mAP50 | inf (ms) | FPS |
+16	|---|---|---|---|---|---|---|
+17	| base yolo26n | .pt fp32 | RTX 5060 Ti | 0.0001 | …</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-21"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Read</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>/data/home/dhyang/github/dx-all-suite-frontier-eval/dx-agent-dev-showcase/ultralytics-retrain-eval-deepx-export-ppe/results.json</code></div><div class="tool-result"><pre>1	{
+2	  &quot;data&quot;: &quot;construction-ppe.yaml&quot;,
+3	  &quot;imgsz&quot;: 640,
+4	  &quot;base_pt&quot;: {
+5	    &quot;map&quot;: 0.00012132044873385655,
+6	    &quot;map50&quot;: 0.0007858283387379479,
+7	    &quot;map75&quot;: 2.5393600812595226e-06,
+8	    &quot;inference_ms&quot;: 1.8584463705465042,
+9	    &quot;fps&quot;: 538.08386179362
+10	  },
+11	  &quot;retrained_pt&quot;: {
+12	    &quot;map&quot;: 0.2514600420387023,
+13	    &quot;map50&quot;: 0.4868159893798207,
+14	    &quot;map75&quot;: 0.22909003834832314,
+15	    &quot;inference_ms&quot;: 1.5755098321641163,
+16	    &quot;fps&quot;: 634.7151757386385
+17	  },
+18	  &quot;base_dxnn_dir&quot;: &quot;/data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agent-dev/20260611-101032_claude_opus48_yolo26n_ppe_retrain_eval/base_deepx_model&quot;,
+19	  &quot;retrained_dxnn_dir&quot;: &quot;/data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agent-dev/20260611-101032_claude_opus48_yolo26n_ppe_retrain_eval/retrained_deepx_model&quot;,
+20	  &quot;base_dxnn&quot;: {
+21	    &quot;map&quot;: 6.520211974639135e-05,
+22	    &quot;map50&quot;: 0.0003949205454408489,
+23	    &quot;map75&quot;: 1.7554686541309595e-06,
+24	    &quot;inference_ms&quot;: 17.2…</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-22"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>cd /data/home/dhyang/github/dx-all-suite-frontier-eval
+echo &quot;=== sanity_check --dx_rt ===&quot;
+bash dx-runtime/scripts/sanity_check.sh --dx_rt 2&gt;&amp;1 | grep -Ei &quot;PASS|FAIL|ERROR|device|driver|firmware&quot; | head -20
+echo &quot;=== venv-dx-runtime ===&quot;
+ls -d dx-runtime/venv-dx-runtime 2&gt;/dev/null &amp;&amp; echo &quot;venv EX…</code></div><div class="tool-result"><pre>=== sanity_check --dx_rt ===
+   Device Driver Version: v2.4.1
+   PCIe Driver Version: v2.2.0
+   Firmware Version: device-id=0 v2.5.6
+   Device Driver Version: v2.4.1
+   PCIe Driver Version: v2.2.0
+   Firmware Version: device-id=0 v2.5.6
+** Sanity check PASSED!
+[92m ✅ PASS: All sanity checks passed successfully. [0m
+=== venv-dx-runtime ===
+dx-runtime/venv-dx-runtime
+venv EXISTS</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-23"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>cd /data/home/dhyang/github/dx-all-suite-frontier-eval
+PY=dx-runtime/venv-dx-runtime/bin/python
+&quot;$PY&quot; - &lt;&lt;'PYEOF'
+import importlib
+for m in [&quot;ultralytics&quot;,&quot;dx_com&quot;,&quot;dx_engine&quot;]:
+    try:
+        mod=importlib.import_module(m); print(f&quot;{m}: OK {getattr(mod,'__version__','?')}&quot;)
+    except Exception …</code></div><div class="tool-result"><pre>Exit code 1
+ultralytics: MISSING ModuleNotFoundError(&quot;No module named 'ultralytics'&quot;)
+dx_com: MISSING ModuleNotFoundError(&quot;No module named 'dx_com'&quot;)
+dx_engine: OK 3.3.2
+Traceback (most recent call last):
+  File &quot;&lt;stdin&gt;&quot;, line 7, in &lt;module&gt;
+ModuleNotFoundError: No module named 'torch'</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-24"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>cd /data/home/dhyang/github
+echo &quot;=== venvs in frontier-eval ===&quot;
+ls -d dx-all-suite-frontier-eval/*/venv* dx-all-suite-frontier-eval/dx-runtime/venv* dx-all-suite-frontier-eval/dx-compiler/venv* 2&gt;/dev/null
+echo &quot;=== search for ultralytics in any venv site-packages (fast) ===&quot;
+for v in $(find /dat…</code></div><div class="tool-result"><pre>=== venvs in frontier-eval ===
+dx-all-suite-frontier-eval/dx-runtime/venv-dx-runtime
+dx-all-suite-frontier-eval/dx-runtime/venv-dx-runtime
+=== search for ultralytics in any venv site-packages (fast) ===
+FULL STACK: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-compiler/venv-dx-compiler-local
+FULL STACK: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/venv-dx-runtime
+FULL STACK: /data/home/dhyang/github/dx-all-suite-full-e2e/.deepx/tests/venv
+FULL STACK: /data/home/dhyang/github/dx-all-suite-full-e2e/.deepx/e2e/venv
+FULL STACK: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-agent-dev-showcase/paddleocr-video-ocr/venv
+FULL STACK: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-agent-dev-showcase/rapiddoc-pdf2md/venv
+FULL STACK: /data/home/dhyang/github/dx-all-suite-frontier-eval/.deepx/e2e/venv
+Shell cwd was reset to /data/home/dhyang/github/dx-all-suite-frontier-eval</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-25"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>cd /data/home/dhyang/github/dx-all-suite-frontier-eval
+PY=.deepx/e2e/venv/bin/python
+&quot;$PY&quot; - &lt;&lt;'PYEOF'
+import importlib
+for m in [&quot;ultralytics&quot;,&quot;dx_com&quot;,&quot;dx_engine&quot;]:
+    try:
+        mod=importlib.import_module(m); print(f&quot;{m}: OK {getattr(mod,'__version__','?')}&quot;)
+    except Exception as e:
+     …</code></div><div class="tool-result"><pre>ultralytics: OK 8.4.66
+dx_com: OK 2.2.0-rc.2
+dx_engine: OK 3.3.2
+torch 2.12.0+cu130 cuda=True NVIDIA GeForce RTX 5060 Ti
+ppe yaml: ['construction-ppe.yaml']
+# Ultralytics 🚀 AGPL-3.0 License - https://ultralytics.com/license
+
+# Construction-PPE dataset by Ultralytics
+# Documentation: https://docs.ultralytics.com/datasets/detect/construction-ppe
+# Example usage: yolo train data=construction-ppe.yaml
+# parent
+# ├── ultralytics
+# └── datasets
+#     └── construction-ppe ← downloads here (178.4 MB)
+
+# Train/val/test sets as 1) dir: path/to/imgs, 2) file: path/to/imgs.txt, or 3) list: [path/to/imgs1, path/to/imgs2, ..]
+path: construction-ppe # dataset root dir
+train: images/train # train images (relative to 'path') 1132 images
+val: images/val # val images (relative to 'path') 143 images
+test: images/test # test images (relative to 'path') 141 images
+
+# Classes
+names:
+  0: helmet
+  1: gloves
+  2: vest
+  3: boots
+  4: goggles
+  5: none
+  6: Person
+  7: no_helmet
+  8: no_goggle
+  9: no_gloves
+ …</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-26"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Skill</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>dx-swe-writing-plans</code></div><div class="tool-result"><pre>Launching skill: dx-swe-writing-plans</pre></div></div></div>
+<div class="entry assistant" id="entry-27"><div class="entry-hdr"><span class="icon">&#x1F4AC;</span><span class="label">Claude</span><span class="time">2026-06-18 03:33:16 UTC</span></div><div class="entry-body"><p>This is a cross-project task. Let me check prior art and the cross-project KB in parallel, plus the relevant memories.
+Highly relevant prior art exists — a wildlife retrain-eval showcase did exactly this pipeline, and there's a <code>ultralytics-train-eval.md</code> KB. Let me locate the KB and existing showcase scripts.
+There's already a PPE showcase directory. Let me read the authoritative KB and the existing wildlife/ppe showcase scripts as reference.
+Now let me examine the wildlife (gold-standard, PASSED) and existing PPE showcase scripts as reference.
+I have everything I need — the wildlife <code>pipeline.py</code> is the gold-standard self-contained pattern, and <code>construction-ppe.yaml</code> is the dataset. This routes to <strong>dx-compiler</strong> (Ultralytics <code>format=deepx</code> export + eval; single session, not a dual app-build suite task). Now the <strong>Prerequisites HARD GATE</strong> — let me verify the environment before any code generation.
+Sanity check PASSED (NPU device-id=0, drv v2.4.1, fw v2.5.6). Now verify the full stack in the venv and the dataset.
+The venv in this worktree's dx-runtime has <code>dx_engine</code> but not <code>ultralytics</code>/<code>dx_com</code>/<code>torch</code>. Let me locate a venv with the full Ultralytics+torch stack.
+Full-stack venvs live in the <code>full-e2e</code> worktree, plus this worktree's <code>.deepx/e2e/venv</code>. Let me verify that local e2e venv has the complete working stack (CUDA + dx_engine NPU + dataset).
+The local <code>.deepx/e2e/venv</code> has the <strong>complete working stack</strong>: ultralytics 8.4.66, dx_com 2.2.0-rc.2, dx_engine 3.3.2, torch 2.12.0+cu130 (CUDA=True, RTX 5060 Ti), and <code>construction-ppe.yaml</code> (nc=11: helmet, gloves, vest, boots, goggles + negation/person classes). <strong>Prerequisites GATE: PASS.</strong></p>
+<p>Now the plan. Following the mandatory sequence — writing-plans next.</p></div></div>
+<div class="entry user" id="entry-28"><div class="entry-hdr"><span class="icon">&#x1F464;</span><span class="label">User</span><span class="time">2026-06-18 03:36:22 UTC</span></div><div class="entry-body">Base directory for this skill: /data/home/dhyang/github/dx-all-suite-frontier-eval/.claude/skills/dx-swe-writing-plans
+
+&lt;!-- Thin Claude Code wrapper — canonical skill doc lives in .deepx/ --&gt;
+
+Read and follow the complete skill documentation at `.deepx/skills/dx-swe-writing-plans/SKILL.md`.
+</div></div>
+<div class="entry tool-ok collapsed" id="entry-29"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>cd /data/home/dhyang/github/dx-all-suite-frontier-eval
+TS=$(date +%Y%m%d-%H%M%S)
+SID=&quot;${TS}_claude_opus48_yolo26n_ppe_retrain_eval&quot;
+SESS=&quot;dx-compiler/dx-agent-dev/${SID}&quot;
+mkdir -p &quot;$SESS&quot;
+echo &quot;$SESS&quot; &gt; /tmp/ppe_sess_path.txt
+mkdir -p docs/superpowers/specs docs/superpowers/plans
+echo &quot;SESSION_DIR=…</code></div><div class="tool-result"><pre>SESSION_DIR=dx-compiler/dx-agent-dev/20260618-123630_claude_opus48_yolo26n_ppe_retrain_eval
+DATE=Thu Jun 18 12:36:30 PM KST 2026</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-30"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Write</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>/data/home/dhyang/github/dx-all-suite-frontier-eval/docs/superpowers/specs/2026-06-18-yolo26n-ppe-retrain-eval-design.md</code></div><div class="tool-result"><pre>File created successfully at: /data/home/dhyang/github/dx-all-suite-frontier-eval/docs/superpowers/specs/2026-06-18-yolo26n-ppe-retrain-eval-design.md (file state is current in your context — no need to Read it back)</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-31"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Write</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>/data/home/dhyang/github/dx-all-suite-frontier-eval/docs/superpowers/plans/2026-06-18-yolo26n-ppe-retrain-eval-plan.md</code></div><div class="tool-result"><pre>File created successfully at: /data/home/dhyang/github/dx-all-suite-frontier-eval/docs/superpowers/plans/2026-06-18-yolo26n-ppe-retrain-eval-plan.md (file state is current in your context — no need to Read it back)</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-32"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Skill</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>dx-agent-tdd</code></div><div class="tool-result"><pre>Launching skill: dx-agent-tdd</pre></div></div></div>
+<div class="entry assistant" id="entry-33"><div class="entry-hdr"><span class="icon">&#x1F4AC;</span><span class="label">Claude</span><span class="time">2026-06-18 03:36:22 UTC</span></div><div class="entry-body"><p>I have strong prior art (the wildlife showcase is functionally identical). Let me write the mandatory spec, self-review it (autopilot), then the plan. First, establish the session dir and timestamp.
+Spec self-reviewed against the KB (autopilot approval gate satisfied). Now the plan:
+## Plan (printed for review)</p>
+<p>The plan is saved at <code>docs/superpowers/plans/2026-06-18-yolo26n-ppe-retrain-eval-plan.md</code> — full content shown above. It's a self-contained train→export→eval→report pipeline modeled on the proven wildlife showcase, adapted to <code>construction-ppe</code>.</p>
+<p>Now the TDD gate — define acceptance per artifact and verify immediately after each:</p></div></div>
+<div class="entry user" id="entry-34"><div class="entry-hdr"><span class="icon">&#x1F464;</span><span class="label">User</span><span class="time">2026-06-18 03:37:14 UTC</span></div><div class="entry-body">Base directory for this skill: /data/home/dhyang/github/dx-all-suite-frontier-eval/.claude/skills/dx-agent-tdd
+
+&lt;!-- Thin Claude Code wrapper — canonical skill doc lives in .deepx/ --&gt;
+
+Read and follow the complete skill documentation at `.deepx/skills/dx-agent-tdd/SKILL.md`.
+</div></div>
+<div class="entry tool-ok collapsed" id="entry-35"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Write</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>/data/home/dhyang/github/dx-all-suite-frontier-eval/dx-compiler/dx-agent-dev/20260618-123630_claude_opus48_yolo26n_ppe_retrain_eval/setup.sh</code></div><div class="tool-result"><pre>File created successfully at: /data/home/dhyang/github/dx-all-suite-frontier-eval/dx-compiler/dx-agent-dev/20260618-123630_claude_opus48_yolo26n_ppe_retrain_eval/setup.sh (file state is current in your context — no need to Read it back)</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-36"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Write</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>/data/home/dhyang/github/dx-all-suite-frontier-eval/dx-compiler/dx-agent-dev/20260618-123630_claude_opus48_yolo26n_ppe_retrain_eval/run.sh</code></div><div class="tool-result"><pre>File created successfully at: /data/home/dhyang/github/dx-all-suite-frontier-eval/dx-compiler/dx-agent-dev/20260618-123630_claude_opus48_yolo26n_ppe_retrain_eval/run.sh (file state is current in your context — no need to Read it back)</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-37"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Write</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>/data/home/dhyang/github/dx-all-suite-frontier-eval/dx-compiler/dx-agent-dev/20260618-123630_claude_opus48_yolo26n_ppe_retrain_eval/pipeline.py</code></div><div class="tool-result"><pre>File created successfully at: /data/home/dhyang/github/dx-all-suite-frontier-eval/dx-compiler/dx-agent-dev/20260618-123630_claude_opus48_yolo26n_ppe_retrain_eval/pipeline.py (file state is current in your context — no need to Read it back)</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-38"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Write</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>/data/home/dhyang/github/dx-all-suite-frontier-eval/dx-compiler/dx-agent-dev/20260618-123630_claude_opus48_yolo26n_ppe_retrain_eval/verify.py</code></div><div class="tool-result"><pre>File created successfully at: /data/home/dhyang/github/dx-all-suite-frontier-eval/dx-compiler/dx-agent-dev/20260618-123630_claude_opus48_yolo26n_ppe_retrain_eval/verify.py (file state is current in your context — no need to Read it back)</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-39"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Write</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>/data/home/dhyang/github/dx-all-suite-frontier-eval/dx-compiler/dx-agent-dev/20260618-123630_claude_opus48_yolo26n_ppe_retrain_eval/make_report.py</code></div><div class="tool-result"><pre>File created successfully at: /data/home/dhyang/github/dx-all-suite-frontier-eval/dx-compiler/dx-agent-dev/20260618-123630_claude_opus48_yolo26n_ppe_retrain_eval/make_report.py (file state is current in your context — no need to Read it back)</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-40"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Write</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>/data/home/dhyang/github/dx-all-suite-frontier-eval/dx-compiler/dx-agent-dev/20260618-123630_claude_opus48_yolo26n_ppe_retrain_eval/README.md</code></div><div class="tool-result"><pre>File created successfully at: /data/home/dhyang/github/dx-all-suite-frontier-eval/dx-compiler/dx-agent-dev/20260618-123630_claude_opus48_yolo26n_ppe_retrain_eval/README.md (file state is current in your context — no need to Read it back)</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-41"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>cd /data/home/dhyang/github/dx-all-suite-frontier-eval/dx-compiler/dx-agent-dev/20260618-123630_claude_opus48_yolo26n_ppe_retrain_eval
+chmod +x setup.sh run.sh
+echo &quot;=== bash -n ===&quot;; bash -n setup.sh &amp;&amp; echo &quot;setup.sh OK&quot;; bash -n run.sh &amp;&amp; echo &quot;run.sh OK&quot;
+echo &quot;=== py_compile ===&quot;
+PY=/data/home/…</code></div><div class="tool-result"><pre>=== bash -n ===
+setup.sh OK
+run.sh OK
+=== py_compile ===
+pipeline.py OK
+verify.py OK
+make_report.py OK
+=== run setup.sh ===
+==== Setup: YOLO26n construction-PPE retrain + DeepX 4-way benchmark ====
+SUITE_ROOT = /data/home/dhyang/github/dx-all-suite-frontier-eval
+---- dx_rt sanity check (judge by TEXT OUTPUT, not exit code) ----
+   Device Driver Version: v2.4.1
+   PCIe Driver Version: v2.2.0
+   Firmware Version: device-id=0 v2.5.6
+   Device Driver Version: v2.4.1
+   PCIe Driver Version: v2.2.0
+   Firmware Version: device-id=0 v2.5.6
+** Sanity check PASSED!
+[92m ✅ PASS: All sanity checks passed successfully. [0m
+Resolved full-stack interpreter: /data/home/dhyang/github/dx-all-suite-frontier-eval/.deepx/e2e/venv/bin/python
+---- Dependency import check (full stack) ----
+  ultralytics: OK 8.4.66
+  dx_com: OK 2.2.0-rc.2
+  dx_engine: OK 3.3.2
+  torch: 2.12.0+cu130 cuda=True NVIDIA GeForce RTX 5060 Ti
+==== Setup complete ====</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-42"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>cd /data/home/dhyang/github/dx-all-suite-frontier-eval/dx-compiler/dx-agent-dev/20260618-123630_claude_opus48_yolo26n_ppe_retrain_eval
+nohup bash run.sh &gt; run_launch.log 2&gt;&amp;1 &amp;
+echo $! &gt; run.pid
+sleep 3
+echo &quot;PID=$(cat run.pid)&quot;
+echo &quot;--- launch tail ---&quot;; tail -5 run_launch.log 2&gt;/dev/null
+ps -o p…</code></div><div class="tool-result"><pre>PID=3728084
+--- launch tail ---
+======================================================================
+STAGE 1 — Train yolo26n on construction-ppe (40 epochs, GPU)
+======================================================================
+
+[KDownloading https://github.com/ultralytics/assets/releases/download/v8.4.0/yolo26n.pt to 'yolo26n.pt': 2% ──────────── 160.0KB/5.3MB 1.5MB/s 0.1s&lt;3.5s
+[KDownloading https://github.com/ultralytics/assets/releases/download/v8.4.0/yolo26n.pt to 'yolo26n.pt': 17% ━━────────── 928.0KB/5.3MB 7.4MB/s 0.2s&lt;0.6s
+[KDownloading https://github.com/ultralytics/assets/releases/download/v8.4.0/yolo26n.pt to 'yolo26n.pt': 38% ━━━━╸─────── 2.0/5.3MB 10.9MB/s 0.3s&lt;0.3s
+[KDownloading https://github.com/ultralytics/assets/releases/download/v8.4.0/yolo26n.pt to 'yolo26n.pt': 51% ━━━━━━────── 2.7/5.3MB 7.2MB/s 0.4s&lt;0.4s
+[KDownloading https://github.com/ultralytics/assets/releases/download/v8.4.0/yolo26n.pt to 'yolo26n.pt': 65% ━━━━━━━╸──── 3.5/5.3MB 7.4MB/s 0.5s&lt;0.2s
+…</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-43"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>cd /data/home/dhyang/github/dx-all-suite-frontier-eval/dx-compiler/dx-agent-dev/20260618-123630_claude_opus48_yolo26n_ppe_retrain_eval
+PID=$(cat run.pid)
+for i in $(seq 1 48); do kill -0 &quot;$PID&quot; 2&gt;/dev/null || break; sleep 10; done
+if kill -0 &quot;$PID&quot; 2&gt;/dev/null; then echo &quot;STILL RUNNING (elapsed $(p…</code></div><div class="tool-result"><pre>Command running in background with ID: btuklaqhs. Output is being written to: /tmp/claude-1000/claude-1000/-data-home-dhyang-github-dx-all-suite-frontier-eval/1144a391-c1d2-4ef5-b0a4-d7712e368299/tasks/btuklaqhs.output. You will be notified when it completes. To check interim output, use Read on that file path.</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-44"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>cd /data/home/dhyang/github/dx-all-suite-frontier-eval/dx-compiler/dx-agent-dev/20260618-123630_claude_opus48_yolo26n_ppe_retrain_eval
+sleep 30
+echo &quot;--- session.log tail (training progress) ---&quot;
+tail -6 session.log 2&gt;/dev/null | tr '\r' '\n' | tail -8</code></div><div class="tool-result"><pre>--- session.log tail (training progress) ---
+[K      25/40      3.32G      1.577      1.477     0.0132        280        640: 9% ━─────────── 7/71 8.3it/s 0.7s&lt;7.7s
+[K      25/40      3.32G       1.59       1.49    0.01301        247        640: 12% ━╸────────── 9/71 9.1it/s 0.9s&lt;6.8s
+[K      25/40      3.32G      1.582       1.48    0.01304        236        640: 15% ━╸────────── 11/71 9.9it/s 1.0s&lt;6.0s
+[K      25/40      3.32G      1.583      1.489    0.01303        231        640: 18% ━━────────── 13/71 10.4it/s 1.2s&lt;5.6s
+[K      25/40      3.32G      1.573      1.468    0.01306        200        640: 21% ━━╸───────── 15/71 10.9it/s 1.4s&lt;5.1s
+[K      25/40      3.32G      1.578      1.482    0.01327        165        640: 23% ━━╸───────── 17/71 11.0it/s 1.6s&lt;4.9s
+[K      25/40      3.32G      1.572      1.483    0.01335        225        640: 26% ━━━───────── 19/71 11.5it/s 1.7s&lt;4.5s
+[K      25/40      3.32G      1.579      1.501     0.0135        308        640: 29% ━━━╸──…</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-45"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>cd /data/home/dhyang/github/dx-all-suite-frontier-eval/dx-compiler/dx-agent-dev/20260618-123630_claude_opus48_yolo26n_ppe_retrain_eval
+PID=$(cat run.pid)
+for i in $(seq 1 45); do kill -0 &quot;$PID&quot; 2&gt;/dev/null || break; sleep 10; done
+if kill -0 &quot;$PID&quot; 2&gt;/dev/null; then echo &quot;STILL RUNNING (elapsed $(p…</code></div><div class="tool-result"><pre>Command running in background with ID: bnogrtqn9. Output is being written to: /tmp/claude-1000/claude-1000/-data-home-dhyang-github-dx-all-suite-frontier-eval/1144a391-c1d2-4ef5-b0a4-d7712e368299/tasks/bnogrtqn9.output. You will be notified when it completes. To check interim output, use Read on that file path.</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-46"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Read</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>/tmp/claude-1000/claude-1000/-data-home-dhyang-github-dx-all-suite-frontier-eval/1144a391-c1d2-4ef5-b0a4-d7712e368299/tasks/bnogrtqn9.output</code></div><div class="tool-result"><pre>&lt;system-reminder&gt;Warning: the file exists but is shorter than the provided offset (1). The file has 1 lines.&lt;/system-reminder&gt;</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-47"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>cd /data/home/dhyang/github/dx-all-suite-frontier-eval/dx-compiler/dx-agent-dev/20260618-123630_claude_opus48_yolo26n_ppe_retrain_eval
+PID=$(cat run.pid)
+kill -0 &quot;$PID&quot; 2&gt;/dev/null &amp;&amp; echo &quot;RUNNING (elapsed $(ps -o etime= -p $PID|tr -d ' '))&quot; || echo &quot;EXITED&quot;
+echo &quot;--- last meaningful lines ---&quot;
+ta…</code></div><div class="tool-result"><pre>Exit code 2
+RUNNING (elapsed 05:25)
+--- last meaningful lines ---
+Processing datablocks:  99%|█████████▊| 439/445 [00:19&lt;00:00, 114.61schedule/s][A
+                                                 [A[A
+                                                 [A[A
+                                                 [A[A
+                                                 [A[A
+                                                 [A[A
+                                                 [A[A
+                                                                               [A
+                                                 [A
+Compiling Model :  84%|████████▎ | 0.8/1.0 [00:43&lt;00:20, 127.08s/model ]
+Setting DMA Registers:   0%|          | 0/445 [00:00&lt;?, ?schedule/s][A
+Setting DMA Registers:   2%|▏         | 7/445 [00:04&lt;04:18,  1.69schedule/s][A
+--- eval keys ---
+none
+--- dxnn dirs ---
+yolo26n_deepx_model</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-48"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>cd /data/home/dhyang/github/dx-all-suite-frontier-eval/dx-compiler/dx-agent-dev/20260618-123630_claude_opus48_yolo26n_ppe_retrain_eval
+sleep 100
+PID=$(cat run.pid)
+kill -0 &quot;$PID&quot; 2&gt;/dev/null &amp;&amp; echo &quot;RUNNING (elapsed $(ps -o etime= -p $PID|tr -d ' '))&quot; || echo &quot;EXITED&quot;
+echo &quot;--- stage markers / eva…</code></div><div class="tool-result"><pre>RUNNING (elapsed 07:17)
+--- stage markers / eval lines ---
+STAGE 1 — Train yolo26n on construction-ppe (40 epochs, GPU)
+STAGE 2 — Export base + retrained to DeepX (format=deepx, INT8)
+[export] base yolo26n.pt -&gt; DeepX
+[export] retrained ppe_yolo26n.pt -&gt; DeepX
+--- dxnn dirs ---
+ppe_yolo26n_deepx_model
+yolo26n_deepx_model
+yolo26n_deepx_model/yolo26n.dxnn</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-49"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>cd /data/home/dhyang/github/dx-all-suite-frontier-eval/dx-compiler/dx-agent-dev/20260618-123630_claude_opus48_yolo26n_ppe_retrain_eval
+sleep 110
+PID=$(cat run.pid)
+kill -0 &quot;$PID&quot; 2&gt;/dev/null &amp;&amp; echo &quot;RUNNING (elapsed $(ps -o etime= -p $PID|tr -d ' '))&quot; || echo &quot;EXITED&quot;
+grep -aE &quot;STAGE|\[export\] (b…</code></div><div class="tool-result"><pre>EXITED
+[export] retrained dir: /data/home/dhyang/github/dx-all-suite-frontier-eval/dx-compiler/dx-agent-dev/20260618-123630_claude_opus48_yolo26n_ppe_retrain_eval/ppe_yolo26n_deepx_model exists=True
+STAGE 3 — Evaluate 4 points (mAP50-95 + FPS)
+[eval] base .pt fp32 GPU ...
+[eval] base_pt_fp32_gpu: mAP50-95=0.0001 mAP50=0.0008 FPS=219.4 (4.559 ms/img)
+[eval] base .dxnn INT8 DX-M1 NPU ...
+[eval] base_dxnn_int8_npu: mAP50-95=0.0001 mAP50=0.0005 FPS=46.5 (21.495 ms/img)
+[eval] retrained .pt fp32 GPU ...
+[eval] retrained_pt_fp32_gpu: mAP50-95=0.2519 mAP50=0.4892 FPS=336.3 (2.973 ms/img)
+[eval] retrained .dxnn INT8 DX-M1 NPU ...
+[eval] retrained_dxnn_int8_npu: mAP50-95=0.2533 mAP50=0.5058 FPS=62.3 (16.05 ms/img)
+STAGE 4 — Annotated detection sample (retrained model)
+PIPELINE COMPLETE
+--- dxnn ---
+ppe_yolo26n_deepx_model/ppe_yolo26n.dxnn
+yolo26n_deepx_model/yolo26n.dxnn
+--- eval keys ---
+['base_pt_fp32_gpu', 'base_dxnn_int8_npu', 'retrained_pt_fp32_gpu', 'retrained_dxnn_int8_npu']</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-50"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>cd /data/home/dhyang/github/dx-all-suite-frontier-eval/dx-compiler/dx-agent-dev/20260618-123630_claude_opus48_yolo26n_ppe_retrain_eval
+PY=$(cat .venv_path)
+echo &quot;=== make_report.py ===&quot;
+&quot;$PY&quot; make_report.py
+echo &quot;=== artifacts ===&quot;
+ls -la sample_detect.jpg report.md 2&gt;/dev/null
+ls *_deepx_model/*.d…</code></div><div class="tool-result"><pre>=== make_report.py ===
+[report] wrote /data/home/dhyang/github/dx-all-suite-frontier-eval/dx-compiler/dx-agent-dev/20260618-123630_claude_opus48_yolo26n_ppe_retrain_eval/report.md
+=== artifacts ===
+-rw-rw-r-- 1 dhyang dhyang   3097 Jun 18 12:49 report.md
+-rw-rw-r-- 1 dhyang dhyang 187966 Jun 18 12:47 sample_detect.jpg
+ppe_yolo26n_deepx_model/ppe_yolo26n.dxnn
+yolo26n_deepx_model/yolo26n.dxnn
+=== verify.py (with live NPU re-eval) ===
+[verify] OK: both DeepX dirs present with .dxnn
+[verify] OK: all four measurement points recorded
+[verify] OK: domain gain fp32 mAP50-95 0.0001 -&gt; 0.2519 (+0.2518)
+[verify] re-evaluating retrained .dxnn on DX-M1 NPU ...
+[verify] live NPU mAP50-95=0.2533 (recorded 0.2533)
+[verify] OK: retrained .dxnn runs on DX-M1 NPU, mAP consistent
+RESULT: PASS
+verify exit: 0</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-51"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Skill</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>dx-agent-verify</code></div><div class="tool-result"><pre>Launching skill: dx-agent-verify</pre></div></div></div>
+<div class="entry assistant" id="entry-52"><div class="entry-hdr"><span class="icon">&#x1F4AC;</span><span class="label">Claude</span><span class="time">2026-06-18 03:37:14 UTC</span></div><div class="entry-body"><p>Applying RED→GREEN→VERIFY per artifact. Autopilot: infrastructure first. Writing <code>setup.sh</code> (resolves a validated full-stack venv and persists the choice for run.sh/verify.py):
+Now <code>run.sh</code>, <code>pipeline.py</code>, <code>verify.py</code>, <code>make_report.py</code>, <code>README.md</code>:
+All artifacts generated. Now the immediate per-artifact VERIFY (TDD): syntax-check scripts and run <code>setup.sh</code>.
+<code>setup.sh</code> PASS — full stack resolved (ultralytics 8.4.66, dx_com 2.2.0-rc.2, dx_engine 3.3.2, torch+cu130, RTX 5060 Ti), <code>.venv_path</code> persisted, all syntax checks clean.</p>
+<p>Now launch the pipeline (train 40 epochs → export both <code>.dxnn</code> → 4-way eval) in the background and block <strong>in-turn</strong> (no turn-yield, no ScheduleWakeup):
+Pipeline launched (PID 3728084) — downloading base weights + dataset, then training. Blocking in-turn with a bounded poll loop (≤8 min/call, under the 10-min cap), re-issued until the process exits:
+The harness auto-backgrounded my poll loop (task <code>btuklaqhs</code>). Let me check interim progress on the training, then await completion.
+Training is already at <strong>epoch 25/40</strong> (~10 it/s, ~7s/epoch) — much faster than feared; ~5-6 min total for training, then exports + 4 evals. Let me wait for the pipeline to finish exporting and evaluating:
+Two bounded poll loops are tracking the pipeline (PID 3728084). Training was at epoch 25/40 and progressing fast. I'll await the completion notification, then collect results, generate the report, and run verification.
+Training finished (5:25), now in STAGE 2 — base model DeepX compilation at 84%. Remaining: finish base export, retrained export, 4 evals (~8-10 min). Polling in short foreground increments to stay in control:
+Base <code>.dxnn</code> produced; retrained export in progress. Continuing to poll:
+<strong>PIPELINE COMPLETE.</strong> All four measurement points captured, both <code>.dxnn</code> produced:</p>
+<p>| Point | mAP50-95 | mAP50 | FPS |
+|---|---|---|---|
+| base .pt fp32 GPU | 0.0001 | 0.0008 | 219.4 |
+| base .dxnn INT8 NPU | 0.0001 | 0.0005 | 46.5 |
+| retrained .pt fp32 GPU | 0.2519 | 0.4892 | 336.3 |
+| retrained .dxnn INT8 NPU | 0.2533 | 0.5058 | 62.3 |</p>
+<p>Now generate <code>report.md</code> and run the verification gate (live DX-M1 NPU re-eval):
+<code>verify.py</code> <strong>RESULT: PASS</strong> (exit 0) — live DX-M1 NPU re-eval consistent (0.2533). Now the final verification gate:</p></div></div>
+<div class="entry user" id="entry-53"><div class="entry-hdr"><span class="icon">&#x1F464;</span><span class="label">User</span><span class="time">2026-06-18 03:49:14 UTC</span></div><div class="entry-body">Base directory for this skill: /data/home/dhyang/github/dx-all-suite-frontier-eval/.claude/skills/dx-agent-verify
+
+&lt;!-- Thin Claude Code wrapper — canonical skill doc lives in .deepx/ --&gt;
+
+Read and follow the complete skill documentation at `.deepx/skills/dx-agent-verify/SKILL.md`.
+</div></div>
+<div class="entry tool-ok collapsed" id="entry-54"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>cd /data/home/dhyang/github/dx-all-suite-frontier-eval/dx-compiler/dx-agent-dev/20260618-123630_claude_opus48_yolo26n_ppe_retrain_eval
+echo &quot;=== mandatory deliverables ===&quot;
+for f in setup.sh run.sh README.md verify.py session.log results.json report.md pipeline.py make_report.py sample_detect.jpg; …</code></div><div class="tool-result"><pre>=== mandatory deliverables ===
+  OK  setup.sh           2647 bytes
+  OK  run.sh             793 bytes
+  OK  README.md          2658 bytes
+  OK  verify.py          2827 bytes
+  OK  session.log        440376 bytes
+  OK  results.json       5403 bytes
+  OK  report.md          3097 bytes
+  OK  pipeline.py        7030 bytes
+  OK  make_report.py     5624 bytes
+  OK  sample_detect.jpg  187966 bytes
+=== DeepX export dir contents ===
+[yolo26n_deepx_model]
+config.json
+metadata.yaml
+yolo26n.dxnn
+[ppe_yolo26n_deepx_model]
+config.json
+metadata.yaml
+ppe_yolo26n.dxnn
+=== session.log is REAL captured output (not heredoc) ===
+lines: 3805 | has training table: 40 | has eval lines: 8
+=== report.md ===
+# Report — yolo26n Construction-PPE: Base vs Retrained, fp32 vs INT8
+
+**Task:** Adapt the COCO-pretrained `yolo26n` general detector into a construction/factory site-safety PPE-compliance detector by fine-tuning on the Ultralytics `construction-ppe` dataset, then compare accuracy (mAP50-95) and speed (FPS) …</pre></div></div></div>
+<div class="entry tool-ok collapsed" id="entry-55"><div class="entry-hdr"><span class="icon">&#x2705;</span><span class="label">Bash</span><span class="time">click to expand</span></div><div class="entry-body"><div class="tool-args"><code>cd /data/home/dhyang/github/dx-all-suite-frontier-eval/dx-compiler/dx-agent-dev/20260618-123630_claude_opus48_yolo26n_ppe_retrain_eval
+GENROOT=&quot;$(d=&quot;$PWD&quot;; while [ &quot;$d&quot; != / ]; do [ -f &quot;$d/.deepx/tools/src/dx_transcripts/generate_transcripts.py&quot; ] &amp;&amp; { echo &quot;$d&quot;; break; }; d=&quot;$(dirname &quot;$d&quot;)&quot;; done…</code></div><div class="tool-result"><pre>jsonl: /data/home/dhyang/github/dx-all-suite-frontier-eval/dx-compiler/dx-agent-dev/20260618-123630_claude_opus48_yolo26n_ppe_retrain_eval/claude-stream.jsonl
+md: /data/home/dhyang/github/dx-all-suite-frontier-eval/dx-compiler/dx-agent-dev/20260618-123630_claude_opus48_yolo26n_ppe_retrain_eval/claude-session.md
+html: /data/home/dhyang/github/dx-all-suite-frontier-eval/dx-compiler/dx-agent-dev/20260618-123630_claude_opus48_yolo26n_ppe_retrain_eval/claude-session.html
+/data/home/dhyang/github/dx-all-suite-frontier-eval/dx-compiler/dx-agent-dev/20260618-123630_claude_opus48_yolo26n_ppe_retrain_eval/claude-session.html
+/data/home/dhyang/github/dx-all-suite-frontier-eval/dx-compiler/dx-agent-dev/20260618-123630_claude_opus48_yolo26n_ppe_retrain_eval/claude-session.jsonl
+/data/home/dhyang/github/dx-all-suite-frontier-eval/dx-compiler/dx-agent-dev/20260618-123630_claude_opus48_yolo26n_ppe_retrain_eval/claude-session.md</pre></div></div></div>
+<div class="entry assistant" id="entry-56"><div class="entry-hdr"><span class="icon">&#x1F4AC;</span><span class="label">Claude</span><span class="time">2026-06-18 03:49:14 UTC</span></div><div class="entry-body"><p>Holistic deliverable check — confirm all mandatory artifacts exist, <code>session.log</code> is real captured output, and <code>report.md</code> is complete:
+All gates satisfied and all deliverables verified:</p>
+<p>- <strong>Process gates</strong>: skill-router → brainstorm (spec self-reviewed) → writing-plans → tdd (RED-GREEN-VERIFY per artifact) → verify ✓
+- <strong>Prerequisites HARD GATE</strong>: sanity PASS (NPU device-id=0), full stack (ultralytics/dx_com/dx_engine/torch+cuda) ✓
+- <strong>Mandatory deliverables</strong>: all 10 present; both DeepX dirs have <code>.dxnn</code>+<code>config.json</code>+<code>metadata.yaml</code> ✓
+- <strong>session.log</strong>: real captured output (3805 lines, 40 training epochs, 8 eval lines — not fabricated) ✓
+- <strong>verify.py</strong>: <code>RESULT: PASS</code> (exit 0), live DX-M1 NPU re-eval consistent ✓
+- <strong>Output isolation</strong>: <code>dx-compiler/dx-agent-dev/&lt;sid&gt;/</code> ✓</p>
+<p><strong>Results summary (all four points measured):</strong></p>
+<p>| Model | Form | Device | mAP50-95 | FPS |
+|---|---|---|---|---|
+| base yolo26n | .pt fp32 | RTX 5060 Ti | 0.0001 | 219.4 |
+| base yolo26n | .dxnn INT8 | DX-M1 NPU | 0.0001 | 46.5 |
+| retrained | .pt fp32 | RTX 5060 Ti | 0.2519 | 336.3 |
+| retrained | .dxnn INT8 | DX-M1 NPU | 0.2533 | 62.3 |</p>
+<p><strong>Accuracy gain</strong> = +0.2518 mAP50-95 (stock COCO model is useless on PPE classes → fine-tuned detector). <strong>INT8 quantization</strong> essentially lossless: fp32 0.2519 → INT8 0.2533 (Δ +0.0014). Domain <code>.dxnn</code> is <strong>1.34× faster</strong> on the NPU than the stock 80-class model (fewer head classes).</p>
+<pre><code> ███████████   █████████ ████████ ████████  ████      ████
+ ███     █████ ███░░░░░░░███░░░░░░███   ███  ░████   ████░░
+ ███        ██░███░      ██░░     ███   ███░   █████████░░
+ ███        ████████████ ████████ ████████░░    ░█████░░░
+ ███        ██░███░░░░░░░██░░░░░░░███░░░░░░  ██████████
+ ███     █████░███░      ██░      ███░   ████████░░░░████
+ ███████████░░░█████████ ████████ ██████████░░░░░░    ████
+  ░░░░░░░░░░░   ░░░░░░░░░ ░░░░░░░░ ░░░░░░░░░░          ░░░░
+        DX-AGENT-DEV · on-device NPU
+</code></pre>
+<p>[DX-AGENT-DEV: DONE (output-dir: dx-compiler/dx-agent-dev/20260618-123630_claude_opus48_yolo26n_ppe_retrain_eval/)]
+Session transcript (md/html/jsonl) saved to: <code>dx-compiler/dx-agent-dev/20260618-123630_claude_opus48_yolo26n_ppe_retrain_eval/claude-session.*</code></p>
+<p><strong>Task complete.</strong> A COCO-pretrained <code>yolo26n</code> was fine-tuned on the Ultralytics <code>construction-ppe</code> dataset (40 epochs, RTX 5060 Ti), exported to DeepX <code>.dxnn</code> (INT8, DX-M1 NPU) for both the base and retrained models, and all four configurations were measured on the real hardware. The actual artifacts — both <code>*_deepx_model/*.dxnn</code>, <code>results.json</code>, and <code>report.md</code> — are in the session directory, with <code>verify.py</code> passing a live NPU re-evaluation. Domain fine-tuning lifts mAP50-95 from ~0.000 to 0.252, and the INT8 NPU export deploys that gain with negligible accuracy loss (0.2519 → 0.2533) at 62.3 FPS.</p></div></div>
+<hr />
+<div class="summary-section"><h2>Session Summary</h2><table class="summary-table"><tr><td>Turns</td><td>6</td></tr>
+<tr><td>Tool calls</td><td>44</td></tr>
+<tr><td>Messages (raw)</td><td>203</td></tr>
+<tr><td>Skills invoked</td><td>dx-agent-brainstorm, dx-agent-tdd, dx-agent-verify, dx-skill-router, dx-swe-writing-plans</td></tr>
+<tr><td>Tool breakdown</td><td>Bash: 18, Read: 13, Write: 8, Skill: 5</td></tr></table></div>
+<div class="footer">
+Generated by parse_claude_session.py &middot; 2026-06-18 13:04:57
+</div>
+</div>
+<script>document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('.entry-hdr').forEach(function(hdr) {
+    hdr.addEventListener('click', function() {
+      hdr.parentElement.classList.toggle('collapsed');
+    });
+  });
+});
+</script>
+</body>
+</html>

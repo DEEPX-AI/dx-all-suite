@@ -17,6 +17,32 @@ echo -e "============================"
 
 pushd ${SCRIPT_DIR}
 
+# ------------------------------------------------------------
+# Help and option parsing
+# ------------------------------------------------------------
+show_help() {
+    cat <<EOF
+Usage: $(basename "$0") [OPTIONS]
+
+Options:
+  --no-display   Run examples without GUI display (forces --no-display to dxrt)
+  --help         Show this help message and exit
+EOF
+    exit 0
+}
+
+# Parse options before the main logic runs
+NO_DISPLAY=0
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --no-display)   NO_DISPLAY=1 ;;
+        --help)         show_help ;;
+        *)              break ;;
+    esac
+    shift
+done
+# ------------------------------------------------------------
+
 FORK_PATH="./forked_dx_app_example"
 
 # fork dx_app example application binary executable files and input images
@@ -80,7 +106,7 @@ run_example() {
     local image_path=$3
     local save_log=$4
     local loop=${5:-300}
-    local additional_args=""
+    local additional_args=${6:-""}
 
     echo -e "=== run_example ${TAG_START} ==="
     pushd ${FORK_PATH}
@@ -95,6 +121,10 @@ run_example() {
         if [ "${exe_file_path}" != "./bin/mobilenetv2_async" ]; then
             additional_args+=" --no-display"
         fi
+    fi
+    # CLI 옵션에서 --no-display 가 지정된 경우에도 강제 적용
+    if [ "$NO_DISPLAY" -eq 1 ]; then
+        additional_args+=" --no-display"
     fi
 
     RUN_CMD="${exe_file_path} -m ${dxnn_file_path} -i ${image_path} ${SAVE_LOG_ARG} -l ${loop} ${additional_args}"

@@ -11,6 +11,9 @@ pushd "$DX_AS_PATH" >&2
 OUTPUT_DIR="$DX_AS_PATH/archives"
 UBUNTU_VERSION=""
 DEBIAN_VERSION=""
+FEDORA_VERSION=""
+RHEL_VERSION=""
+CENTOS_VERSION=""
 BASE_IMAGE_NAME=""
 OS_VERSION=""
 
@@ -21,7 +24,7 @@ INTEL_GPU_HW_ACC=0
 # Function to display help message
 show_help() {
     echo -e "Usage: ${COLOR_CYAN}$(basename "$0") ${COLOR_GREEN}--all${COLOR_RESET} ${COLOR_YELLOW}--ubuntu_version=<version>${COLOR_RESET}"
-    echo -e "   or: ${COLOR_CYAN}$(basename "$0") ${COLOR_GREEN}--target=<dx-compiler>${COLOR_RESET} ${COLOR_YELLOW}--ubuntu_version=<version>${COLOR_RESET}"
+    echo -e "   or: ${COLOR_CYAN}$(basename "$0") ${COLOR_GREEN}--target=<dx-compiler>${COLOR_RESET} ${COLOR_YELLOW}(--ubuntu_version=<version> | --fedora_version=<version> | --rhel_version=<version> | --centos_version=<version>)${COLOR_RESET}"
     echo -e "   or: ${COLOR_CYAN}$(basename "$0") ${COLOR_GREEN}--target=<dx-runtime | dx-modelzoo>${COLOR_RESET} ${COLOR_YELLOW}(--ubuntu_version=<version> | --debian_version=<version>)${COLOR_RESET}"
     echo -e ""
     echo -e "${COLOR_BOLD}Required (choose one target option):${COLOR_RESET}"
@@ -32,7 +35,10 @@ show_help() {
     echo -e "${COLOR_BOLD}Required (choose one OS option):${COLOR_RESET}"
     echo -e "  ${COLOR_YELLOW}--ubuntu_version=<version>${COLOR_RESET}     Specify Ubuntu version (ex: 24.04, 22.04, 20.04)"
     echo -e "  ${COLOR_YELLOW}--debian_version=<version>${COLOR_RESET}     Specify Debian version (ex: 12)"
-    echo -e "                                   Note: ${COLOR_CYAN}dx-compiler${COLOR_RESET} only supports Ubuntu ${COLOR_RED}(Debian is not supported)${COLOR_RESET}"
+    echo -e "  ${COLOR_YELLOW}--fedora_version=<version>${COLOR_RESET}     Specify Fedora version (ex: 42, 43, 44, 45) ${COLOR_RED}(dx-compiler only)${COLOR_RESET}"
+    echo -e "  ${COLOR_YELLOW}--rhel_version=<version>${COLOR_RESET}       Specify RHEL/UBI version (ex: 9, 10) ${COLOR_RED}(dx-compiler only)${COLOR_RESET}"
+    echo -e "  ${COLOR_YELLOW}--centos_version=<version>${COLOR_RESET}     Specify CentOS Stream version (ex: stream9, stream10) ${COLOR_RED}(dx-compiler only)${COLOR_RESET}"
+    echo -e "                                   Note: ${COLOR_CYAN}dx-runtime${COLOR_RESET} and ${COLOR_CYAN}dx-modelzoo${COLOR_RESET} support Ubuntu and Debian only"
     echo -e ""
     echo -e "${COLOR_BOLD}Optional:${COLOR_RESET}"
     # echo -e "  ${COLOR_GREEN}[--nvidia_gpu]${COLOR_RESET}                 Enable NVIDIA GPU support"
@@ -43,6 +49,9 @@ show_help() {
     echo -e "${COLOR_BOLD}Examples:${COLOR_RESET}"
     echo -e "  ${COLOR_YELLOW}$0 --all --ubuntu_version=24.04${COLOR_RESET}"
     echo -e "  ${COLOR_YELLOW}$0 --target=dx-compiler --ubuntu_version=24.04${COLOR_RESET}"
+    echo -e "  ${COLOR_YELLOW}$0 --target=dx-compiler --fedora_version=42${COLOR_RESET}"
+    echo -e "  ${COLOR_YELLOW}$0 --target=dx-compiler --rhel_version=9${COLOR_RESET}"
+    echo -e "  ${COLOR_YELLOW}$0 --target=dx-compiler --centos_version=stream9${COLOR_RESET}"
     echo -e "  ${COLOR_YELLOW}$0 --target=dx-runtime --ubuntu_version=24.04${COLOR_RESET}"
     echo -e "  ${COLOR_YELLOW}$0 --target=dx-runtime --debian_version=12${COLOR_RESET}"
     echo -e "  ${COLOR_YELLOW}$0 --target=dx-modelzoo --ubuntu_version=24.04${COLOR_RESET}"
@@ -72,7 +81,7 @@ check_xdg_sesstion_type()
 
     elif [ "$XDG_SESSION_TYPE" != "x11" ]; then
         print_colored_v2 "WARNING" "it is recommended to use an **X11 session (with .Xauthority support)** when working with the 'dx-all-suite' container."
-        print_colored_v2 "WARNING" "For more details, please refer to the [FAQ section of the dx-all-suite documentation](https://github.com/DEEPX-AI/dx-all-suite/blob/main/docs/source/faq.md)."
+        print_colored_v2 "WARNING" "For more details, please refer to the [FAQ section of the dx-all-suite documentation](https://github.com/DEEPX-AI/dx-all-suite/blob/main/docs/source/05_FAQ_Troubleshooting_Guide.md)."
 
         echo -e "${COLOR_BRIGHT_GREEN_ON_BLACK}if the user's host environment is not based on **X11 (with .Xauthority)** but instead uses **Xwayland** or similar, the 'xauth' data may be lost after a system reboot or session logout. As a result, the authentication file mount between the host and the container may fail, making it impossible to restart or reuse the container.${COLOR_RESET}"
         echo -e -n "${COLOR_RED_ON_BLACK}This may cause issues. Do you still want to continue? (y/n): ${COLOR_RESET}"
@@ -92,12 +101,12 @@ docker_run_impl()
     local config_file_args=${2:--f docker/docker-compose.yml}
 
     # Check if Docker image exists before running
-    local image_name="dx-${target}:${BASE_IMAGE_NAME}-${OS_VERSION}"
+    local image_tag="${IMAGE_TAG_SUFFIX:-${BASE_IMAGE_NAME}-${OS_VERSION}}"
+    local image_name="dx-${target}:${image_tag}"
     if ! docker images --format "{{.Repository}}:{{.Tag}}" | grep -q "^${image_name}$"; then
         print_colored_v2 "WARNING" "Docker image '${image_name}' not found."
         print_colored_v2 "HINT" "Please build the image first using:"
-        echo -e "${COLOR_BOLD}${COLOR_CYAN}[HINT]   ** './docker_build.sh --target=${target} --ubuntu_version=${OS_VERSION}'${COLOR_RESET} **"
-        echo -e "${COLOR_BOLD}${COLOR_CYAN}[HINT]   or './docker_build.sh --all --ubuntu_version=${OS_VERSION}'${COLOR_RESET} **"
+        echo -e "${COLOR_BOLD}${COLOR_CYAN}[HINT]   ** './docker_build.sh --target=${target} --<os>_version=<version>'${COLOR_RESET} **"
         return 1
     fi
 
@@ -113,6 +122,16 @@ docker_run_impl()
     export COMPOSE_BAKE=true
     export BASE_IMAGE_NAME=${BASE_IMAGE_NAME}
     export OS_VERSION=${OS_VERSION}
+    export IMAGE_TAG_SUFFIX=${IMAGE_TAG_SUFFIX:-${BASE_IMAGE_NAME}-${OS_VERSION}}
+
+    # Timezone mount: only mount /etc/timezone if it exists on the host
+    if [ -f /etc/timezone ]; then
+        export TIMEZONE_MOUNT="/etc/timezone"
+        export TIMEZONE_MOUNT_TARGET="/etc/timezone"
+    else
+        export TIMEZONE_MOUNT="/dev/null"
+        export TIMEZONE_MOUNT_TARGET="/dev/null"
+    fi
     DUMMY_XAUTHORITY=""
     if [ ! -n "${XAUTHORITY}" ]; then
         print_colored_v2 "INFO" "XAUTHORITY env is not set. so, try to set automatically."
@@ -126,15 +145,15 @@ docker_run_impl()
         export XAUTHORITY_TARGET="/tmp/.docker.xauth"
     fi
 
-    # Dynamically set the project name based on the Ubuntu
-    export COMPOSE_PROJECT_NAME="dx-all-suite-$(echo "${BASE_IMAGE_NAME}-${OS_VERSION}" | sed 's/\./-/g')"
+    # Dynamically set the project name based on the OS
+    export COMPOSE_PROJECT_NAME="dx-all-suite-$(echo "${IMAGE_TAG_SUFFIX:-${BASE_IMAGE_NAME}-${OS_VERSION}}" | sed 's/[\.\/]/-/g')"
     CMD="docker compose ${config_file_args} -p ${COMPOSE_PROJECT_NAME} up -d --remove-orphans dx-${target}"
     echo "${CMD}"
 
     ${CMD} || { print_colored_v2 "ERROR" "docker run 'dx-${target}' failed. "; exit 1; }
 
     if [ "$XDG_SESSION_TYPE" == "tty" ]; then
-        local DOCKER_EXEC_CMD="docker exec -it dx-${target}-${BASE_IMAGE_NAME}-${OS_VERSION} touch /deepx/tty_flag"
+        local DOCKER_EXEC_CMD="docker exec -it dx-${target}-${IMAGE_TAG_SUFFIX:-${BASE_IMAGE_NAME}-${OS_VERSION}} touch /deepx/tty_flag"
 
         echo -e "${DOCKER_EXEC_CMD}"
         ${DOCKER_EXEC_CMD}
@@ -153,8 +172,8 @@ docker_run_impl()
         XAUTH=$(xauth list "$DISPLAY")
         XAUTH_ADD_CMD="xauth add $XAUTH"
         
-        local DOCKER_EXEC_CMD1="docker exec -it dx-${target}-${BASE_IMAGE_NAME}-${OS_VERSION} touch /tmp/.docker.xauth"
-        local DOCKER_EXEC_CMD2="docker exec -it dx-${target}-${BASE_IMAGE_NAME}-${OS_VERSION} ${XAUTH_ADD_CMD}"
+        local DOCKER_EXEC_CMD1="docker exec -it dx-${target}-${IMAGE_TAG_SUFFIX:-${BASE_IMAGE_NAME}-${OS_VERSION}} touch /tmp/.docker.xauth"
+        local DOCKER_EXEC_CMD2="docker exec -it dx-${target}-${IMAGE_TAG_SUFFIX:-${BASE_IMAGE_NAME}-${OS_VERSION}} ${XAUTH_ADD_CMD}"
 
         echo -e "${DOCKER_EXEC_CMD1}"
         echo -e "${DOCKER_EXEC_CMD2}"
@@ -243,21 +262,15 @@ docker_run_all()
 
 docker_run_dx-compiler() 
 {
-    # dx-compiler only supports ubuntu
-    if [ "${BASE_IMAGE_NAME}" != "ubuntu" ]; then
-        print_colored_v2 "SKIP" "dx-compiler only supports Ubuntu. Skipping run for ${BASE_IMAGE_NAME}."
+    # dx-compiler supports ubuntu, fedora, rhel, centos
+    if [ "${BASE_IMAGE_NAME}" != "ubuntu" ] && [ "${BASE_IMAGE_NAME}" != "fedora" ] && \
+       [ "${BASE_IMAGE_NAME}" != "redhat/ubi9" ] && [ "${BASE_IMAGE_NAME}" != "redhat/ubi10" ] && \
+       [ "${BASE_IMAGE_NAME}" != "quay.io/centos/centos" ]; then
+        print_colored_v2 "SKIP" "dx-compiler does not support ${BASE_IMAGE_NAME}. Skipping run."
         return 5
     fi
 
-    # this function is defined in scripts/common_util.sh
-    # Usage: os_check "supported_os_names" "ubuntu_versions" "debian_versions"
-    os_check "ubuntu" "20.04 22.04 24.04" "" || {
-        print_colored_v2 "SKIP" "Current OS is not supported. Skip and continue to next target."
-        return 5
-    }
-
-    # this function is defined in scripts/common_util.sh
-    # Usage: arch_check "supported_arch_names"
+    # Architecture check (x86_64 only)
     arch_check "amd64 x86_64" || {
         print_colored_v2 "SKIP" "Current architecture is not supported. Skip and continue to next target."
         return 5
@@ -384,7 +397,7 @@ docker_run_dx-runtime()
                 print_colored_v2 "HINT" "1) If you want to run the dxrtd service in a different container or host"
                 
                 echo -e "${COLOR_BOLD}${COLOR_CYAN}[HINT]   ** please uncomment the 'entrypoint' and 'command' lines in the docker-compose.yml file."
-                echo -e "${COLOR_BOLD}${COLOR_CYAN}[HINT]   ** For more details, please refer to the (https://github.com/DEEPX-AI/dx-all-suite/blob/main/docs/source/faq.md) **"
+                echo -e "${COLOR_BOLD}${COLOR_CYAN}[HINT]   ** For more details, please refer to the (https://github.com/DEEPX-AI/dx-all-suite/blob/main/docs/source/05_FAQ_Troubleshooting_Guide.md) **"
                 
                 print_colored_v2 "HINT" "2) or stop the dxrtd service on the ${which_dxrtd} before running the dx-runtime container."
                 print_colored_v2 "HINT" "   You can stop the dxrtd service on the ${which_dxrtd} by running the following command:"
@@ -403,7 +416,7 @@ docker_run_dx-runtime()
                 print_colored_v2 "HINT" "1) If you want to run the dxrtd service in a different container or host"
                 
                 echo -e "${COLOR_BOLD}${COLOR_CYAN}[HINT]   ** please uncomment the 'entrypoint' and 'command' lines in the docker-compose.yml file."
-                echo -e "${COLOR_BOLD}${COLOR_CYAN}[HINT]   ** For more details, please refer to the (https://github.com/DEEPX-AI/dx-all-suite/blob/main/docs/source/faq.md) **"
+                echo -e "${COLOR_BOLD}${COLOR_CYAN}[HINT]   ** For more details, please refer to the (https://github.com/DEEPX-AI/dx-all-suite/blob/main/docs/source/05_FAQ_Troubleshooting_Guide.md) **"
                 
                 print_colored_v2 "HINT" "2) or stop the dxrtd service on the container '${which_dxrtd}' before running the dx-runtime container."
                 print_colored_v2 "HINT" "   You can stop the dxrtd service on the container '${which_dxrtd}' by running the following command:"
@@ -448,13 +461,20 @@ main() {
     # check docker compose command
     check_docker_compose_command
 
-    # Validate OS version options
-    if [ -n "$UBUNTU_VERSION" ] && [ -n "$DEBIAN_VERSION" ]; then
-        show_help "error" "Cannot specify both --ubuntu_version and --debian_version. Please choose one."
+    # Validate OS version options - only one can be specified
+    local OS_OPTIONS_COUNT=0
+    [ -n "$UBUNTU_VERSION" ] && OS_OPTIONS_COUNT=$((OS_OPTIONS_COUNT + 1))
+    [ -n "$DEBIAN_VERSION" ] && OS_OPTIONS_COUNT=$((OS_OPTIONS_COUNT + 1))
+    [ -n "$FEDORA_VERSION" ] && OS_OPTIONS_COUNT=$((OS_OPTIONS_COUNT + 1))
+    [ -n "$RHEL_VERSION" ] && OS_OPTIONS_COUNT=$((OS_OPTIONS_COUNT + 1))
+    [ -n "$CENTOS_VERSION" ] && OS_OPTIONS_COUNT=$((OS_OPTIONS_COUNT + 1))
+
+    if [ "$OS_OPTIONS_COUNT" -gt 1 ]; then
+        show_help "error" "Cannot specify multiple OS version options. Please choose one."
     fi
 
-    if [ -z "$UBUNTU_VERSION" ] && [ -z "$DEBIAN_VERSION" ]; then
-        show_help "error" "Either --ubuntu_version or --debian_version option must be specified."
+    if [ "$OS_OPTIONS_COUNT" -eq 0 ]; then
+        show_help "error" "An OS version option must be specified (--ubuntu_version, --debian_version, --fedora_version, --rhel_version, or --centos_version)."
     fi
 
     # Set BASE_IMAGE_NAME and OS_VERSION based on input
@@ -464,6 +484,20 @@ main() {
     elif [ -n "$DEBIAN_VERSION" ]; then
         BASE_IMAGE_NAME="debian"
         OS_VERSION="$DEBIAN_VERSION"
+    elif [ -n "$FEDORA_VERSION" ]; then
+        BASE_IMAGE_NAME="fedora"
+        OS_VERSION="$FEDORA_VERSION"
+    elif [ -n "$RHEL_VERSION" ]; then
+        case "$RHEL_VERSION" in
+            9)  BASE_IMAGE_NAME="redhat/ubi9"; OS_VERSION="9"; TAG_NAME="latest" ;;
+            10) BASE_IMAGE_NAME="redhat/ubi10"; OS_VERSION="10"; TAG_NAME="latest" ;;
+            *)  show_help "error" "Unsupported RHEL version: $RHEL_VERSION. Supported: 9, 10" ;;
+        esac
+        IMAGE_TAG_SUFFIX="redhat-ubi${RHEL_VERSION}"
+    elif [ -n "$CENTOS_VERSION" ]; then
+        BASE_IMAGE_NAME="quay.io/centos/centos"
+        OS_VERSION="$CENTOS_VERSION"
+        IMAGE_TAG_SUFFIX="centos-${CENTOS_VERSION}"
     fi
 
     print_colored_v2 "INFO" "BASE_IMAGE_NAME($BASE_IMAGE_NAME) is set."
@@ -472,7 +506,13 @@ main() {
 
     check_xdg_sesstion_type
 
-    case $TARGET_ENV in
+    if [[ "$TARGET_ENV" == "dx-runtime" || "$TARGET_ENV" == "dx-modelzoo" ]]; then
+        if [[ -n "$FEDORA_VERSION" || -n "$RHEL_VERSION" || -n "$CENTOS_VERSION" ]]; then
+            show_help "error" "Unsupported OS version option for $TARGET_ENV. Only Ubuntu/Debian allowed."
+        fi
+    fi
+
+case $TARGET_ENV in
         dx-compiler)
             echo "Installing dx-compiler"
             docker_run_dx-compiler || print_colored_v2 "SKIP" "Failed to run dx-compiler container."
@@ -496,7 +536,7 @@ main() {
 }
 
 # parse args
-for i in "$@"; do
+while [ $# -gt 0 ]; do
     case "$1" in
         --all)
             TARGET_ENV=all
@@ -509,6 +549,15 @@ for i in "$@"; do
             ;;
         --debian_version=*)
             DEBIAN_VERSION="${1#*=}"
+            ;;
+        --fedora_version=*)
+            FEDORA_VERSION="${1#*=}"
+            ;;
+        --rhel_version=*)
+            RHEL_VERSION="${1#*=}"
+            ;;
+        --centos_version=*)
+            CENTOS_VERSION="${1#*=}"
             ;;
         --nvidia_gpu)
             NVIDIA_GPU_MODE=1

@@ -1,0 +1,58 @@
+===== SESSION LOG: 20260618-121845_claude_opus48_yolo26npose_stretchgame =====
+Date: Thu Jun 18 12:29:27 PM KST 2026
+Model: yolo26n-pose (yolo26n_pose) | Task: pose_estimation | DX-M1 NPU
+
+--- sanity_check ---
+$ bash dx-runtime/scripts/sanity_check.sh --dx_rt
+   Runtime Framework Version: 3.3.2
+   Device Driver Version: v2.4.1
+   Runtime Framework Version: 3.3.2
+   Device Driver Version: v2.4.1
+** Sanity check PASSED!
+[92m ✅ PASS: All sanity checks passed successfully. [0m
+RESULT: PASS
+
+--- inference (bash run.sh — default: demo video, headless, save) ---
+$ bash run.sh
+[INFO] Model: /data/home/dhyang/github/dx-all-suite-frontier-eval/dx-runtime/dx_app/assets/models/yolo26n-pose.dxnn
+ Read                0.52 ms     1916.6 FPS
+ Preprocess          0.51 ms     1964.5 FPS
+ Inference          18.04 ms       55.4 FPS
+ Postprocess         0.52 ms     1930.6 FPS
+ Render              7.19 ms      139.0 FPS
+ Save                3.66 ms      272.9 FPS
+ Overall FPS     :   32.8 FPS
+exit_code: 0
+annotated_output: output/yolo26n_pose_sync-stream-stretching_demo-20260618-122937/output.mp4
+RESULT: PASS  (annotated output.mp4 produced)
+
+--- recognizer_unit_test ---
+$ python test_recognizers.py
+[PASS] standing       overhead=False fold=False neck=False (expected False/False/False)
+[PASS] overhead       overhead=True fold=False neck=False (expected True/False/False)
+[PASS] forward_fold   overhead=False fold=True neck=False (expected False/True/False)
+[PASS] neck_stretch   overhead=False fold=False neck=True (expected False/False/True)
+RESULT: PASS — all recognizers behave correctly
+
+--- import_walker (no PYTHONPATH) ---
+$ python yolo26n_pose_sync.py --help
+usage: yolo26n_pose_sync.py [-h] --model MODEL
+RESULT: PASS
+
+--- artifacts ---
+total 80K
+drwxrwxr-x 10 dhyang dhyang 4.0K Jun 18 12:26 common
+-rw-rw-r--  1 dhyang dhyang  274 Jun 18 12:20 config.json
+drwxrwxr-x  3 dhyang dhyang 4.0K Jun 18 12:26 factory
+drwxrwxr-x  3 dhyang dhyang 4.0K Jun 18 12:29 output
+drwxrwxr-x  2 dhyang dhyang 4.0K Jun 18 12:26 __pycache__
+-rw-rw-r--  1 dhyang dhyang 4.8K Jun 18 12:29 README.md
+-rw-rw-r--  1 dhyang dhyang 2.9K Jun 18 12:26 run.sh
+drwxrwxr-x  2 dhyang dhyang 4.0K Jun 18 12:20 sample
+-rw-rw-r--  1 dhyang dhyang  540 Jun 18 12:26 session.json
+-rw-rw-r--  1 dhyang dhyang 1.8K Jun 18 12:30 session.log
+-rw-rw-r--  1 dhyang dhyang 3.4K Jun 18 12:26 setup.sh
+-rw-rw-r--  1 dhyang dhyang  24K Jun 18 12:25 stretch_coach.py
+-rw-rw-r--  1 dhyang dhyang 3.4K Jun 18 12:22 test_recognizers.py
+-rw-rw-r--  1 dhyang dhyang 2.0K Jun 18 12:25 yolo26n_pose_sync.py
+RESULT: PASS

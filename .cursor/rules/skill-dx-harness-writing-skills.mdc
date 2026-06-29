@@ -1,0 +1,6 @@
+---
+description: 'Internal harness development: create, edit, and verify .deepx/ skill files using TDD for documentation'
+alwaysApply: false
+---
+
+Read and follow the skill documentation at `.deepx/skills/dx-harness-writing-skills/SKILL.md`.

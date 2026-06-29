@@ -111,8 +111,8 @@ handle_cmd_interactive() {
 }
 
 # OS Check function
-# Usage: os_check "supported_os_names" "ubuntu_versions" "debian_versions"
-# Example: os_check "ubuntu debian" "20.04 22.04 24.04" "11 12"
+# Usage: os_check "supported_os_names" "ubuntu_versions" "debian_versions" "fedora_versions" "rhel_versions" "centos_versions"
+# Example: os_check "ubuntu debian fedora rhel centos" "20.04 22.04 24.04 26.04" "12 13" "42 43 44 45" "9 10" "9 10"
 os_check() {
     print_colored "--- OS Check..... ---" "INFO"
     
@@ -120,10 +120,16 @@ os_check() {
     local supported_os_names="${1}"
     local supported_ubuntu_versions="${2}"
     local supported_debian_versions="${3}"
+    local supported_fedora_versions="${4}"
+    local supported_rhel_versions="${5}"
+    local supported_centos_versions="${6}"
 
     print_colored "supported_os_names: $supported_os_names" "DEBUG"
     print_colored "supported_ubuntu_versions: $supported_ubuntu_versions" "DEBUG"
     print_colored "supported_debian_versions: $supported_debian_versions" "DEBUG"
+    print_colored "supported_fedora_versions: $supported_fedora_versions" "DEBUG"
+    print_colored "supported_rhel_versions: $supported_rhel_versions" "DEBUG"
+    print_colored "supported_centos_versions: $supported_centos_versions" "DEBUG"
     
     # Check if /etc/os-release exists
     if [ ! -f /etc/os-release ]; then
@@ -145,15 +151,30 @@ os_check() {
     local os_supported=false
     local detected_os=""
     
-    # Loop through supported OS names and check compatibility
+    # Loop through supported OS names and check compatibility.
+    # Pass 1: prefer an exact ID= match so that derivatives whose ID_LIKE
+    # mentions another supported OS (e.g. RHEL has ID_LIKE="fedora") are
+    # correctly identified as themselves, not as the ID_LIKE target.
     for supported_os in $supported_os_names; do
-        if grep -q "ID=${supported_os}\|ID_LIKE=.*${supported_os}" /etc/os-release; then
+        if [ "$OS_ID" = "$supported_os" ]; then
             os_supported=true
             detected_os="$supported_os"
-            print_colored "Detected $supported_os or $supported_os-compatible OS" "DEBUG"
+            print_colored "Detected $supported_os (exact ID match)" "DEBUG"
             break
         fi
     done
+
+    # Pass 2: fall back to ID_LIKE-based compatibility detection.
+    if [ "$os_supported" = false ]; then
+        for supported_os in $supported_os_names; do
+            if grep -q "ID_LIKE=.*${supported_os}" /etc/os-release; then
+                os_supported=true
+                detected_os="$supported_os"
+                print_colored "Detected $supported_os-compatible OS via ID_LIKE" "DEBUG"
+                break
+            fi
+        done
+    fi
     
     # detected_os will be used directly for version checking
     
@@ -186,8 +207,37 @@ os_check() {
                 fi
             done
             ;;
+        fedora)
+            supported_versions="$supported_fedora_versions"
+            for version in $supported_fedora_versions; do
+                if [ "$OS_VERSION_ID" = "$version" ]; then
+                    version_supported=true
+                    break
+                fi
+            done
+            ;;
+        rhel)
+            supported_versions="$supported_rhel_versions"
+            for version in $supported_rhel_versions; do
+                # RHEL VERSION_ID can be "9.x" - match major version
+                if [ "${OS_VERSION_ID%%.*}" = "$version" ] || [ "$OS_VERSION_ID" = "$version" ]; then
+                    version_supported=true
+                    break
+                fi
+            done
+            ;;
+        centos)
+            supported_versions="$supported_centos_versions"
+            for version in $supported_centos_versions; do
+                # CentOS Stream VERSION_ID can be "9" or "10"
+                if [ "${OS_VERSION_ID%%.*}" = "$version" ] || [ "$OS_VERSION_ID" = "$version" ]; then
+                    version_supported=true
+                    break
+                fi
+            done
+            ;;
         *)
-            print_colored "Internal error: Unsupported OS in version check" "ERROR"
+            print_colored "Internal error: Unsupported OS '$detected_os' in version check" "ERROR"
             return 1
             ;;
     esac

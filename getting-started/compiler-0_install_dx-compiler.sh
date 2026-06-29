@@ -62,11 +62,7 @@ if [ "$FORCE_INSTALL" = false ]; then
         fi
 
         echo -e "${TAG_INFO} dxcom not found in PATH. Checking venv..."
-        if check_container_mode; then
-            VENV_PATH="${COMPILER_PATH}/venv-${PROJECT_NAME}"
-        else
-            VENV_PATH="${COMPILER_PATH}/venv-${PROJECT_NAME}-local"
-        fi
+        VENV_PATH="${COMPILER_PATH}/venv-${PROJECT_NAME}"
 
         if [ -f "${VENV_PATH}/bin/activate" ]; then
             echo -e "${TAG_INFO} Activating venv: ${VENV_PATH}"

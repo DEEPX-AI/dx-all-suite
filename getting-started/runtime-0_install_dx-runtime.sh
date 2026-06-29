@@ -14,6 +14,7 @@ Install dx-runtime component.
 
 OPTIONS:
   --exclude-fw      Exclude firmware installation
+  --exclude-driver  Exclude NPU driver installation
   -f, --force       Force installation even if sanity check passes
   -h, --help        Display this help message and exit
 
@@ -50,6 +51,9 @@ for arg in "$@"; do
             ;;
         --exclude-fw)
             INSTALL_ARGS+=" --exclude-fw"
+            ;;
+        --exclude-driver)
+            INSTALL_ARGS+=" --exclude-driver"
             ;;
     esac
 done

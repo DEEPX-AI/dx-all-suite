@@ -6,6 +6,7 @@ pushd $DX_AS_PATH
 
 FORCE_ARGS=""
 PYTHON_VERSION_ARGS=""
+PYPI_ARGS=""
 
 # color env settings
 source ${DX_AS_PATH}/scripts/color_env.sh
@@ -39,7 +40,7 @@ main() {
     TEMP_OUTPUT=$(mktemp)
     export ARCHIVE_OUTPUT_FILE="$TEMP_OUTPUT"
 
-    ARCHIVE_COMPILER_CMD="$DX_AS_PATH/dx-compiler/install.sh --archive_mode=y $FORCE_ARGS $PYTHON_VERSION_ARGS"
+    ARCHIVE_COMPILER_CMD="$DX_AS_PATH/dx-compiler/install.sh --archive_mode=y $FORCE_ARGS $PYTHON_VERSION_ARGS $PYPI_ARGS"
     echo "$ARCHIVE_COMPILER_CMD"
 
     # Run command directly - stdin/stdout/stderr remain connected to terminal
@@ -94,6 +95,9 @@ for i in "$@"; do
             ;;
         --python_version=*)
             PYTHON_VERSION_ARGS="--python_version=${1#*=}"
+            ;;
+        --pypi=*)
+            PYPI_ARGS="--pypi=${1#*=}"
             ;;
         *)
             show_help "error" "Invalid option '$1'"

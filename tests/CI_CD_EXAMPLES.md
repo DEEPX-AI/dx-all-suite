@@ -53,7 +53,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-24.04, ubuntu-22.04, ubuntu-20.04, ubuntu-18.04, debian-12, debian-13]
+        os: [ubuntu-24.04, ubuntu-22.04, ubuntu-20.04, debian-12, debian-13]
 
     steps:
       - name: Checkout code
@@ -92,7 +92,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-24.04, ubuntu-22.04, ubuntu-20.04, ubuntu-18.04, debian-12, debian-13]
+        os: [ubuntu-24.04, ubuntu-22.04, ubuntu-20.04, debian-12, debian-13]
 
     steps:
       - name: Checkout code
@@ -287,12 +287,6 @@ runtime-ubuntu-20.04:
     OS_DISTRO: "ubuntu"
     OS_VERSION: "20.04"
 
-runtime-ubuntu-18.04:
-  <<: *runtime-template
-  variables:
-    OS_DISTRO: "ubuntu"
-    OS_VERSION: "18.04"
-
 runtime-debian-12:
   <<: *runtime-template
   variables:
@@ -344,12 +338,6 @@ modelzoo-ubuntu-20.04:
   variables:
     OS_DISTRO: "ubuntu"
     OS_VERSION: "20.04"
-
-modelzoo-ubuntu-18.04:
-  <<: *modelzoo-template
-  variables:
-    OS_DISTRO: "ubuntu"
-    OS_VERSION: "18.04"
 
 modelzoo-debian-12:
   <<: *modelzoo-template
@@ -495,13 +483,6 @@ pipeline {
                                 }
                             }
                         }
-                        stage('Ubuntu 18.04') {
-                            steps {
-                                dir('tests') {
-                                    sh './test.sh report -k "runtime and ubuntu and 18.04"'
-                                }
-                            }
-                        }
                         stage('Debian 12') {
                             steps {
                                 dir('tests') {
@@ -539,13 +520,6 @@ pipeline {
                             steps {
                                 dir('tests') {
                                     sh './test.sh report -k "modelzoo and ubuntu and 20.04"'
-                                }
-                            }
-                        }
-                        stage('Ubuntu 18.04') {
-                            steps {
-                                dir('tests') {
-                                    sh './test.sh report -k "modelzoo and ubuntu and 18.04"'
                                 }
                             }
                         }

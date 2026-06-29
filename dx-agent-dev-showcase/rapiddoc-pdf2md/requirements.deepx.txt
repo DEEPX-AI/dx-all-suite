@@ -1,0 +1,54 @@
+# RapidDoc Gradio UI Requirements
+# 사용법: pip install -r requirements.gradio.txt
+
+# Web UI & API
+gradio>=3.50.0,<5.0.0
+huggingface-hub<1.0
+fastapi>=0.100.0
+uvicorn>=0.23.0
+python-multipart>=0.0.6
+
+# Logging
+loguru>=0.6.0
+
+# Core dependencies
+numpy>=1.21.6
+tqdm>=4.67.1
+requests
+
+# PDF Processing
+pypdfium2>=4.30.0
+pypdf>=5.6.0
+pdfminer.six==20250506
+reportlab
+pdftext>=0.6.2
+
+# Data Processing
+json-repair>=0.46.2
+fast-langdetect>=0.2.3,<0.3.0
+scikit-image>=0.25.0,<1.0.0
+beautifulsoup4>=4.13.5,<5
+
+# Validation & Utilities
+pydantic>=2.7.2,<2.11
+matplotlib>=3.10,<4
+ftfy>=6.3.1,<7
+shapely>=2.0.7,<3
+tokenizers>=0.13.2
+
+# OCR Engine
+rapidocr>=3.1.0,<=3.4.2
+
+# Inference Engines (CPU)
+onnxruntime>=1.18.0
+openvino>=2024.6.0
+
+boto3
+
+# GPU Support (optional - uncomment if needed)
+#onnxruntime-gpu
+#torch>=2.6.0,<3
+#torchvision
+
+# Note: rapid_doc 패키지는 프로젝트 루트에서 설치됩니다:
+#   pip install -e .

@@ -7,54 +7,114 @@ USER root
 
 # ARG must be re-declared after FROM to be available in RUN commands
 ARG BASE_IMAGE_NAME=ubuntu
+ARG OS_VERSION=24.04
+
+# Build-time only (ARG, not ENV): keep apt/debconf non-interactive so packages
+# like keyboard-configuration/tzdata don't fall back to the Readline frontend and
+# block the build waiting for input. No-op on RHEL (dnf ignores it).
+ARG DEBIAN_FRONTEND=noninteractive
 
 ARG TZ=Asia/Seoul
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ >/etc/timezone
 
-ARG DEBIAN_FRONTEND=noninteractive
 ENV PATH="/usr/local/bin:${PATH}"
 
-### update apt repo
-RUN if [ "${BASE_IMAGE_NAME}" = "ubuntu" ]; then \
-    apt-get update && apt-get install -y \
-    software-properties-common && \
-    add-apt-repository universe && \
-    add-apt-repository multiverse && \
-    apt-get update; \
+# Detect OS family: "debian" (apt-based) or "rhel" (dnf-based)
+# This ARG is used throughout the Dockerfile for conditional logic
+ARG OS_FAMILY=""
+RUN if [ -z "${OS_FAMILY}" ]; then \
+        if [ -f /etc/debian_version ]; then \
+            echo "debian" > /tmp/.os_family; \
+        elif [ -f /etc/redhat-release ] || grep -q "^ID.*fedora\|^ID.*rhel\|^ID.*centos" /etc/os-release 2>/dev/null; then \
+            echo "rhel" > /tmp/.os_family; \
+        else \
+            echo "unknown" > /tmp/.os_family; \
+        fi; \
+    else \
+        echo "${OS_FAMILY}" > /tmp/.os_family; \
     fi
-
-### install utils
-RUN apt-get update && apt-get install -y \
-    tzdata \
-    git vim sudo \
-    lsb-release
-
-# X11 forwarding and xcb
-RUN apt-get install -y x11-apps libx11-6 xauth libxext6 libxrender1 libxtst6 libxi6 libxcb-xinerama0
 
 # for setting ssl issue on intranet
 # only used 'USE_INTRANET=true'
+# Must run BEFORE any apt/dnf network operation so the intranet CA is trusted
+# while installing packages (RHEL/UBI uses an https CDN that fails otherwise).
 ARG USE_INTRANET=false
 ARG CA_FILE_NAME="dummy.crt"
 COPY ${CA_FILE_NAME} /usr/local/share/ca-certificates/
+# pip/requests use certifi's own CA bundle, not the OS trust store, so we also
+# write /etc/pip.conf pointing pip at the OS bundle that now contains the intranet CA.
 RUN if [ "$USE_INTRANET" = "true" ]; then \
-      git config --global http.sslVerify false && \
-      update-ca-certificates ; \
+      printf '[http]\n\tsslVerify = false\n' > /root/.gitconfig && \
+      OS_FAM=$(cat /tmp/.os_family) && \
+      CA_BUNDLE="" && \
+      if [ "$OS_FAM" = "debian" ]; then \
+          command -v update-ca-certificates >/dev/null 2>&1 || \
+              { export DEBIAN_FRONTEND=noninteractive && apt-get update && apt-get install -y ca-certificates; } && \
+          update-ca-certificates && \
+          CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt; \
+      elif [ "$OS_FAM" = "rhel" ]; then \
+          cp /usr/local/share/ca-certificates/*.crt /etc/pki/ca-trust/source/anchors/ 2>/dev/null || true && \
+          update-ca-trust && \
+          for c in /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem /etc/pki/tls/certs/ca-bundle.crt; do \
+              [ -f "$c" ] && { CA_BUNDLE="$c"; break; }; \
+          done; \
+      fi && \
+      printf '[global]\ncert = %s\n' "$CA_BUNDLE" > /etc/pip.conf; \
     else \
       echo "Skipping intranet SSL setup"; \
     fi
 
+### update apt repo (Debian/Ubuntu only)
+RUN OS_FAM=$(cat /tmp/.os_family) && \
+    if [ "$OS_FAM" = "debian" ]; then \
+        export DEBIAN_FRONTEND=noninteractive && \
+        if [ "${BASE_IMAGE_NAME}" = "ubuntu" ]; then \
+            apt-get update && apt-get install -y \
+            software-properties-common && \
+            add-apt-repository universe && \
+            add-apt-repository multiverse && \
+            apt-get update; \
+        fi; \
+    fi
+
+### install utils
+RUN OS_FAM=$(cat /tmp/.os_family) && \
+    if [ "$OS_FAM" = "debian" ]; then \
+        export DEBIAN_FRONTEND=noninteractive && \
+        apt-get update && apt-get install -y \
+            tzdata \
+            git vim sudo \
+            lsb-release; \
+    elif [ "$OS_FAM" = "rhel" ]; then \
+        dnf install -y \
+            tzdata \
+            git vim sudo \
+            which findutils procps-ng && \
+        dnf install -y dnf-plugins-core 2>/dev/null || true && \
+        dnf config-manager --set-enabled crb 2>/dev/null || true; \
+    fi
+
+# X11 forwarding and xcb
+RUN OS_FAM=$(cat /tmp/.os_family) && \
+    if [ "$OS_FAM" = "debian" ]; then \
+        export DEBIAN_FRONTEND=noninteractive && \
+        apt-get install -y x11-apps libx11-6 xauth libxext6 libxrender1 libxtst6 libxi6 libxcb-xinerama0; \
+    fi
+
 # Install dependencies for dx-compiler
-# Setup Python (minimum 3.8)
-#   - Detect system Python first, install MIN_PY_VERSION if system Python is lower
-#   - Unified installation flow: system python → apt → source build fallback
-#   - Ubuntu 20.04, 22.04, 24.04 supported
+# Setup Python (minimum 3.8, maximum 3.14)
+#   - Detect system Python first, install TARGET version if needed
+#   - Unified installation flow for both Debian and Red Hat families
 ENV MIN_PY_VERSION=3.8
+ENV MAX_PY_VERSION=3.14
 ARG TARGET_INSTALL_PY_VERSION=""
 RUN set -x && \
-    echo "Detecting system Python and checking minimum version requirement..." && \
+    OS_FAM=$(cat /tmp/.os_family) && \
+    echo "Detecting system Python and checking version requirements..." && \
     MIN_MAJOR=$(echo "${MIN_PY_VERSION}" | cut -d. -f1) && \
     MIN_MINOR=$(echo "${MIN_PY_VERSION}" | cut -d. -f2) && \
+    MAX_MAJOR=$(echo "${MAX_PY_VERSION}" | cut -d. -f1) && \
+    MAX_MINOR=$(echo "${MAX_PY_VERSION}" | cut -d. -f2) && \
     DX_PYTHON_EXEC="" && \
     NEED_INSTALL="false" && \
     if command -v python3 >/dev/null 2>&1; then \
@@ -62,13 +122,23 @@ RUN set -x && \
         SYS_MAJOR=$(echo "${SYS_PY_VERSION}" | cut -d. -f1) && \
         SYS_MINOR=$(echo "${SYS_PY_VERSION}" | cut -d. -f2) && \
         echo "System Python detected: ${SYS_PY_VERSION}" && \
-        if [ "$SYS_MAJOR" -gt "$MIN_MAJOR" ] || { [ "$SYS_MAJOR" -eq "$MIN_MAJOR" ] && [ "$SYS_MINOR" -ge "$MIN_MINOR" ]; }; then \
-            echo "System Python ${SYS_PY_VERSION} meets minimum requirement (>= ${MIN_PY_VERSION})" && \
+        if [ "$SYS_MAJOR" -gt "$MAX_MAJOR" ] || { [ "$SYS_MAJOR" -eq "$MAX_MAJOR" ] && [ "$SYS_MINOR" -gt "$MAX_MINOR" ]; }; then \
+            echo "System Python ${SYS_PY_VERSION} exceeds maximum ${MAX_PY_VERSION}, need to install ${MAX_PY_VERSION}..." && \
+            NEED_INSTALL="true" && \
+            TARGET_INSTALL_PY_VERSION="${MAX_PY_VERSION}.0"; \
+        elif [ "$SYS_MAJOR" -gt "$MIN_MAJOR" ] || { [ "$SYS_MAJOR" -eq "$MIN_MAJOR" ] && [ "$SYS_MINOR" -ge "$MIN_MINOR" ]; }; then \
+            echo "System Python ${SYS_PY_VERSION} meets version requirements (>= ${MIN_PY_VERSION}, <= ${MAX_PY_VERSION})" && \
             SYS_PY_MAJOR_MINOR="${SYS_MAJOR}.${SYS_MINOR}" && \
-            echo "Installing python${SYS_PY_MAJOR_MINOR}-dev and python${SYS_PY_MAJOR_MINOR}-venv packages..." && \
-            apt-get update && \
-            apt-get install -y python${SYS_PY_MAJOR_MINOR}-dev python${SYS_PY_MAJOR_MINOR}-venv || \
-            apt-get install -y python3-dev python3-venv && \
+            echo "Installing python${SYS_PY_MAJOR_MINOR}-dev and venv packages..." && \
+            if [ "$OS_FAM" = "debian" ]; then \
+                export DEBIAN_FRONTEND=noninteractive && \
+                apt-get update && \
+                apt-get install -y python${SYS_PY_MAJOR_MINOR}-dev python${SYS_PY_MAJOR_MINOR}-venv || \
+                apt-get install -y python3-dev python3-venv; \
+            elif [ "$OS_FAM" = "rhel" ]; then \
+                dnf install -y python${SYS_MAJOR}.${SYS_MINOR}-devel || \
+                dnf install -y python3-devel; \
+            fi && \
             DX_PYTHON_EXEC="python3"; \
         else \
             echo "System Python ${SYS_PY_VERSION} is lower than minimum ${MIN_PY_VERSION}, need to install..." && \
@@ -89,8 +159,8 @@ RUN set -x && \
             echo "Using minimum version for installation: ${TARGET_INSTALL_PY_VERSION}"; \
         fi && \
         PY_MAJOR_MINOR=$(echo "${TARGET_INSTALL_PY_VERSION}" | cut -d. -f1,2) && \
-        if [ "${BASE_IMAGE_NAME}" = "ubuntu" ] && { [ "$(lsb_release -rs)" = "24.04" ] || [ "$(lsb_release -rs)" = "22.04" ] || [ "$(lsb_release -rs)" = "20.04" ]; }; then \
-            echo "Supported OS: ${BASE_IMAGE_NAME} $(lsb_release -rs)" && \
+        if [ "$OS_FAM" = "debian" ]; then \
+            export DEBIAN_FRONTEND=noninteractive && \
             apt-get update && \
             if [ "${BASE_IMAGE_NAME}" = "ubuntu" ]; then \
                 echo "Adding deadsnakes PPA for Ubuntu..." && \
@@ -108,42 +178,37 @@ RUN set -x && \
                 echo "python${PY_MAJOR_MINOR} packages available via apt, installing..." && \
                 apt-get install -y python${PY_MAJOR_MINOR} python${PY_MAJOR_MINOR}-dev python${PY_MAJOR_MINOR}-venv && \
                 DX_PYTHON_EXEC="python${PY_MAJOR_MINOR}"; \
-            else \
-                echo "python${PY_MAJOR_MINOR} not available via apt (main:$MAIN_PKG, dev:$DEV_PKG, venv:$VENV_PKG), will use source build..."; \
-            fi && \
-            if [ -z "${DX_PYTHON_EXEC}" ]; then \
-                echo "Installing python ${TARGET_INSTALL_PY_VERSION} via source build..." && \
-                apt-get install -y --no-install-recommends \
-                    build-essential \
-                    wget \
-                    curl \
-                    ca-certificates \
-                    libssl-dev \
-                    zlib1g-dev \
-                    libncurses5-dev \
-                    libncursesw5-dev \
-                    libreadline-dev \
-                    libsqlite3-dev \
-                    libgdbm-dev \
-                    libdb5.3-dev \
-                    libbz2-dev \
-                    libexpat1-dev \
-                    liblzma-dev \
-                    tk-dev \
-                    libffi-dev \
-                    uuid-dev && \
-                wget --no-check-certificate https://www.python.org/ftp/python/${TARGET_INSTALL_PY_VERSION}/Python-${TARGET_INSTALL_PY_VERSION}.tgz && \
-                tar xzf Python-${TARGET_INSTALL_PY_VERSION}.tgz && \
-                cd Python-${TARGET_INSTALL_PY_VERSION} && \
-                ./configure --enable-optimizations && \
-                make -j$(nproc) && \
-                make altinstall && \
-                cd .. && \
-                rm -rf Python-${TARGET_INSTALL_PY_VERSION}* && \
-                DX_PYTHON_EXEC="python${PY_MAJOR_MINOR}"; \
             fi; \
-        else \
-            echo "Unsupported OS: ${BASE_IMAGE_NAME} $(lsb_release -rs)" && exit 1; \
+        elif [ "$OS_FAM" = "rhel" ]; then \
+            echo "Installing python${PY_MAJOR_MINOR} via dnf..." && \
+            dnf install -y python${PY_MAJOR_MINOR} python${PY_MAJOR_MINOR}-devel 2>/dev/null && \
+            DX_PYTHON_EXEC="python${PY_MAJOR_MINOR}" || true; \
+        fi && \
+        if [ -z "${DX_PYTHON_EXEC}" ]; then \
+            echo "Installing python ${TARGET_INSTALL_PY_VERSION} via source build..." && \
+            if [ "$OS_FAM" = "debian" ]; then \
+                export DEBIAN_FRONTEND=noninteractive && \
+                apt-get install -y --no-install-recommends \
+                    build-essential wget curl ca-certificates \
+                    libssl-dev zlib1g-dev libncurses5-dev libncursesw5-dev \
+                    libreadline-dev libsqlite3-dev libgdbm-dev libdb5.3-dev \
+                    libbz2-dev libexpat1-dev liblzma-dev tk-dev libffi-dev uuid-dev; \
+            elif [ "$OS_FAM" = "rhel" ]; then \
+                dnf install -y \
+                    gcc gcc-c++ make wget curl ca-certificates \
+                    openssl-devel zlib-devel ncurses-devel readline-devel \
+                    sqlite-devel gdbm-devel bzip2-devel expat-devel \
+                    xz-devel tk-devel libffi-devel libuuid-devel; \
+            fi && \
+            wget --no-check-certificate https://www.python.org/ftp/python/${TARGET_INSTALL_PY_VERSION}/Python-${TARGET_INSTALL_PY_VERSION}.tgz && \
+            tar xzf Python-${TARGET_INSTALL_PY_VERSION}.tgz && \
+            cd Python-${TARGET_INSTALL_PY_VERSION} && \
+            ./configure --enable-optimizations --without-tcltk && \
+            make -j$(nproc) && \
+            make altinstall && \
+            cd .. && \
+            rm -rf Python-${TARGET_INSTALL_PY_VERSION}* && \
+            DX_PYTHON_EXEC="python${PY_MAJOR_MINOR}"; \
         fi; \
     fi && \
     if [ -z "${DX_PYTHON_EXEC}" ]; then \
@@ -154,59 +219,88 @@ RUN set -x && \
     ${DX_PYTHON_EXEC} -m venv /venv-dxnn && \
     . /venv-dxnn/bin/activate && \
     echo "Upgrade pip wheel setuptools..." && \
-    if [ "${BASE_IMAGE_NAME}" = "ubuntu" ]; then \
-        OS_VERSION=$(lsb_release -rs) && \
-        echo "*** OS_VERSION(${OS_VERSION}) ***" && \
-        if [ "$OS_VERSION" = "24.04" ]; then \
+    if [ "$OS_FAM" = "debian" ]; then \
+        export DEBIAN_FRONTEND=noninteractive && \
+        OS_VER=$(lsb_release -rs 2>/dev/null || echo "") && \
+        echo "*** OS_VERSION(${OS_VER}) ***" && \
+        if [ "$OS_VER" = "26.04" ] || [ "$OS_VER" = "24.04" ]; then \
             apt-get update && apt-get install -y --no-install-recommends \
                 libgl1-mesa-dev libglib2.0-0 make \
                 libfuse2 libayatana-appindicator3-1; \
-        elif [ "$OS_VERSION" = "22.04" ]; then \
+        elif [ "$OS_VER" = "22.04" ]; then \
             apt-get update && apt-get install -y --no-install-recommends \
                 libgl1-mesa-dev libglib2.0-0 make \
                 libfuse2 libappindicator3-1 libgconf-2-4; \
-        elif [ "$OS_VERSION" = "20.04" ]; then \
+        elif [ "$OS_VER" = "20.04" ]; then \
             apt-get update && apt-get install -y --no-install-recommends \
                 libgl1-mesa-dev libgl1-mesa-glx libglib2.0-0 make \
                 libfuse2 libappindicator1 libgconf-2-4; \
         else \
-            echo "Unsupported Ubuntu version: $OS_VERSION" && exit 1; \
+            echo "Unsupported Ubuntu version: $OS_VER" && exit 1; \
         fi; \
-    else \
-        echo "Unsupported base image: ${BASE_IMAGE_NAME}" && exit 1; \
+    elif [ "$OS_FAM" = "rhel" ]; then \
+        SKIP_FLAG=""; \
+        if dnf install --help 2>/dev/null | grep -q -- '--skip-unavailable'; then \
+            SKIP_FLAG="--skip-unavailable"; \
+        elif dnf install --help 2>/dev/null | grep -q -- '--skip-broken'; then \
+            SKIP_FLAG="--skip-broken"; \
+        fi; \
+        dnf install -y ${SKIP_FLAG} \
+            mesa-libGL mesa-libGL-devel glib2 make \
+            fuse fuse-libs; \
     fi
 
 # Install build tools and libraries
 RUN set -x && \
-    apt-get update && apt-get install -y --no-install-recommends \
-        libssl-dev \
-        wget \
-        openssl \
-        build-essential \
-        zlib1g-dev \
-        patchelf \
-        libffi-dev \
-        ca-certificates \
-        libbz2-dev \
-        liblzma-dev \
-        libncursesw5-dev \
-        libsqlite3-dev \
-        tk-dev \
-        libgdbm-dev \
-        libc6-dev \
-        libncurses5-dev \
-        libnss3-dev \
-        ccache \
-        fuse libxss1 libxtst6 libnss3 \
-        libcanberra-gtk-module libcanberra-gtk3-module \
-        software-properties-common \
-        vim fim
+    OS_FAM=$(cat /tmp/.os_family) && \
+    if [ "$OS_FAM" = "debian" ]; then \
+        export DEBIAN_FRONTEND=noninteractive && \
+        OS_VER=$(lsb_release -rs 2>/dev/null || echo "") && \
+        apt-get update && apt-get install -y --no-install-recommends \
+            libssl-dev wget openssl build-essential \
+            zlib1g-dev patchelf libffi-dev ca-certificates \
+            libbz2-dev liblzma-dev libncursesw5-dev libsqlite3-dev \
+            tk-dev libgdbm-dev libc6-dev libnss3-dev ccache \
+            libxtst6 libnss3 software-properties-common vim && \
+        if [ "$OS_VER" = "26.04" ]; then \
+            apt-get install -y --no-install-recommends \
+                fuse3 libncurses-dev libxss-dev || true && \
+            apt-get install -y --no-install-recommends \
+                libcanberra-gtk3-module 2>/dev/null || echo "libcanberra-gtk3-module not available, skipping" && \
+            apt-get install -y --no-install-recommends \
+                fim 2>/dev/null || echo "fim not available, skipping"; \
+        else \
+            apt-get install -y --no-install-recommends \
+                fuse libxss1 libncurses5-dev \
+                libcanberra-gtk-module libcanberra-gtk3-module \
+                fim; \
+        fi; \
+    elif [ "$OS_FAM" = "rhel" ]; then \
+        SKIP_FLAG=""; \
+        if dnf install --help 2>/dev/null | grep -q -- '--skip-unavailable'; then \
+            SKIP_FLAG="--skip-unavailable"; \
+        elif dnf install --help 2>/dev/null | grep -q -- '--skip-broken'; then \
+            SKIP_FLAG="--skip-broken"; \
+        fi; \
+        dnf install -y ${SKIP_FLAG} \
+            openssl-devel wget openssl gcc gcc-c++ make \
+            zlib-devel patchelf libffi-devel ca-certificates \
+            bzip2-devel xz-devel ncurses-devel sqlite-devel \
+            tk-devel gdbm-devel glibc-devel nss-devel ccache \
+            libXtst nss vim-enhanced; \
+    fi
 
-RUN apt-get update && \
-    apt-get install -y \
-        xdg-utils && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+RUN OS_FAM=$(cat /tmp/.os_family) && \
+    if [ "$OS_FAM" = "debian" ]; then \
+        export DEBIAN_FRONTEND=noninteractive && \
+        apt-get update && \
+        apt-get install -y xdg-utils && \
+        apt-get clean && \
+        rm -rf /var/lib/apt/lists/*; \
+    elif [ "$OS_FAM" = "rhel" ]; then \
+        dnf install -y xdg-utils 2>/dev/null || true && \
+        dnf clean all; \
+    fi
 
 ARG HOST_UID
 ARG HOST_GID
@@ -240,14 +334,17 @@ WORKDIR /deepx/dx-compiler/dx_com
 ARG FILE_DXCOM
 ADD ${FILE_DXCOM} /deepx/dx-compiler/dx_com
 
-# Copy dx_tron
+# Copy dx_tron (Ubuntu/Debian only - .deb and AppImage not supported on RHEL family)
 WORKDIR /deepx/dx-compiler/dx_tron
 ARG FILE_DXTRON
 ADD ${FILE_DXTRON} /deepx/dx-compiler/dx_tron
 
-# COPY 'scripts' and 'getting-started'
+# COPY 'scripts', 'getting-started', 'dx-compiler/example', 'dx-compiler/scripts', and 'dx-compiler/run_dxtron_web.sh'
 COPY scripts /deepx/scripts
 COPY getting-started /deepx/getting-started
+COPY dx-compiler/example /deepx/dx-compiler/example
+COPY dx-compiler/scripts /deepx/dx-compiler/scripts
+COPY dx-compiler/run_dxtron_web.sh /deepx/dx-compiler/run_dxtron_web.sh
 ENV DX_CONTAINER_MODE=true
 RUN /deepx/getting-started/compiler-clean.sh
 
@@ -258,39 +355,121 @@ RUN echo "deepx:deepx" | chpasswd
 
 # add sudo group
 RUN groupadd -g "$HOST_GID" "$TARGET_USER" || true; \
-    usermod -aG sudo "$TARGET_USER"; \
+    usermod -aG sudo "$TARGET_USER" 2>/dev/null || usermod -aG wheel "$TARGET_USER" 2>/dev/null || true; \
     echo "$TARGET_USER ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers;
 
-# Install DX-COM wheel package for the current Python version (before switching to non-root user)
-# For Python 3.8, manually install onnxruntime 1.18.0 from direct URL (PyPI doesn't support it)
+# Install DX-COM wheel package
+# Detects the required Python version from the wheel filename.
+# If the current venv Python doesn't match, installs the correct Python and recreates the venv.
 RUN set -ex; \
+    OS_FAM=$(cat /tmp/.os_family); \
     . /venv-dxnn/bin/activate; \
     PYTHON_VERSION_TAG=$(python3 -c "import sys; print(f'cp{sys.version_info.major}{sys.version_info.minor}')"); \
-    echo "Detected Python version tag: ${PYTHON_VERSION_TAG}"; \
-    if [ "${PYTHON_VERSION_TAG}" = "cp38" ]; then \
-        echo "Python 3.8 detected: Upgrading pip and installing onnxruntime 1.18.0 from direct URL..."; \
-        pip3 install --upgrade pip; \
-        pip3 install https://files.pythonhosted.org/packages/1b/74/02cb1f6fcbadc094c98c49aff8571e7c576bdb4015c01507c385285b5bed/onnxruntime-1.18.0-cp38-cp38-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl; \
-    fi; \
+    echo "Current venv Python version tag: ${PYTHON_VERSION_TAG}"; \
     MATCHING_WHEEL=$(find /deepx/dx-compiler/dx_com -name "*-${PYTHON_VERSION_TAG}-*.whl" -print -quit); \
     if [ -z "$MATCHING_WHEEL" ]; then \
-        echo "ERROR: No wheel file compatible with Python ${PYTHON_VERSION_TAG} found."; \
+        echo "No wheel for ${PYTHON_VERSION_TAG}, detecting required version from available wheel..."; \
+        ANY_WHEEL=$(find /deepx/dx-compiler/dx_com -name "*.whl" -print -quit); \
+        if [ -z "$ANY_WHEEL" ]; then \
+            echo "ERROR: No wheel files found in /deepx/dx-compiler/dx_com/"; \
+            exit 1; \
+        fi; \
+        WHEEL_BASENAME=$(basename "$ANY_WHEEL"); \
+        echo "Available wheel: ${WHEEL_BASENAME}"; \
+        WHEEL_PY_TAG=$(echo "$WHEEL_BASENAME" | sed -n 's/.*-\(cp[0-9]*\)-cp[0-9]*-.*/\1/p'); \
+        if [ -z "$WHEEL_PY_TAG" ]; then \
+            echo "ERROR: Cannot extract Python version tag from wheel filename: ${WHEEL_BASENAME}"; \
+            exit 1; \
+        fi; \
+        REQUIRED_MAJOR=$(echo "$WHEEL_PY_TAG" | sed 's/cp\([0-9]\).*/\1/'); \
+        REQUIRED_MINOR=$(echo "$WHEEL_PY_TAG" | sed 's/cp[0-9]//'); \
+        REQUIRED_PY_VERSION="${REQUIRED_MAJOR}.${REQUIRED_MINOR}"; \
+        echo "Wheel requires Python ${REQUIRED_PY_VERSION} (tag: ${WHEEL_PY_TAG})"; \
+        echo "Installing Python ${REQUIRED_PY_VERSION}..."; \
+        DX_PYTHON_EXEC=""; \
+        if [ "$OS_FAM" = "debian" ]; then \
+            export DEBIAN_FRONTEND=noninteractive; \
+            apt-get update; \
+            if command -v add-apt-repository >/dev/null 2>&1; then \
+                add-apt-repository -y ppa:deadsnakes/ppa 2>/dev/null || true; \
+                apt-get update || true; \
+            fi; \
+            apt-get install -y python${REQUIRED_PY_VERSION} python${REQUIRED_PY_VERSION}-dev python${REQUIRED_PY_VERSION}-venv 2>/dev/null && \
+                DX_PYTHON_EXEC="python${REQUIRED_PY_VERSION}" || true; \
+        elif [ "$OS_FAM" = "rhel" ]; then \
+            dnf install -y python${REQUIRED_PY_VERSION} python${REQUIRED_PY_VERSION}-devel python${REQUIRED_PY_VERSION}-pip 2>/dev/null && \
+                DX_PYTHON_EXEC="python${REQUIRED_PY_VERSION}" || true; \
+            if [ -z "$DX_PYTHON_EXEC" ]; then \
+                dnf install -y python${REQUIRED_MAJOR}.${REQUIRED_MINOR} python${REQUIRED_MAJOR}.${REQUIRED_MINOR}-devel 2>/dev/null && \
+                    DX_PYTHON_EXEC="python${REQUIRED_MAJOR}.${REQUIRED_MINOR}" || true; \
+            fi; \
+        fi; \
+        if [ -z "$DX_PYTHON_EXEC" ] || ! command -v "$DX_PYTHON_EXEC" >/dev/null 2>&1; then \
+            echo "Package manager install failed, building Python ${REQUIRED_PY_VERSION} from source..."; \
+            FULL_PY_VERSION="${REQUIRED_PY_VERSION}.0"; \
+            if [ "$OS_FAM" = "debian" ]; then \
+                export DEBIAN_FRONTEND=noninteractive; \
+                apt-get install -y --no-install-recommends \
+                    build-essential wget curl ca-certificates \
+                    libssl-dev zlib1g-dev libncurses5-dev libncursesw5-dev \
+                    libreadline-dev libsqlite3-dev libgdbm-dev libdb5.3-dev \
+                    libbz2-dev libexpat1-dev liblzma-dev tk-dev libffi-dev uuid-dev; \
+            elif [ "$OS_FAM" = "rhel" ]; then \
+                dnf install -y \
+                    gcc gcc-c++ make wget curl ca-certificates \
+                    openssl-devel zlib-devel ncurses-devel readline-devel \
+                    sqlite-devel gdbm-devel bzip2-devel expat-devel \
+                    xz-devel tk-devel libffi-devel libuuid-devel; \
+            fi; \
+            wget --no-check-certificate https://www.python.org/ftp/python/${FULL_PY_VERSION}/Python-${FULL_PY_VERSION}.tgz; \
+            tar xzf Python-${FULL_PY_VERSION}.tgz; \
+            cd Python-${FULL_PY_VERSION}; \
+            ./configure --enable-optimizations --without-tcltk; \
+            make -j$(nproc); \
+            make altinstall; \
+            cd ..; \
+            rm -rf Python-${FULL_PY_VERSION}*; \
+            DX_PYTHON_EXEC="python${REQUIRED_PY_VERSION}"; \
+        fi; \
+        echo "Recreating venv with ${DX_PYTHON_EXEC}..."; \
+        rm -rf /venv-dxnn; \
+        ${DX_PYTHON_EXEC} -m venv /venv-dxnn; \
+        . /venv-dxnn/bin/activate; \
+        PYTHON_VERSION_TAG=$(python3 -c "import sys; print(f'cp{sys.version_info.major}{sys.version_info.minor}')"); \
+        echo "New venv Python version tag: ${PYTHON_VERSION_TAG}"; \
+        MATCHING_WHEEL=$(find /deepx/dx-compiler/dx_com -name "*-${PYTHON_VERSION_TAG}-*.whl" -print -quit); \
+    fi; \
+    if [ -z "$MATCHING_WHEEL" ]; then \
+        echo "ERROR: Still no compatible wheel after Python install."; \
         ls -la /deepx/dx-compiler/dx_com/*.whl || echo "No wheel files found"; \
         exit 1; \
     fi; \
     echo "Found compatible wheel file: $(basename "$MATCHING_WHEEL")"; \
+    pip3 install --upgrade pip; \
+    if [ "${PYTHON_VERSION_TAG}" = "cp38" ]; then \
+        echo "Python 3.8 detected: Installing onnxruntime 1.18.0 from direct URL..."; \
+        pip3 install https://files.pythonhosted.org/packages/1b/74/02cb1f6fcbadc094c98c49aff8571e7c576bdb4015c01507c385285b5bed/onnxruntime-1.18.0-cp38-cp38-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl; \
+    fi; \
     pip3 install "$MATCHING_WHEEL"
 
-# Install DX-Tron package for debian-based systems (with architecture detection)
+# Install DX-Tron package
+# - Debian/Ubuntu: install .deb package
+# - Red Hat family: skip .deb install (web variant only, use run_dxtron_web.sh)
 RUN set -x && \
-    ARCH=$(dpkg --print-architecture 2>/dev/null || uname -m) && \
-    case "$ARCH" in \
-        amd64|x86_64) ARCH="amd64" ;; \
-        arm64|aarch64) ARCH="arm64" ;; \
-    esac && \
-    echo "Detected architecture: ${ARCH}" && \
-    apt-get update && \
-    apt install -y /deepx/dx-compiler/dx_tron/dxtron_*_${ARCH}.deb
+    OS_FAM=$(cat /tmp/.os_family) && \
+    if [ "$OS_FAM" = "debian" ]; then \
+        ARCH=$(dpkg --print-architecture 2>/dev/null || uname -m) && \
+        case "$ARCH" in \
+            amd64|x86_64) ARCH="amd64" ;; \
+            arm64|aarch64) ARCH="arm64" ;; \
+        esac && \
+        echo "Detected architecture: ${ARCH}" && \
+        apt-get update && \
+        apt install -y /deepx/dx-compiler/dx_tron/dxtron_*_${ARCH}.deb; \
+    elif [ "$OS_FAM" = "rhel" ]; then \
+        echo "Red Hat family detected - DX-Tron web variant only (use run_dxtron_web.sh)" && \
+        rm -f /deepx/dx-compiler/dx_tron/*.deb /deepx/dx-compiler/dx_tron/*.AppImage; \
+    fi
 
 USER $TARGET_USER
 WORKDIR $TARGET_HOME

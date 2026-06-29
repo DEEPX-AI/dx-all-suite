@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dx-agent-dev-gen"
+version = "0.1.0"
+description = "DEEPX Agent-Driven Development Platform Generator — generates platform-specific agent/skill/instruction files from canonical .deepx/ source"
+requires-python = ">=3.10"
+dependencies = [
+    "jinja2>=3.1",
+    "pyyaml>=6.0",
+]
+
+[project.scripts]
+dx-agent-gen = "dx_agent_dev_gen.cli:main"
+dx-showcase-gen = "dx_showcase_gen.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

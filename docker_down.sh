@@ -11,6 +11,9 @@ pushd "$DX_AS_PATH" >&2
 OUTPUT_DIR="$DX_AS_PATH/archives"
 UBUNTU_VERSION=""
 DEBIAN_VERSION=""
+FEDORA_VERSION=""
+RHEL_VERSION=""
+CENTOS_VERSION=""
 BASE_IMAGE_NAME=""
 OS_VERSION=""
 
@@ -21,7 +24,7 @@ INTEL_GPU_HW_ACC=0
 show_help() {
     echo -e "Usage: ${COLOR_CYAN}$(basename "$0") ${COLOR_GREEN}--all${COLOR_RESET}"
     echo -e "   or: ${COLOR_CYAN}$(basename "$0") ${COLOR_GREEN}--all${COLOR_RESET} ${COLOR_YELLOW}(--ubuntu_version=<version> | --debian_version=<version>)${COLOR_RESET}"
-    echo -e "   or: ${COLOR_CYAN}$(basename "$0") ${COLOR_GREEN}--target=<dx-compiler>${COLOR_RESET} ${COLOR_YELLOW}--ubuntu_version=<version>${COLOR_RESET}"
+    echo -e "   or: ${COLOR_CYAN}$(basename "$0") ${COLOR_GREEN}--target=<dx-compiler>${COLOR_RESET} ${COLOR_YELLOW}(--ubuntu_version=<version> | --fedora_version=<version> | --rhel_version=<version> | --centos_version=<version>)${COLOR_RESET}"
     echo -e "   or: ${COLOR_CYAN}$(basename "$0") ${COLOR_GREEN}--target=<dx-runtime | dx-modelzoo>${COLOR_RESET} ${COLOR_YELLOW}(--ubuntu_version=<version> | --debian_version=<version>)${COLOR_RESET}"
     echo -e ""
     echo -e "${COLOR_BOLD}Required (choose one target option):${COLOR_RESET}"
@@ -34,7 +37,11 @@ show_help() {
     echo -e "${COLOR_BOLD}Required (choose one OS option):${COLOR_RESET}"
     echo -e "  ${COLOR_YELLOW}--ubuntu_version=<version>${COLOR_RESET}     Specify Ubuntu version (ex: 24.04, 22.04, 20.04)"
     echo -e "  ${COLOR_YELLOW}--debian_version=<version>${COLOR_RESET}     Specify Debian version (ex: 12)"
-    echo -e "                                   Note: ${COLOR_CYAN}dx-compiler${COLOR_RESET} only supports Ubuntu ${COLOR_RED}(Debian is not supported)${COLOR_RESET}"
+    echo -e "  ${COLOR_YELLOW}--fedora_version=<version>${COLOR_RESET}     Specify Fedora version (ex: 42, 43, 44, 45) ${COLOR_RED}(dx-compiler only)${COLOR_RESET}"
+    echo -e "  ${COLOR_YELLOW}--rhel_version=<version>${COLOR_RESET}       Specify RHEL/UBI version (ex: 9, 10) ${COLOR_RED}(dx-compiler only)${COLOR_RESET}"
+    echo -e "  ${COLOR_YELLOW}--centos_version=<version>${COLOR_RESET}     Specify CentOS Stream version (ex: stream9, stream10) ${COLOR_RED}(dx-compiler only)${COLOR_RESET}"
+    echo -e "                                   Note: ${COLOR_CYAN}dx-compiler${COLOR_RESET} supports Ubuntu, Fedora, RHEL, and CentOS Stream"
+    echo -e "                                   Note: ${COLOR_CYAN}dx-runtime${COLOR_RESET} and ${COLOR_CYAN}dx-modelzoo${COLOR_RESET} support Ubuntu and Debian only"
     echo -e ""
     echo -e "${COLOR_BOLD}Optional:${COLOR_RESET}"
     echo -e "  ${COLOR_GREEN}[--help]${COLOR_RESET}                       Show this help message"
@@ -43,6 +50,9 @@ show_help() {
     echo -e "  ${COLOR_YELLOW}$0 --all${COLOR_RESET}"
     echo -e "  ${COLOR_YELLOW}$0 --all --ubuntu_version=24.04${COLOR_RESET}"
     echo -e "  ${COLOR_YELLOW}$0 --target=dx-compiler --ubuntu_version=24.04${COLOR_RESET}"
+    echo -e "  ${COLOR_YELLOW}$0 --target=dx-compiler --fedora_version=42${COLOR_RESET}"
+    echo -e "  ${COLOR_YELLOW}$0 --target=dx-compiler --rhel_version=9${COLOR_RESET}"
+    echo -e "  ${COLOR_YELLOW}$0 --target=dx-compiler --centos_version=stream9${COLOR_RESET}"
     echo -e "  ${COLOR_YELLOW}$0 --target=dx-runtime --ubuntu_version=24.04${COLOR_RESET}"
     echo -e "  ${COLOR_YELLOW}$0 --target=dx-runtime --debian_version=12${COLOR_RESET}"
     echo -e "  ${COLOR_YELLOW}$0 --target=dx-modelzoo --ubuntu_version=24.04${COLOR_RESET}"
@@ -88,7 +98,7 @@ docker_down_impl()
     fi
 
     # Dynamically set the project name based on the Ubuntu or Debian version
-    export COMPOSE_PROJECT_NAME="dx-all-suite-$(echo "${BASE_IMAGE_NAME}-${OS_VERSION}" | sed 's/\./-/g')"
+    export COMPOSE_PROJECT_NAME="dx-all-suite-$(echo "${IMAGE_TAG_SUFFIX:-${BASE_IMAGE_NAME}-${OS_VERSION}}" | sed 's/[\.\/]/-/g')"
     CMD="docker compose ${config_file_args} -p ${COMPOSE_PROJECT_NAME} down dx-${target}"
     echo "${CMD}"
 
@@ -229,18 +239,26 @@ main() {
     check_docker_compose_command
 
     # Special case: --all without OS version should stop all containers
-    if [ "$TARGET_ENV" == "all" ] && [ -z "$UBUNTU_VERSION" ] && [ -z "$DEBIAN_VERSION" ]; then
+    if [ "$TARGET_ENV" == "all" ] && [ -z "$UBUNTU_VERSION" ] && [ -z "$DEBIAN_VERSION" ] && \
+       [ -z "$FEDORA_VERSION" ] && [ -z "$RHEL_VERSION" ] && [ -z "$CENTOS_VERSION" ]; then
         docker_down_all_without_os_versions
         return 0
     fi
 
-    # Validate OS version options
-    if [ -n "$UBUNTU_VERSION" ] && [ -n "$DEBIAN_VERSION" ]; then
-        show_help "error" "Cannot specify both --ubuntu_version and --debian_version. Please choose one."
+    # Validate OS version options - only one can be specified
+    local OS_OPTIONS_COUNT=0
+    [ -n "$UBUNTU_VERSION" ] && OS_OPTIONS_COUNT=$((OS_OPTIONS_COUNT + 1))
+    [ -n "$DEBIAN_VERSION" ] && OS_OPTIONS_COUNT=$((OS_OPTIONS_COUNT + 1))
+    [ -n "$FEDORA_VERSION" ] && OS_OPTIONS_COUNT=$((OS_OPTIONS_COUNT + 1))
+    [ -n "$RHEL_VERSION" ] && OS_OPTIONS_COUNT=$((OS_OPTIONS_COUNT + 1))
+    [ -n "$CENTOS_VERSION" ] && OS_OPTIONS_COUNT=$((OS_OPTIONS_COUNT + 1))
+
+    if [ "$OS_OPTIONS_COUNT" -gt 1 ]; then
+        show_help "error" "Cannot specify multiple OS version options. Please choose one."
     fi
 
-    if [ -z "$UBUNTU_VERSION" ] && [ -z "$DEBIAN_VERSION" ]; then
-        show_help "error" "Either --ubuntu_version or --debian_version option must be specified."
+    if [ "$OS_OPTIONS_COUNT" -eq 0 ]; then
+        show_help "error" "An OS version option must be specified (--ubuntu_version, --debian_version, --fedora_version, --rhel_version, or --centos_version)."
     fi
 
     # Set BASE_IMAGE_NAME and OS_VERSION based on input
@@ -250,6 +268,20 @@ main() {
     elif [ -n "$DEBIAN_VERSION" ]; then
         BASE_IMAGE_NAME="debian"
         OS_VERSION="$DEBIAN_VERSION"
+    elif [ -n "$FEDORA_VERSION" ]; then
+        BASE_IMAGE_NAME="fedora"
+        OS_VERSION="$FEDORA_VERSION"
+    elif [ -n "$RHEL_VERSION" ]; then
+        case "$RHEL_VERSION" in
+            9)  BASE_IMAGE_NAME="redhat/ubi9"; OS_VERSION="9" ;;
+            10) BASE_IMAGE_NAME="redhat/ubi10"; OS_VERSION="10" ;;
+            *)  show_help "error" "Unsupported RHEL version: $RHEL_VERSION. Supported: 9, 10" ;;
+        esac
+        IMAGE_TAG_SUFFIX="redhat-ubi${RHEL_VERSION}"
+    elif [ -n "$CENTOS_VERSION" ]; then
+        BASE_IMAGE_NAME="quay.io/centos/centos"
+        OS_VERSION="$CENTOS_VERSION"
+        IMAGE_TAG_SUFFIX="centos-${CENTOS_VERSION}"
     fi
 
     print_colored_v2 "INFO" "BASE_IMAGE_NAME($BASE_IMAGE_NAME) is set."
@@ -293,6 +325,15 @@ for i in "$@"; do
             ;;
         --debian_version=*)
             DEBIAN_VERSION="${1#*=}"
+            ;;
+        --fedora_version=*)
+            FEDORA_VERSION="${1#*=}"
+            ;;
+        --rhel_version=*)
+            RHEL_VERSION="${1#*=}"
+            ;;
+        --centos_version=*)
+            CENTOS_VERSION="${1#*=}"
             ;;
         --help)
             show_help

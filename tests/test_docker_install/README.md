@@ -6,11 +6,11 @@ A pytest-based test suite for automated Docker image build verification.
 
 This test suite validates the following Docker image builds:
 
-- **dx-runtime**: Ubuntu 24.04, 22.04, 20.04, 18.04, Debian 12, Debian 13 (6 tests)
-- **dx-modelzoo**: Ubuntu 24.04, 22.04, 20.04, 18.04, Debian 12, Debian 13 (6 tests)
-- **dx-compiler**: Ubuntu 24.04, 22.04, 20.04 (3 tests)
+- **dx-runtime**: Ubuntu 26.04, 24.04, 22.04, 20.04, Debian 12, Debian 13 (6 tests)
+- **dx-modelzoo**: Ubuntu 26.04, 24.04, 22.04, 20.04, Debian 12, Debian 13 (6 tests)
+- **dx-compiler**: Ubuntu 26.04, 24.04, 22.04, 20.04, Fedora 42-45, RHEL 9-10, CentOS Stream 9-10 (12 tests)
 
-**Total: 15 build tests + 4 sanity tests = 19 tests**
+**Total: 24 build tests + 4 sanity tests = 28 tests**
 
 ## Quick Start
 
@@ -80,7 +80,7 @@ pytest -k "runtime or compiler"
 
 # Exclusion (NOT)
 pytest -k "not debian"
-pytest -k "ubuntu and not 18.04"
+pytest -k "ubuntu and not 20.04"
 ```
 
 ### Filter by Marker (-m option)
@@ -130,30 +130,39 @@ Pre-build environment validation:
 - `test_docker_compose_command_available` - Check docker compose
 - `test_project_structure` - Verify project structure
 
-### Build Tests (15 tests)
+### Build Tests (26 tests)
 
 Actual Docker image builds:
 
 **dx-runtime (6 tests)**
+- `test_docker_build[dx-runtime-ubuntu-26.04]`
 - `test_docker_build[dx-runtime-ubuntu-24.04]`
 - `test_docker_build[dx-runtime-ubuntu-22.04]`
 - `test_docker_build[dx-runtime-ubuntu-20.04]`
-- `test_docker_build[dx-runtime-ubuntu-18.04]`
 - `test_docker_build[dx-runtime-debian-12]`
 - `test_docker_build[dx-runtime-debian-13]`
 
 **dx-modelzoo (6 tests)**
+- `test_docker_build[dx-modelzoo-ubuntu-26.04]`
 - `test_docker_build[dx-modelzoo-ubuntu-24.04]`
 - `test_docker_build[dx-modelzoo-ubuntu-22.04]`
 - `test_docker_build[dx-modelzoo-ubuntu-20.04]`
-- `test_docker_build[dx-modelzoo-ubuntu-18.04]`
 - `test_docker_build[dx-modelzoo-debian-12]`
 - `test_docker_build[dx-modelzoo-debian-13]`
 
-**dx-compiler (3 tests)**
+**dx-compiler (12 tests)**
+- `test_docker_build[dx-compiler-ubuntu-26.04]`
 - `test_docker_build[dx-compiler-ubuntu-24.04]`
 - `test_docker_build[dx-compiler-ubuntu-22.04]`
 - `test_docker_build[dx-compiler-ubuntu-20.04]`
+- `test_docker_build[dx-compiler-fedora-42]`
+- `test_docker_build[dx-compiler-fedora-43]`
+- `test_docker_build[dx-compiler-fedora-44]`
+- `test_docker_build[dx-compiler-fedora-45]`
+- `test_docker_build[dx-compiler-rhel-9]`
+- `test_docker_build[dx-compiler-rhel-10]`
+- `test_docker_build[dx-compiler-centos-stream9]`
+- `test_docker_build[dx-compiler-centos-stream10]`
 
 ## Expected Execution Time
 

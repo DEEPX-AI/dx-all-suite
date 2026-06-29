@@ -1,0 +1,402 @@
+CUSTOM_INTER_OP_THREADS_COUNT=1
+CUSTOM_INTRA_OP_THREADS_COUNT=2
+DXRT_DYNAMIC_CPU_THREAD=1
+DXRT_TASK_MAX_LOAD=3
+NFH_INPUT_WORKER_THREADS=2
+NFH_OUTPUT_WORKER_THREADS=4
+============================================================
+ RapidDoc PDF->Markdown on DX-M1 NPU
+   python  : /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md/venv/bin/python
+   input   : /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md/sample_input.pdf
+   method  : auto
+   output  : /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md/output
+============================================================
+2026-06-12 14:57:52,125 [INFO] Input        : /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md/sample_input.pdf
+2026-06-12 14:57:52,125 [INFO] Parse method : auto
+2026-06-12 14:57:52,125 [INFO] Output dir   : /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md/output
+2026-06-12 14:57:52,125 [INFO] Formula      : enabled (ONNX/CPU)
+/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md/rapid_doc/model/formula/rapid_formula_self/model_handler/pp_formulanet_plus/post_process.py:306: SyntaxWarning: invalid escape sequence '\W'
+  noletter = "[\W_^\d]"
+[DXRT] Using DXRT_TASK_MAX_LOAD (I/O buffer-count)=3 from environment
+/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md/rapid_doc/model/reading_order/xycut_plus.py:326: SyntaxWarning: invalid escape sequence '\o'
+  model_dir_or_path="C:\ocr\models\ppmodel\layout\PP-DocLayout-L\pp_doclayout_l.onnx")
+2026-06-12 14:57:53,545 [INFO] Failed to extract font properties from /usr/share/fonts/truetype/noto/NotoColorEmoji.ttf: Non-scalable fonts are not supported
+2026-06-12 14:57:53,695 [INFO] generated new fontManager
+2026-06-12 14:57:53,813 [INFO] Running document-parsing pipeline on DX-M1 NPU (method=auto, mode=finegrained) ...
+2026-06-12 14:57:54.921 | INFO     | rapid_doc.backend.pipeline.pipeline_analyze:doc_analyze:218 - 🚀 Using FinegrainedStreamingPipeline for 9 pages
+2026-06-12 14:57:55.088 | INFO     | rapid_doc.backend.pipeline.model_init:__init__:231 - DocAnalysis init, this may take some times......
+[32m[INFO] 2026-06-12 14:57:55,088 [RapidTable] base.py:65: Using engine_name: onnxruntime[0m
+[32m[INFO] 2026-06-12 14:57:55,090 [RapidTable] main.py:28: Using /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md/onnx_models/pp_formulanet_plus_m.onnx[0m
+[32m[INFO] 2026-06-12 14:57:56,105 [RapidTable] base.py:65: Using engine_name: dxengine[0m
+[32m[INFO] 2026-06-12 14:57:56,106 [RapidTable] dxengine.py:29: Using /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md/dxnn_models/pp_doclayout_l_part1.dxnn[0m
+2026-06-12 14:57:56,107 [INFO] DXNN_DEVICES 환경변수로부터 디바이스 설정: [0]
+[DXRT] Using CUSTOM_INTRA_OP_THREADS_COUNT=2 from environment
+[DXRT] Using CUSTOM_INTER_OP_THREADS_COUNT=1 from environment
+[DXRT] Using NFH_INPUT_WORKER_THREADS=2 from environment
+[DXRT] Using NFH_OUTPUT_WORKER_THREADS=4 from environment
+[32m[INFO] 2026-06-12 14:57:56,266 [RapidTable] dxengine.py:49: DXInferSession initialized in ASYNC mode (wait-based, no callback)[0m
+[32m[INFO] 2026-06-12 14:57:56,266 [RapidTable] main.py:18: pp_doclayout_l contains [][0m
+2026-06-12 14:57:56.267 | INFO     | rapid_doc.backend.pipeline.model_init:ocr_model_init:55 - Using DX Engine for OCR (ASYNC mode)
+2026-06-12 14:57:56.267 | INFO     | rapid_doc.backend.pipeline.model_init:ocr_model_init:56 - DX Engine model paths: 0.3, 2.0
+2026-06-12 14:57:56.267 | INFO     | rapid_doc.model.ocr.dx_ocr:__init__:1178 - 🔧 DX OCR __init__ | save_debug_images=False | debug_save_dir=/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md/output/ocr_debug
+2026-06-12 14:57:56,267 [INFO] DXNN_DEVICES 환경변수로부터 디바이스 설정: [0]
+2026-06-12 14:57:56.312 | INFO     | rapid_doc.model.ocr.dx_ocr:__init__:132 - Loaded detection model for ratio 1: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md/dxnn_models/det_v5_640_640.dxnn (size: (640, 640))
+2026-06-12 14:57:56.361 | INFO     | rapid_doc.model.ocr.dx_ocr:__init__:132 - Loaded detection model for ratio 2: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md/dxnn_models/det_v5_320_640.dxnn (size: (320, 640))
+2026-06-12 14:57:56.415 | INFO     | rapid_doc.model.ocr.dx_ocr:__init__:132 - Loaded detection model for ratio 4: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md/dxnn_models/det_v5_160_640.dxnn (size: (160, 640))
+2026-06-12 14:57:56.462 | INFO     | rapid_doc.model.ocr.dx_ocr:__init__:132 - Loaded detection model for ratio 10: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md/dxnn_models/det_v5_64_640.dxnn (size: (64, 640))
+2026-06-12 14:57:56.462 | INFO     | rapid_doc.model.ocr.dx_ocr:__init__:142 - Multi-detection initialized with 4 models
+2026-06-12 14:57:56.462 | INFO     | rapid_doc.model.ocr.dx_ocr:__init__:150 - DxTextDetector initialized with model: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md/dxnn_models/det_v5_640_640.dxnn (ASYNC mode)
+2026-06-12 14:57:56.462 | WARNING  | rapid_doc.model.ocr.dx_ocr:__init__:760 - DX Engine does not support batch processing. Forcing rec_batch_num=1 (was 6)
+2026-06-12 14:57:56.462 | INFO     | rapid_doc.model.ocr.dx_ocr:__init__:767 - DX Engine static shape mode: input size fixed to 48x640
+2026-06-12 14:57:56,462 [INFO] DXNN_DEVICES 환경변수로부터 디바이스 설정: [0]
+2026-06-12 14:57:56.510 | INFO     | rapid_doc.model.ocr.dx_ocr:__init__:788 - DxTextRecognizer initialized in ASYNC mode (callbacks on demand)
+2026-06-12 14:57:56.512 | INFO     | rapid_doc.model.ocr.dx_ocr:__init__:767 - DX Engine static shape mode: input size fixed to 48x120
+2026-06-12 14:57:56,512 [INFO] DXNN_DEVICES 환경변수로부터 디바이스 설정: [0]
+2026-06-12 14:57:56.563 | INFO     | rapid_doc.model.ocr.dx_ocr:__init__:788 - DxTextRecognizer initialized in ASYNC mode (callbacks on demand)
+2026-06-12 14:57:56.565 | INFO     | rapid_doc.model.ocr.dx_ocr:_init_multi_rec_models:1295 - Loaded recognition model for ratio 3: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md/dxnn_models/rec_v5_ratio_3.dxnn (size: 48x120)
+2026-06-12 14:57:56.565 | INFO     | rapid_doc.model.ocr.dx_ocr:__init__:767 - DX Engine static shape mode: input size fixed to 48x240
+2026-06-12 14:57:56,565 [INFO] DXNN_DEVICES 환경변수로부터 디바이스 설정: [0]
+2026-06-12 14:57:56.611 | INFO     | rapid_doc.model.ocr.dx_ocr:__init__:788 - DxTextRecognizer initialized in ASYNC mode (callbacks on demand)
+2026-06-12 14:57:56.613 | INFO     | rapid_doc.model.ocr.dx_ocr:_init_multi_rec_models:1295 - Loaded recognition model for ratio 5: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md/dxnn_models/rec_v5_ratio_5.dxnn (size: 48x240)
+2026-06-12 14:57:56.613 | INFO     | rapid_doc.model.ocr.dx_ocr:__init__:767 - DX Engine static shape mode: input size fixed to 48x480
+2026-06-12 14:57:56,613 [INFO] DXNN_DEVICES 환경변수로부터 디바이스 설정: [0]
+2026-06-12 14:57:56.656 | INFO     | rapid_doc.model.ocr.dx_ocr:__init__:788 - DxTextRecognizer initialized in ASYNC mode (callbacks on demand)
+2026-06-12 14:57:56.658 | INFO     | rapid_doc.model.ocr.dx_ocr:_init_multi_rec_models:1295 - Loaded recognition model for ratio 10: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md/dxnn_models/rec_v5_ratio_10.dxnn (size: 48x480)
+2026-06-12 14:57:56.658 | INFO     | rapid_doc.model.ocr.dx_ocr:__init__:767 - DX Engine static shape mode: input size fixed to 48x720
+2026-06-12 14:57:56,658 [INFO] DXNN_DEVICES 환경변수로부터 디바이스 설정: [0]
+2026-06-12 14:57:56.704 | INFO     | rapid_doc.model.ocr.dx_ocr:__init__:788 - DxTextRecognizer initialized in ASYNC mode (callbacks on demand)
+2026-06-12 14:57:56.705 | INFO     | rapid_doc.model.ocr.dx_ocr:_init_multi_rec_models:1295 - Loaded recognition model for ratio 15: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md/dxnn_models/rec_v5_ratio_15.dxnn (size: 48x720)
+2026-06-12 14:57:56.706 | INFO     | rapid_doc.model.ocr.dx_ocr:__init__:767 - DX Engine static shape mode: input size fixed to 48x1200
+2026-06-12 14:57:56,706 [INFO] DXNN_DEVICES 환경변수로부터 디바이스 설정: [0]
+2026-06-12 14:57:56.753 | INFO     | rapid_doc.model.ocr.dx_ocr:__init__:788 - DxTextRecognizer initialized in ASYNC mode (callbacks on demand)
+2026-06-12 14:57:56.755 | INFO     | rapid_doc.model.ocr.dx_ocr:_init_multi_rec_models:1295 - Loaded recognition model for ratio 25: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md/dxnn_models/rec_v5_ratio_25.dxnn (size: 48x1200)
+2026-06-12 14:57:56.756 | INFO     | rapid_doc.model.ocr.dx_ocr:__init__:767 - DX Engine static shape mode: input size fixed to 48x1680
+2026-06-12 14:57:56,756 [INFO] DXNN_DEVICES 환경변수로부터 디바이스 설정: [0]
+2026-06-12 14:57:56.803 | INFO     | rapid_doc.model.ocr.dx_ocr:__init__:788 - DxTextRecognizer initialized in ASYNC mode (callbacks on demand)
+2026-06-12 14:57:56.805 | INFO     | rapid_doc.model.ocr.dx_ocr:_init_multi_rec_models:1295 - Loaded recognition model for ratio 35: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md/dxnn_models/rec_v5_ratio_35.dxnn (size: 48x1680)
+2026-06-12 14:57:56.805 | INFO     | rapid_doc.model.ocr.dx_ocr:_init_multi_rec_models:1299 - Multi-recognition initialized with 6 recognizers
+2026-06-12 14:57:56.805 | INFO     | rapid_doc.model.ocr.dx_ocr:__init__:1251 - DxOcrModel initialized successfully
+2026-06-12 14:57:56,806 [INFO] DXNN_DEVICES 환경변수로부터 디바이스 설정: [0]
+2026-06-12 14:57:56,844 - OrtInferSession - INFO: DxInferSession initialized (use_async=True)
+2026-06-12 14:57:56,844 [INFO] DxInferSession initialized (use_async=True)
+2026-06-12 14:57:56.844 | INFO     | rapid_doc.backend.pipeline.model_init:__init__:271 - DocAnalysis init done!
+2026-06-12 14:57:56.844 | INFO     | rapid_doc.backend.pipeline.pipeline_analyze:custom_model_init:96 - model init cost: 1.92s
+2026-06-12 14:57:56.844 | INFO     | rapid_doc.backend.pipeline.pipeline_analyze:custom_model_init:99 -   formula     : 1.02s
+2026-06-12 14:57:56.844 | INFO     | rapid_doc.backend.pipeline.pipeline_analyze:custom_model_init:99 -   layout      : 0.16s
+2026-06-12 14:57:56.844 | INFO     | rapid_doc.backend.pipeline.pipeline_analyze:custom_model_init:99 -   ocr         : 0.54s
+2026-06-12 14:57:56.844 | INFO     | rapid_doc.backend.pipeline.pipeline_analyze:custom_model_init:99 -   table       : 0.04s
+2026-06-12 14:57:56.844 | INFO     | rapid_doc.backend.pipeline.async_pipeline:run:1235 - 🚀 FinegrainedStreamingPipeline: 9 pages (7-stage assembly-line)
+Layout Predict:   0%|          | 0/1 [00:00<?, ?it/s]Layout Predict: 100%|██████████| 1/1 [00:00<00:00,  3.81it/s]Layout Predict: 100%|██████████| 1/1 [00:00<00:00,  3.81it/s]
+Layout Predict:   0%|          | 0/1 [00:00<?, ?it/s]Layout Predict: 100%|██████████| 1/1 [00:00<00:00,  3.99it/s]Layout Predict: 100%|██████████| 1/1 [00:00<00:00,  3.99it/s]
+Layout Predict:   0%|          | 0/1 [00:00<?, ?it/s]2026-06-12 14:57:57,386 [INFO] DXNN_DEVICES 환경변수로부터 디바이스 설정: [0]
+2026-06-12 14:57:57,426 - OrtInferSession - INFO: DxInferSession initialized (use_async=True)
+2026-06-12 14:57:57,426 [INFO] DxInferSession initialized (use_async=True)
+2026-06-12 14:57:57.427 | DEBUG    | rapid_doc.model.ocr.dx_ocr:__call__:1580 - DX OCR __call__ invoked | save_debug_images=False | counter=0
+Layout Predict: 100%|██████████| 1/1 [00:00<00:00,  2.96it/s]Layout Predict: 100%|██████████| 1/1 [00:00<00:00,  2.96it/s]
+Layout Predict:   0%|          | 0/1 [00:00<?, ?it/s]2026-06-12 14:57:57.949 | DEBUG    | rapid_doc.model.ocr.dx_ocr:__call__:1580 - DX OCR __call__ invoked | save_debug_images=False | counter=0
+Layout Predict: 100%|██████████| 1/1 [00:00<00:00,  3.43it/s]Layout Predict: 100%|██████████| 1/1 [00:00<00:00,  3.43it/s]
+Layout Predict:   0%|          | 0/1 [00:00<?, ?it/s]Layout Predict: 100%|██████████| 1/1 [00:00<00:00,  3.32it/s]Layout Predict: 100%|██████████| 1/1 [00:00<00:00,  3.32it/s]
+Layout Predict:   0%|          | 0/1 [00:00<?, ?it/s]2026-06-12 14:57:58.608 | DEBUG    | rapid_doc.model.ocr.dx_ocr:__call__:1580 - DX OCR __call__ invoked | save_debug_images=False | counter=0
+Layout Predict: 100%|██████████| 1/1 [00:00<00:00,  3.49it/s]Layout Predict: 100%|██████████| 1/1 [00:00<00:00,  3.49it/s]
+Layout Predict:   0%|          | 0/1 [00:00<?, ?it/s]Layout Predict: 100%|██████████| 1/1 [00:00<00:00,  3.19it/s]Layout Predict: 100%|██████████| 1/1 [00:00<00:00,  3.19it/s]
+Layout Predict:   0%|          | 0/1 [00:00<?, ?it/s]2026-06-12 14:57:59.229 | DEBUG    | rapid_doc.model.ocr.dx_ocr:__call__:1580 - DX OCR __call__ invoked | save_debug_images=False | counter=0
+Layout Predict: 100%|██████████| 1/1 [00:00<00:00,  3.72it/s]Layout Predict: 100%|██████████| 1/1 [00:00<00:00,  3.72it/s]
+Layout Predict:   0%|          | 0/1 [00:00<?, ?it/s]2026-06-12 14:57:59.514 | DEBUG    | rapid_doc.model.ocr.dx_ocr:__call__:1580 - DX OCR __call__ invoked | save_debug_images=False | counter=0
+Layout Predict: 100%|██████████| 1/1 [00:00<00:00,  3.44it/s]Layout Predict: 100%|██████████| 1/1 [00:00<00:00,  3.44it/s]
+2026-06-12 14:57:59.788 | DEBUG    | rapid_doc.model.ocr.dx_ocr:__call__:1580 - DX OCR __call__ invoked | save_debug_images=False | counter=0
+2026-06-12 14:57:59.799 | DEBUG    | rapid_doc.model.ocr.dx_ocr:__call__:1599 - no dt_boxes found, elapsed : 0.01148533821105957
+2026-06-12 14:58:00.228 | WARNING  | rapid_doc.backend.pipeline.async_pipeline:_apply_table_html:741 - Table recognition: HTML 테이블 태그 미발견
+2026-06-12 14:58:00.228 | DEBUG    | rapid_doc.model.ocr.dx_ocr:__call__:1580 - DX OCR __call__ invoked | save_debug_images=False | counter=0
+2026-06-12 14:58:01.261 | DEBUG    | rapid_doc.model.ocr.dx_ocr:__call__:1580 - DX OCR __call__ invoked | save_debug_images=False | counter=0
+2026-06-12 14:58:01.614 | DEBUG    | rapid_doc.model.ocr.dx_ocr:__call__:1580 - DX OCR __call__ invoked | save_debug_images=False | counter=0
+2026-06-12 14:58:02.318 | DEBUG    | rapid_doc.model.ocr.dx_ocr:__call__:1580 - DX OCR __call__ invoked | save_debug_images=False | counter=0
+2026-06-12 14:58:03.609 | DEBUG    | rapid_doc.model.ocr.dx_ocr:__call__:1580 - DX OCR __call__ invoked | save_debug_images=False | counter=0
+2026-06-12 14:58:04.898 | DEBUG    | rapid_doc.model.ocr.dx_ocr:__call__:1580 - DX OCR __call__ invoked | save_debug_images=False | counter=0
+2026-06-12 14:58:06.150 | DEBUG    | rapid_doc.model.ocr.dx_ocr:__call__:1580 - DX OCR __call__ invoked | save_debug_images=False | counter=0
+2026-06-12 14:58:06.395 | INFO     | rapid_doc.backend.pipeline.async_pipeline:_print_perf_summary:783 - ==========================================================
+2026-06-12 14:58:06.395 | INFO     | rapid_doc.backend.pipeline.async_pipeline:_print_perf_summary:785 -      FinegrainedStreamingPipeline PERFORMANCE SUMMARY     
+2026-06-12 14:58:06.395 | INFO     | rapid_doc.backend.pipeline.async_pipeline:_print_perf_summary:786 - ==========================================================
+2026-06-12 14:58:06.395 | INFO     | rapid_doc.backend.pipeline.async_pipeline:_print_perf_summary:792 -  Model Loading          1.76 s
+2026-06-12 14:58:06.395 | INFO     | rapid_doc.backend.pipeline.async_pipeline:_print_perf_summary:794 -    formula              1.02 s
+2026-06-12 14:58:06.395 | INFO     | rapid_doc.backend.pipeline.async_pipeline:_print_perf_summary:794 -    layout               0.16 s
+2026-06-12 14:58:06.395 | INFO     | rapid_doc.backend.pipeline.async_pipeline:_print_perf_summary:794 -    ocr                  0.54 s
+2026-06-12 14:58:06.395 | INFO     | rapid_doc.backend.pipeline.async_pipeline:_print_perf_summary:794 -    table                0.04 s
+2026-06-12 14:58:06.395 | INFO     | rapid_doc.backend.pipeline.async_pipeline:_print_perf_summary:795 - ----------------------------------------------------------
+2026-06-12 14:58:06.395 | INFO     | rapid_doc.backend.pipeline.async_pipeline:_print_perf_summary:797 -  Pipeline Step       Avg Latency     Throughput     
+2026-06-12 14:58:06.395 | INFO     | rapid_doc.backend.pipeline.async_pipeline:_print_perf_summary:798 - ----------------------------------------------------------
+2026-06-12 14:58:06.395 | INFO     | rapid_doc.backend.pipeline.async_pipeline:_print_perf_summary:817 -  Layout               289.71 ms        3.5 FPS
+2026-06-12 14:58:06.395 | INFO     | rapid_doc.backend.pipeline.async_pipeline:_print_perf_summary:817 -  PDF-det                0.45 ms     2232.3 FPS
+2026-06-12 14:58:06.395 | INFO     | rapid_doc.backend.pipeline.async_pipeline:_print_perf_summary:817 -  Table                692.97 ms        1.4 FPS
+2026-06-12 14:58:06.395 | INFO     | rapid_doc.backend.pipeline.async_pipeline:_print_perf_summary:819 - ----------------------------------------------------------
+2026-06-12 14:58:06.395 | INFO     | rapid_doc.backend.pipeline.async_pipeline:_print_perf_summary:820 -  Total Stages          11.65 s
+2026-06-12 14:58:06.395 | INFO     | rapid_doc.backend.pipeline.async_pipeline:_print_perf_summary:824 - ----------------------------------------------------------
+2026-06-12 14:58:06.395 | INFO     | rapid_doc.backend.pipeline.async_pipeline:_print_perf_summary:825 -  Total Pages                   9
+2026-06-12 14:58:06.395 | INFO     | rapid_doc.backend.pipeline.async_pipeline:_print_perf_summary:826 -  Total Time                9.6 s
+2026-06-12 14:58:06.395 | INFO     | rapid_doc.backend.pipeline.async_pipeline:_print_perf_summary:827 -  Overall                 0.9 pages/s
+2026-06-12 14:58:06.395 | INFO     | rapid_doc.backend.pipeline.async_pipeline:_print_perf_summary:829 - ==========================================================
+2026-06-12 14:58:06.395 | INFO     | rapid_doc.backend.pipeline.async_pipeline:_print_perf_summary:833 - 
+2026-06-12 14:58:06.395 | INFO     | rapid_doc.backend.pipeline.async_pipeline:_print_perf_summary:834 - ==========================================================
+2026-06-12 14:58:06.395 | INFO     | rapid_doc.backend.pipeline.async_pipeline:_print_perf_summary:835 -                 PER-DOCUMENT ELAPSED TIME                 
+2026-06-12 14:58:06.395 | INFO     | rapid_doc.backend.pipeline.async_pipeline:_print_perf_summary:836 - ==========================================================
+2026-06-12 14:58:06.395 | INFO     | rapid_doc.backend.pipeline.async_pipeline:_print_perf_summary:837 -  Document         Total Time (s)      Pages
+2026-06-12 14:58:06.395 | INFO     | rapid_doc.backend.pipeline.async_pipeline:_print_perf_summary:838 - ----------------------------------------------------------
+2026-06-12 14:58:06.395 | INFO     | rapid_doc.backend.pipeline.async_pipeline:_print_perf_summary:843 -  PDF #0                    11.65         82
+2026-06-12 14:58:06.395 | INFO     | rapid_doc.backend.pipeline.async_pipeline:_print_perf_summary:844 - ==========================================================
+2026-06-12 14:58:06.445 | INFO     | rapid_doc.backend.pipeline.pipeline_analyze:doc_analyze:315 - ==========================================================
+2026-06-12 14:58:06.445 | INFO     | rapid_doc.backend.pipeline.pipeline_analyze:doc_analyze:317 -            PDF #0 PERFORMANCE SUMMARY (11.65s)            
+2026-06-12 14:58:06.445 | INFO     | rapid_doc.backend.pipeline.pipeline_analyze:doc_analyze:318 - ==========================================================
+2026-06-12 14:58:06.445 | INFO     | rapid_doc.backend.pipeline.pipeline_analyze:doc_analyze:319 -  Pipeline Step       Avg Latency     Throughput     
+2026-06-12 14:58:06.445 | INFO     | rapid_doc.backend.pipeline.pipeline_analyze:doc_analyze:320 - ----------------------------------------------------------
+2026-06-12 14:58:06.445 | INFO     | rapid_doc.backend.pipeline.pipeline_analyze:doc_analyze:330 -  Layout               289.71 ms        3.5 FPS
+2026-06-12 14:58:06.445 | INFO     | rapid_doc.backend.pipeline.pipeline_analyze:doc_analyze:330 -  PDF-det                0.45 ms     2232.3 FPS
+2026-06-12 14:58:06.445 | INFO     | rapid_doc.backend.pipeline.pipeline_analyze:doc_analyze:330 -  Table                692.97 ms        1.4 FPS
+2026-06-12 14:58:06.445 | INFO     | rapid_doc.backend.pipeline.pipeline_analyze:doc_analyze:332 - ----------------------------------------------------------
+2026-06-12 14:58:06.445 | INFO     | rapid_doc.backend.pipeline.pipeline_analyze:doc_analyze:333 -  Total Stages          11.65 s
+2026-06-12 14:58:06.445 | INFO     | rapid_doc.backend.pipeline.pipeline_analyze:doc_analyze:335 -  Total Pages                   9
+2026-06-12 14:58:06.445 | INFO     | rapid_doc.backend.pipeline.pipeline_analyze:doc_analyze:336 -  Avg per Page           1.29 s
+2026-06-12 14:58:06.445 | INFO     | rapid_doc.backend.pipeline.pipeline_analyze:doc_analyze:337 - ==========================================================
+Processing pages:   0%|          | 0/9 [00:00<?, ?it/s]Processing pages:  67%|██████▋   | 6/9 [00:00<00:00, 59.13it/s]Processing pages: 100%|██████████| 9/9 [00:00<00:00, 60.14it/s]
+2026-06-12 14:58:06,625 [INFO] Markdown : /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md/output/sample_input/auto/sample_input.md
+2026-06-12 14:58:06,625 [INFO] JSON     : /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md/output/sample_input/auto/sample_input_content_list.json
+2026-06-12 14:58:06,625 [INFO] Timings  : /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md/output/performance_summary.md
+2026-06-12 14:58:06,629 [INFO] Done.
+
+# RapidDoc PDF->Markdown — NPU Performance Summary
+
+- **Date**: 2026-06-12 14:58:06
+- **Pipeline Mode**: finegrained
+- **Files**: 1 (sample_input)
+- **Total Pages**: 9
+- **Wall Time**: 12.63 s
+- **Throughput**: 0.71 pages/s
+
+## Model Loading
+
+| Model | Load Time |
+|:---|---:|
+| formula | 1.02 s |
+| layout | 0.16 s |
+| ocr | 0.54 s |
+| table | 0.04 s |
+
+## Per-Stage Performance (NPU pipeline)
+
+| Pipeline Step | Count | Avg Latency | Throughput | Time (s) | Ratio |
+|:---|---:|---:|---:|---:|---:|
+| Layout (NPU) | 9 | 289.71 ms | 3.5 FPS | 2.61 | 22.4% |
+| PDF text-det | 82 | 0.45 ms | 2232.3 FPS | 0.04 | 0.3% |
+| Table (NPU) | 13 | 692.97 ms | 1.4 FPS | 9.01 | 77.3% |
+
+- **Total Stage Time**: 11.65 s
+- **Avg per Page**: 1.29 s
+
+
+############### RUN 2: --parse-method ocr (OCR det+rec on NPU) ###############
+CUSTOM_INTER_OP_THREADS_COUNT=1
+CUSTOM_INTRA_OP_THREADS_COUNT=2
+DXRT_DYNAMIC_CPU_THREAD=1
+DXRT_TASK_MAX_LOAD=3
+NFH_INPUT_WORKER_THREADS=2
+NFH_OUTPUT_WORKER_THREADS=4
+============================================================
+ RapidDoc PDF->Markdown on DX-M1 NPU
+   python  : /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md/venv/bin/python
+   input   : /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md/sample_input.pdf
+   method  : ocr
+   output  : /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md/output
+============================================================
+2026-06-12 14:58:31,178 [INFO] Input        : /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md/sample_input.pdf
+2026-06-12 14:58:31,178 [INFO] Parse method : ocr
+2026-06-12 14:58:31,178 [INFO] Output dir   : /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md/output
+2026-06-12 14:58:31,178 [INFO] Formula      : enabled (ONNX/CPU)
+[DXRT] Using DXRT_TASK_MAX_LOAD (I/O buffer-count)=3 from environment
+2026-06-12 14:58:32,379 [INFO] Running document-parsing pipeline on DX-M1 NPU (method=ocr, mode=finegrained) ...
+2026-06-12 14:58:32.379 | INFO     | rapid_doc.backend.pipeline.pipeline_analyze:doc_analyze:151 - PDF #0: use_det_mode='ocr' 설정으로 강제 OCR 활성화
+2026-06-12 14:58:32.673 | INFO     | rapid_doc.backend.pipeline.pipeline_analyze:doc_analyze:218 - 🚀 Using FinegrainedStreamingPipeline for 9 pages
+2026-06-12 14:58:32.826 | INFO     | rapid_doc.backend.pipeline.model_init:__init__:231 - DocAnalysis init, this may take some times......
+[32m[INFO] 2026-06-12 14:58:32,827 [RapidTable] base.py:65: Using engine_name: onnxruntime[0m
+[32m[INFO] 2026-06-12 14:58:32,827 [RapidTable] main.py:28: Using /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md/onnx_models/pp_formulanet_plus_m.onnx[0m
+[32m[INFO] 2026-06-12 14:58:33,852 [RapidTable] base.py:65: Using engine_name: dxengine[0m
+[32m[INFO] 2026-06-12 14:58:33,853 [RapidTable] dxengine.py:29: Using /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md/dxnn_models/pp_doclayout_l_part1.dxnn[0m
+2026-06-12 14:58:33,853 [INFO] DXNN_DEVICES 환경변수로부터 디바이스 설정: [0]
+[DXRT] Using CUSTOM_INTRA_OP_THREADS_COUNT=2 from environment
+[DXRT] Using CUSTOM_INTER_OP_THREADS_COUNT=1 from environment
+[DXRT] Using NFH_INPUT_WORKER_THREADS=2 from environment
+[DXRT] Using NFH_OUTPUT_WORKER_THREADS=4 from environment
+[32m[INFO] 2026-06-12 14:58:34,020 [RapidTable] dxengine.py:49: DXInferSession initialized in ASYNC mode (wait-based, no callback)[0m
+[32m[INFO] 2026-06-12 14:58:34,020 [RapidTable] main.py:18: pp_doclayout_l contains [][0m
+2026-06-12 14:58:34.020 | INFO     | rapid_doc.backend.pipeline.model_init:ocr_model_init:55 - Using DX Engine for OCR (ASYNC mode)
+2026-06-12 14:58:34.020 | INFO     | rapid_doc.backend.pipeline.model_init:ocr_model_init:56 - DX Engine model paths: 0.3, 2.0
+2026-06-12 14:58:34.020 | INFO     | rapid_doc.model.ocr.dx_ocr:__init__:1178 - 🔧 DX OCR __init__ | save_debug_images=False | debug_save_dir=/data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md/output/ocr_debug
+2026-06-12 14:58:34,020 [INFO] DXNN_DEVICES 환경변수로부터 디바이스 설정: [0]
+2026-06-12 14:58:34.067 | INFO     | rapid_doc.model.ocr.dx_ocr:__init__:132 - Loaded detection model for ratio 1: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md/dxnn_models/det_v5_640_640.dxnn (size: (640, 640))
+2026-06-12 14:58:34.116 | INFO     | rapid_doc.model.ocr.dx_ocr:__init__:132 - Loaded detection model for ratio 2: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md/dxnn_models/det_v5_320_640.dxnn (size: (320, 640))
+2026-06-12 14:58:34.165 | INFO     | rapid_doc.model.ocr.dx_ocr:__init__:132 - Loaded detection model for ratio 4: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md/dxnn_models/det_v5_160_640.dxnn (size: (160, 640))
+2026-06-12 14:58:34.216 | INFO     | rapid_doc.model.ocr.dx_ocr:__init__:132 - Loaded detection model for ratio 10: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md/dxnn_models/det_v5_64_640.dxnn (size: (64, 640))
+2026-06-12 14:58:34.216 | INFO     | rapid_doc.model.ocr.dx_ocr:__init__:142 - Multi-detection initialized with 4 models
+2026-06-12 14:58:34.216 | INFO     | rapid_doc.model.ocr.dx_ocr:__init__:150 - DxTextDetector initialized with model: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md/dxnn_models/det_v5_640_640.dxnn (ASYNC mode)
+2026-06-12 14:58:34.216 | WARNING  | rapid_doc.model.ocr.dx_ocr:__init__:760 - DX Engine does not support batch processing. Forcing rec_batch_num=1 (was 6)
+2026-06-12 14:58:34.216 | INFO     | rapid_doc.model.ocr.dx_ocr:__init__:767 - DX Engine static shape mode: input size fixed to 48x640
+2026-06-12 14:58:34,216 [INFO] DXNN_DEVICES 환경변수로부터 디바이스 설정: [0]
+2026-06-12 14:58:34.263 | INFO     | rapid_doc.model.ocr.dx_ocr:__init__:788 - DxTextRecognizer initialized in ASYNC mode (callbacks on demand)
+2026-06-12 14:58:34.265 | INFO     | rapid_doc.model.ocr.dx_ocr:__init__:767 - DX Engine static shape mode: input size fixed to 48x120
+2026-06-12 14:58:34,265 [INFO] DXNN_DEVICES 환경변수로부터 디바이스 설정: [0]
+2026-06-12 14:58:34.312 | INFO     | rapid_doc.model.ocr.dx_ocr:__init__:788 - DxTextRecognizer initialized in ASYNC mode (callbacks on demand)
+2026-06-12 14:58:34.314 | INFO     | rapid_doc.model.ocr.dx_ocr:_init_multi_rec_models:1295 - Loaded recognition model for ratio 3: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md/dxnn_models/rec_v5_ratio_3.dxnn (size: 48x120)
+2026-06-12 14:58:34.314 | INFO     | rapid_doc.model.ocr.dx_ocr:__init__:767 - DX Engine static shape mode: input size fixed to 48x240
+2026-06-12 14:58:34,314 [INFO] DXNN_DEVICES 환경변수로부터 디바이스 설정: [0]
+2026-06-12 14:58:34.364 | INFO     | rapid_doc.model.ocr.dx_ocr:__init__:788 - DxTextRecognizer initialized in ASYNC mode (callbacks on demand)
+2026-06-12 14:58:34.366 | INFO     | rapid_doc.model.ocr.dx_ocr:_init_multi_rec_models:1295 - Loaded recognition model for ratio 5: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md/dxnn_models/rec_v5_ratio_5.dxnn (size: 48x240)
+2026-06-12 14:58:34.366 | INFO     | rapid_doc.model.ocr.dx_ocr:__init__:767 - DX Engine static shape mode: input size fixed to 48x480
+2026-06-12 14:58:34,366 [INFO] DXNN_DEVICES 환경변수로부터 디바이스 설정: [0]
+2026-06-12 14:58:34.410 | INFO     | rapid_doc.model.ocr.dx_ocr:__init__:788 - DxTextRecognizer initialized in ASYNC mode (callbacks on demand)
+2026-06-12 14:58:34.412 | INFO     | rapid_doc.model.ocr.dx_ocr:_init_multi_rec_models:1295 - Loaded recognition model for ratio 10: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md/dxnn_models/rec_v5_ratio_10.dxnn (size: 48x480)
+2026-06-12 14:58:34.412 | INFO     | rapid_doc.model.ocr.dx_ocr:__init__:767 - DX Engine static shape mode: input size fixed to 48x720
+2026-06-12 14:58:34,412 [INFO] DXNN_DEVICES 환경변수로부터 디바이스 설정: [0]
+2026-06-12 14:58:34.464 | INFO     | rapid_doc.model.ocr.dx_ocr:__init__:788 - DxTextRecognizer initialized in ASYNC mode (callbacks on demand)
+2026-06-12 14:58:34.466 | INFO     | rapid_doc.model.ocr.dx_ocr:_init_multi_rec_models:1295 - Loaded recognition model for ratio 15: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md/dxnn_models/rec_v5_ratio_15.dxnn (size: 48x720)
+2026-06-12 14:58:34.466 | INFO     | rapid_doc.model.ocr.dx_ocr:__init__:767 - DX Engine static shape mode: input size fixed to 48x1200
+2026-06-12 14:58:34,466 [INFO] DXNN_DEVICES 환경변수로부터 디바이스 설정: [0]
+2026-06-12 14:58:34.513 | INFO     | rapid_doc.model.ocr.dx_ocr:__init__:788 - DxTextRecognizer initialized in ASYNC mode (callbacks on demand)
+2026-06-12 14:58:34.515 | INFO     | rapid_doc.model.ocr.dx_ocr:_init_multi_rec_models:1295 - Loaded recognition model for ratio 25: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md/dxnn_models/rec_v5_ratio_25.dxnn (size: 48x1200)
+2026-06-12 14:58:34.515 | INFO     | rapid_doc.model.ocr.dx_ocr:__init__:767 - DX Engine static shape mode: input size fixed to 48x1680
+2026-06-12 14:58:34,515 [INFO] DXNN_DEVICES 환경변수로부터 디바이스 설정: [0]
+2026-06-12 14:58:34.562 | INFO     | rapid_doc.model.ocr.dx_ocr:__init__:788 - DxTextRecognizer initialized in ASYNC mode (callbacks on demand)
+2026-06-12 14:58:34.564 | INFO     | rapid_doc.model.ocr.dx_ocr:_init_multi_rec_models:1295 - Loaded recognition model for ratio 35: /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md/dxnn_models/rec_v5_ratio_35.dxnn (size: 48x1680)
+2026-06-12 14:58:34.564 | INFO     | rapid_doc.model.ocr.dx_ocr:_init_multi_rec_models:1299 - Multi-recognition initialized with 6 recognizers
+2026-06-12 14:58:34.564 | INFO     | rapid_doc.model.ocr.dx_ocr:__init__:1251 - DxOcrModel initialized successfully
+2026-06-12 14:58:34,565 [INFO] DXNN_DEVICES 환경변수로부터 디바이스 설정: [0]
+2026-06-12 14:58:34,600 - OrtInferSession - INFO: DxInferSession initialized (use_async=True)
+2026-06-12 14:58:34,600 [INFO] DxInferSession initialized (use_async=True)
+2026-06-12 14:58:34.600 | INFO     | rapid_doc.backend.pipeline.model_init:__init__:271 - DocAnalysis init done!
+2026-06-12 14:58:34.600 | INFO     | rapid_doc.backend.pipeline.pipeline_analyze:custom_model_init:96 - model init cost: 1.93s
+2026-06-12 14:58:34.600 | INFO     | rapid_doc.backend.pipeline.pipeline_analyze:custom_model_init:99 -   formula     : 1.03s
+2026-06-12 14:58:34.600 | INFO     | rapid_doc.backend.pipeline.pipeline_analyze:custom_model_init:99 -   layout      : 0.17s
+2026-06-12 14:58:34.600 | INFO     | rapid_doc.backend.pipeline.pipeline_analyze:custom_model_init:99 -   ocr         : 0.54s
+2026-06-12 14:58:34.601 | INFO     | rapid_doc.backend.pipeline.pipeline_analyze:custom_model_init:99 -   table       : 0.04s
+2026-06-12 14:58:34.601 | INFO     | rapid_doc.backend.pipeline.async_pipeline:run:1235 - 🚀 FinegrainedStreamingPipeline: 9 pages (7-stage assembly-line)
+Layout Predict:   0%|          | 0/1 [00:00<?, ?it/s]Layout Predict: 100%|██████████| 1/1 [00:00<00:00,  3.71it/s]Layout Predict: 100%|██████████| 1/1 [00:00<00:00,  3.71it/s]
+Layout Predict:   0%|          | 0/1 [00:00<?, ?it/s]2026-06-12 14:58:35.168 | WARNING  | rapid_doc.model.ocr.dx_ocr:wait_request:422 - No pending data found for request_id 0, returning empty result
+2026-06-12 14:58:35.169 | WARNING  | rapid_doc.model.ocr.dx_ocr:wait_request:422 - No pending data found for request_id 0, returning empty result
+2026-06-12 14:58:35.264 | WARNING  | rapid_doc.model.ocr.dx_ocr:wait_request:422 - No pending data found for request_id 1, returning empty result
+2026-06-12 14:58:35.264 | WARNING  | rapid_doc.model.ocr.dx_ocr:wait_request:422 - No pending data found for request_id 2, returning empty result
+2026-06-12 14:58:35.266 | WARNING  | rapid_doc.model.ocr.dx_ocr:wait_request:422 - No pending data found for request_id 3, returning empty result
+2026-06-12 14:58:35.266 | WARNING  | rapid_doc.model.ocr.dx_ocr:wait_request:422 - No pending data found for request_id 1, returning empty result
+Layout Predict: 100%|██████████| 1/1 [00:00<00:00,  1.98it/s]Layout Predict: 100%|██████████| 1/1 [00:00<00:00,  1.98it/s]
+Layout Predict:   0%|          | 0/1 [00:00<?, ?it/s]Layout Predict: 100%|██████████| 1/1 [00:00<00:00,  2.52it/s]Layout Predict: 100%|██████████| 1/1 [00:00<00:00,  2.52it/s]
+Layout Predict:   0%|          | 0/1 [00:00<?, ?it/s]2026-06-12 14:58:35.943 | WARNING  | rapid_doc.model.ocr.dx_ocr:wait_request:422 - No pending data found for request_id 7, returning empty result
+2026-06-12 14:58:35.943 | WARNING  | rapid_doc.model.ocr.dx_ocr:wait_request:422 - No pending data found for request_id 8, returning empty result
+2026-06-12 14:58:35.943 | WARNING  | rapid_doc.model.ocr.dx_ocr:wait_request:422 - No pending data found for request_id 4, returning empty result
+2026-06-12 14:58:35.944 | WARNING  | rapid_doc.model.ocr.dx_ocr:wait_request:422 - No pending data found for request_id 9, returning empty result
+2026-06-12 14:58:35,948 [INFO] DXNN_DEVICES 환경변수로부터 디바이스 설정: [0]
+2026-06-12 14:58:35,987 - OrtInferSession - INFO: DxInferSession initialized (use_async=True)
+2026-06-12 14:58:35,987 [INFO] DxInferSession initialized (use_async=True)
+2026-06-12 14:58:35.989 | DEBUG    | rapid_doc.model.ocr.dx_ocr:__call__:1580 - DX OCR __call__ invoked | save_debug_images=False | counter=28
+Layout Predict: 100%|██████████| 1/1 [00:00<00:00,  3.01it/s]Layout Predict: 100%|██████████| 1/1 [00:00<00:00,  3.01it/s]
+Layout Predict:   0%|          | 0/1 [00:00<?, ?it/s]Layout Predict: 100%|██████████| 1/1 [00:00<00:00,  2.50it/s]Layout Predict: 100%|██████████| 1/1 [00:00<00:00,  2.50it/s]
+Layout Predict:   0%|          | 0/1 [00:00<?, ?it/s]2026-06-12 14:58:36.731 | WARNING  | rapid_doc.model.ocr.dx_ocr:wait_request:422 - No pending data found for request_id 10, returning empty result
+2026-06-12 14:58:36.731 | WARNING  | rapid_doc.model.ocr.dx_ocr:wait_request:422 - No pending data found for request_id 11, returning empty result
+2026-06-12 14:58:36.732 | WARNING  | rapid_doc.model.ocr.dx_ocr:wait_request:422 - No pending data found for request_id 12, returning empty result
+Layout Predict: 100%|██████████| 1/1 [00:00<00:00,  2.93it/s]Layout Predict: 100%|██████████| 1/1 [00:00<00:00,  2.93it/s]
+Layout Predict:   0%|          | 0/1 [00:00<?, ?it/s]2026-06-12 14:58:36.957 | WARNING  | rapid_doc.model.ocr.dx_ocr:wait_request:422 - No pending data found for request_id 13, returning empty result
+2026-06-12 14:58:37.044 | WARNING  | rapid_doc.model.ocr.dx_ocr:wait_request:422 - No pending data found for request_id 16, returning empty result
+2026-06-12 14:58:37.044 | WARNING  | rapid_doc.model.ocr.dx_ocr:wait_request:422 - No pending data found for request_id 17, returning empty result
+Layout Predict: 100%|██████████| 1/1 [00:00<00:00,  2.41it/s]Layout Predict: 100%|██████████| 1/1 [00:00<00:00,  2.41it/s]
+Layout Predict:   0%|          | 0/1 [00:00<?, ?it/s]2026-06-12 14:58:37.401 | WARNING  | rapid_doc.model.ocr.dx_ocr:wait_request:422 - No pending data found for request_id 19, returning empty result
+2026-06-12 14:58:37.402 | WARNING  | rapid_doc.model.ocr.dx_ocr:wait_request:422 - No pending data found for request_id 20, returning empty result
+Layout Predict: 100%|██████████| 1/1 [00:00<00:00,  2.58it/s]Layout Predict: 100%|██████████| 1/1 [00:00<00:00,  2.58it/s]
+Layout Predict:   0%|          | 0/1 [00:00<?, ?it/s]2026-06-12 14:58:37.958 | DEBUG    | rapid_doc.model.ocr.dx_ocr:__call__:1580 - DX OCR __call__ invoked | save_debug_images=False | counter=66
+Layout Predict: 100%|██████████| 1/1 [00:00<00:00,  3.11it/s]Layout Predict: 100%|██████████| 1/1 [00:00<00:00,  3.11it/s]
+2026-06-12 14:58:38.453 | DEBUG    | rapid_doc.model.ocr.dx_ocr:__call__:1580 - DX OCR __call__ invoked | save_debug_images=False | counter=70
+2026-06-12 14:58:39.248 | DEBUG    | rapid_doc.model.ocr.dx_ocr:__call__:1580 - DX OCR __call__ invoked | save_debug_images=False | counter=75
+2026-06-12 14:58:39.490 | DEBUG    | rapid_doc.model.ocr.dx_ocr:__call__:1580 - DX OCR __call__ invoked | save_debug_images=False | counter=75
+2026-06-12 14:58:39.769 | DEBUG    | rapid_doc.model.ocr.dx_ocr:__call__:1580 - DX OCR __call__ invoked | save_debug_images=False | counter=75
+2026-06-12 14:58:39.781 | DEBUG    | rapid_doc.model.ocr.dx_ocr:__call__:1599 - no dt_boxes found, elapsed : 0.011655569076538086
+2026-06-12 14:58:40.142 | WARNING  | rapid_doc.backend.pipeline.async_pipeline:_apply_table_html:741 - Table recognition: HTML 테이블 태그 미발견
+2026-06-12 14:58:40.143 | DEBUG    | rapid_doc.model.ocr.dx_ocr:__call__:1580 - DX OCR __call__ invoked | save_debug_images=False | counter=75
+2026-06-12 14:58:41.373 | DEBUG    | rapid_doc.model.ocr.dx_ocr:__call__:1580 - DX OCR __call__ invoked | save_debug_images=False | counter=82
+2026-06-12 14:58:41.721 | DEBUG    | rapid_doc.model.ocr.dx_ocr:__call__:1580 - DX OCR __call__ invoked | save_debug_images=False | counter=82
+2026-06-12 14:58:42.461 | DEBUG    | rapid_doc.model.ocr.dx_ocr:__call__:1580 - DX OCR __call__ invoked | save_debug_images=False | counter=82
+2026-06-12 14:58:43.876 | DEBUG    | rapid_doc.model.ocr.dx_ocr:__call__:1580 - DX OCR __call__ invoked | save_debug_images=False | counter=82
+2026-06-12 14:58:45.246 | DEBUG    | rapid_doc.model.ocr.dx_ocr:__call__:1580 - DX OCR __call__ invoked | save_debug_images=False | counter=82
+2026-06-12 14:58:46.548 | DEBUG    | rapid_doc.model.ocr.dx_ocr:__call__:1580 - DX OCR __call__ invoked | save_debug_images=False | counter=82
+2026-06-12 14:58:46.973 | INFO     | rapid_doc.backend.pipeline.async_pipeline:_print_perf_summary:783 - ==========================================================
+2026-06-12 14:58:46.973 | INFO     | rapid_doc.backend.pipeline.async_pipeline:_print_perf_summary:785 -      FinegrainedStreamingPipeline PERFORMANCE SUMMARY     
+2026-06-12 14:58:46.973 | INFO     | rapid_doc.backend.pipeline.async_pipeline:_print_perf_summary:786 - ==========================================================
+2026-06-12 14:58:46.973 | INFO     | rapid_doc.backend.pipeline.async_pipeline:_print_perf_summary:792 -  Model Loading          1.77 s
+2026-06-12 14:58:46.973 | INFO     | rapid_doc.backend.pipeline.async_pipeline:_print_perf_summary:794 -    formula              1.03 s
+2026-06-12 14:58:46.973 | INFO     | rapid_doc.backend.pipeline.async_pipeline:_print_perf_summary:794 -    layout               0.17 s
+2026-06-12 14:58:46.973 | INFO     | rapid_doc.backend.pipeline.async_pipeline:_print_perf_summary:794 -    ocr                  0.54 s
+2026-06-12 14:58:46.973 | INFO     | rapid_doc.backend.pipeline.async_pipeline:_print_perf_summary:794 -    table                0.04 s
+2026-06-12 14:58:46.973 | INFO     | rapid_doc.backend.pipeline.async_pipeline:_print_perf_summary:795 - ----------------------------------------------------------
+2026-06-12 14:58:46.973 | INFO     | rapid_doc.backend.pipeline.async_pipeline:_print_perf_summary:797 -  Pipeline Step       Avg Latency     Throughput     
+2026-06-12 14:58:46.973 | INFO     | rapid_doc.backend.pipeline.async_pipeline:_print_perf_summary:798 - ----------------------------------------------------------
+2026-06-12 14:58:46.973 | INFO     | rapid_doc.backend.pipeline.async_pipeline:_print_perf_summary:817 -  Layout               374.81 ms        2.7 FPS
+2026-06-12 14:58:46.973 | INFO     | rapid_doc.backend.pipeline.async_pipeline:_print_perf_summary:817 -  OCR-det               55.73 ms       17.9 FPS
+2026-06-12 14:58:46.973 | INFO     | rapid_doc.backend.pipeline.async_pipeline:_print_perf_summary:817 -  Table                833.94 ms        1.2 FPS
+2026-06-12 14:58:46.973 | INFO     | rapid_doc.backend.pipeline.async_pipeline:_print_perf_summary:817 -  OCR-rec               16.14 ms       62.0 FPS
+2026-06-12 14:58:46.973 | INFO     | rapid_doc.backend.pipeline.async_pipeline:_print_perf_summary:819 - ----------------------------------------------------------
+2026-06-12 14:58:46.973 | INFO     | rapid_doc.backend.pipeline.async_pipeline:_print_perf_summary:820 -  Total Stages          19.37 s
+2026-06-12 14:58:46.973 | INFO     | rapid_doc.backend.pipeline.async_pipeline:_print_perf_summary:824 - ----------------------------------------------------------
+2026-06-12 14:58:46.974 | INFO     | rapid_doc.backend.pipeline.async_pipeline:_print_perf_summary:825 -  Total Pages                   9
+2026-06-12 14:58:46.974 | INFO     | rapid_doc.backend.pipeline.async_pipeline:_print_perf_summary:826 -  Total Time               12.4 s
+2026-06-12 14:58:46.974 | INFO     | rapid_doc.backend.pipeline.async_pipeline:_print_perf_summary:827 -  Overall                 0.7 pages/s
+2026-06-12 14:58:46.974 | INFO     | rapid_doc.backend.pipeline.async_pipeline:_print_perf_summary:829 - ==========================================================
+2026-06-12 14:58:46.974 | INFO     | rapid_doc.backend.pipeline.async_pipeline:_print_perf_summary:833 - 
+2026-06-12 14:58:46.974 | INFO     | rapid_doc.backend.pipeline.async_pipeline:_print_perf_summary:834 - ==========================================================
+2026-06-12 14:58:46.974 | INFO     | rapid_doc.backend.pipeline.async_pipeline:_print_perf_summary:835 -                 PER-DOCUMENT ELAPSED TIME                 
+2026-06-12 14:58:46.974 | INFO     | rapid_doc.backend.pipeline.async_pipeline:_print_perf_summary:836 - ==========================================================
+2026-06-12 14:58:46.974 | INFO     | rapid_doc.backend.pipeline.async_pipeline:_print_perf_summary:837 -  Document         Total Time (s)      Pages
+2026-06-12 14:58:46.974 | INFO     | rapid_doc.backend.pipeline.async_pipeline:_print_perf_summary:838 - ----------------------------------------------------------
+2026-06-12 14:58:46.974 | INFO     | rapid_doc.backend.pipeline.async_pipeline:_print_perf_summary:843 -  PDF #0                    19.37        102
+2026-06-12 14:58:46.974 | INFO     | rapid_doc.backend.pipeline.async_pipeline:_print_perf_summary:844 - ==========================================================
+2026-06-12 14:58:47.030 | INFO     | rapid_doc.backend.pipeline.pipeline_analyze:doc_analyze:315 - ==========================================================
+2026-06-12 14:58:47.030 | INFO     | rapid_doc.backend.pipeline.pipeline_analyze:doc_analyze:317 -            PDF #0 PERFORMANCE SUMMARY (19.37s)            
+2026-06-12 14:58:47.030 | INFO     | rapid_doc.backend.pipeline.pipeline_analyze:doc_analyze:318 - ==========================================================
+2026-06-12 14:58:47.030 | INFO     | rapid_doc.backend.pipeline.pipeline_analyze:doc_analyze:319 -  Pipeline Step       Avg Latency     Throughput     
+2026-06-12 14:58:47.030 | INFO     | rapid_doc.backend.pipeline.pipeline_analyze:doc_analyze:320 - ----------------------------------------------------------
+2026-06-12 14:58:47.030 | INFO     | rapid_doc.backend.pipeline.pipeline_analyze:doc_analyze:330 -  Layout               374.81 ms        2.7 FPS
+2026-06-12 14:58:47.030 | INFO     | rapid_doc.backend.pipeline.pipeline_analyze:doc_analyze:330 -  OCR-det               55.73 ms       17.9 FPS
+2026-06-12 14:58:47.030 | INFO     | rapid_doc.backend.pipeline.pipeline_analyze:doc_analyze:330 -  Table                833.94 ms        1.2 FPS
+2026-06-12 14:58:47.030 | INFO     | rapid_doc.backend.pipeline.pipeline_analyze:doc_analyze:330 -  OCR-rec               16.14 ms       62.0 FPS
+2026-06-12 14:58:47.030 | INFO     | rapid_doc.backend.pipeline.pipeline_analyze:doc_analyze:332 - ----------------------------------------------------------
+2026-06-12 14:58:47.030 | INFO     | rapid_doc.backend.pipeline.pipeline_analyze:doc_analyze:333 -  Total Stages          19.37 s
+2026-06-12 14:58:47.030 | INFO     | rapid_doc.backend.pipeline.pipeline_analyze:doc_analyze:335 -  Total Pages                   9
+2026-06-12 14:58:47.030 | INFO     | rapid_doc.backend.pipeline.pipeline_analyze:doc_analyze:336 -  Avg per Page           2.15 s
+2026-06-12 14:58:47.030 | INFO     | rapid_doc.backend.pipeline.pipeline_analyze:doc_analyze:337 - ==========================================================
+Processing pages:   0%|          | 0/9 [00:00<?, ?it/s]Processing pages:  78%|███████▊  | 7/9 [00:00<00:00, 61.50it/s]Processing pages: 100%|██████████| 9/9 [00:00<00:00, 62.47it/s]
+2026-06-12 14:58:47,198 [INFO] Markdown : /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md/output/sample_input/ocr/sample_input.md
+2026-06-12 14:58:47,198 [INFO] JSON     : /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md/output/sample_input/ocr/sample_input_content_list.json
+2026-06-12 14:58:47,198 [INFO] Timings  : /data/home/dhyang/github/dx-all-suite-full-e2e/dx-runtime/dx_app/dx-agent-dev/20260612-144956_claude_opus48_rapiddoc_pdf2md/output/performance_summary.md
+2026-06-12 14:58:47,202 [INFO] Done.
+
+# RapidDoc PDF->Markdown — NPU Performance Summary
+
+- **Date**: 2026-06-12 14:58:47
+- **Pipeline Mode**: finegrained
+- **Files**: 1 (sample_input)
+- **Total Pages**: 9
+- **Wall Time**: 14.65 s
+- **Throughput**: 0.61 pages/s
+
+## Model Loading
+
+| Model | Load Time |
+|:---|---:|
+| formula | 1.03 s |
+| layout | 0.17 s |
+| ocr | 0.54 s |
+| table | 0.04 s |
+
+## Per-Stage Performance (NPU pipeline)
+
+| Pipeline Step | Count | Avg Latency | Throughput | Time (s) | Ratio |
+|:---|---:|---:|---:|---:|---:|
+| Layout (NPU) | 9 | 374.81 ms | 2.7 FPS | 3.37 | 17.4% |
+| OCR det (NPU) | 63 | 55.73 ms | 17.9 FPS | 3.51 | 18.1% |
+| Table (NPU) | 13 | 833.94 ms | 1.2 FPS | 10.84 | 56.0% |
+| OCR rec (NPU) | 102 | 16.14 ms | 62.0 FPS | 1.65 | 8.5% |
+
+- **Total Stage Time**: 19.37 s
+- **Avg per Page**: 2.15 s
+

@@ -1,0 +1,44 @@
+==============================================================================
+ Expected output — Ultralytics YOLO -> DeepX export showcase
+ (captured from the real dx-agent-dev build session, 2026-06-10, DX-M1 NPU)
+==============================================================================
+
+$ bash run.sh
+======================================================
+ YOLO26n → DeepX NPU  (Ultralytics format=deepx)
+======================================================
+
+=== STEP 1: Export (format=deepx) ===
+[export] Loading model: .../yolo26n.pt
+[export] Starting format=deepx export ...
+[export]   INT8 calibration with coco128.yaml (enforced by Ultralytics)
+[INFO] - Final result: 1 NPU groups, 1 CPU groups
+[export] ✓ yolo26n.dxnn  (6,890,634 bytes)
+[export] ✓ config.json
+[export] ✓ metadata.yaml
+[export] DONE — yolo26n_deepx_model/ is ready for inference
+
+=== STEP 2: Verify artifacts ===
+[verify] ✓ yolo26n.dxnn  (6,890,634 bytes)
+[verify] ✓ config.json   valid JSON
+[verify] ✓ metadata.yaml
+[verify] RESULT: PASS — all artifacts verified
+
+=== STEP 3: Inference on bus.jpg ===
+image 1/1 bus.jpg: 640x640 4 persons, 1 bus, 24.2ms
+[infer] Detected 5 object(s) in image
+  [  5] bus                   conf=0.951  bbox=[5,228,801,750]
+  [  0] person                conf=0.935  bbox=[49,400,239,902]
+  [  0] person                conf=0.895  bbox=[670,391,810,879]
+  [  0] person                conf=0.885  bbox=[226,408,347,862]
+  [  0] person                conf=0.531  bbox=[0,552,64,878]
+[infer] Total detections: 5
+[infer] PASS
+
+======================================================
+ ALL DONE
+======================================================
+
+(Real run on a DX-M1 NPU: ~23 ms inference. Exact counts/confidences vary slightly
+with the INT8-quantized model and the calibration set. The exported .dxnn runs on the
+DeepX dx_engine runtime and reproduces the detection on the bus sample.)

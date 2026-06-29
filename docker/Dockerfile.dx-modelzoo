@@ -40,16 +40,19 @@ RUN apt-get install -y x11-apps libx11-6 xauth libxext6 libxrender1 libxtst6 lib
 ARG USE_INTRANET=false
 ARG CA_FILE_NAME="dummy.crt"
 COPY ${CA_FILE_NAME} /usr/local/share/ca-certificates/
+# pip/requests use certifi's own CA bundle, not the OS trust store, so we also
+# write /etc/pip.conf pointing pip at the OS bundle that now contains the intranet CA.
 RUN if [ "$USE_INTRANET" = "true" ]; then \
       git config --global http.sslVerify false && \
-      update-ca-certificates ; \
+      update-ca-certificates && \
+      printf '[global]\ncert = %s\n' /etc/ssl/certs/ca-certificates.crt > /etc/pip.conf ; \
     else \
       echo "Skipping intranet SSL setup"; \
     fi
 
 # Setup Python 3.8.2 or higher
 #   - Unified installation flow: apt → source build fallback
-#   - Ubuntu 18.04, 20.04, 22.04, 24.04 supported
+#   - Ubuntu 18.04, 20.04, 22.04, 24.04, 26.04 supported
 #   - Debian 12, 13 supported
 ENV MIN_PY_VERSION=3.8.2
 ARG TARGET_INSTALL_PY_VERSION=""
@@ -72,7 +75,7 @@ RUN set -x && \
     fi && \
     PY_MAJOR_MINOR=$(echo "${TARGET_INSTALL_PY_VERSION}" | cut -d. -f1,2) && \
     DX_PYTHON_EXEC="" && \
-    if { [ "${BASE_IMAGE_NAME}" = "ubuntu" ] && { [ "$(lsb_release -rs)" = "24.04" ] || [ "$(lsb_release -rs)" = "22.04" ] || [ "$(lsb_release -rs)" = "20.04" ] || [ "$(lsb_release -rs)" = "18.04" ]; }; } || \
+    if { [ "${BASE_IMAGE_NAME}" = "ubuntu" ] && { [ "$(lsb_release -rs)" = "26.04" ] || [ "$(lsb_release -rs)" = "24.04" ] || [ "$(lsb_release -rs)" = "22.04" ] || [ "$(lsb_release -rs)" = "20.04" ] || [ "$(lsb_release -rs)" = "18.04" ]; }; } || \
        { [ "${BASE_IMAGE_NAME}" = "debian" ] && { [ "$(lsb_release -rs)" = "13" ] || [ "$(lsb_release -rs)" = "12" ]; }; }; then \
         echo "Supported OS: ${BASE_IMAGE_NAME} $(lsb_release -rs)" && \
         apt-get update && \
@@ -140,7 +143,7 @@ RUN set -x && \
     if [ "${BASE_IMAGE_NAME}" = "ubuntu" ]; then \
         OS_VERSION=$(lsb_release -rs) && \
         echo "*** OS_VERSION(${OS_VERSION}) ***" && \
-        if [ "$OS_VERSION" = "24.04" ]; then \
+        if [ "$OS_VERSION" = "26.04" ] || [ "$OS_VERSION" = "24.04" ]; then \
             pip install --upgrade setuptools; \
         elif [ "$OS_VERSION" = "22.04" ] || [ "$OS_VERSION" = "20.04" ] || [ "$OS_VERSION" = "18.04" ]; then \
             pip install --upgrade pip wheel setuptools; \
@@ -160,12 +163,6 @@ RUN set -x && \
 WORKDIR /deepx/dx-runtime/dx_rt
 ADD archives/dx_rt.tar.gz /deepx/dx-runtime/dx_rt/
 
-# temp: until dx_rt's USE_ORT build option default changes from OFF to ON
-RUN set -x && \
-    CMAKE_FILE="cmake/dxrt.cfg.cmake" && \
-    sed -i 's/option(USE_ORT *"Use ONNX Runtime" *OFF)/option(USE_ORT "Use ONNX Runtime" ON)/' "$CMAKE_FILE" && \
-    echo "USE_ORT option has been set to ON in dx_rt/$CMAKE_FILE"
-
 RUN set -x && \
     . /venv-dxnn/bin/activate && \
     echo "Build dx_rt..." && \
@@ -179,13 +176,22 @@ ARG FILE_DXMODELZOO=archives/dx-modelzoo.tar.gz
 ADD ${FILE_DXMODELZOO} /deepx/dx-modelzoo/
 
 #### Install dx-modelzoo python dependencies ####
-# dx_simulator installation is disabled — enabling it would increase the Docker image size from 2GB to 10GB.
-# Therefore, it is recommended to run `/deepx/dx-modelzoo/install.sh` after the container starts, rather than during the Docker build stage.
+# dx-modelzoo installation is disabled — enabling it would increase the Docker image size significantly.
+# Run one of the following inside the container after it starts:
+#
+#   CPU inference:
+#     cd /deepx/dx-modelzoo && pip install -e ".[cpu]"
+#
+#   GPU inference (CUDA):
+#     cd /deepx/dx-modelzoo && pip install -e ".[gpu]"
+#     # Then add nvidia library paths to LD_LIBRARY_PATH (e.g. in ~/.bashrc):
+#     # export LD_LIBRARY_PATH=$(python -c "import nvidia.cublas.lib; print(nvidia.cublas.lib.__path__[0])"):$LD_LIBRARY_PATH
+#     # export LD_LIBRARY_PATH=$(python -c "import nvidia.cudnn.lib; print(nvidia.cudnn.lib.__path__[0])"):$LD_LIBRARY_PATH
 ##############################
 # RUN set -x && \
 #     . /venv-dxnn/bin/activate && \
 #     echo "Install dx-modelzoo..." && \
-#     pip install -e .
+#     pip install -e ".[cpu]"
 
 WORKDIR /deepx
 

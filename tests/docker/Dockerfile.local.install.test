@@ -1,32 +1,69 @@
-ARG OS_TYPE=ubuntu
-ARG VERSION=24.04
-FROM ${OS_TYPE}:${VERSION}
+ARG BASE_IMAGE=ubuntu:24.04
+FROM ${BASE_IMAGE}
 
 USER root
+
+ARG OS_TYPE=ubuntu
+ARG VERSION=24.04
 
 ARG TZ=Asia/Seoul
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ >/etc/timezone
 
-ARG DEBIAN_FRONTEND=noninteractive
 ENV PATH="/usr/local/bin:${PATH}"
 
-### update apt repo
-RUN if [ "${OS_TYPE}" = "ubuntu" ]; then \
-    apt-get update && apt-get install -y \
-    software-properties-common && \
-    add-apt-repository universe && \
-    add-apt-repository multiverse && \
-    apt-get update; \
+# Detect OS family: "debian" (apt-based) or "rhel" (dnf-based)
+RUN if [ -f /etc/debian_version ]; then \
+        echo "debian" > /tmp/.os_family; \
+    elif [ -f /etc/redhat-release ] || grep -q "^ID.*fedora\|^ID.*rhel\|^ID.*centos" /etc/os-release 2>/dev/null; then \
+        echo "rhel" > /tmp/.os_family; \
+    else \
+        echo "unknown" > /tmp/.os_family; \
+    fi
+
+### update apt repo (Ubuntu only)
+RUN OS_FAM=$(cat /tmp/.os_family) && \
+    if [ "$OS_FAM" = "debian" ] && [ "${OS_TYPE}" = "ubuntu" ]; then \
+        export DEBIAN_FRONTEND=noninteractive && \
+        apt-get update && apt-get install -y \
+        software-properties-common && \
+        add-apt-repository universe && \
+        add-apt-repository multiverse && \
+        apt-get update; \
+    elif [ "$OS_FAM" = "debian" ]; then \
+        export DEBIAN_FRONTEND=noninteractive && \
+        apt-get update; \
     fi
 
 ### install utils
-RUN apt-get update && apt-get install -y \
-        tzdata \
-        git vim sudo \
-        lsb-release
+RUN OS_FAM=$(cat /tmp/.os_family) && \
+    if [ "$OS_FAM" = "debian" ]; then \
+        export DEBIAN_FRONTEND=noninteractive && \
+        apt-get update && apt-get install -y \
+            tzdata \
+            git vim sudo \
+            lsb-release; \
+    elif [ "$OS_FAM" = "rhel" ]; then \
+        dnf install -y \
+            tzdata \
+            git vim sudo \
+            which findutils procps-ng; \
+    fi
 
 # X11 forwarding and xcb
-RUN apt-get install -y x11-apps libx11-6 xauth libxext6 libxrender1 libxtst6 libxi6 libxcb-xinerama0
+RUN OS_FAM=$(cat /tmp/.os_family) && \
+    if [ "$OS_FAM" = "debian" ]; then \
+        export DEBIAN_FRONTEND=noninteractive && \
+        apt-get install -y x11-apps libx11-6 xauth libxext6 libxrender1 libxtst6 libxi6 libxcb-xinerama0; \
+    elif [ "$OS_FAM" = "rhel" ]; then \
+        SKIP_FLAG=""; \
+        if dnf install --help 2>/dev/null | grep -q -- '--skip-unavailable'; then \
+            SKIP_FLAG="--skip-unavailable"; \
+        elif dnf install --help 2>/dev/null | grep -q -- '--skip-broken'; then \
+            SKIP_FLAG="--skip-broken"; \
+        fi; \
+        dnf install -y ${SKIP_FLAG} \
+            xorg-x11-apps libX11 xauth libXext libXrender libXtst libXi libxcb; \
+    fi
 
 # for setting ssl issue on intranet
 # only used 'USE_INTRANET=true'
@@ -35,16 +72,28 @@ ARG CA_FILE_NAME="dummy.crt"
 COPY ${CA_FILE_NAME} /usr/local/share/ca-certificates/
 RUN if [ "$USE_INTRANET" = "true" ]; then \
       git config --global http.sslVerify false && \
-      update-ca-certificates ; \
+      OS_FAM=$(cat /tmp/.os_family) && \
+      if [ "$OS_FAM" = "debian" ]; then \
+          update-ca-certificates; \
+      elif [ "$OS_FAM" = "rhel" ]; then \
+          cp /usr/local/share/ca-certificates/*.crt /etc/pki/ca-trust/source/anchors/ 2>/dev/null || true && \
+          update-ca-trust; \
+      fi; \
     else \
       echo "Skipping intranet SSL setup"; \
     fi
 
-RUN apt-get update && \
-    apt-get install -y \
-    vim fim && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+RUN OS_FAM=$(cat /tmp/.os_family) && \
+    if [ "$OS_FAM" = "debian" ]; then \
+        export DEBIAN_FRONTEND=noninteractive && \
+        apt-get update && \
+        apt-get install -y vim fim && \
+        apt-get clean && \
+        rm -rf /var/lib/apt/lists/*; \
+    elif [ "$OS_FAM" = "rhel" ]; then \
+        dnf install -y vim-enhanced && \
+        dnf clean all; \
+    fi
 
 ARG HOST_UID
 ARG HOST_GID
@@ -78,7 +127,7 @@ RUN echo "deepx:deepx" | chpasswd
 
 # add sudo group
 RUN groupadd -g "$HOST_GID" "$TARGET_USER" || true; \
-    usermod -aG sudo "$TARGET_USER"; \
+    usermod -aG sudo "$TARGET_USER" 2>/dev/null || usermod -aG wheel "$TARGET_USER" 2>/dev/null || true; \
     echo "$TARGET_USER ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers;
 
 USER $TARGET_USER

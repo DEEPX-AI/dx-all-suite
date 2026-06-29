@@ -6,6 +6,7 @@ services:
       context: ../../
       dockerfile: tests/docker/Dockerfile.local.install.test
       args:
+        BASE_IMAGE: ${BASE_IMAGE:-ubuntu:24.04}
         OS_TYPE: ${OS_TYPE}
         VERSION: ${VERSION}
         HOST_UID: ${HOST_UID:-1000}
@@ -30,7 +31,6 @@ services:
       - /dev:/dev                             # NPU, Camera, GPU, fuse
       - /lib/udev/rules.d:/lib/udev/rules.d   # auto detect device(USB CAM)
       - /lib/modules:/lib/modules             # GPU
-      - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
       - /var/run/docker.sock:/var/run/docker.sock
       - /etc/machine-id:/etc/machine-id:ro    # NPU dbus

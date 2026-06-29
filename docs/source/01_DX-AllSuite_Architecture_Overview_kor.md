@@ -57,8 +57,8 @@
 | 카테고리 | DX-Compiler (호스트) | DX-Runtime (타겟) |
 | :--- | :--- | :--- |
 | **아키텍처** | x86_64 | x86_64, aarch64 |
-| **OS** | Ubuntu 24.04/22.04/20.04,<br>Fedora, Redhat, CentOS | Ubuntu 24.04/22.04/20.04/18.04,<br>Debian 13/12, Windows 11/10 |
-| **언어** | Python 3.8, 3.9, 3.10, 3.11, 3.12 | Python 3.8 이상,<br>C++14 이상 (C++17 for MSVC/Windows) |
+| **OS** | Ubuntu 26.04/24.04/22.04/20.04,<br>Fedora, Redhat, CentOS | Ubuntu 24.04/22.04/20.04,<br>Debian 13/12, Windows 11/10 |
+| **언어** | Python 3.8, 3.9, 3.10, 3.11, 3.12, 3.13, 3.14 | Python 3.8 이상,<br>C++14 이상 (C++17 for MSVC/Windows) |
 
 ### Model & Software Ecosystem
 
