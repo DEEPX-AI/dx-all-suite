@@ -9,11 +9,11 @@
     "epochs": 40,
     "batch": 16,
     "seed": 0,
-    "train_save_dir": "/data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agent-dev/20260611-102324_claude_opus48_yolo26n_braintumor/runs/train_braintumor",
+    "train_save_dir": "/data/home/dhyang/git/dx-all-suite/dx-agent-dev-showcase/ultralytics-retrain-eval-deepx-export-braintumor/runs/train_braintumor",
     "sample_image_source": "/data/home/dhyang/github/datasets/brain-tumor/images/val/val_1 (1).jpg",
-    "sample_detect": "/data/home/dhyang/github/dx-all-suite-ultralytics/dx-compiler/dx-agent-dev/20260611-102324_claude_opus48_yolo26n_braintumor/sample_detect.jpg",
+    "sample_detect": "/data/home/dhyang/git/dx-all-suite/dx-agent-dev-showcase/ultralytics-retrain-eval-deepx-export-braintumor/sample_detect.jpg",
     "sample_num_boxes": 1,
-    "wall_clock_sec": 349.8
+    "wall_clock_sec": 346.8
   },
   "points": {
     "base_fp32": {
@@ -24,13 +24,13 @@
       "map": 0.0005,
       "map50": 0.00097,
       "map75": 0.00059,
-      "inference_ms": 1.8892,
-      "fps": 529.32,
+      "inference_ms": 1.9613,
+      "fps": 509.87,
       "speed_ms": {
-        "preprocess": 0.4973,
-        "inference": 1.8892,
+        "preprocess": 0.3717,
+        "inference": 1.9613,
         "loss": 0.0002,
-        "postprocess": 0.0312
+        "postprocess": 0.0319
       },
       "per_class_map": {
         "person": 0.001,
@@ -120,20 +120,20 @@
       "form": "PyTorch fp32",
       "device": "RTX 5060 Ti GPU (fp32)",
       "weights": "yolo26n_braintumor.pt",
-      "map": 0.40682,
-      "map50": 0.55885,
-      "map75": 0.47658,
-      "inference_ms": 1.7176,
-      "fps": 582.22,
+      "map": 0.40227,
+      "map50": 0.54779,
+      "map75": 0.47121,
+      "inference_ms": 1.6218,
+      "fps": 616.58,
       "speed_ms": {
-        "preprocess": 0.5109,
-        "inference": 1.7176,
+        "preprocess": 0.6281,
+        "inference": 1.6218,
         "loss": 0.0002,
-        "postprocess": 0.0333
+        "postprocess": 0.0738
       },
       "per_class_map": {
-        "negative": 0.43868,
-        "positive": 0.37496
+        "negative": 0.44993,
+        "positive": 0.35461
       }
     },
     "base_int8": {
@@ -142,18 +142,18 @@
       "device": "DX-M1 NPU (INT8)",
       "weights": "yolo26n_deepx_model",
       "map": 0.00035,
-      "map50": 0.00106,
-      "map75": 0.00025,
-      "inference_ms": 16.9424,
-      "fps": 59.02,
+      "map50": 0.001,
+      "map75": 0.00026,
+      "inference_ms": 16.8251,
+      "fps": 59.43,
       "speed_ms": {
-        "preprocess": 0.1738,
-        "inference": 16.9424,
-        "loss": 0.0005,
-        "postprocess": 0.0851
+        "preprocess": 0.1476,
+        "inference": 16.8251,
+        "loss": 0.0007,
+        "postprocess": 0.0852
       },
       "per_class_map": {
-        "person": 0.0007,
+        "person": 0.00071,
         "bicycle": 0.0,
         "car": 0.00035,
         "motorcycle": 0.00035,
@@ -240,20 +240,20 @@
       "form": "DeepX INT8",
       "device": "DX-M1 NPU (INT8)",
       "weights": "yolo26n_braintumor_deepx_model",
-      "map": 0.398,
-      "map50": 0.54406,
-      "map75": 0.47075,
-      "inference_ms": 11.9903,
-      "fps": 83.4,
+      "map": 0.43159,
+      "map50": 0.5835,
+      "map75": 0.5053,
+      "inference_ms": 12.1964,
+      "fps": 81.99,
       "speed_ms": {
-        "preprocess": 0.1433,
-        "inference": 11.9903,
+        "preprocess": 0.1301,
+        "inference": 12.1964,
         "loss": 0.0005,
-        "postprocess": 0.0664
+        "postprocess": 0.0705
       },
       "per_class_map": {
-        "negative": 0.44812,
-        "positive": 0.34788
+        "negative": 0.48441,
+        "positive": 0.37877
       }
     }
   },

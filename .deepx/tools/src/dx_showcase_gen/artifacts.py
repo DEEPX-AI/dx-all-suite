@@ -1,8 +1,14 @@
 """Copy a build session's generated files into the showcase dir + portability scan.
 
-Skips heavy binaries / environments (venv, *.pt, *.onnx, *.dxnn, __pycache__) that
-should not be committed, and flags absolute / session-specific path references the
+Skips environments / caches / heavy recordings (venv, __pycache__, *.mp4, *.mkv, *.pyc)
+that must never be committed, and flags absolute / session-specific path references the
 agent must make portable before the showcase can run standalone.
+
+Model artifacts (*.dxnn / *.onnx / *.pt) ARE copied: for retrain/export showcases the
+compiled .dxnn, DeepX export config/metadata, and retrained best.pt are curated
+deliverables committed with the showcase (matched by the `.gitignore` policy). Fork/game
+showcases keep their downloaded model-zoo binaries under runtime-download dirs (venv/,
+download/, dxnn_models/, …) which the copy never descends into anyway.
 ``scan_nonportable`` scans .py, .sh, and .json files — the ppe regression showed that
 absolute build-session paths can leak into committed data files (*.json) too.
 """
@@ -13,9 +19,12 @@ import shutil
 from pathlib import Path
 from typing import Dict, List
 
-# Files/dirs never copied into a showcase (binaries, envs, caches).
-SKIP_NAMES = {"venv", "__pycache__", ".git"}
-SKIP_SUFFIXES = {".pt", ".onnx", ".dxnn", ".engine", ".mp4", ".mkv", ".pyc"}
+# Files/dirs never copied into a showcase (envs, caches, runtime-download dirs).
+SKIP_NAMES = {"venv", ".venv", "__pycache__", ".git",
+              "dxnn_models", "onnx_models", "download", "output"}
+# Heavy recordings / TensorRT engines / caches — not committed. Model artifacts
+# (*.dxnn/*.onnx/*.pt) are intentionally NOT here: they are curated deliverables.
+SKIP_SUFFIXES = {".engine", ".mp4", ".mkv", ".pyc"}
 
 # Path patterns that break portability if they appear in a copied script.
 NONPORTABLE = [

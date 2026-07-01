@@ -1,0 +1,30 @@
+description: Ultralytics YOLO26n model trained on /data/home/dhyang/git/dx-all-suite/dx-runtime/venv-dx-runtime/lib/python3.12/site-packages/ultralytics/cfg/datasets/construction-ppe.yaml
+author: Ultralytics
+date: '2026-07-01T14:55:00.561294'
+version: 8.4.83
+license: AGPL-3.0 License (https://ultralytics.com/license)
+docs: https://docs.ultralytics.com
+stride: 32
+task: detect
+batch: 1
+imgsz:
+- 640
+- 640
+names:
+  0: helmet
+  1: gloves
+  2: vest
+  3: boots
+  4: goggles
+  5: none
+  6: Person
+  7: no_helmet
+  8: no_goggle
+  9: no_gloves
+  10: no_boots
+args:
+  data: construction-ppe.yaml
+  quantize: 8
+  optimize: false
+channels: 3
+end2end: true

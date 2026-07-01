@@ -108,6 +108,39 @@ def setupsh_local_venv_without_bridge(setup_sh: Path) -> Optional[bool]:
     return creates_local_venv and not writes_bridge
 
 
+def showcase_evidence_gaps(showcase_dir: str, kind: str) -> List[str]:
+    """Curated run-evidence a retrain/export showcase MUST carry so a fresh checkout shows
+    the real produced artifacts (the 'runs/ + *_deepx_model/ + .dxnn were never committed'
+    gap). Returns the list of missing deliverables; empty list = all present.
+
+    Only ``kind in {retrain, export}`` is checked — game/fork showcases download their
+    models at runtime and are covered by other gates. For every ``*_deepx_model/`` export
+    dir we require ``config.json`` + ``metadata.yaml`` + a ``*.dxnn``; a ``retrain`` showcase
+    additionally requires a training plot (``runs/**/results.png`` or ``confusion_matrix*``)
+    and the retrained ``runs/**/weights/best.pt``.
+    """
+    if kind not in ("retrain", "export"):
+        return []
+    sc = Path(showcase_dir)
+    gaps: List[str] = []
+    deepx_dirs = sorted(d for d in sc.glob("*_deepx_model") if d.is_dir())
+    if not deepx_dirs:
+        gaps.append("*_deepx_model/ (DeepX export dir with config.json + metadata.yaml + .dxnn)")
+    for d in deepx_dirs:
+        for need in ("config.json", "metadata.yaml"):
+            if not (d / need).exists():
+                gaps.append(f"{d.name}/{need}")
+        if not any(d.glob("*.dxnn")):
+            gaps.append(f"{d.name}/*.dxnn")
+    if kind == "retrain":
+        if not (list(sc.glob("runs/**/results.png"))
+                or list(sc.glob("runs/**/confusion_matrix*.png"))):
+            gaps.append("runs/**/results.png (training curves)")
+        if not list(sc.glob("runs/**/weights/best.pt")):
+            gaps.append("runs/**/weights/best.pt (retrained weights)")
+    return gaps
+
+
 def verify_showcase(showcase_dir: str, *, stream_json: Optional[str] = None,
                     expected_tool: str = C.DEFAULT_TOOL,
                     expected_model: str = C.DEFAULT_MODEL,
@@ -218,11 +251,23 @@ def verify_showcase(showcase_dir: str, *, stream_json: Optional[str] = None,
     # card grid / catalog / docs table include it (the yolo-export omission class of bug)
     root = sc.resolve().parent.parent  # dx-agent-dev-showcase/<name> -> repo root
     man_path = root / manifest.MANIFEST_REL
+    kind = ""
     if man_path.exists():
         try:
-            listed = {s.name for s in manifest.load_manifest(str(root)).showcases}
-            rep.add("listed in showcases.json", name in listed,
-                    "present" if name in listed else f"'{name}' missing — add it + run regen-docs")
+            man = manifest.load_manifest(str(root))
+            entry = next((s for s in man.showcases if s.name == name), None)
+            kind = entry.kind if entry else ""
+            listed = entry is not None
+            rep.add("listed in showcases.json", listed,
+                    "present" if listed else f"'{name}' missing — add it + run regen-docs")
         except Exception as e:  # malformed manifest is itself a failure
             rep.add("listed in showcases.json", False, f"manifest error: {e}")
+
+    # 6b. curated run-evidence — retrain/export showcases MUST commit the produced models
+    # (runs/ training plots + best.pt, *_deepx_model/{config.json,metadata.yaml,.dxnn}).
+    # This is the 'artifacts were regenerated locally but never committed' regression.
+    if kind in ("retrain", "export"):
+        gaps = showcase_evidence_gaps(str(sc), kind)
+        rep.add("curated run-evidence present (runs/ + *_deepx_model/ + .dxnn)", not gaps,
+                "all present" if not gaps else "missing: " + "; ".join(gaps))
     return rep

@@ -8,8 +8,8 @@
     "map5095": 0.0001,
     "map50": 0.0008,
     "map75": 0.0,
-    "inference_ms": 4.559,
-    "fps": 219.4,
+    "inference_ms": 4.868,
+    "fps": 205.4,
     "per_class_map5095": {
       "person": 0.0005,
       "bicycle": 0.0,
@@ -95,10 +95,10 @@
   },
   "base_dxnn_int8_npu": {
     "map5095": 0.0001,
-    "map50": 0.0005,
+    "map50": 0.0004,
     "map75": 0.0,
-    "inference_ms": 21.495,
-    "fps": 46.5,
+    "inference_ms": 17.059,
+    "fps": 58.6,
     "per_class_map5095": {
       "person": 0.0005,
       "bicycle": 0.0,
@@ -183,48 +183,48 @@
     }
   },
   "retrained_pt_fp32_gpu": {
-    "map5095": 0.2519,
-    "map50": 0.4892,
-    "map75": 0.2289,
-    "inference_ms": 2.973,
-    "fps": 336.3,
+    "map5095": 0.2486,
+    "map50": 0.4889,
+    "map75": 0.2207,
+    "inference_ms": 3.439,
+    "fps": 290.8,
     "per_class_map5095": {
-      "helmet": 0.4348,
-      "gloves": 0.33,
-      "vest": 0.4801,
-      "boots": 0.4281,
-      "goggles": 0.2654,
-      "none": 0.1859,
-      "Person": 0.5145,
-      "no_helmet": 0.0607,
-      "no_goggle": 0.0333,
-      "no_gloves": 0.036,
-      "no_boots": 0.0025
-    }
-  },
-  "retrained_dxnn_int8_npu": {
-    "map5095": 0.2533,
-    "map50": 0.5058,
-    "map75": 0.2112,
-    "inference_ms": 16.05,
-    "fps": 62.3,
-    "per_class_map5095": {
-      "helmet": 0.4194,
-      "gloves": 0.3288,
-      "vest": 0.4631,
-      "boots": 0.426,
-      "goggles": 0.2267,
-      "none": 0.1965,
-      "Person": 0.5136,
-      "no_helmet": 0.1166,
-      "no_goggle": 0.0584,
-      "no_gloves": 0.0362,
+      "helmet": 0.4314,
+      "gloves": 0.3428,
+      "vest": 0.4697,
+      "boots": 0.4227,
+      "goggles": 0.2342,
+      "none": 0.1756,
+      "Person": 0.4751,
+      "no_helmet": 0.122,
+      "no_goggle": 0.0284,
+      "no_gloves": 0.0317,
       "no_boots": 0.0006
     }
   },
+  "retrained_dxnn_int8_npu": {
+    "map5095": 0.2537,
+    "map50": 0.4946,
+    "map75": 0.2319,
+    "inference_ms": 12.682,
+    "fps": 78.9,
+    "per_class_map5095": {
+      "helmet": 0.4273,
+      "gloves": 0.3443,
+      "vest": 0.4718,
+      "boots": 0.4231,
+      "goggles": 0.2533,
+      "none": 0.1944,
+      "Person": 0.4824,
+      "no_helmet": 0.1282,
+      "no_goggle": 0.0297,
+      "no_gloves": 0.0337,
+      "no_boots": 0.0029
+    }
+  },
   "sample": {
-    "source": "image804.jpg",
-    "detections": 27,
+    "source": "image615.jpg",
+    "detections": 28,
     "output": "sample_detect.jpg"
   }
 }

@@ -1,0 +1,21 @@
+description: Ultralytics YOLO26n model trained on /data/home/dhyang/git/dx-all-suite/dx-runtime/venv-dx-runtime/lib/python3.12/site-packages/ultralytics/cfg/datasets/brain-tumor.yaml
+author: Ultralytics
+date: '2026-07-01T14:04:14.876701'
+version: 8.4.83
+license: AGPL-3.0 License (https://ultralytics.com/license)
+docs: https://docs.ultralytics.com
+stride: 32
+task: detect
+batch: 1
+imgsz:
+- 640
+- 640
+names:
+  0: negative
+  1: positive
+args:
+  data: brain-tumor.yaml
+  quantize: 8
+  optimize: false
+channels: 3
+end2end: true

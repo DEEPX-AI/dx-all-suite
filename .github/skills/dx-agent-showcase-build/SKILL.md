@@ -164,10 +164,25 @@ SG transcript --stream-json /tmp/sc.stream.jsonl \
 SG copy-artifacts --session-dir <build_session_dir> --showcase-dir dx-agent-dev-showcase/<name>
 ```
 
-- Copies the generated files (skips venv / *.pt / *.onnx / *.dxnn / caches) and prints
-  any absolute/session-specific path refs **in scripts AND data files (`*.json`)**. **Fix
-  every flagged ref** so the showcase runs standalone (SCRIPT_DIR / SUITE_ROOT relative;
-  auto-download instead of /tmp; no absolute `best_pt`/`save_dir` in `train_result.json`).
+- Copies the generated files (skips venv / caches / heavy recordings / runtime-download
+  dirs) and prints any absolute/session-specific path refs **in scripts AND data files
+  (`*.json`)**. **Fix every flagged ref** so the showcase runs standalone (SCRIPT_DIR /
+  SUITE_ROOT relative; auto-download instead of /tmp; no absolute `best_pt`/`save_dir` in
+  `train_result.json`).
+- **Curated run-evidence is a committed deliverable (retrain/export showcases).** The
+  produced models and training evidence MUST be copied in and committed so a fresh
+  `git clone` carries the real artifacts (no recompile needed) — this is the recurring
+  "`runs/` + `*_deepx_model/` were regenerated locally but never committed" gap:
+  - `*_deepx_model/` — the DeepX export dir(s) **with `config.json` + `metadata.yaml` +
+    the `.dxnn`** (base and retrained).
+  - `runs/<train>/` training evidence: `results.png`, `confusion_matrix*.png`,
+    `Box*_curve.png`, `results.csv`, `args.yaml`, `val_batch*_pred.jpg`, and
+    `weights/best.pt` (the retrained weights). `last.pt` is optional.
+  - `metrics.json` + `sample_detect.jpg`.
+  The `.gitignore` re-includes `*.dxnn/*.onnx/*.pt` under `dx-agent-dev-showcase/**`
+  (only env/cache/`download`/`dxnn_models`/`output` dirs stay ignored), and
+  `verify` FAILS a retrain/export showcase missing this evidence. After copy, **`git add`
+  the deliverables explicitly** (they are untracked until added).
 
 ## Phase 6 — Run/result GIF
 
@@ -228,7 +243,14 @@ present + syntax-OK, README/docs carry the showcase marker. Fix any FAIL and re-
   build leaves the screen frozen on "BUILDING …". The screen MUST be live-rendered during
   the build (Phase 3); `verify`'s gif-not-static check fails otherwise.
 - Declaring DONE before `verify` PASS.
-- Committing model binaries (`*.pt`/`*.onnx`/`*.dxnn`) or `venv/` into the showcase.
+- Committing `venv/`, caches, or **runtime-download** dirs (`download/`, `dxnn_models/`,
+  `onnx_models/`, `output/`) into the showcase. (The produced model artifacts —
+  `*.dxnn`/`*.onnx`/`best.pt` **directly in a retrain/export showcase**, e.g. under
+  `*_deepx_model/` or `runs/**/weights/` — ARE curated deliverables and MUST be committed;
+  see Phase 5. Only fork/game showcases keep their downloaded model-zoo binaries under the
+  ignored download dirs.)
+- **Omitting the curated run-evidence** (`runs/` plots + `*_deepx_model/{config,metadata,.dxnn}`
+  + `best.pt`) from a retrain/export showcase — `verify` FAILS on it (Phase 5 / Phase 8).
 - Leaving absolute / `/tmp` / session-specific paths in the copied scripts.
 - **Reusing or deleting a pre-existing user repo** found via `find` — clone fresh into the
   session dir instead (see hard rule 8).
