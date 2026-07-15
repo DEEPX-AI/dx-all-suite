@@ -1,226 +1,194 @@
-// Cover page
-// !!! :note: do not working with named @page ???
+/* ==================================================== */
+/* Cover page (앞표지)                                   */
+/* ==================================================== */
 @page :first {
-    @top-right {
-      content: normal;
-    }
-  
-    @bottom-center {
-      content: normal;
-    }
-  
-    @bottom-right {
-      content: normal;
-    }
-  }
-  
-  article#doc-cover {
-    display: flex;
-    flex-direction: column;
-    height: 100vh;
-  
-    &>.wrapper {
-      flex: 1 0 auto;
-      text-align: center;
-      padding: 0 3rem;
-  
-      &.upper {
-        flex: 1 1 auto;
-        max-height: 30vh;
-  
-        > .logo {
-          width: 20%;
-          height: 20%;
-          background-position: center bottom;
-          background-repeat: no-repeat;
-          background-size: contain;
-        }
-      }
-  
-      h1 {
-        font-size: 36pt;
-        line-height: 1.4;
-      }
-  
-      h2 {
-        border: none;
-        bookmark-level: none;
-      }
-    }
-  
-  
-    &>.properties {
-      flex: 0 0 auto;
-      text-align: right;
-      padding: 0 2rem;
-  
-      p#copyright {
-        font-size: 80%;
-      }
-    }
-  }
-  
-  article {
-    h1 {
-      border-bottom: 2px solid #06b;
-    }
-  
-    h2 {
-      border-bottom: 1px solid #5ad;
-    }
-  
-    h3 {
-      border-bottom: 0.5px solid #eee;
-    }
-  
-    h1>.pdf-order,
-    h2>.pdf-order,
-    h3>.pdf-order {
-      padding-left: 6px;
-      // padding-right: 0.8rem;
-    }
-  }
-  
-  $back_cover-bg: #fff;
-  
-  article#doc-back_cover {
-    page: back_cover;
-  
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
+  @top-right { content: normal; }
+  @bottom-center { content: normal; }
+  @bottom-right { content: normal; }
+}
+
+article#doc-cover {
+  display: block;
+  page-break-after: always;
+  /* 1. 표지 밀림 방지: 상단 여백 대폭 축소 */
+  padding-top: 20mm; 
+  box-sizing: border-box;
+
+  & > .wrapper {
     text-align: center;
-  
-    .wrapper {
-      flex: 1 0 auto;
-      display: inline-block;
-      background: $back_cover-bg;
-  
-      &.upper {
-       flex: 1 1 auto;
-       max-height: 30vh;
-  
-       > .logo {
-          width: 20%;
-          height: 20%;
-          background-position: center bottom;
-          background-repeat: no-repeat;
-          background-size: contain;
-        }
-     }
+    padding: 0 3rem;
+
+    &.upper {
+      /* 2. 로고와 타이틀 사이 간격 축소 */
+      margin-bottom: 20mm; 
+
+      > .logo {
+        width: 140px;  
+        height: 140px;
+        margin: 0 auto;
+        background-position: center bottom;
+        background-repeat: no-repeat;
+        background-size: contain;
+      }
     }
-  
-    .qrcode {
-      display: inline-block;
-      flex: 0 0 auto;
-      background: $back_cover-bg;
-  
-      > a {
-        display: inline-block;
-        padding: 0.5em 2em;
-        border-radius: 1em;
-        background-color: #fff;
-  
-        img {
-          width: 0%;
-          height: auto;
-        }
+
+    h1 {
+      /* 표지 제목 크기 약간 조정 */
+      font-size: 32pt;
+      line-height: 1.4;
+      margin-bottom: 20px;
+    }
+
+    h2 {
+      font-size: 18pt;
+      border: none;
+      bookmark-level: none;
+    }
+  }
+
+  & > .properties {
+    /* 3. 하단 저작권 정보 여백 축소하여 1페이지 안에 쏙 들어오게 맞춤 */
+    margin-top: 40mm; 
+    text-align: right;
+    padding: 0 2rem;
+
+    p#copyright {
+      font-size: 10pt; 
+    }
+  }
+}
+
+/* ==================================================== */
+/* 일반 본문 요소 스타일                                 */
+/* ==================================================== */
+article {
+  h1 { border-bottom: 2px solid #06b; page-break-after: avoid; }
+  h2 { border-bottom: 1px solid #5ad; page-break-after: avoid; }
+  h3 { border-bottom: 0.5px solid #eee; page-break-after: avoid; }
+
+  h1 > .pdf-order,
+  h2 > .pdf-order,
+  h3 > .pdf-order {
+    padding-left: 6px;
+  }
+}
+
+/* ==================================================== */
+/* Back cover (뒷표지)                                   */
+/* ==================================================== */
+$back_cover-bg: #fff;
+
+@page back_cover {
+  background-color: $back_cover-bg;
+
+  @top-right { content: normal; }
+  @bottom-center { content: normal; }
+  @bottom-left {
+    font-size: 8pt;
+    content: string(title);
+  }
+  @bottom-right {
+    font-size: 8pt;
+    content: string(copyright);
+  }
+}
+
+article#doc-back_cover {
+  page: back_cover;
+  page-break-before: always;
+  display: block;
+  text-align: center;
+  padding-top: 70mm;
+
+  .wrapper {
+    display: block;
+    background: $back_cover-bg;
+    margin-bottom: 30mm;
+
+    &.upper {
+      > .logo {
+        width: 140px;
+        height: 140px;
+        margin: 0 auto;
+        background-position: center bottom;
+        background-repeat: no-repeat;
+        background-size: contain;
       }
     }
   }
-  
-  @page back_cover {
-    background-color: $back_cover-bg;
-  
-    @top-right {
-      content: normal;
-    }
-  
-    @bottom-center {
-      content: normal;
-    }
-  
-    @bottom-left {
-      font-size: 8pt;
-      content: string(title);
-    }
-  
-    @bottom-right {
-      font-size: 8pt;
-      content: string(copyright);
+
+  .qrcode {
+    display: block;
+    background: $back_cover-bg;
+
+    > a {
+      display: inline-block;
+      padding: 0.5em 2em;
+      border-radius: 1em;
+      background-color: #fff;
+
+      img {
+        width: 120px; 
+        height: auto;
+      }
     }
   }
-  
-  @media print {
-    html {
-      //font-size: 95%;
-      font-size: 16pt;
-      font-family: 'Noto Sans Display';
-    }
-  
-    body {
-      font-size: 16pt;
-      font-family: 'Noto Sans Display';
-    }
-  
+}
+
+/* ==================================================== */
+/* 인쇄 가독성 향상을 위한 미디어 쿼리                     */
+/* ==================================================== */
+@media print {
+  .md-typeset {
+    /* 4. 왕글씨 문제 해결: 표준 문서 사이즈인 11pt로 수정 */
+    font-size: 11pt !important;
+    font-family: 'Noto Sans Display';
+
     article {
-      font-size: 0.8rem;
+      font-size: 11pt !important;
       line-height: 1.6;
     }
-  
-    h1,
-    h2,
-    h3,
-    h4,
-    h5,
-    h6 {
+
+    /* 5. 본문 크기에 맞춰 대/중/소제목 크기도 밸런스 있게 축소 */
+    h1 { font-size: 20pt !important; margin-top: 1.5em; margin-bottom: 0.6em; }
+    h2 { font-size: 16pt !important; margin-top: 1.3em; margin-bottom: 0.5em; }
+    h3 { font-size: 14pt !important; margin-top: 1.1em; margin-bottom: 0.4em; }
+    h4 { font-size: 12pt !important; }
+    h5, h6 { font-size: 11pt !important; }
+    
+    h1, h2, h3, h4, h5, h6 {
       font-family: 'Noto Sans Display';
-      font-size: 0.8rem;
     }
-  
+
     label {
       font-family: 'Noto Sans Display';
-      font-size: 1rem;
+      font-size: 11pt !important;
     }
-  
-  
-    pre,
-    code,
-    var,
-    samp,
-    kbd,
-    tt {
+
+    /* 6. 코드 블록 글씨도 본문보다 살짝 작게(9.5pt) 맞춰서 예쁘게 출력되도록 수정 */
+    pre, code, var, samp, kbd, tt {
       font-family: 'Roboto Mono';
-      font-size: 0.8rem;
+      font-size: 9.5pt !important;
     }
-  
-    pre code,
-    pre var,
-    pre samp,
-    pre kbd,
-    pre tt {
-      font-family: 'Roboto Mono';
-      font-size: 80%;
+
+    pre code, pre var, pre samp, pre kbd, pre tt {
+      font-size: 100% !important; 
     }
-  
-    /* Adjusts positioning of admonition icon */
-    .md-typeset :is(.admonition-title,summary):before {
+
+    .admonition, details {
+      font-size: 10.5pt !important; 
+    }
+    .admonition-title, summary {
+      font-size: 11pt !important;
+      font-weight: bold !important;
+    }
+    :is(.admonition-title, summary):before {
       top: 0.6rem;
       left: 0.6rem;
     }
 
-    table {
-      width: 100% !important; /* 테이블 너비 100% 설정 */
-      table-layout: fixed; /* 테이블 레이아웃 고정 */
-      break-inside: avoid; /* 페이지 분할 방지 */
-    }
-
-    td, th {
-        word-wrap: break-word; /* 단어 줄 바꿈 */
-        overflow-wrap: break-word; /* 긴 단어 처리 */
-        max-width: 200px; /* 최대 너비 설정 (조절 가능) */
-    }
-    th {
-        white-space: nowrap; /*헤더의 경우 줄바꿈 방지*/
+    table, th, td {
+      font-size: 10.5pt !important; /* 본문(11pt)과 비슷하거나 꽉 차지 않게 살짝만 작게 */
     }
   }
+}

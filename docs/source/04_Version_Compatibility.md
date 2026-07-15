@@ -4,10 +4,10 @@ Since the **DEEPX SDK** maintains strict version dependencies between modules, i
 
 ## DXNN SDK Version Compatibility Matrix
 
-<table style="border-collapse: collapse; margin-bottom: 0px; width: 100%; text-align: center;" cellpadding="0" cellspacing="0">
+<table>
   <thead align="center">
     <tr>
-      <th rowspan="4">Release Date</th>
+      <th rowspan="3">Release Date</th>
       <th colspan="7">DX-AllSuite</th>
     </tr>
     <tr>
@@ -26,12 +26,29 @@ Since the **DEEPX SDK** maintains strict version dependencies between modules, i
   </thead>
   <tbody align="center">
     <tr>
+      <td rowspan="3">2026-07-14</td>
+      <td colspan="7">v2.4.0</td>
+    </tr>
+    <tr>
+      <td colspan="2">v2.4.0</td>
+      <td colspan="5">v2.4.0</td>
+    </tr>
+    <tr>
+      <td>v2.4.0</td>
+      <td>v2.0.1</td>
+      <td>v2.7.1</td>
+      <td>v2.5.0</td>
+      <td>v3.4.0</td>
+      <td>v3.1.0</td>
+      <td>v3.2.0</td>
+    </tr>
+    <tr>
       <td rowspan="3">2026-05-14</td>
       <td colspan="7">v2.3.3</td>
     </tr>
     <tr>
       <td colspan="2">v2.3.1</td>
-      <td colspan="5"><b>v2.3.3</b></td>
+      <td colspan="5">v2.3.3</td>
     </tr>
     <tr>
       <td>v2.3.0</td>
@@ -55,7 +72,7 @@ Since the **DEEPX SDK** maintains strict version dependencies between modules, i
       <td>v2.0.1</td>
       <td>v2.5.6</td>
       <td>v2.4.1</td>
-      <td><b>v3.3.2</b></td>
+      <td>v3.3.2</td>
       <td>v3.0.1</td>
       <td>v3.1.1</td>
     </tr>
@@ -64,7 +81,7 @@ Since the **DEEPX SDK** maintains strict version dependencies between modules, i
       <td colspan="7">v2.3.1</td>
     </tr>
     <tr>
-      <td colspan="2"><b>v2.3.1</b></td>
+      <td colspan="2">v2.3.1</td>
       <td colspan="5">v2.3.1</td>
     </tr>
     <tr>
@@ -72,9 +89,9 @@ Since the **DEEPX SDK** maintains strict version dependencies between modules, i
       <td>v2.0.1</td>
       <td>v2.5.6</td>
       <td>v2.4.1</td>
-      <td><b>v3.3.1</b></td>
-      <td><b>v3.0.1</b></td>
-      <td><b>v3.1.1</b></td>
+      <td>v3.3.1</td>
+      <td>v3.0.1</td>
+      <td>v3.1.1</td>
     </tr>
     <tr>
       <td rowspan="3">2026-04-10</td>
@@ -223,7 +240,5 @@ If you are using the compiler as a library, you can also check the version direc
 ```Bash
 python3 -c "import dx_com; print(dx_com.__version__)"
 ```
-
-Copyright © DEEPX. All rights reserved.
 
 ---

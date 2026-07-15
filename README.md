@@ -127,6 +127,7 @@ DX-AllSuite supports a vast array of industry-standard AI architectures, optimiz
 
 If you are a first-time user, we recommend following the documentation in this order.  
 
+- **[Introduction](./docs/source/index.md)**: DX-AS overview and component descriptions
 - **★ [Agent-Driven Development (Beta)](./docs/source/00_Agent_Driven_Development.md)**: Build DEEPX apps with natural-language prompts using AI coding agents (Claude Code, Cursor, GitHub Copilot, OpenCode, Codex CLI)  
 - **Step 1. [DX-AllSuite Architecture Overview](./docs/source/01_DX-AllSuite_Architecture_Overview.md)**: SDK overview, module descriptions, and ModelZoo usage  
 - **Step 2. [Setting Up Environment](./docs/source/02_Setting_Up_Environment.md)**: Detailed Local/Docker installation and troubleshooting  

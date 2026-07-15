@@ -6,7 +6,7 @@
     - DX-COM: v2.4.0
     - DX-TRON: v2.0.1 (Deprecated)
 - DX-Runtime: v2.4.0
-    - DX_FW: v2.7.0
+    - DX_FW: v2.7.1
     - NPU Driver: v2.5.0
     - DX-RT: v3.4.0
     - DX-Stream: v3.1.0
@@ -14,9 +14,11 @@
 
 ---
 
-Here are the **DX-All-Suite v2.3.3** Release Note.
+Here are the **DX-All-Suite v2.4.0** Release Note.
 
 ### What's New?
+
+This major release focuses on **AI-Powered Development Workflow**, **Next-Generation Quantization**, and **Production-Ready Stability**. The introduction of Agent-Driven Development and advanced quantization techniques make this our most accessible and powerful release to date.
 
 #### ✨ New: Build DEEPX NPU apps with natural language
 
@@ -35,11 +37,115 @@ Describe an app or model task in plain language, and an AI coding agent drives t
 
 **Learn more** — see [Agent-Driven Development docs](docs/source/00_Agent_Driven_Development.md) and the [showcase gallery](dx-agent-dev-showcase/README.md).
 
+#### 🎯 Advanced Quantization & Model Quality
+
+- **Automated Q-PRO Configuration**: DX-COM now automatically generates DXQ combinations for higher-accuracy quantization, removing manual tuning requirements.
+- **Quantization-Aware Training (QAT)**: End-to-end QAT support directly through `dx_com.compile()`, enabling fine-grained accuracy optimization.
+- **QXNN Resume Flow**: Re-run quantization with different settings without recompiling, dramatically shortening iteration cycles.
+- **Quantization Diagnosis HTML Report**: Visualize per-layer quantization quality with actionable recommendations.
+
+#### 🚀 Expanded Model & Platform Support
+
+- **Massive Model Library**: Support for 349 models across 22 AI task categories, including 5 new tasks (3D Object Detection, Keypoint Detection, Object Pose Estimation, Panoptic Driving Perception, Hand Detection).
+- **Extended Platform Coverage**: Python 3.13–3.14 support (DX-COM) and Ubuntu 26.04 validation.
+- **Windows Ecosystem**: Full Windows MSVC support for DX-Stream including build, test suite, and Python bindings.
+
 ---
 
 ### Key Updates
 
-TBD
+**Performance & Efficiency**
+
+- **Compiler Optimization**: Faster compilation with reduced memory usage, especially on large models (DX-COM).
+- **Stable C ABI**: Prebuilt SDK distribution without recompilation via dxrt_c_api.h (103 functions) and header-only C++ wrapper (dxrt_cxx_api.h) for single-include modern C++ usage (DX-RT).
+- **CLI Modernization**: Updated CLI binary names (`dxrt-cli` → `dxcli`, `parse_model` → `dxparse`, `run_model` → `dxrun`) with backward-compatible aliases (DX-RT).
+- **IPC Infrastructure**: Shared memory-based inter-process communication using memfd with packet-based protocol layer and cross-platform support for Linux/Windows (DX-RT).
+- **Python Ecosystem**: Debian package bundles `dx_engine` Python wheels for Python 3.8–3.14 (DX-RT).
+
+**Stability & Fixes**
+
+- **Firmware & Hardware Stability**:
+  - Adjusted CPU reset delay (20ms → 200ms) to ensure stable PLL lock (DX_FW).
+  - Disabled Root Complex Tx Equalization Preset 10 to prevent PCIe link compliance/test loops during normal boot (DX_FW).
+  - Fixed device recovery issues after firmware updates; resolved module installation errors in certain hardware environments (NPU Driver).
+  - Automatic recovery logic for critical runtime error scenarios (NPU Driver).
+
+- **Compiler Robustness**:
+  - Fixed Q-PRO/DXQ quantization crashes and stability issues observed on real models (DX-COM).
+  - Fixed Python API integer input handling that caused accuracy degradation (DX-COM).
+  - Fixed compilation errors in models with Split, Concat, Reshape, Bilinear Resize, Clip, or odd spatial dimensions (DX-COM).
+  - Fixed NumPy 2.4+ and onnxruntime ≥ 1.25.0 compatibility issues (DX-COM).
+
+- **Runtime Reliability**:
+  - Fixed critical crash (nullptr) in pyRunBenchmark by ensuring memory lifetime of input buffers (DX-RT).
+  - Fixed SEGV in NFHLayer caused by uninitialized profiler instrumentation (DX-RT).
+  - Improved shared-memory performance and temperature validation in dxtop (DX-RT).
+  - Multiple API refinements: error messages, output formatting, ppcpu logic, multi-input dictionary handling (DX-RT).
+
+- **Stream Stability**:
+  - LATENCY reporting: All elements now correctly account for processing time, stabilizing synchronization and QoS behavior (DX-Stream).
+  - FLUSH recovery and push thread lifecycle: Proper reset of queues/threads/state on FLUSH, eliminating hangs on seek/replay (DX-Stream).
+  - Error handling: Replaced `abort()` with proper `GST_ELEMENT_ERROR` messages across all elements (DX-Stream).
+
+- **Application Fixes**:
+  - Super-resolution now preserves input resolution via dynamic tile padding (DX-APP).
+  - Fixed `--save` option not producing output files in C++ sync runners for multiple AI tasks (DX-APP).
+  - Multiple post-processor fixes: DOPE, YOLOPv2, RetinaFace, Depth Anything V2 normalization (DX-APP).
+  - Build fixes: pybind missing includes, Windows x64 library paths, async runner metrics (DX-APP).
+
+**New Features & Tools**
+
+- **Compiler & Quantization**:
+  - Interactive HTML graph viewer for model inspection with parameter shapes and CPU/NPU partition reasons (replaces DX-TRON) (DX-COM).
+  - `dx_com.pre_optimize()` API for ONNX-level pre-processing transforms with built-in YOLO post-processing integration (detection/segmentation) (DX-COM).
+  - Automated Q-PRO configuration: automatically generates DXQ combinations without manual tuning (DX-COM).
+  - Quantization-Aware Training (QAT): End-to-end support through `dx_com.compile()` with `fast_run` flag for smoke tests (DX-COM).
+  - QXNN Resume: Checkpoint-based re-quantization without recompile for faster iteration (DX-COM).
+  - Quantization Diagnosis HTML Report: Visualizes per-layer quality with recommended compile snippets (DX-COM).
+
+- **Runtime & Monitoring**:
+  - H1M firmware compatibility check: distinguish H1M (LPDDR4) from H1 (LPDDR5/LPDDR5X); support mixed 4-pack/6-pack configurations (DX-RT).
+  - Device monitoring APIs for memory usage, per-core temperature, and utilization (DX-RT).
+  - Profiler enhancements: GetJobMetrics() API for comprehensive per-job profiling and Coefficient of Variation (CoV) metric (DX-RT).
+  - HTML visualization tool (plot_html.py) for profiling data (DX-RT).
+  - Debian packaging improvements: prebuilt directory structure and `libdxrt-bin` with amd64/arm64 auto-detection (DX-RT).
+
+- **Application Framework**:
+  - Native C++ post-processing for model zoo (YOLO families, semantic seg, Face3D, embedding/classification/attribute, restoration, YOLO-PPU), replacing Python fallbacks (DX-APP).
+  - Opt-in `--fast-postprocess` path for object detection and instance segmentation (DX-APP).
+  - YOLO Customizing Guide documentation (DX-APP).
+  - Windows Visual Studio solution package extraction workflow with automatic OpenCV/DXRT CMake dependency configuration (DX-APP).
+  - Build enhancements: `--demo-models` download option, minimal/category-based builds, Windows build selection TUI, `--all` flag for full build and install (DX-APP).
+  - Knowledge base (`.deepx/`): specialized agents, app-building/SWE skills, and multi-platform agent-instruction generation (CLAUDE/AGENTS/copilot/cursor) via `dx-agent-gen` (DX-APP).
+  - 7 new post-processors + pybind bindings (43 → 50 classes), 3 C++ factory interfaces, 3 visualizers for new AI tasks (DX-APP).
+  - Per-model Python examples (4 variants: sync/async/sync_cpp_postprocess/async_cpp_postprocess) and C++ examples (sync/async) (DX-APP).
+
+- **Streaming Infrastructure**:
+  - Multi-Stream Domain: Introduced `application/x-dxvideoraw` domain caps for unified processing of streams with different resolutions/formats (DX-Stream).
+  - Base class migration: `dxinputselector`/`dxgather` → `GstAggregator` for N:1 multiplexing; `dxvnpuoverlay` → `GstBaseSink` for proper render/preroll lifecycle (DX-Stream).
+  - TransformKernelPool: Automatic src-format-based kernel selection with libyuv fallback for dxscale, dxconvert, dxpreprocess, dxmsgconv (DX-Stream).
+  - InferBackend abstraction: Refactored dxinfer to use Put/Get async pattern with backend property (auto/dxrt/dxvnpu) (DX-Stream).
+  - Windows MSVC build and runtime environment: Full support including dependency check, build, demo launcher, test suite, Python binding (pydxs) (DX-Stream).
+  - Test Suite: 73 new test binaries under `test/base/{element,metadata,pipeline}/` covering element contracts, domain boundaries, end-to-end pipelines (DX-Stream).
+  - DxMsgConv: `include-frame` property for base64 JPEG frame encoding with Kafka/MQTT consumer display support (DX-Stream).
+
+### Known Issues
+
+- **PReLU Degradation**: Significant FPS degradation has been observed in models using PReLU as an activation function.
+
+### Deprecation Notices
+
+- **DX-TRON**: Deprecated as of v2.4.0. Migrate to DX-COM's standalone HTML graph viewer for model visualization.
+- **PPU Type 2**: Legacy PPU type 2 post-processing mode is deprecated. Migrate to `dx_com.pre_optimize()` API with built-in YOLO post-processing passes.
+
+### Migration Guide
+
+- **DX-TRON Users**: Replace DX-TRON workflow with the new HTML graph viewer generated by DX-COM.
+- **PPU Type 2 Users**: Update compilation workflows to use `dx_com.pre_optimize()` API for YOLO models instead of PPU type 2.
+- **NumPy 2.4+ Users**: DX-COM v2.4.0 ensures compatibility with NumPy 2.4+ and onnxruntime ≥ 1.25.0.
+
+For detailed updated items, refer to **each environment & module's Release Notes**.
+
 
 ---
 

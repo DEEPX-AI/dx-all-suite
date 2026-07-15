@@ -1,30 +1,99 @@
 .md-grid {
     max-width: 1600px; 
-  }
+}
   
-  img[alt=result_img] { width: 500px; }
+img[alt=result_img] { width: 500px; }
   
-  .md-typeset body {
-      font-size: 16px;
-  }
-  .md-typeset h1 {
-      font-size: 28px;
-  }
-  .md-typeset h2 {
-      font-size: 24px;
-  }
-  .md-typeset h3 {
-      font-size: 20px;
-  }
-  .md-typeset li {
-      font-size: 14px;
-  }
-  .md-typeset code {
-      font-size: 12px;
-  }
+.md-typeset {
+    font-size: 16px;
+}
+.md-typeset h1 { font-size: 28px; }
+.md-typeset h2 { font-size: 24px; }
+.md-typeset h3 { font-size: 20px; }
+.md-typeset li { font-size: 14px; }
+.md-typeset code { font-size: 12px; }
 
-  .md-typeset table:not([class]) td:not([align]),
-  .md-typeset table:not([class]) th:not([align]) {
-      text-align: center;
-      vertical-align: middle;
-  }
+/* Make inline links visible in PDF */
+a {
+    color: #1565c0;
+    text-decoration: underline;
+}
+@media print {
+    a { color: #1565c0; text-decoration: underline; }
+    a:visited { color: #0d47a1; }
+}
+
+/* ---------------------------------------------------- */
+/* PDF 변환(WeasyPrint) 시 레이아웃 깨짐 및 짤림 방지 종합 세트 */
+/* ---------------------------------------------------- */
+@media print {
+    /* 1. 코드 블록 페이지 밀림 방지 및 줄바꿈 설정 */
+    .md-typeset pre,
+    .md-typeset pre > code {
+        overflow: visible !important;
+        white-space: pre-wrap !important;
+        word-wrap: break-word !important;
+        word-break: break-all !important;
+    }
+    .md-typeset pre {
+        page-break-inside: auto !important; 
+        break-inside: auto !important;
+    }
+
+    /* 2. Nested 구조 챕터 블록 렌더링 중단 방지 */
+    article, section, .md-content, .md-grid, .md-main__inner, .md-content__inner {
+        page-break-inside: auto !important;
+        break-inside: auto !important;
+        display: block !important;          
+        overflow: visible !important;
+        height: auto !important;
+        max-height: none !important;
+    }
+
+    /* 3. [핵심] 표(Table) 가로 스크롤 해제, 텍스트 줄바꿈 및 아주 연한 격자선 강제 */
+    .md-typeset__scrollwrap,
+    .md-typeset__table {
+        overflow: visible !important;
+        display: block !important;
+    }
+    
+    table {
+        display: table !important;
+        width: 100% !important;
+        overflow: visible !important;
+        page-break-inside: auto !important; 
+        break-inside: auto !important;
+        table-layout: fixed !important; 
+        border-collapse: collapse !important; /* 이중 선 방지 */
+    }
+
+    th, td {
+        word-wrap: break-word !important;
+        word-break: break-all !important;
+        white-space: normal !important;
+        overflow-wrap: break-word !important;
+        
+        /* 👇 연하고 얇은 회색 가로/세로 격자선 추가 */
+        border: 0.5px solid #e2e8f0 !important; 
+        padding: 7px 5px !important;
+    }
+
+    th {
+        /* 👇 제목 행 구분을 위한 은은한 배경색과 두꺼운 하단 선 */
+        background-color: #f8fafc !important;
+        font-weight: bold !important;
+        border-bottom: 1px solid #cbd5e1 !important; 
+    }
+
+    tr {
+        page-break-inside: auto !important; 
+        break-inside: auto !important;
+    }
+
+    /* 4. 큰 이미지가 페이지를 뚫고 나가 문서가 잘리는 현상 방어 */
+    img, svg {
+        max-width: 100% !important;
+        height: auto !important;
+        page-break-inside: avoid !important;
+    }
+}

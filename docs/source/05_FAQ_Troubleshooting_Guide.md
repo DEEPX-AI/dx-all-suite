@@ -278,7 +278,4 @@ services:
 !!! tip "Choosing the Right Size"  
     A value of `256m` resolves most cases. If the error persists with larger or batch-processed models, increase to `1g` or higher.
 
-Copyright © DEEPX. All rights reserved.
-
 ---
-

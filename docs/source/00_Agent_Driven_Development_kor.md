@@ -1,7 +1,9 @@
 # DEEPX Agent-Driven Development - dx-agent-dev (Beta)
 
-> **베타 기능** — 에이전틱 개발 지원은 현재 활발히 개발 중입니다.
-> 스킬 정의와 라우팅 동작은 릴리스 간에 변경될 수 있습니다.
+!!! note "베타 기능"  
+
+    에이전틱 개발 지원은 현재 활발히 개발 중입니다.  
+    스킬 정의와 라우팅 동작은 릴리스 간에 변경될 수 있습니다.  
 
 ## 소개
 
@@ -189,8 +191,10 @@ dx-all-suite는 작업을 분류하고 적절한 서브모듈로 디스패치하
 | **dx-compiler** | `/dx-swe-tdd` | 프로세스: 테스트 주도 개발 — 각 단계를 점진적으로 검증 |
 | **dx-compiler** | `/dx-swe-verify` | 프로세스: 완료 전 검증 — 증거 먼저, 주장 나중에 |
 
-> **팁:** 어떤 서브모듈을 대상으로 해야 할지 모르겠다면, 최상위에서
-> `@dx-suite-builder`를 사용하세요 — 작업을 분류하고 적절한 빌더로 라우팅합니다.
+!!! note "팁"  
+
+    어떤 서브모듈을 대상으로 해야 할지 모르겠다면, 최상위에서 @dx-suite-builder`를 사용하세요 — 작업을 분류하고 적절한 빌더로 라우팅합니다.  
+
 
 ## 지원 AI 도구
 
@@ -247,10 +251,9 @@ cursor-agent
 **Auto**로 표시된 파일은 매 대화마다 자동 로딩되고, **@mention** 파일은
 에이전트 또는 스킬 명령으로 수동 호출됩니다.
 
-> **Git 서브모듈 경계**: Copilot Chat/CLI, Claude Code, Codex CLI는 현재 git 루트의 파일만
-> 인식합니다. `dx-all-suite/`에서 열면 `dx-compiler/`, `dx-runtime/` 등의 하위
-> 프로젝트 파일은 자동 로딩되지 않습니다 (별도 git 서브모듈). OpenCode만
-> `opencode.json`의 명시적 경로 참조로 이 경계를 넘을 수 있습니다.
+!!! note "Git 서브모듈 경계"  
+
+    Copilot Chat/CLI, Claude Code, Codex CLI는 현재 git 루트의 파일만 인식합니다. `dx-all-suite/`에서 열면 `dx-compiler/`, `dx-runtime/` 등의 하위 프로젝트 파일은 자동 로딩되지 않습니다 (별도 git 서브모듈). OpenCode만 `opencode.json`의 명시적 경로 참조로 이 경계를 넘을 수 있습니다.  
 
 #### 자동 로딩 파일
 
@@ -268,9 +271,11 @@ cursor-agent
 | `dx-suite-builder` | `.github/agents/dx-suite-builder.agent.md` | `.opencode/agents/dx-suite-builder.md` |
 | `dx-suite-validator` | `.github/agents/dx-suite-validator.agent.md` | `.opencode/agents/dx-suite-validator.md` |
 
-> Claude Code는 `.claude/agents/`에 생성된 에이전트 파일이 있습니다 (예: `dx-suite-builder.md`).
-> Cursor는 `.cursor/rules/`에 에이전트 `.mdc` 파일이 있습니다 (예: `dx-suite-builder.mdc`).
-> Claude Code는 또한 `CLAUDE.md`의 Context Routing Table로 작업을 디스패치합니다.
+!!! note "NOTE"  
+
+    Claude Code는 `.claude/agents/`에 생성된 에이전트 파일이 있습니다 (예: `dx-suite-builder.md`).  
+    Cursor는 `.cursor/rules/`에 에이전트 `.mdc` 파일이 있습니다 (예: `dx-suite-builder.mdc`).  
+    Claude Code는 또한 `CLAUDE.md`의 Context Routing Table로 작업을 디스패치합니다.  
 
 #### 스킬 파일 (OpenCode 전용 — `/slash-command`)
 
@@ -473,8 +478,9 @@ dx-all-suite 메타 가이드는 모든 서브 프로젝트 시나리오로 라�
 - **dx_stream 시나리오** (GStreamer 파이프라인): [dx_stream 가이드](../../../dx_stream/docs/source/docs/08_DX-STREAM_Agent_Driven_Development.md) 참조
 - **dx-compiler 시나리오** (모델 컴파일): [dx-compiler 가이드](../../dx-compiler/source/docs/05_DX-COMPILER_Agent_Driven_Development.md) 참조
 
-> **팁:** 서브 프로젝트 디렉토리로 직접 이동할 필요 없습니다. dx-all-suite 레벨에서
-> `@dx-suite-builder`를 사용하면 — 어떤 서브 프로젝트로든 자동 라우팅됩니다.
+!!! note "팁"  
+
+    서브 프로젝트 디렉토리로 직접 이동할 필요 없습니다. dx-all-suite 레벨에서 `@dx-suite-builder`를 사용하면 — 어떤 서브 프로젝트로든 자동 라우팅됩니다.  
 
 ## 서브 프로젝트 가이드
 
@@ -556,3 +562,5 @@ dx-all-suite/dx-agent-dev/
 **중요**: DONE은 모든 산출물(구현 코드, 스크립트, 설정 파일, 검증 결과)이 생성된
 후에만 출력합니다. 기획 산출물(spec, plan, 설계 문서)만 작성하고 실제 코드를
 구현하지 않은 상태에서는 DONE을 출력하면 안 됩니다.
+
+---

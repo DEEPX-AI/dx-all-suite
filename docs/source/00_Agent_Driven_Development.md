@@ -1,7 +1,9 @@
 # DEEPX Agent-Driven Development - dx-agent-dev (Beta)
 
-> **Beta Feature** — Agent-Driven development support is under active development.
-> Skill definitions and routing behavior may change between releases.
+!!! note "Beta Feature"  
+
+    Agent-Driven development support is under active development.  
+    Skill definitions and routing behavior may change between releases.  
 
 ## Introduction
 
@@ -196,8 +198,9 @@ correct submodule.
 | **dx-compiler** | `/dx-swe-tdd` | Process: test-driven development — validate each step incrementally |
 | **dx-compiler** | `/dx-swe-verify` | Process: verify before claiming completion — evidence before assertions |
 
-> **Tip:** If you are unsure which submodule to target, use `@dx-suite-builder`
-> at the top level — it will classify your task and route to the correct builder.
+!!! note "Tip"  
+
+    If you are unsure which submodule to target, use `@dx-suite-builder` at the top level — it will classify your task and route to the correct builder.  
 
 ## Supported AI Tools
 
@@ -254,11 +257,9 @@ Each AI coding agent auto-loads different configuration files at the suite level
 Files marked **Auto** are loaded on every conversation; **@mention** files are invoked
 manually via agent or skill commands.
 
-> **Git submodule boundary**: Copilot Chat/CLI, Claude Code, and Codex CLI only see
-> files at the current git root. When opened at `dx-all-suite/`, they do NOT auto-load
-> sub-project files in `dx-compiler/`, `dx-runtime/`, etc. (these are separate
-> git submodules). OpenCode bridges this boundary via explicit path references
-> in `opencode.json`.
+!!! note "Git submodule boundary*"  
+
+    Copilot Chat/CLI, Claude Code, and Codex CLI only see files at the current git root. When opened at `dx-all-suite/`, they do NOT auto-load sub-project files in `dx-compiler/`, `dx-runtime/`, etc. (these are separate git submodules). OpenCode bridges this boundary via explicit path references in `opencode.json`.  
 
 #### Auto-Loaded Files
 
@@ -277,9 +278,11 @@ manually via agent or skill commands.
 | `dx-suite-builder` | `.github/agents/dx-suite-builder.agent.md` | `.opencode/agents/dx-suite-builder.md` |
 | `dx-suite-validator` | `.github/agents/dx-suite-validator.agent.md` | `.opencode/agents/dx-suite-validator.md` |
 
-> Claude Code has generated agent files in `.claude/agents/` (e.g., `dx-suite-builder.md`).
-> Cursor has agent `.mdc` files in `.cursor/rules/` (e.g., `dx-suite-builder.mdc`).
-> Claude Code also uses the Context Routing Table in `CLAUDE.md` to dispatch tasks.
+!!! note "NOTE"  
+
+    Claude Code has generated agent files in `.claude/agents/` (e.g., `dx-suite-builder.md`).  
+    Cursor has agent `.mdc` files in `.cursor/rules/` (e.g., `dx-suite-builder.mdc`).  
+    Claude Code also uses the Context Routing Table in `CLAUDE.md` to dispatch tasks.  
 
 #### Skill Files (OpenCode Only — `/slash-command`)
 
@@ -483,8 +486,9 @@ there automatically.
 - **dx_stream scenarios** (GStreamer pipelines): See the [dx_stream guide](../../../dx_stream/docs/source/docs/08_DX-STREAM_Agent_Driven_Development.md)
 - **dx-compiler scenarios** (model compilation): See the [dx-compiler guide](../../dx-compiler/source/docs/05_DX-COMPILER_Agent_Driven_Development.md)
 
-> **Tip:** You don't need to navigate to sub-project directories. Use `@dx-suite-builder`
-> at the dx-all-suite level — it routes to any sub-project automatically.
+!!! note "Tip"  
+
+    You don't need to navigate to sub-project directories. Use `@dx-suite-builder` at the dx-all-suite level — it routes to any sub-project automatically.  
 
 ## Sub-Project Guides
 
@@ -567,3 +571,5 @@ Agents output fixed markers at the start and end of each task for automated test
 **Important**: DONE means all deliverables are produced — implementation code, scripts,
 configs, and validation results. If the agent only produced planning artifacts (specs,
 plans, design documents) without implementing actual code, DONE must NOT be output.
+
+---

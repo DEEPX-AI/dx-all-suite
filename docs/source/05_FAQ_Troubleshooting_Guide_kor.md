@@ -278,6 +278,4 @@ services:
 !!! tip "적절한 크기 선택"  
     대부분의 경우 `256m`으로 해결됩니다. 대용량 모델이나 배치 처리 시 오류가 지속된다면 `1g` 이상으로 늘리십시오.
 
-Copyright © DEEPX. All rights reserved.
-
 ---

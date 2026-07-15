@@ -447,7 +447,5 @@ Run the batch sanity script to verify that all modules are located in their desi
 
 !!! note "Tip"  
     If any item returns a **FAIL** or **Not Found**, please revisit the module installation steps (Section 3-2) to ensure all components were compiled correctly.    
-    
-Copyright © DEEPX. All rights reserved.
 
 ---

@@ -163,19 +163,37 @@ RUN set -x && \
 WORKDIR /deepx/dx-runtime/dx_rt
 ADD archives/dx_rt.tar.gz /deepx/dx-runtime/dx_rt/
 
-# temp: until dx_rt's USE_ORT build option default changes from OFF to ON
+# Install dx_rt via Debian package (same flow as dx-runtime install.sh):
+# prefer the arch-specific prebuilt package (libdxrt-bin_<ver>_<arch>.deb),
+# fall back to the legacy arch-independent source package (libdxrt_<ver>_all.deb,
+# whose postinst builds and installs dx_rt with USE_ORT=ON baked in).
 RUN set -x && \
-    CMAKE_FILE="cmake/dxrt.cfg.cmake" && \
-    sed -i 's/option(USE_ORT *"Use ONNX Runtime" *OFF)/option(USE_ORT "Use ONNX Runtime" ON)/' "$CMAKE_FILE" && \
-    echo "USE_ORT option has been set to ON in dx_rt/$CMAKE_FILE"
+    echo "Install dx_rt via Debian package..." && \
+    DEB_ARCH=$(dpkg --print-architecture) && \
+    DEB_FILE=$(find -L release/latest -maxdepth 1 -type f -name "libdxrt*_${DEB_ARCH}.deb" | sort | head -1) && \
+    if [ -z "$DEB_FILE" ]; then \
+        DEB_FILE=$(find -L release/latest -maxdepth 1 -type f -name "libdxrt*_all.deb" | sort | head -1); \
+    fi && \
+    if [ -z "$DEB_FILE" ]; then \
+        echo "ERROR: dx_rt Debian package not found under release/latest" && exit 1; \
+    fi && \
+    apt-get update && \
+    apt-get install -y "$(realpath "$DEB_FILE")" && \
+    rm -rf /usr/share/libdxrt/build_* && \
+    rm -rf /var/lib/apt/lists/*
 
+# Install 'dx_engine' Python API into the venv (same flow as dx-runtime install.sh):
+# use the wheel shipped by libdxrt-bin if present, otherwise install from the
+# python_package source tree built by the legacy libdxrt package postinst.
 RUN set -x && \
     . /venv-dxnn/bin/activate && \
-    echo "Build dx_rt..." && \
-    ./install.sh --all && \
-    ./build.sh && \
-    cd ./python_package && \
-    pip install .
+    PYTAG="cp$(python -c 'import sys;print(f"{sys.version_info[0]}{sys.version_info[1]}")')" && \
+    WHL=$(find -L /usr/share/libdxrt-bin/python -maxdepth 1 -type f -name "dx_engine-*-${PYTAG}-${PYTAG}-*.whl" 2>/dev/null | sort | head -1) && \
+    if [ -n "$WHL" ]; then \
+        pip install --force-reinstall "$WHL"; \
+    else \
+        pip install /usr/share/libdxrt/python_package; \
+    fi
 
 WORKDIR /deepx/dx-runtime/dx_app
 ARG FILE_DXAPP=archives/dx_app.tar.gz
@@ -202,8 +220,7 @@ RUN set -x && \
 
 RUN rm -rf /deepx/dx-runtime/dx_stream/util && \
     rm -rf /deepx/dx-runtime/dx_app/util && \
-    rm -rf /deepx/dx-runtime/dx_app/build_x86_64 && \
-    rm -rf /deepx/dx-runtime/dx_rt/build_x86_64
+    rm -rf /deepx/dx-runtime/dx_app/build_x86_64
 
 WORKDIR /deepx
 

@@ -448,7 +448,5 @@ dxrt-cli -s
 
 !!! note "팁"  
     어떤 항목이라도 **FAIL** 또는 **Not Found**를 반환하는 경우, 모듈 설치 단계(섹션 3-2)를 다시 방문하여 모든 구성 요소가 올바르게 컴파일되었는지 확인하십시오.  
-    
-Copyright © DEEPX. All rights reserved.
 
 ---

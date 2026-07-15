@@ -87,9 +87,9 @@
 학습된 AI 모델을 DEEPX NPU 전용 binary로 변환·최적화하는 데 사용하는 환경입니다.
 
 - **Arch**: x86_64
-- **OS**: Ubuntu 24.04 / 22.04 / 20.04 (LTS), Fedora, Redhat, CentOS
+- **OS**: Ubuntu 26.04 / 24.04 / 22.04 / 20.04 (LTS), Fedora 42-45, Red Hat Enterprise Linux 9-10, CentOS Stream 9-10
 - **Hardware**: x86_64 Host PC
-- **Software**: Python 3.8~3.12, CUDA (시뮬레이션용, 선택)
+- **Software**: Python 3.8~3.14, CUDA (시뮬레이션용, 선택)
 - **Key Tasks**: AI 모델(`.onnx`) 컴파일, Quantization, `.dxnn` 생성
 - **Action**: DX-Compiler Local Installation Guide [Link]
 
@@ -98,7 +98,7 @@
 DEEPX NPU가 물리적으로 장착된 디바이스에서 inference를 수행하고 애플리케이션을 실행하는 환경입니다.
 
 - **Arch**: x86_64, aarch64
-- **OS**: Ubuntu 24.04 / 22.04 / 20.04 / 18.04 (LTS), Debian 13 / 12
+- **OS**: Ubuntu 26.04 / 24.04 / 22.04 / 20.04 (LTS), Debian 13 / 12
 - **Hardware**: Host PC / Target Board (DEEPX NPU 필요)
 - **Software**: Python 3.8+
 - **Key Tasks**: `.dxnn` 모델 실행, 실시간 데이터 inference, 리소스 관리
@@ -126,12 +126,13 @@ DX-AllSuite는 우리 NPU에서 최고 성능을 내도록 최적화된, 업계 
 
 처음 사용하는 분께는 다음 순서로 문서를 보시길 권장합니다.
 
+- **[소개](./docs/source/index.md)**: DX-AS 개요 및 구성요소 설명
 - **★ [Agent-Driven Development (Beta)](./docs/source/00_Agent_Driven_Development_kor.md)**: AI coding agent(Claude Code, Cursor, GitHub Copilot, OpenCode, Codex CLI)로 자연어 프롬프트를 사용해 DEEPX 앱 만들기
-- **Step 1. [DX-AllSuite Architecture Overview](./docs/source/01_DX-AllSuite_Architecture_Overview.md)**: SDK 개요, 모듈 설명, ModelZoo 사용법
-- **Step 2. [Setting Up Environment](./docs/source/02_Setting_Up_Environment.md)**: Local/Docker 설치 상세 및 트러블슈팅
-- **Step 3. [Running Your First NPU Model](./docs/source/03_Running_Your_First_NPU_Model.md)**: 단계별 hands-on 스크립트 실행
-- **Step 4. [Checking Version Compatibility](./docs/source/04_Version_Compatibility.md)**: SDK, Driver, Firmware 의존성 매트릭스
-- **Step 5. [FAQ Troubleshooting Guide](./docs/source/05_FAQ_Troubleshooting_Guide.md)**: 환경 충돌 및 GUI 세션(X11) 오류 해결책
+- **Step 1. [DX-AllSuite Architecture Overview](./docs/source/01_DX-AllSuite_Architecture_Overview_kor.md)**: SDK 개요, 모듈 설명, ModelZoo 사용법
+- **Step 2. [Setting Up Environment](./docs/source/02_Setting_Up_Environment_kor.md)**: Local/Docker 설치 상세 및 트러블슈팅
+- **Step 3. [Running Your First NPU Model](./docs/source/03_Running_Your_First_NPU_Model_kor.md)**: 단계별 hands-on 스크립트 실행
+- **Step 4. [Checking Version Compatibility](./docs/source/04_Version_Compatibility_kor.md)**: SDK, Driver, Firmware 의존성 매트릭스
+- **Step 5. [FAQ Troubleshooting Guide](./docs/source/05_FAQ_Troubleshooting_Guide_kor.md)**: 환경 충돌 및 GUI 세션(X11) 오류 해결책
 
 ## 지원
 

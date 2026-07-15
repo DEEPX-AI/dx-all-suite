@@ -174,6 +174,4 @@ This script loads your models onto the NPU, measures real-world performance, and
     - If a model is missing, you will encounter a "**File Not Found**" error during inference.  
     -	We strongly recommend compiling **all 3 models** before running this runtime script to verify the entire end-to-end process.  
 
-Copyright © DEEPX. All rights reserved.
-
 ---

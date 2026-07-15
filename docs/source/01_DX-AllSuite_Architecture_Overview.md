@@ -108,6 +108,4 @@ DEEPX ModelZoo is a comprehensive repository providing **over 270 pre-validated 
 -	**Extensible Registry**: Supports plugin-style extensions for pre/post-processing, datasets, and evaluators, enabling fast onboarding of custom models.  
 -	**Broad Task Coverage**: Extensive support for service-ready CV tasks beyond basic classification and detection, including Face Analysis, OBB, and Image Enhancement.  
 
-Copyright © DEEPX. All rights reserved.  
-
 ---
