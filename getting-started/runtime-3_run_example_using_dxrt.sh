@@ -58,7 +58,7 @@ fork_examples() {
     local err_msg_yolov5_async="Failed to copy 'yolov5s_async' binary executable file."
     local err_msg_yolov5face_async="Failed to copy 'yolov5s_face_async' binary executable file."
     local hint_msg="Please build dx_app first. using command"
-    local suggested_action_cmd="${RUNTIME_PATH}/install.sh --target=dx_app"
+    local suggested_action_cmd="${DX_APP_PATH}/install.sh --all && ${DX_APP_PATH}/build.sh --target mobilenetv2_async yolov5s_async yolov5s_face_async"
 
     eval "$cp_mobilenetv2_async_cmd" || {
         # handle_cmd_failure function arguments

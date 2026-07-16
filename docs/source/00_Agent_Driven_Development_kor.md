@@ -474,7 +474,7 @@ dx-all-suite 메타 가이드는 모든 서브 프로젝트 시나리오로 라�
 라우팅합니다.
 
 - **dx-runtime 시나리오** (크로스 프로젝트 빌드, 통합 검증): [dx-runtime 가이드](../../../dx-runtime/docs/source/agent_development.md) 참조
-- **dx_app 시나리오** (Python/C++ 추론 앱): [dx_app 가이드](../../../dx_app/docs/source/docs/12_DX-APP_Agent_Driven_Development.md) 참조
+- **dx_app 시나리오** (Python/C++ 추론 앱): [dx_app 가이드](../../../dx_app/docs/source/docs/13_DX-APP_Agent_Driven_Development.md) 참조
 - **dx_stream 시나리오** (GStreamer 파이프라인): [dx_stream 가이드](../../../dx_stream/docs/source/docs/08_DX-STREAM_Agent_Driven_Development.md) 참조
 - **dx-compiler 시나리오** (모델 컴파일): [dx-compiler 가이드](../../dx-compiler/source/docs/05_DX-COMPILER_Agent_Driven_Development.md) 참조
 
@@ -490,7 +490,7 @@ dx-all-suite 메타 가이드는 모든 서브 프로젝트 시나리오로 라�
 | 서브 프로젝트 | 가이드 |
 |---|---|
 | **dx-runtime** | [`dx-runtime/docs/source/agent_development.md`](../../../dx-runtime/docs/source/agent_development.md) |
-| **dx_app** | [`dx_app/docs/source/docs/12_DX-APP_Agent_Driven_Development.md`](../../../dx_app/docs/source/docs/12_DX-APP_Agent_Driven_Development.md) |
+| **dx_app** | [`dx_app/docs/source/docs/13_DX-APP_Agent_Driven_Development.md`](../../../dx_app/docs/source/docs/13_DX-APP_Agent_Driven_Development.md) |
 | **dx_stream** | [`dx_stream/docs/source/docs/08_DX-STREAM_Agent_Driven_Development.md`](../../../dx_stream/docs/source/docs/08_DX-STREAM_Agent_Driven_Development.md) |
 | **dx-compiler** | [`dx-compiler/source/docs/05_DX-COMPILER_Agent_Driven_Development.md`](../../dx-compiler/source/docs/05_DX-COMPILER_Agent_Driven_Development.md) |
 
