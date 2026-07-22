@@ -1,12 +1,12 @@
 # RELEASE_NOTES
 
-## DX-All-Suite v2.4.0 / 2026-07-15
+## DX-All-Suite v2.4.0 / 2026-07-22
 
 - DX-Compiler: v2.4.0
     - DX-COM: v2.4.0
     - DX-TRON: v2.0.1 (Deprecated)
 - DX-Runtime: v2.4.0
-    - DX_FW: v2.7.2
+    - DX_FW: v2.7.3
     - NPU Driver: v2.5.1
     - DX-RT: v3.4.0
     - DX-Stream: v3.1.0
@@ -71,6 +71,7 @@ Describe an app or model task in plain language, and an AI coding agent drives t
   - Disabled Root Complex Tx Equalization Preset 10 to prevent PCIe link compliance/test loops during normal boot (DX_FW).
   - Changed BAR0 type from prefetchable to non-prefetchable on VNPU board type (DX_FW).
   - Fixed input queue clearing when all bound options are deleted (DX_FW).
+  - Solving PCIe enumeration issue on RZ/G3E (DX_FW).
   - Rejected in-flight mailbox commands during FW reboot and hardened recovery sleep (NPU Driver).
   - Fixed device recovery issues after firmware updates; resolved module installation errors in certain hardware environments (NPU Driver).
   - Automatic recovery logic for critical runtime error scenarios (NPU Driver).
