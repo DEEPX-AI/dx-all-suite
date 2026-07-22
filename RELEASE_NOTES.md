@@ -1,13 +1,13 @@
 # RELEASE_NOTES
 
-## DX-All-Suite v2.4.0 / 2026-07-14
+## DX-All-Suite v2.4.0 / 2026-07-15
 
 - DX-Compiler: v2.4.0
     - DX-COM: v2.4.0
     - DX-TRON: v2.0.1 (Deprecated)
 - DX-Runtime: v2.4.0
-    - DX_FW: v2.7.1
-    - NPU Driver: v2.5.0
+    - DX_FW: v2.7.2
+    - NPU Driver: v2.5.1
     - DX-RT: v3.4.0
     - DX-Stream: v3.1.0
     - DX-APP: v3.2.0
@@ -65,8 +65,13 @@ Describe an app or model task in plain language, and an AI coding agent drives t
 **Stability & Fixes**
 
 - **Firmware & Hardware Stability**:
+  - Reverted M1/M1M IC, M.2 module, and DX-H1 Quattro board products PCIe device id to `0x0000` (DX_FW).
   - Adjusted CPU reset delay (20ms → 200ms) to ensure stable PLL lock (DX_FW).
+  - Updated OTP Revision for improved hardware identification (DX_FW).
   - Disabled Root Complex Tx Equalization Preset 10 to prevent PCIe link compliance/test loops during normal boot (DX_FW).
+  - Changed BAR0 type from prefetchable to non-prefetchable on VNPU board type (DX_FW).
+  - Fixed input queue clearing when all bound options are deleted (DX_FW).
+  - Rejected in-flight mailbox commands during FW reboot and hardened recovery sleep (NPU Driver).
   - Fixed device recovery issues after firmware updates; resolved module installation errors in certain hardware environments (NPU Driver).
   - Automatic recovery logic for critical runtime error scenarios (NPU Driver).
 
@@ -98,10 +103,6 @@ Describe an app or model task in plain language, and an AI coding agent drives t
 - **Compiler & Quantization**:
   - Interactive HTML graph viewer for model inspection with parameter shapes and CPU/NPU partition reasons (replaces DX-TRON) (DX-COM).
   - `dx_com.pre_optimize()` API for ONNX-level pre-processing transforms with built-in YOLO post-processing integration (detection/segmentation) (DX-COM).
-  - Automated Q-PRO configuration: automatically generates DXQ combinations without manual tuning (DX-COM).
-  - Quantization-Aware Training (QAT): End-to-end support through `dx_com.compile()` with `fast_run` flag for smoke tests (DX-COM).
-  - QXNN Resume: Checkpoint-based re-quantization without recompile for faster iteration (DX-COM).
-  - Quantization Diagnosis HTML Report: Visualizes per-layer quality with recommended compile snippets (DX-COM).
 
 - **Runtime & Monitoring**:
   - H1M firmware compatibility check: distinguish H1M (LPDDR4) from H1 (LPDDR5/LPDDR5X); support mixed 4-pack/6-pack configurations (DX-RT).
@@ -145,7 +146,6 @@ Describe an app or model task in plain language, and an AI coding agent drives t
 - **NumPy 2.4+ Users**: DX-COM v2.4.0 ensures compatibility with NumPy 2.4+ and onnxruntime ≥ 1.25.0.
 
 For detailed updated items, refer to **each environment & module's Release Notes**.
-
 
 ---
 
