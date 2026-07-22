@@ -104,11 +104,11 @@ This environment is for performing inference and running applications on devices
 -	**Key Tasks**: `.dxnn` model execution, real-time data inference, resource management
 -	**Action**: DX-Runtime Installation Guide [Link]
 
-!!! warning "Activation Required"  
-    A system reboot is mandatory after installation to properly load the NPU Driver into the kernel.  
-    ```Bash  
-    sudo reboot  
-    ```
+> **Warning: Activation Required**  
+> A system reboot is mandatory after installation to properly load the NPU Driver into the kernel.  
+> ```Bash  
+> sudo reboot  
+> ```
 
 ## Supported Models
 
@@ -119,8 +119,8 @@ DX-AllSuite supports a vast array of industry-standard AI architectures, optimiz
 - **Segmentation**: DeepLabV3/DeepLabV3+, SegFormer, BiSeNet, UNet, YOLACT, and YOLO-based segmentation variants (YOLOv5/YOLOv8/YOLO26).  
 - **Advanced Vision Tasks**: Face analysis (Detection, Recognition, Landmarks, Attributes), Human/Hand Pose Estimation, Low-Light Enhancement, Image Denoising, Super Resolution, Depth Estimation, Oriented Object Detection (OBB), Zero-Shot Instance Segmentation, and Person Attributes.  
 
-!!! note "Pro Tip"  
-    Instead of compiling models yourself, you can download ready-to-use binaries from the [**DEEPX ModelZoo**](https://developer.deepx.ai/modelzoo/), which features **over 270 optimized models**.  
+> **Note: Pro Tip**  
+> Instead of compiling models yourself, you can download ready-to-use binaries from the [**DEEPX ModelZoo**](https://developer.deepx.ai/modelzoo/), which features **over 270 optimized models**.  
 
 
 ## Documentation Navigation

@@ -59,9 +59,7 @@ DX-Stream is a GStreamer Custom Plugin designed to simplify the development of V
   - Our single script automates the full setup process
   - All DX-Compiler components are ready to use upon completion.
 
-
-**You can install dx-compiler by following the instructions at this [LINK](02_Setting_Up_Environment.md#local-installation).**
-
+**You can install dx-compiler by following the instructions at this [LINK](02_Setting_Up_Environment.md#dx-compiler-installation-dx-com-dx-tron).**
 
 ### [AI Model Runtime Environment](https://github.com/DEEPX-AI/dx-runtime) (Deployment Platform)
 
