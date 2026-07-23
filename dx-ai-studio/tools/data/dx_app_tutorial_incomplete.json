@@ -1,0 +1,26 @@
+{
+  "Enter <strong>DeepX Developers Portal credentials</strong> (username, password) for DX-COM compiler installation. Sign up on the Portal if you don't have an account.": {
+    "ja": "DX-COMコンパイラのインストールのため<strong>DeepX Developers Portal認証情報</strong>（ユーザー名、パスワード）を入力します。アカウントがない場合はPortalで登録してください。",
+    "zh-CN": "输入<strong>DeepX Developers Portal凭证</strong>（用户名、密码）以安装DX-COM编译器。如无账号请先在Portal注册。",
+    "zh-TW": "輸入<strong>DeepX Developers Portal憑證</strong>（使用者名稱、密碼）以安裝DX-COM編譯器。如無帳號請先在Portal註冊。",
+    "es": "Introduzca las <strong>credenciales de DeepX Developers Portal</strong> (usuario, contraseña) para instalar el compilador DX-COM. Regístrese en el Portal si no tiene una cuenta."
+  },
+  "View each model's <strong>name, category, C++/Python support, mode (Sync/Async), meta info, file size</strong>. Use Actions column for quick run.": {
+    "ja": "各モデルの<strong>名前、カテゴリ、C++/Python対応、モード（Sync/Async）、メタ情報、ファイルサイズ</strong>を確認します。Actions列のボタンで素早く実行できます。",
+    "zh-CN": "查看各模型的<strong>名称、分类、C++/Python支持、模式（Sync/Async）、元信息、文件大小</strong>。可通过Actions列按钮快速运行。",
+    "zh-TW": "檢視各模型的<strong>名稱、分類、C++/Python支援、模式（Sync/Async）、中繼資料、檔案大小</strong>。可透過Actions欄按鈕快速執行。",
+    "es": "Consulte el <strong>nombre, categoría, compatibilidad C++/Python, modo (Sync/Async), metadatos y tamaño de archivo</strong> de cada modelo. Utilice la columna Actions para una ejecución rápida."
+  },
+  "Click to <strong>stop the current model's benchmark</strong>. Results for already completed models are preserved.": {
+    "ja": "クリックして<strong>現在のモデルのベンチマークを停止</strong>します。完了済みモデルの結果は保持されます。",
+    "zh-CN": "点击以<strong>停止当前模型的基准测试</strong>。已完成模型的结果会保留。",
+    "zh-TW": "點擊以<strong>停止當前模型的基準測試</strong>。已完成模型的結果會保留。",
+    "es": "Haga clic para <strong>detener el benchmark del modelo actual</strong>. Se conservan los resultados de los modelos ya completados."
+  },
+  "View each model's <strong>task, name, class, dataset, input size, params, license, accuracy</strong>. Download <strong>Q-Lite/Q-Pro</strong> DXNN and JSON config individually.": {
+    "ja": "各モデルの<strong>タスク、名前、クラス、データセット、入力サイズ、パラメータ数、ライセンス、精度</strong>を確認します。<strong>Q-Lite/Q-Pro</strong>のDXNNとJSON設定を個別にダウンロードできます。",
+    "zh-CN": "查看各模型的<strong>任务、名称、类别、数据集、输入尺寸、参数量、许可证、精度</strong>。可单独下载<strong>Q-Lite/Q-Pro</strong> DXNN和JSON配置。",
+    "zh-TW": "檢視各模型的<strong>任務、名稱、類別、資料集、輸入尺寸、參數量、授權、精度</strong>。可單獨下載<strong>Q-Lite/Q-Pro</strong> DXNN和JSON設定。",
+    "es": "Consulte la <strong>tarea, nombre, clase, conjunto de datos, tamaño de entrada, parámetros, licencia y precisión</strong> de cada modelo. Descargue individualmente el DXNN <strong>Q-Lite/Q-Pro</strong> y la configuración JSON."
+  }
+}

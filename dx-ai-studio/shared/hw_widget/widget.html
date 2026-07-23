@@ -1,0 +1,352 @@
+<!-- DX HW Float Widget — auto-injected by launcher proxy -->
+<style>
+.hw-float{position:fixed;bottom:20px;right:20px;z-index:9000;
+  background:rgba(15,23,42,.85);backdrop-filter:blur(12px);
+  border:1px solid rgba(99,140,255,.15);border-radius:12px;
+  padding:10px 14px;box-shadow:0 4px 24px rgba(0,0,0,.4);
+  min-width:200px;font-size:11px;transition:opacity .3s;
+  user-select:none;font-family:Inter,sans-serif;color:#e2e8f0}
+.hw-float.dragging{opacity:.85;transition:none;box-shadow:0 8px 32px rgba(0,0,0,.5)}
+.hw-float.minimized .hw-float-body{display:none}
+.hw-float-header{display:flex;justify-content:space-between;align-items:center;
+  cursor:grab;touch-action:none;padding:0;gap:8px}
+.hw-float-header:active{cursor:grabbing}
+.hw-float-title{font-size:11px;font-weight:700;color:#638cff;
+  text-transform:uppercase;letter-spacing:.5px;flex:1}
+.hw-float-toggle{font-size:14px;color:#94a3b8;background:none;
+  border:none;cursor:pointer;padding:2px 6px;border-radius:4px}
+.hw-float-toggle:hover{color:#e2e8f0;background:rgba(255,255,255,.08)}
+.hw-float-body{margin-top:8px}
+.hw-float-row{display:flex;justify-content:space-between;align-items:center;
+  padding:3px 0;border-bottom:1px solid rgba(42,52,65,.4);font-size:11px}
+.hw-float-row:last-child{border-bottom:none}
+.hf-k{color:#94a3b8}.hf-v{font-weight:600}
+.hw-spark{margin-top:6px;cursor:pointer;border-top:1px solid rgba(42,52,65,.4);padding-top:6px}
+.hw-spark canvas{display:block;width:100%;height:20px}
+.hw-spark-label{font-size:9px;color:#94a3b8;text-align:right;margin-top:2px}
+.hw-float-status{font-size:9px;color:#f59e0b;text-align:center;padding:4px 0}
+.hw-npu-selector{display:flex;gap:4px;margin:8px 0 6px}
+.hw-npu-selector[hidden]{display:none}
+.hw-npu-selector button{flex:1;padding:3px 6px;border-radius:6px;border:1px solid rgba(99,140,255,.18);background:rgba(15,23,42,.6);color:#94a3b8;font-size:10px;cursor:pointer}
+.hw-npu-selector button.active{background:rgba(99,140,255,.18);color:#e2e8f0;border-color:rgba(99,140,255,.45)}
+.hw-float-section{border-top:1px solid rgba(42,52,65,.4);padding-top:6px;margin-top:6px}
+#hf-npu-section{border-top:none;padding-top:0;margin-top:0}
+.hw-section-title{font-size:9px;color:#638cff;text-transform:uppercase;letter-spacing:.45px;margin-bottom:3px}
+.hf-v.warn{color:#f59e0b}.hf-v.crit{color:#ef4444}.hf-v.ok{color:#22c55e}
+</style>
+<div class="hw-float" id="hw-float">
+  <div class="hw-float-header" id="hw-float-drag">
+    <span class="hw-float-title">☰ <span class="ko">NPU 모니터</span><span class="en">NPU Monitor</span><span class="es">Monitor NPU</span><span class="ja">NPU モニター</span><span class="zh-CN">NPU 监控器</span><span class="zh-TW">NPU 監控器</span></span>
+    <button class="hw-float-toggle" onclick="document.getElementById('hw-float').classList.toggle('minimized')">&#9662;</button>
+  </div>
+  <div class="hw-float-body">
+    <div id="hf-npu-selector" class="hw-npu-selector" hidden></div>
+    <div id="hf-npu-section" class="hw-float-section">
+      <div class="hw-section-title" id="hf-npu-title">NPU</div>
+      <div class="hw-float-row"><span class="hf-k">🌡️ <span class="ko">평균 온도</span><span class="en">Avg Temp</span><span class="es">Temp. promedio</span><span class="ja">平均温度</span><span class="zh-CN">平均温度</span><span class="zh-TW">平均溫度</span></span><span class="hf-v" id="hf-temp">--°C</span></div>
+      <div id="hf-ctemps"></div>
+      <div class="hw-float-row"><span class="hf-k">⚙️ <span class="ko">NPU 사용률</span><span class="en">NPU Util</span><span class="es">Util. NPU</span><span class="ja">NPU 使用率</span><span class="zh-CN">NPU 利用率</span><span class="zh-TW">NPU 使用率</span></span><span class="hf-v" id="hf-util">--%</span></div>
+      <div class="hw-float-row"><span class="hf-k">💾 NPU DRAM</span><span class="hf-v" id="hf-dram">--%</span></div>
+      <div class="hw-float-row"><span class="hf-k">🔄 <span class="ko">클럭</span><span class="en">Clock</span><span class="es">Reloj</span><span class="ja">クロック</span><span class="zh-CN">时钟</span><span class="zh-TW">時脈</span></span><span class="hf-v" id="hf-clock">-- MHz</span></div>
+      <div class="hw-float-row"><span class="hf-k">⚡ <span class="ko">전압</span><span class="en">Voltage</span><span class="es">Voltaje</span><span class="ja">電圧</span><span class="zh-CN">电压</span><span class="zh-TW">電壓</span></span><span class="hf-v" id="hf-volt">-- mV</span></div>
+    </div>
+    <div id="hf-system-section" class="hw-float-section">
+      <div class="hw-section-title"><span class="ko">시스템</span><span class="en">System</span><span class="es">Sistema</span><span class="ja">システム</span><span class="zh-CN">系统</span><span class="zh-TW">系統</span></div>
+      <div class="hw-float-row"><span class="hf-k">🖥️ CPU</span><span class="hf-v" id="hf-cpu">--</span></div>
+      <div class="hw-float-row"><span class="hf-k">💾 <span class="ko">메모리</span><span class="en">Memory</span><span class="es">Memoria</span><span class="ja">メモリ</span><span class="zh-CN">内存</span><span class="zh-TW">記憶體</span></span><span class="hf-v" id="hf-mem">--%</span></div>
+      <div class="hw-float-row"><span class="hf-k">📀 <span class="ko">디스크</span><span class="en">Disk</span><span class="es">Disco</span><span class="ja">ディスク</span><span class="zh-CN">磁盘</span><span class="zh-TW">磁碟</span></span><span class="hf-v" id="hf-disk">--%</span></div>
+    </div>
+    <div class="hw-float-status" id="hf-status" style="display:none"><span class="ko">연결 중...</span><span class="en">Connecting...</span><span class="es">Conectando...</span><span class="ja">接続中...</span><span class="zh-CN">连接中...</span><span class="zh-TW">連線中...</span></div>
+    <div class="hw-spark" id="hf-spark" onclick="_hwSparkNext()">
+      <canvas id="hf-spark-canvas" height="20"></canvas>
+      <div class="hw-spark-label" id="hf-spark-label">NPU Temp</div>
+    </div>
+  </div>
+</div>
+<script>
+(function(){
+  /* ── Widget self-contained JS ── */
+  var _hf = document.getElementById('hw-float');
+  if (!_hf) return;
+  var _drag = {active:false, ox:0, oy:0};
+  var _sparkData = [], _sparkMode = 0;
+  var _MODES = ['temp','volt','clock','ctemp','cpu','mem','dram','util'];
+  var _LABELS = {temp:'NPU Temp',volt:'Voltage',clock:'Clock',ctemp:'Core Temp',
+                 cpu:'CPU Load',mem:'Memory',dram:'NPU DRAM',util:'NPU Util'};
+
+  /* ── State variables and helpers ── */
+  var _lastPayload = null;
+  var _thresholds = {};
+  var _NPU_IDX_KEY = 'hw-float-npu-idx';
+  var _selectedNpuIdx = _readNpuIdx();
+  var _selectorKey = '';
+
+  function _isNum(v){return typeof v==='number'&&isFinite(v);}
+  function _normalizeDramPct(v){return _isNum(v)&&v>=0?v:null;}
+  function _fmt(v,dec,suffix){return _isNum(v)?v.toFixed(dec)+(suffix||''):'N/A';}
+  function _fmtRound(v,suffix){return _isNum(v)?Math.round(v)+(suffix||''):'N/A';}
+  function _avg(arr){return Array.isArray(arr)&&arr.length?arr.reduce(function(a,b){return a+b},0)/arr.length:null;}
+  function _escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+  /* ── Selected-index persistence ── */
+  function _readNpuIdx(){
+    try{
+      var raw=localStorage.getItem(_NPU_IDX_KEY);
+      var idx=parseInt(raw,10);
+      return isFinite(idx)&&idx>=0?idx:0;
+    }catch(e){return 0;}
+  }
+  function _saveNpuIdx(idx){
+    _selectedNpuIdx=idx;
+    try{localStorage.setItem(_NPU_IDX_KEY,String(idx));}catch(e){}
+  }
+  function _selectedNpu(npus){
+    if(!Array.isArray(npus)||!npus.length)return null;
+    if(_selectedNpuIdx>=npus.length){_saveNpuIdx(0);}
+    return npus[_selectedNpuIdx]||npus[0]||null;
+  }
+
+  /* ── Selector rendering ── */
+  function _renderSelector(npus){
+    var el=document.getElementById('hf-npu-selector');
+    if(!el)return;
+    if(!Array.isArray(npus)||npus.length<=1){el.hidden=true;el.innerHTML='';_selectorKey='';return;}
+    var key=npus.map(function(n,i){return (n&&n.id!=null)?n.id:i;}).join(',');
+    el.hidden=false;
+    if(key!==_selectorKey){
+      _selectorKey=key;
+      el.innerHTML=npus.map(function(n,i){
+        var id=(n&&n.id!=null)?n.id:i;
+        return '<button type="button" data-npu-idx="'+i+'" class="'+(i===_selectedNpuIdx?'active':'')+'">NPU '+_escHtml(id)+'</button>';
+      }).join('');
+      var buttons=el.querySelectorAll('button[data-npu-idx]');
+      for(var i=0;i<buttons.length;i++){
+        buttons[i].addEventListener('click',function(){
+          _selectNpu(parseInt(this.dataset.npuIdx,10));
+        });
+      }
+    }else{
+      var buttons=el.querySelectorAll('button[data-npu-idx]');
+      for(var i=0;i<buttons.length;i++){
+        var cls=buttons[i].className||'';
+        var isActive=parseInt(buttons[i].dataset.npuIdx,10)===_selectedNpuIdx;
+        if(isActive&&cls.indexOf('active')===-1){buttons[i].className=cls?cls+' active':'active';}
+        else if(!isActive&&cls.indexOf('active')!==-1){buttons[i].className=cls.replace(/\bactive\b/g,'').trim();}
+      }
+    }
+  }
+  function _selectNpu(idx){
+    if(!isFinite(idx)||idx<0)return;
+    _saveNpuIdx(idx);
+    _sparkData=[];
+    if(_lastPayload)_update(_lastPayload);
+  }
+
+  /* ── Status and value helpers ── */
+  function _statusFor(key,value){
+    var th=_thresholds[key];
+    if(!_isNum(value)||!th)return'';
+    if(_isNum(th.crit)&&value>=th.crit)return'crit';
+    if(_isNum(th.warn)&&value>=th.warn)return'warn';
+    return'ok';
+  }
+  function _setValue(id,text,status){
+    var el=document.getElementById(id);
+    if(!el)return;
+    el.textContent=text;
+    el.classList.remove('ok','warn','crit');
+    if(status)el.classList.add(status);
+  }
+
+  /* ── Drag ── */
+  var handle = document.getElementById('hw-float-drag');
+  function dStart(cx, cy) {
+    _drag.active = true;
+    var r = _hf.getBoundingClientRect();
+    _hf.style.right = 'auto'; _hf.style.bottom = 'auto';
+    _hf.style.left = r.left + 'px'; _hf.style.top = r.top + 'px';
+    _drag.ox = cx - r.left; _drag.oy = cy - r.top;
+    _hf.classList.add('dragging');
+    document.body.style.userSelect = 'none';
+  }
+  function dMove(cx, cy) {
+    if (!_drag.active) return;
+    _hf.style.left = Math.max(0, Math.min(window.innerWidth - _hf.offsetWidth, cx - _drag.ox)) + 'px';
+    _hf.style.top = Math.max(0, Math.min(window.innerHeight - _hf.offsetHeight, cy - _drag.oy)) + 'px';
+  }
+  function dEnd() {
+    if (!_drag.active) return;
+    _drag.active = false; _hf.classList.remove('dragging');
+    document.body.style.userSelect = '';
+    var r = _hf.getBoundingClientRect();
+    try { localStorage.setItem('hw-float-pos', JSON.stringify({x:Math.round(r.left),y:Math.round(r.top)})); } catch(e){}
+  }
+  handle.addEventListener('mousedown', function(e) {
+    if (e.target.classList.contains('hw-float-toggle') || e.button !== 0) return;
+    e.preventDefault(); dStart(e.clientX, e.clientY);
+  });
+  document.addEventListener('mousemove', function(e) { dMove(e.clientX, e.clientY); });
+  document.addEventListener('mouseup', dEnd);
+  handle.addEventListener('touchstart', function(e) {
+    if (e.target.classList.contains('hw-float-toggle')) return;
+    e.preventDefault(); dStart(e.touches[0].clientX, e.touches[0].clientY);
+  }, {passive:false});
+  document.addEventListener('touchmove', function(e) {
+    if (!_drag.active) return; e.preventDefault();
+    dMove(e.touches[0].clientX, e.touches[0].clientY);
+  }, {passive:false});
+  document.addEventListener('touchend', dEnd);
+
+  /* ── Restore position ── */
+  try {
+    var saved = localStorage.getItem('hw-float-pos');
+    if (saved) {
+      var pos = JSON.parse(saved);
+      requestAnimationFrame(function() {
+        _hf.style.right = 'auto'; _hf.style.bottom = 'auto';
+        _hf.style.left = Math.max(0, Math.min(pos.x, window.innerWidth - 220)) + 'px';
+        _hf.style.top = Math.max(0, Math.min(pos.y, window.innerHeight - 200)) + 'px';
+      });
+    }
+  } catch(e){}
+
+  /* ── Status indicator ── */
+  var _statusEl = document.getElementById('hf-status');
+  function _showStatus(show) {
+    if (_statusEl) _statusEl.style.display = show ? '' : 'none';
+  }
+
+  /* ── Update data ── */
+  function _update(d) {
+    _showStatus(false);
+    _lastPayload=d||{};
+    var npus=Array.isArray(_lastPayload.npus)?_lastPayload.npus:[];
+    var n=_selectedNpu(npus);
+    _renderSelector(npus);
+
+    /* NPU title */
+    var titleEl=document.getElementById('hf-npu-title');
+    if(titleEl){titleEl.textContent=n?'NPU '+((n.id!=null)?n.id:_selectedNpuIdx):'No NPU';}
+
+    /* NPU values */
+    if(n){
+      _setValue('hf-temp',_fmt(n.temp_avg,1,'°C'),_statusFor('npu_temp',n.temp_avg));
+      _setValue('hf-util',_fmt(_avg(n.utilization),1,'%'),'');
+      _setValue('hf-dram',_fmt(_normalizeDramPct(n.dram_pct),1,'%'),_statusFor('npu_dram',_normalizeDramPct(n.dram_pct)));
+      _setValue('hf-clock',_fmtRound(n.clock_avg,' MHz'),'');
+      _setValue('hf-volt',_fmtRound(n.voltage_avg,' mV'),'');
+    }else{
+      _setValue('hf-temp','N/A','');
+      _setValue('hf-util','N/A','');
+      _setValue('hf-dram','N/A','');
+      _setValue('hf-clock','N/A','');
+      _setValue('hf-volt','N/A','');
+    }
+
+    /* System values */
+    _setValue('hf-cpu',_fmt(_lastPayload.cpu_load,1),'');
+    _setValue('hf-mem',_fmt(_lastPayload.mem_pct,1,'%'),'');
+    _setValue('hf-disk',_fmt(_lastPayload.disk_pct,1,'%'),'');
+
+    /* Sparkline data push */
+    var mode = _MODES[_sparkMode];
+    var val = 0;
+    if (n) {
+      if (mode==='temp') val=n.temp_avg||0;
+      else if (mode==='volt') val=n.voltage_avg||0;
+      else if (mode==='clock') val=n.clock_avg||0;
+      else if (mode==='ctemp') val=(n.temperatures&&n.temperatures[0])||0;
+      else if (mode==='dram') val=_normalizeDramPct(n.dram_pct)||0;
+      else if (mode==='util') val=Array.isArray(n.utilization)&&n.utilization.length?
+        n.utilization.reduce(function(a,b){return a+b},0)/n.utilization.length:0;
+    }
+    if (mode==='cpu') val=_lastPayload.cpu_load||0;
+    if (mode==='mem') val=_lastPayload.mem_pct||0;
+    _sparkData.push(val);
+    if (_sparkData.length > 40) _sparkData.shift();
+    _drawSpark();
+  }
+
+  /* ── Sparkline Canvas ── */
+  function _drawSpark() {
+    var canvas = document.getElementById('hf-spark-canvas');
+    if (!canvas || !_sparkData.length) return;
+    var ctx = canvas.getContext('2d');
+    var w = canvas.parentElement.offsetWidth || 180;
+    canvas.width = w * 2; canvas.height = 40;
+    canvas.style.width = w + 'px'; canvas.style.height = '20px';
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    var data = _sparkData;
+    var max = Math.max.apply(null, data) * 1.1 || 1;
+    var min = Math.min.apply(null, data) * 0.9;
+    if (max === min) max = min + 1;
+    var step = canvas.width / Math.max(data.length - 1, 1);
+    ctx.beginPath();
+    ctx.strokeStyle = '#638cff'; ctx.lineWidth = 2;
+    for (var i = 0; i < data.length; i++) {
+      var x = i * step;
+      var y = canvas.height - ((data[i] - min) / (max - min)) * (canvas.height - 4) - 2;
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  }
+
+  /* ── Spark mode toggle ── */
+  window._hwSparkNext = function() {
+    _sparkMode = (_sparkMode + 1) % _MODES.length;
+    _sparkData = [];
+    var lbl = document.getElementById('hf-spark-label');
+    if (lbl) lbl.textContent = _LABELS[_MODES[_sparkMode]];
+  };
+
+  /* ── Threshold loading ── */
+  function _loadThresholds(){
+    fetch('/dx_monitor/api/system_info').then(function(r){return r.json();})
+      .then(function(d){_thresholds=(d&&d.thresholds)||{};if(_lastPayload)_update(_lastPayload);})
+      .catch(function(){});
+  }
+
+  /* ── SSE connection ── */
+  var _sse = null, _poll = null, _sseTimeout = null;
+  function startWidgetSSE() {
+    if (_sse) { _sse.close(); _sse = null; }
+    _sse = new EventSource('/dx_monitor/api/hw_stream');
+    _sseTimeout = setTimeout(function() {
+      if (_sse) { _sse.close(); _sse = null; }
+      _showStatus(true);
+      _startPoll();
+    }, 6000);
+    _sse.onmessage = function(ev) {
+      if (_sseTimeout) { clearTimeout(_sseTimeout); _sseTimeout = null; }
+      try { _update(JSON.parse(ev.data)); } catch(e){}
+    };
+    _sse.onerror = function() {
+      if (_sse) { _sse.close(); _sse = null; }
+      _showStatus(true);
+      _startPoll();
+      setTimeout(startWidgetSSE, 30000);
+    };
+  }
+  function _startPoll() {
+    if (_poll) return;
+    _poll = setInterval(function() {
+      fetch('/dx_monitor/api/hw_status').then(function(r){return r.json()})
+        .then(_update).catch(function(){});
+    }, 3000);
+  }
+  window.addEventListener('beforeunload', function() {
+    if (_sse) _sse.close();
+    if (_poll) clearInterval(_poll);
+  });
+
+  /* ── Test hook (gated) ── */
+  if(window.__DX_HW_WIDGET_TEST_HOOK__){
+    window.__DX_HW_WIDGET_TEST_HOOK__.update=_update;
+    window.__DX_HW_WIDGET_TEST_HOOK__.selectNpu=_selectNpu;
+    window.__DX_HW_WIDGET_TEST_HOOK__.getSelectedIdx=function(){return _selectedNpuIdx;};
+  }
+
+  _loadThresholds();
+  startWidgetSSE();
+})();
+</script>

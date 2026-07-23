@@ -1,0 +1,2749 @@
+{
+  "3ddfa_v2_mobilnet0_5_120x120": {
+    "dataset": "AFLW20003D",
+    "input_resolution": "120x120x3",
+    "license": "MIT",
+    "operations": "70.46",
+    "parameters": "861.34",
+    "source_url": "https://github.com/cleardusk/3DDFA_V2"
+  },
+  "3ddfa_v2_mobilnetv1_120x120": {
+    "dataset": "AFLW20003D",
+    "input_resolution": "120x120x3",
+    "license": "MIT",
+    "operations": "225.45",
+    "parameters": "3.29",
+    "source_url": "https://github.com/cleardusk/3DDFA_V2"
+  },
+  "alexnet": {
+    "dataset": "ImageNet (ILSVRC2012)",
+    "input_resolution": "224x224x3",
+    "license": "BSD-3-Clause",
+    "operations": "715.98",
+    "parameters": "61.10",
+    "source_url": "https://github.com/pytorch/vision"
+  },
+  "arcface_iresnet100_ms1m": {
+    "dataset": "LFW",
+    "input_resolution": "112x112x3",
+    "license": "MIT",
+    "operations": "12.52",
+    "parameters": "65.23",
+    "source_url": "https://github.com/deepinsight/insightface"
+  },
+  "arcface_iresnet50_ms1m": {
+    "dataset": "LFW",
+    "input_resolution": "112x112x3",
+    "license": "MIT",
+    "operations": "6.40",
+    "parameters": "43.59",
+    "source_url": "https://github.com/deepinsight/insightface"
+  },
+  "arcface_mobilefacenet": {
+    "dataset": "LFW",
+    "input_resolution": "112x112x3",
+    "license": "MIT",
+    "operations": "445.48",
+    "parameters": "2.04",
+    "source_url": "https://github.com/deepinsight/insightface"
+  },
+  "arcface_r50": {
+    "dataset": "LFW",
+    "input_resolution": "112x112x3",
+    "license": "MIT",
+    "operations": "6.39",
+    "parameters": "31.03",
+    "source_url": "https://github.com/deepinsight/insightface"
+  },
+  "beit_large_patch16": {
+    "dataset": "ILSVRC2012",
+    "input_resolution": "224x224x3",
+    "license": "MIT",
+    "operations": "62.76",
+    "parameters": "319.05",
+    "source_url": "https://github.com/microsoft/unilm/tree/master/beit"
+  },
+  "bisenetv1": {
+    "dataset": "Cityscapes",
+    "input_resolution": "2048x1024x3",
+    "license": "MIT",
+    "operations": "118.98",
+    "parameters": "13.27",
+    "source_url": "https://github.com/CoinCheung/BiSeNet"
+  },
+  "bisenetv2": {
+    "dataset": "Cityscapes",
+    "input_resolution": "2048x1024x3",
+    "license": "MIT",
+    "operations": "99.14",
+    "parameters": "3.35",
+    "source_url": "https://github.com/CoinCheung/BiSeNet"
+  },
+  "casvit_m": {
+    "accuracy": "81.4",
+    "dataset": "ImageNet",
+    "input_resolution": "224x224x3",
+    "license": "MIT",
+    "metric_name": "Top1",
+    "operations": "1.89",
+    "parameters": "12.42",
+    "source_url": "https://github.com/Tianfang-Zhang/CAS-ViT"
+  },
+  "casvit_t": {
+    "accuracy": "82.3",
+    "dataset": "ImageNet",
+    "input_resolution": "224x224x3",
+    "license": "MIT",
+    "metric_name": "Top1",
+    "operations": "3.6",
+    "parameters": "21.76",
+    "source_url": "https://github.com/Tianfang-Zhang/CAS-ViT"
+  },
+  "casvit_t_seg_fpn_resnet50": {
+    "dataset": "ADE20K",
+    "input_resolution": "512x512x3",
+    "license": "MIT",
+    "operations": "41.48",
+    "parameters": "24.99",
+    "source_url": "https://github.com/Tianfang-Zhang/CAS-ViT"
+  },
+  "centerpose_regnetx_1_6gf_fpn": {
+    "dataset": "COCOPose",
+    "input_resolution": "512x512x3",
+    "license": "Apache-2.0",
+    "operations": "42.33",
+    "parameters": "12.37",
+    "source_url": "https://github.com/NVlabs/CenterPose"
+  },
+  "centerpose_regnetx_800mf": {
+    "dataset": "COCOPose",
+    "input_resolution": "640x640x3",
+    "license": "Apache-2.0",
+    "operations": "32.56",
+    "parameters": "14.28",
+    "source_url": "https://github.com/NVlabs/CenterPose"
+  },
+  "centerpose_repvgg_a0": {
+    "dataset": "COCOPose",
+    "input_resolution": "416x416x3",
+    "license": "Apache-2.0",
+    "operations": "14.21",
+    "parameters": "11.71",
+    "source_url": "https://github.com/NVlabs/CenterPose"
+  },
+  "damoyolo_tinynasl20_m": {
+    "dataset": "COCO",
+    "input_resolution": "640x640x3",
+    "license": "Apache-2.0",
+    "operations": "31.85",
+    "parameters": "28.20",
+    "source_url": "https://github.com/tinyvision/DAMO-YOLO"
+  },
+  "damoyolo_tinynasl20_t": {
+    "dataset": "COCO",
+    "input_resolution": "640x640x3",
+    "license": "Apache-2.0",
+    "operations": "9.13",
+    "parameters": "8.50",
+    "source_url": "https://github.com/tinyvision/DAMO-YOLO"
+  },
+  "damoyolo_tinynasl25_s": {
+    "dataset": "COCO",
+    "input_resolution": "640x640x3",
+    "license": "Apache-2.0",
+    "operations": "18.98",
+    "parameters": "16.28",
+    "source_url": "https://github.com/tinyvision/DAMO-YOLO"
+  },
+  "damoyolol": {
+    "dataset": "COCO",
+    "input_resolution": "640x640x3",
+    "license": "Apache-2.0",
+    "operations": "50.07",
+    "parameters": "42.06",
+    "source_url": "https://github.com/tinyvision/DAMO-YOLO"
+  },
+  "damoyolom": {
+    "dataset": "COCO 2017",
+    "input_resolution": "640x640x3",
+    "license": "Apache-2.0",
+    "operations": "31.85",
+    "parameters": "28.20",
+    "source_url": "https://github.com/tinyvision/DAMO-YOLO"
+  },
+  "damoyolos": {
+    "dataset": "COCO",
+    "input_resolution": "640x640x3",
+    "license": "Apache-2.0",
+    "operations": "18.98",
+    "parameters": "16.28",
+    "source_url": "https://github.com/tinyvision/DAMO-YOLO"
+  },
+  "damoyolot": {
+    "dataset": "COCO",
+    "input_resolution": "640x640x3",
+    "license": "Apache-2.0",
+    "operations": "9.13",
+    "parameters": "8.50",
+    "source_url": "https://github.com/tinyvision/DAMO-YOLO"
+  },
+  "deeplab_v3_mobilenet_v2_wo_dilation_sim": {
+    "dataset": "PascalVOC2012",
+    "input_resolution": "513x513x3",
+    "license": "Apache-2.0",
+    "operations": "1.73",
+    "parameters": "2.10",
+    "source_url": "https://github.com/pytorch/vision"
+  },
+  "deeplabv3_resnet101": {
+    "dataset": "PascalVOC2012",
+    "input_resolution": "512x512x3",
+    "license": "Apache-2.0",
+    "operations": "68.06",
+    "parameters": "58.58",
+    "source_url": "https://github.com/pytorch/vision"
+  },
+  "deeplabv3_resnet50": {
+    "dataset": "PascalVOC2012",
+    "input_resolution": "512x512x3",
+    "license": "Apache-2.0",
+    "operations": "48.60",
+    "parameters": "39.61",
+    "source_url": "https://github.com/pytorch/vision"
+  },
+  "deeplabv3mobilenetv2": {
+    "dataset": "Pascal VOC 2012",
+    "input_resolution": "512x512x3",
+    "license": "Apache-2.0",
+    "operations": "5.99",
+    "parameters": "5.10",
+    "source_url": "https://github.com/pytorch/vision"
+  },
+  "deeplabv3plus_drn_512x512": {
+    "dataset": "PascalVOC2012",
+    "input_resolution": "512x512x3",
+    "license": "MIT",
+    "operations": "187.05",
+    "parameters": "40.71",
+    "source_url": "https://github.com/jfzhang95/pytorch-deeplab-xception"
+  },
+  "deeplabv3plus_resnet101": {
+    "dataset": "PascalVOC2012",
+    "input_resolution": "512x512x3",
+    "license": "MIT",
+    "operations": "79.25",
+    "parameters": "58.70",
+    "source_url": "https://github.com/VainF/DeepLabV3Plus-Pytorch"
+  },
+  "deeplabv3plus_resnet50": {
+    "dataset": "PascalVOC2012",
+    "input_resolution": "512x512x3",
+    "license": "MIT",
+    "operations": "59.78",
+    "parameters": "39.73",
+    "source_url": "https://github.com/VainF/DeepLabV3Plus-Pytorch"
+  },
+  "deeplabv3plusmobilenet": {
+    "dataset": "Pascal VOC 2012",
+    "input_resolution": "512x512x3",
+    "license": "Apache-2.0",
+    "operations": "26.62",
+    "parameters": "5.80",
+    "source_url": "https://github.com/pytorch/vision"
+  },
+  "deeplabv3plusmobilenetv2": {
+    "dataset": "Pascal VOC 2012",
+    "input_resolution": "512x512x3",
+    "license": "Apache-2.0",
+    "operations": "16.99",
+    "parameters": "5.21",
+    "source_url": "https://github.com/pytorch/vision"
+  },
+  "deepmar_resnet18_person_attr_resnet_v1_18": {
+    "dataset": "PETA",
+    "input_resolution": "224x224x3",
+    "operations": "1.82",
+    "parameters": "11.19",
+    "source_url": "https://github.com/dangweili/pedestrian-attribute-recognition-pytorch"
+  },
+  "deepmar_resnet50": {
+    "dataset": "PETA",
+    "input_resolution": "224x224x3",
+    "operations": "4.12",
+    "parameters": "23.55",
+    "source_url": "https://github.com/dangweili/pedestrian-attribute-recognition-pytorch"
+  },
+  "deit_base": {
+    "dataset": "ILSVRC2012",
+    "input_resolution": "224x224x3",
+    "license": "Apache-2.0",
+    "operations": "18.01",
+    "parameters": "86.57",
+    "source_url": "https://github.com/facebookresearch/deit"
+  },
+  "deit_base384_distilled": {
+    "dataset": "ILSVRC2012",
+    "input_resolution": "384x384x3",
+    "license": "Apache-2.0",
+    "operations": "58.06",
+    "parameters": "86.86",
+    "source_url": "https://github.com/facebookresearch/deit"
+  },
+  "deit_base_distilled_1": {
+    "dataset": "ILSVRC2012",
+    "input_resolution": "224x224x3",
+    "license": "Apache-2.0",
+    "operations": "18.11",
+    "parameters": "87.34",
+    "source_url": "https://github.com/facebookresearch/deit"
+  },
+  "deit_base_distilled_2": {
+    "dataset": "ILSVRC2012",
+    "input_resolution": "384x384x3",
+    "license": "Apache-2.0",
+    "operations": "58.18",
+    "parameters": "87.63",
+    "source_url": "https://github.com/facebookresearch/deit"
+  },
+  "deit_small": {
+    "dataset": "ILSVRC2012",
+    "input_resolution": "224x224x3",
+    "license": "Apache-2.0",
+    "operations": "4.82",
+    "parameters": "22.05",
+    "source_url": "https://github.com/facebookresearch/deit"
+  },
+  "deit_small_distilled": {
+    "dataset": "ILSVRC2012",
+    "input_resolution": "224x224x3",
+    "license": "Apache-2.0",
+    "operations": "4.85",
+    "parameters": "22.44",
+    "source_url": "https://github.com/facebookresearch/deit"
+  },
+  "deit_tiny": {
+    "dataset": "ILSVRC2012",
+    "input_resolution": "224x224x3",
+    "license": "Apache-2.0",
+    "operations": "1.37",
+    "parameters": "5.72",
+    "source_url": "https://github.com/facebookresearch/deit"
+  },
+  "deit_tiny_distilled": {
+    "dataset": "ILSVRC2012",
+    "input_resolution": "224x224x3",
+    "license": "Apache-2.0",
+    "operations": "1.37",
+    "parameters": "5.91",
+    "source_url": "https://github.com/facebookresearch/deit"
+  },
+  "deitbase384": {
+    "dataset": "ILSVRC2012",
+    "input_resolution": "384x384x3",
+    "license": "Apache-2.0",
+    "operations": "58.06",
+    "parameters": "86.86",
+    "source_url": "https://github.com/facebookresearch/deit"
+  },
+  "densenet121": {
+    "dataset": "ImageNet (ILSVRC2012)",
+    "input_resolution": "224x224x3",
+    "license": "BSD-3-Clause",
+    "operations": "3.18",
+    "parameters": "8.04",
+    "source_url": "https://github.com/pytorch/vision"
+  },
+  "densenet161": {
+    "dataset": "ImageNet (ILSVRC2012)",
+    "input_resolution": "224x224x3",
+    "license": "BSD-3-Clause",
+    "operations": "8.43",
+    "parameters": "28.86",
+    "source_url": "https://github.com/pytorch/vision"
+  },
+  "densenet169": {
+    "dataset": "ILSVRC2012",
+    "input_resolution": "224x224x3",
+    "license": "BSD-3-Clause",
+    "operations": "3.81",
+    "parameters": "14.28",
+    "source_url": "https://github.com/pytorch/vision"
+  },
+  "densenet201": {
+    "dataset": "ILSVRC2012",
+    "input_resolution": "224x224x3",
+    "license": "BSD-3-Clause",
+    "operations": "4.91",
+    "parameters": "20.21",
+    "source_url": "https://github.com/pytorch/vision"
+  },
+  "depth_anything_v2_vitb": {
+    "dataset": "NYUDepthv2",
+    "input_resolution": "224x224x3",
+    "license": "CC BY-NC 4.0",
+    "operations": "31.59",
+    "parameters": "97.17",
+    "source_url": "https://github.com/DepthAnything/Depth-Anything-V2"
+  },
+  "depth_anything_v2_vitl": {
+    "dataset": "NYUDepthv2",
+    "input_resolution": "224x224x3",
+    "license": "CC BY-NC 4.0",
+    "operations": "114.32",
+    "parameters": "334.13",
+    "source_url": "https://github.com/DepthAnything/Depth-Anything-V2"
+  },
+  "depth_anything_v2_vits": {
+    "dataset": "NYUDepthv2",
+    "input_resolution": "224x224x3",
+    "license": "Apache-2.0",
+    "operations": "8.60",
+    "parameters": "24.71",
+    "source_url": "https://github.com/DepthAnything/Depth-Anything-V2"
+  },
+  "dncnn_15": {
+    "dataset": "BSD68",
+    "input_resolution": "512x512x1",
+    "license": "MIT",
+    "operations": "145.79",
+    "parameters": "555.14",
+    "source_url": "https://github.com/cszn/DnCNN"
+  },
+  "dncnn_25": {
+    "dataset": "BSD68",
+    "input_resolution": "512x512x1",
+    "license": "MIT",
+    "operations": "145.79",
+    "parameters": "555.14",
+    "source_url": "https://github.com/cszn/DnCNN"
+  },
+  "dncnn_50": {
+    "dataset": "BSD68",
+    "input_resolution": "512x512x1",
+    "license": "MIT",
+    "operations": "145.79",
+    "parameters": "555.14",
+    "source_url": "https://github.com/cszn/DnCNN"
+  },
+  "dncnn_color_blind": {
+    "dataset": "CBSD68",
+    "input_resolution": "512x512x3",
+    "license": "MIT",
+    "operations": "175.49",
+    "parameters": "668.23",
+    "source_url": "https://github.com/cszn/DnCNN"
+  },
+  "dncnn_gray_blind": {
+    "dataset": "BSD68",
+    "input_resolution": "512x512x1",
+    "license": "MIT",
+    "operations": "174.89",
+    "parameters": "665.92",
+    "source_url": "https://github.com/cszn/DnCNN"
+  },
+  "dope_hope_ketchup": {
+    "dataset": "HOPE",
+    "input_resolution": "480x640x3",
+    "license": "Apache-2.0",
+    "operations": "298.84",
+    "parameters": "50.27",
+    "source_url": "https://github.com/NVlabs/Deep_Object_Pose"
+  },
+  "efficientdetd1": {
+    "dataset": "COCO",
+    "input_resolution": "640x640x3",
+    "license": "Apache-2.0",
+    "operations": "8.91",
+    "parameters": "6.77",
+    "source_url": "https://github.com/google/automl/tree/master/efficientdet"
+  },
+  "efficientdetd2": {
+    "dataset": "COCO",
+    "input_resolution": "768x768x3",
+    "license": "Apache-2.0",
+    "operations": "15.38",
+    "parameters": "8.35",
+    "source_url": "https://github.com/google/automl/tree/master/efficientdet"
+  },
+  "efficientdetd4": {
+    "dataset": "COCO",
+    "input_resolution": "1024x1024x3",
+    "license": "Apache-2.0",
+    "operations": "69.37",
+    "parameters": "22.23",
+    "source_url": "https://github.com/google/automl/tree/master/efficientdet"
+  },
+  "efficientformer_l3": {
+    "dataset": "ILSVRC2012",
+    "input_resolution": "224x224x3",
+    "license": "Apache-2.0",
+    "operations": "4.02",
+    "parameters": "31.35",
+    "source_url": "https://github.com/snap-research/EfficientFormer"
+  },
+  "efficientformer_l7": {
+    "dataset": "ILSVRC2012",
+    "input_resolution": "224x224x3",
+    "license": "Apache-2.0",
+    "operations": "10.36",
+    "parameters": "82.14",
+    "source_url": "https://github.com/snap-research/EfficientFormer"
+  },
+  "efficientformerv2_l": {
+    "accuracy": "83.5",
+    "dataset": "ImageNet",
+    "input_resolution": "224x224x3",
+    "license": "Apache-2.0",
+    "metric_name": "Top1",
+    "operations": "5.12",
+    "parameters": "26.1",
+    "source_url": "https://github.com/snap-research/EfficientFormer"
+  },
+  "efficientnet_lite0": {
+    "dataset": "ILSVRC2012",
+    "input_resolution": "224x224x3",
+    "license": "Apache-2.0",
+    "operations": "404.52",
+    "parameters": "4.63",
+    "source_url": "https://github.com/huggingface/pytorch-image-models"
+  },
+  "efficientnet_lite1": {
+    "dataset": "ImageNet (ILSVRC2012)",
+    "input_resolution": "240x240x3",
+    "license": "Apache-2.0",
+    "operations": "629.42",
+    "parameters": "5.39",
+    "source_url": "https://github.com/huggingface/pytorch-image-models"
+  },
+  "efficientnet_lite2": {
+    "dataset": "ImageNet (ILSVRC2012)",
+    "input_resolution": "260x260x3",
+    "license": "Apache-2.0",
+    "operations": "896.92",
+    "parameters": "6.06",
+    "source_url": "https://github.com/huggingface/pytorch-image-models"
+  },
+  "efficientnet_lite3": {
+    "dataset": "ImageNet (ILSVRC2012)",
+    "input_resolution": "300x300x3",
+    "license": "Apache-2.0",
+    "operations": "1.67",
+    "parameters": "8.16",
+    "source_url": "https://github.com/huggingface/pytorch-image-models"
+  },
+  "efficientnet_lite4": {
+    "dataset": "ImageNet (ILSVRC2012)",
+    "input_resolution": "380x380x3",
+    "license": "Apache-2.0",
+    "operations": "4.08",
+    "parameters": "12.95",
+    "source_url": "https://github.com/huggingface/pytorch-image-models"
+  },
+  "efficientnetb2": {
+    "dataset": "ImageNet (ILSVRC2012)",
+    "input_resolution": "288x288x3",
+    "license": "BSD-3-Clause",
+    "operations": "1.60",
+    "parameters": "9.08",
+    "source_url": "https://github.com/pytorch/vision"
+  },
+  "efficientnetb3": {
+    "dataset": "ILSVRC2012",
+    "input_resolution": "300x300x3",
+    "license": "BSD-3-Clause",
+    "operations": "2.58",
+    "parameters": "12.19",
+    "source_url": "https://github.com/pytorch/vision"
+  },
+  "efficientnetb4": {
+    "dataset": "ILSVRC2012",
+    "input_resolution": "380x380x3",
+    "license": "BSD-3-Clause",
+    "operations": "5.96",
+    "parameters": "19.28",
+    "source_url": "https://github.com/pytorch/vision"
+  },
+  "efficientnetb5": {
+    "dataset": "ILSVRC2012",
+    "input_resolution": "456x456x3",
+    "license": "BSD-3-Clause",
+    "operations": "13.38",
+    "parameters": "30.30",
+    "source_url": "https://github.com/pytorch/vision"
+  },
+  "efficientnetb6": {
+    "dataset": "ILSVRC2012",
+    "input_resolution": "528x528x3",
+    "license": "BSD-3-Clause",
+    "operations": "24.34",
+    "parameters": "42.93",
+    "source_url": "https://github.com/pytorch/vision"
+  },
+  "efficientnetb7": {
+    "dataset": "ILSVRC2012",
+    "input_resolution": "600x600x3",
+    "license": "Apache-2.0",
+    "operations": "46.87",
+    "parameters": "66.19",
+    "source_url": "https://github.com/pytorch/vision"
+  },
+  "efficientnetv2l": {
+    "dataset": "ILSVRC2012",
+    "input_resolution": "480x480x3",
+    "license": "BSD-3-Clause",
+    "operations": "60.99",
+    "parameters": "118.26",
+    "source_url": "https://github.com/pytorch/vision"
+  },
+  "efficientnetv2m": {
+    "dataset": "ILSVRC2012",
+    "input_resolution": "480x480x3",
+    "license": "Apache-2.0",
+    "operations": "27.38",
+    "parameters": "53.99",
+    "source_url": "https://github.com/pytorch/vision"
+  },
+  "efficientnetv2s": {
+    "dataset": "ImageNet (ILSVRC2012)",
+    "input_resolution": "384x384x3",
+    "license": "BSD-3-Clause",
+    "operations": "9.47",
+    "parameters": "21.38",
+    "source_url": "https://github.com/pytorch/vision"
+  },
+  "eigenplaces_resnet18": {
+    "dataset": "HPatches",
+    "input_resolution": "512x512x3",
+    "license": "MIT",
+    "operations": "9.52",
+    "parameters": "11.43",
+    "source_url": "https://github.com/gmberton/EigenPlaces"
+  },
+  "eigenplaces_resnet50": {
+    "dataset": "HPatches",
+    "input_resolution": "512x512x3",
+    "license": "MIT",
+    "operations": "21.53",
+    "parameters": "24.53",
+    "source_url": "https://github.com/gmberton/EigenPlaces"
+  },
+  "espcn_x2": {
+    "dataset": "BSD100",
+    "input_resolution": "17x17x3",
+    "license": "Apache-2.0",
+    "operations": "8.26",
+    "parameters": "21.28",
+    "source_url": "https://github.com/Lornatang/ESPCN-PyTorch"
+  },
+  "espcn_x3": {
+    "dataset": "BSD100",
+    "input_resolution": "17x17x1",
+    "license": "Apache-2.0",
+    "operations": "8.68",
+    "parameters": "22.73",
+    "source_url": "https://github.com/Lornatang/ESPCN-PyTorch"
+  },
+  "espcn_x4": {
+    "dataset": "BSD100",
+    "input_resolution": "17x17x1",
+    "license": "Apache-2.0",
+    "operations": "9.27",
+    "parameters": "24.75",
+    "source_url": "https://github.com/Lornatang/ESPCN-PyTorch"
+  },
+  "face_attr_resnet_v1_18": {
+    "dataset": "CelebA",
+    "input_resolution": "178x218x3",
+    "license": "MIT",
+    "operations": "1.50",
+    "parameters": "11.74",
+    "source_url": "https://github.com/d-li14/face-attribute-prediction"
+  },
+  "fastdepth_1": {
+    "dataset": "NYU Depth V2",
+    "input_resolution": "224x224x3",
+    "license": "MIT",
+    "operations": "547.19",
+    "parameters": "1.38",
+    "source_url": "https://github.com/dwofk/fast-depth"
+  },
+  "fastsam_s": {
+    "dataset": "COCO",
+    "input_resolution": "1024x1024x3",
+    "license": "Apache-2.0",
+    "operations": "57.15",
+    "parameters": "11.84",
+    "source_url": "https://github.com/CASIA-IVA-Lab/FastSAM"
+  },
+  "fastvit_ma36": {
+    "dataset": "ILSVRC2012",
+    "input_resolution": "256x256x3",
+    "license": "Apple ML Research License",
+    "operations": "8.04",
+    "parameters": "43.98",
+    "source_url": "https://github.com/apple/ml-fastvit"
+  },
+  "fastvit_sa24": {
+    "dataset": "ILSVRC2012",
+    "input_resolution": "256x256x3",
+    "license": "Apple ML Research License",
+    "operations": "3.90",
+    "parameters": "21.50",
+    "source_url": "https://github.com/apple/ml-fastvit"
+  },
+  "fastvit_sa36": {
+    "dataset": "ILSVRC2012",
+    "input_resolution": "256x256x3",
+    "license": "Apple ML Research License",
+    "operations": "5.78",
+    "parameters": "31.45",
+    "source_url": "https://github.com/apple/ml-fastvit"
+  },
+  "fcn8_resnet50": {
+    "dataset": "PascalVOC2012",
+    "input_resolution": "512x512x3",
+    "license": "Apache-2.0",
+    "operations": "148.43",
+    "parameters": "35.29",
+    "source_url": "https://github.com/pytorch/vision"
+  },
+  "fcn8_resnet_v1_18": {
+    "dataset": "Cityscapes",
+    "input_resolution": "1024x1920x3",
+    "license": "Apache-2.0",
+    "operations": "71.88",
+    "parameters": "11.20",
+    "source_url": "https://github.com/pytorch/vision"
+  },
+  "ghostnet": {
+    "dataset": "ILSVRC2012",
+    "input_resolution": "224x224x3",
+    "license": "Apache-2.0",
+    "operations": "148.80",
+    "parameters": "5.17",
+    "source_url": "https://github.com/huawei-noah/Efficient-AI-Backbones"
+  },
+  "handlandmarklite_1": {
+    "dataset": "HandKeypoints",
+    "input_resolution": "224x224x3",
+    "license": "Apache-2.0",
+    "operations": "158.29",
+    "parameters": "1.01",
+    "source_url": "https://github.com/google-ai-edge/mediapipe"
+  },
+  "hardnet39ds": {
+    "dataset": "ImageNet (ILSVRC2012)",
+    "input_resolution": "224x224x3",
+    "license": "MIT",
+    "operations": "438.76",
+    "parameters": "3.48",
+    "source_url": "https://github.com/PingoLH/Pytorch-HarDNet"
+  },
+  "hardnet68": {
+    "dataset": "ImageNet (ILSVRC2012)",
+    "input_resolution": "224x224x3",
+    "license": "MIT",
+    "operations": "4.26",
+    "parameters": "17.56",
+    "source_url": "https://github.com/PingoLH/Pytorch-HarDNet"
+  },
+  "inceptionv1": {
+    "dataset": "ImageNet (ILSVRC2012)",
+    "input_resolution": "224x224x3",
+    "license": "BSD-3-Clause",
+    "operations": "1.52",
+    "parameters": "6.62",
+    "source_url": "https://github.com/pytorch/vision"
+  },
+  "levit128": {
+    "dataset": "ILSVRC2012",
+    "input_resolution": "224x224x3",
+    "license": "Apache-2.0",
+    "operations": "442.32",
+    "parameters": "9.97",
+    "source_url": "https://github.com/facebookresearch/LeViT"
+  },
+  "levit192": {
+    "dataset": "ILSVRC2012",
+    "input_resolution": "224x224x3",
+    "license": "Apache-2.0",
+    "operations": "741.19",
+    "parameters": "11.05",
+    "source_url": "https://github.com/facebookresearch/LeViT"
+  },
+  "levit256": {
+    "dataset": "ILSVRC2012",
+    "input_resolution": "224x224x3",
+    "license": "Apache-2.0",
+    "operations": "1.24",
+    "parameters": "19.02",
+    "source_url": "https://github.com/facebookresearch/LeViT"
+  },
+  "levit384": {
+    "dataset": "ILSVRC2012",
+    "input_resolution": "224x224x3",
+    "license": "Apache-2.0",
+    "operations": "2.52",
+    "parameters": "39.28",
+    "source_url": "https://huggingface.co/facebook/levit-384"
+  },
+  "mediapipe_hand_detector": {
+    "dataset": "HandKeypointsDetection",
+    "input_resolution": "192x192x3",
+    "license": "Apache-2.0",
+    "source_url": "https://google.github.io/mediapipe/solutions/hands"
+  },
+  "mnasnet0_5": {
+    "dataset": "ILSVRC2012",
+    "input_resolution": "224x224x3",
+    "license": "BSD-3-Clause",
+    "operations": "110.45",
+    "parameters": "2.21",
+    "source_url": "https://github.com/pytorch/vision"
+  },
+  "mnasnet0_75": {
+    "dataset": "ILSVRC2012",
+    "input_resolution": "224x224x3",
+    "license": "BSD-3-Clause",
+    "operations": "224.74",
+    "parameters": "3.16",
+    "source_url": "https://github.com/pytorch/vision"
+  },
+  "mnasnet1_0": {
+    "dataset": "ILSVRC2012",
+    "input_resolution": "224x224x3",
+    "license": "BSD-3-Clause",
+    "operations": "325.03",
+    "parameters": "4.36",
+    "source_url": "https://github.com/pytorch/vision"
+  },
+  "mnasnet1_3": {
+    "dataset": "ILSVRC2012",
+    "input_resolution": "224x224x3",
+    "license": "BSD-3-Clause",
+    "operations": "540.61",
+    "parameters": "6.26",
+    "source_url": "https://github.com/pytorch/vision"
+  },
+  "mobilenetv1": {
+    "dataset": "ImageNet (ILSVRC2012)",
+    "input_resolution": "224x224x3",
+    "license": "BSD-3-Clause",
+    "operations": "578.88",
+    "parameters": "4.22",
+    "source_url": "https://github.com/pytorch/vision"
+  },
+  "mobilenetv2": {
+    "dataset": "ImageNet (ILSVRC2012)",
+    "input_resolution": "224x224x3",
+    "license": "BSD-3-Clause",
+    "operations": "319.95",
+    "parameters": "3.49",
+    "source_url": "https://github.com/pytorch/vision"
+  },
+  "mobilenetv3large": {
+    "dataset": "ImageNet (ILSVRC2012)",
+    "input_resolution": "224x224x3",
+    "license": "BSD-3-Clause",
+    "operations": "232.57",
+    "parameters": "5.47",
+    "source_url": "https://github.com/pytorch/vision"
+  },
+  "nanodet_repvgg": {
+    "dataset": "COCO 2017",
+    "input_resolution": "416x416x3",
+    "license": "Apache-2.0",
+    "operations": "5.66",
+    "parameters": "6.74",
+    "source_url": "https://github.com/RangiLyu/nanodet"
+  },
+  "nanodet_repvgga1": {
+    "dataset": "COCO 2017",
+    "input_resolution": "640x640x3",
+    "license": "Apache-2.0",
+    "operations": "21.44",
+    "parameters": "10.79",
+    "source_url": "https://github.com/RangiLyu/nanodet"
+  },
+  "nanodet_repvgga12": {
+    "dataset": "COCO",
+    "input_resolution": "640x640x3",
+    "license": "Apache-2.0",
+    "operations": "14.19",
+    "parameters": "4.87",
+    "source_url": "https://github.com/RangiLyu/nanodet"
+  },
+  "nanodetplusm": {
+    "dataset": "COCO",
+    "input_resolution": "416x416x3",
+    "license": "Apache-2.0",
+    "operations": "800.77",
+    "parameters": "1.19",
+    "source_url": "https://github.com/RangiLyu/nanodet"
+  },
+  "nanodetplusm_15": {
+    "dataset": "COCO",
+    "input_resolution": "416x416x3",
+    "license": "Apache-2.0",
+    "operations": "1.54",
+    "parameters": "2.46",
+    "source_url": "https://github.com/RangiLyu/nanodet"
+  },
+  "pidnet_s": {
+    "dataset": "Cityscapes",
+    "input_resolution": "1024x2048x3",
+    "license": "MIT",
+    "operations": "47.86",
+    "parameters": "7.62",
+    "source_url": "https://github.com/XuJiacong/PIDNet"
+  },
+  "realesrgan_x2": {
+    "dataset": "BSD100",
+    "input_resolution": "192x192x3",
+    "license": "BSD-3-Clause",
+    "operations": "165.72",
+    "parameters": "16.70",
+    "source_url": "https://github.com/xinntao/Real-ESRGAN"
+  },
+  "realesrgan_x4": {
+    "dataset": "BSD100",
+    "input_resolution": "192x192x3",
+    "license": "BSD-3-Clause",
+    "operations": "662.69",
+    "parameters": "16.70",
+    "source_url": "https://github.com/xinntao/Real-ESRGAN"
+  },
+  "realesrgan_x8": {
+    "dataset": "BSD100",
+    "input_resolution": "192x192x3",
+    "license": "BSD-3-Clause",
+    "operations": "818.75",
+    "parameters": "16.73",
+    "source_url": "https://github.com/xinntao/Real-ESRGAN"
+  },
+  "regnetx16gf": {
+    "dataset": "ILSVRC2012",
+    "input_resolution": "224x224x3",
+    "license": "Apache-2.0",
+    "operations": "16.00",
+    "parameters": "54.22",
+    "source_url": "https://github.com/pytorch/vision"
+  },
+  "regnetx1_6gf": {
+    "dataset": "ImageNet (ILSVRC2012)",
+    "input_resolution": "224x224x3",
+    "license": "Apache-2.0",
+    "operations": "1.62",
+    "parameters": "9.17",
+    "source_url": "https://github.com/pytorch/vision"
+  },
+  "regnetx32gf": {
+    "dataset": "ILSVRC2012",
+    "input_resolution": "224x224x3",
+    "license": "Apache-2.0",
+    "operations": "31.82",
+    "parameters": "107.73",
+    "source_url": "https://github.com/pytorch/vision"
+  },
+  "regnetx3_2gf": {
+    "dataset": "ILSVRC2012",
+    "input_resolution": "224x224x3",
+    "license": "Apache-2.0",
+    "operations": "3.20",
+    "parameters": "15.27",
+    "source_url": "https://github.com/pytorch/vision"
+  },
+  "regnetx400mf": {
+    "dataset": "ImageNet (ILSVRC2012)",
+    "input_resolution": "224x224x3",
+    "license": "BSD-3-Clause",
+    "operations": "420.64",
+    "parameters": "5.48",
+    "source_url": "https://github.com/pytorch/vision"
+  },
+  "regnetx800mf": {
+    "dataset": "ImageNet (ILSVRC2012)",
+    "input_resolution": "224x224x3",
+    "license": "BSD-3-Clause",
+    "operations": "810.70",
+    "parameters": "7.24",
+    "source_url": "https://github.com/pytorch/vision"
+  },
+  "regnetx8gf": {
+    "dataset": "ILSVRC2012",
+    "input_resolution": "224x224x3",
+    "license": "Apache-2.0",
+    "operations": "8.03",
+    "parameters": "39.53",
+    "source_url": "https://github.com/pytorch/vision"
+  },
+  "regnety16gf": {
+    "dataset": "ILSVRC2012",
+    "input_resolution": "384x384x3",
+    "license": "Apache-2.0",
+    "operations": "46.92",
+    "parameters": "83.53",
+    "source_url": "https://github.com/pytorch/vision"
+  },
+  "regnety1_6gf": {
+    "dataset": "ILSVRC2012",
+    "input_resolution": "224x224x3",
+    "license": "Apache-2.0",
+    "operations": "1.63",
+    "parameters": "11.18",
+    "source_url": "https://github.com/pytorch/vision"
+  },
+  "regnety200mf": {
+    "dataset": "ImageNet (ILSVRC2012)",
+    "input_resolution": "224x224x3",
+    "license": "BSD-3-Clause",
+    "operations": "204.91",
+    "parameters": "3.15",
+    "source_url": "https://github.com/pytorch/vision"
+  },
+  "regnety32gf": {
+    "dataset": "ILSVRC2012",
+    "input_resolution": "384x384x3",
+    "license": "Apache-2.0",
+    "operations": "95.07",
+    "parameters": "144.97",
+    "source_url": "https://github.com/pytorch/vision"
+  },
+  "regnety3_2gf": {
+    "dataset": "ILSVRC2012",
+    "input_resolution": "224x224x3",
+    "license": "Apache-2.0",
+    "operations": "3.21",
+    "parameters": "19.40",
+    "source_url": "https://github.com/pytorch/vision"
+  },
+  "regnety400mf": {
+    "dataset": "ImageNet (ILSVRC2012)",
+    "input_resolution": "224x224x3",
+    "license": "BSD-3-Clause",
+    "operations": "411.81",
+    "parameters": "4.33",
+    "source_url": "https://github.com/pytorch/vision"
+  },
+  "regnety800mf": {
+    "dataset": "ImageNet (ILSVRC2012)",
+    "input_resolution": "224x224x3",
+    "license": "BSD-3-Clause",
+    "operations": "847.84",
+    "parameters": "6.42",
+    "source_url": "https://github.com/pytorch/vision"
+  },
+  "regnety8gf": {
+    "dataset": "ILSVRC2012",
+    "input_resolution": "224x224x3",
+    "license": "Apache-2.0",
+    "operations": "8.53",
+    "parameters": "39.34",
+    "source_url": "https://github.com/pytorch/vision"
+  },
+  "repghost_2_0x": {
+    "dataset": "ILSVRC2012",
+    "input_resolution": "224x224x3",
+    "license": "MIT",
+    "operations": "637.73",
+    "parameters": "9.79",
+    "source_url": "https://github.com/ChengpengChen/RepGhost"
+  },
+  "repvgg_a0": {
+    "dataset": "ILSVRC2012",
+    "input_resolution": "320x320x3",
+    "license": "MIT",
+    "operations": "2.78",
+    "parameters": "8.31",
+    "source_url": "https://github.com/DingXiaoH/RepVGG"
+  },
+  "repvgg_a1": {
+    "dataset": "ILSVRC2012",
+    "input_resolution": "320x320x3",
+    "license": "MIT",
+    "operations": "4.83",
+    "parameters": "12.79",
+    "source_url": "https://github.com/DingXiaoH/RepVGG"
+  },
+  "repvgg_a2": {
+    "dataset": "ILSVRC2012",
+    "input_resolution": "320x320x3",
+    "license": "MIT",
+    "operations": "10.45",
+    "parameters": "25.50",
+    "source_url": "https://github.com/DingXiaoH/RepVGG"
+  },
+  "repvgg_b0": {
+    "dataset": "ILSVRC2012",
+    "input_resolution": "320x320x3",
+    "license": "MIT",
+    "operations": "6.25",
+    "parameters": "14.34",
+    "source_url": "https://github.com/DingXiaoH/RepVGG"
+  },
+  "repvgg_b1": {
+    "dataset": "ILSVRC2012",
+    "input_resolution": "320x320x3",
+    "license": "MIT",
+    "operations": "24.13",
+    "parameters": "51.83",
+    "source_url": "https://github.com/DingXiaoH/RepVGG"
+  },
+  "resmlp24": {
+    "dataset": "ILSVRC2012",
+    "input_resolution": "224x224x3",
+    "license": "Apache-2.0",
+    "operations": "6.04",
+    "parameters": "30.02",
+    "source_url": "https://github.com/facebookresearch/deit"
+  },
+  "resnet101": {
+    "dataset": "ImageNet (ILSVRC2012)",
+    "input_resolution": "224x224x3",
+    "license": "BSD-3-Clause",
+    "operations": "7.84",
+    "parameters": "44.50",
+    "source_url": "https://github.com/pytorch/vision"
+  },
+  "resnet152": {
+    "dataset": "ImageNet (ILSVRC2012)",
+    "input_resolution": "224x224x3",
+    "license": "BSD-3-Clause",
+    "operations": "11.57",
+    "parameters": "60.12",
+    "source_url": "https://github.com/pytorch/vision"
+  },
+  "resnet18": {
+    "dataset": "ImageNet (ILSVRC2012)",
+    "input_resolution": "224x224x3",
+    "license": "BSD-3-Clause",
+    "operations": "1.82",
+    "parameters": "11.68",
+    "source_url": "https://github.com/pytorch/vision"
+  },
+  "resnet34": {
+    "dataset": "ImageNet (ILSVRC2012)",
+    "input_resolution": "224x224x3",
+    "license": "BSD-3-Clause",
+    "operations": "3.67",
+    "parameters": "21.79",
+    "source_url": "https://github.com/pytorch/vision"
+  },
+  "resnet50": {
+    "dataset": "ImageNet (ILSVRC2012)",
+    "input_resolution": "224x224x3",
+    "license": "BSD-3-Clause",
+    "operations": "4.12",
+    "parameters": "25.53",
+    "source_url": "https://github.com/pytorch/vision"
+  },
+  "resnext101_32x8d": {
+    "dataset": "ILSVRC2012",
+    "input_resolution": "224x224x3",
+    "license": "Apache-2.0",
+    "operations": "16.49",
+    "parameters": "88.69",
+    "source_url": "https://github.com/pytorch/vision"
+  },
+  "resnext101_64x4d": {
+    "dataset": "ILSVRC2012",
+    "input_resolution": "224x224x3",
+    "license": "BSD-3-Clause",
+    "operations": "15.53",
+    "parameters": "83.35",
+    "source_url": "https://github.com/pytorch/vision"
+  },
+  "resnext26_32x4d": {
+    "dataset": "ImageNet (ILSVRC2012)",
+    "input_resolution": "224x224x3",
+    "license": "Apache-2.0",
+    "operations": "2.49",
+    "parameters": "15.37",
+    "source_url": "https://github.com/pytorch/vision"
+  },
+  "resnext50_32x4d": {
+    "dataset": "ImageNet (ILSVRC2012)",
+    "input_resolution": "224x224x3",
+    "license": "BSD-3-Clause",
+    "operations": "4.27",
+    "parameters": "24.99",
+    "source_url": "https://github.com/pytorch/vision"
+  },
+  "retinaface_mobilenet0_25_640": {
+    "dataset": "WiderFace",
+    "input_resolution": "640x640x3",
+    "license": "MIT",
+    "operations": "1.02",
+    "parameters": "423.26",
+    "source_url": "https://github.com/deepinsight/insightface"
+  },
+  "retinaface_mobilenet_v1_736x1280": {
+    "dataset": "WiderFace",
+    "input_resolution": "736x1280x3",
+    "license": "MIT",
+    "operations": "12.76",
+    "parameters": "3.49",
+    "source_url": "https://github.com/deepinsight/insightface"
+  },
+  "rn50x16_openai": {
+    "dataset": "ILSVRC2012",
+    "input_resolution": "384x384x3",
+    "license": "MIT",
+    "operations": "75.00",
+    "parameters": "167.23",
+    "source_url": "https://github.com/mlfoundations/open_clip"
+  },
+  "scdepthv3": {
+    "dataset": "NYUDepthv2",
+    "input_resolution": "320x256x3",
+    "license": "GPL-3.0",
+    "operations": "5.36",
+    "parameters": "14.32",
+    "source_url": "https://github.com/JiawangBian/sc_depth_pl"
+  },
+  "scrfd10g": {
+    "dataset": "WiderFace",
+    "input_resolution": "640x640x3",
+    "license": "MIT",
+    "operations": "13.41",
+    "parameters": "4.23",
+    "source_url": "https://github.com/deepinsight/insightface/tree/master/detection/scrfd"
+  },
+  "scrfd2_5g": {
+    "dataset": "WiderFace",
+    "input_resolution": "640x640x3",
+    "license": "MIT",
+    "operations": "3.46",
+    "parameters": "817.96",
+    "source_url": "https://github.com/deepinsight/insightface/tree/master/detection/scrfd"
+  },
+  "scrfd500m": {
+    "dataset": "WiderFace",
+    "input_resolution": "640x640x3",
+    "license": "MIT",
+    "operations": "764.58",
+    "parameters": "626.34",
+    "source_url": "https://github.com/deepinsight/insightface/tree/master/detection/scrfd"
+  },
+  "scrfd500m_ppu": {
+    "accuracy": "91.08088.46769.375",
+    "dataset": "WiderFace",
+    "input_resolution": "640x640x3",
+    "license": "MIT",
+    "metric_name": "AP(Easy)AP(Med)AP(Hard)",
+    "operations": "0.77",
+    "parameters": "0.63",
+    "source_url": "https://github.com/deepinsight/insightface/tree/master/detection/scrfd"
+  },
+  "segformer_b0_512x1024": {
+    "dataset": "Cityscapes",
+    "input_resolution": "1024x512x3",
+    "license": "Apache-2.0",
+    "operations": "20.79",
+    "parameters": "3.72",
+    "source_url": "https://github.com/NVlabs/SegFormer"
+  },
+  "sfa3d_608x608": {
+    "dataset": "KITTI",
+    "input_resolution": "608x608x3",
+    "license": "MIT",
+    "operations": "31.97",
+    "parameters": "12.74",
+    "source_url": "https://github.com/maudzung/SFA3D"
+  },
+  "shufflenetv1x1_0": {
+    "dataset": "ILSVRC2012",
+    "input_resolution": "224x224x3",
+    "license": "Apache-2.0",
+    "operations": "151.20",
+    "parameters": "2.42",
+    "source_url": "https://github.com/pytorch/vision"
+  },
+  "shufflenetv2x0_5": {
+    "dataset": "ILSVRC2012",
+    "input_resolution": "224x224x3",
+    "license": "BSD-3-Clause",
+    "operations": "43.05",
+    "parameters": "1.36",
+    "source_url": "https://github.com/pytorch/vision"
+  },
+  "shufflenetv2x1_0": {
+    "dataset": "ILSVRC2012",
+    "input_resolution": "224x224x3",
+    "license": "BSD-3-Clause",
+    "operations": "149.07",
+    "parameters": "2.27",
+    "source_url": "https://github.com/pytorch/vision"
+  },
+  "shufflenetv2x1_5": {
+    "dataset": "ILSVRC2012",
+    "input_resolution": "224x224x3",
+    "license": "BSD-3-Clause",
+    "operations": "301.33",
+    "parameters": "3.49",
+    "source_url": "https://github.com/pytorch/vision"
+  },
+  "shufflenetv2x2_0": {
+    "dataset": "ILSVRC2012",
+    "input_resolution": "224x224x3",
+    "license": "BSD-3-Clause",
+    "operations": "590.57",
+    "parameters": "7.38",
+    "source_url": "https://github.com/pytorch/vision"
+  },
+  "squeezenet1_0": {
+    "dataset": "ImageNet (ILSVRC2012)",
+    "input_resolution": "224x224x3",
+    "license": "BSD-3-Clause",
+    "operations": "832.77",
+    "parameters": "1.25",
+    "source_url": "https://github.com/pytorch/vision"
+  },
+  "squeezenet1_1": {
+    "dataset": "ImageNet (ILSVRC2012)",
+    "input_resolution": "224x224x3",
+    "license": "BSD-3-Clause",
+    "operations": "357.48",
+    "parameters": "1.24",
+    "source_url": "https://github.com/pytorch/vision"
+  },
+  "ssdmv1": {
+    "dataset": "Pascal VOC 2007",
+    "input_resolution": "300x300x3",
+    "license": "MIT",
+    "operations": "1.55",
+    "parameters": "9.46",
+    "source_url": "https://github.com/qfgaohao/pytorch-ssd"
+  },
+  "ssdmv2lite": {
+    "dataset": "Pascal VOC 2007",
+    "input_resolution": "300x300x3",
+    "license": "MIT",
+    "operations": "700.57",
+    "parameters": "3.36",
+    "source_url": "https://github.com/qfgaohao/pytorch-ssd"
+  },
+  "ssdvgg16": {
+    "dataset": "PascalVOC2007",
+    "input_resolution": "300x300x3",
+    "license": "MIT",
+    "operations": "31.47",
+    "parameters": "26.29",
+    "source_url": "https://github.com/qfgaohao/pytorch-ssd"
+  },
+  "stdc2_model_maxmiou50": {
+    "dataset": "Cityscapes",
+    "input_resolution": "512x1024x3",
+    "license": "MIT",
+    "operations": "24.44",
+    "parameters": "12.45",
+    "source_url": "https://github.com/MichaelFan01/STDC-Seg"
+  },
+  "superpoint": {
+    "dataset": "HPatches",
+    "input_resolution": "480x640x3",
+    "license": "Non-commercial",
+    "operations": "26.20",
+    "parameters": "1.30",
+    "source_url": "https://github.com/magicleap/SuperPointPretrainedNetwork"
+  },
+  "ulfgfd_rfb_320": {
+    "dataset": "WiderFace",
+    "input_resolution": "320x240x3",
+    "license": "MIT",
+    "operations": "193.19",
+    "parameters": "281.10",
+    "source_url": "https://github.com/Linzaer/Ultra-Light-Fast-Generic-Face-Detector-1MB"
+  },
+  "ulfgfd_rfb_320_without_postprocessing": {
+    "dataset": "WiderFace",
+    "input_resolution": "320x240x3",
+    "license": "MIT",
+    "operations": "192.78",
+    "parameters": "281.10",
+    "source_url": "https://github.com/Linzaer/Ultra-Light-Fast-Generic-Face-Detector-1MB"
+  },
+  "ulfgfd_rfb_640": {
+    "dataset": "WiderFace",
+    "input_resolution": "640x480x3",
+    "license": "MIT",
+    "operations": "769.65",
+    "parameters": "281.10",
+    "source_url": "https://github.com/Linzaer/Ultra-Light-Fast-Generic-Face-Detector-1MB"
+  },
+  "ulfgfd_slim_320": {
+    "dataset": "WiderFace",
+    "input_resolution": "320x240x3",
+    "license": "MIT",
+    "operations": "169.20",
+    "parameters": "264.73",
+    "source_url": "https://github.com/Linzaer/Ultra-Light-Fast-Generic-Face-Detector-1MB"
+  },
+  "ulfgfd_slim_320_without_postprocessing": {
+    "dataset": "WiderFace",
+    "input_resolution": "320x240x3",
+    "license": "MIT",
+    "operations": "168.79",
+    "parameters": "264.73",
+    "source_url": "https://github.com/Linzaer/Ultra-Light-Fast-Generic-Face-Detector-1MB"
+  },
+  "unet_mobilenet_v2": {
+    "dataset": "OxfordIIITPet",
+    "input_resolution": "256x256x3",
+    "license": "Apache-2.0",
+    "operations": "4.70",
+    "parameters": "10.08",
+    "source_url": "https://github.com/tensorflow/examples"
+  },
+  "vgg11": {
+    "dataset": "ImageNet (ILSVRC2012)",
+    "input_resolution": "224x224x3",
+    "license": "BSD-3-Clause",
+    "operations": "7.63",
+    "parameters": "132.86",
+    "source_url": "https://github.com/pytorch/vision"
+  },
+  "vgg11bn": {
+    "dataset": "ImageNet (ILSVRC2012)",
+    "input_resolution": "224x224x3",
+    "license": "BSD-3-Clause",
+    "operations": "7.63",
+    "parameters": "132.86",
+    "source_url": "https://github.com/pytorch/vision"
+  },
+  "vgg13": {
+    "dataset": "ImageNet (ILSVRC2012)",
+    "input_resolution": "224x224x3",
+    "license": "BSD-3-Clause",
+    "operations": "11.34",
+    "parameters": "133.05",
+    "source_url": "https://github.com/pytorch/vision"
+  },
+  "vgg13bn": {
+    "dataset": "ImageNet (ILSVRC2012)",
+    "input_resolution": "224x224x3",
+    "license": "BSD-3-Clause",
+    "operations": "11.34",
+    "parameters": "133.05",
+    "source_url": "https://github.com/pytorch/vision"
+  },
+  "vgg16": {
+    "dataset": "ILSVRC2012",
+    "input_resolution": "224x224x3",
+    "license": "BSD-3-Clause",
+    "operations": "15.50",
+    "parameters": "138.36",
+    "source_url": "https://github.com/pytorch/vision"
+  },
+  "vgg16bn": {
+    "dataset": "ILSVRC2012",
+    "input_resolution": "224x224x3",
+    "license": "BSD-3-Clause",
+    "operations": "15.50",
+    "parameters": "138.36",
+    "source_url": "https://github.com/pytorch/vision"
+  },
+  "vgg19": {
+    "dataset": "ILSVRC2012",
+    "input_resolution": "224x224x3",
+    "license": "BSD-3-Clause",
+    "operations": "19.67",
+    "parameters": "143.67",
+    "source_url": "https://github.com/pytorch/vision"
+  },
+  "vgg19bn": {
+    "dataset": "ImageNet (ILSVRC2012)",
+    "input_resolution": "224x224x3",
+    "license": "BSD-3-Clause",
+    "operations": "19.67",
+    "parameters": "143.67",
+    "source_url": "https://github.com/pytorch/vision"
+  },
+  "vit_b_32_256_datacomp_s34b_b86k": {
+    "dataset": "ILSVRC2012",
+    "input_resolution": "256x256x3",
+    "license": "MIT",
+    "operations": "5.81",
+    "parameters": "87.86",
+    "source_url": "https://github.com/mlfoundations/open_clip"
+  },
+  "vit_base_bn": {
+    "dataset": "ILSVRC2012",
+    "input_resolution": "224x224x3",
+    "license": "Apache-2.0",
+    "operations": "17.91",
+    "parameters": "86.70",
+    "source_url": "https://github.com/google-research/vision_transformer"
+  },
+  "vit_base_p16": {
+    "dataset": "ILSVRC2012",
+    "input_resolution": "224x224x3",
+    "license": "Apache-2.0",
+    "operations": "18.01",
+    "parameters": "86.57",
+    "source_url": "https://github.com/google-research/vision_transformer"
+  },
+  "vit_l_14_datacomp_xl_s13b_b90k": {
+    "dataset": "ILSVRC2012",
+    "input_resolution": "224x224x3",
+    "license": "MIT",
+    "operations": "82.28",
+    "parameters": "303.97",
+    "source_url": "https://github.com/mlfoundations/open_clip"
+  },
+  "vit_l_14_quickgelu_dfn2b": {
+    "dataset": "ILSVRC2012",
+    "input_resolution": "224x224x3",
+    "license": "MIT",
+    "operations": "82.96",
+    "parameters": "303.97",
+    "source_url": "https://github.com/mlfoundations/open_clip"
+  },
+  "vit_pose_small_bn": {
+    "dataset": "COCOPoseTopDown",
+    "input_resolution": "256x192x3",
+    "license": "Apache-2.0",
+    "operations": "8.94",
+    "parameters": "24.38",
+    "source_url": "https://github.com/ViTAE-Transformer/ViTPose"
+  },
+  "vit_small_p16": {
+    "dataset": "ILSVRC2012",
+    "input_resolution": "224x224x3",
+    "license": "Apache-2.0",
+    "operations": "4.81",
+    "parameters": "22.05",
+    "source_url": "https://github.com/google-research/vision_transformer"
+  },
+  "vitb32": {
+    "accuracy": "75.912",
+    "dataset": "ImageNet",
+    "input_resolution": "224x224x3",
+    "license": "BSD-3-Clause",
+    "metric_name": "Top1",
+    "operations": "4.41",
+    "parameters": "88.22",
+    "source_url": "https://pytorch.org/vision/stable/models/generated/torchvision.models.vit_b_32.html"
+  },
+  "vitl32": {
+    "dataset": "ILSVRC2012",
+    "input_resolution": "224x224x3",
+    "license": "Apache-2.0",
+    "operations": "15.57",
+    "parameters": "306.54",
+    "source_url": "https://github.com/google-research/vision_transformer"
+  },
+  "wideresnet101_2": {
+    "dataset": "ImageNet (ILSVRC2012)",
+    "input_resolution": "224x224x3",
+    "license": "BSD-3-Clause",
+    "operations": "22.80",
+    "parameters": "126.82",
+    "source_url": "https://github.com/pytorch/vision"
+  },
+  "wideresnet50_2": {
+    "dataset": "ImageNet (ILSVRC2012)",
+    "input_resolution": "224x224x3",
+    "license": "BSD-3-Clause",
+    "operations": "11.43",
+    "parameters": "68.85",
+    "source_url": "https://github.com/pytorch/vision"
+  },
+  "yolact_regnetx_1_6gf": {
+    "dataset": "COCO",
+    "input_resolution": "512x512x3",
+    "license": "MIT",
+    "operations": "63.00",
+    "parameters": "18.02",
+    "source_url": "https://github.com/dbolya/yolact"
+  },
+  "yolact_regnetx_800mf": {
+    "dataset": "COCO",
+    "input_resolution": "512x512x3",
+    "license": "MIT",
+    "operations": "58.68",
+    "parameters": "16.23",
+    "source_url": "https://github.com/dbolya/yolact"
+  },
+  "yolo11l_seg": {
+    "dataset": "COCO",
+    "input_resolution": "640x640x3",
+    "license": "AGPL-3.0",
+    "operations": "74.61",
+    "parameters": "27.69",
+    "source_url": "https://github.com/ultralytics/ultralytics"
+  },
+  "yolo11m_pose": {
+    "dataset": "COCOPose",
+    "input_resolution": "640x640x3",
+    "license": "AGPL-3.0",
+    "operations": "38.12",
+    "parameters": "20.96",
+    "source_url": "https://github.com/ultralytics/ultralytics"
+  },
+  "yolo11m_seg": {
+    "dataset": "COCO",
+    "input_resolution": "640x640x3",
+    "license": "AGPL-3.0",
+    "operations": "64.41",
+    "parameters": "22.44",
+    "source_url": "https://github.com/ultralytics/ultralytics"
+  },
+  "yolo11n_pose": {
+    "dataset": "COCOPose",
+    "input_resolution": "640x640x3",
+    "license": "AGPL-3.0",
+    "operations": "4.34",
+    "parameters": "2.93",
+    "source_url": "https://github.com/ultralytics/ultralytics"
+  },
+  "yolo11n_seg": {
+    "dataset": "COCO",
+    "input_resolution": "640x640x3",
+    "license": "AGPL-3.0",
+    "operations": "5.94",
+    "parameters": "2.91",
+    "source_url": "https://github.com/ultralytics/ultralytics"
+  },
+  "yolo11s_pose": {
+    "dataset": "COCOPose",
+    "input_resolution": "640x640x3",
+    "license": "AGPL-3.0",
+    "operations": "12.71",
+    "parameters": "9.97",
+    "source_url": "https://github.com/ultralytics/ultralytics"
+  },
+  "yolo11s_seg": {
+    "dataset": "COCO",
+    "input_resolution": "640x640x3",
+    "license": "AGPL-3.0",
+    "operations": "19.09",
+    "parameters": "10.14",
+    "source_url": "https://github.com/ultralytics/ultralytics"
+  },
+  "yolo11x_pose": {
+    "dataset": "COCOPose",
+    "input_resolution": "640x640x3",
+    "license": "AGPL-3.0",
+    "operations": "106.13",
+    "parameters": "58.82",
+    "source_url": "https://github.com/ultralytics/ultralytics"
+  },
+  "yolo11x_seg": {
+    "dataset": "COCO",
+    "input_resolution": "640x640x3",
+    "license": "AGPL-3.0",
+    "operations": "164.72",
+    "parameters": "62.14",
+    "source_url": "https://github.com/ultralytics/ultralytics"
+  },
+  "yolo26l": {
+    "dataset": "COCO",
+    "input_resolution": "640x640x3",
+    "license": "AGPL-3.0",
+    "operations": "46.42",
+    "parameters": "24.85",
+    "source_url": "https://github.com/ultralytics/ultralytics"
+  },
+  "yolo26l_cls": {
+    "dataset": "ILSVRC2012",
+    "input_resolution": "224x224x3",
+    "license": "AGPL-3.0",
+    "operations": "3.25",
+    "parameters": "14.10",
+    "source_url": "https://github.com/ultralytics/ultralytics"
+  },
+  "yolo26l_obb": {
+    "dataset": "DOTAv1",
+    "input_resolution": "1024x1024x3",
+    "license": "AGPL-3.0",
+    "operations": "124.25",
+    "parameters": "25.67",
+    "source_url": "https://github.com/ultralytics/ultralytics"
+  },
+  "yolo26l_pose": {
+    "dataset": "COCOPose",
+    "input_resolution": "640x640x3",
+    "license": "AGPL-3.0",
+    "operations": "48.89",
+    "parameters": "26.00",
+    "source_url": "https://github.com/ultralytics/ultralytics"
+  },
+  "yolo26l_seg": {
+    "dataset": "COCO",
+    "input_resolution": "640x640x3",
+    "license": "AGPL-3.0",
+    "operations": "78.53",
+    "parameters": "28.01",
+    "source_url": "https://github.com/ultralytics/ultralytics"
+  },
+  "yolo26m": {
+    "dataset": "COCO",
+    "input_resolution": "640x640x3",
+    "license": "AGPL-3.0",
+    "operations": "36.57",
+    "parameters": "20.45",
+    "source_url": "https://github.com/ultralytics/ultralytics"
+  },
+  "yolo26m_cls": {
+    "dataset": "ILSVRC2012",
+    "input_resolution": "224x224x3",
+    "license": "AGPL-3.0",
+    "operations": "2.58",
+    "parameters": "11.62",
+    "source_url": "https://github.com/ultralytics/ultralytics"
+  },
+  "yolo26m_obb": {
+    "dataset": "DOTAv1",
+    "input_resolution": "1024x1024x3",
+    "license": "AGPL-3.0",
+    "operations": "98.70",
+    "parameters": "21.27",
+    "source_url": "https://github.com/ultralytics/ultralytics"
+  },
+  "yolo26m_pose": {
+    "dataset": "COCOPose",
+    "input_resolution": "640x640x3",
+    "license": "AGPL-3.0",
+    "operations": "39.05",
+    "parameters": "21.61",
+    "source_url": "https://github.com/ultralytics/ultralytics"
+  },
+  "yolo26m_seg": {
+    "dataset": "COCO",
+    "input_resolution": "640x640x3",
+    "license": "AGPL-3.0",
+    "operations": "68.69",
+    "parameters": "23.61",
+    "source_url": "https://github.com/ultralytics/ultralytics"
+  },
+  "yolo26n": {
+    "dataset": "COCO",
+    "input_resolution": "640x640x3",
+    "license": "AGPL-3.0",
+    "operations": "3.35",
+    "parameters": "2.45",
+    "source_url": "https://github.com/ultralytics/ultralytics"
+  },
+  "yolo26n_cls": {
+    "dataset": "ILSVRC2012",
+    "input_resolution": "224x224x3",
+    "license": "AGPL-3.0",
+    "operations": "237.25",
+    "parameters": "2.81",
+    "source_url": "https://github.com/ultralytics/ultralytics"
+  },
+  "yolo26n_obb": {
+    "dataset": "DOTAv1",
+    "input_resolution": "1024x1024x3",
+    "license": "AGPL-3.0",
+    "operations": "8.96",
+    "parameters": "2.51",
+    "source_url": "https://github.com/ultralytics/ultralytics"
+  },
+  "yolo26n_pose": {
+    "dataset": "COCOPose",
+    "input_resolution": "640x640x3",
+    "license": "AGPL-3.0",
+    "operations": "4.41",
+    "parameters": "2.99",
+    "source_url": "https://github.com/ultralytics/ultralytics"
+  },
+  "yolo26n_seg": {
+    "dataset": "COCO",
+    "input_resolution": "640x640x3",
+    "license": "AGPL-3.0",
+    "operations": "5.68",
+    "parameters": "2.77",
+    "source_url": "https://github.com/ultralytics/ultralytics"
+  },
+  "yolo26s": {
+    "dataset": "COCO",
+    "input_resolution": "640x640x3",
+    "license": "AGPL-3.0",
+    "operations": "11.63",
+    "parameters": "9.54",
+    "source_url": "https://github.com/ultralytics/ultralytics"
+  },
+  "yolo26s_cls": {
+    "dataset": "ILSVRC2012",
+    "input_resolution": "224x224x3",
+    "license": "AGPL-3.0",
+    "operations": "816.19",
+    "parameters": "6.72",
+    "source_url": "https://github.com/ultralytics/ultralytics"
+  },
+  "yolo26s_obb": {
+    "dataset": "DOTAv1",
+    "input_resolution": "1024x1024x3",
+    "license": "AGPL-3.0",
+    "operations": "31.52",
+    "parameters": "9.82",
+    "source_url": "https://github.com/ultralytics/ultralytics"
+  },
+  "yolo26s_pose": {
+    "dataset": "COCOPose",
+    "input_resolution": "640x640x3",
+    "license": "AGPL-3.0",
+    "operations": "13.25",
+    "parameters": "10.43",
+    "source_url": "https://github.com/ultralytics/ultralytics"
+  },
+  "yolo26s_seg": {
+    "dataset": "COCO",
+    "input_resolution": "640x640x3",
+    "license": "AGPL-3.0",
+    "operations": "19.88",
+    "parameters": "10.44",
+    "source_url": "https://github.com/ultralytics/ultralytics"
+  },
+  "yolo26x": {
+    "dataset": "COCO",
+    "input_resolution": "640x640x3",
+    "license": "AGPL-3.0",
+    "operations": "101.72",
+    "parameters": "55.77",
+    "source_url": "https://github.com/ultralytics/ultralytics"
+  },
+  "yolo26x_cls": {
+    "dataset": "ILSVRC2012",
+    "input_resolution": "224x224x3",
+    "license": "AGPL-3.0",
+    "operations": "7.10",
+    "parameters": "29.61",
+    "source_url": "https://github.com/ultralytics/ultralytics"
+  },
+  "yolo26x_obb": {
+    "dataset": "DOTAv1",
+    "input_resolution": "1024x1024x3",
+    "license": "AGPL-3.0",
+    "operations": "272.11",
+    "parameters": "57.62",
+    "source_url": "https://github.com/ultralytics/ultralytics"
+  },
+  "yolo26x_pose": {
+    "dataset": "COCOPose",
+    "input_resolution": "640x640x3",
+    "license": "AGPL-3.0",
+    "operations": "105.69",
+    "parameters": "57.63",
+    "source_url": "https://github.com/ultralytics/ultralytics"
+  },
+  "yolo26x_seg": {
+    "dataset": "COCO",
+    "input_resolution": "640x640x3",
+    "license": "AGPL-3.0",
+    "operations": "173.48",
+    "parameters": "62.86",
+    "source_url": "https://github.com/ultralytics/ultralytics"
+  },
+  "yolopv2": {
+    "dataset": "BDD100K",
+    "input_resolution": "384x640x3",
+    "license": "MIT",
+    "operations": "39.78",
+    "parameters": "38.96",
+    "source_url": "https://github.com/hustvl/YOLOP"
+  },
+  "yolov10b": {
+    "dataset": "COCO",
+    "input_resolution": "640x640x3",
+    "license": "AGPL-3.0",
+    "operations": "48.87",
+    "parameters": "19.11",
+    "source_url": "https://github.com/THU-MIG/yolov10"
+  },
+  "yolov10l": {
+    "dataset": "COCO",
+    "input_resolution": "640x640x3",
+    "license": "AGPL-3.0",
+    "operations": "63.65",
+    "parameters": "24.41",
+    "source_url": "https://github.com/THU-MIG/yolov10"
+  },
+  "yolov10m": {
+    "dataset": "COCO",
+    "input_resolution": "640x640x3",
+    "license": "AGPL-3.0",
+    "operations": "31.74",
+    "parameters": "15.40",
+    "source_url": "https://github.com/THU-MIG/yolov10"
+  },
+  "yolov10n": {
+    "dataset": "COCO",
+    "input_resolution": "640x640x3",
+    "license": "AGPL-3.0",
+    "operations": "4.02",
+    "parameters": "2.34",
+    "source_url": "https://github.com/THU-MIG/yolov10"
+  },
+  "yolov10n_ppu": {
+    "dataset": "COCO",
+    "input_resolution": "640x640x3",
+    "license": "AGPL-3.0",
+    "operations": "4.02",
+    "parameters": "2.34",
+    "source_url": "https://github.com/THU-MIG/yolov10"
+  },
+  "yolov10s": {
+    "dataset": "COCO",
+    "input_resolution": "640x640x3",
+    "license": "AGPL-3.0",
+    "operations": "12.04",
+    "parameters": "7.29",
+    "source_url": "https://github.com/THU-MIG/yolov10"
+  },
+  "yolov10x": {
+    "dataset": "COCO",
+    "input_resolution": "640x640x3",
+    "license": "AGPL-3.0",
+    "operations": "85.05",
+    "parameters": "29.52",
+    "source_url": "https://github.com/THU-MIG/yolov10"
+  },
+  "yolov11l": {
+    "dataset": "COCO",
+    "input_resolution": "640x640x3",
+    "license": "AGPL-3.0",
+    "operations": "46.61",
+    "parameters": "25.38",
+    "source_url": "https://github.com/ultralytics/ultralytics"
+  },
+  "yolov11m": {
+    "dataset": "COCO",
+    "input_resolution": "640x640x3",
+    "license": "AGPL-3.0",
+    "operations": "36.40",
+    "parameters": "20.13",
+    "source_url": "https://github.com/ultralytics/ultralytics"
+  },
+  "yolov11n": {
+    "dataset": "COCO",
+    "input_resolution": "640x640x3",
+    "license": "AGPL-3.0",
+    "operations": "3.88",
+    "parameters": "2.66",
+    "source_url": "https://github.com/ultralytics/ultralytics"
+  },
+  "yolov11n_ppu": {
+    "dataset": "COCO",
+    "input_resolution": "640x640x3",
+    "license": "AGPL-3.0",
+    "operations": "3.88",
+    "parameters": "2.66",
+    "source_url": "https://github.com/ultralytics/ultralytics"
+  },
+  "yolov11s": {
+    "dataset": "COCO",
+    "input_resolution": "640x640x3",
+    "license": "AGPL-3.0",
+    "operations": "11.90",
+    "parameters": "9.49",
+    "source_url": "https://github.com/ultralytics/ultralytics"
+  },
+  "yolov11x": {
+    "dataset": "COCO",
+    "input_resolution": "640x640x3",
+    "license": "AGPL-3.0",
+    "operations": "102.16",
+    "parameters": "56.96",
+    "source_url": "https://github.com/ultralytics/ultralytics"
+  },
+  "yolov12n_ppu": {
+    "dataset": "COCO",
+    "input_resolution": "640x640x3",
+    "license": "AGPL-3.0",
+    "operations": "4.64",
+    "parameters": "2.63",
+    "source_url": "https://github.com/sunsmarterjie/yolov12"
+  },
+  "yolov3": {
+    "dataset": "COCO 2017",
+    "input_resolution": "640x640x3",
+    "license": "Public Domain",
+    "operations": "81.13",
+    "parameters": "61.92",
+    "source_url": "https://github.com/AlexeyAB/darknet"
+  },
+  "yolov3_2": {
+    "dataset": "COCO",
+    "input_resolution": "416x416x3",
+    "license": "GPL-3.0",
+    "operations": "33.09",
+    "parameters": "61.92",
+    "source_url": "https://github.com/ultralytics/yolov3"
+  },
+  "yolov3_2_ppu": {
+    "dataset": "COCO",
+    "input_resolution": "416x416x3",
+    "license": "Public Domain",
+    "operations": "33.09",
+    "parameters": "61.92",
+    "source_url": "https://github.com/AlexeyAB/darknet"
+  },
+  "yolov3_3_ppu": {
+    "dataset": "COCO",
+    "input_resolution": "608x608x3",
+    "license": "Public Domain",
+    "operations": "70.69",
+    "parameters": "61.92",
+    "source_url": "https://github.com/AlexeyAB/darknet"
+  },
+  "yolov3_gluon_416": {
+    "dataset": "COCO",
+    "input_resolution": "416x416x3",
+    "license": "Apache-2.0",
+    "operations": "33.06",
+    "parameters": "61.92",
+    "source_url": "https://github.com/dmlc/gluon-cv"
+  },
+  "yolov3_gluon_608": {
+    "dataset": "COCO",
+    "input_resolution": "608x608x3",
+    "license": "Apache-2.0",
+    "operations": "70.62",
+    "parameters": "61.92",
+    "source_url": "https://github.com/dmlc/gluon-cv"
+  },
+  "yolov3tiny_1": {
+    "dataset": "COCO",
+    "input_resolution": "416x416x3",
+    "license": "GPL-3.0",
+    "operations": "2.81",
+    "parameters": "8.85",
+    "source_url": "https://github.com/ultralytics/yolov3"
+  },
+  "yolov3tiny_1_ppu": {
+    "accuracy": "17.608",
+    "dataset": "COCO",
+    "input_resolution": "416x416x3",
+    "license": "GPL-3.0",
+    "metric_name": "mAP",
+    "operations": "2.81",
+    "parameters": "8.85",
+    "source_url": "https://github.com/ultralytics/yolov3"
+  },
+  "yolov4_2_ppu": {
+    "dataset": "COCO",
+    "input_resolution": "512x512x3",
+    "license": "Public Domain",
+    "operations": "51.04",
+    "parameters": "64.33",
+    "source_url": "https://github.com/AlexeyAB/darknet"
+  },
+  "yolov4_leaky_512_512": {
+    "dataset": "COCO",
+    "input_resolution": "512x512x3",
+    "license": "Public Domain",
+    "operations": "45.86",
+    "parameters": "64.33",
+    "source_url": "https://github.com/AlexeyAB/darknet"
+  },
+  "yolov4tiny_1": {
+    "dataset": "COCO",
+    "input_resolution": "416x416x3",
+    "license": "Public Domain",
+    "operations": "3.48",
+    "parameters": "6.05",
+    "source_url": "https://github.com/AlexeyAB/darknet"
+  },
+  "yolov5_pose": {
+    "dataset": "COCOPose",
+    "input_resolution": "640x640x3",
+    "license": "GPL-3.0",
+    "operations": "8.53",
+    "parameters": "7.06",
+    "source_url": "https://github.com/ultralytics/yolov5"
+  },
+  "yolov5l": {
+    "dataset": "COCO 2017",
+    "input_resolution": "640x640x3",
+    "license": "GPL-3.0",
+    "operations": "57.10",
+    "parameters": "46.53",
+    "source_url": "https://github.com/ultralytics/yolov5"
+  },
+  "yolov5l6": {
+    "dataset": "COCO",
+    "input_resolution": "1280x1280x3",
+    "license": "GPL-3.0",
+    "operations": "233.00",
+    "parameters": "76.73",
+    "source_url": "https://github.com/ultralytics/yolov5"
+  },
+  "yolov5l_seg": {
+    "dataset": "COCO",
+    "input_resolution": "640x640x3",
+    "license": "GPL-3.0",
+    "operations": "76.77",
+    "parameters": "47.89",
+    "source_url": "https://github.com/ultralytics/yolov5"
+  },
+  "yolov5m": {
+    "dataset": "COCO 2017",
+    "input_resolution": "640x640x3",
+    "license": "GPL-3.0",
+    "operations": "26.07",
+    "parameters": "21.27",
+    "source_url": "https://github.com/ultralytics/yolov5"
+  },
+  "yolov5m6": {
+    "dataset": "COCO",
+    "input_resolution": "1280x1280x3",
+    "license": "GPL-3.0",
+    "operations": "26.07",
+    "parameters": "21.27",
+    "source_url": "https://github.com/ultralytics/yolov5"
+  },
+  "yolov5m_6_1": {
+    "dataset": "COCO",
+    "input_resolution": "640x640x3",
+    "license": "GPL-3.0",
+    "operations": "106.41",
+    "parameters": "36.11",
+    "source_url": "https://github.com/ultralytics/yolov5"
+  },
+  "yolov5m_face": {
+    "dataset": "WiderFace",
+    "input_resolution": "640x640x3",
+    "license": "GPL-3.0",
+    "operations": "25.84",
+    "parameters": "21.04",
+    "source_url": "https://github.com/deepcam-cn/yolov5-face"
+  },
+  "yolov5m_seg": {
+    "dataset": "COCO",
+    "input_resolution": "640x640x3",
+    "license": "GPL-3.0",
+    "operations": "37.29",
+    "parameters": "21.97",
+    "source_url": "https://github.com/ultralytics/yolov5"
+  },
+  "yolov5m_wo_spp_640": {
+    "dataset": "COCO",
+    "input_resolution": "640x640x3",
+    "license": "GPL-3.0",
+    "operations": "26.83",
+    "parameters": "22.68",
+    "source_url": "https://github.com/ultralytics/yolov5"
+  },
+  "yolov5n": {
+    "dataset": "COCO 2017",
+    "input_resolution": "640x640x3",
+    "license": "GPL-3.0",
+    "operations": "2.71",
+    "parameters": "1.87",
+    "source_url": "https://github.com/ultralytics/yolov5"
+  },
+  "yolov5n6": {
+    "dataset": "COCO",
+    "input_resolution": "1280x1280x3",
+    "license": "GPL-3.0",
+    "operations": "11.05",
+    "parameters": "3.65",
+    "source_url": "https://github.com/ultralytics/yolov5"
+  },
+  "yolov5n_face": {
+    "dataset": "WiderFace",
+    "input_resolution": "640x640x3",
+    "license": "GPL-3.0",
+    "operations": "3.50",
+    "parameters": "1.72",
+    "source_url": "https://github.com/deepcam-cn/yolov5-face"
+  },
+  "yolov5n_seg": {
+    "dataset": "COCO",
+    "input_resolution": "640x640x3",
+    "license": "GPL-3.0",
+    "operations": "4.11",
+    "parameters": "1.99",
+    "source_url": "https://github.com/ultralytics/yolov5"
+  },
+  "yolov5pose_ppu": {
+    "accuracy": "57.5",
+    "dataset": "COCO",
+    "input_resolution": "640x640x3",
+    "license": "GPL-3.0",
+    "metric_name": "mAP",
+    "operations": "10.2",
+    "parameters": "7.06",
+    "source_url": "https://github.com/TexasInstruments/edgeai-yolov5"
+  },
+  "yolov5s": {
+    "dataset": "COCO 2017",
+    "input_resolution": "640x640x3",
+    "license": "GPL-3.0",
+    "operations": "9.10",
+    "parameters": "7.23",
+    "source_url": "https://github.com/ultralytics/yolov5"
+  },
+  "yolov5s6": {
+    "dataset": "COCO",
+    "input_resolution": "1280x1280x3",
+    "license": "GPL-3.0",
+    "operations": "37.16",
+    "parameters": "12.61",
+    "source_url": "https://github.com/ultralytics/yolov5"
+  },
+  "yolov5s_4": {
+    "dataset": "COCO",
+    "input_resolution": "320x320x3",
+    "license": "GPL-3.0",
+    "operations": "2.35",
+    "parameters": "7.27",
+    "source_url": "https://github.com/ultralytics/yolov5"
+  },
+  "yolov5s_bbox_decoding_only_640": {
+    "dataset": "COCO",
+    "input_resolution": "640x640x3",
+    "license": "GPL-3.0",
+    "operations": "8.95",
+    "parameters": "7.46",
+    "source_url": "https://github.com/ultralytics/yolov5"
+  },
+  "yolov5s_c3tr_640": {
+    "dataset": "COCO",
+    "input_resolution": "640x640x3",
+    "license": "GPL-3.0",
+    "operations": "9.51",
+    "parameters": "7.37",
+    "source_url": "https://github.com/ultralytics/yolov5"
+  },
+  "yolov5s_face": {
+    "dataset": "WiderFace",
+    "input_resolution": "640x640x3",
+    "license": "GPL-3.0",
+    "operations": "8.53",
+    "parameters": "7.06",
+    "source_url": "https://github.com/deepcam-cn/yolov5-face"
+  },
+  "yolov5s_ppu": {
+    "dataset": "COCO",
+    "input_resolution": "640x640x3",
+    "license": "GPL-3.0",
+    "operations": "9.10",
+    "parameters": "7.23",
+    "source_url": "https://github.com/ultralytics/yolov5"
+  },
+  "yolov5s_seg": {
+    "dataset": "COCO",
+    "input_resolution": "640x640x3",
+    "license": "GPL-3.0",
+    "operations": "14.23",
+    "parameters": "7.61",
+    "source_url": "https://github.com/ultralytics/yolov5"
+  },
+  "yolov5s_wo_spp_640": {
+    "dataset": "COCO",
+    "input_resolution": "640x640x3",
+    "license": "GPL-3.0",
+    "operations": "9.08",
+    "parameters": "7.86",
+    "source_url": "https://github.com/ultralytics/yolov5"
+  },
+  "yolov5x": {
+    "dataset": "COCO",
+    "input_resolution": "640x640x3",
+    "license": "GPL-3.0",
+    "operations": "106.52",
+    "parameters": "86.71",
+    "source_url": "https://github.com/ultralytics/yolov5"
+  },
+  "yolov5x6": {
+    "dataset": "COCO",
+    "input_resolution": "1280x1280x3",
+    "license": "GPL-3.0",
+    "operations": "434.52",
+    "parameters": "141.14",
+    "source_url": "https://github.com/ultralytics/yolov5"
+  },
+  "yolov5x_seg": {
+    "dataset": "COCO",
+    "input_resolution": "640x640x3",
+    "license": "GPL-3.0",
+    "operations": "137.00",
+    "parameters": "88.88",
+    "source_url": "https://github.com/ultralytics/yolov5"
+  },
+  "yolov5xs_wo_spp_512": {
+    "dataset": "COCO",
+    "input_resolution": "512x512x3",
+    "license": "GPL-3.0",
+    "operations": "5.81",
+    "parameters": "7.86",
+    "source_url": "https://github.com/ultralytics/yolov5"
+  },
+  "yolov6l": {
+    "dataset": "COCO",
+    "input_resolution": "640x640x3",
+    "license": "GPL-3.0",
+    "operations": "77.96",
+    "parameters": "59.61",
+    "source_url": "https://github.com/meituan/YOLOv6"
+  },
+  "yolov6l6": {
+    "dataset": "COCO",
+    "input_resolution": "1280x1280x3",
+    "license": "GPL-3.0",
+    "operations": "347.37",
+    "parameters": "140.36",
+    "source_url": "https://github.com/meituan/YOLOv6"
+  },
+  "yolov6m": {
+    "dataset": "COCO",
+    "input_resolution": "640x640x3",
+    "license": "GPL-3.0",
+    "operations": "43.19",
+    "parameters": "34.86",
+    "source_url": "https://github.com/meituan/YOLOv6"
+  },
+  "yolov6n": {
+    "dataset": "COCO 2017",
+    "input_resolution": "640x640x3",
+    "license": "GPL-3.0",
+    "operations": "5.64",
+    "parameters": "4.32",
+    "source_url": "https://github.com/meituan/YOLOv6"
+  },
+  "yolov6n_0_1_0": {
+    "dataset": "COCO",
+    "input_resolution": "640x640x3",
+    "license": "GPL-3.0",
+    "operations": "5.64",
+    "parameters": "4.32",
+    "source_url": "https://github.com/meituan/YOLOv6"
+  },
+  "yolov6n_0_2_1": {
+    "dataset": "COCO",
+    "input_resolution": "640x640x3",
+    "license": "GPL-3.0",
+    "operations": "5.64",
+    "parameters": "4.32",
+    "source_url": "https://github.com/meituan/YOLOv6"
+  },
+  "yolov6n_0_2_1_nms_core": {
+    "dataset": "COCO",
+    "input_resolution": "640x640x3",
+    "license": "GPL-3.0",
+    "operations": "5.64",
+    "parameters": "4.35",
+    "source_url": "https://github.com/meituan/YOLOv6"
+  },
+  "yolov6s": {
+    "dataset": "COCO",
+    "input_resolution": "640x640x3",
+    "license": "GPL-3.0",
+    "operations": "22.79",
+    "parameters": "18.54",
+    "source_url": "https://github.com/meituan/YOLOv6"
+  },
+  "yolov7": {
+    "dataset": "COCO 2017",
+    "input_resolution": "640x640x3",
+    "license": "GPL-3.0",
+    "operations": "55.28",
+    "parameters": "36.92",
+    "source_url": "https://github.com/WongKinYiu/yolov7"
+  },
+  "yolov7_face": {
+    "dataset": "WiderFace",
+    "input_resolution": "640x640x3",
+    "license": "GPL-3.0",
+    "operations": "54.63",
+    "parameters": "36.56",
+    "source_url": "https://github.com/derronqi/yolov7-face"
+  },
+  "yolov7_lite_t_face": {
+    "dataset": "WiderFace",
+    "input_resolution": "640x640x3",
+    "license": "GPL-3.0",
+    "operations": "666.15",
+    "parameters": "248.82",
+    "source_url": "https://github.com/derronqi/yolov7-face"
+  },
+  "yolov7_ppu": {
+    "dataset": "COCO",
+    "input_resolution": "640x640x3",
+    "license": "GPL-3.0",
+    "operations": "55.28",
+    "parameters": "36.92",
+    "source_url": "https://github.com/WongKinYiu/yolov7"
+  },
+  "yolov7_w6": {
+    "accuracy": "54.6",
+    "dataset": "COCO",
+    "input_resolution": "1280x1280x3",
+    "license": "GPL-3.0",
+    "operations": "180",
+    "parameters": "70.4",
+    "source_url": "https://github.com/WongKinYiu/yolov7"
+  },
+  "yolov7_w6_face": {
+    "dataset": "WiderFace",
+    "input_resolution": "960x960x3",
+    "license": "GPL-3.0",
+    "operations": "100.22",
+    "parameters": "69.90",
+    "source_url": "https://github.com/derronqi/yolov7-face"
+  },
+  "yolov7_w6_tta_face": {
+    "dataset": "WiderFace",
+    "input_resolution": "1280x1280x3",
+    "license": "GPL-3.0",
+    "operations": "178.16",
+    "parameters": "69.90",
+    "source_url": "https://github.com/derronqi/yolov7-face"
+  },
+  "yolov7_w6_wo_decoding": {
+    "dataset": "COCO",
+    "input_resolution": "1280x1280x3",
+    "license": "GPL-3.0",
+    "operations": "187.11",
+    "parameters": "70.39",
+    "source_url": "https://github.com/WongKinYiu/yolov7"
+  },
+  "yolov7_wo_decoding": {
+    "dataset": "COCO",
+    "input_resolution": "640x640x3",
+    "license": "GPL-3.0",
+    "operations": "55.21",
+    "parameters": "36.91",
+    "source_url": "https://github.com/WongKinYiu/yolov7"
+  },
+  "yolov7d6": {
+    "dataset": "COCO",
+    "input_resolution": "1280x1280x3",
+    "license": "GPL-3.0",
+    "operations": "365.38",
+    "parameters": "133.76",
+    "source_url": "https://github.com/WongKinYiu/yolov7"
+  },
+  "yolov7e6": {
+    "dataset": "COCO 2017",
+    "input_resolution": "1280x1280x3",
+    "license": "GPL-3.0",
+    "operations": "269.21",
+    "parameters": "97.20",
+    "source_url": "https://github.com/WongKinYiu/yolov7"
+  },
+  "yolov7e6e": {
+    "dataset": "COCO",
+    "input_resolution": "1280x1280x3",
+    "license": "GPL-3.0",
+    "operations": "439.22",
+    "parameters": "151.69",
+    "source_url": "https://github.com/WongKinYiu/yolov7"
+  },
+  "yolov7s_face": {
+    "dataset": "WiderFace",
+    "input_resolution": "640x640x3",
+    "license": "GPL-3.0",
+    "operations": "9.35",
+    "parameters": "4.27",
+    "source_url": "https://github.com/derronqi/yolov7-face"
+  },
+  "yolov7tiny": {
+    "dataset": "COCO 2017",
+    "input_resolution": "640x640x3",
+    "license": "GPL-3.0",
+    "operations": "7.01",
+    "parameters": "6.24",
+    "source_url": "https://github.com/WongKinYiu/yolov7"
+  },
+  "yolov7x": {
+    "dataset": "COCO",
+    "input_resolution": "640x640x3",
+    "license": "GPL-3.0",
+    "operations": "98.83",
+    "parameters": "71.33",
+    "source_url": "https://github.com/WongKinYiu/yolov7"
+  },
+  "yolov7x_ppu": {
+    "dataset": "COCO",
+    "input_resolution": "640x640x3",
+    "license": "GPL-3.0",
+    "operations": "98.83",
+    "parameters": "71.33",
+    "source_url": "https://github.com/WongKinYiu/yolov7"
+  },
+  "yolov8l": {
+    "dataset": "COCO 2017",
+    "input_resolution": "640x640x3",
+    "license": "AGPL-3.0",
+    "operations": "85.13",
+    "parameters": "43.69",
+    "source_url": "https://github.com/ultralytics/ultralytics"
+  },
+  "yolov8l_pose": {
+    "dataset": "COCOPose",
+    "input_resolution": "640x640x3",
+    "license": "AGPL-3.0",
+    "operations": "86.85",
+    "parameters": "44.53",
+    "source_url": "https://github.com/ultralytics/ultralytics"
+  },
+  "yolov8l_seg": {
+    "dataset": "COCO",
+    "input_resolution": "640x640x3",
+    "license": "AGPL-3.0",
+    "operations": "113.13",
+    "parameters": "46.02",
+    "source_url": "https://github.com/ultralytics/ultralytics"
+  },
+  "yolov8m": {
+    "dataset": "COCO 2017",
+    "input_resolution": "640x640x3",
+    "license": "AGPL-3.0",
+    "operations": "41.13",
+    "parameters": "25.91",
+    "source_url": "https://github.com/ultralytics/ultralytics"
+  },
+  "yolov8m_pose": {
+    "dataset": "COCO Keypoints 2017",
+    "input_resolution": "640x640x3",
+    "license": "AGPL-3.0",
+    "operations": "42.18",
+    "parameters": "26.49",
+    "source_url": "https://github.com/ultralytics/ultralytics"
+  },
+  "yolov8m_seg": {
+    "dataset": "COCO",
+    "input_resolution": "640x640x3",
+    "license": "AGPL-3.0",
+    "operations": "57.03",
+    "parameters": "27.29",
+    "source_url": "https://github.com/ultralytics/ultralytics"
+  },
+  "yolov8n": {
+    "dataset": "COCO 2017",
+    "input_resolution": "640x640x3",
+    "license": "AGPL-3.0",
+    "operations": "4.89",
+    "parameters": "3.18",
+    "source_url": "https://github.com/ultralytics/ultralytics"
+  },
+  "yolov8n_pose": {
+    "dataset": "COCOPose",
+    "input_resolution": "640x640x3",
+    "license": "AGPL-3.0",
+    "operations": "5.11",
+    "parameters": "3.36",
+    "source_url": "https://github.com/ultralytics/ultralytics"
+  },
+  "yolov8n_ppu": {
+    "dataset": "COCO",
+    "input_resolution": "640x640x3",
+    "license": "AGPL-3.0",
+    "operations": "4.89",
+    "parameters": "3.18",
+    "source_url": "https://github.com/ultralytics/ultralytics"
+  },
+  "yolov8n_seg": {
+    "dataset": "COCO",
+    "input_resolution": "640x640x3",
+    "license": "AGPL-3.0",
+    "operations": "6.95",
+    "parameters": "3.40",
+    "source_url": "https://github.com/ultralytics/ultralytics"
+  },
+  "yolov8s": {
+    "dataset": "COCO 2017",
+    "input_resolution": "640x640x3",
+    "license": "AGPL-3.0",
+    "operations": "15.24",
+    "parameters": "11.18",
+    "source_url": "https://github.com/ultralytics/ultralytics"
+  },
+  "yolov8s_bbox_decoding_only_640": {
+    "dataset": "COCO",
+    "input_resolution": "640x640x3",
+    "license": "AGPL-3.0",
+    "operations": "15.24",
+    "parameters": "11.16",
+    "source_url": "https://github.com/ultralytics/ultralytics"
+  },
+  "yolov8s_pose": {
+    "dataset": "COCO Keypoints 2017",
+    "input_resolution": "640x640x3",
+    "license": "AGPL-3.0",
+    "operations": "16.05",
+    "parameters": "11.66",
+    "source_url": "https://github.com/ultralytics/ultralytics"
+  },
+  "yolov8s_ppu": {
+    "dataset": "COCO",
+    "input_resolution": "640x640x3",
+    "license": "AGPL-3.0",
+    "operations": "15.24",
+    "parameters": "11.18",
+    "source_url": "https://github.com/ultralytics/ultralytics"
+  },
+  "yolov8s_seg": {
+    "dataset": "COCO",
+    "input_resolution": "640x640x3",
+    "license": "AGPL-3.0",
+    "operations": "22.43",
+    "parameters": "11.84",
+    "source_url": "https://github.com/ultralytics/ultralytics"
+  },
+  "yolov8x": {
+    "dataset": "COCO 2017",
+    "input_resolution": "640x640x3",
+    "license": "AGPL-3.0",
+    "operations": "132.08",
+    "parameters": "68.23",
+    "source_url": "https://github.com/ultralytics/ultralytics"
+  },
+  "yolov8x_pose": {
+    "dataset": "COCOPose",
+    "input_resolution": "640x640x3",
+    "license": "AGPL-3.0",
+    "operations": "134.82",
+    "parameters": "69.53",
+    "source_url": "https://github.com/ultralytics/ultralytics"
+  },
+  "yolov8x_seg": {
+    "dataset": "COCO",
+    "input_resolution": "640x640x3",
+    "license": "AGPL-3.0",
+    "operations": "175.65",
+    "parameters": "71.84",
+    "source_url": "https://github.com/ultralytics/ultralytics"
+  },
+  "yolov9_gelan_c": {
+    "dataset": "COCO",
+    "input_resolution": "640x640x3",
+    "license": "GPL-3.0",
+    "operations": "53.92",
+    "parameters": "25.31",
+    "source_url": "https://github.com/WongKinYiu/yolov9"
+  },
+  "yolov9c": {
+    "dataset": "COCO 2017",
+    "input_resolution": "640x640x3",
+    "license": "GPL-3.0",
+    "operations": "53.92",
+    "parameters": "25.31",
+    "source_url": "https://github.com/WongKinYiu/yolov9"
+  },
+  "yolov9m": {
+    "dataset": "COCO",
+    "input_resolution": "640x640x3",
+    "license": "GPL-3.0",
+    "operations": "40.41",
+    "parameters": "20.00",
+    "source_url": "https://github.com/WongKinYiu/yolov9"
+  },
+  "yolov9s": {
+    "dataset": "COCO 2017",
+    "input_resolution": "640x640x3",
+    "license": "GPL-3.0",
+    "operations": "14.50",
+    "parameters": "7.13",
+    "source_url": "https://github.com/WongKinYiu/yolov9"
+  },
+  "yolov9t": {
+    "dataset": "COCO 2017",
+    "input_resolution": "640x640x3",
+    "license": "GPL-3.0",
+    "operations": "4.56",
+    "parameters": "2.03",
+    "source_url": "https://github.com/WongKinYiu/yolov9"
+  },
+  "yolov9t_ppu": {
+    "dataset": "COCO",
+    "input_resolution": "640x640x3",
+    "license": "GPL-3.0",
+    "operations": "4.56",
+    "parameters": "2.03",
+    "source_url": "https://github.com/WongKinYiu/yolov9"
+  },
+  "yolox_l_leaky": {
+    "dataset": "COCO 2017",
+    "input_resolution": "640x640x3",
+    "license": "Apache-2.0",
+    "operations": "78.01",
+    "parameters": "54.17",
+    "source_url": "https://github.com/Megvii-BaseDetection/YOLOX"
+  },
+  "yolox_s_2_ppu": {
+    "dataset": "COCO",
+    "input_resolution": "640x640x3",
+    "license": "Apache-2.0",
+    "operations": "14.41",
+    "parameters": "8.96",
+    "source_url": "https://github.com/Megvii-BaseDetection/YOLOX"
+  },
+  "yolox_s_leaky": {
+    "dataset": "COCO 2017",
+    "input_resolution": "640x640x3",
+    "license": "Apache-2.0",
+    "operations": "13.49",
+    "parameters": "8.96",
+    "source_url": "https://github.com/Megvii-BaseDetection/YOLOX"
+  },
+  "yolox_s_wide_leaky": {
+    "dataset": "COCO 2017",
+    "input_resolution": "640x640x3",
+    "license": "Apache-2.0",
+    "operations": "29.89",
+    "parameters": "20.12",
+    "source_url": "https://github.com/Megvii-BaseDetection/YOLOX"
+  },
+  "yoloxl": {
+    "dataset": "COCO",
+    "input_resolution": "640x640x3",
+    "license": "Apache-2.0",
+    "operations": "80.77",
+    "parameters": "54.17",
+    "source_url": "https://github.com/Megvii-BaseDetection/YOLOX"
+  },
+  "yoloxm": {
+    "dataset": "COCO",
+    "input_resolution": "640x640x3",
+    "license": "Apache-2.0",
+    "operations": "38.74",
+    "parameters": "25.30",
+    "source_url": "https://github.com/Megvii-BaseDetection/YOLOX"
+  },
+  "yoloxs": {
+    "dataset": "COCO 2017",
+    "input_resolution": "640x640x3",
+    "license": "Apache-2.0",
+    "operations": "14.41",
+    "parameters": "8.96",
+    "source_url": "https://github.com/Megvii-BaseDetection/YOLOX"
+  },
+  "yoloxtiny": {
+    "dataset": "COCO 2017",
+    "input_resolution": "416x416x3",
+    "license": "Apache-2.0",
+    "operations": "3.55",
+    "parameters": "5.05",
+    "source_url": "https://github.com/Megvii-BaseDetection/YOLOX"
+  },
+  "yoloxx": {
+    "dataset": "COCO",
+    "input_resolution": "640x640x3",
+    "license": "Apache-2.0",
+    "operations": "145.24",
+    "parameters": "99.02",
+    "source_url": "https://github.com/Megvii-BaseDetection/YOLOX"
+  },
+  "zero_dce": {
+    "dataset": "LOL",
+    "input_resolution": "600x400x3",
+    "license": "Non-commercial",
+    "operations": "19.75",
+    "parameters": "79.42",
+    "source_url": "https://github.com/Li-Chongyi/Zero-DCE"
+  },
+  "zero_dce_pp": {
+    "dataset": "LOL",
+    "input_resolution": "400x600x3",
+    "license": "Non-commercial",
+    "operations": "2.84",
+    "parameters": "10.56",
+    "source_url": "https://github.com/Li-Chongyi/Zero-DCE_extension"
+  }
+}

@@ -1,0 +1,21 @@
+[run]
+branch = True
+source =
+    shared
+    launcher
+    dx_app
+    dx_stream
+    dx_compiler
+    dx_modelzoo
+    dx_planner
+    dx_benchmark
+    dx_monitor
+    dx_agent_dev
+omit =
+    */tests/*
+    */.venv/*
+
+[report]
+show_missing = True
+skip_covered = True
+precision = 1

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DX Compiler — ONNX Compiler GUI</title>
+    <link rel="stylesheet" href="/static/shared/dx-fonts.css">
+    <link rel="stylesheet" href="/static/shared/dx-tokens.css">
+    <link rel="stylesheet" href="/static/shared/dx-base.css">
+    <link rel="stylesheet" href="/static/shared/dx-utilities.css">
+    <link rel="stylesheet" href="/static/shared/module-chrome.css?v={{ v }}">
+    <link rel="stylesheet" href="/static/shared/brand.css?v={{ v }}">
+    <link rel="stylesheet" href="/static/shared/tutorial.css">
+    <link rel="stylesheet" href="/static/shared/toolbar.css">
+    <link rel="stylesheet" href="/static/shared/chat-widget.css">
+    <link rel="stylesheet" href="/static/css/graph_viewer.css?m=dx_compiler&v={{ v }}">
+    <link rel="stylesheet" href="/static/css/style.css?m=dx_compiler&v={{ v }}">
+</head>
+<body>
+    <header id="header">
+        <div class="header-left">
+            <div class="dx-brand-slot" id="dxBrand"></div>
+        </div>
+        <div class="header-right toolbar">
+        </div>
+    </header>
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+    <script src="/static/js/compiler-i18n.js?m=dx_compiler&v={{ v }}"></script>
+    <script src="/static/shared/i18n.js?v={{ v }}"></script>
+    <script src="/static/shared/brand.js?v={{ v }}"></script>
+    <script>
+DXBrand.mount({
+  target: '#dxBrand',
+  name: 'Compiler',
+  subtitle: {
+    ko: 'ONNX 컴파일러',
+    en: 'ONNX Compiler',
+    es: 'Compilador ONNX',
+    ja: 'ONNX コンパイラ',
+    'zh-CN': 'ONNX 编译器',
+    'zh-TW': 'ONNX 編譯器'
+  },
+  accent: 'var(--accent)'
+});
+    </script>
+    <script src="/static/shared/toolbar.js"></script>
+    <script>DXToolbar.init({ container: '.toolbar' });</script>
+    <script src="/static/js/dagre.min.js?m=dx_compiler&v={{ v }}"></script>
+    <script src="/static/js/graph_renderer.js?m=dx_compiler&v={{ v }}"></script>
+    <script src="/static/js/graph_viewer.js?m=dx_compiler&v={{ v }}"></script>
+    <script src="/static/js/viewer_panel.js?m=dx_compiler&v={{ v }}"></script>
+    <script src="/static/js/auto_compile.js?m=dx_compiler&v={{ v }}"></script>
+    <script src="/static/js/config_wizard.js?m=dx_compiler&v={{ v }}"></script>
+    <script src="/static/js/setup_panel.js?m=dx_compiler&v={{ v }}"></script>
+    <script src="/static/shared/chat-widget.js"></script>
+    <script>DXChat.init({ appName: 'dx_compiler' });</script>
+    <script src="/static/shared/tutorial-engine.js"></script>
+    <script src="/static/shared/tutorial-init.js"></script>
+    <script src="/static/js/tutorial.js?m=dx_compiler&v={{ v }}"></script>
+</body>
+</html>

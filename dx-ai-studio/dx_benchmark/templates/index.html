@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DX Benchmark</title>
+  <link rel="stylesheet" href="/static/shared/dx-fonts.css">
+  <link rel="stylesheet" href="/static/shared/dx-tokens.css">
+  <link rel="stylesheet" href="/static/shared/dx-base.css">
+  <link rel="stylesheet" href="/static/shared/dx-utilities.css">
+  <link rel="stylesheet" href="/static/shared/module-chrome.css">
+  <link rel="stylesheet" href="/static/shared/brand.css">
+  <link rel="stylesheet" href="/static/shared/tutorial.css">
+  <link rel="stylesheet" href="/static/shared/toolbar.css">
+  <link rel="stylesheet" href="/static/shared/chat-widget.css">
+  <link rel="stylesheet" href="/static/css/style.css?m=dx_benchmark">
+</head>
+<body>
+  <header class="top-bar">
+    <div class="app-title">
+      <div class="dx-brand-slot" id="dxBrand"></div>
+    </div>
+    <nav class="main-tabs">
+      <button class="main-tab active" data-tab="dashboard" data-i18n="Dashboard">Dashboard</button>
+      <button class="main-tab" data-tab="results" data-i18n="Results">Results</button>
+      <button class="main-tab" data-tab="settings" data-i18n="Settings">Settings</button>
+    </nav>
+    <div class="toolbar">
+      <button id="edgeguideBtn" class="dx-toolbar-btn" title="DX EdgeGuide">💰</button>
+    </div>
+  </header>
+
+  <main>
+    <div id="tab-dashboard" class="main-tab-content active"></div>
+    <div id="tab-results" class="main-tab-content"></div>
+    <div id="tab-settings" class="main-tab-content"></div>
+  </main>
+
+  <script src="/static/js/vendor/marked.min.js?m=dx_benchmark"></script>
+  <script src="/static/js/i18n.js?m=dx_benchmark"></script>
+  <script src="/static/shared/i18n.js"></script>
+  <script src="/static/shared/brand.js"></script>
+  <script>
+DXBrand.mount({
+  target: '#dxBrand',
+  name: 'Benchmark',
+  subtitle: {
+    ko: '성능 측정 도구',
+    en: 'Performance Analyzer',
+    es: 'Analizador de rendimiento',
+    ja: 'パフォーマンス測定ツール',
+    'zh-CN': '性能测试工具',
+    'zh-TW': '效能測試工具'
+  },
+  accent: 'var(--accent)'
+});
+  </script>
+  <script src="/static/shared/toolbar.js"></script>
+  <script>
+    DXToolbar.init({ container: '.toolbar' });
+
+  </script>
+  <script src="/static/js/dashboard.js?m=dx_benchmark"></script>
+  <script src="/static/js/results.js?m=dx_benchmark"></script>
+  <script src="/static/js/settings.js?m=dx_benchmark"></script>
+  <script src="/static/js/app.js?m=dx_benchmark"></script>
+  <script src="/static/shared/tutorial-engine.js"></script>
+  <script src="/static/shared/tutorial-init.js"></script>
+  <script src="/static/js/tutorial.js?m=dx_benchmark"></script>
+  <script src="/static/shared/chat-widget.js"></script>
+  <script>DXChat.init({ appName: 'dx_benchmark' });</script>
+</body>
+</html>

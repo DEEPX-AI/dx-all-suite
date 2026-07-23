@@ -1,0 +1,43 @@
+.dx-brand {
+  --dx-brand-accent: var(--accent, #638cff);
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 36px;
+  text-decoration: none;
+  color: inherit;
+}
+.dx-brand-prefix {
+  font-size: var(--fs-2xl);
+  font-weight: 800;
+  line-height: 1;
+  color: var(--dx-brand-accent);
+  letter-spacing: .5px;
+}
+.dx-brand-copy {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+}
+.dx-brand-name {
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  line-height: 1.15;
+  color: var(--text-1, #f5f7ff);
+}
+.dx-brand-subtitle {
+  display: block;
+  margin-top: 2px;
+  font-size: var(--fs-2xs);
+  font-weight: 400;
+  line-height: 1.2;
+  letter-spacing: 1px;
+  color: var(--text-3, #8b93a7);
+}
+/* 브랜드 옆 보조 페이지 타이틀은 의도적으로 낮은 강조색을 사용한다. */
+.dx-brand-page-title {
+  padding-left: 14px;
+  border-left: 1px solid var(--border, rgba(255,255,255,.12));
+  color: var(--text-3, #8b93a7);
+}

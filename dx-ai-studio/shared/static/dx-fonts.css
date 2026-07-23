@@ -1,0 +1,10 @@
+/* Shared self-hosted fonts for all DX AI Studio GUI modules. */
+@font-face{font-family:'Inter';font-style:normal;font-weight:100 900;font-display:swap;src:url('/static/shared/fonts/inter-v20-latin-regular.woff2') format('woff2')}
+@font-face{font-family:'JetBrains Mono';font-style:normal;font-weight:100 800;font-display:swap;src:url('/static/shared/fonts/jetbrains-mono-v24-latin-regular.woff2') format('woff2')}
+@font-face{font-family:'Noto Sans';font-style:normal;font-weight:400;font-display:swap;src:url('/static/shared/fonts/NotoSans-Regular.ttf') format('truetype')}
+@font-face{font-family:'Noto Sans';font-style:normal;font-weight:700;font-display:swap;src:url('/static/shared/fonts/NotoSans-Bold.ttf') format('truetype')}
+@font-face{font-family:'Noto Sans Mono';font-style:normal;font-weight:400;font-display:swap;src:url('/static/shared/fonts/NotoSansMono-Regular.ttf') format('truetype')}
+@font-face{font-family:'Noto Sans Mono';font-style:normal;font-weight:700;font-display:swap;src:url('/static/shared/fonts/NotoSansMono-Bold.ttf') format('truetype')}
+/* CJK coverage (ja/zh/ko) — subset of Noto Sans CJK SC to the glyphs used across the 6-language UI. Bundled so offline/minimal-OS boards render CJK instead of tofu. */
+@font-face{font-family:'Noto Sans CJK';font-style:normal;font-weight:400;font-display:swap;src:url('/static/shared/fonts/NotoSansCJK-subset-Regular.woff2') format('woff2')}
+@font-face{font-family:'Noto Sans CJK';font-style:normal;font-weight:700;font-display:swap;src:url('/static/shared/fonts/NotoSansCJK-subset-Bold.woff2') format('woff2')}

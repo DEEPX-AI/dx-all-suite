@@ -1,0 +1,42 @@
+<!-- Setup Panel — 컴파일 환경 설정 대시보드 -->
+<div id="setup-panel" class="setup-panel">
+  <div class="setup-header" id="setup-header">
+    <h3><span data-i18n="Setup Status">Setup Status</span></h3>
+    <button class="setup-toggle" id="setup-toggle" title="Toggle" data-i18n-title="Toggle">▼</button>
+  </div>
+
+  <div class="setup-body" id="setup-body">
+    <!-- ① SDK 상태 -->
+    <div class="setup-item" id="setup-sdk">
+      <div class="setup-item-header">
+        <span class="setup-icon" id="setup-sdk-icon">❌</span>
+        <span data-i18n="DX Compiler SDK">DX Compiler SDK</span>
+        <span class="setup-version" id="setup-sdk-version"></span>
+      </div>
+      <button class="btn-small setup-action-btn" id="setup-install-btn">
+        <span class="setup-action-icon">📦</span>
+        <span class="setup-action-label">Install</span>
+      </button>
+      <div class="setup-progress" id="setup-install-progress" style="display:none;">
+        <div class="progress-bar" id="setup-install-bar"></div>
+        <span class="setup-progress-text" id="setup-install-text"></span>
+      </div>
+    </div>
+
+    <!-- ② 샘플 모델 + 캘리브레이션 -->
+    <div class="setup-item" id="setup-samples">
+      <div class="setup-item-header">
+        <span class="setup-icon" id="setup-samples-icon">❌</span>
+        <span data-i18n="Sample Models & Calibration Data">Sample Models & Calibration Data</span>
+      </div>
+      <button class="btn-small setup-action-btn" id="setup-download-btn">
+        <span class="setup-action-icon">⬇️</span>
+        <span class="setup-action-label">Download</span>
+      </button>
+      <div class="setup-progress" id="setup-download-progress" style="display:none;">
+        <div class="progress-bar" id="setup-download-bar"></div>
+        <span class="setup-progress-text" id="setup-download-text"></span>
+      </div>
+    </div>
+  </div>
+</div>

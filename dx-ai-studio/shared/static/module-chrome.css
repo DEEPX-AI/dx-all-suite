@@ -1,0 +1,10 @@
+:root {
+  --dx-module-header-h: 56px;
+  --dx-module-header-px: 24px;
+  --dx-module-header-gap: var(--sp-4);
+  --dx-module-header-bg: var(--glass-bg, linear-gradient(180deg,var(--bg-1),var(--bg-0)));
+  --dx-module-header-border: var(--glass-border, var(--border));
+  --dx-module-header-shadow: 0 1px 12px rgba(0,0,0,.3);
+  --dx-module-header-glow: 0 0 18px rgba(var(--accent-rgb),.06);
+  --dx-module-header-elevation: var(--dx-module-header-shadow),var(--dx-module-header-glow);
+}

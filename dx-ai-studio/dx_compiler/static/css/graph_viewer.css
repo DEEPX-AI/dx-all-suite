@@ -1,0 +1,14 @@
+/* graph_viewer.css — Dark theme SVG graph styles (Design System v2) */
+/* Placeholder: real graph_renderer.js from dx_com generates inline styles.
+   These styles just set defaults for the SVG canvas in dark mode. */
+
+#viewer-svg { background: var(--bg-0, #080c16); }
+#viewer-svg text { fill: var(--text-2, #B0BDD0); font-family: var(--font, 'Inter', sans-serif); font-size: var(--fs-xs); }
+#viewer-svg .edge-path { stroke: var(--text-4, #5E6B80); stroke-width: 1.2; fill: none; }
+#viewer-svg .subgraph-rect { fill: var(--bg-1, #0e1525); stroke: var(--border, rgba(99,140,255,.1)); rx: 6; }
+#viewer-svg .subgraph-label { fill: var(--text-3, #8892A8); font-weight: 600; font-size: var(--fs-sm); }
+
+/* Arrowhead color for dark theme */
+#arrowhead polygon { fill: var(--text-4, #5E6B80); }
+#arrowhead-highlight polygon { fill: #e05265; }
+

@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DX-APP Dashboard</title>
+<link rel="stylesheet" href="/static/shared/dx-fonts.css">
+<link rel="stylesheet" href="/static/shared/dx-tokens.css">
+<link rel="stylesheet" href="/static/shared/dx-base.css">
+<link rel="stylesheet" href="/static/shared/dx-utilities.css">
+<link rel="stylesheet" href="/static/shared/module-chrome.css">
+<link rel="stylesheet" href="/static/shared/dx-components.css">
+<link rel="stylesheet" href="/static/shared/brand.css">
+<link rel="stylesheet" href="/static/shared/tutorial.css">
+<link rel="stylesheet" href="/static/shared/toolbar.css">
+<link rel="stylesheet" href="/static/shared/chat-widget.css">
+<link rel="stylesheet" href="/static/css/style.css?m=dx_app_mzhdr">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔷</text></svg>">
+</head>
+<body>
+<div class="app">
+<!-- ═══ Sidebar ═══ -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-brand">
+    <div class="dx-brand-slot" id="dxBrand"></div>
+  </div>
+  <nav class="nav-section">
+    <button class="nav-item" data-page="setup" onclick="nav('setup')"><span class="nav-icon">⚙️</span><span class="nav-label"><span class="ko">설정</span><span class="en">Setup</span><span class="es">Configuración</span><span class="ja">セットアップ</span><span class="zh-CN">设置</span><span class="zh-TW">設定</span></span></button>
+    <button class="nav-item active" data-page="models" onclick="nav('models')"><span class="nav-icon">📦</span><span class="nav-label"><span class="ko">모델</span><span class="en">Models</span><span class="es">Modelos</span><span class="ja">モデル</span><span class="zh-CN">模型</span><span class="zh-TW">模型</span></span></button>
+    <button class="nav-item" data-page="run" onclick="nav('run')"><span class="nav-icon">▶️</span><span class="nav-label"><span class="ko">추론 실행</span><span class="en">Run Inference</span><span class="es">Ejecutar inferencia</span><span class="ja">推論実行</span><span class="zh-CN">运行推理</span><span class="zh-TW">執行推論</span></span></button>
+    <button class="nav-item" data-page="bench" onclick="nav('bench')"><span class="nav-icon">⏱️</span><span class="nav-label"><span class="ko">벤치마크</span><span class="en">Benchmark</span><span class="es">Evaluación de rendimiento</span><span class="ja">ベンチマーク</span><span class="zh-CN">基准测试</span><span class="zh-TW">基準測試</span></span></button>
+    <button class="nav-item" data-page="compare" onclick="nav('compare')"><span class="nav-icon">🔀</span><span class="nav-label"><span class="ko">A/B 비교</span><span class="en">A/B Compare</span><span class="es">Comparación A/B</span><span class="ja">A/B 比較</span><span class="zh-CN">A/B 对比</span><span class="zh-TW">A/B 比較</span></span></button>
+    <button class="nav-item" data-page="modelzoo" onclick="nav('modelzoo')"><span class="nav-icon">📥</span><span class="nav-label"><span class="ko">모델 저장소</span><span class="en">ModelZoo</span><span class="es">ModelZoo</span><span class="ja">ModelZoo</span><span class="zh-CN">ModelZoo</span><span class="zh-TW">ModelZoo</span></span></button>
+    <button class="nav-item" data-page="lab" onclick="nav('lab')"><span class="nav-icon">🧪</span><span class="nav-label"><span class="ko">실험실</span><span class="en">Lab</span><span class="es">Laboratorio</span><span class="ja">ラボ</span><span class="zh-CN">实验室</span><span class="zh-TW">實驗室</span></span></button>
+    <button class="nav-item" data-page="outputs" onclick="nav('outputs')"><span class="nav-icon">📁</span><span class="nav-label"><span class="ko">출력물</span><span class="en">Outputs</span><span class="es">Salidas</span><span class="ja">出力</span><span class="zh-CN">输出</span><span class="zh-TW">輸出</span></span></button>
+    <button class="nav-item" data-page="reference" onclick="nav('reference')"><span class="nav-icon">📖</span><span class="nav-label"><span class="ko">레퍼런스</span><span class="en">Reference</span><span class="es">Referencia</span><span class="ja">リファレンス</span><span class="zh-CN">参考</span><span class="zh-TW">參考</span></span></button>
+  </nav>
+  <button class="sidebar-footer" onclick="openDev()">
+    <span class="nav-icon">🔧</span><span><span class="ko">개발자</span><span class="en">Developer</span><span class="es">Desarrollador</span><span class="ja">開発者</span><span class="zh-CN">开发者</span><span class="zh-TW">開發者</span></span>
+  </button>
+</aside>
+
+<!-- ═══ Content ═══ -->
+<div class="content-wrap">
+<header class="topbar">
+  <div class="topbar-left">
+    <button style="cursor:pointer;font-size:18px;background:none;border:none;color:inherit" onclick="document.getElementById('sidebar').classList.toggle('collapsed')">☰</button>
+    <span class="topbar-title" id="topbar-title">Dashboard</span>
+  </div>
+  <div class="topbar-right toolbar">
+
+    <button class="notif-bell" onclick="toggleNotifDrawer()" title="Notifications" data-i18n-title="Notifications">🔔<span class="notif-badge" id="notif-badge" style="display:none"></span></button>
+  </div>
+</header>
+<main class="main" id="main-area">
+<!-- ═══ PAGE: Setup & Install ═══ -->
+<div id="page-setup" class="page">
+  <h1>⚙️ <span class="accent"><span class="ko">설정 &amp; 설치</span><span class="en">Setup &amp; Install</span><span class="es">Configuración e instalación</span><span class="ja">セットアップ &amp; インストール</span><span class="zh-CN">设置和安装</span><span class="zh-TW">設定與安裝</span></span></h1>
+  <p class="txt-dim txt-sm mb16"><span class="ko">이 페이지에서 종속성을 설치하고 각 구성 요소를 빌드하세요. 위에서 아래로, 왼쪽에서 오른쪽으로 실행합니다.</span><span class="en">Install dependencies and build each component from this page. Run top-to-bottom, left-to-right.</span><span class="es">Instale dependencias y compile cada componente desde esta página. Ejecute de arriba a abajo, de izquierda a derecha.</span><span class="ja">このページから依存関係をインストールし、各コンポーネントをビルドします。上から下、左から右に実行してください。</span><span class="zh-CN">从此页面安装依赖并构建各组件。从上到下、从左到右执行。</span><span class="zh-TW">從此頁面安裝相依套件並建置各元件。由上至下、由左至右執行。</span></p>
+  <!-- Run All + Stop -->
+  <div class="setup-toolbar" style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+    <button class="btn btn-accent" id="setup-run-all" onclick="setupRunAll()">
+      ▶ <span class="ko">전체 실행</span><span class="en">Run All</span><span class="es">Ejecutar todo</span><span class="ja">すべて実行</span><span class="zh-CN">全部运行</span><span class="zh-TW">全部執行</span>
+    </button>
+    <span id="setup-run-all-progress" class="txt-dim" style="display:none"></span>
+    <button class="btn btn-sm btn-danger" id="setup-stop-btn" onclick="setupStop()" style="display:none">
+      ⏹ Stop
+    </button>
+  </div>
+  <div class="setup-grid">
+    <!-- 1: DX-APP Dependencies -->
+    <div class="setup-card">
+      <div class="setup-card-header">
+        <div>
+          <div class="setup-card-title">🏗️ <span class="ko">DX-APP 종속성</span><span class="en">DX-APP Dependencies</span><span class="es">Dependencias de DX-APP</span><span class="ja">DX-APP 依存関係</span><span class="zh-CN">DX-APP 依赖项</span><span class="zh-TW">DX-APP 相依套件</span></div>
+          <div class="setup-card-desc"><span class="ko">C++ 빌드에 필요한 시스템 패키지 설치 (cmake, gcc, ninja, OpenCV, …) →</span><span class="en">Install system packages required for C++ build (cmake, gcc, ninja, OpenCV, …) →</span><span class="es">Instale los paquetes del sistema requeridos para la compilación C++ (cmake, gcc, ninja, OpenCV, …) →</span><span class="ja">C++ ビルドに必要なシステムパッケージをインストール (cmake, gcc, ninja, OpenCV, …) →</span><span class="zh-CN">安装 C++ 构建所需的系统软件包 (cmake, gcc, ninja, OpenCV, …) →</span><span class="zh-TW">安裝 C++ 建置所需的系統套件 (cmake, gcc, ninja, OpenCV, …) →</span><code style="font-size:10px"> install.sh --all</code></div>
+        </div>
+        <span class="comp-status-badge cs-warn" id="setup-badge-dx-app-deps">⏳</span>
+      </div>
+      <div class="txt-xs txt-dim" style="font-family:var(--mono)" id="setup-detail-dx-app-deps"></div>
+      <button class="btn btn-primary btn-sm" style="align-self:flex-start" onclick="setupRun('dx-app-deps')"><span class="ko">설치</span><span class="en">Install</span><span class="es">Instalar</span><span class="ja">インストール</span><span class="zh-CN">安装</span><span class="zh-TW">安裝</span></button>
+    </div>
+    <!-- 2: DX-APP Build -->
+    <div class="setup-card">
+      <div class="setup-card-header">
+        <div>
+          <div class="setup-card-title">🔨 <span class="ko">DX-APP 빌드</span><span class="en">DX-APP Build</span><span class="es">Compilación DX-APP</span><span class="ja">DX-APP ビルド</span><span class="zh-CN">DX-APP 构建</span><span class="zh-TW">DX-APP 建置</span></div>
+          <div class="setup-card-desc"><span class="ko">C++ 데모 바이너리 컴파일 (cmake) →</span><span class="en">Compile C++ demo binaries (cmake) →</span><span class="es">Compile binarios de demo C++ (cmake) →</span><span class="ja">C++ デモバイナリをコンパイル (cmake) →</span><span class="zh-CN">编译 C++ 演示二进制文件 (cmake) →</span><span class="zh-TW">編譯 C++ 演示二進位檔案 (cmake) →</span><code style="font-size:10px"> build.sh --type Release</code></div>
+        </div>
+        <span class="comp-status-badge cs-warn" id="setup-badge-dx-app-build">⏳</span>
+      </div>
+      <div class="txt-xs txt-dim" style="font-family:var(--mono)" id="setup-detail-dx-app-build"></div>
+      <button class="btn btn-primary btn-sm" style="align-self:flex-start" onclick="setupRun('dx-app-build')"><span class="ko">빌드</span><span class="en">Build</span><span class="es">Compilar</span><span class="ja">ビルド</span><span class="zh-CN">构建</span><span class="zh-TW">建置</span></button>
+    </div>
+    <!-- 3: Sample Assets -->
+    <div class="setup-card">
+      <div class="setup-card-header">
+        <div>
+          <div class="setup-card-title">📦 <span class="ko">샘플 에셋 설정</span><span class="en">Sample Assets Setup</span><span class="es">Configuración de activos de muestra</span><span class="ja">サンプルアセットのセットアップ</span><span class="zh-CN">示例资源设置</span><span class="zh-TW">範例資源設定</span></div>
+          <div class="setup-card-desc"><span class="ko">Run / Benchmark 데모용 샘플 모델 및 비디오 다운로드 →</span><span class="en">Download sample models &amp; videos for Run / Benchmark demos →</span><span class="es">Descargue modelos y videos de ejemplo para demos de Ejecución / Benchmark →</span><span class="ja">Run / Benchmark デモ用のサンプルモデルと動画をダウンロード →</span><span class="zh-CN">下载 Run / Benchmark 演示用的示例模型和视频 →</span><span class="zh-TW">下載 Run / Benchmark 示範用的範例模型和影片 →</span><code style="font-size:10px"> setup.sh</code></div>
+        </div>
+        <span class="comp-status-badge cs-warn" id="setup-badge-dx-app-setup">⏳</span>
+      </div>
+      <div class="txt-xs txt-dim" style="font-family:var(--mono)" id="setup-detail-dx-app-setup"></div>
+      <button class="btn btn-primary btn-sm" style="align-self:flex-start" onclick="setupRun('dx-app-setup')"><span class="ko">설정</span><span class="en">Setup</span><span class="es">Configuración</span><span class="ja">セットアップ</span><span class="zh-CN">设置</span><span class="zh-TW">設定</span></button>
+    </div>
+    <!-- 4: DX-Runtime Dependencies -->
+    <div class="setup-card" id="setup-card-4">
+      <div class="setup-card-header">
+        <div>
+          <div class="setup-card-title">🔧 <span class="ko">DX-Runtime 종속성</span><span class="en">DX-Runtime Dependencies</span><span class="es">Dependencias de DX-Runtime</span><span class="ja">DX-Runtime 依存関係</span><span class="zh-CN">DX-Runtime 依赖项</span><span class="zh-TW">DX-Runtime 相依套件</span></div>
+          <div class="setup-card-desc"><span class="ko">NPU 런타임에 필요한 패키지 설치 (cmake, ONNX Runtime, …) →</span><span class="en">Install packages required for NPU runtime (cmake, ONNX Runtime, …) →</span><span class="es">Instale los paquetes requeridos para el runtime NPU (cmake, ONNX Runtime, …) →</span><span class="ja">NPU ランタイムに必要なパッケージをインストール (cmake, ONNX Runtime, …) →</span><span class="zh-CN">安装 NPU 运行时所需的软件包 (cmake, ONNX Runtime, …) →</span><span class="zh-TW">安裝 NPU 執行階段所需的套件 (cmake, ONNX Runtime, …) →</span><code style="font-size:10px"> dx_rt/install.sh --all</code></div>
+        </div>
+        <span class="comp-status-badge cs-warn" id="setup-badge-dx-rt-deps">⏳</span>
+      </div>
+      <div class="txt-xs txt-dim" style="font-family:var(--mono)" id="setup-detail-dx-rt-deps"></div>
+      <button class="btn btn-primary btn-sm" style="align-self:flex-start" onclick="setupRun('dx-rt-deps')"><span class="ko">설치</span><span class="en">Install</span><span class="es">Instalar</span><span class="ja">インストール</span><span class="zh-CN">安装</span><span class="zh-TW">安裝</span></button>
+    </div>
+    <!-- 5: NPU Driver -->
+    <div class="setup-card" id="setup-card-5">
+      <div class="setup-card-header">
+        <div>
+          <div class="setup-card-title">🔌 <span class="ko">NPU 리눅스 드라이버</span><span class="en">NPU Linux Driver</span><span class="es">Controlador Linux NPU</span><span class="ja">NPU Linux ドライバー</span><span class="zh-CN">NPU Linux 驱动程序</span><span class="zh-TW">NPU Linux 驅動程式</span></div>
+          <div class="setup-card-desc"><span class="ko">DEEPX NPU 커널 드라이버 설치 (sudo 필요) →</span><span class="en">Install DEEPX NPU kernel driver (requires sudo) →</span><span class="es">Instale el controlador del kernel del NPU DEEPX (requiere sudo) →</span><span class="ja">DEEPX NPU カーネルドライバーをインストール (sudo 必要) →</span><span class="zh-CN">安装 DEEPX NPU 内核驱动程序 (需要 sudo) →</span><span class="zh-TW">安裝 DEEPX NPU 核心驅動程式 (需要 sudo) →</span><code style="font-size:10px"> dx-runtime/install.sh --target=dx_rt_npu_linux_driver</code></div>
+        </div>
+        <span class="comp-status-badge cs-warn" id="setup-badge-dx-driver">⏳</span>
+      </div>
+      <div class="txt-xs txt-dim" style="font-family:var(--mono)" id="setup-detail-dx-driver"></div>
+      <button class="btn btn-primary btn-sm" style="align-self:flex-start" onclick="setupRun('dx-driver')"><span class="ko">설치</span><span class="en">Install</span><span class="es">Instalar</span><span class="ja">インストール</span><span class="zh-CN">安装</span><span class="zh-TW">安裝</span></button>
+    </div>
+  </div>
+  <!-- Version Info -->
+  <div class="card mt16" id="setup-version-card" style="display:none">
+    <div class="card-header"><h2>📋 <span class="ko">버전 정보</span><span class="en">Version Info</span><span class="es">Información de versión</span><span class="ja">バージョン情報</span><span class="ja">バージョン情報</span><span class="zh-CN">版本信息</span><span class="zh-TW">版本資訊</span><span class="zh-CN">版本信息</span><span class="zh-TW">版本資訊</span></h2></div>
+    <div class="version-grid" id="setup-version-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;padding:12px"></div>
+  </div>
+  <!-- Deep Diagnostics -->
+  <div class="card mt16">
+    <div class="flex between items-c mb8">
+      <h2>🔍 <span class="ko">심층 진단</span><span class="en">Deep Diagnostics</span><span class="es">Diagnóstico profundo</span><span class="ja">詳細診断</span><span class="zh-CN">深度诊断</span><span class="zh-TW">深度診斷</span></h2>
+      <button class="btn btn-primary btn-sm" id="diag-run-btn" onclick="runDiagnostics()">▶ <span class="ko">진단 실행</span><span class="en">Run Diagnostics</span><span class="es">Ejecutar diagnóstico</span><span class="ja">診断実行</span><span class="zh-CN">运行诊断</span><span class="zh-TW">執行診斷</span></button>
+    </div>
+    <p class="txt-dim txt-sm mb8"><span class="ko">시스템 종합 진단: PCIe 링크, 커널 모듈, DKMS, 서비스, CLI 도구, Python 가상환경, 디스크, 메모리, 모델 무결성.</span><span class="en">Comprehensive system health check: PCIe link, kernel modules, DKMS, services, CLI tools, Python venv, disk, memory, model integrity.</span><span class="es">Verificación integral del estado del sistema: enlace PCIe, módulos del kernel, DKMS, servicios, herramientas CLI, Python venv, disco, memoria, integridad del modelo.</span><span class="ja">システム総合診断: PCIe リンク、カーネルモジュール、DKMS、サービス、CLI ツール、Python 仮想環境、ディスク、メモリ、モデル整合性。</span><span class="zh-CN">系统综合健康检查：PCIe 链路、内核模块、DKMS、服务、CLI 工具、Python 虚拟环境、磁盘、内存、模型完整性。</span><span class="zh-TW">系統綜合健康檢查：PCIe 連結、核心模組、DKMS、服務、CLI 工具、Python 虛擬環境、磁碟、記憶體、模型完整性。</span></p>
+    <div id="diag-summary" class="mb8" style="display:none"></div>
+    <div id="diag-results" class="diag-grid"></div>
+  </div>
+  <!-- Shared log panel -->
+  <div class="card">
+    <div class="comp-section">
+      <div class="flex between items-c" style="margin-bottom:8px">
+        <h3 style="margin:0">📋 <span class="ko">실행 로그</span><span class="en">Execution Log</span><span class="es">Registro de ejecución</span><span class="ja">実行ログ</span><span class="zh-CN">执行日志</span><span class="zh-TW">執行日誌</span></h3>
+        <div class="flex gap8 items-c">
+          <span class="comp-status-badge" id="setup-run-status" style="display:none"></span>
+          <button class="btn btn-ghost btn-sm" onclick="setupToggleStdin()" id="setup-stdin-toggle-btn">⌨️ <span class="ko">수동 입력</span><span class="en">Manual Input</span><span class="es">Entrada manual</span><span class="ja">手動入力</span><span class="zh-CN">手动输入</span><span class="zh-TW">手動輸入</span></button>
+          <button class="btn btn-ghost btn-sm" onclick="setupCheckAll()">🔄 <span class="ko">상태 새로고침</span><span class="en">Refresh Status</span><span class="es">Actualizar estado</span><span class="ja">状態を更新</span><span class="zh-CN">刷新状态</span><span class="zh-TW">重新整理狀態</span></button>
+        </div>
+      </div>
+      <div class="comp-log" id="setup-log"><span class="ko">실행할 항목을 선택하세요 — 로그가 여기에 표시됩니다.</span><span class="en">Select an item to run — logs will appear here.</span><span class="es">Seleccione un elemento para ejecutar — los registros aparecerán aquí.</span><span class="ja">実行する項目を選択してください — ログがここに表示されます。</span><span class="zh-CN">选择要运行的项目 — 日志将在此显示。</span><span class="zh-TW">選擇要執行的項目 — 日誌將在此顯示。</span></div>
+      <!-- stdin input row -->
+      <div id="setup-stdin-row" style="display:none;margin-top:6px;padding:8px;background:var(--bg3);border-radius:6px;border:1px solid var(--bdr)">
+        <div style="font-size:11px;color:var(--warning);margin-bottom:5px" id="setup-stdin-prompt"><span class="ko">프로세스에 보낼 입력을 입력하세요 (Enter 키)</span><span class="en">Type input to send to the process (press Enter)</span><span class="es">Escriba la entrada para enviar al proceso (presione Enter)</span><span class="ja">プロセスに送信する入力を入力してください (Enter キー)</span><span class="zh-CN">输入要发送到进程的内容 (按 Enter)</span><span class="zh-TW">輸入要傳送至程序的內容 (按 Enter)</span></div>
+        <div style="display:flex;gap:6px;align-items:center">
+          <input id="setup-stdin-input" type="text" style="flex:1;padding:6px 10px;border-radius:6px;border:1px solid var(--bdr);background:var(--bg-0);color:var(--text-1);font-family:var(--mono);font-size:12px" data-i18n-placeholder="Enter value and press Enter" onkeydown="if(event.key==='Enter')setupSendInput()">
+          <button onclick="var i=$('setup-stdin-input');i.type=i.type==='password'?'text':'password'" class="btn btn-ghost btn-sm" title="Show/hide password" data-i18n-title="Show/hide password">👁</button>
+          <button onclick="setupSendInput()" class="btn btn-primary btn-sm"><span class="ko">보내기</span><span class="en">Send</span><span class="es">Enviar</span><span class="ja">送信</span><span class="zh-CN">发送</span><span class="zh-TW">傳送</span></button>
+          <button onclick="setupHideStdin()" class="btn btn-ghost btn-sm" title="Close" data-i18n-title="Close">✕</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- ═══ PAGE: Dashboard ═══ -->
+<!-- ═══ PAGE: Models ═══ -->
+<div id="page-models" class="page active">
+  <h1>📦 <span class="accent"><span class="ko">모델</span><span class="en">Models</span><span class="es">Modelos</span><span class="ja">モデル</span><span class="zh-CN">模型</span><span class="zh-TW">模型</span></span></h1>
+  <div class="chip-bar" id="cat-chips"></div>
+  <div class="search-box"><input type="text" id="m-search" data-i18n-placeholder="Search models..." oninput="filterModels()"></div>
+  <div class="card">
+    <div class="tbl-wrap">
+      <table id="m-table">
+        <thead><tr><th><span class="ko">모델</span><span class="en">Model</span><span class="es">Modelo</span><span class="ja">モデル</span><span class="zh-CN">模型</span><span class="zh-TW">模型</span></th><th><span class="ko">카테고리</span><span class="en">Category</span><span class="es">Categoría</span><span class="ja">カテゴリ</span><span class="zh-CN">类别</span><span class="zh-TW">類別</span></th><th>C++</th><th>Python</th><th><span class="ko">모드</span><span class="en">Mode</span><span class="es">Modo</span><span class="ja">モード</span><span class="zh-CN">模式</span><span class="zh-TW">模式</span></th><th><span class="ko">메타</span><span class="en">Meta</span><span class="es">Metadatos</span><span class="ja">メタ</span><span class="zh-CN">元数据</span><span class="zh-TW">中繼資料</span></th><th><span class="ko">파일</span><span class="en">File</span><span class="es">Archivo</span><span class="ja">ファイル</span><span class="zh-CN">文件</span><span class="zh-TW">檔案</span></th><th><span class="ko">작업</span><span class="en">Actions</span><span class="es">Acciones</span><span class="ja">操作</span><span class="zh-CN">操作</span><span class="zh-TW">操作</span></th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div class="txt-sm txt-dim mt8" id="m-count"></div>
+  </div>
+</div>
+<!-- ═══ PAGE: Run Inference ═══ -->
+<div id="page-run" class="page">
+  <h1>▶️ <span class="accent"><span class="ko">추론 실행</span><span class="en">Run Inference</span><span class="es">Ejecutar inferencia</span><span class="ja">推論実行</span><span class="zh-CN">运行推理</span><span class="zh-TW">執行推論</span></span></h1>
+  <!-- Tab Bar -->
+  <div class="run-tab-bar">
+    <button class="run-tab active" data-rtab="single" onclick="toggleRunTab('single')">📷 <span class="ko">단일</span><span class="en">Single</span><span class="es">Individual</span><span class="ja">単一</span><span class="zh-CN">单次</span><span class="zh-TW">單次</span></button>
+    <button class="run-tab" data-rtab="continuous" onclick="toggleRunTab('continuous')">🔄 <span class="ko">연속</span><span class="en">Continuous</span><span class="es">Continuo</span><span class="ja">連続</span><span class="zh-CN">连续</span><span class="zh-TW">連續</span></button>
+  </div>
+  <!-- ── Single Tab ── -->
+  <div id="run-single-tab">
+  <div class="grid2">
+    <!-- Left: Config -->
+    <div class="card rel" id="run-config-card">
+      <h2><span class="ko">구성</span><span class="en">Configuration</span><span class="es">Configuración</span><span class="ja">構成</span><span class="zh-CN">配置</span><span class="zh-TW">組態</span></h2>
+      <div class="fg"><label for="r-cat"><span class="ko">카테고리</span><span class="en">Category</span><span class="es">Categoría</span><span class="ja">カテゴリ</span><span class="zh-CN">类别</span><span class="zh-TW">類別</span></label><select id="r-cat" onchange="onRCat()"></select></div>
+      <div class="fg"><label for="r-model"><span class="ko">모델</span><span class="en">Model</span><span class="es">Modelo</span><span class="ja">モデル</span><span class="zh-CN">模型</span><span class="zh-TW">模型</span></label><select id="r-model" onchange="onRModel()"></select></div>
+      <div class="grid2" style="gap:10px">
+        <div class="fg"><label for="r-lang"><span class="ko">코드 언어</span><span class="en">Code Language</span><span class="es">Lenguaje de código</span><span class="ja">コード言語</span><span class="zh-CN">代码语言</span><span class="zh-TW">程式語言</span></label><select id="r-lang"></select></div>
+        <div class="fg"><label for="r-mode"><span class="ko">모드</span><span class="en">Mode</span><span class="es">Modo</span><span class="ja">モード</span><span class="zh-CN">模式</span><span class="zh-TW">模式</span></label><select id="r-mode"><option value="sync">Sync</option><option value="async">Async</option></select></div>
+      </div>
+      <div class="fg"><label><span class="ko">입력 유형</span><span class="en">Input Type</span><span class="es">Tipo de entrada</span><span class="ja">入力タイプ</span><span class="zh-CN">输入类型</span><span class="zh-TW">輸入類型</span></label>
+        <div class="radio-group">
+          <label><input type="radio" name="r-itype" id="r-input-img" value="image" checked onchange="toggleRInput()"><span>📷 <span class="ko">이미지</span><span class="en">Image</span><span class="es">Imagen</span><span class="ja">画像</span><span class="zh-CN">图像</span><span class="zh-TW">影像</span></span></label>
+          <label><input type="radio" name="r-itype" id="r-input-vid" value="video" onchange="toggleRInput()"><span>🎬 <span class="ko">동영상</span><span class="en">Video</span><span class="es">Vídeo</span><span class="ja">動画</span><span class="zh-CN">视频</span><span class="zh-TW">影片</span></span></label>
+        </div>
+      </div>
+      <div id="img-picker">
+        <div class="fg">
+          <label><span class="ko">샘플 이미지</span><span class="en">Sample Image</span><span class="es">Imagen de muestra</span><span class="ja">サンプル画像</span><span class="zh-CN">示例图像</span><span class="zh-TW">範例影像</span></label>
+          <div id="r-upload-row" class="fg-inline">
+            <input type="file" id="r-upload" accept="image/*" class="hidden" onchange="onRunUpload(this)">
+            <button type="button" class="btn-sm" onclick="document.getElementById('r-upload').click()">⬆ <span class="ko">이미지 업로드</span><span class="en">Upload image</span><span class="es">Subir imagen</span><span class="ja">画像アップロード</span><span class="zh-CN">上传图像</span><span class="zh-TW">上傳影像</span></button>
+            <span id="r-upload-name" class="txt-dim"></span>
+          </div>
+          <div class="img-grid" id="img-grid"></div>
+        </div>
+      </div>
+      <div id="video-picker" class="hidden">
+        <div class="fg"><label for="r-video"><span class="ko">동영상 파일</span><span class="en">Video File</span><span class="es">Archivo de vídeo</span><span class="ja">動画ファイル</span><span class="zh-CN">视频文件</span><span class="zh-TW">影片檔案</span></label><select id="r-video" class="input"></select></div>
+      </div>
+      <div class="grid2" style="gap:10px" id="r-conf-row">
+        <div class="fg"><label for="r-dev"><span class="ko">디바이스 ID</span><span class="en">Device ID</span><span class="es">ID de dispositivo</span><span class="ja">デバイス ID</span><span class="zh-CN">设备 ID</span><span class="zh-TW">裝置 ID</span></label><select id="r-dev"><option value="0">NPU 0</option></select></div>
+        <div class="fg"><label for="r-conf"><span class="ko">신뢰도 임계값</span><span class="en">Confidence Threshold</span><span class="es">Umbral de confianza</span><span class="ja">信頼度しきい値</span><span class="zh-CN">置信度阈值</span><span class="zh-TW">信賴度閾值</span></label>
+          <div class="slider-wrap"><input type="range" id="r-conf" min="0" max="1" step="0.05" value="0.25" data-default="0.25" oninput="this.nextElementSibling.textContent=this.value"><span class="slider-val">0.25</span></div>
+        </div>
+      </div>
+      <div id="r-params-detect">
+        <div class="fg"><label for="r-nms"><span class="ko">NMS IoU 임계값</span><span class="en">NMS IoU Threshold</span><span class="es">Umbral IoU de NMS</span><span class="ja">NMS IoU しきい値</span><span class="zh-CN">NMS IoU 阈值</span><span class="zh-TW">NMS IoU 閾值</span></label>
+          <div class="slider-wrap"><input type="range" id="r-nms" min="0" max="1" step="0.05" value="0.45" data-default="0.45" oninput="this.nextElementSibling.textContent=this.value"><span class="slider-val">0.45</span></div>
+        </div>
+        <div class="fg hidden" id="r-obj-row"><label for="r-obj"><span class="ko">Objectness 임계값</span><span class="en">Objectness Threshold</span><span class="es">Umbral de objectness</span><span class="ja">Objectness しきい値</span><span class="zh-CN">Objectness 阈值</span><span class="zh-TW">Objectness 閾值</span></label>
+          <div class="slider-wrap"><input type="range" id="r-obj" min="0" max="1" step="0.05" value="0.25" data-default="0.25" oninput="this.nextElementSibling.textContent=this.value"><span class="slider-val">0.25</span></div>
+        </div>
+      </div>
+      <div id="r-params-classify" class="hidden">
+        <div class="fg"><label for="r-topk"><span class="ko">Top-K 결과</span><span class="en">Top-K Results</span><span class="es">Resultados Top-K</span><span class="ja">Top-K 結果</span><span class="zh-CN">Top-K 结果</span><span class="zh-TW">Top-K 結果</span></label>
+          <div class="slider-wrap"><input type="range" id="r-topk" min="1" max="1000" step="1" value="5" data-default="5" oninput="this.nextElementSibling.textContent=this.value"><span class="slider-val">5</span></div>
+        </div>
+      </div>
+      <div id="r-params-seg" class="hidden">
+        <div class="fg"><label for="r-alpha"><span class="ko">오버레이 알파</span><span class="en">Overlay Alpha</span><span class="es">Alfa de superposición</span><span class="ja">オーバーレイアルファ</span><span class="zh-CN">叠加透明度</span><span class="zh-TW">疊加透明度</span></label>
+          <div class="slider-wrap"><input type="range" id="r-alpha" min="0" max="1" step="0.05" value="0.6" data-default="0.6" oninput="this.nextElementSibling.textContent=this.value"><span class="slider-val">0.6</span></div>
+        </div>
+      </div>
+      <div id="r-params-none" class="hidden">
+        <p class="txt-sm txt-dim" style="padding:8px 0">ℹ️ <span id="r-params-desc"><span class="ko">이 작업에는 추가 매개변수가 필요하지 않습니다.</span><span class="en">No additional parameters required for this task.</span><span class="es">No se requieren parámetros adicionales para esta tarea.</span><span class="ja">このタスクに追加パラメータは不要です。</span><span class="zh-CN">此任务无需额外参数。</span><span class="zh-TW">此任務無需額外參數。</span></span></p>
+      </div>
+      <p class="txt-sm txt-dim" style="margin-top:4px" id="r-params-note"><span class="ko">모델의 config.json에 score_threshold / nms_threshold로 전달됩니다</span><span class="en">Passed to the model's config.json as score_threshold / nms_threshold</span><span class="es">Se pasa al config.json del modelo como score_threshold / nms_threshold</span><span class="ja">モデルの config.json に score_threshold / nms_threshold として渡されます</span><span class="zh-CN">作为 score_threshold / nms_threshold 传递到模型的 config.json</span><span class="zh-TW">作為 score_threshold / nms_threshold 傳遞至模型的 config.json</span></p>
+      <div class="flex gap8 mt8">
+        <button class="btn btn-acc" id="r-run-btn" onclick="doRun()">▶ <span class="ko">추론 실행</span><span class="en">Run Inference</span><span class="es">Ejecutar inferencia</span><span class="ja">推論実行</span><span class="zh-CN">运行推理</span><span class="zh-TW">執行推論</span></button>
+        <button class="btn btn-red hidden" id="r-stop-btn" onclick="doStop()">⏹ <span class="ko">중지</span><span class="en">Stop</span><span class="es">Detener</span><span class="ja">停止</span><span class="zh-CN">停止</span><span class="zh-TW">停止</span></button>
+      </div>
+    </div>
+    <!-- Right: Result -->
+    <div class="card rel" id="run-result-card">
+      <h2><span class="ko">결과</span><span class="en">Result</span><span class="es">Resultado</span><span class="ja">結果</span><span class="zh-CN">结果</span><span class="zh-TW">結果</span></h2>
+      <div id="r-result"><p class="txt-dim"><span class="ko">모델을 선택하고 실행을 클릭하세요.</span><span class="en">Select a model and click Run.</span><span class="es">Seleccione un modelo y haga clic en Ejecutar.</span><span class="ja">モデルを選択して実行をクリックしてください。</span><span class="zh-CN">选择模型并点击运行。</span><span class="zh-TW">選擇模型並點擊執行。</span></p></div>
+    </div>
+  </div>
+  <!-- Export Package -->
+  <div class="card mt16" id="run-export-card">
+    <h2>📦 <span class="ko">모델 패키지 내보내기</span><span class="en">Export Model Package</span><span class="es">Exportar paquete de modelo</span><span class="ja">モデルパッケージのエクスポート</span><span class="zh-CN">导出模型包</span><span class="zh-TW">匯出模型套件</span></h2>
+    <p class="txt-sm txt-dim mb8"><span class="ko">선택한 모델의 소스 코드, 설정, 모델 파일을 패키지로 추출합니다. Outputs 페이지에서 다운로드할 수 있습니다.</span><span class="en">Extract the selected model's source code, config, and model file as a package. Available for download on the Outputs page.</span><span class="es">Extraiga el código fuente, configuración y archivo de modelo del modelo seleccionado como paquete. Disponible para descarga en la página de Salidas.</span><span class="ja">選択したモデルのソースコード、設定、モデルファイルをパッケージとして抽出します。Outputs ページからダウンロードできます。</span><span class="zh-CN">将所选模型的源代码、配置和模型文件提取为软件包。可在 Outputs 页面下载。</span><span class="zh-TW">將所選模型的原始碼、組態和模型檔案擷取為套件。可在 Outputs 頁面下載。</span></p>
+    <div class="flex gap8 items-c">
+      <div class="fg" style="margin:0;flex:1"><label for="r-export-lang"><span class="ko">출력 언어</span><span class="en">Output Language</span><span class="es">Idioma de salida</span><span class="ja">出力言語</span><span class="zh-CN">输出语言</span><span class="zh-TW">輸出語言</span></label>
+        <select id="r-export-lang" class="input"><option value="both">Both (C++ &amp; Python)</option><option value="cpp">C++ only</option><option value="python">Python only</option></select>
+      </div>
+      <button class="btn btn-acc btn-sm" id="r-export-btn" onclick="doExportFromRun()" style="margin-top:14px">📦 <span class="ko">내보내기</span><span class="en">Export</span><span class="es">Exportar</span><span class="ja">エクスポート</span><span class="zh-CN">导出</span><span class="zh-TW">匯出</span></button>
+    </div>
+    <div class="code mt8 hidden" id="r-export-out" style="max-height:150px"></div>
+  </div>
+  </div><!-- /run-single-tab -->
+  <!-- ── Continuous Tab ── -->
+  <div id="run-cont-tab" class="hidden">
+    <div class="grid2">
+      <!-- Left: Continuous Config -->
+      <div class="card rel">
+        <h2>🔄 <span class="ko">연속 구성</span><span class="en">Continuous Config</span><span class="es">Configuración continua</span><span class="ja">連続構成</span><span class="zh-CN">连续配置</span><span class="zh-TW">連續組態</span></h2>
+        <div class="fg"><label for="c-input-type"><span class="ko">입력 유형</span><span class="en">Input Type</span><span class="es">Tipo de entrada</span><span class="ja">入力タイプ</span><span class="zh-CN">输入类型</span><span class="zh-TW">輸入類型</span></label>
+          <select id="c-input-type" class="input" onchange="toggleContInput()">
+            <option value="video">🎬 Video</option>
+            <option value="camera">📹 Camera</option>
+            <option value="rtsp">📡 RTSP</option>
+          </select>
+        </div>
+        <div id="c-video-pick">
+          <div class="fg"><label for="c-video"><span class="ko">동영상 파일</span><span class="en">Video File</span><span class="es">Archivo de vídeo</span><span class="ja">動画ファイル</span><span class="zh-CN">视频文件</span><span class="zh-TW">影片檔案</span></label><select id="c-video" class="input"></select></div>
+        </div>
+        <div id="c-camera-pick" class="hidden">
+          <div class="fg"><label for="c-camera"><span class="ko">카메라 장치</span><span class="en">Camera Device</span><span class="es">Dispositivo de cámara</span><span class="ja">カメラデバイス</span><span class="zh-CN">摄像头设备</span><span class="zh-TW">攝影機裝置</span></label>
+            <div class="flex gap8 items-c">
+              <select id="c-camera" class="input" style="flex:1"><option value="0">/dev/video0</option></select>
+              <button class="btn btn-ghost btn-sm" onclick="loadCameras()" title="Refresh" data-i18n-title="Refresh">🔄</button>
+            </div>
+          </div>
+        </div>
+        <div id="c-rtsp-pick" class="hidden">
+          <div class="fg"><label for="c-rtsp-ip"><span class="ko">RTSP 서버</span><span class="en">RTSP Server</span><span class="es">Servidor RTSP</span><span class="ja">RTSP サーバー</span><span class="zh-CN">RTSP 服务器</span><span class="zh-TW">RTSP 伺服器</span></label><input type="text" id="c-rtsp-ip" class="input" value="" data-i18n-placeholder="IP:Port"></div>
+          <div class="fg"><label for="c-rtsp-stream"><span class="ko">스트림</span><span class="en">Stream</span><span class="es">Flujo</span><span class="ja">ストリーム</span><span class="zh-CN">流</span><span class="zh-TW">串流</span></label><select id="c-rtsp-stream" class="input"></select></div>
+        </div>
+        <div class="grid2" style="gap:10px">
+          <div class="fg"><label for="c-lang"><span class="ko">코드 언어</span><span class="en">Code Language</span><span class="es">Lenguaje de código</span><span class="ja">コード言語</span><span class="zh-CN">代码语言</span><span class="zh-TW">程式語言</span></label>
+            <select id="c-lang" class="input"><option value="cpp">C++</option><option value="python">Python</option></select>
+          </div>
+          <div class="fg"><label for="c-mode"><span class="ko">모드</span><span class="en">Mode</span><span class="es">Modo</span><span class="ja">モード</span><span class="zh-CN">模式</span><span class="zh-TW">模式</span></label>
+            <select id="c-mode" class="input"><option value="sync">Sync</option><option value="async">Async</option></select>
+          </div>
+        </div>
+        <div class="fg"><label for="c-dev"><span class="ko">디바이스 ID</span><span class="en">Device ID</span><span class="es">ID de dispositivo</span><span class="ja">デバイス ID</span><span class="zh-CN">设备 ID</span><span class="zh-TW">裝置 ID</span></label>
+          <select id="c-dev" class="input"><option value="0">NPU 0</option></select>
+        </div>
+        <h2 style="margin-top:18px">📦 <span class="ko">모델 슬롯</span><span class="en">Model Slots</span><span class="es">Ranuras de modelo</span><span class="ja">モデルスロット</span><span class="zh-CN">模型槽位</span><span class="zh-TW">模型插槽</span> <span class="txt-dim txt-sm" style="text-transform:none;letter-spacing:0" id="c-slot-count">(1/8)</span></h2>
+        <div id="c-slots"></div>
+        <button class="btn btn-ghost btn-sm mt8" id="c-add-btn" onclick="contAddSlot()">＋ <span class="ko">모델 추가</span><span class="en">Add Model</span><span class="es">Agregar modelo</span><span class="ja">モデルを追加</span><span class="zh-CN">添加模型</span><span class="zh-TW">新增模型</span></button>
+        <div class="flex gap8 mt16">
+          <button class="btn btn-acc" id="c-start-btn" onclick="contStart()">▶ <span class="ko">연속 시작</span><span class="en">Start Continuous</span><span class="es">Iniciar continuo</span><span class="ja">連続開始</span><span class="zh-CN">开始连续</span><span class="zh-TW">開始連續</span></button>
+          <button class="btn btn-red hidden" id="c-stop-btn" onclick="contStop()">⏹ <span class="ko">중지</span><span class="en">Stop</span><span class="es">Detener</span><span class="ja">停止</span><span class="zh-CN">停止</span><span class="zh-TW">停止</span></button>
+        </div>
+      </div>
+      <!-- Right: Live Display -->
+      <div class="card rel">
+        <div class="flex between items-c mb8">
+          <h2 style="margin:0">📺 <span class="ko">라이브 디스플레이</span><span class="en">Live Display</span><span class="es">Pantalla en vivo</span><span class="ja">ライブ表示</span><span class="zh-CN">实时显示</span><span class="zh-TW">即時顯示</span></h2>
+          <div class="cont-timer" id="c-timer"><span class="ct-dot"></span><span id="c-timer-txt">00:00</span></div>
+        </div>
+        <div id="c-grid" class="cont-grid g1"></div>
+        <!-- Live MJPEG Stream View (multi-slot, JS-managed) -->
+        <div id="c-live-view" class="hidden">
+          <div id="c-live-slots" class="live-slots-grid g1"></div>
+        </div>
+        <div id="c-summary" class="mt8" style="display:none"></div>
+      </div>
+    </div>
+  </div><!-- /run-cont-tab -->
+</div>
+<!-- ═══ PAGE: Benchmark ═══ -->
+<div id="page-bench" class="page">
+  <h1>⏱️ <span class="accent"><span class="ko">벤치마크</span><span class="en">Benchmark</span><span class="es">Evaluación de rendimiento</span><span class="ja">ベンチマーク</span><span class="zh-CN">基准测试</span><span class="zh-TW">基準測試</span></span></h1>
+  <div class="bench-layout">
+    <!-- LEFT: Settings -->
+    <div class="bench-left">
+      <div class="card">
+        <h3 style="margin:0 0 10px">⚙️ <span class="ko">설정</span><span class="en">Settings</span><span class="es">Configuración</span><span class="ja">設定</span><span class="zh-CN">设置</span><span class="zh-TW">設定</span></h3>
+        <div class="fg" style="margin:0 0 8px"><label for="b-cat"><span class="ko">카테고리</span><span class="en">Category</span><span class="es">Categoría</span><span class="ja">カテゴリ</span><span class="zh-CN">类别</span><span class="zh-TW">類別</span></label><select id="b-cat" class="input" onchange="filterBenchModels()"><option value="">All Categories</option></select></div>
+        <div class="fg" style="margin:0 0 8px"><label for="b-lang"><span class="ko">코드 언어</span><span class="en">Code Language</span><span class="es">Lenguaje de código</span><span class="ja">コード言語</span><span class="zh-CN">代码语言</span><span class="zh-TW">程式語言</span></label><select id="b-lang" class="input"><option value="cpp">C++ (Compiled)</option><option value="python">Python</option></select></div>
+        <div class="fg" style="margin:0 0 8px"><label for="b-mode"><span class="ko">모드</span><span class="en">Mode</span><span class="es">Modo</span><span class="ja">モード</span><span class="zh-CN">模式</span><span class="zh-TW">模式</span></label><select id="b-mode" class="input"><option value="sync">Sync</option><option value="async">Async</option></select></div>
+        <div class="fg" style="margin:0 0 8px"><label for="b-input-type"><span class="ko">입력 유형</span><span class="en">Input Type</span><span class="es">Tipo de entrada</span><span class="ja">入力タイプ</span><span class="zh-CN">输入类型</span><span class="zh-TW">輸入類型</span></label><select id="b-input-type" class="input" onchange="toggleBenchInput()"><option value="image">Image</option><option value="video">Video</option><option value="camera">📹 Camera</option><option value="rtsp">📡 RTSP</option></select></div>
+        <div id="b-input-image" style="margin-bottom:8px">
+          <div class="fg" style="margin:0"><label><span class="ko">입력 이미지</span><span class="en">Input Image</span><span class="es">Imagen de entrada</span><span class="ja">入力画像</span><span class="zh-CN">输入图像</span><span class="zh-TW">輸入影像</span></label>
+            <select id="b-img-sel" class="input"><option value="">Default (built-in)</option></select>
+          </div>
+        </div>
+        <div id="b-input-video" style="margin-bottom:8px;display:none">
+          <div class="fg" style="margin:0"><label><span class="ko">입력 동영상</span><span class="en">Input Video</span><span class="es">Vídeo de entrada</span><span class="ja">入力動画</span><span class="zh-CN">输入视频</span><span class="zh-TW">輸入影片</span></label>
+            <select id="b-vid-sel" class="input"><option value="">Default (built-in)</option></select>
+          </div>
+        </div>
+        <div id="b-input-camera" style="margin-bottom:8px;display:none">
+          <div class="fg" style="margin:0"><label><span class="ko">카메라 장치</span><span class="en">Camera Device</span><span class="es">Dispositivo de cámara</span><span class="ja">カメラデバイス</span><span class="zh-CN">摄像头设备</span><span class="zh-TW">攝影機裝置</span></label>
+            <div class="flex gap8 items-c">
+              <select id="b-cam-sel" class="input" style="flex:1"><option value="0">/dev/video0</option></select>
+              <button class="btn btn-ghost btn-sm" onclick="loadCameras()" title="Refresh" data-i18n-title="Refresh">🔄</button>
+            </div>
+          </div>
+        </div>
+        <div id="b-input-rtsp" style="margin-bottom:8px;display:none">
+          <div class="fg" style="margin:0"><label><span class="ko">RTSP 서버</span><span class="en">RTSP Server</span><span class="es">Servidor RTSP</span><span class="ja">RTSP サーバー</span><span class="zh-CN">RTSP 服务器</span><span class="zh-TW">RTSP 伺服器</span></label><input type="text" id="b-rtsp-ip" class="input" value="" data-i18n-placeholder="IP:Port"></div>
+          <div class="fg" style="margin:0;margin-top:6px"><label><span class="ko">스트림</span><span class="en">Stream</span><span class="es">Flujo</span><span class="ja">ストリーム</span><span class="zh-CN">流</span><span class="zh-TW">串流</span></label><select id="b-rtsp-stream" class="input"></select></div>
+        </div>
+        <div class="fg" style="margin:0 0 12px"><label for="b-loop" id="b-loop-label"><span class="ko">반복 횟수</span><span class="en">Loop Count</span><span class="es">Conteo de bucles</span><span class="ja">ループ回数</span><span class="zh-CN">循环次数</span><span class="zh-TW">迴圈次數</span></label><input type="number" id="b-loop" class="input" value="100" min="1" max="10000" style="width:100%"></div>
+        <button class="btn btn-acc" id="b-run-btn" onclick="doBench()" style="width:100%">⏱️ <span class="ko">벤치마크 시작</span><span class="en">Start Benchmark</span><span class="es">Iniciar benchmark</span><span class="ja">ベンチマーク開始</span><span class="zh-CN">开始基准测试</span><span class="zh-TW">開始基準測試</span></button>
+        <button class="btn btn-red hidden" id="b-stop-btn" onclick="doStop()" style="width:100%;margin-top:6px">⏹ <span class="ko">중지</span><span class="en">Stop</span><span class="es">Detener</span><span class="ja">停止</span><span class="zh-CN">停止</span><span class="zh-TW">停止</span></button>
+      </div>
+    </div>
+    <!-- RIGHT: Model Selection -->
+    <div class="bench-right">
+      <div class="card">
+        <div class="flex between items-c" style="margin-bottom:8px">
+          <h3 style="margin:0">📋 <span class="ko">모델</span><span class="en">Models</span><span class="es">Modelos</span><span class="ja">モデル</span><span class="zh-CN">模型</span><span class="zh-TW">模型</span></h3>
+          <div class="flex gap8">
+            <button class="btn btn-sm btn-ghost" onclick="bSelAll()">☑ <span class="ko">전체</span><span class="en">All</span><span class="es">Todo</span><span class="ja">すべて</span><span class="zh-CN">全部</span><span class="zh-TW">全部</span></button>
+            <button class="btn btn-sm btn-ghost" onclick="bDesel()">☐ <span class="ko">해제</span><span class="en">None</span><span class="es">Ninguno</span><span class="ja">なし</span><span class="zh-CN">无</span><span class="zh-TW">無</span></button>
+          </div>
+        </div>
+        <div class="tbl-wrap" style="max-height:calc(100vh - 340px);overflow-y:auto">
+          <table id="bench-sel"><thead><tr><th style="width:36px">✓</th><th><span class="ko">모델</span><span class="en">Model</span><span class="es">Modelo</span><span class="ja">モデル</span><span class="zh-CN">模型</span><span class="zh-TW">模型</span></th><th><span class="ko">카테고리</span><span class="en">Category</span><span class="es">Categoría</span><span class="ja">カテゴリ</span><span class="zh-CN">类别</span><span class="zh-TW">類別</span></th><th><span class="ko">언어</span><span class="en">Lang</span><span class="es">Idioma</span><span class="ja">言語</span><span class="zh-CN">语言</span><span class="zh-TW">語言</span></th></tr></thead><tbody></tbody></table>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Results (full width below) -->
+  <div class="card hidden" id="b-result-card">
+    <div class="flex between items-c" style="margin-bottom:8px">
+      <div class="card-header"><h2 style="margin:0"><span class="ko">결과</span><span class="en">Results</span><span class="es">Resultados</span><span class="ja">結果</span><span class="zh-CN">结果</span><span class="zh-TW">結果</span></h2><span class="txt-sm txt-dim ml8"><span class="ko">상세 보기는 행을 클릭하세요</span><span class="en">click row for detail</span><span class="es">haga clic en la fila para detalles</span><span class="ja">行をクリックして詳細を表示</span><span class="zh-CN">点击行查看详情</span><span class="zh-TW">點擊列查看詳細資訊</span></span></div>
+      <button class="btn btn-ghost btn-sm" onclick="benchExportReport()" title="Export Benchmark Report" data-i18n-title="Export Benchmark Report">📄 <span class="ko">리포트 내보내기</span><span class="en">Export Report</span><span class="es">Exportar informe</span><span class="ja">レポートをエクスポート</span><span class="zh-CN">导出报告</span><span class="zh-TW">匯出報告</span></button>
+    </div>
+    <div class="tbl-wrap">
+      <table id="bench-res"><thead><tr><th><span class="ko">모델</span><span class="en">Model</span><span class="es">Modelo</span><span class="ja">モデル</span><span class="zh-CN">模型</span><span class="zh-TW">模型</span></th><th><span class="ko">카테고리</span><span class="en">Category</span><span class="es">Categoría</span><span class="ja">カテゴリ</span><span class="zh-CN">类别</span><span class="zh-TW">類別</span></th><th><span class="ko">상태</span><span class="en">Status</span><span class="es">Estado</span><span class="ja">ステータス</span><span class="zh-CN">状态</span><span class="zh-TW">狀態</span></th><th>FPS</th><th><span class="ko">지연시간(ms)</span><span class="en">Latency(ms)</span><span class="es">Latencia (ms)</span><span class="ja">レイテンシ(ms)</span><span class="zh-CN">延迟(ms)</span><span class="zh-TW">延遲(ms)</span></th><th></th></tr></thead><tbody></tbody></table>
+    </div>
+    <div class="mt16"><h2><span class="ko">FPS 비교</span><span class="en">FPS Comparison</span><span class="es">Comparación de FPS</span><span class="ja">FPS 比較</span><span class="zh-CN">FPS 对比</span><span class="zh-TW">FPS 比較</span></h2><div class="chart-box" style="height:260px"><canvas id="bench-chart"></canvas></div></div>
+  </div>
+</div>
+
+<!-- ═══ PAGE: A/B Compare ═══ -->
+<div id="page-compare" class="page">
+  <h1>🔀 <span class="accent"><span class="ko">A/B 비교</span><span class="en">A/B Compare</span><span class="es">Comparación A/B</span><span class="ja">A/B 比較</span><span class="zh-CN">A/B 对比</span><span class="zh-TW">A/B 比較</span></span></h1>
+  <div class="card">
+    <div class="flex gap8 items-c" id="ab-cols" style="flex-wrap:wrap">
+      <span class="txt-dim txt-sm"><span class="ko">슬롯:</span><span class="en">Slots:</span><span class="es">Ranuras:</span><span class="ja">スロット:</span><span class="zh-CN">槽位:</span><span class="zh-TW">插槽:</span></span>
+      <button class="btn btn-sm btn-ghost" onclick="setABCols(2)">2</button>
+      <button class="btn btn-sm btn-ghost" onclick="setABCols(4)">4</button>
+      <button class="btn btn-sm btn-ghost" onclick="setABCols(6)">6</button>
+      <button class="btn btn-sm btn-ghost" onclick="setABCols(8)">8</button>
+      <div style="flex:1"></div>
+      <div class="fg" style="margin:0;width:140px"><label for="ab-itype"><span class="ko">입력 유형</span><span class="en">Input Type</span><span class="es">Tipo de entrada</span><span class="ja">入力タイプ</span><span class="zh-CN">输入类型</span><span class="zh-TW">輸入類型</span></label>
+        <select id="ab-itype" class="input" onchange="toggleABInput()" style="font-size:12px">
+          <option value="file">📁 File</option>
+          <option value="camera">📹 Camera</option>
+          <option value="rtsp">📡 RTSP</option>
+        </select>
+      </div>
+      <div id="ab-file-pick" class="fg" style="margin:0;width:220px"><label for="ab-img"><span class="ko">공유 입력 (이미지 / 동영상)</span><span class="en">Shared Input (Image / Video)</span><span class="es">Entrada compartida (Imagen / Vídeo)</span><span class="ja">共有入力 (画像 / 動画)</span><span class="zh-CN">共享输入 (图像 / 视频)</span><span class="zh-TW">共用輸入 (影像 / 影片)</span></label><select id="ab-img" style="font-size:12px"></select></div>
+      <div id="ab-cam-pick" class="fg hidden" style="margin:0;width:180px"><label><span class="ko">카메라</span><span class="en">Camera</span><span class="es">Cámara</span><span class="ja">カメラ</span><span class="zh-CN">摄像头</span><span class="zh-TW">攝影機</span></label>
+        <div class="flex gap8 items-c"><select id="ab-camera" class="input" style="font-size:12px"><option value="0">/dev/video0</option></select><button class="btn btn-ghost btn-sm" onclick="loadCameras()" title="Refresh" data-i18n-title="Refresh" style="padding:2px 6px">🔄</button></div>
+      </div>
+      <div id="ab-rtsp-pick" class="hidden" style="display:flex;gap:8px;align-items:end">
+        <div class="fg" style="margin:0;width:160px"><label><span class="ko">RTSP 서버</span><span class="en">RTSP Server</span><span class="es">Servidor RTSP</span><span class="ja">RTSP サーバー</span><span class="zh-CN">RTSP 服务器</span><span class="zh-TW">RTSP 伺服器</span></label><input type="text" id="ab-rtsp-ip" class="input" value="" style="font-size:12px"></div>
+        <div class="fg" style="margin:0;width:100px"><label><span class="ko">스트림</span><span class="en">Stream</span><span class="es">Flujo</span><span class="ja">ストリーム</span><span class="zh-CN">流</span><span class="zh-TW">串流</span></label><select id="ab-rtsp-stream" class="input" style="font-size:12px"></select></div>
+      </div>
+      <div class="fg" style="margin:0;width:90px" id="ab-frames-pick" class="hidden"><label><span class="ko">프레임</span><span class="en">Frames</span><span class="es">Cuadros</span><span class="ja">フレーム</span><span class="zh-CN">帧</span><span class="zh-TW">影格</span></label><input type="number" id="ab-frames" class="input" value="30" min="1" max="10000" style="width:80px;font-size:12px"></div>
+      <button class="btn btn-acc" id="ab-run-btn" onclick="doABRun()">▶ <span class="ko">전체 실행</span><span class="en">Run All</span><span class="es">Ejecutar todo</span><span class="ja">すべて実行</span><span class="zh-CN">全部运行</span><span class="zh-TW">全部執行</span></button>
+    </div>
+  </div>
+  <div class="ab-grid cols-2" id="ab-panels" style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:12px"></div>
+  <div class="card mt16 hidden" id="ab-compare-card">
+    <h2><span class="ko">성능 비교</span><span class="en">Performance Comparison</span><span class="es">Comparación de rendimiento</span><span class="ja">パフォーマンス比較</span><span class="zh-CN">性能对比</span><span class="zh-TW">效能比較</span></h2>
+    <div class="tbl-wrap"><table id="ab-cmp-table"><thead><tr><th><span class="ko">슬롯</span><span class="en">Slot</span><span class="es">Ranura</span><span class="ja">スロット</span><span class="zh-CN">槽位</span><span class="zh-TW">插槽</span></th><th><span class="ko">모델</span><span class="en">Model</span><span class="es">Modelo</span><span class="ja">モデル</span><span class="zh-CN">模型</span><span class="zh-TW">模型</span></th><th>FPS</th><th><span class="ko">지연시간</span><span class="en">Latency</span><span class="es">Latencia</span><span class="ja">レイテンシ</span><span class="zh-CN">延迟</span><span class="zh-TW">延遲</span></th></tr></thead><tbody></tbody></table></div>
+  </div>
+</div>
+
+<!-- ═══ PAGE: ModelZoo ═══ -->
+<div id="page-modelzoo" class="page">
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+    <div>
+      <h1 style="margin-bottom:4px">📥 <span class="accent"><span class="ko">모델 저장소</span><span class="en">ModelZoo</span><span class="es">ModelZoo</span><span class="ja">ModelZoo</span><span class="zh-CN">ModelZoo</span><span class="zh-TW">ModelZoo</span></span></h1>
+      <p class="txt-dim txt-sm mb16"><span class="ko">DEEPX 모델 저장소를 탐색하세요 — 모델을 선택하고 Q-Lite / Q-Pro DXNN 파일을 직접 다운로드합니다.</span><span class="en">Browse the DEEPX ModelZoo — select models and download Q-Lite / Q-Pro DXNN files directly.</span><span class="es">Explore el DEEPX ModelZoo — seleccione modelos y descargue archivos DXNN Q-Lite / Q-Pro directamente.</span><span class="ja">DEEPX ModelZoo を閲覧 — モデルを選択し、Q-Lite / Q-Pro DXNN ファイルを直接ダウンロードします。</span><span class="zh-CN">浏览 DEEPX ModelZoo — 选择模型并直接下载 Q-Lite / Q-Pro DXNN 文件。</span><span class="zh-TW">瀏覽 DEEPX ModelZoo — 選擇模型並直接下載 Q-Lite / Q-Pro DXNN 檔案。</span></p>
+    </div>
+    <a id="mz-homepage-link" href="https://developer.deepx.ai/modelzoo/" target="_blank" rel="noopener" class="btn btn-ghost btn-sm" style="gap:4px;white-space:nowrap">🌐 <span class="ko">ModelZoo 홈페이지</span><span class="en">ModelZoo Homepage</span><span class="es">Página principal de ModelZoo</span><span class="ja">ModelZoo ホームページ</span><span class="zh-CN">ModelZoo 主页</span><span class="zh-TW">ModelZoo 首頁</span> ↗</a>
+  </div>
+
+  <!-- Source + Refresh -->
+  <div class="card" style="padding:12px 16px;margin-bottom:12px">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <div class="fg" style="margin:0;width:160px">
+        <label><span class="ko">소스</span><span class="en">Source</span><span class="es">Fuente</span><span class="ja">ソース</span><span class="zh-CN">来源</span><span class="zh-TW">來源</span></label>
+        <select id="mz-source" class="input" onchange="mzSwitchSource()" style="font-size:12px">
+          <option value="public" selected>🌐 Public</option>
+          <option value="internal">🔒 Internal (Air-gapped)</option>
+        </select>
+      </div>
+      <div style="flex:1"></div>
+      <!-- Batch select buttons -->
+      <button class="btn btn-ghost btn-sm" onclick="mzSelectAllVisible()">☑ <span class="ko">전체 선택</span><span class="en">Select All</span><span class="es">Seleccionar todo</span><span class="ja">すべて選択</span><span class="zh-CN">全选</span><span class="zh-TW">全選</span></button>
+      <button class="btn btn-ghost btn-sm" onclick="mzSelectAllNew()">🆕 <span class="ko">새 항목만</span><span class="en">New Only</span><span class="es">Solo nuevos</span><span class="ja">新規のみ</span><span class="zh-CN">仅新增项</span><span class="zh-TW">僅新增項</span></button>
+      <button class="btn btn-ghost btn-sm" onclick="mzSelectChipAll('qlite')" style="color:var(--info)"><span class="ko">Q-Lite 전체</span><span class="en">Q-Lite All</span><span class="es">Todo Q-Lite</span><span class="ja">Q-Lite すべて</span><span class="zh-CN">Q-Lite 全部</span><span class="zh-TW">Q-Lite 全部</span></button>
+      <button class="btn btn-ghost btn-sm" onclick="mzSelectChipAll('qpro')" style="color:var(--app-accent)"><span class="ko">Q-Pro 전체</span><span class="en">Q-Pro All</span><span class="es">Todo Q-Pro</span><span class="ja">Q-Pro すべて</span><span class="zh-CN">Q-Pro 全部</span><span class="zh-TW">Q-Pro 全部</span></button>
+      <button class="btn btn-ghost btn-sm" onclick="mzDeselectAll()">☐ <span class="ko">선택 해제</span><span class="en">Deselect</span><span class="es">Deseleccionar</span><span class="ja">選択解除</span><span class="zh-CN">取消选择</span><span class="zh-TW">取消選擇</span></button>
+      <button class="btn btn-ghost btn-sm" onclick="mzRefresh()" title="Refresh" data-i18n-title="Refresh">🔄</button>
+    </div>
+  </div>
+
+  <!-- Task chips -->
+  <div class="chip-bar" id="mz-task-chips"></div>
+
+  <!-- Search -->
+  <div class="search-box"><input type="text" id="mz-search" data-i18n-placeholder="Search model name…" oninput="mzSearch()"></div>
+
+  <!-- Model Table -->
+  <div class="card">
+    <div class="tbl-wrap" style="max-height:calc(100vh - 300px);min-height:400px;overflow:auto">
+      <table id="mz-table" class="mz-full-table">
+        <thead>
+          <tr>
+            <th rowspan="2" style="width:36px">☑</th>
+            <th rowspan="2"><span class="ko">작업</span><span class="en">Task</span><span class="es">Tarea</span><span class="ja">タスク</span><span class="zh-CN">任务</span><span class="zh-TW">任務</span></th>
+            <th rowspan="2"><span class="ko">이름</span><span class="en">Name</span><span class="es">Nombre</span><span class="ja">名前</span><span class="zh-CN">名称</span><span class="zh-TW">名稱</span></th>
+            <th rowspan="2"><span class="ko">클래스</span><span class="en">Class</span><span class="es">Clase</span><span class="ja">クラス</span><span class="zh-CN">类别</span><span class="zh-TW">類別</span></th>
+            <th rowspan="2"><span class="ko">데이터셋</span><span class="en">Dataset</span><span class="es">Conjunto de datos</span><span class="ja">データセット</span><span class="zh-CN">数据集</span><span class="zh-TW">資料集</span></th>
+            <th rowspan="2"><span class="ko">입력</span><span class="en">Input</span><span class="es">Entrada</span><span class="ja">入力</span><span class="zh-CN">输入</span><span class="zh-TW">輸入</span></th>
+            <th rowspan="2">Ops</th>
+            <th rowspan="2">Params</th>
+            <th rowspan="2"><span class="ko">라이선스</span><span class="en">License</span><span class="es">Licencia</span><span class="ja">ライセンス</span><span class="zh-CN">许可证</span><span class="zh-TW">授權條款</span></th>
+            <th rowspan="2"><span class="ko">메트릭</span><span class="en">Metric</span><span class="es">Métrica</span><span class="ja">メトリック</span><span class="zh-CN">指标</span><span class="zh-TW">指標</span></th>
+            <th colspan="2" style="text-align:center;border-bottom:1px solid var(--bdr)">Raw</th>
+            <th colspan="4" style="text-align:center;border-bottom:1px solid var(--bdr);background:#182640">Q-Lite</th>
+            <th colspan="4" style="text-align:center;border-bottom:1px solid var(--bdr);background:#202440">Q-Pro</th>
+            <th colspan="2" style="text-align:center;border-bottom:1px solid var(--bdr)">Performance</th>
+          </tr>
+          <tr>
+            <th><span class="ko">정확도</span><span class="en">Accuracy</span><span class="es">Precisión</span><span class="ja">精度</span><span class="zh-CN">准确率</span><span class="zh-TW">準確率</span></th>
+            <th>ONNX</th>
+            <th style="background:#17233a">Acc</th>
+            <th style="background:#17233a">DXNN</th>
+            <th style="background:#17233a">JSON</th>
+            <th style="background:#17233a">DL</th>
+            <th style="background:#1c213a">Acc</th>
+            <th style="background:#1c213a">DXNN</th>
+            <th style="background:#1c213a">JSON</th>
+            <th style="background:#1c213a">DL</th>
+            <th>FPS</th>
+            <th>FPS/W</th>
+          </tr>
+        </thead>
+        <tbody id="mz-tbody"></tbody>
+      </table>
+    </div>
+    <div class="txt-sm txt-dim mt8" id="mz-count"></div>
+  </div>
+
+  <!-- Download Progress -->
+  <div class="card" id="mz-progress" style="display:none"></div>
+
+  <!-- Cart (Sticky Bottom) -->
+  <div class="mz-cart-bar" id="mz-cart" style="display:none"></div>
+</div>
+
+<!-- ═══ PAGE: Lab ═══ -->
+<div id="page-lab" class="page">
+  <h1>🧪 <span class="accent"><span class="ko">실험실</span><span class="en">Lab</span><span class="es">Laboratorio</span><span class="ja">ラボ</span><span class="zh-CN">实验室</span><span class="zh-TW">實驗室</span></span></h1>
+  <p class="txt-dim txt-sm mb16"><span class="ko">모델·작업 확장, 실험 실행, 안전한 변경 미리보기를 한 곳에서 관리합니다.</span><span class="en">Manage model/task extensions, experiments, and safe change previews in one place.</span><span class="es">Gestione extensiones de modelos y tareas, experimentos y vistas previas seguras de cambios en un solo lugar.</span><span class="ja">モデル・タスク拡張、実験、安全な変更プレビューを一か所で管理します。</span><span class="zh-CN">在一处管理模型/任务扩展、实验和安全变更预览。</span><span class="zh-TW">在一處管理模型/任務擴充、實驗和安全變更預覽。</span></p>
+  <div class="lab-status lab-status-info mb12" id="lab-status"><span class="ko">Lab 세션 준비 중</span><span class="en">Preparing Lab session</span><span class="es">Preparando sesión de laboratorio</span><span class="ja">Lab セッション準備中</span><span class="zh-CN">正在准备 Lab 会话</span><span class="zh-TW">正在準備 Lab 工作階段</span></div>
+  <div class="grid" id="lab-home" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px">
+    <button class="card lab-card" id="lab-card-add-model" data-lab-flow="add-model" type="button">
+      <strong>➕ <span class="ko">모델 추가</span><span class="en">Add Model</span><span class="es">Agregar modelo</span><span class="ja">モデルを追加</span><span class="zh-CN">添加模型</span><span class="zh-TW">新增模型</span></strong>
+      <span class="txt-dim txt-sm"><span class="ko">매니페스트 미리보기 후 적용</span><span class="en">Preview manifest before applying</span><span class="es">Vista previa del manifiesto antes de aplicar</span><span class="ja">適用前にマニフェストをプレビュー</span><span class="zh-CN">应用前预览清单</span><span class="zh-TW">套用前預覽資訊清單</span></span>
+    </button>
+    <button class="card lab-card" id="lab-card-create-task" data-lab-flow="create-task" type="button">
+      <strong>🦴 <span class="ko">작업 생성</span><span class="en">Create Task</span><span class="es">Crear tarea</span><span class="ja">タスク作成</span><span class="zh-CN">创建任务</span><span class="zh-TW">建立任務</span></strong>
+      <span class="txt-dim txt-sm"><span class="ko">새 작업 유형 스켈레톤 생성</span><span class="en">Generate a new task skeleton</span><span class="es">Generar un esqueleto de tarea nuevo</span><span class="ja">新しいタスクスケルトンを生成</span><span class="zh-CN">生成新的任务骨架</span><span class="zh-TW">產生新的任務骨架</span></span>
+    </button>
+    <button class="card lab-card" id="lab-card-experiment" data-lab-flow="experiment" type="button">
+      <strong>🧬 <span class="ko">실험 실행</span><span class="en">Experiment</span><span class="es">Experiment</span><span class="ja">実験</span><span class="zh-CN">实验</span><span class="zh-TW">實驗</span></strong>
+      <span class="txt-dim txt-sm"><span class="ko">DXNN 실험 파이프라인 실행</span><span class="en">Run DXNN experiment pipeline</span><span class="es">Ejecutar pipeline de experimentos DXNN</span><span class="ja">DXNN 実験パイプラインを実行</span><span class="zh-CN">运行 DXNN 实验流水线</span><span class="zh-TW">執行 DXNN 實驗管線</span></span>
+    </button>
+    <button class="card lab-card" id="lab-card-generated" data-lab-flow="generated" type="button">
+      <strong>📄 <span class="ko">생성 파일</span><span class="en">Generated Files</span><span class="es">Archivos generados</span><span class="ja">生成ファイル</span><span class="zh-CN">生成的文件</span><span class="zh-TW">產生的檔案</span></strong>
+      <span class="txt-dim txt-sm"><span class="ko">생성된 산출물 확인</span><span class="en">Review generated artifacts</span><span class="es">Revisar artefactos generados</span><span class="ja">生成された成果物を確認</span><span class="zh-CN">查看生成的产物</span><span class="zh-TW">檢閱產生的產出物</span></span>
+    </button>
+    <button class="card lab-card" id="lab-card-safety" data-lab-flow="safety" type="button">
+      <strong>🛡️ <span class="ko">안전 센터</span><span class="en">Safety Center</span><span class="es">Centro de seguridad</span><span class="ja">安全センター</span><span class="zh-CN">安全中心</span><span class="zh-TW">安全中心</span></strong>
+      <span class="txt-dim txt-sm"><span class="ko">변경 계획과 롤백 안내 확인</span><span class="en">Inspect change plans and rollback guidance</span><span class="es">Inspeccione planes de cambio y guía de reversión</span><span class="ja">変更計画とロールバックガイドを確認</span><span class="zh-CN">检查变更计划和回滚指引</span><span class="zh-TW">檢查變更計畫和復原指引</span></span>
+    </button>
+  </div>
+  <div class="card mt16">
+    <div id="lab-flow-root" class="lab-flow-root"></div>
+  </div>
+  <div class="card mt16" id="lab-advanced-tools">
+    <h2>🧰 <span class="ko">고급 도구</span><span class="en">Advanced Tools</span><span class="es">Herramientas avanzadas</span><span class="ja">高度なツール</span><span class="zh-CN">高级工具</span><span class="zh-TW">進階工具</span></h2>
+    <div id="dev-main-sec">
+      <div class="dev-tabs">
+        <button class="dev-tab active" onclick="devTab(this,'dev-add')"><span class="ko">모델 추가</span><span class="en">Add Model</span><span class="es">Agregar modelo</span><span class="ja">モデルを追加</span><span class="zh-CN">添加模型</span><span class="zh-TW">新增模型</span></button>
+        <button class="dev-tab" onclick="devTab(this,'dev-del')"><span class="ko">모델 삭제</span><span class="en">Delete Model</span><span class="es">Eliminar modelo</span><span class="ja">モデルを削除</span><span class="zh-CN">删除模型</span><span class="zh-TW">刪除模型</span></button>
+        <button class="dev-tab" onclick="devTab(this,'dev-skel')"><span class="ko">스켈레톤</span><span class="en">Skeleton</span><span class="es">Esqueleto</span><span class="ja">スケルトン</span><span class="zh-CN">骨架</span><span class="zh-TW">骨架</span></button>
+        <button class="dev-tab" onclick="devTab(this,'dev-git')"><span class="ko">Git 커밋</span><span class="en">Git Commit</span><span class="es">Commit de Git</span><span class="ja">Git コミット</span><span class="zh-CN">Git 提交</span><span class="zh-TW">Git 提交</span></button>
+        <button class="dev-tab" onclick="devTab(this,'dev-ext')"><span class="ko">패키지 추출</span><span class="en">Extract Pkg</span><span class="es">Extraer paquete</span><span class="ja">パッケージ抽出</span><span class="zh-CN">提取包</span><span class="zh-TW">擷取套件</span></button>
+      </div>
+      <div class="dev-panel active" id="dev-add">
+        <div class="grid2" style="gap:10px">
+          <div class="fg"><label for="da-name"><span class="ko">모델 이름</span><span class="en">Model Name</span><span class="es">Nombre del modelo</span><span class="ja">モデル名</span><span class="zh-CN">模型名称</span><span class="zh-TW">模型名稱</span></label><input type="text" id="da-name" data-i18n-placeholder="e.g. yolov8n_custom"></div>
+          <div class="fg"><label for="da-task"><span class="ko">작업 유형</span><span class="en">Task Type</span><span class="es">Tipo de tarea</span><span class="ja">タスクタイプ</span><span class="zh-CN">任务类型</span><span class="zh-TW">任務類型</span></label><select id="da-task" onchange="_devUpdatePP(this.value)"></select></div>
+          <div class="fg"><label for="da-lang"><span class="ko">출력 언어</span><span class="en">Output Language</span><span class="es">Idioma de salida</span><span class="ja">出力言語</span><span class="zh-CN">输出语言</span><span class="zh-TW">輸出語言</span></label><select id="da-lang"><option value="both">Both</option><option value="cpp">C++</option><option value="python">Python</option></select></div>
+          <div class="fg"><label for="da-pp"><span class="ko">후처리기</span><span class="en">Postprocessor</span><span class="es">Post-procesador</span><span class="ja">後処理</span><span class="zh-CN">后处理器</span><span class="zh-TW">後處理器</span></label><select id="da-pp"></select></div>
+        </div>
+        <label style="font-size:12px;color:var(--dim);display:flex;align-items:center;gap:6px;margin:8px 0">
+          <input type="checkbox" id="da-sync"> <span class="ko">동기 전용</span><span class="en">Sync only</span><span class="es">Solo síncrono</span><span class="ja">同期のみ</span><span class="zh-CN">仅同步</span><span class="zh-TW">僅同步</span>
+        </label>
+        <button class="btn btn-acc mt8" onclick="devAddModel()">➕ <span class="ko">모델 추가</span><span class="en">Add Model</span><span class="es">Agregar modelo</span><span class="ja">モデルを追加</span><span class="zh-CN">添加模型</span><span class="zh-TW">新增模型</span></button>
+        <div class="code mt8 hidden" id="da-out"></div>
+      </div>
+      <div class="dev-panel" id="dev-del">
+        <div class="grid2" style="gap:10px;margin-bottom:8px">
+          <div class="fg" style="margin:0"><label for="dd-cat"><span class="ko">카테고리</span><span class="en">Category</span><span class="es">Categoría</span><span class="ja">カテゴリ</span><span class="zh-CN">类别</span><span class="zh-TW">類別</span></label><select id="dd-cat" class="input" onchange="filterDelModels()"><option value="">All Categories</option></select></div>
+          <div class="fg" style="margin:0"><label for="dd-search"><span class="ko">검색</span><span class="en">Search</span><span class="es">Buscar</span><span class="ja">検索</span><span class="zh-CN">搜索</span><span class="zh-TW">搜尋</span></label><input type="text" id="dd-search" class="input" data-i18n-placeholder="Search model name…" oninput="filterDelModels()"></div>
+        </div>
+        <div class="fg"><label for="dd-model-sel"><span class="ko">모델 선택</span><span class="en">Select Model</span><span class="es">Seleccionar modelo</span><span class="ja">モデルを選択</span><span class="zh-CN">选择模型</span><span class="zh-TW">選擇模型</span></label>
+          <select id="dd-model-sel" class="input" style="margin-bottom:6px" onchange="if(this.value)$('dd-name').value=this.value"><option value="">— Select existing model —</option></select>
+          <input type="text" id="dd-name" data-i18n-placeholder="or type model name manually">
+        </div>
+        <div class="fg"><label for="dd-lang"><span class="ko">코드 언어</span><span class="en">Code Language</span><span class="es">Lenguaje de código</span><span class="ja">コード言語</span><span class="zh-CN">代码语言</span><span class="zh-TW">程式語言</span></label><select id="dd-lang" class="input"><option value="both">Both (C++ &amp; Python)</option><option value="cpp">C++ only</option><option value="python">Python only</option></select></div>
+        <div style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:8px;padding:10px;margin:8px 0;font-size:12px;color:var(--error)">⚠️ <span class="ko">디스크에서 모델 소스 파일이 영구적으로 삭제됩니다.</span><span class="en">This will permanently delete model source files from disk.</span><span class="es">Esto eliminará permanentemente los archivos fuente del modelo del disco.</span><span class="ja">ディスクからモデルソースファイルが完全に削除されます。</span><span class="zh-CN">这将从磁盘永久删除模型源文件。</span><span class="zh-TW">這將從磁碟永久刪除模型原始檔案。</span>
+        </div>
+        <button class="btn btn-red mt8" onclick="devDelModel()">🗑️ <span class="ko">모델 삭제</span><span class="en">Delete Model</span><span class="es">Eliminar modelo</span><span class="ja">モデルを削除</span><span class="zh-CN">删除模型</span><span class="zh-TW">刪除模型</span></button>
+        <div class="code mt8 hidden" id="dd-out"></div>
+      </div>
+      <div class="dev-panel" id="dev-skel">
+        <p class="txt-dim txt-sm mb8"><span class="ko">새 작업 유형에 대한 스켈레톤 코드 (Factory, Postprocessor, Visualizer, Runner)를 자동 생성합니다.<br>기존 작업에 모델을 추가하려면 <strong>모델 추가</strong> 탭을 사용하세요.</span><span class="en">Auto-generate skeleton code (Factory, Postprocessor, Visualizer, Runner) for a new task type.<br>To add a model to an existing task, use the <strong>Add Model</strong> tab.</span><span class="es">Generación automática de código esqueleto (Factory, Postprocessor, Visualizer, Runner) para un nuevo tipo de tarea.<br>Para añadir un modelo a una tarea existente, use la pestaña <strong>Añadir modelo</strong>.</span><span class="ja">新しいタスクタイプのスケルトンコード (Factory, Postprocessor, Visualizer, Runner) を自動生成します。<br>既存タスクにモデルを追加するには<strong>モデル追加</strong>タブを使用してください。</span><span class="zh-CN">为新任务类型自动生成骨架代码 (Factory, Postprocessor, Visualizer, Runner)。<br>要向现有任务添加模型，请使用<strong>添加模型</strong>选项卡。</span><span class="zh-TW">為新任務類型自動產生骨架程式碼 (Factory, Postprocessor, Visualizer, Runner)。<br>要將模型新增至現有任務，請使用<strong>新增模型</strong>分頁。</span></p>
+        <div class="grid2" style="gap:10px">
+          <div class="fg"><label for="ds-name"><span class="ko">작업 이름</span><span class="en">Task Name</span><span class="es">Nombre de tarea</span><span class="ja">タスク名</span><span class="zh-CN">任务名称</span><span class="zh-TW">任務名稱</span></label><input type="text" id="ds-name" data-i18n-placeholder="e.g. 3d_reconstruction"></div>
+          <div class="fg"><label for="ds-lang"><span class="ko">출력 언어</span><span class="en">Output Language</span><span class="es">Idioma de salida</span><span class="ja">出力言語</span><span class="zh-CN">输出语言</span><span class="zh-TW">輸出語言</span></label><select id="ds-lang"><option value="both">Both (C++ &amp; Python)</option><option value="cpp">C++ only</option><option value="python">Python only</option></select></div>
+        </div>
+        <p class="txt-dim txt-sm mt8"><span class="ko">생성할 파일: Factory 인터페이스, Postprocessor, Visualizer, Sync/Async Runner (C++), Postprocessor/Visualizer (Python)</span><span class="en">Files to generate: Factory interface, Postprocessor, Visualizer, Sync/Async Runner (C++), Postprocessor/Visualizer (Python)</span><span class="es">Archivos a generar: interfaz Factory, Postprocessor, Visualizer, Runner Sync/Async (C++), Postprocessor/Visualizer (Python)</span><span class="ja">生成するファイル: Factory インターフェース、Postprocessor、Visualizer、Sync/Async Runner (C++)、Postprocessor/Visualizer (Python)</span><span class="zh-CN">要生成的文件：Factory 接口、Postprocessor、Visualizer、Sync/Async Runner (C++)、Postprocessor/Visualizer (Python)</span><span class="zh-TW">要產生的檔案：Factory 介面、Postprocessor、Visualizer、Sync/Async Runner (C++)、Postprocessor/Visualizer (Python)</span></p>
+        <button class="btn btn-acc mt8" onclick="devNewTask()">🦴 <span class="ko">스켈레톤 생성</span><span class="en">Create Skeleton</span><span class="es">Crear esqueleto</span><span class="ja">スケルトン作成</span><span class="zh-CN">创建骨架</span><span class="zh-TW">建立骨架</span></button>
+        <div class="code mt8 hidden" id="ds-out" style="max-height:250px;overflow:auto"></div>
+      </div>
+      <div class="dev-panel" id="dev-git">
+        <div class="fg"><label for="dg-msg"><span class="ko">커밋 메시지</span><span class="en">Commit Message</span><span class="es">Mensaje de commit</span><span class="ja">コミットメッセージ</span><span class="zh-CN">提交信息</span><span class="zh-TW">提交訊息</span></label><input type="text" id="dg-msg" data-i18n-placeholder="chore: update"></div>
+        <label style="font-size:12px;color:var(--dim);display:flex;align-items:center;gap:6px;margin:8px 0">
+          <input type="checkbox" id="dg-push"> <span class="ko">커밋 후 푸시</span><span class="en">Push after commit</span><span class="es">Push después de confirmar</span><span class="ja">コミット後にプッシュ</span><span class="zh-CN">提交后推送</span><span class="zh-TW">提交後推送</span>
+        </label>
+        <button class="btn btn-blue mt8" onclick="devGitCommit()">📝 <span class="ko">커밋</span><span class="en">Commit</span><span class="es">Confirmar</span><span class="ja">コミット</span><span class="zh-CN">提交</span><span class="zh-TW">提交</span></button>
+        <div class="code mt8 hidden" id="dg-out"></div>
+      </div>
+      <div class="dev-panel" id="dev-ext">
+        <div class="grid2" style="gap:10px;margin-bottom:8px">
+          <div class="fg" style="margin:0"><label for="de-cat"><span class="ko">카테고리</span><span class="en">Category</span><span class="es">Categoría</span><span class="ja">カテゴリ</span><span class="zh-CN">类别</span><span class="zh-TW">類別</span></label><select id="de-cat" class="input" onchange="filterExtModels()"><option value="">All Categories</option></select></div>
+          <div class="fg" style="margin:0"><label for="de-search"><span class="ko">검색</span><span class="en">Search</span><span class="es">Buscar</span><span class="ja">検索</span><span class="zh-CN">搜索</span><span class="zh-TW">搜尋</span></label><input type="text" id="de-search" class="input" data-i18n-placeholder="Search model name…" oninput="filterExtModels()"></div>
+        </div>
+        <div class="fg"><label for="de-model-sel"><span class="ko">모델 선택</span><span class="en">Select Model</span><span class="es">Seleccionar modelo</span><span class="ja">モデルを選択</span><span class="zh-CN">选择模型</span><span class="zh-TW">選擇模型</span></label>
+          <select id="de-model-sel" class="input" style="margin-bottom:6px" onchange="if(this.value)$('de-path').value=this.value"><option value="">— Select model —</option></select>
+          <input type="text" id="de-path" data-i18n-placeholder="or category/model_name (e.g. object_detection/yolov8n)">
+        </div>
+        <div class="fg"><label for="de-lang"><span class="ko">출력 언어</span><span class="en">Output Language</span><span class="es">Idioma de salida</span><span class="ja">出力言語</span><span class="zh-CN">输出语言</span><span class="zh-TW">輸出語言</span></label><select id="de-lang" class="input"><option value="both">Both (C++ &amp; Python)</option><option value="cpp">C++ only</option><option value="python">Python only</option></select></div>
+        <p class="txt-dim txt-sm mt8"><span class="ko">패키지는 <code>outputs/</code> 디렉토리에 저장됩니다. Outputs 페이지에서 다운로드하세요.</span><span class="en">Packages are saved to <code>outputs/</code> directory. Use the Outputs page to download.</span><span class="es">Los paquetes se guardan en el directorio <code>outputs/</code>. Use la página Salidas para descargarlos.</span><span class="ja">パッケージは <code>outputs/</code> ディレクトリに保存されます。Outputs ページからダウンロードしてください。</span><span class="zh-CN">包保存在 <code>outputs/</code> 目录中。请使用 Outputs 页面下载。</span><span class="zh-TW">套件儲存在 <code>outputs/</code> 目錄中。請使用 Outputs 頁面下載。</span></p>
+        <button class="btn btn-acc mt8" onclick="devExtract()">📦 <span class="ko">패키지 추출</span><span class="en">Extract Package</span><span class="es">Extraer paquete</span><span class="ja">パッケージ抽出</span><span class="zh-CN">提取包</span><span class="zh-TW">擷取套件</span></button>
+        <div class="code mt8 hidden" id="de-out"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ PAGE: Outputs ═══ -->
+<div id="page-outputs" class="page">
+  <h1>📁 <span class="accent"><span class="ko">출력물</span><span class="en">Outputs</span><span class="es">Salidas</span><span class="ja">出力</span><span class="zh-CN">输出</span><span class="zh-TW">輸出</span></span></h1>
+  <!-- Toolbar: filters + view toggle -->
+  <div class="out-toolbar">
+    <div id="out-filters" class="out-filters"></div>
+    <div class="out-view-toggle">
+      <button class="out-view-btn active" data-view="grid" onclick="setOutView('grid')" title="Grid view" data-i18n-title="Grid view">▦</button>
+      <button class="out-view-btn" data-view="table" onclick="setOutView('table')" title="Table view" data-i18n-title="Table view">☰</button>
+    </div>
+  </div>
+  <!-- Gallery grid -->
+  <div id="out-gallery" class="gal-grid"></div>
+  <!-- Table (hidden by default) -->
+  <div class="card" style="display:none">
+    <div class="tbl-wrap">
+      <table id="out-table" style="display:none"><thead><tr><th><span class="ko">파일</span><span class="en">File</span><span class="es">Archivo</span><span class="ja">ファイル</span><span class="zh-CN">文件</span><span class="zh-TW">檔案</span></th><th><span class="ko">크기</span><span class="en">Size</span><span class="es">Tamaño</span><span class="ja">サイズ</span><span class="zh-CN">大小</span><span class="zh-TW">大小</span></th><th><span class="ko">수정일</span><span class="en">Modified</span><span class="es">Modificado</span><span class="ja">更新日時</span><span class="zh-CN">修改日期</span><span class="zh-TW">修改日期</span></th><th></th></tr></thead><tbody></tbody></table>
+    </div>
+  </div>
+  <p class="txt-dim txt-sm mt8" id="out-empty"><span class="ko">아직 출력 파일이 없습니다.</span><span class="en">No output files yet.</span><span class="es">Sin archivos de salida aún.</span><span class="ja">出力ファイルはまだありません。</span><span class="zh-CN">尚无输出文件。</span><span class="zh-TW">尚無輸出檔案。</span></p>
+</div>
+
+<!-- Lightbox dialog -->
+<dialog id="gallery-lightbox" class="lb-dialog" onclick="if(event.target===this)closeLightbox()">
+  <div class="lb-content">
+    <div class="lb-header">
+      <span id="lb-title" class="lb-title"></span>
+      <div class="lb-header-actions">
+        <button id="lb-compare" class="btn btn-sm btn-ghost" style="display:none">⚖️ Compare</button>
+        <a id="lb-download" class="btn btn-sm btn-ghost" href="#" download>⬇ <span class="ko">다운로드</span><span class="en">Download</span><span class="es">Descargar</span><span class="ja">ダウンロード</span><span class="zh-CN">下载</span><span class="zh-TW">下載</span></a>
+        <button class="btn btn-sm btn-ghost" onclick="closeLightbox()">✕</button>
+      </div>
+    </div>
+    <div id="lb-body" class="lb-body"></div>
+  </div>
+</dialog>
+
+<!-- Before/After compare dialog -->
+<dialog id="compare-dialog" class="lb-dialog" onclick="if(event.target===this)closeCompare()">
+  <div class="lb-content cmp-content">
+    <div class="lb-header">
+      <span id="cmp-title" class="lb-title"></span>
+      <button class="btn btn-sm btn-ghost" onclick="closeCompare()">✕</button>
+    </div>
+    <div id="cmp-wrap" class="cmp-wrap" style="--split:50%">
+      <img id="cmp-after" class="cmp-img cmp-after" src="" alt="After">
+      <div class="cmp-before-clip"><img id="cmp-before" class="cmp-img" src="" alt="Before"></div>
+      <div class="cmp-handle"></div>
+      <span class="cmp-label cmp-label-before"><span class="ko">이전</span><span class="en">Before</span><span class="es">Antes</span><span class="ja">変更前</span><span class="zh-CN">变更前</span><span class="zh-TW">變更前</span></span>
+      <span class="cmp-label cmp-label-after"><span class="ko">이후</span><span class="en">After</span><span class="es">Después</span><span class="ja">変更後</span><span class="zh-CN">变更后</span><span class="zh-TW">變更後</span></span>
+    </div>
+    <input id="cmp-slider" type="range" min="0" max="100" value="50" class="cmp-slider" oninput="_updateCompareSlider(this.value)">
+  </div>
+</dialog>
+
+<!-- ═══ PAGE: Reference Docs v2.0 ═══ -->
+<div id="page-reference" class="page">
+  <h1>📖 <span class="accent"><span class="ko">레퍼런스</span><span class="en">Reference</span><span class="es">Referencia</span><span class="ja">リファレンス</span><span class="zh-CN">参考</span><span class="zh-TW">參考</span></span></h1>
+  <p class="txt-dim txt-sm mb16"><span class="ko">DX-APP 기능별 상세 가이드 · 파라미터 · 워크플로우 · 팁을 한 곳에서 확인하세요.</span><span class="en">Detailed guides, parameters, workflows, and tips for each DX-APP feature — all in one place.</span><span class="es">Guías detalladas, parámetros, flujos de trabajo y consejos para cada característica de DX-APP — todo en un solo lugar.</span><span class="ja">DX-APP の各機能の詳細ガイド・パラメータ・ワークフロー・ヒントをすべて一か所で確認できます。</span><span class="zh-CN">DX-APP 各功能的详细指南、参数、工作流和提示 — 一站式查阅。</span><span class="zh-TW">DX-APP 各功能的詳細指南、參數、工作流程和提示 — 一站式查閱。</span></p>
+  <div class="ref-layout" id="ref-layout">
+    <div class="ref-toolbar card">
+      <div class="ref-search-bar"><div class="ref-search-wrap"><span class="ref-search-icon">🔍</span><input class="ref-search" id="ref-search" type="text" data-i18n-placeholder="Search documentation..."></div></div>
+      <div class="chip-bar" id="ref-filter-bar"></div>
+    </div>
+    <div class="ref-grid" id="ref-content"></div>
+  </div>
+</div>
+</main><!-- /main -->
+</div><!-- /content-wrap -->
+</div><!-- /app -->
+
+<!-- ═══ MODAL: Detail / Code viewer ═══ -->
+<dialog class="modal-overlay" id="modal-detail">
+  <div class="modal modal-lg">
+    <button class="modal-x" onclick="closeModal('modal-detail')">&times;</button>
+    <h2 id="md-title"><span class="ko">상세</span><span class="en">Detail</span><span class="es">Detalle</span><span class="ja">詳細</span><span class="zh-CN">详情</span><span class="zh-TW">詳細資訊</span></h2>
+    <div id="md-body"></div>
+  </div>
+</dialog>
+
+<!-- ═══ MODAL: Image preview ═══ -->
+<dialog class="modal-overlay" id="modal-imgpreview">
+  <div style="position:relative;display:inline-block">
+    <button class="modal-x" onclick="closeModal('modal-imgpreview')" style="position:absolute;top:-12px;right:-12px;z-index:10;background:var(--s1);border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center">&times;</button>
+    <img id="img-preview" alt="Preview" style="max-width:92vw;max-height:90vh;border-radius:8px;box-shadow:var(--sh)">
+  </div>
+</dialog>
+
+<!-- File Browser Modal -->
+<dialog class="modal-overlay" id="modal-fb">
+  <div class="modal" style="width:860px;max-width:96vw">
+    <button class="modal-x" onclick="fbClose()">&times;</button>
+    <h2 id="fb-title">📂 <span class="ko">파일 선택</span><span class="en">Select File</span><span class="es">Seleccionar archivo</span><span class="ja">ファイルを選択</span><span class="zh-CN">选择文件</span><span class="zh-TW">選擇檔案</span></h2>
+    <div class="fb-breadcrumb" id="fb-breadcrumb"></div>
+    <div class="fb-list" id="fb-list"></div>
+    <div class="fb-footer" style="flex-direction:column;align-items:stretch;gap:6px">
+      <div style="position:relative">
+        <input class="fb-cur-path" id="fb-cur-path" data-i18n-placeholder="Type a path or click to browse  (Tab = autocomplete)" autocomplete="off" spellcheck="false"
+          oninput="fbPathInput(this.value)" onkeydown="fbPathKeydown(event)">
+        <div id="fb-ac-list" style="display:none;position:absolute;bottom:100%;left:0;right:0;max-height:180px;overflow-y:auto;background:var(--s2);border:1px solid var(--bdr);border-radius:6px 6px 0 0;z-index:10;font-size:12px"></div>
+      </div>
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-primary btn-sm" onclick="fbConfirm()">✅ <span class="ko">선택</span><span class="en">Select</span><span class="es">Seleccionar</span><span class="ja">選択</span><span class="zh-CN">选择</span><span class="zh-TW">選擇</span></button>
+        <button class="btn btn-ghost btn-sm" onclick="fbClose()"><span class="ko">취소</span><span class="en">Cancel</span><span class="es">Cancelar</span><span class="ja">キャンセル</span><span class="zh-CN">取消</span><span class="zh-TW">取消</span></button>
+      </div>
+    </div>
+  </div>
+</dialog>
+
+<!-- ═══ Toast container ═══ -->
+<div class="toast-wrap" id="toast-wrap"></div>
+<!-- Notification Drawer -->
+<div class="notif-drawer" id="notif-drawer">
+  <div class="notif-header"><h3>🔔 <span data-i18n="Notifications">Notifications</span></h3><div style="display:flex;gap:8px"><button class="btn btn-sm btn-ghost" onclick="clearNotifHistory()" data-i18n="Clear">Clear</button><button class="btn btn-sm btn-ghost" onclick="toggleNotifDrawer()">✕</button></div></div>
+  <div class="notif-list" id="notif-list"><p class="txt-dim" style="padding:16px;text-align:center" data-i18n="No notifications yet">No notifications yet</p></div>
+</div>
+<script src="/static/js/i18n.js?m=dx_app"></script>
+<script src="/static/shared/i18n.js"></script>
+<script src="/static/shared/brand.js"></script>
+<script>
+DXBrand.mount({
+  target: '#dxBrand',
+  name: 'App',
+  subtitle: {
+    ko: '모델 예제 실행',
+    en: 'Model Demo Runner',
+    es: 'Ejecutor de demos de modelos',
+    ja: 'モデルデモランナー',
+    'zh-CN': '模型演示运行器',
+    'zh-TW': '模型示範執行器'
+  },
+  accent: 'var(--accent)',
+  homeHref: '/'
+});
+</script>
+<script src="/static/shared/toolbar.js"></script>
+<script>DXToolbar.init({ container: '.toolbar', onSettings: function(){ nav('setup'); } });</script>
+<script src="/static/js/utils.js?m=dx_app"></script>
+<script src="/static/js/lang-refresh.js?m=dx_app"></script>
+<script src="/static/shared/vendor/chart.umd.min.js"></script>
+<script src="/static/shared/dx-charts.js"></script>
+<script src="/static/js/charts.js?m=dx_app"></script>
+<script src="/static/js/models.js?m=dx_app"></script>
+<script src="/static/js/inference.js?m=dx_app"></script>
+<script src="/static/js/benchmark.js?m=dx_app"></script>
+<script src="/static/js/compare.js?m=dx_app"></script>
+<script src="/static/js/modelzoo.js?m=dx_app"></script>
+<script src="/static/js/pipeline.js?m=dx_app"></script>
+<script src="/static/js/outputs.js?m=dx_app"></script>
+<script src="/static/js/planner.js?m=dx_app"></script>
+<script src="/static/js/developer.js?m=dx_app"></script>
+<script src="/static/js/lab-portal.js?m=dx_app"></script>
+<script src="/static/js/setup.js?m=dx_app"></script>
+<script src="/static/js/filebrowser.js?m=dx_app"></script>
+<script src="/static/js/app.js?m=dx_app"></script>
+<script src="/static/js/reference.js?m=dx_app"></script>
+<script src="/static/shared/tutorial-engine.js"></script>
+<script src="/static/shared/tutorial-init.js"></script>
+<script src="/static/js/tutorial.js?m=dx_app"></script>
+<dialog class="modal-overlay" id="modal-comptest">
+  <div class="modal" style="width:700px;max-width:96vw">
+    <div class="modal-hd">
+      <span>🧪 <span class="ko">테스트 실행 — 파이프라인 선택</span><span class="en">Test Run — Select Pipeline</span><span class="es">Ejecución de prueba — Seleccionar pipeline</span><span class="ja">テスト実行 — パイプライン選択</span><span class="zh-CN">测试运行 — 选择流水线</span><span class="zh-TW">測試執行 — 選擇管線</span></span>
+      <button class="modal-x" onclick="ctClose()">✕</button>
+    </div>
+    <div class="modal-bd" style="gap:14px;padding:18px">
+      <!-- Config panel -->
+      <div id="ct-cfg">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+          <div class="fg">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+              <label class="lbl" style="margin:0"><span class="ko">카테고리</span><span class="en">Category</span><span class="es">Categoría</span><span class="ja">カテゴリ</span><span class="zh-CN">类别</span><span class="zh-TW">類別</span></label>
+              <button class="btn btn-ghost" style="padding:0 6px;height:22px;font-size:11px;border-radius:4px" onclick="ctToggleRef()" title="View pipeline reference table" data-i18n-title="View pipeline reference table">❓</button>
+            </div>
+            <select class="input" id="ct-cat" onchange="ctOnCatChange()"></select>
+          </div>
+          <div class="fg"><label class="lbl"><span class="ko">전처리기</span><span class="en">Preprocessor</span><span class="es">Pre-procesador</span><span class="ja">前処理</span><span class="zh-CN">预处理器</span><span class="zh-TW">前處理器</span></label>
+            <select class="input" id="ct-pre"></select>
+          </div>
+          <div class="fg"><label class="lbl"><span class="ko">후처리기</span><span class="en">Postprocessor</span><span class="es">Post-procesador</span><span class="ja">後処理</span><span class="zh-CN">后处理器</span><span class="zh-TW">後處理器</span></label>
+            <select class="input" id="ct-post" onchange="ctOnPostChange()"></select>
+          </div>
+          <div class="fg"><label class="lbl"><span class="ko">시각화기</span><span class="en">Visualizer</span><span class="es">Visualizador</span><span class="ja">ビジュアライザ</span><span class="zh-CN">可视化器</span><span class="zh-TW">視覺化器</span></label>
+            <select class="input" id="ct-vis"></select>
+          </div>
+        </div>
+        <!-- ❓ Reference table -->
+        <div id="ct-ref" style="display:none;margin-bottom:14px;border:1px solid var(--bdr);border-radius:8px;overflow:hidden">
+          <div style="padding:8px 12px;background:var(--bg2);font-size:11px;font-weight:700;display:flex;justify-content:space-between;align-items:center">
+            <span>📋 <span class="ko">카테고리별 권장 파이프라인</span><span class="en">Recommended Pipelines by Category</span><span class="es">Pipelines recomendados por categoría</span><span class="ja">カテゴリ別の推奨パイプライン</span><span class="zh-CN">按类别推荐的流水线</span><span class="zh-TW">依類別推薦的管線</span></span>
+            <button class="btn btn-ghost" style="padding:0 6px;height:20px;font-size:10px" onclick="ctToggleRef()">✕</button>
+          </div>
+          <div style="max-height:260px;overflow-y:auto">
+            <table style="width:100%;border-collapse:collapse;font-size:11px">
+              <thead><tr style="background:var(--bg3);position:sticky;top:0">
+                <th style="padding:5px 10px;text-align:left;color:var(--dim);font-weight:600"><span class="ko">카테고리</span><span class="en">Category</span><span class="es">Categoría</span><span class="ja">カテゴリ</span><span class="zh-CN">类别</span><span class="zh-TW">類別</span></th>
+                <th style="padding:5px 10px;text-align:left;color:var(--dim);font-weight:600"><span class="ko">전처리기</span><span class="en">Preprocessor</span><span class="es">Pre-procesador</span><span class="ja">前処理</span><span class="zh-CN">预处理器</span><span class="zh-TW">前處理器</span></th>
+                <th style="padding:5px 10px;text-align:left;color:var(--dim);font-weight:600"><span class="ko">후처리기</span><span class="en">Postprocessor</span><span class="es">Post-procesador</span><span class="ja">後処理</span><span class="zh-CN">后处理器</span><span class="zh-TW">後處理器</span></th>
+                <th style="padding:5px 10px;text-align:left;color:var(--dim);font-weight:600"><span class="ko">시각화기</span><span class="en">Visualizer</span><span class="es">Visualizador</span><span class="ja">ビジュアライザ</span><span class="zh-CN">可视化器</span><span class="zh-TW">視覺化器</span></th>
+              </tr></thead>
+              <tbody id="ct-ref-body"></tbody>
+            </table>
+          </div>
+          <div style="padding:6px 12px 8px;background:var(--bg2);border-top:1px solid var(--bdr);font-size:10px;color:var(--dim)">
+            💡 <b>Letterbox</b>: preserves aspect ratio (recommended for Detection/Pose) &nbsp;|&nbsp; <b>SimpleResize</b>: simple resize (Seg/Depth/Enhancement) &nbsp;|&nbsp; <b>Grayscale</b>: single-channel models
+          </div>
+        </div>
+        <!-- Input type tab -->
+        <div class="fg" style="margin-bottom:10px"><label class="lbl"><span class="ko">입력 유형</span><span class="en">Input Type</span><span class="es">Tipo de entrada</span><span class="ja">入力タイプ</span><span class="zh-CN">输入类型</span><span class="zh-TW">輸入類型</span></label>
+          <div style="display:flex;gap:16px;align-items:center;margin-top:6px">
+            <label style="display:flex;align-items:center;gap:5px;cursor:pointer"><input type="radio" name="ct-inp" value="image" checked onchange="ctToggleInput()"><span>📷 <span class="ko">이미지</span><span class="en">Image</span><span class="es">Imagen</span><span class="ja">画像</span><span class="zh-CN">图像</span><span class="zh-TW">影像</span></span></label>
+            <label style="display:flex;align-items:center;gap:5px;cursor:pointer"><input type="radio" name="ct-inp" value="video" onchange="ctToggleInput()"><span>🎬 <span class="ko">동영상</span><span class="en">Video</span><span class="es">Vídeo</span><span class="ja">動画</span><span class="zh-CN">视频</span><span class="zh-TW">影片</span></span></label>
+          </div>
+        </div>
+        <!-- Image selection -->
+        <div id="ct-img-section" style="margin-bottom:14px">
+          <label class="lbl"><span class="ko">샘플 이미지 선택</span><span class="en">Select Sample Image</span><span class="es">Seleccionar imagen de muestra</span><span class="ja">サンプル画像を選択</span><span class="zh-CN">选择示例图像</span><span class="zh-TW">選擇範例影像</span></label>
+          <div class="img-grid" id="ct-img-grid" style="margin-top:6px;min-height:52px"></div>
+          <div style="display:flex;gap:6px;margin-top:6px">
+            <input type="text" class="input" id="ct-img-path" data-i18n-placeholder="Or type a path directly…" style="flex:1;font-size:12px">
+            <button class="btn btn-ghost btn-sm" onclick="ctBrowseInput()" title="File browser" data-i18n-title="File browser">📂</button>
+          </div>
+        </div>
+        <!-- Video selection -->
+        <div id="ct-vid-section" style="display:none;margin-bottom:14px">
+          <div class="fg"><label class="lbl"><span class="ko">동영상 파일</span><span class="en">Video File</span><span class="es">Archivo de vídeo</span><span class="ja">動画ファイル</span><span class="zh-CN">视频文件</span><span class="zh-TW">影片檔案</span></label>
+            <select class="input" id="ct-video" style="margin-top:6px"></select>
+          </div>
+        </div>
+        <button class="btn btn-acc" onclick="ctRun()" style="width:100%;height:38px;font-size:14px">▶ <span class="ko">추론 실행</span><span class="en">Run Inference</span><span class="es">Ejecutar inferencia</span><span class="ja">推論実行</span><span class="zh-CN">运行推理</span><span class="zh-TW">執行推論</span></button>
+      </div>
+      <!-- Result panel -->
+      <div id="ct-res" style="display:none">
+        <div id="ct-res-body"></div>
+        <div style="display:flex;gap:8px;margin-top:12px">
+          <button class="btn btn-acc" onclick="ctShowDeploy()">📦 <span class="ko">배포?</span><span class="en">Deploy?</span><span class="es">¿Desplegar?</span><span class="ja">デプロイしますか？</span><span class="zh-CN">是否部署？</span><span class="zh-TW">是否部署？</span></button>
+          <button class="btn btn-ghost" onclick="ctReconfig()">↩ <span class="ko">재구성</span><span class="en">Reconfigure</span><span class="es">Reconfigurar</span><span class="ja">再構成</span><span class="zh-CN">重新配置</span><span class="zh-TW">重新組態</span></button>
+        </div>
+      </div>
+      <!-- Deploy panel -->
+      <div id="ct-dep" style="display:none;margin-top:10px;padding-top:12px;border-top:1px solid var(--bdr)">
+        <div class="fg" style="margin-bottom:10px"><label class="lbl"><span class="ko">모델 이름</span><span class="en">Model Name</span><span class="es">Nombre del modelo</span><span class="ja">モデル名</span><span class="zh-CN">模型名称</span><span class="zh-TW">模型名稱</span></label>
+          <input type="text" class="input" id="ct-dep-name" style="margin-top:5px" data-i18n-placeholder="Enter model name">
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-acc" onclick="ctConfirmDeploy()">✅ <span class="ko">배포 확인</span><span class="en">Confirm Deploy</span><span class="es">Confirmar despliegue</span><span class="ja">デプロイを確認</span><span class="zh-CN">确认部署</span><span class="zh-TW">確認部署</span></button>
+          <button class="btn btn-ghost" onclick="$('ct-dep').style.display='none'"><span class="ko">취소</span><span class="en">Cancel</span><span class="es">Cancelar</span><span class="ja">キャンセル</span><span class="zh-CN">取消</span><span class="zh-TW">取消</span></button>
+        </div>
+      </div>
+    </div>
+  </div>
+</dialog>
+
+<!-- ── DX Chat Widget (shared) ────────────────────── -->
+<script src="/static/shared/chat-widget.js"></script>
+<script>DXChat.init({ appName: 'dx_app' });</script>
+
+</body>
+</html>
