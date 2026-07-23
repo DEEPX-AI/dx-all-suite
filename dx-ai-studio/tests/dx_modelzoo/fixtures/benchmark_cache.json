@@ -1,0 +1,19 @@
+{
+  "schema_version": "1.0",
+  "generated_at": "2026-05-14T13:00:00+09:00",
+  "device": "DX-M1",
+  "models": {
+    "alexnet": {
+      "fps": 226.354,
+      "fps_per_watt": 12.5,
+      "source": "benchmark_report",
+      "measured_at": "2026-05-14T13:00:00+09:00"
+    },
+    "yolov8n": {
+      "fps": 58.7,
+      "fps_per_watt": null,
+      "source": "benchmark_report",
+      "measured_at": "2026-05-14T13:00:00+09:00"
+    }
+  }
+}

@@ -1,0 +1,77 @@
+{
+  "_comment": "dx_agent_dev 쇼케이스 카탈로그. 팀장님 dx-agent-dev-showcase/showcases.json(en/ko)을 6언어로 확장. media는 static/ 기준 상대경로, url은 GitHub README(ref=staging).",
+  "showcases": [
+    {
+      "id": "mini-game-squat-fitness",
+      "category": "npu-apps",
+      "media": "media/dx-agent-dev-squat-gameplay.gif",
+      "url": "https://github.com/DEEPX-AI/dx-all-suite/blob/staging/dx-agent-dev-showcase/mini-game-squat-fitness/README.md",
+      "title": {"en": "Squat-Counting Mini-Game", "ko": "스쿼트 카운팅 미니게임", "ja": "スクワットカウント・ミニゲーム", "es": "Minijuego de conteo de sentadillas", "zh-CN": "深蹲计数小游戏", "zh-TW": "深蹲計數小遊戲"},
+      "tagline": {"en": "rep-counting fitness on NPU", "ko": "NPU 기반 횟수 카운팅 피트니스", "ja": "NPUで回数カウントするフィットネス", "es": "fitness con conteo de repeticiones en NPU", "zh-CN": "在 NPU 上计数的健身游戏", "zh-TW": "在 NPU 上計數的健身遊戲"}
+    },
+    {
+      "id": "mini-game-stretching-coach",
+      "category": "npu-apps",
+      "media": "media/dx-agent-dev-stretch-gameplay.gif",
+      "url": "https://github.com/DEEPX-AI/dx-all-suite/blob/staging/dx-agent-dev-showcase/mini-game-stretching-coach/README.md",
+      "title": {"en": "Stretching Coach Mini-Game", "ko": "스트레칭 코치 미니게임", "ja": "ストレッチコーチ・ミニゲーム", "es": "Minijuego de entrenador de estiramientos", "zh-CN": "拉伸教练小游戏", "zh-TW": "伸展教練小遊戲"},
+      "tagline": {"en": "pose-guided arcade coach", "ko": "포즈 가이드 아케이드 코치", "ja": "ポーズガイド付きアーケードコーチ", "es": "entrenador arcade guiado por poses", "zh-CN": "姿势引导的街机教练", "zh-TW": "姿勢引導的街機教練"}
+    },
+    {
+      "id": "ultralytics-yolo-deepx-export",
+      "category": "ultralytics",
+      "media": "media/dx-agent-dev-ultralytics-yolo.gif",
+      "url": "https://github.com/DEEPX-AI/dx-all-suite/blob/staging/dx-agent-dev-showcase/ultralytics-yolo-deepx-export/README.md",
+      "title": {"en": "Ultralytics YOLO → DeepX Export", "ko": "Ultralytics YOLO → DeepX 내보내기", "ja": "Ultralytics YOLO → DeepX エクスポート", "es": "Ultralytics YOLO → Exportación DeepX", "zh-CN": "Ultralytics YOLO → DeepX 导出", "zh-TW": "Ultralytics YOLO → DeepX 匯出"},
+      "tagline": {"en": "one-command format=deepx", "ko": "명령 한 줄 format=deepx", "ja": "ワンコマンド format=deepx", "es": "format=deepx en un solo comando", "zh-CN": "一条命令 format=deepx", "zh-TW": "一條命令 format=deepx"}
+    },
+    {
+      "id": "ultralytics-retrain-eval-deepx-export-wildlife",
+      "category": "ultralytics",
+      "media": "media/dx-agent-dev-ultralytics-wildlife-sample.jpg",
+      "url": "https://github.com/DEEPX-AI/dx-all-suite/blob/staging/dx-agent-dev-showcase/ultralytics-retrain-eval-deepx-export-wildlife/README.md",
+      "title": {"en": "African Wildlife Monitoring", "ko": "아프리카 야생동물 모니터링", "ja": "アフリカ野生動物モニタリング", "es": "Monitoreo de fauna africana", "zh-CN": "非洲野生动物监测", "zh-TW": "非洲野生動物監測"},
+      "tagline": {"en": "safari camera retrain", "ko": "사파리 카메라 재학습", "ja": "サファリカメラ再学習", "es": "reentrenamiento de cámara de safari", "zh-CN": "野外相机再训练", "zh-TW": "野外相機再訓練"}
+    },
+    {
+      "id": "ultralytics-retrain-eval-deepx-export-ppe",
+      "category": "ultralytics",
+      "media": "media/dx-agent-dev-ultralytics-ppe-sample.jpg",
+      "url": "https://github.com/DEEPX-AI/dx-all-suite/blob/staging/dx-agent-dev-showcase/ultralytics-retrain-eval-deepx-export-ppe/README.md",
+      "title": {"en": "Construction PPE Safety", "ko": "건설 현장 PPE 안전", "ja": "建設現場PPE安全", "es": "Seguridad con EPP en construcción", "zh-CN": "建筑工地 PPE 安全", "zh-TW": "建築工地 PPE 安全"},
+      "tagline": {"en": "site-safety camera retrain", "ko": "현장 안전 카메라 재학습", "ja": "現場安全カメラ再学習", "es": "reentrenamiento de cámara de seguridad en obra", "zh-CN": "工地安全相机再训练", "zh-TW": "工地安全相機再訓練"}
+    },
+    {
+      "id": "ultralytics-retrain-eval-deepx-export-braintumor",
+      "category": "ultralytics",
+      "media": "media/dx-agent-dev-ultralytics-braintumor-sample.jpg",
+      "url": "https://github.com/DEEPX-AI/dx-all-suite/blob/staging/dx-agent-dev-showcase/ultralytics-retrain-eval-deepx-export-braintumor/README.md",
+      "title": {"en": "Brain-Tumor Screening", "ko": "뇌종양 스크리닝", "ja": "脳腫瘍スクリーニング", "es": "Detección de tumores cerebrales", "zh-CN": "脑肿瘤筛查", "zh-TW": "腦腫瘤篩檢"},
+      "tagline": {"en": "medical edge retrain", "ko": "의료 엣지 재학습", "ja": "医療エッジ再学習", "es": "reentrenamiento médico en el edge", "zh-CN": "医疗边缘端再训练", "zh-TW": "醫療邊緣端再訓練"}
+    },
+    {
+      "id": "ultralytics-retrain-eval-deepx-export-pills",
+      "category": "ultralytics",
+      "media": "media/dx-agent-dev-ultralytics-pills-sample.jpg",
+      "url": "https://github.com/DEEPX-AI/dx-all-suite/blob/staging/dx-agent-dev-showcase/ultralytics-retrain-eval-deepx-export-pills/README.md",
+      "title": {"en": "Pharmaceutical Pill Inspection", "ko": "의약품 알약 검사", "ja": "医薬品錠剤検査", "es": "Inspección de pastillas farmacéuticas", "zh-CN": "药品药片检测", "zh-TW": "藥品藥丸檢測"},
+      "tagline": {"en": "pharma counting retrain", "ko": "제약 카운팅 재학습", "ja": "製薬カウント再学習", "es": "reentrenamiento de conteo farmacéutico", "zh-CN": "制药计数再训练", "zh-TW": "製藥計數再訓練"}
+    },
+    {
+      "id": "paddleocr-video-ocr",
+      "category": "paddlepaddle",
+      "media": "media/dx-agent-dev-paddleocr-gameplay.gif",
+      "url": "https://github.com/DEEPX-AI/dx-all-suite/blob/staging/dx-agent-dev-showcase/paddleocr-video-ocr/README.md",
+      "title": {"en": "Video / Webcam OCR (PP-OCRv5)", "ko": "영상 / 웹캠 OCR (PP-OCRv5)", "ja": "動画 / ウェブカメラ OCR (PP-OCRv5)", "es": "OCR de vídeo / webcam (PP-OCRv5)", "zh-CN": "视频 / 网络摄像头 OCR (PP-OCRv5)", "zh-TW": "影片 / 網路攝影機 OCR (PP-OCRv5)"},
+      "tagline": {"en": "PaddleOCR PP-OCRv5 on the NPU", "ko": "NPU에서 실행하는 PaddleOCR PP-OCRv5", "ja": "NPUで動くPaddleOCR PP-OCRv5", "es": "PaddleOCR PP-OCRv5 en la NPU", "zh-CN": "在 NPU 上运行 PaddleOCR PP-OCRv5", "zh-TW": "在 NPU 上運行 PaddleOCR PP-OCRv5"}
+    },
+    {
+      "id": "rapiddoc-pdf2md",
+      "category": "rapidai",
+      "media": "media/dx-agent-dev-rapiddoc-pdf2md-sample.png",
+      "url": "https://github.com/DEEPX-AI/dx-all-suite/blob/staging/dx-agent-dev-showcase/rapiddoc-pdf2md/README.md",
+      "title": {"en": "PDF → Markdown (document conversion app)", "ko": "PDF → Markdown (문서 변환 앱)", "ja": "PDF → Markdown(文書変換アプリ)", "es": "PDF → Markdown (app de conversión de documentos)", "zh-CN": "PDF → Markdown（文档转换应用）", "zh-TW": "PDF → Markdown（文件轉換應用）"},
+      "tagline": {"en": "RapidDoc PP-StructureV3 on the NPU", "ko": "NPU에서 실행하는 RapidDoc PP-StructureV3", "ja": "NPUで動くRapidDoc PP-StructureV3", "es": "RapidDoc PP-StructureV3 en la NPU", "zh-CN": "在 NPU 上运行 RapidDoc PP-StructureV3", "zh-TW": "在 NPU 上運行 RapidDoc PP-StructureV3"}
+    }
+  ]
+}

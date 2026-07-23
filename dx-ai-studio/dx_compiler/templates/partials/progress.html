@@ -1,0 +1,17 @@
+<div class="progress-container" id="progress-{{ job_id }}" data-job-id="{{ job_id }}">
+    <h3>⚙️ <span class="ko">컴파일 중...</span><span class="en">Compiling...</span><span class="es">Compilando...</span><span class="ja">コンパイル中...</span><span class="zh-CN">编译中...</span><span class="zh-TW">編譯中...</span></h3>
+    <div class="progress-bar-wrapper">
+        <div class="progress-bar" style="width: 0%">0%</div>
+    </div>
+    <div class="sub-progress" id="sub-progress" style="display: none;">
+        <span class="sub-progress-label"></span>
+        <div class="sub-progress-bar-wrapper">
+            <div class="sub-progress-bar" style="width: 0%"></div>
+        </div>
+        <span class="sub-progress-value"></span>
+    </div>
+    <div class="phase-indicator">
+        <span class="phase-label"><span class="ko">현재 단계</span><span class="en">Current Phase</span><span class="es">Fase actual</span><span class="ja">現在のフェーズ</span><span class="zh-CN">当前阶段</span><span class="zh-TW">目前階段</span></span>
+        <span class="phase-value"><span class="ko">초기화 중...</span><span class="en">Initializing...</span><span class="es">Inicializando...</span><span class="ja">初期化中...</span><span class="zh-CN">初始化中...</span><span class="zh-TW">初始化中...</span></span>
+    </div>
+</div>

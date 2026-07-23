@@ -1,0 +1,124 @@
+<div class="wizard-overlay" id="config-wizard" style="display:none">
+  <div class="wizard-card">
+    <div class="wizard-header">
+      <h3><span class="ko">설정 빌더</span><span class="en">Config Builder</span><span class="es">Constructor de configuración</span><span class="ja">設定ビルダー</span><span class="zh-CN">配置构建器</span><span class="zh-TW">設定建構器</span></h3>
+      <button type="button" class="wizard-close" onclick="closeWizard()">✕</button>
+    </div>
+    <div class="wizard-steps-indicator">
+      <span class="step-dot active" data-step="1">1</span>
+      <span class="step-dot" data-step="2">2</span>
+      <span class="step-dot" data-step="3">3</span>
+      <span class="step-dot" data-step="4">4</span>
+    </div>
+
+    <!-- Step 1: Input Shapes -->
+    <div class="wizard-step active" data-step="1">
+      <h4><span class="ko">단계 1 — 입력 형상</span><span class="en">Step 1 — Input Shapes</span><span class="es">Step 1 — Entrada Shapes</span><span class="ja">ステップ 1 — 入力形状</span><span class="zh-CN">步骤 1 — 输入形状</span><span class="zh-TW">步驟 1 — 輸入形狀</span></h4>
+      <p class="wizard-desc"><span class="ko">모델 입력 텐서 이름과 형상을 정의하세요.</span><span class="en">Define model input tensor names and shapes.</span><span class="es">Defina los nombres y formas de los tensores de entrada del modelo.</span><span class="ja">モデルの入力テンソル名と形状を定義してください。</span><span class="zh-CN">定义模型输入张量名称和形状。</span><span class="zh-TW">定義模型輸入張量名稱和形狀。</span></p>
+      <!-- Auto-detect banner (shown when server auto-detects all static inputs) -->
+      <div id="auto-detect-banner" class="alert-banner-success" style="display:none;" aria-live="polite">
+        <span class="ko">모델 입력이 ONNX 파일을 기반으로 자동 감지되었습니다. 변경이 필요하면 수정하세요.</span><span class="en">Model inputs were auto-detected from the ONNX file. Edit if changes are needed.</span><span class="es">Las entradas del modelo fueron auto-detectadas del archivo ONNX. Edite si se necesitan cambios.</span><span class="ja">モデル入力がONNXファイルから自動検出されました。必要に応じて編集してください。</span><span class="zh-CN">模型输入已从 ONNX 文件自动检测。如需更改请编辑。</span><span class="zh-TW">模型輸入已從 ONNX 檔案自動偵測。如需變更請編輯。</span>
+      </div>
+      <!-- Inline warning (shown when auto-detect fails or ONNX not found) -->
+      <div id="auto-detect-warning-wiz" class="alert-warning" style="display:none;" aria-live="polite"></div>
+      <button type="button" class="btn-secondary" id="btn-auto-detect"><span class="ko">🔍 모델에서 자동 감지</span><span class="en">🔍 Auto Detect from Model</span><span class="es">🔍 Detección automática desde el modelo</span><span class="ja">🔍 モデルから自動検出</span><span class="zh-CN">🔍 从模型自动检测</span><span class="zh-TW">🔍 從模型自動偵測</span></button>
+      <div id="input-shapes-list"></div>
+      <button type="button" class="btn-secondary" id="btn-add-input"><span class="ko">+ 입력 추가</span><span class="en">+ Add Input</span><span class="es">+ Agregar entrada</span><span class="ja">+ 入力を追加</span><span class="zh-CN">+ 添加输入</span><span class="zh-TW">+ 新增輸入</span></button>
+    </div>
+
+    <!-- Step 2: Loader Mode -->
+    <div class="wizard-step" data-step="2">
+      <h4><span class="ko">단계 2 — 데이터 로더</span><span class="en">Step 2 — Data Loader</span><span class="es">Paso 2 — Cargador de datos</span><span class="ja">ステップ 2 — データローダー</span><span class="zh-CN">步骤 2 — 数据加载器</span><span class="zh-TW">步驟 2 — 資料載入器</span></h4>
+      <p class="wizard-desc"><span class="ko">보정 데이터를 로드하는 방법을 선택하세요.</span><span class="en">Choose how calibration data is loaded.</span><span class="es">Elija cómo se cargan los datos de calibración.</span><span class="ja">調整データのロード方法を選択してください。</span><span class="zh-CN">选择校准数据的加载方式。</span><span class="zh-TW">選擇校準資料的載入方式。</span></p>
+      <div class="loader-mode-cards">
+        <label class="mode-card selected" title="Default Loader: Use real images from a dataset and provide preprocessing parameters." data-i18n-title="Default Loader: Use real images from a dataset and provide preprocessing parameters.">
+          <input type="radio" name="loader_mode" value="default" checked>
+          <strong><span class="ko">기본 로더</span><span class="en">Default Loader</span><span class="es">Cargador por defecto</span><span class="ja">デフォルトローダー</span><span class="zh-CN">默认加载器</span><span class="zh-TW">預設載入器</span></strong>
+          <div class="loader-desc">
+            <span class="ko">데이터셋 경로와 전처리 단계(리사이즈, 정규화 등)를 제공합니다. 더 나은 성능과 정확도를 위해 실제 보정 데이터를 사용하려는 사용자에게 권장됩니다.</span>
+            <span class="en">Provide a dataset path and preprocessing steps (resize, normalize, etc.). Recommended for users <strong>who want realistic calibration data for better performance and accuracy.</strong></span><span class="es">Proporcione una ruta de dataset y pasos de preprocesamiento (redimensionar, normalizar, etc.). Recomendado para usuarios <strong>que deseen datos de calibración realistas para mejorar el rendimiento y la precisión.</strong></span>
+            <span class="ja">データセットパスと前処理手順（リサイズ、正規化など）を指定します。性能と精度を高めるために実データでキャリブレーションしたいユーザーに推奨されます。</span>
+            <span class="zh-CN">提供数据集路径和预处理步骤（调整大小、归一化等）。推荐给希望使用真实校准数据以获得更好性能和精度的用户。</span>
+            <span class="zh-TW">提供資料集路徑和前處理步驟（調整大小、正規化等）。建議給希望使用真實校準資料以獲得更好效能和精度的使用者。</span>
+          </div>
+        </label>
+        <label class="mode-card" title="Dummy Loader: Generates random tensors based on input shapes without any dataset." data-i18n-title="Dummy Loader: Generates random tensors based on input shapes without any dataset.">
+          <input type="radio" name="loader_mode" value="dummy">
+          <strong><span class="ko">더미 로더</span><span class="en">Dummy Loader</span><span class="es">Cargador ficticio</span><span class="ja">ダミーローダー</span><span class="zh-CN">虚拟加载器</span><span class="zh-TW">虛擬載入器</span></strong>
+          <div class="loader-desc">
+            <span class="ko">데이터셋이 필요 없으며 설정된 입력 형상에 기반하여 랜덤 입력 텐서를 생성합니다. <strong>컴파일 및 파이프라인 정확성을 빠르게 검증하는 데 유용합니다.</strong></span>
+            <span class="en">No dataset required — generates random input tensors based on the configured input shapes. <strong>Useful to quickly verify compilation and pipeline correctness.</strong></span><span class="es">No se requiere dataset: genera tensores de entrada aleatorios según las formas de entrada configuradas. <strong>Útil para verificar rápidamente la compilación y la corrección del pipeline.</strong></span>
+            <span class="ja">データセット不要 — 設定された入力形状に基づいてランダムな入力テンソルを生成します。<strong>コンパイルとパイプラインの正確性を素早く検証するのに便利です。</strong></span>
+            <span class="zh-CN">无需数据集 — 根据配置的输入形状生成随机输入张量。<strong>适合快速验证编译和流水线的正确性。</strong></span>
+            <span class="zh-TW">無需資料集 — 根據設定的輸入形狀產生隨機輸入張量。<strong>適合快速驗證編譯和管線的正確性。</strong></span>
+          </div>
+        </label>
+      </div>
+    </div>
+
+    <!-- Step 3: Dataset & Preprocessing (default loader only) -->
+    <div class="wizard-step" data-step="3">
+      <h4><span class="ko">단계 3 — 데이터셋 & 전처리</span><span class="en">Step 3 — Dataset & Preprocessing</span><span class="es">Step 3 — Conjunto de datos & Preprocessing</span><span class="ja">ステップ 3 — データセット & 前処理</span><span class="zh-CN">步骤 3 — 数据集与预处理</span><span class="zh-TW">步驟 3 — 資料集與預處理</span></h4>
+      <div class="form-group">
+        <label><span class="ko">데이터셋 경로 *</span><span class="en">Dataset Path *</span><span class="es">Ruta del conjunto de datos *</span><span class="ja">データセットパス *</span><span class="zh-CN">数据集路径 *</span><span class="zh-TW">資料集路徑 *</span></label>
+        <input type="text" id="wiz-dataset-path" data-i18n-placeholder="/path/to/dataset">
+      </div>
+      <div class="form-group">
+        <label><span class="ko">파일 확장자</span><span class="en">File Extensions</span><span class="es">Extensiones de archivo</span><span class="ja">ファイル拡張子</span><span class="zh-CN">文件扩展名</span><span class="zh-TW">檔案副檔名</span></label>
+        <input type="text" id="wiz-file-extensions" value="jpeg, jpg, png, JPEG" data-i18n-placeholder="jpeg, jpg, png">
+        <span class="wizard-desc" style="margin:0"><span class="ko">포함할 이미지 파일 확장자를 쉼표로 구분하여 입력하세요.</span><span class="en">Comma-separated list of image file extensions to include.</span><span class="es">Lista de extensiones de archivo de imagen separadas por comas para incluir.</span><span class="ja">含めるイメージファイル拡張子をカンマ区切りで入力してください。</span><span class="zh-CN">以逗号分隔的图像文件扩展名列表。</span><span class="zh-TW">以逗號分隔的圖片檔案副檔名列表。</span></span>
+      </div>
+      <div class="form-row">
+        <div class="form-group half">
+          <label><span class="ko">보정 샘플 수</span><span class="en">Calibration Samples</span><span class="es">Muestras de calibración</span><span class="ja">調整サンプル数</span><span class="zh-CN">校准样本数</span><span class="zh-TW">校準樣本數</span></label>
+          <input type="number" id="wiz-calib-num" value="100">
+        </div>
+        <div class="form-group half">
+          <label><span class="ko">보정 방법</span><span class="en">Calibration Method</span><span class="es">Método de calibración</span><span class="ja">調整方法</span><span class="zh-CN">校准方法</span><span class="zh-TW">校準方法</span></label>
+          <select id="wiz-calib-method">
+            <option value="ema" selected>EMA</option>
+            <option value="minmax">MinMax</option>
+          </select>
+        </div>
+      </div>
+      <fieldset class="prep-fieldset">
+        <legend><span class="ko">전처리 파이프라인</span><span class="en">Preprocessing Pipeline</span><span class="es">Pipeline de pre-procesamiento</span><span class="ja">前処理パイプライン</span><span class="zh-CN">预处理流水线</span><span class="zh-TW">預處理管線</span></legend>
+        <p class="wizard-desc"><span class="ko">실행 순서대로 변환을 추가하세요.</span><span class="en">Add transforms in execution order.</span><span class="es">Agregue transformaciones en orden de ejecución.</span><span class="ja">実行順序に変換を追加してください。</span><span class="zh-CN">按执行顺序添加变换。</span><span class="zh-TW">按執行順序新增轉換。</span></p>
+        <div id="prep-pipeline"></div>
+        <div class="prep-add-row">
+          <select id="prep-select">
+            <option value="">— Select transform —</option>
+            <option value="resize">resize</option>
+            <option value="normalize">normalize</option>
+            <option value="transpose">transpose</option>
+            <option value="expandDim">expandDim</option>
+            <option value="centercrop">centercrop</option>
+            <option value="centercrop2">centercrop2</option>
+            <option value="convertColor">convertColor</option>
+            <option value="div">div</option>
+            <option value="mul">mul</option>
+            <option value="subtract">subtract</option>
+            <option value="add">add</option>
+            <option value="squeeze">squeeze</option>
+            <option value="pil_2_cv">pil_2_cv</option>
+            <option value="dtype">dtype</option>
+            <option value="slice">slice</option>
+          </select>
+          <button type="button" class="btn-secondary" id="btn-add-prep"><span class="ko">+ 추가</span><span class="en">+ Add</span><span class="es">+ Agregar</span><span class="ja">+ 追加</span><span class="zh-CN">+ 添加</span><span class="zh-TW">+ 新增</span></button>
+        </div>
+      </fieldset>
+    </div>
+
+    <!-- Step 4: Review -->
+    <div class="wizard-step" data-step="4">
+      <h4><span class="ko">단계 4 — 검토</span><span class="en">Step 4 — Review</span><span class="es">Paso 4 — Revisión</span><span class="ja">ステップ 4 — レビュー</span><span class="zh-CN">步骤 4 — 审查</span><span class="zh-TW">步驟 4 — 審查</span></h4>
+      <p class="wizard-desc"><span class="ko">생성된 설정 JSON을 검토하세요.</span><span class="en">Review the generated config JSON.</span><span class="es">Revise el JSON de configuración generado.</span><span class="ja">生成された設定 JSON を確認してください。</span><span class="zh-CN">查看生成的配置 JSON。</span><span class="zh-TW">檢視產生的設定 JSON。</span></p>
+      <pre class="json-preview" id="wiz-json-preview"></pre>
+    </div>
+
+    <div class="wizard-nav">
+      <button type="button" class="btn-secondary" id="wiz-prev" style="display:none"><span class="ko">← 뒤로</span><span class="en">← Back</span><span class="es">← Atrás</span><span class="ja">← 戻る</span><span class="zh-CN">← 返回</span><span class="zh-TW">← 返回</span></button>
+      <button type="button" class="compile-btn" id="wiz-next"><span class="ko">다음 →</span><span class="en">Next →</span><span class="es">Siguiente →</span><span class="ja">次へ →</span><span class="zh-CN">下一步 →</span><span class="zh-TW">下一步 →</span></button>
+    </div>
+  </div>
+</div>

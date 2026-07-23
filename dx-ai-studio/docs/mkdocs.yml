@@ -1,0 +1,105 @@
+site_name: DX-AI-Studio User Manual (Beta)
+site_description: Install, launch, and use DX-AI-Studio — the browser hub for the DEEPX NPU SDK.
+use_directory_urls: false
+docs_dir: source # markdown 원문 폴더
+site_dir: site # html 변환물 (gitignore, dev docs와 분리)
+theme: 
+  name : material
+  language: en
+  font:
+    text: Noto Sans Display
+    code: Roboto Mono 
+  logo: img/deepx.png
+  palette:
+    # Palette toggle for light mode
+    - scheme: default
+      primary: black
+      toggle:
+        icon: material/brightness-7 
+        name: Switch to dark mode
+    # Palette toggle for dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: black
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+     - toc.integrate
+     - content.code.annotate
+     - navigation.tabs
+     - navigation.tabs.sticky
+     - content.tabs.link
+     - content.code.copy
+site_url: 'https://developer.deepx.ai/'
+nav:
+  - Getting Started:
+    - Installation and Launch: 01_Installation_and_Launch.md
+    - The Hub: 02_The_Hub.md
+  - Workflow:
+    - DX Model Zoo: 03_DX_Model_Zoo.md
+    - DX Compiler: 04_DX_Compiler.md
+    - DX App: 05_DX_App.md
+    - DX Stream: 06_DX_Stream.md
+  - Monitoring:
+    - DX Monitor: 07_DX_Monitor.md
+    - DX Benchmark: 08_DX_Benchmark.md
+    - DX EdgeGuide: 09_DX_EdgeGuide.md
+  - Development:
+    - DX Agent Dev: 10_DX_Agent_Dev.md
+  - Reference:
+    - SDK Library and About: 11_SDK_Library_and_About.md
+  - Appendix:
+    - Change Log: Appendix_Change_Log.md
+    - Third Party License: 12_Appendix_Third_Party_License.md
+
+plugins:
+  - search
+  - include-markdown
+  - to-pdf:
+      # PDF runs only with ENABLE_PDF_EXPORT set; plain `mkdocs build --strict` skips it
+      # so the PDF renderer's warnings don't fail --strict. Build PDF: ENABLE_PDF_EXPORT=1 mkdocs build
+      enabled_if_env: ENABLE_PDF_EXPORT
+      author: DEEPX.ai
+      copyright: ⓒ Copyright 2026 DEEPX All Rights Reserved.
+      cover_title: DX-AI-Studio User Manual
+      cover_subtitle: 2026/07/24 (v0.1.0 beta)
+      cover_logo : img/deepx.png
+      custom_template_path: source/stylesheets
+      output_path: ../DEEPX_DX-AI-Studio_UM_v0.1.0_JUL_2026.pdf
+extra:
+  homepage: https://developer.deepx.ai
+  generator: false
+  social:
+#       link: https://github.com/deepx-ai
+     - icon: fontawesome/brands/linkedin
+       link: https://www.linkedin.com/company/deepx-corporation/
+extra_css: 
+  - stylesheets/extra.css
+markdown_extensions:
+  - admonition
+  - def_list
+  - toc:
+        permalink: "true"
+        baselevel: 1
+        separator: ">_"
+        toc_depth: 3
+  - pymdownx.critic
+  - pymdownx.caret
+  - pymdownx.keys
+  - pymdownx.mark
+  - pymdownx.tilde
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true 
+  - attr_list
+  - md_in_html
+# extra_javascript:
+#   - https://polyfill.io/v3/polyfill.min.js?features=es6
+copyright: ⓒ Copyright 2026 <a href="http://deepx.ai">DEEPX</a>. All Rights Reserved.

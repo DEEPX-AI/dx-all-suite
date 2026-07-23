@@ -1,0 +1,792 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   Pipeline Builder — Isometric View CSS
+   DX Stream GUI · Non-canvas UI elements (toolbar, palette, props, container)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+
+/* ═══ 1. Pipeline Builder — Root Layout ═══ */
+
+.pipeline-builder {
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  height: calc(100vh - 220px);
+  min-height: 500px;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+
+/* ═══ 2. Palette Panel — Left Sidebar ═══ */
+
+.palette-panel {
+  width: 240px;
+  min-width: 48px;
+  flex: 0 1 240px;
+  max-width: 240px;
+  background: var(--bg-1);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: width 0.2s ease, min-width 0.2s ease;
+}
+
+/* ── Palette Header ── */
+
+.palette-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--sp-4);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-2);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.palette-header .collapse-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: transparent;
+  border: none;
+  color: var(--text-3);
+  cursor: pointer;
+  border-radius: var(--radius-xs);
+  transition: var(--transition);
+}
+
+.palette-header .collapse-btn:hover {
+  background: var(--bg-2);
+  color: var(--text-1);
+}
+
+/* ── Palette Search ── */
+
+.palette-search {
+  padding: 12px 16px;
+  flex-shrink: 0;
+}
+
+.palette-search input {
+  width: 100%;
+  padding: 8px 12px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-1);
+  font-size: 0.8rem;
+  outline: none;
+  transition: var(--transition);
+}
+
+.palette-search input::placeholder {
+  color: var(--text-4);
+}
+
+.palette-search input:focus {
+  border-color: var(--stream-color, var(--cat-4));
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.15);
+}
+
+/* ── Palette Scrollable Body ── */
+
+.palette-body {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-bottom: 16px;
+}
+
+.palette-body::-webkit-scrollbar {
+  width: 4px;
+}
+
+.palette-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.palette-body::-webkit-scrollbar-thumb {
+  background: var(--bg-3);
+  border-radius: 2px;
+}
+
+/* ── Palette Category ── */
+
+.palette-category {
+  border-bottom: 1px solid var(--border);
+}
+
+.palette-category-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  user-select: none;
+  transition: var(--transition);
+}
+
+.palette-category-header:hover {
+  color: var(--text-2);
+  background: var(--bg-2);
+}
+
+.palette-category-header .chevron {
+  display: inline-flex;
+  transition: transform 0.2s ease;
+}
+
+.palette-category.collapsed .chevron {
+  transform: rotate(-90deg);
+}
+
+.palette-category.collapsed .palette-category-items {
+  display: none;
+}
+
+/* ── Palette Item ── */
+
+.palette-item {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: 8px 16px;
+  font-size: 0.8rem;
+  color: var(--text-2);
+  cursor: grab;
+  user-select: none;
+  transition: background 0.15s ease;
+}
+
+.palette-item:hover {
+  background: var(--bg-2);
+}
+
+.palette-item:active {
+  cursor: grabbing;
+}
+
+.palette-item.dragging {
+  opacity: 0.5;
+  cursor: grabbing;
+}
+
+/* Category color-coded dot */
+.palette-item::before {
+  content: "";
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-4);
+}
+
+/* Pipeline category colors map onto the shared categorical palette (dx-tokens.css). */
+.palette-item[data-category="sources"]::before    { background: var(--cat-1); }
+.palette-item[data-category="processing"]::before  { background: var(--cat-2); }
+.palette-item[data-category="ai"]::before          { background: var(--cat-3); }
+.palette-item[data-category="output"]::before      { background: var(--cat-4); }
+.palette-item[data-category="tracking"]::before    { background: var(--cat-5); }
+.palette-item[data-category="messaging"]::before   { background: var(--cat-6); }
+
+.palette-item .item-label {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Palette collapsed (icon-only) tooltip ── */
+
+.palette-panel.collapsed .palette-item .item-label {
+  display: none;
+}
+
+.palette-panel.collapsed .palette-item {
+  justify-content: center;
+  padding: 10px 0;
+  position: relative;
+}
+
+.palette-panel.collapsed .palette-item::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  left: calc(100% + 8px);
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 4px 10px;
+  background: var(--bg-3);
+  color: var(--text-1);
+  font-size: 0.75rem;
+  border-radius: var(--radius-xs);
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  z-index: 100;
+}
+
+.palette-panel.collapsed .palette-item:hover::after {
+  opacity: 1;
+}
+
+
+/* ═══ 3. Canvas Container — Center Area ═══ */
+
+.canvas-container {
+  flex: 1;
+  position: relative;
+  background: var(--bg-0);
+  overflow: hidden;
+  min-width: 0;
+}
+
+/* ── Canvas Element ── */
+
+.pipeline-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* ── Canvas Toolbar (floating) ── */
+
+.canvas-toolbar {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: var(--sp-1);
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  z-index: 10;
+}
+
+.canvas-toolbar .toolbar-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: transparent;
+  border: none;
+  color: var(--text-3);
+  border-radius: calc(var(--radius) - 2px);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.canvas-toolbar .toolbar-btn:hover {
+  background: var(--bg-3);
+  color: var(--text-1);
+}
+
+.canvas-toolbar .toolbar-btn.active {
+  background: var(--bg-3);
+  color: var(--stream-color, var(--cat-4));
+}
+
+.canvas-toolbar .toolbar-divider {
+  width: 1px;
+  height: 20px;
+  margin: 0 4px;
+  background: var(--border);
+}
+
+.canvas-toolbar .zoom-label {
+  min-width: 40px;
+  text-align: center;
+  font-size: 0.7rem;
+  color: var(--text-4);
+  user-select: none;
+}
+
+/* ── Canvas Minimap ── */
+
+.canvas-minimap {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  width: 160px;
+  height: 120px;
+  background: var(--bg-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  z-index: 10;
+  box-shadow: var(--shadow);
+}
+
+.canvas-minimap canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.canvas-minimap .minimap-viewport {
+  position: absolute;
+  border: 1.5px solid var(--stream-color, var(--cat-4));
+  border-radius: 2px;
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+/* ── Canvas Drop Indicator ── */
+
+.canvas-container.drag-over::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 2px dashed var(--stream-color, var(--cat-4));
+  border-radius: var(--radius);
+  pointer-events: none;
+  opacity: 0.4;
+}
+
+
+/* ═══ 4. Property Panel — Right Sidebar ═══ */
+
+.property-panel {
+  width: 280px;
+  min-width: min(200px, 32vw);
+  flex: 0 1 280px;
+  max-width: 280px;
+  background: var(--bg-1);
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: width 0.2s ease, min-width 0.2s ease;
+}
+
+/* ── Property Header ── */
+
+.prop-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: var(--sp-4);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.prop-header .node-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: calc(var(--radius) - 2px);
+  background: var(--bg-2);
+  flex-shrink: 0;
+}
+
+.prop-header .node-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.prop-header .node-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.prop-header .node-type {
+  font-size: 0.7rem;
+  color: var(--text-4);
+  margin-top: 2px;
+}
+
+/* ── Property Body ── */
+
+.prop-body {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 12px 0;
+}
+
+.prop-body::-webkit-scrollbar {
+  width: 4px;
+}
+
+.prop-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.prop-body::-webkit-scrollbar-thumb {
+  background: var(--bg-3);
+  border-radius: 2px;
+}
+
+/* ── Property Group (collapsible) ── */
+
+.prop-group {
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 8px;
+  margin-bottom: 4px;
+}
+
+.prop-group:last-child {
+  border-bottom: none;
+}
+
+.prop-group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  user-select: none;
+  transition: var(--transition);
+}
+
+.prop-group-header:hover {
+  color: var(--text-2);
+}
+
+.prop-group-header .chevron {
+  display: inline-flex;
+  transition: transform 0.2s ease;
+}
+
+.prop-group.collapsed .chevron {
+  transform: rotate(-90deg);
+}
+
+.prop-group.collapsed .prop-group-body {
+  display: none;
+}
+
+/* ── Property Row ── */
+
+.prop-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 16px;
+  gap: var(--sp-3);
+}
+
+/* ── Property Label ── */
+
+.prop-label {
+  flex-shrink: 0;
+  color: var(--text-3);
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+/* ── Property Input ── */
+
+.prop-input {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 10px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) - 2px);
+  color: var(--text-1);
+  font-size: 0.8rem;
+  outline: none;
+  transition: var(--transition);
+}
+
+.prop-input:focus {
+  border-color: var(--stream-color, var(--cat-4));
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.15);
+}
+
+/* ── Property Select ── */
+
+.prop-select {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 10px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) - 2px);
+  color: var(--text-1);
+  font-size: 0.8rem;
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%238892A8'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 28px;
+  transition: var(--transition);
+}
+
+.prop-select:focus {
+  border-color: var(--stream-color, var(--cat-4));
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.15);
+}
+
+/* ── Property Checkbox ── */
+
+.prop-checkbox {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--stream-color, var(--cat-4));
+  cursor: pointer;
+}
+
+/* ── Empty State ── */
+
+.prop-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  color: var(--text-4);
+  font-size: 0.85rem;
+  text-align: center;
+  padding: var(--sp-6);
+  user-select: none;
+}
+
+
+/* ═══ 5. Responsive Behavior ═══ */
+
+/* ── Below 1200px: Palette collapses to icon-only ── */
+
+@media (max-width: 1200px) {
+  .palette-panel {
+    width: 48px;
+    min-width: 48px;
+  }
+
+  .palette-header span,
+  .palette-search,
+  .palette-category-header span,
+  .palette-item .item-label {
+    display: none;
+  }
+
+  .palette-header {
+    justify-content: center;
+    padding: var(--sp-3);
+  }
+
+  .palette-category-header {
+    justify-content: center;
+    padding: 10px 0;
+  }
+
+  .palette-item {
+    justify-content: center;
+    padding: 10px 0;
+    position: relative;
+  }
+
+  /* Tooltip on hover for collapsed items */
+  .palette-item::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    left: calc(100% + 8px);
+    top: 50%;
+    transform: translateY(-50%);
+    padding: 4px 10px;
+    background: var(--bg-3);
+    color: var(--text-1);
+    font-size: 0.75rem;
+    border-radius: var(--radius-xs);
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+    z-index: 100;
+  }
+
+  .palette-item:hover::after {
+    opacity: 1;
+  }
+}
+
+/* ── Below 900px: Property panel moves to bottom overlay ── */
+
+@media (max-width: 900px) {
+  .pipeline-builder {
+    flex-direction: column;
+  }
+
+  .palette-panel {
+    width: 100%;
+    min-width: 100%;
+    flex-direction: row;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    height: 48px;
+    min-height: 48px;
+  }
+
+  .palette-header {
+    border-bottom: none;
+    border-right: 1px solid var(--border);
+    padding: 0 12px;
+  }
+
+  .palette-search {
+    display: none;
+  }
+
+  .palette-body {
+    display: flex;
+    flex-direction: row;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 0 8px;
+    gap: var(--sp-1);
+    align-items: center;
+  }
+
+  .palette-category {
+    display: flex;
+    flex-direction: row;
+    border-bottom: none;
+    gap: var(--sp-1);
+    align-items: center;
+  }
+
+  .palette-category-header {
+    display: none;
+  }
+
+  .palette-item {
+    flex-shrink: 0;
+    padding: 6px 10px;
+    border-radius: calc(var(--radius) - 2px);
+  }
+
+  .property-panel {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    min-width: 100%;
+    max-height: 50%;
+    border-left: none;
+    border-top: 1px solid var(--border);
+    border-radius: var(--radius) var(--radius) 0 0;
+    box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.3);
+    z-index: 20;
+    transition: transform 0.2s ease;
+  }
+
+  .property-panel.hidden {
+    transform: translateY(100%);
+  }
+
+  .canvas-container {
+    position: relative;
+  }
+}
+
+
+/* ═══ 6. Animations & Transitions ═══ */
+
+/* Panel width collapse/expand */
+.palette-panel,
+.property-panel {
+  transition: width 0.2s ease, min-width 0.2s ease, transform 0.2s ease;
+}
+
+/* Node hover highlight */
+.palette-item {
+  transition: background 0.15s ease;
+}
+
+/* Toolbar button press */
+.canvas-toolbar .toolbar-btn:active {
+  transform: scale(0.92);
+}
+
+/* Drag-enter pulse on canvas */
+@keyframes drag-pulse {
+  0%, 100% { opacity: 0.3; }
+  50%      { opacity: 0.6; }
+}
+
+.canvas-container.drag-over::after {
+  animation: drag-pulse 1s ease infinite;
+}
+
+
+/* ── Context Menu ── */
+.ctx-menu {
+    position: fixed; z-index: 9999;
+    background: var(--bg-1); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); padding: 4px 0; min-width: 160px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.35); font-size: var(--fs-base);
+}
+.ctx-menu-item {
+    display: flex; align-items: center; gap: var(--sp-2);
+    padding: 6px 14px; cursor: pointer; color: var(--text-1);
+    transition: background .12s;
+}
+.ctx-menu-item:hover { background: var(--bg-hover, rgba(255,255,255,.06)); }
+.ctx-menu-item .shortcut { margin-left: auto; font-size: var(--fs-xs); color: var(--text-3); }
+.ctx-menu-sep { height: 1px; margin: 4px 8px; background: var(--border); }
+
+/* ── Connection Validation Tooltip ── */
+.pipeline-tooltip {
+  position: absolute;
+  background: var(--bg-3);
+  color: var(--text-1);
+  font-size: var(--fs-sm);
+  font-weight: 400;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  pointer-events: none;
+  white-space: nowrap;
+  box-shadow: var(--shadow);
+  z-index: 100;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+.pipeline-tooltip.visible { opacity: 1; }
+
+/* ── Palette Connectable Highlight ── */
+.palette-item.connectable {
+  background: rgba(var(--success-rgb), 0.12);
+  border-color: var(--success);
+  box-shadow: 0 0 8px rgba(var(--success-rgb), 0.2);
+  position: relative;
+}
+.palette-item.connectable::after {
+  content: '⭐';
+  position: absolute;
+  top: 2px;
+  right: 4px;
+  font-size: var(--fs-2xs);
+  line-height: 1;
+}

@@ -1,0 +1,997 @@
+{% extends "base.html" %}
+{% block content %}
+
+<!-- LEFT: Viewer Panel -->
+<div class="viewer-panel" id="viewer-panel">
+    <div class="viewer-tabs" id="viewer-tabs">
+        <button class="viewer-tab active" data-phase="input"><span class="ko">입력</span><span class="en">Input</span><span class="es">Entrada</span><span class="ja">入力</span><span class="zh-CN">输入</span><span class="zh-TW">輸入</span></button>
+        <button class="viewer-tab disabled" data-phase="prepared"><span class="ko">전처리됨</span><span class="en">Prepared</span><span class="es">Preparado</span><span class="ja">前処理済み</span><span class="zh-CN">已预处理</span><span class="zh-TW">已預處理</span></button>
+        <button class="viewer-tab disabled" data-phase="surgery"><span class="ko">수술</span><span class="en">Surgery</span><span class="es">Cirugía</span><span class="ja">モデル加工</span><span class="zh-CN">模型修改</span><span class="zh-TW">模型修改</span></button>
+        <button class="viewer-tab disabled" data-phase="partition"><span class="ko">파티션</span><span class="en">Partition</span><span class="es">Partición</span><span class="ja">パーティション</span><span class="zh-CN">分区</span><span class="zh-TW">分區</span></button>
+        <button class="viewer-tab disabled" data-phase="qxnn"><span class="ko">양자화 진단</span><span class="en">Quant Diagnosis</span><span class="es">Diagnóstico cuant.</span><span class="ja">量子化診断</span><span class="zh-CN">量化诊断</span><span class="zh-TW">量化診斷</span></button>
+        <button class="viewer-tab disabled" data-phase="dxnn">DXNN</button>
+    </div>
+    <div class="viewer-body">
+        <!-- Explorer toggle button (visible when explorer is closed) -->
+        <button id="explorer-toggle" class="explorer-toggle" title="Toggle Explorer" data-i18n-title="Toggle Explorer">
+            <svg width="18" height="14" viewBox="0 0 18 14"><rect y="0" width="18" height="2" rx="1" fill="currentColor"/><rect y="6" width="18" height="2" rx="1" fill="currentColor"/><rect y="12" width="18" height="2" rx="1" fill="currentColor"/></svg>
+        </button>
+
+        <!-- Left Explorer panel -->
+        <div id="explorer-panel" class="explorer-panel">
+            <div class="explorer-header">
+                <span><span class="ko">탐색기</span><span class="en">Explorer</span><span class="es">Explorador</span><span class="ja">エクスプローラー</span><span class="zh-CN">资源管理器</span><span class="zh-TW">資源管理員</span></span>
+                <button id="explorer-close" class="explorer-close">✕</button>
+            </div>
+            <div id="explorer-content" class="explorer-content">
+                <div class="explorer-placeholder"><span class="ko">모델을 로드하여 노드를 탐색하세요</span><span class="en">Load a model to explore nodes</span><span class="es">Cargue un modelo para explorar nodos</span><span class="ja">モデルをロードしてノードを探索してください</span><span class="zh-CN">加载模型以浏览节点</span><span class="zh-TW">載入模型以瀏覽節點</span></div>
+            </div>
+        </div>
+
+        <!-- Center: Graph canvas -->
+        <div class="viewer-canvas-wrap" id="viewer-canvas-wrap">
+            <div class="viewer-empty" id="viewer-empty">
+                <span class="viewer-empty-icon">⬡</span>
+                <span><span class="ko">모델을 로드하여 시각화하세요</span><span class="en">Load a model to visualize</span><span class="es">Cargue un modelo para visualizar</span><span class="ja">モデルをロードして視覚化してください</span><span class="zh-CN">加载模型以进行可视化</span><span class="zh-TW">載入模型以進行視覺化</span></span>
+            </div>
+            <svg id="viewer-svg" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <marker id="arrowhead" markerWidth="8" markerHeight="6" refX="0" refY="3" orient="auto" markerUnits="userSpaceOnUse">
+                        <polygon points="0 0, 8 3, 0 6" fill="#94a3b8"/>
+                    </marker>
+                    <marker id="arrowhead-highlight" markerWidth="8" markerHeight="6" refX="0" refY="3" orient="auto" markerUnits="userSpaceOnUse">
+                        <polygon points="0 0, 8 3, 0 6" fill="#e05265"/>
+                    </marker>
+                </defs>
+                <g id="graph-content" transform="translate(0,0) scale(1)"></g>
+            </svg>
+            <div id="quant-diagnosis-view" class="quant-diagnosis-view" style="display:none">
+                <div class="quant-diagnosis-toolbar">
+                </div>
+                <iframe id="quant-diagnosis-frame" class="quant-diagnosis-frame" data-i18n-title="Quantization Diagnosis Report" title="Quantization Diagnosis Report" sandbox="" referrerpolicy="no-referrer"></iframe>
+                <div id="quant-diagnosis-unavailable" class="quant-diagnosis-unavailable" style="display:none"></div>
+            </div>
+        </div>
+
+        <!-- Right sidebar: Search + Node Details + Legend -->
+        <div id="viewer-sidebar" class="viewer-sidebar">
+            <div class="sidebar-section sidebar-search">
+                <div class="search-wrapper">
+                    <input type="text" id="search-input" data-i18n-placeholder="Search nodes / tensors..." autocomplete="off">
+                    <div id="search-dropdown" class="search-dropdown"></div>
+                </div>
+            </div>
+            <div id="node-info" class="sidebar-section" style="display:none">
+                <h3><span class="ko">노드 상세</span><span class="en">Node Details</span><span class="es">Detalles del nodo</span><span class="ja">ノード詳細</span><span class="zh-CN">节点详情</span><span class="zh-TW">節點詳情</span></h3>
+                <div id="node-info-content"></div>
+            </div>
+            <div id="legend" class="sidebar-section">
+                <h3><span class="ko">범례</span><span class="en">Legend</span><span class="es">Leyenda</span><span class="ja">凡例</span><span class="zh-CN">图例</span><span class="zh-TW">圖例</span></h3>
+                <div class="legend-grid">
+                    <div class="legend-item"><span class="legend-dot legend-dot-compute"></span><span class="ko">연산</span><span class="en">Compute</span><span class="es">Cómputo</span><span class="ja">演算</span><span class="zh-CN">计算</span><span class="zh-TW">計算</span></div>
+                    <div class="legend-item"><span class="legend-dot legend-dot-memory"></span><span class="ko">메모리</span><span class="en">Memory</span><span class="es">Memoria</span><span class="ja">メモリ</span><span class="zh-CN">内存</span><span class="zh-TW">記憶體</span></div>
+                    <div class="legend-item"><span class="legend-dot legend-dot-activation"></span><span class="ko">활성화</span><span class="en">Activation</span><span class="es">Activación</span><span class="ja">活性化</span><span class="zh-CN">激活</span><span class="zh-TW">激活</span></div>
+                    <div class="legend-item"><span class="legend-dot legend-dot-norm"></span><span class="ko">정규화</span><span class="en">Normalization</span><span class="es">Normalización</span><span class="ja">正規化</span><span class="zh-CN">归一化</span><span class="zh-TW">正規化</span></div>
+                    <div class="legend-item"><span class="legend-dot legend-dot-pooling"></span><span class="ko">풀링</span><span class="en">Pooling</span><span class="es">Agrupamiento</span><span class="ja">プーリング</span><span class="zh-CN">池化</span><span class="zh-TW">池化</span></div>
+                    <div class="legend-item"><span class="legend-dot legend-dot-elementwise"></span><span class="ko">원소별 연산</span><span class="en">Elementwise</span><span class="es">Por elemento</span><span class="ja">要素ごとの演算</span><span class="zh-CN">逐元素运算</span><span class="zh-TW">逐元素運算</span></div>
+                    <div class="legend-item"><span class="legend-dot legend-dot-quantize"></span><span class="ko">양자화</span><span class="en">Quantize</span><span class="es">Cuantizar</span><span class="ja">量子化</span><span class="zh-CN">量化</span><span class="zh-TW">量化</span></div>
+                    <div class="legend-item"><span class="legend-dot legend-dot-other"></span><span class="ko">기타</span><span class="en">Other</span><span class="es">Otro</span><span class="ja">その他</span><span class="zh-CN">其他</span><span class="zh-TW">其他</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="viewer-status-bar" id="viewer-status-bar">
+        <span id="status-nodes">Nodes: 0</span>
+        <span id="status-edges">Edges: 0</span>
+        <span id="status-zoom">Zoom: 100%</span>
+        <button class="btn-small" id="zoom-in">+</button>
+        <button class="btn-small" id="zoom-out">−</button>
+        <button class="btn-small" id="zoom-fit"><span class="ko">맞춤</span><span class="en">Fit</span><span class="es">Ajustar</span><span class="ja">フィット</span><span class="zh-CN">适应</span><span class="zh-TW">適應</span></button>
+        <button class="btn-small" id="collapse-all" title="Collapse All Subgraphs" data-i18n-title="Collapse All Subgraphs"><span class="ko">모두 접기</span><span class="en">Collapse All</span><span class="es">Contraer todo</span><span class="ja">すべて折りたたむ</span><span class="zh-CN">全部折叠</span><span class="zh-TW">全部折疊</span></button>
+        <button class="btn-small" id="expand-all" title="Expand All Subgraphs" data-i18n-title="Expand All Subgraphs"><span class="ko">모두 펼치기</span><span class="en">Expand All</span><span class="es">Expandir todo</span><span class="ja">すべて展開</span><span class="zh-CN">全部展开</span><span class="zh-TW">全部展開</span></button>
+    </div>
+</div>
+
+<style>
+/* Visually mute disabled small buttons */
+.btn-small.muted, .btn-small[disabled] {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+</style>
+
+<!-- RIGHT: Compile Form -->
+<div class="form-panel">
+    {% include "partials/setup_panel.html" %}
+    <section class="compile-form">
+        <h2><span class="ko">ONNX 모델 컴파일</span><span class="en">Compile ONNX Model</span><span class="es">Compilar modelo ONNX</span><span class="ja">ONNX モデルのコンパイル</span><span class="zh-CN">编译 ONNX 模型</span><span class="zh-TW">編譯 ONNX 模型</span></h2>
+        <form id="compile-form">
+            <!-- Auto-detect warning (shown if auto-detect fails or path invalid) -->
+            <div id="auto-detect-warning" class="alert-warning" style="display:none;" aria-live="polite"></div>
+            <div class="form-group">
+                <label for="model_path"><span class="ko">모델 경로 (.onnx) *</span><span class="en">Model Path (.onnx) *</span><span class="es">Ruta del modelo (.onnx) *</span><span class="ja">モデルパス (.onnx) *</span><span class="zh-CN">模型路径 (.onnx) *</span><span class="zh-TW">模型路徑 (.onnx) *</span></label>
+                <div class="form-group checkbox path-mode">
+                    <input type="checkbox" id="model_server_path" class="server-path-toggle" data-target="model">
+                    <label for="model_server_path"><span class="ko">서버 경로 사용</span><span class="en">Use server path</span><span class="es">Usar ruta del servidor</span><span class="ja">サーバーパスを使用</span><span class="zh-CN">使用服务器路径</span><span class="zh-TW">使用伺服器路徑</span></label>
+                </div>
+                <div class="dropzone" id="model-dropzone" data-target="model_path" data-accept=".onnx">
+                    <p class="dropzone-text"><span class="ko">.onnx 파일을 드래그하거나 아래에 경로를 입력하세요</span><span class="en">Drag & drop .onnx file here, or type path below</span><span class="es">Arrastre y suelte el archivo .onnx aquí, o escriba la ruta abajo</span><span class="ja">.onnx ファイルをここにドラッグ＆ドロップするか、パスを入力してください</span><span class="zh-CN">将 .onnx 文件拖放到此处，或在下方输入路径</span><span class="zh-TW">將 .onnx 檔案拖放至此，或在下方輸入路徑</span></p>
+                    <p class="dropzone-file" id="model-dropzone-file"></p>
+                </div>
+                <input type="text" id="model_path" name="model_path" required data-i18n-placeholder="/path/to/model.onnx">
+                <div class="sample-select-container" id="sample-select-container" style="display:none;">
+                    <button class="sample-select-btn" id="sample-select-btn" title="Select Sample Model" data-i18n-title="Select Sample Model">📦</button>
+                    <div class="sample-dropdown" id="sample-dropdown"></div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="config_path"><span class="ko">설정 경로 (.json) *</span><span class="en">Config Path (.json) *</span><span class="es">Ruta de configuración (.json) *</span><span class="ja">設定パス (.json) *</span><span class="zh-CN">配置路径 (.json) *</span><span class="zh-TW">設定路徑 (.json) *</span></label>
+                <div class="form-group checkbox path-mode">
+                    <input type="checkbox" id="config_server_path" class="server-path-toggle" data-target="config">
+                    <label for="config_server_path"><span class="ko">서버 경로 사용</span><span class="en">Use server path</span><span class="es">Usar ruta del servidor</span><span class="ja">サーバーパスを使用</span><span class="zh-CN">使用服务器路径</span><span class="zh-TW">使用伺服器路徑</span></label>
+                </div>
+                <div class="form-group checkbox config-builder-toggle">
+                    <input type="checkbox" id="config_build_toggle">
+                    <label for="config_build_toggle"><span class="ko">설정 생성</span><span class="en">Build Config</span><span class="es">Configuración de compilación</span><span class="ja">設定を生成</span><span class="zh-CN">生成配置</span><span class="zh-TW">產生設定</span></label>
+                </div>
+                <div id="config-upload-area">
+                    <div class="dropzone" id="config-dropzone" data-target="config_path" data-accept=".json">
+                        <p class="dropzone-text"><span class="ko">.json 설정 파일을 드래그하거나 아래에 경로를 입력하세요</span><span class="en">Drag & drop .json config here, or type path below</span><span class="es">Arrastre y suelte el archivo .json de configuración aquí, o escriba la ruta abajo</span><span class="ja">.json 設定ファイルをここにドラッグ＆ドロップするか、パスを入力してください</span><span class="zh-CN">将 .json 配置文件拖放到此处，或在下方输入路径</span><span class="zh-TW">將 .json 設定檔拖放至此，或在下方輸入路徑</span></p>
+                        <p class="dropzone-file" id="config-dropzone-file"></p>
+                    </div>
+                </div>
+                <input type="text" id="config_path" name="config_path" required data-i18n-placeholder="/path/to/config.json">
+            </div>
+            <div class="form-group">
+                <label for="output_dir"><span class="ko">출력 디렉토리 *</span><span class="en">Output Directory *</span><span class="es">Directorio de salida *</span><span class="ja">出力ディレクトリ *</span><span class="zh-CN">输出目录 *</span><span class="zh-TW">輸出目錄 *</span></label>
+                <input type="text" id="output_dir" name="output_dir" required data-i18n-placeholder="/path/to/output">
+            </div>
+            <div class="form-group">
+                <label for="opt_level"><span class="ko">최적화 수준</span><span class="en">Optimization Level</span><span class="es">Nivel de optimización</span><span class="ja">最適化レベル</span><span class="zh-CN">优化级别</span><span class="zh-TW">最佳化等級</span></label>
+                <select id="opt_level" name="opt_level">
+                    <option value="1" selected>1 (Advanced)</option>
+                    <option value="0">0 (Standard)</option>
+                </select>
+            </div>
+            <div class="form-group checkbox">
+                <input type="checkbox" id="aggressive_partitioning" name="aggressive_partitioning" value="true">
+                <label for="aggressive_partitioning"><span class="ko">적극적 파티셔닝</span><span class="en">Aggressive Partitioning</span><span class="es">Particionamiento agresivo</span><span class="ja">積極的なパーティショニング</span><span class="zh-CN">激进分区</span><span class="zh-TW">積極分區</span></label>
+                <span class="help-tip" data-tip="Removes the NPU task count limit so that as many nodes as possible run on the NPU. FPS performance may degrade if there are frequent NPU–CPU transitions.">?</span>
+            </div>
+            <div class="form-group checkbox">
+                <input type="checkbox" id="gen_log" name="gen_log" value="true">
+                <label for="gen_log"><span class="ko">로그 생성</span><span class="en">Generate Log</span><span class="es">Generar registro</span><span class="ja">ログ生成</span><span class="zh-CN">生成日志</span><span class="zh-TW">產生日誌</span></label>
+                <span class="help-tip" data-tip="Saves the compile log as a file in the Output Directory.">?</span>
+            </div>
+            <div class="form-group checkbox">
+                <input type="checkbox" id="quant_diagnosis" name="quant_diagnosis" value="true">
+                <label for="quant_diagnosis"><span class="ko">양자화 진단</span><span class="en">Quant Diagnosis</span><span class="es">Diagnóstico cuant.</span><span class="ja">量子化診断</span><span class="zh-CN">量化诊断</span><span class="zh-TW">量化診斷</span></label>
+                <span class="help-tip" data-i18n-tip="Generates a model-level quantization diagnosis HTML report (with the QXNN evidence it is built from) under quant_diagnosis/. May increase compile time and output size. A diagnosis failure does not fail the compile." data-tip="Generates a model-level quantization diagnosis HTML report (with the QXNN evidence it is built from) under quant_diagnosis/. May increase compile time and output size. A diagnosis failure does not fail the compile.">?</span>
+            </div>
+            <div class="form-group checkbox">
+                <input type="checkbox" name="node_selection" id="node-selection" value="true">
+                <label for="node-selection"><span class="ko">컴파일 범위 선택</span><span class="en">Compile Range Selection</span><span class="es">Selección de rango de compilación</span><span class="ja">コンパイル範囲の選択</span><span class="zh-CN">编译范围选择</span><span class="zh-TW">編譯範圍選擇</span></label>
+                <span class="help-tip" data-tip="Specify the input/output nodes on the graph visualized in the left Viewer to define the compile range. The final range may differ from your selection due to the internal device-assignment algorithm. Multiple ranges are not currently supported.">?</span>
+            </div>
+            <details class="advanced-options">
+                <summary><span class="ko">고급 옵션</span><span class="en">Advanced Options</span><span class="es">Opciones avanzadas</span><span class="ja">詳細オプション</span><span class="zh-CN">高级选项</span><span class="zh-TW">進階選項</span></summary>
+
+                <fieldset class="dxq-fieldset">
+                    <legend><span class="ko">DXQ 개선 방식</span><span class="en">DXQ Enhancement Scheme</span><span class="es">Esquema de mejora DXQ</span><span class="ja">DXQ 拡張スキーム</span><span class="zh-CN">DXQ 增强方案</span><span class="zh-TW">DXQ 增強方案</span></legend>
+                    <div class="form-group checkbox dxq-auto-row">
+                        <input type="checkbox" id="dxq-auto" name="use_q_pro" value="true">
+                        <label for="dxq-auto"><span class="ko">자동 (Q-PRO)</span><span class="en">Auto (Q-PRO)</span><span class="es">Automático (Q-PRO)</span><span class="ja">自動 (Q-PRO)</span><span class="zh-CN">自动 (Q-PRO)</span><span class="zh-TW">自動 (Q-PRO)</span></label>
+                        <span class="help-tip" data-tip="Auto-selects the DXQ enhancement scheme for you using dx_com's automatic Q-PRO quantization tuning instead of manual DXQ presets. Mutually exclusive with the manual DXQ presets below: enabling Auto disables and ignores them.">?</span>
+                    </div>
+                    <p class="dxq-desc"><span class="ko">DXQ 양자화 프리셋을 전환합니다. 활성화된 옵션이 enhancement_scheme에 결합됩니다.</span><span class="en">Toggle DXQ quantization presets. Enabled options are combined into the enhancement_scheme dict.</span><span class="es">Alterne presets de cuantización DXQ. Las opciones habilitadas se combinan en el diccionario enhancement_scheme.</span><span class="ja">DXQ 量子化プリセットを切り替えます。有効なオプションが enhancement_scheme にまとめられます。</span><span class="zh-CN">切换 DXQ 量化预设。已启用的选项将合并到 enhancement_scheme 中。</span><span class="zh-TW">切換 DXQ 量化預設。已啟用的選項將合併到 enhancement_scheme 中。</span></p>
+                    <input type="hidden" id="enhanced_scheme" name="enhanced_scheme" value="">
+
+                    <div class="dxq-option" data-key="DXQ-P0">
+                        <label class="dxq-toggle">
+                            <input type="checkbox" class="dxq-check" data-key="DXQ-P0"> DXQ-P0
+                        </label>
+                        <div class="dxq-params" style="display:none">
+                            <label>alpha <input type="number" step="0.01" data-param="alpha" value="0.5" class="dxq-input"></label>
+                        </div>
+                    </div>
+
+                    <div class="dxq-option" data-key="DXQ-P1">
+                        <label class="dxq-toggle">
+                            <input type="checkbox" class="dxq-check" data-key="DXQ-P1"> DXQ-P1
+                        </label>
+                        <div class="dxq-params" style="display:none">
+                            <span class="dxq-bool-note">Boolean (no parameters)</span>
+                        </div>
+                    </div>
+
+                    <div class="dxq-option" data-key="DXQ-P2">
+                        <label class="dxq-toggle">
+                            <input type="checkbox" class="dxq-check" data-key="DXQ-P2"> DXQ-P2
+                        </label>
+                        <div class="dxq-params" style="display:none">
+                            <label>alpha <input type="number" step="0.01" data-param="alpha" value="0.1" class="dxq-input"></label>
+                            <label>beta <input type="number" step="0.01" data-param="beta" value="1.0" class="dxq-input"></label>
+                            <label>cosim_num <input type="number" step="1" data-param="cosim_num" value="2" class="dxq-input"></label>
+                        </div>
+                    </div>
+
+                    <div class="dxq-option" data-key="DXQ-P3">
+                        <label class="dxq-toggle">
+                            <input type="checkbox" class="dxq-check" data-key="DXQ-P3"> DXQ-P3
+                        </label>
+                        <div class="dxq-params" style="display:none">
+                            <label>num_samples <input type="number" step="1" data-param="num_samples" value="1024" class="dxq-input"></label>
+                        </div>
+                    </div>
+
+                    <div class="dxq-option" data-key="DXQ-P4">
+                        <label class="dxq-toggle">
+                            <input type="checkbox" class="dxq-check" data-key="DXQ-P4"> DXQ-P4
+                        </label>
+                        <div class="dxq-params" style="display:none">
+                            <label>num_samples <input type="number" step="1" data-param="num_samples" value="1024" class="dxq-input"></label>
+                        </div>
+                    </div>
+
+                    <div class="dxq-option" data-key="DXQ-P5">
+                        <label class="dxq-toggle">
+                            <input type="checkbox" class="dxq-check" data-key="DXQ-P5"> DXQ-P5
+                        </label>
+                        <div class="dxq-params" style="display:none">
+                            <label>num_samples <input type="number" step="1" data-param="num_samples" value="1024" class="dxq-input"></label>
+                        </div>
+                    </div>
+                </fieldset>
+            </details>
+            <div class="form-actions">
+                <button type="submit" class="compile-btn" id="compile-main-btn"><span class="ko">컴파일</span><span class="en">Compile</span><span class="es">Compilar</span><span class="ja">コンパイル</span><span class="zh-CN">编译</span><span class="zh-TW">編譯</span></button>
+                <button type="button" class="summary-btn" id="save-summary-btn" disabled><span class="ko">모델 요약 저장</span><span class="en">Save Model Summary</span><span class="es">Guardar resumen del modelo</span><span class="ja">モデルサマリーを保存</span><span class="zh-CN">保存模型摘要</span><span class="zh-TW">儲存模型摘要</span></button>
+            </div>
+        </form>
+    </section>
+
+    <!-- Agentic Auto Compile -->
+    <div class="agentic-compile" id="agentic-compile">
+        <div class="agentic-title"><span class="ko">에이전트 자동 컴파일</span><span class="en">Agentic Auto Compile</span><span class="es">Compilación automática con agente</span><span class="ja">エージェント自動コンパイル</span><span class="zh-CN">智能体自动编译</span><span class="zh-TW">智能體自動編譯</span></div>
+        <!-- 컴파일할 모델 (full-width) -->
+        <div class="form-group agentic-model">
+            <label for="agentic-model-input"><span class="ko">컴파일할 모델 (파일 경로 또는 이름·ID·URL)</span><span class="en">Model to compile (file path or name/ID/URL)</span><span class="es">Modelo a compilar (ruta o nombre/ID/URL)</span><span class="ja">コンパイルするモデル（パス または 名前・ID・URL）</span><span class="zh-CN">要编译的模型（路径 或 名称/ID/URL）</span><span class="zh-TW">要編譯的模型（路徑 或 名稱/ID/URL）</span></label>
+            <input type="text" id="agentic-model-input" data-i18n-placeholder="e.g. yolo11n  |  /path/model.onnx  |  https://...">
+        </div>
+        <!-- agent / LLM model / effort pickers — horizontal -->
+        <div class="agentic-pickers">
+            <div class="form-group agentic-agent">
+                <label for="agentic-agent-select"><span class="ko">에이전트</span><span class="en">Agent</span><span class="es">Agente</span><span class="ja">エージェント</span><span class="zh-CN">智能体</span><span class="zh-TW">智能體</span></label>
+                <select id="agentic-agent-select"></select><!-- populated by auto_compile.js -->
+            </div>
+            <div class="form-group agentic-llm-model">
+                <label for="agentic-model-select"><span class="ko">모델</span><span class="en">Model</span><span class="es">Modelo</span><span class="ja">モデル</span><span class="zh-CN">模型</span><span class="zh-TW">模型</span></label>
+                <select id="agentic-model-select"></select><!-- populated by auto_compile.js -->
+            </div>
+            <div class="form-group agentic-effort" id="agentic-effort-control" hidden>
+                <label for="agentic-effort-select"><span class="ko">사고 강도</span><span class="en">Effort</span><span class="es">Esfuerzo</span><span class="ja">推論強度</span><span class="zh-CN">推理强度</span><span class="zh-TW">推理強度</span></label>
+                <select id="agentic-effort-select"></select><!-- populated by auto_compile.js -->
+            </div>
+        </div>
+        <div id="agentic-model-quality-hint" class="agentic-quality-hint" hidden></div>
+        <p class="agentic-hint"><span class="ko">ONNX가 없으면 에이전트가 직접 받아 변환·설정·컴파일·검증까지 자동으로 진행합니다.</span><span class="en">If no ONNX, the agent downloads, converts, configures, compiles and verifies automatically.</span><span class="es">Si no hay ONNX, el agente lo descarga, convierte, configura, compila y verifica automáticamente.</span><span class="ja">ONNX が無い場合、エージェントが取得・変換・設定・コンパイル・検証まで自動で行います。</span><span class="zh-CN">若无 ONNX，智能体会自动下载、转换、配置、编译并验证。</span><span class="zh-TW">若無 ONNX，智能體會自動下載、轉換、設定、編譯並驗證。</span></p>
+        <!-- two action buttons — always side by side -->
+        <div class="agentic-buttons">
+            <button type="button" class="compile-btn" id="auto-compile-noninteractive">⚡ <span class="ko">자동 컴파일 (질문 없음)</span><span class="en">Auto Compile (no&nbsp;interaction)</span><span class="es">Compilar auto (sin interacción)</span><span class="ja">自動コンパイル（質問なし）</span><span class="zh-CN">自动编译（无交互）</span><span class="zh-TW">自動編譯（無互動）</span></button>
+            <button type="button" class="compile-btn btn-outline" id="auto-compile-interactive">💬 <span class="ko">자동 컴파일 (대화형)</span><span class="en">Auto Compile (interactive)</span><span class="es">Compilar auto (interactivo)</span><span class="ja">自動コンパイル（対話型）</span><span class="zh-CN">自动编译（交互式）</span><span class="zh-TW">自動編譯（互動式）</span></button>
+        </div>
+    </div>
+
+    <div id="result"></div>
+    <div id="log-panel" class="log-panel" style="display:none">
+        <div class="log-header">
+            <h3><span class="ko">컴파일러 로그</span><span class="en">Compiler Log</span><span class="es">Registro del compilador</span><span class="ja">コンパイラログ</span><span class="zh-CN">编译器日志</span><span class="zh-TW">編譯器日誌</span></h3>
+            <div class="log-actions">
+                <button class="log-btn" id="log-toggle" title="Collapse" data-i18n-title="Collapse">▼</button>
+            </div>
+        </div>
+        <pre class="log-content" id="log-content"></pre>
+    </div>
+
+    <!-- Resume from QXNN (re-quantization) -->
+    <section class="resume-card collapsed" id="resume-card">
+        <button type="button" class="resume-card-header" id="resume-card-header" aria-expanded="false">
+            <span class="rch-title"><span class="ko">QXNN에서 재개</span><span class="en">Resume from QXNN</span><span class="es">Reanudar desde QXNN</span><span class="ja">QXNN から再開</span><span class="zh-CN">从 QXNN 恢复</span><span class="zh-TW">從 QXNN 恢復</span> <span class="rc-badge">RE-QUANTIZE</span></span>
+            <span class="rch-chev">▾</span>
+        </button>
+        <div class="resume-card-body" id="resume-card-body">
+            <p class="resume-subtitle"><span class="ko">기존 <code>.qxnn</code> 아티팩트에서 재양자화하여 새 <code>.dxnn</code>을 생성합니다. 이전 컴파일 작업 없이도 사용할 수 있습니다.</span><span class="en">Re-quantize from an existing <code>.qxnn</code> artifact to produce a new <code>.dxnn</code>. Usable any time, with or without a prior compile job.</span><span class="es">Re-cuantice desde un artefacto <code>.qxnn</code> existente para producir un nuevo <code>.dxnn</code>.</span><span class="ja">既存の <code>.qxnn</code> アーティファクトから再量子化して新しい <code>.dxnn</code> を生成します。</span><span class="zh-CN">从现有 <code>.qxnn</code> 工件重新量化以生成新的 <code>.dxnn</code>。</span><span class="zh-TW">從現有 <code>.qxnn</code> 工件重新量化以產生新的 <code>.dxnn</code>。</span></p>
+            <form id="resume-form">
+                <div class="form-group">
+                    <label for="qxnn_path"><span class="ko">QXNN 경로 (.qxnn) *</span><span class="en">QXNN Path (.qxnn) *</span><span class="es">Ruta QXNN (.qxnn) *</span><span class="ja">QXNN パス (.qxnn) *</span><span class="zh-CN">QXNN 路径 (.qxnn) *</span><span class="zh-TW">QXNN 路徑 (.qxnn) *</span></label>
+                    <input type="text" id="qxnn_path" name="qxnn_path" required data-i18n-placeholder="/path/to/model.qxnn">
+                </div>
+                <div class="form-group">
+                    <label for="resume_output_dir"><span class="ko">출력 디렉터리 *</span><span class="en">Output Directory *</span><span class="es">Directorio de salida *</span><span class="ja">出力ディレクトリ *</span><span class="zh-CN">输出目录 *</span><span class="zh-TW">輸出目錄 *</span></label>
+                    <input type="text" id="resume_output_dir" name="output_dir" required data-i18n-placeholder="/path/to/output">
+                </div>
+                <div class="form-group">
+                    <label for="recalibration_method"><span class="ko">재보정 방법</span><span class="en">Recalibration Method</span><span class="es">Método de recalibración</span><span class="ja">再キャリブレーション方法</span><span class="zh-CN">重新校准方法</span><span class="zh-TW">重新校準方法</span>
+                        <span class="help-tip" data-i18n-tip="Replaces all ActQuant observers with the chosen type before re-calibration. QXNN resume only. Valid: minmax / ema / iqr." data-tip="Replaces all ActQuant observers with the chosen type before re-calibration. QXNN resume only. Valid: minmax / ema / iqr.">?</span>
+                    </label>
+                    <select id="recalibration_method" name="recalibration_method">
+                        <option value="" selected><span class="ko">(없음 — 기존 observer 유지)</span><span class="en">(none — keep existing observers)</span><span class="es">(ninguno — mantener observers existentes)</span><span class="ja">(なし — 既存 observer を維持)</span><span class="zh-CN">(无 — 保留现有 observer)</span><span class="zh-TW">(無 — 保留現有 observer)</span></option>
+                        <option value="minmax">minmax</option>
+                        <option value="ema">ema</option>
+                        <option value="iqr">iqr</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="resume_dataset_path"><span class="ko">데이터셋 경로 (선택)</span><span class="en">Dataset Path (optional)</span><span class="es">Ruta del dataset (opcional)</span><span class="ja">データセットパス (任意)</span><span class="zh-CN">数据集路径 (可选)</span><span class="zh-TW">資料集路徑 (選填)</span>
+                        <span class="help-tip" data-i18n-tip="Overrides the calibration dataset path embedded in the QXNN before auto-building the calibration DataLoader. Leave empty to use the embedded path. QXNN resume only." data-tip="Overrides the calibration dataset path embedded in the QXNN before auto-building the calibration DataLoader. Leave empty to use the embedded path. QXNN resume only.">?</span>
+                    </label>
+                    <input type="text" id="resume_dataset_path" name="dataset_path" data-i18n-placeholder="(leave empty to use embedded path)">
+                </div>
+                <details class="advanced-options" open>
+                    <summary><span class="ko">고급 옵션</span><span class="en">Advanced Options</span><span class="es">Opciones avanzadas</span><span class="ja">詳細オプション</span><span class="zh-CN">高级选项</span><span class="zh-TW">進階選項</span></summary>
+                    <fieldset class="dxq-fieldset">
+                        <legend><span class="ko">DXQ 개선 방식</span><span class="en">DXQ Enhancement Scheme</span><span class="es">Esquema de mejora DXQ</span><span class="ja">DXQ 拡張スキーム</span><span class="zh-CN">DXQ 增强方案</span><span class="zh-TW">DXQ 增強方案</span></legend>
+                        <div class="form-group checkbox dxq-auto-row">
+                            <input type="checkbox" id="resume-dxq-auto" name="use_q_pro" value="true">
+                            <label for="resume-dxq-auto"><span class="ko">자동 (Q-PRO)</span><span class="en">Auto (Q-PRO)</span><span class="es">Automático (Q-PRO)</span><span class="ja">自動 (Q-PRO)</span><span class="zh-CN">自动 (Q-PRO)</span><span class="zh-TW">自動 (Q-PRO)</span></label>
+                            <span class="help-tip" data-i18n-tip="Auto-selects the DXQ scheme using automatic Q-PRO tuning. Mutually exclusive with the manual DXQ presets below." data-tip="Auto-selects the DXQ scheme using automatic Q-PRO tuning. Mutually exclusive with the manual DXQ presets below.">?</span>
+                        </div>
+                        <input type="hidden" id="resume_enhanced_scheme" name="enhanced_scheme" value="">
+                        <div class="dxq-option resume-dxq-option" data-key="DXQ-P0">
+                            <label class="dxq-toggle"><input type="checkbox" class="resume-dxq-check" data-key="DXQ-P0"> DXQ-P0</label>
+                            <div class="dxq-params" style="display:none"><label>alpha <input type="number" step="0.01" data-param="alpha" value="0.5" class="resume-dxq-input"></label></div>
+                        </div>
+                        <div class="dxq-option resume-dxq-option" data-key="DXQ-P1">
+                            <label class="dxq-toggle"><input type="checkbox" class="resume-dxq-check" data-key="DXQ-P1"> DXQ-P1</label>
+                            <div class="dxq-params" style="display:none"><span class="dxq-bool-note">Boolean (no parameters)</span></div>
+                        </div>
+                        <div class="dxq-option resume-dxq-option" data-key="DXQ-P2">
+                            <label class="dxq-toggle"><input type="checkbox" class="resume-dxq-check" data-key="DXQ-P2"> DXQ-P2</label>
+                            <div class="dxq-params" style="display:none">
+                                <label>alpha <input type="number" step="0.01" data-param="alpha" value="0.1" class="resume-dxq-input"></label>
+                                <label>beta <input type="number" step="0.01" data-param="beta" value="1.0" class="resume-dxq-input"></label>
+                                <label>cosim_num <input type="number" step="1" data-param="cosim_num" value="2" class="resume-dxq-input"></label>
+                            </div>
+                        </div>
+                        <div class="dxq-option resume-dxq-option" data-key="DXQ-P3">
+                            <label class="dxq-toggle"><input type="checkbox" class="resume-dxq-check" data-key="DXQ-P3"> DXQ-P3</label>
+                            <div class="dxq-params" style="display:none"><label>num_samples <input type="number" step="1" data-param="num_samples" value="1024" class="resume-dxq-input"></label></div>
+                        </div>
+                        <div class="dxq-option resume-dxq-option" data-key="DXQ-P4">
+                            <label class="dxq-toggle"><input type="checkbox" class="resume-dxq-check" data-key="DXQ-P4"> DXQ-P4</label>
+                            <div class="dxq-params" style="display:none"><label>num_samples <input type="number" step="1" data-param="num_samples" value="1024" class="resume-dxq-input"></label></div>
+                        </div>
+                        <div class="dxq-option resume-dxq-option" data-key="DXQ-P5">
+                            <label class="dxq-toggle"><input type="checkbox" class="resume-dxq-check" data-key="DXQ-P5"> DXQ-P5</label>
+                            <div class="dxq-params" style="display:none"><label>num_samples <input type="number" step="1" data-param="num_samples" value="1024" class="resume-dxq-input"></label></div>
+                        </div>
+                    </fieldset>
+                </details>
+                <div class="form-actions">
+                    <button type="submit" class="resume-btn"><span class="ko">재개</span><span class="en">Resume</span><span class="es">Reanudar</span><span class="ja">再開</span><span class="zh-CN">恢复</span><span class="zh-TW">恢復</span></button>
+                </div>
+            </form>
+            <div id="resume-result"></div>
+            <div id="resume-log-panel" class="log-panel" style="display:none">
+                <div class="log-header">
+                    <h3><span class="ko">컴파일러 로그</span><span class="en">Compiler Log</span><span class="es">Registro del compilador</span><span class="ja">コンパイラログ</span><span class="zh-CN">编译器日志</span><span class="zh-TW">編譯器日誌</span></h3>
+                    <div class="log-actions">
+                        <button class="log-btn" id="resume-log-toggle" title="Collapse" data-i18n-title="Collapse">▼</button>
+                    </div>
+                </div>
+                <pre class="log-content" id="resume-log-content"></pre>
+            </div>
+        </div>
+    </section>
+</div>
+
+<script>
+// Feature check: disable compile if dx_com not available on server
+window.addEventListener('load', function() {
+    fetch('/feature-check').then(function(r) { return r.json(); }).then(function(data) {
+        if (window.ViewerPanel && ViewerPanel.applyCompilerCapabilities) ViewerPanel.applyCompilerCapabilities(data);
+        if (!data || !data.compile) {
+            const btn = document.querySelector('.compile-btn');
+            if (btn) { btn.disabled = true; btn.title = T('Compile unavailable: dx_com not installed on server.'); }
+            const warn = document.getElementById('auto-detect-warning-wiz') || document.getElementById('auto-detect-warning');
+            if (warn) { warn.style.display = ''; warn.textContent = T('Compile unavailable: dx_com not installed on server.'); }
+        }
+    }).catch(function() {
+        // ignore feature-check failure (leave UI enabled)
+    });
+});
+
+// Form submission via fetch + SSE progress tracking
+document.getElementById('compile-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    syncDxqScheme();
+
+    const btn = this.querySelector('.compile-btn');
+    btn.disabled = true;
+    btn.textContent = T('Preparing...');
+    var summaryBtn = document.getElementById('save-summary-btn');
+    if (summaryBtn) { summaryBtn.disabled = true; delete summaryBtn.dataset.jobId; }
+
+    // Pre-submit: attempt auto-detect if a model path is provided
+    const modelPath = document.getElementById('model_path').value.trim();
+    const warnEl = document.getElementById('auto-detect-warning-wiz') || document.getElementById('auto-detect-warning');
+    if (warnEl) { warnEl.style.display = 'none'; warnEl.textContent = ''; }
+    if (modelPath) {
+        try {
+            const resp = await fetch('/model/inspect?path=' + encodeURIComponent(modelPath));
+            const data = await resp.json();
+            if (data.error) {
+                const msg = T('Auto-detect skipped:') + ' ' + data.error;
+                if (warnEl) { warnEl.style.display = ''; warnEl.textContent = msg; }
+            } else {
+                let dynamicFound = false;
+                if (data.auto_detected === false) {
+                    dynamicFound = true;
+                } else if (data.inputs) {
+                    for (const v of Object.values(data.inputs)) {
+                        if (Array.isArray(v)) continue;
+                        if (v && v.dynamic) { dynamicFound = true; break; }
+                    }
+                }
+                if (dynamicFound) {
+                    const msg = T('Note: Automatic input detection did not fill shapes because one or more inputs are dynamic. Please enter input shapes manually.');
+                    if (warnEl) { warnEl.style.display = ''; warnEl.textContent = msg; }
+                } else {
+                    try {
+                        const list = document.getElementById('input-shapes-list');
+                        if (list && data.inputs) {
+                            list.innerHTML = '';
+                            for (const [name, payload] of Object.entries(data.inputs)) {
+                                const shape = Array.isArray(payload) ? payload : (payload.shape || []);
+                                if (name) addInputRow(name, shape);
+                            }
+                            const banner = document.getElementById('auto-detect-banner');
+                            if (banner) banner.style.display = '';
+                        }
+                    } catch (e) { /* non-fatal */ }
+                }
+            }
+        } catch (err) {
+            const msg = T('Auto-detect failed:') + ' ' + (err.message || String(err));
+            if (warnEl) { warnEl.style.display = ''; warnEl.textContent = msg; }
+        }
+    }
+
+    btn.textContent = T('Submitting...');
+    const formData = new FormData(this);
+    ViewerPanel.resetViewer();
+
+    fetch('/compile', { method: 'POST', body: formData })
+        .then(r => r.text())
+        .then(html => {
+            const resultEl = document.getElementById('result');
+            resultEl.innerHTML = html;
+            btn.disabled = false;
+            btn.textContent = T('Compile');
+
+            // Start SSE progress tracking
+            const container = resultEl.querySelector('.progress-container');
+            if (!container) return;
+            const jobId = container.dataset.jobId;
+            // Load input model in viewer
+            const modelPath = document.getElementById('model_path').value;
+            if (modelPath) {
+                ViewerPanel.loadModel('input', modelPath);
+            }
+            const bar = container.querySelector('.progress-bar');
+            const phaseValue = container.querySelector('.phase-value');
+            const phaseIndicator = container.querySelector('.phase-indicator');
+
+            const source = new EventSource('/progress/' + jobId);
+
+            // Show log panel
+            const logPanel = document.getElementById('log-panel');
+            const logContent = document.getElementById('log-content');
+            logPanel.style.display = '';
+            logContent.textContent = '';
+
+            source.addEventListener('log', function(e) {
+                const data = JSON.parse(e.data);
+                if (data.lines && data.lines.length) {
+                    logContent.textContent += data.lines.join('\n') + '\n';
+                    logContent.scrollTop = logContent.scrollHeight;
+                }
+            });
+
+            source.addEventListener('progress', function(e) {
+                const data = JSON.parse(e.data);
+                if (window.ViewerPanel && ViewerPanel.applyCompilerCapabilities) ViewerPanel.applyCompilerCapabilities(data);
+                bar.style.width = data.progress + '%';
+                bar.textContent = Math.round(data.progress) + '%';
+                if (data.phase) {
+                    phaseValue.textContent = data.phase;
+                }
+                // Sub-task tqdm bar
+                const subEl = document.getElementById('sub-progress');
+                if (subEl) {
+                    if (data.tqdm_sub) {
+                        const t = data.tqdm_sub;
+                        subEl.style.display = '';
+                        subEl.querySelector('.sub-progress-label').textContent = t.label;
+                        subEl.querySelector('.sub-progress-bar').style.width = t.percent + '%';
+                        subEl.querySelector('.sub-progress-value').textContent = t.current + '/' + t.total;
+                    } else {
+                        subEl.style.display = 'none';
+                    }
+                }
+            });
+
+            source.addEventListener('model_ready', function(e) {
+                const data = JSON.parse(e.data);
+                ViewerPanel.handleModelReady(data);
+            });
+
+            source.addEventListener('qxnn_available', function(e) {
+                const data = JSON.parse(e.data);
+                ViewerPanel.handleQxnnAvailable(jobId, data);
+            });
+
+            source.addEventListener('paused', function(e) {
+                var data = JSON.parse(e.data);
+                ViewerPanel.enterNodeSelectionMode(data, jobId);
+            });
+
+            source.addEventListener('complete', function(e) {
+                bar.style.width = '100%';
+                bar.textContent = '100%';
+                bar.classList.add('done');
+                container.querySelector('h3').textContent = T('✅ Compilation Complete');
+                phaseIndicator.classList.add('phase-done');
+                phaseValue.textContent = T('Done');
+                var subEl = document.getElementById('sub-progress');
+                if (subEl) subEl.style.display = 'none';
+                container.insertAdjacentHTML('beforeend',
+                    '<div class="result success"><p>' + T('Compilation finished successfully.') + '</p></div>');
+                // Load final DXNN model in viewer
+                try {
+                    const completeData = JSON.parse(e.data);
+                    if (completeData.dxnn_path) {
+                        ViewerPanel.loadModel('dxnn', completeData.dxnn_path);
+                    }
+                    if (completeData.qxnn &&
+                            (completeData.qxnn.available || completeData.qxnn.quant_diagnosis_requested)) {
+                        ViewerPanel.handleQxnnAvailable(jobId, completeData.qxnn);
+                    }
+                } catch(err) { /* no dxnn_path in complete event */ }
+                // Enable summary button
+                var summaryBtn = document.getElementById('save-summary-btn');
+                if (summaryBtn) {
+                    summaryBtn.disabled = false;
+                    summaryBtn.dataset.jobId = jobId;
+                }
+                source.close();
+            });
+
+            source.addEventListener('error', function(e) {
+                try {
+                    const data = JSON.parse(e.data);
+                    bar.classList.add('error');
+                    container.querySelector('h3').textContent = T('❌ Compilation Failed');
+                    phaseIndicator.classList.add('phase-error');
+                    phaseValue.textContent = T('Error');
+                    container.insertAdjacentHTML('beforeend',
+                        '<div class="result error"><p>' + (data.error || 'Unknown error') + '</p></div>');
+                } catch(err) {
+                    phaseValue.textContent = T('Connection lost');
+                }
+                source.close();
+            });
+        })
+        .catch(err => {
+            document.getElementById('result').innerHTML =
+                '<div class="result error"><p>❌ ' + T('Request failed:') + ' ' + err.message + '</p></div>';
+            btn.disabled = false;
+            btn.textContent = T('Compile');
+        });
+});
+
+// Save Model Summary button handler
+document.getElementById('save-summary-btn').addEventListener('click', function() {
+    var btn = this;
+    var jobId = btn.dataset.jobId;
+    if (!jobId) return;
+    btn.disabled = true;
+    btn.textContent = T('Generating...');
+    fetch('/compile/' + jobId + '/summary', { method: 'POST' })
+        .then(function(r) {
+            if (!r.ok) return r.json().then(function(d) { throw new Error(d.error || 'Unknown error'); });
+            var disp = r.headers.get('Content-Disposition') || '';
+            var match = disp.match(/filename="(.+?)"/);
+            var filename = match ? match[1] : 'model_summary.html';
+            return r.blob().then(function(blob) { return { blob: blob, filename: filename }; });
+        })
+        .then(function(result) {
+            var a = document.createElement('a');
+            a.href = URL.createObjectURL(result.blob);
+            a.download = result.filename;
+            a.click();
+            URL.revokeObjectURL(a.href);
+            btn.textContent = T('Save Model Summary');
+            btn.disabled = false;
+        })
+        .catch(function(err) {
+            btn.textContent = T('Save Model Summary');
+            btn.disabled = false;
+            console.error('Summary generation failed:', err);
+        });
+});
+
+// DXQ Enhancement Scheme logic
+function syncDxqScheme() {
+    const autoEl = document.getElementById('dxq-auto');
+    if (autoEl && autoEl.checked) {
+        document.getElementById('enhanced_scheme').value = '';
+        return;
+    }
+    const scheme = {};
+    document.querySelectorAll('.dxq-check:checked').forEach(cb => {
+        const key = cb.dataset.key;
+        const option = cb.closest('.dxq-option');
+        const params = option.querySelectorAll('.dxq-input');
+        if (key === 'DXQ-P1') {
+            scheme[key] = true;
+        } else {
+            const obj = {};
+            params.forEach(p => {
+                const val = parseFloat(p.value);
+                obj[p.dataset.param] = Number.isInteger(val) && p.step === '1' ? parseInt(p.value) : val;
+            });
+            scheme[key] = obj;
+        }
+    });
+    document.getElementById('enhanced_scheme').value = Object.keys(scheme).length ? JSON.stringify(scheme) : '';
+}
+
+document.querySelectorAll('.dxq-check').forEach(cb => {
+    cb.addEventListener('change', () => {
+        const params = cb.closest('.dxq-option').querySelector('.dxq-params');
+        params.style.display = cb.checked ? 'flex' : 'none';
+        syncDxqScheme();
+    });
+});
+document.querySelectorAll('.dxq-input').forEach(inp => {
+    inp.addEventListener('input', syncDxqScheme);
+});
+
+const dxqAutoEl = document.getElementById('dxq-auto');
+if (dxqAutoEl) {
+    dxqAutoEl.addEventListener('change', () => {
+        const disabled = dxqAutoEl.checked;
+        document.querySelectorAll('.dxq-check, .dxq-input').forEach(el => {
+            el.disabled = disabled;
+            const opt = el.closest('.dxq-option');
+            if (opt) opt.style.opacity = disabled ? '0.4' : '';
+        });
+        if (disabled) {
+            document.getElementById('enhanced_scheme').value = '';
+        } else {
+            syncDxqScheme();
+        }
+    });
+}
+
+// Server path toggle: hide dropzone when "Use server path" is checked
+document.querySelectorAll('.server-path-toggle').forEach(cb => {
+    const target = cb.dataset.target;
+    const dropzone = document.getElementById(target + '-dropzone');
+    cb.addEventListener('change', () => {
+        dropzone.style.display = cb.checked ? 'none' : '';
+        // Hide "Build Config" when config server path is checked
+        if (target === 'config') {
+            const buildToggle = document.getElementById('config_build_toggle');
+            const buildToggleGroup = buildToggle.closest('.config-builder-toggle');
+            if (cb.checked) {
+                buildToggleGroup.style.display = 'none';
+                if (buildToggle.checked) {
+                    buildToggle.checked = false;
+                    closeWizard();
+                }
+            } else {
+                buildToggleGroup.style.display = '';
+            }
+        }
+    });
+});
+
+// Dropzone logic
+document.querySelectorAll('.dropzone').forEach(zone => {
+    const targetId = zone.dataset.target;
+    const input = document.getElementById(targetId);
+    const fileLabel = zone.querySelector('.dropzone-file');
+
+    zone.addEventListener('dragover', e => {
+        e.preventDefault();
+        zone.classList.add('drag-over');
+    });
+    zone.addEventListener('dragleave', e => {
+        e.preventDefault();
+        zone.classList.remove('drag-over');
+    });
+    zone.addEventListener('drop', e => {
+        e.preventDefault();
+        zone.classList.remove('drag-over');
+        const file = e.dataTransfer.files[0];
+        if (!file) return;
+
+        zone.classList.add('uploading');
+        fileLabel.textContent = T('Uploading') + ' ' + file.name + '...';
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        fetch('/upload', { method: 'POST', body: formData })
+            .then(r => r.json())
+            .then(data => {
+                zone.classList.remove('uploading');
+                if (data.path) {
+                    input.value = data.path;
+                    zone.classList.add('uploaded');
+                    fileLabel.textContent = '✅ ' + data.filename + ' → ' + data.path;
+                } else {
+                    fileLabel.textContent = '❌ ' + T('Upload failed:') + ' ' + (data.error || 'Unknown error');
+                }
+            })
+            .catch(err => {
+                zone.classList.remove('uploading');
+                fileLabel.textContent = '❌ ' + T('Upload failed:') + ' ' + err.message;
+            });
+    });
+
+    zone.addEventListener('click', () => {
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = zone.dataset.accept || '*';
+        fileInput.onchange = () => {
+            if (fileInput.files[0]) {
+                const dt = new DataTransfer();
+                dt.items.add(fileInput.files[0]);
+                zone.dispatchEvent(new DragEvent('drop', { dataTransfer: dt }));
+            }
+        };
+        fileInput.click();
+    });
+});
+
+// Config Builder toggle: open wizard when "Build Config" is checked
+document.getElementById('config_build_toggle').addEventListener('change', function() {
+    const uploadArea = document.getElementById('config-upload-area');
+    const serverPathCb = document.getElementById('config_server_path');
+    if (this.checked) {
+        uploadArea.style.display = 'none';
+        serverPathCb.closest('.path-mode').style.display = 'none';
+        openWizard();
+
+        // Auto-run auto-detect if model path present and not using server path
+        try {
+            const modelVal = (document.getElementById('model_path') || {value:''}).value.trim();
+            const autoBtn = document.getElementById('btn-auto-detect');
+            const serverCb = document.getElementById('config_server_path');
+            if (autoBtn && !(serverCb && serverCb.checked)) {
+                // Debounced auto-invoke to avoid duplicate calls on rapid toggles
+                if (window._autoDetectDebounceTimer) clearTimeout(window._autoDetectDebounceTimer);
+                window._autoDetectDebounceTimer = setTimeout(() => {
+                    try {
+                        const modelValNow = (document.getElementById('model_path') || {value:''}).value.trim();
+                        if (modelValNow) {
+                            autoBtn.click();
+                        } else {
+                            // Show inline empty-path warning in wizard if present
+                            const wizWarn = document.getElementById('auto-detect-warning-wiz');
+                            if (wizWarn) { wizWarn.style.display = ''; wizWarn.textContent = T('Auto-detect did not run: ONNX file path is empty. Please provide a model path or add input shapes manually.'); }
+                        }
+                    } catch(e) { console.error('auto-detect invoke failed', e); }
+                }, 150);
+            }
+        } catch (e) { console.error('auto-detect trigger error', e); }
+    } else {
+        uploadArea.style.display = '';
+        serverPathCb.closest('.path-mode').style.display = '';
+    }
+});
+
+// Log panel toggle
+document.getElementById('log-toggle').addEventListener('click', function() {
+    const panel = document.getElementById('log-panel');
+    panel.classList.toggle('collapsed');
+    this.textContent = panel.classList.contains('collapsed') ? '▶' : '▼';
+});
+
+// Resume log panel toggle
+document.getElementById('resume-log-toggle').addEventListener('click', function() {
+    const panel = document.getElementById('resume-log-panel');
+    panel.classList.toggle('collapsed');
+    this.textContent = panel.classList.contains('collapsed') ? '▶' : '▼';
+});
+
+// Resume from QXNN card toggle
+(function() {
+    var card = document.getElementById('resume-card');
+    var header = document.getElementById('resume-card-header');
+    if (!card || !header) return;
+    window.setResumeCardOpen = function(open) {
+        card.classList.toggle('collapsed', !open);
+        header.setAttribute('aria-expanded', String(open));
+    };
+    header.addEventListener('click', function() {
+        window.setResumeCardOpen(card.classList.contains('collapsed'));
+    });
+})();
+
+function syncResumeDxqScheme() {
+    var autoEl = document.getElementById('resume-dxq-auto');
+    var hidden = document.getElementById('resume_enhanced_scheme');
+    if (autoEl && autoEl.checked) { hidden.value = ''; return; }
+    var scheme = {};
+    document.querySelectorAll('.resume-dxq-check:checked').forEach(function(cb) {
+        var key = cb.dataset.key;
+        var params = cb.closest('.dxq-option').querySelectorAll('.resume-dxq-input');
+        if (key === 'DXQ-P1') { scheme[key] = true; }
+        else {
+            var obj = {};
+            params.forEach(function(p) {
+                var val = parseFloat(p.value);
+                obj[p.dataset.param] = Number.isInteger(val) && p.step === '1' ? parseInt(p.value) : val;
+            });
+            scheme[key] = obj;
+        }
+    });
+    hidden.value = Object.keys(scheme).length ? JSON.stringify(scheme) : '';
+}
+document.querySelectorAll('.resume-dxq-check').forEach(function(cb) {
+    cb.addEventListener('change', function() {
+        var params = cb.closest('.dxq-option').querySelector('.dxq-params');
+        if (params) params.style.display = cb.checked ? 'flex' : 'none';
+        syncResumeDxqScheme();
+    });
+});
+document.querySelectorAll('.resume-dxq-input').forEach(function(inp) {
+    inp.addEventListener('input', syncResumeDxqScheme);
+});
+(function() {
+    var resumeAuto = document.getElementById('resume-dxq-auto');
+    if (!resumeAuto) return;
+    resumeAuto.addEventListener('change', function() {
+        var disabled = resumeAuto.checked;
+        document.querySelectorAll('.resume-dxq-check, .resume-dxq-input').forEach(function(el) {
+            el.disabled = disabled;
+            var opt = el.closest('.dxq-option');
+            if (opt) opt.style.opacity = disabled ? '0.4' : '';
+        });
+        if (disabled) document.getElementById('resume_enhanced_scheme').value = '';
+        else syncResumeDxqScheme();
+    });
+})();
+
+function trackResumeProgress(container) {
+    var jobId = container.dataset.jobId;
+    var bar = container.querySelector('.progress-bar');
+    var phaseValue = container.querySelector('.phase-value');
+    var phaseIndicator = container.querySelector('.phase-indicator');
+    var source = new EventSource('/progress/' + jobId);
+    var logPanel = document.getElementById('resume-log-panel');
+    var logContent = document.getElementById('resume-log-content');
+    logPanel.style.display = '';
+    logContent.textContent = '';
+    source.addEventListener('log', function(e) {
+        var data = JSON.parse(e.data);
+        if (data.lines && data.lines.length) {
+            logContent.textContent += data.lines.join('\n') + '\n';
+            logContent.scrollTop = logContent.scrollHeight;
+        }
+    });
+    source.addEventListener('progress', function(e) {
+        var data = JSON.parse(e.data);
+        bar.style.width = data.progress + '%';
+        bar.textContent = Math.round(data.progress) + '%';
+        if (data.phase) phaseValue.textContent = data.phase;
+    });
+    source.addEventListener('model_ready', function(e) {
+        ViewerPanel.handleModelReady(JSON.parse(e.data));
+    });
+    source.addEventListener('complete', function(e) {
+        bar.style.width = '100%';
+        bar.textContent = '100%';
+        bar.classList.add('done');
+        container.querySelector('h3').textContent = T('✅ Re-quantization Complete');
+        phaseIndicator.classList.add('phase-done');
+        phaseValue.textContent = T('Done');
+        container.insertAdjacentHTML('beforeend',
+            '<div class="result success"><p>' + T('Re-quantization finished successfully.') + '</p></div>');
+        try {
+            var completeData = JSON.parse(e.data);
+            if (completeData.dxnn_path) ViewerPanel.loadModel('dxnn', completeData.dxnn_path);
+        } catch (err) { /* no dxnn_path */ }
+        source.close();
+    });
+    source.addEventListener('error', function(e) {
+        try {
+            var data = JSON.parse(e.data);
+            bar.classList.add('error');
+            container.querySelector('h3').textContent = T('❌ Re-quantization Failed');
+            phaseIndicator.classList.add('phase-error');
+            phaseValue.textContent = T('Error');
+            container.insertAdjacentHTML('beforeend',
+                '<div class="result error"><p>' + (data.error || 'Unknown error') + '</p></div>');
+        } catch (err) {
+            phaseValue.textContent = T('Connection lost');
+        }
+        source.close();
+    });
+}
+
+document.getElementById('resume-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    syncResumeDxqScheme();
+    var qxnnPath = document.getElementById('qxnn_path').value.trim();
+    var outputDir = document.getElementById('resume_output_dir').value.trim();
+    if (!qxnnPath || !qxnnPath.toLowerCase().endsWith('.qxnn')) {
+        alert(T('Please provide a valid .qxnn path.'));
+        return;
+    }
+    if (!outputDir) { alert(T('Output Directory is required.')); return; }
+    var useQpro = document.getElementById('resume-dxq-auto').checked;
+    var schemeRaw = document.getElementById('resume_enhanced_scheme').value;
+    var enhancedScheme = null;
+    if (!useQpro && schemeRaw) {
+        try { enhancedScheme = JSON.parse(schemeRaw); } catch (err) { enhancedScheme = null; }
+    }
+    var payload = {
+        qxnn_path: qxnnPath,
+        output_dir: outputDir,
+        recalibration_method: document.getElementById('recalibration_method').value || null,
+        dataset_path: document.getElementById('resume_dataset_path').value.trim() || null,
+        use_q_pro: useQpro,
+        enhanced_scheme: enhancedScheme,
+    };
+    var btn = this.querySelector('.resume-btn');
+    btn.disabled = true;
+    btn.textContent = T('Submitting...');
+    ViewerPanel.resetViewer();
+    fetch('/compile/resume', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+    })
+        .then(function(r) {
+            if (!r.ok) return r.json().then(function(d) { throw new Error(JSON.stringify(d.error || d)); });
+            return r.text();
+        })
+        .then(function(html) {
+            var resultEl = document.getElementById('resume-result');
+            resultEl.innerHTML = html;
+            btn.disabled = false;
+            btn.textContent = T('Resume');
+            var container = resultEl.querySelector('.progress-container');
+            if (container) trackResumeProgress(container);
+        })
+        .catch(function(err) {
+            document.getElementById('resume-result').innerHTML =
+                '<div class="result error"><p>❌ ' + T('Request failed:') + ' ' + err.message + '</p></div>';
+            btn.disabled = false;
+            btn.textContent = T('Resume');
+        });
+});
+
+// Opt-level visible label i18n
+function refreshCompilerStaticOptions() {
+  const optLevel = document.getElementById('opt_level');
+  if (!optLevel) return;
+  const advanced = optLevel.querySelector('option[value="1"]');
+  const standard = optLevel.querySelector('option[value="0"]');
+  if (advanced) advanced.textContent = '1 (' + T('Advanced') + ')';
+  if (standard) standard.textContent = '0 (' + T('Standard') + ')';
+}
+if (window.DXI18n && typeof DXI18n.onLangChange === 'function') {
+  DXI18n.onLangChange(refreshCompilerStaticOptions);
+}
+document.addEventListener('DOMContentLoaded', refreshCompilerStaticOptions);
+
+// Setup Panel 초기화는 setup_panel.js DOMContentLoaded에서 자동 실행됨
+</script>
+{% include "partials/config_wizard.html" %}
+{% endblock %}

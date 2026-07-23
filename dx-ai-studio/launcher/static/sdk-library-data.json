@@ -1,0 +1,1247 @@
+{
+  "drawers": [
+    {
+      "id": "brochures",
+      "label": {
+        "en": "Brochures & Briefs",
+        "ko": "브로슈어 및 요약 자료",
+        "ja": "パンフレットと概要資料",
+        "zh-CN": "产品手册与简报",
+        "zh-TW": "產品手冊與簡報",
+        "es": "Folletos y resúmenes"
+      },
+      "icon": "📑",
+      "color": "gold",
+      "sections": [
+        {
+          "id": "product-brochures",
+          "label": {
+            "en": "Product Brochures",
+            "ko": "제품 브로슈어",
+            "ja": "製品パンフレット",
+            "zh-CN": "产品手册",
+            "zh-TW": "產品手冊",
+            "es": "Folletos de productos"
+          },
+          "icon": "📑",
+          "files": [
+            {
+              "path": "pdfs/DEEPX-AI-Accelerator-Products-Brochure.pdf",
+              "title": "AI Accelerator Products",
+              "size": 7654400,
+              "type": "pdf"
+            },
+            {
+              "path": "pdfs/DEEPX_DX-M1-Brochure.pdf",
+              "title": "DX-M1 Brochure",
+              "size": 14680064,
+              "type": "pdf"
+            },
+            {
+              "path": "pdfs/DEEPX_DX-H1-Brochure.pdf",
+              "title": "DX-H1 Brochure",
+              "size": 4089446,
+              "type": "pdf"
+            },
+            {
+              "path": "pdfs/DEEPX_DX-V3-Brochure.pdf",
+              "title": "DX-V3 Brochure",
+              "size": 979763,
+              "type": "pdf"
+            },
+            {
+              "path": "pdfs/DEEPX-AI-Technology-Support-Program-Brochure.pdf",
+              "title": "Technology Support Program",
+              "size": 9013248,
+              "type": "pdf"
+            }
+          ]
+        },
+        {
+          "id": "chip-briefs",
+          "label": {
+            "en": "Chip & Module Briefs",
+            "ko": "칩 및 모듈 요약",
+            "ja": "チップ＆モジュール概要",
+            "zh-CN": "芯片与模组简报",
+            "zh-TW": "晶片與模組簡報",
+            "es": "Resúmenes de chips y módulos"
+          },
+          "icon": "🔖",
+          "files": [
+            {
+              "path": "pdfs/DEEPX-DX-M1-Chip-Brief.pdf",
+              "title": "DX-M1 Chip Brief",
+              "size": 500000,
+              "type": "pdf"
+            },
+            {
+              "path": "pdfs/DEEPX-DX-M1M-Chip-Brief.pdf",
+              "title": "DX-M1M Chip Brief",
+              "size": 500000,
+              "type": "pdf"
+            },
+            {
+              "path": "pdfs/DEEPX-DX-M1ML-Chip-Brief.pdf",
+              "title": "DX-M1ML Chip Brief",
+              "size": 500000,
+              "type": "pdf"
+            },
+            {
+              "path": "pdfs/DEEPX-DX-M1-M2-Module-Brief.pdf",
+              "title": "DX-M1 & M2 Module Brief",
+              "size": 500000,
+              "type": "pdf"
+            },
+            {
+              "path": "pdfs/DEEPX-DX-M1M-M2-Brief.pdf",
+              "title": "DX-M1M & M2 Brief",
+              "size": 500000,
+              "type": "pdf"
+            },
+            {
+              "path": "pdfs/DEEPX-DX-M1ML-M2-Brief.pdf",
+              "title": "DX-M1ML & M2 Brief",
+              "size": 500000,
+              "type": "pdf"
+            },
+            {
+              "path": "pdfs/DEEPX-DX-H1-Quattro-Brief.pdf",
+              "title": "DX-H1 Quattro Brief",
+              "size": 500000,
+              "type": "pdf"
+            },
+            {
+              "path": "pdfs/DEEPX-DX-H1-VNPU-Brief.pdf",
+              "title": "DX-H1 VNPU Brief",
+              "size": 500000,
+              "type": "pdf"
+            },
+            {
+              "path": "pdfs/DEEPX-DX-V3-SoC-Brief-v2.pdf",
+              "title": "DX-V3 SoC Brief v2",
+              "size": 500000,
+              "type": "pdf"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "dx-all-suite",
+      "label": {
+        "en": "DX All Suite",
+        "ko": "DX All Suite",
+        "ja": "DX All Suite",
+        "zh-CN": "DX All Suite",
+        "zh-TW": "DX All Suite",
+        "es": "DX All Suite"
+      },
+      "icon": "📁",
+      "color": "red",
+      "sections": [
+        {
+          "id": "documentation",
+          "label": {
+            "en": "Documentation",
+            "ko": "문서",
+            "ja": "ドキュメント",
+            "zh-CN": "文档",
+            "zh-TW": "文件",
+            "es": "Documentación"
+          },
+          "icon": "📄",
+          "files": [
+            {
+              "path": "docs/source/index.md",
+              "title": "Introduction",
+              "size": 4838
+            },
+            {
+              "path": "docs/source/01_DX-AllSuite_Architecture_Overview.md",
+              "title": "DX All Suite Architecture Overview",
+              "size": 7925
+            },
+            {
+              "path": "docs/source/01_DX-AllSuite_Architecture_Overview_kor.md",
+              "title": "DX All Suite Architecture Overview (KO)",
+              "size": 8794
+            },
+            {
+              "path": "docs/source/02_Setting_Up_Environment.md",
+              "title": "Setting Up Environment",
+              "size": 19453
+            },
+            {
+              "path": "docs/source/02_Setting_Up_Environment_kor.md",
+              "title": "Setting Up Environment (KO)",
+              "size": 21377
+            },
+            {
+              "path": "docs/source/03_Running_Your_First_NPU_Model.md",
+              "title": "Running Your First NPU Model",
+              "size": 10415
+            },
+            {
+              "path": "docs/source/03_Running_Your_First_NPU_Model_kor.md",
+              "title": "Running Your First NPU Model (KO)",
+              "size": 11471
+            },
+            {
+              "path": "docs/source/04_Version_Compatibility.md",
+              "title": "Version Compatibility",
+              "size": 5408
+            },
+            {
+              "path": "docs/source/04_Version_Compatibility_kor.md",
+              "title": "Version Compatibility (KO)",
+              "size": 5590
+            },
+            {
+              "path": "docs/source/05_FAQ_Troubleshooting_Guide.md",
+              "title": "FAQ & Troubleshooting Guide",
+              "size": 9586
+            },
+            {
+              "path": "docs/source/05_FAQ_Troubleshooting_Guide_kor.md",
+              "title": "FAQ & Troubleshooting Guide (KO)",
+              "size": 10500
+            }
+          ]
+        },
+        {
+          "id": "agent-dev",
+          "label": {
+            "en": "Agent Dev",
+            "ko": "Agent Dev",
+            "ja": "Agent Dev",
+            "zh-CN": "Agent Dev",
+            "zh-TW": "Agent Dev",
+            "es": "Agent Dev"
+          },
+          "icon": "🤖",
+          "files": [
+            {
+              "path": "docs/source/00_Agent_Driven_Development.md",
+              "title": "Agent-Driven Development",
+              "size": 33358
+            },
+            {
+              "path": "docs/source/00_Agent_Driven_Development_kor.md",
+              "title": "Agent-Driven Development (KO)",
+              "size": 35623
+            },
+            {
+              "path": "docs/source/00b_Agent_Driven_Development_Showcases.md",
+              "title": "Agent Dev Showcases",
+              "size": 584
+            },
+            {
+              "path": "dx-agent-dev-showcase/README.md",
+              "title": "Showcases: Overview",
+              "size": 8511
+            },
+            {
+              "path": "dx-agent-dev-showcase/README-ko.md",
+              "title": "Showcases: Overview (KO)",
+              "size": 8854
+            },
+            {
+              "path": "dx-agent-dev-showcase/mini-game-squat-fitness/README.md",
+              "title": "Showcase: Squat Fitness Mini-Game",
+              "size": 6411
+            },
+            {
+              "path": "dx-agent-dev-showcase/mini-game-squat-fitness/README-ko.md",
+              "title": "Showcase: Squat Fitness Mini-Game (KO)",
+              "size": 6925
+            },
+            {
+              "path": "dx-agent-dev-showcase/mini-game-stretching-coach/README.md",
+              "title": "Showcase: Stretching Coach Mini-Game",
+              "size": 7393
+            },
+            {
+              "path": "dx-agent-dev-showcase/mini-game-stretching-coach/README-ko.md",
+              "title": "Showcase: Stretching Coach Mini-Game (KO)",
+              "size": 7843
+            },
+            {
+              "path": "dx-agent-dev-showcase/paddleocr-video-ocr/README.md",
+              "title": "Showcase: PaddleOCR Video OCR",
+              "size": 5195
+            },
+            {
+              "path": "dx-agent-dev-showcase/paddleocr-video-ocr/README-ko.md",
+              "title": "Showcase: PaddleOCR Video OCR (KO)",
+              "size": 5375
+            },
+            {
+              "path": "dx-agent-dev-showcase/rapiddoc-pdf2md/README.md",
+              "title": "Showcase: RapidDoc PDF-to-Markdown",
+              "size": 7200
+            },
+            {
+              "path": "dx-agent-dev-showcase/rapiddoc-pdf2md/README-ko.md",
+              "title": "Showcase: RapidDoc PDF-to-Markdown (KO)",
+              "size": 7477
+            },
+            {
+              "path": "dx-agent-dev-showcase/ultralytics-retrain-eval-deepx-export-braintumor/README.md",
+              "title": "Showcase: YOLO Retrain — Brain Tumor",
+              "size": 3493
+            },
+            {
+              "path": "dx-agent-dev-showcase/ultralytics-retrain-eval-deepx-export-braintumor/README-ko.md",
+              "title": "Showcase: YOLO Retrain — Brain Tumor (KO)",
+              "size": 3498
+            },
+            {
+              "path": "dx-agent-dev-showcase/ultralytics-retrain-eval-deepx-export-pills/README.md",
+              "title": "Showcase: YOLO Retrain — Pills",
+              "size": 3974
+            },
+            {
+              "path": "dx-agent-dev-showcase/ultralytics-retrain-eval-deepx-export-pills/README-ko.md",
+              "title": "Showcase: YOLO Retrain — Pills (KO)",
+              "size": 3993
+            },
+            {
+              "path": "dx-agent-dev-showcase/ultralytics-retrain-eval-deepx-export-ppe/README.md",
+              "title": "Showcase: YOLO Retrain — PPE",
+              "size": 5150
+            },
+            {
+              "path": "dx-agent-dev-showcase/ultralytics-retrain-eval-deepx-export-ppe/README-ko.md",
+              "title": "Showcase: YOLO Retrain — PPE (KO)",
+              "size": 5037
+            },
+            {
+              "path": "dx-agent-dev-showcase/ultralytics-retrain-eval-deepx-export-wildlife/README.md",
+              "title": "Showcase: YOLO Retrain — Wildlife",
+              "size": 4100
+            },
+            {
+              "path": "dx-agent-dev-showcase/ultralytics-retrain-eval-deepx-export-wildlife/README-ko.md",
+              "title": "Showcase: YOLO Retrain — Wildlife (KO)",
+              "size": 4138
+            },
+            {
+              "path": "dx-agent-dev-showcase/ultralytics-yolo-deepx-export/README.md",
+              "title": "Showcase: Ultralytics YOLO → DeepX Export",
+              "size": 5220
+            },
+            {
+              "path": "dx-agent-dev-showcase/ultralytics-yolo-deepx-export/README-ko.md",
+              "title": "Showcase: Ultralytics YOLO → DeepX Export (KO)",
+              "size": 5285
+            }
+          ]
+        },
+        {
+          "id": "top-level",
+          "label": {
+            "en": "Top Level",
+            "ko": "최상위",
+            "ja": "トップレベル",
+            "zh-CN": "顶层",
+            "zh-TW": "頂層",
+            "es": "Nivel superior"
+          },
+          "icon": "📌",
+          "files": [
+            {
+              "path": "README.md",
+              "title": "DXNN® - DEEPX NPU SDK (DX-AS: DEEPX All Suite)",
+              "size": 3751
+            },
+            {
+              "path": "RELEASE_NOTES.md",
+              "title": "RELEASE_NOTES",
+              "size": 14518
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "dx-ai-studio-manual",
+      "label": {
+        "en": "DX AI Studio",
+        "ko": "DX AI Studio",
+        "ja": "DX AI Studio",
+        "zh-CN": "DX AI Studio",
+        "zh-TW": "DX AI Studio",
+        "es": "DX AI Studio"
+      },
+      "icon": "🎛️",
+      "color": "blue",
+      "sections": [
+        {
+          "id": "user-manual",
+          "label": {
+            "en": "User Manual",
+            "ko": "사용자 매뉴얼",
+            "ja": "ユーザーマニュアル",
+            "zh-CN": "用户手册",
+            "zh-TW": "使用手冊",
+            "es": "Manual del usuario"
+          },
+          "icon": "📖",
+          "files": [
+            {
+              "path": "dx-ai-studio/docs/source/index.md",
+              "title": "Overview",
+              "size": 2268
+            },
+            {
+              "path": "dx-ai-studio/docs/source/docs/01_Installation_and_Launch.md",
+              "title": "Installation & Launch",
+              "size": 2818
+            },
+            {
+              "path": "dx-ai-studio/docs/source/docs/02_The_Hub.md",
+              "title": "The Hub",
+              "size": 1985
+            },
+            {
+              "path": "dx-ai-studio/docs/source/docs/03_DX_Compiler.md",
+              "title": "DX Compiler",
+              "size": 4193
+            },
+            {
+              "path": "dx-ai-studio/docs/source/docs/04_DX_App.md",
+              "title": "DX App",
+              "size": 1706
+            },
+            {
+              "path": "dx-ai-studio/docs/source/docs/05_DX_Stream.md",
+              "title": "DX Stream",
+              "size": 1410
+            },
+            {
+              "path": "dx-ai-studio/docs/source/docs/06_DX_Model_Zoo.md",
+              "title": "DX Model Zoo",
+              "size": 1170
+            },
+            {
+              "path": "dx-ai-studio/docs/source/docs/07_DX_Benchmark.md",
+              "title": "DX Benchmark",
+              "size": 1020
+            },
+            {
+              "path": "dx-ai-studio/docs/source/docs/08_DX_Monitor.md",
+              "title": "DX Monitor",
+              "size": 1110
+            },
+            {
+              "path": "dx-ai-studio/docs/source/docs/09_DX_EdgeGuide.md",
+              "title": "DX EdgeGuide",
+              "size": 2805
+            },
+            {
+              "path": "dx-ai-studio/docs/source/docs/10_DX_Agent_Dev.md",
+              "title": "DX Agent Dev",
+              "size": 1527
+            },
+            {
+              "path": "dx-ai-studio/docs/source/docs/11_SDK_Library_and_About.md",
+              "title": "SDK Library & About",
+              "size": 1289
+            },
+            {
+              "path": "dx-ai-studio/docs/source/docs/Appendix_Change_Log.md",
+              "title": "Change Log",
+              "size": 577
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "dx-compiler",
+      "label": {
+        "en": "DX Compiler",
+        "ko": "DX Compiler",
+        "ja": "DX Compiler",
+        "zh-CN": "DX Compiler",
+        "zh-TW": "DX Compiler",
+        "es": "DX Compiler"
+      },
+      "icon": "⚙️",
+      "color": "green",
+      "sections": [
+        {
+          "id": "compiler",
+          "label": {
+            "en": "DX Compiler",
+            "ko": "DX Compiler",
+            "ja": "DX Compiler",
+            "zh-CN": "DX Compiler",
+            "zh-TW": "DX Compiler",
+            "es": "DX Compiler"
+          },
+          "icon": "🔨",
+          "files": [
+            {
+              "path": "dx-compiler/source/docs/01_DXNN_Compiler_Overview.md",
+              "title": "01 DXNN Compiler Overview",
+              "size": 2911
+            },
+            {
+              "path": "dx-compiler/source/docs/02_01_System_Requirements_of_DX-COM.md",
+              "title": "02 01 System Requirements of DX COM",
+              "size": 717
+            },
+            {
+              "path": "dx-compiler/source/docs/02_02_Installation_of_DX-COM.md",
+              "title": "02 02 Installation of DX COM",
+              "size": 1687
+            },
+            {
+              "path": "dx-compiler/source/docs/02_03_Source_File_Structure_of_DX-COM.md",
+              "title": "02 03 Source File Structure of DX COM",
+              "size": 1216
+            },
+            {
+              "path": "dx-compiler/source/docs/02_04_ONNX_File_Configuration.md",
+              "title": "02 04 ONNX File Configuration",
+              "size": 2076
+            },
+            {
+              "path": "dx-compiler/source/docs/02_05_JSON_File_Configuration.md",
+              "title": "02 05 JSON File Configuration",
+              "size": 19912
+            },
+            {
+              "path": "dx-compiler/source/docs/02_06_Execution_of_DX-COM.md",
+              "title": "02 06 Execution of DX COM",
+              "size": 16060
+            },
+            {
+              "path": "dx-compiler/source/docs/04_01_Model_Viewer_DX-TRON.md",
+              "title": "04 01 Model Viewer DX TRON",
+              "size": 6739
+            },
+            {
+              "path": "dx-compiler/source/docs/Appendix_Change_Log.md",
+              "title": "Appendix Change Log",
+              "size": 5272
+            },
+            {
+              "path": "dx-compiler/source/docs/02_08_Common_Use_Cases.md",
+              "title": "Common Use Cases",
+              "size": 11277
+            },
+            {
+              "path": "dx-compiler/README.md",
+              "title": "DEEPX DX-Compiler",
+              "size": 2588
+            },
+            {
+              "path": "dx-compiler/source/docs/00_Quick_Start.md",
+              "title": "Quick Start Guide",
+              "size": 1822
+            },
+            {
+              "path": "dx-compiler/RELEASE_NOTES.md",
+              "title": "RELEASE NOTES",
+              "size": 9710
+            },
+            {
+              "path": "dx-compiler/source/docs/03_Building_Models.md",
+              "title": "Supported ONNX Operators",
+              "size": 4722
+            },
+            {
+              "path": "dx-compiler/source/docs/02_07_Quantization_Tuning_Workflow.md",
+              "title": "Quantization Tuning Workflow",
+              "type": "md",
+              "size": 7619
+            },
+            {
+              "path": "dx-compiler/source/docs/02_08_Quantization_Aware_Training.md",
+              "title": "Quantization-Aware Training",
+              "type": "md",
+              "size": 10263
+            },
+            {
+              "path": "dx-compiler/source/docs/02_09_Pre_Optimize_API.md",
+              "title": "Pre-Optimize API",
+              "type": "md",
+              "size": 10339
+            },
+            {
+              "path": "dx-compiler/source/docs/04_02_Compilation_Summary_Report.md",
+              "title": "Compilation Summary Report",
+              "type": "md",
+              "size": 3286
+            },
+            {
+              "path": "dx-compiler/source/docs/05_DX-COMPILER_Agent_Driven_Development.md",
+              "title": "Agent-Driven Development",
+              "size": 20679
+            },
+            {
+              "path": "dx-compiler/source/docs/05_DX-COMPILER_Agent_Driven_Development-KO.md",
+              "title": "Agent-Driven Development (KO)",
+              "size": 22768
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "dx-modelzoo",
+      "label": {
+        "en": "DX Model Zoo",
+        "ko": "DX Model Zoo",
+        "ja": "DX Model Zoo",
+        "zh-CN": "DX Model Zoo",
+        "zh-TW": "DX Model Zoo",
+        "es": "DX Model Zoo"
+      },
+      "icon": "🧬",
+      "color": "blue",
+      "sections": [
+        {
+          "id": "modelzoo",
+          "label": {
+            "en": "DX Model Zoo",
+            "ko": "DX Model Zoo",
+            "ja": "DX Model Zoo",
+            "zh-CN": "DX Model Zoo",
+            "zh-TW": "DX Model Zoo",
+            "es": "DX Model Zoo"
+          },
+          "icon": "🦁",
+          "files": [
+            {
+              "path": "dx-modelzoo/README.md",
+              "title": "DeepX Open Modelzoo User Guide",
+              "size": 3485
+            },
+            {
+              "path": "dx-modelzoo/RELEASE_NOTES.md",
+              "title": "RELEASE_NOTES",
+              "size": 8026
+            },
+            {
+              "path": "dx-modelzoo/docs/getting-started/installation.md",
+              "title": "Model Zoo Installation",
+              "type": "md",
+              "size": 2330
+            },
+            {
+              "path": "dx-modelzoo/docs/getting-started/quickstart.md",
+              "title": "Model Zoo Quickstart",
+              "type": "md",
+              "size": 2941
+            },
+            {
+              "path": "dx-modelzoo/docs/guides/yaml-config.md",
+              "title": "YAML Config Reference",
+              "type": "md",
+              "size": 9189
+            },
+            {
+              "path": "dx-modelzoo/docs/guides/evaluation.md",
+              "title": "Model Evaluation Guide",
+              "type": "md",
+              "size": 3669
+            },
+            {
+              "path": "dx-modelzoo/docs/guides/custom-models.md",
+              "title": "Custom Models Guide",
+              "type": "md",
+              "size": 8636
+            },
+            {
+              "path": "dx-modelzoo/docs/index.md",
+              "title": "Model Zoo Documentation",
+              "type": "md",
+              "size": 2619
+            },
+            {
+              "path": "dx-modelzoo/docs/api/cli.md",
+              "title": "Model Zoo CLI Reference",
+              "type": "md",
+              "size": 6491
+            },
+            {
+              "path": "dx-modelzoo/docs/architecture/overview.md",
+              "title": "Architecture Overview",
+              "size": 6033
+            },
+            {
+              "path": "dx-modelzoo/docs/architecture/pipeline.md",
+              "title": "Pipeline Architecture",
+              "size": 6401
+            },
+            {
+              "path": "dx-modelzoo/docs/architecture/registry.md",
+              "title": "Registry Architecture",
+              "size": 8319
+            },
+            {
+              "path": "dx-modelzoo/docs/api/session.md",
+              "title": "Session API",
+              "size": 8299
+            },
+            {
+              "path": "dx-modelzoo/docs/api/model-builder.md",
+              "title": "Model Builder API",
+              "size": 6616
+            },
+            {
+              "path": "dx-modelzoo/docs/api/dataloader.md",
+              "title": "DataLoader API",
+              "size": 6426
+            },
+            {
+              "path": "dx-modelzoo/docs/api/datasets.md",
+              "title": "Datasets API",
+              "size": 17905
+            },
+            {
+              "path": "dx-modelzoo/docs/api/preprocessing.md",
+              "title": "Preprocessing API",
+              "size": 6544
+            },
+            {
+              "path": "dx-modelzoo/docs/api/postprocessing.md",
+              "title": "Postprocessing API",
+              "size": 7185
+            },
+            {
+              "path": "dx-modelzoo/docs/api/evaluator.md",
+              "title": "Evaluator API",
+              "size": 9613
+            },
+            {
+              "path": "dx-modelzoo/docs/guides/datasets.md",
+              "title": "Datasets Guide",
+              "size": 10322
+            },
+            {
+              "path": "dx-modelzoo/docs/guides/custom-datasets.md",
+              "title": "Custom Datasets Guide",
+              "size": 6794
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "runtime",
+      "label": {
+        "en": "DX Runtime",
+        "ko": "DX 런타임",
+        "ja": "DX ランタイム",
+        "zh-CN": "DX 运行时",
+        "zh-TW": "DX 執行環境",
+        "es": "DX Runtime"
+      },
+      "icon": "⚡",
+      "color": "amber",
+      "sections": [
+        {
+          "id": "dx-runtime",
+          "label": {
+            "en": "DX Runtime",
+            "ko": "DX 런타임",
+            "ja": "DX ランタイム",
+            "zh-CN": "DX 运行时",
+            "zh-TW": "DX 執行環境",
+            "es": "DX Runtime"
+          },
+          "icon": "🔄",
+          "files": [
+            {
+              "path": "dx-runtime/dx_rt/docs/source/docs/01_DXNN_Runtime_Overview.md",
+              "title": "01 DXNN Runtime Overview",
+              "size": 4552
+            },
+            {
+              "path": "dx-runtime/dx_rt/docs/source/docs/02_Installation_on_Linux.md",
+              "title": "02 Installation on Linux",
+              "size": 34119
+            },
+            {
+              "path": "dx-runtime/dx_rt/docs/source/docs/03_Installation_on_Windows.md",
+              "title": "03 Installation on Windows",
+              "size": 18622
+            },
+            {
+              "path": "dx-runtime/dx_rt/docs/source/docs/04_Model_Inference.md",
+              "title": "04 Model Inference",
+              "size": 21426
+            },
+            {
+              "path": "dx-runtime/dx_rt/docs/source/docs/05_Command_Line_Interface.md",
+              "title": "05 Command Line Interface",
+              "size": 14273
+            },
+            {
+              "path": "dx-runtime/dx_rt/docs/source/docs/06_Inference_API.md",
+              "title": "06 Inference API",
+              "size": 19556
+            },
+            {
+              "path": "dx-runtime/dx_rt/docs/source/docs/07_Multi_Input_Inference.md",
+              "title": "07 Multi Input Inference",
+              "size": 10255
+            },
+            {
+              "path": "dx-runtime/dx_rt/docs/source/docs/08_Global_Instance.md",
+              "title": "08 Global Instance",
+              "size": 18012
+            },
+            {
+              "path": "dx-runtime/dx_rt/docs/source/docs/09_01_C++_Tutorials.md",
+              "title": "09 01 C++ Tutorials",
+              "size": 44853
+            },
+            {
+              "path": "dx-runtime/dx_rt/docs/source/docs/09_02_Python_Tutorials.md",
+              "title": "09 02 Python Tutorials",
+              "size": 28371
+            },
+            {
+              "path": "dx-runtime/dx_rt/docs/source/docs/10_01_C++_API_Reference.md",
+              "title": "10 01 C++ API Reference",
+              "size": 35268
+            },
+            {
+              "path": "dx-runtime/dx_rt/docs/source/docs/10_02_Python_API_Reference.md",
+              "title": "10 02 Python API Reference",
+              "size": 25601
+            },
+            {
+              "path": "dx-runtime/dx_rt/docs/source/docs/Appendix_Change_Log.md",
+              "title": "Appendix Change Log",
+              "size": 12081
+            },
+            {
+              "path": "dx-runtime/dx_rt/tool/dx-fit/docs/QUICKSTART.md",
+              "title": "DX-Fit Quick Start Guide",
+              "size": 5838
+            },
+            {
+              "path": "dx-runtime/dx_rt/tool/dx-fit/docs/STRATEGY_COMPARISON.md",
+              "title": "DX-Fit Strategy Comparison",
+              "size": 12431
+            },
+            {
+              "path": "dx-runtime/dx_rt/tool/dx-fit/docs/README.md",
+              "title": "DX-Fit: DX-RT Performance Parameter Tuning Tool",
+              "size": 11296
+            },
+            {
+              "path": "dx-runtime/dx_rt/README.md",
+              "title": "DXRT (DEEPX Runtime) by DeepX",
+              "size": 2201
+            },
+            {
+              "path": "dx-runtime/dx_rt/examples/cpp/multi_input_model_inference/README_multi_input_model_inferenece.md",
+              "title": "Multi-Input Model Inference Examples",
+              "size": 9314
+            },
+            {
+              "path": "dx-runtime/dx_rt/RELEASE_NOTES.md",
+              "title": "RELEASE_NOTES",
+              "size": 20342
+            },
+            {
+              "path": "dx-runtime/dx_rt/NOTICE.md",
+              "title": "Third-Party Software Notices and Information",
+              "size": 12952
+            },
+            {
+              "path": "dx-runtime/dx_rt/tool/loop-selector/LOOP-SELECTOR.md",
+              "title": "loop-selector",
+              "size": 7633
+            },
+            {
+              "path": "dx-runtime/dx_rt/csharp_package/DxEngine_NuGet_Guide.md",
+              "title": "C# NuGet Package Guide",
+              "size": 3852
+            },
+            {
+              "path": "dx-runtime/docs/source/agent_development.md",
+              "title": "Runtime Agent-Driven Development",
+              "size": 19854
+            },
+            {
+              "path": "dx-runtime/docs/source/agent_development-KO.md",
+              "title": "Runtime Agent-Driven Development (KO)",
+              "size": 21735
+            }
+          ]
+        },
+        {
+          "id": "dx-app",
+          "label": {
+            "en": "DX App",
+            "ko": "DX App",
+            "ja": "DX App",
+            "zh-CN": "DX App",
+            "zh-TW": "DX App",
+            "es": "DX App"
+          },
+          "icon": "📱",
+          "files": [
+            {
+              "path": "dx-runtime/dx_app/docs/source/docs/04_DX-APP_CPP_Example_Test.md",
+              "title": "DX-APP C++ Example Tests",
+              "size": 11003
+            },
+            {
+              "path": "dx-runtime/dx_app/docs/source/docs/07_DX-APP_CPP_PostProcess_Overview.md",
+              "title": "DX-APP C++ Post-processing",
+              "size": 5177
+            },
+            {
+              "path": "dx-runtime/dx_app/docs/source/docs/03_DX-APP_CPP_Example_Usage_Guide.md",
+              "title": "DX-APP C++ Usage Guide",
+              "size": 8935
+            },
+            {
+              "path": "dx-runtime/dx_app/docs/source/docs/10_DX-APP_DX-Tool_Guide.md",
+              "title": "DX-APP DX Tool Guide",
+              "size": 12280
+            },
+            {
+              "path": "dx-runtime/dx_app/docs/source/docs/11_DX-APP_Example_Source_Structure.md",
+              "title": "DX-APP Example Source Structure",
+              "size": 22487
+            },
+            {
+              "path": "dx-runtime/dx_app/docs/source/docs/02_DX-APP_Installation_and_Build.md",
+              "title": "DX-APP Installation and Build",
+              "size": 15608
+            },
+            {
+              "path": "dx-runtime/dx_app/README.md",
+              "title": "DX-APP Overview",
+              "size": 33046
+            },
+            {
+              "path": "dx-runtime/dx_app/docs/source/docs/06_DX-APP_Python_Example_Test.md",
+              "title": "DX-APP Python Example Tests",
+              "size": 6829
+            },
+            {
+              "path": "dx-runtime/dx_app/docs/source/docs/08_DX-APP_Pybind_PostProcess_Overview.md",
+              "title": "DX-APP Python Post-processing",
+              "size": 5601
+            },
+            {
+              "path": "dx-runtime/dx_app/docs/source/docs/05_DX-APP_Python_Example_Usage_Guide.md",
+              "title": "DX-APP Python Usage Guide",
+              "size": 10178
+            },
+            {
+              "path": "dx-runtime/dx_app/docs/source/docs/01_DXNN_Application_Overview.md",
+              "title": "DXNN Application Overview",
+              "size": 9459
+            },
+            {
+              "path": "dx-runtime/dx_app/docs/source/docs/09_DX-APP_Project_Overview.md",
+              "title": "Project README",
+              "size": 22600
+            },
+            {
+              "path": "dx-runtime/dx_app/RELEASE_NOTES.md",
+              "title": "RELEASE_NOTES",
+              "size": 15450
+            },
+            {
+              "path": "dx-runtime/dx_app/docs/source/docs/Appendix_Third_Party_License.md",
+              "title": "Third-Party License Notice",
+              "size": 2067
+            },
+            {
+              "path": "dx-runtime/dx_app/config/README.md",
+              "title": "config/ — DX-APP Configuration Files",
+              "size": 3874
+            },
+            {
+              "path": "dx-runtime/dx_app/docs/source/docs/Appendix_Change_Log.md",
+              "title": "DX-APP Change Log",
+              "type": "md",
+              "size": 22055
+            },
+            {
+              "path": "dx-runtime/dx_app/docs/source/docs/12_DX-APP_YOLO_Customizing_Guide.md",
+              "title": "DX-APP YOLO Customizing Guide",
+              "size": 12470
+            },
+            {
+              "path": "dx-runtime/dx_app/docs/source/docs/13_DX-APP_Agent_Driven_Development.md",
+              "title": "DX-APP Agent-Driven Development",
+              "size": 25169
+            },
+            {
+              "path": "dx-runtime/dx_app/docs/source/docs/13_DX-APP_Agent_Driven_Development-KO.md",
+              "title": "DX-APP Agent-Driven Development (KO)",
+              "size": 27046
+            }
+          ]
+        },
+        {
+          "id": "dx-stream",
+          "label": {
+            "en": "DX Stream",
+            "ko": "DX Stream",
+            "ja": "DX Stream",
+            "zh-CN": "DX Stream",
+            "zh-TW": "DX Stream",
+            "es": "DX Stream"
+          },
+          "icon": "📡",
+          "files": [
+            {
+              "path": "dx-runtime/dx_stream/docs/source/docs/01_DXNN_Streamer_Overview.md",
+              "title": "01 DXNN Streamer Overview",
+              "size": 6663
+            },
+            {
+              "path": "dx-runtime/dx_stream/docs/source/docs/02_DX-STREAM_Installation.md",
+              "title": "02 DX STREAM Installation",
+              "size": 11240
+            },
+            {
+              "path": "dx-runtime/dx_stream/docs/source/docs/Elements/03_00_Multi_Stream_Domain.md",
+              "title": "03 00 Multi Stream Domain",
+              "size": 6443
+            },
+            {
+              "path": "dx-runtime/dx_stream/docs/source/docs/Elements/03_01_DxPreprocess.md",
+              "title": "03 01 DxPreprocess",
+              "size": 7142
+            },
+            {
+              "path": "dx-runtime/dx_stream/docs/source/docs/Elements/03_02_DxInfer.md",
+              "title": "03 02 DxInfer",
+              "size": 4087
+            },
+            {
+              "path": "dx-runtime/dx_stream/docs/source/docs/Elements/03_03_DxPostprocess.md",
+              "title": "03 03 DxPostprocess",
+              "size": 3600
+            },
+            {
+              "path": "dx-runtime/dx_stream/docs/source/docs/Elements/03_04_DxTracker.md",
+              "title": "03 04 DxTracker",
+              "size": 3404
+            },
+            {
+              "path": "dx-runtime/dx_stream/docs/source/docs/Elements/03_05_DxOsd.md",
+              "title": "03 05 DxOsd",
+              "size": 1800
+            },
+            {
+              "path": "dx-runtime/dx_stream/docs/source/docs/Elements/03_06_DxGather.md",
+              "title": "03 06 DxGather",
+              "size": 1541
+            },
+            {
+              "path": "dx-runtime/dx_stream/docs/source/docs/Elements/03_07_DxInputSelector.md",
+              "title": "03 07 DxInputSelector",
+              "size": 2688
+            },
+            {
+              "path": "dx-runtime/dx_stream/docs/source/docs/Elements/03_08_DxOutputSelector.md",
+              "title": "03 08 DxOutputSelector",
+              "size": 1906
+            },
+            {
+              "path": "dx-runtime/dx_stream/docs/source/docs/Elements/03_09_DxRate.md",
+              "title": "03 09 DxRate",
+              "size": 2249
+            },
+            {
+              "path": "dx-runtime/dx_stream/docs/source/docs/Elements/03_10_DxMsgConv.md",
+              "title": "03 10 DxMsgConv",
+              "size": 4627
+            },
+            {
+              "path": "dx-runtime/dx_stream/docs/source/docs/Elements/03_11_DxMsgBroker.md",
+              "title": "03 11 DxMsgBroker",
+              "size": 2771
+            },
+            {
+              "path": "dx-runtime/dx_stream/docs/source/docs/Elements/03_12_DxScale.md",
+              "title": "03 12 DxScale",
+              "size": 2995
+            },
+            {
+              "path": "dx-runtime/dx_stream/docs/source/docs/Elements/03_13_DxConvert.md",
+              "title": "03 13 DxConvert",
+              "size": 3226
+            },
+            {
+              "path": "dx-runtime/dx_stream/docs/source/docs/Elements/03_14_DxVnpuDec.md",
+              "title": "03 14 DxVnpuDec",
+              "size": 3391
+            },
+            {
+              "path": "dx-runtime/dx_stream/docs/source/docs/Elements/03_15_DxVnpuEnc.md",
+              "title": "03 15 DxVnpuEnc",
+              "size": 2825
+            },
+            {
+              "path": "dx-runtime/dx_stream/docs/source/docs/Elements/03_16_DxVnpuPipeline.md",
+              "title": "03 16 DxVnpuPipeline",
+              "size": 3909
+            },
+            {
+              "path": "dx-runtime/dx_stream/docs/source/docs/Elements/03_17_DxVnpuOverlay.md",
+              "title": "03 17 DxVnpuOverlay",
+              "size": 2945
+            },
+            {
+              "path": "dx-runtime/dx_stream/docs/source/docs/04_Writing_Your_Own_Application.md",
+              "title": "04 Writing Your Own Application",
+              "size": 26893
+            },
+            {
+              "path": "dx-runtime/dx_stream/docs/source/docs/Pipeline_Example/05_01_Single-Stream.md",
+              "title": "05 01 Single Stream",
+              "size": 3796
+            },
+            {
+              "path": "dx-runtime/dx_stream/docs/source/docs/Pipeline_Example/05_02_Multi-Stream.md",
+              "title": "05 02 Multi Stream",
+              "size": 2331
+            },
+            {
+              "path": "dx-runtime/dx_stream/docs/source/docs/Pipeline_Example/05_03_Secondary-Inference.md",
+              "title": "05 03 Secondary Inference",
+              "size": 1456
+            },
+            {
+              "path": "dx-runtime/dx_stream/docs/source/docs/Pipeline_Example/05_04_MsgBroker.md",
+              "title": "05 04 MsgBroker",
+              "size": 12325
+            },
+            {
+              "path": "dx-runtime/dx_stream/docs/source/docs/Appendix_Third_Party_Model_Licenses.md",
+              "title": "Appendix Third Party Model Licenses",
+              "size": 952
+            },
+            {
+              "path": "dx-runtime/dx_stream/docs/source/docs/Appendix_Performance_Evaluation_with_GstShark.md",
+              "title": "Appendix: Performance Evaluation with GstShark",
+              "size": 9137
+            },
+            {
+              "path": "dx-runtime/dx_stream/docs/source/docs/Appendix_Build_on_OrangePi5Plus.md",
+              "title": "Building DX-Stream on Orange Pi 5 Plus",
+              "size": 9339
+            },
+            {
+              "path": "dx-runtime/dx_stream/README.md",
+              "title": "DX-Stream",
+              "size": 2634
+            },
+            {
+              "path": "dx-runtime/dx_stream/scripts/setup/README.md",
+              "title": "DX-Stream Modular Setup Scripts",
+              "size": 4967
+            },
+            {
+              "path": "dx-runtime/dx_stream/docs/source/docs/07_Debugging_Guide.md",
+              "title": "Debugging Guide",
+              "size": 12168
+            },
+            {
+              "path": "dx-runtime/dx_stream/RELEASE_NOTES.md",
+              "title": "RELEASE_NOTES",
+              "size": 9389
+            },
+            {
+              "path": "dx-runtime/dx_stream/docs/source/docs/06_Troubleshooting_and_FAQ.md",
+              "title": "Troubleshooting and FAQ",
+              "size": 18257
+            },
+            {
+              "path": "dx-runtime/dx_stream/docs/source/docs/Appendix_User_Metadata_Guide.md",
+              "title": "User Metadata Guide",
+              "size": 11757
+            },
+            {
+              "path": "dx-runtime/dx_stream/bindings/python/pydxs/README.md",
+              "title": "pydxs",
+              "size": 9941
+            },
+            {
+              "path": "dx-runtime/dx_stream/docs/source/docs/08_DX-STREAM_Agent_Driven_Development.md",
+              "title": "DX-STREAM Agent-Driven Development",
+              "size": 22135
+            },
+            {
+              "path": "dx-runtime/dx_stream/docs/source/docs/08_DX-STREAM_Agent_Driven_Development-KO.md",
+              "title": "DX-STREAM Agent-Driven Development (KO)",
+              "size": 24439
+            },
+            {
+              "path": "dx-runtime/dx_stream/docs/source/docs/Appendix_Build_on_Windows.md",
+              "title": "Appendix: Build on Windows",
+              "size": 12918
+            },
+            {
+              "path": "dx-runtime/dx_stream/docs/source/docs/RELEASE_NOTES.md",
+              "title": "DX-STREAM Release Notes",
+              "size": 12362
+            }
+          ]
+        },
+        {
+          "id": "dx-firmware",
+          "label": {
+            "en": "DX Firmware",
+            "ko": "DX 펌웨어",
+            "ja": "DX ファームウェア",
+            "zh-CN": "DX 固件",
+            "zh-TW": "DX 韌體",
+            "es": "DX Firmware"
+          },
+          "icon": "⚙️",
+          "files": [
+            {
+              "path": "dx-runtime/dx_fw/RELEASE_NOTES.md",
+              "title": "RELEASE_NOTES",
+              "size": 11429
+            }
+          ]
+        },
+        {
+          "id": "npu-driver",
+          "label": {
+            "en": "NPU Linux Driver",
+            "ko": "NPU Linux 드라이버",
+            "ja": "NPU Linuxドライバー",
+            "zh-CN": "NPU Linux驱动",
+            "zh-TW": "NPU Linux驅動程式",
+            "es": "Controlador NPU Linux"
+          },
+          "icon": "🖥️",
+          "files": [
+            {
+              "path": "dx-runtime/dx_rt_npu_linux_driver/README.md",
+              "title": "DEEPX Runtime NPU Linux driver",
+              "size": 13397
+            },
+            {
+              "path": "dx-runtime/dx_rt_npu_linux_driver/RELEASE_NOTES.md",
+              "title": "RELEASE_NOTES",
+              "size": 5002
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

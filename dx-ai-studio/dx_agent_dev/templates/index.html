@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>DX Agent Dev</title>
+  <link rel="stylesheet" href="/static/shared/dx-fonts.css">
+  <link rel="stylesheet" href="/static/shared/dx-tokens.css">
+  <link rel="stylesheet" href="/static/shared/dx-base.css">
+  <link rel="stylesheet" href="/static/shared/dx-utilities.css">
+  <link rel="stylesheet" href="/static/shared/module-chrome.css">
+  <link rel="stylesheet" href="/static/shared/brand.css">
+  <link rel="stylesheet" href="/static/shared/tutorial.css">
+  <link rel="stylesheet" href="/static/shared/toolbar.css">
+  <link rel="stylesheet" href="/static/shared/chat-widget.css">
+  <link rel="stylesheet" href="/static/css/console.css?m=dx_agent_dev">
+</head>
+<body>
+  <header class="top-bar">
+    <div class="app-title">
+      <div class="dx-brand-slot" id="dxBrand"></div>
+    </div>
+    <div class="toolbar"></div>
+  </header>
+
+  <main class="agent-layout">
+    <aside id="examples-left" class="examples-panel"></aside>
+    <div id="agent-console">
+      <div class="console-header">
+        <div class="console-header-row">
+          <span class="console-title">
+            <span class="ko">에이전트 콘솔</span><span class="en">Agent Console</span><span class="es">Consola del agente</span><span class="ja">エージェントコンソール</span><span class="zh-CN">智能体控制台</span><span class="zh-TW">智能體主控台</span>
+          </span>
+          <span id="status-badge" class="status-badge"></span>
+        </div>
+        <div id="agent-controls" class="agent-toolbar" hidden>
+          <div class="agent-toolbar-row">
+            <div class="agent-picker" id="agent-picker">
+              <span class="agent-picker-label">
+                <span class="ko">에이전트</span><span class="en">Agent</span><span class="es">Agente</span><span class="ja">エージェント</span><span class="zh-CN">智能体</span><span class="zh-TW">智能體</span>
+              </span>
+              <div class="agent-picker-field">
+                <select id="agent-select" class="agent-select console-select"></select>
+                <span id="agent-auth-badge" class="agent-auth-badge" hidden aria-hidden="true"></span>
+              </div>
+            </div>
+            <div class="agent-picker agent-picker--model">
+              <span class="agent-picker-label">
+                <span class="ko">모델</span><span class="en">Model</span><span class="es">Modelo</span><span class="ja">モデル</span><span class="zh-CN">模型</span><span class="zh-TW">模型</span>
+              </span>
+              <select id="model-select" class="agent-select agent-select--model console-select"></select>
+            </div>
+            <div class="agent-picker" id="effort-control" hidden>
+              <span class="agent-picker-label">
+                <span class="ko">사고 강도</span><span class="en">Effort</span><span class="es">Esfuerzo</span><span class="ja">推論強度</span><span class="zh-CN">推理强度</span><span class="zh-TW">推理強度</span>
+              </span>
+              <select id="effort-select" class="agent-select console-select"></select>
+            </div>
+            <div class="agent-picker" id="target-control">
+              <span class="agent-picker-label">
+                <span class="ko">작업 대상</span><span class="en">Target</span><span class="es">Objetivo</span><span class="ja">対象</span><span class="zh-CN">目标</span><span class="zh-TW">目標</span>
+              </span>
+              <select id="target-select" class="agent-select console-select">
+                <option value="suite" selected>Suite (dx-all-suite)</option>
+                <option value="dx-runtime">dx-runtime</option>
+                <option value="dx_app">dx_app</option>
+                <option value="dx_stream">dx_stream</option>
+                <option value="dx-compiler">dx-compiler</option>
+              </select>
+            </div>
+            <div class="agent-picker" id="mode-control">
+              <span class="agent-picker-label">
+                <span class="ko">진행 방식</span><span class="en">Interaction</span><span class="es">Interacción</span><span class="ja">実行モード</span><span class="zh-CN">交互方式</span><span class="zh-TW">互動方式</span>
+              </span>
+              <select id="mode-select" class="agent-select console-select">
+                <option value="interactive" selected data-i18n="Interactive">Interactive</option>
+                <option value="autopilot" data-i18n="Autopilot (no questions)">Autopilot (no questions)</option>
+              </select>
+            </div>
+          </div>
+          <div class="agent-toolbar-meta">
+            <div id="model-quality-hint" class="model-quality-hint" hidden></div>
+            <div id="agent-login-hint" class="agent-login-hint" hidden></div>
+          </div>
+        </div>
+        <p class="console-role-hint">
+          <span class="ko">NPU 앱을 만들 메인 채팅입니다. 우하단 💬는 SDK 질문용입니다.</span>
+          <span class="en">Main chat for building NPU apps. The 💬 button (bottom-right) is for SDK Q&amp;A.</span>
+          <span class="es">Chat principal para crear apps NPU. El botón 💬 (abajo a la derecha) es para preguntas del SDK.</span>
+          <span class="ja">NPUアプリ構築用のメインチャットです。右下の💬はSDK質問用です。</span>
+          <span class="zh-CN">用于构建 NPU 应用的主聊天。右下角 💬 用于 SDK 问答。</span>
+          <span class="zh-TW">用於建構 NPU 應用的主聊天。右下角 💬 用於 SDK 問答。</span>
+        </p>
+        <p class="console-session-hint">
+          <span class="ko">에이전트 지식은 dx-all-suite <code>.deepx</code> 하네스에서, 생성물은 <code>workspace/agent-sessions/</code>에 저장됩니다.</span>
+          <span class="en">Agent knowledge comes from the dx-all-suite <code>.deepx</code> harness; outputs go to <code>workspace/agent-sessions/</code>.</span>
+          <span class="es">El conocimiento del agente viene del harness <code>.deepx</code> de dx-all-suite; la salida va a <code>workspace/agent-sessions/</code>.</span>
+          <span class="ja">エージェント知識は dx-all-suite の <code>.deepx</code> ハーネス、出力は <code>workspace/agent-sessions/</code> に保存されます。</span>
+          <span class="zh-CN">智能体知识来自 dx-all-suite 的 <code>.deepx</code> harness；输出保存到 <code>workspace/agent-sessions/</code>。</span>
+          <span class="zh-TW">智能體知識來自 dx-all-suite 的 <code>.deepx</code> harness；輸出儲存至 <code>workspace/agent-sessions/</code>。</span>
+        </p>
+      </div>
+
+      <div id="console-status-bar" hidden></div>
+      <div id="console-output"></div>
+      <div id="showcase-gallery" hidden></div>
+
+      <form id="console-form">
+        <input id="console-input" autocomplete="off">
+        <button type="submit" id="console-send">
+          <span class="ko">전송</span><span class="en">Send</span><span class="es">Enviar</span><span class="ja">送信</span><span class="zh-CN">发送</span><span class="zh-TW">傳送</span>
+        </button>
+      </form>
+    </div>
+    <aside id="examples-right" class="examples-panel"></aside>
+  </main>
+
+  <script src="/static/js/i18n.js?m=dx_agent_dev"></script>
+  <script src="/static/shared/i18n.js"></script>
+  <script src="/static/shared/brand.js"></script>
+  <script>
+DXBrand.mount({
+  target: '#dxBrand',
+  name: 'Agent Dev',
+  subtitle: {
+    ko: '자연어 NPU 앱 빌더',
+    en: 'Natural-language NPU App Builder',
+    es: 'Constructor de apps NPU en lenguaje natural',
+    ja: '自然言語NPUアプリビルダー',
+    'zh-CN': '自然语言NPU应用构建器',
+    'zh-TW': '自然語言NPU應用建構器'
+  },
+  accent: 'var(--accent)'
+});
+  </script>
+  <script src="/static/shared/toolbar.js"></script>
+  <script>DXToolbar.init({ container: '.toolbar' });</script>
+  <script src="/static/shared/vendor/mermaid.min.js" defer></script>
+  <script src="/static/js/utils.js?m=dx_agent_dev"></script>
+  <script src="/static/js/markdown_render.js?m=dx_agent_dev"></script>
+  <script src="/static/js/console.js?m=dx_agent_dev"></script>
+  <script src="/static/shared/tutorial-engine.js"></script>
+  <script src="/static/shared/tutorial-init.js"></script>
+  <script src="/static/js/tutorial.js?m=dx_agent_dev"></script>
+  <script src="/static/shared/chat-widget.js"></script>
+  <script>
+DXChat.init({ appName: 'dx_agent_dev' });
+  </script>
+</body>
+</html>

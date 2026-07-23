@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dxstudio"
+version = "0.1.0"
+requires-python = ">=3.8"
+# ZERO third-party runtime dependencies — the entire studio, including the dx_app
+# ModelZoo tab (portal fetch via urllib + HTML parse via a stdlib html.parser DOM,
+# see dx_app/core/_html_dom.py), runs on the Python standard library alone. This is
+# deliberate: air-gapped boards bootstrap via `pip install -e .` with no PyPI access.
+dependencies = []
+
+[tool.setuptools]
+packages = [
+  "shared", "shared.chat", "launcher",
+  "dx_app", "dx_app.core",
+  "dx_modelzoo", "dx_modelzoo.core", "dx_modelzoo.metadata", "dx_modelzoo.tools",
+  "dx_stream", "dx_stream.core",
+  "dx_compiler", "dx_compiler.core",
+  "dx_benchmark", "dx_benchmark.core",
+  "dx_monitor", "dx_monitor.core",
+  "dx_planner", "dx_planner.core",
+  "dx_agent_dev", "dx_agent_dev.core", "dx_agent_dev.core.adapters",
+]
+
+[tool.setuptools.package-data]
+"*" = ["templates/*", "templates/**/*", "static/**/*", "knowledge/*.md", "*.json"]

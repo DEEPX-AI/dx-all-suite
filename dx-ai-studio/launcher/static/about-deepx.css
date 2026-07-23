@@ -1,0 +1,1236 @@
+/* ─── About DEEPX — Corporate Landing Page ─── */
+
+/* ── 1. CSS Variables (Dark theme default) ── */
+#about-view {
+  --about-bg: var(--bg-0);
+  --about-bg-alt: var(--bg-1);
+  --about-text: var(--text-1);
+  --about-text-muted: var(--text-3);
+  --about-heading: var(--text-1);
+  --about-card-bg: var(--surface-raised-bg);
+  --about-card-border: var(--border);
+  --about-accent: var(--accent);
+  --about-accent-glow: rgba(99,140,255,0.15);
+  --about-accent-strong: var(--accent-strong);
+  --about-divider: var(--border);
+  --about-hero-grad-1: #1a0533;
+  --about-hero-grad-2: #0a1628;
+  /* Bottom stop matches the Developer Hub's top colour (--about-bg-alt) so the hero melts
+     into the section below with no seam and no purple→blue hue jump at the boundary. */
+  --about-hero-grad-3: var(--about-bg-alt);
+}
+
+/* ── 2. View Layout (matches SDK Library shell offset) ── */
+#about-view {
+  display: none;
+  position: fixed;
+  top: var(--launcher-topbar-h);
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 50;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+  background: var(--about-bg);
+  color: var(--about-text);
+  font-family: var(--font, 'Inter', sans-serif);
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+#about-view.visible {
+  display: flex;
+  animation: aboutViewSlideIn 0.4s ease-out;
+}
+@keyframes aboutViewSlideIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── 3. Topbar ── */
+.about-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-4);
+  padding: 0 24px;
+  height: 48px;
+  min-height: 48px;
+  flex-shrink: 0;
+  /* nowrap so the relocated toolbar can't push a 2nd row; .about-nav (flex:1, overflow-x:auto)
+     absorbs any shortfall by scrolling its tabs internally. */
+  flex-wrap: nowrap;
+  background: var(--dx-module-header-bg);
+  border-bottom: 1px solid var(--dx-module-header-border);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  box-shadow: var(--dx-module-header-elevation);
+  z-index: 100;
+}
+.about-topbar-left {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  gap: 10px;
+}
+/* About header brand now uses the shared .dx-brand component (brand.css); the bespoke
+   .about-logo-* rules were removed. */
+.about-nav {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  gap: var(--sp-1);
+  justify-content: flex-end;
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+  scrollbar-width: none;
+}
+/* Holds the relocated shared toolbar (#dxToolbar: lang + tutorial) at the far right. */
+.about-topbar-right {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+}
+.about-nav::-webkit-scrollbar {
+  display: none;
+}
+.about-nav-tab {
+  flex: 0 0 auto;
+  padding: 6px 14px;
+  font: 500 12px/1 var(--font);
+  color: var(--about-text-muted);
+  text-decoration: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.about-nav-tab:hover {
+  color: var(--about-text);
+  background: var(--about-accent-glow);
+}
+.about-nav-tab.active {
+  color: var(--about-accent);
+  background: var(--about-accent-glow);
+  font-weight: 600;
+}
+.about-nav-tab:focus-visible {
+  outline: 2px solid var(--about-accent);
+  outline-offset: 2px;
+}
+
+/* ── 4. Scroll Container ── */
+.about-scroll {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  overflow-y: auto;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+}
+
+.about-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-4);
+  min-height: 50vh;
+  color: var(--about-text-muted);
+  font-size: var(--fs-md);
+}
+.about-loading-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid var(--about-card-border);
+  border-top-color: var(--about-accent);
+  border-radius: 50%;
+  animation: aboutSpin 0.8s linear infinite;
+}
+@keyframes aboutSpin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── 5. Sections — Common ── */
+.about-section {
+  padding: 80px 48px;
+  max-width: 1680px;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+.about-section-title {
+  font: 700 28px/1.2 var(--font);
+  color: var(--about-heading);
+  margin-bottom: 8px;
+}
+.about-section-subtitle {
+  font: 400 14px/1.5 var(--font);
+  color: var(--about-text-muted);
+  margin-bottom: 40px;
+}
+.about-section-divider {
+  width: 48px;
+  height: 3px;
+  background: linear-gradient(90deg, var(--about-accent), var(--about-accent-strong));
+  border-radius: 2px;
+  margin-bottom: 32px;
+}
+
+/* ── Section table-of-contents rail (wide-screen side gutter) ── */
+.about-dotnav {
+  position: fixed;
+  right: 32px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  z-index: 60;
+}
+.about-dotnav-title {
+  font: 700 12px/1 var(--font);
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+  color: var(--about-text-muted);
+  opacity: 0.75;
+  padding: 0 10px 20px 18px;
+}
+.about-dot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 13px 12px 13px 18px;
+  background: none;
+  border: none;
+  border-left: 3px solid var(--about-card-border);
+  cursor: pointer;
+  color: var(--about-text-muted);
+  font: 600 16px/1.35 var(--font);
+  white-space: nowrap;
+  text-align: left;
+  transition: color 0.2s, border-color 0.2s, transform 0.2s;
+}
+.about-dot:hover { color: var(--about-heading); }
+.about-dot.active {
+  color: var(--about-accent);
+  font-weight: 800;
+  border-left-color: var(--about-accent);
+  transform: translateX(2px);
+}
+.about-dot-label { display: inline; }
+/* Only show once the viewport is wide enough that the enlarged rail sits in the empty gutter
+   beside the 1680 content column (below this it would overlap the content). */
+@media (max-width: 1979px) {
+  .about-dotnav { display: none; }
+}
+
+/* ── Left gutter rail: brand + scroll-progress + section counter ── */
+.about-leftrail {
+  position: fixed;
+  left: 40px;
+  top: 0;
+  bottom: 0;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  padding: 56px 0;
+  pointer-events: none;
+}
+.about-leftrail-brand {
+  writing-mode: vertical-rl;
+  font: 800 19px/1 var(--font);
+  letter-spacing: 7px;
+  color: var(--about-heading);
+  opacity: 0.82;
+}
+.about-leftrail-track {
+  width: 3px;
+  height: 38vh;
+  max-height: 520px;
+  border-radius: 2px;
+  background: var(--about-card-border);
+  position: relative;
+  overflow: hidden;
+}
+.about-leftrail-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 0%;
+  background: linear-gradient(180deg, var(--about-accent), var(--about-accent-strong));
+  transition: height 0.15s ease-out;
+}
+.about-leftrail-count {
+  font: 800 15px/1 var(--font);
+  color: var(--about-accent);
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+.about-leftrail-count-sep { color: var(--about-text-muted); font-weight: 500; }
+.about-leftrail-tag {
+  writing-mode: vertical-rl;
+  white-space: nowrap;              /* keep the slogan on one straight vertical line */
+  font: 600 11px/1 var(--font);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--about-text-muted);
+  opacity: 0.7;
+}
+@media (max-width: 1979px) {
+  .about-leftrail { display: none; }
+}
+
+/* ── 6. Hero ── */
+.about-hero {
+  position: relative;
+  /* Same centered 1680 column as .about-section so the hero's coloured band lines up in
+     width with every section below it (on wide screens the hero used to bleed full-width
+     while the sections stayed 1680, leaving the edges misaligned). */
+  max-width: 1680px;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 80px 48px;
+  background: linear-gradient(160deg, var(--about-hero-grad-1), var(--about-hero-grad-2) 50%, var(--about-hero-grad-3));
+  overflow: hidden;
+}
+.about-hero::before {
+  content: '';
+  position: absolute;
+  top: 20%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, var(--about-accent-glow) 0%, transparent 70%);
+  pointer-events: none;
+  animation: heroGlow 6s ease-in-out infinite alternate;
+}
+@keyframes heroGlow {
+  from { opacity: 0.4; transform: translateX(-50%) scale(1); }
+  to   { opacity: 0.8; transform: translateX(-50%) scale(1.2); }
+}
+.about-hero-slogan {
+  font: 800 48px/1.1 var(--font);
+  color: var(--about-heading);
+  letter-spacing: -1px;
+  margin-bottom: 16px;
+  position: relative;
+  z-index: 1;
+}
+.about-hero-subtitle {
+  font: 400 18px/1.6 var(--font);
+  color: var(--about-text-muted);
+  max-width: 600px;
+  margin-bottom: 48px;
+  position: relative;
+  z-index: 1;
+}
+.about-hero-stats {
+  display: flex;
+  gap: var(--sp-7);
+  position: relative;
+  z-index: 1;
+}
+.about-hero-stat {
+  text-align: center;
+}
+.about-hero-stat-value {
+  font: 800 36px/1 var(--font);
+  color: var(--about-accent);
+  margin-bottom: 4px;
+}
+.about-hero-stat-label {
+  font: 400 12px/1 var(--font);
+  color: var(--about-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.about-scroll-hint {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  animation: scrollBounce 2s ease-in-out infinite;
+  color: var(--about-text-muted);
+  font-size: var(--fs-2xl);
+}
+@keyframes scrollBounce {
+  0%, 100% { transform: translateX(-50%) translateY(0); opacity: 0.4; }
+  50% { transform: translateX(-50%) translateY(8px); opacity: 1; }
+}
+
+/* ── 7. Company Section ── */
+.about-quote {
+  background: var(--surface-raised-bg);
+  border-left: 3px solid var(--about-accent);
+  padding: 24px 28px;
+  border-radius: 0 8px 8px 0;
+  margin-bottom: 32px;
+  box-shadow: var(--surface-raised-shadow);
+}
+.about-quote-text {
+  font: 400 16px/1.6 var(--font);
+  color: var(--about-text);
+  font-style: italic;
+  margin-bottom: 8px;
+}
+.about-quote-author {
+  font: 500 13px/1 var(--font);
+  color: var(--about-accent);
+}
+.about-overview-text {
+  font: 400 15px/1.7 var(--font);
+  color: var(--about-text);
+  margin-bottom: 48px;
+  /* No narrow max-width: the text flows to the full section width and wraps normally,
+     instead of breaking early inside an 800px column while the page is much wider. */
+}
+.about-values-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 20px;
+  margin-bottom: 48px;
+}
+.about-value-card {
+  background: var(--surface-raised-bg);
+  border: 1px solid var(--about-card-border);
+  border-radius: var(--radius-lg);
+  padding: var(--sp-5);
+  box-shadow: var(--surface-raised-shadow);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.about-value-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--surface-hover-shadow);
+}
+.about-value-icon {
+  font-size: 28px;
+  margin-bottom: 12px;
+}
+.about-value-title {
+  font: 600 15px/1 var(--font);
+  color: var(--about-heading);
+  margin-bottom: 8px;
+}
+.about-value-desc {
+  font: 400 13px/1.5 var(--font);
+  color: var(--about-text-muted);
+}
+
+/* Timeline */
+.about-timeline {
+  display: flex;
+  gap: 0;
+  overflow-x: auto;
+  padding: 24px 0;
+  margin-bottom: 48px;
+  position: relative;
+}
+.about-timeline::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--about-divider);
+}
+.about-timeline-item {
+  position: relative;
+  flex: 0 0 auto;
+  min-width: 140px;
+  max-width: 240px;
+  text-align: center;
+  padding: 0 12px;
+}
+.about-timeline-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--about-accent);
+  margin: 0 auto 12px;
+  position: relative;
+  z-index: 1;
+  box-shadow: 0 0 0 4px var(--about-bg);
+}
+.about-timeline-year {
+  font: 700 14px/1 var(--font);
+  color: var(--about-accent);
+  margin-bottom: 6px;
+}
+.about-timeline-event {
+  font: 400 12px/1.4 var(--font);
+  color: var(--about-text-muted);
+}
+/* Multi-achievement years: left-aligned bullet list so several items stay scannable in the
+   narrow timeline column instead of a centered run-on paragraph. */
+ul.about-timeline-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+ul.about-timeline-list li {
+  position: relative;
+  padding-left: 11px;
+}
+ul.about-timeline-list li::before {
+  content: '';
+  position: absolute;
+  left: 2px;
+  top: 7px;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--about-accent);
+}
+
+/* Offices */
+.about-offices-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--sp-4);
+}
+.about-office-card {
+  background: var(--about-card-bg);
+  border: 1px solid var(--about-card-border);
+  border-radius: 10px;
+  padding: 20px;
+}
+.about-office-city {
+  font: 600 15px/1 var(--font);
+  color: var(--about-heading);
+  margin-bottom: 4px;
+}
+.about-office-country {
+  font: 500 12px/1 var(--font);
+  color: var(--about-accent);
+  margin-bottom: 8px;
+}
+.about-office-address {
+  font: 400 12px/1.4 var(--font);
+  color: var(--about-text-muted);
+}
+
+/* ── 8. Technology Section ── */
+.about-tech-block {
+  margin-bottom: 56px;
+}
+.about-tech-title {
+  font: 700 20px/1.2 var(--font);
+  color: var(--about-heading);
+  margin-bottom: 16px;
+}
+.about-tech-desc {
+  font: 400 14px/1.7 var(--font);
+  color: var(--about-text);
+  margin-bottom: 24px;
+  /* No narrow max-width — flow to the full section width and wrap normally. */
+}
+.about-stats-row {
+  display: flex;
+  gap: var(--sp-6);
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+.about-stat-card {
+  background: var(--about-card-bg);
+  border: 1px solid var(--about-card-border);
+  border-radius: 10px;
+  padding: 20px 24px;
+  text-align: center;
+  min-width: 120px;
+}
+.about-stat-value {
+  font: 800 24px/1 var(--font);
+  color: var(--about-accent);
+  margin-bottom: 4px;
+}
+.about-stat-label {
+  font: 400 11px/1 var(--font);
+  color: var(--about-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* SDK Steps */
+.about-sdk-steps {
+  display: flex;
+  gap: var(--sp-4);
+  margin-bottom: 24px;
+}
+.about-sdk-step {
+  flex: 1;
+  background: var(--about-card-bg);
+  border: 1px solid var(--about-card-border);
+  border-radius: 10px;
+  padding: 20px;
+  text-align: center;
+  position: relative;
+}
+.about-sdk-step-num {
+  font: 800 20px/1 var(--font);
+  color: var(--about-accent);
+  margin-bottom: 8px;
+}
+.about-sdk-step-title {
+  font: 600 13px/1 var(--font);
+  color: var(--about-heading);
+  margin-bottom: 4px;
+}
+.about-sdk-step-desc {
+  font: 400 11px/1.4 var(--font);
+  color: var(--about-text-muted);
+}
+
+/* How to Use DXNN SDK — HTML recreation of deepx.ai's dark-gradient step flow (the source
+   images carry a personal watermark, so this is rebuilt as crisp, localized HTML). */
+.about-sdk-howto-title {
+  font: 600 15px/1.3 var(--font);
+  color: var(--about-heading);
+  margin: 28px 0 14px;
+}
+.about-sdk-flow {
+  margin-bottom: 22px;
+}
+.about-sdk-flow-label {
+  font: 600 12px/1 var(--font);
+  color: var(--about-accent);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 12px;
+}
+.about-sdk-flow-row {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.sdk-flow-card {
+  flex: 1 1 0;
+  min-width: 150px;
+  padding: 16px 16px 18px;
+  border-radius: var(--radius);
+  background: linear-gradient(155deg, #16305e 0%, #0d1c3a 55%, #0a1428 100%);
+  border: 1px solid rgba(120,150,220,0.18);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.sdk-flow-step {
+  align-self: flex-start;
+  font: 600 10px/1 var(--font);
+  color: #cdd8f5;
+  letter-spacing: 0.5px;
+  padding: 4px 8px;
+  border: 1px solid rgba(160,185,240,0.45);
+  border-radius: var(--radius-xs);
+}
+.sdk-flow-name {
+  font: 700 16px/1.25 var(--font);
+  color: #ffffff;
+  margin-top: 4px;
+}
+.sdk-flow-text {
+  font: 400 12px/1.5 var(--font);
+  color: #aeb9d6;
+}
+.sdk-flow-arrow {
+  align-self: center;
+  color: var(--about-accent);
+  font-size: 20px;
+  font-weight: 700;
+  flex: 0 0 auto;
+}
+.about-sdk-env-fig {
+  /* Two diagrams side by side, together spanning the section width, with EQUAL heights.
+     Each flex-grow is set to the image's aspect ratio and flex-basis is 0, so the column
+     widths come out proportional to aspect — which makes width/aspect (the rendered height)
+     identical for both. Each gets a blue highlight frame so the two read as distinct figures.
+     The environments graphic is transparent (designed for the dark page); the architecture
+     diagram has black text so it sits on white inside its frame. */
+  margin: 20px 0 32px;
+  display: flex;
+  gap: 16px;
+  align-items: stretch;
+}
+.about-sdk-env-fig img {
+  min-width: 0;
+  height: auto;
+  display: block;
+  border-radius: var(--radius);
+  border: 2px solid var(--about-accent);
+  box-shadow: 0 0 0 4px var(--about-accent-glow);
+}
+.about-sdk-env-fig img:nth-of-type(1) { flex: 2054 1 0; }  /* environments 1150×560 (aspect 2.054) */
+.about-sdk-env-fig img:nth-of-type(2) { flex: 1473 1 0; }  /* architecture 1608×1092 (aspect 1.473) */
+
+/* ── 9. Products Section ── */
+.about-product-category {
+  margin-bottom: 36px;
+}
+.about-product-category-title {
+  font: 600 16px/1 var(--font);
+  color: var(--about-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 16px;
+}
+.about-products-scroll {
+  /* Grid that wraps to fill the section width — no horizontal scroll slider. Wider min (380px)
+     so cards that carry a photo + block diagram side by side have room for both. */
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(520px, 1fr));
+  gap: var(--sp-4);
+}
+/* photo (+ optional block diagram) side by side at the top of a product card — wider cards
+   (520px) keep each image large enough to read. */
+.about-product-media {
+  display: flex;
+  gap: 10px;
+  margin: -4px -4px 14px;
+}
+.about-product-media .about-product-image-wrap {
+  margin: 0;
+  flex: 1 1 0;
+  min-width: 0;
+}
+/* Specs in two columns so the wider card stays compact instead of a tall single column. */
+.about-product-specs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 24px;
+}
+.about-product-card {
+  background: var(--about-card-bg);
+  border: 1px solid var(--about-card-border);
+  border-radius: var(--radius-lg);
+  padding: var(--sp-5);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.about-product-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+}
+.about-product-card.highlight {
+  border-color: var(--about-accent);
+  box-shadow: 0 0 0 1px var(--about-accent), 0 4px 16px var(--about-accent-glow);
+}
+.about-product-name {
+  font: 700 18px/1 var(--font);
+  color: var(--about-heading);
+  margin-bottom: 4px;
+}
+.about-product-type {
+  font: 400 12px/1 var(--font);
+  color: var(--about-accent);
+  margin-bottom: 16px;
+}
+.about-product-spec {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--about-divider);
+  font: 400 12px/1.45 var(--font);
+}
+.about-product-spec-label {
+  color: var(--about-text-muted);
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+.about-product-spec-value {
+  color: var(--about-text);
+  font-weight: 500;
+  text-align: right;
+  min-width: 0;
+}
+.about-product-badge {
+  display: inline-block;
+  margin-top: 12px;
+  padding: 3px 10px;
+  background: var(--about-accent-glow);
+  color: var(--about-accent);
+  border-radius: var(--radius-xs);
+  font: 600 11px/1 var(--font);
+  letter-spacing: 0.5px;
+}
+.about-product-notes {
+  margin-top: 10px;
+}
+.about-product-note {
+  font: 400 11px/1.4 var(--font);
+  color: var(--about-text-muted);
+  font-style: italic;
+}
+.about-product-note::before {
+  content: "* ";
+}
+.about-product-image-wrap {
+  margin: -4px -4px 12px;
+  border-radius: var(--radius);
+  overflow: hidden;
+  /* All product shots are now on a white studio background, so give the band a white backing
+     and use object-fit:contain — the whole product shows, letterbox padding is white and
+     therefore invisible, and every card top reads as a clean product-on-white photo. */
+  background: #ffffff;
+  aspect-ratio: 16 / 10;
+}
+.about-product-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+  display: block;
+}
+.about-product-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+.about-product-spec-link,
+.about-product-buy-link {
+  flex: 1 1 auto;
+  text-align: center;
+  padding: 8px 12px;
+  font: 600 12px/1 var(--font);
+  border-radius: var(--radius);
+  text-decoration: none;
+  transition: opacity 0.2s, background 0.2s;
+  white-space: nowrap;
+}
+.about-product-spec-link {
+  color: var(--about-accent);
+  border: 1px solid var(--about-card-border);
+  background: transparent;
+}
+.about-product-spec-link:hover {
+  border-color: var(--about-accent);
+  background: var(--about-accent-glow);
+}
+.about-product-buy-link {
+  color: #fff;
+  background: var(--about-accent);
+}
+.about-product-buy-link:hover { opacity: 0.9; }
+
+/* ── 10. Investment Section ── */
+.about-rounds-row {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 40px;
+}
+.about-round-card {
+  flex: 1;
+  background: var(--about-card-bg);
+  border: 1px solid var(--about-card-border);
+  border-radius: 10px;
+  padding: 20px;
+  text-align: center;
+}
+.about-round-name {
+  font: 700 16px/1 var(--font);
+  color: var(--about-heading);
+  margin-bottom: 6px;
+}
+.about-round-status {
+  font: 500 12px/1 var(--font);
+  color: var(--success);
+}
+.about-round-note {
+  margin-top: 8px;
+  font: 400 11px/1.4 var(--font);
+  color: var(--about-text-muted);
+}
+.about-awards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--sp-4);
+}
+.about-award-card {
+  background: var(--about-card-bg);
+  border: 1px solid var(--about-card-border);
+  border-radius: 10px;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+}
+.about-award-icon {
+  font-size: var(--fs-3xl);
+}
+.about-award-info {
+  flex: 1;
+}
+.about-award-name {
+  font: 500 13px/1.3 var(--font);
+  color: var(--about-heading);
+}
+.about-award-year {
+  font: 400 11px/1 var(--font);
+  color: var(--about-text-muted);
+}
+
+/* ── 11. Partners Section ── */
+.about-solutions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--sp-4);
+  margin-bottom: 48px;
+}
+.about-solution-card {
+  background: var(--about-card-bg);
+  border: 1px solid var(--about-card-border);
+  border-radius: 10px;
+  padding: 20px;
+}
+.about-solution-icon {
+  font-size: var(--fs-3xl);
+  margin-bottom: 10px;
+}
+.about-solution-title {
+  font: 600 14px/1 var(--font);
+  color: var(--about-heading);
+  margin-bottom: 6px;
+}
+.about-solution-desc {
+  font: 400 12px/1.5 var(--font);
+  color: var(--about-text-muted);
+}
+.about-partners-label {
+  font: 600 14px/1 var(--font);
+  color: var(--about-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 16px;
+}
+.about-partners-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-3);
+}
+/* Certifications: keep all chips on a single row (no lone VCCI wrapping to a 2nd line).
+   Falls back to horizontal scroll only if the viewport is too narrow to fit them. */
+.about-cert-row {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+}
+.about-cert-row .about-partner-chip {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+.about-partner-chip {
+  background: var(--about-card-bg);
+  border: 1px solid var(--about-card-border);
+  border-radius: var(--radius);
+  padding: 8px 16px;
+  font: 500 13px/1 var(--font);
+  color: var(--about-text);
+  transition: border-color 0.2s;
+}
+.about-partner-chip:hover {
+  border-color: var(--about-accent);
+}
+
+/* ── 12. News Section ── */
+.about-news-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: var(--sp-4);
+  margin-bottom: 40px;
+}
+.about-news-card {
+  background: var(--about-card-bg);
+  border: 1px solid var(--about-card-border);
+  border-radius: 10px;
+  padding: 20px;
+  transition: border-color 0.2s;
+}
+.about-news-card:hover {
+  border-color: var(--about-accent);
+}
+.about-news-type {
+  font: 600 10px/1 var(--font);
+  color: var(--about-accent);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 8px;
+}
+.about-news-title {
+  font: 500 14px/1.4 var(--font);
+  color: var(--about-heading);
+  margin-bottom: 6px;
+}
+.about-news-meta {
+  font: 400 12px/1 var(--font);
+  color: var(--about-text-muted);
+}
+.about-news-location {
+  font: 400 11px/1.3 var(--font);
+  color: var(--about-text-muted);
+  margin-top: 4px;
+}
+.about-news-card--upcoming {
+  border-color: var(--about-accent);
+  box-shadow: 0 0 0 1px var(--about-accent-glow);
+}
+.about-news-card--linked { cursor: pointer; }
+.about-news-link {
+  color: inherit;
+  text-decoration: none;
+}
+.about-news-link:hover {
+  color: var(--about-accent);
+  text-decoration: underline;
+}
+.about-news-grid--upcoming {
+  margin-bottom: 32px;
+}
+
+/* ── Developer Hub ── */
+.about-developer-hub {
+  background: linear-gradient(180deg, var(--about-bg-alt) 0%, var(--about-bg) 100%);
+}
+.about-dev-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px 24px;
+  padding: 20px 24px;
+  margin-bottom: 24px;
+  background: var(--about-card-bg);
+  border: 1px solid var(--about-card-border);
+  border-radius: var(--radius-lg);
+}
+.about-dev-banner-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  min-width: 140px;
+}
+.about-dev-banner-k {
+  font: 700 18px/1 var(--font);
+  color: var(--about-accent);
+}
+.about-dev-banner-v {
+  font: 400 12px/1.4 var(--font);
+  color: var(--about-text-muted);
+  max-width: 280px;
+}
+.about-dev-support {
+  margin-left: auto;
+  font: 500 13px/1 var(--font);
+  color: var(--about-accent);
+  text-decoration: none;
+}
+.about-dev-support:hover { text-decoration: underline; }
+
+.about-action-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--sp-3);
+  margin-bottom: 32px;
+}
+.about-action-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: var(--sp-4);
+  background: var(--about-card-bg);
+  border: 1px solid var(--about-card-border);
+  border-radius: 10px;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.2s, transform 0.2s;
+}
+.about-action-card:hover {
+  border-color: var(--about-accent);
+  transform: translateY(-2px);
+}
+.about-action-icon { font-size: 22px; }
+.about-action-label {
+  font: 600 14px/1.2 var(--font);
+  color: var(--about-heading);
+}
+.about-action-desc {
+  font: 400 12px/1.4 var(--font);
+  color: var(--about-text-muted);
+}
+
+.about-cta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-3);
+  margin-bottom: 28px;
+}
+.about-cta-btn {
+  display: inline-block;
+  padding: 12px 20px;
+  font: 600 13px/1 var(--font);
+  border-radius: var(--radius);
+  text-decoration: none;
+  border: 1px solid var(--about-card-border);
+  color: var(--about-heading);
+  background: var(--about-card-bg);
+  transition: border-color 0.2s, background 0.2s;
+}
+.about-cta-btn:hover { border-color: var(--about-accent); }
+.about-cta-btn--primary {
+  background: var(--about-accent);
+  border-color: var(--about-accent);
+  color: #fff;
+}
+.about-cta-btn--primary:hover { opacity: 0.92; }
+
+.about-sdk-versions {
+  font: 500 12px/1.4 var(--font);
+  color: var(--about-text-muted);
+  margin-top: 8px;
+}
+
+.about-distribution-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-3);
+  margin-bottom: 24px;
+}
+.about-distribution-card {
+  display: block;
+  padding: 14px 18px;
+  background: var(--about-card-bg);
+  border: 1px solid var(--about-card-border);
+  border-radius: var(--radius);
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.2s;
+  min-width: 140px;
+}
+.about-distribution-card:hover { border-color: var(--about-accent); }
+.about-distribution-card--static { cursor: default; }
+.about-distribution-card--static:hover { border-color: var(--about-card-border); }
+.about-distribution-name {
+  font: 600 14px/1.2 var(--font);
+  color: var(--about-heading);
+}
+.about-distribution-region {
+  font: 400 11px/1.3 var(--font);
+  color: var(--about-text-muted);
+  margin-top: 4px;
+}
+
+.about-contact-block {
+  margin-top: 32px;
+  padding: var(--sp-5);
+  background: var(--about-card-bg);
+  border: 1px solid var(--about-card-border);
+  border-radius: var(--radius-lg);
+}
+.about-contact-email {
+  display: block;
+  font: 600 16px/1.4 var(--font);
+  color: var(--about-accent);
+  text-decoration: none;
+  margin: 8px 0;
+}
+.about-contact-portal {
+  font: 500 13px/1 var(--font);
+  color: var(--about-text-muted);
+  text-decoration: none;
+}
+.about-contact-portal:hover { color: var(--about-accent); }
+
+.about-sdk-release {
+  font: 400 13px/1.5 var(--font);
+  color: var(--about-text-muted);
+  margin-top: 16px;
+}
+.about-start-here {
+  display: inline-block;
+  margin-top: 12px;
+  padding: 10px 18px;
+  font: 600 13px/1 var(--font);
+  color: #fff;
+  background: var(--about-accent);
+  border-radius: var(--radius);
+  text-decoration: none;
+  transition: opacity 0.2s;
+}
+.about-start-here:hover { opacity: 0.9; }
+.about-sdk-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.about-sdk-links .about-start-here { margin-top: 0; }
+.about-start-here--secondary {
+  color: var(--about-accent);
+  background: transparent;
+  border: 1px solid var(--about-card-border);
+}
+.about-start-here--secondary:hover {
+  opacity: 1;
+  border-color: var(--about-accent);
+  background: var(--about-accent-glow);
+}
+
+.about-alliance-block {
+  margin: 32px 0 24px;
+  padding: var(--sp-5);
+  background: var(--about-card-bg);
+  border: 1px solid var(--about-card-border);
+  border-radius: var(--radius-lg);
+}
+
+.about-cert-detail {
+  color: var(--about-text-muted);
+  font-weight: 400;
+}
+
+.about-cert-longevity {
+  margin-top: 16px;
+}
+
+.about-footer-meta {
+  margin-top: 8px;
+  font-size: var(--fs-xs);
+  opacity: 0.75;
+}
+
+/* ── 13. Scroll Animations ── */
+.about-fade-in {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+}
+.about-fade-in.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ── 14. Footer ── */
+.about-footer {
+  text-align: center;
+  padding: var(--sp-7);
+  color: var(--about-text-muted);
+  font: 400 12px/1.5 var(--font);
+  border-top: 1px solid var(--about-divider);
+}

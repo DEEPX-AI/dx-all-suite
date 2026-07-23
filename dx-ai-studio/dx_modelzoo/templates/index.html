@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DX Model Zoo</title>
+  <link rel="stylesheet" href="/static/shared/dx-fonts.css">
+  <link rel="stylesheet" href="/static/shared/dx-tokens.css">
+  <link rel="stylesheet" href="/static/shared/dx-base.css">
+  <link rel="stylesheet" href="/static/shared/dx-utilities.css">
+  <link rel="stylesheet" href="/static/shared/module-chrome.css">
+  <link rel="stylesheet" href="/static/shared/brand.css">
+  <link rel="stylesheet" href="/static/shared/tutorial.css">
+  <link rel="stylesheet" href="/static/shared/toolbar.css">
+  <link rel="stylesheet" href="/static/shared/chat-widget.css">
+  <link rel="stylesheet" href="/static/css/style.css?m=dx_modelzoo_cardgap2">
+</head>
+<body>
+  <!-- ── Top Bar ── -->
+  <header class="mz-topbar">
+    <div class="mz-topbar-left">
+      <span class="dx-brand-slot" id="dxBrand"></span>
+      <span class="mz-model-count" id="modelCount"></span>
+    </div>
+    <div class="mz-topbar-right toolbar">
+      <a href="https://developer.deepx.ai/modelzoo/" target="_blank" rel="noopener"
+         class="mz-btn mz-btn-outline" style="gap:4px;white-space:nowrap;text-decoration:none"
+         data-i18n-title="ModelZoo public site"
+         title="ModelZoo public site">🌐 <span data-i18n="ModelZoo Homepage">ModelZoo Homepage</span> ↗</a>
+      <span class="mz-dx-app-status" id="dxAppStatus"></span>
+    </div>
+  </header>
+
+  <!-- ── Explorer Shell ── -->
+  <div class="mz-explorer-shell">
+    <aside class="mz-filter-rail" data-i18n-aria-label="Model filters">
+      <div class="mz-filter-section" data-section="category">
+        <div class="mz-filter-title" data-i18n="Categories">Categories</div>
+        <div id="categoryChips"></div>
+      </div>
+    </aside>
+
+    <section class="mz-explorer-main">
+      <main class="mz-main" id="catalogView">
+        <div class="mz-catalog-hero">
+          <div>
+            <h1 class="mz-page-title" id="catalogTitle" data-i18n="DX Model Zoo Explorer">DX Model Zoo Explorer</h1>
+            <p class="mz-page-subtitle" id="catalogSubtitle"></p>
+          </div>
+          <div class="mz-view-toggle" data-i18n-aria-label="Catalog view mode">
+            <button class="mz-btn-icon active" id="btnCardView" onclick="setViewMode('card')" title="View as cards" data-i18n-title="View as cards">▦</button>
+            <button class="mz-btn-icon" id="btnListView" onclick="setViewMode('list')" title="View as list" data-i18n-title="View as list">☰</button>
+          </div>
+        </div>
+        <div class="mz-filter-bar">
+          <div class="mz-filter-controls">
+            <input type="text" class="mz-search" id="searchInput" data-i18n-placeholder="Search models..." oninput="onSearchInput()">
+            <select class="mz-sort" id="sortSelect" onchange="onSortChange()" data-i18n-aria-label="Sort by" title="Sort by" data-i18n-title="Sort by">
+              <option value="name">Name</option>
+              <option value="category">Category</option>
+              <option value="fps">FPS</option>
+            </select>
+            <button class="mz-btn mz-btn-outline" id="resetFiltersBtn" onclick="resetFilters()" data-i18n="Reset filters">Reset filters</button>
+          </div>
+          <div class="mz-active-filters" id="activeFilterSummary"></div>
+        </div>
+        <div id="catalogContainer" class="mz-card-grid"></div>
+      </main>
+
+      <main class="mz-main mz-detail-view" id="detailView" style="display:none;"></main>
+    </section>
+  </div>
+
+  <!-- Scripts: i18n dictionary fragments (synchronous, before shared i18n) -->
+  <script src="/static/js/i18n-core.js?m=dx_modelzoo"></script>
+  <script src="/static/js/i18n-dict-shared.js?m=dx_modelzoo"></script>
+  <script src="/static/js/i18n-dict-catalog.js?m=dx_modelzoo"></script>
+  <script src="/static/js/i18n-dict-detail.js?m=dx_modelzoo"></script>
+  <script src="/static/js/i18n-dict-inference.js?m=dx_modelzoo"></script>
+  <script src="/static/js/i18n.js?m=dx_modelzoo"></script>
+  <script src="/static/shared/i18n.js"></script>
+  <script src="/static/shared/brand.js"></script>
+  <script>
+DXBrand.mount({
+  target: '#dxBrand',
+  name: 'Model Zoo',
+  subtitle: {
+    ko: 'AI 모델 허브',
+    en: 'AI Model Hub',
+    es: 'Centro de modelos de IA',
+    ja: 'AIモデルハブ',
+    'zh-CN': 'AI 模型库',
+    'zh-TW': 'AI 模型庫'
+  },
+  accent: 'var(--accent)'
+});
+  </script>
+  <script src="/static/shared/toolbar.js"></script>
+  <script>DXToolbar.init({ container: '.toolbar' });</script>
+  <script src="/static/js/app.js?m=dx_modelzoo"></script>
+  <script src="/static/js/catalog.js?m=dx_modelzoo"></script>
+  <script src="/static/js/detail.js?m=dx_modelzoo"></script>
+  <script src="/static/js/inference.js?m=dx_modelzoo"></script>
+  <script src="/static/shared/chat-widget.js"></script>
+  <script>DXChat.init({ appName: 'dx_modelzoo' });</script>
+  <script src="/static/shared/tutorial-engine.js"></script>
+  <script src="/static/shared/tutorial-init.js"></script>
+  <script src="/static/js/tutorial.js?m=dx_modelzoo"></script>
+</body>
+</html>

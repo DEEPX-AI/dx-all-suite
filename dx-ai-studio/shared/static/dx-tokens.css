@@ -1,0 +1,43 @@
+/* Shared DeepX dark design tokens. (Legacy aliases removed — use canonical names.) */
+:root{
+  color-scheme:dark;
+  --bg-0:#080c16;--bg-1:#0e1525;--bg-2:#151d30;--bg-3:#1c2640;--bg-4:#243050;
+  --bg-input:#0e1525;
+  --border:rgba(99,140,255,.1);--border-hover:rgba(99,140,255,.22);--border-accent:var(--accent);
+  --accent:#638CFF;--accent-light:#8AACFF;--accent-dim:rgba(99,140,255,.14);--accent-glow:rgba(99,140,255,.30);--accent-strong:#7C5CFC;
+  --app-accent:#7C5CFC;
+  --gradient-accent:linear-gradient(135deg,#638CFF,#7C5CFC);
+  --success:#3FB950;--warning:#D29922;--error:#F85149;--info:#58A6FF;
+  --npu:#8b5cf6;
+  --text-1:#E2E8F0;--text-2:#B0BDD0;--text-3:#8892A8;--text-4:#727F94;/* text-4 lightened #5E6B80->#727F94 for WCAG AA (3.62->4.82 on bg-0) */
+  --radius-xs:4px;--radius-sm:6px;--radius:8px;--radius-lg:12px;--radius-xl:16px;--radius-pill:999px;
+  --shadow:0 4px 24px rgba(0,0,0,.4);--shadow-lg:0 8px 40px rgba(0,0,0,.5);--shadow-sm:0 2px 12px rgba(0,0,0,.25);--shadow-xl:0 24px 80px rgba(0,0,0,.6);
+  --glow-accent:0 0 20px var(--accent-glow);
+  --inset-highlight:inset 0 1px 0 rgba(255,255,255,.04);--inset-highlight-strong:inset 0 1px 0 rgba(255,255,255,.10);
+  --surface-raised-bg:linear-gradient(145deg,var(--bg-1),var(--bg-2));--surface-raised-shadow:var(--shadow-sm),var(--inset-highlight);--surface-glass-shadow:var(--shadow-sm),var(--inset-highlight);
+  --surface-active-shadow:0 0 12px var(--accent-dim),inset 0 -2px 0 var(--accent);--surface-hover-shadow:var(--shadow),var(--inset-highlight);
+  --text-glow-accent:0 0 8px rgba(var(--accent-rgb),.18);
+  --glass-bg:rgba(14,21,37,.7);--glass-border:rgba(99,140,255,.08);--glass-blur:blur(16px);
+  --transition:all .18s cubic-bezier(.4,0,.2,1);
+  --font:'Inter','Noto Sans','Noto Sans CJK',-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
+  --mono:'JetBrains Mono','Noto Sans Mono','Noto Sans CJK','Fira Code','Cascadia Code',monospace;
+  /* Type scale — derived from actual usage across all modules (dense NPU-tooling UI). */
+  --fs-2xs:10px;--fs-xs:11px;--fs-sm:12px;--fs-base:13px;--fs-md:14px;--fs-lg:16px;--fs-xl:18px;--fs-2xl:20px;--fs-3xl:24px;--fs-4xl:32px;--fs-5xl:48px;
+  --fw-regular:400;--fw-medium:500;--fw-semibold:600;--fw-bold:700;
+  --lh-tight:1.2;--lh-snug:1.4;--lh-normal:1.6;
+  --sp-1:4px;--sp-2:8px;--sp-3:12px;--sp-4:16px;--sp-5:24px;--sp-6:32px;--sp-7:48px;
+  --accent-rgb:99,140,255;--bg-1-rgb:14,21,37;
+  --success-rgb:63,185,80;--warning-rgb:210,153,34;--error-rgb:248,81,73;--info-rgb:88,166,255;--npu-rgb:139,92,246;
+  --success-light:#86efac;--warning-light:#fcd34d;--error-light:#fca5a5;--info-light:#93c5fd;
+  --npu-light:#c4b5fd;--vpu:#e879f9;--emerald:#10b981;--emerald-light:#6ee7b7;--amber-light:#fde68a;
+  /* Categorical palette — for data-viz / diagram element classification (NOT status).
+     Each module maps its own categories onto these slots (e.g. dx_stream pipeline
+     categories, dx_compiler graph node types). Distinct hues, color == meaning. */
+  --cat-1:#3B82F6;--cat-2:#F59E0B;--cat-3:#8B5CF6;--cat-4:#10B981;--cat-5:#EC4899;--cat-6:#06B6D4;
+  --cat-1-rgb:59,130,246;--cat-2-rgb:245,158,11;--cat-3-rgb:139,92,246;--cat-4-rgb:16,185,129;--cat-5-rgb:236,72,153;--cat-6-rgb:6,182,212;
+  /* Compiler graph op-node categories — canonical source of truth for node colors.
+     NOTE: dx_compiler JS (graph_viewer.js / viewer_panel.js / graph_renderer.js) still
+     hardcodes these same hexes; a follow-up should make the JS read these tokens. */
+  --op-compute:#4f46e5;--op-memory:#64748b;--op-activation:#059669;--op-normalization:#0d9488;
+  --op-pooling:#7c3aed;--op-elementwise:#d97706;--op-quantize:#ca8a04;--op-other:#6b7280;
+}

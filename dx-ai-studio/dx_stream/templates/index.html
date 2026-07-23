@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DX Stream</title>
+    <link rel="stylesheet" href="/static/shared/dx-fonts.css">
+    <link rel="stylesheet" href="/static/shared/dx-tokens.css">
+    <link rel="stylesheet" href="/static/shared/dx-base.css">
+    <link rel="stylesheet" href="/static/shared/dx-utilities.css">
+    <link rel="stylesheet" href="/static/shared/module-chrome.css">
+    <link rel="stylesheet" href="/static/shared/dx-components.css">
+    <link rel="stylesheet" href="/static/shared/brand.css">
+    <link rel="stylesheet" href="/static/shared/tutorial.css">
+    <link rel="stylesheet" href="/static/shared/toolbar.css">
+    <link rel="stylesheet" href="/static/shared/chat-widget.css">
+    <link rel="stylesheet" href="/static/css/stream.css?m=dx_stream_depth">
+    <link rel="stylesheet" href="/static/css/pipeline-iso.css?m=dx_stream">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎬</text></svg>">
+</head>
+<body class="lang-en">
+<div class="app">
+
+<!-- ═══ Sidebar ═══ -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-brand">
+    <div class="dx-brand-slot" id="dxBrand"></div>
+  </div>
+  <nav class="nav-section">
+    <button class="nav-item" data-page="setup" onclick="DXStream.nav('setup')">
+      <span class="nav-icon">⚙️</span>
+      <span class="nav-label"><span class="ko">설정</span><span class="en">Setup</span><span class="es">Configuración</span><span class="ja">セットアップ</span><span class="zh-CN">设置</span><span class="zh-TW">設定</span></span>
+    </button>
+    <button class="nav-item active" data-page="dashboard" onclick="DXStream.nav('dashboard')">
+      <span class="nav-icon">📊</span>
+      <span class="nav-label"><span class="ko">대시보드</span><span class="en">Dashboard</span><span class="es">Panel de control</span><span class="ja">ダッシュボード</span><span class="zh-CN">仪表盘</span><span class="zh-TW">儀表板</span></span>
+    </button>
+    <button class="nav-item" data-page="demo" onclick="DXStream.nav('demo')">
+      <span class="nav-icon">▶️</span>
+      <span class="nav-label"><span class="ko">데모 실행</span><span class="en">Demo Launcher</span><span class="es">Lanzador de demo</span><span class="ja">デモランチャー</span><span class="zh-CN">演示启动器</span><span class="zh-TW">示範啟動器</span></span>
+    </button>
+    <button class="nav-item" data-page="pipeline" onclick="DXStream.nav('pipeline')">
+      <span class="nav-icon">🔧</span>
+      <span class="nav-label"><span class="ko">파이프라인 빌더</span><span class="en">Pipeline Builder</span><span class="es">Constructor de pipeline</span><span class="ja">パイプラインビルダー</span><span class="zh-CN">管道构建器</span><span class="zh-TW">管線建置器</span></span>
+    </button>
+    <button class="nav-item" data-page="models" onclick="DXStream.nav('models')">
+      <span class="nav-icon">📦</span>
+      <span class="nav-label"><span class="ko">모델 카탈로그</span><span class="en">Model Catalog</span><span class="es">Catálogo de modelos</span><span class="ja">モデルカタログ</span><span class="zh-CN">模型目录</span><span class="zh-TW">模型目錄</span></span>
+    </button>
+    <button class="nav-item" data-page="elements" onclick="DXStream.nav('elements')">
+      <span class="nav-icon">🧩</span>
+      <span class="nav-label"><span class="ko">요소 레퍼런스</span><span class="en">Element Reference</span><span class="es">Referencia de elemento</span><span class="ja">エレメントリファレンス</span><span class="zh-CN">元素参考</span><span class="zh-TW">元素參考</span></span>
+    </button>
+    <button class="nav-item" data-page="custom" onclick="DXStream.nav('custom')">
+      <span class="nav-icon">🔩</span>
+      <span class="nav-label"><span class="ko">커스텀 라이브러리</span><span class="en">Custom Library</span><span class="es">Biblioteca personalizada</span><span class="ja">カスタムライブラリ</span><span class="zh-CN">自定义库</span><span class="zh-TW">自訂函式庫</span></span>
+    </button>
+    <button class="nav-item" data-page="reference" onclick="DXStream.nav('reference')">
+      <span class="nav-icon">📖</span>
+      <span class="nav-label"><span class="ko">레퍼런스</span><span class="en">Reference</span><span class="es">Referencia</span><span class="ja">リファレンス</span><span class="zh-CN">参考指南</span><span class="zh-TW">參考指南</span></span>
+    </button>
+  </nav>
+  <div class="sidebar-footer">
+  </div>
+</aside>
+
+<!-- ═══ Content ═══ -->
+<div class="content-wrap">
+<header class="topbar">
+  <div class="topbar-left">
+    <button style="cursor:pointer;font-size:18px;background:none;border:none;color:inherit" onclick="DXStream.toggleSidebar()">☰</button>
+    <span class="topbar-title" id="topbar-title"><span class="ko">대시보드</span><span class="en">Dashboard</span><span class="es">Panel de control</span><span class="ja">ダッシュボード</span><span class="zh-CN">仪表盘</span><span class="zh-TW">儀表板</span></span>
+  </div>
+  <div class="topbar-right toolbar">
+    <span class="stream-badge" id="pipeline-status"><span class="ko">대기</span><span class="en">Idle</span><span class="es">Inactivo</span><span class="ja">待機</span><span class="zh-CN">待机</span><span class="zh-TW">待機</span></span>
+  </div>
+</header>
+
+<main class="main" id="main-area">
+
+<!-- ═══ PAGE: Dashboard ═══ -->
+<div class="page active" id="page-dashboard">
+  <h1>📊 <span class="accent"><span class="ko">대시보드</span><span class="en">Dashboard</span><span class="es">Panel de control</span><span class="ja">ダッシュボード</span><span class="zh-CN">仪表盘</span><span class="zh-TW">儀表板</span></span></h1>
+
+  <!-- Stats row: 4 columns (DX App grid4 pattern) -->
+  <div class="stat-grid" id="dash-stats">
+    <div class="stat" id="stat-npu">
+      <div class="stat-icon">🔲</div>
+      <div class="stat-info">
+        <div class="stat-label"><span class="ko">NPU 장치</span><span class="en">NPU Device</span><span class="es">Dispositivo NPU</span><span class="ja">NPUデバイス</span><span class="zh-CN">NPU设备</span><span class="zh-TW">NPU裝置</span></div>
+        <div class="stat-value" id="stat-npu-value">--</div>
+      </div>
+    </div>
+    <div class="stat" id="stat-gstreamer">
+      <div class="stat-icon">🎞️</div>
+      <div class="stat-info">
+        <div class="stat-label">GStreamer</div>
+        <div class="stat-value" id="stat-gstreamer-value">--</div>
+      </div>
+    </div>
+    <div class="stat" id="stat-models">
+      <div class="stat-icon">📦</div>
+      <div class="stat-info">
+        <div class="stat-label"><span class="ko">모델</span><span class="en">Models</span><span class="es">Modelos</span><span class="ja">モデル</span><span class="zh-CN">模型</span><span class="zh-TW">模型</span></div>
+        <div class="stat-value" id="stat-models-value">-- / --</div>
+      </div>
+    </div>
+    <div class="stat" id="stat-videos">
+      <div class="stat-icon">🎥</div>
+      <div class="stat-info">
+        <div class="stat-label"><span class="ko">샘플 비디오</span><span class="en">Sample Videos</span><span class="es">Vídeos de muestra</span><span class="ja">サンプルビデオ</span><span class="zh-CN">示例视频</span><span class="zh-TW">範例影片</span></div>
+        <div class="stat-value" id="stat-videos-value">--</div>
+      </div>
+    </div>
+    <div class="stat" id="stat-build">
+      <div class="stat-icon">🔨</div>
+      <div class="stat-info">
+        <div class="stat-label"><span class="ko">플러그인 빌드</span><span class="en">Plugin Build</span><span class="es">Compilación de plugin</span><span class="ja">プラグインビルド</span><span class="zh-CN">插件构建</span><span class="zh-TW">外掛程式建置</span></div>
+        <div class="stat-value" id="stat-build-value">--</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pipeline Status + Quick Launch: 2 columns -->
+  <div class="grid2 mt16">
+    <div class="card">
+      <div class="card-header"><h2 style="margin:0"><span class="ko">파이프라인 상태</span><span class="en">Pipeline Status</span><span class="es">Estado de pipeline</span><span class="ja">パイプライン状態</span><span class="zh-CN">管道状态</span><span class="zh-TW">管線狀態</span></h2></div>
+      <div id="pipeline-overview">
+        <div class="pipeline-placeholder">
+          <span class="txt-dim"><span class="ko">활성 파이프라인 없음 — 데모를 실행하거나 파이프라인을 빌드하세요</span><span class="en">No active pipeline — run a demo or build a pipeline</span><span class="es">Sin pipeline activo — ejecute un demo o construya un pipeline</span><span class="ja">アクティブなパイプラインなし — デモを実行するかパイプラインを構築してください</span><span class="zh-CN">无活动管道 — 运行演示或构建管道</span><span class="zh-TW">無活動管線 — 執行示範或建置管線</span></span>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><h2 style="margin:0"><span class="ko">빠른 실행</span><span class="en">Quick Launch</span><span class="es">Lanzamiento rápido</span><span class="ja">クイック起動</span><span class="zh-CN">快速启动</span><span class="zh-TW">快速啟動</span></h2></div>
+      <div class="grid3" id="quick-launch-grid" style="gap:10px">
+        <div class="card quick-card" style="margin:0;padding:14px" onclick="DXStream.quickLaunchDemo(0)">
+          <div class="card-icon" style="font-size:20px">🚗</div>
+          <div class="card-body">
+            <div class="card-title" style="font-size:13px"><span class="ko">객체 감지</span><span class="en">Object Detection</span><span class="es">Detección de objetos</span><span class="ja">物体検出</span><span class="zh-CN">目标检测</span><span class="zh-TW">物件偵測</span></div>
+            <div class="card-desc txt-dim" style="font-size:10px">YOLOv26n</div>
+          </div>
+        </div>
+        <div class="card quick-card" style="margin:0;padding:14px" onclick="DXStream.quickLaunchDemo(4)">
+          <div class="card-icon" style="font-size:20px">🏃</div>
+          <div class="card-body">
+            <div class="card-title" style="font-size:13px"><span class="ko">포즈 추정</span><span class="en">Pose Estimation</span><span class="es">Estimación de pose</span><span class="ja">姿勢推定</span><span class="zh-CN">姿态估计</span><span class="zh-TW">姿態估計</span></div>
+            <div class="card-desc txt-dim" style="font-size:10px">YOLOv26n</div>
+          </div>
+        </div>
+        <div class="card quick-card" style="margin:0;padding:14px" onclick="DXStream.quickLaunchDemo(6)">
+          <div class="card-icon" style="font-size:20px">🖼️</div>
+          <div class="card-body">
+            <div class="card-title" style="font-size:13px"><span class="ko">의미론적 분할</span><span class="en">Segmentation</span><span class="es">Segmentación</span><span class="ja">セグメンテーション</span><span class="zh-CN">分割</span><span class="zh-TW">分割</span></div>
+            <div class="card-desc txt-dim" style="font-size:10px">YOLOv26n_Seg</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Performance Stats -->
+  <div class="mt16">
+    <div class="card">
+      <div class="card-header"><h2 style="margin:0"><span class="ko">성능 지표</span><span class="en">Performance Metrics</span><span class="es">Métricas de rendimiento</span><span class="ja">パフォーマンス指標</span><span class="zh-CN">性能指标</span><span class="zh-TW">效能指標</span></h2></div>
+      <div class="tbl-wrap">
+        <table class="tbl" id="perf-table">
+          <thead>
+            <tr>
+              <th><span class="ko">항목</span><span class="en">Metric</span><span class="es">Métrica</span><span class="ja">指標</span><span class="zh-CN">指标</span><span class="zh-TW">指標</span></th>
+              <th><span class="ko">현재</span><span class="en">Current</span><span class="es">Actual</span><span class="ja">現在</span><span class="zh-CN">当前</span><span class="zh-TW">目前</span></th>
+              <th><span class="ko">평균</span><span class="en">Average</span><span class="es">Promedio</span><span class="ja">平均</span><span class="zh-CN">平均</span><span class="zh-TW">平均</span></th>
+              <th><span class="ko">최대</span><span class="en">Max</span><span class="es">Máx</span><span class="ja">最大</span><span class="zh-CN">最大</span><span class="zh-TW">最大</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>FPS</td><td id="perf-fps-current">--</td><td id="perf-fps-avg">--</td><td id="perf-fps-max">--</td></tr>
+            <tr><td><span class="ko">추론 지연</span><span class="en">Inference Latency</span><span class="es">Latencia de inferencia</span><span class="ja">推論レイテンシ</span><span class="zh-CN">推理延迟</span><span class="zh-TW">推論延遲</span></td><td id="perf-latency-current">-- ms</td><td id="perf-latency-avg">-- ms</td><td id="perf-latency-max">-- ms</td></tr>
+            <tr><td><span class="ko">E2E 지연</span><span class="en">E2E Latency</span><span class="es">Latencia E2E</span><span class="ja">E2Eレイテンシ</span><span class="zh-CN">端到端延迟</span><span class="zh-TW">端到端延遲</span></td><td id="perf-e2e-current">-- ms</td><td id="perf-e2e-avg">-- ms</td><td id="perf-e2e-max">-- ms</td></tr>
+            <tr><td><span class="ko">NPU 사용률</span><span class="en">NPU Utilization</span><span class="es">Utilización NPU</span><span class="ja">NPU使用率</span><span class="zh-CN">NPU利用率</span><span class="zh-TW">NPU使用率</span></td><td id="perf-npu-current">--%</td><td id="perf-npu-avg">--%</td><td id="perf-npu-max">--%</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <!-- Sparkline Charts -->
+      <div class="grid2 mt16">
+        <div>
+          <div class="txt-xs txt-dim" style="margin-bottom:4px">FPS</div>
+          <div class="perf-chart-wrap"><canvas id="chart-fps"></canvas></div>
+        </div>
+        <div>
+          <div class="txt-xs txt-dim" style="margin-bottom:4px"><span class="ko">NPU 사용률</span><span class="en">NPU Utilization</span><span class="es">Utilización NPU</span><span class="ja">NPU使用率</span><span class="zh-CN">NPU利用率</span><span class="zh-TW">NPU使用率</span></div>
+          <div class="perf-chart-wrap"><canvas id="chart-npu"></canvas></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ PAGE: Demo ═══ -->
+<div class="page" id="page-demo">
+  <h1>▶️ <span class="accent"><span class="ko">데모 실행</span><span class="en">Demo Launcher</span><span class="es">Lanzador de demo</span><span class="ja">デモランチャー</span><span class="zh-CN">演示启动器</span><span class="zh-TW">示範啟動器</span></span></h1>
+  <p class="txt-dim txt-sm mb16"><span class="ko">데모를 선택하고 실시간으로 결과를 확인하세요.</span><span class="en">Select a demo and view results in real-time.</span><span class="es">Seleccione un demo y vea los resultados en tiempo real.</span><span class="ja">デモを選択してリアルタイムで結果を確認します。</span><span class="zh-CN">选择演示并实时查看结果。</span><span class="zh-TW">選擇示範並即時查看結果。</span></p>
+
+  <!-- Playback mode: WebRTC for local/same-LAN (low latency), MJPEG for remote access -->
+  <div class="playback-mode-bar" id="playback-mode-bar">
+    <span class="txt-xs txt-dim playback-mode-label"><span class="ko">재생 방식</span><span class="en">Playback</span><span class="es">Reproducción</span><span class="ja">再生方式</span><span class="zh-CN">播放方式</span><span class="zh-TW">播放方式</span></span>
+    <button class="btn btn-ghost btn-sm active" data-mode="local" onclick="DXStream.setPlaybackMode('local',this)"><span class="ko">🖥 로컬 (WebRTC)</span><span class="en">🖥 Local (WebRTC)</span><span class="es">🖥 Local (WebRTC)</span><span class="ja">🖥 ローカル (WebRTC)</span><span class="zh-CN">🖥 本地 (WebRTC)</span><span class="zh-TW">🖥 本機 (WebRTC)</span></button>
+    <button class="btn btn-ghost btn-sm" data-mode="remote" onclick="DXStream.setPlaybackMode('remote',this)"><span class="ko">🌐 원격 (MJPEG)</span><span class="en">🌐 Remote (MJPEG)</span><span class="es">🌐 Remoto (MJPEG)</span><span class="ja">🌐 リモート (MJPEG)</span><span class="zh-CN">🌐 远程 (MJPEG)</span><span class="zh-TW">🌐 遠端 (MJPEG)</span></button>
+    <span class="txt-xs txt-dim playback-mode-hint" id="playback-mode-hint-local">
+      <span class="ko">보드와 같은 PC·LAN에서 볼 때 (저지연, 재인코딩 없음)</span><span class="en">Viewing on the board's own PC / same LAN (low latency, no re-encode)</span><span class="es">Al ver en el PC de la placa / misma LAN (baja latencia, sin recodificar)</span><span class="ja">ボードと同じPC・LANで視聴する場合 (低遅延・再エンコードなし)</span><span class="zh-CN">在开发板本机 / 同一 LAN 观看时 (低延迟, 无重编码)</span><span class="zh-TW">在開發板本機 / 同一 LAN 觀看時 (低延遲, 無重編碼)</span>
+    </span>
+    <span class="txt-xs txt-dim playback-mode-hint" id="playback-mode-hint-remote" style="display:none">
+      <span class="ko">다른 PC에서 원격 접속(SSH 터널 등)할 때 (H264 over HTTP, 어디서나 재생)</span><span class="en">Remote access from another PC / SSH tunnel (H264 over HTTP, works anywhere)</span><span class="es">Acceso remoto desde otro PC / túnel SSH (H264 sobre HTTP, funciona en cualquier lugar)</span><span class="ja">別のPC・SSHトンネルからリモート接続する場合 (H264 over HTTP、どこでも再生)</span><span class="zh-CN">从其他 PC / SSH 隧道远程访问时 (H264 over HTTP, 随处播放)</span><span class="zh-TW">從其他 PC / SSH 通道遠端存取時 (H264 over HTTP, 隨處播放)</span>
+    </span>
+  </div>
+
+  <!-- Demo Filter -->
+  <div class="filter-bar" id="demo-filter-bar">
+    <button class="btn btn-ghost btn-sm active" data-cat="all" onclick="DXStream.filterDemos('all',this)"><span class="ko">전체</span><span class="en">All</span><span class="es">Todo</span><span class="ja">すべて</span><span class="zh-CN">全部</span><span class="zh-TW">全部</span></button>
+    <button class="btn btn-ghost btn-sm" data-cat="object_detection" onclick="DXStream.filterDemos('object_detection',this)"><span class="ko">감지</span><span class="en">Detection</span><span class="es">Detección</span><span class="ja">検出</span><span class="zh-CN">检测</span><span class="zh-TW">偵測</span></button>
+    <button class="btn btn-ghost btn-sm" data-cat="face_detection" onclick="DXStream.filterDemos('face_detection',this)"><span class="ko">얼굴</span><span class="en">Face</span><span class="es">Rostro</span><span class="ja">顔</span><span class="zh-CN">人脸</span><span class="zh-TW">人臉</span></button>
+    <button class="btn btn-ghost btn-sm" data-cat="segmentation" onclick="DXStream.filterDemos('segmentation',this)"><span class="ko">분할</span><span class="en">Segmentation</span><span class="es">Segmentación</span><span class="ja">セグメンテーション</span><span class="zh-CN">分割</span><span class="zh-TW">分割</span></button>
+    <button class="btn btn-ghost btn-sm" data-cat="pose_estimation" onclick="DXStream.filterDemos('pose_estimation',this)"><span class="ko">포즈</span><span class="en">Pose</span><span class="es">Pose</span><span class="ja">ポーズ</span><span class="zh-CN">姿态</span><span class="zh-TW">姿態</span></button>
+    <button class="btn btn-ghost btn-sm" data-cat="tracking" onclick="DXStream.filterDemos('tracking',this)"><span class="ko">추적</span><span class="en">Tracking</span><span class="es">Seguimiento</span><span class="ja">トラッキング</span><span class="zh-CN">追踪</span><span class="zh-TW">追蹤</span></button>
+    <button class="btn btn-ghost btn-sm" data-cat="multi_stream" onclick="DXStream.filterDemos('multi_stream',this)"><span class="ko">멀티</span><span class="en">Multi</span><span class="es">Multi</span><span class="ja">マルチ</span><span class="zh-CN">多路</span><span class="zh-TW">多路</span></button>
+    <button class="btn btn-ghost btn-sm" data-cat="secondary" onclick="DXStream.filterDemos('secondary',this)"><span class="ko">2차 추론</span><span class="en">Secondary</span><span class="es">Secundario</span><span class="ja">二次推論</span><span class="zh-CN">二次推理</span><span class="zh-TW">二次推論</span></button>
+  </div>
+
+  <!-- Demo Cards -->
+  <div class="card-grid" id="demo-grid"><!-- JS fills --></div>
+
+  <!-- Video Player -->
+  <div class="video-section" id="demo-video-section" style="display:none">
+    <div class="video-header">
+      <h2 class="section-title" id="demo-video-title">--</h2>
+      <div class="video-controls">
+        <button class="btn btn-ghost btn-sm" id="btn-demo-stop" onclick="DXStream.stopDemo()">
+          <span class="ko">⏹ 중지</span><span class="en">⏹ Stop</span><span class="es">⏹ Detener</span><span class="ja">⏹ 停止</span><span class="zh-CN">⏹ 停止</span><span class="zh-TW">⏹ 停止</span>
+        </button>
+        <button class="btn btn-ghost btn-sm" id="btn-demo-fullscreen" onclick="DXStream.toggleFullscreen()">
+          <span class="ko">⛶ 전체화면</span><span class="en">⛶ Fullscreen</span><span class="es">⛶ Pantalla completa</span><span class="ja">⛶ フルスクリーン</span><span class="zh-CN">⛶ 全屏</span><span class="zh-TW">⛶ 全螢幕</span>
+        </button>
+      </div>
+    </div>
+    <div class="video-container" id="demo-video" style="position:relative">
+      <video id="webrtc-video" autoplay playsinline muted></video>
+      <div id="webrtc-stats-overlay"></div>
+    </div>
+    <p class="demo-perf-note txt-xs txt-dim" style="margin:8px 2px 0;line-height:1.55">
+      <span class="ko">⚠ 브라우저 스트리밍(WebRTC/MJPEG)은 인코딩 오버헤드가 더해져 화면 속도가 실제 성능과 다를 수 있습니다. 진짜 성능은 터미널에서:</span><span class="en">⚠ Browser streaming (WebRTC/MJPEG) adds encoding overhead, so on-screen speed can differ from real performance. For true numbers, run in a terminal:</span><span class="ja">⚠ ブラウザ配信(WebRTC/MJPEG)はエンコードのオーバーヘッドが加わり、画面上の速度が実性能と異なる場合があります。実性能はターミナルで:</span><span class="zh-CN">⚠ 浏览器串流(WebRTC/MJPEG)会增加编码开销，画面速度可能与真实性能不同。真实性能请在终端运行:</span><span class="zh-TW">⚠ 瀏覽器串流(WebRTC/MJPEG)會增加編碼開銷，畫面速度可能與真實效能不同。真實效能請在終端執行:</span><span class="es">⚠ El streaming del navegador (WebRTC/MJPEG) añade sobrecarga de codificación; la velocidad en pantalla puede diferir del rendimiento real. Para cifras reales, ejecute en una terminal:</span>
+      <br><code id="demo-perf-cmd" style="font-size:11px;user-select:all;word-break:break-all">bash dx_stream/pipelines/&lt;run_*.sh&gt;</code>
+    </p>
+    <div class="video-info-bar">
+      <span class="txt-xs txt-dim" id="demo-pipeline-info">--</span>
+      <span class="txt-xs txt-dim" id="demo-resolution-info">--</span>
+      <span class="txt-xs txt-dim" id="demo-model-info">--</span>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══ PAGE: Pipeline Builder ═══ -->
+<div class="page" id="page-pipeline">
+  <h1>🔧 <span class="accent"><span class="ko">파이프라인 빌더</span><span class="en">Pipeline Builder</span><span class="es">Constructor de pipeline</span><span class="ja">パイプラインビルダー</span><span class="zh-CN">管道构建器</span><span class="zh-TW">管線建置器</span></span></h1>
+  <p class="txt-dim txt-sm mb16"><span class="ko">GStreamer 요소를 드래그 앤 드롭으로 파이프라인을 구성하세요.</span><span class="en">Drag and drop GStreamer elements to build your pipeline.</span><span class="es">Arrastre y suelte elementos GStreamer para construir su pipeline.</span><span class="ja">GStreamerエレメントをドラッグ＆ドロップしてパイプラインを構築します。</span><span class="zh-CN">拖放GStreamer元素来构建管道。</span><span class="zh-TW">拖放GStreamer元素來建置管線。</span></p>
+
+  <!-- Pipeline Toolbar -->
+  <div class="pipeline-actions">
+    <button class="btn btn-primary btn-sm" id="btn-pipeline-run" onclick="DXStream.runPipeline()">
+      <span class="ko">▶ 실행</span><span class="en">▶ Run</span><span class="es">▶ Ejecutar</span><span class="ja">▶ 実行</span><span class="zh-CN">▶ 运行</span><span class="zh-TW">▶ 執行</span>
+    </button>
+    <button class="btn btn-ghost btn-sm" id="btn-pipeline-stop" onclick="DXStream.stopPipeline()" disabled>
+      <span class="ko">⏹ 중지</span><span class="en">⏹ Stop</span><span class="es">⏹ Detener</span><span class="ja">⏹ 停止</span><span class="zh-CN">⏹ 停止</span><span class="zh-TW">⏹ 停止</span>
+    </button>
+    <button class="btn btn-ghost btn-sm" onclick="DXStream.exportPipeline()">
+      <span class="ko">📋 내보내기</span><span class="en">📋 Export</span><span class="es">📋 Exportar</span><span class="ja">📋 エクスポート</span><span class="zh-CN">📋 导出</span><span class="zh-TW">📋 匯出</span>
+    </button>
+    <button class="btn btn-ghost btn-sm" onclick="DXStream.importPipeline()">
+      <span class="ko">📂 가져오기</span><span class="en">📂 Import</span><span class="es">📂 Importar</span><span class="ja">📂 インポート</span><span class="zh-CN">📂 导入</span><span class="zh-TW">📂 匯入</span>
+    </button>
+    <select class="btn btn-ghost btn-sm" id="preset-select" onchange="if(this.value) DXStream.loadPreset(parseInt(this.value)); this.value='';" style="max-width:160px">
+      <option value="" data-i18n="📋 Preset">📋 Preset</option>
+      <option value="0" data-i18n="Demo 0 — Object Detection">Demo 0 — Object Detection</option>
+      <option value="1" data-i18n="Demo 1 — OD (PPU)">Demo 1 — OD (PPU)</option>
+      <option value="2" data-i18n="Demo 2 — Face Detection">Demo 2 — Face Detection</option>
+      <option value="3" data-i18n="Demo 3 — Face (PPU)">Demo 3 — Face (PPU)</option>
+      <option value="4" data-i18n="Demo 4 — Pose Estimation">Demo 4 — Pose Estimation</option>
+      <option value="5" data-i18n="Demo 5 — Pose (PPU)">Demo 5 — Pose (PPU)</option>
+      <option value="6" data-i18n="Demo 6 — Segmentation">Demo 6 — Segmentation</option>
+      <option value="7" data-i18n="Demo 7 — Multi-Object Tracking">Demo 7 — Multi-Object Tracking</option>
+      <option value="8" data-i18n="Demo 8 — Multi-Stream">Demo 8 — Multi-Stream</option>
+      <option value="9" data-i18n="Demo 9 — RTSP Stream">Demo 9 — RTSP Stream</option>
+      <option value="10" data-i18n="Demo 10 — Secondary Inference">Demo 10 — Secondary Inference</option>
+    </select>
+    <span class="txt-xs txt-dim" id="pipeline-element-count"><span class="ko">요소: 0</span><span class="en">Elements: 0</span><span class="es">Elementos: 0</span><span class="ja">エレメント: 0</span><span class="zh-CN">元素: 0</span><span class="zh-TW">元素: 0</span></span>
+  </div>
+
+  <!-- 3-Panel Layout -->
+  <div class="pipeline-builder">
+    <!-- Left: Element Palette -->
+    <div class="palette-panel" id="palette-panel">
+      <div class="palette-header"><span class="ko">요소</span><span class="en">Elements</span><span class="es">Elementos</span><span class="ja">エレメント</span><span class="zh-CN">元素</span><span class="zh-TW">元素</span></div>
+      <input class="palette-search" id="palette-search" data-i18n-placeholder="Search...">
+      <div id="palette-list"><!-- JS fills categories --></div>
+    </div>
+
+    <!-- Center: Canvas -->
+    <div class="canvas-container">
+      <div class="canvas-toolbar" id="canvas-toolbar">
+        <button class="btn btn-ghost btn-sm" onclick="DXStream.pipelineZoomIn()" title="Zoom In" data-i18n-title="Zoom In" data-i18n-title="Zoom In">➕</button>
+        <button class="btn btn-ghost btn-sm" onclick="DXStream.pipelineZoomOut()" title="Zoom Out" data-i18n-title="Zoom Out" data-i18n-title="Zoom Out">➖</button>
+        <button class="btn btn-ghost btn-sm" onclick="DXStream.pipelineFitView()" title="Fit View" data-i18n-title="Fit View" data-i18n-title="Fit View">⊞</button>
+        <button class="btn btn-ghost btn-sm" onclick="DXStream.pipelineReset()" title="Reset" data-i18n-title="Reset" data-i18n-title="Reset">🔄</button>
+      </div>
+      <canvas class="pipeline-canvas" id="pipeline-canvas"></canvas>
+      <div class="canvas-minimap" id="canvas-minimap"></div>
+    </div>
+
+    <!-- Right: Property Panel -->
+    <div class="property-panel" id="property-panel">
+      <div class="prop-header"><span class="ko">속성</span><span class="en">Properties</span><span class="es">Propiedades</span><span class="ja">プロパティ</span><span class="zh-CN">属性</span><span class="zh-TW">屬性</span></div>
+      <div class="prop-empty"><span class="ko">노드를 선택하세요</span><span class="en">Select a node</span><span class="es">Seleccione un nodo</span><span class="ja">ノードを選択してください</span><span class="zh-CN">请选择节点</span><span class="zh-TW">請選擇節點</span></div>
+      <div id="prop-content"></div>
+    </div>
+  </div>
+
+  <!-- Pipeline Video Output -->
+  <div class="video-section" id="pipeline-video-section" style="display:none">
+    <div class="video-header">
+      <h2 class="section-title" id="pipeline-video-title">
+        <span class="ko">커스텀 파이프라인</span><span class="en">Custom Pipeline</span><span class="es">Pipeline personalizado</span><span class="ja">カスタムパイプライン</span><span class="zh-CN">自定义管道</span><span class="zh-TW">自訂管線</span>
+      </h2>
+      <div class="video-controls">
+        <button class="btn btn-ghost btn-sm" onclick="DXStream.stopPipeline()">
+          <span class="ko">⏹ 중지</span><span class="en">⏹ Stop</span><span class="es">⏹ Detener</span><span class="ja">⏹ 停止</span><span class="zh-CN">⏹ 停止</span><span class="zh-TW">⏹ 停止</span>
+        </button>
+      </div>
+    </div>
+    <div class="video-container" id="pipeline-video" style="position:relative">
+      <video id="pipeline-webrtc-video" autoplay playsinline muted></video>
+    </div>
+  </div>
+
+  <!-- Pipeline Text Output -->
+  <div class="pipeline-text-section">
+    <h3 class="section-title"><span class="ko">GStreamer 커맨드</span><span class="en">GStreamer Command</span><span class="es">Comando GStreamer</span><span class="ja">GStreamerコマンド</span><span class="zh-CN">GStreamer命令</span><span class="zh-TW">GStreamer命令</span></h3>
+    <pre class="log-output" id="pipeline-command-output"><span class="txt-dim">gst-launch-1.0 ...</span></pre>
+  </div>
+</div>
+
+<!-- ═══ PAGE: Models ═══ -->
+<div class="page" id="page-models">
+  <h1>📦 <span class="accent"><span class="ko">모델 카탈로그</span><span class="en">Model Catalog</span><span class="es">Catálogo de modelos</span><span class="ja">モデルカタログ</span><span class="zh-CN">模型目录</span><span class="zh-TW">模型目錄</span></span></h1>
+  <p class="txt-dim txt-sm mb16"><span class="ko">사용 가능한 모델을 확인하고 다운로드하세요.</span><span class="en">Browse available models and download them.</span><span class="es">Explore los modelos disponibles y descárguelos.</span><span class="ja">利用可能なモデルを確認してダウンロードします。</span><span class="zh-CN">浏览可用模型并下载。</span><span class="zh-TW">瀏覽可用模型並下載。</span></p>
+
+  <!-- Category Filter -->
+  <div class="filter-bar" id="models-filter-bar">
+    <button class="btn btn-ghost btn-sm active" data-cat="all" onclick="DXStream.filterModels('all')"><span class="ko">전체</span><span class="en">All</span><span class="es">Todo</span><span class="ja">すべて</span><span class="zh-CN">全部</span><span class="zh-TW">全部</span></button>
+    <button class="btn btn-ghost btn-sm" data-cat="object_detection" onclick="DXStream.filterModels('object_detection')"><span class="ko">객체 감지</span><span class="en">Object Detection</span><span class="es">Detección de objetos</span><span class="ja">物体検出</span><span class="zh-CN">目标检测</span><span class="zh-TW">物件偵測</span></button>
+    <button class="btn btn-ghost btn-sm" data-cat="classification" onclick="DXStream.filterModels('classification')"><span class="ko">분류</span><span class="en">Classification</span><span class="es">Clasificación</span><span class="ja">分類</span><span class="zh-CN">分类</span><span class="zh-TW">分類</span></button>
+    <button class="btn btn-ghost btn-sm" data-cat="segmentation" onclick="DXStream.filterModels('segmentation')"><span class="ko">분할</span><span class="en">Segmentation</span><span class="es">Segmentación</span><span class="ja">セグメンテーション</span><span class="zh-CN">分割</span><span class="zh-TW">分割</span></button>
+    <button class="btn btn-ghost btn-sm" data-cat="pose_estimation" onclick="DXStream.filterModels('pose_estimation')"><span class="ko">포즈 추정</span><span class="en">Pose Estimation</span><span class="es">Estimación de pose</span><span class="ja">姿勢推定</span><span class="zh-CN">姿态估计</span><span class="zh-TW">姿態估計</span></button>
+    <button class="btn btn-ghost btn-sm" data-cat="face_detection" onclick="DXStream.filterModels('face_detection')"><span class="ko">얼굴</span><span class="en">Face</span><span class="es">Rostro</span><span class="ja">顔</span><span class="zh-CN">人脸</span><span class="zh-TW">人臉</span></button>
+  </div>
+
+  <!-- Model Search -->
+  <input type="text" class="palette-search" id="models-search" style="margin-bottom:12px" data-i18n-placeholder="Search models...">
+
+  <!-- Model Cards -->
+  <div class="card-grid" id="models-grid"><!-- JS fills --></div>
+
+  <!-- Model Detail Modal -->
+  <dialog class="modal-overlay" id="model-detail-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="model-detail-title">--</h2>
+        <button class="btn btn-ghost btn-sm" onclick="DXStream.closeModelDetail()">✕</button>
+      </div>
+      <div class="modal-body" id="model-detail-body">
+        <div class="modal-tabs" id="model-detail-tabs">
+          <button class="modal-tab active" data-tab="detail"><span class="ko">상세</span><span class="en">Detail</span><span class="es">Detalle</span><span class="ja">詳細</span><span class="zh-CN">详细</span><span class="zh-TW">詳細</span></button>
+          <button class="modal-tab" data-tab="metadata"><span class="ko">메타데이터</span><span class="en">Metadata</span><span class="es">Metadatos</span><span class="ja">メタデータ</span><span class="zh-CN">元数据</span><span class="zh-TW">中繼資料</span></button>
+        </div>
+        <div id="model-tab-detail">
+          <div class="model-detail-grid">
+            <div class="model-detail-item">
+              <span class="txt-dim txt-xs"><span class="ko">카테고리</span><span class="en">Category</span><span class="es">Categoría</span><span class="ja">カテゴリ</span><span class="zh-CN">分类</span><span class="zh-TW">類別</span></span>
+              <span id="model-detail-category">--</span>
+            </div>
+            <div class="model-detail-item">
+              <span class="txt-dim txt-xs"><span class="ko">입력 크기</span><span class="en">Input Size</span><span class="es">Tamaño de entrada</span><span class="ja">入力サイズ</span><span class="zh-CN">输入尺寸</span><span class="zh-TW">輸入大小</span></span>
+              <span id="model-detail-input">--</span>
+            </div>
+            <div class="model-detail-item">
+              <span class="txt-dim txt-xs"><span class="ko">파일 크기</span><span class="en">File Size</span><span class="es">Tamaño de archivo</span><span class="ja">ファイルサイズ</span><span class="zh-CN">文件大小</span><span class="zh-TW">檔案大小</span></span>
+              <span id="model-detail-size">--</span>
+            </div>
+            <div class="model-detail-item">
+              <span class="txt-dim txt-xs"><span class="ko">상태</span><span class="en">Status</span><span class="es">Estado</span><span class="ja">ステータス</span><span class="zh-CN">状态</span><span class="zh-TW">狀態</span></span>
+              <span id="model-detail-status">--</span>
+            </div>
+          </div>
+          <pre class="log-output" id="model-detail-info" style="margin-top:12px"></pre>
+        </div>
+        <div id="model-tab-metadata" style="display:none">
+          <div id="model-metadata-content" class="metadata-viewer">
+            <div class="loading-placeholder"><span class="spin"></span></div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary btn-sm" id="model-detail-download-btn" onclick="DXStream.downloadModel()">
+          <span class="ko">📥 다운로드</span><span class="en">📥 Download</span><span class="es">📥 Descargar</span><span class="ja">📥 ダウンロード</span><span class="zh-CN">📥 下载</span><span class="zh-TW">📥 下載</span>
+        </button>
+      </div>
+    </div>
+  </dialog>
+</div>
+<div class="page" id="page-elements">
+  <h1>🧩 <span class="accent"><span class="ko">요소 레퍼런스</span><span class="en">Element Reference</span><span class="es">Referencia de elemento</span><span class="ja">エレメントリファレンス</span><span class="zh-CN">元素参考</span><span class="zh-TW">元素參考</span></span></h1>
+  <p class="txt-dim txt-sm mb16"><span class="ko">DX Stream GStreamer 요소의 역할과 속성을 확인하세요.</span><span class="en">Browse DX Stream GStreamer element roles and properties.</span><span class="es">Explore los roles y propiedades de elementos GStreamer de DX Stream.</span><span class="ja">DX Stream GStreamerエレメントの役割とプロパティを確認します。</span><span class="zh-CN">浏览DX Stream GStreamer元素的角色和属性。</span><span class="zh-TW">瀏覽DX Stream GStreamer元素的角色和屬性。</span></p>
+
+  <!-- Element Search -->
+  <input type="text" class="palette-search" id="elements-search" style="margin-bottom:12px" data-i18n-placeholder="Search...">
+
+  <!-- Category Filter -->
+  <div class="filter-bar" id="elements-filter-bar">
+    <button class="btn btn-ghost btn-sm active" data-cat="all" onclick="DXStream.filterElements('all',this)"><span class="ko">전체</span><span class="en">All</span><span class="es">Todo</span><span class="ja">すべて</span><span class="zh-CN">全部</span><span class="zh-TW">全部</span></button>
+    <button class="btn btn-ghost btn-sm" data-cat="preprocess" onclick="DXStream.filterElements('preprocess',this)"><span class="ko">전처리</span><span class="en">Preprocess</span><span class="es">Pre-procesamiento</span><span class="ja">前処理</span><span class="zh-CN">预处理</span><span class="zh-TW">前處理</span></button>
+    <button class="btn btn-ghost btn-sm" data-cat="inference" onclick="DXStream.filterElements('inference',this)"><span class="ko">추론</span><span class="en">Inference</span><span class="es">Inferencia</span><span class="ja">推論</span><span class="zh-CN">推理</span><span class="zh-TW">推論</span></button>
+    <button class="btn btn-ghost btn-sm" data-cat="postprocess" onclick="DXStream.filterElements('postprocess',this)"><span class="ko">후처리</span><span class="en">Postprocess</span><span class="es">Post-procesamiento</span><span class="ja">後処理</span><span class="zh-CN">后处理</span><span class="zh-TW">後處理</span></button>
+    <button class="btn btn-ghost btn-sm" data-cat="visualization" onclick="DXStream.filterElements('visualization',this)"><span class="ko">시각화</span><span class="en">Visualization</span><span class="es">Visualización</span><span class="ja">可視化</span><span class="zh-CN">可视化</span><span class="zh-TW">視覺化</span></button>
+    <button class="btn btn-ghost btn-sm" data-cat="tracking" onclick="DXStream.filterElements('tracking',this)"><span class="ko">추적</span><span class="en">Tracking</span><span class="es">Seguimiento</span><span class="ja">トラッキング</span><span class="zh-CN">追踪</span><span class="zh-TW">追蹤</span></button>
+    <button class="btn btn-ghost btn-sm" data-cat="messaging" onclick="DXStream.filterElements('messaging',this)"><span class="ko">메시징</span><span class="en">Messaging</span><span class="es">Mensajería</span><span class="ja">メッセージング</span><span class="zh-CN">消息传递</span><span class="zh-TW">訊息傳遞</span></button>
+    <button class="btn btn-ghost btn-sm" data-cat="source" onclick="DXStream.filterElements('source',this)"><span class="ko">소스</span><span class="en">Source</span><span class="es">Fuente</span><span class="ja">ソース</span><span class="zh-CN">源</span><span class="zh-TW">來源</span></button>
+    <button class="btn btn-ghost btn-sm" data-cat="output" onclick="DXStream.filterElements('output',this)"><span class="ko">출력</span><span class="en">Output</span><span class="es">Salida</span><span class="ja">出力</span><span class="zh-CN">输出</span><span class="zh-TW">輸出</span></button>
+    <button class="btn btn-ghost btn-sm" data-cat="utility" onclick="DXStream.filterElements('utility',this)"><span class="ko">유틸리티</span><span class="en">Utility</span><span class="es">Utilidad</span><span class="ja">ユーティリティ</span><span class="zh-CN">实用工具</span><span class="zh-TW">公用程式</span></button>
+  </div>
+
+  <!-- Element Cards Grid -->
+  <div class="element-grid" id="elements-grid"><!-- JS fills --></div>
+
+  <!-- Element Detail -->
+  <div class="element-detail-card" id="element-detail" style="display:none">
+    <div class="element-detail-header">
+      <h3 id="element-detail-name">--</h3>
+      <button class="btn btn-ghost btn-sm" onclick="DXStream.closeElementDetail()">✕</button>
+    </div>
+    <div class="element-detail-body">
+      <div class="element-detail-section">
+        <h4><span class="ko">설명</span><span class="en">Description</span><span class="es">Descripción</span><span class="ja">説明</span><span class="zh-CN">描述</span><span class="zh-TW">說明</span></h4>
+        <p id="element-detail-desc">--</p>
+      </div>
+      <div class="element-detail-section">
+        <h4><span class="ko">속성</span><span class="en">Properties</span><span class="es">Propiedades</span><span class="ja">プロパティ</span><span class="zh-CN">属性</span><span class="zh-TW">屬性</span></h4>
+        <div class="tbl-wrap">
+          <table class="tbl" id="element-detail-props-table">
+            <thead>
+              <tr>
+                <th><span class="ko">이름</span><span class="en">Name</span><span class="es">Nombre</span><span class="ja">名前</span><span class="zh-CN">名称</span><span class="zh-TW">名稱</span></th>
+                <th><span class="ko">타입</span><span class="en">Type</span><span class="es">Tipo</span><span class="ja">タイプ</span><span class="zh-CN">类型</span><span class="zh-TW">類型</span></th>
+                <th><span class="ko">기본값</span><span class="en">Default</span><span class="es">Por defecto</span><span class="ja">デフォルト</span><span class="zh-CN">默认值</span><span class="zh-TW">預設值</span></th>
+                <th><span class="ko">설명</span><span class="en">Description</span><span class="es">Descripción</span><span class="ja">説明</span><span class="zh-CN">描述</span><span class="zh-TW">說明</span></th>
+              </tr>
+            </thead>
+            <tbody id="element-detail-props-tbody"><!-- JS fills --></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="element-detail-section">
+        <h4><span class="ko">패드</span><span class="en">Pads</span><span class="es">Rellenos</span><span class="ja">パッド</span><span class="zh-CN">端口</span><span class="zh-TW">墊片</span></h4>
+        <div id="element-detail-pads"><!-- JS fills --></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ PAGE: Setup ═══ -->
+<div class="page" id="page-setup">
+  <h1>⚙️ <span class="accent"><span class="ko">설정 &amp; 설치</span><span class="en">Setup &amp; Install</span><span class="es">Configuración e instalación</span><span class="ja">セットアップ＆インストール</span><span class="zh-CN">设置和安装</span><span class="zh-TW">設定與安裝</span></span></h1>
+  <p class="txt-dim txt-sm mb16"><span class="ko">DX Stream 실행에 필요한 종속성을 설치하고 환경을 설정하세요.</span><span class="en">Install dependencies and configure the environment for DX Stream.</span><span class="es">Instale dependencias y configure el entorno para DX Stream.</span><span class="ja">DX Streamの依存関係をインストールし、環境を設定します。</span><span class="zh-CN">安装依赖项并为DX Stream配置环境。</span><span class="zh-TW">安裝相依套件並為DX Stream配置環境。</span></p>
+
+  <!-- System Info -->
+  <div class="setup-info-bar" id="setup-info-bar">
+    <div class="setup-info-item">
+      <span class="txt-dim txt-xs"><span class="ko">OS</span><span class="en">OS</span><span class="es">SO</span><span class="ja">OS</span><span class="zh-CN">操作系统</span><span class="zh-TW">作業系統</span></span>
+      <span id="setup-os-info">--</span>
+    </div>
+    <div class="setup-info-item">
+      <span class="txt-dim txt-xs"><span class="ko">GStreamer 버전</span><span class="en">GStreamer Version</span><span class="es">Versión de GStreamer</span><span class="ja">GStreamerバージョン</span><span class="zh-CN">GStreamer版本</span><span class="zh-TW">GStreamer版本</span></span>
+      <span id="setup-gst-version">--</span>
+    </div>
+    <div class="setup-info-item">
+      <span class="txt-dim txt-xs"><span class="ko">NPU 드라이버</span><span class="en">NPU Driver</span><span class="es">Controlador NPU</span><span class="ja">NPUドライバー</span><span class="zh-CN">NPU驱动</span><span class="zh-TW">NPU驅動程式</span></span>
+      <span id="setup-npu-driver">--</span>
+    </div>
+    <div class="setup-info-item">
+      <span class="txt-dim txt-xs"><span class="ko">Python</span><span class="en">Python</span><span class="es">Python</span><span class="ja">Python</span><span class="zh-CN">Python</span><span class="zh-TW">Python</span></span>
+      <span id="setup-python-version">--</span>
+    </div>
+  </div>
+
+  <div class="setup-toolbar" style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+    <button class="btn btn-accent" id="setup-run-all" onclick="DXStream.setupRunAll()">
+      ▶ <span class="ko">전체 실행</span><span class="en">Run All</span><span class="es">Ejecutar todo</span><span class="ja">全て実行</span><span class="zh-CN">全部执行</span><span class="zh-TW">全部執行</span>
+    </button>
+    <span id="setup-run-all-progress" class="txt-dim" style="display:none"></span>
+    <button class="btn btn-sm btn-danger" id="setup-stop-btn" onclick="DXStream.setupStop()" style="display:none">
+      ⏹ Stop
+    </button>
+  </div>
+
+  <!-- Setup Cards -->
+  <div class="setup-grid">
+    <!-- Build Tools & Libraries (module install.sh) -->
+    <div class="setup-card">
+      <div class="setup-card-header">
+        <div>
+          <div class="setup-card-title">① 🧰 <span class="ko">빌드 도구 & 라이브러리</span><span class="en">Build Tools &amp; Libraries</span><span class="es">Herramientas y librerías de compilación</span><span class="ja">ビルドツール &amp; ライブラリ</span><span class="zh-CN">构建工具和库</span><span class="zh-TW">建置工具與函式庫</span></div>
+          <div class="setup-card-desc"><span class="ko">빌드에 필요한 cmake·meson·GStreamer·OpenCV 등 설치</span><span class="en">Install cmake, meson, GStreamer, OpenCV and other build dependencies.</span><span class="es">Instale cmake, meson, GStreamer, OpenCV y otras dependencias de compilación.</span><span class="ja">cmake・meson・GStreamer・OpenCV などビルド依存関係をインストール</span><span class="zh-CN">安装cmake、meson、GStreamer、OpenCV等构建依赖</span><span class="zh-TW">安裝cmake、meson、GStreamer、OpenCV等建置相依套件</span> → <code style="font-size:10px">install.sh</code></div>
+        </div>
+        <span class="comp-status-badge cs-warn" id="setup-badge-stream-deps">⏳</span>
+      </div>
+      <div class="txt-xs txt-dim" id="setup-detail-stream-deps"></div>
+      <pre class="log-output" id="setup-log-stream-deps" style="display:none"></pre>
+      <div class="setup-card-actions">
+        <button class="btn btn-primary btn-sm" onclick="DXStream.runSetup('stream-deps')">
+          <span class="ko">🧰 설치</span><span class="en">🧰 Install</span><span class="es">🧰 Instalar</span><span class="ja">🧰 インストール</span><span class="zh-CN">🧰 安装</span><span class="zh-TW">🧰 安裝</span>
+        </button>
+        <button class="btn btn-ghost btn-sm" onclick="DXStream.clearLog('stream-deps')">
+          <span class="ko">🗑 로그 지우기</span><span class="en">🗑 Clear Log</span><span class="es">🗑 Limpiar registro</span><span class="ja">🗑 ログクリア</span><span class="zh-CN">🗑 清除日志</span><span class="zh-TW">🗑 清除日誌</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- DX-Runtime Dependencies -->
+    <div class="setup-card">
+      <div class="setup-card-header">
+        <div>
+          <div class="setup-card-title">② 🔧 <span class="ko">DX-Runtime 종속성</span><span class="en">DX-Runtime Dependencies</span><span class="es">Dependencias de DX-Runtime</span><span class="ja">DX-Runtimeの依存関係</span><span class="zh-CN">DX-Runtime依赖项</span><span class="zh-TW">DX-Runtime相依套件</span></div>
+          <div class="setup-card-desc"><span class="ko">NPU 런타임 패키지 설치 (dx_rt, dx_engine)</span><span class="en">Install NPU runtime packages (dx_rt, dx_engine)</span><span class="es">Instale paquetes del runtime NPU (dx_rt, dx_engine)</span><span class="ja">NPUランタイムパッケージのインストール (dx_rt, dx_engine)</span><span class="zh-CN">安装NPU运行时包 (dx_rt, dx_engine)</span><span class="zh-TW">安裝NPU執行時期套件 (dx_rt, dx_engine)</span></div>
+        </div>
+        <span class="comp-status-badge cs-warn" id="setup-badge-runtime">⏳</span>
+      </div>
+      <div class="txt-xs txt-dim" id="setup-detail-runtime"></div>
+      <pre class="log-output" id="setup-log-runtime" style="display:none"></pre>
+      <div class="setup-card-actions">
+        <button class="btn btn-primary btn-sm" onclick="DXStream.runSetup('runtime-deps')">
+          <span class="ko">🔧 설치</span><span class="en">🔧 Install</span><span class="es">🔧 Instalar</span><span class="ja">🔧 インストール</span><span class="zh-CN">🔧 安装</span><span class="zh-TW">🔧 安裝</span>
+        </button>
+        <button class="btn btn-ghost btn-sm" onclick="DXStream.clearLog('runtime')">
+          <span class="ko">🗑 로그 지우기</span><span class="en">🗑 Clear Log</span><span class="es">🗑 Limpiar registro</span><span class="ja">🗑 ログクリア</span><span class="zh-CN">🗑 清除日志</span><span class="zh-TW">🗑 清除日誌</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- NPU Driver -->
+    <div class="setup-card">
+      <div class="setup-card-header">
+        <div>
+          <div class="setup-card-title">③ 🔌 <span class="ko">NPU 리눅스 드라이버</span><span class="en">NPU Linux Driver</span><span class="es">Controlador Linux NPU</span><span class="ja">NPU Linuxドライバー</span><span class="zh-CN">NPU Linux驱动</span><span class="zh-TW">NPU Linux驅動程式</span></div>
+          <div class="setup-card-desc"><span class="ko">DEEPX NPU 커널 드라이버 상태</span><span class="en">DEEPX NPU kernel driver status</span><span class="es">Estado del controlador de kernel NPU DEEPX</span><span class="ja">DEEPX NPUカーネルドライバーの状態</span><span class="zh-CN">DEEPX NPU内核驱动状态</span><span class="zh-TW">DEEPX NPU核心驅動程式狀態</span></div>
+        </div>
+        <span class="comp-status-badge cs-warn" id="setup-badge-driver">⏳</span>
+      </div>
+      <div class="txt-xs txt-dim" id="setup-detail-driver"></div>
+      <pre class="log-output" id="setup-log-driver" style="display:none"></pre>
+      <div class="setup-card-actions">
+        <button class="btn btn-primary btn-sm" onclick="DXStream.runSetup('driver')">
+          <span class="ko">🔌 설치</span><span class="en">🔌 Install</span><span class="es">🔌 Instalar</span><span class="ja">🔌 インストール</span><span class="zh-CN">🔌 安装</span><span class="zh-TW">🔌 安裝</span>
+        </button>
+        <button class="btn btn-ghost btn-sm" onclick="DXStream.clearLog('driver')">
+          <span class="ko">🗑 로그 지우기</span><span class="en">🗑 Clear Log</span><span class="es">🗑 Limpiar registro</span><span class="ja">🗑 ログクリア</span><span class="zh-CN">🗑 清除日志</span><span class="zh-TW">🗑 清除日誌</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Build Card -->
+    <div class="setup-card">
+      <div class="setup-card-header">
+        <div>
+          <div class="setup-card-title">④ 🔨 <span class="ko">GStreamer 플러그인 빌드</span><span class="en">GStreamer Plugin Build</span><span class="es">Compilación de plugin GStreamer</span><span class="ja">GStreamerプラグインビルド</span><span class="zh-CN">GStreamer插件构建</span><span class="zh-TW">GStreamer外掛程式建置</span></div>
+          <div class="setup-card-desc"><span class="ko">NPU 추론 플러그인과 비디오 처리 플러그인을 빌드합니다.</span><span class="en">Build NPU inference and video processing plugins.</span><span class="es">Compile plugins de inferencia NPU y procesamiento de video.</span><span class="ja">NPU推論および映像処理プラグインをビルドします。</span><span class="zh-CN">构建NPU推理和视频处理插件。</span><span class="zh-TW">建置NPU推論和影片處理外掛程式。</span> → <code style="font-size:10px">build.sh</code></div>
+        </div>
+        <span class="comp-status-badge cs-warn" id="setup-badge-build">⏳</span>
+      </div>
+      <div class="setup-card-options">
+        <label class="setup-option">
+          <input type="checkbox" id="setup-opt-clean" checked>
+          <span><span class="ko">클린 빌드</span><span class="en">Clean Build</span><span class="es">Compilación limpia</span><span class="ja">クリーンビルド</span><span class="zh-CN">清理构建</span><span class="zh-TW">清除建置</span></span>
+        </label>
+        <label class="setup-option">
+          <input type="checkbox" id="setup-opt-debug">
+          <span><span class="ko">디버그 모드</span><span class="en">Debug Mode</span><span class="es">Modo de depuración</span><span class="ja">デバッグモード</span><span class="zh-CN">调试模式</span><span class="zh-TW">除錯模式</span></span>
+        </label>
+      </div>
+      <pre class="log-output" id="setup-log-build"></pre>
+      <div class="setup-card-actions">
+        <button class="btn btn-primary btn-sm" onclick="DXStream.runSetup('build')">
+          <span class="ko">🔨 빌드</span><span class="en">🔨 Build</span><span class="es">🔨 Compilar</span><span class="ja">🔨 ビルド</span><span class="zh-CN">🔨 构建</span><span class="zh-TW">🔨 建置</span>
+        </button>
+        <button class="btn btn-ghost btn-sm" onclick="DXStream.clearLog('build')">
+          <span class="ko">🗑 로그 지우기</span><span class="en">🗑 Clear Log</span><span class="es">🗑 Limpiar registro</span><span class="ja">🗑 ログクリア</span><span class="zh-CN">🗑 清除日志</span><span class="zh-TW">🗑 清除日誌</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Download Card -->
+    <div class="setup-card">
+      <div class="setup-card-header">
+        <div>
+          <div class="setup-card-title">⑤ 📥 <span class="ko">모델 &amp; 비디오 다운로드</span><span class="en">Model &amp; Video Download</span><span class="es">Descarga de modelo y vídeo</span><span class="ja">モデル＆ビデオダウンロード</span><span class="zh-CN">模型和视频下载</span><span class="zh-TW">模型與影片下載</span></div>
+          <div class="setup-card-desc"><span class="ko">추론에 필요한 모델 파일과 샘플 비디오를 다운로드합니다.</span><span class="en">Download model files and sample videos for inference.</span><span class="es">Descargue archivos de modelo y videos de ejemplo para inferencia.</span><span class="ja">推論に必要なモデルファイルとサンプルビデオをダウンロードします。</span><span class="zh-CN">下载推理所需的模型文件和示例视频。</span><span class="zh-TW">下載推論所需的模型檔案和範例影片。</span> → <code style="font-size:10px">setup.sh</code></div>
+        </div>
+        <span class="comp-status-badge cs-warn" id="setup-badge-download">⏳</span>
+      </div>
+      <div class="setup-card-options">
+        <span class="txt-xs txt-dim">
+          <span class="ko">dev 런타임은 모델과 비디오를 함께 설정합니다.</span>
+          <span class="en">The dev runtime sets up models and videos together.</span>
+          <span class="es">El runtime dev configura modelos y vídeos juntos.</span>
+          <span class="ja">devランタイムはモデルとビデオをまとめて設定します。</span>
+          <span class="zh-CN">dev 运行时会一起设置模型和视频。</span>
+          <span class="zh-TW">dev 執行時期會一起設定模型與影片。</span>
+        </span>
+      </div>
+      <div id="setup-download-progress" class="progress-bar" style="display:none">
+        <div class="progress-fill" id="setup-download-fill" style="width:0%;height:4px;background:var(--accent);border-radius:2px;transition:width 0.3s"></div>
+        <span class="progress-text" id="setup-download-text" style="font-size:11px;color:var(--text-3)">0%</span>
+      </div>
+      <pre class="log-output" id="setup-log-download"></pre>
+      <div class="setup-card-actions">
+        <button class="btn btn-primary btn-sm" onclick="DXStream.runSetup('download-models')">
+          <span class="ko">📥 다운로드</span><span class="en">📥 Download</span><span class="es">📥 Descargar</span><span class="ja">📥 ダウンロード</span><span class="zh-CN">📥 下载</span><span class="zh-TW">📥 下載</span>
+        </button>
+        <button class="btn btn-ghost btn-sm" onclick="DXStream.clearLog('download')">
+          <span class="ko">🗑 로그 지우기</span><span class="en">🗑 Clear Log</span><span class="es">🗑 Limpiar registro</span><span class="ja">🗑 ログクリア</span><span class="zh-CN">🗑 清除日志</span><span class="zh-TW">🗑 清除日誌</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- WebRTC Dependencies Card -->
+    <div class="setup-card">
+      <div class="setup-card-header">
+        <div>
+          <div class="setup-card-title">⑥ 🌐 <span class="ko">WebRTC 의존성</span><span class="en">WebRTC Dependencies</span><span class="es">Dependencias de WebRTC</span><span class="ja">WebRTC依存関係</span><span class="zh-CN">WebRTC依赖项</span><span class="zh-TW">WebRTC相依套件</span></div>
+          <div class="setup-card-desc"><span class="ko">브라우저 시각화에 필요한 GStreamer WebRTC/ICE 패키지를 설치합니다.</span><span class="en">Install GStreamer WebRTC/ICE packages for browser visualization.</span><span class="es">Instale paquetes GStreamer WebRTC/ICE para visualización en el navegador.</span><span class="ja">ブラウザ可視化に必要なGStreamer WebRTC/ICEパッケージをインストールします。</span><span class="zh-CN">安装浏览器可视化所需的GStreamer WebRTC/ICE包。</span><span class="zh-TW">安裝瀏覽器視覺化所需的GStreamer WebRTC/ICE套件。</span></div>
+        </div>
+        <span class="comp-status-badge cs-warn" id="setup-badge-webrtc-deps">⏳</span>
+      </div>
+      <pre class="log-output" id="setup-log-webrtc-deps"></pre>
+      <div class="setup-card-actions">
+        <button class="btn btn-primary btn-sm" onclick="DXStream.runSetup('webrtc-deps')">
+          <span class="ko">🌐 설치</span><span class="en">🌐 Install</span><span class="es">🌐 Instalar</span><span class="ja">🌐 インストール</span><span class="zh-CN">🌐 安装</span><span class="zh-TW">🌐 安裝</span>
+        </button>
+        <button class="btn btn-ghost btn-sm" onclick="DXStream.clearLog('webrtc-deps')">
+          <span class="ko">🗑 로그 지우기</span><span class="en">🗑 Clear Log</span><span class="es">🗑 Limpiar registro</span><span class="ja">🗑 ログクリア</span><span class="zh-CN">🗑 清除日志</span><span class="zh-TW">🗑 清除日誌</span>
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Environment Check -->
+  <h2 class="section-title"><span class="ko">환경 점검</span><span class="en">Environment Check</span><span class="es">Verificación del entorno</span><span class="ja">環境チェック</span><span class="zh-CN">环境检查</span><span class="zh-TW">環境檢查</span></h2>
+  <div class="tbl-wrap">
+    <table class="tbl" id="setup-env-table">
+      <thead>
+        <tr>
+          <th><span class="ko">항목</span><span class="en">Item</span><span class="es">Elemento</span><span class="ja">項目</span><span class="zh-CN">项目</span><span class="zh-TW">項目</span></th>
+          <th><span class="ko">상태</span><span class="en">Status</span><span class="es">Estado</span><span class="ja">ステータス</span><span class="zh-CN">状态</span><span class="zh-TW">狀態</span></th>
+          <th><span class="ko">세부사항</span><span class="en">Details</span><span class="es">Detalles</span><span class="ja">詳細</span><span class="zh-CN">详情</span><span class="zh-TW">詳情</span></th>
+        </tr>
+      </thead>
+      <tbody id="setup-env-tbody">
+        <tr>
+          <td>GStreamer</td>
+          <td><span class="comp-status-badge cs-warn" id="env-gst-status">⏳</span></td>
+          <td id="env-gst-detail">--</td>
+        </tr>
+        <tr>
+          <td>NPU Runtime</td>
+          <td><span class="comp-status-badge cs-warn" id="env-npu-status">⏳</span></td>
+          <td id="env-npu-detail">--</td>
+        </tr>
+        <tr>
+          <td><span class="ko">커스텀 플러그인</span><span class="en">Custom Plugins</span><span class="es">Plugins personalizados</span><span class="ja">カスタムプラグイン</span><span class="zh-CN">自定义插件</span><span class="zh-TW">自訂外掛程式</span></td>
+          <td><span class="comp-status-badge cs-warn" id="env-plugin-status">⏳</span></td>
+          <td id="env-plugin-detail">--</td>
+        </tr>
+        <tr>
+          <td><span class="ko">모델 파일</span><span class="en">Model Files</span><span class="es">Archivos de modelo</span><span class="ja">モデルファイル</span><span class="zh-CN">模型文件</span><span class="zh-TW">模型檔案</span></td>
+          <td><span class="comp-status-badge cs-warn" id="env-model-status">⏳</span></td>
+          <td id="env-model-detail">--</td>
+        </tr>
+        <tr>
+          <td><span class="ko">샘플 비디오</span><span class="en">Sample Videos</span><span class="es">Vídeos de muestra</span><span class="ja">サンプルビデオ</span><span class="zh-CN">示例视频</span><span class="zh-TW">範例影片</span></td>
+          <td><span class="comp-status-badge cs-warn" id="env-video-status">⏳</span></td>
+          <td id="env-video-detail">--</td>
+        </tr>
+        <tr>
+          <td>WebRTC</td>
+          <td><span class="comp-status-badge cs-warn" id="env-webrtc-status">⏳</span></td>
+          <td id="env-webrtc-detail">--</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <button class="btn btn-ghost btn-sm" onclick="DXStream.checkEnvironment()" style="margin-top:8px">
+    <span class="ko">🔍 환경 재점검</span><span class="en">🔍 Re-check Environment</span><span class="es">🔍 Verificar entorno nuevamente</span><span class="ja">🔍 環境を再確認</span><span class="zh-CN">🔍 重新检查环境</span><span class="zh-TW">🔍 重新檢查環境</span>
+  </button>
+
+  <!-- Deep Diagnostics -->
+  <div class="card mt16">
+    <div class="card-header" style="display:flex;align-items:center;justify-content:space-between">
+      <h2>🔍 <span class="ko">심층 진단</span><span class="en">Deep Diagnostics</span><span class="es">Diagnóstico profundo</span><span class="ja">ディープ診断</span><span class="zh-CN">深度诊断</span><span class="zh-TW">深度診斷</span></h2>
+      <button class="btn btn-sm" id="stream-diag-run-btn" onclick="DXStream.runDiagnostics()">
+        ▶ <span class="ko">진단 실행</span><span class="en">Run</span><span class="es">Ejecutar</span><span class="ja">実行</span><span class="zh-CN">运行</span><span class="zh-TW">執行</span>
+      </button>
+    </div>
+    <div id="stream-diag-summary" style="display:none"></div>
+    <div id="stream-diag-results" class="diag-grid"></div>
+  </div>
+</div>
+
+<!-- ═══ PAGE: Custom Library ═══ -->
+<div class="page" id="page-custom">
+  <h1>🔩 <span class="accent"><span class="ko">커스텀 후처리 라이브러리</span><span class="en">Custom Postprocess Libraries</span><span class="es">Bibliotecas de post-procesamiento personalizadas</span><span class="ja">カスタム後処理ライブラリ</span><span class="zh-CN">自定义后处理库</span><span class="zh-TW">自訂後處理函式庫</span></span></h1>
+  <div class="grid2 mt16">
+    <div>
+      <h4><span class="ko">기존 라이브러리</span><span class="en">Existing Libraries</span><span class="es">Bibliotecas existentes</span><span class="ja">既存のライブラリ</span><span class="zh-CN">现有库</span><span class="zh-TW">現有函式庫</span></h4>
+      <div id="custom-lib-grid" class="card-grid"><!-- JS fills --></div>
+    </div>
+    <div>
+      <h4><span class="ko">새 라이브러리 업로드</span><span class="en">Upload New Library</span><span class="es">Subir nueva biblioteca</span><span class="ja">新しいライブラリをアップロード</span><span class="zh-CN">上传新库</span><span class="zh-TW">上傳新函式庫</span></h4>
+      <div class="card">
+        <label><span class="ko">라이브러리 이름</span><span class="en">Library Name</span><span class="es">Nombre de biblioteca</span><span class="ja">ライブラリ名</span><span class="zh-CN">库名称</span><span class="zh-TW">函式庫名稱</span></label>
+        <input type="text" id="custom-lib-name" class="input" data-i18n-placeholder="my_postprocess">
+        <label class="mt8"><span class="ko">파일 선택 (C소스 + meson.build)</span><span class="en">Select Files (C source + meson.build)</span><span class="es">Seleccionar archivos (fuente C + meson.build)</span><span class="ja">ファイル選択 (Cソース + meson.build)</span><span class="zh-CN">选择文件 (C源码 + meson.build)</span><span class="zh-TW">選擇檔案 (C原始碼 + meson.build)</span></label>
+        <input type="file" id="custom-lib-files" multiple class="input">
+        <button class="btn btn-accent mt8" onclick="DXStream.custom.upload()">
+          <span class="ko">업로드</span><span class="en">Upload</span><span class="es">Subir</span><span class="ja">アップロード</span><span class="zh-CN">上传</span><span class="zh-TW">上傳</span>
+        </button>
+      </div>
+      <div class="card mt8" id="custom-build-log-card" style="display:none">
+        <h4><span class="ko">빌드 로그</span><span class="en">Build Log</span><span class="es">Registro de compilación</span><span class="ja">ビルドログ</span><span class="zh-CN">构建日志</span><span class="zh-TW">建置日誌</span></h4>
+        <pre id="custom-build-log" class="metadata-raw"></pre>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ PAGE: Reference Docs v2.0 ═══ -->
+<div class="page" id="page-reference">
+  <h1>📖 <span class="accent"><span class="ko">레퍼런스</span><span class="en">Reference</span><span class="es">Referencia</span><span class="ja">リファレンス</span><span class="zh-CN">参考指南</span><span class="zh-TW">參考指南</span></span></h1>
+  <p class="txt-dim txt-sm mb16"><span class="ko">DX Stream 기능별 상세 가이드 · 파라미터 · 워크플로우 · 팁을 한 곳에서 확인하세요.</span><span class="en">Detailed guides, parameters, workflows, and tips for each DX Stream feature — all in one place.</span><span class="es">Guías detalladas, parámetros, flujos de trabajo y consejos para cada característica de DX Stream — todo en un solo lugar.</span><span class="ja">DX Streamの機能別詳細ガイド、パラメータ、ワークフロー、ヒントを一か所で確認できます。</span><span class="zh-CN">在一个位置查看 DX Stream 各功能的详细指南、参数、工作流程和提示。</span><span class="zh-TW">在一處查看 DX Stream 各功能的詳細指南、參數、工作流程與提示。</span></p>
+  <div class="ref-layout" id="ref-layout">
+    <div class="ref-toolbar card">
+      <div class="ref-search-bar">
+        <div class="ref-search-wrap">
+          <span class="ref-search-icon">🔍</span>
+          <input class="ref-search" id="ref-search" type="text" data-i18n-placeholder="Search documentation...">
+        </div>
+      </div>
+      <div class="chip-bar" id="ref-filter-bar"></div>
+    </div>
+    <div class="ref-grid" id="ref-content"></div>
+  </div>
+</div>
+
+</main>
+</div><!-- /content-wrap -->
+</div><!-- /app -->
+
+<!-- Toast Container -->
+<div class="toast-wrap" id="toast-container"></div>
+
+<!-- JS Modules -->
+<script src="/static/js/stream-i18n.js?m=dx_stream"></script>
+<script src="/static/shared/i18n.js"></script>
+<script src="/static/js/stream-lang-refresh.js?m=dx_stream"></script>
+<script src="/static/shared/brand.js"></script>
+<script>
+DXBrand.mount({
+  target: '#dxBrand',
+  name: 'Stream',
+  subtitle: {
+    ko: '실시간 비전 AI',
+    en: 'Real-time Vision AI',
+    es: 'IA de visión en tiempo real',
+    ja: 'リアルタイムビジョンAI',
+    'zh-CN': '实时视觉AI',
+    'zh-TW': '即時視覺AI'
+  },
+  accent: 'var(--accent)',
+  homeHref: '/'
+});
+</script>
+<script src="/static/shared/toolbar.js"></script>
+<script>DXToolbar.init({ container: '.toolbar', onSettings: function(){ DXStream.nav('setup'); } });</script>
+<script src="/static/js/stream-app.js?m=dx_stream"></script>
+<script src="/static/js/webrtc-client.js?m=dx_stream"></script>
+<!-- ═══ 공용 입력 모달 ═══ -->
+<dialog class="modal-overlay confirm-modal" id="dx-input-modal">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-header">
+      <h3 id="dx-input-modal-title">--</h3>
+      <button class="modal-x" onclick="DXStream._inputModalCancel()">✕</button>
+    </div>
+    <div class="modal-body">
+      <p id="dx-input-modal-desc" style="margin-bottom:12px"></p>
+      <input type="text" id="dx-input-modal-field" class="palette-search" style="width:100%;box-sizing:border-box" autocomplete="off">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost btn-sm" onclick="DXStream._inputModalCancel()">
+        <span class="ko">취소</span><span class="en">Cancel</span><span class="es">Cancelar</span><span class="ja">キャンセル</span><span class="zh-CN">取消</span><span class="zh-TW">取消</span>
+      </button>
+      <button class="btn btn-primary btn-sm" id="dx-input-modal-ok" onclick="DXStream._inputModalOk()">
+        <span class="ko">확인</span><span class="en">OK</span><span class="es">Aceptar</span><span class="ja">OK</span><span class="zh-CN">确定</span><span class="zh-TW">確定</span>
+      </button>
+    </div>
+  </div>
+</dialog>
+<script>
+(function() {
+    'use strict';
+    var _resolve = null;
+
+    /**
+     * 커스텀 입력 모달 — prompt() 대체
+     * @param {string} title  모달 타이틀
+     * @param {Object} opts   { description, placeholder, type, okLabel }
+     * @returns {Promise<string|null>}  입력값 또는 취소 시 null
+     */
+    DXStream.inputModal = function(title, opts) {
+        opts = opts || {};
+        var dlg = DXStream.$('dx-input-modal');
+        var titleEl = DXStream.$('dx-input-modal-title');
+        var descEl = DXStream.$('dx-input-modal-desc');
+        var field = DXStream.$('dx-input-modal-field');
+
+        if (titleEl) titleEl.innerHTML = title;
+        if (descEl) {
+            descEl.innerHTML = opts.description || '';
+            descEl.style.display = opts.description ? '' : 'none';
+        }
+        if (field) {
+            field.type = opts.type || 'text';
+            var placeholder = opts.placeholder || '';
+            if (placeholder.indexOf('<span') >= 0) {
+                var tmp = document.createElement('div');
+                tmp.innerHTML = placeholder;
+                var lang = (DXStream.S && DXStream.S.lang) || 'ko';
+                var span = tmp.querySelector('.' + lang) || tmp.querySelector('.en');
+                placeholder = span ? span.textContent : tmp.textContent;
+            }
+            field.placeholder = placeholder;
+            field.value = opts.defaultValue || '';
+        }
+
+        return new Promise(function(resolve) {
+            _resolve = resolve;
+            if (dlg && dlg.showModal) dlg.showModal();
+            if (field) field.focus();
+        });
+    };
+
+    DXStream._inputModalOk = function() {
+        var field = DXStream.$('dx-input-modal-field');
+        var val = field ? field.value : '';
+        var dlg = DXStream.$('dx-input-modal');
+        if (field) field.value = '';
+        if (dlg && dlg.close) dlg.close();
+        if (_resolve) { _resolve(val || null); _resolve = null; }
+    };
+
+    DXStream._inputModalCancel = function() {
+        var field = DXStream.$('dx-input-modal-field');
+        var dlg = DXStream.$('dx-input-modal');
+        if (field) field.value = '';
+        if (dlg && dlg.close) dlg.close();
+        if (_resolve) { _resolve(null); _resolve = null; }
+    };
+
+    // Enter키로 확인, Escape는 dialog가 자동 처리
+    document.addEventListener('keydown', function(e) {
+        var dlg = DXStream.$('dx-input-modal');
+        if (dlg && dlg.open && e.key === 'Enter') {
+            e.preventDefault();
+            DXStream._inputModalOk();
+        }
+    });
+})();
+</script>
+
+<script src="/static/js/stream-dashboard.js?m=dx_stream"></script>
+<script src="/static/js/stream-demo.js?m=dx_stream"></script>
+<script src="/static/js/stream-pipeline-state.js?m=dx_stream"></script>
+<script src="/static/js/stream-pipeline-api.js?m=dx_stream"></script>
+<script src="/static/js/stream-pipeline-serialization.js?m=dx_stream"></script>
+<script src="/static/js/stream-pipeline-renderer.js?m=dx_stream"></script>
+<script src="/static/js/stream-pipeline.js?m=dx_stream"></script>
+<script src="/static/js/stream-models.js?m=dx_stream"></script>
+<script src="/static/js/stream-elements.js?m=dx_stream"></script>
+<script src="/static/js/stream-setup.js?m=dx_stream"></script>
+<script src="/static/shared/vendor/chart.umd.min.js"></script>
+<script src="/static/shared/dx-charts.js"></script>
+<script src="/static/js/stream-custom.js?m=dx_stream"></script>
+<script src="/static/js/stream-reference.js?m=dx_stream"></script>
+<script src="/static/shared/chat-widget.js"></script>
+<script>DXChat.init({ appName: 'dx_stream' });</script>
+<script src="/static/shared/tutorial-engine.js"></script>
+<script src="/static/shared/tutorial-init.js"></script>
+<script src="/static/js/tutorial.js?m=dx_stream"></script>
+</body>
+</html>
