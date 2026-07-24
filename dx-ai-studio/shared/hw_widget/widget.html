@@ -306,37 +306,22 @@
       .catch(function(){});
   }
 
-  /* ── SSE connection ── */
-  var _sse = null, _poll = null, _sseTimeout = null;
-  function startWidgetSSE() {
-    if (_sse) { _sse.close(); _sse = null; }
-    _sse = new EventSource('/dx_monitor/api/hw_stream');
-    _sseTimeout = setTimeout(function() {
-      if (_sse) { _sse.close(); _sse = null; }
-      _showStatus(true);
-      _startPoll();
-    }, 6000);
-    _sse.onmessage = function(ev) {
-      if (_sseTimeout) { clearTimeout(_sseTimeout); _sseTimeout = null; }
-      try { _update(JSON.parse(ev.data)); } catch(e){}
-    };
-    _sse.onerror = function() {
-      if (_sse) { _sse.close(); _sse = null; }
-      _showStatus(true);
-      _startPoll();
-      setTimeout(startWidgetSSE, 30000);
-    };
-  }
-  function _startPoll() {
-    if (_poll) return;
-    _poll = setInterval(function() {
-      fetch('/dx_monitor/api/hw_status').then(function(r){return r.json()})
-        .then(_update).catch(function(){});
-    }, 3000);
-  }
-  window.addEventListener('beforeunload', function() {
-    if (_sse) _sse.close();
-    if (_poll) clearInterval(_poll);
+  /* ── HW data receiver ──────────────────────────────────────────────────
+     This widget is injected into EVERY module page AND the launcher shell.
+     It must NOT open its own EventSource: kept-alive module iframes would each
+     hold a permanent /dx_monitor/api/hw_stream connection, and N of them
+     exhaust the browser's ~6-connections-per-origin limit (everything is
+     proxied through one origin), starving module navigation and health-checks.
+
+     Instead the launcher shell owns ONE EventSource and fans payloads out via
+     postMessage. Here we are a pure receiver. If no data arrives (shell stream
+     still connecting, or this page opened standalone), show the offline hint. ── */
+  var _waitTimer = setTimeout(function(){ _showStatus(true); }, 6000);
+  window.addEventListener('message', function(ev) {
+    var d = ev && ev.data;
+    if (!d || d.type !== 'dx-hw-data' || !d.payload) return;
+    if (_waitTimer) { clearTimeout(_waitTimer); _waitTimer = null; }
+    try { _update(d.payload); } catch (e) {}
   });
 
   /* ── Test hook (gated) ── */
@@ -347,6 +332,5 @@
   }
 
   _loadThresholds();
-  startWidgetSSE();
 })();
 </script>

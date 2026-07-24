@@ -42,6 +42,12 @@ SETUP_STEPS = {
         "label_ko": "DX-Runtime 종속성 설치",
         "label_en": "DX-Runtime Dependencies",
         "script": lambda: DX_STREAM_ROOT.parent / "install.sh",
+        # WITHOUT a target, dx-runtime/install.sh installs nothing (empty target list) yet still
+        # runs the uninstall phase and force-removes the shared venv-dx-runtime (defaults:
+        # SKIP_UNINSTALL=n, VENV_FORCE_REMOVE=y) — a harmful no-op that wipes the venv dx_app
+        # relies on. Pin --target=dx_rt so it actually installs the runtime, and
+        # --skip-uninstall --venv-reuse so the shared venv is preserved, not recreated.
+        "args": lambda: ["--target=dx_rt", "--skip-uninstall", "--venv-reuse"],
         "cwd": lambda: DX_STREAM_ROOT.parent,
         "needs_sudo": True,
     },

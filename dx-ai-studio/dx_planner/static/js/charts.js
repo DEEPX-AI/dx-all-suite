@@ -74,25 +74,14 @@ const BarChart = {
       ctx.textBaseline = 'middle';
       ctx.fillText(label, pad.left - 8, y + barH / 2);
 
-      // 바
+      // 바 (measured only — no theoretical/estimated bars)
       ctx.fillStyle = color;
-      if (r.boundaryFlag === 'theoretical') {
-        ctx.setLineDash([4, 3]);
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 2;
-        ctx.strokeRect(pad.left, y, bw, barH);
-        ctx.setLineDash([]);
-        ctx.globalAlpha = 0.3;
-        ctx.fillRect(pad.left, y, bw, barH);
-        ctx.globalAlpha = 1.0;
+      if (ctx.roundRect) {
+        ctx.beginPath();
+        ctx.roundRect(pad.left, y, bw, barH, 4);
+        ctx.fill();
       } else {
-        if (ctx.roundRect) {
-          ctx.beginPath();
-          ctx.roundRect(pad.left, y, bw, barH, 4);
-          ctx.fill();
-        } else {
-          ctx.fillRect(pad.left, y, bw, barH);
-        }
+        ctx.fillRect(pad.left, y, bw, barH);
       }
 
       // FPS 값
@@ -183,9 +172,8 @@ const GroupBarChart = {
 
     // 데이터 수집
     const data = sizes.map(sz => {
-      const modelName = 'yolo26' + sz;
       const bench = platform.benchmarks.find(
-        b => b.model === modelName && b.task === task && b.ort === ort
+        b => b.size === sz && b.task === task && b.ort === ort
       );
       return {
         size: sz,
@@ -309,14 +297,13 @@ const RadarChart = {
     function calcMetrics(pid) {
       const p = platforms.find(pl => pl.id === pid);
       if (!p) return null;
-      const modelName = 'yolo26' + inputs.size;
       const ort = inputs.ort !== undefined ? inputs.ort : true;
       const bench = p.benchmarks.find(
-        b => b.model === modelName && b.task === inputs.task && b.ort === ort
+        b => b.size === inputs.size && b.task === inputs.task && b.ort === ort
       );
       const fps = bench ? bench.throughput_fps : 0;
       const multiAll = p.multi_stream.filter(
-        m => m.model === modelName && m.task === inputs.task && m.ort === ort
+        m => m.size === inputs.size && m.task === inputs.task && m.ort === ort
       );
       const { maxChannels, boundaryFlag: bf } = RecommendEngine._calcMaxChannels(
         bench || { throughput_fps: 0 }, multiAll, inputs.targetFps

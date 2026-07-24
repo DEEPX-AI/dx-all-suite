@@ -26,6 +26,11 @@ RUNTIME_SELECTOR_ALLOWLIST = {
     "#dxt-mock-toast",
     "#gallery-lightbox",
     ".dxt-tutorial-pin",
+    # Run Demo (Task 11) — rendered by rundemo.js at runtime, not present in
+    # the static index.html template.
+    ".rundemo-group",
+    "#rundemo-block-0",
+    '#rundemo-block-0 button[onclick*="rundemoRun"]',
 }
 
 EXPECTED_SECTION_IDS = [
@@ -33,6 +38,7 @@ EXPECTED_SECTION_IDS = [
     "models",
     "run-single",
     "run-cont",
+    "rundemo",
     "bench",
     "compare",
     "modelzoo",
@@ -74,6 +80,12 @@ def _template_ids_and_classes(html: str) -> set[str]:
     return {f"#{i}" for i in ids} | classes
 
 
+def _template_onclick_values(html: str) -> set[str]:
+    """All onclick attribute strings in the template — lets attribute-substring
+    selectors like button[onclick*="dx-app-deps"] resolve against real handlers."""
+    return set(re.findall(r'onclick="([^"]+)"', html))
+
+
 def _tutorial_targets(source: str) -> set[str]:
     """Extract target and targetAll values from tutorial step definitions."""
     single = re.findall(r"target(?:All)?:\s*'([^']+)'", source)
@@ -98,10 +110,17 @@ def test_tutorial_targets_include_target_all_selectors():
     }
 
 
-def _unresolved_target_tokens(target: str, selectors: set[str]) -> list[str]:
+def _unresolved_target_tokens(target: str, selectors: set[str], onclicks=frozenset()) -> list[str]:
     """Return unresolvable tokens from a CSS selector target."""
     if target in selectors:
         return []
+    # Attribute-substring selector, e.g. button[onclick*="dx-app-deps"] — robust,
+    # order-independent targeting of a handler button. Resolves if the substring
+    # appears in some onclick attribute in the template.
+    attr = re.search(r'\[onclick\*=["\']([^"\']+)["\']\]', target)
+    if attr:
+        needle = attr.group(1)
+        return [] if any(needle in oc for oc in onclicks) else [target]
     tokens = re.findall(r"#[A-Za-z0-9_-]+|\.[A-Za-z0-9_-]+", target)
     if not tokens:
         return [target]
@@ -126,11 +145,12 @@ def test_app_tutorial_targets_exist_or_are_runtime_injected():
     source = read_text(JS_DIR / "tutorial.js")
     template_tokens = _template_ids_and_classes(html)
     all_known = template_tokens | RUNTIME_SELECTOR_ALLOWLIST
+    onclicks = _template_onclick_values(html)
     targets = _tutorial_targets(source)
     unresolved = {
         target: tokens
         for target in sorted(targets)
-        if (tokens := _unresolved_target_tokens(target, all_known))
+        if (tokens := _unresolved_target_tokens(target, all_known, onclicks))
     }
     assert not unresolved, f"targets with missing tokens: {unresolved}"
 

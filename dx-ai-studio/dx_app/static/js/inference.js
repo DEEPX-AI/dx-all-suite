@@ -397,7 +397,7 @@ async function doRun(){
   _runInFlight=true;
   if(runBtn)runBtn.disabled=true;
   try{
-  S.running=true;$('r-result').innerHTML='<div class="spin"></div><p class="txt-dim mt8">'+T('Running inference…')+'</p>';
+  S.running=true;window.renderInferenceSpinner($('r-result'));
   const body={model_name:model,category:m.category,model_file:m.model_file,
     lang:$('r-lang').value,variant:$('r-mode').value,input_type:inputType,
     device_id:parseInt($('r-dev').value)||0,
@@ -413,10 +413,13 @@ async function doRun(){
     if(rawErr.indexOf('dx_engine')!==-1||rawErr.indexOf('engine')!==-1)hint='<br><span class="txt-dim">'+T('Check that dx_engine is running. Real inference is not available in Mock mode.')+'</span>';
     else if(rawErr.indexOf('not found')!==-1||rawErr.indexOf('No such')!==-1)hint='<br><span class="txt-dim">'+T('Check the model file or executable path.')+'</span>';
     else if(rawErr.indexOf('timeout')!==-1||rawErr.indexOf('Timeout')!==-1)hint='<br><span class="txt-dim">'+T('Inference timed out. Try again with a smaller input.')+'</span>';
-    $('r-result').innerHTML='<p style="color:var(--error)">'+T('❌ Error: ')+esc(errMsg)+hint+'</p>';
+    window.renderInferenceError($('r-result'),errMsg,hint);
     toast(errMsg,'err');return;
   }
-  renderRunResult(res);
+  res._isVideo=!isImg;
+  res._cat=m.category;
+  res._beforeSrc=S.uploadedImage?S.uploadedImage:(S.selectedImage?'/file/'+S.selectedImage:null);
+  window.renderInferenceResult($('r-result'),res);
   if(typeof refreshOutputsIfVisible === 'function')refreshOutputsIfVisible();
   }finally{
     S.running=false;
@@ -425,10 +428,19 @@ async function doRun(){
   }
 }
 
-function renderRunResult(r){
+window.renderInferenceSpinner=function(el){
+  el.innerHTML='<div class="spin"></div><p class="txt-dim mt8">'+T('Running inference…')+'</p>';
+};
+
+window.renderInferenceError=function(el,msg,hintHtml){
+  el.innerHTML='<p style="color:var(--error)">'+T('❌ Error: ')+esc(msg)+(hintHtml||'')+'</p>';
+};
+
+window.renderInferenceResult=function(el,res){
+  var r=res;
   var h='';
-  var isVideo=!$('r-input-img').checked;
-  var cat=$('r-cat').value;
+  var isVideo=!!r._isVideo;
+  var cat=r._cat||'';
   var VIS_HINTS={
     classification:T('📊 Classification Result: overlays Top-K predicted classes and probabilities as text on the image.'),
     attribute_recognition:T('🏷️ Attribute Result: overlays predicted person/face attributes and confidence scores on the image.'),
@@ -452,7 +464,7 @@ function renderRunResult(r){
   // CMP slider applies when input is an image and result_image is present (not pair-compare layouts)
   // "Before" image is either a picked sample (served via /file/) or an uploaded
   // data URL — support both so the compare slider also works for uploads.
-  var beforeSrc=S.uploadedImage?S.uploadedImage:(S.selectedImage?'/file/'+S.selectedImage:null);
+  var beforeSrc=r._beforeSrc||null;
   if(r.result_image&&!isVideo&&beforeSrc&&pairCats.indexOf(cat)===-1){
     var cmpId='cmp-'+Date.now();
     h+='<div class="cmp-wrap mb8" id="'+cmpId+'">';
@@ -488,8 +500,8 @@ function renderRunResult(r){
     h+='<div style="background:rgba(248,81,73,.08);border:1px solid rgba(248,81,73,.2);border-radius:8px;padding:8px 12px;margin-top:10px;font-size:11px;color:var(--error)">'+T('⚠️ Inference exited abnormally (exit code: ')+r.exit_code+T('). Check Full Output for details.')+'</div>';
   }
   if(r.output){h+='<details class="mt8"><summary class="clickable txt-dim">'+T('📋 Full Output')+'</summary><div class="code mt8">'+esc(r.output)+'</div></details>'}
-  $('r-result').innerHTML=h;
-}
+  el.innerHTML=h;
+};
 
 function previewImg(src){
   $('img-preview').src=src;

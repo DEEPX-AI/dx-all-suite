@@ -43,10 +43,6 @@ const CardRenderer = {
     const labels = {
       measured: { ko: '실측', en: 'Measured', ja: '実測', 'zh-CN': '实测', 'zh-TW': '實測', es: 'Medido' },
       '+': { ko: '실측+', en: 'Measured+', ja: '実測+', 'zh-CN': '实测+', 'zh-TW': '實測+', es: 'Medido+' },
-      interpolated: { ko: '보간', en: 'Interpolated', ja: '補間', 'zh-CN': '插值', 'zh-TW': '插值', es: 'Interpolado' },
-      theoretical: { ko: '이론', en: 'Theoretical', ja: '理論', 'zh-CN': '理论', 'zh-TW': '理論', es: 'Teórico' },
-      'host-limited': { ko: 'CPU한계', en: 'Host lim.', ja: 'CPU制限', 'zh-CN': 'CPU限', 'zh-TW': 'CPU限', es: 'CPU' },
-      thermal: { ko: '스로틀', en: 'Throttled', ja: 'スロットル', 'zh-CN': '降频', 'zh-TW': '降頻', es: 'Límite' },
     };
     const key = flag || 'measured';
     const text = labels[key] || labels.measured;
@@ -63,12 +59,10 @@ const CardRenderer = {
   _buildCard(r, idx, inputs) {
     const pid = r.platform.id;
     const meets = r.meetsRequirement;
-    const theoretical = r.boundaryFlag === 'theoretical' || r.boundaryFlag === 'interpolated';
     const confidenceBadge = this._confidenceBadge(r.boundaryFlag);
 
     const card = document.createElement('div');
     card.className = 'rec-card ' + (meets ? 'card-meets' : 'card-insufficient') +
-      (theoretical ? ' card-theoretical' : '') +
       (idx === 0 ? ' rec-card--featured' : '');
     card.dataset.platformId = pid;
     card.dataset.index = idx;
@@ -85,7 +79,6 @@ const CardRenderer = {
       ? '<span class="badge badge-featured"><span class="ko">1순위</span><span class="en">Top pick</span><span class="ja">第1推奨</span><span class="zh-CN">首选</span><span class="zh-TW">首選</span><span class="es">#1</span></span>'
       : '';
 
-    const theoreticalPrefix = theoretical ? '⚠️ ' : '';
 
     const topoLine = typeof RecommendEngine !== 'undefined'
       ? RecommendEngine._topologyLabel(r.platform)
@@ -94,7 +87,7 @@ const CardRenderer = {
     card.innerHTML =
       '<div class="card-rank">' + this._rankBadge(idx) + '</div>' +
       '<div class="card-header">' +
-        '<h3>' + theoreticalPrefix + r.platform.npu.model + ' + ' + r.platform.host.name + '</h3>' +
+        '<h3>' + r.platform.npu.model + ' + ' + r.platform.host.name + '</h3>' +
         (topoLine ? '<p class="card-topology txt-dim txt-sm">' + this._escHtml(topoLine) + '</p>' : '') +
         '<div class="card-badges">' + featuredBadge + confidenceBadge + statusBadge + '</div>' +
       '</div>' +

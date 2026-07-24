@@ -90,6 +90,37 @@ function loadPersistedState() {
   }
 }
 
+// ── Start over: wipe the persisted browser state and return to the initial
+// wizard. The 3-panel workspace only reappears on load when a prior session was
+// saved (dxPlanner.state.v1, view.started) or the URL carries share params — so
+// clearing both, resetting inputs to defaults, and forcing the 'empty' state
+// brings back the first-run wizard without a page reload (a reload would NOT
+// clear localStorage anyway). ──
+function resetPlanner() {
+  _suspendAutoRefresh = true;   // setInputs fires onChange; don't auto-recompute mid-reset
+  try {
+    try { localStorage.removeItem(PLANNER_STORAGE_KEY); } catch (e) { /* storage off */ }
+    _lastResults = null;
+    _lastInputs = null;
+    _lastRecommendationSignature = null;
+    if (typeof PlannerWorkspace !== 'undefined') {
+      PlannerWorkspace.clearCompareSelection();
+      PlannerWorkspace.setState('empty');
+    }
+    if (typeof WizardController !== 'undefined') {
+      WizardController.setInputs({
+        task: 'object_detection', size: 'n', cameras: 4, targetFps: 30,
+        priority: 'channels', ort: true, maxLatencyMs: undefined,
+      });
+      WizardController.resetSetupForTutorial();
+    }
+    updateShareUrl(null);   // strip ?task=&size=… so a refresh won't re-prefill
+  } finally {
+    _suspendAutoRefresh = false;
+  }
+}
+window.PlannerRuntime.reset = resetPlanner;
+
 function drawOverviewChart() {
   const barCanvas = document.getElementById('overviewChart');
   if (barCanvas && _lastResults) BarChart.draw(barCanvas, _lastResults, openDetail);
@@ -241,6 +272,9 @@ async function initConfigurator() {
   PlannerWorkspace.renderScopeBannerMeta();
   bindScenarioChips();
 
+  const startOverBtn = document.getElementById('btnStartOver');
+  if (startOverBtn) startOverBtn.addEventListener('click', resetPlanner);
+
   const urlParams = new URLSearchParams(window.location.search);
   const preTask = urlParams.get('task');
   const preSize = urlParams.get('size');
@@ -276,7 +310,6 @@ async function initConfigurator() {
       targetFps: pi.targetFps,
       ort: pi.ort,
       priority: pi.priority,
-      fpsHeadroom: pi.fpsHeadroom,
       maxLatencyMs: pi.maxLatencyMs != null ? pi.maxLatencyMs : undefined,
     });
   }

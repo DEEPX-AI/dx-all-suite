@@ -63,10 +63,37 @@ def _get_npu_driver_version():
 
 
 SETUP_STEPS={
+    # Order mirrors the Setup page cards / Run All sequence (setup.js STEPS): build toolchain →
+    # runtime deps → runtime build → driver → app build → assets. DX-APP Build links dx_rt
+    # (CMake reads ${DXRT_INSTALLED_DIR}/include/dxrt/gen.h), so it MUST run after DX-Runtime
+    # Build + driver, not before. Assets download is independent and comes last.
     "dx-app-deps":{
         "label":"DX-APP Dependencies","script":lambda:DX_APP_ROOT/"install.sh",
         "args":["--all"],"cwd":lambda:DX_APP_ROOT,
         "desc":"System packages for C++ build (cmake, gcc, ninja, OpenCV, …)",
+        "needs_sudo":True,
+    },
+    "dx-rt-deps":{
+        "label":"DX-Runtime Dependencies","script":lambda:DX_RT_ROOT/"install.sh",
+        "args":["--all"],"cwd":lambda:DX_RT_ROOT,
+        "desc":"System packages for DX-RT runtime (cmake, ONNX Runtime, …)",
+        "needs_sudo":True,
+    },
+    "dx-rt-build":{
+        # dx-rt-deps only installs system packages; it never builds dx_rt nor installs the
+        # dx_engine Python API into venv-dx-runtime. This step runs the runtime orchestrator's
+        # dx_rt target, which builds dx_rt AND pip-installs the matching dx_engine wheel into
+        # the (reused, never wiped) venv — the only thing that turns the "Python venv (dx_engine)"
+        # diagnostic green. --skip-uninstall + --venv-reuse protect the shared venv.
+        "label":"DX-Runtime Build","script":lambda:DX_RT_ROOT.parent/"install.sh",
+        "args":["--target=dx_rt","--skip-uninstall","--venv-reuse"],"cwd":lambda:DX_RT_ROOT.parent,
+        "desc":"Build DX-RT runtime and install the dx_engine Python API into venv-dx-runtime",
+        "needs_sudo":True,
+    },
+    "dx-driver":{
+        "label":"NPU Linux Driver","script":lambda:DX_RT_ROOT.parent/"install.sh",
+        "args":["--target=dx_rt_npu_linux_driver"],"cwd":lambda:DX_RT_ROOT.parent,
+        "desc":"Install DEEPX NPU kernel driver (requires sudo)",
         "needs_sudo":True,
     },
     "dx-app-build":{
@@ -80,18 +107,6 @@ SETUP_STEPS={
         "label":"Sample Assets Setup","script":lambda:DX_APP_ROOT/"setup.sh",
         "args":[],"cwd":lambda:DX_APP_ROOT,
         "desc":"Download sample models and videos for demos",
-    },
-    "dx-rt-deps":{
-        "label":"DX-Runtime Dependencies","script":lambda:DX_RT_ROOT/"install.sh",
-        "args":["--all"],"cwd":lambda:DX_RT_ROOT,
-        "desc":"System packages for DX-RT runtime (cmake, ONNX Runtime, …)",
-        "needs_sudo":True,
-    },
-    "dx-driver":{
-        "label":"NPU Linux Driver","script":lambda:DX_RT_ROOT.parent/"install.sh",
-        "args":["--target=dx_rt_npu_linux_driver"],"cwd":lambda:DX_RT_ROOT.parent,
-        "desc":"Install DEEPX NPU kernel driver (requires sudo)",
-        "needs_sudo":True,
     },
     "dx-compiler":{
         "label":"DX-COM Compiler","script":lambda:DX_COMPILER_ROOT/"install.sh",
@@ -192,6 +207,22 @@ def _keep_sudo_alive(stop_event):
         )
 
 
+def _probe_dx_engine_venv():
+    """Probe venv-dx-runtime roots for an importable dx_engine.
+    Returns (ok: bool, detail: str). Shared by setup_status() and deep_diagnostics()."""
+    for vp in runtime_venv_roots():
+        py=vp/"bin"/"python3"
+        if py.exists():
+            try:
+                r=subprocess.run([str(py),"-c","import dx_engine; print(dx_engine.__version__)"],
+                    capture_output=True,text=True,timeout=10)
+                if r.returncode==0:return True,f"dx_engine v{r.stdout.strip()} ({vp.name})"
+                return False,f"{vp.name} exists but dx_engine import failed"
+            except Exception:
+                return False,f"{vp.name} python3 error"
+    return False,"venv-dx-runtime not found"
+
+
 def setup_status():
     """Return dict of {step_id: {ok, detail}} for all setup steps."""
     r={}
@@ -213,6 +244,9 @@ def setup_status():
     rt_ver=rv.read_text().strip() if rv.exists() else None
     r["dx-rt-deps"]={"ok":rv.exists(),
         "detail":f"v{rt_ver}" if rt_ver else "release.ver not found"}
+    # dx-rt-build — ok only when the dx_engine Python API is importable in venv-dx-runtime
+    venv_ok,venv_detail=_probe_dx_engine_venv()
+    r["dx-rt-build"]={"ok":venv_ok,"detail":venv_detail}
     # dx-driver — the loaded driver creates /dev/dxrt* (newer) or /dev/deepx* (legacy); accept both
     devs=(sorted(Path("/dev").glob("dxrt*"))+sorted(Path("/dev").glob("deepx*"))) if Path("/dev").exists() else []
     r["dx-driver"]={"ok":bool(devs),
@@ -223,7 +257,7 @@ def setup_status():
         "needs_credentials":True}
     r["versions"] = {
         "dx_app": _read_release_ver("release.ver"),
-        "dx_runtime": _read_release_ver(str(DX_APP_ROOT / ".." / "dx-runtime" / "release.ver")),
+        "dx_runtime": _read_release_ver(str(DX_RT_ROOT.parent / "release.ver")),
         "npu_driver": _get_npu_driver_version(),
         "compiler": _dxcom_version() or '--',
         "kernel": platform.release(),
@@ -311,21 +345,20 @@ def deep_diagnostics():
         "detail":f"Found: {', '.join(found_bins)}" + (f" | Missing: {', '.join(missing_bins)}" if missing_bins else ""),
         "fix":{"ko":"dx_rt 빌드: cd dx_rt && ./build.sh","en":"Build dx_rt: cd dx_rt && ./build.sh","ja":"dx_rtビルド: cd dx_rt && ./build.sh","zhCN":"构建dx_rt: cd dx_rt && ./build.sh","zhTW":"建置dx_rt: cd dx_rt && ./build.sh"} if missing_bins else ""})
 
-    # 8. Python venv — dx_engine importable
-    venv_ok=False;venv_detail=""
-    for vp in runtime_venv_roots():
-        py=vp/"bin"/"python3"
-        if py.exists():
-            try:
-                r=subprocess.run([str(py),"-c","import dx_engine; print(dx_engine.__version__)"],
-                    capture_output=True,text=True,timeout=10)
-                if r.returncode==0:venv_ok=True;venv_detail=f"dx_engine v{r.stdout.strip()} ({vp.name})"
-                else:venv_detail=f"{vp.name} exists but dx_engine import failed"
-            except Exception:venv_detail=f"{vp.name} python3 error"
-            break
-    if not venv_detail:venv_detail="venv-dx-runtime not found"
-    checks.append({"id":"python_venv","label":{"ko":"Python venv (dx_engine)","en":"Python venv (dx_engine)","ja":"Python venv (dx_engine)","zhCN":"Python venv (dx_engine)","zhTW":"Python venv (dx_engine)"},"ok":venv_ok,
-        "detail":venv_detail,"fix":{"ko":"venv 생성: python3 -m venv venv-dx-runtime && pip install dx_engine","en":"Create venv: python3 -m venv venv-dx-runtime && pip install dx_engine","ja":"venv作成: python3 -m venv venv-dx-runtime && pip install dx_engine","zhCN":"创建venv: python3 -m venv venv-dx-runtime && pip install dx_engine","zhTW":"建立venv: python3 -m venv venv-dx-runtime && pip install dx_engine"}})
+    # 8. Python venv — dx_engine importable (shares the probe with setup_status's dx-rt-build)
+    venv_ok,venv_detail=_probe_dx_engine_venv()
+    # dx_engine is NOT on PyPI — `pip install dx_engine` fails. The API is built + installed
+    # into venv-dx-runtime by the runtime's dx_rt target (build.sh + the shipped wheel), which
+    # the Setup page now exposes as the "DX-Runtime Build" step.
+    _venv_fix="cd dx-runtime && ./install.sh --target=dx_rt --skip-uninstall --venv-reuse"
+    checks.append({"id":"python_venv","label":{"ko":"Python venv (dx_engine)","en":"Python venv (dx_engine)","ja":"Python venv (dx_engine)","zhCN":"Python venv (dx_engine)","zhTW":"Python venv (dx_engine)","es":"Python venv (dx_engine)"},"ok":venv_ok,
+        "detail":venv_detail,"fix":{
+            "ko":f"Setup 페이지의 'DX-Runtime Build' 단계를 실행하세요 (또는 터미널: {_venv_fix})",
+            "en":f"Run the 'DX-Runtime Build' step on the Setup page (or a terminal: {_venv_fix})",
+            "ja":f"Setup ページの「DX-Runtime Build」ステップを実行してください（またはターミナル: {_venv_fix}）",
+            "zhCN":f"运行 Setup 页面的「DX-Runtime Build」步骤（或在终端中: {_venv_fix}）",
+            "zhTW":f"執行 Setup 頁面的「DX-Runtime Build」步驟（或在終端機中: {_venv_fix}）",
+            "es":f"Ejecute el paso «DX-Runtime Build» en la página de configuración (o en una terminal: {_venv_fix})"}})
 
     # 9. Disk Space — at least 5GB free
     try:
@@ -373,6 +406,14 @@ def deep_diagnostics():
     total=len(checks)
     return {"checks":checks,"passed":passed,"total":total,"all_ok":passed==total}
 
+_QUICK_ORDER = ["dx-app-deps","dx-rt-deps","dx-rt-build","dx-driver","dx-app-build","dx-app-setup"]
+
+def quick_start_plan():
+    """Ordered setup step ids still needed for a demo-only setup (skip satisfied)."""
+    st = setup_status()
+    return [sid for sid in _QUICK_ORDER if not (st.get(sid) or {}).get("ok")]
+
+
 def setup_run(step,params=None):
     """Start a setup step script in background (streams via config._comp_log)."""
     if params is None:params={}
@@ -407,6 +448,13 @@ def setup_run(step,params=None):
             return{"ok":False,"error":sudo_error,"sudo_auth":True}
     cwd=cfg["cwd"]()
     args=cfg.get("args",[])
+    # Demo Quick Start (frontend Task 10 passes {"demo_only": true} in the run params for the
+    # dx-app-setup step only) — download demo sample assets instead of the full --all catalog.
+    # Read from params (like username/password above) rather than adding a new function
+    # parameter: the existing entrypoint signature/caller (server.py forwards the whole request
+    # body as params) is left untouched, and no other step's args are affected.
+    if step=="dx-app-setup" and params.get("demo_only"):
+        args=["--demo-models"]
     with config._comp_log_lock:config._comp_log=""
     config._comp_done=False;config._comp_exit_code=-1
     def _run():

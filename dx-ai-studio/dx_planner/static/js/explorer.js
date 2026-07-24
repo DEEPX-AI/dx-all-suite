@@ -87,7 +87,7 @@ const ExplorerView = {
         targetFps: 'Target FPS', runtime: 'Runtime', runtimeOrt: 'ONNX Runtime', runtimeNative: 'Native',
         maxChannels: 'Max channels', status: 'Status', meets: 'Meets', insufficient: 'Insufficient',
         throughput: 'Throughput FPS', latency: 'Latency (ms)', tdp: 'TDP',
-        topsPerW: 'TOPS/W', theoretical: 'theoretical',
+        topsPerW: 'TOPS/W',
         pricing: 'Pricing', pricingValue: 'Contact DEEPX for quote',
       },
       ko: {
@@ -95,7 +95,7 @@ const ExplorerView = {
         targetFps: '목표 FPS', runtime: '런타임', runtimeOrt: 'ONNX Runtime', runtimeNative: 'Native',
         maxChannels: '최대 채널', status: '충족 여부', meets: '충족', insufficient: '부족',
         throughput: '처리량 FPS', latency: '지연 (ms)', tdp: 'TDP',
-        topsPerW: 'TOPS/W', theoretical: '이론값',
+        topsPerW: 'TOPS/W',
         pricing: '가격', pricingValue: '가격은 DEEPX에 문의',
       },
       ja: {
@@ -103,7 +103,7 @@ const ExplorerView = {
         targetFps: '目標FPS', runtime: 'ランタイム', runtimeOrt: 'ONNX Runtime', runtimeNative: 'Native',
         maxChannels: '最大チャンネル', status: '充足状況', meets: '充足', insufficient: '不足',
         throughput: 'スループット FPS', latency: 'レイテンシ (ms)', tdp: 'TDP',
-        topsPerW: 'TOPS/W', theoretical: '理論値',
+        topsPerW: 'TOPS/W',
         pricing: '価格', pricingValue: '価格はDEEPXへお問い合わせ',
       },
       'zh-CN': {
@@ -111,7 +111,7 @@ const ExplorerView = {
         targetFps: '目标 FPS', runtime: '运行时', runtimeOrt: 'ONNX Runtime', runtimeNative: 'Native',
         maxChannels: '最大通道', status: '达标情况', meets: '达标', insufficient: '不足',
         throughput: '吞吐量 FPS', latency: '延迟 (ms)', tdp: 'TDP',
-        topsPerW: 'TOPS/W', theoretical: '理论值',
+        topsPerW: 'TOPS/W',
         pricing: '价格', pricingValue: '价格请联系 DEEPX',
       },
       'zh-TW': {
@@ -119,7 +119,7 @@ const ExplorerView = {
         targetFps: '目標 FPS', runtime: '執行環境', runtimeOrt: 'ONNX Runtime', runtimeNative: 'Native',
         maxChannels: '最大通道', status: '達標情況', meets: '達標', insufficient: '不足',
         throughput: '吞吐量 FPS', latency: '延遲 (ms)', tdp: 'TDP',
-        topsPerW: 'TOPS/W', theoretical: '理論值',
+        topsPerW: 'TOPS/W',
         pricing: '價格', pricingValue: '價格請聯絡 DEEPX',
       },
       es: {
@@ -127,7 +127,7 @@ const ExplorerView = {
         targetFps: 'FPS objetivo', runtime: 'Entorno', runtimeOrt: 'ONNX Runtime', runtimeNative: 'Native',
         maxChannels: 'Canales máx.', status: 'Estado', meets: 'Cumple', insufficient: 'Insuficiente',
         throughput: 'Throughput FPS', latency: 'Latencia (ms)', tdp: 'TDP',
-        topsPerW: 'TOPS/W', theoretical: 'teórico',
+        topsPerW: 'TOPS/W',
         pricing: 'Precio', pricingValue: 'Consultar precio a DEEPX',
       },
     });
@@ -394,11 +394,7 @@ const ExplorerView = {
     }
 
     const flagBadge = (flag) => {
-      const copy = this._factsCopy();
       if (flag === '+') return '+';
-      if (flag === 'theoretical') {
-        return ' <span class="badge badge-theoretical">' + this._escHtml(copy.theoretical) + '</span>';
-      }
       return '';
     };
 
@@ -511,22 +507,28 @@ const ExplorerView = {
     }
 
     const bench = this._selectedBenchmark(platform, inputs);
-    const modelName = 'yolo26' + inputs.size;
     const ort = inputs.ort !== undefined ? inputs.ort : true;
+    // Match multi-stream rows by (size, task, ort) — the benchmark data models
+    // are named yolo26-l-obb_1024x1024 etc., so the old `yolo26${size}` string
+    // never equalled m.model.
     const multiAll = platform.multi_stream.filter(
-      m => m.model === modelName && m.task === inputs.task && m.ort === ort
+      m => m.size === inputs.size && m.task === inputs.task && m.ort === ort
     );
     const channelCalc = bench
-      ? RecommendEngine._calcMaxChannels(bench, multiAll, inputs.targetFps, inputs.fpsHeadroom)
+      ? RecommendEngine._calcMaxChannels(bench, multiAll, inputs.targetFps)
       : { maxChannels: 0, boundaryFlag: null };
     const maxChannels = channelCalc.maxChannels || 0;
+    const latencyMs = bench ? bench.latency_ms || 0 : 0;
     const topsPerWatt = platform.npu.tdp_w > 0 ? platform.npu.tops / platform.npu.tdp_w : 0;
     return {
       throughputFps: bench ? bench.throughput_fps || 0 : 0,
-      latencyMs: bench ? bench.latency_ms || 0 : 0,
+      latencyMs,
       maxChannels,
       boundaryFlag: channelCalc.boundaryFlag,
-      meetsRequirement: maxChannels >= (inputs.cameras || 0),
+      // Same rule as RecommendEngine: channels AND latency (throttle already
+      // baked into maxChannels via the sustainable-set filter).
+      meetsRequirement: maxChannels >= (inputs.cameras || 0)
+        && RecommendEngine._meetsLatency(latencyMs, inputs.maxLatencyMs),
       topsPerWatt,
     };
   },
@@ -631,11 +633,9 @@ const ExplorerView = {
     });
   },
 
-  _formatChannels(value, flag, copy) {
+  _formatChannels(value, flag) {
     if (value == null) return '-';
-    const facts = copy || this._factsCopy();
     if (flag === '+') return value + '+';
-    if (flag === 'theoretical') return value + ' ' + facts.theoretical;
     return String(value);
   },
 

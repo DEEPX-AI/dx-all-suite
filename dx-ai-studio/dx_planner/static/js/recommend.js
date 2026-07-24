@@ -1,7 +1,4 @@
 const RecommendEngine = {
-  DEFAULT_FPS_HEADROOM: 0.1,
-  DEFAULT_CPU_BUDGET_PCT: 400,
-
   _topologyLabel(platform) {
     const topo = platform && platform.topology ? platform.topology : {};
     const parts = [];
@@ -22,16 +19,24 @@ const RecommendEngine = {
   },
 
   /**
-   * @param {Object} inputs - {task, size, cameras, targetFps, priority, ort, fpsHeadroom, maxLatencyMs}
+   * Pure-benchmark recommendation. Everything below is derived from MEASURED
+   * benchmark rows only — no FPS headroom, no confidence tiers, no CPU gate,
+   * and no extrapolation beyond measured stream counts.
+   *
+   * A stream_count is "sustainable" iff it was measured at per_channel_fps >=
+   * targetFps AND the NPU did not thermally throttle at that point. maxChannels
+   * is the largest sustainable stream_count. If host CPU saturation actually
+   * hurt throughput it already shows up as per_channel_fps < target, so avg_cpu
+   * is informational only.
+   *
+   * @param {Object} inputs - {task, size, cameras, targetFps, priority, ort, maxLatencyMs}
    * @param {Array} platforms - DataLoader.getPlatforms()
    * @returns {Array} sorted recommendation results
    */
   recommend(inputs, platforms) {
+    const ort = inputs.ort !== undefined ? inputs.ort : true;
+
     const results = platforms.map(platform => {
-      // Match by (size, task, ort) using the benchmark rows' own fields. The data models are
-      // named yolo26-n_640x640 / yolo26-l-pose_640x640 etc., so the old `yolo26${size}` string
-      // never equalled b.model and every platform fell through to null (0 recommendations).
-      const ort = inputs.ort !== undefined ? inputs.ort : true;
       const bench = platform.benchmarks.find(
         b => b.size === inputs.size && b.task === inputs.task && b.ort === ort
       );
@@ -41,27 +46,14 @@ const RecommendEngine = {
         m => m.size === inputs.size && m.task === inputs.task && m.ort === ort
       );
 
-      const headroom = this._normalizeHeadroom(inputs.fpsHeadroom);
-      const channelCalc = this._calcMaxChannels(bench, multiAll, inputs.targetFps, headroom);
-      // Only surface platforms backed by MEASURED multi-stream evidence at the target. Drop
-      // estimated channel counts — interpolated (between measured points) and theoretical
-      // (single-stream throughput ÷ target, no multi-stream data) — so recommendations reflect
-      // real measurements only, not extrapolation.
-      if (channelCalc.boundaryFlag === 'interpolated' || channelCalc.boundaryFlag === 'theoretical') {
-        return null;
-      }
-      const evidenceRow = this._rowForCameras(multiAll, inputs.cameras);
-      const limits = this._operationalLimits(evidenceRow, inputs);
-
-      let boundaryFlag = channelCalc.boundaryFlag;
-      if (limits.thermal) boundaryFlag = 'thermal';
-      else if (limits.hostLimited) boundaryFlag = 'host-limited';
-
+      const channelCalc = this._calcMaxChannels(bench, multiAll, inputs.targetFps);
       const maxChannels = channelCalc.maxChannels;
+      const boundaryFlag = channelCalc.boundaryFlag;
+
       const latencyMs = bench.latency_ms || 0;
       const meetsChannels = maxChannels >= inputs.cameras;
       const meetsLatency = this._meetsLatency(latencyMs, inputs.maxLatencyMs);
-      const meetsRequirement = meetsChannels && meetsLatency && !limits.thermal && !limits.hostLimited;
+      const meetsRequirement = meetsChannels && meetsLatency;
 
       const topsPerWatt = platform.npu.tdp_w > 0
         ? platform.npu.tops / platform.npu.tdp_w
@@ -73,32 +65,18 @@ const RecommendEngine = {
         latencyMs,
         maxChannels,
         boundaryFlag,
-        confidenceTier: this._confidenceTier(boundaryFlag),
-        effectiveTargetFps: this._effectiveTarget(inputs.targetFps, headroom),
-        fpsHeadroom: headroom,
-        evidenceRow,
         meetsChannels,
         meetsLatency,
-        hostLimited: limits.hostLimited,
-        thermalLimited: limits.thermal,
         meetsRequirement,
+        // Informational only (never affects ranking): smallest measured stream
+        // where the NPU throttled, i.e. "sustains up to maxChannels, throttles
+        // at throttleOnset and beyond". null when no measured point throttled.
+        throttleOnset: this._throttleOnset(multiAll),
         topsPerWatt: Math.round(topsPerWatt * 100) / 100,
-        stabilityScore: this._stabilityScore(evidenceRow),
       };
     }).filter(Boolean);
 
     return this._sort(results, inputs.priority);
-  },
-
-  _normalizeHeadroom(value) {
-    const n = Number(value);
-    if (!Number.isFinite(n) || n < 0) return this.DEFAULT_FPS_HEADROOM;
-    return Math.min(n, 0.5);
-  },
-
-  _effectiveTarget(targetFps, headroom) {
-    const margin = this._normalizeHeadroom(headroom);
-    return Math.round(targetFps * (1 + margin) * 100) / 100;
   },
 
   _meetsLatency(latencyMs, maxLatencyMs) {
@@ -108,25 +86,7 @@ const RecommendEngine = {
     return latencyMs <= budget;
   },
 
-  _confidenceTier(boundaryFlag) {
-    switch (boundaryFlag) {
-      case '+':
-      case 'measured':
-        return 0;
-      case null:
-        return 0;
-      case 'interpolated':
-        return 1;
-      case 'host-limited':
-      case 'thermal':
-        return 2;
-      case 'theoretical':
-        return 3;
-      default:
-        return 2;
-    }
-  },
-
+  // Kept for RadarChart, which calls this directly on a multi-stream row.
   _stabilityScore(row) {
     if (!row || row.fps_std == null || !Number.isFinite(row.fps_std)) return 0;
     return Math.round((1 / (1 + row.fps_std)) * 1000) / 1000;
@@ -138,96 +98,41 @@ const RecommendEngine = {
     );
   },
 
-  _rowForCameras(multiAll, cameras) {
+  _throttleOnset(multiAll) {
+    const throttled = this._sortedMulti(multiAll).find(m => m.npu_throttled === true);
+    return throttled ? (throttled.stream_count || null) : null;
+  },
+
+  /**
+   * Largest MEASURED, sustainable stream_count. Sustainable = per_channel_fps
+   * meets targetFps AND not npu_throttled. No headroom, no extrapolation.
+   * boundaryFlag: '+' when even the top tested stream sustains (so real max is
+   * "at least this many"), otherwise 'measured'.
+   * @returns {{maxChannels:number, boundaryFlag:('measured'|'+')}}
+   */
+  _calcMaxChannels(bench, multiAll, targetFps) {
     const sorted = this._sortedMulti(multiAll);
-    if (!sorted.length) return null;
-    const exact = sorted.find(m => m.stream_count === cameras);
-    if (exact) return exact;
-    const atOrAbove = sorted.find(m => (m.stream_count || 0) >= cameras);
-    if (atOrAbove) return atOrAbove;
-    return sorted[sorted.length - 1];
-  },
+    const target = Number(targetFps) || 0;
 
-  _operationalLimits(row, inputs) {
-    const cpuBudget = Number.isFinite(Number(inputs.cpuBudgetPct))
-      ? Number(inputs.cpuBudgetPct)
-      : this.DEFAULT_CPU_BUDGET_PCT;
-    if (!row) return { hostLimited: false, thermal: false };
-    const hostLimited = row.avg_cpu_pct != null && row.avg_cpu_pct > cpuBudget;
-    const thermal = Boolean(row.npu_throttled);
-    return { hostLimited, thermal };
-  },
+    const sustainable = sorted.filter(
+      m => m.per_channel_fps != null && m.per_channel_fps >= target && m.npu_throttled !== true
+    );
 
-  _calcMaxChannels(bench, multiAll, targetFps, headroom) {
-    const effectiveTarget = this._effectiveTarget(targetFps, headroom);
-    const sorted = this._sortedMulti(multiAll);
-    const filtered = sorted.filter(m => m.per_channel_fps >= effectiveTarget);
+    const streamMax = (rows) => rows.reduce((max, m) => {
+      const sc = m.stream_count ?? null;
+      return sc !== null && sc > max ? sc : max;
+    }, 0);
 
-    if (filtered.length > 0) {
-      const maxMeasured = filtered.reduce((max, m) => {
-        const streamCount = m.stream_count ?? null;
-        return streamCount !== null && streamCount > max ? streamCount : max;
-      }, 0);
-      const totalMax = sorted.reduce((max, m) => {
-        const streamCount = m.stream_count ?? null;
-        return streamCount !== null && streamCount > max ? streamCount : max;
-      }, 0);
-
-      if (maxMeasured === 0 && filtered.every(m => m.stream_count == null)) {
-        return this._theoreticalFallback(bench, effectiveTarget);
-      }
-      if (maxMeasured === totalMax) {
-        return { maxChannels: maxMeasured, boundaryFlag: '+' };
-      }
-      return { maxChannels: maxMeasured, boundaryFlag: 'measured' };
-    }
-
-    const interpolated = this._interpolateCrossing(sorted, effectiveTarget);
-    if (interpolated != null) {
-      return { maxChannels: interpolated, boundaryFlag: 'interpolated' };
-    }
-
-    return this._theoreticalFallback(bench, effectiveTarget);
-  },
-
-  _interpolateCrossing(sorted, effectiveTarget) {
-    if (sorted.length < 2) return null;
-    for (let i = 0; i < sorted.length - 1; i += 1) {
-      const a = sorted[i];
-      const b = sorted[i + 1];
-      const fpsA = a.per_channel_fps;
-      const fpsB = b.per_channel_fps;
-      const s1 = a.stream_count;
-      const s2 = b.stream_count;
-      if (
-        s1 == null || s2 == null ||
-        fpsA == null || fpsB == null ||
-        fpsB === fpsA
-      ) {
-        continue;
-      }
-      if (fpsA >= effectiveTarget && fpsB < effectiveTarget) {
-        const cross = s1 + ((effectiveTarget - fpsA) * (s2 - s1)) / (fpsB - fpsA);
-        return Math.max(0, Math.floor(cross));
-      }
-    }
-    return null;
-  },
-
-  _theoreticalFallback(bench, effectiveTarget) {
-    const theoretical = effectiveTarget > 0
-      ? Math.floor((bench.throughput_fps || 0) / effectiveTarget)
-      : 0;
-    return { maxChannels: theoretical, boundaryFlag: 'theoretical' };
+    const maxChannels = streamMax(sustainable);
+    const maxTested = streamMax(sorted);
+    const boundaryFlag = (maxChannels > 0 && maxChannels === maxTested) ? '+' : 'measured';
+    return { maxChannels, boundaryFlag };
   },
 
   _sort(results, priority) {
     return results.sort((a, b) => {
       if (a.meetsRequirement !== b.meetsRequirement) {
         return a.meetsRequirement ? -1 : 1;
-      }
-      if (a.confidenceTier !== b.confidenceTier) {
-        return a.confidenceTier - b.confidenceTier;
       }
 
       let primary = 0;
@@ -246,10 +151,11 @@ const RecommendEngine = {
       }
       if (primary !== 0) return primary;
 
-      if (a.maxChannels !== b.maxChannels) {
-        return b.maxChannels - a.maxChannels;
-      }
-      return b.stabilityScore - a.stabilityScore;
+      // Deterministic tiebreak (ties are common at the all-fail tail):
+      // more channels -> higher throughput -> stable platform id.
+      if (a.maxChannels !== b.maxChannels) return b.maxChannels - a.maxChannels;
+      if (a.throughputFps !== b.throughputFps) return b.throughputFps - a.throughputFps;
+      return String(a.platform.id).localeCompare(String(b.platform.id));
     });
   },
 };
