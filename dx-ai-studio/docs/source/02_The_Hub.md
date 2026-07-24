@@ -28,6 +28,14 @@ address.
 If a module fails to start, its tile shows an **unavailable / crashed** state with a
 **Retry** action. The intro animation can be replayed any time via **Replay Intro**.
 
+## Guided tutorial
+
+**Tutorial Mode** is on by default: opening a module starts an interactive, step-through
+walkthrough (coach marks with **Prev / Skip / Next**). Toggle it from the top bar to turn
+the automatic tutorials off — or on — at any time.
+
+![The guided tutorial overlay on the hub — step-through coach marks, with Tutorial Mode toggled from the top bar.](resources/tutorial.png)
+
 ## Navigating
 
 - Click any orbital tile to enter a tool; use the top navigation or the browser **Back**

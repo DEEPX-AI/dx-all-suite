@@ -69,8 +69,8 @@ def _cvt_video(src,dst):
         r=subprocess.run(["ffmpeg","-y","-i",str(src),"-c:v","libx264","-preset","fast",
          "-movflags","+faststart","-pix_fmt","yuv420p",str(dst)],capture_output=True,timeout=120)
         return r.returncode==0
-    except:
+    except Exception:
         try:
             import shutil
             shutil.copy2(src,dst);return True
-        except:return False
+        except Exception:return False

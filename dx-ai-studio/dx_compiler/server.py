@@ -35,6 +35,7 @@ from dx_compiler.core.compiler_service import (
     NODE_SELECTION_UNSUPPORTED_MESSAGE,
 )
 from dx_compiler.core.setup_service import setup_service
+from dx_compiler.core import fs_browse
 
 # Replaces Jinja2 so DX AI Studio has ZERO third-party runtime dependencies.
 # Supports exactly the constructs the compiler templates use:
@@ -239,6 +240,9 @@ class CompilerHandler(DXBaseHandler):
                 model_path = self.query.get("path", [None])[0]
                 return self._inspect_model(model_path)
 
+            if path == "/api/listdir":
+                return self._list_dir()
+
             if path == "/setup/status":
                 return self.send_json(setup_service.check_status())
 
@@ -272,6 +276,9 @@ class CompilerHandler(DXBaseHandler):
 
             if path == "/upload":
                 return self._upload_file()
+
+            if path == "/api/mkdir":
+                return self._mkdir()
 
             if path == "/config/generate":
                 return self._config_generate()
@@ -646,6 +653,29 @@ class CompilerHandler(DXBaseHandler):
             self.send_sse("error", {"type": "error", "message": str(e)})
         finally:
             self.end_sse()
+
+    def _list_dir(self):
+        """GET /api/listdir?path= — list sub-directories for the folder picker."""
+        req_path = self.query.get("path", [None])[0]
+        try:
+            return self.send_json(fs_browse.list_directory(req_path))
+        except ValueError as exc:
+            return self.send_error_json(400, str(exc))
+
+    def _mkdir(self):
+        """POST /api/mkdir {path, name} — create a sub-directory from the picker."""
+        try:
+            body = self.read_json_body()
+        except RequestBodyError:
+            raise
+        except Exception:
+            return self.send_error_json(400, "Invalid JSON")
+        try:
+            return self.send_json(
+                fs_browse.make_directory(body.get("path", ""), body.get("name", ""))
+            )
+        except ValueError as exc:
+            return self.send_error_json(400, str(exc))
 
     def _upload_file(self):
         """Handle file upload via multipart/form-data."""

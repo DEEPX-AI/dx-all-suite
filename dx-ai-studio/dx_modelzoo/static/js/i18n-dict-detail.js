@@ -401,6 +401,14 @@ window._DX_MODELZOO_I18N_REGISTER({
     'zh-TW': '已取消下載',
     es: 'Descarga cancelada',
   },
+  'No download URL for this variant': {
+    en: 'No download URL for this variant',
+    ko: '이 variant에 대한 다운로드 URL이 없습니다',
+    ja: 'このバリアントのダウンロードURLがありません',
+    'zh-CN': '此变体没有下载 URL',
+    'zh-TW': '此變體沒有下載 URL',
+    es: 'No hay URL de descarga para esta variante',
+  },
   'Quantization': {
     en: 'Quantization',
     ko: '양자화',

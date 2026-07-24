@@ -43,6 +43,23 @@ nav:
   - Running Your First NPU Model: 03_Running_Your_First_NPU_Model.md
   - Version Compatibility: 04_Version_Compatibility.md
   - FAQ Troubleshooting Guide: 05_FAQ_Troubleshooting_Guide.md
+  - DX AI Studio:
+      # Copied from dx-ai-studio/docs/source at build time by mkdocs.sh (into
+      # source/ai-studio/, then removed after build). Studio docs stay the single
+      # source of truth in the dx-ai-studio tree — this only surfaces them here.
+      - Installation & Launch: ai-studio/01_Installation_and_Launch.md
+      - The Hub: ai-studio/02_The_Hub.md
+      - DX Model Zoo: ai-studio/03_DX_Model_Zoo.md
+      - DX Compiler: ai-studio/04_DX_Compiler.md
+      - DX App: ai-studio/05_DX_App.md
+      - DX Stream: ai-studio/06_DX_Stream.md
+      - DX Monitor: ai-studio/07_DX_Monitor.md
+      - DX Benchmark: ai-studio/08_DX_Benchmark.md
+      - DX EdgeGuide: ai-studio/09_DX_EdgeGuide.md
+      - DX Agent Dev: ai-studio/10_DX_Agent_Dev.md
+      - SDK Library & About: ai-studio/11_SDK_Library_and_About.md
+      - Third-Party License: ai-studio/12_Appendix_Third_Party_License.md
+      - Change Log: ai-studio/Appendix_Change_Log.md
 
 plugins:
   - search

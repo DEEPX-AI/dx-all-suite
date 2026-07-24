@@ -4,7 +4,7 @@ Posts and comments are stored in forum_data.json next to this app.
 No authentication: users choose a nickname; likes are tracked by
 a browser-local token (UUID stored in localStorage).
 """
-import json, time, uuid, threading
+import json, os, time, uuid, threading
 from pathlib import Path
 from dx_app.core.config import SCRIPT_DIR
 
@@ -24,10 +24,12 @@ def _load():
 
 
 def _save(data):
-    _FORUM_FILE.write_text(
+    tmp_path = _FORUM_FILE.with_name(_FORUM_FILE.name + f".{os.getpid()}.tmp")
+    tmp_path.write_text(
         json.dumps(data, ensure_ascii=False, indent=2, default=str),
         encoding="utf-8"
     )
+    os.replace(tmp_path, _FORUM_FILE)
 
 
 def forum_list(sort="latest", category=None, q=None):

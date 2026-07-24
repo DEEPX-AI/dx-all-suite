@@ -206,7 +206,14 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
         if length > self.upload_max_bytes:
             raise RequestBodyError(413, "Multipart body too large")
 
-        spool = tempfile.SpooledTemporaryFile(max_size=min(self.upload_max_bytes, 1024 * 1024))
+        # NOTE: tempfile.TemporaryFile (a real BufferedRandom), NOT SpooledTemporaryFile.
+        # On Python <3.11 SpooledTemporaryFile does not implement the io.IOBase interface
+        # (no readable/writable/seekable), so BytesParser.parse() — which wraps the fp in a
+        # TextIOWrapper — raises AttributeError. Uncaught, that killed the connection before
+        # any response, surfacing as a 502 on every multipart upload (compile, form submit,
+        # file upload). TemporaryFile streams to disk the same way and works on all versions.
+        # The upload size limit is already enforced above, so no spool max_size is needed.
+        spool = tempfile.TemporaryFile()
         try:
             spool.write(f"Content-Type: {content_type}\r\n".encode("utf-8"))
             spool.write(b"MIME-Version: 1.0\r\n\r\n")
@@ -799,6 +806,21 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
             self.route()
         except RequestBodyError as exc:
             self.send_error_json(exc.status_code, exc.message)
+        except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError):
+            # Client hung up — let handle() suppress this quietly (no 500, no traceback).
+            raise
+        except Exception:
+            # Defense in depth: never let an unexpected handler error escape and drop the
+            # connection with no response — the launcher/reverse-proxy surfaces that as an
+            # opaque 502 (exactly how the SpooledTemporaryFile multipart bug manifested).
+            # Log it and return a real 500 instead. Best-effort: if the response already
+            # started, the re-send is itself guarded so we never raise from here.
+            import traceback
+            traceback.print_exc()
+            try:
+                self.send_error_json(500, "Internal server error")
+            except Exception:
+                pass
 
     def do_GET(self):
         self._dispatch_request()

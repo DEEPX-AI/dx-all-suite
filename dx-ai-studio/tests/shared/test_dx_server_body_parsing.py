@@ -92,6 +92,36 @@ def test_dispatch_converts_body_parse_error_to_json_response():
     assert "Invalid JSON" in _response_body(h)["error"]
 
 
+def test_dispatch_converts_unexpected_handler_error_to_500():
+    """An unhandled handler exception must become a 500 response, never a dropped
+    connection (which the launcher/proxy would surface as an opaque 502)."""
+
+    class _BoomHandler(DXBaseHandler):
+        server_name = "BoomTest"
+        log_silent = True
+
+        def route(self):
+            raise RuntimeError("boom")
+
+    h = _BoomHandler.__new__(_BoomHandler)
+    h.command = "POST"
+    h.path = "/api/test"
+    h.rfile = io.BytesIO(b"{}")
+    h.wfile = io.BytesIO()
+    h._headers_buffer = []
+    msg = HTTPMessage()
+    msg["Host"] = "localhost"
+    msg["Content-Length"] = "2"
+    h.headers = msg
+    h.send_response = mock.Mock()
+    h.send_header = mock.Mock()
+    h.end_headers = mock.Mock()
+
+    h.do_POST()
+
+    assert _response_code(h) == 500
+
+
 def test_parse_multipart_too_large_rejected_before_body_read():
     class NoRead:
         def read(self, _size):

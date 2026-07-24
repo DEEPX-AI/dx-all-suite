@@ -11,7 +11,7 @@ or ONNX) are provided for **evaluation and development only** and are **not lice
 commercial deployment**. They are compiled from various open-source projects, each under
 its own terms (AGPL-3.0, GPL-3.0, non-commercial research licenses, etc.), which often
 require full source disclosure, forbid commercial use, or mandate attribution.  
-a are shown in **DX Model Zoo's detail view** —
+Per-model license terms are shown in **DX Model Zoo's detail view** —
 check them before any commercial use. For production, obtain a proper license from the
 model's authors, or bring your own commercially licensed / proprietary model.  
 

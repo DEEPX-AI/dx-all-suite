@@ -144,7 +144,10 @@
             </div>
             <div class="form-group">
                 <label for="output_dir"><span class="ko">출력 디렉토리 *</span><span class="en">Output Directory *</span><span class="es">Directorio de salida *</span><span class="ja">出力ディレクトリ *</span><span class="zh-CN">输出目录 *</span><span class="zh-TW">輸出目錄 *</span></label>
-                <input type="text" id="output_dir" name="output_dir" required data-i18n-placeholder="/path/to/output">
+                <div class="path-input-row" id="output_dir_row">
+                    <input type="text" id="output_dir" name="output_dir" required data-i18n-placeholder="/path/to/output">
+                    <button type="button" class="btn-browse" data-target="output_dir" data-i18n-title="Browse folder" title="Browse folder" aria-label="Browse folder">📁</button>
+                </div>
             </div>
             <div class="form-group">
                 <label for="opt_level"><span class="ko">최적화 수준</span><span class="en">Optimization Level</span><span class="es">Nivel de optimización</span><span class="ja">最適化レベル</span><span class="zh-CN">优化级别</span><span class="zh-TW">最佳化等級</span></label>
@@ -308,7 +311,10 @@
                 </div>
                 <div class="form-group">
                     <label for="resume_output_dir"><span class="ko">출력 디렉터리 *</span><span class="en">Output Directory *</span><span class="es">Directorio de salida *</span><span class="ja">出力ディレクトリ *</span><span class="zh-CN">输出目录 *</span><span class="zh-TW">輸出目錄 *</span></label>
-                    <input type="text" id="resume_output_dir" name="output_dir" required data-i18n-placeholder="/path/to/output">
+                    <div class="path-input-row">
+                        <input type="text" id="resume_output_dir" name="output_dir" required data-i18n-placeholder="/path/to/output">
+                        <button type="button" class="btn-browse" data-target="resume_output_dir" data-i18n-title="Browse folder" title="Browse folder" aria-label="Browse folder">📁</button>
+                    </div>
                 </div>
                 <div class="form-group">
                     <label for="recalibration_method"><span class="ko">재보정 방법</span><span class="en">Recalibration Method</span><span class="es">Método de recalibración</span><span class="ja">再キャリブレーション方法</span><span class="zh-CN">重新校准方法</span><span class="zh-TW">重新校準方法</span>
@@ -383,6 +389,26 @@
             </div>
         </div>
     </section>
+</div>
+
+<!-- Output-directory folder picker (server-side browser) -->
+<div class="fp-overlay" id="fp-modal" hidden>
+    <div class="fp-dialog" role="dialog" aria-modal="true" aria-labelledby="fp-title">
+        <div class="fp-head">
+            <h3 id="fp-title"><span class="ko">폴더 선택</span><span class="en">Select folder</span><span class="es">Seleccionar carpeta</span><span class="ja">フォルダを選択</span><span class="zh-CN">选择文件夹</span><span class="zh-TW">選擇資料夾</span></h3>
+            <button type="button" class="fp-close" id="fp-close" aria-label="Close">✕</button>
+        </div>
+        <div class="fp-path"><code id="fp-current">—</code></div>
+        <ul class="fp-list" id="fp-list"></ul>
+        <div class="fp-newrow">
+            <input type="text" id="fp-newname" data-i18n-placeholder="new folder name">
+            <button type="button" class="fp-btn" id="fp-mkdir"><span class="ko">새 폴더</span><span class="en">New folder</span><span class="es">Nueva carpeta</span><span class="ja">新規フォルダ</span><span class="zh-CN">新建文件夹</span><span class="zh-TW">新增資料夾</span></button>
+        </div>
+        <div class="fp-actions">
+            <button type="button" class="fp-btn fp-cancel" id="fp-cancel"><span class="ko">취소</span><span class="en">Cancel</span><span class="es">Cancelar</span><span class="ja">キャンセル</span><span class="zh-CN">取消</span><span class="zh-TW">取消</span></button>
+            <button type="button" class="fp-btn fp-select" id="fp-select"><span class="ko">이 폴더 선택</span><span class="en">Select this folder</span><span class="es">Elegir esta carpeta</span><span class="ja">このフォルダを選択</span><span class="zh-CN">选择此文件夹</span><span class="zh-TW">選擇此資料夾</span></button>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -992,6 +1018,74 @@ if (window.DXI18n && typeof DXI18n.onLangChange === 'function') {
 document.addEventListener('DOMContentLoaded', refreshCompilerStaticOptions);
 
 // Setup Panel 초기화는 setup_panel.js DOMContentLoaded에서 자동 실행됨
+
+// ── Output Directory folder picker (server-side browser) ─────────────
+(function () {
+    var modal = document.getElementById('fp-modal');
+    if (!modal) return;
+    var listEl = document.getElementById('fp-list');
+    var curEl = document.getElementById('fp-current');
+    var newName = document.getElementById('fp-newname');
+    var targetId = null, curPath = null;
+
+    function esc(s) { var d = document.createElement('div'); d.textContent = (s == null ? '' : String(s)); return d.innerHTML; }
+
+    function load(path) {
+        fetch('/api/listdir?path=' + encodeURIComponent(path || ''))
+            .then(function (r) { return r.json(); })
+            .then(function (d) {
+                if (!d || !d.ok) { curEl.textContent = '—'; listEl.innerHTML = ''; return; }
+                curPath = d.path;
+                curEl.textContent = d.path;
+                var html = '';
+                if (d.parent) html += '<li class="fp-item fp-up" data-path="' + esc(d.parent) + '">⬆ ..</li>';
+                (d.dirs || []).forEach(function (name) {
+                    var full = d.path.replace(/\/+$/, '') + '/' + name;
+                    html += '<li class="fp-item" data-path="' + esc(full) + '">📁 ' + esc(name) + '</li>';
+                });
+                if (!(d.dirs || []).length && !d.parent) html += '<li class="fp-empty">' + T('No subfolders') + '</li>';
+                listEl.innerHTML = html;
+            })
+            .catch(function () { curEl.textContent = '—'; listEl.innerHTML = ''; });
+    }
+
+    function openPicker(id) {
+        targetId = id;
+        var seed = ((document.getElementById(id) || {}).value || '').trim();
+        modal.hidden = false;
+        load(seed);
+    }
+    function closePicker() { modal.hidden = true; }
+
+    listEl.addEventListener('click', function (e) {
+        var li = e.target.closest('.fp-item');
+        if (li) load(li.getAttribute('data-path'));
+    });
+    document.getElementById('fp-mkdir').addEventListener('click', function () {
+        var name = (newName.value || '').trim();
+        if (!name || !curPath) return;
+        fetch('/api/mkdir', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ path: curPath, name: name })
+        }).then(function (r) { return r.json(); })
+          .then(function (d) { if (d && d.ok) { newName.value = ''; load(d.path); } })
+          .catch(function () {});
+    });
+    document.getElementById('fp-select').addEventListener('click', function () {
+        if (targetId && curPath) {
+            var t = document.getElementById(targetId);
+            if (t) { t.value = curPath; t.dispatchEvent(new Event('input', { bubbles: true })); t.dispatchEvent(new Event('change', { bubbles: true })); }
+        }
+        closePicker();
+    });
+    document.getElementById('fp-cancel').addEventListener('click', closePicker);
+    document.getElementById('fp-close').addEventListener('click', closePicker);
+    modal.addEventListener('click', function (e) { if (e.target === modal) closePicker(); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !modal.hidden) closePicker(); });
+    document.querySelectorAll('.btn-browse').forEach(function (b) {
+        b.addEventListener('click', function () { openPicker(b.getAttribute('data-target')); });
+    });
+})();
 </script>
 {% include "partials/config_wizard.html" %}
 {% endblock %}

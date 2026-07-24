@@ -1,5 +1,6 @@
 """Lab Extension Portal backend helpers."""
 
+import re
 import secrets
 import threading
 import time
@@ -407,8 +408,6 @@ def scoped_git_plan(manifest_id, payload):
 
     return {"files": plan_files, "preview_only": True}, 200
 
-
-import re
 
 _SAFE_LAB_ID_RE = re.compile(r"^lab_[A-Za-z0-9_-]+$")
 

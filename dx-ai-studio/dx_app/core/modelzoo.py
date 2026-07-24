@@ -373,12 +373,18 @@ def modelzoo_download(items, source="internal"):
     return {"ok": True, "total": len(tasks), "started": True}
 
 
+def _ensure_dir(path):
+    """Create a target dir, following symlinks. assets/models is a symlink into
+    workspace/res; when its target is pruned the link goes dangling, and then
+    Path.mkdir(exist_ok=True) / os.makedirs(exist_ok=True) both raise
+    FileExistsError (exist_ok can't suppress it because is_dir() is False on a
+    dangling link). Resolving to the real target first creates the intended dir."""
+    os.makedirs(os.path.realpath(path), exist_ok=True)
+
+
 def _download_worker(tasks, source):
     """Background worker — download files sequentially (with thread pool for speed)."""
     opener = _make_opener(source)
-
-    MODELS_DIR.mkdir(parents=True, exist_ok=True)
-    QPRO_DIR.mkdir(parents=True, exist_ok=True)
 
     def _dl_one(task):
         if _dl_state["cancel"]:
@@ -389,7 +395,7 @@ def _download_worker(tasks, source):
 
         url = task["url"]
         dest = task["dest"]
-        dest.parent.mkdir(parents=True, exist_ok=True)
+        _ensure_dir(dest.parent)
 
         try:
             with _open(opener, url, 120) as r:
@@ -410,18 +416,30 @@ def _download_worker(tasks, source):
         except Exception as e:
             return {"file": dest.name, "status": "error", "error": str(e)}
 
-    with ThreadPoolExecutor(max_workers=4) as pool:
-        futures = {pool.submit(_dl_one, t): t for t in tasks}
-        for fut in as_completed(futures):
-            res = fut.result()
-            with _dl_lock:
-                _dl_state["results"].append(res)
-                _dl_state["done"] += 1
+    try:
+        # Create the model dirs up front. Do it here (not at module import) so a
+        # failure surfaces as a download error and, via the finally below, never
+        # leaves the state stuck "running" (which would block every later download
+        # with "Download already in progress").
+        _ensure_dir(MODELS_DIR)
+        _ensure_dir(QPRO_DIR)
 
-    with _dl_lock:
-        _dl_state["running"] = False
-        _dl_state["finished"] = True
-        _dl_state["current"] = ""
+        with ThreadPoolExecutor(max_workers=4) as pool:
+            futures = {pool.submit(_dl_one, t): t for t in tasks}
+            for fut in as_completed(futures):
+                res = fut.result()
+                with _dl_lock:
+                    _dl_state["results"].append(res)
+                    _dl_state["done"] += 1
+    except Exception as e:
+        with _dl_lock:
+            _dl_state["results"].append(
+                {"file": "", "status": "error", "error": f"download failed: {e}"})
+    finally:
+        with _dl_lock:
+            _dl_state["running"] = False
+            _dl_state["finished"] = True
+            _dl_state["current"] = ""
 
     _auto_register()
 

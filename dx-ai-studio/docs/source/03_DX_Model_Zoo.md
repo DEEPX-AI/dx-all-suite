@@ -25,6 +25,8 @@ Step 4. **Try it in-browser** — run inference right from the detail view (uplo
 Step 5. Or pull the model into **[DX App](05_DX_App.md)** or **[DX Compiler](04_DX_Compiler.md)**
    (the detail view also links straight to "View Model Graph" and a compile guide).  
 
+![A model's detail view — variant badges (ONNX / Q-Lite / Q-Pro), download and compile / demo actions, Key Facts, the accuracy matrix, and an example result.](resources/modelzoo-detail.png)
+
 ## Key features
 
 - **340+ models** across many vision-AI tasks, with per-category filtering, search, sort,

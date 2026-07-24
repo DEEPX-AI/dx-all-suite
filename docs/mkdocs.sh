@@ -70,6 +70,20 @@ main() {
 
     unset PDF_FILE_PATH
 
+    # Fold the DX AI Studio manual into this build. Those docs live in the sibling
+    # dx-ai-studio tree (their own source of truth + standalone site); copy them into a
+    # temporary source/ai-studio/ so the nav entries resolve, then remove after build.
+    AI_STUDIO_SRC="${PROJECT_ROOT}/dx-ai-studio/docs/source"
+    AI_STUDIO_DST="${SCRIPT_DIR}/source/ai-studio"
+    rm -rf "$AI_STUDIO_DST"
+    if [ -d "$AI_STUDIO_SRC" ]; then
+        mkdir -p "$AI_STUDIO_DST"
+        cp "$AI_STUDIO_SRC"/*.md "$AI_STUDIO_DST"/
+        [ -d "$AI_STUDIO_SRC/resources" ] && cp -r "$AI_STUDIO_SRC/resources" "$AI_STUDIO_DST/resources"
+    else
+        echo -e "${COLOR_YELLOW}WARNING: dx-ai-studio docs not found at $AI_STUDIO_SRC — AI Studio section will be missing${COLOR_RESET}"
+    fi
+
     if [ $USE_SERVE -eq 1 ]; then
         # Run mkdocs build
         mkdocs serve
@@ -80,6 +94,7 @@ main() {
 
     # Clean up
     rm mkdocs.yml
+    rm -rf "$AI_STUDIO_DST"
 }
 
 # parse args

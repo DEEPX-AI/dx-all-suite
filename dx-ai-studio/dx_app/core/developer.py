@@ -56,7 +56,7 @@ def _parse_multipart(handler):
                 files[name]={"filename":m_file.group(1),"data":data}
             else:
                 fields[name]=data.decode("utf-8","replace")
-        except:continue
+        except Exception:continue
     return fields,files
 
 
@@ -537,9 +537,9 @@ def bug_report(model_name=None,error_log=None,model_config=None):
     r={"generated_at":time.strftime("%Y-%m-%d %H:%M:%S"),"system":get_sysinfo(),
        "hw_status":get_hw(),"model_name":model_name,"error_log":error_log,"model_config":model_config}
     try:r["uname"]=subprocess.check_output(["uname","-a"],text=True,timeout=5).strip()
-    except:r["uname"]=platform.uname()._asdict()
+    except Exception:r["uname"]=platform.uname()._asdict()
     try:r["npu_driver"]=subprocess.check_output(["dxrt-cli","--version"],text=True,timeout=5).strip()
-    except:r["npu_driver"]="N/A"
+    except Exception:r["npu_driver"]="N/A"
     ts=time.strftime("%Y%m%d_%H%M%S");dst=OUTPUTS_DIR/f"bugreport_{ts}.json"
     dst.write_text(json.dumps(r,indent=2,default=str));r["saved_to"]=f"outputs/bugreport_{ts}.json"
     return r

@@ -78,6 +78,16 @@
 **All showcases + summaries →** [`dx-agent-dev-showcase/README.md`](./dx-agent-dev-showcase/README.md)  ·  **About the feature →** [Agent-Driven Development docs](./docs/source/00_Agent_Driven_Development.md)
 <!-- dx-showcase:docs:cardgrid:end -->
 
+## ✨ DX AI Studio — dx-ai-studio (Beta)
+
+<div align="center">
+  <img src="./dx-ai-studio/docs/source/resources/hub.png" width="820">
+</div>
+
+**DX AI Studio is here — currently in Beta.** An all-in-one desktop web workspace for building on the DEEPX NPU: eight specialized tools in one browser, launched with a single command — **DX Model Zoo** (model catalog), **DX Compiler** (ONNX/`.pt` → `.dxnn`), **DX App** (inference + one-click **Run Demo**), **DX Stream** (GStreamer pipelines), **DX Benchmark**, **DX Monitor** (live NPU telemetry), **DX EdgeGuide** (deployment planner from measured benchmark data), and **DX Agent Dev** (the agent-driven builder above). Compile a model, run a curated demo, stream a pipeline, and watch NPU utilization live — all on-device.
+
+**Explore the studio →** [`dx-ai-studio/README.md`](./dx-ai-studio/README.md)  ·  **Install & launch →** [Installation and Launch](./dx-ai-studio/docs/source/01_Installation_and_Launch.md)
+
 ## Getting Started
 
 **DX-AllSuite** provides two environments depending on your intended use. Choose the environment that fits your needs to get started.

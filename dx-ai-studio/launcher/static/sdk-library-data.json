@@ -390,69 +390,69 @@
           "icon": "📖",
           "files": [
             {
-              "path": "dx-ai-studio/docs/source/index.md",
-              "title": "Overview",
-              "size": 2268
-            },
-            {
-              "path": "dx-ai-studio/docs/source/docs/01_Installation_and_Launch.md",
+              "path": "dx-ai-studio/docs/source/01_Installation_and_Launch.md",
               "title": "Installation & Launch",
-              "size": 2818
+              "size": 8875
             },
             {
-              "path": "dx-ai-studio/docs/source/docs/02_The_Hub.md",
+              "path": "dx-ai-studio/docs/source/02_The_Hub.md",
               "title": "The Hub",
-              "size": 1985
+              "size": 2999
             },
             {
-              "path": "dx-ai-studio/docs/source/docs/03_DX_Compiler.md",
-              "title": "DX Compiler",
-              "size": 4193
-            },
-            {
-              "path": "dx-ai-studio/docs/source/docs/04_DX_App.md",
-              "title": "DX App",
-              "size": 1706
-            },
-            {
-              "path": "dx-ai-studio/docs/source/docs/05_DX_Stream.md",
-              "title": "DX Stream",
-              "size": 1410
-            },
-            {
-              "path": "dx-ai-studio/docs/source/docs/06_DX_Model_Zoo.md",
+              "path": "dx-ai-studio/docs/source/03_DX_Model_Zoo.md",
               "title": "DX Model Zoo",
-              "size": 1170
+              "size": 1867
             },
             {
-              "path": "dx-ai-studio/docs/source/docs/07_DX_Benchmark.md",
-              "title": "DX Benchmark",
-              "size": 1020
+              "path": "dx-ai-studio/docs/source/04_DX_Compiler.md",
+              "title": "DX Compiler",
+              "size": 4468
             },
             {
-              "path": "dx-ai-studio/docs/source/docs/08_DX_Monitor.md",
+              "path": "dx-ai-studio/docs/source/05_DX_App.md",
+              "title": "DX App",
+              "size": 2108
+            },
+            {
+              "path": "dx-ai-studio/docs/source/06_DX_Stream.md",
+              "title": "DX Stream",
+              "size": 1836
+            },
+            {
+              "path": "dx-ai-studio/docs/source/07_DX_Monitor.md",
               "title": "DX Monitor",
-              "size": 1110
+              "size": 1630
             },
             {
-              "path": "dx-ai-studio/docs/source/docs/09_DX_EdgeGuide.md",
+              "path": "dx-ai-studio/docs/source/08_DX_Benchmark.md",
+              "title": "DX Benchmark",
+              "size": 2523
+            },
+            {
+              "path": "dx-ai-studio/docs/source/09_DX_EdgeGuide.md",
               "title": "DX EdgeGuide",
-              "size": 2805
+              "size": 3271
             },
             {
-              "path": "dx-ai-studio/docs/source/docs/10_DX_Agent_Dev.md",
+              "path": "dx-ai-studio/docs/source/10_DX_Agent_Dev.md",
               "title": "DX Agent Dev",
-              "size": 1527
+              "size": 2959
             },
             {
-              "path": "dx-ai-studio/docs/source/docs/11_SDK_Library_and_About.md",
+              "path": "dx-ai-studio/docs/source/11_SDK_Library_and_About.md",
               "title": "SDK Library & About",
-              "size": 1289
+              "size": 2959
             },
             {
-              "path": "dx-ai-studio/docs/source/docs/Appendix_Change_Log.md",
+              "path": "dx-ai-studio/docs/source/12_Appendix_Third_Party_License.md",
+              "title": "Third-Party License",
+              "size": 2440
+            },
+            {
+              "path": "dx-ai-studio/docs/source/Appendix_Change_Log.md",
               "title": "Change Log",
-              "size": 577
+              "size": 616
             }
           ]
         }

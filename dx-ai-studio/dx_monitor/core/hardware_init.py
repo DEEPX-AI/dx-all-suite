@@ -14,9 +14,13 @@ _dx_ok = False
 _NPU_STATS_BIN = SCRIPT_DIR / "dx_npu_stats"
 
 if not _NPU_STATS_BIN.exists():
-    _alt = DX_APP_ROOT / "core" / "dx_npu_stats"
-    if _alt.exists():
-        _NPU_STATS_BIN = _alt
+    # The helper binary lives in dx_app (dx_app/dx_npu_stats — same path dx_app's own
+    # config.py resolves). The earlier DX_APP_ROOT/core/ fallback never matched, so the
+    # DX Monitor tab always reported empty utilization even on a working NPU board.
+    for _alt in (DX_APP_ROOT / "dx_npu_stats", DX_APP_ROOT / "core" / "dx_npu_stats"):
+        if _alt.exists():
+            _NPU_STATS_BIN = _alt
+            break
 
 
 def _try_import_dx():

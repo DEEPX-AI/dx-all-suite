@@ -78,6 +78,16 @@
 **전체 showcase 목록 + 요약 →** [`dx-agent-dev-showcase/README-ko.md`](./dx-agent-dev-showcase/README-ko.md)  ·  **기능 설명 →** [Agent-Driven Development 문서](./docs/source/00_Agent_Driven_Development_kor.md)
 <!-- dx-showcase:docs:cardgrid:end -->
 
+## ✨ DX AI Studio — dx-ai-studio (Beta)
+
+<div align="center">
+  <img src="./dx-ai-studio/docs/source/resources/hub.png" width="820">
+</div>
+
+**DX AI Studio 출시 — 현재 Beta 버전입니다.** DEEPX NPU 위에서 개발하기 위한 올인원 desktop web workspace로, 8개의 전문 도구를 브라우저 하나에서 단일 명령으로 실행합니다 — **DX Model Zoo**(모델 카탈로그), **DX Compiler**(ONNX/`.pt` → `.dxnn`), **DX App**(추론 + 원클릭 **Run Demo**), **DX Stream**(GStreamer 파이프라인), **DX Benchmark**, **DX Monitor**(실시간 NPU telemetry), **DX EdgeGuide**(실측 benchmark 데이터 기반 배포 플래너), **DX Agent Dev**(위의 agent-driven builder). 모델을 컴파일하고, 큐레이션된 demo를 실행하고, 파이프라인을 스트리밍하고, NPU 사용률을 실시간으로 확인 — 모두 on-device로 이루어집니다.
+
+**스튜디오 살펴보기 →** [`dx-ai-studio/README.md`](./dx-ai-studio/README.md)  ·  **설치 및 실행 →** [Installation and Launch](./dx-ai-studio/docs/source/01_Installation_and_Launch.md)
+
 ## 시작하기
 
 **DX-AllSuite**는 사용 목적에 따라 두 가지 환경을 제공합니다. 필요에 맞는 환경을 선택해 시작하세요.

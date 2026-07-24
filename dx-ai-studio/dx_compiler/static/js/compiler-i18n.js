@@ -243,6 +243,27 @@ window._DX_I18N_DICT = {
     'zh-TW': '輸出目錄 *',
     es: 'Directorio de salida *',
   },
+  'Browse folder': {
+    ko: '폴더 찾아보기',
+    ja: 'フォルダを参照',
+    'zh-CN': '浏览文件夹',
+    'zh-TW': '瀏覽資料夾',
+    es: 'Explorar carpeta',
+  },
+  'new folder name': {
+    ko: '새 폴더 이름',
+    ja: '新しいフォルダ名',
+    'zh-CN': '新文件夹名称',
+    'zh-TW': '新資料夾名稱',
+    es: 'nombre de carpeta',
+  },
+  'No subfolders': {
+    ko: '하위 폴더 없음',
+    ja: 'サブフォルダなし',
+    'zh-CN': '无子文件夹',
+    'zh-TW': '無子資料夾',
+    es: 'Sin subcarpetas',
+  },
   'Optimization Level': {
     ko: '최적화 수준',
     ja: '最適化レベル',
