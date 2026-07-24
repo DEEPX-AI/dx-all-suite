@@ -86,12 +86,10 @@ const PlannerWorkspace = {
 
     if (this.recommendSummary) {
       const meets = results.filter(r => r.meetsRequirement).length;
-      const theoretical = results.filter(r => r.boundaryFlag === 'theoretical').length;
       const insufficient = Math.max(results.length - meets, 0);
       this.recommendSummary.innerHTML = [
         this._summaryChip('Meets', meets),
         this._summaryChip('Insufficient', insufficient),
-        this._summaryChip('Theoretical', theoretical),
       ].join('');
     }
 
@@ -123,17 +121,15 @@ const PlannerWorkspace = {
     const name = top.platform.npu.model + ' + ' + top.platform.host.name;
     const channels = this._formatChannels(top.maxChannels, top.boundaryFlag);
     const meets = top.meetsRequirement;
-    const theoretical = top.boundaryFlag === 'theoretical' || top.boundaryFlag === 'interpolated';
-    const evidence = top.boundaryFlag === 'theoretical'
-      ? '<span class="ko">(이론 추정)</span><span class="en">(theoretical)</span><span class="ja">(理論)</span><span class="zh-CN">(理论)</span><span class="zh-TW">(理論)</span><span class="es">(teórico)</span>'
-      : top.boundaryFlag === 'interpolated'
-        ? '<span class="ko">(보간 추정)</span><span class="en">(interpolated)</span><span class="ja">(補間)</span><span class="zh-CN">(插值)</span><span class="zh-TW">(插值)</span><span class="es">(interpolado)</span>'
-        : top.boundaryFlag === 'host-limited'
-          ? '<span class="ko">(CPU 한계)</span><span class="en">(host-limited)</span><span class="ja">(CPU制限)</span><span class="zh-CN">(CPU受限)</span><span class="zh-TW">(CPU受限)</span><span class="es">(CPU limitado)</span>'
-          : top.boundaryFlag === 'thermal'
-            ? '<span class="ko">(스로틀)</span><span class="en">(throttled)</span><span class="ja">(スロットル)</span><span class="zh-CN">(降频)</span><span class="zh-TW">(降頻)</span><span class="es">(limitado)</span>'
-            : '<span class="ko">(실측)</span><span class="en">(measured)</span><span class="ja">(実測)</span><span class="zh-CN">(实测)</span><span class="zh-TW">(實測)</span><span class="es">(medido)</span>';
-    const effective = top.effectiveTargetFps || inputs.targetFps;
+    // boundaryFlag is measured-only now. '+' means even the top tested stream
+    // sustained, so the real ceiling is "at least this many".
+    const evidence = top.boundaryFlag === '+'
+      ? '<span class="ko">(실측 상한+)</span><span class="en">(measured, likely higher)</span><span class="ja">(実測上限+)</span><span class="zh-CN">(实测上限+)</span><span class="zh-TW">(實測上限+)</span><span class="es">(medido, probablemente más)</span>'
+      : '<span class="ko">(실측)</span><span class="en">(measured)</span><span class="ja">(実測)</span><span class="zh-CN">(实测)</span><span class="zh-TW">(實測)</span><span class="es">(medido)</span>';
+    // Informational: where the NPU starts to throttle (never affects ranking).
+    const throttleNote = top.throttleOnset
+      ? '<span class="ko"> · ' + top.throttleOnset + '채널↑ throttle</span><span class="en"> · throttles at ' + top.throttleOnset + '+ ch</span><span class="ja"> · ' + top.throttleOnset + 'ch↑ スロットル</span><span class="zh-CN"> · ' + top.throttleOnset + ' 路↑ 降频</span><span class="zh-TW"> · ' + top.throttleOnset + ' 路↑ 降頻</span><span class="es"> · limita desde ' + top.throttleOnset + ' ch</span>'
+      : '';
 
     el.hidden = false;
     el.classList.remove('verdict-meets', 'verdict-insufficient', 'verdict-empty');
@@ -153,12 +149,13 @@ const PlannerWorkspace = {
           ' <span class="verdict-evidence">' + evidence + '</span>' +
         '</p>' +
         '<p class="verdict-sub txt-dim txt-sm">' +
-          '<span class="ko">목표 ' + inputs.targetFps + ' FPS + headroom → 유효 ' + effective + ' FPS · 최대 ' + channels + '채널</span>' +
-          '<span class="en">Target ' + inputs.targetFps + ' FPS + headroom → effective ' + effective + ' FPS · up to ' + channels + ' ch</span>' +
-          '<span class="ja">目標 ' + inputs.targetFps + ' FPS + headroom → 実効 ' + effective + ' FPS · 最大 ' + channels + 'ch</span>' +
-          '<span class="zh-CN">目标 ' + inputs.targetFps + ' FPS + headroom → 有效 ' + effective + ' FPS · 最多 ' + channels + ' 路</span>' +
-          '<span class="zh-TW">目標 ' + inputs.targetFps + ' FPS + headroom → 有效 ' + effective + ' FPS · 最多 ' + channels + ' 路</span>' +
-          '<span class="es">Objetivo ' + inputs.targetFps + ' FPS + headroom → efectivo ' + effective + ' FPS · hasta ' + channels + ' ch</span>' +
+          '<span class="ko">목표 ' + inputs.targetFps + ' FPS · 최대 ' + channels + '채널</span>' +
+          '<span class="en">Target ' + inputs.targetFps + ' FPS · up to ' + channels + ' ch</span>' +
+          '<span class="ja">目標 ' + inputs.targetFps + ' FPS · 最大 ' + channels + 'ch</span>' +
+          '<span class="zh-CN">目标 ' + inputs.targetFps + ' FPS · 最多 ' + channels + ' 路</span>' +
+          '<span class="zh-TW">目標 ' + inputs.targetFps + ' FPS · 最多 ' + channels + ' 路</span>' +
+          '<span class="es">Objetivo ' + inputs.targetFps + ' FPS · hasta ' + channels + ' ch</span>' +
+          throttleNote +
         '</p>';
     } else {
       el.innerHTML =

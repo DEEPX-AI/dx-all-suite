@@ -9,7 +9,6 @@ const WizardController = {
     targetFps: 30,
     priority: 'channels',
     ort: true,
-    fpsHeadroom: 0.1,
     maxLatencyMs: null,
   },
 
@@ -113,14 +112,6 @@ const WizardController = {
   },
 
   _bindAdvancedSettings() {
-    const headroomSelect = document.getElementById('fpsHeadroom');
-    if (headroomSelect) {
-      headroomSelect.addEventListener('change', () => {
-        this._state.fpsHeadroom = parseFloat(headroomSelect.value);
-        this._notifyChange();
-      });
-    }
-
     const presetSelect = document.getElementById('maxLatencyPreset');
     if (presetSelect) {
       presetSelect.addEventListener('change', () => {
@@ -283,9 +274,6 @@ const WizardController = {
     const ortBtn = document.querySelector(`.ort-btn[data-ort="${this._state.ort}"]`);
     if (ortBtn) ortBtn.classList.add('selected');
 
-    const headroomSelect = document.getElementById('fpsHeadroom');
-    if (headroomSelect) headroomSelect.value = String(this._state.fpsHeadroom);
-
     this._syncMaxLatencyControls();
   },
 
@@ -293,7 +281,7 @@ const WizardController = {
     return { ...this._state };
   },
 
-  setInputs({ task, size, cameras, targetFps, ort, fpsHeadroom, maxLatencyMs, priority }) {
+  setInputs({ task, size, cameras, targetFps, ort, maxLatencyMs, priority }) {
     let changed = false;
     if (priority !== undefined) {
       changed = changed || this._state.priority !== priority;
@@ -336,12 +324,6 @@ const WizardController = {
       document.querySelectorAll('.ort-btn').forEach(b => b.classList.remove('selected'));
       const btn = document.querySelector(`.ort-btn[data-ort="${ort}"]`);
       if (btn) btn.classList.add('selected');
-    }
-    if (fpsHeadroom !== undefined && !isNaN(fpsHeadroom)) {
-      changed = changed || this._state.fpsHeadroom !== fpsHeadroom;
-      this._state.fpsHeadroom = fpsHeadroom;
-      const sel = document.getElementById('fpsHeadroom');
-      if (sel) sel.value = String(fpsHeadroom);
     }
     if (maxLatencyMs !== undefined) {
       changed = changed || this._state.maxLatencyMs !== maxLatencyMs;

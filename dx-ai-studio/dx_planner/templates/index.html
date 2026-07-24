@@ -93,6 +93,10 @@
           <button type="button" class="scenario-chip" data-preset="pose">
             <span class="ko">2채널 포즈 30FPS</span><span class="en">2-ch pose 30FPS</span><span class="ja">2ch ポーズ 30FPS</span><span class="zh-CN">2路姿态30FPS</span><span class="zh-TW">2路姿態30FPS</span><span class="es">2 canales pose 30FPS</span>
           </button>
+          <button type="button" class="scenario-chip scenario-chip-reset" id="btnStartOver" data-help-id="planner-start-over">
+            <span aria-hidden="true">🔄</span>
+            <span class="ko">처음부터</span><span class="en">Start over</span><span class="ja">最初から</span><span class="zh-CN">重新开始</span><span class="zh-TW">重新開始</span><span class="es">Empezar de nuevo</span>
+          </button>
         </div>
 
         <div class="panel-kicker">
@@ -202,17 +206,6 @@
               <button type="button" class="ort-btn selected" data-ort="true">ONNX Runtime</button>
               <button type="button" class="ort-btn" data-ort="false">Native</button>
             </div>
-          </div>
-          <div class="ops-row">
-            <label class="ops-label" for="fpsHeadroom">
-              <span class="ko">FPS 여유</span><span class="ja">FPSヘッドルーム</span><span class="zh-CN">FPS 余量</span><span class="zh-TW">FPS 餘量</span><span class="en">FPS headroom</span><span class="es">Margen FPS</span>
-            </label>
-            <select id="fpsHeadroom" class="ops-select" data-help-id="planner-fps-headroom">
-              <option value="0">0%</option>
-              <option value="0.05">5%</option>
-              <option value="0.1" selected>10%</option>
-              <option value="0.15">15%</option>
-            </select>
           </div>
           <div class="ops-row">
             <label class="ops-label" for="maxLatencyMs">
@@ -424,29 +417,36 @@
 
         <section class="cfg-card methodology-card">
           <h3 class="card-title"><span class="ko">2. 최대 채널</span><span class="en">2. Max channels</span><span class="ja">2. 最大チャンネル</span><span class="zh-CN">2. 最大通道</span><span class="zh-TW">2. 最大通道</span><span class="es">2. Canales máx.</span></h3>
-          <pre class="methodology-formula">effectiveTarget = targetFps × (1 + headroom)
-maxChannels = max stream_count where per_channel_fps ≥ effectiveTarget</pre>
+          <pre class="methodology-formula">maxChannels = max stream_count where
+              per_channel_fps ≥ targetFps
+              AND NOT npu_throttled</pre>
           <p class="txt-sm txt-dim">
-            <span class="ko">실측 multi-stream 데이터로 뒷받침되는 추천만 표시합니다 — 보간·이론 추정치는 제외됩니다.</span>
-            <span class="en">Only recommendations backed by measured multi-stream data are shown — interpolated / theoretical estimates are excluded.</span>
-            <span class="ja">実測 multi-stream データに基づく推奨のみを表示します — 補間・理論推定は除外されます。</span>
-            <span class="zh-CN">仅显示有实测 multi-stream 数据支撑的推荐——排除插值/理论估算。</span>
-            <span class="zh-TW">僅顯示有實測 multi-stream 資料支撐的推薦——排除插值/理論估算。</span>
-            <span class="es">Solo se muestran recomendaciones respaldadas por mediciones multi-stream; se excluyen las estimaciones interpoladas o teóricas.</span>
+            <span class="ko">실측 multi-stream 지점 중 목표 FPS를 지속하고 <strong>throttle이 없는</strong> 최대 채널만 셉니다. throttle이 발생한 지점은 "지속 불가"로 보고 제외하며, 추정(보간·이론)은 하지 않습니다.</span>
+            <span class="en">Counts the largest measured stream that holds target FPS <strong>without throttling</strong>. Points where the NPU throttled are excluded as unsustainable; no interpolated or theoretical estimates are used.</span>
+            <span class="ja">目標FPSを維持し<strong>throttleが発生しない</strong>実測ストリームの最大チャンネルのみを数えます。throttleした点は「持続不可」として除外し、推定（補間・理論）は行いません。</span>
+            <span class="zh-CN">仅统计维持目标 FPS 且<strong>未降频</strong>的最大实测流。降频点视为不可持续而排除，不做插值/理论估算。</span>
+            <span class="zh-TW">僅統計維持目標 FPS 且<strong>未降頻</strong>的最大實測串流。降頻點視為不可持續而排除，不做插值/理論估算。</span>
+            <span class="es">Cuenta el mayor stream medido que mantiene el FPS objetivo <strong>sin throttling</strong>. Los puntos con throttling se excluyen como no sostenibles; no se usan estimaciones interpoladas ni teóricas.</span>
           </p>
         </section>
 
         <section class="cfg-card methodology-card">
           <h3 class="card-title"><span class="ko">3. 충족 조건</span><span class="en">3. Meets requirement</span><span class="ja">3. 充足条件</span><span class="zh-CN">3. 满足条件</span><span class="zh-TW">3. 滿足條件</span><span class="es">3. Cumple requisito</span></h3>
           <pre class="methodology-formula">meets = (maxChannels ≥ cameras)
-     && (latency_ms ≤ maxLatencyMs if set)
-     && !npu_throttled at scenario row
-     && avg_cpu_pct ≤ 400% at scenario row</pre>
+     && (latency_ms ≤ maxLatencyMs if set)</pre>
+          <p class="txt-sm txt-dim">
+            <span class="ko">throttle는 maxChannels 계산에서 이미 제외되므로 충족 조건은 채널 수와 latency만 봅니다.</span>
+            <span class="en">Throttling is already excluded when computing maxChannels, so the requirement check only looks at channel count and latency.</span>
+            <span class="ja">throttle は maxChannels の計算で既に除外されるため、充足条件はチャンネル数とレイテンシのみを見ます。</span>
+            <span class="zh-CN">降频已在计算 maxChannels 时排除，因此满足条件仅看通道数与延迟。</span>
+            <span class="zh-TW">降頻已在計算 maxChannels 時排除，因此滿足條件僅看通道數與延遲。</span>
+            <span class="es">El throttling ya se excluye al calcular maxChannels, por lo que el requisito solo considera canales y latencia.</span>
+          </p>
         </section>
 
         <section class="cfg-card methodology-card">
           <h3 class="card-title"><span class="ko">4. 정렬</span><span class="en">4. Sorting</span><span class="ja">4. 並び替え</span><span class="zh-CN">4. 排序</span><span class="zh-TW">4. 排序</span><span class="es">4. Orden</span></h3>
-          <pre class="methodology-formula">sort: meets → confidence → priority → maxChannels</pre>
+          <pre class="methodology-formula">sort: meets → priority → maxChannels → throughput</pre>
           <p class="txt-sm txt-dim">
             <span class="ko">채널·FPS는 해당 벤치마크 구성(호스트+NPU) 실측입니다. 가격은 DEEPX에 문의하세요.</span>
             <span class="en">Channels and FPS come from that benchmark system (host + NPU). Contact DEEPX for pricing.</span>
@@ -476,6 +476,14 @@ maxChannels = max stream_count where per_channel_fps ≥ effectiveTarget</pre>
             <span class="zh-CN">显示的通道数仅为<strong>实测 multi-stream</strong> 数值。目标条件下无实测数据的平台不显示（不做估算）。</span>
             <span class="zh-TW">顯示的通道數僅為<strong>實測 multi-stream</strong> 數值。目標條件下無實測資料的平台不顯示（不做估算）。</span>
             <span class="es">Los canales mostrados son solo cifras <strong>multi-stream medidas</strong>. Las plataformas sin datos medidos para su objetivo se omiten en lugar de estimarse.</span>
+          </li>
+          <li>
+            <span class="ko">벤치마크는 <strong>목표 FPS 30 부근</strong>에서 측정되었습니다. 목표 FPS를 크게 다르게 잡으면 실측 범위를 벗어나 채널 수 정확도가 제한될 수 있습니다.</span>
+            <span class="en">Benchmarks were measured <strong>around 30 FPS</strong>. Setting a target FPS far from that falls outside the measured range and may limit channel-count accuracy.</span>
+            <span class="ja">ベンチマークは<strong>目標 30 FPS 付近</strong>で測定されています。目標 FPS を大きく変えると実測範囲を外れ、チャンネル数の精度が制限される場合があります。</span>
+            <span class="zh-CN">基准在<strong>约 30 FPS</strong> 下测得。目标 FPS 偏离过大将超出实测范围，可能影响通道数精度。</span>
+            <span class="zh-TW">基準在<strong>約 30 FPS</strong> 下測得。目標 FPS 偏離過大將超出實測範圍，可能影響通道數精度。</span>
+            <span class="es">Los benchmarks se midieron <strong>en torno a 30 FPS</strong>. Un FPS objetivo muy distinto queda fuera del rango medido y puede limitar la precisión del número de canales.</span>
           </li>
           <li>
             <span class="ko">벤치마크는 YOLO26 + DX Benchmark matrix 기준이며, 카메라 codec·전처리·후처리·멀티 모델 파이프라인은 포함하지 않습니다.</span>

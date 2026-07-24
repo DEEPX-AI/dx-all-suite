@@ -113,6 +113,7 @@ def _validate_inference_payload(data, live=False):
         return _error_payload(_validation_error_key(msg), msg), code
     return None, None
 from dx_app.core.models import get_models, get_model_info
+from dx_app.core.demos import build_demos_payload
 from dx_app.core.assets import get_file_content, get_images, get_videos, list_outputs, delete_output
 from dx_app.core.inference import (run_inference, stop_inference, run_multi, list_cameras,
                       run_inference_live, poll_inference, stop_inference_live,
@@ -135,7 +136,7 @@ def _json_bool(value, default=False):
 from shared.chat import ChatEngine
 from dx_app.core.modelzoo_gateway import ModelZooGateway
 from dx_app.core.filesystem import fs_list
-from dx_app.core.setup_steps import SETUP_STEPS, setup_status, setup_run, deep_diagnostics, setup_log, setup_input
+from dx_app.core.setup_steps import SETUP_STEPS, setup_status, setup_run, deep_diagnostics, setup_log, setup_input, quick_start_plan
 from dx_app.core.developer import (lab_session, lab_check, require_lab, _check_origin_local, dev_add,
                        dev_delete, dev_git, dev_extract, extract_model_package,
                        dev_new_task, bug_report, save_capture)
@@ -247,6 +248,7 @@ class Handler(DXBaseHandler):
                     self.send_error(403);return
                 return self.send_file(safe_fp)
             if path=="/api/models":return self.send_json(get_models())
+            if path=="/api/demos":return self.send_json(build_demos_payload())
             if path=="/api/model_info":
                 n=self.read_query_param("name")
                 return self.send_json(get_model_info(n) if n else{"error":"name required"},400 if not n else 200)
@@ -267,6 +269,7 @@ class Handler(DXBaseHandler):
             if path=="/api/live_result":return self.send_json(get_inference_result(self.read_query_param("id")))
             if path=="/api/live_frame":return self._mjpeg_stream()
             if path=="/api/setup/status":return self.send_json(setup_status())
+            if path=="/api/setup/quick-start-plan":return self.send_json({"plan":quick_start_plan()})
             if path=="/api/setup/log":return self.send_json(setup_log())
             if path=="/api/setup/diagnostics":return self.send_json(deep_diagnostics())
             if path=="/api/modelzoo/list":return self.send_json(_modelzoo_gw.list_models(self.read_query_param("source","public")))

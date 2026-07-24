@@ -34,13 +34,6 @@ window._DX_I18N_DICT = {
   'Lowest Power': { ko: '최저 전력', ja: '最低電力', 'zh-CN': '最低功耗', 'zh-TW': '最低功耗',es:'Potencia más baja'},
   'Minimize power usage': { ko: '전력 소비 최소화', ja: '消費電力の最小化', 'zh-CN': '最小化功耗', 'zh-TW': '最小化功耗',es:'Minimizar uso de energía'},
   'Get Recommendations': { ko: '추천 받기', ja: '推奨を取得', 'zh-CN': '获取推荐', 'zh-TW': '取得推薦',es:'Obtener recomendaciones'},
-  '60FPS mode: Some platforms show theoretical figures.': {
-    ko: '60FPS 모드: 일부 플랫폼은 이론적 수치입니다.',
-    ja: '60FPS モード：一部プラットフォームは理論値を表示します。',
-    'zh-CN': '60FPS 模式：部分平台显示理论数值。',
-    'zh-TW': '60FPS 模式：部分平台顯示理論數值。',
-    es: 'Modo 60FPS: Algunas plataformas muestran cifras teóricas.',
-  },
   'Performance Radar': { ko: '성능 레이더', ja: 'パフォーマンスレーダー', 'zh-CN': '性能雷达图', 'zh-TW': '效能雷達圖',es:'Radar de rendimiento'},
   'Back to Recommendations': { ko: '추천 목록으로', ja: '推奨一覧に戻る', 'zh-CN': '返回推荐列表', 'zh-TW': '返回推薦列表',es:'Volver a recomendaciones'},
   'Details': { ko: '상세', ja: '詳細', es: 'Detalles', 'zh-CN': '详情', 'zh-TW': '詳情' },

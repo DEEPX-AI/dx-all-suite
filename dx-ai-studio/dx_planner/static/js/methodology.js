@@ -59,8 +59,6 @@ const MethodologyDialog = {
     }
 
     const top = results[0];
-    const headroomPct = Math.round((inputs.fpsHeadroom != null ? inputs.fpsHeadroom : 0.1) * 100);
-    const effective = top.effectiveTargetFps || inputs.targetFps;
     const flag = top.boundaryFlag || 'measured';
 
     this.liveSummary.hidden = false;
@@ -71,8 +69,7 @@ const MethodologyDialog = {
       '</p>' +
       '<ul class="methodology-live-list">' +
         '<li><code>yolo26' + this._esc(inputs.size) + '</code> · ' + this._esc(inputs.task) +
-          ' · ' + inputs.cameras + ' ch · ' + inputs.targetFps + ' FPS' +
-          ' (+ ' + headroomPct + '% → ' + effective + ' FPS effective)</li>' +
+          ' · ' + inputs.cameras + ' ch · ' + inputs.targetFps + ' FPS</li>' +
         '<li><span class="ko">1순위</span><span class="en">Top pick</span>: ' +
           this._esc(top.platform.npu.model + ' + ' + top.platform.host.name) +
           ' — max ' + top.maxChannels + ' ch · ' + flag + '</li>' +

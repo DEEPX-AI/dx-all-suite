@@ -1,6 +1,6 @@
 
 var SETUP={running:false,pollTimer:null,activeStep:null,_stdinManual:false,completedSteps:{}};
-var SETUP_SUDO_STEPS={'dx-app-deps':true,'dx-app-build':true,'dx-rt-deps':true,'dx-driver':true};
+var SETUP_SUDO_STEPS={'dx-app-deps':true,'dx-app-build':true,'dx-rt-deps':true,'dx-rt-build':true,'dx-driver':true};
 
 // Live-log renderers (formerly in compiler.js; the Setup page reuses them for step logs).
 function compColorLog(text){
@@ -30,7 +30,7 @@ function setupInit(){setupCheckAll();setupLoadVersions();}
 async function setupCheckAll(){
   try{
     var r=await api('/api/setup/status');
-    ['dx-app-deps','dx-app-build','dx-app-setup','dx-rt-deps','dx-driver'].forEach(function(id){
+    ['dx-app-deps','dx-rt-deps','dx-rt-build','dx-driver','dx-app-build','dx-app-setup'].forEach(function(id){
       var s=r[id];if(!s)return;
       var locallyDone=SETUP.completedSteps&&SETUP.completedSteps[id];
       var badge=$('setup-badge-'+id);
@@ -92,7 +92,7 @@ function setupPromptSudoPassword(authFailed){
   });
 }
 async function _setupDoRun(stepId,params){
-  if(SETUP.running){toast(_T5('다른 작업이 이미 실행 중입니다','Another task is already running','別のタスクが実行中です','另一个任务正在运行','另一個任務正在執行'),'err');return{busy:true};}
+  if(SETUP.running){toast(_T6('다른 작업이 이미 실행 중입니다','Another task is already running','別のタスクが実行中です','另一个任务正在运行','另一個任務正在執行','Otra tarea ya está en ejecución'),'err');return{busy:true};}
   SETUP.running=true;SETUP.activeStep=stepId;
   var stopBtn=$('setup-stop-btn');if(stopBtn)stopBtn.style.display='';
   SETUP._renderedLogText='';
@@ -112,7 +112,7 @@ async function _setupDoRun(stepId,params){
   if(!r.ok&&!r.started){
     SETUP.running=false;
     if(stopBtn)stopBtn.style.display='none';
-    toast(_T5('실행 실패: ','Run failed: ','実行失敗: ','运行失败: ','執行失敗: ')+(r.error||''),'err');
+    toast(_T6('실행 실패: ','Run failed: ','実行失敗: ','运行失败: ','執行失敗: ','Error al ejecutar: ')+(r.error||''),'err');
     if(rs){rs.className='comp-status-badge cs-err';rs.textContent='❌ '+_T5('실패','Failed','失敗','失败','失敗');}
     return{error:r.error||'failed'};
   }
@@ -135,7 +135,7 @@ function setupPollLog(){
       var rs=$('setup-run-status');
       var completedStep=SETUP.activeStep;
       if(r.exit_code===0){
-        toast('✅ '+(SETUP.activeStep||'task')+_T5(' 완료!',' complete!',' 完了!',' 完成!',' 완成!'),'ok');
+        toast('✅ '+(SETUP.activeStep||'task')+_T6(' 완료!',' complete!',' 完了!',' 完成!',' 完成!',' ¡completo!'),'ok');
         if(rs){rs.className='comp-status-badge cs-ok';rs.textContent='✅ '+_T5('완료','Done','完了','完成','完成');}
         setupMarkStepDone(completedStep);
         SETUP._lastExitCode=0;
@@ -143,7 +143,7 @@ function setupPollLog(){
         if(rs){rs.className='comp-status-badge cs-warn';rs.textContent='⏹ '+_T5('중단됨','Stopped','中断','已中断','已中斷');}
         SETUP._lastExitCode=130;
       }else{
-        toast(_T5('❌ 실패 (종료 ','❌ Failed (exit ','❌ 失敗 (終了 ','❌ 失败 (退出 ','❌ 失敗 (結束 ')+r.exit_code+')','err');
+        toast(_T6('❌ 실패 (종료 ','❌ Failed (exit ','❌ 失敗 (終了 ','❌ 失败 (退出 ','❌ 失敗 (結束 ','❌ Error (salida ')+r.exit_code+')','err');
         if(rs){rs.className='comp-status-badge cs-err';rs.textContent='❌ '+_T5('실패','Failed','失敗','失败','失敗')+' (exit '+r.exit_code+')';}
         SETUP._lastExitCode=r.exit_code;
       }
@@ -244,58 +244,125 @@ async function runDiagnostics(){
   }
 }
 
-/* ── Run All ── */
-async function setupRunAll() {
-  var btn=$('setup-run-all');
-  var prog=$('setup-run-all-progress');
-  if(SETUP.running){toast(_T5('다른 작업이 이미 실행 중입니다','Another task is already running','別のタスクが実行中です','另一个任务正在运行','另一個任務正在執行'),'err');return;}
-  var STEPS=['dx-app-deps','dx-app-build','dx-app-setup','dx-rt-deps','dx-driver'];
+/* ── Shared sequencing core (Run All + Demo Quick Start both run through this) ──
+ * Runs `steps` in order into the SAME #setup-log / sudo-prompt / poll machinery
+ * used by a single setupRun() call (_setupDoRun + setupPollLog). One sudo prompt
+ * upfront covers every sudo-requiring step in the list; a wrong password re-prompts
+ * and retries the step it failed on (same UX as the original Run All).
+ * opts:
+ *   progressEl      — optional element updated with "n/len" while running
+ *   extraParamsFor  — optional fn(stepId)->object merged into that step's run params
+ *                      (Demo Quick Start uses this to pass {demo_only:true} for
+ *                      'dx-app-setup' only — every other step is unchanged)
+ * Returns one of: {completed:true} | {cancelled:true} | {error} | {failed:true,stepId,stoppedAt}
+ */
+async function _setupRunSequence(steps, opts) {
+  opts=opts||{};
+  var progressEl=opts.progressEl;
+  var extraParamsFor=opts.extraParamsFor||function(){return{};};
   var sudoPassword=null;
-  if(STEPS.some(function(id){return SETUP_SUDO_STEPS[id];})){
+  if(steps.some(function(id){return SETUP_SUDO_STEPS[id];})){
     sudoPassword=await setupPromptSudoPassword();
-    if(sudoPassword===null){toast(_T5('취소됨','Cancelled','キャンセル','已取消','已取消'),'warn');return;}
+    if(sudoPassword===null){toast(_T6('취소됨','Cancelled','キャンセル','已取消','已取消','Cancelado'),'warn');return{cancelled:true};}
   }
-  btn.disabled=true;
   var i;
-  for(i=0;i<STEPS.length;i++){
-    prog.style.display='';
-    prog.textContent=_T5('실행 중…','Running…','実行中…','运行中…','執行中…')+' '+(i+1)+'/'+STEPS.length;
+  for(i=0;i<steps.length;i++){
+    if(progressEl){
+      progressEl.style.display='';
+      progressEl.textContent=_T6('실행 중…','Running…','実行中…','运行中…','執行中…','Ejecutando…')+' '+(i+1)+'/'+steps.length;
+    }
     SETUP._lastExitCode=null;
-    var needsSudo=!!SETUP_SUDO_STEPS[STEPS[i]];
+    var needsSudo=!!SETUP_SUDO_STEPS[steps[i]];
+    var params=Object.assign({},extraParamsFor(steps[i]));
+    if(needsSudo)params.password=sudoPassword;
     var startRes,cancelled=false;
     while(true){
-      startRes=await _setupDoRun(STEPS[i],needsSudo?{password:sudoPassword}:{});
+      startRes=await _setupDoRun(steps[i],params);
       if(startRes&&startRes.sudo_auth){  // wrong sudo password → re-prompt + retry this step
         var npw=await setupPromptSudoPassword(true);
         if(npw===null){cancelled=true;break;}
         sudoPassword=npw;
+        params.password=sudoPassword;
         continue;
       }
       break;
     }
-    if(cancelled){toast(_T5('취소됨','Cancelled','キャンセル','已取消','已取消'),'warn');break;}
-    if(startRes&&startRes.error)break;  // start failed (non-auth) — _setupDoRun already toasted
+    if(cancelled){toast(_T6('취소됨','Cancelled','キャンセル','已取消','已取消','Cancelado'),'warn');return{cancelled:true,stoppedAt:i};}
+    if(startRes&&startRes.error)return{error:startRes.error,stoppedAt:i};  // _setupDoRun already toasted
     while(SETUP.running){await new Promise(function(r){setTimeout(r,1500)});}
     await setupCheckAll();
-    if(SETUP._lastExitCode===0)setupMarkStepDone(STEPS[i]);
-    if(SETUP._lastExitCode!==0){
-      toast(_T5('전체 실행 중단','Run All stopped','全実行中断','全部执行中断','全部執行中斷')+' — '+STEPS[i],'err');
-      break;
-    }
+    if(SETUP._lastExitCode===0)setupMarkStepDone(steps[i]);
+    if(SETUP._lastExitCode!==0)return{failed:true,stepId:steps[i],stoppedAt:i};
   }
-  sudoPassword=null;
+  return{completed:true};
+}
+
+/* ── Run All ── */
+async function setupRunAll() {
+  var btn=$('setup-run-all');
+  var prog=$('setup-run-all-progress');
+  if(SETUP.running){toast(_T6('다른 작업이 이미 실행 중입니다','Another task is already running','別のタスクが実行中です','另一个任务正在运行','另一個任務正在執行','Otra tarea ya está en ejecución'),'err');return;}
+  var STEPS=['dx-app-deps','dx-rt-deps','dx-rt-build','dx-driver','dx-app-build','dx-app-setup'];
+  btn.disabled=true;
+  var res=await _setupRunSequence(STEPS,{progressEl:prog});
   btn.disabled=false;
   prog.style.display='none';
-  if(i===STEPS.length)toast(_T5('전체 실행 완료!','Run All complete!','全実行完了!','全部执行完成!','全部執行完成!'),'ok');
+  if(res&&res.completed)toast(_T6('전체 실행 완료!','Run All complete!','全実行完了!','全部执行完成!','全部執行完成!','¡Ejecución completa!'),'ok');
+  else if(res&&res.failed)toast(_T6('전체 실행 중단','Run All stopped','全実行中断','全部执行中断','全部執行中斷','Ejecución detenida')+' — '+res.stepId,'err');
+  // cancelled / start-error cases already toasted inside _setupRunSequence / _setupDoRun
+}
+
+/* ── Demo Quick Start ── (top-of-page highlighted block; Task 10 of the Run Demo GUI feature)
+ * Fetches the minimal step list still needed for a demo from the backend
+ * (GET /api/setup/quick-start-plan → quick_start_plan(), the single source of
+ * truth — see dx_app/core/setup_steps.py), then reuses the exact same sudo
+ * prompt + sequencing + #setup-log as Run All via _setupRunSequence. Only
+ * 'dx-app-setup' gets demo_only:true so the backend (setup_run) downloads the
+ * small demo asset set instead of --all.
+ */
+async function setupDemoQuickStart() {
+  if(SETUP.running){toast(_T6('다른 작업이 이미 실행 중입니다','Another task is already running','別のタスクが実行中です','另一个任务正在运行','另一個任務正在執行','Otra tarea ya está en ejecución'),'err');return;}
+  var btn=$('setup-quickstart-btn');
+  var prog=$('setup-quickstart-progress');
+  if(btn)btn.disabled=true;
+  try{
+    var r=await api('/api/setup/quick-start-plan');
+    var plan=r.plan||[];
+    if(plan.length===0){
+      if(prog)prog.style.display='none';
+      _setupQuickstartRevealTryDemo();
+      return;
+    }
+    var res=await _setupRunSequence(plan,{
+      progressEl:prog,
+      extraParamsFor:function(id){return id==='dx-app-setup'?{demo_only:true}:{};}
+    });
+    if(res&&res.completed){
+      toast(_T6('데모 준비 완료!','Demo ready!','デモの準備ができました!','演示已就绪！','示範已就緒！','¡Demo lista!'),'ok');
+      _setupQuickstartRevealTryDemo();
+    }else if(res&&res.failed){
+      toast(_T6('데모 설정 실패','Demo setup failed','デモ設定に失敗','演示设置失败','示範設定失敗','Error al configurar la demo')+' — '+res.stepId,'err');
+    }
+    // cancelled / start-error cases already toasted inside _setupRunSequence / _setupDoRun
+  }catch(e){
+    toast(_T6('데모 설정 오류: ','Demo setup error: ','デモ設定エラー: ','演示设置错误: ','示範設定錯誤: ','Error de configuración de demo: ')+e.message,'err');
+  }finally{
+    if(btn)btn.disabled=false;
+    if(prog)prog.style.display='none';
+  }
+}
+function _setupQuickstartRevealTryDemo(){
+  var b=$('setup-try-demo');
+  if(b)b.style.display='';
 }
 
 /* ── Stop ── */
 async function setupStop() {
   try{
     var r=await fetch('/api/setup/stop',{method:'POST'}).then(function(x){return x.json()});
-    if(r.ok)toast(_T5('중단됨','Stopped','中断済','已中断','已中斷'),'warn');
-    else toast(_T5('중단 실패','Stop failed','中断失敗','中断失败','中斷失敗'),'err');
-  }catch(e){toast(_T5('중단 오류: ','Stop error: ','中断エラー: ','中断错误: ','中斷錯誤: ')+e.message,'err');}
+    if(r.ok)toast(_T6('중단됨','Stopped','中断済','已中断','已中斷','Detenido'),'warn');
+    else toast(_T6('중단 실패','Stop failed','中断失敗','中断失败','中斷失敗','Error al detener'),'err');
+  }catch(e){toast(_T6('중단 오류: ','Stop error: ','中断エラー: ','中断错误: ','中斷錯誤: ','Error al detener: ')+e.message,'err');}
 }
 
 /* ── Version Info Display ── */

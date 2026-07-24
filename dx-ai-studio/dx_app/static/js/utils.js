@@ -130,8 +130,8 @@ function fmtTime(ts){const d=new Date(ts*1000);return d.toLocaleString(getLocale
 function fmtClock(epochMs){const d=new Date(epochMs);return d.toLocaleTimeString(getLocale(),{hour12:false,hour:'2-digit',minute:'2-digit',second:'2-digit'})}
 function tempColor(t){return t<40?_cv('--success'):t<55?_cv('--warning'):_cv('--error')}
 
-const PAGES=['setup','models','run','bench','compare','modelzoo','lab','outputs','reference'];
-const PAGE_TITLES={setup:'⚙️ Setup & Install',models:'Models',run:'Run Inference',bench:'Benchmark',compare:'A/B Compare',modelzoo:'📥 ModelZoo',lab:'🧪 Lab',outputs:'Outputs',reference:'📖 Reference'};
+const PAGES=['setup','models','run','rundemo','bench','compare','modelzoo','lab','outputs','reference'];
+const PAGE_TITLES={setup:'⚙️ Setup & Install',models:'Models',run:'Run Inference',rundemo:'🎬 Run Demo',bench:'Benchmark',compare:'A/B Compare',modelzoo:'📥 ModelZoo',lab:'🧪 Lab',outputs:'Outputs',reference:'📖 Reference'};
 function _applyLangToActivePage(){
   if(!window.DXI18n)return;
   const active=document.querySelector('.page.active');
@@ -148,6 +148,7 @@ function nav(page){
   if(page==='outputs')loadOutputs();
   if(page==='models')renderModelsPage();
   if(page==='run'){initRunPage();loadRunImages()}
+  if(page==='rundemo'){if(window.rundemoInit)rundemoInit();}
   if(page==='bench')initBenchPage();
   if(page==='compare'){setABCols(S.abCols);initABImages()}
   if(page==='modelzoo')initModelZoo();

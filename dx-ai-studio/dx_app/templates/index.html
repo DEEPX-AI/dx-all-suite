@@ -28,6 +28,7 @@
     <button class="nav-item" data-page="setup" onclick="nav('setup')"><span class="nav-icon">⚙️</span><span class="nav-label"><span class="ko">설정</span><span class="en">Setup</span><span class="es">Configuración</span><span class="ja">セットアップ</span><span class="zh-CN">设置</span><span class="zh-TW">設定</span></span></button>
     <button class="nav-item active" data-page="models" onclick="nav('models')"><span class="nav-icon">📦</span><span class="nav-label"><span class="ko">모델</span><span class="en">Models</span><span class="es">Modelos</span><span class="ja">モデル</span><span class="zh-CN">模型</span><span class="zh-TW">模型</span></span></button>
     <button class="nav-item" data-page="run" onclick="nav('run')"><span class="nav-icon">▶️</span><span class="nav-label"><span class="ko">추론 실행</span><span class="en">Run Inference</span><span class="es">Ejecutar inferencia</span><span class="ja">推論実行</span><span class="zh-CN">运行推理</span><span class="zh-TW">執行推論</span></span></button>
+    <button class="nav-item" data-page="rundemo" onclick="nav('rundemo')"><span class="nav-icon">🎬</span><span class="nav-label"><span class="ko">데모 실행</span><span class="en">Run Demo</span><span class="es">Ejecutar demo</span><span class="ja">デモ実行</span><span class="zh-CN">运行演示</span><span class="zh-TW">執行示範</span></span></button>
     <button class="nav-item" data-page="bench" onclick="nav('bench')"><span class="nav-icon">⏱️</span><span class="nav-label"><span class="ko">벤치마크</span><span class="en">Benchmark</span><span class="es">Evaluación de rendimiento</span><span class="ja">ベンチマーク</span><span class="zh-CN">基准测试</span><span class="zh-TW">基準測試</span></span></button>
     <button class="nav-item" data-page="compare" onclick="nav('compare')"><span class="nav-icon">🔀</span><span class="nav-label"><span class="ko">A/B 비교</span><span class="en">A/B Compare</span><span class="es">Comparación A/B</span><span class="ja">A/B 比較</span><span class="zh-CN">A/B 对比</span><span class="zh-TW">A/B 比較</span></span></button>
     <button class="nav-item" data-page="modelzoo" onclick="nav('modelzoo')"><span class="nav-icon">📥</span><span class="nav-label"><span class="ko">모델 저장소</span><span class="en">ModelZoo</span><span class="es">ModelZoo</span><span class="ja">ModelZoo</span><span class="zh-CN">ModelZoo</span><span class="zh-TW">ModelZoo</span></span></button>
@@ -57,6 +58,20 @@
 <div id="page-setup" class="page">
   <h1>⚙️ <span class="accent"><span class="ko">설정 &amp; 설치</span><span class="en">Setup &amp; Install</span><span class="es">Configuración e instalación</span><span class="ja">セットアップ &amp; インストール</span><span class="zh-CN">设置和安装</span><span class="zh-TW">設定與安裝</span></span></h1>
   <p class="txt-dim txt-sm mb16"><span class="ko">이 페이지에서 종속성을 설치하고 각 구성 요소를 빌드하세요. 위에서 아래로, 왼쪽에서 오른쪽으로 실행합니다.</span><span class="en">Install dependencies and build each component from this page. Run top-to-bottom, left-to-right.</span><span class="es">Instale dependencias y compile cada componente desde esta página. Ejecute de arriba a abajo, de izquierda a derecha.</span><span class="ja">このページから依存関係をインストールし、各コンポーネントをビルドします。上から下、左から右に実行してください。</span><span class="zh-CN">从此页面安装依赖并构建各组件。从上到下、从左到右执行。</span><span class="zh-TW">從此頁面安裝相依套件並建置各元件。由上至下、由左至右執行。</span></p>
+  <!-- Demo Quick Start (highlighted — minimal chain for the Run Demo page) -->
+  <div class="card card-glow mb16" id="setup-quickstart">
+    <div class="flex between items-c" style="flex-wrap:wrap;gap:12px">
+      <div>
+        <h2 style="margin:0 0 4px">🎬 <span class="ko">데모만 빠르게 시작</span><span class="en">Demo Quick Start</span><span class="es">Inicio rápido de la demo</span><span class="ja">デモ クイックスタート</span><span class="zh-CN">演示快速开始</span><span class="zh-TW">示範快速開始</span></h2>
+        <p class="txt-dim txt-sm" style="margin:0"><span class="ko">데모에 필요한 것만 한 번에 설치 — 필요한 모델만 다운로드, 이미 된 단계는 건너뜀</span><span class="en">Install only what the demo needs, in one go — downloads only the required models and skips steps already done</span><span class="es">Instale solo lo que la demo necesita, de una vez — descarga solo los modelos necesarios y omite los pasos ya completados</span><span class="ja">デモに必要なものだけを一度にインストール — 必要なモデルのみダウンロードし、完了済みの手順はスキップします</span><span class="zh-CN">一次性只安装演示所需内容 — 仅下载所需模型，跳过已完成的步骤</span><span class="zh-TW">一次只安裝示範所需內容 — 僅下載所需模型，略過已完成的步驟</span></p>
+      </div>
+      <div class="flex gap8 items-c" style="flex-wrap:wrap">
+        <span id="setup-quickstart-progress" class="txt-dim txt-sm" style="display:none"></span>
+        <button class="btn btn-accent" id="setup-quickstart-btn" onclick="setupDemoQuickStart()">▶ <span class="ko">데모 설정 시작</span><span class="en">Start Demo Setup</span><span class="es">Iniciar configuración de demo</span><span class="ja">デモ設定を開始</span><span class="zh-CN">开始演示设置</span><span class="zh-TW">開始示範設定</span></button>
+        <button class="btn btn-primary" id="setup-try-demo" onclick="nav('rundemo');if(window.rundemoReload)rundemoReload();" style="display:none">▶ <span class="ko">데모 사용해보기</span><span class="en">Try demo</span><span class="es">Probar demo</span><span class="ja">デモを試す</span><span class="zh-CN">试用演示</span><span class="zh-TW">試用示範</span></button>
+      </div>
+    </div>
+  </div>
   <!-- Run All + Stop -->
   <div class="setup-toolbar" style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
     <button class="btn btn-accent" id="setup-run-all" onclick="setupRunAll()">
@@ -68,11 +83,11 @@
     </button>
   </div>
   <div class="setup-grid">
-    <!-- 1: DX-APP Dependencies -->
+    <!-- ① DX-APP Dependencies (build toolchain — needed for all compiles) -->
     <div class="setup-card">
       <div class="setup-card-header">
         <div>
-          <div class="setup-card-title">🏗️ <span class="ko">DX-APP 종속성</span><span class="en">DX-APP Dependencies</span><span class="es">Dependencias de DX-APP</span><span class="ja">DX-APP 依存関係</span><span class="zh-CN">DX-APP 依赖项</span><span class="zh-TW">DX-APP 相依套件</span></div>
+          <div class="setup-card-title">① 🏗️ <span class="ko">DX-APP 종속성</span><span class="en">DX-APP Dependencies</span><span class="es">Dependencias de DX-APP</span><span class="ja">DX-APP 依存関係</span><span class="zh-CN">DX-APP 依赖项</span><span class="zh-TW">DX-APP 相依套件</span></div>
           <div class="setup-card-desc"><span class="ko">C++ 빌드에 필요한 시스템 패키지 설치 (cmake, gcc, ninja, OpenCV, …) →</span><span class="en">Install system packages required for C++ build (cmake, gcc, ninja, OpenCV, …) →</span><span class="es">Instale los paquetes del sistema requeridos para la compilación C++ (cmake, gcc, ninja, OpenCV, …) →</span><span class="ja">C++ ビルドに必要なシステムパッケージをインストール (cmake, gcc, ninja, OpenCV, …) →</span><span class="zh-CN">安装 C++ 构建所需的系统软件包 (cmake, gcc, ninja, OpenCV, …) →</span><span class="zh-TW">安裝 C++ 建置所需的系統套件 (cmake, gcc, ninja, OpenCV, …) →</span><code style="font-size:10px"> install.sh --all</code></div>
         </div>
         <span class="comp-status-badge cs-warn" id="setup-badge-dx-app-deps">⏳</span>
@@ -80,35 +95,11 @@
       <div class="txt-xs txt-dim" style="font-family:var(--mono)" id="setup-detail-dx-app-deps"></div>
       <button class="btn btn-primary btn-sm" style="align-self:flex-start" onclick="setupRun('dx-app-deps')"><span class="ko">설치</span><span class="en">Install</span><span class="es">Instalar</span><span class="ja">インストール</span><span class="zh-CN">安装</span><span class="zh-TW">安裝</span></button>
     </div>
-    <!-- 2: DX-APP Build -->
+    <!-- ② DX-Runtime Dependencies -->
     <div class="setup-card">
       <div class="setup-card-header">
         <div>
-          <div class="setup-card-title">🔨 <span class="ko">DX-APP 빌드</span><span class="en">DX-APP Build</span><span class="es">Compilación DX-APP</span><span class="ja">DX-APP ビルド</span><span class="zh-CN">DX-APP 构建</span><span class="zh-TW">DX-APP 建置</span></div>
-          <div class="setup-card-desc"><span class="ko">C++ 데모 바이너리 컴파일 (cmake) →</span><span class="en">Compile C++ demo binaries (cmake) →</span><span class="es">Compile binarios de demo C++ (cmake) →</span><span class="ja">C++ デモバイナリをコンパイル (cmake) →</span><span class="zh-CN">编译 C++ 演示二进制文件 (cmake) →</span><span class="zh-TW">編譯 C++ 演示二進位檔案 (cmake) →</span><code style="font-size:10px"> build.sh --type Release</code></div>
-        </div>
-        <span class="comp-status-badge cs-warn" id="setup-badge-dx-app-build">⏳</span>
-      </div>
-      <div class="txt-xs txt-dim" style="font-family:var(--mono)" id="setup-detail-dx-app-build"></div>
-      <button class="btn btn-primary btn-sm" style="align-self:flex-start" onclick="setupRun('dx-app-build')"><span class="ko">빌드</span><span class="en">Build</span><span class="es">Compilar</span><span class="ja">ビルド</span><span class="zh-CN">构建</span><span class="zh-TW">建置</span></button>
-    </div>
-    <!-- 3: Sample Assets -->
-    <div class="setup-card">
-      <div class="setup-card-header">
-        <div>
-          <div class="setup-card-title">📦 <span class="ko">샘플 에셋 설정</span><span class="en">Sample Assets Setup</span><span class="es">Configuración de activos de muestra</span><span class="ja">サンプルアセットのセットアップ</span><span class="zh-CN">示例资源设置</span><span class="zh-TW">範例資源設定</span></div>
-          <div class="setup-card-desc"><span class="ko">Run / Benchmark 데모용 샘플 모델 및 비디오 다운로드 →</span><span class="en">Download sample models &amp; videos for Run / Benchmark demos →</span><span class="es">Descargue modelos y videos de ejemplo para demos de Ejecución / Benchmark →</span><span class="ja">Run / Benchmark デモ用のサンプルモデルと動画をダウンロード →</span><span class="zh-CN">下载 Run / Benchmark 演示用的示例模型和视频 →</span><span class="zh-TW">下載 Run / Benchmark 示範用的範例模型和影片 →</span><code style="font-size:10px"> setup.sh</code></div>
-        </div>
-        <span class="comp-status-badge cs-warn" id="setup-badge-dx-app-setup">⏳</span>
-      </div>
-      <div class="txt-xs txt-dim" style="font-family:var(--mono)" id="setup-detail-dx-app-setup"></div>
-      <button class="btn btn-primary btn-sm" style="align-self:flex-start" onclick="setupRun('dx-app-setup')"><span class="ko">설정</span><span class="en">Setup</span><span class="es">Configuración</span><span class="ja">セットアップ</span><span class="zh-CN">设置</span><span class="zh-TW">設定</span></button>
-    </div>
-    <!-- 4: DX-Runtime Dependencies -->
-    <div class="setup-card" id="setup-card-4">
-      <div class="setup-card-header">
-        <div>
-          <div class="setup-card-title">🔧 <span class="ko">DX-Runtime 종속성</span><span class="en">DX-Runtime Dependencies</span><span class="es">Dependencias de DX-Runtime</span><span class="ja">DX-Runtime 依存関係</span><span class="zh-CN">DX-Runtime 依赖项</span><span class="zh-TW">DX-Runtime 相依套件</span></div>
+          <div class="setup-card-title">② 🔧 <span class="ko">DX-Runtime 종속성</span><span class="en">DX-Runtime Dependencies</span><span class="es">Dependencias de DX-Runtime</span><span class="ja">DX-Runtime 依存関係</span><span class="zh-CN">DX-Runtime 依赖项</span><span class="zh-TW">DX-Runtime 相依套件</span></div>
           <div class="setup-card-desc"><span class="ko">NPU 런타임에 필요한 패키지 설치 (cmake, ONNX Runtime, …) →</span><span class="en">Install packages required for NPU runtime (cmake, ONNX Runtime, …) →</span><span class="es">Instale los paquetes requeridos para el runtime NPU (cmake, ONNX Runtime, …) →</span><span class="ja">NPU ランタイムに必要なパッケージをインストール (cmake, ONNX Runtime, …) →</span><span class="zh-CN">安装 NPU 运行时所需的软件包 (cmake, ONNX Runtime, …) →</span><span class="zh-TW">安裝 NPU 執行階段所需的套件 (cmake, ONNX Runtime, …) →</span><code style="font-size:10px"> dx_rt/install.sh --all</code></div>
         </div>
         <span class="comp-status-badge cs-warn" id="setup-badge-dx-rt-deps">⏳</span>
@@ -116,17 +107,53 @@
       <div class="txt-xs txt-dim" style="font-family:var(--mono)" id="setup-detail-dx-rt-deps"></div>
       <button class="btn btn-primary btn-sm" style="align-self:flex-start" onclick="setupRun('dx-rt-deps')"><span class="ko">설치</span><span class="en">Install</span><span class="es">Instalar</span><span class="ja">インストール</span><span class="zh-CN">安装</span><span class="zh-TW">安裝</span></button>
     </div>
-    <!-- 5: NPU Driver -->
+    <!-- ③ DX-Runtime Build (dx_rt + dx_engine venv) — must precede DX-APP Build (links dx_rt) -->
+    <div class="setup-card" id="setup-card-rt-build">
+      <div class="setup-card-header">
+        <div>
+          <div class="setup-card-title">③ 🐍 <span class="ko">DX-Runtime 빌드</span><span class="en">DX-Runtime Build</span><span class="es">Compilación de DX-Runtime</span><span class="ja">DX-Runtime ビルド</span><span class="zh-CN">DX-Runtime 构建</span><span class="zh-TW">DX-Runtime 建置</span></div>
+          <div class="setup-card-desc"><span class="ko">DX-RT 런타임을 빌드하고 dx_engine Python API를 venv-dx-runtime에 설치 →</span><span class="en">Build the DX-RT runtime and install the dx_engine Python API into venv-dx-runtime →</span><span class="es">Compile el runtime DX-RT e instale la API de Python dx_engine en venv-dx-runtime →</span><span class="ja">DX-RT ランタイムをビルドし、dx_engine Python API を venv-dx-runtime にインストール →</span><span class="zh-CN">构建 DX-RT 运行时并将 dx_engine Python API 安装到 venv-dx-runtime →</span><span class="zh-TW">建置 DX-RT 執行環境並將 dx_engine Python API 安裝到 venv-dx-runtime →</span><code style="font-size:10px"> dx-runtime/install.sh --target=dx_rt</code></div>
+        </div>
+        <span class="comp-status-badge cs-warn" id="setup-badge-dx-rt-build">⏳</span>
+      </div>
+      <div class="txt-xs txt-dim" style="font-family:var(--mono)" id="setup-detail-dx-rt-build"></div>
+      <button class="btn btn-primary btn-sm" style="align-self:flex-start" onclick="setupRun('dx-rt-build')"><span class="ko">빌드</span><span class="en">Build</span><span class="es">Compilar</span><span class="ja">ビルド</span><span class="zh-CN">构建</span><span class="zh-TW">建置</span></button>
+    </div>
+    <!-- ④ NPU Driver -->
     <div class="setup-card" id="setup-card-5">
       <div class="setup-card-header">
         <div>
-          <div class="setup-card-title">🔌 <span class="ko">NPU 리눅스 드라이버</span><span class="en">NPU Linux Driver</span><span class="es">Controlador Linux NPU</span><span class="ja">NPU Linux ドライバー</span><span class="zh-CN">NPU Linux 驱动程序</span><span class="zh-TW">NPU Linux 驅動程式</span></div>
+          <div class="setup-card-title">④ 🔌 <span class="ko">NPU 리눅스 드라이버</span><span class="en">NPU Linux Driver</span><span class="es">Controlador Linux NPU</span><span class="ja">NPU Linux ドライバー</span><span class="zh-CN">NPU Linux 驱动程序</span><span class="zh-TW">NPU Linux 驅動程式</span></div>
           <div class="setup-card-desc"><span class="ko">DEEPX NPU 커널 드라이버 설치 (sudo 필요) →</span><span class="en">Install DEEPX NPU kernel driver (requires sudo) →</span><span class="es">Instale el controlador del kernel del NPU DEEPX (requiere sudo) →</span><span class="ja">DEEPX NPU カーネルドライバーをインストール (sudo 必要) →</span><span class="zh-CN">安装 DEEPX NPU 内核驱动程序 (需要 sudo) →</span><span class="zh-TW">安裝 DEEPX NPU 核心驅動程式 (需要 sudo) →</span><code style="font-size:10px"> dx-runtime/install.sh --target=dx_rt_npu_linux_driver</code></div>
         </div>
         <span class="comp-status-badge cs-warn" id="setup-badge-dx-driver">⏳</span>
       </div>
       <div class="txt-xs txt-dim" style="font-family:var(--mono)" id="setup-detail-dx-driver"></div>
       <button class="btn btn-primary btn-sm" style="align-self:flex-start" onclick="setupRun('dx-driver')"><span class="ko">설치</span><span class="en">Install</span><span class="es">Instalar</span><span class="ja">インストール</span><span class="zh-CN">安装</span><span class="zh-TW">安裝</span></button>
+    </div>
+    <!-- ⑤ DX-APP Build (C++ demos — links dx_rt, so runs after runtime build + driver) -->
+    <div class="setup-card">
+      <div class="setup-card-header">
+        <div>
+          <div class="setup-card-title">⑤ 🔨 <span class="ko">DX-APP 빌드</span><span class="en">DX-APP Build</span><span class="es">Compilación DX-APP</span><span class="ja">DX-APP ビルド</span><span class="zh-CN">DX-APP 构建</span><span class="zh-TW">DX-APP 建置</span></div>
+          <div class="setup-card-desc"><span class="ko">C++ 데모 바이너리 컴파일 (cmake) →</span><span class="en">Compile C++ demo binaries (cmake) →</span><span class="es">Compile binarios de demo C++ (cmake) →</span><span class="ja">C++ デモバイナリをコンパイル (cmake) →</span><span class="zh-CN">编译 C++ 演示二进制文件 (cmake) →</span><span class="zh-TW">編譯 C++ 演示二進位檔案 (cmake) →</span><code style="font-size:10px"> build.sh --type Release</code></div>
+        </div>
+        <span class="comp-status-badge cs-warn" id="setup-badge-dx-app-build">⏳</span>
+      </div>
+      <div class="txt-xs txt-dim" style="font-family:var(--mono)" id="setup-detail-dx-app-build"></div>
+      <button class="btn btn-primary btn-sm" style="align-self:flex-start" onclick="setupRun('dx-app-build')"><span class="ko">빌드</span><span class="en">Build</span><span class="es">Compilar</span><span class="ja">ビルド</span><span class="zh-CN">构建</span><span class="zh-TW">建置</span></button>
+    </div>
+    <!-- ⑥ Sample Assets (model/video download — independent, last) -->
+    <div class="setup-card">
+      <div class="setup-card-header">
+        <div>
+          <div class="setup-card-title">⑥ 📦 <span class="ko">샘플 에셋 설정</span><span class="en">Sample Assets Setup</span><span class="es">Configuración de activos de muestra</span><span class="ja">サンプルアセットのセットアップ</span><span class="zh-CN">示例资源设置</span><span class="zh-TW">範例資源設定</span></div>
+          <div class="setup-card-desc"><span class="ko">Run / Benchmark 데모용 샘플 모델 및 비디오 다운로드 →</span><span class="en">Download sample models &amp; videos for Run / Benchmark demos →</span><span class="es">Descargue modelos y videos de ejemplo para demos de Ejecución / Benchmark →</span><span class="ja">Run / Benchmark デモ用のサンプルモデルと動画をダウンロード →</span><span class="zh-CN">下载 Run / Benchmark 演示用的示例模型和视频 →</span><span class="zh-TW">下載 Run / Benchmark 示範用的範例模型和影片 →</span><code style="font-size:10px"> setup.sh</code></div>
+        </div>
+        <span class="comp-status-badge cs-warn" id="setup-badge-dx-app-setup">⏳</span>
+      </div>
+      <div class="txt-xs txt-dim" style="font-family:var(--mono)" id="setup-detail-dx-app-setup"></div>
+      <button class="btn btn-primary btn-sm" style="align-self:flex-start" onclick="setupRun('dx-app-setup')"><span class="ko">설정</span><span class="en">Setup</span><span class="es">Configuración</span><span class="ja">セットアップ</span><span class="zh-CN">设置</span><span class="zh-TW">設定</span></button>
     </div>
   </div>
   <!-- Version Info -->
@@ -702,6 +729,12 @@
     <div class="ref-grid" id="ref-content"></div>
   </div>
 </div>
+<!-- ═══ PAGE: Run Demo ═══ -->
+<div id="page-rundemo" class="page">
+  <h1>🎬 <span class="accent"><span class="ko">데모 실행</span><span class="en">Run Demo</span><span class="es">Ejecutar demo</span><span class="ja">デモ実行</span><span class="zh-CN">运行演示</span><span class="zh-TW">執行示範</span></span></h1>
+  <p class="txt-dim txt-sm mb16"><span class="ko">사전 구성된 데모 시나리오를 선택하고 실행 결과를 바로 확인하세요.</span><span class="en">Choose a pre-configured demo scenario and see the results instantly.</span><span class="es">Elija un escenario de demostración preconfigurado y vea los resultados al instante.</span><span class="ja">事前設定済みのデモシナリオを選択し、実行結果をすぐに確認できます。</span><span class="zh-CN">选择预配置的演示场景，立即查看运行结果。</span><span class="zh-TW">選擇預先設定的示範情境，立即查看執行結果。</span></p>
+  <div id="rundemo-root"></div>
+</div>
 </main><!-- /main -->
 </div><!-- /content-wrap -->
 </div><!-- /app -->
@@ -785,6 +818,7 @@ DXBrand.mount({
 <script src="/static/js/pipeline.js?m=dx_app"></script>
 <script src="/static/js/outputs.js?m=dx_app"></script>
 <script src="/static/js/planner.js?m=dx_app"></script>
+<script src="/static/js/rundemo.js?m=dx_app"></script>
 <script src="/static/js/developer.js?m=dx_app"></script>
 <script src="/static/js/lab-portal.js?m=dx_app"></script>
 <script src="/static/js/setup.js?m=dx_app"></script>

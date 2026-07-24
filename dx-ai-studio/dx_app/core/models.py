@@ -123,6 +123,7 @@ def get_models():
                 if not md.is_dir() or md.name in SKIP_CAT or md.name.startswith("_"):continue
                 mn=md.name;ext=".cpp" if lang=="cpp" else ".py"
                 hs=(md/f"{mn}_sync{ext}").exists();ha=(md/f"{mn}_async{ext}").exists()
+                if ext==".py":hsp=(md/f"{mn}_sync_cpp_postprocess.py").exists();hap=(md/f"{mn}_async_cpp_postprocess.py").exists()
                 if not hs and not ha:continue
                 key=f"{cat}/{mn}"
                 if key not in models:
@@ -135,7 +136,8 @@ def get_models():
                         _mexists=bool(mf)and(DX_APP_ROOT/mf).exists()
                     models[key]={"name":mn,"category":cat,"category_label":CAT_LABEL.get(cat,cat),
                      "cpp":False,"python":False,"cpp_sync":False,"cpp_async":False,
-                     "py_sync":False,"py_async":False,"model_file":mf,
+                     "py_sync":False,"py_async":False,
+                     "py_sync_cpp_postprocess":False,"py_async_cpp_postprocess":False,"model_file":mf,
                      "model_exists":_mexists,
                      "npu_core":"","dataset":"","input_resolution":"","config":{}}
                     cf=md/"config.json"
@@ -148,7 +150,8 @@ def get_models():
                              "input_resolution":cfg.get("input_size",cfg.get("INPUT_SIZE",""))})
                         except:pass
                 if lang=="cpp":models[key].update({"cpp":True,"cpp_sync":hs,"cpp_async":ha})
-                else:models[key].update({"python":True,"py_sync":hs,"py_async":ha})
+                else:models[key].update({"python":True,"py_sync":hs,"py_async":ha,
+                     "py_sync_cpp_postprocess":hsp,"py_async_cpp_postprocess":hap})
     # Also include registry-only models (deployed via compiler but no source code yet)
     for mn,reg in _REG.items():
         cat=reg.get("category","custom")

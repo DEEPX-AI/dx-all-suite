@@ -252,7 +252,6 @@ def test_edgeguide_deeplink_prefill_auto_recommend_contract():
         "recommendationVerdict",
         "commercePanel",
         "ortToggle",
-        "fpsHeadroom",
         "maxLatencyPreset",
         "maxLatencyMs",
         "methodologyDialog",
@@ -397,7 +396,6 @@ def test_edgeguide_tutorial_workspace_contracts():
         "scenarioChips",
         "workflowSteps",
         "btnSetupNext",
-        "fpsHeadroom",
         "maxLatencyPreset",
         "commercePanel",
         "data-open-methodology",
@@ -428,15 +426,6 @@ def test_recommend_js_channels_sort_replaces_cost():
     # No monetary/cost machinery may remain.
     for gone in ["costPerChannel", "price_usd", "_systemPriceUsd", "case 'cost'"]:
         assert gone not in recommend_src, f"pricing token {gone!r} must be gone from recommend.js"
-
-
-def test_recommend_js_null_stream_count_uses_theoretical_fallback():
-    """stream_count가 모두 null인 실측 항목은 0+ 채널이 아니라 theoretical fallback이어야 한다."""
-    recommend_src = _read_planner_file("static/js/recommend.js")
-
-    assert "filtered.every(m => m.stream_count == null)" in recommend_src
-    assert "maxMeasured === 0" in recommend_src
-    assert "boundaryFlag: 'theoretical'" in recommend_src
 
 
 def test_planner_release_data_state_contracts():

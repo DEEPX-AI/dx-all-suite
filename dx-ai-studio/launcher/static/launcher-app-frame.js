@@ -164,6 +164,7 @@
         ns._studioReadyResolved = true;
         if (showBootGate) hideStudioBootGate();
         if (!ns._launcherCoreStarted) ns._initLauncherCore();
+        startSharedHwStream();   // one hw_stream for the whole session (see def)
         resolve(data || {});
         // Run after queued navigate()/restoreFromLocation handlers so early clicks win.
         queueMicrotask(function() {
@@ -266,6 +267,53 @@
     });
   }
 
+  // ── Shared HW stream (single EventSource owned by the launcher shell) ───────
+  // The NPU-monitor widget is injected into every module page AND this shell. If
+  // each opened its own EventSource to /dx_monitor/api/hw_stream, the kept-alive
+  // module iframes would hold one permanent connection EACH; a handful exhausts the
+  // browser's ~6-connections-per-origin limit (all modules are proxied through one
+  // origin), and then module navigation + health-checks starve and time out. So the
+  // shell owns ONE stream and fans payloads out via postMessage; widgets just render.
+  var _lastHwPayload = null;
+  var _hwSse = null, _hwPoll = null, _hwStarted = false;
+
+  function _dispatchHw(payload) {
+    if (!payload) return;
+    _lastHwPayload = payload;
+    broadcastToModuleIframes({ type: 'dx-hw-data', payload: payload });
+    try { window.postMessage({ type: 'dx-hw-data', payload: payload }, '*'); } catch (e) {}
+  }
+
+  function _startHwPoll() {
+    if (_hwPoll) return;
+    _hwPoll = setInterval(function () {
+      fetch('/dx_monitor/api/hw_status', { cache: 'no-store' })
+        .then(function (r) { return r.json(); })
+        .then(_dispatchHw)
+        .catch(function () {});
+    }, 3000);
+  }
+  function _stopHwPoll() { if (_hwPoll) { clearInterval(_hwPoll); _hwPoll = null; } }
+
+  function startSharedHwStream() {
+    if (_hwStarted) return;   // singleton — one stream for the whole session
+    _hwStarted = true;
+    (function connect() {
+      try {
+        _hwSse = new EventSource('/dx_monitor/api/hw_stream');
+      } catch (e) { _startHwPoll(); return; }
+      _hwSse.onmessage = function (ev) {
+        _stopHwPoll();   // live stream restored — drop the fallback poll
+        try { _dispatchHw(JSON.parse(ev.data)); } catch (e) {}
+      };
+      _hwSse.onerror = function () {
+        if (_hwSse) { _hwSse.close(); _hwSse = null; }
+        _startHwPoll();               // graceful fallback: keep widgets fed
+        setTimeout(connect, 30000);   // try to restore the single stream
+      };
+    })();
+  }
+
   function getActiveAppIframe() {
     return document.getElementById('appIframe');
   }
@@ -305,6 +353,11 @@
 
   function finishModuleEntry(appKey, iframe) {
     if (iframe) iframe.dataset.loadState = 'loaded';
+    // Seed the freshly-loaded widget with the latest HW snapshot so it shows data
+    // immediately instead of waiting for the next shared-stream tick.
+    if (iframe && _lastHwPayload) {
+      try { iframe.contentWindow.postMessage({ type: 'dx-hw-data', payload: _lastHwPayload }, '*'); } catch (e) {}
+    }
     if (ns.currentApp !== appKey) return;
     if (_moduleLoadTimer) { clearTimeout(_moduleLoadTimer); _moduleLoadTimer = null; }
     if (ns._moduleRetryStart) ns._moduleRetryStart[appKey] = 0;  // success clears the self-heal window
@@ -1586,6 +1639,7 @@
   ns.renderRouteRecoveryNotice = renderRouteRecoveryNotice;
   ns.getActiveAppIframe = getActiveAppIframe;
   ns.broadcastToModuleIframes = broadcastToModuleIframes;
+  ns.startSharedHwStream = startSharedHwStream;
   ns.getOrCreateModuleIframe = getOrCreateModuleIframe;
   ns.loadAppIframeIfNeeded = loadAppIframeIfNeeded;
   ns.refreshLauncherChrome = refreshLauncherChrome;
