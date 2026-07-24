@@ -17,6 +17,15 @@ An in-app library of DEEPX documentation and marketing material, reachable from 
   **architecture diagram** overlay. The open document, view mode, and query are captured
   in the URL, so a link reopens exactly that state.  
 
+## About DEEPX
+
+The **About DEEPX** page introduces the company behind the studio — the "AI for Everyone
+& Everywhere" mission, at-a-glance figures (patents, commercial orders, global offices,
+year founded), and a **Developer Hub** with quick links to the model catalog, SDK,
+hardware, and support.
+
+![About DEEPX — the company overview: mission statement, key figures, and the Developer Hub links.](resources/about.png)
+
 ## Chat / AI Assistant
 
 The **💬 assistant** is available in every DX AI Studio module (not just this one). Click

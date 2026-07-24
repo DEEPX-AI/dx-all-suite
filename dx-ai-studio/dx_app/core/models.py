@@ -148,7 +148,7 @@ def get_models():
                              "npu_core":cfg.get("npu_core",cfg.get("NPU_CORE","")),
                              "dataset":cfg.get("dataset",cfg.get("DATASET","")),
                              "input_resolution":cfg.get("input_size",cfg.get("INPUT_SIZE",""))})
-                        except:pass
+                        except Exception:pass
                 if lang=="cpp":models[key].update({"cpp":True,"cpp_sync":hs,"cpp_async":ha})
                 else:models[key].update({"python":True,"py_sync":hs,"py_async":ha,
                      "py_sync_cpp_postprocess":hsp,"py_async_cpp_postprocess":hap})
@@ -193,7 +193,7 @@ def get_model_info(name):
             cf=md/"config.json"
             if cf.exists():
                 try:info["config"]=json.loads(cf.read_text())
-                except:info["config"]={}
+                except Exception:info["config"]={}
             pp=_pp_info(lk,cd.name,name)
             if pp["name"]:info["postprocessors"][lk]=pp
     return info

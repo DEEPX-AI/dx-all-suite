@@ -33,6 +33,7 @@
 #hf-npu-section{border-top:none;padding-top:0;margin-top:0}
 .hw-section-title{font-size:9px;color:#638cff;text-transform:uppercase;letter-spacing:.45px;margin-bottom:3px}
 .hf-v.warn{color:#f59e0b}.hf-v.crit{color:#ef4444}.hf-v.ok{color:#22c55e}
+.hf-mock-badge{display:inline-block;margin-left:5px;padding:0 4px;border-radius:3px;background:#f59e0b;color:#1a1a1a;font-size:8px;font-weight:700;letter-spacing:.4px;vertical-align:middle}
 </style>
 <div class="hw-float" id="hw-float">
   <div class="hw-float-header" id="hw-float-drag">
@@ -224,9 +225,14 @@
     var n=_selectedNpu(npus);
     _renderSelector(npus);
 
-    /* NPU title */
+    /* NPU title (+ MOCK badge when the source is serving simulated data — otherwise
+       the sin-wave demo values look like real telemetry and get mistaken for a bug). */
     var titleEl=document.getElementById('hf-npu-title');
-    if(titleEl){titleEl.textContent=n?'NPU '+((n.id!=null)?n.id:_selectedNpuIdx):'No NPU';}
+    if(titleEl){
+      var _isMock=!!(_lastPayload&&_lastPayload.mock)||!!(n&&n.mock);
+      var _title=n?('NPU '+((n.id!=null)?n.id:_selectedNpuIdx)):'No NPU';
+      titleEl.innerHTML=_escHtml(_title)+(_isMock?' <span class="hf-mock-badge" title="Simulated data — DX Engine unavailable in this module. Values are not from the NPU.">MOCK</span>':'');
+    }
 
     /* NPU values */
     if(n){

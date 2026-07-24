@@ -31,7 +31,7 @@ def _start_cam_mux(real_cam_idx, n_slots):
         if _cam_mux_proc and _cam_mux_proc.poll() is None:
             _cam_mux_proc.terminate()
             try: _cam_mux_proc.wait(timeout=3)
-            except: _cam_mux_proc.kill()
+            except Exception: _cam_mux_proc.kill()
             _cam_mux_proc = None
 
         real_dev = f"/dev/video{real_cam_idx}"
@@ -78,7 +78,7 @@ def _stop_cam_mux():
         if _cam_mux_proc and _cam_mux_proc.poll() is None:
             _cam_mux_proc.terminate()
             try: _cam_mux_proc.wait(timeout=3)
-            except: _cam_mux_proc.kill()
+            except Exception: _cam_mux_proc.kill()
             print("[CAM-MUX] ffmpeg stopped")
         _cam_mux_proc = None
         _cam_mux_count = 0

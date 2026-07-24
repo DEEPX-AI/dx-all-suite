@@ -82,7 +82,7 @@ def get_hw():
         try:
             cnt = _DS.get_device_count(); d["count"] = cnt
             for did in range(cnt):
-                dev = _DS.get_current_status(did); T, V, C = [], [], []
+                dev = _DS.get_current_status(did); T, V, C, U = [], [], [], []
                 for ch in range(4):
                     try:
                         temp = dev.get_temperature(ch)
@@ -91,7 +91,25 @@ def get_hw():
                         T.append(temp)
                         V.append(dev.get_npu_voltage(ch))
                         C.append(dev.get_npu_clock(ch))
-                    except: break
+                        # Utilization straight from the same DeviceStatus API dxtop reads:
+                        # ~0 when idle, rising under load. The old path shelled out to the
+                        # dx_npu_stats helper (legacy IPC GET_USAGE), which reported a
+                        # non-zero idle baseline and disagreed with dxtop. Invalid cores
+                        # return a negative sentinel — clamp to 0.
+                        try:
+                            u = dev.get_core_utilization(ch)
+                            U.append(round(float(u), 1) if u is not None and u >= 0 else 0.0)
+                        except Exception:
+                            pass
+                    except Exception: break
+                # DRAM directly from the engine (bytes) — no external helper binary.
+                dram_used = dram_total = -1
+                try:
+                    used = int(dev.get_memory_used()); free = int(dev.get_memory_free())
+                    if used >= 0 and free >= 0:
+                        dram_used, dram_total = used, used + free
+                except Exception:
+                    pass
                 npu_entry = {
                     "id": did,
                     "device_id": dev.get_id() if hasattr(dev, 'get_id') else did,
@@ -100,21 +118,25 @@ def get_hw():
                     "voltage_avg": sum(V)/len(V) if V else 0,
                     "clock_avg": sum(C)/len(C) if C else 0,
                     "power_est_mW": (sum(V)/len(V))*0.5 if V else 0,
-                    "dram_used_mb": -1, "dram_total_mb": -1, "dram_pct": -1,
-                    "utilization": []
+                    "dram_used_mb": round(dram_used/1048576, 1) if dram_used >= 0 else -1,
+                    "dram_total_mb": round(dram_total/1048576, 1) if dram_total > 0 else -1,
+                    "dram_pct": round(100.0*dram_used/dram_total, 1) if dram_total > 0 else -1,
+                    "utilization": U,
                 }
+                # Optional device_info (firmware / board / memory type) — best-effort from
+                # the dx_npu_stats helper IF it happens to be present. util/DRAM above no
+                # longer depend on it, so its absence only omits these extra labels; it is
+                # no longer shipped as a prebuilt binary (built per-board, or skipped).
                 if _NPU_STATS_BIN.exists():
                     try:
                         raw = subprocess.check_output(
                             [str(_NPU_STATS_BIN), str(did), str(len(T))],
                             timeout=2, stderr=subprocess.DEVNULL)
                         ns = json.loads(raw)
-                        npu_entry.update({k: ns[k] for k in ns
-                            if k in ("dram_used_mb","dram_free_mb","dram_total_mb","dram_pct","utilization")})
                         for f in _DEVICE_INFO_FIELDS:
                             if f in ns:
                                 npu_entry[f] = ns[f]
-                    except: pass
+                    except Exception: pass
                 d["npus"].append(npu_entry)
         except Exception as e:
             d["error"] = str(e); d["npus"] = _mock_npu()
@@ -137,17 +159,17 @@ def get_hw():
                       "swap_pct": round(swap_used / swap_total * 100, 1) if swap_total > 0 else 0.0})
         else:
             d.update({"swap_total_mb": 0, "swap_used_mb": 0, "swap_pct": 0.0})
-    except: d.update({"mem_total_mb": 0, "mem_used_mb": 0, "mem_pct": 0,
+    except Exception: d.update({"mem_total_mb": 0, "mem_used_mb": 0, "mem_pct": 0,
                       "swap_total_mb": 0, "swap_used_mb": 0, "swap_pct": 0.0})
     try: d["cpu_load"] = float(open("/proc/loadavg").read().split()[0])
-    except: d["cpu_load"] = 0.0
+    except Exception: d["cpu_load"] = 0.0
     d["cpu_cores_pct"] = _read_cpu_per_core()
     try:
         du = shutil.disk_usage('/')
         d.update({"disk_total_gb": round(du.total/1e9, 1),
                   "disk_used_gb": round(du.used/1e9, 1),
                   "disk_pct": round(du.used/du.total*100, 1)})
-    except: d.update({"disk_total_gb": 0, "disk_used_gb": 0, "disk_pct": 0})
+    except Exception: d.update({"disk_total_gb": 0, "disk_used_gb": 0, "disk_pct": 0})
     with _hw_lock:
         _hw_cache.update({"d": d, "t": now})
     return d
@@ -157,7 +179,7 @@ def get_sysinfo():
          "arch": platform.machine(), "python": sys.version.split()[0],
          "dx_engine_available": _dx_ok}
     try: import cv2; i["opencv"] = cv2.__version__
-    except: i["opencv"] = "N/A"
+    except Exception: i["opencv"] = "N/A"
     # F-16: release.ver lives in the runtime repo, not the studio tree. _APP_ROOT is
     # <suite>/dx-ai-studio/dx_app, so the suite root is two levels up and the real files
     # are <suite>/dx-runtime/{dx_rt,dx_app}/release.ver.
@@ -196,17 +218,17 @@ def get_sysinfo():
         out = subprocess.check_output(["lspci"], text=True, timeout=5,
                                        stderr=subprocess.DEVNULL)
         i["npu_pci"] = [l for l in out.splitlines() if "deepx" in l.lower()] or ["Not detected"]
-    except: i["npu_pci"] = ["N/A"]
+    except Exception: i["npu_pci"] = ["N/A"]
     try:
         m = open("/proc/meminfo").read()
         i["mem_total_gb"] = round(int(re.search(r'MemTotal:\s+(\d+)', m).group(1))/1024/1024, 1)
-    except: i["mem_total_gb"] = 0
+    except Exception: i["mem_total_gb"] = 0
     try:
         ci = open("/proc/cpuinfo").read()
         ms = re.findall(r'model name\s*:\s*(.+)', ci)
         i["cpu_model"] = ms[0].strip() if ms else "N/A"
         i["cpu_cores"] = len(re.findall(r'^processor', ci, re.M))
-    except: i.update({"cpu_model": "N/A", "cpu_cores": 0})
+    except Exception: i.update({"cpu_model": "N/A", "cpu_cores": 0})
     i["npu_count"] = _DS.get_device_count() if _dx_ok and _DS else 0
     # 임계치 (프론트엔드 전달용)
     try:

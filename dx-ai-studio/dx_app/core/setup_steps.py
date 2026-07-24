@@ -20,7 +20,7 @@ def _find_dxcom():
              capture_output=True,text=True,timeout=5)
             p=r.stdout.strip()
             if p and os.path.exists(p):return p
-        except:pass
+        except Exception:pass
     p=shutil.which("dxcom")
     if p:return p
     return None
@@ -35,7 +35,7 @@ def _dxcom_version():
             m=re.search(r'(\d+\.\d+\.\d+)',out)
             if m:return m.group(1)
             return out[:50] if out else None
-        except:pass
+        except Exception:pass
     rv=DX_COMPILER_ROOT/"release.ver"
     if rv.exists():return rv.read_text().strip().lstrip("v")
     return None
@@ -372,7 +372,8 @@ def deep_diagnostics():
 
     # 10. Memory — at least 2GB available
     try:
-        mi=open("/proc/meminfo").read()
+        with open("/proc/meminfo") as _f:
+            mi=_f.read()
         import re as _re
         avail=int(_re.search(r'MemAvailable:\s+(\d+)',mi).group(1))//1024  # MB
         total=int(_re.search(r'MemTotal:\s+(\d+)',mi).group(1))//1024

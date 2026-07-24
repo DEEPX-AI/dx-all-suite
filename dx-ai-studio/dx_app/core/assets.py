@@ -11,7 +11,7 @@ def get_file_content(rel):
         if not str(p).startswith(str(DX_APP_ROOT.resolve())):return None
         if p.suffix not in{".hpp",".cpp",".py",".h",".json",".md"}:return None
         return p.read_text(errors="replace")
-    except:return None
+    except Exception:return None
 
 def _scan_sample_img():
     d=SAMPLE_DIR/"img"

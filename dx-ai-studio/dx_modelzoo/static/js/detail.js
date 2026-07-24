@@ -982,11 +982,24 @@ async function downloadModel(event, modelId, quantType) {
     btnArea.appendChild(statusEl);
   }
 
+  // Resolve the concrete download URLs from the catalog artifacts. The dx_app
+  // download endpoint expects a fully-resolved `items` list (name/chip/dxnn_url/
+  // json_url) — NOT {model_id, quant} — so build it here from the model we already
+  // loaded. Sending {model_id, quant} makes the backend reject with "items required".
+  const art = (_currentDetailModel && _currentDetailModel.artifacts) || {};
+  const dxnnUrl = (art[`${quantType}_dxnn`] || {}).remote_url || '';
+  const jsonUrl = (art[`${quantType}_json`] || {}).remote_url || null;
+  if (!dxnnUrl) {
+    setModelZooStatusHtml(statusEl, `<span style="color:var(--error)">${T('Download failed')}: ${T('No download URL for this variant')}</span>`);
+    return;
+  }
+  const items = [{ name: modelId, chip: quantType, dxnn_url: dxnnUrl, json_url: jsonUrl }];
+
   try {
     const resp = await fetch(modelzooApiUrl('/api/proxy/modelzoo/download'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model_id: modelId, quant: quantType })
+      body: JSON.stringify({ items, source: 'public' })
     });
     const data = await resp.json();
     if (!data.ok) {
@@ -1016,22 +1029,27 @@ async function downloadModel(event, modelId, quantType) {
       try {
         const sr = await fetch(modelzooApiUrl('/api/proxy/modelzoo/status'));
         const sd = await sr.json();
-        const pct = sd.progress ?? 0;
+        // Backend shape: { running, total, done, current, results:[{status,error}], finished }.
+        const total = sd.total || 0;
+        const pct = total ? Math.round((sd.done / total) * 100) : 0;
         const bar = document.getElementById(`dl-bar-${quantType}`);
         const pctEl = document.getElementById(`dl-pct-${quantType}`);
         if (bar) bar.style.width = pct + '%';
         if (pctEl) pctEl.textContent = pct + '%';
-        if (sd.status === 'complete' || pct >= 100) {
-          clearInterval(pollId);
-          setModelZooStatusHtml(statusEl, `<span style="color:var(--success)">✅ ${T('Download complete')}</span>`);
+        if (!sd.finished) return;  // still running
+
+        clearInterval(pollId);
+        const results = sd.results || [];
+        const errored = results.find(r => r.status === 'error');
+        const cancelled = results.some(r => r.status === 'cancelled');
+        if (errored) {
+          setModelZooStatusHtml(statusEl, `<span style="color:var(--error)">${T('Download failed')}: ${escapeHtml(errored.error || '')}</span>`);
           btn.style.display = '';
-        } else if (sd.status === 'error') {
-          clearInterval(pollId);
-          setModelZooStatusHtml(statusEl, `<span style="color:var(--error)">${T('Download failed')}: ${escapeHtml(sd.error || '')}</span>`);
-          btn.style.display = '';
-        } else if (sd.status === 'cancelled') {
-          clearInterval(pollId);
+        } else if (cancelled) {
           setModelZooStatusHtml(statusEl, `<span style="color:var(--text-3)">${T('Download cancelled')}</span>`);
+          btn.style.display = '';
+        } else {
+          setModelZooStatusHtml(statusEl, `<span style="color:var(--success)">✅ ${T('Download complete')}</span>`);
           btn.style.display = '';
         }
       } catch (_) { /* polling error, continue */ }

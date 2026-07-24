@@ -72,7 +72,7 @@ def run_inference_live(model_name, category, model_file, lang="cpp", variant="sy
         if old and old.poll() is None:
             old.terminate()
             try: old.wait(timeout=3)
-            except: old.kill()
+            except Exception: old.kill()
         _live_procs.pop(slot_idx, None)
 
     _ensure_xvfb(slot_idx)
@@ -133,7 +133,7 @@ def _parse_detections(stdout_text):
             x1, y1, x2, y2 = float(vals[1]), float(vals[2]), float(vals[3]), float(vals[4])
             dw, dh = float(vals[5]), float(vals[6])
             dets.append({"class": cls, "conf": conf, "bbox": [x1, y1, x2, y2], "disp_w": dw, "disp_h": dh})
-        except: continue
+        except Exception: continue
     return dets
 
 
@@ -205,7 +205,7 @@ def _parse_task_tags(content):
             elif tag == "3D":
                 parts = tl.split(); cls = parts[1]; conf = float(parts[2])
                 last_pred.append(f"{cls}: {conf*100:.0f}%")
-        except:
+        except Exception:
             continue
 
     # Build summary (aggregated across all frames)
@@ -218,7 +218,7 @@ def _parse_task_tags(content):
                     cls = parts[1]; conf = float(parts[2])
                     if cls not in summary: summary[cls] = {"count": 0, "conf_sum": 0.0}
                     summary[cls]["count"] += 1; summary[cls]["conf_sum"] += conf
-                except: pass
+                except Exception: pass
         for cls in summary:
             c = summary[cls]; c["conf_avg"] = round(c["conf_sum"] / c["count"], 3) if c["count"] else 0
     elif tag == "CLS":
@@ -229,7 +229,7 @@ def _parse_task_tags(content):
                     cls = parts[0]; conf = float(parts[1])
                     if cls not in summary: summary[cls] = {"count": 0, "conf_sum": 0.0}
                     summary[cls]["count"] += 1; summary[cls]["conf_sum"] += conf
-                except: pass
+                except Exception: pass
         for cls in summary: c = summary[cls]; c["conf_avg"] = round(c["conf_sum"] / c["count"], 3) if c["count"] else 0
     elif tag == "SEG":
         pct_sums = {}; n = 0
@@ -240,7 +240,7 @@ def _parse_task_tags(content):
                     cid = parts[i]; pct = float(parts[i+1])
                     if cid not in pct_sums: pct_sums[cid] = 0.0
                     pct_sums[cid] += pct
-                except: pass
+                except Exception: pass
             n += 1
         if n > 0:
             summary = {cid: {"avg_pct": round(v / n, 1)} for cid, v in pct_sums.items()}
@@ -250,7 +250,7 @@ def _parse_task_tags(content):
             parts = tl.split()
             if len(parts) >= 4:
                 try: mins.append(float(parts[1])); maxs.append(float(parts[2])); means.append(float(parts[3]))
-                except: pass
+                except Exception: pass
         if means:
             summary = {"min": round(min(mins), 2), "max": round(max(maxs), 2),
                        "mean": round(sum(means)/len(means), 2), "frames": len(means)}
@@ -260,7 +260,7 @@ def _parse_task_tags(content):
             parts = tl.split()
             if len(parts) >= 2:
                 try: total_persons += int(parts[1])
-                except: pass
+                except Exception: pass
         summary = {"total_detections": total_persons, "frames": frame_count,
                    "avg_per_frame": round(total_persons / frame_count, 1) if frame_count else 0}
     elif tag == "FACE":
@@ -269,7 +269,7 @@ def _parse_task_tags(content):
             parts = tl.split()
             if len(parts) >= 2:
                 try: total_faces += int(parts[1])
-                except: pass
+                except Exception: pass
         summary = {"total_detections": total_faces, "frames": frame_count,
                    "avg_per_frame": round(total_faces / frame_count, 1) if frame_count else 0}
     elif tag == "ALIGN":
@@ -278,7 +278,7 @@ def _parse_task_tags(content):
             parts = tl.split()
             if len(parts) >= 4:
                 try: yaws.append(float(parts[1])); pitches.append(float(parts[2])); rolls.append(float(parts[3]))
-                except: pass
+                except Exception: pass
         if yaws:
             summary = {"avg_yaw": round(sum(yaws)/len(yaws), 1),
                        "avg_pitch": round(sum(pitches)/len(pitches), 1),
@@ -291,7 +291,7 @@ def _parse_task_tags(content):
                     hand = parts[i]; conf = float(parts[i+1])
                     if hand not in summary: summary[hand] = {"count": 0, "conf_sum": 0.0}
                     summary[hand]["count"] += 1; summary[hand]["conf_sum"] += conf
-                except: pass
+                except Exception: pass
         for h in summary: c = summary[h]; c["conf_avg"] = round(c["conf_sum"] / c["count"], 3) if c["count"] else 0
 
     return {"tag": tag, "lines": tag_lines, "frame_count": frame_count,
@@ -311,7 +311,7 @@ def poll_inference(job_id):
     try:
         with open(job["log_file"], "r") as f:
             content = f.read()
-    except:
+    except Exception:
         content = ""
 
     # ── Frame / detection counting (모든 태스크 태그 통합) ──
@@ -333,7 +333,7 @@ def poll_inference(job_id):
     m_fps = re.search(r"\[INFO\] Input source FPS:\s*([\d.]+)", content)
     if m_fps:
         try: src_fps = float(m_fps.group(1))
-        except: pass
+        except Exception: pass
 
     is_det_mode = det_count > 0 and frame_markers == 0
     has_tag_mode = tag_frame_count > 0  # any task tag found
@@ -385,7 +385,7 @@ def poll_inference(job_id):
                         class_counts[cls] = {"count": 0, "conf_sum": 0.0}
                     class_counts[cls]["count"] += 1
                     class_counts[cls]["conf_sum"] += conf
-                except: pass
+                except Exception: pass
 
     return {"running": running, "frames": display_frames,
             "det_count": det_count, "class_counts": class_counts,
@@ -472,13 +472,13 @@ def get_inference_result(job_id):
     proc = job["proc"]
     try:
         proc.wait(timeout=8)
-    except:
+    except Exception:
         proc.kill()
 
     try:
         with open(job["log_file"], "r") as f:
             content = f.read()
-    except:
+    except Exception:
         content = ""
 
     perf = _parse_perf(content)
@@ -501,7 +501,7 @@ def get_inference_result(job_id):
                     if cls not in det_summary:
                         det_summary[cls] = {"count": 0, "conf_sum": 0.0}
                     det_summary[cls]["count"] += 1; det_summary[cls]["conf_sum"] += conf
-                except: pass
+                except Exception: pass
         for cls in det_summary:
             c = det_summary[cls]; c["conf_avg"] = round(c["conf_sum"] / c["count"], 3) if c["count"] else 0
 
@@ -524,7 +524,7 @@ def get_inference_result(job_id):
 
     slot = job.get("slot_idx", 0)
     try: os.unlink(job["log_file"])
-    except: pass
+    except Exception: pass
     _live_jobs.pop(job_id, None)
     with _live_procs_lock:
         _live_procs.pop(slot, None)

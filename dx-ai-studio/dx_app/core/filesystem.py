@@ -33,9 +33,9 @@ def fs_list(path):
                    "ext":item.suffix.lower() if not is_dir else None}
                 if not is_dir:
                     try:e["size"]=item.stat().st_size
-                    except:e["size"]=0
+                    except Exception:e["size"]=0
                 entries.append(e)
-            except:pass
+            except Exception:pass
         parent=str(p.parent) if str(p)!=str(p.parent) else None
         return{"path":str(p),"parent":parent,"entries":entries}
     except Exception as e:

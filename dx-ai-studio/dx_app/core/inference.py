@@ -201,8 +201,9 @@ def run_inference(model_name, category, model_file, lang="cpp", variant="sync",
         if _multi: _multi_unregister(proc)
         with config._proc_lock: config._running_proc = None
         try:
-            stdout = open(_stdout_file, "r").read()
-        except:
+            with open(_stdout_file, "r") as _f:
+                stdout = _f.read()
+        except Exception:
             stdout = ""
         hw1 = get_hw()
         res = {"exit_code": proc.returncode, "output": stdout[-4000:], "model": model_name,
@@ -254,7 +255,8 @@ def run_inference(model_name, category, model_file, lang="cpp", variant="sync",
             if input_type == "video":
                 res["result_image"] = None
             else:
-                res["result_image"] = base64.b64encode(open(res_img, "rb").read()).decode()
+                with open(res_img, "rb") as _f:
+                    res["result_image"] = base64.b64encode(_f.read()).decode()
                 # Save a copy to outputs directory for gallery (skip when save_output=False)
                 if save_output:
                     try:
@@ -274,7 +276,7 @@ def run_inference(model_name, category, model_file, lang="cpp", variant="sync",
                 if _cvt_video(vo, dst): res["result_video_url"] = f"/outputs/{dst.name}"
                 if vo == DX_APP_ROOT / "result.mp4":
                     try: vo.unlink(missing_ok=True)
-                    except: pass
+                    except Exception: pass
         if proc.returncode != 0:
             res["error_hint"] = f"Exit code {proc.returncode}"
             # If no usable perf data was parsed, promote to hard error
@@ -382,7 +384,7 @@ def run_pipeline(steps, input_path, input_type="image", mode="chain"):
                     orig_img = cv2.imread(str(DX_APP_ROOT / orig_path) if not os.path.isabs(str(orig_path)) else str(orig_path))
                     if orig_img is None: continue
                     oh, ow = orig_img.shape[:2]
-                except: continue
+                except Exception: continue
                 # Scale bbox from display coords to original coords
                 sx, sy = ow / dw, oh / dh
                 x1 = max(0, int(bbox[0] * sx)); y1 = max(0, int(bbox[1] * sy))
@@ -400,7 +402,7 @@ def run_pipeline(steps, input_path, input_type="image", mode="chain"):
                            "crop_bbox": [x1, y1, x2, y2]})
                 crop_results.append(cr)
                 try: os.unlink(tmp)
-                except: pass
+                except Exception: pass
             results.append({"step_index": si, "step_model": step.get("model_name", ""),
                            "cascade_crops": crop_results, "crop_count": len(crop_results)})
         return results
@@ -417,6 +419,8 @@ def run_pipeline(steps, input_path, input_type="image", mode="chain"):
         if r.get("result_image") and input_type == "image":
             try:
                 tmp = tempfile.mktemp(suffix=".jpg", dir=_TMP)
-                open(tmp, "wb").write(base64.b64decode(r["result_image"])); cur = tmp
-            except: pass
+                with open(tmp, "wb") as _f:
+                    _f.write(base64.b64decode(r["result_image"]))
+                cur = tmp
+            except Exception: pass
     return results
