@@ -78,6 +78,12 @@
 **전체 showcase 목록 + 요약 →** [`dx-agent-dev-showcase/README-ko.md`](./dx-agent-dev-showcase/README-ko.md)  ·  **기능 설명 →** [Agent-Driven Development 문서](./docs/source/00_Agent_Driven_Development_kor.md)
 <!-- dx-showcase:docs:cardgrid:end -->
 
+> **빌드 시간 · 비용 안내** — 각 showcase에 표기된 빌드 시간, output token, 비용은
+> 실제 수행된 빌드 세션 transcript(`*-session.md`)에서 측정한 **실측치**이며, 해당
+> coding agent의 과금 정책으로 산정한 값입니다(추정치나 cherry-pick한 결과가 아닙니다).
+> 다만 AI coding agent 특성상 동일한 prompt라도 output token 소비량이 매번 같지는
+> 않으므로, 실행 환경과 model 버전에 따라 소요 시간과 비용은 달라질 수 있습니다.
+
 ## ✨ DX AI Studio — dx-ai-studio (Beta)
 
 <div align="center">

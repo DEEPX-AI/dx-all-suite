@@ -78,6 +78,13 @@
 **All showcases + summaries →** [`dx-agent-dev-showcase/README.md`](./dx-agent-dev-showcase/README.md)  ·  **About the feature →** [Agent-Driven Development docs](./docs/source/00_Agent_Driven_Development.md)
 <!-- dx-showcase:docs:cardgrid:end -->
 
+> **Note on build time & cost** — The build time, output-token count, and cost shown for
+> each showcase are **actual measurements** taken from that showcase's recorded
+> build-session transcript (`*-session.md`), priced with the coding agent's published
+> billing policy — not estimates, and not cherry-picked best runs. Because AI coding
+> agents are non-deterministic, the same prompt does not always consume the same output
+> tokens, so your own build time and cost may differ depending on environment and model version.
+
 ## ✨ DX AI Studio — dx-ai-studio (Beta)
 
 <div align="center">
