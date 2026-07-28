@@ -1,5 +1,29 @@
 # RELEASE_NOTES
 
+## DX-All-Suite v2.4.1 / 2026-07-28
+
+- DX-Compiler: v2.4.1
+    - DX-COM: v2.4.0
+    - DX-TRON: v2.0.1 (Deprecated)
+- DX-Runtime: v2.4.1
+    - DX_FW: v2.7.3
+    - NPU Driver: v2.5.1
+    - DX-RT: v3.4.1
+    - DX-Stream: v3.1.1
+    - DX-APP: v3.2.1
+
+---
+
+Here are the **DX-All-Suite v2.4.1** Release Note.
+
+### What's New?
+
+This hotfix release contains documentation updates across the suite.
+
+For detailed updated items, refer to **each environment & module's Release Notes**.
+
+---
+
 ## DX-All-Suite v2.4.0 / 2026-07-22
 
 - DX-Compiler: v2.4.0
