@@ -18,10 +18,14 @@ function _detailOptimizedCandidates(originalPath) {
   const stem = dot >= 0 ? clean.slice(0, dot) : clean;
   const ext = dot >= 0 ? clean.slice(dot + 1).toLowerCase() : 'img';
   const safeStem = `${stem}-${ext}`;
+  // Cache-buster: /data images are NOT content-hashed by the server (unlike /static),
+  // so a same-named regenerated example/thumbnail would otherwise stay stale in the
+  // browser cache. Bump _MZ_IMG_VER whenever example/thumbnail bytes change.
+  const v = `?v=${window._MZ_IMG_VER || '0'}`;
   return [
-    `/data/optimized/${safeStem}.webp`,
-    `/data/optimized/${safeStem}.jpg`,
-    `/data/${clean}`,
+    `/data/optimized/${safeStem}.webp${v}`,
+    `/data/optimized/${safeStem}.jpg${v}`,
+    `/data/${clean}${v}`,
   ];
 }
 
@@ -81,6 +85,9 @@ function _detailStatus(label) {
 
 function _detailValue(v, fallbackLabel) {
   if (!_hasValue(v)) return _detailStatus(fallbackLabel || 'Not provided by source');
+  if (typeof v === 'string' && v.startsWith('dx_app/')) {
+    return `<code class="mz-code-path">${escapeHtml(v)}</code>`;
+  }
   if (Array.isArray(v)) return escapeHtml(v.join(', '));
   if (typeof v === 'object') return escapeHtml(Object.entries(v).map(([k, value]) => `${k}: ${value}`).join(', '));
   return escapeHtml(String(v));
@@ -460,15 +467,17 @@ function renderExampleImages(model) {
 
   switch (type) {
     case 'before_after':
+      // Left = Input (original/low-res), Right = Output (result/SR). baAfter overlays
+      // the Output and is clipped from the LEFT so it reveals on the right side, matching
+      // the corner labels below (see initBeforeAfterSliders clip-path).
       return `<div class="mz-ba-container">
-        ${_detailImageTag(originalPath, T('Before'), 'class="mz-example-image"')}
+        ${_detailImageTag(originalPath, T('Input'), 'class="mz-example-image"')}
         <div class="mz-ba-after" id="baAfter">
-          ${_detailImageTag(resultPath, T('After'), 'class="mz-example-image"')}
+          ${_detailImageTag(resultPath, T('Output'), 'class="mz-example-image"')}
         </div>
+        <span class="mz-ba-label mz-ba-label-in">${T('Input')}</span>
+        <span class="mz-ba-label mz-ba-label-out">${T('Output')}</span>
         <div class="mz-ba-slider" id="baSlider" style="left:50%"></div>
-        <div style="display:flex;justify-content:space-between;margin-top:8px;font-size:12px;color:var(--text-3)">
-          <span>${T('Before')}</span><span>${T('After')}</span>
-        </div>
       </div>`;
 
     case 'overlay':
@@ -1082,7 +1091,9 @@ function initBeforeAfterSliders() {
     let pct = ((clientX - rect.left) / rect.width) * 100;
     pct = Math.max(0, Math.min(100, pct));
     slider.style.left = pct + '%';
-    after.style.clipPath = 'inset(0 ' + (100 - pct) + '% 0 0)';
+    // Clip the Output overlay from the LEFT so it is revealed on the RIGHT side
+    // (left region keeps showing the Input base layer).
+    after.style.clipPath = 'inset(0 0 0 ' + pct + '%)';
   }
 
   let sliderRaf = null;

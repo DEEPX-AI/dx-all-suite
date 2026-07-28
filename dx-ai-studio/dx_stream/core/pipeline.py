@@ -15,6 +15,8 @@ import uuid
 from pathlib import Path
 from typing import Any
 
+from dx_stream.core import gst_env as _gst_env
+
 log = logging.getLogger(__name__)
 
 
@@ -43,11 +45,14 @@ _gst_available = False
 Gst = None
 GLib = None
 
+_gst_env.refresh_plugin_environment()
+
 try:
     import gi
     gi.require_version("Gst", "1.0")
     from gi.repository import Gst as _Gst, GLib as _GLib
     _Gst.init(None)
+    _gst_env.refresh_plugin_environment(_Gst)
     Gst = _Gst
     GLib = _GLib
     _gst_available = True
@@ -491,6 +496,7 @@ class PipelineManager:
                     os.environ[k] = v
 
             try:
+                _gst_env.refresh_plugin_environment(Gst)
                 self._pipeline = Gst.parse_launch(pipeline_str)
             except GLib.Error as e:
                 self._pipeline = None

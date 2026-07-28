@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 
 _STREAM_ROOT = str(Path(__file__).resolve().parent.parent.parent / "dx_stream")
+_STUDIO_ROOT = str(Path(__file__).resolve().parents[2])
 
 
 def _alias_core_tree() -> None:
@@ -33,7 +34,9 @@ def pin_stream_core() -> None:
     for mod_name in list(sys.modules):
         if mod_name == "core" or mod_name.startswith("core."):
             del sys.modules[mod_name]
-    while _STREAM_ROOT in sys.path:
-        sys.path.remove(_STREAM_ROOT)
+    for path in (_STREAM_ROOT, _STUDIO_ROOT):
+        while path in sys.path:
+            sys.path.remove(path)
+    sys.path.insert(0, _STUDIO_ROOT)
     sys.path.insert(0, _STREAM_ROOT)
     _alias_core_tree()

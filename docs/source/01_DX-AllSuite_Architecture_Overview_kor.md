@@ -57,7 +57,7 @@
 | 카테고리 | DX-Compiler (호스트) | DX-Runtime (타겟) |
 | :--- | :--- | :--- |
 | **아키텍처** | x86_64 | x86_64, aarch64 |
-| **OS** | Ubuntu 26.04/24.04/22.04/20.04,<br>Fedora, Redhat, CentOS | Ubuntu 24.04/22.04/20.04,<br>Debian 13/12, Windows 11/10 |
+| **OS** | Ubuntu 26.04/24.04/22.04/20.04,<br>Fedora, Redhat, CentOS | Ubuntu 26.04/24.04/22.04/20.04,<br>Debian 13/12, Windows 11/10 |
 | **언어** | Python 3.8, 3.9, 3.10, 3.11, 3.12, 3.13, 3.14 | Python 3.8 이상,<br>C++14 이상 (C++17 for MSVC/Windows) |
 
 ### Model & Software Ecosystem
@@ -78,23 +78,29 @@ DX-AllSuite는 리팩토링을 최소화하기 위해 업계 표준 프레임워
 
 ## DEEPX ModelZoo & Supported Tasks
 
-DEEPX ModelZoo는 **270개 이상의 사전 검증된 모델**을 제공하는 종합 저장소입니다. 사용자는 수동 컴파일 과정 없이 다양한 하드웨어 프로파일에서 성능과 정확도를 즉시 확인할 수 있습니다.  
+DEEPX ModelZoo는 **358개의 사전 검증된 모델**을 제공하는 종합 저장소입니다. 사용자는 수동 컴파일 과정 없이 다양한 하드웨어 프로파일에서 성능과 정확도를 즉시 확인할 수 있습니다.  
 
 | 작업 | 대표 모델 |
 | :--- | :--- |
 | **Image Classification** | ResNet, ResNeXt, MobileNet, EfficientNet (Lite/V2),<br>ViT/DeiT/BEiT, MobileViT, FastViT, CasViT,<br>RegNet, ShuffleNet, VGG |
 | **Object Detection** | YOLO families (YOLOv3–YOLOv11, YOLOX, YOLO26),<br>SSD, EfficientDet, NanoDet, DamoYOLO |
+| **3D Object Detection** | 3D 객체 검출 모델 |
 | **Instance Segmentation** | YOLACT, YOLOv5-Seg, YOLOv8-Seg, YOLO26-Seg |
 | **Semantic Segmentation** | DeepLabV3/DeepLabV3+, SegFormer, BiSeNet, UNet |
+| **Panoptic Driving Perception** | 범용 주행 인식 모델 |
 | **Oriented Object Detection (OBB)** | YOLO26-OBB |
 | **Zero-shot Instance Segmentation** | FastSAM |
 | **Face Detection** | RetinaFace, SCRFD, ULFGED, YOLOv5-Face, YOLOv7-Face |
 | **Face Recognition** | ArcFace (IResNet50/100, MobileFaceNet, R50) |
 | **Face Landmark** | TDDFA v2 (MobileNet variants) |
 | **Face Attribute** | FaceAttrResNetV1-18 |
-| **Pose Estimation (Human)** | CenterPose, YOLO26-Pose, YOLOv8-Pose |
+| **Hand Detection** | 손 검출 모델 |
 | **Hand Landmark** | MediaPipeHandsLite |
+| **Pose Estimation (Human)** | CenterPose, YOLO26-Pose, YOLOv8-Pose |
+| **Object Pose Estimation** | 객체 포즈 추정 모델 |
+| **Keypoint Detection** | 키포인트 검출 모델 |
 | **Person Attribute** | DeepMAR (ResNet18/50) |
+| **Person Re-identification** | CasViT |
 | **Depth Estimation** | FastDepth, SCDepthV3 |
 | **Image Denoising** | DnCNN variants |
 | **Low-light Enhancement** | ZeroDCE |

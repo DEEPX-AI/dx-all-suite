@@ -1,6 +1,14 @@
 /* DX Model Zoo — i18n Dictionary: detail */
 'use strict';
 window._DX_MODELZOO_I18N_REGISTER({
+  'Input': {
+    en: 'Input', ko: '입력', ja: '入力',
+    'zh-CN': '输入', 'zh-TW': '輸入', es: 'Entrada',
+  },
+  'Output': {
+    en: 'Output', ko: '출력', ja: '出力',
+    'zh-CN': '输出', 'zh-TW': '輸出', es: 'Salida',
+  },
   'Technical': {
     en: 'Technical', ko: '기술 정보', ja: '技術情報',
     'zh-CN': '技术信息', 'zh-TW': '技術資訊', es: 'Información técnica',

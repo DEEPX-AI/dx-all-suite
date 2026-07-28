@@ -49,8 +49,8 @@ class SetupPanel {
     // 샘플 + 캘리브레이션 상태
     const samplesIcon = document.getElementById('setup-samples-icon');
     const downloadBtn = document.getElementById('setup-download-btn');
-    const allDownloaded = Object.values(s.sample_models).every(m => m.downloaded) &&
-                          s.calibration_data.downloaded;
+    const allDownloaded = Object.values(s.sample_models || {}).every(m => m.downloaded) &&
+                          (s.calibration_data && s.calibration_data.downloaded);
 
     if (allDownloaded || this._samplesCompleted) {
       samplesIcon.textContent = '✅';
@@ -287,12 +287,14 @@ class SetupPanel {
   }
 
   _disableCompileForm(disabled) {
+    // Only gate the submit action — never disable/grey the input fields. Grey-ing the whole
+    // form made the compiler read as "Input UI unusable" whenever the venv probe disagreed
+    // with in-process dx_com. Users must still be able to fill model/config/options; if
+    // dx_com is truly missing, the disabled compile button + Setup banner convey that.
     const compileBtn = document.querySelector('.compile-btn');
     if (compileBtn) compileBtn.disabled = disabled;
     const form = document.getElementById('compile-form');
-    if (form) {
-      form.style.opacity = disabled ? '0.5' : '1';
-    }
+    if (form) form.style.opacity = '1';
   }
 
   _updateSampleSelector() {

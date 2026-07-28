@@ -7,6 +7,8 @@ from pathlib import Path
 
 _SCRIPT_DIR = Path(__file__).resolve().parent
 _DX_AI_STUDIO_ROOT = _SCRIPT_DIR.parents[1]
+if str(_DX_AI_STUDIO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_DX_AI_STUDIO_ROOT))
 
 from dx_modelzoo.metadata.sync import resolve_source_profile, run_sync
 
@@ -58,6 +60,13 @@ def main():
     if args.no_verify_tls:
         print("WARNING: TLS verification disabled (--no-verify-tls)", file=sys.stderr)
         adapter_kwargs["internal_modelzoo"] = {"verify_tls": False}
+
+    if source_profile == "local" and args.offline:
+        print(
+            "ERROR: local+offline sync is forbidden — it strips public artifact URLs.",
+            file=sys.stderr,
+        )
+        sys.exit(2)
 
     result = run_sync(
         source_profile=source_profile,

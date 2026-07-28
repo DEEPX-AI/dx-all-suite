@@ -249,6 +249,7 @@
             <div class="form-actions">
                 <button type="submit" class="compile-btn" id="compile-main-btn"><span class="ko">컴파일</span><span class="en">Compile</span><span class="es">Compilar</span><span class="ja">コンパイル</span><span class="zh-CN">编译</span><span class="zh-TW">編譯</span></button>
                 <button type="button" class="summary-btn" id="save-summary-btn" disabled><span class="ko">모델 요약 저장</span><span class="en">Save Model Summary</span><span class="es">Guardar resumen del modelo</span><span class="ja">モデルサマリーを保存</span><span class="zh-CN">保存模型摘要</span><span class="zh-TW">儲存模型摘要</span></button>
+                <button type="button" class="summary-btn" id="download-dxnn-btn" disabled><span class="ko">.dxnn 다운로드</span><span class="en">Download .dxnn</span><span class="es">Descargar .dxnn</span><span class="ja">.dxnn をダウンロード</span><span class="zh-CN">下载 .dxnn</span><span class="zh-TW">下載 .dxnn</span></button>
             </div>
         </form>
     </section>
@@ -486,6 +487,11 @@ document.getElementById('compile-form').addEventListener('submit', async functio
     btn.textContent = T('Submitting...');
     const formData = new FormData(this);
     ViewerPanel.resetViewer();
+    const dxnnBtn = document.getElementById('download-dxnn-btn');
+    if (dxnnBtn) {
+        dxnnBtn.disabled = true;
+        delete dxnnBtn.dataset.jobId;
+    }
 
     fetch('/compile', { method: 'POST', body: formData })
         .then(r => r.text())
@@ -590,6 +596,12 @@ document.getElementById('compile-form').addEventListener('submit', async functio
                     summaryBtn.disabled = false;
                     summaryBtn.dataset.jobId = jobId;
                 }
+                // Enable .dxnn download (server has the artifact; expose it to the browser)
+                var dxnnBtn = document.getElementById('download-dxnn-btn');
+                if (dxnnBtn) {
+                    dxnnBtn.disabled = false;
+                    dxnnBtn.dataset.jobId = jobId;
+                }
                 source.close();
             });
 
@@ -645,6 +657,13 @@ document.getElementById('save-summary-btn').addEventListener('click', function()
             btn.disabled = false;
             console.error('Summary generation failed:', err);
         });
+});
+
+// Download .dxnn button handler — GET streams the artifact with attachment disposition
+document.getElementById('download-dxnn-btn').addEventListener('click', function() {
+    var jobId = this.dataset.jobId;
+    if (!jobId) return;
+    window.location.href = '/compile/' + jobId + '/dxnn';
 });
 
 // DXQ Enhancement Scheme logic

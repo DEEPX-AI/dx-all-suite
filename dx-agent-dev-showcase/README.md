@@ -9,6 +9,13 @@ and the agent drives the DEEPX knowledge base end to end (brainstorm → plan �
 verify). What the feature is and how it works → [Agent-Driven Development docs](../docs/source/00_Agent_Driven_Development.md).
 Each card below links to that showcase's own README (full detail + transcript).
 
+> **Note on build time & cost** — The build time, output-token count, and cost shown for
+> each showcase are **actual measurements** taken from that showcase's recorded
+> build-session transcript (`*-session.md`), priced with the coding agent's published
+> billing policy — not estimates, and not cherry-picked best runs. Because AI coding
+> agents are non-deterministic, the same prompt does not always consume the same output
+> tokens, so your own build time and cost may differ depending on environment and model version.
+
 <!-- catalog -->
 <!-- dx-showcase:docs:catalog:start -->
 ## NPU-powered AI apps (mini-games)

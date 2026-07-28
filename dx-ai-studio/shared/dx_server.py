@@ -27,7 +27,7 @@ from __future__ import annotations
 
 import argparse
 from email import policy
-from email.parser import BytesParser
+from email.parser import BytesHeaderParser
 import email.utils
 import gzip
 import hashlib
@@ -206,17 +206,10 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
         if length > self.upload_max_bytes:
             raise RequestBodyError(413, "Multipart body too large")
 
-        # NOTE: tempfile.TemporaryFile (a real BufferedRandom), NOT SpooledTemporaryFile.
-        # On Python <3.11 SpooledTemporaryFile does not implement the io.IOBase interface
-        # (no readable/writable/seekable), so BytesParser.parse() — which wraps the fp in a
-        # TextIOWrapper — raises AttributeError. Uncaught, that killed the connection before
-        # any response, surfacing as a 502 on every multipart upload (compile, form submit,
-        # file upload). TemporaryFile streams to disk the same way and works on all versions.
-        # The upload size limit is already enforced above, so no spool max_size is needed.
+        delimiter = b"--" + boundary.encode("utf-8", "strict")
+        continuation = b"\r\n" + delimiter
         spool = tempfile.TemporaryFile()
         try:
-            spool.write(f"Content-Type: {content_type}\r\n".encode("utf-8"))
-            spool.write(b"MIME-Version: 1.0\r\n\r\n")
             remaining = length
             while remaining > 0:
                 chunk = self.rfile.read(min(65536, remaining))
@@ -224,26 +217,78 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
                     break
                 spool.write(chunk)
                 remaining -= len(chunk)
+            if remaining:
+                raise RequestBodyError(400, "Incomplete multipart body")
+
+            def boundary_suffix(offset, marker_length):
+                spool.seek(offset + marker_length)
+                suffix = spool.read(2)
+                if suffix == b"\r\n":
+                    return False
+                if suffix != b"--":
+                    return None
+                return spool.read(2) in (b"", b"\r\n")
+
             spool.seek(0)
-            message = BytesParser(policy=policy.default).parse(spool)
+            if spool.read(len(delimiter)) != delimiter:
+                return {}, {}
+            first_final = boundary_suffix(0, len(delimiter))
+            if first_final is None:
+                return {}, {}
+
+            markers = [(0, len(delimiter), first_final)]
+            overlap = len(continuation) - 1
+            carry = b""
+            file_offset = 0
+            spool.seek(0)
+            while True:
+                chunk = spool.read(65536)
+                if not chunk:
+                    break
+                haystack = carry + chunk
+                base_offset = file_offset - len(carry)
+                start = 0
+                while True:
+                    found = haystack.find(continuation, start)
+                    if found < 0:
+                        break
+                    offset = base_offset + found
+                    final = boundary_suffix(offset, len(continuation))
+                    if final is not None:
+                        markers.append((offset, len(continuation), final))
+                    start = found + 1
+                spool.seek(file_offset + len(chunk))
+                carry = haystack[-overlap:] if overlap else b""
+                file_offset += len(chunk)
+
+            if not markers[-1][2]:
+                return {}, {}
+
+            fields = {}
+            files = {}
+            for index, (offset, marker_length, final) in enumerate(markers[:-1]):
+                if final:
+                    break
+                next_offset = markers[index + 1][0]
+                part_start = offset + marker_length + 2
+                spool.seek(part_start)
+                segment = spool.read(next_offset - part_start)
+                raw_headers, separator, data = segment.partition(b"\r\n\r\n")
+                if not separator:
+                    continue
+                headers = BytesHeaderParser(policy=policy.default).parsebytes(
+                    raw_headers + b"\r\n\r\n"
+                )
+                name = headers.get_param("name", header="content-disposition") or "unknown"
+                filename = headers.get_filename()
+                if filename is not None:
+                    files[name] = {"filename": filename, "data": data}
+                else:
+                    charset = headers.get_content_charset() or "utf-8"
+                    fields[name] = data.decode(charset, "replace")
+            return fields, files
         finally:
             spool.close()
-        fields = {}
-        files = {}
-        if not message.is_multipart():
-            return fields, files
-
-        for part in message.iter_parts():
-            name = part.get_param("name", header="content-disposition") or "unknown"
-            filename = part.get_filename()
-            data = part.get_payload(decode=True) or b""
-            if filename is not None:
-                files[name] = {"filename": filename, "data": data}
-            else:
-                charset = part.get_content_charset() or "utf-8"
-                fields[name] = data.decode(charset, "replace")
-
-        return fields, files
 
 
     def send_json(self, data, code: int = 200):

@@ -84,21 +84,11 @@ def _check_webrtc() -> dict:
 
 
 def _check_build() -> dict:
-    """GStreamer 플러그인 빌드 상태 — .so 파일 존재 확인"""
-    plugin_paths = [
-        Path("/usr/local/lib/gstreamer-1.0/libgstdxstream.so"),
-        Path("/usr/lib/gstreamer-1.0/libgstdxstream.so"),
-    ]
-    for p in plugin_paths:
-        if p.exists():
-            return {"ok": True, "path": str(p)}
-    gst_path = os.environ.get("GST_PLUGIN_PATH", "")
-    if gst_path:
-        for d in gst_path.split(":"):
-            so = Path(d) / "libgstdxstream.so"
-            if so.exists():
-                return {"ok": True, "path": str(so)}
-    return {"ok": False, "path": None}
+    """GStreamer 플러그인 빌드 상태 — .so 파일 존재 확인 (통합 finder 위임)."""
+    from dx_stream.core import gst_env
+
+    so = gst_env.find_dxstream_plugin()
+    return {"ok": bool(so), "path": str(so) if so else None}
 
 
 def _get_gst_version():

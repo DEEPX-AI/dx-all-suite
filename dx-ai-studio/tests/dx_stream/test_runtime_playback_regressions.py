@@ -215,6 +215,64 @@ def test_pipeline_manager_start_source_checks_immediate_failure():
     assert "wait_for_initial_error" in source
 
 
+def test_pipeline_start_refreshes_plugin_registry_before_parsing(monkeypatch):
+    from core import pipeline
+
+    events = []
+
+    class FakeBus:
+        def add_signal_watch(self):
+            return None
+
+        def connect(self, *_args):
+            return None
+
+    class FakePipeline:
+        def get_bus(self):
+            return FakeBus()
+
+        def set_state(self, _state):
+            return "ok"
+
+    class FakeGst:
+        class State:
+            PLAYING = "playing"
+            NULL = "null"
+
+        class StateChangeReturn:
+            FAILURE = "failure"
+
+        @staticmethod
+        def parse_launch(_pipeline_string):
+            assert events == ["refreshed"]
+            return FakePipeline()
+
+    class FakeMainLoop:
+        def run(self):
+            return None
+
+    class FakeGLib:
+        Error = Exception
+        MainLoop = FakeMainLoop
+
+    monkeypatch.setattr(pipeline, "_gst_available", True)
+    monkeypatch.setattr(pipeline, "Gst", FakeGst)
+    monkeypatch.setattr(pipeline, "GLib", FakeGLib)
+    monkeypatch.setattr(pipeline, "_drain_dxrt_msgqueues", lambda: None)
+    monkeypatch.setattr(
+        pipeline._gst_env,
+        "refresh_plugin_environment",
+        lambda gst: events.append("refreshed"),
+        raising=False,
+    )
+
+    PipelineManager = pipeline.PipelineManager
+    manager = PipelineManager()
+    manager.start("videotestsrc ! fakesink")
+
+    assert events == ["refreshed"]
+
+
 def test_webrtc_start_failure_is_logged_before_fallback(monkeypatch, caplog):
     monkeypatch.setenv("DX_STREAM_WEBRTC", "1")  # webrtc is opt-in; enable for this test
     import logging

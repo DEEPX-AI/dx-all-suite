@@ -189,7 +189,7 @@ def _multipart_compile(base_url: str, fields: dict[str, str]) -> str:
     )
     with urlopen(req, timeout=30) as resp:
         html = resp.read().decode()
-    match = re.search(r'data-job-id="([a-f0-9]+)"', html)
+    match = re.search(r'data-job-id="([a-f0-9-]+)"', html)
     assert match, "compile response missing job id"
     return match.group(1)
 
@@ -432,7 +432,7 @@ def test_live_qxnn_resume_fails_without_checkpoint_support(live_server, tmp_path
     )
     assert code == 200
     assert isinstance(body, str)
-    job_id = re.search(r'data-job-id="([a-f0-9]+)"', body)
+    job_id = re.search(r'data-job-id="([a-f0-9-]+)"', body)
     assert job_id
     result = _wait_sse(live_server["base_url"], job_id.group(1), timeout=60)
     assert result.get("status") == "error"
@@ -465,7 +465,7 @@ def test_live_resume_summary_returns_clear_400(live_server, fast_config, tmp_pat
         {"qxnn_path": str(qxnn), "output_dir": str(resume_out)},
     )
     assert code == 200
-    m = re.search(r'data-job-id="([a-f0-9]+)"', body)
+    m = re.search(r'data-job-id="([a-f0-9-]+)"', body)
     assert m
     resume_job = m.group(1)
     assert _wait_sse(live_server["base_url"], resume_job, timeout=180).get("status") == "done"

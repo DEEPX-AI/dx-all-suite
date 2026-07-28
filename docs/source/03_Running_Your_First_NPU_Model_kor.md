@@ -74,7 +74,7 @@ getting-started/
 모델 컴파일러(`dxcom`)를 위한 환경을 설정합니다.  
 
 - **핵심 기능**:  `dx-compiler` 환경을 설치하고 빠른 상태 점검을 수행합니다.  
-- **스마트 체크**: `dxcom -v`를 사용하여 기존 설치 여부를 조사합니다. 이미 설치되어 있다면 중복 설치로 시간을 낭비하지 않습니다 (단, `--force` 플래그 사용 시 제외).  
+- **스마트 체크**: `dxcom -v`를 사용하여 기존 설치 여부를 조사합니다. 이미 설치되어 있다면 재설치를 건너뜁니다 (단, `--force` 플래그 사용 시 제외).  
 
 **[단계 1] `compiler-1_download_onnx.sh` (모델 다운로드)**  
 컴파일을 위한 샘플 모델 파일(`.onnx` 및 `.json`)을 준비합니다.  
@@ -103,7 +103,7 @@ getting-started/
 
 - **핵심 동작**: `dxcom` 엔진을 호출하여 다음과 같은 융합을 수행합니다.  
    : **ONNX** (구조) + **JSON** (설정) + **Calibration** (정밀도) = **.dxnn** (최적화된 바이너리)  
-- **출력**: 생성된 새로운 `.dxnn` 파일은 `dx-compiler/dx_com/output/` 에 저장되며 `getting-started/dxnn` 링크를 통해 즉시 접근 가능합니다.  
+- **출력**: 생성된 `.dxnn` 파일은 `dx-compiler/dx_com/output/` 에 저장되며 `getting-started/dxnn` 링크를 통해 즉시 접근 가능합니다.  
 
 ---
 

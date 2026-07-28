@@ -174,6 +174,48 @@ def test_parse_multipart_avoids_full_body_split_duplication():
     assert files["file"] == {"filename": "x.txt", "data": b"hello"}
 
 
+def test_parse_multipart_preserves_binary_bytes_without_splitting_payload_text():
+    boundary = "BND123"
+    blob = b"prefix--BND123suffix\r\nbinary\x00\xff\r\n"
+    body = (
+        f"--{boundary}\r\n".encode()
+        + b'Content-Disposition: form-data; name="model"; filename="m.onnx"\r\n'
+        + b"Content-Type: application/octet-stream\r\n\r\n"
+        + blob
+        + f"\r\n--{boundary}--\r\n".encode()
+    )
+    h = _handler(
+        headers={"Content-Type": f"multipart/form-data; boundary={boundary}"},
+        body=body,
+    )
+
+    _fields, files = h.parse_multipart()
+
+    assert files["model"] == {"filename": "m.onnx", "data": blob}
+
+
+def test_parse_multipart_closes_temporary_file_on_invalid_boundary(monkeypatch):
+    """Malformed multipart bodies must not leak the disk-backed temporary file."""
+    from shared import dx_server
+
+    created = []
+
+    class TrackingFile(io.BytesIO):
+        def __init__(self):
+            super().__init__()
+            created.append(self)
+
+    monkeypatch.setattr(dx_server.tempfile, "TemporaryFile", TrackingFile)
+    h = _handler(
+        headers={"Content-Type": "multipart/form-data; boundary=BOUNDARY"},
+        body=b"not-a-multipart-body",
+    )
+
+    assert h.parse_multipart() == ({}, {})
+    assert len(created) == 1
+    assert created[0].closed is True
+
+
 def test_dxserver_force_free_port_uses_list_form_fuser(monkeypatch):
     calls = []
     monkeypatch.setattr("shared.dx_server.time.sleep", lambda _seconds: None)

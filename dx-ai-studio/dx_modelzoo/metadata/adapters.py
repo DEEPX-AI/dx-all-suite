@@ -153,6 +153,8 @@ def local_runtime_adapter(suite_root) -> AdapterResult:
             if py_ex:
                 entry["demo.python_example"] = py_ex
 
+        entry["processor.supported_devices"] = ["dx_m1"]
+
         result["models"][cid] = entry
 
     return result
@@ -231,6 +233,15 @@ def internal_modelzoo_adapter(suite_root, publish_url=_INTERNAL_PUBLISH_URL, fet
     result["models"] = parsed.get("models", {})
     if not result["models"]:
         result["warnings"].append("internal publish page parsed zero models")
+        return result
+
+    from dx_modelzoo.metadata.studio_id_map import load_studio_index, remap_public_models
+    try:
+        index = load_studio_index(suite_root)
+        result["models"], remap_warns = remap_public_models(result["models"], index)
+        result["warnings"].extend(remap_warns)
+    except FileNotFoundError as exc:
+        result["warnings"].append(f"studio id remap skipped: {exc}")
     return result
 
 
@@ -250,6 +261,15 @@ def public_modelzoo_adapter(suite_root, publish_url=_PUBLIC_MODELZOO_URL, fetch_
         result["ok"] = False
         result["errors"].append(f"public modelzoo fetch/parse failed: {exc}")
         return result
+
+    from dx_modelzoo.metadata.studio_id_map import load_studio_index, remap_public_models
+    try:
+        index = load_studio_index(suite_root)
+        models, remap_warns = remap_public_models(models, index)
+        warns.extend(remap_warns)
+    except FileNotFoundError as exc:
+        result["warnings"].append(f"studio id remap skipped: {exc}")
+
     result["models"] = models
     result["warnings"].extend(warns)
     if not models:
@@ -455,6 +475,118 @@ def _parse_modelinfo_block(block):
                 fields["specification.metric.name"] = metric
 
     return fields
+
+
+def local_studio_catalog_adapter(suite_root) -> AdapterResult:
+    """Bundled model_catalog.json — baseline model ids for general-network sync without dx-runtime."""
+    suite_root = Path(suite_root)
+    result = _adapter_result("local_studio_catalog")
+
+    for data_dir in (
+        suite_root / "dx-ai-studio" / "dx_modelzoo" / "data",
+        suite_root / "dx_modelzoo" / "data",
+    ):
+        catalog_path = data_dir / "model_catalog.json"
+        if catalog_path.is_file():
+            break
+    else:
+        result["ok"] = False
+        result["errors"].append("model_catalog.json not found for studio baseline")
+        return result
+
+    try:
+        catalog = json.loads(catalog_path.read_text(encoding="utf-8"))
+    except Exception as exc:
+        result["ok"] = False
+        result["errors"].append(f"model_catalog load failed: {exc}")
+        return result
+
+    for model in catalog.get("models", []):
+        model_id = model.get("id")
+        if not model_id:
+            continue
+        spec = model.get("specification") or {}
+        entry = {
+            "display.name": model.get("name") or model_id,
+            "display.class_name": model.get("class_name") or model_id,
+            "display.task": model.get("category", ""),
+        }
+        if spec.get("input_resolution"):
+            entry["specification.input_resolution"] = spec["input_resolution"]
+        if spec.get("parameters"):
+            entry["specification.parameters"] = spec["parameters"]
+        if spec.get("operations"):
+            entry["specification.operations"] = spec["operations"]
+        legal = model.get("legal") or {}
+        if legal.get("license"):
+            entry["legal.license"] = legal["license"]
+        if legal.get("source_url"):
+            entry["legal.source_url"] = legal["source_url"]
+        # dx_app registry models target DX-M1 NPU; studio baseline uses the same default.
+        entry["processor.supported_devices"] = ["dx_m1"]
+        result["models"][model_id] = entry
+
+    if not result["models"]:
+        result["warnings"].append("model_catalog.json contained zero models")
+    return result
+
+
+_ENRICHMENT_ARTIFACT_KEYS = {
+    "onnx_url": "artifacts.onnx.remote_url",
+    "qlite_dxnn_url": "artifacts.qlite_dxnn.remote_url",
+    "qlite_json_url": "artifacts.qlite_json.remote_url",
+    "qpro_dxnn_url": "artifacts.qpro_dxnn.remote_url",
+    "qpro_json_url": "artifacts.qpro_json.remote_url",
+    "qmaster_dxnn_url": "artifacts.qmaster_dxnn.remote_url",
+    "qmaster_json_url": "artifacts.qmaster_json.remote_url",
+}
+
+
+def studio_enrichment_adapter(suite_root) -> AdapterResult:
+    """Apply curated model_enrichment.json overrides (studio-only gaps, PPU rows, etc.)."""
+    suite_root = Path(suite_root)
+    result = _adapter_result("studio_enrichment")
+
+    for data_dir in (
+        suite_root / "dx-ai-studio" / "dx_modelzoo" / "data",
+        suite_root / "dx_modelzoo" / "data",
+    ):
+        enrich_path = data_dir / "model_enrichment.json"
+        if enrich_path.is_file():
+            break
+    else:
+        result["warnings"].append("model_enrichment.json not found")
+        return result
+
+    try:
+        enrichment = json.loads(enrich_path.read_text(encoding="utf-8"))
+    except Exception as exc:
+        result["ok"] = False
+        result["errors"].append(f"model_enrichment load failed: {exc}")
+        return result
+
+    for studio_id, record in enrichment.items():
+        if not isinstance(record, dict):
+            continue
+        entry = {}
+        if record.get("accuracy") not in (None, ""):
+            entry["evaluation.raw.accuracy"] = record["accuracy"]
+        if record.get("metric_name"):
+            entry["specification.metric.name"] = record["metric_name"]
+        if record.get("fps") not in (None, ""):
+            entry["performance.fps"] = record["fps"]
+        if record.get("fps_per_watt") not in (None, ""):
+            entry["performance.fps_per_watt"] = record["fps_per_watt"]
+        for src_key, flat_key in _ENRICHMENT_ARTIFACT_KEYS.items():
+            url = record.get(src_key)
+            if url not in (None, "", "-"):
+                entry[flat_key] = url
+        if entry:
+            result["models"][studio_id] = entry
+
+    if not result["models"]:
+        result["warnings"].append("model_enrichment.json contained zero usable records")
+    return result
 
 
 def local_modelzoo_repo_adapter(suite_root) -> AdapterResult:

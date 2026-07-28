@@ -1,4 +1,8 @@
+import shutil
+import subprocess
 from pathlib import Path
+
+import pytest
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -203,6 +207,139 @@ def test_webrtc_error_banner_persists_and_is_not_auto_hidden():
     assert "_onFail(" in giveup_body, "give-up path must invoke the MJPEG-fallback callback"
 
 
+def test_pipeline_webrtc_fallback_restores_state_after_forced_mjpeg_failure():
+    """The static JavaScript contract must reset controls when forced MJPEG cannot start."""
+    source = _read(STREAM_JS / "stream-pipeline-api.js")
+    reset_body = _function_body(source, "function _resetPipelineAfterFallbackFailure(")
+    run_body = _function_body(source, "DXStream.pipelineRun = async function (")
+
+    assert "DXStream._wirePipelineMjpeg = function" in source
+    assert "DXStream._pipeRunning = false" in reset_body
+    assert "_updatePipelineButtons();" in reset_body
+    assert "DXStream.toast(" in reset_body
+    assert "forceMjpeg: true" in run_body
+    assert "if (r2 && !r2.error && r2.output_mode === 'mjpeg')" in run_body
+    assert "_resetPipelineAfterFallbackFailure(" in run_body
+    assert ".catch(function (error)" in run_body
+
+
+@pytest.mark.requires_node
+def test_pipeline_webrtc_fallback_failure_resets_controls_at_runtime():
+    """Execute both forced-MJPEG failure paths through the WebRTC callback."""
+    node = shutil.which("node")
+    if not node:
+        pytest.skip("node not available")
+
+    script = r"""
+const fs = require('fs');
+const vm = require('vm');
+const source = fs.readFileSync(process.argv[1], 'utf8');
+
+function assert(condition, message) {
+    if (!condition) {
+        throw new Error(message);
+    }
+}
+
+async function runCase(name, forcedMjpegResponse) {
+    const runButton = { disabled: false };
+    const stopButton = { disabled: true };
+    const videoSection = { style: {}, scrollIntoView() {} };
+    const pipeVideo = { style: {}, parentNode: { appendChild() {} } };
+    const requests = [];
+    const toasts = [];
+    let onWebrtcFailure = null;
+    const context = {
+        console,
+        Promise,
+        Object,
+        Date,
+        document: {
+            createElement() {
+                return { style: {}, parentNode: null };
+            },
+        },
+        T(value) { return value; },
+        DXStream: {
+            _pipeRunning: false,
+            _pipeState: { nodes: [], edges: [] },
+            $(id) {
+                return {
+                    'btn-pipeline-run': runButton,
+                    'btn-pipeline-stop': stopButton,
+                    'pipeline-video-section': videoSection,
+                    'pipeline-webrtc-video': pipeVideo,
+                }[id] || null;
+            },
+            toast(message, level) {
+                toasts.push({ message, level });
+            },
+            webrtc: {
+                preferredPayloadTypes() {
+                    return Promise.resolve([]);
+                },
+                connect(video, withAudio, callback) {
+                    onWebrtcFailure = callback;
+                },
+            },
+            postJ(path, body) {
+                requests.push({ path, body });
+                if (requests.length === 1) {
+                    return Promise.resolve({ output_mode: 'webrtc' });
+                }
+                return forcedMjpegResponse();
+            },
+        },
+    };
+
+    vm.createContext(context);
+    vm.runInContext(source, context);
+    await context.DXStream.pipelineRun();
+
+    assert(onWebrtcFailure, name + ': WebRTC failure callback was not registered');
+    assert(context.DXStream._pipeRunning, name + ': initial pipeline run did not start');
+    assert(runButton.disabled, name + ': Run was not disabled while running');
+    assert(!stopButton.disabled, name + ': Stop was not enabled while running');
+
+    onWebrtcFailure('ICE connection failed');
+    await new Promise((resolve) => setImmediate(resolve));
+
+    assert(requests.length === 2, name + ': forced MJPEG rerun was not requested');
+    assert(requests[1].body.forceMjpeg === true, name + ': rerun did not force MJPEG');
+    assert(!context.DXStream._pipeRunning, name + ': pipeline state was not reset');
+    assert(!runButton.disabled, name + ': Run was not restored');
+    assert(stopButton.disabled, name + ': Stop was not restored');
+    assert(
+        toasts.some((toast) => toast.level === 'error' &&
+            toast.message.indexOf('MJPEG fallback failed:') === 0),
+        name + ': fallback error was not reported'
+    );
+}
+
+(async function () {
+    await runCase('HTTP-error JSON', function () {
+        return Promise.resolve({ error: 'forced MJPEG returned HTTP 503' });
+    });
+    await runCase('network rejection', function () {
+        return Promise.reject(new Error('network unavailable'));
+    });
+    console.log('OK: WebRTC fallback failures reset pipeline controls');
+})().catch((error) => {
+    console.error(error.stack || error);
+    process.exit(1);
+});
+"""
+    result = subprocess.run(
+        [node, "-e", script, str(STREAM_JS / "stream-pipeline-api.js")],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "OK: WebRTC fallback failures reset pipeline controls" in result.stdout
+
+
 def test_webrtc_surfaces_stall_as_bus_error_state():
     """F-22(b): 스트리밍 중 프레임이 멈추면(버스 에러로 인한 검은 화면)
     에러 상태를 노출해야 한다.
@@ -373,7 +510,7 @@ def test_stream_demo_uses_mjpeg_img_for_mjpeg_mode():
 
 def test_stream_playback_mode_is_explicit_local_vs_remote():
     """재생 방식이 로컬(WebRTC)/원격(H264-over-HTTP) 명시 선택. 원격은 MSE 가능 시 fMP4를,
-    아니면 forceMjpeg를 서버에 요청한다. 9초 자동 타임아웃 대신 사용자가 직접 선택한다."""
+    아니면 forceMjpeg를 서버에 요청한다. 로컬 WebRTC가 연결되지 않으면 MJPEG로 폴백한다."""
     js = _read(STREAM_JS / "stream-demo.js")
     html = _read(STREAM_HTML)
     assert "setPlaybackMode" in js
@@ -381,9 +518,11 @@ def test_stream_playback_mode_is_explicit_local_vs_remote():
     assert "output = 'fmp4'" in js       # remote → HW H264 over HTTP (MSE)
     assert "forceMjpeg = true" in js     # no-MSE fallback
     assert 'data-mode="local"' in html and 'data-mode="remote"' in html
-    # 명시 선택이므로 WebRTC 클라이언트에 9초 자동 폴백 타임아웃이 없어야 한다.
+    # 명시 선택과 별개로, 연결되지 않는 로컬 WebRTC는 9초 뒤 MJPEG 폴백을 시작한다.
     wc = _read(STREAM_JS / "webrtc-client.js")
-    assert "CONNECT_TIMEOUT" not in _function_body(wc, "function connect(")
+    connect_body = _function_body(wc, "function connect(")
+    assert "CONNECT_TIMEOUT" in connect_body
+    assert "_giveUp('timeout')" in connect_body
 
 
 def test_remote_uses_fmp4_h264_over_http_via_mse():
@@ -413,7 +552,7 @@ def test_stream_pipeline_api_dispatches_webrtc_for_webrtc_mode():
     """stream-pipeline-api.js에서 WebRTC/MJPEG/fMP4 모드를 모두 처리하고, 데모 페이지와
     동일하게 원격(_playbackMode)에서는 fMP4(H264 over HTTP)를 요청한다."""
     source = _read(STREAM_JS / "stream-pipeline-api.js")
-    assert "DXStream.webrtc.connect(pipeVideo)" in source
+    assert "DXStream.webrtc.connect(pipeVideo, false, function" in source
     assert "await DXStream.webrtc.preferredPayloadTypes()" in source
     assert "webrtcPayloadTypes" in source
     assert "/api/stream/mjpeg" in source

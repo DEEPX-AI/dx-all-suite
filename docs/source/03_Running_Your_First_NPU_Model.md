@@ -74,7 +74,7 @@ All compiler scripts follow a "smart delegation" design to keep your workflow co
 Sets up the environment for the model compiler (`dxcom`).  
 
 - **Core Function**: Installs the `dx-compiler` environment and runs a quick health check.  
-- **Smart Check**: It probes for existing installations using `dxcom -v`. If it's already there, it won't waste your time with a redundant setup (unless you use the `--force` flag).  
+- **Smart Check**: It probes for existing installations using `dxcom -v`. If it's already there, it skips reinstallation (unless you use the `--force` flag).  
 
 **[Step 1] `compiler-1_download_onnx.sh` (Model Download)**  
 Prepares the sample model files (`.onnx` and `.json`) for compilation.  
@@ -103,7 +103,7 @@ The final stage where the prepared model and data are combined to generate the N
 
 - **Core Action**: Invokes the `dxcom` engine to perform the following fusion:  
    : **ONNX** (The Structure) + **JSON** (The Config) + **Calibration** (The Precision) = **.dxnn** (The Optimized Binary)  
-- **Output**: Your shiny new `.dxnn` files are stored in `dx-compiler/dx_com/output/` and are immediately accessible via the `getting-started/dxnn` link.  
+- **Output**: The generated `.dxnn` files are stored in `dx-compiler/dx_com/output/` and are immediately accessible via the `getting-started/dxnn` link.  
 
 ---
 

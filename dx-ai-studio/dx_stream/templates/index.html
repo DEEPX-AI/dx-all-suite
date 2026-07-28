@@ -746,6 +746,15 @@
         <h4><span class="ko">빌드 로그</span><span class="en">Build Log</span><span class="es">Registro de compilación</span><span class="ja">ビルドログ</span><span class="zh-CN">构建日志</span><span class="zh-TW">建置日誌</span></h4>
         <pre id="custom-build-log" class="metadata-raw"></pre>
       </div>
+      <h4 class="mt8"><span class="ko">모델 업로드 (.dxnn)</span><span class="en">Upload Model (.dxnn)</span><span class="es">Subir modelo (.dxnn)</span><span class="ja">モデルをアップロード (.dxnn)</span><span class="zh-CN">上传模型 (.dxnn)</span><span class="zh-TW">上傳模型 (.dxnn)</span></h4>
+      <div class="card">
+        <label><span class="ko">DxInfer의 model-path에서 선택 가능해집니다</span><span class="en">Becomes selectable in DxInfer's model-path</span><span class="es">Disponible en model-path de DxInfer</span><span class="ja">DxInfer の model-path で選択可能になります</span><span class="zh-CN">上传后可在 DxInfer 的 model-path 中选择</span><span class="zh-TW">上傳後可在 DxInfer 的 model-path 中選擇</span></label>
+        <input type="file" id="model-upload-file" accept=".dxnn" class="input mt8">
+        <button class="btn btn-accent mt8" onclick="DXStream.uploadModel()">
+          <span class="ko">업로드</span><span class="en">Upload</span><span class="es">Subir</span><span class="ja">アップロード</span><span class="zh-CN">上传</span><span class="zh-TW">上傳</span>
+        </button>
+        <span id="model-upload-status" class="mt8" style="display:block"></span>
+      </div>
     </div>
   </div>
 </div>

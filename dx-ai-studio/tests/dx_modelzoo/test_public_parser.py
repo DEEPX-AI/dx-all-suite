@@ -17,20 +17,23 @@ _FIXTURE = """
 <th rowspan="3">Operations<br>(GFLOPs)</th><th rowspan="3">Parameters<br>(M)</th><th rowspan="3">License</th>
 <th rowspan="3">Metric</th><th rowspan="3">Source</th><th colspan="2" rowspan="2">Original (FP32)</th>
 <th colspan="8">Quantized (INT8)</th><th rowspan="3">Sample<br>Apps</th></tr>
-<tr><th colspan="3">Q-Lite</th><th colspan="3">Q-Pro</th><th colspan="2">Performance</th></tr>
+<tr><th colspan="3">Q-Lite</th><th colspan="3">Q-Pro</th><th colspan="3">Q-Master</th><th colspan="2">Performance</th></tr>
 <tr><th>Accuracy</th><th>ONNX</th><th>Accuracy</th><th>DXNN</th><th>JSON</th>
-<th>Accuracy</th><th>DXNN</th><th>JSON</th><th>FPS</th><th>FPS/Watt</th></tr>
+<th>Accuracy</th><th>DXNN</th><th>JSON</th><th>Accuracy</th><th>DXNN</th><th>JSON</th>
+<th>FPS</th><th>FPS/Watt</th></tr>
 </thead><tbody>
 <tr><td>AlexNet</td><td>ImageNet</td><td>224x224x3</td><td>0.72</td><td>61.10</td><td>BSD-3-Clause</td>
 <td>Top1</td><td><a href="https://ex.com/alexnet">src</a></td>
 <td>56.5</td><td><a href="https://sdk.deepx.ai/modelzoo/onnx/AlexNet-1.onnx">onnx</a></td>
 <td>56.2</td><td><a href="https://sdk.deepx.ai/modelzoo/dxnn/AlexNet.dxnn">dxnn</a></td><td><a href="https://sdk.deepx.ai/j/AlexNet.json">json</a></td>
 <td>56.4</td><td><a href="https://sdk.deepx.ai/qp/AlexNet.dxnn">dxnn</a></td><td><a href="https://sdk.deepx.ai/qpj/AlexNet.json">json</a></td>
+<td></td><td></td><td></td>
 <td>634</td><td>1435.06</td><td>cls</td></tr>
 <tr><td>YoloV5S</td><td>COCO</td><td>640x640x3</td><td>16.5</td><td>7.20</td><td>GPL-3.0</td>
 <td>mAP</td><td><a href="https://ex.com/yolo">src</a></td>
 <td>37.4</td><td><a href="https://sdk.deepx.ai/o/YoloV5S-1.onnx">onnx</a></td>
 <td>36.9</td><td><a href="https://sdk.deepx.ai/d/YoloV5S.dxnn">dxnn</a></td><td><a href="https://sdk.deepx.ai/j/YoloV5S.json">json</a></td>
+<td></td><td></td><td></td>
 <td></td><td></td><td></td>
 <td>410</td><td>980.1</td><td>od</td></tr>
 </tbody></table>

@@ -57,7 +57,7 @@ The following table outlines the supported environments for both the compilation
 | Category | DX-Compiler (Host) | DX-Runtime (Target) |
 | :--- | :--- | :--- |
 | **Architecture** | x86_64 | x86_64, aarch64 |
-| **OS** | Ubuntu 26.04/24.04/22.04/20.04,<br>Fedora, Redhat, CentOS | Ubuntu 24.04/22.04/20.04,<br>Debian 13/12, Windows 11/10 |
+| **OS** | Ubuntu 26.04/24.04/22.04/20.04,<br>Fedora, Redhat, CentOS | Ubuntu 26.04/24.04/22.04/20.04,<br>Debian 13/12, Windows 11/10 |
 | **Languages** | Python 3.8, 3.9, 3.10, 3.11, 3.12, 3.13, 3.14 | Python 3.8 or higher,<br>C++14 or higher (C++17 for MSVC/Windows) |
 
 ### Model & Software Ecosystem
@@ -78,23 +78,29 @@ We maintain strong technical partnerships to ensure the DXNN SDK operates flawle
 
 ## DEEPX ModelZoo & Supported Tasks
 
-DEEPX ModelZoo is a comprehensive repository providing **over 270 pre-validated models**. It allows users to immediately verify performance and accuracy across various hardware profiles without the need for a manual compilation process.  
+DEEPX ModelZoo is a comprehensive repository providing **358 pre-validated models**. It allows users to immediately verify performance and accuracy across various hardware profiles without the need for a manual compilation process.  
 
 | Task | Representative Models |
 | :--- | :--- |
 | **Image Classification** | ResNet, ResNeXt, MobileNet, EfficientNet (Lite/V2),<br>ViT/DeiT/BEiT, MobileViT, FastViT, CasViT,<br>RegNet, ShuffleNet, VGG |
 | **Object Detection** | YOLO families (YOLOv3–YOLOv11, YOLOX, YOLO26),<br>SSD, EfficientDet, NanoDet, DamoYOLO |
+| **3D Object Detection** | 3D detection models |
 | **Instance Segmentation** | YOLACT, YOLOv5-Seg, YOLOv8-Seg, YOLO26-Seg |
 | **Semantic Segmentation** | DeepLabV3/DeepLabV3+, SegFormer, BiSeNet, UNet |
+| **Panoptic Driving Perception** | Panoptic perception models |
 | **Oriented Object Detection (OBB)** | YOLO26-OBB |
 | **Zero-shot Instance Segmentation** | FastSAM |
 | **Face Detection** | RetinaFace, SCRFD, ULFGED, YOLOv5-Face, YOLOv7-Face |
 | **Face Recognition** | ArcFace (IResNet50/100, MobileFaceNet, R50) |
 | **Face Landmark** | TDDFA v2 (MobileNet variants) |
 | **Face Attribute** | FaceAttrResNetV1-18 |
-| **Pose Estimation (Human)** | CenterPose, YOLO26-Pose, YOLOv8-Pose |
+| **Hand Detection** | Hand detection models |
 | **Hand Landmark** | MediaPipeHandsLite |
+| **Pose Estimation (Human)** | CenterPose, YOLO26-Pose, YOLOv8-Pose |
+| **Object Pose Estimation** | Object pose estimation models |
+| **Keypoint Detection** | Keypoint detection models |
 | **Person Attribute** | DeepMAR (ResNet18/50) |
+| **Person Re-identification** | CasViT |
 | **Depth Estimation** | FastDepth, SCDepthV3 |
 | **Image Denoising** | DnCNN variants |
 | **Low-light Enhancement** | ZeroDCE |

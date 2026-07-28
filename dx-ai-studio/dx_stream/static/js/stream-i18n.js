@@ -63,6 +63,12 @@ window._DX_I18N_DICT = {
     'Retrying WebRTC connection… (': { ko: 'WebRTC 재연결 시도 중… (', ja: 'WebRTC 再接続を試みています… (', 'zh-CN': '正在重试 WebRTC 连接… (', 'zh-TW': '正在重試 WebRTC 連線… (',es:'Reintentando conexión WebRTC… ('},
     'WebRTC connection failed after retries. Click retry to try again.': { ko: 'WebRTC 연결 재시도 실패. 다시 시도하려면 재연결 버튼을 클릭하세요.', ja: 'WebRTC 接続の再試行に失敗しました。再試行するには再接続ボタンをクリックしてください。', 'zh-CN': 'WebRTC 连接重试失败。请点击重试按钮重新尝试。', 'zh-TW': 'WebRTC 連線重試失敗。請點擊重試按鈕再次嘗試。',es:'La conexión WebRTC falló después de reintentos. Haga clic en reintentar para intentar de nuevo.'},
     'Retry': { ko: '재연결', ja: '再接続', 'zh-CN': '重试', 'zh-TW': '重試',es:'Reintentar'},
+    'WebRTC could not connect — switching to MJPEG': { ko: 'WebRTC 연결 실패 — MJPEG로 전환합니다', ja: 'WebRTC に接続できません — MJPEG に切り替えます', 'zh-CN': 'WebRTC 无法连接 — 切换到 MJPEG', 'zh-TW': 'WebRTC 無法連線 — 切換為 MJPEG',es:'WebRTC no pudo conectar — cambiando a MJPEG'},
+    'MJPEG fallback failed: ': { ko: 'MJPEG 대체 재생 실패: ', ja: 'MJPEG フォールバックに失敗しました: ', 'zh-CN': 'MJPEG 回退失败: ', 'zh-TW': 'MJPEG 備援失敗: ',es:'La alternativa MJPEG falló: '},
+    'Select a .dxnn file first': { ko: '.dxnn 파일을 먼저 선택하세요', ja: '先に .dxnn ファイルを選択してください', 'zh-CN': '请先选择 .dxnn 文件', 'zh-TW': '請先選擇 .dxnn 檔案',es:'Seleccione primero un archivo .dxnn'},
+    'Model file must be a .dxnn binary': { ko: '모델 파일은 .dxnn 바이너리여야 합니다', ja: 'モデルファイルは .dxnn バイナリである必要があります', 'zh-CN': '模型文件必须是 .dxnn 二进制文件', 'zh-TW': '模型檔案必須是 .dxnn 二進位檔',es:'El archivo de modelo debe ser un binario .dxnn'},
+    'Uploading...': { ko: '업로드 중...', ja: 'アップロード中...', 'zh-CN': '上传中...', 'zh-TW': '上傳中...',es:'Subiendo...'},
+    'Upload failed': { ko: '업로드 실패', ja: 'アップロード失敗', 'zh-CN': '上传失败', 'zh-TW': '上傳失敗',es:'Error al subir'},
 
     'Undo': { ko: '실행 취소', ja: '元に戻す', 'zh-CN': '撤销', 'zh-TW': '復原',es:'Deshacer'},
     'Redo': { ko: '다시 실행', ja: 'やり直し', 'zh-CN': '重做', 'zh-TW': '重做',es:'Rehacer'},

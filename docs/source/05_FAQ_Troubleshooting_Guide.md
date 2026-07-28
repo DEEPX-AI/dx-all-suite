@@ -4,12 +4,12 @@ This guide addresses common errors and symptoms encountered while using the **DX
 
 **Table of Contents**  
 
-- [Q1. Container 'Restarting' Error (#dxrtd-conflict)](#q1-container-restarting-error-dxrtd-conflict)  
-- [Q2. X11 Session Warnings & Mount Errors (Wayland Issues)](#q2-x11-session-warnings--mount-errors-wayland-issues)  
-- [Q3. Firmware Version Mismatch Error](#q3-firmware-version-mismatch-error)  
-- [Q4. Device Driver Update Error](#q4-device-driver-update-error)  
-- [Q5. Model-Runtime Version Compatibility Error](#q5-model-runtime-version-compatibility-error)  
-- [Q6. Insufficient Shared Memory (shm) Error](#q6-insufficient-shared-memory-shm-error)  
+- Q1. Container 'Restarting' Error (#dxrtd-conflict)  
+- Q2. X11 Session Warnings & Mount Errors (Wayland Issues)  
+- Q3. Firmware Version Mismatch Error  
+- Q4. Device Driver Update Error  
+- Q5. Model-Runtime Version Compatibility Error  
+- Q6. Insufficient Shared Memory (shm) Error  
 
 ---
 
@@ -51,12 +51,12 @@ sudo systemctl stop dxrt.service
 ./docker_run.sh --target=dx-runtime --ubuntu_version=24.04 
 ```
 
-For more details, refer to the [**Host System Preparation**](02_Setting_Up_Environment.md#host-system-preparation-critical) in **02. Setting Up Environment**.  
+For more details, refer to the **Host System Preparation** section in [**02. Setting Up Environment**](02_Setting_Up_Environment.md).  
 
 **Method 2: Prevent Auto-execution in the Container**  
 If you **must** keep the host service running, configure the container so that the daemon (`dxrtd`) does not start automatically upon launch.  
 
-For more details, refer to the [**Docker Advanced Troubleshooting**](02_Setting_Up_Environment.md#docker-advanced-troubleshooting-multi-runtime-containers) in **02. Setting Up Environment**.  
+For more details, refer to the **Docker Advanced Troubleshooting (Multi-Runtime Containers)** section in [**02. Setting Up Environment**](02_Setting_Up_Environment.md).  
 
 ---
 
@@ -107,7 +107,7 @@ docker compose -f docker/docker-compose.yml down --remove-orphans
 ./docker_run.sh --target=dx-runtime --ubuntu_version=24.04
 ```
 
-For more details, refer to the [**Docker Installation**](02_Setting_Up_Environment.md#docker-installation) section in **02. Setting Up Environment**.  
+For more details, refer to the **Docker Installation** section in [**02. Setting Up Environment**](02_Setting_Up_Environment.md).  
 
 ---
 
@@ -157,7 +157,7 @@ After rebooting, enter the following command in the terminal to verify that the 
 dxrt-cli -s
 ```
 
-For more details, refer to the [**Firmware (DX-FW) Update and Activation**](02_Setting_Up_Environment.md#b-firmware-dx-fw-update-and-activation) section in **02. Setting Up Environment**.  
+For more details, refer to the **Firmware (DX-FW) Update and Activation** section in [**02. Setting Up Environment**](02_Setting_Up_Environment.md).  
 
 ---
 
@@ -202,7 +202,7 @@ dxrt-cli -s
 !!! caution "Warning for Docker Users"  
     Because Docker containers share the host's kernel, **driver updates must be performed on the Host OS**, not inside the container. Updating the driver inside a container will not affect the hardware communication layer.  
 
-For more details, refer to the [**Module Build and Installation**](02_Setting_Up_Environment.md#a-building-and-installing-modules) section in **02. Setting Up Environment**.  
+For more details, refer to the **Building and Installing Modules** section in [**02. Setting Up Environment**](02_Setting_Up_Environment.md).  
 
 ---
 
@@ -236,7 +236,7 @@ Reinstall **DX-RT** to a version that matches the model's requirements.
     If you choose this method, you **must** also re-verify the compatibility of your NPU Driver and Firmware.  
 
 **Version Verification Guide**  
-To find the exact compatible combinations for each module, please refer to the [**DXNN SDK Component Version Compatibility Matrix**](04_Version_Compatibility.md#dxnn-sdk-component-version-compatibility-matrix).
+To find the exact compatible combinations for each module, please refer to the **DXNN SDK Version Compatibility Matrix** in [**04. Version Compatibility**](04_Version_Compatibility.md).
 
 Copyright © DEEPX. All rights reserved.
 

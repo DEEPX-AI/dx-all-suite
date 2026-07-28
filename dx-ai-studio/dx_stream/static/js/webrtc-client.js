@@ -111,9 +111,17 @@ DXStream.webrtc = (function() {
             _retryCount = 0;
             _gaveUp = false;
             _clearError();
-            // No connect deadline: Local vs Remote is now an explicit user choice, so we don't
-            // silently time out WebRTC and switch modes. Remote viewers pick MJPEG up front;
-            // WebRTC still falls back only on a genuine connection failure (see _attemptRetry).
+            // Hard connect deadline: on an air-gapped board or over an SSH tunnel/NAT, ICE can
+            // sit at "checking" forever without ever firing 'failed', leaving the <video> black
+            // while the badge says "Running". If we aren't connected within CONNECT_TIMEOUT,
+            // give up and let the caller fall back to MJPEG (rides the same HTTP proxy, works
+            // anywhere). _clearConnectTimer() cancels this once ICE reaches connected/completed.
+            _clearConnectTimer();
+            if (typeof _onFail === 'function') {
+                _connectTimer = setTimeout(function () {
+                    if (!_gaveUp) _giveUp('timeout');
+                }, CONNECT_TIMEOUT);
+            }
         }
         _stallPolls = 0;
         _lastFramesDecoded = -1;

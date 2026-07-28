@@ -160,7 +160,6 @@ def run_compile(
         "gen_log": gen_log,
         "input_nodes": input_nodes,
         "output_nodes": output_nodes,
-        "enhanced_scheme": enhanced_scheme,
         "event_queue": event_queue,
         "pause_for_selection": pause_for_selection,
         "selection_done": selection_done,
@@ -182,6 +181,13 @@ def run_compile(
         if not _accepts("use_q_pro"):
             raise RuntimeError("Installed dx_com.compile does not support use_q_pro")
         kwargs["use_q_pro"] = True
+    if enhanced_scheme:
+        if not _accepts("enhanced_scheme"):
+            raise RuntimeError(
+                "Installed dx_com.compile does not support enhanced_scheme "
+                "(DXQ Enhancement)"
+            )
+        kwargs["enhanced_scheme"] = enhanced_scheme
     if quant_debug and _accepts("quant_debug"):
         kwargs["quant_debug"] = True
     if checkpoint is not None:

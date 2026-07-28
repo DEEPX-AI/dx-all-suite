@@ -78,7 +78,13 @@ def _find_fresh_dxnn(output_dir: str, start_time: float):
     dxnn_files = glob_mod.glob(str(Path(output_dir) / "*.dxnn"))
     fresh = [f for f in dxnn_files if Path(f).stat().st_mtime >= start_time
              and "optimized_ckpt" not in Path(f).name]
-    return fresh[0] if fresh else None
+    return max(fresh, key=lambda f: (Path(f).stat().st_mtime_ns, f), default=None)
+
+
+def _safe_download_stem(value: str | None) -> str:
+    """Return an attachment-safe stem for a user-controlled path or filename."""
+    stem = re.sub(r"[^A-Za-z0-9._-]", "_", Path(value or "").stem)
+    return stem or "download"
 
 
 _chat_engine = ChatEngine(
@@ -235,6 +241,10 @@ class CompilerHandler(DXBaseHandler):
             if path.startswith("/compile/") and path.endswith("/quant-diagnosis/report"):
                 job_id = path[len("/compile/"):-len("/quant-diagnosis/report")]
                 return self._quant_diagnosis_report(job_id)
+
+            if path.startswith("/compile/") and path.endswith("/dxnn"):
+                job_id = path[len("/compile/"):-len("/dxnn")]
+                return self._compile_dxnn(job_id)
 
             if path == "/model/inspect":
                 model_path = self.query.get("path", [None])[0]
@@ -520,10 +530,31 @@ class CompilerHandler(DXBaseHandler):
         except Exception as e:
             return self.send_error_json(500, f"Failed to generate summary: {e}")
 
-        model_name = Path(job.model_path).stem
-        filename = f"{model_name}_summary.html"
+        filename = f"{_safe_download_stem(job.model_path)}_summary.html"
         body = html.encode("utf-8")
         self.send_bytes(body, "text/html; charset=utf-8", filename=filename)
+
+    def _compile_dxnn(self, job_id):
+        """Stream the compiled .dxnn artifact as a browser download.
+
+        Only a finalized, job-owned canonical artifact is downloadable. The
+        requested output directory remains a compatibility copy, never a source
+        for this endpoint.
+        """
+        job = compiler_service.get_job(job_id)
+        if job is None:
+            return self.send_error_json(404, "Job not found")
+        if job.status != "done" or not getattr(job, "artifact_ready", False):
+            return self.send_error_json(400, "Compilation not complete")
+        if not compiler_service.is_ready_artifact(job):
+            return self.send_error_json(404, "No .dxnn artifact found for this job")
+        dxnn_path = job.canonical_dxnn_path or job.dxnn_path
+        try:
+            body = Path(dxnn_path).read_bytes()
+        except OSError as e:
+            return self.send_error_json(500, f"Failed to read .dxnn: {e}")
+        stem = _safe_download_stem(job.model_path or dxnn_path)
+        self.send_bytes(body, "application/octet-stream", filename=f"{stem}.dxnn")
 
     def _sse_progress(self, job_id):
         """Stream compile progress via Server-Sent Events."""
@@ -615,13 +646,21 @@ class CompilerHandler(DXBaseHandler):
                     paused_emitted = False
 
                 if job.status == "done":
+                    if not getattr(job, "artifact_ready", False):
+                        progress_data["status"] = "error"
+                        progress_data["error"] = (
+                            "Compilation completed without a finalized artifact."
+                        )
+                        self.send_sse("error", progress_data)
+                        break
                     # Reuse PARTITION graph as the DXNN tab view
                     partition_graph = job.gui_graphs.get("PARTITION")
                     if partition_graph:
                         self.send_sse("model_ready", {"phase": "DXNN", "graph": partition_graph})
-                    dxnn_path = _find_fresh_dxnn(job.output_dir, job.start_time)
+                    dxnn_path = job.dxnn_path
                     if dxnn_path:
                         progress_data["dxnn_path"] = Path(dxnn_path).name
+                        progress_data["dxnn_download_url"] = f"/compile/{job.job_id}/dxnn"
                     if qxnn_payload["available"]:
                         progress_data["qxnn"] = qxnn_payload
                     self.send_sse("complete", progress_data)

@@ -140,7 +140,7 @@ sudo systemctl stop dxrt.service
 ```
 
 !!! warning "GUI 환경 관련 주의"  
-    X11 경고나 마운트 오류(예: 디스플레이를 열 수 없음)가 발생하면 호스트 OS가 **Wayland** 세션을 사용 중일 가능성이 높습니다. **05. FAQ Troubleshooting Guide**의 [**Q2. X11 Session Warnings & Mount Errors (Wayland Issues)**](05_FAQ_Troubleshooting_Guide.md#q2-x11-session-warnings--mount-errors-wayland-issues)를 참고하십시오.  
+    X11 경고나 마운트 오류(예: 디스플레이를 열 수 없음)가 발생하면 호스트 OS가 **Wayland** 세션을 사용 중일 가능성이 높습니다. **Q2. X11 Session Warnings & Mount Errors (Wayland Issues)**를 [**05. FAQ Troubleshooting Guide**](05_FAQ_Troubleshooting_Guide.md)에서 참고하십시오.  
 
 ### Container Access and Task Guide
 

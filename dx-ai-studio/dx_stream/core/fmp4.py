@@ -24,6 +24,8 @@ import threading
 import time
 from typing import Optional
 
+from dx_stream.core import gst_env
+
 log = logging.getLogger(__name__)
 
 _streaming = False
@@ -116,6 +118,7 @@ def start(pipeline_str: str, extra_env: Optional[dict] = None):
     env = os.environ.copy()
     if extra_env:
         env.update(extra_env)
+    env = gst_env.augmented_env(env)
 
     cmd = ["gst-launch-1.0", "-q"] + _split_pipeline(pipeline_str)
     _pipeline_cmd = cmd

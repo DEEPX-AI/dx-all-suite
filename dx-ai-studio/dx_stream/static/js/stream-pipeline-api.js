@@ -196,6 +196,32 @@ DXStream.pipelineValidate = async function () {
     }
 };
 
+// Show the MJPEG <img> stream in the pipeline preview (creating the element if needed) and
+// hide the WebRTC <video>. Reused by the normal MJPEG path and the WebRTC→MJPEG fallback.
+DXStream._wirePipelineMjpeg = function () {
+    var videoSection = DXStream.$('pipeline-video-section');
+    if (videoSection) videoSection.style.display = '';
+    var pipeVideo = DXStream.$('pipeline-webrtc-video');
+    if (pipeVideo) pipeVideo.style.display = 'none';
+    var mjpegImg = DXStream.$('pipeline-mjpeg-stream');
+    if (!mjpegImg) {
+        mjpegImg = document.createElement('img');
+        mjpegImg.id = 'pipeline-mjpeg-stream';
+        mjpegImg.style.cssText = 'width:100%;height:auto;border-radius:8px;background:#000;';
+        var container = pipeVideo ? pipeVideo.parentNode : videoSection;
+        if (container) container.appendChild(mjpegImg);
+    }
+    mjpegImg.style.display = '';
+    mjpegImg.src = '/api/stream/mjpeg?' + Date.now();
+    if (videoSection) videoSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+};
+
+function _resetPipelineAfterFallbackFailure(error) {
+    DXStream._pipeRunning = false;
+    _updatePipelineButtons();
+    DXStream.toast(T('MJPEG fallback failed: ') + error, 'error');
+}
+
 DXStream.pipelineRun = async function () {
     if (DXStream._pipeRunning) return;
     DXStream._pipeRunning = true;
@@ -235,19 +261,7 @@ DXStream.pipelineRun = async function () {
         }
 
         if (resp.output_mode === 'mjpeg') {
-            var pipeVideo = DXStream.$('pipeline-webrtc-video');
-            if (pipeVideo) pipeVideo.style.display = 'none';
-            var mjpegImg = DXStream.$('pipeline-mjpeg-stream');
-            if (!mjpegImg) {
-                mjpegImg = document.createElement('img');
-                mjpegImg.id = 'pipeline-mjpeg-stream';
-                mjpegImg.style.cssText = 'width:100%;height:auto;border-radius:8px;background:#000;';
-                var container = pipeVideo ? pipeVideo.parentNode : videoSection;
-                if (container) container.appendChild(mjpegImg);
-            }
-            mjpegImg.style.display = '';
-            mjpegImg.src = '/api/stream/mjpeg?' + Date.now();
-            videoSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            DXStream._wirePipelineMjpeg();
         } else if (resp.output_mode === 'fmp4') {
             // Remote (tunnel/NAT): HW H264 over HTTP via MSE — reuses the demo page's player.
             var pipeVideo = DXStream.$('pipeline-webrtc-video');
@@ -257,7 +271,27 @@ DXStream.pipelineRun = async function () {
             if (videoSection) videoSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
         } else {
             var pipeVideo = DXStream.$('pipeline-webrtc-video');
-            if (pipeVideo) DXStream.webrtc.connect(pipeVideo);
+            if (pipeVideo) {
+                // Local WebRTC, but auto-fall back to MJPEG if it can't connect within the
+                // deadline (air-gapped/tunnel → ICE stalls forever, video stays black). Re-run
+                // the pipeline forcing MJPEG, then wire the <img> stream.
+                DXStream.webrtc.connect(pipeVideo, false, function (reason) {
+                    DXStream.toast(T('WebRTC could not connect — switching to MJPEG'), 'info');
+                    DXStream.postJ('/api/pipeline/run',
+                        Object.assign({}, _runBody, { forceMjpeg: true })
+                    ).then(function (r2) {
+                        if (r2 && !r2.error && r2.output_mode === 'mjpeg') {
+                            DXStream._wirePipelineMjpeg();
+                        } else {
+                            _resetPipelineAfterFallbackFailure(
+                                (r2 && r2.error) || 'Forced MJPEG did not start'
+                            );
+                        }
+                    }).catch(function (error) {
+                        _resetPipelineAfterFallbackFailure(error && error.message ? error.message : error);
+                    });
+                });
+            }
         }
     } else if (resp.output_mode === 'native') {
         DXStream.toast(T('Native display mode (fpsdisplaysink)'), 'info');

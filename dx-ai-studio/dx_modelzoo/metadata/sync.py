@@ -10,6 +10,8 @@ from dx_modelzoo.metadata.adapters import (
     public_modelzoo_adapter,
     local_modelzoo_repo_adapter,
     local_runtime_adapter,
+    local_studio_catalog_adapter,
+    studio_enrichment_adapter,
 )
 from dx_modelzoo.metadata._protocol import AdapterResult
 from dx_modelzoo.metadata.cache import atomic_write_json, load_catalog_cache
@@ -17,9 +19,29 @@ from dx_modelzoo.metadata.merge import merge_adapter_results
 
 
 _PROFILE_ADAPTERS = {
-    "local": ["local_runtime", "local_modelzoo_repo", "benchmark_cache"],
-    "internal": ["local_runtime", "local_modelzoo_repo", "internal_modelzoo", "benchmark_cache"],
-    "public": ["local_runtime", "local_modelzoo_repo", "public_modelzoo", "benchmark_cache"],
+    "local": [
+        "local_studio_catalog",
+        "local_runtime",
+        "local_modelzoo_repo",
+        "studio_enrichment",
+        "benchmark_cache",
+    ],
+    "internal": [
+        "local_studio_catalog",
+        "local_runtime",
+        "local_modelzoo_repo",
+        "internal_modelzoo",
+        "studio_enrichment",
+        "benchmark_cache",
+    ],
+    "public": [
+        "local_studio_catalog",
+        "local_runtime",
+        "local_modelzoo_repo",
+        "public_modelzoo",
+        "studio_enrichment",
+        "benchmark_cache",
+    ],
 }
 
 # 네트워크 어댑터 (offline 모드에서 제외)
@@ -46,8 +68,47 @@ def adapter_names_for_profile(profile, offline=False):
     return adapters
 
 
+def _catalog_quality_metrics(catalog):
+    """Count enriched fields — used to detect local-only sync clobbering a public snapshot."""
+    models = catalog.get("models") or []
+    with_acc = sum(
+        1 for m in models
+        if (m.get("evaluation") or {}).get("raw", {}).get("accuracy") not in (None, "")
+    )
+    with_fps = sum(
+        1 for m in models
+        if (m.get("performance") or {}).get("fps") not in (None, "")
+    )
+    with_onnx = sum(
+        1 for m in models
+        if ((m.get("artifacts") or {}).get("onnx") or {}).get("remote_url")
+    )
+    return {"accuracy": with_acc, "fps": with_fps, "onnx": with_onnx}
+
+
+def is_catalog_downgrade(existing, new_catalog):
+    """True when a sync would replace official accuracy/artifact data with a sparse baseline."""
+    if not existing or not existing.get("models"):
+        return False
+    if not new_catalog or not new_catalog.get("models"):
+        return True
+    old = _catalog_quality_metrics(existing)
+    new = _catalog_quality_metrics(new_catalog)
+    model_count = len(new_catalog.get("models") or [])
+    # Typical failure mode: local-only sync keeps model count but wipes public artifact URLs.
+    if model_count >= 50 and old["onnx"] >= 50 and new["onnx"] == 0:
+        return True
+    if model_count >= 50 and old["accuracy"] >= 50 and new["accuracy"] == 0:
+        return True
+    if old["onnx"] >= 10 and new["onnx"] < max(1, int(old["onnx"] * 0.5)):
+        return True
+    if old["accuracy"] >= 10 and new["accuracy"] < max(1, int(old["accuracy"] * 0.5)):
+        return True
+    return False
+
+
 def resolve_source_profile(cli_source=None, env=None, config_path=None):
-    """소스 프로필 결정: CLI → env → config → 'local'."""
+    """소스 프로필 결정: CLI → env → config → 'public' (general network default)."""
     if cli_source:
         return cli_source
     if env and env.get("DX_MODELZOO_METADATA_SOURCE"):
@@ -61,17 +122,50 @@ def resolve_source_profile(cli_source=None, env=None, config_path=None):
                     return cfg["source_profile"]
             except (json.JSONDecodeError, OSError):
                 pass
-    return "local"
+    return "public"
+
+
+def _load_sync_config(config_path=None):
+    """Optional metadata_sync_config.json (source profile, TLS flags)."""
+    if not config_path:
+        return {}
+    config_path = Path(config_path)
+    if not config_path.is_file():
+        return {}
+    try:
+        return json.loads(config_path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return {}
+
+
+def _adapter_kwargs_from_config(source_profile, adapter_kwargs=None, config_path=None):
+    """Merge CLI/env adapter kwargs with config defaults (e.g. internal TLS on devops publish)."""
+    merged = dict(adapter_kwargs or {})
+    cfg = _load_sync_config(config_path)
+    configured = cfg.get("adapter_kwargs", {})
+    if not isinstance(configured, dict):
+        return merged
+
+    for adapter_name, defaults in configured.items():
+        if not isinstance(adapter_name, str) or not isinstance(defaults, dict):
+            continue
+        overrides = merged.get(adapter_name, {})
+        if not isinstance(overrides, dict):
+            continue
+        merged[adapter_name] = {**defaults, **overrides}
+    return merged
 
 
 def _get_adapter_func(name):
     """어댑터 이름 → 실행 함수 매핑."""
     mapping = {
         "local_runtime": local_runtime_adapter,
+        "local_studio_catalog": local_studio_catalog_adapter,
         "local_modelzoo_repo": local_modelzoo_repo_adapter,
         "benchmark_cache": benchmark_cache_adapter,
         "internal_modelzoo": internal_modelzoo_adapter,
         "public_modelzoo": public_modelzoo_adapter,
+        "studio_enrichment": studio_enrichment_adapter,
     }
     return mapping.get(name)
 
@@ -103,7 +197,15 @@ def run_sync(
     """
     suite_root = Path(suite_root)
     adapter_overrides = adapter_overrides or {}
-    adapter_kwargs = adapter_kwargs or {}
+    config_path = Path(suite_root) / "dx-ai-studio" / "dx_modelzoo" / "data" / "metadata_sync_config.json"
+    if not config_path.is_file():
+        alt = Path(suite_root) / "dx_modelzoo" / "data" / "metadata_sync_config.json"
+        config_path = alt if alt.is_file() else config_path
+    adapter_kwargs = _adapter_kwargs_from_config(
+        source_profile,
+        adapter_kwargs=adapter_kwargs,
+        config_path=config_path,
+    )
 
     adapter_names = adapter_names_for_profile(source_profile, offline=offline)
 
@@ -122,7 +224,7 @@ def run_sync(
                     suite_root / "dx-ai-studio" / "dx_modelzoo" / "data" / "benchmark_cache.json"
                 )
                 r = func(bench_path)
-            elif name in ("local_runtime", "local_modelzoo_repo"):
+            elif name in ("local_runtime", "local_modelzoo_repo", "local_studio_catalog", "studio_enrichment"):
                 r = func(suite_root)
             else:
                 r = func(suite_root, **adapter_kwargs.get(name, {}))
@@ -188,6 +290,28 @@ def run_sync(
         }
 
     output_path = Path(output_path)
+    existing_on_disk = load_catalog_cache(output_path)
+    if existing_on_disk and is_catalog_downgrade(existing_on_disk, catalog):
+        old_q = _catalog_quality_metrics(existing_on_disk)
+        new_q = _catalog_quality_metrics(catalog)
+        skip_reason = (
+            f"{source_profile} sync would downgrade catalog "
+            f"(onnx {new_q['onnx']}/{old_q['onnx']}, accuracy {new_q['accuracy']}/{old_q['accuracy']})"
+        )
+        adapter_warnings.append(skip_reason)
+        return {
+            "catalog": existing_on_disk,
+            "report": {
+                "source_profile": source_profile,
+                "generated_at": datetime.now(timezone.utc).isoformat(),
+                "model_count": len(existing_on_disk.get("models", [])),
+                "adapter_errors": adapter_errors,
+                "adapter_warnings": adapter_warnings,
+                "skipped_write": "downgrade prevented — kept existing catalog",
+                "coverage": _build_coverage_report(existing_on_disk),
+            },
+        }
+
     atomic_write_json(output_path, catalog)
 
     if cache_path:

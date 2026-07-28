@@ -24,6 +24,8 @@ _EDITORIAL_BY_TASK = {
 
 _REQUIRED_PERF_FIELDS = {"fps", "fps_per_watt"}
 _ARTIFACT_PRESENT_KEYS = {"remote_url", "local_path", "download_endpoint", "available"}
+# Adapters that only fill fields still missing after higher-priority sources (e.g. public HTML).
+_GAP_FILL_ADAPTERS = frozenset({"internal_modelzoo"})
 
 
 def merge_adapter_results(results, source_profile="local"):
@@ -33,9 +35,12 @@ def merge_adapter_results(results, source_profile="local"):
     다른 어댑터들은 baseline에 있는 모델만 보강함.
     """
     baseline_ids = set()
-    for r in results:
-        if r.get("adapter") == "local_runtime":
-            baseline_ids = set(r.get("models", {}).keys())
+    for baseline_adapter in ("local_runtime", "local_studio_catalog"):
+        for r in results:
+            if r.get("adapter") == baseline_adapter and r.get("models"):
+                baseline_ids = set(r["models"].keys())
+                break
+        if baseline_ids:
             break
 
     # baseline이 없으면 첫 번째 ok 어댑터의 모델 목록 사용
@@ -61,9 +66,14 @@ def merge_adapter_results(results, source_profile="local"):
                 provenance[mid] = {}
             for k, v in fields.items():
                 v = normalize_source_value(v)
-                if v is not None:
-                    merged_flat[mid][k] = v
-                    provenance[mid][k] = {"source": adapter_name}
+                if v is None:
+                    continue
+                if adapter_name in _GAP_FILL_ADAPTERS:
+                    existing = merged_flat[mid].get(k)
+                    if existing is not None and normalize_source_value(existing) is not None:
+                        continue
+                merged_flat[mid][k] = v
+                provenance[mid][k] = {"source": adapter_name}
 
     models = []
     for mid in sorted(baseline_ids):

@@ -46,7 +46,7 @@ Describe an app or model task in plain language, and an AI coding agent drives t
 
 #### 🚀 Expanded Model & Platform Support
 
-- **Massive Model Library**: Support for 349 models across 22 AI task categories, including 5 new tasks (3D Object Detection, Keypoint Detection, Object Pose Estimation, Panoptic Driving Perception, Hand Detection).
+- **Massive Model Library**: Support for 347 models across 22 AI task categories, including 5 new tasks (3D Object Detection, Keypoint Detection, Object Pose Estimation, Panoptic Driving Perception, Hand Detection).
 - **Extended Platform Coverage**: Python 3.13–3.14 support (DX-COM) and Ubuntu 26.04 validation.
 - **Windows Ecosystem**: Full Windows MSVC support for DX-Stream including build, test suite, and Python bindings.
 

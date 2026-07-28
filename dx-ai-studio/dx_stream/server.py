@@ -10,11 +10,12 @@ import logging
 import os
 import re
 import threading
+import uuid
 from pathlib import Path
 
 from shared.dx_server import DXBaseHandler, DXServer, RequestBodyError
 from shared.chat import ChatEngine
-from dx_stream.core import config, status, demos, models, elements, setup
+from dx_stream.core import config, demos, elements, gst_env, models, setup, status
 from dx_stream.core.config import DEFAULT_PORT, STATIC_DIR, TEMPLATES_DIR, SERVER_NAME
 
 log = logging.getLogger(__name__)
@@ -35,6 +36,27 @@ except Exception:
 _playback_lock = threading.RLock()
 _current_output_mode = None
 _current_pipeline_id = None
+
+
+def _deepx_element_types(body: object) -> set[str]:
+    """Return DX element types from Pipeline Builder nodes, never rendered properties."""
+    if not isinstance(body, dict):
+        return set()
+    nodes = body.get("nodes")
+    if not isinstance(nodes, list):
+        return set()
+
+    deepx_types = set()
+    for node in nodes:
+        if not isinstance(node, dict):
+            continue
+        element_type = node.get("type")
+        if not isinstance(element_type, str):
+            continue
+        normalized = element_type.strip()
+        if len(normalized) > 2 and normalized.lower().startswith("dx"):
+            deepx_types.add(normalized)
+    return deepx_types
 
 
 def _check_webrtc_available() -> bool:
@@ -408,6 +430,9 @@ class DXStreamHandler(DXBaseHandler):
                 self._drain_request_body()
                 return self.send_json(setup.stop_step())
 
+            if path == "/api/models/upload":
+                return self._handle_model_upload()
+
             if path == "/api/custom-library/upload":
                 return self._handle_custom_upload()
             if path.startswith("/api/custom-library/") and path.endswith("/build"):
@@ -655,6 +680,23 @@ class DXStreamHandler(DXBaseHandler):
             from dx_stream.core import mjpeg
 
             gst_str = pipeline_json_to_gst(body)
+            if not gst_str or not gst_str.strip():
+                return self._error(
+                    400,
+                    "empty_pipeline",
+                    "Pipeline is empty — add elements (or choose a Preset) before running.",
+                )
+
+            deepx_types = _deepx_element_types(body)
+            if deepx_types and not gst_env.plugin_available():
+                return self._error(
+                    424,
+                    "missing_dxstream_plugin",
+                    "This pipeline uses DEEPX elements ("
+                    + ", ".join(sorted(deepx_types))
+                    + ") but the dxstream GStreamer plugin (libgstdxstream.so) is not "
+                    "installed. Run the Build / Runtime-Deps setup step, then retry.",
+                )
 
             # 싱크 분류
             sink_keywords = [
@@ -793,6 +835,51 @@ class DXStreamHandler(DXBaseHandler):
         except Exception as e:
             self._error(500, "server_error", str(e))
 
+    def _handle_model_upload(self):
+        """Store a user-supplied DXNN file without transforming its binary contents."""
+        from dx_stream.core.config import MODELS_DIR
+
+        try:
+            _fields, files = self.parse_multipart()
+        except RequestBodyError as exc:
+            return self._error(exc.status_code, "bad_request", exc.message)
+
+        uploaded = files.get("model") if isinstance(files, dict) else None
+        if uploaded is None and isinstance(files, dict) and files:
+            uploaded = next(iter(files.values()))
+        if not isinstance(uploaded, dict) or "data" not in uploaded:
+            return self._error(400, "bad_request", "No model file uploaded")
+
+        raw_name = str(uploaded.get("filename") or "").replace("\\", "/").rsplit("/", 1)[-1]
+        safe_name = re.sub(r"[^A-Za-z0-9._-]", "_", raw_name)
+        if (
+            not safe_name
+            or safe_name.startswith(".")
+            or ".." in safe_name
+            or not safe_name.lower().endswith(".dxnn")
+        ):
+            return self._error(400, "bad_request", "Model file must have a valid .dxnn name")
+
+        target = MODELS_DIR / safe_name
+        temporary = MODELS_DIR / f".upload-{uuid.uuid4().hex}"
+        try:
+            MODELS_DIR.mkdir(parents=True, exist_ok=True)
+            with temporary.open("xb") as stream:
+                stream.write(uploaded["data"])
+            os.link(temporary, target)
+        except FileExistsError:
+            return self._error(409, "conflict", f"Model already exists: {safe_name}")
+        except OSError as exc:
+            return self._error(500, "write_failed", f"Failed to save model: {exc}")
+        finally:
+            try:
+                temporary.unlink()
+            except FileNotFoundError:
+                pass
+            except OSError:
+                log.warning("Failed to remove temporary upload %s", temporary, exc_info=True)
+        return self.send_json({"uploaded": True, "name": safe_name})
+
     def _handle_custom_upload(self):
         """커스텀 라이브러리 소스 업로드 (JSON body with base64 content)."""
         from dx_stream.core.custom_library import CustomLibraryManager
@@ -804,7 +891,14 @@ class DXStreamHandler(DXBaseHandler):
         files_b64 = body.get("files", {})
         if not name or not files_b64:
             return self._error(400, "bad_request", "Missing 'name' or 'files'")
-        files = {k: base64.b64decode(v).decode("utf-8") for k, v in files_b64.items()}
+        try:
+            files = {k: base64.b64decode(v).decode("utf-8") for k, v in files_b64.items()}
+        except (UnicodeDecodeError, ValueError):
+            return self._error(
+                400,
+                "bad_request",
+                "Custom library files must be text source (.c/.cpp/.h), not a binary file.",
+            )
         mgr = CustomLibraryManager()
         try:
             result = mgr.save_upload(name, files)

@@ -97,8 +97,9 @@ port-collision retry, and ephemeral-port reporting via `DX_PORT_FILE`.
   lazy, env-gated (`DX_CHAT_KNOWLEDGE_SYNC=1`) fallback sync for a module server run
   standalone without the launcher. Both paths call `knowledge_sync.sync_if_stale()`,
   which writes atomically (temp file + `os.replace()`).
-- **`shared/hardware.py`** — `get_hw()` / `get_sysinfo()` collect NPU telemetry (via
-  the `dx_engine` SDK + the `dx_npu_stats` helper binary) plus CPU/memory/disk from
+- **`shared/hardware.py`** — `get_hw()` / `get_sysinfo()` collect NPU telemetry via
+  the `dx_engine` SDK's `DeviceStatus` API, optional per-board `dx_npu_stats`
+  metadata, and CPU/memory/disk from
   `/proc`. Falls back to synthetic mock data when no NPU/SDK is present.
 - **`shared/static/`** — the 6-language i18n runtime (`i18n.js`, `window.DXI18n`),
   unified toolbar, tutorial engine, and design-token CSS (`dx-tokens/base/utilities`).

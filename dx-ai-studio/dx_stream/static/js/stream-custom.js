@@ -53,6 +53,37 @@
         });
     };
 
+    // Upload a user .dxnn model → MODELS_DIR, then refresh pipeline assets so it appears in
+    // DxInfer's model-path dropdown. Dedicated path so users stop mis-dropping .dxnn into the
+    // (text-only) custom-library uploader ("DXNN file upload fails").
+    DXStream.uploadModel = function() {
+        var input = DXStream.$('model-upload-file');
+        var statusEl = DXStream.$('model-upload-status');
+        var setStatus = function(msg) { if (statusEl) statusEl.textContent = msg; };
+        if (!input || !input.files.length) { setStatus(T('Select a .dxnn file first')); return; }
+        var f = input.files[0];
+        if (!/\.dxnn$/i.test(f.name)) { setStatus(T('Model file must be a .dxnn binary')); return; }
+        var fd = new FormData();
+        fd.append('model', f, f.name);
+        setStatus(T('Uploading...'));
+        fetch('/api/models/upload', { method: 'POST', body: fd })
+        .then(function(r) { return r.json().then(function(d) { return { ok: r.ok, d: d }; }); })
+        .then(function(res) {
+            if (!res.ok || !res.d.uploaded) {
+                setStatus('❌ ' + ((res.d && res.d.error) || T('Upload failed')));
+                return;
+            }
+            setStatus('✅ ' + res.d.name);
+            // refresh asset lists so the model-path dropdown includes the new model
+            if (typeof DXStream.api === 'function') {
+                DXStream.api('/api/pipeline/assets').then(function(a) {
+                    if (a && !a.error) DXStream._pipeAssets = a;
+                });
+            }
+        })
+        .catch(function(e) { setStatus('❌ ' + e.message); });
+    };
+
     DXStream.custom.build = function(name) {
         var logCard = DXStream.$('custom-build-log-card');
         var logPre = DXStream.$('custom-build-log');

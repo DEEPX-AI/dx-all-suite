@@ -46,9 +46,27 @@ class SetupService:
         dx_com_info = self._check_dx_com(venv_python)
         venv = self._find_venv()
 
+        # dx_com may be importable in the *main* process (plain `pip install`, or any layout
+        # without a sibling `venv-dx-compiler*`). /feature-check already honors this in-process
+        # path; the Setup panel must too — otherwise it greys out & disables the whole compile
+        # form even though compilation works (reported as "Input UI is unusable"). Treat
+        # in-process availability as installed.
+        version = dx_com_info.get("version")
+        in_process = False
+        import importlib.util
+        if importlib.util.find_spec("dx_com") is not None:
+            try:
+                import dx_com
+            except ImportError:
+                pass
+            else:
+                in_process = True
+                if not version:
+                    version = getattr(dx_com, "__version__", "unknown")
+
         return {
-            "dx_com_installed": dx_com_info["installed"],
-            "dx_com_version": dx_com_info.get("version"),
+            "dx_com_installed": dx_com_info["installed"] or in_process,
+            "dx_com_version": version,
             "venv_path": str(venv) if venv else None,
             "venv_python": str(venv_python) if venv_python else None,
             "sample_models": self._check_samples(),

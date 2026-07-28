@@ -4,12 +4,12 @@
 
 **목차**  
 
-- [Q1. Container 'Restarting' Error (#dxrtd-conflict)](#q1-container-restarting-error-dxrtd-conflict)  
-- [Q2. X11 Session Warnings & Mount Errors (Wayland Issues)](#q2-x11-session-warnings--mount-errors-wayland-issues)  
-- [Q3. Firmware Version Mismatch Error](#q3-firmware-version-mismatch-error)  
-- [Q4. Device Driver Update Error](#q4-device-driver-update-error)  
-- [Q5. Model-Runtime Version Compatibility Error](#q5-model-runtime-version-compatibility-error)  
-- [Q6. Insufficient Shared Memory (shm) Error](#q6-insufficient-shared-memory-shm-error)  
+- Q1. Container 'Restarting' Error (#dxrtd-conflict)  
+- Q2. X11 Session Warnings & Mount Errors (Wayland Issues)  
+- Q3. Firmware Version Mismatch Error  
+- Q4. Device Driver Update Error  
+- Q5. Model-Runtime Version Compatibility Error  
+- Q6. Insufficient Shared Memory (shm) Error  
 
 ---
 
@@ -51,12 +51,12 @@ sudo systemctl stop dxrt.service
 ./docker_run.sh --target=dx-runtime --ubuntu_version=24.04 
 ```
 
-자세한 내용은 **02. Setting Up Environment**의 [**Host System Preparation**](02_Setting_Up_Environment.md#host-system-preparation-critical) 섹션을 참조하십시오.  
+자세한 내용은 **Host System Preparation** 섹션을 [**02. Setting Up Environment**](02_Setting_Up_Environment.md)에서 참조하십시오.  
 
 **방법 2: 컨테이너 내 자동 실행 방지**  
 호스트 서비스를 **반드시** 유지해야 하는 경우, 컨테이너 시작 시 데몬(`dxrtd`)이 자동으로 실행되지 않도록 설정하십시오.  
 
-자세한 내용은 **02. Setting Up Environment**의 [**Docker Advanced Troubleshooting**](02_Setting_Up_Environment.md#docker-advanced-troubleshooting-multi-runtime-containers) 섹션을 참조하십시오.  
+자세한 내용은 **Docker Advanced Troubleshooting (Multi-Runtime Containers)** 섹션을 [**02. Setting Up Environment**](02_Setting_Up_Environment.md)에서 참조하십시오.  
 
 ---
 
@@ -107,7 +107,7 @@ docker compose -f docker/docker-compose.yml down --remove-orphans
 ./docker_run.sh --target=dx-runtime --ubuntu_version=24.04
 ```
 
-자세한 내용은 **02. Setting Up Environment**의 [**Docker Installation**](02_Setting_Up_Environment.md#docker-installation) 섹션을 참조하십시오.  
+자세한 내용은 **Docker Installation** 섹션을 [**02. Setting Up Environment**](02_Setting_Up_Environment.md)에서 참조하십시오.  
 
 ---
 
@@ -157,7 +157,7 @@ dxrt-cli -u ./dx-runtime/dx_fw/m1/X.X.X/mdot2/fw.bin
 dxrt-cli -s
 ```
 
-자세한 내용은 **02. Setting Up Environment**의 [**Firmware (DX-FW) Update and Activation**](02_Setting_Up_Environment.md#b-firmware-dx-fw-update-and-activation) 섹션을 참조하십시오.  
+자세한 내용은 **Firmware (DX-FW) Update and Activation** 섹션을 [**02. Setting Up Environment**](02_Setting_Up_Environment.md)에서 참조하십시오.  
 
 ---
 
@@ -202,7 +202,7 @@ dxrt-cli -s
 !!! caution "Docker 사용자 주의사항"  
     Docker 컨테이너는 호스트의 커널을 공유하므로, **드라이버 업데이트는 컨테이너 내부가 아닌 반드시 호스트 OS에서 수행**해야 합니다. 컨테이너 내부에서 드라이버를 업데이트하는 것은 하드웨어 통신 계층에 아무런 영향을 주지 않습니다.  
 
-자세한 내용은 **02. Setting Up Environment**의 [**Module Build and Installation**](02_Setting_Up_Environment.md#a-building-and-installing-modules) 섹션을 참조하십시오.  
+자세한 내용은 **Building and Installing Modules** 섹션을 [**02. Setting Up Environment**](02_Setting_Up_Environment.md)에서 참조하십시오.  
 
 ---
 
@@ -236,7 +236,7 @@ Please downgrade the RT library version to X.X.X or use a model file generated w
     이 방법을 선택할 경우, NPU 드라이버 및 펌웨어와의 호환성도 **반드시** 다시 확인해야 합니다.  
 
 **버전 확인 가이드**  
-각 모듈에 대한 정확한 호환 조합은 [**DXNN SDK Component Version Compatibility Matrix**](04_Version_Compatibility.md#dxnn-sdk-component-version-compatibility-matrix) 를 참조하십시오.  
+각 모듈에 대한 정확한 호환 조합은 **DXNN SDK Version Compatibility Matrix**를 [**04. Version Compatibility**](04_Version_Compatibility.md)에서 참조하십시오.  
 
 Copyright © DEEPX. All rights reserved.
 

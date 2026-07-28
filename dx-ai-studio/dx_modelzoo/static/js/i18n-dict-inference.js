@@ -141,14 +141,6 @@ window._DX_MODELZOO_I18N_REGISTER({
     'zh-TW': '影像載入失敗',
     es: 'Error al cargar imágenes',
   },
-  'Input': {
-    en: 'Input',
-    ko: '입력',
-    ja: '入力',
-    'zh-CN': '输入',
-    'zh-TW': '輸入',
-    es: 'Entrada',
-  },
   'Loading...': {
     en: 'Loading...',
     ko: '로딩 중...',

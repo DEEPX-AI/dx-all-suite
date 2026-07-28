@@ -28,7 +28,8 @@ from dx_app.core.inference_exec import (
     _err, _count_images_in_dir, _python_script_path, _python_runtime_ready,
     _effective_run_lang, _find_fallback_binary, _find_saved_video,
     _drain_dxrt_msgqueues, _sweep_stale_temp,
-    _TMP, _FALLBACK_BINARIES, _PAIR_COMPARE_CATS, _STDOUT_TAG_CATS, _IMAGE_EXTENSIONS,
+    _TMP, _FALLBACK_BINARIES, _PAIR_COMPARE_CATS, _SIDE_BY_SIDE_OUTPUT_CATS,
+    _STDOUT_TAG_CATS, _IMAGE_EXTENSIONS,
 )
 from dx_app.core.camera import (
     list_cameras, _start_cam_mux, _stop_cam_mux, _get_capture_lock, _crop_roi,
@@ -226,6 +227,22 @@ def run_inference(model_name, category, model_file, lang="cpp", variant="sync",
 
         # Result image — normalise to input resolution for CMP slider
         if res_img and os.path.exists(res_img) and os.path.getsize(res_img) > 0:
+            output_only = (
+                os.path.splitext(res_img)[0]
+                + "_output_only"
+                + os.path.splitext(res_img)[1]
+            )
+            has_output_only = (
+                category in _SIDE_BY_SIDE_OUTPUT_CATS
+                and os.path.exists(output_only)
+                and os.path.getsize(output_only) > 0
+            )
+            if has_output_only:
+                try:
+                    shutil.copy2(output_only, res_img)
+                    os.unlink(output_only)
+                except OSError:
+                    has_output_only = False
             try:
                 import cv2 as _cv2
                 _inp_img = _cv2.imread(str(inp))
@@ -240,7 +257,7 @@ def run_inference(model_name, category, model_file, lang="cpp", variant="sync",
                     # panel (model output). Skip embedding/reid, which use their own layout.
                     _inp_ar = _iw / _ih if _ih else 0
                     _res_ar = _rw / _rh if _rh else 0
-                    if (category not in _PAIR_COMPARE_CATS and _inp_ar
+                    if (not has_output_only and category not in _PAIR_COMPARE_CATS and _inp_ar
                             and abs(_res_ar - _inp_ar * 2) < _inp_ar * 0.3):
                         _res_img = _res_img[:, _rw // 2 + 2:]
                         _rh, _rw = _res_img.shape[:2]

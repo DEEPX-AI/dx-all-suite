@@ -139,7 +139,7 @@ Run the container after the image build is complete.
 ```
 
 !!! warning "Note on GUI Environments"  
-    If you encounter X11 warnings or mount errors (e.g., cannot open display), it is likely due to the host OS using a **Wayland** session. Refer to [**Q2. X11 Session Warnings & Mount Errors (Wayland Issues)**](05_FAQ_Troubleshooting_Guide.md#q2-x11-session-warnings--mount-errors-wayland-issues) in **05. FAQ Troubleshooting Guide**.  
+    If you encounter X11 warnings or mount errors (e.g., cannot open display), it is likely due to the host OS using a **Wayland** session. Refer to **Q2. X11 Session Warnings & Mount Errors (Wayland Issues)** in [**05. FAQ Troubleshooting Guide**](05_FAQ_Troubleshooting_Guide.md).  
 
 ### Container Access and Task Guide
 

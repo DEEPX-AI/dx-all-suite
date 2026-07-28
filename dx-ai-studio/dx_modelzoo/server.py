@@ -59,7 +59,7 @@ def _is_safe_demo_dir(path, root):
 _sync_state = {
     "last_report": None,
     "last_synced_at": None,
-    "source_profile": "local",
+    "source_profile": "public",
 }
 _sync_lock = threading.RLock()
 _sync_running = False
@@ -398,8 +398,10 @@ class ModelZooHandler(DXBaseHandler):
 
     def _handle_sync_post(self):
         """POST /api/metadata/sync"""
+        import os
         from datetime import datetime, timezone
-        from dx_modelzoo.metadata.sync import run_sync
+        from dx_modelzoo.metadata.sync import resolve_source_profile, run_sync
+        from dx_modelzoo.tools.sync_metadata import _resolve_metadata_config_path
 
         length = int(self.headers.get("Content-Length", 0))
         body = {}
@@ -409,12 +411,26 @@ class ModelZooHandler(DXBaseHandler):
             except (json.JSONDecodeError, ValueError):
                 return self.send_json({"ok": False, "error_code": "invalid_request"}, 400)
 
-        source = body.get("source", "local")
+        studio_root = Path(__file__).resolve().parent.parent
+        config_path = _resolve_metadata_config_path(studio_root)
+        source = body.get("source") or resolve_source_profile(
+            env=os.environ,
+            config_path=config_path,
+        )
         valid_sources = {"local", "internal", "public"}
         if source not in valid_sources:
             return self.send_json({"ok": False, "error_code": "invalid_source_profile"}, 400)
 
-        offline = body.get("offline", True)
+        offline = body.get("offline", False)
+        if source == "local" and offline:
+            return self.send_json({
+                "ok": False,
+                "error_code": "local_offline_forbidden",
+                "error": (
+                    "local+offline sync strips public artifact URLs. "
+                    "Use source=public on general network or source=local without offline."
+                ),
+            }, 400)
         global _sync_running
         with _sync_lock:
             if _sync_running:

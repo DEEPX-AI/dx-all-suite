@@ -6,7 +6,7 @@ import 시 자동으로 DX Engine SDK를 로드하고 hardware.py를 초기화�
 import sys
 from pathlib import Path
 
-from dx_monitor.core.config import STUDIO_DIR, SCRIPT_DIR, DX_APP_ROOT
+from dx_monitor.core.config import SCRIPT_DIR, DX_APP_ROOT
 from shared import runtime as _runtime
 
 _DS = None
@@ -14,9 +14,6 @@ _dx_ok = False
 _NPU_STATS_BIN = SCRIPT_DIR / "dx_npu_stats"
 
 if not _NPU_STATS_BIN.exists():
-    # The helper binary lives in dx_app (dx_app/dx_npu_stats — same path dx_app's own
-    # config.py resolves). The earlier DX_APP_ROOT/core/ fallback never matched, so the
-    # DX Monitor tab always reported empty utilization even on a working NPU board.
     for _alt in (DX_APP_ROOT / "dx_npu_stats", DX_APP_ROOT / "core" / "dx_npu_stats"):
         if _alt.exists():
             _NPU_STATS_BIN = _alt
@@ -59,5 +56,4 @@ def init():
     """SDK 로드 + hardware.py 초기화. 서버 시작 시 1회 호출."""
     _load_dx()
     from shared.hardware import init_hw
-    init_hw(ds=_DS, dx_ok=_dx_ok, npu_stats_bin=_NPU_STATS_BIN,
-            app_root=DX_APP_ROOT)
+    init_hw(ds=_DS, dx_ok=_dx_ok, npu_stats_bin=_NPU_STATS_BIN, app_root=DX_APP_ROOT)

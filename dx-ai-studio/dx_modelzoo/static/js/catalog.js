@@ -25,10 +25,12 @@ function optimizedImageCandidates(originalPath) {
   const stem = dot >= 0 ? clean.slice(0, dot) : clean;
   const ext = dot >= 0 ? clean.slice(dot + 1).toLowerCase() : 'img';
   const safeStem = `${stem}-${ext}`;
+  // Cache-buster for /data images (not content-hashed by server) — see _MZ_IMG_VER.
+  const v = `?v=${window._MZ_IMG_VER || '0'}`;
   return [
-    `/data/optimized/${safeStem}.webp`,
-    `/data/optimized/${safeStem}.jpg`,
-    `/data/${clean}`,
+    `/data/optimized/${safeStem}.webp${v}`,
+    `/data/optimized/${safeStem}.jpg${v}`,
+    `/data/${clean}${v}`,
   ];
 }
 

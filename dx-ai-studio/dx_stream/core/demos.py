@@ -617,11 +617,13 @@ def _npu_exists() -> bool:
 
 
 def _plugin_exists() -> bool:
-    """DxStream GStreamer 플러그인 존재 여부 확인 (테스트에서 monkeypatch 가능)."""
-    plugin_path = Path("/usr/local/lib") / "x86_64-linux-gnu" / "gstreamer-1.0" / "libgstdxstream.so"
-    if plugin_path.exists():
-        return True
-    return bool(list(Path("/usr/local/lib").rglob("libgstdxstream.so")))
+    """DxStream GStreamer 플러그인 존재 여부 확인 (테스트에서 monkeypatch 가능).
+
+    Delegates to the unified finder (core.gst_env) so every call site agrees on the set of
+    locations checked (previously this only looked under /usr/local/lib)."""
+    from dx_stream.core import gst_env
+
+    return gst_env.plugin_available()
 
 
 def check_demo_available(demo_id: int) -> dict:

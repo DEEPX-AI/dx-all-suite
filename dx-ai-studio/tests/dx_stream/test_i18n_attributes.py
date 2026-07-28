@@ -178,6 +178,27 @@ def test_stream_i18n_dictionary_covers_attribute_keys():
         assert not missing, f"{key} missing {missing}"
 
 
+def test_dxnn_upload_and_mjpeg_fallback_strings_cover_all_languages():
+    js = stream_i18n_js()
+    for key in (
+        "WebRTC could not connect — switching to MJPEG",
+        "MJPEG fallback failed: ",
+        "Select a .dxnn file first",
+        "Model file must be a .dxnn binary",
+        "Uploading...",
+        "Upload failed",
+    ):
+        entry = _entry_for(js, key)
+        missing = [token for token in SUPPORTED_LANG_TOKENS + ("es:",) if token not in entry]
+        assert not missing, f"{key} missing {missing}"
+
+    html = stream_template()
+    for element_id in ("model-upload-file", "model-upload-status"):
+        assert f'id="{element_id}"' in html
+    for language in ("ko", "en", "ja", "zh-CN", "zh-TW", "es"):
+        assert f'class="{language}"' in html
+
+
 def test_stream_i18n_dictionary_removes_stale_demo_preset_keys():
     js = stream_i18n_js()
     for key in (

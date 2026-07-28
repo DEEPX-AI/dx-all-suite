@@ -3,9 +3,11 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import shutil
 import sys
 import threading
 import time
+from types import ModuleType
 from http.server import ThreadingHTTPServer
 from pathlib import Path
 from urllib.error import HTTPError
@@ -440,6 +442,7 @@ def test_compile_job_done_state_wins_over_late_error_transition():
     from dx_compiler.core.compiler_service import CompileJob
 
     job = CompileJob(job_id="late-error")
+    job.artifact_ready = True
     assert job.mark_done() is True
 
     assert job.mark_error("DX_COMPILER_MAX_JOB_SECONDS must be a number") is False
@@ -470,6 +473,7 @@ def test_sse_progress_includes_structured_capabilities_on_complete(monkeypatch, 
     from dx_compiler.core.compiler_service import CompileJob
 
     job = CompileJob(job_id="capabilities-job", status="done", output_dir=str(tmp_path))
+    job.artifact_ready = True
     job.capabilities["node_selection"] = False
     job.warnings.append({
         "key": "node_selection_unsupported_subprocess",
@@ -584,6 +588,7 @@ def test_sse_progress_keeps_completed_job_when_timeout_config_is_invalid(monkeyp
 
     job = CompileJob(job_id="complete-invalid-config", status="done", output_dir=str(tmp_path))
     job.progress = 100.0
+    job.artifact_ready = True
 
     class FakeCompilerService:
         def get_job(self, job_id):
@@ -621,6 +626,7 @@ def test_sse_progress_keeps_concurrent_completion_during_invalid_timeout_parse(m
             return job
 
     def complete_then_raise():
+        job.artifact_ready = True
         job.mark_done()
         raise ValueError("DX_COMPILER_MAX_JOB_SECONDS must be a number")
 
@@ -647,6 +653,47 @@ def test_setup_status_returns_unconfigured_contract(server):
     assert isinstance(data["dx_com_installed"], bool)
     assert isinstance(data["sample_models"], dict)
     assert isinstance(data["calibration_data"], dict)
+
+
+def test_setup_status_uses_importable_dx_com_without_venv(monkeypatch):
+    """The setup panel must trust the active Python environment as well as sibling venvs."""
+    _clear_stale_modules()
+    _reset_sys_path()
+    from dx_compiler.core.setup_service import SetupService
+
+    service = SetupService()
+    monkeypatch.setattr(service, "_find_venv", lambda: None)
+    monkeypatch.setattr(service, "_check_dx_com", lambda _venv: {"installed": False})
+    monkeypatch.setattr(
+        "importlib.util.find_spec",
+        lambda name: object() if name == "dx_com" else None,
+    )
+    in_process_dx_com = ModuleType("dx_com")
+    in_process_dx_com.__version__ = "test-version"
+    monkeypatch.setitem(sys.modules, "dx_com", in_process_dx_com)
+
+    status = service.check_status()
+    assert status["dx_com_installed"] is True
+    assert status["dx_com_version"] == "test-version"
+
+
+def test_compiler_server_exposes_dxnn_download_route():
+    source = (COMPILER_DIR / "server.py").read_text(encoding="utf-8")
+    assert 'path.endswith("/dxnn")' in source
+    assert "def _safe_download_stem(" in source
+    assert 'filename = f"{_safe_download_stem(job.model_path)}_summary.html"' in source
+    assert "stem = _safe_download_stem(job.model_path or dxnn_path)" in source
+
+
+def test_compiler_dxnn_download_control_has_all_languages():
+    html = (COMPILER_DIR / "templates" / "index.html").read_text(encoding="utf-8")
+    assert 'id="download-dxnn-btn"' in html
+    control = html[html.index('id="download-dxnn-btn"'):html.index("</button>", html.index('id="download-dxnn-btn"'))]
+    for language in ("ko", "en", "ja", "zh-CN", "zh-TW", "es"):
+        assert f'class="{language}"' in control
+    assert "window.location.href = '/compile/' + jobId + '/dxnn'" in html
+    assert "dxnnBtn.disabled = true" in html
+    assert "delete dxnnBtn.dataset.jobId" in html
 
 
 def test_setup_sample_models_returns_list(server):
@@ -759,6 +806,247 @@ def test_find_fresh_dxnn_ignores_optimized_ckpt(tmp_path, monkeypatch):
 
     result = _find_fresh_dxnn(str(tmp_path), start)
     assert result == str(final)
+
+
+def test_dxnn_download_uses_artifact_recorded_for_its_job_with_shared_output_dir(
+    monkeypatch, tmp_path
+):
+    """A completed job must not download another fresh job's artifact."""
+    _clear_stale_modules()
+    _reset_sys_path()
+    import dx_compiler.server as server_mod
+    from dx_compiler.core.compiler_service import CompileJob
+
+    first = tmp_path / "first-job.dxnn"
+    second = tmp_path / "second-job.dxnn"
+    first.write_bytes(b"first job artifact")
+    second.write_bytes(b"second job artifact")
+    job = CompileJob(
+        job_id="second-job",
+        status="done",
+        output_dir=str(tmp_path),
+        model_path="second-job.onnx",
+        start_time=time.time() - 1,
+    )
+    job.dxnn_path = str(second)
+    job.canonical_dxnn_path = str(second)
+    job.artifact_ready = True
+
+    class FakeCompilerService:
+        def get_job(self, job_id):
+            assert job_id == job.job_id
+            return job
+
+        def is_ready_artifact(self, target_job):
+            return target_job is job
+
+    captured = {}
+    handler = server_mod.CompilerHandler.__new__(server_mod.CompilerHandler)
+    handler.send_error_json = lambda code, message: captured.update(error=(code, message))
+    handler.send_bytes = lambda body, content_type, filename=None: captured.update(
+        body=body, content_type=content_type, filename=filename
+    )
+    monkeypatch.setattr(server_mod, "compiler_service", FakeCompilerService())
+
+    handler._compile_dxnn(job.job_id)
+
+    assert captured["body"] == b"second job artifact"
+
+
+def test_compiler_service_stages_shared_output_jobs_independently(
+    monkeypatch, tmp_path
+):
+    """Shared requested directories do not serialize or share compiler workspaces."""
+    _clear_stale_modules()
+    _reset_sys_path()
+    from dx_compiler.core import compiler_bridge
+    from dx_compiler.core import setup_service as setup_module
+    from dx_compiler.core.compiler_service import CompileJob, CompilerService
+
+    service = CompilerService(job_root=tmp_path / "jobs")
+
+    def fake_run_compile(**kwargs):
+        stem = Path(kwargs["model"]).stem
+        output = Path(kwargs["output_dir"])
+        output.mkdir(parents=True, exist_ok=True)
+        (output / f"{stem}.dxnn").write_bytes(stem.encode())
+
+    monkeypatch.setattr(setup_module.setup_service, "get_venv_python", lambda: None)
+    monkeypatch.setattr(service, "_is_dx_com_available", lambda: True)
+    monkeypatch.setattr(compiler_bridge, "run_compile", fake_run_compile)
+    first = CompileJob(job_id="first", output_dir=str(tmp_path))
+    second = CompileJob(job_id="second", output_dir=str(tmp_path))
+    args = (str(tmp_path), 1, False, False, False, False, None, None, None, False)
+    first_thread = threading.Thread(
+        target=service._run_compile,
+        args=(first, "first.onnx", "config.json", *args),
+    )
+    second_thread = threading.Thread(
+        target=service._run_compile,
+        args=(second, "second.onnx", "config.json", *args),
+    )
+
+    first_thread.start()
+    second_thread.start()
+    first_thread.join(timeout=1)
+    second_thread.join(timeout=1)
+
+    assert first.status == "done"
+    assert second.status == "done"
+    assert Path(first.dxnn_path).read_bytes() == b"first"
+    assert Path(second.dxnn_path).read_bytes() == b"second"
+    assert first.dxnn_path != second.dxnn_path
+    assert first.work_dir != second.work_dir
+
+
+def _dxnn_download_handler(server_mod, monkeypatch, job, artifact=None):
+    class FakeCompilerService:
+        def get_job(self, job_id):
+            assert job_id == job.job_id
+            return job
+
+        def is_ready_artifact(self, target_job):
+            return target_job is job and bool(getattr(job, "artifact_ready", False))
+
+    captured = {}
+    handler = server_mod.CompilerHandler.__new__(server_mod.CompilerHandler)
+    handler.send_error_json = lambda code, message: captured.update(
+        error=(code, message)
+    )
+    handler.send_bytes = lambda body, content_type, filename=None: captured.update(
+        body=body, content_type=content_type, filename=filename
+    )
+    monkeypatch.setattr(server_mod, "compiler_service", FakeCompilerService())
+    monkeypatch.setattr(server_mod, "_find_fresh_dxnn", lambda *_args: artifact)
+    return handler, captured
+
+
+def _dxnn_artifact(tmp_path):
+    artifact = tmp_path / "test-model.dxnn"
+    artifact.write_bytes(b"\x00DXNN\xff")
+    return artifact
+
+
+def test_completed_dxnn_download_is_binary_and_header_safe(monkeypatch, tmp_path):
+    _clear_stale_modules()
+    _reset_sys_path()
+    import dx_compiler.server as server_mod
+    from dx_compiler.core.compiler_service import CompileJob
+
+    artifact = _dxnn_artifact(tmp_path)
+    job = CompileJob(
+        job_id="complete-download",
+        status="done",
+        output_dir=str(artifact.parent),
+        model_path='model"\r\nInjected: yes.onnx',
+        dxnn_path=str(artifact),
+    )
+    job.canonical_dxnn_path = str(artifact)
+    job.artifact_ready = True
+    handler, captured = _dxnn_download_handler(server_mod, monkeypatch, job, str(artifact))
+
+    handler._compile_dxnn(job.job_id)
+
+    assert captured["body"] == artifact.read_bytes()
+    assert captured["content_type"] == "application/octet-stream"
+    assert captured["filename"].endswith(".dxnn")
+    assert "\r" not in captured["filename"]
+    assert "\n" not in captured["filename"]
+    assert server_mod._safe_download_stem(job.model_path)
+    assert set(server_mod._safe_download_stem(job.model_path)) <= set(
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789._-"
+    )
+
+
+def test_dxnn_download_http_header_is_safe(server, tmp_path):
+    from dx_compiler.core.compiler_service import CompileJob
+
+    artifact = _dxnn_artifact(tmp_path)
+    handler_cls = server.RequestHandlerClass
+    handler_globals = handler_cls._compile_dxnn.__globals__
+    service = handler_globals["compiler_service"]
+    safe_stem = handler_globals["_safe_download_stem"]
+    job = CompileJob(
+        job_id="header-safety-download",
+        status="done",
+        output_dir=str(artifact.parent),
+        model_path='model"\r\nInjected: yes.onnx',
+        start_time=0,
+    )
+    service._prepare_job_staging(job)
+    canonical = Path(job.work_dir) / "header-safe.dxnn"
+    shutil.copyfile(artifact, canonical)
+    job.canonical_dxnn_path = str(canonical)
+    job.dxnn_path = str(canonical)
+    job.artifact_ready = True
+    service.jobs[job.job_id] = job
+    try:
+        response = urlopen(f"{BASE_URL}/compile/{job.job_id}/dxnn", timeout=5)
+        try:
+            disposition = response.headers["Content-Disposition"]
+            assert response.status == 200
+            assert disposition == (
+                f'attachment; filename="{safe_stem(job.model_path)}.dxnn"'
+            )
+            assert "\r" not in disposition
+            assert "\n" not in disposition
+        finally:
+            response.close()
+    finally:
+        service.jobs.pop(job.job_id, None)
+        shutil.rmtree(Path(job.work_dir).parent, ignore_errors=True)
+
+
+def test_dxnn_download_rejects_incomplete_job(monkeypatch):
+    _clear_stale_modules()
+    _reset_sys_path()
+    import dx_compiler.server as server_mod
+    from dx_compiler.core.compiler_service import CompileJob
+
+    job = CompileJob(job_id="running-download", status="running")
+    handler, captured = _dxnn_download_handler(server_mod, monkeypatch, job)
+
+    handler._compile_dxnn(job.job_id)
+
+    assert captured["error"][0] == 400
+
+
+def test_dxnn_download_reports_missing_artifact(monkeypatch):
+    _clear_stale_modules()
+    _reset_sys_path()
+    import dx_compiler.server as server_mod
+    from dx_compiler.core.compiler_service import CompileJob
+
+    job = CompileJob(
+        job_id="missing-download",
+        status="done",
+        output_dir=str(ROOT),
+        model_path="model.onnx",
+    )
+    handler, captured = _dxnn_download_handler(server_mod, monkeypatch, job)
+
+    handler._compile_dxnn(job.job_id)
+
+    assert captured["error"][0] == 400
+
+
+def test_dxnn_download_rejects_unsafe_output_directory(monkeypatch):
+    _clear_stale_modules()
+    _reset_sys_path()
+    import dx_compiler.server as server_mod
+    from dx_compiler.core.compiler_service import CompileJob
+
+    job = CompileJob(
+        job_id="unsafe-download",
+        status="done",
+        output_dir="/etc",
+        model_path="model.onnx",
+    )
+    handler, captured = _dxnn_download_handler(server_mod, monkeypatch, job)
+
+    handler._compile_dxnn(job.job_id)
+
+    assert captured["error"][0] == 400
 
 
 def test_legacy_checkpoint_route_still_removed(server):

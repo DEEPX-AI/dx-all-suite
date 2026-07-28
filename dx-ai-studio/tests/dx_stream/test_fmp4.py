@@ -49,3 +49,46 @@ def test_build_fmp4_pipeline_replaces_sink_after_dxosd():
     assert "dxosd" in out                # inference chain preserved
     assert "webrtcbin" not in out        # original sink removed
     assert "mp4mux" in out               # fMP4 sink appended
+
+
+def test_fmp4_subprocess_receives_augmented_plugin_environment(monkeypatch):
+    from core import fmp4
+
+    calls = []
+    captured = {}
+
+    class FakeGstEnv:
+        @staticmethod
+        def augmented_env(base):
+            calls.append(dict(base))
+            env = dict(base)
+            env["GST_PLUGIN_PATH"] = "/plugins"
+            return env
+
+    class FakeProcess:
+        pid = 1234
+
+    class NoopThread:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def start(self):
+            return None
+
+    monkeypatch.setattr(fmp4, "gst_env", FakeGstEnv, raising=False)
+    monkeypatch.setattr(fmp4, "stop", lambda: None)
+    monkeypatch.setattr(fmp4, "_streaming", False)
+    monkeypatch.setattr(fmp4, "_process", None)
+    monkeypatch.setattr(fmp4, "_reader_thread", None)
+    monkeypatch.setattr(
+        fmp4,
+        "_spawn_process",
+        lambda command, env: captured.update(command=command, env=env) or FakeProcess(),
+    )
+    monkeypatch.setattr(fmp4.threading, "Thread", NoopThread)
+
+    fmp4.start("videotestsrc ! fakesink", extra_env={"PIPELINE_FLAG": "1"})
+
+    assert calls
+    assert calls[0]["PIPELINE_FLAG"] == "1"
+    assert captured["env"]["GST_PLUGIN_PATH"] == "/plugins"

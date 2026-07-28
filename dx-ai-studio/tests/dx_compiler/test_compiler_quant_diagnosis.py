@@ -86,6 +86,24 @@ def test_run_compile_forwards_use_q_pro_when_compiler_accepts(monkeypatch):
     assert captured.get("use_q_pro") is True
 
 
+def test_run_compile_raises_when_enhanced_scheme_unsupported(monkeypatch):
+    _reset_imports()
+    from dx_compiler.core import compiler_bridge
+
+    def fake_compile(*, model=None, config=None, output_dir=None):
+        return None
+
+    monkeypatch.setattr(compiler_bridge, "_resolve", lambda _name: fake_compile)
+
+    with pytest.raises(RuntimeError, match="enhanced_scheme"):
+        compiler_bridge.run_compile(
+            model="m.onnx",
+            config="c.json",
+            output_dir="/tmp/out",
+            enhanced_scheme={"DXQ-P0": {}},
+        )
+
+
 def test_mask_compile_error_returns_fixed_message():
     _reset_imports()
     from dx_compiler.core.compiler_bridge import MASKED_COMPILE_ERROR, mask_compile_error

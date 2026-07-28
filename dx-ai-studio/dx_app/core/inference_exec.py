@@ -32,6 +32,9 @@ def _sweep_stale_temp(max_age_s=6 * 3600):
 
 _PAIR_COMPARE_CATS = frozenset({"embedding", "reid"})
 _STDOUT_TAG_CATS = frozenset({"classification", "attribute_recognition"})
+_SIDE_BY_SIDE_OUTPUT_CATS = frozenset({
+    "super_resolution", "image_enhancement", "image_denoising", "depth_estimation",
+})
 _IMAGE_EXTENSIONS = frozenset({".jpg", ".jpeg", ".png", ".bmp"})
 
 

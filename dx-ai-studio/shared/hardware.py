@@ -49,12 +49,12 @@ def _read_cpu_per_core():
     except Exception:
         return []
 
+_DXRT_INVALID_TEMPERATURE = -32768
 _DEVICE_INFO_FIELDS = (
     "firmware_version", "device_type", "device_variant", "board_type",
     "memory_type", "memory_size_bytes", "memory_freq_mhz",
     "ddr_status", "ddr_sbe_cnt", "ddr_dbe_cnt",
 )
-_DXRT_INVALID_TEMPERATURE = -32768
 
 def _mock_npu():
     t = time.time()
@@ -91,18 +91,15 @@ def get_hw():
                         T.append(temp)
                         V.append(dev.get_npu_voltage(ch))
                         C.append(dev.get_npu_clock(ch))
-                        # Utilization straight from the same DeviceStatus API dxtop reads:
-                        # ~0 when idle, rising under load. The old path shelled out to the
-                        # dx_npu_stats helper (legacy IPC GET_USAGE), which reported a
-                        # non-zero idle baseline and disagreed with dxtop. Invalid cores
-                        # return a negative sentinel — clamp to 0.
+                        # Utilization comes from the same DeviceStatus API dxtop reads.
+                        # Invalid cores return a negative sentinel — clamp to 0.
                         try:
                             u = dev.get_core_utilization(ch)
                             U.append(round(float(u), 1) if u is not None and u >= 0 else 0.0)
                         except Exception:
                             pass
                     except Exception: break
-                # DRAM directly from the engine (bytes) — no external helper binary.
+                # DRAM directly from the engine (bytes).
                 dram_used = dram_total = -1
                 try:
                     used = int(dev.get_memory_used()); free = int(dev.get_memory_free())
@@ -123,20 +120,17 @@ def get_hw():
                     "dram_pct": round(100.0*dram_used/dram_total, 1) if dram_total > 0 else -1,
                     "utilization": U,
                 }
-                # Optional device_info (firmware / board / memory type) — best-effort from
-                # the dx_npu_stats helper IF it happens to be present. util/DRAM above no
-                # longer depend on it, so its absence only omits these extra labels; it is
-                # no longer shipped as a prebuilt binary (built per-board, or skipped).
                 if _NPU_STATS_BIN.exists():
                     try:
                         raw = subprocess.check_output(
                             [str(_NPU_STATS_BIN), str(did), str(len(T))],
                             timeout=2, stderr=subprocess.DEVNULL)
-                        ns = json.loads(raw)
-                        for f in _DEVICE_INFO_FIELDS:
-                            if f in ns:
-                                npu_entry[f] = ns[f]
-                    except Exception: pass
+                        stats = json.loads(raw)
+                        for field in _DEVICE_INFO_FIELDS:
+                            if field in stats:
+                                npu_entry[field] = stats[field]
+                    except Exception:
+                        pass
                 d["npus"].append(npu_entry)
         except Exception as e:
             d["error"] = str(e); d["npus"] = _mock_npu()

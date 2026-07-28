@@ -6794,7 +6794,7 @@
         "cli_command": "./centerpose_regnetx_800mf_sync -m assets/models/centerpose_regnet-x800mf_640x640.dxnn -i sample/img/sample_people.jpg"
       },
       "legal": {
-        "license": "Apache-2.0",
+        "license": "MIT",
         "copyright": "",
         "source_url": "https://github.com/NVlabs/CenterPose"
       },
@@ -6854,7 +6854,7 @@
         "cli_command": "./centerpose_repvgg_a0_sync -m assets/models/centerpose_repvgg-a0_416x416.dxnn -i sample/img/sample_people.jpg"
       },
       "legal": {
-        "license": "Apache-2.0",
+        "license": "MIT",
         "copyright": "",
         "source_url": "https://github.com/NVlabs/CenterPose"
       },
@@ -7661,7 +7661,7 @@
         "zh-TW": "efficientnet_lite0 是針對 DEEPX NPU 最佳化的分類模型。"
       },
       "specification": {
-        "input_resolution": "224x224x3",
+        "input_resolution": "256x256x3",
         "ops": "",
         "params": "",
         "dataset": "ILSVRC2012",
@@ -7671,8 +7671,8 @@
         ],
         "fps": "",
         "fps_per_watt": "",
-        "input_width": 224,
-        "input_height": 224,
+        "input_width": 256,
+        "input_height": 256,
         "parameters": "4.63",
         "operations": "404.52"
       },
@@ -8294,7 +8294,7 @@
         "cli_command": "./mobilenetv1_sync -m assets/models/mobilenetv1_224x224.dxnn -i sample/img/sample_dog.jpg"
       },
       "legal": {
-        "license": "BSD-3-Clause",
+        "license": "Apache-2.0",
         "copyright": "",
         "source_url": "https://github.com/pytorch/vision"
       },
@@ -8354,7 +8354,7 @@
         "cli_command": "./mobilenetv2_sync -m assets/models/mobilenetv2_224x224.dxnn -i sample/img/sample_dog.jpg"
       },
       "legal": {
-        "license": "BSD-3-Clause",
+        "license": "Apache-2.0",
         "copyright": "",
         "source_url": "https://github.com/pytorch/vision"
       },
@@ -13315,7 +13315,7 @@
         "zh-TW": "bisenetv1 是針對 DEEPX NPU 最佳化的語意分割模型。"
       },
       "specification": {
-        "input_resolution": "2048x1024x3",
+        "input_resolution": "1024x2048x3",
         "ops": "",
         "params": "",
         "dataset": "Cityscapes",
@@ -13325,8 +13325,8 @@
         ],
         "fps": "",
         "fps_per_watt": "",
-        "input_width": 2048,
-        "input_height": 1024,
+        "input_width": 1024,
+        "input_height": 2048,
         "parameters": "13.27",
         "operations": "118.98"
       },
@@ -13348,7 +13348,7 @@
         "cli_command": "./bisenetv1_sync -m assets/models/bisenetv1_1024x2048.dxnn -i sample/img/sample_parking.jpg"
       },
       "legal": {
-        "license": "MIT",
+        "license": "Apache-2.0",
         "copyright": "",
         "source_url": "https://github.com/CoinCheung/BiSeNet"
       },
@@ -13375,7 +13375,7 @@
         "zh-TW": "bisenetv2 是針對 DEEPX NPU 最佳化的語意分割模型。"
       },
       "specification": {
-        "input_resolution": "2048x1024x3",
+        "input_resolution": "1024x2048x3",
         "ops": "",
         "params": "",
         "dataset": "Cityscapes",
@@ -13385,8 +13385,8 @@
         ],
         "fps": "",
         "fps_per_watt": "",
-        "input_width": 2048,
-        "input_height": 1024,
+        "input_width": 1024,
+        "input_height": 2048,
         "parameters": "3.35",
         "operations": "99.14"
       },
@@ -13408,7 +13408,7 @@
         "cli_command": "./bisenetv2_sync -m assets/models/bisenetv2_1024x2048.dxnn -i sample/img/sample_parking.jpg"
       },
       "legal": {
-        "license": "MIT",
+        "license": "Apache-2.0",
         "copyright": "",
         "source_url": "https://github.com/CoinCheung/BiSeNet"
       },
@@ -13888,7 +13888,7 @@
         "cli_command": "./dncnn_15_sync -m assets/models/dncnn-15_512x512.dxnn -i sample/img/sample_denoising.jpg"
       },
       "legal": {
-        "license": "MIT",
+        "license": "Apache-2.0",
         "copyright": "",
         "source_url": "https://github.com/cszn/DnCNN"
       },
@@ -13948,7 +13948,7 @@
         "cli_command": "./dncnn_25_sync -m assets/models/dncnn-25_512x512.dxnn -i sample/img/sample_denoising.jpg"
       },
       "legal": {
-        "license": "MIT",
+        "license": "Apache-2.0",
         "copyright": "",
         "source_url": "https://github.com/cszn/DnCNN"
       },
@@ -14008,7 +14008,7 @@
         "cli_command": "./dncnn_50_sync -m assets/models/dncnn-50_512x512.dxnn -i sample/img/sample_denoising.jpg"
       },
       "legal": {
-        "license": "MIT",
+        "license": "Apache-2.0",
         "copyright": "",
         "source_url": "https://github.com/cszn/DnCNN"
       },
@@ -14215,7 +14215,7 @@
         "zh-TW": "zero_dce 是針對 DEEPX NPU 最佳化的影像增強模型。"
       },
       "specification": {
-        "input_resolution": "600x400x3",
+        "input_resolution": "400x600x3",
         "ops": "",
         "params": "",
         "dataset": "LOL",
@@ -14225,8 +14225,8 @@
         ],
         "fps": "",
         "fps_per_watt": "",
-        "input_width": 600,
-        "input_height": 400,
+        "input_width": 400,
+        "input_height": 600,
         "parameters": "79.42",
         "operations": "19.75"
       },
@@ -14248,7 +14248,7 @@
         "cli_command": "./zero_dce_sync -m assets/models/zerodce_400x600.dxnn -i sample/img/sample_lowlight.jpg"
       },
       "legal": {
-        "license": "Non-commercial",
+        "license": "CC BY-NC 4.0",
         "copyright": "",
         "source_url": "https://github.com/Li-Chongyi/Zero-DCE"
       },
@@ -15418,7 +15418,7 @@
       "model_file_qpro": "",
       "evaluation": {
         "raw": {
-          "accuracy": "91.08088.46769.375"
+          "accuracy": "91.072/88.458/69.374"
         }
       }
     },
@@ -16241,7 +16241,9 @@
         "fps": "",
         "fps_per_watt": "",
         "input_width": 192,
-        "input_height": 192
+        "input_height": 192,
+        "parameters": "0.08",
+        "operations": "0.02"
       },
       "compile_guide": {
         "onnx_url": "",
@@ -16392,7 +16394,12 @@
         "original": ""
       },
       "model_file": "assets/models/yolov6-l6_1280x1280.dxnn",
-      "model_file_qpro": ""
+      "model_file_qpro": "",
+      "evaluation": {
+        "raw": {
+          "accuracy": "53.7"
+        }
+      }
     },
     {
       "id": "yolov6s",
@@ -16452,7 +16459,12 @@
         "original": ""
       },
       "model_file": "assets/models/yolov6-s_640x640.dxnn",
-      "model_file_qpro": ""
+      "model_file_qpro": "",
+      "evaluation": {
+        "raw": {
+          "accuracy": "43.5"
+        }
+      }
     },
     {
       "id": "retinaface_mobilenet_v1_736x1280",
@@ -16572,7 +16584,12 @@
         "original": ""
       },
       "model_file": "assets/models/yolov5-n-face_640x640.dxnn",
-      "model_file_qpro": ""
+      "model_file_qpro": "",
+      "evaluation": {
+        "raw": {
+          "accuracy": "94.5"
+        }
+      }
     },
     {
       "id": "yolov7_lite_t_face",
@@ -16752,7 +16769,12 @@
         "original": ""
       },
       "model_file": "assets/models/yolo11-m-pose_640x640.dxnn",
-      "model_file_qpro": ""
+      "model_file_qpro": "",
+      "evaluation": {
+        "raw": {
+          "accuracy": "64.1"
+        }
+      }
     },
     {
       "id": "yolo11n_pose",
@@ -16812,7 +16834,12 @@
         "original": ""
       },
       "model_file": "assets/models/yolo11-n-pose_640x640.dxnn",
-      "model_file_qpro": ""
+      "model_file_qpro": "",
+      "evaluation": {
+        "raw": {
+          "accuracy": "50.9"
+        }
+      }
     },
     {
       "id": "yolo11s_pose",
@@ -16872,7 +16899,12 @@
         "original": ""
       },
       "model_file": "assets/models/yolo11-s-pose_640x640.dxnn",
-      "model_file_qpro": ""
+      "model_file_qpro": "",
+      "evaluation": {
+        "raw": {
+          "accuracy": "58.8"
+        }
+      }
     },
     {
       "id": "yolo11x_pose",
@@ -16932,7 +16964,12 @@
         "original": ""
       },
       "model_file": "assets/models/yolo11-x-pose_640x640.dxnn",
-      "model_file_qpro": ""
+      "model_file_qpro": "",
+      "evaluation": {
+        "raw": {
+          "accuracy": "69.7"
+        }
+      }
     },
     {
       "id": "yolov5_pose",
@@ -17052,7 +17089,12 @@
         "original": ""
       },
       "model_file": "assets/models/yolov8-l-pose_640x640.dxnn",
-      "model_file_qpro": ""
+      "model_file_qpro": "",
+      "evaluation": {
+        "raw": {
+          "accuracy": "65.9"
+        }
+      }
     },
     {
       "id": "yolov8n_pose",
@@ -17112,7 +17154,12 @@
         "original": ""
       },
       "model_file": "assets/models/yolov8-n-pose_640x640.dxnn",
-      "model_file_qpro": ""
+      "model_file_qpro": "",
+      "evaluation": {
+        "raw": {
+          "accuracy": "50.4"
+        }
+      }
     },
     {
       "id": "yolov8x_pose",
@@ -17172,7 +17219,12 @@
         "original": ""
       },
       "model_file": "assets/models/yolov8-x-pose_640x640.dxnn",
-      "model_file_qpro": ""
+      "model_file_qpro": "",
+      "evaluation": {
+        "raw": {
+          "accuracy": "69.8"
+        }
+      }
     },
     {
       "id": "beit_large_patch16",
@@ -17338,7 +17390,7 @@
       "demo": {
         "cpp_example": "src/cpp_example/classification/deit_base384_distilled/",
         "python_example": "src/python_example/classification/deit_base384_distilled/",
-        "cli_command": "./deit_base384_distilled_sync -m assets/models/deit-b_384x384.dxnn -i sample/img/sample_dog.jpg"
+        "cli_command": "./deit_base384_distilled_sync -m assets/models/deit-b_384x384_distilled.dxnn -i sample/img/sample_dog.jpg"
       },
       "legal": {
         "license": "Apache-2.0",
@@ -17351,8 +17403,13 @@
         "result": "examples/deit_base384_distilled_result.jpg",
         "original": ""
       },
-      "model_file": "assets/models/deit-b_384x384.dxnn",
-      "model_file_qpro": ""
+      "model_file": "assets/models/deit-b_384x384_distilled.dxnn",
+      "model_file_qpro": "",
+      "evaluation": {
+        "raw": {
+          "accuracy": "85.236"
+        }
+      }
     },
     {
       "id": "deit_base_distilled_1",
@@ -17772,7 +17829,12 @@
         "original": ""
       },
       "model_file": "assets/models/efficientnet-b7_600x600.dxnn",
-      "model_file_qpro": ""
+      "model_file_qpro": "",
+      "evaluation": {
+        "raw": {
+          "accuracy": "84.3"
+        }
+      }
     },
     {
       "id": "efficientnetv2m",
@@ -17832,7 +17894,12 @@
         "original": ""
       },
       "model_file": "assets/models/efficientnetv2-m_480x480.dxnn",
-      "model_file_qpro": ""
+      "model_file_qpro": "",
+      "evaluation": {
+        "raw": {
+          "accuracy": "85.1"
+        }
+      }
     },
     {
       "id": "fastvit_ma36",
@@ -17881,7 +17948,7 @@
         "cli_command": "./fastvit_ma36_sync -m assets/models/fastvit-ma36_256x256.dxnn -i sample/img/sample_dog.jpg"
       },
       "legal": {
-        "license": "Apple ML Research License",
+        "license": "Apple Sample Code License",
         "copyright": "",
         "source_url": "https://github.com/apple/ml-fastvit"
       },
@@ -17941,7 +18008,7 @@
         "cli_command": "./fastvit_sa24_sync -m assets/models/fastvit-sa24_256x256.dxnn -i sample/img/sample_dog.jpg"
       },
       "legal": {
-        "license": "Apple ML Research License",
+        "license": "Apple Sample Code License",
         "copyright": "",
         "source_url": "https://github.com/apple/ml-fastvit"
       },
@@ -18001,7 +18068,7 @@
         "cli_command": "./fastvit_sa36_sync -m assets/models/fastvit-sa36_256x256.dxnn -i sample/img/sample_dog.jpg"
       },
       "legal": {
-        "license": "Apple ML Research License",
+        "license": "Apple Sample Code License",
         "copyright": "",
         "source_url": "https://github.com/apple/ml-fastvit"
       },
@@ -18061,7 +18128,7 @@
         "cli_command": "./ghostnet_sync -m assets/models/ghostnet_224x224.dxnn -i sample/img/sample_dog.jpg"
       },
       "legal": {
-        "license": "Apache-2.0",
+        "license": "No License",
         "copyright": "",
         "source_url": "https://github.com/huawei-noah/Efficient-AI-Backbones"
       },
@@ -18792,7 +18859,12 @@
         "original": "examples/yolo11l_seg_original.jpg"
       },
       "model_file": "assets/models/yolo11-l-seg_640x640.dxnn",
-      "model_file_qpro": ""
+      "model_file_qpro": "",
+      "evaluation": {
+        "raw": {
+          "accuracy": "43.0"
+        }
+      }
     },
     {
       "id": "yolo11m_seg",
@@ -18852,7 +18924,12 @@
         "original": "examples/yolo11m_seg_original.jpg"
       },
       "model_file": "assets/models/yolo11-m-seg_640x640.dxnn",
-      "model_file_qpro": ""
+      "model_file_qpro": "",
+      "evaluation": {
+        "raw": {
+          "accuracy": "41.5"
+        }
+      }
     },
     {
       "id": "yolo11n_seg",
@@ -18912,7 +18989,12 @@
         "original": "examples/yolo11n_seg_original.jpg"
       },
       "model_file": "assets/models/yolo11-n-seg_640x640.dxnn",
-      "model_file_qpro": ""
+      "model_file_qpro": "",
+      "evaluation": {
+        "raw": {
+          "accuracy": "32.0"
+        }
+      }
     },
     {
       "id": "yolo11s_seg",
@@ -18972,7 +19054,12 @@
         "original": "examples/yolo11s_seg_original.jpg"
       },
       "model_file": "assets/models/yolo11-s-seg_640x640.dxnn",
-      "model_file_qpro": ""
+      "model_file_qpro": "",
+      "evaluation": {
+        "raw": {
+          "accuracy": "37.8"
+        }
+      }
     },
     {
       "id": "yolo11x_seg",
@@ -19032,7 +19119,12 @@
         "original": "examples/yolo11x_seg_original.jpg"
       },
       "model_file": "assets/models/yolo11-x-seg_640x640.dxnn",
-      "model_file_qpro": ""
+      "model_file_qpro": "",
+      "evaluation": {
+        "raw": {
+          "accuracy": "44.1"
+        }
+      }
     },
     {
       "id": "yolov5x_seg",
@@ -19092,7 +19184,12 @@
         "original": "examples/yolov5x_seg_original.jpg"
       },
       "model_file": "assets/models/yolov5-x-seg_640x640.dxnn",
-      "model_file_qpro": ""
+      "model_file_qpro": "",
+      "evaluation": {
+        "raw": {
+          "accuracy": "40.9"
+        }
+      }
     },
     {
       "id": "yolov8l_seg",
@@ -19152,7 +19249,12 @@
         "original": "examples/yolov8l_seg_original.jpg"
       },
       "model_file": "assets/models/yolov8-l-seg_640x640.dxnn",
-      "model_file_qpro": ""
+      "model_file_qpro": "",
+      "evaluation": {
+        "raw": {
+          "accuracy": "44.0"
+        }
+      }
     },
     {
       "id": "yolov8x_seg",
@@ -19212,7 +19314,12 @@
         "original": "examples/yolov8x_seg_original.jpg"
       },
       "model_file": "assets/models/yolov8-x-seg_640x640.dxnn",
-      "model_file_qpro": ""
+      "model_file_qpro": "",
+      "evaluation": {
+        "raw": {
+          "accuracy": "45.4"
+        }
+      }
     },
     {
       "id": "casvit_t_seg_fpn_resnet50",
@@ -19501,7 +19608,7 @@
         "cli_command": "./deeplabv3plus_drn_512x512_sync -m assets/models/deeplabv3plus-drn_512x512.dxnn -i sample/img/sample_parking.jpg"
       },
       "legal": {
-        "license": "MIT",
+        "license": "Apache-2.0",
         "copyright": "",
         "source_url": "https://github.com/jfzhang95/pytorch-deeplab-xception"
       },
@@ -19872,7 +19979,12 @@
         "original": "examples/stdc2_model_maxmiou50_original.jpg"
       },
       "model_file": "assets/models/stdc2-seg50_512x1024.dxnn",
-      "model_file_qpro": ""
+      "model_file_qpro": "",
+      "evaluation": {
+        "raw": {
+          "accuracy": "73.4"
+        }
+      }
     },
     {
       "id": "depth_anything_v2_vitb",
@@ -20128,7 +20240,7 @@
         "zh-TW": "espcn_x2 是針對 DEEPX NPU 最佳化的超解析度模型。"
       },
       "specification": {
-        "input_resolution": "17x17x3",
+        "input_resolution": "17x17x1",
         "ops": "",
         "params": "",
         "dataset": "BSD100",
@@ -20592,7 +20704,12 @@
         "original": ""
       },
       "model_file": "assets/models/clip-img_resnet50x16_384x384_openai-wit.dxnn",
-      "model_file_qpro": ""
+      "model_file_qpro": "",
+      "evaluation": {
+        "raw": {
+          "accuracy": "68.3"
+        }
+      }
     },
     {
       "id": "vit_b_32_256_datacomp_s34b_b86k",

@@ -36,6 +36,9 @@ _LEAF_FIELDS = [
     "evaluation.qpro.accuracy",
     "artifacts.qpro_dxnn.remote_url",
     "artifacts.qpro_json.remote_url",
+    "evaluation.qmaster.accuracy",
+    "artifacts.qmaster_dxnn.remote_url",
+    "artifacts.qmaster_json.remote_url",
     "performance.fps",
     "performance.fps_per_watt",
     None,  # Sample Apps
@@ -45,11 +48,17 @@ _LINK_FIELDS = {
     "legal.source_url", "artifacts.onnx.remote_url",
     "artifacts.qlite_dxnn.remote_url", "artifacts.qlite_json.remote_url",
     "artifacts.qpro_dxnn.remote_url", "artifacts.qpro_json.remote_url",
+    "artifacts.qmaster_dxnn.remote_url", "artifacts.qmaster_json.remote_url",
 }
 _FLOAT_FIELDS = {"performance.fps", "performance.fps_per_watt"}
 # The expected 3rd header row (leaf labels under the grouped headers) — used to validate.
-_EXPECTED_LEAF_ROW = ["Accuracy", "ONNX", "Accuracy", "DXNN", "JSON",
-                      "Accuracy", "DXNN", "JSON", "FPS", "FPS/Watt"]
+_EXPECTED_LEAF_ROW = [
+    "Accuracy", "ONNX",
+    "Accuracy", "DXNN", "JSON",
+    "Accuracy", "DXNN", "JSON",
+    "Accuracy", "DXNN", "JSON",
+    "FPS", "FPS/Watt",
+]
 
 
 class _RowParser(HTMLParser):
