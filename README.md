@@ -108,7 +108,7 @@ This environment is used for converting and optimizing trained AI models into DE
 -	**Hardware**: x86_64 Host PC  
 - **Software**: Python 3.8~3.14, CUDA (Optional for simulation)
 -	**Key Tasks**: AI model (`.onnx`) compilation, Quantization, `.dxnn` generation  
--	**Action**: DX-Compiler Local Installation Guide [Link]  
+-	**Action**: DX-Compiler Local Installation Guide [Link](./docs/source/02_Setting_Up_Environment.md)
 
 ### AI Model Runtime Environment (Target Device)
 
@@ -119,7 +119,7 @@ This environment is for performing inference and running applications on devices
 -	**Hardware**: Host PC / Target Board (DEEPX NPU is required)
 -	**Software**: Python 3.8+
 -	**Key Tasks**: `.dxnn` model execution, real-time data inference, resource management
--	**Action**: DX-Runtime Installation Guide [Link]
+-	**Action**: DX-Runtime Installation Guide [Link](./docs/source/02_Setting_Up_Environment.md)
 
 > **Warning: Activation Required**  
 > A system reboot is mandatory after installation to properly load the NPU Driver into the kernel.  

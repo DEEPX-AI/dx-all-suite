@@ -25,11 +25,11 @@ DX-RT uses the DX NPU Driver to send input data to the NPU via the PCIe interfac
 
 **DX-ModelZoo**
 
-DEEPX aims to provide developers with an effortless experience using DeepX NPUs through DeepX Open Modelzoo, which offers a variety of neural network models supported by DeepX NPUs.
+DEEPX aims to provide developers with an effortless experience using DEEPX NPUs through DEEPX Open Modelzoo, which offers a variety of neural network models supported by DEEPX NPUs.
 
-All featured models are provided with pre-trained ONNX models, configuration json files, and pre-compiled binaries named DXNN(DeepX Neural Network).
+All featured models are provided with pre-trained ONNX models, configuration json files, and pre-compiled binaries named DXNN(DEEPX Neural Network).
 
-Developers can also compile featured ONNXs to DXNN, which enables rapid application development accelerated by DeepX NPUs. Comprehensive performance benchmark tools are available for comparing models of quantized INT8 on DeepX NPUs with full precision FP32 on GPUs or CPUs.
+Developers can also compile featured ONNXs to DXNN, which enables rapid application development accelerated by DEEPX NPUs. Comprehensive performance benchmark tools are available for comparing models of quantized INT8 on DEEPX NPUs with full precision FP32 on GPUs or CPUs.
 
 **DX-APP**
 

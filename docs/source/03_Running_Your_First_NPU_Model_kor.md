@@ -107,7 +107,7 @@ getting-started/
 
 ---
 
-## DX-Runtime: Application Execution (Application Execution Scripts Guide) (Step 0, 5)
+## DX-Runtime: Application Execution Scripts Guide (Step 0, 5)
 
 이 장은 최적화된 모델을 실제 DEEPX NPU 하드웨어에 배포하고 실행하는 Step 0(환경 설정)과 Step 5(추론)에 초점을 맞춥니다.  
 

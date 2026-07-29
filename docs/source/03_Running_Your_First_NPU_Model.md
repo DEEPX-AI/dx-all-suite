@@ -107,7 +107,7 @@ The final stage where the prepared model and data are combined to generate the N
 
 ---
 
-## DX-Runtime: Application Execution (Application Execution Scripts Guide) (Step 0, 5)
+## DX-Runtime: Application Execution Scripts Guide (Step 0, 5)
 
 This chapter focuses on Step 0 (Environment Setup) and Step 5 (Inference), where you deploy and run your optimized models on the actual DEEPX NPU hardware.  
 

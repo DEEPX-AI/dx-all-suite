@@ -14,7 +14,7 @@
 
 ---
 
-Here are the **DX-All-Suite v2.4.1** Release Note.
+Here are the **DX-All-Suite v2.4.1** Release Notes.
 
 ### What's New?
 
@@ -45,7 +45,7 @@ For detailed updated items, refer to **each environment & module's Release Notes
 
 ---
 
-Here are the **DX-All-Suite v2.4.0** Release Note.
+Here are the **DX-All-Suite v2.4.0** Release Notes.
 
 ### What's New?
 
@@ -116,7 +116,7 @@ Describe an app or model task in plain language, and an AI coding agent drives t
   - Disabled Root Complex Tx Equalization Preset 10 to prevent PCIe link compliance/test loops during normal boot (DX_FW).
   - Changed BAR0 type from prefetchable to non-prefetchable on VNPU board type (DX_FW).
   - Fixed input queue clearing when all bound options are deleted (DX_FW).
-  - Solving PCIe enumeration issue on RZ/G3E (DX_FW).
+  - Solved PCIe enumeration issue on RZ/G3E (DX_FW).
   - Rejected in-flight mailbox commands during FW reboot and hardened recovery sleep (NPU Driver).
   - Fixed device recovery issues after firmware updates; resolved module installation errors in certain hardware environments (NPU Driver).
   - Automatic recovery logic for critical runtime error scenarios (NPU Driver).
@@ -176,6 +176,12 @@ Describe an app or model task in plain language, and an AI coding agent drives t
   - Test Suite: 73 new test binaries under `test/base/{element,metadata,pipeline}/` covering element contracts, domain boundaries, end-to-end pipelines (DX-Stream).
   - DxMsgConv: `include-frame` property for base64 JPEG frame encoding with Kafka/MQTT consumer display support (DX-Stream).
 
+- **Docker & Deployment**:
+  - Red Hat family support for the `dx-compiler` container: build and run on Fedora (42–45), RHEL/UBI (9, 10), and CentOS Stream (stream9, stream10) via new `--fedora_version` / `--rhel_version` / `--centos_version` options. `dx-runtime` and `dx-modelzoo` remain Ubuntu/Debian only (Docker).
+  - Ubuntu 26.04 base image support for all three containers (Docker).
+  - Faster `dx-runtime` / `dx-modelzoo` image builds: `dx_rt` and the matching `dx_engine` Python wheel are installed from prebuilt Debian packages instead of being compiled from source (Docker).
+  - DX-Tron on Red Hat family images is provided as the web variant (`run_dxtron_web.sh`) since the `.deb`/AppImage is not supported there (Docker).
+
 ### Known Issues
 
 - **PReLU Degradation**: Significant FPS degradation has been observed in models using PReLU as an activation function.
@@ -209,7 +215,7 @@ For detailed updated items, refer to **each environment & module's Release Notes
 
 ---
 
-Here are the **DX-All-Suite v2.3.3** Release Note.
+Here are the **DX-All-Suite v2.3.3** Release Notes.
 
 ### What's New?
 
@@ -231,7 +237,7 @@ This hotfix release resolves a missing Debian package file issue in `dx_rt_npu_l
 
 ---
 
-Here are the **DX-All-Suite v2.3.2** Release Note.
+Here are the **DX-All-Suite v2.3.2** Release Notes.
 
 ### What's New?
 
@@ -270,7 +276,7 @@ For detailed updated items, refer to **each environment & module's Release Notes
 
 ---
 
-Here are the **DX-All-Suite v2.3.1** Release Note.
+Here are the **DX-All-Suite v2.3.1** Release Notes.
 
 ### What's New?
 
@@ -307,7 +313,7 @@ For detailed updated items, refer to **each environment & module's Release Notes
     - DX_FW: v2.5.6
     - NPU Driver: v2.4.1
     - DX-RT: v3.3.0
-    - DX-Stream: 3.0.0
+    - DX-Stream: v3.0.0
     - DX-APP: v3.1.0
 
 ---
@@ -359,7 +365,7 @@ This major release focuses on Runtime Efficiency, Security Hardening, and a Unif
 - **DX-APP v3.1.0**: Project structures have changed to follow the 5-layer pattern. Refer to the new `src/` directory for updated implementation standards.  
 - **Minimum Dependencies**: DX-RT v3.3.0 now requires NPU Driver v2.4.0+ and Firmware v2.5.2+ at a minimum.  
 
-For detailed updated items, refer to **each environment & module's Release Notes.  
+For detailed updated items, refer to **each environment & module's Release Notes**.  
 
 ---
 
@@ -430,7 +436,7 @@ This release focuses on enhancing the YOLO ecosystem with expanded model variant
 
 **New Features & Tools**
 
-- Add yolov26 cls, yolo26 pose, yolo26 seg, yolo26 obb examples
+- Added yolov26 cls, yolo26 pose, yolo26 seg, yolo26 obb examples
 
 ---
 
@@ -497,7 +503,7 @@ This release introduces a **Python-Centric Ecosystem** and a **Complete Example 
 - Configuration: Replace legacy JSON config files with the new Command-Line Argument system in Python (e.g., for YOLO26 execution).
 - Environment: Update your Python environment using the provided `requirements.txt` to support the new `dx_engine` and `pydxs` modules.
 
-For detailed updated items, refer to **each environment & module's Release Notes.
+For detailed updated items, refer to **each environment & module's Release Notes**.
 
 ---
 
@@ -557,7 +563,7 @@ This release marks a significant step forward with new features and major stabil
 - Accuracy degradation observed in the DeepLabV3 Semantic Segmentation model.
 - DX-Compiler v2.1.0 does not yet support converting face detection and pose estimation models to PPU format.
 
-For detailed updated items, refer to **each environment & module's Release Notes.
+For detailed updated items, refer to **each environment & module's Release Notes**.
 
 ---
 

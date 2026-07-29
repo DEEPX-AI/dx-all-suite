@@ -107,7 +107,7 @@
 - **Hardware**: x86_64 Host PC
 - **Software**: Python 3.8~3.14, CUDA (시뮬레이션용, 선택)
 - **Key Tasks**: AI 모델(`.onnx`) 컴파일, Quantization, `.dxnn` 생성
-- **Action**: DX-Compiler Local Installation Guide [Link]
+- **Action**: DX-Compiler Local Installation Guide [Link](./docs/source/02_Setting_Up_Environment.md)
 
 ### AI Model Runtime 환경 (Target Device)
 
@@ -118,7 +118,7 @@ DEEPX NPU가 물리적으로 장착된 디바이스에서 inference를 수행하
 - **Hardware**: Host PC / Target Board (DEEPX NPU 필요)
 - **Software**: Python 3.8+
 - **Key Tasks**: `.dxnn` 모델 실행, 실시간 데이터 inference, 리소스 관리
-- **Action**: DX-Runtime Installation Guide [Link]
+- **Action**: DX-Runtime Installation Guide [Link](./docs/source/02_Setting_Up_Environment.md)
 
 !!! warning "활성화 필요"
     설치 후 NPU Driver를 커널에 올바르게 로드하려면 시스템 재부팅이 필수입니다.

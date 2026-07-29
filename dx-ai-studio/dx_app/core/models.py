@@ -230,7 +230,7 @@ def _download_index() -> dict:
     #    timeout on air-gapped installs), then the live gateway when no snapshot exists.
     try:
         r = None
-        _baked = DX_APP_ROOT / "scripts" / "modelzoo_catalog_public.json"
+        _baked = Path(__file__).resolve().parents[1] / "scripts" / "modelzoo_catalog_public.json"
         if _baked.exists():
             try:
                 r = json.loads(_baked.read_text(encoding="utf-8"))
@@ -360,7 +360,7 @@ def get_catalog():
     # lets offline users still see the full catalog. Fall back to live only when no snapshot exists.
     out = []
     r = None
-    _baked = DX_APP_ROOT / "scripts" / "modelzoo_catalog_public.json"
+    _baked = Path(__file__).resolve().parents[1] / "scripts" / "modelzoo_catalog_public.json"
     if _baked.exists():
         try:
             r = json.loads(_baked.read_text(encoding="utf-8"))
