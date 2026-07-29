@@ -38,6 +38,33 @@ def _phase_name(phase: Any) -> str:
     return getattr(phase, "name", str(phase))
 
 
+# Iteration/tqdm progress from a raw dx_com stdout line (e.g. Q-PRO tuning "27/28").
+# Conservative: only fires when the line clearly looks like a progress bar (a fraction PLUS
+# a %, a bar '|', an ETA bracket, or 'it/s'), so ordinary log text never yields a false bar.
+# Marker the compile_worker prefixes each JSON event with, so we can pull events back out
+# of a stdout stream that dx_com's \r-based tqdm bars are also writing to (keep in sync
+# with compile_worker.EVENT_PREFIX).
+_EVENT_PREFIX = "__DXEVENT__"
+_TQDM_FRAC_RE = re.compile(r"(\d+)\s*/\s*(\d+)")
+_TQDM_SIG_RE = re.compile(r"%|\||it/s|\[\d|\d+:\d\d")
+
+
+def _parse_tqdm_sub(line: str):
+    """Return {label, percent, current, total} for a tqdm-style line, else None."""
+    if not line or not _TQDM_SIG_RE.search(line):
+        return None
+    m = _TQDM_FRAC_RE.search(line)
+    if not m:
+        return None
+    cur, tot = int(m.group(1)), int(m.group(2))
+    if tot <= 0 or cur < 0 or cur > tot:
+        return None
+    head = line[:40]
+    label = head.split(":")[0].strip()[:32] if ":" in head else "Q-PRO"
+    return {"label": label or "Q-PRO", "percent": round(cur / tot * 100, 1),
+            "current": cur, "total": tot}
+
+
 NODE_SELECTION_UNSUPPORTED_KEY = "node_selection_unsupported_subprocess"
 NODE_SELECTION_UNSUPPORTED_MESSAGE = (
     "Node selection is unavailable in subprocess compile mode. "
@@ -208,6 +235,16 @@ class CompilerService:
             for path in work_dir.glob("*.dxnn"):
                 if not self._is_final_dxnn(path):
                     continue
+                # Freshness gate: only accept a .dxnn actually produced by THIS run. A failed
+                # compile (e.g. dx_com logs an ONNX-parse error but does not raise) can leave a
+                # stale/leftover .dxnn in the work dir; without this check it would be published
+                # and the job falsely reported "finished successfully". 2s grace for fs mtime
+                # granularity / clock skew.
+                try:
+                    if path.stat().st_mtime < job.start_time - 2.0:
+                        continue
+                except OSError:
+                    continue
                 resolved = path.resolve()
                 try:
                     resolved.relative_to(work_dir)
@@ -233,10 +270,49 @@ class CompilerService:
             _log.warning("Failed to write completion marker for job %s: %s", job.job_id, exc)
             return False
 
+    # dx_com sometimes LOGS a fatal phase error (e.g. a corrupt ONNX in PREPARE) to its own
+    # log without raising — run_compile then returns normally and the worker emits "done", so
+    # the studio can't see the failure via an exception/error-event. Scan the captured compile
+    # output for these unambiguous dx_com failure markers as a second line of defense.
+    _COMPILE_ERROR_MARKERS = (
+        "Wire format was corrupt",
+        "Error parsing message with type",
+        "Failed to load ONNX model",
+        "InvalidONNXError",
+        "InvalidModelError",
+    )
+
+    def _compile_log_error(self, job: CompileJob) -> Optional[str]:
+        """Return a short error string if the captured compile output shows a dx_com failure
+        marker, else None. Scans the in-memory log buffer and a compiler.log in the work dir."""
+        texts = []
+        try:
+            if job.log_buffer is not None:
+                texts.append("\n".join(job.log_buffer.get_new_lines(0)))
+        except Exception:
+            pass
+        try:
+            if job.work_dir:
+                logf = Path(job.work_dir) / "compiler.log"
+                if logf.is_file():
+                    texts.append(logf.read_text(encoding="utf-8", errors="replace"))
+        except OSError:
+            pass
+        blob = "\n".join(texts)
+        for marker in self._COMPILE_ERROR_MARKERS:
+            if marker in blob:
+                return f"Compilation failed: {marker} (see compiler log)."
+        return None
+
     def _finalize_success(self, job: CompileJob) -> bool:
         """Publish exactly one staged DXNN before making a job externally complete."""
         with job.status_lock:
             if job.status in ("done", "error"):
+                return False
+            marker_err = self._compile_log_error(job)
+            if marker_err:
+                job.status = "error"
+                job.error = marker_err
                 return False
             candidates = self._final_dxnn_candidates(job)
             if not candidates:
@@ -273,6 +349,21 @@ class CompilerService:
             job.dxnn_path = job.canonical_dxnn_path
             job.artifact_ready = True
             job.completed_at = time.time()
+            # Record the QXNN + diagnosis artifacts BEFORE flipping status to "done".
+            # The /progress SSE loop polls job.status every 0.5s and, the moment it sees
+            # "done", it emits the terminal `complete` event (with a qxnn payload computed
+            # from job.diagnosis_report_path) and breaks — it never polls again. If these
+            # stores ran AFTER status="done" (as they used to, from the callers), an SSE
+            # poll landing in that window would send `complete` with the report still
+            # unrecorded, so the freshly-generated diagnosis_report.html — which does exist
+            # on disk under work_dir/quant_diagnosis/ — was reported as "not generated".
+            # Ordering these first (same thread, before the status write) closes the race.
+            try:
+                self._store_qxnn_artifact(job)
+                self._store_diagnosis_report(job)
+            except Exception:
+                _log.warning("Failed to store QXNN/diagnosis artifacts for job %s",
+                             job.job_id, exc_info=True)
             job.status = "done"
             job.progress = 100.0
             self._write_completion_marker(job)
@@ -795,9 +886,10 @@ class CompilerService:
                 compile_finished.set()
                 if consumer is not None:
                     consumer.join(timeout=5)
-                if compile_succeeded and self._finalize_success(job):
-                    self._store_qxnn_artifact(job)
-                    self._store_diagnosis_report(job)
+                # _finalize_success records QXNN + diagnosis artifacts internally,
+                # before flipping status to "done" (see the race note there).
+                if compile_succeeded:
+                    self._finalize_success(job)
                 sys.stdout = old_stdout
                 sys.stderr = old_stderr
                 stderr_cap.flush_pending()
@@ -859,11 +951,31 @@ class CompilerService:
             proc.stdin.close()
 
             for line in proc.stdout:
-                line = line.strip()
+                line = line.rstrip("\r\n")
                 if not line:
                     continue
+                # The worker prefixes each JSON event with _EVENT_PREFIX. dx_com's tqdm bars
+                # (\r-based) share the stream and can glue onto an event line, so extract the
+                # JSON *after* the marker rather than json.loads-ing the whole line (which the
+                # tqdm prefix would break — that was why NO events parsed → empty graphs +
+                # stuck "0% Initializing"). Text before the marker is tqdm/log noise.
+                idx = line.rfind(_EVENT_PREFIX)
+                if idx < 0:
+                    job.log_buffer.append(line)
+                    # Q-PRO tuning etc. only emit tqdm bars (N/M) inside one phase — surface
+                    # the iteration count as the sub-progress bar so the UI shows live movement.
+                    _sub = _parse_tqdm_sub(line)
+                    if _sub is not None:
+                        job.tqdm_sub = _sub
+                    continue
+                _pre = line[:idx].strip()
+                if _pre:
+                    job.log_buffer.append(_pre)
+                    _sub = _parse_tqdm_sub(_pre)
+                    if _sub is not None:
+                        job.tqdm_sub = _sub
                 try:
-                    event = json.loads(line)
+                    event = json.loads(line[idx + len(_EVENT_PREFIX):])
                 except json.JSONDecodeError:
                     job.log_buffer.append(line)
                     continue
@@ -887,12 +999,36 @@ class CompilerService:
                     job._completed_phases += 1
                     job.progress = min(99.0, (job._completed_phases / job._total_phases) * 100)
                     job.current_phase = phase
+                    job.tqdm_sub = None   # phase boundary → clear the sub-progress bar
+                elif phase:
+                    # Phase started/running (not just completed) → advance the label
+                    # immediately so it never stays stuck on "Initializing".
+                    job.current_phase = phase
+
+                # Phase graph parsed by the worker (venv has onnx) — store it so
+                # _sse_progress emits model_ready and the viewer tabs populate, exactly
+                # like the in-process consumer does. PREPARE maps to the "prepared" tab.
+                graph_data = event.get("graph")
+                if graph_data:
+                    cpu_reasons = meta.get("cpu_reasons")
+                    if cpu_reasons:
+                        job.last_cpu_reasons = cpu_reasons
+                        for sg in graph_data.get("subgraphs", []):
+                            if sg["id"] in cpu_reasons:
+                                sg["cpu_reasons"] = cpu_reasons[sg["id"]]
+                    graph_key = "prepared" if phase == "PREPARE" else phase
+                    with job.gui_graphs_lock:
+                        job.gui_graphs[graph_key] = graph_data
+                        job.gui_graphs_ready.append(graph_key)
 
             proc.wait()
             if proc.returncode != 0:
                 # stderr is merged into stdout and already captured in log_buffer; surface
                 # its tail (proc.stderr is None under stderr=STDOUT).
-                tail = "\n".join(job.log_buffer[-20:]) if getattr(job, "log_buffer", None) else ""
+                # LogBuffer is not subscriptable — read its tail via get_new_lines(0).
+                # (Slicing it directly raised TypeError and masked the real crash output.)
+                _lb = getattr(job, "log_buffer", None)
+                tail = "\n".join(_lb.get_new_lines(0)[-20:]) if _lb else ""
                 job.mark_error(tail or f"Worker exited with code {proc.returncode}")
             elif job.status != "error":
                 compile_succeeded = True
@@ -901,9 +1037,10 @@ class CompilerService:
             job.mark_error(str(e))
         finally:
             job.process = None
-            if compile_succeeded and self._finalize_success(job):
-                self._store_qxnn_artifact(job)
-                self._store_diagnosis_report(job)
+            # _finalize_success records QXNN + diagnosis artifacts internally, before
+            # flipping status to "done" (see the race note there).
+            if compile_succeeded:
+                self._finalize_success(job)
 
     _RESUME_MARKERS = (
         ("QXNN resume: loading", 10.0, "LOADING"),
@@ -1000,11 +1137,11 @@ class CompilerService:
             job.mark_error(f"Failed to launch resume subprocess: {e}")
         finally:
             job.process = None
+            # _finalize_success records QXNN + diagnosis artifacts internally, before
+            # flipping status to "done" (see the race note there).
             if resume_succeeded:
                 if self._finalize_success(job):
                     job.current_phase = "DONE"
-                    self._store_qxnn_artifact(job)
-                    self._store_diagnosis_report(job)
             job.tqdm_sub = None
 
     def _consume_subprocess_output(self, job: CompileJob, proc, log_buf: LogBuffer) -> None:

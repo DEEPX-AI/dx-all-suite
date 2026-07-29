@@ -92,11 +92,15 @@ _CAT_VIDEO_OVERRIDES={"object_detection":"assets/videos/snowboard.mp4",
  "object_detection_x_semantic_segmentation":"assets/videos/blackbox-city-road.mp4"}
 CAT_IMAGE={c:_CAT_IMAGE_OVERRIDES.get(c,_DEFAULT_IMAGE) for c in CATEGORIES}
 CAT_VIDEO={c:_CAT_VIDEO_OVERRIDES.get(c,_DEFAULT_VIDEO) for c in CATEGORIES}
-# Categories whose single-model examples accept image input only (mirror of dx_app
-# _IMAGE_ONLY_TASKS in common/runner/sync_runner.py). The run tab disables video/stream
-# input for these (see static/js/inference.js updateRunInputMode).
-IMAGE_ONLY_CATEGORIES={"embedding","reid","attribute_recognition","hand_landmark",
- "hand_detection","object_pose_estimation","3d_object_detection"}
+# Categories whose runners accept image input ONLY (exact mirror of dx_app
+# _IMAGE_ONLY_TASKS in common/runner/sync_runner.py:178 — {embedding, reid,
+# attribute_recognition, object_pose_estimation, 3d_detection}). The run tab disables
+# video/stream input for these (see static/js/inference.js updateRunInputMode).
+# NOTE: hand_detection / hand_landmark are NOT image-only — their runners process video
+# per-frame (verified: hand video save produced 855 frames), so they were removed here;
+# gating them off video was a bug that hid a working mode.
+IMAGE_ONLY_CATEGORIES={"embedding","reid","attribute_recognition",
+ "object_pose_estimation","3d_object_detection"}
 _TASK_TYPES_EXCLUDE={"face_alignment","hand_landmark","object_detection_x_semantic_segmentation"}
 TASK_TYPES=[c for c in CATEGORIES if c not in _TASK_TYPES_EXCLUDE]
 POSTPROCESSORS={"object_detection":["yolov5","yolov7","yolov8","yolov9","yolov10","yolov11",

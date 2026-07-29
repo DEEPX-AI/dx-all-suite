@@ -551,14 +551,16 @@
         'prepared': 'prepared',
     };
 
-    // Update collapse/expand button enabled state
+    // Update collapse/expand button enabled state. Enable for ANY loaded phase whose
+    // graph actually has subgraphs (node groups) — not a hardcoded phase list. Matches
+    // the reference: a partition/dxnn graph with zero subgraphs stays disabled, while a
+    // prepared/surgery graph that DOES contain groups becomes collapsible.
     function updateCollapseExpandButtons(phase) {
         var collapseAllBtn = document.getElementById('collapse-all');
         var expandAllBtn = document.getElementById('expand-all');
         var enabled = false;
-        if (phase && (phase === 'partition' || phase === 'dxnn')) {
-            // Only enable when the phase has a loaded graph
-            enabled = !!graphCache[phase];
+        if (phase && graphCache[phase]) {
+            enabled = (graphCache[phase].subgraphs || []).length > 0;
         }
         [collapseAllBtn, expandAllBtn].forEach(function(btn) {
             if (!btn) return;

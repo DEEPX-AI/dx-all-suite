@@ -220,12 +220,23 @@ def extract_model_package(model_path, lang="both"):
     sh = SCRIPTS_DIR / "extract_model_package.sh"
     if not sh.exists():
         return {"error": "extract_model_package.sh not found"}
+    # The extract script packages a model's EXAMPLE SOURCES from a "category/model"
+    # directory (e.g. classification/densenet169) that lives under src/python_example and
+    # src/cpp_example — it is NOT a .dxnn/.onnx weight file under DX_APP_ROOT. Validate the
+    # path as a source directory under those roots (traversal-safe via resolve_under).
     raw_path = Path(model_path)
-    candidate = str(DX_APP_ROOT / raw_path) if not raw_path.is_absolute() else str(raw_path)
-    try:
-        resolve_existing_file(candidate, MODEL_INPUT_ROOTS, (".dxnn", ".onnx"))
-    except ValueError as e:
-        return {"error": str(e)}
+    src_dir = None
+    for root in (PY_DIR, CPP_DIR):
+        probe = str(raw_path) if raw_path.is_absolute() else str(root / raw_path)
+        try:
+            cand = resolve_under(probe, (root,))
+        except ValueError:
+            continue
+        if cand.is_dir():
+            src_dir = cand
+            break
+    if src_dir is None:
+        return {"error": f"Model source not found: {model_path}"}
     out_dir = str(OUTPUTS_DIR)
     langs = ["cpp", "py"] if lang == "both" else [lang if lang != "python" else "py"]
     results = []

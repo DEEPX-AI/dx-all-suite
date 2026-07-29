@@ -8,7 +8,7 @@ layer) — that one upward dependency is resolved with a local import inside
 the function body (see below) so module-load time stays acyclic.
 """
 
-import os, re, time, uuid, subprocess, tempfile, threading, atexit
+import os, re, math, time, uuid, subprocess, tempfile, threading, atexit
 from pathlib import Path
 from dx_app.core import config
 from dx_app.core.config import DX_APP_ROOT, BUILD_DIR
@@ -23,11 +23,31 @@ _live_procs_lock = threading.Lock()
 
 
 def run_inference_live(model_name, category, model_file, lang="cpp", variant="sync",
-                       input_type="camera", camera_id=None, rtsp_url=None,
+                       input_type="camera", camera_id=None, rtsp_url=None, video_path=None,
                        device_id=None, slot_idx=0, n_total_slots=1, **kwargs):
-    """Start inference WITHOUT --no-display on per-slot Xvfb. Returns {job_id}."""
+    """Start inference WITHOUT --no-display on per-slot Xvfb. Returns {job_id}.
+
+    input_type="video" streams a video FILE the same live way as camera/rtsp: the C++
+    example renders annotated frames to the Xvfb display (looped, -l 999999) and
+    capture_live_frame screen-grabs them into the MJPEG stream — so Run Demo video
+    shows frames instantly like DX Stream, instead of the batch save-then-return path.
+    Performance stays the example's own stdout log (poll_inference parses it)."""
     if not model_file:
         return _err("no_model_file", "No model file configured")
+
+    # Live streaming needs a virtual display (Xvfb) + a screen grabber (mss) — the only
+    # non-stdlib pieces of the live path. Without them frame capture is blank and
+    # _ensure_xvfb raises deep inside, surfacing as a cryptic 500. Fail fast + actionable.
+    import shutil
+    _missing = []
+    if not shutil.which("Xvfb"):
+        _missing.append("Xvfb (sudo apt install xvfb)")
+    try:
+        import mss  # noqa: F401
+    except Exception:
+        _missing.append("mss (pip install mss)")
+    if _missing:
+        return _err("live_deps_missing", "Live streaming requires: " + ", ".join(_missing))
 
     is_multi_model = model_file.startswith("-")
     if is_multi_model:
@@ -64,8 +84,17 @@ def run_inference_live(model_name, category, model_file, lang="cpp", variant="sy
         if not rtsp_url:
             return _err("rtsp_required", "RTSP URL is required")
         _inp_str = rtsp_url
+    elif input_type == "video":
+        if not video_path:
+            return _err("video_required", "Video path is required")
+        _vp = Path(video_path)
+        if not _vp.is_absolute():
+            _vp = DX_APP_ROOT / video_path
+        if not _vp.exists():
+            return _err("input_not_found", f"Video not found: {video_path}")
+        _inp_str = str(_vp)
     else:
-        return _err("live_mode_unsupported", "Live mode only supports camera/rtsp")
+        return _err("live_mode_unsupported", "Live mode only supports camera/rtsp/video")
 
     with _live_procs_lock:
         old = _live_procs.get(slot_idx)
@@ -137,6 +166,39 @@ def _parse_detections(stdout_text):
     return dets
 
 
+_CLS_VERBOSE_RE = re.compile(r'^\s*(\d+)\.\s*\(class\s+(\d+)\)\s*:\s*([-\d.]+)', re.M)
+
+def _softmax(xs):
+    if not xs:
+        return []
+    m = max(xs)
+    exps = [math.exp(x - m) for x in xs]
+    s = sum(exps) or 1.0
+    return [e / s for e in exps]
+
+def _parse_classification_frames(content):
+    """Turn the C++ classifier's verbose '  N. (class IDX): SCORE' lines into per-frame
+    top-K prediction blocks and softmax each frame's SCORES into real probabilities.
+
+    The machine `[CLS]` tag only carries the raw top-K scores (logits) with NO class index
+    — pairing consecutive scores as (label, prob) produced garbage like class "4.8052" @
+    469.8%. The verbose lines are the only place the class index appears, so parse those.
+    Rank "1." delimits a new frame. Returns [[(idx, prob), ...], ...] (one list per frame)."""
+    frames = []
+    cur = []
+    for m in _CLS_VERBOSE_RE.finditer(content or ""):
+        rank = int(m.group(1)); idx = m.group(2); score = float(m.group(3))
+        if rank == 1 and cur:
+            frames.append(cur); cur = []
+        cur.append((idx, score))
+    if cur:
+        frames.append(cur)
+    out = []
+    for fr in frames:
+        probs = _softmax([s for _, s in fr])
+        out.append([(idx, p) for (idx, _), p in zip(fr, probs)])
+    return out
+
 def _parse_task_tags(content):
     """Parse all task-specific stdout tags from C++ runner output.
     Returns dict: {tag: str, lines: list, frame_count: int, last_pred: list, summary: dict}
@@ -170,10 +232,7 @@ def _parse_task_tags(content):
                 parts = tl.split(); cls, conf = parts[1], float(parts[2])
                 last_pred.append(f"{cls}: {conf*100:.0f}%")
             elif tag == "CLS":
-                parts = tl[5:].split()  # after "[CLS] "
-                for i in range(0, len(parts)-1, 2):
-                    last_pred.append(f"{parts[i]}: {float(parts[i+1])*100:.1f}%")
-                    if len(last_pred) >= 3: break
+                pass  # handled after the loop via _parse_classification_frames (needs labels)
             elif tag == "SEG":
                 parts = tl[5:].split()
                 items = []
@@ -222,15 +281,19 @@ def _parse_task_tags(content):
         for cls in summary:
             c = summary[cls]; c["conf_avg"] = round(c["conf_sum"] / c["count"], 3) if c["count"] else 0
     elif tag == "CLS":
-        for tl in tag_lines:
-            parts = tl[5:].split()
-            if len(parts) >= 2:
-                try:
-                    cls = parts[0]; conf = float(parts[1])
-                    if cls not in summary: summary[cls] = {"count": 0, "conf_sum": 0.0}
-                    summary[cls]["count"] += 1; summary[cls]["conf_sum"] += conf
-                except Exception: pass
-        for cls in summary: c = summary[cls]; c["conf_avg"] = round(c["conf_sum"] / c["count"], 3) if c["count"] else 0
+        # The [CLS] tag is scores-only (no class index); labels live in the verbose
+        # "(class IDX): SCORE" lines. Parse those, softmax per frame, aggregate by class.
+        cls_frames = _parse_classification_frames(content)
+        for fr in cls_frames:
+            for idx, prob in fr:
+                key = f"class {idx}"
+                if key not in summary: summary[key] = {"count": 0, "conf_sum": 0.0}
+                summary[key]["count"] += 1; summary[key]["conf_sum"] += prob
+        for cls in summary:
+            c = summary[cls]; c["conf_avg"] = round(c["conf_sum"] / c["count"], 3) if c["count"] else 0
+        # last_pred from the final frame's top-3 (probabilities, not raw logits)
+        if cls_frames:
+            last_pred = [f"class {idx}: {prob*100:.1f}%" for idx, prob in cls_frames[-1][:3]]
     elif tag == "SEG":
         pct_sums = {}; n = 0
         for tl in tag_lines:

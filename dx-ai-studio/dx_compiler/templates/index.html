@@ -48,7 +48,14 @@
             <div id="quant-diagnosis-view" class="quant-diagnosis-view" style="display:none">
                 <div class="quant-diagnosis-toolbar">
                 </div>
-                <iframe id="quant-diagnosis-frame" class="quant-diagnosis-frame" data-i18n-title="Quantization Diagnosis Report" title="Quantization Diagnosis Report" sandbox="" referrerpolicy="no-referrer"></iframe>
+                <!-- referrerpolicy MUST allow a same-origin Referer: when the compiler runs
+                     behind the launcher it is served under /compiler/, and the launcher routes
+                     prefix-less API paths like /compile/{job}/quant-diagnosis/report by the
+                     request's Referer path (_proxy_by_referer). no-referrer stripped it, so the
+                     iframe load hit the launcher root — which has no /compile route — and showed
+                     the stdlib "404 Not Found" page. same-origin still sends nothing cross-origin
+                     (the report is same-origin + sandboxed + script-src 'none'). -->
+                <iframe id="quant-diagnosis-frame" class="quant-diagnosis-frame" data-i18n-title="Quantization Diagnosis Report" title="Quantization Diagnosis Report" sandbox="" referrerpolicy="same-origin"></iframe>
                 <div id="quant-diagnosis-unavailable" class="quant-diagnosis-unavailable" style="display:none"></div>
             </div>
         </div>
@@ -105,7 +112,9 @@
     {% include "partials/setup_panel.html" %}
     <section class="compile-form">
         <h2><span class="ko">ONNX 모델 컴파일</span><span class="en">Compile ONNX Model</span><span class="es">Compilar modelo ONNX</span><span class="ja">ONNX モデルのコンパイル</span><span class="zh-CN">编译 ONNX 模型</span><span class="zh-TW">編譯 ONNX 模型</span></h2>
-        <form id="compile-form">
+        <!-- novalidate: use JS validation (alert(T(...))) so required-field messages
+             follow the app language, not the browser's native locale bubble. -->
+        <form id="compile-form" novalidate>
             <!-- Auto-detect warning (shown if auto-detect fails or path invalid) -->
             <div id="auto-detect-warning" class="alert-warning" style="display:none;" aria-live="polite"></div>
             <div class="form-group">
@@ -140,7 +149,10 @@
                         <p class="dropzone-file" id="config-dropzone-file"></p>
                     </div>
                 </div>
-                <input type="text" id="config_path" name="config_path" required data-i18n-placeholder="/path/to/config.json">
+                <div class="path-input-row" id="config_path_row">
+                    <input type="text" id="config_path" name="config_path" required data-i18n-placeholder="/path/to/config.json">
+                    <button type="button" class="btn-browse" data-target="config_path" data-ext=".json" data-i18n-title="Browse file" title="Browse file" aria-label="Browse file">📁</button>
+                </div>
             </div>
             <div class="form-group">
                 <label for="output_dir"><span class="ko">출력 디렉토리 *</span><span class="en">Output Directory *</span><span class="es">Directorio de salida *</span><span class="ja">出力ディレクトリ *</span><span class="zh-CN">输出目录 *</span><span class="zh-TW">輸出目錄 *</span></label>
@@ -159,12 +171,12 @@
             <div class="form-group checkbox">
                 <input type="checkbox" id="aggressive_partitioning" name="aggressive_partitioning" value="true">
                 <label for="aggressive_partitioning"><span class="ko">적극적 파티셔닝</span><span class="en">Aggressive Partitioning</span><span class="es">Particionamiento agresivo</span><span class="ja">積極的なパーティショニング</span><span class="zh-CN">激进分区</span><span class="zh-TW">積極分區</span></label>
-                <span class="help-tip" data-tip="Removes the NPU task count limit so that as many nodes as possible run on the NPU. FPS performance may degrade if there are frequent NPU–CPU transitions.">?</span>
+                <span class="help-tip" data-i18n-tip="Removes the NPU task count limit so that as many nodes as possible run on the NPU. FPS performance may degrade if there are frequent NPU–CPU transitions." data-tip="Removes the NPU task count limit so that as many nodes as possible run on the NPU. FPS performance may degrade if there are frequent NPU–CPU transitions.">?</span>
             </div>
             <div class="form-group checkbox">
                 <input type="checkbox" id="gen_log" name="gen_log" value="true">
                 <label for="gen_log"><span class="ko">로그 생성</span><span class="en">Generate Log</span><span class="es">Generar registro</span><span class="ja">ログ生成</span><span class="zh-CN">生成日志</span><span class="zh-TW">產生日誌</span></label>
-                <span class="help-tip" data-tip="Saves the compile log as a file in the Output Directory.">?</span>
+                <span class="help-tip" data-i18n-tip="Saves the compile log as a file in the Output Directory." data-tip="Saves the compile log as a file in the Output Directory.">?</span>
             </div>
             <div class="form-group checkbox">
                 <input type="checkbox" id="quant_diagnosis" name="quant_diagnosis" value="true">
@@ -174,7 +186,7 @@
             <div class="form-group checkbox">
                 <input type="checkbox" name="node_selection" id="node-selection" value="true">
                 <label for="node-selection"><span class="ko">컴파일 범위 선택</span><span class="en">Compile Range Selection</span><span class="es">Selección de rango de compilación</span><span class="ja">コンパイル範囲の選択</span><span class="zh-CN">编译范围选择</span><span class="zh-TW">編譯範圍選擇</span></label>
-                <span class="help-tip" data-tip="Specify the input/output nodes on the graph visualized in the left Viewer to define the compile range. The final range may differ from your selection due to the internal device-assignment algorithm. Multiple ranges are not currently supported.">?</span>
+                <span class="help-tip" data-i18n-tip="Specify the input/output nodes on the graph visualized in the left Viewer to define the compile range. The final range may differ from your selection due to the internal device-assignment algorithm. Multiple ranges are not currently supported." data-tip="Specify the input/output nodes on the graph visualized in the left Viewer to define the compile range. The final range may differ from your selection due to the internal device-assignment algorithm. Multiple ranges are not currently supported.">?</span>
             </div>
             <details class="advanced-options">
                 <summary><span class="ko">고급 옵션</span><span class="en">Advanced Options</span><span class="es">Opciones avanzadas</span><span class="ja">詳細オプション</span><span class="zh-CN">高级选项</span><span class="zh-TW">進階選項</span></summary>
@@ -184,7 +196,7 @@
                     <div class="form-group checkbox dxq-auto-row">
                         <input type="checkbox" id="dxq-auto" name="use_q_pro" value="true">
                         <label for="dxq-auto"><span class="ko">자동 (Q-PRO)</span><span class="en">Auto (Q-PRO)</span><span class="es">Automático (Q-PRO)</span><span class="ja">自動 (Q-PRO)</span><span class="zh-CN">自动 (Q-PRO)</span><span class="zh-TW">自動 (Q-PRO)</span></label>
-                        <span class="help-tip" data-tip="Auto-selects the DXQ enhancement scheme for you using dx_com's automatic Q-PRO quantization tuning instead of manual DXQ presets. Mutually exclusive with the manual DXQ presets below: enabling Auto disables and ignores them.">?</span>
+                        <span class="help-tip" data-i18n-tip="Auto-selects the DXQ enhancement scheme for you using dx_com's automatic Q-PRO quantization tuning instead of manual DXQ presets. Mutually exclusive with the manual DXQ presets below: enabling Auto disables and ignores them." data-tip="Auto-selects the DXQ enhancement scheme for you using dx_com's automatic Q-PRO quantization tuning instead of manual DXQ presets. Mutually exclusive with the manual DXQ presets below: enabling Auto disables and ignores them.">?</span>
                     </div>
                     <p class="dxq-desc"><span class="ko">DXQ 양자화 프리셋을 전환합니다. 활성화된 옵션이 enhancement_scheme에 결합됩니다.</span><span class="en">Toggle DXQ quantization presets. Enabled options are combined into the enhancement_scheme dict.</span><span class="es">Alterne presets de cuantización DXQ. Las opciones habilitadas se combinan en el diccionario enhancement_scheme.</span><span class="ja">DXQ 量子化プリセットを切り替えます。有効なオプションが enhancement_scheme にまとめられます。</span><span class="zh-CN">切换 DXQ 量化预设。已启用的选项将合并到 enhancement_scheme 中。</span><span class="zh-TW">切換 DXQ 量化預設。已啟用的選項將合併到 enhancement_scheme 中。</span></p>
                     <input type="hidden" id="enhanced_scheme" name="enhanced_scheme" value="">
@@ -295,6 +307,16 @@
             </div>
         </div>
         <pre class="log-content" id="log-content"></pre>
+        <!-- Persistent interactive chat input (agentic interactive mode). Mirrors the
+             dx_agent_dev console prompt: type an answer here and it is sent to the SAME agent
+             conversation. Shown only during/after an interactive agentic run. -->
+        <div id="agentic-chat-row" class="agentic-chat-row" style="display:none">
+            <span class="agentic-chat-icon" aria-hidden="true">💬</span>
+            <input type="text" id="agentic-chat-input"
+                   data-i18n-placeholder="Type your answer to the agent, then press Enter…"
+                   placeholder="Type your answer to the agent, then press Enter…">
+            <button type="button" class="compile-btn" id="agentic-chat-send"><span class="ko">전송</span><span class="en">Send</span><span class="es">Enviar</span><span class="ja">送信</span><span class="zh-CN">发送</span><span class="zh-TW">傳送</span></button>
+        </div>
     </div>
 
     <!-- Resume from QXNN (re-quantization) -->
@@ -305,7 +327,7 @@
         </button>
         <div class="resume-card-body" id="resume-card-body">
             <p class="resume-subtitle"><span class="ko">기존 <code>.qxnn</code> 아티팩트에서 재양자화하여 새 <code>.dxnn</code>을 생성합니다. 이전 컴파일 작업 없이도 사용할 수 있습니다.</span><span class="en">Re-quantize from an existing <code>.qxnn</code> artifact to produce a new <code>.dxnn</code>. Usable any time, with or without a prior compile job.</span><span class="es">Re-cuantice desde un artefacto <code>.qxnn</code> existente para producir un nuevo <code>.dxnn</code>.</span><span class="ja">既存の <code>.qxnn</code> アーティファクトから再量子化して新しい <code>.dxnn</code> を生成します。</span><span class="zh-CN">从现有 <code>.qxnn</code> 工件重新量化以生成新的 <code>.dxnn</code>。</span><span class="zh-TW">從現有 <code>.qxnn</code> 工件重新量化以產生新的 <code>.dxnn</code>。</span></p>
-            <form id="resume-form">
+            <form id="resume-form" novalidate>
                 <div class="form-group">
                     <label for="qxnn_path"><span class="ko">QXNN 경로 (.qxnn) *</span><span class="en">QXNN Path (.qxnn) *</span><span class="es">Ruta QXNN (.qxnn) *</span><span class="ja">QXNN パス (.qxnn) *</span><span class="zh-CN">QXNN 路径 (.qxnn) *</span><span class="zh-TW">QXNN 路徑 (.qxnn) *</span></label>
                     <input type="text" id="qxnn_path" name="qxnn_path" required data-i18n-placeholder="/path/to/model.qxnn">
@@ -322,7 +344,7 @@
                         <span class="help-tip" data-i18n-tip="Replaces all ActQuant observers with the chosen type before re-calibration. QXNN resume only. Valid: minmax / ema / iqr." data-tip="Replaces all ActQuant observers with the chosen type before re-calibration. QXNN resume only. Valid: minmax / ema / iqr.">?</span>
                     </label>
                     <select id="recalibration_method" name="recalibration_method">
-                        <option value="" selected><span class="ko">(없음 — 기존 observer 유지)</span><span class="en">(none — keep existing observers)</span><span class="es">(ninguno — mantener observers existentes)</span><span class="ja">(なし — 既存 observer を維持)</span><span class="zh-CN">(无 — 保留现有 observer)</span><span class="zh-TW">(無 — 保留現有 observer)</span></option>
+                        <option value="" selected data-i18n="(none — keep existing observers)">(none — keep existing observers)</option>
                         <option value="minmax">minmax</option>
                         <option value="ema">ema</option>
                         <option value="iqr">iqr</option>
@@ -397,11 +419,12 @@
     <div class="fp-dialog" role="dialog" aria-modal="true" aria-labelledby="fp-title">
         <div class="fp-head">
             <h3 id="fp-title"><span class="ko">폴더 선택</span><span class="en">Select folder</span><span class="es">Seleccionar carpeta</span><span class="ja">フォルダを選択</span><span class="zh-CN">选择文件夹</span><span class="zh-TW">選擇資料夾</span></h3>
+            <h3 id="fp-title-file" hidden><span class="ko">파일 선택</span><span class="en">Select file</span><span class="es">Seleccionar archivo</span><span class="ja">ファイルを選択</span><span class="zh-CN">选择文件</span><span class="zh-TW">選擇檔案</span></h3>
             <button type="button" class="fp-close" id="fp-close" aria-label="Close">✕</button>
         </div>
         <div class="fp-path"><code id="fp-current">—</code></div>
         <ul class="fp-list" id="fp-list"></ul>
-        <div class="fp-newrow">
+        <div class="fp-newrow" id="fp-newrow">
             <input type="text" id="fp-newname" data-i18n-placeholder="new folder name">
             <button type="button" class="fp-btn" id="fp-mkdir"><span class="ko">새 폴더</span><span class="en">New folder</span><span class="es">Nueva carpeta</span><span class="ja">新規フォルダ</span><span class="zh-CN">新建文件夹</span><span class="zh-TW">新增資料夾</span></button>
         </div>
@@ -432,6 +455,19 @@ window.addEventListener('load', function() {
 document.getElementById('compile-form').addEventListener('submit', async function(e) {
     e.preventDefault();
     syncDxqScheme();
+
+    // JS validation for required fields (form is novalidate) so the message follows the
+    // app language instead of the browser's native locale bubble. Mirror the `required`
+    // attributes on model_path / config_path / output_dir.
+    if (!document.getElementById('model_path').value.trim()) {
+        alert(T('Model Path is required.')); return;
+    }
+    if (!document.getElementById('config_path').value.trim()) {
+        alert(T('Config Path is required.')); return;
+    }
+    if (!document.getElementById('output_dir').value.trim()) {
+        alert(T('Output Directory is required.')); return;
+    }
 
     const btn = this.querySelector('.compile-btn');
     btn.disabled = true;
@@ -602,6 +638,9 @@ document.getElementById('compile-form').addEventListener('submit', async functio
                     dxnnBtn.disabled = false;
                     dxnnBtn.dataset.jobId = jobId;
                 }
+                // Re-enable Compile so another model can be compiled without a page reload.
+                btn.disabled = false;
+                btn.textContent = T('Compile');
                 source.close();
             });
 
@@ -617,6 +656,11 @@ document.getElementById('compile-form').addEventListener('submit', async functio
                 } catch(err) {
                     phaseValue.textContent = T('Connection lost');
                 }
+                // Re-enable the Compile button so the user can retry — the SSE 'error' event is
+                // separate from the fetch .catch, which otherwise never runs on a server-side
+                // compile failure (button would stay stuck disabled).
+                btn.disabled = false;
+                btn.textContent = T('Compile');
                 source.close();
             });
         })
@@ -777,6 +821,7 @@ document.querySelectorAll('.dropzone').forEach(zone => {
                     input.value = data.path;
                     zone.classList.add('uploaded');
                     fileLabel.textContent = '✅ ' + data.filename + ' → ' + data.path;
+                    _maybeLoadViewerInput(targetId, data.path);   // auto-render graph on model upload
                 } else {
                     fileLabel.textContent = '❌ ' + T('Upload failed:') + ' ' + (data.error || 'Unknown error');
                 }
@@ -801,6 +846,21 @@ document.querySelectorAll('.dropzone').forEach(zone => {
         fileInput.click();
     });
 });
+
+// Auto-render the input model's graph in the left Viewer as soon as an .onnx is set
+// (upload / drop / type), so users don't have to click Compile first to see it. The graph
+// used to load ONLY on compile-submit (and deep-link), so "load ONNX → nothing shows".
+function _maybeLoadViewerInput(targetId, path) {
+    if (targetId !== 'model_path' || !path) return;
+    if (!/\.onnx$/i.test(path.trim())) return;   // only ONNX graphs are parseable here
+    if (window.ViewerPanel && typeof ViewerPanel.loadModel === 'function') {
+        ViewerPanel.loadModel('input', path.trim());
+    }
+}
+(function () {
+    var mp = document.getElementById('model_path');
+    if (mp) mp.addEventListener('change', function () { _maybeLoadViewerInput('model_path', mp.value); });
+})();
 
 // Config Builder toggle: open wizard when "Build Config" is checked
 document.getElementById('config_build_toggle').addEventListener('change', function() {
@@ -934,6 +994,19 @@ function trackResumeProgress(container) {
         bar.style.width = data.progress + '%';
         bar.textContent = Math.round(data.progress) + '%';
         if (data.phase) phaseValue.textContent = data.phase;
+        // Nested calibration sub-progress bar during re-quantization (mirrors main tracker).
+        var subEl = document.getElementById('sub-progress');
+        if (subEl) {
+            if (data.tqdm_sub) {
+                var t = data.tqdm_sub;
+                subEl.style.display = '';
+                subEl.querySelector('.sub-progress-label').textContent = t.label;
+                subEl.querySelector('.sub-progress-bar').style.width = t.percent + '%';
+                subEl.querySelector('.sub-progress-value').textContent = t.current + '/' + t.total;
+            } else {
+                subEl.style.display = 'none';
+            }
+        }
     });
     source.addEventListener('model_ready', function(e) {
         ViewerPanel.handleModelReady(JSON.parse(e.data));
@@ -942,15 +1015,38 @@ function trackResumeProgress(container) {
         bar.style.width = '100%';
         bar.textContent = '100%';
         bar.classList.add('done');
+        var subDone = document.getElementById('sub-progress');
+        if (subDone) subDone.style.display = 'none';
         container.querySelector('h3').textContent = T('✅ Re-quantization Complete');
         phaseIndicator.classList.add('phase-done');
         phaseValue.textContent = T('Done');
-        container.insertAdjacentHTML('beforeend',
-            '<div class="result success"><p>' + T('Re-quantization finished successfully.') + '</p></div>');
+        // Resume runs dx_com without the phase-event stream, so the left viewer has no graph
+        // to draw (and a compiled .dxnn is a binary artifact with no parseable graph). The
+        // concrete result is the new .dxnn in the output directory — surface its location and
+        // a download button so the user actually sees what was produced.
+        var dlUrl = '', dlName = '', outDir = '';
         try {
             var completeData = JSON.parse(e.data);
-            if (completeData.dxnn_path) ViewerPanel.loadModel('dxnn', completeData.dxnn_path);
-        } catch (err) { /* no dxnn_path */ }
+            dlUrl = completeData.dxnn_download_url || '';
+            dlName = completeData.dxnn_path || '';   // basename
+            outDir = completeData.output_dir || '';
+        } catch (err) { /* no payload */ }
+        var resHtml = '<div class="result success"><p>' +
+            T('Re-quantization finished successfully.') + '</p>';
+        if (dlName && outDir) {
+            resHtml += '<p class="result-path">' + T('Output saved to') + ' ' +
+                outDir + '/' + dlName + '</p>';
+        }
+        if (dlUrl) {
+            resHtml += '<p><button type="button" class="summary-btn" id="resume-download-dxnn">' +
+                T('Download .dxnn') + (dlName ? ' (' + dlName + ')' : '') + '</button></p>';
+        }
+        resHtml += '</div>';
+        container.insertAdjacentHTML('beforeend', resHtml);
+        if (dlUrl) {
+            var rdb = document.getElementById('resume-download-dxnn');
+            if (rdb) rdb.addEventListener('click', function() { window.location.href = dlUrl; });
+        }
         source.close();
     });
     source.addEventListener('error', function(e) {
@@ -1012,7 +1108,11 @@ document.getElementById('resume-form').addEventListener('submit', function(e) {
             btn.disabled = false;
             btn.textContent = T('Resume');
             var container = resultEl.querySelector('.progress-container');
-            if (container) trackResumeProgress(container);
+            if (container) {
+                var h3 = container.querySelector('h3');
+                if (h3) h3.textContent = '⚙️ ' + T('Re-quantizing...');
+                trackResumeProgress(container);
+            }
         })
         .catch(function(err) {
             document.getElementById('resume-result').innerHTML =
@@ -1045,38 +1145,66 @@ document.addEventListener('DOMContentLoaded', refreshCompilerStaticOptions);
     var listEl = document.getElementById('fp-list');
     var curEl = document.getElementById('fp-current');
     var newName = document.getElementById('fp-newname');
-    var targetId = null, curPath = null;
+    var titleDir = document.getElementById('fp-title');
+    var titleFile = document.getElementById('fp-title-file');
+    var newRow = document.getElementById('fp-newrow');
+    var selectBtn = document.getElementById('fp-select');
+    var targetId = null, curPath = null, fileExt = null;
 
     function esc(s) { var d = document.createElement('div'); d.textContent = (s == null ? '' : String(s)); return d.innerHTML; }
 
     function load(path) {
-        fetch('/api/listdir?path=' + encodeURIComponent(path || ''))
+        var url = '/api/listdir?path=' + encodeURIComponent(path || '');
+        if (fileExt) url += '&ext=' + encodeURIComponent(fileExt);
+        fetch(url)
             .then(function (r) { return r.json(); })
             .then(function (d) {
                 if (!d || !d.ok) { curEl.textContent = '—'; listEl.innerHTML = ''; return; }
                 curPath = d.path;
                 curEl.textContent = d.path;
+                var base = d.path.replace(/\/+$/, '');
                 var html = '';
                 if (d.parent) html += '<li class="fp-item fp-up" data-path="' + esc(d.parent) + '">⬆ ..</li>';
                 (d.dirs || []).forEach(function (name) {
-                    var full = d.path.replace(/\/+$/, '') + '/' + name;
-                    html += '<li class="fp-item" data-path="' + esc(full) + '">📁 ' + esc(name) + '</li>';
+                    html += '<li class="fp-item" data-path="' + esc(base + '/' + name) + '">📁 ' + esc(name) + '</li>';
                 });
-                if (!(d.dirs || []).length && !d.parent) html += '<li class="fp-empty">' + T('No subfolders') + '</li>';
+                (d.files || []).forEach(function (name) {
+                    html += '<li class="fp-item fp-file" data-file="' + esc(base + '/' + name) + '">📄 ' + esc(name) + '</li>';
+                });
+                var empty = !(d.dirs || []).length && !(d.files || []).length && !d.parent;
+                if (empty) html += '<li class="fp-empty">' + T(fileExt ? 'No files' : 'No subfolders') + '</li>';
                 listEl.innerHTML = html;
             })
             .catch(function () { curEl.textContent = '—'; listEl.innerHTML = ''; });
     }
 
-    function openPicker(id) {
+    function openPicker(id, ext) {
         targetId = id;
+        fileExt = ext || null;
+        // file mode: hide "New folder" + "Select this folder"; a file is chosen by clicking it
+        if (titleDir) titleDir.hidden = !!fileExt;
+        if (titleFile) titleFile.hidden = !fileExt;
+        if (newRow) newRow.style.display = fileExt ? 'none' : '';
+        if (selectBtn) selectBtn.style.display = fileExt ? 'none' : '';
         var seed = ((document.getElementById(id) || {}).value || '').trim();
+        // seed a file path at its containing directory
+        if (fileExt && /\.[^/]+$/.test(seed)) seed = seed.replace(/\/[^/]*$/, '');
         modal.hidden = false;
         load(seed);
     }
     function closePicker() { modal.hidden = true; }
 
+    function pickFile(fullPath) {
+        if (targetId && fullPath) {
+            var t = document.getElementById(targetId);
+            if (t) { t.value = fullPath; t.dispatchEvent(new Event('input', { bubbles: true })); t.dispatchEvent(new Event('change', { bubbles: true })); }
+        }
+        closePicker();
+    }
+
     listEl.addEventListener('click', function (e) {
+        var f = e.target.closest('.fp-file');
+        if (f) { pickFile(f.getAttribute('data-file')); return; }
         var li = e.target.closest('.fp-item');
         if (li) load(li.getAttribute('data-path'));
     });
@@ -1102,7 +1230,7 @@ document.addEventListener('DOMContentLoaded', refreshCompilerStaticOptions);
     modal.addEventListener('click', function (e) { if (e.target === modal) closePicker(); });
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !modal.hidden) closePicker(); });
     document.querySelectorAll('.btn-browse').forEach(function (b) {
-        b.addEventListener('click', function () { openPicker(b.getAttribute('data-target')); });
+        b.addEventListener('click', function () { openPicker(b.getAttribute('data-target'), b.getAttribute('data-ext')); });
     });
 })();
 </script>

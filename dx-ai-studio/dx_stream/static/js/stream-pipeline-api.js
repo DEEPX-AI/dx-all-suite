@@ -234,17 +234,18 @@ DXStream.pipelineRun = async function () {
         edges: st.edges,
         webrtcPayloadTypes: webrtcPayloadTypes,
     };
-    // Same Local/Remote choice as the demo page: remote (SSH tunnel/NAT) → HW H264 over HTTP
-    // (fMP4 + MSE), or MJPEG if the browser lacks MSE. Local keeps WebRTC.
+    // Same Local/Remote choice as the demo page: remote → MJPEG directly (fMP4/MSE renders
+    // nothing across the SSH tunnel). Local keeps WebRTC (lowest latency on the same LAN).
     if (DXStream._playbackMode === 'remote') {
-        if (DXStream._mseSupported && DXStream._mseSupported()) _runBody.output = 'fmp4';
-        else _runBody.forceMjpeg = true;
+        _runBody.forceMjpeg = true;
     }
     const resp = await DXStream.postJ('/api/pipeline/run', _runBody);
     if (resp.error) {
         DXStream._pipeRunning = false;
         _updatePipelineButtons();
-        DXStream.toast(resp.error, 'error');
+        // Prefer the human-readable message (e.g. "Model not installed: … Download from
+        // Setup") over the bare error code so a missing-asset run isn't a cryptic toast.
+        DXStream.toast(resp.message || resp.error, 'error');
         return;
     }
     DXStream.toast(T('Pipeline started'), 'success');
@@ -305,7 +306,7 @@ DXStream.pipelineStop = async function () {
     DXStream._pipeRunning = false;
     _updatePipelineButtons();
     if (resp.error) {
-        DXStream.toast(resp.error, 'error');
+        DXStream.toast(resp.message || resp.error, 'error');
         return;
     }
     DXStream.toast(T('Pipeline stopped'), 'info');

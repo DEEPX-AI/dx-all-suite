@@ -499,8 +499,11 @@ def _rtsp_pipeline(demo: dict, encoder: dict, video_uri: str, webrtc_ok: bool = 
             uri = f"{base_rtsp}{i + 3:03d}.stream"
         else:
             uri = base_rtsp  # user's single-camera URL, used verbatim
+        # timeout / tcp-timeout (µs) so an UNREACHABLE source fails in ~5s instead of hanging
+        # forever — the built-in default is a public internet CCTV that an offline/air-gapped
+        # board can't reach, which previously showed as an infinite spinner.
         input_parts.append(
-            f"rtspsrc location={uri} latency=100 ! "
+            f"rtspsrc location={uri} latency=100 timeout=5000000 tcp-timeout=5000000 ! "
             f"decodebin ! queue max-size-buffers=2 ! in.sink_{i}"
         )
 
@@ -676,5 +679,13 @@ def list_demo_entries() -> list[dict]:
         entry["default_video"] = _DEFAULT_VIDEO
         entry["availability"] = check_demo_available(demo["id"])
         entry["available"] = entry["availability"].get("available", False)
+        # Resolved on-disk model filename(s) — the logical demo["model"] (e.g. "yolo26n.dxnn")
+        # is alias-mapped to the real file (e.g. "yolo26-n_640x640.dxnn") for the actual run.
+        # The Pipeline Builder loads a demo as a preset and must emit the REAL model-path, or
+        # its pre-run asset check 424s ("Required file(s) not installed"). Expose both.
+        if demo.get("model"):
+            entry["model_file"] = _model_file(demo["model"])
+        if demo.get("models"):
+            entry["model_files"] = [_model_file(m) for m in demo["models"]]
         demo_list.append(entry)
     return demo_list

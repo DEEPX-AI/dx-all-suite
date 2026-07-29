@@ -6,6 +6,7 @@ import os
 import subprocess
 import sys
 import threading
+import time
 import uuid
 from pathlib import Path
 
@@ -322,6 +323,10 @@ def test_shared_requested_path_and_forced_equal_mtime_keep_individual_downloads(
     first = _new_job(service, requested)
     second = _new_job(service, requested)
 
+    # A fixed, fresh (future) timestamp shared by both artifacts → equal mtime that
+    # still clears the freshness gate for both jobs.
+    _EQ_MTIME_NS = int((time.time() + 60) * 1_000_000_000)
+
     def fake_run_compile(**kwargs):
         payload = (
             b"first-0000"
@@ -330,7 +335,11 @@ def test_shared_requested_path_and_forced_equal_mtime_keep_individual_downloads(
         )
         artifact = Path(kwargs["output_dir"]) / "shared.dxnn"
         artifact.write_bytes(payload)
-        os.utime(artifact, ns=(1_000_000_000, 1_000_000_000))
+        # Force BOTH jobs' artifacts to an identical mtime so the tie-break path is
+        # exercised. It must be recent (>= job.start_time) or the _final_dxnn_candidates
+        # freshness gate — which rejects stale leftover .dxnn files — would drop it as
+        # if the compile produced nothing.
+        os.utime(artifact, ns=(_EQ_MTIME_NS, _EQ_MTIME_NS))
 
     monkeypatch.setattr(setup_module.setup_service, "get_venv_python", lambda: None)
     monkeypatch.setattr(service, "_is_dx_com_available", lambda: True)

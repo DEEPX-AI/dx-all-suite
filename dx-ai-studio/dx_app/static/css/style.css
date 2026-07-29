@@ -444,10 +444,16 @@ tbody tr:hover td{background:var(--bg-3)}
 /*═══ Model action btns ═══*/
 .m-actions{display:flex;gap:var(--sp-1);flex-wrap:nowrap}
 .m-action-btn{background:none;border:1px solid var(--border);color:var(--text-3);border-radius:var(--radius-sm);
-  padding:3px 8px;font-size:var(--fs-xs);cursor:pointer;transition:.15s;font-family:inherit;white-space:nowrap}
+  padding:3px 8px;font-size:var(--fs-xs);cursor:pointer;transition:.15s;font-family:inherit;white-space:nowrap;
+  text-decoration:none;display:inline-block;vertical-align:middle;line-height:1.5}
 .m-action-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-dim)}
 .m-action-run{border-color:rgba(99,140,255,.3);color:var(--accent)}
 .m-action-run:hover{background:var(--accent);color:var(--bg-0)}
+/* Distinct trio: Run=blue (accent), Detail=violet, Download=emerald-green */
+.m-action-detail{border-color:rgba(124,92,252,.35);color:var(--accent-strong,#7C5CFC)}
+.m-action-detail:hover{background:var(--accent-strong,#7C5CFC);color:var(--bg-0);border-color:var(--accent-strong,#7C5CFC)}
+.m-action-dl{border-color:rgba(16,185,129,.4);color:var(--emerald,#10b981)}
+.m-action-dl:hover{background:var(--emerald,#10b981);color:var(--bg-0);border-color:var(--emerald,#10b981)}
 
 /*═══ Label text helper ═══*/
 .label-text{display:block;font-size:var(--fs-xs);color:var(--text-3);margin-bottom:4px;
@@ -1223,3 +1229,87 @@ html[lang="zh-TW"] .zh-CN{display:none!important}
 .lab-card:hover{border-color:var(--accent)}
 .lab-status-ok{border-color:rgba(34,197,94,.35)}
 .lab-status-err{border-color:rgba(239,68,68,.35)}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Run Demo — redesigned cards (design refactor 2026-07)
+   4-column grid · per-category hue (--c, set inline) via shared tokens ·
+   thumbnail preview · segmented controls · in-card result. Logic unchanged.
+   ═══════════════════════════════════════════════════════════════════ */
+.rundemo-groups{display:flex;flex-direction:column;gap:26px}
+.rundemo-group{--c:var(--accent)}
+.rundemo-group-hd{display:flex;align-items:center;gap:11px;margin:0 0 13px}
+.rundemo-group-hd .rd-rail{width:24px;height:3px;border-radius:2px;background:var(--c)}
+.rundemo-group-title{font-family:var(--mono,ui-monospace,monospace);font-size:12px;letter-spacing:.15em;
+  text-transform:uppercase;color:var(--c);font-weight:600;margin:0}
+.rundemo-group-hd .rd-gcount{font-family:var(--mono,monospace);font-size:11px;color:var(--text-3);
+  border:1px solid var(--border);border-radius:999px;padding:1px 8px;font-variant-numeric:tabular-nums}
+.rundemo-group-hd .rd-gline{flex:1;height:1px;background:linear-gradient(90deg,color-mix(in oklab,var(--c) 26%,transparent),transparent)}
+
+.rundemo-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+@media(max-width:1200px){.rundemo-grid{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:900px){.rundemo-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:600px){.rundemo-grid{grid-template-columns:1fr}}
+
+.rd-card{position:relative;display:flex;flex-direction:column;background:var(--surface-raised-bg);
+  border:1px solid var(--border);border-left:3px solid var(--c);border-radius:var(--radius-lg);
+  overflow:hidden;box-shadow:var(--surface-raised-shadow);transition:transform .18s,border-color .18s}
+.rd-card:hover{transform:translateY(-2px);border-color:var(--border-hover)}
+
+.rd-prev{position:relative;height:112px;overflow:hidden;border-bottom:1px solid var(--border);
+  background:
+    linear-gradient(180deg,color-mix(in oklab,var(--c) 12%,var(--bg-2)),var(--bg-1)),
+    repeating-linear-gradient(0deg,transparent 0 13px,rgba(139,147,167,.06) 13px 14px),
+    repeating-linear-gradient(90deg,transparent 0 13px,rgba(139,147,167,.06) 13px 14px)}
+.rd-thumb{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center}
+.rd-tag{position:absolute;left:10px;bottom:9px;font-family:var(--mono,monospace);font-size:9.5px;
+  letter-spacing:.1em;text-transform:uppercase;color:var(--c);background:color-mix(in oklab,var(--bg-0) 74%,transparent);
+  border:1px solid color-mix(in oklab,var(--c) 30%,var(--border));border-radius:5px;padding:2px 6px}
+
+.rd-body{display:flex;flex-direction:column;flex:1;padding:12px 13px 13px;gap:2px}
+.rd-title{font-weight:640;font-size:14.5px;letter-spacing:-.01em;color:var(--text-1)}
+.rd-model{font-family:var(--mono,monospace);font-size:11px;color:var(--text-4)}
+
+.rd-controls{display:flex;flex-direction:column;gap:7px;margin-top:11px}
+.rundemo-axis{display:flex;align-items:center;gap:8px}
+.rundemo-axis-label{flex:0 0 42px;font-family:var(--mono,monospace);font-size:9px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--text-4)}
+.rundemo-chipgroup{display:inline-flex;border:1px solid var(--border);border-radius:6px;overflow:hidden;background:var(--bg-1)}
+.rd-controls .rundemo-chip{font-family:var(--mono,monospace);font-size:10px;letter-spacing:.02em;
+  padding:4px 9px;border:0;border-radius:0;background:transparent;color:var(--text-3);cursor:pointer;transition:.12s}
+.rd-controls .rundemo-chip+.rundemo-chip{border-left:1px solid var(--border)}
+.rd-controls .rundemo-chip.active{background:color-mix(in oklab,var(--c) 22%,var(--bg-2));color:var(--text-1);
+  box-shadow:inset 0 0 0 1px color-mix(in oklab,var(--c) 42%,transparent)}
+.rd-controls .rundemo-chip:hover:not(.active):not(.disabled){color:var(--text-1);background:var(--bg-2)}
+.rd-controls .rundemo-chip.disabled{opacity:.32;cursor:not-allowed}
+
+.rd-foot{display:flex;align-items:center;gap:8px;margin-top:auto;padding-top:13px}
+.rd-run{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:7px;
+  font-family:var(--mono,monospace);font-size:11.5px;letter-spacing:.07em;text-transform:uppercase;font-weight:600;
+  padding:8px;border-radius:7px;cursor:pointer;border:1px solid color-mix(in oklab,var(--c) 50%,transparent);
+  color:var(--bg-0);background:var(--c)}
+.rd-run:hover{filter:brightness(1.08)}
+.rd-play{width:0;height:0;border-left:6px solid currentColor;border-top:4px solid transparent;border-bottom:4px solid transparent}
+.rd-run-ghost{background:var(--bg-1);color:var(--text-3);border-color:var(--border)}
+.rd-run-ghost:hover{color:var(--text-1);filter:none;border-color:var(--border-hover)}
+.rd-stop{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;
+  border-radius:7px;cursor:pointer;background:var(--bg-1);border:1px solid var(--border);color:var(--text-3)}
+.rd-stop:hover{color:var(--error);border-color:color-mix(in oklab,var(--error) 40%,var(--border))}
+.rd-sq{width:9px;height:9px;border-radius:2px;background:currentColor}
+.rd-notice{margin-top:10px;font-size:12px;color:var(--text-3);line-height:1.5}
+
+.rundemo-result:not(:empty){margin-top:8px}
+.rundemo-result video,.rundemo-result img{max-width:100%;border-radius:var(--radius,8px);display:block}
+
+/* Run Demo — collapsible finished result. Bar shows only when the result area has content
+   (CSS-only via :has); the toggle folds the result so the card returns to its compact size. */
+.rd-result-bar{display:none;align-items:center;gap:7px;width:100%;margin-top:11px;padding:7px 2px 0;
+  border-top:1px solid var(--border);background:none;border-left:0;border-right:0;border-bottom:0;
+  cursor:pointer;font-family:var(--mono,monospace);font-size:10px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--text-3);text-align:left}
+.rd-body:has(.rundemo-result:not(:empty)) .rd-result-bar{display:flex}
+.rd-result-bar:hover{color:var(--text-1)}
+.rd-chev{width:0;height:0;border-left:5px solid currentColor;border-top:4px solid transparent;
+  border-bottom:4px solid transparent;transition:transform .15s;transform:rotate(90deg)}
+.rd-card.rd-collapsed .rd-chev{transform:rotate(0deg)}
+.rd-card.rd-collapsed .rundemo-result{display:none}
+.rd-result-lbl{flex:1}

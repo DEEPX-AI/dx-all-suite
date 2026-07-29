@@ -22,6 +22,10 @@ from pathlib import Path
 _STUDIO_DIR = Path(__file__).resolve().parent
 _PROJECT_ROOT = _STUDIO_DIR.parent
 
+
+class _ViewerDepsError(Exception):
+    """ONNX viewer deps (numpy/onnx) unavailable in-process AND no venv to delegate to."""
+
 from shared.dx_server import DXBaseHandler, DXServer, RequestBodyError
 from shared.chat import ChatEngine
 
@@ -208,7 +212,11 @@ class CompilerHandler(DXBaseHandler):
     log_filter = ["/static/"]
 
     def _render(self, template_name, **ctx):
-        ctx.setdefault("v", STATIC_VERSION)
+        # Recompute the asset cache-buster from CURRENT file contents on every render, not
+        # once at import — otherwise a JS/CSS edit after boot keeps the old ?v= and browsers
+        # serve stale cached scripts until the process restarts (e.g. the sudo modal not
+        # appearing). static_version() is a cheap hash of ~9 small files.
+        ctx.setdefault("v", static_version())
         return _render_template(template_name, ctx)
 
 
@@ -249,6 +257,9 @@ class CompilerHandler(DXBaseHandler):
             if path == "/model/inspect":
                 model_path = self.query.get("path", [None])[0]
                 return self._inspect_model(model_path)
+
+            if path == "/validate/path":
+                return self._validate_path()
 
             if path == "/api/listdir":
                 return self._list_dir()
@@ -297,7 +308,15 @@ class CompilerHandler(DXBaseHandler):
                 return self._viewer_parse()
 
             if path == "/setup/install-sdk":
-                return self._sse_setup(setup_service.install_sdk)
+                pw = None
+                try:
+                    length = int(self.headers.get("Content-Length", 0) or 0)
+                    if length:
+                        _body = json.loads(self.rfile.read(length) or b"{}")
+                        pw = _body.get("password")
+                except (ValueError, json.JSONDecodeError, OSError):
+                    pw = None
+                return self._sse_setup(lambda: setup_service.install_sdk(sudo_password=pw))
 
             if path == "/setup/download-samples":
                 return self._sse_setup(setup_service.download_samples)
@@ -314,6 +333,7 @@ class CompilerHandler(DXBaseHandler):
         opt_level = int(fields.get("opt_level", "1"))
         aggressive_partitioning = fields.get("aggressive_partitioning", "false") == "true"
         gen_log = fields.get("gen_log", "false") == "true"
+        quant_debug = fields.get("quant_debug", "false") == "true"
         quant_diagnosis = fields.get("quant_diagnosis", "false") == "true"
         node_selection = fields.get("node_selection", "false") == "true"
         use_q_pro = fields.get("use_q_pro", "false") == "true"
@@ -339,6 +359,7 @@ class CompilerHandler(DXBaseHandler):
             opt_level=opt_level,
             aggressive_partitioning=aggressive_partitioning,
             gen_log=gen_log,
+            quant_debug=quant_debug,
             quant_diagnosis=quant_diagnosis,
             enhanced_scheme=parsed_scheme or None,
             node_selection=node_selection,
@@ -400,8 +421,17 @@ class CompilerHandler(DXBaseHandler):
         enhanced_scheme = body.get("enhanced_scheme")
         if use_q_pro:
             enhanced_scheme = None
-        elif enhanced_scheme is not None and not isinstance(enhanced_scheme, dict):
-            return self.send_error_json(400, "enhanced_scheme must be a JSON object")
+        elif enhanced_scheme is not None:
+            if not isinstance(enhanced_scheme, dict):
+                return self.send_error_json(400, "enhanced_scheme must be a JSON object")
+            # Reject unknown DXQ keys before they reach dx_com.compile (parity with the
+            # reference ResumeRequest.validate_enhanced_scheme).
+            valid_dxq = {"DXQ-P0", "DXQ-P1", "DXQ-P2", "DXQ-P3", "DXQ-P4", "DXQ-P5"}
+            bad = [k for k in enhanced_scheme if k not in valid_dxq]
+            if bad:
+                return self.send_error_json(
+                    400, f"Unknown DXQ key(s): {bad}. Valid: {sorted(valid_dxq)}"
+                )
         if use_q_pro and body.get("enhanced_scheme"):
             return self.send_error_json(400, "use_q_pro and enhanced_scheme are mutually exclusive")
 
@@ -429,6 +459,11 @@ class CompilerHandler(DXBaseHandler):
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
             self.send_header("Cache-Control", "no-store")
+            # This report renders inside a nested (sandboxed) <iframe>. Tell the launcher
+            # proxy NOT to inject its NPU-monitor float here — otherwise a duplicate float
+            # appears inside the report frame. (Guard #1, Sec-Fetch-Dest, can't catch this
+            # because an <iframe src> load is a navigation, not a fetch.)
+            self.send_header("X-DX-No-Widget", "1")
             self.send_header("Content-Disposition", 'inline; filename="diagnosis_report.html"')
             self.send_header(
                 "Content-Security-Policy",
@@ -686,18 +721,54 @@ class CompilerHandler(DXBaseHandler):
             for event in generator_fn():
                 event_type = event.get("type", "progress")
                 self.send_sse(event_type, event)
-                if event_type in ("complete", "error"):
+                # need_sudo / sudo_auth are terminal for this attempt — the client re-submits
+                # with a password after prompting.
+                if event_type in ("complete", "error", "need_sudo", "sudo_auth"):
                     break
         except Exception as e:
             self.send_sse("error", {"type": "error", "message": str(e)})
         finally:
             self.end_sse()
 
-    def _list_dir(self):
-        """GET /api/listdir?path= — list sub-directories for the folder picker."""
-        req_path = self.query.get("path", [None])[0]
+    def _validate_path(self):
+        """GET /validate/path?path=&kind=dir|file&ext= — non-blocking path check.
+
+        Never blocks the user: unless the path is outside the allowed roots (403),
+        always returns 200 with a ``warnings`` list ([] = no issues). Backs the config
+        wizard's dataset-path advisory. Ported from the reference GUI.
+        """
+        path = self.query.get("path", [""])[0] or ""
+        kind = self.query.get("kind", ["dir"])[0]
+        ext = self.query.get("ext", [""])[0] or ""
+        if not path:
+            return self.send_json({"warnings": []})
+        if not is_safe_path(path):
+            return self.send_error_json(403, "Access denied")
+        warnings = []
+        target = Path(path)
         try:
-            return self.send_json(fs_browse.list_directory(req_path))
+            exists = target.exists()
+        except (PermissionError, OSError):
+            exists = False
+        if not exists:
+            warnings.append(f"{'Directory' if kind == 'dir' else 'File'} does not exist: {path}")
+        elif kind == "dir" and not target.is_dir():
+            warnings.append(f"Path is not a directory: {path}")
+        elif kind == "file" and not target.is_file():
+            warnings.append(f"Path is not a file: {path}")
+        if kind == "file" and ext and not path.lower().endswith(ext.lower()):
+            warnings.append(f"File does not end in {ext}: {path}")
+        return self.send_json({"warnings": warnings})
+
+    def _list_dir(self):
+        """GET /api/listdir?path=[&ext=.json] — list sub-directories (and, when
+        *ext* is given, matching files) for the folder/file picker."""
+        req_path = self.query.get("path", [None])[0]
+        req_ext = self.query.get("ext", [None])[0]
+        if req_ext and not req_ext.startswith("."):
+            req_ext = "." + req_ext
+        try:
+            return self.send_json(fs_browse.list_directory(req_path, req_ext))
         except ValueError as exc:
             return self.send_error_json(400, str(exc))
 
@@ -746,12 +817,58 @@ class CompilerHandler(DXBaseHandler):
             return self.send_error_json(404, "File not found")
 
         try:
+            payload = self._inspect_model_data(path)
+        except _ViewerDepsError as e:
+            return self.send_error_json(400, str(e))
+        except Exception as e:
+            return self.send_error_json(400, str(e))
+        # Advisory (non-blocking): flag a model path that isn't a .onnx file.
+        if not path.lower().endswith(".onnx"):
+            payload["warning"] = (
+                f"Model path does not end in .onnx: {path}. "
+                "Detection may be unreliable for non-ONNX files."
+            )
+        self.send_json(payload)
+
+    # Shared shape-extraction snippet — run either in-process or (when onnx isn't importable
+    # here) in the dx-compiler venv, so Auto-Detect works with no separate onnx install,
+    # exactly like the graph viewer.
+    _INSPECT_SNIPPET = (
+        "import sys,json,onnx\n"
+        "m=onnx.load(sys.argv[1],load_external_data=False)\n"
+        "inputs={};allstatic=True\n"
+        "for inp in m.graph.input:\n"
+        " shape=[];dyn=False\n"
+        " try:dims=inp.type.tensor_type.shape.dim\n"
+        " except Exception:dims=[]\n"
+        " for d in dims:\n"
+        "  if getattr(d,'dim_param',None):shape.append(-1);dyn=True\n"
+        "  else:\n"
+        "   try:\n"
+        "    v=int(d.dim_value)\n"
+        "    if v<=0:shape.append(-1);dyn=True\n"
+        "    else:shape.append(v)\n"
+        "   except Exception:shape.append(-1);dyn=True\n"
+        " if not shape:dyn=True\n"
+        " inputs[inp.name]={'shape':shape,'dynamic':dyn}\n"
+        " if dyn:allstatic=False\n"
+        "sys.stdout.write(json.dumps({'auto_detected':allstatic,'inputs':inputs}))\n"
+    )
+
+    def _inspect_model_data(self, path):
+        """Return {auto_detected, inputs:{name:{shape,dynamic}}}. In-process if onnx is
+        importable here, else delegated to the dx-compiler venv python (has onnx via SDK)."""
+        try:
+            import onnx  # noqa: F401
+            in_process = True
+        except ImportError:
+            in_process = False
+        if in_process:
             import onnx
             model = onnx.load(path, load_external_data=False)
             inputs = {}
             all_static = True
             for inp in model.graph.input:
-                name = inp.name
                 shape = []
                 is_dynamic = False
                 try:
@@ -760,27 +877,34 @@ class CompilerHandler(DXBaseHandler):
                     dims = []
                 for dim in dims:
                     if getattr(dim, "dim_param", None):
-                        shape.append(-1)
-                        is_dynamic = True
+                        shape.append(-1); is_dynamic = True
                     else:
                         try:
                             dv = int(dim.dim_value)
                             if dv <= 0:
-                                shape.append(-1)
-                                is_dynamic = True
+                                shape.append(-1); is_dynamic = True
                             else:
                                 shape.append(dv)
                         except Exception:
-                            shape.append(-1)
-                            is_dynamic = True
+                            shape.append(-1); is_dynamic = True
                 if not shape:
                     is_dynamic = True
-                inputs[name] = {"shape": shape, "dynamic": is_dynamic}
+                inputs[inp.name] = {"shape": shape, "dynamic": is_dynamic}
                 if is_dynamic:
                     all_static = False
-            self.send_json({"auto_detected": all_static, "inputs": inputs})
-        except Exception as e:
-            self.send_error_json(400, str(e))
+            return {"auto_detected": all_static, "inputs": inputs}
+        # Delegate to the venv (onnx present there)
+        venv_py = setup_service.get_venv_python()
+        if not venv_py:
+            raise _ViewerDepsError(
+                "Auto-detect needs onnx. Install the DX Compiler SDK from the Setup panel, then reload.")
+        import subprocess
+        env = {**os.environ, "PYTHONPATH": str(_PROJECT_ROOT)}
+        r = subprocess.run([str(venv_py), "-c", self._INSPECT_SNIPPET, path],
+                           capture_output=True, text=True, timeout=60, env=env)
+        if r.returncode != 0 or not r.stdout.strip():
+            raise RuntimeError((r.stderr or "venv inspect produced no output")[-200:])
+        return json.loads(r.stdout)
 
     def _config_generate(self):
         """Generate a temporary config JSON file from wizard data."""
@@ -878,15 +1002,44 @@ class CompilerHandler(DXBaseHandler):
             return self.send_error_json(404, "File not found")
 
         try:
-            # Lazy import: onnx_parser pulls in numpy + onnx (not stdlib, not declared deps).
-            # Importing it here — not at module top — keeps the DX Compiler server bootable on a
-            # stdlib-only / offline install; only this ONNX-graph endpoint degrades (→ 400) when
-            # numpy/onnx are absent, instead of crashing the whole server at startup.
-            from dx_compiler.core.onnx_parser import parse_onnx_model
-            graph_data = parse_onnx_model(path)
-            self.send_json(graph_data)
+            graph_data = self._parse_model_graph(path)
+        except _ViewerDepsError as e:
+            return self.send_error_json(400, str(e))
         except Exception as e:
-            self.send_error_json(400, f"Parse error: {type(e).__name__}")
+            return self.send_error_json(400, f"Parse error: {type(e).__name__}")
+        self.send_json(graph_data)
+
+    def _parse_model_graph(self, path):
+        """Parse an ONNX model into the viewer graph dict.
+
+        onnx_parser pulls in numpy + onnx (not stdlib). The studio server itself runs
+        stdlib-only, so when those aren't importable in-process we DELEGATE the parse to the
+        dx-compiler venv python (which has onnx via the installed SDK). That way the graph
+        works with zero extra install once the SDK is set up — no manual `pip install onnx`.
+        Raises _ViewerDepsError (→ clear 400) only when neither path is available.
+        """
+        try:
+            from dx_compiler.core.onnx_parser import parse_onnx_model
+            return parse_onnx_model(path)          # in-process (onnx present here)
+        except ImportError:
+            pass
+        venv_py = setup_service.get_venv_python()
+        if not venv_py:
+            raise _ViewerDepsError(
+                "ONNX graph viewer needs numpy + onnx. Install the DX Compiler SDK from the "
+                "Setup panel (its venv provides them), then reload.")
+        import subprocess
+        code = ("import sys, json; from dx_compiler.core.onnx_parser import parse_onnx_model; "
+                "sys.stdout.write(json.dumps(parse_onnx_model(sys.argv[1])))")
+        env = {**os.environ, "PYTHONPATH": str(_PROJECT_ROOT)}
+        try:
+            r = subprocess.run([str(venv_py), "-c", code, path],
+                               capture_output=True, text=True, timeout=120, env=env)
+        except Exception as e:
+            raise RuntimeError(f"venv parse failed: {e}")
+        if r.returncode != 0 or not r.stdout.strip():
+            raise RuntimeError((r.stderr or "venv parse produced no output")[-200:])
+        return json.loads(r.stdout)
 
 
 def create_server(port=DEFAULT_PORT):

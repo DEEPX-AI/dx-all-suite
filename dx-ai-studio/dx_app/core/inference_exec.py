@@ -125,6 +125,26 @@ def _find_saved_video(stdout_text, save_dir=None):
     return None
 
 
+def _find_saved_image(save_dir=None):
+    """Find an annotated result image written by a C++ runner's --save run-dir.
+    Some runners (the PoseRunner family: pose / object_pose / keypoint) ignore the
+    DXAPP_SAVE_IMAGE env the studio normally uses for stills, and only emit the annotated
+    image as <save-dir>/<run>/<name>_output.<ext>. Fall back to that so those tasks show a
+    result image instead of nothing. (Studio-side; no dx-runtime change.)"""
+    if not save_dir:
+        return None
+    root = Path(save_dir)
+    if not root.exists():
+        return None
+    exts = {".jpg", ".jpeg", ".png", ".bmp"}
+    cands = [p for p in root.rglob("*_output.*") if p.suffix.lower() in exts]
+    cands += [p for p in root.rglob("output.*") if p.suffix.lower() in exts]
+    for p in cands:
+        if p.exists() and p.stat().st_size > 0:
+            return p
+    return None
+
+
 def _drain_dxrt_msgqueues():
     """Best-effort cleanup for stale dxrtd IPC messages before launching DXRT."""
     try:

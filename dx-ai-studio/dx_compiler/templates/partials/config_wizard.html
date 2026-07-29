@@ -62,6 +62,7 @@
       <div class="form-group">
         <label><span class="ko">데이터셋 경로 *</span><span class="en">Dataset Path *</span><span class="es">Ruta del conjunto de datos *</span><span class="ja">データセットパス *</span><span class="zh-CN">数据集路径 *</span><span class="zh-TW">資料集路徑 *</span></label>
         <input type="text" id="wiz-dataset-path" data-i18n-placeholder="/path/to/dataset">
+        <div id="wiz-dataset-warning" class="alert-warning" style="display:none;" aria-live="polite"></div>
       </div>
       <div class="form-group">
         <label><span class="ko">파일 확장자</span><span class="en">File Extensions</span><span class="es">Extensiones de archivo</span><span class="ja">ファイル拡張子</span><span class="zh-CN">文件扩展名</span><span class="zh-TW">檔案副檔名</span></label>
@@ -72,6 +73,7 @@
         <div class="form-group half">
           <label><span class="ko">보정 샘플 수</span><span class="en">Calibration Samples</span><span class="es">Muestras de calibración</span><span class="ja">調整サンプル数</span><span class="zh-CN">校准样本数</span><span class="zh-TW">校準樣本數</span></label>
           <input type="number" id="wiz-calib-num" value="100">
+          <div id="wiz-calib-warning" class="alert-warning" style="display:none;" aria-live="polite"></div>
         </div>
         <div class="form-group half">
           <label><span class="ko">보정 방법</span><span class="en">Calibration Method</span><span class="es">Método de calibración</span><span class="ja">調整方法</span><span class="zh-CN">校准方法</span><span class="zh-TW">校準方法</span></label>

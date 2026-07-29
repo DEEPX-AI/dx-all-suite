@@ -170,6 +170,13 @@ main { display: flex; height: calc(100vh - var(--dx-module-header-h)); overflow:
 .log-content::-webkit-scrollbar-track { background: transparent; }
 .log-content::-webkit-scrollbar-thumb { background: rgba(var(--accent-rgb),0.2); border-radius: 3px; }
 .log-panel.collapsed .log-content { display: none; }
+.log-panel.collapsed .agentic-chat-row { display: none !important; }
+.agentic-chat-row { display: flex; gap: 0.5rem; align-items: center; padding: 0.6rem 0.8rem; border-top: 1px solid var(--border); background: var(--bg-1); }
+.agentic-chat-icon { font-size: 1.1rem; flex: 0 0 auto; }
+.agentic-chat-row input { flex: 1; padding: 0.4rem 0.6rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-0); color: var(--text-1); font-size: var(--fs-sm); }
+.agentic-chat-row input:focus { outline: none; border-color: var(--accent); }
+.agentic-chat-row input:disabled { opacity: 0.5; }
+.agentic-chat-row .compile-btn { flex: 0 0 auto; padding: 0.4rem 1rem; }
 .quant-diagnosis-toolbar { padding: 0.35rem 0.5rem; background: var(--bg-1); border-bottom: 1px solid var(--border); }
 
 /* ═══ Viewer Panel (left half) ═══ */
@@ -647,9 +654,12 @@ body.lang-zh-TW .zh-CN { display: none !important; }
   color: var(--text-2);
   display: block;
   margin-top: 4px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  /* Setup/install messages carry full shell commands and paths (e.g. the install.sh
+     fallback) — wrap them instead of clipping with an ellipsis so nothing is cut off. */
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  line-height: 1.4;
 }
 
 /* ─── 샘플 모델 선택 드롭다운 ──────────────────── */

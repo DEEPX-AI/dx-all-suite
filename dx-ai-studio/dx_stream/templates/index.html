@@ -264,6 +264,14 @@
   <h1>🔧 <span class="accent"><span class="ko">파이프라인 빌더</span><span class="en">Pipeline Builder</span><span class="es">Constructor de pipeline</span><span class="ja">パイプラインビルダー</span><span class="zh-CN">管道构建器</span><span class="zh-TW">管線建置器</span></span></h1>
   <p class="txt-dim txt-sm mb16"><span class="ko">GStreamer 요소를 드래그 앤 드롭으로 파이프라인을 구성하세요.</span><span class="en">Drag and drop GStreamer elements to build your pipeline.</span><span class="es">Arrastre y suelte elementos GStreamer para construir su pipeline.</span><span class="ja">GStreamerエレメントをドラッグ＆ドロップしてパイプラインを構築します。</span><span class="zh-CN">拖放GStreamer元素来构建管道。</span><span class="zh-TW">拖放GStreamer元素來建置管線。</span></p>
 
+  <!-- Playback mode (shared with the Demo page): Local=WebRTC (same PC/LAN), Remote=MJPEG
+       (SSH tunnel / remote browser). Same DXStream.setPlaybackMode, synced across both bars. -->
+  <div class="playback-mode-bar" id="pipeline-playback-mode-bar" style="margin-bottom:10px">
+    <span class="txt-dim txt-sm" style="margin-right:8px"><span class="ko">재생 모드:</span><span class="en">Playback:</span><span class="es">Reproducción:</span><span class="ja">再生モード:</span><span class="zh-CN">播放模式:</span><span class="zh-TW">播放模式:</span></span>
+    <button class="btn btn-ghost btn-sm active" data-mode="local" onclick="DXStream.setPlaybackMode('local',this)"><span class="ko">🖥 로컬 (WebRTC)</span><span class="en">🖥 Local (WebRTC)</span><span class="es">🖥 Local (WebRTC)</span><span class="ja">🖥 ローカル (WebRTC)</span><span class="zh-CN">🖥 本地 (WebRTC)</span><span class="zh-TW">🖥 本機 (WebRTC)</span></button>
+    <button class="btn btn-ghost btn-sm" data-mode="remote" onclick="DXStream.setPlaybackMode('remote',this)"><span class="ko">🌐 원격 (MJPEG)</span><span class="en">🌐 Remote (MJPEG)</span><span class="es">🌐 Remoto (MJPEG)</span><span class="ja">🌐 リモート (MJPEG)</span><span class="zh-CN">🌐 远程 (MJPEG)</span><span class="zh-TW">🌐 遠端 (MJPEG)</span></button>
+  </div>
+
   <!-- Pipeline Toolbar -->
   <div class="pipeline-actions">
     <button class="btn btn-primary btn-sm" id="btn-pipeline-run" onclick="DXStream.runPipeline()">

@@ -22,6 +22,7 @@ window._DX_CHAT_I18N = window._DX_CHAT_I18N || {
   'Refresh knowledge': { ko: '지식 새로고침', ja: '知識を更新', es: 'Actualizar conocimiento', 'zh-CN': '刷新知识', 'zh-TW': '重新整理知識' },
   'Save': { ko: '저장', ja: '保存', es: 'Guardar', 'zh-CN': '保存', 'zh-TW': '儲存' },
   'Ask a question...': { ko: '질문을 입력하세요...', ja: '質問を入力...', es: 'Escriba su pregunta...', 'zh-CN': '输入您的问题...', 'zh-TW': '輸入您的問題...' },
+  'Custom…': { ko: '직접 입력…', ja: 'カスタム…', es: 'Personalizado…', 'zh-CN': '自定义…', 'zh-TW': '自訂…' },
   '(No response)': { ko: '(응답 없음)', ja: '(応答なし)', es: '(Sin respuesta)', 'zh-CN': '(无响应)', 'zh-TW': '(無回應)' },
   '⚠️ Connection error: Unable to reach server.': { ko: '⚠️ 연결 오류: 서버에 연결할 수 없습니다.', ja: '⚠️ 接続エラー: サーバーに接続できません。', es: '⚠️ Error de conexión: no se puede acceder al servidor.', 'zh-CN': '⚠️ 连接错误：无法访问服务器。', 'zh-TW': '⚠️ 連線錯誤：無法連線至伺服器。' },
   'Unable to load settings.': { ko: '설정을 불러올 수 없습니다.', ja: '設定を読み込めません。', es: 'No se pudieron cargar los ajustes.', 'zh-CN': '无法加载设置。', 'zh-TW': '無法載入設定。' },
@@ -222,8 +223,9 @@ const DXChat = (() => {
       '    </label>',
       '    <label class="dx-chat-settings-field">',
       '      <span>Model</span>',
-      '      <input class="dx-chat-settings-model" type="text" placeholder="gpt-4o-mini">',
       '      <select class="dx-chat-settings-model-select" hidden></select>',
+      '      <select class="dx-chat-settings-agentmodel-select" hidden></select>',
+      '      <input class="dx-chat-settings-model" type="text" placeholder="gpt-4o-mini" autocomplete="off" hidden>',
       '    </label>',
       '    <label class="dx-chat-settings-field dx-chat-settings-endpoint-field" hidden>',
       '      <span>Endpoint</span>',
@@ -258,6 +260,7 @@ const DXChat = (() => {
     _els.settingsApiKey = win.querySelector('.dx-chat-settings-api-key');
     _els.settingsModel = win.querySelector('.dx-chat-settings-model');
     _els.settingsModelSelect = win.querySelector('.dx-chat-settings-model-select');
+    _els.agentModelSelect = win.querySelector('.dx-chat-settings-agentmodel-select');
     _els.settingsEndpoint = win.querySelector('.dx-chat-settings-endpoint');
     _els.settingsEndpointField = win.querySelector('.dx-chat-settings-endpoint-field');
     _els.settingsTemp = win.querySelector('.dx-chat-settings-temp');
@@ -295,9 +298,11 @@ const DXChat = (() => {
     _els.settingsTestBtn.addEventListener('click', _testSettingsConnection);
     if (_els.settingsRefreshKb) _els.settingsRefreshKb.addEventListener('click', _refreshKnowledge);
     _els.settingsProvider.addEventListener('change', () => {
+      if (_els.settingsModel) _els.settingsModel.value = '';  // clear stale model on provider switch
       _toggleSettingsEndpoint();
       _setApiKeyPlaceholder();
     });
+    if (_els.settingsModelSelect) _els.settingsModelSelect.addEventListener('change', _onModelSelectChange);
     _els.settingsTemp.addEventListener('input', () => {
       _els.settingsTempVal.textContent = _els.settingsTemp.value;
     });
@@ -392,8 +397,15 @@ const DXChat = (() => {
       const decoder = new TextDecoder();
       let fullText = '';
       let buffer = '';
+      let streamDone = false;
 
-      while (true) {
+      // Finish on the explicit [DONE] sentinel — do NOT rely solely on stream EOF.
+      // When the chatbot runs inside a module iframe, /api/chat is proxied by the
+      // launcher and the browser-facing connection may stay open (keep-alive) after
+      // the response, so reader.read() never reports done. Waiting on EOF then hangs
+      // this promise, its .finally() never resets _sending, and the next send is
+      // silently blocked by the `!text || _sending` guard (arrow appears dead).
+      while (!streamDone) {
         const { done, value } = await reader.read();
         if (done) break;
 
@@ -404,7 +416,7 @@ const DXChat = (() => {
         for (const line of lines) {
           if (line.startsWith('data: ')) {
             const data = line.slice(6);
-            if (data === '[DONE]') continue;
+            if (data === '[DONE]') { streamDone = true; break; }
             try {
               const parsed = JSON.parse(data);
               if (parsed.token) {
@@ -417,6 +429,9 @@ const DXChat = (() => {
           }
         }
       }
+
+      // Release the (possibly still-open) connection so the socket is freed.
+      try { await reader.cancel(); } catch (e) { /* already closed */ }
 
       if (!fullText) fullText = _t('(No response)', '(응답 없음)');
       _finishAI(aiEl, fullText);
@@ -588,6 +603,43 @@ const DXChat = (() => {
     return provider === 'local' || provider === 'agent-cli';
   }
 
+  // Model preset suggestions per HTTP provider, surfaced as a <datalist> dropdown on the
+  // Model field. These are SUGGESTIONS — the field stays free-text, so a user can still type
+  // any exact model id their key exposes (newer/older than this list). Ordered newest-first.
+  var _MODEL_PRESETS = {
+    openai: [
+      'gpt-5.6-terra', 'gpt-5.6-sol', 'gpt-5.6-luna',
+      'gpt-5.5', 'gpt-5.4', 'gpt-5.4-mini', 'gpt-5.4-nano',
+      'gpt-4.1', 'gpt-4.1-mini', 'gpt-4o', 'gpt-4o-mini',
+      'o4-mini', 'o3', 'o3-mini',
+    ],
+    anthropic: [
+      'claude-opus-5', 'claude-sonnet-5', 'claude-haiku-4-5-20251001',
+      'claude-opus-4-8', 'claude-opus-4-7', 'claude-opus-4-6',
+      'claude-sonnet-4-6', 'claude-sonnet-4-5', 'claude-fable-5',
+      'claude-3-5-sonnet-20241022', 'claude-3-5-haiku-20241022',
+    ],
+    google: [
+      'gemini-3.1-pro-preview', 'gemini-3-flash-preview', 'gemini-3.5-flash',
+      'gemini-2.5-pro', 'gemini-2.5-flash', 'gemini-1.5-pro', 'gemini-1.5-flash',
+    ],
+    github: [
+      'gpt-5.6-terra', 'gpt-5.6-sol', 'gpt-5.6-luna', 'gpt-5.5', 'gpt-5.4',
+      'gpt-4.1', 'gpt-4o', 'gpt-4o-mini',
+      'claude-opus-5', 'claude-sonnet-5', 'claude-opus-4-8', 'claude-sonnet-4-6',
+      'gemini-3.1-pro-preview', 'gemini-3-flash-preview', 'gemini-2.5-pro',
+    ],
+  };
+  var _CUSTOM_OPT = '__custom__';   // sentinel option → reveals the free-text model input
+
+  function _fillSelect(sel, models, current) {
+    if (!sel) return;
+    sel.innerHTML = models.map(function (m) {
+      return '<option value="' + _escapeHtml(m) + '"' + (m === current ? ' selected' : '') +
+             '>' + _escapeHtml(m) + '</option>';
+    }).join('');
+  }
+
   function _toggleSettingsEndpoint() {
     const provider = _els.settingsProvider ? _els.settingsProvider.value : '';
     const isLocal = provider === 'local';
@@ -608,7 +660,7 @@ const DXChat = (() => {
       const modelHints = {
         github: 'gpt-4o-mini',
         openai: 'gpt-4o-mini',
-        anthropic: 'claude-3-5-haiku-20241022',
+        anthropic: 'claude-haiku-4-5-20251001',
         google: 'gemini-1.5-flash',
         custom: 'your-model-name',
         local: 'qwen2.5 / deepseek-r1 / …',
@@ -625,49 +677,97 @@ const DXChat = (() => {
     _updateModelChooser(provider);
   }
 
-  // Show the Model field as a click-to-select dropdown when models are discoverable
-  // (local runtime / coding-agent CLI); free-text input for HTTP providers.
-  function _showModelSelect(show) {
-    if (_els.settingsModelSelect) _els.settingsModelSelect.hidden = !show;
-    if (_els.settingsModel) _els.settingsModel.hidden = show;
-  }
-  function _fillModelSelect(models, current) {
-    const sel = _els.settingsModelSelect;
+  // Model chooser — three controls share the "Model" row:
+  //   settingsModelSelect   primary styled dropdown (API presets / agent list / local models)
+  //   agentModelSelect      agent-cli only: the chosen agent's model list (like dx_agent_dev)
+  //   settingsModel (text)  free-text override (API "Custom…" / custom endpoint / no-runtime)
+  function _fetchAgentModels(agent, current) {
+    var sel = _els.agentModelSelect;
     if (!sel) return;
-    sel.innerHTML = '';
-    models.forEach(function (m) {
-      const o = document.createElement('option');
-      o.value = m; o.textContent = m;
-      if (m === current) o.selected = true;
-      sel.appendChild(o);
-    });
+    // Cross-module: /agent/* is proxied to dx_agent_dev by the launcher (same origin).
+    fetch('/agent/api/agent/models?agent=' + encodeURIComponent(agent))
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        var models = (d && d.models) || [];
+        if (!models.length) { sel.hidden = true; sel.innerHTML = ''; return; }
+        _fillSelect(sel, models, (current && models.indexOf(current) !== -1) ? current : models[0]);
+        sel.hidden = false;
+      })
+      .catch(function () { sel.hidden = true; sel.innerHTML = ''; });
   }
+
   function _updateModelChooser(provider) {
-    const cur = (_els.settingsModel && _els.settingsModel.value) || '';
+    var cur = (_els.settingsModel && _els.settingsModel.value) || '';
+    var modelSel = _els.settingsModelSelect;
+    if (_els.agentModelSelect) _els.agentModelSelect.hidden = true;
+
     if (provider === 'agent-cli') {
-      _fillModelSelect(['claude', 'opencode', 'cursor', 'copilot', 'codex'], cur || 'claude');
-      _showModelSelect(true);
-    } else if (provider === 'local') {
-      const base = ((_els.settingsEndpoint && _els.settingsEndpoint.value) || 'http://localhost:11434').trim();
+      // cur encodes "<agent>::<submodel>" (submodel optional)
+      var parts = cur.split('::');
+      var agent = parts[0] || 'claude';
+      _fillSelect(modelSel, ['claude', 'opencode', 'cursor', 'copilot', 'codex'], agent);
+      if (modelSel) modelSel.hidden = false;
+      if (_els.settingsModel) _els.settingsModel.hidden = true;
+      _fetchAgentModels(agent, parts[1] || '');
+      return;
+    }
+
+    if (provider === 'local') {
+      var base = ((_els.settingsEndpoint && _els.settingsEndpoint.value) || 'http://localhost:11434').trim();
       fetch(_apiUrl('/api/chat/local/models?base=' + encodeURIComponent(base)))
-        .then(r => r.json())
+        .then(function (r) { return r.json(); })
         .then(function (d) {
-          const models = (d && d.models) || [];
+          var models = (d && d.models) || [];
           if (models.length) {
-            _fillModelSelect(models, cur || models[0]);
-            _showModelSelect(true);
+            _fillSelect(modelSel, models, cur || models[0]);
+            if (modelSel) modelSel.hidden = false;
+            if (_els.settingsModel) _els.settingsModel.hidden = true;
             _showSettingsStatus(_t('Found models: ', '발견된 모델: ') + models.join(', '), 'success');
           } else {
-            _showModelSelect(false);
+            if (modelSel) modelSel.hidden = true;
+            if (_els.settingsModel) _els.settingsModel.hidden = false;
             _showSettingsStatus(
               _t('No local runtime detected. Start one (e.g. `ollama pull deepseek-r1`) then retry.',
                  '로컬 런타임이 감지되지 않았습니다. 먼저 실행하세요 (예: `ollama pull deepseek-r1`) 후 재시도.'),
               'error');
           }
         })
-        .catch(function () { _showModelSelect(false); });
-    } else {
-      _showModelSelect(false);  // HTTP providers (openai/anthropic/…) → free-text model
+        .catch(function () {
+          if (modelSel) modelSel.hidden = true;
+          if (_els.settingsModel) _els.settingsModel.hidden = false;
+        });
+      return;
+    }
+
+    if (provider === 'custom') {   // free-text only
+      if (modelSel) modelSel.hidden = true;
+      if (_els.settingsModel) _els.settingsModel.hidden = false;
+      return;
+    }
+
+    // API providers (openai/anthropic/google/github): styled preset dropdown + "Custom…".
+    var presets = _MODEL_PRESETS[provider] || [];
+    var isCustom = !!cur && presets.indexOf(cur) === -1;
+    if (modelSel) {
+      modelSel.innerHTML = presets.map(function (m) {
+        return '<option value="' + _escapeHtml(m) + '"' + (m === cur ? ' selected' : '') +
+               '>' + _escapeHtml(m) + '</option>';
+      }).join('') + '<option value="' + _CUSTOM_OPT + '"' + (isCustom ? ' selected' : '') +
+        '>' + _escapeHtml(_t('Custom…', '직접 입력…')) + '</option>';
+      modelSel.hidden = false;
+    }
+    if (_els.settingsModel) _els.settingsModel.hidden = !isCustom;
+  }
+
+  // React to dropdown changes: agent-cli → reload that agent's models; API → reveal the
+  // free-text input only when "Custom…" is chosen.
+  function _onModelSelectChange() {
+    var provider = _els.settingsProvider ? _els.settingsProvider.value : '';
+    var val = _els.settingsModelSelect ? _els.settingsModelSelect.value : '';
+    if (provider === 'agent-cli') {
+      _fetchAgentModels(val, '');
+    } else if (provider !== 'local' && provider !== 'custom') {
+      if (_els.settingsModel) _els.settingsModel.hidden = (val !== _CUSTOM_OPT);
     }
   }
 
@@ -686,8 +786,20 @@ const DXChat = (() => {
     const provider = _els.settingsProvider.value;
     const keyless = _isKeylessProvider(provider);
     const apiKey = _els.settingsApiKey.value.trim();
-    const useSelect = _els.settingsModelSelect && !_els.settingsModelSelect.hidden;
-    const model = (useSelect ? _els.settingsModelSelect.value : _els.settingsModel.value).trim();
+    const selVal = (_els.settingsModelSelect && !_els.settingsModelSelect.hidden)
+      ? _els.settingsModelSelect.value : '';
+    let model;
+    if (provider === 'agent-cli') {
+      // Encode "<agent>::<submodel>" (submodel optional → agent default).
+      const agent = selVal || 'claude';
+      const sub = (_els.agentModelSelect && !_els.agentModelSelect.hidden)
+        ? (_els.agentModelSelect.value || '').trim() : '';
+      model = sub ? (agent + '::' + sub) : agent;
+    } else if (selVal && selVal !== _CUSTOM_OPT) {
+      model = selVal.trim();                          // dropdown pick (API preset / local model)
+    } else {
+      model = (_els.settingsModel.value || '').trim(); // free-text (Custom… / custom endpoint)
+    }
     if (!keyless && !apiKey) {
       _showSettingsStatus(_t('Please enter an API key.', 'API 키를 입력해주세요.'), 'error');
       return null;

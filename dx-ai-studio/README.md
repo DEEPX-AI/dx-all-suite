@@ -5,6 +5,31 @@ specialized tools — model catalog, compiler, inference, streaming, benchmarkin
 hardware monitor, deployment planner, and an agent-driven builder — in one browser
 experience, in six languages.
 
+![The DX AI Studio hub — eight module tiles orbiting the launcher home, each with a live status dot and port.](docs/source/resources/hub.png)
+
+## The hub
+
+The **hub** is the studio's home screen and the single place everything launches from.
+Eight **module tiles** orbit the center in a constellation; each shows a **live status dot**
+(green when its server is up) and the local **port** it's serving on. The center badge names
+the suite — module count, the bundled **DXNN SDK** version, the studio **build**, and the
+launcher port (`:8890`).
+
+- **One boot, all tools.** The launcher starts every module server for you on a short boot
+  screen; when it clears, click any tile to open that tool.
+- **Everything stays in one place.** Tiles open the module **embedded** in the hub (not a new
+  tab), and a shared **NPU monitor** float follows you across tools, so you never lose the
+  telemetry or the home.
+- **Tutorial Mode** (top-left toggle) auto-starts an interactive walkthrough the first time you
+  open each tool — handy for a first tour, off by default.
+- **Built-in references.** The **SDK Library** (DEEPX docs & brochures, fully in-app) and
+  **About DEEPX** open right from the hub, alongside the Physical-AI-ecosystem and product
+  (DX-M1 / DX-M2) cards.
+- **Always reachable.** The top bar carries the **language switch** (6 locales), the store
+  (**Buy**), and per-module status dots; the bottom bar has quick links (Homepage, Tech Docs,
+  Model Zoo, S/W & Document downloads, GitHub); and the **💬 assistant** (bottom-right) answers
+  SDK/module questions from any screen.
+
 ## Getting started
 
 **Prerequisites:** Linux (Debian 12/13, Ubuntu 20.04–26.04) with **Python 3.8+** —

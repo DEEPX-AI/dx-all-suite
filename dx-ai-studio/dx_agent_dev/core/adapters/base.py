@@ -235,21 +235,40 @@ def _extract_message_text(obj: dict) -> str:
     return ""
 
 
+def _tool_arg_hint(args) -> str:
+    """A short, human hint from tool args — a file basename or a command head — instead of
+    dumping the whole args JSON (that made the agent log unreadable)."""
+    if isinstance(args, dict):
+        for k in ("file_path", "path", "notebook_path", "filePath"):
+            v = args.get(k)
+            if isinstance(v, str) and v:
+                return v.rsplit("/", 1)[-1]
+        for k in ("skill", "command", "cmd", "pattern", "query", "prompt", "url",
+                  "subagent_type", "description"):
+            v = args.get(k)
+            if isinstance(v, str) and v:
+                v = " ".join(v.split())
+                return v[:50] + ("…" if len(v) > 50 else "")
+        return ""
+    if isinstance(args, str):
+        v = " ".join(args.split())
+        return v[:50] + ("…" if len(v) > 50 else "")
+    return ""
+
+
 def _format_tool_line(obj: dict, *, completed: bool) -> str:
     tc = obj.get("tool_call") if isinstance(obj.get("tool_call"), dict) else obj
     if not isinstance(tc, dict):
         return str(tc)
+    prefix = "✓" if completed else "→"
     for key in tc:
         inner = tc.get(key)
         if isinstance(inner, dict):
             name = inner.get("name") or key
-            args = inner.get("args") or inner.get("arguments") or ""
-            prefix = "✓" if completed else "→"
-            if args:
-                return f"{prefix} {name}: {args}"[:500]
-            return f"{prefix} {name}"
+            hint = _tool_arg_hint(inner.get("args") or inner.get("arguments") or "")
+            return f"{prefix} {name}" + (f": {hint}" if hint else "")
     name = tc.get("name") or tc.get("tool_name") or "tool"
-    return f"{'✓' if completed else '→'} {name}"
+    return f"{prefix} {name}"
 
 
 def _dig(obj, *keys):
@@ -296,11 +315,15 @@ def _extract_assistant_blocks(message: dict, *, include_tools: bool) -> str:
         if btype == "text" and block.get("text"):
             parts.append(str(block["text"]))
         elif include_tools and btype == "tool_use":
+            # claude stream-json ships tool calls as assistant.content tool_use blocks
+            # (NOT top-level tool_call/tool_use events), so this is the path that actually
+            # renders the agent's tool activity. Show a compact one-liner — "→ Read: SKILL.md",
+            # "→ Bash: ls *.onnx" — via the same hint used for _format_tool_line, instead of
+            # dumping the raw args JSON (which flooded the console with unreadable blobs like
+            # `→ Read: {"file_path": "/very/long/..."}`).
             name = block.get("name") or "tool"
-            args = block.get("input") or block.get("arguments") or ""
-            if isinstance(args, dict):
-                args = json.dumps(args, ensure_ascii=False)[:200]
-            parts.append(f"→ {name}: {args}" if args else f"→ {name}")
+            hint = _tool_arg_hint(block.get("input") or block.get("arguments") or "")
+            parts.append(f"→ {name}: {hint}" if hint else f"→ {name}")
     return "\n".join(p for p in parts if p)
 
 

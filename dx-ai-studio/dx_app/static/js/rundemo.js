@@ -13,38 +13,12 @@ var RUNDEMO = { loaded: false, demos: [], groups: [], sel: {} }; // sel[idx] = {
 // is scoped to rundemo.js + templates/index.html only, so instead of adding
 // rules to style.css this injects one <style> tag the first time it runs.
 // Toggle look-and-feel itself reuses the existing .chip / .chip.active pills.
+// The card/grid/group/chip layout now lives in style.css (redesigned Run Demo block).
+// This inline sheet keeps ONLY the result-area containment: renderInferenceResult /
+// renderInferenceError markup (long error strings, <pre> Full Output, perf grid, compare
+// canvas) is sized for the wide Run panel, so force every child to wrap or scroll INSIDE the
+// narrow demo card — nothing spills past the card.
 var _RUNDEMO_CSS = ''
-  // Two categories per row; each category a blue-bordered container.
-  + '.rundemo-groups{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start}'
-  + '@media(max-width:900px){.rundemo-groups{grid-template-columns:1fr}}'
-  + '.rundemo-group{min-width:0;border:1px solid var(--accent);border-radius:10px;'
-  +   'padding:8px 10px 10px;background:rgba(99,140,255,.04)}'
-  + '.rundemo-group-title{font-size:var(--fs-xs);font-weight:700;letter-spacing:.4px;'
-  +   'text-transform:uppercase;color:var(--accent);margin:0 0 8px;padding-left:2px}'
-  // Blocks flow and each sizes to its own content width (no fixed columns), so a
-  // model box grows wide enough to keep its id on ONE line; wrap to next row when full.
-  + '.rundemo-grid{display:flex;flex-wrap:wrap;gap:6px}'
-  // Compact model box — width fits content (model id never wraps), capped at category width.
-  + '.rundemo-group .rundemo-block{width:max-content;max-width:100%;padding:8px 9px;gap:5px;border-radius:8px;overflow:hidden}'
-  + '.rundemo-block-hd{display:flex;flex-direction:column;gap:1px;min-width:0}'
-  + '.rundemo-block-title{font-weight:600;font-size:var(--fs-sm);color:var(--text-1);line-height:1.25;'
-  +   'overflow-wrap:anywhere;word-break:break-word}'
-  // Model id (e.g. 3ddfa_v2_mobilnetv1_120x120) stays on ONE line; the box (width:max-content)
-  // widens to fit it instead of wrapping/clipping.
-  + '.rundemo-block-model{white-space:nowrap;line-height:1.2}'
-  + '.rundemo-axes{display:flex;flex-direction:column;gap:4px;min-width:0}'
-  + '.rundemo-axis{display:flex;align-items:center;gap:6px;flex-wrap:wrap;min-width:0}'
-  + '.rundemo-axis-label{min-width:42px;flex-shrink:0;font-size:var(--fs-xs)}'
-  + '.rundemo-chipgroup{display:flex;gap:4px;flex-wrap:wrap;min-width:0}'
-  + '.rundemo-chip{padding:2px 8px;font-size:var(--fs-xs);border-radius:6px;max-width:100%;'
-  +   'overflow:hidden;text-overflow:ellipsis;white-space:nowrap}'
-  + '.rundemo-actions{display:flex;gap:6px;margin-top:1px;flex-wrap:wrap}'
-  // Result/error/log area: strictly contained. The shared renderInferenceResult /
-  // renderInferenceError markup (long error strings, <pre> Full Output, perf grid,
-  // compare canvas) is sized for the wide Run panel, so force every child to wrap or
-  // scroll INSIDE the box — nothing spills past the model box.
-  + '.rundemo-result{margin-top:4px;min-width:0;max-width:100%;overflow-x:auto}'
-  + '.rundemo-result:empty{margin:0}'
   + '.rundemo-result *{max-width:100%;box-sizing:border-box}'
   + '.rundemo-result p,.rundemo-result span,.rundemo-result div,.rundemo-result td,.rundemo-result code'
   +   '{overflow-wrap:anywhere;word-break:break-word}'
@@ -91,7 +65,12 @@ function rundemoAvail(demo) {
     cpp: !!(avail.cpp_sync || avail.cpp_async)
   };
 
-  var defaultCode = code.python ? 'python' : 'cpp';
+  // Default to the native C++ example when its binary is built — that is exactly what the
+  // terminal run_demo.sh runs, and every C++ task runner writes an annotated output video
+  // reliably. Fall back to Python only when there is no C++ build (e.g. a fresh clone that
+  // hasn't run build.sh). Whichever the user then picks in the Code selector is honored
+  // verbatim — cpp runs cpp, python runs python (no silent switching).
+  var defaultCode = code.cpp ? 'cpp' : 'python';
   var syncEnabled = _rundemoSyncEnabled(demo, avail, defaultCode);
   var asyncEnabled = _rundemoAsyncEnabled(demo, avail, defaultCode);
   var mode = { sync: syncEnabled, async: asyncEnabled };
@@ -197,8 +176,11 @@ function rundemoRender(demos, groups) {
   var groupsHtml = order.map(function (g) {
     var list = byGroup[g] || [];
     if (!list.length) return '';
-    return '<div class="rundemo-group">'
+    var hue = (_RUNDEMO_HUE && _RUNDEMO_HUE[g]) || 'var(--accent)';
+    return '<div class="rundemo-group" style="--c:' + hue + '">'
+      + '<div class="rundemo-group-hd"><span class="rd-rail"></span>'
       + '<h3 class="rundemo-group-title">' + esc(g) + '</h3>'
+      + '<span class="rd-gcount">' + list.length + '</span><span class="rd-gline"></span></div>'
       + '<div class="rundemo-grid">' + list.map(_rundemoBlockHtml).join('') + '</div>'
       + '</div>';
   }).join('');
@@ -250,19 +232,57 @@ function _rundemoNotRunnableHtml(d, av) {
         '没有可运行的构建 — 请先完成 DX-APP/DX-Runtime 构建',
         '沒有可執行的建置 — 請先完成 DX-APP/DX-Runtime 建置',
         'Sin build ejecutable — complete primero el build de DX-APP/DX-Runtime');
-  return '<div class="setup-card rundemo-block" id="rundemo-block-' + d.idx + '">'
-    + '<div class="rundemo-block-hd">'
-    + '<div class="rundemo-block-title">' + esc(d.label) + '</div>'
-    + '<div class="rundemo-block-model txt-dim txt-xs">' + esc(d.model_name) + '</div>'
-    + '</div>'
-    + '<div class="rundemo-notice txt-dim txt-sm" style="margin-top:6px">' + esc(msg) + '</div>'
-    + '<div class="rundemo-actions">'
-    + '<button type="button" class="btn btn-ghost btn-sm" onclick="nav(\'setup\')">'
-    + esc(_T6('설정 ▶', 'Setup ▶', '設定 ▶', '设置 ▶', '設定 ▶', 'Configuración ▶')) + '</button>'
-    + '</div>'
-    + '<div class="rundemo-result" id="rundemo-result-' + d.idx + '"></div>'
+  var inner = '<div class="rundemo-notice rd-notice">' + esc(msg) + '</div>'
+    + '<div class="rundemo-actions rd-foot">'
+    + '<button type="button" class="rd-run rd-run-ghost" onclick="nav(\'setup\')">'
+    + esc(_T6('설정으로', 'Go to Setup', 'セットアップへ', '前往设置', '前往設定', 'Ir a Configuración')) + ' &rarr;</button>'
     + '</div>';
+  return _rundemoShell(d, { inner: inner });
 }
+
+// Category → hue, drawn from the shared semantic tokens (dx-tokens.css) so the demo page
+// stays consistent with dx_stream's cat-* coloring. Keyed by demo group.
+var _RUNDEMO_HUE = {
+  'Detection': 'var(--info)', 'Segmentation': 'var(--npu)',
+  'Keypoint & Pose': 'var(--warning)', 'Pose & Landmark': 'var(--warning)',
+  'Depth Estimation': 'var(--accent-strong,#7C5CFC)', 'Recognition': 'var(--success)',
+  'Image Restoration': 'var(--emerald,#10b981)', 'Classification': 'var(--success)',
+  'Hand Detection': 'var(--warning)', 'Driving & 3D': 'var(--vpu,#e879f9)', 'PPU': 'var(--accent)'
+};
+function _rundemoHue(d) { return _RUNDEMO_HUE[d.group] || 'var(--accent)'; }
+
+// New demo-card shell (design refactor). Keeps every functional hook intact: the id
+// #rundemo-block-<idx>, the .rundemo-axes chip rows (data-axis/data-val + _rundemoToggle,
+// which _rundemoUpdateBlockUI drives), the Run/Stop actions, and #rundemo-result-<idx>.
+// `inner` is the axes+actions markup; `foot` optionally overrides the action row.
+function _rundemoShell(d, opts) {
+  opts = opts || {};
+  var hue = _rundemoHue(d);
+  var thumb = d.thumbnail
+    ? '<img class="rd-thumb" src="' + esc(d.thumbnail) + '" alt="" loading="lazy" onerror="this.style.display=\'none\'">'
+    : '';
+  return '<div class="rd-card rundemo-block" id="rundemo-block-' + d.idx + '" data-cat="' + esc(d.group) + '" style="--c:' + hue + '">'
+    + '<div class="rd-prev">' + thumb
+    + '<span class="rd-tag">' + esc(d.group) + '</span></div>'
+    + '<div class="rd-body">'
+    + '<div class="rd-title">' + esc(d.label) + '</div>'
+    + '<div class="rd-model">' + esc(d.model_name) + '</div>'
+    + (opts.inner || '')
+    + '<button type="button" class="rd-result-bar" onclick="_rundemoToggleResult(' + d.idx + ')">'
+    + '<span class="rd-chev"></span>'
+    + '<span class="rd-result-lbl">' + esc(_T6('결과', 'Result', '結果', '结果', '結果', 'Resultado')) + '</span>'
+    + '</button>'
+    + '<div class="rundemo-result" id="rundemo-result-' + d.idx + '"></div>'
+    + '</div></div>';
+}
+
+// Collapse/expand a finished inference result in place (the bar only shows when the result
+// area is non-empty — see the :has() rule in style.css).
+function _rundemoToggleResult(idx) {
+  var c = document.getElementById('rundemo-block-' + idx);
+  if (c) c.classList.toggle('rd-collapsed');
+}
+if (typeof window !== 'undefined') window._rundemoToggleResult = _rundemoToggleResult;
 
 function _rundemoBlockHtml(d) {
   var av = rundemoAvail(d);
@@ -312,20 +332,14 @@ function _rundemoBlockHtml(d) {
     ], sel.post ? 'on' : 'off', _T6('후처리', 'Postprocess', '後処理', '后处理', '後處理', 'Postproceso'));
   }
 
-  return '<div class="setup-card rundemo-block" id="rundemo-block-' + d.idx + '">'
-    + '<div class="rundemo-block-hd">'
-    + '<div class="rundemo-block-title">' + esc(d.label) + '</div>'
-    + '<div class="rundemo-block-model txt-dim txt-xs">' + esc(d.model_name) + '</div>'
-    + '</div>'
-    + '<div class="rundemo-axes">' + axesHtml + '</div>'
-    + '<div class="rundemo-actions">'
-    + '<button type="button" class="btn btn-acc btn-sm" onclick="if(window.rundemoRun)rundemoRun(' + d.idx + ')">'
-    + '▶ ' + esc(_T6('실행', 'Run', '実行', '运行', '執行', 'Ejecutar')) + '</button>'
-    + '<button type="button" class="btn btn-ghost btn-sm" onclick="if(window.rundemoStop)rundemoStop()">'
-    + '⏹ ' + esc(_T6('중지', 'Stop', '停止', '停止', '停止', 'Detener')) + '</button>'
-    + '</div>'
-    + '<div class="rundemo-result" id="rundemo-result-' + d.idx + '"></div>'
+  var inner = '<div class="rundemo-axes rd-controls">' + axesHtml + '</div>'
+    + '<div class="rundemo-actions rd-foot">'
+    + '<button type="button" class="rd-run" onclick="if(window.rundemoRun)rundemoRun(' + d.idx + ')">'
+    + '<span class="rd-play"></span>' + esc(_T6('실행', 'Run', '実行', '运行', '執行', 'Ejecutar')) + '</button>'
+    + '<button type="button" class="rd-stop" title="Stop" onclick="if(window.rundemoStop)rundemoStop()">'
+    + '<span class="rd-sq"></span></button>'
     + '</div>';
+  return _rundemoShell(d, { inner: inner });
 }
 
 // Re-derive enablement for the block's CURRENT selection and refresh the
@@ -426,6 +440,18 @@ function rundemoRun(idx) {
   RUNDEMO.activeIdx = idx;
   window.renderInferenceSpinner(resultEl);
 
+  // All inputs use the batch path: process file → save annotated mp4/image → return and
+  // display full-size. The old live MJPEG screen-grab (Xvfb + mss) rendered quarter-size and
+  // laggy via /api/live_frame polling, so it was removed. Batch produces a real playable video
+  // (C++ sync / Python) at full resolution; async-C++ empty-video cases surface a Sync note.
+  rundemoRunBatch(idx, d, body, resultEl);
+}
+if (typeof window !== 'undefined') window.rundemoRun = rundemoRun;
+
+// Batch path: POST /api/run, render the saved result (image, or Python-saved video mp4).
+// Also the graceful fallback when live streaming isn't available on this board.
+function rundemoRunBatch(idx, d, body, resultEl) {
+  window.renderInferenceSpinner(resultEl);
   postJ('/api/run', body).then(function (res) {
     if (!res || res.error) {
       var errMsg = (res && (res.error || res.message)) || _T6('알 수 없는 오류', 'Unknown error', '不明なエラー', '未知错误', '未知錯誤', 'Error desconocido');
@@ -436,14 +462,88 @@ function rundemoRun(idx) {
     res._cat = d.run_ref.category;
     res._beforeSrc = null; // Run Demo has no before/after compare — plain result image
     window.renderInferenceResult(resultEl, res);
+  }).catch(function (e) {
+    // Without this, a rejected fetch (server restarted mid-run, connection dropped,
+    // proxy/browser timeout on a slow C++ run) skips the .then, so the spinner is never
+    // replaced → "Running inference…" spins forever. Mirror inference.js doRun's recovery.
+    window.renderInferenceError(resultEl,
+      (e && e.message) || _T6('요청 실패', 'Request failed', 'リクエスト失敗', '请求失败', '請求失敗', 'Solicitud fallida'), '');
   }).finally(function () {
     RUNDEMO.running = false;
     RUNDEMO.activeIdx = null;
   });
 }
-if (typeof window !== 'undefined') window.rundemoRun = rundemoRun;
+if (typeof window !== 'undefined') window.rundemoRunBatch = rundemoRunBatch;
+
+// Live-stream a video demo: start a C++ live job (renders to Xvfb), show its MJPEG frames
+// via <img src="/api/live_frame">, and poll /api/live_poll for the example's own perf log.
+function rundemoRunLive(idx, d, body, resultEl) {
+  var liveBody = {
+    model_name: body.model_name, category: body.category, model_file: body.model_file,
+    lang: 'cpp',   // live streaming is C++ only (renders annotated frames to the display)
+    variant: (body.variant || 'sync').replace('_cpp_postprocess', ''),
+    input_type: 'video', video_path: body.video_path,
+    device_id: 0, slot_idx: 0, n_total_slots: 1
+  };
+  var _clear = function () { RUNDEMO.running = false; RUNDEMO.activeIdx = null; };
+  postJ('/api/run_live', liveBody).then(function (res) {
+    if (!res || res.error) {
+      // ANY live failure → fall back to the batch save-then-return path, which reliably
+      // produces a playable output video with zero extra deps. Previously only three
+      // error_keys triggered the fallback (live_deps_missing / binary_not_found /
+      // live_cpp_only); any other live error just showed a message with NO video — e.g. a
+      // demo whose live start fails for an unlisted reason (superpoint on a board without
+      // Xvfb) would silently show nothing even though its batch run works fine.
+      rundemoRunBatch(idx, d, body, resultEl);   // batch (C++ --save / Python save) → playable mp4
+      return;
+    }
+    var jobId = res.job_id;
+    resultEl.innerHTML =
+      '<div class="rundemo-live">' +
+      '<img id="rundemo-live-img-' + idx + '" src="/api/live_frame?slot=0&t=' + Date.now() + '" ' +
+        'style="width:100%;display:block;border-radius:8px;background:#000" alt="live"/>' +
+      '<div id="rundemo-live-perf-' + idx + '" class="rundemo-live-perf txt-xs txt-dim mt8"></div>' +
+      '<button class="btn btn-sm mt8" onclick="rundemoStopLive(' + idx + ')">■ ' +
+        _T6('중지', 'Stop', '停止', '停止', '停止', 'Detener') + '</button>' +
+      '</div>';
+    if (RUNDEMO._live && RUNDEMO._live.pollInt) clearInterval(RUNDEMO._live.pollInt);
+    RUNDEMO._live = { idx: idx, jobId: jobId, pollInt: null };
+    RUNDEMO._live.pollInt = setInterval(function () {
+      api('/api/live_poll?id=' + jobId).then(function (p) {
+        if (!p || p.error) return;
+        var perf = document.getElementById('rundemo-live-perf-' + idx);
+        if (perf) {
+          var preds = (p.last_pred || []).slice(0, 3).join(', ');
+          perf.textContent = (p.task_summary || '') +
+            '  |  FPS ~' + (p.fps_est != null ? p.fps_est : '—') +
+            '  |  ' + _T6('프레임', 'frames', 'フレーム', '帧', '幀', 'frames') + ' ' + (p.frames || 0) +
+            (preds ? '  |  ' + preds : '');
+        }
+        if (!p.running) rundemoStopLive(idx);   // job ended (video finished / crashed)
+      }).catch(function () {});
+    }, 1000);
+  }).catch(function () {
+    // Network/transport failure starting the live job → fall back to batch too (never leave
+    // the user with a spinner-then-error and no video when batch would work).
+    rundemoRunBatch(idx, d, body, resultEl);
+  });
+}
+if (typeof window !== 'undefined') window.rundemoRunLive = rundemoRunLive;
+
+function rundemoStopLive(idx) {
+  if (RUNDEMO._live && RUNDEMO._live.pollInt) clearInterval(RUNDEMO._live.pollInt);
+  RUNDEMO._live = null;
+  postJ('/api/live_stop', { slot_idx: 0 }).catch(function () {});
+  RUNDEMO.running = false;
+  RUNDEMO.activeIdx = null;
+  var img = document.getElementById('rundemo-live-img-' + idx);
+  if (img) img.removeAttribute('src');   // close the MJPEG connection
+}
+if (typeof window !== 'undefined') window.rundemoStopLive = rundemoStopLive;
 
 function rundemoStop() {
+  // If a live video job is streaming, stop it via the live path (not the batch /api/stop).
+  if (RUNDEMO._live) { rundemoStopLive(RUNDEMO._live.idx); return; }
   postJ('/api/stop', {}).then(function () {
     var idx = RUNDEMO.activeIdx;
     RUNDEMO.running = false;

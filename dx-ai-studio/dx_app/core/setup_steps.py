@@ -108,6 +108,20 @@ SETUP_STEPS={
         "args":[],"cwd":lambda:DX_APP_ROOT,
         "desc":"Download sample models and videos for demos",
     },
+    "inference-venv":{
+        # Option 1: guarantee ONE interpreter with numpy+cv2+dx_engine for the python-variant
+        # demos, without touching dx-runtime or the base interpreter. A no-op when an existing
+        # interpreter already has all three (common on dx-all-suite boards); otherwise it builds
+        # a studio-owned venv (--system-site-packages seed from a dx_engine-capable python) and
+        # pip-installs opencv-python-headless + numpy into it only. dx_engine must already be
+        # installed (it is not on PyPI) — run dx-rt-build first.
+        "label":"Python Inference Deps",
+        "cmd":lambda:[sys.executable,"-c",
+            "from shared.runtime import ensure_inference_venv; "
+            "print('OK' if ensure_inference_venv(log=print) else 'INCOMPLETE')"],
+        "cwd":lambda:DX_APP_ROOT.parent,   # dx-ai-studio root so `import shared` resolves
+        "desc":"Ensure numpy+cv2+dx_engine coexist for Python demos (studio venv; no dx-runtime changes)",
+    },
     "dx-compiler":{
         "label":"DX-COM Compiler","script":lambda:DX_COMPILER_ROOT/"install.sh",
         "args":[],"cwd":lambda:DX_COMPILER_ROOT,
@@ -242,8 +256,9 @@ def setup_status():
         "detail":f"{nm} model(s), {nv} video(s)"}
     rv=DX_RT_ROOT/"release.ver"
     rt_ver=rv.read_text().strip() if rv.exists() else None
+    # release.ver may already start with "v" (e.g. "v3.4.1") → don't double it into "vv3.4.1".
     r["dx-rt-deps"]={"ok":rv.exists(),
-        "detail":f"v{rt_ver}" if rt_ver else "release.ver not found"}
+        "detail":f"v{rt_ver.lstrip('v')}" if rt_ver else "release.ver not found"}
     # dx-rt-build — ok only when the dx_engine Python API is importable in venv-dx-runtime
     venv_ok,venv_detail=_probe_dx_engine_venv()
     r["dx-rt-build"]={"ok":venv_ok,"detail":venv_detail}
@@ -255,6 +270,14 @@ def setup_status():
     r["dx-compiler"]={"ok":dxcom is not None,
         "detail":f"v{ver}" if ver else ("Install required" if not (DX_COMPILER_ROOT/"install.sh").exists() else "install.sh ✅"),
         "needs_credentials":True}
+    # inference-venv (Option 1) — ok when the resolved inference interpreter has numpy+cv2+dx_engine.
+    try:
+        from shared.runtime import runtime_python, _has_numpy_cv2_dxengine
+        _ip=runtime_python(); _iok=_has_numpy_cv2_dxengine(_ip)
+        r["inference-venv"]={"ok":_iok,
+            "detail":("numpy+cv2+dx_engine ✅ ("+Path(_ip).name+")") if _iok else "no interpreter has numpy+cv2+dx_engine yet"}
+    except Exception as _e:
+        r["inference-venv"]={"ok":False,"detail":f"probe failed: {_e}"}
     r["versions"] = {
         "dx_app": _read_release_ver("release.ver"),
         "dx_runtime": _read_release_ver(str(DX_RT_ROOT.parent / "release.ver")),
@@ -420,8 +443,10 @@ def setup_run(step,params=None):
     if params is None:params={}
     cfg=SETUP_STEPS.get(step)
     if not cfg:return{"ok":False,"error":f"Unknown step: {step}"}
-    script=cfg["script"]()
-    if not script.exists():return{"ok":False,"error":f"{script.name} not found"}
+    # A step is driven by either a shell "script" (bash <path> [args]) or a direct "cmd"
+    # (argv list, for studio-native steps that must not add scripts to the dx-runtime tree).
+    script=cfg["script"]() if cfg.get("script") else None
+    if script is not None and not script.exists():return{"ok":False,"error":f"{script.name} not found"}
     with config._comp_lock:
         if config._comp_proc and config._comp_proc.poll() is None:
             return{"ok":False,"error":"Another process is already running"}
@@ -466,7 +491,8 @@ def setup_run(step,params=None):
         try:
             if cfg.get("needs_sudo"):
                 threading.Thread(target=_keep_sudo_alive,args=(sudo_stop,),daemon=True).start()
-            proc=subprocess.Popen(["bash",str(script)]+args,
+            run_argv=cfg["cmd"]() if cfg.get("cmd") else ["bash",str(script)]+args
+            proc=subprocess.Popen(run_argv,
              stdout=subprocess.PIPE,stderr=subprocess.STDOUT,
              stdin=subprocess.PIPE,cwd=str(cwd),env=env,bufsize=0)
             config._comp_stdin_proc=proc

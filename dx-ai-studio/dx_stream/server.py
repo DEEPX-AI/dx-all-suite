@@ -667,6 +667,37 @@ class DXStreamHandler(DXBaseHandler):
         except Exception as e:
             self._error(400, "validation_error", str(e))
 
+    @staticmethod
+    def _missing_pipeline_assets(gst_str):
+        """Basenames of model/video files the pipeline references but that don't exist
+        on disk — so a run can fail fast with a clear message instead of a raw GStreamer
+        preroll error. Mirrors pipeline._resolve_props' MODELS_DIR/VIDEOS_DIR resolution."""
+        from dx_stream.core.config import MODELS_DIR, VIDEOS_DIR
+        missing = []
+        for raw in re.findall(r'model-path=(\S+)', gst_str or ""):
+            p = Path(raw)
+            if not p.is_absolute():
+                cand = MODELS_DIR / raw
+                if not cand.exists() and not raw.endswith(".dxnn"):
+                    cand = MODELS_DIR / (raw + ".dxnn")
+                p = cand
+            if not p.exists():
+                missing.append(Path(raw).name)
+        for raw in re.findall(r'location=(\S+)', gst_str or ""):
+            if not re.search(r'\.(mp4|mov|avi|mkv|webm)$', raw, re.I):
+                continue  # only sample-video locations, not config/other file props
+            p = Path(raw)
+            if not p.is_absolute():
+                p = VIDEOS_DIR / raw
+            if not p.exists():
+                missing.append(Path(raw).name)
+        seen, out = set(), []
+        for m in missing:
+            if m not in seen:
+                seen.add(m)
+                out.append(m)
+        return out
+
     def _handle_pipeline_run(self):
         """파이프라인 JSON 정의로 파이프라인 시작 — WebRTC 우선, MJPEG 폴백."""
         global _current_output_mode, _current_pipeline_id
@@ -696,6 +727,19 @@ class DXStreamHandler(DXBaseHandler):
                     + ", ".join(sorted(deepx_types))
                     + ") but the dxstream GStreamer plugin (libgstdxstream.so) is not "
                     "installed. Run the Build / Runtime-Deps setup step, then retry.",
+                )
+
+            # Pre-flight: a preset/pipeline may reference a model .dxnn (or sample video)
+            # that isn't downloaded yet. Without this, GStreamer fails deep inside dxinfer
+            # ("model-path file does not exist" → "pipeline doesn't want to preroll") and the
+            # user only sees a cryptic 500. Fail fast with a clear, actionable message.
+            missing_assets = self._missing_pipeline_assets(gst_str)
+            if missing_assets:
+                return self._error(
+                    424,
+                    "missing_asset",
+                    "Required file(s) not installed: " + ", ".join(missing_assets)
+                    + '. Download them from the Setup panel ("Model & Video Download"), then retry.',
                 )
 
             # 싱크 분류
@@ -924,6 +968,94 @@ class DXStreamHandler(DXBaseHandler):
             self._error(500, "server_error", str(e))
 
 
+def _prepare_runtime_env():
+    """Two startup fixups so GStreamer demos work regardless of how the server was launched:
+
+    1) CWD → DX_STREAM_ROOT. The multi/secondary demos (8, 10) run config JSONs whose
+       `model_path` is RELATIVE ("./dx_stream/samples/models/...") and dxinfer resolves it
+       against the process CWD. The mjpeg/fmp4 subprocess paths already pass cwd=DX_STREAM_ROOT,
+       but the in-process WebRTC path (Gst.parse_launch) inherits the server's CWD — so if the
+       server was started elsewhere those demos fail with "model-path ... does not exist"
+       (surfaces as an internal data-stream error). Pinning CWD here fixes it for every path.
+    2) DISPLAY/XAUTHORITY adoption. dxosd renders the OSD overlay on the GPU and needs access
+       to the primary DRM node, which requires an authenticated X session. When the server is
+       launched from a bare SSH shell (no DISPLAY) the overlay demos fail to preroll
+       (amdgpu ACCEL_WORKING -13). If a local X session is running, adopt its DISPLAY + auth so
+       the pipelines can reach the GPU the same way a desktop-launched run does.
+    """
+    from dx_stream.core.config import DX_STREAM_ROOT
+    try:
+        if DX_STREAM_ROOT.is_dir():
+            os.chdir(str(DX_STREAM_ROOT))
+            log.info("CWD pinned to DX_STREAM_ROOT: %s", DX_STREAM_ROOT)
+    except OSError as e:
+        log.warning("Could not chdir to DX_STREAM_ROOT (%s): %s", DX_STREAM_ROOT, e)
+
+    if not os.environ.get("DISPLAY"):
+        disp, xauth = _detect_local_x_session()
+        if disp:
+            os.environ["DISPLAY"] = disp
+            if xauth:
+                os.environ["XAUTHORITY"] = xauth
+            # Headless/SSH-launched: the adopted DISPLAY gives dxosd GPU access via DRI3 (clears
+            # the amdgpu ACCEL_WORKING -13), but with a DISPLAY present decodebin auto-plugs the
+            # HW VAAPI decoder, whose GPU-surface buffers dxosd CANNOT map ("Failed to map video
+            # frame for OSD rendering"). Demote the VAAPI *decoders* so decodebin uses software
+            # decode → CPU-mappable buffers → dxosd maps and renders. VAAPI *encoders* stay ranked
+            # (HW H264 for fMP4 is unaffected). This makes every overlay demo work over SSH, not
+            # just from the local desktop session. Verified: demos 0/8/10 preroll→PLAYING.
+            _demote = "vaapih264dec:0,vaapidecodebin:0,vah264dec:0,vaapih265dec:0,vah265dec:0"
+            _existing = os.environ.get("GST_PLUGIN_FEATURE_RANK", "")
+            os.environ["GST_PLUGIN_FEATURE_RANK"] = (
+                _existing + "," + _demote if _existing else _demote)
+            log.info("Adopted local X session for GPU access: DISPLAY=%s XAUTHORITY=%s "
+                     "(+ VAAPI decoders demoted so dxosd can map frames headless)",
+                     disp, xauth or "(none)")
+        else:
+            log.info("No local X session found; overlay (dxosd) demos need a desktop session "
+                     "or a launcher-provided DISPLAY to reach the GPU.")
+
+
+def _detect_local_x_session():
+    """Best-effort discovery of a running local X server's DISPLAY + XAUTHORITY.
+    Returns (display, xauthority) or (None, None). Reads the Xorg process's own -auth/-display
+    args first (most reliable), then falls back to common socket + auth locations."""
+    import glob
+    try:
+        for pid in os.listdir("/proc"):
+            if not pid.isdigit():
+                continue
+            try:
+                with open(f"/proc/{pid}/cmdline", "rb") as f:
+                    parts = f.read().split(b"\0")
+            except OSError:
+                continue
+            if not parts or not parts[0].endswith(b"Xorg"):
+                continue
+            args = [p.decode("utf-8", "replace") for p in parts if p]
+            disp = next((a for a in args if re.fullmatch(r":\d+", a)), None)
+            xauth = None
+            if "-auth" in args:
+                i = args.index("-auth")
+                if i + 1 < len(args):
+                    xauth = args[i + 1]
+            if disp:
+                return disp, (xauth if xauth and os.path.exists(xauth) else None)
+    except OSError:
+        pass
+    # Fallback: a socket in /tmp/.X11-unix + a discoverable auth file.
+    socks = sorted(glob.glob("/tmp/.X11-unix/X*"))
+    if socks:
+        disp = ":" + socks[0].rsplit("X", 1)[-1]
+        uid = os.getuid()
+        for cand in (f"/run/user/{uid}/gdm/Xauthority",
+                     os.path.expanduser("~/.Xauthority")):
+            if os.path.exists(cand):
+                return disp, cand
+        return disp, None
+    return None, None
+
+
 def create_server(port=DEFAULT_PORT):
     """테스트용 서버 팩토리: HTTPServer 인스턴스를 반환."""
     from http.server import ThreadingHTTPServer
@@ -933,4 +1065,5 @@ def create_server(port=DEFAULT_PORT):
 
 
 if __name__ == "__main__":
+    _prepare_runtime_env()
     DXServer(DXStreamHandler, SERVER_NAME, DEFAULT_PORT).start()

@@ -149,6 +149,43 @@ def test_compiler_service_has_submit_resume():
     assert hasattr(CompilerService, "_run_resume")
 
 
+def test_finalize_success_records_diagnosis_before_status_done(tmp_path):
+    """Regression: the diagnosis report must be recorded BEFORE status flips to "done".
+
+    The /progress SSE loop emits the terminal `complete` event (carrying the quant
+    payload) the instant it polls job.status == "done", then stops polling. When the
+    artifact stores ran *after* _finalize_success set status="done", a poll landing in
+    that window shipped `complete` with the report still unrecorded — so a
+    diagnosis_report.html that genuinely exists on disk was surfaced as "not generated".
+    _finalize_success must therefore leave diagnosis_report_path set by the time it
+    returns True (i.e. before the status write that the SSE loop keys off).
+    """
+    _reset_imports()
+    import time
+
+    from dx_compiler.core.compiler_service import CompileJob, CompilerService
+
+    svc = CompilerService(job_root=tmp_path / "jobs")
+    job = CompileJob(job_id="diag-order")
+    job.requested_output_dir = str(tmp_path / "out")
+    job.output_dir = job.requested_output_dir
+    job.quant_diagnosis = True
+    job.start_time = time.time() - 1.0
+
+    # Stage a fresh final .dxnn + the diagnosis report exactly where dx_com writes them.
+    work_dir = svc._job_directory(job) / "work"
+    (work_dir / "quant_diagnosis").mkdir(parents=True, exist_ok=True)
+    (work_dir / "model.dxnn").write_bytes(b"DXNN")
+    report = work_dir / "quant_diagnosis" / "diagnosis_report.html"
+    report.write_text("<html>diag</html>", encoding="utf-8")
+    job.work_dir = str(work_dir)
+
+    assert svc._finalize_success(job) is True
+    assert job.status == "done"
+    # The report path is recorded and points at the on-disk report.
+    assert job.diagnosis_report_path == str(report)
+
+
 def test_run_compile_signature_includes_checkpoint_for_qxnn_resume():
     _reset_imports()
     from dx_compiler.core.compiler_bridge import run_compile

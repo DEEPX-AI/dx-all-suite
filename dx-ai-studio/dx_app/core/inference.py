@@ -26,7 +26,7 @@ from dx_app.core.run_config import build_run_config
 
 from dx_app.core.inference_exec import (
     _err, _count_images_in_dir, _python_script_path, _python_runtime_ready,
-    _effective_run_lang, _find_fallback_binary, _find_saved_video,
+    _effective_run_lang, _find_fallback_binary, _find_saved_video, _find_saved_image,
     _drain_dxrt_msgqueues, _sweep_stale_temp,
     _TMP, _FALLBACK_BINARIES, _PAIR_COMPARE_CATS, _SIDE_BY_SIDE_OUTPUT_CATS,
     _STDOUT_TAG_CATS, _IMAGE_EXTENSIONS,
@@ -59,6 +59,29 @@ RUN_UPLOAD_ROOTS = (DX_APP_ROOT, OUTPUTS_DIR, SAMPLE_DIR, ASSETS_DIR)
 # in-flight multi child here under a lock and stop from a consistent snapshot.
 _multi_procs = []            # list of live Popen handles owned by active run_multi calls
 _multi_procs_lock = threading.Lock()
+
+
+def _video_has_frames(path) -> bool:
+    """True if `path` is a video with real content (non-zero duration).
+
+    A C++ example can open a VideoWriter, print "Saving output video: …", and still write
+    ZERO frames — the async headless (`--no-display --save`) runner does exactly this, leaving
+    a ~260-byte, 0-duration MP4 that is size>0 but unplayable. ffprobe the container duration
+    (metadata only, no full decode) to reject those so the GUI never shows a broken empty
+    player. If ffprobe is unavailable, fall back to a size heuristic (an empty container is
+    tiny; a real annotated clip is comfortably larger)."""
+    try:
+        r = subprocess.run(
+            ["ffprobe", "-v", "error", "-show_entries", "format=duration",
+             "-of", "default=nokey=1:noprint_wrappers=1", str(path)],
+            capture_output=True, text=True, timeout=30)
+        out = (r.stdout or "").strip()
+        return bool(out) and out != "N/A" and float(out) > 0.0
+    except (ValueError, OSError, subprocess.SubprocessError):
+        try:
+            return path.stat().st_size > 4096
+        except OSError:
+            return False
 
 
 def run_inference(model_name, category, model_file, lang="cpp", variant="sync",
@@ -151,7 +174,15 @@ def run_inference(model_name, category, model_file, lang="cpp", variant="sync",
             _loop = pair_n
     if _is_live:
         timeout = max(timeout, 300)  # live sources may need more time
+    # Some Python async runners (keypoint / superpoint) deadlock on video: the async pipeline
+    # never drains, so the process hangs until the timeout — a ~2-min dead spinner the user
+    # reads as "infinite loading". Cap the wait and, on timeout, return a Sync-pointing note
+    # instead of a generic error. (Runtime limitation; no dx-runtime change.)
+    _async_video_hang_risk = ("async" in (variant or "") and input_type == "video" and not _is_live)
+    if _async_video_hang_risk:
+        timeout = min(timeout, 60)
     _video_save_dir = None
+    _img_save_dir = None
     run_lang = _effective_run_lang(lang, category, model_name, variant, input_type)
     tag_extra = ["--show-log"] if category in _STDOUT_TAG_CATS else []
     if run_lang == "cpp":
@@ -164,9 +195,21 @@ def run_inference(model_name, category, model_file, lang="cpp", variant="sync",
                     except OSError: pass
                 return _err("binary_not_found", f"Binary not found: {model_name}_{variant} — run build.sh")
         extra = list(tag_extra)
-        # Stock dx-runtime C++ --save can SIGABRT when VideoWriter reports w/h=0; skip save on cpp.
-        if input_type != "video":
-            pass
+        # C++ --save renders an annotated H.264 (avc1) video — the same visualization the
+        # terminal run_demo.sh shows — into <save-dir>/<run>/output.mp4 (found by
+        # _find_saved_video). Enabled for video so the GUI can display it, not just FPS.
+        # If a model makes the stock VideoWriter abort (the rare w/h=0 case), the run just
+        # returns without a video (FPS still shown) — handled downstream, no studio crash.
+        if input_type == "video":
+            _video_save_dir = tempfile.mkdtemp(prefix="dxapp_video_", dir=_TMP)
+            extra += ["-s", "--save-dir", _video_save_dir]
+        elif input_type == "image":
+            # Also enable --save for image runs: the PoseRunner family (pose / object_pose /
+            # keypoint) ignores DXAPP_SAVE_IMAGE and only writes the annotated still into the
+            # run-dir. We pick it up via _find_saved_image if DXAPP_SAVE_IMAGE stays empty, so
+            # those tasks show a result image (matching their Python examples).
+            _img_save_dir = tempfile.mkdtemp(prefix="dxapp_img_", dir=_TMP)
+            extra += ["-s", "--save-dir", _img_save_dir]
         if is_multi_model:
             cmd = [str(bp)] + model_args + [inf, _inp_str, "--no-display", "-l", str(_loop)] + extra
         else:
@@ -213,7 +256,7 @@ def run_inference(model_name, category, model_file, lang="cpp", variant="sync",
         if run_lang != lang:
             res["lang_effective"] = run_lang
         if input_type == "video":
-            res["video_save_mode"] = "python_save" if run_lang == "python" else "cpp_no_save"
+            res["video_save_mode"] = "python_save" if run_lang == "python" else "cpp_save"
         perf = _parse_perf(stdout); res["perf"] = perf
         res["fps"] = perf.get("overall_fps", ""); res["latency"] = perf.get("inference_latency", "")
 
@@ -225,6 +268,15 @@ def run_inference(model_name, category, model_file, lang="cpp", variant="sync",
         # visualizable result for tasks (classification/depth/pose/...) that emit NO output image.
         res["task_last_pred"] = task["last_pred"]
 
+        # Recover the annotated still from the C++ --save run-dir when DXAPP_SAVE_IMAGE was
+        # ignored (PoseRunner family: pose / object_pose / keypoint). Copy it onto res_img so
+        # the normalisation pipeline below treats it like any other result image.
+        if (input_type == "image" and _img_save_dir and res_img
+                and (not os.path.exists(res_img) or os.path.getsize(res_img) == 0)):
+            _si = _find_saved_image(_img_save_dir)
+            if _si:
+                try: shutil.copy2(str(_si), res_img)
+                except OSError: pass
         # Result image — normalise to input resolution for CMP slider
         if res_img and os.path.exists(res_img) and os.path.getsize(res_img) > 0:
             output_only = (
@@ -288,9 +340,22 @@ def run_inference(model_name, category, model_file, lang="cpp", variant="sync",
         res["result_video_url"] = None
         if input_type == "video":
             vo = _find_saved_video(stdout, _video_save_dir) or (DX_APP_ROOT / "result.mp4")
-            if vo.exists() and vo.stat().st_size > 0:
+            if vo.exists() and vo.stat().st_size > 0 and _video_has_frames(vo):
                 dst = OUTPUTS_DIR / f"result_{model_name}_{int(time.time())}.mp4"
                 if _cvt_video(vo, dst): res["result_video_url"] = f"/outputs/{dst.name}"
+                if vo == DX_APP_ROOT / "result.mp4":
+                    try: vo.unlink(missing_ok=True)
+                    except Exception: pass
+            elif variant.startswith("async") or "async" in variant:
+                # No playable video came back from an async run. Async video-save works for most
+                # tasks (detection, etc.) but a few task runners (pose / keypoint / face) drop
+                # their frames on the async pipeline's shutdown, leaving either a 0-frame MP4
+                # (C++: size>0, unplayable) or no file at all (Python). Surface an honest note
+                # pointing at Sync — which renders the identical annotated video — instead of a
+                # broken/empty player. (Runtime limitation of those specific async examples.)
+                # i18n key — the frontend localises it (6 languages) via T(). Includes the
+                # "update coming" + "verify in terminal" guidance the message must carry.
+                res["video_note"] = "async_empty_video"
                 if vo == DX_APP_ROOT / "result.mp4":
                     try: vo.unlink(missing_ok=True)
                     except Exception: pass
@@ -312,6 +377,12 @@ def run_inference(model_name, category, model_file, lang="cpp", variant="sync",
         if _multi and proc is not None: _multi_unregister(proc)
         with config._proc_lock:
             if config._running_proc: config._running_proc.kill(); config._running_proc.wait(); config._running_proc = None
+        if _async_video_hang_risk:
+            return _err("async_video_stalled",
+                        f"This async example stalled on video within {timeout}s — a known "
+                        f"limitation of some async runners (the pipeline doesn't drain). "
+                        f"Switch to Sync mode for this video (identical output).",
+                        model=model_name)
         return _err("inference_timeout", f"Timeout ({timeout}s)", model=model_name)
     except Exception as e:
         if _multi and proc is not None: _multi_unregister(proc)

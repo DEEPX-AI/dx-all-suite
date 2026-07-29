@@ -166,12 +166,12 @@ function onRCat(){
 }
 
 function updateRunInputMode(cat){
-  // Mirror of dx_app _IMAGE_ONLY_TASKS (common/runner/sync_runner.py): single-model
-  // examples for these tasks reject video/camera/rtsp — they need a detector crop
-  // pipeline (embedding/reid/attribute), are single-frame (hand_*), or use non-video
-  // input (DOPE static pose, SFA3D LiDAR .bin). Video is disabled for them here.
+  // Exact mirror of dx_app _IMAGE_ONLY_TASKS (common/runner/sync_runner.py:178): these 5
+  // runners reject video/camera/rtsp — detector-crop pipeline (embedding/reid/attribute),
+  // static pose (DOPE), or LiDAR .bin (SFA3D). Video is hard-disabled for them here.
+  // hand_detection / hand_landmark are NOT image-only (they process video per-frame).
   var imageOnly=['embedding','reid','attribute_recognition',
-                 'hand_landmark','hand_detection','object_pose_estimation','3d_object_detection'];
+                 'object_pose_estimation','3d_object_detection'];
   var vidRadio=$('r-input-vid');
   var imgRadio=$('r-input-img');
   var restrict=imageOnly.indexOf(cat)!==-1;
@@ -460,6 +460,7 @@ window.renderInferenceResult=function(el,res){
     h+='<div style="background:var(--accent-dim);border:1px solid rgba(99,140,255,.2);border-radius:8px;padding:8px 12px;margin-bottom:10px;font-size:11px;color:var(--accent)">'+VIS_HINTS[cat]+'</div>';
   }
   if(r.result_video_url){h+='<div class="mb8"><video src="'+r.result_video_url+'" controls class="res-img" style="max-width:100%"></video></div>'}
+  else if(r.video_note){h+='<div style="background:rgba(240,180,40,.12);border:1px solid rgba(240,180,40,.35);border-radius:8px;padding:8px 12px;margin-bottom:10px;font-size:11px;color:#c88a10">⚠️ '+T(r.video_note)+'</div>'}
   var pairCats=['embedding','reid'];
   // CMP slider applies when input is an image and result_image is present (not pair-compare layouts)
   // "Before" image is either a picked sample (served via /file/) or an uploaded

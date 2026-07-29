@@ -226,13 +226,19 @@ def discover_local_models(base: str | None) -> list[str]:
 
 # agent -> (binary name, argv-tail builder(prompt, model, effort)). Self-contained
 # (no dependency on dx_agent_dev) to respect the shared-infra layering.
+# Model-flag per agent mirrors dx_agent_dev's adapters so a picked model actually applies:
+#   claude/cursor/copilot → --model, opencode/codex → -m. "auto" is a studio sentinel
+#   ("let the CLI decide"), NOT a real id — omit the flag for it (copilot rejects --model auto).
+def _model_flag(flag, m):
+    return [flag, m] if (m and m != "auto") else []
+
 _AGENT_CHAT = {
     "claude": ("claude", lambda p, m, e: ["-p", p]
-               + (["--model", m] if m else []) + (["--effort", e] if e else [])),
-    "opencode": ("opencode", lambda p, m, e: ["run", p]),
-    "copilot": ("copilot", lambda p, m, e: ["-p", p]),
-    "cursor": ("cursor-agent", lambda p, m, e: ["-p", p] + (["--model", m] if m else [])),
-    "codex": ("codex", lambda p, m, e: ["exec", p]),
+               + _model_flag("--model", m) + (["--effort", e] if e else [])),
+    "opencode": ("opencode", lambda p, m, e: ["run", p] + _model_flag("-m", m)),
+    "copilot": ("copilot", lambda p, m, e: ["-p", p] + _model_flag("--model", m)),
+    "cursor": ("cursor-agent", lambda p, m, e: ["-p", p] + _model_flag("--model", m)),
+    "codex": ("codex", lambda p, m, e: ["exec", p] + _model_flag("-m", m)),
 }
 
 # Preference order when the configured chat agent's CLI is absent (mirrors dx_agent_dev's
@@ -428,9 +434,11 @@ def stream_chat(
 
     Yields non-empty token strings.
     """
-    # CLI-backed provider: model field carries the agent name (claude/opencode/…).
+    # CLI-backed provider: model field carries "<agent>::<model>" (e.g. "claude::claude-opus-5").
+    # The sub-model is optional — bare "<agent>" runs the agent's own default model.
     if provider == "agent-cli":
-        yield from stream_agent_cli(model, None, messages, effort=None)
+        agent_name, _sep, sub_model = (model or "").partition("::")
+        yield from stream_agent_cli(agent_name or model, sub_model or None, messages, effort=None)
         return
 
     if provider not in _BUILDERS:

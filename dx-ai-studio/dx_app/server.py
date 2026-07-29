@@ -102,8 +102,8 @@ def _validate_inference_payload(data, live=False):
         input_type = data.get("input_type", "camera" if live else "image")
         if input_type not in _RUN_INPUT_TYPES:
             raise ValueError(f"Invalid input_type: {input_type!r}")
-        if live and input_type not in {"camera", "rtsp"}:
-            raise ValueError("Live mode only supports camera/rtsp")
+        if live and input_type not in {"camera", "rtsp", "video"}:
+            raise ValueError("Live mode only supports camera/rtsp/video")
         _require_optional_input_path(data.get("upload_path"), "upload_path")
         _require_optional_input_path(data.get("image_path"), "image_path", allow_dir=True)
         _require_optional_input_path(data.get("video_path"), "video_path")
@@ -112,7 +112,7 @@ def _validate_inference_payload(data, live=False):
         code = 403 if "outside allowed roots" in msg or "File not found" in msg or "Extension" in msg else 400
         return _error_payload(_validation_error_key(msg), msg), code
     return None, None
-from dx_app.core.models import get_models, get_model_info
+from dx_app.core.models import get_models, get_model_info, get_catalog
 from dx_app.core.demos import build_demos_payload
 from dx_app.core.assets import get_file_content, get_images, get_videos, list_outputs, delete_output
 from dx_app.core.inference import (run_inference, stop_inference, run_multi, list_cameras,
@@ -247,7 +247,18 @@ class Handler(DXBaseHandler):
                 except ValueError:
                     self.send_error(403);return
                 return self.send_file(safe_fp)
+            if path=="/api/demo-thumb":
+                from dx_app.core.demos import thumbnail_path
+                fp=thumbnail_path(self.read_query_param("f") or "")
+                if not fp:self.send_error(404);return
+                d=fp.read_bytes();self.send_response(200)
+                self.send_header("Content-Type",mimetypes.guess_type(str(fp))[0] or "image/jpeg")
+                self.send_header("Content-Length",len(d))
+                self.send_header("Cache-Control","public, max-age=86400")
+                self.send_header("Access-Control-Allow-Origin","*");self.end_headers();self.wfile.write(d)
+                return
             if path=="/api/models":return self.send_json(get_models())
+            if path=="/api/catalog":return self.send_json(get_catalog())
             if path=="/api/demos":return self.send_json(build_demos_payload())
             if path=="/api/model_info":
                 n=self.read_query_param("name")
@@ -440,6 +451,7 @@ class Handler(DXBaseHandler):
                     model_file=data.get("model_file",""),lang=data.get("lang","cpp"),
                     variant=data.get("variant","sync"),input_type=data.get("input_type","camera"),
                     camera_id=data.get("camera_id"),rtsp_url=data.get("rtsp_url"),
+                    video_path=data.get("video_path"),
                     device_id=data.get("device_id"),slot_idx=int(data.get("slot_idx",0)),
                     n_total_slots=int(data.get("n_total_slots",1)))
                 return self.send_json(r)

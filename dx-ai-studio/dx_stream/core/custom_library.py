@@ -18,20 +18,56 @@ _build_lock = threading.Lock()
 
 
 class CustomLibraryManager:
+    @staticmethod
+    def _norm(s: str) -> str:
+        """Lowercase + strip every non-alphanumeric char, for fuzzy name matching between a
+        source dir name (e.g. 'Object_Classification', 'YoloV5S') and the installed .so
+        (e.g. 'libpostprocess_object_class.so', 'libpostprocess_yolov5s_6.so')."""
+        import re as _re
+        return _re.sub(r"[^a-z0-9]", "", (s or "").lower())
+
+    def _installed_match(self, name: str, installed: dict) -> str | None:
+        """Return the installed .so path whose (normalized) name relates to *name*, or None.
+        Matches when either normalized name contains the other — handles object_class ⊂
+        objectclassification, yolov5s ⊂ yolov5s6, exact scrfd500m/ppu, etc."""
+        n = self._norm(name)
+        if not n:
+            return None
+        for inst_norm, path in installed.items():
+            if n == inst_norm or n in inst_norm or inst_norm in n:
+                return path
+        return None
+
     def list_libraries(self) -> list[dict]:
-        """postprocess_library/ 하위 디렉토리 목록 반환."""
+        """postprocess_library/ 하위 디렉토리 목록 반환.
+
+        A library counts as built/installed when EITHER its source builddir has a .so OR a
+        matching .so is already installed under INSTALLED_SO_DIR. The SDK ships the stock
+        libraries pre-installed there (never leaving a source builddir), so checking only the
+        builddir wrongly reported every stock library as "Not built"."""
         if not POSTPROC_LIB_DIR.exists():
             return []
+        # Index installed .so by normalized name (strip libpostprocess_ prefix + .so suffix).
+        installed = {}
+        if INSTALLED_SO_DIR.exists():
+            for f in INSTALLED_SO_DIR.glob("*.so"):
+                stem = f.stem
+                if stem.startswith("libpostprocess_"):
+                    stem = stem[len("libpostprocess_"):]
+                installed[self._norm(stem)] = str(f)
         libs = []
         for d in sorted(POSTPROC_LIB_DIR.iterdir()):
             if d.is_dir() and (d / "meson.build").exists():
                 so_file = list(d.glob("builddir/*.so"))
+                inst_so = self._installed_match(d.name, installed)
+                so = str(so_file[0]) if so_file else inst_so
                 libs.append({
                     "name": d.name,
                     "path": str(d),
                     "has_meson": True,
-                    "built": len(so_file) > 0,
-                    "so_file": str(so_file[0]) if so_file else None,
+                    "built": bool(so_file) or inst_so is not None,
+                    "installed": inst_so is not None,
+                    "so_file": so,
                 })
         return libs
 

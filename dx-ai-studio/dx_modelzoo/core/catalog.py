@@ -293,6 +293,23 @@ def _metadata_source_from_generated(generated_catalog):
     return source
 
 
+# Public ModelZoo ids carry quant / instance suffixes (_q_lite / _q_pro / _q_master / _1) that
+# the local catalog ids don't, so an exact-id merge left many models unenriched ("update
+# pending" for fps, fps/watt, artifacts, …). Match exact first, then the local id + a KNOWN
+# suffix — directional so meaningful resolution variants (e.g. *_1280) are never collapsed.
+_GEN_ID_SUFFIXES = ("_q_lite", "_q_pro", "_q_master", "_1")
+
+def _match_generated(model_id, gen_map):
+    g = gen_map.get(model_id)
+    if g is not None:
+        return g
+    for suf in _GEN_ID_SUFFIXES:
+        g = gen_map.get(model_id + suf)
+        if g is not None:
+            return g
+    return None
+
+
 def _has_metadata_value(value):
     if value is None or value == "":
         return False
@@ -584,7 +601,7 @@ def reload_catalog():
         gen_map = {m["id"]: m for m in generated.get("models", [])}
         metadata_source = _metadata_source_from_generated(generated)
         for model in merged:
-            enriched = gen_map.get(model["id"])
+            enriched = _match_generated(model["id"], gen_map)
             if enriched:
                 _enrich_model_entry(model, enriched, metadata_source=metadata_source)
         # 기본 processor/specification 보장 (생성된 카탈로그에 없는 모델용)
@@ -627,7 +644,7 @@ def apply_generated_catalog(generated_catalog):
         next_models = []
         for model in _catalog_cache["models"]:
             next_model = copy.deepcopy(model)
-            enriched = gen_map.get(next_model["id"])
+            enriched = _match_generated(next_model["id"], gen_map)
             if enriched:
                 _enrich_model_entry(next_model, enriched, metadata_source=metadata_source)
             _enrich_legal(next_model)

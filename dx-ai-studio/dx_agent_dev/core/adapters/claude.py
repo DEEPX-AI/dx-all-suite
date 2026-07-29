@@ -23,7 +23,10 @@ class ClaudeAdapter(SubprocessAdapter):
             cmd += ["--model", self.model]  # "auto" = studio sentinel for "CLI default", not a real id
         if self.effort and self.effort != "none":
             cmd += ["--effort", self.effort]  # low|medium|high|xhigh|max ("none" = omit → default)
-        cmd += ["--output-format", "stream-json", "--verbose", "--include-partial-messages"]
+        # NOTE: no --include-partial-messages. Partial token deltas flooded the log with
+        # fragmented, half-JSON lines AND duplicated every message (delta stream + final
+        # assistant block + result). Complete per-turn messages are enough for a compile agent.
+        cmd += ["--output-format", "stream-json", "--verbose"]
         cmd = self._apply_cli_resume(cmd, run_ctx)
         return cmd
 

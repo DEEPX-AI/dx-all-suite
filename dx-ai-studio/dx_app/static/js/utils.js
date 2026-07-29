@@ -2,7 +2,7 @@
 
 
 const S={
-  models:[],images:[],videos:[],cats:[],
+  models:[],catalog:[],images:[],videos:[],cats:[],
   selImg:'',chartMode:'temp',
   rtData:[],rtView:'rt',accRange:'5m',abCols:2,pipeSteps:[],
   devToken:null,benchAbort:false,benchRes:{},

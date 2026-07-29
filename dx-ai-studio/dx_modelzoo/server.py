@@ -254,7 +254,21 @@ class ModelZooHandler(DXBaseHandler):
                 return self._handle_proxy("GET", path, self.parsed.query)
 
             if path.startswith("/data/"):
-                return self.serve_static(path[6:], DATA_DIR)
+                rel = path[6:]
+                # Thumbnail fallback: some catalog ids are resolution/variant spins
+                # (e.g. yolov5m6_1280) that have no per-id thumbnail file. Fall back to the
+                # base-family thumbnail by dropping trailing _<token> segments one at a time,
+                # so the card shows the architecture's image instead of a broken placeholder.
+                if rel.startswith("thumbnails/") and rel.endswith(".jpg") \
+                        and not (DATA_DIR / rel).is_file():
+                    stem = rel[len("thumbnails/"):-len(".jpg")]
+                    while "_" in stem:
+                        stem = stem.rsplit("_", 1)[0]
+                        cand = DATA_DIR / "thumbnails" / (stem + ".jpg")
+                        if cand.is_file():
+                            rel = "thumbnails/" + stem + ".jpg"
+                            break
+                return self.serve_static(rel, DATA_DIR)
 
         if self.command == "POST":
             if path == "/api/metadata/sync":
@@ -496,6 +510,80 @@ def create_server(port=DEFAULT_PORT):
     return srv
 
 
+def _maybe_auto_sync():
+    """First-run / staleness background metadata sync (opt-out).
+
+    On startup, if the generated catalog is missing or stale, refresh it from the online
+    source in a daemon thread — so a fresh install shows real FPS and working download URLs
+    without a manual sync. Skips cleanly when disabled, or on a local/air-gapped profile;
+    never blocks boot and never crashes on failure (offline → keep the base catalog).
+
+    Opt-out: DX_MODELZOO_AUTOSYNC=0. Staleness window: DX_MODELZOO_AUTOSYNC_MAX_AGE_DAYS (7)."""
+    import os
+    import time
+    if os.environ.get("DX_MODELZOO_AUTOSYNC", "1").strip().lower() in ("0", "false", "no", "off"):
+        return
+    try:
+        from dx_modelzoo.metadata.sync import resolve_source_profile, run_sync
+        from dx_modelzoo.tools.sync_metadata import _resolve_metadata_config_path
+    except Exception:
+        return
+    studio_root = Path(__file__).resolve().parent.parent          # dx-ai-studio
+    suite_root = studio_root.parent                                # dx-all-suite
+    try:
+        source = resolve_source_profile(
+            env=os.environ, config_path=_resolve_metadata_config_path(studio_root))
+    except Exception:
+        source = "public"
+    # Only online profiles need a network sync. 'local' is offline/air-gap-friendly (and
+    # local+offline sync is forbidden) — never auto-hit the network for it.
+    if source not in ("public", "internal"):
+        return
+    try:
+        max_age_days = float(os.environ.get("DX_MODELZOO_AUTOSYNC_MAX_AGE_DAYS", "7"))
+    except ValueError:
+        max_age_days = 7.0
+    gen = DATA_DIR / "generated_catalog.json"
+    try:
+        if gen.is_file() and max_age_days > 0:
+            if (time.time() - gen.stat().st_mtime) / 86400.0 < max_age_days:
+                return  # recent enough — skip
+    except OSError:
+        pass
+
+    def _worker():
+        global _sync_running
+        with _sync_lock:
+            if _sync_running:
+                return
+            _sync_running = True
+        try:
+            result = run_sync(
+                source_profile=source,
+                suite_root=suite_root,
+                output_path=DATA_DIR / "generated_catalog.json",
+                cache_path=DATA_DIR / "generated_catalog.cache.json",
+                report_path=DATA_DIR / "sync_report.json",
+                offline=False,
+            )
+            catalog = result.get("catalog", {}) if isinstance(result, dict) else {}
+            if catalog:
+                apply_generated_catalog(catalog)
+            else:
+                reload_catalog()
+            print(f"[dx_modelzoo] auto-sync ({source}) complete: "
+                  f"{len(catalog.get('models', []))} models", flush=True)
+        except Exception as exc:
+            # Offline / air-gapped / unreachable → keep base catalog, no crash, no spam.
+            print(f"[dx_modelzoo] auto-sync skipped ({source}): {exc}", flush=True)
+        finally:
+            with _sync_lock:
+                _sync_running = False
+
+    threading.Thread(target=_worker, name="modelzoo-autosync", daemon=True).start()
+
+
 if __name__ == "__main__":
     reload_catalog()
+    _maybe_auto_sync()
     DXServer(ModelZooHandler, SERVER_NAME, DEFAULT_PORT).start()

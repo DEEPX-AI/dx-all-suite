@@ -19,9 +19,12 @@
 
   var conversationId = null;   // tracked across interactive follow-ups
   var _running = false;
+  var _abort = null;           // AbortController for the in-flight /agent/api/agent/run
   var _agents = [];            // live agent metadata from /agent/api/agent/status
 
-  var _RECOMMENDED_MODEL = /(sonnet|opus)[ -]?4\.(6|7|8|9)|(sonnet|opus)[ -]?[5-9]/i;
+  // Recommended = harness-following-capable families: Sonnet/Opus 4.6+, any Sonnet/Opus 5+,
+  // and GPT 5.4+ (covers gpt-5.6-*). Accepts dot or dash forms (4.8 / 4-8, 5.6 / 5-6).
+  var _RECOMMENDED_MODEL = /(sonnet|opus)[ -]?4[.-][6-9]|(sonnet|opus)[ -]?[5-9]|gpt[ -]?5[.-][4-9]|gpt[ -]?[6-9]/i;
 
   function buildPrompt(model) {
     return (
@@ -39,10 +42,17 @@
     if (panel) panel.style.display = '';
   }
 
+  var _lastLoggedText = null;
   function appendLog(text) {
     ensureLogVisible();
     var el = getLogContent();
     if (!el) return;
+    // Collapse consecutive duplicates: the agent stream emits a turn's text as an
+    // `assistant` block AND again as the final `result`, so the last message would print
+    // twice (three times with the old partial-delta stream). Skip identical repeats.
+    var norm = (text == null ? '' : String(text)).trim();
+    if (norm && norm === _lastLoggedText) return;
+    _lastLoggedText = norm;
     el.textContent += text + '\n';
     el.scrollTop = el.scrollHeight;
   }
@@ -54,49 +64,88 @@
     if (b2) b2.disabled = disabled;
   }
 
-  function _removeReplyUI() {
-    var existing = document.getElementById('agentic-reply-row');
-    if (existing) existing.remove();
+  // ── Persistent interactive chat input (under the Compiler Log) ─────────────────────
+  // Mirrors the dx_agent_dev console: one always-present box that sends each line as a turn
+  // in the SAME agent conversation. Shown when an interactive agentic run starts; disabled
+  // while the agent is running, re-enabled when its turn ends (so the user can reply).
+  function getChatRow()   { return document.getElementById('agentic-chat-row'); }
+  function getChatInput() { return document.getElementById('agentic-chat-input'); }
+
+  // The input stays ALWAYS typeable while the chat row is visible. It is NEVER disabled:
+  // the agent (claude -p) is one-shot per turn, and a run can sit "running" for a long time
+  // (rate limits, long tool calls) after it has already printed its question — greying the
+  // box out in that window left the user unable to click or type their answer. Instead, the
+  // box is always editable and sendChatReply() soft-guards on _running.
+  function showAgenticChat(focusIt) {
+    var row = getChatRow();
+    if (row) row.style.display = '';
+    var inp = getChatInput();
+    var btn = document.getElementById('agentic-chat-send');
+    if (inp) inp.disabled = false;
+    if (btn) btn.disabled = false;
+    if (focusIt && inp) {
+      ensureLogVisible();
+      setTimeout(function () {
+        inp.focus();
+        if (row) row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }, 50);
+    }
+  }
+  function hideAgenticChat() {
+    var row = getChatRow();
+    if (row) row.style.display = 'none';
   }
 
-  function showReplyUI(onSend) {
-    _removeReplyUI();
-    var container = document.getElementById('agentic-compile');
-    if (!container) return;
+  // Send the current chat line as an interactive follow-up turn (same conversation).
+  var _lastAgenticPayload = null;   // remembers agent/model/effort/target for follow-ups
 
-    var row = document.createElement('div');
-    row.id = 'agentic-reply-row';
-    row.style.cssText = 'display:flex;gap:8px;margin-top:10px;align-items:center;';
+  // Abort the in-flight run and tell the backend to kill the agent process, so a reply can
+  // start a fresh resume turn without a 409 "agent busy".
+  function cancelCurrentRun() {
+    if (_abort) { try { _abort.abort(); } catch (e) { /* ignore */ } _abort = null; }
+    try { fetch('/agent/api/agent/cancel', { method: 'POST' }); } catch (e) { /* best effort */ }
+    _running = false;
+  }
 
-    var inp = document.createElement('input');
-    inp.type = 'text';
-    inp.id = 'agentic-reply-input';
-    inp.placeholder = tr('Reply to agent...');
-    inp.style.cssText = 'flex:1;padding:6px 10px;border:1px solid var(--border,#ccc);border-radius:4px;font-size:0.9rem;';
+  // Poll /agent/api/agent/status until the runner reports not-busy (or a timeout), then cb().
+  function _whenAgentFree(cb, tries) {
+    tries = tries || 0;
+    fetch('/agent/api/agent/status')
+      .then(function (r) { return r.json(); })
+      .then(function (s) {
+        if (!s || !s.busy || tries >= 25) cb();          // ~5s max
+        else setTimeout(function () { _whenAgentFree(cb, tries + 1); }, 200);
+      })
+      .catch(function () { cb(); });
+  }
 
-    var btn = document.createElement('button');
-    btn.type = 'button';
-    btn.textContent = tr('Send');
-    btn.className = 'compile-btn';
-    btn.style.cssText = 'padding:6px 14px;';
-
-    function doSend() {
-      var val = inp.value.trim();
-      if (!val) return;
-      _removeReplyUI();
-      onSend(val);
+  function sendChatReply() {
+    var inp = getChatInput();
+    if (!inp) return;
+    var val = inp.value.trim();
+    if (!val) return;
+    inp.value = '';
+    var base = _lastAgenticPayload || {};
+    var followUp = {
+      prompt: val,
+      agent: base.agent,
+      model: base.model,
+      effort: base.effort,
+      target: base.target || 'dx-compiler',
+      mode: 'interactive',
+      conversation_id: conversationId,
+    };
+    // If a turn is still streaming (interactive agent asked a question but hasn't exited —
+    // rate-limited or otherwise), interrupt it and resume with the user's answer. Never block
+    // the user behind a stream that may never close on its own.
+    if (_running) {
+      appendLog('[' + tr('Agentic Auto Compile') + '] ' +
+                tr('Sending your answer (interrupting the current step)…'));
+      cancelCurrentRun();
+      _whenAgentFree(function () { runStream(followUp, 'interactive'); });
+      return;
     }
-
-    btn.addEventListener('click', doSend);
-    inp.addEventListener('keydown', function (e) {
-      if (e.key === 'Enter') doSend();
-    });
-
-    row.appendChild(inp);
-    row.appendChild(btn);
-    container.appendChild(row);
-
-    setTimeout(function () { inp.focus(); }, 50);
+    runStream(followUp, 'interactive');
   }
 
   /**
@@ -107,12 +156,21 @@
   function runStream(payload, mode) {
     _running = true;
     setButtonsDisabled(true);
-    _removeReplyUI();
+    if (mode === 'interactive') {
+      // Keep the chat row visible AND typeable while the agent's turn runs (the user may
+      // answer at any time — sendChatReply() will interrupt this run and resume).
+      showAgenticChat(false);
+    }
 
     appendLog('[' + tr('Agentic Auto Compile') + '] ' +
               tr('Starting') + ' (' + mode + ')...');
 
+    // AbortController so a reply can interrupt a still-open stream (an interactive agent that
+    // asked a question but hasn't exited — e.g. rate-limited mid-turn — would otherwise keep
+    // the stream open forever, leaving the user unable to answer).
+    _abort = (typeof AbortController !== 'undefined') ? new AbortController() : null;
     fetch('/agent/api/agent/run', {
+      signal: _abort ? _abort.signal : undefined,
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
@@ -127,13 +185,17 @@
       var reader = response.body.getReader();
       var decoder = new TextDecoder('utf-8');
       var buffer = '';
-      var gotDxnn = false;
+      var sessionDir = null;
 
       // Accumulate SSE chunks; emit on blank-line delimiters
       function processChunk(done, value) {
         if (done) {
-          if (buffer.trim()) processSSEBlock(buffer);
-          onStreamEnd(gotDxnn, mode, payload);
+          if (buffer.trim()) {
+            var tail = processSSEBlock(buffer);
+            if (tail && tail.sessionDir) sessionDir = tail.sessionDir;
+            if (tail && tail.conversationId) conversationId = tail.conversationId;
+          }
+          onStreamEnd(sessionDir, mode, payload);
           return;
         }
 
@@ -143,7 +205,7 @@
 
         for (var i = 0; i < blocks.length; i++) {
           var result = processSSEBlock(blocks[i]);
-          if (result && result.dxnn) gotDxnn = true;
+          if (result && result.sessionDir) sessionDir = result.sessionDir;
           if (result && result.conversationId) {
             conversationId = result.conversationId;
           }
@@ -161,9 +223,12 @@
       return null; // stream handled via reader
     })
     .catch(function (err) {
+      // A deliberate interrupt (user sent a reply mid-stream) aborts the fetch — not an error.
+      if (err && err.name === 'AbortError') return;
       appendLog('[' + tr('Error') + '] ' + String(err));
       _running = false;
       setButtonsDisabled(false);
+      if (mode === 'interactive') showAgenticChat(true);   // let the user retry
     });
   }
 
@@ -172,17 +237,19 @@
    * Returns { dxnn: bool, conversationId: string|null }.
    */
   function processSSEBlock(block) {
-    var ret = { dxnn: false, conversationId: null };
+    var ret = { sessionDir: null, conversationId: null };
     var lines = block.split('\n');
-    var eventType = 'message';
     var dataStr = '';
 
+    // The dx_agent_dev runner sends data-only SSE frames (no `event:` line); the real
+    // event kind lives in the JSON `type` field — exactly what its own console.js keys off.
+    // (The old code switched on the never-present SSE event name, so every frame fell into
+    // one branch and printed as a raw `[agent] …` blob.) Mirror console.js: dispatch on
+    // data.type.
     for (var i = 0; i < lines.length; i++) {
       var line = lines[i];
-      if (line.startsWith('event:')) {
-        eventType = line.slice(6).trim();
-      } else if (line.startsWith('data:')) {
-        dataStr = line.slice(5).trim();
+      if (line.startsWith('data:')) {
+        dataStr += line.slice(5).trim();
       }
     }
 
@@ -195,91 +262,98 @@
       data = { text: dataStr };
     }
 
-    // Track conversation_id from any event
+    // Track conversation_id from any event (the done frame carries it).
     if (data && data.conversation_id) {
       ret.conversationId = data.conversation_id;
     }
 
-    switch (eventType) {
+    // Hidden/heartbeat frames carry no user-facing content — drop them silently.
+    if (!data || data.hidden || data.type === 'ping') return ret;
+
+    var type = data.type || 'message';
+    switch (type) {
+      case 'session':
+        // system:init — "Session started (model)"
+        if (data.status_text) appendLog('[agent] ' + data.status_text);
+        break;
+
       case 'status':
-        appendLog('[status] ' + (data.message || dataStr));
+        if (data.text || data.message) appendLog('· ' + (data.text || data.message));
         break;
 
       case 'message':
-        appendLog('[agent] ' + (data.text || data.message || dataStr));
+        if (data.text) appendLog(data.text);
         break;
 
       case 'command':
-        appendLog('[cmd] ' + (data.command || dataStr));
+        // Compact tool/shell activity (→ Read: SKILL.md, ✓ Bash: …) formatted server-side.
+        if (data.text) appendLog(data.text);
         break;
 
       case 'log':
         if (data.lines && data.lines.length) {
           appendLog(data.lines.join('\n'));
-        } else {
-          appendLog('[log] ' + (data.text || dataStr));
+        } else if (data.text) {
+          appendLog(data.text);
         }
         break;
 
       case 'error':
-        appendLog('[' + tr('Error') + '] ' + (data.error || data.message || dataStr));
+        appendLog('[' + tr('Error') + '] ' + (data.text || data.error || data.message || ''));
         break;
 
       case 'done':
-        var sessionDir = data.session_dir || (data.data && data.data.session_dir);
-        if (sessionDir) {
-          appendLog('[done] session_dir: ' + sessionDir);
-          loadDxnnFromSession(sessionDir);
-          ret.dxnn = true;
-        } else {
-          appendLog('[done] ' + tr('Agentic run complete.'));
+        var doneDir = data.session_dir || (data.data && data.data.session_dir);
+        if (doneDir) {
+          // Defer the actual .dxnn check to stream end — session_dir always exists even
+          // when the agent only asked a question, so presence != a produced .dxnn.
+          ret.sessionDir = doneDir;
         }
         break;
 
       default:
-        if (dataStr) {
-          appendLog('[' + eventType + '] ' + dataStr);
-        }
+        if (data.text) appendLog(data.text);
     }
 
     return ret;
   }
 
   /**
-   * After the stream ends, decide whether to show a reply UI (interactive mode
-   * when no .dxnn was produced — the agent likely asked a question).
+   * The agent's turn ended. In interactive mode, re-enable the persistent chat input so the
+   * user can type the next reply into the SAME conversation.
    */
-  function onStreamEnd(gotDxnn, mode, originalPayload) {
+  function onStreamEnd(sessionDir, mode, originalPayload) {
     _running = false;
     setButtonsDisabled(false);
-
-    if (mode === 'interactive' && !gotDxnn && conversationId) {
-      // Agent asked a question — show follow-up reply input
+    // Best-effort: if the agent produced a .dxnn, surface it in the viewer. Fire-and-forget.
+    if (sessionDir) loadDxnnFromSession(sessionDir);
+    // claude -p is one-shot per turn, so the stream ending == "the agent's turn is over" — it
+    // asked a question or finished a step. Re-enable the always-present chat box so the user
+    // can answer / give the next instruction. conversationId (captured from the done frame) is
+    // threaded into the next send for continuity.
+    if (mode === 'interactive') {
       appendLog('[' + tr('Agentic Auto Compile') + '] ' +
                 tr('Agent is waiting for your reply.'));
-      showReplyUI(function (replyText) {
-        var followUp = {
-          prompt: replyText,
-          agent: originalPayload.agent,
-          model: originalPayload.model,
-          effort: originalPayload.effort,
-          target: originalPayload.target,
-          mode: 'interactive',
-          conversation_id: conversationId,
-        };
-        runStream(followUp, 'interactive');
-      });
+      showAgenticChat(true);   // focus the (already-typeable) box for the reply
     }
   }
 
   function handleStreamError(err) {
+    // A deliberate interrupt (user sent a reply mid-stream) aborts the reader — not an error.
+    if (err && err.name === 'AbortError') return;
     appendLog('[' + tr('Error') + '] ' + tr('Stream error: ') + String(err));
     _running = false;
     setButtonsDisabled(false);
+    // Keep the chat input focused/typeable if an interactive session is active (retry).
+    var row = getChatRow();
+    if (row && row.style.display !== 'none') showAgenticChat(true);
   }
 
+  // Returns a Promise<boolean> — true iff a real .dxnn artifact exists in the session dir.
+  // onStreamEnd relies on this to distinguish "agent produced output" from "agent asked a
+  // question": interactive runs with no .dxnn ⇒ show the reply box.
   function loadDxnnFromSession(sessionDir) {
-    fetch('/agentic/session-dxnn?dir=' + encodeURIComponent(sessionDir))
+    return fetch('/agentic/session-dxnn?dir=' + encodeURIComponent(sessionDir))
       .then(function (r) { return r.json(); })
       .then(function (data) {
         if (data.ok && data.dxnn_path) {
@@ -287,13 +361,14 @@
           if (window.ViewerPanel && typeof ViewerPanel.loadModel === 'function') {
             ViewerPanel.loadModel('dxnn', data.dxnn_path);
           }
-        } else {
-          appendLog('[viewer] ' +
-            tr('No .dxnn found in session dir yet.'));
+          return true;
         }
+        appendLog('[viewer] ' + tr('No .dxnn found in session dir yet.'));
+        return false;
       })
       .catch(function (err) {
         appendLog('[viewer] ' + tr('Could not load DXNN:') + ' ' + String(err));
+        return false;
       });
   }
 
@@ -428,7 +503,6 @@
 
     // Reset conversation for new runs (non-follow-up)
     conversationId = null;
-    _removeReplyUI();
 
     var payload = {
       prompt: buildPrompt(model),
@@ -438,6 +512,14 @@
       target: 'dx-compiler',
       mode: mode,       // "autopilot" or "interactive"
     };
+    // Remember agent/model/effort/target so chat follow-ups reuse them.
+    _lastAgenticPayload = payload;
+
+    if (mode === 'interactive') {
+      showAgenticChat();
+    } else {
+      hideAgenticChat();   // autopilot = no interaction, no chat box
+    }
 
     runStream(payload, mode);
   }
@@ -538,6 +620,16 @@
     if (btnInteractive) {
       btnInteractive.addEventListener('click', function () {
         runAgentic('interactive');
+      });
+    }
+
+    // Persistent chat input under the Compiler Log: Enter or Send → next interactive turn.
+    var chatSend = document.getElementById('agentic-chat-send');
+    var chatInput = getChatInput();
+    if (chatSend) chatSend.addEventListener('click', sendChatReply);
+    if (chatInput) {
+      chatInput.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') { e.preventDefault(); sendChatReply(); }
       });
     }
   }

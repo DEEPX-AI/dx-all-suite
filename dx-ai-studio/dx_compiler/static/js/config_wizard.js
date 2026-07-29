@@ -112,6 +112,9 @@
                 }
                 // Clear existing rows
                 document.getElementById('input-shapes-list').innerHTML = '';
+                // Compose non-blocking warnings so multiple advisories coexist.
+                const warnings = [];
+                if (data.warning) warnings.push(data.warning);   // server non-.onnx advisory
                 // Add detected inputs
                 // Support two possible shapes formats for backward compatibility:
                 // 1) { name: {shape: [...], dynamic: bool} }
@@ -136,10 +139,19 @@
                 if (banner) {
                     if (serverFlag || allStatic) {
                         banner.style.display = '';
-                        if (wizWarn) { wizWarn.style.display = 'none'; wizWarn.textContent = ''; }
                     } else {
                         banner.style.display = 'none';
-                        if (wizWarn) { wizWarn.style.display = ''; wizWarn.textContent = T(MESSAGES.DYNAMIC_INPUTS); }
+                        warnings.push(T(MESSAGES.DYNAMIC_INPUTS));
+                    }
+                }
+                // Render all composed warnings (server advisory + dynamic-input note).
+                if (wizWarn) {
+                    if (warnings.length) {
+                        wizWarn.style.display = '';
+                        wizWarn.textContent = warnings.join(' ');
+                    } else {
+                        wizWarn.style.display = 'none';
+                        wizWarn.textContent = '';
                     }
                 }
             })
@@ -148,6 +160,50 @@
                 btn.textContent = T('🔍 Auto Detect from Model');
                 if (wizWarn) { wizWarn.style.display = ''; wizWarn.textContent = T('Auto-detect failed:') + ' ' + (err.message || String(err)); }
             });
+    }
+
+    // --- Non-blocking dataset/calibration validation (advisory only) ---
+    function showDatasetWarning(msg) {
+        const el = document.getElementById('wiz-dataset-warning');
+        if (!el) return;
+        el.style.display = msg ? '' : 'none';
+        el.textContent = msg || '';
+    }
+
+    // Warns if the default loader's dataset dir is empty/missing. Never blocks.
+    function validateDatasetPath() {
+        const loaderMode = document.querySelector('input[name="loader_mode"]:checked');
+        const mode = loaderMode ? loaderMode.value : 'dummy';
+        if (mode !== 'default') { showDatasetWarning(''); return; }
+        const input = document.getElementById('wiz-dataset-path');
+        const path = input ? input.value.trim() : '';
+        if (!path) {
+            showDatasetWarning(T('Dataset path is empty. The default loader needs a dataset directory for realistic calibration.'));
+            return;
+        }
+        fetch('/validate/path?kind=dir&path=' + encodeURIComponent(path))
+            .then(r => r.json())
+            .then(data => {
+                const warnings = (data && data.warnings) || [];
+                showDatasetWarning(warnings.length ? warnings.join(' ') : '');
+            })
+            .catch(() => { /* best-effort, non-blocking */ });
+    }
+
+    function validateCalibNum() {
+        const input = document.getElementById('wiz-calib-num');
+        const el = document.getElementById('wiz-calib-warning');
+        if (!input || !el) return;
+        const raw = input.value.trim();
+        const n = parseInt(raw, 10);
+        let msg = '';
+        if (raw !== '' && (isNaN(n) || n <= 0)) {
+            msg = T('Calibration samples should be a positive number; values <= 0 are invalid for calibration.');
+        } else if (!isNaN(n) && n > 100000) {
+            msg = T('Calibration sample count is very large and may make calibration extremely slow.');
+        }
+        el.style.display = msg ? '' : 'none';
+        el.textContent = msg;
     }
 
     function addInputRow(name, shape) {
@@ -447,7 +503,19 @@
         // Loader mode radio change
         document.querySelectorAll('input[name="loader_mode"]').forEach(radio => {
             radio.addEventListener('change', updateModeCards);
+            radio.addEventListener('change', validateDatasetPath);
         });
+        // Non-blocking dataset/calibration advisories
+        const dsPath = document.getElementById('wiz-dataset-path');
+        if (dsPath) {
+            dsPath.addEventListener('blur', validateDatasetPath);
+            dsPath.addEventListener('change', validateDatasetPath);
+        }
+        const calibNum = document.getElementById('wiz-calib-num');
+        if (calibNum) {
+            calibNum.addEventListener('input', validateCalibNum);
+            calibNum.addEventListener('change', validateCalibNum);
+        }
     });
 
     window.applyWizardPatches = function(patches) {

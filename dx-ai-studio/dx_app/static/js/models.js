@@ -1,6 +1,16 @@
 
 function renderModelsPage(){
-  var cats=[...new Set(S.models.map(function(m){return m.category}))].sort();
+  // Models page shows the FULL ModelZoo catalog (354). Lazy-load it once; S.models
+  // (runnable-only) stays reserved for the Run/Bench/Compare pickers.
+  if((!S.catalog||!S.catalog.length)&&typeof loadCatalog==='function'&&!renderModelsPage._loading){
+    renderModelsPage._loading=true;
+    var tb=$('m-table')&&$('m-table').querySelector('tbody');
+    if(tb)tb.innerHTML='<tr><td colspan="8" class="txt-dim" style="text-align:center;padding:24px">'+T('Loading catalog…')+'</td></tr>';
+    loadCatalog().then(function(){renderModelsPage._loading=false;renderModelsPage();}).catch(function(){renderModelsPage._loading=false;});
+    return;
+  }
+  var src=(S.catalog&&S.catalog.length)?S.catalog:S.models;
+  var cats=[...new Set(src.map(function(m){return m.category}))].sort();
   var html='<button class="chip active" data-cat="" onclick="chipFilter(this)">'+T('All')+'</button>';
   cats.forEach(function(c){html+='<button class="chip" data-cat="'+c+'" onclick="chipFilter(this)">'+c.replace(/_/g,' ')+'</button>'});
   $('cat-chips').innerHTML=html;
@@ -17,7 +27,8 @@ function filterModels(){
   const search=($('m-search').value||'').toLowerCase();
   const chip=document.querySelector('#cat-chips .chip.active');
   const cat=chip?chip.dataset.cat:'';
-  let list=S.models.filter(m=>{
+  const src=(S.catalog&&S.catalog.length)?S.catalog:S.models;
+  let list=src.filter(m=>{
     if(m.name.startsWith('_'))return false;
     if(search&&!m.name.toLowerCase().includes(search)&&!m.category.includes(search))return false;
     if(cat&&m.category!==cat)return false;
@@ -29,25 +40,68 @@ function filterModels(){
     if(m.npu_core)meta.push('<span class="badge b-blue">'+m.npu_core+'</span>');
     if(m.dataset)meta.push('<span class="badge b-warn">'+m.dataset+'</span>');
     if(m.input_resolution)meta.push('<span class="badge b-cat">'+m.input_resolution+'</span>');
+    // Capability columns (C++/Python/Sync/Async) reflect what is USABLE now, i.e. only once the
+    // .dxnn is downloaded \u2014 so the row is consistent: not-downloaded shows only Download, and a
+    // download lights up the run modes + Run together. (dl==0 rows have no .dxnn on ModelZoo.)
+    var dl=!!m.model_exists;
     var modes=[];
-    if(m.cpp_sync||m.py_sync)modes.push('<span class="badge b-ok">'+T('Sync')+'</span>');
-    if(m.cpp_async||m.py_async)modes.push('<span class="badge b-blue">'+T('Async')+'</span>');
+    if(dl&&(m.cpp_sync||m.py_sync))modes.push('<span class="badge b-ok">'+T('Sync')+'</span>');
+    if(dl&&(m.cpp_async||m.py_async))modes.push('<span class="badge b-blue">'+T('Async')+'</span>');
     var fileInfo=m.model_file?(m.model_exists?'\u2705':'\u274c')+'<span class="txt-dim"> '+m.model_file.split('/').pop()+'</span>':'\u2014';
     return '<tr>'
       +'<td>'+esc(m.name)+'</td>'
       +'<td><span class="badge b-cat">'+m.category.replace(/_/g,' ')+'</span></td>'
-      +'<td>'+(m.cpp?'<span class="badge b-ok">\u2713</span>':'<span class="badge b-no">\u2014</span>')+'</td>'
-      +'<td>'+(m.python?'<span class="badge b-ok">\u2713</span>':'<span class="badge b-no">\u2014</span>')+'</td>'
+      +'<td>'+(dl&&m.cpp?'<span class="badge b-ok">\u2713</span>':'<span class="badge b-no">\u2014</span>')+'</td>'
+      +'<td>'+(dl&&m.python?'<span class="badge b-ok">\u2713</span>':'<span class="badge b-no">\u2014</span>')+'</td>'
       +'<td>'+modes.join(' ')+'</td>'
       +'<td>'+(meta.join(' ')||'\u2014')+'</td>'
       +'<td style="font-size:11px;">'+fileInfo+'</td>'
-      +'<td class="m-actions"><button class="m-action-btn" onclick="event.stopPropagation();showDetail(\''+esc(m.name)+'\')" title="Details">🔍 Detail</button>'
+      +'<td class="m-actions"><button class="m-action-btn m-action-detail" onclick="event.stopPropagation();showDetail(\''+esc(m.name)+'\')" title="Details">🔍 '+T('Detail')+'</button>'
       +(_onnxGraphArg(m.model_file)&&m.model_exists?'<button class="m-action-btn" onclick="event.stopPropagation();openModelGraph(\''+esc(m.model_file)+'\')" title="View Graph">📊 Graph</button>':'')
-      +'<button class="m-action-btn m-action-run" onclick="event.stopPropagation();quickRun(\''+esc(m.name)+'\',\''+esc(m.category)+'\',\''+esc(m.model_file||'')+'\')">▶ Run</button></td>'
+      +(m.dxnn_url?'<button class="m-action-btn m-action-dl" data-name="'+esc(m.mz_name||m.name)+'" data-dxnn="'+esc(m.dxnn_url)+'" data-json="'+esc(m.json_url||'')+'" onclick="event.stopPropagation();mzQuickDownload(this)" title="'+(m.model_exists?T('Re-download the Q-Lite .dxnn from ModelZoo'):T('Download the Q-Lite .dxnn from ModelZoo'))+'">⬇ '+(m.model_exists?T('Re-download'):T('Download'))+'</button>':'')
+      +(m.model_exists&&(m.cpp||m.python)?'<button class="m-action-btn m-action-run" onclick="event.stopPropagation();quickRun(\''+esc(m.name)+'\',\''+esc(m.category)+'\',\''+esc(m.model_file||'')+'\')">▶ '+T('Run')+'</button>':'')+'</td>'
       +'</tr>';
   }).join('');
-  $('m-count').textContent=list.length+' / '+S.models.length+T(' models');
+  $('m-count').textContent=list.length+' / '+src.length+T(' models');
 }
+
+// ── Quick download (Q-Lite .dxnn) straight from the Models table ──────────────────
+// Reuses the ModelZoo background downloader (single global job) + its status endpoint.
+// Joins to the row via the dxnn_url resolved server-side in get_models().
+var _mzDlPoll = null;
+async function mzQuickDownload(btn){
+  if(!btn) return;
+  var name=btn.dataset.name, dxnn=btn.dataset.dxnn, json=btn.dataset.json||null;
+  if(!dxnn) return;
+  // Single global download job — don't start a second while one runs.
+  try{ var s=await api('/api/modelzoo/status'); if(s&&s.running){
+    toast(T('A model download is already in progress.'),'warn'); return; } }catch(e){}
+  var orig=btn.innerHTML; btn.disabled=true;
+  var setLbl=function(t){ btn.innerHTML='⏳ '+t; };
+  setLbl(T('Starting…'));
+  var r=await postJ('/api/modelzoo/download',{items:[{name:name,chip:'qlite',dxnn_url:dxnn,json_url:json}],source:'public'});
+  if(!r||!r.ok){ btn.disabled=false; btn.innerHTML=orig;
+    toast((r&&r.error)||T('Download failed to start'),'err'); return; }
+  if(_mzDlPoll) clearInterval(_mzDlPoll);
+  _mzDlPoll=setInterval(async function(){
+    var st; try{ st=await api('/api/modelzoo/status'); }catch(e){ return; }
+    if(!st) return;
+    if(!st.finished){
+      var pct=st.total>0?Math.round(st.done/st.total*100):0;
+      setLbl(T('Downloading')+' '+pct+'%');
+      return;
+    }
+    clearInterval(_mzDlPoll); _mzDlPoll=null;
+    var ok=!(st.results||[]).some(function(x){return x&&x.ok===false;});
+    toast(ok?T('Download complete'):T('Download finished with errors'), ok?'ok':'warn');
+    // Re-fetch so model_exists flips to ✅. The Download button STAYS (relabels to
+    // "Re-download") so a customer can pull a fresh copy any time. (loadCatalog refreshes
+    // S.catalog; renderModelsPage reads it.)
+    if(typeof loadCatalog==='function'){ try{ await loadCatalog(); }catch(e){} }
+    if(typeof renderModelsPage==='function') renderModelsPage();
+  },1500);
+}
+if(typeof window!=='undefined') window.mzQuickDownload=mzQuickDownload;
 
 // ── Model graph (DX-TRON removed this release → dx-compiler's graph viewer) ──
 // dx-compiler parses ONNX only; .dxnn graphs are not supported, so the Graph button is

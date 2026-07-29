@@ -1,11 +1,17 @@
 <!-- DX HW Float Widget — auto-injected by launcher proxy -->
 <style>
-.hw-float{position:fixed;bottom:20px;right:20px;z-index:9000;
+/* Fixed width + own box-sizing so the float renders identically in EVERY module
+   iframe. It used to be min-width only (content-driven), so its size drifted per
+   tab as values populated (--→numbers), the MOCK badge toggled, or a module's
+   font fallback differed. A fixed width pins the outer box regardless of host CSS
+   or content; slightly-long values just fit/wrap instead of widening it. */
+.hw-float{box-sizing:border-box;position:fixed;bottom:20px;right:20px;z-index:9000;
   background:rgba(15,23,42,.85);backdrop-filter:blur(12px);
   border:1px solid rgba(99,140,255,.15);border-radius:12px;
   padding:10px 14px;box-shadow:0 4px 24px rgba(0,0,0,.4);
-  min-width:200px;font-size:11px;transition:opacity .3s;
-  user-select:none;font-family:Inter,sans-serif;color:#e2e8f0}
+  width:212px;font-size:11px;transition:opacity .3s;
+  user-select:none;font-family:Inter,-apple-system,'Segoe UI',Roboto,system-ui,sans-serif;color:#e2e8f0}
+.hw-float *{box-sizing:border-box}
 .hw-float.dragging{opacity:.85;transition:none;box-shadow:0 8px 32px rgba(0,0,0,.5)}
 .hw-float.minimized .hw-float-body{display:none}
 .hw-float-header{display:flex;justify-content:space-between;align-items:center;

@@ -30,11 +30,13 @@ def _default_start() -> str:
     return "/tmp"
 
 
-def list_directory(path: str | None) -> dict:
+def list_directory(path: str | None, file_ext: str | None = None) -> dict:
     """List immediate sub-directories of *path*.
 
-    Returns {ok, path, parent, dirs, writable}. Raises ValueError for an unsafe,
-    missing, or non-directory path.
+    Returns {ok, path, parent, dirs, files, writable}. Raises ValueError for an
+    unsafe, missing, or non-directory path. When *file_ext* is given (e.g.
+    ".json"), regular files with that extension are also returned in ``files``
+    (case-insensitive); otherwise ``files`` is empty (folder-only picker).
     """
     if not path:
         path = _default_start()
@@ -44,7 +46,9 @@ def list_directory(path: str | None) -> dict:
     if not p.is_dir():
         raise ValueError("not a directory")
 
+    ext = file_ext.lower() if file_ext else None
     dirs: list[str] = []
+    files: list[str] = []
     try:
         children = sorted(p.iterdir(), key=lambda c: c.name.lower())
     except (PermissionError, OSError) as exc:
@@ -55,6 +59,8 @@ def list_directory(path: str | None) -> dict:
                 continue  # hide dotfiles/dirs
             if child.is_dir():
                 dirs.append(child.name)
+            elif ext and child.is_file() and child.name.lower().endswith(ext):
+                files.append(child.name)
         except OSError:
             continue  # unreadable entry — skip, don't fail the whole listing
 
@@ -66,6 +72,7 @@ def list_directory(path: str | None) -> dict:
         "path": str(p),
         "parent": parent_str,
         "dirs": dirs,
+        "files": files,
         "writable": os.access(str(p), os.W_OK),
     }
 

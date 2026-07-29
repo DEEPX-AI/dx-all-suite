@@ -1,0 +1,540 @@
+{
+  "timestamp": "2026-07-18T09:01:57.622938+00:00",
+  "host": {
+    "hostname": "rock-5b-plus",
+    "os": "Debian GNU/Linux 12 (bookworm)",
+    "kernel": "6.1.43-15-rk2312",
+    "arch": "aarch64",
+    "cpu": "-",
+    "cpu_count": 8,
+    "ram_gb": 7.8,
+    "cpu_governors": {
+      "ondemand": 8
+    }
+  },
+  "host_health": {
+    "throttled": null,
+    "throttled_flags": null,
+    "pmic_ext5v_v": null,
+    "pcie_links": [
+      {
+        "bdf": "0000:01:00.0",
+        "device": "0000:01:00.0 Processing accelerators: DEEPX Co., Ltd. DX_M1 (rev 01)",
+        "lnkcap": "Port #0, Speed 8GT/s, Width x4, ASPM L1, Exit Latency L1 <16us",
+        "lnksta": "Speed 8GT/s, Width x2 (downgraded)"
+      }
+    ],
+    "available": true
+  },
+  "npu": {
+    "sku": "M1",
+    "rt_version": "v3.3.2",
+    "driver": "v2.4.1",
+    "pcie_driver": "v2.2.0",
+    "firmware": "v2.5.6",
+    "memory": "LPDDR5 5600 Mbps, 3.92GiB",
+    "board": "M.2, Rev 1.0",
+    "pcie": "Gen3 X2 [01:00:00]",
+    "cores": [
+      "NPU 0: voltage 750 mV, clock 1000 MHz, temperature 50'C",
+      "NPU 1: voltage 750 mV, clock 1000 MHz, temperature 50'C",
+      "NPU 2: voltage 750 mV, clock 1000 MHz, temperature 50'C"
+    ],
+    "raw": "DXRT v3.3.2\n=======================================================\n * Device 0: M1, Accelerator type\n---------------------   Version   ---------------------\n * RT Driver version   : v2.4.1\n * PCIe Driver version : v2.2.0\n-------------------------------------------------------\n * FW version          : v2.5.6\n--------------------- Device Info ---------------------\n * Memory : LPDDR5 5600 Mbps, 3.92GiB\n * Board  : M.2, Rev 1.0\n * Chip Offset : 0\n * PCIe   : Gen3 X2 [01:00:00]\n\nNPU 0: voltage 750 mV, clock 1000 MHz, temperature 50'C\nNPU 1: voltage 750 mV, clock 1000 MHz, temperature 50'C\nNPU 2: voltage 750 mV, clock 1000 MHz, temperature 50'C\n=======================================================",
+    "device_count": 1,
+    "modules": [
+      {
+        "product": "M1",
+        "count": 1
+      }
+    ],
+    "product": "M1",
+    "clock_mhz": 1000
+  },
+  "software": {
+    "dx_stream": "3.0.1"
+  },
+  "source_provenance": {
+    "suite": {
+      "branch": "feat/dx-benchmark-suite-relocation",
+      "commit": "bb77ed3d670111c04c1ec3fa40a946c528c193f0",
+      "describe": "bb77ed3d-dirty"
+    },
+    "dx_runtime": {
+      "branch": "feat/dx-benchmark-suite-relocation",
+      "commit": "bb77ed3d670111c04c1ec3fa40a946c528c193f0",
+      "describe": "bb77ed3d-dirty"
+    },
+    "dx_compiler": {
+      "branch": "feat/dx-benchmark-suite-relocation",
+      "commit": "bb77ed3d670111c04c1ec3fa40a946c528c193f0",
+      "describe": "bb77ed3d-dirty"
+    }
+  },
+  "tools": {
+    "run_model": {
+      "path": "/usr/local/bin/run_model",
+      "version": "DXRT v3.3.2 run_model",
+      "available": true
+    },
+    "gst-launch-1.0": {
+      "path": "/usr/bin/gst-launch-1.0",
+      "version": "gst-launch-1.0 version 1.22.9",
+      "available": true
+    },
+    "gst-inspect-1.0": {
+      "path": "/usr/bin/gst-inspect-1.0",
+      "version": "gst-inspect-1.0 version 1.22.9",
+      "available": true
+    },
+    "dxtop": {
+      "path": "/usr/local/bin/dxtop",
+      "version": "DX-TOP 1.1.0",
+      "available": true
+    },
+    "ffprobe": {
+      "path": "/usr/bin/ffprobe",
+      "version": "ffprobe version 5.1.9-0+deb12u1 Copyright (c) 2007-2026 the FFmpeg developers",
+      "available": true
+    }
+  },
+  "missing_required": [],
+  "product_name": "ROCK5B+",
+  "dx_all_suite_version": "v2.3.3",
+  "video_infos": {
+    "od_pose_seg": {
+      "path": "benchmark/assets/videos/od_benchmark_video.mp4",
+      "filename": "od_benchmark_video.mp4",
+      "codec": "h264",
+      "width": 1920,
+      "height": 1080,
+      "pix_fmt": "yuv420p",
+      "fps": 30.0,
+      "nb_frames": 3455,
+      "duration_sec": 115.281833,
+      "format": "QuickTime / MOV",
+      "bitrate_mbps": 4.47
+    },
+    "obb": {
+      "path": "benchmark/assets/videos/obb_benchmark_video.mp4",
+      "filename": "obb_benchmark_video.mp4",
+      "codec": "h264",
+      "width": 1920,
+      "height": 1080,
+      "pix_fmt": "yuv420p",
+      "fps": 30.0,
+      "nb_frames": 2640,
+      "duration_sec": 88.0,
+      "format": "QuickTime / MOV",
+      "bitrate_mbps": 4.87
+    },
+    "cls": {
+      "path": "benchmark/assets/videos/od_benchmark_video.mp4",
+      "filename": "od_benchmark_video.mp4",
+      "codec": "h264",
+      "width": 1920,
+      "height": 1080,
+      "pix_fmt": "yuv420p",
+      "fps": 30.0,
+      "nb_frames": 3455,
+      "duration_sec": 115.281833,
+      "format": "QuickTime / MOV",
+      "bitrate_mbps": 4.47
+    }
+  },
+  "benchmark_params": {
+    "model_time_sec": 30,
+    "model_latency_loops": 300,
+    "model_warmup": 1,
+    "model_latency_runs": 1,
+    "model_throughput_runs": 3,
+    "e2e_runs": 3,
+    "fps_threshold": 30.0,
+    "families": [
+      "all"
+    ],
+    "ort_modes": [
+      "ON",
+      "OFF"
+    ],
+    "retry_failed": true
+  },
+  "protocol": {
+    "version": "v3",
+    "thermal_mode": "steady",
+    "model_time_sec": 30,
+    "model_latency_loops": 300,
+    "model_warmup_runs": 1,
+    "model_warmup_retries": 1,
+    "model_run_retries": 2,
+    "model_latency_runs": 1,
+    "model_throughput_runs": 3,
+    "buffer_count_probe_start": 3,
+    "buffer_count_probe_floor_max": 8,
+    "buffer_count_probe_sec": 10,
+    "buffer_count_max_probe": 16,
+    "e2e_runs": 3,
+    "e2e_stall_timeout": 90.0,
+    "e2e_hard_cap": 1800.0,
+    "fps_threshold": 30.0,
+    "multi_stream_search": "single-stream-estimate-linear-boundary",
+    "stable_capacity_rule": "status_ok_and_all_runs_success_and_avg_per_channel_fps_ge_threshold",
+    "ort_modes": [
+      "ON",
+      "OFF"
+    ],
+    "thermal_cooldown_target_delta_c": 10.0,
+    "thermal_cooldown_abs_cap_c": 55.0,
+    "thermal_hot_start_block_c": 60.0,
+    "thermal_cooldown_max_sec": 1000.0,
+    "npu_warmup_sec": 1.0,
+    "npu_drain_sec": 0.5
+  },
+  "benchmarked_models": [
+    {
+      "name": "yolo26n.dxnn",
+      "task": "object_detection",
+      "size": "n",
+      "input_size": [
+        640,
+        640
+      ],
+      "format_version": "v8",
+      "dxcom_version": "v2.3.0-rc.5",
+      "total_memory_mb": 116.46
+    },
+    {
+      "name": "yolo26s.dxnn",
+      "task": "object_detection",
+      "size": "s",
+      "input_size": [
+        640,
+        640
+      ],
+      "format_version": "v8",
+      "dxcom_version": "v2.3.0-rc.5",
+      "total_memory_mb": 151.61
+    },
+    {
+      "name": "yolo26m.dxnn",
+      "task": "object_detection",
+      "size": "m",
+      "input_size": [
+        640,
+        640
+      ],
+      "format_version": "v8",
+      "dxcom_version": "v2.3.0-rc.5",
+      "total_memory_mb": 241.94
+    },
+    {
+      "name": "yolo26l.dxnn",
+      "task": "object_detection",
+      "size": "l",
+      "input_size": [
+        640,
+        640
+      ],
+      "format_version": "v8",
+      "dxcom_version": "v2.3.0-rc.5",
+      "total_memory_mb": 293.55
+    },
+    {
+      "name": "yolo26x.dxnn",
+      "task": "object_detection",
+      "size": "x",
+      "input_size": [
+        640,
+        640
+      ],
+      "format_version": "v8",
+      "dxcom_version": "v2.3.0-rc.5",
+      "total_memory_mb": 522.69
+    },
+    {
+      "name": "yolo26n-pose.dxnn",
+      "task": "pose_estimation",
+      "size": "n",
+      "input_size": [
+        640,
+        640
+      ],
+      "format_version": "v8",
+      "dxcom_version": "v2.3.0-rc.5",
+      "total_memory_mb": 118.46
+    },
+    {
+      "name": "yolo26s-pose.dxnn",
+      "task": "pose_estimation",
+      "size": "s",
+      "input_size": [
+        640,
+        640
+      ],
+      "format_version": "v8",
+      "dxcom_version": "v2.3.0-rc.5",
+      "total_memory_mb": 158.71
+    },
+    {
+      "name": "yolo26m-pose.dxnn",
+      "task": "pose_estimation",
+      "size": "m",
+      "input_size": [
+        640,
+        640
+      ],
+      "format_version": "v8",
+      "dxcom_version": "v2.3.0-rc.5",
+      "total_memory_mb": 254.03
+    },
+    {
+      "name": "yolo26l-pose.dxnn",
+      "task": "pose_estimation",
+      "size": "l",
+      "input_size": [
+        640,
+        640
+      ],
+      "format_version": "v8",
+      "dxcom_version": "v2.3.0-rc.5",
+      "total_memory_mb": 305.63
+    },
+    {
+      "name": "yolo26x-pose.dxnn",
+      "task": "pose_estimation",
+      "size": "x",
+      "input_size": [
+        640,
+        640
+      ],
+      "format_version": "v8",
+      "dxcom_version": "v2.3.0-rc.5",
+      "total_memory_mb": 516.54
+    },
+    {
+      "name": "yolo26n-seg.dxnn",
+      "task": "segmentation",
+      "size": "n",
+      "input_size": [
+        640,
+        640
+      ],
+      "format_version": "v8",
+      "dxcom_version": "v2.3.0-rc.5",
+      "total_memory_mb": 138.83
+    },
+    {
+      "name": "yolo26s-seg.dxnn",
+      "task": "segmentation",
+      "size": "s",
+      "input_size": [
+        640,
+        640
+      ],
+      "format_version": "v8",
+      "dxcom_version": "v2.3.0-rc.5",
+      "total_memory_mb": 177.56
+    },
+    {
+      "name": "yolo26m-seg.dxnn",
+      "task": "segmentation",
+      "size": "m",
+      "input_size": [
+        640,
+        640
+      ],
+      "format_version": "v8",
+      "dxcom_version": "v2.3.0-rc.5",
+      "total_memory_mb": 270.17
+    },
+    {
+      "name": "yolo26l-seg.dxnn",
+      "task": "segmentation",
+      "size": "l",
+      "input_size": [
+        640,
+        640
+      ],
+      "format_version": "v8",
+      "dxcom_version": "v2.3.0-rc.5",
+      "total_memory_mb": 321.77
+    },
+    {
+      "name": "yolo26x-seg.dxnn",
+      "task": "segmentation",
+      "size": "x",
+      "input_size": [
+        640,
+        640
+      ],
+      "format_version": "v8",
+      "dxcom_version": "v2.3.0-rc.5",
+      "total_memory_mb": 554.98
+    },
+    {
+      "name": "yolo26n-obb.dxnn",
+      "task": "oriented_bbox",
+      "size": "n",
+      "input_size": [
+        1024,
+        1024
+      ],
+      "format_version": "v8",
+      "dxcom_version": "v2.3.0-rc.5",
+      "total_memory_mb": 240.57
+    },
+    {
+      "name": "yolo26s-obb.dxnn",
+      "task": "oriented_bbox",
+      "size": "s",
+      "input_size": [
+        1024,
+        1024
+      ],
+      "format_version": "v8",
+      "dxcom_version": "v2.3.0-rc.5",
+      "total_memory_mb": 447.17
+    },
+    {
+      "name": "yolo26m-obb.dxnn",
+      "task": "oriented_bbox",
+      "size": "m",
+      "input_size": [
+        1024,
+        1024
+      ],
+      "format_version": "v8",
+      "dxcom_version": "v2.3.0-rc.5",
+      "total_memory_mb": 645.25
+    },
+    {
+      "name": "yolo26l-obb.dxnn",
+      "task": "oriented_bbox",
+      "size": "l",
+      "input_size": [
+        1024,
+        1024
+      ],
+      "format_version": "v8",
+      "dxcom_version": "v2.3.0-rc.5",
+      "total_memory_mb": 790.09
+    },
+    {
+      "name": "yolo26x-obb.dxnn",
+      "task": "oriented_bbox",
+      "size": "x",
+      "input_size": [
+        1024,
+        1024
+      ],
+      "format_version": "v8",
+      "dxcom_version": "v2.3.0-rc.5",
+      "total_memory_mb": 1316.48
+    },
+    {
+      "name": "yolo26n-cls.dxnn",
+      "task": "classification",
+      "size": "n",
+      "input_size": [
+        224,
+        224
+      ],
+      "format_version": "v8",
+      "dxcom_version": "v2.3.0-rc.5",
+      "total_memory_mb": 4.54
+    },
+    {
+      "name": "yolo26s-cls.dxnn",
+      "task": "classification",
+      "size": "s",
+      "input_size": [
+        224,
+        224
+      ],
+      "format_version": "v8",
+      "dxcom_version": "v2.3.0-rc.5",
+      "total_memory_mb": 9.01
+    },
+    {
+      "name": "yolo26m-cls.dxnn",
+      "task": "classification",
+      "size": "m",
+      "input_size": [
+        224,
+        224
+      ],
+      "format_version": "v8",
+      "dxcom_version": "v2.3.0-rc.5",
+      "total_memory_mb": 15.8
+    },
+    {
+      "name": "yolo26l-cls.dxnn",
+      "task": "classification",
+      "size": "l",
+      "input_size": [
+        224,
+        224
+      ],
+      "format_version": "v8",
+      "dxcom_version": "v2.3.0-rc.5",
+      "total_memory_mb": 19.54
+    },
+    {
+      "name": "yolo26x-cls.dxnn",
+      "task": "classification",
+      "size": "x",
+      "input_size": [
+        224,
+        224
+      ],
+      "format_version": "v8",
+      "dxcom_version": "v2.3.0-rc.5",
+      "total_memory_mb": 48.62
+    }
+  ],
+  "timing": {
+    "start": "2026-07-16 08:40:33",
+    "end": "2026-07-19 02:07:06",
+    "duration_sec": 235593.0
+  },
+  "timing_history": [
+    {
+      "mode": "retry-failed",
+      "start": "2026-07-18 09:01:57",
+      "end": "2026-07-19 02:07:06",
+      "duration_sec": 61509.2,
+      "families": [
+        "all"
+      ],
+      "task": "all",
+      "sizes": [
+        "n",
+        "s",
+        "m",
+        "l",
+        "x"
+      ],
+      "retry_failed": true,
+      "outcome": "completed"
+    }
+  ],
+  "host_health_end": {
+    "throttled": null,
+    "throttled_flags": null,
+    "pmic_ext5v_v": null,
+    "pcie_links": [
+      {
+        "bdf": "0000:01:00.0",
+        "device": "0000:01:00.0 Processing accelerators: DEEPX Co., Ltd. DX_M1 (rev 01)",
+        "lnkcap": "Port #0, Speed 8GT/s, Width x4, ASPM L1, Exit Latency L1 <16us",
+        "lnksta": "Speed 8GT/s, Width x2 (downgraded)"
+      }
+    ],
+    "available": true
+  },
+  "thermal_summary": {
+    "cooldown_total_wait_sec": 19627.4,
+    "cooldown_timeouts": 0,
+    "cooldown_skipped_cells": []
+  }
+}

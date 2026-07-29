@@ -75,91 +75,13 @@ _proc_lock = threading.Lock()
 _running_proc = None
 
 
-def _configure_sudo_env(env: dict, password: str = None):
-    if not password:
-        return lambda: None
-
-    real_sudo = shutil.which("sudo", path=os.environ.get("PATH")) or "/usr/bin/sudo"
-    temp_dir = tempfile.mkdtemp(prefix="dx-stream-sudo-")
-    os.chmod(temp_dir, 0o700)
-    pass_path = os.path.join(temp_dir, "password")
-    askpass_path = os.path.join(temp_dir, "askpass.sh")
-    sudo_wrapper_path = os.path.join(temp_dir, "sudo")
-
-    fd = os.open(pass_path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
-    with os.fdopen(fd, "w", encoding="utf-8") as f:
-        f.write(password)
-
-    with open(askpass_path, "w", encoding="utf-8") as f:
-        f.write(f"#!/bin/sh\nexec /bin/cat {shlex.quote(pass_path)}\n")
-    os.chmod(askpass_path, 0o700)
-
-    with open(sudo_wrapper_path, "w", encoding="utf-8") as f:
-        f.write(f"#!/bin/sh\nexec {shlex.quote(real_sudo)} -A \"$@\"\n")
-    os.chmod(sudo_wrapper_path, 0o700)
-
-    env["SUDO_ASKPASS"] = askpass_path
-    env["SUDO_REQUIRE_ASKPASS"] = "force"
-    env["DX_REAL_SUDO"] = real_sudo
-    env["PATH"] = temp_dir + os.pathsep + env.get("PATH", "")
-
-    def cleanup():
-        shutil.rmtree(temp_dir, ignore_errors=True)
-        for key in ("SUDO_ASKPASS", "SUDO_REQUIRE_ASKPASS", "DX_REAL_SUDO"):
-            env.pop(key, None)
-
-    return cleanup
-
-
-def _preauthorize_sudo(password: str = None, env: dict = None):
-    """Open a sudo timestamp so nested sudo calls in setup scripts do not need a TTY."""
-    try:
-        if password and env and env.get("SUDO_ASKPASS"):
-            result = subprocess.run(
-                [env.get("DX_REAL_SUDO", "sudo"), "-A", "-v"],
-                capture_output=True,
-                text=True,
-                timeout=30,
-                env=env,
-            )
-        elif password:
-            result = subprocess.run(
-                ["sudo", "-S", "-v"],
-                input=password + "\n",
-                capture_output=True,
-                text=True,
-                timeout=30,
-                env=env,
-            )
-        else:
-            result = subprocess.run(
-                ["sudo", "-n", "true"],
-                capture_output=True,
-                text=True,
-                timeout=10,
-                env=env,
-            )
-    except FileNotFoundError:
-        return "sudo not found"
-    except subprocess.TimeoutExpired:
-        return "sudo authentication timed out"
-
-    if result.returncode == 0:
-        return None
-    output = (result.stderr or result.stdout or "sudo authentication failed").strip()
-    if not password:
-        return "sudo password is required"
-    return output.splitlines()[-1] if output else "sudo authentication failed"
-
-
-def _keep_sudo_alive(stop_event: threading.Event):
-    while not stop_event.wait(60):
-        subprocess.run(
-            ["sudo", "-n", "-v"],
-            capture_output=True,
-            text=True,
-            timeout=10,
-        )
+# sudo-over-web helpers now live in shared/sudo_askpass.py (reused by dx_compiler SDK install
+# too). Kept as module-local aliases so existing callers and tests are unaffected.
+from shared.sudo_askpass import (  # noqa: E402
+    configure_sudo_env as _configure_sudo_env,
+    preauthorize_sudo as _preauthorize_sudo,
+    keep_sudo_alive as _keep_sudo_alive,
+)
 
 
 def get_log_state(step_id: str = None) -> dict:

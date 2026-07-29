@@ -64,6 +64,7 @@ class SetupService:
                 if not version:
                     version = getattr(dx_com, "__version__", "unknown")
 
+        sdk_present = SDK_ROOT.exists() and (SDK_ROOT / "install.sh").exists()
         return {
             "dx_com_installed": dx_com_info["installed"] or in_process,
             "dx_com_version": version,
@@ -71,6 +72,8 @@ class SetupService:
             "venv_python": str(venv_python) if venv_python else None,
             "sample_models": self._check_samples(),
             "calibration_data": self._check_calibration(),
+            # True when install-sdk will call install.sh (no local wheel) and needs sudo up front.
+            "install_requires_sudo": sdk_present and not self._local_wheel_available(),
         }
 
     def get_venv_python(self) -> Optional[Path]:
@@ -97,19 +100,125 @@ class SetupService:
         return result
 
 
-    def install_sdk(self) -> Generator[dict, None, None]:
-        """dx_com 설치/재설치. venv가 있으면 pip으로 직접 설치, 없으면 install.sh 안내"""
-        venv_python = self.get_venv_python()
+    def install_sdk(self, sudo_password: str = None) -> Generator[dict, None, None]:
+        """dx_com 설치/재설치.
 
-        if venv_python:
-            # venv 존재 → pip으로 직접 wheel 설치 (sudo 불필요)
-            yield from self._pip_install_dx_com(venv_python)
-        else:
-            # venv 미존재 → 터미널에서 install.sh 실행 안내
+        - 로컬에 wheel이 이미 있으면: venv 생성(없으면) + pip 설치. sudo·네트워크 불필요.
+        - wheel이 없으면(fresh): install.sh로 다운로드+설치. 내부 sudo apt가 있어 관리자 비번 필요
+          — SUDO_ASKPASS로 비대화형 처리(웹에서 비번 입력). 재실행 안전(idempotent)."""
+        if self._local_wheel_available():
+            venv_python = self.get_venv_python()
+            if not venv_python:
+                yield from self._create_venv()
+                venv_python = self.get_venv_python()
+            if venv_python:
+                yield from self._pip_install_dx_com(venv_python)
+            else:
+                yield {"type": "error",
+                       "message": "Could not create a virtual environment automatically. "
+                                  "Please run install.sh from the terminal: "
+                                  f"cd {SDK_ROOT} && bash install.sh --target=dx_com"}
+            return
+
+        # wheel이 로컬에 없음 → install.sh로 다운로드+설치해야 함 (sudo 필요).
+        if not SDK_ROOT.exists() or not (SDK_ROOT / "install.sh").exists():
             yield {"type": "error",
-                   "message": "Virtual environment not found. "
-                              "Please run install.sh from the terminal first: "
-                              f"cd {SDK_ROOT} && bash install.sh --target=dx_com"}
+                   "message": f"DX Compiler SDK not found at {SDK_ROOT}. "
+                              "Fetch it first (git submodule update --init dx-compiler)."}
+            return
+        if not sudo_password:
+            # 프론트가 비번 모달을 띄우도록 신호. (비번 받은 뒤 재요청)
+            yield {"type": "need_sudo",
+                   "message": "Administrator (sudo) password is required to download and "
+                              "install the DX Compiler SDK."}
+            return
+        yield from self._run_install_sh(sudo_password)
+
+    def _local_wheel_available(self) -> bool:
+        try:
+            return bool(list((SDK_ROOT / "dx_com").glob("*.whl")))
+        except OSError:
+            return False
+
+    def _run_install_sh(self, sudo_password: str) -> Generator[dict, None, None]:
+        """install.sh --target=dx_com 실행 (다운로드+venv+dx_com 설치)을 스트리밍.
+
+        내부 `sudo apt`는 SUDO_ASKPASS(shared)로 비대화형 인증. 재실행 안전: 기존 venv 있으면
+        --venv-reuse로 보존하며 dx_com만 재설치."""
+        import threading
+        from shared.sudo_askpass import configure_sudo_env, preauthorize_sudo, keep_sudo_alive
+
+        env = os.environ.copy()
+        # PEP 668 (Ubuntu 24.04+): 내부 pip 폴백이 system Python을 건드릴 때 하드실패 방지.
+        env.setdefault("PIP_BREAK_SYSTEM_PACKAGES", "1")
+        cleanup = configure_sudo_env(env, sudo_password)
+        sudo_err = preauthorize_sudo(sudo_password, env)
+        if sudo_err:
+            cleanup()
+            # 프론트가 오답 구분해 재입력하도록 별도 타입.
+            yield {"type": "sudo_auth", "message": f"sudo authentication failed: {sudo_err}"}
+            return
+
+        # Just --target=dx_com. install.sh's defaults (--force reinstall + venv-force-remove)
+        # make re-runs idempotent. Do NOT add --venv-reuse: force-remove is ON by default, and
+        # install.sh rejects both together ("Cannot use both --venv-force-remove and
+        # --venv-reuse") → exit 1. Letting it recreate the (compiler-only) venv is fine.
+        args = ["bash", str(SDK_ROOT / "install.sh"), "--target=dx_com"]
+
+        yield {"type": "progress", "progress": 3, "message": "Running install.sh --target=dx_com…"}
+        stop = threading.Event()
+        try:
+            threading.Thread(target=keep_sudo_alive, args=(stop,), daemon=True).start()
+            proc = subprocess.Popen(
+                args, cwd=str(SDK_ROOT), stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                text=True, bufsize=1, env=env,
+            )
+            n = 0
+            for line in proc.stdout:
+                # install.sh emits ANSI color codes → strip them so the web log stays readable.
+                line = re.sub(r"\x1b\[[0-9;?]*[a-zA-Z]", "", line).rstrip()
+                if not line:
+                    continue
+                n += 1
+                yield {"type": "progress", "progress": min(95, 5 + n // 3), "message": line}
+            proc.wait()
+            if proc.returncode == 0:
+                yield {"type": "complete", "progress": 100,
+                       "message": "DX Compiler SDK installed successfully."}
+            else:
+                yield {"type": "error",
+                       "message": f"install.sh failed (exit {proc.returncode}). See the log above."}
+        except Exception as exc:
+            yield {"type": "error", "message": f"install.sh execution failed: {exc}"}
+        finally:
+            stop.set()
+            cleanup()
+
+    def _create_venv(self) -> Generator[dict, None, None]:
+        """dx_com용 virtualenv 생성 (SDK_ROOT/venv-dx-compiler-local). 스튜디오 python 사용,
+        --system-site-packages로 플랫폼 패키지 상속."""
+        venv_path = SDK_ROOT / VENV_CANDIDATES[0]
+        if not SDK_ROOT.exists():
+            yield {"type": "error",
+                   "message": f"DX Compiler SDK not found at {SDK_ROOT}. "
+                              "Install the dx-compiler SDK first."}
+            return
+        yield {"type": "progress", "progress": 2,
+               "message": f"Creating virtual environment ({venv_path.name})…"}
+        try:
+            proc = subprocess.run(
+                [sys.executable, "-m", "venv", "--system-site-packages", str(venv_path)],
+                capture_output=True, text=True, timeout=180,
+            )
+        except (subprocess.TimeoutExpired, OSError) as exc:
+            yield {"type": "error", "message": f"Failed to create virtual environment: {exc}"}
+            return
+        if proc.returncode != 0 or not (venv_path / "bin" / "python3").exists():
+            detail = (proc.stderr or proc.stdout or "").strip()[:300]
+            yield {"type": "error",
+                   "message": f"Failed to create virtual environment: {detail or 'unknown error'}"}
+            return
+        yield {"type": "progress", "progress": 8, "message": "Virtual environment created."}
 
     def _pip_install_dx_com(self, venv_python) -> Generator[dict, None, None]:
         """venv pip으로 dx_com wheel 설치"""

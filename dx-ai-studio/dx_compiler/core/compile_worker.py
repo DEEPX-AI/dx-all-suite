@@ -21,6 +21,10 @@ if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
 
 SENTINEL = "__COMPILE_DONE__"
+# dx_com writes tqdm progress bars (using \r, no \n) to the SAME stdout/stderr stream the
+# worker uses, so a raw JSON event line can arrive glued to tqdm noise. Prefix every event
+# with this marker so the parent can extract the JSON reliably (see _run_compile_subprocess).
+EVENT_PREFIX = "__DXEVENT__"
 
 
 def event_to_dict(event) -> dict:
@@ -36,9 +40,18 @@ def event_to_dict(event) -> dict:
             except (TypeError, ValueError):
                 safe_meta[k] = str(v)
         result["metadata"] = safe_meta
-    # model 객체는 직렬화 불가 — 존재 여부만 표시
-    if getattr(event, "model", None) is not None:
+    # The ONNX ModelProto itself can't cross the process boundary as JSON, but the
+    # worker runs in the venv that HAS onnx — so parse the phase model to the graph
+    # dict HERE and ship that. Without this, gui_graphs never populate under
+    # subprocess mode and the Prepared/Surgery/Partition/DXNN viewer tabs stay empty.
+    model = getattr(event, "model", None)
+    if model is not None:
         result["has_model"] = True
+        try:
+            from dx_compiler.core.onnx_parser import parse_onnx_model
+            result["graph"] = parse_onnx_model(model)
+        except Exception as exc:  # never let a viewer-parse failure abort the compile
+            result["graph_error"] = str(exc)
     return result
 
 
@@ -84,13 +97,13 @@ def main():
         event = event_q.get()
         if event == SENTINEL:
             break
-        if isinstance(event, dict):
-            print(json.dumps(event), flush=True)
-        else:
-            print(json.dumps(event_to_dict(event)), flush=True)
+        payload = event if isinstance(event, dict) else event_to_dict(event)
+        # Leading "\n" ensures the marker starts a fresh line even if dx_com just wrote a
+        # \r-terminated tqdm bar with no newline; EVENT_PREFIX lets the parent find the JSON.
+        print("\n" + EVENT_PREFIX + json.dumps(payload), flush=True)
 
     thread.join(timeout=5)
-    print(json.dumps({"type": "done"}), flush=True)
+    print("\n" + EVENT_PREFIX + json.dumps({"type": "done"}), flush=True)
 
 
 if __name__ == "__main__":

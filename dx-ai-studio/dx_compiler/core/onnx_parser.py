@@ -418,13 +418,18 @@ def parse_onnx_model(source: Union[str, onnx.ModelProto]) -> Dict[str, Any]:
     # are param-processing ops (Identity, Reshape, Unsqueeze on weights).
     # Like Netron, remove them from the graph and treat their outputs as
     # params so they inline into consuming op nodes.
+    # EXCEPTION: never remove a node that produces a GRAPH OUTPUT — dropping it
+    # promotes the output to a param with no producing node, so the viewer loses
+    # the node backing that output (ADR-037 guard, ported from the reference parser).
+    graph_output_names = {vi.name for vi in graph.output}
     changed = True
     while changed:
         changed = False
         kept: List[Dict[str, Any]] = []
         for nd in node_list:
             inputs = [i for i in nd["inputs"] if i]
-            if inputs and all(i in initializer_names for i in inputs):
+            if (inputs and all(i in initializer_names for i in inputs)
+                    and not any(o in graph_output_names for o in nd["outputs"])):
                 # This node only processes params — hide it
                 for out_name in nd["outputs"]:
                     initializer_names.add(out_name)
@@ -618,6 +623,18 @@ def parse_onnx_model(source: Union[str, onnx.ModelProto]) -> Dict[str, Any]:
         })
         seen_param_names.add(cp["name"])
 
+    # Hide non-IO, non-param activation shapes/dtypes (ADR-037). The graph viewer
+    # must show shapes ONLY for graph inputs/outputs and PARAM (weight) tensors;
+    # every intermediate ACTIVATION shape that shape_inference re-filled leaks onto
+    # tensor_info entries and edge labels otherwise. Use the pure graph I/O names
+    # (subgraph inputs are outer-graph activations and must stay hidden).
+    _hide_activation_tensor_shapes(
+        tensor_info, {vi.name for vi in graph.input}, graph_output_names, params
+    )
+    _hide_activation_edge_shapes(
+        edges, {vi.name for vi in graph.input}, graph_output_names
+    )
+
     return {
         "name": graph.name,
         "nodes": node_list,
@@ -628,3 +645,34 @@ def parse_onnx_model(source: Union[str, onnx.ModelProto]) -> Dict[str, Any]:
         "tensor_info": tensor_info,
         "subgraphs": subgraphs,
     }
+
+
+def _hide_activation_tensor_shapes(tensor_info, graph_input_names,
+                                   graph_output_names, params):
+    """Clear shape/dtype for activation (non-IO, non-param) tensors (ADR-037).
+
+    The renderer reads ``tensor_info`` first, so this is the authoritative
+    enforcement point: any entry not in the visible set (graph I/O + params) has
+    its shape/dtype cleared even though shape_inference re-filled it.
+    """
+    visible = graph_input_names | graph_output_names | {p["name"] for p in params}
+    for name, info in tensor_info.items():
+        if name in visible:
+            continue
+        info["shape"] = None
+        info["dtype"] = None
+
+
+def _hide_activation_edge_shapes(edges, graph_input_names, graph_output_names):
+    """Clear shape/dtype on edge labels for intermediate activation tensors (ADR-037).
+
+    Only graph input/output tensors may show a shape on an edge; every other edge
+    (intermediate activation) has its shape/dtype cleared.
+    """
+    visible = graph_input_names | graph_output_names
+    for edge in edges:
+        tensor_name = edge.get("from_output") or edge.get("to_input")
+        if tensor_name in visible:
+            continue
+        edge["shape"] = None
+        edge["dtype"] = None

@@ -9,7 +9,9 @@
   let _agentControlsBound = false;
   let _modelHintBound = false;
 
-  const _RECOMMENDED_MODEL = /sonnet-4\.[6-9]|opus-4\.[6-9]|claude-sonnet-4-[6-9]|claude-opus-4-[68]/i;
+  // Recommended = harness-following-capable families: Sonnet/Opus 4.6+, any Sonnet/Opus 5+,
+  // and GPT 5.4+ (covers gpt-5.6-*). Accepts dot or dash forms (4.8 / 4-8, 5.6 / 5-6).
+  const _RECOMMENDED_MODEL = /(sonnet|opus)[ -]?4[.-][6-9]|(sonnet|opus)[ -]?[5-9]|gpt[ -]?5[.-][4-9]|gpt[ -]?[6-9]/i;
   let _hasRunOutput = false;
 
   let _mermaidReady = null;

@@ -34,8 +34,18 @@ def merge_adapter_results(results, source_profile="local"):
     baseline 모델 목록은 local_runtime 어댑터에서 가져옴.
     다른 어댑터들은 baseline에 있는 모델만 보강함.
     """
+    # For a NETWORK profile (public / internal) the authoritative model list + metadata is the
+    # network source itself (developer.deepx.ai = 352 models, all fps / fps-per-watt / artifacts /
+    # mIoU). Using local_runtime as the baseline dropped every network model whose id differs by a
+    # quant/instance suffix (public "deeplabv3plus_drn_512x512" vs local
+    # "deeplabv3plus_drn_512x512_q_lite"), silently losing their benchmark data. Prefer the
+    # network adapter as baseline for those profiles so nothing is dropped.
+    _profile_network_adapter = {"public": "public_modelzoo",
+                                "internal": "internal_modelzoo"}.get(source_profile)
     baseline_ids = set()
-    for baseline_adapter in ("local_runtime", "local_studio_catalog"):
+    _baseline_order = ([_profile_network_adapter] if _profile_network_adapter else []) \
+        + ["local_runtime", "local_studio_catalog"]
+    for baseline_adapter in _baseline_order:
         for r in results:
             if r.get("adapter") == baseline_adapter and r.get("models"):
                 baseline_ids = set(r["models"].keys())

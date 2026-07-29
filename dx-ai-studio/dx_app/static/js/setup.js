@@ -302,7 +302,20 @@ async function setupRunAll() {
   var btn=$('setup-run-all');
   var prog=$('setup-run-all-progress');
   if(SETUP.running){toast(_T6('다른 작업이 이미 실행 중입니다','Another task is already running','別のタスクが実行中です','另一个任务正在运行','另一個任務正在執行','Otra tarea ya está en ejecución'),'err');return;}
-  var STEPS=['dx-app-deps','dx-rt-deps','dx-rt-build','dx-driver','dx-app-build','dx-app-setup'];
+  var ALL=['dx-app-deps','dx-rt-deps','dx-rt-build','dx-driver','dx-app-build','dx-app-setup','inference-venv'];
+  // Idempotency: skip steps already satisfied so re-running Run All on a machine that ALREADY
+  // has a working runtime/driver/build (e.g. an existing dx-all-suite user who just added AI
+  // Studio) does NOT rebuild dx_rt, reinstall the NPU driver, or overwrite /usr/local/lib — it
+  // only fills genuine gaps. (Demo Quick Start already filters this way via the backend.)
+  var STEPS=ALL;
+  try{
+    var st=await api('/api/setup/status');
+    STEPS=ALL.filter(function(id){return !(((st&&st[id])||{}).ok);});
+  }catch(e){/* status probe failed → run the full list rather than silently skip */}
+  if(!STEPS.length){
+    toast(_T6('이미 모두 설치되어 있습니다 — 실행할 항목 없음','Everything is already installed — nothing to run','すべてインストール済み — 実行する項目なし','已全部安装 — 无需执行','已全部安裝 — 無需執行','Todo ya está instalado — nada que ejecutar'),'ok');
+    return;
+  }
   btn.disabled=true;
   var res=await _setupRunSequence(STEPS,{progressEl:prog});
   btn.disabled=false;

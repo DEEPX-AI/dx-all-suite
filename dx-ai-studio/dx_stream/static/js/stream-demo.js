@@ -181,12 +181,10 @@ DXStream._playbackMode = (function () {
 DXStream.setPlaybackMode = function (mode, btn) {
     DXStream._playbackMode = (mode === 'remote') ? 'remote' : 'local';
     try { localStorage.setItem('dxStreamPlaybackMode', DXStream._playbackMode); } catch (e) {}
-    var bar = DXStream.$('playback-mode-bar');
-    if (bar) {
-        bar.querySelectorAll('button[data-mode]').forEach(function (b) {
-            b.classList.toggle('active', b.getAttribute('data-mode') === DXStream._playbackMode);
-        });
-    }
+    // Sync every playback-mode bar (Demo page + Pipeline Builder) so the choice is consistent.
+    document.querySelectorAll('.playback-mode-bar button[data-mode]').forEach(function (b) {
+        b.classList.toggle('active', b.getAttribute('data-mode') === DXStream._playbackMode);
+    });
     var localHint = DXStream.$('playback-mode-hint-local');
     var remoteHint = DXStream.$('playback-mode-hint-remote');
     if (localHint) localHint.style.display = (DXStream._playbackMode === 'local') ? '' : 'none';
@@ -235,6 +233,33 @@ function _mseMime() {
     }
     return _MSE_MIME_CANDIDATES[0];
 }
+// Derive the EXACT codec string from the fMP4 init segment's avcC box (bytes after 'avcC':
+// configurationVersion, AVCProfileIndication, profile_compatibility, AVCLevelIndication). The HW
+// encoder's profile/LEVEL varies per demo resolution, so a hardcoded guess (e.g. baseline L3.0)
+// mismatches L4.0 streams → MSE accepts the bytes but the decoder renders nothing (black). Using
+// the real codec string makes every demo play. Returns e.g. "avc1.42c028" or null if not found.
+function _avcCodecsFromBytes(u8) {
+    // Return an ordered list of candidate mime strings derived from the init segment's avcC:
+    // the exact profile/compat/LEVEL first, then same-level variants (standard compat, main
+    // profile) as defensive fallbacks. Empty if avcC not yet present. Getting the LEVEL right is
+    // what matters — declaring L3.0 for an L4.0 stream makes the decoder render nothing (black).
+    if (!u8) return [];
+    for (var i = 0; i + 8 < u8.length; i++) {
+        if (u8[i] === 0x61 && u8[i + 1] === 0x76 && u8[i + 2] === 0x63 && u8[i + 3] === 0x43) { // 'avcC'
+            var h = function (n) { return (n < 16 ? '0' : '') + n.toString(16); };
+            var prof = h(u8[i + 5]), compat = h(u8[i + 6]), lvl = h(u8[i + 7]);
+            var mk = function (p, c) { return 'video/mp4; codecs="avc1.' + p + c + lvl + '"'; };
+            return [mk(prof, compat), mk(prof, 'e0'), mk('4d', '40'), mk('64', '00')];
+        }
+    }
+    return [];
+}
+function _concatU8(a, b) {
+    if (!a) return b;
+    var out = new Uint8Array(a.length + b.length);
+    out.set(a, 0); out.set(b, a.length);
+    return out;
+}
 
 var _fmp4 = null;
 function _showFmp4Stream(videoSection) {
@@ -257,26 +282,46 @@ function _fmp4PlayInto(video) {
     video.muted = true;
     video.playsInline = true;
 
-    var mime = _mseMime();
     var ms = new MediaSource();
-    var st = { ms: ms, video: video, sb: null, queue: [], reader: null, stopped: false, mime: mime };
+    // st.sb is created lazily once the init segment arrives and we know the real codec string.
+    var st = { ms: ms, video: video, sb: null, queue: [], reader: null, stopped: false,
+               mime: null, initBuf: null };
     _fmp4 = st;
     video.src = URL.createObjectURL(ms);
     ms.addEventListener('sourceopen', function () {
         if (st.stopped) return;
-        try {
-            st.sb = ms.addSourceBuffer(mime);
-            st.sb.mode = 'sequence';  // auto-sequence timestamps (smooth over EOS restarts)
-        } catch (e) {
-            DXStream.toast(T('MSE init failed, using MJPEG: ') + e.message, 'warn');
-            DXStream._fallbackToMjpeg(DXStream._runningDemoId);
-            return;
-        }
-        st.sb.addEventListener('updateend', function () { _fmp4Pump(st); _fmp4KeepLive(st); });
-        _fmp4Fetch(st);
+        _fmp4Fetch(st);   // SourceBuffer added inside, after the codec is known
     });
     video.play().catch(function () {});
     _startFmp4Fps(video);
+}
+// Create the SourceBuffer from the actual stream codec (parsed from the buffered init segment),
+// then flush the buffered init bytes into it. Falls back to the static candidate list if avcC
+// can't be found. Returns true once the SourceBuffer exists.
+function _fmp4EnsureSourceBuffer(st) {
+    if (st.sb) return true;
+    if (st.ms.readyState !== 'open') return false;
+    var derived = _avcCodecsFromBytes(st.initBuf);
+    var mime = null;
+    for (var k = 0; k < derived.length; k++) {
+        try { if (MediaSource.isTypeSupported(derived[k])) { mime = derived[k]; break; } } catch (e) {}
+    }
+    // Wait for more bytes until avcC is seen — unless we've buffered plenty (give up, use fallback).
+    if (!derived.length && st.initBuf && st.initBuf.length < 262144) return false;
+    if (!mime) mime = _mseMime();
+    st.mime = mime;
+    try {
+        st.sb = st.ms.addSourceBuffer(mime);
+        st.sb.mode = 'sequence';  // auto-sequence timestamps (smooth over EOS restarts)
+    } catch (e) {
+        DXStream.toast(T('MSE init failed, using MJPEG: ') + e.message, 'warn');
+        DXStream._fallbackToMjpeg(DXStream._runningDemoId);
+        return false;
+    }
+    st.sb.addEventListener('updateend', function () { _fmp4Pump(st); _fmp4KeepLive(st); });
+    if (st.initBuf && st.initBuf.length) { st.queue.push(st.initBuf); st.initBuf = null; }
+    _fmp4Pump(st);
+    return true;
 }
 function _fmp4Fetch(st) {
     fetch('/api/stream/fmp4').then(function (resp) {
@@ -286,8 +331,14 @@ function _fmp4Fetch(st) {
             st.reader.read().then(function (r) {
                 if (st.stopped) { try { st.reader.cancel(); } catch (e) {} return; }
                 if (r.done) return;
-                st.queue.push(r.value);
-                _fmp4Pump(st);
+                if (!st.sb) {
+                    // Buffer bytes until we can read the codec from the init segment's avcC box.
+                    st.initBuf = _concatU8(st.initBuf, r.value);
+                    _fmp4EnsureSourceBuffer(st);
+                } else {
+                    st.queue.push(r.value);
+                    _fmp4Pump(st);
+                }
                 read();
             }).catch(function () {});
         })();
@@ -345,11 +396,28 @@ var _fmp4FpsTimer = null, _fmp4LastFrames = -1;
 function _startFmp4Fps(video) {
     _stopFmp4Fps();
     _fmp4LastFrames = -1;
+    var _zeroSecs = 0, _fellBack = false;
     _fmp4FpsTimer = setInterval(function () {
-        var overlay = DXStream.$('webrtc-stats-overlay');
-        if (!overlay) return;
         var q = video.getVideoPlaybackQuality ? video.getVideoPlaybackQuality() : null;
         var f = q ? q.totalVideoFrames : (video.webkitDecodedFrameCount || 0);
+        // Stall guard: if the fMP4/MSE path decoded ZERO frames after several seconds (data may
+        // be arriving but the browser's MSE decoder rendered nothing — codec/container quirk),
+        // transparently fall back to MJPEG, which is a plain <img> over HTTP and always renders.
+        if (!_fellBack) {
+            if (f === 0) {
+                _zeroSecs += 1;
+                if (_zeroSecs >= 4) {
+                    _fellBack = true;
+                    DXStream.toast(T('Video decode stalled — switching to MJPEG'), 'warn');
+                    DXStream._fallbackToMjpeg(DXStream._runningDemoId);
+                    return;
+                }
+            } else {
+                _zeroSecs = 0;
+            }
+        }
+        var overlay = DXStream.$('webrtc-stats-overlay');
+        if (!overlay) return;
         if (_fmp4LastFrames < 0) { _fmp4LastFrames = f; overlay.textContent = '… FPS'; return; }
         overlay.textContent = Math.max(0, f - _fmp4LastFrames) + ' FPS';
         _fmp4LastFrames = f;
@@ -371,6 +439,10 @@ DXStream._fallbackToMjpeg = async function (id) {
     DXStream._mjpegFallbackFor = id;
     if (DXStream._runningDemoId !== id) return; // demo was stopped/changed meanwhile
     try {
+        // Tear down whatever transport was attempted (WebRTC peer / fMP4 fetch+MSE + its timers)
+        // so we don't leave a background stream running alongside the MJPEG one.
+        try { if (DXStream.webrtc && DXStream.webrtc.disconnect) DXStream.webrtc.disconnect(); } catch (e) {}
+        try { _stopFmp4(); } catch (e) {}
         DXStream.toast(T('WebRTC unavailable from here — switching to MJPEG…'), 'info');
         var resp = await DXStream.postJ('/api/demos/' + id + '/start', { forceMjpeg: true });
         if (resp && resp.error) { DXStream.toast(resp.error, 'error'); return; }
@@ -394,12 +466,12 @@ DXStream._startDemo = async function (id) {
         DXStream.toast(T('Starting demo…'), 'info');
         var webrtcPayloadTypes = await DXStream.webrtc.preferredPayloadTypes();
         var _startBody = { webrtcPayloadTypes: webrtcPayloadTypes };
-        // Remote mode: WebRTC's UDP can't cross an SSH tunnel/NAT and MJPEG's bitrate saturates
-        // it, so request HW-H264-over-HTTP (fMP4 + MSE). If the browser lacks MSE, fall back to
-        // MJPEG. Local mode keeps WebRTC (lowest latency on the same LAN).
+        // Remote mode → MJPEG directly. fMP4/MSE proved unreliable across the SSH tunnel (the
+        // browser's MSE decoder renders nothing for the HW-encoded stream), so skip it and use
+        // MJPEG — a plain <img> over HTTP that always renders and is low-latency. Local mode
+        // keeps WebRTC (lowest latency on the same LAN).
         if (DXStream._playbackMode === 'remote') {
-            if (_mseSupported()) _startBody.output = 'fmp4';
-            else _startBody.forceMjpeg = true;
+            _startBody.forceMjpeg = true;
         }
         // RTSP demos: pass the user-entered rtsp:// URL as the source (backend routes any
         // "://" value through as the pipeline URI). Blank falls back to the demo's default CCTV.

@@ -18,7 +18,14 @@ Here are the **DX-All-Suite v2.4.1** Release Note.
 
 ### What's New?
 
-This hotfix release contains documentation updates across the suite.
+This hotfix polishes the **DX AI Studio (Beta)** introduced in v2.4.0, and adds documentation updates across the suite.
+
+**DX AI Studio (Beta) improvements**
+- **Model Zoo** — browse the full model catalog with one-click download (and re-download), in six languages.
+- **App demos** — correct, clearer results for classification, pose, and video demos.
+- **Stream** — demos and the Pipeline Builder now play reliably in remote / SSH browsers.
+- **Compiler** — smoother agentic auto-compile and clearer quantization diagnosis.
+- **Benchmark** — refreshed to the latest benchmark dataset.
 
 For detailed updated items, refer to **each environment & module's Release Notes**.
 
@@ -60,6 +67,20 @@ Describe an app or model task in plain language, and an AI coding agent drives t
 > **Beta notice:** `dx-agent-dev` is currently in Beta. Behavior and APIs may change as the feature matures.
 
 **Learn more** — see [Agent-Driven Development docs](docs/source/00_Agent_Driven_Development.md) and the [showcase gallery](dx-agent-dev-showcase/README.md).
+
+#### 🖥️ New: DX AI Studio — one browser workspace for the DEEPX NPU (Beta)
+
+**DX AI Studio is now available in Beta** — an all-in-one desktop web workspace that unifies eight DEEPX tools in a single browser, in six languages.
+
+**Highlights**
+- **Eight tools, one hub** — DX App (NPU inference on image/video/camera/RTSP with live multi-stream), DX Stream (real-time GStreamer pipelines with live WebRTC playback), DX Model Zoo (350+ models with in-browser demos and one-click `.dxnn`/ONNX downloads), DX Compiler (ONNX → `.dxnn` with a config wizard, quantization tuning/diagnosis, and agentic auto-compile), DX EdgeGuide (board recommendation from real benchmarks), DX Benchmark, DX Monitor (live NPU telemetry), and DX Agent Dev.
+- **Zero dependencies, self-installing** — pure Python standard library; `./launcher.sh` installs, boots every tool, and opens the browser with no manual setup.
+- **Runs without hardware** — every tool degrades gracefully to sample/mock data, so the whole studio is browsable with no NPU, SDK, or models.
+- **Six languages** and a built-in AI assistant (multi-provider, with a fully-offline local option).
+
+> **Beta notice:** DX AI Studio is a Beta release (studio v0.1.0). Features and UI may change before general availability.
+
+**Learn more** — see the DX AI Studio User Manual (`dx-ai-studio/docs/`).
 
 #### 🎯 Advanced Quantization & Model Quality
 

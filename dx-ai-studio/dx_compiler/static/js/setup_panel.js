@@ -81,55 +81,75 @@ class SetupPanel {
     if (window.DXI18n && typeof DXI18n.applyLang === 'function') DXI18n.applyLang();
   }
 
-  async installSDK() {
+  async installSDK(password, authFailed) {
     if (this._installing || this._isCompiling) {
       if (this._isCompiling) alert(this._t('Compilation in progress. Cannot modify setup.'));
       return;
     }
-    this._installing = true;
+
+    // dx_app Setup pattern: collect sudo before POST when install.sh is required (no local wheel).
+    // Avoids relying on a single-chunk SSE need_sudo event after the Install click finishes.
+    if (!password && this.status && this.status.install_requires_sudo) {
+      const pw = await this._promptSudoPassword(!!authFailed);
+      if (!pw) return;
+      return this.installSDK(pw, false);
+    }
+
     const btn = document.getElementById('setup-install-btn');
     const progressDiv = document.getElementById('setup-install-progress');
     const bar = document.getElementById('setup-install-bar');
     const text = document.getElementById('setup-install-text');
+    // Guard: if the panel DOM isn't present, bail WITHOUT latching _installing — otherwise a
+    // throw here would leave _installing=true and block every future Install click.
+    if (!btn || !progressDiv || !bar || !text) return;
 
+    this._installing = true;
     btn.disabled = true;
     progressDiv.style.display = 'block';
+    bar.classList.remove('error');
 
+    let installSucceeded = false;
     try {
-      const res = await fetch('/setup/install-sdk', { method: 'POST' });
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = '';
-      let installSucceeded = false;
+      const res = await fetch('/setup/install-sdk', {
+        method: 'POST',
+        headers: password ? { 'Content-Type': 'application/json' } : {},
+        body: password ? JSON.stringify({ password: password }) : undefined,
+      });
+      let sudoNeeded = false;
+      let sudoMsg = '';
+      const logEl = document.getElementById('setup-install-log');
+      if (logEl) { logEl.textContent = ''; logEl.style.display = 'none'; }
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop();
-
-        for (const line of lines) {
-          if (!line.startsWith('data: ')) continue;
-          try {
-            const event = JSON.parse(line.slice(6));
-            if (event.progress !== undefined) {
-              bar.style.width = event.progress + '%';
-            }
-            if (event.message) {
-              text.textContent = event.message;
-            }
-            if (event.type === 'complete') {
-              installSucceeded = true;
-              this._markSdkInstalled();
-            }
-            if (event.type === 'complete' || event.type === 'error') {
-              if (event.type === 'error') {
-                bar.classList.add('error');
-              }
-            }
-          } catch (e) { /* skip */ }
+      // Stream events LIVE so the install.sh output scrolls in real time (minutes-long).
+      await this._readSseEvents(res.body, (event) => {
+        if (event.progress !== undefined) {
+          bar.style.width = event.progress + '%';
         }
+        if (event.message) {
+          text.textContent = event.message;
+          this._appendInstallLog(event.message);
+        }
+        if (event.type === 'need_sudo' || event.type === 'sudo_auth') {
+          sudoNeeded = true;
+          sudoMsg = event.message || '';
+        }
+        if (event.type === 'complete') {
+          installSucceeded = true;
+          this._markSdkInstalled();
+        }
+        if (event.type === 'error') {
+          bar.classList.add('error');
+        }
+      });
+
+      if (sudoNeeded) {
+        this._installing = false;
+        btn.disabled = false;
+        const pw = await this._promptSudoPassword(true);
+        if (pw) return this.installSDK(pw, true);
+        text.textContent = this._t('Installation cancelled');
+        bar.classList.add('error');
+        return;
       }
     } catch (e) {
       text.textContent = this._t('Error') + ': ' + e.message;
@@ -142,54 +162,134 @@ class SetupPanel {
     await this._refreshStatus();
   }
 
+  /** Parse SSE stream from fetch body. Calls onEvent(ev) LIVE as each event arrives (so the
+   *  install log streams in real time, like the compile/stream-setup panels), handles the
+   *  final chunk when done=true, and also returns all events for post-processing. */
+  async _readSseEvents(body, onEvent) {
+    const reader = body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    const events = [];
+    const emit = (jsonStr) => {
+      try {
+        const ev = JSON.parse(jsonStr);
+        events.push(ev);
+        if (onEvent) { try { onEvent(ev); } catch (e) { /* UI cb error — keep reading */ } }
+      } catch (e) { /* skip partial / non-JSON */ }
+    };
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (value) {
+        buffer += decoder.decode(value, { stream: true });
+      }
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      for (const raw of lines) {
+        const line = raw.trim();
+        if (line.startsWith('data: ')) emit(line.slice(6));
+      }
+      if (done) break;
+    }
+
+    const tail = buffer.trim();
+    if (tail.startsWith('data: ')) emit(tail.slice(6));
+    return events;
+  }
+
+  _appendInstallLog(line) {
+    const log = document.getElementById('setup-install-log');
+    if (!log) return;
+    log.style.display = 'block';
+    log.textContent += (log.textContent ? '\n' : '') + line;
+    log.scrollTop = log.scrollHeight;
+  }
+
+  _promptSudoPassword(authFailed) {
+    const t = (k) => this._t(k);
+    return new Promise((resolve) => {
+      document.getElementById('setup-sudo-modal')?.remove();
+      const root = document.documentElement || document.body;
+      const overlay = document.createElement('div');
+      overlay.id = 'setup-sudo-modal';
+      overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;' +
+        'align-items:center;justify-content:center;z-index:100001;padding:20px';
+      const box = document.createElement('div');
+      box.style.cssText = 'width:min(460px,92vw);background:var(--bg-1,var(--bg-2));' +
+        'border:1px solid var(--border);border-radius:12px;padding:20px;' +
+        'box-shadow:0 20px 60px rgba(0,0,0,.35)';
+      box.innerHTML =
+        '<h3 style="margin:0 0 8px">🔒 ' + t('Administrator (sudo) Authentication') + '</h3>' +
+        (authFailed ? '<p style="margin:0 0 8px;color:var(--error,#e5484d);font-size:13px">' +
+          t('Incorrect password. Please try again.') + '</p>' : '') +
+        '<p class="txt-dim" style="margin:0 0 12px;font-size:13px;line-height:1.45">' +
+          t('Enter your sudo password to download and install the DX Compiler SDK.') + '</p>' +
+        '<input id="_sudo-pw" type="password" autocomplete="current-password" ' +
+          'style="width:100%;box-sizing:border-box;padding:9px 11px;border-radius:8px;' +
+          'border:1px solid var(--border);background:var(--bg-0);color:var(--text-1)" ' +
+          'placeholder="' + t('Enter password') + '">' +
+        '<div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px">' +
+          '<button id="_sudo-cancel" class="fp-btn" type="button">' + t('Cancel') + '</button>' +
+          '<button id="_sudo-ok" class="fp-btn fp-select" type="button">' + t('OK') + '</button>' +
+        '</div>';
+      overlay.appendChild(box);
+      root.appendChild(overlay);
+      const input = box.querySelector('#_sudo-pw');
+      const done = (v) => { overlay.remove(); resolve(v || null); };
+      box.querySelector('#_sudo-cancel').onclick = () => done(null);
+      box.querySelector('#_sudo-ok').onclick = () => done(input.value);
+      input.onkeydown = (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); done(input.value); }
+        else if (e.key === 'Escape') { e.preventDefault(); done(null); }
+      };
+      // Ignore the Install-button click that may still be bubbling when the modal opens.
+      let backdropReady = false;
+      setTimeout(() => { backdropReady = true; }, 350);
+      overlay.onclick = (e) => {
+        if (backdropReady && e.target === overlay) done(null);
+      };
+      setTimeout(() => input.focus(), 0);
+    });
+  }
+
   async downloadSamples() {
     if (this._downloading || this._isCompiling) {
       if (this._isCompiling) alert(this._t('Compilation in progress. Cannot modify setup.'));
       return;
     }
-    this._downloading = true;
     const btn = document.getElementById('setup-download-btn');
     const progressDiv = document.getElementById('setup-download-progress');
     const bar = document.getElementById('setup-download-bar');
     const text = document.getElementById('setup-download-text');
+    // Guard: bail WITHOUT latching _downloading if the DOM isn't present — otherwise a throw
+    // here leaves _downloading=true and blocks every future Download click.
+    if (!btn || !progressDiv || !bar || !text) return;
 
+    this._downloading = true;
     btn.disabled = true;
     progressDiv.style.display = 'block';
+    bar.classList.remove('error');
 
+    let downloadSucceeded = false;
     try {
       const res = await fetch('/setup/download-samples', { method: 'POST' });
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = '';
-      let downloadSucceeded = false;
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop();
-
-        for (const line of lines) {
-          if (!line.startsWith('data: ')) continue;
-          try {
-            const event = JSON.parse(line.slice(6));
-            if (event.progress !== undefined) {
-              bar.style.width = event.progress + '%';
-            }
-            if (event.message) {
-              text.textContent = event.message;
-            }
-            if (event.type === 'complete') {
-              downloadSucceeded = true;
-              this._markSamplesDownloaded();
-            }
-            if (event.type === 'error') {
-              bar.classList.add('error');
-            }
-          } catch (e) { /* skip */ }
+      // Stream events LIVE (like install) so download progress updates in real time.
+      await this._readSseEvents(res.body, (event) => {
+        if (event.progress !== undefined) {
+          bar.style.width = event.progress + '%';
         }
-      }
+        if (event.message) {
+          text.textContent = event.message;
+        }
+        if (event.type === 'complete') {
+          downloadSucceeded = true;
+          this._markSamplesDownloaded();
+        }
+        if (event.type === 'error') {
+          bar.classList.add('error');
+        }
+      });
     } catch (e) {
       text.textContent = this._t('Error') + ': ' + e.message;
       bar.classList.add('error');

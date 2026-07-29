@@ -14,7 +14,18 @@ function _renderPalette(grouped) {
         }, {})
         : grouped;
 
-    palette.innerHTML = Object.entries(categories).map(function (entry) {
+    // Order categories by pipeline data-flow so SOURCE (urisourcebin/rtspsrc/…) sits at the TOP
+    // of the palette, not buried near the bottom (the API's dict order put it 8th, so users
+    // couldn't find urisourcebin without scrolling). Unlisted categories keep their order after.
+    var _ORDER = ['source', 'preprocess', 'inference', 'postprocess', 'tracking',
+                  'visualization', 'utility', 'messaging', 'output'];
+    var _entries = Object.entries(categories).sort(function (a, b) {
+        var ia = _ORDER.indexOf(a[0]); if (ia < 0) ia = _ORDER.length;
+        var ib = _ORDER.indexOf(b[0]); if (ib < 0) ib = _ORDER.length;
+        return ia - ib;
+    });
+
+    palette.innerHTML = _entries.map(function (entry) {
         var cat = entry[0], items = entry[1];
         var color = _catColor(cat);
         var icon = _catIcon(cat);

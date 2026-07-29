@@ -103,6 +103,37 @@ def test_claude_assistant_tool_use_goes_to_command():
     assert "Bash" in ev["text"]
 
 
+def test_claude_assistant_tool_use_is_compact_not_json_dump():
+    """A tool_use block must render as a compact one-liner, never a raw args JSON dump.
+
+    claude stream-json ships tool calls inside assistant.content, so this is the path
+    that produced the unreadable `→ Read: {"file_path": "..."}` blobs in the console.
+    """
+    from core.adapters.base import _map_json_event
+
+    read = {
+        "type": "assistant",
+        "message": {"content": [
+            {"type": "tool_use", "name": "Read",
+             "input": {"file_path": "/a/very/long/path/to/SKILL.md"}},
+        ]},
+    }
+    ev = _map_json_event(read, json.dumps(read))
+    assert ev["type"] == "command"
+    assert ev["text"] == "→ Read: SKILL.md"      # basename only, no JSON, no path
+    assert "{" not in ev["text"] and "/a/very" not in ev["text"]
+
+    skill = {
+        "type": "assistant",
+        "message": {"content": [
+            {"type": "tool_use", "name": "Skill", "input": {"skill": "dx-skill-router"}},
+        ]},
+    }
+    ev = _map_json_event(skill, json.dumps(skill))
+    assert ev["text"] == "→ Skill: dx-skill-router"
+    assert "{" not in ev["text"]
+
+
 def test_codex_thread_started_is_status():
     from core.adapters.base import _map_json_event
 

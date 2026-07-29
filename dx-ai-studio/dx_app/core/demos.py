@@ -9,6 +9,16 @@ Stdlib only.
 from __future__ import annotations
 import re
 from pathlib import Path
+try:
+    from dx_app.core.config import IMAGE_ONLY_CATEGORIES as _IMAGE_ONLY_CATEGORIES
+except Exception:
+    _IMAGE_ONLY_CATEGORIES = {"embedding", "reid", "attribute_recognition",
+                              "object_pose_estimation", "3d_object_detection"}
+
+def _demo_image_only(category, curated):
+    """image-only iff the category's runner truly rejects video (config is the single
+    source of truth). Ignores the stale curated column for correctness."""
+    return category in _IMAGE_ONLY_CATEGORIES
 
 _ARRAYS = ("DEMO_LABELS", "DEMO_GROUPS", "DEMO_CPP_BASE", "DEMO_PY_DIR",
            "DEMO_PY_BASE", "DEMO_MODEL", "DEMO_VIDEO", "DEMO_IMAGE",
@@ -58,7 +68,10 @@ def parse_run_demo(run_demo_path: Path) -> list[dict]:
                 "default_video": cols["DEMO_VIDEO"][i],
                 "default_image": cols["DEMO_IMAGE"][i],
                 "async_full": cols["DEMO_PY_ASYNC"][i] == "full",
-                "image_only": cols["DEMO_IMAGE_ONLY"][i] == "1",
+                # Authoritative image-only gate = config.IMAGE_ONLY_CATEGORIES (the 5 runners
+                # that truly reject video), not the curated column — which wrongly flagged
+                # hand_* and hid their working video mode.
+                "image_only": _demo_image_only(category, cols["DEMO_IMAGE_ONLY"][i]),
             })
         return demos
     except Exception:
@@ -109,4 +122,54 @@ def build_demos_payload() -> dict:
         d["run_ref"] = {"model_name": m.get("name") or d["model_name"],
                         "category": m.get("category") or d["category"],
                         "model_file": m.get("model_file") or d["model"]}
+        thumb = _resolve_thumb(d["model_name"], d["run_ref"]["model_name"], d.get("model"))
+        d["thumbnail"] = ("/api/demo-thumb?f=" + thumb) if thumb else None
     return base
+
+
+# ── Model preview thumbnails (dx_modelzoo/data/thumbnails/*.jpg) ─────────────────────
+# The Run Demo cards show the model's ModelZoo thumbnail as a preview. Demo model_names
+# don't always equal a thumbnail filename (yolov7 → yolov7d6.jpg), so match by a normalized
+# key: exact first, then the shortest thumbnail whose name starts with the demo key.
+_THUMBS_DIR = Path(__file__).resolve().parents[2] / "dx_modelzoo" / "data" / "thumbnails"
+_THUMB_INDEX = None
+
+
+def _thumb_norm(s) -> str:
+    return "".join(ch for ch in str(s or "").lower() if ch.isalnum())
+
+
+def _thumb_index() -> dict:
+    global _THUMB_INDEX
+    if _THUMB_INDEX is None:
+        _THUMB_INDEX = {}
+        try:
+            for p in sorted(_THUMBS_DIR.glob("*.jpg")):
+                _THUMB_INDEX.setdefault(_thumb_norm(p.stem), p.name)
+        except OSError:
+            _THUMB_INDEX = {}
+    return _THUMB_INDEX
+
+
+def _resolve_thumb(*names):
+    idx = _thumb_index()
+    keys = [k for k in (_thumb_norm(n) for n in names) if k]
+    for k in keys:
+        if k in idx:
+            return idx[k]
+    for k in keys:
+        for tk, fn in sorted(idx.items(), key=lambda x: len(x[0])):
+            if tk.startswith(k):
+                return fn
+    return None
+
+
+def thumbnail_path(fname: str):
+    """Resolve a requested thumbnail filename to a real file under the thumbnails dir, or None
+    if it escapes the directory or does not exist (path-traversal safe)."""
+    try:
+        p = (_THUMBS_DIR / fname).resolve()
+        p.relative_to(_THUMBS_DIR.resolve())
+    except (ValueError, OSError):
+        return None
+    return p if (p.is_file() and p.suffix.lower() in (".jpg", ".jpeg", ".png", ".webp")) else None
