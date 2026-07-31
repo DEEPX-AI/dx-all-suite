@@ -78,7 +78,7 @@ We maintain strong technical partnerships to ensure the DXNN SDK operates flawle
 
 ## DEEPX ModelZoo & Supported Tasks
 
-DEEPX ModelZoo is a comprehensive repository providing **358 pre-validated models**. It allows users to immediately verify performance and accuracy across various hardware profiles without the need for a manual compilation process.  
+DEEPX ModelZoo is a comprehensive repository providing **345 pre-validated models**. It allows users to immediately verify performance and accuracy across various hardware profiles without the need for a manual compilation process.  
 
 | Task | Representative Models |
 | :--- | :--- |

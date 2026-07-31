@@ -1,0 +1,30 @@
+{
+    "version": "2_4_0",
+    "models": [
+        {"file": "yolo26-n_640x640.dxnn",      "task": "od",   "size": "n"},
+        {"file": "yolo26-n-pose_640x640.dxnn", "task": "pose", "size": "n"},
+        {"file": "yolo26-n-seg_640x640.dxnn",  "task": "seg",  "size": "n"},
+        {"file": "yolo26-n-obb_1024x1024.dxnn","task": "obb",  "size": "n"},
+        {"file": "yolo26-n_224x224.dxnn",      "task": "cls",  "size": "n"},
+        {"file": "yolo26-s_640x640.dxnn",      "task": "od",   "size": "s"},
+        {"file": "yolo26-s-pose_640x640.dxnn", "task": "pose", "size": "s"},
+        {"file": "yolo26-s-seg_640x640.dxnn",  "task": "seg",  "size": "s"},
+        {"file": "yolo26-s-obb_1024x1024.dxnn","task": "obb",  "size": "s"},
+        {"file": "yolo26-s_224x224.dxnn",      "task": "cls",  "size": "s"},
+        {"file": "yolo26-m_640x640.dxnn",      "task": "od",   "size": "m"},
+        {"file": "yolo26-m-pose_640x640.dxnn", "task": "pose", "size": "m"},
+        {"file": "yolo26-m-seg_640x640.dxnn",  "task": "seg",  "size": "m"},
+        {"file": "yolo26-m-obb_1024x1024.dxnn","task": "obb",  "size": "m"},
+        {"file": "yolo26-m_224x224.dxnn",      "task": "cls",  "size": "m"},
+        {"file": "yolo26-l_640x640.dxnn",      "task": "od",   "size": "l"},
+        {"file": "yolo26-l-pose_640x640.dxnn", "task": "pose", "size": "l"},
+        {"file": "yolo26-l-seg_640x640.dxnn",  "task": "seg",  "size": "l"},
+        {"file": "yolo26-l-obb_1024x1024.dxnn","task": "obb",  "size": "l"},
+        {"file": "yolo26-l_224x224.dxnn",      "task": "cls",  "size": "l"},
+        {"file": "yolo26-x_640x640.dxnn",      "task": "od",   "size": "x"},
+        {"file": "yolo26-x-pose_640x640.dxnn", "task": "pose", "size": "x"},
+        {"file": "yolo26-x-seg_640x640.dxnn",  "task": "seg",  "size": "x"},
+        {"file": "yolo26-x-obb_1024x1024.dxnn","task": "obb",  "size": "x"},
+        {"file": "yolo26-x_224x224.dxnn",      "task": "cls",  "size": "x"}
+    ]
+}

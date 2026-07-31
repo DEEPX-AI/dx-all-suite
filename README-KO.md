@@ -11,7 +11,7 @@
 
 - **High Efficiency**: NPU 성능을 100% 끌어내는 자체 **DX-COM** compiler를 탑재했습니다. 고급 quantization(INT8 기반 Intelligent Quantization)을 활용해 정확도 손실을 최소화하면서 inference 속도를 극대화합니다.
 - **Seamless Integration**: pre-processing, inference, post-processing 워크플로 전체를 잇는 지능형 video analytics pipeline을 구축합니다. **DX-Stream**(GStreamer 기반 custom plugin)을 사용하면 대규모 코드 수정 없이 복잡한 vision task를 배포할 수 있습니다.
-- **Flexible Ecosystem**: **Python 및 C++ API**를 완전히 지원하며, 270개 이상의 최적화된 모델을 갖춘 **ModelZoo**를 제공합니다. Open-Source Physical AI Alliance의 리더로서, 널리 쓰이는 framework들에 대한 매끄러운 워크플로를 제공합니다.
+- **Flexible Ecosystem**: **Python 및 C++ API**를 완전히 지원하며, 345개 최적화된 모델을 갖춘 **ModelZoo**를 제공합니다. Open-Source Physical AI Alliance의 리더로서, 널리 쓰이는 framework들에 대한 매끄러운 워크플로를 제공합니다.
 
 <div align="center">
   <img src="./docs/source/img/DXNN-SDK-Simple-Architecture.png" width="600">
@@ -94,6 +94,18 @@
 
 **스튜디오 살펴보기 →** [`dx-ai-studio/README.md`](./dx-ai-studio/README.md)  ·  **설치 및 실행 →** [Installation and Launch](./dx-ai-studio/docs/source/01_Installation_and_Launch.md)
 
+## ✨ DX-Benchmark — dx-benchmark (Beta)
+
+DEEPX NPU에서의 재현 가능한 YOLO26 성능 벤치마크 — 하나의 표준 절차로 모든 Host PC + NPU
+조합에서 측정합니다. 두 계층을 측정합니다: **Model-Level**(`run_model`) — **Latency**
+(single-core, sync)와 **Throughput**(multi-core, async) — 그리고 **E2E Pipeline**(DX-Stream) — **Single-Stream** FPS와 **Multi-Stream** 채널 수용량. 두 계층 모두
+ONNX-Runtime ON/OFF 자동 비교와 thermal-throttle 감지를 수행하고, 환경 간·버전 간 비교용
+interactive dashboard로 렌더링됩니다. 6개 hardware 환경 측정 결과를 함께 제공하며, 이 결과로
+만든 dashboard는 [DX AI Studio](./dx-ai-studio/README.md)의 **DX Benchmark** 화면에서도 확인할 수
+있습니다.
+
+**시작하기 →** [`dx-benchmark/README.md`](./dx-benchmark/README.md)  ·  **성능 분석 →** [`dx-benchmark/docs/ANALYSIS_KOR.md`](./dx-benchmark/docs/ANALYSIS_KOR.md)
+
 ## 시작하기
 
 **DX-AllSuite**는 사용 목적에 따라 두 가지 환경을 제공합니다. 필요에 맞는 환경을 선택해 시작하세요.
@@ -136,7 +148,7 @@ DX-AllSuite는 우리 NPU에서 최고 성능을 내도록 최적화된, 업계 
 - **Advanced Vision Tasks**: Face analysis (Detection, Recognition, Landmarks, Attributes), Human/Hand Pose Estimation, Low-Light Enhancement, Image Denoising, Super Resolution, Depth Estimation, Oriented Object Detection (OBB), Zero-Shot Instance Segmentation, Person Attributes.
 
 !!! note "Pro Tip"
-    모델을 직접 컴파일하는 대신, [**DEEPX ModelZoo**](https://developer.deepx.ai/modelzoo/)에서 **270개 이상의 최적화된 모델** 중 바로 사용 가능한 binary를 다운로드할 수 있습니다.
+    모델을 직접 컴파일하는 대신, [**DEEPX ModelZoo**](https://developer.deepx.ai/modelzoo/)에서 **345개 최적화된 모델** 중 바로 사용 가능한 binary를 다운로드할 수 있습니다.
 
 ## 문서 내비게이션
 
@@ -144,6 +156,7 @@ DX-AllSuite는 우리 NPU에서 최고 성능을 내도록 최적화된, 업계 
 
 - **[소개](./docs/source/index.md)**: DX-AS 개요 및 구성요소 설명
 - **★ [Agent-Driven Development (Beta)](./docs/source/00_Agent_Driven_Development_kor.md)**: AI coding agent(Claude Code, Cursor, GitHub Copilot, OpenCode, Codex CLI)로 자연어 프롬프트를 사용해 DEEPX 앱 만들기
+- **[DX-Benchmark (Beta)](./dx-benchmark/README.md)**: 재현 가능한 YOLO26 NPU 벤치마크(Model-Level + E2E Pipeline)와 interactive 성능 dashboard
 - **Step 1. [DX-AllSuite Architecture Overview](./docs/source/01_DX-AllSuite_Architecture_Overview_kor.md)**: SDK 개요, 모듈 설명, ModelZoo 사용법
 - **Step 2. [Setting Up Environment](./docs/source/02_Setting_Up_Environment_kor.md)**: Local/Docker 설치 상세 및 트러블슈팅
 - **Step 3. [Running Your First NPU Model](./docs/source/03_Running_Your_First_NPU_Model_kor.md)**: 단계별 hands-on 스크립트 실행

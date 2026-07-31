@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- Revalidate the document on every load so a plain reload reflects a rebuild
+       (the dataset is embedded in this file). Asset refs below are additionally
+       cache-busted with a build-content hash (?v=). -->
+  <meta http-equiv="Cache-Control" content="no-cache, must-revalidate" />
+  <title>YOLO26 Benchmark Dashboard</title>
+  <link rel="stylesheet" href="styles.css?v=__ASSET_VER__" />
+</head>
+<body data-active-tab="fps-compare">
+  <main class="page">
+    <header class="hero">
+      <div>
+        <p class="eyebrow">YOLO26 Benchmark</p>
+        <h1>Performance Dashboard</h1>
+        <p class="lede">Compare model performance across environments at a glance.</p>
+      </div>
+      <div id="meta" class="meta-card"></div>
+    </header>
+
+    <nav class="tabs">
+      <button class="tab active" data-tab="fps-compare">E2E FPS Overview</button>
+      <button class="tab" data-tab="overview">Full Metrics</button>
+      <button class="tab" data-tab="detail">Detailed Data</button>
+      <button class="tab" data-tab="version-trend">Version Trend</button>
+    </nav>
+
+    <!-- FPS Overview Tab -->
+    <div id="tab-fps-compare" class="tab-content active">
+      <section class="controls ubar">
+        <div class="ubar-row">
+          <span class="ubar-zone">View</span>
+          <label class="ubar-field">Task
+            <select id="fpsTaskFilter">
+              <option value="object_detection">OD (Object Detection)</option>
+              <option value="pose_estimation">Pose (Pose Estimation)</option>
+              <option value="segmentation">Seg (Segmentation)</option>
+              <option value="oriented_bbox">OBB (Oriented BBox)</option>
+              <option value="classification">Cls (Classification)</option>
+            </select>
+          </label>
+          <label class="ubar-field">ONNX Runtime (ORT) <span class="ort-info" title="ORT (ONNX Runtime)&#10;- ON: model's CPU part offloaded to host CPU via ONNX Runtime → output matches the source ONNX (standard post-processing).&#10;- OFF: NPU-only output → needs a model-specific post-processor.">ⓘ</span>
+            <select id="fpsOrtFilter">
+              <option value="on">ON</option>
+              <option value="off">OFF</option>
+            </select>
+          </label>
+        </div>
+        <div class="ubar-sep"></div>
+        <div class="ubar-row">
+          <span class="ubar-zone">Data source</span>
+          <div id="fpsRunSelectors" class="run-mount"></div>
+        </div>
+      </section>
+      <section class="panel chart-panel">
+        <div class="chart-header">
+          <h2 id="fpsChartTitle">End-to-End FPS: Model Size &#215; Environment</h2>
+          <p class="chart-subtitle" id="fpsChartSubtitle">Single Channel &#183; 30 FPS &#183; FHD</p>
+        </div>
+        <div class="chart-container">
+          <canvas id="fpsCompareChart"></canvas>
+        </div>
+        <p class="chart-hint" id="fpsChartHint">Click on a bar group to view environment details</p>
+      </section>
+
+      <section class="panel detail-group" id="fpsDetail" style="display:none">
+        <h2 id="fpsDetailTitle">Details</h2>
+        <div class="detail-sub detail-sub--perf">
+          <h3 class="detail-sub-title" id="fpsE2eTableTitle">E2E FPS (Single-Channel)</h3>
+          <div id="fpsE2eTableContent"></div>
+        </div>
+        <div class="detail-sub detail-sub--env">
+          <h3 class="detail-sub-title">Environment</h3>
+          <div class="env-detail-grid env-detail-grid--3">
+            <div class="env-detail-col"><h3>Host PC</h3><div id="fpsEnvHostInfo"></div></div>
+            <div class="env-detail-col"><h3>NPU</h3><div id="fpsEnvNpuInfo"></div></div>
+            <div class="env-detail-col"><h3>Tools</h3><div id="fpsEnvToolsInfo"></div></div>
+          </div>
+        </div>
+        <div class="detail-sub detail-sub--models">
+          <h3 class="detail-sub-title" id="fpsModelMetaTitle">Benchmarked Models</h3>
+          <div id="fpsModelMetaSection"></div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Full Metrics Tab -->
+    <div id="tab-overview" class="tab-content">
+      <section class="controls ubar">
+        <div class="ubar-row">
+          <span class="ubar-zone">View</span>
+          <label class="ubar-field">Task
+            <select id="taskFilter">
+              <option value="object_detection">OD (Object Detection)</option>
+              <option value="pose_estimation">Pose (Pose Estimation)</option>
+              <option value="segmentation">Seg (Segmentation)</option>
+              <option value="oriented_bbox">OBB (Oriented BBox)</option>
+              <option value="classification">Cls (Classification)</option>
+            </select>
+          </label>
+          <label class="ubar-field">Size
+            <select id="sizeFilter">
+              <option value="n">N (Nano)</option>
+              <option value="s">S (Small)</option>
+              <option value="m">M (Medium)</option>
+              <option value="l">L (Large)</option>
+              <option value="x">X (Extra-Large)</option>
+            </select>
+          </label>
+          <label class="ubar-field">ONNX Runtime (ORT) <span class="ort-info" title="ORT (ONNX Runtime)&#10;- ON: model's CPU part offloaded to host CPU via ONNX Runtime → output matches the source ONNX (standard post-processing).&#10;- OFF: NPU-only output → needs a model-specific post-processor.">ⓘ</span>
+            <select id="ortFilter">
+              <option value="on">ON</option>
+              <option value="off">OFF</option>
+            </select>
+          </label>
+        </div>
+        <div class="ubar-sep"></div>
+        <div class="ubar-row">
+          <span class="ubar-zone">Data source</span>
+          <div id="overviewRunSelectors" class="run-mount"></div>
+        </div>
+      </section>
+      <section class="panel chart-panel">
+        <div class="chart-header">
+          <h2 id="chartTitle">All Metrics by Environment</h2>
+          <p class="chart-subtitle" id="chartSubtitle"></p>
+        </div>
+        <div class="chart-container">
+          <canvas id="mainChart"></canvas>
+        </div>
+        <p class="chart-hint" id="chartHint">Click on a bar group to view environment details</p>
+      </section>
+
+      <section class="panel detail-group" id="overviewDetail" style="display:none">
+        <h2 id="overviewDetailTitle">Details</h2>
+        <div class="detail-sub detail-sub--env">
+          <h3 class="detail-sub-title">Environment</h3>
+          <div class="env-detail-grid env-detail-grid--3">
+            <div class="env-detail-col"><h3>Host PC</h3><div id="envHostInfo"></div></div>
+            <div class="env-detail-col"><h3>NPU</h3><div id="envNpuInfo"></div></div>
+            <div class="env-detail-col"><h3>Tools</h3><div id="envToolsInfo"></div></div>
+          </div>
+        </div>
+        <div class="detail-sub detail-sub--models">
+          <h3 class="detail-sub-title" id="overviewModelMetaTitle">Benchmarked Models</h3>
+          <div id="overviewModelMetaSection"></div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Detailed Data Tab -->
+    <div id="tab-detail" class="tab-content">
+      <section class="controls ubar">
+        <div class="ubar-row">
+          <span class="ubar-zone">View</span>
+          <label class="ubar-field">Task
+            <select id="detailTaskFilter">
+              <option value="all">All Tasks</option>
+              <option value="object_detection">OD (Object Detection)</option>
+              <option value="pose_estimation">Pose (Pose Estimation)</option>
+              <option value="segmentation">Seg (Segmentation)</option>
+              <option value="oriented_bbox">OBB (Oriented BBox)</option>
+              <option value="classification">Cls (Classification)</option>
+            </select>
+          </label>
+          <label class="ubar-field">ONNX Runtime (ORT) <span class="ort-info" title="ORT (ONNX Runtime)&#10;- ON: model's CPU part offloaded to host CPU via ONNX Runtime → output matches the source ONNX (standard post-processing).&#10;- OFF: NPU-only output → needs a model-specific post-processor.">ⓘ</span>
+            <select id="detailOrtFilter">
+              <option value="all">All</option>
+              <option value="on">ON</option>
+              <option value="off">OFF</option>
+            </select>
+          </label>
+        </div>
+        <div class="ubar-sep"></div>
+        <div class="ubar-row">
+          <span class="ubar-zone">Data source</span>
+          <label class="ubar-field">Environment <select id="detailEnvFilter"></select></label>
+          <label class="ubar-field">dx-all-suite version <select id="detailVersionFilter"></select></label>
+          <label class="ubar-field">Run ID <select id="detailRunFilter"></select></label>
+        </div>
+      </section>
+
+      <div id="detailTables"></div>
+    </div>
+
+    <!-- Version Trend Tab -->
+    <div id="tab-version-trend" class="tab-content">
+      <section class="controls ubar">
+        <div class="ubar-row">
+          <span class="ubar-zone">View</span>
+          <label class="ubar-field">Task
+            <select id="trendTaskFilter">
+              <option value="object_detection">OD (Object Detection)</option>
+              <option value="pose_estimation">Pose (Pose Estimation)</option>
+              <option value="segmentation">Seg (Segmentation)</option>
+              <option value="oriented_bbox">OBB (Oriented BBox)</option>
+              <option value="classification">Cls (Classification)</option>
+            </select>
+          </label>
+          <label class="ubar-field">ONNX Runtime (ORT) <span class="ort-info" title="ORT (ONNX Runtime)&#10;- ON: model's CPU part offloaded to host CPU via ONNX Runtime → output matches the source ONNX (standard post-processing).&#10;- OFF: NPU-only output → needs a model-specific post-processor.">ⓘ</span>
+            <select id="trendOrtFilter">
+              <option value="on">ON</option>
+              <option value="off">OFF</option>
+            </select>
+          </label>
+        </div>
+        <div class="ubar-sep"></div>
+        <div class="ubar-row">
+          <span class="ubar-zone">Data source</span>
+          <label class="ubar-field">Environment <select id="trendEnvFilter"></select></label>
+          <span class="run-inline-label">Run per version</span>
+          <div id="trendRunSelectors" class="run-inline"></div>
+        </div>
+      </section>
+
+      <section class="panel chart-panel">
+        <div class="chart-header">
+          <h2>Version Trend &mdash; All Metrics</h2>
+          <p class="chart-subtitle" id="trendGridSubtitle"></p>
+        </div>
+        <div id="trendGridLegend" class="trend-grid-legend"></div>
+        <div id="trendGrid" class="trend-grid"></div>
+        <p class="chart-hint">Click any version column &mdash; all four charts highlight it and the details below update.</p>
+      </section>
+
+      <section class="panel detail-group" id="trendEnvDetail" style="display:none">
+        <h2 id="trendEnvDetailTitle">Details</h2>
+        <div class="detail-sub detail-sub--env">
+          <h3 class="detail-sub-title">Environment</h3>
+          <div class="env-detail-grid env-detail-grid--3">
+            <div class="env-detail-col"><h3>Host PC</h3><div id="trendEnvHostInfo"></div></div>
+            <div class="env-detail-col"><h3>NPU</h3><div id="trendEnvNpuInfo"></div></div>
+            <div class="env-detail-col"><h3>Tools</h3><div id="trendEnvToolsInfo"></div></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel detail-group" id="trendModelMetaPanel" style="display:none">
+        <div class="detail-sub detail-sub--models">
+          <h3 class="detail-sub-title" id="trendModelMetaTitle">Benchmarked Models</h3>
+          <div id="trendModelMetaSection"></div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script id="embedded-dataset" type="application/json">__DATASET_JSON__</script>
+  <script src="app.js?v=__ASSET_VER__"></script>
+</body>
+</html>
