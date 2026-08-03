@@ -7,7 +7,8 @@ not updated, missing ``lang-*`` body class) are written as
 ``runtime-not-switching`` evidence — they do *not* fail the test.
 
 Requires:
-- Playwright (``pip install playwright && playwright install chromium``)
+- Playwright (``pip install playwright``) and either an installed system Chromium
+    executable or an existing Playwright browser cache.
 - ``DX_I18N_AUDIT_ARTIFACT_DIR`` environment variable pointing to the
   directory where observation JSON files should be written.
 """

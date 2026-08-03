@@ -26,7 +26,7 @@ from dx_app.core.run_config import build_run_config
 
 from dx_app.core.inference_exec import (
     _err, _count_images_in_dir, _python_script_path, _python_runtime_ready,
-    _effective_run_lang, _find_fallback_binary, _find_saved_video, _find_saved_image,
+    _effective_run_lang, _find_fallback_binary, _is_executable_file, _find_saved_video, _find_saved_image,
     _drain_dxrt_msgqueues, _sweep_stale_temp,
     _TMP, _FALLBACK_BINARIES, _PAIR_COMPARE_CATS, _SIDE_BY_SIDE_OUTPUT_CATS,
     _STDOUT_TAG_CATS, _IMAGE_EXTENSIONS,
@@ -187,7 +187,7 @@ def run_inference(model_name, category, model_file, lang="cpp", variant="sync",
     tag_extra = ["--show-log"] if category in _STDOUT_TAG_CATS else []
     if run_lang == "cpp":
         bp = BUILD_DIR / f"{model_name}_{variant}"
-        if not bp.exists():
+        if not _is_executable_file(bp):
             bp = _find_fallback_binary(category, variant, build_dir=BUILD_DIR)
             if not bp:
                 if _b64_tmp:
@@ -394,8 +394,9 @@ def run_inference(model_name, category, model_file, lang="cpp", variant="sync",
             if _p:
                 try: os.unlink(_p)
                 except OSError: pass
-        if _video_save_dir:
-            shutil.rmtree(_video_save_dir, ignore_errors=True)
+        for _save_dir in (_video_save_dir, _img_save_dir):
+            if _save_dir:
+                shutil.rmtree(_save_dir, ignore_errors=True)
 
 
 def stop_inference():

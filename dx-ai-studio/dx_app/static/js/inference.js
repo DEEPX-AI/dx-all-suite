@@ -6,6 +6,7 @@ var _lastRunImageCategory=null;
 var _lastSelectedRunImageEl=null;
 var _runInFlight=false;
 var PENDING_AUTO_SELECT=null;
+var _runUserSelectedInput='';
 
 // config.json key → Run UI slider (extend bindings for new tunables; values come from API config)
 var RUN_PARAM_BINDINGS=[
@@ -124,31 +125,65 @@ function translatedError(res){
 }
 
 function quickRun(name,cat,modelFile){
-  PENDING_AUTO_SELECT={name:name,category:cat,modelFile:modelFile||'',source:'models'};
+  var selectedInput=_runUserSelectedInput?_selectedRunInput():'';
+  var selectedMedia=selectedInput==='video'&&$('r-video')?$('r-video').value:'';
+  PENDING_AUTO_SELECT={name:name,category:cat,modelFile:modelFile||'',source:'models',consumed:false,mediaReady:false,
+    selectedInput:selectedInput,selectedMedia:selectedMedia};
   nav('run');
+}
+
+function _selectedRunInput(){
+  var imageRadio=$('r-input-img');
+  var videoRadio=$('r-input-vid');
+  if((imageRadio&&imageRadio.checked)&&(S.uploadedImage||S.selectedImage))return 'image';
+  if((videoRadio&&videoRadio.checked)&&$('r-video')&&$('r-video').value)return 'video';
+  return '';
+}
+
+function _tryRunPendingQuickRun(){
+  var ps=PENDING_AUTO_SELECT;
+  if(!ps||ps.source!=='models'||ps.consumed||!ps.mediaReady)return;
+  if(_runInFlight)return;
+  if($('r-cat').value!==ps.category||$('r-model').value!==ps.name)return;
+  var selectedInput=_selectedRunInput();
+  if(!selectedInput)return;
+  if(ps.selectedInput&&ps.selectedInput!==selectedInput)return;
+  if(selectedInput==='video'&&$('r-input-vid').disabled)return;
+  ps.consumed=true;
+  doRun();
+}
+
+function _cancelPendingQuickRunForUserInput(inputType){
+  _runUserSelectedInput=inputType;
+  var ps=PENDING_AUTO_SELECT;
+  if(ps&&!ps.consumed)PENDING_AUTO_SELECT=null;
 }
 
 function _applyPendingAutoSelect(){
   if(!PENDING_AUTO_SELECT)return;
-  var ps=PENDING_AUTO_SELECT;PENDING_AUTO_SELECT=null;
-  setTimeout(function(){
-    var catSel=$('r-cat');
-    if(!catSel)return;
-    for(var i=0;i<catSel.options.length;i++){if(catSel.options[i].value===ps.category){catSel.selectedIndex=i;break;}}
-    onRCat();
-    var modSel=$('r-model');
-    if(!modSel)return;
-    for(var j=0;j<modSel.options.length;j++){if(modSel.options[j].value===ps.name){modSel.selectedIndex=j;break;}}
-    if(modSel.value)onRModel();
-    if(ps.source==='deploy'){
-      toast(T('Deployed model ')+ps.name+T(' selected. Press Run to start inference.'),'ok');
-    }
-  },150);
+  var ps=PENDING_AUTO_SELECT;
+  var catSel=$('r-cat');
+  if(!catSel)return;
+  for(var i=0;i<catSel.options.length;i++){if(catSel.options[i].value===ps.category){catSel.selectedIndex=i;break;}}
+  onRCat();
+  var modSel=$('r-model');
+  if(!modSel)return;
+  for(var j=0;j<modSel.options.length;j++){if(modSel.options[j].value===ps.name){modSel.selectedIndex=j;break;}}
+  if(modSel.value)onRModel();
+  if(ps.source==='deploy'){
+    toast(T('Deployed model ')+ps.name+T(' selected. Press Run to start inference.'),'ok');
+  }
 }
 
 function initRunPage(){
   _invalidateRunMediaCache();
   $('r-export-out').classList.add('hidden');
+  [['r-input-img','image'],['r-input-vid','video'],['r-video','video']].forEach(function(pair){
+    var input=$(pair[0]);
+    if(!input||input._quickRunInputTracked)return;
+    input._quickRunInputTracked=true;
+    input.addEventListener('change',function(){_cancelPendingQuickRunForUserInput(pair[1]);});
+  });
   var cats=[...new Set(S.models.map(function(m){return m.category}))].sort();
   $('r-cat').innerHTML='<option value="">'+T('— Select Category —')+'</option>'+cats.map(function(c){return '<option value="'+esc(c)+'">'+esc(c)+'</option>'}).join('');
   _applyPendingAutoSelect();
@@ -175,7 +210,8 @@ function updateRunInputMode(cat){
   var vidRadio=$('r-input-vid');
   var imgRadio=$('r-input-img');
   var restrict=imageOnly.indexOf(cat)!==-1;
-  if(restrict&&imgRadio)imgRadio.checked=true;
+  var ps=PENDING_AUTO_SELECT;
+  if(restrict&&imgRadio&&!(ps&&ps.selectedInput))imgRadio.checked=true;
   if(vidRadio){
     vidRadio.disabled=restrict;
     var lbl=vidRadio.closest('label');
@@ -280,7 +316,9 @@ function _renderRunMedia(cat,media){
   var grid=$('img-grid');
   var list=media&&Array.isArray(media.images)?media.images:[];
   var defImg=CAT_IMG[cat];
-  if(defImg&&(!S.selectedImage||list.indexOf(S.selectedImage)===-1)){
+  var ps=PENDING_AUTO_SELECT;
+  var selectedInput=ps&&ps.selectedInput?ps.selectedInput:'';
+  if(defImg&&!selectedInput&&(!S.selectedImage||list.indexOf(S.selectedImage)===-1)){
     S.selectedImage=defImg;
   }
   if(grid){
@@ -308,9 +346,17 @@ function _renderRunMedia(cat,media){
   var rVideo=$('r-video'),cVideo=$('c-video');
   if(rVideo)rVideo.innerHTML=vidOpts;
   if(cVideo)cVideo.innerHTML=vidOpts;
+  if(ps&&!ps.consumed){
+    if(ps.selectedInput==='video'&&rVideo&&ps.selectedMedia){
+      rVideo.value=ps.selectedMedia;
+    }
+    ps.mediaReady=true;
+    _tryRunPendingQuickRun();
+  }
 }
 
 function pickImg(el,path){
+  _cancelPendingQuickRunForUserInput('image');
   if(_lastSelectedRunImageEl&&_lastSelectedRunImageEl!==el)_lastSelectedRunImageEl.classList.remove('selected');
   el.classList.add('selected');S.selectedImage=path;
   _lastSelectedRunImageEl=el;
@@ -321,6 +367,7 @@ function pickImg(el,path){
 var _MAX_UPLOAD_BYTES=8*1024*1024;  // mirrors backend MAX_IMAGE_BASE64_BYTES budget
 function onRunUpload(input){
   var f=input.files&&input.files[0];if(!f)return;
+  _cancelPendingQuickRunForUserInput('image');
   if(f.size>_MAX_UPLOAD_BYTES){toast(T('Image too large (max 8MB)'),'err');input.value='';return;}
   var rd=new FileReader();
   rd.onload=function(){
@@ -425,6 +472,7 @@ async function doRun(){
     S.running=false;
     _runInFlight=false;
     if(runBtn)runBtn.disabled=false;
+    _tryRunPendingQuickRun();
   }
 }
 
@@ -509,21 +557,74 @@ function previewImg(src){
   openModal('modal-imgpreview');
 }
 
+function cmpImagesHaveSameAspect(beforeImg,afterImg){
+  if(!beforeImg||!afterImg||!beforeImg.naturalWidth||!beforeImg.naturalHeight||!afterImg.naturalWidth||!afterImg.naturalHeight)return false;
+  return Math.abs(beforeImg.naturalWidth/beforeImg.naturalHeight-afterImg.naturalWidth/afterImg.naturalHeight)<=0.001;
+}
+
+function showCmpFallback(wrap,beforeImg,afterImg){
+  if(!wrap||wrap.dataset.cmpFallback)return;
+  wrap.dataset.cmpFallback='true';
+  var resultReady=afterImg&&afterImg.naturalWidth&&afterImg.naturalHeight;
+  var originalReady=beforeImg&&beforeImg.naturalWidth&&beforeImg.naturalHeight;
+  var sourceImg=resultReady?afterImg:(originalReady?beforeImg:null);
+  var fallback=document.createElement('div');
+  fallback.className='cmp-fallback mb8';
+  if(sourceImg){
+    var image=document.createElement('img');
+    image.src=sourceImg.currentSrc||sourceImg.src;
+    image.alt=resultReady?T('Result'):T('Original');
+    fallback.appendChild(image);
+  }
+  var note=document.createElement('p');
+  note.className='cmp-fallback-note';
+  note.textContent=resultReady
+    ?T('Comparison disabled: original and result use different aspect ratios.')
+    :T('Comparison unavailable: result image could not be decoded.');
+  fallback.appendChild(note);
+  wrap.replaceWith(fallback);
+}
+
 function initCmpSlider(id){
   var wrap=$(id);if(!wrap)return;
   var clip=wrap.querySelector('.cmp-after-clip');
   var handle=wrap.querySelector('.cmp-handle');
   if(!clip||!handle)return;
-  // Fix container to source image aspect ratio (prevents resolution mismatch)
   var beforeImg=wrap.querySelector('.cmp-before');
-  function normalizeCmpSize(){
+  var afterImg=wrap.querySelector('.cmp-after-clip img');
+  if(!beforeImg||!afterImg)return;
+  var initialized=false;
+  var beforeState=beforeImg.complete?(beforeImg.naturalWidth&&beforeImg.naturalHeight?'loaded':'error'):'pending';
+  var afterState=afterImg.complete?(afterImg.naturalWidth&&afterImg.naturalHeight?'loaded':'error'):'pending';
+  function prepareCmp(){
+    if(initialized||beforeState==='pending'||afterState==='pending')return;
+    if(beforeState!=='loaded'||afterState!=='loaded'){
+      initialized=true;
+      showCmpFallback(wrap,beforeImg,afterImg);
+      return;
+    }
+    if(!cmpImagesHaveSameAspect(beforeImg,afterImg)){
+      initialized=true;
+      showCmpFallback(wrap,beforeImg,afterImg);
+      return;
+    }
+    initialized=true;
     var nw=beforeImg.naturalWidth,nh=beforeImg.naturalHeight;
-    if(!nw||!nh)return;
     wrap.style.aspectRatio=nw+'/'+nh;
     wrap.classList.add('cmp-ready');
+    enableDrag();
   }
-  if(beforeImg&&beforeImg.complete&&beforeImg.naturalWidth)normalizeCmpSize();
-  else if(beforeImg)beforeImg.addEventListener('load',normalizeCmpSize);
+  function beforeLoaded(){beforeState='loaded';prepareCmp()}
+  function afterLoaded(){afterState='loaded';prepareCmp()}
+  function showFallback(event){
+    if(event&&event.target===beforeImg)beforeState='error';
+    else if(event&&event.target===afterImg)afterState='error';
+    prepareCmp();
+  }
+  if(beforeState==='pending')beforeImg.addEventListener('load',beforeLoaded);
+  if(afterState==='pending')afterImg.addEventListener('load',afterLoaded);
+  beforeImg.addEventListener('error',showFallback);
+  afterImg.addEventListener('error',showFallback);
   var dragging=false;
   function setPct(pct){
     pct=Math.max(2,Math.min(98,pct));
@@ -540,10 +641,12 @@ function initCmpSlider(id){
   function onDocTouchEnd(){stopDrag();document.removeEventListener('touchmove',onDocTouchMove);document.removeEventListener('touchend',onDocTouchEnd)}
   function startDrag(){dragging=true;wrap.classList.add('cmp-dragging')}
   function stopDrag(){dragging=false;wrap.classList.remove('cmp-dragging')}
-  wrap.addEventListener('mousedown',function(e){startDrag();e.preventDefault();setPos(e.clientX);document.addEventListener('mousemove',onDocMouseMove);document.addEventListener('mouseup',onDocMouseUp)});
-  wrap.addEventListener('touchstart',function(e){startDrag();setPos(e.touches[0].clientX);document.addEventListener('touchmove',onDocTouchMove,{passive:false});document.addEventListener('touchend',onDocTouchEnd)},{passive:true});
-  // A안: 결과 100% → 0.8초 후 50%로 sweep
-  setTimeout(function(){setPct(50)},500);
+  function enableDrag(){
+    wrap.addEventListener('mousedown',function(e){startDrag();e.preventDefault();setPos(e.clientX);document.addEventListener('mousemove',onDocMouseMove);document.addEventListener('mouseup',onDocMouseUp)});
+    wrap.addEventListener('touchstart',function(e){startDrag();setPos(e.touches[0].clientX);document.addEventListener('touchmove',onDocTouchMove,{passive:false});document.addEventListener('touchend',onDocTouchEnd)},{passive:true});
+    setTimeout(function(){setPct(50)},500);
+  }
+  prepareCmp();
 }
 
 async function doStop(){

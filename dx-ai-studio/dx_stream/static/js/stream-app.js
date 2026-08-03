@@ -13,7 +13,23 @@ const DXStream = (() => {
         const m = location.pathname.match(/^(\/stream)\/?/);
         return m ? m[1] : '';
     })();
-    const api = (url, opts) => fetch(_base + url, opts).then(r => r.ok ? r.json() : Promise.reject(r.statusText)).catch(e => ({ error: String(e) }));
+    const api = (url, opts) => fetch(_base + url, opts).then(async r => {
+        let payload = null;
+        try {
+            payload = await r.json();
+        } catch (e) {
+            if (r.ok) throw e;
+        }
+        if (r.ok) return payload;
+
+        payload = payload && typeof payload === 'object' ? payload : {};
+        return {
+            ...payload,
+            error: payload.message || payload.detail || payload.error || r.statusText || `HTTP ${r.status}`,
+            error_code: payload.error || 'http_error',
+            status: r.status,
+        };
+    }).catch(e => ({ error: e && e.message ? e.message : String(e) }));
     const postJ = (url, body) => api(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

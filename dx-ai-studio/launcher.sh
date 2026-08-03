@@ -84,6 +84,7 @@ if [[ "$PORT" == "8890" && -f "$STICKY_FILE" ]]; then
 fi
 claim_port "$PORT"
 PORT="$RESULT"
+export DX_LAUNCHER_PORT="$PORT"
 echo "$PORT" > "$STICKY_FILE"   # remember → same URL next run while it stays free
 if [[ "$PORT" != "$REQUESTED_PORT" ]]; then
   echo "  [launcher.sh] Port $REQUESTED_PORT is held by another service → using $PORT"
@@ -126,4 +127,4 @@ fi
 # and its silent failure ("No module named 'shared'") can't break startup anymore.
 export PYTHONPATH="$SCRIPT_DIR${PYTHONPATH:+:$PYTHONPATH}"
 "$DX_PY" -c "import shared, dx_app" 2>/dev/null || "$DX_PY" -m pip install -e "$SCRIPT_DIR" >/dev/null 2>&1 || true
-"$DX_PY" "$SCRIPT_DIR/launcher/launcher.py" --port "$PORT"
+exec "$DX_PY" "$SCRIPT_DIR/launcher/launcher.py"

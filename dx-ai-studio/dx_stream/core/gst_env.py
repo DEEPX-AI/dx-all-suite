@@ -30,18 +30,19 @@ _KNOWN_DIRS = (
 _SEARCH_ROOTS = ("/usr/local/lib", "/usr/lib")
 
 
-def find_dxstream_plugin() -> Optional[Path]:
+def find_dxstream_plugin(*, prefer_environment: bool = True) -> Optional[Path]:
     """Return the path to libgstdxstream.so, or None.
 
-    An explicit ``GST_PLUGIN_PATH`` takes precedence so deployments can override a
-    system-installed plugin with the intended custom build. Fall back to known plugin
-    directories and then a bounded search when no explicit plugin is available.
+    By default an explicit ``GST_PLUGIN_PATH`` takes precedence so diagnostics can
+    inspect a deployment-selected custom build. Canonical lookup skips inherited
+    paths and resolves only installed locations for deterministic pre-GI startup.
     """
-    for d in os.environ.get("GST_PLUGIN_PATH", "").split(os.pathsep):
-        if d:
-            p = Path(d) / PLUGIN_SO
-            if p.exists():
-                return p
+    if prefer_environment:
+        for d in os.environ.get("GST_PLUGIN_PATH", "").split(os.pathsep):
+            if d:
+                p = Path(d) / PLUGIN_SO
+                if p.exists():
+                    return p
     for d in _KNOWN_DIRS:
         p = Path(d) / PLUGIN_SO
         if p.exists():
@@ -57,9 +58,9 @@ def find_dxstream_plugin() -> Optional[Path]:
     return None
 
 
-def plugin_dir() -> Optional[str]:
+def plugin_dir(*, prefer_environment: bool = True) -> Optional[str]:
     """Directory containing libgstdxstream.so, or None."""
-    p = find_dxstream_plugin()
+    p = find_dxstream_plugin(prefer_environment=prefer_environment)
     return str(p.parent) if p else None
 
 
@@ -67,23 +68,26 @@ def plugin_available() -> bool:
     return find_dxstream_plugin() is not None
 
 
-def augmented_env(base: Optional[dict] = None) -> dict:
+def augmented_env(base: Optional[dict] = None, *, prefer_environment: bool = True) -> dict:
     """Return a copy of *base* (default os.environ) with the dxstream plugin directory
     prepended to GST_PLUGIN_PATH, so gst-launch/GI can load it even when it lives outside
-    the default registry path."""
+    the default registry path. Canonical mode replaces inherited plugin entries."""
     env = dict(os.environ if base is None else base)
-    d = plugin_dir()
+    d = plugin_dir(prefer_environment=prefer_environment)
     if d:
+        if not prefer_environment:
+            env["GST_PLUGIN_PATH"] = d
+            return env
         existing = env.get("GST_PLUGIN_PATH", "")
         parts = [d] + [x for x in existing.split(os.pathsep) if x and x != d]
         env["GST_PLUGIN_PATH"] = os.pathsep.join(parts)
     return env
 
 
-def refresh_plugin_environment(gst=None) -> Optional[str]:
+def refresh_plugin_environment(gst=None, *, prefer_environment: bool = True) -> Optional[str]:
     """Refresh GST_PLUGIN_PATH and scan a plugin installed after GI initialization."""
-    env = augmented_env()
-    directory = plugin_dir()
+    env = augmented_env(prefer_environment=prefer_environment)
+    directory = plugin_dir(prefer_environment=prefer_environment)
     if not directory:
         return None
 
@@ -91,9 +95,15 @@ def refresh_plugin_environment(gst=None) -> Optional[str]:
     if gst is not None:
         try:
             scanned = gst.Registry.get().scan_path(directory)
-            if not scanned:
+            element_factory = getattr(gst, "ElementFactory", None)
+            dxinfer_factory = (
+                element_factory.find("dxinfer")
+                if element_factory is not None
+                else None
+            )
+            if not scanned and dxinfer_factory is None:
                 log.warning(
-                    "GStreamer registry found no plugin while scanning %s; "
+                    "GStreamer registry could not load dxinfer while scanning %s; "
                     "verify libgstdxstream.so and its dependencies",
                     directory,
                 )

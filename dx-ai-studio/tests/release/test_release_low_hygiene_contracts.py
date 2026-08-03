@@ -62,7 +62,7 @@ def test_outputs_view_refreshes_after_inference_completion():
     assert "loadOutputs()" in outputs_js
     assert inference_js.count("typeof refreshOutputsIfVisible === 'function'") >= 2
     assert re.search(
-        r"renderRunResult\(res\);\s*if\(typeof refreshOutputsIfVisible === 'function'\)refreshOutputsIfVisible\(\);",
+        r"window\.renderInferenceResult\(\$\('r-result'\),res\);\s*if\(typeof refreshOutputsIfVisible === 'function'\)refreshOutputsIfVisible\(\);",
         inference_js,
         re.S,
     )

@@ -1,0 +1,10 @@
+# Test and CI dependencies only. Runtime installation remains stdlib-only.
+pytest>=8
+numpy>=1.24
+onnx>=1.14
+Pillow>=10
+playwright>=1.40
+Jinja2>=3.1
+# The platform PyNaCl package is inherited by the test venv and declares cffi
+# in its Python metadata; install it here so `python -m pip check` is reliable.
+cffi>=1.15

@@ -3,7 +3,10 @@ import json
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "dx_stream"))
+STUDIO_ROOT = Path(__file__).resolve().parents[2]
+STREAM_APP = STUDIO_ROOT / "dx_stream" / "static" / "js" / "stream-app.js"
+
+sys.path.insert(0, str(STUDIO_ROOT / "dx_stream"))
 
 
 DEV_MODELS = [
@@ -24,6 +27,15 @@ DEV_MODELS = [
     "SCRFD500M_PPU.dxnn",
     "YOLOV5Pose_PPU.dxnn",
 ]
+
+
+def test_stream_api_preserves_server_json_error_details():
+    """A failed demo start must retain server diagnostics instead of HTTP text."""
+    source = STREAM_APP.read_text(encoding="utf-8")
+
+    assert "await r.json()" in source
+    assert "payload.message || payload.detail || payload.error" in source
+    assert "Promise.reject(r.statusText)" not in source
 
 
 def _write_dev_runtime(root: Path) -> Path:

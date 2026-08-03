@@ -45,7 +45,7 @@ _gst_available = False
 Gst = None
 GLib = None
 
-_gst_env.refresh_plugin_environment()
+_gst_env.refresh_plugin_environment(prefer_environment=False)
 
 try:
     import gi

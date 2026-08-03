@@ -80,6 +80,14 @@
   var _MODES = ['temp','volt','clock','ctemp','cpu','mem','dram','util'];
   var _LABELS = {temp:'NPU Temp',volt:'Voltage',clock:'Clock',ctemp:'Core Temp',
                  cpu:'CPU Load',mem:'Memory',dram:'NPU DRAM',util:'NPU Util'};
+  var _MOCK_BADGE_TITLES = {
+    en:'Simulated data — DX Engine unavailable in this module. Values are not from the NPU.',
+    ko:'시뮬레이션 데이터 — 이 모듈에서 DX Engine을 사용할 수 없습니다. 값은 NPU에서 가져온 것이 아닙니다.',
+    ja:'シミュレーションデータ — このモジュールでは DX Engine を利用できません。値は NPU から取得したものではありません。',
+    es:'Datos simulados: DX Engine no está disponible en este módulo. Los valores no proceden de la NPU.',
+    'zh-CN':'模拟数据：此模块中 DX Engine 不可用。数值并非来自 NPU。',
+    'zh-TW':'模擬資料：此模組中 DX Engine 無法使用。數值並非來自 NPU。'
+  };
 
   /* ── State variables and helpers ── */
   var _lastPayload = null;
@@ -94,6 +102,8 @@
   function _fmtRound(v,suffix){return _isNum(v)?Math.round(v)+(suffix||''):'N/A';}
   function _avg(arr){return Array.isArray(arr)&&arr.length?arr.reduce(function(a,b){return a+b},0)/arr.length:null;}
   function _escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+  function _currentLang(){return (window.DXI18n&&window.DXI18n.lang)||document.documentElement.lang||'en';}
+  function _mockBadgeTitle(){return _MOCK_BADGE_TITLES[_currentLang()]||_MOCK_BADGE_TITLES.en;}
 
   /* ── Selected-index persistence ── */
   function _readNpuIdx(){
@@ -237,7 +247,7 @@
     if(titleEl){
       var _isMock=!!(_lastPayload&&_lastPayload.mock)||!!(n&&n.mock);
       var _title=n?('NPU '+((n.id!=null)?n.id:_selectedNpuIdx)):'No NPU';
-      titleEl.innerHTML=_escHtml(_title)+(_isMock?' <span class="hf-mock-badge" title="Simulated data — DX Engine unavailable in this module. Values are not from the NPU.">MOCK</span>':'');
+      titleEl.innerHTML=_escHtml(_title)+(_isMock?' <span class="hf-mock-badge" title="'+_escHtml(_mockBadgeTitle())+'">MOCK</span>':'');
     }
 
     /* NPU values */

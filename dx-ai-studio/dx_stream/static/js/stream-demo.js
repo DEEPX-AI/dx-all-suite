@@ -432,6 +432,33 @@ DXStream._mseSupported = _mseSupported;
 DXStream._fmp4PlayInto = _fmp4PlayInto;
 DXStream._fmp4Stop = _stopFmp4;
 
+function _clearStoppedDemoLaunchState(resp) {
+    if (!resp) return false;
+    var pipelineError = resp.error_code === 'pipeline_error' || resp.error === 'pipeline_error';
+    var playbackStopped = resp.playback_active === false;
+    if (!pipelineError || !playbackStopped) return false;
+
+    var previousId = DXStream._runningDemoId;
+    if (previousId != null) {
+        var previousStartBtn = DXStream.$('start-demo-' + previousId);
+        var previousStopBtn = DXStream.$('stop-demo-' + previousId);
+        if (previousStartBtn) {
+            previousStartBtn.style.display = '';
+            previousStartBtn.disabled = false;
+        }
+        if (previousStopBtn) previousStopBtn.style.display = 'none';
+        var previousCard = previousStartBtn ? previousStartBtn.closest('.demo-card') : null;
+        if (previousCard) previousCard.classList.remove('demo-running');
+    }
+    DXStream._runningDemoId = null;
+
+    var message = resp.message || T('Demo playback stopped.');
+    if (resp.detail) message += ' ' + resp.detail;
+    if (resp.remediation) message += ' ' + resp.remediation;
+    DXStream.toast(message, 'error');
+    return true;
+}
+
 // WebRTC couldn't connect (remote/NAT/tunnel). Restart this demo forcing MJPEG on the server,
 // then show the MJPEG stream. Guarded so it only runs once per start.
 DXStream._fallbackToMjpeg = async function (id) {
@@ -445,7 +472,11 @@ DXStream._fallbackToMjpeg = async function (id) {
         try { _stopFmp4(); } catch (e) {}
         DXStream.toast(T('WebRTC unavailable from here — switching to MJPEG…'), 'info');
         var resp = await DXStream.postJ('/api/demos/' + id + '/start', { forceMjpeg: true });
-        if (resp && resp.error) { DXStream.toast(resp.error, 'error'); return; }
+        if (resp && resp.error) {
+            if (_clearStoppedDemoLaunchState(resp)) return;
+            DXStream.toast(resp.error, 'error');
+            return;
+        }
         _showMjpegStream(DXStream.$('demo-video-section'));
     } catch (e) {
         DXStream.toast(T('MJPEG fallback failed: ') + (e && e.message ? e.message : e), 'error');
@@ -479,6 +510,7 @@ DXStream._startDemo = async function (id) {
         if (_rtspEl && _rtspEl.value.trim()) _startBody.video = _rtspEl.value.trim();
         var resp = await DXStream.postJ('/api/demos/' + id + '/start', _startBody);
         if (resp.error) {
+            if (_clearStoppedDemoLaunchState(resp)) return;
             DXStream.toast(resp.error, 'error');
             return;
         }

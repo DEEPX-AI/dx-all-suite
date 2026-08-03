@@ -1,59 +1,103 @@
-"""DX Monitor — 하드웨어 SDK 초기화.
+"""DX Monitor telemetry initialization without native runtime imports.
 
-기존 dx_monitor/config.py의 SDK 초기화 로직을 분리.
-import 시 자동으로 DX Engine SDK를 로드하고 hardware.py를 초기화한다.
+The native runtime is intentionally isolated in ``telemetry_worker.py``.  The
+Studio process owns only a :class:`TelemetrySupervisor` cache consumer.
 """
-import sys
-from pathlib import Path
+import os
+import threading
 
-from dx_monitor.core.config import SCRIPT_DIR, DX_APP_ROOT
-from shared import runtime as _runtime
-
-_DS = None
-_dx_ok = False
-_NPU_STATS_BIN = SCRIPT_DIR / "dx_npu_stats"
-
-if not _NPU_STATS_BIN.exists():
-    for _alt in (DX_APP_ROOT / "dx_npu_stats", DX_APP_ROOT / "core" / "dx_npu_stats"):
-        if _alt.exists():
-            _NPU_STATS_BIN = _alt
-            break
+from dx_monitor.core.config import DX_APP_ROOT
+from dx_monitor.core.telemetry_supervisor import TelemetrySupervisor
 
 
-def _try_import_dx():
-    from dx_engine.device_status import DeviceStatus
-    return DeviceStatus
+_LOCK = threading.RLock()
+_LIFECYCLE = threading.Condition(_LOCK)
+_SUPERVISOR = None
+_STOPPING = False
 
 
-def _load_dx():
-    global _DS, _dx_ok
-    # 1) Prefer an already-importable dx_engine (e.g. the studio venv's fully-built
-    #    package). Do this BEFORE any sys.path injection so an *uncompiled* source tree
-    #    on a fallback path (dx_rt/python_package/src has no compiled _pydxrt.so) cannot
-    #    shadow a working install and force mock NPU data.
-    try:
-        _DS = _try_import_dx()
-        _dx_ok = True
-        print("[DX Monitor] dx_engine loaded")
-        return
-    except Exception:
-        pass
-    # 2) Fallback for environments where dx_engine is not on the path yet: inject known
-    #    SDK locations, then retry. Only reached when the direct import above failed.
-    for sp in _runtime.dx_engine_search_paths():
-        if str(sp) not in sys.path:
-            sys.path.insert(0, str(sp))
-    try:
-        _DS = _try_import_dx()
-        _dx_ok = True
-        print("[DX Monitor] dx_engine loaded (via fallback path)")
-    except Exception:
-        _dx_ok = False
-        print("[DX Monitor] dx_engine unavailable — mock NPU data")
+def _explicit_mock_enabled():
+    """Return whether the operator explicitly requested demo telemetry."""
+    return os.environ.get("DX_MONITOR_EXPLICIT_MOCK") == "1"
 
 
 def init():
-    """SDK 로드 + hardware.py 초기화. 서버 시작 시 1회 호출."""
-    _load_dx()
-    from shared.hardware import init_hw
-    init_hw(ds=_DS, dx_ok=_dx_ok, npu_stats_bin=_NPU_STATS_BIN, app_root=DX_APP_ROOT)
+    """Start one telemetry worker and connect Monitor cache consumers to it."""
+    global _STOPPING, _SUPERVISOR
+    from dx_monitor.core import events
+    from shared import hardware as shared_hardware
+
+    startup_error = None
+    with _LIFECYCLE:
+        while _STOPPING:
+            _LIFECYCLE.wait()
+        if _SUPERVISOR is not None:
+            return _SUPERVISOR
+
+        supervisor = TelemetrySupervisor()
+        try:
+            supervisor.start()
+            shared_hardware.init_hw(
+                telemetry=supervisor,
+                explicit_mock=_explicit_mock_enabled(),
+                app_root=DX_APP_ROOT,
+            )
+            events.set_provider(supervisor)
+        except Exception as error:
+            _STOPPING = True
+            startup_error = error
+        else:
+            _SUPERVISOR = supervisor
+            return supervisor
+
+    try:
+        shared_hardware.invalidate_telemetry_if(supervisor)
+    finally:
+        try:
+            events.clear_provider_if(supervisor)
+        finally:
+            try:
+                supervisor.stop()
+            except Exception:
+                # The startup failure remains the actionable error after its
+                # exact shared bindings have been invalidated.
+                pass
+            finally:
+                shared_hardware.detach_telemetry_if(supervisor)
+                with _LIFECYCLE:
+                    _STOPPING = False
+                    _LIFECYCLE.notify_all()
+    raise startup_error.with_traceback(startup_error.__traceback__)
+
+
+def shutdown():
+    """Stop the owned telemetry supervisor and detach the events provider."""
+    global _STOPPING, _SUPERVISOR
+    with _LIFECYCLE:
+        if _STOPPING:
+            while _STOPPING:
+                _LIFECYCLE.wait()
+            return
+        supervisor = _SUPERVISOR
+        if supervisor is None:
+            return
+        _STOPPING = True
+
+    from dx_monitor.core import events
+    from shared import hardware as shared_hardware
+
+    try:
+        shared_hardware.invalidate_telemetry_if(supervisor)
+    finally:
+        try:
+            events.clear_provider_if(supervisor)
+        finally:
+            try:
+                supervisor.stop()
+            finally:
+                shared_hardware.detach_telemetry_if(supervisor)
+                with _LIFECYCLE:
+                    if _SUPERVISOR is supervisor:
+                        _SUPERVISOR = None
+                    _STOPPING = False
+                    _LIFECYCLE.notify_all()

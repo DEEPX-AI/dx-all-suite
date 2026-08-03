@@ -3,8 +3,8 @@
 DX AI Studio Launcher — Single entry-point for DX App + DX Stream.
 
 Usage:
-    python3 launcher.py                    # default port 8890
-    python3 launcher.py --port 9000        # custom port
+    python3 -m launcher.launcher                    # default port 8890
+    python3 -m launcher.launcher --port 9000        # custom port
 
 Architecture:
     launcher (8890)
@@ -30,18 +30,18 @@ from http.server import ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlparse
 
-# Self-bootstrap the import path: the studio has ZERO third-party deps (stdlib only), but its
-# internal packages (`shared`, `dx_*`) still need the repo root on sys.path. Don't rely on an
-# editable install (`pip install -e .`) being present — a fresh `git clone && ./launcher.sh`
-# must work as-is, else `from shared...` below raises "No module named 'shared'". Prepend the
-# repo root here, and propagate it to spawned module servers via PYTHONPATH (see start_sub_server).
 _REPO_ROOT = str(Path(__file__).resolve().parent.parent)
-if _REPO_ROOT not in sys.path:
-    sys.path.insert(0, _REPO_ROOT)
+
+if __name__ == "__main__" and not __package__:
+    os.execv(
+        sys.executable,
+        [sys.executable, "-m", "launcher.launcher", *sys.argv[1:]],
+    )
 
 from shared.dx_server import DXBaseHandler
 from shared.auth_policy import map_launcher_proxy
 from shared.chat import ChatEngine
+from shared.runtime_gate import module_start_policy as _runtime_module_start_policy
 
 # Ports are env-overridable so the studio can coexist with other services on a
 # shared host (defaults unchanged → release behavior + tests unaffected). Set e.g.
@@ -93,6 +93,11 @@ _MODULE_PROXY_PATHS = {
     "dx_monitor": "/dx_monitor/",
     "dx_agent_dev": "/agent/",
 }
+
+
+def module_start_policy(module: str):
+    """Return the Studio inference-launch policy without blocking setup pages."""
+    return _runtime_module_start_policy(_resolve_module_key(module))
 
 
 def _debug_routes_enabled() -> bool:
@@ -1569,7 +1574,7 @@ def main():
         "DX Agent Dev": AGENT_PORT,
     }
 
-    from boot_animation import show_logo, show_boot_progress, show_system_check, show_completion_banner
+    from .boot_animation import show_logo, show_boot_progress, show_system_check, show_completion_banner
     # DX_LAUNCHER_FAST=1 (or `launcher.sh --fast`) skips the cosmetic boot animation.
     _fast = os.environ.get("DX_LAUNCHER_FAST", "").lower() in {"1", "true", "yes", "on"}
 

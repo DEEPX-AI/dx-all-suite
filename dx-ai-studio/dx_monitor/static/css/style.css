@@ -53,6 +53,10 @@ body{overflow-x:auto;overflow-y:auto}
 .npu-metric{display:flex;justify-content:space-between;font-size:var(--fs-sm);padding:3px 0;border-bottom:1px solid rgba(42,52,65,.4)}
 .npu-metric:last-child{border-bottom:none}
 .npu-metric .mk{color:var(--text-3)}.npu-metric .mv{font-weight:600}
+.icon-clock{display:inline-block;width:.85em;height:.85em;box-sizing:border-box;border:2px solid currentColor;border-radius:50%;position:relative;vertical-align:-.08em}
+.icon-clock::before,.icon-clock::after{content:'';position:absolute;left:50%;top:50%;width:2px;background:currentColor;transform-origin:50% 0}
+.icon-clock::before{height:30%;transform:translate(-50%,0)}
+.icon-clock::after{height:23%;transform:translate(-50%,0) rotate(120deg)}
 
 /*═══ Charts ═══*/
 .chart-box{position:relative;width:100%;height:200px;background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;border-color:var(--border);box-shadow:inset 0 1px 0 rgba(255,255,255,.02)}

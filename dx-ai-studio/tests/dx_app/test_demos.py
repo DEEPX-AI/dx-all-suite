@@ -99,8 +99,8 @@ class TestParseRunDemo(unittest.TestCase):
     def test_image_only_flag_true(self):
         from dx_app.core.demos import parse_run_demo
         sample = SAMPLE.replace(
-            'DEMO_IMAGE_ONLY=(\n    0 0\n    0\n)',
-            'DEMO_IMAGE_ONLY=(\n    0 0\n    1\n)'
+            '"classification/resnet50"',
+            '"embedding/resnet50"',
         )
         with tempfile.NamedTemporaryFile('w', suffix='.sh', delete=False) as f:
             f.write(sample); p = f.name

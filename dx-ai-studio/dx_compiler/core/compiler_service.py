@@ -596,6 +596,8 @@ class CompilerService:
                     if compile_finished.is_set():
                         break
                     continue
+                if event is None:
+                    break
                 try:
                     phase_name = _phase_name(getattr(event, "phase", ""))
                     metadata = getattr(event, "metadata", {}) or {}
@@ -884,6 +886,7 @@ class CompilerService:
                 job.mark_error(mask_compile_error(e))
             finally:
                 compile_finished.set()
+                event_queue.put(None)
                 if consumer is not None:
                     consumer.join(timeout=5)
                 # _finalize_success records QXNN + diagnosis artifacts internally,

@@ -18,6 +18,7 @@ import subprocess
 import sys
 import threading
 import time
+from shutil import disk_usage
 from http.server import ThreadingHTTPServer
 from pathlib import Path
 from urllib.error import HTTPError
@@ -76,6 +77,17 @@ def _load_dx_com_info() -> dict | None:
         "supports_event_queue": "event_queue" in params,
         "supports_html_export": html_export.returncode == 0,
     }
+
+
+def _require_compile_disk_space() -> None:
+    """Skip real compiler jobs when the host cannot meet DX-COM's disk requirement."""
+    required_bytes = 8 * 1024 ** 3
+    available_bytes = disk_usage("/").free
+    if available_bytes <= required_bytes:
+        pytest.skip(
+            "DX-COM live compilation requires more than 8 GiB of free disk space; "
+            f"only {available_bytes / 1024 ** 3:.1f} GiB is available"
+        )
 
 
 @pytest.fixture(scope="module")
@@ -284,6 +296,7 @@ def test_live_config_generate(live_server):
 
 
 def test_live_compile_produces_dxnn(live_server, fast_config, tmp_path):
+    _require_compile_disk_space()
     out = tmp_path / "compile_basic"
     out.mkdir()
     job_id = _multipart_compile(
@@ -296,6 +309,7 @@ def test_live_compile_produces_dxnn(live_server, fast_config, tmp_path):
 
 
 def test_live_compile_with_gen_log(live_server, fast_config, tmp_path):
+    _require_compile_disk_space()
     out = tmp_path / "compile_log"
     out.mkdir()
     job_id = _multipart_compile(
@@ -309,6 +323,7 @@ def test_live_compile_with_gen_log(live_server, fast_config, tmp_path):
 def test_live_compile_with_enhanced_scheme(live_server, fast_config, tmp_path, dx_com_info):
     if "enhanced_scheme" not in dx_com_info["params"]:
         pytest.skip("enhanced_scheme not supported")
+    _require_compile_disk_space()
     out = tmp_path / "compile_dxq"
     out.mkdir()
     scheme = json.dumps({"DXQ-P0": {"alpha": 0.5}})
@@ -322,6 +337,7 @@ def test_live_compile_with_enhanced_scheme(live_server, fast_config, tmp_path, d
 
 def test_live_compile_node_selection_still_completes(live_server, fast_config, tmp_path):
     """Subprocess mode disables interactive pause but compile must still finish."""
+    _require_compile_disk_space()
     out = tmp_path / "compile_ns"
     out.mkdir()
     job_id = _multipart_compile(
@@ -337,6 +353,7 @@ def test_live_compile_node_selection_still_completes(live_server, fast_config, t
 def test_live_summary_after_compile(live_server, fast_config, tmp_path, dx_com_info):
     if not dx_com_info.get("supports_html_export"):
         pytest.skip("dx_com.html_export not available on installed dx_com")
+    _require_compile_disk_space()
     out = tmp_path / "compile_summary"
     out.mkdir()
     job_id = _multipart_compile(
@@ -446,6 +463,7 @@ def test_live_resume_summary_returns_clear_400(live_server, fast_config, tmp_pat
     the .qxnn (regression guard for the resume-summary 500)."""
     if not dx_com_info.get("supports_checkpoint") or not dx_com_info.get("supports_quant_diagnosis"):
         pytest.skip("needs dx_com 2.4+ (checkpoint + quant_diagnosis) to produce and resume a .qxnn")
+    _require_compile_disk_space()
     # 1) produce a .qxnn via a quant_diagnosis compile
     qd_out = tmp_path / "qd"
     qd_out.mkdir()

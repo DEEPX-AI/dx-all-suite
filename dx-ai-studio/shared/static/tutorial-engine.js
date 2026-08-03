@@ -858,6 +858,7 @@ class DXTutorialEngine {
 
   /** Hide tour + help chrome without tearing down DOM (view switches, iframe handoff). */
   suspend() {
+    this._scheduledTocCancelled = true;
     this.hideTOC();
     this.stop();
   }

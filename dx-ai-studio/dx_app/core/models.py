@@ -2,9 +2,10 @@
 
 import os, re, json
 from pathlib import Path
-from dx_app.core.config import (CPP_DIR, PY_DIR, ASSETS_DIR, CONFIG_FILE, SAMPLE_DIR,
+from dx_app.core.config import (BUILD_DIR, CPP_DIR, PY_DIR, ASSETS_DIR, CONFIG_FILE, SAMPLE_DIR,
                     SKIP_CAT, CATEGORIES, CAT_LABEL, CAT_IMAGE, CAT_VIDEO,
                     TASK_TYPES, POSTPROCESSORS, DX_APP_ROOT)
+from dx_app.core.inference_exec import _find_fallback_binary, _is_executable_file, _python_runtime_ready
 from shared.catalog_sources import parse_test_models_conf as _shared_parse_test_models_conf
 
 _BUNDLED_MODEL_CATALOG = Path(__file__).resolve().parents[2] / "dx_modelzoo" / "data" / "model_catalog.json"
@@ -112,6 +113,26 @@ def _pp_info(lang,cat,mn):
                 break
     return i
 
+
+def _required_dxnn_exists(model_file):
+    if model_file.startswith("-"):
+        import shlex as _shlex
+        _args=_shlex.split(model_file)
+        return all((DX_APP_ROOT/a).exists() for a in _args if not a.startswith("-") and a.endswith(".dxnn"))
+    return bool(model_file)and(DX_APP_ROOT/model_file).exists()
+
+
+def _cpp_runner_ready(category,model_name,variant):
+    direct=BUILD_DIR/f"{model_name}_{variant}"
+    if _is_executable_file(direct):
+        return True
+    return _is_executable_file(_find_fallback_binary(category,variant,build_dir=BUILD_DIR))
+
+
+def _python_runner_ready(category,model_name,variant,runtime_ready):
+    return bool(runtime_ready and (PY_DIR/category/model_name/f"{model_name}_{variant}.py").is_file())
+
+
 def get_models():
     models={}
     for lang,base in[("cpp",CPP_DIR),("python",PY_DIR)]:
@@ -128,12 +149,7 @@ def get_models():
                 key=f"{cat}/{mn}"
                 if key not in models:
                     reg=_REG.get(mn,{});mf=reg.get("file","")
-                    if mf.startswith("-"):
-                        import shlex as _shlex
-                        _args=_shlex.split(mf)
-                        _mexists=all((DX_APP_ROOT/a).exists() for a in _args if not a.startswith("-") and a.endswith(".dxnn"))
-                    else:
-                        _mexists=bool(mf)and(DX_APP_ROOT/mf).exists()
+                    _mexists=_required_dxnn_exists(mf)
                     models[key]={"name":mn,"category":cat,"category_label":CAT_LABEL.get(cat,cat),
                      "cpp":False,"python":False,"cpp_sync":False,"cpp_async":False,
                      "py_sync":False,"py_async":False,
@@ -158,18 +174,23 @@ def get_models():
         key=f"{cat}/{mn}"
         if key not in models:
             mf=reg.get("file","")
-            if mf.startswith("-"):
-                import shlex as _shlex
-                _args=_shlex.split(mf)
-                _mexists=all((DX_APP_ROOT/a).exists() for a in _args if not a.startswith("-") and a.endswith(".dxnn"))
-            else:
-                _mexists=bool(mf) and (DX_APP_ROOT/mf).exists()
-            if _mexists:  # only show if the model file actually exists
-                models[key]={"name":mn,"category":cat,"category_label":CAT_LABEL.get(cat,cat),
-                 "cpp":True,"python":False,"cpp_sync":True,"cpp_async":False,
-                 "py_sync":False,"py_async":False,"model_file":mf,
-                 "model_exists":True,
-                 "npu_core":"","dataset":"","input_resolution":"","config":{}}
+            _mexists=_required_dxnn_exists(mf)
+            models[key]={"name":mn,"category":cat,"category_label":CAT_LABEL.get(cat,cat),
+             "cpp":True,"python":False,"cpp_sync":True,"cpp_async":False,
+             "py_sync":False,"py_async":False,"model_file":mf,
+             "model_exists":_mexists,
+             "npu_core":"","dataset":"","input_resolution":"","config":{}}
+    _py_modes=("py_sync","py_async","py_sync_cpp_postprocess","py_async_cpp_postprocess")
+    _cpp_modes=("cpp_sync","cpp_async")
+    _python_ready=_python_runtime_ready() if any(any(m.get(k) for k in _py_modes) for m in models.values()) else False
+    for m in models.values():
+        for key in _cpp_modes:
+            m[key]=bool(m.get(key) and _cpp_runner_ready(m["category"],m["name"],key[4:]))
+        for key in _py_modes:
+            m[key]=bool(m.get(key) and _python_runner_ready(m["category"],m["name"],key[3:],_python_ready))
+        m["cpp"]=any(m[key] for key in _cpp_modes)
+        m["python"]=any(m[key] for key in _py_modes)
+    models={key:m for key,m in models.items() if m["model_exists"] and (m["cpp"] or m["python"])}
     # Attach the ModelZoo Q-Lite download link so the Models table can pull a not-yet-installed
     # model straight from the catalog, same as the ModelZoo page. Join by any of: the .dxnn
     # filename, the normalized class_name, or the normalized model name — local example-dir

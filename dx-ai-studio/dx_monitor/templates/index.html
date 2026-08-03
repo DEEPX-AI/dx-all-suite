@@ -28,6 +28,7 @@
   <main class="monitor-main">
     <!-- SSE 연결 상태 표시 -->
     <span id="sse-status" class="sse-status" style="display:none"></span>
+    <span id="telemetry-status" class="sse-status telemetry-status" style="display:none"></span>
     <!-- 상단 요약 카드 바 -->
     <div id="status-bar" class="status-bar"></div>
 
@@ -45,7 +46,7 @@
         <div class="btn-group" id="chart-mode-btns">
           <button id="cm-temp" class="active" onclick="setChartMode('temp')">🌡️ <span class="ko">NPU 온도</span><span class="en">NPU Temp</span><span class="es">Temp. NPU</span><span class="ja">NPU温度</span><span class="zh-CN">NPU温度</span><span class="zh-TW">NPU溫度</span></button>
           <button id="cm-volt" onclick="setChartMode('volt')">⚡ <span class="ko">전압</span><span class="en">Volt</span><span class="es">Voltio</span><span class="ja">電圧</span><span class="zh-CN">电压</span><span class="zh-TW">電壓</span></button>
-          <button id="cm-clock" onclick="setChartMode('clock')">�� <span class="ko">클럭</span><span class="en">Clock</span><span class="es">Reloj</span><span class="ja">クロック</span><span class="zh-CN">时钟</span><span class="zh-TW">時脈</span></button>
+          <button id="cm-clock" onclick="setChartMode('clock')"><span class="icon-clock" aria-hidden="true"></span> <span class="ko">클럭</span><span class="en">Clock</span><span class="es">Reloj</span><span class="ja">クロック</span><span class="zh-CN">时钟</span><span class="zh-TW">時脈</span></button>
           <button id="cm-dram" onclick="setChartMode('dram')">💾 NPU DRAM</button>
           <button id="cm-util" onclick="setChartMode('util')">⚙️ <span class="ko">NPU 사용률</span><span class="en">NPU Util</span><span class="es">Util. NPU</span><span class="ja">NPU使用率</span><span class="zh-CN">NPU利用率</span><span class="zh-TW">NPU使用率</span></button>
           <button id="cm-ctemp" onclick="setChartMode('ctemp')">🌡️ <span class="ko">코어 온도</span><span class="en">Core Temp</span><span class="es">Temp. del núcleo</span><span class="ja">コア温度</span><span class="zh-CN">核心温度</span><span class="zh-TW">核心溫度</span></button>

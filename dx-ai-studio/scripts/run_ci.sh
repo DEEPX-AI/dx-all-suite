@@ -44,15 +44,41 @@ if ! "$PY" -c "import pytest" 2>/dev/null; then
   exit 1
 fi
 
-# Playwright browser suites — excluded from default PR gate (install + chromium cost).
+# Playwright browser suites — excluded from the default PR gate. Browser suites are
+# run individually with --browser because sync Playwright owns an event loop per
+# process; sharing one pytest process lets one suite contaminate another's loop.
 BROWSER_TESTS=(
+  tests/i18n_audit/test_browser_copy_audit.py
+  tests/launcher/test_sdk_library_module_nav_browser.py
+  tests/shared/test_browser_runtime.py
   tests/test_iframe_lang_sync_browser.py
   tests/test_tutorial_e2e_journey.py
-  tests/i18n_audit/test_browser_copy_audit.py
+  tests/test_tutorial_spotlight_spot_check.py
+  tests/test_ux_visual_gate.py
+  tests/test_zoom_full_audit.py
+  tests/test_zoom_layout_contracts.py
+  tests/test_zoom_modal_audit.py
 )
 IGNORE_BROWSER=()
 for _bt in "${BROWSER_TESTS[@]}"; do
   IGNORE_BROWSER+=(--ignore="$_bt")
+done
+
+# Pytest's --ignore does not override an explicitly supplied test path. The
+# root-level glob below expands before pytest runs, so remove browser suites
+# before handing root test paths to the default non-browser gate.
+ROOT_TESTS=()
+for _root_test in tests/test_*.py; do
+  _is_browser_test=0
+  for _bt in "${BROWSER_TESTS[@]}"; do
+    if [[ "$_root_test" == "$_bt" ]]; then
+      _is_browser_test=1
+      break
+    fi
+  done
+  if [ "$_is_browser_test" = "0" ]; then
+    ROOT_TESTS+=("$_root_test")
+  fi
 done
 
 echo "== 0/6 Infra + release contracts =="
@@ -71,7 +97,7 @@ echo "== 1/6 Collection gate =="
 
 echo ""
 echo "== 2/6 Launcher suite (isolated — port collision) =="
-"$PY" -m pytest tests/launcher/ -q --tb=short
+"$PY" -m pytest tests/launcher/ -q --tb=short "${IGNORE_BROWSER[@]}"
 
 echo ""
 echo "== 3/6 Agent Dev suite (isolated — port collision) =="
@@ -93,7 +119,7 @@ echo "== 5/6 Module + shared + root contract suites (no browser) =="
   tests/dx_monitor/ \
   tests/shared/ \
   tests/i18n_audit/ \
-  tests/test_*.py \
+  "${ROOT_TESTS[@]}" \
   -q \
   --ignore=tests/dx_stream/benchmark \
   "${IGNORE_BROWSER[@]}" \
@@ -118,7 +144,10 @@ if [ "$RUN_BROWSER" = "1" ]; then
     exit 1
   fi
   bash scripts/i18n_browser_audit.sh
-  "$PY" -m pytest "${BROWSER_TESTS[@]}" -q --tb=short
+  for _bt in "${BROWSER_TESTS[@]}"; do
+    echo "== Browser suite: $_bt =="
+    "$PY" -m pytest "$_bt" -q --tb=short
+  done
 fi
 
 if [ "$RUN_UX" = "1" ]; then

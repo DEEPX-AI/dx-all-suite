@@ -1909,6 +1909,989 @@ from rapid_doc.utils.enum_class import MakeMode
 
 …(truncated; see source)
 
+## [section:common,framework] Common Framework API Reference  (dx-runtime/dx_app.backup.20260731_173646/.deepx/toolsets/common-framework-api.md)
+# Common Framework API Reference
+
+> **SDK Source of Truth**: `docs/source/docs/05_DX-APP_Python_Example_Usage_Guide.md`, `src/python_example/common/`
+
+> SyncRunner, AsyncRunner, IFactory hierarchy, IInputSource, and parse_common_args() —
+> the application framework for dx_app.
+
+## ⚠️ Anti-Fabrication Notice
+
+This document is a **reference-level overview**. For exact signatures, default values,
+and edge cases, always read the source files listed below. If this document and source
+code disagree, **source code wins**. Do not invent CLI flags, method names, or
+constructor parameters — see the [Common Fabrications](#-common-fabrications-to-avoid)
+section at the end.
+
+---
+
+## Source Files
+
+| Component | Path |
+|-----------|------|
+| CLI parser | `src/python_example/common/runner/args.py` |
+| SyncRunner | `src/python_example/common/runner/sync_runner.py` |
+| AsyncRunner | `src/python_example/common/runner/async_runner.py` |
+| IFactory interfaces | `src/python_example/common/base/i_factory.py` |
+| IPreprocessor / IPostprocessor | `src/python_example/common/base/i_processor.py` |
+| IVisualizer | `src/python_example/common/base/i_visualizer.py` |
+| IInputSource | `src/python_example/common/base/i_input_source.py` |
+| Concrete input sources | `src/python_example/common/inputs/` |
+
+---
+
+## parse_common_args()
+
+**Location:** `src/python_example/common/runner/args.py`
+
+```python
+from common.runner import parse_common_args
+
+args = parse_common_args("YOLOv8n Object Detection")
+# or with output flag:
+args = parse_common_args("My App", include_output=True)
+```
+
+Signature: `parse_common_args(description="DX-APP Inference", *, include_output=False)`
+
+Parser uses `allow_abbrev=False`.
+
+### Input Sources — Mutually Exclusive Group (required=False)
+
+Input source is optional (defaults to task-appropriate sample if omitted). Must be at most one of:
+
+| Flag | Short | Type | Description |
+|------|-------|------|-------------|
+| `--image` | `-i` | `str` | Input image path or directory |
+| `--video` | `-v` | `str` | Input video path |
+| `--camera` | `-c` | `int` | Camera device ID |
+| `--rtsp` | `-r` | `str` | RTSP stream URL |
+
+These are **mutually exclusive** — you cannot combine them.
+
+### Other Arguments
+
+| Flag | Short | Type | Default | Description |
+|------|-------|------|---------|-------------|
+| `--model` | `-m` | `str` | **Required** | Path to `.dxnn` model file |
+| `--display` | — | `store_true` | `True` | Show output window |
+| `--no-display` | — | `store_false` → `display` | — | Disable display |
+| `--save` | `-s` | `store_true` | `False` | Save output frames |
+| `--save-dir` | — | `str` | — | Output save directory |
+| `--loop` | `-l` | `int` | `1` (bare `--loop` = `2`) | Inference loops |
+| `--dump-tensors` | — | `store_true` | `False` | Dump raw tensors |
+| `--config` | — | `str` | — | Path to config.json |
+| `--verbose` | — | `store_true` | `False` | Detailed per-frame logs |
+| `--output` | `-o` | `str` | — | Only present when `include_output=True` |
+
+### Usage Examples
+
+```bash
+# Image inference
+python yolov8n_sync.py -m yolov8n.dxnn -i test.jpg
+
+# Video inference with save
+python yolov8n_sync.py -m yolov8n.dxnn -v video.mp4 --save --save-dir ./out
+
+# USB camera, headless mode
+python yolov8n_async.py -m yolov8n.dxnn -c 0 --no-display
+
+# RTSP stream
+python yolov8n_async.py -m yolov8n.dxnn -r rtsp://192.168.1.100:554/stream
+```
+
+---
+
+## SyncRunner
+
+Single-threaded inference runner. Everything runs on the main thread in a sequential
+loop: read → preprocess → infer → postprocess → visualize.
+
+**Location:** `src/python_example/common/runner/sync_runner.py`
+
+### Constructor
+
+```python
+from common.runner import SyncRunner
+
+runner = SyncRunner(
+    factory,                        # IFactory implementation (duck-typed)
+    use_ort=None,                   # None=auto, True=force ORT, False=disable
+    cpp_postprocessor=None,         # Optional C++ postprocessor
+    cpp_convert_fn=None,            # Optional C++ result converter
+    cpp_visualize_fn=None,          # Optional custom viz function
+    on_engine_init=None,            # Callback after engine init
+    display_size=None,              # Default (960, 640)
+)
+```
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `factory` | IFactory subclass | Yes | Abstract factory for model components |
+| `use_ort` | `bool` or `None` | No | `None`=auto, `True`=force ONNX Runtime, `False`=disable |
+| `cpp_postprocessor` | callable | No | C++ postprocessor binding |
+| `cpp_convert_fn` | callable | No | C++ result converter |
+| `cpp_visualize_fn` | callable | No | Custom C++ visualization function |
+| `on_engine_init` | callable | No | Hook called after InferenceEngine is created |
+| `display_size` | tuple | No | Display window size, default `(960, 640)` |
+
+### run()
+
+```python
+runner.run(args: argparse.Namespace)
+```
+
+Takes the parsed CLI arguments from `parse_common_args()`.
+
+### Threading Model
+
+**NO threads.** Everything executes sequentially on the main thread.
+
+Public pipeline methods: `preprocess()`, `infer()`, `postprocess()`, `visualize()`
+
+### Shutdown
+
+No signal handler — uses `except KeyboardInterrupt` and window close detection.
+
+### Performance Metrics
+
+SyncRunner tracks 7 cumulative timing sums:
+
+| Field | Description |
+|-------|-------------|
+| `sum_read` | Total frame reading time |
+| `sum_preprocess` | Total preprocessing time |
+| `sum_inference` | Total NPU inference time |
+| `sum_postprocess` | Total postprocessing time |
+| `sum_render` | Total visualization/rendering time |
+| `sum_save` | Total frame saving time |
+| `sum_display` | Total display time |
+
+> **Note:** These are cumulative sums, not per-frame averages or named attributes
+
+…(truncated; see source)
+
+## [section:engine] DX Engine API Reference  (dx-runtime/dx_app.backup.20260731_173646/.deepx/toolsets/dx-engine-api.md)
+# DX Engine API Reference
+
+> **SDK Source of Truth**: `dx_rt/python_package/src/dx_engine/`, `dx_rt/docs/source/docs/10_02_Python_API_Reference.md`
+
+> Reference-based guide to `dx_engine` — the core NPU inference interface for dx_app.
+> This document provides an overview and points to source files for current API details.
+> Do NOT rely on memorized signatures — always verify against the source files listed below.
+
+## ⚠️ Anti-Fabrication Notice
+
+**AI agents MUST verify every method name and signature against the actual source files
+before generating code.** Previous versions of this document contained fabricated API
+methods (`infer()`, `get_input_shape()`, `get_model_info()`, `get_output_shapes()`,
+wrong `run_async()` return value name). These methods do not exist and will cause
+`AttributeError` at runtime.
+
+**Rule:** If you are unsure whether a method exists, read the source file. Never guess.
+
+## Source Files
+
+All API definitions live in the DX-RT source tree. Read these files for current signatures:
+
+| Class | Source File |
+|---|---|
+| `InferenceEngine` | `dx_rt/python_package/src/dx_engine/inference_engine.py` |
+| `InferenceOption` | `dx_rt/python_package/src/dx_engine/inference_option.py` |
+| `Configuration` | `dx_rt/python_package/src/dx_engine/configuration.py` |
+| `DeviceStatus` | `dx_rt/python_package/src/dx_engine/device_status.py` |
+| `RuntimeEventDispatcher` | `dx_rt/python_package/src/dx_engine/runtime_event_dispatcher.py` |
+| Python API docs | `dx_rt/docs/source/docs/10_02_Python_API_Reference.md` |
+
+## Package Overview
+
+Exported from `dx_engine`:
+
+```python
+from dx_engine import (
+    InferenceEngine,       # Core inference class
+    InferenceOption,       # Engine configuration
+    Configuration,         # Runtime settings singleton
+    DeviceStatus,          # Hardware diagnostics
+    RuntimeEventDispatcher # Event handling
+)
+```
+
+## InferenceEngine — Overview
+
+> **Source of truth**: `dx_rt/python_package/src/dx_engine/inference_engine.py`
+> Always read this file for exact signatures and parameter names.
+
+### Construction
+
+```python
+from dx_engine import InferenceEngine, InferenceOption
+
+# Option is OPTIONAL — defaults to None (creates default internally)
+engine = InferenceEngine("model.dxnn")
+
+# With explicit option
+option = InferenceOption()
+engine = InferenceEngine("model.dxnn", option)
+
+# From memory buffer
+import numpy as np
+engine = InferenceEngine.from_buffer(memory_buffer, inference_option=None)
+
+# Context manager supported (calls dispose() on exit)
+with InferenceEngine("model.dxnn") as engine:
+    outputs = engine.run(input_data)
+```
+
+### Method Categories
+
+**Inference (synchronous):**
+
+| Method | Returns | Notes |
+|---|---|---|
+| `run(input_data, output_buffers=None, user_args=None)` | `List[np.ndarray]` | Primary sync inference. **NOT `infer()`** |
+| `run_multi_input(input_tensors: Dict[str, np.ndarray], ...)` | `List[np.ndarray]` | For multi-input models |
+| `run_benchmark(num_loops, input_data=None)` | `float` | Returns FPS |
+| `validate_device(input_data, device_id=0)` | — | Debug compile type only |
+
+**Inference (asynchronous):**
+
+| Method | Returns | Notes |
+|---|---|---|
+| `run_async(input_data, user_arg=None, output_buffer=None)` | `int` (**`job_id`**) | Single inference, NOT batch. Returns `job_id`, **NOT** `request_id` |
+| `wait(job_id)` | `List[np.ndarray]` | Parameter is `job_id` (int) |
+| `register_callback(callback)` | — | For async completion callbacks |
+
+**Model information:**
+
+| Method | Returns | Notes |
+|---|---|---|
+| `get_input_tensors_info()` | `List[Dict]` | Keys: `name`, `shape`, `dtype`, `elem_size`. **Dict access** (`info[0]['shape']`), NOT dot-access |
+| `get_output_tensors_info()` | `List[Dict]` | Same keys as above |
+| `get_input_tensor_count()` | `int` | Number of input tensors |
+| `get_output_tensor_count()` | `int` | Number of output tensors |
+| `get_input_tensor_names()` | `List[str]` | Input tensor names |
+| `get_output_tensor_names()` | `List[str]` | Output tensor names |
+| `get_input_size()` | `int` | Total input bytes |
+| `get_output_size()` | `int` | Total output bytes |
+| `get_input_tensor_sizes()` | `List[int]` | Per-tensor byte sizes |
+| `get_output_tensor_sizes()` | `List[int]` | Per-tensor byte sizes |
+| `has_dynamic_output()` | `bool` | — |
+| `is_multi_input_model()` | `bool` | — |
+| `is_ppu()` | `bool` | — |
+| `get_compile_type()` | `str` | e.g. `"debug"` or `"release"` |
+| `get_model_version()` | `str` | — |
+
+**Performance metrics:**
+
+| Method | Returns | Notes |
+|---|---|---|
+| `get_latency()` | `int` | Microseconds |
+| `get_npu_inference_time()` | `int` | Microseconds |
+| `get_latency_list()` | `List[int]` | Historical latency samples |
+| `get_npu_inference_time_list()` | `List[int]` | Historical NPU time samples |
+| `get_latency_mean()` | `float` | — |
+| `get_npu_inference_time_mean()` | `float` | — |
+| `get_latency_std()` | `float` | — |
+| `get_npu_inference_time_std()` | `float` | — |
+
+**Lifecycle:**
+
+| Method | Notes |
+|---|---|
+| `dispose()` | Explicit resource release. Also called by `__exit__` in context manager |
+
+### Verified Code Pattern
+
+```python
+from dx_engine import InferenceEngine
+import numpy as np
+
+with InferenceEngine("model.dxnn") as engine:
+    # Query model shape via get_input_tensors_info() — returns List[Dict]
+    info = engine.get_input_tensors_info()
+    shape = info[0]['shape']   # Dict access, NOT dot-access
+    dtype = info[0]['dtype']
+    print(f"Input shape: {shape}")
+
+    # Synchronous inference — use run(), NOT infer()
+    input_data = np.zeros(shape, dtype=np.float32)
+    outputs = engine.run(input_data)
+
+    for i, out in enumerate(outputs):
+        print(f"Output {i}: shape={out.shape}")
+```
+
+## InferenceOption
+
+Configuration object passed to InferenceEngine constructor.
+
+> **Source of truth**: `dx_rt/python_package/src/dx_engine/inference_option.py`
+> and `dx_rt/docs/source/docs/10_02_Python_API_Reference.md`.
+> Do NOT invent methods that are not listed here.
+
+### Quick Start (Python)
+
+…(truncated; see source)
+
+## [section:model,format,dxnn] .dxnn Model Format Reference  (dx-runtime/dx_app.backup.20260731_173646/.deepx/toolsets/dx-model-format.md)
+# .dxnn Model Format Reference
+
+> **SDK Source of Truth**: `dx-compiler/docs/`, DX-COM User Manual
+
+> The compiled neural network model format for DEEPX NPU inference.
+
+## Overview
+
+`.dxnn` is the compiled binary model format used by DEEPX NPU devices. It contains
+optimized neural network weights, graph structure, and tensor specifications compiled
+for direct execution on the DX-M1/DX-M1A (discontinued) hardware.
+
+## File Description
+
+| Property | Value |
+|---|---|
+| Extension | `.dxnn` |
+| Type | Binary (not human-readable) |
+| Format version | v7+ (dx_app v3.0.0) |
+| Typical size | 2-50 MB depending on model |
+| Contains | Compiled graph, quantized weights, tensor specs, metadata |
+
+A `.dxnn` file is self-contained: it includes everything the NPU needs to execute
+inference without external dependencies.
+
+## Input/Output Tensor Specifications
+
+### Input Tensors
+
+| Property | Description |
+|---|---|
+| Layout | NHWC (batch, height, width, channels) or NCHW |
+| Data type | UINT8 (quantized) or FP16 (half-precision) |
+| Batch dimension | Fixed at compilation time (typically N=1) |
+| Spatial dimensions | Fixed (e.g., 640x640, 320x320, 224x224) |
+| Channels | 3 (RGB/BGR) for vision models |
+
+### Output Tensors
+
+| Property | Description |
+|---|---|
+| Count | 1 or more output heads per model |
+| Data type | INT8, UINT8, or FP16 depending on compilation |
+| Layout | Task-dependent (see below) |
+
+### Output Layouts by Task
+
+| Task | Typical Output Shape | Description |
+|---|---|---|
+| object_detection | `(1, N, 4+1+C)` | N proposals, 4 bbox + 1 obj + C classes |
+| classification | `(1, C)` | C class scores |
+| pose_estimation | `(1, N, 4+1+K*3)` | N persons, bbox + obj + K keypoints (x,y,conf) |
+| instance_segmentation | `(1, N, 4+1+C+32)`, `(1, 32, H, W)` | Proposals + mask prototypes |
+| semantic_segmentation | `(1, C, H, W)` | Per-pixel class logits |
+| face_detection | `(1, N, 4+1+10)` | N faces, bbox + score + 5 landmarks |
+| depth_estimation | `(1, 1, H, W)` | Per-pixel depth values |
+| image_denoising | `(1, 3, H, W)` or `(1, H, W, 3)` | Restored image |
+| image_enhancement | `(1, 3, H, W)` | Enhanced image |
+| super_resolution | `(1, 3, H*S, W*S)` | Upscaled image (S = scale factor) |
+| embedding | `(1, D)` | D-dimensional feature vector |
+| obb_detection | `(1, N, 4+1+1+C)` | N proposals with rotation angle |
+| hand_landmark | `(1, 63)` | 21 landmarks * 3 (x, y, z) |
+| ppu | `(1, N, 4+1+C)` | PPU-specific detection format |
+
+## Data Types
+
+| Type | Bits | Range | Use Case |
+|---|---|---|---|
+| INT8 | 8 | -128 to 127 | Quantized weights and activations |
+| UINT8 | 8 | 0 to 255 | Quantized activations (unsigned) |
+| FP16 | 16 | ±65504 | Half-precision for sensitive layers |
+
+Most `.dxnn` models use INT8 quantization for maximum throughput. The dx-compiler
+applies post-training quantization (PTQ) or quantization-aware training (QAT) data
+during compilation.
+
+## Compilation Flow
+
+```
+Source Model          dx-compiler             NPU Binary
+============         ===========             ==========
+
+ONNX (.onnx)    ---> Graph optimization  ---> .dxnn
+PyTorch (.pt)   ---> Quantization (PTQ)
+TensorFlow (.pb)     Layer fusion
+TFLite (.tflite)     Memory planning
+                     Code generation
+```
+
+### Step-by-Step
+
+1. **Export to ONNX** — Convert source model (PyTorch, TensorFlow, etc.) to ONNX format
+2. **Compile with dx-compiler** — Run the compiler to produce `.dxnn`:
+   ```bash
+   dx-compiler --input model.onnx \
+               --output model.dxnn \
+               --target dx_m1 \
+               --quantize int8 \
+               --calibration-data cal_data/ \
+               --input-shape 1,3,640,640
+   ```
+3. **Validate** — Verify with `dxrt-cli`:
+   ```bash
+   dxrt-cli --info model.dxnn
+   ```
+
+### Compiler Options
+
+| Option | Description |
+|---|---|
+| `--input` | Source model path (ONNX, TFLite) |
+| `--output` | Output `.dxnn` path |
+| `--target` | NPU target (`dx_m1`, `dx_m1a` (discontinued)) |
+| `--quantize` | Quantization mode (`int8`, `fp16`, `mixed`) |
+| `--calibration-data` | Directory of representative input images for PTQ |
+| `--input-shape` | Input tensor shape (NCHW format) |
+| `--batch-size` | Batch size to compile for (default: 1) |
+| `--optimize` | Optimization level (0-3, default: 2) |
+
+## Format Version History
+
+| Version | DX-RT Compat | Features |
+|---|---|---|
+| v7 | 3.0.x | Multi-output, profiling metadata, extended quantization |
+| v6 | 2.5.x | Batch inference support |
+| v5 | 2.0.x | Basic single-output models |
+| v4 | 1.x | Legacy format — not supported in dx_app v3.0.0 |
+
+**Important:** `.dxnn` files compiled with v5 or v6 format are NOT guaranteed to work
+with DX-RT 3.0.x. Always recompile models when upgrading DX-RT. See
+`memory/common_pitfalls.md` [UNIVERSAL] entry on version mismatch.
+
+## Tensor Layout: NCHW vs NHWC
+
+| Layout | Convention | When Used |
+|---|---|---|
+| NCHW | (batch, channels, height, width) | Default compilation layout |
+| NHWC | (batch, height, width, channels) | Some models, OpenCV compatibility |
+
+The dx-compiler embeds the layout in the `.dxnn` file. `InferenceEngine` handles
+layout internally — users provide input in the format expected by `get_input_shape()`.
+
+```python
+shape = engine.get_input_shape()
+# shape = (1, 640, 640, 3)  means NHWC
+# shape = (1, 3, 640, 640)  means NCHW
+```
+
+## File Inspection
+
+```bash
+# View model metadata
+dxrt-cli --info model.dxnn
+# Output:
+#   Model: yolov8n
+#   Format: v7
+#   Target: dx_m1
+#   Input: [1, 640, 640, 3] UINT8
+#   Output 0: [1, 8400, 84] FP16
+#   Quantization: INT8 (PTQ)
+
+…(truncated; see source)
+
+## [section:postprocess] DX Postprocess API Reference  (dx-runtime/dx_app.backup.20260731_173646/.deepx/toolsets/dx-postprocess-api.md)
+# DX Postprocess API Reference
+
+> **SDK Source of Truth**: `src/bindings/python/dx_postprocess/postprocess_pybinding.cpp`, `docs/source/docs/08_DX-APP_Pybind_PostProcess_Overview.md`
+
+> Pybind11 C++ postprocess bindings exposed via `dx_postprocess` module.
+> See `src/bindings/python/dx_postprocess/postprocess_pybinding.cpp` for the
+> complete list of postprocessor classes. All classes live in a single pybind11
+> module built from C++ for 5-10x speedup over equivalent Python implementations.
+
+## ⚠️ Anti-Fabrication Notice
+
+**Do NOT invent classes.** If a class is not listed in the table below, check the
+pybind11 source file (`postprocess_pybinding.cpp`) before assuming it exists or
+doesn't exist. When uncertain, check the source directly. Common mistakes:
+- Using `process()` — the method is **`postprocess()`**
+- Describing returns as Python dataclasses — returns are **always numpy arrays**
+- Inventing architecture-specific wrappers (e.g., `MobileNetV2PostProcess`) —
+  use the generic class instead (e.g., `ClassificationPostProcess`)
+
+## Source File
+
+```
+dx_app/src/bindings/python/dx_postprocess/postprocess_pybinding.cpp  (2379 lines)
+```
+
+All constructor signatures, method names, and return types are defined in this
+single file. When in doubt, read the source — it is the only authority.
+
+## Key Rules
+
+1. **Method is ALWAYS `postprocess(ie_output)`** — never `process()`, never `run()`
+2. **`ie_output` is always `List[np.ndarray]`** — the raw output tensors from inference
+3. **Returns are always numpy arrays** — never Python dataclasses, never lists of objects
+4. **`is_ort_configured`** (not `use_ort`) — boolean flag for ONNX Runtime tensor layout
+5. **Import:** `from dx_postprocess import YOLOv8PostProcess`
+
+## Complete Class Reference Table
+
+| # | Class | Category | Params | Return Shape |
+|---|-------|----------|--------|-------------|
+| 1 | `YOLOv5PostProcess` | Detection | 6 | `ndarray[N,6]` |
+| 2 | `YOLOv7PostProcess` | Detection | 6 | `ndarray[N,6]` |
+| 3 | `YOLOXPostProcess` | Detection | 6 | `ndarray[N,6]` |
+| 4 | `YOLOv8PostProcess` | Detection | 5 | `ndarray[N,6]` |
+| 5 | `YOLOv9PostProcess` | Detection | 5 | `ndarray[N,6]` |
+| 6 | `YOLOv10PostProcess` | Detection | 5 | `ndarray[N,6]` |
+| 7 | `YOLOv11PostProcess` | Detection | 5 | `ndarray[N,6]` |
+| 8 | `YOLOv12PostProcess` | Detection | 5 | `ndarray[N,6]` |
+| 9 | `YOLOv26PostProcess` | Detection | 5 | `ndarray[N,6]` |
+| 10 | `SSDPostProcess` | Detection | 6 | `ndarray[N,6]` |
+| 11 | `NanoDetPostProcess` | Detection | 6 | `ndarray[N,6]` |
+| 12 | `DamoYOLOPostProcess` | Detection | 5 | `ndarray[N,6]` |
+| 13 | `EfficientDetPostProcess` | Detection | 6 | `ndarray[N,6]` |
+| 14 | `YOLOv5FacePostProcess` | Face | 6 | `ndarray[N,21]` |
+| 15 | `SCRFDPostProcess` | Face | 5 | `ndarray[N,21]` |
+| 16 | `RetinaFacePostProcess` | Face | 4 | `ndarray[N,16]` |
+| 17 | `ULFGFDPostProcess` | Face | 4 | `ndarray[N,6]` |
+| 18 | `Face3DPostProcess` | Face | 2 | `ndarray[P]` |
+| 19 | `YOLOv5PosePostProcess` | Pose | 6 | `ndarray[N,57]` |
+| 20 | `YOLOv8PosePostProcess` | Pose | 5 | `ndarray[N,57]` |
+| 21 | `CenterPosePostProcess` | Pose | 5 | `ndarray[N,30]` |
+| 22 | `HandLandmarkPostProcess` | Landmark | 3 | `ndarray` |
+| 23 | `YOLOv5SegPostProcess` | Segmentation | 6 | `tuple(ndarray[N,6], ndarray[N,H,W])` |
+| 24 | `YOLOv8SegPostProcess` | Segmentation | 5 | `tuple(ndarray[N,6], ndarray[N,H,W])` |
+| 25 | `YOLACTPostProcess` | Instance Seg | 6 | `tuple(ndarray[N,6], ndarray[N,H,W])` |
+| 26 | `DeepLabv3PostProcess` | Segmentation | 2 | `ndarray[H,W] int32` |
+| 27 | `SemanticSegPostProcess` | Segmentation | 3 | `ndarray[H,W] int32` |
+| 28 | `ClassificationPostProcess` | Classification | 1 | `ndarray[K,2] float32` |
+| 29 | `YOLOv5PPUPostProcess` | PPU | 5 | `ndarray[N,6]` |
+| 30 | `YOLOv7PPUPostProcess` | PPU | 5 | `ndarray[N,6]` |
+| 31 | `YOLOv8PPUPostProcess` | PPU | 4 | `ndarray[N,6]` |
+| 32 | `YOLOXPPUPostProcess` | PPU | 5 | `ndarray[N,6]` |
+| 33 | `YOLOv3TinyPPUPostProcess` | PPU | 5 | `ndarray[N,6]` |
+| 34 | `YOLOv5PosePPUPostProcess` | PPU | 4 | `ndarray[N,57]` |
+| 35 | `SCRFDPPUPostProcess` | PPU | 4 | `ndarray[N,21]` |
+| 36 | `DepthPostProcess` | Depth | 2 | `ndarray[H,W] uint8` |
+| 37 | `DnCNNPostProcess` | Denoising | 2 | `ndarray[H,W] float32` |
+| 38 | `EmbeddingPostProcess` | Embedding | 1 | `ndarray[D] float32` |
+| 39 | `ESPCNPostProcess` | Super Resolution | 3 | `ndarray float32` |
+| 40 | `ZeroDCEPostProcess` | Enhancement | 2 | `ndarray[C,H,W] float32` |
+| 41 | `OBBPostProcess` | OBB Detection | 3 | `ndarray[N,7]` |
+| 42 | `RealESRGANPostProcess` | Super Resolution | 3 | upscaled-image `ndarray` (scale_factor default 4) |
+| 43 | `VitPosePostProcess` | Pose | 2 | keypoints `ndarray` |
+| 44 | `DOPEPostProcess` | Object Pose | 2 | cuboid keypoints `ndarray` (normalized `[0,1]`) |
+| 45 | `SuperPointPostProcess` | Keypoint Detection | 4 | `tuple(keypoints, descriptors)` (conf_threshold=0.015, top_k=500) |
+| 46 | `YOLOPv2PostProcess` | Panoptic Driving | 4 | `tuple(detections[N,6], drivable_mask, lane_mask)` |
+| 47 | `MediaPipeHandPostProcess` | Hand Detection | 3 | hand detections `ndarray` (input_size=192) |
+| 48 | `SFA3DPostProcess` | 3D Object Detection | 4 | 3D boxes `ndarray` (score_threshold=0.3, nms_threshold=0.2) |
+
+## Constructor Details by Category
+
+### Detection — Anchor-Based (6 params, includes `obj_threshold`)
+
+```python
+# YOLOv5, YOLOv7, YOLOX — all share the same 6-param signature
+pp = dx_postprocess.YOLOv5PostProcess(input_w, input_h, obj_threshold, score_threshold, nms_threshold, is_ort_configured)
+pp = dx_postprocess.YOLOv7PostProcess(input_w, input_h, obj_threshold, score_threshold, nms_threshold, is_ort_configured)
+pp = dx_postprocess.YOLOXPostProcess(input_w, input_h, obj_threshold, score_threshold, nms_threshold, is_ort_configured)
+```
+
+### Detection — Anchor-Free (5 params, NO `obj_threshold`)
+
+```python
+# YOLOv8, v9, v10, v11, v12, v26 — all share the same 5-param signature
+pp = dx_postprocess.YOLOv8PostProcess(input_w, input_h, score_threshold, nms_threshold, is_ort_configured)
+pp = dx_postprocess.YOLOv9PostProcess(input_w, input_h, score_threshold, nms_threshold, is_ort_configured)
+pp = dx_postprocess.YOLOv10PostProcess(input_w, input_h, score_threshold, nms_threshold, is_ort_configured)
+pp = dx_postprocess.YOLOv11PostProcess(input_w, input_h, score_threshold, nms_threshold, is_ort_configured)
+pp = dx_postprocess.YOLOv12PostProcess(input_w, input_h, score_threshold, nms_threshold, is_ort_configured)
+pp = dx_postprocess.YOLOv26PostProcess(input_w, input_h, score_threshold, nms_threshold, is_ort_configured)
+```
+
+### Detection — Special Parameters
+
+```python
+pp = dx_postprocess.SSDPostProcess(input_w, input_h, score_threshold, nms_threshold, num_classes=20, has_background=True)
+pp = dx_postprocess.NanoDetPostProcess(input_w, input_h, score_threshold, nms_threshold, num_classes=80, reg_max=10)
+pp = dx_postprocess.DamoYOLOPostProcess(input_w, input_h, score_threshold, nms_threshold, num_classes=80)
+pp = dx_postprocess.EfficientDetPostProcess(input_w, input_h, score_threshold=0.3, nms_threshold=0.45, num_classes=90, has_background=True)  # → ndarray[N,6]
+```
+
+### Face Detection
+
+```python
+pp = dx_postprocess.YOLOv5FacePostProcess(input_w, input_h, obj_threshold, score_threshold, nms_threshold, is_ort_configured)  # → ndarray[N,21]
+pp = dx_postprocess.SCRFDPostProcess(input_w, input_h, score_threshold, nms_threshold, is_ort_configured)  # → ndarray[N,21]
+pp = dx_postprocess.RetinaFacePostProcess(input_w, input_h, score_threshold=0.5, nms_threshold=0.4)       # → ndarray[N,16]
+pp = dx_postprocess.ULFGFDPostProcess(input_w, input_h, score_threshold=0.7, nms_threshold=0.3)           # → ndarray[N,6]
+pp = dx_postprocess.Face3DPostProcess(input_w, input_h)                                                    # → ndarray[P]
+```
+
+### Pose Estimation
+
+```python
+pp = dx_postprocess.YOLOv5PosePostProcess(input_w, input_h, obj_threshold, score_threshold, nms_threshold, is_ort_configured)  # → ndarray[N,57]
+pp = dx_postprocess.YOLOv8PosePostProcess(input_w, input_h, score_threshold, nms_threshold, is_ort_configured=False)           # → ndarray[N,57]
+pp = dx_postprocess.CenterPosePostProcess(input_w, input_h, score_threshold=0.3, nms_threshold=0.5, num_keypoints=8)           # → ndarray[N,30]
+```
+
+### Landmark
+
+```python
+pp = dx_postprocess.HandLandmarkPostProcess(input_w, input_h, confidence_threshold=0.5)  # → ndarray
+# Check pybinding source for exact return shape
+```
+
+### Segmentation
+
+```python
+# Instance segmentation — returns tuple of (detections, masks)
+pp = dx_postprocess.YOLOv5SegPostProcess(input_w, input_h, obj_threshold, score_threshold, nms_threshold, is_ort_configured=True)  # → tuple(ndarray[N,6], ndarray[N,H,W])
+pp = dx_postprocess.YOLOv8SegPostProcess(input_w, input_h, score_threshold, nms_threshold, is_ort_configured)                      # → tuple(ndarray[N,6], ndarray[N,H,W])
+pp = dx_postprocess.YOLACTPostProcess(input_w, input_h, score_threshold=0.3, nms_threshold=0.5, num_classes=80, has_background=True)  # → tuple(ndarray[N,6], ndarray[N,H,W])
+
+# Semantic segmentation — returns per-pixel class map
+pp = dx_postprocess.DeepLabv3PostProcess(input_w, input_h)                  # → ndarray[H,W] int32
+pp = dx_postprocess.SemanticSegPostProcess(input_w, input_h, num_classes=0) # → ndarray[H,W] int32
+```
+
+### Classification
+
+…(truncated; see source)
+
+## [section:model,registry] Model Registry Reference  (dx-runtime/dx_app.backup.20260731_173646/.deepx/toolsets/model-registry.md)
+# Model Registry Reference
+
+> **SDK Source of Truth**: `config/model_registry.json`
+
+> `config/model_registry.json` -- the single source of truth for all models
+> and task types in dx_app. Query the file for current counts.
+
+## Anti-Fabrication Notice
+
+This document was verified against the actual `config/model_registry.json` file.
+**Do NOT invent field names.** If a field is not listed here, it does not exist.
+See [Fields That Do NOT Exist](#fields-that-do-not-exist) for commonly hallucinated fields.
+
+When in doubt, read the source file directly:
+```bash
+python3 -c "import json; print(json.dumps(json.load(open('config/model_registry.json'))[0], indent=2))"
+```
+
+## Source File
+
+| Item | Value |
+|---|---|
+| Path | `config/model_registry.json` |
+| Format | JSON **array** (`[]`) |
+| Entry count | See `config/model_registry.json` (use `jq length` to query) |
+| Loading code | `tests/common/utils.py`, `.deepx/scripts/validate_framework.py` |
+
+## Structure
+
+The registry is a **JSON array of objects** -- NOT a JSON object with model names as keys.
+
+```
+[              <-- top-level is an ARRAY
+  { ... },     <-- each entry is an object
+  { ... },
+  ...
+]
+```
+
+Each entry is a flat object describing one model. Access is always via **array iteration**,
+never via dict-key lookup by model name.
+
+## Schema
+
+### Required Fields (present in all entries)
+
+| Field | Type | Description | Example |
+|---|---|---|---|
+| `model_name` | `string` | Unique identifier, lowercase with underscores | `"yolov8n"` |
+| `dxnn_file` | `string` | Compiled model filename (no path) | `"YoloV8N.dxnn"` |
+| `add_model_task` | `string` | Task type (see Task Types section) | `"object_detection"` |
+| `postprocessor` | `string` | Postprocess binding key | `"yolov8"` |
+| `supported` | `boolean` | Whether the model is available | `true` |
+
+### Optional Fields (present in most but not all entries)
+
+| Field | Type | Description | Example |
+|---|---|---|---|
+| `original_name` | `string` | Display name (mixed case) | `"YoloV8N"` |
+| `csv_task` | `string` | Short task code from CSV import | `"OD"` |
+| `input_width` | `integer` | Input width in pixels | `640` |
+| `input_height` | `integer` | Input height in pixels | `640` |
+| `config` | `object` | Default thresholds (see below) | `{"score_threshold": 0.25, "nms_threshold": 0.45}` |
+| `source` | `string` | Registration source | `"csv"` |
+
+### `config` Sub-Fields
+
+The `config` object contains threshold and parameter defaults. Not all sub-fields appear
+in every entry -- contents vary by task type.
+
+| Sub-field | Type | Description | Typical Value |
+|---|---|---|---|
+| `score_threshold` | `float` | Confidence score threshold | `0.25` |
+| `nms_threshold` | `float` | NMS IoU threshold | `0.45` |
+| `obj_threshold` | `float` | Objectness threshold | `0.5` |
+| `top_k` | `int` | Top-K results (classification) | `5` |
+
+### `source` Values
+
+| Value | Meaning |
+|---|---|
+| `"csv"` | Imported from model CSV |
+| `"inferred"` | Auto-detected from model file |
+| `"manifest"` | From model manifest |
+| `"stream_model_list"` | From streaming model list |
+
+## Example Entries
+
+### Object Detection
+
+```json
+{
+  "model_name": "yolov8n",
+  "dxnn_file": "YoloV8N.dxnn",
+  "original_name": "YoloV8N",
+  "csv_task": "OD",
+  "add_model_task": "object_detection",
+  "postprocessor": "yolov8",
+  "input_width": 640,
+  "input_height": 640,
+  "config": {"score_threshold": 0.25, "nms_threshold": 0.45},
+  "source": "csv",
+  "supported": true
+}
+```
+
+### Classification
+
+```json
+{
+  "model_name": "alexnet",
+  "dxnn_file": "AlexNet.dxnn",
+  "original_name": "AlexNet",
+  "csv_task": "IC",
+  "add_model_task": "classification",
+  "postprocessor": "efficientnet",
+  "input_width": 224,
+  "input_height": 224,
+  "config": {"top_k": 5},
+  "source": "csv",
+  "supported": true
+}
+```
+
+### Depth Estimation
+
+```json
+{
+  "model_name": "fastdepth_1",
+  "dxnn_file": "FastDepth_1.dxnn",
+  "original_name": "FastDepth_1",
+  "csv_task": "DEPTH",
+  "add_model_task": "depth_estimation",
+  "postprocessor": "fastdepth",
+  "input_width": 224,
+  "input_height": 224,
+  "config": {},
+  "source": "csv",
+  "supported": true
+}
+```
+
+## Query Patterns
+
+### Python: Load and Query
+
+```python
+import json
+from pathlib import Path
+
+# Load registry (returns a LIST, not a dict)
+registry_path = Path("config/model_registry.json")
+with open(registry_path) as f:
+    registry = json.load(f)  # type: list[dict]
+
+# Find a model by name (array iteration)
+def find_model(name: str) -> dict | None:
+    return next((e for e in registry if e["model_name"] == name), None)
+
+# List supported models
+
+…(truncated; see source)
+
+## [section:paddleocr,rapiddoc,app,building,apps,on] Building PaddleOCR / RapidDoc Apps on the DeepX NPU (app reference)  (dx-runtime/dx_app.backup.20260731_173646/.deepx/toolsets/paddleocr-rapiddoc-app.md)
+# Building PaddleOCR / RapidDoc Apps on the DeepX NPU (app reference)
+
+> How to BUILD runtime apps on the PaddlePaddle OCR/document ecosystem on the DX-M1 NPU
+> using DEEPX's integrated forks. This is the **app-building** companion to the
+> dx-compiler DX-COM API reference (`dxcom-api.md` in the compiler toolsets)
+> (read that too for the model/NPU-engine side). Read this BEFORE building an OCR
+> inference app or a PDF→Markdown app.
+
+## Key architectural note (READ FIRST)
+
+These apps do **NOT** use the dx_app `IFactory` / `SyncRunner` / `AsyncRunner` pattern.
+PaddleOCR-deepx and RapidDoc ship their **own NPU pipelines** (the models run on the
+DX-M1 via the fork's runtime, not via `dx_engine.InferenceEngine` directly). This is the
+documented exception to the "always IFactory" rule.
+
+**BUT you MUST still GENERATE A STANDALONE APP — you must NOT just run the fork's example
+script.** The deliverable is **your own entry program** that *imports the fork's pipeline
+API as a library* and drives it. Two hard consequences:
+
+1. **Write your own entry** (`pdf_to_markdown.py` / `ocr_video.py`) that calls the fork's
+   Python API directly. **NEVER** make `run.sh` shell out to the fork's `demo/demo_offline.py`
+   (or any `demo/*` / example script) — wrapping the example is **NOT** an app and FAILS the
+   showcase gate. Model your entry's logic on the demo, but it is *your* code.
+2. **Make it self-contained (vendoring) — BOTH apps.** Vendor the fork's importable NPU
+   pipeline package **into the app dir** and import from the vendored copy; `setup.sh`
+   installs pip deps + downloads the NPU models into a **session-local** dir; the app then
+   runs **without a runtime clone of the fork and without depending on any other showcase**.
+   - **RapidDoc** → vendor `rapid_doc/` (~3.7 MB pure-Python).
+   - **PaddleOCR-deepx** → vendor `deploy/fastapi/deepx/engine/` (the DX-M1 NPU pipeline:
+     `engine/paddleocr.py` does `from dx_engine import InferenceEngine`). **Do NOT
+     `pip install paddleocr`** — the repo-root `paddleocr` package is the **upstream CPU/GPU**
+     library, NOT the NPU pipeline.
+   **Self-contained & portable is a HARD GATE**: the app dir MUST run when copied OUTSIDE the
+   suite. **NEVER** import another showcase's `engine/`/package in-place, **NEVER** symlink a
+   source dir, and **NEVER** point a model dir at `dx-agent-dev-showcase/...` — all three break
+   portability (a copied-out app then has no engine / no models) and write into committed
+   source. Vendor into the app; keep every code/model path app-relative (`APP_DIR/...`).
+
+| App | Built on | DEEPX source (branch) | Pattern (what YOU generate) |
+|---|---|---|---|
+| OCR inference (video/webcam) | PaddleOCR-deepx (PP-OCRv5 det+rec) | `DEEPX-AI/PaddleOCR-deepx` @ **`deepx`** | own `ocr_video.py` importing the **vendored `deploy/fastapi/deepx/engine/`** package (`from engine.paddleocr import PaddleOcr`, dx_engine-backed NPU) — NOT pip `paddleocr` (upstream CPU/GPU) |
+| PDF → Markdown | RapidDoc (PP-StructureV3 pipeline) | `DEEPX-AI/RapidDoc` @ **`rapid_doc_deepx`** | own `pdf_to_markdown.py` importing the **vendored `rapid_doc` package** API (NOT `demo/demo_offline.py`) |
+
+## Setup — clone to OBTAIN the package, then VENDOR it (RapidDoc)
+
+```bash
+# 1) Clone the fork into a TEMP/ISOLATED dir only to obtain its source — NEVER reuse,
+#    modify, or delete a pre-existing user repo found elsewhere on disk.
+git clone -b rapid_doc_deepx https://github.com/DEEPX-AI/RapidDoc.git /tmp/_rapiddoc_src
+
+# 2) VENDOR the importable package + the small helper scripts INTO the app dir (no models):
+APP=dx-agent-dev/<session_id>
+cp -r /tmp/_rapiddoc_src/rapid_doc        "$APP"/rapid_doc            # ~3.7MB pure-Python pipeline
+cp -r /tmp/_rapiddoc_src/deepx_scripts    "$APP"/deepx_scripts        # set_env.sh etc.
+cp    /tmp/_rapiddoc_src/setup_sample_models.sh "$APP"/               # model downloader
+cp    /tmp/_rapiddoc_src/requirements.deepx.txt "$APP"/ ; cp /tmp/_rapiddoc_src/LICENSE "$APP"/ 2>/dev/null
+
+# 3) setup.sh (generated) then: venv → pip install -r requirements.deepx.txt → dx_engine bridge
+#    → ./setup_sample_models.sh (downloads onnx_models/ + dxnn_models/, foreground).
+# 4) run.sh (generated) runs YOUR entry, with the vendored package importable:
+#    source deepx_scripts/set_env.sh 1 2 1 3 2 4 ; export DXNN_DEVICES=0 ; python pdf_to_markdown.py ...
+```
+- The app imports the **vendored** `rapid_doc` (e.g. `PYTHONPATH=. python pdf_to_markdown.py`
+  or a `sys.path` insert in the entry) — **no runtime clone of the fork.**
+- **Models come from `./setup_sample_models.sh`** (downloads `onnx_models/` + `dxnn_models/`).
+  Do NOT hand-compile any `.dxnn`, and do NOT run the download as a background task in a
+  headless build — both have deadlocked the build. Models are NOT committed to the showcase.
+- **Model downloads MUST be resilient (retry + resume).** The `sdk.deepx.ai` CDN
+  intermittently resets large transfers (PP-OCRv5 server ≈ 302 MB, RapidDoc onnx_models
+  ≈ 930 MB), so a plain `curl -fsSL` fails the whole pull on a single reset. Use:
+  ```bash
+  curl -fSL --retry 15 --retry-all-errors --retry-delay 4 -C - "$URL" -o "$DEST"
+  ```
+  (`-C -` resumes the partial file). This applies to the paddleocr `setup.sh` curl AND
+  the RapidDoc fork's `deepx_scripts/get_resource.sh` curl (patch it after vendoring).
+- **Skip the download ONLY when ALL required model dirs are present.** RapidDoc needs BOTH
+  `dxnn_models/` (NPU) AND `onnx_models/` (incl. the formula model
+  `onnx_models/pp_formulanet_plus_m.onnx`). A skip guard keyed on `dxnn_models/` alone
+  leaves `onnx_models/` empty after a partial download and `run.sh` then fails with a
+  missing-formula-model `FileNotFoundError`. Gate on every required dir (and re-run the
+  downloader with `--force` when re-downloading).
+- For the **OCR app**, clone `DEEPX-AI/PaddleOCR-deepx` @ `deepx` into a TEMP dir, then
+  **vendor the NPU pipeline into the app**:
+  ```bash
+  git clone --depth 1 -b deepx https://github.com/DEEPX-AI/PaddleOCR-deepx.git /tmp/_ppocr_src
+  APP=dx-agent-dev/<session_id>
+  cp -r /tmp/_ppocr_src/deploy/fastapi/deepx/engine "$APP"/engine   # dx_engine-backed PP-OCRv5
+  cp -r /tmp/_ppocr_src/deploy/fastapi/deepx/scripts "$APP"/scripts # get_resource.sh (model dl)
+  ```
+  The entry inserts the app dir on `sys.path` and imports the **vendored** engine
+  (`from engine.paddleocr import PaddleOcr`); the engine uses sibling imports
+  (`from baidu import ...`), so keep its files together under `engine/`. `setup.sh` downloads
+  PP-OCRv5 NPU models into a **session-local** dir via `scripts/get_resource.sh
+  --output="$APP/engine/model_files"` (resilient curl). Every model/code path is
+  **`APP_DIR`-relative**. Do NOT `pip install paddleocr` (upstream CPU/GPU, not the NPU
+  pipeline); do NOT import or symlink the in-repo showcase's `engine/`; do NOT point the model
+  dir at `dx-agent-dev-showcase/...`.
+- Run the suite sanity check first (`dx-runtime/scripts/sanity_check.sh --dx_rt`) — NPU must PASS.
+- Generated app + scripts go to `dx-agent-dev/<session_id>/` (output isolation).
+
+## A. OCR inference app — video file + webcam
+
+```python
+import os, sys, cv2
+APP_DIR = os.path.dirname(os.path.abspath(__file__))   # self-contained: app-relative paths only
+sys.path.insert(0, APP_DIR)                            # make the VENDORED ./engine importable
+from engine.paddleocr import PaddleOcr                 # DX-M1 NPU pipeline (dx_engine-backed)
+MODEL_DIR = os.path.join(APP_DIR, "engine", "model_files", "server")   # session-local, NOT the showcase
+ocr = PaddleOcr(model_dir=MODEL_DIR)                   # NEVER point at dx-agent-dev-showcase/...
+
+def open_source(src):                                  # --source video.mp4  OR  --source 0 (webcam)
+    return cv2.VideoCapture(int(src) if str(src).isdigit() else src)
+
+cap = open_source(args.source); writer = None
+while True:
+    ok, frame = cap.read()
+    if not ok: break
+    res = ocr(frame)                                   # PaddleOcr.__call__ → per-frame NPU OCR (boxes+text+score)
+    vis = draw_ocr(frame, res)                         # overlay boxes + recognized strings (engine/draw_utils)
+    if writer is None and args.output:
+        writer = cv2.VideoWriter(args.output, cv2.VideoWriter_fourcc(*'mp4v'),
+                                 cap.get(cv2.CAP_PROP_FPS) or 15, (vis.shape[1], vis.shape[0]))
+    if writer: writer.write(vis)
+    if args.show: cv2.imshow('ocr', vis); cv2.waitKey(1)
+# save one annotated frame as sample_detect.jpg; report per-frame latency / FPS
+```
+- `--source <path.mp4>` and `--source <int>` (webcam) MUST both work (single code path via `open_source`).
+- Skip frames if webcam FPS exceeds NPU throughput; report measured per-frame latency + FPS in the README.
+
+## B. PDF → Markdown app — your own entry over the vendored API
+
+Write `pdf_to_markdown.py` (YOUR code) that imports the **vendored** `rapid_doc` package
+and drives the pipeline — do NOT call `demo/demo_offline.py`. The public API the demos use:
+
+```python
+import argparse, sys, os
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))   # make the vendored ./rapid_doc importable
+from rapid_doc.backend.pipeline.pipeline_analyze import doc_analyze as pipeline_doc_analyze
+from rapid_doc.data.data_reader_writer import FileBasedDataWriter
+from rapid_doc.cli.common import convert_pdf_bytes_to_bytes_by_pypdfium2, read_fn
+from rapid_doc.utils.enum_class import MakeMode
+# ... build args (--input, --parse-method auto|txt|ocr, --output-dir), read PDF bytes,
+#     run doc_analyze on the NPU, then write Markdown (+ JSON) via FileBasedDataWriter.
+# Model the orchestration on the fork's demo_offline.py, but this is YOUR standalone app.
+```
+- `run.sh` runs **`python pdf_to_markdown.py`** (after sourcing `deepx_scripts/set_env.sh`
+  and exporting `DXNN_DEVICES`) — never the fork's demo script.
+- Support `--parse-method auto|txt|ocr`. Output Markdown + JSON (preserves headings/tables/
+  formulas); copy the rendered Markdown to `sample_output.md`.
+- Save a sample input PDF + its rendered Markdown; report per-stage NPU timings in the README.
+
+## Mandatory deliverables (per app)
+
+- **Your own entry program** — `pdf_to_markdown.py` (RapidDoc) or `ocr_video.py` (PaddleOCR).
+  This is the core deliverable; a `run.sh` that only calls the fork's demo is NOT acceptable.
+- **Vendored package** (RapidDoc): `rapid_doc/` + `deepx_scripts/` + `setup_sample_models.sh`
+  copied into the app dir (so it runs without a runtime clone). OCR: `paddleocr` as a pip dep.
+- `setup.sh` (venv + deps + model download via `setup_sample_models.sh`; NO fork clone at run time),
+  `run.sh` (sources `set_env.sh` + `DXNN_DEVICES`, then runs YOUR entry),
+  `README.md` (run steps + measured NPU latency/FPS or stage timings),
+
+…(truncated; see source)
+
 ## [section:engine,stream,subset] DX Engine API Reference (dx_stream subset)  (dx-runtime/dx_stream/.deepx/toolsets/dx-engine-api.md)
 # DX Engine API Reference (dx_stream subset)
 

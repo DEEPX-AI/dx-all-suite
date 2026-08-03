@@ -84,6 +84,7 @@
         var tutMode = localStorage.getItem('dx-tutorial-mode');
         if (tutMode === 'off') return;  // ON by default — only an explicit "off" opts out
         function openWhenReady(attempts) {
+          if (engine._scheduledTocCancelled) return;
           if (_isLauncherShellBlocked()) {
             if (attempts < 300) {
               setTimeout(function () { openWhenReady(attempts + 1); }, 100);

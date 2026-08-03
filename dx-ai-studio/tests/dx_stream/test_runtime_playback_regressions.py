@@ -1,12 +1,19 @@
 import io
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 import dx_stream.core as _dx_stream_core
 
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "dx_stream"))
+
+
+def test_pipeline_module_initialization_uses_canonical_plugin_discovery():
+    source = (ROOT / "dx_stream" / "core" / "pipeline.py").read_text(encoding="utf-8")
+
+    assert "_gst_env.refresh_plugin_environment(prefer_environment=False)" in source
 
 
 def _install_fake_mjpeg(monkeypatch, name="fake_mjpeg_mod"):
@@ -27,6 +34,59 @@ def _install_fake_mjpeg(monkeypatch, name="fake_mjpeg_mod"):
     monkeypatch.setitem(sys.modules, "dx_stream.core.mjpeg", fake)
     monkeypatch.setattr(_dx_stream_core, "mjpeg", fake)
     return fake
+
+
+def _allow_stream_launch_contract(monkeypatch, server):
+    from shared.runtime_contract import ContractResult
+
+    context = SimpleNamespace(
+        python_executable=Path("/runtime/infer/bin/python3"),
+        venv_root=Path("/runtime/infer"),
+        library_dirs=(Path("/runtime/lib"),),
+        plugin_dir=Path("/runtime/gst"),
+        postprocess_lib_dir=Path("/runtime/postprocess"),
+    )
+    monkeypatch.setattr(
+        server,
+        "_stream_launch_contract",
+        lambda _demo: (ContractResult(()), context),
+    )
+    monkeypatch.setattr(
+        server,
+        "validate_stream_pipeline",
+        lambda *_args, **_kwargs: ContractResult(()),
+    )
+
+
+def _allow_active_stream_context(monkeypatch, server):
+    from shared.runtime_contract import ContractResult
+
+    context = SimpleNamespace(
+        python_executable=Path("/runtime/infer/bin/python3"),
+        venv_root=Path("/runtime/infer"),
+        library_dirs=(Path("/runtime/lib"),),
+        plugin_dir=Path("/runtime/gst"),
+        postprocess_lib_dir=Path("/runtime/postprocess"),
+    )
+    monkeypatch.setattr(server, "_active_stream_context", lambda: (ContractResult(()), context))
+    monkeypatch.setattr(
+        server,
+        "validate_stream_pipeline",
+        lambda *_args, **_kwargs: ContractResult(()),
+    )
+
+
+def _pipeline_handler(server, body):
+    """Create a minimal handler that captures Pipeline Builder HTTP responses."""
+    sent = {}
+    handler = object.__new__(server.DXStreamHandler)
+    handler._safe_read_json = lambda: body
+    handler.send_json = lambda payload, code=200: sent.update(payload=payload, code=code)
+    handler._error = lambda code, error, message, detail="": sent.update(
+        payload={"error": error, "message": message, "detail": detail},
+        code=code,
+    )
+    return handler, sent
 
 
 def test_pipeline_config_file_paths_are_resolved_from_configs_dir(tmp_path, monkeypatch):
@@ -329,6 +389,8 @@ def test_demo_start_uses_webrtc_pipeline_without_mjpeg_conversion(monkeypatch):
     monkeypatch.setenv("DX_STREAM_WEBRTC", "1")  # webrtc is opt-in; enable for this test
     import server
 
+    _allow_stream_launch_contract(monkeypatch, server)
+
     calls = []
 
     class FakePipelineMgr:
@@ -377,6 +439,8 @@ def test_demo_start_uses_webrtc_pipeline_without_mjpeg_conversion(monkeypatch):
 
 def test_demo_start_falls_back_to_mjpeg_when_webrtc_start_fails(monkeypatch):
     import server
+
+    _allow_stream_launch_contract(monkeypatch, server)
 
     calls = []
     lock_depths = []
@@ -439,10 +503,208 @@ def test_demo_start_falls_back_to_mjpeg_when_webrtc_start_fails(monkeypatch):
     assert server._current_output_mode == "mjpeg"
     assert server._current_pipeline_id == "mjpeg-demo-0"
     assert ("build_mjpeg", original_pipeline) in calls
-    assert ("mjpeg_start", mjpeg_pipeline, None) in calls
+    mjpeg_start = next(call for call in calls if call[0] == "mjpeg_start")
+    assert mjpeg_start[1] == mjpeg_pipeline
+    assert mjpeg_start[2]["VIRTUAL_ENV"] == "/runtime/infer"
+    assert mjpeg_start[2]["GST_PLUGIN_PATH"] == "/runtime/gst"
     # MJPEG first-frame timeout was raised 5.0 -> 15.0 for slow ARM boards (commit 754631f).
     assert ("mjpeg_ready", 15.0, True) in calls
     assert lock_depths and lock_depths[0] > 0
+
+
+def test_demo_launch_error_does_not_claim_stopped_playback_is_restored(monkeypatch):
+    import server
+
+    _allow_stream_launch_contract(monkeypatch, server)
+    server._current_output_mode = "webrtc"
+    server._current_pipeline_id = "previous-demo"
+    calls = []
+
+    def stop_all_playback():
+        calls.append("stop")
+        server._current_output_mode = None
+        server._current_pipeline_id = None
+
+    class FakeMjpeg:
+        def build_mjpeg_pipeline(self, pipeline):
+            return pipeline
+
+        def start(self, *_args, **_kwargs):
+            return None
+
+        def wait_until_ready(self, **_kwargs):
+            return False, "backend failed"
+
+        def stop(self):
+            calls.append("mjpeg_stop")
+
+    monkeypatch.setattr(server, "_pipeline_mgr", object())
+    monkeypatch.setattr(server, "_stop_all_playback", stop_all_playback)
+    monkeypatch.setattr(server, "_try_start_webrtc_pipeline", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(server, "demos", type(sys)("failed_demo"))
+    server.demos.DEMOS = [{"name": "test"}]
+    server.demos.build_pipeline_str = lambda *_args, **_kwargs: "videotestsrc ! fakesink"
+    fake_mjpeg = FakeMjpeg()
+    _install_fake_mjpeg(monkeypatch, "failed_demo_mjpeg")
+    sys.modules["dx_stream.core.mjpeg"].build_mjpeg_pipeline = fake_mjpeg.build_mjpeg_pipeline
+    sys.modules["dx_stream.core.mjpeg"].start = fake_mjpeg.start
+    sys.modules["dx_stream.core.mjpeg"].wait_until_ready = fake_mjpeg.wait_until_ready
+    sys.modules["dx_stream.core.mjpeg"].stop = fake_mjpeg.stop
+
+    sent = {}
+    handler = object.__new__(server.DXStreamHandler)
+    handler._safe_read_json = lambda: {}
+    handler.send_json = lambda payload, code=200: sent.update(payload=payload, code=code)
+    handler._error = lambda code, error, message, detail="": sent.update(
+        payload={"error": error, "message": message, "detail": detail}, code=code
+    )
+
+    handler._handle_demo_start("/api/demos/0/start")
+
+    assert calls[0] == "stop"
+    assert sent["code"] == 500
+    assert sent["payload"]["error"] == "pipeline_error"
+    assert sent["payload"]["playback_active"] is False
+    assert sent["payload"].get("started") is not True
+    assert sent["payload"].get("restored") is not True
+    assert server._current_output_mode is None
+    assert server._current_pipeline_id is None
+
+
+def test_demo_ui_clears_stopped_card_for_typed_launch_error():
+    source = (ROOT / "dx_stream" / "static" / "js" / "stream-demo.js").read_text(encoding="utf-8")
+
+    assert "resp.error_code === 'pipeline_error'" in source
+    assert "resp.error === 'pipeline_error'" in source
+    assert "resp.playback_active === false" in source
+    assert "resp.message" in source
+    assert "resp.detail" in source
+    assert "resp.remediation" in source
+
+
+def test_demo_start_rejects_unconstructible_selected_pipeline_before_playback(monkeypatch):
+    import server
+    from shared.runtime_contract import ContractResult
+    from shared.runtime_profile import ContractCheck
+
+    _allow_stream_launch_contract(monkeypatch, server)
+    failure = ContractResult((ContractCheck(
+        check_id="gst.selected_pipeline",
+        required="constructible selected GStreamer pipeline",
+        observed="no element \"unknownsource\"",
+        passed=False,
+        remediation="Repair the selected Stream graph and retry.",
+    ),))
+    calls = []
+
+    def reject_pipeline(pipeline, *, python_executable, environment):
+        calls.append(("preflight", pipeline, python_executable, environment))
+        return failure
+
+    monkeypatch.setattr(server, "validate_stream_pipeline", reject_pipeline, raising=False)
+    monkeypatch.setattr(server, "_stop_all_playback", lambda: calls.append(("stop",)))
+    monkeypatch.setattr(server, "demos", type(sys)("fake_demos"))
+    server.demos.DEMOS = [{"name": "test"}]
+    server.demos.build_pipeline_str = lambda *_args, **_kwargs: "unknownsource ! fakesink"
+    monkeypatch.setattr(server, "_pipeline_mgr", object())
+
+    fake_mjpeg = _install_fake_mjpeg(monkeypatch, "preflight_mjpeg")
+    fake_mjpeg.stop = lambda: calls.append(("mjpeg_stop",))
+    fake_mjpeg.build_mjpeg_pipeline = lambda pipeline: pipeline
+    fake_mjpeg.start = lambda *_args, **_kwargs: calls.append(("mjpeg_start",))
+    fake_mjpeg.wait_until_ready = lambda **_kwargs: (True, "")
+
+    sent = {}
+    handler = object.__new__(server.DXStreamHandler)
+    handler._safe_read_json = lambda: {"forceMjpeg": True}
+    handler.send_json = lambda payload, code=200: sent.update(payload=payload, code=code)
+    handler._error = lambda code, error, message, detail="": sent.update(
+        payload={"error": error, "message": message, "detail": detail}, code=code
+    )
+
+    handler._handle_demo_start("/api/demos/0/start")
+
+    assert sent["code"] == 424
+    assert sent["payload"]["error"] == "contract_failed"
+    assert "gst.selected_pipeline" in sent["payload"]["detail"]
+    assert len(calls) == 1
+    assert calls[0][0] == "preflight"
+    assert calls[0][1] == "unknownsource ! fakesink"
+
+
+def test_pipeline_run_rejects_unconstructible_graph_before_stopping_playback(monkeypatch):
+    import server
+    from shared.runtime_contract import ContractResult
+    from shared.runtime_profile import ContractCheck
+
+    _allow_active_stream_context(monkeypatch, server)
+    failure = ContractResult((ContractCheck(
+        check_id="gst.selected_pipeline",
+        required="constructible selected GStreamer pipeline",
+        observed='no element "unknownsource"',
+        passed=False,
+        remediation="Repair the selected Stream graph and retry.",
+    ),))
+    calls = []
+
+    def reject_pipeline(pipeline, *, python_executable, environment):
+        calls.append(("preflight", pipeline, python_executable, environment))
+        return failure
+
+    monkeypatch.setattr(server, "validate_stream_pipeline", reject_pipeline)
+    monkeypatch.setattr(server, "pipeline_json_to_gst", lambda _body: "unknownsource ! fakesink")
+    monkeypatch.setattr(server, "_stop_all_playback", lambda: calls.append(("stop",)))
+    monkeypatch.setattr(server, "_pipeline_mgr", object())
+    handler, sent = _pipeline_handler(server, {"nodes": [], "edges": []})
+
+    handler._handle_pipeline_run()
+
+    assert sent["code"] == 424
+    assert sent["payload"]["error"] == "contract_failed"
+    assert "gst.selected_pipeline" in sent["payload"]["detail"]
+    assert [call[0] for call in calls] == ["preflight"]
+
+
+def test_pipeline_run_reports_inactive_playback_after_post_stop_backend_failure(monkeypatch):
+    import server
+    from shared.runtime_contract import ContractResult
+
+    _allow_active_stream_context(monkeypatch, server)
+    monkeypatch.setattr(server, "validate_stream_pipeline", lambda *_args, **_kwargs: ContractResult(()))
+    monkeypatch.setattr(server, "pipeline_json_to_gst", lambda _body: "videotestsrc ! fakesink")
+    monkeypatch.setattr(server, "_pipeline_mgr", object())
+    monkeypatch.setattr(server, "_stop_all_playback", lambda: None)
+
+    fake_mjpeg = _install_fake_mjpeg(monkeypatch, "pipeline_post_stop_failure_mjpeg")
+    fake_mjpeg.start = lambda *_args, **_kwargs: None
+    fake_mjpeg.stop = lambda: None
+    fake_mjpeg.wait_until_ready = lambda **_kwargs: (False, "controlled backend failure")
+    fake_mjpeg.get_sink_str = lambda: "jpegenc ! fdsink fd=1"
+    fake_mjpeg.build_mjpeg_pipeline = lambda pipeline: pipeline
+
+    handler, sent = _pipeline_handler(
+        server,
+        {"nodes": [], "edges": [], "forceMjpeg": True},
+    )
+    handler._handle_pipeline_run()
+
+    assert sent["code"] == 500
+    assert sent["payload"]["error"] == "pipeline_error"
+    assert sent["payload"]["playback_active"] is False
+    assert sent["payload"]["attempted_modes"] == ["mjpeg"]
+    assert sent["payload"]["remediation"]
+
+
+def test_pipeline_ui_clears_stale_playback_for_typed_launch_failure():
+    source = (ROOT / "dx_stream" / "static" / "js" / "stream-pipeline-api.js").read_text(
+        encoding="utf-8"
+    )
+
+    assert "function _clearPipelinePlaybackUi()" in source
+    assert "resp.playback_active === false" in source
+    assert "_clearPipelinePlaybackUi();" in source
+    assert "resp.detail" in source
+    assert "resp.remediation" in source
 
 
 
@@ -461,6 +723,8 @@ import pytest
 def test_pipeline_run_uses_webrtc_for_sink_cases(monkeypatch, source_pipeline, expected_present, expected_absent):
     monkeypatch.setenv("DX_STREAM_WEBRTC", "1")  # webrtc is opt-in; enable for this test
     import server
+
+    _allow_active_stream_context(monkeypatch, server)
 
     calls = []
 
@@ -513,6 +777,8 @@ def test_pipeline_run_uses_webrtc_for_sink_cases(monkeypatch, source_pipeline, e
 
 def test_pipeline_run_falls_back_to_mjpeg_when_webrtc_start_fails(monkeypatch):
     import server
+
+    _allow_active_stream_context(monkeypatch, server)
 
     calls = []
 
@@ -572,6 +838,8 @@ def test_pipeline_run_falls_back_to_mjpeg_when_webrtc_start_fails(monkeypatch):
 def test_pipeline_run_logs_ineligible_sink_without_webrtc_unavailable(monkeypatch, caplog):
     import logging
     import server
+
+    _allow_active_stream_context(monkeypatch, server)
 
     class FakePipelineMgr:
         def stop(self):

@@ -605,25 +605,50 @@ class TestPublicInferenceRouteValidation(unittest.TestCase):
 
     @patch("server.run_inference")
     def test_run_accepts_symlinked_video_under_assets(self, mock_run):
-        import config
         import server
 
         mock_run.return_value = {"ok": True}
-        video = config.DX_APP_ROOT / "assets" / "videos" / "obb.mp4"
-        if not video.is_file():
-            self.skipTest(f"sample video missing: {video}")
-        captured = self._post_route("/api/run", {
-            "model_name": "yolo26n_obb",
-            "category": "obb_detection",
-            "model_file": "assets/models/yolo26n-obb.dxnn",
-            "lang": "cpp",
-            "variant": "async",
-            "input_type": "video",
-            "video_path": "assets/videos/obb.mp4",
-        })
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            assets = root / "assets"
+            models = assets / "models"
+            videos = assets / "videos"
+            model = models / "test-model.dxnn"
+            source = videos / "source.mp4"
+            video = videos / "obb.mp4"
+            models.mkdir(parents=True)
+            videos.mkdir(parents=True)
+            model.write_bytes(b"dxnn")
+            source.write_bytes(b"video")
+            video.symlink_to(source.name)
+            outputs = root / "outputs"
+            sample = root / "sample"
+            with patch.object(server, "DX_APP_ROOT", root), \
+                 patch.object(server, "ASSETS_DIR", assets), \
+                 patch.object(server, "SAMPLE_DIR", sample), \
+                 patch.object(server, "OUTPUTS_DIR", outputs), \
+                 patch.object(
+                     server,
+                     "MODEL_INPUT_ROOTS",
+                     (root, assets, models, outputs),
+                 ), \
+                 patch.object(
+                     server,
+                     "TEST_RUN_INPUT_ROOTS",
+                     (root, sample, assets, outputs),
+                 ):
+                captured = self._post_route("/api/run", {
+                    "model_name": "yolo26n_obb",
+                    "category": "obb_detection",
+                    "model_file": "assets/models/test-model.dxnn",
+                    "lang": "cpp",
+                    "variant": "async",
+                    "input_type": "video",
+                    "video_path": "assets/videos/obb.mp4",
+                })
+                self.assertIn(root, server.TEST_RUN_INPUT_ROOTS)
         self.assertEqual(captured.get("code"), 200, captured.get("data"))
         mock_run.assert_called_once()
-        self.assertIn(server.DX_APP_ROOT, server.TEST_RUN_INPUT_ROOTS)
 
     @patch("server.run_inference")
     def test_run_rejects_outside_model_file_before_inference(self, mock_run):

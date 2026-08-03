@@ -1723,6 +1723,16 @@ window._DX_I18N_DICT = {
     'zh-CN': '结果', 'zh-TW': '結果',
     es: 'Resultado',
   },
+  'Comparison disabled: original and result use different aspect ratios.': {
+    ko: '원본과 결과의 가로세로 비율이 달라 비교를 비활성화했습니다.', ja: '元画像と結果画像の縦横比が異なるため、比較を無効にしました。',
+    'zh-CN': '原始图像和结果图像的宽高比不同，已禁用对比。', 'zh-TW': '原始影像和結果影像的長寬比不同，已停用比較。',
+    es: 'La comparación se desactivó porque la imagen original y el resultado tienen relaciones de aspecto diferentes.',
+  },
+  'Comparison unavailable: result image could not be decoded.': {
+    ko: '결과 이미지를 디코딩할 수 없어 비교할 수 없습니다.', ja: '結果画像をデコードできないため、比較できません。',
+    'zh-CN': '无法解码结果图像，无法进行对比。', 'zh-TW': '無法解碼結果影像，無法進行比較。',
+    es: 'La comparación no está disponible porque no se pudo decodificar la imagen del resultado.',
+  },
   'Total': {
     ko: '합계', ja: '合計',
     'zh-CN': '总计', 'zh-TW': '總計',

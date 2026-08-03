@@ -15,6 +15,12 @@ from pathlib import Path
 
 from shared.dx_server import DXBaseHandler, DXServer, RequestBodyError
 from shared.chat import ChatEngine
+from shared.runtime_context import RuntimeContextError, resolve_active_runtime_context
+from shared.runtime_contract import ContractResult, validate_stream_contract
+from shared.runtime_environment import build_child_environment
+from shared.runtime_gate import module_start_policy
+from shared.runtime_profile import ContractCheck
+from shared.runtime_validation import validate_stream_pipeline
 from dx_stream.core import config, demos, elements, gst_env, models, setup, status
 from dx_stream.core.config import DEFAULT_PORT, STATIC_DIR, TEMPLATES_DIR, SERVER_NAME
 
@@ -36,6 +42,54 @@ except Exception:
 _playback_lock = threading.RLock()
 _current_output_mode = None
 _current_pipeline_id = None
+
+def _active_stream_context() -> tuple[ContractResult, object | None]:
+    """Resolve the validated profile context shared by every Stream launch path."""
+    policy = module_start_policy("dx_stream")
+    if not policy.allowed:
+        assert policy.reason is not None
+        return ContractResult((policy.reason,)), None
+    try:
+        return ContractResult(()), resolve_active_runtime_context()
+    except RuntimeContextError as exc:
+        return ContractResult((ContractCheck(
+            check_id="profile.context",
+            required="resolved active runtime launch context",
+            observed=str(exc),
+            passed=False,
+            remediation="Complete Runtime Setup to repair the active runtime profile.",
+        ),)), None
+
+
+def _contract_failure_detail(failure: ContractCheck) -> str:
+    return "{}: {}; {}".format(
+        failure.check_id,
+        failure.observed,
+        failure.remediation,
+    )
+
+
+def _stream_launch_contract(demo: dict) -> tuple[ContractResult, object | None]:
+    """Return the active-profile contract and launch context for one selected demo."""
+    activation, context = _active_stream_context()
+    if not activation.passed:
+        return activation, None
+    assert context is not None
+
+    selected = dict(demo)
+    if isinstance(demo.get("model"), str):
+        selected["model_file"] = demos._model_file(demo["model"])
+    if isinstance(demo.get("models"), list):
+        selected["model_files"] = [demos._model_file(name) for name in demo["models"]]
+    contract = validate_stream_contract(
+        context,
+        selected,
+        models_dir=config.MODELS_DIR,
+        videos_dir=config.VIDEOS_DIR,
+        configs_dir=config.CONFIGS_DIR,
+        pipelines_dir=config.PIPELINES_DIR,
+    )
+    return ContractResult(activation.checks + contract.checks), context
 
 
 def _deepx_element_types(body: object) -> set[str]:
@@ -91,6 +145,18 @@ def _stop_all_playback() -> None:
             log.debug("fMP4 pipeline stop failed during cleanup", exc_info=True)
         _current_output_mode = None
         _current_pipeline_id = None
+
+
+def _demo_launch_failure_payload(attempted_modes: list[str]) -> dict:
+    """Return a stable, browser-safe error after demo playback was stopped."""
+    return {
+        "error": "pipeline_error",
+        "message": "Unable to start demo playback.",
+        "detail": "No output backend became ready.",
+        "attempted_modes": attempted_modes,
+        "remediation": "Verify the selected input and Stream output dependencies, then retry.",
+        "playback_active": False,
+    }
 
 
 def _apply_webrtc_payload_types(encoder: dict, payload_types) -> dict:
@@ -460,6 +526,8 @@ class DXStreamHandler(DXBaseHandler):
     def _handle_demo_start(self, path: str):
         """데모 파이프라인 시작 — WebRTC 우선, MJPEG 폴백."""
         global _current_output_mode, _current_pipeline_id
+        attempted_modes: list[str] = []
+        playback_stopped = False
         body = self._safe_read_json()
         if body is None:
             return
@@ -479,6 +547,18 @@ class DXStreamHandler(DXBaseHandler):
             self._error(503, "unavailable", "GStreamer not available")
             return
 
+        contract, runtime_context = _stream_launch_contract(demos.DEMOS[demo_id])
+        if not contract.passed:
+            failure = contract.first_failure
+            assert failure is not None
+            self._error(
+                424,
+                "contract_failed",
+                "Runtime contract failed: {}".format(failure.check_id),
+                _contract_failure_detail(failure),
+            )
+            return
+
         try:
             from dx_stream.core import mjpeg, fmp4
             encoder = _apply_webrtc_payload_types(detect_encoder(), payload_types)
@@ -491,7 +571,22 @@ class DXStreamHandler(DXBaseHandler):
                 _vuri = f"file://{_vp}" if _vp else (_sel if "://" in _sel else None)
             pipeline_str = demos.build_pipeline_str(demo_id, encoder, video_uri=_vuri, webrtc_ok=True)
 
-            extra_env = None
+            assert runtime_context is not None
+            extra_env = build_child_environment(runtime_context)
+            pipeline_contract = validate_stream_pipeline(
+                pipeline_str,
+                python_executable=runtime_context.python_executable,
+                environment=extra_env,
+            )
+            if not pipeline_contract.passed:
+                failure = pipeline_contract.first_failure
+                assert failure is not None
+                return self._error(
+                    424,
+                    "contract_failed",
+                    "Runtime contract failed: {}".format(failure.check_id),
+                    _contract_failure_detail(failure),
+                )
 
             # Remote viewers (SSH tunnel / NAT) can't use WebRTC (UDP) and MJPEG saturates the
             # link, so they request output="fmp4" — HW H264 over HTTP via MSE. forceMjpeg is the
@@ -502,9 +597,12 @@ class DXStreamHandler(DXBaseHandler):
 
             with _playback_lock:
                 _stop_all_playback()
+                playback_stopped = True
 
-                pid = (None if (force_mjpeg or want_fmp4)
-                       else _try_start_webrtc_pipeline(pipeline_str, extra_env=extra_env))
+                pid = None
+                if not force_mjpeg and not want_fmp4:
+                    attempted_modes.append("webrtc")
+                    pid = _try_start_webrtc_pipeline(pipeline_str, extra_env=extra_env)
                 if pid is not None:
                     return self.send_json({
                         "started": True, "pipeline_id": pid,
@@ -512,6 +610,7 @@ class DXStreamHandler(DXBaseHandler):
                     })
 
                 if want_fmp4:
+                    attempted_modes.append("fmp4")
                     fmp4_pipeline = fmp4.build_fmp4_pipeline(pipeline_str)
                     fmp4.start(fmp4_pipeline, extra_env=extra_env)
                     ready, error = fmp4.wait_until_ready(timeout=20.0)
@@ -527,12 +626,14 @@ class DXStreamHandler(DXBaseHandler):
                                 error, demo_id)
 
                 log.info("WebRTC unavailable, falling back to MJPEG for demo %d", demo_id)
+                attempted_modes.append("mjpeg")
                 mjpeg_pipeline = mjpeg.build_mjpeg_pipeline(pipeline_str)
                 mjpeg.start(mjpeg_pipeline, extra_env=extra_env)
                 ready, error = mjpeg.wait_until_ready(timeout=15.0, require_frame=True)
                 if not ready:
                     mjpeg.stop()
-                    return self._error(500, "pipeline_error", error or "MJPEG pipeline failed to start")
+                    log.warning("Demo %d output start failed after %s", demo_id, attempted_modes)
+                    return self.send_json(_demo_launch_failure_payload(attempted_modes), 500)
 
                 _current_output_mode = "mjpeg"
                 _current_pipeline_id = "mjpeg-demo-" + str(demo_id)
@@ -540,8 +641,11 @@ class DXStreamHandler(DXBaseHandler):
                     "started": True, "pipeline_id": _current_pipeline_id,
                     "demo_id": demo_id, "output_mode": "mjpeg"
                 })
-        except Exception as e:
-            self._error(500, "pipeline_error", str(e))
+        except Exception:
+            log.exception("Demo %s start failed", demo_id)
+            if playback_stopped:
+                return self.send_json(_demo_launch_failure_payload(attempted_modes), 500)
+            self._error(500, "pipeline_error", "Unable to prepare the demo pipeline.")
 
     def _handle_demo_stop(self, path: str):
         """데모 파이프라인 중지 — 양쪽 백엔드 모두 정리."""
@@ -701,12 +805,24 @@ class DXStreamHandler(DXBaseHandler):
     def _handle_pipeline_run(self):
         """파이프라인 JSON 정의로 파이프라인 시작 — WebRTC 우선, MJPEG 폴백."""
         global _current_output_mode, _current_pipeline_id
+        attempted_modes = []
+        playback_stopped = False
         body = self._safe_read_json()
         if body is None:
             return
         if _pipeline_mgr is None:
             self._error(503, "unavailable", "GStreamer not available")
             return
+        activation, runtime_context = _active_stream_context()
+        if not activation.passed:
+            failure = activation.first_failure
+            assert failure is not None
+            return self._error(
+                424,
+                "contract_failed",
+                "Runtime contract failed: {}".format(failure.check_id),
+                _contract_failure_detail(failure),
+            )
         try:
             from dx_stream.core import mjpeg
 
@@ -773,11 +889,29 @@ class DXStreamHandler(DXBaseHandler):
             want_fmp4 = (_out == "fmp4")
             force_mjpeg = bool(body.get("forceMjpeg")) if isinstance(body, dict) else False
 
-            extra_env = None
+            assert runtime_context is not None
+            extra_env = build_child_environment(runtime_context)
+            pipeline_contract = validate_stream_pipeline(
+                gst_str,
+                python_executable=runtime_context.python_executable,
+                environment=extra_env,
+            )
+            if not pipeline_contract.passed:
+                failure = pipeline_contract.first_failure
+                assert failure is not None
+                return self._error(
+                    424,
+                    "contract_failed",
+                    "Runtime contract failed: {}".format(failure.check_id),
+                    _contract_failure_detail(failure),
+                )
+
             with _playback_lock:
                 _stop_all_playback()
+                playback_stopped = True
 
                 if webrtc_pipeline is not None and not want_fmp4 and not force_mjpeg:
+                    attempted_modes.append("webrtc")
                     pid = _try_start_webrtc_pipeline(webrtc_pipeline, extra_env=extra_env)
                     if pid is not None:
                         return self.send_json({
@@ -790,6 +924,7 @@ class DXStreamHandler(DXBaseHandler):
 
                 if want_fmp4:
                     from dx_stream.core import fmp4
+                    attempted_modes.append("fmp4")
                     if not has_sink:
                         fmp4_str = gst_str + " ! " + fmp4.get_sink_str()
                     elif has_webrtcbin or has_display_sink:
@@ -816,11 +951,13 @@ class DXStreamHandler(DXBaseHandler):
                 else:
                     fallback_str = gst_str
 
+                attempted_modes.append("mjpeg")
                 mjpeg.start(fallback_str, extra_env=extra_env)
                 ready, error = mjpeg.wait_until_ready(timeout=15.0, require_frame=True)
                 if not ready:
                     mjpeg.stop()
-                    return self._error(500, "pipeline_error", error or "MJPEG pipeline failed to start")
+                    log.warning("Pipeline Builder output start failed after %s: %s", attempted_modes, error)
+                    return self.send_json(_demo_launch_failure_payload(attempted_modes), 500)
 
                 _current_output_mode = "mjpeg"
                 _current_pipeline_id = "mjpeg-pipeline"
@@ -829,6 +966,9 @@ class DXStreamHandler(DXBaseHandler):
                     "pipeline": fallback_str, "output_mode": "mjpeg"
                 })
         except Exception as e:
+            log.exception("Pipeline Builder start failed")
+            if playback_stopped:
+                return self.send_json(_demo_launch_failure_payload(attempted_modes), 500)
             self._error(500, "pipeline_error", str(e))
 
     def _handle_pipeline_stop(self):

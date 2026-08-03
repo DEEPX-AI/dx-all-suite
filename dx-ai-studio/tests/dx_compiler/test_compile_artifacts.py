@@ -81,6 +81,27 @@ def test_direct_compile_finalizes_canonical_work_artifact_and_requested_copy(
     assert job.status == "done"
 
 
+def test_phase_event_consumer_exits_on_completion_sentinel(tmp_path):
+    """A completed direct compile must wake its idle event consumer immediately."""
+    from queue import Queue
+
+    from dx_compiler.core.compiler_service import CompilerService
+
+    service = CompilerService(job_root=tmp_path / "jobs")
+    job = _new_job(service, tmp_path / "requested")
+    event_queue = Queue()
+    compile_finished = threading.Event()
+    consumer = service._start_phase_event_consumer(
+        job, event_queue, compile_finished
+    )
+
+    compile_finished.set()
+    event_queue.put(None)
+    consumer.join(timeout=0.1)
+
+    assert not consumer.is_alive()
+
+
 def test_overlapping_direct_compiles_isolate_logs_and_restore_global_streams(
     monkeypatch, tmp_path
 ):

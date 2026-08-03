@@ -450,6 +450,11 @@ html[lang="zh-TW"] .zh-CN, .lang-zh-TW .zh-CN{display:none!important}
 /* ═══ Property Panel Type Hint ═══ */
 .prop-type-hint{display:inline-block;margin-left:4px;padding:1px 5px;border-radius:3px;font-size:9px;font-weight:600;background:rgba(99,140,255,.12);color:var(--accent);vertical-align:middle}
 
+/* Advisory diagnostics do not block runtime readiness, but remain visible. */
+.diag-card-warn{border-color:rgba(var(--warning-rgb),.45);background:rgba(var(--warning-rgb),.08)}
+.diag-card-warn .diag-card-title{color:var(--warning)}
+.diag-summary-bar.diag-warn{border-color:rgba(var(--warning-rgb),.45);background:rgba(var(--warning-rgb),.12);color:var(--warning)}
+
 /* ═══ Pipeline Palette ═══ */
 .palette-panel{background:var(--bg-1);border-right:1px solid var(--border);overflow-y:auto;scrollbar-width:thin}
 .palette-header{padding:12px 14px 8px;font-size:var(--fs-sm);font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text-3)}

@@ -82,7 +82,7 @@ SPOT_CHECKS = [
     ("dx_stream", "global", None, "#dxt-mock-stream-toast", 0.35),
     ("dx_stream", "demo", None, "#demo-pipeline-info", 0.25),
     ("dx_stream", "pipeline", None, ".palette-item", 0.20),
-    ("dx_stream", "models", None, "#model-detail-modal", 0.15),
+    ("dx_stream", "models", None, "#model-detail-modal .modal", 0.15),
     ("dx_stream", "models", None, "#model-detail-download-btn", 0.20),
     ("dx_stream", "models", None, ".download-model-btn", 0.25),
     ("dx_stream", "setup", None, "#setup-env-tbody", 0.25),
@@ -122,7 +122,7 @@ def _resolve_step_indices():
     STREAM_TOAST_STEP = idx(stream_src, "global", "#dxt-mock-stream-toast")
     STREAM_PIPELINE_STEP = idx(stream_src, "demo", "#demo-pipeline-info")
     STREAM_PALETTE_STEP = idx(stream_src, "pipeline", ".palette-item")
-    STREAM_MODAL_STEP = idx(stream_src, "models", "#model-detail-modal")
+    STREAM_MODAL_STEP = idx(stream_src, "models", "#model-detail-modal .modal")
     STREAM_DL_BTN_STEP = idx(stream_src, "models", "#model-detail-download-btn")
     STREAM_INDIV_DL_STEP = idx(stream_src, "models", "#dxt-stream-mock-download-btn")
     STREAM_ENV_STEP = idx(stream_src, "setup", "#setup-env-tbody")
@@ -138,7 +138,7 @@ RESOLVED_CHECKS = [
     ("dx_stream", "global", STREAM_TOAST_STEP, "#dxt-mock-stream-toast", 0.35),
     ("dx_stream", "demo", STREAM_PIPELINE_STEP, "#demo-pipeline-info", 0.25),
     ("dx_stream", "pipeline", STREAM_PALETTE_STEP, ".palette-item", 0.20),
-    ("dx_stream", "models", STREAM_MODAL_STEP, "#model-detail-modal", 0.15),
+    ("dx_stream", "models", STREAM_MODAL_STEP, "#model-detail-modal .modal", 0.15),
     ("dx_stream", "models", STREAM_DL_BTN_STEP, "#model-detail-download-btn", 0.20),
     ("dx_stream", "models", STREAM_INDIV_DL_STEP, "#dxt-stream-mock-download-btn", 0.25),
     ("dx_stream", "setup", STREAM_ENV_STEP, "#setup-env-tbody", 0.25),
@@ -196,7 +196,7 @@ def test_tutorial_spotlight_alignment(page, server_name, section, step_idx, sele
 
         if selector == "#gallery-lightbox":
             assert m.get("targetVisible"), "lightbox should be visible for preview step"
-        if selector == "#model-detail-modal":
+        if selector == "#model-detail-modal .modal":
             assert m.get("targetVisible"), "model detail modal should be visible"
     finally:
         server.shutdown()
