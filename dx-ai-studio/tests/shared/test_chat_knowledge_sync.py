@@ -36,6 +36,19 @@ def test_generate_writes_sdk_md_and_manifest(tmp_path):
     assert len(manifest) == 2
 
 
+def test_generate_excludes_backup_toolsets(tmp_path):
+    suite = _fake_suite(tmp_path)
+    backup = suite / "dx-runtime" / "dx_app.backup.20260731_173646" / ".deepx" / "toolsets"
+    backup.mkdir(parents=True)
+    (backup / "old-api.md").write_text("# Backup API\nDo not ship this reference.")
+    out = tmp_path / "knowledge"
+
+    assert ks.generate(suite, out) == 2
+    manifest = json.loads((out / "sdk_manifest.json").read_text())
+    assert all(".backup." not in path for path in manifest)
+    assert "Backup API" not in (out / "sdk_knowledge.md").read_text()
+
+
 def test_section_tags_have_keywords(tmp_path):
     suite = _fake_suite(tmp_path)
     out = tmp_path / "knowledge"

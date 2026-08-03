@@ -21,7 +21,7 @@ def _sweep_stale_temp(max_age_s=6 * 3600):
     Only touches our own prefixed entries; never raises."""
     import glob
     now = time.time()
-    for pat in ("dxapp_video_*", "dxapp_upload_*"):
+    for pat in ("dxapp_video_*", "dxapp_img_*", "dxapp_upload_*"):
         for p in glob.glob(os.path.join(_TMP, pat)):
             try:
                 if now - os.path.getmtime(p) < max_age_s:
@@ -68,6 +68,10 @@ def _python_runtime_ready():
         return False
 
 
+def _is_executable_file(path):
+    return bool(path and path.is_file() and os.access(str(path), os.X_OK))
+
+
 def _effective_run_lang(lang, category, model_name, variant, input_type):
     """Keep user-selected lang; C++ video omits --save to avoid stock VideoWriter SIGABRT."""
     return lang
@@ -96,11 +100,11 @@ def _find_fallback_binary(category, variant="sync", build_dir=None):
     candidates = _FALLBACK_BINARIES.get(category, _FALLBACK_BINARIES["classification"])
     for name in candidates:
         bp = build_dir / f"{name}_{variant}"
-        if bp.exists():
+        if _is_executable_file(bp):
             return bp
     pattern = f"*_{variant}"
     for bp in sorted(build_dir.glob(pattern)):
-        if bp.is_file() and os.access(str(bp), os.X_OK):
+        if _is_executable_file(bp):
             return bp
     return None
 

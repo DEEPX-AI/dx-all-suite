@@ -47,7 +47,8 @@ def test_opencode_lists_models_dynamically():
 def test_opencode_dynamic_list_returns_real_models():
     from core.adapters import make_adapter
     models = make_adapter("opencode").list_models()
-    assert models and any("github-copilot/" in m for m in models)
+    assert models
+    assert all("/" in model and all(part for part in model.split("/", 1)) for model in models)
 
 
 def test_claude_lists_full_model_set():

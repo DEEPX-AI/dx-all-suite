@@ -1,0 +1,69 @@
+{
+  "schema_version": 1,
+  "studio_version": "0.1.0",
+  "target_runtime_version": "2.4.1",
+  "profiles": {
+    "2.3.0": {
+      "gstreamer_abi": "1.20",
+      "suite_revision": "09e66634d39703910624d08ad52defefdc4e8c75",
+      "runtime_revision": "eb7187955c9ada67e2fdee083fcd384f7491487c",
+      "architectures": {
+        "x86_64": {
+          "runtime": {
+            "version": "3.3.0",
+            "uri": "https://raw.githubusercontent.com/DEEPX-AI/dx_rt/cef43f9a69a8df650ad9119b107df13cd3903836/release/3.3.0/libdxrt_3.3.0_all.deb",
+            "sha256": "6bf79ef9c504a91a4ab84cfb482d72c7d4fad83cad5582d52f483133848c6a59"
+          },
+          "driver": {
+            "version": "2.4.0",
+            "uri": "https://raw.githubusercontent.com/DEEPX-AI/dx_rt_npu_linux_driver/c05be168ea0c28757737035ea58aab6e59f03256/release/2.4.0/dxrt-driver-dkms_2.4.0-2_all.deb",
+            "sha256": "3182d0ae59f69aad7b8ee6efdc13adf737abab8c0d90bd8ac9caddca9dd840e7"
+          }
+        },
+        "aarch64": {
+          "runtime": {
+            "version": "3.3.0",
+            "uri": "https://raw.githubusercontent.com/DEEPX-AI/dx_rt/cef43f9a69a8df650ad9119b107df13cd3903836/release/3.3.0/libdxrt_3.3.0_all.deb",
+            "sha256": "6bf79ef9c504a91a4ab84cfb482d72c7d4fad83cad5582d52f483133848c6a59"
+          },
+          "driver": {
+            "version": "2.4.0",
+            "uri": "https://raw.githubusercontent.com/DEEPX-AI/dx_rt_npu_linux_driver/c05be168ea0c28757737035ea58aab6e59f03256/release/2.4.0/dxrt-driver-dkms_2.4.0-2_all.deb",
+            "sha256": "3182d0ae59f69aad7b8ee6efdc13adf737abab8c0d90bd8ac9caddca9dd840e7"
+          }
+        }
+      }
+    },
+    "2.4.1": {
+      "gstreamer_abi": "1.20",
+      "suite_revision": "c7ff304727779fea9afff636d461722790f1f4e9",
+      "runtime_revision": "7cde278a0dd3071268cbd31f335b978b2b173ed6",
+      "architectures": {
+        "x86_64": {
+          "runtime": {
+            "version": "3.4.0",
+            "uri": "https://raw.githubusercontent.com/DEEPX-AI/dx_rt/b10bda2fabc4e26645e919861b79bedbcd88071a/release/3.4.0/libdxrt-bin_3.4.0_amd64.deb",
+            "sha256": "736cfef009ce9e974ab1ab610d867239d19d72a426a53e367ddcbd53297b6e20"
+          },
+          "driver": {
+            "version": "2.5.1",
+            "uri": "https://raw.githubusercontent.com/DEEPX-AI/dx_rt_npu_linux_driver/2743a29e6b361e1d07d484ed734ded0981c19418/release/2.5.1/dxrt-driver-dkms_2.5.1-2_all.deb",
+            "sha256": "b686c1d83acc0bd5ada7808fc913516ae0db6cceaff757c5cbf05914e0871d64"
+          }
+        },
+        "aarch64": {
+          "runtime": {
+            "version": "3.4.0",
+            "uri": "https://raw.githubusercontent.com/DEEPX-AI/dx_rt/b10bda2fabc4e26645e919861b79bedbcd88071a/release/3.4.0/libdxrt-bin_3.4.0_arm64.deb",
+            "sha256": "eb6107f5f02f2ad76ae89f414e8b5f346f34fbc6f0888236136853a26be6f6a0"
+          },
+          "driver": {
+            "version": "2.5.1",
+            "uri": "https://raw.githubusercontent.com/DEEPX-AI/dx_rt_npu_linux_driver/2743a29e6b361e1d07d484ed734ded0981c19418/release/2.5.1/dxrt-driver-dkms_2.5.1-2_all.deb",
+            "sha256": "b686c1d83acc0bd5ada7808fc913516ae0db6cceaff757c5cbf05914e0871d64"
+          }
+        }
+      }
+    }
+  }
+}

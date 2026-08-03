@@ -434,26 +434,40 @@ DXStream.runDiagnostics = async function() {
         var html = '';
         r.checks.forEach(function(c) {
             var label = typeof c.label === 'object' ? (c.label[langKey] || c.label.en) : c.label;
+            var severity = c.severity === 'advisory' ? 'advisory' : 'blocker';
+            var cardClass = c.ok ? 'diag-card-ok' : (severity === 'advisory' ? 'diag-card-warn' : 'diag-card-fail');
+            var statusText = c.ok ? 'OK' : (severity === 'advisory' ? 'WARN' : 'FAIL');
             var fix = '';
             if (!c.ok && c.fix) {
                 var fixText = typeof c.fix === 'object' ? (c.fix[langKey] || c.fix.en) : c.fix;
                 fix = '<div class="diag-card-fix">' + DXStream.escHtml(fixText) + '</div>';
             }
-            html += '<div class="diag-card ' + (c.ok ? 'diag-card-ok' : 'diag-card-fail') + '">'
-                + '<div class="diag-card-title">' + (c.ok ? 'OK' : 'FAIL') + ' ' + DXStream.escHtml(label) + '</div>'
+            html += '<div class="diag-card ' + cardClass + '">'
+                + '<div class="diag-card-title">' + statusText + ' ' + DXStream.escHtml(label) + '</div>'
                 + '<div class="diag-card-detail">' + DXStream.escHtml(c.detail) + '</div>'
                 + fix + '</div>';
         });
         if (res) res.innerHTML = html;
         if (sum) {
+            var severitySummary = r.severity_summary || {};
+            var blockerFailures = Number(severitySummary.blockers) || 0;
+            var advisoryFailures = Number(severitySummary.advisories) || 0;
+            var passedCount = Number(r.passed) || 0;
+            var totalCount = Number(r.total) || 0;
+            var runtimeReady = r.runtime_ready === true;
+            var summaryClass = r.all_ok ? 'diag-pass' : (runtimeReady ? 'diag-warn' : 'diag-fail');
+            var summaryText = r.all_ok ? 'OK' : (runtimeReady ? 'READY WITH WARNINGS' : 'FAIL');
             sum.style.display = '';
-            sum.innerHTML = '<div class="diag-summary-bar ' + (r.all_ok ? 'diag-pass' : 'diag-fail') + '">'
-                + (r.all_ok ? 'OK' : 'WARN') + ' <strong>' + r.passed + '/' + r.total + '</strong> '
+            sum.innerHTML = '<div class="diag-summary-bar ' + summaryClass + '">'
+                + summaryText + ' <strong>' + passedCount + '/' + totalCount + '</strong> '
                 + DXStream._L('검사 통과','checks passed','検査合格','检查通过','檢查通過')
+                + ' · ' + blockerFailures + ' ' + (blockerFailures === 1 ? 'failure' : 'failures')
+                + ' · ' + advisoryFailures + ' ' + (advisoryFailures === 1 ? 'warning' : 'warnings')
                 + '</div>';
         }
         if (r.all_ok) DXStream.toast(DXStream._L('모든 진단 통과!','All diagnostics passed!','すべての診断に合格!','所有诊断通过!','所有診斷通過!'), 'ok');
-        else DXStream.toast(DXStream._L('일부 검사 실패','Some checks failed','一部の検査が失敗','部分检查失败','部分檢查失敗'), 'warn');
+        else if (r.runtime_ready) DXStream.toast(DXStream._L('경고와 함께 실행 준비됨','Ready with warnings','警告付きで準備完了','已准备就绪，但有警告','已準備就緒，但有警告'), 'warn');
+        else DXStream.toast(DXStream._L('차단 검사 실패','Blocking checks failed','ブロッカー検査が失敗','阻塞检查失败','阻擋檢查失敗'), 'err');
     } catch (e) {
         DXStream.toast(DXStream._L('진단 오류: ','Diagnostics error: ','診断エラー: ','诊断错误: ','診斷錯誤: ') + e.message, 'err');
     }

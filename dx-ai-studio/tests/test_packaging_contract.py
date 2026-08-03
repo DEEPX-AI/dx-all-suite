@@ -12,7 +12,7 @@ _ALLOWED_SOURCE_SYSPATH_INSERT = {
     "dx_monitor/core/hardware_init.py", # dx-runtime venv / dx_rt python package
     "dx_compiler/core/compile_worker.py",  # runs under the separate dx-compiler venv (no studio .pth)
 }
-_SKIP_DIRS = (".venv", "docs/.venv-docs", ".git")
+_SKIP_DIRS = (".venv", "docs/.venv-docs", ".git", "outputs")
 
 def test_no_unexpected_source_syspath_insert():
     offenders = set()

@@ -14,6 +14,7 @@ import tempfile
 import shlex
 from pathlib import Path
 from dx_stream.core.config import DX_STREAM_ROOT
+from shared.runtime_host import RuntimeHost
 
 SETUP_STEPS = {
     "stream-deps": {
@@ -41,22 +42,15 @@ SETUP_STEPS = {
     "runtime-deps": {
         "label_ko": "DX-Runtime 종속성 설치",
         "label_en": "DX-Runtime Dependencies",
-        "script": lambda: DX_STREAM_ROOT.parent / "install.sh",
-        # WITHOUT a target, dx-runtime/install.sh installs nothing (empty target list) yet still
-        # runs the uninstall phase and force-removes the shared venv-dx-runtime (defaults:
-        # SKIP_UNINSTALL=n, VENV_FORCE_REMOVE=y) — a harmful no-op that wipes the venv dx_app
-        # relies on. Pin --target=dx_rt so it actually installs the runtime, and
-        # --skip-uninstall --venv-reuse so the shared venv is preserved, not recreated.
-        "args": lambda: ["--target=dx_rt", "--skip-uninstall", "--venv-reuse"],
-        "cwd": lambda: DX_STREAM_ROOT.parent,
+        "managed_runtime": True,
+        "cwd": lambda: DX_STREAM_ROOT,
         "needs_sudo": True,
     },
     "driver": {
         "label_ko": "NPU 리눅스 드라이버 설치",
         "label_en": "NPU Linux Driver Install",
-        "script": lambda: DX_STREAM_ROOT.parent / "install.sh",
-        "args": lambda: ["--target=dx_rt_npu_linux_driver"],
-        "cwd": lambda: DX_STREAM_ROOT.parent,
+        "managed_runtime": True,
+        "cwd": lambda: DX_STREAM_ROOT,
         "needs_sudo": True,
     },
     "webrtc-deps": {
@@ -73,6 +67,49 @@ _log_lock = threading.Lock()
 _step_logs = {}  # {step_id: {"log": str, "done": bool, "exit_code": int}}
 _proc_lock = threading.Lock()
 _running_proc = None
+
+
+def _is_setup_step_running() -> bool:
+    """Return whether a setup subprocess or managed transaction is active."""
+    if _running_proc is True:
+        return True
+    if _running_proc is None:
+        return False
+    poll = getattr(_running_proc, "poll", None)
+    return callable(poll) and poll() is None
+
+
+def _reserve_setup_worker() -> bool:
+    """Atomically reserve the single setup worker when it is not already occupied."""
+    global _running_proc
+    with _proc_lock:
+        if _is_setup_step_running():
+            return False
+        _running_proc = True  # type: ignore[assignment]
+        return True
+
+
+def _initialize_step_log(step_id: str) -> None:
+    """Create the initial status record before a setup worker starts."""
+    with _log_lock:
+        _step_logs[step_id] = {"log": "", "done": False, "exit_code": -1}
+
+
+def _record_worker_start_failure(step_id: str, error: Exception, sudo_cleanup) -> None:
+    """Finalize a reserved worker after initialization or thread-start failure."""
+    global _running_proc
+    try:
+        with _log_lock:
+            state = _step_logs.setdefault(step_id, {"log": "", "done": False, "exit_code": -1})
+            state["log"] += f"\n[ERROR] {error}\n"
+            state["exit_code"] = 1
+            state["done"] = True
+    finally:
+        try:
+            with _proc_lock:
+                _running_proc = None
+        finally:
+            sudo_cleanup()
 
 
 # sudo-over-web helpers now live in shared/sudo_askpass.py (reused by dx_compiler SDK install
@@ -137,6 +174,30 @@ def single_model_command_args(model_name: str) -> list[str]:
     return ["bash", str(DX_STREAM_ROOT / "setup.sh"), f"--model={model_name}"]
 
 
+def reconcile_managed_runtime() -> tuple[int, str]:
+    """Reconcile the declared runtime/driver profile through Studio ownership."""
+    host = RuntimeHost(authorized=True)
+    result = host.reconcile()
+    status = result.status.value
+    lines = [
+        "Runtime profile reconciliation",
+        "status={}".format(status),
+        "reason={}".format(result.reason),
+    ]
+    validation = getattr(getattr(host, "candidate_validator", None), "last_result", None)
+    if validation is not None:
+        lines.append("checks:")
+        lines.extend(
+            "{}={} ({})".format(
+                check.check_id,
+                "PASS" if check.passed else "FAIL",
+                check.observed,
+            )
+            for check in validation.checks
+        )
+    return (0 if status == "active" else 1), "\n".join(lines) + "\n"
+
+
 def install_model(model_name: str):
     """단일 모델 다운로드 — run_step() 패턴 재사용.
     setup.sh --model=<name>을 백그라운드 스레드에서 실행."""
@@ -156,11 +217,58 @@ def install_model(model_name: str):
             del SETUP_STEPS[step_id]
 
 
+def _run_managed_runtime_step(step_id: str, sudo_password: str = None):
+    """Run the profile transaction through the normal Stream setup worker lifecycle."""
+    global _running_proc
+
+    step = SETUP_STEPS[step_id]
+    env = os.environ.copy()
+    sudo_cleanup = _configure_sudo_env(env, sudo_password)
+    sudo_error = _preauthorize_sudo(sudo_password, env)
+    if sudo_error:
+        sudo_cleanup()
+        raise PermissionError(sudo_error)
+
+    if not _reserve_setup_worker():
+        sudo_cleanup()
+        raise RuntimeError("Another process is already running")
+
+    def _run():
+        global _running_proc
+        sudo_stop = threading.Event()
+        try:
+            threading.Thread(target=_keep_sudo_alive, args=(sudo_stop,), daemon=True).start()
+            exit_code, output = reconcile_managed_runtime()
+            with _log_lock:
+                _step_logs[step_id]["log"] += output
+                _step_logs[step_id]["exit_code"] = exit_code
+                _step_logs[step_id]["done"] = True
+        except Exception as exc:
+            with _log_lock:
+                _step_logs[step_id]["log"] += f"\n[ERROR] {exc}\n"
+                _step_logs[step_id]["exit_code"] = 1
+                _step_logs[step_id]["done"] = True
+        finally:
+            sudo_stop.set()
+            with _proc_lock:
+                _running_proc = None
+            sudo_cleanup()
+
+    try:
+        _initialize_step_log(step_id)
+        threading.Thread(target=_run, daemon=True).start()
+    except Exception as exc:
+        _record_worker_start_failure(step_id, exc, sudo_cleanup)
+        raise
+
+
 def run_step(step_id: str, sudo_password: str = None, opts: dict = None):
     """step 실행 — 백그라운드 스레드에서 stdout을 per-step 로그에 축적."""
     global _running_proc
 
     step = SETUP_STEPS[step_id]  # KeyError if invalid
+    if step.get("managed_runtime"):
+        return _run_managed_runtime_step(step_id, sudo_password=sudo_password)
     cwd = step["cwd"]()
 
     cmd_args = build_command_args(step_id, opts)
@@ -189,14 +297,9 @@ def run_step(step_id: str, sudo_password: str = None, opts: dict = None):
     elif direct_sudo and "-S" not in cmd_args:
         cmd_args.insert(1, "-S")
 
-    with _proc_lock:
-        if _running_proc is not None and _running_proc.poll() is None:
-            raise RuntimeError("Another process is already running")
-        # 센티넬 설정: 스레드 시작 전에 락 내에서 할당하여 race condition 방지
-        _running_proc = True  # type: ignore[assignment]
-
-    with _log_lock:
-        _step_logs[step_id] = {"log": "", "done": False, "exit_code": -1}
+    if not _reserve_setup_worker():
+        sudo_cleanup()
+        raise RuntimeError("Another process is already running")
 
     def _run():
         global _running_proc
@@ -241,7 +344,12 @@ def run_step(step_id: str, sudo_password: str = None, opts: dict = None):
             sudo_stop.set()
             sudo_cleanup()
 
-    threading.Thread(target=_run, daemon=True).start()
+    try:
+        _initialize_step_log(step_id)
+        threading.Thread(target=_run, daemon=True).start()
+    except Exception as exc:
+        _record_worker_start_failure(step_id, exc, sudo_cleanup)
+        raise
 
 
 def stop_step():

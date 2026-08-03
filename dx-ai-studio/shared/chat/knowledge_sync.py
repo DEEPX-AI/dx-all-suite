@@ -43,6 +43,8 @@ def _iter_sdk_sources(suite_root: Path):
     for sub in ("toolsets",):
         for p in sorted(suite_root.glob(f"**/.deepx/{sub}/*.md")):
             rel = p.relative_to(suite_root).as_posix()
+            if any(".backup." in part for part in p.relative_to(suite_root).parts):
+                continue
             if rel not in seen:
                 seen.add(rel)
                 yield rel, p

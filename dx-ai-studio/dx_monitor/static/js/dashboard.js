@@ -12,24 +12,83 @@ function _updateMockBanner(){
   }
 }
 
-async function refreshDash(){
-  const [hw,si]=await Promise.all([api('/api/hw_status'),api('/api/system_info')]);
-  S.lastHW=hw;
-  S.lastSystemInfo=si;
-  S.cpuCores=si.cpu_cores||4;
-  S.thresholds=si.thresholds||{};
-  S.isMock=!!hw.mock;
-  _updateMockBanner();
-  renderStatusBar(hw);
-  renderNPUTopo(hw);
-  renderSysInfo(si);
-  requestAnimationFrame(drawCharts);
+function _telemetryState(hw){
+  var telemetry=(hw&&hw.telemetry)||{};
+  if(hw&&(hw.mock||telemetry.source_mode==='mock'))return'mock';
+  if(telemetry.source_mode==='real'||telemetry.source_mode==='stale'||telemetry.source_mode==='unavailable'){
+    return telemetry.source_mode;
+  }
+  if(hw&&!hw.error)return'real';
+  return'unavailable';
+}
+
+function _updateTelemetryStatus(hw){
+  var mode=_telemetryState(hw);
+  var telemetry=(hw&&hw.telemetry)||{};
+  var el=$('telemetry-status');
+  S.telemetryMode=mode;
+  if(!el)return mode;
+  if(mode==='real'||mode==='mock'){
+    el.textContent='';
+    el.className='sse-status telemetry-status';
+    el.style.display='none';
+    return mode;
+  }
+  if(mode==='stale'){
+    el.textContent='⚠ NPU telemetry is not current.';
+  }else{
+    var diagnostics=Array.isArray(telemetry.diagnostics)?telemetry.diagnostics:[];
+    var detail=telemetry.error||diagnostics[0]||'';
+    el.textContent='⚠ NPU telemetry unavailable'+(detail?': '+String(detail):'');
+  }
+  el.className='sse-status telemetry-status degraded '+mode;
+  el.style.display='inline';
+  return mode;
+}
+
+function refreshDash(){
+  var hw;
+  var si;
+  var failure;
+  var hwRequest=api('/api/hw_status').then(function(data){
+    hw=data;
+  },function(error){
+    failure=error;
+  });
+  var systemInfoRequest=api('/api/system_info').then(function(data){
+    si=data;
+  },function(error){
+    if(!failure)failure=error;
+  });
+  return hwRequest.then(function(){
+    return systemInfoRequest;
+  }).then(function(){
+    if(failure){
+      console.error('[DX Monitor refresh]',failure);
+      return null;
+    }
+    S.lastHW=hw;
+    S.lastSystemInfo=si;
+    S.cpuCores=si.cpu_cores||4;
+    S.thresholds=si.thresholds||{};
+    S.isMock=_telemetryState(hw)==='mock';
+    _updateTelemetryStatus(hw);
+    _updateMockBanner();
+    renderStatusBar(hw);
+    renderNPUTopo(hw);
+    renderSysInfo(si);
+    requestAnimationFrame(drawCharts);
+    return null;
+  }).then(null,function(error){
+    console.error('[DX Monitor refresh]',error);
+    return null;
+  });
 }
 
 function _finiteMetric(value){
   if(value==null||value==='')return null;
   var num=Number(value);
-  return Number.isFinite(num)?num:null;
+  return typeof num==='number'&&isFinite(num)?num:null;
 }
 
 function _normalizeDramPct(value){
@@ -48,7 +107,13 @@ function _seriesValue(value){
 
 function renderStatusBar(hw){
   var npus=hw.npus||[];
+  var telemetryMode=S.telemetryMode||_telemetryState(hw);
+  var mockMode=_telemetryState(hw)==='mock';
   var h='';
+  if(telemetryMode==='unavailable'||telemetryMode==='stale'){
+    var telemetryText=telemetryMode==='stale'?'NPU telemetry is not current':'NPU telemetry unavailable';
+    h+='<div class="status-card '+statusClass('none')+'" data-help-id="status-npu-telemetry"><span class="sc-badge">'+statusEmoji('none')+'</span><span class="sc-label">NPU</span><span class="sc-value">'+telemetryText+'</span></div>';
+  }
   // NPU별 온도 카드
   npus.forEach(function(n, idx){
     // F-15: cores==0 means every temperature channel returned the invalid sentinel
@@ -61,7 +126,7 @@ function renderStatusBar(hw){
       +'<span class="sc-badge">'+statusEmoji(st)+'</span>'
       +'<span class="sc-label">NPU '+n.id+'</span>'
       +'<span class="sc-value">'+valStr+'</span>'
-      +(n.mock?'<span class="sc-mock">('+statusLabel('Mock')+')</span>':'')
+      +(n.mock||mockMode?'<span class="sc-mock">('+statusLabel('Mock')+')</span>':'')
       +'</div>';
   });
   // DRAM worst-case
@@ -109,13 +174,16 @@ function _hwStatusSignature(hw){
     ].join(':');
   }).join('|');
   var lang=(typeof getLocale==='function')?getLocale():'';
-  return [lang,+(hw.cpu_load||0).toFixed(2),+(hw.mem_pct||0).toFixed(1),npus].join('||');
+  var telemetryMode=S.telemetryMode||_telemetryState(hw);
+  return [lang,telemetryMode,+(hw.cpu_load||0).toFixed(2),+(hw.mem_pct||0).toFixed(1),npus].join('||');
 }
 
 function _applyHWData(d){
   var npus=d.npus||[];
-  S.isMock=!!d.mock;
+  var previousTelemetryMode=S.telemetryMode;
+  S.isMock=_telemetryState(d)==='mock';
   S.lastHW=d;
+  var telemetryMode=_updateTelemetryStatus(d);
   _updateMockBanner();
   // 상태 바 업데이트
   var statusSig=_hwStatusSignature(d);
@@ -125,7 +193,7 @@ function _applyHWData(d){
   }
   // NPU 토폴로지 (5초마다)
   var now=Date.now();
-  if(!_applyHWData._lastTopo||now-_applyHWData._lastTopo>5000){
+  if(telemetryMode!==previousTelemetryMode||!_applyHWData._lastTopo||now-_applyHWData._lastTopo>5000){
     _applyHWData._lastTopo=now;
     renderNPUTopo(d);
   }
@@ -154,9 +222,11 @@ function _applyHWData(d){
 
 function _startHWPoll(){
   if(_sseFallbackTimer)return;
-  _sseFallbackTimer=setInterval(async function(){
+  _sseFallbackTimer=setInterval(function(){
     if (!_isMonitorVisible()) return;
-    try{var d=await api('/api/hw_status');if(d&&!d.error)_applyHWData(d);}catch(e){}
+    api('/api/hw_status').then(function(d){
+      if(d&&typeof d==='object')_applyHWData(d);
+    },function(){});
   },3000);
 }
 
@@ -200,9 +270,11 @@ function _sliceData(range){
 
 function _timeLabels(data){
   if(!data.length)return[];
-  var labels=new Array(data.length).fill('');
+  var labels=[];
+  var i;
+  for(i=0;i<data.length;i++)labels.push('');
   var step=Math.max(1,Math.floor(data.length/6));
-  for(var i=0;i<data.length;i+=step){
+  for(i=0;i<data.length;i+=step){
     labels[i]=formatTime(data[i].t);
   }
   if(data.length>1){labels[data.length-1]=formatTime(data[data.length-1].t);}
@@ -238,19 +310,27 @@ function _extractSeries(data,cfg,npuIdx){
   if(cfg.sysKey){
     if(cfg.multi){
       var nSeries=Math.max.apply(null,data.map(function(d){return(d.system[cfg.sysKey]||[]).length}))||1;
-      return Array.from({length:nSeries},function(_,i){return{
-        data:data.map(function(d){return _seriesValue((d.system[cfg.sysKey]||[])[i])}),
-        color:'hsl('+(i*360/Math.max(nSeries,1))+',70%,60%)'
-      };});
+      var systemSeries=[];
+      for(var i=0;i<nSeries;i++){
+        systemSeries.push({
+          data:data.map(function(d){return _seriesValue((d.system[cfg.sysKey]||[])[i])}),
+          color:'hsl('+(i*360/Math.max(nSeries,1))+',70%,60%)'
+        });
+      }
+      return systemSeries;
     }
     return[{data:data.map(function(d){return _seriesValue(d.system[cfg.sysKey])}),color:cfg.color}];
   }
   if(cfg.multi){
     var nSeries2=Math.max.apply(null,data.map(function(d){var n=d.npus[npuIdx];return n?(n[cfg.npuKey]||[]).length:0}))||1;
-    return Array.from({length:nSeries2},function(_,i){return{
-      data:data.map(function(d){var n=d.npus[npuIdx];return n?_seriesValue((n[cfg.npuKey]||[])[i]):null}),
-      color:CORE_COLORS[i%CORE_COLORS.length]
-    };});
+    var npuSeries=[];
+    for(var j=0;j<nSeries2;j++){
+      npuSeries.push({
+        data:data.map(function(d){var n=d.npus[npuIdx];return n?_seriesValue((n[cfg.npuKey]||[])[j]):null}),
+        color:CORE_COLORS[j%CORE_COLORS.length]
+      });
+    }
+    return npuSeries;
   }
   return[{data:data.map(function(d){var n=d.npus[npuIdx];return n?_seriesValue(n[cfg.npuKey]):null}),color:cfg.color}];
 }
@@ -298,6 +378,7 @@ function _drawSingleMode(area,data,tl,npuCount,mode){
   var unitLabel=metricLabel(cfg.labelKey);
   var isNpu=NPU_CHART_KEYS.indexOf(mode)>=0;
   var isSys=SYS_CHART_KEYS.indexOf(mode)>=0;
+  var telemetryMode=S.telemetryMode||'unavailable';
   var th=_thresholdsFor(mode);
   var thKey=CHART_THRESHOLD_MAP[mode]||'';
   var rows=[];
@@ -316,10 +397,13 @@ function _drawSingleMode(area,data,tl,npuCount,mode){
       datasets:_extractSeries(data,cfg,0),mock:false,unit:unitLabel});
   }
 
-  var layoutKey='single:'+mode+':'+npuCount+':'+S.isMock;
+  var layoutKey='single:'+mode+':'+npuCount+':'+S.isMock+':'+telemetryMode;
   if(S._chartLayoutKey!==layoutKey){
     S._chartLayoutKey=layoutKey;
     var h='';
+    if(isNpu&&!npuCount){
+      h+='<p class="txt-dim" data-help-id="npu-telemetry-no-data">'+(telemetryMode==='stale'?'NPU telemetry is not current':telemetryMode==='unavailable'?'NPU telemetry unavailable':'No NPU telemetry data')+'</p>';
+    }
     rows.forEach(function(r,idx){
       var canvasId='chart-single-'+idx;
       h+='<div class="chart-row" data-help-id="chart-row-'+esc(r.id)+'">'
@@ -355,10 +439,15 @@ function _drawAllMode(area,data,tl,npuCount){
   var npuKeys=['temp','volt','clock','dram','util','ctemp'];
   var sysKeys=['cpu','mem','cpucores'];
 
-  var layoutKey='all:'+npuCount+':'+S.isMock;
+  var telemetryMode=S.telemetryMode||'unavailable';
+  var layoutKey='all:'+npuCount+':'+S.isMock+':'+telemetryMode;
   if(S._chartLayoutKey!==layoutKey){
     S._chartLayoutKey=layoutKey;
     var h='';
+
+    if(!npuCount){
+      h+='<p class="txt-dim" data-help-id="npu-telemetry-no-data">'+(telemetryMode==='stale'?'NPU telemetry is not current':telemetryMode==='unavailable'?'NPU telemetry unavailable':'No NPU telemetry data')+'</p>';
+    }
 
     for(var ni=0;ni<npuCount;ni++){
       h+='<div class="chart-row-label" data-help-id="chart-label-npu-'+ni+'" style="justify-content:flex-start;flex-direction:row;gap:8px;min-width:auto;max-width:none">'
@@ -440,8 +529,11 @@ function _renderDdrErrors(n){
   return h+'</span></div>';
 }
 function renderNPUTopo(hw){
-  const npus=hw.npus||[];
-  if($('npu-status-label'))$('npu-status-label').textContent=hw.mock?T('Mock Data'):npus.length+T(' NPU(s)');
+  var npus=hw.npus||[];
+  var telemetryMode=S.telemetryMode||_telemetryState(hw);
+  var mockMode=_telemetryState(hw)==='mock';
+  var telemetryMessage=telemetryMode==='stale'?'NPU telemetry is not current':'NPU telemetry unavailable';
+  if($('npu-status-label'))$('npu-status-label').textContent=mockMode?T('Mock Data'):(telemetryMode==='unavailable'||telemetryMode==='stale'?telemetryMessage:npus.length+T(' NPU(s)'));
   if($('npu-topo'))$('npu-topo').innerHTML=npus.map(function(n, idx){
     var tc=tempColor(n.temp_avg||0);
     var coreRows='';
@@ -460,11 +552,11 @@ function renderNPUTopo(hw){
     var dramPct=_normalizeDramPct(n.dram_pct);
     var dramWidth=dramPct==null?0:Math.min(dramPct,100);
     return '<div class="npu-card mb8" data-help-id="npu-card-'+idx+'">'
-      +'<div class="npu-id"><span class="dot" style="background:'+tc+'"></span>NPU '+npuId+' '+(n.mock?'('+T('Mock')+')':'')+'</div>'
+      +'<div class="npu-id"><span class="dot" style="background:'+tc+'"></span>NPU '+npuId+' '+(n.mock||mockMode?'('+T('Mock')+')':'')+'</div>'
       +'<div class="npu-metric"><span class="mk">'+T('🌡️ Avg Temp')+'</span><span class="mv" style="color:'+tc+'">'+(n.temp_avg||0).toFixed(1)+'°C</span></div>'
       +coreRows
       +'<div class="npu-metric"><span class="mk">'+T('⚡ Voltage')+'</span><span class="mv">'+(n.voltage_avg||0).toFixed(0)+' mV</span></div>'
-      +'<div class="npu-metric"><span class="mk">'+T('🔄 Clock')+'</span><span class="mv">'+(n.clock_avg||0).toFixed(0)+' MHz</span></div>'
+      +'<div class="npu-metric"><span class="mk"><span class="icon-clock" aria-hidden="true"></span> '+T('Clock')+'</span><span class="mv">'+(n.clock_avg||0).toFixed(0)+' MHz</span></div>'
       +(n.dram_total_mb>0?'<div class="npu-metric" style="flex-direction:column;align-items:flex-start;gap:4px"><span class="mk">'+T('💾 DRAM')+'</span><div style="width:100%;background:rgba(255,255,255,.08);border-radius:4px;height:6px;margin:2px 0"><div style="width:'+dramWidth.toFixed(1)+'%;background:#e879f9;border-radius:4px;height:6px"></div></div><span class="mv" style="color:#e879f9">'+(n.dram_used_mb||0)+' / '+(n.dram_total_mb||0)+' MB ('+_formatDramPct(dramPct)+')</span></div>':'')
       +((n.utilization||[]).length?'<div class="npu-metric" style="align-items:flex-start"><span class="mk">⚙️ '+T('Util')+'</span><span class="mv" style="display:flex;gap:4px;flex-wrap:wrap">'+(n.utilization||[]).map(function(u,i){return'<span style="font-size:11px;padding:1px 5px;border-radius:4px;background:rgba(255,255,255,.07);color:var(--info)">C'+i+' '+u+'%</span>';}).join('')+'</span></div>':'')
       +'<div class="npu-metric"><span class="mk">'+T('🧪 Cores')+'</span><span class="mv">'+(n.cores||1)+'</span></div>'
@@ -475,11 +567,11 @@ function renderNPUTopo(hw){
       +_renderDdrStatus(n)
       +_renderDdrErrors(n)
       +'</div>';
-  }).join('')||'<p class="txt-dim">'+T('No NPU detected')+'</p>';
+  }).join('')||'<p class="txt-dim">'+(telemetryMode==='unavailable'||telemetryMode==='stale'?telemetryMessage:T('No NPU detected'))+'</p>';
 }
 
 function renderSysInfo(si){
-  const rows=[['OS',si.os],[T('Hostname'),si.hostname],[T('CPU'),si.cpu_model],[T('CPU Cores'),si.cpu_cores],
+  var rows=[['OS',si.os],[T('Hostname'),si.hostname],[T('CPU'),si.cpu_model],[T('CPU Cores'),si.cpu_cores],
     [T('Memory'),si.mem_total_gb+'GB'],['Python',si.python],['OpenCV',si.opencv],
     ['DX-RT',si.dx_rt_version],['DX-APP',si.dx_app_version],[T('NPU Count'),si.npu_count],
     [T('NPU PCI'),(si.npu_pci||[]).join(', ')],[T('DX Engine'),si.dx_engine_available?'✅ '+T('Available'):'❌ '+T('Unavailable')],

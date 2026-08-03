@@ -599,6 +599,9 @@ tbody tr:hover td{background:var(--bg-3)}
 .cmp-lbl{position:absolute;padding:2px 8px;font-size:var(--fs-2xs);font-weight:700;border-radius:var(--radius-xs);background:rgba(0,0,0,.65);color:var(--text-1);top:8px;pointer-events:none}
 .cmp-lbl-orig{right:8px;z-index:2}
 .cmp-lbl-result{left:8px;z-index:5}
+.cmp-fallback{border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;background:var(--bg-2)}
+.cmp-fallback img{display:block;max-width:100%;height:auto;margin:auto}
+.cmp-fallback-note{margin:0;padding:8px 10px;color:var(--text-3);font-size:var(--fs-xs);line-height:1.4}
 
 /*═══ Compiler Page ═══*/
 .comp-grid{display:grid;grid-template-columns:auto 1fr;gap:var(--sp-4)}

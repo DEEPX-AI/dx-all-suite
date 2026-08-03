@@ -5,10 +5,14 @@ import os
 import sys
 from pathlib import Path
 
+if __name__ == "__main__" and not __package__:
+    os.execv(
+        sys.executable,
+        [sys.executable, "-m", "dx_modelzoo.tools.sync_metadata", *sys.argv[1:]],
+    )
+
 _SCRIPT_DIR = Path(__file__).resolve().parent
 _DX_AI_STUDIO_ROOT = _SCRIPT_DIR.parents[1]
-if str(_DX_AI_STUDIO_ROOT) not in sys.path:
-    sys.path.insert(0, str(_DX_AI_STUDIO_ROOT))
 
 from dx_modelzoo.metadata.sync import resolve_source_profile, run_sync
 

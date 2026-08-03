@@ -502,7 +502,7 @@ def test_modelzoo_server_uses_route_common_after_chat_routes_and_keeps_data_stat
     assert 'path in ("/", "/index.html")' not in source
     assert "serve_shared_static" not in source
     assert "serve_static(path[8:], STATIC_DIR)" not in source
-    assert "serve_static(path[6:], DATA_DIR)" in source
+    assert "return self.serve_static(rel, DATA_DIR)" in source
     assert source.count("serve_static(") == 1
 
 
@@ -784,7 +784,7 @@ def test_shared_chat_widget_has_provider_specific_model_hints():
     """Provider별 model placeholder가 잘못된 OpenAI 기본값으로 고정되지 않아야 한다."""
     source = read_text(ROOT / "shared" / "chat" / "static" / "chat-widget.js")
     assert "const modelHints = {" in source
-    assert "anthropic: 'claude-3-5-haiku-20241022'" in source
+    assert "anthropic: 'claude-haiku-4-5-20251001'" in source
     assert "google: 'gemini-1.5-flash'" in source
     assert "custom: 'your-model-name'" in source
     assert "provider === 'github' ? 'gpt-4o-mini' : 'gpt-4o-mini'" not in source

@@ -279,6 +279,23 @@ def test_initCmpSlider_no_anonymous_document_listener_leak():
     )
 
 
+def test_cmp_slider_validates_both_images_before_overlay():
+    """CMP must never overlay images that cannot share one geometry."""
+    source = _read(JS_DIR / "inference.js")
+    body = _function_body(source, "function initCmpSlider(")
+    css = _read(ROOT / "dx_app/static/css/style.css")
+
+    assert "var afterImg=wrap.querySelector('.cmp-after-clip img');" in body
+    assert "function cmpImagesHaveSameAspect(" in source
+    assert "function showCmpFallback(" in source
+    assert "if(!cmpImagesHaveSameAspect(beforeImg,afterImg)){" in body
+    assert "showCmpFallback(wrap,beforeImg,afterImg);" in body
+    assert "beforeImg.addEventListener('error',showFallback);" in body
+    assert "afterImg.addEventListener('error',showFallback);" in body
+    assert ".cmp-fallback" in css
+    assert ".cmp-fallback img" in css
+
+
 def test_invalidateRunMediaCache_called_outside_own_definition():
     """_invalidateRunMediaCache must be called somewhere other than its definition."""
     source = _read(JS_DIR / "inference.js")

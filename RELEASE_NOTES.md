@@ -41,6 +41,8 @@ This release adds **DX-Benchmark (Beta)**, polishes the **DX AI Studio (Beta)** 
 - **Stream** — demos and the Pipeline Builder now play reliably in remote / SSH browsers.
 - **Compiler** — smoother agentic auto-compile and clearer quantization diagnosis.
 - **Benchmark** — refreshed to the latest benchmark dataset.
+- **Runtime setup** — guided runtime-profile installation, validation, and rollback make App and Stream startup more reliable.
+- **NPU monitoring** — supervised telemetry collection improves status reporting and recovery when monitoring workers fail.
 
 For detailed updated items, refer to **each environment & module's Release Notes**.
 

@@ -509,14 +509,14 @@ def test_stream_demo_uses_mjpeg_img_for_mjpeg_mode():
 
 
 def test_stream_playback_mode_is_explicit_local_vs_remote():
-    """재생 방식이 로컬(WebRTC)/원격(H264-over-HTTP) 명시 선택. 원격은 MSE 가능 시 fMP4를,
-    아니면 forceMjpeg를 서버에 요청한다. 로컬 WebRTC가 연결되지 않으면 MJPEG로 폴백한다."""
+    """재생 방식이 로컬(WebRTC)/원격(MJPEG) 명시 선택.
+    원격은 fMP4/MSE가 SSH tunnel에서 렌더링하지 않는 문제를 피하기 위해
+    forceMjpeg를 서버에 요청한다. 로컬 WebRTC가 연결되지 않으면 MJPEG로 폴백한다."""
     js = _read(STREAM_JS / "stream-demo.js")
     html = _read(STREAM_HTML)
     assert "setPlaybackMode" in js
     assert "_playbackMode === 'remote'" in js
-    assert "output = 'fmp4'" in js       # remote → HW H264 over HTTP (MSE)
-    assert "forceMjpeg = true" in js     # no-MSE fallback
+    assert "_startBody.forceMjpeg = true" in js
     assert 'data-mode="local"' in html and 'data-mode="remote"' in html
     # 명시 선택과 별개로, 연결되지 않는 로컬 WebRTC는 9초 뒤 MJPEG 폴백을 시작한다.
     wc = _read(STREAM_JS / "webrtc-client.js")
@@ -549,17 +549,17 @@ def test_mjpeg_fps_uses_server_frame_counter_in_bottom_overlay():
 
 
 def test_stream_pipeline_api_dispatches_webrtc_for_webrtc_mode():
-    """stream-pipeline-api.js에서 WebRTC/MJPEG/fMP4 모드를 모두 처리하고, 데모 페이지와
-    동일하게 원격(_playbackMode)에서는 fMP4(H264 over HTTP)를 요청한다."""
+    """stream-pipeline-api.js에서 WebRTC/MJPEG/fMP4 출력을 처리하고, 데모 페이지와
+    동일하게 원격(_playbackMode)에서는 reliable MJPEG를 요청한다."""
     source = _read(STREAM_JS / "stream-pipeline-api.js")
     assert "DXStream.webrtc.connect(pipeVideo, false, function" in source
     assert "await DXStream.webrtc.preferredPayloadTypes()" in source
     assert "webrtcPayloadTypes" in source
     assert "/api/stream/mjpeg" in source
     assert "output_mode === 'webrtc'" in source or "output_mode === 'mjpeg'" in source
-    # Pipeline Builder run must honor the same Local/Remote choice + fMP4 path as demos.
+    # Pipeline Builder run must honor the same Local/Remote choice as demos.
     assert "_playbackMode === 'remote'" in source
-    assert "output = 'fmp4'" in source
+    assert "_runBody.forceMjpeg = true" in source
     assert "output_mode === 'fmp4'" in source
     assert "_fmp4PlayInto" in source
 

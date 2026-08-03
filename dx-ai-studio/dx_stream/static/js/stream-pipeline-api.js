@@ -216,9 +216,25 @@ DXStream._wirePipelineMjpeg = function () {
     if (videoSection) videoSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
 };
 
+function _clearPipelinePlaybackUi() {
+    var videoSection = DXStream.$('pipeline-video-section');
+    if (videoSection) videoSection.style.display = 'none';
+    var pipeVideo = DXStream.$('pipeline-webrtc-video');
+    if (pipeVideo) { pipeVideo.srcObject = null; pipeVideo.style.display = ''; }
+    var mjpegImg = DXStream.$('pipeline-mjpeg-stream');
+    if (mjpegImg) { mjpegImg.src = ''; mjpegImg.style.display = 'none'; }
+    var statsOverlay = DXStream.$('webrtc-stats-overlay');
+    if (statsOverlay) statsOverlay.textContent = '';
+    var badge = DXStream.$('pipeline-status');
+    if (badge) { badge.textContent = T('Idle'); badge.className = 'status-pill pill-idle'; }
+}
+
 function _resetPipelineAfterFallbackFailure(error) {
     DXStream._pipeRunning = false;
     _updatePipelineButtons();
+    if (DXStream.webrtc && DXStream.webrtc.disconnect) DXStream.webrtc.disconnect();
+    if (DXStream._fmp4Stop) DXStream._fmp4Stop();
+    _clearPipelinePlaybackUi();
     DXStream.toast(T('MJPEG fallback failed: ') + error, 'error');
 }
 
@@ -243,9 +259,17 @@ DXStream.pipelineRun = async function () {
     if (resp.error) {
         DXStream._pipeRunning = false;
         _updatePipelineButtons();
+        if (resp.playback_active === false) {
+            if (DXStream.webrtc && DXStream.webrtc.disconnect) DXStream.webrtc.disconnect();
+            if (DXStream._fmp4Stop) DXStream._fmp4Stop();
+            _clearPipelinePlaybackUi();
+        }
         // Prefer the human-readable message (e.g. "Model not installed: … Download from
         // Setup") over the bare error code so a missing-asset run isn't a cryptic toast.
-        DXStream.toast(resp.message || resp.error, 'error');
+        var message = resp.message || resp.error;
+        if (resp.detail) message += ' ' + resp.detail;
+        if (resp.remediation) message += ' ' + resp.remediation;
+        DXStream.toast(message, 'error');
         return;
     }
     DXStream.toast(T('Pipeline started'), 'success');
@@ -311,21 +335,7 @@ DXStream.pipelineStop = async function () {
     }
     DXStream.toast(T('Pipeline stopped'), 'info');
 
-    // 비디오 섹션 숨김 및 정리
-    var videoSection = DXStream.$('pipeline-video-section');
-    if (videoSection) {
-        videoSection.style.display = 'none';
-    }
-    var pipeVideo = DXStream.$('pipeline-webrtc-video');
-    if (pipeVideo) { pipeVideo.srcObject = null; pipeVideo.style.display = ''; }
-    var mjpegImg = DXStream.$('pipeline-mjpeg-stream');
-    if (mjpegImg) { mjpegImg.src = ''; mjpegImg.style.display = 'none'; }
-    var statsOverlay = DXStream.$('webrtc-stats-overlay');
-    if (statsOverlay) statsOverlay.textContent = '';
-
-    // 파이프라인 상태 배지 즉시 갱신
-    var badge = DXStream.$('pipeline-status');
-    if (badge) { badge.textContent = T('Idle'); badge.className = 'status-pill pill-idle'; }
+    _clearPipelinePlaybackUi();
 };
 
 function _updatePipelineButtons() {

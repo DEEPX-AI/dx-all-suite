@@ -54,6 +54,38 @@ it starts all the tools for you — then click any tile on the hub to begin.
 your system `python3`. See [`docs/development.md`](docs/development.md) for options
 (`--port`, `--no-browser`, …) and environment variables.
 
+## Managed runtime profiles
+
+DX AI Studio treats the DEEPX runtime as an external, versioned host dependency. It
+does not modify `dx-runtime` sources. The Studio-owned compatibility matrix in
+`config/runtime_profiles.json` declares the supported runtime/driver package pairs,
+immutable GitHub revision URLs, and SHA-256 digests. Package discovery uses installed
+Debian package metadata, not the version of a source checkout.
+
+- **Supported migration:** Studio can reconcile the declared `2.3.0` rollback profile
+  to the target `2.4.1` profile on `x86_64` and `aarch64` hosts.
+- **Trust boundary:** packages are staged under Studio's `var/runtime/artifacts/`
+  cache only after their declared SHA-256 digest matches. A digest mismatch never
+  reaches a privileged package command.
+- **Explicit authorization:** installing packages requires an explicit authorized
+  Runtime Setup action. Studio invokes a non-interactive privileged `dpkg` command
+  only after that authorization; browsing diagnostics and Setup remains available
+  without it.
+- **Launch gate:** App and Stream inference launches require a journaled `ACTIVE`
+  profile that passed full validation. A failure returns a stable contract check ID
+  and remediation rather than starting a child process with inherited shell paths.
+- **Environment isolation:** inference children receive the Studio-selected Python,
+  virtual environment, native library paths, GStreamer plugin directory, and
+  postprocess path. `PYTHONPATH`, `VIRTUAL_ENV`, `LD_LIBRARY_PATH`, and
+  `GST_PLUGIN_PATH` from the parent shell are not inherited.
+- **Recovery:** a failed candidate validation triggers a verified reinstall and
+  validation of the prior declared runtime profile. Studio outputs and its artifact
+  cache are not runtime-install targets and are preserved during rollback.
+
+Installing or changing a DKMS driver can require a reboot before NPU device nodes are
+available. After a reboot, return to Runtime Setup to validate and activate the
+installed profile before starting inference.
+
 ## What you can do
 
 | Tool | What it's for |

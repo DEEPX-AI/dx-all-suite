@@ -43,6 +43,32 @@ def test_explicit_plugin_path_takes_precedence_over_known_locations(
     assert gst_env.plugin_dir() == str(custom_dir)
 
 
+def test_canonical_plugin_lookup_ignores_inherited_override(monkeypatch, tmp_path):
+    from dx_stream.core import gst_env
+
+    inherited_dir = tmp_path / "inherited"
+    installed_dir = tmp_path / "installed"
+    inherited_dir.mkdir()
+    installed_dir.mkdir()
+    inherited = inherited_dir / gst_env.PLUGIN_SO
+    canonical = installed_dir / gst_env.PLUGIN_SO
+    inherited.write_bytes(b"inherited")
+    canonical.write_bytes(b"canonical")
+    monkeypatch.setattr(gst_env, "_KNOWN_DIRS", (str(installed_dir),))
+    monkeypatch.setattr(gst_env, "_SEARCH_ROOTS", ())
+    monkeypatch.setenv("GST_PLUGIN_PATH", str(inherited_dir))
+
+    try:
+        resolved = gst_env.find_dxstream_plugin(prefer_environment=False)
+    except TypeError:
+        resolved = None
+
+    assert resolved == canonical
+    assert gst_env.augmented_env(prefer_environment=False)["GST_PLUGIN_PATH"] == str(
+        installed_dir
+    )
+
+
 def test_unchanged_environment_when_no_plugin_exists(monkeypatch):
     from dx_stream.core import gst_env
 
@@ -87,3 +113,37 @@ def test_refresh_plugin_environment_scans_initialized_gst_registry(monkeypatch, 
     assert refresh(FakeGst) == str(plugin_dir)
     assert os.environ["GST_PLUGIN_PATH"].split(os.pathsep)[0] == str(plugin_dir)
     assert scanned == [str(plugin_dir)]
+
+
+def test_refresh_plugin_environment_accepts_pre_registered_dxinfer(monkeypatch, tmp_path, caplog):
+    from dx_stream.core import gst_env
+
+    plugin_dir = tmp_path / "plugins"
+    plugin_dir.mkdir()
+    (plugin_dir / gst_env.PLUGIN_SO).write_bytes(b"plugin")
+    monkeypatch.setattr(gst_env, "_KNOWN_DIRS", ())
+    monkeypatch.setattr(gst_env, "_SEARCH_ROOTS", ())
+    monkeypatch.setenv("GST_PLUGIN_PATH", str(plugin_dir))
+
+    class FakeRegistry:
+        @staticmethod
+        def get():
+            return FakeRegistry
+
+        @staticmethod
+        def scan_path(_path):
+            return False
+
+    class FakeElementFactory:
+        @staticmethod
+        def find(name):
+            return object() if name == "dxinfer" else None
+
+    class FakeGst:
+        Registry = FakeRegistry
+        ElementFactory = FakeElementFactory
+
+    with caplog.at_level("WARNING"):
+        assert gst_env.refresh_plugin_environment(FakeGst) == str(plugin_dir)
+
+    assert not any("found no plugin" in message for message in caplog.messages)

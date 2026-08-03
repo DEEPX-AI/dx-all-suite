@@ -992,7 +992,7 @@ class NoSource:
 from dx_modelzoo.metadata.merge import merge_adapter_results
 
 
-def test_merge_prefers_internal_for_accuracy_but_runtime_for_model_list():
+def test_merge_uses_network_profile_for_model_list_and_internal_metadata():
     runtime = {
         "adapter": "local_runtime", "ok": True, "models": {
             "alexnet": {
@@ -1015,8 +1015,8 @@ def test_merge_prefers_internal_for_accuracy_but_runtime_for_model_list():
         }, "errors": [], "warnings": []
     }
     catalog = merge_adapter_results([runtime, internal], source_profile="internal")
-    assert [m["id"] for m in catalog["models"]] == ["alexnet"]
-    model = catalog["models"][0]
+    assert [m["id"] for m in catalog["models"]] == ["alexnet", "not_in_sdk"]
+    model = next(model for model in catalog["models"] if model["id"] == "alexnet")
     assert model["evaluation"]["raw"]["accuracy"] == "56.54 / 79.09"
     assert model["performance"]["fps"] == 226.354
     assert model["legal"]["license"] == "BSD-3-Clause"
@@ -1084,6 +1084,7 @@ def test_sync_metadata_cli_local_writes_only_dx_ai_studio(tmp_path):
     cache = tmp_path / "generated_catalog.cache.json"
     # I1: 소스 트리에 캐시가 남지 않도록 --cache를 tmp_path로 지정
     default_cache = ROOT / "dx_modelzoo" / "data" / "generated_catalog.cache.json"
+    previous_default_cache = default_cache.read_bytes() if default_cache.exists() else None
     cmd = [
         sys.executable,
         str(ROOT / "dx_modelzoo" / "tools" / "sync_metadata.py"),
@@ -1096,8 +1097,11 @@ def test_sync_metadata_cli_local_writes_only_dx_ai_studio(tmp_path):
     assert result.returncode == 0, result.stderr
     assert out.exists()
     assert report.exists()
-    # 소스 트리의 기본 캐시 경로에 파일이 생성되지 않아야 함
-    assert not default_cache.exists(), "CLI should not write cache to source tree default path"
+    # 명시한 --cache 외의 기본 캐시 경로를 생성하거나 변경해서는 안 됨
+    if previous_default_cache is None:
+        assert not default_cache.exists(), "CLI should not create the default cache when --cache is explicit"
+    else:
+        assert default_cache.read_bytes() == previous_default_cache, "CLI should not modify the default cache when --cache is explicit"
 
 
 from dx_modelzoo.metadata.sync import run_sync, adapter_names_for_profile

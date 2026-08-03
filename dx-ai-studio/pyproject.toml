@@ -27,3 +27,8 @@ packages = [
 
 [tool.setuptools.package-data]
 "*" = ["templates/*", "templates/**/*", "static/**/*", "knowledge/*.md", "*.json"]
+
+[tool.pytest.ini_options]
+markers = [
+  "runtime_lifecycle: fixture-local Managed Runtime Host bootstrap, migration, and rollback scenarios",
+]

@@ -1,6 +1,7 @@
 """setup.py 테스트 — step 정의, 상태 확인, 스크립트 경로"""
 import sys, pytest
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "dx_stream"))
@@ -46,12 +47,70 @@ class TestSetupSteps:
         assert "runtime-deps" in SETUP_STEPS
         assert "driver" in SETUP_STEPS
 
+    def test_runtime_steps_are_managed_transactions(self):
+        from core.setup import SETUP_STEPS
+
+        for step_id in ("runtime-deps", "driver"):
+            step = SETUP_STEPS[step_id]
+            assert step.get("managed_runtime") is True
+            assert "script" not in step
+            assert "cmd" not in step
+
+    def test_reconcile_managed_runtime_uses_authorized_host(self, monkeypatch):
+        from core import setup
+
+        captured = []
+
+        class FakeHost:
+            def __init__(self, *, authorized):
+                captured.append(authorized)
+
+            def reconcile(self):
+                return SimpleNamespace(
+                    status=SimpleNamespace(value="active"),
+                    reason="profile validated",
+                )
+
+        monkeypatch.setattr(setup, "RuntimeHost", FakeHost, raising=False)
+        reconcile = getattr(setup, "reconcile_managed_runtime", None)
+        assert callable(reconcile)
+
+        exit_code, log = reconcile()
+
+        assert captured == [True]
+        assert exit_code == 0
+        assert "status=active" in log
+        assert "profile validated" in log
+
+    def test_reconcile_managed_runtime_rejects_non_active_result(self, monkeypatch):
+        from core import setup
+
+        class FakeHost:
+            def __init__(self, *, authorized):
+                assert authorized is True
+
+            def reconcile(self):
+                return SimpleNamespace(
+                    status=SimpleNamespace(value="rolled_back"),
+                    reason="candidate validation failed",
+                )
+
+        monkeypatch.setattr(setup, "RuntimeHost", FakeHost)
+
+        exit_code, log = setup.reconcile_managed_runtime()
+
+        assert exit_code == 1
+        assert "status=rolled_back" in log
+        assert "candidate validation failed" in log
+
     def test_step_has_required_fields(self):
         from core.setup import SETUP_STEPS
         required = {"label_ko", "label_en", "cwd"}
         for step_id, step in SETUP_STEPS.items():
             assert required.issubset(step.keys()), f"Step {step_id} missing fields"
-            assert "script" in step or "cmd" in step, f"Step {step_id} needs script or cmd"
+            assert (
+                "script" in step or "cmd" in step or step.get("managed_runtime")
+            ), f"Step {step_id} needs an executable setup action"
 
     def test_step_scripts_are_callable(self):
         from core.setup import SETUP_STEPS
@@ -62,14 +121,13 @@ class TestSetupSteps:
             assert isinstance(path, Path)
             assert path.name.endswith(".sh")
 
-    def test_driver_step_uses_existing_driver_entrypoint(self):
+    def test_driver_step_uses_managed_runtime_transaction(self):
         from core.setup import SETUP_STEPS
 
         step = SETUP_STEPS["driver"]
-        script = step["script"]()
-        assert script.exists(), f"{script} does not exist"
-        assert script.name == "install.sh"
-        assert "--target=dx_rt_npu_linux_driver" in step.get("args", lambda: [])()
+        assert step["managed_runtime"] is True
+        assert "script" not in step
+        assert "cmd" not in step
 
     def test_sudo_steps_are_marked_for_preauthorization(self):
         from core.setup import SETUP_STEPS
@@ -260,3 +318,242 @@ class TestStopAndOpts:
         cmd = setup.build_command_args("build", opts=None)
 
         assert cmd == ["bash", str(script)]
+
+
+class TestManagedRuntimeWorker:
+    @staticmethod
+    def _run_threads_immediately(monkeypatch, setup):
+        class ImmediateThread:
+            def __init__(self, target=None, args=(), daemon=False):
+                self._target = target
+                self._args = args
+                self.daemon = daemon
+
+            def start(self):
+                self._target(*self._args)
+
+        monkeypatch.setattr(setup.threading, "Thread", ImmediateThread)
+
+    def test_managed_runtime_worker_rejects_second_start_while_sentinel_active(self, monkeypatch):
+        from core import setup
+        cleanup_passwords = []
+
+        class DeferredThread:
+            def __init__(self, target=None, args=(), daemon=False):
+                self._target = target
+                self._args = args
+                self.daemon = daemon
+
+            def start(self):
+                pass
+
+        def configure_sudo_env(_env, password):
+            return lambda: cleanup_passwords.append(password)
+
+        monkeypatch.setattr(setup, "_configure_sudo_env", configure_sudo_env)
+        monkeypatch.setattr(setup, "_preauthorize_sudo", lambda _password, _env: None)
+        monkeypatch.setattr(setup.threading, "Thread", DeferredThread)
+        setup.clear_log()
+        setup._running_proc = None
+
+        try:
+            setup.run_step("runtime-deps", sudo_password="first")
+
+            assert setup._running_proc is True
+            with pytest.raises(RuntimeError, match="Another process is already running"):
+                setup.run_step("runtime-deps", sudo_password="second")
+            assert cleanup_passwords == ["second"]
+        finally:
+            setup._running_proc = None
+
+    def test_managed_runtime_worker_releases_sentinel_if_thread_start_fails(self, monkeypatch):
+        from core import setup
+        cleanup_calls = []
+
+        class FailingThread:
+            def __init__(self, target=None, args=(), daemon=False):
+                self._target = target
+                self._args = args
+                self.daemon = daemon
+
+            def start(self):
+                raise RuntimeError("thread start failed")
+
+        monkeypatch.setattr(setup, "_configure_sudo_env", lambda _env, _password: lambda: cleanup_calls.append(True))
+        monkeypatch.setattr(setup, "_preauthorize_sudo", lambda _password, _env: None)
+        monkeypatch.setattr(setup.threading, "Thread", FailingThread)
+        setup.clear_log()
+        setup._running_proc = None
+
+        with pytest.raises(RuntimeError, match="thread start failed"):
+            setup.run_step("runtime-deps")
+
+        state = setup.get_log_state("runtime-deps")
+        assert state["done"] is True
+        assert state["exit_code"] == 1
+        assert "[ERROR] thread start failed" in state["log"]
+        assert cleanup_calls == [True]
+        assert setup._running_proc is None
+
+    @pytest.mark.parametrize("step_id", ["runtime-deps", "webrtc-deps"])
+    def test_worker_releases_reservation_when_log_initialization_fails(self, monkeypatch, step_id):
+        from core import setup
+
+        class FailFirstLogAssignment(dict):
+            def __init__(self):
+                super().__init__()
+                self._fail_next_assignment = True
+
+            def __setitem__(self, key, value):
+                if self._fail_next_assignment:
+                    self._fail_next_assignment = False
+                    raise RuntimeError("log initialization failed")
+                super().__setitem__(key, value)
+
+        cleanup_calls = []
+        monkeypatch.setattr(setup, "_step_logs", FailFirstLogAssignment())
+        monkeypatch.setattr(
+            setup,
+            "_configure_sudo_env",
+            lambda _env, _password: lambda: cleanup_calls.append(True),
+        )
+        monkeypatch.setattr(setup, "_preauthorize_sudo", lambda _password, _env: None)
+        setup._running_proc = None
+
+        with pytest.raises(RuntimeError, match="log initialization failed"):
+            setup.run_step(step_id)
+
+        state = setup.get_log_state(step_id)
+        assert state["done"] is True
+        assert state["exit_code"] == 1
+        assert "[ERROR] log initialization failed" in state["log"]
+        assert cleanup_calls == [True]
+        assert setup._running_proc is None
+
+    def test_standard_sudo_worker_cleans_rejected_request(self, monkeypatch):
+        from core import setup
+        cleanup_passwords = []
+
+        class DeferredThread:
+            def __init__(self, target=None, args=(), daemon=False):
+                self._target = target
+                self._args = args
+                self.daemon = daemon
+
+            def start(self):
+                pass
+
+        def configure_sudo_env(_env, password):
+            return lambda: cleanup_passwords.append(password)
+
+        monkeypatch.setattr(setup, "_configure_sudo_env", configure_sudo_env)
+        monkeypatch.setattr(setup, "_preauthorize_sudo", lambda _password, _env: None)
+        monkeypatch.setattr(setup.threading, "Thread", DeferredThread)
+        setup.clear_log()
+        setup._running_proc = None
+
+        try:
+            setup.run_step("webrtc-deps", sudo_password="first")
+
+            assert setup._running_proc is True
+            with pytest.raises(RuntimeError, match="Another process is already running"):
+                setup.run_step("webrtc-deps", sudo_password="second")
+            assert cleanup_passwords == ["second"]
+        finally:
+            setup._running_proc = None
+
+    def test_managed_runtime_worker_records_active_result_without_popen(self, monkeypatch):
+        from core import setup
+
+        authorizations = []
+        cleanup_calls = []
+        keep_alive_calls = []
+
+        class FakeHost:
+            candidate_validator = SimpleNamespace(last_result=None)
+
+            def __init__(self, *, authorized):
+                authorizations.append(authorized)
+
+            def reconcile(self):
+                return SimpleNamespace(
+                    status=SimpleNamespace(value="active"),
+                    reason="profile validated",
+                )
+
+        def no_popen(*_args, **_kwargs):
+            pytest.fail("managed runtime step must not spawn subprocess.Popen")
+
+        monkeypatch.setattr(setup, "RuntimeHost", FakeHost)
+        monkeypatch.setattr(setup, "_configure_sudo_env", lambda _env, _password: lambda: cleanup_calls.append(True))
+        monkeypatch.setattr(setup, "_preauthorize_sudo", lambda _password, _env: None)
+        monkeypatch.setattr(setup, "_keep_sudo_alive", lambda stop: keep_alive_calls.append(stop))
+        monkeypatch.setattr(setup.subprocess, "Popen", no_popen)
+        self._run_threads_immediately(monkeypatch, setup)
+        setup.clear_log()
+        setup._running_proc = None
+
+        setup.run_step("runtime-deps")
+
+        state = setup.get_log_state("runtime-deps")
+        assert authorizations == [True]
+        assert state == {
+            "log": "Runtime profile reconciliation\nstatus=active\nreason=profile validated\n",
+            "done": True,
+            "exit_code": 0,
+        }
+        assert len(keep_alive_calls) == 1
+        assert cleanup_calls == [True]
+        assert setup._running_proc is None
+
+    def test_managed_runtime_worker_records_failure_and_cleans_up(self, monkeypatch):
+        from core import setup
+
+        cleanup_calls = []
+        monkeypatch.setattr(setup, "_configure_sudo_env", lambda _env, _password: lambda: cleanup_calls.append(True))
+        monkeypatch.setattr(setup, "_preauthorize_sudo", lambda _password, _env: None)
+        monkeypatch.setattr(setup, "_keep_sudo_alive", lambda _stop: None)
+        monkeypatch.setattr(
+            setup,
+            "reconcile_managed_runtime",
+            lambda: (1, "Runtime profile reconciliation\nstatus=rolled_back\nreason=validation failed\n"),
+        )
+        self._run_threads_immediately(monkeypatch, setup)
+        setup.clear_log()
+        setup._running_proc = None
+
+        setup.run_step("runtime-deps")
+
+        state = setup.get_log_state("runtime-deps")
+        assert state == {
+            "log": "Runtime profile reconciliation\nstatus=rolled_back\nreason=validation failed\n",
+            "done": True,
+            "exit_code": 1,
+        }
+        assert cleanup_calls == [True]
+        assert setup._running_proc is None
+
+    def test_managed_runtime_worker_records_exception_and_releases_sentinel(self, monkeypatch):
+        from core import setup
+
+        cleanup_calls = []
+        monkeypatch.setattr(setup, "_configure_sudo_env", lambda _env, _password: lambda: cleanup_calls.append(True))
+        monkeypatch.setattr(setup, "_preauthorize_sudo", lambda _password, _env: None)
+        monkeypatch.setattr(setup, "_keep_sudo_alive", lambda _stop: None)
+
+        def raise_reconcile_error():
+            raise RuntimeError("reconcile failed")
+
+        monkeypatch.setattr(setup, "reconcile_managed_runtime", raise_reconcile_error)
+        self._run_threads_immediately(monkeypatch, setup)
+        setup.clear_log()
+        setup._running_proc = None
+
+        setup.run_step("runtime-deps")
+
+        state = setup.get_log_state("runtime-deps")
+        assert state["done"] is True
+        assert state["exit_code"] == 1
+        assert "[ERROR] reconcile failed" in state["log"]
+        assert cleanup_calls == [True]
+        assert setup._running_proc is None

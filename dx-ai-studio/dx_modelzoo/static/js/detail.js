@@ -1045,6 +1045,12 @@ async function downloadModel(event, modelId, quantType) {
         const pctEl = document.getElementById(`dl-pct-${quantType}`);
         if (bar) bar.style.width = pct + '%';
         if (pctEl) pctEl.textContent = pct + '%';
+        if (sd.error) {
+          clearInterval(pollId);
+          setModelZooStatusHtml(statusEl, `<span style="color:var(--error)">${T('Download failed')}: ${escapeHtml(sd.error || '')}</span>`);
+          btn.style.display = '';
+          return;
+        }
         if (!sd.finished) return;  // still running
 
         clearInterval(pollId);

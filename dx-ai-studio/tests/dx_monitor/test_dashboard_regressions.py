@@ -2,15 +2,145 @@
 
 from pathlib import Path
 import re
+import shutil
+import subprocess
+
+import pytest
 
 
 ROOT = Path(__file__).resolve().parents[2]
 MONITOR = ROOT / "dx_monitor"
 SHARED = ROOT / "shared" / "static"
+DASHBOARD_UTILS = MONITOR / "static" / "js" / "utils.js"
+DASHBOARD_JS = MONITOR / "static" / "js" / "dashboard.js"
 
 
 def read_text(path: Path) -> str:
     return path.read_text(encoding="utf-8")
+
+
+_DASHBOARD_TELEMETRY_VM = r"""
+const assert = require('assert');
+const fs = require('fs');
+const vm = require('vm');
+
+const elements = {};
+function makeElement() {
+    return {className: '', style: {display: 'none'}, textContent: '', innerHTML: ''};
+}
+[
+    'mock-banner', 'telemetry-status', 'status-bar', 'npu-status-label',
+    'npu-topo', 'chart-area'
+].forEach(function(id) { elements[id] = makeElement(); });
+
+const context = {
+    console,
+    localStorage: {getItem() { return 'en'; }},
+    document: {
+        documentElement: {},
+        getElementById(id) { return elements[id] || null; },
+        createElement() {
+            let html = '';
+            return {
+                set textContent(value) { html = String(value); },
+                get innerHTML() { return html; },
+            };
+        },
+    },
+    getComputedStyle() {
+        return {getPropertyValue() { return '#000'; }};
+    },
+    requestAnimationFrame() {},
+    setInterval() { return 1; },
+};
+vm.createContext(context);
+vm.runInContext(fs.readFileSync(process.argv[1], 'utf8'), context, {filename: process.argv[1]});
+vm.runInContext(fs.readFileSync(process.argv[2], 'utf8'), context, {filename: process.argv[2]});
+
+function npu() {
+    return {
+        id: 0,
+        cores: 1,
+        temperatures: [42.0],
+        temp_avg: 42.0,
+        voltage_avg: 700.0,
+        clock_avg: 900.0,
+        dram_pct: 25.0,
+        utilization: [15.0],
+    };
+}
+function apply(payload) {
+    context.__payload = payload;
+    vm.runInContext('_applyHWData(__payload)', context);
+}
+function state() {
+    return JSON.parse(vm.runInContext(
+        'JSON.stringify({mode:S.telemetryMode,isMock:S.isMock,samples:S.rtData.length})',
+        context,
+    ));
+}
+
+apply({npus: [npu()], cpu_load: 2.0, mem_pct: 30.0, telemetry: {source_mode: 'real'}});
+assert.deepStrictEqual(state(), {mode: 'real', isMock: false, samples: 1});
+assert.strictEqual(elements['telemetry-status'].style.display, 'none');
+assert.strictEqual(elements['mock-banner'].style.display, 'none');
+
+apply({npus: [npu()], cpu_load: 2.0, mem_pct: 30.0, telemetry: {source_mode: 'stale'}});
+assert.strictEqual(state().mode, 'stale');
+assert(elements['telemetry-status'].className.includes('degraded stale'));
+assert.strictEqual(elements['telemetry-status'].textContent, '⚠ NPU telemetry is not current.');
+assert.strictEqual(elements['telemetry-status'].style.display, 'inline');
+assert(elements['status-bar'].innerHTML.includes('NPU telemetry is not current'));
+
+apply({
+    npus: [], cpu_load: 2.0, mem_pct: 30.0,
+    telemetry: {source_mode: 'unavailable', diagnostics: ['worker offline']},
+});
+assert.strictEqual(state().mode, 'unavailable');
+assert(elements['telemetry-status'].className.includes('degraded unavailable'));
+assert(elements['telemetry-status'].textContent.includes('worker offline'));
+assert(elements['status-bar'].innerHTML.includes('NPU telemetry unavailable'));
+assert(elements['npu-topo'].innerHTML.includes('NPU telemetry unavailable'));
+vm.runInContext("S.chartMode='all'; drawCharts();", context);
+assert(elements['chart-area'].innerHTML.includes('NPU telemetry unavailable'));
+assert(elements['chart-area'].innerHTML.includes('chart-grid-system'));
+
+apply({npus: [npu()], cpu_load: 2.0, mem_pct: 30.0, telemetry: {source_mode: 'mock'}});
+assert.strictEqual(state().mode, 'mock');
+assert.strictEqual(state().isMock, true);
+assert.strictEqual(elements['telemetry-status'].style.display, 'none');
+assert.strictEqual(elements['mock-banner'].style.display, 'inline');
+assert(elements['mock-banner'].textContent.includes('Mock Mode'));
+assert(elements['status-bar'].innerHTML.includes('Mock'));
+assert.strictEqual(elements['npu-status-label'].textContent, 'Mock Data');
+assert(elements['npu-topo'].innerHTML.includes('Mock'));
+
+apply({npus: [npu()], cpu_load: 2.0, mem_pct: 30.0});
+assert.strictEqual(state().mode, 'real');
+assert.strictEqual(state().isMock, false);
+assert.strictEqual(elements['telemetry-status'].style.display, 'none');
+assert.strictEqual(elements['mock-banner'].style.display, 'none');
+assert(elements['status-bar'].innerHTML.includes('Mock') === false);
+assert.strictEqual(elements['npu-status-label'].textContent, '1 NPU(s)');
+assert.strictEqual(state().samples, 5);
+
+console.log('OK: dashboard telemetry transitions');
+"""
+
+
+def run_dashboard_telemetry_vm() -> str:
+        node = shutil.which("node")
+        if not node:
+                pytest.skip("node is required for dashboard runtime test")
+        result = subprocess.run(
+                [node, "-e", _DASHBOARD_TELEMETRY_VM, str(DASHBOARD_UTILS), str(DASHBOARD_JS)],
+                capture_output=True,
+                text=True,
+                timeout=15,
+                check=False,
+        )
+        assert result.returncode == 0, result.stdout + result.stderr
+        return result.stdout
 
 
 def extract_braced_body(source: str, anchor: str) -> str:
@@ -57,6 +187,29 @@ def test_dashboard_keeps_invalid_npu_dram_out_of_realtime_series():
     assert "dram:_normalizeDramPct(n.dram_pct)" in apply_body
     assert "dram:+(n.dram_pct||0).toFixed(1)" not in apply_body
     assert "n?_seriesValue(n[cfg.npuKey]):null" in extract_body
+
+
+def test_dashboard_source_uses_plain_es5_syntax_only():
+    """Reject ES6+ syntax/APIs in the authored dashboard source only.
+
+    This contract deliberately permits ordinary functions, callbacks, Promise
+    chaining, and other ES5-compatible behavior. It does not inspect bundled
+    or minified assets.
+    """
+    dashboard = read_text(MONITOR / "static" / "js" / "dashboard.js")
+    prohibited_patterns = {
+        r"\basync\s+function\b": "async function",
+        r"\bawait\s+": "await",
+        r"\bconst\b": "const",
+        r"\bconst\s*\[": "const destructuring",
+        r"\bPromise\.all\b": "Promise.all",
+        r"\bNumber\.isFinite\b": "Number.isFinite",
+        r"\.fill\s*\(": "Array.prototype.fill",
+        r"\bArray\.from\b": "Array.from",
+    }
+
+    for pattern, feature in prohibited_patterns.items():
+        assert not re.search(pattern, dashboard), f"dashboard source uses {feature}"
 
 
 def test_shared_line_chart_skips_missing_metric_samples():
@@ -236,7 +389,7 @@ def test_mock_mode_page_level_banner_exists():
     # The banner must be updated from _applyHWData or renderStatusBar or refreshDash
     apply_body = extract_braced_body(dashboard, "function _applyHWData(d)")
     status_body = extract_braced_body(dashboard, "function renderStatusBar(hw)")
-    refresh_body = extract_braced_body(dashboard, "async function refreshDash()")
+    refresh_body = extract_braced_body(dashboard, "function refreshDash()")
 
     # Direct reference or via _updateMockBanner helper
     mock_update_found = (
@@ -288,3 +441,132 @@ def test_dashboard_shows_no_data_for_npu_with_no_valid_temperature_sensors():
     # The °C value must be conditional (not unconditionally temp_avg||0).
     assert "hasTemp?" in dashboard.replace(" ", ""), \
         "temperature value is not conditional on sensor validity (F-15)"
+
+
+def test_telemetry_status_template_and_clock_control_contract():
+    """The dashboard exposes telemetry status and a deterministic Clock icon."""
+    template = read_text(MONITOR / "templates" / "index.html")
+
+    assert 'id="telemetry-status"' in template
+    assert template.index('id="sse-status"') < template.index('id="telemetry-status"')
+    assert "cm-clock" in template
+    assert "🔄" not in template
+    assert 'class="icon-clock"' in template
+    assert 'aria-hidden="true"' in template
+    assert "��" not in template
+
+
+def test_clock_controls_use_deterministic_accessibility_icon():
+    """Static and dynamic Clock labels must not rely on an emoji glyph."""
+    template = read_text(MONITOR / "templates" / "index.html")
+    dashboard = read_text(MONITOR / "static" / "js" / "dashboard.js")
+    css = read_text(MONITOR / "static" / "css" / "style.css")
+
+    assert "🔄" not in template
+    assert "🔄" not in dashboard
+    assert 'class="icon-clock"' in template
+    assert 'class="icon-clock"' in dashboard
+    assert 'aria-hidden="true"' in dashboard
+    assert ".icon-clock" in css
+    assert "currentColor" in css
+
+
+def test_dashboard_tracks_telemetry_mode_and_safely_updates_visible_status():
+    """Every hardware payload must update a safe, user-visible stale/unavailable state."""
+    dashboard = read_text(MONITOR / "static" / "js" / "dashboard.js")
+    refresh_body = extract_braced_body(dashboard, "function refreshDash()")
+    apply_body = extract_braced_body(dashboard, "function _applyHWData(d)")
+    telemetry_body = extract_braced_body(dashboard, "function _updateTelemetryStatus(hw)")
+
+    assert "telemetry.source_mode" in dashboard
+    assert "S.telemetryMode" in telemetry_body
+    assert "_updateTelemetryStatus(hw)" in refresh_body
+    assert "_updateTelemetryStatus(d)" in apply_body
+    assert "stale" in telemetry_body and "unavailable" in telemetry_body
+    assert "textContent" in telemetry_body
+    assert "diagnostics" in telemetry_body and "error" in telemetry_body
+    assert "innerHTML" not in telemetry_body, (
+        "telemetry diagnostics must not be injected as HTML"
+    )
+
+
+def test_polling_applies_valid_telemetry_payloads_even_when_they_include_errors():
+    """An unavailable payload may include ``error`` and still must reach the renderer."""
+    dashboard = read_text(MONITOR / "static" / "js" / "dashboard.js")
+    poll_body = extract_braced_body(dashboard, "function _startHWPoll()")
+
+    assert "_applyHWData(d)" in poll_body
+    assert "d&&!d.error" not in poll_body.replace(" ", "")
+    assert re.search(r"if\s*\(d\s*&&\s*typeof d\s*===\s*['\"]object['\"]\)", poll_body), (
+        "polling must apply every object payload, including unavailable payloads with errors"
+    )
+
+
+def test_telemetry_state_invalidates_status_and_chart_layout_caches():
+    """Changing real/stale/unavailable/mock must rebuild cached dashboard DOM."""
+    dashboard = read_text(MONITOR / "static" / "js" / "dashboard.js")
+    status_body = extract_braced_body(dashboard, "function _hwStatusSignature(hw)")
+    single_body = extract_braced_body(
+        dashboard, "function _drawSingleMode(area,data,tl,npuCount,mode)"
+    )
+    all_body = extract_braced_body(dashboard, "function _drawAllMode(area,data,tl,npuCount)")
+    single_key = re.search(r"var layoutKey=([^;]+);", single_body)
+    all_key = re.search(r"var layoutKey=([^;]+);", all_body)
+
+    assert "telemetryMode" in status_body
+    assert single_key and "telemetryMode" in single_key.group(1)
+    assert all_key and "telemetryMode" in all_key.group(1)
+
+
+def test_npu_telemetry_no_data_messages_preserve_system_charts():
+    """Unavailable/stale NPU telemetry must not remove CPU, memory, and core charts."""
+    dashboard = read_text(MONITOR / "static" / "js" / "dashboard.js")
+    status_body = extract_braced_body(dashboard, "function renderStatusBar(hw)")
+    topo_body = extract_braced_body(dashboard, "function renderNPUTopo(hw)")
+    single_body = extract_braced_body(
+        dashboard, "function _drawSingleMode(area,data,tl,npuCount,mode)"
+    )
+    all_body = extract_braced_body(dashboard, "function _drawAllMode(area,data,tl,npuCount)")
+
+    assert "NPU telemetry unavailable" in status_body
+    assert "NPU telemetry unavailable" in topo_body
+    assert "NPU telemetry unavailable" in single_body
+    assert "NPU telemetry unavailable" in all_body
+    assert 'data-help-id="npu-telemetry-no-data"' in all_body
+    assert "chart-grid-system" in all_body
+    assert all_body.index('data-help-id="npu-telemetry-no-data"') < all_body.index(
+        'data-help-id="chart-label-system"'
+    )
+
+
+def test_dashboard_resolves_nested_mock_and_legacy_telemetry_states():
+    """Nested worker provenance must drive mock UI state without breaking legacy APIs."""
+    dashboard = read_text(MONITOR / "static" / "js" / "dashboard.js")
+    state_body = extract_braced_body(dashboard, "function _telemetryState(hw)")
+    refresh_body = extract_braced_body(dashboard, "function refreshDash()")
+    apply_body = extract_braced_body(dashboard, "function _applyHWData(d)")
+
+    assert "telemetry.source_mode==='mock'" in state_body
+    assert "return'real'" in state_body, (
+        "legacy successful hardware payloads without telemetry provenance must remain usable"
+    )
+    assert "S.isMock=_telemetryState(hw)==='mock'" in refresh_body
+    assert "S.isMock=_telemetryState(d)==='mock'" in apply_body
+
+
+def test_nested_mock_provenance_labels_status_and_topology_cards():
+    """Nested mock provenance must label every UI surface, not only the banner."""
+    dashboard = read_text(MONITOR / "static" / "js" / "dashboard.js")
+    status_body = extract_braced_body(dashboard, "function renderStatusBar(hw)")
+    topo_body = extract_braced_body(dashboard, "function renderNPUTopo(hw)")
+
+    assert "var mockMode=_telemetryState(hw)==='mock';" in status_body
+    assert "n.mock||mockMode" in status_body
+    assert "var mockMode=_telemetryState(hw)==='mock';" in topo_body
+    assert "mockMode?T('Mock Data')" in topo_body
+    assert "n.mock||mockMode" in topo_body
+
+
+def test_dashboard_telemetry_state_transitions_at_runtime():
+    """Execute real/stale/unavailable/mock/legacy payload transitions in Node."""
+    assert "OK: dashboard telemetry transitions" in run_dashboard_telemetry_vm()

@@ -1409,6 +1409,7 @@ window._DX_I18N_PLACEHOLDERS = {
   'Expand All Subgraphs': {ko:'모든 서브그래프 펼치기',ja:'すべてのサブグラフを展開',es:'Expandir todos los subgrafos','zh-CN':'展开所有子图','zh-TW':'展開所有子圖'},
   'Filename must be alphanumeric with .dxnn extension': {ko:'파일명은 영숫자이며 .dxnn 확장자여야 합니다',ja:'ファイル名は英数字で.dxnn拡張子が必要です',es:'El nombre de archivo debe ser alfanumérico con extensión .dxnn','zh-CN':'文件名必须为字母数字并带有.dxnn扩展名','zh-TW':'檔名必須為英數字並帶有.dxnn副檔名'},
   'Collapse': {ko:'접기',ja:'折りたたむ',es:'Contraer','zh-CN':'折叠','zh-TW':'摺疊'},
+  'Close': {ko:'닫기',ja:'閉じる',es:'Cerrar','zh-CN':'关闭','zh-TW':'關閉'},
   'Toggle': {ko:'전환',ja:'切替',es:'Alternar','zh-CN':'切换','zh-TW':'切換'},
   'Default Loader: Use real images from a dataset and provide preprocessing parameters.': {ko:'기본 로더: 데이터셋의 실제 이미지를 사용하고 전처리 매개변수를 제공합니다.',ja:'デフォルトローダー: データセットの実画像を使用し、前処理パラメータを提供します。',es:'Cargador por defecto: Utilice imágenes reales de un conjunto de datos y proporcione parámetros de preprocesamiento.','zh-CN':'默认加载器：使用数据集中的真实图像并提供预处理参数。','zh-TW':'預設載入器：使用資料集中的真實影像並提供預處理參數。'},
   'Dummy Loader: Generates random tensors based on input shapes without any dataset.': {ko:'더미 로더: 데이터셋 없이 입력 형상에 따라 무작위 텐서를 생성합니다.',ja:'ダミーローダー: データセットなしで入力形状に基づいてランダムテンソルを生成します。',es:'Cargador ficticio: Genera tensores aleatorios basados en las formas de entrada sin ningún conjunto de datos.','zh-CN':'虚拟加载器：根据输入形状生成随机张量，无需数据集。','zh-TW':'虛擬載入器：根據輸入形狀產生隨機張量，無需資料集。'},

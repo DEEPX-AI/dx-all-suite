@@ -14,7 +14,6 @@ import json
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from dx_app.core.modelzoo_gateway import ModelZooGateway  # noqa: E402
 
 OUT = Path(__file__).resolve().parent / "modelzoo_catalog_public.json"
