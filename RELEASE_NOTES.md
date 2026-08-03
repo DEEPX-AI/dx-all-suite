@@ -1,13 +1,13 @@
 # RELEASE_NOTES
 
-## DX-All-Suite v2.4.1 / 2026-07-29
+## DX-All-Suite v2.4.1 / 2026-08-03
 
 - DX-Compiler: v2.4.1
     - DX-COM: v2.4.0
     - DX-TRON: v2.0.1 (Deprecated)
 - DX-Runtime: v2.4.1
-    - DX_FW: v2.7.3
-    - NPU Driver: v2.5.1
+    - DX_FW: v2.7.4
+    - NPU Driver: v2.6.0
     - DX-RT: v3.4.1
     - DX-Stream: v3.1.1
     - DX-APP: v3.2.1
@@ -18,7 +18,7 @@ Here are the **DX-All-Suite v2.4.1** Release Notes.
 
 ### What's New?
 
-This release adds **DX-Benchmark (Beta)**, polishes the **DX AI Studio (Beta)** introduced in v2.4.0, and adds documentation updates across the suite.
+This release adds **DX-Benchmark (Beta)**, polishes the **DX AI Studio (Beta)** introduced in v2.4.0, includes virtualization support, super-resolution quality improvements, and documentation updates across the suite.
 
 #### 📊 New: Reproducible NPU performance benchmarks
 
@@ -43,6 +43,21 @@ This release adds **DX-Benchmark (Beta)**, polishes the **DX AI Studio (Beta)** 
 - **Benchmark** — refreshed to the latest benchmark dataset.
 - **Runtime setup** — guided runtime-profile installation, validation, and rollback make App and Stream startup more reliable.
 - **NPU monitoring** — supervised telemetry collection improves status reporting and recovery when monitoring workers fail.
+
+---
+
+### Key Updates
+
+**Stability & Fixes**
+
+- **DX_FW & NPU Driver**: Added VM environment support via MSI IMWR PCIe message API; added kernel 4.4.0 support; fixed forked child process ioctl race condition.
+- **DX-RT**: Corrected supported OS list (removed Ubuntu 18.04, added Ubuntu 26.04) and improved documentation clarity.
+- **DX-APP**: Fixed RealESRGAN discolored output, removed tile seams in super-resolution, and corrected video/image saving issues in async runners.
+
+**New Features & Tools**
+
+- **DX-RT**: Added bundled wheel installation guide for virtual environments.
+- **DX-APP**: Super-resolution now outputs both side-by-side comparison and standalone upscaled images; added `--sr-tile-halo` option for tile overlap control.
 
 For detailed updated items, refer to **each environment & module's Release Notes**.
 
