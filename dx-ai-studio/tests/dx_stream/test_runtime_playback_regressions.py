@@ -16,6 +16,26 @@ def test_pipeline_module_initialization_uses_canonical_plugin_discovery():
     assert "_gst_env.refresh_plugin_environment(prefer_environment=False)" in source
 
 
+def test_stream_admission_probes_use_a_gi_capable_interpreter():
+    """Every validate_stream_pipeline admission probe (demo-start, Pipeline Builder run,
+    diagnostics) must run under a gi-capable interpreter. Passing the active context
+    python directly is the isolated dx_app inference venv (no PyGObject) and rejects a
+    playable pipeline with a false ModuleNotFoundError: 'gi' admission failure.
+    """
+    server = (ROOT / "dx_stream" / "server.py").read_text(encoding="utf-8")
+    diagnostics = (ROOT / "dx_stream" / "core" / "diagnostics.py").read_text(encoding="utf-8")
+
+    # No admission probe may pass the raw context interpreter.
+    assert "python_executable=runtime_context.python_executable" not in server
+    assert "python_executable=context.python_executable" not in diagnostics
+
+    # Both server call sites and the diagnostics probe wrap it with gi_capable_python.
+    assert server.count(
+        "python_executable=gst_env.gi_capable_python(runtime_context.python_executable)"
+    ) == 2
+    assert "gi_capable_python(context.python_executable)" in diagnostics
+
+
 def _install_fake_mjpeg(monkeypatch, name="fake_mjpeg_mod"):
     """Install a fresh empty fake ``mjpeg`` module so a test can stub individual
     functions on it.

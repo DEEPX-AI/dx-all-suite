@@ -23,6 +23,30 @@ function chipFilter(el){
   filterModels();
 }
 
+function _catalogModelKey(value){
+  return String(value||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+}
+
+function _catalogModelFileName(modelFile){
+  var parts=String(modelFile||'').split('/');
+  return parts[parts.length-1].toLowerCase();
+}
+
+function _runnableModelForCatalog(catalogModel){
+  if(!catalogModel||!Array.isArray(S.models))return null;
+  var fileName=_catalogModelFileName(catalogModel.model_file);
+  if(fileName){
+    var byFile=S.models.find(function(model){
+      return _catalogModelFileName(model.model_file)===fileName;
+    });
+    if(byFile)return byFile;
+  }
+  var nameKey=_catalogModelKey(catalogModel.name);
+  return nameKey?S.models.find(function(model){
+    return _catalogModelKey(model.name)===nameKey;
+  }):null;
+}
+
 function filterModels(){
   const search=($('m-search').value||'').toLowerCase();
   const chip=document.querySelector('#cat-chips .chip.active');
@@ -36,6 +60,7 @@ function filterModels(){
   });
   const tb=$('m-table').querySelector('tbody');
   tb.innerHTML=list.map(function(m){
+    var runnable=_runnableModelForCatalog(m);
     var meta=[];
     if(m.npu_core)meta.push('<span class="badge b-blue">'+m.npu_core+'</span>');
     if(m.dataset)meta.push('<span class="badge b-warn">'+m.dataset+'</span>');
@@ -43,7 +68,7 @@ function filterModels(){
     // Capability columns (C++/Python/Sync/Async) reflect what is USABLE now, i.e. only once the
     // .dxnn is downloaded \u2014 so the row is consistent: not-downloaded shows only Download, and a
     // download lights up the run modes + Run together. (dl==0 rows have no .dxnn on ModelZoo.)
-    var dl=!!m.model_exists;
+    var dl=!!runnable;
     var modes=[];
     if(dl&&(m.cpp_sync||m.py_sync))modes.push('<span class="badge b-ok">'+T('Sync')+'</span>');
     if(dl&&(m.cpp_async||m.py_async))modes.push('<span class="badge b-blue">'+T('Async')+'</span>');
@@ -59,7 +84,7 @@ function filterModels(){
       +'<td class="m-actions"><button class="m-action-btn m-action-detail" onclick="event.stopPropagation();showDetail(\''+esc(m.name)+'\')" title="Details">🔍 '+T('Detail')+'</button>'
       +(_onnxGraphArg(m.model_file)&&m.model_exists?'<button class="m-action-btn" onclick="event.stopPropagation();openModelGraph(\''+esc(m.model_file)+'\')" title="View Graph">📊 Graph</button>':'')
       +(m.dxnn_url?'<button class="m-action-btn m-action-dl" data-name="'+esc(m.mz_name||m.name)+'" data-dxnn="'+esc(m.dxnn_url)+'" data-json="'+esc(m.json_url||'')+'" onclick="event.stopPropagation();mzQuickDownload(this)" title="'+(m.model_exists?T('Re-download the Q-Lite .dxnn from ModelZoo'):T('Download the Q-Lite .dxnn from ModelZoo'))+'">⬇ '+(m.model_exists?T('Re-download'):T('Download'))+'</button>':'')
-      +(m.model_exists&&(m.cpp||m.python)?'<button class="m-action-btn m-action-run" onclick="event.stopPropagation();quickRun(\''+esc(m.name)+'\',\''+esc(m.category)+'\',\''+esc(m.model_file||'')+'\')">▶ '+T('Run')+'</button>':'')+'</td>'
+      +(runnable?'<button class="m-action-btn m-action-run" onclick="event.stopPropagation();quickRun(\''+esc(runnable.name)+'\',\''+esc(runnable.category)+'\',\''+esc(runnable.model_file||'')+'\')">▶ '+T('Run')+'</button>':'')+'</td>'
       +'</tr>';
   }).join('');
   $('m-count').textContent=list.length+' / '+src.length+T(' models');

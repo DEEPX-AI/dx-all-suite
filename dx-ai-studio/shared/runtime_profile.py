@@ -367,6 +367,16 @@ def discover_runtime_profile(
     driver_version = package_driver_version or _discover_driver_version(runtime_root)
 
     if runtime_version is None:
+        # Manifest doesn't curate this version, but a runtime may still be physically installed.
+        # DX runtimes ship per-version as coherent bundles that Studio must run on regardless of
+        # manifest membership, so report the detected version (release.ver, else the installed
+        # package version) when a runtime executable is present — reconcile() then accepts it if
+        # the App/Stream launch contracts validate.
+        detected = _read_release_version(runtime_root) or package_runtime_version
+        if detected and executable is not None:
+            runtime_version = detected
+
+    if runtime_version is None:
         state = ProfileState.UNSUPPORTED if package_runtime_version else ProfileState.MISSING
         resolved_root: Optional[Path] = None
     elif (runtime_version, architecture) not in matrix.definitions:

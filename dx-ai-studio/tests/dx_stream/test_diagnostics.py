@@ -130,30 +130,48 @@ class TestDiagnostics(unittest.TestCase):
         self.assertIn(".diag-card-warn", stream_css)
         self.assertIn("DXStream.escHtml", setup_script)
 
-    def test_gst_plugin_check_uses_the_dxinfer_element_factory(self):
+    def test_gst_plugin_check_probes_dxinfer_with_the_profile_plugin_path(self):
+        # The dxinfer factory check must run gst-inspect under the active profile's child
+        # env (its GST_PLUGIN_PATH points at the installed plugin dir); a bare inspect with
+        # the inherited env misses plugins under /usr/local/lib on default scan paths.
         from dx_stream.core import diagnostics
 
         calls = []
 
-        def fake_run(command, timeout=10):
-            calls.append((command, timeout))
+        def fake_run(command, timeout=10, env=None):
+            calls.append((command, timeout, env))
             return 0, "", ""
 
-        with patch.object(diagnostics, "_run", new=fake_run):
+        env = {"GST_PLUGIN_PATH": "/runtime/gst"}
+        with (
+            patch.object(diagnostics, "_run", new=fake_run),
+            patch.object(
+                diagnostics, "resolve_active_runtime_context",
+                return_value=SimpleNamespace(), create=True,
+            ),
+            patch.object(
+                diagnostics, "build_child_environment",
+                return_value=env, create=True,
+            ),
+        ):
             result = diagnostics._check_gst_plugin()
 
         self.assertTrue(result["ok"])
         self.assertEqual(
             calls,
-            [(["gst-inspect-1.0", "--exists", "dxinfer"], 10)],
+            [(["gst-inspect-1.0", "--exists", "dxinfer"], 10, env)],
         )
 
-    def test_gst_pipeline_check_parses_dxinfer_with_the_active_profile(self):
+    def test_gst_pipeline_check_parses_dxinfer_with_a_gi_capable_interpreter(self):
+        # The parse probe must NOT reuse the active context's python (the isolated dx_app
+        # inference venv has no PyGObject); it must use a gi-capable interpreter, while
+        # still carrying the active profile's child environment.
         from dx_stream.core import diagnostics
         from shared.runtime_contract import ContractResult
 
         context = SimpleNamespace(python_executable=Path("/runtime/bin/python3"))
         environment = {"GST_PLUGIN_PATH": "/runtime/gst"}
+        gi_python = Path("/gi/bin/python3")
         captured = {}
 
         def fake_parse(pipeline, **kwargs):
@@ -176,6 +194,12 @@ class TestDiagnostics(unittest.TestCase):
             ),
             patch.object(
                 diagnostics,
+                "gi_capable_python",
+                return_value=gi_python,
+                create=True,
+            ),
+            patch.object(
+                diagnostics,
                 "validate_stream_pipeline",
                 side_effect=fake_parse,
                 create=True,
@@ -188,8 +212,25 @@ class TestDiagnostics(unittest.TestCase):
             captured["pipeline"],
             "videotestsrc num-buffers=1 ! dxinfer ! fakesink",
         )
-        self.assertEqual(captured["python_executable"], context.python_executable)
+        # gi-capable interpreter, NOT the isolated inference venv
+        self.assertEqual(captured["python_executable"], gi_python)
+        self.assertNotEqual(captured["python_executable"], context.python_executable)
         self.assertEqual(captured["environment"], environment)
+
+    def test_gi_capable_python_returns_interpreter_that_imports_gi(self):
+        from dx_stream.core.gst_env import gi_capable_python
+        import subprocess
+
+        if subprocess.run(
+            [sys.executable, "-c", "import gi"], capture_output=True
+        ).returncode != 0:
+            self.skipTest("PyGObject (gi) not available in this test environment")
+
+        chosen = gi_capable_python(Path("/nonexistent/python3"))
+        proof = subprocess.run(
+            [str(chosen), "-c", "import gi"], capture_output=True
+        )
+        self.assertEqual(proof.returncode, 0)
 
 
 if __name__ == "__main__":

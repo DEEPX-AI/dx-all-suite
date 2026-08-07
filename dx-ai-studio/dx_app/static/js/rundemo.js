@@ -451,8 +451,12 @@ if (typeof window !== 'undefined') window.rundemoRun = rundemoRun;
 // Batch path: POST /api/run, render the saved result (image, or Python-saved video mp4).
 // Also the graceful fallback when live streaming isn't available on this board.
 function rundemoRunBatch(idx, d, body, resultEl) {
-  window.renderInferenceSpinner(resultEl);
-  postJ('/api/run', body).then(function (res) {
+  // runWithProgress (defined in inference.js) shows a live progress bar via /api/run_async,
+  // falling back to the blocking /api/run; returns the same result shape either way.
+  var _run = (typeof runWithProgress === 'function')
+    ? runWithProgress(body, resultEl)
+    : (window.renderInferenceSpinner(resultEl), postJ('/api/run', body));
+  _run.then(function (res) {
     if (!res || res.error) {
       var errMsg = (res && (res.error || res.message)) || _T6('알 수 없는 오류', 'Unknown error', '不明なエラー', '未知错误', '未知錯誤', 'Error desconocido');
       window.renderInferenceError(resultEl, errMsg, '');

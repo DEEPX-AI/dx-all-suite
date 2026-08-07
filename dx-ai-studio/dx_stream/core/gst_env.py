@@ -12,12 +12,45 @@ in-process GI binding and the ``gst-launch-1.0`` subprocess can load it.
 
 import os
 import logging
+import shutil
+import subprocess
+import sys
 from pathlib import Path
 from typing import Optional
 
 log = logging.getLogger(__name__)
 
 PLUGIN_SO = "libgstdxstream.so"
+
+
+def gi_capable_python(fallback):
+    """Interpreter able to ``import gi`` (PyGObject), for GStreamer admission probes.
+
+    ``resolve_active_runtime_context().python_executable`` is the isolated dx_app
+    inference venv — built WITHOUT ``--system-site-packages`` to pin dx_engine's ABI —
+    so it has no system PyGObject. Any dx_stream probe that runs ``Gst.parse_launch``
+    under it fails with ``ModuleNotFoundError: No module named 'gi'`` and wrongly
+    rejects a pipeline that would actually play. Prefer the Studio server's own
+    interpreter (its ``.venv`` is ``--system-site-packages`` → gi importable), then a
+    system ``python3``, else the given fallback. The isolated venv stays correct for
+    dx_app inference; only the Stream GStreamer probe diverges here.
+    """
+    candidates = [Path(sys.executable)]
+    for name in ("python3", "python"):
+        found = shutil.which(name)
+        if found:
+            candidates.append(Path(found))
+    for candidate in candidates:
+        try:
+            probe = subprocess.run(
+                [str(candidate), "-c", "import gi"],
+                capture_output=True, timeout=5,
+            )
+        except (OSError, subprocess.SubprocessError):
+            continue
+        if probe.returncode == 0:
+            return candidate
+    return fallback
 
 # Every directory any historical detector looked in, most-specific first.
 _KNOWN_DIRS = (

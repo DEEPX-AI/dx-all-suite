@@ -57,6 +57,23 @@ def test_registered_sdk_library_pdfs_are_packaged():
     assert missing == []
 
 
+def _suggest_relocation(suite_root, rel):
+    """On drift, find a same-named real file elsewhere in the suite to hint the new path.
+
+    is_file() skips broken mkdocs `--8<--` snippet symlinks; internal/build dirs are
+    excluded so the hint points at a real, user-facing doc."""
+    name = Path(rel).name
+    skip = {".git", ".venv", "node_modules", "__pycache__", "superpowers", "build"}
+    hits = []
+    for cand in suite_root.rglob(name):
+        if not cand.is_file() or set(cand.parts) & skip:
+            continue
+        hits.append(str(cand.relative_to(suite_root)))
+        if len(hits) >= 3:
+            break
+    return hits
+
+
 def test_registered_sdk_library_markdown_paths_exist_on_disk():
     data = load_data()
     suite_root = ROOT.parent
@@ -69,4 +86,18 @@ def test_registered_sdk_library_markdown_paths_exist_on_disk():
                     continue
                 if not (suite_root / path).is_file():
                     missing.append(path)
-    assert missing == []
+    if missing:
+        # Submodule doc reorganizations (e.g. docs/ -> docs/source/, file renumbering)
+        # break these hardcoded registry paths. Point at the likely new location so the
+        # sdk-library-data.json fix is quick.
+        lines = []
+        for rel in missing:
+            hits = _suggest_relocation(suite_root, rel)
+            lines.append(
+                "  " + rel
+                + ("  -> maybe: " + ", ".join(hits) if hits else "  (no same-named file — doc removed?)")
+            )
+        raise AssertionError(
+            "sdk-library-data.json registers %d markdown path(s) that no longer exist on "
+            "disk (likely a submodule doc move/rename):\n%s" % (len(missing), "\n".join(lines))
+        )

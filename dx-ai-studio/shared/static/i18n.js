@@ -124,28 +124,26 @@
       else if (_lang === 'en') el.innerHTML = key;
     });
 
-    for (var enPh in _placeholders) {
-      if (!_placeholders.hasOwnProperty(enPh)) continue;
+    _queryAll(scope, 'input[placeholder], textarea[placeholder]').forEach(function (el) {
+      if (_lang === 'en') {
+        var orig = el.getAttribute('data-i18n-ph-orig');
+        if (orig) el.setAttribute('placeholder', orig);
+        return;
+      }
+      var origKey = el.getAttribute('data-i18n-ph-orig');
+      var ph = el.getAttribute('placeholder');
+      var enPh = (origKey && _placeholders.hasOwnProperty(origKey)) ? origKey
+               : (ph && _placeholders.hasOwnProperty(ph)) ? ph : null;
+      if (enPh === null) return;
       var phEntry = _placeholders[enPh];
-      _queryAll(scope, 'input[placeholder], textarea[placeholder]').forEach(function (el) {
-        var ph = el.getAttribute('placeholder');
-        if (_lang === 'en') {
-          var orig = el.getAttribute('data-i18n-ph-orig');
-          if (orig) el.setAttribute('placeholder', orig);
-        } else {
-          var target;
-          if (typeof phEntry === 'string') {
-            target = _lang === 'ko' ? phEntry : null;
-          } else if (typeof phEntry === 'object') {
-            target = phEntry[_lang];
-          }
-          if (target && (ph === enPh || el.getAttribute('data-i18n-ph-orig') === enPh)) {
-            el.setAttribute('data-i18n-ph-orig', enPh);
-            el.setAttribute('placeholder', target);
-          }
-        }
-      });
-    }
+      var target;
+      if (typeof phEntry === 'string') target = _lang === 'ko' ? phEntry : null;
+      else if (typeof phEntry === 'object') target = phEntry[_lang];
+      if (target) {
+        el.setAttribute('data-i18n-ph-orig', enPh);
+        el.setAttribute('placeholder', target);
+      }
+    });
 
     _queryAll(scope, '[data-i18n-placeholder]').forEach(function (el) {
       var key = el.getAttribute('data-i18n-placeholder');
