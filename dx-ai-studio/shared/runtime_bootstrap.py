@@ -8,6 +8,7 @@ from typing import Protocol, Union
 from shared.runtime_profile import (
     ReconciliationPlan,
     ReconciliationState,
+    RuntimeArtifact,
     RuntimeDefinition,
     RuntimeManifest,
     RuntimeProfile,
@@ -42,6 +43,28 @@ class BootstrapResult:
 
 def _bounded_reason(value: object) -> str:
     return str(value).strip()[:400] or "Runtime installer reported no detail."
+
+
+def _installed_probe_definition(profile: RuntimeProfile, plan: ReconciliationPlan) -> RuntimeDefinition:
+    """A RuntimeDefinition to hand runner.validate() when accepting an installed runtime.
+
+    validate() checks the REAL installed files and ignores this object, so a manifest entry is
+    not required. Prefer plan.rollback — plan_reconciliation sets it to the INSTALLED version's
+    definition (not plan.target, which is the upgrade target). Fall back to a synthesized
+    definition for the installed version so the accept path also works for versions the manifest
+    doesn't curate."""
+    if plan.rollback is not None:
+        return plan.rollback
+    empty = RuntimeArtifact(version="", uri="", sha256="")
+    return RuntimeDefinition(
+        version=profile.runtime_version or "installed",
+        architecture=profile.architecture,
+        gstreamer_abi="",
+        suite_revision="installed",
+        runtime_revision="installed",
+        runtime=empty,
+        driver=empty,
+    )
 
 
 def _verify_artifact_if_supported(runner: RuntimeInstaller, definition: RuntimeDefinition) -> bool:
@@ -97,6 +120,34 @@ def reconcile(
     plan = plan_reconciliation(profile, manifest)
     persisted = state_store.load()
     previous_active = persisted.active_version or profile.runtime_version
+
+    # Accept any coherent ALREADY-INSTALLED runtime that passes the Studio App/Stream launch
+    # contracts, regardless of its exact version. DX runtimes ship per-version as coherent
+    # rt/fw/driver bundles and have been distributed for a long time, so Studio must run on all
+    # of them rather than force one manifest-pinned target. runner.validate() checks the REAL
+    # installed files (it ignores the definition it is handed — see RuntimeCandidateValidator),
+    # so it is the source of truth for "a usable runtime is installed", and it also self-heals
+    # the studio inference venv. A physically-installed runtime is never silently replaced: if
+    # it validates it is activated as-is; if it does not, that is a broken install to repair
+    # (FAILED), not a trigger to install a different pinned version. Only when NO runtime is
+    # installed do we fall through to install the manifest target below.
+    if profile.runtime_version is not None:
+        probe = _installed_probe_definition(profile, plan)
+        try:
+            accepted = bool(runner.validate(probe))
+            validation_error = ""
+        except Exception as exc:
+            accepted = False
+            validation_error = _bounded_reason(exc)
+        if accepted:
+            reason = "Accepted installed runtime {}.".format(profile.runtime_version)
+            _save(state_store, profile.runtime_version, None, RuntimePhase.ACTIVE, reason)
+            return BootstrapResult(BootstrapStatus.ACTIVE, plan, reason)
+        reason = "Installed runtime {} failed the Studio launch contracts.{}".format(
+            profile.runtime_version, (" " + validation_error) if validation_error else ""
+        )
+        _save(state_store, None, profile.runtime_version, RuntimePhase.FAILED, reason)
+        return BootstrapResult(BootstrapStatus.FAILED, plan, reason)
 
     if plan.state is ReconciliationState.BLOCKED:
         _save(state_store, previous_active, None, RuntimePhase.BLOCKED, plan.reason)

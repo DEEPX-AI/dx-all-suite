@@ -112,9 +112,10 @@ SETUP_STEPS={
         # Option 1: guarantee ONE interpreter with numpy+cv2+dx_engine for the python-variant
         # demos, without touching dx-runtime or the base interpreter. A no-op when an existing
         # interpreter already has all three (common on dx-all-suite boards); otherwise it builds
-        # a studio-owned venv (--system-site-packages seed from a dx_engine-capable python) and
-        # pip-installs opencv-python-headless + numpy into it only. dx_engine must already be
-        # installed (it is not on PyPI) — run dx-rt-build first.
+        # an ISOLATED studio-owned venv and installs a KNOWN-GOOD dx_engine into it — a matching
+        # self-contained wheel (bundles libdxrt, so it survives a mismatched system libdxrt),
+        # else a verbatim copy of a working install — plus numpy + opencv-python-headless.
+        # dx_engine must already be installed (it is not on PyPI) — run dx-rt-build first.
         "label":"Python Inference Deps",
         "cmd":lambda:[sys.executable,"-c",
             "from shared.runtime import ensure_inference_venv; "

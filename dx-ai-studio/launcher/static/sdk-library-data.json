@@ -529,7 +529,7 @@
               "size": 5272
             },
             {
-              "path": "dx-compiler/source/docs/02_08_Common_Use_Cases.md",
+              "path": "dx-compiler/source/docs/02_10_Common_Use_Cases.md",
               "title": "Common Use Cases",
               "size": 11277
             },
@@ -627,104 +627,104 @@
               "size": 8026
             },
             {
-              "path": "dx-modelzoo/docs/getting-started/installation.md",
+              "path": "dx-modelzoo/docs/source/getting-started/installation.md",
               "title": "Model Zoo Installation",
               "type": "md",
               "size": 2330
             },
             {
-              "path": "dx-modelzoo/docs/getting-started/quickstart.md",
+              "path": "dx-modelzoo/docs/source/getting-started/quickstart.md",
               "title": "Model Zoo Quickstart",
               "type": "md",
               "size": 2941
             },
             {
-              "path": "dx-modelzoo/docs/guides/yaml-config.md",
+              "path": "dx-modelzoo/docs/source/guides/yaml-config.md",
               "title": "YAML Config Reference",
               "type": "md",
               "size": 9189
             },
             {
-              "path": "dx-modelzoo/docs/guides/evaluation.md",
+              "path": "dx-modelzoo/docs/source/guides/evaluation.md",
               "title": "Model Evaluation Guide",
               "type": "md",
               "size": 3669
             },
             {
-              "path": "dx-modelzoo/docs/guides/custom-models.md",
+              "path": "dx-modelzoo/docs/source/guides/custom-models.md",
               "title": "Custom Models Guide",
               "type": "md",
               "size": 8636
             },
             {
-              "path": "dx-modelzoo/docs/index.md",
+              "path": "dx-modelzoo/docs/source/index.md",
               "title": "Model Zoo Documentation",
               "type": "md",
               "size": 2619
             },
             {
-              "path": "dx-modelzoo/docs/api/cli.md",
+              "path": "dx-modelzoo/docs/source/api/cli.md",
               "title": "Model Zoo CLI Reference",
               "type": "md",
               "size": 6491
             },
             {
-              "path": "dx-modelzoo/docs/architecture/overview.md",
+              "path": "dx-modelzoo/docs/source/architecture/overview.md",
               "title": "Architecture Overview",
               "size": 6033
             },
             {
-              "path": "dx-modelzoo/docs/architecture/pipeline.md",
+              "path": "dx-modelzoo/docs/source/architecture/pipeline.md",
               "title": "Pipeline Architecture",
               "size": 6401
             },
             {
-              "path": "dx-modelzoo/docs/architecture/registry.md",
+              "path": "dx-modelzoo/docs/source/architecture/registry.md",
               "title": "Registry Architecture",
               "size": 8319
             },
             {
-              "path": "dx-modelzoo/docs/api/session.md",
+              "path": "dx-modelzoo/docs/source/api/session.md",
               "title": "Session API",
               "size": 8299
             },
             {
-              "path": "dx-modelzoo/docs/api/model-builder.md",
+              "path": "dx-modelzoo/docs/source/api/model-builder.md",
               "title": "Model Builder API",
               "size": 6616
             },
             {
-              "path": "dx-modelzoo/docs/api/dataloader.md",
+              "path": "dx-modelzoo/docs/source/api/dataloader.md",
               "title": "DataLoader API",
               "size": 6426
             },
             {
-              "path": "dx-modelzoo/docs/api/datasets.md",
+              "path": "dx-modelzoo/docs/source/api/datasets.md",
               "title": "Datasets API",
               "size": 17905
             },
             {
-              "path": "dx-modelzoo/docs/api/preprocessing.md",
+              "path": "dx-modelzoo/docs/source/api/preprocessing.md",
               "title": "Preprocessing API",
               "size": 6544
             },
             {
-              "path": "dx-modelzoo/docs/api/postprocessing.md",
+              "path": "dx-modelzoo/docs/source/api/postprocessing.md",
               "title": "Postprocessing API",
               "size": 7185
             },
             {
-              "path": "dx-modelzoo/docs/api/evaluator.md",
+              "path": "dx-modelzoo/docs/source/api/evaluator.md",
               "title": "Evaluator API",
               "size": 9613
             },
             {
-              "path": "dx-modelzoo/docs/guides/datasets.md",
+              "path": "dx-modelzoo/docs/source/guides/datasets.md",
               "title": "Datasets Guide",
               "size": 10322
             },
             {
-              "path": "dx-modelzoo/docs/guides/custom-datasets.md",
+              "path": "dx-modelzoo/docs/source/guides/custom-datasets.md",
               "title": "Custom Datasets Guide",
               "size": 6794
             }

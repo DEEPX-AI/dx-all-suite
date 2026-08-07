@@ -645,6 +645,8 @@ tbody tr:hover td{background:var(--bg-3)}
 .comp-log .cl-done{color:var(--success)}
 .comp-progress{height:6px;background:var(--bg-3);border-radius:3px;overflow:hidden;margin:8px 0}
 .comp-progress-bar{height:100%;background:linear-gradient(90deg,var(--accent),var(--info));border-radius:3px;transition:width .4s ease;width:0}
+.comp-progress-bar.indeterminate{width:35%;transition:none;animation:runSweep 1.1s ease-in-out infinite}
+@keyframes runSweep{0%{transform:translateX(-110%)}100%{transform:translateX(320%)}}
 .comp-result-card{background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius);padding:14px;text-align:center}
 .comp-result-card .cr-icon{font-size:var(--fs-4xl);margin-bottom:6px}
 .comp-result-card .cr-val{font-size:15px;font-weight:700;color:var(--text-1)}
@@ -1232,6 +1234,125 @@ html[lang="zh-TW"] .zh-CN{display:none!important}
 .lab-card:hover{border-color:var(--accent)}
 .lab-status-ok{border-color:rgba(34,197,94,.35)}
 .lab-status-err{border-color:rgba(239,68,68,.35)}
+
+/* DX App Composer */
+.lab-composer{display:flex;flex-direction:column;gap:var(--sp-4)}
+.lab-composer-title{margin:0;color:var(--text-1)}
+.lab-composer-tabs{display:flex;gap:var(--sp-2);border-bottom:1px solid var(--border)}
+.lab-composer-tab{border:0;border-bottom:2px solid transparent;background:transparent;color:var(--text-3);padding:9px 14px;cursor:pointer}
+.lab-composer-tab.active{color:var(--accent-light);border-bottom-color:var(--accent);font-weight:600}
+.lab-composer-panel,.lab-composer-summary,.lab-composer-graph,.lab-composer-result{border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-2);padding:var(--sp-4)}
+.lab-composer-panel h3,.lab-composer-summary h3,.lab-composer-graph h3,.lab-composer-result h3{margin:0 0 var(--sp-2);color:var(--text-1)}
+.lab-composer-summary-details{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:8px 14px;margin:0}
+.lab-composer-summary-details dt{color:var(--text-3);font-size:var(--fs-sm)}
+.lab-composer-summary-details dd{margin:0;color:var(--text-1);overflow-wrap:anywhere}
+.lab-composer-template-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:var(--sp-2);margin-top:var(--sp-3)}
+.lab-composer-template{border:1px solid var(--border);border-radius:var(--radius);background:var(--card);color:var(--text-2);padding:var(--sp-3);cursor:pointer;text-align:left;text-transform:capitalize}
+.lab-composer-template:hover{border-color:var(--accent);color:var(--accent-light)}
+.lab-composer-empty{margin:var(--sp-3) 0 0;border-left:3px solid var(--warn,#d29922);padding-left:var(--sp-3);color:var(--text-2);font-size:var(--fs-sm);line-height:1.6}
+.lab-composer-history{display:flex;gap:var(--sp-2);justify-content:flex-end;margin:-34px 0 var(--sp-3)}
+.lab-composer-history .btn{padding:5px 10px;font-size:var(--fs-xs)}
+.lab-composer-node-control{display:flex;flex-direction:column;gap:4px}
+.lab-composer-node-control label{color:var(--text-2);font-size:var(--fs-2xs);font-weight:600}
+.lab-composer-node-control .input{width:100%;min-width:0;font-size:var(--fs-xs)}
+.lab-composer-plugin-control{display:flex;gap:var(--sp-2);align-items:center;margin-top:auto}
+.lab-composer-plugin-control .input{min-width:0;flex:1}
+.lab-composer-plugin-button{font-size:var(--fs-xs);padding:6px 8px}
+.lab-composer-plugin-toggle{display:flex;align-items:center;gap:var(--sp-2);font-size:var(--fs-xs);color:var(--text-2);cursor:pointer}
+.lab-composer-plugin-toggle input{accent-color:var(--accent)}
+.lab-composer-plugin-palette{display:flex;align-items:center;flex-wrap:wrap;gap:var(--sp-2);margin:0 0 var(--sp-3);padding:var(--sp-3);border:1px dashed var(--border-hover);border-radius:var(--radius);background:rgba(99,140,255,.04)}
+.lab-composer-plugin-palette h4,.lab-composer-plugin-palette p{margin:0}
+.lab-composer-plugin-palette h4{color:var(--text-1);font-size:var(--fs-sm)}
+.lab-composer-plugin-palette p{flex-basis:100%}
+.lab-composer-plugin-chip{border:1px solid rgba(99,140,255,.5);border-radius:999px;background:var(--accent-dim);padding:4px 9px;color:var(--accent-light);font:inherit;font-size:var(--fs-xs);cursor:grab}
+.lab-composer-plugin-chip:active{cursor:grabbing}
+.lab-composer-plugin-drop-target{border-style:dashed}
+.lab-composer-plugin-drop-active{border-color:var(--accent);box-shadow:0 0 0 2px rgba(99,140,255,.2)}
+.lab-composer-drop-hint{margin:0;color:var(--text-2);font-size:var(--fs-2xs);line-height:1.4}
+.lab-composer-plugin-preview{margin-top:var(--sp-3);padding:var(--sp-3);border:1px dashed var(--border-hover);border-radius:var(--radius);background:rgba(99,140,255,.06)}
+.lab-composer-plugin-preview h4{margin:0 0 var(--sp-2);color:var(--text-1);font-size:var(--fs-sm)}
+.lab-composer-plugin-preview p{margin:0 0 var(--sp-2);font-family:var(--mono);overflow-wrap:anywhere}
+.lab-composer-recipe-controls,.lab-composer-export-panel{margin-top:var(--sp-3);padding:var(--sp-3);border:1px solid var(--border);border-radius:var(--radius);background:var(--panel)}
+.lab-composer-recipe-controls h3,.lab-composer-export-panel h3{margin:0 0 var(--sp-3);font-size:var(--fs-sm)}
+.lab-composer-recipe-actions,.lab-composer-export-actions{display:flex;flex-wrap:wrap;gap:var(--sp-2);align-items:center}
+.lab-composer-recipe-file{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap}
+.lab-composer-export-summary{display:grid;grid-template-columns:auto 1fr;gap:var(--sp-1) var(--sp-3);margin:0 0 var(--sp-3);font-size:var(--fs-xs)}
+.lab-composer-export-summary dt{color:var(--text-2);font-weight:600}
+.lab-composer-export-summary dd{margin:0;overflow-wrap:anywhere}
+.lab-composer-arrow{align-self:center;color:var(--text-4);font-size:var(--fs-lg)}
+.lab-composer-validation{margin:0;border-radius:var(--radius);padding:10px 12px;font-weight:600}
+.lab-composer-validation-ready{border:1px solid rgba(34,197,94,.35);background:rgba(34,197,94,.08);color:#58d68d}
+.lab-composer-validation-blocked{border:1px solid rgba(239,68,68,.35);background:rgba(239,68,68,.08);color:#ff8f8f}
+.lab-composer-blockers,.lab-composer-warnings{margin:0;padding-left:20px;color:var(--text-2);font-size:var(--fs-sm)}
+.lab-composer-actions{display:flex;flex-wrap:wrap;gap:var(--sp-2)}
+.lab-composer-actions .btn:disabled{cursor:not-allowed;opacity:.5}
+.lab-composer-result{min-height:100px}
+.lab-composer-result .res-img{display:block;max-width:100%;max-height:520px;margin-top:var(--sp-3);border-radius:var(--radius);border:1px solid var(--border)}
+.lab-composer-error{margin:0;color:#ff8f8f}
+.lab-composer-graph>.lab-composer-history{margin:0 0 var(--sp-3)}
+.lab-composer-builder{display:grid;grid-template-columns:minmax(190px,240px) minmax(0,1fr) minmax(220px,300px);gap:var(--sp-3);align-items:stretch}
+.lab-composer-palette,.lab-composer-inspector{display:flex;min-width:0;flex-direction:column;gap:var(--sp-2);border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-1);padding:var(--sp-3)}
+.lab-composer-palette h3,.lab-composer-inspector h3{margin:0;color:var(--text-1)}
+.lab-composer-palette h4,.lab-composer-inspector h4{margin:var(--sp-2) 0 0;color:var(--text-2);font-family:var(--mono);font-size:var(--fs-2xs);letter-spacing:.08em;text-transform:uppercase}
+.lab-composer-palette .lab-composer-tabs{margin:0 -2px}
+.lab-composer-palette .lab-composer-tab{flex:1;padding:7px 5px;font-size:var(--fs-xs)}
+.lab-composer-palette-item{width:100%;border:1px solid var(--border);border-left:3px solid transparent;border-radius:calc(var(--radius) - 2px);background:var(--bg-2);color:var(--text-2);padding:8px 9px;cursor:pointer;font:inherit;font-size:var(--fs-xs);line-height:1.35;overflow-wrap:anywhere;text-align:left;transition:border-color .15s,background .15s,color .15s}
+.lab-composer-palette-item:hover,.lab-composer-palette-item:focus-visible{border-color:var(--accent);color:var(--text-1);outline:none}
+.lab-composer-palette-item.selected{border-left-color:var(--accent);border-color:rgba(99,140,255,.55);background:var(--accent-dim);color:var(--accent-light)}
+.lab-composer-model-choice{cursor:grab}.lab-composer-model-choice:active{cursor:grabbing}
+.lab-composer-model-palette{display:flex;flex-direction:column;gap:var(--sp-1)}
+.lab-composer-model-search{width:100%;box-sizing:border-box;margin-bottom:var(--sp-1);padding:var(--sp-1) var(--sp-2);border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-0);color:var(--text-1);font-size:var(--fs-xs)}
+.lab-composer-model-search:focus{outline:none;border-color:var(--accent)}
+.lab-composer-model-list{display:flex;flex-direction:column;gap:var(--sp-1);max-height:min(52vh,420px);overflow-y:auto}
+.lab-composer-model-group{display:flex;flex-direction:column;gap:var(--sp-1)}
+.lab-composer-model-group-head{width:100%;text-align:left;font-weight:600;font-size:var(--fs-2xs);letter-spacing:.04em;text-transform:uppercase;opacity:.85;background:none;border:0;padding:var(--sp-1) 0;cursor:pointer;color:var(--text-2);font:inherit}
+.lab-composer-model-group-head:hover,.lab-composer-model-group-head:focus-visible{color:var(--text-1);outline:none}
+.lab-composer-model-group[data-collapsed="true"] .lab-composer-model-choice{display:none}
+.lab-composer-asset-choice{cursor:grab}.lab-composer-asset-choice:active{cursor:grabbing}
+.lab-composer-asset-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(82px,1fr));gap:var(--sp-1)}
+.lab-composer-asset-grid .lab-composer-asset-choice{display:flex;flex-direction:column;align-items:center;gap:4px;padding:5px;text-align:center;font-size:var(--fs-2xs)}
+.lab-composer-asset-thumb{width:100%;height:54px;object-fit:cover;border-radius:calc(var(--radius) - 3px);background:var(--bg-0);display:block}
+.lab-composer-canvas{position:relative;min-width:0;overflow:hidden;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-0);padding:var(--sp-3)}
+.lab-composer-canvas h3{margin:0 0 var(--sp-2);color:var(--text-1)}
+.lab-composer-graph-host{min-width:0;margin-top:var(--sp-3)}
+.lab-composer-graph-editor{position:relative;min-height:460px;border:1px solid rgba(99,140,255,.26);border-radius:calc(var(--radius) - 2px);overflow:hidden;background:var(--bg-0)}
+.lab-composer-graph-toolbar{position:absolute;z-index:2;top:10px;left:10px;right:10px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;pointer-events:none}
+.lab-composer-graph-toolbar .btn{pointer-events:auto;background:rgba(15,23,42,.88);backdrop-filter:blur(6px)}
+.lab-composer-graph-status{margin-left:auto;border:1px solid var(--border);border-radius:999px;background:rgba(15,23,42,.88);padding:4px 8px;font-size:var(--fs-2xs);font-weight:700;letter-spacing:.03em;pointer-events:auto}
+.lab-composer-graph-status.ready{border-color:rgba(34,197,94,.45);color:#6ee7a5}
+.lab-composer-graph-status.blocked{border-color:rgba(239,68,68,.45);color:#ff9b9b}
+.lab-composer-graph-surface{display:block;width:100%;height:420px;cursor:grab;outline:none;touch-action:none}
+.lab-composer-graph-surface:active{cursor:grabbing}
+.lab-composer-graph-surface:focus-visible{box-shadow:inset 0 0 0 2px var(--accent)}
+.lab-composer-graph-surface.drop-active{box-shadow:inset 0 0 0 3px rgba(99,140,255,.7)}
+.lab-composer-graph-minimap{position:absolute;z-index:2;right:12px;bottom:12px;width:150px;height:92px;border:1px solid rgba(148,163,184,.45);border-radius:6px;background:#0b1220;box-shadow:0 6px 18px rgba(0,0,0,.24);pointer-events:none}
+.lab-composer-graph-blocked .lab-composer-graph-surface{box-shadow:inset 0 0 0 1px rgba(239,68,68,.4)}
+.lab-composer-graph-invalid-link .lab-composer-graph-surface{animation:lab-composer-graph-shake .32s ease-in-out}
+@keyframes lab-composer-graph-shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+.lab-composer-selection-drop-target{border-style:dashed}
+.lab-composer-drop-active{border-color:var(--accent)!important;box-shadow:0 0 0 3px rgba(99,140,255,.25)!important}
+.lab-composer-factory-note{margin:0;border-left:2px solid var(--accent);padding-left:var(--sp-2);color:var(--text-2);font-size:var(--fs-xs);line-height:1.5}
+@media(max-width:1100px){
+  .lab-composer-builder{grid-template-columns:minmax(180px,1fr) minmax(0,2fr)}
+  .lab-composer-inspector{grid-column:1/-1}
+}
+@media(max-width:600px){
+  .lab-composer-builder{grid-template-columns:1fr}
+  .lab-composer-inspector{grid-column:auto}
+  .lab-composer-tabs{overflow-x:auto}
+  .lab-composer-tab{white-space:nowrap}
+  .lab-composer-history{justify-content:flex-start;margin:0 0 var(--sp-3)}
+  .lab-composer-graph-editor{min-height:390px}
+  .lab-composer-graph-surface{height:350px}
+  .lab-composer-graph-toolbar{right:6px;top:6px;gap:4px}
+  .lab-composer-graph-toolbar .btn{padding:4px 6px;font-size:var(--fs-2xs)}
+  .lab-composer-graph-status{order:2;margin-left:0}
+  .lab-composer-graph-minimap{width:112px;height:69px;right:8px;bottom:8px}
+  .lab-composer-plugin-control{align-items:stretch;flex-direction:column}
+  .lab-composer-recipe-actions .btn,.lab-composer-export-actions .btn{width:100%}
+  .lab-composer-arrow{align-self:flex-start;transform:rotate(90deg)}
+  .lab-composer-actions .btn{width:100%}
+}
 
 /* ═══════════════════════════════════════════════════════════════════
    Run Demo — redesigned cards (design refactor 2026-07)

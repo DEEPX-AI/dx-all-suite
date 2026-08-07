@@ -452,7 +452,7 @@ async function doRun(){
   if(isImg&&S.uploadedImage)body.image_base64=S.uploadedImage;
   else if(isImg&&S.selectedImage)body.image_path=S.selectedImage;
   else if(inputType==='video')body.video_path=$('r-video').value;
-  const res=await postJ('/api/run',body);
+  const res=await runWithProgress(body,$('r-result'));
   if(res.error){
     var errMsg=translatedError(res);
     var rawErr=res.error||'';
@@ -479,6 +479,62 @@ async function doRun(){
 window.renderInferenceSpinner=function(el){
   el.innerHTML='<div class="spin"></div><p class="txt-dim mt8">'+T('Running inference…')+'</p>';
 };
+
+function _runSleep(ms){return new Promise(function(r){setTimeout(r,ms);});}
+
+// Live-progress wrapper around a batch run. Starts /api/run_async, polls /api/run_poll to
+// advance a progress bar (real % when the frame total is known — image loop count or video
+// frame_count; otherwise an indeterminate sweep), then returns the /api/run_result payload —
+// same shape doRun already renders. Falls back to the blocking /api/run if the async path is
+// unavailable, so behaviour degrades gracefully.
+async function runWithProgress(body,el){
+  renderRunProgress(el);
+  var start=null;
+  try{start=await postJ('/api/run_async',body);}catch(e){start=null;}
+  if(!start||start.error||!start.job_id){
+    return await postJ('/api/run',body);  // graceful fallback to synchronous run
+  }
+  var id=start.job_id;
+  for(;;){
+    await _runSleep(600);
+    var poll=null;
+    try{poll=await api('/api/run_poll?id='+encodeURIComponent(id));}catch(e){poll=null;}
+    if(!poll)continue;
+    if(poll.error)break;              // job reaped — fetch result then bail below
+    updateRunProgress(poll);
+    if(!poll.running)break;
+  }
+  for(var i=0;i<12;i++){
+    var r=null;
+    try{r=await api('/api/run_result?id='+encodeURIComponent(id));}catch(e){r=null;}
+    if(r&&r.error==='unknown_job')return {error:'run_result_unavailable'};
+    if(r&&!r.running)return r;        // final result dict (or an error dict from the run)
+    await _runSleep(300);
+  }
+  return {error:'run_result_timeout'};
+}
+
+function renderRunProgress(el){
+  el.innerHTML='<div class="run-prog"><div class="comp-progress">'
+    +'<div class="comp-progress-bar indeterminate" id="run-prog-bar"></div></div>'
+    +'<p class="txt-dim mt8" id="run-prog-label">'+T('Running inference…')+'</p></div>';
+}
+
+function updateRunProgress(poll){
+  var bar=$('run-prog-bar'),lbl=$('run-prog-label');
+  if(!bar||!lbl)return;
+  var el=poll.elapsed!=null?(' · '+poll.elapsed+'s'):'';
+  if(poll.pct!=null){
+    bar.classList.remove('indeterminate');
+    bar.style.width=poll.pct+'%';
+    var fr=poll.frames?(' · '+poll.frames+(poll.total?('/'+poll.total):'')+' '+T('frames')):'';
+    lbl.textContent=poll.pct+'%'+fr+el;
+  }else{
+    bar.classList.add('indeterminate');
+    var f2=poll.frames?(poll.frames+' '+T('frames')+' · '):'';
+    lbl.textContent=f2+T('Running inference…')+el;
+  }
+}
 
 window.renderInferenceError=function(el,msg,hintHtml){
   el.innerHTML='<p style="color:var(--error)">'+T('❌ Error: ')+esc(msg)+(hintHtml||'')+'</p>';

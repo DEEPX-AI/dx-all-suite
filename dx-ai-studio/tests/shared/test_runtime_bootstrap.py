@@ -28,7 +28,12 @@ class RecordingRunner:
         return definition.version != self.fail_validation_for
 
 
-def test_failed_candidate_validation_reinstalls_previous_artifact(tmp_path):
+def test_installed_nontarget_runtime_is_accepted_as_is_when_it_validates(tmp_path):
+    # Policy: DX runtimes ship per-version as coherent rt/fw/driver bundles that have been
+    # distributed for a long time, so Studio must run on any installed version that passes the
+    # launch contracts — it does NOT force-upgrade a working install to the manifest target.
+    # An older-than-target runtime (2.3.0) that validates is activated as-is; the target 2.4.1
+    # is never installed here.
     profile_api = _profile_api()
     bootstrap = _bootstrap_api()
     state_api = _state_api()
@@ -48,14 +53,11 @@ def test_failed_candidate_validation_reinstalls_previous_artifact(tmp_path):
 
     result = bootstrap.reconcile(profile, manifest, runner, state)
 
-    assert result.status is bootstrap.BootstrapStatus.ROLLED_BACK
-    assert runner.commands == [
-        "install:2.4.1",
-        "validate:2.4.1",
-        "install:2.3.0",
-        "validate:2.3.0",
-    ]
+    assert result.status is bootstrap.BootstrapStatus.ACTIVE
+    # only the INSTALLED version is validated; no install/upgrade/rollback of the target
+    assert runner.commands == ["validate:2.3.0"]
     assert state.load().active_version == "2.3.0"
+    assert state.load().phase is state_api.RuntimePhase.ACTIVE
 
 
 def test_runtime_state_store_replaces_the_journal_atomically(tmp_path):

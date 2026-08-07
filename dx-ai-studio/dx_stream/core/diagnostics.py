@@ -3,6 +3,7 @@ import glob as _glob
 import shutil
 import subprocess
 
+from dx_stream.core.gst_env import gi_capable_python
 from shared.runtime_context import RuntimeContextError, resolve_active_runtime_context
 from shared.runtime_environment import RuntimeEnvironmentError, build_child_environment
 from shared.runtime_validation import validate_stream_pipeline
@@ -92,9 +93,9 @@ _DIAGNOSTIC_CHECK_SPECS = (
 )
 
 
-def _run(cmd, timeout=10):
+def _run(cmd, timeout=10, env=None):
     try:
-        r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, env=env)
         return r.returncode, r.stdout.strip(), r.stderr.strip()
     except FileNotFoundError:
         return -1, "", "command not found"
@@ -179,7 +180,17 @@ def _check_gst_install():
 
 
 def _check_gst_plugin():
-    rc, _, _ = _run(["gst-inspect-1.0", "--exists", "dxinfer"])
+    # dxinfer ships under /usr/local/lib/.../gstreamer-1.0, which is NOT on GStreamer's
+    # default registry scan path on every distro (e.g. GStreamer 1.24 on Ubuntu 24.04). A
+    # bare `gst-inspect --exists dxinfer` then reports the element missing even though the
+    # plugin loads fine when pointed at it. Probe with the active profile's child env — its
+    # GST_PLUGIN_PATH points at the installed plugin dir — matching how the Stream pipeline
+    # is actually launched. Fall back to the inherited env if no active profile is resolved.
+    try:
+        env = build_child_environment(resolve_active_runtime_context())
+    except (RuntimeContextError, RuntimeEnvironmentError):
+        env = None
+    rc, _, _ = _run(["gst-inspect-1.0", "--exists", "dxinfer"], env=env)
     ok = rc == 0
     return {
         "id": "gst_plugin",
@@ -195,7 +206,7 @@ def _check_gst_pipeline():
         context = resolve_active_runtime_context()
         result = validate_stream_pipeline(
             _DXINFER_PARSE_PROBE,
-            python_executable=context.python_executable,
+            python_executable=gi_capable_python(context.python_executable),
             environment=build_child_environment(context),
         )
         ok = result.passed
