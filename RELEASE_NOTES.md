@@ -1,5 +1,54 @@
 # RELEASE_NOTES
 
+## DX-All-Suite v2.4.2 / 2026-08-11
+
+- DX-Compiler: v2.4.1
+    - DX-COM: v2.4.0
+    - DX-TRON: v2.0.1 (Deprecated)
+- DX-Runtime: v2.4.2
+    - DX_FW: v2.7.4
+    - NPU Driver: v2.6.0
+    - DX-RT: v3.4.2
+    - DX-Stream: v3.1.2
+    - DX-APP: v3.2.2
+
+---
+
+Here are the **DX-All-Suite v2.4.2** Release Notes.
+
+### What's New?
+
+This hotfix release resolves centralized runtime sanity checks, Windows build and packaging reliability (DX-RT), depth-estimation and depth-map metadata/rendering in DX-Stream, and DX-APP demo and model updates including YOLO26-Depth examples.
+
+#### **DX AI Studio (Beta) improvements**
+- **Lab Composer** — build, validate, and run inference workflows in one workspace.
+- **Plugin workflow** — scaffold custom plugins and export reusable Lab packages.
+- **Batch runs** — follow asynchronous inference jobs with live progress and result status.
+- **Runtime diagnostics** — improved bootstrap and structured debug logging simplify setup and troubleshooting.
+
+---
+
+### Key Updates
+
+**Performance & Efficiency**
+
+- **DX-RT**: Improved MSVC build log by resolving Windows build warnings; Windows packaging/staging idempotency reduces unnecessary rebuilds and reconfigure failures; Ninja-forced wheel builds avoid Visual Studio generator detection issues on CI.
+
+**Stability & Fixes**
+
+- **DX-RUNTIME(installer)**: Centralized sanity checks into `scripts/sanity_check.sh` prevent divergent driver detection logic between `install.sh` and standalone runs.
+- **DX-RT**: Staged generated headers (`gen.h`) into public include path with copy fallback when symlinks are unavailable on Windows.
+- **DX-STREAM**: Self-configuring GST_PLUGIN_PATH for Windows pipeline scripts; DX-Stream and dxosd fixes improve plugin path handling and depth rendering stability on Windows.
+- **DX-APP**: Moved SuperPoint point tracking out of keypoint detection post-process into the visualizer; switched depth-estimation demo from Depth-Anything-V2 to YOLO26-Depth-S; used new low-resolution source video (lowres-drone-city-road.mp4) for super-resolution demo; fixed Windows all-build parallelism by consolidating shared-file copies.
+
+**New Features & Tools**
+
+- **DX-RT**: `release.ver` added to Windows DXRT binaries for explicit versioning; recursive copy fallback for vendored headers (cxxopts, rapidjson) on Windows when directory symlinks are unavailable.
+- **DX-STREAM**: YOLO26 depth-estimation demo pipeline and depth metadata support to DXFrameMeta and depth-map rendering to dxosd.
+- **DX-APP**: YOLO26-Depth examples for all five model sizes (n/s/m/l/x, 768x768) with C++ sync/async plus Python sync/async/sync_cpp_postprocess/async_cpp_postprocess variants; registered 5 yolo26-depth models in `config/model_registry.json` and `scripts/modelzoo_manifest.json`; updated sample video archive to v3.2.2 with low-resolution source for super-resolution demos.
+
+---
+
 ## DX-All-Suite v2.4.1 / 2026-08-03
 
 - DX-Compiler: v2.4.1
