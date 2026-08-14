@@ -1,6 +1,4 @@
-# RELEASE_NOTES
-
-## DX-All-Suite v2.4.2 / 2026-08-11
+## DX-All-Suite v2.4.2 / 2026-08-14
 
 - DX-Compiler: v2.4.1
     - DX-COM: v2.4.0
@@ -282,7 +280,7 @@ For detailed updated items, refer to **each environment & module's Release Notes
 
 ---
 
-##  DX-All-Suite v2.3.3 / 2026-05-14
+## DX-All-Suite v2.3.3 / 2026-05-14
 
 - DX-Compiler: v2.3.1
     - DX-COM: v2.3.0
@@ -304,7 +302,7 @@ This hotfix release resolves a missing Debian package file issue in `dx_rt_npu_l
 
 ---
 
-##  DX-All-Suite v2.3.2 / 2026-05-11
+## DX-All-Suite v2.3.2 / 2026-05-11
 
 - DX-Compiler: v2.3.1
     - DX-COM: v2.3.0
@@ -343,7 +341,7 @@ For detailed updated items, refer to **each environment & module's Release Notes
 
 ---
 
-##  DX-All-Suite v2.3.1 / 2026-05-06
+## DX-All-Suite v2.3.1 / 2026-05-06
 
 - DX-Compiler: v2.3.1
     - DX-COM: v2.3.0
@@ -385,7 +383,7 @@ For detailed updated items, refer to **each environment & module's Release Notes
 
 ---
 
-##  DX-All-Suite v2.3.0 / 2026-04-10
+## DX-All-Suite v2.3.0 / 2026-04-10
 
 - DX-Compiler: v2.3.0
     - DX-COM: v2.3.0
@@ -399,7 +397,7 @@ For detailed updated items, refer to **each environment & module's Release Notes
 
 ---
 
-Here are the **DX-All-Suite v2.3.0** Release Note.  
+Here are the **DX-All-Suite v2.3.0** Release Notes.  
 
 ### What's New?
 
@@ -499,7 +497,7 @@ This release enhances the development experience with GPU-accelerated quantizati
 
 ---
 
-Here are the **DX-All-Suite v2.2.1** Release Note.
+Here are the **DX-All-Suite v2.2.1** Release Notes.
 
 ### What's New?
 
@@ -521,7 +519,7 @@ This release focuses on enhancing the YOLO ecosystem with expanded model variant
 
 ---
 
-##  DX-All-Suite v2.2.0 / 2026-01-16
+## DX-All-Suite v2.2.0 / 2026-01-16
 
 - DX-Compiler: v2.2.0
     - DX-COM: v2.2.0
@@ -535,7 +533,7 @@ This release focuses on enhancing the YOLO ecosystem with expanded model variant
 
 ---
 
-Here are the **DX-All-Suite v2.2.0** Release Note.
+Here are the **DX-All-Suite v2.2.0** Release Notes.
 
 ### What's New?
 
@@ -588,7 +586,7 @@ For detailed updated items, refer to **each environment & module's Release Notes
 
 ---
 
-##  DX-All-Suite v2.1.0 / 2025-11-28
+## DX-All-Suite v2.1.0 / 2025-11-28
 
 - DX-Compiler: v2.1.0
     - DX-COM: v2.1.0
@@ -602,7 +600,7 @@ For detailed updated items, refer to **each environment & module's Release Notes
 
 ---
 
-Here are the **DX-All-Suite v2.1.0** Release Note.
+Here are the **DX-All-Suite v2.1.0** Release Notes.
 
 ### What's New?
 This release marks a significant step forward with new features and major stability improvements across all core components.
@@ -648,7 +646,7 @@ For detailed updated items, refer to **each environment & module's Release Notes
 
 ---
 
-##  DX-All-Suite v2.0.0 / 2025-09-08
+## DX-All-Suite v2.0.0 / 2025-09-08
 
 - DX-Compiler: v2.0.0
     - DX-COM: v2.0.0
@@ -662,7 +660,7 @@ For detailed updated items, refer to **each environment & module's Release Notes
 
 ---
 
-Here are the **DX-All-Suite v2.0.0** Release Note.
+Here are the **DX-All-Suite v2.0.0** Release Notes.
 
 ### What's New?
 This release marks a significant step forward with new features and major stability improvements.

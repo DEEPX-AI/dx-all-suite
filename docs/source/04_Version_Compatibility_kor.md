@@ -26,7 +26,7 @@
   </thead>
   <tbody align="center">
     <tr>
-      <td rowspan="3">2026-08-11</td>
+      <td rowspan="3">2026-08-14</td>
       <td colspan="7">v2.4.2</td>
     </tr>
     <tr>
@@ -34,7 +34,7 @@
       <td colspan="5">v2.4.2</td>
     </tr>
     <tr>
-      <td>v2.4.1</td>
+      <td>v2.4.0</td>
       <td>v2.0.1</td>
       <td>v2.7.4</td>
       <td>v2.6.0</td>

@@ -139,11 +139,8 @@ sudo systemctl stop dxrt.service
 ./docker_run.sh --all --ubuntu_version=24.04
 ```
 
-!!! warning "GUI 환경 관련 주의"  
-    X11 경고나 마운트 오류(예: 디스플레이를 열 수 없음)가 발생하면 호스트 OS가 **Wayland** 세션을 사용 중일 가능성이 높습니다. **Q2. X11 Session Warnings & Mount Errors (Wayland Issues)**를 [**05. FAQ Troubleshooting Guide**](05_FAQ_Troubleshooting_Guide.md)에서 참고하십시오.  
-
-### Container Access and Task Guide
-
+!!! warning "GUI 환경에 대한 참고사항"  
+    X11 경고나 마운트 오류(예: cannot open display)가 발생하면, 이는 호스트 OS가 **Wayland** 세션을 사용하고 있기 때문일 가능성이 높습니다. [**FAQ Troubleshooting Guide**](05_FAQ_Troubleshooting_Guide.md)의 **Q2. X11 Session Warnings & Mount Errors (Wayland Issues)**를 참조하십시오.
 #### A. DX-Compiler 환경 (모델 변환)
 DX-Compiler 환경은 하드웨어에 최적화된 `.dxnn` 바이너리를 생성하는 데 사용됩니다.  
 
@@ -447,6 +444,6 @@ dxrt-cli -s
 ```
 
 !!! note "팁"  
-    어떤 항목이라도 **FAIL** 또는 **Not Found**를 반환하는 경우, 모듈 설치 단계(섹션 3-2)를 다시 방문하여 모든 구성 요소가 올바르게 컴파일되었는지 확인하십시오.  
+    어떤 항목이라도 **FAIL** 또는 **Not Found**를 반환하는 경우, **DX-Runtime 설치** 섹션(모듈 빌드 및 설치)을 다시 방문하여 모든 구성 요소가 올바르게 컴파일되었는지 확인하십시오.
 
 ---

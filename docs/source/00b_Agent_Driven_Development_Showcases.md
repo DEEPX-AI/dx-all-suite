@@ -9,4 +9,5 @@
 {%
    include-markdown "../../dx-agent-dev-showcase/README.md"
    rewrite-relative-urls=true
+   heading-offset=1
 %}

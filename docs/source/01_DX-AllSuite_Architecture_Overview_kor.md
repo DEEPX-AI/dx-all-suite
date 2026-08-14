@@ -90,9 +90,9 @@ DEEPX ModelZoo는 **345개의 사전 검증된 모델**을 제공하는 종합 �
 | **Panoptic Driving Perception** | 범용 주행 인식 모델 |
 | **Oriented Object Detection (OBB)** | YOLO26-OBB |
 | **Zero-shot Instance Segmentation** | FastSAM |
-| **Face Detection** | RetinaFace, SCRFD, ULFGED, YOLOv5-Face, YOLOv7-Face |
+| **Face Detection** | RetinaFace, SCRFD, ULFGFD, YOLOv5-Face, YOLOv7-Face |
 | **Face Recognition** | ArcFace (IResNet50/100, MobileFaceNet, R50) |
-| **Face Landmark** | TDDFA v2 (MobileNet variants) |
+| **Face Landmark** | 3DDFA_V2 (MobileNet variants) |
 | **Face Attribute** | FaceAttrResNetV1-18 |
 | **Hand Detection** | 손 검출 모델 |
 | **Hand Landmark** | MediaPipeHandsLite |
