@@ -108,6 +108,22 @@ interactive dashboard for cross-environment and cross-version comparison. Measur
 
 **Get started →** [`dx-benchmark/README.md`](./dx-benchmark/README.md)  ·  **Performance analysis →** [`dx-benchmark/docs/ANALYSIS_EN.md`](./dx-benchmark/docs/ANALYSIS_EN.md)
 
+## 📦 DX-Edge — Powered by AWS, available on AWS Marketplace
+
+**Take a trained model to a DEEPX NPU in the field, entirely through AWS.** DX-Edge covers the three
+things that stand between a trained ONNX model and a working edge deployment — compiling the model
+for the NPU, provisioning the runtime on the device, and qualified hardware to run it on — across
+three tracks published on AWS Marketplace. The **DEEPX Greengrass Solution** provisions the cloud
+compilation pipeline and the edge runtime from a single AWS CloudFormation stack, installing the NPU
+driver, firmware, `dx_rt`, and `dx_stream` over the air (Zero-Touch Provisioning) via AWS IoT
+Greengrass V2. The **DEEPX Compiler Solution** compiles ONNX to `.dxnn` on AWS — interactively from
+an Amazon EC2 instance, or automatically through an event-driven S3 → Lambda → Step Functions pipeline.
+The **AWS HW Path** documents the **DX-AIPlayer N97** (Intel® N97 + DX-M1) as an AWS IoT Greengrass
+core device, following the AWS Device Qualification Program Getting Started Guide template. Every
+document is published in English and Korean.
+
+**Explore DX-Edge →** [`dx-edge/README.md`](./dx-edge/README.md)  ·  **한국어 →** [`dx-edge/README-KO.md`](./dx-edge/README-KO.md)
+
 ## Getting Started
 
 **DX-AllSuite** provides two environments depending on your intended use. Choose the environment that fits your needs to get started.
@@ -160,6 +176,7 @@ If you are a first-time user, we recommend following the documentation in this o
 - **[Introduction](./docs/source/index.md)**: DX-AS overview and component descriptions
 - **★ [Agent-Driven Development (Beta)](./docs/source/00_Agent_Driven_Development.md)**: Build DEEPX apps with natural-language prompts using AI coding agents (Claude Code, Cursor, GitHub Copilot, OpenCode, Codex CLI)  
 - **[DX-Benchmark (Beta)](./dx-benchmark/README.md)**: Reproducible YOLO26 NPU benchmarks (Model-Level + E2E Pipeline) with an interactive performance dashboard  
+- **[DX-Edge](./dx-edge/README.md)**: Deploying DEEPX NPUs through AWS Marketplace — Greengrass Solution (ZTP runtime deployment), Compiler Solution (ONNX → `.dxnn` on AWS), and the DX-AIPlayer N97 Getting Started Guide
 - **Step 1. [DX-AllSuite Architecture Overview](./docs/source/01_DX-AllSuite_Architecture_Overview.md)**: SDK overview, module descriptions, and ModelZoo usage  
 - **Step 2. [Setting Up Environment](./docs/source/02_Setting_Up_Environment.md)**: Detailed Local/Docker installation and troubleshooting  
 - **Step 3. [Running Your First NPU Model](./docs/source/03_Running_Your_First_NPU_Model.md)**: Step-by-step hands-on script execution  

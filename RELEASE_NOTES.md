@@ -18,6 +18,20 @@ Here are the **DX-All-Suite v2.4.2** Release Notes.
 
 This hotfix release resolves centralized runtime sanity checks, Windows build and packaging reliability (DX-RT), depth-estimation and depth-map metadata/rendering in DX-Stream, and DX-APP demo and model updates including YOLO26-Depth examples.
 
+It also adds **DX-Edge**, the AWS-native documentation set for deploying DEEPX NPUs through AWS Marketplace.
+
+#### 📦 New: DX-Edge — Powered by AWS, available on AWS Marketplace
+
+**DX-Edge (`dx-edge`) documents the AWS-native path from a trained ONNX model to a DEEPX NPU running in the field**, across three tracks published on AWS Marketplace.
+
+**Highlights**
+- **DEEPX Greengrass Solution** — a single AWS CloudFormation stack that provisions the cloud compilation pipeline and installs the NPU driver, firmware, `dx_rt`, and `dx_stream` on edge devices over the air (Zero-Touch Provisioning) through AWS IoT Greengrass V2. Both the classic Greengrass nucleus and nucleus lite are supported.
+- **DEEPX Compiler Solution** — ONNX → `.dxnn` compilation on AWS, either interactively on an Amazon EC2 instance launched from the AMI, or fully automatically through an event-driven Amazon S3 → AWS Lambda → AWS Step Functions pipeline that starts and terminates the compiler instance per job.
+- **AWS HW Path (DX-AIPlayer N97)** — a Getting Started Guide for AWS IoT Greengrass covering the Intel® N97 + DEEPX DX-M1 edge AI system, written to the AWS Device Qualification Program template.
+- **Bilingual** — every document is published in English and Korean.
+
+**Learn more** — see [`dx-edge/README.md`](dx-edge/README.md).
+
 #### **DX AI Studio (Beta) improvements**
 - **Lab Composer** — build, validate, and run inference workflows in one workspace.
 - **Plugin workflow** — scaffold custom plugins and export reusable Lab packages.

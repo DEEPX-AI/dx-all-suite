@@ -106,6 +106,21 @@ interactive dashboard로 렌더링됩니다. 6개 hardware 환경 측정 결과�
 
 **시작하기 →** [`dx-benchmark/README.md`](./dx-benchmark/README.md)  ·  **성능 분석 →** [`dx-benchmark/docs/ANALYSIS_KOR.md`](./dx-benchmark/docs/ANALYSIS_KOR.md)
 
+## 📦 DX-Edge — Powered by AWS, available on AWS Marketplace
+
+**학습된 모델을 현장의 DEEPX NPU에서 실행하기까지, 전 과정을 AWS 위에서.** DX-Edge는 학습된 ONNX
+모델과 실제 엣지 배포 사이에 놓인 세 가지 — NPU용 모델 컴파일, 디바이스 런타임 프로비저닝, 이를
+실행할 검증된 하드웨어 — 를 AWS Marketplace에 공개된 세 개 트랙으로 다룹니다. **DEEPX Greengrass
+Solution**은 AWS CloudFormation 스택 하나로 클라우드 컴파일 파이프라인과 엣지 런타임 배포 환경을
+함께 구성하고, AWS IoT Greengrass V2를 통해 NPU 드라이버·펌웨어·`dx_rt`·`dx_stream`을 OTA로
+설치합니다(Zero-Touch Provisioning). **DEEPX Compiler Solution**은 ONNX를 `.dxnn`으로 AWS에서
+컴파일합니다 — Amazon EC2 인스턴스에서 대화형으로 실행하거나, S3 → Lambda → Step Functions 이벤트 기반
+파이프라인으로 자동 실행합니다. **AWS HW Path**는 **DX-AIPlayer N97**(Intel® N97 + DX-M1)을 AWS IoT
+Greengrass 코어 디바이스로 구성하는 과정을 AWS Device Qualification Program의 Getting Started Guide
+템플릿에 맞춰 문서화합니다. 모든 문서는 영문과 국문으로 제공됩니다.
+
+**DX-Edge 살펴보기 →** [`dx-edge/README-KO.md`](./dx-edge/README-KO.md)  ·  **English →** [`dx-edge/README.md`](./dx-edge/README.md)
+
 ## 시작하기
 
 **DX-AllSuite**는 사용 목적에 따라 두 가지 환경을 제공합니다. 필요에 맞는 환경을 선택해 시작하세요.
@@ -157,6 +172,7 @@ DX-AllSuite는 우리 NPU에서 최고 성능을 내도록 최적화된, 업계 
 - **[소개](./docs/source/index.md)**: DX-AS 개요 및 구성요소 설명
 - **★ [Agent-Driven Development (Beta)](./docs/source/00_Agent_Driven_Development_kor.md)**: AI coding agent(Claude Code, Cursor, GitHub Copilot, OpenCode, Codex CLI)로 자연어 프롬프트를 사용해 DEEPX 앱 만들기
 - **[DX-Benchmark (Beta)](./dx-benchmark/README.md)**: 재현 가능한 YOLO26 NPU 벤치마크(Model-Level + E2E Pipeline)와 interactive 성능 dashboard
+- **[DX-Edge](./dx-edge/README-KO.md)**: AWS Marketplace를 통한 DEEPX NPU 배포 — Greengrass Solution(ZTP 런타임 배포), Compiler Solution(AWS에서 ONNX → `.dxnn`), DX-AIPlayer N97 Getting Started Guide
 - **Step 1. [DX-AllSuite Architecture Overview](./docs/source/01_DX-AllSuite_Architecture_Overview_kor.md)**: SDK 개요, 모듈 설명, ModelZoo 사용법
 - **Step 2. [Setting Up Environment](./docs/source/02_Setting_Up_Environment_kor.md)**: Local/Docker 설치 상세 및 트러블슈팅
 - **Step 3. [Running Your First NPU Model](./docs/source/03_Running_Your_First_NPU_Model_kor.md)**: 단계별 hands-on 스크립트 실행
