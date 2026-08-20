@@ -139,7 +139,7 @@ Run the container after the image build is complete.
 ```
 
 !!! warning "Note on GUI Environments"  
-    If you encounter X11 warnings or mount errors (e.g., cannot open display), it is likely due to the host OS using a **Wayland** session. Refer to **Q2. X11 Session Warnings & Mount Errors (Wayland Issues)** in [**05. FAQ Troubleshooting Guide**](05_FAQ_Troubleshooting_Guide.md).  
+    If you encounter X11 warnings or mount errors (e.g., cannot open display), it is likely due to the host OS using a **Wayland** session. Refer to **Q2. X11 Session Warnings & Mount Errors (Wayland Issues)** in [**FAQ Troubleshooting Guide**](05_FAQ_Troubleshooting_Guide.md).  
 
 ### Container Access and Task Guide
 
@@ -168,7 +168,7 @@ Use the provided script to compile all sample models automatically.
 ../example/3-compile_sample_models.sh
 ```
 
-- **Method 2**: Manual compilation (CLI)  
+- **Method 2**: Manual Compilation (CLI)  
 For granular control, activate the virtual environment and use the `dxcom` tool directly.  
 ```Bash
 source ../venv-dx-compiler/bin/activate  # Activate venv
@@ -446,6 +446,6 @@ Run the batch sanity script to verify that all modules are located in their desi
 ```
 
 !!! note "Tip"  
-    If any item returns a **FAIL** or **Not Found**, please revisit the module installation steps (Section 3-2) to ensure all components were compiled correctly.    
+    If any item returns a **FAIL** or **Not Found**, please revisit the **DX-Runtime Installation** section (Building and Installing Modules) to ensure all components were compiled correctly.    
 
 ---

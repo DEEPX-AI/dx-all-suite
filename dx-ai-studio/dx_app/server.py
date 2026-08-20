@@ -5,6 +5,7 @@ import shutil
 from pathlib import Path
 
 from shared.dx_server import DXBaseHandler, DXServer, RequestBodyError
+from shared import debug_log
 
 from dx_app.core import config
 from dx_app.core.config import (SCRIPT_DIR, DX_APP_ROOT, STATIC_DIR, TEMPLATES_DIR, SERVER_NAME, OUTPUTS_DIR,
@@ -140,7 +141,7 @@ from dx_app.core.setup_steps import SETUP_STEPS, setup_status, setup_run, deep_d
 from dx_app.core.developer import (lab_session, lab_check, require_lab, _check_origin_local, dev_add,
                        dev_delete, dev_git, dev_extract, extract_model_package,
                        dev_new_task, bug_report, save_capture)
-from dx_app.core.lab_portal import lab_capabilities, plan_add_model, plan_add_model_response, apply_add_model, smoke_add_model, plan_task_scaffold_response, apply_task_scaffold, generated_files_for_manifest, validate_lab_manifest_id, start_experiment_run, get_experiment_run, cancel_experiment_run, active_experiment_run_for_source, list_pending_manifests, change_summary_by_root, rollback_manifest, scoped_git_plan
+from dx_app.core.lab_portal import lab_capabilities, plan_add_model, plan_add_model_response, apply_add_model, smoke_add_model, plan_task_scaffold_response, apply_task_scaffold, generated_files_for_manifest, validate_lab_manifest_id, start_experiment_run, get_experiment_run, cancel_experiment_run, active_experiment_run_for_source, list_pending_manifests, change_summary_by_root, rollback_manifest, scoped_git_plan, plan_composer_quick_start, plan_composer_template, customize_composer_workflow, plan_composer_plugin_scaffold_response, apply_composer_plugin_scaffold, run_composer_workflow, export_composer_package, export_composer_recipe, import_composer_recipe
 
 _modelzoo_gw = ModelZooGateway()
 
@@ -229,17 +230,11 @@ class Handler(DXBaseHandler):
         if method == "GET":
             if path.startswith("/outputs/"):
                 fname=path[9:];fp=OUTPUTS_DIR/fname
-                try:resolve_under(str(fp),(OUTPUTS_DIR,))
+                try:safe_fp=resolve_under(str(fp),(OUTPUTS_DIR,))
                 except ValueError:self.send_error(403);return
-                if fp.exists() and fp.is_file():
-                    cd="attachment" if fp.suffix not in{".mp4",".webm",".jpg",".png"} else "inline"
-                    mime=mimetypes.guess_type(str(fp))[0] or "application/octet-stream"
-                    d=fp.read_bytes();self.send_response(200)
-                    self.send_header("Content-Type",mime);self.send_header("Content-Length",len(d))
-                    self.send_header("Content-Disposition",safe_content_disposition(cd,fname))
-                    self.send_header("Access-Control-Allow-Origin","*");self.end_headers();self.wfile.write(d)
-                else:self.send_error(404)
-                return
+                cd="attachment" if fp.suffix not in{".mp4",".webm",".jpg",".png"} else "inline"
+                return self.send_file(safe_fp,cache_control="no-cache, must-revalidate",
+                                      content_disposition=safe_content_disposition(cd,fname))
             if path.startswith("/file/"):
                 fp=DX_APP_ROOT/path[6:]
                 try:
@@ -257,6 +252,16 @@ class Handler(DXBaseHandler):
                 self.send_header("Cache-Control","public, max-age=86400")
                 self.send_header("Access-Control-Allow-Origin","*");self.end_headers();self.wfile.write(d)
                 return
+            if path=="/api/asset-thumb":
+                # Downscaled preview for the composer asset grid (82x54px) — avoids
+                # downloading+decoding full-res sample images. Cached on disk by src+mtime+w.
+                from dx_app.core.assets import sample_thumbnail
+                w=self.read_query_param("w") or "160"
+                try:width=max(32,min(512,int(w)))
+                except (TypeError,ValueError):width=160
+                tp=sample_thumbnail(self.read_query_param("f") or "",width)
+                if not tp:self.send_error(404);return
+                return self.send_file(tp)
             if path=="/api/models":return self.send_json(get_models())
             if path=="/api/catalog":return self.send_json(get_catalog())
             if path=="/api/demos":return self.send_json(build_demos_payload())
@@ -267,7 +272,7 @@ class Handler(DXBaseHandler):
                 c=get_file_content(self.read_query_param("path"))
                 return self.send_json({"content":c} if c else{"error":"not found"},404 if not c else 200)
             if path=="/api/images":return self.send_json(get_images(self.read_query_param("category") or None))
-            if path=="/api/videos":return self.send_json(get_videos())
+            if path=="/api/videos":return self.send_json(get_videos(self.read_query_param("category") or None))
             if path=="/api/categories":return self.send_json(CATEGORIES)
             if path=="/api/recent_runs":
                 with config._history_lock:data=list(config._recent_runs)
@@ -278,6 +283,12 @@ class Handler(DXBaseHandler):
             if path=="/api/cameras":return self.send_json(list_cameras())
             if path=="/api/live_poll":return self.send_json(poll_inference(self.read_query_param("id")))
             if path=="/api/live_result":return self.send_json(get_inference_result(self.read_query_param("id")))
+            if path=="/api/run_poll":
+                from dx_app.core.run_progress import poll_run
+                return self.send_json(poll_run(self.read_query_param("id") or ""))
+            if path=="/api/run_result":
+                from dx_app.core.run_progress import get_run_result
+                return self.send_json(get_run_result(self.read_query_param("id") or ""))
             if path=="/api/live_frame":return self._mjpeg_stream()
             if path=="/api/setup/status":return self.send_json(setup_status())
             if path=="/api/setup/quick-start-plan":return self.send_json({"plan":quick_start_plan()})
@@ -397,7 +408,14 @@ class Handler(DXBaseHandler):
                            "/api/lab/add_model/smoke",
                            "/api/lab/task/dry_run", "/api/lab/task/apply",
                            "/api/lab/experiment/start",
-                           "/api/lab/rollback", "/api/lab/git/plan"}
+                           "/api/lab/rollback", "/api/lab/git/plan",
+                           "/api/lab/composer/quick_start", "/api/lab/composer/template",
+                           "/api/lab/composer/customize",
+                           "/api/lab/composer/plugin/dry_run", "/api/lab/composer/plugin/apply",
+                           "/api/lab/composer/run", "/api/lab/composer/run_async",
+                           "/api/lab/composer/export",
+                           "/api/lab/composer/recipe/export",
+                           "/api/lab/composer/recipe/import"}
             is_lab_route = path in _LAB_ROUTES or (path.startswith('/api/lab/experiment/') and path.endswith('/cancel'))
             if is_lab_route:
                 tok = self.headers.get("X-Lab-Token", "")
@@ -413,6 +431,7 @@ class Handler(DXBaseHandler):
                 tok = self.headers.get("X-Lab-Token") or self.headers.get("X-Dev-Token", "")
 
             if path=="/api/run":
+                debug_log.log_action("dx_app", "run", data)
                 err, code = _validate_inference_payload(data)
                 if err:
                     return self.send_json(err, code)
@@ -430,7 +449,35 @@ class Handler(DXBaseHandler):
                     image_base64=data.get("image_base64"))
                 return self.send_json(r)
 
+            if path=="/api/run_async":
+                debug_log.log_action("dx_app", "run_async", data)
+                # Non-blocking variant of /api/run: starts the SAME run_inference in a
+                # background thread and returns a job_id the client polls (/api/run_poll,
+                # /api/run_result) for live frame progress. Sync /api/run stays untouched.
+                err, code = _validate_inference_payload(data)
+                if err:
+                    return self.send_json(err, code)
+                params=dict(
+                    model_name=data.get("model_name",""),category=data.get("category",""),
+                    model_file=data.get("model_file",""),lang=data.get("lang","cpp"),
+                    variant=data.get("variant","sync"),input_type=data.get("input_type","image"),
+                    image_path=data.get("image_path"),video_path=data.get("video_path"),
+                    device_id=data.get("device_id"),
+                    conf_threshold=data.get("conf_threshold"),nms_threshold=data.get("nms_threshold"),
+                    config_overrides=data.get("config_overrides"),
+                    upload_path=data.get("upload_path"),loop=data.get("loop"),
+                    camera_id=data.get("camera_id"),rtsp_url=data.get("rtsp_url"),
+                    save_output=_json_bool(data.get("save_output", True), default=True),
+                    image_base64=data.get("image_base64"))
+                from dx_app.core.run_progress import start_run
+                return self.send_json({"job_id":start_run(run_inference,params),"status":"started"})
+
+            if path=="/api/run_stop":
+                from dx_app.core.run_progress import stop_run
+                return self.send_json(stop_run(data.get("id") or data.get("job_id") or ""))
+
             if path=="/api/run_multi":
+                debug_log.log_action("dx_app", "run_multi", {"count": len(data.get("requests", []))})
                 reqs=data.get("requests",[])
                 if not reqs:return self.send_json({"error":"requests required"},400)
                 for idx, req in enumerate(reqs):
@@ -561,7 +608,57 @@ class Handler(DXBaseHandler):
                 res, code = scoped_git_plan(manifest_id, data)
                 return self.send_json(res, code)
 
+            if path == "/api/lab/composer/quick_start":
+                res, code = plan_composer_quick_start(tok, data)
+                return self.send_json(res, code)
+
+            if path == "/api/lab/composer/template":
+                res, code = plan_composer_template(tok, data)
+                return self.send_json(res, code)
+
+            if path == "/api/lab/composer/customize":
+                res, code = customize_composer_workflow(tok, data)
+                return self.send_json(res, code)
+
+            if path == "/api/lab/composer/plugin/dry_run":
+                res, code = plan_composer_plugin_scaffold_response(tok, data)
+                return self.send_json(res, code)
+
+            if path == "/api/lab/composer/plugin/apply":
+                res, code = apply_composer_plugin_scaffold(tok, data)
+                return self.send_json(res, code)
+
+            if path == "/api/lab/composer/run":
+                debug_log.log_action("dx_app", "composer_run", data)
+                res, code = run_composer_workflow(tok, data)
+                return self.send_json(res, code)
+
+            if path == "/api/lab/composer/run_async":
+                debug_log.log_action("dx_app", "composer_run_async", data)
+                # Non-blocking composer run — same run_progress registry as the Run page, so it
+                # shares /api/run_poll and /api/run_result. The worker unwraps the (result,code)
+                # tuple to store just the result dict (what the composer UI renders).
+                from dx_app.core.run_progress import start_run
+                def _composer_job(job_id=None, tok=None, payload=None):
+                    r = run_composer_workflow(tok, payload, job_id=job_id)
+                    return r[0] if isinstance(r, tuple) else r
+                jid = start_run(_composer_job, {"tok": tok, "payload": data})
+                return self.send_json({"job_id": jid, "status": "started"})
+
+            if path == "/api/lab/composer/export":
+                res, code = export_composer_package(tok, data)
+                return self.send_json(res, code)
+
+            if path == "/api/lab/composer/recipe/export":
+                res, code = export_composer_recipe(tok, data)
+                return self.send_json(res, code)
+
+            if path == "/api/lab/composer/recipe/import":
+                res, code = import_composer_recipe(tok, data)
+                return self.send_json(res, code)
+
             if path=="/api/setup/run":
+                debug_log.log_action("dx_app", "setup_run", data)
                 return self.send_json(setup_run(data.get("step",""),data))
 
             if path=="/api/setup/input":

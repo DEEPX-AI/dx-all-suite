@@ -9,7 +9,7 @@
 
 <!-- intro -->
 <!-- dx-showcase:docs:intro:start -->
-**DEEPX Agent-Driven Development (`dx-agent-dev`) is here — currently in Beta.** Build NPU apps with natural language: describe the app or model task in plain language and an AI coding agent — Claude Code, Cursor, GitHub Copilot, OpenCode, or Codex — drives the DEEPX knowledge base end to end: brainstorm → plan → TDD → verify, from ONNX/`.pt` compilation to on-device DX-M1 NPU deployment. It is agent-driven development purpose-built for DEEPX NPUs in the **Ultralytics** model ecosystem, and every showcase below was produced this way — checked in with its prompt, measured results, and full build transcript.
+**DEEPX Agent-Driven Development (`dx-agent-dev`) is here — currently in Beta.** Build NPU apps with natural language: describe the app or model task in plain language and an AI coding agent — Claude Code, Cursor, GitHub Copilot, OpenCode, or Codex — drives the DEEPX knowledge base end to end: brainstorm → plan → TDD → verify, from ONNX/`.pt` compilation to on-device DX-M1 NPU deployment. It is agent-driven development purpose-built for DEEPX NPUs across multiple AI ecosystems (**Ultralytics**, **PaddlePaddle**, **RapidAI**, and more), and every showcase below was produced this way — checked in with its prompt, measured results, and full build transcript.
 <!-- dx-showcase:docs:intro:end -->
 
 Build DEEPX AI applications using natural language instructions. AI coding agents
@@ -102,7 +102,7 @@ verification gates** the harness imposes. Reading a transcript you can watch:
 
 ## Architecture Overview
 
-The agent-driven knowledge base is organized into three independent layers. Each layer
+The agent-driven knowledge base is organized into four independent layers. Each layer
 ships its own `.deepx/` directory containing skills, instructions, and memory files
 that the agent reads at task time.
 

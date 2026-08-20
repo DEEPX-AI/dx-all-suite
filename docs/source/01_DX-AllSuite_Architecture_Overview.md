@@ -90,9 +90,9 @@ DEEPX ModelZoo is a comprehensive repository providing **345 pre-validated model
 | **Panoptic Driving Perception** | Panoptic perception models |
 | **Oriented Object Detection (OBB)** | YOLO26-OBB |
 | **Zero-shot Instance Segmentation** | FastSAM |
-| **Face Detection** | RetinaFace, SCRFD, ULFGED, YOLOv5-Face, YOLOv7-Face |
+| **Face Detection** | RetinaFace, SCRFD, ULFGFD, YOLOv5-Face, YOLOv7-Face |
 | **Face Recognition** | ArcFace (IResNet50/100, MobileFaceNet, R50) |
-| **Face Landmark** | TDDFA v2 (MobileNet variants) |
+| **Face Landmark** | 3DDFA_V2 (MobileNet variants) |
 | **Face Attribute** | FaceAttrResNetV1-18 |
 | **Hand Detection** | Hand detection models |
 | **Hand Landmark** | MediaPipeHandsLite |

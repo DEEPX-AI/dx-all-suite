@@ -415,7 +415,7 @@ class DXTutorialEngine {
     window.addEventListener('resize', this._resizeHandler);
     window.addEventListener('scroll', this._scrollHandler, true);
 
-    setTimeout(() => this._showStep(), 400);
+    requestAnimationFrame(() => this._showStep());
   }
 
   async _showStep() {
@@ -431,9 +431,8 @@ class DXTutorialEngine {
         await beforeResult;
       }
     }
-    await new Promise(r => setTimeout(r, step.beforeStep ? 150 : 80));
+    if (step.beforeStep) await new Promise(r => requestAnimationFrame(() => setTimeout(r, 0)));
 
-    // 폴링/대기 중에 stop()이나 다른 _showStep이 호출됐으면 중단
     if (this._stepToken !== token || !this._curSection) return;
 
     this._closeTransientUiChrome();
@@ -469,10 +468,11 @@ class DXTutorialEngine {
     if (target) {
       this._bindScrollRootsFor(target);
       var rect = this._viewportRect(target);
-      var inView = rect && rect.top >= 60 && rect.bottom <= (window.innerHeight - 20);
+      var vh = window.innerHeight;
+      var inView = rect && rect.top >= 0 && rect.bottom <= vh && rect.top < vh - 40;
       if (!inView && !step.skipScroll) {
-        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        await new Promise(r => setTimeout(r, 450));
+        target.scrollIntoView({ block: 'center' });
+        await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
         if (this._stepToken !== token || !this._curSection) return;
       }
       this._applySpotlightBox(target);
@@ -489,13 +489,15 @@ class DXTutorialEngine {
     var needsScroll = rect.top < 60 || rect.bottom > window.innerHeight - 20;
 
     if (needsScroll) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.scrollIntoView({ block: 'center' }); // instant
       var self = this;
-      setTimeout(function() {
-        if (!self._curSection) return;
-        self._applySpotlightBox(el);
-        self._positionTooltip(el);
-      }, 500);
+      requestAnimationFrame(function() {
+        requestAnimationFrame(function() {
+          if (!self._curSection) return;
+          self._applySpotlightBox(el);
+          self._positionTooltip(el);
+        });
+      });
     } else {
       this._applySpotlightBox(el);
     }

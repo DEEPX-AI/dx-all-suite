@@ -67,60 +67,18 @@ plugins:
   - to-pdf:
       author: DEEPX.ai
       copyright: ⓒ Copyright 2026 DEEPX All Rights Reserved.
-      #
-      #cover: false
       cover_title: DXNN All Suite (DX-AllSuite) User Manual
-      cover_subtitle: 2026/07/14 (v2.4.0)
+      cover_subtitle: 2026/08/14 (v2.4.2)
       cover_logo : img/deepx.png
       custom_template_path: source/stylesheets
-      #back_cover: true
-      #
-      #toc_title: TOC TITLE TEXT
-      #heading_shift: false
-      #toc_level: 3
-      #ordered_chapter_level: 2
-      #excludes_children:
-      #    - 'release-notes/:upgrading'
-      #    - 'release-notes/:changelog'
-      #
-      #exclude_pages:
-      #    - 'bugs/'
-      #    - 'appendix/contribute/'
-      #convert_iframe:
-      #    - src: IFRAME SRC
-      #      img: POSTER IMAGE URL
-      #      text: ALTERNATE TEXT
-      #    - src: ...
-      #two_columns_level: 3
-      #
-      #render_js: true
-      #headless_chrome_path: headless-chromium
-      #
-      output_path: ../DEEPX_DX-AllSuite_UM_v2.4.0_JUL_2026.pdf
-      #enabled_if_env: ENABLE_PDF_EXPORT
-      #
-      #debug_html: true
-      #show_anchors: true
-      #verbose: true
-#  - mkdocs-video
+      output_path: ../DEEPX_DX-AllSuite_UM_v2.4.2_AUG_2026.pdf
+
 extra:
   homepage: https://developer.deepx.ai
-#  version:
-#    provider: mike
-#    default: stable
   generator: false
   social:
-#     - icon: fontawesome/brands/github
-#       link: https://github.com/deepx-ai
      - icon: fontawesome/brands/linkedin
        link: https://www.linkedin.com/company/deepx-corporation/
-#  alternate:
-#    - name: English
-#      link: /en/    
-#      lang: en
-#    - name: Korean
-#      link: /kr/
-#      lang: kr
 extra_css: 
   - stylesheets/extra.css
 markdown_extensions:
@@ -147,6 +105,4 @@ markdown_extensions:
       alternate_style: true 
   - attr_list
   - md_in_html
-extra_javascript:
-  - https://polyfill.io/v3/polyfill.min.js?features=es6
 copyright: ⓒ Copyright 2026 <a href="http://deepx.ai">DEEPX</a>. All Rights Reserved.

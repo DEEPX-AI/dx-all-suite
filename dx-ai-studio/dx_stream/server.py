@@ -575,7 +575,10 @@ class DXStreamHandler(DXBaseHandler):
             extra_env = build_child_environment(runtime_context)
             pipeline_contract = validate_stream_pipeline(
                 pipeline_str,
-                python_executable=runtime_context.python_executable,
+                # GStreamer parse probe needs PyGObject; the active context python is the
+                # isolated dx_app inference venv (no gi). Use a gi-capable interpreter so a
+                # playable demo is not rejected by a false admission failure.
+                python_executable=gst_env.gi_capable_python(runtime_context.python_executable),
                 environment=extra_env,
             )
             if not pipeline_contract.passed:
@@ -893,7 +896,10 @@ class DXStreamHandler(DXBaseHandler):
             extra_env = build_child_environment(runtime_context)
             pipeline_contract = validate_stream_pipeline(
                 gst_str,
-                python_executable=runtime_context.python_executable,
+                # GStreamer parse probe needs PyGObject; the active context python is the
+                # isolated dx_app inference venv (no gi). Use a gi-capable interpreter so a
+                # runnable Pipeline Builder graph is not rejected by a false admission failure.
+                python_executable=gst_env.gi_capable_python(runtime_context.python_executable),
                 environment=extra_env,
             )
             if not pipeline_contract.passed:

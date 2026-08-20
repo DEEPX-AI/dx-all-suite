@@ -328,9 +328,9 @@ def test_doRun_has_inflight_guard_before_await():
     ), (
         "doRun does not early-return when _runInFlight is true"
     )
-    # Guard must be set before the await
+    # Guard must be set before the awaited run call (now the async progress wrapper).
     guard_set_pos = body.index("_runInFlight=true")
-    await_pos = body.index("await postJ")
+    await_pos = body.index("await runWithProgress")
     assert guard_set_pos < await_pos, (
         "doRun sets _runInFlight after the await instead of before"
     )

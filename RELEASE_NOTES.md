@@ -1,4 +1,65 @@
-# RELEASE_NOTES
+## DX-All-Suite v2.4.2 / 2026-08-14
+
+- DX-Compiler: v2.4.1
+    - DX-COM: v2.4.0
+    - DX-TRON: v2.0.1 (Deprecated)
+- DX-Runtime: v2.4.2
+    - DX_FW: v2.7.4
+    - NPU Driver: v2.6.0
+    - DX-RT: v3.4.2
+    - DX-Stream: v3.1.2
+    - DX-APP: v3.2.2
+
+---
+
+Here are the **DX-All-Suite v2.4.2** Release Notes.
+
+### What's New?
+
+This hotfix release resolves centralized runtime sanity checks, Windows build and packaging reliability (DX-RT), depth-estimation and depth-map metadata/rendering in DX-Stream, and DX-APP demo and model updates including YOLO26-Depth examples.
+
+It also adds **DX-Edge**, the AWS-native documentation set for deploying DEEPX NPUs through AWS Marketplace.
+
+#### 📦 New: DX-Edge — Powered by AWS, available on AWS Marketplace
+
+**DX-Edge (`dx-edge`) documents the AWS-native path from a trained ONNX model to a DEEPX NPU running in the field**, across three tracks published on AWS Marketplace.
+
+**Highlights**
+- **DEEPX Greengrass Solution** — a single AWS CloudFormation stack that provisions the cloud compilation pipeline and installs the NPU driver, firmware, `dx_rt`, and `dx_stream` on edge devices over the air (Zero-Touch Provisioning) through AWS IoT Greengrass V2. Both the classic Greengrass nucleus and nucleus lite are supported.
+- **DEEPX Compiler Solution** — ONNX → `.dxnn` compilation on AWS, either interactively on an Amazon EC2 instance launched from the AMI, or fully automatically through an event-driven Amazon S3 → AWS Lambda → AWS Step Functions pipeline that starts and terminates the compiler instance per job.
+- **AWS HW Path (DX-AIPlayer N97)** — a Getting Started Guide for AWS IoT Greengrass covering the Intel® N97 + DEEPX DX-M1 edge AI system, written to the AWS Device Qualification Program template.
+- **Bilingual** — every document is published in English and Korean.
+
+**Learn more** — see [`dx-edge/README.md`](dx-edge/README.md).
+
+#### **DX AI Studio (Beta) improvements**
+- **Lab Composer** — build, validate, and run inference workflows in one workspace.
+- **Plugin workflow** — scaffold custom plugins and export reusable Lab packages.
+- **Batch runs** — follow asynchronous inference jobs with live progress and result status.
+- **Runtime diagnostics** — improved bootstrap and structured debug logging simplify setup and troubleshooting.
+
+---
+
+### Key Updates
+
+**Performance & Efficiency**
+
+- **DX-RT**: Improved MSVC build log by resolving Windows build warnings; Windows packaging/staging idempotency reduces unnecessary rebuilds and reconfigure failures; Ninja-forced wheel builds avoid Visual Studio generator detection issues on CI.
+
+**Stability & Fixes**
+
+- **DX-RUNTIME(installer)**: Centralized sanity checks into `scripts/sanity_check.sh` prevent divergent driver detection logic between `install.sh` and standalone runs.
+- **DX-RT**: Staged generated headers (`gen.h`) into public include path with copy fallback when symlinks are unavailable on Windows.
+- **DX-STREAM**: Self-configuring GST_PLUGIN_PATH for Windows pipeline scripts; DX-Stream and dxosd fixes improve plugin path handling and depth rendering stability on Windows.
+- **DX-APP**: Moved SuperPoint point tracking out of keypoint detection post-process into the visualizer; switched depth-estimation demo from Depth-Anything-V2 to YOLO26-Depth-S; used new low-resolution source video (lowres-drone-city-road.mp4) for super-resolution demo; fixed Windows all-build parallelism by consolidating shared-file copies.
+
+**New Features & Tools**
+
+- **DX-RT**: `release.ver` added to Windows DXRT binaries for explicit versioning; recursive copy fallback for vendored headers (cxxopts, rapidjson) on Windows when directory symlinks are unavailable.
+- **DX-STREAM**: YOLO26 depth-estimation demo pipeline and depth metadata support to DXFrameMeta and depth-map rendering to dxosd.
+- **DX-APP**: YOLO26-Depth examples for all five model sizes (n/s/m/l/x, 768x768) with C++ sync/async plus Python sync/async/sync_cpp_postprocess/async_cpp_postprocess variants; registered 5 yolo26-depth models in `config/model_registry.json` and `scripts/modelzoo_manifest.json`; updated sample video archive to v3.2.2 with low-resolution source for super-resolution demos.
+
+---
 
 ## DX-All-Suite v2.4.1 / 2026-08-03
 
@@ -233,7 +294,7 @@ For detailed updated items, refer to **each environment & module's Release Notes
 
 ---
 
-##  DX-All-Suite v2.3.3 / 2026-05-14
+## DX-All-Suite v2.3.3 / 2026-05-14
 
 - DX-Compiler: v2.3.1
     - DX-COM: v2.3.0
@@ -255,7 +316,7 @@ This hotfix release resolves a missing Debian package file issue in `dx_rt_npu_l
 
 ---
 
-##  DX-All-Suite v2.3.2 / 2026-05-11
+## DX-All-Suite v2.3.2 / 2026-05-11
 
 - DX-Compiler: v2.3.1
     - DX-COM: v2.3.0
@@ -294,7 +355,7 @@ For detailed updated items, refer to **each environment & module's Release Notes
 
 ---
 
-##  DX-All-Suite v2.3.1 / 2026-05-06
+## DX-All-Suite v2.3.1 / 2026-05-06
 
 - DX-Compiler: v2.3.1
     - DX-COM: v2.3.0
@@ -336,7 +397,7 @@ For detailed updated items, refer to **each environment & module's Release Notes
 
 ---
 
-##  DX-All-Suite v2.3.0 / 2026-04-10
+## DX-All-Suite v2.3.0 / 2026-04-10
 
 - DX-Compiler: v2.3.0
     - DX-COM: v2.3.0
@@ -350,7 +411,7 @@ For detailed updated items, refer to **each environment & module's Release Notes
 
 ---
 
-Here are the **DX-All-Suite v2.3.0** Release Note.  
+Here are the **DX-All-Suite v2.3.0** Release Notes.  
 
 ### What's New?
 
@@ -450,7 +511,7 @@ This release enhances the development experience with GPU-accelerated quantizati
 
 ---
 
-Here are the **DX-All-Suite v2.2.1** Release Note.
+Here are the **DX-All-Suite v2.2.1** Release Notes.
 
 ### What's New?
 
@@ -472,7 +533,7 @@ This release focuses on enhancing the YOLO ecosystem with expanded model variant
 
 ---
 
-##  DX-All-Suite v2.2.0 / 2026-01-16
+## DX-All-Suite v2.2.0 / 2026-01-16
 
 - DX-Compiler: v2.2.0
     - DX-COM: v2.2.0
@@ -486,7 +547,7 @@ This release focuses on enhancing the YOLO ecosystem with expanded model variant
 
 ---
 
-Here are the **DX-All-Suite v2.2.0** Release Note.
+Here are the **DX-All-Suite v2.2.0** Release Notes.
 
 ### What's New?
 
@@ -539,7 +600,7 @@ For detailed updated items, refer to **each environment & module's Release Notes
 
 ---
 
-##  DX-All-Suite v2.1.0 / 2025-11-28
+## DX-All-Suite v2.1.0 / 2025-11-28
 
 - DX-Compiler: v2.1.0
     - DX-COM: v2.1.0
@@ -553,7 +614,7 @@ For detailed updated items, refer to **each environment & module's Release Notes
 
 ---
 
-Here are the **DX-All-Suite v2.1.0** Release Note.
+Here are the **DX-All-Suite v2.1.0** Release Notes.
 
 ### What's New?
 This release marks a significant step forward with new features and major stability improvements across all core components.
@@ -599,7 +660,7 @@ For detailed updated items, refer to **each environment & module's Release Notes
 
 ---
 
-##  DX-All-Suite v2.0.0 / 2025-09-08
+## DX-All-Suite v2.0.0 / 2025-09-08
 
 - DX-Compiler: v2.0.0
     - DX-COM: v2.0.0
@@ -613,7 +674,7 @@ For detailed updated items, refer to **each environment & module's Release Notes
 
 ---
 
-Here are the **DX-All-Suite v2.0.0** Release Note.
+Here are the **DX-All-Suite v2.0.0** Release Notes.
 
 ### What's New?
 This release marks a significant step forward with new features and major stability improvements.

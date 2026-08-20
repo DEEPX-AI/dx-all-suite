@@ -26,6 +26,23 @@
   </thead>
   <tbody align="center">
     <tr>
+      <td rowspan="3">2026-08-14</td>
+      <td colspan="7">v2.4.2</td>
+    </tr>
+    <tr>
+      <td colspan="2">v2.4.1</td>
+      <td colspan="5">v2.4.2</td>
+    </tr>
+    <tr>
+      <td>v2.4.0</td>
+      <td>v2.0.1</td>
+      <td>v2.7.4</td>
+      <td>v2.6.0</td>
+      <td>v3.4.2</td>
+      <td>v3.1.2</td>
+      <td>v3.2.2</td>
+    </tr>
+    <tr>
       <td rowspan="3">2026-08-03</td>
       <td colspan="7">v2.4.1</td>
     </tr>

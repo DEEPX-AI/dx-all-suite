@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import os
 import subprocess
+import sysconfig
 from pathlib import Path
 from typing import Callable, Mapping, Optional, Sequence
 
@@ -13,11 +14,22 @@ from shared.runtime_profile import ContractCheck, RuntimeDefinition
 
 DEFAULT_POSTPROCESS_DIR = Path("/usr/local/share/gstdxstream/lib")
 PLUGIN_FILENAME = "libgstdxstream.so"
-KNOWN_PLUGIN_DIRECTORIES = (
-    Path("/usr/local/lib/x86_64-linux-gnu/gstreamer-1.0"),
-    Path("/usr/local/lib/gstreamer-1.0"),
-    Path("/usr/lib/x86_64-linux-gnu/gstreamer-1.0"),
-    Path("/usr/lib/gstreamer-1.0"),
+# The dxstream plugin installs under the running arch's GStreamer multiarch dir (e.g.
+# .../x86_64-linux-gnu/gstreamer-1.0 or .../aarch64-linux-gnu/gstreamer-1.0). Derive the current
+# arch's triplet dynamically, then list explicit x86_64/aarch64 fallbacks so ARM boards aren't
+# left relying on the rglob search in default_plugin_path().
+_MULTIARCH = sysconfig.get_config_var("MULTIARCH") or ""
+KNOWN_PLUGIN_DIRECTORIES = tuple(
+    d for d in (
+        (Path("/usr/local/lib") / _MULTIARCH / "gstreamer-1.0") if _MULTIARCH else None,
+        (Path("/usr/lib") / _MULTIARCH / "gstreamer-1.0") if _MULTIARCH else None,
+        Path("/usr/local/lib/x86_64-linux-gnu/gstreamer-1.0"),
+        Path("/usr/local/lib/aarch64-linux-gnu/gstreamer-1.0"),
+        Path("/usr/local/lib/gstreamer-1.0"),
+        Path("/usr/lib/x86_64-linux-gnu/gstreamer-1.0"),
+        Path("/usr/lib/aarch64-linux-gnu/gstreamer-1.0"),
+        Path("/usr/lib/gstreamer-1.0"),
+    ) if d is not None
 )
 _PLUGIN_SEARCH_ROOTS = (Path("/usr/local/lib"), Path("/usr/lib"))
 _STREAM_PIPELINE_PARSE_PROBE = """
@@ -204,13 +216,50 @@ def validate_base_runtime(
     ))
 
 
+# Which base-runtime contracts each inference module actually needs to launch. dx_stream is a
+# pure C++/GStreamer pipeline (no python inference venv); dx_app's python-variant demos need the
+# venv. Splitting these lets one module's broken half not gate the other.
+_MODULE_CONTRACT_IDS = {
+    "dx_stream": frozenset({"gst.plugin", "gst.dxinfer", "gst.postprocess_directory"}),
+    "dx_app": frozenset({"app.python"}),
+}
+
+
+def validate_module_contracts(module: str, **validation_options: object) -> ContractResult:
+    """ContractResult of only the launch contracts the given module needs.
+
+    Falls back to the full base-runtime result for unknown modules. Used by the launch gate so a
+    box with (say) a working Stream plugin but no python inference venv can still run dx_stream."""
+    full = validate_base_runtime(**validation_options)
+    ids = _MODULE_CONTRACT_IDS.get(module)
+    if ids is None:
+        return full
+    return ContractResult(tuple(c for c in full.checks if c.check_id in ids))
+
+
 class RuntimeCandidateValidator:
     """Bootstrap adapter that retains details while returning the required boolean."""
 
-    def __init__(self, **validation_options: object) -> None:
+    def __init__(self, *, self_heal: bool = True, **validation_options: object) -> None:
+        self.self_heal = self_heal
         self.validation_options = validation_options
         self.last_result: Optional[ContractResult] = None
 
     def validate(self, _definition: RuntimeDefinition) -> bool:
         self.last_result = validate_base_runtime(**self.validation_options)
+        if not self.last_result.passed and self.self_heal:
+            # Self-heal the one prerequisite the Studio can provision itself: the isolated
+            # inference venv (numpy+cv2+dx_engine, the `app.python` check). On a fresh pull or a
+            # mixed/partial runtime install the venv may not exist yet, so build it once and
+            # re-validate — activation then succeeds without a manual "run Setup, relaunch"
+            # dance. gst.*/postprocess failures need real build/install steps and are left to
+            # surface as-is. ensure_inference_venv is idempotent (fast no-op once satisfied).
+            failed = {c.check_id for c in self.last_result.checks if not c.passed}
+            if "app.python" in failed:
+                try:
+                    from shared.runtime import ensure_inference_venv
+                    ensure_inference_venv()
+                except Exception:
+                    pass
+                self.last_result = validate_base_runtime(**self.validation_options)
         return self.last_result.passed

@@ -186,7 +186,7 @@
   var sections = [
 
     { id:'dashboard-fps', icon:'📊',
-      title:{ko:'📊 E2E FPS Overview', en:'📊 E2E FPS Overview', ja:'📊 E2E FPS概要', 'zh-CN':'📊 E2E FPS概览', 'zh-TW':'📊 E2E FPS概述', es:'📊 Resumen E2E FPS'},
+      title:{ko: '📊 E2E FPS 개요', en:'📊 E2E FPS Overview', ja:'📊 E2E FPS概要', 'zh-CN':'📊 E2E FPS概览', 'zh-TW':'📊 E2E FPS概述', es:'📊 Resumen E2E FPS'},
       description:{ko:'전체 플랫폼의 E2E FPS를 한눈에 비교하는 대시보드', en:'Dashboard comparing E2E FPS across all platforms at a glance', ja:'全プラットフォームのE2E FPSを一覧で比較するダッシュボード', 'zh-CN':'一目了然地比较所有平台E2E FPS的仪表盘', 'zh-TW':'一覽比較所有平台E2E FPS的儀表板', es:'Panel que compara el E2E FPS de todas las plataformas de un vistazo'},
       beforeStart: function () {
         return new Promise(function (resolve) {
@@ -195,7 +195,7 @@
             var tab = document.querySelector('.dashboard-tab[data-tab="fps-compare"]');
             if (tab) tab.click();
             resolve();
-          }, 400);
+          }, 150);
         });
       },
       steps:[
@@ -203,10 +203,10 @@
           title:{ko:'Dashboard 탭', en:'Dashboard Tab', ja:'Dashboardタブ', 'zh-CN':'Dashboard 选项卡', 'zh-TW':'Dashboard 分頁', es:'Pestaña Dashboard'},
           content:{ko:'모든 벤치마크 데이터를 시각화하는 <strong>메인 화면</strong>입니다. 4개 서브탭(E2E FPS Overview, Full Metrics, Detailed Data, Version Trend)으로 구성되어 있습니다.', en:'The <strong>main screen</strong> that visualizes all benchmark data. It consists of 4 sub-tabs: E2E FPS Overview, Full Metrics, Detailed Data, and Version Trend.', ja:'すべてのベンチマークデータを可視化する<strong>メイン画面</strong>です。4つのサブタブ（E2E FPS Overview、Full Metrics、Detailed Data、Version Trend）で構成されています。', 'zh-CN':'这是将所有基准测试数据可视化的<strong>主界面</strong>。由4个子选项卡（E2E FPS Overview、Full Metrics、Detailed Data、Version Trend）组成。', 'zh-TW':'這是將所有基準測試資料視覺化的<strong>主畫面</strong>。由4個子分頁（E2E FPS Overview、Full Metrics、Detailed Data、Version Trend）組成。', es:'La <strong>pantalla principal</strong> que visualiza todos los datos del benchmark. Consta de 4 subpestañas: E2E FPS Overview, Full Metrics, Detailed Data y Version Trend.'} },
         { target:'.dashboard-tab[data-tab="fps-compare"]', position:'bottom',
-          title:{ko:'E2E FPS Overview', en:'E2E FPS Overview', ja:'E2E FPS概要', 'zh-CN':'E2E FPS概览', 'zh-TW':'E2E FPS概述', es:'Resumen E2E FPS'},
+          title:{ko: 'E2E FPS 개요', en:'E2E FPS Overview', ja:'E2E FPS概要', 'zh-CN':'E2E FPS概览', 'zh-TW':'E2E FPS概述', es:'Resumen E2E FPS'},
           content:{ko:'전체 플랫폼의 <strong>E2E FPS</strong>를 한눈에 비교합니다. 그룹 바 차트로 모델 크기별 성능 차이를 직관적으로 파악할 수 있습니다.', en:'Compare <strong>E2E FPS</strong> across all platforms at a glance. Group bar charts make it intuitive to see performance differences by model size.', ja:'全プラットフォームの<strong>E2E FPS</strong>を一覧で比較します。グループバーチャートでモデルサイズ別のパフォーマンス差を直感的に把握できます。', 'zh-CN':'一目了然地比较所有平台的<strong>E2E FPS</strong>。通过分组柱状图直观了解不同模型大小的性能差异。', 'zh-TW':'一覽比較所有平台的<strong>E2E FPS</strong>。透過分組長條圖直觀了解不同模型大小的效能差異。', es:'Compare el <strong>E2E FPS</strong> de todas las plataformas de un vistazo. Los gráficos de barras agrupadas permiten ver de forma intuitiva las diferencias de rendimiento por tamaño de modelo.'} },
         { target:'#fpsRunSelectors', position:'bottom',
-          title:{ko:'Run Selector', en:'Run Selector', ja:'Runセレクター', 'zh-CN':'Run选择器', 'zh-TW':'Run選擇器', es:'Selector de Run'},
+          title:{ko: '실행 선택기', en:'Run Selector', ja:'Runセレクター', 'zh-CN':'Run选择器', 'zh-TW':'Run選擇器', es:'Selector de Run'},
           content:{ko:'각 플랫폼별로 비교할 <strong>벤치마크 실행(run)</strong>을 선택합니다. 드롭다운에서 원하는 run을 선택하면 차트가 자동으로 갱신됩니다.', en:'Select which <strong>benchmark run</strong> to compare per platform. The chart auto-updates when you select a run from the dropdown.', ja:'各プラットフォームで比較する<strong>ベンチマーク実行（run）</strong>を選択します。ドロップダウンからrunを選択するとチャートが自動更新されます。', 'zh-CN':'选择各平台要比较的<strong>基准测试运行（run）</strong>。从下拉菜单选择run后图表会自动更新。', 'zh-TW':'選擇各平台要比較的<strong>基準測試運行（run）</strong>。從下拉選單選擇run後圖表會自動更新。', es:'Seleccione qué <strong>ejecución de benchmark (run)</strong> comparar por plataforma. El gráfico se actualiza automáticamente al elegir un run en el menú desplegable.'} },
         { target:'#fpsTaskFilter', position:'bottom',
           title:{ko:'Task 필터', en:'Task Filter', ja:'Taskフィルター', 'zh-CN':'Task筛选', 'zh-TW':'Task篩選', es:'Filtro de Task'},
@@ -229,7 +229,7 @@
     },
 
     { id:'dashboard-metrics', icon:'📈',
-      title:{ko:'📈 Full Metrics', en:'📈 Full Metrics', ja:'📈 Full Metrics', 'zh-CN':'📈 Full Metrics', 'zh-TW':'📈 Full Metrics', es:'📈 Full Metrics'},
+      title:{ko: '📈 전체 지표', en:'📈 Full Metrics', ja: '📈 全メトリクス', 'zh-CN': '📈 完整指标', 'zh-TW': '📈 完整指標', es: '📈 Métricas completas'},
       description:{ko:'NPU Throughput, E2E FPS, Latency 3중 메트릭 분석', en:'Triple metric analysis: NPU Throughput, E2E FPS, Latency', ja:'NPU Throughput、E2E FPS、Latencyのトリプルメトリクス分析', 'zh-CN':'NPU吞吐量、E2E FPS、延迟三重指标分析', 'zh-TW':'NPU吞吐量、E2E FPS、延遲三重指標分析', es:'Análisis triple de métricas: NPU Throughput, E2E FPS, Latency'},
       beforeStart: function () {
         return new Promise(function (resolve) {
@@ -238,7 +238,7 @@
             var tab = document.querySelector('.dashboard-tab[data-tab="overview"]');
             if (tab) tab.click();
             resolve();
-          }, 400);
+          }, 150);
         });
       },
       steps:[
@@ -277,7 +277,7 @@
     },
 
     { id:'dashboard-detail', icon:'📋',
-      title:{ko:'📋 Detailed Data', en:'📋 Detailed Data', ja:'📋 Detailed Data', 'zh-CN':'📋 Detailed Data', 'zh-TW':'📋 Detailed Data', es:'📋 Detailed Data'},
+      title:{ko: '📋 상세 데이터', en:'📋 Detailed Data', ja: '📋 詳細データ', 'zh-CN': '📋 详细数据', 'zh-TW': '📋 詳細資料', es: '📋 Datos detallados'},
       description:{ko:'원시 수치 테이블로 상세 데이터 탐색', en:'Explore detailed data with raw numeric tables', ja:'生データテーブルで詳細データを探索', 'zh-CN':'通过原始数据表格探索详细数据', 'zh-TW':'透過原始資料表格探索詳細資料', es:'Explore datos detallados con tablas numéricas en bruto'},
       beforeStart: function () {
         return new Promise(function (resolve) {
@@ -286,7 +286,7 @@
             var tab = document.querySelector('.dashboard-tab[data-tab="detail"]');
             if (tab) tab.click();
             resolve();
-          }, 400);
+          }, 150);
         });
       },
       steps:[
@@ -318,7 +318,7 @@
     },
 
     { id:'dashboard-trend', icon:'📉',
-      title:{ko:'📉 Version Trend', en:'📉 Version Trend', ja:'📉 Version Trend', 'zh-CN':'📉 Version Trend', 'zh-TW':'📉 Version Trend', es:'📉 Version Trend'},
+      title:{ko: '📉 버전 추세', en:'📉 Version Trend', ja: '📉 バージョン推移', 'zh-CN': '📉 版本趋势', 'zh-TW': '📉 版本趨勢', es: '📉 Tendencia de versiones'},
       description:{ko:'SW 버전별 성능 추이를 시계열로 추적', en:'Track performance trends across SW versions over time', ja:'SWバージョン別のパフォーマンス推移を時系列で追跡', 'zh-CN':'按SW版本追踪性能趋势的时间序列', 'zh-TW':'按SW版本追蹤效能趨勢的時間序列', es:'Siga la evolución del rendimiento por versiones de SW a lo largo del tiempo'},
       beforeStart: function () {
         return new Promise(function (resolve) {
@@ -327,7 +327,7 @@
             var tab = document.querySelector('.dashboard-tab[data-tab="version-trend"]');
             if (tab) tab.click();
             resolve();
-          }, 400);
+          }, 150);
         });
       },
       steps:[
@@ -361,7 +361,7 @@
     },
 
     { id:'dashboard-ort', icon:'🔀',
-      title:{ko:'🔀 ORT ON/OFF', en:'🔀 ORT ON/OFF', ja:'🔀 ORT ON/OFF', 'zh-CN':'🔀 ORT ON/OFF', 'zh-TW':'🔀 ORT ON/OFF', es:'🔀 ORT ON/OFF'},
+      title:{ko: '🔀 ORT 켜기/끄기', en:'🔀 ORT ON/OFF', ja: '🔀 ORT オン/オフ', 'zh-CN': '🔀 ORT 开/关', 'zh-TW': '🔀 ORT 開/關', es: '🔀 ORT activado/desactivado'},
       description:{ko:'동일 모델·환경에서 ONNX Runtime On/Off 성능 차이 비교', en:'Compare ONNX Runtime On/Off performance for the same model and environment', ja:'同一モデル・環境でONNX Runtime On/Offのパフォーマンス差を比較', 'zh-CN':'比较相同模型和环境下ONNX Runtime开/关的性能差异', 'zh-TW':'比較相同模型與環境下ONNX Runtime開/關的效能差異', es:'Compare el rendimiento de ONNX Runtime activado/desactivado para el mismo modelo y entorno'},
       beforeStart: function () {
         return new Promise(function (resolve) {
@@ -370,7 +370,7 @@
             var tab = document.querySelector('.dashboard-tab[data-tab="ort-compare"]');
             if (tab) tab.click();
             resolve();
-          }, 400);
+          }, 150);
         });
       },
       steps:[
@@ -396,7 +396,7 @@
     },
 
     { id:'results', icon:'📁',
-      title:{ko:'📁 Results Browser', en:'📁 Results Browser', ja:'📁 結果ブラウザ', 'zh-CN':'📁 结果浏览器', 'zh-TW':'📁 結果瀏覽器', es:'📁 Explorador de resultados'},
+      title:{ko: '📁 결과 브라우저', en:'📁 Results Browser', ja:'📁 結果ブラウザ', 'zh-CN':'📁 结果浏览器', 'zh-TW':'📁 結果瀏覽器', es:'📁 Explorador de resultados'},
       description:{ko:'벤치마크 결과 탐색 및 리포트 확인', en:'Browse benchmark results and check reports', ja:'ベンチマーク結果の閲覧とレポート確認', 'zh-CN':'浏览基准测试结果并查看报告', 'zh-TW':'瀏覽基準測試結果並查看報告', es:'Explore los resultados del benchmark y consulte los informes'},
       beforeStart:function(){ switchTab('results'); },
       steps:[
@@ -459,7 +459,7 @@
     },
 
     { id:'settings', icon:'⚙️',
-      title:{ko:'⚙️ Settings', en:'⚙️ Settings', ja:'⚙️ 設定', 'zh-CN':'⚙️ 设置', 'zh-TW':'⚙️ 設定', es:'⚙️ Ajustes'},
+      title:{ko: '⚙️ 설정', en:'⚙️ Settings', ja:'⚙️ 設定', 'zh-CN':'⚙️ 设置', 'zh-TW':'⚙️ 設定', es:'⚙️ Ajustes'},
       description:{ko:'벤치마크 실행 환경 설정', en:'Configure benchmark execution settings', ja:'ベンチマーク実行環境の設定', 'zh-CN':'配置基准测试执行环境', 'zh-TW':'設定基準測試執行環境', es:'Configure los ajustes de ejecución del benchmark'},
       beforeStart:function(){ switchTab('settings'); },
       steps:[
@@ -470,7 +470,7 @@
           title:{ko:'Cooldown 온도', en:'Cooldown Temperature', ja:'Cooldown温度', 'zh-CN':'Cooldown温度', 'zh-TW':'Cooldown溫度', es:'Temperatura de Cooldown'},
           content:{ko:'벤치마크 간 <strong>대기 온도 임계값(°C)</strong>입니다. NPU 온도가 이 값 이하로 내려갈 때까지 다음 벤치마크 시작을 대기합니다.', en:'<strong>Wait temperature threshold (°C)</strong> between benchmarks. Waits until NPU temperature drops below this value before starting next benchmark.', ja:'ベンチマーク間の<strong>待機温度閾値（°C）</strong>です。NPU温度がこの値以下に下がるまで次のベンチマーク開始を待機します。', 'zh-CN':'基准测试之间的<strong>等待温度阈值（°C）</strong>。等待NPU温度降至此值以下后才开始下一次基准测试。', 'zh-TW':'基準測試之間的<strong>等待溫度閾值（°C）</strong>。等待NPU溫度降至此值以下後才開始下一次基準測試。', es:'<strong>Umbral de temperatura de espera (°C)</strong> entre benchmarks. Espera a que la temperatura del NPU baje de este valor antes de iniciar el siguiente benchmark.'} },
         { target:'#settWaitInterval', position:'right',
-          title:{ko:'Wait Interval', en:'Wait Interval', ja:'Wait Interval', 'zh-CN':'Wait Interval', 'zh-TW':'Wait Interval', es:'Intervalo de espera'},
+          title:{ko: '대기 간격', en:'Wait Interval', ja: '待機間隔', 'zh-CN': '等待间隔', 'zh-TW': '等待間隔', es:'Intervalo de espera'},
           content:{ko:'반복 간 <strong>대기 시간(초)</strong>입니다. 각 벤치마크 반복 사이에 지정된 시간만큼 대기합니다.', en:'<strong>Delay (seconds)</strong> between iterations. Waits the specified time between each benchmark iteration.', ja:'繰り返し間の<strong>待機時間（秒）</strong>です。各ベンチマーク繰り返しの間に指定された時間だけ待機します。', 'zh-CN':'每次重复之间的<strong>等待时间（秒）</strong>。在每次基准测试重复之间等待指定的时间。', 'zh-TW':'每次重複之間的<strong>等待時間（秒）</strong>。在每次基準測試重複之間等待指定的時間。', es:'<strong>Retardo (segundos)</strong> entre iteraciones. Espera el tiempo indicado entre cada iteración del benchmark.'} },
         { target:'#settIterations', position:'right',
           title:{ko:'반복 횟수', en:'Iterations', ja:'繰り返し回数', 'zh-CN':'迭代次数', 'zh-TW':'迭代次數', es:'Iteraciones'},
@@ -498,7 +498,7 @@
             var tab = document.querySelector('.dashboard-tab[data-tab="overview"]');
             if (tab) tab.click();
             resolve();
-          }, 400);
+          }, 150);
         });
       },
       steps:[

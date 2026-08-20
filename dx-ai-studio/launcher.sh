@@ -1,6 +1,6 @@
 #!/bin/bash
 # ─── DeepX AI Studio Launcher ───
-# Usage: ./launcher.sh [--port PORT] [--no-kill]
+# Usage: ./launcher.sh [--port PORT] [--no-kill] [--debug[=PATH]]
 #
 # Starts the unified launcher (default 8890) which boots all module servers and
 # reverse-proxies them. Designed to "just work" on shared hosts:
@@ -22,13 +22,16 @@ while [[ "$#" -gt 0 ]]; do
     --fast) export DX_LAUNCHER_FAST=1; shift ;;
     --verbose|-v) DX_LAUNCHER_VERBOSE=1; shift ;;
     --no-browser) export DX_NO_BROWSER=1; shift ;;
+    --debug=*) export DX_STUDIO_DEBUG=1; export DX_STUDIO_DEBUG_LOG="${1#*=}"; shift ;;
+    --debug) export DX_STUDIO_DEBUG=1; shift ;;
     --help|-h)
-      echo "Usage: $0 [--port PORT] [--no-kill] [--fast] [--verbose] [--no-browser]"
+      echo "Usage: $0 [--port PORT] [--no-kill] [--fast] [--verbose] [--no-browser] [--debug[=PATH]]"
       echo "  --port, -p    Launcher port (default: 8890; auto-bumps if busy)"
       echo "  --no-kill     Do not kill stale studio servers before starting"
       echo "  --fast        Skip the cosmetic boot animation"
       echo "  --verbose, -v Print port-fallback notices when a default port is busy"
       echo "  --no-browser  Do not auto-open the browser"
+      echo "  --debug       Log user actions to var/log/studio-debug.log (or =PATH)"
       exit 0 ;;
     *) echo "Unknown option: $1"; exit 1 ;;
   esac

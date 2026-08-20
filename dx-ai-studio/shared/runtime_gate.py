@@ -32,6 +32,18 @@ def module_start_policy(
     if active:
         return ModuleStartPolicy(allowed=True)
 
+    # Fast path failed (runtime not globally activated). Don't block this module for the OTHER
+    # module's broken half: allow it if ITS OWN launch contracts validate live (e.g. dx_stream
+    # runs when the GStreamer plugin is present even if the python inference venv isn't ready).
+    # This live check runs only on the degraded path; the ACTIVE fast path above is unchanged.
+    try:
+        from shared.runtime_validation import validate_module_contracts
+        module_result = validate_module_contracts(module)
+        if module_result.checks and module_result.passed:
+            return ModuleStartPolicy(allowed=True)
+    except Exception:
+        pass
+
     return ModuleStartPolicy(
         allowed=False,
         reason=ContractCheck(

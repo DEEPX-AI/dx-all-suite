@@ -2913,6 +2913,250 @@ window._DX_I18N_DICT = {
     'zh-TW': '套件已儲存至 outputs/ 目錄。請在 Outputs 頁面下載。',
     es: 'Los paquetes se guardan en el directorio outputs/. Use la página de Salidas para descargar.',
   },
+  'Quick Start': {
+    ko: '빠른 시작',
+    ja: 'クイックスタート',
+    'zh-CN': '快速开始',
+    'zh-TW': '快速開始',
+    es: 'Inicio rápido',
+  },
+  'Templates': {
+    ko: '템플릿',
+    ja: 'テンプレート',
+    'zh-CN': '模板',
+    'zh-TW': '範本',
+    es: 'Plantillas',
+  },
+  'Customize': {
+    ko: '사용자 지정',
+    ja: 'カスタマイズ',
+    'zh-CN': '自定义',
+    'zh-TW': '自訂',
+    es: 'Personalizar',
+  },
+  'Undo': {
+    ko: '실행 취소', ja: '元に戻す', 'zh-CN': '撤销', 'zh-TW': '復原', es: 'Deshacer',
+  },
+  'Redo': {
+    ko: '다시 실행', ja: 'やり直す', 'zh-CN': '重做', 'zh-TW': '重做', es: 'Rehacer',
+  },
+  'Save Output': {
+    ko: '출력 저장', ja: '出力を保存', 'zh-CN': '保存输出', 'zh-TW': '儲存輸出', es: 'Guardar salida',
+  },
+  'Select input asset': {
+    ko: '입력 asset 선택', ja: '入力 asset を選択', 'zh-CN': '选择输入 asset', 'zh-TW': '選取輸入 asset', es: 'Seleccionar asset de entrada',
+  },
+  'Device ID must be a non-negative integer': {
+    ko: 'Device ID는 0 이상의 정수여야 합니다', ja: 'Device ID は 0 以上の整数である必要があります', 'zh-CN': 'Device ID 必须是非负整数', 'zh-TW': 'Device ID 必須是非負整數', es: 'El ID de dispositivo debe ser un entero no negativo',
+  },
+  'Plugin palette': {
+    ko: 'Plugin 팔레트', ja: 'Plugin パレット', 'zh-CN': 'Plugin 调色板', 'zh-TW': 'Plugin 調色盤', es: 'Paleta de plugin',
+  },
+  'Drag a custom plugin to Preprocess or Postprocess': {
+    ko: '사용자 지정 Plugin을 Preprocess 또는 Postprocess로 드래그하세요', ja: 'カスタム Plugin を Preprocess または Postprocess にドラッグしてください', 'zh-CN': '将自定义 Plugin 拖到 Preprocess 或 Postprocess', 'zh-TW': '將自訂 Plugin 拖曳到 Preprocess 或 Postprocess', es: 'Arrastre un plugin personalizado a Preprocess o Postprocess',
+  },
+  'Custom plugin': {
+    ko: '사용자 지정 Plugin', ja: 'カスタム Plugin', 'zh-CN': '自定义 Plugin', 'zh-TW': '自訂 Plugin', es: 'Plugin personalizado',
+  },
+  'Save Recipe': {
+    ko: 'Recipe 저장', ja: 'Recipe を保存', 'zh-CN': '保存 Recipe', 'zh-TW': '儲存 Recipe', es: 'Guardar receta',
+  },
+  'Export Recipe': {
+    ko: 'Recipe 내보내기', ja: 'Recipe をエクスポート', 'zh-CN': '导出 Recipe', 'zh-TW': '匯出 Recipe', es: 'Exportar receta',
+  },
+  'Import Recipe': {
+    ko: 'Recipe 가져오기', ja: 'Recipe をインポート', 'zh-CN': '导入 Recipe', 'zh-TW': '匯入 Recipe', es: 'Importar receta',
+  },
+  'Run Package': {
+    ko: '실행 패키지', ja: '実行パッケージ', 'zh-CN': '运行包', 'zh-TW': '執行套件', es: 'Paquete de ejecución',
+  },
+  'Developer Package': {
+    ko: '개발자 패키지', ja: '開発者パッケージ', 'zh-CN': '开发包', 'zh-TW': '開發套件', es: 'Paquete de desarrollo',
+  },
+  'Reusable Recipe': {
+    ko: '재사용 가능한 Recipe', ja: '再利用可能なレシピ', 'zh-CN': '可复用配方', 'zh-TW': '可重複使用的配方', es: 'Receta reutilizable',
+  },
+  'Export Preflight': {
+    ko: '내보내기 사전 점검', ja: 'エクスポート事前チェック', 'zh-CN': '导出预检', 'zh-TW': '匯出預先檢查', es: 'Comprobación previa a la exportación',
+  },
+  'Recipe saved': {
+    ko: 'Recipe가 저장되었습니다', ja: 'Recipe を保存しました', 'zh-CN': 'Recipe 已保存', 'zh-TW': 'Recipe 已儲存', es: 'Receta guardada',
+  },
+  'Recipe import failed': {
+    ko: 'Recipe 가져오기에 실패했습니다', ja: 'Recipe のインポートに失敗しました', 'zh-CN': 'Recipe 导入失败', 'zh-TW': 'Recipe 匯入失敗', es: 'Falló la importación de la receta',
+  },
+  'Recipe export failed': {
+    ko: 'Recipe 내보내기에 실패했습니다', ja: 'Recipe のエクスポートに失敗しました', 'zh-CN': 'Recipe 导出失败', 'zh-TW': 'Recipe 匯出失敗', es: 'Falló la exportación de la receta',
+  },
+  'Choose a recipe JSON file': {
+    ko: 'Recipe JSON 파일 선택', ja: 'Recipe JSON ファイルを選択', 'zh-CN': '选择 Recipe JSON 文件', 'zh-TW': '選取 Recipe JSON 檔案', es: 'Elija un archivo JSON de receta',
+  },
+  'Copy-out verified': {
+    ko: 'Copy-out 검증 완료', ja: 'Copy-out 検証済み', 'zh-CN': '已验证 Copy-out', 'zh-TW': '已驗證 Copy-out', es: 'Copia externa verificada',
+  },
+  'Plugins': {
+    ko: 'Plugins', ja: 'Plugins', 'zh-CN': 'Plugins', 'zh-TW': 'Plugins', es: 'Plugins',
+  },
+  'Validation': {
+    ko: '검증', ja: '検証', 'zh-CN': '验证', 'zh-TW': '驗證', es: 'Validación',
+  },
+  'Add custom preprocess': {
+    ko: '사용자 지정 전처리 추가', ja: 'カスタム前処理を追加', 'zh-CN': '添加自定义预处理', 'zh-TW': '新增自訂前處理', es: 'Agregar preprocesamiento personalizado',
+  },
+  'Add custom postprocess': {
+    ko: '사용자 지정 후처리 추가', ja: 'カスタム後処理を追加', 'zh-CN': '添加自定义后处理', 'zh-TW': '新增自訂後處理', es: 'Agregar posprocesamiento personalizado',
+  },
+  'Apply Plugin Scaffold': {
+    ko: 'Plugin scaffold 적용', ja: 'Plugin scaffold を適用', 'zh-CN': '应用 Plugin scaffold', 'zh-TW': '套用 Plugin scaffold', es: 'Aplicar scaffold de plugin',
+  },
+  'Run Workflow': {
+    ko: '워크플로우 실행',
+    ja: 'ワークフローを実行',
+    'zh-CN': '运行工作流',
+    'zh-TW': '執行工作流程',
+    es: 'Ejecutar flujo de trabajo',
+  },
+  'Export Package': {
+    ko: '패키지 내보내기',
+    ja: 'パッケージをエクスポート',
+    'zh-CN': '导出软件包',
+    'zh-TW': '匯出套件',
+    es: 'Exportar paquete',
+  },
+  'Workflow validation blocked': {
+    ko: '워크플로우 검증이 차단되었습니다',
+    ja: 'ワークフロー検証がブロックされました',
+    'zh-CN': '工作流验证已阻止',
+    'zh-TW': '工作流程驗證已封鎖',
+    es: 'La validación del flujo de trabajo está bloqueada',
+  },
+  'Builder': {
+    ko: '빌더', ja: 'ビルダー', 'zh-CN': '构建器', 'zh-TW': '建構器', es: 'Constructor',
+  },
+  'Runnable Models': {
+    ko: '실행 가능한 모델', ja: '実行可能なモデル', 'zh-CN': '可运行模型', 'zh-TW': '可執行模型', es: 'Modelos ejecutables',
+  },
+  'Compatible Assets': {
+    ko: '호환 asset', ja: '互換 asset', 'zh-CN': '兼容 asset', 'zh-TW': '相容 asset', es: 'Assets compatibles',
+  },
+  'Canvas': {
+    ko: '캔버스', ja: 'キャンバス', 'zh-CN': '画布', 'zh-TW': '畫布', es: 'Lienzo',
+  },
+  'Inspector': {
+    ko: 'Inspector', ja: 'インスペクター', 'zh-CN': '检查器', 'zh-TW': '檢查器', es: 'Inspector',
+  },
+  'Drop model here': {
+    ko: '여기에 모델 놓기', ja: 'ここにモデルをドロップ', 'zh-CN': '将模型拖放到此处', 'zh-TW': '將模型拖放至此處', es: 'Suelte el modelo aquí',
+  },
+  'Drop asset here': {
+    ko: '여기에 asset 놓기', ja: 'ここに asset をドロップ', 'zh-CN': '将 asset 拖放到此处', 'zh-TW': '將 asset 拖放至此處', es: 'Suelte el asset aquí',
+  },
+  'Built-in Factory Component': {
+    ko: '내장 Factory component', ja: '組み込み Factory component', 'zh-CN': '内置 Factory component', 'zh-TW': '內建 Factory component', es: 'Componente Factory integrado',
+  },
+  'Plugin execution requires Factory integration': {
+    ko: 'Plugin 실행에는 Factory integration이 필요합니다', ja: 'Plugin の実行には Factory integration が必要です', 'zh-CN': 'Plugin 执行需要 Factory integration', 'zh-TW': 'Plugin 執行需要 Factory integration', es: 'La ejecución del plugin requiere integración de Factory',
+  },
+  'Preprocessing is resolved by the selected model Factory.': {
+    ko: 'Preprocessing은 선택한 모델 Factory에서 결정됩니다.', ja: 'Preprocessing は選択したモデル Factory により決まります。', 'zh-CN': 'Preprocessing 由所选模型 Factory 决定。', 'zh-TW': 'Preprocessing 由所選模型 Factory 決定。', es: 'El preprocessing lo resuelve la Factory del modelo seleccionado.',
+  },
+  'Postprocess settings': {
+    ko: 'Postprocess 설정', ja: 'Postprocess 設定', 'zh-CN': 'Postprocess 设置', 'zh-TW': 'Postprocess 設定', es: 'Configuración de postprocess',
+  },
+  'No postprocess settings are available for this model.': {
+    ko: '이 모델에서는 사용할 수 있는 Postprocess 설정이 없습니다.', ja: 'このモデルで利用できる Postprocess 設定はありません。', 'zh-CN': '此模型没有可用的 Postprocess 设置。', 'zh-TW': '此模型沒有可用的 Postprocess 設定。', es: 'No hay configuración de postprocess disponible para este modelo.',
+  },
+  'Postprocess implementation': {
+    ko: 'Postprocess 구현', ja: 'Postprocess 実装', 'zh-CN': 'Postprocess 实现', 'zh-TW': 'Postprocess 實作', es: 'Implementación de postprocess',
+  },
+  'Standard postprocess': {
+    ko: '표준 Postprocess', ja: '標準 Postprocess', 'zh-CN': '标准 Postprocess', 'zh-TW': '標準 Postprocess', es: 'Postprocess estándar',
+  },
+  'C++ postprocess': {
+    ko: 'C++ Postprocess', ja: 'C++ Postprocess', 'zh-CN': 'C++ Postprocess', 'zh-TW': 'C++ Postprocess', es: 'Postprocess C++',
+  },
+  'The core chain is fixed so the selected DX App Factory and SyncRunner remain executable.': {
+    ko: '선택한 DX App Factory와 SyncRunner가 실행 가능하도록 core chain은 고정됩니다.',
+    ja: '選択した DX App Factory と SyncRunner を実行可能に保つため、core chain は固定されています。',
+    'zh-CN': '为保持所选 DX App Factory 和 SyncRunner 可运行，core chain 固定不变。',
+    'zh-TW': '為維持所選 DX App Factory 與 SyncRunner 可執行，core chain 固定不變。',
+    es: 'La cadena central es fija para que Factory y SyncRunner de DX App seleccionados sigan siendo ejecutables.',
+  },
+  'Fit view': {
+    ko: '화면에 맞추기', ja: '画面に合わせる', 'zh-CN': '适应视图', 'zh-TW': '符合檢視', es: 'Ajustar vista',
+  },
+  'Zoom in': {
+    ko: '확대', ja: '拡大', 'zh-CN': '放大', 'zh-TW': '放大', es: 'Acercar',
+  },
+  'Zoom out': {
+    ko: '축소', ja: '縮小', 'zh-CN': '缩小', 'zh-TW': '縮小', es: 'Alejar',
+  },
+  'Validate graph': {
+    ko: '그래프 검증', ja: 'グラフを検証', 'zh-CN': '验证图形', 'zh-TW': '驗證圖形', es: 'Validar grafo',
+  },
+  'Graph ready': {
+    ko: '그래프 준비 완료', ja: 'グラフの準備完了', 'zh-CN': '图形已就绪', 'zh-TW': '圖形已就緒', es: 'Grafo listo',
+  },
+  'Pick a runnable model to build and run a workflow.': {
+    ko: '실행 가능한 모델을 선택하면 워크플로우를 만들고 실행할 수 있습니다.',
+    ja: '実行可能なモデルを選ぶとワークフローを作成して実行できます。',
+    'zh-CN': '选择一个可运行的模型即可创建并运行工作流。',
+    'zh-TW': '選擇一個可執行的模型即可建立並執行工作流程。',
+    es: 'Elige un modelo ejecutable para crear y ejecutar un flujo de trabajo.',
+  },
+  'Graph blocked': {
+    ko: '그래프가 차단됨', ja: 'グラフがブロックされています', 'zh-CN': '图形已阻止', 'zh-TW': '圖形已封鎖', es: 'Grafo bloqueado',
+  },
+  'Missing required connection': {
+    ko: '필수 연결이 없습니다', ja: '必要な接続がありません', 'zh-CN': '缺少必需连接', 'zh-TW': '缺少必要連線', es: 'Falta una conexión obligatoria',
+  },
+  'Connection is not allowed': {
+    ko: '허용되지 않는 연결입니다', ja: 'この接続は許可されていません', 'zh-CN': '不允许此连接', 'zh-TW': '不允許此連線', es: 'La conexión no está permitida',
+  },
+  'Core stages are fixed': {
+    ko: 'Core 단계는 고정됩니다', ja: 'Core ステージは固定です', 'zh-CN': 'Core 阶段固定', 'zh-TW': 'Core 階段固定', es: 'Las etapas centrales son fijas',
+  },
+  'Plugin scaffold': {
+    ko: '플러그인 스캐폴드', ja: 'プラグインスキャフォールド', 'zh-CN': '插件脚手架', 'zh-TW': '外掛程式鷹架', es: 'Scaffold de plugin',
+  },
+  'No category-specific asset found — showing generic sample assets.': {
+    ko: '카테고리별 자산을 찾지 못해 일반 샘플 자산을 표시합니다.',
+    ja: 'カテゴリ別のアセットが見つからないため、汎用サンプルアセットを表示しています。',
+    'zh-CN': '未找到特定类别的素材，正在显示通用样例素材。',
+    'zh-TW': '未找到特定類別的素材，正在顯示通用範例素材。',
+    es: 'No se encontró un recurso específico de la categoría; se muestran recursos de ejemplo genéricos.',
+  },
+  'Minimap': {
+    ko: '미니맵', ja: 'ミニマップ', 'zh-CN': '小地图', 'zh-TW': '小地圖', es: 'Minimapa',
+  },
+  'Built-in defaults': { ko: '내장 기본값', ja: '組み込みの既定値', 'zh-CN': '内置默认值', 'zh-TW': '內建預設值', es: 'Valores predeterminados integrados' },
+  'Blocked': { ko: '차단됨', ja: 'ブロック済み', 'zh-CN': '已阻止', 'zh-TW': '已封鎖', es: 'Bloqueado' },
+  'Plugin scaffold preview': { ko: 'Plugin scaffold 미리보기', ja: 'Plugin scaffold プレビュー', 'zh-CN': 'Plugin scaffold 预览', 'zh-TW': 'Plugin scaffold 預覽', es: 'Vista previa del scaffold de plugin' },
+  'Updating workflow': { ko: '워크플로우 업데이트 중', ja: 'ワークフローを更新中', 'zh-CN': '正在更新工作流', 'zh-TW': '正在更新工作流程', es: 'Actualizando flujo de trabajo' },
+  'Creating Plugin Scaffold': { ko: 'Plugin scaffold 생성 중', ja: 'Plugin scaffold を作成中', 'zh-CN': '正在创建 Plugin scaffold', 'zh-TW': '正在建立 Plugin scaffold', es: 'Creando scaffold de plugin' },
+  'Plugin scaffold planning failed': { ko: 'Plugin scaffold 계획에 실패했습니다', ja: 'Plugin scaffold の計画に失敗しました', 'zh-CN': 'Plugin scaffold 规划失败', 'zh-TW': 'Plugin scaffold 規劃失敗', es: 'Falló la planificación del scaffold de plugin' },
+  'Applying Plugin Scaffold': { ko: 'Plugin scaffold 적용 중', ja: 'Plugin scaffold を適用中', 'zh-CN': '正在应用 Plugin scaffold', 'zh-TW': '正在套用 Plugin scaffold', es: 'Aplicando scaffold de plugin' },
+  'Plugin scaffold apply failed': { ko: 'Plugin scaffold 적용에 실패했습니다', ja: 'Plugin scaffold の適用に失敗しました', 'zh-CN': 'Plugin scaffold 应用失败', 'zh-TW': 'Plugin scaffold 套用失敗', es: 'Falló la aplicación del scaffold de plugin' },
+  'DX App Composer': { ko: 'DX App Composer', ja: 'DX App コンポーザー', 'zh-CN': 'DX App 组合器', 'zh-TW': 'DX App 組合器', es: 'Compositor DX App' },
+  'Workflow Preview': { ko: '워크플로우 미리보기', ja: 'ワークフロープレビュー', 'zh-CN': '工作流预览', 'zh-TW': '工作流程預覽', es: 'Vista previa del flujo de trabajo' },
+  'Workflow ready': { ko: '워크플로우가 준비되었습니다', ja: 'ワークフローの準備ができました', 'zh-CN': '工作流已准备就绪', 'zh-TW': '工作流程已就緒', es: 'El flujo de trabajo está listo' },
+  'Choose a model to create a workflow first.': { ko: '먼저 모델을 선택하여 워크플로우를 만드세요.', ja: 'まずモデルを選択してワークフローを作成してください。', 'zh-CN': '请先选择模型以创建工作流。', 'zh-TW': '請先選擇模型以建立工作流程。', es: 'Primero elija un modelo para crear un flujo de trabajo.' },
+  'Workflow Result': { ko: '워크플로우 결과', ja: 'ワークフロー結果', 'zh-CN': '工作流结果', 'zh-TW': '工作流程結果', es: 'Resultado del flujo de trabajo' },
+  'Run a ready workflow to view visual output.': { ko: '준비된 워크플로우를 실행하여 시각 결과를 확인하세요.', ja: '準備済みのワークフローを実行して視覚出力を確認してください。', 'zh-CN': '运行就绪的工作流以查看可视化输出。', 'zh-TW': '執行已就緒的工作流程以檢視視覺輸出。', es: 'Ejecute un flujo de trabajo listo para ver la salida visual.' },
+  'Creating workflow': { ko: '워크플로우 생성 중', ja: 'ワークフローを作成中', 'zh-CN': '正在创建工作流', 'zh-TW': '正在建立工作流程', es: 'Creando flujo de trabajo' },
+  'Select a runnable model and let Lab choose a compatible input.': { ko: '실행 가능한 모델을 선택하면 Lab이 호환되는 입력을 선택합니다.', ja: '実行可能なモデルを選択すると、Lab が互換入力を選択します。', 'zh-CN': '选择可运行模型后，Lab 会选择兼容输入。', 'zh-TW': '選擇可執行模型後，Lab 會選擇相容輸入。', es: 'Elija un modelo ejecutable y Lab seleccionará una entrada compatible.' },
+  'No runnable models are installed. Download a DXNN model before creating a workflow.': { ko: '실행 가능한 모델이 설치되지 않았습니다. 워크플로우를 만들기 전에 DXNN 모델을 다운로드하세요.', ja: '実行可能なモデルがインストールされていません。ワークフローを作成する前に DXNN モデルをダウンロードしてください。', 'zh-CN': '未安装可运行模型。请在创建工作流前下载 DXNN 模型。', 'zh-TW': '尚未安裝可執行模型。請在建立工作流程前下載 DXNN 模型。', es: 'No hay modelos ejecutables instalados. Descargue un modelo DXNN antes de crear un flujo de trabajo.' },
+  'Unable to load runnable models. Check the Lab connection and try again.': { ko: '실행 가능한 모델을 불러올 수 없습니다. Lab 연결을 확인한 후 다시 시도하세요.', ja: '実行可能なモデルを読み込めません。Lab 接続を確認して再試行してください。', 'zh-CN': '无法加载可运行模型。请检查 Lab 连接后重试。', 'zh-TW': '無法載入可執行模型。請檢查 Lab 連線後再試一次。', es: 'No se pueden cargar los modelos ejecutables. Compruebe la conexión de Lab e inténtelo de nuevo.' },
+  'Start with a supported task and a compatible runnable model.': { ko: '지원되는 작업과 호환 가능한 실행 모델로 시작하세요.', ja: 'サポートされているタスクと互換性のある実行モデルで開始してください。', 'zh-CN': '从受支持的任务和兼容的可运行模型开始。', 'zh-TW': '從支援的任務與相容的可執行模型開始。', es: 'Comience con una tarea admitida y un modelo ejecutable compatible.' },
+  'Templates are unavailable until the Lab session is ready.': { ko: 'Lab 세션이 준비될 때까지 템플릿을 사용할 수 없습니다.', ja: 'Lab セッションの準備ができるまでテンプレートは利用できません。', 'zh-CN': '在 Lab 会话就绪之前，模板不可用。', 'zh-TW': '在 Lab 工作階段就緒之前，範本無法使用。', es: 'Las plantillas no están disponibles hasta que la sesión de Lab esté lista.' },
+  'Workflow run failed': { ko: '워크플로우 실행에 실패했습니다', ja: 'ワークフローの実行に失敗しました', 'zh-CN': '工作流运行失败', 'zh-TW': '工作流程執行失敗', es: 'La ejecución del flujo de trabajo falló' },
+  'Workflow completed without a visual output.': { ko: '워크플로우가 시각 결과 없이 완료되었습니다.', ja: 'ワークフローは視覚出力なしで完了しました。', 'zh-CN': '工作流已完成，但没有可视化输出。', 'zh-TW': '工作流程已完成，但沒有視覺輸出。', es: 'El flujo de trabajo finalizó sin una salida visual.' },
+  'Running workflow': { ko: '워크플로우 실행 중', ja: 'ワークフローを実行中', 'zh-CN': '正在运行工作流', 'zh-TW': '正在執行工作流程', es: 'Ejecutando flujo de trabajo' },
+  'Workflow completed': { ko: '워크플로우가 완료되었습니다', ja: 'ワークフローが完了しました', 'zh-CN': '工作流已完成', 'zh-TW': '工作流程已完成', es: 'El flujo de trabajo se completó' },
+  'Package export failed': { ko: '패키지 내보내기에 실패했습니다', ja: 'パッケージのエクスポートに失敗しました', 'zh-CN': '软件包导出失败', 'zh-TW': '套件匯出失敗', es: 'La exportación del paquete falló' },
+  'Package export completed': { ko: '패키지 내보내기가 완료되었습니다', ja: 'パッケージのエクスポートが完了しました', 'zh-CN': '软件包导出已完成', 'zh-TW': '套件匯出已完成', es: 'La exportación del paquete se completó' },
+  'Running inference…': { ko: '추론 실행 중…', ja: '推論実行中…', 'zh-CN': '正在运行推理…', 'zh-TW': '正在執行推論…', es: 'Ejecutando inferencia…' },
+  'frames': { ko: '프레임', ja: 'フレーム', 'zh-CN': '帧', 'zh-TW': '影格', es: 'fotogramas' },
 };
 
 /* ─── CSS Selectors for DOM translation ─── */
@@ -3507,11 +3751,6 @@ window._DX_I18N_PLACEHOLDERS = {
     ko: '출력', ja: '出力',
     'zh-CN': '输出', 'zh-TW': '輸出',
     es: 'Salida',
-  },
-  'Running inference…': {
-    ko: '추론 실행 중…', ja: '推論実行中…',
-    'zh-CN': '正在运行推理…', 'zh-TW': '正在執行推論…',
-    es: 'Ejecutando inferencia…',
   },
   'Run already in progress': {
     ko: '실행이 이미 진행 중입니다', ja: '実行はすでに進行中です',

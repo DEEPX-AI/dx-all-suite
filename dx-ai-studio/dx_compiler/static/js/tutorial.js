@@ -161,7 +161,7 @@
 
   var configWizardSteps = [
     { target: '#config_build_toggle', position: 'left',
-      title: { en: 'Build Config', ko: '설정 생성', ja: '設定を生成', 'zh-CN': '生成配置', 'zh-TW': '產生設定', es: 'Build Config' },
+      title: { en: 'Build Config', ko: '설정 생성', ja: '設定を生成', 'zh-CN': '生成配置', 'zh-TW': '產生設定', es: 'Configuración de compilación' },
       content: { en: 'Check Build Config to open the configuration wizard.', ko: 'Build Config를 체크하면 설정 마법사가 열립니다.', ja: 'Build Configにチェックを入れると設定ウィザードが開きます。', 'zh-CN': '勾选Build Config打开配置向导。', 'zh-TW': '勾選Build Config開啟設定精靈。', es: 'Marque Build Config para abrir el asistente de configuración.' } },
     { target: '#btn-auto-detect', position: 'bottom',
       title: { en: 'Auto Detect', ko: '자동 감지', ja: '自動検出', 'zh-CN': '自动检测', 'zh-TW': '自動偵測', es: 'Detección automática' },
@@ -234,14 +234,14 @@
       content: { en: 'Check to specify a server-side path for the config file instead of uploading.', ko: '체크하면 설정 파일을 업로드 대신 서버 경로로 직접 지정합니다.', ja: 'チェックすると設定ファイルをアップロードせずにサーバーパスで指定します。', 'zh-CN': '勾选以指定配置文件的服务器端路径而非上传。', 'zh-TW': '勾選以指定設定檔的伺服器端路徑而非上傳。', es: 'Marque para especificar una ruta en el servidor para el archivo de configuración en lugar de cargarlo.' } },
     { target: '.advanced-options summary', position: 'left', title: { en: 'Advanced Options', ko: '고급 옵션', ja: '詳細オプション', 'zh-CN': '高级选项', 'zh-TW': '進階選項', es: 'Opciones avanzadas' }, content: { en: 'Open to configure DXQ Enhancement settings.', ko: '고급 옵션을 펼치면 DXQ Enhancement를 설정할 수 있습니다.', ja: '開くとDXQ Enhancement設定を構成できます。', 'zh-CN': '打开以配置DXQ增强设置。', 'zh-TW': '展開以設定DXQ增強設定。', es: 'Abra para configurar los ajustes de DXQ Enhancement.' } },
     { target: '#dxq-auto', position: 'left',
-      title: { en: 'Auto (Q-PRO)', ko: '자동 (Q-PRO)', ja: '自動 (Q-PRO)', 'zh-CN': '自动 (Q-PRO)', 'zh-TW': '自動 (Q-PRO)', es: 'Auto (Q-PRO)' },
+      title: { en: 'Auto (Q-PRO)', ko: '자동 (Q-PRO)', ja: '自動 (Q-PRO)', 'zh-CN': '自动 (Q-PRO)', 'zh-TW': '自動 (Q-PRO)', es: 'Automático (Q-PRO)' },
       content: { en: 'Let dx_com auto-select the DXQ scheme with Q-PRO tuning. Disables manual DXQ presets when enabled.', ko: 'dx_com Q-PRO 튜닝으로 DXQ 방식을 자동 선택합니다. 활성화 시 수동 DXQ 프리셋은 비활성화됩니다.', ja: 'dx_com の Q-PRO チューニングで DXQ スキームを自動選択します。有効時は手動 DXQ プリセットが無効になります。', 'zh-CN': '让 dx_com 通过 Q-PRO 调优自动选择 DXQ 方案。启用后禁用手动 DXQ 预设。', 'zh-TW': '讓 dx_com 透過 Q-PRO 調校自動選擇 DXQ 方案。啟用後停用手動 DXQ 預設。', es: 'Permita que dx_com seleccione automáticamente el esquema DXQ con ajuste Q-PRO. Desactiva los presets DXQ manuales.' },
       beforeStep: function () {
         var det = document.querySelector('.advanced-options');
         if (det && !det.open) det.open = true;
       } },
     { target: '.dxq-fieldset', position: 'left',
-      title: { en: 'DXQ Enhancement', ko: 'DXQ 양자화', ja: 'DXQ拡張', 'zh-CN': 'DXQ增强', 'zh-TW': 'DXQ增強', es: 'DXQ Enhancement' },
+      title: { en: 'DXQ Enhancement', ko: 'DXQ 양자화', ja: 'DXQ拡張', 'zh-CN': 'DXQ增强', 'zh-TW': 'DXQ增強', es: 'Mejora DXQ' },
       content: { en: 'Fine-tune quantization with DXQ-P0~P5 presets. Each has unique parameters.', ko: 'DXQ-P0~P5 프리셋으로 양자화를 미세조정합니다. 각 프리셋은 고유한 파라미터를 가집니다.', ja: 'DXQ-P0〜P5プリセットで量子化を微調整します。各プリセットには固有のパラメータがあります。', 'zh-CN': '使用DXQ-P0~P5预设微调量化。每个预设有独特的参数。', 'zh-TW': '使用DXQ-P0~P5預設微調量化。每個預設有獨特的參數。', es: 'Ajuste la cuantización con los presets DXQ-P0~P5. Cada uno tiene parámetros únicos.' },
       beforeStep: function () {
         var det = document.querySelector('.advanced-options');

@@ -564,6 +564,10 @@
   <p class="txt-dim txt-sm mb16"><span class="ko">모델·작업 확장, 실험 실행, 안전한 변경 미리보기를 한 곳에서 관리합니다.</span><span class="en">Manage model/task extensions, experiments, and safe change previews in one place.</span><span class="es">Gestione extensiones de modelos y tareas, experimentos y vistas previas seguras de cambios en un solo lugar.</span><span class="ja">モデル・タスク拡張、実験、安全な変更プレビューを一か所で管理します。</span><span class="zh-CN">在一处管理模型/任务扩展、实验和安全变更预览。</span><span class="zh-TW">在一處管理模型/任務擴充、實驗和安全變更預覽。</span></p>
   <div class="lab-status lab-status-info mb12" id="lab-status"><span class="ko">Lab 세션 준비 중</span><span class="en">Preparing Lab session</span><span class="es">Preparando sesión de laboratorio</span><span class="ja">Lab セッション準備中</span><span class="zh-CN">正在准备 Lab 会话</span><span class="zh-TW">正在準備 Lab 工作階段</span></div>
   <div class="grid" id="lab-home" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px">
+    <button class="card lab-card lab-composer-card" id="lab-card-composer" data-lab-flow="composer" type="button">
+      <strong>🧩 <span class="ko">DX App Composer</span><span class="en">DX App Composer</span><span class="es">Compositor DX App</span><span class="ja">DX App コンポーザー</span><span class="zh-CN">DX App 组合器</span><span class="zh-TW">DX App 組合器</span></strong>
+      <span class="txt-dim txt-sm"><span class="ko">모델과 입력을 선택해 워크플로우를 실행하고 패키지로 내보냅니다.</span><span class="en">Choose a model and input, run the workflow, then export a package.</span><span class="es">Elija un modelo y una entrada, ejecute el flujo y exporte un paquete.</span><span class="ja">モデルと入力を選択し、ワークフローを実行してパッケージをエクスポートします。</span><span class="zh-CN">选择模型和输入，运行工作流，然后导出软件包。</span><span class="zh-TW">選擇模型與輸入，執行工作流程後匯出套件。</span></span>
+    </button>
     <button class="card lab-card" id="lab-card-add-model" data-lab-flow="add-model" type="button">
       <strong>➕ <span class="ko">모델 추가</span><span class="en">Add Model</span><span class="es">Agregar modelo</span><span class="ja">モデルを追加</span><span class="zh-CN">添加模型</span><span class="zh-TW">新增模型</span></strong>
       <span class="txt-dim txt-sm"><span class="ko">매니페스트 미리보기 후 적용</span><span class="en">Preview manifest before applying</span><span class="es">Vista previa del manifiesto antes de aplicar</span><span class="ja">適用前にマニフェストをプレビュー</span><span class="zh-CN">应用前预览清单</span><span class="zh-TW">套用前預覽資訊清單</span></span>
@@ -821,6 +825,8 @@ DXBrand.mount({
 <script src="/static/js/rundemo.js?m=dx_app"></script>
 <script src="/static/js/developer.js?m=dx_app"></script>
 <script src="/static/js/lab-portal.js?m=dx_app"></script>
+<script src="/static/js/lab-composer-graph.js?m=dx_app"></script>
+<script src="/static/js/lab-composer.js?m=dx_app"></script>
 <script src="/static/js/setup.js?m=dx_app"></script>
 <script src="/static/js/filebrowser.js?m=dx_app"></script>
 <script src="/static/js/app.js?m=dx_app"></script>

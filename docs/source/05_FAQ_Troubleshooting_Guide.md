@@ -51,12 +51,12 @@ sudo systemctl stop dxrt.service
 ./docker_run.sh --target=dx-runtime --ubuntu_version=24.04 
 ```
 
-For more details, refer to the **Host System Preparation** section in [**02. Setting Up Environment**](02_Setting_Up_Environment.md).  
+For more details, refer to the **Host System Preparation** section in [**Setting Up Environment**](02_Setting_Up_Environment.md).  
 
 **Method 2: Prevent Auto-execution in the Container**  
 If you **must** keep the host service running, configure the container so that the daemon (`dxrtd`) does not start automatically upon launch.  
 
-For more details, refer to the **Docker Advanced Troubleshooting (Multi-Runtime Containers)** section in [**02. Setting Up Environment**](02_Setting_Up_Environment.md).  
+For more details, refer to the **Docker Advanced Troubleshooting (Multi-Runtime Containers)** section in [**Setting Up Environment**](02_Setting_Up_Environment.md).  
 
 ---
 
@@ -107,7 +107,7 @@ docker compose -f docker/docker-compose.yml down --remove-orphans
 ./docker_run.sh --target=dx-runtime --ubuntu_version=24.04
 ```
 
-For more details, refer to the **Docker Installation** section in [**02. Setting Up Environment**](02_Setting_Up_Environment.md).  
+For more details, refer to the **Docker Installation** section in [**Setting Up Environment**](02_Setting_Up_Environment.md).  
 
 ---
 
@@ -157,7 +157,7 @@ After rebooting, enter the following command in the terminal to verify that the 
 dxrt-cli -s
 ```
 
-For more details, refer to the **Firmware (DX-FW) Update and Activation** section in [**02. Setting Up Environment**](02_Setting_Up_Environment.md).  
+For more details, refer to the **Firmware (DX-FW) Update and Activation** section in [**Setting Up Environment**](02_Setting_Up_Environment.md).  
 
 ---
 
@@ -202,7 +202,7 @@ dxrt-cli -s
 !!! caution "Warning for Docker Users"  
     Because Docker containers share the host's kernel, **driver updates must be performed on the Host OS**, not inside the container. Updating the driver inside a container will not affect the hardware communication layer.  
 
-For more details, refer to the **Building and Installing Modules** section in [**02. Setting Up Environment**](02_Setting_Up_Environment.md).  
+For more details, refer to the **Building and Installing Modules** section in [**Setting Up Environment**](02_Setting_Up_Environment.md).  
 
 ---
 
@@ -214,7 +214,7 @@ This error occurs when the application stops because of the incompatibility betw
 
 Check the terminal for the following error message.  
 ```Plaintext
-The model's compiler version(X.X.X) is not compatible in this RT library. 
+The model's compiler version(X.X.X) is not compatible with this RT library. 
 Please downgrade the RT library version to X.X.X or use a model file generated with a compiler version X.X.X or higher.
 ```
 
@@ -236,9 +236,7 @@ Reinstall **DX-RT** to a version that matches the model's requirements.
     If you choose this method, you **must** also re-verify the compatibility of your NPU Driver and Firmware.  
 
 **Version Verification Guide**  
-To find the exact compatible combinations for each module, please refer to the **DXNN SDK Version Compatibility Matrix** in [**04. Version Compatibility**](04_Version_Compatibility.md).
-
-Copyright © DEEPX. All rights reserved.
+To find the exact compatible combinations for each module, please refer to the **DXNN SDK Version Compatibility Matrix** in [**Version Compatibility**](04_Version_Compatibility.md).
 
 ---
 

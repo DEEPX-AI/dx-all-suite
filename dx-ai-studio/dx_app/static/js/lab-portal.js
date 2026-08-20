@@ -3,6 +3,7 @@ window.LabPortal = (function () {
   var _ready = false;
   var _cardsBound = false;
   var _capabilities = null;
+  var _composerOpened = false;
   var _currentManifest = null;
   var _dryRunInFlight = false;
   var _applyInFlight = false;
@@ -792,21 +793,46 @@ window.LabPortal = (function () {
           renderSafetyCenter();
           return;
         }
+        if (flow === 'composer') {
+          if (window.LabComposer && typeof window.LabComposer.open === 'function') {
+            window.LabComposer.open();
+          } else {
+            var composerRoot = document.getElementById('lab-flow-root');
+            if (composerRoot) composerRoot.textContent = _text('Composer module unavailable', 'Composer 모듈을 사용할 수 없습니다.');
+          }
+          return;
+        }
         var root = document.getElementById('lab-flow-root');
         if (root) root.textContent = _text('This flow is planned for the next phase.', '이 흐름은 다음 단계에서 구현됩니다.');
       });
     });
   }
 
+  async function _openComposerByDefault() {
+    if (_composerOpened || !window.LabComposer || typeof window.LabComposer.open !== 'function') return;
+    await window.LabComposer.open();
+    _composerOpened = true;
+  }
+
   async function init() {
-    if (_ready) return;
+    if (_ready) {
+      await _openComposerByDefault();
+      return;
+    }
     _bindCards();
     if (!S.labToken && typeof labEnsureSession === 'function') await labEnsureSession();
     var ok = await _loadCapabilities();
     _ready = !!ok;
+    if (_ready) await _openComposerByDefault();
   }
 
-  return { init: init, canApplyManifest: canApplyManifest };
+  return {
+    init: init,
+    canApplyManifest: canApplyManifest,
+    request: _labPost,
+    get: _labGet,
+    capabilities: function () { return _capabilities; }
+  };
 })();
 if (typeof registerLangRefresher === 'function') {
   registerLangRefresher(function refreshLabPortalLanguage() {

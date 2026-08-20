@@ -345,8 +345,9 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
         "application/json", "application/xml", "image/svg+xml",
     ))
 
-    def send_file(self, filepath, content_type: str | None = None, cache_control: str | None = None):
-        """정적 파일 서빙 + MIME 자동감지 + path 안전검증 + 캐시/ETag/gzip."""
+    def send_file(self, filepath, content_type: str | None = None, cache_control: str | None = None,
+                  content_disposition: str | None = None):
+
         p = Path(filepath)
         if not p.exists() or not p.is_file():
             self.send_error(404)
@@ -423,6 +424,8 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
         self.send_header("ETag", etag)
         self.send_header("Last-Modified", last_modified)
         self.send_header("Access-Control-Allow-Origin", "*")
+        if content_disposition:
+            self.send_header("Content-Disposition", content_disposition)
         if gzip_eligible:
             self.send_header("Vary", "Accept-Encoding")
 

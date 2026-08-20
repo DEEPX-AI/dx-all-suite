@@ -639,3 +639,23 @@ function refreshLanguage(){
 
 if(typeof DXI18n!=='undefined')DXI18n.onLangChange(refreshLanguage);
 setInterval(pollEvents,3000);
+
+// The launcher embeds each module in an <iframe>. The bootstrap's first drawCharts()
+// (refreshDash -> rAF) can run before the iframe is laid out / visible, so the chart
+// canvases get sized against a not-yet-final container and are never redrawn — there was
+// no resize or visibility hook — leaving blank charts on first entry until a manual
+// reload (exactly the launcher-only "blank grid" report). Redraw whenever the chart area
+// resizes (ResizeObserver fires when the iframe becomes visible/sized after layout) or the
+// tab is re-shown. drawCharts()/_prepareChartCanvas re-measure each call, so a redraw at
+// the correct size fixes it. Cheap: draws only when size/visibility actually changes.
+(function _installChartAutoRedraw(){
+  if(typeof window==='undefined'||typeof document==='undefined')return;  // non-browser (test VM) no-op
+  var _redraw=function(){requestAnimationFrame(drawCharts);};
+  var area=(typeof $==='function')?$('chart-area'):null;
+  if(area&&typeof ResizeObserver!=='undefined'){
+    try{new ResizeObserver(_redraw).observe(area);}catch(e){}
+  }
+  window.addEventListener('resize',_redraw);
+  document.addEventListener('visibilitychange',function(){if(!document.hidden)_redraw();});
+  window.addEventListener('pageshow',_redraw);
+})();
