@@ -49,7 +49,7 @@
       setTimeout(function () {
         var card = document.getElementById('run-export-card');
         if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        setTimeout(resolve, 500);
+        setTimeout(resolve, 150);
       }, 100);
     });
   }
@@ -170,7 +170,7 @@
   var sections = [
 
     { id:'setup', icon:'⚙️',
-      title:{ ko: '⚙️ Setup & Install', en: '⚙️ Setup & Install', ja: '⚙️ セットアップ & インストール', 'zh-CN': '⚙️ 设置与安装', 'zh-TW': '⚙️ 設定與安裝', es: '⚙️ Configuración e instalación' },
+      title:{ ko: '⚙️ 환경 설정 & 설치', en: '⚙️ Setup & Install', ja: '⚙️ セットアップ & インストール', 'zh-CN': '⚙️ 设置与安装', 'zh-TW': '⚙️ 設定與安裝', es: '⚙️ Configuración e instalación' },
       description:{ ko: '의존성 설치부터 NPU 드라이버까지 6단계 설치 과정 (DX-COM은 Launcher Compiler 모듈)', en: '6-step installation through NPU driver (DX-COM lives in the Launcher Compiler module)', ja: '依存関係からNPUドライバまでの6ステップ（DX-COMはLauncher Compilerモジュール）', 'zh-CN': '从依赖项到NPU驱动的6步安装（DX-COM在 Launcher Compiler 模块）', 'zh-TW': '從依賴項到NPU驅動的6步安裝（DX-COM在 Launcher Compiler 模組）', es: 'Instalación en 6 pasos hasta el controlador NPU (DX-COM está en el módulo Compiler del Launcher)' },
       beforeStart:function(){ goPage('setup'); },
       steps:[
@@ -190,7 +190,7 @@
           title:{ ko: '③ DX-Runtime 빌드', en: '③ DX-Runtime Build', ja: '③ DX-Runtime ビルド', 'zh-CN': '③ DX-Runtime 构建', 'zh-TW': '③ DX-Runtime 建置', es: '③ Compilación de DX-Runtime' },
           content:{ ko: 'DX-RT 런타임을 빌드하고 dx_engine Python API를 venv-dx-runtime에 설치합니다. ②번 이후 진행하세요. 이 단계를 완료해야 심층 진단의 <strong>Python venv (dx_engine)</strong> 항목이 통과하고, 이후 ⑤ DX-APP 빌드가 dx_rt를 링크할 수 있습니다. <strong>sudo 비밀번호</strong>가 필요합니다.', en: 'Builds the DX-RT runtime and installs the dx_engine Python API into venv-dx-runtime. Run after step ②. This is what makes the <strong>Python venv (dx_engine)</strong> diagnostic pass, and lets step ⑤ DX-APP Build link against dx_rt. Requires <strong>sudo password</strong>.', ja: 'DX-RT ランタイムをビルドし、dx_engine Python API を venv-dx-runtime にインストールします。ステップ②の後に実行してください。詳細診断の <strong>Python venv (dx_engine)</strong> が合格し、後続の⑤ DX-APPビルドが dx_rt をリンクできるようになります。<strong>sudo パスワード</strong>が必要です。', 'zh-CN': '构建 DX-RT 运行时并将 dx_engine Python API 安装到 venv-dx-runtime。请在步骤②之后执行。完成后深度诊断的 <strong>Python venv (dx_engine)</strong> 才会通过，且后续⑤ DX-APP 构建才能链接 dx_rt。需要 <strong>sudo 密码</strong>。', 'zh-TW': '建置 DX-RT 執行環境並將 dx_engine Python API 安裝到 venv-dx-runtime。請在步驟②之後執行。完成後深度診斷的 <strong>Python venv (dx_engine)</strong> 才會通過，且後續⑤ DX-APP 建置才能連結 dx_rt。需要 <strong>sudo 密碼</strong>。', es: 'Compila el runtime DX-RT e instala la API de Python dx_engine en venv-dx-runtime. Ejecútelo después del paso ②. Esto hace que el diagnóstico <strong>Python venv (dx_engine)</strong> pase y permite que el paso ⑤ DX-APP Build enlace con dx_rt. Requiere <strong>contraseña de sudo</strong>.' } },
         { target:'button[onclick*="dx-driver"]', position:'bottom',
-          title:{ ko: '④ NPU Linux Driver', en: '④ NPU Linux Driver', ja: '④ NPU Linux ドライバ', 'zh-CN': '④ NPU Linux 驱动', 'zh-TW': '④ NPU Linux 驅動', es: '④ Controlador Linux de NPU' },
+          title:{ ko: '④ NPU Linux 드라이버', en: '④ NPU Linux Driver', ja: '④ NPU Linux ドライバ', 'zh-CN': '④ NPU Linux 驱动', 'zh-TW': '④ NPU Linux 驅動', es: '④ Controlador Linux de NPU' },
           content:{ ko: 'DeepX NPU 하드웨어 드라이버를 설치합니다. <strong>sudo 비밀번호</strong>가 필요하며, 하단의 <strong>⌨️ Manual Input</strong> 버튼으로 stdin 입력 필드를 열어 비밀번호를 입력하세요.', en: 'Installs the DeepX NPU hardware driver. Requires <strong>sudo password</strong> — click <strong>⌨️ Manual Input</strong> below to open the stdin field.', ja: 'DeepX NPUハードウェアドライバをインストールします。<strong>sudo パスワード</strong>が必要です — 下部の<strong>⌨️ Manual Input</strong>をクリックしてstdin入力フィールドを開いてください。', 'zh-CN': '安装DeepX NPU硬件驱动程序。需要<strong>sudo密码</strong> — 点击下方的<strong>⌨️ Manual Input</strong>打开标准输入字段。', 'zh-TW': '安裝DeepX NPU硬體驅動程式。需要<strong>sudo密碼</strong> — 點擊下方的<strong>⌨️ Manual Input</strong>開啟標準輸入欄位。', es: 'Instala el controlador de hardware NPU de DeepX. Requiere <strong>contraseña de sudo</strong> — haga clic en <strong>⌨️ Entrada manual</strong> abajo para abrir el campo stdin.' } },
         { target:'button[onclick*="dx-app-build"]', position:'bottom',
           title:{ ko: '⑤ DX-APP 빌드', en: '⑤ DX-APP Build', ja: '⑤ DX-APP ビルド', 'zh-CN': '⑤ DX-APP 构建', 'zh-TW': '⑤ DX-APP 建置', es: '⑤ Compilación de DX-APP' },
@@ -208,7 +208,7 @@
     },
 
     { id:'models', icon:'📦',
-      title:{ ko: '📦 Models', en: '📦 Models', ja: '📦 モデル一覧', 'zh-CN': '📦 模型列表', 'zh-TW': '📦 模型列表', es: '📦 Modelos' },
+      title:{ ko: '📦 모델', en: '📦 Models', ja: '📦 モデル一覧', 'zh-CN': '📦 模型列表', 'zh-TW': '📦 模型列表', es: '📦 Modelos' },
       description:{ ko: '설치된 AI 모델 목록 확인 및 필터링', en: 'View and filter installed AI models', ja: 'インストール済みAIモデルの一覧とフィルタリング', 'zh-CN': '查看和筛选已安装的AI模型', 'zh-TW': '檢視和篩選已安裝的AI模型', es: 'Ver y filtrar modelos de IA instalados' },
       prerequisite:'setup',
       prerequisiteMessage:{ ko: '모델을 보려면 먼저 Setup에서 샘플 모델을 다운로드하세요.', en: 'Download sample models in Setup first.', ja: 'まずセットアップでサンプルモデルをダウンロードしてください。', 'zh-CN': '请先在设置中下载示例模型。', 'zh-TW': '請先在設定中下載範例模型。', es: 'Descargue primero modelos de muestra en Configuración.' },
@@ -227,7 +227,7 @@
     },
 
     { id:'run-single', icon:'▶️',
-      title:{ ko: '▶️ Run Inference (Single)', en: '▶️ Run Inference (Single)', ja: '▶️ 推論実行（シングル）', 'zh-CN': '▶️ 运行推理（单次）', 'zh-TW': '▶️ 執行推論（單次）', es: '▶️ Run Inference (Single)' },
+      title:{ ko: '▶️ 추론 실행 (단일)', en: '▶️ Run Inference (Single)', ja: '▶️ 推論実行（シングル）', 'zh-CN': '▶️ 运行推理（单次）', 'zh-TW': '▶️ 執行推論（單次）', es: '▶️ Ejecutar inferencia (única)' },
       description:{ ko: '단일 이미지/비디오에 대한 AI 추론 실행', en: 'Run AI inference on a single image or video', ja: '単一の画像/ビデオに対するAI推論の実行', 'zh-CN': '对单张图片或视频运行AI推理', 'zh-TW': '對單張圖片或影片執行AI推論', es: 'Ejecutar inferencia de IA en una sola imagen o video' },
       prerequisite:'setup',
       beforeStart:function(){ _prepRunSingleTab(); },
@@ -252,14 +252,14 @@
           title:{ ko: '실행 모드 (Sync/Async)', en: 'Execution Mode (Sync/Async)', ja: '実行モード（Sync/Async）', 'zh-CN': '执行模式（同步/异步）', 'zh-TW': '執行模式（同步/非同步）', es: 'Modo de ejecución (Sync/Async)' },
           content:{ ko: '<strong>Sync</strong>: 한 프레임 추론이 끝난 후 다음 프레임 처리. <strong>Async</strong>: 추론과 전처리를 파이프라인으로 병렬 처리하여 더 높은 FPS를 달성합니다.', en: '<strong>Sync</strong>: Process next frame after current completes. <strong>Async</strong>: Pipeline inference and preprocessing for higher FPS.', ja: '<strong>Sync</strong>：現在のフレーム処理完了後に次のフレームを処理。<strong>Async</strong>：推論と前処理をパイプラインで並列処理し、より高いFPSを実現します。', 'zh-CN': '<strong>Sync</strong>：当前帧完成后处理下一帧。<strong>Async</strong>：将推理与预处理流水线并行以获得更高FPS。', 'zh-TW': '<strong>Sync</strong>：當前幀完成後處理下一幀。<strong>Async</strong>：將推論與預處理以管線並行以獲得更高FPS。', es: '<strong>Sync</strong>: procesa el siguiente fotograma cuando termina el actual. <strong>Async</strong>: canaliza inferencia y preprocesamiento para mayor FPS.' } },
         { target:'#r-dev', position:'right',
-          title:{ ko: 'Device ID', en: 'Device ID', ja: 'デバイス ID', 'zh-CN': '设备 ID', 'zh-TW': '裝置 ID', es: 'ID de dispositivo' },
+          title:{ ko: '장치 ID', en: 'Device ID', ja: 'デバイス ID', 'zh-CN': '设备 ID', 'zh-TW': '裝置 ID', es: 'ID de dispositivo' },
           content:{ ko: '추론을 실행할 <strong>NPU 디바이스 번호</strong>를 선택합니다. 여러 NPU가 장착된 시스템에서는 특정 디바이스를 지정할 수 있습니다.', en: 'Select the <strong>NPU device number</strong> for inference. On multi-NPU systems, you can target a specific device.', ja: '推論に使用する<strong>NPUデバイス番号</strong>を選択します。複数NPUシステムでは特定のデバイスを指定できます。', 'zh-CN': '选择推理所用的<strong>NPU设备编号</strong>。在多NPU系统中可指定特定设备。', 'zh-TW': '選擇推論所用的<strong>NPU裝置編號</strong>。在多NPU系統中可指定特定裝置。', es: 'Seleccione el <strong>número de dispositivo NPU</strong> para la inferencia. En sistemas con varias NPU, puede elegir un dispositivo concreto.' } },
         { target:'#r-conf', position:'right',
-          title:{ ko: 'Confidence Threshold', en: 'Confidence Threshold', ja: '信頼度しきい値', 'zh-CN': '置信度阈值', 'zh-TW': '信賴度閾值', es: 'Umbral de confianza' },
+          title:{ ko: '신뢰도 임계값', en: 'Confidence Threshold', ja: '信頼度しきい値', 'zh-CN': '置信度阈值', 'zh-TW': '信賴度閾值', es: 'Umbral de confianza' },
           content:{ ko: '모델 출력의 <strong>최소 신뢰도 임계값</strong>(0~1)입니다. 값이 높을수록 확실한 결과만 표시되고, 낮을수록 더 많은 결과가 표시됩니다. Detection에서 기본값은 <strong>0.25</strong>입니다.', en: '<strong>Minimum confidence threshold</strong> (0-1) for model output. Higher = fewer but more confident results. Default <strong>0.25</strong> for Detection.', ja: 'モデル出力の<strong>最小信頼度しきい値</strong>（0〜1）。値が高いほど確実な結果のみ表示されます。Detectionのデフォルトは<strong>0.25</strong>です。', 'zh-CN': '模型输出的<strong>最小置信度阈值</strong>（0-1）。值越高结果越少但越可靠。Detection默认值为<strong>0.25</strong>。', 'zh-TW': '模型輸出的<strong>最小信賴度閾值</strong>（0-1）。值越高結果越少但越可靠。Detection預設值為<strong>0.25</strong>。', es: '<strong>Umbral mínimo de confianza</strong> (0-1) para la salida del modelo. Un valor más alto = menos resultados pero más confiables. Valor predeterminado <strong>0.25</strong> para Detection.' },
           beforeStep: function() { _showDetectParams(); } },
         { target:'#r-nms', position:'right',
-          title:{ ko: 'NMS IoU Threshold', en: 'NMS IoU Threshold', ja: 'NMS IoU しきい値', 'zh-CN': 'NMS IoU 阈值', 'zh-TW': 'NMS IoU 閾值', es: 'Umbral NMS IoU' },
+          title:{ ko: 'NMS IoU 임계값', en: 'NMS IoU Threshold', ja: 'NMS IoU しきい値', 'zh-CN': 'NMS IoU 阈值', 'zh-TW': 'NMS IoU 閾值', es: 'Umbral NMS IoU' },
           content:{ ko: '<strong>Non-Maximum Suppression</strong>의 IoU 임계값입니다. 겹치는 바운딩 박스를 제거하는 기준으로, 값이 낮을수록 더 공격적으로 중복을 제거합니다. Detection 전용 파라미터입니다.', en: '<strong>Non-Maximum Suppression</strong> IoU threshold. Controls overlapping bounding box removal. Lower = more aggressive dedup. Detection only.', ja: '<strong>Non-Maximum Suppression</strong>のIoUしきい値。重複するバウンディングボックスの除去を制御します。値が低いほど積極的に重複を除去します。Detection専用パラメータです。', 'zh-CN': '<strong>Non-Maximum Suppression</strong> IoU阈值。控制重叠边界框的去除。值越低去重越积极。仅用于Detection。', 'zh-TW': '<strong>Non-Maximum Suppression</strong> IoU閾值。控制重疊邊界框的去除。值越低去重越積極。僅用於Detection。', es: 'Umbral IoU de <strong>Non-Maximum Suppression</strong>. Controla la eliminación de cajas delimitadoras superpuestas. Un valor más bajo = deduplicación más agresiva. Solo Detection.' },
           beforeStep: function() { _showDetectParams(); } },
         { target:'#r-topk', position:'right',
@@ -274,13 +274,13 @@
           title:{ ko: '샘플 이미지 선택', en: 'Select Sample Image', ja: 'サンプル画像の選択', 'zh-CN': '选择示例图片', 'zh-TW': '選擇範例圖片', es: 'Seleccionar imagen de muestra' },
           content:{ ko: '제공된 <strong>샘플 이미지 썸네일</strong> 중 하나를 클릭하여 입력으로 사용합니다. 비디오 모드에서는 비디오 파일 선택 드롭다운이 나타납니다.', en: 'Click a <strong>sample image thumbnail</strong> to use as input. In video mode, a video file dropdown appears.', ja: '<strong>サンプル画像のサムネイル</strong>をクリックして入力として使用します。ビデオモードではビデオファイルのドロップダウンが表示されます。', 'zh-CN': '点击<strong>示例图片缩略图</strong>作为输入。在视频模式下会出现视频文件下拉列表。', 'zh-TW': '點擊<strong>範例圖片縮圖</strong>作為輸入。在影片模式下會出現影片檔案下拉選單。', es: 'Haga clic en una <strong>miniatura de imagen de muestra</strong> para usarla como entrada. En modo video, aparece un menú desplegable de archivos de video.' } },
         { target:'#r-run-btn', position:'right',
-          title:{ ko: '▶ Run Inference', en: '▶ Run Inference', ja: '▶ 推論実行', 'zh-CN': '▶ 运行推理', 'zh-TW': '▶ 執行推論', es: '▶ Ejecutar inferencia' },
+          title:{ ko: '▶ 추론 실행', en: '▶ Run Inference', ja: '▶ 推論実行', 'zh-CN': '▶ 运行推理', 'zh-TW': '▶ 執行推論', es: '▶ Ejecutar inferencia' },
           content:{ ko: '설정을 마친 후 이 버튼을 클릭하면 <strong>NPU에서 AI 추론이 실행</strong>됩니다. 결과(바운딩 박스, 분류 결과 등)가 우측 Result 영역에 표시됩니다.', en: 'After configuration, click to <strong>run AI inference on NPU</strong>. Results (bounding boxes, classification, etc.) appear in the Result area.', ja: '設定完了後にクリックして<strong>NPU上でAI推論を実行</strong>します。結果（バウンディングボックス、分類等）が結果エリアに表示されます。', 'zh-CN': '配置完成后点击以<strong>在NPU上运行AI推理</strong>。结果（边界框、分类等）显示在结果区域。', 'zh-TW': '配置完成後點擊以<strong>在NPU上執行AI推論</strong>。結果（邊界框、分類等）顯示在結果區域。', es: 'Tras configurar, haga clic para <strong>ejecutar inferencia de IA en la NPU</strong>. Los resultados (cajas delimitadoras, clasificación, etc.) aparecen en el área Result.' } },
         { target:'#run-result-card', position:'left',
           title:{ ko: '추론 결과', en: 'Inference Result', ja: '推論結果', 'zh-CN': '推理结果', 'zh-TW': '推論結果', es: 'Resultado de inferencia' },
           content:{ ko: '추론이 완료되면 <strong>결과 이미지, FPS, 지연시간, 검출된 객체 정보</strong>가 표시됩니다. 이미지를 클릭하면 원본 크기로 미리보기가 가능합니다.', en: 'After inference, shows <strong>result image, FPS, latency, detected object info</strong>. Click image for full-size preview.', ja: '推論完了後、<strong>結果画像、FPS、レイテンシ、検出オブジェクト情報</strong>が表示されます。画像をクリックするとフルサイズプレビューが可能です。', 'zh-CN': '推理完成后显示<strong>结果图片、FPS、延迟、检测对象信息</strong>。点击图片可全尺寸预览。', 'zh-TW': '推論完成後顯示<strong>結果圖片、FPS、延遲、偵測物件資訊</strong>。點擊圖片可全尺寸預覽。', es: 'Tras la inferencia, muestra la <strong>imagen de resultado, FPS, latencia e información de objetos detectados</strong>. Haga clic en la imagen para vista previa a tamaño completo.' } },
         { target:'#run-export-card', position:'top',
-          title:{ ko: '📦 Export Model Package', en: '📦 Export Model Package', ja: '📦 モデルパッケージ エクスポート', 'zh-CN': '📦 导出模型包', 'zh-TW': '📦 匯出模型套件', es: '📦 Exportar paquete de modelo' },
+          title:{ ko: '📦 모델 패키지 내보내기', en: '📦 Export Model Package', ja: '📦 モデルパッケージ エクスポート', 'zh-CN': '📦 导出模型包', 'zh-TW': '📦 匯出模型套件', es: '📦 Exportar paquete de modelo' },
           content:{ ko: '현재 선택한 모델의 <strong>소스 코드, config, 모델 파일을 패키징</strong>하여 Outputs 페이지에서 다운로드할 수 있습니다. C++/Python 또는 Both 중 선택 가능합니다.', en: '<strong>Package source code, config, and model file</strong> of current model for download on Outputs page. Choose C++/Python/Both.', ja: '現在のモデルの<strong>ソースコード、設定、モデルファイルをパッケージ化</strong>してOutputsページでダウンロード可能にします。C++/Python/Both から選択できます。', 'zh-CN': '将当前模型的<strong>源代码、配置和模型文件打包</strong>，可在Outputs页面下载。可选择C++/Python/Both。', 'zh-TW': '將當前模型的<strong>原始碼、配置和模型檔案打包</strong>，可在Outputs頁面下載。可選擇C++/Python/Both。', es: '<strong>Empaqueta el código fuente, la configuración y el archivo del modelo</strong> actual para descargarlo en la página Outputs. Elija C++/Python/Ambos.' },
           beforeStep: function() { return _prepRunExportArea(); } },
         { target:'#r-export-lang', position:'right',
@@ -303,7 +303,7 @@
     },
 
     { id:'run-cont', icon:'🔄',
-      title:{ ko: '🔄 Run Inference (Continuous)', en: '🔄 Run Inference (Continuous)', ja: '🔄 推論実行（連続）', 'zh-CN': '🔄 运行推理（连续）', 'zh-TW': '🔄 執行推論（連續）', es: '🔄 Run Inference (Continuous)' },
+      title:{ ko: '🔄 추론 실행 (연속)', en: '🔄 Run Inference (Continuous)', ja: '🔄 推論実行（連続）', 'zh-CN': '🔄 运行推理（连续）', 'zh-TW': '🔄 執行推論（連續）', es: '🔄 Ejecutar inferencia (continua)' },
       description:{ ko: '비디오/카메라/RTSP 스트림 연속 추론', en: 'Continuous inference on video/camera/RTSP streams', ja: 'ビデオ/カメラ/RTSPストリームの連続推論', 'zh-CN': '视频/摄像头/RTSP流的连续推理', 'zh-TW': '影片/攝影機/RTSP串流的連續推論', es: 'Inferencia continua en flujos de video/cámara/RTSP' },
       prerequisite:'setup',
       beforeStart:function(){ goPage('run'); if(typeof toggleRunTab==='function') toggleRunTab('continuous'); },
@@ -315,7 +315,7 @@
           title:{ ko: '언어 & 모드 설정', en: 'Language & Mode', ja: '言語 & モード', 'zh-CN': '语言与模式', 'zh-TW': '語言與模式', es: 'Idioma y modo' },
           content:{ ko: '<strong>C++/Python</strong> 실행 언어와 <strong>Sync/Async</strong> 모드를 선택합니다. Async 모드는 파이프라인 병렬 처리로 더 높은 FPS를 제공합니다.', en: 'Select <strong>C++/Python</strong> language and <strong>Sync/Async</strong> mode. Async pipelines preprocessing and inference for higher FPS.', ja: '<strong>C++/Python</strong>実行言語と<strong>Sync/Async</strong>モードを選択します。Asyncモードは前処理と推論をパイプライン並列処理し、より高いFPSを実現します。', 'zh-CN': '选择<strong>C++/Python</strong>执行语言和<strong>Sync/Async</strong>模式。Async模式将预处理和推理流水线并行以获得更高FPS。', 'zh-TW': '選擇<strong>C++/Python</strong>執行語言和<strong>Sync/Async</strong>模式。Async模式將預處理和推論以管線並行以獲得更高FPS。', es: 'Seleccione el idioma <strong>C++/Python</strong> y el modo <strong>Sync/Async</strong>. Async canaliza preprocesamiento e inferencia para mayor FPS.' } },
         { target:'#c-dev', position:'right',
-          title:{ ko: 'Device ID', en: 'Device ID', ja: 'デバイス ID', 'zh-CN': '设备 ID', 'zh-TW': '裝置 ID', es: 'ID de dispositivo' },
+          title:{ ko: '장치 ID', en: 'Device ID', ja: 'デバイス ID', 'zh-CN': '设备 ID', 'zh-TW': '裝置 ID', es: 'ID de dispositivo' },
           content:{ ko: '연속 추론에 사용할 <strong>NPU 디바이스</strong>를 선택합니다. 모든 슬롯이 동일한 디바이스에서 실행됩니다.', en: 'Select <strong>NPU device</strong> for continuous inference. All slots run on the same device.', ja: '連続推論に使用する<strong>NPUデバイス</strong>を選択します。すべてのスロットは同じデバイスで実行されます。', 'zh-CN': '选择连续推理所用的<strong>NPU设备</strong>。所有槽位在同一设备上运行。', 'zh-TW': '選擇連續推論所用的<strong>NPU裝置</strong>。所有插槽在同一裝置上執行。', es: 'Seleccione el <strong>dispositivo NPU</strong> para inferencia continua. Todas las ranuras usan el mismo dispositivo.' } },
         { target:'#c-slots', position:'right',
           title:{ ko: '📦 모델 슬롯', en: '📦 Model Slots', ja: '📦 モデルスロット', 'zh-CN': '📦 模型槽位', 'zh-TW': '📦 模型插槽', es: '📦 Ranuras de modelo' },
@@ -324,7 +324,7 @@
           title:{ ko: '슬롯 추가', en: 'Add Slot', ja: 'スロット追加', 'zh-CN': '添加槽位', 'zh-TW': '新增插槽', es: 'Añadir ranura' },
           content:{ ko: '<strong>＋ Add Model</strong>을 클릭하면 새 슬롯이 추가됩니다. 최대 8개까지 가능하며, 각 슬롯은 독립적으로 모델을 선택할 수 있습니다.', en: 'Click <strong>＋ Add Model</strong> to add a new slot. Up to 8 slots, each independently configurable.', ja: '<strong>＋ Add Model</strong>をクリックして新しいスロットを追加します。最大8スロットまで、各スロットは独立して設定できます。', 'zh-CN': '点击<strong>＋ Add Model</strong>添加新槽位。最多8个槽位，每个可独立配置。', 'zh-TW': '點擊<strong>＋ Add Model</strong>新增插槽。最多8個插槽，每個可獨立配置。', es: 'Haga clic en <strong>＋ Añadir modelo</strong> para añadir una ranura. Hasta 8 ranuras, cada una configurable de forma independiente.' } },
         { target:'#c-start-btn', position:'right',
-          title:{ ko: '▶ Start Continuous', en: '▶ Start Continuous', ja: '▶ 連続推論開始', 'zh-CN': '▶ 开始连续推理', 'zh-TW': '▶ 開始連續推論', es: '▶ Iniciar Continuous' },
+          title:{ ko: '▶ 연속 실행 시작', en: '▶ Start Continuous', ja: '▶ 連続推論開始', 'zh-CN': '▶ 开始连续推理', 'zh-TW': '▶ 開始連續推論', es: '▶ Iniciar Continuous' },
           content:{ ko: '모든 슬롯 설정을 마친 후 이 버튼을 클릭하면 <strong>연속 추론이 시작</strong>됩니다. 우측 Live Display에서 각 슬롯의 MJPEG 라이브 스트림을 확인할 수 있습니다.', en: 'Click to <strong>start continuous inference</strong>. View MJPEG live streams for each slot in the Live Display on the right.', ja: 'クリックして<strong>連続推論を開始</strong>します。右側のLive Displayで各スロットのMJPEGライブストリームを確認できます。', 'zh-CN': '点击<strong>开始连续推理</strong>。在右侧Live Display中查看各槽位的MJPEG实时画面。', 'zh-TW': '點擊<strong>開始連續推論</strong>。在右側Live Display中檢視各插槽的MJPEG即時畫面。', es: 'Haga clic para <strong>iniciar inferencia continua</strong>. Vea flujos MJPEG en vivo de cada ranura en Live Display a la derecha.' } },
         { target:'#c-timer', position:'left',
           title:{ ko: '실행 타이머', en: 'Run Timer', ja: '実行タイマー', 'zh-CN': '运行计时器', 'zh-TW': '執行計時器', es: 'Temporizador de ejecución' },
@@ -352,7 +352,7 @@
     },
 
     { id:'rundemo', icon:'🎬',
-      title:{ ko: '🎬 Run Demo', en: '🎬 Run Demo', ja: '🎬 Run Demo', 'zh-CN': '🎬 Run Demo', 'zh-TW': '🎬 Run Demo', es: '🎬 Run Demo' },
+      title:{ ko: '🎬 데모 실행', en: '🎬 Run Demo', ja: '🎬 デモ実行', 'zh-CN': '🎬 运行演示', 'zh-TW': '🎬 執行示範', es: '🎬 Ejecutar demostración' },
       description:{ ko: '한 번의 클릭으로 데모 모델을 실행하고 결과를 바로 확인', en: 'Run demo models with one click and see results instantly', ja: 'ワンクリックでデモモデルを実行し、結果をすぐに確認', 'zh-CN': '一键运行演示模型并立即查看结果', 'zh-TW': '一鍵執行示範模型並立即檢視結果', es: 'Ejecute modelos de demo con un clic y vea los resultados al instante' },
       prerequisite:'setup',
       prerequisiteMessage:{ ko: '먼저 Setup의 Demo Quick Start로 데모 모델을 설치하세요.', en: 'Install demo models first via Demo Quick Start in Setup.', ja: 'まずSetupのDemo Quick Startでデモモデルをインストールしてください。', 'zh-CN': '请先通过 Setup 中的 Demo Quick Start 安装演示模型。', 'zh-TW': '請先透過 Setup 中的 Demo Quick Start 安裝示範模型。', es: 'Instale primero los modelos de demo mediante Demo Quick Start en Configuración.' },
@@ -377,7 +377,7 @@
     },
 
     { id:'bench', icon:'⏱️',
-      title:{ ko: '⏱️ Benchmark', en: '⏱️ Benchmark', ja: '⏱️ ベンチマーク', 'zh-CN': '⏱️ 基准测试', 'zh-TW': '⏱️ 基準測試', es: '⏱️ Benchmark' },
+      title:{ ko: '⏱️ 벤치마크', en: '⏱️ Benchmark', ja: '⏱️ ベンチマーク', 'zh-CN': '⏱️ 基准测试', 'zh-TW': '⏱️ 基準測試', es: '⏱️ Prueba de rendimiento' },
       description:{ ko: '다중 모델 FPS 성능 비교', en: 'Multi-model FPS performance comparison', ja: '複数モデルのFPS性能比較', 'zh-CN': '多模型FPS性能对比', 'zh-TW': '多模型FPS效能對比', es: 'Comparación de rendimiento FPS con varios modelos' },
       prerequisite:'setup',
       beforeStart:function(){ goPage('bench'); },
@@ -398,7 +398,7 @@
           title:{ ko: '모델 선택 테이블', en: 'Model Selection Table', ja: 'モデル選択テーブル', 'zh-CN': '模型选择列表', 'zh-TW': '模型選擇列表', es: 'Tabla de selección de modelos' },
           content:{ ko: '우측 테이블에서 <strong>벤치마크할 모델을 체크박스로 선택</strong>합니다. <strong>☑ All</strong>로 전체 선택, <strong>☐ None</strong>으로 전체 해제가 가능합니다.', en: '<strong>Select models to benchmark via checkboxes</strong> in the right table. <strong>☑ All</strong> to select all, <strong>☐ None</strong> to deselect.', ja: '右側テーブルで<strong>チェックボックスからベンチマーク対象モデルを選択</strong>します。<strong>☑ All</strong>で全選択、<strong>☐ None</strong>で全解除します。', 'zh-CN': '在右侧列表中<strong>通过复选框选择基准测试模型</strong>。<strong>☑ All</strong>全选，<strong>☐ None</strong>全部取消。', 'zh-TW': '在右側列表中<strong>透過勾選框選擇基準測試模型</strong>。<strong>☑ All</strong>全選，<strong>☐ None</strong>全部取消。', es: '<strong>Seleccione modelos para benchmark con casillas</strong> en la tabla derecha. <strong>☑ Todos</strong> para seleccionar todo, <strong>☐ Ninguno</strong> para deseleccionar.' } },
         { target:'#b-run-btn', position:'right',
-          title:{ ko: '⏱️ Start Benchmark', en: '⏱️ Start Benchmark', ja: '⏱️ ベンチマーク開始', 'zh-CN': '⏱️ 开始基准测试', 'zh-TW': '⏱️ 開始基準測試', es: '⏱️ Iniciar Benchmark' },
+          title:{ ko: '⏱️ 벤치마크 시작', en: '⏱️ Start Benchmark', ja: '⏱️ ベンチマーク開始', 'zh-CN': '⏱️ 开始基准测试', 'zh-TW': '⏱️ 開始基準測試', es: '⏱️ Iniciar Benchmark' },
           content:{ ko: '선택한 모델들에 대해 <strong>순차적으로 벤치마크를 실행</strong>합니다. 각 모델마다 지정된 횟수만큼 추론을 반복하고 FPS/Latency를 측정합니다.', en: '<strong>Runs benchmark sequentially</strong> on selected models. Each model runs specified iterations and measures FPS/Latency.', ja: '選択したモデルに対して<strong>順次ベンチマークを実行</strong>します。各モデルが指定回数の推論を実行し、FPS/レイテンシを測定します。', 'zh-CN': '对所选模型<strong>依次执行基准测试</strong>。每个模型运行指定次数并测量FPS/延迟。', 'zh-TW': '對所選模型<strong>依次執行基準測試</strong>。每個模型執行指定次數並測量FPS/延遲。', es: '<strong>Ejecuta el benchmark secuencialmente</strong> en los modelos seleccionados. Cada modelo ejecuta las iteraciones indicadas y mide FPS/Latency.' } },
         { target:'#b-result-card', position:'top',
           title:{ ko: '결과 확인 & Export', en: 'Results & Export', ja: '結果 & エクスポート', 'zh-CN': '结果与导出', 'zh-TW': '結果與匯出', es: 'Resultados y exportación' },
@@ -416,7 +416,7 @@
     },
 
     { id:'compare', icon:'🔀',
-      title:{ ko: '🔀 A/B Compare', en: '🔀 A/B Compare', ja: '🔀 A/B 比較', 'zh-CN': '🔀 A/B 对比', 'zh-TW': '🔀 A/B 對比', es: '🔀 A/B Compare' },
+      title:{ ko: '🔀 A/B 비교', en: '🔀 A/B Compare', ja: '🔀 A/B 比較', 'zh-CN': '🔀 A/B 对比', 'zh-TW': '🔀 A/B 對比', es: '🔀 Comparación A/B' },
       description:{ ko: '2~8개 모델 동시 비교 실행', en: 'Run 2-8 models side by side', ja: '2〜8モデルの並列比較実行', 'zh-CN': '2-8个模型并排运行', 'zh-TW': '2-8個模型並排執行', es: 'Ejecute de 2 a 8 modelos en paralelo' },
       prerequisite:'setup',
       beforeStart:function(){ goPage('compare'); },
@@ -435,14 +435,14 @@
           content:{ ko: '<strong>▶ Run All</strong>을 클릭하면 모든 슬롯이 동시에 추론을 실행합니다. 각 슬롯에 결과 이미지와 FPS/Latency가 표시되어 시각적으로 비교할 수 있습니다.', en: 'Click <strong>▶ Run All</strong> to run all slots simultaneously. Each slot displays its result image and FPS/Latency for visual comparison.', ja: '<strong>▶ Run All</strong>をクリックして全スロットを同時に実行します。各スロットに結果画像とFPS/レイテンシが表示され、視覚的に比較できます。', 'zh-CN': '点击<strong>▶ Run All</strong>同时运行所有槽位。每个槽位显示结果图片和FPS/延迟以进行直观对比。', 'zh-TW': '點擊<strong>▶ Run All</strong>同時執行所有插槽。每個插槽顯示結果圖片和FPS/延遲以進行直觀對比。', es: 'Haga clic en <strong>▶ Run All</strong> para ejecutar todas las ranuras simultáneamente. Cada ranura muestra su imagen de resultado y FPS/Latency para comparación visual.' },
           beforeStep: function() { _scrollToTarget('#ab-cols'); } },
         { target:'#ab-compare-card', position:'top',
-          title:{ ko: '📊 Performance Comparison', en: '📊 Performance Comparison', ja: '📊 性能比較', 'zh-CN': '📊 性能对比', 'zh-TW': '📊 效能對比', es: '📊 Comparación de rendimiento' },
+          title:{ ko: '📊 성능 비교', en: '📊 Performance Comparison', ja: '📊 性能比較', 'zh-CN': '📊 性能对比', 'zh-TW': '📊 效能對比', es: '📊 Comparación de rendimiento' },
           content:{ ko: '모든 슬롯 추론 완료 후 <strong>Performance Comparison 테이블</strong>이 나타납니다. 슬롯별 <strong>모델명, FPS, Latency</strong>를 직접 비교하여 최적의 모델을 판단하세요.', en: 'After all slots finish, a <strong>Performance Comparison table</strong> appears. Compare <strong>model name, FPS, Latency</strong> per slot to find the optimal model.', ja: '全スロットの完了後、<strong>Performance Comparison テーブル</strong>が表示されます。スロット別の<strong>モデル名、FPS、レイテンシ</strong>を比較して最適なモデルを判断します。', 'zh-CN': '所有槽位完成后出现<strong>性能对比表</strong>。对比各槽位的<strong>模型名称、FPS、延迟</strong>以找到最佳模型。', 'zh-TW': '所有插槽完成後出現<strong>效能對比表</strong>。對比各插槽的<strong>模型名稱、FPS、延遲</strong>以找到最佳模型。', es: 'Cuando todas las ranuras terminan, aparece una <strong>tabla de comparación de rendimiento</strong>. Compare <strong>nombre del modelo, FPS y Latency</strong> por ranura para encontrar el modelo óptimo.' },
           beforeStep: function() { var el = document.getElementById('ab-compare-card'); if (el) el.classList.remove('hidden'); } },
       ]
     },
 
     { id:'modelzoo', icon:'📥',
-      title:{ ko: '📥 ModelZoo', en: '📥 ModelZoo', ja: '📥 ModelZoo', 'zh-CN': '📥 ModelZoo', 'zh-TW': '📥 ModelZoo', es: '📥 ModelZoo' },
+      title:{ ko: '📥 모델 저장소', en: '📥 ModelZoo', ja: '📥 モデルライブラリ', 'zh-CN': '📥 模型库', 'zh-TW': '📥 模型庫', es: '📥 Repositorio de modelos' },
       description:{ ko: 'AI 모델 검색 및 다운로드', en: 'Browse and download AI models', ja: 'AIモデルの検索とダウンロード', 'zh-CN': '浏览和下载AI模型', 'zh-TW': '瀏覽和下載AI模型', es: 'Explore y descargue modelos de IA' },
       beforeStart:function(){ goPage('modelzoo'); },
       steps:[
@@ -467,14 +467,14 @@
     },
 
     { id:'compiler', icon:'🛠️',
-      title:{ ko: '🛠️ Compiler', en: '🛠️ Compiler', ja: '🛠️ Compiler', 'zh-CN': '🛠️ Compiler', 'zh-TW': '🛠️ Compiler', es: '🛠️ Compiler' },
+      title:{ ko: '🛠️ 컴파일러', en: '🛠️ Compiler', ja: '🛠️ コンパイラー', 'zh-CN': '🛠️ 编译器', 'zh-TW': '🛠️ 編譯器', es: '🛠️ Compilador' },
       description:{ ko: 'Launcher의 Compiler 모듈에서 ONNX→DXNN 변환', en: 'Convert ONNX→DXNN in the Launcher Compiler module', ja: 'LauncherのCompilerモジュールでONNX→DXNN変換', 'zh-CN': '在 Launcher 的 Compiler 模块中转换 ONNX→DXNN', 'zh-TW': '在 Launcher 的 Compiler 模組中轉換 ONNX→DXNN', es: 'Convierta ONNX→DXNN en el módulo Compiler del Launcher' },
       prerequisite:'setup',
       prerequisiteMessage:{ ko: '먼저 Setup에서 런타임 의존성을 설치하세요.', en: 'Install runtime dependencies in Setup first.', ja: 'まずセットアップでランタイム依存関係をインストールしてください。', 'zh-CN': '请先在设置中安装运行时依赖项。', 'zh-TW': '請先在設定中安裝執行環境依賴項。', es: 'Instale primero las dependencias de runtime en Configuración.' },
       beforeStart:function(){ goPage('reference'); },
       steps:[
         { target:'#ref-filter-bar', position:'bottom',
-          title:{ ko: 'Compiler Reference', en: 'Compiler Reference', ja: 'Compiler Reference', 'zh-CN': 'Compiler 参考', 'zh-TW': 'Compiler 參考', es: 'Referencia Compiler' },
+          title:{ ko: '컴파일러 레퍼런스', en: 'Compiler Reference', ja: 'コンパイラーリファレンス', 'zh-CN': 'Compiler 参考', 'zh-TW': 'Compiler 參考', es: 'Referencia Compiler' },
           content:{ ko: 'Reference 필터에서 <strong>Compiler</strong> 칩을 선택하면 DX-COM 설치·ONNX 그래프·컴파일 워크플로우 문서를 볼 수 있습니다. 실제 GUI는 Launcher 상단 <strong>Compiler</strong> 탭에서 실행합니다.', en: 'Select the <strong>Compiler</strong> chip in Reference filters for DX-COM setup, ONNX graph, and compile workflow docs. Run the full GUI from the Launcher <strong>Compiler</strong> tab.', ja: 'Referenceフィルタで<strong>Compiler</strong>チップを選ぶと、DX-COMセットアップ・ONNXグラフ・コンパイルワークフローのドキュメントが表示されます。実際のGUIはLauncher上部の<strong>Compiler</strong>タブから起動します。', 'zh-CN': '在 Reference 筛选中选择 <strong>Compiler</strong> 标签可查看 DX-COM 安装、ONNX 图和编译流程文档。完整 GUI 请从 Launcher 顶部 <strong>Compiler</strong> 选项卡启动。', 'zh-TW': '在 Reference 篩選中選擇 <strong>Compiler</strong> 標籤可查看 DX-COM 安裝、ONNX 圖和編譯流程文件。完整 GUI 請從 Launcher 頂部 <strong>Compiler</strong> 標籤啟動。', es: 'Seleccione el chip <strong>Compiler</strong> en los filtros Reference para documentación de DX-COM, gráfico ONNX y flujo de compilación. Ejecute la GUI completa desde la pestaña <strong>Compiler</strong> del Launcher.' } },
         { target:'#ref-content', position:'top',
           title:{ ko: 'Compiler 워크플로우', en: 'Compiler Workflow', ja: 'Compilerワークフロー', 'zh-CN': 'Compiler 工作流', 'zh-TW': 'Compiler 工作流程', es: 'Flujo Compiler' },
@@ -483,7 +483,7 @@
     },
 
     { id:'outputs', icon:'📁',
-      title:{ ko: '📁 Outputs', en: '📁 Outputs', ja: '📁 出力ファイル', 'zh-CN': '📁 输出文件', 'zh-TW': '📁 輸出檔案', es: '📁 Outputs' },
+      title:{ ko: '📁 출력물', en: '📁 Outputs', ja: '📁 出力ファイル', 'zh-CN': '📁 输出文件', 'zh-TW': '📁 輸出檔案', es: '📁 Salidas' },
       description:{ ko: '추론 결과 파일 확인 및 다운로드', en: 'View and download inference output files', ja: '推論出力ファイルの確認とダウンロード', 'zh-CN': '查看和下载推理输出文件', 'zh-TW': '檢視和下載推論輸出檔案', es: 'Ver y descargar archivos de salida de inferencia' },
       beforeStart:function(){ goPage('outputs'); _closeLightbox(); },
       steps:[
@@ -548,7 +548,7 @@
     },
 
     { id:'lab', icon:'🧪',
-      title:{ ko: '🧪 Lab', en: '🧪 Lab', ja: '🧪 ラボ', 'zh-CN': '🧪 实验室', 'zh-TW': '🧪 實驗室', es: '🧪 Laboratorio' },
+      title:{ ko: '🧪 실험실', en: '🧪 Lab', ja: '🧪 ラボ', 'zh-CN': '🧪 实验室', 'zh-TW': '🧪 實驗室', es: '🧪 Laboratorio' },
       description:{ ko: '모델·작업 확장, 실험, 안전한 변경 미리보기', en: 'Model/task extensions, experiments, and safe change previews', ja: 'モデル・タスク拡張、実験、安全な変更プレビュー', 'zh-CN': '模型/任务扩展、实验与安全变更预览', 'zh-TW': '模型/任務擴充、實驗與安全變更預覽', es: 'Extensiones de modelos/tareas, experimentos y vistas previas seguras' },
       beforeStart:function(){ goPage('lab'); if(typeof initLabPage==='function') initLabPage(); },
       steps:[
@@ -568,7 +568,7 @@
     },
 
     { id:'developer', icon:'🔧', helpOnly:true,
-      title:{ ko: '🔧 Developer Mode', en: '🔧 Developer Mode', ja: '🔧 開発者モード', 'zh-CN': '🔧 开发者模式', 'zh-TW': '🔧 開發者模式', es: '🔧 Modo desarrollador' },
+      title:{ ko: '🔧 개발자 모드', en: '🔧 Developer Mode', ja: '🔧 開発者モード', 'zh-CN': '🔧 开发者模式', 'zh-TW': '🔧 開發者模式', es: '🔧 Modo desarrollador' },
       steps:[] },
   ];
 
@@ -579,17 +579,17 @@
      REFERENCE DOCS
      ════════════════════════════════════════════════════════════ */
   var referenceDocs = [
-    { id:'ref-setup', icon:'⚙️', title:{ ko: 'Setup & Install', en: 'Setup & Install', ja: 'セットアップ & インストール', 'zh-CN': '设置与安装', 'zh-TW': '設定與安裝', es: 'Configuración e instalación' },
+    { id:'ref-setup', icon:'⚙️', title:{ ko: '환경 설정 & 설치', en: 'Setup & Install', ja: 'セットアップ & インストール', 'zh-CN': '设置与安装', 'zh-TW': '設定與安裝', es: 'Configuración e instalación' },
       body:{ ko: '<p>6단계 초기 설정 (DX-COM Compiler는 Launcher Compiler 탭):</p><ul><li><strong>①</strong> DX-APP Dependencies — cmake, gcc, ninja, OpenCV 등</li><li><strong>②</strong> DX-Runtime Dependencies — ONNX Runtime 등</li><li><strong>③</strong> DX-Runtime Build — dx_rt + dx_engine 설치</li><li><strong>④</strong> NPU Driver — sudo 필요</li><li><strong>⑤</strong> DX-APP Build — C++ Release (dx_rt 링크)</li><li><strong>⑥</strong> Sample Assets — 모델(.dxnn) + 데모 비디오</li></ul><p>위→아래, 왼→오른쪽 순서. 런타임(②③)과 드라이버(④)를 먼저, 그 뒤 DX-APP 빌드(⑤). 로그창에서 실시간 확인.</p>', en: '<p>6-step setup (DX-COM Compiler is in the Launcher Compiler tab):</p><ul><li><strong>①</strong> DX-APP Dependencies</li><li><strong>②</strong> DX-Runtime Dependencies</li><li><strong>③</strong> DX-Runtime Build — dx_rt + dx_engine</li><li><strong>④</strong> NPU Driver (sudo)</li><li><strong>⑤</strong> DX-APP Build — C++ Release (links dx_rt)</li><li><strong>⑥</strong> Sample Assets</li></ul><p>Runtime (②③) and driver (④) first, then DX-APP Build (⑤).</p>', ja: '<p>6ステップのセットアップ（DX-COM CompilerはLauncher Compilerタブ）:</p><ul><li><strong>①</strong> DX-APP 依存関係</li><li><strong>②</strong> DX-Runtime 依存関係</li><li><strong>③</strong> DX-Runtime ビルド — dx_rt + dx_engine</li><li><strong>④</strong> NPUドライバ（sudo必要）</li><li><strong>⑤</strong> DX-APP ビルド — C++ Release（dx_rtリンク）</li><li><strong>⑥</strong> サンプルアセット</li></ul><p>ランタイム（②③）とドライバ（④）を先に、その後DX-APPビルド（⑤）。</p>', 'zh-CN': '<p>6步设置（DX-COM Compiler 在 Launcher Compiler 标签）:</p><ul><li><strong>①</strong> DX-APP 依赖项</li><li><strong>②</strong> DX-Runtime 依赖项</li><li><strong>③</strong> DX-Runtime 构建 — dx_rt + dx_engine</li><li><strong>④</strong> NPU驱动（需sudo）</li><li><strong>⑤</strong> DX-APP 构建 — C++ Release（链接 dx_rt）</li><li><strong>⑥</strong> 示例资源</li></ul><p>先运行时（②③）和驱动（④），再 DX-APP 构建（⑤）。</p>', 'zh-TW': '<p>6步設定（DX-COM Compiler 在 Launcher Compiler 標籤）:</p><ul><li><strong>①</strong> DX-APP 依賴項</li><li><strong>②</strong> DX-Runtime 依賴項</li><li><strong>③</strong> DX-Runtime 建置 — dx_rt + dx_engine</li><li><strong>④</strong> NPU驅動（需sudo）</li><li><strong>⑤</strong> DX-APP 建置 — C++ Release（連結 dx_rt）</li><li><strong>⑥</strong> 範例資源</li></ul><p>先執行環境（②③）和驅動（④），再 DX-APP 建置（⑤）。</p>', es: '<p>Configuración en 6 pasos (DX-COM Compiler está en la pestaña Compiler del Launcher):</p><ul><li><strong>①</strong> Dependencias DX-APP</li><li><strong>②</strong> Dependencias DX-Runtime</li><li><strong>③</strong> Compilación DX-Runtime — dx_rt + dx_engine</li><li><strong>④</strong> Controlador NPU (sudo)</li><li><strong>⑤</strong> Compilación DX-APP — C++ Release (enlaza dx_rt)</li><li><strong>⑥</strong> Recursos de muestra</li></ul><p>Primero runtime (②③) y controlador (④), luego DX-APP Build (⑤).</p>' } },
-    { id:'ref-run', icon:'▶️', title:{ ko: 'Run Inference', en: 'Run Inference', ja: '推論実行', 'zh-CN': '运行推理', 'zh-TW': '執行推論', es: 'Ejecutar inferencia' },
+    { id:'ref-run', icon:'▶️', title:{ ko: '추론 실행', en: 'Run Inference', ja: '推論実行', 'zh-CN': '运行推理', 'zh-TW': '執行推論', es: 'Ejecutar inferencia' },
       body:{ ko: '<ul><li><strong>Single</strong> — 이미지/비디오 1개 추론</li><li><strong>Continuous</strong> — 비디오/카메라/RTSP 연속 추론, 최대 8슬롯</li><li>파라미터: Confidence, NMS IoU, Top-K, Alpha</li><li>Export Package로 소스+모델 패키징</li></ul>', en: '<ul><li><strong>Single</strong> — one image/video</li><li><strong>Continuous</strong> — video/camera/RTSP, up to 8 slots</li><li>Params: Confidence, NMS, Top-K, Alpha</li><li>Export Package</li></ul>', ja: '<ul><li><strong>Single</strong> — 画像/ビデオ1件</li><li><strong>Continuous</strong> — ビデオ/カメラ/RTSP、最大8スロット</li><li>パラメータ：Confidence、NMS、Top-K、Alpha</li><li>エクスポートパッケージ</li></ul>', 'zh-CN': '<ul><li><strong>Single</strong> — 单张图片/视频</li><li><strong>Continuous</strong> — 视频/摄像头/RTSP，最多8个槽位</li><li>参数：Confidence、NMS、Top-K、Alpha</li><li>导出包</li></ul>', 'zh-TW': '<ul><li><strong>Single</strong> — 單張圖片/影片</li><li><strong>Continuous</strong> — 影片/攝影機/RTSP，最多8個插槽</li><li>參數：Confidence、NMS、Top-K、Alpha</li><li>匯出套件</li></ul>', es: '<ul><li><strong>Single</strong> — una imagen/video</li><li><strong>Continuous</strong> — video/cámara/RTSP, hasta 8 ranuras</li><li>Parámetros: Confidence, NMS, Top-K, Alpha</li><li>Exportar paquete</li></ul>' } },
-    { id:'ref-bench', icon:'⏱️', title:{ ko: 'Benchmark', en: 'Benchmark', ja: 'ベンチマーク', 'zh-CN': '基准测试', 'zh-TW': '基準測試', es: 'Benchmark' },
+    { id:'ref-bench', icon:'⏱️', title:{ ko: '벤치마크', en: 'Benchmark', ja: 'ベンチマーク', 'zh-CN': '基准测试', 'zh-TW': '基準測試', es: 'Prueba de rendimiento' },
       body:{ ko: '<ul><li>다중 모델 선택 → 순차 벤치마크</li><li>Loop Count로 반복 횟수 설정</li><li>FPS 비교 차트 + 결과 테이블</li><li>📄 Export Report</li></ul>', en: '<ul><li>Multi-model selection → sequential benchmark</li><li>Loop count setting</li><li>FPS chart + results table</li><li>📄 Export Report</li></ul>', ja: '<ul><li>複数モデル選択 → 順次ベンチマーク</li><li>ループ回数設定</li><li>FPSチャート + 結果テーブル</li><li>📄 レポートエクスポート</li></ul>', 'zh-CN': '<ul><li>多模型选择 → 顺序基准测试</li><li>循环次数设置</li><li>FPS图表 + 结果表格</li><li>📄 导出报告</li></ul>', 'zh-TW': '<ul><li>多模型選擇 → 順序基準測試</li><li>循環次數設定</li><li>FPS圖表 + 結果表格</li><li>📄 匯出報告</li></ul>', es: '<ul><li>Selección multi-modelo → benchmark secuencial</li><li>Configuración de loop count</li><li>Gráfico FPS + tabla de resultados</li><li>📄 Export Report</li></ul>' } },
-    { id:'ref-compare', icon:'🔀', title:{ ko: 'A/B Compare', en: 'A/B Compare', ja: 'A/B 比較', 'zh-CN': 'A/B 对比', 'zh-TW': 'A/B 對比', es: 'A/B Compare' },
+    { id:'ref-compare', icon:'🔀', title:{ ko: 'A/B 비교', en: 'A/B Compare', ja: 'A/B 比較', 'zh-CN': 'A/B 对比', 'zh-TW': 'A/B 對比', es: 'Comparación A/B' },
       body:{ ko: '<ul><li>2~8 슬롯 동시 비교</li><li>동일 입력(파일/카메라/RTSP) 공유</li><li>Performance Comparison 테이블</li></ul>', en: '<ul><li>2-8 slot simultaneous comparison</li><li>Shared input</li><li>Performance comparison table</li></ul>', ja: '<ul><li>2〜8スロット同時比較</li><li>共有入力</li><li>性能比較テーブル</li></ul>', 'zh-CN': '<ul><li>2-8槽位同时对比</li><li>共享输入</li><li>性能对比表</li></ul>', 'zh-TW': '<ul><li>2-8插槽同時對比</li><li>共享輸入</li><li>效能對比表</li></ul>', es: '<ul><li>Comparación simultánea de 2-8 ranuras</li><li>Entrada compartida</li><li>Tabla de comparación de rendimiento</li></ul>' } },
-    { id:'ref-mz', icon:'📥', title:{ ko: 'ModelZoo', en: 'ModelZoo', ja: 'ModelZoo', 'zh-CN': 'ModelZoo', 'zh-TW': 'ModelZoo', es: 'ModelZoo' },
+    { id:'ref-mz', icon:'📥', title:{ ko: '모델 저장소', en: 'ModelZoo', ja: 'モデルライブラリ', 'zh-CN': '模型库', 'zh-TW': '模型庫', es: 'Repositorio de modelos' },
       body:{ ko: '<ul><li>Internal(폐쇄망) / Public 소스</li><li>태스크 필터 + 검색</li><li>Q-Lite / Q-Pro DXNN 개별 다운로드</li><li>장바구니 일괄 다운로드</li></ul>', en: '<ul><li>Internal / Public sources</li><li>Task filter + search</li><li>Q-Lite / Q-Pro DXNN download</li><li>Cart batch download</li></ul>', ja: '<ul><li>Internal / Public ソース</li><li>タスクフィルタ + 検索</li><li>Q-Lite / Q-Pro DXNNダウンロード</li><li>カート一括ダウンロード</li></ul>', 'zh-CN': '<ul><li>Internal / Public 源</li><li>任务筛选 + 搜索</li><li>Q-Lite / Q-Pro DXNN下载</li><li>购物车批量下载</li></ul>', 'zh-TW': '<ul><li>Internal / Public 來源</li><li>任務篩選 + 搜尋</li><li>Q-Lite / Q-Pro DXNN下載</li><li>購物車批次下載</li></ul>', es: '<ul><li>Orígenes Internal / Public</li><li>Filtro de tarea + búsqueda</li><li>Descarga DXNN Q-Lite / Q-Pro</li><li>Descarga por lotes con carrito</li></ul>' } },
-    { id:'ref-comp', icon:'🛠️', title:{ ko: 'DX-COM Compiler', en: 'DX-COM Compiler', ja: 'DX-COM コンパイラ', 'zh-CN': 'DX-COM 编译器', 'zh-TW': 'DX-COM 編譯器', es: 'Compilador DX-COM' },
+    { id:'ref-comp', icon:'🛠️', title:{ ko: 'DX-COM 컴파일러', en: 'DX-COM Compiler', ja: 'DX-COM コンパイラ', 'zh-CN': 'DX-COM 编译器', 'zh-TW': 'DX-COM 編譯器', es: 'Compilador DX-COM' },
       body:{ ko: '<ul><li>ONNX 업로드 → Inspect → 전처리 → PPU → 컴파일 → Test Run → Deploy</li><li>프리셋으로 원클릭 설정</li><li>JSON Config 로드/Export</li><li>ONNX/DXNN 그래프 시각화</li><li>컴파일 히스토리</li></ul>', en: '<ul><li>Upload → Inspect → Preprocessing → PPU → Compile → Test → Deploy</li><li>Presets for one-click setup</li><li>JSON config load/export</li><li>Graph visualization</li><li>Compile history</li></ul>', ja: '<ul><li>アップロード → Inspect → 前処理 → PPU → コンパイル → テスト → デプロイ</li><li>ワンクリックセットアップのプリセット</li><li>JSON設定の読込/エクスポート</li><li>グラフ可視化</li><li>コンパイル履歴</li></ul>', 'zh-CN': '<ul><li>上传 → Inspect → 预处理 → PPU → 编译 → 测试 → 部署</li><li>一键设置预设</li><li>JSON配置加载/导出</li><li>图可视化</li><li>编译历史</li></ul>', 'zh-TW': '<ul><li>上傳 → Inspect → 預處理 → PPU → 編譯 → 測試 → 部署</li><li>一鍵設定預設</li><li>JSON配置載入/匯出</li><li>圖視覺化</li><li>編譯歷史</li></ul>', es: '<ul><li>Cargar → Inspect → Preprocessing → PPU → Compile → Test → Deploy</li><li>Presets para configuración con un clic</li><li>Carga/exportación de configuración JSON</li><li>Visualización de grafos</li><li>Historial de compilación</li></ul>' } },
     { id:'ref-shortcuts', icon:'⌨️', title:{ ko: '키보드 단축키', en: 'Keyboard Shortcuts', ja: 'キーボード ショートカット', 'zh-CN': '键盘快捷键', 'zh-TW': '鍵盤快捷鍵', es: 'Atajos de teclado' },
       body:{ ko: '<ul><li><strong>Esc</strong> — 튜토리얼 종료 / TOC 닫기</li><li><strong>←/→</strong> — 튜토리얼 이전/다음</li><li><strong>Enter</strong> — 다음 단계</li></ul>', en: '<ul><li><strong>Esc</strong> — Close tutorial / TOC</li><li><strong>←/→</strong> — Tutorial prev/next</li><li><strong>Enter</strong> — Next step</li></ul>', ja: '<ul><li><strong>Esc</strong> — チュートリアル / 目次を閉じる</li><li><strong>←/→</strong> — チュートリアル 前/次</li><li><strong>Enter</strong> — 次のステップ</li></ul>', 'zh-CN': '<ul><li><strong>Esc</strong> — 关闭教程 / 目录</li><li><strong>←/→</strong> — 教程 上一步/下一步</li><li><strong>Enter</strong> — 下一步</li></ul>', 'zh-TW': '<ul><li><strong>Esc</strong> — 關閉教學 / 目錄</li><li><strong>←/→</strong> — 教學 上一步/下一步</li><li><strong>Enter</strong> — 下一步</li></ul>', es: '<ul><li><strong>Esc</strong> — Cerrar tutorial / TOC</li><li><strong>←/→</strong> — Tutorial anterior/siguiente</li><li><strong>Enter</strong> — Siguiente paso</li></ul>' } },

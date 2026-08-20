@@ -46,7 +46,10 @@ class TestRuntimeLifecycle:
         assert result.status is BootstrapStatus.ACTIVE
         assert result.plan.target.version == "2.4.1"
 
-    def test_migration_preserves_studio_outputs_and_cache(self, tmp_path):
+    def test_installed_runtime_accepted_as_is_preserves_studio_data(self, tmp_path):
+        # Policy: an already-installed runtime that passes the launch contracts is accepted
+        # as-is regardless of version — Studio never force-upgrades a working install to the
+        # manifest target. Only the installed version is validated; studio data is untouched.
         from shared import runtime_profile as profile_api
         from shared.runtime_bootstrap import BootstrapStatus, reconcile
         from shared.runtime_state import RuntimeStateStore
@@ -68,11 +71,15 @@ class TestRuntimeLifecycle:
         )
 
         assert result.status is BootstrapStatus.ACTIVE
-        assert runner.calls == [("install", "2.4.1"), ("validate", "2.4.1")]
+        assert runner.calls == [("validate", "2.3.0")]
+        assert result.status.value == "active"
         assert output.read_text(encoding="utf-8") == "result"
         assert cache.read_text(encoding="utf-8") == "cache"
 
-    def test_candidate_failure_rolls_back_without_touching_studio_data(self, tmp_path):
+    def test_invalid_installed_runtime_fails_without_touching_studio_data(self, tmp_path):
+        # A physically-installed runtime that FAILS the launch contracts is a broken install to
+        # repair (FAILED) — not a trigger to install a different pinned version, and studio data
+        # stays untouched.
         from shared import runtime_profile as profile_api
         from shared.runtime_bootstrap import BootstrapStatus, reconcile
         from shared.runtime_state import RuntimeStateStore
@@ -80,7 +87,7 @@ class TestRuntimeLifecycle:
         sentinel = tmp_path / "studio-data" / "outputs" / "keep.txt"
         sentinel.parent.mkdir(parents=True)
         sentinel.write_text("keep", encoding="utf-8")
-        runner = self.Runner(fail_validation_for="2.4.1")
+        runner = self.Runner(fail_validation_for="2.3.0")  # the INSTALLED runtime fails
 
         result = reconcile(
             self._profile(profile_api, tmp_path, "2.3.0", profile_api.ProfileState.MIGRATION_REQUIRED),
@@ -89,11 +96,8 @@ class TestRuntimeLifecycle:
             RuntimeStateStore(tmp_path / "state.json"),
         )
 
-        assert result.status is BootstrapStatus.ROLLED_BACK
-        assert runner.calls == [
-            ("install", "2.4.1"), ("validate", "2.4.1"),
-            ("install", "2.3.0"), ("validate", "2.3.0"),
-        ]
+        assert result.status is BootstrapStatus.FAILED
+        assert runner.calls == [("validate", "2.3.0")]
         assert sentinel.read_text(encoding="utf-8") == "keep"
 
     def test_child_environment_rejects_contaminated_parent_shell(self, tmp_path):

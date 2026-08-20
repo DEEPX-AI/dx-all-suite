@@ -184,7 +184,11 @@ def ensure_inference_venv(log=None) -> str | None:
     if venv_py.is_file() and _has_numpy_cv2_dxengine(str(venv_py)):
         return str(venv_py)
 
-    # Find an interpreter with a WORKING dx_engine to seed from (system python, venv-dx-runtime…).
+    # Pick a seed interpreter for the isolated venv. Two ways to get a known-good dx_engine into
+    # it (see _install_working_dx_engine): install a matching self-contained WHEEL, or COPY a
+    # working install. So a seed qualifies if EITHER a dx_engine wheel matches its ABI (no
+    # pre-existing dx_engine needed — this covers a freshly built wheel on a box where nothing is
+    # installed yet) OR it already imports dx_engine (for the copy path).
     seeds = []
     for root in runtime_venv_roots():
         p = root / "bin" / "python3"
@@ -195,25 +199,44 @@ def ensure_inference_venv(log=None) -> str | None:
         w = shutil.which(name)
         if w:
             seeds.append(w)
-    seed = next((s for s in dict.fromkeys(seeds) if runtime_python_has_dx_engine(s)), None)
+    seed = next(
+        (s for s in dict.fromkeys(seeds)
+         if _find_dx_engine_wheel(_abi_tag(s)) is not None or runtime_python_has_dx_engine(s)),
+        None,
+    )
     if not seed:
-        _say("No interpreter with a working dx_engine found — install the DX runtime first "
-             "(dx_engine is not on PyPI).")
+        _say("No dx_engine wheel and no interpreter with a working dx_engine — build/install the "
+             "DX runtime python package first (dx_engine is not on PyPI).")
         return None
 
+    # A previous partial/broken attempt (e.g. a --system-site-packages venv that inherited a
+    # mismatched system dx_engine) may already be there — rebuild from scratch.
+    if STUDIO_INFER_VENV.exists():
+        shutil.rmtree(STUDIO_INFER_VENV, ignore_errors=True)
+
     try:
-        _say(f"Creating studio inference venv (seed: {seed}) …")
-        r = subprocess.run([seed, "-m", "venv", "--system-site-packages", str(STUDIO_INFER_VENV)],
+        # ISOLATED venv — NOT --system-site-packages. Seeding a venv with system-site-packages
+        # inherits the BASE interpreter's system dist-packages, which on a mixed/partial install
+        # can hold a dx_engine whose compiled _pydxrt is ABI-mismatched with the installed
+        # libdxrt (dlopen "undefined symbol" on import) AND lets it SHADOW the good copy. So
+        # isolate, then install a KNOWN-GOOD dx_engine explicitly (self-contained wheel first,
+        # else a verbatim copy of the seed's working install).
+        _say(f"Creating isolated studio inference venv (seed: {seed}) …")
+        r = subprocess.run([seed, "-m", "venv", str(STUDIO_INFER_VENV)],
                            capture_output=True, text=True, timeout=180)
         if r.returncode != 0:
             _say("venv creation failed: " + (r.stderr or "")[-300:])
             return None
-        _say("Installing opencv-python-headless + numpy into the inference venv …")
+        # numpy + opencv FIRST: dx_engine imports numpy at import time, so a dx_engine
+        # verification before numpy is present would fail spuriously.
+        _say("Installing numpy + opencv-python-headless into the inference venv …")
         r = subprocess.run([str(venv_py), "-m", "pip", "install", "--upgrade",
-                            "opencv-python-headless", "numpy"],
+                            "numpy", "opencv-python-headless"],
                            capture_output=True, text=True, timeout=900)
         if r.returncode != 0:
-            _say("pip install failed: " + (r.stderr or "")[-300:])
+            _say("pip install (numpy/opencv) failed: " + (r.stderr or "")[-300:])
+            return None
+        if not _install_working_dx_engine(str(venv_py), seed, _say):
             return None
     except (OSError, subprocess.SubprocessError) as exc:
         _say(f"inference venv setup error: {exc}")
@@ -224,6 +247,89 @@ def ensure_inference_venv(log=None) -> str | None:
         return str(venv_py)
     _say("Inference venv still missing numpy/cv2/dx_engine after install.")
     return None
+
+
+def _abi_tag(python: str) -> str | None:
+    """The interpreter's CPython ABI tag (e.g. 'cp312') for matching a dx_engine wheel."""
+    try:
+        out = subprocess.run(
+            [python, "-c", "import sys;print('cp%d%d' % sys.version_info[:2])"],
+            capture_output=True, text=True, timeout=15)
+        return out.stdout.strip() or None
+    except Exception:
+        return None
+
+
+def _find_dx_engine_wheel(tag: str | None) -> Path | None:
+    """Locate a self-contained dx_engine wheel matching the interpreter ABI tag.
+
+    Prefers dx_rt/python_package (auditwheel output — bundles libdxrt, so it is immune to a
+    mismatched system libdxrt), then any dx_engine wheel under the dx-runtime tree."""
+    if not tag:
+        return None
+    for root in (DX_RT_ROOT / "python_package", DX_RUNTIME_ROOT):
+        if not root.is_dir():
+            continue
+        try:
+            hit = next(iter(sorted(root.rglob(f"dx_engine-*-{tag}-*.whl"))), None)
+        except OSError:
+            hit = None
+        if hit is not None:
+            return hit
+    return None
+
+
+def _copy_dx_engine_from(seed_py: str, target_py: str, say) -> bool:
+    """Copy the working dx_engine package (+ bundled dx_engine.libs and .dist-info) from an
+    interpreter that imports it into the target venv's site-packages. Preserves the exact
+    ABI-matched build (and any auditwheel-bundled libdxrt) the seed proved importable."""
+    try:
+        src = subprocess.run(
+            [seed_py, "-c",
+             "import dx_engine, os; print(os.path.dirname(os.path.abspath(dx_engine.__file__)))"],
+            capture_output=True, text=True, timeout=15)
+        pkg = Path(src.stdout.strip())
+        if not pkg.is_dir():
+            return False
+        site = subprocess.run(
+            [target_py, "-c", "import sysconfig; print(sysconfig.get_paths()['purelib'])"],
+            capture_output=True, text=True, timeout=15)
+        dest = Path(site.stdout.strip())
+        if not dest.is_dir():
+            return False
+        sp = pkg.parent
+        say(f"Copying working dx_engine from {pkg} …")
+        shutil.copytree(pkg, dest / "dx_engine", dirs_exist_ok=True)
+        libs = sp / "dx_engine.libs"
+        if libs.is_dir():
+            shutil.copytree(libs, dest / "dx_engine.libs", dirs_exist_ok=True)
+        for info in sp.glob("dx_engine-*.dist-info"):
+            shutil.copytree(info, dest / info.name, dirs_exist_ok=True)
+        return runtime_python_has_dx_engine(target_py)
+    except Exception as exc:
+        say(f"dx_engine copy failed: {exc}")
+        return False
+
+
+def _install_working_dx_engine(target_py: str, seed_py: str, say) -> bool:
+    """Install a known-good dx_engine into the isolated inference venv: a matching
+    self-contained wheel first (bundles libdxrt — immune to system libdxrt skew), else a
+    verbatim copy of the seed interpreter's working install."""
+    wheel = _find_dx_engine_wheel(_abi_tag(target_py))
+    if wheel is not None:
+        say(f"Installing dx_engine wheel: {wheel.name}")
+        try:
+            r = subprocess.run([target_py, "-m", "pip", "install", str(wheel)],
+                               capture_output=True, text=True, timeout=600)
+            if r.returncode == 0 and runtime_python_has_dx_engine(target_py):
+                return True
+            say("wheel install did not yield a working dx_engine; trying package copy …")
+        except (OSError, subprocess.SubprocessError) as exc:
+            say(f"wheel install error: {exc}; trying package copy …")
+    if _copy_dx_engine_from(seed_py, target_py, say):
+        return True
+    say("Could not install a working dx_engine into the inference venv.")
+    return False
 
 
 def runtime_python_has_dx_engine(python: str | None = None) -> bool:

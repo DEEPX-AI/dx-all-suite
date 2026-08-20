@@ -19,6 +19,7 @@ from dx_app.core.config import (DX_APP_ROOT, CPP_DIR, PY_DIR, BUILD_DIR, ASSETS_
                     SAMPLE_DIR, OUTPUTS_DIR, SCRIPTS_DIR, CAT_IMAGE, CAT_VIDEO,
                     _RUNTIME_PYTHON, _RUNTIME_PYTHONPATH)
 from shared.runtime import ld_library_path
+from shared import debug_log
 from dx_app.core.dx_app_security import resolve_existing_file
 from dx_app.core.performance import _parse_perf, _cvt_video
 from shared.hardware import get_hw
@@ -90,7 +91,7 @@ def run_inference(model_name, category, model_file, lang="cpp", variant="sync",
                   config_overrides=None,
                   upload_path=None, timeout=120, loop=None,
                   camera_id=None, rtsp_url=None,
-                  save_output=True, image_base64=None, _multi=False):
+                  save_output=True, image_base64=None, _multi=False, job_id=None):
     _sweep_stale_temp()
     if not model_file: return _err("no_model_file", "No model file configured")
     # Multi-model support: if model_file starts with '-', it contains custom CLI args
@@ -241,6 +242,26 @@ def run_inference(model_name, category, model_file, lang="cpp", variant="sync",
                 config._running_proc = subprocess.Popen(cmd, stdout=_fout, stderr=subprocess.STDOUT,
                  cwd=str(DX_APP_ROOT), env=env, text=True, close_fds=True); proc = config._running_proc
             if _multi: _multi_register(proc)
+            if job_id:
+                # Async run: publish this run's live stdout + iteration total so
+                # run_progress.poll_run can report frame progress. Best-effort; a failure
+                # here must never break the run itself.
+                try:
+                    from dx_app.core import run_progress as _rp
+                    _total = None
+                    try:
+                        if input_type == "video" and not _is_live and inp.exists():
+                            import cv2 as _cv2t
+                            _vc = _cv2t.VideoCapture(str(inp))
+                            _fc = int(_vc.get(_cv2t.CAP_PROP_FRAME_COUNT)); _vc.release()
+                            _total = _fc * _loop if _fc > 0 else None
+                        else:
+                            _total = _loop  # image/pair: one tag line per loop iteration
+                    except Exception:
+                        _total = None
+                    _rp.register(job_id, _stdout_file, _loop, _total, proc, t0)
+                except Exception:
+                    pass
             proc.wait(timeout=timeout); elapsed = time.time() - t0
         if _multi: _multi_unregister(proc)
         with config._proc_lock: config._running_proc = None
@@ -388,6 +409,14 @@ def run_inference(model_name, category, model_file, lang="cpp", variant="sync",
         if _multi and proc is not None: _multi_unregister(proc)
         return _err("inference_exception", str(e), model=model_name)
     finally:
+        try:
+            debug_log.log_exec("dx_app",
+                               cmd if 'cmd' in dir() else None,
+                               proc.returncode if proc is not None else None,
+                               (time.time() - t0) * 1000.0 if 't0' in dir() else 0.0,
+                               {"model_name": model_name, "category": category})
+        except Exception:
+            pass
         # Single cleanup point for every exit path (success/timeout/exception):
         # remove whatever temp artifacts this run created.
         for _p in (_stdout_file, tmp_config, _b64_tmp, res_img):

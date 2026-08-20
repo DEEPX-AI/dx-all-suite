@@ -15,7 +15,7 @@ DEEPX NPU Compiler (DX-COM) produces the NPU Command Set from the provided ONNX 
 
 **DX-RT**
 
-DX-RT is the DEEPX Runtime SDK for AI inference using DEEPX devices. It supports pre-built models from the DEEPX model zoo and models compiled by DXCOM (the DEEPX Compiler SDK).
+DX-RT is the DEEPX Runtime SDK for AI inference using DEEPX devices. It supports pre-built models from the DEEPX model zoo and models compiled by DX-COM (the DEEPX Compiler SDK).
 
 DX-RT provides C/C++ APIs, allowing users to develop applications by calling these APIs.  It also offers a Python wrapper, enabling users to develop applications using Python scripts.
 

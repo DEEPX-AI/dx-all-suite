@@ -72,6 +72,20 @@ def test_quick_run_uses_pending_auto_select_after_init_run_page():
     assert "_applyPendingAutoSelect()" in init_body
 
 
+def test_models_quick_run_uses_runnable_registry_identifiers():
+    """Catalog display labels must never be passed directly to the Run picker."""
+    source = _read(JS_DIR / "models.js")
+    resolve_body = _function_body(source, "function _runnableModelForCatalog(")
+    filter_body = _function_body(source, "function filterModels(")
+
+    assert "S.models" in resolve_body
+    assert "model_file" in resolve_body
+    assert "var runnable=_runnableModelForCatalog(m);" in filter_body
+    assert "esc(runnable.name)" in filter_body
+    assert "esc(runnable.category)" in filter_body
+    assert "esc(runnable.model_file" in filter_body
+
+
 def test_run_params_loaded_from_model_config_bindings():
     source = _read(JS_DIR / "inference.js")
     assert "var RUN_PARAM_BINDINGS=" in source
@@ -97,5 +111,5 @@ def test_inference_run_inflight_guard_warns_and_disables_run_button():
     assert "runBtn.disabled=true" in body
     assert "finally" in body
     assert "runBtn.disabled=false" in body
-    assert body.index("runBtn.disabled=true") < body.index("await postJ('/api/run'")
+    assert body.index("runBtn.disabled=true") < body.index("await runWithProgress(")
     assert body.index("runBtn.disabled=false") > body.index("finally")

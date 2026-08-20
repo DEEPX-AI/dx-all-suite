@@ -570,3 +570,16 @@ def test_nested_mock_provenance_labels_status_and_topology_cards():
 def test_dashboard_telemetry_state_transitions_at_runtime():
     """Execute real/stale/unavailable/mock/legacy payload transitions in Node."""
     assert "OK: dashboard telemetry transitions" in run_dashboard_telemetry_vm()
+
+
+def test_charts_redraw_on_resize_and_visibility():
+    """Launcher embeds each module in an <iframe>; the first drawCharts() can run before
+    the iframe is laid out/visible, and without a resize/visibility redraw the charts stay
+    blank until a manual reload. The dashboard must install a ResizeObserver on the chart
+    area plus resize/visibility/pageshow redraws so charts render on first show."""
+    dashboard = read_text(DASHBOARD_JS)
+    assert "ResizeObserver" in dashboard and "chart-area" in dashboard
+    assert "visibilitychange" in dashboard
+    assert "'resize'" in dashboard or '"resize"' in dashboard
+    # each hook must trigger a chart redraw
+    assert "requestAnimationFrame(drawCharts)" in dashboard

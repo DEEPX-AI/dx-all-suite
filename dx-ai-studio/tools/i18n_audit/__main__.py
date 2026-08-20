@@ -18,14 +18,21 @@ def main() -> int:
     args = parser.parse_args()
 
     from .browser_evidence import load_browser_evidence
-    from .classify import classify_records
+    from .classify import classify_records, classify_stale_copy
     from .extractors import extract_inventory
     from .integrity import check_findings_gate, check_integrity_gate, check_runtime_switching_gate
     from .report import build_payload, write_json, write_markdown
     from .runtime_refresh import classify_runtime_gaps, extract_runtime_inventory, check_runtime_gaps_gate
+    from .tutorial_copy import extract_tutorial_records
 
     records = extract_inventory(args.repo)
     findings = classify_records(records)
+    # Tutorial copy (*/static/js/tutorial.js) is part of the six-language contract too —
+    # fold it into the same records/findings so --fail-on-findings guards it and drift
+    # (untranslated tutorial steps) can no longer ship silently.
+    tutorial_records = extract_tutorial_records(args.repo)
+    findings = findings + classify_records(tutorial_records) + classify_stale_copy(tutorial_records)
+    records = records + tutorial_records
     runtime_records = extract_runtime_inventory(args.repo)
     runtime_findings = classify_runtime_gaps(runtime_records)
     findings = findings + runtime_findings
