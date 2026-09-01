@@ -1,0 +1,33 @@
+name: Create pre-release branch
+
+run-name: Create pre-release branch across target repos
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_repos:
+        description: 'Target repositories to create the branch in (comma-separated owner/repo)'
+        required: false
+        default: 'DEEPX-AI/dx_rt,DEEPX-AI/dx_app,DEEPX-AI/dx_stream,DEEPX-AI/dx_rt_npu_linux_driver,DEEPX-AI/dx_fw,DEEPX-AI/dx-compiler,DEEPX-AI/dx-modelzoo,DEEPX-AI/dx-runtime,DEEPX-AI/dx-all-suite'
+        type: string
+      pre_release_branch:
+        description: 'Pre-release branch name to create (e.g. v2.5.0-pre.20260821)'
+        required: true
+        type: string
+      base_branch:
+        description: 'Branch to create the pre-release branch from'
+        required: false
+        default: 'main'
+        type: string
+
+permissions: write-all
+
+jobs:
+  create:
+    uses: DEEPX-AI/do_workflows-central/.github/workflows/create-prerelease-branch.yml@main
+    with:
+      target_repos: ${{ github.event.inputs.target_repos }}
+      pre_release_branch: ${{ github.event.inputs.pre_release_branch }}
+      base_branch: ${{ github.event.inputs.base_branch }}
+    secrets:
+      token: ${{ secrets.GC_DCI_TOKEN }}

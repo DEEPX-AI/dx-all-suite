@@ -1,0 +1,33 @@
+name: Fast-forward pre-release to main
+
+run-name: Fast-forward main to pre-release across target repos
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_repos:
+        description: 'Target repositories to fast-forward (comma-separated owner/repo)'
+        required: false
+        default: 'DEEPX-AI/dx_rt,DEEPX-AI/dx_app,DEEPX-AI/dx_stream,DEEPX-AI/dx_rt_npu_linux_driver,DEEPX-AI/dx_fw,DEEPX-AI/dx-compiler,DEEPX-AI/dx-modelzoo,DEEPX-AI/dx-runtime,DEEPX-AI/dx-all-suite'
+        type: string
+      source_branch:
+        description: 'Pre-release branch to promote (e.g. v2.5.0-pre.20260821)'
+        required: true
+        type: string
+      target_branch:
+        description: 'Branch to fast-forward'
+        required: false
+        default: 'main'
+        type: string
+
+permissions: write-all
+
+jobs:
+  fast_forward:
+    uses: DEEPX-AI/do_workflows-central/.github/workflows/fast-forward-to-main.yml@main
+    with:
+      target_repos: ${{ github.event.inputs.target_repos }}
+      source_branch: ${{ github.event.inputs.source_branch }}
+      target_branch: ${{ github.event.inputs.target_branch }}
+    secrets:
+      token: ${{ secrets.GC_DCI_TOKEN }}

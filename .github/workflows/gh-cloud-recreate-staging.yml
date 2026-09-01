@@ -1,0 +1,34 @@
+name: Recreate staging from main
+
+run-name: Recreate staging from main across target repos
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_repos:
+        description: 'Target repositories to recreate staging in (comma-separated owner/repo)'
+        required: false
+        default: 'DEEPX-AI/dx_rt,DEEPX-AI/dx_app,DEEPX-AI/dx_stream,DEEPX-AI/dx_rt_npu_linux_driver,DEEPX-AI/dx_fw,DEEPX-AI/dx-compiler,DEEPX-AI/dx-modelzoo,DEEPX-AI/dx-runtime,DEEPX-AI/dx-all-suite'
+        type: string
+      base_branch:
+        description: 'Branch to recreate staging from'
+        required: false
+        default: 'main'
+        type: string
+      staging_branch:
+        description: 'Staging branch name to reset'
+        required: false
+        default: 'staging'
+        type: string
+
+permissions: write-all
+
+jobs:
+  recreate:
+    uses: DEEPX-AI/do_workflows-central/.github/workflows/recreate-staging.yml@main
+    with:
+      target_repos: ${{ github.event.inputs.target_repos }}
+      base_branch: ${{ github.event.inputs.base_branch }}
+      staging_branch: ${{ github.event.inputs.staging_branch }}
+    secrets:
+      token: ${{ secrets.GC_DCI_TOKEN }}
