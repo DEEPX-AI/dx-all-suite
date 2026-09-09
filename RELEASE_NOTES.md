@@ -1,3 +1,54 @@
+## DX-All-Suite v2.4.3 / 2026-09-03
+
+- DX-Compiler: v2.4.2
+    - DX-COM: v2.4.1
+    - DX-TRON: v2.0.1 (Deprecated)
+- DX-Runtime: v2.4.2
+    - DX_FW: v2.7.4
+    - NPU Driver: v2.6.0
+    - DX-RT: v3.4.2
+    - DX-Stream: v3.1.2
+    - DX-APP: v3.2.2
+
+---
+
+Here are the **DX-All-Suite v2.4.3** Release Notes.
+
+### What's New?
+
+This release updates **DX-Compiler to v2.4.2**, which bundles **DX-COM v2.4.1** with a smaller compiled `.dxnn` output and minor stability fixes. DX-Runtime remains at v2.4.2.
+
+It also addresses the availability of previous DX-COM releases on PyPI — please read the notice below if you pin `dx-com` to an older version.
+
+> **⚠️ Important notice: DX-COM v2.4.0 and v2.3.0 are no longer available on PyPI**
+>
+> The `dx-com` **2.4.0** and **2.3.0** distributions were inadvertently removed from PyPI. Because PyPI does not allow a deleted version to be re-uploaded, these two versions **can no longer be installed via `pip`**.
+>
+> - **Highly Recommended:** upgrade to **DX-COM v2.4.1**, which is available on PyPI and is the version bundled with this release.
+> - **If you specifically need v2.4.0 or v2.3.0** (e.g., to reproduce existing `.dxnn` outputs), download the wheel from the DEEPX Developer Portal: <https://developer.deepx.ai/sw-download/>
+
+---
+
+### Key Updates
+
+**Performance & Efficiency**
+
+- **DX-COM**: Removed redundant metadata from the compiled `.dxnn` output, reducing model file size.
+
+**Stability & Fixes**
+
+- **DX-COM**: Minor bug fixes and stability improvements.
+
+---
+
+### Migration Guide
+
+- **Users pinning `dx-com==2.4.0` or `dx-com==2.3.0`**: `pip install` will fail for these versions. Update your requirements/lock files to `dx-com==2.4.1` (or `dx-com>=2.4.1`), or install the wheel manually from <https://developer.deepx.ai/sw-download/>.
+- **DX-Compiler installer users**: Re-run `install.sh` with the v2.4.3 archive; the installer now targets DX-COM v2.4.1.
+
+For detailed updated items, refer to **each environment & module's Release Notes**.
+
+---
 ## DX-All-Suite v2.4.2 / 2026-08-14
 
 - DX-Compiler: v2.4.1
