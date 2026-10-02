@@ -122,7 +122,7 @@ assert.strictEqual(state().isMock, false);
 assert.strictEqual(elements['telemetry-status'].style.display, 'none');
 assert.strictEqual(elements['mock-banner'].style.display, 'none');
 assert(elements['status-bar'].innerHTML.includes('Mock') === false);
-assert.strictEqual(elements['npu-status-label'].textContent, '1 NPU(s)');
+assert.strictEqual(elements['npu-status-label'].textContent, '1 NPU');
 assert.strictEqual(state().samples, 5);
 
 console.log('OK: dashboard telemetry transitions');

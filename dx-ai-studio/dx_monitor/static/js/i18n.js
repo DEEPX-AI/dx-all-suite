@@ -123,7 +123,7 @@ window._DX_I18N_DICT = {
     ja: '電圧',
     'zh-CN': '电压',
     'zh-TW': '電壓',
-    es: 'Voltio',
+    es: 'Voltaje',
   },
   'Clock': {
     ko: '클럭',
@@ -339,7 +339,8 @@ window._DX_I18N_DICT = {
     es: 'No se registraron eventos',
   },
   'Mock Data': { ko: '모의 데이터', ja: 'モックデータ', 'zh-CN': '模拟数据', 'zh-TW': '模擬資料',es:'Datos simulados'},
-  ' NPU(s)': { ko: ' NPU', ja: ' NPU', 'zh-CN': ' NPU', 'zh-TW': ' NPU',es:' NPU(s)'},
+  // 영어만 복수형이 있다 — "1 NPU(s)" 대신 1 NPU · 2 NPUs (release audit M-3).
+  'NPUs': { ko: 'NPU', ja: 'NPU', 'zh-CN': 'NPU', 'zh-TW': 'NPU', es: 'NPU' },
 
   'Mock': {
     ko: '모의',

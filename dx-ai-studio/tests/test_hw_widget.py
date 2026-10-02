@@ -180,7 +180,7 @@ assert.strictEqual(storage['hw-float-npu-idx'], '1');
 assert.strictEqual(elements['hf-temp'].textContent, '66.8°C');
 assert.strictEqual(elements['hf-util'].textContent, '85.0%');
 assert.strictEqual(elements['hf-dram'].textContent, '72.4%');
-assert.strictEqual(elements['hf-cpu'].textContent, '1.3');
+assert.strictEqual(elements['hf-cpu'].textContent, '1.30');
 assert.strictEqual(elements['hf-mem'].textContent, '40.1%');
 assert.strictEqual(elements['hf-disk'].textContent, '55.2%');
 """
