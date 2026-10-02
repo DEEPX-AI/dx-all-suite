@@ -1,5 +1,5 @@
 name: ghcr-release
-run-name: Release DEEPX images to GHCR (${{ github.ref_name }})
+run-name: Release DEEPX images to GHCR (${{ inputs.source_ref || github.ref_name }})
 
 on:
   push:
@@ -22,6 +22,11 @@ on:
         required: false
         default: false
         type: boolean
+      source_ref:
+        description: 'dx-all-suite branch, tag or SHA to build from (blank = the ref this run was dispatched on)'
+        required: false
+        default: ''
+        type: string
 
 permissions:
   contents: read
@@ -53,6 +58,10 @@ jobs:
       compiler_version: ${{ steps.meta.outputs.compiler_version }}
       modelzoo_version: ${{ steps.meta.outputs.modelzoo_version }}
       matrix: ${{ steps.meta.outputs.matrix }}
+      # Resolved once here so `build` cannot check out a different tree than the one
+      # `prepare` read the versions from. `inputs` is null on a tag push and '' is falsy,
+      # so both fall through to the dispatched/pushed ref.
+      source_ref: ${{ inputs.source_ref || github.ref }}
     steps:
       # Guarding here is enough for the whole workflow: `build` needs `prepare`, so a
       # missing secret stops everything with this message instead of an opaque
@@ -73,6 +82,7 @@ jobs:
           # (../dx-runtime.git), which actions/checkout resolves against this repo's
           # origin, i.e. the same org. github.token reaches only this repository, so
           # the PAT is required while the siblings are private.
+          ref: ${{ inputs.source_ref || github.ref }}
           submodules: true
           token: ${{ secrets.GC_DCI_TOKEN }}
 
@@ -173,7 +183,9 @@ jobs:
           COMPILER_VERSION: ${{ steps.meta.outputs.compiler_version }}
           MODELZOO_VERSION: ${{ steps.meta.outputs.modelzoo_version }}
           MATRIX: ${{ steps.meta.outputs.matrix }}
+          SOURCE_REF: ${{ inputs.source_ref || github.ref }}
         run: |
+          echo "source ref:  $SOURCE_REF"
           echo "registry:    $REGISTRY"
           echo "dx-runtime:  $RUNTIME_VERSION"
           echo "dx-compiler: $COMPILER_VERSION"
@@ -264,6 +276,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
+          ref: ${{ needs.prepare.outputs.source_ref }}
           submodules: recursive
           token: ${{ secrets.GC_DCI_TOKEN }}
 
