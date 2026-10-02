@@ -68,7 +68,7 @@ function _renderOutputs(){
       const thumb=f.type==='image'
         ?'<img class="gal-thumb" src="'+f.url+'" alt="'+esc(f.name)+'" loading="lazy" onclick="openLightbox(\''+esc(f.name)+'\')">'
         :f.type==='video'
-        ?'<video class="gal-thumb" src="'+f.url+'" muted preload="metadata" onclick="openLightbox(\''+esc(f.name)+'\')"></video>'
+        ?'<video class="gal-thumb" data-src="'+f.url+'" muted preload="none" onclick="openLightbox(\''+esc(f.name)+'\')"></video>'
         :'<div class="gal-thumb gal-thumb-icon">'+icon+'</div>';
       const compareBtn=f.type==='image'&&f.src_image
         ?'<button class="btn btn-xs btn-ghost" onclick="event.stopPropagation();openCompare(\''+esc(f.name)+'\')">' + DXIcon('book') + ' '+esc(T('Compare'))+'</button>':'';
@@ -83,7 +83,22 @@ function _renderOutputs(){
         +'<button class="btn btn-xs btn-ghost txt-err" title="'+esc(T('Delete'))+'" aria-label="'+esc(T('Delete'))+'" onclick="event.stopPropagation();deleteOutput(\''+esc(f.name)+'\')">' + DXIcon('trash') + '</button>'
         +'</div></div></div>';
     }).join('')||'<p class="txt-dim txt-sm">'+esc(T('No files matching filter.'))+'</p>';
+    _lazyVideoThumbs(grid);
   }
+}
+
+/* 영상 미리보기는 화면 가까이 올 때만 src 를 붙인다. 예전에는 모든 카드가 preload="metadata" 로 한꺼번에
+   요청해 결과가 수백 개면 갤러리를 열 때마다 수백 개 요청이 몰렸다 (release audit A-23). */
+let _videoThumbObserver=null;
+function _lazyVideoThumbs(root){
+  const vids=root.querySelectorAll('video.gal-thumb[data-src]');
+  const load=v=>{v.preload='metadata';v.src=v.dataset.src;v.removeAttribute('data-src');};
+  if(typeof IntersectionObserver!=='function'){vids.forEach(load);return;}
+  if(_videoThumbObserver)_videoThumbObserver.disconnect();
+  _videoThumbObserver=new IntersectionObserver(entries=>{
+    entries.forEach(e=>{if(e.isIntersecting){_videoThumbObserver.unobserve(e.target);load(e.target);}});
+  },{rootMargin:'200px'});
+  vids.forEach(v=>_videoThumbObserver.observe(v));
 }
 
 function openLightbox(name){

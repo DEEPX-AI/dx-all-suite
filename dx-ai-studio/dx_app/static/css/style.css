@@ -1034,7 +1034,7 @@ html[lang="zh-TW"] .zh-CN{display:none!important}
 .lab-home{display:flex;flex-direction:column;gap:var(--sp-4)}
 .lab-hero,.lab-status,.lab-card,.lab-flow-root,.lab-advanced-tools{border:1px solid var(--border-subtle);background:var(--surface-panel);border-radius:14px;padding:var(--sp-4)}
 .lab-card-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:var(--sp-3)}
-.lab-card{text-align:left;color:inherit;cursor:pointer}
+.lab-card{text-align:left;color:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:flex-start;gap:var(--sp-1)}
 .lab-card:hover{border-color:var(--accent)}
 .lab-status-ok{border-color:rgba(34,197,94,.35)}
 .lab-status-err{border-color:rgba(239,68,68,.35)}

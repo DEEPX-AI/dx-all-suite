@@ -165,7 +165,7 @@ main { display: flex; height: calc(100vh - var(--dx-module-header-h)); overflow:
 .form-actions:has(.compile-gate-reason:not([hidden])) { flex-wrap: wrap; }
 .form-actions .compile-gate-reason { flex-basis: 100%; order: 10; }
 .ns-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: currentColor; margin-right: var(--sp-1); vertical-align: 1px; }
-.log-content { color: var(--text-secondary); font-family: var(--mono); font-size: var(--fs-sm); line-height: 1.5; padding: 0.8rem 1rem; margin: 0; max-height: 240px; overflow-y: auto; white-space: pre-wrap; word-break: break-all; }
+.log-content { color: var(--text-secondary); font-family: var(--mono); font-size: var(--fs-sm); line-height: 1.5; padding: 0.8rem 1rem; margin: 0; max-height: 240px; overflow-y: auto; white-space: pre-wrap; overflow-wrap: anywhere; }
 .log-content::-webkit-scrollbar { width: 6px; }
 .log-content::-webkit-scrollbar-track { background: transparent; }
 .log-content::-webkit-scrollbar-thumb { background: rgba(var(--accent-rgb),0.2); border-radius: 3px; }
@@ -428,7 +428,7 @@ main { display: flex; height: calc(100vh - var(--dx-module-header-h)); overflow:
 /* Detail panel info rows */
 .info-row { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--sp-2); font-size: var(--fs-base); line-height: 1.4; }
 .info-label { color: var(--text-muted); flex-shrink: 0; min-width: 70px; }
-.info-value { color: var(--text-primary); font-weight: 500; text-align: right; word-break: break-all; }
+.info-value { color: var(--text-primary); font-weight: 500; text-align: right; overflow-wrap: anywhere; }
 .info-section-title {
     font-size: var(--fs-sm); font-weight: 600; color: var(--text-muted); text-transform: uppercase;
     letter-spacing: 0.5px; margin-top: 8px; margin-bottom: 2px; padding-bottom: 2px;
