@@ -697,7 +697,7 @@ const ModelZooVirtualCatalog = {
         </div>
         ${accuracy ? `<div class="mz-card-acc">${_escapeAttr(accuracy)}</div>` : ''}
         <div class="mz-card-artifacts">${_artifactBadges(m)}</div>
-        ${missingCount ? `<div class="mz-card-missing">${_escapeAttr(missingCount)} ${_escapeAttr(T('Not provided by source'))}</div>` : ''}
+        ${missingCount ? `<div class="mz-card-missing">${_escapeAttr(T('Pending fields: %s').replace('%s', missingCount))}</div>` : ''}
       </div>
     </div>`;
   },
@@ -810,10 +810,19 @@ function _catalogGeneratedAt() {
   try {
     var d = new Date(at);
     if (isNaN(d.getTime())) return '';
-    return d.toLocaleDateString();
+    // 날짜 형식은 브라우저가 아니라 고른 언어를 따른다 (ko 화면에 "10/1/2026" 이 나왔다)
+    var lang = (typeof DXI18n !== 'undefined' && DXI18n.lang) || undefined;
+    try { return d.toLocaleDateString(lang); } catch (e2) { return d.toLocaleDateString(); }
   } catch (e) {
     return '';
   }
+}
+
+/* 수 + 이름. 수량사 (개 · 件 · 个 · 個) 로 시작하는 번역은 숫자에 붙인다 — "499개 모델" (release audit).
+   app.js 는 이렇게 그렸는데 여기서 다시 "499 개 모델" 로 덮어썼다. */
+function _countLabel(n, key) {
+  var tr = T(key);
+  return /^[개件個个]/.test(tr) ? n + tr : n + ' ' + tr;
 }
 
 function updateCatalogHeading() {
@@ -841,15 +850,15 @@ function updateCatalogHeading() {
        언제 다시 동기화할지는 운영 판단이고, 여기서는 보이게만 한다.
        계약: tests/dx_modelzoo/test_catalog_freshness.py */
     var parts = [
-      `${variantCount} ${T('model variants')}`,
-      `${uniqueModelCount} ${T('unique models')}`,
+      _countLabel(variantCount, 'model variants'),
+      _countLabel(uniqueModelCount, 'unique models'),
     ];
     var synced = _catalogGeneratedAt();
     if (synced) parts.push(`${T('synced')} ${synced}`);
     subtitleEl.textContent = parts.join(' · ');
   }
   if (countEl) {
-    countEl.textContent = `${variantCount} ${T('models found')}`;
+    countEl.textContent = _countLabel(variantCount, 'models found');
   }
 }
 
