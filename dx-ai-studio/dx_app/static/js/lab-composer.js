@@ -212,7 +212,8 @@ window.LabComposer = (function () {
   }
 
   function labelFor(model) {
-    return model.name + ' · ' + model.category;
+    // 분류는 slug (face_landmark) 대신 고른 언어의 이름으로
+    return model.name + ' · ' + (typeof catText === 'function' ? catText(model.category) : model.category);
   }
 
   function modelForFile(modelFile) {
@@ -820,7 +821,9 @@ window.LabComposer = (function () {
   }
 
   function modelGroupLabel(model) {
-    return (model && (model.category_label || model.category)) || text('Uncategorized');
+    var c = model && (model.category || model.category_label);
+    if (!c) return text('Uncategorized');
+    return typeof catText === 'function' ? catText(c) : (model.category_label || c);
   }
 
   function modelMatchesQuery(model, query) {

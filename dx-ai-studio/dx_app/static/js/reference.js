@@ -378,7 +378,7 @@ function renderRef(){
       if(s.cat!==c.id) return;
       mH+='<button class="ref-topic-card" id="ref-sec-'+s.id+'" data-ref-cat="'+s.cat+'" data-ref-id="'+s.id+'" data-help-id="ref-topic-'+s.id+'">'+
         '<span class="ref-section-icon">'+_refIco(s.icon)+'</span>'+
-        '<span class="ref-section-info"><span class="ref-section-name">'+s.name+'</span><span class="ref-section-desc">'+s.desc+'</span></span>'+
+        '<span class="ref-section-info"><span class="ref-section-name">'+_refName(s)+'</span><span class="ref-section-desc">'+s.desc+'</span></span>'+
       '</button>';
     });
     mH+='</div>';
@@ -389,14 +389,18 @@ function renderRef(){
 /* ════════════  INTERACTIONS  ════════════ */
 
 /* 주제 아이콘은 sprite 이름 (아이콘 체계 단계 5). 옛 글자 icon 은 그대로. */
+/* 주제 이름 중 화면 이름 (Models · Outputs · Run Inference …) 은 탭과 같은 사전 키라 T() 로 번역한다.
+   예전에는 ja · es 에서도 영어로 보였다 (탭은 번역되는데). */
+function _refName(s){return typeof T==='function'?T(s.name):s.name;}
+
 function _refIco(n){return (/^[a-z0-9_-]+$/.test(n||'')&&typeof DXIcon==='function')?DXIcon(n):(n||'');}
 
 function _refBuildDetail(s){
   var tabKeys=Object.keys(s.tabs);
   var tabLabels={overview:DXIcon('clipboard') + ' '+refT5('Overview','개요','概要','概述','概述','Descripción general'),params:DXIcon('gear') + ' '+refT5('Details','상세','詳細','详情','詳情','Detalles'),workflow:DXIcon('refresh') + ' '+refT5('Workflow','작업 순서','手順','操作流程','操作流程','Flujo de trabajo'),tips:DXIcon('info') + ' '+refT5('Tips','팁','ヒント','提示','提示','Consejos')};
   var navLabel=refT5(' → Go to page',' 페이지로 →',' ページへ →',' → 前往页面',' → 前往頁面',' → Ir a la página');
-  var goBtn=s.page?'<button class="btn btn-ghost btn-sm" onclick="if(typeof nav===\'function\')nav(\''+s.page+'\')">'+s.name+navLabel+'</button>':'';
-  var h='<div class="ref-detail-hd"><div><div class="ref-detail-kicker">'+ refT5('Reference','레퍼런스','リファレンス','参考','參考','Referencia') +'</div><h2>'+_refIco(s.icon)+' '+s.name+'</h2><p>'+s.desc+'</p></div>'+goBtn+'</div>';
+  var goBtn=s.page?'<button class="btn btn-ghost btn-sm" onclick="if(typeof nav===\'function\')nav(\''+s.page+'\')">'+_refName(s)+navLabel+'</button>':'';
+  var h='<div class="ref-detail-hd"><div><div class="ref-detail-kicker">'+ refT5('Reference','레퍼런스','リファレンス','参考','參考','Referencia') +'</div><h2>'+_refIco(s.icon)+' '+_refName(s)+'</h2><p>'+s.desc+'</p></div>'+goBtn+'</div>';
   h+='<div class="ref-tabs" data-ref-tabs="'+s.id+'">';
   tabKeys.forEach(function(k,i){h+='<div class="ref-tab'+(i===0?' active':'')+'" data-ref-tab="'+s.id+'-'+k+'">'+((tabLabels[k])||k)+'</div>';});
   h+='</div>';
