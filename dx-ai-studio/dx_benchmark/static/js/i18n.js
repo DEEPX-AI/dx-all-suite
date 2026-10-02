@@ -231,6 +231,13 @@ window._DX_I18N_DICT = {
     'zh-TW': '分割',
     es: 'Segmentación',
   },
+  'Oriented BBox': {
+    ko: '회전 바운딩박스',
+    ja: '回転バウンディングボックス',
+    'zh-CN': '旋转边界框',
+    'zh-TW': '旋轉邊界框',
+    es: 'BBox orientado',
+  },
   'Oriented BBox (OBB)': {
     ko: '회전 바운딩박스 (OBB)',
     ja: '回転バウンディングボックス (OBB)',
