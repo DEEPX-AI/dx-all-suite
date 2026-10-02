@@ -541,7 +541,7 @@ function renderE2eTable(container, envId, task, useOrt, runId) {
     html += '<p class="decode-path-summary">'+parts.join(' &nbsp;|&nbsp; ')+'</p>';
   }
 
-  html += '<table class="summary-table"><thead><tr><th>'+_t('Model')+'</th><th>E2E FPS</th><th>CPU%</th><th>NPU Avg%</th><th>NPU Max%</th><th>NPU Temp \u00b0C</th><th>NPU MHz</th><th>Host RSS (MiB)</th><th>'+_t('Runs')+'</th><th>'+_t('Status')+'</th></tr></thead><tbody>';
+  html += '<table class="summary-table"><thead><tr><th>'+_t('Model')+'</th><th>E2E FPS</th><th>CPU%</th><th>NPU Avg%</th><th>NPU Max%</th><th>'+_t('NPU Temp (°C)')+'</th><th>NPU MHz</th><th>Host RSS (MiB)</th><th>'+_t('Runs')+'</th><th>'+_t('Status')+'</th></tr></thead><tbody>';
   rows.forEach(function(r) {
     var fpsS=fmt(r.avg_e2e_fps,1);if(r.fps_std!=null)fpsS+=' \u00b1'+fmt(r.fps_std,1);
     var tempS=_fmtTemp(r.npu_temp_min_c,r.npu_temp_max_c);

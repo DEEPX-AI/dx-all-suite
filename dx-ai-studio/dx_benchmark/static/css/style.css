@@ -1110,5 +1110,5 @@ body.lang-zh-TW .zh-CN { display: none; }
 }
 
 /* 표 머리글은 한국어에서 "크/기" · "메모/리" 처럼 음절 사이에서 꺾였다 — 낱말 단위로만 줄을 바꾼다 (B-3). */
-.summary-table thead th,
-.detail-table thead th { word-break: keep-all; }
+:root:lang(ko) .summary-table thead th,
+:root:lang(ko) .detail-table thead th { word-break: keep-all; }  /* 한국어만 — 일본어 · 중국어는 띄어쓰기가 없어 keep-all 이면 못 끊는다 */
