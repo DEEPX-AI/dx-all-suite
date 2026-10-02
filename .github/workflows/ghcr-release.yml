@@ -13,9 +13,9 @@ on:
         default: ''
         type: string
       update_moving_tags:
-        description: 'Also move the floating tags (latest, rt, rt-app, rt-stream, rt-app-stream)'
+        description: 'Also move the floating tags (latest, rt, rt-app, rt-stream, rt-app-stream). Off by default for manual runs because source_ref can build any branch; tag pushes always move them.'
         required: false
-        default: true
+        default: false
         type: boolean
       allow_overwrite:
         description: 'Republish a version that is already in GHCR (needed to re-run after a partial failure)'
@@ -446,6 +446,10 @@ jobs:
           # 0 != 0, i.e. false. So gate on the event first: any non-dispatch trigger is
           # a real release and moves the tags. Do not compare against the string
           # 'false' either: for a dispatch boolean that casts to NaN != 0, always true.
+          #
+          # The dispatch default is false on purpose: source_ref lets a manual run build
+          # any branch, and moving `latest` onto a feature build is not recoverable by
+          # re-running. Opt in per run when the dispatch really is the release.
           MOVING: ${{ github.event_name != 'workflow_dispatch' || inputs.update_moving_tags }}
         run: |
           set -euo pipefail
