@@ -105,6 +105,22 @@ window._DX_MODELZOO_I18N_REGISTER({
     'zh-TW': '找不到模型',
     es: 'No se encontraron modelos',
   },
+  'Top1 Accuracy': {
+    en: 'Top1 Accuracy',
+    ko: 'Top1 정확도',
+    ja: 'Top1 精度',
+    'zh-CN': 'Top1 精度',
+    'zh-TW': 'Top1 精確度',
+    es: 'Precisión Top1',
+  },
+  'Average Accuracy': {
+    en: 'Average Accuracy',
+    ko: '평균 정확도',
+    ja: '平均精度',
+    'zh-CN': '平均精度',
+    'zh-TW': '平均精確度',
+    es: 'Precisión media',
+  },
   'Accuracy': {
     en: 'Accuracy',
     ko: '정확도',

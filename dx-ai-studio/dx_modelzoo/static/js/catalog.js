@@ -147,7 +147,8 @@ function _accuracyWithMetric(m) {
   const value = _bestAccuracyValue(m);
   if (value === '' || value == null) return '';
   const metric = _metricName(m);
-  return metric ? metric + ' ' + value : String(value);
+  // 지표 이름 중 영어 낱말 (Accuracy · Top1 Accuracy · Average Accuracy) 은 번역한다. mAP · mIoU 같은 약어는 사전에 없어 그대로다.
+  return metric ? T(metric) + ' ' + value : String(value);
 }
 
 /* 같은 지표끼리만 비교한다. 다른 지표는 0 을 돌려 서로 순서를 만들지 않는다 —
