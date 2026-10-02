@@ -1,7 +1,9 @@
 ARG BASE_IMAGE_NAME=ubuntu
 ARG OS_VERSION=24.04
 ARG TAG_NAME=${OS_VERSION}
-FROM ${BASE_IMAGE_NAME}:${TAG_NAME}
+
+# ── Stage: rt ── dx_rt core (base for all other stages)
+FROM ${BASE_IMAGE_NAME}:${TAG_NAME} AS rt
 
 USER root
 
@@ -35,6 +37,18 @@ RUN apt-get update && apt-get install -y \
 # X11 forwarding and xcb
 RUN apt-get install -y x11-apps libx11-6 xauth libxext6 libxrender1 libxtst6 libxi6 libxcb-xinerama0
 
+# Intel GPU HW acceleration (VA-API) — enabled by docker-compose.intel_gpu_hw_acc.yml.
+# Installs the Intel media driver + VA-API tools + GStreamer VA plugins so dx_stream's
+# decodebin auto-selects the HW decoder. No dx_stream code change is required.
+ARG INSTALL_VAAPI=false
+RUN if [ "${INSTALL_VAAPI}" = "true" ]; then \
+        apt-get update && apt-get install -y \
+        vainfo intel-media-va-driver-non-free intel-gpu-tools \
+        gstreamer1.0-vaapi \
+        libva2 libva-drm2 && \
+        apt-get clean && rm -rf /var/lib/apt/lists/*; \
+    fi
+
 # for setting ssl issue on intranet
 # only used 'USE_INTRANET=true'
 ARG USE_INTRANET=false
@@ -42,17 +56,23 @@ ARG CA_FILE_NAME="dummy.crt"
 COPY ${CA_FILE_NAME} /usr/local/share/ca-certificates/
 # pip/requests use certifi's own CA bundle, not the OS trust store, so we also
 # write /etc/pip.conf pointing pip at the OS bundle that now contains the intranet CA.
+# The COPY above is unconditional (COPY cannot be branched), so with intranet mode OFF
+# the trust dir would keep dummy.crt -- a placeholder that is not a parseable
+# certificate. A later `apt-get install ca-certificates` runs update-ca-certificates,
+# which would append it to /etc/ssl/certs/ca-certificates.crt and leave pip failing
+# every PyPI request with SSLError "[X509] PEM lib". Delete it in the else branch.
 RUN if [ "$USE_INTRANET" = "true" ]; then \
       git config --global http.sslVerify false && \
       update-ca-certificates && \
       printf '[global]\ncert = %s\n' /etc/ssl/certs/ca-certificates.crt > /etc/pip.conf ; \
     else \
+      rm -f "/usr/local/share/ca-certificates/${CA_FILE_NAME}" && \
       echo "Skipping intranet SSL setup"; \
     fi
 
 # Setup Python 3.8.2 or higher
 #   - Unified installation flow: apt → source build fallback
-#   - Ubuntu 18.04, 20.04, 22.04, 24.04, 26.04 supported
+#   - Ubuntu 20.04, 22.04, 24.04, 26.04 supported
 #   - Debian 12, 13 supported
 ENV MIN_PY_VERSION=3.8.2
 ARG TARGET_INSTALL_PY_VERSION=""
@@ -75,7 +95,7 @@ RUN set -x && \
     fi && \
     PY_MAJOR_MINOR=$(echo "${TARGET_INSTALL_PY_VERSION}" | cut -d. -f1,2) && \
     DX_PYTHON_EXEC="" && \
-    if { [ "${BASE_IMAGE_NAME}" = "ubuntu" ] && { [ "$(lsb_release -rs)" = "26.04" ] || [ "$(lsb_release -rs)" = "24.04" ] || [ "$(lsb_release -rs)" = "22.04" ] || [ "$(lsb_release -rs)" = "20.04" ] || [ "$(lsb_release -rs)" = "18.04" ]; }; } || \
+    if { [ "${BASE_IMAGE_NAME}" = "ubuntu" ] && { [ "$(lsb_release -rs)" = "26.04" ] || [ "$(lsb_release -rs)" = "24.04" ] || [ "$(lsb_release -rs)" = "22.04" ] || [ "$(lsb_release -rs)" = "20.04" ]; }; } || \
        { [ "${BASE_IMAGE_NAME}" = "debian" ] && { [ "$(lsb_release -rs)" = "13" ] || [ "$(lsb_release -rs)" = "12" ]; }; }; then \
         echo "Supported OS: ${BASE_IMAGE_NAME} $(lsb_release -rs)" && \
         apt-get update && \
@@ -145,7 +165,7 @@ RUN set -x && \
         echo "*** OS_VERSION(${OS_VERSION}) ***" && \
         if [ "$OS_VERSION" = "26.04" ] || [ "$OS_VERSION" = "24.04" ]; then \
             pip install --upgrade setuptools; \
-        elif [ "$OS_VERSION" = "22.04" ] || [ "$OS_VERSION" = "20.04" ] || [ "$OS_VERSION" = "18.04" ]; then \
+        elif [ "$OS_VERSION" = "22.04" ] || [ "$OS_VERSION" = "20.04" ]; then \
             pip install --upgrade pip wheel setuptools; \
         else \
             echo "Unsupported Ubuntu version: $OS_VERSION" && exit 1; \
@@ -163,75 +183,33 @@ RUN set -x && \
 WORKDIR /deepx/dx-runtime/dx_rt
 ADD archives/dx_rt.tar.gz /deepx/dx-runtime/dx_rt/
 
-# --- BEGIN: Ubuntu 18.04 legacy fallback (glibc 2.27, prebuilt .deb incompatible) ---
-# Delete this whole RUN block (and this comment) when 18.04 support is dropped.
+# Install dx_rt via Debian package: prefer the arch-specific prebuilt package
+# (libdxrt-bin_<ver>_<arch>.deb), fall back to the legacy arch-independent source
+# package (libdxrt_<ver>_all.deb, whose postinst builds and installs dx_rt with
+# USE_ORT=ON baked in). The matching 'dx_engine' Python API is installed into
+# the venv in the same step.
 RUN set -x && \
     . /venv-dxnn/bin/activate && \
-    if [ "$(lsb_release -rs)" = "18.04" ]; then \
-        echo "Ubuntu 18.04 detected — building dx_rt from source..." && \
-        ./install.sh --all && \
-        ./build.sh && \
-        pip install ./python_package && \
-        rm -rf build_* ; \
+    echo "Install dx_rt via Debian package..." && \
+    DEB_ARCH=$(dpkg --print-architecture) && \
+    DEB_FILE=$(find -L release/latest -maxdepth 1 -type f -name "libdxrt*_${DEB_ARCH}.deb" | sort | head -1) && \
+    if [ -z "$DEB_FILE" ]; then \
+        DEB_FILE=$(find -L release/latest -maxdepth 1 -type f -name "libdxrt*_all.deb" | sort | head -1); \
+    fi && \
+    if [ -z "$DEB_FILE" ]; then \
+        echo "ERROR: dx_rt Debian package not found under release/latest" && exit 1; \
+    fi && \
+    apt-get update && \
+    apt-get install -y "$(realpath "$DEB_FILE")" && \
+    rm -rf /usr/share/libdxrt/build_* && \
+    rm -rf /var/lib/apt/lists/* && \
+    PYTAG="cp$(python -c 'import sys;print(f"{sys.version_info[0]}{sys.version_info[1]}")')" && \
+    WHL=$(find -L /usr/share/libdxrt-bin/python -maxdepth 1 -type f -name "dx_engine-*-${PYTAG}-${PYTAG}-*.whl" 2>/dev/null | sort | head -1) && \
+    if [ -n "$WHL" ]; then \
+        pip install --force-reinstall "$WHL"; \
+    else \
+        pip install /usr/share/libdxrt/python_package; \
     fi
-# --- END: Ubuntu 18.04 legacy fallback ---
-
-# Install dx_rt via Debian package (all OSes except Ubuntu 18.04, handled above):
-# prefer the arch-specific prebuilt package (libdxrt-bin_<ver>_<arch>.deb), fall
-# back to the legacy arch-independent source package (libdxrt_<ver>_all.deb,
-# whose postinst builds and installs dx_rt with USE_ORT=ON baked in). The
-# matching 'dx_engine' Python API is installed into the venv in the same step.
-RUN set -x && \
-    . /venv-dxnn/bin/activate && \
-    if [ "$(lsb_release -rs)" != "18.04" ]; then \
-        echo "Install dx_rt via Debian package..." && \
-        DEB_ARCH=$(dpkg --print-architecture) && \
-        DEB_FILE=$(find -L release/latest -maxdepth 1 -type f -name "libdxrt*_${DEB_ARCH}.deb" | sort | head -1) && \
-        if [ -z "$DEB_FILE" ]; then \
-            DEB_FILE=$(find -L release/latest -maxdepth 1 -type f -name "libdxrt*_all.deb" | sort | head -1); \
-        fi && \
-        if [ -z "$DEB_FILE" ]; then \
-            echo "ERROR: dx_rt Debian package not found under release/latest" && exit 1; \
-        fi && \
-        apt-get update && \
-        apt-get install -y "$(realpath "$DEB_FILE")" && \
-        rm -rf /usr/share/libdxrt/build_* && \
-        rm -rf /var/lib/apt/lists/* && \
-        PYTAG="cp$(python -c 'import sys;print(f"{sys.version_info[0]}{sys.version_info[1]}")')" && \
-        WHL=$(find -L /usr/share/libdxrt-bin/python -maxdepth 1 -type f -name "dx_engine-*-${PYTAG}-${PYTAG}-*.whl" 2>/dev/null | sort | head -1) && \
-        if [ -n "$WHL" ]; then \
-            pip install --force-reinstall "$WHL"; \
-        else \
-            pip install /usr/share/libdxrt/python_package; \
-        fi ; \
-    fi
-
-WORKDIR /deepx/dx-runtime/dx_app
-ARG FILE_DXAPP=archives/dx_app.tar.gz
-ADD ${FILE_DXAPP} /deepx/dx-runtime/dx_app/
-RUN set -x && \
-    . /venv-dxnn/bin/activate && \
-    echo "Build dx_app..." && \
-    ./install.sh --all
-RUN set -x && \
-    . /venv-dxnn/bin/activate && \
-    ./build.sh
-
-WORKDIR /deepx/dx-runtime/dx_stream
-ARG FILE_DXSTREAM=archives/dx_stream.tar.gz
-ADD ${FILE_DXSTREAM} /deepx/dx-runtime/dx_stream/
-RUN set -x && \
-    . /venv-dxnn/bin/activate && \
-    echo "install dependancies for dx_stream..." && \
-    sudo ./install.sh
-RUN set -x && \
-    . /venv-dxnn/bin/activate && \
-    echo "Build dx_stream..." && \
-    sudo ./build.sh --install
-
-RUN rm -rf /deepx/dx-runtime/dx_stream/util && \
-    rm -rf /deepx/dx-runtime/dx_app/util && \
-    rm -rf /deepx/dx-runtime/dx_app/build_x86_64
 
 WORKDIR /deepx
 
@@ -244,6 +222,8 @@ RUN apt-get update && \
 RUN echo "source /venv-dxnn/bin/activate" >> /root/.bashrc
 
 # COPY 'scripts' and 'getting-started'
+# NOTE: changes under scripts/ or getting-started/ invalidate all child stage
+# caches; accepted — release builds are cold anyway.
 COPY scripts /deepx/scripts
 COPY getting-started /deepx/getting-started
 ENV DX_CONTAINER_MODE=true
@@ -251,3 +231,62 @@ RUN /deepx/getting-started/runtime-clean.sh
 
 ENTRYPOINT [ "/usr/local/bin/dxrtd" ]
 # ENTRYPOINT ["tail", "-f", "/dev/null"]
+
+# ── Stage: rt-app ── dx_rt + dx_app
+FROM rt AS rt-app
+# ARG does not cross FROM boundaries — re-declare per stage
+ARG DEBIAN_FRONTEND=noninteractive
+WORKDIR /deepx/dx-runtime/dx_app
+ARG FILE_DXAPP=archives/dx_app.tar.gz
+ADD ${FILE_DXAPP} /deepx/dx-runtime/dx_app/
+RUN set -x && \
+    . /venv-dxnn/bin/activate && \
+    echo "Build dx_app..." && \
+    ./install.sh --all
+RUN set -x && \
+    . /venv-dxnn/bin/activate && \
+    ./build.sh
+RUN rm -rf /deepx/dx-runtime/dx_app/util && \
+    rm -rf /deepx/dx-runtime/dx_app/build_*
+WORKDIR /deepx
+
+# ── Stage: rt-stream ── dx_rt + dx_stream
+FROM rt AS rt-stream
+ARG DEBIAN_FRONTEND=noninteractive
+WORKDIR /deepx/dx-runtime/dx_stream
+ARG FILE_DXSTREAM=archives/dx_stream.tar.gz
+ADD ${FILE_DXSTREAM} /deepx/dx-runtime/dx_stream/
+RUN set -x && \
+    . /venv-dxnn/bin/activate && \
+    echo "install dependencies for dx_stream..." && \
+    sudo ./install.sh
+RUN set -x && \
+    . /venv-dxnn/bin/activate && \
+    echo "Build dx_stream..." && \
+    sudo ./build.sh --install
+RUN rm -rf /deepx/dx-runtime/dx_stream/util
+WORKDIR /deepx
+
+# ── Stage: rt-app-stream ── full image (dx_rt + dx_app + dx_stream)
+# NOTE: Full image chains FROM rt-app and builds dx_stream last, preserving the
+# original single-stage order: dx_app's install.sh re-installs distro
+# OpenCV/GStreamer packages, so dx_stream (which links plugins against its own
+# /usr/local OpenCV) must build after it. This also lets rt-app-stream reuse
+# rt-app's layers byte-identically.
+# Last stage = default build target, so an untargeted compose build still
+# produces the full image (backward compatible).
+FROM rt-app AS rt-app-stream
+ARG DEBIAN_FRONTEND=noninteractive
+WORKDIR /deepx/dx-runtime/dx_stream
+ARG FILE_DXSTREAM=archives/dx_stream.tar.gz
+ADD ${FILE_DXSTREAM} /deepx/dx-runtime/dx_stream/
+RUN set -x && \
+    . /venv-dxnn/bin/activate && \
+    echo "install dependencies for dx_stream..." && \
+    sudo ./install.sh
+RUN set -x && \
+    . /venv-dxnn/bin/activate && \
+    echo "Build dx_stream..." && \
+    sudo ./build.sh --install
+RUN rm -rf /deepx/dx-runtime/dx_stream/util
+WORKDIR /deepx

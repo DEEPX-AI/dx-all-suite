@@ -128,6 +128,63 @@ document is published in English and Korean.
 
 **DX-AllSuite** provides two environments depending on your intended use. Choose the environment that fits your needs to get started.
 
+### Quick Install (one-line)
+
+Install a single component without cloning this repository:
+
+```bash
+# DX-Compiler (x86_64 Host PC)
+curl -fsSL https://raw.githubusercontent.com/DEEPX-AI/dx-compiler/main/oneline-install.sh | sh
+
+# DX-Runtime (target device with a DEEPX NPU: NPU driver + dx_rt + firmware)
+curl -fsSL https://raw.githubusercontent.com/DEEPX-AI/dx-runtime/main/oneline-install.sh | sh
+```
+
+DX-Compiler installs `dx-com` from PyPI into `~/deepx/venv-dx-compiler` and links the
+`dxcom` launcher into `~/.local/bin`, so you can run `dxcom --help` straight afterwards.
+It also apt-installs `libgl1-mesa-dev` and `libglib2.0-0`, which `opencv-python` needs to
+import, so it requires root or `sudo` on a Debian/Ubuntu host. Note this route does not
+bring the sample data — clone the repository for that.
+
+Pin a specific version with `DX_VERSION` (DX-Compiler), or per component with
+`DX_RT_VERSION` / `DX_DRIVER_VERSION` / `DX_FW_VERSION` (DX-Runtime, which otherwise
+tracks each component's `main`). DX-Compiler also accepts `DX_INSTALL_DIR` to move the
+install root; DX-Runtime has none, since it installs system packages via `dpkg`:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/DEEPX-AI/dx-compiler/main/oneline-install.sh | DX_VERSION=2.4.1 sh
+```
+
+> **DX-Runtime notes**
+> One-line install covers `dx_fw`, `dx_rt`, and `dx_rt_npu_linux_driver`; `dx_app`
+> and `dx_stream` still use the full installation guide below. The firmware update
+> step is skipped when no NPU device is detected — rerun the same command once the
+> device is available.
+
+#### Uninstalling
+
+Remove a one-line install without cloning either repository:
+
+```bash
+# DX-Compiler
+curl -fsSL https://raw.githubusercontent.com/DEEPX-AI/dx-compiler/main/oneline-uninstall.sh | sh
+
+# DX-Runtime
+curl -fsSL https://raw.githubusercontent.com/DEEPX-AI/dx-runtime/main/oneline-uninstall.sh | sh
+```
+
+Pass DX-Compiler the same `DX_INSTALL_DIR` / `DX_BIN_DIR` you installed with, or it looks in
+the default location and finds nothing. DX-Runtime needs no such argument, and because both
+of its install routes produce the same Debian packages, that one command also removes an
+`install.sh` install — you do not have to remember which way it went on.
+
+Two things are never undone: firmware already flashed to the NPU, which has no uninstall path
+at all, and the `dx_engine` Python wheel, which `libdxrt-bin` deliberately leaves to you and
+explains how to remove while it is being purged.
+
+For the full suite (all components, source builds, Docker), use the environment
+guides below.
+
 ### AI Model Compile Environment (Host PC)  
 
 This environment is used for converting and optimizing trained AI models into DEEPX NPU-specific binaries.  
@@ -156,6 +213,34 @@ This environment is for performing inference and running applications on devices
 > sudo reboot  
 > ```
 
+### Prebuilt Container Images (GHCR)
+
+Prefer containers over a local install? Official Ubuntu 24.04 images are published to GitHub Container Registry, so you can skip building the suite entirely.  
+
+```Bash
+docker pull ghcr.io/deepx-ai/dx-runtime:latest
+docker run --rm -it --privileged --ipc=host --pid=host -v /dev:/dev \
+    --entrypoint bash ghcr.io/deepx-ai/dx-runtime:latest
+```
+
+`dx-runtime` ships in four variants (`rt`, `rt-app`, `rt-stream`, `rt-app-stream`) alongside `dx-compiler` and `dx-modelzoo`.
+
+`dx-runtime` is published for both `linux/amd64` and `linux/arm64`; **`dx-compiler` and `dx-modelzoo` are `linux/amd64` only**.
+
+- **Action**: Container image tags, variant selection, and NPU passthrough options [Link](./docker/README.md)
+
+### Kubernetes Cluster (Optional)
+
+This environment schedules DEEPX NPUs across a Kubernetes cluster, so a pod asks for an NPU the
+same way it asks for CPU or memory.
+
+-	**Platform**: k3s or vanilla Kubernetes with containerd (CDI is on by default in containerd 2.x)
+-	**Hardware**: One or more nodes with DX-M1 installed, each set up as a Runtime Environment above
+-	**Components**: Device plugin (`deepx.ai/dx-m1` resource), NFD node labels (firmware/driver versions), CDI injection of the device and runtime libraries, Prometheus metrics, one-command Helm chart (`dx-npu`)
+-	**Usage**: Add `resources.limits: {deepx.ai/dx-m1: 1}` to a pod — the scheduler places it on an NPU node and the device arrives inside the container, with no manual device mounts
+-	**Action**: [Kubernetes Quickstart](./docs/source/06_Kubernetes_Quickstart.md) · new to Kubernetes? [Beginner Guide](./docs/source/07_Kubernetes_Beginner_Guide.md)
+=======
+
 ## Supported Models
 
 DX-AllSuite supports a vast array of industry-standard AI architectures, optimized for peak performance on our NPU.  
@@ -182,6 +267,8 @@ If you are a first-time user, we recommend following the documentation in this o
 - **Step 3. [Running Your First NPU Model](./docs/source/03_Running_Your_First_NPU_Model.md)**: Step-by-step hands-on script execution  
 - **Step 4. [Checking Version Compatibility](./docs/source/04_Version_Compatibility.md)**: SDK, Driver, and Firmware dependency matrix  
 - **Step 5. [FAQ Troubleshooting Guide](./docs/source/05_FAQ_Troubleshooting_Guide.md)**: Solutions for environment conflicts and GUI session (X11) errors  
+- **Optional. [Kubernetes Quickstart](./docs/source/06_Kubernetes_Quickstart.md)**: Schedule DX-M1 NPUs as a Kubernetes resource with the `dx-npu` Helm chart
+- **Optional. [Kubernetes Beginner Guide](./docs/source/07_Kubernetes_Beginner_Guide.md)**: Kubernetes explained from scratch, with hands-on NPU examples
 
 ## Support
 

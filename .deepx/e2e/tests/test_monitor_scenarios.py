@@ -103,8 +103,8 @@ def _render(renderable) -> str:
 
 def test_round_scenarios_four_valid_two_envfail(tmp_path):
     rd = _round(tmp_path, "20260612_000001",
-                {s: "valid" for s in SIX[:4]}
-                | {"runtime": "rate-limit", "suite": "rate-limit"})
+                {**{s: "valid" for s in SIX[:4]},
+                  "runtime": "rate-limit", "suite": "rate-limit"})
     scn = mon._round_scenarios(rd)
     assert scn == {
         "compiler": "valid",
@@ -188,7 +188,7 @@ def test_scenario_cells_valid_target_shows_done_not_rerunning():
 
 def test_round_status_includes_scenarios(tmp_path):
     rd = _round(tmp_path, "20260612_000010",
-                {s: "valid" for s in SIX[:-1]} | {"suite": "rate-limit"})
+                {**{s: "valid" for s in SIX[:-1]}, **{"suite": "rate-limit"}})
     st = mon._round_status(rd, salvage=None, salvage_pid_alive=False)
     assert "scenarios" in st
     assert st["scenarios"]["suite"] == "envfail"
@@ -199,7 +199,7 @@ def test_round_status_includes_scenarios(tmp_path):
 
 def test_round_status_rerunning_includes_rerun_targets(tmp_path):
     rd = _round(tmp_path, "20260612_000011",
-                {s: "valid" for s in SIX[:-1]} | {"suite": "rate-limit"})
+                {**{s: "valid" for s in SIX[:-1]}, **{"suite": "rate-limit"}})
     salvage = {
         "status": "running",
         "round_dir": rd.name,
@@ -220,7 +220,7 @@ def test_validity_table_renders_scenario_cells(tmp_path, monkeypatch):
     results.mkdir(parents=True)
     r1 = _round(results, "20260612_210247", {s: "valid" for s in SIX})
     r2 = _round(results, "20260612_215213",
-                {s: "valid" for s in SIX[:-1]} | {"suite": "rate-limit"})
+                {**{s: "valid" for s in SIX[:-1]}, **{"suite": "rate-limit"}})
 
     monkeypatch.setattr(mon._E2E_RUNNER, "run_results_dir", lambda rid: results)
     monkeypatch.setattr(mon, "_load_salvage", lambda rid: None)
@@ -248,8 +248,8 @@ def test_progress_table_salvage_shows_per_scenario_detail(tmp_path, monkeypatch)
     _round(results, "20260612_210247", {s: "valid" for s in SIX})
     _round(results, "20260612_215200", {s: "valid" for s in SIX})
     r3 = _round(results, "20260612_215213",
-                {s: "valid" for s in SIX[:-2]}
-                | {"runtime": "rate-limit", "suite": "rate-limit"})
+                {**{s: "valid" for s in SIX[:-2]},
+                  "runtime": "rate-limit", "suite": "rate-limit"})
 
     salvage = {
         "status": "running",

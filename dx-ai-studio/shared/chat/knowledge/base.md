@@ -12,7 +12,7 @@
 ```
 [AI Model Compile Environment - Host PC (x86_64)]
   ├── DX-COM (Compiler): ONNX → .dxnn 변환, INT8 Intelligent Quantization
-  ├── DX-TRON (Visualizer): .dxnn 모델 구조 시각화, NPU/CPU 파티션 컬러 그래프
+  ├── Compilation Summary Report: dxcom --export_html, NPU/CPU 파티션 그래프 HTML 리포트
   └── DX-ModelZoo: 270+ 사전 컴파일 모델 (.onnx + .json + .dxnn)
 
 [AI Model Runtime Environment - Target Device (x86_64/aarch64)]
@@ -34,7 +34,7 @@
 | **DX App** | 8080 | NPU 추론 실행, 280+ 모델, C++/Python 템플릿, 프로파일러 |
 | **DX Stream** | 8093 | GStreamer 비디오 파이프라인, WebRTC, 13개 커스텀 엘리먼트 |
 | **DX Model Zoo** | 8094 | 270+ 모델 카탈로그, 인퍼런스 데모, YAML 오케스트레이션 |
-| **DX Compiler** | 8095 | ONNX → .dxnn 컴파일 GUI, DX-TRON 그래프 뷰어 |
+| **DX Compiler** | 8095 | ONNX → .dxnn 컴파일 GUI, 그래프 뷰어 |
 | **DX Planner (EdgeGuide)** | 8096 | 실측 YOLO26 벤치마크 기반 NPU 제품(DX-M1/H1 등) 추천 |
 | **DX Benchmark** | 8097 | YOLO26 하드웨어 벤치마크 결과 뷰어 (읽기 전용, 실행은 CLI) |
 | **DX Monitor** | 8098 | NPU/시스템 실시간 하드웨어 모니터링 대시보드 |

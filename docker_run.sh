@@ -18,6 +18,7 @@ BASE_IMAGE_NAME=""
 OS_VERSION=""
 
 NVIDIA_GPU_MODE=0
+CUDA_VERSION=""
 DEV_MODE=0
 INTEL_GPU_HW_ACC=0
 
@@ -41,9 +42,10 @@ show_help() {
     echo -e "                                   Note: ${COLOR_CYAN}dx-runtime${COLOR_RESET} and ${COLOR_CYAN}dx-modelzoo${COLOR_RESET} support Ubuntu and Debian only"
     echo -e ""
     echo -e "${COLOR_BOLD}Optional:${COLOR_RESET}"
-    # echo -e "  ${COLOR_GREEN}[--nvidia_gpu]${COLOR_RESET}                 Enable NVIDIA GPU support"
+    echo -e "  ${COLOR_GREEN}[--nvidia_gpu]${COLOR_RESET}                 Run dx-compiler/dx-modelzoo with NVIDIA GPU (requires nvidia-container-toolkit)"
+    echo -e "  ${COLOR_GREEN}[--cuda_version=<version>]${COLOR_RESET}     CUDA version used at build time (default: 12.8.1)"
     # echo -e "  ${COLOR_GREEN}[--dev]${COLOR_RESET}                        Enable development mode"
-    # echo -e "  ${COLOR_GREEN}[--intel_gpu_hw_acc]${COLOR_RESET}           Enable Intel GPU hardware acceleration"
+    echo -e "  ${COLOR_GREEN}[--intel_gpu_hw_acc]${COLOR_RESET}           Run dx-runtime with Intel GPU VA-API media acceleration (requires /dev/dri)"
     echo -e "  ${COLOR_GREEN}[--help]${COLOR_RESET}                       Show this help message"
     echo -e ""
     echo -e "${COLOR_BOLD}Examples:${COLOR_RESET}"
@@ -110,7 +112,8 @@ docker_run_impl()
         return 1
     fi
 
-    if [ ${NVIDIA_GPU_MODE} -eq 1 ]; then
+    # NVIDIA GPU overlay applies to dx-compiler and dx-modelzoo only
+    if [ ${NVIDIA_GPU_MODE} -eq 1 ] && [ "$target" != "runtime" ]; then
         config_file_args="${config_file_args} -f docker/docker-compose.nvidia_gpu.yml"
     fi
 
@@ -430,10 +433,22 @@ docker_run_dx-runtime()
     local docker_compose_args="-f docker/docker-compose.yml"
 
     if [ ${INTEL_GPU_HW_ACC} -eq 1 ]; then
-        docker_compose_args="${docker_compose_args} -f docker-compose.intel_gpu_hw_acc.yml"
+        docker_compose_args="${docker_compose_args} -f docker/docker-compose.intel_gpu_hw_acc.yml"
     fi
 
-    docker_run_impl "runtime" "${docker_compose_args}" || return 1
+    # dx-runtime is out of NVIDIA GPU scope — always run with CPU naming
+    local saved_suffix="${IMAGE_TAG_SUFFIX}"
+    if [ ${NVIDIA_GPU_MODE} -eq 1 ]; then
+        export IMAGE_TAG_SUFFIX="${BASE_IMAGE_NAME}-${OS_VERSION}"
+    fi
+
+    docker_run_impl "runtime" "${docker_compose_args}"
+    local rc=$?
+
+    if [ ${NVIDIA_GPU_MODE} -eq 1 ]; then
+        export IMAGE_TAG_SUFFIX="${saved_suffix}"
+    fi
+    [ $rc -eq 0 ] || return 1
 }
 
 docker_run_dx-modelzoo()
@@ -500,6 +515,39 @@ main() {
         IMAGE_TAG_SUFFIX="centos-${CENTOS_VERSION}"
     fi
 
+    # NVIDIA GPU mode: ubuntu-only (nvidia/cuda base images are ubuntu-based)
+    if [ ${NVIDIA_GPU_MODE} -eq 1 ]; then
+        if [ "${BASE_IMAGE_NAME}" != "ubuntu" ]; then
+            show_help "error" "--nvidia_gpu supports --ubuntu_version only (nvidia/cuda base images are ubuntu-based)."
+        fi
+        if [ "${TARGET_ENV}" = "dx-runtime" ]; then
+            show_help "error" "--nvidia_gpu applies to dx-compiler and dx-modelzoo only."
+        fi
+        export CUDA_VERSION=${CUDA_VERSION:-12.8.1}
+        export IMAGE_TAG_SUFFIX="cuda${CUDA_VERSION}-${BASE_IMAGE_NAME}-${OS_VERSION}"
+        print_colored_v2 "INFO" "NVIDIA_GPU_MODE is set. (CUDA ${CUDA_VERSION}, image tag suffix: ${IMAGE_TAG_SUFFIX})"
+        check_nvidia_container_runtime || \
+            show_help "error" "NVIDIA container runtime is not available. Fix the host environment first (see hints above)."
+    fi
+
+    # Intel GPU (VA-API) mode: ubuntu-only, dx-runtime only, exclusive with --nvidia_gpu
+    if [ ${INTEL_GPU_HW_ACC} -eq 1 ]; then
+        if [ ${NVIDIA_GPU_MODE} -eq 1 ]; then
+            show_help "error" "--intel_gpu_hw_acc and --nvidia_gpu are mutually exclusive."
+        fi
+        if [ "${BASE_IMAGE_NAME}" != "ubuntu" ]; then
+            show_help "error" "--intel_gpu_hw_acc supports --ubuntu_version only."
+        fi
+        if [ "${TARGET_ENV}" != "dx-runtime" ]; then
+            show_help "error" "--intel_gpu_hw_acc applies to dx-runtime only (VA-API media acceleration for dx_stream)."
+        fi
+        if ! ls /dev/dri/renderD* >/dev/null 2>&1; then
+            show_help "error" "No GPU render node (/dev/dri/renderD*) found on the host. Intel GPU driver (i915/xe) may not be loaded."
+        fi
+        export IMAGE_TAG_SUFFIX="vaapi-${BASE_IMAGE_NAME}-${OS_VERSION}"
+        print_colored_v2 "INFO" "INTEL_GPU_HW_ACC is set. (image tag suffix: ${IMAGE_TAG_SUFFIX})"
+    fi
+
     print_colored_v2 "INFO" "BASE_IMAGE_NAME($BASE_IMAGE_NAME) is set."
     print_colored_v2 "INFO" "OS_VERSION($OS_VERSION) is set."
     print_colored_v2 "INFO" "TARGET_ENV($TARGET_ENV) is set."
@@ -561,6 +609,9 @@ while [ $# -gt 0 ]; do
             ;;
         --nvidia_gpu)
             NVIDIA_GPU_MODE=1
+            ;;
+        --cuda_version=*)
+            CUDA_VERSION="${1#*=}"
             ;;
         --help)
             show_help

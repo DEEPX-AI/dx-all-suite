@@ -101,6 +101,7 @@ digraph skill_flow {
 | Skill | When to use |
 |-------|-------------|
 | `dx-internal-model-eval` | Evaluate/compare coding-agent or model performance via the e2e-test harness — agent-vs-agent, model-vs-model (new frontier vs existing), or thinking/reasoning-effort comparison |
+| `dx-internal-pr-review-apply` | Process the bot (dci) code-review comments on a GHES PR — read (mhtml/REST), verify per item against the code, ask apply/skip, one commit, thread replies, re-request the reviewer |
 
 ### Meta
 

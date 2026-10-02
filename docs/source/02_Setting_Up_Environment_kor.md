@@ -141,6 +141,49 @@ sudo systemctl stop dxrt.service
 
 !!! warning "GUI 환경에 대한 참고사항"  
     X11 경고나 마운트 오류(예: cannot open display)가 발생하면, 이는 호스트 OS가 **Wayland** 세션을 사용하고 있기 때문일 가능성이 높습니다. [**FAQ Troubleshooting Guide**](05_FAQ_Troubleshooting_Guide.md)의 **Q2. X11 Session Warnings & Mount Errors (Wayland Issues)**를 참조하십시오.
+
+### GPU Acceleration Options (선택)
+
+Docker 이미지는 GPU 가속 옵션으로 빌드할 수 있습니다. 두 옵션은 **목적과 대상 컨테이너가 다르며**, 동시 사용은 불가합니다 (Ubuntu 전용):
+
+| 옵션 | 가속 대상 | 대상 컨테이너 | 주 사용 시나리오 |
+|---|---|---|---|
+| `--nvidia_gpu` | 연산 (CUDA) | `dx-compiler`, `dx-modelzoo` | ONNX raw accuracy 측정(dx-modelzoo), `q-pro` quantization calibration(dx-compiler) 시간 단축 |
+| `--intel_gpu_hw_acc` | 미디어 (VA-API) | `dx-runtime` — **dx_stream 파이프라인 한정** | video decode/scale을 Intel iGPU로 offload하여 멀티채널 GStreamer 파이프라인에서 CPU를 전·후처리에 집중 |
+
+**A. NVIDIA GPU (CUDA) — dx-compiler / dx-modelzoo**
+
+호스트 요구사항: NVIDIA driver 및 [nvidia-container-toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)
+(`sudo nvidia-ctk runtime configure --runtime=docker && sudo systemctl restart docker`).
+
+```Bash
+# CUDA base image로 빌드 (기본 CUDA 버전: 12.8.1, --cuda_version=<ver>로 변경 가능)
+./docker_build.sh --target=dx-modelzoo --ubuntu_version=24.04 --nvidia_gpu
+./docker_build.sh --target=dx-compiler --ubuntu_version=24.04 --nvidia_gpu
+
+# 실행 / 종료 — GPU 이미지는 cuda<ver>-ubuntu-<os> 태그를 사용하며 CPU 이미지와 공존
+./docker_run.sh  --target=dx-modelzoo --ubuntu_version=24.04 --nvidia_gpu
+./docker_down.sh --target=dx-modelzoo --ubuntu_version=24.04 --nvidia_gpu
+```
+
+dx-modelzoo 컨테이너 내에서는 측정 전 GPU 의존성을 설치하십시오: `pip install -e ".[gpu]"`.
+dx-compiler의 `q-pro` calibration은 GPU를 자동으로 사용합니다 (`quantization_device` auto-detection).
+
+**B. Intel GPU (VA-API 미디어 가속) — dx-runtime (dx_stream)**
+
+호스트 요구사항: `i915`/`xe` driver가 로드된 Intel GPU (호스트에 `/dev/dri/renderD*` 존재).
+
+```Bash
+./docker_build.sh --target=dx-runtime --ubuntu_version=24.04 --intel_gpu_hw_acc
+./docker_run.sh   --target=dx-runtime --ubuntu_version=24.04 --intel_gpu_hw_acc
+./docker_down.sh  --target=dx-runtime --ubuntu_version=24.04 --intel_gpu_hw_acc
+```
+
+dx_stream 코드 수정은 필요 없습니다 — GStreamer `decodebin`이 VA-API HW decoder(예: `vah264dec`)를 자동 선택하며, 파이프라인에 `vapostproc`를 추가하면 resize/color conversion까지 iGPU video-enhance 엔진으로 offload됩니다.
+
+!!! note "Intel GPU 적용 범위"
+    `--intel_gpu_hw_acc`는 **dx_stream(GStreamer) 파이프라인의 미디어 처리만** 가속합니다. dx-compiler/dx-modelzoo 워크로드는 가속하지 않으며(연산 가속은 `--nvidia_gpu`의 CUDA 전용), dx_app은 기본적으로 software decoding을 사용합니다.
+
 #### A. DX-Compiler 환경 (모델 변환)
 DX-Compiler 환경은 하드웨어에 최적화된 `.dxnn` 바이너리를 생성하는 데 사용됩니다.  
 
@@ -311,7 +354,7 @@ DX-RT v3.2.0
 
 **DX-AllSuite**를 **호스트 OS**에 직접 설치하면 하드웨어 성능을 극대화하고 모든 소프트웨어 모듈 간의 원활한 호환성을 보장할 수 있습니다. 이 방법은 프로덕션 환경 및 고급 성능 벤치마킹에 권장됩니다.  
 
-### DX-Compiler Installation (DX-COM, DX-TRON)
+### DX-Compiler Installation (DX-COM)
 
 DX-Compiler(DX-COM)는 지원되는 Linux 배포판에서 CLI 도구 또는 Python 모듈로 사용할 수 있습니다.  
 
@@ -369,21 +412,12 @@ dxcom -h
     - `./dx-compiler/example/1-download_sample_models.sh` (모델 데이터)  
     - `./dx-compiler/example/2-download_sample_calibration_dataset.sh` (교정 데이터)  
 
-#### D. DX-TRON (GUI 시각화)
-**DX-TRON**은 모델 구조와 작업 부하 분산을 검사하기 위한 시각적 분석 도구입니다. 환경에 맞는 실행 모드를 선택하십시오.   
-
-- **로컬 실행 (데스크톱)**: 터미널에 `dxtron`을 입력하거나 다음 스크립트를 실행하십시오.  
+#### D. 모델 시각화
+**DX-TRON은 DX-Compiler v2.5.0부터 제거되었습니다.** 컴파일된 모델 구조와 CPU/NPU 작업 부하 분산을 확인하려면 DX-COM으로 인터랙티브 HTML **Compilation Summary Report**를 생성하십시오.  
 ```bash
-./dx-compiler/run_dxtron_appimage.sh
+dxcom -m model.onnx -c config.json -o output/ --export_html
 ```
-
-- **웹 서버 실행 (원격/Docker)**: 웹 서버 스크립트를 실행하고 포트를 지정하십시오.  
-```bash 
-./dx-compiler/run_dxtron_web.sh --port=8080
-```
-그 후, 브라우저에서 [**http://localhost:8080**](http://localhost:8080)으로 접속하십시오.  
-
-- **Windows 사용자**: [**DEEPX Developer Portal**](https://developer.deepx.ai)에서 전용 Windows 설치 프로그램을 직접 다운로드할 수 있습니다.  
+그 후, 브라우저에서 `output/<model_name>_summary.html`을 여십시오.  
 
 ### DX-Runtime Installation (RT, Driver, FW, App, Stream)
 

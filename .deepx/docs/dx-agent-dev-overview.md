@@ -102,6 +102,42 @@ The `dx-agent-gen` package (`.deepx/tools/`) handles the conversion, and the pre
 | `tests/` | ✅ | — | — | — | — | Suite **conformance** tests (`conformance/`) — KB / generated-output policy checks |
 | `e2e/` | ✅ | — | — | — | — | E2E harness: `e2e_runner`/`e2e_monitor`, `test_agent_e2e_scenarios/`, `agent_analyzer/`, `test.sh` |
 
+### 2.3 Drift Defence Layers (CI)
+
+The generator and its shared fragments (`.deepx/templates/fragments`) live
+only at the dx-all-suite root, which creates a gap: a PR opened against a
+standalone sub-repo (dx-compiler, dx-runtime, dx_app, or dx_stream) cannot
+run `dx-agent-gen check` on itself — there is no suite tree above it to find
+the fragments in. `.deepx/tools/scripts/subrepo_check.sh` closes this gap by
+acquiring a suite checkout (existing, or a fresh shallow clone of the
+same-name branch, falling back to the suite's default branch) and building a
+disposable "shell" tree (`.deepx` symlinked to the real suite, sub-repo copied
+to its canonical nested path) so the drift check runs at sub-repo commit/PR
+time, not only when the suite later bumps its submodule pointers. Each
+sub-repo carries a `.github/workflows/dx-agent-dev-subrepo-gate-{ghes,cloud}.yml` (job
+`subrepo-gate`) that invokes it; the suite's own
+`.github/workflows/dx-agent-dev-gate-{ghes,cloud}.yml` (job `harness-gate`) remains the
+integration-time backstop, re-checking all 5 levels plus EN/KO lint and the
+full conformance/pytest suite. A sub-repo alone can never fix drift itself —
+from a suite checkout on the same branch, with the sub-repo at its canonical
+position, run `bash .deepx/tools/scripts/run_all.sh generate && bash
+.deepx/tools/scripts/run_all.sh check`, then commit the regenerated files in
+the sub-repo. Both gates exist as a GHES and a github.com variant selected by a
+job-level host guard; see [`ci-gates.md`](ci-gates.md).
+
+| Layer | Catches | Where |
+|-------|---------|-------|
+| Pre-commit hook | Drift + EN/KO lint, before a commit is made | `pre-commit-hook.sh` |
+| CI sub-repo gate | Drift committed to a standalone sub-repo checkout | `dx-agent-dev-subrepo-gate-{ghes,cloud}.yml` (`subrepo-gate`) via `subrepo_check.sh` |
+| CI suite gate | Drift across all 5 levels + EN/KO parity + conformance tests | `dx-agent-dev-gate-{ghes,cloud}.yml` (`harness-gate`) |
+| Generator hard-fail | Malformed fragments/templates at generation time | `dx_agent_dev_gen` |
+| Content guards | Structural regressions in generated output | `.deepx/tests/conformance` |
+| Agent instructions | Direct hand-edits of generated files during a session | Instruction File Verification Loop (`CLAUDE.md`/`AGENTS.md`) |
+
+See [`../README.md`](../README.md) §7 "Drift Defence Layers" and
+[`../tools/scripts/README.md`](../tools/scripts/README.md) §3 for full detail
+on `subrepo_check.sh` (usage, exit codes, remediation).
+
 ---
 
 ## 3. dx-all-suite `.deepx/` (Top-Level Routing + Generator)
@@ -170,13 +206,14 @@ These 16 fragments are **selectively injected** into the `CLAUDE.md` / `AGENTS.m
 
 | Component | Role |
 |-----------|------|
-| `pyproject.toml` | `dx-agent-gen` CLI (Python 3.10+); `packages.find where=["src"]` discovers both packages |
+| `pyproject.toml` | `dx-agent-gen` CLI (Python 3.8+); `packages.find where=["src"]` discovers both packages |
 | `scripts/run_all.sh generate\|check\|lint\|prune` | Batch ops across 5 repos (`.`, dx-compiler, dx-runtime, dx-runtime/dx_app, dx-runtime/dx_stream) |
 | `scripts/install-hooks.sh` / `pre-commit-hook.sh` | Pre-commit hooks: `.deepx/`↔non-`.deepx/` mix warning + drift check + EN/KO lint |
+| `scripts/subrepo_check.sh` | Drift check runnable from inside a standalone sub-repo checkout (§2.3); called by each sub-repo's CI `subrepo-gate` job |
 
 ### 3.7 tests/ — Suite Conformance
 
-- `conformance/`: ~700 fast static checks (no CLI/NPU needed) — guide structure, routing consistency, scenario references, cross-project handoff, instruction sync, sdk grounding, forbidden patterns. Run `pytest .deepx/tests/conformance/ --collect-only -q` for the live count.
+- `conformance/`: ~600 fast static checks (no CLI/NPU needed) — guide structure, routing consistency, scenario references, cross-project handoff, instruction sync, sdk grounding, forbidden patterns. Run `pytest .deepx/tests/conformance/ --collect-only -q` for the live count.
 
 ### 3.8 e2e/ — End-to-End Harness (separated)
 
@@ -261,7 +298,7 @@ Mapping from verification patterns (regex) → `.deepx/` file updates. 8 action 
 |------|---------|
 | `MEMORY.md` | Index + update protocol + domain tags |
 | `common_pitfalls.md` (32KB) | 10 core pitfalls (`[UNIVERSAL]`, `[DX_APP]`, `[PPU]`) |
-| `model_zoo.md` | 133 models (object_detection 50, classification 15, instance_seg 8, pose 6, face 8 …) — for exact counts, use jq query on `model_registry.json` |
+| `model_zoo.md` | 353 models (classification 111, object_detection 97, instance_seg 23, pose 19, face 18 …) — for exact counts, use jq query on `model_registry.json` |
 | `platform_api.md` | DX-M1 NPU, DX-RT 3.0.x, cold boot requirement, `DXRT_DYNAMIC_CPU_THREAD=ON` |
 | `performance_patterns.md` | 7-field metrics (read/preprocess/inference/postprocess/render/save/display) + optimization techniques |
 
@@ -381,7 +418,7 @@ Additional messaging elements (`architecture.md`): `DxMsgConv`, `DxMsgBroker`.
 | `dx-stream-elements.md` | All 13 elements (properties / Pads / examples / pitfalls) |
 | `dx-stream-metadata.md` | `pydxs` Python bindings (`DXFrameMeta`, `DXObjectMeta`, `DXTensorMeta`) |
 | `dx-engine-api.md` | Common with dx_app |
-| `model-registry.md` | v2.3.0 / 14 models / task ↔ postprocess `.so` mapping |
+| `model-registry.md` | v2.3.0 / 14 models / task ↔ postprocess `.so` mapping <!-- kb-counts: ignore --> |
 
 ### 6.8 11 Core HARD GATEs
 
@@ -441,7 +478,7 @@ Additional messaging elements (`architecture.md`): `DxMsgConv`, `DxMsgBroker`.
 
 ## 9. Verification Infrastructure (`.deepx/tests/`)
 
-### 9.1 Conformance (~700 tests, ~1 sec)
+### 9.1 Conformance (~600 tests, ~1 sec)
 
 | Module | Verification items |
 |--------|--------------------|
@@ -485,7 +522,7 @@ Additional messaging elements (`architecture.md`): `DxMsgConv`, `DxMsgBroker`.
 
 1. **Single-Source-of-Truth (SoT) design is robust**: `.deepx/` → `dx-agent-gen` → 4 platforms. Drift is blocked by the pre-commit hook.
 2. **Multi-layered HARD GATE enforcement**: skill router (meta) → process sequence → domain rules (IFactory, preprocess-id, etc.) → artifact verification. Focused on preventing silent failures.
-3. **Wide test automation coverage**: ~700 conformance + ~586 E2E + 5-tool cross-validation. The same rules are enforced even in autonomous mode (`--yolo`).
+3. **Wide test automation coverage**: ~600 conformance + ~586 E2E + 5-tool cross-validation. The same rules are enforced even in autonomous mode (`--yolo`).
 4. **Per-module autonomy + common backbone**: Each sub-project has its own `.deepx/` enabling independent work, while consistency is maintained via 16 fragments + skill router + Output Isolation rule.
 5. **Extension points**: When adding a new domain, writing the 5 items — ① `.deepx/agents/` ② `.deepx/skills/` ③ `.deepx/memory/common_pitfalls.md` ④ `.deepx/toolsets/` ⑤ `instructions/` — is automatically reflected on all 4 platforms.
 
@@ -495,7 +532,9 @@ Additional messaging elements (`architecture.md`): `DxMsgConv`, `DxMsgBroker`.
 
 ```bash
 # Generator (canonical → platforms)
-pip install -e .deepx/tools
+# (the shim is optional — run_all.sh, the pre-commit hook and pytest all run
+# the in-tree source)
+pipx install --force --editable .deepx/tools   # PEP 668-safe; --force also repoints a stale install; or: python3 -m venv .venv && .venv/bin/pip install -e .deepx/tools
 dx-agent-gen generate                                 # single repo
 dx-agent-gen check                                    # drift check
 bash .deepx/tools/scripts/run_all.sh generate           # batch across 5 repos
@@ -510,8 +549,8 @@ python dx-compiler/.deepx/scripts/validate_framework.py
 python dx-runtime/.deepx/scripts/feedback_collector.py --framework-only
 
 # Tests
+python3 -m pytest --rootdir=. .deepx/tests/conformance -q                    # ~600 conformance tests (run from the suite root)
 cd .deepx/e2e
-./test.sh agent-driven                                       # ~700 conformance tests
 ./test.sh agent-driven-e2e-claude-code-autopilot             # Claude Code E2E
 ./test.sh agent-driven-e2e-copilot-cli-autopilot
 ./test.sh agent-driven-e2e-cursor-cli-autopilot

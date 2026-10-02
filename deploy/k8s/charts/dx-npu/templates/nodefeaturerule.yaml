@@ -1,0 +1,23 @@
+{{- /* Render only when the NodeFeatureRule CRD will exist: either this release
+       installs NFD, or the cluster already serves the API. Otherwise helm install
+       fails with "no matches for kind NodeFeatureRule". */}}
+{{- if and .Values.nodeFeatureRule.enabled (or .Values.nfd.enabled (.Capabilities.APIVersions.Has "nfd.k8s-sigs.io/v1alpha1/NodeFeatureRule")) }}
+# Labels nodes that carry a DEEPX M1 accelerator (PCI vendor 1ff4, device 0100)
+# so the device-plugin DaemonSet schedules only there. Requires NFD in the cluster.
+apiVersion: nfd.k8s-sigs.io/v1alpha1
+kind: NodeFeatureRule
+metadata:
+  name: {{ .Release.Name }}-dx-m1
+  labels:
+    {{- include "dx-npu.labels" . | nindent 4 }}
+spec:
+  rules:
+    - name: "deepx-dx-m1"
+      labels:
+        "deepx.ai/dx-m1.present": "true"
+      matchFeatures:
+        - feature: pci.device
+          matchExpressions:
+            vendor: { op: In, value: ["1ff4"] }
+            device: { op: In, value: ["0100"] }
+{{- end }}

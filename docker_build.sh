@@ -17,8 +17,11 @@ RHEL_VERSION=""
 CENTOS_VERSION=""
 BASE_IMAGE_NAME=""
 OS_VERSION=""
+RUNTIME_VARIANT=""
 
 NVIDIA_GPU_MODE=0
+CUDA_VERSION=""
+INTEL_GPU_HW_ACC=0
 INTERNAL_MODE=0
 RE_ARCHIVE_ARGS=""
 PYPI_ARGS=""
@@ -42,15 +45,7 @@ else
     exit 1
 fi
 
-if [ -n "${TRON_VERSION}" ]; then
-    print_colored_v2 "INFO" "dx_tron version(${TRON_VERSION}) is set."
-else
-    print_colored_v2 "ERROR" "'dx_tron' version is not specified in ${VERSION_FILE}."
-    exit 1
-fi
-
 FILE_DXCOM="archives/dx_com_M1_v${COM_VERSION}.tar.gz"
-FILE_DXTRON="archives/dxtron_${TRON_VERSION}.tar.gz"
 HOST_UID=$(id -u)
 HOST_GID=$(id -g)
 TARGET_USER=deepx
@@ -78,8 +73,14 @@ show_help() {
     echo -e ""
     echo -e "${COLOR_BOLD}Optional:${COLOR_RESET}"
     echo -e "  ${COLOR_GREEN}[--driver_update]${COLOR_RESET}              Install 'dx_rt_npu_linux_driver' in the host environment"
+    echo -e "  ${COLOR_GREEN}[--nvidia_gpu]${COLOR_RESET}                 Build dx-compiler/dx-modelzoo on NVIDIA CUDA base image (ubuntu only)"
+    echo -e "  ${COLOR_GREEN}[--cuda_version=<version>]${COLOR_RESET}     CUDA base image version for --nvidia_gpu (default: 12.8.1)"
+    echo -e "  ${COLOR_GREEN}[--intel_gpu_hw_acc]${COLOR_RESET}           Build dx-runtime with Intel GPU VA-API media acceleration (ubuntu only)"
     echo -e "  ${COLOR_GREEN}[--no-cache]${COLOR_RESET}                   Build Docker images freshly without cache"
     echo -e "  ${COLOR_GREEN}[--skip-archive]${COLOR_RESET}               Skip archiving dx-compiler or dx-runtime or dx-modelzoo before building"
+    echo -e "  ${COLOR_GREEN}[--variant=<variant>]${COLOR_RESET}          Build a specific dx-runtime image variant ${COLOR_RED}(--target=dx-runtime only)${COLOR_RESET}"
+    echo -e "                                   Available: ${COLOR_CYAN}rt${COLOR_RESET} (DX-RT only) | ${COLOR_CYAN}rt-app${COLOR_RESET} | ${COLOR_CYAN}rt-stream${COLOR_RESET} | ${COLOR_CYAN}rt-app-stream${COLOR_RESET} (default)"
+    echo -e "                                   Non-default variants are tagged with a '-<variant>' suffix (ex: dx-runtime:ubuntu-24.04-rt-app)"
     echo -e "  ${COLOR_GREEN}[--re-archive=<true|false>]${COLOR_RESET}    Force rebuild archive for dx-compiler (default: true)"
     echo -e "  ${COLOR_GREEN}[--help]${COLOR_RESET}                       Show this help message"
     echo -e ""
@@ -92,6 +93,7 @@ show_help() {
     echo -e "  ${COLOR_YELLOW}$0 --target=dx-runtime --ubuntu_version=24.04 --driver_update${COLOR_RESET}"
     echo -e "  ${COLOR_YELLOW}$0 --target=dx-runtime --debian_version=12 --driver_update${COLOR_RESET}"
     echo -e "  ${COLOR_YELLOW}$0 --target=dx-modelzoo --ubuntu_version=24.04 --driver_update${COLOR_RESET}"
+    echo -e "  ${COLOR_YELLOW}$0 --target=dx-modelzoo --ubuntu_version=24.04 --nvidia_gpu${COLOR_RESET}"
     echo -e ""
 
     if [ "$1" == "error" ] && [[ ! -n "$2" ]]; then
@@ -113,8 +115,14 @@ docker_build_impl()
     local config_file_args=${2:--f docker/docker-compose.yml}
     local no_cache_arg=""
 
-    if [ ${NVIDIA_GPU_MODE} -eq 1 ]; then
+    # NVIDIA GPU overlay applies to dx-compiler and dx-modelzoo only
+    if [ ${NVIDIA_GPU_MODE} -eq 1 ] && [ "$target" != "runtime" ]; then
         config_file_args="${config_file_args} -f docker/docker-compose.nvidia_gpu.yml"
+    fi
+
+    # Intel GPU (VA-API) overlay applies to dx-runtime only
+    if [ ${INTEL_GPU_HW_ACC} -eq 1 ] && [ "$target" = "runtime" ]; then
+        config_file_args="${config_file_args} -f docker/docker-compose.intel_gpu_hw_acc.yml"
     fi
 
     if [ ${INTERNAL_MODE} -eq 1 ]; then
@@ -133,7 +141,6 @@ docker_build_impl()
     export TAG_NAME=${TAG_NAME:-${OS_VERSION}}
     export IMAGE_TAG_SUFFIX=${IMAGE_TAG_SUFFIX:-${BASE_IMAGE_NAME}-${OS_VERSION}}
     export FILE_DXCOM=${FILE_DXCOM}
-    export FILE_DXTRON=${FILE_DXTRON}
     export HOST_UID=${HOST_UID}
     export HOST_GID=${HOST_GID}
     export TARGET_USER=${TARGET_USER}
@@ -160,11 +167,25 @@ docker_build_impl()
         export XAUTHORITY_TARGET="/tmp/.docker.xauth"
     fi
 
+    # dx-runtime variant selects the Dockerfile stage to build; non-default variants
+    # also get a '-<variant>' image tag suffix. Both are applied in the compose
+    # subshell below only, so repeated docker_build_impl calls (docker_build_all)
+    # never inherit another target's variant or tag suffix.
+    local runtime_variant="${RUNTIME_VARIANT:-rt-app-stream}"
+    local variant_tag_suffix="${IMAGE_TAG_SUFFIX}"
+    if [ "${target}" = "runtime" ] && [ "${runtime_variant}" != "rt-app-stream" ]; then
+        variant_tag_suffix="${IMAGE_TAG_SUFFIX}-${runtime_variant}"
+    fi
+
     docker buildx use default
     CMD="docker compose ${config_file_args} build ${no_cache_arg} dx-${target}"
     echo "${CMD}"
 
-    ${CMD} || { print_colored_v2 "ERROR" "docker build 'dx-${target}' failed. "; exit 1; }
+    (
+        export RUNTIME_VARIANT="${runtime_variant}"
+        export IMAGE_TAG_SUFFIX="${variant_tag_suffix}"
+        ${CMD}
+    ) || { print_colored_v2 "ERROR" "docker build 'dx-${target}' failed. "; exit 1; }
 }
 
 docker_build_all() 
@@ -187,9 +208,8 @@ archive_dx-compiler()
     print_colored_v2 "INFO" "Archiving dx-compiler"
 
     # Internal mode: archive runs pip/requests on the HOST (venv setup upgrades
-    # setuptools/wheel from PyPI; downloader.py fetches dx-tron tarball). pip uses
-    # certifi (not the OS trust store), so it can't verify the FortiGate MITM cert
-    # on inspected hosts (pypi.org). But some hosts are NOT MITM'd and serve a real
+    # setuptools/wheel from PyPI). pip uses certifi (not the OS trust store), so it
+    # can't verify the FortiGate MITM cert on inspected hosts (pypi.org). But some hosts are NOT MITM'd and serve a real
     # public cert (sdk.deepx.ai -> Amazon CA), so pointing at the lone FortiGate cert
     # breaks those. The OS trust bundle already contains BOTH the FortiGate CA (IT
     # installed it) and the public roots, so build a combined bundle from the OS
@@ -276,19 +296,13 @@ archive_dx-compiler()
     
     # Extract archived file paths from output
     ARCHIVED_COM=$(echo "$ARCHIVE_OUTPUT" | grep "^ARCHIVED_COM_FILE=" | tail -1 | cut -d'=' -f2)
-    ARCHIVED_TRON=$(echo "$ARCHIVE_OUTPUT" | grep "^ARCHIVED_TRON_FILE=" | tail -1 | cut -d'=' -f2)
     
-    # Update FILE_DXCOM and FILE_DXTRON if archived files were found
+    # Update FILE_DXCOM if archived files were found
     if [ -n "$ARCHIVED_COM" ] && [ -f "$ARCHIVED_COM" ]; then
         FILE_DXCOM="${ARCHIVED_COM#${DX_AS_PATH}/}"  # Remove DX_AS_PATH prefix for relative path
         print_colored_v2 "INFO" "Updated FILE_DXCOM to: $FILE_DXCOM"
     fi
     
-    if [ -n "$ARCHIVED_TRON" ] && [ -f "$ARCHIVED_TRON" ]; then
-        FILE_DXTRON="${ARCHIVED_TRON#${DX_AS_PATH}/}"  # Remove DX_AS_PATH prefix for relative path
-        print_colored_v2 "INFO" "Updated FILE_DXTRON to: $FILE_DXTRON"
-    fi
-
     print_colored_v2 "SUCCESS" "Archiving dx-compiler is done."
     return 0
 }
@@ -314,18 +328,6 @@ docker_build_dx-compiler()
         print_colored_v2 "ERROR" "Archive file not found: ${FILE_DXCOM}. Please run archive step first."
         return 1
     fi
-    if [ ! -f "${DX_AS_PATH}/${FILE_DXTRON}" ]; then
-        # For non-Debian (Fedora/RHEL/CentOS), DX-Tron .deb is not supported.
-        # Create a dummy empty archive so Docker ADD doesn't fail.
-        if [ "${BASE_IMAGE_NAME}" != "ubuntu" ] && [ "${BASE_IMAGE_NAME}" != "debian" ]; then
-            print_colored_v2 "INFO" "DX-Tron not supported on ${BASE_IMAGE_NAME}. Creating dummy archive."
-            mkdir -p "$(dirname "${DX_AS_PATH}/${FILE_DXTRON}")"
-            tar czf "${DX_AS_PATH}/${FILE_DXTRON}" -T /dev/null
-        else
-            print_colored_v2 "ERROR" "Archive file not found: ${FILE_DXTRON}. Please run archive step first."
-            return 1
-        fi
-    fi
 
     local docker_compose_args="-f docker/docker-compose.yml"
     docker_build_impl "compiler" "${docker_compose_args}"
@@ -342,8 +344,18 @@ docker_build_dx-runtime()
         exit 1
     fi
 
+    # dx-runtime is out of NVIDIA GPU scope — always build with CPU naming
+    local saved_suffix="${IMAGE_TAG_SUFFIX}"
+    if [ ${NVIDIA_GPU_MODE} -eq 1 ]; then
+        export IMAGE_TAG_SUFFIX="${BASE_IMAGE_NAME}-${OS_VERSION}"
+    fi
+
     local docker_compose_args="-f docker/docker-compose.yml"
     docker_build_impl "runtime" "${docker_compose_args}"
+
+    if [ ${NVIDIA_GPU_MODE} -eq 1 ]; then
+        export IMAGE_TAG_SUFFIX="${saved_suffix}"
+    fi
 }
 
 docker_build_dx-modelzoo()
@@ -403,6 +415,18 @@ main() {
         show_help "error" "An OS version option must be specified (--ubuntu_version, --debian_version, --fedora_version, --rhel_version, or --centos_version)."
     fi
 
+    # --variant selects a dx-runtime Dockerfile stage, so it is meaningless for other targets
+    if [ -n "$RUNTIME_VARIANT" ] && [ "$TARGET_ENV" != "dx-runtime" ]; then
+        show_help "error" "--variant is only supported with '--target=dx-runtime' (got TARGET_ENV='${TARGET_ENV:-unset}')."
+    fi
+
+    # The nvidia_gpu overlay hardcodes image:/container_name: to a CUDA tag and drops
+    # IMAGE_TAG_SUFFIX, so the variant suffix would be lost and every variant would
+    # overwrite the same image tag with different contents.
+    if [ -n "$RUNTIME_VARIANT" ] && [ "${NVIDIA_GPU_MODE}" -eq 1 ]; then
+        show_help "error" "--variant cannot be combined with --nvidia_gpu (the nvidia_gpu overlay overrides the image tag, so the variant suffix would be lost)."
+    fi
+
     # Set BASE_IMAGE_NAME and OS_VERSION based on input
     if [ -n "$UBUNTU_VERSION" ]; then
         BASE_IMAGE_NAME="ubuntu"
@@ -426,11 +450,40 @@ main() {
         IMAGE_TAG_SUFFIX="centos-${CENTOS_VERSION}"
     fi
 
+    # NVIDIA GPU mode: ubuntu-only (nvidia/cuda base images are ubuntu-based)
+    if [ ${NVIDIA_GPU_MODE} -eq 1 ]; then
+        if [ "${BASE_IMAGE_NAME}" != "ubuntu" ]; then
+            show_help "error" "--nvidia_gpu supports --ubuntu_version only (nvidia/cuda base images are ubuntu-based)."
+        fi
+        if [ "${TARGET_ENV}" = "dx-runtime" ]; then
+            show_help "error" "--nvidia_gpu applies to dx-compiler and dx-modelzoo only."
+        fi
+        export CUDA_VERSION=${CUDA_VERSION:-12.8.1}
+        export IMAGE_TAG_SUFFIX="cuda${CUDA_VERSION}-${BASE_IMAGE_NAME}-${OS_VERSION}"
+        print_colored_v2 "INFO" "NVIDIA_GPU_MODE is set. (CUDA ${CUDA_VERSION}, image tag suffix: ${IMAGE_TAG_SUFFIX})"
+        check_nvidia_container_runtime || \
+            print_colored_v2 "WARNING" "Building GPU images anyway (GPU is not required at build time, only at run time)."
+    fi
+
+    # Intel GPU (VA-API) mode: ubuntu-only, dx-runtime only, exclusive with --nvidia_gpu
+    if [ ${INTEL_GPU_HW_ACC} -eq 1 ]; then
+        if [ ${NVIDIA_GPU_MODE} -eq 1 ]; then
+            show_help "error" "--intel_gpu_hw_acc and --nvidia_gpu are mutually exclusive."
+        fi
+        if [ "${BASE_IMAGE_NAME}" != "ubuntu" ]; then
+            show_help "error" "--intel_gpu_hw_acc supports --ubuntu_version only."
+        fi
+        if [ "${TARGET_ENV}" != "dx-runtime" ]; then
+            show_help "error" "--intel_gpu_hw_acc applies to dx-runtime only (VA-API media acceleration for dx_stream)."
+        fi
+        export IMAGE_TAG_SUFFIX="vaapi-${BASE_IMAGE_NAME}-${OS_VERSION}"
+        print_colored_v2 "INFO" "INTEL_GPU_HW_ACC is set. (image tag suffix: ${IMAGE_TAG_SUFFIX})"
+    fi
+
     print_colored_v2 "INFO" "BASE_IMAGE_NAME($BASE_IMAGE_NAME) is set."
     print_colored_v2 "INFO" "OS_VERSION($OS_VERSION) is set."
     print_colored_v2 "INFO" "TARGET_ENV($TARGET_ENV) is set."
     print_colored_v2 "INFO" "FILE_DXCOM($FILE_DXCOM) is set."
-    print_colored_v2 "INFO" "FILE_DXTRON($FILE_DXTRON) is set."
     print_colored_v2 "INFO" "HOST_UID($HOST_UID) is set."
     print_colored_v2 "INFO" "HOST_GID($HOST_GID) is set."
     print_colored_v2 "INFO" "TARGET_USER($TARGET_USER) is set."
@@ -536,8 +589,21 @@ while [ $# -gt 0 ]; do
         --skip-archive)
             SKIP_ARCHIVE=y
             ;;
+        --variant=*)
+            RUNTIME_VARIANT="${1#*=}"
+            case "${RUNTIME_VARIANT}" in
+                rt|rt-app|rt-stream|rt-app-stream) ;;
+                *) show_help "error" "Invalid --variant '${RUNTIME_VARIANT}'. Must be one of: rt, rt-app, rt-stream, rt-app-stream" ;;
+            esac
+            ;;
         --nvidia_gpu)
             NVIDIA_GPU_MODE=1
+            ;;
+        --cuda_version=*)
+            CUDA_VERSION="${1#*=}"
+            ;;
+        --intel_gpu_hw_acc)
+            INTEL_GPU_HW_ACC=1
             ;;
         --help)
             show_help
@@ -558,7 +624,7 @@ while [ $# -gt 0 ]; do
             fi
             ;;
         --pypi=*)
-            # Select dx-com/dx-tron source: true=public PyPI (default), false=DEEPX
+            # Select dx-com source: true=public PyPI (default), false=DEEPX
             # release index (e.g. for staging versions not yet published to PyPI).
             PYPI_ARGS="--pypi=${1#*=}"
             ;;

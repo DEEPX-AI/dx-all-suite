@@ -171,11 +171,11 @@ def test_run_round_statuses_five_rounds(tmp_path):
     _round(results, "20260612_210247", {s: "valid" for s in six})              # R1 valid
     _round(results, "20260612_215200", {s: "valid" for s in six})              # R2 valid
     r3 = _round(results, "20260612_215213",                                    # R3 re-running
-                {s: "valid" for s in six[:-1]} | {"suite": "rate-limit"})
+                {**{s: "valid" for s in six[:-1]}, **{"suite": "rate-limit"}})
     _round(results, "20260612_215228",                                         # R4 env-failed
-           {s: "valid" for s in six[:-1]} | {"suite": "rate-limit"})
+           {**{s: "valid" for s in six[:-1]}, **{"suite": "rate-limit"}})
     _round(results, "20260612_215242",                                         # R5 env-failed
-           {s: "valid" for s in six[:-1]} | {"suite": "rate-limit"})
+           {**{s: "valid" for s in six[:-1]}, **{"suite": "rate-limit"}})
 
     salvage = {"status": "running", "round_dir": r3.name, "attempt": 1,
                "scenarios": list(six), "pid": 12345}

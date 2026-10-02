@@ -266,6 +266,9 @@ Since the **DEEPX SDK** maintains strict version dependencies between modules, i
   </tbody>
 </table>
 
+!!! note "DX-TRON Removal"  
+    DX-TRON was removed as of DX-Compiler v2.5.0. Releases from that version onward show `-` in the DX-TRON column. Use the DX-COM Compilation Summary Report (`--export_html`) for model visualization.  
+
 ---
 
 ## How to Check Your System Version

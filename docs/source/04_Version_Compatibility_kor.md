@@ -266,6 +266,9 @@
   </tbody>
 </table>
 
+!!! note "DX-TRON 제거"  
+    DX-TRON은 DX-Compiler v2.5.0부터 제거되었습니다. 해당 버전 이후 릴리스의 DX-TRON 열에는 `-`로 표시됩니다. 모델 시각화에는 DX-COM Compilation Summary Report(`--export_html`)를 사용하십시오.  
+
 ---
 
 ## How to Check Your System Version

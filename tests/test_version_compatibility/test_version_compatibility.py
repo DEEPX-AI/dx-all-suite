@@ -93,6 +93,30 @@ def test_parse_version_matrix_ignores_unexpected_trailing_cells(tmp_path):
     assert "v9.9.9" not in expected.values()
 
 
+def test_parse_version_matrix_allows_removed_component(tmp_path):
+    matrix = tmp_path / "04_Version_Compatibility.md"
+    matrix.write_text(
+        """
+        <table><tbody>
+          <tr><td rowspan="3">2026-09-01</td><td colspan="7" align="center">v2.5.0</td></tr>
+          <tr><td colspan="2" align="center">v2.5.0</td><td colspan="5" align="center">v2.5.0</td></tr>
+          <tr>
+            <td>v2.5.0</td><td>-</td><td>v2.7.4</td><td>v2.6.0</td>
+            <td>v3.4.2</td><td>v3.1.2</td><td>v3.2.2</td>
+          </tr>
+        </tbody></table>
+        """,
+        encoding="utf-8",
+    )
+
+    expected = parse_version_matrix(matrix, "v2.5.0")
+
+    assert expected["dxcom"] == "v2.5.0"
+    # removed component ("-") maps to "", which release/CLI checks skip
+    assert expected["dxtron"] == ""
+    assert expected["dx-fw"] == "v2.7.4"
+
+
 def test_parse_dxcom_version_normalizes_missing_v_prefix():
     assert parse_dxcom_version("DX-COM 2.3.0") == "v2.3.0"
 

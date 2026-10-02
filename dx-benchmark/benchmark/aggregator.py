@@ -422,6 +422,7 @@ def _build_snapshot(hw_id: str, run_id: str, fingerprint: dict,
         "hw_id": hw_id,
         "env_id": hw_id,
         "timestamp": fingerprint.get("timestamp"),
+        "protocol": fingerprint.get("protocol", {}),
         "environment": _build_environment_summary(hw_id, run_id, fingerprint),
         "sw_versions": {
             "dx_stream": software.get("dx_stream"),

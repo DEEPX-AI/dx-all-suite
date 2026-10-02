@@ -1,0 +1,25 @@
+# Smoke test: requests one DX-M1 NPU and prints device + dxcli status.
+#
+# Base image needs a glibc at least as new as the host runtime's: DXRT v3.4.2
+# requires GLIBC_2.38, so bookworm (2.36) fails to run the injected dxcli.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: dx-m1-test
+spec:
+  restartPolicy: Never
+  containers:
+    - name: probe
+      image: ubuntu:24.04
+      command: ["/bin/bash", "-c"]
+      args:
+        - |
+          echo "=== /dev/dxrt* ===";  ls -l /dev/dxrt* || echo "no NPU injected"
+          echo "=== dxcli -s ==="; LD_LIBRARY_PATH=/usr/local/lib /usr/local/bin/dxcli -s || echo "dxcli unavailable"
+          # Stay Running long enough for `kubectl wait --for=...Running` and
+          # `kubectl logs` in the docs; exiting at once would skip straight to
+          # Succeeded and the wait would time out.
+          sleep 120
+      resources:
+        limits:
+          deepx.ai/dx-m1: 1

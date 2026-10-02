@@ -97,7 +97,7 @@ API accuracy. Please switch to a recommended model.
 | 컴포넌트 | 경로 | 목적 |
 |---|---|---|
 | **dx-runtime** | `dx-runtime/` | 통합 레이어 + 프로젝트 간 오케스트레이션 |
-| **dx_app** | `dx-runtime/dx_app/` | Standalone inference 앱 (Python/C++, 133개 모델, 15개 AI 태스크) |
+| **dx_app** | `dx-runtime/dx_app/` | Standalone inference 앱 (Python/C++, 353개 모델, 22개 AI 태스크) |
 | **dx_stream** | `dx-runtime/dx_stream/` | GStreamer pipeline 앱 (13개 element, 6개 pipeline 카테고리) |
 | **Docs** | `docs/` | MkDocs 문서 사이트 |
 | **dx-compiler** | `dx-compiler/` | DXNN 모델 컴파일러 (ONNX → .dxnn via DX-COM) |
@@ -1018,7 +1018,7 @@ timeout 방지를 위해 background 컴파일이 권장됩니다.
 ### dx_app 규칙 (Standalone Inference)
 
 1. **Skeleton-first 개발** — 코드를 작성하기 전에
-   `dx-runtime/dx_app/.deepx/skills/dx-agent-app-build-python.md` skeleton 템플릿을
+   `dx-runtime/dx_app/.deepx/skills/dx-agent-app-build-python/SKILL.md` skeleton 템플릿을
    읽으세요. `src/python_example/<task>/<model>/`에서 가장 가까운 기존 예제를
    복사하고 모델별 부분 (factory, postprocessor)만 수정하세요. 절대 데모
    스크립트를 처음부터 작성하지 마세요. 절대 프레임워크를 우회하는 독립
