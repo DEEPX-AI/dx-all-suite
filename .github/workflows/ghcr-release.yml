@@ -8,9 +8,9 @@ on:
   workflow_dispatch:
     inputs:
       components:
-        description: 'Comma-separated components to release (runtime,compiler,modelzoo)'
+        description: 'Comma-separated components to release. Blank = every component whose version is not in GHCR yet. Naming one explicitly makes an already-published version an error instead of a skip.'
         required: false
-        default: 'runtime,compiler,modelzoo'
+        default: ''
         type: string
       update_moving_tags:
         description: 'Also move the floating tags (latest, rt, rt-app, rt-stream, rt-app-stream)'
@@ -53,15 +53,17 @@ jobs:
     timeout-minutes: 10
     outputs:
       registry: ${{ steps.meta.outputs.registry }}
-      components: ${{ steps.meta.outputs.components }}
       runtime_version: ${{ steps.meta.outputs.runtime_version }}
       compiler_version: ${{ steps.meta.outputs.compiler_version }}
       modelzoo_version: ${{ steps.meta.outputs.modelzoo_version }}
-      matrix: ${{ steps.meta.outputs.matrix }}
-      # Resolved once here so `build` cannot check out a different tree than the one
-      # `prepare` read the versions from. `inputs` is null on a tag push and '' is falsy,
-      # so both fall through to the dispatched/pushed ref.
-      source_ref: ${{ inputs.source_ref || github.ref }}
+      # Set by the overwrite gate, not by `meta`: components whose version is already in
+      # GHCR are dropped here, so the matrix below only builds what will actually publish.
+      components: ${{ steps.gate.outputs.components }}
+      matrix: ${{ steps.matrix.outputs.matrix }}
+      # The resolved commit, not the ref name. A branch can move between this job and the
+      # arm64 build picking up a runner, which would build a different tree than the one
+      # these versions were read from -- and could even split amd64 and arm64.
+      source_sha: ${{ steps.src.outputs.sha }}
     steps:
       # Guarding here is enough for the whole workflow: `build` needs `prepare`, so a
       # missing secret stops everything with this message instead of an opaque
@@ -85,8 +87,16 @@ jobs:
           ref: ${{ inputs.source_ref || github.ref }}
           submodules: true
           token: ${{ secrets.GC_DCI_TOKEN }}
+          # Otherwise the PAT stays in .git/config for everything that runs afterwards.
+          # source_ref can point at an unreviewed branch, so the checked-out build
+          # scripts must not be handed this token.
+          persist-credentials: false
 
-      - name: Resolve versions and matrix
+      - name: Resolve source commit
+        id: src
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Resolve versions
         id: meta
         env:
           COMPONENTS_INPUT: ${{ inputs.components }}
@@ -133,7 +143,15 @@ jobs:
 
           # Tolerate "runtime, compiler": without this the space makes the ,x, match
           # fail and the component is dropped silently instead of erroring.
-          components=$(echo "${COMPONENTS_INPUT:-runtime,compiler,modelzoo}" | tr -d '[:space:]')
+          # Blank input (tag push, or a dispatch left at the default) means "release
+          # whatever still needs it" and lets the gate below skip published components.
+          # A non-blank input is an explicit request, so the gate errors instead.
+          explicit=true
+          components=$(echo "${COMPONENTS_INPUT}" | tr -d '[:space:]')
+          if [ -z "$components" ]; then
+            explicit=false
+            components="runtime,compiler,modelzoo"
+          fi
 
           # Reject unknown names up front. Checking only "nothing matched" below would
           # let 'runtime,compilr' release half the suite and still report success.
@@ -144,12 +162,133 @@ jobs:
             esac
           done
 
+          {
+            echo "registry=$registry"
+            echo "candidates=$components"
+            echo "explicit=$explicit"
+            echo "runtime_version=$runtime_version"
+            echo "compiler_version=$compiler_version"
+            echo "modelzoo_version=$modelzoo_version"
+          } >> "$GITHUB_OUTPUT"
+
+      # Before the overwrite guard, so a blocked release still shows what it resolved.
+      - name: Show resolved release plan
+        env:
+          REGISTRY: ${{ steps.meta.outputs.registry }}
+          RUNTIME_VERSION: ${{ steps.meta.outputs.runtime_version }}
+          COMPILER_VERSION: ${{ steps.meta.outputs.compiler_version }}
+          MODELZOO_VERSION: ${{ steps.meta.outputs.modelzoo_version }}
+          CANDIDATES: ${{ steps.meta.outputs.candidates }}
+          SOURCE_REF: ${{ inputs.source_ref || github.ref }}
+          SOURCE_SHA: ${{ steps.src.outputs.sha }}
+        run: |
+          echo "source ref:  $SOURCE_REF"
+          echo "source sha:  $SOURCE_SHA"
+          echo "registry:    $REGISTRY"
+          echo "dx-runtime:  $RUNTIME_VERSION"
+          echo "dx-compiler: $COMPILER_VERSION"
+          echo "dx-modelzoo: $MODELZOO_VERSION"
+          echo "candidates:  $CANDIDATES (the gate may drop already-published ones)"
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # GHCR cannot mark a tag immutable, so this is the only place it can be enforced.
+      # Re-running the same version is a full cold-cache rebuild, and if apt/pip moved
+      # upstream in between, v2.4.1-rt silently changes content -- undebuggable later.
+      #
+      # This also decides WHAT gets built. The three components version independently, so
+      # a tag push that only bumps dx-runtime still names all three: failing because
+      # dx-compiler is unchanged would mean a release is only ever possible when all three
+      # move together. An implicit selection therefore skips what is already published; an
+      # explicit one errors, because the user asked for that component by name.
+      - name: Gate on versions already in GHCR
+        id: gate
+        env:
+          REGISTRY: ${{ steps.meta.outputs.registry }}
+          CANDIDATES: ${{ steps.meta.outputs.candidates }}
+          EXPLICIT: ${{ steps.meta.outputs.explicit }}
+          RUNTIME_VERSION: ${{ steps.meta.outputs.runtime_version }}
+          COMPILER_VERSION: ${{ steps.meta.outputs.compiler_version }}
+          MODELZOO_VERSION: ${{ steps.meta.outputs.modelzoo_version }}
+          # `inputs` is null on a tag push, so this evaluates to false there and the
+          # gate stays armed -- a tag push is always a new release. Deliberately the
+          # mirror of MOVING in merge-manifest: `&&` returns the first falsy operand.
+          ALLOW_OVERWRITE: ${{ github.event_name == 'workflow_dispatch' && inputs.allow_overwrite }}
+        run: |
+          set -euo pipefail -f
+
+          if [ "$ALLOW_OVERWRITE" = true ]; then
+            echo "allow_overwrite=true -- republishing $CANDIDATES without checking GHCR"
+            echo "components=$CANDIDATES" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # `imagetools inspect` exits 1 for BOTH "no such tag" and "403 Forbidden", and
+          # only stderr tells them apart. `docker login` above proves registry-level auth
+          # but not per-package read access -- a GHCR package that is not linked to this
+          # repo 403s here -- so treating every failure as "not published" would disarm
+          # the gate silently. Accept only a not-found. The patterns stay broad because a
+          # first release has no package at all, which GHCR words differently from a
+          # missing tag (UNVERIFIED: needs real GHCR auth to confirm the exact wording;
+          # an unrecognised message fails loudly rather than passing, which is the safe
+          # direction -- fix the pattern if a legitimate first release trips it).
+          kept=""
+          rc=0
+          for c in $(echo "$CANDIDATES" | tr ',' ' '); do
+            case "$c" in
+              runtime)  v="$RUNTIME_VERSION" ;;
+              compiler) v="$COMPILER_VERSION" ;;
+              modelzoo) v="$MODELZOO_VERSION" ;;
+            esac
+            ref="$REGISTRY/dx-$c:$v"
+
+            if out=$(docker buildx imagetools inspect "$ref" 2>&1); then
+              if [ "$EXPLICIT" = true ]; then
+                echo "::error::$ref is already published. Bump the version, drop dx-$c from the components input, or re-run with allow_overwrite=true to republish."
+                rc=1
+              else
+                echo "  $ref already published -- skipping dx-$c"
+              fi
+              continue
+            fi
+
+            case "$out" in
+              *"not found"* | *"NAME_UNKNOWN"* | *"MANIFEST_UNKNOWN"* | *"does not exist"*)
+                echo "  $ref: not published"
+                kept="${kept:+$kept,}$c"
+                ;;
+              *)
+                echo "::error::GHCR probe for $ref failed for a reason other than not-found: $out"
+                rc=1
+                ;;
+            esac
+          done
+          [ "$rc" -eq 0 ] || exit 1
+
+          if [ -z "$kept" ]; then
+            echo "::notice::every candidate version is already published -- nothing to release."
+          fi
+          echo "releasing: ${kept:-<nothing>}"
+          echo "components=$kept" >> "$GITHUB_OUTPUT"
+
+      # After the gate, so the matrix only contains components that will actually publish.
+      - name: Build job matrix
+        id: matrix
+        env:
+          COMPONENTS: ${{ steps.gate.outputs.components }}
+        run: |
+          set -euo pipefail -f
           entries=""
           add() {
             entries="${entries:+$entries,}{\"arch\":\"$1\",\"runner\":\"$2\",\"component\":\"$3\"}"
           }
           for c in runtime compiler modelzoo; do
-            case ",$components," in *",$c,"*) ;; *) continue ;; esac
+            case ",$COMPONENTS," in *",$c,"*) ;; *) continue ;; esac
             add amd64 "$RUNNER_AMD64" "$c"
             # dx-compiler and dx-modelzoo are published for amd64 only.
             # compiler cannot build on arm64 at all: docker_build.sh arch_check
@@ -162,112 +301,25 @@ jobs:
               *) add arm64 "$RUNNER_ARM64" "$c" ;;
             esac
           done
-          # Second line of defence, and the only one for whitespace-or-comma-only input
-          # ("" or ","): the allowlist loop above iterates zero times and passes.
-          [ -n "$entries" ] || { echo "::error::No known component in '$components'"; exit 1; }
+          # An empty matrix is valid here: the build and merge jobs are gated on
+          # components being non-empty, so neither runs and nothing evaluates it.
+          echo "matrix={\"include\":[$entries]}" >> "$GITHUB_OUTPUT"
 
-          {
-            echo "registry=$registry"
-            echo "components=$components"
-            echo "runtime_version=$runtime_version"
-            echo "compiler_version=$compiler_version"
-            echo "modelzoo_version=$modelzoo_version"
-            echo "matrix={\"include\":[$entries]}"
-          } >> "$GITHUB_OUTPUT"
-
-      # Before the overwrite guard, so a blocked release still shows what it resolved.
-      - name: Show resolved release plan
-        env:
-          REGISTRY: ${{ steps.meta.outputs.registry }}
-          RUNTIME_VERSION: ${{ steps.meta.outputs.runtime_version }}
-          COMPILER_VERSION: ${{ steps.meta.outputs.compiler_version }}
-          MODELZOO_VERSION: ${{ steps.meta.outputs.modelzoo_version }}
-          MATRIX: ${{ steps.meta.outputs.matrix }}
-          SOURCE_REF: ${{ inputs.source_ref || github.ref }}
-        run: |
-          echo "source ref:  $SOURCE_REF"
-          echo "registry:    $REGISTRY"
-          echo "dx-runtime:  $RUNTIME_VERSION"
-          echo "dx-compiler: $COMPILER_VERSION"
-          echo "dx-modelzoo: $MODELZOO_VERSION"
-          echo "matrix:      $MATRIX"
-
-      - name: Log in to GHCR
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      # GHCR cannot mark a tag immutable, so this is the only place it can be enforced.
-      # Re-running the same version is a full cold-cache rebuild, and if apt/pip moved
-      # upstream in between, v2.4.1-rt silently changes content -- undebuggable later.
-      - name: Refuse to overwrite a published version
-        env:
-          REGISTRY: ${{ steps.meta.outputs.registry }}
-          COMPONENTS: ${{ steps.meta.outputs.components }}
-          RUNTIME_VERSION: ${{ steps.meta.outputs.runtime_version }}
-          COMPILER_VERSION: ${{ steps.meta.outputs.compiler_version }}
-          MODELZOO_VERSION: ${{ steps.meta.outputs.modelzoo_version }}
-          # `inputs` is null on a tag push, so this evaluates to false there and the
-          # guard stays armed -- a tag push is always a new release. Deliberately the
-          # mirror of MOVING in merge-manifest: `&&` returns the first falsy operand.
-          ALLOW_OVERWRITE: ${{ github.event_name == 'workflow_dispatch' && inputs.allow_overwrite }}
-        run: |
-          set -euo pipefail -f
-          [ "$ALLOW_OVERWRITE" != true ] || exit 0
-
-          # `imagetools inspect` exits 1 for BOTH "no such tag" and "403 Forbidden", and
-          # only stderr tells them apart. `docker login` above proves registry-level auth
-          # but not per-package read access -- a GHCR package that is not linked to this
-          # repo 403s here -- so treating every failure as "not published" would disarm
-          # the guard silently. Accept only a not-found. The patterns stay broad because a
-          # first release has no package at all, which GHCR words differently from a
-          # missing tag (UNVERIFIED: needs real GHCR auth to confirm the exact wording;
-          # an unrecognised message fails loudly rather than passing, which is the safe
-          # direction -- fix the pattern if a legitimate first release trips it).
-          probe() {
-            local ref="$1" out
-            if out=$(docker buildx imagetools inspect "$ref" 2>&1); then
-              echo "::error::$ref is already published. Bump the version, or re-run with allow_overwrite=true to republish (e.g. to recover from a partial failure)."
-              return 1
-            fi
-            case "$out" in
-              *"not found"* | *"NAME_UNKNOWN"* | *"MANIFEST_UNKNOWN"* | *"does not exist"*)
-                echo "  $ref: not published"
-                return 0
-                ;;
-            esac
-            echo "::error::GHCR probe for $ref failed for a reason other than not-found: $out"
-            return 1
-          }
-
-          # Probe every component being released, each at its own version. dx-runtime
-          # alone is not representative: the three version independently (dx-modelzoo is
-          # on v0.10.1), so for a subset dispatch it answers both wrong ways -- passing
-          # while dx-modelzoo:v0.10.1 gets overwritten, or blocking an unpublished one.
-          rc=0
-          for c in $(echo "$COMPONENTS" | tr ',' ' '); do
-            case "$c" in
-              runtime)  version="$RUNTIME_VERSION" ;;
-              compiler) version="$COMPILER_VERSION" ;;
-              modelzoo) version="$MODELZOO_VERSION" ;;
-              *) echo "::error::unknown component '$c'"; exit 1 ;;
-            esac
-            # Report every offender, not just the first.
-            probe "$REGISTRY/dx-$c:$version" || rc=1
-          done
-          exit "$rc"
-
-  # One job per (arch, component). The runtime job builds all four variants in
-  # sequence so the shared `rt` stage is built once per arch instead of four times.
   build:
     needs: prepare
+    # Empty when the gate dropped every candidate as already published.
+    if: needs.prepare.outputs.components != ''
     runs-on: ${{ matrix.runner }}
     # dx_stream builds OpenCV 4.2.0 + contrib from source at -j2 (install script uses
     # nproc/2 on a 4-vCPU runner), and that stage runs twice per arch: rt-stream is
     # FROM rt while rt-app-stream is FROM rt-app, so the two branches cannot share it.
-    # Estimated 2.5-3.5h. The GitHub job limit is 6h, so headroom here is free.
+    #
+    # Measured, not estimated: on Ubuntu 24.04 dx_stream does NOT build OpenCV from
+    # source -- setup_opencv finds apt libopencv-dev 4.6.0, which satisfies its 4.2.0
+    # floor -- so all four variants took ~505s on a 20-core host. Even at 5x for a
+    # 4-vCPU runner that is well under an hour. The ceiling stays high because the
+    # GitHub job limit is 6h and headroom costs nothing, not because a 5h build is
+    # expected; do not cite this number as a reason to add build caching.
     timeout-minutes: 330
     strategy:
       fail-fast: false
@@ -276,9 +328,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: ${{ needs.prepare.outputs.source_ref }}
+          # The commit prepare resolved, not a branch name: a branch can move while this
+          # job waits for a runner, which would build a different tree than the one the
+          # versions came from, and could split amd64 from arm64.
+          ref: ${{ needs.prepare.outputs.source_sha }}
           submodules: recursive
           token: ${{ secrets.GC_DCI_TOKEN }}
+          # Keeps the PAT out of .git/config, which the build scripts below can read.
+          persist-credentials: false
 
       # Peak usage is ~11-12GB of the 14GB image store. Dropping preinstalled toolchains
       # we never use buys ~20GB. Items absent on arm64 are a no-op for rm -rf.
@@ -366,6 +423,7 @@ jobs:
 
   merge-manifest:
     needs: [prepare, build]
+    if: needs.prepare.outputs.components != ''
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
