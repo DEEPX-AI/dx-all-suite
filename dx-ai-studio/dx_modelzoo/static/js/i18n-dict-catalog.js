@@ -9,6 +9,22 @@ window._DX_MODELZOO_I18N_REGISTER({
     'zh-TW': 'ModelZoo 首頁',
     es: 'Página principal de ModelZoo',
   },
+  'DX App connected': {
+    en: 'DX App connected',
+    ko: 'DX App 연결됨',
+    ja: 'DX App 接続中',
+    'zh-CN': 'DX App 已连接',
+    'zh-TW': 'DX App 已連線',
+    es: 'DX App conectada',
+  },
+  'DX App offline': {
+    en: 'DX App offline',
+    ko: 'DX App 오프라인',
+    ja: 'DX App オフライン',
+    'zh-CN': 'DX App 离线',
+    'zh-TW': 'DX App 離線',
+    es: 'DX App sin conexión',
+  },
   'ModelZoo public site': {
     en: 'ModelZoo public site',
     ko: 'ModelZoo 공개 사이트',

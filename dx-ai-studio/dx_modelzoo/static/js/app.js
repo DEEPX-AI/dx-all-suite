@@ -180,6 +180,12 @@ async function checkDxAppHealth() {
   }
   const dot = document.getElementById('dxAppStatus');
   if (dot) dot.classList.toggle('alive', _dxAppAlive);
+  const indicator = document.getElementById('dxAppIndicator');
+  if (indicator) {
+    const state = T(_dxAppAlive ? 'DX App connected' : 'DX App offline');
+    indicator.title = state;
+    indicator.setAttribute('aria-label', state);
+  }
 
   const changed = previousAlive !== _dxAppAlive;
   if (changed && location.hash.startsWith('#model=')) {

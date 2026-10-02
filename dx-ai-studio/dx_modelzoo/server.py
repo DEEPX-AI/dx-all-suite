@@ -86,7 +86,10 @@ _ZOO_TOOLBAR = (
     ' aria-label="ModelZoo public site" data-i18n-aria-label="ModelZoo public site">'
     '<span class="mz-homepage-text" data-i18n="ModelZoo Homepage">ModelZoo Homepage</span>'
     '<svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#external"></use></svg></a>'
-    '<span class="mz-dx-app-status" id="dxAppStatus"></span>'
+    # 8px 점만 있으면 무엇의 상태인지 몰랐고 튜토리얼 spotlight 도 점 하나였다 — 이름표를 붙인다 (release audit Z-8)
+    '<span class="mz-dx-app-indicator" id="dxAppIndicator" role="status" title="DX App">'
+    '<span class="mz-dx-app-status" id="dxAppStatus" aria-hidden="true"></span>'
+    '<span class="mz-dx-app-label">DX App</span></span>'
 )
 
 DX_MODELZOO_SHELL = ShellSpec(
