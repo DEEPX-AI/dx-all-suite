@@ -17,9 +17,79 @@
 
 ---
 
+## Quick Install (one-line)
+
+If you only need a single component, install it directly — no cloning, no submodule
+synchronization:
+
+```Bash
+# DX-Compiler (x86_64 Host PC)
+curl -fsSL https://raw.githubusercontent.com/DEEPX-AI/dx-compiler/main/oneline-install.sh | sh
+
+# DX-Runtime (target device with a DEEPX NPU: NPU driver + dx_rt + firmware)
+curl -fsSL https://raw.githubusercontent.com/DEEPX-AI/dx-runtime/main/oneline-install.sh | sh
+```
+
+Each installer resolves the newest version on its own — DX-Compiler from its latest
+release on PyPI, DX-Runtime from the `latest` pointer on each component's `main` branch.
+Override with `DX_VERSION=2.4.1` (DX-Compiler) or, for DX-Runtime, per component with
+`DX_RT_VERSION=3.4.2`, `DX_DRIVER_VERSION=2.6.0`, `DX_FW_VERSION=2.7.4`. DX-Compiler also
+accepts `DX_INSTALL_DIR=<dir>` (default `~/deepx`) to move the install root; DX-Runtime
+has no equivalent, because it installs system packages through `dpkg` rather than into a
+directory you choose.
+
+!!! warning "DX-Runtime tracks `main`, so runs are not reproducible by default"
+    Because versions are resolved at run time, the downloaded artifacts are not
+    checksum-verified, and the three components follow their own branches independently —
+    a run made between dx-runtime releases can install a combination that has not been
+    validated together. Pin the versions above, or use the repository's `install.sh`,
+    whenever you need a known-good set.
+
+!!! note "DX-Compiler needs root for its system packages"
+    `dx-com` is installed from PyPI into `$DX_INSTALL_DIR/venv-dx-compiler` (default
+    `~/deepx/venv-dx-compiler`), and the `dxcom` launcher is linked into `DX_BIN_DIR`
+    (default `~/.local/bin`) so it runs without activating the venv. The installer also
+    apt-installs `libgl1-mesa-dev` and `libglib2.0-0`: `dx-com` depends on
+    `opencv-python`, whose `cv2` extension links against those libraries and fails to
+    import without them. Run as root or with `sudo` available, on Debian or Ubuntu.
+    This route does not install the sample data — clone the repository for that.
+
+!!! warning "DX-Runtime: reboot required"
+    A reboot is mandatory after installation so the kernel loads the NPU driver. When no
+    NPU device is detected the firmware update step is skipped — rerun the same command
+    after rebooting to finish it.
+
+!!! note "Scope of one-line install"
+    One-line install covers `dx_fw`, `dx_rt`, and `dx_rt_npu_linux_driver` for DX-Runtime.
+    `dx_app`, `dx_stream`, source builds, and the Docker route all use the full setup
+    described below.
+
+### Uninstalling a one-line install
+
+```Bash
+# DX-Compiler
+curl -fsSL https://raw.githubusercontent.com/DEEPX-AI/dx-compiler/main/oneline-uninstall.sh | sh
+
+# DX-Runtime
+curl -fsSL https://raw.githubusercontent.com/DEEPX-AI/dx-runtime/main/oneline-uninstall.sh | sh
+```
+
+DX-Compiler must be given the same `DX_INSTALL_DIR` / `DX_BIN_DIR` used at install time,
+otherwise it looks in the default location and finds nothing. DX-Runtime takes no such
+argument: both of its install routes produce the same Debian packages, so this command
+removes an `install.sh` install as well.
+
+!!! warning "What uninstalling cannot undo"
+    Firmware already flashed to the NPU is not reverted — there is no uninstall path for it.
+    The `dx_engine` Python wheel is also left in place: `libdxrt-bin` cannot know which
+    interpreter or virtualenv it went into, so it prints removal instructions during its own
+    purge instead. `dx_app` and `dx_stream` are untouched, since the one-liner never installs
+    them; use the repository's `uninstall.sh` for those.
+
 ## Prerequisites
 
-Follow these steps first to ensure a stable installation.
+Follow these steps first to ensure a stable installation. This is the full-suite route —
+skip it if the one-line install above already covers what you need.
 
 ### Repository Cloning and Submodule Synchronization
 
@@ -140,6 +210,48 @@ Run the container after the image build is complete.
 
 !!! warning "Note on GUI Environments"  
     If you encounter X11 warnings or mount errors (e.g., cannot open display), it is likely due to the host OS using a **Wayland** session. Refer to **Q2. X11 Session Warnings & Mount Errors (Wayland Issues)** in [**FAQ Troubleshooting Guide**](05_FAQ_Troubleshooting_Guide.md).  
+
+### GPU Acceleration Options (Optional)
+
+Docker images can optionally be built with GPU acceleration. The two options serve **different purposes and different containers**, and are mutually exclusive (Ubuntu only):
+
+| Option | Accelerates | Target containers | Typical use case |
+|---|---|---|---|
+| `--nvidia_gpu` | Compute (CUDA) | `dx-compiler`, `dx-modelzoo` | Faster ONNX raw accuracy evaluation (dx-modelzoo) and `q-pro` quantization calibration (dx-compiler) |
+| `--intel_gpu_hw_acc` | Media (VA-API) | `dx-runtime` — **dx_stream pipelines only** | Offload video decode/scale to the Intel iGPU so the CPU stays free for pre/post-processing in multi-channel GStreamer pipelines |
+
+**A. NVIDIA GPU (CUDA) — dx-compiler / dx-modelzoo**
+
+Host requirements: NVIDIA driver and [nvidia-container-toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)
+(`sudo nvidia-ctk runtime configure --runtime=docker && sudo systemctl restart docker`).
+
+```Bash
+# Build on a CUDA base image (default CUDA version: 12.8.1, override with --cuda_version=<ver>)
+./docker_build.sh --target=dx-modelzoo --ubuntu_version=24.04 --nvidia_gpu
+./docker_build.sh --target=dx-compiler --ubuntu_version=24.04 --nvidia_gpu
+
+# Run / stop — GPU images are tagged cuda<ver>-ubuntu-<os> and coexist with CPU images
+./docker_run.sh  --target=dx-modelzoo --ubuntu_version=24.04 --nvidia_gpu
+./docker_down.sh --target=dx-modelzoo --ubuntu_version=24.04 --nvidia_gpu
+```
+
+Inside the dx-modelzoo container, install GPU dependencies before evaluation: `pip install -e ".[gpu]"`.
+For dx-compiler, `q-pro` calibration uses the GPU automatically (`quantization_device` auto-detection).
+
+**B. Intel GPU (VA-API Media Acceleration) — dx-runtime (dx_stream)**
+
+Host requirements: Intel GPU with the `i915`/`xe` driver loaded (`/dev/dri/renderD*` present on the host).
+
+```Bash
+./docker_build.sh --target=dx-runtime --ubuntu_version=24.04 --intel_gpu_hw_acc
+./docker_run.sh   --target=dx-runtime --ubuntu_version=24.04 --intel_gpu_hw_acc
+./docker_down.sh  --target=dx-runtime --ubuntu_version=24.04 --intel_gpu_hw_acc
+```
+
+No dx_stream code changes are required — GStreamer `decodebin` automatically selects the VA-API HW decoder (e.g., `vah264dec`), and adding `vapostproc` to a pipeline additionally offloads resize/color conversion to the iGPU video-enhance engine.
+
+!!! note "Intel GPU scope"
+    `--intel_gpu_hw_acc` accelerates **media processing for dx_stream (GStreamer) pipelines only**. It does not accelerate dx-compiler or dx-modelzoo workloads (compute acceleration is CUDA-only via `--nvidia_gpu`), and dx_app uses software decoding by default.
 
 ### Container Access and Task Guide
 
@@ -313,7 +425,7 @@ If **[OK]** or **PASS** is output for all items, you are ready to start service 
 
 Installing **DX-AllSuite** directly on the **Host OS** ensures maximum hardware performance and seamless compatibility between all software modules. This method is recommended for production environments and advanced performance benchmarking.  
 
-### DX-Compiler Installation (DX-COM, DX-TRON)
+### DX-Compiler Installation (DX-COM)
 
 DX-Compiler (DX-COM) can be used as a CLI tool or a Python module on supported Linux distributions.  
 
@@ -370,21 +482,12 @@ dxcom -h
     - `./dx-compiler/example/1-download_sample_models.sh` (Model data)  
     - `./dx-compiler/example/2-download_sample_calibration_dataset.sh` (Calibration data)  
 
-#### D. DX-TRON (GUI Visualizer)
-**DX-TRON** is a visual analysis tool for inspecting model structures and workload distribution. Choose the execution mode that fits your environment:  
-
-- **Local Execution (Desktop)**: Type `dxtron` in the terminal or execute the following script:  
+#### D. Model Visualization
+**DX-TRON has been removed** as of DX-Compiler v2.5.0. To inspect the compiled model structure and CPU/NPU workload distribution, generate the interactive HTML **Compilation Summary Report** with DX-COM:  
 ```bash
-./dx-compiler/run_dxtron_appimage.sh
+dxcom -m model.onnx -c config.json -o output/ --export_html
 ```
-
-- **Web Server Execution (Remote/Docker)**: Run the web server script and specify a port:  
-```bash 
-./dx-compiler/run_dxtron_web.sh --port=8080
-```
-Then, access [**http://localhost:8080**](http://localhost:8080) in your browser.  
-
-- **Windows Users**: You can download the dedicated Windows installer directly from the [**DEEPX Developer Portal**](https://developer.deepx.ai).  
+Then open `output/<model_name>_summary.html` in your browser.  
 
 ### DX-Runtime Installation (RT, Driver, FW, App, Stream)
 

@@ -149,7 +149,7 @@ DX App 내장 컴파일 기능 (DX-COM 연동):
 4. **컴파일 실행**: ONNX → `.dxnn` 변환
 5. **테스트 위자드**: Preprocessor + Postprocessor 조합 테스트
 6. **Quick Deploy**: 컴파일 결과를 모델 레지스트리에 즉시 등록
-7. **DX-TRON**: 웹 기반 그래프 시각화 (NPU/CPU 파티션 컬러 코딩)
+7. **Graph**: ONNX 모델 그래프를 DX Compiler 그래프 뷰어에서 열기
 
 ## [section:hardware,npu,device,하드웨어] NPU 하드웨어 모니터링
 

@@ -328,7 +328,7 @@ All platform-specific files are generated from `.deepx/` by the `dx-agent-dev-ge
 package. Never edit generated files directly.
 
 ```bash
-pip install -e .deepx/tools   # Install generator
+pipx install --force --editable .deepx/tools   # PEP 668-safe; install generator
 dx-agent-gen generate                    # Generate platform files
 dx-agent-gen check                       # Verify no drift
 ```

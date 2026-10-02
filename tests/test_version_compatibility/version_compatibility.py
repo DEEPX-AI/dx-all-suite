@@ -124,6 +124,14 @@ def _parse_suite_rows(
 
 
 def _cell_version(cell: dict[str, str | int], suite_version: str) -> str:
+    """Return the normalized version in ``cell``.
+
+    A ``-`` cell marks a component removed in that release (e.g. DX-TRON from
+    DX-Compiler v2.5.0) and yields ``""``, the same "not defined" value callers
+    already skip via ``if not expected``.
+    """
+    if str(cell["text"]) == "-":
+        return ""
     match = VERSION_RE.search(str(cell["text"]))
     if match is None:
         raise ValueError(f"Missing version in compatibility matrix row for {suite_version}")

@@ -10,7 +10,7 @@ A comprehensive pytest-based test suite for automated verification of the dx-all
 
 ## ✅ Test Suite Categories
 
-This repository includes four primary pytest suites for CI/CD and local validation:
+This repository includes five primary pytest suites for CI/CD and local validation:
 
 ### 1. **test_docker_install** — Docker Image Build Validation
 Validates Docker image builds using `docker_build.sh` for all supported components and OS versions.
@@ -53,6 +53,15 @@ Validates component versions against the compatibility matrix in `docs/source/04
 - Optionally checks installed `dxcom` and `dxrt-cli` versions when available
 
 **Total tests:** 13 (4 parser + 7 release.ver + 2 optional CLI tests)
+
+
+### 5. **test_kubernetes** — Kubernetes Quickstart Validation
+Follows the Kubernetes Quickstart and Beginner Guide as written: runs their bash blocks and jq
+commands and uses the sample manifests they point to. Details: [test_kubernetes/README.md](test_kubernetes/README.md).
+
+**What it tests:**
+- `kubernetes_static` (offline): chart lint/render scenarios, docs' jq commands against a real node List, doc paths and links
+- `kubernetes` (DX-M1 node): with `DX_K8S_QA=1`, the full Quickstart from step 0 on a clean OS — k3s, host runtime, images (built locally if not on ghcr), `helm install`, and the guide's workloads
 
 ## 🎯 Test Scope
 

@@ -19,6 +19,8 @@ from typing import Dict, List, Set
 
 import pytest
 
+from dx_agent_dev_gen.internal_only import is_internal_only_agent
+
 from .conftest import (
     PROJECT_INFRA,
     PROJECT_ROOTS,
@@ -27,6 +29,7 @@ from .conftest import (
     agent_names_from_dir,
     extract_agent_references,
     extract_skill_references,
+    iter_markdown_files,
     read_markdown,
     skill_names_from_dir,
 )
@@ -532,12 +535,19 @@ class TestCrossPlatformAgentParity:
 
         deepx_names = set(agent_names_from_dir(deepx_dir))
 
-        # .github uses *.agent.md naming
+        # .github uses *.agent.md naming. Internal-only, hand-authored files
+        # (release-excluded, no .deepx/agents/ source, no AUTO-GENERATED header —
+        # e.g. copilot-pr-review.md, dx_stream's dxr-* review agents) never reach
+        # the public export and have no counterpart to be at parity with.
         gh_names = set()
         for p in sorted(gh_dir.glob("*.agent.md")):
+            if is_internal_only_agent(infra.root, p):
+                continue
             gh_names.add(p.name.replace(".agent.md", ""))
         for p in sorted(gh_dir.glob("*.md")):
             if not p.name.endswith(".agent.md"):
+                if is_internal_only_agent(infra.root, p):
+                    continue
                 gh_names.add(p.stem)
 
         oc_names = set(agent_names_from_dir(oc_dir))
@@ -1187,7 +1197,8 @@ class TestNoStaleOpenCodeSkillsRefs:
     def test_no_stale_opencode_skills_in_docs(self, project: str, root: Path):
         """No documentation file should reference .opencode/skills/."""
         violations = []
-        for md_file in root.rglob("docs/**/*.md"):
+        # glob("**/docs/**/*.md") == old rglob("docs/**/*.md"): rglob prepends "**/", so nested docs trees (submodules, .deepx/docs) stay in scope
+        for md_file in iter_markdown_files(root, "**/docs/**/*.md"):
             text = md_file.read_text(encoding="utf-8")
             if ".opencode/skills/" in text:
                 violations.append(str(md_file.relative_to(root)))

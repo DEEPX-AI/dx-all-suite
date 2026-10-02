@@ -21,6 +21,8 @@ from pathlib import Path
 
 import pytest
 
+from .conftest import iter_markdown_files
+
 REPO_ROOT = Path(__file__).resolve().parents[3]
 DEEPX_ROOTS = [
     REPO_ROOT / ".deepx",
@@ -40,7 +42,7 @@ def _collect_deepx_md_files() -> list[Path]:
     files: list[Path] = []
     for root in DEEPX_ROOTS:
         if root.exists():
-            files.extend(root.rglob("*.md"))
+            files.extend(iter_markdown_files(root, "**/*.md"))
     # Exclude the reference file itself — it deliberately lists banned symbols
     files = [
         f for f in files
@@ -209,7 +211,7 @@ class TestGStreamerElements:
         if not stream_deepx.exists():
             pytest.skip("dx_stream .deepx not found (submodule not initialized)")
 
-        stream_files = list(stream_deepx.rglob("*.md"))
+        stream_files = iter_markdown_files(stream_deepx, "**/*.md")
         for element in ("dxpreprocess", "dxinfer", "dxpostprocess"):
             hits = _scan(re.escape(element), stream_files)
             assert hits, (

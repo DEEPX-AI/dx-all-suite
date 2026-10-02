@@ -27,6 +27,8 @@ def pytest_configure(config):
         "sanity: Quick prerequisite validation tests",
         "compiler: Compiler-related tests",
         "runtime: Runtime-related tests",
+        "kubernetes_static: Offline checks of the K8s chart, samples, and docs",
+        "kubernetes: K8s Quickstart acceptance on a DX-M1 node (DX_K8S_QA=1 for the full flow)",
     ]
     for marker in markers:
         config.addinivalue_line("markers", marker)

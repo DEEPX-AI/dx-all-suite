@@ -7,7 +7,7 @@ detection app.  Verifies that the generated code follows the IFactory pattern
 with the expected file structure and content.
 
 Guide reference:
-    dx_app/docs/source/docs/12_DX-APP_Agent_Driven_Development.md — Scenario 1
+    dx_app/docs/source/docs/13_DX-APP_Agent_Driven_Development.md — Scenario 1
 """
 
 from __future__ import annotations
@@ -37,7 +37,7 @@ SCENARIO_PROMPT = (
     "Build a yolo26n detection app"
 )
 
-# Prompt source: dx-runtime/dx_app/docs/source/docs/12_DX-APP_Agent_Driven_Development.md — Scenario 1
+# Prompt source: dx-runtime/dx_app/docs/source/docs/13_DX-APP_Agent_Driven_Development.md — Scenario 1
 
 
 # ---------------------------------------------------------------------------

@@ -71,7 +71,7 @@ This occurs when X11 forwarding authentication fails, leading to GUI tool errors
 
 ### Cause
 
-- **Q2.1:** GUI tools such as **DX-TRON** are optimized for X11. Wayland sessions can cause `xauth` processes to be unstable.  
+- **Q2.1:** GUI applications (e.g., X11-forwarded windows from Docker containers) are optimized for X11. Wayland sessions can cause `xauth` processes to be unstable.  
 - **Q2.2:** Ending a Wayland session may purge X authentication data or change directory paths, causing Docker mount points to become invalid.  
 
 ### Solution: Set the Default System Session to X11

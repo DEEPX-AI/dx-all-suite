@@ -19,7 +19,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
-from .config import BenchmarkConfig
+from .config import BenchmarkConfig, effective_sweep_timeout_sec
 from .model_catalog import ModelEntry
 from .npu_monitor import NpuMonitor, NpuStats
 from .npu_stats_util import merge_npu_stats as _merge_npu_stats
@@ -33,83 +33,18 @@ def _stdev(values: list[float]) -> Optional[float]:
     return statistics.stdev(values) if len(values) >= 2 else None
 
 
-def select_buffer_count(probe, start=3, floor_max=8, improve_eps=0.01,
-                        decline_eps=0.02, max_probe=16, zero_retries=1):
-    """Adaptive sweep over run_model ``--buffer-count``.
+def _as_text(stream: "str | bytes | None") -> str:
+    """Normalize captured subprocess output to text.
 
-    ``probe(c)`` runs a short throughput probe at buffer-count ``c`` and returns FPS.
-    Throughput vs buffer-count is a unimodal saturation curve (rise -> knee -> slight
-    decline).
-
-    Phase 1 — always probe the floor range ``start..floor_max`` (default 3..8) so the
-    default buffer-count (6) and its neighborhood are ALWAYS measured, even if an early
-    knee would otherwise have stopped sooner.
-    Phase 2 — only if throughput is still highest at ``floor_max`` (still rising), keep
-    incrementing by 1, stopping at the knee: a decline >= decline_eps past the running
-    peak, a confirmed plateau (< improve_eps gain twice), or ``max_probe``.
-
-    Winner = the buffer-count with the HIGHEST measured throughput (the device ceiling);
-    a smaller buffer-count wins only on an exact tie. If the winner is the start floor,
-    probe one below in case the true peak is lower.
-
-    A probe that reads 0 fps is retried up to ``zero_retries`` times (a transient NPU
-    stall, not a real ceiling). If EVERY probe still reads 0 (device unresponsive), the
-    winner is ``None`` so the caller can short-circuit instead of "picking" the smallest
-    buffer-count off a meaningless all-zero curve.
-
-    Returns ``(winner, curve{c: fps}, edge_hit)`` — ``winner`` is ``None`` when all-zero.
+    subprocess.run leaves TimeoutExpired.stdout/.stderr UNDECODED even when the
+    call passed text=True (the decode step never runs on the timeout path), so a
+    real hang delivers bytes here while a constructed exception delivers str.
     """
-    floor_max = max(floor_max, start)
-    curve: dict[int, float] = {}
-    edge = False
-
-    def _probe(c: int) -> float:
-        """Probe once, retrying up to *zero_retries* times on a 0-fps (transient) read."""
-        v = float(probe(c))
-        tries = 0
-        while v <= 0.0 and tries < zero_retries:
-            tries += 1
-            v = float(probe(c))
-        return v
-
-    # Phase 1: unconditional floor sweep (covers the default buffer-count + margin).
-    for c in range(start, floor_max + 1):
-        curve[c] = _probe(c)
-
-    # All-zero after retries → device unresponsive; no winner (caller short-circuits).
-    if max(curve.values(), default=0.0) <= 0.0:
-        return None, curve, edge
-
-    # Phase 2: continue only while the top of the floor is still the max (rising).
-    if curve.get(floor_max, -1.0) >= max(curve.values()):
-        best = max(curve.values())
-        plateau = 0
-        c = floor_max + 1
-        while c <= max_probe:
-            fps = _probe(c)
-            curve[c] = fps
-            if fps <= best * (1 - decline_eps):
-                break                                      # declined past the peak
-            gain = (fps - best) / best if best > 0 else 1.0
-            best = max(best, fps)
-            plateau = plateau + 1 if gain < improve_eps else 0
-            if plateau >= 2:
-                break                                      # plateau confirmed
-            c += 1
-        else:
-            edge = True                                    # hit max_probe still rising
-
-    def _winner(cv: dict[int, float]) -> int:
-        # Highest measured throughput wins (this benchmark reports the ceiling); a
-        # smaller buffer-count only wins on an EXACT tie.
-        return min(cv, key=lambda k: (-cv[k], k))
-
-    win = _winner(curve)
-    if win == start and start > 1:                          # peak may be below the floor
-        below = start - 1
-        curve[below] = _probe(below)
-        win = _winner(curve)
-    return win, curve, edge
+    if stream is None:
+        return ""
+    if isinstance(stream, bytes):
+        return stream.decode("utf-8", errors="replace")
+    return stream
 
 
 def _cleanup_run_model(incident_context: str = "") -> None:
@@ -225,10 +160,46 @@ def _parse_input_tensor_shape(log: str) -> Optional[dict]:
     return {"name": name, "dtype": dtype, "shape": shape}
 
 
+# Parser for `dxrun --max-throughput` output.
+#   round line:  [max-throughput] buffer-count=4 fps=115.55 loops=236 improvement=...
+#   winner line: => Recommended buffer-count : 6
+_SWEEP_ROUND_RE = re.compile(r"\[max-throughput\] buffer-count=(\d+) fps=(\d+(?:\.\d+)?)")
+_SWEEP_WINNER_RE = re.compile(r"=>\s*Recommended buffer-count\s*:\s*(\d+)")
+
+
+def _parse_sweep(log: str) -> tuple[Optional[int], dict[int, float]]:
+    """Extract (winner, curve) from `dxrun --max-throughput` output.
+
+    ``winner`` is the recommended buffer count, or None when dxrun printed no
+    recommendation. That happens for several distinct reasons, and the caller
+    must tell them apart instead of treating them all as a dead device:
+
+    - ``curve`` empty          -> no round ever completed (engine/model load
+      failed, the process was killed, or this is not sweep output at all)
+    - ``curve`` all zero       -> every round measured 0 fps; device unresponsive
+    - ``curve`` has non-zero values but winner is None -> dxrun output drifted
+
+    ``curve`` maps buffer count to measured fps, and is empty when no round line
+    matched.
+    """
+    curve = {int(bc): float(fps) for bc, fps in _SWEEP_ROUND_RE.findall(log)}
+    m = _SWEEP_WINNER_RE.search(log)
+    if m and not curve:
+        # dxrun only prints a recommendation after at least one successful round,
+        # so this combination means the round-line format changed under us.
+        print("    [WARN] sweep recommendation parsed but no round lines matched "
+              "(dxrun output format changed?)", flush=True)
+    return (int(m.group(1)) if m else None), curve
+
+
 def _parse_fps_from_log(log: str) -> Optional[float]:
-    """Extract average FPS from run_model output."""
+    """Average FPS across run_model result blocks.
+
+    Only "  - FPS : N" inside a result block counts. The "Max FPS : N" line in
+    --max-throughput output is a sweep peak, not a measurement, so it is excluded.
+    """
     fps_values = []
-    for m in re.finditer(r"FPS\s*:\s*([\d.]+)", log):
+    for m in re.finditer(r"^\s*-\s*FPS\s*:\s*(\d+(?:\.\d+)?)", log, re.MULTILINE):
         fps_values.append(float(m.group(1)))
     return sum(fps_values) / len(fps_values) if fps_values else None
 
@@ -305,49 +276,77 @@ def run_throughput(
     num_runs = max(1, cfg.model_throughput_runs)
     ort_tag = "ort_on" if use_ort else "ort_off"
 
-    # ── buffer-count probe: find the knee for THIS model×HW, then measure there ──
-    def _bc_probe(c: int) -> float:
-        pcmd = ["run_model", "-m", str(model.path),
-                "-t", str(cfg.buffer_count_probe_sec), "--buffer-count", str(c)]
-        if use_ort:
-            pcmd.append("--use-ort")
-        try:
-            p = subprocess.run(pcmd, capture_output=True, text=True,
-                               timeout=cfg.buffer_count_probe_sec + 120)
-        except subprocess.TimeoutExpired:
-            _cleanup_run_model(f"{model.name}.{ort_tag}.bufprobe.c{c}")
-            return 0.0
-        fps = _parse_fps_from_log(p.stdout + "\n" + p.stderr)
-        return fps if fps is not None else 0.0
+    # -- buffer-count sweep: dxrun searches, we only read the result --
+    scmd = ["run_model", "-m", str(model.path), "--max-throughput",
+            "--buffer-count", f"{cfg.bc_range_lo}-{cfg.bc_range_hi}",
+            "--probe-time", str(cfg.bc_probe_sec)]
+    if use_ort:
+        scmd.append("--use-ort")
+    sweep_timeout = effective_sweep_timeout_sec(cfg)
+    sweep_timed_out = False
+    try:
+        sp = subprocess.run(scmd, capture_output=True, text=True, timeout=sweep_timeout)
+        sweep_log = sp.stdout + "\n" + sp.stderr
+        sweep_rc = sp.returncode
+    except subprocess.TimeoutExpired as e:
+        _cleanup_run_model(f"{model.name}.{ort_tag}.bcsweep")
+        # Keep whatever the sweep printed before the kill: it names the buffer
+        # count that hung, which is the whole diagnostic value of a timeout.
+        # _as_text because this output arrives undecoded on a real timeout.
+        sweep_log = _as_text(e.stdout) + "\n" + _as_text(e.stderr)
+        sweep_rc, sweep_timed_out = -1, True
 
-    buffer_count, bc_curve, bc_edge = select_buffer_count(
-        _bc_probe,
-        start=cfg.buffer_count_probe_start,
-        floor_max=cfg.buffer_count_probe_floor_max,
-        improve_eps=cfg.buffer_count_improve_eps,
-        decline_eps=cfg.buffer_count_decline_eps,
-        max_probe=cfg.buffer_count_max_probe,
-        zero_retries=cfg.buffer_count_probe_retries,
-    )
+    buffer_count, bc_curve = _parse_sweep(sweep_log)
     bc_curve_str = " ".join(f"{k}:{v:.1f}" for k, v in sorted(bc_curve.items()))
-    # All probes read 0 fps even after retries → device unresponsive. Don't "pick" a
-    # meaningless winner or waste warmup+measured runs; fail fast so the circuit breaker
-    # (which treats no_fps as fatal) can decide whether the device is truly dead.
-    if buffer_count is None:
-        print(f"    [buffer-count] all probes 0 fps → device unresponsive; skipping throughput "
-              f"(probe {cfg.buffer_count_probe_sec}s: {bc_curve_str})", flush=True)
+
+    # No usable recommendation. Name the actual cause in `reason` so a failed
+    # campaign is diagnosable from the result file alone -- a hung device, a
+    # model that failed to load, and a changed output format are different
+    # problems. The branches below are exclusive and exhaustive in that order.
+    # The status stays "no_fps" in every case: the circuit breaker treats
+    # timeout/error/no_fps alike and decides by probing the device, so the
+    # status choice does not affect whether the run aborts.
+    if sweep_timed_out or sweep_rc != 0 or buffer_count is None:
+        measured = list(bc_curve.values())
+        if sweep_timed_out:
+            why = (f"sweep exceeded {sweep_timeout}s and was killed; "
+                   "the device or dxrun hung")
+        elif buffer_count is not None:
+            why = (f"dxrun recommended buffer count {buffer_count} but exited "
+                   f"rc={sweep_rc}; discarding an untrustworthy result")
+        elif not measured:
+            why = f"sweep produced no round (rc={sweep_rc}); model load or launch failed"
+        elif max(measured) <= 0.0:
+            why = "every sweep round measured 0 fps (device unresponsive)"
+        else:
+            why = (f"sweep ran but gave no recommendation (rc={sweep_rc}); "
+                   "dxrun output format may have changed")
+        # Keep the raw sweep output: for a format change it is the only evidence
+        # of what actually differed, and the incident collector matches dxrt
+        # error patterns, not output drift.
+        if save_dir and sweep_log.strip():
+            _save_raw(save_dir, model.name, "throughput.bcsweep", use_ort, sweep_log, "")
+        _maybe_collect_dxrt_incident(sweep_log, f"{model.name}.{ort_tag}.bcsweep")
+        print(f"    [buffer-count] {why}; skipping throughput "
+              f"(curve: {bc_curve_str or 'none'})", flush=True)
         return ModelResult(
             model=model.name, task=model.task, size=model.size,
             use_ort=use_ort, family="throughput",
             status="no_fps", buffer_count=None, buffer_count_curve=bc_curve_str,
-            reason="all buffer-count probes returned 0 fps (device unresponsive)",
+            reason=why,
         )
     print(f"    [buffer-count] winner={buffer_count} "
-          f"(probe {cfg.buffer_count_probe_sec}s: "
+          f"(sweep {cfg.bc_range_lo}-{cfg.bc_range_hi} @ {cfg.bc_probe_sec}s: "
           + ", ".join(f"{k}:{v:.1f}" for k, v in sorted(bc_curve.items())) + ")", flush=True)
-    if bc_edge:
-        print(f"    [WARN] buffer-count still rising at probe cap {cfg.buffer_count_max_probe} "
-              f"(winner={buffer_count}); consider raising buffer_count_max_probe", flush=True)
+    # Keep the raw sweep output on success too. Only the derived curve reaches the
+    # result file, so dxrun's own decision signals -- improvement/peak-drop/stall/
+    # loops and the Max FPS line -- would otherwise be gone. Protocol v2 delegates
+    # this decision to a tool we do not control, and a plateau makes the winner
+    # noise-dominated (measured: 12 vs 14 from two identical sweeps), so the raw
+    # text is the only way to audit either after the fact. Cost is a few dozen
+    # lines per cell, and results/**/raw/ is gitignored anyway.
+    if save_dir and sweep_log.strip():
+        _save_raw(save_dir, model.name, "throughput.bcsweep", use_ort, sweep_log, "")
     cmd += ["--buffer-count", str(buffer_count)]
 
     # Warmup run (discard result); retry on transient timeout before giving up the cell

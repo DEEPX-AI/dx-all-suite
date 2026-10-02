@@ -4,7 +4,7 @@
 위한 규칙을 정의합니다. Fragment는 5개 repo 전체의 모든 platform instruction 파일
 (CLAUDE.md, AGENTS.md, copilot-instructions.md 등) 에 주입되는 빌딩 블록입니다.
 
-현재 `.deepx/templates/fragments/` 에는 EN 16개 + KO 16개 = **총 32개 fragment 파일**이 있으며,
+현재 `.deepx/templates/fragments/` 에는 EN 19개 + KO 19개 = **총 38개 fragment 파일**이 있으며,
 각 EN 파일은 동일한 stem 이름의 KO 페어를 가져야 합니다 (Rule 1 참고).
 
 ---

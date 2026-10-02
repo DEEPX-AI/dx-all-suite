@@ -1,0 +1,49 @@
+# DX-M1 NPU enablement chart values.
+
+# Extended resource / CDI kind advertised for each NPU card.
+resourceName: deepx.ai/dx-m1
+
+devicePlugin:
+  enabled: true
+  image:
+    repository: ghcr.io/deepx-ai/dx-k8s-device-plugin
+    # Empty = the chart's appVersion, so a chart release pins one plugin build.
+    tag: ""
+    pullPolicy: IfNotPresent
+  # Gate the DaemonSet to NPU nodes using the NFD-applied label. Requires
+  # nodeFeatureRule.enabled (below) or an equivalent NFD deployment.
+  nodeSelectorLabel: deepx.ai/dx-m1.present
+  # Broad by default because health checks open /dev/dxrtN via dxcli.
+  # Tighten to specific device access once validated in your environment.
+  privileged: true
+  resources: {}
+
+# Prometheus metrics (deepx_npu_*) served in-process by the device plugin.
+metrics:
+  enabled: true
+  port: 9400
+  serviceMonitor:
+    enabled: false      # requires prometheus-operator CRDs
+    interval: 30s
+
+# NFD local feature file: the device plugin writes features.d/deepx so the NFD
+# worker adds deepx.ai/dx-m1.{count,product,fw-version,driver-version} labels.
+featureFile:
+  enabled: true
+  hostDir: /etc/kubernetes/node-feature-discovery/features.d
+
+# NodeFeatureRule that labels nodes carrying a DEEPX M1 (PCI vendor 1ff4).
+# Requires node-feature-discovery installed in the cluster (nfd.enabled or external).
+nodeFeatureRule:
+  enabled: true
+
+# Deploy node-feature-discovery as a dependency. Disable if the cluster already
+# runs NFD (then only nodeFeatureRule is applied).
+nfd:
+  enabled: false
+
+# Host paths (match the driver/runtime install locations on the node).
+hostPaths:
+  devicePluginDir: /var/lib/kubelet/device-plugins
+  cdiDir: /etc/cdi
+  usrLocal: /usr/local

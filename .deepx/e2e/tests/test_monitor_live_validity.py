@@ -179,7 +179,7 @@ def test_statuses_for_active_salvage(tmp_path, monkeypatch):
     six = ("compiler", "dx_app", "dx_stream", "dx_stream_cascaded", "runtime", "suite")
     r1 = _round(results, "20260612_210247", {s: "valid" for s in six})
     r2 = _round(results, "20260612_215213",
-                {s: "valid" for s in six[:-1]} | {"suite": "rate-limit"})
+                {**{s: "valid" for s in six[:-1]}, **{"suite": "rate-limit"}})
 
     salvage = {"status": "running", "round_dir": r2.name, "attempt": 1,
                "scenarios": list(six), "pid": 12345}

@@ -519,11 +519,6 @@
               "size": 16060
             },
             {
-              "path": "dx-compiler/source/docs/04_01_Model_Viewer_DX-TRON.md",
-              "title": "04 01 Model Viewer DX TRON",
-              "size": 6739
-            },
-            {
               "path": "dx-compiler/source/docs/Appendix_Change_Log.md",
               "title": "Appendix Change Log",
               "size": 5272
@@ -572,7 +567,7 @@
               "size": 10339
             },
             {
-              "path": "dx-compiler/source/docs/04_02_Compilation_Summary_Report.md",
+              "path": "dx-compiler/source/docs/04_Compilation_Summary_Report.md",
               "title": "Compilation Summary Report",
               "type": "md",
               "size": 3286

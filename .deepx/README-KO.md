@@ -19,7 +19,7 @@
 - 명령어 템플릿 (`CLAUDE.md`, `AGENTS.md`, `copilot-instructions.md`)
 - 모든 플랫폼 출력에 주입되는 공유 fragment (4개 tool × 5개 repo)
 - Memory (pitfalls, knowledge base 항목)
-- Tests (~700개 conformance + ~586개 E2E)
+- Tests (~600개 conformance + ~586개 E2E)
 - `.deepx/` 콘텐츠를 모든 플랫폼으로 fan-out하는 `dx-agent-gen` generator
 
 > **Generator 출력을 직접 수정하지 마세요.** `CLAUDE.md`, `AGENTS.md`,
@@ -43,7 +43,7 @@ dx-all-suite는 5개의 repo를 포함하며, 각각 자체 `.deepx/`를 가집�
 
 각 sub-project `.deepx/`는 자체 완결적입니다. 이 최상위 레벨 `.deepx/`는 다음을 추가합니다:
 - Suite 전역 router agents (`dx-suite-builder`, `dx-suite-validator`)
-- 5개의 모든 repo에 주입되는 16개의 공유 fragment (rename gates, session sentinels,
+- 5개의 모든 repo에 주입되는 19개의 공유 fragment (rename gates, session sentinels,
   process gates, autopilot guard 등)
 - `dx-agent-gen` generator (5개의 모든 repo를 처리하는 단일 도구)
 - 모든 agent-driven 테스트 인프라 (`tests/` conformance + `e2e/`)
@@ -76,7 +76,7 @@ dx-all-suite는 5개의 repo를 포함하며, 각각 자체 `.deepx/`를 가집�
 │   │   ├── CLAUDE-KO.md.tmpl
 │   │   ├── AGENTS-KO.md.tmpl
 │   │   └── copilot-instructions-KO.md.tmpl
-│   └── fragments/               ← 32 shared fragments (16 EN + 16 KO)
+│   └── fragments/               ← 38 shared fragments (19 EN + 19 KO)
 │       ├── en/
 │       └── ko/
 │
@@ -90,7 +90,7 @@ dx-all-suite는 5개의 repo를 포함하며, 각각 자체 `.deepx/`를 가집�
 │
 ├── tests/                       ← suite conformance 테스트
 │   ├── README.md                ← 테스트 범주 및 실행법
-│   └── conformance/             ← ~700 정적 KB/생성물 정책 검사 (CLI/NPU 불필요)
+│   └── conformance/             ← ~600 정적 KB/생성물 정책 검사 (CLI/NPU 불필요)
 │
 ├── e2e/                         ← End-to-end 하니스 (분리됨)
 │   ├── e2e_runner.py · e2e_monitor.py · test.sh   ← 라운드 오케스트레이션 + 러너
@@ -150,30 +150,37 @@ drift된 경우 `git commit`을 차단합니다.
 ## 5. 빠른 시작 (Harness 개발)
 
 ```bash
-# 1. Install the generator
-pip install -e .deepx/tools
+# 1. generator 설치 (editable, 현재 checkout 기준). 이전 설치가 가리키던
+#    checkout/worktree가 삭제되었을 때는 반드시 다시 실행할 것 — 오래된 shim은
+#    "ModuleNotFoundError: dx_agent_dev_gen" 오류로 실패한다. run_all.sh /
+#    pre-commit hook은 이 shim이 필요하지 않다 (in-tree .deepx/tools/src를 선호한다).
+#    (shim은 선택 사항이다 — run_all.sh, pre-commit hook, pytest 모두 in-tree
+#    source로 동작한다)
+pipx install --force --editable .deepx/tools   # PEP 668-safe; --force also repoints a stale install; or: python3 -m venv .venv && .venv/bin/pip install -e .deepx/tools
 
-# 2. Single-repo operations (from the repo root)
-dx-agent-gen generate    # Regenerate platform files
-dx-agent-gen check       # Verify no drift
-dx-agent-gen lint        # Verify EN/KO fragment parity
-dx-agent-gen prune       # Remove stale orphan outputs (renamed/removed sources)
-dx-agent-gen generate --prune   # Regenerate AND self-clean orphans in one pass
+# 2. Single-repo 작업 (repo root에서 실행)
+dx-agent-gen generate    # 플랫폼 파일 재생성
+dx-agent-gen check       # drift 없는지 확인
+dx-agent-gen lint        # EN/KO fragment parity 확인
+dx-agent-gen prune       # 오래된 orphan 출력 제거 (이름 변경/삭제된 source)
+dx-agent-gen generate --prune   # 재생성과 orphan 정리를 한 번에 수행
 
-# 3. Suite-wide (process all 5 repos)
+# 3. Suite 전체 (5개 repo 모두 처리) — fragment 수정 후에는 항상 이것을 사용할 것
 bash .deepx/tools/scripts/run_all.sh generate
 bash .deepx/tools/scripts/run_all.sh check
 bash .deepx/tools/scripts/run_all.sh lint
 bash .deepx/tools/scripts/run_all.sh prune
 
-# 4. Install pre-commit hooks (one-time)
+# 4. pre-commit hook 설치 (clone/worktree 당 1회; 5개 repo 모두 커버)
 bash .deepx/tools/scripts/install-hooks.sh
 
-# 5. Tests
-cd .deepx/e2e
-./test.sh agent-driven                          # ~700 conformance tests (~1s)
-./test.sh agent-driven-e2e-claude-code-autopilot # Claude Code E2E
-./test.sh agent-driven-e2e-copilot-cli-autopilot # Copilot CLI E2E
+# 5. Tests (CLI/NPU 불필요; PYTHONPATH 불필요; --rootdir=.는 node ID를 suite-relative로 유지)
+python3 -m pytest --rootdir=. .deepx/tests/conformance .deepx/tools/tests .deepx/e2e/tests -q   # ~1000 checks, ~3s
+(cd .deepx/e2e && ./test.sh agent-driven-e2e-claude-code-autopilot)                   # Claude Code E2E (CLI + NPU)
+(cd .deepx/e2e && ./test.sh agent-driven-e2e-copilot-cli-autopilot)                   # Copilot CLI E2E
+
+# 6. Sub-repo drift gate를 로컬에서 재현 (CI가 sub-repo별로 실행하는 것과 동일한 검사)
+bash .deepx/tools/scripts/subrepo_check.sh --subrepo-path <dx-compiler|dx-runtime|dx-runtime/dx_app|dx-runtime/dx_stream> --suite-dir . --mode worktree
 ```
 
 ---
@@ -185,7 +192,7 @@ cd .deepx/e2e
 | **General SWE** | `dx-swe-*` | 모든 SDK / docs / general coding | `dx-swe-tdd` |
 | **End-User (Agent-Driven Dev)** | `dx-agent-*` | dx-agent-dev를 통한 앱/파이프라인 빌드 | `dx-agent-tdd` |
 | **Harness Eng** | `dx-harness-*` | 내부 `.deepx/`, `tests/`, `tools/` 유지보수 | `dx-harness-validate` |
-| **Internal Business** | `dx-internal-*` | 하네스를 *사용하는* 내부 업무 (model/agent 성능 eval) | `dx-internal-model-eval` |
+| **Internal Business** | `dx-internal-*` | 하네스를 *사용하는* 내부 업무 (model/agent 성능 eval, 봇 PR 리뷰 처리) | `dx-internal-model-eval`, `dx-internal-pr-review-apply` |
 | **Meta** | `dx-skill-router` | 모든 tier에서 사용 (universal pre-flight) | — |
 
 `dx-agent-*` skill은 대응하는 `dx-swe-*` skill을 참조하고 DEEPX 고유 콘텐츠
@@ -210,13 +217,35 @@ cd .deepx/e2e
 `mandatory-process-skill-sequence.md` 및 `swe-process-gates-internal-dev.md`
 fragment에 의해 강제됩니다.
 
+### Drift 방어 계층
+
+Generator drift(`.deepx/` source를 수정하고 재생성하지 않아 `CLAUDE.md` /
+`AGENTS.md` / `.claude/` / `.github/` / `.cursor/` / `.opencode/`가
+불일치하는 것)는 여러 독립된 계층에서 잡히며, 이른 시점부터 늦은 시점 순으로
+다음과 같다:
+
+| 계층 | 잡아내는 것 | 위치 |
+|-------|------------------|-------|
+| Pre-commit hook | commit이 생성되기 전 drift + EN/KO lint | `.deepx/tools/scripts/pre-commit-hook.sh` (`install-hooks.sh`로 설치) |
+| CI sub-repo gate | 독립 sub-repo checkout에 commit된 drift, commit/PR 시점 | `.github/workflows/dx-agent-dev-subrepo-gate-{ghes,cloud}.yml` (job `subrepo-gate`, sub-repo별 1개) — `subrepo_check.sh` 사용 |
+| CI suite gate | 5개 level 전체 drift + EN/KO parity + conformance test, 통합 시점 | `.github/workflows/dx-agent-dev-gate-{ghes,cloud}.yml` (job `harness-gate`, suite root) — `harness_gate.sh` 사용, [`docs/ci-gates-KO.md`](docs/ci-gates-KO.md) 참고 |
+| Generator hard-fail | 생성 시점의 잘못된 fragment/template | `dx_agent_dev_gen` (잘못된 출력을 내는 대신 예외 발생) |
+| Content guard | 생성된 출력의 구조적 회귀 | `.deepx/tests/conformance` (예: `test_kb_counts`, `test_generated_paths_resolve`) |
+| Agent 지침 | 세션 중 생성된 파일의 직접 hand-edit | 이 파일(§7)에 내장된 Instruction File Verification Loop, 모든 `CLAUDE.md`/`AGENTS.md`에 포함 |
+
+sub-repo gate가 존재하는 이유는 sub-repo 혼자서는 자신의
+`CLAUDE.md`/`.claude`/`.github`/`.cursor`/`.opencode` 파일을 재생성할 수 없기
+때문이다 — generator와 그것이 렌더링하는 공유 fragment는 dx-all-suite에만
+존재한다. 동작 방식과 red sub-repo gate를 고치는 방법은
+[`tools/scripts/README-KO.md`](tools/scripts/README-KO.md) §3을 참고할 것.
+
 ---
 
-## 8. 공유 Fragments (16 EN + 16 KO)
+## 8. 공유 Fragments (19 EN + 19 KO)
 
 Fragment는 5개의 모든 repo의 명령어 파일에 주입되는 재사용 가능한 rule block입니다.
-Fragment를 한 번 수정하면 `dx-agent-gen generate`를 통해 변경 사항이 모든 곳에
-전파됩니다.
+Fragment를 한 번 수정하면 `bash .deepx/tools/scripts/run_all.sh generate`를 통해
+변경 사항이 모든 곳에 전파됩니다.
 
 | Fragment | Purpose |
 |----------|---------|
@@ -236,6 +265,9 @@ Fragment를 한 번 수정하면 `dx-agent-gen generate`를 통해 변경 사항
 | `git-operations-user-handles` | git PR / merge에 대해 묻지 말 것 |
 | `git-safety-superpowers` | docs/superpowers/ commit 금지 |
 | `plan-output` | 저장 후 chat에 전체 plan 출력 |
+| `self-contained-portable` | 생성된 산출물은 suite 밖으로 복사해도 실행되어야 함 |
+| `ultralytics-deepx-export` | Ultralytics YOLO `.pt` → DeepX(`format=deepx`) 라우팅 |
+| `harness-bootstrap` | 단독 sub-repo checkout: `.deepx/` 수정 전 suite harness 확보, 불가 시 STOP |
 
 Fragment를 추가하거나 수정하는 방법은
 [`docs/fragment-authoring-guide.md`](docs/fragment-authoring-guide.md)를 참조.
@@ -252,6 +284,7 @@ Fragment를 추가하거나 수정하는 방법은
 | 새로운 fragment 작성 방법 | [`docs/fragment-authoring-guide.md`](docs/fragment-authoring-guide.md) |
 | `dx-agent-gen` generator 패키지 | [`tools/README.md`](tools/README.md) |
 | 운영 스크립트 (`run_all.sh`, hooks, E2E loop) | [`tools/scripts/README.md`](tools/scripts/README.md) |
+| GHES / 미러 / 공개 채널의 CI gate (runner, token, 정확한 명령, 로컬 재현) | [`docs/ci-gates-KO.md`](docs/ci-gates-KO.md) |
 | E2E 결과 분석기 (리포트, 차트, 대시보드) | [`e2e/agent_analyzer/README-KO.md`](e2e/agent_analyzer/README-KO.md) |
 | Showcase 재현성 검증 (verbatim-prompt 평가) | [`e2e/showcase_repro/README-KO.md`](e2e/showcase_repro/README-KO.md) |
 | 테스트 카테고리 및 실행 방법 | [`tests/README.md`](tests/README.md) |

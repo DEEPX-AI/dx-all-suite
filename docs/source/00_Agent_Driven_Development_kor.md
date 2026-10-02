@@ -320,7 +320,7 @@ OpenCode (`.opencode/`), Cursor (`.cursor/rules/`) 용 플랫폼별 파일로 �
 생성된 파일을 직접 편집하지 마세요.
 
 ```bash
-pip install -e .deepx/tools   # 생성기 설치
+pipx install --force --editable .deepx/tools   # PEP 668-safe; 생성기 설치
 dx-agent-gen generate                    # 플랫폼 파일 생성
 dx-agent-gen check                       # 드리프트 없는지 확인
 ```
