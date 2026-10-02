@@ -220,7 +220,7 @@
       content: { en: 'Click "Use This Config" to auto-fill the config path in the compile form.', ko: 'Use This Config를 클릭하면 컴파일 폼에 config 경로가 자동 입력됩니다.', ja: '「Use This Config」をクリックするとコンパイルフォームに設定パスが自動入力されます。', 'zh-CN': '点击“Use This Config”自动填充编译表单中的配置路径。', 'zh-TW': '點擊「Use This Config」自動填入編譯表單中的設定路徑。', es: 'Haga clic en "Use This Config" para rellenar automáticamente la ruta de configuración en el formulario de compilación.' },
       beforeStep: function () { openWizardStep(4); } },
     { target: '#wiz-prev', position: 'top',
-      title: { en: 'Back', ko: '이전 단계', ja: '戻る', 'zh-CN': '返回', 'zh-TW': '返回', es: 'Atrás' },
+      title: { en: 'Back', ko: '뒤로', ja: '戻る', 'zh-CN': '返回', 'zh-TW': '返回', es: 'Atrás' },
       content: { en: 'Go back to the previous wizard step.', ko: '이전 마법사 단계로 돌아갑니다.', ja: '前のウィザードステップに戻ります。', 'zh-CN': '返回向导的上一步。', 'zh-TW': '返回上一步精靈步驟。', es: 'Vuelva al paso anterior del asistente.' },
       beforeStep: function () { openWizardStep(2); } },
     { target: '.wizard-close', position: 'bottom',

@@ -391,7 +391,7 @@ function _srvErr(msg) {
 
             const modeDesc = document.createElement('span');
             modeDesc.className = 'resize-mode-desc';
-            modeDesc.textContent = RESIZE_MODES['default'].desc;
+            modeDesc.textContent = (typeof T === 'function' ? T : String)(RESIZE_MODES['default'].desc);
             modeRow.appendChild(modeDesc);
             item.appendChild(modeRow);
 
@@ -403,7 +403,7 @@ function _srvErr(msg) {
 
             modeSelect.addEventListener('change', function() {
                 renderResizeParams(paramsDiv, this.value);
-                modeDesc.textContent = RESIZE_MODES[this.value].desc;
+                modeDesc.textContent = (typeof T === 'function' ? T : String)(RESIZE_MODES[this.value].desc);
             });
         } else {
             const defaults = TRANSFORM_DEFAULTS[name];
