@@ -289,7 +289,7 @@ window._DX_I18N_DICT = {
   'Volt': {
     ko: '전압', ja: '電圧',
     'zh-CN': '电压', 'zh-TW': '電壓',
-    es: 'Voltio',
+    es: 'Voltaje',
   },
   'Clock': {
     ko: '클럭', ja: 'クロック',
@@ -3264,7 +3264,7 @@ window._DX_I18N_PLACEHOLDERS = {
   },
   '/path/to/model.onnx': {
     ko: '/path/to/model.onnx', ja: '/path/to/model.onnx',
-    es: '/path/to/model.onnx',
+    es: '/ruta/modelo.onnx',
     'zh-CN': '/path/to/model.onnx', 'zh-TW': '/path/to/model.onnx'
   },
   'input.1': {
@@ -5024,7 +5024,7 @@ window._DX_I18N_PLACEHOLDERS = {
   },
   '/path/to/config.json': {
     ko: '/path/to/config.json', ja: '/path/to/config.json',
-    es: '/path/to/config.json',
+    es: '/ruta/config.json',
     'zh-CN': '/path/to/config.json', 'zh-TW': '/path/to/config.json'
   },
   'jpeg,jpg,png': {

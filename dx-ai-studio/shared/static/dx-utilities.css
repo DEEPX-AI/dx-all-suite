@@ -34,6 +34,10 @@
    dx_app · dx_stream · dx_monitor · dx_benchmark 가 같은 유틸리티를 각자 갖고
    있었다. 값은 같았고 공백만 달랐다 — 어차피 같을 것을 네 번 적고 있었다. */
 .flex{display:flex}
+/* between · items-c · ml8 은 정리 때 같이 지워졌지만 dx_app 머리줄 6 곳이 아직 쓴다 — 없으니 제목과 설명이 붙었다 (release audit A-27). */
+.between{justify-content:space-between}
+.items-c{align-items:center}
+.ml8{margin-left:var(--sp-2)}
 .hidden{display:none !important}
 .wrap{flex-wrap:wrap}
 .w100{width:100%}

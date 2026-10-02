@@ -597,6 +597,12 @@
     function setActive(id) {
       tabs.forEach(t => t.classList.toggle('active', t.dataset.section === id));
       dots.forEach(d => d.classList.toggle('active', d.dataset.section === id));
+      // 폰 폭에서 목차는 가로로 스크롤한다 — 지금 섹션의 탭을 가운데로 데려온다 (L-25)
+      const activeTab = Array.prototype.find.call(tabs, t => t.dataset.section === id);
+      if (activeTab && nav.scrollWidth > nav.clientWidth) {
+        const off = activeTab.getBoundingClientRect().left - nav.getBoundingClientRect().left;
+        nav.scrollTo({ left: nav.scrollLeft + off - (nav.clientWidth - activeTab.offsetWidth) / 2, behavior: 'smooth' });
+      }
       if (_aboutScrollProgressUpdate) _aboutScrollProgressUpdate();
     }
 

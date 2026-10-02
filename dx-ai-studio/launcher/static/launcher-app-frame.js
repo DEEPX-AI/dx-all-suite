@@ -562,9 +562,9 @@
     // 무대 조명 (home-stage.css body.home-visible) 은 home 에만 켠다 — spec 2026-09-23 §7 #2.
     document.body.classList.toggle('home-visible', viewName === 'home');
     // The shared NPU Monitor float is injected into the launcher shell but should only show
-    // on the launcher-native views (About, SDK Library) — module iframes carry their own, and
-    // the home splash stays uncluttered.
-    document.body.classList.toggle('hw-native-visible', viewName === 'about' || viewName === 'sdk-library');
+    // on SDK Library — module iframes carry their own, the home splash stays uncluttered, and
+    // About is a company page where it only covered the Developer Hub cards (release audit hw-float).
+    document.body.classList.toggle('hw-native-visible', viewName === 'sdk-library');
     // 홈 · About 의 채팅은 studio 전체 도움말 — SDK Library 가 바꿔 둔 대상을 되돌린다
     if ((viewName === 'home' || viewName === 'about') && typeof DXChat !== 'undefined' && DXChat.init) {
       DXChat.init({ appName: 'launcher' });

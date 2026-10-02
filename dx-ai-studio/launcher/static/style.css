@@ -2720,6 +2720,17 @@ body {
   .pu-images img {
     height: min(212px, 28vw);
   }
+  /* 쌓인 패널은 스스로 스크롤한다 — absolute 닫기 버튼이 내용과 함께 위로 사라졌다 (release audit L-21).
+     sticky 로 맨 위에 붙여 두고, 음수 margin 으로 첫 내용을 밀어내지 않는다. */
+  .platform-info-close {
+    position: sticky;
+    top: 0;
+    align-self: flex-end;
+    flex-shrink: 0;
+    z-index: 1;
+    margin-bottom: calc(-1 * (var(--sp-7) + var(--sp-2)));
+    background: var(--surface-panel);
+  }
 }
 
 /* ── Hero Splash (fullscreen image) ── */

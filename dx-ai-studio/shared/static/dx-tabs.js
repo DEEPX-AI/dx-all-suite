@@ -77,7 +77,8 @@
       overflowed++;
     }
     inst.moreLabel.textContent = '+' + overflowed;
-    inst.moreBtn.setAttribute('aria-label', overflowed + ' more pages');
+    var moreTpl = typeof T === 'function' ? T('{n} more pages') : '{n} more pages';
+    inst.moreBtn.setAttribute('aria-label', moreTpl.replace('{n}', overflowed));
   }
 
   function init(opts) {
