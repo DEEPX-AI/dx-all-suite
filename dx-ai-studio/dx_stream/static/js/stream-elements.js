@@ -71,7 +71,8 @@ function _escElementHtml(value) {
    숨겨져 설명이 비었다 (release audit S-20). 고른 언어가 ko 면 ko, 아니면 en 글자 하나. */
 function _bilingual(ko, en) {
     var lang = (window.DXI18n && DXI18n.lang) || DXStream.S.lang || 'en';
-    return lang === 'ko' ? (ko || en || '') : (en || ko || '');
+    if (lang === 'ko') return ko || en || '';
+    return en ? (typeof T === 'function' ? T(en) : en) : (ko || '');
 }
 
 function _renderBilingualText(ko, en) {

@@ -285,6 +285,10 @@ function _drawSparkline(canvasId, data, minVal, maxVal, color) {
 }
 if (typeof registerStreamLangRefresher === 'function') {
   registerStreamLangRefresher(function() {
+    // 헤더 상태 배지는 폴링 때만 다시 써서, 언어를 바꾸면 다음 폴링까지 (대시보드 밖에서는 계속) 이전 언어였다
+    var badge = DXStream.$('pipeline-status');
+    if (badge && /pill-running/.test(badge.className)) { delete badge.dataset.dxLabel; _setLabelIfChanged(badge, 'play', T('Running')); }
+    else if (badge && /pill-idle/.test(badge.className)) badge.textContent = T('Idle');
     if (typeof DXI18n !== 'undefined' && DXI18n.applyLang) DXI18n.applyLang(document);
     if (typeof DXStream !== 'undefined' && DXStream.S && DXStream.S.currentPage && typeof DXStream.nav === 'function') {
       DXStream.nav(DXStream.S.currentPage);
