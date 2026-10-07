@@ -44,11 +44,12 @@ def test_tool_version_distinct_from_protocol_version():
     assert benchmark.__version__ != PROTOCOL_VERSION
 
 
-def test_protocol_version_starts_at_v1_for_public_release():
-    # The measurement-protocol version is public-facing (REPORT.md, ANALYSIS). It starts at
-    # v1 for the first public release — internal pre-release iterations are not exposed.
+def test_protocol_version_is_v2_for_dxrun_sweep():
+    # The measurement-protocol version is public-facing (REPORT.md, ANALYSIS).
+    # v2 replaced the in-house adaptive probe with `dxrun --max-throughput`;
+    # v1 results are not comparable point-for-point and must not share a trend line.
     from benchmark.config import PROTOCOL_VERSION
-    assert PROTOCOL_VERSION == "v1"
+    assert PROTOCOL_VERSION == "v2"
 
 
 def test_release_ver_file_is_source_of_truth():

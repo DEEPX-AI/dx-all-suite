@@ -18,6 +18,7 @@ TIMEOUT = 3600
 
 CASES = [
     ("pypi-false", ["--pypi=false"]),
+    ("pypi-false-uv", ["--pypi=false", "--uv=true"]),
 ]
 
 

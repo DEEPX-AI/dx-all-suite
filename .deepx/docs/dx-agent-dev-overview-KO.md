@@ -102,6 +102,42 @@ AGENTS.md          instructions.md        (Cursor)
 | `tests/` | ✅ | — | — | — | — | suite **conformance** 테스트 (`conformance/`) — KB / 생성물 정책 검사 |
 | `e2e/` | ✅ | — | — | — | — | E2E 하니스: `e2e_runner`/`e2e_monitor`, `test_agent_e2e_scenarios/`, `agent_analyzer/`, `test.sh` |
 
+### 2.3 Drift 방어 계층 (CI)
+
+Generator와 그것이 렌더링하는 공유 fragment(`.deepx/templates/fragments`)는
+dx-all-suite root에만 존재하며, 이는 하나의 간극을 만든다: 독립 sub-repo
+(dx-compiler, dx-runtime, dx_app, dx_stream) 대상으로 열린 PR은 그 자체로
+`dx-agent-gen check`를 실행할 수 없다 — fragment를 찾을 suite tree가 그 위에
+없기 때문이다. `.deepx/tools/scripts/subrepo_check.sh`는 suite
+checkout(기존 checkout, 또는 동일 이름 branch를 새로 shallow clone하고 없으면
+suite의 default branch로 fallback)을 확보한 뒤, 일회용 "shell" tree(`.deepx`는
+실제 suite로의 symlink, sub-repo는 canonical한 중첩 경로에 복사)를 구성하여 이
+간극을 메운다. 이를 통해 drift 검사가 suite가 나중에 submodule pointer를
+bump하는 시점이 아니라 sub-repo의 commit/PR 시점에 실행된다. 각 sub-repo는
+이를 호출하는 `.github/workflows/dx-agent-dev-subrepo-gate-{ghes,cloud}.yml`(job
+`subrepo-gate`)을 가지고 있으며, suite 자체의
+`.github/workflows/dx-agent-dev-gate-{ghes,cloud}.yml`(job `harness-gate`)은 통합 시점의
+backstop으로 남아 5개 level 전체와 EN/KO lint, 전체 conformance/pytest suite를
+재검사한다. sub-repo 혼자서는 drift를 고칠 수 없다 — 동일 branch의 suite
+checkout에서, sub-repo를 canonical한 위치에 둔 채로 `bash
+.deepx/tools/scripts/run_all.sh generate && bash
+.deepx/tools/scripts/run_all.sh check`를 실행한 뒤, sub-repo에서 재생성된
+파일을 commit해야 한다. 두 gate 모두 job-level host guard로 선택되는 GHES / github.com
+변형 한 쌍으로 존재한다; [`ci-gates-KO.md`](ci-gates-KO.md) 참고.
+
+| 계층 | 잡아내는 것 | 위치 |
+|-------|---------|-------|
+| Pre-commit hook | commit 생성 전 drift + EN/KO lint | `pre-commit-hook.sh` |
+| CI sub-repo gate | 독립 sub-repo checkout에 commit된 drift | `dx-agent-dev-subrepo-gate-{ghes,cloud}.yml` (`subrepo-gate`) — `subrepo_check.sh` 사용 |
+| CI suite gate | 5개 level 전체 drift + EN/KO parity + conformance test | `dx-agent-dev-gate-{ghes,cloud}.yml` (`harness-gate`) |
+| Generator hard-fail | 생성 시점의 잘못된 fragment/template | `dx_agent_dev_gen` |
+| Content guard | 생성된 출력의 구조적 회귀 | `.deepx/tests/conformance` |
+| Agent 지침 | 세션 중 생성된 파일의 직접 hand-edit | Instruction File Verification Loop (`CLAUDE.md`/`AGENTS.md`) |
+
+전체 상세(사용법, exit code, 대응 방법)는
+[`../README-KO.md`](../README-KO.md) §7 "Drift 방어 계층" 및
+[`../tools/scripts/README-KO.md`](../tools/scripts/README-KO.md) §3을 참고할 것.
+
 ---
 
 ## 3. dx-all-suite `.deepx/` (최상위 라우팅 + 제너레이터)
@@ -170,13 +206,14 @@ API hallucination 방지용 grounding 문서. 검증된 심볼만 나열:
 
 | 컴포넌트 | 역할 |
 |----------|------|
-| `pyproject.toml` | `dx-agent-gen` CLI (Python 3.10+); `packages.find where=["src"]`가 두 패키지 자동 발견 |
+| `pyproject.toml` | `dx-agent-gen` CLI (Python 3.8+); `packages.find where=["src"]`가 두 패키지 자동 발견 |
 | `scripts/run_all.sh generate\|check\|lint\|prune` | 5개 repo 일괄 작업 |
 | `scripts/install-hooks.sh` / `pre-commit-hook.sh` | pre-commit 훅: `.deepx/`↔비-`.deepx/` 혼재 경고 + drift check + EN/KO lint |
+| `scripts/subrepo_check.sh` | 독립 sub-repo checkout 내부에서 실행 가능한 drift check (§2.3); 각 sub-repo의 CI `subrepo-gate` job이 호출 |
 
 ### 3.7 tests/ — suite conformance
 
-- `conformance/`: CLI/NPU 불필요한 빠른 정적 검사 ~700개 — 가이드 구조, 라우팅 일관성, 시나리오 참조, cross-project handoff, instruction sync, sdk grounding, forbidden patterns. 정확한 수치는 `pytest .deepx/tests/conformance/ --collect-only -q`.
+- `conformance/`: CLI/NPU 불필요한 빠른 정적 검사 ~600개 — 가이드 구조, 라우팅 일관성, 시나리오 참조, cross-project handoff, instruction sync, sdk grounding, forbidden patterns. 정확한 수치는 `pytest .deepx/tests/conformance/ --collect-only -q`.
 
 ### 3.8 e2e/ — End-to-End 하니스 (분리됨)
 
@@ -261,7 +298,7 @@ API hallucination 방지용 grounding 문서. 검증된 심볼만 나열:
 |------|------|
 | `MEMORY.md` | 인덱스 + 업데이트 프로토콜 + 도메인 태그 |
 | `common_pitfalls.md` (32KB) | 10개 핵심 함정 (`[UNIVERSAL]`, `[DX_APP]`, `[PPU]`) |
-| `model_zoo.md` | 133개 모델 (object_detection 50, classification 15, instance_seg 8, pose 6, face 8 …) — 정확한 수는 `model_registry.json`에서 jq 쿼리 |
+| `model_zoo.md` | 353개 모델 (classification 111, object_detection 97, instance_seg 23, pose 19, face 18 …) — 정확한 수는 `model_registry.json`에서 jq 쿼리 |
 | `platform_api.md` | DX-M1 NPU, DX-RT 3.0.x, 콜드부트 요구사항, `DXRT_DYNAMIC_CPU_THREAD=ON` |
 | `performance_patterns.md` | 7-필드 메트릭 (read/preprocess/inference/postprocess/render/save/display) + 최적화 기법 |
 
@@ -381,7 +418,7 @@ API hallucination 방지용 grounding 문서. 검증된 심볼만 나열:
 | `dx-stream-elements.md` | 13개 엘리먼트 모두 (부동산 / Pad / 예제 / 함정) |
 | `dx-stream-metadata.md` | `pydxs` Python 바인딩 (`DXFrameMeta`, `DXObjectMeta`, `DXTensorMeta`) |
 | `dx-engine-api.md` | dx_app과 공통 |
-| `model-registry.md` | v2.3.0 / 14개 모델 / task ↔ postprocess `.so` 매핑 |
+| `model-registry.md` | v2.3.0 / 14개 모델 / task ↔ postprocess `.so` 매핑 <!-- kb-counts: ignore --> |
 
 ### 6.8 핵심 HARD GATE 11종
 
@@ -441,7 +478,7 @@ API hallucination 방지용 grounding 문서. 검증된 심볼만 나열:
 
 ## 9. 검증 인프라 (`.deepx/tests/`)
 
-### 9.1 Conformance (~700 tests, ~1초)
+### 9.1 Conformance (~600 tests, ~1초)
 
 | 모듈 | 검증 항목 |
 |------|----------|
@@ -485,7 +522,7 @@ API hallucination 방지용 grounding 문서. 검증된 심볼만 나열:
 
 1. **단일 출처(SoT) 설계가 견고**: `.deepx/` → `dx-agent-gen` → 4개 플랫폼. drift는 pre-commit 훅이 차단.
 2. **HARD GATE 다층 강제**: skill router(메타) → 프로세스 시퀀스 → 도메인 규칙(IFactory, preprocess-id 등) → 산출물 검증. 무성한 실패(silent failure) 방지에 집중.
-3. **테스트 자동화 폭이 넓다**: ~700 conformance + ~586 E2E + 5개 도구 cross-validation. 자율 모드(`--yolo`)에서도 동일 규칙 강제.
+3. **테스트 자동화 폭이 넓다**: ~600 conformance + ~586 E2E + 5개 도구 cross-validation. 자율 모드(`--yolo`)에서도 동일 규칙 강제.
 4. **모듈별 자율성 + 공통 백본**: 각 sub-project가 자체 `.deepx/`를 보유해 독립 작업 가능하나, 16개 fragment + skill router + Output Isolation 규칙으로 일관성 유지.
 5. **확장 지점**: 새 도메인 추가 시 ① `.deepx/agents/` ② `.deepx/skills/` ③ `.deepx/memory/common_pitfalls.md` ④ `.deepx/toolsets/` ⑤ `instructions/` 5가지를 작성하면 자동으로 4개 플랫폼에 반영.
 
@@ -495,7 +532,9 @@ API hallucination 방지용 grounding 문서. 검증된 심볼만 나열:
 
 ```bash
 # 제너레이터 (canonical → platforms)
-pip install -e .deepx/tools
+# (shim은 선택 사항이다 — run_all.sh, pre-commit hook, pytest 모두 in-tree
+# source로 동작한다)
+pipx install --force --editable .deepx/tools   # PEP 668-safe; --force also repoints a stale install; or: python3 -m venv .venv && .venv/bin/pip install -e .deepx/tools
 dx-agent-gen generate                                 # 단일 repo
 dx-agent-gen check                                    # drift 검사
 bash .deepx/tools/scripts/run_all.sh generate           # 5개 repo 일괄
@@ -510,8 +549,8 @@ python dx-compiler/.deepx/scripts/validate_framework.py
 python dx-runtime/.deepx/scripts/feedback_collector.py --framework-only
 
 # 테스트
+python3 -m pytest --rootdir=. .deepx/tests/conformance -q                    # ~600 conformance tests (suite root에서 실행)
 cd .deepx/e2e
-./test.sh agent-driven                                       # ~700 conformance tests
 ./test.sh agent-driven-e2e-claude-code-autopilot             # Claude Code E2E
 ./test.sh agent-driven-e2e-copilot-cli-autopilot
 ./test.sh agent-driven-e2e-cursor-cli-autopilot

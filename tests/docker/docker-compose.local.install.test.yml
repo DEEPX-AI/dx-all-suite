@@ -23,7 +23,6 @@ services:
       - XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR}    # X11
       - XAUTHORITY=/tmp/.docker.xauth         # X11
       - DOCKER_VOLUME_PATH=${DOCKER_VOLUME_PATH:-/deepx/workspace} # volume path
-      - DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/${HOST_UID:-1000}/bus # fuse (for DX-Tron)
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix         # X11
       - $HOME/.Xauthority:/root/.Xauthority   # X11

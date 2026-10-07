@@ -1,0 +1,77 @@
+# Real DX-M1 inference inside Kubernetes, driven by dxrun (the dx_rt CLI).
+#
+# dxrun is used rather than a dx_app demo because the dx_app demos render
+# results in a Qt window and wait for a keypress, which hangs in a headless
+# pod. dxrun reports NPU time, latency, and FPS on stdout instead.
+#
+# The NPU device node, host runtime libraries, and dxcli arrive through CDI
+# because the container requests deepx.ai/dx-m1 — no manual device mounts.
+#
+# Image: the suite runtime image (docker/Dockerfile.dx-runtime), which carries
+# dx_rt, dxrtd, and the dxrun CLI. Until it is published, build and import it:
+#   ./docker_build.sh --target=dx-runtime --ubuntu_version=24.04
+#   docker tag dx-runtime:ubuntu-24.04 ghcr.io/deepx-ai/dx-runtime:ubuntu-24.04
+#   docker save ghcr.io/deepx-ai/dx-runtime:ubuntu-24.04 \
+#     | sudo k3s ctr --namespace k8s.io images import -
+#
+# The init container fetches one model into an emptyDir, so the pod needs no
+# host paths and nothing baked into the image.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: dx-m1-inference
+spec:
+  restartPolicy: Never
+  nodeSelector:
+    deepx.ai/dx-m1.present: "true"
+  volumes:
+    - name: models
+      emptyDir: {}
+  initContainers:
+    - name: fetch-model
+      image: ghcr.io/deepx-ai/dx-runtime:ubuntu-24.04
+      imagePullPolicy: IfNotPresent
+      command: ["/bin/bash", "-lc"]
+      args:
+        - |
+          set -e
+          # The image ships no models and no requests module; Ubuntu 24.04 marks
+          # its Python externally managed, hence --break-system-packages.
+          python3 -m pip install --quiet --break-system-packages requests
+          cd /deepx/dx-runtime/dx_app
+          python3 scripts/download_models.py --models YoloV7 --output /models --no-force
+          ls -lh /models
+      volumeMounts:
+        - { name: models, mountPath: /models }
+  containers:
+    - name: inference
+      image: ghcr.io/deepx-ai/dx-runtime:ubuntu-24.04
+      imagePullPolicy: IfNotPresent
+      command: ["/bin/bash", "-lc"]
+      args:
+        - |
+          set -e
+          echo "=== NPU visible in pod ==="
+          dxcli -s
+
+          # dx_rt talks to its own daemon over /tmp/dxrt_dynamic_ipc.sock, so each
+          # pod runs one. The card is allocated to this pod alone, so there is no
+          # contention with other dxrtd instances.
+          echo "=== starting dxrtd ==="
+          dxrtd >/tmp/dxrtd.log 2>&1 &
+          for _ in $(seq 1 30); do
+            [ -S /tmp/dxrt_dynamic_ipc.sock ] && break
+            sleep 0.5
+          done
+          test -S /tmp/dxrt_dynamic_ipc.sock || { echo "dxrtd failed to start"; cat /tmp/dxrtd.log; exit 1; }
+
+          # The downloader names the file after the model variant, so glob it
+          # instead of hardcoding a name.
+          MODEL=$(ls /models/*.dxnn | head -1)
+          echo "=== inference ($(basename "$MODEL"), single run) ==="
+          dxrun -m "$MODEL" -s -v
+      volumeMounts:
+        - { name: models, mountPath: /models }
+      resources:
+        limits:
+          deepx.ai/dx-m1: 1

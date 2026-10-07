@@ -34,7 +34,7 @@ showcase = DEEPX 앱의 실제 agent-driven 빌드를 build GIF + complete trans
 ## 설치 / 실행
 
 ```bash
-pip install -e .deepx/tools          # `dx-showcase-gen` 등록
+pipx install --force --editable .deepx/tools          # PEP 668-safe; `dx-showcase-gen` 등록
 # 또는 설치 없이:
 export PYTHONPATH=.deepx/tools/src
 python3 -m dx_showcase_gen.cli --help

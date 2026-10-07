@@ -180,9 +180,6 @@ tbody tr:hover td{background:var(--bg-3)}
 }
 @keyframes modalIn{from{opacity:0;transform:scale(.96) translateY(6px)}to{opacity:1;transform:none}}
 .modal-lg{width:900px}
-.modal-dxtron{width:94vw;max-width:94vw;height:90vh;max-height:90vh;padding:0;display:flex;flex-direction:column;overflow:hidden}
-.modal-dxtron-header{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:1px solid var(--border);flex-shrink:0;font-weight:600;font-size:var(--fs-md);color:var(--accent)}
-.dxtron-modal-iframe{flex:1;width:100%;border:none;border-radius:0 0 var(--radius-lg) var(--radius-lg);background:var(--bg-2)}
 .modal h2{margin-top:0;font-size:var(--fs-lg)}
 .modal-x{float:right;cursor:pointer;font-size:22px;color:var(--text-3);background:none;border:none;line-height:1}
 .modal-x:hover{color:var(--text-1);background:rgba(99,140,255,.08);border-radius:var(--radius-sm)}

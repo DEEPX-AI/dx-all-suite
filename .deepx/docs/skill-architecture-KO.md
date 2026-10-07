@@ -64,6 +64,13 @@ Skill은 명명 규칙에 따라 세 계층으로 구성됩니다:
 | `dx-harness-validate` | `.deepx/` framework integrity validation |
 | `dx-harness-writing-skills` | `.deepx/` skill 파일 생성/편집 |
 
+#### Internal Business (`dx-internal-*`)
+
+| Skill | 목적 |
+|-------|------|
+| `dx-internal-model-eval` | e2e harness로 coding-agent / model / thinking 모드 비교 |
+| `dx-internal-pr-review-apply` | GHES PR의 봇 코드리뷰 처리: thread별 검증+결정, commit 1개, reply, reviewer 재요청 |
+
 #### Meta
 
 | Skill | Purpose |
@@ -75,7 +82,7 @@ Skill은 명명 규칙에 따라 세 계층으로 구성됩니다:
 Sub-project skill도 동일한 명명 규칙을 따릅니다. 주요 차이점:
 
 - **`dx-agent-*`** sub-project 레벨은 project 전용 세부 사항을 포함합니다
-  (예: dx_app의 `dx-agent-tdd`는 133-model validation 세부 사항을 가짐)
+  (예: dx_app의 `dx-agent-tdd`는 model-registry validation 세부 사항을 가짐)
 - **`dx-swe-*`** sub-project 레벨은 일반적으로 suite 레벨과 동일합니다
 - **Domain 전용 skill**은 sub-project별로 고유합니다
 

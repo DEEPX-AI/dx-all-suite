@@ -16,11 +16,14 @@ Validates:
 
 from __future__ import annotations
 
+import json
 import subprocess
 import sys
 from pathlib import Path
 
 import pytest
+
+from dx_agent_dev_gen.internal_only import is_internal_only_agent
 
 # Co-located tool tests — no test-package (avoid shadowing the real
 # `dx_agent_dev_gen` import package), so define the repo roots locally.
@@ -104,6 +107,8 @@ class TestCanonicalSourceCompleteness:
 
         orphans = []
         for gh_file in sorted(github_agents.glob("*.agent.md")):
+            if is_internal_only_agent(root, gh_file):
+                continue
             stem = gh_file.stem.replace(".agent", "")
             deepx_file = deepx_agents / f"{stem}.md"
             if not deepx_file.exists():
@@ -157,6 +162,8 @@ class TestGeneratedHeader:
 
         missing = []
         for f in sorted(github_agents.glob("*.agent.md")):
+            if is_internal_only_agent(root, f):
+                continue
             content = f.read_text(encoding="utf-8")
             if "AUTO-GENERATED" not in content:
                 missing.append(f.name)
@@ -471,3 +478,226 @@ class TestGeneratorPrune:
             assert not o.exists(), f"generate --prune left orphan: {o.relative_to(repo)}"
         for k in keepers:
             assert k.exists(), f"generate --prune deleted hand-authored: {k}"
+
+
+# ---------------------------------------------------------------------------
+# Template context: live model/task counts (Approach C, 2026-09-04)
+# ---------------------------------------------------------------------------
+
+
+def _mk_repo(tmp_path: Path, *, registry: int | None, tasks: tuple[str, ...]) -> Path:
+    repo = tmp_path / "repo"
+    (repo / ".deepx" / "templates" / "en").mkdir(parents=True)
+    (repo / ".deepx" / "templates" / "en" / "CLAUDE.md.tmpl").write_text(
+        "{{MODEL_COUNT}} models across {{TASK_COUNT}} AI tasks\n", encoding="utf-8")
+    if registry is not None:
+        (repo / "config").mkdir()
+        (repo / "config" / "model_registry.json").write_text(
+            json.dumps(
+                [{"model_name": f"m{i}", "dxnn_file": f"m{i}.dxnn"} for i in range(registry)]
+            ),
+            encoding="utf-8")
+    for t in tasks:
+        (repo / "src" / "python_example" / t).mkdir(parents=True)
+    return repo
+
+
+class TestTemplateContextCounts:
+    """{{MODEL_COUNT}}/{{TASK_COUNT}}/{{TASK_LIST}} come from the live registry /
+    task dirs (single source of truth: dx_agent_dev_gen.counts)."""
+
+    def test_counts_substituted_from_registry_and_task_dirs(self, tmp_path):
+        from dx_agent_dev_gen.generator import Generator
+        # '__pycache__' and '.hidden' must be filtered like 'common'.
+        repo = _mk_repo(tmp_path, registry=3, tasks=("a", "b", "common", "__pycache__", ".hidden"))
+        out = Generator(repo)._generate_instructions()
+        content = out[repo / "CLAUDE.md"]
+        assert content == "3 models across 2 AI tasks\n"
+
+    def test_suite_level_resolves_nested_dx_app(self, tmp_path):
+        from dx_agent_dev_gen.generator import Generator
+        repo = _mk_repo(tmp_path, registry=None, tasks=())
+        nested = repo / "dx-runtime" / "dx_app"
+        (nested / "config").mkdir(parents=True)
+        (nested / "config" / "model_registry.json").write_text("[{}, {}, {}, {}]", encoding="utf-8")
+        (nested / "src" / "python_example" / "det").mkdir(parents=True)
+        content = Generator(repo)._generate_instructions()[repo / "CLAUDE.md"]
+        assert content == "4 models across 1 AI tasks\n"
+
+    def test_middle_candidate_dx_runtime_layout(self, tmp_path):
+        """dx-runtime itself (not the suite) reaches dx_app via ./dx_app."""
+        from dx_agent_dev_gen.generator import Generator
+        repo = _mk_repo(tmp_path, registry=None, tasks=())
+        middle = repo / "dx_app"
+        (middle / "config").mkdir(parents=True)
+        (middle / "config" / "model_registry.json").write_text("[{}, {}]", encoding="utf-8")
+        (middle / "src" / "python_example" / "x").mkdir(parents=True)
+        content = Generator(repo)._generate_instructions()[repo / "CLAUDE.md"]
+        assert content == "2 models across 1 AI tasks\n"
+
+    def test_missing_registry_fails_loudly(self, tmp_path):
+        """No silent fallback: an unresolved {{MODEL_COUNT}}/{{TASK_COUNT}} raises
+        instead of emitting a wrong number or a leftover placeholder that could
+        slip through unnoticed."""
+        from dx_agent_dev_gen.generator import Generator
+        repo = _mk_repo(tmp_path, registry=None, tasks=())
+        with pytest.raises(RuntimeError, match="MODEL_COUNT"):
+            Generator(repo)._generate_instructions()
+
+    def test_malformed_registry_fails_loudly(self, tmp_path):
+        from dx_agent_dev_gen.generator import Generator
+        repo = _mk_repo(tmp_path, registry=None, tasks=())
+        (repo / "config").mkdir()
+        (repo / "config" / "model_registry.json").write_text("{ not json", encoding="utf-8")
+        with pytest.raises(RuntimeError, match="MODEL_COUNT"):
+            Generator(repo)._generate_instructions()
+
+    def test_task_list_variable(self, tmp_path):
+        from dx_agent_dev_gen.generator import Generator
+        repo = tmp_path / "repo"
+        (repo / ".deepx" / "templates" / "en").mkdir(parents=True)
+        (repo / ".deepx" / "templates" / "en" / "CLAUDE.md.tmpl").write_text(
+            "{{TASK_LIST}}\n", encoding="utf-8")
+        (repo / "config").mkdir()
+        (repo / "config" / "model_registry.json").write_text("[{}]", encoding="utf-8")
+        for t in ("b", "a", "common"):
+            (repo / "src" / "python_example" / t).mkdir(parents=True)
+        content = Generator(repo)._generate_instructions()[repo / "CLAUDE.md"]
+        assert content == "a, b\n"
+
+    def test_check_on_repo_without_variables_does_not_raise(self, tmp_path):
+        """A repo whose templates carry no MODEL_COUNT/TASK_COUNT/TASK_LIST
+        placeholders (dx-compiler, dx_stream) must not be affected by the
+        leftover-variable hard-fail."""
+        from dx_agent_dev_gen.generator import Generator
+        repo = tmp_path / "repo"
+        (repo / ".deepx" / "templates" / "en").mkdir(parents=True)
+        (repo / ".deepx" / "templates" / "en" / "CLAUDE.md.tmpl").write_text(
+            "no variables here\n", encoding="utf-8")
+        content = Generator(repo)._generate_instructions()[repo / "CLAUDE.md"]
+        assert content == "no variables here\n"
+
+    def test_unrelated_leftover_variable_does_not_mention_submodule(self, tmp_path):
+        """An unresolved variable unrelated to MODEL_COUNT/TASK_COUNT/TASK_LIST
+        (e.g. a typo'd template placeholder) must raise mentioning the actual
+        variable name, but must NOT suggest `git submodule update` — that hint
+        is only correct when the leftover is one of the registry-derived vars."""
+        from dx_agent_dev_gen.generator import Generator
+        repo = _mk_repo(tmp_path, registry=1, tasks=("a",))
+        (repo / ".deepx" / "templates" / "en" / "CLAUDE.md.tmpl").write_text(
+            "{{FOO}}\n", encoding="utf-8")
+        with pytest.raises(RuntimeError, match="FOO") as exc_info:
+            Generator(repo)._generate_instructions()
+        assert "submodule update" not in str(exc_info.value)
+
+
+# ---------------------------------------------------------------------------
+# check() drift hint: run_all.sh only exists at the suite root (polish round Q5)
+# ---------------------------------------------------------------------------
+
+
+def _mk_drifted_repo_under_suite(tmp_path: Path) -> Path:
+    """A minimal nested repo (two levels under a fake suite root) with one
+    agent whose .claude/ counterpart is missing on disk, so check() reports
+    drift. A fake .deepx/tools/scripts/run_all.sh marks the suite root."""
+    suite = tmp_path / "suite"
+    (suite / ".deepx" / "tools" / "scripts").mkdir(parents=True)
+    (suite / ".deepx" / "tools" / "scripts" / "run_all.sh").write_text(
+        "#!/usr/bin/env bash\necho fake run_all.sh\n", encoding="utf-8"
+    )
+    repo = suite / "dx-runtime" / "dx_app"
+    (repo / ".deepx" / "agents").mkdir(parents=True)
+    (repo / ".deepx" / "agents" / "dx-x.md").write_text(
+        "---\nname: dx-x\ndescription: test agent\n---\nBody.\n", encoding="utf-8"
+    )
+    # Deliberately do NOT create .claude/agents/dx-x.md -> MISSING drift.
+    return repo
+
+
+class TestCheckDriftHintSuiteRoot:
+    """check()'s drift hint must name a run_all.sh that actually exists at
+    the level it's suggesting — the old hardcoded 'run_all.sh' (with no
+    path) only resolves from the suite root, so a nested repo (e.g.
+    dx-runtime/dx_app) got a misleading recommendation."""
+
+    def test_drift_hint_names_suite_root_run_all_and_per_repo_fallback(self, tmp_path):
+        """When run_all.sh is found, the hint is two proper sentences: the
+        recommended run_all.sh command, then the per-level fallback."""
+        from dx_agent_dev_gen.generator import Generator
+
+        repo = _mk_drifted_repo_under_suite(tmp_path)
+        clean, report = Generator(repo).check(platform="claude")
+        assert not clean
+        text = "\n".join(report)
+        run_all = repo.parent.parent / ".deepx" / "tools" / "scripts" / "run_all.sh"
+        assert (
+            f"Run 'bash {run_all}' to regenerate ALL levels (recommended)." in text
+        )
+        assert (
+            f"Or: 'dx-agent-gen generate --repo {repo}' for this level only." in text
+        )
+
+    def test_drift_hint_falls_back_when_no_suite_root_found(self, tmp_path):
+        """A repo with no discoverable run_all.sh anywhere above it gets only
+        the single per-level fallback sentence, without a dangling run_all.sh
+        recommendation."""
+        from dx_agent_dev_gen.generator import Generator
+
+        repo = tmp_path / "standalone_repo"
+        (repo / ".deepx" / "agents").mkdir(parents=True)
+        (repo / ".deepx" / "agents" / "dx-x.md").write_text(
+            "---\nname: dx-x\ndescription: test agent\n---\nBody.\n", encoding="utf-8"
+        )
+        clean, report = Generator(repo).check(platform="claude")
+        assert not clean
+        text = "\n".join(report)
+        assert "run_all.sh" not in text
+        assert f"Run 'dx-agent-gen generate --repo {repo}' to update." in text
+
+    def test_run_all_hint_is_absolute_for_a_relative_repo_path(self, tmp_path, monkeypatch):
+        """polish round F3: _find_run_all_sh() must resolve self.repo before
+        walking up, so a relative --repo argument (e.g. the cwd-relative
+        default Path('.') the CLI passes) still produces an absolute,
+        actually-runnable run_all.sh path in the hint — not a relative one
+        that silently means something different once printed and copy-pasted
+        from a different cwd."""
+        from dx_agent_dev_gen.generator import Generator
+
+        repo = _mk_drifted_repo_under_suite(tmp_path)
+        monkeypatch.chdir(repo.parent.parent)  # cwd = the fake suite root
+        rel_repo = Path("dx-runtime") / "dx_app"  # relative to new cwd
+        clean, report = Generator(rel_repo).check(platform="claude")
+        assert not clean
+        text = "\n".join(report)
+        run_all = repo.parent.parent / ".deepx" / "tools" / "scripts" / "run_all.sh"
+        assert f"Run 'bash {run_all}'" in text
+        assert run_all.is_absolute()
+
+
+# ---------------------------------------------------------------------------
+# check() keeps the drift report when one template raises (polish round Q6)
+# ---------------------------------------------------------------------------
+
+
+class TestCheckSurvivesTemplateRuntimeError:
+    """A RuntimeError from one platform's generation (e.g. an unresolved
+    template placeholder) must not abort check() before it reports drift
+    already found in other platforms — the error becomes an ERROR: line and
+    check() continues to the next platform instead of propagating."""
+
+    def test_check_reports_both_drift_and_template_error(self, tmp_path):
+        from dx_agent_dev_gen.generator import Generator
+
+        repo = _mk_drifted_repo_under_suite(tmp_path)
+        # Force _generate_instructions() to raise by adding a bad template.
+        (repo / ".deepx" / "templates" / "en").mkdir(parents=True)
+        (repo / ".deepx" / "templates" / "en" / "CLAUDE.md.tmpl").write_text(
+            "{{FOO}}\n", encoding="utf-8"
+        )
+
+        clean, report = Generator(repo).check(platform="all")
+        assert clean is False
+        text = "\n".join(report)
+        assert "CHANGED:" in text or "MISSING:" in text
+        assert "ERROR: instructions:" in text
+        assert "FOO" in text

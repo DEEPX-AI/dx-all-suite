@@ -6,7 +6,8 @@ DX Compiler (포트 8095)는 **ONNX 모델을 NPU용 `.dxnn`으로 변환**하�
 내부적으로 **DX-COM (DEEPX Compiler)**을 호출합니다.
 
 - **DX-COM**: ONNX → .dxnn 핵심 컴파일러. INT8 Intelligent Quantization, NPU/CPU 자동 파티셔닝
-- **DX-TRON**: GUI 시각화 도구. .dxnn 모델 구조를 컬러 코딩 그래프로 시각화
+- **Compilation Summary Report**: `dxcom --export_html`로 생성하는 HTML 리포트. NPU/CPU 파티션과 파티션 사유를 그래프로 시각화
+- **DX-TRON**: DX-Compiler v2.5.0에서 제거됨 → Compilation Summary Report 사용
 - **Split-screen 인터페이스**: 왼쪽 그래프 시각화 + 오른쪽 컴파일 폼
 - **6단계 컴파일 파이프라인**: PREPARE → SURGERY → PARTITION → QUANTIZATION → OPTIMIZE → CODEGEN
 - **실시간 SSE 스트리밍**: 진행률, 로그, 그래프 변화 실시간 표시
@@ -22,10 +23,6 @@ DX Compiler (포트 8095)는 **ONNX 모델을 NPU용 `.dxnn`으로 변환**하�
 # Docker 설치
 ./docker_build.sh               # Docker 이미지 빌드
 ./docker_run.sh                 # 컨테이너 실행
-
-# 실행 (DX-TRON Web UI)
-./run_dxtron_web.sh             # 웹 기반 GUI 실행
-./run_dxtron_appimage.sh        # AppImage 기반 실행
 ```
 
 ## [section:compile,build,convert,onnx,dxnn,컴파일] 컴파일 워크플로우
@@ -36,7 +33,7 @@ DX Compiler (포트 8095)는 **ONNX 모델을 NPU용 `.dxnn`으로 변환**하�
 3. **옵션 설정**: 최적화 레벨, 양자화, 파티셔닝 옵션
 4. **Config 생성**: Config Wizard로 전처리 파이프라인 설정
 5. **컴파일 시작**: Submit → 6단계 자동 진행
-6. **결과 확인**: DX-TRON 그래프 시각화 + `.dxnn` 다운로드
+6. **결과 확인**: 그래프 뷰어 시각화 + `.dxnn` 다운로드
 
 ### End-to-End 워크플로우 (E2E)
 ```
@@ -91,7 +88,7 @@ dxcom compile --model model.onnx --config config.json --output model.dxnn
 dxcom compile --model model.onnx --opt-level 3 --quant P0
 ```
 
-## [section:compile,graph,그래프] 그래프 뷰어 (DX-TRON)
+## [section:compile,graph,그래프] 그래프 뷰어
 
 ### 시각화 기능
 - **SVG 렌더링**: dagre 레이아웃 엔진으로 자동 배치

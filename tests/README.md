@@ -10,7 +10,7 @@ A comprehensive pytest-based test suite for automated verification of the dx-all
 
 ## ✅ Test Suite Categories
 
-This repository includes four primary pytest suites for CI/CD and local validation:
+This repository includes five primary pytest suites for CI/CD and local validation:
 
 ### 1. **test_docker_install** — Docker Image Build Validation
 Validates Docker image builds using `docker_build.sh` for all supported components and OS versions.
@@ -52,7 +52,16 @@ Validates component versions against the compatibility matrix in `docs/source/04
 - Compares component `release.ver` files against the expected versions
 - Optionally checks installed `dxcom` and `dxrt-cli` versions when available
 
-**Total tests:** 13 (4 parser + 7 release.ver + 2 optional CLI tests)
+**Total tests:** 17 (7 parser + 8 release.ver + 2 optional CLI tests)
+
+
+### 5. **test_kubernetes** — Kubernetes Quickstart Validation
+Follows the Kubernetes Quickstart and Beginner Guide as written: runs their bash blocks and jq
+commands and uses the sample manifests they point to. Details: [test_kubernetes/README.md](test_kubernetes/README.md).
+
+**What it tests:**
+- `kubernetes_static` (offline): chart lint/render scenarios, docs' jq commands against a real node List, doc paths and links
+- `kubernetes` (DX-M1 node): with `DX_K8S_QA=1`, the full Quickstart from step 0 on a clean OS — k3s, host runtime, images (built locally if not on ghcr), `helm install`, and the guide's workloads
 
 ## 🎯 Test Scope
 
@@ -93,8 +102,8 @@ Validates component versions against the compatibility matrix in `docs/source/04
 | **docker_install** | 4 | 15 | - | - | - | - | **19** |
 | **local_install** | 3 | 15 | 15 | 15 | - | - | **48** |
 | **getting_started** | - | - | - | - | 11 | - | **11** |
-| **version_compatibility** | - | - | - | - | - | 13 | **13** |
-| **Grand Total** | **7** | **30** | **15** | **15** | **11** | **13** | **91** |
+| **version_compatibility** | - | - | - | - | - | 17 | **17** |
+| **Grand Total** | **7** | **30** | **15** | **15** | **11** | **17** | **95** |
 
 ## 📁 File Structure
 
@@ -110,7 +119,7 @@ tests/
 │   ├── test_getting_started.py      # 11 tests (6 compiler + 5 runtime)
 │   └── README.md                    # Getting-started test documentation
 ├── 🐍 test_version_compatibility/    # Version compatibility tests
-│   ├── test_version_compatibility.py # 13 tests (parser + release.ver + optional CLI)
+│   ├── test_version_compatibility.py # 17 tests (parser + release.ver + optional CLI)
 │   └── version_compatibility.py      # Compatibility parsing helpers
 ├── 🔧 conftest.py                   # Shared pytest fixtures and utilities
 ├── ⚡ test.sh                       # Unified test command wrapper (main entry point)
@@ -149,7 +158,7 @@ cd tests
 # Getting-started workflow (11 tests, ~30-60 minutes)
 ./test.sh getting_started
 
-# Version compatibility tests (13 tests, <1 minute)
+# Version compatibility tests (17 tests, <1 minute)
 ./test.sh version_compatibility
 ```
 
@@ -183,7 +192,7 @@ cd tests
 ./test.sh docker_install   # Docker build tests (15 tests, ~6-8 hours)
 ./test.sh local_install    # Local install tests (48 tests, ~8-12 hours)
 ./test.sh getting_started  # Getting-started workflow (11 tests, ~30-60 min)
-./test.sh version_compatibility # Version compatibility tests (13 tests, <1 min)
+./test.sh version_compatibility # Version compatibility tests (17 tests, <1 min)
 ```
 
 ### Advanced Options
@@ -327,8 +336,8 @@ Use `-m` to filter tests by pytest markers:
 | **docker_install** | 19 | ~6-8 hours | Docker build validation |
 | **local_install** | 48 | ~8-12 hours | Installation script validation |
 | **getting_started** | 11 | ~30-60 minutes | End-to-end workflow |
-| **version_compatibility** | 13 | <1 minute | Release compatibility validation |
-| **Full Suite (all)** | 91 | ~12-20 hours | Complete validation |
+| **version_compatibility** | 17 | <1 minute | Release compatibility validation |
+| **Full Suite (all)** | 95 | ~12-20 hours | Complete validation |
 
 ### Per-Component Breakdown
 
@@ -452,18 +461,21 @@ Sequential execution ensures proper workflow:
 
 ---
 
-### Test Suite 4: version_compatibility (13 tests)
+### Test Suite 4: version_compatibility (17 tests)
 
-#### Parser Tests (4 tests)
+#### Parser Tests (7 tests)
 
 - ✅ `test_parse_version_matrix_extracts_current_suite_row` - Parse the compatibility matrix row for the current suite version
+- ✅ `test_parse_version_matrix_omits_unlisted_optional_columns` - Omit DX-ModelZoo / DX-TRON when the cell is `-` or `—`
+- ✅ `test_parse_version_matrix_rejects_missing_modelzoo_cell` - Fail when the DX-ModelZoo cell is missing from the row
+- ✅ `test_parse_version_matrix_rejects_missing_required_version` - Fail when a required component cell has no version
 - ✅ `test_parse_version_matrix_ignores_unexpected_trailing_cells` - Ignore extra trailing cells after the expected component columns
 - ✅ `test_parse_dxcom_version_normalizes_missing_v_prefix` - Normalize `dxcom -v` output
 - ✅ `test_parse_dxrt_cli_versions_extracts_component_versions` - Parse `dxrt-cli -s` output
 
-#### Release File Tests (7 tests)
+#### Release File Tests (8 tests)
 
-Validates `release.ver` for dx-compiler, dx-runtime, npu-driver, dx-rt, dx-fw, dx-app, and dx-stream.
+Validates `release.ver` for dx-compiler, dx-runtime, dx-modelzoo, npu-driver, dx-rt, dx-fw, dx-app, and dx-stream.
 
 #### Optional CLI Tests (2 tests)
 

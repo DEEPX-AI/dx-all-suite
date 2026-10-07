@@ -23,6 +23,7 @@ SUITE_VERSION_FILE = PROJECT_ROOT / "release.ver"
 COMPONENT_RELEASE_FILES = {
     "dx-compiler": PROJECT_ROOT / "dx-compiler/release.ver",
     "dx-runtime": PROJECT_ROOT / "dx-runtime/release.ver",
+    "dx-modelzoo": PROJECT_ROOT / "dx-modelzoo/release.ver",
     "npu-driver": PROJECT_ROOT / "dx-runtime/dx_rt_npu_linux_driver/release.ver",
     "dx-rt": PROJECT_ROOT / "dx-runtime/dx_rt/release.ver",
     "dx-fw": PROJECT_ROOT / "dx-runtime/dx_fw/release.ver",
@@ -45,13 +46,47 @@ def test_parse_version_matrix_extracts_current_suite_row(tmp_path):
     matrix.write_text(
         """
         <table><tbody>
-          <tr><td rowspan="3">2026-05-14</td><td colspan="7" align="center">v2.3.3</td></tr>
-          <tr><td colspan="2" align="center">v2.3.1</td><td colspan="5" align="center"><b>v2.3.3</b></td></tr>
+          <tr><td rowspan="3">2026-10-09</td><td colspan="8" align="center">v2.5.0</td></tr>
           <tr>
-            <td align="center">v2.3.0</td><td align="center">v2.0.1</td>
-            <td align="center">v2.5.6</td><td align="center">v2.4.1</td>
-            <td align="center">v3.3.2</td><td align="center">v3.0.1</td>
-            <td align="center">v3.1.1</td>
+            <td colspan="2" align="center">v2.5.0</td><td colspan="5" align="center"><b>v2.5.0</b></td>
+            <td rowspan="2" align="center">v1.0.0</td>
+          </tr>
+          <tr>
+            <td align="center">v2.5.0</td><td align="center">—</td>
+            <td align="center">v2.7.6</td><td align="center">v2.7.0</td>
+            <td align="center">v3.5.0</td><td align="center">v3.2.0</td>
+            <td align="center">v3.3.0</td>
+          </tr>
+        </tbody></table>
+        """,
+        encoding="utf-8",
+    )
+
+    expected = parse_version_matrix(matrix, "v2.5.0")
+
+    assert expected == {
+        "dx-compiler": "v2.5.0",
+        "dx-runtime": "v2.5.0",
+        "dx-modelzoo": "v1.0.0",
+        "dxcom": "v2.5.0",
+        "dx-fw": "v2.7.6",
+        "npu-driver": "v2.7.0",
+        "dx-rt": "v3.5.0",
+        "dx-stream": "v3.2.0",
+        "dx-app": "v3.3.0",
+    }
+
+
+def test_parse_version_matrix_omits_unlisted_optional_columns(tmp_path):
+    matrix = tmp_path / "04_Version_Compatibility.md"
+    matrix.write_text(
+        """
+        <table><tbody>
+          <tr><td rowspan="3">2026-05-14</td><td colspan="8">v2.3.3</td></tr>
+          <tr><td colspan="2">v2.3.1</td><td colspan="5">v2.3.3</td><td rowspan="2">-</td></tr>
+          <tr>
+            <td>v2.3.0</td><td>v2.0.1</td><td>v2.5.6</td><td>v2.4.1</td>
+            <td>v3.3.2</td><td>v3.0.1</td><td>v3.1.1</td>
           </tr>
         </tbody></table>
         """,
@@ -60,15 +95,57 @@ def test_parse_version_matrix_extracts_current_suite_row(tmp_path):
 
     expected = parse_version_matrix(matrix, "v2.3.3")
 
-    assert expected["dx-compiler"] == "v2.3.1"
-    assert expected["dx-runtime"] == "v2.3.3"
-    assert expected["dxcom"] == "v2.3.0"
-    assert expected["dxtron"] == "v2.0.1"
-    assert expected["dx-fw"] == "v2.5.6"
-    assert expected["npu-driver"] == "v2.4.1"
-    assert expected["dx-rt"] == "v3.3.2"
-    assert expected["dx-stream"] == "v3.0.1"
-    assert expected["dx-app"] == "v3.1.1"
+    assert expected == {
+        "dx-compiler": "v2.3.1",
+        "dx-runtime": "v2.3.3",
+        "dxcom": "v2.3.0",
+        "dxtron": "v2.0.1",
+        "dx-fw": "v2.5.6",
+        "npu-driver": "v2.4.1",
+        "dx-rt": "v3.3.2",
+        "dx-stream": "v3.0.1",
+        "dx-app": "v3.1.1",
+    }
+
+
+def test_parse_version_matrix_rejects_missing_modelzoo_cell(tmp_path):
+    matrix = tmp_path / "04_Version_Compatibility.md"
+    matrix.write_text(
+        """
+        <table><tbody>
+          <tr><td rowspan="3">2026-10-09</td><td colspan="8">v2.5.0</td></tr>
+          <tr><td colspan="2">v2.5.0</td><td colspan="5">v2.5.0</td></tr>
+          <tr>
+            <td>v2.5.0</td><td>—</td><td>v2.7.6</td><td>v2.7.0</td>
+            <td>v3.5.0</td><td>v3.2.0</td><td>v3.3.0</td>
+          </tr>
+        </tbody></table>
+        """,
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="Invalid compatibility matrix row shape"):
+        parse_version_matrix(matrix, "v2.5.0")
+
+
+def test_parse_version_matrix_rejects_missing_required_version(tmp_path):
+    matrix = tmp_path / "04_Version_Compatibility.md"
+    matrix.write_text(
+        """
+        <table><tbody>
+          <tr><td rowspan="3">2026-10-09</td><td colspan="8">v2.5.0</td></tr>
+          <tr><td colspan="2">v2.5.0</td><td colspan="5">v2.5.0</td><td rowspan="2">v1.0.0</td></tr>
+          <tr>
+            <td>-</td><td>—</td><td>v2.7.6</td><td>v2.7.0</td>
+            <td>v3.5.0</td><td>v3.2.0</td><td>v3.3.0</td>
+          </tr>
+        </tbody></table>
+        """,
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="Missing version"):
+        parse_version_matrix(matrix, "v2.5.0")
 
 
 def test_parse_version_matrix_ignores_unexpected_trailing_cells(tmp_path):
@@ -76,21 +153,44 @@ def test_parse_version_matrix_ignores_unexpected_trailing_cells(tmp_path):
     matrix.write_text(
         """
         <table><tbody>
-          <tr><td rowspan="3">2026-05-14</td><td colspan="7" align="center">v2.3.3</td></tr>
-          <tr><td colspan="2" align="center">v2.3.1</td><td colspan="5" align="center">v2.3.3</td></tr>
+          <tr><td rowspan="3">2026-10-09</td><td colspan="8" align="center">v2.5.0</td></tr>
+          <tr><td colspan="2">v2.5.0</td><td colspan="5">v2.5.0</td><td rowspan="2">v1.0.0</td></tr>
           <tr>
-            <td>v2.3.0</td><td>v2.0.1</td><td>v2.5.6</td><td>v2.4.1</td>
-            <td>v3.3.2</td><td>v3.0.1</td><td>v3.1.1</td><td>v9.9.9</td>
+            <td>v2.5.0</td><td>—</td><td>v2.7.6</td><td>v2.7.0</td>
+            <td>v3.5.0</td><td>v3.2.0</td><td>v3.3.0</td><td>v9.9.9</td>
           </tr>
         </tbody></table>
         """,
         encoding="utf-8",
     )
 
-    expected = parse_version_matrix(matrix, "v2.3.3")
+    expected = parse_version_matrix(matrix, "v2.5.0")
 
-    assert expected["dx-app"] == "v3.1.1"
+    assert expected["dx-app"] == "v3.3.0"
     assert "v9.9.9" not in expected.values()
+
+
+def test_parse_version_matrix_allows_removed_component(tmp_path):
+    matrix = tmp_path / "04_Version_Compatibility.md"
+    matrix.write_text(
+        """
+        <table><tbody>
+          <tr><td rowspan="3">2026-09-01</td><td colspan="8" align="center">v2.5.0</td></tr>
+          <tr><td colspan="2" align="center">v2.5.0</td><td colspan="5" align="center">v2.5.0</td><td rowspan="2">v1.0.0</td></tr>
+          <tr>
+            <td>v2.5.0</td><td>-</td><td>v2.7.4</td><td>v2.6.0</td>
+            <td>v3.4.2</td><td>v3.1.2</td><td>v3.2.2</td>
+          </tr>
+        </tbody></table>
+        """,
+        encoding="utf-8",
+    )
+
+    expected = parse_version_matrix(matrix, "v2.5.0")
+
+    assert expected["dxcom"] == "v2.5.0"
+    assert "dxtron" not in expected
+    assert expected["dx-fw"] == "v2.7.4"
 
 
 def test_parse_dxcom_version_normalizes_missing_v_prefix():
