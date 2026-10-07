@@ -14,7 +14,7 @@
 | Component | Path | Purpose |
 |---|---|---|
 | **dx-runtime** | `dx-runtime/` | Integration layer + cross-project orchestration |
-| **dx_app** | `dx-runtime/dx_app/` | Standalone inference apps (Python/C++, 133 models, 15 AI tasks) |
+| **dx_app** | `dx-runtime/dx_app/` | Standalone inference apps (Python/C++, {{MODEL_COUNT}} models, {{TASK_COUNT}} AI tasks) |
 | **dx_stream** | `dx-runtime/dx_stream/` | GStreamer pipeline apps (13 elements, 6 pipeline categories) |
 | **Docs** | `docs/` | MkDocs documentation site |
 | **dx-compiler** | `dx-compiler/` | DXNN model compiler (ONNX → .dxnn via DX-COM) |
@@ -369,7 +369,7 @@ even without reading sub-project files.
 
 ### dx_app Rules (Standalone Inference)
 
-1. **Skeleton-first development** — Read `dx-runtime/dx_app/.deepx/skills/dx-agent-app-build-python.md`
+1. **Skeleton-first development** — Read `dx-runtime/dx_app/.deepx/skills/dx-agent-app-build-python/SKILL.md`
    skeleton template BEFORE writing any code. Copy the closest existing example from
    `src/python_example/<task>/<model>/` and modify ONLY model-specific parts (factory,
    postprocessor). NEVER write demo scripts from scratch. NEVER propose standalone

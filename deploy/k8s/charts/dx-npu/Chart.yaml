@@ -1,0 +1,22 @@
+apiVersion: v2
+name: dx-npu
+description: DEEPX DX-M1 NPU enablement for Kubernetes — device plugin + NFD labeling
+type: application
+version: 0.2.0
+appVersion: "0.1.0"
+home: https://github.com/DEEPX-AI/dx-all-suite
+sources:
+  - https://github.com/DEEPX-AI/dx-k8s-device-plugin
+keywords:
+  - deepx
+  - npu
+  - dx-m1
+  - device-plugin
+dependencies:
+  # Optional: deploy node-feature-discovery so the NodeFeatureRule can label
+  # NPU nodes. Disabled by default; enable if the cluster has no NFD.
+  # Run `helm dependency build` before packaging when nfd.enabled=true.
+  - name: node-feature-discovery
+    version: "0.17.3"
+    repository: https://kubernetes-sigs.github.io/node-feature-discovery/charts
+    condition: nfd.enabled

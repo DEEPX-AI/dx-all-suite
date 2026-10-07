@@ -56,7 +56,6 @@ main() {
     # Read archived file paths from the temp file
     if [ -f "$TEMP_OUTPUT" ]; then
         ARCHIVED_COM_FILE=$(grep "ARCHIVED_COM_FILE=" "$TEMP_OUTPUT" | tail -1 | cut -d'=' -f2)
-        ARCHIVED_TRON_FILE=$(grep "ARCHIVED_TRON_FILE=" "$TEMP_OUTPUT" | tail -1 | cut -d'=' -f2)
     fi
     
     # Clean up temp file
@@ -66,10 +65,6 @@ main() {
     if [ -n "$ARCHIVED_COM_FILE" ]; then
         export ARCHIVED_COM_FILE
         echo "ARCHIVED_COM_FILE=${ARCHIVED_COM_FILE}"
-    fi
-    if [ -n "$ARCHIVED_TRON_FILE" ]; then
-        export ARCHIVED_TRON_FILE
-        echo "ARCHIVED_TRON_FILE=${ARCHIVED_TRON_FILE}"
     fi
     
     echo -e "=== Archiving dx-compiler ... ${TAG_DONE} ==="

@@ -21,6 +21,7 @@ from .conftest import (
     GuidePair,
     extract_headings,
     extract_scenario_numbers,
+    find_guide,
     read_markdown,
 )
 
@@ -38,8 +39,17 @@ class TestGuideExistence:
     )
     def test_en_guide_exists(self, pair: GuidePair):
         """Each EN guide file must exist on disk."""
+        candidates = (
+            sorted(
+                p.name
+                for p in pair.en_path.parent.glob("*Agent_Driven_Development*.md")
+            )
+            if pair.en_path.parent.is_dir()
+            else "<dir missing>"
+        )
         assert pair.en_path.exists(), (
-            f"EN guide missing for {pair.label}: {pair.en_path}"
+            f"EN guide missing for {pair.label}: {pair.en_path}\n"
+            f"  Candidates found: {candidates}"
         )
 
     @pytest.mark.parametrize(
@@ -47,8 +57,17 @@ class TestGuideExistence:
     )
     def test_ko_guide_exists(self, pair: GuidePair):
         """Each KO guide file must exist on disk."""
+        candidates = (
+            sorted(
+                p.name
+                for p in pair.ko_path.parent.glob("*Agent_Driven_Development*.md")
+            )
+            if pair.ko_path.parent.is_dir()
+            else "<dir missing>"
+        )
         assert pair.ko_path.exists(), (
-            f"KO guide missing for {pair.label}: {pair.ko_path}"
+            f"KO guide missing for {pair.label}: {pair.ko_path}\n"
+            f"  Candidates found: {candidates}"
         )
 
     @pytest.mark.parametrize(
@@ -250,3 +269,42 @@ class TestGuideTitle:
         ko_text = read_markdown(pair.ko_path)
         h1 = extract_headings(ko_text, level=1)
         assert len(h1) >= 1, f"{pair.label} KO guide has no # title heading"
+
+
+# ---------------------------------------------------------------------------
+# Discovery by pattern (not hard-coded chapter number)
+# ---------------------------------------------------------------------------
+
+
+class TestGuideDiscovery:
+    """`find_guide` resolves chapter-numbered guides by pattern (dx_app moved
+    12_ → 13_ in v3.2.0). Unit-tests the helper's branches and guards the one
+    invariant hard-coded pairs used to give for free: EN and KO share a prefix."""
+
+    def test_single_match_returns_it(self, tmp_path):
+        f = tmp_path / "13_DX-APP_Agent_Driven_Development.md"
+        f.write_text("x", encoding="utf-8")
+        assert find_guide(tmp_path, "*_DX-APP_Agent_Driven_Development.md") == f
+
+    @pytest.mark.parametrize("names", [[], ["12_", "13_"]], ids=["zero", "many"])
+    def test_zero_or_many_matches_return_nonexistent_sentinel(self, tmp_path, names):
+        for prefix in names:
+            (tmp_path / f"{prefix}DX-APP_Agent_Driven_Development.md").write_text("x", encoding="utf-8")
+        sentinel = find_guide(tmp_path, "*_DX-APP_Agent_Driven_Development.md")
+        assert not sentinel.exists()
+        assert "UNRESOLVED" in sentinel.name
+
+    def test_directory_or_broken_symlink_is_not_a_match(self, tmp_path):
+        (tmp_path / "13_DX-APP_Agent_Driven_Development.md").mkdir()
+        assert not find_guide(tmp_path, "*_DX-APP_Agent_Driven_Development.md").exists()
+        link = tmp_path / "14_DX-APP_Agent_Driven_Development.md"
+        link.symlink_to(tmp_path / "gone.md")
+        assert not find_guide(tmp_path, "*_DX-APP_Agent_Driven_Development.md").exists()
+
+    @pytest.mark.parametrize("pair", GUIDE_PAIRS, ids=[p.label for p in GUIDE_PAIRS])
+    def test_en_ko_share_chapter_prefix(self, pair: GuidePair):
+        """EN and KO are discovered independently; a half-finished renumbering
+        (13_X.md + 12_X-KO.md) must not pass silently."""
+        assert pair.en_path.name.split("_")[0] == pair.ko_path.name.split("_")[0], (
+            f"{pair.label}: EN/KO chapter prefixes differ: {pair.en_path.name} vs {pair.ko_path.name}"
+        )

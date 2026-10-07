@@ -121,7 +121,7 @@ fi
 
 failed=0
 for repo in "${check_repos[@]}"; do
-    rel=$(python3 -c "import os; print(os.path.relpath('$repo', '$REPO_ROOT'))")
+    rel=$(python3 -c "import os, sys; print(os.path.relpath(sys.argv[1], sys.argv[2]))" "$repo" "$REPO_ROOT")
     if ! gen check --repo "$repo" >/dev/null 2>&1; then
         echo "ERROR: Generated files out-of-date in $rel"
         gen check --repo "$repo" 2>&1 | grep -E '^(CHANGED|MISSING):' || true
@@ -148,7 +148,7 @@ fi
 if [ -n "${deepx_staged:-}" ]; then
     lint_failed=0
     for repo in "${check_repos[@]}"; do
-        rel=$(python3 -c "import os; print(os.path.relpath('$repo', '$REPO_ROOT'))")
+        rel=$(python3 -c "import os, sys; print(os.path.relpath(sys.argv[1], sys.argv[2]))" "$repo" "$REPO_ROOT")
         if ! gen lint --repo "$repo" >/dev/null 2>&1; then
             echo "ERROR: EN/KO fragment parity issues in $rel"
             gen lint --repo "$repo" 2>&1 | grep '\[ERROR\]' || true
@@ -159,7 +159,7 @@ if [ -n "${deepx_staged:-}" ]; then
     if [ $lint_failed -ne 0 ]; then
         echo ""
         echo "Fix: update the KO fragment in .deepx/templates/fragments/ko/"
-        echo "  then: dx-agent-gen generate"
+        echo "  then: bash .deepx/tools/scripts/run_all.sh generate"
         echo ""
         echo "To skip this check: git commit --no-verify"
         exit 1

@@ -140,7 +140,7 @@ def cmd_preflight(args: argparse.Namespace) -> int:
     if ok:
         print("[OK] All required tools are available.")
     else:
-        print("[FAIL] Missing required tools:")
+        print("[FAIL] Preflight check failed:")
         for e in errors:
             print(f"  - {e}")
 

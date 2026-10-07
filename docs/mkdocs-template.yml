@@ -60,6 +60,8 @@ nav:
       - SDK Library & About: ai-studio/11_SDK_Library_and_About.md
       - Third-Party License: ai-studio/12_Appendix_Third_Party_License.md
       - Change Log: ai-studio/Appendix_Change_Log.md
+  - Kubernetes Quickstart: 06_Kubernetes_Quickstart.md
+  - Kubernetes Beginner Guide: 07_Kubernetes_Beginner_Guide.md
 
 plugins:
   - search

@@ -2,6 +2,22 @@
 
 **DX-AllSuite**는 **DEEPX NPU** 상에서 AI inference 애플리케이션을 컴파일, 최적화, 시뮬레이션, 배포하는 전 과정을 간소화하도록 설계된 올인원 소프트웨어 플랫폼입니다. 모델 제작부터 실제 "Physical AI" 배포까지 모두 아우르는 완전한 toolchain을 통해 최적의 호환성과 강력한 하드웨어 성능을 보장합니다.
 
+## 문서 내비게이션
+
+처음 사용하는 분께는 다음 순서로 문서를 보시길 권장합니다.
+
+- **[소개](./docs/source/index.md)**: DX-AS 개요 및 구성요소 설명
+- **★ [Agent-Driven Development (Beta)](./docs/source/00_Agent_Driven_Development_kor.md)**: AI coding agent(Claude Code, Cursor, GitHub Copilot, OpenCode, Codex CLI)로 자연어 프롬프트를 사용해 DEEPX 앱 만들기
+- **[DX-Benchmark (Beta)](./dx-benchmark/README.md)**: 재현 가능한 YOLO26 NPU 벤치마크(Model-Level + E2E Pipeline)와 interactive 성능 dashboard
+- **[DX-Edge](./dx-edge/README-KO.md)**: AWS Marketplace를 통한 DEEPX NPU 배포 — Greengrass Solution(ZTP 런타임 배포), Compiler Solution(AWS에서 ONNX → `.dxnn`), DX-AIPlayer N97 Getting Started Guide
+- **Step 1. [DX-AllSuite Architecture Overview](./docs/source/01_DX-AllSuite_Architecture_Overview_kor.md)**: SDK 개요, 모듈 설명, ModelZoo 사용법
+- **Step 2. [Setting Up Environment](./docs/source/02_Setting_Up_Environment_kor.md)**: Local/Docker 설치 상세 및 트러블슈팅
+- **Step 3. [Running Your First NPU Model](./docs/source/03_Running_Your_First_NPU_Model_kor.md)**: 단계별 hands-on 스크립트 실행
+- **Step 4. [Checking Version Compatibility](./docs/source/04_Version_Compatibility_kor.md)**: SDK, Driver, Firmware 의존성 매트릭스
+- **Step 5. [FAQ Troubleshooting Guide](./docs/source/05_FAQ_Troubleshooting_Guide_kor.md)**: 환경 충돌 및 GUI 세션(X11) 오류 해결책
+- **Optional. [Kubernetes Quickstart](./docs/source/06_Kubernetes_Quickstart_kor.md)**: `dx-npu` Helm chart로 DX-M1 NPU를 Kubernetes 리소스로 스케줄링
+- **Optional. [Kubernetes 입문 가이드](./docs/source/07_Kubernetes_Beginner_Guide_kor.md)**: Kubernetes 기초부터 설명하고 NPU 실습 예제 제공
+
 <div align="center">
   <img src="./docs/source/img/DXNN-SDK-Full-Architecture.png" width="600">
   <p><strong>그림. DXNN SDK 전체 아키텍처 개요.</strong></p>
@@ -125,6 +141,95 @@ Greengrass 코어 디바이스로 구성하는 과정을 AWS Device Qualificatio
 
 **DX-AllSuite**는 사용 목적에 따라 두 가지 환경을 제공합니다. 필요에 맞는 환경을 선택해 시작하세요.
 
+### 한 줄 설치 (one-line install)
+
+이 repository를 clone하지 않고 개별 component를 설치할 수 있습니다.
+
+```bash
+# DX-Compiler (x86_64 Host PC)
+curl -fsSL https://raw.githubusercontent.com/DEEPX-AI/dx-compiler/main/oneline-install.sh | sh
+
+# DX-Runtime (DEEPX NPU가 장착된 target device: NPU driver + dx_rt + firmware)
+curl -fsSL https://raw.githubusercontent.com/DEEPX-AI/dx-runtime/main/oneline-install.sh | sh
+```
+
+DX-Compiler는 PyPI에서 `dx-com`을 받아 `~/deepx/venv-dx-compiler`에 설치하고 `dxcom`
+런처를 `~/.local/bin`에 연결하므로, 설치 직후 바로 `dxcom --help`를 실행할 수 있습니다.
+`opencv-python` import에 필요한 `libgl1-mesa-dev`와 `libglib2.0-0`을 apt로 설치하므로
+Debian/Ubuntu 환경과 root 또는 `sudo` 권한이 필요합니다. 이 경로에는 sample data가
+포함되지 않으므로, 필요하면 repository를 clone하십시오.
+
+버전을 고정하려면 `DX_VERSION`(DX-Compiler)을, DX-Runtime은 component별로
+`DX_RT_VERSION` / `DX_DRIVER_VERSION` / `DX_FW_VERSION`을 사용합니다. 지정하지 않으면
+DX-Runtime은 각 component의 `main`을 따라 최신 빌드를 설치합니다. 설치 경로를 바꾸는
+`DX_INSTALL_DIR`은 DX-Compiler에만 해당하며, DX-Runtime은 `dpkg`로 시스템 패키지를
+설치하므로 해당 옵션이 없습니다.
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/DEEPX-AI/dx-compiler/main/oneline-install.sh | DX_VERSION=2.4.1 sh
+```
+
+> **DX-Runtime 참고**
+> 한 줄 설치는 `dx_fw`, `dx_rt`, `dx_rt_npu_linux_driver`를 대상으로 하며,
+> `dx_app`과 `dx_stream`은 아래 전체 설치 가이드를 따릅니다. NPU device가 감지되지
+> 않으면 firmware update 단계는 건너뛰므로, device를 사용할 수 있게 된 뒤 같은
+> 명령을 다시 실행해 완료하십시오.
+
+#### 삭제하기
+
+repository를 clone하지 않고 한 줄 설치를 제거할 수 있습니다.
+
+```bash
+# DX-Compiler
+curl -fsSL https://raw.githubusercontent.com/DEEPX-AI/dx-compiler/main/oneline-uninstall.sh | sh
+
+# DX-Runtime
+curl -fsSL https://raw.githubusercontent.com/DEEPX-AI/dx-runtime/main/oneline-uninstall.sh | sh
+```
+
+DX-Compiler는 설치할 때 쓴 `DX_INSTALL_DIR`/`DX_BIN_DIR`을 그대로 넘겨야 합니다. 그러지
+않으면 기본 경로를 찾아 아무것도 발견하지 못합니다. DX-Runtime은 별도 인자가 필요 없으며,
+두 설치 방식이 동일한 Debian package를 만들기 때문에 **`install.sh`로 설치한 것도 이 명령
+하나로 제거**됩니다. 어느 방식으로 설치했는지 기억하지 않아도 됩니다.
+
+되돌릴 수 없는 것이 둘 있습니다. NPU에 이미 플래시된 firmware는 제거 경로 자체가 없고,
+`dx_engine` Python wheel은 `libdxrt-bin`이 의도적으로 남기며 제거 과정에서 그 방법을
+안내합니다.
+
+#### APT 저장소 (DX-Runtime)
+
+NPU driver와 DX-RT runtime은 DEEPX APT 저장소에 Debian package로도 배포됩니다
+(Ubuntu / Debian, `amd64` / `arm64`). `apt`로 설치하고 업그레이드할 수 있습니다.
+서명 키를 신뢰하기 전에 반드시 확인하십시오. `gpg --show-keys`가 fingerprint
+`3A20CC853C64AE328D0F58CFD816AAC6689DBDEA`를 출력해야 하며, 다르면 키를 설치하지 말고 중단하십시오.
+
+```bash
+wget -O deepx-archive-keyring.asc https://apt.releases.deepx.ai/gpg
+gpg --show-keys deepx-archive-keyring.asc   # fingerprint가 다음과 같아야 함: 3A20CC853C64AE328D0F58CFD816AAC6689DBDEA
+sudo gpg --dearmor -o /usr/share/keyrings/deepx-archive-keyring.gpg deepx-archive-keyring.asc
+rm deepx-archive-keyring.asc
+
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/deepx-archive-keyring.gpg] https://apt.releases.deepx.ai $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}") main" | sudo tee /etc/apt/sources.list.d/deepx.list
+
+sudo apt update
+sudo apt install dxrt-driver-dkms   # NPU kernel driver (DKMS로 현재 kernel에 맞춰 빌드)
+sudo apt install libdxrt-bin        # DX-RT library, dxrt-cli 및 도구
+```
+
+`dx_engine` Python package는 PyPI에 `dx-engine`으로 배포됩니다. wheel이 runtime library를
+자체 포함하므로, 설치된 `libdxrt-bin`과 같은 major.minor 버전으로 virtualenv에 설치하십시오.
+
+```bash
+pip install "dx-engine==$(dpkg-query -W -f='${Version}' libdxrt-bin | cut -d. -f1,2).*"
+```
+
+같은 wheel이 오프라인 설치용으로 `/usr/share/libdxrt-bin/python`에도 들어 있습니다.
+Firmware는 이 package에 포함되지 않으므로 한 줄 설치 또는
+`./dx-runtime/install.sh --target=dx_fw`로 업데이트하고, driver 설치 후에는 재부팅하십시오.
+이후 릴리즈는 `sudo apt update && sudo apt upgrade`로 받을 수 있습니다.
+
+전체 suite(모든 component, source build, Docker)가 필요하면 아래 환경별 가이드를 사용하십시오.
+
 ### AI Model Compile 환경 (Host PC)
 
 학습된 AI 모델을 DEEPX NPU 전용 binary로 변환·최적화하는 데 사용하는 환경입니다.
@@ -147,11 +252,38 @@ DEEPX NPU가 물리적으로 장착된 디바이스에서 inference를 수행하
 - **Key Tasks**: `.dxnn` 모델 실행, 실시간 데이터 inference, 리소스 관리
 - **Action**: DX-Runtime Installation Guide [Link](./docs/source/02_Setting_Up_Environment.md)
 
-!!! warning "활성화 필요"
-    설치 후 NPU Driver를 커널에 올바르게 로드하려면 시스템 재부팅이 필수입니다.
-    ```Bash
-    sudo reboot
-    ```
+> **경고: 활성화 필요**
+> 설치 후 NPU Driver를 커널에 올바르게 로드하려면 시스템 재부팅이 필수입니다.
+> ```Bash
+> sudo reboot
+> ```
+
+### 사전 빌드된 Container Image (GHCR)
+
+Local 설치 대신 container를 선호한다면, GitHub Container Registry에 게시된 공식 Ubuntu 24.04 image를 사용해 suite 빌드 과정을 건너뛸 수 있습니다.
+
+```Bash
+docker pull ghcr.io/deepx-ai/dx-runtime:latest
+docker run --rm -it --privileged --ipc=host --pid=host -v /dev:/dev \
+    --entrypoint bash ghcr.io/deepx-ai/dx-runtime:latest
+```
+
+`dx-runtime`은 네 가지 variant(`rt`, `rt-app`, `rt-stream`, `rt-app-stream`)로 제공되며, `dx-compiler`와 `dx-modelzoo` image도 함께 게시됩니다.
+
+`dx-runtime`은 `linux/amd64`와 `linux/arm64`를 모두 지원하며, **`dx-compiler`와 `dx-modelzoo`는 `linux/amd64`만 지원합니다**.
+
+- **Action**: Container image 태그, variant 선택 기준, NPU passthrough 옵션 [Link](./docker/README.md)
+
+### Kubernetes Cluster 환경 (선택)
+
+Kubernetes 클러스터 전체에서 DEEPX NPU를 스케줄링하는 환경입니다. Pod가 CPU나 메모리를
+요청하듯 NPU를 요청할 수 있습니다.
+
+- **Platform**: k3s 또는 containerd 기반 vanilla Kubernetes (containerd 2.x는 CDI가 기본 활성화)
+- **Hardware**: DX-M1이 장착된 노드 1대 이상. 각 노드는 위 Runtime 환경으로 설정되어 있어야 함
+- **Components**: Device plugin (`deepx.ai/dx-m1` 리소스), NFD 노드 라벨 (firmware/driver 버전), CDI를 통한 장치·runtime library 주입, Prometheus metrics, 원커맨드 Helm chart (`dx-npu`)
+- **Usage**: Pod에 `resources.limits: {deepx.ai/dx-m1: 1}`만 추가하면 scheduler가 NPU 노드에 배치하고, 장치가 컨테이너 안으로 자동으로 들어옴 (수동 device mount 불필요)
+- **Action**: [Kubernetes Quickstart](./docs/source/06_Kubernetes_Quickstart_kor.md) · Kubernetes가 처음이라면 [입문 가이드](./docs/source/07_Kubernetes_Beginner_Guide_kor.md)
 
 ## 지원 모델
 
@@ -162,22 +294,8 @@ DX-AllSuite는 우리 NPU에서 최고 성능을 내도록 최적화된, 업계 
 - **Segmentation**: DeepLabV3/DeepLabV3+, SegFormer, BiSeNet, UNet, YOLACT, 그리고 YOLO 기반 segmentation 변형 (YOLOv5/YOLOv8/YOLO26).
 - **Advanced Vision Tasks**: Face analysis (Detection, Recognition, Landmarks, Attributes), Human/Hand Pose Estimation, Low-Light Enhancement, Image Denoising, Super Resolution, Depth Estimation, Oriented Object Detection (OBB), Zero-Shot Instance Segmentation, Person Attributes.
 
-!!! note "Pro Tip"
-    모델을 직접 컴파일하는 대신, [**DEEPX ModelZoo**](https://developer.deepx.ai/modelzoo/)에서 **345개 최적화된 모델** 중 바로 사용 가능한 binary를 다운로드할 수 있습니다.
-
-## 문서 내비게이션
-
-처음 사용하는 분께는 다음 순서로 문서를 보시길 권장합니다.
-
-- **[소개](./docs/source/index.md)**: DX-AS 개요 및 구성요소 설명
-- **★ [Agent-Driven Development (Beta)](./docs/source/00_Agent_Driven_Development_kor.md)**: AI coding agent(Claude Code, Cursor, GitHub Copilot, OpenCode, Codex CLI)로 자연어 프롬프트를 사용해 DEEPX 앱 만들기
-- **[DX-Benchmark (Beta)](./dx-benchmark/README.md)**: 재현 가능한 YOLO26 NPU 벤치마크(Model-Level + E2E Pipeline)와 interactive 성능 dashboard
-- **[DX-Edge](./dx-edge/README-KO.md)**: AWS Marketplace를 통한 DEEPX NPU 배포 — Greengrass Solution(ZTP 런타임 배포), Compiler Solution(AWS에서 ONNX → `.dxnn`), DX-AIPlayer N97 Getting Started Guide
-- **Step 1. [DX-AllSuite Architecture Overview](./docs/source/01_DX-AllSuite_Architecture_Overview_kor.md)**: SDK 개요, 모듈 설명, ModelZoo 사용법
-- **Step 2. [Setting Up Environment](./docs/source/02_Setting_Up_Environment_kor.md)**: Local/Docker 설치 상세 및 트러블슈팅
-- **Step 3. [Running Your First NPU Model](./docs/source/03_Running_Your_First_NPU_Model_kor.md)**: 단계별 hands-on 스크립트 실행
-- **Step 4. [Checking Version Compatibility](./docs/source/04_Version_Compatibility_kor.md)**: SDK, Driver, Firmware 의존성 매트릭스
-- **Step 5. [FAQ Troubleshooting Guide](./docs/source/05_FAQ_Troubleshooting_Guide_kor.md)**: 환경 충돌 및 GUI 세션(X11) 오류 해결책
+> **참고: Pro Tip**
+> 모델을 직접 컴파일하는 대신, [**DEEPX ModelZoo**](https://developer.deepx.ai/modelzoo/)에서 **345개 최적화된 모델** 중 바로 사용 가능한 binary를 다운로드할 수 있습니다.
 
 ## 지원
 

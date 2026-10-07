@@ -441,3 +441,20 @@ check_docker_compose() {
         return 1
     fi
 }
+
+# Check NVIDIA container runtime availability.
+# Returns 0 if 'nvidia' runtime is registered in the Docker daemon, 1 otherwise.
+check_nvidia_container_runtime() {
+    if ! command -v nvidia-smi >/dev/null 2>&1; then
+        print_colored_v2 "WARNING" "'nvidia-smi' not found. NVIDIA driver may not be installed."
+        return 1
+    fi
+    if ! docker info --format '{{range $k, $_ := .Runtimes}}{{$k}} {{end}}' 2>/dev/null | grep -qw "nvidia"; then
+        print_colored_v2 "WARNING" "Docker 'nvidia' runtime not registered."
+        echo -e "${TAG_HINT} Install nvidia-container-toolkit and run:"
+        echo -e "${TAG_HINT}   sudo nvidia-ctk runtime configure --runtime=docker && sudo systemctl restart docker"
+        echo -e "${TAG_HINT} See https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html"
+        return 1
+    fi
+    return 0
+}

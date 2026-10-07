@@ -1,7 +1,11 @@
 ARG BASE_IMAGE_NAME=ubuntu
 ARG OS_VERSION=24.04
 ARG TAG_NAME=${OS_VERSION}
-FROM ${BASE_IMAGE_NAME}:${TAG_NAME}
+# FROM_IMAGE: actual base image repo. Defaults to BASE_IMAGE_NAME; the NVIDIA GPU
+# overlay overrides it to nvidia/cuda while BASE_IMAGE_NAME stays "ubuntu" so the
+# in-Dockerfile OS branching (apt vs dnf, supported-OS checks) keeps working.
+ARG FROM_IMAGE=${BASE_IMAGE_NAME}
+FROM ${FROM_IMAGE}:${TAG_NAME}
 
 USER root
 
@@ -40,9 +44,18 @@ RUN if [ -z "${OS_FAMILY}" ]; then \
 # while installing packages (RHEL/UBI uses an https CDN that fails otherwise).
 ARG USE_INTRANET=false
 ARG CA_FILE_NAME="dummy.crt"
-COPY ${CA_FILE_NAME} /usr/local/share/ca-certificates/
+# Staged, NOT copied straight into the trust store: the non-intranet dummy.crt is
+# not a valid PEM and would poison /etc/ssl/certs/ca-certificates.crt (curl: (77)).
+COPY ${CA_FILE_NAME} /tmp/ca-certs/
 # pip/requests use certifi's own CA bundle, not the OS trust store, so we also
 # write /etc/pip.conf pointing pip at the OS bundle that now contains the intranet CA.
+# The COPY above is unconditional (COPY cannot be branched), so when intranet mode is
+# OFF the trust dir holds dummy.crt -- a placeholder whose body is literally
+# "DUMMY CA SSL CERTIFICATE ...", not a parseable certificate. Any later
+# `apt-get install ca-certificates` runs update-ca-certificates via postinst, which
+# appends that garbage to /etc/ssl/certs/ca-certificates.crt; OpenSSL then cannot parse
+# the bundle and pip fails every PyPI request with SSLError "[X509] PEM lib". So delete
+# the placeholder in the else branch -- nothing should ever trust it.
 RUN if [ "$USE_INTRANET" = "true" ]; then \
       printf '[http]\n\tsslVerify = false\n' > /root/.gitconfig && \
       OS_FAM=$(cat /tmp/.os_family) && \
@@ -50,10 +63,11 @@ RUN if [ "$USE_INTRANET" = "true" ]; then \
       if [ "$OS_FAM" = "debian" ]; then \
           command -v update-ca-certificates >/dev/null 2>&1 || \
               { export DEBIAN_FRONTEND=noninteractive && apt-get update && apt-get install -y ca-certificates; } && \
+          cp /tmp/ca-certs/*.crt /usr/local/share/ca-certificates/ && \
           update-ca-certificates && \
           CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt; \
       elif [ "$OS_FAM" = "rhel" ]; then \
-          cp /usr/local/share/ca-certificates/*.crt /etc/pki/ca-trust/source/anchors/ 2>/dev/null || true && \
+          cp /tmp/ca-certs/*.crt /etc/pki/ca-trust/source/anchors/ 2>/dev/null || true && \
           update-ca-trust && \
           for c in /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem /etc/pki/tls/certs/ca-bundle.crt; do \
               [ -f "$c" ] && { CA_BUNDLE="$c"; break; }; \
@@ -61,8 +75,10 @@ RUN if [ "$USE_INTRANET" = "true" ]; then \
       fi && \
       printf '[global]\ncert = %s\n' "$CA_BUNDLE" > /etc/pip.conf; \
     else \
+      rm -f "/usr/local/share/ca-certificates/${CA_FILE_NAME}" && \
       echo "Skipping intranet SSL setup"; \
-    fi
+    fi && \
+    rm -rf /tmp/ca-certs
 
 ### update apt repo (Debian/Ubuntu only)
 RUN OS_FAM=$(cat /tmp/.os_family) && \
@@ -105,6 +121,25 @@ RUN OS_FAM=$(cat /tmp/.os_family) && \
 # Setup Python (minimum 3.8, maximum 3.14)
 #   - Detect system Python first, install TARGET version if needed
 #   - Unified installation flow for both Debian and Red Hat families
+# uv ships prebuilt CPython (python-build-standalone), replacing the
+# ./configure --enable-optimizations + make -j source build below, which costs
+# 10-30 minutes. Version is pinned so image builds stay reproducible.
+ARG UV_VERSION=0.12.2
+# Default is /root/.local/share/uv (mode 700) - unreachable for the non-root
+# runtime user that later activates /venv-dxnn. Keep interpreters world-readable.
+ENV UV_PYTHON_INSTALL_DIR=/opt/uv/python
+RUN OS_FAM=$(cat /tmp/.os_family) && \
+    if [ "$OS_FAM" = "debian" ]; then \
+        export DEBIAN_FRONTEND=noninteractive && \
+        apt-get update && apt-get install -y --no-install-recommends curl ca-certificates; \
+    elif [ "$OS_FAM" = "rhel" ]; then \
+        dnf install -y curl ca-certificates; \
+    fi && \
+    curl -LsSf "https://astral.sh/uv/${UV_VERSION}/install.sh" -o /tmp/uv-install.sh && \
+    env UV_INSTALL_DIR=/usr/local/bin UV_NO_MODIFY_PATH=1 sh /tmp/uv-install.sh && \
+    rm -f /tmp/uv-install.sh && \
+    uv --version
+
 ENV MIN_PY_VERSION=3.8
 ENV MAX_PY_VERSION=3.14
 ARG TARGET_INSTALL_PY_VERSION=""
@@ -185,30 +220,9 @@ RUN set -x && \
             DX_PYTHON_EXEC="python${PY_MAJOR_MINOR}" || true; \
         fi && \
         if [ -z "${DX_PYTHON_EXEC}" ]; then \
-            echo "Installing python ${TARGET_INSTALL_PY_VERSION} via source build..." && \
-            if [ "$OS_FAM" = "debian" ]; then \
-                export DEBIAN_FRONTEND=noninteractive && \
-                apt-get install -y --no-install-recommends \
-                    build-essential wget curl ca-certificates \
-                    libssl-dev zlib1g-dev libncurses5-dev libncursesw5-dev \
-                    libreadline-dev libsqlite3-dev libgdbm-dev libdb5.3-dev \
-                    libbz2-dev libexpat1-dev liblzma-dev tk-dev libffi-dev uuid-dev; \
-            elif [ "$OS_FAM" = "rhel" ]; then \
-                dnf install -y \
-                    gcc gcc-c++ make wget curl ca-certificates \
-                    openssl-devel zlib-devel ncurses-devel readline-devel \
-                    sqlite-devel gdbm-devel bzip2-devel expat-devel \
-                    xz-devel tk-devel libffi-devel libuuid-devel; \
-            fi && \
-            wget --no-check-certificate https://www.python.org/ftp/python/${TARGET_INSTALL_PY_VERSION}/Python-${TARGET_INSTALL_PY_VERSION}.tgz && \
-            tar xzf Python-${TARGET_INSTALL_PY_VERSION}.tgz && \
-            cd Python-${TARGET_INSTALL_PY_VERSION} && \
-            ./configure --enable-optimizations --without-tcltk && \
-            make -j$(nproc) && \
-            make altinstall && \
-            cd .. && \
-            rm -rf Python-${TARGET_INSTALL_PY_VERSION}* && \
-            DX_PYTHON_EXEC="python${PY_MAJOR_MINOR}"; \
+            echo "Installing python ${PY_MAJOR_MINOR} via uv (prebuilt, no source build)..." && \
+            uv python install "${PY_MAJOR_MINOR}" && \
+            DX_PYTHON_EXEC=$(uv python find "${PY_MAJOR_MINOR}"); \
         fi; \
     fi && \
     if [ -z "${DX_PYTHON_EXEC}" ]; then \
@@ -216,7 +230,7 @@ RUN set -x && \
     fi && \
     echo "Python ready: ${DX_PYTHON_EXEC} ($(${DX_PYTHON_EXEC} --version 2>&1))" && \
     echo "Set up Virtual Environment..." && \
-    ${DX_PYTHON_EXEC} -m venv /venv-dxnn && \
+    uv venv --seed --python "${DX_PYTHON_EXEC}" /venv-dxnn && \
     . /venv-dxnn/bin/activate && \
     echo "Upgrade pip wheel setuptools..." && \
     if [ "$OS_FAM" = "debian" ]; then \
@@ -314,12 +328,20 @@ ENV TARGET_USER=${TARGET_USER:-deepx}
 ENV TARGET_HOME=${TARGET_HOME:-/deepx}
 
 # UID/GID based user processing
+# When HOST_UID already exists, `usermod -g` is required even if a HOST_GID group was
+# renamed: `groupmod -n` only renames that group, it does not make it the user's
+# primary group (e.g. host 1000:100 would otherwise keep gid=1000).
 RUN set -eux; \
     if getent passwd "$HOST_UID" > /dev/null; then \
         EXISTING_USER=$(getent passwd "$HOST_UID" | cut -d: -f1); \
         usermod -l "$TARGET_USER" -d "$TARGET_HOME" -m "$EXISTING_USER"; \
         EXISTING_GROUP=$(getent group "$HOST_GID" | cut -d: -f1); \
-        groupmod -n "$TARGET_USER" "$EXISTING_GROUP"; \
+        if [ -n "$EXISTING_GROUP" ]; then \
+            groupmod -n "$TARGET_USER" "$EXISTING_GROUP"; \
+        else \
+            groupadd -g "$HOST_GID" "$TARGET_USER"; \
+        fi; \
+        usermod -g "$HOST_GID" "$TARGET_USER"; \
     else \
         groupadd -g "$HOST_GID" "$TARGET_USER" || true; \
         useradd -u "$HOST_UID" -g "$HOST_GID" -d "$TARGET_HOME" -s /bin/bash "$TARGET_USER"; \
@@ -334,17 +356,11 @@ WORKDIR /deepx/dx-compiler/dx_com
 ARG FILE_DXCOM
 ADD ${FILE_DXCOM} /deepx/dx-compiler/dx_com
 
-# Copy dx_tron (Ubuntu/Debian only - .deb and AppImage not supported on RHEL family)
-WORKDIR /deepx/dx-compiler/dx_tron
-ARG FILE_DXTRON
-ADD ${FILE_DXTRON} /deepx/dx-compiler/dx_tron
-
-# COPY 'scripts', 'getting-started', 'dx-compiler/example', 'dx-compiler/scripts', and 'dx-compiler/run_dxtron_web.sh'
+# COPY 'scripts', 'getting-started', 'dx-compiler/example', and 'dx-compiler/scripts'
 COPY scripts /deepx/scripts
 COPY getting-started /deepx/getting-started
 COPY dx-compiler/example /deepx/dx-compiler/example
 COPY dx-compiler/scripts /deepx/dx-compiler/scripts
-COPY dx-compiler/run_dxtron_web.sh /deepx/dx-compiler/run_dxtron_web.sh
 ENV DX_CONTAINER_MODE=true
 RUN /deepx/getting-started/compiler-clean.sh
 
@@ -405,35 +421,13 @@ RUN set -ex; \
             fi; \
         fi; \
         if [ -z "$DX_PYTHON_EXEC" ] || ! command -v "$DX_PYTHON_EXEC" >/dev/null 2>&1; then \
-            echo "Package manager install failed, building Python ${REQUIRED_PY_VERSION} from source..."; \
-            FULL_PY_VERSION="${REQUIRED_PY_VERSION}.0"; \
-            if [ "$OS_FAM" = "debian" ]; then \
-                export DEBIAN_FRONTEND=noninteractive; \
-                apt-get install -y --no-install-recommends \
-                    build-essential wget curl ca-certificates \
-                    libssl-dev zlib1g-dev libncurses5-dev libncursesw5-dev \
-                    libreadline-dev libsqlite3-dev libgdbm-dev libdb5.3-dev \
-                    libbz2-dev libexpat1-dev liblzma-dev tk-dev libffi-dev uuid-dev; \
-            elif [ "$OS_FAM" = "rhel" ]; then \
-                dnf install -y \
-                    gcc gcc-c++ make wget curl ca-certificates \
-                    openssl-devel zlib-devel ncurses-devel readline-devel \
-                    sqlite-devel gdbm-devel bzip2-devel expat-devel \
-                    xz-devel tk-devel libffi-devel libuuid-devel; \
-            fi; \
-            wget --no-check-certificate https://www.python.org/ftp/python/${FULL_PY_VERSION}/Python-${FULL_PY_VERSION}.tgz; \
-            tar xzf Python-${FULL_PY_VERSION}.tgz; \
-            cd Python-${FULL_PY_VERSION}; \
-            ./configure --enable-optimizations --without-tcltk; \
-            make -j$(nproc); \
-            make altinstall; \
-            cd ..; \
-            rm -rf Python-${FULL_PY_VERSION}*; \
-            DX_PYTHON_EXEC="python${REQUIRED_PY_VERSION}"; \
+            echo "Package manager install failed, installing Python ${REQUIRED_PY_VERSION} via uv..."; \
+            uv python install "${REQUIRED_PY_VERSION}"; \
+            DX_PYTHON_EXEC=$(uv python find "${REQUIRED_PY_VERSION}"); \
         fi; \
         echo "Recreating venv with ${DX_PYTHON_EXEC}..."; \
         rm -rf /venv-dxnn; \
-        ${DX_PYTHON_EXEC} -m venv /venv-dxnn; \
+        uv venv --seed --python "${DX_PYTHON_EXEC}" /venv-dxnn; \
         . /venv-dxnn/bin/activate; \
         PYTHON_VERSION_TAG=$(python3 -c "import sys; print(f'cp{sys.version_info.major}{sys.version_info.minor}')"); \
         echo "New venv Python version tag: ${PYTHON_VERSION_TAG}"; \
@@ -451,25 +445,6 @@ RUN set -ex; \
         pip3 install https://files.pythonhosted.org/packages/1b/74/02cb1f6fcbadc094c98c49aff8571e7c576bdb4015c01507c385285b5bed/onnxruntime-1.18.0-cp38-cp38-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl; \
     fi; \
     pip3 install "$MATCHING_WHEEL"
-
-# Install DX-Tron package
-# - Debian/Ubuntu: install .deb package
-# - Red Hat family: skip .deb install (web variant only, use run_dxtron_web.sh)
-RUN set -x && \
-    OS_FAM=$(cat /tmp/.os_family) && \
-    if [ "$OS_FAM" = "debian" ]; then \
-        ARCH=$(dpkg --print-architecture 2>/dev/null || uname -m) && \
-        case "$ARCH" in \
-            amd64|x86_64) ARCH="amd64" ;; \
-            arm64|aarch64) ARCH="arm64" ;; \
-        esac && \
-        echo "Detected architecture: ${ARCH}" && \
-        apt-get update && \
-        apt install -y /deepx/dx-compiler/dx_tron/dxtron_*_${ARCH}.deb; \
-    elif [ "$OS_FAM" = "rhel" ]; then \
-        echo "Red Hat family detected - DX-Tron web variant only (use run_dxtron_web.sh)" && \
-        rm -f /deepx/dx-compiler/dx_tron/*.deb /deepx/dx-compiler/dx_tron/*.AppImage; \
-    fi
 
 USER $TARGET_USER
 WORKDIR $TARGET_HOME

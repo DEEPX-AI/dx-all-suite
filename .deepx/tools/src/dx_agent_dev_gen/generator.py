@@ -3,17 +3,35 @@
 from __future__ import annotations
 
 import os
+import re
 import shutil
 from pathlib import Path
 from typing import Any
 
+from .counts import find_app_root, model_count, task_names
 from .frontmatter import strip_frontmatter, build_frontmatter, first_paragraph
 from .transformers import (
     rewrite_deepx_to_github,
     capabilities_to_tools,
     routes_to_handoffs,
 )
-from .constants import COPILOT_TOOLS, CLAUDE_TOOLS, OPENCODE_TOOLS, GENERATED_HEADER
+from .constants import (
+    COPILOT_TOOLS,
+    CLAUDE_TOOLS,
+    OPENCODE_TOOLS,
+    GENERATED_HEADER,
+    GENERATED_HEADER_SH,
+    SUBREPO_ASSETS,
+)
+
+
+def _rel_or_abs(path: Path, base: Path) -> Path:
+    """*path* relative to *base* when it is inside it, else *path* unchanged.
+    (Path.is_relative_to is 3.9+; the gates run on Python 3.8 runners.)"""
+    try:
+        return path.relative_to(base)
+    except ValueError:
+        return path
 
 
 class Generator:
@@ -36,11 +54,9 @@ class Generator:
         """Generate platform files. Returns {path: action} dict."""
         results: dict[Path, str] = {}
 
-        platforms = (
-            ["copilot", "claude", "opencode", "cursor", "instructions"]
-            if platform == "all"
-            else [platform]
-        )
+        # Single source for the platform set — an inline duplicate here once
+        # silently diverged from _PLATFORMS, so generate/check disagreed.
+        platforms = self._platform_list(platform)
 
         for plat in platforms:
             method = getattr(self, f"_generate_{plat}")
@@ -62,7 +78,14 @@ class Generator:
 
         return results
 
-    _PLATFORMS = ["copilot", "claude", "opencode", "cursor", "instructions"]
+    _PLATFORMS = [
+        "copilot",
+        "claude",
+        "opencode",
+        "cursor",
+        "instructions",
+        "assets",
+    ]
 
     def _platform_list(self, platform: str) -> list[str]:
         return self._PLATFORMS if platform == "all" else [platform]
@@ -171,15 +194,19 @@ class Generator:
         report: list[str] = []
         clean = True
 
-        platforms = (
-            ["copilot", "claude", "opencode", "cursor", "instructions"]
-            if platform == "all"
-            else [platform]
-        )
+        # Same single source as generate()/_collect_expected(): an inline
+        # duplicate here meant a newly added platform was generated but never
+        # drift-checked, so deleting one of its outputs still reported "clean".
+        platforms = self._platform_list(platform)
 
         for plat in platforms:
             method = getattr(self, f"_generate_{plat}")
-            files = method()
+            try:
+                files = method()
+            except RuntimeError as e:
+                report.append(f"ERROR: {plat}: {e}")
+                clean = False
+                continue
             for path, expected in files.items():
                 if not path.exists():
                     report.append(f"MISSING: {path.relative_to(self.repo)}")
@@ -193,7 +220,15 @@ class Generator:
         if clean:
             report.append("All generated files are up-to-date.")
         else:
-            report.append(f"\nRun 'dx-agent-gen generate' to update.")
+            run_all = self._find_run_all_sh()
+            if run_all is not None:
+                hint = (
+                    f"Run 'bash {run_all}' to regenerate ALL levels (recommended).\n"
+                    f"Or: 'dx-agent-gen generate --repo {self.repo}' for this level only."
+                )
+            else:
+                hint = f"Run 'dx-agent-gen generate --repo {self.repo}' to update."
+            report.append("\n" + hint)
 
         return clean, report
 
@@ -237,7 +272,7 @@ class Generator:
             if stem not in ko_files:
                 report.append(
                     f"[ERROR] {stem}: EN fragment has no KO counterpart "
-                    f"(missing {ko_dir.relative_to(self.repo) if ko_dir.is_relative_to(self.repo) else ko_dir}/{stem}.md)"
+                    f"(missing {_rel_or_abs(ko_dir, self.repo)}/{stem}.md)"
                 )
                 clean = False
             else:
@@ -639,6 +674,41 @@ class Generator:
                 for key, value in context.items():
                     content = content.replace("{{" + key + "}}", value)
 
+                leftover = re.findall(r"\{\{[A-Za-z_]+(?::[^}]*)?\}\}", content)
+                if leftover:
+                    registry_vars = {"{{MODEL_COUNT}}", "{{TASK_COUNT}}", "{{TASK_LIST}}"}
+                    fragment_vars = [v for v in leftover if v.startswith("{{FRAGMENT:")]
+                    if set(leftover) & registry_vars:
+                        hint = (
+                            "MODEL_COUNT/TASK_COUNT/TASK_LIST need dx_app's "
+                            "config/model_registry.json — run "
+                            "`git submodule update --init --recursive`."
+                        )
+                    elif fragment_vars and self._find_fragments_dir() is None:
+                        # The fragments are MISSING, not wrong: this is a
+                        # standalone sub-repo clone with no suite above it.
+                        # Saying "fix the template/fragment name" here sends the
+                        # reader off editing templates, turning a missing input
+                        # into a real committed drift.
+                        hint = (
+                            ".deepx/templates/fragments/ was not found in this repo "
+                            "or any parent — this looks like a standalone sub-repo "
+                            "checkout, so the shared fragments are absent (they ship "
+                            "only with dx-all-suite). Run: "
+                            "`bash .deepx/scripts/harness_bootstrap.sh --check`. "
+                            "Do NOT edit the templates or rename fragments to silence "
+                            "this — the fragments are missing, not wrong."
+                        )
+                    else:
+                        hint = (
+                            "Define the variable in _build_template_context() or "
+                            "fix the template/fragment name."
+                        )
+                    raise RuntimeError(
+                        f"{tmpl_file.relative_to(self.repo)}: unresolved template variables "
+                        f"{sorted(set(leftover))}. {hint}"
+                    )
+
                 # Determine output path
                 out_name = tmpl_file.stem  # e.g., CLAUDE.md, AGENTS-KO.md
                 if "copilot-instructions" in out_name:
@@ -675,6 +745,82 @@ class Generator:
             result[lang_dir] = frags
 
         return result
+
+    def _find_run_all_sh(self) -> Path | None:
+        """Find the suite-level .deepx/tools/scripts/run_all.sh by walking up
+        from self.repo. Only the suite root ships run_all.sh — a nested repo
+        (e.g. dx-runtime/dx_app, 4 levels deep) must not be told to run a
+        script that only exists 4 levels above it without saying where.
+
+        self.repo is resolved first so a relative --repo (e.g. the CLI's
+        cwd-relative default Path('.')) still yields an absolute,
+        actually-runnable path in the hint."""
+        current = self.repo.resolve()
+        for _ in range(6):  # max 6 levels up
+            candidate = current / ".deepx" / "tools" / "scripts" / "run_all.sh"
+            if candidate.is_file():
+                return candidate
+            parent = current.parent
+            if parent == current:
+                break
+            current = parent
+        return None
+
+    def _find_suite_root(self) -> Path | None:
+        """Find the dx-all-suite root — the only tree carrying BOTH the shared
+        fragments and the generator itself. Used to locate verbatim assets that
+        are fanned out to sub-repos.
+
+        Deliberately stricter than _find_fragments_dir(): a repo could in
+        principle carry fragments without being the suite, and assets must come
+        from the suite only.
+        """
+        current = self.repo.resolve()
+        for _ in range(6):  # max 6 levels up (dx_app is 4 below the suite)
+            if (
+                (current / ".deepx" / "templates" / "fragments").is_dir()
+                and (
+                    current
+                    / ".deepx"
+                    / "tools"
+                    / "src"
+                    / "dx_agent_dev_gen"
+                    / "cli.py"
+                ).is_file()
+            ):
+                return current
+            parent = current.parent
+            if parent == current:
+                break
+            current = parent
+        return None
+
+    def _generate_assets(self) -> dict[Path, str]:
+        """Copy verbatim assets from the suite into this SUB-REPO.
+
+        No-ops for the suite itself (it holds the canonical copy) and when no
+        suite is reachable (a standalone checkout — nothing to copy from; the
+        already-deployed file simply stays put).
+        """
+        out: dict[Path, str] = {}
+        suite = self._find_suite_root()
+        if suite is None or suite == self.repo.resolve():
+            return out
+
+        for src_rel, dst_rel in SUBREPO_ASSETS.items():
+            src = suite / src_rel
+            if not src.is_file():
+                continue
+            body = src.read_text(encoding="utf-8")
+            header = GENERATED_HEADER_SH.format(source=src_rel)
+            if body.startswith("#!"):
+                shebang, _, rest = body.partition("\n")
+                body = "{}\n{}{}".format(shebang, header, rest)
+            else:
+                body = header + body
+            out[self.repo / dst_rel] = body
+
+        return out
 
     def _find_fragments_dir(self) -> Path | None:
         """Find .deepx/templates/fragments/ in current repo or parent repos."""
@@ -728,5 +874,18 @@ class Generator:
             ctx["ROUTING_TABLE"] = rt_file.read_text(encoding="utf-8").strip()
         else:
             ctx["ROUTING_TABLE"] = "_No routing table defined._"
+
+        # Live model / task counts — computed, never hand-written. dx_app's own
+        # repo has config/ at the root; the suite and dx-runtime reach it through
+        # their submodule path. When no registry is reachable the placeholders are
+        # left in place on purpose so the leftover-placeholder check fails loudly.
+        app_root = find_app_root(self.repo)
+        if app_root is not None:
+            models = model_count(app_root)
+            names = task_names(app_root)
+            if models is not None and names is not None:   # atomic: all or none (#4)
+                ctx["MODEL_COUNT"] = str(models)
+                ctx["TASK_COUNT"] = str(len(names))
+                ctx["TASK_LIST"] = ", ".join(names)
 
         return ctx

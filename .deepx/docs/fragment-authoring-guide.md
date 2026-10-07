@@ -5,8 +5,8 @@ This document defines the rules for creating and editing fragment files under
 injected into all platform instruction files (CLAUDE.md, AGENTS.md,
 copilot-instructions.md, etc.) across all 5 repos.
 
-The current `.deepx/templates/fragments/` tree holds **32 files total** (16 EN +
-16 KO), and every EN file must have a same-stem KO counterpart (see Rule 1).
+The current `.deepx/templates/fragments/` tree holds **38 files total** (19 EN +
+19 KO), and every EN file must have a same-stem KO counterpart (see Rule 1).
 
 ---
 

@@ -19,9 +19,9 @@ in a single sub-project, prefer the project-level version:
 
 | Working on... | Use this skill |
 |---|---|
-| dx_app (standalone inference) | `dx-runtime/dx_app/.github/skills/dx-tdd.md` |
-| dx_stream (GStreamer pipelines) | `dx-runtime/dx_stream/.github/skills/dx-tdd.md` |
-| Cross-project integration | `dx-runtime/.github/skills/dx-tdd.md` |
+| dx_app (standalone inference) | `dx-runtime/dx_app/.github/skills/dx-agent-tdd/SKILL.md` |
+| dx_stream (GStreamer pipelines) | `dx-runtime/dx_stream/.github/skills/dx-agent-tdd/SKILL.md` |
+| Cross-project integration | `dx-runtime/.github/skills/dx-agent-tdd/SKILL.md` |
 
 ## DEEPX Validation Checks
 

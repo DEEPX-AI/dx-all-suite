@@ -1,3 +1,124 @@
+## DX-All-Suite v2.5.0 / 2026-10-09
+
+- DX-Compiler: v2.5.0
+    - DX-COM: v2.5.0
+    - DX-TRON: Removed
+- DX-Runtime: v2.5.0
+    - DX_FW: v2.7.6
+    - NPU Driver: v2.7.0
+    - DX-RT: v3.5.0
+    - DX-Stream: v3.2.0
+    - DX-APP: v3.3.0
+- DX-Modelzoo: v1.0.0
+
+---
+
+Here are the **DX-All-Suite v2.5.0** Release Notes.
+
+### What's New?
+
+This release focuses on **how you install and deploy** the DEEPX SDK. Prebuilt container images are now published to the GitHub Container Registry, DX-Compiler and DX-Runtime can be installed with a single `curl | sh` command or from the DEEPX apt repository, and DEEPX DX-M1 NPUs can now be scheduled on Kubernetes.
+
+It also retires **Ubuntu 18.04** and **DX-TRON** — please read the notice below before upgrading.
+
+> **⚠️ Important notice: Ubuntu 18.04 and DX-TRON are no longer supported**
+>
+> - **Ubuntu 18.04 (Bionic Beaver)** has been dropped from the install scripts and Docker builds. The minimum supported version is now **Ubuntu 20.04**.
+> - **DX-TRON** has been removed from DX-Compiler as of v2.5.0. To inspect the compiled model structure and the CPU/NPU workload split, generate the interactive HTML **Compilation Summary Report** with DX-COM (`--export_html`).
+
+#### 🐳 New: Prebuilt container images on GHCR
+
+**DEEPX All Suite images are now published to the GitHub Container Registry** — pull one instead of building the suite yourself.
+
+| Image | Tags | Platforms |
+|---|---|---|
+| `ghcr.io/deepx-ai/dx-runtime` | `rt`, `rt-app`, `rt-stream`, `rt-app-stream`, `latest` (+ immutable `v<ver>-…`) | `linux/amd64`, `linux/arm64` |
+| `ghcr.io/deepx-ai/dx-compiler` | `latest` (+ immutable `v<ver>`) | `linux/amd64` |
+| `ghcr.io/deepx-ai/dx-modelzoo` | `latest` (+ immutable `v<mz-ver>`) | `linux/amd64` |
+
+```bash
+docker pull ghcr.io/deepx-ai/dx-runtime:rt-app-stream
+docker pull ghcr.io/deepx-ai/dx-compiler:latest
+```
+
+**Learn more** — see [`docker/README.md`](docker/README.md).
+
+#### ⚡ New: One-line install
+
+Install DX-Compiler or DX-Runtime without cloning this repository:
+
+```bash
+# DX-Compiler (x86_64 Host PC)
+curl -fsSL https://raw.githubusercontent.com/DEEPX-AI/dx-compiler/main/oneline-install.sh | sh
+
+# DX-Runtime (target device: NPU driver + dx_rt + firmware)
+curl -fsSL https://raw.githubusercontent.com/DEEPX-AI/dx-runtime/main/oneline-install.sh | sh
+```
+
+- Pin versions with `DX_VERSION` (DX-Compiler) or `DX_RT_VERSION` / `DX_DRIVER_VERSION` / `DX_FW_VERSION` (DX-Runtime).
+- Matching `oneline-uninstall.sh` scripts remove each install; the DX-Runtime uninstaller also removes an `install.sh` install.
+- DX-Runtime one-line install covers `dx_fw`, `dx_rt`, and `dx_rt_npu_linux_driver`; `dx_app` and `dx_stream` still use the full installation guide.
+- **Note:** the DX-Runtime one-line install downloads artifacts that are **not checksum-verified**, and each component tracks its own `main` branch, so a run between releases may install an unvalidated combination. Use the version pins or `install.sh` when you need a known-good set.
+
+#### 📦 New: DEEPX apt repository
+
+The NPU driver and runtime can now be installed from the DEEPX apt repository:
+
+```bash
+wget -O - https://apt.releases.deepx.ai/gpg | sudo gpg --dearmor -o /usr/share/keyrings/deepx-archive-keyring.gpg
+
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/deepx-archive-keyring.gpg] https://apt.releases.deepx.ai $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}") main" | sudo tee /etc/apt/sources.list.d/deepx.list
+
+sudo apt update
+sudo apt install dxrt-driver-dkms
+sudo apt install libdxrt-bin
+```
+
+#### ☸️ New: Kubernetes support
+
+**DEEPX DX-M1 NPUs can now be scheduled on Kubernetes (k3s)** through the new `dx-npu` Helm chart and the [`dx-k8s-device-plugin`](dx-k8s-device-plugin) submodule.
+
+**Highlights**
+- **Device plugin** — advertises `deepx.ai/dx-m1` as a schedulable resource; pods request it with `deepx.ai/dx-m1: 1`.
+- **CDI injection** — the device nodes (`/dev/dxrtN`) and host libraries are injected into the pod by containerd via CDI.
+- **Node labeling** — a NodeFeatureRule labels NPU nodes through node-feature-discovery (optionally installed by the chart with `nfd.enabled=true`).
+- **Published OCI chart** on GHCR:
+  ```bash
+  helm install dx-npu oci://ghcr.io/deepx-ai/charts/dx-npu \
+    -n dx-system --create-namespace --set nfd.enabled=true
+  ```
+
+**Learn more** — see the [Kubernetes Quickstart](docs/source/06_Kubernetes_Quickstart.md), [Kubernetes Beginner Guide](docs/source/07_Kubernetes_Beginner_Guide.md), and [`deploy/k8s/README.md`](deploy/k8s/README.md).
+
+---
+
+### Key Updates
+
+**New Features & Tools**
+
+- **DX-AS (Docker)**: GPU acceleration options for `docker_run.sh` (Ubuntu-based images only):
+    - `--nvidia_gpu` (with optional `--cuda_version`, default `12.8.1`) — runs **dx-compiler / dx-modelzoo** with NVIDIA GPU. Requires `nvidia-container-toolkit`.
+    - `--intel_gpu_hw_acc` — runs **dx-runtime** with Intel GPU VA-API media acceleration. Requires `/dev/dri`.
+- **DX-Compiler**: Added a **uv**-based installation method. It resolves and installs dependencies much faster than pip and keeps them reproducible through `uv.lock`.
+- **DX-AS (CI)**: Release workflow publishes the suite images and the `dx-npu` Helm chart to GHCR on tag push.
+
+**Deprecations & Removals**
+
+- **DX-AS**: Ubuntu 18.04 support ended; minimum supported Ubuntu version is now 20.04.
+- **DX-Compiler**: DX-TRON removed. Use the DX-COM Compilation Summary Report (`--export_html`) instead.
+
+---
+
+### Migration Guide
+
+- **Ubuntu 18.04 users**: Upgrade the host OS to Ubuntu 20.04 or later before installing v2.5.0.
+- **DX-TRON users**: Replace DX-TRON with the HTML Compilation Summary Report generated by DX-COM (`--export_html`).
+- **Docker users**: Instead of running `docker_build.sh`, you can pull the prebuilt images from `ghcr.io/deepx-ai/*`. Use lowercase `deepx-ai` in the registry path — GHCR rejects uppercase repository names.
+
+For detailed updated items, refer to **each environment & module's Release Notes**.
+
+---
+
 ## DX-All-Suite v2.4.3 / 2026-09-03
 
 - DX-Compiler: v2.4.2
