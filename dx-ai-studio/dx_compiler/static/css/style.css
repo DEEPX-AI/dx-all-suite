@@ -106,7 +106,7 @@ main { display: flex; height: calc(100vh - var(--dx-module-header-h)); overflow:
 .wizard-close:hover { color: var(--text-primary); }
 .wizard-steps-indicator { display: flex; justify-content: center; gap: 0.8rem; margin-bottom: 1.5rem; }
 .step-dot { width: 2rem; height: 2rem; border-radius: 50%; background: var(--surface-hover); display: flex; align-items: center; justify-content: center; font-size: var(--fs-sm); font-weight: 600; color: var(--text-muted); transition: all 0.3s var(--ease); }
-.step-dot.active { background: var(--accent); color: white; }
+.step-dot.active { background: var(--accent-fill); color: white; }
 .step-dot.completed { background: var(--status-ok); color: white; }
 .wizard-step { display: none; }
 .wizard-step.active { display: block; }
@@ -746,10 +746,10 @@ body.lang-zh-TW .zh-CN { display: none !important; }
 .resume-card.collapsed .resume-card-body { display: none; }
 .resume-subtitle { color: var(--text-muted); font-size: var(--fs-xs); margin-bottom: 1.1rem; }
 .resume-btn {
-  background: var(--accent); color: #fff; border: none; padding: 0.7rem 2rem;
+  background: var(--accent-fill); color: #fff; border: none; padding: 0.7rem 2rem;
   border-radius: var(--radius-sm); font-size: var(--fs-md); cursor: pointer;
 }
-.resume-btn:hover:not(:disabled) { background: var(--accent); filter: brightness(1.08); }
+.resume-btn:hover:not(:disabled) { background: var(--accent-fill); filter: brightness(1.08); }
 .resume-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .resume-card input.prefilled { background: var(--accent-dim); border-color: var(--accent-light); }
 @keyframes resumePulse {
@@ -769,10 +769,10 @@ body.lang-zh-TW .zh-CN { display: none !important; }
 }
 .diagnosis-actionbar .da-spacer { flex: 1; }
 .diag-send-btn {
-  background: var(--accent); color: #fff; border: none; padding: 0.45rem 1.1rem;
+  background: var(--accent-fill); color: #fff; border: none; padding: 0.45rem 1.1rem;
   border-radius: var(--radius-sm); font-size: var(--fs-xs); cursor: pointer; white-space: nowrap;
 }
-.diag-send-btn:hover { background: var(--accent); filter: brightness(1.08); }
+.diag-send-btn:hover { background: var(--accent-fill); filter: brightness(1.08); }
 
 #result .progress-container,
 #resume-result .progress-container {
@@ -930,5 +930,5 @@ body.lang-zh-TW .zh-CN { display: none !important; }
 .fp-actions { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--border-subtle); }
 .fp-btn { padding: 8px 12px; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); background: var(--control-bg); color: var(--text-primary); cursor: pointer; font-size: var(--fs-sm); }
 .fp-btn:hover { border-color: var(--accent); }
-.fp-select { background: var(--accent); border-color: var(--accent); color: #fff; }
+.fp-select { background: var(--accent-fill); border-color: var(--accent); color: #fff; }
 .fp-select:hover { filter: brightness(1.05); }

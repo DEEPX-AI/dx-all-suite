@@ -21,7 +21,7 @@ body{overflow-x:auto;overflow-y:auto}
   background:transparent;color:var(--text-secondary);cursor:pointer;font-size:var(--fs-base);
   transition:var(--transition);white-space:nowrap}
 .mz-chip:hover{border-color:var(--border-strong);color:var(--text-primary)}
-.mz-chip.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.mz-chip.active{background:var(--accent-fill);color:#fff;border-color:var(--accent)}
 .mz-chip .chip-count{font-size:var(--fs-xs);opacity:.7;margin-left:4px}
 .mz-filter-controls{display:flex;gap:var(--sp-3);align-items:center;flex-wrap:wrap}
 .mz-search{flex:1;min-width:200px;padding:8px 12px;border-radius:var(--radius);
@@ -231,7 +231,7 @@ body{overflow-x:auto;overflow-y:auto}
 .mz-ba-slider{position:absolute;top:0;bottom:0;width:4px;background:var(--accent);
   cursor:ew-resize;z-index:2}
 .mz-ba-slider::after{content:'⟨⟩';position:absolute;top:50%;left:50%;
-  transform:translate(-50%,-50%);background:var(--accent);color:#fff;
+  transform:translate(-50%,-50%);background:var(--accent-fill);color:#fff;
   border-radius:50%;width:32px;height:32px;display:flex;align-items:center;
   justify-content:center;font-size:var(--fs-md)}
 

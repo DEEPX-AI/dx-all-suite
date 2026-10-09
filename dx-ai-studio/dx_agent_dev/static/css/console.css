@@ -148,7 +148,7 @@
 .user-line {
   align-self: flex-end;
   max-width: 85%;
-  background: var(--accent);
+  background: var(--accent-fill);
   color: #fff;
   padding: 8px 12px;
   border-radius: 16px 16px 4px 16px;
@@ -415,7 +415,7 @@
 #console-input:focus { outline: none; border-color: var(--accent); }
 #console-send {
   padding: 8px 16px;
-  background: var(--accent);
+  background: var(--accent-fill);
   color: #fff;
   border: none;
   border-radius: var(--radius);

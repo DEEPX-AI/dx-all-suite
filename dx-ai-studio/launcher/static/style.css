@@ -198,7 +198,7 @@ body:not(.hw-native-visible) #hw-float {
 .nav-tab.active,
 .nav-tab.active-stream,
 .nav-tab.active-zoo {
-  background: var(--accent);
+  background: var(--accent-fill);
   color: var(--text-on-accent);
   border-color: var(--accent);
 }
@@ -1524,11 +1524,11 @@ body {
   border: 0; font-size: 10px; font-weight: 400; letter-spacing: .02em;
 }
 .buy-topbar-btn {
-  background: var(--ap-blue); color: var(--ap-on-blue); border: 0;
+  background: var(--accent-fill); color: var(--ap-on-blue); border: 0;
   border-radius: 980px; padding: 5px 15px;
   font-size: var(--ap-t-body); font-weight: 400; letter-spacing: -.005em;
 }
-.buy-topbar-btn:hover { background: var(--ap-blue-hi); }
+.buy-topbar-btn:hover { background: var(--accent-fill); filter: brightness(.9); }  /* 밝아지면 흰 글자가 AA 아래로 — 눌린 듯 어둡게 */
 
 /* ── the command line ── */
 /* The biggest thing on the first screen used to be a 14px sparkle glyph. Nothing else
@@ -1562,11 +1562,11 @@ body {
 .ask-input:focus { outline: none; }
 .ask-go {
   flex-shrink: 0; border: 0; border-radius: 980px; padding: 9px 20px;
-  background: var(--ap-blue); color: var(--ap-on-blue);
+  background: var(--accent-fill); color: var(--ap-on-blue);
   font-family: inherit; font-weight: 400; font-size: var(--ap-t-lead);
   letter-spacing: -.008em; cursor: pointer;
 }
-.ask-go:hover { background: var(--ap-blue-hi); }
+.ask-go:hover { background: var(--accent-fill); filter: brightness(.9); }
 /* form 과 chips 가 같은 section 안으로 들어가면서 .ws-main 의 gap 이
    더는 사이에 끼지 않는다 — 그걸 상쇄하던 음수 margin 을 없앤다. */
 .ask-chips { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin-top: var(--sp-3); }
@@ -1805,7 +1805,7 @@ body {
 .ask-chip:hover { background: var(--ap-panel-2); color: var(--ap-ink); }
 .ask-chip:active { background: var(--ap-fill); }
 
-.ask-go:active { background: var(--ap-blue); filter: brightness(.92); }
+.ask-go:active { background: var(--accent-fill); filter: brightness(.82); }
 .buy-topbar-btn:active { filter: brightness(.92); }
 
 .about-book-card:hover { background: none; }
@@ -2788,7 +2788,7 @@ body {
 .buy-topbar-btn {
   display: inline-flex; align-items: center; gap: 5px; flex-shrink: 0;
   padding: 4px 12px; border-radius: var(--ap-r-pill);
-  background: var(--accent); color: var(--text-on-accent); text-decoration: none;
+  background: var(--accent-fill); color: var(--text-on-accent); text-decoration: none;
   font-weight: 600; font-size: var(--ap-t-body); line-height: 1.4; white-space: nowrap;
 }
 .buy-topbar-btn:hover { background: var(--accent-light); }

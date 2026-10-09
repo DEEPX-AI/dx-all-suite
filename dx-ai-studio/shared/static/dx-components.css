@@ -135,8 +135,8 @@
 .toast.show{transform:none}
 .toast-icon{flex-shrink:0;font-size:15px}
 .toast-msg{flex:1;line-height:1.4}
-.toast-action{background:var(--accent);border:none;color:var(--text-on-accent);padding:4px 12px;border-radius:var(--radius-sm);font-size:var(--fs-xs);font-weight:600;cursor:pointer;white-space:nowrap;text-decoration:none}
-.toast-action:hover{background:var(--accent);filter:brightness(1.15)}
+.toast-action{background:var(--accent-fill);border:none;color:var(--text-on-accent);padding:4px 12px;border-radius:var(--radius-sm);font-size:var(--fs-xs);font-weight:600;cursor:pointer;white-space:nowrap;text-decoration:none}
+.toast-action:hover{background:var(--accent-fill);filter:brightness(1.15)}
 .toast-close{background:none;border:none;color:var(--text-faint);font-size:var(--fs-md);cursor:pointer;padding:0 2px;margin-left:4px;line-height:1}
 .toast-close:hover{color:var(--text-primary)}
 .toast-ok{background:rgba(var(--surface-panel-rgb),.92);border:1px solid rgba(var(--success-rgb),.4);color:var(--status-ok)}

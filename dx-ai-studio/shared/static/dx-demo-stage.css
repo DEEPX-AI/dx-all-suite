@@ -161,7 +161,7 @@
 }
 .dds-run {
   padding: var(--sp-2) var(--sp-4);
-  background: var(--accent);
+  background: var(--accent-fill);
   color: var(--text-on-accent);
   border: 1px solid var(--accent);
 }
@@ -269,7 +269,7 @@
   cursor: pointer;
 }
 .dds-fbtn:hover { color: var(--text-primary); border-color: var(--border-strong); }
-.dds-fbtn.is-on { background: var(--accent); border-color: var(--accent); color: var(--text-on-accent); }
+.dds-fbtn.is-on { background: var(--accent-fill); border-color: var(--accent); color: var(--text-on-accent); }
 
 /* ── card — 고르기만. 모두 같은 높이 (grid-auto-rows: 1fr) ──────────────── */
 .dds-grid {
