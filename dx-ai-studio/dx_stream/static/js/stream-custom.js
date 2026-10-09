@@ -14,7 +14,7 @@
             grid.innerHTML = libs.map(function(lib) {
                 return '<div class="card">' +
                     '<div class="card-title">' + lib.name + '</div>' +
-                    '<span class="card-badge">' + (lib.built ? ((typeof DXIcon === 'function') ? DXIcon('check') : '') + ' Built' : ((typeof DXIcon === 'function') ? DXIcon('alert') : '') + ' Not built') + '</span>' +
+                    '<span class="card-badge">' + (lib.built ? ((typeof DXIcon === 'function') ? DXIcon('check') : '') + ' ' + T('Built') : ((typeof DXIcon === 'function') ? DXIcon('alert') : '') + ' ' + T('Not built')) + '</span>' +
                     (lib.has_meson && !lib.built ?
                         '<button class="btn btn-sm mt4" onclick="DXStream.custom.build(\'' + lib.name + '\')">' +
                         T('Build') + '</button>' : '') +

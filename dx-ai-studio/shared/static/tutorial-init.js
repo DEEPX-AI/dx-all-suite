@@ -10,6 +10,7 @@
  *     toolbarWrapper:  false,
  *     toolbarInsertBefore: '#id',
  *     getLang:         function(){},
+ *     isActive:        function(){},  // optional native-view ownership check
  *     onNav:           function(){},
  *     patchNav:        function(engine){},
  *     setupButtons:    function(engine){},
@@ -90,6 +91,7 @@
         if (tutMode === 'off') return;  // ON by default — only an explicit "off" opts out
         function openWhenReady(attempts) {
           if (engine._scheduledTocCancelled) return;
+          if (opts.isActive && !opts.isActive()) return;
           if (_isLauncherShellBlocked()) {
             if (attempts < 300) {
               setTimeout(function () { openWhenReady(attempts + 1); }, 100);
@@ -127,7 +129,9 @@
       }
 
       function _initSingleTutorial(sections, opts) {
-        _destroyActiveTutorialEngine(!!opts.keepPreviousEngine);
+        // A delayed native-view initialization must not destroy the visible view's engine.
+        var isActive = !opts.isActive || opts.isActive();
+        if (isActive) _destroyActiveTutorialEngine(!!opts.keepPreviousEngine);
         var orderedSections = _orderGlobalFirst((sections || []).slice());
         var engine = new DXTutorialEngine({
           appId:    opts.appId,
@@ -141,7 +145,7 @@
           }
         });
 
-        window._dxTutorial = engine;
+        if (isActive) window._dxTutorial = engine;
 
         if (typeof opts.setupButtons === 'function') {
           opts.setupButtons(engine);

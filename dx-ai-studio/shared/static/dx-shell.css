@@ -123,7 +123,7 @@
 }
 .dx-tab:hover{color:var(--text-primary)}
 .dx-tab[aria-current="page"]{
-  color:var(--accent);border-bottom-color:var(--accent);
+  color:var(--accent-ink);border-bottom-color:var(--accent);
   font-weight:var(--fw-semibold);background:var(--accent-dim);
 }
 .dx-tab svg{width:15px;height:15px;flex-shrink:0;display:block}

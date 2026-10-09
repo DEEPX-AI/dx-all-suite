@@ -183,7 +183,7 @@ if (typeof window !== 'undefined') window.rundemoRender = rundemoRender;
 function _rundemoLabels() {
   return {
     setup: _T6('설정하기', 'Set up', 'セットアップ', '去设置', '前往設定', 'Configurar'),
-    none: _T6('Setup 에서 model 을 설치하면 데모를 실행할 수 있습니다.', 'Install a model in Setup to run a demo.',
+    none: _T6('Setup에서 모델을 설치하면 데모를 실행할 수 있습니다.', 'Install a model in Setup to run a demo.',
       'Setup でモデルをインストールするとデモを実行できます。', '在 Setup 中安装模型即可运行演示。',
       '在 Setup 中安裝模型即可執行示範。', 'Instale un modelo en Setup para ejecutar una demo.'),
     ready: _T6('준비됨', 'Ready', '準備完了', '就绪', '就緒', 'Listo'),
@@ -216,7 +216,7 @@ function _rundemoItem(d) {
     ? _T6('모델 미설치', 'Model not installed', 'モデル未インストール', '模型未安装', '模型未安裝', 'Modelo no instalado')
     : _T6('실행 가능한 빌드 없음', 'No runnable build', '実行可能なビルドなし', '没有可运行的构建', '沒有可執行的建置', 'Sin build ejecutable');
   var fix = modelMissing
-    ? _T6('Setup 의 Demo Quick Start 로 설치하세요', 'use Demo Quick Start on Setup', 'Setup の Demo Quick Start でインストール',
+    ? _T6('Setup의 Demo Quick Start로 설치하세요', 'use Demo Quick Start on Setup', 'Setup の Demo Quick Start でインストール',
         '请在 Setup 的 Demo Quick Start 中安装', '請在 Setup 的 Demo Quick Start 中安裝', 'use Demo Quick Start en Setup')
     : _T6('DX-APP/DX-Runtime 빌드를 먼저 완료하세요', 'complete the DX-APP/DX-Runtime build first',
         '先に DX-APP/DX-Runtime のビルドを完了', '请先完成 DX-APP/DX-Runtime 构建', '請先完成 DX-APP/DX-Runtime 建置',

@@ -228,7 +228,7 @@ function renderRefContent(filter, search) {
     if (filter && filter !== 'all' && t.cat !== filter) return false;
     if (search) {
       var tmp = document.createElement('div');
-      tmp.innerHTML = t.name + ' ' + t.desc;
+      tmp.innerHTML = _refTopicName(t) + ' ' + t.desc;
       var text = tmp.textContent.toLowerCase();
       if (text.indexOf(search.toLowerCase()) < 0) return false;
     }
@@ -269,7 +269,7 @@ function renderRefContent(filter, search) {
       card.setAttribute('data-ref-cat', topic.cat);
       card.innerHTML = '<span class="ref-section-icon">' + _refIco(topic.icon) + '</span>'
         + '<span class="ref-section-info">'
-        + '<span class="ref-section-name">' + topic.name + '</span>'
+        + '<span class="ref-section-name">' + _refTopicName(topic) + '</span>'
         + '<span class="ref-section-desc">' + topic.desc + '</span>'
         + '</span>';
       grid.appendChild(card);
@@ -279,6 +279,9 @@ function renderRefContent(filter, search) {
 }
 
 // 구역 · 주제 아이콘은 sprite 이름 (아이콘 체계 단계 5). 옛 글자 icon 은 그대로.
+/* 화면 이름 주제 (Demo Launcher · Pipeline Builder · API Endpoints) 는 탭과 같은 사전 키라 T() 로 번역한다 */
+function _refTopicName(t) { return typeof T === 'function' ? T(t.name) : t.name; }
+
 function _refIco(name) {
   return (/^[a-z0-9_-]+$/.test(name || '') && typeof DXIcon === 'function') ? DXIcon(name) : (name || '');
 }
@@ -293,7 +296,7 @@ function buildDetailHtml(topic) {
   };
   var html = '<div class="ref-detail-hd"><div><div class="ref-detail-kicker">'
     + _T5('Reference','레퍼런스','リファレンス','参考','參考','Referencia') + '</div><h2>'
-    + _refIco(topic.icon) + ' ' + topic.name + '</h2><p>' + topic.desc + '</p></div></div>';
+    + _refIco(topic.icon) + ' ' + _refTopicName(topic) + '</h2><p>' + topic.desc + '</p></div></div>';
   html += '<div class="ref-tabs">';
   tabKeys.forEach(function(key, i) {
     html += '<div class="ref-tab' + (i === 0 ? ' active' : '') + '" data-tab="' + key + '" tabindex="0">'

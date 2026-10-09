@@ -6,7 +6,7 @@
     {
       "id": "3ddfa_v2_mobilnet0_5_120x120",
       "display": {
-        "name": "3ddfa_v2_mobilnet0.5_120x120",
+        "name": "3DDFA-V2 (MobileNet-0.5)",
         "task": "face_alignment",
         "class_name": "3ddfa_v2_mobilnet0_5_120x120",
         "summary": {
@@ -77,7 +77,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -173,7 +173,7 @@
     {
       "id": "3ddfa_v2_mobilnetv1_120x120",
       "display": {
-        "name": "3ddfa_v2_mobilnetv1_120x120",
+        "name": "3DDFA-V2 (MobileNetV1)",
         "task": "face_alignment",
         "class_name": "3ddfa_v2_mobilnetv1_120x120",
         "summary": {
@@ -244,7 +244,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -509,7 +509,7 @@
     {
       "id": "arcface_iresnet100_ms1m",
       "display": {
-        "name": "arcface_iresnet100_ms1m",
+        "name": "ArcFace IResNet-100 (MS1M)",
         "task": "embedding",
         "class_name": "arcface_iresnet100_ms1m",
         "summary": {
@@ -580,7 +580,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -676,7 +676,7 @@
     {
       "id": "arcface_iresnet50_ms1m",
       "display": {
-        "name": "arcface_iresnet50_ms1m",
+        "name": "ArcFace IResNet-50 (MS1M)",
         "task": "embedding",
         "class_name": "arcface_iresnet50_ms1m",
         "summary": {
@@ -747,7 +747,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -843,7 +843,7 @@
     {
       "id": "arcface_mobilefacenet",
       "display": {
-        "name": "arcface_mobilefacenet",
+        "name": "ArcFace MobileFaceNet",
         "task": "embedding",
         "class_name": "arcface_mobilefacenet",
         "summary": {
@@ -914,7 +914,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -1010,7 +1010,7 @@
     {
       "id": "arcface_r50",
       "display": {
-        "name": "arcface_r50",
+        "name": "ArcFace ResNet-50",
         "task": "embedding",
         "class_name": "arcface_r50",
         "summary": {
@@ -1081,7 +1081,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -1264,7 +1264,7 @@
     {
       "id": "beit_large_patch16",
       "display": {
-        "name": "Beit Large Patch16",
+        "name": "BEiT-Large/16",
         "task": "classification",
         "class_name": "beit_large_patch16",
         "summary": {
@@ -1331,7 +1331,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_studio_catalog"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_studio_catalog"
@@ -1729,7 +1729,7 @@
     {
       "id": "casvit_m",
       "display": {
-        "name": "casvit_m",
+        "name": "CAS-ViT-M",
         "task": "reid",
         "class_name": "casvit_m",
         "summary": {
@@ -1800,7 +1800,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -1896,7 +1896,7 @@
     {
       "id": "casvit_t",
       "display": {
-        "name": "casvit_t",
+        "name": "CAS-ViT-T",
         "task": "reid",
         "class_name": "casvit_t",
         "summary": {
@@ -1967,7 +1967,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -2063,7 +2063,7 @@
     {
       "id": "casvit_t_seg_fpn_resnet50",
       "display": {
-        "name": "Casvit T Seg Fpn Resnet50",
+        "name": "CAS-ViT-T FPN (ResNet-50)",
         "task": "semantic_segmentation",
         "class_name": "casvit_t_seg_fpn_resnet50",
         "summary": {
@@ -2130,7 +2130,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_studio_catalog"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_studio_catalog"
@@ -2194,7 +2194,7 @@
     {
       "id": "centerpose_regnetx_1_6gf_fpn",
       "display": {
-        "name": "centerpose_regnetx_1.6gf_fpn",
+        "name": "CenterPose-FPN (RegNetX-1.6GF)",
         "task": "pose_estimation",
         "class_name": "centerpose_regnetx_1_6gf_fpn",
         "summary": {
@@ -2265,7 +2265,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -2363,7 +2363,7 @@
     {
       "id": "centerpose_regnetx_800mf",
       "display": {
-        "name": "centerpose_regnetx_800mf",
+        "name": "CenterPose (RegNetX-800MF)",
         "task": "pose_estimation",
         "class_name": "centerpose_regnetx_800mf",
         "summary": {
@@ -2434,7 +2434,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -2532,7 +2532,7 @@
     {
       "id": "centerpose_repvgg_a0",
       "display": {
-        "name": "centerpose_repvgg_a0",
+        "name": "CenterPose (RepVGG-A0)",
         "task": "pose_estimation",
         "class_name": "centerpose_repvgg_a0",
         "summary": {
@@ -2603,7 +2603,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -3022,7 +3022,7 @@
     {
       "id": "damoyolo_tinynasl20_m",
       "display": {
-        "name": "DamoYolo_tinynasL20_M",
+        "name": "DAMO-YOLO TinyNAS-L20M",
         "task": "object_detection",
         "class_name": "damoyolo_tinynasl20_m",
         "summary": {
@@ -3093,7 +3093,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -3192,7 +3192,7 @@
     {
       "id": "damoyolo_tinynasl20_t",
       "display": {
-        "name": "DamoYolo_tinynasL20_T",
+        "name": "DAMO-YOLO TinyNAS-L20T",
         "task": "object_detection",
         "class_name": "damoyolo_tinynasl20_t",
         "summary": {
@@ -3263,7 +3263,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -3362,7 +3362,7 @@
     {
       "id": "damoyolo_tinynasl25_s",
       "display": {
-        "name": "DamoYolo_tinynasL25_S",
+        "name": "DAMO-YOLO TinyNAS-L25S",
         "task": "object_detection",
         "class_name": "damoyolo_tinynasl25_s",
         "summary": {
@@ -3433,7 +3433,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -3532,7 +3532,7 @@
     {
       "id": "damoyolol",
       "display": {
-        "name": "DamoYoloL",
+        "name": "DAMO-YOLO-L",
         "task": "object_detection",
         "class_name": "damoyolol",
         "summary": {
@@ -3603,7 +3603,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -3702,7 +3702,7 @@
     {
       "id": "damoyolom",
       "display": {
-        "name": "DamoYoloM",
+        "name": "DAMO-YOLO-M",
         "task": "object_detection",
         "class_name": "damoyolom",
         "summary": {
@@ -3773,7 +3773,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -3872,7 +3872,7 @@
     {
       "id": "damoyolos",
       "display": {
-        "name": "DamoYoloS",
+        "name": "DAMO-YOLO-S",
         "task": "object_detection",
         "class_name": "damoyolos",
         "summary": {
@@ -3943,7 +3943,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -4042,7 +4042,7 @@
     {
       "id": "damoyolot",
       "display": {
-        "name": "DamoYoloT",
+        "name": "DAMO-YOLO-T",
         "task": "object_detection",
         "class_name": "damoyolot",
         "summary": {
@@ -4113,7 +4113,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -4533,7 +4533,7 @@
     {
       "id": "deeplab_v3_mobilenet_v2_wo_dilation_sim",
       "display": {
-        "name": "Deeplab V3 Mobilenet V2 Wo Dilation Sim",
+        "name": "DeepLabV3 (MobileNetV2, no-dilation)",
         "task": "semantic_segmentation",
         "class_name": "deeplab_v3_mobilenet_v2_wo_dilation_sim",
         "summary": {
@@ -4595,7 +4595,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_studio_catalog"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_studio_catalog"
@@ -4653,7 +4653,7 @@
     {
       "id": "deeplabv3_resnet101",
       "display": {
-        "name": "Deeplabv3 Resnet101",
+        "name": "DeepLabV3 (ResNet-101)",
         "task": "semantic_segmentation",
         "class_name": "deeplabv3_resnet101",
         "summary": {
@@ -4720,7 +4720,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_studio_catalog"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_studio_catalog"
@@ -4784,7 +4784,7 @@
     {
       "id": "deeplabv3_resnet50",
       "display": {
-        "name": "Deeplabv3 Resnet50",
+        "name": "DeepLabV3 (ResNet-50)",
         "task": "semantic_segmentation",
         "class_name": "deeplabv3_resnet50",
         "summary": {
@@ -4851,7 +4851,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_studio_catalog"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_studio_catalog"
@@ -4915,7 +4915,7 @@
     {
       "id": "deeplabv3mobilenetv2",
       "display": {
-        "name": "DeepLabV3MobileNetV2",
+        "name": "DeepLabV3 (MobileNetV2)",
         "task": "semantic_segmentation",
         "class_name": "deeplabv3mobilenetv2",
         "summary": {
@@ -4986,7 +4986,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -5082,7 +5082,7 @@
     {
       "id": "deeplabv3plus_drn_512x512",
       "display": {
-        "name": "deeplabv3plus-drn_512x512",
+        "name": "DeepLabV3+ (DRN)",
         "task": "semantic_segmentation",
         "class_name": "deeplabv3plus-drn_512x512",
         "summary": {
@@ -5144,7 +5144,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_modelzoo_repo"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_modelzoo_repo"
@@ -5205,7 +5205,7 @@
     {
       "id": "deeplabv3plus_resnet101",
       "display": {
-        "name": "Deeplabv3Plus Resnet101",
+        "name": "DeepLabV3+ (ResNet-101)",
         "task": "semantic_segmentation",
         "class_name": "deeplabv3plus_resnet101",
         "summary": {
@@ -5272,7 +5272,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_studio_catalog"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_studio_catalog"
@@ -5336,7 +5336,7 @@
     {
       "id": "deeplabv3plus_resnet50",
       "display": {
-        "name": "Deeplabv3Plus Resnet50",
+        "name": "DeepLabV3+ (ResNet-50)",
         "task": "semantic_segmentation",
         "class_name": "deeplabv3plus_resnet50",
         "summary": {
@@ -5403,7 +5403,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_studio_catalog"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_studio_catalog"
@@ -5467,7 +5467,7 @@
     {
       "id": "deeplabv3plusmobilenet",
       "display": {
-        "name": "DeepLabV3PlusMobilenet",
+        "name": "DeepLabV3+ (MobileNetV1)",
         "task": "semantic_segmentation",
         "class_name": "deeplabv3plusmobilenet",
         "summary": {
@@ -5538,7 +5538,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -5634,7 +5634,7 @@
     {
       "id": "deeplabv3plusmobilenetv2",
       "display": {
-        "name": "DeepLabV3PlusMobileNetV2",
+        "name": "DeepLabV3+ (MobileNetV2)",
         "task": "semantic_segmentation",
         "class_name": "deeplabv3plusmobilenetv2",
         "summary": {
@@ -5705,7 +5705,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -5801,7 +5801,7 @@
     {
       "id": "deepmar_resnet18_person_attr_resnet_v1_18",
       "display": {
-        "name": "deepmar_resnet18_person_attr_resnet_v1_18",
+        "name": "DeepMAR ResNet-18",
         "task": "attribute_recognition",
         "class_name": "deepmar_resnet18_person_attr_resnet_v1_18",
         "summary": {
@@ -5872,7 +5872,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -5968,7 +5968,7 @@
     {
       "id": "deepmar_resnet50",
       "display": {
-        "name": "deepmar_resnet50",
+        "name": "DeepMAR ResNet-50",
         "task": "attribute_recognition",
         "class_name": "deepmar_resnet50",
         "summary": {
@@ -6039,7 +6039,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -6135,7 +6135,7 @@
     {
       "id": "deit_base",
       "display": {
-        "name": "Deit Base",
+        "name": "DeiT-Base (224x224)",
         "task": "classification",
         "class_name": "deit_base",
         "summary": {
@@ -6202,7 +6202,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_studio_catalog"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_studio_catalog"
@@ -6266,7 +6266,7 @@
     {
       "id": "deit_base384_distilled",
       "display": {
-        "name": "DeiTBase384",
+        "name": "DeiT-Base (distilled, 384x384)",
         "task": "classification",
         "class_name": "deit_base384_distilled",
         "summary": {
@@ -6343,7 +6343,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -6447,7 +6447,7 @@
     {
       "id": "deit_base_distilled_1",
       "display": {
-        "name": "DeiTBaseDistilled-1",
+        "name": "DeiT-Base (distilled, 224x224)",
         "task": "classification",
         "class_name": "deit_base_distilled_1",
         "summary": {
@@ -6518,7 +6518,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -6616,7 +6616,7 @@
     {
       "id": "deit_small",
       "display": {
-        "name": "Deit Small",
+        "name": "DeiT-Small",
         "task": "classification",
         "class_name": "deit_small",
         "summary": {
@@ -6683,7 +6683,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_studio_catalog"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_studio_catalog"
@@ -6747,7 +6747,7 @@
     {
       "id": "deit_small_distilled",
       "display": {
-        "name": "Deit Small Distilled",
+        "name": "DeiT-Small (distilled)",
         "task": "classification",
         "class_name": "deit_small_distilled",
         "summary": {
@@ -6814,7 +6814,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_studio_catalog"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_studio_catalog"
@@ -6878,7 +6878,7 @@
     {
       "id": "deit_tiny",
       "display": {
-        "name": "Deit Tiny",
+        "name": "DeiT-Tiny",
         "task": "classification",
         "class_name": "deit_tiny",
         "summary": {
@@ -6945,7 +6945,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_studio_catalog"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_studio_catalog"
@@ -7009,7 +7009,7 @@
     {
       "id": "deit_tiny_distilled",
       "display": {
-        "name": "Deit Tiny Distilled",
+        "name": "DeiT-Tiny (distilled)",
         "task": "classification",
         "class_name": "deit_tiny_distilled",
         "summary": {
@@ -7076,7 +7076,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_studio_catalog"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_studio_catalog"
@@ -7140,7 +7140,7 @@
     {
       "id": "deitbase384",
       "display": {
-        "name": "DeiTBase384",
+        "name": "DeiT-Base (384x384)",
         "task": "classification",
         "class_name": "deitbase384",
         "summary": {
@@ -7211,7 +7211,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -7309,7 +7309,7 @@
     {
       "id": "densenet121",
       "display": {
-        "name": "DenseNet121",
+        "name": "DenseNet-121",
         "task": "classification",
         "class_name": "densenet121",
         "summary": {
@@ -7380,7 +7380,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -7478,7 +7478,7 @@
     {
       "id": "densenet161",
       "display": {
-        "name": "DenseNet161",
+        "name": "DenseNet-161",
         "task": "classification",
         "class_name": "densenet161",
         "summary": {
@@ -7549,7 +7549,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -7647,7 +7647,7 @@
     {
       "id": "densenet169",
       "display": {
-        "name": "DenseNet169",
+        "name": "DenseNet-169",
         "task": "classification",
         "class_name": "densenet169",
         "summary": {
@@ -7718,7 +7718,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -7816,7 +7816,7 @@
     {
       "id": "densenet201",
       "display": {
-        "name": "DenseNet201",
+        "name": "DenseNet-201",
         "task": "classification",
         "class_name": "densenet201",
         "summary": {
@@ -7887,7 +7887,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -7985,7 +7985,7 @@
     {
       "id": "depth_anything_v2_vitb",
       "display": {
-        "name": "Depth Anything V2 Vitb",
+        "name": "Depth-Anything-V2-ViT-B",
         "task": "depth_estimation",
         "class_name": "depth_anything_v2_vitb",
         "summary": {
@@ -8052,7 +8052,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_studio_catalog"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_studio_catalog"
@@ -8116,7 +8116,7 @@
     {
       "id": "depth_anything_v2_vitl",
       "display": {
-        "name": "Depth Anything V2 Vitl",
+        "name": "Depth-Anything-V2-ViT-L",
         "task": "depth_estimation",
         "class_name": "depth_anything_v2_vitl",
         "summary": {
@@ -8183,7 +8183,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_studio_catalog"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_studio_catalog"
@@ -8247,7 +8247,7 @@
     {
       "id": "depth_anything_v2_vits",
       "display": {
-        "name": "Depth Anything V2 Vits",
+        "name": "Depth-Anything-V2-ViT-S",
         "task": "depth_estimation",
         "class_name": "depth_anything_v2_vits",
         "summary": {
@@ -8314,7 +8314,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_studio_catalog"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_studio_catalog"
@@ -8378,7 +8378,7 @@
     {
       "id": "dncnn_15",
       "display": {
-        "name": "DnCNN_15",
+        "name": "DnCNN-15",
         "task": "image_denoising",
         "class_name": "dncnn_15",
         "summary": {
@@ -8449,7 +8449,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -8545,7 +8545,7 @@
     {
       "id": "dncnn_25",
       "display": {
-        "name": "DnCNN_25",
+        "name": "DnCNN-25",
         "task": "image_denoising",
         "class_name": "dncnn_25",
         "summary": {
@@ -8616,7 +8616,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -8712,7 +8712,7 @@
     {
       "id": "dncnn_50",
       "display": {
-        "name": "DnCNN_50",
+        "name": "DnCNN-50",
         "task": "image_denoising",
         "class_name": "dncnn_50",
         "summary": {
@@ -8783,7 +8783,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -8879,7 +8879,7 @@
     {
       "id": "dncnn_color_blind",
       "display": {
-        "name": "DnCNN_Color_Blind",
+        "name": "DnCNN-color",
         "task": "image_denoising",
         "class_name": "dncnn_color_blind",
         "summary": {
@@ -8950,7 +8950,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -9046,7 +9046,7 @@
     {
       "id": "dncnn_gray_blind",
       "display": {
-        "name": "DnCNN_Gray_Blind",
+        "name": "DnCNN-gray",
         "task": "image_denoising",
         "class_name": "dncnn_gray_blind",
         "summary": {
@@ -9117,7 +9117,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -9213,7 +9213,7 @@
     {
       "id": "dope_hope_ketchup",
       "display": {
-        "name": "Dope Hope Ketchup",
+        "name": "DOPE (HOPE Ketchup)",
         "task": "object_pose_estimation",
         "class_name": "dope_hope_ketchup",
         "summary": {
@@ -9280,7 +9280,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_studio_catalog"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_studio_catalog"
@@ -9665,7 +9665,7 @@
     {
       "id": "efficientdetd1",
       "display": {
-        "name": "EfficientDetD1",
+        "name": "EfficientDet-D1",
         "task": "object_detection",
         "class_name": "efficientdetd1",
         "summary": {
@@ -9736,7 +9736,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -9835,7 +9835,7 @@
     {
       "id": "efficientdetd2",
       "display": {
-        "name": "EfficientDetD2",
+        "name": "EfficientDet-D2",
         "task": "object_detection",
         "class_name": "efficientdetd2",
         "summary": {
@@ -9906,7 +9906,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -10005,7 +10005,7 @@
     {
       "id": "efficientdetd4",
       "display": {
-        "name": "EfficientDetD4",
+        "name": "EfficientDet-D4",
         "task": "object_detection",
         "class_name": "efficientdetd4",
         "summary": {
@@ -10071,7 +10071,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -10164,7 +10164,7 @@
     {
       "id": "efficientformer_l3",
       "display": {
-        "name": "efficientformer_l3",
+        "name": "EfficientFormer-L3",
         "task": "classification",
         "class_name": "efficientformer_l3",
         "summary": {
@@ -10235,7 +10235,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -10333,7 +10333,7 @@
     {
       "id": "efficientformer_l7",
       "display": {
-        "name": "efficientformer_l7",
+        "name": "EfficientFormer-L7",
         "task": "classification",
         "class_name": "efficientformer_l7",
         "summary": {
@@ -10404,7 +10404,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -10502,7 +10502,7 @@
     {
       "id": "efficientformerv2_l",
       "display": {
-        "name": "efficientformerv2_l",
+        "name": "EfficientFormerV2-L",
         "task": "classification",
         "class_name": "efficientformerv2_l",
         "summary": {
@@ -10573,7 +10573,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -10671,7 +10671,7 @@
     {
       "id": "efficientnet_lite0",
       "display": {
-        "name": "EfficientNet_Lite0",
+        "name": "EfficientNet-Lite0",
         "task": "classification",
         "class_name": "efficientnet_lite0",
         "summary": {
@@ -10742,7 +10742,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -10840,7 +10840,7 @@
     {
       "id": "efficientnet_lite1",
       "display": {
-        "name": "EfficientNet_Lite1",
+        "name": "EfficientNet-Lite1",
         "task": "classification",
         "class_name": "efficientnet_lite1",
         "summary": {
@@ -10911,7 +10911,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -11009,7 +11009,7 @@
     {
       "id": "efficientnet_lite2",
       "display": {
-        "name": "EfficientNet_Lite2",
+        "name": "EfficientNet-Lite2",
         "task": "classification",
         "class_name": "efficientnet_lite2",
         "summary": {
@@ -11080,7 +11080,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -11178,7 +11178,7 @@
     {
       "id": "efficientnet_lite3",
       "display": {
-        "name": "EfficientNet_Lite3",
+        "name": "EfficientNet-Lite3",
         "task": "classification",
         "class_name": "efficientnet_lite3",
         "summary": {
@@ -11249,7 +11249,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -11347,7 +11347,7 @@
     {
       "id": "efficientnet_lite4",
       "display": {
-        "name": "EfficientNet_Lite4",
+        "name": "EfficientNet-Lite4",
         "task": "classification",
         "class_name": "efficientnet_lite4",
         "summary": {
@@ -11418,7 +11418,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -11516,7 +11516,7 @@
     {
       "id": "efficientnetb2",
       "display": {
-        "name": "EfficientNetB2",
+        "name": "EfficientNet-B2",
         "task": "classification",
         "class_name": "efficientnetb2",
         "summary": {
@@ -11587,7 +11587,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -11685,7 +11685,7 @@
     {
       "id": "efficientnetb3",
       "display": {
-        "name": "EfficientNetB3",
+        "name": "EfficientNet-B3",
         "task": "classification",
         "class_name": "efficientnetb3",
         "summary": {
@@ -11756,7 +11756,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -11854,7 +11854,7 @@
     {
       "id": "efficientnetb4",
       "display": {
-        "name": "EfficientNetB4",
+        "name": "EfficientNet-B4",
         "task": "classification",
         "class_name": "efficientnetb4",
         "summary": {
@@ -11925,7 +11925,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -12023,7 +12023,7 @@
     {
       "id": "efficientnetb5",
       "display": {
-        "name": "EfficientNetB5",
+        "name": "EfficientNet-B5",
         "task": "classification",
         "class_name": "efficientnetb5",
         "summary": {
@@ -12094,7 +12094,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -12192,7 +12192,7 @@
     {
       "id": "efficientnetb6",
       "display": {
-        "name": "EfficientNetB6",
+        "name": "EfficientNet-B6",
         "task": "classification",
         "class_name": "efficientnetb6",
         "summary": {
@@ -12263,7 +12263,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -12361,7 +12361,7 @@
     {
       "id": "efficientnetb7",
       "display": {
-        "name": "EfficientNetB7-1",
+        "name": "EfficientNet-B7",
         "task": "classification",
         "class_name": "efficientnetb7",
         "summary": {
@@ -12432,7 +12432,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -12530,7 +12530,7 @@
     {
       "id": "efficientnetv2l",
       "display": {
-        "name": "EfficientNetV2L",
+        "name": "EfficientNetV2-L",
         "task": "classification",
         "class_name": "efficientnetv2l",
         "summary": {
@@ -12601,7 +12601,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -12699,7 +12699,7 @@
     {
       "id": "efficientnetv2m",
       "display": {
-        "name": "EfficientNetV2M-1",
+        "name": "EfficientNetV2-M",
         "task": "classification",
         "class_name": "efficientnetv2m",
         "summary": {
@@ -12770,7 +12770,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -12868,7 +12868,7 @@
     {
       "id": "efficientnetv2s",
       "display": {
-        "name": "EfficientNetV2S",
+        "name": "EfficientNetV2-S",
         "task": "classification",
         "class_name": "efficientnetv2s",
         "summary": {
@@ -12939,7 +12939,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -13037,7 +13037,7 @@
     {
       "id": "eigenplaces_resnet18",
       "display": {
-        "name": "Eigenplaces Resnet18",
+        "name": "EigenPlaces ResNet-18",
         "task": "embedding",
         "class_name": "eigenplaces_resnet18",
         "summary": {
@@ -13104,7 +13104,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_studio_catalog"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_studio_catalog"
@@ -13168,7 +13168,7 @@
     {
       "id": "eigenplaces_resnet50",
       "display": {
-        "name": "Eigenplaces Resnet50",
+        "name": "EigenPlaces ResNet-50",
         "task": "embedding",
         "class_name": "eigenplaces_resnet50",
         "summary": {
@@ -13235,7 +13235,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_studio_catalog"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_studio_catalog"
@@ -13299,7 +13299,7 @@
     {
       "id": "espcn_x2",
       "display": {
-        "name": "Espcn X2",
+        "name": "ESPCN-x2",
         "task": "super_resolution",
         "class_name": "espcn_x2",
         "summary": {
@@ -13366,7 +13366,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_studio_catalog"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_studio_catalog"
@@ -13430,7 +13430,7 @@
     {
       "id": "espcn_x3",
       "display": {
-        "name": "ESPCN_X3",
+        "name": "ESPCN-x3",
         "task": "super_resolution",
         "class_name": "espcn_x3",
         "summary": {
@@ -13501,7 +13501,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -13597,7 +13597,7 @@
     {
       "id": "espcn_x4",
       "display": {
-        "name": "ESPCN_X4",
+        "name": "ESPCN-x4",
         "task": "super_resolution",
         "class_name": "espcn_x4",
         "summary": {
@@ -13668,7 +13668,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -13764,7 +13764,7 @@
     {
       "id": "face_attr_resnet_v1_18",
       "display": {
-        "name": "face_attr_resnet_v1_18",
+        "name": "FaceAttr ResNet-18",
         "task": "attribute_recognition",
         "class_name": "face_attr_resnet_v1_18",
         "summary": {
@@ -13835,7 +13835,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -13931,7 +13931,7 @@
     {
       "id": "fastdepth_1",
       "display": {
-        "name": "FastDepth_1",
+        "name": "FastDepth",
         "task": "depth_estimation",
         "class_name": "fastdepth_1",
         "summary": {
@@ -14002,7 +14002,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -14268,7 +14268,7 @@
     {
       "id": "fastvit_ma36",
       "display": {
-        "name": "Fastvit Ma36",
+        "name": "FastViT-MA36",
         "task": "classification",
         "class_name": "fastvit_ma36",
         "summary": {
@@ -14335,7 +14335,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_studio_catalog"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_studio_catalog"
@@ -14399,7 +14399,7 @@
     {
       "id": "fastvit_sa24",
       "display": {
-        "name": "Fastvit Sa24",
+        "name": "FastViT-SA24",
         "task": "classification",
         "class_name": "fastvit_sa24",
         "summary": {
@@ -14466,7 +14466,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_studio_catalog"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_studio_catalog"
@@ -14530,7 +14530,7 @@
     {
       "id": "fastvit_sa36",
       "display": {
-        "name": "Fastvit Sa36",
+        "name": "FastViT-SA36",
         "task": "classification",
         "class_name": "fastvit_sa36",
         "summary": {
@@ -14597,7 +14597,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_studio_catalog"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_studio_catalog"
@@ -14661,7 +14661,7 @@
     {
       "id": "fcn8_resnet50",
       "display": {
-        "name": "Fcn8 Resnet50",
+        "name": "FCN-8s (ResNet-50)",
         "task": "semantic_segmentation",
         "class_name": "fcn8_resnet50",
         "summary": {
@@ -14728,7 +14728,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_studio_catalog"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_studio_catalog"
@@ -14792,7 +14792,7 @@
     {
       "id": "fcn8_resnet_v1_18",
       "display": {
-        "name": "Fcn8 Resnet V1 18",
+        "name": "FCN-8s (ResNet-18)",
         "task": "semantic_segmentation",
         "class_name": "fcn8_resnet_v1_18",
         "summary": {
@@ -14859,7 +14859,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_studio_catalog"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_studio_catalog"
@@ -14923,7 +14923,7 @@
     {
       "id": "ghostnet",
       "display": {
-        "name": "Ghostnet",
+        "name": "GhostNet",
         "task": "classification",
         "class_name": "ghostnet",
         "summary": {
@@ -14990,7 +14990,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_studio_catalog"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_studio_catalog"
@@ -15054,7 +15054,7 @@
     {
       "id": "handlandmarklite_1",
       "display": {
-        "name": "HandLandmarkLite_1",
+        "name": "MediaPipe Hands (Lite)",
         "task": "hand_landmark",
         "class_name": "handlandmarklite_1",
         "summary": {
@@ -15125,7 +15125,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -15223,7 +15223,7 @@
     {
       "id": "hardnet39ds",
       "display": {
-        "name": "HarDNet39DS",
+        "name": "HarDNet-39DS",
         "task": "classification",
         "class_name": "hardnet39ds",
         "summary": {
@@ -15294,7 +15294,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -15392,7 +15392,7 @@
     {
       "id": "hardnet68",
       "display": {
-        "name": "HarDNet68",
+        "name": "HarDNet-68",
         "task": "classification",
         "class_name": "hardnet68",
         "summary": {
@@ -15463,7 +15463,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -15561,7 +15561,7 @@
     {
       "id": "inceptionv1",
       "display": {
-        "name": "InceptionV1",
+        "name": "GoogLeNet (Inception v1)",
         "task": "classification",
         "class_name": "inceptionv1",
         "summary": {
@@ -15632,7 +15632,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -15730,7 +15730,7 @@
     {
       "id": "levit128",
       "display": {
-        "name": "LeViT128",
+        "name": "LeViT-128",
         "task": "classification",
         "class_name": "levit128",
         "summary": {
@@ -15801,7 +15801,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -15899,7 +15899,7 @@
     {
       "id": "levit192",
       "display": {
-        "name": "LeViT192",
+        "name": "LeViT-192",
         "task": "classification",
         "class_name": "levit192",
         "summary": {
@@ -15970,7 +15970,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -16068,7 +16068,7 @@
     {
       "id": "levit256",
       "display": {
-        "name": "LeViT256",
+        "name": "LeViT-256",
         "task": "classification",
         "class_name": "levit256",
         "summary": {
@@ -16139,7 +16139,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -16237,7 +16237,7 @@
     {
       "id": "levit384",
       "display": {
-        "name": "LeViT384",
+        "name": "LeViT-384",
         "task": "classification",
         "class_name": "levit384",
         "summary": {
@@ -16308,7 +16308,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -17028,7 +17028,7 @@
     {
       "id": "mediapipe_hand_detector",
       "display": {
-        "name": "Mediapipe Hand Detector",
+        "name": "MediaPipe Hand (Palm) Detector",
         "task": "hand_detection",
         "class_name": "mediapipe_hand_detector",
         "summary": {
@@ -17095,7 +17095,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_studio_catalog"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_studio_catalog"
@@ -17159,7 +17159,7 @@
     {
       "id": "mnasnet0_5",
       "display": {
-        "name": "MNASNet0_5",
+        "name": "MnasNet-0.5",
         "task": "classification",
         "class_name": "mnasnet0_5",
         "summary": {
@@ -17230,7 +17230,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -17328,7 +17328,7 @@
     {
       "id": "mnasnet0_75",
       "display": {
-        "name": "MNASNet0_75",
+        "name": "MnasNet-0.75",
         "task": "classification",
         "class_name": "mnasnet0_75",
         "summary": {
@@ -17399,7 +17399,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -17497,7 +17497,7 @@
     {
       "id": "mnasnet1_0",
       "display": {
-        "name": "MNASNet1_0",
+        "name": "MnasNet-1.0",
         "task": "classification",
         "class_name": "mnasnet1_0",
         "summary": {
@@ -17568,7 +17568,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -17666,7 +17666,7 @@
     {
       "id": "mnasnet1_3",
       "display": {
-        "name": "MNASNet1_3",
+        "name": "MnasNet-1.3",
         "task": "classification",
         "class_name": "mnasnet1_3",
         "summary": {
@@ -17737,7 +17737,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -18173,7 +18173,7 @@
     {
       "id": "mobilenetv3large",
       "display": {
-        "name": "MobileNetV3Large",
+        "name": "MobileNetV3-Large",
         "task": "classification",
         "class_name": "mobilenetv3large",
         "summary": {
@@ -18244,7 +18244,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -18342,7 +18342,7 @@
     {
       "id": "nanodet_repvgg",
       "display": {
-        "name": "NanoDet_RepVGG",
+        "name": "NanoDet",
         "task": "object_detection",
         "class_name": "nanodet_repvgg",
         "summary": {
@@ -18413,7 +18413,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -18512,7 +18512,7 @@
     {
       "id": "nanodet_repvgga1",
       "display": {
-        "name": "NanoDet_RepVGGA1",
+        "name": "NanoDet-RepVGG-A",
         "task": "object_detection",
         "class_name": "nanodet_repvgga1",
         "summary": {
@@ -18583,7 +18583,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -18682,7 +18682,7 @@
     {
       "id": "nanodet_repvgga12",
       "display": {
-        "name": "NanoDet_RepVGGA12",
+        "name": "NanoDet-RepVGG-A12",
         "task": "object_detection",
         "class_name": "nanodet_repvgga12",
         "summary": {
@@ -18753,7 +18753,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -18852,7 +18852,7 @@
     {
       "id": "nanodetplusm",
       "display": {
-        "name": "NanoDetPlusM",
+        "name": "NanoDet-Plus",
         "task": "object_detection",
         "class_name": "nanodetplusm",
         "summary": {
@@ -18923,7 +18923,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -19022,7 +19022,7 @@
     {
       "id": "nanodetplusm_15",
       "display": {
-        "name": "NanoDetPlusM_15",
+        "name": "NanoDet-Plus-1.5x",
         "task": "object_detection",
         "class_name": "nanodetplusm_15",
         "summary": {
@@ -19093,7 +19093,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -19299,7 +19299,7 @@
     {
       "id": "pidnet_s",
       "display": {
-        "name": "Pidnet S",
+        "name": "PIDNet-S",
         "task": "semantic_segmentation",
         "class_name": "pidnet_s",
         "summary": {
@@ -19366,7 +19366,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_studio_catalog"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_studio_catalog"
@@ -21445,7 +21445,7 @@
     {
       "id": "realesrgan_x2",
       "display": {
-        "name": "RealESRGAN_x2-1",
+        "name": "Real-ESRGAN-x2",
         "task": "super_resolution",
         "class_name": "realesrgan_x2",
         "summary": {
@@ -21516,7 +21516,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -21612,7 +21612,7 @@
     {
       "id": "realesrgan_x4",
       "display": {
-        "name": "RealESRGAN_x4-1",
+        "name": "Real-ESRGAN-x4",
         "task": "super_resolution",
         "class_name": "realesrgan_x4",
         "summary": {
@@ -21683,7 +21683,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -21779,7 +21779,7 @@
     {
       "id": "realesrgan_x8",
       "display": {
-        "name": "RealESRGAN_x8-1",
+        "name": "Real-ESRGAN-x8",
         "task": "super_resolution",
         "class_name": "realesrgan_x8",
         "summary": {
@@ -21850,7 +21850,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -22068,7 +22068,7 @@
     {
       "id": "regnetx16gf",
       "display": {
-        "name": "RegNetX16GF",
+        "name": "RegNetX-16GF",
         "task": "classification",
         "class_name": "regnetx16gf",
         "summary": {
@@ -22139,7 +22139,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -22237,7 +22237,7 @@
     {
       "id": "regnetx1_6gf",
       "display": {
-        "name": "RegNetX1_6GF",
+        "name": "RegNetX-1.6GF (v1)",
         "task": "classification",
         "class_name": "regnetx1_6gf",
         "summary": {
@@ -22308,7 +22308,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -22406,7 +22406,7 @@
     {
       "id": "regnetx32gf",
       "display": {
-        "name": "RegNetX32GF",
+        "name": "RegNetX-32GF",
         "task": "classification",
         "class_name": "regnetx32gf",
         "summary": {
@@ -22477,7 +22477,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -22575,7 +22575,7 @@
     {
       "id": "regnetx3_2gf",
       "display": {
-        "name": "RegNetX3_2GF",
+        "name": "RegNetX-3.2GF",
         "task": "classification",
         "class_name": "regnetx3_2gf",
         "summary": {
@@ -22646,7 +22646,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -22744,7 +22744,7 @@
     {
       "id": "regnetx400mf",
       "display": {
-        "name": "RegNetX400MF",
+        "name": "RegNetX-400MF",
         "task": "classification",
         "class_name": "regnetx400mf",
         "summary": {
@@ -22815,7 +22815,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -22913,7 +22913,7 @@
     {
       "id": "regnetx800mf",
       "display": {
-        "name": "RegNetX800MF",
+        "name": "RegNetX-800MF",
         "task": "classification",
         "class_name": "regnetx800mf",
         "summary": {
@@ -22984,7 +22984,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -23082,7 +23082,7 @@
     {
       "id": "regnetx8gf",
       "display": {
-        "name": "RegNetX8GF",
+        "name": "RegNetX-8GF",
         "task": "classification",
         "class_name": "regnetx8gf",
         "summary": {
@@ -23153,7 +23153,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -23251,7 +23251,7 @@
     {
       "id": "regnety16gf",
       "display": {
-        "name": "RegNetY16GF",
+        "name": "RegNetY-16GF",
         "task": "classification",
         "class_name": "regnety16gf",
         "summary": {
@@ -23322,7 +23322,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -23420,7 +23420,7 @@
     {
       "id": "regnety1_6gf",
       "display": {
-        "name": "RegNetY1_6GF",
+        "name": "RegNetY-1.6GF",
         "task": "classification",
         "class_name": "regnety1_6gf",
         "summary": {
@@ -23491,7 +23491,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -23589,7 +23589,7 @@
     {
       "id": "regnety200mf",
       "display": {
-        "name": "RegNetY200MF",
+        "name": "RegNetY-200MF",
         "task": "classification",
         "class_name": "regnety200mf",
         "summary": {
@@ -23660,7 +23660,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -23758,7 +23758,7 @@
     {
       "id": "regnety32gf",
       "display": {
-        "name": "RegNetY32GF",
+        "name": "RegNetY-32GF",
         "task": "classification",
         "class_name": "regnety32gf",
         "summary": {
@@ -23829,7 +23829,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -23927,7 +23927,7 @@
     {
       "id": "regnety3_2gf",
       "display": {
-        "name": "RegNetY3_2GF",
+        "name": "RegNetY-3.2GF",
         "task": "classification",
         "class_name": "regnety3_2gf",
         "summary": {
@@ -23998,7 +23998,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -24096,7 +24096,7 @@
     {
       "id": "regnety400mf",
       "display": {
-        "name": "RegNetY400MF",
+        "name": "RegNetY-400MF",
         "task": "classification",
         "class_name": "regnety400mf",
         "summary": {
@@ -24167,7 +24167,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -24265,7 +24265,7 @@
     {
       "id": "regnety800mf",
       "display": {
-        "name": "RegNetY800MF",
+        "name": "RegNetY-800MF",
         "task": "classification",
         "class_name": "regnety800mf",
         "summary": {
@@ -24336,7 +24336,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -24434,7 +24434,7 @@
     {
       "id": "regnety8gf",
       "display": {
-        "name": "RegNetY8GF",
+        "name": "RegNetY-8GF",
         "task": "classification",
         "class_name": "regnety8gf",
         "summary": {
@@ -24505,7 +24505,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -24603,7 +24603,7 @@
     {
       "id": "repghost_2_0x",
       "display": {
-        "name": "Repghost 2 0X",
+        "name": "RepGhost-2.0x",
         "task": "classification",
         "class_name": "repghost_2_0x",
         "summary": {
@@ -24670,7 +24670,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_studio_catalog"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_studio_catalog"
@@ -24734,7 +24734,7 @@
     {
       "id": "repvgg_a0",
       "display": {
-        "name": "Repvgg A0",
+        "name": "RepVGG-A0",
         "task": "classification",
         "class_name": "repvgg_a0",
         "summary": {
@@ -24801,7 +24801,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_studio_catalog"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_studio_catalog"
@@ -24972,7 +24972,7 @@
     {
       "id": "repvgg_a1",
       "display": {
-        "name": "Repvgg A1",
+        "name": "RepVGG-A1",
         "task": "classification",
         "class_name": "repvgg_a1",
         "summary": {
@@ -25039,7 +25039,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_studio_catalog"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_studio_catalog"
@@ -25103,7 +25103,7 @@
     {
       "id": "repvgg_a2",
       "display": {
-        "name": "Repvgg A2",
+        "name": "RepVGG-A2",
         "task": "classification",
         "class_name": "repvgg_a2",
         "summary": {
@@ -25170,7 +25170,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_studio_catalog"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_studio_catalog"
@@ -25234,7 +25234,7 @@
     {
       "id": "repvgg_b0",
       "display": {
-        "name": "Repvgg B0",
+        "name": "RepVGG-B0",
         "task": "classification",
         "class_name": "repvgg_b0",
         "summary": {
@@ -25301,7 +25301,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_studio_catalog"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_studio_catalog"
@@ -25365,7 +25365,7 @@
     {
       "id": "repvgg_b1",
       "display": {
-        "name": "Repvgg B1",
+        "name": "RepVGG-B1",
         "task": "classification",
         "class_name": "repvgg_b1",
         "summary": {
@@ -25432,7 +25432,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_studio_catalog"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_studio_catalog"
@@ -25496,7 +25496,7 @@
     {
       "id": "resmlp24",
       "display": {
-        "name": "Resmlp24",
+        "name": "ResMLP-24",
         "task": "classification",
         "class_name": "resmlp24",
         "summary": {
@@ -25563,7 +25563,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_studio_catalog"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_studio_catalog"
@@ -25627,7 +25627,7 @@
     {
       "id": "resnet101",
       "display": {
-        "name": "ResNet101",
+        "name": "ResNet-101",
         "task": "classification",
         "class_name": "resnet101",
         "summary": {
@@ -25698,7 +25698,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -25796,7 +25796,7 @@
     {
       "id": "resnet152",
       "display": {
-        "name": "ResNet152",
+        "name": "ResNet-152",
         "task": "classification",
         "class_name": "resnet152",
         "summary": {
@@ -25867,7 +25867,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -25965,7 +25965,7 @@
     {
       "id": "resnet18",
       "display": {
-        "name": "ResNet18",
+        "name": "ResNet-18",
         "task": "classification",
         "class_name": "resnet18",
         "summary": {
@@ -26036,7 +26036,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -26134,7 +26134,7 @@
     {
       "id": "resnet18_224x224_brecq",
       "display": {
-        "name": "resnet18_224x224_brecq",
+        "name": "ResNet-18 (BRECQ)",
         "task": "image_classification",
         "class_name": "resnet18_224x224_brecq",
         "summary": {
@@ -26199,7 +26199,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_modelzoo_repo"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_modelzoo_repo"
@@ -26274,7 +26274,7 @@
     {
       "id": "resnet34",
       "display": {
-        "name": "ResNet34",
+        "name": "ResNet-34",
         "task": "classification",
         "class_name": "resnet34",
         "summary": {
@@ -26345,7 +26345,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -26443,7 +26443,7 @@
     {
       "id": "resnet50",
       "display": {
-        "name": "ResNet50",
+        "name": "ResNet-50",
         "task": "classification",
         "class_name": "resnet50",
         "summary": {
@@ -26514,7 +26514,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -26612,7 +26612,7 @@
     {
       "id": "resnext101_32x8d",
       "display": {
-        "name": "Resnext101 32X8D",
+        "name": "ResNeXt-101 (32x8d)",
         "task": "classification",
         "class_name": "resnext101_32x8d",
         "summary": {
@@ -26679,7 +26679,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_studio_catalog"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_studio_catalog"
@@ -26743,7 +26743,7 @@
     {
       "id": "resnext101_64x4d",
       "display": {
-        "name": "ResNeXt101_64x4d",
+        "name": "ResNeXt-101 (64x4d)",
         "task": "classification",
         "class_name": "resnext101_64x4d",
         "summary": {
@@ -26814,7 +26814,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -26912,7 +26912,7 @@
     {
       "id": "resnext26_32x4d",
       "display": {
-        "name": "ResNeXt26_32x4d",
+        "name": "ResNeXt-26 (32x4d)",
         "task": "classification",
         "class_name": "resnext26_32x4d",
         "summary": {
@@ -26983,7 +26983,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -27081,7 +27081,7 @@
     {
       "id": "resnext50_32x4d",
       "display": {
-        "name": "ResNeXt50_32x4d",
+        "name": "ResNeXt-50 (32x4d)",
         "task": "classification",
         "class_name": "resnext50_32x4d",
         "summary": {
@@ -27152,7 +27152,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -27250,7 +27250,7 @@
     {
       "id": "resnext50_32x4d_224x224_imgclsmob",
       "display": {
-        "name": "resnext50-32x4d_224x224_imgclsmob",
+        "name": "ResNeXt-50 (32x4d, imgclsmob)",
         "task": "image_classification",
         "class_name": "resnext50-32x4d_224x224_imgclsmob",
         "summary": {
@@ -27315,7 +27315,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_modelzoo_repo"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_modelzoo_repo"
@@ -27390,7 +27390,7 @@
     {
       "id": "retinaface_mobilenet0_25_640",
       "display": {
-        "name": "retinaface_mobilenet0.25_640",
+        "name": "RetinaFace (MobileNet-0.25)",
         "task": "face_detection",
         "class_name": "retinaface_mobilenet0_25_640",
         "summary": {
@@ -27461,7 +27461,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -27560,7 +27560,7 @@
     {
       "id": "retinaface_mobilenet_v1_736x1280",
       "display": {
-        "name": "Retinaface Mobilenet V1 736X1280",
+        "name": "RetinaFace (MobileNetV1)",
         "task": "face_detection",
         "class_name": "retinaface_mobilenet_v1_736x1280",
         "summary": {
@@ -27627,7 +27627,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_studio_catalog"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_studio_catalog"
@@ -27691,7 +27691,7 @@
     {
       "id": "rn50x16_openai",
       "display": {
-        "name": "Rn50X16 Openai",
+        "name": "CLIP ResNet-50x16 (OpenAI WIT)",
         "task": "embedding",
         "class_name": "rn50x16_openai",
         "summary": {
@@ -27758,7 +27758,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_studio_catalog"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_studio_catalog"
@@ -29427,7 +29427,7 @@
     {
       "id": "scdepthv3",
       "display": {
-        "name": "scdepthv3",
+        "name": "SC-DepthV3",
         "task": "depth_estimation",
         "class_name": "scdepthv3",
         "summary": {
@@ -29498,7 +29498,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -29594,7 +29594,7 @@
     {
       "id": "scrfd10g",
       "display": {
-        "name": "SCRFD10G",
+        "name": "SCRFD-10G",
         "task": "face_detection",
         "class_name": "scrfd10g",
         "summary": {
@@ -29665,7 +29665,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -29764,7 +29764,7 @@
     {
       "id": "scrfd2_5g",
       "display": {
-        "name": "SCRFD2_5G",
+        "name": "SCRFD-2.5G",
         "task": "face_detection",
         "class_name": "scrfd2_5g",
         "summary": {
@@ -29835,7 +29835,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -29935,7 +29935,7 @@
     {
       "id": "scrfd500m",
       "display": {
-        "name": "SCRFD500M",
+        "name": "SCRFD-500M",
         "task": "face_detection",
         "class_name": "scrfd500m",
         "summary": {
@@ -30006,7 +30006,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -30106,7 +30106,7 @@
     {
       "id": "segformer_b0_512x1024",
       "display": {
-        "name": "segformer_b0_512x1024",
+        "name": "SegFormer (MiT-B0)",
         "task": "semantic_segmentation",
         "class_name": "segformer_b0_512x1024",
         "summary": {
@@ -30177,7 +30177,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -30273,7 +30273,7 @@
     {
       "id": "sfa3d_608x608",
       "display": {
-        "name": "sfa3d_608x608",
+        "name": "SFA3D",
         "task": "3d_object_detection",
         "class_name": "sfa3d_608x608",
         "summary": {
@@ -30339,7 +30339,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_modelzoo_repo"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_modelzoo_repo"
@@ -30422,7 +30422,7 @@
     {
       "id": "shufflenetv1x1_0",
       "display": {
-        "name": "ShuffleNetV1X1_0",
+        "name": "ShuffleNetV1-x1.0",
         "task": "classification",
         "class_name": "shufflenetv1x1_0",
         "summary": {
@@ -30493,7 +30493,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -30591,7 +30591,7 @@
     {
       "id": "shufflenetv2x0_5",
       "display": {
-        "name": "ShuffleNetV2X0_5",
+        "name": "ShuffleNetV2-x0.5",
         "task": "classification",
         "class_name": "shufflenetv2x0_5",
         "summary": {
@@ -30662,7 +30662,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -30760,7 +30760,7 @@
     {
       "id": "shufflenetv2x1_0",
       "display": {
-        "name": "ShuffleNetV2X1_0",
+        "name": "ShuffleNetV2-x1.0",
         "task": "classification",
         "class_name": "shufflenetv2x1_0",
         "summary": {
@@ -30831,7 +30831,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -30929,7 +30929,7 @@
     {
       "id": "shufflenetv2x1_5",
       "display": {
-        "name": "ShuffleNetV2X1_5",
+        "name": "ShuffleNetV2-x1.5",
         "task": "classification",
         "class_name": "shufflenetv2x1_5",
         "summary": {
@@ -31000,7 +31000,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -31098,7 +31098,7 @@
     {
       "id": "shufflenetv2x2_0",
       "display": {
-        "name": "ShuffleNetV2X2_0",
+        "name": "ShuffleNetV2-x2.0",
         "task": "classification",
         "class_name": "shufflenetv2x2_0",
         "summary": {
@@ -31169,7 +31169,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -31267,7 +31267,7 @@
     {
       "id": "squeezenet1_0",
       "display": {
-        "name": "SqueezeNet1_0",
+        "name": "SqueezeNet-1.0",
         "task": "classification",
         "class_name": "squeezenet1_0",
         "summary": {
@@ -31338,7 +31338,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -31436,7 +31436,7 @@
     {
       "id": "squeezenet1_1",
       "display": {
-        "name": "SqueezeNet1_1",
+        "name": "SqueezeNet-1.1",
         "task": "classification",
         "class_name": "squeezenet1_1",
         "summary": {
@@ -31507,7 +31507,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -31605,7 +31605,7 @@
     {
       "id": "ssdmv1",
       "display": {
-        "name": "SSDMV1",
+        "name": "SSD (MobileNetV1)",
         "task": "object_detection",
         "class_name": "ssdmv1",
         "summary": {
@@ -31676,7 +31676,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -31775,7 +31775,7 @@
     {
       "id": "ssdmv2lite",
       "display": {
-        "name": "SSDMV2Lite",
+        "name": "SSD (MobileNetV2-Lite)",
         "task": "object_detection",
         "class_name": "ssdmv2lite",
         "summary": {
@@ -31846,7 +31846,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -31945,7 +31945,7 @@
     {
       "id": "ssdvgg16",
       "display": {
-        "name": "SSDVGG16",
+        "name": "SSD (VGG-16)",
         "task": "object_detection",
         "class_name": "ssdvgg16",
         "summary": {
@@ -32016,7 +32016,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -32329,7 +32329,7 @@
     {
       "id": "stdc2_model_maxmiou50",
       "display": {
-        "name": "Stdc2 Model Maxmiou50",
+        "name": "STDC2-Seg50",
         "task": "semantic_segmentation",
         "class_name": "stdc2_model_maxmiou50",
         "summary": {
@@ -32396,7 +32396,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_studio_catalog"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_studio_catalog"
@@ -32567,7 +32567,7 @@
     {
       "id": "superpoint",
       "display": {
-        "name": "Superpoint",
+        "name": "SuperPoint",
         "task": "keypoint_detection",
         "class_name": "superpoint",
         "summary": {
@@ -32634,7 +32634,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_studio_catalog"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_studio_catalog"
@@ -32805,7 +32805,7 @@
     {
       "id": "ulfgfd_rfb_320",
       "display": {
-        "name": "ulfgfd-RFB-320",
+        "name": "ULFGFD-RFB (240x320)",
         "task": "face_detection",
         "class_name": "ulfgfd_rfb_320",
         "summary": {
@@ -32876,7 +32876,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -32975,7 +32975,7 @@
     {
       "id": "ulfgfd_rfb_320_without_postprocessing",
       "display": {
-        "name": "ulfgfd-RFB-320_without_postprocessing",
+        "name": "ULFGFD-RFB (no-PP)",
         "task": "face_detection",
         "class_name": "ulfgfd_rfb_320_without_postprocessing",
         "summary": {
@@ -33046,7 +33046,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -33145,7 +33145,7 @@
     {
       "id": "ulfgfd_rfb_640",
       "display": {
-        "name": "ulfgfd-RFB-640",
+        "name": "ULFGFD-RFB (480x640)",
         "task": "face_detection",
         "class_name": "ulfgfd_rfb_640",
         "summary": {
@@ -33216,7 +33216,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -33315,7 +33315,7 @@
     {
       "id": "ulfgfd_slim_320",
       "display": {
-        "name": "ulfgfd-slim-320",
+        "name": "ULFGFD-Slim",
         "task": "face_detection",
         "class_name": "ulfgfd_slim_320",
         "summary": {
@@ -33386,7 +33386,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -33485,7 +33485,7 @@
     {
       "id": "ulfgfd_slim_320_without_postprocessing",
       "display": {
-        "name": "ulfgfd-slim-320_without_postprocessing",
+        "name": "ULFGFD-Slim (no-PP)",
         "task": "face_detection",
         "class_name": "ulfgfd_slim_320_without_postprocessing",
         "summary": {
@@ -33556,7 +33556,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -33655,7 +33655,7 @@
     {
       "id": "unet_mobilenet_v2",
       "display": {
-        "name": "unet_mobilenet_v2",
+        "name": "U-Net (MobileNetV2)",
         "task": "semantic_segmentation",
         "class_name": "unet_mobilenet_v2",
         "summary": {
@@ -33726,7 +33726,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -33822,7 +33822,7 @@
     {
       "id": "vgg11",
       "display": {
-        "name": "VGG11",
+        "name": "VGG-11",
         "task": "classification",
         "class_name": "vgg11",
         "summary": {
@@ -33893,7 +33893,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -33991,7 +33991,7 @@
     {
       "id": "vgg11bn",
       "display": {
-        "name": "VGG11BN",
+        "name": "VGG-11 (BN)",
         "task": "classification",
         "class_name": "vgg11bn",
         "summary": {
@@ -34062,7 +34062,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -34160,7 +34160,7 @@
     {
       "id": "vgg13",
       "display": {
-        "name": "VGG13",
+        "name": "VGG-13",
         "task": "classification",
         "class_name": "vgg13",
         "summary": {
@@ -34231,7 +34231,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -34329,7 +34329,7 @@
     {
       "id": "vgg13bn",
       "display": {
-        "name": "VGG13BN",
+        "name": "VGG-13 (BN)",
         "task": "classification",
         "class_name": "vgg13bn",
         "summary": {
@@ -34400,7 +34400,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -34498,7 +34498,7 @@
     {
       "id": "vgg16",
       "display": {
-        "name": "VGG16",
+        "name": "VGG-16",
         "task": "classification",
         "class_name": "vgg16",
         "summary": {
@@ -34569,7 +34569,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -34667,7 +34667,7 @@
     {
       "id": "vgg16bn",
       "display": {
-        "name": "VGG16BN",
+        "name": "VGG-16 (BN)",
         "task": "classification",
         "class_name": "vgg16bn",
         "summary": {
@@ -34738,7 +34738,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -34836,7 +34836,7 @@
     {
       "id": "vgg19",
       "display": {
-        "name": "VGG19",
+        "name": "VGG-19",
         "task": "classification",
         "class_name": "vgg19",
         "summary": {
@@ -34907,7 +34907,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -35005,7 +35005,7 @@
     {
       "id": "vgg19bn",
       "display": {
-        "name": "VGG19BN",
+        "name": "VGG-19 (BN)",
         "task": "classification",
         "class_name": "vgg19bn",
         "summary": {
@@ -35076,7 +35076,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -35174,7 +35174,7 @@
     {
       "id": "vit_b_32_256_datacomp_s34b_b86k",
       "display": {
-        "name": "Vit B 32 256 Datacomp S34B B86K",
+        "name": "CLIP ViT-B/32 (DataComp)",
         "task": "embedding",
         "class_name": "vit_b_32_256_datacomp_s34b_b86k",
         "summary": {
@@ -35241,7 +35241,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_studio_catalog"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_studio_catalog"
@@ -35400,7 +35400,7 @@
     {
       "id": "vit_base_bn",
       "display": {
-        "name": "Vit Base Bn",
+        "name": "ViT-Base/16 (BN)",
         "task": "classification",
         "class_name": "vit_base_bn",
         "summary": {
@@ -35467,7 +35467,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_studio_catalog"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_studio_catalog"
@@ -35531,7 +35531,7 @@
     {
       "id": "vit_base_p16",
       "display": {
-        "name": "Vit Base P16",
+        "name": "ViT-Base/16",
         "task": "classification",
         "class_name": "vit_base_p16",
         "summary": {
@@ -35598,7 +35598,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_studio_catalog"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_studio_catalog"
@@ -35662,7 +35662,7 @@
     {
       "id": "vit_l_14_datacomp_xl_s13b_b90k",
       "display": {
-        "name": "Vit L 14 Datacomp Xl S13B B90K",
+        "name": "CLIP ViT-L/14 (DataComp-XL)",
         "task": "embedding",
         "class_name": "vit_l_14_datacomp_xl_s13b_b90k",
         "summary": {
@@ -35729,7 +35729,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_studio_catalog"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_studio_catalog"
@@ -35793,7 +35793,7 @@
     {
       "id": "vit_l_14_quickgelu_dfn2b",
       "display": {
-        "name": "Vit L 14 Quickgelu Dfn2B",
+        "name": "CLIP ViT-L/14 QuickGELU (DFN-2B)",
         "task": "embedding",
         "class_name": "vit_l_14_quickgelu_dfn2b",
         "summary": {
@@ -35860,7 +35860,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_studio_catalog"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_studio_catalog"
@@ -36031,7 +36031,7 @@
     {
       "id": "vit_pose_small_bn",
       "display": {
-        "name": "Vit Pose Small Bn",
+        "name": "ViTPose-S",
         "task": "pose_estimation",
         "class_name": "vit_pose_small_bn",
         "summary": {
@@ -36098,7 +36098,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_studio_catalog"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_studio_catalog"
@@ -36162,7 +36162,7 @@
     {
       "id": "vit_small_p16",
       "display": {
-        "name": "Vit Small P16",
+        "name": "ViT-Small/16",
         "task": "classification",
         "class_name": "vit_small_p16",
         "summary": {
@@ -36229,7 +36229,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_studio_catalog"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_studio_catalog"
@@ -36388,7 +36388,7 @@
     {
       "id": "vitb32",
       "display": {
-        "name": "ViTB32",
+        "name": "ViT-Base/32",
         "task": "classification",
         "class_name": "vitb32",
         "summary": {
@@ -36459,7 +36459,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -36557,7 +36557,7 @@
     {
       "id": "vitl32",
       "display": {
-        "name": "ViTL32",
+        "name": "ViT-Large/32",
         "task": "classification",
         "class_name": "vitl32",
         "summary": {
@@ -36628,7 +36628,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -36726,7 +36726,7 @@
     {
       "id": "wideresnet101_2",
       "display": {
-        "name": "WideResNet101_2",
+        "name": "Wide-ResNet-101-2",
         "task": "classification",
         "class_name": "wideresnet101_2",
         "summary": {
@@ -36797,7 +36797,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -36895,7 +36895,7 @@
     {
       "id": "wideresnet50_2",
       "display": {
-        "name": "WideResNet50_2",
+        "name": "Wide-ResNet-50-2",
         "task": "classification",
         "class_name": "wideresnet50_2",
         "summary": {
@@ -36966,7 +36966,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -37064,7 +37064,7 @@
     {
       "id": "yolact_regnetx_1_6gf",
       "display": {
-        "name": "yolact_regnetx_1.6gf",
+        "name": "YOLACT (RegNetX-1.6GF)",
         "task": "instance_segmentation",
         "class_name": "yolact_regnetx_1_6gf",
         "summary": {
@@ -37135,7 +37135,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -37234,7 +37234,7 @@
     {
       "id": "yolact_regnetx_800mf",
       "display": {
-        "name": "yolact_regnetx_800mf",
+        "name": "YOLACT (RegNetX-800MF)",
         "task": "instance_segmentation",
         "class_name": "yolact_regnetx_800mf",
         "summary": {
@@ -37305,7 +37305,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -39105,7 +39105,7 @@
     {
       "id": "yolo11l_seg",
       "display": {
-        "name": "yolo11-l-seg-1",
+        "name": "Ultralytics YOLO11-l-seg",
         "task": "instance_segmentation",
         "class_name": "yolo11l_seg",
         "summary": {
@@ -39176,7 +39176,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -39276,7 +39276,7 @@
     {
       "id": "yolo11m_pose",
       "display": {
-        "name": "yolo11-m-pose-1",
+        "name": "Ultralytics YOLO11-m-pose",
         "task": "pose_estimation",
         "class_name": "yolo11m_pose",
         "summary": {
@@ -39347,7 +39347,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -39447,7 +39447,7 @@
     {
       "id": "yolo11m_seg",
       "display": {
-        "name": "yolo11-m-seg-1",
+        "name": "Ultralytics YOLO11-m-seg",
         "task": "instance_segmentation",
         "class_name": "yolo11m_seg",
         "summary": {
@@ -39518,7 +39518,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -39618,7 +39618,7 @@
     {
       "id": "yolo11n_pose",
       "display": {
-        "name": "yolo11-n-pose-1",
+        "name": "Ultralytics YOLO11-n-pose",
         "task": "pose_estimation",
         "class_name": "yolo11n_pose",
         "summary": {
@@ -39689,7 +39689,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -39789,7 +39789,7 @@
     {
       "id": "yolo11n_seg",
       "display": {
-        "name": "yolo11-n-seg-1",
+        "name": "Ultralytics YOLO11-n-seg",
         "task": "instance_segmentation",
         "class_name": "yolo11n_seg",
         "summary": {
@@ -39860,7 +39860,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -39960,7 +39960,7 @@
     {
       "id": "yolo11s_pose",
       "display": {
-        "name": "yolo11-s-pose-1",
+        "name": "Ultralytics YOLO11-s-pose",
         "task": "pose_estimation",
         "class_name": "yolo11s_pose",
         "summary": {
@@ -40031,7 +40031,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -40131,7 +40131,7 @@
     {
       "id": "yolo11s_seg",
       "display": {
-        "name": "yolo11-s-seg-1",
+        "name": "Ultralytics YOLO11-s-seg",
         "task": "instance_segmentation",
         "class_name": "yolo11s_seg",
         "summary": {
@@ -40202,7 +40202,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -40302,7 +40302,7 @@
     {
       "id": "yolo11x_pose",
       "display": {
-        "name": "yolo11-x-pose-1",
+        "name": "Ultralytics YOLO11-x-pose",
         "task": "pose_estimation",
         "class_name": "yolo11x_pose",
         "summary": {
@@ -40373,7 +40373,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -40473,7 +40473,7 @@
     {
       "id": "yolo11x_seg",
       "display": {
-        "name": "yolo11-x-seg-1",
+        "name": "Ultralytics YOLO11-x-seg",
         "task": "instance_segmentation",
         "class_name": "yolo11x_seg",
         "summary": {
@@ -40544,7 +40544,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -40644,7 +40644,7 @@
     {
       "id": "yolo26_depth_l_768x768",
       "display": {
-        "name": "yolo26-depth-l_768x768",
+        "name": "Ultralytics YOLO26-l-depth",
         "task": "depth_estimation",
         "class_name": "yolo26-depth-l_768x768",
         "summary": {
@@ -40704,7 +40704,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_modelzoo_repo"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_modelzoo_repo"
@@ -40773,7 +40773,7 @@
     {
       "id": "yolo26_depth_m_768x768",
       "display": {
-        "name": "yolo26-depth-m_768x768",
+        "name": "Ultralytics YOLO26-m-depth",
         "task": "depth_estimation",
         "class_name": "yolo26-depth-m_768x768",
         "summary": {
@@ -40833,7 +40833,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_modelzoo_repo"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_modelzoo_repo"
@@ -40902,7 +40902,7 @@
     {
       "id": "yolo26_depth_n_768x768",
       "display": {
-        "name": "yolo26-depth-n_768x768",
+        "name": "Ultralytics YOLO26-n-depth",
         "task": "depth_estimation",
         "class_name": "yolo26-depth-n_768x768",
         "summary": {
@@ -40962,7 +40962,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_modelzoo_repo"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_modelzoo_repo"
@@ -41031,7 +41031,7 @@
     {
       "id": "yolo26_depth_s_768x768",
       "display": {
-        "name": "yolo26-depth-s_768x768",
+        "name": "Ultralytics YOLO26-s-depth",
         "task": "depth_estimation",
         "class_name": "yolo26-depth-s_768x768",
         "summary": {
@@ -41091,7 +41091,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_modelzoo_repo"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_modelzoo_repo"
@@ -41160,7 +41160,7 @@
     {
       "id": "yolo26_depth_x_768x768",
       "display": {
-        "name": "yolo26-depth-x_768x768",
+        "name": "Ultralytics YOLO26-x-depth",
         "task": "depth_estimation",
         "class_name": "yolo26-depth-x_768x768",
         "summary": {
@@ -41220,7 +41220,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_modelzoo_repo"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_modelzoo_repo"
@@ -42359,7 +42359,7 @@
     {
       "id": "yolo26l",
       "display": {
-        "name": "yolo26l",
+        "name": "Ultralytics YOLO26-l",
         "task": "object_detection",
         "class_name": "yolo26l",
         "summary": {
@@ -42430,7 +42430,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -42529,7 +42529,7 @@
     {
       "id": "yolo26l_cls",
       "display": {
-        "name": "yolo26l-cls",
+        "name": "Ultralytics YOLO26-l-cls",
         "task": "classification",
         "class_name": "yolo26l_cls",
         "summary": {
@@ -42600,7 +42600,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -42698,7 +42698,7 @@
     {
       "id": "yolo26l_obb",
       "display": {
-        "name": "yolo26l-obb",
+        "name": "Ultralytics YOLO26-l-obb",
         "task": "obb_detection",
         "class_name": "yolo26l_obb",
         "summary": {
@@ -42769,7 +42769,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -42867,7 +42867,7 @@
     {
       "id": "yolo26l_pose",
       "display": {
-        "name": "yolo26l-pose",
+        "name": "Ultralytics YOLO26-l-pose",
         "task": "pose_estimation",
         "class_name": "yolo26l_pose",
         "summary": {
@@ -42938,7 +42938,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -43037,7 +43037,7 @@
     {
       "id": "yolo26l_seg",
       "display": {
-        "name": "yolo26l-seg",
+        "name": "Ultralytics YOLO26-l-seg",
         "task": "instance_segmentation",
         "class_name": "yolo26l_seg",
         "summary": {
@@ -43108,7 +43108,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -43207,7 +43207,7 @@
     {
       "id": "yolo26m",
       "display": {
-        "name": "yolo26m",
+        "name": "Ultralytics YOLO26-m",
         "task": "object_detection",
         "class_name": "yolo26m",
         "summary": {
@@ -43278,7 +43278,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -43377,7 +43377,7 @@
     {
       "id": "yolo26m_cls",
       "display": {
-        "name": "yolo26m-cls",
+        "name": "Ultralytics YOLO26-m-cls",
         "task": "classification",
         "class_name": "yolo26m_cls",
         "summary": {
@@ -43448,7 +43448,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -43546,7 +43546,7 @@
     {
       "id": "yolo26m_obb",
       "display": {
-        "name": "yolo26m-obb",
+        "name": "Ultralytics YOLO26-m-obb",
         "task": "obb_detection",
         "class_name": "yolo26m_obb",
         "summary": {
@@ -43617,7 +43617,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -43715,7 +43715,7 @@
     {
       "id": "yolo26m_pose",
       "display": {
-        "name": "yolo26m-pose",
+        "name": "Ultralytics YOLO26-m-pose",
         "task": "pose_estimation",
         "class_name": "yolo26m_pose",
         "summary": {
@@ -43786,7 +43786,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -43885,7 +43885,7 @@
     {
       "id": "yolo26m_seg",
       "display": {
-        "name": "yolo26m-seg",
+        "name": "Ultralytics YOLO26-m-seg",
         "task": "instance_segmentation",
         "class_name": "yolo26m_seg",
         "summary": {
@@ -43956,7 +43956,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -44055,7 +44055,7 @@
     {
       "id": "yolo26n",
       "display": {
-        "name": "yolo26n",
+        "name": "Ultralytics YOLO26-n",
         "task": "object_detection",
         "class_name": "yolo26n",
         "summary": {
@@ -44126,7 +44126,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -44225,7 +44225,7 @@
     {
       "id": "yolo26n_cls",
       "display": {
-        "name": "yolo26n-cls",
+        "name": "Ultralytics YOLO26-n-cls",
         "task": "classification",
         "class_name": "yolo26n_cls",
         "summary": {
@@ -44296,7 +44296,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -44394,7 +44394,7 @@
     {
       "id": "yolo26n_obb",
       "display": {
-        "name": "yolo26n-obb",
+        "name": "Ultralytics YOLO26-n-obb",
         "task": "obb_detection",
         "class_name": "yolo26n_obb",
         "summary": {
@@ -44465,7 +44465,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -44563,7 +44563,7 @@
     {
       "id": "yolo26n_pose",
       "display": {
-        "name": "yolo26n-pose",
+        "name": "Ultralytics YOLO26-n-pose",
         "task": "pose_estimation",
         "class_name": "yolo26n_pose",
         "summary": {
@@ -44634,7 +44634,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -44733,7 +44733,7 @@
     {
       "id": "yolo26n_seg",
       "display": {
-        "name": "yolo26n-seg",
+        "name": "Ultralytics YOLO26-n-seg",
         "task": "instance_segmentation",
         "class_name": "yolo26n_seg",
         "summary": {
@@ -44804,7 +44804,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -44903,7 +44903,7 @@
     {
       "id": "yolo26s",
       "display": {
-        "name": "yolo26s",
+        "name": "Ultralytics YOLO26-s",
         "task": "object_detection",
         "class_name": "yolo26s",
         "summary": {
@@ -44974,7 +44974,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -45073,7 +45073,7 @@
     {
       "id": "yolo26s_cls",
       "display": {
-        "name": "yolo26s-cls",
+        "name": "Ultralytics YOLO26-s-cls",
         "task": "classification",
         "class_name": "yolo26s_cls",
         "summary": {
@@ -45144,7 +45144,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -45242,7 +45242,7 @@
     {
       "id": "yolo26s_obb",
       "display": {
-        "name": "yolo26s-obb",
+        "name": "Ultralytics YOLO26-s-obb",
         "task": "obb_detection",
         "class_name": "yolo26s_obb",
         "summary": {
@@ -45313,7 +45313,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -45411,7 +45411,7 @@
     {
       "id": "yolo26s_pose",
       "display": {
-        "name": "yolo26s-pose",
+        "name": "Ultralytics YOLO26-s-pose",
         "task": "pose_estimation",
         "class_name": "yolo26s_pose",
         "summary": {
@@ -45482,7 +45482,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -45581,7 +45581,7 @@
     {
       "id": "yolo26s_seg",
       "display": {
-        "name": "yolo26s-seg",
+        "name": "Ultralytics YOLO26-s-seg",
         "task": "instance_segmentation",
         "class_name": "yolo26s_seg",
         "summary": {
@@ -45652,7 +45652,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -45751,7 +45751,7 @@
     {
       "id": "yolo26x",
       "display": {
-        "name": "yolo26x",
+        "name": "Ultralytics YOLO26-x",
         "task": "object_detection",
         "class_name": "yolo26x",
         "summary": {
@@ -45822,7 +45822,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -45921,7 +45921,7 @@
     {
       "id": "yolo26x_cls",
       "display": {
-        "name": "yolo26x-cls",
+        "name": "Ultralytics YOLO26-x-cls",
         "task": "classification",
         "class_name": "yolo26x_cls",
         "summary": {
@@ -45992,7 +45992,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -46090,7 +46090,7 @@
     {
       "id": "yolo26x_obb",
       "display": {
-        "name": "yolo26x-obb",
+        "name": "Ultralytics YOLO26-x-obb",
         "task": "obb_detection",
         "class_name": "yolo26x_obb",
         "summary": {
@@ -46161,7 +46161,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -46259,7 +46259,7 @@
     {
       "id": "yolo26x_pose",
       "display": {
-        "name": "yolo26x-pose",
+        "name": "Ultralytics YOLO26-x-pose",
         "task": "pose_estimation",
         "class_name": "yolo26x_pose",
         "summary": {
@@ -46330,7 +46330,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -46429,7 +46429,7 @@
     {
       "id": "yolo26x_seg",
       "display": {
-        "name": "yolo26x-seg",
+        "name": "Ultralytics YOLO26-x-seg",
         "task": "instance_segmentation",
         "class_name": "yolo26x_seg",
         "summary": {
@@ -46500,7 +46500,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -46599,7 +46599,7 @@
     {
       "id": "yolopv2",
       "display": {
-        "name": "Yolopv2",
+        "name": "YOLOPv2",
         "task": "panoptic_driving_perception",
         "class_name": "yolopv2",
         "summary": {
@@ -46666,7 +46666,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_studio_catalog"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_studio_catalog"
@@ -46730,7 +46730,7 @@
     {
       "id": "yolov10b",
       "display": {
-        "name": "YOLOV10B",
+        "name": "YOLOv10-b",
         "task": "object_detection",
         "class_name": "yolov10b",
         "summary": {
@@ -46801,7 +46801,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -46900,7 +46900,7 @@
     {
       "id": "yolov10l",
       "display": {
-        "name": "YOLOV10L",
+        "name": "YOLOv10-l",
         "task": "object_detection",
         "class_name": "yolov10l",
         "summary": {
@@ -46971,7 +46971,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -47070,7 +47070,7 @@
     {
       "id": "yolov10m",
       "display": {
-        "name": "YOLOV10M",
+        "name": "YOLOv10-m",
         "task": "object_detection",
         "class_name": "yolov10m",
         "summary": {
@@ -47141,7 +47141,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -47240,7 +47240,7 @@
     {
       "id": "yolov10n",
       "display": {
-        "name": "YOLOV10N",
+        "name": "YOLOv10-n",
         "task": "object_detection",
         "class_name": "yolov10n",
         "summary": {
@@ -47311,7 +47311,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -47410,7 +47410,7 @@
     {
       "id": "yolov10n_ppu",
       "display": {
-        "name": "YOLOV10N_PPU",
+        "name": "YOLOv10-n (PPU)",
         "task": "ppu",
         "class_name": "yolov10n_ppu",
         "summary": {
@@ -47481,7 +47481,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -47581,7 +47581,7 @@
     {
       "id": "yolov10s",
       "display": {
-        "name": "YOLOV10S",
+        "name": "YOLOv10-s",
         "task": "object_detection",
         "class_name": "yolov10s",
         "summary": {
@@ -47652,7 +47652,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -47751,7 +47751,7 @@
     {
       "id": "yolov10x",
       "display": {
-        "name": "YOLOV10X",
+        "name": "YOLOv10-x",
         "task": "object_detection",
         "class_name": "yolov10x",
         "summary": {
@@ -47822,7 +47822,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -47921,7 +47921,7 @@
     {
       "id": "yolov11l",
       "display": {
-        "name": "YOLOV11L",
+        "name": "Ultralytics YOLO11-l",
         "task": "object_detection",
         "class_name": "yolov11l",
         "summary": {
@@ -47992,7 +47992,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -48091,7 +48091,7 @@
     {
       "id": "yolov11m",
       "display": {
-        "name": "YOLOV11M",
+        "name": "Ultralytics YOLO11-m",
         "task": "object_detection",
         "class_name": "yolov11m",
         "summary": {
@@ -48162,7 +48162,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -48261,7 +48261,7 @@
     {
       "id": "yolov11n",
       "display": {
-        "name": "YOLOV11N",
+        "name": "Ultralytics YOLO11-n",
         "task": "object_detection",
         "class_name": "yolov11n",
         "summary": {
@@ -48332,7 +48332,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -48431,7 +48431,7 @@
     {
       "id": "yolov11n_ppu",
       "display": {
-        "name": "YOLOV11N_PPU",
+        "name": "Ultralytics YOLO11-n (PPU)",
         "task": "ppu",
         "class_name": "yolov11n_ppu",
         "summary": {
@@ -48502,7 +48502,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -48602,7 +48602,7 @@
     {
       "id": "yolov11s",
       "display": {
-        "name": "YOLOV11S",
+        "name": "Ultralytics YOLO11-s",
         "task": "object_detection",
         "class_name": "yolov11s",
         "summary": {
@@ -48673,7 +48673,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -48772,7 +48772,7 @@
     {
       "id": "yolov11x",
       "display": {
-        "name": "YOLOV11X",
+        "name": "Ultralytics YOLO11-x",
         "task": "object_detection",
         "class_name": "yolov11x",
         "summary": {
@@ -48843,7 +48843,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -51617,7 +51617,7 @@
     {
       "id": "yolov12n_ppu",
       "display": {
-        "name": "YOLOV12N_PPU",
+        "name": "YOLOv12-n (PPU)",
         "task": "ppu",
         "class_name": "yolov12n_ppu",
         "summary": {
@@ -51688,7 +51688,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -52644,7 +52644,7 @@
     {
       "id": "yolov3",
       "display": {
-        "name": "YoloV3",
+        "name": "YOLOv3 Darknet (640x640)",
         "task": "object_detection",
         "class_name": "yolov3",
         "summary": {
@@ -52715,7 +52715,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -52814,7 +52814,7 @@
     {
       "id": "yolov3_2",
       "display": {
-        "name": "YOLOV3_2",
+        "name": "YOLOv3 Darknet (416x416)",
         "task": "object_detection",
         "class_name": "yolov3_2",
         "summary": {
@@ -52885,7 +52885,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -52984,7 +52984,7 @@
     {
       "id": "yolov3_2_ppu",
       "display": {
-        "name": "YOLOV3_2_PPU",
+        "name": "YOLOv3 (PPU, 416x416)",
         "task": "ppu",
         "class_name": "yolov3_2_ppu",
         "summary": {
@@ -53055,7 +53055,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -53154,7 +53154,7 @@
     {
       "id": "yolov3_3_ppu",
       "display": {
-        "name": "YOLOV3_3_PPU",
+        "name": "YOLOv3 (PPU, 608x608)",
         "task": "ppu",
         "class_name": "yolov3_3_ppu",
         "summary": {
@@ -53225,7 +53225,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -53324,7 +53324,7 @@
     {
       "id": "yolov3_gluon_416",
       "display": {
-        "name": "yolov3_gluon_416",
+        "name": "YOLOv3 GluonCV (416x416)",
         "task": "object_detection",
         "class_name": "yolov3_gluon_416",
         "summary": {
@@ -53395,7 +53395,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -53494,7 +53494,7 @@
     {
       "id": "yolov3_gluon_608",
       "display": {
-        "name": "yolov3_gluon_608",
+        "name": "YOLOv3 GluonCV (608x608)",
         "task": "object_detection",
         "class_name": "yolov3_gluon_608",
         "summary": {
@@ -53565,7 +53565,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -53664,7 +53664,7 @@
     {
       "id": "yolov3tiny_1",
       "display": {
-        "name": "YOLOV3Tiny_1",
+        "name": "YOLOv3-tiny",
         "task": "object_detection",
         "class_name": "yolov3tiny_1",
         "summary": {
@@ -53735,7 +53735,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -53834,7 +53834,7 @@
     {
       "id": "yolov3tiny_1_ppu",
       "display": {
-        "name": "YOLOV3Tiny_1_PPU",
+        "name": "YOLOv3-tiny (PPU)",
         "task": "ppu",
         "class_name": "yolov3tiny_1_ppu",
         "summary": {
@@ -53905,7 +53905,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -54004,7 +54004,7 @@
     {
       "id": "yolov4_2_ppu",
       "display": {
-        "name": "YOLOV4_2_PPU",
+        "name": "YOLOv4 (PPU)",
         "task": "ppu",
         "class_name": "yolov4_2_ppu",
         "summary": {
@@ -54075,7 +54075,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -54174,7 +54174,7 @@
     {
       "id": "yolov4_leaky_512_512",
       "display": {
-        "name": "yolov4_leaky_512_512",
+        "name": "YOLOv4-leaky",
         "task": "object_detection",
         "class_name": "yolov4_leaky_512_512",
         "summary": {
@@ -54245,7 +54245,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -54344,7 +54344,7 @@
     {
       "id": "yolov4tiny_1",
       "display": {
-        "name": "YOLOV4Tiny_1",
+        "name": "YOLOv4-t",
         "task": "object_detection",
         "class_name": "yolov4tiny_1",
         "summary": {
@@ -54415,7 +54415,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -54514,7 +54514,7 @@
     {
       "id": "yolov5_m6_1280x1280",
       "display": {
-        "name": "yolov5-m6_1280x1280",
+        "name": "Ultralytics YOLOv5-m6 (1280x1280)",
         "task": "object_detection",
         "class_name": "yolov5-m6_1280x1280",
         "summary": {
@@ -54579,7 +54579,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_modelzoo_repo"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_modelzoo_repo"
@@ -54776,7 +54776,7 @@
     {
       "id": "yolov5_pose",
       "display": {
-        "name": "YOLOV5Pose-1",
+        "name": "Ultralytics YOLOv5-s6-pose",
         "task": "pose_estimation",
         "class_name": "yolov5_pose",
         "summary": {
@@ -54847,7 +54847,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -55069,7 +55069,7 @@
     {
       "id": "yolov5l",
       "display": {
-        "name": "YoloV5L",
+        "name": "Ultralytics YOLOv5-l",
         "task": "object_detection",
         "class_name": "yolov5l",
         "summary": {
@@ -55140,7 +55140,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -55239,7 +55239,7 @@
     {
       "id": "yolov5l6",
       "display": {
-        "name": "YoloV5L6",
+        "name": "Ultralytics YOLOv5-l6",
         "task": "object_detection",
         "class_name": "yolov5l6",
         "summary": {
@@ -55310,7 +55310,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -55409,7 +55409,7 @@
     {
       "id": "yolov5l_seg",
       "display": {
-        "name": "yolov5l_seg",
+        "name": "Ultralytics YOLOv5-l-seg",
         "task": "instance_segmentation",
         "class_name": "yolov5l_seg",
         "summary": {
@@ -55480,7 +55480,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -55580,7 +55580,7 @@
     {
       "id": "yolov5m",
       "display": {
-        "name": "YoloV5M",
+        "name": "Ultralytics YOLOv5-m",
         "task": "object_detection",
         "class_name": "yolov5m",
         "summary": {
@@ -55651,7 +55651,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -55751,7 +55751,7 @@
     {
       "id": "yolov5m6",
       "display": {
-        "name": "YoloV5M6",
+        "name": "Ultralytics YOLOv5-m6 (640x640)",
         "task": "object_detection",
         "class_name": "yolov5m6",
         "summary": {
@@ -55822,7 +55822,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -55921,7 +55921,7 @@
     {
       "id": "yolov5m_6_1",
       "display": {
-        "name": "YoloV5M_6.1",
+        "name": "Ultralytics YOLOv5-m6 (v6.1)",
         "task": "object_detection",
         "class_name": "yolov5m_6_1",
         "summary": {
@@ -55992,7 +55992,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -56092,7 +56092,7 @@
     {
       "id": "yolov5m_face",
       "display": {
-        "name": "YOLOv5m_Face",
+        "name": "YOLOv5-m-face",
         "task": "face_detection",
         "class_name": "yolov5m_face",
         "summary": {
@@ -56163,7 +56163,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -56263,7 +56263,7 @@
     {
       "id": "yolov5m_seg",
       "display": {
-        "name": "yolov5m_seg",
+        "name": "Ultralytics YOLOv5-m-seg",
         "task": "instance_segmentation",
         "class_name": "yolov5m_seg",
         "summary": {
@@ -56334,7 +56334,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -56434,7 +56434,7 @@
     {
       "id": "yolov5m_wo_spp_640",
       "display": {
-        "name": "yolov5m_wo_spp_640",
+        "name": "Ultralytics YOLOv5-m (no-SPP)",
         "task": "object_detection",
         "class_name": "yolov5m_wo_spp_640",
         "summary": {
@@ -56505,7 +56505,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -56604,7 +56604,7 @@
     {
       "id": "yolov5n",
       "display": {
-        "name": "YoloV5N",
+        "name": "Ultralytics YOLOv5-n",
         "task": "object_detection",
         "class_name": "yolov5n",
         "summary": {
@@ -56675,7 +56675,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -56775,7 +56775,7 @@
     {
       "id": "yolov5n6",
       "display": {
-        "name": "YoloV5N6",
+        "name": "Ultralytics YOLOv5-n6",
         "task": "object_detection",
         "class_name": "yolov5n6",
         "summary": {
@@ -56846,7 +56846,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -56945,7 +56945,7 @@
     {
       "id": "yolov5n_face",
       "display": {
-        "name": "Yolov5N Face",
+        "name": "YOLOv5-n-face",
         "task": "face_detection",
         "class_name": "yolov5n_face",
         "summary": {
@@ -57012,7 +57012,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_studio_catalog"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_studio_catalog"
@@ -57076,7 +57076,7 @@
     {
       "id": "yolov5n_seg",
       "display": {
-        "name": "yolov5n_seg",
+        "name": "Ultralytics YOLOv5-n-seg",
         "task": "instance_segmentation",
         "class_name": "yolov5n_seg",
         "summary": {
@@ -57147,7 +57147,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -57247,7 +57247,7 @@
     {
       "id": "yolov5s",
       "display": {
-        "name": "YoloV5S",
+        "name": "Ultralytics YOLOv5-s (640x640)",
         "task": "object_detection",
         "class_name": "yolov5s",
         "summary": {
@@ -57318,7 +57318,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -57418,7 +57418,7 @@
     {
       "id": "yolov5s6",
       "display": {
-        "name": "YoloV5S6",
+        "name": "Ultralytics YOLOv5-s6",
         "task": "object_detection",
         "class_name": "yolov5s6",
         "summary": {
@@ -57489,7 +57489,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -57588,7 +57588,7 @@
     {
       "id": "yolov5s_4",
       "display": {
-        "name": "YOLOV5S_4",
+        "name": "Ultralytics YOLOv5-s (320x320)",
         "task": "object_detection",
         "class_name": "yolov5s_4",
         "summary": {
@@ -57659,7 +57659,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -57758,7 +57758,7 @@
     {
       "id": "yolov5s_bbox_decoding_only_640",
       "display": {
-        "name": "yolov5s_bbox_decoding_only_640",
+        "name": "Ultralytics YOLOv5-s (decode)",
         "task": "object_detection",
         "class_name": "yolov5s_bbox_decoding_only_640",
         "summary": {
@@ -57829,7 +57829,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -57928,7 +57928,7 @@
     {
       "id": "yolov5s_c3tr_640",
       "display": {
-        "name": "yolov5s_c3tr_640",
+        "name": "Ultralytics YOLOv5-s (C3TR)",
         "task": "object_detection",
         "class_name": "yolov5s_c3tr_640",
         "summary": {
@@ -57999,7 +57999,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -58098,7 +58098,7 @@
     {
       "id": "yolov5s_face",
       "display": {
-        "name": "YOLOv5s_Face",
+        "name": "YOLOv5-s-face",
         "task": "face_detection",
         "class_name": "yolov5s_face",
         "summary": {
@@ -58169,7 +58169,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -58269,7 +58269,7 @@
     {
       "id": "yolov5s_ppu",
       "display": {
-        "name": "YoloV5S_PPU",
+        "name": "Ultralytics YOLOv5-s (PPU)",
         "task": "ppu",
         "class_name": "yolov5s_ppu",
         "summary": {
@@ -58340,7 +58340,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -58439,7 +58439,7 @@
     {
       "id": "yolov5s_seg",
       "display": {
-        "name": "yolov5s_seg",
+        "name": "Ultralytics YOLOv5-s-seg",
         "task": "instance_segmentation",
         "class_name": "yolov5s_seg",
         "summary": {
@@ -58510,7 +58510,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -58610,7 +58610,7 @@
     {
       "id": "yolov5s_wo_spp_640",
       "display": {
-        "name": "yolov5s_wo_spp_640",
+        "name": "Ultralytics YOLOv5-s (no-SPP)",
         "task": "object_detection",
         "class_name": "yolov5s_wo_spp_640",
         "summary": {
@@ -58681,7 +58681,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -58780,7 +58780,7 @@
     {
       "id": "yolov5x",
       "display": {
-        "name": "YoloV5X",
+        "name": "Ultralytics YOLOv5-x",
         "task": "object_detection",
         "class_name": "yolov5x",
         "summary": {
@@ -58851,7 +58851,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -58950,7 +58950,7 @@
     {
       "id": "yolov5x6",
       "display": {
-        "name": "YoloV5X6",
+        "name": "Ultralytics YOLOv5-x6",
         "task": "object_detection",
         "class_name": "yolov5x6",
         "summary": {
@@ -59021,7 +59021,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -59120,7 +59120,7 @@
     {
       "id": "yolov5x_seg",
       "display": {
-        "name": "yolov5-x-seg-1",
+        "name": "Ultralytics YOLOv5-x-seg",
         "task": "instance_segmentation",
         "class_name": "yolov5x_seg",
         "summary": {
@@ -59191,7 +59191,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -59291,7 +59291,7 @@
     {
       "id": "yolov5xs_wo_spp_512",
       "display": {
-        "name": "yolov5xs_wo_spp_512",
+        "name": "Ultralytics YOLOv5-xs (no-SPP)",
         "task": "object_detection",
         "class_name": "yolov5xs_wo_spp_512",
         "summary": {
@@ -59362,7 +59362,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -59568,7 +59568,7 @@
     {
       "id": "yolov6l",
       "display": {
-        "name": "YoloV6L",
+        "name": "YOLOv6-l",
         "task": "object_detection",
         "class_name": "yolov6l",
         "summary": {
@@ -59639,7 +59639,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -59738,7 +59738,7 @@
     {
       "id": "yolov6l6",
       "display": {
-        "name": "Yolov6L6",
+        "name": "YOLOv6-l6",
         "task": "object_detection",
         "class_name": "yolov6l6",
         "summary": {
@@ -59805,7 +59805,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_studio_catalog"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_studio_catalog"
@@ -59869,7 +59869,7 @@
     {
       "id": "yolov6m",
       "display": {
-        "name": "YoloV6M",
+        "name": "YOLOv6-m",
         "task": "object_detection",
         "class_name": "yolov6m",
         "summary": {
@@ -59940,7 +59940,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -60039,7 +60039,7 @@
     {
       "id": "yolov6n",
       "display": {
-        "name": "YoloV6N",
+        "name": "YOLOv6-n",
         "task": "object_detection",
         "class_name": "yolov6n",
         "summary": {
@@ -60110,7 +60110,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -60209,7 +60209,7 @@
     {
       "id": "yolov6n_0_1_0",
       "display": {
-        "name": "YoloV6N_0.1.0",
+        "name": "YOLOv6-n0 (v0.1.0)",
         "task": "object_detection",
         "class_name": "yolov6n_0_1_0",
         "summary": {
@@ -60280,7 +60280,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -60380,7 +60380,7 @@
     {
       "id": "yolov6n_0_2_1",
       "display": {
-        "name": "YoloV6n_0.2.1",
+        "name": "YOLOv6-n0 (v0.2.1)",
         "task": "object_detection",
         "class_name": "yolov6n_0_2_1",
         "summary": {
@@ -60451,7 +60451,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -60551,7 +60551,7 @@
     {
       "id": "yolov6n_0_2_1_nms_core",
       "display": {
-        "name": "yolov6n_0.2.1_nms_core",
+        "name": "YOLOv6-n (NMS-score)",
         "task": "object_detection",
         "class_name": "yolov6n_0_2_1_nms_core",
         "summary": {
@@ -60622,7 +60622,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -60721,7 +60721,7 @@
     {
       "id": "yolov6s",
       "display": {
-        "name": "Yolov6S",
+        "name": "YOLOv6-s",
         "task": "object_detection",
         "class_name": "yolov6s",
         "summary": {
@@ -60788,7 +60788,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_studio_catalog"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_studio_catalog"
@@ -60852,7 +60852,7 @@
     {
       "id": "yolov7",
       "display": {
-        "name": "YoloV7",
+        "name": "YOLOv7",
         "task": "object_detection",
         "class_name": "yolov7",
         "summary": {
@@ -60923,7 +60923,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -61023,7 +61023,7 @@
     {
       "id": "yolov7_face",
       "display": {
-        "name": "YOLOv7_Face",
+        "name": "YOLOv7-face",
         "task": "face_detection",
         "class_name": "yolov7_face",
         "summary": {
@@ -61094,7 +61094,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -61194,7 +61194,7 @@
     {
       "id": "yolov7_lite_t_face",
       "display": {
-        "name": "Yolov7 Lite T Face",
+        "name": "YOLOv7-lite-t-face",
         "task": "face_detection",
         "class_name": "yolov7_lite_t_face",
         "summary": {
@@ -61261,7 +61261,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_studio_catalog"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_studio_catalog"
@@ -61325,7 +61325,7 @@
     {
       "id": "yolov7_ppu",
       "display": {
-        "name": "YoloV7_PPU",
+        "name": "YOLOv7 (PPU)",
         "task": "ppu",
         "class_name": "yolov7_ppu",
         "summary": {
@@ -61396,7 +61396,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -61495,7 +61495,7 @@
     {
       "id": "yolov7_w6",
       "display": {
-        "name": "YOLOV7_W6",
+        "name": "YOLOv7-w6",
         "task": "object_detection",
         "class_name": "yolov7_w6",
         "summary": {
@@ -61566,7 +61566,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -61666,7 +61666,7 @@
     {
       "id": "yolov7_w6_face",
       "display": {
-        "name": "YOLOv7_W6_Face",
+        "name": "YOLOv7-w6-face",
         "task": "face_detection",
         "class_name": "yolov7_w6_face",
         "summary": {
@@ -61737,7 +61737,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -61837,7 +61837,7 @@
     {
       "id": "yolov7_w6_tta_face",
       "display": {
-        "name": "YOLOv7_W6_TTA_Face",
+        "name": "YOLOv7-w6-face (TTA)",
         "task": "face_detection",
         "class_name": "yolov7_w6_tta_face",
         "summary": {
@@ -61908,7 +61908,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -62008,7 +62008,7 @@
     {
       "id": "yolov7_w6_wo_decoding",
       "display": {
-        "name": "yolov7_w6-wo_decoding",
+        "name": "YOLOv7-w6 (no-decode)",
         "task": "object_detection",
         "class_name": "yolov7_w6_wo_decoding",
         "summary": {
@@ -62079,7 +62079,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -62178,7 +62178,7 @@
     {
       "id": "yolov7_wo_decoding",
       "display": {
-        "name": "yolov7-wo_decoding",
+        "name": "YOLOv7 (no-decode)",
         "task": "object_detection",
         "class_name": "yolov7_wo_decoding",
         "summary": {
@@ -62249,7 +62249,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -62348,7 +62348,7 @@
     {
       "id": "yolov7d6",
       "display": {
-        "name": "YoloV7D6",
+        "name": "YOLOv7-d6",
         "task": "object_detection",
         "class_name": "yolov7d6",
         "summary": {
@@ -62419,7 +62419,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -62518,7 +62518,7 @@
     {
       "id": "yolov7e6",
       "display": {
-        "name": "YoloV7E6",
+        "name": "YOLOv7-e6",
         "task": "object_detection",
         "class_name": "yolov7e6",
         "summary": {
@@ -62589,7 +62589,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -62689,7 +62689,7 @@
     {
       "id": "yolov7e6e",
       "display": {
-        "name": "YoloV7E6E",
+        "name": "YOLOv7-e6e",
         "task": "object_detection",
         "class_name": "yolov7e6e",
         "summary": {
@@ -62760,7 +62760,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -62859,7 +62859,7 @@
     {
       "id": "yolov7s_face",
       "display": {
-        "name": "YOLOv7s_Face",
+        "name": "YOLOv7-s-face",
         "task": "face_detection",
         "class_name": "yolov7s_face",
         "summary": {
@@ -62930,7 +62930,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -63030,7 +63030,7 @@
     {
       "id": "yolov7tiny",
       "display": {
-        "name": "YoloV7Tiny",
+        "name": "YOLOv7-tiny",
         "task": "object_detection",
         "class_name": "yolov7tiny",
         "summary": {
@@ -63101,7 +63101,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -63201,7 +63201,7 @@
     {
       "id": "yolov7x",
       "display": {
-        "name": "YOLOv7x",
+        "name": "YOLOv7-x",
         "task": "object_detection",
         "class_name": "yolov7x",
         "summary": {
@@ -63272,7 +63272,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -63371,7 +63371,7 @@
     {
       "id": "yolov7x_ppu",
       "display": {
-        "name": "YOLOv7x_PPU",
+        "name": "YOLOv7-x (PPU)",
         "task": "ppu",
         "class_name": "yolov7x_ppu",
         "summary": {
@@ -63442,7 +63442,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -65147,7 +65147,7 @@
     {
       "id": "yolov8l",
       "display": {
-        "name": "YoloV8L",
+        "name": "Ultralytics YOLOv8-l",
         "task": "object_detection",
         "class_name": "yolov8l",
         "summary": {
@@ -65218,7 +65218,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -65317,7 +65317,7 @@
     {
       "id": "yolov8l_pose",
       "display": {
-        "name": "yolov8-l-pose-1",
+        "name": "Ultralytics YOLOv8-l-pose",
         "task": "pose_estimation",
         "class_name": "yolov8l_pose",
         "summary": {
@@ -65388,7 +65388,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -65488,7 +65488,7 @@
     {
       "id": "yolov8l_seg",
       "display": {
-        "name": "yolov8-l-seg-1",
+        "name": "Ultralytics YOLOv8-l-seg",
         "task": "instance_segmentation",
         "class_name": "yolov8l_seg",
         "summary": {
@@ -65559,7 +65559,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -65659,7 +65659,7 @@
     {
       "id": "yolov8m",
       "display": {
-        "name": "YoloV8M",
+        "name": "Ultralytics YOLOv8-m",
         "task": "object_detection",
         "class_name": "yolov8m",
         "summary": {
@@ -65730,7 +65730,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -65829,7 +65829,7 @@
     {
       "id": "yolov8m_pose",
       "display": {
-        "name": "yolov8m_pose",
+        "name": "Ultralytics YOLOv8-m-pose",
         "task": "pose_estimation",
         "class_name": "yolov8m_pose",
         "summary": {
@@ -65900,7 +65900,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -66000,7 +66000,7 @@
     {
       "id": "yolov8m_seg",
       "display": {
-        "name": "yolov8m_seg",
+        "name": "Ultralytics YOLOv8-m-seg",
         "task": "instance_segmentation",
         "class_name": "yolov8m_seg",
         "summary": {
@@ -66071,7 +66071,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -66171,7 +66171,7 @@
     {
       "id": "yolov8n",
       "display": {
-        "name": "YoloV8N",
+        "name": "Ultralytics YOLOv8-n",
         "task": "object_detection",
         "class_name": "yolov8n",
         "summary": {
@@ -66242,7 +66242,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -66341,7 +66341,7 @@
     {
       "id": "yolov8n_pose",
       "display": {
-        "name": "yolov8-n-pose-1",
+        "name": "Ultralytics YOLOv8-n-pose",
         "task": "pose_estimation",
         "class_name": "yolov8n_pose",
         "summary": {
@@ -66412,7 +66412,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -66512,7 +66512,7 @@
     {
       "id": "yolov8n_ppu",
       "display": {
-        "name": "YoloV8N_PPU",
+        "name": "Ultralytics YOLOv8-n (PPU)",
         "task": "ppu",
         "class_name": "yolov8n_ppu",
         "summary": {
@@ -66583,7 +66583,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -66683,7 +66683,7 @@
     {
       "id": "yolov8n_seg",
       "display": {
-        "name": "yolov8n_seg",
+        "name": "Ultralytics YOLOv8-n-seg",
         "task": "instance_segmentation",
         "class_name": "yolov8n_seg",
         "summary": {
@@ -66754,7 +66754,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -66854,7 +66854,7 @@
     {
       "id": "yolov8s",
       "display": {
-        "name": "YoloV8S",
+        "name": "Ultralytics YOLOv8-s",
         "task": "object_detection",
         "class_name": "yolov8s",
         "summary": {
@@ -66925,7 +66925,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -67024,7 +67024,7 @@
     {
       "id": "yolov8s_bbox_decoding_only_640",
       "display": {
-        "name": "yolov8s_bbox_decoding_only_640",
+        "name": "Ultralytics YOLOv8-s (decode)",
         "task": "object_detection",
         "class_name": "yolov8s_bbox_decoding_only_640",
         "summary": {
@@ -67095,7 +67095,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -67194,7 +67194,7 @@
     {
       "id": "yolov8s_pose",
       "display": {
-        "name": "yolov8s_pose",
+        "name": "Ultralytics YOLOv8-s-pose",
         "task": "pose_estimation",
         "class_name": "yolov8s_pose",
         "summary": {
@@ -67265,7 +67265,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -67365,7 +67365,7 @@
     {
       "id": "yolov8s_ppu",
       "display": {
-        "name": "YoloV8S_PPU",
+        "name": "Ultralytics YOLOv8-s (PPU)",
         "task": "ppu",
         "class_name": "yolov8s_ppu",
         "summary": {
@@ -67436,7 +67436,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -67536,7 +67536,7 @@
     {
       "id": "yolov8s_seg",
       "display": {
-        "name": "yolov8s_seg",
+        "name": "Ultralytics YOLOv8-s-seg",
         "task": "instance_segmentation",
         "class_name": "yolov8s_seg",
         "summary": {
@@ -67607,7 +67607,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -67706,7 +67706,7 @@
     {
       "id": "yolov8x",
       "display": {
-        "name": "YoloV8X",
+        "name": "Ultralytics YOLOv8-x",
         "task": "object_detection",
         "class_name": "yolov8x",
         "summary": {
@@ -67777,7 +67777,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -67876,7 +67876,7 @@
     {
       "id": "yolov8x_pose",
       "display": {
-        "name": "yolov8-x-pose-1",
+        "name": "Ultralytics YOLOv8-x-pose",
         "task": "pose_estimation",
         "class_name": "yolov8x_pose",
         "summary": {
@@ -67947,7 +67947,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -68047,7 +68047,7 @@
     {
       "id": "yolov8x_seg",
       "display": {
-        "name": "yolov8-x-seg-1",
+        "name": "Ultralytics YOLOv8-x-seg",
         "task": "instance_segmentation",
         "class_name": "yolov8x_seg",
         "summary": {
@@ -68118,7 +68118,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -68539,7 +68539,7 @@
     {
       "id": "yolov9_gelan_c",
       "display": {
-        "name": "YoloV9_GELAN_C",
+        "name": "YOLOv9-gelan-c",
         "task": "object_detection",
         "class_name": "yolov9_gelan_c",
         "summary": {
@@ -68610,7 +68610,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -69779,7 +69779,7 @@
     {
       "id": "yolov9c",
       "display": {
-        "name": "YoloV9C",
+        "name": "YOLOv9-c",
         "task": "object_detection",
         "class_name": "yolov9c",
         "summary": {
@@ -69850,7 +69850,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -69949,7 +69949,7 @@
     {
       "id": "yolov9m",
       "display": {
-        "name": "YoloV9M",
+        "name": "YOLOv9-m",
         "task": "object_detection",
         "class_name": "yolov9m",
         "summary": {
@@ -70020,7 +70020,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -70119,7 +70119,7 @@
     {
       "id": "yolov9s",
       "display": {
-        "name": "YoloV9S",
+        "name": "YOLOv9-s",
         "task": "object_detection",
         "class_name": "yolov9s",
         "summary": {
@@ -70190,7 +70190,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -70289,7 +70289,7 @@
     {
       "id": "yolov9t",
       "display": {
-        "name": "YoloV9T",
+        "name": "YOLOv9-t",
         "task": "object_detection",
         "class_name": "yolov9t",
         "summary": {
@@ -70360,7 +70360,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -70459,7 +70459,7 @@
     {
       "id": "yolov9t_ppu",
       "display": {
-        "name": "YoloV9T_PPU",
+        "name": "YOLOv9-t (PPU)",
         "task": "ppu",
         "class_name": "yolov9t_ppu",
         "summary": {
@@ -70530,7 +70530,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -70630,7 +70630,7 @@
     {
       "id": "yolox_l_leaky",
       "display": {
-        "name": "YoloX_L_Leaky",
+        "name": "YOLOX-l-leaky",
         "task": "object_detection",
         "class_name": "yolox_l_leaky",
         "summary": {
@@ -70701,7 +70701,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -70801,7 +70801,7 @@
     {
       "id": "yolox_s_2_ppu",
       "display": {
-        "name": "YOLOX-S_2_PPU",
+        "name": "YOLOX-s (PPU)",
         "task": "ppu",
         "class_name": "yolox_s_2_ppu",
         "summary": {
@@ -70872,7 +70872,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -70971,7 +70971,7 @@
     {
       "id": "yolox_s_leaky",
       "display": {
-        "name": "YoloX_S_Leaky",
+        "name": "YOLOX-s-leaky",
         "task": "object_detection",
         "class_name": "yolox_s_leaky",
         "summary": {
@@ -71042,7 +71042,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -71142,7 +71142,7 @@
     {
       "id": "yolox_s_wide_leaky",
       "display": {
-        "name": "YoloX_S_Wide_Leaky",
+        "name": "YOLOX-s-wide-leaky",
         "task": "object_detection",
         "class_name": "yolox_s_wide_leaky",
         "summary": {
@@ -71213,7 +71213,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -71313,7 +71313,7 @@
     {
       "id": "yoloxl",
       "display": {
-        "name": "YoloXL",
+        "name": "YOLOX-l",
         "task": "object_detection",
         "class_name": "yoloxl",
         "summary": {
@@ -71384,7 +71384,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -71483,7 +71483,7 @@
     {
       "id": "yoloxm",
       "display": {
-        "name": "YoloXM",
+        "name": "YOLOX-m",
         "task": "object_detection",
         "class_name": "yoloxm",
         "summary": {
@@ -71554,7 +71554,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -71653,7 +71653,7 @@
     {
       "id": "yoloxs",
       "display": {
-        "name": "YoloXS",
+        "name": "YOLOX-s",
         "task": "object_detection",
         "class_name": "yoloxs",
         "summary": {
@@ -71724,7 +71724,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -71824,7 +71824,7 @@
     {
       "id": "yoloxtiny",
       "display": {
-        "name": "YoloXTiny",
+        "name": "YOLOX-t",
         "task": "object_detection",
         "class_name": "yoloxtiny",
         "summary": {
@@ -71895,7 +71895,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -71995,7 +71995,7 @@
     {
       "id": "yoloxx",
       "display": {
-        "name": "YoloXX",
+        "name": "YOLOX-x",
         "task": "object_detection",
         "class_name": "yoloxx",
         "summary": {
@@ -72066,7 +72066,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -72165,7 +72165,7 @@
     {
       "id": "zero_dce",
       "display": {
-        "name": "zero_dce",
+        "name": "Zero-DCE",
         "task": "image_enhancement",
         "class_name": "zero_dce",
         "summary": {
@@ -72236,7 +72236,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_runtime"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_runtime"
@@ -72332,7 +72332,7 @@
     {
       "id": "zero_dce_pp",
       "display": {
-        "name": "Zero Dce Pp",
+        "name": "Zero-DCE++",
         "task": "image_enhancement",
         "class_name": "zero_dce_pp",
         "summary": {
@@ -72399,7 +72399,7 @@
       },
       "provenance": {
         "display.name": {
-          "source": "local_studio_catalog"
+          "source": "internal_modelzoo"
         },
         "display.class_name": {
           "source": "local_studio_catalog"

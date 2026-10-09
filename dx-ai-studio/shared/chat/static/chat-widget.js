@@ -750,7 +750,8 @@ const DXChat = (() => {
       .then(function (d) {
         var models = (d && d.models) || [];
         if (!models.length) { sel.hidden = true; sel.innerHTML = ''; return; }
-        _fillSelect(sel, models, (current && models.indexOf(current) !== -1) ? current : models[0]);
+        _fillSelect(sel, models, (current && models.indexOf(current) !== -1) ? current
+          : (d.default_model && models.indexOf(d.default_model) !== -1 ? d.default_model : models[0]));
         sel.hidden = false;
       })
       .catch(function () { sel.hidden = true; sel.innerHTML = ''; });

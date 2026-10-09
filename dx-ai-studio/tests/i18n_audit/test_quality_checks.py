@@ -132,7 +132,7 @@ class TestTheRealRepositoryIsMeasured:
     # 남은 254건은 제품 결정이 필요하다 — '작업' vs '태스크' 처럼 어느 쪽으로
     # 통일할지는 내가 정할 일이 아니다. /path/to/*.json 같은 placeholder 경로를
     # 번역할지도 마찬가지다.
-    MAX_TERMINOLOGY_DRIFT = 245
+    MAX_TERMINOLOGY_DRIFT = 242
     # 23 -> 22 (2026-09-21). **0 을 목표로 삼지 않는다.**
     # 23건을 하나씩 읽어 보니 대부분 정당한 번역이었다:
     #   'Inference timed out' -> 'La inferencia agotó el tiempo de espera'

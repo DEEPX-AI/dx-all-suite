@@ -85,6 +85,28 @@ bash scripts/run_ci.sh
      (its conftest rebinds DX_APP_ROOT at import time)
 ```
 
+### Release-audit browser regressions
+
+`tests/launcher/test_escape_layers_browser.py` deliberately delays either native
+Tutorial engine to verify that background initialization cannot destroy the visible
+guide or take its toolbar ownership. It also covers SDK revisits, language refresh,
+About's unavailable Tutorial, and Escape closing only the topmost layer.
+
+`tests/shared/test_text_contrast_browser.py` checks the affected enabled, default-state
+small text at **4.5:1** using computed colors and alpha-composited backgrounds. It
+loads the actual App, Stream, Compiler, and Benchmark styles in explicit light/dark
+and system light/dark modes, including the real Lab overlay and Stream palette.
+Image/gradient backgrounds are rejected, not silently counted as passing; this is
+a scoped regression gate, not a claim that all Studio text or hover states meet AA.
+
+Both suites are registered in `run_ci.sh --browser`. For focused checks, run each
+in its own process:
+
+```bash
+./.venv/bin/python -m pytest tests/launcher/test_escape_layers_browser.py -q
+./.venv/bin/python -m pytest tests/shared/test_text_contrast_browser.py -q
+```
+
 ### The inference E2E triple gate (`tests/e2e/`)
 
 One browser journey — open Run, pick category -> model -> sample image, click Run —

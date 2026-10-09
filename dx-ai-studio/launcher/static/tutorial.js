@@ -107,7 +107,10 @@
 
   function updateTutorialUI() {
     const sw = document.getElementById('dxt-mode-switch');
-    if (sw) sw.className = 'dxt-lc-switch' + (_tutorialMode ? ' on' : '');
+    if (sw) {
+      sw.className = 'dxt-lc-switch' + (_tutorialMode ? ' on' : '');
+      sw.setAttribute('aria-checked', String(_tutorialMode));
+    }
     const label = document.getElementById('dxt-mode-label');
     if (label) {
       label.textContent = _tutorialMode ? 'ON' : 'OFF';
@@ -146,13 +149,14 @@
       <span class="dxt-lc-icon">${(typeof DXIcon === 'function') ? DXIcon('graduation') : ''}</span>
       <div class="dxt-lc-text">
         <div class="dxt-lc-title">
-          <span data-i18n="Tutorial Mode">Tutorial Mode</span>
-          <span id="dxt-mode-label" class="dxt-lc-mode${_tutorialMode ? ' is-on' : ''}">${_tutorialMode ? 'ON' : 'OFF'}</span>
+          <span id="dxt-mode-title" data-i18n="Tutorial Mode">Tutorial Mode</span>
+          <span id="dxt-mode-label" aria-hidden="true" class="dxt-lc-mode${_tutorialMode ? ' is-on' : ''}">${_tutorialMode ? 'ON' : 'OFF'}</span>
         </div>
         <div class="dxt-lc-desc" data-i18n="Automatically start interactive tutorials when launching apps">Automatically start interactive tutorials when launching apps
         </div>
       </div>
-      <button class="dxt-lc-switch ${_tutorialMode ? 'on' : ''}" id="dxt-mode-switch"
+      <button type="button" class="dxt-lc-switch ${_tutorialMode ? 'on' : ''}" id="dxt-mode-switch"
+              role="switch" aria-checked="${_tutorialMode}" aria-labelledby="dxt-mode-title"
               onclick="event.stopPropagation()"></button>
     `;
 
@@ -238,6 +242,8 @@
       console.warn('[LauncherTutorial] toolbar restore skipped: tutorial engine is not ready');
       return;
     }
+    if (window.DXLauncher && window.DXLauncher.currentApp) return;
+    window._dxTutorial = _engine;
     if (typeof DXToolbar !== 'undefined' && typeof DXToolbar.connectTutorial === 'function') {
       DXToolbar.connectTutorial(_engine, { owner: 'launcher' });
     }
@@ -266,6 +272,9 @@
       }
       DXTutorial.create({
       appId: 'launcher',
+      isActive: function () {
+        return !window.DXLauncher || !DXLauncher.currentApp;
+      },
       sections: sections,
       getLang: function () {
         return (typeof DXI18n !== 'undefined' && DXI18n.lang) || _lang();

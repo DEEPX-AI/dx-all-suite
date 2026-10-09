@@ -225,6 +225,13 @@ window._DX_I18N_DICT = {
     'zh-TW': '互動方式',
     es: 'Interacción',
   },
+  'Plans, commands and results from the agent appear here. Describe an app below, or start from a showcase.': {
+    ko: '에이전트의 계획 · 명령 · 결과가 여기에 나옵니다. 아래에 만들 앱을 적거나 쇼케이스에서 시작하세요.',
+    ja: 'エージェントの計画・コマンド・結果がここに表示されます。下に作りたいアプリを書くか、ショーケースから始めてください。',
+    'zh-CN': '智能体的计划、命令和结果会显示在这里。请在下方描述要构建的应用，或从示例开始。',
+    'zh-TW': '代理程式的計畫、命令與結果會顯示在這裡。請在下方描述要建構的應用，或從範例開始。',
+    es: 'Aquí aparecen el plan, los comandos y los resultados del agente. Describa una app abajo o empiece desde un caso de ejemplo.',
+  },
   'Main chat for building NPU apps. The chat button (bottom-right) is for SDK Q&A.': {
     ko: 'NPU 앱을 만들 메인 채팅입니다. 우하단 채팅 버튼은 SDK 질문용입니다.',
     ja: 'NPUアプリ構築用のメインチャットです。右下のチャットボタンはSDK質問用です。',

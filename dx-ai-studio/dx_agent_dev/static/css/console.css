@@ -117,6 +117,16 @@
   flex-direction: column;
   gap: 12px;
 }
+/* 첫 화면의 빈 상자 — 여기에 무엇이 나오는지 알려 준다 (release audit G-2). 첫 turn 이 붙으면 :empty 가 풀린다. */
+#console-output:empty::before {
+  content: attr(data-empty-hint);
+  margin: auto;
+  max-width: 40ch;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  line-height: 1.6;
+}
 #console-status-bar {
   font-size: var(--fs-sm);
   color: var(--text-secondary);
@@ -138,7 +148,7 @@
 .user-line {
   align-self: flex-end;
   max-width: 85%;
-  background: var(--accent);
+  background: var(--accent-fill);
   color: #fff;
   padding: 8px 12px;
   border-radius: 16px 16px 4px 16px;
@@ -389,6 +399,10 @@
 
 /* 오른쪽은 채팅 단추 (56px) 자리 — 그 아래에 Send 가 숨었다 (release audit L-24) */
 #console-form { display: flex; gap: var(--sp-2); padding: var(--sp-3) calc(var(--sp-7) + var(--sp-5)) 0 0; flex-shrink: 0; position: relative; z-index: 5; }
+/* 폰 폭에서 오른쪽 72px 를 비우면 입력칸이 124px 로 줄었다 — 대신 아래를 비워 채팅 버튼을 피한다 (release audit G-1) */
+@media (max-width: 600px) {
+  #console-form { padding-right: 0; margin-bottom: calc(var(--sp-7) + var(--sp-3)); }
+}
 #console-input {
   flex: 1;
   padding: 8px 12px;
@@ -401,7 +415,7 @@
 #console-input:focus { outline: none; border-color: var(--accent); }
 #console-send {
   padding: 8px 16px;
-  background: var(--accent);
+  background: var(--accent-fill);
   color: #fff;
   border: none;
   border-radius: var(--radius);

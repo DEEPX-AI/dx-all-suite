@@ -180,12 +180,17 @@
       _agentControlsBound = true;
       agentSel.addEventListener('change', function () {
         const found = _agents.find(function (x) { return x.name === agentSel.value; });
+        if (modelSel) delete modelSel.dataset.userPicked;  // 다른 에이전트 — 그 에이전트의 기본 모델부터
         fillModels(found);
       });
     }
     if (!_modelHintBound) {
       _modelHintBound = true;
-      modelSel.addEventListener('change', updateModelQualityHint);
+      modelSel.addEventListener('change', function () {
+        // 사용자가 고른 모델은 CLI 목록을 다시 받아도 · 언어를 바꿔도 지킨다 (release audit G-1).
+        modelSel.dataset.userPicked = '1';
+        updateModelQualityHint();
+      });
     }
     updateModelQualityHint();
     controls.removeAttribute('hidden');
@@ -288,9 +293,12 @@
         if (!live.length || !sel || sel.value !== agent.name) return;
         const prev = modelSel.value;
         const def = d.default_model;
+        // 예전에는 정적 기본값 (prev) 이 늘 이겨 CLI 의 실제 기본 모델 (예: copilot 의 claude-sonnet-5) 이 안 골라졌다.
+        const picked = modelSel.dataset.userPicked === '1' && live.indexOf(prev) !== -1;
+        const keep = picked ? prev : (def && live.indexOf(def) !== -1 ? def : prev);
         modelSel.innerHTML = '';
         live.forEach(function (m) {
-          appendModelOption(modelSel, m, m === prev || (!prev && m === def));
+          appendModelOption(modelSel, m, m === keep);
         });
         modelSel.disabled = false;
         updateModelQualityHint();
@@ -303,6 +311,8 @@
     const m = String(model).trim().toLowerCase();
     if (!m || m === '—') return true;
     if (m === 'auto' || m.includes('auto')) return false;
+    // 버전 없는 별칭은 그 계열의 최신을 가리킨다
+    if (m === 'opus' || m === 'sonnet') return true;
     return _RECOMMENDED_MODEL.test(m);
   }
 
@@ -879,6 +889,8 @@
   function applyLang() {
     const input = $('console-input');
     if (input) input.placeholder = T('Describe what you want to build...');
+    const outEl = $('console-output');
+    if (outEl) outEl.dataset.emptyHint = T('Plans, commands and results from the agent appear here. Describe an app below, or start from a showcase.');
     const b = $('status-badge');
     if (b && b.dataset.i18nKey) b.textContent = T(b.dataset.i18nKey);
     const note = document.querySelector('.gallery-note');
@@ -891,7 +903,20 @@
     }
     const agentSel = $('agent-select');
     const agent = _agents.find(function (x) { return x.name === (agentSel && agentSel.value); }) || _agents[0];
-    if (agent) fillModels(agent);
+    if (agent) {
+      // 언어만 바꿨다 — 고른 모델 · 노력 수준은 그대로 둔다 (예전에는 기본값으로 되돌아갔다, G-1)
+      const modelSel = $('model-select'), effortSel = $('effort-select');
+      const keepModel = modelSel ? modelSel.value : '', picked = modelSel ? modelSel.dataset.userPicked : '';
+      const keepEffort = effortSel ? effortSel.value : '';
+      fillModels(agent);
+      if (modelSel && keepModel && Array.prototype.some.call(modelSel.options, function (o) { return o.value === keepModel; })) {
+        modelSel.value = keepModel;
+        if (picked) modelSel.dataset.userPicked = picked;
+      }
+      if (effortSel && keepEffort && Array.prototype.some.call(effortSel.options, function (o) { return o.value === keepEffort; })) {
+        effortSel.value = keepEffort;
+      }
+    }
     updateModelQualityHint();
     renderExamplePanels();
     relocalizeOpenTurns();

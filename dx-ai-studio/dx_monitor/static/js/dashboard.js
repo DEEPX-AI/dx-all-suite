@@ -533,7 +533,7 @@ function renderNPUTopo(hw){
   var telemetryMode=S.telemetryMode||_telemetryState(hw);
   var mockMode=_telemetryState(hw)==='mock';
   var telemetryMessage=telemetryMode==='stale'?T('NPU telemetry is not current'):T('NPU telemetry unavailable');
-  if($('npu-status-label'))$('npu-status-label').textContent=mockMode?T('Mock Data'):(telemetryMode==='unavailable'||telemetryMode==='stale'?telemetryMessage:npus.length+T(' NPU(s)'));
+  if($('npu-status-label'))$('npu-status-label').textContent=mockMode?T('Mock Data'):(telemetryMode==='unavailable'||telemetryMode==='stale'?telemetryMessage:npus.length+' '+(npus.length===1?'NPU':T('NPUs')));
   if($('npu-topo'))$('npu-topo').innerHTML=npus.map(function(n, idx){
     var tc=tempColor(n.temp_avg||0);
     var coreRows='';

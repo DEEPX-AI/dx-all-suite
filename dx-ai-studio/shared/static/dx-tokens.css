@@ -9,6 +9,12 @@
   --border-accent:var(--accent);
   --accent:#2997ff;--accent-light:#4aa8ff;--accent-dim:rgba(41,151,255,.16);--accent-glow:rgba(41,151,255,.28);--accent-strong:#5e5ce6;
   --app-accent:#2997ff;
+  /* 글자용 강조색. --accent 는 채움 · 테두리에 맞춘 값이라 옅은 강조 배경 (accent-dim) 위 글자로는 AA (4.5:1) 에
+     못 미쳤다 (분류 배지 3.7:1, 보라 글자 2.75:1 — release audit 대비 점검). 채움은 그대로 두고 글자만 이것을 쓴다. */
+  --accent-ink:#6cb6ff;--accent-strong-ink:#8e8cf0;
+  /* 흰 글자를 올리는 채움 (Run · Send · 활성 칩). 어두운 테마의 --accent (#2997ff) 는 밝아 흰 글자가 3.0:1 이었다 —
+     채움만 한 단계 진한 파랑 (밝은 테마와 같은 #0071e3, 4.7:1). 글자 · 테두리용 --accent 는 그대로. */
+  --accent-fill:#0071e3;
   --gradient-accent:linear-gradient(135deg,#2997ff,#5e5ce6);
     --npu:#5e5ce6;
     --radius-xs:4px;--radius-sm:6px;--radius:8px;--radius-lg:12px;--radius-xl:16px;--radius-pill:999px;

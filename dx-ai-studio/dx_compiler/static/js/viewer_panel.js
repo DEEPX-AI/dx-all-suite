@@ -358,6 +358,9 @@ function _srvErr(msg) {
         setupSearch();
         setupExplorer();
         setupKeyboardShortcuts();
+        // 모델을 열기 전에도 상태줄은 고른 언어로 (예전에는 첫 로드에 "Nodes: 0 · Edges: 0 · Zoom" 영어 그대로, C-3).
+        updateStatusBar(null, null);
+        updateZoomDisplay();
 
         // Deep-link: /compiler/?viewer_path=<absolute .onnx path>  → auto-parse + render
         // the model's graph on the "input" tab. Lets other Studio modules (dx_app, modelzoo)
@@ -1567,6 +1570,7 @@ function _srvErr(msg) {
         }
         updateZoomDisplay();
         if (lastCapabilities) applyCompilerCapabilities(lastCapabilities);
+        if (selectedNode) showNodeInfo(selectedNode);
         if (nodeSelectionMode) {
             hideNodeSelectionUI();
             showNodeSelectionUI();

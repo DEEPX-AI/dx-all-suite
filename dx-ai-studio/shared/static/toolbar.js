@@ -371,8 +371,9 @@
         }
         tutBtn.addEventListener('click', newTutHandler);
       } else {
-        var langDrop = document.getElementById('langToggle');
-        var insertRef = langDrop ? langDrop.nextSibling : null;
+        // launcher 와 같은 순서 — 언어 · 테마 · 튜토리얼 · (설정). 예전에는 언어 바로 뒤에 끼어 테마 앞에 왔다 (release audit L-27).
+        var settingsRef = document.getElementById('dxToolbarSettings');
+        var insertRef = settingsRef && settingsRef.parentNode === toolbar ? settingsRef : null;
         tutBtn = _makeIconBtn('graduation', 'Tutorial', newTutHandler);
         tutBtn.id = 'dxToolbarTutorial';
         if (insertRef) toolbar.insertBefore(tutBtn, insertRef);

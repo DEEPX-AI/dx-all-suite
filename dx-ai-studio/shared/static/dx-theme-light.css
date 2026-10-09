@@ -27,9 +27,11 @@
 
   --text-primary:#1d1d1f;
   --text-secondary:#333336;
-  --text-muted:#6e6e73;
+  --text-muted:#636368;
   --text-faint:#76767a;
   --text-on-accent:#FFFFFF;
+  --text-on-accent-solid:var(--text-on-accent);
+  --accent-ink:#0058b9;--accent-fill:var(--accent);--accent-strong-ink:#4b49c9;--app-accent:var(--accent);--emerald:#047857;
 
   --border-subtle:rgba(0,0,0,.1);
   --border-strong:rgba(0,0,0,.18);
@@ -43,6 +45,7 @@
   --status-warn:#b25000;
   --status-error:#d70015;
   --status-info:#0071e3;
+  --status-error-ink:var(--status-error);
 
   --accent:#0071e3;
   --accent-light:#0077ed;
@@ -82,9 +85,11 @@
 
     --text-primary:#1d1d1f;
     --text-secondary:#333336;
-    --text-muted:#6e6e73;
+    --text-muted:#636368;
     --text-faint:#76767a;
     --text-on-accent:#FFFFFF;
+    --text-on-accent-solid:var(--text-on-accent);
+    --accent-ink:#0058b9;--accent-fill:var(--accent);--accent-strong-ink:#4b49c9;--app-accent:var(--accent);--emerald:#047857;
 
     --border-subtle:rgba(0,0,0,.1);
     --border-strong:rgba(0,0,0,.18);
@@ -98,6 +103,7 @@
     --status-warn:#b25000;
     --status-error:#d70015;
     --status-info:#0071e3;
+    --status-error-ink:var(--status-error);
 
     --accent:#0071e3;
     --accent-light:#0077ed;

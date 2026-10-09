@@ -14,6 +14,8 @@
   width:212px;font-size:11px;transition:opacity .3s;
   user-select:none;font-family:Inter,-apple-system,'Segoe UI',Roboto,system-ui,sans-serif;color:var(--text-primary)}
 .hw-float *{box-sizing:border-box}
+/* 모듈 화면에서는 왼쪽 레일 (56px) 위에 얹혀 레일 아래 버튼을 가렸다 — 레일 오른쪽에서 시작한다 (release audit hw-float). */
+body:has(.dx-shell-rail) .hw-float{left:calc(var(--dx-rail-w,56px) + var(--sp-3,12px))}
 .hw-float.dragging{opacity:.85;transition:none;box-shadow:0 8px 32px rgba(0,0,0,.5)}
 .hw-float.minimized .hw-float-body{display:none}
 .hw-float.minimized{width:max-content}
@@ -62,14 +64,14 @@
     </div>
     <div id="hf-system-section" class="hw-float-section">
       <div class="hw-section-title"><span data-i18n="System">System</span></div>
-      <div class="hw-float-row"><span class="hf-k"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#cpu"></use></svg> CPU</span><span class="hf-v" id="hf-cpu">--</span></div>
+      <div class="hw-float-row"><span class="hf-k"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#cpu"></use></svg> <span data-i18n="CPU Load">CPU Load</span></span><span class="hf-v" id="hf-cpu">--</span></div>
       <div class="hw-float-row"><span class="hf-k"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#memory"></use></svg> <span data-i18n="Memory">Memory</span></span><span class="hf-v" id="hf-mem">--%</span></div>
       <div class="hw-float-row"><span class="hf-k"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#disk"></use></svg> <span data-i18n="Disk">Disk</span></span><span class="hf-v" id="hf-disk">--%</span></div>
     </div>
     <div class="hw-float-status" id="hf-status" style="display:none"><span data-i18n="Connecting...">Connecting...</span></div>
     <div class="hw-spark" id="hf-spark" onclick="_hwSparkNext()">
       <canvas id="hf-spark-canvas" height="20"></canvas>
-      <div class="hw-spark-label" id="hf-spark-label">NPU Temp</div>
+      <div class="hw-spark-label" id="hf-spark-label" data-i18n="NPU Temp">NPU Temp</div>
     </div>
   </div>
 </div>
@@ -256,7 +258,7 @@
     var titleEl=document.getElementById('hf-npu-title');
     if(titleEl){
       var _isMock=!!(_lastPayload&&_lastPayload.mock)||!!(n&&n.mock);
-      var _title=n?('NPU '+((n.id!=null)?n.id:_selectedNpuIdx)):'No NPU';
+      var _title=n?('NPU '+((n.id!=null)?n.id:_selectedNpuIdx)):(window.T?T('No NPU'):'No NPU');
       titleEl.innerHTML=_escHtml(_title)+(_isMock?' <span class="hf-mock-badge" title="'+_escHtml(_mockBadgeTitle())+'">MOCK</span>':'');
     }
 
@@ -276,7 +278,7 @@
     }
 
     /* System values */
-    _setValue('hf-cpu',_fmt(_lastPayload.cpu_load,1),'');
+    _setValue('hf-cpu',_fmt(_lastPayload.cpu_load,2),'');
     _setValue('hf-mem',_fmt(_lastPayload.mem_pct,1,'%'),'');
     _setValue('hf-disk',_fmt(_lastPayload.disk_pct,1,'%'),'');
 
@@ -314,7 +316,8 @@
     if (max === min) max = min + 1;
     var step = canvas.width / Math.max(data.length - 1, 1);
     ctx.beginPath();
-    ctx.strokeStyle = 'var(--accent)'; ctx.lineWidth = 2;
+    // canvas 는 CSS 변수를 못 읽는다 — 'var(--accent)' 는 무시돼 선이 검게 그려졌다 (release audit M-3).
+    ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim(); ctx.lineWidth = 2;
     for (var i = 0; i < data.length; i++) {
       var x = i * step;
       var y = canvas.height - ((data[i] - min) / (max - min)) * (canvas.height - 4) - 2;
@@ -328,7 +331,10 @@
     _sparkMode = (_sparkMode + 1) % _MODES.length;
     _sparkData = [];
     var lbl = document.getElementById('hf-spark-label');
-    if (lbl) lbl.textContent = _LABELS[_MODES[_sparkMode]];
+    if (lbl) {
+      lbl.setAttribute('data-i18n', _LABELS[_MODES[_sparkMode]]);
+      lbl.textContent = window.T ? T(_LABELS[_MODES[_sparkMode]]) : _LABELS[_MODES[_sparkMode]];
+    }
   };
 
   /* ── Threshold loading ── */
@@ -383,6 +389,11 @@
     'NPU Util': { ko: 'NPU 사용률', ja: 'NPU 使用率', 'zh-CN': 'NPU 利用率', 'zh-TW': 'NPU 使用率', es: 'Util. NPU' },
     'System': { ko: '시스템', ja: 'システム', 'zh-CN': '系统', 'zh-TW': '系統', es: 'Sistema' },
     'Voltage': { ko: '전압', ja: '電圧', 'zh-CN': '电压', 'zh-TW': '電壓', es: 'Voltaje' },
+    'CPU Load': { ko: 'CPU 부하', ja: 'CPU 負荷', 'zh-CN': 'CPU 负载', 'zh-TW': 'CPU 負載', es: 'Carga de CPU' },
+    'NPU Temp': { ko: 'NPU 온도', ja: 'NPU 温度', 'zh-CN': 'NPU 温度', 'zh-TW': 'NPU 溫度', es: 'Temp. NPU' },
+    'Core Temp': { ko: '코어 온도', ja: 'コア温度', 'zh-CN': '核心温度', 'zh-TW': '核心溫度', es: 'Temp. del núcleo' },
+    'NPU DRAM': { ko: 'NPU DRAM', ja: 'NPU DRAM', 'zh-CN': 'NPU DRAM', 'zh-TW': 'NPU DRAM', es: 'DRAM NPU' },
+    'No NPU': { ko: 'NPU 없음', ja: 'NPU なし', 'zh-CN': '无 NPU', 'zh-TW': '無 NPU', es: 'Sin NPU' },
   };
   function _register() {
     if (window.DXI18n && window.DXI18n.register) window.DXI18n.register(DICT);

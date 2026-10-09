@@ -53,6 +53,26 @@ function _prepareChartCanvas(canvas,resetInline){
   return{ctx:ctx,W:W,H:H};
 }
 
+/* y 축 눈금. 평평한 값은 ±1 로 벌려 "37.0…39.0" · "749.5 mV" · 0% 일 때 "-1.0" 이 나왔고, toFixed(1) 이라
+   "0.7, 0.7, 0.6" 처럼 같은 눈금이 겹쳤다 (release audit M-2). 1 · 2 · 2.5 · 5 × 10ⁿ 간격 4 칸으로 맞추고,
+   값이 모두 0 이상이면 축도 0 아래로 내려가지 않는다. */
+function _chartNiceAxis(lo,hi){
+  var nonNeg=lo>=0;
+  if(lo===hi){var d=Math.max(Math.abs(hi)*0.05,0.5);lo-=d;hi+=d;}
+  if(nonNeg&&lo<0)lo=0;
+  var mag=Math.pow(10,Math.floor(Math.log10((hi-lo)/4)));
+  var mults=[1,2,2.5,5,10,20,25,50,100];
+  for(var k=0;k<mults.length;k++){
+    var step=mults[k]*mag,base=Math.floor(lo/step+1e-9)*step;
+    if(base+4*step>=hi-1e-9){
+      var dec=Math.max(0,Math.ceil(-Math.log10(step)-1e-9));
+      if(Math.abs(step*Math.pow(10,dec)-Math.round(step*Math.pow(10,dec)))>1e-6)dec+=1;
+      return{mn:base,mx:base+4*step,dec:Math.min(dec,3)};
+    }
+  }
+  return{mn:lo,mx:hi,dec:1};
+}
+
 function drawLineChart(canvas,datasets,opts){
   if(!opts)opts={};
   var prepared=_prepareChartCanvas(canvas,true);
@@ -64,12 +84,13 @@ function drawLineChart(canvas,datasets,opts){
   ctx.fillStyle=_dxChartCssColor('--control-bg','#0f172a');ctx.fillRect(0,0,W,H);
   var finiteValues=_chartFiniteValues(datasets);
   var hasData=datasets.length>0&&datasets.some(function(d){return _chartFiniteValues([d]).length>=2});
-  var mn=0,mx=1,rng=1;
+  var mn=0,mx=1,rng=1,tickDec=1;
   if(hasData){
     var allV=finiteValues;
     mn=opts.min!=null?opts.min:Math.min.apply(null,allV);
     mx=opts.max!=null?opts.max:Math.max.apply(null,allV);
-    if(mn===mx){mn-=1;mx+=1}
+    if(opts.min==null&&opts.max==null){var ax=_chartNiceAxis(mn,mx);mn=ax.mn;mx=ax.mx;tickDec=ax.dec;}
+    else if(mn===mx){mn-=1;mx+=1}
     rng=mx-mn;
   }
   ctx.strokeStyle='rgba(148,163,184,.12)';ctx.lineWidth=0.5;
@@ -77,7 +98,7 @@ function drawLineChart(canvas,datasets,opts){
     var y=pad.t+ch*(i/4);
     ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(pad.l+cw,y);ctx.stroke();
     ctx.fillStyle=_dxChartCssColor('--text-muted','#94a3b8');ctx.font='10px sans-serif';ctx.textAlign='right';
-    ctx.fillText(hasData?(mx-rng*(i/4)).toFixed(1):'--',pad.l-6,y+3);
+    ctx.fillText(hasData?(mx-rng*(i/4)).toFixed(tickDec):'--',pad.l-6,y+3);
   }
   if(!hasData){
     ctx.fillStyle='rgba(139,148,158,0.35)';ctx.font='11px sans-serif';ctx.textAlign='center';
@@ -124,7 +145,9 @@ function drawLineChart(canvas,datasets,opts){
       if(!lbl)return;
       var x=pad.l+(i/(Math.max(len-1,1)))*cw;
       if(x-lastDrawnX<60)return;
-      ctx.fillText(lbl,x,H-pad.b+14);
+      // 끝 라벨이 캔버스 밖으로 반쯤 잘렸다 — 가운데 정렬 폭만큼 안쪽으로 당긴다.
+      var half=ctx.measureText(lbl).width/2;
+      ctx.fillText(lbl,Math.min(Math.max(x,half+2),W-half-2),H-pad.b+14);
       lastDrawnX=x;
     });
   }

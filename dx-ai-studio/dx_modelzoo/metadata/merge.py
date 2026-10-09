@@ -26,6 +26,10 @@ _REQUIRED_PERF_FIELDS = {"fps", "fps_per_watt"}
 _ARTIFACT_PRESENT_KEYS = {"remote_url", "local_path", "download_endpoint", "available"}
 # Adapters that only fill fields still missing after higher-priority sources (e.g. public HTML).
 _GAP_FILL_ADAPTERS = frozenset({"internal_modelzoo"})
+# 단 이름은 사람이 붙인 publish 값 (Display Name "YOLOv12-m") 이 local 어댑터가 id 에서 만든 이름 ("Yolov12 M") 을
+# 이긴다 — gap-fill 이라 덮지 못해 499 개 중 342 개가 id 그대로 보였다 (release audit Z-7). 다른 network 출처의 이름은 그대로.
+_GAP_FILL_OVERRIDES_LOCAL = frozenset({"display.name"})
+_LOCAL_ADAPTERS = frozenset({"local_runtime", "local_studio_catalog", "local_modelzoo_repo"})
 
 
 def merge_adapter_results(results, source_profile="local"):
@@ -80,7 +84,9 @@ def merge_adapter_results(results, source_profile="local"):
                     continue
                 if adapter_name in _GAP_FILL_ADAPTERS:
                     existing = merged_flat[mid].get(k)
-                    if existing is not None and normalize_source_value(existing) is not None:
+                    from_local = provenance[mid].get(k, {}).get("source") in _LOCAL_ADAPTERS
+                    if (existing is not None and normalize_source_value(existing) is not None
+                            and not (k in _GAP_FILL_OVERRIDES_LOCAL and from_local)):
                         continue
                 merged_flat[mid][k] = v
                 provenance[mid][k] = {"source": adapter_name}

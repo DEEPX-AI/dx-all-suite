@@ -1259,5 +1259,10 @@ ul.about-timeline-list li::before {
 /* 폰 폭: 목차가 0px 로 눌려 사라졌다 — 다음 줄로 내려 가로로 스크롤한다 (release audit L-25) */
 @media (max-width: 600px) {
   .about-topbar { flex-wrap: wrap; height: auto; padding: var(--sp-2) var(--sp-4); }
-  .about-nav { order: 3; flex: 1 0 100%; overflow-x: auto; justify-content: flex-start; }
+  .about-nav {
+    order: 3; flex: 1 0 100%; overflow-x: auto; justify-content: flex-start;
+    /* 끝 탭이 화면 밖에 있다는 걸 오른쪽 끝을 흐리게 해 알린다 */
+    -webkit-mask-image: linear-gradient(90deg, rgba(0,0,0,1) calc(100% - var(--sp-6)), rgba(0,0,0,0));
+    mask-image: linear-gradient(90deg, rgba(0,0,0,1) calc(100% - var(--sp-6)), rgba(0,0,0,0));
+  }
 }

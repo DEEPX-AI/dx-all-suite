@@ -10,6 +10,13 @@ function _escAttr(s) {
   return _escHtml(s).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
+/* 결과 탭의 장비 이름도 대시보드와 같게 — hw_id 끝의 _<SKU> 를 괄호로 ("OrangePi5+_M1" → "OrangePi5+ (M1)", release audit B-3). */
+function _hwName(id) {
+  var s = String(id || '');
+  var i = s.lastIndexOf('_');
+  return i > 0 ? s.slice(0, i) + ' (' + s.slice(i + 1) + ')' : s;
+}
+
 var Results = {
   currentHw: null,
   currentRun: null,
@@ -65,7 +72,7 @@ var Results = {
     this.data.forEach(function(hw) {
       cardsHtml += '<div class="hw-card" role="button" tabindex="0" data-hw-id="' + _escAttr(hw.hw_id) + '">' +
       '<div class="hw-card-icon">' + ((typeof DXIcon === 'function') ? DXIcon('monitor') : '') + '</div>' +
-      '<div class="hw-card-name">' + _escHtml(hw.hw_id) + '</div>' +
+      '<div class="hw-card-name">' + _escHtml(_hwName(hw.hw_id)) + '</div>' +
       '<div class="hw-card-runs">' + _escHtml(_t('{n} runs').replace('{n}', (hw.runs || []).length)) + '</div>' +
       '</div>';
     });
@@ -92,7 +99,7 @@ var Results = {
     document.querySelectorAll('.hw-card[data-hw-id]').forEach(function(card) {
       card.classList.toggle('active', card.dataset.hwId === hwId);
     });
-    var html = '<h3>' + _escHtml(hwId) + ' — ' + _t('Select Run') + '</h3><div class="run-list">';
+    var html = '<h3>' + _escHtml(_hwName(hwId)) + ' — ' + _t('Select Run') + '</h3><div class="run-list">';
     hw.runs.forEach(function(run) {
       html += '<div class="run-item" role="button" tabindex="0" data-hw-id="' + _escAttr(hwId) + '" data-run-id="' + _escAttr(run.run_id) + '">' +
         '<span class="run-id">' + _escHtml(run.run_id) + '</span>' +

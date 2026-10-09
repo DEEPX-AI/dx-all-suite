@@ -34,6 +34,10 @@
    dx_app · dx_stream · dx_monitor · dx_benchmark 가 같은 유틸리티를 각자 갖고
    있었다. 값은 같았고 공백만 달랐다 — 어차피 같을 것을 네 번 적고 있었다. */
 .flex{display:flex}
+/* between · items-c · ml8 은 정리 때 같이 지워졌지만 dx_app 머리줄 6 곳이 아직 쓴다 — 없으니 제목과 설명이 붙었다 (release audit A-27). */
+.between{justify-content:space-between}
+.items-c{align-items:center}
+.ml8{margin-left:var(--sp-2)}
 .hidden{display:none !important}
 .wrap{flex-wrap:wrap}
 .w100{width:100%}
@@ -60,10 +64,10 @@
    바꾸면 그 모듈만 따라오지 않는다. 토큰 쪽으로 맞춘다. */
 .b-ok{background:rgba(63,185,80,.12);color:var(--status-ok);border:1px solid rgba(63,185,80,.2)}
 .b-no{background:rgba(148,163,184,.08);color:var(--text-faint);border:1px solid rgba(148,163,184,.1)}
-.b-cat{background:var(--accent-dim);color:var(--accent);border:1px solid rgba(var(--accent-rgb),.15)}
-.b-blue{background:rgba(88,166,255,.1);color:var(--status-info);border:1px solid rgba(88,166,255,.15)}
+.b-cat{background:var(--accent-dim);color:var(--accent-ink);border:1px solid rgba(var(--accent-rgb),.15)}
+.b-blue{background:rgba(88,166,255,.1);color:var(--status-info-ink);border:1px solid rgba(88,166,255,.15)}
 .b-warn{background:rgba(210,153,34,.1);color:var(--status-warn);border:1px solid rgba(210,153,34,.15)}
-.b-red{background:rgba(248,81,73,.1);color:var(--status-error);border:1px solid rgba(248,81,73,.15)}
+.b-red{background:rgba(248,81,73,.1);color:var(--status-error-ink);border:1px solid rgba(248,81,73,.15)}
 
 .gap8{gap:var(--sp-2)}
 .mt16{margin-top:16px}

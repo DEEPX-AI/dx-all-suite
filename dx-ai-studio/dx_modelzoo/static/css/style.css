@@ -10,6 +10,8 @@ body{overflow-x:auto;overflow-y:auto}
 .mz-btn-icon.active{color:var(--accent);border-color:var(--accent)}
 .mz-dx-app-status{width:8px;height:8px;border-radius:50%;background:var(--status-error)}
 .mz-dx-app-status.alive{background:var(--status-ok)}
+.mz-dx-app-indicator{display:inline-flex;align-items:center;gap:var(--sp-1);padding:var(--sp-1) var(--sp-2);font-size:var(--fs-xs);color:var(--text-muted);white-space:nowrap}
+@media (max-width:600px){.mz-dx-app-label{display:none}}
 
 /* ═══ Filter Bar ═══ */
 .mz-main{width:100%;max-width:none;margin:0;padding:var(--sp-5);min-width:0;overflow-x:auto}
@@ -19,7 +21,7 @@ body{overflow-x:auto;overflow-y:auto}
   background:transparent;color:var(--text-secondary);cursor:pointer;font-size:var(--fs-base);
   transition:var(--transition);white-space:nowrap}
 .mz-chip:hover{border-color:var(--border-strong);color:var(--text-primary)}
-.mz-chip.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.mz-chip.active{background:var(--accent-fill);color:#fff;border-color:var(--accent)}
 .mz-chip .chip-count{font-size:var(--fs-xs);opacity:.7;margin-left:4px}
 .mz-filter-controls{display:flex;gap:var(--sp-3);align-items:center;flex-wrap:wrap}
 .mz-search{flex:1;min-width:200px;padding:8px 12px;border-radius:var(--radius);
@@ -229,7 +231,7 @@ body{overflow-x:auto;overflow-y:auto}
 .mz-ba-slider{position:absolute;top:0;bottom:0;width:4px;background:var(--accent);
   cursor:ew-resize;z-index:2}
 .mz-ba-slider::after{content:'⟨⟩';position:absolute;top:50%;left:50%;
-  transform:translate(-50%,-50%);background:var(--accent);color:#fff;
+  transform:translate(-50%,-50%);background:var(--accent-fill);color:#fff;
   border-radius:50%;width:32px;height:32px;display:flex;align-items:center;
   justify-content:center;font-size:var(--fs-md)}
 
@@ -449,4 +451,11 @@ body.lang-zh-TW .zh-CN { display: none !important; }
 @media (max-width: 600px) {
   .mz-inference-preview { flex-direction: column; }
   .mz-sample-grid { max-height: 160px; }
+  /* 390px 에서 shell · explorer · main · section 의 padding 네 겹 (한쪽 88px) 에 spec 표 th 180px 가 겹쳐
+     값 칸이 0px 가 되고 경로가 한 글자씩 꺾였다 (release audit Z-8). */
+  .mz-explorer-shell, .mz-main { padding: 0; }
+  .mz-detail-header, .mz-detail-section { padding: var(--sp-4); }
+  .mz-spec-table th { width: 40%; }
+  .mz-artifact-table { display: block; overflow-x: auto; }
+  .mz-artifact-table th, .mz-artifact-table td { min-width: 120px; }
 }

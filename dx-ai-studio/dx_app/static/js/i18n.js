@@ -71,6 +71,11 @@ window._DX_I18N_DICT = {
     'zh-CN': '设置和安装', 'zh-TW': '設定與安裝',
     es: 'Configuración e instalación',
   },
+  'API Endpoints': {
+    ko: 'API 엔드포인트', ja: 'API エンドポイント',
+    'zh-CN': 'API 端点', 'zh-TW': 'API 端點',
+    es: 'Endpoints de la API',
+  },
   'Run Inference': {
     ko: '추론 실행', ja: '推論実行',
     'zh-CN': '运行推理', 'zh-TW': '執行推論',
@@ -289,7 +294,7 @@ window._DX_I18N_DICT = {
   'Volt': {
     ko: '전압', ja: '電圧',
     'zh-CN': '电压', 'zh-TW': '電壓',
-    es: 'Voltio',
+    es: 'Voltaje',
   },
   'Clock': {
     ko: '클럭', ja: 'クロック',
@@ -3015,7 +3020,7 @@ window._DX_I18N_DICT = {
     ja: '実験',
     'zh-CN': '实验',
     'zh-TW': '實驗',
-    es: 'Experiment',
+    es: 'Experimento',
   },
   'Frames': {
     ko: '프레임',
@@ -3264,7 +3269,7 @@ window._DX_I18N_PLACEHOLDERS = {
   },
   '/path/to/model.onnx': {
     ko: '/path/to/model.onnx', ja: '/path/to/model.onnx',
-    es: '/path/to/model.onnx',
+    es: '/ruta/modelo.onnx',
     'zh-CN': '/path/to/model.onnx', 'zh-TW': '/path/to/model.onnx'
   },
   'input.1': {
@@ -5024,7 +5029,7 @@ window._DX_I18N_PLACEHOLDERS = {
   },
   '/path/to/config.json': {
     ko: '/path/to/config.json', ja: '/path/to/config.json',
-    es: '/path/to/config.json',
+    es: '/ruta/config.json',
     'zh-CN': '/path/to/config.json', 'zh-TW': '/path/to/config.json'
   },
   'jpeg,jpg,png': {

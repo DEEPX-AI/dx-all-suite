@@ -82,7 +82,7 @@ function mzRenderTaskChips() {
   var html = '<button class="chip' + (MZ.filter.task === '' ? ' active' : '') + '" onclick="mzFilterTask(\'\')">' + T('All') + ' ' + MZ.models.length + '</button>';
   keys.forEach(function(t) {
     var active = MZ.filter.task === t ? ' active' : '';
-    html += '<button class="chip' + active + '" onclick="mzFilterTask(\'' + esc(t) + '\')">' + esc(t) + ' <span class="txt-dim">' + tasks[t] + '</span></button>';
+    html += '<button class="chip' + active + '" onclick="mzFilterTask(\'' + esc(t) + '\')">' + esc(catText(t)) + ' <span class="txt-dim">' + tasks[t] + '</span></button>';
   });
   var el = $('mz-task-chips');
   if (el) el.innerHTML = html;
@@ -161,7 +161,7 @@ function mzRenderTable() {
 
     return '<tr class="' + rowCls + '">'
       + '<td><label class="mz-chk-wrap"><input type="checkbox" onchange="mzToggleCart(\'' + esc(m.name) + '\')"' + (cart ? ' checked' : '') + '><span class="mz-chk"></span></label></td>'
-      + '<td><span class="badge b-cat">' + esc(m.task) + '</span></td>'
+      + '<td><span class="badge b-cat">' + esc(catText(m.task)) + '</span></td>'
       + '<td><strong>' + esc(m.name) + '</strong></td>'
       + '<td class="txt-dim txt-xs">' + esc(m.class_name || '–') + '</td>'
       + '<td class="txt-dim txt-xs">' + esc(m.dataset || '–') + '</td>'

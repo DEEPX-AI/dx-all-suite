@@ -97,6 +97,9 @@
 /* 한국어는 기본 줄바꿈이 글자 단위라 부제가 "컴 / 파일하고", placeholder 가 "주 / 세요" 로
    끊겼다 (2026-09-28 ko 캡처). 단어 단위로 끊는다. */
 .stage-hero :is(.stage-title, .stage-sub, .ask-input) { word-break: keep-all; overflow-wrap: anywhere; }
+/* keep-all 은 띄어쓰기로 끊는 한국어용이다. 띄어쓰기가 없는 일본어 · 중국어에서는 구절 전체가 한 덩어리가 되어
+   anywhere 로 아무 데서나 잘렸고, 390px 에서 "。" 가 홀로 다음 줄로 떨어졌다 — 글자 사이에서 끊되 금칙은 지킨다. */
+:root:is(:lang(ja), :lang(zh-CN), :lang(zh-TW)) .stage-hero :is(.stage-title, .stage-sub, .ask-input) { word-break: normal; line-break: strict; }
 
 /* "Watch the film" pill: 썸네일 + 제목. 누르면 지금과 같은 overlay. */
 .stage-films { display: flex; justify-content: center; flex-wrap: wrap; gap: var(--sp-2); }

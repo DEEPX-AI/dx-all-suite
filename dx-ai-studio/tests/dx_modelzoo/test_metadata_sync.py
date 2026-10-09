@@ -127,6 +127,29 @@ def test_internal_gap_fill_does_not_clobber_existing_public_qpro():
     assert model["artifacts"]["qpro_dxnn"]["remote_url"].endswith("YOLOV5S-1.dxnn")
 
 
+def test_publish_display_name_replaces_a_name_guessed_from_the_local_id():
+    """publish 페이지의 Display Name ("YOLOv12-m") 이 local id 를 대문자화한 이름 ("Yolov12 M") 을 이긴다 (release audit Z-7).
+
+    internal_modelzoo 는 gap-fill 이라 이미 있는 값을 덮지 않았고, local_runtime 이 이름을 먼저 채워 499 개 중 342 개가
+    id 그대로 보였다. 이름만은 사람이 붙인 publish 값이 맞다 — 단 public 같은 다른 network 출처의 이름은 덮지 않는다."""
+    from dx_modelzoo.metadata.merge import merge_adapter_results
+
+    local = {"adapter": "local_runtime", "ok": True, "errors": [], "warnings": [],
+             "models": {"yolov12-m": {"display.name": "Yolov12 M", "display.task": "object_detection"}}}
+    internal = {"adapter": "internal_modelzoo", "ok": True, "errors": [], "warnings": [],
+                "models": {"yolov12-m": {"display.name": "YOLOv12-m", "performance.fps": 100.0}}}
+    catalog = merge_adapter_results([local, internal], source_profile="internal")
+    model = next(m for m in catalog["models"] if m["id"] == "yolov12-m")
+    assert model["display"]["name"] == "YOLOv12-m"
+    assert model["provenance"]["display.name"]["source"] == "internal_modelzoo"
+
+    public = {"adapter": "public_modelzoo", "ok": True, "errors": [], "warnings": [],
+              "models": {"yolov12-m": {"display.name": "YOLOv12 Medium"}}}
+    catalog = merge_adapter_results([local, public, internal], source_profile="public")
+    model = next(m for m in catalog["models"] if m["id"] == "yolov12-m")
+    assert model["display"]["name"] == "YOLOv12 Medium"
+
+
 def test_local_runtime_adapter_reads_registry_manifest_and_examples(tmp_path):
     suite_root = tmp_path
     dx_app = suite_root / "dx-runtime" / "dx_app"

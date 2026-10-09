@@ -40,7 +40,12 @@ var CHART_LABEL_KEYS = { temp: 'NPU Temp (°C)', volt: 'Voltage (mV)', clock: 'C
 function metricLabel(key) { return T(CHART_LABEL_KEYS[key] || key); }
 /* 큰 숫자 옆 단위. 차트 제목 괄호 안 단위와 같다. CPU Load 는 load average 라 단위가 없다 (release audit M-2). */
 var METRIC_UNITS = { temp: '°C', volt: ' mV', clock: ' MHz', dram: '%', util: '%', ctemp: '°C', mem: '%', cpucores: '%' };
-function metricValue(key, v) { return v == null ? T('N/A') : v.toFixed(1) + (METRIC_UNITS[key] || ''); }
+var METRIC_DECIMALS = { cpu: 2, volt: 0, clock: 0 };  /* 상태 카드와 같은 자리수 — "0.7" 옆 카드는 "0.73" 이었다 */
+function metricValue(key, v) {
+  if (v == null) return T('N/A');
+  var d = METRIC_DECIMALS[key] != null ? METRIC_DECIMALS[key] : 1;
+  return v.toFixed(d) + (METRIC_UNITS[key] || '');
+}
 function statusLabel(key) { return T(key); }
 function eventCountLabel(count) { var tmpl = T('{count} events'); return tmpl.replace('{count}', count); }
 

@@ -27,6 +27,7 @@
   --text-muted:#a1a1a6;
   --text-faint:#86868b;
   --text-on-accent:#ffffff;
+  --text-on-accent-solid:var(--surface-page);
 
   /* 선 */
   --border-subtle:rgba(255,255,255,.12);
@@ -43,4 +44,6 @@
   --status-warn:#ff9f0a;
   --status-error:#ff453a;
   --status-info:#2997ff;
+  --status-info-ink:var(--accent-ink);
+  --status-error-ink:color-mix(in srgb,var(--status-error) 70%,var(--text-primary));
 }

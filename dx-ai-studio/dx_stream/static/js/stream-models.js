@@ -100,7 +100,9 @@ DXStream.filterModels = function (cat, btn) {
    ja · zh · es 에서는 설명이 비었고, 분류는 "object detection" 같은 slug 였다 (release audit S-10). */
 function _modelDesc(m) {
     var lang = (window.DXI18n && DXI18n.lang) || 'en';
-    return m['description_' + lang] || (lang === 'ko' ? m.description_ko : m.description_en) || m.description_en || '';
+    if (m['description_' + lang]) return m['description_' + lang];
+    if (lang === 'ko' && m.description_ko) return m.description_ko;
+    return m.description_en ? T(m.description_en) : '';
 }
 function _modelCat(c) {
     var label = String(c || '').replace(/_/g, ' ').replace(/\b\w/g, function (x) { return x.toUpperCase(); })

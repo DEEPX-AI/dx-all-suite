@@ -456,7 +456,8 @@
   var _engine = null;
 
   function connectToolbar() {
-    if (!_engine) return;
+    if (!_engine || !window.DXLauncher || DXLauncher.currentApp !== 'sdk-library') return;
+    window._dxTutorial = _engine;
     if (typeof DXToolbar !== 'undefined' && typeof DXToolbar.connectTutorial === 'function') {
       DXToolbar.connectTutorial(_engine, { owner: 'sdk_library' });
     }
@@ -491,6 +492,9 @@
     _sdkDebugLog('[SDK Tutorial] calling DXTutorial.create with', sections.length, 'sections');
     DXTutorial.create({
       appId: 'sdk_library',
+      isActive: function () {
+        return !!(window.DXLauncher && DXLauncher.currentApp === 'sdk-library');
+      },
       keepPreviousEngine: true,
       sections: sections,
       helpLinks: [
@@ -502,7 +506,7 @@
       getLang: function() { return (typeof DXI18n !== 'undefined') ? DXI18n.lang : 'en'; },
       setupButtons: function(engine) {
         _engine = engine;
-connectToolbar();
+        connectToolbar();
       },
       onComplete: function(sectionId) {
         _sdkDebugLog('[SDK Tutorial] section complete:', sectionId);

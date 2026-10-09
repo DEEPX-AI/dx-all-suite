@@ -115,7 +115,8 @@ body { overflow-x: auto; overflow-y: hidden; }
 }
 
 .env-detail-grid--3 {
-  grid-template-columns: 1fr 1fr 1fr;
+  /* 반 폭 카드 안의 고정 3 칸은 값이 한 글자씩 꺾였다 ("raspbe/rrypi") — 칸이 220px 아래로 줄면 줄을 바꾼다 (B-3). */
+  grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
 }
 
 .env-detail-col h3 {
@@ -143,7 +144,8 @@ body { overflow-x: auto; overflow-y: hidden; }
 
 .info-val {
   text-align: right;
-  word-break: break-word;
+  min-width: 0;
+  overflow-wrap: break-word;
   color: var(--text-primary);
 }
 
@@ -306,7 +308,7 @@ thead th {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: .04em;
-  color: var(--accent-light);
+  color: var(--accent-ink);
 }
 
 tbody tr:nth-child(even) {
@@ -1014,6 +1016,9 @@ body.lang-zh-TW .zh-CN { display: none; }
    Settings Panel
    ═══════════════════════════════════════════════════════════════════ */
 .settings-panel { padding: var(--sp-4); max-width: 640px; }
+/* 제목 h2 의 margin 이 0 이라 바로 아래 상자에 붙었다 (release audit A-27). */
+.results-rail-section > h2,
+.settings-panel > h2 { margin: 0 0 var(--sp-3); }
 .settings-group {
   background: var(--control-bg); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg);
   padding: var(--sp-4); margin-bottom: var(--sp-3);
@@ -1096,10 +1101,14 @@ body.lang-zh-TW .zh-CN { display: none; }
 
 /* ═══ Dashboard workspace responsive override ═══ */
 @media (max-width: 900px) {
-  .dashboard-filter-grid { grid-template-columns: 1fr; }
-  .dashboard-detail-grid { grid-template-columns: 1fr; }
+  .dashboard-filter-grid { grid-template-columns: minmax(0, 1fr); }
+  .dashboard-detail-grid { grid-template-columns: minmax(0, 1fr); }
   .dashboard-primary .chart-container { height: 420px; }
   .trend-charts-grid { grid-template-columns: 1fr; }
   .results-workspace { grid-template-columns: 1fr; }
   .results-rail { position: static; }
 }
+
+/* 표 머리글은 한국어에서 "크/기" · "메모/리" 처럼 음절 사이에서 꺾였다 — 낱말 단위로만 줄을 바꾼다 (B-3). */
+:root:lang(ko) .summary-table thead th,
+:root:lang(ko) .detail-table thead th { word-break: keep-all; }  /* 한국어만 — 일본어 · 중국어는 띄어쓰기가 없어 keep-all 이면 못 끊는다 */
