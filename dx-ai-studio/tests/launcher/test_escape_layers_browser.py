@@ -36,9 +36,30 @@ def browser():
     pw.stop()
 
 
-def _open(browser, port, app):
+def _open(browser, port, app, deferred_tutorial=None):
     ctx = browser.new_context(viewport={"width": 1440, "height": 900})
     ctx.add_init_script(_QUIET)
+    if deferred_tutorial:
+        ctx.add_init_script("""
+          (() => {
+            let api;
+            Object.defineProperty(window, 'DXTutorial', {
+              configurable: true,
+              get: () => api,
+              set: value => {
+                api = value;
+                const create = value.create;
+                value.create = opts => {
+                  if (opts.appId === '%s') {
+                    window.__releaseDeferredTutorial = () => create(opts);
+                  } else {
+                    create(opts);
+                  }
+                };
+              }
+            });
+          })();
+        """ % deferred_tutorial)
     page = ctx.new_page()
     page.goto(f"http://127.0.0.1:{port}/", wait_until="domcontentloaded", timeout=60000)
     page.wait_for_function("!!(window.DXLauncher && DXLauncher.launch && typeof DXChat !== 'undefined' && document.querySelector('.dx-chat-fab'))", timeout=30000)
@@ -74,6 +95,87 @@ def test_escape_with_the_tutorial_guide_open_closes_the_guide_first(port, browse
         page.keyboard.press("Escape")
         page.wait_for_function("!document.querySelector('.dxt-toc.open')")
         assert page.evaluate("DXLauncher.currentApp") == "sdk-library"
+    finally:
+        ctx.close()
+
+
+@pytest.mark.parametrize("deferred_tutorial", ["launcher", "sdk_library"])
+def test_late_tutorial_initialization_preserves_the_visible_guide(port, browser, deferred_tutorial):
+    ctx, page = _open(browser, port, "sdk-library", deferred_tutorial)
+    active_id = "sdk_library" if deferred_tutorial == "launcher" else "launcher"
+    expected_view = "sdk-library" if active_id == "sdk_library" else None
+    try:
+        page.wait_for_function("typeof window.__releaseDeferredTutorial === 'function'")
+        if active_id == "launcher":
+            page.evaluate("DXLauncher.goHome()")
+            page.wait_for_function("DXLauncher.currentApp === null")
+        page.wait_for_function(
+            "id => !!(window._dxTutorials && _dxTutorials[id] && _dxTutorials[id]._keyHandler)",
+            arg=active_id,
+        )
+        page.click("#dxToolbarTutorial")
+        page.wait_for_selector(".dxt-toc.open")
+        page.evaluate("window.__releaseDeferredTutorial()")
+        page.wait_for_function(
+            "id => !!(_dxTutorials[id] && _dxTutorials[id]._keyHandler)",
+            arg=deferred_tutorial,
+        )
+        assert page.evaluate("window._dxTutorial.appId") == active_id
+        assert page.evaluate("id => !!_dxTutorials[id]._keyHandler", active_id)
+        assert page.locator(".dxt-toc.open").count() == 1
+        assert active_id in page.locator(".dxt-toc.open .dxt-toc-btn-start").get_attribute("onclick")
+        page.keyboard.press("Escape")
+        page.wait_for_function("!document.querySelector('.dxt-toc.open')")
+        assert page.evaluate("DXLauncher.currentApp") == expected_view
+    finally:
+        ctx.close()
+
+
+def test_sdk_revisits_and_hidden_language_refresh_keep_the_toolbar_owner(port, browser):
+    ctx, page = _open(browser, port, "sdk-library")
+    try:
+        page.wait_for_function(
+            "!!(window._dxTutorials && _dxTutorials.launcher && _dxTutorials.sdk_library)"
+        )
+        for lang in ("ko", "es"):
+            page.evaluate("DXLauncher.goHome()")
+            page.wait_for_function("DXLauncher.currentApp === null")
+            page.evaluate("lang => DXI18n.setLang(lang)", lang)
+            assert page.evaluate("window._dxTutorial.appId") == "launcher"
+            page.click("#dxToolbarTutorial")
+            page.wait_for_selector(".dxt-toc.open")
+            assert "launcher" in page.locator(".dxt-toc.open .dxt-toc-btn-start").get_attribute("onclick")
+            page.keyboard.press("Escape")
+            page.evaluate("DXLauncher.showAboutView()")
+            page.wait_for_function("DXLauncher.currentApp === 'about'")
+            page.evaluate("SDKLibrary.refresh()")
+            assert page.locator("#dxToolbarTutorial").is_disabled()
+            page.evaluate("DXLauncher.showSdkLibrary()")
+            page.wait_for_function("DXLauncher.currentApp === 'sdk-library'")
+            assert page.evaluate("window._dxTutorial.appId") == "sdk_library"
+            page.click("#dxToolbarTutorial")
+            page.wait_for_selector(".dxt-toc.open")
+            assert "sdk_library" in page.locator(".dxt-toc.open .dxt-toc-btn-start").get_attribute("onclick")
+            page.evaluate("SDKLibrary.refresh()")
+            page.keyboard.press("Escape")
+            page.wait_for_function("!document.querySelector('.dxt-toc.open')")
+            assert page.evaluate("DXLauncher.currentApp") == "sdk-library"
+    finally:
+        ctx.close()
+
+
+def test_about_has_no_tutorial_even_before_the_home_engine_is_ready(port, browser):
+    ctx, page = _open(browser, port, "about", "launcher")
+    try:
+        page.wait_for_function("typeof window.__releaseDeferredTutorial === 'function'")
+        assert page.locator("#dxToolbarTutorial").is_disabled()
+        page.evaluate("window.__releaseDeferredTutorial()")
+        page.wait_for_function("!!(window._dxTutorials && _dxTutorials.launcher)")
+        assert page.locator("#dxToolbarTutorial").is_disabled()
+        page.evaluate("DXLauncher.goHome()")
+        page.wait_for_function("DXLauncher.currentApp === null")
+        page.click("#dxToolbarTutorial")
+        page.wait_for_selector(".dxt-toc.open")
     finally:
         ctx.close()
 

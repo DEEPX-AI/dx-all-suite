@@ -242,6 +242,8 @@
       console.warn('[LauncherTutorial] toolbar restore skipped: tutorial engine is not ready');
       return;
     }
+    if (window.DXLauncher && window.DXLauncher.currentApp) return;
+    window._dxTutorial = _engine;
     if (typeof DXToolbar !== 'undefined' && typeof DXToolbar.connectTutorial === 'function') {
       DXToolbar.connectTutorial(_engine, { owner: 'launcher' });
     }
@@ -270,6 +272,9 @@
       }
       DXTutorial.create({
       appId: 'launcher',
+      isActive: function () {
+        return !window.DXLauncher || !DXLauncher.currentApp;
+      },
       sections: sections,
       getLang: function () {
         return (typeof DXI18n !== 'undefined' && DXI18n.lang) || _lang();

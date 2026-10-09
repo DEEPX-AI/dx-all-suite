@@ -663,6 +663,7 @@
       ns.currentApp = 'sdk-library';
       setVisibleView('sdk-library');
       if (window.SDKLibrary) window.SDKLibrary.init();
+      if (window.SDKTutorial) window.SDKTutorial.connectToolbar();
       // init() builds .sdk-topbar, so relocate the toolbar after it exists.
       _relocateToolbar('.sdk-topbar-right');
       updateNavTabs();
