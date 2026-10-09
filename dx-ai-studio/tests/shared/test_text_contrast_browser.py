@@ -1,0 +1,135 @@
+"""Enabled release-audit text meets WCAG AA in explicit and system themes."""
+from __future__ import annotations
+
+import pytest
+
+pytest.importorskip("playwright.sync_api")
+
+from tests.browser_support import resolve_chromium_executable  # noqa: E402
+from tests.server_helpers import start_module_server  # noqa: E402
+
+THEMES = (("light", "dark"), ("dark", "light"), ("system", "light"), ("system", "dark"))
+
+_MEASURE = """
+selector => {
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = 1;
+  const context = canvas.getContext('2d', {willReadFrequently: true});
+  function rgba(value) {
+    if (!CSS.supports('color', value)) throw new Error('Unsupported color: ' + value);
+    context.clearRect(0, 0, 1, 1);
+    context.fillStyle = value;
+    context.fillRect(0, 0, 1, 1);
+    const pixel = context.getImageData(0, 0, 1, 1).data;
+    return [pixel[0], pixel[1], pixel[2], pixel[3] / 255];
+  }
+  function blend(fg, bg) {
+    return fg.slice(0, 3).map((v, i) => v * fg[3] + bg[i] * (1 - fg[3])).concat(1);
+  }
+  function luminance(color) {
+    const rgb = color.slice(0, 3).map(v => {
+      v /= 255;
+      return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+    });
+    return rgb[0] * 0.2126 + rgb[1] * 0.7152 + rgb[2] * 0.0722;
+  }
+  return [...document.querySelectorAll(selector)].map(el => {
+    if (!el.getBoundingClientRect().width || !el.getBoundingClientRect().height)
+      throw new Error('Contrast target is not rendered: ' + el.outerHTML);
+    const backgrounds = [];
+    for (let node = el; node; node = node.parentElement) {
+      const style = getComputedStyle(node);
+      if (style.backgroundImage !== 'none')
+        throw new Error('Image/gradient background requires pixel measurement');
+      const color = rgba(style.backgroundColor);
+      backgrounds.push(color);
+      if (color[3] === 1) break;
+    }
+    let bg = [255, 255, 255, 1];
+    backgrounds.reverse().forEach(color => { bg = blend(color, bg); });
+    const fg = blend(rgba(getComputedStyle(el).color), bg);
+    const a = luminance(fg), b = luminance(bg);
+    return {text: el.textContent.trim(), classes: el.className,
+            ratio: (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05)};
+  });
+}
+"""
+
+
+@pytest.fixture(scope="module")
+def browser():
+    from playwright.sync_api import sync_playwright
+
+    with sync_playwright() as pw:
+        br = pw.chromium.launch(headless=True, executable_path=resolve_chromium_executable())
+        yield br
+        br.close()
+
+
+@pytest.fixture(scope="module", params=["dx_app", "dx_stream", "dx_compiler", "dx_benchmark"])
+def module_server(request):
+    srv, port = start_module_server(request.param)
+    yield request.param, port
+    srv.shutdown()
+    srv.server_close()
+
+
+def _assert_aa(page, selector, theme):
+    measurements = page.evaluate(_MEASURE, selector)
+    assert measurements, selector
+    failures = [item for item in measurements if item["ratio"] < 4.5]
+    assert not failures, (theme, failures)
+
+
+@pytest.mark.parametrize(("theme", "os_theme"), THEMES)
+def test_affected_text_meets_aa(browser, module_server, theme, os_theme):
+    module, port = module_server
+    ctx = browser.new_context(color_scheme=os_theme, viewport={"width": 1440, "height": 900})
+    ctx.add_init_script(
+        "localStorage.setItem('dx-tutorial-mode','off');"
+        f"localStorage.setItem('dx-theme','{theme}');"
+    )
+    page = ctx.new_page()
+    try:
+        page.goto(f"http://127.0.0.1:{port}/", wait_until="load")
+        page.wait_for_function("!!window.DXTheme")
+        assert page.evaluate("DXTheme.resolved()") == (os_theme if theme == "system" else theme)
+        page.evaluate("""module => {
+          const fixture = document.createElement('div');
+          fixture.id = 'contrast-fixture';
+          fixture.style.cssText = 'position:fixed;top:100px;left:16px;z-index:99999;background:var(--surface-raised)';
+          fixture.innerHTML = '<span class="badge b-cat">Category</span>' +
+            '<span class="badge b-blue">Async</span><span class="badge b-red">Messaging</span>' +
+            '<span class="txt-dim">Muted text</span>';
+          if (module === 'dx_app') {
+            fixture.innerHTML += '<button class="chip active">All</button>' +
+              '<a class="txt-link">dxnn</a><button class="m-action-btn m-action-detail">Detail</button>' +
+              '<button class="m-action-btn m-action-dl">Download</button>' +
+              '<div class="lab-composer-graph-toolbar" style="position:static">' +
+                '<button class="btn btn-ghost btn-sm">Undo</button>' +
+                '<span class="lab-composer-graph-status ready">Graph ready</span>' +
+                '<span class="lab-composer-graph-status blocked">Graph blocked</span></div>';
+          } else if (module === 'dx_stream') {
+            fixture.innerHTML += '<button class="chip active">All</button>' +
+              '<div class="element-card-props">11 properties</div>';
+          } else if (module === 'dx_compiler') {
+            fixture.innerHTML += '<div class="resume-card"><span class="rc-badge">Re-quantize</span></div>';
+          } else if (module === 'dx_benchmark') {
+            fixture.innerHTML += '<table><thead><tr><th>Benchmark</th></tr></thead></table>';
+          }
+          document.body.appendChild(fixture);
+        }""", module)
+        _assert_aa(page, "#contrast-fixture span, #contrast-fixture button, #contrast-fixture a,"
+                   " #contrast-fixture th, #contrast-fixture .element-card-props", (module, theme, os_theme))
+        if module == "dx_app":
+            page.evaluate("nav('lab')")
+            page.wait_for_selector(".lab-composer-graph-editor .lab-composer-graph-toolbar .btn")
+            _assert_aa(page, ".lab-composer-graph-editor .lab-composer-graph-toolbar .btn,"
+                       ".lab-composer-graph-editor .lab-composer-graph-status", (module, theme, os_theme))
+        elif module == "dx_stream":
+            page.evaluate("DXStream.nav('pipeline')")
+            page.wait_for_selector("#palette-list .palette-group-title")
+            _assert_aa(page, "#palette-list .palette-group-title > span:not(.palette-cat-icon)",
+                       (module, theme, os_theme))
+    finally:
+        ctx.close()

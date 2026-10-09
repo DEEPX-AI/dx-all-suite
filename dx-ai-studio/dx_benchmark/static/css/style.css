@@ -308,7 +308,7 @@ thead th {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: .04em;
-  color: var(--accent-light);
+  color: var(--accent-ink);
 }
 
 tbody tr:nth-child(even) {

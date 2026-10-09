@@ -739,7 +739,7 @@ body.lang-zh-TW .zh-CN { display: none !important; }
 .resume-card-header .rch-chev { color: var(--accent); font-size: var(--fs-md); transition: transform 0.18s var(--ease); }
 .resume-card:not(.collapsed) .resume-card-header .rch-chev { transform: rotate(180deg); }
 .resume-card .rc-badge {
-  background: var(--accent-dim); color: var(--accent-light); font-size: 0.62rem; font-weight: 700;
+  background: var(--accent-dim); color: var(--accent-ink); font-size: 0.62rem; font-weight: 700;
   padding: 2px 8px; border-radius: 10px; letter-spacing: 0.04em; text-transform: uppercase;
 }
 .resume-card-body { padding: 0 2rem 1.5rem; }

@@ -51,7 +51,7 @@ tbody tr:hover td{background:var(--surface-hover)}
 
 /*═══ Chips ═══*/
 .chip:hover{border-color:var(--accent);color:var(--accent);background:rgba(var(--accent-rgb),.04)}
-.chip.active{background:var(--accent);color:var(--surface-page);border-color:var(--accent);font-weight:600;box-shadow:0 0 12px rgba(var(--accent-rgb),.2)}
+.chip.active{background:var(--accent);color:var(--text-on-accent-solid);border-color:var(--accent);font-weight:600;box-shadow:0 0 12px rgba(var(--accent-rgb),.2)}
 
 /*═══ Search ═══*/
 .search-box{
@@ -210,7 +210,7 @@ tbody tr:hover td{background:var(--surface-hover)}
   border-top:none;border-left:none;border-right:none;background:none;font-family:inherit;
 }
 .dev-tab:hover{color:var(--text-primary)}
-.dev-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.dev-tab.active{color:var(--accent-ink);border-bottom-color:var(--accent)}
 .dev-panel{display:none}.dev-panel.active{display:block}
 
 /*═══ Result image ═══*/
@@ -319,7 +319,7 @@ tbody tr:hover td{background:var(--surface-hover)}
 .m-action-run{border-color:rgba(var(--accent-rgb),.3);color:var(--accent)}
 .m-action-run:hover{background:var(--accent);color:var(--surface-page)}
 /* Distinct trio: Run=blue (accent), Detail=violet, Download=emerald-green */
-.m-action-detail{border-color:rgba(124,92,252,.35);color:var(--accent-strong,var(--accent-strong))}
+.m-action-detail{border-color:rgba(124,92,252,.35);color:var(--accent-strong-ink)}
 .m-action-detail:hover{background:var(--accent-strong,var(--accent-strong));color:var(--surface-page);border-color:var(--accent-strong,var(--accent-strong))}
 .m-action-dl{border-color:rgba(16,185,129,.4);color:var(--emerald,#10b981)}
 .m-action-dl:hover{background:var(--emerald,#10b981);color:var(--surface-page);border-color:var(--emerald,#10b981)}
@@ -730,7 +730,7 @@ tbody tr:hover td{background:var(--surface-hover)}
 .mz-chk-ql{accent-color:var(--accent-strong)!important}
 .mz-chk-qp{accent-color:var(--npu)!important}
 .mz-chk-qm{accent-color:var(--status-info)!important}
-.txt-link{color:var(--status-info);text-decoration:none}
+.txt-link{color:var(--accent-ink);text-decoration:none}
 .txt-link:hover{text-decoration:underline}
 .mz-row-selected td{background:rgba(var(--accent-rgb),.06)!important}
 .mz-chk-wrap{display:flex;align-items:center;cursor:pointer}
@@ -848,7 +848,7 @@ tbody tr:hover td{background:var(--surface-hover)}
 /* ── Dev tabs underline ── */
 .dev-tab{transition:var(--transition)}
 .dev-tab:hover{color:var(--text-primary);background:rgba(var(--accent-rgb),.04)}
-.dev-tab.active{color:var(--accent);border-bottom-color:var(--accent);background:rgba(var(--accent-rgb),.06)}
+.dev-tab.active{color:var(--accent-ink);border-bottom-color:var(--accent);background:rgba(var(--accent-rgb),.06)}
 
 /* ── Planner presets ── */
 .plan-preset{transition:var(--transition)}
@@ -1044,7 +1044,7 @@ html[lang="zh-TW"] .zh-CN{display:none!important}
 .lab-composer-title{margin:0;color:var(--text-primary)}
 .lab-composer-tabs{display:flex;gap:var(--sp-2);border-bottom:1px solid var(--border-subtle)}
 .lab-composer-tab{border:0;border-bottom:2px solid transparent;background:transparent;color:var(--text-muted);padding:9px 14px;cursor:pointer}
-.lab-composer-tab.active{color:var(--accent-light);border-bottom-color:var(--accent);font-weight:600}
+.lab-composer-tab.active{color:var(--accent-ink);border-bottom-color:var(--accent);font-weight:600}
 .lab-composer-panel,.lab-composer-summary,.lab-composer-graph,.lab-composer-result{border:1px solid var(--border-subtle);border-radius:var(--radius);background:var(--control-bg);padding:var(--sp-4)}
 .lab-composer-panel h3,.lab-composer-summary h3,.lab-composer-graph h3,.lab-composer-result h3{margin:0 0 var(--sp-2);color:var(--text-primary)}
 .lab-composer-summary-details{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:8px 14px;margin:0}
@@ -1068,7 +1068,7 @@ html[lang="zh-TW"] .zh-CN{display:none!important}
 .lab-composer-plugin-palette h4,.lab-composer-plugin-palette p{margin:0}
 .lab-composer-plugin-palette h4{color:var(--text-primary);font-size:var(--fs-sm)}
 .lab-composer-plugin-palette p{flex-basis:100%}
-.lab-composer-plugin-chip{border:1px solid rgba(var(--accent-rgb),.5);border-radius:999px;background:var(--accent-dim);padding:4px 9px;color:var(--accent-light);font:inherit;font-size:var(--fs-xs);cursor:grab}
+.lab-composer-plugin-chip{border:1px solid rgba(var(--accent-rgb),.5);border-radius:999px;background:var(--accent-dim);padding:4px 9px;color:var(--accent-ink);font:inherit;font-size:var(--fs-xs);cursor:grab}
 .lab-composer-plugin-chip:active{cursor:grabbing}
 .lab-composer-plugin-drop-target{border-style:dashed}
 .lab-composer-plugin-drop-active{border-color:var(--accent);box-shadow:0 0 0 2px rgba(var(--accent-rgb),.2)}
@@ -1121,10 +1121,11 @@ html[lang="zh-TW"] .zh-CN{display:none!important}
 .lab-composer-graph-host{min-width:0;margin-top:var(--sp-3)}
 .lab-composer-graph-editor{position:relative;min-height:460px;border:1px solid rgba(var(--accent-rgb),.26);border-radius:calc(var(--radius) - 2px);overflow:hidden;background:var(--surface-page)}
 .lab-composer-graph-toolbar{position:absolute;z-index:2;top:10px;left:10px;right:10px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;pointer-events:none}
-.lab-composer-graph-toolbar .btn{pointer-events:auto;background:rgba(15,23,42,.88);backdrop-filter:blur(6px)}
-.lab-composer-graph-status{margin-left:auto;border:1px solid var(--border-subtle);border-radius:999px;background:rgba(15,23,42,.88);padding:4px 8px;font-size:var(--fs-2xs);font-weight:700;letter-spacing:.03em;pointer-events:auto}
-.lab-composer-graph-status.ready{border-color:rgba(34,197,94,.45);color:#6ee7a5}
-.lab-composer-graph-status.blocked{border-color:rgba(239,68,68,.45);color:#ff9b9b}
+/* 그래프 위 떠 있는 단추 · 상태 — 어두운 남색 고정이라 밝은 테마에서 회색 글자가 2.15:1 이었다. 테마의 오버레이 면을 쓴다. */
+.lab-composer-graph-toolbar .btn{pointer-events:auto;background:var(--surface-overlay);backdrop-filter:blur(6px)}
+.lab-composer-graph-status{margin-left:auto;border:1px solid var(--border-subtle);border-radius:999px;background:var(--surface-overlay);padding:4px 8px;font-size:var(--fs-2xs);font-weight:700;letter-spacing:.03em;pointer-events:auto}
+.lab-composer-graph-status.ready{border-color:rgba(34,197,94,.45);color:var(--status-ok)}
+.lab-composer-graph-status.blocked{border-color:rgba(239,68,68,.45);color:var(--status-error-ink)}
 .lab-composer-graph-surface{display:block;width:100%;height:420px;cursor:grab;outline:none;touch-action:none}
 .lab-composer-graph-surface:active{cursor:grabbing}
 .lab-composer-graph-surface:focus-visible{box-shadow:inset 0 0 0 2px var(--accent)}
