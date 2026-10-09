@@ -65,8 +65,14 @@ does not modify `dx-runtime` sources. The Studio-owned compatibility matrix in
 immutable GitHub revision URLs, and SHA-256 digests. Package discovery uses installed
 Debian package metadata, not the version of a source checkout.
 
-- **Supported migration:** Studio can reconcile the declared `2.3.0` rollback profile
-  to the target `2.4.1` profile on `x86_64` and `aarch64` hosts.
+- **Supported migration:** Studio can reconcile the declared `2.3.0` and `2.4.1` rollback
+  profiles to the target `2.4.2` profile (DX-RT 3.4.2, NPU driver 2.6.0 — the runtime the
+  suite release pins) on `x86_64` and `aarch64` hosts. A runtime it does not declare (for
+  example a newer pre-release) is never replaced: reconciliation stops as blocked.
+- **New dx-runtime release:** `python -m scripts.runtime_profile_update --write` reads the
+  latest `DEEPX-AI/dx-runtime` release (or `--tag vX.Y.Z`) and adds its profile — revisions,
+  DX-RT / driver versions from `RELEASE_NOTES.md`, `.deb` URLs and SHA-256 digests computed
+  from the downloaded packages — and moves the target to it (`--keep-target` to only add).
 - **Trust boundary:** packages are staged under Studio's `var/runtime/artifacts/`
   cache only after their declared SHA-256 digest matches. A digest mismatch never
   reaches a privileged package command.
