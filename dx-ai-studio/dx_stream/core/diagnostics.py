@@ -291,8 +291,12 @@ def deep_diagnostics():
         (_check_disk, "disk_space", "advisory", _DIAGNOSTIC_CHECK_SPECS[9]),
         (_check_memory, "memory", "advisory", _DIAGNOSTIC_CHECK_SPECS[10]),
     )
-    checks = []
-    for checker, check_id, severity, presentation in check_specs:
+    # The probes are independent subprocesses — run them together and keep the order. One after
+    # another they took 6.2 s on a set-up board, and the page waited for the sum.
+    from concurrent.futures import ThreadPoolExecutor
+
+    def _one(spec):
+        checker, check_id, severity, presentation = spec
         try:
             result = checker()
             if not isinstance(result, dict):
@@ -316,7 +320,10 @@ def deep_diagnostics():
                 "fix": presentation["fix"],
                 "severity": severity,
             }
-        checks.append(check)
+        return check
+
+    with ThreadPoolExecutor(max_workers=len(check_specs)) as pool:
+        checks = list(pool.map(_one, check_specs))
 
     passed = sum(1 for c in checks if c["ok"])
     blockers = sum(1 for c in checks if not c["ok"] and c["severity"] == "blocker")
