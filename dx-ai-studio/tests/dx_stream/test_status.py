@@ -46,8 +46,11 @@ class TestCheckModels:
         from core.models import get_models
         models_dir = tmp_path / "models"
         models_dir.mkdir()
-        (models_dir / "yolo26n.dxnn").touch()
-        (models_dir / "YoloV5S.dxnn").touch()
+        # Names from the catalog in force: setup.sh's model download writes a manifest that
+        # renames the catalog (yolo26n.dxnn → yolo26-n_640x640.dxnn), so hard-coded legacy
+        # names failed on every host that had run Setup.
+        for name in [m["file"] for m in get_models()][:2]:
+            (models_dir / name).touch()
         with patch("core.status.MODELS_DIR", models_dir):
             result = _check_models()
         assert result["total"] == len(get_models())
@@ -72,6 +75,18 @@ class TestCheckVideos:
             result = _check_videos()
         assert result["count"] >= 1
         assert result["ok"] is True
+
+    def test_videos_in_the_extracted_subfolder_are_counted(self, tmp_path):
+        """setup.sh extracts the tarball into videos/sample_videos/ — the Dashboard said "0 files"
+        on every set-up host while the demos played those very clips."""
+        from core.status import _check_videos
+        sub = tmp_path / "videos" / "sample_videos"
+        sub.mkdir(parents=True)
+        for name in ("boat.mp4", "dance-group.mov", "notes.txt"):
+            (sub / name).touch()
+        with patch("core.status.VIDEOS_DIR", tmp_path / "videos"):
+            result = _check_videos()
+        assert result == {"ok": True, "count": 2, "files": ["boat.mp4", "dance-group.mov"]}
 
 
 def test_status_model_total_matches_runtime_catalog(monkeypatch, tmp_path, request):

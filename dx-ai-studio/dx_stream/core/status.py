@@ -65,8 +65,10 @@ def _check_videos() -> dict:
     """샘플 비디오 존재 여부"""
     if not VIDEOS_DIR.is_dir():
         return {"ok": False, "count": 0, "files": []}
-    vids = [f.name for f in VIDEOS_DIR.iterdir()
-            if f.suffix.lower() in (".mp4", ".mov", ".avi", ".mkv")]
+    # setup.sh extracts the tarball into a sample_videos/ subfolder — count what the demos find
+    # (core.demos._video_path also searches below VIDEOS_DIR).
+    vids = [f.name for f in VIDEOS_DIR.rglob("*")
+            if f.is_file() and f.suffix.lower() in (".mp4", ".mov", ".avi", ".mkv")]
     return {"ok": len(vids) > 0, "count": len(vids), "files": sorted(vids)}
 
 

@@ -18,6 +18,7 @@ them with:
 """
 from __future__ import annotations
 
+import json
 import os
 from pathlib import Path
 
@@ -53,6 +54,11 @@ MAX_CHANGED_RATIO = float(os.environ.get("DX_VISUAL_MAX_RATIO", "0.0002"))
 UPDATE = os.environ.get("DX_VISUAL_UPDATE") == "1"
 
 
+def _fixed_json(payload):
+    body = json.dumps(payload)
+    return lambda route, *_: route.fulfill(status=200, content_type="application/json", body=body)
+
+
 def _capture(
     browser,
     module: str,
@@ -70,6 +76,9 @@ def _capture(
             locale=f"{locale}-US",
         )
         ctx.add_init_script(STABILISE_INIT)
+        # Host state the page reads (spec["routes"]) is answered with a fixed payload.
+        for pattern, payload in spec.get("routes", {}).items():
+            ctx.route(pattern, _fixed_json(payload))
         # 테마와 언어는 페이지 스크립트보다 먼저 확정돼야 첫 페인트가 맞다.
         # dx-theme.js 는 <head>에서 즉시 data-theme 를 스탬프하므로, 여기서
         # 심어두지 않으면 dark baseline이 light로 찍힌다.

@@ -31,7 +31,22 @@ SPECS: dict[str, dict] = {
     # (tests/visual/conftest.py 의 DX_APP_MODELS_DIR). 설치돼 있든 아니든 같은
     # 그림이 나오므로 전제가 필요 없다.
     "dx_app": {"settle_ms": _DEFAULT_SETTLE_MS},
-    "dx_stream": {"settle_ms": _DEFAULT_SETTLE_MS},
+    # The Dashboard's status cards show how far THIS host is set up (NPU, plugin, models
+    # 0/17 → 17/17, sample videos). Running Stream Setup changed 8 baselines with no code
+    # change. The capture answers /api/status with one fixed host instead — the cards are
+    # still drawn and compared, only their numbers no longer come from the machine.
+    "dx_stream": {"settle_ms": _DEFAULT_SETTLE_MS, "routes": {"**/api/status": {
+        "npu": {"ok": True, "devices": ["/dev/dxrt0"]},
+        "gstreamer": {"ok": True, "installed": True, "plugin": True},
+        "models": {"ok": False, "total": 17, "installed": 0, "missing": [], "installed_list": [],
+                   "catalog_source": "manifest"},
+        "videos": {"ok": False, "count": 0, "files": []},
+        "build": {"ok": True, "path": "/usr/local/lib/gstreamer-1.0/libgstdxstream.so"},
+        "webrtc": {"ok": False, "nice_plugin": False},
+        "system_info": {"os": "Linux", "gstreamer_version": "GStreamer 1.24.2",
+                        "npu_driver_version": "DXRT", "python_version": "3.12"},
+        "catalog_source": "manifest",
+    }}},
     "dx_compiler": {"settle_ms": _DEFAULT_SETTLE_MS},
     "dx_modelzoo": {
         "settle_ms": _DEFAULT_SETTLE_MS,
