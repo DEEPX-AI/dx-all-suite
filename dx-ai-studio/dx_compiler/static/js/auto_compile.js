@@ -442,9 +442,13 @@
         if (!live.length || !agentSel || agentSel.value !== agent.name) return;
         var prev = modelSel.value;
         var def = d.default_model;
+        // 정적 기본값 (prev) 이 늘 이겨 CLI 의 실제 기본 모델 (copilot 의 claude-sonnet-5.5) 대신 auto 와 경고가 떴다 —
+        // Agent Dev 와 같게, 사용자가 고른 모델만 지킨다 (2026-10-11 실사용 감사).
+        var picked = modelSel.dataset.userPicked === '1' && live.indexOf(prev) !== -1;
+        var keep = picked ? prev : (def && live.indexOf(def) !== -1 ? def : prev);
         modelSel.innerHTML = '';
         live.forEach(function (m) {
-          appendModelOption(modelSel, m, m === prev || (!prev && m === def));
+          appendModelOption(modelSel, m, m === keep);
         });
         modelSel.disabled = false;
         updateModelQualityHint();
@@ -457,6 +461,8 @@
     var m = String(model).trim().toLowerCase();
     if (!m || m === '—') return true;
     if (m.indexOf('auto') >= 0) return false;
+    // 버전 없는 별칭은 그 계열의 최신을 가리킨다
+    if (m === 'opus' || m === 'sonnet') return true;
     return _RECOMMENDED_MODEL.test(m);
   }
 
@@ -589,8 +595,18 @@
           select._agenticBound = true;
           select.addEventListener('change', function () {
             var found = _agents.find(function (a) { return a.name === select.value; });
+            var ms = document.getElementById('agentic-model-select');
+            if (ms) delete ms.dataset.userPicked;  // 다른 에이전트 — 그 에이전트의 기본 모델부터
             fillModels(found);
           });
+          // 손으로 고른 모델은 경고를 다시 보고, 늦게 온 CLI 목록에도 지킨다
+          var modelSelect = document.getElementById('agentic-model-select');
+          if (modelSelect) {
+            modelSelect.addEventListener('change', function () {
+              modelSelect.dataset.userPicked = '1';
+              updateModelQualityHint();
+            });
+          }
         }
 
         // Disable buttons when no authenticated agents or service unavailable
