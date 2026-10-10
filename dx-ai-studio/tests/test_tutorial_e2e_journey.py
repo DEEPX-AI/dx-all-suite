@@ -45,6 +45,14 @@ JOURNEY_MODULES = [
         "ready": "() => typeof DXStream!=='undefined' && window._dxTutorial",
     },
     {
+        # 빠져 있었다 — Compiler 는 튜토리얼이 있는데 구동하는 테스트가 없었다 (2026-10-11 audit).
+        "id": "dx_compiler",
+        "server": "dx_compiler",
+        "setup": "() => {}",
+        "wait": "#dxToolbar",
+        "ready": "() => window._dxTutorial && document.getElementById('compile-main-btn')",
+    },
+    {
         "id": "dx_planner",
         "server": "dx_planner",
         "setup": "() => {}",
