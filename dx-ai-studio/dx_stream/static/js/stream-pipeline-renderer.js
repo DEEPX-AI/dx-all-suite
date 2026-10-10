@@ -545,7 +545,7 @@ function _canvasDblClick(e) {
     if (node) {
         DXStream.confirmModal(
             T('Delete Node'),
-            T('Delete node "' + node.name + '"?', '"' + node.name + '" 노드를 삭제하시겠습니까?')
+            T('Delete node "{name}"?').replace('{name}', node.name)
         ).then(function (ok) {
             if (!ok) return;
             st.nodes = st.nodes.filter(function (n) { return n.id !== node.id; });

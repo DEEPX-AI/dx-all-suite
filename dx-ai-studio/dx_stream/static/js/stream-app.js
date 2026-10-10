@@ -180,6 +180,7 @@ const DXStream = (() => {
                     DXStream._pipeState.selectedNodes = DXStream._pipeState.nodes.map(function (n) { return n.id; });
                     DXStream._pipeState.selectedNode = DXStream._pipeState.selectedNodes[0] || null;
                 }
+                if (typeof _refreshCanvas === 'function') _refreshCanvas();   // the selection was invisible
                 return;
             }
         }

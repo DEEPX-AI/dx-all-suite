@@ -43,10 +43,22 @@ def page():
     pg = ctx.new_page()
     pg.starts = []
     frames = {"n": 0}
+    playing = {"id": None}      # what the fake server plays — the page's shared poll asks for it
 
     def _start(route, request):
         pg.starts.append((request.url.split("/api/demos/")[1], json.loads(request.post_data or "{}")))
+        playing["id"] = int(request.url.split("/api/demos/")[1].split("/")[0])
         route.fulfill(status=200, content_type="application/json", body=json.dumps({"ok": True, "output_mode": "mjpeg"}))
+
+    def _stop(route, *_):
+        playing["id"] = None
+        route.fulfill(status=200, content_type="application/json", body=json.dumps({"ok": True}))
+
+    def _status(route, *_):
+        pid = playing["id"]
+        route.fulfill(status=200, content_type="application/json", body=json.dumps(
+            {"running": pid is not None, "pipeline_id": None if pid is None else f"mjpeg-demo-{pid}",
+             "output_mode": None if pid is None else "mjpeg", "demo_id": pid}))
 
     def _stats(route, *_):
         frames["n"] += 30
@@ -55,8 +67,8 @@ def page():
     pg.route("**/api/demos", lambda route, *_: route.fulfill(
         status=200, content_type="application/json", body=json.dumps(DEMOS)))
     pg.route("**/api/demos/*/start", _start)
-    pg.route("**/api/demos/*/stop", lambda route, *_: route.fulfill(
-        status=200, content_type="application/json", body=json.dumps({"ok": True})))
+    pg.route("**/api/demos/*/stop", _stop)
+    pg.route("**/api/pipeline/status", _status)
     pg.route("**/api/stream/mjpeg*", lambda route, *_: route.fulfill(status=200, content_type="image/png", body=PNG))
     pg.route("**/api/stream/stats", _stats)
     pg.goto(f"http://127.0.0.1:{port}/", wait_until="load")

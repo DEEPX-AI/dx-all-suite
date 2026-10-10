@@ -217,7 +217,7 @@ function _demoOpen(id, stage) {
         + '<button type="button" data-mode="local" class="' + (mode === 'local' ? 'is-on' : '') + '" title="'
         + _escHtml(T("Viewing on the board's own PC / same LAN (low latency, no re-encode)")) + '">' + _escHtml(T('Local (WebRTC)')) + '</button>'
         + '<button type="button" data-mode="remote" class="' + (mode === 'remote' ? 'is-on' : '') + '" title="'
-        + _escHtml(T('Remote access from another PC / SSH tunnel (H264 over HTTP, works anywhere)')) + '">' + _escHtml(T('Remote (MJPEG)')) + '</button>'
+        + _escHtml(T('Remote access from another PC / SSH tunnel (MJPEG over HTTP, works anywhere)')) + '">' + _escHtml(T('Remote (MJPEG)')) + '</button>'
         + '</div></div>';
     if (d.pipeline_type === 'rtsp') {
         opts += '<div class="dds-opt" data-axis-row="rtsp"><span class="dds-opt-label">RTSP</span>'

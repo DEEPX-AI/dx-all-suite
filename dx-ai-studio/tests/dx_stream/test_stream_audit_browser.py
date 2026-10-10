@@ -372,3 +372,31 @@ def test_a_failed_diagnostics_call_says_why(page):
         assert page.locator("#stream-diag-run-btn").is_enabled()
     finally:
         page.unroute("**/api/diagnostics")
+
+
+def test_element_category_and_search_narrow_together(page):
+    page.evaluate("() => DXStream.nav('elements')")
+    page.wait_for_selector("#elements-grid .element-card", timeout=10000)
+    page.evaluate("() => DXStream.filterElements('postprocess', null)")
+    page.fill("#elements-search", "dx")
+    cats = page.evaluate("() => [...new Set(DXStream._allElements.filter(e => [...document.querySelectorAll('#elements-grid .element-card-name')].map(n => n.textContent).includes(e.name)).map(e => e.category))]")
+    try:
+        assert cats == ["postprocess"], cats
+    finally:
+        page.fill("#elements-search", "")
+        page.evaluate("() => DXStream.filterElements('all', null)")
+
+
+def test_node_messages_are_translated_beyond_english_and_korean(page):
+    """Copy / paste / delete messages passed a built sentence to T(en, ko): every other language
+    showed English. They are dictionary keys with a placeholder now."""
+    page.evaluate("() => DXI18n.setLang('ja')")
+    try:
+        page.evaluate("() => DXStream.nav('pipeline')")
+        page.wait_for_selector("#pipeline-canvas", timeout=10000)
+        page.evaluate("""() => { const st = DXStream._pipeState;
+            st.nodes = [{id: 'n1', type: 'queue', name: 'queue', category: 'utility', x: 40, y: 40, properties: {}}];
+            st.edges = []; st.selectedNodes = ['n1']; st.selectedNode = 'n1'; DXStream._copyNodes(); }""")
+        page.wait_for_function("() => /個のノードをコピーしました/.test(document.body.innerText)", timeout=4000)
+    finally:
+        page.evaluate("() => DXI18n.setLang('en')")

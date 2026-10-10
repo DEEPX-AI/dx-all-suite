@@ -364,7 +364,7 @@ DXStream._deleteSelectedNode = function () {
 
     var targets = st.selectedNodes.length > 0 ? st.selectedNodes.slice() : [st.selectedNode];
     var label = targets.length > 1
-        ? T('Delete ' + targets.length + ' nodes?', targets.length + '개 노드를 삭제하시겠습니까?')
+        ? T('Delete {n} nodes?').replace('{n}', targets.length)
         : T('Delete selected node?');
 
     DXStream.confirmModal(T('Delete Node'), label).then(function (ok) {
@@ -427,7 +427,7 @@ DXStream._copyNodes = function () {
         return selSet[ed.from] && selSet[ed.to];
     }).map(function (ed) { return JSON.parse(JSON.stringify(ed)); });
 
-    DXStream.toast(T('Copied ' + st._clipboard.length + ' nodes', st._clipboard.length + '개 노드 복사됨'), 'success');
+    DXStream.toast(T('Copied {n} nodes').replace('{n}', st._clipboard.length), 'success');
 };
 
 DXStream._pasteNodes = function () {
@@ -470,5 +470,5 @@ DXStream._pasteNodes = function () {
     _pushHistory();
     _updateElementCount();
     _refreshCanvas();
-    DXStream.toast(T('Pasted ' + st._clipboard.length + ' nodes', st._clipboard.length + '개 노드 붙여넣기'), 'success');
+    DXStream.toast(T('Pasted {n} nodes').replace('{n}', st._clipboard.length), 'success');
 };

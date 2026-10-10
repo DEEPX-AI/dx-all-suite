@@ -17,25 +17,30 @@ DXStream.elementsInit = async function () {
     _renderElementCards(DXStream._allElements);
 
     const search = DXStream.$('elements-search');
-    if (search) {
-        search.oninput = function () {
-            var q = this.value.toLowerCase();
-            var filtered = DXStream._allElements.filter(function (e) {
-                return e.name.toLowerCase().indexOf(q) !== -1 || (e.category || '').toLowerCase().indexOf(q) !== -1;
-            });
-            _renderElementCards(filtered);
-        };
-    }
+    if (search) search.oninput = _applyElementFilter;
+    _applyElementFilter();
 };
+
+// Category and search narrow TOGETHER — each used to throw the other away (choosing a category
+// showed the whole category whatever was typed; typing searched every category).
+DXStream._elemCat = DXStream._elemCat || 'all';
+function _applyElementFilter() {
+    var box = DXStream.$('elements-search');
+    var q = ((box && box.value) || '').trim().toLowerCase();
+    var cat = DXStream._elemCat || 'all';
+    _renderElementCards((DXStream._allElements || []).filter(function (e) {
+        if (cat !== 'all' && e.category !== cat) return false;
+        if (!q) return true;
+        return e.name.toLowerCase().indexOf(q) !== -1 || (e.category || '').toLowerCase().indexOf(q) !== -1
+            || String(e.description_en || '').toLowerCase().indexOf(q) !== -1;
+    }));
+}
 
 DXStream.filterElements = function (cat, btn) {
     document.querySelectorAll('#elements-filter-bar .btn').forEach(function (b) { b.classList.remove('active'); });
     if (btn) btn.classList.add('active');
-    if (cat === 'all') {
-        _renderElementCards(DXStream._allElements);
-    } else {
-        _renderElementCards(DXStream._allElements.filter(function (e) { return e.category === cat; }));
-    }
+    DXStream._elemCat = cat || 'all';
+    _applyElementFilter();
 };
 
 var _elemCatCssClasses = {
