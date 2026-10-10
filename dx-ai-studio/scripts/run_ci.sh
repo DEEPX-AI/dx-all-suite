@@ -108,6 +108,7 @@ BROWSER_TESTS=(
   tests/shared/test_task_icons_browser.py
   tests/dx_app/test_rundemo_cards_browser.py
   tests/dx_app/test_outputs_lang_browser.py
+  tests/dx_app/test_compare_browser.py
   tests/shared/test_toolbar_lang_a11y_browser.py
   tests/shared/test_chat_widget_lang_browser.py
   tests/dx_stream/test_pipeline_canvas_theme_browser.py

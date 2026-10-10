@@ -244,6 +244,16 @@ window._DX_I18N_DICT = {
     'zh-CN': 'FPS', 'zh-TW': 'FPS',
     es: 'FPS',
   },
+  'Live source': {
+    ko: '실시간 입력', ja: 'ライブ入力',
+    'zh-CN': '实时输入', 'zh-TW': '即時輸入',
+    es: 'Fuente en vivo',
+  },
+  'Exit code:': {
+    ko: '종료 코드:', ja: '終了コード:',
+    'zh-CN': '退出码：', 'zh-TW': '結束代碼：',
+    es: 'Código de salida:',
+  },
   'Latency': {
     ko: '지연시간', ja: 'レイテンシ',
     'zh-CN': '延迟', 'zh-TW': '延遲',

@@ -26,6 +26,21 @@ function pickABModel(i,name){
   var sel=$('ab-model-'+i);if(sel)sel.value=name;
   var search=$('ab-search-'+i);if(search)search.value=name;
   var ac=$('ab-ac-'+i);if(ac)ac.classList.remove('open');
+  onABModel(i);
+}
+
+/* The language choice follows the model: only the runners it has, C++ first when it has one.
+   It was always "C++ / Python" with C++ selected — a Python-only model then failed to run. */
+function onABModel(i){
+  var langSel=$('ab-lang-'+i);if(!langSel)return;
+  var m=findModel(($('ab-model-'+i)||{}).value||'');
+  var opts=[];
+  if(!m||m.cpp_sync)opts.push(['cpp',T('C++ (Compiled)')]);
+  if(!m||m.py_sync)opts.push(['python','Python']);
+  if(!opts.length)opts.push(['python','Python']);
+  var cur=langSel.value;
+  langSel.innerHTML=opts.map(function(o){return '<option value="'+o[0]+'">'+esc(o[1])+'</option>'}).join('');
+  if(opts.some(function(o){return o[0]===cur}))langSel.value=cur;
 }
 
 var _abDocClickHandler=null;
@@ -50,7 +65,7 @@ function setABCols(n){
       +'<div class="ab-panel-body">'
       +'<div class="fg"><label>'+T('Task Filter')+'</label><select class="input" id="ab-cat-'+i+'" onchange="filterABModels('+i+')">'+catOpts+'</select></div>'
       +'<div class="fg"><label>'+T('Search')+'</label><div class="ac-wrap"><input type="text" class="input" id="ab-search-'+i+'" placeholder="'+esc(T('Search model name…'))+'" oninput="filterABModels('+i+')" onfocus="filterABModels('+i+')" autocomplete="off"><div class="ac-list" id="ab-ac-'+i+'"></div></div></div>'
-      +'<div class="fg"><label>Model</label><select class="input" id="ab-model-'+i+'"><option value="">'+T('— Select Model —')+'</option>'+opts+'</select></div>'
+      +'<div class="fg"><label>Model</label><select class="input" id="ab-model-'+i+'" onchange="onABModel('+i+')"><option value="">'+T('— Select Model —')+'</option>'+opts+'</select></div>'
       +'<div class="fg"><label>Language</label><select class="input" id="ab-lang-'+i+'"><option value="cpp">C++ (Compiled)</option><option value="python">Python</option></select></div>'
       +'<div class="ab-res-area"><div id="ab-res-'+i+'" class="txt-dim txt-sm">'+T('Select a model and click Run All')+'</div></div>'
       +'</div></div>';
@@ -66,6 +81,10 @@ function initABImages(){
   Promise.all([api('/api/images'),api('/api/videos')]).then(function(r){
     var imgs=Array.isArray(r[0])?r[0]:[];
     var vids=Array.isArray(r[1])?r[1]:[];
+    // Files first: the list also holds pair FOLDERS (sample/img/face_pair) for embedding demos,
+    // and the first entry used to be one — the default "Original" was a broken image.
+    var _isFile=function(p){return /\.[a-z0-9]+$/i.test(p)};
+    imgs=imgs.filter(_isFile).concat(imgs.filter(function(p){return !_isFile(p)}));
     $('ab-img').innerHTML=
       (imgs.length?'<optgroup label="Images">'+imgs.map(function(p){return '<option value="'+p+'" data-type="image">'+p.split('/').pop()+'</option>'}).join('')+'</optgroup>':'')
       +(vids.length?'<optgroup label="Videos">'+vids.map(function(p){return '<option value="'+p+'" data-type="video">'+p.split('/').pop()+'</option>'}).join('')+'</optgroup>':'');
@@ -121,7 +140,9 @@ async function doABRun(){
   var isLive=(inputType==='camera'||inputType==='rtsp');
   var origHtml='';
   if(isLive){
-    origHtml='<div class="txt-dim txt-sm" style="padding:8px">' + DXIcon('video') + ' Live source ('+(inputType==='camera'?'/dev/video'+($('ab-camera').value||'0'):'RTSP')+')</div>';
+    origHtml='<div class="txt-dim txt-sm" style="padding:8px">' + DXIcon('video') + ' '+T('Live source')+' ('+(inputType==='camera'?'/dev/video'+($('ab-camera').value||'0'):'RTSP')+')</div>';
+  }else if(inputType==='image'&&!/\.[a-z0-9]+$/i.test(inputPath)){
+    origHtml='<div class="txt-dim txt-sm" style="padding:8px">' + DXIcon('folder') + ' ' + esc(inputPath.split('/').pop()) + '/</div>';
   }else if(inputType==='image'){
     origHtml='<img src="/file/'+inputPath+'" class="res-img mb8" onclick="previewImg(this.src)" style="max-width:100%;border:1px solid var(--control-bg);border-radius:6px"/>';
   }else{
@@ -143,11 +164,12 @@ async function doABRun(){
     h+='</div></div>';
     h+='<div class="perf-grid">';
     if(r.fps)h+='<div class="pcard"><div class="pv txt-acc">'+r.fps+'</div><div class="pk">FPS</div></div>';
-    if(r.latency)h+='<div class="pcard"><div class="pv">'+r.latency+'ms</div><div class="pk">Latency</div></div>';
+    if(r.latency)h+='<div class="pcard"><div class="pv">'+r.latency+'ms</div><div class="pk">'+T('Latency')+'</div></div>';
     h+='</div>';
     if(r.perf&&r.perf.pipeline&&r.perf.pipeline.length){h+='<div class="mt8">'+renderWaterfall(r.perf)+'</div>';}
-    if(r.exit_code!==0)h+='<p class="txt-sm" style="color:var(--status-error)">Exit code: '+r.exit_code+'</p>';
-    if(r.output)h+='<details class="mt8"><summary class="clickable txt-dim txt-sm">' + DXIcon('clipboard') + ' Full Output</summary><div class="code mt4" style="max-height:200px;overflow:auto;font-size:10px">'+esc(r.output)+'</div></details>';
+    if(r.error)h+='<p class="txt-sm" style="color:var(--status-error)">'+esc(r.error)+'</p>';
+    else if(typeof r.exit_code==='number'&&r.exit_code!==0)h+='<p class="txt-sm" style="color:var(--status-error)">'+T('Exit code:')+' '+r.exit_code+'</p>';
+    if(r.output)h+='<details class="mt8"><summary class="clickable txt-dim txt-sm">' + DXIcon('clipboard') + ' ' + T('Full Output') + '</summary><div class="code mt4" style="max-height:200px;overflow:auto;font-size:10px">'+esc(r.output)+'</div></details>';
     $('ab-res-'+si).innerHTML=h;
   });
   $('ab-compare-card').classList.remove('hidden');
