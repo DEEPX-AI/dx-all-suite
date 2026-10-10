@@ -185,3 +185,61 @@ def test_a_language_change_reloads_the_page_once(page):
         assert page.evaluate("window.__navs") == 1
     finally:
         page.evaluate("() => DXI18n.setLang('en')")
+
+
+# ── Demo start errors · quick launch · MJPEG fallback ─────────────────────────
+
+def _demo(i, available):
+    return {"id": i, "name_en": f"Demo {i}", "name_ko": f"데모 {i}", "category": "object_detection", "model": "m.dxnn",
+            "available": available, "thumbnail": "",
+            "availability": {"available": available, "reason": "" if available else "Missing model: m.dxnn",
+                             "reason_items": [] if available else [{"code": "missing_model", "path": "m.dxnn"}]}}
+
+
+def test_a_refused_demo_start_says_why_in_the_page_language(page):
+    import json
+    _json_route(page, "**/api/demos", 200, [_demo(0, True)])
+    _json_route(page, "**/api/demos/0/start", 424, {"error": "contract_failed",
+                "message": "Runtime contract failed: gst.selected_pipeline", "detail": "could not link rtpvp8pay0"})
+    page.evaluate("() => DXI18n.setLang('ko')")
+    try:
+        page.evaluate("() => DXStream.nav('demo')")
+        page.wait_for_function("() => DXStream._allDemos && DXStream._allDemos.length", timeout=8000)
+        page.evaluate("() => DXStream._startDemo(0)")
+        page.wait_for_function("() => /런타임 점검을 통과하지 못했습니다/.test(document.body.innerText)", timeout=5000)
+        assert "could not link rtpvp8pay0" in page.inner_text("body")
+    finally:
+        page.unroute("**/api/demos/0/start")
+        page.unroute("**/api/demos")
+        page.evaluate("() => DXI18n.setLang('en')")
+
+
+def test_quick_launch_does_not_start_a_demo_that_needs_setup(page):
+    starts = []
+    _json_route(page, "**/api/demos", 200, [_demo(0, False)])
+    page.route("**/api/demos/0/start", lambda r, *_: starts.append(1) or r.fulfill(status=200, body="{}"))
+    try:
+        page.evaluate("() => DXStream.nav('dashboard')")
+        page.evaluate("() => DXStream.quickLaunchDemo(0)")
+        page.wait_for_function("() => /m\\.dxnn/.test(document.body.innerText)", timeout=8000)
+        page.wait_for_timeout(600)
+        assert starts == []
+    finally:
+        page.unroute("**/api/demos/0/start")
+        page.unroute("**/api/demos")
+
+
+def test_the_mjpeg_retry_keeps_the_rtsp_source(page):
+    import json
+    bodies = []
+    page.route("**/api/demos/9/start", lambda r, *_: bodies.append(json.loads(r.request.post_data or "{}"))
+               or r.fulfill(status=200, content_type="application/json", body='{"started": true, "output_mode": "mjpeg"}'))
+    try:
+        page.evaluate("() => { DXStream._runningDemoId = 9; DXStream._mjpegFallbackFor = null;"
+                      " DXStream._demoStartBody = {9: {video: 'rtsp://cam.local/live'}}; }")
+        page.evaluate("() => DXStream._fallbackToMjpeg(9)")
+        page.wait_for_timeout(500)
+        assert bodies and bodies[0].get("forceMjpeg") is True and bodies[0].get("video") == "rtsp://cam.local/live"
+    finally:
+        page.unroute("**/api/demos/9/start")
+        page.evaluate("() => { DXStream._runningDemoId = null; }")

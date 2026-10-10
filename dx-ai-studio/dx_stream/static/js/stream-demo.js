@@ -603,6 +603,15 @@ function _clearStoppedDemoLaunchState(resp) {
 
 // WebRTC couldn't connect (remote/NAT/tunnel). Restart this demo forcing MJPEG on the server,
 // then show the MJPEG stream. Guarded so it only runs once per start.
+// A refused start: the server's sentence through translateServerError, plus the detail it sends
+// (which check failed and how). The toast used to print resp.error raw and drop the detail.
+function _demoStartError(resp) {
+    var tr = (typeof window.translateServerError === 'function') ? window.translateServerError : function (m) { return m; };
+    var msg = tr(String((resp && resp.error) || T('Demo playback stopped.')));
+    if (resp && resp.detail && resp.detail !== resp.error) msg += ' — ' + tr(String(resp.detail));
+    return msg;
+}
+
 DXStream._fallbackToMjpeg = async function (id) {
     if (DXStream._mjpegFallbackFor === id) return;
     DXStream._mjpegFallbackFor = id;
@@ -613,10 +622,14 @@ DXStream._fallbackToMjpeg = async function (id) {
         try { if (DXStream.webrtc && DXStream.webrtc.disconnect) DXStream.webrtc.disconnect(); } catch (e) {}
         try { _stopFmp4(); } catch (e) {}
         DXStream.toast(T('WebRTC unavailable from here — switching to MJPEG…'), 'info');
-        var resp = await DXStream.postJ('/api/demos/' + id + '/start', { forceMjpeg: true });
+        // Same source as the first start: an RTSP demo's camera URL was lost here.
+        var first = (DXStream._demoStartBody || {})[id] || {};
+        var retry = { forceMjpeg: true };
+        if (first.video) retry.video = first.video;
+        var resp = await DXStream.postJ('/api/demos/' + id + '/start', retry);
         if (resp && resp.error) {
             if (_clearStoppedDemoLaunchState(resp)) return;
-            DXStream.toast(resp.error, 'error');
+            DXStream.toast(_demoStartError(resp), 'error');
             return;
         }
         _showMjpegStream(DXStream.$('demo-video-section'));
@@ -650,16 +663,18 @@ DXStream._startDemo = async function (id) {
         // "://" value through as the pipeline URI). Blank falls back to the demo's default CCTV.
         var _rtspEl = DXStream.$('rtsp-url-' + id);
         if (_rtspEl && _rtspEl.value.trim()) _startBody.video = _rtspEl.value.trim();
+        DXStream._demoStartBody = DXStream._demoStartBody || {};
+        DXStream._demoStartBody[id] = _startBody;
         var resp = await DXStream.postJ('/api/demos/' + id + '/start', _startBody);
         if (resp.error) {
             if (_clearStoppedDemoLaunchState(resp)) return;
-            DXStream.toast(resp.error, 'error');
+            DXStream.toast(_demoStartError(resp), 'error');
             return;
         }
         if (resp.output_mode === 'webrtc') {
             var status = await _waitDemoStarted(id, resp.pipeline_id);
             if (status && status.error) {
-                DXStream.toast(status.error, 'error');
+                DXStream.toast(_demoStartError(status), 'error');
                 return;
             }
         }
