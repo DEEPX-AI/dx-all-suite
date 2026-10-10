@@ -15,7 +15,8 @@ import tempfile
 import time
 from pathlib import Path
 
-from dx_agent_dev.core.adapters.base import SubprocessAdapter, find_cli
+from dx_agent_dev.core.adapters.base import (SubprocessAdapter, _hidden_status, _message_event,
+                                             _tool_arg_hint, classify_plain_line, find_cli)
 
 _ACP_TIMEOUT = 12.0
 
@@ -123,8 +124,13 @@ class CopilotAdapter(SubprocessAdapter):
                 shutil.rmtree(home / ".copilot" / "session-state" / sid, ignore_errors=True)
 
     def build_command(self, prompt, session_dir, harness_dirs, run_ctx=None):
+        self._reset_stream()
         # --yolo: full tool autonomy (= original harness), supersedes granular --allow-tool.
-        cmd = [self._cli, "-p", prompt, "--yolo", "--add-dir", str(session_dir)]
+        # --output-format json: JSONL events. The text mode handed the whole CLI transcript
+        # (● tool lines, │ commands, tool output, the "AI Credits / Tokens / Resume" footer) to
+        # the chat as one reply and left the Activity panel empty.
+        cmd = [self._cli, "-p", prompt, "--yolo", "--output-format", "json",
+               "--add-dir", str(session_dir)]
         for h in harness_dirs:
             cmd += ["--add-dir", str(h)]
         # "auto" is the studio's "let the CLI pick" sentinel, not a real copilot model id —
@@ -144,3 +150,65 @@ class CopilotAdapter(SubprocessAdapter):
         if run_ctx and getattr(run_ctx, "autopilot", False):
             cmd += ["--no-ask-user"]
         return cmd
+
+    # ── `--output-format json` → AgentEvent ────────────────────────────────────────────
+    # copilot CLI JSONL: assistant.message_delta (reply tokens), tool.execution_start /
+    # tool.execution_complete (one tool call), result (exitCode). The rest is session
+    # bookkeeping. One adapter serves one run, so the per-run state lives on it.
+
+    def _reset_stream(self):
+        self._started = False
+        self._spoke = False        # a reply delta went out — the next message gets a blank line
+        self._last_reply = ""
+
+    def normalize(self, line):
+        try:
+            obj = json.loads(line)
+        except (ValueError, TypeError):
+            return classify_plain_line(line)
+        if not isinstance(obj, dict) or not isinstance(obj.get("type"), str):
+            return classify_plain_line(line)
+        if not hasattr(self, "_started"):
+            self._reset_stream()
+        kind = obj["type"]
+        data = obj.get("data") if isinstance(obj.get("data"), dict) else {}
+
+        if kind == "model.call_start" and not self._started:
+            self._started = True
+            return {"type": "status", "text": f"Session started ({data.get('model') or 'copilot'})"}
+        if kind == "assistant.message_start":
+            if self._spoke:
+                return {"type": "message", "text": "\n\n", "delta": True}
+            return _hidden_status()
+        if kind == "assistant.message_delta":
+            text = data.get("deltaContent") or ""
+            if not text:
+                return _hidden_status()
+            self._spoke = True
+            return {"type": "message", "text": text, "delta": True}
+        if kind == "assistant.message":
+            content = data.get("content") or ""
+            if isinstance(content, str) and content.strip():
+                self._last_reply = content
+            return _hidden_status()
+        if kind == "tool.execution_start":
+            name = data.get("toolName") or "tool"
+            hint = _tool_arg_hint(data.get("arguments") or "")
+            return {"type": "command", "text": (f"→ {name}: {hint}" if hint else f"→ {name}")[:500]}
+        if kind == "tool.execution_complete":
+            result = data.get("result") if isinstance(data.get("result"), dict) else {}
+            text = result.get("content") or ""
+            if not data.get("success", True):
+                return {"type": "log", "text": ("✗ " + str(text or data.get("toolName") or "tool failed"))[:2000]}
+            return {"type": "log", "text": str(text)[:2000]} if text else _hidden_status()
+        if kind == "result":
+            code = obj.get("exitCode")
+            if code not in (0, None):
+                return {"type": "error", "text": f"copilot exited with code {code}"}
+            if self._last_reply:
+                return _message_event(self._last_reply, final=True, sanitize=True)
+            return _hidden_status()
+        if kind.endswith("error") or kind.endswith(".error"):
+            msg = data.get("message") or data.get("error") or obj.get("message") or kind
+            return {"type": "error", "text": str(msg)[:2000]}
+        return _hidden_status()
