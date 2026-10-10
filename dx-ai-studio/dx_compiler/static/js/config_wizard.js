@@ -570,6 +570,17 @@ function _srvErr(msg) {
 
         if (prevBtn) prevBtn.addEventListener('click', function() { wizGoTo(currentStep - 1); });
         if (nextBtn) nextBtn.addEventListener('click', function() {
+            // Dataset Path * 는 필수 — 비워도 넘어가 dataset_path 없는 config 가 생기고 컴파일에서야 실패했다
+            // (2026-10-11 audit). 빈 칸만 막는다. 없는 폴더 · 허용 밖 경로는 여전히 경고만 한다 (서버가 판단).
+            if (currentStep === 3) {
+                const mode = document.querySelector('input[name="loader_mode"]:checked');
+                const ds = document.getElementById('wiz-dataset-path');
+                if (mode && mode.value === 'default' && ds && !ds.value.trim()) {
+                    showDatasetWarning(T('Enter the dataset folder used for calibration, or go back and choose Dummy Loader.'));
+                    ds.focus();
+                    return;
+                }
+            }
             if (currentStep === totalSteps) {
                 generateConfig();
             } else {

@@ -408,6 +408,13 @@ window._DX_I18N_DICT = {
   'Re-quantizing...': {
     ko: '재양자화 중...', ja: '再量子化中...', 'zh-CN': '正在重新量化...', 'zh-TW': '正在重新量化...', es: 'Recuantizando...',
   },
+  'Enter the dataset folder used for calibration, or go back and choose Dummy Loader.': {
+    ko: '보정에 쓸 데이터셋 폴더를 입력하거나, 이전 단계로 돌아가 Dummy Loader를 고르세요.',
+    ja: 'キャリブレーションに使うデータセットフォルダーを入力するか、前のステップに戻って Dummy Loader を選んでください。',
+    'zh-CN': '请输入用于校准的数据集文件夹，或返回上一步选择 Dummy Loader。',
+    'zh-TW': '請輸入用於校準的資料集資料夾，或返回上一步選擇 Dummy Loader。',
+    es: 'Indique la carpeta del conjunto de datos para la calibración, o vuelva atrás y elija Dummy Loader.',
+  },
   'Dataset path is empty. The default loader needs a dataset directory for realistic calibration.': {
     ko: '데이터셋 경로가 비어 있습니다. 기본 로더는 현실적인 보정을 위해 데이터셋 디렉토리가 필요합니다.',
     ja: 'データセットパスが空です。デフォルトローダーには現実的なキャリブレーションのためのデータセットディレクトリが必要です。',

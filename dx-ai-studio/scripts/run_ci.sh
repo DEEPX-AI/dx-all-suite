@@ -126,6 +126,7 @@ BROWSER_TESTS=(
   tests/shared/test_browser_runtime.py
   tests/shared/test_font_rendering_browser.py
   tests/shared/test_demo_stage_browser.py
+  tests/dx_compiler/test_compiler_audit_browser.py
   tests/dx_planner/test_lang_summary_browser.py
   tests/dx_planner/test_recommend_engine_browser.py
   tests/test_catalog_virtual_scroll_browser.py
