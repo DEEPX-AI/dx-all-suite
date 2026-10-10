@@ -39,6 +39,23 @@ VENV_CANDIDATES = [
 TORCH_CPU_INDEX = "https://download.pytorch.org/whl/cpu"
 
 
+# The probe starts the venv's python and imports dx_com (and with it torch): ~1.5 s on a board.
+# /feature-check and /setup/status both asked on every call, so the Compiler page waited for it on
+# every load. The answer changes only when the installed package does — the key is the dx_com
+# package folder and its mtime. Only "installed" answers are kept, so an install shows up at once.
+_DX_COM_PROBE: Dict[tuple, dict] = {}
+
+
+def _dx_com_probe_key(venv_python: Path) -> Optional[tuple]:
+    venv = Path(venv_python).parent.parent
+    for pkg in sorted(venv.glob("lib/python*/site-packages/dx_com")):
+        try:
+            return (str(pkg), pkg.stat().st_mtime_ns)
+        except OSError:
+            return None
+    return None
+
+
 def _has_nvidia_gpu() -> bool:
     return Path("/dev/nvidia0").exists() or shutil.which("nvidia-smi") is not None
 
@@ -326,6 +343,10 @@ class SetupService:
     def _check_dx_com(self, venv_python: Optional[Path]) -> dict:
         if not venv_python:
             return {"installed": False}
+        key = _dx_com_probe_key(venv_python)
+        if key is not None and key in _DX_COM_PROBE:
+            return dict(_DX_COM_PROBE[key])
+        found = {"installed": False}
         try:
             result = subprocess.run(
                 [str(venv_python), "-c",
@@ -333,10 +354,12 @@ class SetupService:
                 capture_output=True, text=True, timeout=10
             )
             if result.returncode == 0:
-                return {"installed": True, "version": result.stdout.strip()}
+                found = {"installed": True, "version": result.stdout.strip()}
         except (subprocess.TimeoutExpired, FileNotFoundError):
             pass
-        return {"installed": False}
+        if key is not None and found["installed"]:
+            _DX_COM_PROBE[key] = dict(found)
+        return found
 
     def _check_samples(self) -> dict:
         result = {}

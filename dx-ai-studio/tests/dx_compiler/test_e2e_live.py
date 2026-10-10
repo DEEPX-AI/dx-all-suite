@@ -129,7 +129,13 @@ def fast_config(tmp_path_factory):
 
 
 @pytest.fixture(scope="module")
-def live_server():
+def live_server(tmp_path_factory):
+    # Compile paths must sit inside the allowed roots (path_policy, QA COM-A2); these tests keep
+    # their configs and outputs in pytest's tmp dirs. Written before that policy and skipped on
+    # hosts without dx_com, they had never met it — every /compile here answered 400.
+    import os
+    saved_roots = os.environ.get("DX_COMPILER_ALLOWED_ROOTS")
+    os.environ["DX_COMPILER_ALLOWED_ROOTS"] = str(tmp_path_factory.getbasetemp())
     _clear_stale_modules()
     port = _free_port()
     base_url = f"http://127.0.0.1:{port}"
@@ -159,6 +165,10 @@ def live_server():
     if not ready:
         srv.shutdown()
         srv.server_close()
+        if saved_roots is None:
+            os.environ.pop("DX_COMPILER_ALLOWED_ROOTS", None)
+        else:
+            os.environ["DX_COMPILER_ALLOWED_ROOTS"] = saved_roots
         pytest.fail("live E2E server did not start")
 
     yield {"base_url": base_url, "port": port, "module": module}
@@ -166,6 +176,10 @@ def live_server():
     srv.shutdown()
     srv.server_close()
     _clear_stale_modules()
+    if saved_roots is None:
+        os.environ.pop("DX_COMPILER_ALLOWED_ROOTS", None)
+    else:
+        os.environ["DX_COMPILER_ALLOWED_ROOTS"] = saved_roots
 
 
 def _clear_stale_modules():
