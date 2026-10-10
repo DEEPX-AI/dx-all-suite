@@ -333,6 +333,10 @@ class SetupPanel {
     const configServerPath = document.getElementById('config_server_path');
     if (modelServerPath && !modelServerPath.checked) modelServerPath.click();
     if (configServerPath && !configServerPath.checked) configServerPath.click();
+
+    // 값만 바꾸면 change 가 오지 않아 그래프가 그려지지 않았다 — 직접 입력할 때와 같은 길로 (2026-10-11 audit)
+    if (modelPath) modelPath.dispatchEvent(new Event('change', { bubbles: true }));
+    if (configPath) configPath.dispatchEvent(new Event('change', { bubbles: true }));
   }
 
   togglePanel() {

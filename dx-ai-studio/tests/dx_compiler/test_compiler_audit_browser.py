@@ -83,3 +83,18 @@ def test_a_long_graph_opens_readable_at_its_input(page):
     }""")
     assert got["fit"] < 0.5, got            # the case that used to open unreadable
     assert got["first"] >= 0.5 and got["inputVisible"], got
+
+
+def test_picking_a_sample_model_loads_its_graph(page):
+    """The sample menu filled the path but sent no change event, so the graph never drew (2026-10-11 audit)."""
+    page.evaluate("() => { document.getElementById('config-wizard').style.display = 'none'; }")
+    fired = page.evaluate("""() => {
+        const got = [];
+        document.getElementById('model_path').addEventListener('change', e => got.push('model:' + e.target.value));
+        document.getElementById('config_path').addEventListener('change', e => got.push('config:' + e.target.value));
+        setupPanel.status = Object.assign({}, setupPanel.status || {}, {sample_models: {
+            S: {downloaded: true, onnx_path: '/samples/S.onnx', config_path: '/samples/S.json'}}});
+        setupPanel.selectSample('S');
+        return got;
+    }""")
+    assert "model:/samples/S.onnx" in fired and "config:/samples/S.json" in fired, fired
