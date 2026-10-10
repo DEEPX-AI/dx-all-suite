@@ -139,3 +139,14 @@ def test_knowledge_does_not_pin_module_ports():
             continue
         text = f.read_text(encoding="utf-8")
         assert not re.search(r"포트 80\d\d|\(80\d\d\)|포트\(80\d\d\)|localhost:8890|:8080\b", text), f.name
+
+
+def test_monitor_tutorial_does_not_promise_automatic_mock_data():
+    """The Monitor reference said it 'operates with mock data when no NPU is connected' and that disk is shown;
+    mock needs DX_MONITOR_EXPLICIT_MOCK=1, otherwise the page says NPU telemetry unavailable (2026-10-11)."""
+    from pathlib import Path
+
+    tut = (Path(__file__).resolve().parents[2] / "dx_monitor/static/js/tutorial.js").read_text(encoding="utf-8")
+    assert "Operates with <strong>simulated (mock) data</strong> when no NPU is connected" not in tut
+    assert "DX_MONITOR_EXPLICIT_MOCK=1" in tut and "NPU telemetry unavailable" in tut
+    assert "CPU, memory, and disk values are always real" not in tut
