@@ -20,6 +20,7 @@ BROWSER_SUITE_PATHS = {
     "tests/launcher/test_intro_app_compile_browser.py",
     "tests/launcher/test_home_agent_run_browser.py",
     "tests/dx_agent_dev/test_attach_browser.py",
+    "tests/dx_agent_dev/test_failed_run_badge_browser.py",
     "tests/launcher/test_home_stage_browser.py",
     "tests/launcher/test_home_widgets_browser.py",
     "tests/launcher/test_home_hero_browser.py",

@@ -189,3 +189,23 @@ def test_the_terminal_wraps_long_lines(browser, port):
         assert ws == "pre-wrap", ws
     finally:
         ctx.close()
+
+
+def test_a_run_that_failed_is_not_shown_as_completed(browser, port):
+    """The server closes every run with `done`, also after `error` (a CLI that exits 1 — e.g. an
+    account usage limit). The badge read "Completed" and the reply box opened for a dead run."""
+    sse = "".join("data: " + json.dumps(e) + "\n\n" for e in (
+        {"type": "message", "text": "usage limit reached"},
+        {"type": "error", "text": "exit 1"},
+        {"type": "done", "text": "ok", "conversation_id": "c1"}))
+    ctx, page = _home(browser, port, route=("**/agent/api/agent/run",
+                                            lambda r: r.fulfill(status=200, content_type="text/event-stream", body=sse)))
+    try:
+        page.wait_for_selector("#setupForm:not([hidden])", state="attached", timeout=15000)
+        page.evaluate("DXLauncher.homeAgentStart('make a demo')")
+        page.wait_for_function("!document.getElementById('homeWork').classList.contains('is-running')"
+                               " && document.getElementById('workBadge').textContent.trim() !== ''", timeout=15000)
+        assert page.inner_text("#workBadge") == "Failed"
+        assert page.locator("#workReply").is_hidden()
+    finally:
+        ctx.close()

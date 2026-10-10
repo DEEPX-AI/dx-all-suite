@@ -5,6 +5,8 @@
   let _showcaseCache = null;
   let _showcasePromise = null;
   let _turn = null;
+  /* error 뒤에도 server 는 done 으로 끝낸다 — 이 실행이 실패했는지 done 까지 기억한다. */
+  let _runFailed = false;
   let _heartbeatTimer = null;
   let _agentControlsBound = false;
   let _modelHintBound = false;
@@ -586,6 +588,7 @@
       case 'error':
         noteRunOutput();
         appendError(ev.text);
+        _runFailed = true;
         setBadge('Failed', 'failed');
         setStatusLine('');
         break;
@@ -600,7 +603,8 @@
         cancelStreamingRender();
         if (ev.conversation_id) _conversationId = ev.conversation_id;
         if (_turn) updateAssistantView(true);
-        setBadge('Completed', 'ok');
+        if (_runFailed) setBadge('Failed', 'failed');
+        else setBadge('Completed', 'ok');
         if (ev.session_dir) {
           var statusBar = $('console-status-bar');
           setStatusLine(T('Output saved to') + ' ' + ev.session_dir, null);
@@ -626,6 +630,7 @@
     }
     _running = true;
     setConsoleBusy(true);
+    _runFailed = false;
     setBadge('Running...', 'running');
     startHeartbeat();
     beginTurn(rawPrompt);
@@ -700,6 +705,7 @@
     if (!st || !st.run_id || st.run_done || _running) return false;
     _running = true;
     setConsoleBusy(true);
+    _runFailed = false;
     setBadge('Running...', 'running');
     startHeartbeat();
     /* 대화 칸부터 — 없으면 message · command renderer 가 전부 `if (!_turn) return` 으로 버린다. 예전
