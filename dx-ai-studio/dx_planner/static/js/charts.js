@@ -58,12 +58,12 @@ const BarChart = {
     const warning = getThemeColor('--status-warn');
     const text = getThemeColor('--text-primary');
     const dim = getThemeColor('--text-muted');
-    const maxFps = Math.max(...results.map(r => r.throughputFps), 1);
+    const maxFps = Math.max(...results.map(r => (r.pipelineFps || 0)), 1);
     const barArea = w - pad.left - pad.right;
 
     results.forEach((r, i) => {
       const y = pad.top + i * (barH + gap);
-      const bw = (r.throughputFps / maxFps) * barArea;
+      const bw = ((r.pipelineFps || 0) / maxFps) * barArea;
       const color = r.meetsRequirement ? accent : warning;
       const label = r.platform.npu.model + ' + ' + r.platform.host.name;
 
@@ -87,7 +87,7 @@ const BarChart = {
       // FPS 값
       ctx.fillStyle = dim;
       ctx.textAlign = 'left';
-      ctx.fillText(Math.round(r.throughputFps) + ' FPS', pad.left + bw + 6, y + barH / 2);
+      ctx.fillText(Math.round((r.pipelineFps || 0)) + ' FPS', pad.left + bw + 6, y + barH / 2);
     });
 
     // 클릭 이벤트 (기존 핸들러 정리)

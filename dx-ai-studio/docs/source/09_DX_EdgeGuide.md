@@ -21,16 +21,27 @@ where panels open as you go.
 - **Operating requirements**: cameras / **channels**, **target FPS**, runtime
   (ONNX Runtime vs Native), **max latency**.  
 - Click **Next — choose ranking**, choose a **ranking priority** — Most Channels / Best
-  Performance / Lowest Power — then **Get Recommendations**. (After the first run,
+  Performance (camera-pipeline FPS) / Lowest Power (NPU TDP; host power not included) —
+  then **Get Recommendations**. (After the first run,
   changing any input auto-refreshes the results; **Start over** clears everything.)  
 
 ### 2. Read the recommendations
 
-A verdict line shows the **Top pick** and whether your channel / FPS target is met;
-ranked cards carry a **Measured** badge (or **Measured+** when even the highest tested
-stream still sustained target, i.e. likely higher). Channel counts are measured only —
-throttled stream points are excluded and nothing is extrapolated. Click a card (or a bar
-in the throughput chart) to open details.
+A verdict line shows the **Top pick** and whether your channel / FPS target is met. Each
+card carries a **Measured** or **Estimated** badge and one line saying why — for example
+"12 ch held 30.4 FPS each (measured) · 13 ch dropped to 28.1 FPS", or "≈ 6 ch estimated
+from 365 FPS measured in total (tested up to 13 ch)".
+
+How the channel count is worked out: the multi-stream benchmark measured the stream counts
+around 30 FPS per channel. When a measured count holds your target and the next one misses
+it, that count is the answer (measured). Otherwise the count is estimated as
+`floor(T_sat / target)`, where `T_sat` is the lowest measured total FPS — around saturation
+the total stays nearly flat as streams are added — and an estimate never exceeds twice the
+highest tested count (**Estimated+**). A measurement taken while the NPU throttled is kept
+(its FPS already ran at throttled clocks) but flagged, and ranks after an equal cool result.
+Notes also say whether the NPU or the host (CPU / decode) was the limit, and when latency was
+not measured — with a latency budget set, an unmeasured latency never counts as a plain pass.
+Click a card (or a bar in the throughput chart) to open details.
 
 ### 3. Explore / compare
 
@@ -42,18 +53,17 @@ a second platform side by side (with a summary count of Meets / Insufficient).
 
 ### 4. Buy / contact
 
-The Buy panel shows the system price and approximate **cost per channel**, with **Product
-info** and **Request quote** buttons to DEEPX.
+Pricing is by quote — the Buy panel's **Product info** and **Request quote** buttons go to
+DEEPX.
 
 ## Key features
 
 - **Real measurements** — recommendations come from the YOLO26 benchmark matrix, not
-  spec-sheet math; channel counts use measured, non-throttled multi-stream points only
-  (no interpolation or theoretical projection).  
+  spec-sheet math. Channel counts are measured where a tested stream count brackets the
+  target, and otherwise estimated from the measured total FPS — every card says which.  
 - **Open methodology** — the **How ranking works** button shows the exact formulas and a
-  live summary; it also states the honest limits (the figures are not a full spec sheet,
-  and the shown cost is NPU-board price per channel — **not** full TCO; host / power /
-  install are extra).  
+  live summary; it also states the honest limits (the figures are not a full spec sheet;
+  the power ranking covers the NPU only; contact DEEPX for production sizing and pricing).  
 - **Multi-stream evidence** — per-channel and total FPS behind each channel estimate.  
 - **Shareable & resumable** — the current selection is captured in the URL (a link, e.g.
   arriving from [DX Benchmark](08_DX_Benchmark.md), reproduces the inputs and re-runs), and

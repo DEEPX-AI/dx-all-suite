@@ -1115,6 +1115,26 @@ input[type="range"]::-webkit-slider-thumb:hover {
   text-overflow: ellipsis;
   max-width: 100%;
 }
+.card-why {
+  flex: 1 1 100%;
+  margin: 0;
+  line-height: 1.45;
+}
+.card-why-note {
+  display: inline-block;
+  margin-left: var(--sp-2);
+  padding: 0 var(--sp-2);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  font-size: var(--fs-xs);
+  white-space: nowrap;
+}
+.badge-confidence[data-confidence="estimated"],
+.badge-confidence[data-confidence="+"] {
+  background: rgba(var(--warning-rgb), .12);
+  color: var(--status-warn);
+  border-color: var(--status-warn);
+}
 .card-release-meta {
   flex: 1 1 100%;
   color: var(--text-muted);
@@ -1657,6 +1677,9 @@ body.lang-zh-TW .zh-CN { display: none; }
   .spec-grid { grid-template-columns: 1fr; }
   .fact-grid { grid-template-columns: 1fr; }
   .card-metrics { gap: var(--sp-2); }
+  /* 폰 — 숫자 셋이 제목 옆 칸을 차지해 제목이 한 단어씩 접히고 badge 가 세로로 쌓였다 (2026-10-11). */
+  .rec-card .card-header { flex: 1 1 calc(100% - 52px); min-width: 0; }
+  .rec-card .card-metrics { flex: 1 1 100%; margin-top: 0; }
 }
 /* ═══ 13. Utility / Toast ═══ */
 .tooltip {
