@@ -202,3 +202,70 @@ def test_the_http_routes_refuse_before_submit_and_touch_nothing_outside(ws, monk
         assert c == 200 and len(calls) == 1, "정상 요청은 그대로 통과"
     finally:
         server.shutdown()
+
+
+# ── 샘플 config 의 상대 dataset_path ─────────────────────────────────────────────
+
+def _sdk_sample(ws, dataset="./calibration_dataset"):
+    """SDK 의 샘플 모양: dx_com/sample_models/{onnx,json}/ + dx_com/calibration_dataset/.
+    샘플 config 의 dataset_path 는 dx_com/ 에서 dxcom 을 돌린다는 전제의 상대 경로다."""
+    com = ws / "dx_com"
+    model = _file(com / "sample_models" / "onnx" / "m.onnx")
+    cfg = _file(com / "sample_models" / "json" / "m.json",
+                '{"inputs": {"x": [1, 3, 8, 8]}, "default_loader": {"dataset_path": "%s"}}' % dataset)
+    _file(com / "calibration_dataset" / "0.jpeg")
+    return model, cfg, com / "calibration_dataset"
+
+
+def test_a_sample_config_with_a_relative_dataset_compiles_from_a_resolved_copy(ws, monkeypatch):
+    """Setup → "use sample" puts the SDK sample config in the form. Its "./calibration_dataset"
+    was resolved against the studio's own folder: the check said it does not exist and /compile
+    answered 500 — the sample compile never started. It is now resolved like the SDK examples
+    run it, and dxcom gets a copy of the config with that absolute path."""
+    import json
+    from dx_compiler.core import compiler_service as cs
+
+    started = []
+
+    class _Thread:
+        def __init__(self, target, args, daemon):
+            started.append(args)
+
+        def start(self):
+            pass
+
+    monkeypatch.setattr(cs.threading, "Thread", _Thread)
+    model, cfg, dataset = _sdk_sample(ws)
+    original = cfg.read_text()
+
+    job = cs.CompilerService().submit(model_path=str(model), config_path=str(cfg), output_dir=str(ws / "o"))
+
+    used = started[0][2]
+    assert used != str(cfg)
+    assert json.loads(open(used).read())["default_loader"]["dataset_path"] == str(dataset.resolve())
+    assert json.loads(open(used).read())["inputs"] == {"x": [1, 3, 8, 8]}
+    assert cfg.read_text() == original, "the user's config is never rewritten"
+    assert job.config_path == used
+
+
+def test_a_missing_dataset_in_the_config_is_a_400_not_a_500(ws):
+    import urllib.error
+    import urllib.request
+    import uuid
+    from tests.server_helpers import start_module_server
+
+    model, cfg, _ = _sdk_sample(ws, dataset="./no_such_dataset")
+    server, port = start_module_server("dx_compiler")
+    b = uuid.uuid4().hex
+    fields = {"model_path": str(model), "config_path": str(cfg), "output_dir": str(ws / "o")}
+    body = "".join(f'--{b}\r\nContent-Disposition: form-data; name="{k}"\r\n\r\n{v}\r\n'
+                   for k, v in fields.items()) + f"--{b}--\r\n"
+    req = urllib.request.Request(f"http://127.0.0.1:{port}/compile", data=body.encode(),
+                                 headers={"Content-Type": f"multipart/form-data; boundary={b}"})
+    try:
+        with pytest.raises(urllib.error.HTTPError) as e:
+            urllib.request.urlopen(req, timeout=20)
+        assert e.value.code == 400
+        assert "dataset_path" in e.value.read().decode()
+    finally:
+        server.shutdown()

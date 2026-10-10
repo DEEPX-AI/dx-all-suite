@@ -168,6 +168,20 @@ class CompileJob:
             return True
 
 
+def _resolve_relative_dataset(raw: str, config_path: str) -> Path:
+    """config 의 상대 dataset_path → 실제 폴더. SDK 샘플 config (dx_com/sample_models/json/*.json) 는
+    dx_com/ 에서 dxcom 을 돌린다는 전제로 "./calibration_dataset" 을 쓴다. config 폴더부터 위로 두 단을
+    보고 처음 있는 폴더를 고른다 — 없으면 config 폴더 기준 경로를 돌려 검사가 "없다" 고 말하게 한다."""
+    p = Path(raw).expanduser()
+    if p.is_absolute():
+        return p
+    base = Path(config_path).resolve().parent
+    for root in (base, *list(base.parents)[:2]):
+        if (root / p).is_dir():
+            return root / p
+    return base / p
+
+
 class CompilerService:
     def __init__(self, job_root: Optional[Path] = None):
         self.jobs: Dict[str, CompileJob] = {}
@@ -692,11 +706,17 @@ class CompilerService:
         config_path = str(path_policy.check_input_file(config_path, "config_path"))
         # config 가 가리키는 calibration 폴더도 compiler 가 읽는다 — 올린 config 로 밖을 읽지 않게
         try:
-            loader = (json.loads(Path(config_path).read_text(encoding="utf-8")) or {}).get("default_loader") or {}
+            config_data = json.loads(Path(config_path).read_text(encoding="utf-8")) or {}
+            loader = config_data.get("default_loader") or {}
         except (OSError, ValueError, AttributeError):
-            loader = {}
+            config_data, loader = {}, {}
+        dataset_copy = None
         if isinstance(loader, dict) and loader.get("dataset_path"):
-            path_policy.check_input_dir(loader["dataset_path"], "dataset_path (in config)")
+            raw = str(loader["dataset_path"])
+            dataset = path_policy.check_input_dir(
+                str(_resolve_relative_dataset(raw, config_path)), "dataset_path (in config)")
+            if not Path(raw).expanduser().is_absolute():
+                dataset_copy = dict(config_data, default_loader=dict(loader, dataset_path=str(dataset)))
         output_dir = str(path_policy.check_output_dir(output_dir))
         self.cleanup_completed_jobs()
         job_id = str(uuid.uuid4())
@@ -718,6 +738,13 @@ class CompilerService:
         self.jobs[job_id] = job
         if not self._prepare_job_staging(job):
             return job
+        if dataset_copy is not None:
+            # dxcom 은 상대 dataset_path 를 자기 cwd 로 읽는다 — 풀어 쓴 사본을 이 job 폴더에 두고 그것을 넘긴다.
+            # 사용자의 config 는 고치지 않는다.
+            resolved = self._job_directory(job) / "config.resolved.json"
+            resolved.write_text(json.dumps(dataset_copy, indent=2, ensure_ascii=False), encoding="utf-8")
+            config_path = str(resolved)
+            job.config_path = config_path
 
         thread = threading.Thread(
             target=self._run_compile,

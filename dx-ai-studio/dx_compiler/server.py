@@ -399,7 +399,9 @@ class CompilerHandler(DXBaseHandler):
         config_path = str(self._path_ok(path_policy.check_input_file, config_path, "config_path"))
         output_dir = str(self._path_ok(path_policy.check_output_dir, output_dir))
 
-        job = compiler_service.submit(
+        # config 안의 dataset_path 는 submit 이 본다 — 어긋나면 500 이 아니라 400 (사용자 입력이다)
+        job = self._path_ok(
+            compiler_service.submit,
             model_path=model_path,
             config_path=config_path,
             output_dir=output_dir,
