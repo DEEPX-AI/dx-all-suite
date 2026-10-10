@@ -47,7 +47,20 @@ SPECS: dict[str, dict] = {
                         "npu_driver_version": "DXRT", "python_version": "3.12"},
         "catalog_source": "manifest",
     }}},
-    "dx_compiler": {"settle_ms": _DEFAULT_SETTLE_MS},
+    # The Setup panel shows whether THIS host has dxcom and the samples (collapsed "Setup ready"
+    # vs the expanded install steps). Installing dxcom changed 8 baselines with no code change.
+    # The capture answers both status endpoints with one fixed, not-yet-set-up host.
+    "dx_compiler": {"settle_ms": _DEFAULT_SETTLE_MS, "routes": {
+        "**/setup/status": {
+            "dx_com_installed": False, "dx_com_version": None, "venv_path": None, "venv_python": None,
+            "sample_models": {name: {"downloaded": False, "onnx_path": None, "config_path": None}
+                              for name in ("YOLOV5S-1", "YOLOV5S_Face-1", "MobileNetV2-1")},
+            "calibration_data": {"downloaded": False, "path": None},
+            "install_requires_sudo": True,
+        },
+        "**/feature-check": {"compile": False, "setup_available": True,
+                             "capabilities": {"node_selection": False}, "warnings": []},
+    }},
     "dx_modelzoo": {
         "settle_ms": _DEFAULT_SETTLE_MS,
         # 두 요소가 실행마다 미세하게 다르게 그려져 0.0205-0.0274% 를 오갔다 —
