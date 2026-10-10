@@ -307,11 +307,13 @@ def run_step(step_id: str, sudo_password: str = None, opts: dict = None):
         try:
             if needs_sudo:
                 threading.Thread(target=_keep_sudo_alive, args=(sudo_stop,), daemon=True).start()
+            # Own process group: Stop ends the script AND its children (wget, meson, …) — terminating
+            # only the shell left them running.
             proc = subprocess.Popen(
                 cmd_args, cwd=str(cwd),
                 stdin=subprocess.PIPE if direct_sudo else None,
                 stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                text=True, bufsize=1, env=env
+                text=True, bufsize=1, env=env, start_new_session=True,
             )
             with _proc_lock:
                 _running_proc = proc
@@ -356,8 +358,16 @@ def stop_step():
     """현재 실행 중인 스텝 종료"""
     global _running_proc
     with _proc_lock:
+        if _running_proc is True:
+            # runtime-deps / driver run as an in-process transaction — nothing to signal.
+            return {"ok": False, "error": "not_stoppable",
+                    "message": "This step cannot be stopped; it finishes on its own."}
         if _running_proc is not None and hasattr(_running_proc, 'poll') and _running_proc.poll() is None:
-            _running_proc.terminate()
+            import signal
+            try:
+                os.killpg(os.getpgid(_running_proc.pid), signal.SIGTERM)
+            except (ProcessLookupError, PermissionError, OSError):
+                pass
             _running_proc = None
             with _log_lock:
                 for state in _step_logs.values():

@@ -346,3 +346,29 @@ def test_a_card_download_follows_its_own_log_and_reports_the_end(page):
         page.unroute("**/api/setup/log*")
         page.unroute("**/api/setup/download-model")
         page.unroute("**/api/models")
+
+
+def test_stop_is_offered_only_for_steps_that_can_stop(page):
+    _json_route(page, "**/api/setup/log*", 200, {"log": "working\n", "done": False, "exit_code": None})
+    try:
+        page.evaluate("() => DXStream.nav('setup')")
+        page.evaluate("() => _resumeRunningStep('runtime-deps')")
+        assert not page.locator("#setup-stop-btn").is_visible()
+        page.evaluate("() => { clearInterval(DXStream._setupPollTimer); DXStream._setupPollTimer = null; _resumeRunningStep('download-models'); }")
+        assert page.locator("#setup-stop-btn").is_visible()
+    finally:
+        page.evaluate("() => { clearInterval(DXStream._setupPollTimer); DXStream._setupPollTimer = null; DXStream._setupRunning = false; }")
+        page.unroute("**/api/setup/log*")
+
+
+def test_a_failed_diagnostics_call_says_why(page):
+    _json_route(page, "**/api/diagnostics", 500, {"error": "server_error", "message": "Diagnostics are unavailable"})
+    try:
+        page.evaluate("() => DXStream.nav('setup')")
+        before = len(page.errors)
+        page.evaluate("() => DXStream.runDiagnostics()")
+        page.wait_for_function("() => /Diagnostics are unavailable/.test(document.getElementById('stream-diag-results').innerText)", timeout=5000)
+        assert len(page.errors) == before
+        assert page.locator("#stream-diag-run-btn").is_enabled()
+    finally:
+        page.unroute("**/api/diagnostics")
