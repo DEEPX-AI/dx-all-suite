@@ -113,3 +113,34 @@ def test_the_summary_sentence_uses_the_published_name():
     _enrich_summary(m)
     assert m["display"]["summary"]["en"] == "RegNetY-16GF is a classification model."
     assert m["description"]["ko"].startswith("RegNetY-16GF")
+
+
+def test_run_inference_finds_examples_in_the_per_model_layout(tmp_path, monkeypatch):
+    """Model Zoo looked for python_example/<task>/<catalog id>/ — gone in the per-model layout
+    (object_detection/yolo26/yolo26-n_640x640/), so variants came back empty, the panel defaulted
+    to an unbuilt C++ binary and Run Inference said "Binary not found" (2026-10-11 audit)."""
+    from dx_modelzoo.core import catalog
+    from shared import dx_app_layout
+
+    root = tmp_path / "dx_app"
+    ex = root / "src/python_example/object_detection/yolo26/yolo26-n_640x640"
+    ex.mkdir(parents=True)
+    (ex / "yolo26-n_640x640_sync.py").write_text("")
+    (ex / "yolo26-n_640x640_async.py").write_text("")
+    (root / "bin").mkdir()
+    monkeypatch.setattr(catalog, "DX_APP_ROOT", root)
+    monkeypatch.setattr(catalog, "BUILD_DIR", root / "bin")
+    dx_app_layout.clear_cache()
+    try:
+        got = catalog._detect_inference_variants("yolo26n", "object_detection", "assets/models/yolo26-n_640x640.dxnn")
+    finally:
+        dx_app_layout.clear_cache()
+    assert got == {"python": ["sync", "async"]}
+
+
+def test_the_panel_uses_the_only_path_when_no_selector_is_drawn():
+    from pathlib import Path
+
+    js = (Path(__file__).resolve().parents[2] / "dx_modelzoo/static/js/inference.js").read_text(encoding="utf-8")
+    assert "(sel && sel.value) || _infDefaultPath" in js
+    assert "_infDefaultPath = execOpts.length ? execOpts[0].value" in js

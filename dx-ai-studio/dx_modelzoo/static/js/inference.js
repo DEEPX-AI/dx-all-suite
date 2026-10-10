@@ -65,9 +65,14 @@ function _buildExecPathOptions(model) {
 }
 
 /* Read the chosen execution path (defaults to cpp/sync when no selector present). */
+// The one path this model has when the selector is not drawn (a single option).
+let _infDefaultPath = 'cpp|sync';
+
 function _currentExecPath() {
   const sel = document.getElementById('infExecPath');
-  const raw = (sel && sel.value) || 'cpp|sync';
+  // 선택지가 하나면 selector 를 그리지 않는다 — 그때 예전에는 늘 cpp|sync 로 불러, python 예제만 있는
+  // model 이 "Binary not found" 로 실패했다 (2026-10-11 audit). 그 하나의 경로를 쓴다.
+  const raw = (sel && sel.value) || _infDefaultPath;
   const [lang, ...rest] = raw.split('|');
   return { lang: lang || 'cpp', variant: rest.join('|') || 'sync' };
 }
@@ -106,6 +111,7 @@ function renderInferencePanel(model) {
   // Execution-path selector (C++/Python × Sync/Async × Python/C++ postprocess).
   // Only the paths that actually exist on disk are offered (model.variants).
   const execOpts = _buildExecPathOptions(model);
+  _infDefaultPath = execOpts.length ? execOpts[0].value : 'cpp|sync';
   const execPathSelectHtml = execOpts.length > 1
     ? `<div class="mz-exec-path-row">
          <label class="mz-exec-path-label" for="infExecPath">${_mzIco('gear')} ${T('Execution path')}</label>

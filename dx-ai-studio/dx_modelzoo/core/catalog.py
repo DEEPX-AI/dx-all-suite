@@ -318,7 +318,7 @@ def merge_conf_and_catalog(conf_models, catalog_data):
             "compile_guide": {},
             "demo": _build_demo_info(cm["id"], cm["category"], cm.get("model_file", ""),
                                      _representative_input(cm["id"], cm["category"])),
-            "variants": _detect_inference_variants(cm["id"], cm["category"]),
+            "variants": _detect_inference_variants(cm["id"], cm["category"], cm.get("model_file", "")),
             "legal": {},
             "thumbnail": f"thumbnails/{cm['id']}.jpg",
             "example_images": {
@@ -550,24 +550,29 @@ _PY_VARIANTS = ("sync", "async", "sync_cpp_postprocess", "async_cpp_postprocess"
 _CPP_VARIANTS = ("sync", "async")
 
 
-def _detect_inference_variants(model_id, category):
+def _detect_inference_variants(model_id, category, model_file=""):
     """Detect which (lang, variant) execution paths actually exist for a model.
 
     Mirrors dx_app run_inference resolution exactly so the UI never offers a path the
     backend can't run:
-      - cpp:    BUILD_DIR/<model>_<variant>                       (compiled binary)
-      - python: PY_DIR/<category>/<model>/<model>_<variant>.py    (script)
+      - cpp:    BUILD_DIR/<example>_<variant>                     (compiled binary)
+      - python: <example dir>/<example>_<variant>.py              (script)
+    <example> is resolved like dx_app does (shared.dx_app_layout): the catalog id, else the
+    .dxnn stem, else the registry variant. The flat PY_DIR/<category>/<id> lookup found
+    nothing in the per-model layout (object_detection/yolo26/yolo26-n_640x640/), so the
+    panel fell back to an unbuilt C++ binary — "Binary not found" (2026-10-11 audit).
     Returns e.g. {"cpp": ["sync", "async"], "python": ["sync", "async", "sync_cpp_postprocess"]}.
     Langs with no available variant are omitted.
     """
     if not DX_APP_ROOT.exists():
         return {}
+    from shared import dx_app_layout as _layout
+    name = _layout.example_name(DX_APP_ROOT, category, model_id, model_file or "")
     variants = {}
-    cpp = [v for v in _CPP_VARIANTS if (BUILD_DIR / f"{model_id}_{v}").exists()]
+    cpp = [v for v in _CPP_VARIANTS if _layout.cpp_binary(BUILD_DIR, name, v).exists()]
     if cpp:
         variants["cpp"] = cpp
-    py_dir = PY_DIR / category / model_id
-    py = [v for v in _PY_VARIANTS if (py_dir / f"{model_id}_{v}.py").exists()]
+    py = [v for v in _PY_VARIANTS if _layout.python_script(DX_APP_ROOT, category, name, v).is_file()]
     if py:
         variants["python"] = py
     return variants
