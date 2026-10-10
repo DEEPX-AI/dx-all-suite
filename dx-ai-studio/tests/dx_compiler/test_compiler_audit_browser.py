@@ -98,3 +98,27 @@ def test_picking_a_sample_model_loads_its_graph(page):
         return got;
     }""")
     assert "model:/samples/S.onnx" in fired and "config:/samples/S.json" in fired, fired
+
+
+def test_a_refused_compile_keeps_the_graph_and_shows_why(page):
+    """Compile with an output folder outside the allowed ones: the viewer was wiped before the request, and
+    the refusal landed below the Agentic card, off-screen — it looked like nothing happened (2026-10-11 audit)."""
+    page.evaluate("() => { document.getElementById('config-wizard').style.display = 'none'; }")
+    page.route("**/compile", lambda r: r.fulfill(status=400, content_type="application/json",
+                                                 body='{"error": "output_dir is outside the allowed folders"}'))
+    page.evaluate("""() => {
+        const svg = document.querySelector('svg #graph-content').ownerSVGElement;
+        GraphRenderer.renderGraph(svg, {nodes: [{id: 'a', op_type: 'Conv'}, {id: 'b', op_type: 'Relu'}],
+                                        edges: [{from_node: 'a', to_node: 'b'}]});
+        for (const [id, v] of [['model_path', '/m.onnx'], ['config_path', '/c.json'], ['output_dir', '/etc/x']])
+            document.getElementById(id).value = v;
+        document.getElementById('model_path').required = false;
+        document.getElementById('config_path').required = false;
+    }""")
+    page.click("#compile-main-btn")
+    page.wait_for_selector("#result .result.error", timeout=5000)
+    assert "outside the allowed folders" in page.inner_text("#result")
+    assert page.locator("svg #graph-content g.node-group").count() == 2
+    page.wait_for_timeout(600)
+    assert page.evaluate("""() => { const r = document.getElementById('result').getBoundingClientRect();
+                                   return r.top < innerHeight && r.bottom > 0; }""")
