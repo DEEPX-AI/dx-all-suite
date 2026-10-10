@@ -161,6 +161,55 @@ def _copy_extracted_runner(extracted_root: Path, runner_name: str, destination: 
     return True
 
 
+def _complete_python_common(source_root: Path, runner_dir: Path) -> None:
+    """Put dx_app's whole python `common/` next to the runner.
+
+    extract_model_package.sh trims `common/` to what the runner and factory import statically, but
+    per-model examples name their pre/postprocessor in config.json and resolve it at run time
+    (common.variant_config). The exported yolo26n package therefore failed outside the Studio with
+    "processor class 'LetterboxPreprocessor' is exported by neither common.processors nor
+    common.visualizers" (2026-10-11 audit). The full package is ~1.3 MB of Python.
+    """
+    source_common = source_root / "src" / "python_example" / "common"
+    if not source_common.is_dir():
+        return
+    target = runner_dir / "common" if (runner_dir / "common").is_dir() else runner_dir.parent.parent / "common"
+    for path in source_common.rglob("*"):
+        if "__pycache__" in path.parts:
+            continue
+        if path.is_symlink():
+            raise ValueError("unsafe source directory symlink")
+        dest = target / path.relative_to(source_common)
+        if path.is_dir():
+            dest.mkdir(parents=True, exist_ok=True)
+        elif path.is_file():
+            _copy_regular(path, dest)
+
+
+def _unresolvable_processor_classes(copy_dir: Path) -> list[str]:
+    """Classes a packaged per-model config.json names that its vendored common/ does not export."""
+    missing = []
+    for config in copy_dir.glob("runtime/python/**/config.json"):
+        try:
+            data = json.loads(config.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        common = config.parent / "common"
+        if not common.is_dir():
+            common = config.parent.parent.parent / "common"
+        exported = ""
+        for pkg in ("processors", "visualizers"):
+            init = common / pkg / "__init__.py"
+            if init.is_file():
+                exported += init.read_text(encoding="utf-8", errors="replace") + "\n"
+        for key in ("preprocessor", "postprocessor", "visualizer"):
+            spec = data.get(key) if isinstance(data, dict) else None
+            name = spec.get("class") if isinstance(spec, dict) else None
+            if isinstance(name, str) and name and not re.search(r"\b" + re.escape(name) + r"\b", exported):
+                missing.append(f"{config.relative_to(copy_dir)}: {name}")
+    return missing
+
+
 def _bundle_exact_runner(package_dir: Path, source_root: Path, model: dict) -> dict:
     category, name = _model_identifier(model)
     requested = model.get("language")
@@ -207,6 +256,8 @@ def _bundle_exact_runner(package_dir: Path, source_root: Path, model: dict) -> d
             runner_name = runner_source.name
             if completed.returncode != 0 or not _copy_extracted_runner(Path(extracted), runner_name, destination):
                 raise ValueError("extract_model_package.sh did not produce the exact requested runner source")
+        if language == "python":
+            _complete_python_common(source_root, destination)
     else:
         _copy_tree_regular(runner_source.parent, destination)
         if language == "python":
@@ -524,6 +575,10 @@ def validate_copy_out(package_dir, source_root=None):
                 content = path.read_text(encoding="utf-8", errors="replace")
                 if any(reference and reference in content for reference in forbidden):
                     raise ValueError("copy-out package references source root")
+
+        missing = _unresolvable_processor_classes(copy_dir)
+        if missing:
+            raise RuntimeError("copy-out package cannot build its processors: " + "; ".join(missing))
 
         verifier = copy_dir / "verify.py"
         if verifier.exists():
