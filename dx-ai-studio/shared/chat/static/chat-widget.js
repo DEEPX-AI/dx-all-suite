@@ -367,6 +367,21 @@ const DXChat = (() => {
       _setApiKeyPlaceholder();
     });
     if (_els.settingsModelSelect) _els.settingsModelSelect.addEventListener('change', _onModelSelectChange);
+    // Local: 적은 endpoint 의 model 을 찾는다 — 예전에는 provider 를 바꿀 때만, 그때의 (빈) endpoint 로 찾아
+    // LM Studio · llama.cpp · 다른 host 의 Ollama 는 끝내 model 이 안 나왔다 (2026-10-11 실사용 감사).
+    if (_els.settingsEndpoint) {
+      var _endpointTimer = null;
+      var _lookupLocal = function () {
+        clearTimeout(_endpointTimer);
+        _endpointTimer = null;
+        if (_els.settingsProvider.value === 'local') _updateModelChooser('local');
+      };
+      _els.settingsEndpoint.addEventListener('change', _lookupLocal);
+      _els.settingsEndpoint.addEventListener('input', function () {
+        clearTimeout(_endpointTimer);
+        _endpointTimer = setTimeout(_lookupLocal, 600);
+      });
+    }
     _els.settingsTemp.addEventListener('input', () => {
       _els.settingsTempVal.textContent = _els.settingsTemp.value;
     });

@@ -45,10 +45,11 @@ python src/python_example/object_detection/yolov7/yolov7_sync.py --model assets/
 ```
 
 ### 예제 폴더 모양 — 두 가지 (2026-10)
-dx_app 의 다음 판 (teammate branch `feat/per-model-example-dirs`, 곧 staging) 은 예제를 **model 마다 한 폴더**로 둔다.
-폴더 · 파일 · binary 이름이 `.dxnn` 이름 (stem) 과 같다. 옛 경로는 남지 않는다.
+dx_app 은 두 모양 중 하나다. **per-model** 은 예제를 model 마다 한 폴더로 두고 폴더 · 파일 · binary 이름이 `.dxnn` 이름 (stem)
+과 같다. **legacy** 는 model 이름 폴더다. 한 PC 에는 한 모양만 있다 — 어느 쪽인지는 prompt 의 "이 PC 의 dx_app" 사실을 따른다.
+Python 예제의 입력 옵션은 `--image/-i` · `--video/-v` · `--camera/-c` · `--rtsp/-r` 이다 (`--input` 은 없다).
 
-| | 지금 (main) | 다음 판 (per-model) |
+| | legacy | per-model |
 |---|---|---|
 | Python 예제 | `src/python_example/object_detection/yolo26n/yolo26n_sync.py` | `src/python_example/object_detection/yolo26/yolo26-n_640x640/yolo26-n_640x640_sync.py` |
 | C++ binary | `./bin/yolo26n_sync` | `./bin/yolo26-n_640x640_sync` |
@@ -56,7 +57,7 @@ dx_app 의 다음 판 (teammate branch `feat/per-model-example-dirs`, 곧 stagin
 | 새 task | — | anomaly_detection (EfficientAD · PatchCore), zero_shot_image_classification (CLIP), zero_shot_instance_segmentation (FastSAM), image_matting (PP-Matting), image_retrieval, visual_place_recognition, face_attribute |
 | model 수 | 353 | 499 |
 
-- 다음 판의 per-model `config.json` 은 중첩 spec 이고 threshold 는 `config` 안에 있다. 늘 `-m <model>.dxnn` 을 준다.
+- per-model 의 `config.json` 은 중첩 spec 이고 threshold 는 `config` 안에 있다. 늘 `-m <model>.dxnn` 을 준다.
 - Model Zoo **2_5_0** 의 `.dxnn` 은 container **v9** 이고 **DX-RT 3.5.0 이상**이 필요하다. DX-RT 3.4.x 는 v6–8 만 읽는다
   ("Model file format version 9 is not supported"). DX AI Studio 는 오래된 DX-RT 에서 같은 이름의 2_4_0 (v8) 을 받고,
   2_5_0 에만 있는 model 은 "Needs DX-RT 3.5" 로 표시한다.
