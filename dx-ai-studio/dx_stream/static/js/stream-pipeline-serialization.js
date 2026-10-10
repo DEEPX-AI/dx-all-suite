@@ -148,7 +148,9 @@ DXStream.loadPreset = async function (demoId) {
 
     _updateElementCount();
     DXStream.pipelineFitView();
-    _scheduleCommandPreview();   // 명령 상자가 'gst-launch-1.0 ...' 로 남아 있었다 (S-5)
+    // history + draft (and the command preview): without it, coming back to the tab restored the
+    // old draft over the preset, and Undo skipped past it.
+    _pushHistory();
     var lang = (window.DXI18n && DXI18n.lang) || 'en';
     DXStream.toast(T('Preset loaded: ') + (demo['name_' + lang] || demo.name_en || demo.name_ko), 'success');
 };

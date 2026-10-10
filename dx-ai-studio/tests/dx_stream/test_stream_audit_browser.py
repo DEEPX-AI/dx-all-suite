@@ -283,3 +283,22 @@ def test_a_failed_stop_is_not_reported_as_stopped(page):
         page.unroute("**/api/demos/0/stop")
         page.unroute("**/api/pipeline/status")
         page.evaluate("() => { DXStream._runningDemoId = null; }")
+
+
+def test_a_loaded_preset_is_the_draft_and_an_undo_point(page):
+    """loadPreset never pushed history: leaving the tab and coming back restored the OLD draft over
+    the preset, and Undo skipped past it."""
+    _json_route(page, "**/api/demos", 200, [_demo(0, True)])
+    try:
+        page.evaluate("() => DXStream.nav('pipeline')")
+        page.wait_for_selector("#palette-list .palette-item", timeout=10000)
+        page.evaluate("() => DXStream.loadPreset(0)")
+        page.wait_for_function("() => DXStream._pipeState.nodes.length > 0", timeout=5000)
+        n = page.evaluate("DXStream._pipeState.nodes.length")
+        page.wait_for_timeout(500)
+        draft = page.evaluate("JSON.parse(localStorage.getItem('dx-pipeline-draft') || '{}')")
+        assert len(draft.get("nodes", [])) == n
+        idx = page.evaluate("DXStream._pipeState._historyIdx")
+        assert page.evaluate("JSON.parse(DXStream._pipeState._history[DXStream._pipeState._historyIdx]).nodes.length") == n, idx
+    finally:
+        page.unroute("**/api/demos")
