@@ -1204,6 +1204,13 @@ window._DX_I18N_DICT = {
     'zh-TW': '請求失敗：',
     es: 'Error en la solicitud:',
   },
+  'Unknown error': {
+    ko: '알 수 없는 오류',
+    ja: '不明なエラー',
+    'zh-CN': '未知错误',
+    'zh-TW': '未知錯誤',
+    es: 'Error desconocido',
+  },
   'Upload failed:': {
     ko: '업로드 실패:',
     ja: 'アップロード失敗:',

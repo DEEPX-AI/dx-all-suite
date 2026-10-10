@@ -444,6 +444,13 @@
 function _escErr(t) {
     return String(t).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; });
 }
+/* compile · re-quantization job 의 실패 (SSE error) → 번역 · escape 한 오류 상자. dxcom 의 문장
+   (예: 디스크 여유 8 GB 요구) 이 영어 원문 · HTML 로 그대로 들어갔다. */
+function _compileJobError(data) {
+    var msg = data && data.error;
+    var shown = msg ? (window.translateServerError ? window.translateServerError(msg) : msg) : T('Unknown error');
+    return '<div class="result error"><p>' + _escErr(shown) + '</p></div>';
+}
 function _compileRequestError(r) {
     return r.text().then(function (body) {
         var msg = body;
@@ -671,8 +678,7 @@ document.getElementById('compile-form').addEventListener('submit', async functio
                     DXIcon.label(container.querySelector('h3'), 'x', T('Compilation Failed'));
                     phaseIndicator.classList.add('phase-error');
                     phaseValue.textContent = T('Error');
-                    container.insertAdjacentHTML('beforeend',
-                        '<div class="result error"><p>' + (data.error || 'Unknown error') + '</p></div>');
+                    container.insertAdjacentHTML('beforeend', _compileJobError(data));
                 } catch(err) {
                     phaseValue.textContent = T('Connection lost');
                 }
@@ -843,7 +849,7 @@ document.querySelectorAll('.dropzone').forEach(zone => {
                     DXIcon.label(fileLabel, 'check', data.filename + ' → ' + data.path);
                     _maybeLoadViewerInput(targetId, data.path);   // auto-render graph on model upload
                 } else {
-                    DXIcon.label(fileLabel, 'x', T('Upload failed:') + ' ' + (data.error || 'Unknown error'));
+                    DXIcon.label(fileLabel, 'x', T('Upload failed:') + ' ' + (data.error ? (window.translateServerError ? window.translateServerError(data.error) : data.error) : T('Unknown error')));
                 }
             })
             .catch(err => {
@@ -1076,8 +1082,7 @@ function trackResumeProgress(container) {
             DXIcon.label(container.querySelector('h3'), 'x', T('Re-quantization Failed'));
             phaseIndicator.classList.add('phase-error');
             phaseValue.textContent = T('Error');
-            container.insertAdjacentHTML('beforeend',
-                '<div class="result error"><p>' + (data.error || 'Unknown error') + '</p></div>');
+            container.insertAdjacentHTML('beforeend', _compileJobError(data));
         } catch (err) {
             phaseValue.textContent = T('Connection lost');
         }
