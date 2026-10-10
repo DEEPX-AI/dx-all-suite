@@ -86,3 +86,30 @@ def test_cards_use_the_curated_display_name():
     keep = {"id": "x", "name": "Kept"}
     _enrich_model_entry(keep, {"display": {"task": "image_classification"}})
     assert keep["name"] == "Kept"
+
+
+def test_the_newer_generated_catalog_wins_over_a_stale_cache(tmp_path):
+    """A cache left by an Oct-1 sync hid the Oct-9 generated_catalog.json with the published names."""
+    import json
+    import os
+
+    from dx_modelzoo.core.catalog import load_generated_catalog
+
+    cache, gen = tmp_path / "cache.json", tmp_path / "gen.json"
+    cache.write_text(json.dumps({"schema_version": "2.0", "models": [{"id": "a", "display": {"name": "a"}}]}))
+    gen.write_text(json.dumps({"schema_version": "2.0", "models": [{"id": "a", "display": {"name": "A-Net"}}]}))
+    os.utime(cache, (1_000_000, 1_000_000))
+    os.utime(gen, (2_000_000, 2_000_000))
+    assert load_generated_catalog(cache, gen)["models"][0]["display"]["name"] == "A-Net"
+    os.utime(cache, (3_000_000, 3_000_000))      # a fresher sync wins again
+    assert load_generated_catalog(cache, gen)["models"][0]["display"]["name"] == "a"
+
+
+def test_the_summary_sentence_uses_the_published_name():
+    from dx_modelzoo.core.catalog import _enrich_summary
+
+    m = {"id": "regnety_16gf", "name": "RegNetY-16GF",
+         "description": {"en": "regnety_16gf is a classification model.", "ko": "regnety_16gf은(는) 분류 모델입니다."}}
+    _enrich_summary(m)
+    assert m["display"]["summary"]["en"] == "RegNetY-16GF is a classification model."
+    assert m["description"]["ko"].startswith("RegNetY-16GF")
