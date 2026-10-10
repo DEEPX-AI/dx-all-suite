@@ -488,3 +488,50 @@ def test_download_samples_reports_an_exception(sdk, monkeypatch):
     events = list(SS.SetupService().download_samples())
     assert events[-1]["type"] == "error"
     assert "bash missing" in events[-1]["message"]
+
+
+# --------------------------------------------------------------------------
+# CPU-only torch on hosts without an NVIDIA GPU
+# --------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("has_gpu, expected", [(False, SS.TORCH_CPU_INDEX), (True, None)])
+def test_install_sh_pulls_cpu_torch_when_there_is_no_nvidia_gpu(sdk, sudo, monkeypatch, has_gpu, expected):
+    """dx-com needs torch, and pip's default x86 torch drags in the CUDA libraries (~5 GB on
+    disk). dxcom compiles on the CPU, so on a host without an NVIDIA GPU they are never
+    used — and on a nearly full board the install died with "No space left on device"."""
+    monkeypatch.delenv("PIP_EXTRA_INDEX_URL", raising=False)
+    monkeypatch.delenv("PIP_INDEX_URL", raising=False)
+    monkeypatch.setattr(SS, "_has_nvidia_gpu", lambda: has_gpu)
+    seen = {}
+    monkeypatch.setattr(SS.subprocess, "Popen", lambda *a, **k: seen.update(k) or _FakeProc([]))
+
+    list(SS.SetupService()._run_install_sh("pw"))
+
+    assert seen["env"].get("PIP_EXTRA_INDEX_URL") == expected
+
+
+def test_a_pip_index_the_user_set_is_left_alone(sdk, sudo, monkeypatch):
+    monkeypatch.setenv("PIP_INDEX_URL", "https://mirror.example/simple")
+    monkeypatch.delenv("PIP_EXTRA_INDEX_URL", raising=False)
+    monkeypatch.setattr(SS, "_has_nvidia_gpu", lambda: False)
+    seen = {}
+    monkeypatch.setattr(SS.subprocess, "Popen", lambda *a, **k: seen.update(k) or _FakeProc([]))
+
+    list(SS.SetupService()._run_install_sh("pw"))
+
+    assert "PIP_EXTRA_INDEX_URL" not in seen["env"]
+    assert seen["env"]["PIP_INDEX_URL"] == "https://mirror.example/simple"
+
+
+def test_the_local_wheel_install_also_pulls_cpu_torch(sdk, monkeypatch, tmp_path):
+    monkeypatch.delenv("PIP_EXTRA_INDEX_URL", raising=False)
+    monkeypatch.delenv("PIP_INDEX_URL", raising=False)
+    monkeypatch.setattr(SS, "_has_nvidia_gpu", lambda: False)
+    (sdk / "dx_com" / f"dx_com-2.4.0-cp{sys.version_info.major}{sys.version_info.minor}-x.whl").write_bytes(b"")
+    seen = {}
+    monkeypatch.setattr(SS.subprocess, "Popen", lambda *a, **k: seen.update(k) or _FakeProc([]))
+
+    list(SS.SetupService()._pip_install_dx_com(tmp_path / "venv" / "bin" / "python"))
+
+    assert seen["env"]["PIP_EXTRA_INDEX_URL"] == SS.TORCH_CPU_INDEX
