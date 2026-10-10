@@ -102,8 +102,8 @@ window._DX_I18N_DICT = {
     'Output height': { ko: '출력 높이', ja: '出力高さ', 'zh-CN': '输出高度', 'zh-TW': '輸出高度', es: 'Alto de salida' },
     'Converts video color space or pixel format into the format expected by downstream DX Stream elements.': { ko: '비디오 색공간이나 픽셀 포맷을 후속 DX Stream 엘리먼트가 기대하는 형식으로 변환합니다.', ja: 'ビデオの色空間やピクセルフォーマットを、後段の DX Stream エレメントが想定する形式に変換します。', 'zh-CN': '将视频色彩空间或像素格式转换为下游 DX Stream 元素所需的格式。', 'zh-TW': '將視訊色彩空間或像素格式轉換為下游 DX Stream 元件所需的格式。', es: 'Convierte el espacio de color o el formato de píxel del video al formato que esperan los elementos posteriores de DX Stream.' },
     'Insert between decoders, scalers, OSD, and encoders when formats do not match.': { ko: '디코더, 스케일러, OSD, 인코더 사이에서 포맷이 맞지 않을 때 배치하세요.', ja: 'デコーダー、スケーラー、OSD、エンコーダーの間でフォーマットが一致しない場合に挿入します。', 'zh-CN': '当解码器、缩放器、OSD 和编码器之间格式不匹配时插入。', 'zh-TW': '當解碼器、縮放器、OSD 與編碼器之間格式不相符時插入。', es: 'Insértelo entre decodificadores, escaladores, OSD y codificadores cuando los formatos no coincidan.' },
-    'Limits pipeline throughput to a target FPS to control NPU load, message rate, or output bandwidth.': { ko: '파이프라인 처리량을 목표 FPS로 제한해 NPU 부하, 메시지 빈도, 출력 대역폭을 제어합니다.', ja: 'パイプラインのスループットを目標 FPS に制限し、NPU 負荷、メッセージレート、出力帯域幅を制御します。', 'zh-CN': '将管道吞吐量限制在目标 FPS，以控制 NPU 负载、消息速率或输出带宽。', 'zh-TW': '將管線吞吐量限制在目標 FPS，以控制 NPU 負載、訊息速率或輸出頻寬。', es: 'Limita el rendimiento del pipeline a un FPS objetivo para controlar la carga de la NPU, la tasa de mensajes o el ancho de banda de salida.' },
-    'Place near the source or before heavy inference stages to stabilize throughput.': { ko: '소스 직후나 무거운 추론 단계 앞에 배치해 처리량을 안정화하세요.', ja: 'ソースの近く、または負荷の高い推論段階の前に配置してスループットを安定させます。', 'zh-CN': '放在源附近或高负载推理阶段之前，以稳定吞吐量。', 'zh-TW': '放在來源附近或高負載推論階段之前，以穩定吞吐量。', es: 'Colóquelo cerca de la fuente o antes de las etapas de inferencia pesadas para estabilizar el rendimiento.' },
+    'Limits pipeline throughput to a target FPS to control NPU load, message rate, or output bandwidth.': { ko: '파이프라인 처리량을 목표 FPS로 제한해 NPU 부하, 메시지 빈도, 출력 대역폭을 제어합니다.', ja: 'パイプラインのスループットを目標 FPS に制限し、NPU 負荷、メッセージレート、出力帯域幅を制御します。', 'zh-CN': '将管道吞吐量限制在目标 FPS，以控制 NPU 负载、消息速率或输出带宽。', 'zh-TW': '將管線吞吐量限制在目標 FPS，以控制 NPU 負載、訊息速率或輸出頻寬。', es: 'Limita el throughput del pipeline a un FPS objetivo para controlar la carga de la NPU, la tasa de mensajes o el ancho de banda de salida.' },
+    'Place near the source or before heavy inference stages to stabilize throughput.': { ko: '소스 직후나 무거운 추론 단계 앞에 배치해 처리량을 안정화하세요.', ja: 'ソースの近く、または負荷の高い推論段階の前に配置してスループットを安定させます。', 'zh-CN': '放在源附近或高负载推理阶段之前，以稳定吞吐量。', 'zh-TW': '放在來源附近或高負載推論階段之前，以穩定吞吐量。', es: 'Colóquelo cerca de la fuente o antes de las etapas de inferencia pesadas para estabilizar el throughput.' },
     'Target FPS (required)': { ko: '목표 FPS (필수)', ja: '目標 FPS（必須）', 'zh-CN': '目标 FPS（必填）', 'zh-TW': '目標 FPS（必填）', es: 'FPS objetivo (obligatorio)' },
     'Send Throttle QoS events upstream on frame drops': { ko: '프레임을 버릴 때 상류로 Throttle QoS 이벤트 전송', ja: 'フレーム破棄時に上流へ Throttle QoS イベントを送信', 'zh-CN': '丢帧时向上游发送 Throttle QoS 事件', 'zh-TW': '丟棄影格時向上游傳送 Throttle QoS 事件', es: 'Enviar eventos QoS Throttle hacia upstream al descartar fotogramas' },
     'Converts inference, postprocess, and tracking metadata into JSON messages consumable by external systems.': { ko: '추론·후처리·추적 메타데이터를 외부 시스템이 소비할 수 있는 JSON 메시지 형식으로 변환합니다.', ja: '推論・後処理・追跡のメタデータを、外部システムが利用できる JSON メッセージに変換します。', 'zh-CN': '将推理、后处理和跟踪元数据转换为外部系统可使用的 JSON 消息。', 'zh-TW': '將推論、後處理與追蹤中繼資料轉換為外部系統可使用的 JSON 訊息。', es: 'Convierte los metadatos de inferencia, posprocesamiento y seguimiento en mensajes JSON que pueden consumir sistemas externos.' },
@@ -186,7 +186,7 @@ window._DX_I18N_DICT = {
     // 'Built' 로 분리했다 — 한 key 에 두 뜻이 얹혀 있어 어느 쪽으로
     // 번역해도 다른 쪽이 틀렸다.
     'OK': { ko: '확인', ja: 'OK', 'zh-CN': '确定', 'zh-TW': '確定', es: 'Aceptar' },
-    'Built': { ko: '정상', ja: '正常', 'zh-CN': '正常', 'zh-TW': '正常', es: 'Compilado' },
+    'Built': { ko: '빌드됨', ja: 'ビルド済み', 'zh-CN': '已构建', 'zh-TW': '已建置', es: 'Compilado' },
     'Not built': { ko: '미빌드', ja: '未ビルド', 'zh-CN': '未构建', 'zh-TW': '未建置',es:'No compilado'},
     'Status check failed': { ko: '상태 확인 실패', ja: 'ステータス確認失敗', 'zh-CN': '状态检查失败', 'zh-TW': '狀態檢查失敗',es:'Error en la verificación del estado'},
 
@@ -281,7 +281,7 @@ window._DX_I18N_DICT = {
 
 
   'Real-time Vision AI': { ko: '실시간 비전 AI', ja: 'リアルタイム ビジョン AI', 'zh-CN': '实时视觉 AI', 'zh-TW': '即時視覺 AI',es:'IA de visión en tiempo real'},
-  'Setup': { ko: '설정', ja: 'セットアップ', 'zh-CN': '设置', 'zh-TW': '設定',es:'Configuración'},
+  'Setup': { ko: '설치', ja: 'セットアップ', 'zh-CN': '安装', 'zh-TW': '安裝',es:'Instalación'},
   'Reference': { ko: '레퍼런스', ja: 'リファレンス', 'zh-CN': '参考指南', 'zh-TW': '參考指南',es:'Referencia'},
   'Dashboard': { ko: '대시보드', ja: 'ダッシュボード', 'zh-CN': '仪表盘', 'zh-TW': '儀表板',es:'Panel de control'},
   'Demo Launcher': { ko: '데모 실행', ja: 'デモランチャー', 'zh-CN': '演示启动器', 'zh-TW': '示範啟動器',es:'Lanzador de demo'},
@@ -366,8 +366,8 @@ window._DX_I18N_DICT = {
   'Name': { ko: '이름', ja: '名前', 'zh-CN': '名称', 'zh-TW': '名稱',es:'Nombre'},
   'Type': { ko: '타입', ja: 'タイプ', 'zh-CN': '类型', 'zh-TW': '類型',es:'Tipo'},
   'Default': { ko: '기본값', ja: 'デフォルト', 'zh-CN': '默认值', 'zh-TW': '預設值',es:'Por defecto'},
-  'Pads': { ko: '패드', ja: 'パッド', 'zh-CN': '端口', 'zh-TW': '墊片',es:'Rellenos'},
-  'Setup & Install': { ko: '설정 & 설치', ja: 'セットアップ＆インストール', 'zh-CN': '设置和安装', 'zh-TW': '設定與安裝',es:'Configuración e instalación'},
+  'Pads': { ko: '패드', ja: 'パッド', 'zh-CN': '端口', 'zh-TW': '連接埠',es:'Pads'},
+  'Setup & Install': { ko: '설치', ja: 'セットアップ＆インストール', 'zh-CN': '安装', 'zh-TW': '安裝',es:'Instalación'},
   'Install dependencies and configure the environment for DX Stream.': {
     ko: 'DX Stream 실행에 필요한 종속성을 설치하고 환경을 설정하세요.',
     ja: 'DX Streamの依存関係をインストールし、環境を設定します。',
@@ -497,7 +497,7 @@ window._DX_I18N_DICT = {
   'Demo 4 — Pose Estimation': { ko: '데모 4 — 자세 추정', ja: 'デモ 4 — 姿勢推定', 'zh-CN': '演示 4 — 姿态估计', 'zh-TW': '示範 4 — 姿態估計',es:'Demo 4 — Estimación de pose'},
   'Demo 5 — Pose (PPU)': { ko: '데모 5 — 자세 추정 (PPU)', ja: 'デモ 5 — 姿勢推定 (PPU)', 'zh-CN': '演示 5 — 姿态估计 (PPU)', 'zh-TW': '示範 5 — 姿態估計 (PPU)',es:'Demo 5 — Pose (PPU)'},
   'Demo 6 — Segmentation': { ko: '데모 6 — 분할', ja: 'デモ 6 — セグメンテーション', 'zh-CN': '演示 6 — 分割', 'zh-TW': '示範 6 — 分割',es:'Demo 6 — Segmentación'},
-  'Demo 7 — Multi-Object Tracking': { ko: '데모 7 — 다중 객체 추적', ja: 'デモ 7 — 複数物体追跡', 'zh-CN': '演示 7 — 多目标跟踪', 'zh-TW': '示範 7 — 多物件追蹤',es:'Demo 7 — Multi-Objeto Seguimiento'},
+  'Demo 7 — Multi-Object Tracking': { ko: '데모 7 — 다중 객체 추적', ja: 'デモ 7 — 複数物体追跡', 'zh-CN': '演示 7 — 多目标跟踪', 'zh-TW': '示範 7 — 多物件追蹤',es:'Demo 7 — Seguimiento multiobjeto'},
   'Demo 8 — Multi-Stream': { ko: '데모 8 — 멀티 스트림', ja: 'デモ 8 — マルチストリーム', 'zh-CN': '演示 8 — 多路流', 'zh-TW': '示範 8 — 多路串流',es:'Demo 8 — Multi-Stream'},
   'Demo 9 — RTSP Stream': { ko: '데모 9 — RTSP 스트림', ja: 'デモ 9 — RTSP ストリーム', 'zh-CN': '演示 9 — RTSP 流', 'zh-TW': '示範 9 — RTSP 串流',es:'Demo 9 — RTSP Stream'},
   'Demo 10 — Secondary Inference': { ko: '데모 10 — 2차 추론', ja: 'デモ 10 — 二次推論', 'zh-CN': '演示 10 — 二次推理', 'zh-TW': '示範 10 — 二次推論',es:'Demo 10 — Inferencia secundaria'},

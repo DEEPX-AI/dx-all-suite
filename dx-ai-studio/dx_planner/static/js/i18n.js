@@ -29,7 +29,7 @@ window._DX_I18N_DICT = {
   'Operating Requirements': { ko: '운영 요구사항', ja: '運用要件', 'zh-CN': '运行要求', 'zh-TW': '運行需求',es:'Requisitos de operación'},
   'Camera / Channels': { ko: '카메라 / 채널 수', ja: 'カメラ / チャンネル数', 'zh-CN': '摄像头 / 通道数', 'zh-TW': '攝影機 / 通道數',es:'Cámara / Canales'},
   'Target FPS': { ko: '목표 FPS', ja: '目標FPS', 'zh-CN': '目标FPS', 'zh-TW': '目標FPS',es:'FPS objetivo'},
-  'Runtime': { ko: '런타임', ja: 'ランタイム', 'zh-CN': '运行时', 'zh-TW': '執行環境',es:'Tiempo de ejecución'},
+  'Runtime': { ko: '런타임', ja: 'ランタイム', 'zh-CN': '运行时', 'zh-TW': '執行環境',es:'Entorno de ejecución'},
   'Priority': { ko: '우선 순위', ja: '優先度', 'zh-CN': '优先级', 'zh-TW': '優先順序',es:'Prioridad'},
   'Best Performance': { ko: '최고 성능', ja: '最高パフォーマンス', 'zh-CN': '最佳性能', 'zh-TW': '最佳效能',es:'Mejor rendimiento'},
   'Lowest Power': { ko: '최저 전력', ja: '最低消費電力', 'zh-CN': '最低功耗', 'zh-TW': '最低功耗',es:'Potencia más baja'},

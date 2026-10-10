@@ -185,7 +185,7 @@
 
   var configWizardSteps = [
     { target: '#config_build_toggle', position: 'left',
-      title: { en: 'Build Config', ko: '설정 생성', ja: '設定を生成', 'zh-CN': '生成配置', 'zh-TW': '產生設定', es: 'Configuración de compilación' },
+      title: { en: 'Build Config', ko: '설정 생성', ja: '設定を生成', 'zh-CN': '生成配置', 'zh-TW': '產生設定', es: 'Crear configuración' },
       content: { en: 'Check Build Config to open the configuration wizard.', ko: 'Build Config를 체크하면 설정 마법사가 열립니다.', ja: 'Build Configにチェックを入れると設定ウィザードが開きます。', 'zh-CN': '勾选Build Config打开配置向导。', 'zh-TW': '勾選Build Config開啟設定精靈。', es: 'Marque Build Config para abrir el asistente de configuración.' } },
     { target: '#btn-auto-detect', position: 'bottom',
       title: { en: 'Auto Detect', ko: '자동 감지', ja: '自動検出', 'zh-CN': '自动检测', 'zh-TW': '自動偵測', es: 'Detección automática' },

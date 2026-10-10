@@ -36,7 +36,7 @@ function _tbl(head, rows) {
 function buildRefCategories() {
   return [
     { id:'getting-started', icon:'run', title:_T5('Getting Started','시작하기','はじめに','入门指南','入門指南','Primeros pasos'),
-      desc:refL({en:'Setup, dashboard and the first demo',ko:'설정, 대시보드, 첫 데모',ja:'セットアップ・ダッシュボード・最初のデモ','zh-CN':'设置、仪表盘和第一个演示','zh-TW':'設定、儀表板與第一個示範',es:'Configuración, panel y primera demo'}) },
+      desc:refL({en:'Setup, dashboard and the first demo',ko:'설치, 대시보드, 첫 데모',ja:'セットアップ・ダッシュボード・最初のデモ','zh-CN':'安装、仪表盘和第一个演示','zh-TW':'安裝、儀表板與第一個示範',es:'Instalación, panel y primera demo'}) },
     { id:'demo-streaming', icon:'play', title:refL({en:'Demo & Streaming',ko:'데모 · 스트리밍',ja:'デモとストリーミング','zh-CN':'演示与流媒体','zh-TW':'示範與串流',es:'Demos y transmisión'}),
       desc:refL({en:'12 preset demos, WebRTC and MJPEG',ko:'프리셋 데모 12개, WebRTC · MJPEG',ja:'12 のプリセットデモ、WebRTC と MJPEG','zh-CN':'12 个预设演示，WebRTC 与 MJPEG','zh-TW':'12 個預設示範，WebRTC 與 MJPEG',es:'12 demos predefinidas, WebRTC y MJPEG'}) },
     { id:'pipeline', icon:'wrench', title:refL({en:'Pipeline',ko:'파이프라인',ja:'パイプライン','zh-CN':'管道','zh-TW':'管線',es:'Canalización'}),

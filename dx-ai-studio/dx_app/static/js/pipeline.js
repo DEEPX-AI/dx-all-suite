@@ -66,7 +66,7 @@ async function doPipeRun(){
     var h='<div class="card mb8"><h3>Step '+(i+1)+': '+esc(stepName)+'</h3>';
     // Cascade mode: show crop results
     if(r.cascade_crops){
-      h+='<p class="txt-dim txt-sm mb8">'+T('Running stage-2 inference on ')+r.crop_count+T(' detected region(s)')+'</p>';
+      h+='<p class="txt-dim txt-sm mb8">'+T('Running stage-2 inference on {n} detected region(s)').replace('{n}',r.crop_count)+'</p>';
       h+='<div style="display:flex;gap:10px;flex-wrap:wrap">';
       (r.cascade_crops||[]).forEach(function(cr,ci){
         h+='<div style="flex:0 0 220px;background:var(--surface-hover);border-radius:8px;padding:8px;text-align:center">';

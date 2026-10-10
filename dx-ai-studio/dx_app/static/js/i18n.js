@@ -8,9 +8,9 @@
 window._DX_I18N_DICT = {
   /* ==== Sidebar ==== */
   'Setup': {
-    ko: '설정', ja: 'セットアップ',
-    'zh-CN': '设置', 'zh-TW': '設定',
-    es: 'Configuración',
+    ko: '설치', ja: 'セットアップ',
+    'zh-CN': '安装', 'zh-TW': '安裝',
+    es: 'Instalación',
   },
   'Dashboard': {
     ko: '대시보드', ja: 'ダッシュボード',
@@ -67,9 +67,9 @@ window._DX_I18N_DICT = {
 
   /* ==== Page titles ==== */
   'Setup & Install': {
-    ko: '설정 & 설치', ja: 'セットアップ & インストール',
-    'zh-CN': '设置和安装', 'zh-TW': '設定與安裝',
-    es: 'Configuración e instalación',
+    ko: '설치', ja: 'セットアップ & インストール',
+    'zh-CN': '安装', 'zh-TW': '安裝',
+    es: 'Instalación',
   },
   'API Endpoints': {
     ko: 'API 엔드포인트', ja: 'API エンドポイント',
@@ -1043,7 +1043,7 @@ window._DX_I18N_DICT = {
   'Business (12h)': {
     ko: '업무시간 (12시간)', ja: '営業時間 (12時間)',
     'zh-CN': '工作时间 (12小时)', 'zh-TW': '工作時間 (12小時)',
-    es: 'Negocio (12h)',
+    es: 'Horario laboral (12 h)',
   },
   '24/7': {
     ko: '24/7', ja: '24/7',
@@ -1093,7 +1093,7 @@ window._DX_I18N_DICT = {
   'Unmanned Store': {
     ko: '무인 매장', ja: '無人店舗',
     'zh-CN': '无人商店', 'zh-TW': '無人商店',
-    es: 'Tienda no tripulada',
+    es: 'Tienda autónoma',
   },
   'Intelligent CCTV': {
     ko: '지능형 CCTV', ja: 'インテリジェント CCTV',
@@ -2587,7 +2587,7 @@ window._DX_I18N_DICT = {
   },
   'Camera Device': { ko: '카메라 장치', ja: 'カメラデバイス', 'zh-CN': '摄像头设备', 'zh-TW': '攝影機裝置',es:'Dispositivo de cámara'},
   'RTSP Server': { ko: 'RTSP 서버', ja: 'RTSP サーバー', 'zh-CN': 'RTSP 服务器', 'zh-TW': 'RTSP 伺服器',es:'Servidor RTSP'},
-  'Stream': { ko: '스트림', ja: 'ストリーム', 'zh-CN': '流', 'zh-TW': '串流',es:'Flujo'},
+  'Stream': { ko: '스트림', ja: 'ストリーム', 'zh-CN': '流', 'zh-TW': '串流',es:'Stream'},
   'Settings': { ko: '설정', ja: '設定', 'zh-CN': '设置', 'zh-TW': '設定',es:'Configuración'},
   'None': { ko: '해제', ja: 'なし', 'zh-CN': '无', 'zh-TW': '無',es:'Ninguno'},
   'Latency(ms)': { ko: '지연시간(ms)', ja: 'レイテンシ(ms)', 'zh-CN': '延迟(ms)', 'zh-TW': '延遲(ms)',es:'Latencia (ms)'},
@@ -2880,7 +2880,7 @@ window._DX_I18N_DICT = {
     es: 'La cadena central es fija para que Factory y SyncRunner de DX App seleccionados sigan siendo ejecutables.',
   },
   'Fit view': {
-    ko: '화면에 맞추기', ja: '画面に合わせる', 'zh-CN': '适应视图', 'zh-TW': '符合檢視', es: 'Ajustar vista',
+    ko: '화면에 맞추기', ja: '画面に合わせる', 'zh-CN': '适应视图', 'zh-TW': '適應檢視', es: 'Ajustar vista',
   },
   'Zoom in': {
     ko: '확대', ja: '拡大', 'zh-CN': '放大', 'zh-TW': '放大', es: 'Acercar',
@@ -3375,7 +3375,7 @@ window._DX_I18N_PLACEHOLDERS = {
     es: 'Conf. prom.',
   },
   'Handedness': {
-    ko: '손잡이', ja: '利き手',
+    ko: '왼손/오른손', ja: '利き手',
     'zh-CN': '惯用手', 'zh-TW': '慣用手',
     es: 'Lateralidad',
   },
@@ -3416,7 +3416,7 @@ window._DX_I18N_PLACEHOLDERS = {
   },
   'Total Faces': {
     ko: '총 얼굴', ja: '顔の総数',
-    'zh-CN': '人脸总数', 'zh-TW': '總面部',
+    'zh-CN': '人脸总数', 'zh-TW': '人臉總數',
     es: 'Total de rostros',
   },
   'Avg/Frame': {
@@ -4458,7 +4458,7 @@ window._DX_I18N_PLACEHOLDERS = {
   'YOLACT real-time instance segmentation. Prototype mask + linear combination.': {
     ko: 'YOLACT 실시간 인스턴스 분할. Prototype mask + 선형 결합.', ja: 'YOLACT リアルタイムインスタンスセグメンテーション。Prototype mask + 線形結合。',
     'zh-CN': 'YOLACT 实时实例分割。Prototype mask + 线性组合。', 'zh-TW': 'YOLACT 即時實例分割。Prototype mask + 線性組合。',
-    es: 'YOLACT tiempo real instance segmentación. Prototype mask + linear combination.',
+    es: 'Segmentación de instancias en tiempo real YOLACT. Máscara prototipo + combinación lineal.',
   },
   'YOLOX anchor-free object detection. Decoupled head with NMS post-processing.': {
     ko: 'YOLOX 앵커 프리 객체 검출. Decoupled head, NMS 후처리.', ja: 'YOLOX アンカーフリー物体検出。Decoupled head、NMS 後処理。',
@@ -4685,7 +4685,7 @@ window._DX_I18N_PLACEHOLDERS = {
   'Archives': {
     ko: '아카이브', ja: 'アーカイブ',
     'zh-CN': '归档文件', 'zh-TW': '封存檔案',
-    es: 'Archivos',
+    es: 'Archivos comprimidos',
   },
   'Deleted ': {
     ko: '삭제됨 ', ja: '削除済み ',
@@ -4713,11 +4713,6 @@ window._DX_I18N_PLACEHOLDERS = {
     es: 'Videos',
   },
 
-  ' detected region(s)': {
-    ko: '개 검출 영역', ja: ' 件の検出領域',
-    'zh-CN': ' 个检测区域', 'zh-TW': ' 個偵測區域',
-    es: ' región(es) detectada(s)',
-  },
   'Cascade: crops detected regions from stage-1 (Detection) and passes them to stage-2.': {
     ko: 'Cascade: stage-1 (Detection)에서 검출된 영역을 크롭하여 stage-2로 전달합니다.', ja: 'Cascade: stage-1（Detection）で検出された領域をクロップし、stage-2 に渡します。',
     'zh-CN': 'Cascade：从 stage-1（Detection）裁剪检测到的区域并传递给 stage-2。', 'zh-TW': 'Cascade：從 stage-1（Detection）裁剪偵測到的區域並傳遞給 stage-2。',
@@ -4733,10 +4728,10 @@ window._DX_I18N_PLACEHOLDERS = {
     'zh-CN': '就绪', 'zh-TW': '就緒',
     es: 'Listo',
   },
-  'Running stage-2 inference on ': {
-    ko: ' 에서 stage-2 추론 실행 중', ja: ' で stage-2 推論実行中',
-    'zh-CN': '正在对 ', 'zh-TW': '正在對 ',
-    es: 'Ejecutando inferencia de etapa-2 en ',
+  'Running stage-2 inference on {n} detected region(s)': {
+    ko: '검출된 영역 {n}개에 stage-2 추론 실행 중', ja: '検出された {n} 件の領域で stage-2 推論を実行中',
+    'zh-CN': '正在对 {n} 个检测区域运行 stage-2 推理', 'zh-TW': '正在對 {n} 個偵測區域執行 stage-2 推論',
+    es: 'Ejecutando inferencia de etapa-2 en {n} región(es) detectada(s)',
   },
   'Done': {
     ko: '완료', ja: '完了',
@@ -4752,7 +4747,7 @@ window._DX_I18N_PLACEHOLDERS = {
   'CPU compute — operations running on the CPU': {
     ko: 'CPU 연산 — CPU에서 실행되는 연산', ja: 'CPU 演算 — CPU上で実行される演算',
     'zh-CN': 'CPU 计算 — 在 CPU 上运行的操作', 'zh-TW': 'CPU 運算 — 在 CPU 上執行的操作',
-    es: 'CPU compute — operaciones ejecutándose en el CPU',
+    es: 'Cómputo CPU — operaciones que se ejecutan en la CPU',
   },
   'Capture — frame capture from input source': {
     ko: 'Capture — 입력 소스에서 프레임 캡처', ja: 'Capture — 入力ソースからのフレームキャプチャ',
@@ -4854,7 +4849,7 @@ window._DX_I18N_PLACEHOLDERS = {
   'Change preview': {
     ko: '변경 미리보기', ja: '変更プレビュー',
     'zh-CN': '变更预览', 'zh-TW': '變更預覽',
-    es: 'Cambiar vista previa',
+    es: 'Vista previa de los cambios',
   },
   'Apply changes': {
     ko: '변경 적용', ja: '変更を適用',
@@ -4974,7 +4969,7 @@ window._DX_I18N_PLACEHOLDERS = {
     es: 'Iniciar pipeline',
   },
   'Cancel run': {
-    ko: '실행 취소', ja: '実行キャンセル',
+    ko: '실행 중단', ja: '実行キャンセル',
     'zh-CN': '取消运行', 'zh-TW': '取消執行',
     es: 'Cancelar ejecución',
   },

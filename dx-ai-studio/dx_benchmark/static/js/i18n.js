@@ -443,7 +443,7 @@ window._DX_I18N_DICT = {
     ja: 'スループット',
     'zh-CN': '吞吐量',
     'zh-TW': '吞吐量',
-    es: 'Rendimiento',
+    es: 'Throughput',
   },
   'Latency (ms)': {
     ko: '지연시간 (ms)',
@@ -465,7 +465,7 @@ window._DX_I18N_DICT = {
     ja: 'NPU スループット (マルチコア)',
     'zh-CN': 'NPU 吞吐量 (多核)',
     'zh-TW': 'NPU 吞吐量 (多核)',
-    es: 'Rendimiento NPU (Multi-núcleo)',
+    es: 'Throughput NPU (Multi-núcleo)',
   },
   'E2E FPS (Single-Stream)': {
     ko: 'E2E FPS (단일 스트림)',
@@ -515,7 +515,7 @@ window._DX_I18N_DICT = {
     ja: 'モデルスループットトレンド',
     'zh-CN': '模型吞吐量趋势',
     'zh-TW': '模型吞吐量趨勢',
-    es: 'Tendencia de rendimiento del modelo',
+    es: 'Tendencia de throughput del modelo',
   },
   'Max Channel Trend': {
     ko: '최대 채널 트렌드',
@@ -536,7 +536,7 @@ window._DX_I18N_DICT = {
     ja: 'モデルスループット',
     'zh-CN': '模型吞吐量',
     'zh-TW': '模型吞吐量',
-    es: 'Rendimiento del modelo',
+    es: 'Throughput del modelo',
   },
 
   'No data available': {
@@ -782,7 +782,7 @@ window._DX_I18N_DICT = {
     ja: 'スループット (FPS)',
     'zh-CN': '吞吐量 (FPS)',
     'zh-TW': '吞吐量 (FPS)',
-    es: 'Rendimiento (FPS)',
+    es: 'Throughput (FPS)',
   },
 
   // --- Thermal / throttle indicators (5c) ---
@@ -805,7 +805,7 @@ window._DX_I18N_DICT = {
     ja: 'スロットリング中',
     'zh-CN': '限频',
     'zh-TW': '降頻',
-    es: 'Limitado',
+    es: 'Limitado térmicamente',
   },
   'NPU thermal throttling detected': {
     ko: 'NPU 열 스로틀링이 감지되었습니다',

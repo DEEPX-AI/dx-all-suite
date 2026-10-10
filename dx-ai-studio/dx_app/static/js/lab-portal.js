@@ -575,7 +575,7 @@ window.LabPortal = (function () {
 
     var cancelBtn = document.createElement('button');
     cancelBtn.className = 'btn btn-experiment-cancel';
-    cancelBtn.textContent = _text('Cancel run', '실행 취소');
+    cancelBtn.textContent = _text('Cancel run', '실행 중단');
     cancelBtn.disabled = !_currentExperimentRun;
     cancelBtn.addEventListener('click', function () { cancelExperimentRun(); });
     root.appendChild(cancelBtn);

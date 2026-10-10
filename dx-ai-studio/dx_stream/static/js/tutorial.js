@@ -407,7 +407,7 @@
     },
 
     { id: 'setup', icon: 'gear',
-      title: { ko: '설정 & 설치', en: 'Setup & Install', ja: '設定 & インストール', 'zh-CN': '设置 & 安装', 'zh-TW': '設定 & 安裝', es: 'Configuración e instalación' },
+      title: { ko: '설치', en: 'Setup & Install', ja: 'セットアップ & インストール', 'zh-CN': '安装', 'zh-TW': '安裝', es: 'Instalación' },
       description: { ko: '시스템 설정 및 종속성 설치', en: 'System setup and dependency installation', ja: 'システム設定と依存関係のインストール', 'zh-CN': '系统设置和依赖安装', 'zh-TW': '系統設定和相依性安裝', es: 'Configuración del sistema e instalación de dependencias' },
       beforeStart: function () { goPage('setup'); },
       steps: [
