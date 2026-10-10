@@ -35,6 +35,22 @@ Changes since the v0.1.0 beta manual. The version number and date are set at rel
 - SDK Library follows the suite's documentation (190 documents, 6 shelves).
 - About 370 DX App strings that were translated but never shown now appear in every language;
   Korean spacing follows Korean orthography; server errors are translated.
+- DX EdgeGuide: channel counts come from the measured end-to-end pipeline throughput. They are
+  measured where a tested stream count brackets your target FPS and estimated otherwise
+  (capped at twice the tested count). Each card says which, and why, in one line, with notes
+  for NPU throttling, whether the NPU or the host was the limit, and unmeasured latency.
+  60 FPS no longer reads 0 channels almost everywhere. Best Performance ranks by camera-pipeline
+  FPS; Lowest Power by NPU TDP (host power excluded).
+- DX Agent Dev: a **Stop** button while an agent runs; a dropped connection no longer stays
+  "Running…".
+- DX Compiler: large graphs open at a readable zoom at the input node; picking a sample model
+  draws its graph; Config Builder asks for the dataset folder (or Dummy Loader); a refused
+  compile keeps the graph and shows the reason.
+- Model Zoo: cards and details use the published model names; **Run Inference** finds each
+  model's example in the per-model layout (it used to fail with "Binary not found").
+- All modules: phone-width (390 px) layouts fixed for Setup, EdgeGuide cards, Compiler tabs,
+  Benchmark Settings/Results, the Lab home and the SDK Library; dozens of mistranslations
+  fixed (e.g. Setup no longer reads as Settings); the AI Help knowledge matches today's UI.
 
 ## v0.1.0 / 2026-07
 
