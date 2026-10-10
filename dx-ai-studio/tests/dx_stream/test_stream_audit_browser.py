@@ -243,3 +243,43 @@ def test_the_mjpeg_retry_keeps_the_rtsp_source(page):
     finally:
         page.unroute("**/api/demos/9/start")
         page.evaluate("() => { DXStream._runningDemoId = null; }")
+
+
+# ── What is playing: header pill and the Demo page follow the server ──────────
+
+def test_the_header_pill_follows_playback_on_any_page(page):
+    _json_route(page, "**/api/pipeline/status", 200,
+                {"running": True, "pipeline_id": "mjpeg-pipeline", "output_mode": "mjpeg", "demo_id": None})
+    try:
+        page.evaluate("() => DXStream.nav('models')")
+        page.wait_for_function("() => /Running/.test(document.getElementById('pipeline-status').textContent)",
+                               timeout=7000)
+    finally:
+        page.unroute("**/api/pipeline/status")
+
+
+def test_the_demo_page_lets_go_of_a_demo_the_server_replaced(page):
+    """Running a Pipeline Builder graph stops any demo on the server; the Demo page kept showing it
+    as running (and its Stop then stopped the builder pipeline)."""
+    _json_route(page, "**/api/pipeline/status", 200,
+                {"running": True, "pipeline_id": "mjpeg-pipeline", "output_mode": "mjpeg", "demo_id": None})
+    try:
+        page.evaluate("() => { DXStream.nav('demo'); DXStream._runningDemoId = 0; }")
+        page.wait_for_function("() => DXStream._runningDemoId === null", timeout=7000)
+    finally:
+        page.unroute("**/api/pipeline/status")
+
+
+def test_a_failed_stop_is_not_reported_as_stopped(page):
+    _json_route(page, "**/api/demos/0/stop", 500, {"error": "pipeline_error", "message": "Stop failed on the server"})
+    _json_route(page, "**/api/pipeline/status", 200,
+                {"running": True, "pipeline_id": "mjpeg-demo-0", "output_mode": "mjpeg", "demo_id": 0})
+    try:
+        page.evaluate("() => { DXStream.nav('demo'); DXStream._runningDemoId = 0; }")
+        page.evaluate("() => DXStream._stopDemo(0)")
+        page.wait_for_function("() => /Stop failed on the server/.test(document.body.innerText)", timeout=5000)
+        assert page.evaluate("DXStream._runningDemoId") == 0
+    finally:
+        page.unroute("**/api/demos/0/stop")
+        page.unroute("**/api/pipeline/status")
+        page.evaluate("() => { DXStream._runningDemoId = null; }")

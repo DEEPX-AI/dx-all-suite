@@ -210,6 +210,18 @@ const DXStream = (() => {
 // Expose to window so external scripts (tutorial.js, etc.) can access via window.DXStream
 window.DXStream = DXStream;
 
+// What is playing, on every page: the header pill was updated only by the Dashboard poll, and the
+// Demo page never learned that a Pipeline Builder run had replaced its demo on the server.
+DXStream._pollPlayback = function () {
+    if (document.hidden) return;
+    DXStream.api('/api/pipeline/status').then(function (st) {
+        if (!st || st.error) return;
+        if (typeof DXStream.updatePipelineBadge === 'function') DXStream.updatePipelineBadge(st);
+        if (typeof DXStream._demoSyncWithServer === 'function') DXStream._demoSyncWithServer(st);
+    });
+};
+setInterval(DXStream._pollPlayback, 4000);
+
 // Sync with shared i18n — stream-lang-refresh.js owns onLangChange dispatch
 DXStream.T = window.T;
 if (typeof DXI18n !== 'undefined') {

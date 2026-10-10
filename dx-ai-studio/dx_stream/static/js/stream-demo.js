@@ -733,18 +733,36 @@ async function _waitDemoStarted(id, pipelineId) {
 }
 
 DXStream._stopDemo = async function (id) {
-    DXStream.webrtc.disconnect();
     var demoId = (id != null) ? id : DXStream._runningDemoId;
-    if (demoId != null) {
-        await DXStream.postJ('/api/demos/' + demoId + '/stop', {});
-    } else {
-        await DXStream.postJ('/api/pipeline/stop', {});
+    var resp = (demoId != null)
+        ? await DXStream.postJ('/api/demos/' + demoId + '/stop', {})
+        : await DXStream.postJ('/api/pipeline/stop', {});
+    if (resp && resp.error) {
+        // It used to say "Demo stopped" whatever the server answered.
+        DXStream.toast(_demoStartError(resp), 'error');
+        return;
     }
+    _demoTearDown(demoId);
+    DXStream.toast(T('Demo stopped'), 'info');
+};
+
+// The server no longer plays this demo (a Pipeline Builder run replaces it, or it ended): drop the
+// page's "running" state without another stop request. Called by the shared playback poll.
+DXStream._demoSyncWithServer = function (st) {
+    var id = DXStream._runningDemoId;
+    if (id == null || DXStream._startingDemo || !st) return;
+    if (st.running && (st.demo_id === id || st.demo_id == null && String(st.pipeline_id || '').indexOf('demo-' + id) >= 0)) return;
+    if (st.running && st.demo_id == null && String(st.pipeline_id || '').indexOf('demo') >= 0) return;
+    _demoTearDown(id);
+};
+
+function _demoTearDown(demoId) {
+    try { DXStream.webrtc.disconnect(); } catch (e) {}
 
     // 비디오 정리
     var videoSection = DXStream.$('demo-video-section');
     if (document.fullscreenElement === videoSection && document.exitFullscreen) {
-        try { await document.exitFullscreen(); } catch (e) {}
+        try { document.exitFullscreen().catch(function () {}); } catch (e) {}
     }
     _stopFmp4();  // tear down MSE stream (fetch reader + MediaSource) if remote/fMP4 was active
     var video = DXStream.$('webrtc-video');
@@ -763,8 +781,7 @@ DXStream._stopDemo = async function (id) {
     } else {
         _demoParkVideo();
     }
-    DXStream.toast(T('Demo stopped'), 'info');
-};
+}
 
 // Filters live on the stage now (buttons built from the demos' own categories).
 DXStream.filterDemos = function (cat) {

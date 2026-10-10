@@ -143,6 +143,7 @@ function _perfTick() {
     });
 }
 
+DXStream.updatePipelineBadge = function (data) { _updatePipelineBadge(data); };
 function _updatePipelineBadge(data) {
     var badge = DXStream.$('pipeline-status');
     if (!badge) return;
