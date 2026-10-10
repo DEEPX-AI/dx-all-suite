@@ -38,7 +38,12 @@ def _real_root() -> Path:
 
 
 def registry_lookup(real_root: Path, model_name: str) -> str | None:
-    """model_file for *model_name* from dx_app's test_models.conf, or None."""
+    """model_file for *model_name* from dx_app's test_models.conf, or None.
+
+    *model_name* is the name /api/models and the picker show — the conf's 4th column
+    (``yolo26-n_640x640``). The 1st column is a family shared by many rows
+    (``yolo26`` → l, m, n, s, x), so it cannot name one model.
+    """
     conf = real_root / "config" / "test_models.conf"
     if not conf.is_file():
         return None
@@ -47,7 +52,7 @@ def registry_lookup(real_root: Path, model_name: str) -> str | None:
         if not line or line.startswith("#"):
             continue
         parts = [p.strip() for p in line.split("\t")]
-        if len(parts) >= 3 and parts[0] == model_name:
+        if len(parts) >= 4 and parts[3] == model_name:
             return parts[2]
     return None
 
