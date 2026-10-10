@@ -484,7 +484,7 @@ window._DX_I18N_DICT = {
   'Sync': {
     ko: '동기', ja: '同期',
     'zh-CN': '同步', 'zh-TW': '同步',
-    es: 'Sincronizar',
+    es: 'Síncrono',
   },
   'Async': {
     ko: '비동기', ja: '非同期',
