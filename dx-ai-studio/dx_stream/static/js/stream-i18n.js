@@ -62,6 +62,7 @@ window._DX_I18N_DICT = {
     'MSE init failed, using MJPEG: ': { ko: 'MSE 초기화 실패, MJPEG로 전환: ', ja: 'MSE の初期化に失敗、MJPEG に切り替え: ', 'zh-CN': 'MSE 初始化失败，改用 MJPEG：', 'zh-TW': 'MSE 初始化失敗，改用 MJPEG：', es: 'Falló la inicialización de MSE, se usa MJPEG: ' },
     'fMP4 stream error: ': { ko: 'fMP4 스트림 오류: ', ja: 'fMP4 ストリームのエラー: ', 'zh-CN': 'fMP4 流错误：', 'zh-TW': 'fMP4 串流錯誤：', es: 'Error en el flujo fMP4: ' },
     'Video decode stalled — switching to MJPEG': { ko: '영상 디코딩이 멈췄습니다 — MJPEG로 전환합니다', ja: '動画のデコードが止まりました — MJPEG に切り替えます', 'zh-CN': '视频解码停滞 — 改用 MJPEG', 'zh-TW': '影片解碼停滯 — 改用 MJPEG', es: 'La decodificación de video se detuvo — cambiando a MJPEG' },
+    'Build failed': { ko: '빌드 실패', ja: 'ビルド失敗', 'zh-CN': '构建失败', 'zh-TW': '建置失敗', es: 'Error de compilación' },
     'Demo playback stopped.': { ko: '데모 재생이 멈췄습니다.', ja: 'デモの再生が停止しました。', 'zh-CN': '演示播放已停止。', 'zh-TW': '示範播放已停止。', es: 'La reproducción de la demo se detuvo.' },
     'Unable to start demo playback.': { ko: '데모를 재생하지 못했습니다.', ja: 'デモを再生できませんでした。', 'zh-CN': '无法开始播放演示。', 'zh-TW': '無法開始播放示範。', es: 'No se pudo iniciar la reproducción de la demo.' },
     'No output backend became ready.': { ko: '영상 출력이 준비되지 않았습니다.', ja: '映像出力の準備ができませんでした。', 'zh-CN': '视频输出未能就绪。', 'zh-TW': '影像輸出未能就緒。', es: 'Ninguna salida de video quedó lista.' },

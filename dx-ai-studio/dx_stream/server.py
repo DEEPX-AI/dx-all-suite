@@ -1155,17 +1155,25 @@ class DXStreamHandler(DXBaseHandler):
         self.send_json(result)
 
     def _handle_custom_build(self, path: str):
-        """커스텀 라이브러리 빌드."""
-        from dx_stream.core.custom_library import CustomLibraryManager
-        self._drain_request_body()
+        """커스텀 라이브러리 빌드. body {password?} — `sudo meson install` 용 (Setup 과 같은 방식)."""
+        from dx_stream.core.custom_library import CustomLibraryManager, SudoAuthFailed, SudoRequired
+        body = self._safe_read_json()
+        if body is None:
+            return
         parts = path.split("/")
         name = parts[3] if len(parts) >= 5 else ""
         if not name:
             return self._error(400, "bad_request", "Missing library name")
         mgr = CustomLibraryManager()
         try:
-            mgr.build(name)
+            mgr.build(name, sudo_password=(body or {}).get("password") or None)
             self.send_json({"started": True, "name": name})
+        except SudoRequired as e:
+            self._error(401, "need_sudo", str(e))
+        except SudoAuthFailed as e:
+            self._error(401, "sudo_auth", str(e))
+        except FileNotFoundError as e:
+            self._error(404, "not_found", str(e))
         except ValueError as e:
             self._error(400, "bad_request", str(e))
         except Exception as e:

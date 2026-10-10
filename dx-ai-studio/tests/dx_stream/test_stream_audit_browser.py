@@ -90,3 +90,65 @@ def test_element_detail_headings_follow_the_language(page):
         assert "Key Features" not in text and "Related Elements" not in text, text[:200]
     finally:
         page.evaluate("() => DXI18n.setLang('en')")
+
+
+# ── Custom Library ────────────────────────────────────────────────────────────
+
+def _json_route(page, pattern, status, body):
+    import json
+    page.route(pattern, lambda r, *_: r.fulfill(status=status, content_type="application/json", body=json.dumps(body)))
+
+
+def test_library_names_are_text_not_markup(page):
+    _json_route(page, "**/api/custom-library", 200,
+                [{"name": "<img src=x onerror=window.__xss=1>", "built": False, "has_meson": True}])
+    try:
+        page.evaluate("() => DXStream.nav('custom')")
+        page.wait_for_selector("#custom-lib-grid .card-title", timeout=10000)
+        assert page.inner_text("#custom-lib-grid .card-title") == "<img src=x onerror=window.__xss=1>"
+        assert page.evaluate("window.__xss") is None
+        assert page.locator("#custom-lib-grid button[data-lib]").count() == 1
+    finally:
+        page.unroute("**/api/custom-library")
+
+
+def test_a_refused_upload_does_not_start_a_build(page):
+    builds = []
+    page.route("**/api/custom-library/*/build", lambda r, *_: builds.append(r.request.url) or r.fulfill(status=200, body="{}"))
+    _json_route(page, "**/api/custom-library/upload", 400,
+                {"error": "bad_request", "message": "Custom library files must be text source (.c/.cpp/.h), not a binary file."})
+    try:
+        page.evaluate("() => DXStream.nav('custom')")
+        page.fill("#custom-lib-name", "mylib")
+        page.set_input_files("#custom-lib-files", files=[{"name": "a.cpp", "mimeType": "text/plain", "buffer": b"int x;"}])
+        page.evaluate("() => DXStream.custom.upload()")
+        page.wait_for_function("() => /not a binary file/.test(document.body.innerText)", timeout=5000)
+        assert builds == []
+    finally:
+        page.unroute("**/api/custom-library/*/build")
+        page.unroute("**/api/custom-library/upload")
+
+
+def test_a_build_that_needs_sudo_asks_for_the_password(page):
+    _json_route(page, "**/api/custom-library/*/build", 401,
+                {"error": "need_sudo", "message": "Administrator (sudo) password is required to install the library."})
+    try:
+        page.evaluate("() => DXStream.nav('custom')")
+        page.evaluate("() => { DXStream.custom.build('mylib'); }")
+        page.wait_for_selector("#dx-input-modal-field[type=password]", state="visible", timeout=5000)
+        page.keyboard.press("Escape")
+    finally:
+        page.unroute("**/api/custom-library/*/build")
+
+
+def test_a_refused_model_upload_says_why(page):
+    _json_route(page, "**/api/models/upload", 409,
+                {"error": "conflict", "message": "A model named yolo.dxnn already exists"})
+    try:
+        page.evaluate("() => DXStream.nav('custom')")
+        page.set_input_files("#model-upload-file", files=[{"name": "yolo.dxnn", "mimeType": "application/octet-stream", "buffer": b"DXNN"}])
+        page.evaluate("() => DXStream.uploadModel()")
+        page.wait_for_function("() => /already exists/.test(document.getElementById('model-upload-status').textContent)", timeout=5000)
+        assert "conflict" not in page.inner_text("#model-upload-status")
+    finally:
+        page.unroute("**/api/models/upload")
