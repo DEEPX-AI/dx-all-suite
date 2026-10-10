@@ -1105,8 +1105,14 @@ body.lang-zh-TW .zh-CN { display: none; }
   .dashboard-detail-grid { grid-template-columns: minmax(0, 1fr); }
   .dashboard-primary .chart-container { height: 420px; }
   .trend-charts-grid { grid-template-columns: 1fr; }
-  .results-workspace { grid-template-columns: 1fr; }
-  .results-rail { position: static; }
+  .results-workspace { grid-template-columns: minmax(0, 1fr); }
+  .results-rail { position: static; min-width: 0; }
+}
+/* 폰 — 1fr 는 최소 내용 폭만큼 버텨 하드웨어 목록이 화면 오른쪽 밖으로 잘렸고 (위 minmax(0,1fr)),
+   설정 줄은 220px 입력칸이 라벨을 한 글자씩 세로로 접었다 (2026-10-11 matrix). 라벨 위, 입력칸 아래. */
+@media (max-width: 600px) {
+  .setting-row { flex-direction: column; align-items: stretch; gap: var(--sp-1); }
+  .setting-input { width: 100%; }
 }
 
 /* 표 머리글은 한국어에서 "크/기" · "메모/리" 처럼 음절 사이에서 꺾였다 — 낱말 단위로만 줄을 바꾼다 (B-3). */
