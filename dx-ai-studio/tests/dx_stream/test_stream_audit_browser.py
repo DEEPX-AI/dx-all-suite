@@ -404,3 +404,33 @@ def test_node_messages_are_translated_beyond_english_and_korean(page):
         page.wait_for_function("() => /個のノードをコピーしました/.test(document.body.innerText)", timeout=4000)
     finally:
         page.evaluate("() => DXI18n.setLang('en')")
+
+
+def test_setup_intro_keeps_its_width_on_a_phone(page):
+    """390 px · es: "Instalar el resto" took the row and the intro folded one word per line (matrix 2026-10-11)."""
+    page.set_viewport_size({"width": 390, "height": 844})
+    try:
+        page.evaluate("() => { DXI18n.setLang('es'); DXStream.nav('setup'); }")
+        page.wait_for_selector("#page-setup .dx-steps-lede", timeout=10000)
+        page.wait_for_timeout(300)
+        lede = page.evaluate("document.querySelector('#page-setup .dx-steps-lede').getBoundingClientRect().width")
+        btn = page.evaluate("document.querySelector('#setup-run-all').getBoundingClientRect().right")
+        assert lede > 250, lede
+        assert btn <= 390, btn
+    finally:
+        page.evaluate("() => DXI18n.setLang('en')")
+        page.set_viewport_size({"width": 1440, "height": 900})
+
+
+def test_the_reference_names_the_setup_button_as_the_button_reads():
+    """Reference said '나머지 설정' / 'Configurar el resto' for a button labelled '나머지 설치' / 'Instalar el resto'."""
+    import re
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[2]
+    i18n = (root / "dx_stream/static/js/stream-i18n.js").read_text(encoding="utf-8")
+    ref = (root / "dx_stream/static/js/stream-reference.js").read_text(encoding="utf-8")
+    entry = re.search(r"'Set up the rest': \{([^}]*)\}", i18n).group(1)
+    line = next(l for l in ref.splitlines() if "finish the six steps" in l)
+    for lang, label in re.findall(r"(ko|ja|'zh-CN'|'zh-TW'|es): '([^']*)'", entry):
+        assert f"<b>{label}</b>" in line, (lang, label)
