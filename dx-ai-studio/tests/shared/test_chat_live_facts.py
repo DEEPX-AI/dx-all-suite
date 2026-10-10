@@ -59,6 +59,23 @@ def test_cpp_binaries_are_reported_only_when_built(tmp_path):
     assert "./bin/yolo26-n_640x640_sync -m assets/models/yolo26-n_640x640.dxnn -i sample/img/sample_dog.jpg" in facts
 
 
+def test_cpp_binaries_in_the_build_dir_are_found(tmp_path):
+    """Studio runs C++ examples from build_x86_64/src/cpp_example first; the facts said "not built" on a box with 122
+    binaries there because they looked only in bin/."""
+    _touch(tmp_path / "src/python_example/object_detection/yolo26/yolo26-n_640x640/yolo26-n_640x640_sync.py")
+    d = tmp_path / "build_x86_64/src/cpp_example"
+    d.mkdir(parents=True)
+    other = d / "yolov12-n_640x640_sync"
+    _touch(other)
+    other.chmod(0o755)
+    facts = _facts(tmp_path)
+    assert "build_x86_64/src/cpp_example/<model>_sync" in facts and "yolo26-n_640x640 은 아직" in facts
+    exe = d / "yolo26-n_640x640_sync"
+    _touch(exe)
+    exe.chmod(0o755)
+    assert "./build_x86_64/src/cpp_example/yolo26-n_640x640_sync -m assets/models/yolo26-n_640x640.dxnn" in _facts(tmp_path)
+
+
 def test_no_dx_app_gives_no_facts(tmp_path):
     assert _facts(tmp_path / "missing") == ""
 

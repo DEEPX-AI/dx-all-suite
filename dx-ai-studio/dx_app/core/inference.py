@@ -206,8 +206,10 @@ def run_inference(model_name, category, model_file, lang="cpp", variant="sync",
         env.pop("DISPLAY", None)
     if input_type == "image":
         inf = "-i"
+    elif input_type == "rtsp":
+        inf = "-r"  # -v 는 디스크의 파일만 받는다 (SDKREQ-529) — URL 은 rtsp_url 로
     else:
-        inf = "-v"  # video, camera, rtsp all use -v flag
+        inf = "-v"  # video, camera (/dev/videoN)
     _inp_str = rtsp_url if input_type == "rtsp" else str(inp)
     _loop = loop or (100 if _is_live else 1)
     # embedding/reid: pair-folder demo needs 2+ images (1st = reference, 2nd+ = compare canvas)

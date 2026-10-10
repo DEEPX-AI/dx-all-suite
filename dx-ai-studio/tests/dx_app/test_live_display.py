@@ -382,3 +382,52 @@ def test_live_runs_ask_for_progress_and_a_screen_the_window_fills(tmp_path, monk
     from dx_app.core.camera import _XVFB_RES
     w, h = (int(v) for v in _XVFB_RES.split("x")[:2])
     assert (env.get("DXAPP_SCREEN_W"), env.get("DXAPP_SCREEN_H")) == (str(2 * w), str(2 * h))
+
+
+def _live_cmd(tmp_path, monkeypatch, **kw):
+    from dx_app.core import live
+
+    model = tmp_path / "m.dxnn"
+    model.write_bytes(b"DXNN")
+    build = tmp_path / "build"
+    build.mkdir(exist_ok=True)
+    (build / "demo_sync").write_text("")
+    captured = {}
+
+    class FakeProc:
+        pid = 1
+
+        def __init__(self, cmd, **kw):
+            captured["cmd"] = cmd
+
+        def poll(self):
+            return None
+
+    monkeypatch.setattr(live, "BUILD_DIR", build)
+    monkeypatch.setattr(live, "resolve_model_path", lambda f, r: model)
+    monkeypatch.setattr(live, "_ensure_xvfb", lambda s: None)
+    monkeypatch.setattr(live, "_start_cam_mux", lambda idx, n: True)
+    monkeypatch.setattr(live.subprocess, "Popen", FakeProc)
+    monkeypatch.setattr(live, "_video_frame_count", lambda p: None)
+    slot = kw.pop("slot_idx", 6)
+    r = live.run_inference_live("demo", "object_detection", "m.dxnn", lang="cpp", variant="sync", slot_idx=slot, **kw)
+    live._live_procs.pop(slot, None)
+    assert r.get("status") == "started", r
+    return captured["cmd"]
+
+
+def test_live_rtsp_goes_in_as_rtsp(tmp_path, monkeypatch):
+    """2026-10-11: live RTSP ended at once with "[DXAPP] [ERROR] Input file not found: rtsp://…" (exit 255, a black
+    screen): since SDKREQ-529 the runner requires a -v path to exist. The URL goes in as -r (C++ rtsp_url, verified on
+    the DX-M1: 128 frames at 14.8 FPS from a local RTSP camera)."""
+    url = "rtsp://127.0.0.1:8554/cam"
+    cmd = _live_cmd(tmp_path, monkeypatch, input_type="rtsp", rtsp_url=url)
+    assert cmd[cmd.index(url) - 1] == "-r"
+
+
+def test_multi_slot_camera_streams_go_in_as_urls(tmp_path, monkeypatch):
+    """Several live slots on one camera read the ffmpeg fan-out (udp://…), which -v refused the same way; -r opens it
+    (verified: 110 frames at 12.2 FPS from an mpegts UDP stream)."""
+    cmd = _live_cmd(tmp_path, monkeypatch, input_type="camera", camera_id=0, n_total_slots=2, slot_idx=1)
+    url = next(a for a in cmd if a.startswith("udp://"))
+    assert cmd[cmd.index(url) - 1] == "-r"

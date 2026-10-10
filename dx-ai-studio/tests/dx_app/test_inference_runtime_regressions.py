@@ -574,3 +574,30 @@ def test_python_camera_run_passes_the_camera_index(tmp_path, monkeypatch):
     cmd = _python_cmd_for(tmp_path, monkeypatch, input_type="camera", camera_id=2, loop=30)
     assert cmd[cmd.index("--camera") + 1] == "2"
     assert "--video" not in cmd
+
+
+def test_cpp_rtsp_run_passes_the_url_as_rtsp(tmp_path, monkeypatch):
+    """The C++ runner also requires a -v path to exist (SDKREQ-529); an RTSP URL goes in as -r."""
+    inference, app_root = _prepare_dx_app_runtime(tmp_path, monkeypatch)
+    build = inference.BUILD_DIR
+    build.mkdir(parents=True, exist_ok=True)
+    exe = build / "demo_sync"
+    exe.write_text("#!/bin/sh\n")
+    exe.chmod(0o755)
+    captured = {}
+
+    class FakeProc:
+        returncode = 0
+
+        def __init__(self, cmd, stdout=None, **_kwargs):
+            captured["cmd"] = cmd
+
+        def wait(self, timeout=None):
+            return 0
+
+    monkeypatch.setattr(inference.subprocess, "Popen", FakeProc)
+    url = "rtsp://127.0.0.1:8554/cam"
+    inference.run_inference("demo", "object_detection", "model.dxnn", lang="cpp", variant="sync", timeout=1,
+                            input_type="rtsp", rtsp_url=url, loop=30)
+    cmd = captured["cmd"]
+    assert cmd[cmd.index(url) - 1] == "-r"
