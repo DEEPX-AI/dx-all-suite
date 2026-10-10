@@ -218,6 +218,10 @@ def get_models():
         key=f"{cat}/{mn}"
         if _per_model and ((reg.get("file") or "").rsplit("/",1)[-1] in _covered or not _required_dxnn_exists(reg.get("file",""))):
             continue
+        # 옛 이름 (yolo26n, efficientnet_lite0 …) 은 실행 때 그 예제 이름으로 바뀌고 남의 binary 를 빌리지 않는다
+        # (server _validate_inference_payload). 따로 보여 주면 C++ 를 내세우고 매번 "Binary not found" 로 실패한다.
+        if _per_model and _layout.example_name(DX_APP_ROOT,cat,mn,reg.get("file",""))!=mn:
+            continue
         if _per_model:
             cat=_canonical_task(cat);key=f"{cat}/{mn}"
         if key not in models:
