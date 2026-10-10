@@ -360,3 +360,16 @@ class TestSdkOverlayStateExposed:
         assert "sdkArchOverlay" in segment, (
             "_sdkLibHasOverlay must check sdkArchOverlay element"
         )
+
+
+def test_sdk_library_stacks_on_a_phone_and_points_nowhere():
+    """390 px: the 240 px list and the document pane sat side by side (the pane two words wide), and the empty
+    state pointed '← left' at a list that is above it on a phone (2026-10-11 matrix)."""
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[2]
+    css = (root / "launcher/static/sdk-library.css").read_text(encoding="utf-8")
+    phone = css[css.index("@media (max-width: 600px)"):]
+    assert ".sdk-list-layout { flex-direction: column;" in phone
+    js = (root / "launcher/static/sdk-library.js").read_text(encoding="utf-8")
+    assert "Select a category from the left" not in js

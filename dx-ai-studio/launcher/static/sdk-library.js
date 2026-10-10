@@ -327,7 +327,7 @@
   }
 
   function _listPrompt() {
-    return '<div class="sdk-list-empty">' + _t('← Select a category from the left', '← 좌측에서 카테고리를 선택하세요', '← 左側からカテゴリを選択してください', '← 请从左侧选择分类', '← 請從左側選擇分類', '← Seleccione una categoría de la izquierda') + '</div>';
+    return '<div class="sdk-list-empty">' + _t('Select a category to see its documents', '카테고리를 고르면 문서가 보입니다', 'カテゴリを選ぶとドキュメントが表示されます', '选择分类即可查看文档', '選擇分類即可查看文件', 'Elija una categoría para ver sus documentos') + '</div>';
   }
 
   function renderListView(data, container) {

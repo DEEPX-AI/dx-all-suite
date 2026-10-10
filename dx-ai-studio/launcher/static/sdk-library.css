@@ -1008,3 +1008,14 @@ details.sdk-adm[open] > summary.sdk-adm-title::after { transform: rotate(90deg);
 /* Mermaid diagrams rendered from ```mermaid fences */
 .sdk-mermaid { margin: 16px 0; text-align: center; overflow-x: auto; }
 .sdk-mermaid svg { max-width: 100%; height: auto; }
+
+/* 폰 — 목록 (240 px) 과 내용 칸이 390 px 에 나란히 붙어 내용 칸이 두 낱말 폭이었다 (2026-10-11 matrix).
+   목록을 위 (높이 제한), 내용을 아래로 쌓는다. */
+@media (max-width: 600px) {
+  .sdk-list-layout { flex-direction: column; overflow-x: hidden; overflow-y: auto; }
+  .sdk-list-sidebar {
+    width: 100%; max-width: none; min-width: 0; flex: 0 0 auto; max-height: 42vh;
+    border-right: none; border-bottom: 1px solid var(--border-subtle);
+  }
+  .sdk-list-content { min-height: 50vh; }
+}
