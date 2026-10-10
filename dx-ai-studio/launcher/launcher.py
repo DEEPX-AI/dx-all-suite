@@ -246,9 +246,10 @@ def _watchdog_check_once():
             if entry["restart_at"] is None:
                 deadline = _WATCHDOG_RESTART_DEADLINE_SECONDS()
                 entry["restart_at"] = now + deadline
-            entry["last_error"] = (
-                f"Process exited (pid={proc.pid})" if proc else "No process"
-            )
+            if entry.get("last_error_pid") != (proc.pid if proc else None):
+                entry["last_error"] = _exit_description(name, proc)
+                entry["last_error_pid"] = proc.pid if proc else None
+                print(f"  [Launcher] {name}: {entry['last_error']}", file=sys.stderr)
 
 
 def _watchdog_do_restarts():
@@ -749,14 +750,19 @@ def start_sub_server(name, directory, port=0, server_id=None):
     # dx_app 이 다시 뜨면 port 가 바뀐다 — 그 port 를 담는 파일을 넘겨 Zoo 가 요청마다 읽게 한다
     env["DX_APP_PORT_FILE"] = str(PORTS_DIR / "dx_app.port")
 
+    # stdout 은 요청마다 한 줄씩 찍는 module 이 있어 버린다. stderr (traceback · 경고 · native crash 의 faulthandler
+    # 덤프) 는 module 마다 크기 제한 log 에 남긴다 — 예전에는 둘 다 /dev/null 이라 module 이 죽어도 이유가 없었다
+    # (2026-10-11 실사용 감사).
+    env["PYTHONFAULTHANDLER"] = "1"
     proc = subprocess.Popen(
         cmd,
         cwd=str(directory),
         stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
+        stderr=subprocess.PIPE,
         env=env,
         preexec_fn=os.setsid,
     )
+    _start_module_log(server_id or name, proc)
     _procs[name] = proc
     _save_pids()
 
@@ -772,6 +778,73 @@ def start_sub_server(name, directory, port=0, server_id=None):
     if server_id:
         _LAUNCHER_PROXY_PORTS[server_id] = actual
     return True
+
+
+_MODULE_LOG_CAP_BYTES = 1024 * 1024
+_module_log_threads = {}
+
+
+def _module_log_path(server_id):
+    base = os.environ.get("XDG_STATE_HOME") or str(Path.home() / ".local" / "state")
+    return Path(base) / "dx-ai-studio" / "logs" / f"{server_id}.log"
+
+
+def _pump_module_stderr(pipe, log_path, cap_bytes=_MODULE_LOG_CAP_BYTES):
+    """Copy a module's stderr into log_path; past cap_bytes the log becomes <log>.1 and a new one starts."""
+    log_path = Path(log_path)
+    try:
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+        out = open(log_path, "ab")
+    except OSError:
+        for _ in iter(pipe.readline, b""):
+            pass
+        return
+    try:
+        for line in iter(pipe.readline, b""):
+            out.write(line)
+            out.flush()
+            if out.tell() > cap_bytes:
+                out.close()
+                os.replace(log_path, log_path.with_name(log_path.name + ".1"))
+                out = open(log_path, "ab")
+    except (OSError, ValueError):
+        pass
+    finally:
+        try:
+            out.close()
+        except OSError:
+            pass
+
+
+def _start_module_log(server_id, proc):
+    pipe = getattr(proc, "stderr", None)
+    if pipe is None:
+        return
+    path = _module_log_path(server_id)
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with open(path, "ab") as f:
+            f.write(f"\n=== {time.strftime('%Y-%m-%d %H:%M:%S')} start pid={proc.pid} ===\n".encode())
+    except OSError:
+        pass
+    t = threading.Thread(target=_pump_module_stderr, args=(pipe, path), name=f"log-{server_id}", daemon=True)
+    t.start()
+    _module_log_threads[server_id] = t
+
+
+def _exit_description(name, proc):
+    if proc is None:
+        return "No process"
+    code = proc.poll()
+    if code is None:
+        return f"Port closed (pid={proc.pid})"
+    detail = f"Process exited (pid={proc.pid}, code {code}"
+    if isinstance(code, int) and code < 0:
+        try:
+            detail += f" {signal.Signals(-code).name}"
+        except ValueError:
+            pass
+    return detail + f"); log: {_module_log_path(name)}"
 
 
 def stop_all():

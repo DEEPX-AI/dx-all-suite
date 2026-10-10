@@ -744,6 +744,13 @@ class Handler(DXBaseHandler):
 
         return self.route_legacy()
 
+def _idle_shutdown_enabled():
+    """A standalone dx_app (its own browser tab) shuts down after an hour without requests. Under the launcher
+    (DX_PORT_FILE set) the launcher owns the lifecycle — stopping there broke Model Zoo inference until the
+    launcher noticed and respawned it (2026-10-11)."""
+    return not os.environ.get("DX_PORT_FILE")
+
+
 def _watchdog(srv):
     while True:
         time.sleep(5)
@@ -776,7 +783,8 @@ def main():
 
     dx.register_signals()
     _hb_touch()
-    threading.Thread(target=_watchdog, args=(srv,), daemon=True).start()
+    if _idle_shutdown_enabled():
+        threading.Thread(target=_watchdog, args=(srv,), daemon=True).start()
     dx.print_banner(args.port)
 
     if not args.no_browser:
