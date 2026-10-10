@@ -489,3 +489,88 @@ def test_a_clean_image_run_carries_no_runner_error(tmp_path, monkeypatch):
     result = inference.run_inference("demo", "object_detection", "model.dxnn", input_type="image",
                                      image_path="input.jpg", timeout=1, save_output=False)
     assert "error" not in result and "runner_errors" not in result
+
+
+def _python_cmd_for(tmp_path, monkeypatch, **kw):
+    inference, app_root = _prepare_dx_app_runtime(tmp_path, monkeypatch)
+    py_script = inference.PY_DIR / "object_detection" / "demo" / "demo_sync.py"
+    py_script.parent.mkdir(parents=True, exist_ok=True)
+    py_script.write_text("# stub\n")
+    captured = {}
+
+    class FakeProc:
+        returncode = 0
+
+        def __init__(self, cmd, stdout=None, **_kwargs):
+            captured["cmd"] = cmd
+            if stdout:
+                stdout.write("[INFO] done\n")
+                stdout.flush()
+
+        def wait(self, timeout=None):
+            return 0
+
+    monkeypatch.setattr(inference.subprocess, "Popen", FakeProc)
+    inference.run_inference("demo", "object_detection", "model.dxnn", lang="python", variant="sync", timeout=1, **kw)
+    return captured["cmd"]
+
+
+def test_python_rtsp_run_passes_the_url_as_rtsp(tmp_path, monkeypatch):
+    """2026-10-11: Benchmark / A/B Compare with Python + RTSP ended "[ERROR] Input file not found: rtsp://…" — the URL
+    went in as --video, and the Python video source requires a file on disk. The runner takes it as --rtsp, and it
+    refuses --loop for a live source ("--loop is not valid with --camera or --rtsp")."""
+    url = "rtsp://127.0.0.1:8554/cam"
+    cmd = _python_cmd_for(tmp_path, monkeypatch, input_type="rtsp", rtsp_url=url, loop=30)
+    assert cmd[cmd.index(url) - 1] == "--rtsp"
+    assert "--video" not in cmd and "--save" not in cmd
+    assert "-l" not in cmd and "--loop" not in cmd
+
+
+def test_python_live_run_is_ended_with_sigint_after_its_frame_budget(tmp_path, monkeypatch):
+    """A live Python run has no frame limit; it stops on SIGINT and then prints its performance summary. The budget
+    (frames at a nominal 30 FPS) counts from the runner's "Starting inference" line, not from launch."""
+    import signal
+    import time as _time
+    inference, app_root = _prepare_dx_app_runtime(tmp_path, monkeypatch)
+    py_script = inference.PY_DIR / "object_detection" / "demo" / "demo_sync.py"
+    py_script.parent.mkdir(parents=True, exist_ok=True)
+    py_script.write_text("# stub\n")
+    seen = {"signals": [], "started": None, "signalled": None}
+
+    class FakeProc:
+        returncode = 0
+
+        def __init__(self, cmd, stdout=None, **_kwargs):
+            self._out = stdout
+            self._t0 = _time.time()
+
+        def poll(self):
+            # model load + source open take 0.4 s, then the frame loop starts
+            if seen["started"] is None and _time.time() - self._t0 > 0.4:
+                self._out.write("[DXAPP] [INFO] Starting inference...\n")
+                self._out.flush()
+                seen["started"] = _time.time()
+            return 0 if seen["signals"] else None
+
+        def send_signal(self, sig):
+            seen["signals"].append(sig)
+            seen["signalled"] = _time.time()
+            self._out.write("  PERFORMANCE SUMMARY\n Total Frames    :     30\n Overall FPS     :   30.1 FPS\n")
+            self._out.flush()
+
+        def wait(self, timeout=None):
+            return 0
+
+    monkeypatch.setattr(inference.subprocess, "Popen", FakeProc)
+    res = inference.run_inference("demo", "object_detection", "model.dxnn", lang="python", variant="sync", timeout=60,
+                                  input_type="rtsp", rtsp_url="rtsp://127.0.0.1:8554/cam", loop=30)
+    assert seen["signals"] == [signal.SIGINT]
+    assert seen["signalled"] - seen["started"] >= 0.95      # 30 frames at 30 FPS, from the loop start
+    assert "Total Frames    :     30" in res["output"]
+
+def test_python_camera_run_passes_the_camera_index(tmp_path, monkeypatch):
+    import inference as _inf
+    monkeypatch.setattr(_inf.Path, "exists", lambda self: True)
+    cmd = _python_cmd_for(tmp_path, monkeypatch, input_type="camera", camera_id=2, loop=30)
+    assert cmd[cmd.index("--camera") + 1] == "2"
+    assert "--video" not in cmd

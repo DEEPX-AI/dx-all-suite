@@ -1579,3 +1579,33 @@ def test_overwrite_confirmation_requires_manifest_specific_value():
     result, code = rollback_manifest(m["id"], {"confirmations": {"rollback": "wrong_value"}})
     assert code == 400
     assert result["error_code"] == "confirmation_required"
+
+
+def test_scoped_git_plan_lists_what_the_apply_created_and_the_commands():
+    """2026-10-11: the plan listed the dry-run operation paths under "(preview only)" and stopped there. For an applied
+    change it now lists what the apply really created and the git commands to commit exactly those paths."""
+    from lab_portal import create_manifest, scoped_git_plan
+    from config import DX_APP_ROOT
+    m = create_manifest("add_model", summary="Add my_net to object_detection (from yolov8n)", operations=[
+        {"action": "create", "root": "DX_APP_ROOT", "path": "src/python_example/object_detection/my_net",
+         "exists": False, "preview": "", "risk": "low"},
+    ], status="applied", rollback={"supported": True, "paths": [
+        "src/python_example/object_detection/my_net", "src/cpp_example/object_detection/my_net"]})
+    result, code = scoped_git_plan(m["id"], {})
+    assert code == 200
+    assert result["files"] == ["src/cpp_example/object_detection/my_net", "src/python_example/object_detection/my_net"]
+    assert result["repo"] == str(DX_APP_ROOT)
+    cmds = result["commands"]
+    assert cmds[0].startswith("git -C ") and cmds[0].endswith(
+        "add -- src/cpp_example/object_detection/my_net src/python_example/object_detection/my_net")
+    assert cmds[1].endswith("commit -m 'Add my_net to object_detection (from yolov8n)'")
+
+
+def test_scoped_git_plan_refuses_a_rolled_back_change():
+    from lab_portal import create_manifest, scoped_git_plan
+    m = create_manifest("add_model", operations=[
+        {"action": "create", "root": "DX_APP_ROOT", "path": "a.py", "exists": False, "preview": "", "risk": "low"},
+    ], status="rolled_back")
+    result, code = scoped_git_plan(m["id"], {})
+    assert code == 409
+    assert result["error_code"] == "nothing_to_commit"

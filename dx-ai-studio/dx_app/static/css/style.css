@@ -1057,6 +1057,8 @@ html[lang="zh-TW"] .zh-CN{display:none!important}
 .safety-change-summary{flex-basis:100%;display:flex;gap:var(--sp-3);font-size:var(--fs-sm);color:var(--text-muted)}
 .safety-rollback-confirm{min-width:0;flex:1 1 180px;max-width:260px}
 .safety-manual{flex-basis:100%;margin:0}
+.safety-git-files{margin:0 0 var(--sp-2);padding-left:var(--sp-5);font-family:var(--mono);font-size:var(--fs-sm);overflow-wrap:anywhere}
+.safety-git-cmds{white-space:pre-wrap;overflow-wrap:anywhere;font-family:var(--mono);font-size:var(--fs-sm);background:var(--control-bg);border:1px solid var(--border-subtle);border-radius:var(--radius);padding:var(--sp-2) var(--sp-3);margin:0;user-select:all}
 .exp-stepper{display:flex;flex-wrap:wrap;gap:var(--sp-2);list-style:none;margin:var(--sp-2) 0;padding:0}
 .exp-step{border:1px solid var(--border-subtle);border-radius:var(--radius-pill);padding:var(--sp-1) var(--sp-3);font-size:var(--fs-sm);color:var(--text-muted)}
 .exp-step-done{color:var(--status-ok);border-color:rgba(var(--success-rgb),.4)}

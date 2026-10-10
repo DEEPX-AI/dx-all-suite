@@ -11,7 +11,7 @@ circular imports:
                                                 call sites (dx_app/server.py) keep working.
 """
 
-import os, json, time, base64, subprocess, threading, tempfile, shutil
+import os, json, time, base64, signal, subprocess, threading, tempfile, shutil
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dx_app.core import config
@@ -92,6 +92,33 @@ def _model_default_input(category, model_name, kind):
     from shared import dx_app_layout as _layout
     spec = _layout.load_config(DX_APP_ROOT, category, model_name)
     return (spec.get(f"default_{kind}") or "") if "variant" in spec else ""
+
+
+# The Python runner logs this right before its frame loop (after the model loads and the source opens).
+_PY_LOOP_STARTED = "Starting inference"
+
+
+def _end_live_python_run(proc, stdout_file, budget_s, timeout):
+    """A live Python run (camera · RTSP) has no frame limit and ends on SIGINT, printing its summary. Run it for
+    budget_s counted from the start of its frame loop — model load and the RTSP connect took most of a budget
+    counted from launch (2026-10-11: 3 and 23 frames measured in an A/B run)."""
+    t0 = time.time()
+    started = None
+    while proc.poll() is None:
+        now = time.time()
+        if started is None:
+            try:
+                with open(stdout_file, "r", errors="ignore") as f:
+                    if _PY_LOOP_STARTED in f.read():
+                        started = now
+            except OSError:
+                pass
+            if started is None and now - t0 > timeout:
+                return
+        elif now - started >= budget_s:
+            proc.send_signal(signal.SIGINT)
+            return
+        time.sleep(0.1)
 
 
 def run_inference(model_name, category, model_file, lang="cpp", variant="sync",
@@ -198,6 +225,7 @@ def run_inference(model_name, category, model_file, lang="cpp", variant="sync",
     if _async_video_hang_risk:
         timeout = min(timeout, 60)
     _video_save_dir = None
+    _live_py_budget = None
     _img_save_dir = None
     run_lang = _effective_run_lang(lang, category, model_name, variant, input_type)
     tag_extra = ["--show-log"] if category in _STDOUT_TAG_CATS else []
@@ -246,10 +274,21 @@ def run_inference(model_name, category, model_file, lang="cpp", variant="sync",
         if input_type == "video":
             _video_save_dir = tempfile.mkdtemp(prefix="dxapp_video_", dir=_TMP)
             py_extra += ["--save", "--save-dir", _video_save_dir]
-        if _loop != 1:
+        # live source (camera · RTSP) 에는 --loop 가 없다 ("--loop is not valid with --camera or --rtsp") — 끝없이
+        # 돌다 SIGINT 를 받으면 성능 요약을 찍고 끝난다. 요청한 frame 수를 30 FPS 기준 시간으로 바꿔 그만큼 돌린다.
+        if _is_live:
+            _live_py_budget = max(1.0, _loop / 30.0)
+        elif _loop != 1:
             py_extra += ["-l", str(_loop)]
-        cmd = [_RUNTIME_PYTHON, str(pf), "--model", str(mp),
-               f"--{'image' if input_type=='image' else 'video'}", _inp_str, "--no-display"] + py_extra
+        # Python 의 video source 는 디스크의 파일만 연다 — RTSP 를 --video 로 주면 "Input file not found: rtsp://…" 로
+        # 끝났다 (2026-10-11 실사용 감사). runner 의 --rtsp · --camera 로 준다. (C++ 은 -v 를 OpenCV 가 열어 그대로 된다.)
+        if input_type == "rtsp":
+            py_input = ["--rtsp", _inp_str]
+        elif input_type == "camera":
+            py_input = ["--camera", str(_cam_idx)]
+        else:
+            py_input = [f"--{'image' if input_type=='image' else 'video'}", _inp_str]
+        cmd = [_RUNTIME_PYTHON, str(pf), "--model", str(mp)] + py_input + ["--no-display"] + py_extra
     hw0 = get_hw(); t0 = time.time()
     _stdout_file = tempfile.mktemp(suffix=".log", dir=_TMP)
     proc = None
@@ -280,6 +319,8 @@ def run_inference(model_name, category, model_file, lang="cpp", variant="sync",
                     _rp.register(job_id, _stdout_file, _loop, _total, proc, t0)
                 except Exception:
                     pass
+            if _live_py_budget:
+                _end_live_python_run(proc, _stdout_file, _live_py_budget, timeout)
             proc.wait(timeout=timeout); elapsed = time.time() - t0
         if _multi: _multi_unregister(proc)
         with config._proc_lock: config._running_proc = None

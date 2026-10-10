@@ -318,7 +318,7 @@
           </div>
         </div>
         <div id="c-rtsp-pick" class="hidden">
-          <div class="fg"><label for="c-rtsp-ip" data-i18n="RTSP Server">RTSP Server</label><input type="text" id="c-rtsp-ip" class="input" value="" data-i18n-placeholder="IP:Port"></div>
+          <div class="fg"><label for="c-rtsp-ip" data-i18n="RTSP address">RTSP address</label><input type="text" id="c-rtsp-ip" class="input" value="" data-i18n-placeholder="rtsp://… or IP:Port"></div>
           <div class="fg"><label for="c-rtsp-stream" data-i18n="Stream">Stream</label><select id="c-rtsp-stream" class="input"></select></div>
         </div>
         <div class="grid2" style="gap:10px">
@@ -387,7 +387,7 @@
           </div>
         </div>
         <div id="b-input-rtsp" style="margin-bottom:8px;display:none">
-          <div class="fg" style="margin:0"><label data-i18n="RTSP Server">RTSP Server</label><input type="text" id="b-rtsp-ip" class="input" value="" data-i18n-placeholder="IP:Port"></div>
+          <div class="fg" style="margin:0"><label for="b-rtsp-ip" data-i18n="RTSP address">RTSP address</label><input type="text" id="b-rtsp-ip" class="input" value="" data-i18n-placeholder="rtsp://… or IP:Port"></div>
           <div class="fg" style="margin:0;margin-top:6px"><label data-i18n="Stream">Stream</label><select id="b-rtsp-stream" class="input"></select></div>
         </div>
         <div class="fg" style="margin:0 0 12px"><label for="b-loop" id="b-loop-label" data-i18n="Loop Count">Loop Count</label><input type="number" id="b-loop" class="input" value="100" min="1" max="10000" style="width:100%"></div>
@@ -447,7 +447,7 @@
         <div class="flex gap8 items-c"><select id="ab-camera" class="input" style="font-size:12px"><option value="0">/dev/video0</option></select><button class="btn btn-ghost btn-sm" onclick="loadCameras()" title="Refresh" data-i18n-title="Refresh" style="padding:2px 6px"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#refresh"></use></svg></button></div>
       </div>
       <div id="ab-rtsp-pick" class="hidden" style="display:flex;gap:8px;align-items:end">
-        <div class="fg" style="margin:0;width:160px"><label data-i18n="RTSP Server">RTSP Server</label><input type="text" id="ab-rtsp-ip" class="input" value="" style="font-size:12px"></div>
+        <div class="fg" style="margin:0;width:260px;max-width:100%"><label for="ab-rtsp-ip" data-i18n="RTSP address">RTSP address</label><input type="text" id="ab-rtsp-ip" class="input" value="" style="font-size:12px" data-i18n-placeholder="rtsp://… or IP:Port"></div>
         <div class="fg" style="margin:0;width:100px"><label data-i18n="Stream">Stream</label><select id="ab-rtsp-stream" class="input" style="font-size:12px"></select></div>
       </div>
       <div class="fg hidden" style="margin:0;width:90px" id="ab-frames-pick"><label data-i18n="Frames">Frames</label><input type="number" id="ab-frames" class="input" value="30" min="1" max="10000" style="width:80px;font-size:12px"></div>

@@ -4,6 +4,7 @@ import copy
 import math
 import re
 import secrets
+import shlex
 import shutil
 import subprocess
 import threading
@@ -1682,12 +1683,21 @@ def rollback_manifest(manifest_id, payload):
 
 
 def scoped_git_plan(manifest_id, payload):
-    """Return scoped git plan with files derived only from manifest operations."""
+    """Return the files a Lab change wrote and the git commands that commit exactly those.
+
+    Studio never runs git on the user's dx_app checkout; it hands over the commands. An applied change lists what
+    the apply really created (rollback paths); otherwise the manifest operation paths."""
     result, code = get_manifest(manifest_id)
     if code != 200:
         return result, code
     manifest = result
+    if manifest.get("status") == "rolled_back":
+        return {"error": "This change was rolled back; there is nothing to commit.",
+                "error_code": "nothing_to_commit"}, 409
     manifest_paths = {op.get("path") for op in manifest.get("operations", []) if op.get("path")}
+    created = (manifest.get("rollback") or {}).get("paths") or []
+    if manifest.get("status") == "applied" and created:
+        manifest_paths = set(created)
 
     requested_files = payload.get("files")
     if requested_files:
@@ -1711,7 +1721,13 @@ def scoped_git_plan(manifest_id, payload):
                 "missing": {"key": "push", "expected": "push", "label": "Confirm push"},
             }, 400
 
-    return {"files": plan_files, "preview_only": True}, 200
+    repo = str(DX_APP_ROOT)
+    message = manifest.get("summary") or f"Lab change {manifest_id}"
+    commands = [
+        f"git -C {shlex.quote(repo)} add -- " + " ".join(shlex.quote(f) for f in plan_files),
+        f"git -C {shlex.quote(repo)} commit -m {shlex.quote(message)}",
+    ]
+    return {"files": plan_files, "repo": repo, "commands": commands, "preview_only": True}, 200
 
 
 _SAFE_LAB_ID_RE = re.compile(r"^lab_[A-Za-z0-9_-]+$")

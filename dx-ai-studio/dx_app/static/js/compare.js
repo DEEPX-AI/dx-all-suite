@@ -115,6 +115,7 @@ async function doABRun(){
   const inputType=_getABInputType();
   const inputPath=(abMode==='file')?$('ab-img').value:'';
   if(abMode==='file'&&!inputPath){toast(T('Select an image or video'),'warn');return}
+  if(inputType==='rtsp'&&rtspAddressMissing('ab-rtsp-ip'))return;
   const reqs=[];
   const slotMap=[];
   for(let i=0;i<S.abCols;i++){

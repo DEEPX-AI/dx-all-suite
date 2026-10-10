@@ -78,6 +78,7 @@ function bDesel(){document.querySelectorAll('.b-chk').forEach(c=>c.checked=false
 async function doBench(){
   const checks=[...document.querySelectorAll('.b-chk:checked')];
   if(!checks.length){toast(T('Select models to benchmark'),'warn');return}
+  if($('b-input-type').value==='rtsp'&&rtspAddressMissing('b-rtsp-ip'))return;
   _benchRunning=true;
   const lang=$('b-lang').value||'cpp';
   const mode=$('b-mode').value||'sync';

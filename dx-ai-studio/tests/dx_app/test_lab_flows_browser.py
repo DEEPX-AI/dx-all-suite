@@ -145,3 +145,35 @@ def test_change_preview_paths_wrap_inside_the_card_at_phone_width(page):
         assert over == 0
     finally:
         page.set_viewport_size({"width": 1440, "height": 900})
+
+
+def test_safety_center_hands_over_git_commands_for_an_applied_change(page):
+    """The Git plan listed dry-run paths under "(preview only)"; it now shows what the apply wrote and the commands
+    that commit exactly those files, and is not offered for a change that was rolled back."""
+    manifests = {"manifests": [
+        {"id": "lab_2_a", "kind": "add_model", "status": "applied", "summary": "Add my_net to object_detection",
+         "rollback": {"supported": True, "paths": ["src/python_example/object_detection/my_net"],
+                      "confirmation": {"key": "rollback", "expected": "rollback:my_net"}}},
+        {"id": "lab_2_b", "kind": "add_model", "status": "rolled_back", "summary": "Add gone to object_detection",
+         "rollback": {"supported": True, "paths": []}},
+    ]}
+    plan = {"files": ["src/python_example/object_detection/my_net"], "repo": "/x/dx_app", "preview_only": True,
+            "commands": ["git -C /x/dx_app add -- src/python_example/object_detection/my_net",
+                         "git -C /x/dx_app commit -m 'Add my_net to object_detection'"]}
+    page.route("**/api/lab/manifests", lambda r: r.fulfill(status=200, content_type="application/json",
+                                                           body=json.dumps(manifests)))
+    page.route("**/api/lab/git/plan", lambda r: r.fulfill(status=200, content_type="application/json",
+                                                          body=json.dumps(plan)))
+    try:
+        page.click('[data-lab-flow="safety"]')
+        page.wait_for_selector(".btn-safety-git-plan")
+        assert page.eval_on_selector_all(".btn-safety-git-plan", "els => els.length") == 1
+        page.click(".btn-safety-git-plan")
+        page.wait_for_selector(".safety-git-cmds")
+        out = page.inner_text("#safety-output")
+        assert "preview only" not in out
+        assert "src/python_example/object_detection/my_net" in out
+        assert "git -C /x/dx_app commit -m 'Add my_net to object_detection'" in page.inner_text(".safety-git-cmds")
+    finally:
+        page.unroute("**/api/lab/manifests")
+        page.unroute("**/api/lab/git/plan")

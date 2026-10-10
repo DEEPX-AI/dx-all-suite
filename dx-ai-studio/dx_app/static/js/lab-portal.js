@@ -922,11 +922,13 @@ window.LabPortal = (function () {
               _text('This change overwrote existing files. Restore them by hand.'));
           }
 
-          var gitBtn = document.createElement('button');
-          gitBtn.className = 'btn btn-safety-git-plan';
-          gitBtn.textContent = _text('Git Plan (scoped)', 'Git 계획 (범위 지정)');
-          gitBtn.addEventListener('click', function () { requestScopedGitPlan(m.id); });
-          li.appendChild(gitBtn);
+          if (m.status === 'applied') {
+            var gitBtn = document.createElement('button');
+            gitBtn.className = 'btn btn-safety-git-plan';
+            gitBtn.textContent = _text('Commit with git');
+            gitBtn.addEventListener('click', function () { requestScopedGitPlan(m.id); });
+            li.appendChild(gitBtn);
+          }
         });
         listDiv.appendChild(ul);
       } else {
@@ -972,8 +974,9 @@ window.LabPortal = (function () {
     _clear(output);
     try {
       var result = await _labPost('/api/lab/git/plan', { manifest_id: manifestId });
-      if (result && result.preview_only && result.files) {
-        _appendText(output, 'h4', 'safety-git-title', _text('Scoped Git Plan (preview only)', '범위 지정 Git 계획 (미리보기)'));
+      if (result && result.files) {
+        // Studio 는 사용자의 dx_app 에서 git 을 돌리지 않는다 — 이 변경이 쓴 파일만 담는 명령을 건넨다.
+        _appendText(output, 'h4', 'safety-git-title', _text('Files this change wrote'));
         var ul = document.createElement('ul');
         ul.className = 'safety-git-files';
         result.files.forEach(function (f) {
@@ -982,11 +985,16 @@ window.LabPortal = (function () {
           ul.appendChild(li);
         });
         output.appendChild(ul);
+        if (result.commands && result.commands.length) {
+          _appendText(output, 'p', 'safety-git-note txt-dim txt-sm',
+            _text('Studio does not run git for you. Run these in a terminal to commit only these files:'));
+          _appendText(output, 'pre', 'safety-git-cmds', result.commands.join('\n'));
+        }
       } else {
-        _appendText(output, 'p', 'safety-error', (result && result.error) || _text('Git plan failed', 'Git 계획 실패'));
+        _appendText(output, 'p', 'safety-error', (result && result.error) || _text('Git plan failed'));
       }
     } catch (err) {
-      _appendText(output, 'p', 'safety-error', _text('Git plan error', 'Git 계획 오류'));
+      _appendText(output, 'p', 'safety-error', _text('Git plan failed'));
     }
   }
 

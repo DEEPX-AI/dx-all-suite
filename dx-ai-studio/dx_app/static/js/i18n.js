@@ -2586,6 +2586,12 @@ window._DX_I18N_DICT = {
     es: 'Extraiga el código fuente, configuración y archivo de modelo del modelo seleccionado como paquete. Disponible para descarga en la página de Salidas.',
   },
   'Camera Device': { ko: '카메라 장치', ja: 'カメラデバイス', 'zh-CN': '摄像头设备', 'zh-TW': '攝影機裝置',es:'Dispositivo de cámara'},
+  'RTSP address': { ko: 'RTSP 주소', ja: 'RTSP アドレス', 'zh-CN': 'RTSP 地址', 'zh-TW': 'RTSP 位址', es: 'Dirección RTSP' },
+  'Enter the RTSP address (rtsp://… or IP:Port)': {
+    ko: 'RTSP 주소를 입력하세요 (rtsp://… 또는 IP:포트)', ja: 'RTSP アドレスを入力してください (rtsp://… または IP:ポート)',
+    'zh-CN': '请输入 RTSP 地址（rtsp://… 或 IP:端口）', 'zh-TW': '請輸入 RTSP 位址（rtsp://… 或 IP:連接埠）',
+    es: 'Introduzca la dirección RTSP (rtsp://… o IP:Puerto)',
+  },
   'RTSP Server': { ko: 'RTSP 서버', ja: 'RTSP サーバー', 'zh-CN': 'RTSP 服务器', 'zh-TW': 'RTSP 伺服器',es:'Servidor RTSP'},
   'Stream': { ko: '스트림', ja: 'ストリーム', 'zh-CN': '流', 'zh-TW': '串流',es:'Stream'},
   'Settings': { ko: '설정', ja: '設定', 'zh-CN': '设置', 'zh-TW': '設定',es:'Configuración'},
@@ -4938,6 +4944,28 @@ window._DX_I18N_PLACEHOLDERS = {
     'zh-CN': '此变更覆盖了现有文件，请手动恢复。', 'zh-TW': '此變更覆寫了現有檔案，請手動還原。',
     es: 'Este cambio sobrescribió archivos existentes. Restáurelos manualmente.',
   },
+  'Commit with git': {
+    ko: 'git 으로 커밋', ja: 'git でコミット',
+    'zh-CN': '用 git 提交', 'zh-TW': '用 git 提交',
+    es: 'Confirmar con git',
+  },
+  'Files this change wrote': {
+    ko: '이 변경이 만든 파일', ja: 'この変更が書いたファイル',
+    'zh-CN': '此变更写入的文件', 'zh-TW': '此變更寫入的檔案',
+    es: 'Archivos que escribió este cambio',
+  },
+  'Studio does not run git for you. Run these in a terminal to commit only these files:': {
+    ko: 'Studio 는 git 을 대신 실행하지 않습니다. 이 파일만 커밋하려면 터미널에서 아래를 실행하세요:',
+    ja: 'Studio は git を代わりに実行しません。これらのファイルだけをコミットするには、ターミナルで次を実行してください:',
+    'zh-CN': 'Studio 不会替你运行 git。要只提交这些文件，请在终端中运行：',
+    'zh-TW': 'Studio 不會替你執行 git。若只要提交這些檔案，請在終端機中執行：',
+    es: 'Studio no ejecuta git por usted. Para confirmar solo estos archivos, ejecute esto en una terminal:',
+  },
+  'Git plan failed': {
+    ko: 'git 명령을 만들지 못했습니다', ja: 'git コマンドを作成できませんでした',
+    'zh-CN': '无法生成 git 命令', 'zh-TW': '無法產生 git 指令',
+    es: 'No se pudieron preparar los comandos de git',
+  },
   'No Lab changes yet': {
     ko: '아직 Lab 변경 내역이 없습니다', ja: 'Lab の変更はまだありません',
     'zh-CN': '还没有 Lab 变更', 'zh-TW': '還沒有 Lab 變更',
@@ -5164,6 +5192,11 @@ window._DX_I18N_PLACEHOLDERS = {
   },
 
   /* ==== Placeholder i18n (missing entries) ==== */
+  'rtsp://… or IP:Port': {
+    ko: 'rtsp://… 또는 IP:포트', ja: 'rtsp://… または IP:ポート',
+    es: 'rtsp://… o IP:Puerto',
+    'zh-CN': 'rtsp://… 或 IP:端口', 'zh-TW': 'rtsp://… 或 IP:連接埠'
+  },
   'IP:Port': {
     ko: 'IP:포트', ja: 'IP:ポート',
     es: 'IP:Puerto',
