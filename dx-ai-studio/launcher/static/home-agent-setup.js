@@ -97,6 +97,10 @@
   function _paintModels(name, d, fallbackDefault) {
     var sel = $('setupModel');
     var chosen = d.default_model || fallbackDefault;
+    /* CLI 목록은 몇 초 걸린다 (cursor 는 200 개 넘게) — 그 사이 사람이 고른 model 은 지킨다. 예전에는 기본값으로
+       바꿔 놓고 접힌 요약은 고른 이름을 그대로 보였다 (2026-10-11 실사용 감사). */
+    var picked = sel && sel.dataset.userPicked === name ? sel.value : '';
+    if (picked && (d.models || []).indexOf(picked) !== -1) chosen = picked;
     if (d.catalog && d.catalog.length && sel) {
       var off = _t('not available on this account');
       sel.innerHTML = d.catalog.map(function (m) {
@@ -109,6 +113,9 @@
     }
     var note = $('setupModelCount');
     if (note) note.textContent = d.models.length + ' ' + _t('models');
+    /* 목록이 select 를 바꿔도 change 가 나지 않는다 — 요약을 여기서 다시 쓴다 ("copilot · auto" 로 남아 실제로
+       돌 model 과 달랐다). */
+    _paintFoldSummary();
   }
 
   function _paintAuth(a) {
@@ -253,7 +260,12 @@
       });
     }
     var model = $('setupModel');
-    if (model) model.addEventListener('change', _paintFoldSummary);
+    if (model) {
+      model.addEventListener('change', function () {
+        model.dataset.userPicked = _current ? _current.name : '';
+        _paintFoldSummary();
+      });
+    }
     _restoreMode();
     load();
     window.addEventListener('dx-studio-ready', function () { if (!_agents.length) load(); });

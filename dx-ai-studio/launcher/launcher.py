@@ -224,6 +224,9 @@ def _watchdog_check_once():
 
             if proc_alive and port_open:
                 entry["status"] = "alive"
+                # 한 번 놓친 뒤 다시 답한 module 의 예약을 지운다 — 남겨 두면 다음 한 번의 blip 에 (이미 지난 기한이라)
+                # 유예 없이 멀쩡히 돌던 module 을 죽였다 (2026-10-11). 손으로 누른 restart 는 동기로 이미 끝났다.
+                entry["restart_at"] = None
                 continue
 
             # Module is down — re-check status was not changed concurrently
@@ -893,10 +896,19 @@ def _proxy(handler, target_port, path, inject_widget=True):
         widget_cache = _get_widget_cache() if may_inject else b""
         is_html_inject = bool(widget_cache)
 
+        # http.client 가 module 의 chunked 를 풀어 준다. 길이를 모르는 응답 (SSE · chunked) 을 그대로 쓰면 HTTP/1.1
+        # keep-alive 연결에서 브라우저가 끝을 알 수 없다 — Chat 답이 [DONE] 뒤에도 끝나지 않고 연결을 붙잡았다
+        # (2026-10-11). 그런 응답은 다시 chunk 로 싸서 보낸다.
+        bodyless = handler.command == "HEAD" or resp.status in (204, 304) or 100 <= resp.status < 200
+        rechunk = (not is_html_inject and not bodyless and resp.getheader("Content-Length") is None)
+
         handler.send_response(resp.status)
         for key, val in resp.getheaders():
             low = key.lower()
-            if low in ("connection", "transfer-encoding"):
+            # send_response 가 이미 Server · Date 를 쓴다 — 그대로 옮기면 두 번 간다
+            if low in ("connection", "transfer-encoding", "server", "date"):
+                continue
+            if is_sse and low in ("cache-control", "x-accel-buffering"):
                 continue
             if low == "x-dx-no-widget":
                 continue  # internal signal — do not leak to the browser
@@ -906,6 +918,14 @@ def _proxy(handler, target_port, path, inject_widget=True):
         if is_sse:
             handler.send_header("Cache-Control", "no-cache")
             handler.send_header("X-Accel-Buffering", "no")
+        if rechunk:
+            handler.send_header("Transfer-Encoding", "chunked")
+
+        def _relay(data):
+            if rechunk:
+                handler.wfile.write(b"%x\r\n%s\r\n" % (len(data), data))
+            else:
+                handler.wfile.write(data)
 
         if is_html_inject:
             body = resp.read()
@@ -924,16 +944,23 @@ def _proxy(handler, target_port, path, inject_widget=True):
                 line = resp.readline()
                 if not line:
                     break
-                handler.wfile.write(line)
+                _relay(line)
                 if line in (b"\n", b"\r\n") or line.startswith(b"data:"):
                     handler.wfile.flush()
+            if rechunk:
+                handler.wfile.write(b"0\r\n\r\n")
+            handler.wfile.flush()
         else:
             handler.end_headers()
             while True:
-                chunk = resp.read(65536)
+                chunk = resp.read1(65536) if rechunk else resp.read(65536)
                 if not chunk:
                     break
-                handler.wfile.write(chunk)
+                _relay(chunk)
+                if rechunk:
+                    handler.wfile.flush()
+            if rechunk:
+                handler.wfile.write(b"0\r\n\r\n")
             handler.wfile.flush()
 
     except Exception as e:

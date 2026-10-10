@@ -476,6 +476,42 @@ class TestWatchdogConcurrencySafety(unittest.TestCase):
                              "restart_at must not be pushed to now + deadline; "
                              "existing value must be preserved")
 
+    def test_a_recovered_module_does_not_keep_a_stale_restart(self):
+        """2026-10-11: a module that failed one check and then answered again kept its restart_at. The next single
+        blip found that deadline already past and restarted (SIGTERM to its process group) a module that had been
+        healthy the whole time, with no grace. Recovery now clears the watchdog's own pending restart."""
+        from launcher.launcher import (
+            _register_module, _watchdog_check_once, _watchdog_registry, _WATCHDOG_RESTART_DEADLINE_SECONDS,
+        )
+        import launcher.launcher as lmod
+        proc = MagicMock(pid=77111)
+        proc.poll.return_value = None
+        _register_module("test_blip", port=59811, cwd="/fake", proc=proc)
+        entry = _watchdog_registry["test_blip"]
+        with patch.object(lmod, "_is_port_open", return_value=False):
+            _watchdog_check_once()
+        self.assertEqual(entry["status"], "dead")
+        with patch.object(lmod, "_is_port_open", return_value=True):
+            _watchdog_check_once()
+        self.assertEqual(entry["status"], "alive")
+        self.assertIsNone(entry["restart_at"])
+        t0 = time.monotonic()
+        with patch.object(lmod, "_is_port_open", return_value=False):
+            _watchdog_check_once()
+        self.assertGreaterEqual(entry["restart_at"], t0 + _WATCHDOG_RESTART_DEADLINE_SECONDS() - 0.1)
+
+    def test_a_manual_restart_of_a_live_module_is_not_cancelled(self):
+        from launcher.launcher import _register_module, _watchdog_check_once, _watchdog_registry, _handle_module_restart
+        import launcher.launcher as lmod
+        proc = MagicMock(pid=77112)
+        proc.poll.return_value = None
+        _register_module("dx_app", port=59812, cwd="/fake", proc=proc)
+        with patch.object(lmod, "_is_port_open", return_value=True), \
+                patch.object(lmod, "_do_module_restart") as restart:
+            _watchdog_check_once()
+            _handle_module_restart("dx_app")
+        restart.assert_called_once()
+
     def test_handle_restart_skips_when_already_restarting(self):
         """I-1: _handle_module_restart must not stomp an in-flight restart.
         If status is 'restarting', it should return ok without scheduling

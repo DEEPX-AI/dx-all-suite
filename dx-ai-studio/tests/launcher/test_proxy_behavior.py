@@ -109,3 +109,60 @@ def test_proxy_does_not_inject_auth_fetch_bridge(live_server, monkeypatch):
 
     assert "dx-auth-fetch-bridge" not in html
     assert "app-boot" in html
+
+
+class _ChunkedTarget(BaseHTTPRequestHandler):
+    """A module streaming its answer the way shared/dx_server does: HTTP/1.1, chunked, no Content-Length."""
+    protocol_version = "HTTP/1.1"
+
+    def log_message(self, fmt, *args):
+        return
+
+    def _chunk(self, data: bytes):
+        self.wfile.write(b"%x\r\n%s\r\n" % (len(data), data))
+
+    def do_POST(self):
+        self.rfile.read(int(self.headers.get("Content-Length", 0)))
+        sse = self.path.endswith("/chat")
+        self.send_response(200)
+        self.send_header("Content-Type", "text/event-stream" if sse else "application/x-ndjson")
+        if sse:
+            self.send_header("Cache-Control", "no-cache")
+            self.send_header("X-Accel-Buffering", "no")
+        self.send_header("Transfer-Encoding", "chunked")
+        self.end_headers()
+        for part in (b'data: {"token": "hel"}\n\n', b'data: {"token": "lo"}\n\n', b"data: [DONE]\n\n"):
+            self._chunk(part)
+        self.wfile.write(b"0\r\n\r\n")
+        self.wfile.flush()
+
+
+@pytest.mark.parametrize("path", ["/app/api/chat", "/app/api/stream_lines"])
+def test_a_streamed_response_ends_and_headers_are_not_doubled(live_server, monkeypatch, path):
+    """2026-10-11: a Chat answer through the launcher arrived with [DONE] after 18 s but the connection never ended
+    (curl waited out its 240 s limit), and Server / Date / Cache-Control / X-Accel-Buffering came twice. The proxy
+    de-chunked the module's stream and relayed it with no length and no chunking on a kept-alive HTTP/1.1
+    connection, so the browser could not tell where the response stopped and each answer held a connection."""
+    import http.client
+    import time
+
+    target = ThreadingHTTPServer(("127.0.0.1", 0), _ChunkedTarget)
+    threading.Thread(target=target.serve_forever, daemon=True).start()
+    monkeypatch.setitem(lmod._LAUNCHER_PROXY_PORTS, "dx_app", target.server_address[1])
+    host, port = live_server["base"].rsplit("/", 1)[-1].split(":")
+    conn = http.client.HTTPConnection(host, int(port), timeout=5)
+    try:
+        t0 = time.monotonic()
+        conn.request("POST", path, body=b'{"message": "hi"}',
+                     headers={"Content-Type": "application/json", "Origin": live_server["base"]})
+        resp = conn.getresponse()
+        body = resp.read()   # times out if the response has no end
+        assert time.monotonic() - t0 < 4
+        assert body.endswith(b"data: [DONE]\n\n")
+        names = [k.lower() for k, _ in resp.getheaders()]
+        doubled = sorted({n for n in names if names.count(n) > 1})
+        assert doubled == []
+    finally:
+        conn.close()
+        target.shutdown()
+        target.server_close()
