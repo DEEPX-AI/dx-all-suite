@@ -1,8 +1,8 @@
-import shutil
 import subprocess
 from pathlib import Path
 
 import pytest
+from tests.browser_support import resolve_node_executable
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -226,7 +226,7 @@ def test_pipeline_webrtc_fallback_restores_state_after_forced_mjpeg_failure():
 @pytest.mark.requires_node
 def test_pipeline_webrtc_fallback_failure_resets_controls_at_runtime():
     """Execute both forced-MJPEG failure paths through the WebRTC callback."""
-    node = shutil.which("node")
+    node = resolve_node_executable()
     if not node:
         pytest.skip("node not available")
 

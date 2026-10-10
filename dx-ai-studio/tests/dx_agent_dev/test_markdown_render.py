@@ -2,11 +2,11 @@
 from __future__ import annotations
 
 import json
-import shutil
 import subprocess
 from pathlib import Path
 
 import pytest
+from tests.browser_support import resolve_node_executable
 
 ROOT = Path(__file__).resolve().parents[2]
 JS = ROOT / "shared" / "static" / "markdown_render.js"   # home 과 Agent Dev 가 같은 파일을 쓴다
@@ -57,7 +57,7 @@ console.log(JSON.stringify({ ok: true, tests: 5 }));
 def test_markdown_render_node():
     # Same guard as tests/test_hw_widget.py: node is an optional test dep, so a host
     # without it must skip rather than fail the whole CI gate.
-    node = shutil.which("node")
+    node = resolve_node_executable()
     if not node:
         pytest.skip("node is required for the markdown_render.js runtime test")
     proc = subprocess.run(

@@ -3,10 +3,10 @@ from __future__ import annotations
 from pathlib import Path
 import json
 import re
-import shutil
 import subprocess
 
 import pytest
+from tests.browser_support import resolve_node_executable
 
 ROOT = Path(__file__).resolve().parent.parent
 WIDGET = ROOT / "shared" / "hw_widget" / "widget.html"
@@ -105,6 +105,8 @@ global.window.innerHeight = 800;
 global.window.addEventListener = function() {};
 global.window.__DX_HW_WIDGET_TEST_HOOK__ = {};
 global.requestAnimationFrame = function(fn) { fn(); };
+// _drawSpark reads --accent from the root (canvas cannot read CSS variables)
+global.getComputedStyle = function() { return { getPropertyValue() { return '#2997ff'; } }; };
 global.setTimeout = function() { return 1; };
 global.clearTimeout = function() {};
 global.EventSource = function() {};
@@ -132,7 +134,7 @@ console.log('ALL ASSERTIONS PASSED');
 
 
 def _run_widget_harness(tmp_path: Path, scenario: str, storage: dict[str, str] | None = None) -> str:
-    node = shutil.which("node")
+    node = resolve_node_executable()
     if not node:
         pytest.skip("node is required for hardware widget runtime test")
     harness = (

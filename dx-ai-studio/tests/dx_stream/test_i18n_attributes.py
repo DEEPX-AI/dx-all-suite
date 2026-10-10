@@ -2,10 +2,10 @@
 
 import json
 import re
-import shutil
 import subprocess
 from pathlib import Path
 from tests.i18n_markup import assert_translatable
+from tests.browser_support import resolve_node_executable
 
 ROOT = Path(__file__).resolve().parents[2]
 STREAM = ROOT / "dx_stream"
@@ -310,7 +310,7 @@ _allElements.pop(); // body is not a regular element
 global.document = {
   readyState: 'complete',
   body: body,
-  documentElement: { lang: 'en' },
+  documentElement: { lang: 'en', dataset: {} },
   querySelectorAll: _qsa,
   querySelector: _qs,
   addEventListener() {},
@@ -498,7 +498,7 @@ def test_stream_server_app_fallback_rules_cover_all_supported_languages():
 @pytest.mark.requires_node
 def test_shared_i18n_behavior_runtime(tmp_path):
     """Run shared/static/i18n.js in Node.js and verify DOM-level behavior."""
-    node = shutil.which("node")
+    node = resolve_node_executable()
     if not node:
         pytest.skip("node is required for shared i18n behavior test")
 
