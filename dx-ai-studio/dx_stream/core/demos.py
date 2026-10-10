@@ -632,6 +632,18 @@ _BUILDERS = {
 }
 
 
+def demo_video_uri(demo: dict) -> str:
+    """The demo's OWN task-appropriate sample video as a file:// URI (matching dx-runtime's
+    reference run_*.sh — face/pose demos use people videos, not a road clip). The first
+    available video only when the demo's own is missing. The demo run and the Pipeline
+    Builder preset both use this, so a preset plays what the demo plays."""
+    for name in demo.get("required_videos", []):
+        found = _video_path(name)  # a bare Path (or None)
+        if found:
+            return f"file://{found}"  # urisourcebin needs a file:// URI, not a bare path
+    return _first_video()
+
+
 def build_pipeline_str(demo_id: int, encoder: dict, video_uri: str | None = None,
                        webrtc_ok: bool = True) -> str:
     """데모별 GStreamer 파이프라인 문자열 생성.
@@ -639,16 +651,7 @@ def build_pipeline_str(demo_id: int, encoder: dict, video_uri: str | None = None
     webrtc_ok=True: encoder + webrtcbin, False: fpsdisplaysink 폴백.
     """
     demo = DEMOS[demo_id]
-    # Default to the demo's OWN task-appropriate sample video (matching dx-runtime's
-    # reference run_*.sh — e.g. face/pose demos use people videos, not a boat clip).
-    # Fall back to the first available video only if the demo's video is missing.
-    demo_vid = None
-    for _name in demo.get("required_videos", []):
-        _vp = _video_path(_name)  # returns a bare Path (or None)
-        if _vp:
-            demo_vid = f"file://{_vp}"  # GStreamer urisourcebin needs a file:// URI, not a bare path
-            break
-    uri = video_uri or demo_vid or _DEFAULT_VIDEO
+    uri = video_uri or demo_video_uri(demo)
     builder = _BUILDERS[demo["pipeline_type"]]
     return builder(demo, encoder, uri, webrtc_ok)
 
@@ -715,7 +718,7 @@ def list_demo_entries() -> list[dict]:
     demo_list = []
     for demo in DEMOS:
         entry = dict(demo)
-        entry["default_video"] = _DEFAULT_VIDEO
+        entry["default_video"] = demo_video_uri(demo)
         entry["availability"] = check_demo_available(demo["id"])
         entry["available"] = entry["availability"].get("available", False)
         # Resolved on-disk model filename(s) — the logical demo["model"] (e.g. "yolo26n.dxnn")

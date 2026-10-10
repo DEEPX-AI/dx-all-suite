@@ -166,14 +166,25 @@ def _playback_running() -> bool:
     return False
 
 
-def _demo_launch_failure_payload(attempted_modes: list[str]) -> dict:
-    """Return a stable, browser-safe error after demo playback was stopped."""
+def _demo_launch_failure_payload(attempted_modes: list[str], demo: dict | None = None) -> dict:
+    """Return a stable, browser-safe error after demo playback was stopped.
+
+    The RTSP demo reads public network cameras on the internet, so on a closed network it
+    fails for that reason alone — say so instead of pointing at Stream dependencies.
+    """
+    if demo and demo.get("pipeline_type") == "rtsp":
+        detail = "The RTSP network camera streams did not respond."
+        remediation = ("This demo plays public cameras on the internet. Check that this "
+                       "machine can reach them, then retry.")
+    else:
+        detail = "No output backend became ready."
+        remediation = "Verify the selected input and Stream output dependencies, then retry."
     return {
         "error": "pipeline_error",
         "message": "Unable to start demo playback.",
-        "detail": "No output backend became ready.",
+        "detail": detail,
         "attempted_modes": attempted_modes,
-        "remediation": "Verify the selected input and Stream output dependencies, then retry.",
+        "remediation": remediation,
         "playback_active": False,
     }
 
@@ -606,7 +617,19 @@ class DXStreamHandler(DXBaseHandler):
             if _sel:
                 _vp = demos._video_path(_sel)
                 _vuri = f"file://{_vp}" if _vp else (_sel if "://" in _sel else None)
-            pipeline_str = demos.build_pipeline_str(demo_id, encoder, video_uri=_vuri, webrtc_ok=True)
+            # Remote viewers (SSH tunnel / NAT) can't use WebRTC (UDP) and MJPEG saturates the
+            # link, so they request output="fmp4" — HW H264 over HTTP via MSE. forceMjpeg is the
+            # last-resort software path (e.g. a browser without MSE).
+            _out = body.get("output") if isinstance(body, dict) else None
+            want_fmp4 = (_out == "fmp4")
+            force_mjpeg = bool(body.get("forceMjpeg")) if isinstance(body, dict) else False
+            # Build (and so admit) the webrtcbin graph only when WebRTC will be tried. Without
+            # gstreamer1.0-nice webrtcbin cannot link, and probing that variant rejected every
+            # demo before the MJPEG/fMP4 fallback below could run.
+            webrtc_ok = (not force_mjpeg and not want_fmp4 and _webrtc_enabled()
+                         and _check_webrtc_available())
+            pipeline_str = demos.build_pipeline_str(demo_id, encoder, video_uri=_vuri,
+                                                    webrtc_ok=webrtc_ok)
 
             assert runtime_context is not None
             extra_env = build_child_environment(runtime_context)
@@ -628,19 +651,12 @@ class DXStreamHandler(DXBaseHandler):
                     _contract_failure_detail(failure),
                 )
 
-            # Remote viewers (SSH tunnel / NAT) can't use WebRTC (UDP) and MJPEG saturates the
-            # link, so they request output="fmp4" — HW H264 over HTTP via MSE. forceMjpeg is the
-            # last-resort software path (e.g. a browser without MSE).
-            _out = body.get("output") if isinstance(body, dict) else None
-            want_fmp4 = (_out == "fmp4")
-            force_mjpeg = bool(body.get("forceMjpeg")) if isinstance(body, dict) else False
-
             with _playback_lock:
                 _stop_all_playback()
                 playback_stopped = True
 
                 pid = None
-                if not force_mjpeg and not want_fmp4:
+                if webrtc_ok:
                     attempted_modes.append("webrtc")
                     pid = _try_start_webrtc_pipeline(pipeline_str, extra_env=extra_env)
                 if pid is not None:
@@ -675,7 +691,8 @@ class DXStreamHandler(DXBaseHandler):
                 if not ready:
                     mjpeg.stop()
                     log.warning("Demo %d output start failed after %s", demo_id, attempted_modes)
-                    return self.send_json(_demo_launch_failure_payload(attempted_modes), 500)
+                    return self.send_json(
+                        _demo_launch_failure_payload(attempted_modes, demos.DEMOS[demo_id]), 500)
 
                 _current_output_mode = "mjpeg"
                 _current_pipeline_id = "mjpeg-demo-" + str(demo_id)
@@ -687,7 +704,8 @@ class DXStreamHandler(DXBaseHandler):
         except Exception:
             log.exception("Demo %s start failed", demo_id)
             if playback_stopped:
-                return self.send_json(_demo_launch_failure_payload(attempted_modes), 500)
+                return self.send_json(
+                    _demo_launch_failure_payload(attempted_modes, demos.DEMOS[demo_id]), 500)
             self._error(500, "pipeline_error", "Unable to prepare the demo pipeline.")
 
     def _handle_demo_stop(self, path: str):

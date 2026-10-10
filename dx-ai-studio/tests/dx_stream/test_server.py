@@ -282,6 +282,7 @@ def test_demo_start_returns_sanitized_structured_launch_error(monkeypatch):
     monkeypatch.setattr(server_mod, "detect_encoder", lambda: {})
     monkeypatch.setattr(server_mod, "_pipeline_mgr", object())
     monkeypatch.setattr(server_mod, "_stop_all_playback", lambda: stops.append("stop"))
+    monkeypatch.setattr(server_mod, "_check_webrtc_available", lambda: True)
     monkeypatch.setattr(server_mod, "_try_start_webrtc_pipeline", lambda *_a, **_kw: None)
     monkeypatch.setattr(server_mod.demos, "build_pipeline_str", lambda *_a, **_kw: "videotestsrc ! fakesink")
     monkeypatch.setattr(mjpeg, "build_mjpeg_pipeline", lambda pipeline: pipeline)

@@ -592,9 +592,11 @@ function _clearStoppedDemoLaunchState(resp) {
     if (DXStream._demoCtl) DXStream._demoCtl.setRunning(null);
     if (previousId != null) _demoPaint(previousId);
 
-    var message = resp.message || T('Demo playback stopped.');
-    if (resp.detail) message += ' ' + resp.detail;
-    if (resp.remediation) message += ' ' + resp.remediation;
+    // The server sends fixed English sentences (_demo_launch_failure_payload); stream-i18n.js
+    // carries each one, and T() leaves anything unknown as it came.
+    var message = resp.message ? T(resp.message) : T('Demo playback stopped.');
+    if (resp.detail) message += ' ' + T(resp.detail);
+    if (resp.remediation) message += ' ' + T(resp.remediation);
     DXStream.toast(message, 'error');
     return true;
 }
