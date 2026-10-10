@@ -47,3 +47,16 @@ def test_every_catalog_task_has_a_korean_label(page):
     untranslated = [t for t, label in shown if label == t or all(ord(ch) < 128 for ch in label)]
     assert not untranslated, untranslated
     assert page.evaluate("catText('Image De-noising')") != "Image De-noising"   # the live catalog spells it so
+
+
+def test_lab_home_tiles_form_a_grid(page):
+    """class="grid" had no CSS, so #lab-home was display:block and the six tiles stacked at
+    ragged widths at every screen size (2026-10-11 matrix)."""
+    page.evaluate("nav('lab')")
+    page.wait_for_timeout(400)
+    got = page.evaluate("""() => { const g = document.getElementById('lab-home');
+        const rows = new Set([...g.children].map(c => Math.round(c.getBoundingClientRect().top)));
+        const widths = new Set([...g.children].map(c => Math.round(c.getBoundingClientRect().width)));
+        return {display: getComputedStyle(g).display, rows: rows.size, widths: widths.size}; }""")
+    assert got["display"] == "grid", got
+    assert got["rows"] < 6 and got["widths"] == 1, got      # side by side, equal widths at 1440

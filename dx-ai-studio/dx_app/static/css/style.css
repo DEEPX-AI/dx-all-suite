@@ -1036,6 +1036,10 @@ html[lang="zh-TW"] .zh-CN{display:none!important}
 .lab-card-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:var(--sp-3)}
 .lab-card{text-align:left;color:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:flex-start;gap:var(--sp-1)}
 .lab-card:hover{border-color:var(--accent)}
+/* 타일은 칸에 맞춰 늘어난다. 예전에는 class="grid" 에 CSS 가 없어 display:block 이었고, 여섯 타일이
+   제각각 폭으로 세로로 쌓였다 — 1440 px 에서도 (2026-10-11 matrix). */
+.lab-home{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:var(--sp-3)}
+.lab-home > .lab-card{width:100%}
 .lab-status-ok{border-color:rgba(34,197,94,.35)}
 .lab-status-err{border-color:rgba(239,68,68,.35)}
 
