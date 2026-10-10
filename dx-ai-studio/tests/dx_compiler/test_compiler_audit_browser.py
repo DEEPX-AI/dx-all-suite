@@ -122,3 +122,19 @@ def test_a_refused_compile_keeps_the_graph_and_shows_why(page):
     page.wait_for_timeout(600)
     assert page.evaluate("""() => { const r = document.getElementById('result').getBoundingClientRect();
                                    return r.top < innerHeight && r.bottom > 0; }""")
+
+
+def test_phase_tabs_and_actions_stay_reachable_on_a_phone(page):
+    """390 px: Quant Diagnosis / DXNN tabs and the buttons beside Compile ran off the screen (2026-10-11 matrix)."""
+    page.set_viewport_size({"width": 390, "height": 844})
+    page.evaluate("() => { document.getElementById('config-wizard').style.display = 'none'; }")
+    page.wait_for_timeout(300)
+    got = page.evaluate("""() => {
+        const tabs = document.querySelector('.viewer-tabs');
+        const vw = document.documentElement.clientWidth;
+        const acts = [...document.querySelectorAll('.form-actions > button')].map(b => b.getBoundingClientRect().right);
+        return {tabsScroll: getComputedStyle(tabs).overflowX, tabsRight: tabs.getBoundingClientRect().right, vw,
+                maxAction: Math.max(...acts)};
+    }""")
+    assert got["tabsScroll"] == "auto" and got["tabsRight"] <= got["vw"] + 1, got
+    assert got["maxAction"] <= got["vw"] + 1, got
