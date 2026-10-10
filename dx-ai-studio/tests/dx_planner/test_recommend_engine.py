@@ -28,3 +28,13 @@ def test_recommend_engine_source_contracts():
     # Policy layers that stay removed: no pricing, no CPU gate, no headroom fudge factor.
     for gone in ["fpsHeadroom", "confidenceTier", "avg_cpu_pct", "cpuBudget", "costPerChannel", "price_usd"]:
         assert gone not in src, f"removed token {gone!r} should be gone from recommend.js"
+
+
+def test_ai_help_knowledge_describes_the_current_engine():
+    """AI Help answered from a page describing a Lowest Cost priority, Interpolated/Theoretical tiers, an FPS
+    headroom input, a Host-limited flag and per-channel prices — none of which the page has had for months."""
+    kb = (ROOT / "shared/chat/knowledge/dx_planner.md").read_text(encoding="utf-8")
+    for gone in ["Lowest Cost", "Interpolated", "Theoretical", "headroom", "Host-limited", "채널당 대략적 비용", "8096"]:
+        assert gone not in kb, gone
+    for now in ["Most channels", "Best Performance", "Lowest Power", "Estimated", "T_sat", "throttle"]:
+        assert now in kb, now
