@@ -88,7 +88,7 @@ function _renderElementExtra(el) {
     }
     if (el.key_features && el.key_features.length) {
         html += '<div class="element-detail-section"><h4>' +
-            '<span data-i18n="Key Features">Key Features</span>' +
+            '<span data-i18n="Key Features">' + T('Key Features') + '</span>' +
             '</h4><ul class="element-feature-list">';
         for (var i = 0; i < el.key_features.length; i++) {
             var feature = el.key_features[i] || {};
@@ -98,17 +98,17 @@ function _renderElementExtra(el) {
     }
     if (el.pipeline_hint_ko || el.pipeline_hint_en) {
         html += '<div class="element-detail-section"><h4>' +
-            '<span data-i18n="Pipeline Hint">Pipeline Hint</span>' +
+            '<span data-i18n="Pipeline Hint">' + T('Pipeline Hint') + '</span>' +
             '</h4><p>' + _renderBilingualText(el.pipeline_hint_ko, el.pipeline_hint_en) + '</p></div>';
     }
     if (el.example_config) {
         html += '<div class="element-detail-section"><h4>' +
-            '<span data-i18n="Example Config">Example Config</span>' +
+            '<span data-i18n="Example Config">' + T('Example Config') + '</span>' +
             '</h4><pre class="element-code-snippet">' + _escElementHtml(el.example_config) + '</pre></div>';
     }
     if (el.related_elements && el.related_elements.length) {
         html += '<div class="element-detail-section element-related"><h4>' +
-            '<span data-i18n="Related Elements">Related Elements</span>' +
+            '<span data-i18n="Related Elements">' + T('Related Elements') + '</span>' +
             '</h4>';
         for (var j = 0; j < el.related_elements.length; j++) {
             html += '<span class="badge b-cat">' + _escElementHtml(el.related_elements[j]) + '</span>';
@@ -117,7 +117,7 @@ function _renderElementExtra(el) {
     }
     if (el.doc_path) {
         html += '<div class="element-detail-section"><h4>' +
-            '<span data-i18n="SDK Docs">SDK Docs</span>' +
+            '<span data-i18n="SDK Docs">' + T('SDK Docs') + '</span>' +
             '</h4><code class="element-doc-path">' + _escElementHtml(el.doc_path) + '</code></div>';
     }
     return html;

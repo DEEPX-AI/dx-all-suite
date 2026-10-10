@@ -114,6 +114,7 @@ BROWSER_TESTS=(
   tests/dx_stream/test_pipeline_canvas_theme_browser.py
   tests/dx_app/test_reference_browser.py
   tests/dx_stream/test_reference_browser.py
+  tests/dx_stream/test_stream_audit_browser.py
   tests/dx_stream/test_dashboard_live_browser.py
   tests/test_tutorial_placement_browser.py
   tests/dx_stream/test_demo_cards_browser.py

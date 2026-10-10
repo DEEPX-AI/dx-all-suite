@@ -1101,7 +1101,7 @@ function _showContextMenu(e) {
         _item(T('Redo'), 'Ctrl+Shift+Z', function () { DXStream._redo(); });
         _sep();
         _item(T('Fit View'), '', function () { DXStream.pipelineFitView(); });
-        _item(T('Clear All'), '', function () { DXStream.pipelineClear(); });
+        _item(T('Clear All'), '', function () { DXStream.pipelineReset(); });   // pipelineClear 는 없었다 — TypeError
     }
 
     menu.style.left = e.clientX + 'px';
