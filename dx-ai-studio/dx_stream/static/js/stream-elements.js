@@ -97,7 +97,9 @@ function _renderElementExtra(el) {
             '</h4><ul class="element-feature-list">';
         for (var i = 0; i < el.key_features.length; i++) {
             var feature = el.key_features[i] || {};
-            html += '<li>' + _renderBilingualText(feature.ko, feature.en) + '</li>';
+            // the data carries all six languages; only ko / en were ever read
+            var lang = (window.DXI18n && DXI18n.lang) || DXStream.S.lang || 'en';
+            html += '<li>' + _escElementHtml(feature[lang] || _bilingual(feature.ko, feature.en)) + '</li>';
         }
         html += '</ul></div>';
     }

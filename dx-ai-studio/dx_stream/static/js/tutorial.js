@@ -163,7 +163,7 @@
 
   function _prepElementDetail() {
     goPage('elements');
-    var card = document.querySelector('#elements-grid .card');
+    var card = document.querySelector('#elements-grid .element-card');   // cards are .element-card
     if (card) card.click();
     else if (window.DXStream && typeof DXStream.showElementDetail === 'function' &&
              window.DXStream._allElements && DXStream._allElements[0]) {
@@ -197,7 +197,7 @@
           content: { ko: '<strong>객체 감지, 포즈 추정, 분할</strong> 원클릭 데모를 바로 시작할 수 있습니다.', en: 'One-click demos for <strong>object detection, pose estimation, segmentation</strong>.', ja: '<strong>物体検出、姿勢推定、セグメンテーション</strong>のワンクリックデモを起動できます。', 'zh-CN': '可即时启动<strong>目标检测、姿态估计、分割</strong>一键演示。', 'zh-TW': '可立即啟動<strong>物件偵測、姿態估計、分割</strong>一鍵示範。', es: 'Demos con un clic para <strong>detección de objetos, estimación de pose y segmentación</strong>.' } },
         { target: '#perf-table', position: 'top',
           title: { ko: '성능 지표', en: 'Performance Metrics', ja: 'パフォーマンス指標', 'zh-CN': '性能指标', 'zh-TW': '效能指標', es: 'Métricas de rendimiento' },
-          content: { ko: '<strong>FPS, 추론 지연(ms), E2E 지연(ms), NPU 사용률(%)</strong>을 실시간으로 표시합니다.', en: 'Real-time display of <strong>FPS, inference latency, E2E latency, NPU utilization</strong>.', ja: '<strong>FPS、推論レイテンシ(ms)、E2Eレイテンシ(ms)、NPU使用率(%)</strong>をリアルタイムで表示します。', 'zh-CN': '实时显示<strong>FPS、推理延迟(ms)、E2E延迟(ms)、NPU使用率(%)</strong>。', 'zh-TW': '即時顯示<strong>FPS、推論延遲(ms)、E2E延遲(ms)、NPU使用率(%)</strong>。', es: 'Visualización en tiempo real de <strong>FPS, latencia de inferencia, latencia E2E y utilización del NPU</strong>.' } },
+          content: { ko: '실행 중인 파이프라인의 <strong>FPS와 NPU 사용률(%)</strong>을 현재 · 평균 · 최대로 보여 줍니다. FPS 는 MJPEG 로 재생할 때 잽니다.', en: 'Shows the running pipeline\'s <strong>FPS and NPU utilization (%)</strong> as current, average and max. FPS is measured during MJPEG playback.', ja: '実行中のパイプラインの<strong>FPS と NPU 使用率(%)</strong>を現在 · 平均 · 最大で表示します。FPS は MJPEG 再生時に計測します。', 'zh-CN': '显示正在运行的管道的<strong>FPS 和 NPU 使用率(%)</strong>的当前值 · 平均值 · 最大值。FPS 在 MJPEG 播放时测量。', 'zh-TW': '顯示執行中管線的<strong>FPS 與 NPU 使用率(%)</strong>的目前值 · 平均值 · 最大值。FPS 於 MJPEG 播放時量測。', es: 'Muestra los <strong>FPS y la utilización del NPU (%)</strong> de la canalización en ejecución: actual, media y máxima. Los FPS se miden durante la reproducción MJPEG.' } },
         { target: '#chart-fps', position: 'top',
           title: { ko: '스파크라인 차트', en: 'Sparkline Charts', ja: 'スパークラインチャート', 'zh-CN': '迷你折线图', 'zh-TW': '迷你折線圖', es: 'Gráficos sparkline' },
           content: { ko: '<strong>FPS와 NPU 사용률</strong>의 실시간 추이를 소형 차트로 표시합니다.', en: 'Small charts showing real-time trends of <strong>FPS and NPU utilization</strong>.', ja: '<strong>FPSとNPU使用率</strong>のリアルタイム推移を小型チャートで表示します。', 'zh-CN': '小型图表显示<strong>FPS和NPU使用率</strong>的实时趋势。', 'zh-TW': '小型圖表顯示<strong>FPS和NPU使用率</strong>的即時趨勢。', es: 'Gráficos compactos que muestran las tendencias en tiempo real de <strong>FPS y utilización del NPU</strong>.' } },

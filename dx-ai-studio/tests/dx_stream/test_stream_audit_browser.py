@@ -88,6 +88,10 @@ def test_element_detail_headings_follow_the_language(page):
         page.evaluate("() => DXStream.showElementDetail('DxInfer')")
         text = page.inner_text("#element-detail-extra")
         assert "Key Features" not in text and "Related Elements" not in text, text[:200]
+        # the body too: long description, features (data has six languages) and property descriptions
+        assert "Runs a compiled .dxnn model" not in text, text[:200]
+        assert "Executes inference from a .dxnn" not in text, text[:300]
+        assert "Preprocess identifier" not in page.inner_text("#element-detail-props-tbody")
     finally:
         page.evaluate("() => DXI18n.setLang('en')")
 
