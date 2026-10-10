@@ -252,17 +252,29 @@ def extract_model_package(model_path, lang="both"):
             results.append({"lang": l, "ok": r.returncode == 0, "output": (r.stdout + r.stderr)[-500:]})
         except Exception as e:
             results.append({"lang": l, "ok": False, "error": str(e)})
+    # 추출기는 outputs/<lang>/<model_path>/ 에 만든다. 예전에는 outputs 바로 아래에서 이름이 맞는 폴더를 찾아
+    # per-model layout (py/object_detection/yolo26/yolo26-n_640x640) 에서는 아무것도 못 찾아 download_url 이
+    # 비었다. python 은 config.json 이 이름으로 부르는 processor 가 빠지지 않게 common/ 을 채운다 (2026-10-11 audit).
     download_url = None
-    model_name = model_path.split("/")[-1] if "/" in model_path else model_path
+    model_name = model_path.rstrip("/").split("/")[-1]
+    pkg_dirs = []
+    for l in langs:
+        d = OUTPUTS_DIR / l / model_path.strip("/")
+        if d.is_dir():
+            if l == "py":
+                try:
+                    from dx_app.core.lab_package import _complete_python_common
+                    _complete_python_common(DX_APP_ROOT, d)
+                except Exception as ex:
+                    print(f"[EXTRACT] common/ completion failed: {ex}")
+            pkg_dirs.append((l, d))
     try:
         import tarfile
-        tar_name = f"pkg_{model_name}_{lang}_{int(time.time())}.tar.gz"
-        tar_path = OUTPUTS_DIR / tar_name
-        pkg_dirs = [p for p in OUTPUTS_DIR.iterdir() if p.is_dir() and model_name in p.name]
         if pkg_dirs:
-            with tarfile.open(tar_path, "w:gz") as tar:
-                for d in pkg_dirs:
-                    tar.add(d, arcname=d.name)
+            tar_name = f"pkg_{model_name}_{lang}_{int(time.time())}.tar.gz"
+            with tarfile.open(OUTPUTS_DIR / tar_name, "w:gz") as tar:
+                for l, d in pkg_dirs:
+                    tar.add(d, arcname=f"{l}/{model_name}", filter=lambda ti: None if "__pycache__" in ti.name else ti)
             download_url = f"/outputs/{tar_name}"
     except Exception as ex:
         print(f"[EXTRACT] tar.gz creation failed: {ex}")

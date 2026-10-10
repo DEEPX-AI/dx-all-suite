@@ -43,3 +43,40 @@ def test_the_full_common_is_vendored_next_to_the_runner(tmp_path):
     lab_package._complete_python_common(tmp_path / "dx_app", common.parent)
     assert (common / "processors/letterbox_preprocessor.py").is_file()
     assert lab_package._unresolvable_processor_classes(pkg) == []
+
+
+def test_export_model_package_tars_the_per_model_folder_with_a_full_common(tmp_path, monkeypatch):
+    """/api/extract made outputs/py/<task>/<family>/<stem>/ but looked for a folder named after the model
+    directly under outputs/, so download_url was empty; and the folder had the trimmed common/ (2026-10-11)."""
+    import subprocess
+    import tarfile
+
+    from dx_app.core import developer
+
+    root = tmp_path / "dx_app"
+    ex = root / "src/python_example/object_detection/yolo26/yolo26-n_640x640"
+    ex.mkdir(parents=True)
+    full = root / "src/python_example/common/processors"
+    full.mkdir(parents=True)
+    (full / "letterbox_preprocessor.py").write_text("class LetterboxPreprocessor: ...\n")
+    (root / "scripts").mkdir()
+    (root / "scripts/extract_model_package.sh").write_text("")
+    out = tmp_path / "outputs"
+
+    def fake_run(cmd, **kw):
+        d = out / "py" / "object_detection/yolo26/yolo26-n_640x640"
+        (d / "common/processors").mkdir(parents=True)
+        (d / "yolo26-n_640x640_sync.py").write_text("")
+        return subprocess.CompletedProcess(cmd, 0, "ok", "")
+
+    for name, value in (("SCRIPTS_DIR", root / "scripts"), ("PY_DIR", root / "src/python_example"),
+                        ("CPP_DIR", root / "src/cpp_example"), ("OUTPUTS_DIR", out), ("DX_APP_ROOT", root)):
+        monkeypatch.setattr(developer, name, value)
+    monkeypatch.setattr(developer.subprocess, "run", fake_run)
+    out.mkdir()
+    res = developer.extract_model_package("object_detection/yolo26/yolo26-n_640x640", "py")
+    assert res["ok"] and res["download_url"], res
+    with tarfile.open(out / res["download_url"].rsplit("/", 1)[-1]) as tar:
+        names = tar.getnames()
+    assert "py/yolo26-n_640x640/yolo26-n_640x640_sync.py" in names
+    assert "py/yolo26-n_640x640/common/processors/letterbox_preprocessor.py" in names
