@@ -454,6 +454,12 @@ body { overflow-x: auto; overflow-y: hidden; }
   grid-template-columns: 1fr;
   gap: var(--sp-3);
 }
+/* 결과가 나오면 조건 칸은 좁은 옆줄이다 — 1440 px 이하에서 AI 작업 · 모델 크기를 두 칸으로 나눠
+   작업 이름이 "Object Detectic" · "Segmen" 으로 잘렸다 (2026-10-11). 옆줄에서는 한 칸으로 쌓는다. */
+.planner-workspace.workspace-state-recommended .requirements-wizard-stage .requirements-row-3,
+.planner-workspace.workspace-state-detailed .requirements-wizard-stage .requirements-row-3 {
+  grid-template-columns: minmax(0, 1fr);
+}
 .workspace-state-recommended .task-grid,
 .workspace-state-detailed .task-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
