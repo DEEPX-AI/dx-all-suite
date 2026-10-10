@@ -58,7 +58,7 @@ DX EdgeGuide (모듈 이름 dx_planner, Studio 안 경로 `/planner/`)는 컴퓨
 ## [section:link,연동,dx_benchmark,공유] 다른 모듈과의 연동 · 공유
 
 - 데이터는 DX Benchmark 결과를 서버 시작 때 집계한 `benchmarks.json` 이다.
-- DX Benchmark 대시보드의 EdgeGuide 링크는 task · size · 채널 · FPS 를 URL 에 담아 넘긴다. 현재 입력은 늘 주소창 URL 에 반영되어 그대로 공유할 수 있다.
+- DX Benchmark 대시보드의 EdgeGuide 링크는 그 차트의 task · size · runtime 을 URL 에 담아 넘긴다 (채널 · FPS 는 EdgeGuide 에서 정한다). 현재 입력은 늘 주소창 URL 에 반영되어 그대로 공유할 수 있다.
 
 ## [section:error,troubleshoot,문제,에러,0채널] 트러블슈팅
 
