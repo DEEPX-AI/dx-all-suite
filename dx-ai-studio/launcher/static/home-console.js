@@ -154,6 +154,8 @@
 
   /* ── the stream ──────────────────────────────────────────── */
 
+  function _artifactSeen() { return _sessionDir.indexOf('dx-agent-dev') >= 0; }
+
   function renderEvent(ev) {
     if (!ev || ev.type === 'ping' || ev.hidden) return;
     switch (ev.type) {
@@ -179,8 +181,16 @@
         _error(ev.text || '');
         _termLine(ev.text || '', 'err');
         break;
+      case 'artifacts':
+        /* 에이전트가 앱을 만든 곳 (대상 프로젝트의 dx-agent-dev/<session>/) — done 의 Studio 추적 폴더 대신 */
+        if (ev.dirs && ev.dirs.length) {
+          _sessionDir = ev.dirs.join(', ');
+          var pathEl = $('workSessionPath');
+          if (pathEl && pathEl.textContent) pathEl.textContent = _sessionDir;
+        }
+        break;
       case 'done':
-        if (ev.session_dir) _sessionDir = ev.session_dir;
+        if (ev.session_dir && !_artifactSeen()) _sessionDir = ev.session_dir;
         if (ev.conversation_id) _conversationId = ev.conversation_id;
         _finish(true);
         break;

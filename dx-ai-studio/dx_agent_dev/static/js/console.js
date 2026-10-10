@@ -622,6 +622,18 @@
         setBadge('Failed', 'failed');
         setStatusLine('');
         break;
+      case 'artifacts':
+        // 에이전트가 앱을 만든 곳 (대상 프로젝트의 dx-agent-dev/<session>/) — done 의 Studio 추적 폴더보다 이것
+        if (Array.isArray(ev.dirs) && ev.dirs.length) {
+          const where = ev.dirs.join(', ');
+          setStatusLine(T('App written to') + ' ' + where, null);
+          const bar = $('console-status-bar');
+          if (bar) {
+            bar.setAttribute('data-i18n-prefix', 'App written to');
+            bar.setAttribute('data-session-dir', where);
+          }
+        }
+        break;
       case 'status':
         if (ev.text) {
           noteRunOutput();
@@ -921,9 +933,10 @@
     if (!bar || bar.hidden) return;
     var key = bar.getAttribute('data-i18n-key');
     if (key) setStatusLine(T(key), key);
-    else if (bar.getAttribute('data-i18n-prefix') === 'Output saved to') {
+    else if (bar.getAttribute('data-i18n-prefix')) {
+      var prefix = bar.getAttribute('data-i18n-prefix');
       var dir = bar.getAttribute('data-session-dir') || '';
-      setStatusLine(T('Output saved to') + (dir ? ' ' + dir : ''), null);
+      setStatusLine(T(prefix) + (dir ? ' ' + dir : ''), null);
     }
   }
 

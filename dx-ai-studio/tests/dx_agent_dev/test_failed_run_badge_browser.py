@@ -114,3 +114,12 @@ def test_a_stream_that_ends_without_done_does_not_stay_running(page):
     page.wait_for_function("() => !document.querySelector('#status-badge').classList.contains('running')", timeout=5000)
     assert page.locator("#status-badge").inner_text() == "Failed"
     assert "connection to the agent ended" in page.locator("#console-output").inner_text()
+
+
+def test_the_status_line_names_the_folder_the_app_was_written_to(page):
+    _run(page, {"type": "message", "text": "built", "final": True},
+         {"type": "done", "text": "ok", "session_dir": "/studio/var/dx_agent_dev/sessions/x"},
+         {"type": "artifacts", "dirs": ["/suite/dx-runtime/dx_app/dx-agent-dev/20261011_demo"]})
+    page.wait_for_timeout(200)
+    bar = page.inner_text("#console-status-bar")
+    assert "dx-agent-dev/20261011_demo" in bar and "var/dx_agent_dev" not in bar
