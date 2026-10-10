@@ -20,6 +20,8 @@
   let _streamRenderRaf = null;
   /** Server-issued conversation id for multi-turn CLI resume. */
   let _conversationId = null;
+  /** The user pressed Stop — the "exit -15" the CLI reports is then expected, not a failure. */
+  let _stopRequested = false;
 
   function setConsoleBusy(busy) {
     const form = $('console-form');
@@ -28,6 +30,33 @@
     if (form) form.classList.toggle('console-form--busy', !!busy);
     if (input) input.disabled = !!busy;
     if (send) send.disabled = !!busy;
+    const stop = $('console-stop');
+    if (stop) { stop.hidden = !busy; stop.disabled = false; }
+  }
+
+  /* 예전에는 이 콘솔에 멈춤이 없었다 — 몇 분짜리 빌드를 잘못 보내면 끝날 때까지 기다려야 했다
+     (home 콘솔에만 있었다, 2026-10-11 audit). */
+  function stopRun() {
+    if (!_running || _stopRequested) return;
+    _stopRequested = true;
+    const stop = $('console-stop');
+    if (stop) stop.disabled = true;
+    setStatusLine(T('Stopping...'), 'Stopping...');
+    fetch('/api/agent/cancel', { method: 'POST' }).catch(function () {});
+  }
+
+  /* stream 이 done 없이 끝났다 — 서버가 죽었거나 연결이 끊겼다. 예전에는 "Running..." 이 그대로 남았다. */
+  function finishWithoutDone() {
+    if (!_turn) return;
+    if (_stopRequested) {
+      setBadge('Stopped', 'failed');
+      setStatusLine(T('Stopped.'), 'Stopped.');
+    } else {
+      if (!_runFailed) appendError(T('The connection to the agent ended before it finished.'));
+      setBadge('Failed', 'failed');
+    }
+    if (_turn) updateAssistantView(true);
+    _turn = null;
   }
 
   function releaseRunLock() {
@@ -587,6 +616,7 @@
         break;
       case 'error':
         noteRunOutput();
+        if (_stopRequested && /^exit -?\d+$/.test(String(ev.text || '').trim())) break;
         appendError(ev.text);
         _runFailed = true;
         setBadge('Failed', 'failed');
@@ -603,7 +633,8 @@
         cancelStreamingRender();
         if (ev.conversation_id) _conversationId = ev.conversation_id;
         if (_turn) updateAssistantView(true);
-        if (_runFailed) setBadge('Failed', 'failed');
+        if (_stopRequested) setBadge('Stopped', 'failed');
+        else if (_runFailed) setBadge('Failed', 'failed');
         else setBadge('Completed', 'ok');
         if (ev.session_dir) {
           var statusBar = $('console-status-bar');
@@ -629,6 +660,7 @@
       return;
     }
     _running = true;
+    _stopRequested = false;
     setConsoleBusy(true);
     _runFailed = false;
     setBadge('Running...', 'running');
@@ -658,6 +690,7 @@
         return;
       }
       await _consumeStream(resp);
+      finishWithoutDone();
     } catch (e) {
       clearHeartbeat();
       appendError(String((e && e.message) || e));
@@ -704,6 +737,7 @@
   async function attachIfRunning(st) {
     if (!st || !st.run_id || st.run_done || _running) return false;
     _running = true;
+    _stopRequested = false;
     setConsoleBusy(true);
     _runFailed = false;
     setBadge('Running...', 'running');
@@ -720,6 +754,7 @@
       const resp = await fetch('/api/agent/run/events?from=0');
       if (!resp.ok || !resp.body) return false;
       await _consumeStream(resp);
+      finishWithoutDone();
       return true;
     } catch (e) {
       return false;
@@ -945,6 +980,8 @@
         runPrompt(prompt);
       });
     }
+    const stopBtn = $('console-stop');
+    if (stopBtn) stopBtn.addEventListener('click', stopRun);
     applyLang();
     if (typeof DXI18n !== 'undefined' && DXI18n.onLangChange) DXI18n.onLangChange(applyLang);
     checkStatus();

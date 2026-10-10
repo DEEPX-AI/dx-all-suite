@@ -424,6 +424,16 @@
   transition: var(--transition);
 }
 #console-send:hover { filter: brightness(1.1); }
+#console-stop {
+  padding: 8px 16px;
+  background: transparent;
+  color: var(--status-error);
+  border: 1px solid var(--status-error);
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: var(--fs-md);
+}
+#console-stop:disabled { opacity: 0.55; cursor: progress; }
 #console-send:disabled, #console-input:disabled {
   opacity: 0.55;
   cursor: not-allowed;

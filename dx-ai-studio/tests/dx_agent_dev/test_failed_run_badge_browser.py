@@ -61,3 +61,56 @@ def test_a_clean_run_is_completed_and_the_next_run_starts_fresh(page):
     _run(page, {"type": "error", "text": "exit 1"}, {"type": "done", "text": "ok"})
     badge = _run(page, {"type": "message", "text": "done", "final": True}, {"type": "done", "text": "ok"})
     assert badge.inner_text() == "Completed"
+
+
+_CONTROLLED_FETCH = """() => {
+  const real = window.fetch;
+  window.__cancelled = 0;
+  window.fetch = function (url, opts) {
+    if (String(url).endsWith('/api/agent/cancel')) {
+      window.__cancelled += 1;
+      return Promise.resolve(new Response('{}', {status: 200}));
+    }
+    if (String(url).endsWith('/api/agent/run')) {
+      const enc = new TextEncoder();
+      const body = new ReadableStream({start(c) {
+        window.__push = ev => c.enqueue(enc.encode('data: ' + JSON.stringify(ev) + '\\n\\n'));
+        window.__end = () => c.close();
+      }});
+      return Promise.resolve(new Response(body, {status: 200, headers: {'Content-Type': 'text/event-stream'}}));
+    }
+    return real.apply(this, arguments);
+  };
+}"""
+
+
+def _start_controlled(page):
+    page.evaluate(_CONTROLLED_FETCH)
+    page.fill("#console-input", "build a demo")
+    page.click("#console-send")
+    page.wait_for_function("() => typeof window.__push === 'function'", timeout=5000)
+    page.evaluate("() => window.__push({type: 'message', text: 'working'})")
+
+
+def test_stop_cancels_the_run_and_says_stopped(page):
+    """The Agent Dev console had no Stop — a mistaken multi-minute build could not be stopped here (2026-10-11)."""
+    _start_controlled(page)
+    stop = page.locator("#console-stop")
+    assert stop.is_visible()
+    stop.click()
+    assert page.evaluate("window.__cancelled") == 1
+    page.evaluate("() => { window.__push({type: 'error', text: 'exit -15'}); window.__push({type: 'done', text: 'ok'}); window.__end(); }")
+    page.wait_for_function("() => !document.querySelector('#status-badge').classList.contains('running')", timeout=5000)
+    assert page.locator("#status-badge").inner_text() == "Stopped"
+    assert "exit -15" not in page.locator("#console-output").inner_text()
+    assert not stop.is_visible()
+    assert page.locator("#console-input").is_enabled()
+
+
+def test_a_stream_that_ends_without_done_does_not_stay_running(page):
+    """Server gone mid-run: the badge said "Running..." forever and nothing explained it."""
+    _start_controlled(page)
+    page.evaluate("() => window.__end()")
+    page.wait_for_function("() => !document.querySelector('#status-badge').classList.contains('running')", timeout=5000)
+    assert page.locator("#status-badge").inner_text() == "Failed"
+    assert "connection to the agent ended" in page.locator("#console-output").inner_text()

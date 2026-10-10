@@ -14,6 +14,11 @@ window._DX_I18N_DICT = {
     'zh-TW': '就緒',
     es: 'Listo',
   },
+  'Stop': { ko: '중지', ja: '停止', 'zh-CN': '停止', 'zh-TW': '停止', es: 'Detener' },
+  'Stopping...': { ko: '중지하는 중...', ja: '停止しています...', 'zh-CN': '正在停止...', 'zh-TW': '正在停止...', es: 'Deteniendo...' },
+  'Stopped': { ko: '중지됨', ja: '停止済み', 'zh-CN': '已停止', 'zh-TW': '已停止', es: 'Detenido' },
+  'Stopped.': { ko: '중지했습니다.', ja: '停止しました。', 'zh-CN': '已停止。', 'zh-TW': '已停止。', es: 'Detenido.' },
+  'The connection to the agent ended before it finished.': { ko: 'agent가 끝나기 전에 연결이 끊겼습니다.', ja: 'エージェントが終わる前に接続が切れました。', 'zh-CN': 'agent 完成前连接已断开。', 'zh-TW': 'agent 完成前連線已中斷。', es: 'La conexión con el agente terminó antes de que acabara.' },
   'Running...': {
     ko: '실행 중...',
     ja: '実行中...',
