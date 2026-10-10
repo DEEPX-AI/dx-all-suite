@@ -600,9 +600,9 @@
       <div class="dev-panel active" id="dev-add">
         <div class="grid2" style="gap:10px">
           <div class="fg"><label for="da-name" data-i18n="Model Name">Model Name</label><input type="text" id="da-name" data-i18n-placeholder="e.g. yolov8n_custom"></div>
-          <div class="fg"><label for="da-task" data-i18n="Task Type">Task Type</label><select id="da-task" onchange="_devUpdatePP(this.value)"></select></div>
-          <div class="fg"><label for="da-lang" data-i18n="Output Language">Output Language</label><select id="da-lang"><option value="both">Both</option><option value="cpp">C++</option><option value="python">Python</option></select></div>
-          <div class="fg"><label for="da-pp" data-i18n="Postprocessor">Postprocessor</label><select id="da-pp"></select></div>
+          <div class="fg"><label for="da-task" data-i18n="Task Type">Task Type</label><select id="da-task" onchange="_devUpdateBase()"></select></div>
+          <div class="fg"><label for="da-lang" data-i18n="Output Language">Output Language</label><select id="da-lang" onchange="_devUpdateBase()"><option value="both" data-i18n="Both (C++ &amp; Python)">Both (C++ &amp; Python)</option><option value="cpp" data-i18n="C++ only">C++ only</option><option value="python" data-i18n="Python only">Python only</option></select></div>
+          <div class="fg"><label for="da-base" data-i18n="Start from">Start from</label><select id="da-base"></select></div>
         </div>
         <label style="font-size:12px;color:var(--text-muted);display:flex;align-items:center;gap:6px;margin:8px 0">
           <input type="checkbox" id="da-sync"> <span data-i18n="Sync only">Sync only</span>

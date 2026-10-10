@@ -1042,6 +1042,33 @@ html[lang="zh-TW"] .zh-CN{display:none!important}
 .lab-home > .lab-card{width:100%}
 .lab-status-ok{border-color:rgba(34,197,94,.35)}
 .lab-status-err{border-color:rgba(239,68,68,.35)}
+/* Lab flows: what Apply did, change status, experiment steps */
+.lab-result{margin-top:var(--sp-4);border:1px solid var(--border-subtle);border-radius:var(--radius);padding:var(--sp-3) var(--sp-4);background:var(--control-bg)}
+.lab-result-ok{border-color:rgba(var(--success-rgb),.4)}
+.lab-result-err{border-color:rgba(var(--error-rgb),.4)}
+.lab-result h4{margin:0 0 var(--sp-2)}
+.lab-result-paths{margin:0 0 var(--sp-2);padding-left:var(--sp-5);font-family:var(--mono);font-size:var(--fs-sm);overflow-wrap:anywhere}
+.lab-result pre{white-space:pre-wrap;overflow-wrap:anywhere;max-height:320px;overflow:auto}
+.lab-badge{display:inline-block;border-radius:var(--radius-pill);padding:0 var(--sp-2);font-size:var(--fs-xs);font-weight:600;border:1px solid var(--border-subtle);color:var(--text-secondary)}
+.lab-badge-applied{color:var(--status-ok);border-color:rgba(var(--success-rgb),.4)}
+.lab-badge-rolled_back{color:var(--text-muted)}
+.safety-manifest-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:var(--sp-3)}
+.safety-manifest-item{display:flex;flex-wrap:wrap;align-items:center;gap:var(--sp-2);border-bottom:1px solid var(--border-subtle);padding-bottom:var(--sp-3)}
+.safety-change-summary{flex-basis:100%;display:flex;gap:var(--sp-3);font-size:var(--fs-sm);color:var(--text-muted)}
+.safety-rollback-confirm{min-width:0;flex:1 1 180px;max-width:260px}
+.safety-manual{flex-basis:100%;margin:0}
+.exp-stepper{display:flex;flex-wrap:wrap;gap:var(--sp-2);list-style:none;margin:var(--sp-2) 0;padding:0}
+.exp-step{border:1px solid var(--border-subtle);border-radius:var(--radius-pill);padding:var(--sp-1) var(--sp-3);font-size:var(--fs-sm);color:var(--text-muted)}
+.exp-step-done{color:var(--status-ok);border-color:rgba(var(--success-rgb),.4)}
+.exp-step-failed{color:var(--status-error);border-color:rgba(var(--error-rgb),.4)}
+.exp-step-active{color:var(--accent-ink);border-color:var(--accent)}
+.exp-result{font-size:var(--fs-xl);font-weight:700;color:var(--text-primary);margin:var(--sp-2) 0}
+.exp-blocker{color:var(--status-error);margin:var(--sp-1) 0;overflow-wrap:anywhere}
+.exp-log-content{white-space:pre-wrap;overflow-wrap:anywhere;max-height:260px;overflow:auto}
+/* paths are long and unbroken — wrap them inside the card at phone width */
+.manifest-ops,.generated-files{padding-left:var(--sp-5)}
+.manifest-ops li,.generated-path,.safety-manifest-summary{overflow-wrap:anywhere;min-width:0}
+.generated-preview{white-space:pre-wrap;overflow-wrap:anywhere;max-height:320px;overflow:auto}
 
 /* DX App Composer */
 .lab-composer{display:flex;flex-direction:column;gap:var(--sp-4)}

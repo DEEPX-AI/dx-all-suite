@@ -276,7 +276,7 @@ def test_add_model_dry_run_reports_overwrite_confirmation(tmp_path, monkeypatch)
     assert not Path(result["operations"][0]["path"]).is_absolute()
     assert "label" in result["confirmations"][0]
     assert "message" not in result["confirmations"][0]
-    assert result["summary"] == "Add demo_model to object_detection"
+    assert result["summary"].startswith("Add demo_model to object_detection (from ")
 
 
 def test_add_model_dry_run_rejects_source_path_traversal():
@@ -470,7 +470,7 @@ def test_add_model_apply_uses_manifest_inputs_and_releases_lock(monkeypatch):
     from developer import lab_session
     import lab_portal
     calls = []
-    def fake_dev_add(tok, mn, tt, lang, cat, pp, sync_only=False, confirm_overwrite=False):
+    def fake_dev_add(tok, mn, tt, lang, cat, pp, sync_only=False, confirm_overwrite=False, **kwargs):
         calls.append((mn, tt, lang, cat, pp, sync_only, confirm_overwrite))
         return {"ok": True, "output": "done"}
     monkeypatch.setattr(lab_portal, "dev_add", fake_dev_add)
@@ -530,7 +530,7 @@ def test_add_model_apply_route_preserves_dev_add_result(monkeypatch):
     from developer import lab_session
     tok = lab_session()["token"]
 
-    def fake_dev_add(tok, mn, tt, lang, cat, pp, sync_only=False, confirm_overwrite=False):
+    def fake_dev_add(tok, mn, tt, lang, cat, pp, sync_only=False, confirm_overwrite=False, **kwargs):
         return {"ok": True, "output": "created"}
     monkeypatch.setattr(lab_portal, "dev_add", fake_dev_add)
 
@@ -1305,7 +1305,7 @@ def test_change_summary_by_root_expired_manifest():
 def test_rollback_manifest_rejects_unsupported():
     """rollback_manifest rejects manifests with rollback.supported === false."""
     from lab_portal import create_manifest, rollback_manifest
-    m = create_manifest("add_model", rollback={"supported": False, "operations": []})
+    m = create_manifest("add_model", status="applied", rollback={"supported": False, "operations": []})
     result, code = rollback_manifest(m["id"], {})
     assert code == 400
     assert result["error_code"] == "rollback_unsupported"
@@ -1313,18 +1313,17 @@ def test_rollback_manifest_rejects_unsupported():
 
 
 def test_rollback_manifest_requires_delete_confirmation():
-    """Rollback with delete operations requires delete:<model_name> confirmation."""
+    """Rollback deletes files, so it requires the typed rollback:<model_name> confirmation."""
     from lab_portal import create_manifest, rollback_manifest
     m = create_manifest(
         "add_model",
         inputs={"model_name": "demo"},
+        status="applied",
         rollback={
             "supported": True,
-            "operations": [
-                {"action": "delete", "root": "DX_APP_ROOT", "path": "demo/file.py", "exists": True, "preview": "", "risk": "high"},
-            ],
+            "paths": ["src/python_example/object_detection/demo"],
+            "confirmation": {"key": "rollback", "expected": "rollback:demo", "label": "Type rollback:demo"},
         },
-        confirmations=[{"key": "delete", "expected": "delete:demo", "label": "Delete demo"}],
     )
     result, code = rollback_manifest(m["id"], {})
     assert code == 400
@@ -1494,7 +1493,7 @@ def test_rollback_route_rejects_unsupported():
     from developer import lab_session
     from lab_portal import create_manifest
     tok = lab_session()["token"]
-    m = create_manifest("add_model", rollback={"supported": False, "operations": []})
+    m = create_manifest("add_model", status="applied", rollback={"supported": False, "operations": []})
     captured = {}
     handler = object.__new__(server.Handler)
     handler.command = "POST"
@@ -1570,14 +1569,13 @@ def test_overwrite_confirmation_requires_manifest_specific_value():
     m = create_manifest(
         "add_model",
         inputs={"model_name": "demo"},
+        status="applied",
         rollback={
             "supported": True,
-            "operations": [
-                {"action": "modify", "root": "DX_APP_ROOT", "path": "demo/file.py", "exists": True, "preview": "", "risk": "medium"},
-            ],
+            "paths": ["src/python_example/object_detection/demo"],
+            "confirmation": {"key": "rollback", "expected": "rollback:demo", "label": "Type rollback:demo"},
         },
-        confirmations=[{"key": "overwrite", "expected": "overwrite:demo", "label": "Overwrite demo"}],
     )
-    result, code = rollback_manifest(m["id"], {"confirmations": {"overwrite": "wrong_value"}})
+    result, code = rollback_manifest(m["id"], {"confirmations": {"rollback": "wrong_value"}})
     assert code == 400
     assert result["error_code"] == "confirmation_required"

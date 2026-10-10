@@ -3196,6 +3196,12 @@ window._DX_I18N_DICT = {
     'zh-CN': '打开 ModelZoo', 'zh-TW': '開啟 ModelZoo',
     es: 'Abrir ModelZoo',
   },
+  /* Lab — Add Model copies an existing example (2026-10-11) */
+  'Start from': {
+    ko: '복사할 예제', ja: 'コピー元の例',
+    'zh-CN': '起始示例', 'zh-TW': '起始範例',
+    es: 'Partir de',
+  },
 };
 
 /* ─── CSS Selectors for DOM translation ─── */
@@ -4806,6 +4812,137 @@ window._DX_I18N_PLACEHOLDERS = {
   },
 
   /* ==== Lab Portal ==== */
+  /* Lab flows that do real work (2026-10-11) */
+  'New': {
+    ko: '생성', ja: '新規',
+    'zh-CN': '新建', 'zh-TW': '新增',
+    es: 'Nuevo',
+  },
+  'Overwrite': {
+    ko: '덮어쓰기', ja: '上書き',
+    'zh-CN': '覆盖', 'zh-TW': '覆寫',
+    es: 'Sobrescribir',
+  },
+  'Add {name} to {category}': {
+    ko: '{category}에 {name} 추가', ja: '{category}に {name} を追加',
+    'zh-CN': '将 {name} 添加到{category}', 'zh-TW': '將 {name} 新增到{category}',
+    es: 'Agregar {name} a {category}',
+  },
+  'Create the {name} task skeleton': {
+    ko: '{name} task skeleton 생성', ja: '{name} タスクのスケルトンを作成',
+    'zh-CN': '创建 {name} 任务骨架', 'zh-TW': '建立 {name} 任務骨架',
+    es: 'Crear el esqueleto de la tarea {name}',
+  },
+  'Created': {
+    ko: '생성됨', ja: '作成済み',
+    'zh-CN': '已创建', 'zh-TW': '已建立',
+    es: 'Creado',
+  },
+  'Copied from': {
+    ko: '복사한 예제', ja: 'コピー元',
+    'zh-CN': '复制自', 'zh-TW': '複製自',
+    es: 'Copiado de',
+  },
+  'Run the Python copy with your model:': {
+    ko: '내 모델로 Python 사본을 실행하세요:', ja: '自分のモデルで Python コピーを実行します:',
+    'zh-CN': '用你的模型运行 Python 副本:', 'zh-TW': '用你的模型執行 Python 副本:',
+    es: 'Ejecute la copia de Python con su modelo:',
+  },
+  'Build the C++ copy with dx_app build.sh.': {
+    ko: 'C++ 사본은 dx_app build.sh로 빌드하세요.', ja: 'C++ コピーは dx_app の build.sh でビルドします。',
+    'zh-CN': 'C++ 副本请用 dx_app 的 build.sh 构建。', 'zh-TW': 'C++ 副本請用 dx_app 的 build.sh 建置。',
+    es: 'Compile la copia de C++ con build.sh de dx_app.',
+  },
+  'Script output': {
+    ko: '스크립트 출력', ja: 'スクリプト出力',
+    'zh-CN': '脚本输出', 'zh-TW': '腳本輸出',
+    es: 'Salida del script',
+  },
+  'No example to copy for this language': {
+    ko: '이 언어로 복사할 예제가 없습니다', ja: 'この言語でコピーできる例がありません',
+    'zh-CN': '此语言没有可复制的示例', 'zh-TW': '此語言沒有可複製的範例',
+    es: 'No hay ningún ejemplo que copiar para este lenguaje',
+  },
+  'Add Model copies an existing example and renames it. Run the copy with your own .dxnn.': {
+    ko: 'Add Model은 기존 예제를 복사해 이름을 바꿉니다. 복사본은 내 .dxnn으로 실행하세요.', ja: 'Add Model は既存の例をコピーして名前を変えます。コピーは自分の .dxnn で実行してください。',
+    'zh-CN': 'Add Model 会复制现有示例并重命名。请用你自己的 .dxnn 运行副本。', 'zh-TW': 'Add Model 會複製現有範例並重新命名。請用你自己的 .dxnn 執行副本。',
+    es: 'Add Model copia un ejemplo existente y le cambia el nombre. Ejecute la copia con su propio .dxnn.',
+  },
+  'Your model (.dxnn, optional)': {
+    ko: '내 모델 (.dxnn, 선택)', ja: '自分のモデル (.dxnn、任意)',
+    'zh-CN': '你的模型 (.dxnn，可选)', 'zh-TW': '你的模型 (.dxnn，選填)',
+    es: 'Su modelo (.dxnn, opcional)',
+  },
+  'Read the model': {
+    ko: '모델 읽기', ja: 'モデルを読み込む',
+    'zh-CN': '读取模型', 'zh-TW': '讀取模型',
+    es: 'Leer el modelo',
+  },
+  'One inference': {
+    ko: '추론 1회', ja: '推論 1 回',
+    'zh-CN': '推理 1 次', 'zh-TW': '推論 1 次',
+    es: 'Una inferencia',
+  },
+  'Completed': {
+    ko: '완료', ja: '完了',
+    'zh-CN': '已完成', 'zh-TW': '已完成',
+    es: 'Completado',
+  },
+  'Throughput': {
+    ko: '처리량', ja: 'スループット',
+    'zh-CN': '吞吐量', 'zh-TW': '吞吐量',
+    es: 'Throughput',
+  },
+  'Checks a compiled model on this board: reads the file, runs one inference, then measures throughput.': {
+    ko: '이 보드에서 컴파일된 모델을 점검합니다. 파일을 읽고, 추론을 한 번 실행한 뒤 처리량을 잽니다.', ja: 'このボードでコンパイル済みモデルを確認します。ファイルを読み込み、推論を 1 回実行してからスループットを測定します。',
+    'zh-CN': '在这块板上检查已编译的模型：读取文件，运行一次推理，再测量吞吐量。', 'zh-TW': '在這塊板子上檢查已編譯的模型：讀取檔案，執行一次推論，再測量吞吐量。',
+    es: 'Comprueba un modelo compilado en esta placa: lee el archivo, ejecuta una inferencia y mide el rendimiento.',
+  },
+  'Compiled model': {
+    ko: '컴파일된 모델', ja: 'コンパイル済みモデル',
+    'zh-CN': '已编译模型', 'zh-TW': '已編譯模型',
+    es: 'Modelo compilado',
+  },
+  'Other path…': {
+    ko: '다른 경로…', ja: '別のパス…',
+    'zh-CN': '其他路径…', 'zh-TW': '其他路徑…',
+    es: 'Otra ruta…',
+  },
+  'Pipeline started': {
+    ko: '파이프라인 시작됨', ja: 'パイプライン開始済み',
+    'zh-CN': '管道已启动', 'zh-TW': '管線已啟動',
+    es: 'Pipeline iniciado',
+  },
+  'Applied': {
+    ko: '적용됨', ja: '適用済み',
+    'zh-CN': '已应用', 'zh-TW': '已套用',
+    es: 'Aplicado',
+  },
+  'Rolled back': {
+    ko: '롤백됨', ja: 'ロールバック済み',
+    'zh-CN': '已回滚', 'zh-TW': '已復原',
+    es: 'Revertido',
+  },
+  'Lab changes': {
+    ko: 'Lab 변경 내역', ja: 'Lab の変更',
+    'zh-CN': 'Lab 变更', 'zh-TW': 'Lab 變更',
+    es: 'Cambios de Lab',
+  },
+  'Type to confirm': {
+    ko: '확인하려면 입력', ja: '確認のため入力',
+    'zh-CN': '输入以确认', 'zh-TW': '輸入以確認',
+    es: 'Escriba para confirmar',
+  },
+  'This change overwrote existing files. Restore them by hand.': {
+    ko: '이 변경은 기존 파일을 덮어썼습니다. 직접 복구하세요.', ja: 'この変更は既存のファイルを上書きしました。手動で復元してください。',
+    'zh-CN': '此变更覆盖了现有文件，请手动恢复。', 'zh-TW': '此變更覆寫了現有檔案，請手動還原。',
+    es: 'Este cambio sobrescribió archivos existentes. Restáurelos manualmente.',
+  },
+  'No Lab changes yet': {
+    ko: '아직 Lab 변경 내역이 없습니다', ja: 'Lab の変更はまだありません',
+    'zh-CN': '还没有 Lab 变更', 'zh-TW': '還沒有 Lab 變更',
+    es: 'Aún no hay cambios de Lab',
+  },
   'Lab portal ready': {
     ko: 'Lab 포털 준비됨', ja: 'Labポータル準備完了',
     'zh-CN': 'Lab门户已就绪', 'zh-TW': 'Lab入口已就緒',

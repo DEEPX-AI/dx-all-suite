@@ -193,6 +193,14 @@ artifacts/cpp_example/
 - C++ 템플릿: Factory, Processor, Visualizer, Runner (동기/비동기)
 - Python 템플릿: Postprocessor, Visualizer 모듈
 
+### Studio Lab 탭
+- **Add Model**: category 의 기존 예제 하나(**Start from**)를 새 이름으로 복사한다 (`add_model.sh --base-model`).
+  C++ / Python / 둘 다. Python 사본은 `python3 <name>_sync.py --model <내 모델>.dxnn` 으로 실행, C++ 사본은 `build.sh` 로 빌드.
+- **Create Task**: 새 task type 의 skeleton 코드.
+- **Experiment**: 컴파일된 `.dxnn` 을 보드에서 점검 — parse_model 로 읽기 → run_model 1회 추론 → 처리량(FPS) 측정.
+- **Generated Files / Safety Center**: 변경마다 쓴 파일. 새 파일만 만든 변경은 `rollback:<이름>` 을 입력하면 되돌린다.
+  기존 파일을 덮어쓴 변경은 직접 복구해야 한다.
+
 ## [section:install,setup,설치] 설치 및 셋업
 
 ### Quick Start (3단계)

@@ -48,6 +48,10 @@ Changes since the v0.1.0 beta manual. The version number and date are set at rel
   compile keeps the graph and shows the reason.
 - Model Zoo: cards and details use the published model names; **Run Inference** finds each
   model's example in the per-model layout (it used to fail with "Binary not found").
+- DX App Lab: **Add Model** works again — it copies an existing example of the category (*Start from*)
+  and the Python copy runs on the board; **Experiment** really runs (read the model, one inference,
+  throughput in FPS); **Safety Center** rolls back an applied change that only created files, and
+  applied changes stay listed in Generated Files.
 - All modules: phone-width (390 px) layouts fixed for Setup, EdgeGuide cards, Compiler tabs,
   Benchmark Settings/Results, the Lab home and the SDK Library; dozens of mistranslations
   fixed (e.g. Setup no longer reads as Settings); the AI Help knowledge matches today's UI.

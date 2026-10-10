@@ -19,11 +19,17 @@ async function openDev(){
   nav('lab');
 }
 function _devInitSelects(){
-  api('/api/task_types').then(function(tasks){
-    if(!Array.isArray(tasks))return;
-    $('da-task').innerHTML=tasks.map(function(t){return'<option value="'+t+'">'+t+'</option>'}).join('');
-    _devUpdatePP($('da-task').value);
-  });
+  // Add Model copies an existing example of the category (add_model.sh --base-model) — the same choices as the
+  // Lab wizard, from /api/lab/capabilities.reference_examples.
+  var caps=(window.LabPortal&&LabPortal.capabilities)?LabPortal.capabilities():null;
+  var refs=(caps&&caps.reference_examples)||{};
+  var cats=Object.keys(refs).sort();
+  if($('da-task')){
+    var cur=$('da-task').value;
+    $('da-task').innerHTML=cats.map(function(c){return'<option value="'+esc(c)+'">'+esc(catText(c))+'</option>'}).join('');
+    if(cur&&cats.indexOf(cur)!==-1)$('da-task').value=cur;
+    _devUpdateBase();
+  }
   // Populate category filters for delete/extract
   var cats=[...new Set(S.models.map(function(m){return m.category}))].sort();
   var catOpts='<option value="">'+T('All Categories')+'</option>'+cats.map(function(c){return'<option value="'+esc(c)+'">'+esc(catText(c))+'</option>'}).join('');
@@ -57,11 +63,18 @@ function filterExtModels(){
   }).join('');
   if($('de-model-sel'))$('de-model-sel').innerHTML=opts;
 }
-function _devUpdatePP(task){
-  api('/api/postprocessors').then(function(pps){
-    var list=(pps&&pps[task])||[];
-    $('da-pp').innerHTML=list.length?list.map(function(p){return'<option>'+p+'</option>'}).join(''):'<option value="">N/A</option>';
+function _devUpdateBase(){
+  var caps=(window.LabPortal&&LabPortal.capabilities)?LabPortal.capabilities():null;
+  var cat=$('da-task')?$('da-task').value:'';
+  var lang=$('da-lang')?$('da-lang').value:'both';
+  var need=lang==='both'?['python','cpp']:[lang];
+  var list=(((caps&&caps.reference_examples)||{})[cat]||[]).filter(function(r){
+    return need.every(function(l){return (r.langs||[]).indexOf(l)!==-1});
   });
+  if(!$('da-base'))return;
+  $('da-base').innerHTML=list.length?list.map(function(r){return'<option value="'+esc(r.name)+'">'+esc(r.name)+'</option>'}).join('')
+    :'<option value="">'+esc(T('No example to copy for this language'))+'</option>';
+  $('da-base').disabled=!list.length;
 }
 
 function devTab(el,t){
@@ -72,9 +85,9 @@ function devTab(el,t){
 }
 
 async function devAddModel(){
-  const data={model_name:$('da-name').value,task_type:$('da-task').value,
+  const data={model_name:$('da-name').value.trim(),task_type:$('da-task').value,
     lang:$('da-lang').value,category:$('da-task').value,
-    postprocessor:$('da-pp').value,
+    base_model:$('da-base').value,
     sync_only:$('da-sync').checked};
   if(!data.model_name){toast(T('Name required'),'warn');return}
   var res=await postJ('/api/dev/add_model',data);
@@ -86,8 +99,8 @@ async function devAddModel(){
     }else{toast(T('Cancelled'),'warn');return}
   }
   $('da-out').classList.remove('hidden');
-  if(res.ok){toast(T('Model added'),'ok');$('da-out').textContent=res.output||'Done';await loadModels();renderModelsPage()}
-  else{toast(res.error||T('Failed'),'err');$('da-out').textContent=res.error||'Failed'}
+  if(res.ok){toast(T('Model added'),'ok');$('da-out').textContent=(res.created||[]).map(function(p){return'dx_app/'+p}).join('\n')+'\n\n'+(res.output||'');await loadModels();renderModelsPage()}
+  else{toast(res.error||T('Failed'),'err');$('da-out').textContent=(res.error||T('Failed'))+(res.output?'\n\n'+res.output:'')}
 }
 
 async function devDelModel(){
