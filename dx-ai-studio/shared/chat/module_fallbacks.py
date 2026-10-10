@@ -203,13 +203,13 @@ _RULES = {
     "dx_monitor": [
         (["hardware", "monitor", "npu", "temperature", "하드웨어", "모니터", "상태", "온도", "モニター", "温度",
           "监控", "監控", "temperatura"], {
-            "en": "DX Monitor shows the NPU's temperature, clock, voltage and utilization, plus CPU, memory and disk, live.",
-            "ko": "DX Monitor가 NPU 온도 · 클럭 · 전압 · 사용률과 CPU · 메모리 · 디스크를 실시간으로 보여 줍니다.",
-            "ja": "DX Monitor は NPU の温度・クロック・電圧・使用率と CPU・メモリ・ディスクをリアルタイムで表示します。",
-            "zh-CN": "DX Monitor 实时显示 NPU 的温度、时钟、电压与利用率，以及 CPU、内存和磁盘。",
-            "zh-TW": "DX Monitor 即時顯示 NPU 的溫度、時脈、電壓與使用率，以及 CPU、記憶體與磁碟。",
-            "es": "DX Monitor muestra en vivo la temperatura, el reloj, el voltaje y el uso de la NPU, y la CPU, la "
-                  "memoria y el disco.",
+            "en": "DX Monitor shows the NPU's temperature, clock, voltage and utilization, plus CPU and memory, live.",
+            "ko": "DX Monitor가 NPU 온도 · 클럭 · 전압 · 사용률과 CPU · 메모리를 실시간으로 보여 줍니다.",
+            "ja": "DX Monitor は NPU の温度・クロック・電圧・使用率と CPU・メモリをリアルタイムで表示します。",
+            "zh-CN": "DX Monitor 实时显示 NPU 的温度、时钟、电压与利用率，以及 CPU 和内存。",
+            "zh-TW": "DX Monitor 即時顯示 NPU 的溫度、時脈、電壓與使用率，以及 CPU 與記憶體。",
+            "es": "DX Monitor muestra en vivo la temperatura, el reloj, el voltaje y el uso de la NPU, y la CPU y la "
+                  "memoria.",
         }),
         (["event", "events", "log", "로그", "이벤트", "イベント", "ログ", "事件", "日志", "日誌", "evento"], {
             "en": "Runtime Events lists recent NPU and runtime status changes.",
