@@ -73,3 +73,16 @@ def test_the_list_screen_shows_it():
     """상세 화면은 이미 보여준다. 목록이야말로 '전체가 낡았나' 를 묻는 자리다."""
     src = (ROOT / "dx_modelzoo" / "static" / "js" / "catalog.js").read_text(encoding="utf-8")
     assert "generated_at" in src, "목록 화면이 생성 시각을 쓰지 않는다"
+
+
+def test_cards_use_the_curated_display_name():
+    """model_catalog.json names were the id title-cased ('Regnety16Gf', '3Ddfa V2 Mobilnet0 5 120X120');
+    the generated catalog's display.name is the curated one (2026-10-11 matrix)."""
+    from dx_modelzoo.core.catalog import _enrich_model_entry
+
+    base = {"id": "regnety_16gf", "name": "Regnety16Gf"}
+    _enrich_model_entry(base, {"display": {"name": "RegNetY-16GF", "task": "image_classification"}})
+    assert base["name"] == "RegNetY-16GF"
+    keep = {"id": "x", "name": "Kept"}
+    _enrich_model_entry(keep, {"display": {"task": "image_classification"}})
+    assert keep["name"] == "Kept"

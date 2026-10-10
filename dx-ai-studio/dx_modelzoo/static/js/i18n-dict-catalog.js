@@ -81,14 +81,6 @@ window._DX_MODELZOO_I18N_REGISTER({
     'zh-TW': '類別',
     es: 'Categoría',
   },
-  'Pending fields: %s': {
-    en: 'Pending fields: %s',
-    ko: '업데이트 예정 항목 %s개',
-    ja: '更新予定の項目 %s 件',
-    'zh-CN': '待更新项 %s 个',
-    'zh-TW': '待更新項目 %s 個',
-    es: 'Campos pendientes: %s',
-  },
   'models found': {
     en: 'models found',
     ko: '개 모델',

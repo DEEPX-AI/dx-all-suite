@@ -678,8 +678,6 @@ const ModelZooVirtualCatalog = {
     const resolution = _modelInputResolution(m);
     // 지표명을 함께 적는다. 숫자만 두면 NME 3.5 와 Top-1 98.6 이 같은 척도로 읽힌다.
     const accuracy = _accuracyWithMetric(m);
-    const missing = Array.isArray(m.missing) ? m.missing : [];
-    const missingCount = missing.length;
     const summary = _summaryText(m);
     const thumbImg = m.thumbnail
       ? imageTagWithFallback(m.thumbnail, m.name)
@@ -698,7 +696,6 @@ const ModelZooVirtualCatalog = {
         </div>
         ${accuracy ? `<div class="mz-card-acc">${_escapeAttr(accuracy)}</div>` : ''}
         <div class="mz-card-artifacts">${_artifactBadges(m)}</div>
-        ${missingCount ? `<div class="mz-card-missing">${_escapeAttr(T('Pending fields: %s').replace('%s', missingCount))}</div>` : ''}
       </div>
     </div>`;
   },

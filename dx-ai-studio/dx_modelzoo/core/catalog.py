@@ -454,6 +454,11 @@ def _enrich_model_entry(base, enriched, metadata_source=None):
             base[key] = enriched[key]
     if metadata_source and "metadata_source" not in enriched:
         base["metadata_source"] = metadata_source
+    # 사람이 정한 이름 — model_catalog.json 의 이름은 id 를 기계적으로 펼친 것이라 'Regnety16Gf' ·
+    # '3Ddfa V2 Mobilnet0 5 120X120' 처럼 깨졌다 (2026-10-11 matrix). generated 의 display.name 이 있으면 그것.
+    display_name = (enriched.get("display") or {}).get("name")
+    if display_name:
+        base["name"] = display_name
 
     # specification: enriched가 더 풍부하면 머지
     if enriched.get("specification") and not base.get("specification"):
