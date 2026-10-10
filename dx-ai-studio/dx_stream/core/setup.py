@@ -368,10 +368,21 @@ def stop_step():
     return {"ok": False, "error": "No running process"}
 
 
+def running_step() -> str | None:
+    """아직 끝나지 않은 단계 (없으면 None). 페이지를 떠났다 돌아오거나 언어를 바꾸면 로그 폴링이 끊긴다 —
+    돌아온 페이지가 이 값으로 그 단계의 로그 · 중지 버튼을 되살린다."""
+    with _log_lock:
+        for sid in reversed(list(_step_logs)):
+            if not _step_logs[sid].get("done"):
+                return sid
+    return None
+
+
 def get_setup_status() -> dict:
-    """각 step의 완료 상태 — build: .so 존재 여부, models: 파일 존재 여부"""
-    from dx_stream.core.status import _check_build, _check_models
+    """각 step의 완료 상태 — build: .so 존재 여부, models: 파일 존재 여부, running: 진행 중인 step"""
+    from dx_stream.core import status as _status
     return {
-        "build": _check_build(),
-        "download-models": _check_models(),
+        "build": _status._check_build(),
+        "download-models": _status._check_models(),
+        "running": running_step(),
     }

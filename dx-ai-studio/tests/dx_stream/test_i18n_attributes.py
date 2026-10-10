@@ -125,8 +125,12 @@ def test_stream_app_removes_legacy_attribute_language_loop():
         'getAttribute("data-" + lang)',
     ):
         assert forbidden not in js
-    assert "DXI18n.onLangChange" in js
-    assert "DXStream.nav(DXStream.S.currentPage)" in js
+    # The reload on a language change lives in ONE place (stream-lang-refresh.js): app.js and every
+    # registered refresher also reloaded, so one change re-ran the page twelve times.
+    assert "DXI18n.onLangChange" not in js
+    refresh = (ROOT / "dx_stream" / "static" / "js" / "stream-lang-refresh.js").read_text(encoding="utf-8")
+    assert "DXI18n.onLangChange(refreshStreamModuleLanguage)" in refresh
+    assert "realNav(DXStream.S.currentPage)" in refresh
 
 
 def test_stream_reference_search_uses_shared_placeholder_i18n():

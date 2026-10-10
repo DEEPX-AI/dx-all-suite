@@ -214,11 +214,5 @@ window.DXStream = DXStream;
 DXStream.T = window.T;
 if (typeof DXI18n !== 'undefined') {
   DXStream.S.lang = DXI18n.lang;
-  if (typeof DXI18n.onLangChange === 'function') {
-    DXI18n.onLangChange(function () {
-      if (DXStream.S.currentPage && typeof DXStream.nav === 'function') {
-        DXStream.nav(DXStream.S.currentPage);
-      }
-    });
-  }
+  // The page reload on a language change is owned by stream-lang-refresh.js (once per change).
 }

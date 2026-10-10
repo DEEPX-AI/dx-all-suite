@@ -152,3 +152,36 @@ def test_a_refused_model_upload_says_why(page):
         assert "conflict" not in page.inner_text("#model-upload-status")
     finally:
         page.unroute("**/api/models/upload")
+
+
+# ── Setup survives leaving the tab / changing language ────────────────────────
+
+def test_coming_back_to_setup_resumes_the_running_step(page):
+    import json
+    page.route("**/api/setup/status", lambda r, *_: r.fulfill(status=200, content_type="application/json", body=json.dumps(
+        {"build": {"ok": True, "path": "/x/libgstdxstream.so"}, "download-models": {"ok": False, "total": 17, "installed": 3},
+         "running": "download-models"})))
+    page.route("**/api/setup/log*", lambda r, *_: r.fulfill(status=200, content_type="application/json", body=json.dumps(
+        {"log": "Downloading model 3/17 ...\n", "done": False, "exit_code": None})))
+    try:
+        page.evaluate("() => DXStream.nav('dashboard')")
+        page.evaluate("() => DXStream.nav('setup')")
+        page.wait_for_function("() => /Downloading model 3\\/17/.test(document.body.innerText)", timeout=8000)
+        assert page.locator("#setup-stop-btn").is_visible()
+        assert page.evaluate("DXStream._setupRunning") is True
+    finally:
+        page.unroute("**/api/setup/status")
+        page.unroute("**/api/setup/log*")
+        page.evaluate("() => { if (DXStream._setupPollTimer) clearInterval(DXStream._setupPollTimer); DXStream._setupRunning = false; DXStream.nav('dashboard'); }")
+
+
+def test_a_language_change_reloads_the_page_once(page):
+    page.evaluate("() => DXStream.nav('models')")
+    page.evaluate("""() => { window.__navs = 0; const real = DXStream.nav;
+        DXStream.nav = function (p) { window.__navs++; return real.apply(this, arguments); }; }""")
+    page.evaluate("() => DXI18n.setLang('ko')")
+    page.wait_for_timeout(400)
+    try:
+        assert page.evaluate("window.__navs") == 1
+    finally:
+        page.evaluate("() => DXI18n.setLang('en')")

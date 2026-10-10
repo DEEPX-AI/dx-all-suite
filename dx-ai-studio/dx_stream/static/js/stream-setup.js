@@ -84,6 +84,9 @@ DXStream.setupInit = async function () {
     }
     _updateSetupBadge('build', status.build);
     _updateSetupBadge('download', status['download-models']);
+    // A step still running on the server (the page was left, or the language changed — both stop
+    // the poll): pick its log and Stop button back up instead of showing an idle step.
+    if (status.running && !DXStream._setupPollTimer) _resumeRunningStep(status.running);
 
     // 모델 다운로드 진행률 표시
     var dl = status['download-models'];
@@ -257,6 +260,15 @@ DXStream.runSetup = async function (stepId) {
     // 로그 폴링 시작
     _startLogPoll(stepId, logEl);
 };
+
+function _resumeRunningStep(stepId) {
+    var logId = _setupLogIds[stepId];
+    var logEl = logId ? DXStream.$(logId) : null;
+    DXStream._setupRunning = true;
+    var stopBtn = DXStream.$('setup-stop-btn');
+    if (stopBtn) stopBtn.style.display = '';
+    _startLogPoll(stepId, logEl);
+}
 
 function _startLogPoll(stepId, logEl) {
     if (DXStream._setupPollTimer) clearInterval(DXStream._setupPollTimer);

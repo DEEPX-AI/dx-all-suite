@@ -198,7 +198,10 @@ class TestSetupSteps:
         assert isinstance(status, dict)
         assert "build" in status
         assert "download-models" in status
-        for v in status.values():
+        for k, v in status.items():
+            if k == "running":          # the step still running (name or None), not a step state
+                assert v is None or isinstance(v, str)
+                continue
             assert "ok" in v
 
 
@@ -557,3 +560,19 @@ class TestManagedRuntimeWorker:
         assert "[ERROR] reconcile failed" in state["log"]
         assert cleanup_calls == [True]
         assert setup._running_proc is None
+
+
+def test_setup_status_names_the_step_that_is_still_running(monkeypatch):
+    """Leaving Setup (or changing language) stops the page's log poll; coming back it must learn
+    from the server which step is still running, or the install looks idle while it runs on."""
+    from dx_stream.core import setup as SU
+
+    monkeypatch.setattr(SU, "_step_logs", {
+        "build": {"log": "done", "done": True, "exit_code": 0},
+        "download-models": {"log": "Downloading 3/17", "done": False, "exit_code": None},
+    })
+    monkeypatch.setattr("dx_stream.core.status._check_build", lambda: {"ok": True})
+    monkeypatch.setattr("dx_stream.core.status._check_models", lambda: {"ok": False})
+    assert SU.get_setup_status()["running"] == "download-models"
+    monkeypatch.setattr(SU, "_step_logs", {"build": {"log": "", "done": True, "exit_code": 0}})
+    assert SU.get_setup_status()["running"] is None
