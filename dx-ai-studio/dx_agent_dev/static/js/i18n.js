@@ -209,12 +209,12 @@ window._DX_I18N_DICT = {
     'zh-TW': '代理程式主控台',
     es: 'Consola del agente',
   },
-  'Agent knowledge comes from the dx-all-suite <code>.deepx</code> harness; outputs go to <code>workspace/agent-sessions/</code>.': {
-    ko: '에이전트 지식은 dx-all-suite <code>.deepx</code> 하네스에서, 생성물은 <code>workspace/agent-sessions/</code>에 저장됩니다.',
-    ja: 'エージェント知識は dx-all-suite の <code>.deepx</code> ハーネス、出力は <code>workspace/agent-sessions/</code> に保存されます。',
-    'zh-CN': '智能体知识来自 dx-all-suite 的 <code>.deepx</code> harness；输出保存到 <code>workspace/agent-sessions/</code>。',
-    'zh-TW': '代理程式知識來自 dx-all-suite 的 <code>.deepx</code> harness；輸出儲存至 <code>workspace/agent-sessions/</code>。',
-    es: 'El conocimiento del agente viene del harness <code>.deepx</code> de dx-all-suite; la salida va a <code>workspace/agent-sessions/</code>.',
+  'Agent knowledge comes from the dx-all-suite <code>.deepx</code> harness; the agent writes the app to <code>dx-agent-dev/</code> inside the project it works on.': {
+    ko: '에이전트 지식은 dx-all-suite <code>.deepx</code> 하네스에서 오고, 에이전트는 작업한 프로젝트 안의 <code>dx-agent-dev/</code>에 앱을 만듭니다.',
+    ja: 'エージェント知識は dx-all-suite の <code>.deepx</code> ハーネスから来て、エージェントは作業したプロジェクト内の <code>dx-agent-dev/</code> にアプリを作成します。',
+    'zh-CN': '智能体知识来自 dx-all-suite 的 <code>.deepx</code> harness；智能体把应用写入所处理项目中的 <code>dx-agent-dev/</code>。',
+    'zh-TW': '代理程式知識來自 dx-all-suite 的 <code>.deepx</code> harness；代理程式把應用程式寫入所處理專案中的 <code>dx-agent-dev/</code>。',
+    es: 'El conocimiento del agente viene del harness <code>.deepx</code> de dx-all-suite; el agente escribe la app en <code>dx-agent-dev/</code> dentro del proyecto en el que trabaja.',
   },
   'Effort': {
     ko: '사고 강도',

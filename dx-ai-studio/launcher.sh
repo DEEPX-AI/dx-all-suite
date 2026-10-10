@@ -20,16 +20,15 @@ while [[ "$#" -gt 0 ]]; do
     --port|-p) PORT="$2"; shift 2 ;;
     --no-kill) NO_KILL=1; shift ;;
     --fast) export DX_LAUNCHER_FAST=1; shift ;;
-    --verbose|-v) DX_LAUNCHER_VERBOSE=1; shift ;;
+    --verbose|-v) shift ;;   # accepted for old scripts; modules use ephemeral ports, nothing to report
     --no-browser) export DX_NO_BROWSER=1; shift ;;
     --debug=*) export DX_STUDIO_DEBUG=1; export DX_STUDIO_DEBUG_LOG="${1#*=}"; shift ;;
     --debug) export DX_STUDIO_DEBUG=1; shift ;;
     --help|-h)
-      echo "Usage: $0 [--port PORT] [--no-kill] [--fast] [--verbose] [--no-browser] [--debug[=PATH]]"
+      echo "Usage: $0 [--port PORT] [--no-kill] [--fast] [--no-browser] [--debug[=PATH]]"
       echo "  --port, -p    Launcher port (default: 8890; auto-bumps if busy)"
       echo "  --no-kill     Do not kill stale studio servers before starting"
       echo "  --fast        Skip the cosmetic boot animation"
-      echo "  --verbose, -v Print port-fallback notices when a default port is busy"
       echo "  --no-browser  Do not auto-open the browser"
       echo "  --debug       Log user actions to var/log/studio-debug.log (or =PATH)"
       exit 0 ;;

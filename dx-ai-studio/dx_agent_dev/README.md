@@ -10,19 +10,18 @@ showcases.
    OpenCode). A badge shows whether each is signed in; if a login is needed it shows the
    exact command to run, then re-checks.
 2. **Describe your task** in the prompt — the agent works and streams its progress live.
-3. **Chat** — ask questions in the assistant; besides the coding agents you can point it
-   at a **local LLM** (Ollama / vLLM / LM Studio, OpenAI-compatible) or use a signed-in
-   coding CLI as the chat backend.
+3. **Stop** — a Stop button shows while the agent runs. The agent writes the app to
+   `dx-agent-dev/<session_id>/` inside the project it worked on.
 4. **Showcases** — browse the gallery of example NPU apps for reference.
 
 ## Key features
 
 - **Bring-your-own agent** — uses whatever coding CLI you have installed + signed in;
   one login powers both the generator and the chat.
-- **Local / self-hosted LLM** support (any OpenAI-compatible endpoint; auto-discovers
-  models). No API key stored — it is just an HTTP client.
-- **SDK knowledge** — the assistant can pull in DEEPX SDK documentation to answer
-  accurately, with a refresh button to update it.
+- **Studio chat (the button at the bottom right)** — separate from the Agent Console; it can
+  use a signed-in coding CLI, a cloud API, or a **local / self-hosted** OpenAI- or
+  Ollama-compatible endpoint (models are auto-discovered), and its settings have
+  **Refresh knowledge** for the DEEPX SDK documentation.
 - **Live streaming** of the agent's work, with a wall-clock timeout so a stuck run frees
   the slot for the next request.
 - **6-language UI** (English / 한국어 / 日本語 / 简体中文 / 繁體中文 / Español).

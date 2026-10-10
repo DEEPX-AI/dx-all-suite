@@ -150,3 +150,14 @@ def test_monitor_tutorial_does_not_promise_automatic_mock_data():
     assert "Operates with <strong>simulated (mock) data</strong> when no NPU is connected" not in tut
     assert "DX_MONITOR_EXPLICIT_MOCK=1" in tut and "NPU telemetry unavailable" in tut
     assert "CPU, memory, and disk values are always real" not in tut
+
+
+def test_nothing_points_users_at_workspace_agent_sessions():
+    """The Agent Dev hint, tutorial and manual said outputs go to workspace/agent-sessions/ — a folder that
+    does not exist; the agent writes to dx-agent-dev/<session>/ in the project it works on (2026-10-11)."""
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[2]
+    for rel in ("dx_agent_dev/templates/index.html", "dx_agent_dev/static/js/i18n.js",
+                "dx_agent_dev/static/js/tutorial.js", "docs/source/10_DX_Agent_Dev.md", "dx_agent_dev/README.md"):
+        assert "workspace/agent-sessions" not in (root / rel).read_text(encoding="utf-8"), rel
