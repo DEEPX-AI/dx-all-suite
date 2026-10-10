@@ -86,7 +86,8 @@ DXStream.setupInit = async function () {
     _updateSetupBadge('download', status['download-models']);
     // A step still running on the server (the page was left, or the language changed — both stop
     // the poll): pick its log and Stop button back up instead of showing an idle step.
-    if (status.running && !DXStream._setupPollTimer) _resumeRunningStep(status.running);
+    // (a single-model download from Model Catalog runs as "model-<file>" — not a Setup step)
+    if (status.running && _setupLogIds[status.running] && !DXStream._setupPollTimer) _resumeRunningStep(status.running);
 
     // 모델 다운로드 진행률 표시
     var dl = status['download-models'];

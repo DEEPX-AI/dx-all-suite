@@ -302,3 +302,47 @@ def test_a_loaded_preset_is_the_draft_and_an_undo_point(page):
         assert page.evaluate("JSON.parse(DXStream._pipeState._history[DXStream._pipeState._historyIdx]).nodes.length") == n, idx
     finally:
         page.unroute("**/api/demos")
+
+
+# ── Model Catalog downloads ───────────────────────────────────────────────────
+
+_CAT = [{"name": "yolo26n", "file": "yolo26-n_640x640.dxnn", "category": "object_detection", "installed": False,
+         "description_en": "d", "description_ko": "d"}]
+
+
+def test_a_refused_card_download_gives_the_button_back_and_says_why(page):
+    _json_route(page, "**/api/models", 200, _CAT)
+    _json_route(page, "**/api/setup/download-model", 409, {"error": "conflict", "message": "Another process is already running"})
+    try:
+        page.evaluate("() => DXStream.nav('models')")
+        page.wait_for_selector(".download-model-btn", timeout=8000)
+        page.click(".download-model-btn")
+        page.wait_for_function("() => /Another process is already running/.test(document.body.innerText)", timeout=5000)
+        assert page.locator(".download-model-btn").is_enabled()
+    finally:
+        page.unroute("**/api/setup/download-model")
+        page.unroute("**/api/models")
+
+
+def test_a_card_download_follows_its_own_log_and_reports_the_end(page):
+    import json
+    asked = []
+
+    def log(route, *_):
+        asked.append(route.request.url)
+        route.fulfill(status=200, content_type="application/json",
+                      body=json.dumps({"log": "x", "done": True, "exit_code": 1}))
+
+    _json_route(page, "**/api/models", 200, _CAT)
+    _json_route(page, "**/api/setup/download-model", 200, {"started": True, "model": "yolo26-n_640x640.dxnn"})
+    page.route("**/api/setup/log*", log)
+    try:
+        page.evaluate("() => DXStream.nav('models')")
+        page.wait_for_selector(".download-model-btn", timeout=8000)
+        page.click(".download-model-btn")
+        page.wait_for_function("() => /exit 1/.test(document.body.innerText)", timeout=8000)
+        assert asked and all("step=model-yolo26-n_640x640.dxnn" in u for u in asked), asked
+    finally:
+        page.unroute("**/api/setup/log*")
+        page.unroute("**/api/setup/download-model")
+        page.unroute("**/api/models")

@@ -128,7 +128,7 @@ function _renderModelCards(models) {
             '</div>' +
             (m.installed
                 ? '<span class="card-badge" style="background:var(--surface-raised);color:var(--status-ok)">' + ((typeof DXIcon === 'function') ? DXIcon('check') : '') + ' ' + T('Installed') + '</span>'
-                : '<button class="btn btn-sm btn-accent download-model-btn" data-model="' + DXStream.escHtml(m.file) + '" onclick="event.stopPropagation()">' + ((typeof DXIcon === 'function') ? DXIcon('download') : '') + ' ' + T('Download') + '</button>') +
+                : '<button class="btn btn-sm btn-accent download-model-btn" data-model="' + DXStream.escHtml(m.file) + '" onclick="event.stopPropagation(); DXStream.downloadModelFile(this.dataset.model, this)">' + ((typeof DXIcon === 'function') ? DXIcon('download') : '') + ' ' + T('Download') + '</button>') +
             '</div>';
     }).join('');
 }
@@ -151,14 +151,13 @@ document.addEventListener('click', function(e) {
 DXStream.loadModelMetadata = function(modelFile) {
     var container = document.getElementById('model-metadata-content');
     container.innerHTML = '<div class="loading-placeholder"><span class="spin"></span></div>';
-    fetch('/api/models/' + modelFile + '/metadata')
-        .then(function(r) { return r.json(); })
+    DXStream.api('/api/models/' + encodeURIComponent(modelFile) + '/metadata')
         .then(function(data) {
-            if (data.error) {
+            if (!data || data.error) {
                 /* 서버의 오류 코드 ('not_found') 를 그대로 보이지 않는다 — 모델 파일이 없을 때가 대부분이다 */
-                var msg = data.error === 'not_found'
+                var msg = (data && (data.error_code === 'not_found' || data.status === 404))
                     ? T('Download this model to see its metadata.')
-                    : (data.message || data.error);
+                    : _srvMsg((data && data.error) || '');
                 container.innerHTML = '<p class="metadata-error txt-dim">' + DXStream.escHtml(msg) + '</p>';
                 return;
             }
@@ -174,34 +173,44 @@ DXStream.loadModelMetadata = function(modelFile) {
         });
 };
 
-document.addEventListener('click', function(e) {
-    var btn = e.target.closest('.download-model-btn');
-    if (!btn) return;
-    var model = btn.dataset.model;
-    btn.disabled = true;
-    DXIcon.label(btn, 'spinner', T('Downloading...'), { cls: 'dx-ico--spin' });
-    fetch('/api/setup/download-model', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({model: model})
-    }).then(function(r) { return r.json(); })
-    .then(function(data) {
-        if (data.started) {
-            var pollId = setInterval(function() {
-                fetch('/api/setup/log').then(function(r2) { return r2.json(); })
-                .then(function(logData) {
-                    if (logData.done) {
-                        clearInterval(pollId);
-                        DXStream.modelsInit();
-                    }
-                });
-            }, 2000);
-        }
-    }).catch(function() {
+function _srvMsg(m) { return (typeof window.translateServerError === 'function') ? window.translateServerError(m) : m; }
+
+// One download path for the card button and the detail dialog. It used to (card) poll the latest
+// log of ANY step, never report a failed download, and keep a disabled spinner forever when the
+// server said another process was running; the dialog started a download and showed nothing more.
+function _downloadModelFile(file, btn) {
+    function restore() {
+        if (!btn) return;
         btn.disabled = false;
-        DXIcon.label(btn, 'download', T('Download'));
+        if (typeof DXIcon === 'function' && DXIcon.label) DXIcon.label(btn, 'download', T('Download'));
+    }
+    if (btn) {
+        btn.disabled = true;
+        if (typeof DXIcon === 'function' && DXIcon.label) DXIcon.label(btn, 'spinner', T('Downloading...'), { cls: 'dx-ico--spin' });
+    }
+    return DXStream.postJ('/api/setup/download-model', { model: file }).then(function (resp) {
+        if (!resp || resp.error) {
+            restore();
+            DXStream.toast(T('Download failed: ') + _srvMsg((resp && resp.error) || ''), 'error');
+            return;
+        }
+        DXStream.toast(file + ' ' + T('download started'), 'info');
+        var step = 'model-' + file;
+        var pollId = setInterval(function () {
+            DXStream.api('/api/setup/log?step=' + encodeURIComponent(step)).then(function (l) {
+                if (!l || l.error || !l.done) return;
+                clearInterval(pollId);
+                if (l.exit_code === 0) DXStream.toast(file + ' ' + T('completed'), 'success');
+                else { restore(); DXStream.toast(T('Download failed: ') + 'exit ' + l.exit_code, 'error'); }
+                if (DXStream.S.currentPage === 'models' && typeof DXStream.modelsInit === 'function') DXStream.modelsInit();
+            });
+        }, 2000);
     });
-});
+}
+
+// The card button stops propagation (the card itself opens the detail dialog), so a document-level
+// click listener never saw it — the card Download button did nothing. It calls this directly now.
+DXStream.downloadModelFile = _downloadModelFile;
 
 DXStream.showModelDetail = function (name) {
     var model = null;
@@ -258,15 +267,7 @@ DXStream.closeModelDetail = function () {
 
 DXStream.downloadModel = function () {
     if (!DXStream._selectedModel) return;
-    var model = DXStream._selectedModel;
-    DXStream.toast(T('Downloading models…'), 'info');
-    DXStream.postJ('/api/setup/download-model', { model: model.file }).then(function (resp) {
-        if (resp.error) {
-            DXStream.toast(T('Download failed: ') + resp.error, 'error');
-            return;
-        }
-        DXStream.toast(model.name + ' ' + T('download started'), 'success');
-    });
+    _downloadModelFile(DXStream._selectedModel.file, DXStream.$('model-detail-download-btn'));
 };
 if (typeof registerStreamLangRefresher === 'function') {
   registerStreamLangRefresher(function() {
