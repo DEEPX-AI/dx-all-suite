@@ -30,6 +30,7 @@ DXStream.pipelineInit = async function () {
     _renderPalette(cats);
     _initCanvas();
     _bindPaletteDrag();
+    _bindPaletteSearch();
     _hidePropertyPanel();
     // localStorage 자동복원
     try {
@@ -48,10 +49,33 @@ DXStream.pipelineInit = async function () {
     _pushHistory(); // 초기 상태 기록
 };
 
+/* ── 팔레트 검색 — 이름 · 설명으로 거른다. 검색 칸은 있었고 튜토리얼도 가리켰지만 아무도 듣지 않았다. ── */
+function _applyPaletteSearch() {
+    var box = DXStream.$('palette-search');
+    var q = ((box && box.value) || '').trim().toLowerCase();
+    document.querySelectorAll('#palette-list .palette-group').forEach(function (group) {
+        var shown = 0;
+        group.querySelectorAll('.palette-item').forEach(function (item) {
+            var hay = ((item.dataset.element || '') + ' ' + (item.getAttribute('title') || '')).toLowerCase();
+            var hit = !q || hay.indexOf(q) >= 0;
+            item.hidden = !hit;
+            if (hit) shown++;
+        });
+        group.hidden = shown === 0;
+    });
+}
+function _bindPaletteSearch() {
+    var box = DXStream.$('palette-search');
+    if (!box || box.dataset.searchBound) return;
+    box.dataset.searchBound = '1';
+    box.addEventListener('input', _applyPaletteSearch);
+}
+
 /* ── 언어 변경 시 캔버스/팔레트만 갱신 (이벤트 리스너 중복 방지) ── */
 DXStream._pipelineRefreshLang = function () {
     if (DXStream._pipeState.elements) {
         _renderPalette(DXStream._pipeState.elements);
+        _applyPaletteSearch();
     }
     _refreshCanvas();
     _updateElementCount();

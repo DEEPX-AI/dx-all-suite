@@ -4,6 +4,9 @@ import copy
 import math
 import re
 import secrets
+import shlex
+import shutil
+import subprocess
 import threading
 import time
 from pathlib import Path
@@ -11,7 +14,7 @@ from collections import OrderedDict
 
 from dx_app.core import config
 from dx_app.core.config import DX_APP_ROOT, CPP_DIR, PY_DIR, OUTPUTS_DIR, TEMPLATES_DIR
-from dx_app.core.developer import require_lab, _require_lab_model_name, _require_lab_category, dev_add, dev_new_task, build_task_file_plan
+from dx_app.core.developer import require_lab, _require_lab_model_name, _require_lab_category, dev_add, dev_new_task, build_task_file_plan, pick_reference, reference_examples
 from dx_app.core.dx_app_security import resolve_existing_file, resolve_under
 from dx_app.core.lab_workflow import (
     PACKAGE_TYPES,
@@ -1297,14 +1300,16 @@ def lab_capabilities():
         "ok": True,
         "task_categories": [{"id": c, "label": config.CAT_LABEL.get(c, c)} for c in config.CATEGORIES],
         "postprocessors": config.POSTPROCESSORS,
+        "reference_examples": reference_examples(),
+        "experiment_models": experiment_model_choices(),
         "allowed_roots": ["DX_APP_ROOT", "OUTPUTS_DIR"],
         "feature_flags": {
             "portal_shell": True,
-            "add_model_wizard": False,
-            "task_wizard": False,
-            "experiment_pipeline": False,
-            "benchmark_step": False,
-            "rollback": False,
+            "add_model_wizard": True,
+            "task_wizard": True,
+            "experiment_pipeline": True,
+            "benchmark_step": True,
+            "rollback": True,
         },
         "composer": {
             "schema_version": WORKFLOW_SCHEMA_VERSION,
@@ -1362,6 +1367,8 @@ def plan_add_model(tok, payload):
     err = _require_lab_category(cat)
     if err:
         return err
+    if lang not in ("cpp", "python", "both"):
+        lang = "both"
 
     if source_path:
         err = _validate_source_path(source_path)
@@ -1385,6 +1392,10 @@ def plan_add_model(tok, payload):
         if exists:
             existing_dirs.append(str(rel))
 
+    base_model, err = pick_reference(cat, lang, payload.get("base_model", ""))
+    if err:
+        return err
+
     if existing_dirs:
         confirmations.append({
             "key": "overwrite",
@@ -1398,6 +1409,7 @@ def plan_add_model(tok, payload):
         "task_type": tt,
         "lang": lang,
         "postprocessor": pp,
+        "base_model": base_model,
     }
     if source_path:
         inputs["source_path"] = source_path
@@ -1408,7 +1420,7 @@ def plan_add_model(tok, payload):
         operations=operations,
         confirmations=confirmations,
         status="ready",
-        summary=f"Add {mn} to {cat}",
+        summary=f"Add {mn} to {cat} (from {base_model})",
     )
 
 
@@ -1487,10 +1499,12 @@ def apply_add_model(tok, payload):
             data.get("postprocessor", ""),
             False,
             True,
+            base_model=data.get("base_model", ""),
         )
         body, http_code = _result_with_http_status(res)
         if isinstance(body, dict) and body.get("ok") is True and http_code == 200:
-            manifest["status"] = "applied"
+            _mark_applied(manifest, data.get("model_name", ""), body.get("created") or [],
+                          overwrote=bool(body.get("overwrote")))
         return body, http_code
     finally:
         release_apply_lock(manifest["id"])
@@ -1526,11 +1540,13 @@ def smoke_add_model(tok, payload):
 
 
 def generated_files_for_manifest(manifest_id):
-    """Return preview files from a manifest filtered to create/modify actions."""
+    """Files of a Lab change: the previews of a dry run, or what an applied change really wrote."""
     result, code = get_manifest(manifest_id)
     if code != 200:
         return result, code
     manifest = result
+    if manifest.get("status") == "applied":
+        return {"files": _applied_files(manifest)}, 200
     files = []
     for op in manifest.get("operations", []):
         if op.get("action") in ("create", "modify"):
@@ -1544,10 +1560,71 @@ def generated_files_for_manifest(manifest_id):
     return {"files": files}, 200
 
 
+_PREVIEW_MAX_BYTES = 64 * 1024
+
+
+def _applied_files(manifest):
+    """Every file under the paths an applied change wrote, with a text preview (pycache left out)."""
+    files = []
+    for op in manifest.get("operations", []):
+        target = DX_APP_ROOT / op.get("path", "")
+        paths = sorted(p for p in target.rglob("*") if p.is_file()) if target.is_dir() else [target]
+        for p in paths:
+            if not p.is_file() or "__pycache__" in p.parts:
+                continue
+            size = p.stat().st_size
+            try:
+                preview = p.read_text(encoding="utf-8", errors="replace") if size <= _PREVIEW_MAX_BYTES else ""
+            except OSError:
+                preview = ""
+            files.append({"root": "DX_APP_ROOT", "path": p.relative_to(DX_APP_ROOT).as_posix(),
+                          "preview": preview, "size": size})
+    return files
+
+
+_LAB_CHANGE_KINDS = ("add_model", "task_scaffold")
+_LISTED_STATUSES = ("ready", "applied", "rolled_back")
+
+
 def list_pending_manifests():
     """Return active (ready) non-expired manifests."""
     _evict_expired_manifests()
     return [m for m in _manifests.values() if not _expired(m) and m.get("status") == "ready"]
+
+
+def list_lab_manifests():
+    """Add Model / Create Task changes of this session, newest first — previews, applied and rolled back.
+
+    Composer workflows are manifests too, but they are not changes to dx_app; they are not listed here.
+    """
+    _evict_expired_manifests()
+    with _manifests_lock:
+        items = [m for m in _manifests.values()
+                 if not _expired(m) and m.get("kind") in _LAB_CHANGE_KINDS and m.get("status") in _LISTED_STATUSES]
+    items = sorted(items, key=lambda m: m.get("applied_at") or m.get("created_at", 0), reverse=True)
+    # Each Dry Run makes a manifest; of the previews for one target only the newest is worth listing.
+    seen, out = set(), []
+    for m in items:
+        inputs = m.get("inputs", {})
+        key = (m.get("kind"), inputs.get("model_name") or inputs.get("task_name"), inputs.get("category"))
+        if m.get("status") == "ready":
+            if key in seen:
+                continue
+            seen.add(key)
+        out.append(m)
+    return out
+
+
+def _mark_applied(manifest, name, created, overwrote=False):
+    """Record what an apply wrote. Rollback deletes exactly the paths that did not exist before; a change that
+    overwrote existing files cannot be undone by deleting, so it is left to the user."""
+    manifest["status"] = "applied"
+    manifest["applied_at"] = time.time()
+    manifest["rollback"] = {
+        "supported": bool(created) and not overwrote,
+        "paths": list(created),
+        "confirmation": {"key": "rollback", "expected": f"rollback:{name}", "label": f"Type rollback:{name}"},
+    }
 
 
 def change_summary_by_root(manifest_id):
@@ -1567,31 +1644,60 @@ def change_summary_by_root(manifest_id):
 
 
 def rollback_manifest(manifest_id, payload):
-    """Rollback a manifest. Rejects unsupported rollback; requires confirmations."""
+    """Undo an applied Lab change: delete exactly the paths its apply created, after a typed confirmation."""
     result, code = get_manifest(manifest_id)
     if code != 200:
         return result, code
     manifest = result
+    if manifest.get("status") != "applied":
+        return {"error": "Only an applied change can be rolled back", "error_code": "not_applied"}, 400
     rollback = manifest.get("rollback", {})
     if not rollback.get("supported"):
         return {
             "error": "Rollback not supported for this manifest",
             "error_code": "rollback_unsupported",
-            "message": "Manual rollback required. Review the manifest operations and undo changes manually.",
+            "message": "This change overwrote existing files. Review the listed paths and restore them manually.",
         }, 400
-    ok, missing = _confirmations_match(manifest, payload)
-    if not ok:
-        return {"error": "Confirmation required", "error_code": "confirmation_required", "missing": missing}, 400
-    return {"ok": True, "message": "Rollback planned (preview only)"}, 200
+    confirmation = rollback.get("confirmation") or {}
+    provided = payload.get("confirmations") if isinstance(payload.get("confirmations"), dict) else {}
+    if not confirmation or provided.get(confirmation.get("key")) != confirmation.get("expected"):
+        return {"error": "Confirmation required", "error_code": "confirmation_required", "missing": confirmation}, 400
+    removed = []
+    for rel in rollback.get("paths", []):
+        try:
+            target = resolve_under(str(DX_APP_ROOT / rel), (PY_DIR, CPP_DIR))
+        except ValueError:
+            continue
+        if target.is_dir():
+            shutil.rmtree(target)
+        elif target.is_file():
+            target.unlink()
+        else:
+            continue
+        removed.append(rel)
+    from shared import dx_app_layout as _layout
+    _layout.clear_cache()
+    manifest["status"] = "rolled_back"
+    manifest["rolled_back_at"] = time.time()
+    return {"ok": True, "removed": removed, "message": f"Removed {len(removed)} path(s)."}, 200
 
 
 def scoped_git_plan(manifest_id, payload):
-    """Return scoped git plan with files derived only from manifest operations."""
+    """Return the files a Lab change wrote and the git commands that commit exactly those.
+
+    Studio never runs git on the user's dx_app checkout; it hands over the commands. An applied change lists what
+    the apply really created (rollback paths); otherwise the manifest operation paths."""
     result, code = get_manifest(manifest_id)
     if code != 200:
         return result, code
     manifest = result
+    if manifest.get("status") == "rolled_back":
+        return {"error": "This change was rolled back; there is nothing to commit.",
+                "error_code": "nothing_to_commit"}, 409
     manifest_paths = {op.get("path") for op in manifest.get("operations", []) if op.get("path")}
+    created = (manifest.get("rollback") or {}).get("paths") or []
+    if manifest.get("status") == "applied" and created:
+        manifest_paths = set(created)
 
     requested_files = payload.get("files")
     if requested_files:
@@ -1615,7 +1721,13 @@ def scoped_git_plan(manifest_id, payload):
                 "missing": {"key": "push", "expected": "push", "label": "Confirm push"},
             }, 400
 
-    return {"files": plan_files, "preview_only": True}, 200
+    repo = str(DX_APP_ROOT)
+    message = manifest.get("summary") or f"Lab change {manifest_id}"
+    commands = [
+        f"git -C {shlex.quote(repo)} add -- " + " ".join(shlex.quote(f) for f in plan_files),
+        f"git -C {shlex.quote(repo)} commit -m {shlex.quote(message)}",
+    ]
+    return {"files": plan_files, "repo": repo, "commands": commands, "preview_only": True}, 200
 
 
 _SAFE_LAB_ID_RE = re.compile(r"^lab_[A-Za-z0-9_-]+$")
@@ -1700,7 +1812,11 @@ def plan_task_scaffold_response(tok, payload):
     return _result_with_http_status(result)
 
 
-EXPERIMENT_STEPS = ["compile", "register", "smoke", "benchmark", "package"]
+# The input is a compiled .dxnn, so the pipeline checks it with the DX-RT tools rather than compiling:
+# inspect (parse_model reads the file), smoke (one inference on the NPU), benchmark (throughput, FPS).
+EXPERIMENT_STEPS = ["inspect", "smoke", "benchmark"]
+EXPERIMENT_BENCHMARK_LOOPS = 100
+_EXPERIMENT_STEP_TIMEOUT = 180
 _STEP_INDEX = {s: i for i, s in enumerate(EXPERIMENT_STEPS)}
 MAX_EXPERIMENT_RUNS = 128
 _LOG_MAX_CHARS = 4096
@@ -1748,7 +1864,7 @@ def _new_run_state(run_id, inputs):
     return {
         "id": run_id,
         "status": "pending",
-        "current_step": "compile",
+        "current_step": EXPERIMENT_STEPS[0],
         "steps": steps,
         "inputs": dict(inputs),
         "blockers": [],
@@ -1841,6 +1957,12 @@ def cancel_experiment_run(run_id):
         for step in run["steps"]:
             if step["status"] in ("pending", "current"):
                 step["status"] = "cancelled"
+        proc = _experiment_procs.get(run_id)
+        if proc is not None:
+            try:
+                proc.kill()
+            except OSError:
+                pass
         return _deep_copy_run(run), 200
 
 
@@ -1931,6 +2053,124 @@ def append_experiment_log(run_id, line):
     return {"ok": True}, 200
 
 
+_experiment_procs = {}
+_FPS_RE = re.compile(r"FPS\s*:\s*([0-9]+(?:\.[0-9]+)?)")
+
+
+def _experiment_popen(cmd, **kwargs):
+    return subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
+                            errors="replace", **kwargs)
+
+
+def _dxrt_tool(name):
+    return shutil.which(name) or f"/usr/local/bin/{name}"
+
+
+def _experiment_commands(model_path):
+    return {
+        "inspect": [_dxrt_tool("parse_model"), "-m", model_path],
+        "smoke": [_dxrt_tool("run_model"), "-m", model_path, "-s", "-l", "1"],
+        "benchmark": [_dxrt_tool("run_model"), "-m", model_path, "-l", str(EXPERIMENT_BENCHMARK_LOOPS)],
+    }
+
+
+def _experiment_source(source_path):
+    raw = Path(source_path)
+    return str(raw if raw.is_absolute() else SCRIPT_DIR / raw)
+
+
+def _run_experiment_step(run_id, step, cmd):
+    """Run one step's command, streaming its output into the run log. Returns (ok, last_lines)."""
+    try:
+        proc = _experiment_popen(cmd)
+    except OSError as exc:
+        return False, [f"{Path(cmd[0]).name}: {exc}"]
+    with _experiment_lock:
+        _experiment_procs[run_id] = proc
+    lines = []
+    try:
+        for line in proc.stdout:
+            line = line.rstrip()
+            if not line.strip():
+                continue
+            lines.append(line)
+            append_experiment_log(run_id, line)
+        rc = proc.wait(timeout=_EXPERIMENT_STEP_TIMEOUT)
+    except subprocess.TimeoutExpired:
+        proc.kill()
+        return False, lines + [f"{step} timed out after {_EXPERIMENT_STEP_TIMEOUT}s"]
+    finally:
+        with _experiment_lock:
+            _experiment_procs.pop(run_id, None)
+    failed = rc != 0 or any("[dxrt-exception]" in l for l in lines)
+    return not failed, lines[-3:]
+
+
+def _experiment_cancelled(run_id):
+    with _experiment_lock:
+        run = _experiment_runs.get(run_id)
+        return not run or run["status"] == "cancelled"
+
+
+def _experiment_worker(run_id):
+    with _experiment_lock:
+        run = _experiment_runs.get(run_id)
+        if not run or run["status"] != "pending":
+            return
+        run["status"] = "running"
+        source = run["inputs"]["source_path"]
+    commands = _experiment_commands(_experiment_source(source))
+    for index, step in enumerate(EXPERIMENT_STEPS):
+        if _experiment_cancelled(run_id):
+            return
+        append_experiment_log(run_id, f"$ {' '.join([Path(commands[step][0]).name] + commands[step][1:])}")
+        ok, tail = _run_experiment_step(run_id, step, commands[step])
+        if _experiment_cancelled(run_id):
+            return
+        if not ok:
+            reason = next((l for l in reversed(tail) if l.strip()), f"{step} failed")
+            mark_experiment_step_failed(run_id, step, reason.strip())
+            return
+        if step == "benchmark":
+            fps = [float(m.group(1)) for l in tail for m in [_FPS_RE.search(l)] if m]
+            with _experiment_lock:
+                run = _experiment_runs.get(run_id)
+                if run is not None and fps:
+                    run["result"] = {"fps": fps[-1], "loops": EXPERIMENT_BENCHMARK_LOOPS}
+        if index + 1 < len(EXPERIMENT_STEPS):
+            advance_experiment_step(run_id, EXPERIMENT_STEPS[index + 1])
+    with _experiment_lock:
+        run = _experiment_runs.get(run_id)
+        if run is not None and run["status"] == "running":
+            run["steps"][-1]["status"] = "done"
+            run["status"] = "completed"
+            run["updated_at"] = time.time()
+
+
+def launch_experiment_run(run_id):
+    """Start the worker that drives a pending run through inspect → smoke → benchmark."""
+    worker = threading.Thread(target=_experiment_worker, args=(run_id,), name=f"lab-experiment-{run_id}",
+                              daemon=True)
+    worker.start()
+    return worker
+
+
+def experiment_model_choices():
+    """Compiled models the Experiment can check: outputs/ first (what the user compiled), then assets/models."""
+    seen, out = set(), []
+    for root in (OUTPUTS_DIR, DX_APP_ROOT / "assets" / "models"):
+        try:
+            found = sorted(root.rglob("*.dxnn"), key=lambda p: (-p.stat().st_mtime, p.name))
+        except OSError:
+            continue
+        for p in found[:200]:
+            if p.name in seen or p.stat().st_size == 0:
+                continue
+            seen.add(p.name)
+            out.append({"name": p.stem, "path": str(p)})
+    return out
+
+
 def apply_task_scaffold(tok, payload):
     """Apply a task_scaffold manifest: validate, lock, call dev_new_task with manifest inputs."""
     err = require_lab(tok)
@@ -1970,7 +2210,10 @@ def apply_task_scaffold(tok, payload):
         )
         body, http_code = _result_with_http_status(res)
         if isinstance(body, dict) and body.get("ok") is True and http_code == 200:
-            manifest["status"] = "applied"
+            ops = manifest.get("operations", [])
+            _mark_applied(manifest, (data.get("task_name", "") or "").lower().replace("-", "_"),
+                          [op["path"] for op in ops if op.get("action") == "create"],
+                          overwrote=any(op.get("action") == "modify" for op in ops))
         return body, http_code
     finally:
         release_apply_lock(manifest["id"])

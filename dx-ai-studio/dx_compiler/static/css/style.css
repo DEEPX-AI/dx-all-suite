@@ -883,6 +883,12 @@ body.lang-zh-TW .zh-CN { display: none !important; }
     box-shadow: var(--shadow-lg);
   }
   .compile-form { padding: 1.2rem; }
+  /* 폰 — 단계 탭 (Quant Diagnosis · DXNN) 과 Compile 옆 버튼들이 화면 밖으로 잘렸다 (2026-10-11 matrix).
+     탭은 띠 안에서 옆으로 넘기고, 버튼은 다음 줄로 접는다. */
+  .viewer-tabs { overflow-x: auto; scrollbar-width: none; overscroll-behavior-x: contain; }
+  .viewer-tabs::-webkit-scrollbar { height: 0; }
+  .viewer-tab { white-space: nowrap; flex-shrink: 0; }
+  .form-actions { flex-wrap: wrap; }
 }
 
 /* ── Output Directory folder picker ─────────────────────────────── */

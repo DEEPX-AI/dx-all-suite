@@ -36,7 +36,7 @@ function _tbl(head, rows) {
 function buildRefCategories() {
   return [
     { id:'getting-started', icon:'run', title:_T5('Getting Started','시작하기','はじめに','入门指南','入門指南','Primeros pasos'),
-      desc:refL({en:'Setup, dashboard and the first demo',ko:'설정, 대시보드, 첫 데모',ja:'セットアップ・ダッシュボード・最初のデモ','zh-CN':'设置、仪表盘和第一个演示','zh-TW':'設定、儀表板與第一個示範',es:'Configuración, panel y primera demo'}) },
+      desc:refL({en:'Setup, dashboard and the first demo',ko:'설치, 대시보드, 첫 데모',ja:'セットアップ・ダッシュボード・最初のデモ','zh-CN':'安装、仪表盘和第一个演示','zh-TW':'安裝、儀表板與第一個示範',es:'Instalación, panel y primera demo'}) },
     { id:'demo-streaming', icon:'play', title:refL({en:'Demo & Streaming',ko:'데모 · 스트리밍',ja:'デモとストリーミング','zh-CN':'演示与流媒体','zh-TW':'示範與串流',es:'Demos y transmisión'}),
       desc:refL({en:'12 preset demos, WebRTC and MJPEG',ko:'프리셋 데모 12개, WebRTC · MJPEG',ja:'12 のプリセットデモ、WebRTC と MJPEG','zh-CN':'12 个预设演示，WebRTC 与 MJPEG','zh-TW':'12 個預設示範，WebRTC 與 MJPEG',es:'12 demos predefinidas, WebRTC y MJPEG'}) },
     { id:'pipeline', icon:'wrench', title:refL({en:'Pipeline',ko:'파이프라인',ja:'パイプライン','zh-CN':'管道','zh-TW':'管線',es:'Canalización'}),
@@ -55,7 +55,7 @@ function buildRefTopics() { return [
     tabs:{ overview:
       _p({en:'Recommended order the first time:',ko:'처음에는 이 순서를 권합니다:',ja:'初めての場合はこの順番がおすすめです：','zh-CN':'首次使用时建议按此顺序：','zh-TW':'首次使用時建議依此順序：',es:'Orden recomendado la primera vez:'}) +
       _ol([
-        {en:'<b>Setup</b> — finish the six steps (or press <b>Set up the rest</b>).',ko:'<b>Setup</b> — 6단계를 마칩니다(또는 <b>나머지 설정</b>).',ja:'<b>Setup</b> — 6 つのステップを完了します（または<b>残りをセットアップ</b>）。','zh-CN':'<b>Setup</b> — 完成六个步骤（或点击<b>完成其余设置</b>）。','zh-TW':'<b>Setup</b> — 完成六個步驟（或點擊<b>完成其餘設定</b>）。',es:'<b>Setup</b>: complete los seis pasos (o pulse <b>Configurar el resto</b>).'},
+        {en:'<b>Setup</b> — finish the six steps (or press <b>Set up the rest</b>).',ko:'<b>Setup</b> — 6단계를 마칩니다(또는 <b>나머지 설치</b>).',ja:'<b>Setup</b> — 6 つのステップを完了します（または<b>残りをセットアップ</b>）。','zh-CN':'<b>Setup</b> — 完成六个步骤（或点击<b>安装其余项</b>）。','zh-TW':'<b>Setup</b> — 完成六個步驟（或點擊<b>安裝其餘項目</b>）。',es:'<b>Setup</b>: complete los seis pasos (o pulse <b>Instalar el resto</b>).'},
         {en:'<b>Dashboard</b> — check the NPU, GStreamer, models, videos and plugin build tiles.',ko:'<b>Dashboard</b> — NPU · GStreamer · 모델 · 영상 · 플러그인 빌드 타일을 확인합니다.',ja:'<b>Dashboard</b> — NPU・GStreamer・モデル・動画・プラグインビルドのタイルを確認します。','zh-CN':'<b>Dashboard</b> — 查看 NPU、GStreamer、模型、视频和插件构建磁贴。','zh-TW':'<b>Dashboard</b> — 查看 NPU、GStreamer、模型、影片與外掛建置磁磚。',es:'<b>Dashboard</b>: revise los mosaicos de NPU, GStreamer, modelos, videos y compilación de plugins.'},
         {en:'<b>Demo Launcher</b> — pick a demo and press Start.',ko:'<b>Demo Launcher</b> — 데모를 고르고 시작을 누릅니다.',ja:'<b>Demo Launcher</b> — デモを選んで開始を押します。','zh-CN':'<b>Demo Launcher</b> — 选择演示并点击开始。','zh-TW':'<b>Demo Launcher</b> — 選擇示範並點擊開始。',es:'<b>Demo Launcher</b>: elija una demo y pulse Iniciar.'},
         {en:'<b>Pipeline Builder</b> — load a demo as a preset and change it, or build your own.',ko:'<b>Pipeline Builder</b> — 데모를 프리셋으로 불러와 고치거나 직접 만듭니다.',ja:'<b>Pipeline Builder</b> — デモをプリセットとして読み込んで変更するか、自分で作ります。','zh-CN':'<b>Pipeline Builder</b> — 将演示作为预设载入后修改，或自行搭建。','zh-TW':'<b>Pipeline Builder</b> — 將示範作為預設載入後修改，或自行建立。',es:'<b>Pipeline Builder</b>: cargue una demo como preajuste y modifíquela, o cree la suya.'}]) +

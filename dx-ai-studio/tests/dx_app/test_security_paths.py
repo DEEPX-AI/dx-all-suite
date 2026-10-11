@@ -474,6 +474,11 @@ class TestOverwriteConfirmation(unittest.TestCase):
             cpp_dir = Path(tmpdir) / "src" / "cpp_example"
             cat_dir = cpp_dir / "object_detection" / "test_model2"
             cat_dir.mkdir(parents=True)
+            # Add Model copies an existing example of the category (--base-model); give it one
+            ref = cpp_dir / "object_detection" / "fam" / "ref1"
+            (ref / "factory").mkdir(parents=True)
+            (ref / "ref1_sync.cpp").write_text("int main(){}\n")
+            (ref / "factory" / "ref1_factory.hpp").write_text("class Ref1Factory {};\n")
             scripts = Path(tmpdir) / "scripts"
             scripts.mkdir(exist_ok=True)
             (scripts / "add_model.sh").write_text("#!/bin/bash\necho ok")

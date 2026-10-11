@@ -37,6 +37,17 @@ function catText(c){
   if(!e){   // Models 쪽 catalog 는 slug 대신 영어 이름 ('Attribute Recognition') 을 준다
     for(var k in labels){if(labels[k]&&labels[k].en===c){e=labels[k];break}}
   }
+  if(!e&&c){
+    // catalog 이름이 표의 이름과 조금 다르다 — 'Face Attribute Recognition' ↔ face_attribute,
+    // 'Image De-noising' ↔ image_denoising. slug 로 펼쳐 맞추고, 안 맞으면 끝 단어를 하나씩 뗀다 (2026-10-11 matrix).
+    var slug=String(c).toLowerCase().replace(/de-noising/g,'denoising').replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'');
+    while(slug&&!e){
+      e=labels[slug];
+      var cut=slug.lastIndexOf('_');
+      if(cut<0)break;
+      slug=slug.slice(0,cut);
+    }
+  }
   var lang=(window.DXI18n&&DXI18n.lang)||'en';
   if(e)return e[lang]||e.en;
   var plain=String(c||'').replace(/_/g,' ');

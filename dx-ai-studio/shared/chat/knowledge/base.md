@@ -6,20 +6,20 @@
 
 ## [section:overview,deepx,소개] DXNN SDK 및 DeepX 플랫폼 개요
 
-**DeepX**는 Edge AI 추론 가속을 위한 통합 플랫폼이며, **DXNN SDK (DX-AllSuite v2.3.0)**가 전체 소프트웨어 스택입니다.
+**DeepX**는 Edge AI 추론 가속을 위한 통합 플랫폼이며, **DXNN SDK (DX-AllSuite)**가 전체 소프트웨어 스택입니다. 각 컴포넌트의 정확한 버전은 suite의 `release.ver` 파일(예: `dx-runtime/release.ver`, `dx-compiler/release.ver`)에서 확인하세요.
 
 ### 핵심 컴포넌트 (SDK 아키텍처)
 ```
 [AI Model Compile Environment - Host PC (x86_64)]
   ├── DX-COM (Compiler): ONNX → .dxnn 변환, INT8 Intelligent Quantization
   ├── DX-TRON (Visualizer): .dxnn 모델 구조 시각화, NPU/CPU 파티션 컬러 그래프
-  └── DX-ModelZoo: 270+ 사전 컴파일 모델 (.onnx + .json + .dxnn)
+  └── DX-ModelZoo: 약 500개 사전 컴파일 모델 (.onnx + .json + .dxnn)
 
 [AI Model Runtime Environment - Target Device (x86_64/aarch64)]
-  ├── DX-RT (Runtime v3.3.0): C/C++/Python API, 모델 로딩/추론/모니터링
-  ├── DX-APP (v3.1.0): 280+ 모델 × 17 태스크, C++/Python 듀얼 템플릿
-  ├── DX-Stream (v3.0.0): GStreamer 기반 13개 커스텀 플러그인, 실시간 영상 AI
-  ├── NPU Linux Driver (v2.4.1): PCIe 커널 모듈 (dxrt_driver.ko, dx_dma.ko)
+  ├── DX-RT (Runtime): C/C++/Python API, 모델 로딩/추론/모니터링
+  ├── DX-APP: 태스크별 추론 예제, C++/Python 듀얼 템플릿
+  ├── DX-Stream: GStreamer 기반 13개 커스텀 플러그인, 실시간 영상 AI
+  ├── NPU Linux Driver: PCIe 커널 모듈 (dxrt_driver.ko, dx_dma.ko)
   └── Firmware: NPU 리소스 스케줄링 및 전력 관리
 ```
 
@@ -31,9 +31,9 @@
 ### DX AI Studio 앱 구성
 | 앱 | 포트 | 역할 |
 |----|------|------|
-| **DX App** | 8080 | NPU 추론 실행, 280+ 모델, C++/Python 템플릿, 프로파일러 |
+| **DX App** | 8080 | NPU 추론 실행, C++/Python 템플릿, 프로파일러 |
 | **DX Stream** | 8093 | GStreamer 비디오 파이프라인, WebRTC, 13개 커스텀 엘리먼트 |
-| **DX Model Zoo** | 8094 | 270+ 모델 카탈로그, 인퍼런스 데모, YAML 오케스트레이션 |
+| **DX Model Zoo** | 8094 | 약 500개 모델 카탈로그, 인퍼런스 데모, YAML 오케스트레이션 |
 | **DX Compiler** | 8095 | ONNX → .dxnn 컴파일 GUI, DX-TRON 그래프 뷰어 |
 | **DX Planner (EdgeGuide)** | 8096 | 실측 YOLO26 벤치마크 기반 NPU 제품(DX-M1/H1 등) 추천 |
 | **DX Benchmark** | 8097 | YOLO26 하드웨어 벤치마크 결과 뷰어 (읽기 전용, 실행은 CLI) |
@@ -142,7 +142,7 @@ lsmod | grep dxrt           # dxrt_driver, dx_dma 모듈 로드 확인
 | Person Attribute | DeepMAR (ResNet18/50) |
 
 ### ModelZoo에서 바로 쓰기
-270+ 모델이 이미 컴파일되어 있으므로, 직접 컴파일 없이 즉시 사용 가능:
+약 500개 모델이 이미 컴파일되어 있으므로, 직접 컴파일 없이 즉시 사용 가능:
 - CLI: `./setup.sh --models YoloV7 SCRFD500M ResNet50`
 - 웹: https://developer.deepx.ai/modelzoo/
 
@@ -151,8 +151,8 @@ lsmod | grep dxrt           # dxrt_driver, dx_dma 모듈 로드 확인
 ### 지원 디바이스
 | NPU | 타입 | 인터페이스 | INT8 성능 | 특징 |
 |-----|------|-----------|-----------|------|
-| DX-M1 | AI Accelerator | PCIe/USB | ~5 TOPS | 단일칩, 저전력, 엣지 디바이스용 |
-| DX-H1 Quattro | AI Accelerator | PCIe 4.0 x4 | ~100+ TOPS | 4-NPU 멀티칩, 고성능 서버/엣지 |
+| DX-M1 | AI Accelerator | M.2 (PCIe Gen3 x4) | 25 TOPS | 단일칩, 저전력(약 5W TDP), 엣지 디바이스용 |
+| DX-H1 Quattro | AI Accelerator | PCIe Gen3 x16 (4×4 bifurcation) | 100 TOPS | 4-NPU 멀티칩, 고성능 서버/엣지 |
 
 ### NPU 모니터링 (`dxrt-cli`)
 - `dxrt-cli -s`: NPU 상태 요약 (온도, 전압, 클럭, DRAM 사용량)

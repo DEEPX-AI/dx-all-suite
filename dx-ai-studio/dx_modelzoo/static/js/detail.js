@@ -973,7 +973,7 @@ function renderDownloadButtons(model, scope = 'inline') {
       ${_mzIco('download')} ${T('Download Q-Pro')}</button>`;
   }
   if (!_dxAppAlive) {
-    html += `<span style="font-size:12px;color:var(--status-warn)">${T('DX App is not running. Run Inference needs the DX App module (port 8080) — launch DX AI Studio (it auto-starts DX App) or start the DX App module, then retry.')}</span>`;
+    html += `<span style="font-size:12px;color:var(--status-warn)">${T('DX App is not running. Run Inference needs the DX App module — DX AI Studio starts it with the launcher; if it stopped, restart the launcher and retry.')}</span>`;
   }
   return html;
 }

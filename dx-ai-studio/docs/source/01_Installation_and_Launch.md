@@ -49,8 +49,7 @@ a tool isn't ready yet.
 | `--no-browser` | Start the servers but do not open a browser. |
 | `--no-kill` | Keep a studio that is already running (by default a new launch replaces your previous one). |
 | `--fast` | Skip the boot animation in the terminal. |
-| `--verbose` / `-v` | Print port-fallback notices. |
-| `--debug[=PATH]` | Write a debug log (default path printed at start). |
+| `--debug[=PATH]` | Log user actions to `var/log/studio-debug.log` (or to `PATH`). |
 
 Run `./launcher.sh --help` for the full flag list. The hub proxies all modules, so you
 only ever open the hub port.

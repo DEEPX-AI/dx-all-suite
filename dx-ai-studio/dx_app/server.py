@@ -177,7 +177,7 @@ from dx_app.core.setup_steps import SETUP_STEPS, setup_status, setup_run, deep_d
 from dx_app.core.developer import (lab_session, lab_check, require_lab, _check_origin_local, dev_add,
                        dev_delete, dev_git, dev_extract, extract_model_package,
                        dev_new_task, bug_report, save_capture)
-from dx_app.core.lab_portal import lab_capabilities, plan_add_model, plan_add_model_response, apply_add_model, smoke_add_model, plan_task_scaffold_response, apply_task_scaffold, generated_files_for_manifest, validate_lab_manifest_id, start_experiment_run, get_experiment_run, cancel_experiment_run, active_experiment_run_for_source, list_pending_manifests, change_summary_by_root, rollback_manifest, scoped_git_plan, plan_composer_quick_start, plan_composer_template, customize_composer_workflow, plan_composer_plugin_scaffold_response, apply_composer_plugin_scaffold, run_composer_workflow, export_composer_package, export_composer_recipe, import_composer_recipe
+from dx_app.core.lab_portal import lab_capabilities, plan_add_model, plan_add_model_response, apply_add_model, smoke_add_model, plan_task_scaffold_response, apply_task_scaffold, generated_files_for_manifest, validate_lab_manifest_id, start_experiment_run, launch_experiment_run, get_experiment_run, cancel_experiment_run, active_experiment_run_for_source, list_lab_manifests, change_summary_by_root, rollback_manifest, scoped_git_plan, plan_composer_quick_start, plan_composer_template, customize_composer_workflow, plan_composer_plugin_scaffold_response, apply_composer_plugin_scaffold, run_composer_workflow, export_composer_package, export_composer_recipe, import_composer_recipe
 from shared.shell import ShellSpec
 
 _modelzoo_gw = ModelZooGateway()
@@ -401,7 +401,7 @@ class Handler(DXBaseHandler):
                 if err:
                     body = {k: v for k, v in err.items() if k != "status"}
                     return self.send_json(body, err.get("status", 403))
-                manifests = list_pending_manifests()
+                manifests = list_lab_manifests()
                 enriched = []
                 for manifest in manifests:
                     item = dict(manifest)
@@ -596,8 +596,8 @@ class Handler(DXBaseHandler):
             if path=="/api/dev/add_model":
                 res=dev_add(tok,data.get("model_name",""),data.get("task_type",""),
                  data.get("lang","both"),data.get("category","object_detection"),
-                 data.get("postprocessor","yolov8"),data.get("sync_only",False),
-                 data.get("confirm_overwrite",False))
+                 data.get("postprocessor",""),data.get("sync_only",False),
+                 data.get("confirm_overwrite",False),base_model=data.get("base_model",""))
                 code=res.pop("status",200) if isinstance(res,dict) and "status" in res else 200
                 return self.send_json(res,code)
             if path=="/api/dev/delete_model":
@@ -642,6 +642,8 @@ class Handler(DXBaseHandler):
 
             if path == "/api/lab/experiment/start":
                 res, code = start_experiment_run(data)
+                if code == 200:
+                    launch_experiment_run(res["id"])
                 return self.send_json(res, code)
 
             if path.startswith("/api/lab/experiment/") and path.endswith("/cancel"):
@@ -742,6 +744,13 @@ class Handler(DXBaseHandler):
 
         return self.route_legacy()
 
+def _idle_shutdown_enabled():
+    """A standalone dx_app (its own browser tab) shuts down after an hour without requests. Under the launcher
+    (DX_PORT_FILE set) the launcher owns the lifecycle — stopping there broke Model Zoo inference until the
+    launcher noticed and respawned it (2026-10-11)."""
+    return not os.environ.get("DX_PORT_FILE")
+
+
 def _watchdog(srv):
     while True:
         time.sleep(5)
@@ -774,7 +783,8 @@ def main():
 
     dx.register_signals()
     _hb_touch()
-    threading.Thread(target=_watchdog, args=(srv,), daemon=True).start()
+    if _idle_shutdown_enabled():
+        threading.Thread(target=_watchdog, args=(srv,), daemon=True).start()
     dx.print_banner(args.port)
 
     if not args.no_browser:

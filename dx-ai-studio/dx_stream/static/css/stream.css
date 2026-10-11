@@ -33,9 +33,9 @@ h2{font-size:var(--fs-md);margin:16px 0 8px;font-weight:600;color:var(--text-mut
 /* ═══════════════════════════════════════════════════════════════════
    Stat Cards
    ═══════════════════════════════════════════════════════════════════ */
-.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
-@media(max-width:1200px){.stat-grid{grid-template-columns:1fr 1fr}}
-@media(max-width:600px){.stat-grid{grid-template-columns:1fr}}
+/* Five status cards: fixed 4 columns left the fifth alone on a second row. auto-fit puts all five on
+   one row on a desktop and wraps evenly as the width shrinks (one column on a phone). */
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-bottom:16px}
 
 .stat-icon{font-size:28px;flex-shrink:0}
 .stat-info{flex:1;min-width:0}
@@ -314,6 +314,13 @@ tbody tr:hover td{background:var(--surface-hover)}
 .element-detail-section{margin-top:12px}
 .element-detail-section h4{font-size:var(--fs-base);font-weight:600;margin:0 0 4px;color:var(--text-secondary)}
 .element-detail-section p{font-size:var(--fs-sm);color:var(--text-muted);line-height:1.5;margin:0}
+/* Element detail extras (stream-elements.js _renderElementExtra) — were never on screen before */
+.element-detail-callout{padding:var(--sp-2) var(--sp-3);border-left:3px solid var(--accent);background:var(--surface-sunken);border-radius:var(--radius-sm)}
+.element-detail-callout p{color:var(--text-secondary)}
+.element-feature-list{margin:0;padding-left:var(--sp-4);font-size:var(--fs-sm);color:var(--text-muted);line-height:1.6}
+.element-code-snippet{margin:0;padding:var(--sp-2) var(--sp-3);background:var(--surface-sunken);border:1px solid var(--border-subtle);border-radius:var(--radius-sm);font:var(--fs-xs)/1.5 var(--mono);white-space:pre;overflow-x:auto}
+.element-related .badge{margin:0 var(--sp-1) var(--sp-1) 0}
+.element-doc-path{font:var(--fs-xs) var(--mono);color:var(--text-secondary);word-break:break-all}
 .filter-bar{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:12px;overflow-x:auto;max-width:100%}
 /* ═══ i18n Language Toggle (6-lang) ═══ */
 html[lang="en"] .ko, html[lang="en"] .ja, html[lang="en"] .es, html[lang="en"] [class*="zh-"],

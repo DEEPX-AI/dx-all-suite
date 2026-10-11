@@ -78,3 +78,14 @@ def test_dx_app_scan_categories_keeps_hardcoded_baseline(tmp_path, monkeypatch):
     from shared.tasks import canonical
     expected = canonical("face_alignment") if config.LAYOUT == config._layout.PER_MODEL else "face_alignment"
     assert expected in categories
+
+
+def test_idle_shutdown_is_only_for_a_standalone_server(monkeypatch):
+    """2026-10-11: dx_app stopped itself after an hour without a request ("No heartbeat — shutting down") even under
+    the launcher, which owns module lifecycles: the port-only watchdog respawned it later, and meanwhile Model Zoo's
+    Run Inference (proxied to dx_app) failed. Only a standalone dx_app (opened in its own browser tab) shuts down idle."""
+    import server
+    monkeypatch.delenv("DX_PORT_FILE", raising=False)
+    assert server._idle_shutdown_enabled()
+    monkeypatch.setenv("DX_PORT_FILE", "/tmp/dx_app.port")
+    assert not server._idle_shutdown_enabled()

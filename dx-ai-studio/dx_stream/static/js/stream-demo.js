@@ -217,7 +217,7 @@ function _demoOpen(id, stage) {
         + '<button type="button" data-mode="local" class="' + (mode === 'local' ? 'is-on' : '') + '" title="'
         + _escHtml(T("Viewing on the board's own PC / same LAN (low latency, no re-encode)")) + '">' + _escHtml(T('Local (WebRTC)')) + '</button>'
         + '<button type="button" data-mode="remote" class="' + (mode === 'remote' ? 'is-on' : '') + '" title="'
-        + _escHtml(T('Remote access from another PC / SSH tunnel (H264 over HTTP, works anywhere)')) + '">' + _escHtml(T('Remote (MJPEG)')) + '</button>'
+        + _escHtml(T('Remote access from another PC / SSH tunnel (MJPEG over HTTP, works anywhere)')) + '">' + _escHtml(T('Remote (MJPEG)')) + '</button>'
         + '</div></div>';
     if (d.pipeline_type === 'rtsp') {
         opts += '<div class="dds-opt" data-axis-row="rtsp"><span class="dds-opt-label">RTSP</span>'
@@ -592,15 +592,26 @@ function _clearStoppedDemoLaunchState(resp) {
     if (DXStream._demoCtl) DXStream._demoCtl.setRunning(null);
     if (previousId != null) _demoPaint(previousId);
 
-    var message = resp.message || T('Demo playback stopped.');
-    if (resp.detail) message += ' ' + resp.detail;
-    if (resp.remediation) message += ' ' + resp.remediation;
+    // The server sends fixed English sentences (_demo_launch_failure_payload); stream-i18n.js
+    // carries each one, and T() leaves anything unknown as it came.
+    var message = resp.message ? T(resp.message) : T('Demo playback stopped.');
+    if (resp.detail) message += ' ' + T(resp.detail);
+    if (resp.remediation) message += ' ' + T(resp.remediation);
     DXStream.toast(message, 'error');
     return true;
 }
 
 // WebRTC couldn't connect (remote/NAT/tunnel). Restart this demo forcing MJPEG on the server,
 // then show the MJPEG stream. Guarded so it only runs once per start.
+// A refused start: the server's sentence through translateServerError, plus the detail it sends
+// (which check failed and how). The toast used to print resp.error raw and drop the detail.
+function _demoStartError(resp) {
+    var tr = (typeof window.translateServerError === 'function') ? window.translateServerError : function (m) { return m; };
+    var msg = tr(String((resp && resp.error) || T('Demo playback stopped.')));
+    if (resp && resp.detail && resp.detail !== resp.error) msg += ' — ' + tr(String(resp.detail));
+    return msg;
+}
+
 DXStream._fallbackToMjpeg = async function (id) {
     if (DXStream._mjpegFallbackFor === id) return;
     DXStream._mjpegFallbackFor = id;
@@ -611,10 +622,14 @@ DXStream._fallbackToMjpeg = async function (id) {
         try { if (DXStream.webrtc && DXStream.webrtc.disconnect) DXStream.webrtc.disconnect(); } catch (e) {}
         try { _stopFmp4(); } catch (e) {}
         DXStream.toast(T('WebRTC unavailable from here — switching to MJPEG…'), 'info');
-        var resp = await DXStream.postJ('/api/demos/' + id + '/start', { forceMjpeg: true });
+        // Same source as the first start: an RTSP demo's camera URL was lost here.
+        var first = (DXStream._demoStartBody || {})[id] || {};
+        var retry = { forceMjpeg: true };
+        if (first.video) retry.video = first.video;
+        var resp = await DXStream.postJ('/api/demos/' + id + '/start', retry);
         if (resp && resp.error) {
             if (_clearStoppedDemoLaunchState(resp)) return;
-            DXStream.toast(resp.error, 'error');
+            DXStream.toast(_demoStartError(resp), 'error');
             return;
         }
         _showMjpegStream(DXStream.$('demo-video-section'));
@@ -648,16 +663,18 @@ DXStream._startDemo = async function (id) {
         // "://" value through as the pipeline URI). Blank falls back to the demo's default CCTV.
         var _rtspEl = DXStream.$('rtsp-url-' + id);
         if (_rtspEl && _rtspEl.value.trim()) _startBody.video = _rtspEl.value.trim();
+        DXStream._demoStartBody = DXStream._demoStartBody || {};
+        DXStream._demoStartBody[id] = _startBody;
         var resp = await DXStream.postJ('/api/demos/' + id + '/start', _startBody);
         if (resp.error) {
             if (_clearStoppedDemoLaunchState(resp)) return;
-            DXStream.toast(resp.error, 'error');
+            DXStream.toast(_demoStartError(resp), 'error');
             return;
         }
         if (resp.output_mode === 'webrtc') {
             var status = await _waitDemoStarted(id, resp.pipeline_id);
             if (status && status.error) {
-                DXStream.toast(status.error, 'error');
+                DXStream.toast(_demoStartError(status), 'error');
                 return;
             }
         }
@@ -716,18 +733,36 @@ async function _waitDemoStarted(id, pipelineId) {
 }
 
 DXStream._stopDemo = async function (id) {
-    DXStream.webrtc.disconnect();
     var demoId = (id != null) ? id : DXStream._runningDemoId;
-    if (demoId != null) {
-        await DXStream.postJ('/api/demos/' + demoId + '/stop', {});
-    } else {
-        await DXStream.postJ('/api/pipeline/stop', {});
+    var resp = (demoId != null)
+        ? await DXStream.postJ('/api/demos/' + demoId + '/stop', {})
+        : await DXStream.postJ('/api/pipeline/stop', {});
+    if (resp && resp.error) {
+        // It used to say "Demo stopped" whatever the server answered.
+        DXStream.toast(_demoStartError(resp), 'error');
+        return;
     }
+    _demoTearDown(demoId);
+    DXStream.toast(T('Demo stopped'), 'info');
+};
+
+// The server no longer plays this demo (a Pipeline Builder run replaces it, or it ended): drop the
+// page's "running" state without another stop request. Called by the shared playback poll.
+DXStream._demoSyncWithServer = function (st) {
+    var id = DXStream._runningDemoId;
+    if (id == null || DXStream._startingDemo || !st) return;
+    if (st.running && (st.demo_id === id || st.demo_id == null && String(st.pipeline_id || '').indexOf('demo-' + id) >= 0)) return;
+    if (st.running && st.demo_id == null && String(st.pipeline_id || '').indexOf('demo') >= 0) return;
+    _demoTearDown(id);
+};
+
+function _demoTearDown(demoId) {
+    try { DXStream.webrtc.disconnect(); } catch (e) {}
 
     // 비디오 정리
     var videoSection = DXStream.$('demo-video-section');
     if (document.fullscreenElement === videoSection && document.exitFullscreen) {
-        try { await document.exitFullscreen(); } catch (e) {}
+        try { document.exitFullscreen().catch(function () {}); } catch (e) {}
     }
     _stopFmp4();  // tear down MSE stream (fetch reader + MediaSource) if remote/fMP4 was active
     var video = DXStream.$('webrtc-video');
@@ -746,8 +781,7 @@ DXStream._stopDemo = async function (id) {
     } else {
         _demoParkVideo();
     }
-    DXStream.toast(T('Demo stopped'), 'info');
-};
+}
 
 // Filters live on the stage now (buttons built from the demos' own categories).
 DXStream.filterDemos = function (cat) {

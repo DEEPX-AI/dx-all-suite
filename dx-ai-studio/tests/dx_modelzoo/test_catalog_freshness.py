@@ -73,3 +73,74 @@ def test_the_list_screen_shows_it():
     """상세 화면은 이미 보여준다. 목록이야말로 '전체가 낡았나' 를 묻는 자리다."""
     src = (ROOT / "dx_modelzoo" / "static" / "js" / "catalog.js").read_text(encoding="utf-8")
     assert "generated_at" in src, "목록 화면이 생성 시각을 쓰지 않는다"
+
+
+def test_cards_use_the_curated_display_name():
+    """model_catalog.json names were the id title-cased ('Regnety16Gf', '3Ddfa V2 Mobilnet0 5 120X120');
+    the generated catalog's display.name is the curated one (2026-10-11 matrix)."""
+    from dx_modelzoo.core.catalog import _enrich_model_entry
+
+    base = {"id": "regnety_16gf", "name": "Regnety16Gf"}
+    _enrich_model_entry(base, {"display": {"name": "RegNetY-16GF", "task": "image_classification"}})
+    assert base["name"] == "RegNetY-16GF"
+    keep = {"id": "x", "name": "Kept"}
+    _enrich_model_entry(keep, {"display": {"task": "image_classification"}})
+    assert keep["name"] == "Kept"
+
+
+def test_the_newer_generated_catalog_wins_over_a_stale_cache(tmp_path):
+    """A cache left by an Oct-1 sync hid the Oct-9 generated_catalog.json with the published names."""
+    import json
+    import os
+
+    from dx_modelzoo.core.catalog import load_generated_catalog
+
+    cache, gen = tmp_path / "cache.json", tmp_path / "gen.json"
+    cache.write_text(json.dumps({"schema_version": "2.0", "models": [{"id": "a", "display": {"name": "a"}}]}))
+    gen.write_text(json.dumps({"schema_version": "2.0", "models": [{"id": "a", "display": {"name": "A-Net"}}]}))
+    os.utime(cache, (1_000_000, 1_000_000))
+    os.utime(gen, (2_000_000, 2_000_000))
+    assert load_generated_catalog(cache, gen)["models"][0]["display"]["name"] == "A-Net"
+    os.utime(cache, (3_000_000, 3_000_000))      # a fresher sync wins again
+    assert load_generated_catalog(cache, gen)["models"][0]["display"]["name"] == "a"
+
+
+def test_the_summary_sentence_uses_the_published_name():
+    from dx_modelzoo.core.catalog import _enrich_summary
+
+    m = {"id": "regnety_16gf", "name": "RegNetY-16GF",
+         "description": {"en": "regnety_16gf is a classification model.", "ko": "regnety_16gf은(는) 분류 모델입니다."}}
+    _enrich_summary(m)
+    assert m["display"]["summary"]["en"] == "RegNetY-16GF is a classification model."
+    assert m["description"]["ko"].startswith("RegNetY-16GF")
+
+
+def test_run_inference_finds_examples_in_the_per_model_layout(tmp_path, monkeypatch):
+    """Model Zoo looked for python_example/<task>/<catalog id>/ — gone in the per-model layout
+    (object_detection/yolo26/yolo26-n_640x640/), so variants came back empty, the panel defaulted
+    to an unbuilt C++ binary and Run Inference said "Binary not found" (2026-10-11 audit)."""
+    from dx_modelzoo.core import catalog
+    from shared import dx_app_layout
+
+    root = tmp_path / "dx_app"
+    ex = root / "src/python_example/object_detection/yolo26/yolo26-n_640x640"
+    ex.mkdir(parents=True)
+    (ex / "yolo26-n_640x640_sync.py").write_text("")
+    (ex / "yolo26-n_640x640_async.py").write_text("")
+    (root / "bin").mkdir()
+    monkeypatch.setattr(catalog, "DX_APP_ROOT", root)
+    monkeypatch.setattr(catalog, "BUILD_DIR", root / "bin")
+    dx_app_layout.clear_cache()
+    try:
+        got = catalog._detect_inference_variants("yolo26n", "object_detection", "assets/models/yolo26-n_640x640.dxnn")
+    finally:
+        dx_app_layout.clear_cache()
+    assert got == {"python": ["sync", "async"]}
+
+
+def test_the_panel_uses_the_only_path_when_no_selector_is_drawn():
+    from pathlib import Path
+
+    js = (Path(__file__).resolve().parents[2] / "dx_modelzoo/static/js/inference.js").read_text(encoding="utf-8")
+    assert "(sel && sel.value) || _infDefaultPath" in js
+    assert "_infDefaultPath = execOpts.length ? execOpts[0].value" in js

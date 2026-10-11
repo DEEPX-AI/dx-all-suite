@@ -5,6 +5,8 @@
   let _showcaseCache = null;
   let _showcasePromise = null;
   let _turn = null;
+  /* error 뒤에도 server 는 done 으로 끝낸다 — 이 실행이 실패했는지 done 까지 기억한다. */
+  let _runFailed = false;
   let _heartbeatTimer = null;
   let _agentControlsBound = false;
   let _modelHintBound = false;
@@ -18,6 +20,8 @@
   let _streamRenderRaf = null;
   /** Server-issued conversation id for multi-turn CLI resume. */
   let _conversationId = null;
+  /** The user pressed Stop — the "exit -15" the CLI reports is then expected, not a failure. */
+  let _stopRequested = false;
 
   function setConsoleBusy(busy) {
     const form = $('console-form');
@@ -26,6 +30,33 @@
     if (form) form.classList.toggle('console-form--busy', !!busy);
     if (input) input.disabled = !!busy;
     if (send) send.disabled = !!busy;
+    const stop = $('console-stop');
+    if (stop) { stop.hidden = !busy; stop.disabled = false; }
+  }
+
+  /* 예전에는 이 콘솔에 멈춤이 없었다 — 몇 분짜리 빌드를 잘못 보내면 끝날 때까지 기다려야 했다
+     (home 콘솔에만 있었다, 2026-10-11 audit). */
+  function stopRun() {
+    if (!_running || _stopRequested) return;
+    _stopRequested = true;
+    const stop = $('console-stop');
+    if (stop) stop.disabled = true;
+    setStatusLine(T('Stopping...'), 'Stopping...');
+    fetch('/api/agent/cancel', { method: 'POST' }).catch(function () {});
+  }
+
+  /* stream 이 done 없이 끝났다 — 서버가 죽었거나 연결이 끊겼다. 예전에는 "Running..." 이 그대로 남았다. */
+  function finishWithoutDone() {
+    if (!_turn) return;
+    if (_stopRequested) {
+      setBadge('Stopped', 'failed');
+      setStatusLine(T('Stopped.'), 'Stopped.');
+    } else {
+      if (!_runFailed) appendError(T('The connection to the agent ended before it finished.'));
+      setBadge('Failed', 'failed');
+    }
+    if (_turn) updateAssistantView(true);
+    _turn = null;
   }
 
   function releaseRunLock() {
@@ -585,9 +616,23 @@
         break;
       case 'error':
         noteRunOutput();
+        if (_stopRequested && /^exit -?\d+$/.test(String(ev.text || '').trim())) break;
         appendError(ev.text);
+        _runFailed = true;
         setBadge('Failed', 'failed');
         setStatusLine('');
+        break;
+      case 'artifacts':
+        // 에이전트가 앱을 만든 곳 (대상 프로젝트의 dx-agent-dev/<session>/) — done 의 Studio 추적 폴더보다 이것
+        if (Array.isArray(ev.dirs) && ev.dirs.length) {
+          const where = ev.dirs.join(', ');
+          setStatusLine(T('App written to') + ' ' + where, null);
+          const bar = $('console-status-bar');
+          if (bar) {
+            bar.setAttribute('data-i18n-prefix', 'App written to');
+            bar.setAttribute('data-session-dir', where);
+          }
+        }
         break;
       case 'status':
         if (ev.text) {
@@ -600,7 +645,9 @@
         cancelStreamingRender();
         if (ev.conversation_id) _conversationId = ev.conversation_id;
         if (_turn) updateAssistantView(true);
-        setBadge('Completed', 'ok');
+        if (_stopRequested) setBadge('Stopped', 'failed');
+        else if (_runFailed) setBadge('Failed', 'failed');
+        else setBadge('Completed', 'ok');
         if (ev.session_dir) {
           var statusBar = $('console-status-bar');
           setStatusLine(T('Output saved to') + ' ' + ev.session_dir, null);
@@ -625,7 +672,9 @@
       return;
     }
     _running = true;
+    _stopRequested = false;
     setConsoleBusy(true);
+    _runFailed = false;
     setBadge('Running...', 'running');
     startHeartbeat();
     beginTurn(rawPrompt);
@@ -653,6 +702,7 @@
         return;
       }
       await _consumeStream(resp);
+      finishWithoutDone();
     } catch (e) {
       clearHeartbeat();
       appendError(String((e && e.message) || e));
@@ -699,7 +749,9 @@
   async function attachIfRunning(st) {
     if (!st || !st.run_id || st.run_done || _running) return false;
     _running = true;
+    _stopRequested = false;
     setConsoleBusy(true);
+    _runFailed = false;
     setBadge('Running...', 'running');
     startHeartbeat();
     /* 대화 칸부터 — 없으면 message · command renderer 가 전부 `if (!_turn) return` 으로 버린다. 예전
@@ -714,6 +766,7 @@
       const resp = await fetch('/api/agent/run/events?from=0');
       if (!resp.ok || !resp.body) return false;
       await _consumeStream(resp);
+      finishWithoutDone();
       return true;
     } catch (e) {
       return false;
@@ -880,9 +933,10 @@
     if (!bar || bar.hidden) return;
     var key = bar.getAttribute('data-i18n-key');
     if (key) setStatusLine(T(key), key);
-    else if (bar.getAttribute('data-i18n-prefix') === 'Output saved to') {
+    else if (bar.getAttribute('data-i18n-prefix')) {
+      var prefix = bar.getAttribute('data-i18n-prefix');
       var dir = bar.getAttribute('data-session-dir') || '';
-      setStatusLine(T('Output saved to') + (dir ? ' ' + dir : ''), null);
+      setStatusLine(T(prefix) + (dir ? ' ' + dir : ''), null);
     }
   }
 
@@ -939,6 +993,8 @@
         runPrompt(prompt);
       });
     }
+    const stopBtn = $('console-stop');
+    if (stopBtn) stopBtn.addEventListener('click', stopRun);
     applyLang();
     if (typeof DXI18n !== 'undefined' && DXI18n.onLangChange) DXI18n.onLangChange(applyLang);
     checkStatus();

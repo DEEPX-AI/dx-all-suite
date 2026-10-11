@@ -36,7 +36,7 @@ def test_loading_a_preset_updates_the_count_the_command_and_speaks_the_ui_langua
     assert "el.textContent = T('Elements') + ': ' + n;" in renderer
     assert "querySelector('.ko')" not in renderer
     load = ser[ser.index("DXStream.loadPreset = async function"):ser.index("function _demoToNodes")]
-    assert "_scheduleCommandPreview();" in load
+    assert "_pushHistory();" in load            # history → draft + command preview (_pushHistory schedules both)
     assert "demo['name_' + lang]" in load and "demo.name_ko || demo.name_en" not in load
 
 

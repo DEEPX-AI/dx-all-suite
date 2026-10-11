@@ -148,7 +148,9 @@ def run_inference_live(model_name, category, model_file, lang="cpp", variant="sy
     _xw, _xh = (int(v) for v in _XVFB_RES.split("x")[:2])
     env["DXAPP_SCREEN_W"], env["DXAPP_SCREEN_H"] = str(2 * _xw), str(2 * _xh)
 
-    inf = "-v"
+    # SDKREQ-529 부터 runner 는 -v 경로가 디스크에 있어야 한다 — RTSP 와 여러 slot 카메라의 udp:// 는 "Input file not
+    # found" 로 바로 끝나 검은 화면만 남았다 (2026-10-11). URL 은 -r (C++ rtsp_url — OpenCV 가 연다).
+    inf = "-r" if "://" in _inp_str else "-v"
     if lang == "cpp":
         bp = BUILD_DIR / f"{model_name}_{variant}"
         if not bp.exists():

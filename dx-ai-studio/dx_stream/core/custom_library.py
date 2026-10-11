@@ -4,6 +4,7 @@ SDK의 custom_library/postprocess_library/ 구조를 GUI에서 관리한다.
 """
 from __future__ import annotations
 
+import os
 import subprocess
 import threading
 from pathlib import Path
@@ -15,6 +16,36 @@ INSTALLED_SO_DIR = Path("/usr/local/share/gstdxstream/lib")
 _build_log = ""
 _build_done = True
 _build_lock = threading.Lock()
+
+
+class SudoRequired(Exception):
+    """`sudo meson install` needs a password and none was given."""
+
+
+class SudoAuthFailed(Exception):
+    """The given sudo password was refused."""
+
+
+def _sudo_env(password: str | None = None):
+    """Environment for the build, so `sudo meson install` authenticates without a TTY.
+
+    The server has no terminal: a plain `sudo` died at the install step ("a terminal is required")
+    on every host that asks for a password. Same mechanism as Stream Setup (shared.sudo_askpass):
+    passwordless or already-cached sudo needs nothing; otherwise the page's password feeds an
+    askpass helper. Returns (env, cleanup). Raises before any build step runs."""
+    from shared import sudo_askpass as SA
+
+    env = os.environ.copy()
+    if SA.preauthorize_sudo(None, env) is None:
+        return env, (lambda: None)
+    if not password:
+        raise SudoRequired("Administrator (sudo) password is required to install the library.")
+    cleanup = SA.configure_sudo_env(env, password)
+    err = SA.preauthorize_sudo(password, env)
+    if err:
+        cleanup()
+        raise SudoAuthFailed(f"sudo authentication failed: {err}")
+    return env, cleanup
 
 
 class CustomLibraryManager:
@@ -103,14 +134,15 @@ class CustomLibraryManager:
             saved.append(str(filepath))
         return {"name": name, "path": str(target_dir), "files": saved}
 
-    def build(self, name: str):
-        """meson setup + compile — 백그라운드 스레드."""
+    def build(self, name: str, sudo_password: str | None = None):
+        """meson setup + compile + sudo install — 백그라운드 스레드."""
         global _build_log, _build_done
 
         self._reject_traversal(name, "library name")
         target_dir = POSTPROC_LIB_DIR / name
         if not (target_dir / "meson.build").exists():
-            raise FileNotFoundError(f"meson.build not found in {target_dir}")
+            raise FileNotFoundError(f"Library '{name}' has no meson.build")
+        env, cleanup = _sudo_env(sudo_password)
 
         with _build_lock:
             _build_log = ""
@@ -131,7 +163,7 @@ class CustomLibraryManager:
                     proc = subprocess.Popen(
                         cmd, cwd=str(target_dir),
                         stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                        text=True, bufsize=1
+                        text=True, bufsize=1, env=env,
                     )
                     for line in proc.stdout:
                         with _build_lock:
@@ -150,6 +182,8 @@ class CustomLibraryManager:
                 with _build_lock:
                     _build_log += f"\n[ERROR] {e}\n"
                     _build_done = True
+            finally:
+                cleanup()
 
         threading.Thread(target=_run, daemon=True).start()
 

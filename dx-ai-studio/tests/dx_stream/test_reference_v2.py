@@ -185,11 +185,10 @@ def test_demo_fullscreen_target_keeps_stop_controls_inside():
 
 def test_demo_stop_exits_fullscreen_before_hiding_video_section():
     js = stream_demo_js_source()
-    body = re.search(
-        r"DXStream\._stopDemo\s*=\s*async\s+function\s*\([^)]*\)\s*\{([\s\S]+?)\n\};",
-        js,
-    )
-    assert body, "missing DXStream._stopDemo implementation"
+    # The UI teardown moved into _demoTearDown (shared by Stop and the playback poll).
+    assert "_demoTearDown(demoId)" in js
+    body = re.search(r"function _demoTearDown\s*\([^)]*\)\s*\{([\s\S]+?)\n\}", js)
+    assert body, "missing _demoTearDown implementation"
     src = body.group(1)
 
     assert "document.fullscreenElement" in src

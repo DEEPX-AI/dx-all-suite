@@ -8,9 +8,9 @@
 window._DX_I18N_DICT = {
   /* ==== Sidebar ==== */
   'Setup': {
-    ko: '설정', ja: 'セットアップ',
-    'zh-CN': '设置', 'zh-TW': '設定',
-    es: 'Configuración',
+    ko: '설치', ja: 'セットアップ',
+    'zh-CN': '安装', 'zh-TW': '安裝',
+    es: 'Instalación',
   },
   'Dashboard': {
     ko: '대시보드', ja: 'ダッシュボード',
@@ -67,9 +67,9 @@ window._DX_I18N_DICT = {
 
   /* ==== Page titles ==== */
   'Setup & Install': {
-    ko: '설정 & 설치', ja: 'セットアップ & インストール',
-    'zh-CN': '设置和安装', 'zh-TW': '設定與安裝',
-    es: 'Configuración e instalación',
+    ko: '설치', ja: 'セットアップ & インストール',
+    'zh-CN': '安装', 'zh-TW': '安裝',
+    es: 'Instalación',
   },
   'API Endpoints': {
     ko: 'API 엔드포인트', ja: 'API エンドポイント',
@@ -243,6 +243,16 @@ window._DX_I18N_DICT = {
     ko: 'FPS', ja: 'FPS',
     'zh-CN': 'FPS', 'zh-TW': 'FPS',
     es: 'FPS',
+  },
+  'Live source': {
+    ko: '실시간 입력', ja: 'ライブ入力',
+    'zh-CN': '实时输入', 'zh-TW': '即時輸入',
+    es: 'Fuente en vivo',
+  },
+  'Exit code:': {
+    ko: '종료 코드:', ja: '終了コード:',
+    'zh-CN': '退出码：', 'zh-TW': '結束代碼：',
+    es: 'Código de salida:',
   },
   'Latency': {
     ko: '지연시간', ja: 'レイテンシ',
@@ -474,7 +484,7 @@ window._DX_I18N_DICT = {
   'Sync': {
     ko: '동기', ja: '同期',
     'zh-CN': '同步', 'zh-TW': '同步',
-    es: 'Sincronizar',
+    es: 'Síncrono',
   },
   'Async': {
     ko: '비동기', ja: '非同期',
@@ -1033,7 +1043,7 @@ window._DX_I18N_DICT = {
   'Business (12h)': {
     ko: '업무시간 (12시간)', ja: '営業時間 (12時間)',
     'zh-CN': '工作时间 (12小时)', 'zh-TW': '工作時間 (12小時)',
-    es: 'Negocio (12h)',
+    es: 'Horario laboral (12 h)',
   },
   '24/7': {
     ko: '24/7', ja: '24/7',
@@ -1083,7 +1093,7 @@ window._DX_I18N_DICT = {
   'Unmanned Store': {
     ko: '무인 매장', ja: '無人店舗',
     'zh-CN': '无人商店', 'zh-TW': '無人商店',
-    es: 'Tienda no tripulada',
+    es: 'Tienda autónoma',
   },
   'Intelligent CCTV': {
     ko: '지능형 CCTV', ja: 'インテリジェント CCTV',
@@ -2576,8 +2586,14 @@ window._DX_I18N_DICT = {
     es: 'Extraiga el código fuente, configuración y archivo de modelo del modelo seleccionado como paquete. Disponible para descarga en la página de Salidas.',
   },
   'Camera Device': { ko: '카메라 장치', ja: 'カメラデバイス', 'zh-CN': '摄像头设备', 'zh-TW': '攝影機裝置',es:'Dispositivo de cámara'},
+  'RTSP address': { ko: 'RTSP 주소', ja: 'RTSP アドレス', 'zh-CN': 'RTSP 地址', 'zh-TW': 'RTSP 位址', es: 'Dirección RTSP' },
+  'Enter the RTSP address (rtsp://… or IP:Port)': {
+    ko: 'RTSP 주소를 입력하세요 (rtsp://… 또는 IP:포트)', ja: 'RTSP アドレスを入力してください (rtsp://… または IP:ポート)',
+    'zh-CN': '请输入 RTSP 地址（rtsp://… 或 IP:端口）', 'zh-TW': '請輸入 RTSP 位址（rtsp://… 或 IP:連接埠）',
+    es: 'Introduzca la dirección RTSP (rtsp://… o IP:Puerto)',
+  },
   'RTSP Server': { ko: 'RTSP 서버', ja: 'RTSP サーバー', 'zh-CN': 'RTSP 服务器', 'zh-TW': 'RTSP 伺服器',es:'Servidor RTSP'},
-  'Stream': { ko: '스트림', ja: 'ストリーム', 'zh-CN': '流', 'zh-TW': '串流',es:'Flujo'},
+  'Stream': { ko: '스트림', ja: 'ストリーム', 'zh-CN': '流', 'zh-TW': '串流',es:'Stream'},
   'Settings': { ko: '설정', ja: '設定', 'zh-CN': '设置', 'zh-TW': '設定',es:'Configuración'},
   'None': { ko: '해제', ja: 'なし', 'zh-CN': '无', 'zh-TW': '無',es:'Ninguno'},
   'Latency(ms)': { ko: '지연시간(ms)', ja: 'レイテンシ(ms)', 'zh-CN': '延迟(ms)', 'zh-TW': '延遲(ms)',es:'Latencia (ms)'},
@@ -2870,7 +2886,7 @@ window._DX_I18N_DICT = {
     es: 'La cadena central es fija para que Factory y SyncRunner de DX App seleccionados sigan siendo ejecutables.',
   },
   'Fit view': {
-    ko: '화면에 맞추기', ja: '画面に合わせる', 'zh-CN': '适应视图', 'zh-TW': '符合檢視', es: 'Ajustar vista',
+    ko: '화면에 맞추기', ja: '画面に合わせる', 'zh-CN': '适应视图', 'zh-TW': '適應檢視', es: 'Ajustar vista',
   },
   'Zoom in': {
     ko: '확대', ja: '拡大', 'zh-CN': '放大', 'zh-TW': '放大', es: 'Acercar',
@@ -3186,6 +3202,12 @@ window._DX_I18N_DICT = {
     'zh-CN': '打开 ModelZoo', 'zh-TW': '開啟 ModelZoo',
     es: 'Abrir ModelZoo',
   },
+  /* Lab — Add Model copies an existing example (2026-10-11) */
+  'Start from': {
+    ko: '복사할 예제', ja: 'コピー元の例',
+    'zh-CN': '起始示例', 'zh-TW': '起始範例',
+    es: 'Partir de',
+  },
 };
 
 /* ─── CSS Selectors for DOM translation ─── */
@@ -3365,7 +3387,7 @@ window._DX_I18N_PLACEHOLDERS = {
     es: 'Conf. prom.',
   },
   'Handedness': {
-    ko: '손잡이', ja: '利き手',
+    ko: '왼손/오른손', ja: '利き手',
     'zh-CN': '惯用手', 'zh-TW': '慣用手',
     es: 'Lateralidad',
   },
@@ -3406,7 +3428,7 @@ window._DX_I18N_PLACEHOLDERS = {
   },
   'Total Faces': {
     ko: '총 얼굴', ja: '顔の総数',
-    'zh-CN': '人脸总数', 'zh-TW': '總面部',
+    'zh-CN': '人脸总数', 'zh-TW': '人臉總數',
     es: 'Total de rostros',
   },
   'Avg/Frame': {
@@ -4448,7 +4470,7 @@ window._DX_I18N_PLACEHOLDERS = {
   'YOLACT real-time instance segmentation. Prototype mask + linear combination.': {
     ko: 'YOLACT 실시간 인스턴스 분할. Prototype mask + 선형 결합.', ja: 'YOLACT リアルタイムインスタンスセグメンテーション。Prototype mask + 線形結合。',
     'zh-CN': 'YOLACT 实时实例分割。Prototype mask + 线性组合。', 'zh-TW': 'YOLACT 即時實例分割。Prototype mask + 線性組合。',
-    es: 'YOLACT tiempo real instance segmentación. Prototype mask + linear combination.',
+    es: 'Segmentación de instancias en tiempo real YOLACT. Máscara prototipo + combinación lineal.',
   },
   'YOLOX anchor-free object detection. Decoupled head with NMS post-processing.': {
     ko: 'YOLOX 앵커 프리 객체 검출. Decoupled head, NMS 후처리.', ja: 'YOLOX アンカーフリー物体検出。Decoupled head、NMS 後処理。',
@@ -4675,7 +4697,7 @@ window._DX_I18N_PLACEHOLDERS = {
   'Archives': {
     ko: '아카이브', ja: 'アーカイブ',
     'zh-CN': '归档文件', 'zh-TW': '封存檔案',
-    es: 'Archivos',
+    es: 'Archivos comprimidos',
   },
   'Deleted ': {
     ko: '삭제됨 ', ja: '削除済み ',
@@ -4703,11 +4725,6 @@ window._DX_I18N_PLACEHOLDERS = {
     es: 'Videos',
   },
 
-  ' detected region(s)': {
-    ko: '개 검출 영역', ja: ' 件の検出領域',
-    'zh-CN': ' 个检测区域', 'zh-TW': ' 個偵測區域',
-    es: ' región(es) detectada(s)',
-  },
   'Cascade: crops detected regions from stage-1 (Detection) and passes them to stage-2.': {
     ko: 'Cascade: stage-1 (Detection)에서 검출된 영역을 크롭하여 stage-2로 전달합니다.', ja: 'Cascade: stage-1（Detection）で検出された領域をクロップし、stage-2 に渡します。',
     'zh-CN': 'Cascade：从 stage-1（Detection）裁剪检测到的区域并传递给 stage-2。', 'zh-TW': 'Cascade：從 stage-1（Detection）裁剪偵測到的區域並傳遞給 stage-2。',
@@ -4723,10 +4740,10 @@ window._DX_I18N_PLACEHOLDERS = {
     'zh-CN': '就绪', 'zh-TW': '就緒',
     es: 'Listo',
   },
-  'Running stage-2 inference on ': {
-    ko: ' 에서 stage-2 추론 실행 중', ja: ' で stage-2 推論実行中',
-    'zh-CN': '正在对 ', 'zh-TW': '正在對 ',
-    es: 'Ejecutando inferencia de etapa-2 en ',
+  'Running stage-2 inference on {n} detected region(s)': {
+    ko: '검출된 영역 {n}개에 stage-2 추론 실행 중', ja: '検出された {n} 件の領域で stage-2 推論を実行中',
+    'zh-CN': '正在对 {n} 个检测区域运行 stage-2 推理', 'zh-TW': '正在對 {n} 個偵測區域執行 stage-2 推論',
+    es: 'Ejecutando inferencia de etapa-2 en {n} región(es) detectada(s)',
   },
   'Done': {
     ko: '완료', ja: '完了',
@@ -4742,7 +4759,7 @@ window._DX_I18N_PLACEHOLDERS = {
   'CPU compute — operations running on the CPU': {
     ko: 'CPU 연산 — CPU에서 실행되는 연산', ja: 'CPU 演算 — CPU上で実行される演算',
     'zh-CN': 'CPU 计算 — 在 CPU 上运行的操作', 'zh-TW': 'CPU 運算 — 在 CPU 上執行的操作',
-    es: 'CPU compute — operaciones ejecutándose en el CPU',
+    es: 'Cómputo CPU — operaciones que se ejecutan en la CPU',
   },
   'Capture — frame capture from input source': {
     ko: 'Capture — 입력 소스에서 프레임 캡처', ja: 'Capture — 入力ソースからのフレームキャプチャ',
@@ -4801,6 +4818,159 @@ window._DX_I18N_PLACEHOLDERS = {
   },
 
   /* ==== Lab Portal ==== */
+  /* Lab flows that do real work (2026-10-11) */
+  'New': {
+    ko: '생성', ja: '新規',
+    'zh-CN': '新建', 'zh-TW': '新增',
+    es: 'Nuevo',
+  },
+  'Overwrite': {
+    ko: '덮어쓰기', ja: '上書き',
+    'zh-CN': '覆盖', 'zh-TW': '覆寫',
+    es: 'Sobrescribir',
+  },
+  'Add {name} to {category}': {
+    ko: '{category}에 {name} 추가', ja: '{category}に {name} を追加',
+    'zh-CN': '将 {name} 添加到{category}', 'zh-TW': '將 {name} 新增到{category}',
+    es: 'Agregar {name} a {category}',
+  },
+  'Create the {name} task skeleton': {
+    ko: '{name} task skeleton 생성', ja: '{name} タスクのスケルトンを作成',
+    'zh-CN': '创建 {name} 任务骨架', 'zh-TW': '建立 {name} 任務骨架',
+    es: 'Crear el esqueleto de la tarea {name}',
+  },
+  'Created': {
+    ko: '생성됨', ja: '作成済み',
+    'zh-CN': '已创建', 'zh-TW': '已建立',
+    es: 'Creado',
+  },
+  'Copied from': {
+    ko: '복사한 예제', ja: 'コピー元',
+    'zh-CN': '复制自', 'zh-TW': '複製自',
+    es: 'Copiado de',
+  },
+  'Run the Python copy with your model:': {
+    ko: '내 모델로 Python 사본을 실행하세요:', ja: '自分のモデルで Python コピーを実行します:',
+    'zh-CN': '用你的模型运行 Python 副本:', 'zh-TW': '用你的模型執行 Python 副本:',
+    es: 'Ejecute la copia de Python con su modelo:',
+  },
+  'Build the C++ copy with dx_app build.sh.': {
+    ko: 'C++ 사본은 dx_app build.sh로 빌드하세요.', ja: 'C++ コピーは dx_app の build.sh でビルドします。',
+    'zh-CN': 'C++ 副本请用 dx_app 的 build.sh 构建。', 'zh-TW': 'C++ 副本請用 dx_app 的 build.sh 建置。',
+    es: 'Compile la copia de C++ con build.sh de dx_app.',
+  },
+  'Script output': {
+    ko: '스크립트 출력', ja: 'スクリプト出力',
+    'zh-CN': '脚本输出', 'zh-TW': '腳本輸出',
+    es: 'Salida del script',
+  },
+  'No example to copy for this language': {
+    ko: '이 언어로 복사할 예제가 없습니다', ja: 'この言語でコピーできる例がありません',
+    'zh-CN': '此语言没有可复制的示例', 'zh-TW': '此語言沒有可複製的範例',
+    es: 'No hay ningún ejemplo que copiar para este lenguaje',
+  },
+  'Add Model copies an existing example and renames it. Run the copy with your own .dxnn.': {
+    ko: 'Add Model은 기존 예제를 복사해 이름을 바꿉니다. 복사본은 내 .dxnn으로 실행하세요.', ja: 'Add Model は既存の例をコピーして名前を変えます。コピーは自分の .dxnn で実行してください。',
+    'zh-CN': 'Add Model 会复制现有示例并重命名。请用你自己的 .dxnn 运行副本。', 'zh-TW': 'Add Model 會複製現有範例並重新命名。請用你自己的 .dxnn 執行副本。',
+    es: 'Add Model copia un ejemplo existente y le cambia el nombre. Ejecute la copia con su propio .dxnn.',
+  },
+  'Your model (.dxnn, optional)': {
+    ko: '내 모델 (.dxnn, 선택)', ja: '自分のモデル (.dxnn、任意)',
+    'zh-CN': '你的模型 (.dxnn，可选)', 'zh-TW': '你的模型 (.dxnn，選填)',
+    es: 'Su modelo (.dxnn, opcional)',
+  },
+  'Read the model': {
+    ko: '모델 읽기', ja: 'モデルを読み込む',
+    'zh-CN': '读取模型', 'zh-TW': '讀取模型',
+    es: 'Leer el modelo',
+  },
+  'One inference': {
+    ko: '추론 1회', ja: '推論 1 回',
+    'zh-CN': '推理 1 次', 'zh-TW': '推論 1 次',
+    es: 'Una inferencia',
+  },
+  'Completed': {
+    ko: '완료', ja: '完了',
+    'zh-CN': '已完成', 'zh-TW': '已完成',
+    es: 'Completado',
+  },
+  'Throughput': {
+    ko: '처리량', ja: 'スループット',
+    'zh-CN': '吞吐量', 'zh-TW': '吞吐量',
+    es: 'Throughput',
+  },
+  'Checks a compiled model on this board: reads the file, runs one inference, then measures throughput.': {
+    ko: '이 보드에서 컴파일된 모델을 점검합니다. 파일을 읽고, 추론을 한 번 실행한 뒤 처리량을 잽니다.', ja: 'このボードでコンパイル済みモデルを確認します。ファイルを読み込み、推論を 1 回実行してからスループットを測定します。',
+    'zh-CN': '在这块板上检查已编译的模型：读取文件，运行一次推理，再测量吞吐量。', 'zh-TW': '在這塊板子上檢查已編譯的模型：讀取檔案，執行一次推論，再測量吞吐量。',
+    es: 'Comprueba un modelo compilado en esta placa: lee el archivo, ejecuta una inferencia y mide el rendimiento.',
+  },
+  'Compiled model': {
+    ko: '컴파일된 모델', ja: 'コンパイル済みモデル',
+    'zh-CN': '已编译模型', 'zh-TW': '已編譯模型',
+    es: 'Modelo compilado',
+  },
+  'Other path…': {
+    ko: '다른 경로…', ja: '別のパス…',
+    'zh-CN': '其他路径…', 'zh-TW': '其他路徑…',
+    es: 'Otra ruta…',
+  },
+  'Pipeline started': {
+    ko: '파이프라인 시작됨', ja: 'パイプライン開始済み',
+    'zh-CN': '管道已启动', 'zh-TW': '管線已啟動',
+    es: 'Pipeline iniciado',
+  },
+  'Applied': {
+    ko: '적용됨', ja: '適用済み',
+    'zh-CN': '已应用', 'zh-TW': '已套用',
+    es: 'Aplicado',
+  },
+  'Rolled back': {
+    ko: '롤백됨', ja: 'ロールバック済み',
+    'zh-CN': '已回滚', 'zh-TW': '已復原',
+    es: 'Revertido',
+  },
+  'Lab changes': {
+    ko: 'Lab 변경 내역', ja: 'Lab の変更',
+    'zh-CN': 'Lab 变更', 'zh-TW': 'Lab 變更',
+    es: 'Cambios de Lab',
+  },
+  'Type to confirm': {
+    ko: '확인하려면 입력', ja: '確認のため入力',
+    'zh-CN': '输入以确认', 'zh-TW': '輸入以確認',
+    es: 'Escriba para confirmar',
+  },
+  'This change overwrote existing files. Restore them by hand.': {
+    ko: '이 변경은 기존 파일을 덮어썼습니다. 직접 복구하세요.', ja: 'この変更は既存のファイルを上書きしました。手動で復元してください。',
+    'zh-CN': '此变更覆盖了现有文件，请手动恢复。', 'zh-TW': '此變更覆寫了現有檔案，請手動還原。',
+    es: 'Este cambio sobrescribió archivos existentes. Restáurelos manualmente.',
+  },
+  'Commit with git': {
+    ko: 'git 으로 커밋', ja: 'git でコミット',
+    'zh-CN': '用 git 提交', 'zh-TW': '用 git 提交',
+    es: 'Confirmar con git',
+  },
+  'Files this change wrote': {
+    ko: '이 변경이 만든 파일', ja: 'この変更が書いたファイル',
+    'zh-CN': '此变更写入的文件', 'zh-TW': '此變更寫入的檔案',
+    es: 'Archivos que escribió este cambio',
+  },
+  'Studio does not run git for you. Run these in a terminal to commit only these files:': {
+    ko: 'Studio 는 git 을 대신 실행하지 않습니다. 이 파일만 커밋하려면 터미널에서 아래를 실행하세요:',
+    ja: 'Studio は git を代わりに実行しません。これらのファイルだけをコミットするには、ターミナルで次を実行してください:',
+    'zh-CN': 'Studio 不会替你运行 git。要只提交这些文件，请在终端中运行：',
+    'zh-TW': 'Studio 不會替你執行 git。若只要提交這些檔案，請在終端機中執行：',
+    es: 'Studio no ejecuta git por usted. Para confirmar solo estos archivos, ejecute esto en una terminal:',
+  },
+  'Git plan failed': {
+    ko: 'git 명령을 만들지 못했습니다', ja: 'git コマンドを作成できませんでした',
+    'zh-CN': '无法生成 git 命令', 'zh-TW': '無法產生 git 指令',
+    es: 'No se pudieron preparar los comandos de git',
+  },
+  'No Lab changes yet': {
+    ko: '아직 Lab 변경 내역이 없습니다', ja: 'Lab の変更はまだありません',
+    'zh-CN': '还没有 Lab 变更', 'zh-TW': '還沒有 Lab 變更',
+    es: 'Aún no hay cambios de Lab',
+  },
   'Lab portal ready': {
     ko: 'Lab 포털 준비됨', ja: 'Labポータル準備完了',
     'zh-CN': 'Lab门户已就绪', 'zh-TW': 'Lab入口已就緒',
@@ -4844,7 +5014,7 @@ window._DX_I18N_PLACEHOLDERS = {
   'Change preview': {
     ko: '변경 미리보기', ja: '変更プレビュー',
     'zh-CN': '变更预览', 'zh-TW': '變更預覽',
-    es: 'Cambiar vista previa',
+    es: 'Vista previa de los cambios',
   },
   'Apply changes': {
     ko: '변경 적용', ja: '変更を適用',
@@ -4964,7 +5134,7 @@ window._DX_I18N_PLACEHOLDERS = {
     es: 'Iniciar pipeline',
   },
   'Cancel run': {
-    ko: '실행 취소', ja: '実行キャンセル',
+    ko: '실행 중단', ja: '実行キャンセル',
     'zh-CN': '取消运行', 'zh-TW': '取消執行',
     es: 'Cancelar ejecución',
   },
@@ -5022,6 +5192,11 @@ window._DX_I18N_PLACEHOLDERS = {
   },
 
   /* ==== Placeholder i18n (missing entries) ==== */
+  'rtsp://… or IP:Port': {
+    ko: 'rtsp://… 또는 IP:포트', ja: 'rtsp://… または IP:ポート',
+    es: 'rtsp://… o IP:Puerto',
+    'zh-CN': 'rtsp://… 或 IP:端口', 'zh-TW': 'rtsp://… 或 IP:連接埠'
+  },
   'IP:Port': {
     ko: 'IP:포트', ja: 'IP:ポート',
     es: 'IP:Puerto',

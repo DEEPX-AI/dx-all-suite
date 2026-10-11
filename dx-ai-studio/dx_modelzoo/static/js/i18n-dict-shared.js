@@ -195,13 +195,13 @@ window._DX_MODELZOO_I18N_REGISTER({
     'zh-TW': 'DX App 未執行',
     es: 'DX App no está en ejecución',
   },
-  'DX App is not running. Run Inference needs the DX App module (port 8080) — launch DX AI Studio (it auto-starts DX App) or start the DX App module, then retry.': {
-    en: 'DX App is not running. Run Inference needs the DX App module (port 8080) — launch DX AI Studio (it auto-starts DX App) or start the DX App module, then retry.',
-    ko: 'DX App가 실행 중이 아닙니다. 추론 실행에는 DX App 모듈(포트 8080)이 필요합니다 — DX AI Studio를 실행하면 DX App이 자동으로 시작되거나, DX App 모듈을 직접 시작한 후 다시 시도하세요.',
-    ja: 'DX App が実行されていません。推論の実行には DX App モジュール（ポート 8080）が必要です — DX AI Studio を起動すると DX App が自動起動します。または DX App モジュールを直接起動してから再試行してください。',
-    'zh-CN': 'DX App 未运行。运行推理需要 DX App 模块（端口 8080）— 启动 DX AI Studio（会自动启动 DX App），或直接启动 DX App 模块，然后重试。',
-    'zh-TW': 'DX App 未執行。執行推論需要 DX App 模組（連接埠 8080）— 啟動 DX AI Studio（會自動啟動 DX App），或直接啟動 DX App 模組，然後重試。',
-    es: 'DX App no está en ejecución. Ejecutar inferencia necesita el módulo DX App (puerto 8080): inicie DX AI Studio (que inicia DX App automáticamente) o inicie el módulo DX App directamente, y vuelva a intentarlo.',
+  'DX App is not running. Run Inference needs the DX App module — DX AI Studio starts it with the launcher; if it stopped, restart the launcher and retry.': {
+    en: 'DX App is not running. Run Inference needs the DX App module — DX AI Studio starts it with the launcher; if it stopped, restart the launcher and retry.',
+    ko: 'DX App가 실행 중이 아닙니다. 추론 실행에는 DX App 모듈이 필요합니다 — DX AI Studio 런처가 함께 시작합니다. 멈췄다면 런처를 다시 시작한 뒤 시도하세요.',
+    ja: 'DX App が実行されていません。推論の実行には DX App モジュールが必要です — DX AI Studio のランチャーが一緒に起動します。停止している場合はランチャーを再起動してから再試行してください。',
+    'zh-CN': 'DX App 未运行。运行推理需要 DX App 模块 — DX AI Studio 启动器会一并启动它；若已停止，请重新启动启动器后重试。',
+    'zh-TW': 'DX App 未執行。執行推論需要 DX App 模組 — DX AI Studio 啟動器會一併啟動它；若已停止，請重新啟動啟動器後重試。',
+    es: 'DX App no está en ejecución. Ejecutar inferencia necesita el módulo DX App, que el lanzador de DX AI Studio inicia; si se detuvo, reinicie el lanzador y vuelva a intentarlo.',
   },
   'Params (M)': {
     en: 'Params (M)',

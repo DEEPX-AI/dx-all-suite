@@ -435,7 +435,8 @@ function _srvErr(msg) {
                         zoomPanState.setTransform(saved.x, saved.y, saved.scale);
                     } else {
                         requestAnimationFrame(function() {
-                            zoomPanState.fitToView();
+                            zoomPanState.initialView();
+                            updateZoomDisplay();
                         });
                     }
                 }
@@ -500,7 +501,7 @@ function _srvErr(msg) {
         // (prefer fitting over restoring the previous transform when layout changed)
         if (zoomPanState && typeof zoomPanState.fitToView === 'function') {
             requestAnimationFrame(function() {
-                try { zoomPanState.fitToView(); } catch(e) { /* ignore */ }
+                try { zoomPanState.initialView(); } catch(e) { /* ignore */ }
                 updateZoomDisplay();
             });
         }
@@ -525,7 +526,7 @@ function _srvErr(msg) {
         // After expand, fit the graph to view so focus remains correct
         if (zoomPanState && typeof zoomPanState.fitToView === 'function') {
             requestAnimationFrame(function() {
-                try { zoomPanState.fitToView(); } catch(e) { /* ignore */ }
+                try { zoomPanState.initialView(); } catch(e) { /* ignore */ }
                 updateZoomDisplay();
             });
         }

@@ -20,16 +20,15 @@ while [[ "$#" -gt 0 ]]; do
     --port|-p) PORT="$2"; shift 2 ;;
     --no-kill) NO_KILL=1; shift ;;
     --fast) export DX_LAUNCHER_FAST=1; shift ;;
-    --verbose|-v) DX_LAUNCHER_VERBOSE=1; shift ;;
+    --verbose|-v) shift ;;   # accepted for old scripts; modules use ephemeral ports, nothing to report
     --no-browser) export DX_NO_BROWSER=1; shift ;;
     --debug=*) export DX_STUDIO_DEBUG=1; export DX_STUDIO_DEBUG_LOG="${1#*=}"; shift ;;
     --debug) export DX_STUDIO_DEBUG=1; shift ;;
     --help|-h)
-      echo "Usage: $0 [--port PORT] [--no-kill] [--fast] [--verbose] [--no-browser] [--debug[=PATH]]"
+      echo "Usage: $0 [--port PORT] [--no-kill] [--fast] [--no-browser] [--debug[=PATH]]"
       echo "  --port, -p    Launcher port (default: 8890; auto-bumps if busy)"
       echo "  --no-kill     Do not kill stale studio servers before starting"
       echo "  --fast        Skip the cosmetic boot animation"
-      echo "  --verbose, -v Print port-fallback notices when a default port is busy"
       echo "  --no-browser  Do not auto-open the browser"
       echo "  --debug       Log user actions to var/log/studio-debug.log (or =PATH)"
       exit 0 ;;
@@ -46,12 +45,27 @@ cd "$SCRIPT_DIR"
 # sub-servers. Match BOTH absolute paths and hand-run relative invocations
 # (`python3 launcher/launcher.py`) — the old $SCRIPT_DIR-anchored pattern missed the
 # relative form, so zombies from manual runs piled up and forced port bumping.
+# launcher.py re-execs itself as `python -m launcher.launcher` (no path in the command line),
+# so the running launcher never matched "launcher/launcher.py": every restart left the old
+# launcher alive, and its watchdog respawned the sub-servers killed below — duplicate servers
+# piled up. Match the module form too, but only processes running from THIS checkout (cwd).
+stale_module_launchers() {
+  local pid here
+  here="$(cd "$SCRIPT_DIR" && pwd -P)"   # /proc/<pid>/cwd is the physical path
+  for pid in $(pgrep -f -- "-m launcher\.launcher" 2>/dev/null); do
+    [[ "$(readlink "/proc/$pid/cwd" 2>/dev/null)" == "$here" ]] && echo "$pid"
+  done
+}
 if [[ "$NO_KILL" -eq 0 ]]; then
   pkill -f "launcher/launcher\.py"            2>/dev/null   # abs + relative launcher
+  STALE="$(stale_module_launchers)"
+  [[ -n "$STALE" ]] && kill $STALE 2>/dev/null               # python -m launcher.launcher
   pkill -f "dx-ai-studio/dx_[a-z_]*/server\.py" 2>/dev/null # all sub-servers (this project)
   sleep 1
   # hard-kill any stragglers, then let the OS release the ports
   pkill -9 -f "launcher/launcher\.py"            2>/dev/null
+  STALE="$(stale_module_launchers)"
+  [[ -n "$STALE" ]] && kill -9 $STALE 2>/dev/null
   pkill -9 -f "dx-ai-studio/dx_[a-z_]*/server\.py" 2>/dev/null
   sleep 0.5
 fi

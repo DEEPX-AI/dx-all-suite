@@ -84,6 +84,10 @@ DXStream.setupInit = async function () {
     }
     _updateSetupBadge('build', status.build);
     _updateSetupBadge('download', status['download-models']);
+    // A step still running on the server (the page was left, or the language changed — both stop
+    // the poll): pick its log and Stop button back up instead of showing an idle step.
+    // (a single-model download from Model Catalog runs as "model-<file>" — not a Setup step)
+    if (status.running && _setupLogIds[status.running] && !DXStream._setupPollTimer) _resumeRunningStep(status.running);
 
     // 모델 다운로드 진행률 표시
     var dl = status['download-models'];
@@ -207,7 +211,7 @@ DXStream.runSetup = async function (stepId) {
         if (logEl) { logEl.style.display = ''; logEl.textContent = T('Preparing…') + '\n'; logEl._lastSetupLogText = ''; }
         DXStream._setupRunning = true;
         DXStream._lastSetupExitCode = null;
-        if (stopBtn) stopBtn.style.display = '';
+        _showStopFor(stepId);
     }
     function _resetRun() {
         DXStream._setupRunning = false;
@@ -257,6 +261,22 @@ DXStream.runSetup = async function (stepId) {
     // 로그 폴링 시작
     _startLogPoll(stepId, logEl);
 };
+
+// runtime-deps · driver run as an in-process transaction on the server: there is nothing to stop,
+// so Stop is not offered (it used to answer "Stop failed").
+var _unstoppableSteps = { 'runtime-deps': true, 'driver': true };
+function _showStopFor(stepId) {
+    var stopBtn = DXStream.$('setup-stop-btn');
+    if (stopBtn) stopBtn.style.display = _unstoppableSteps[stepId] ? 'none' : '';
+}
+
+function _resumeRunningStep(stepId) {
+    var logId = _setupLogIds[stepId];
+    var logEl = logId ? DXStream.$(logId) : null;
+    DXStream._setupRunning = true;
+    _showStopFor(stepId);
+    _startLogPoll(stepId, logEl);
+}
 
 function _startLogPoll(stepId, logEl) {
     if (DXStream._setupPollTimer) clearInterval(DXStream._setupPollTimer);
@@ -426,7 +446,8 @@ DXStream.setupStop = async function() {
     try {
         var r = await DXStream.postJ('/api/setup/stop', {});
         if (r.ok) DXStream.toast(DXStream._L('중단됨','Stopped','中断済','已中断','已中斷','Detenido'), 'warn');
-        else DXStream.toast(DXStream._L('중단 실패','Stop failed','中断失敗','中断失败','中斷失敗','No se pudo detener'), 'err');
+        else DXStream.toast(DXStream._L('중단 실패','Stop failed','中断失敗','中断失败','中斷失敗','No se pudo detener')
+            + (r.message || r.error ? ': ' + ((window.translateServerError || String)(r.message || r.error)) : ''), 'err');
     } catch (e) {
         DXStream.toast(DXStream._L('중단 오류: ','Stop error: ','中断エラー: ','中断错误: ','中斷錯誤: ','Error al detener: ') + e.message, 'err');
     }
@@ -440,6 +461,17 @@ DXStream.runDiagnostics = async function() {
     if (res) res.innerHTML = '<p class="txt-dim">' + DXStream._L('진단 실행 중…','Running diagnostics…','診断実行中…','诊断运行中…','診斷執行中…','Ejecutando diagnóstico…') + '</p>';
     try {
         var r = await DXStream.api('/api/diagnostics');
+        if (!r || r.error || !Array.isArray(r.checks)) {
+            // r.checks was read regardless: an error answer threw, and the reason never showed.
+            var why = (window.translateServerError || String)((r && r.error) || '');
+            if (res) res.innerHTML = '<p class="txt-dim">' + DXStream.escHtml(why) + '</p>';
+            DXStream.toast(DXStream._L('진단 오류: ','Diagnostics error: ','診断エラー: ','诊断错误: ','診斷錯誤: ','Error de diagnóstico: ') + why, 'err');
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = _setupIco('play') + ' <span data-i18n="Run diagnostics">' + T('Run diagnostics') + '</span>';
+            }
+            return;
+        }
         var lang = (typeof DXI18n !== 'undefined' ? DXI18n.lang : 'en');
         var langKey = lang.replace('-', '');
         var html = '';

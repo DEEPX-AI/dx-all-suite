@@ -25,8 +25,17 @@ The module opens on a set of pages (top tabs):
   side; Benchmark can run several models in a batch and **export a report**.  
 - **ModelZoo** — browse and download additional models into the app (public or air-gapped
   source, Q-Lite / Q-Pro variants, batch cart).  
-- **Lab** — DX App Composer, Add Model, Create Task, Experiment and Safety Center: guided
-  wizards with a change preview and rollback (advanced use).  
+- **Lab** — advanced tools, each with a change preview before anything is written:  
+    - **DX App Composer** — choose a model and input, run the workflow, export a package.  
+    - **Add Model** — copies an existing example of a category (**Start from**) under a new name,
+      in C++, Python or both. Run the Python copy with your own model:
+      `python3 <name>_sync.py --model <your>.dxnn`. Build the C++ copy with dx_app's `build.sh`.  
+    - **Create Task** — skeleton code for a new task type.  
+    - **Experiment** — checks a compiled `.dxnn` on the board: reads the file, runs one inference,
+      then measures throughput (FPS).  
+    - **Generated Files** / **Safety Center** — what each change wrote. A change that only created new
+      files can be rolled back after typing `rollback:<name>`; one that overwrote files has to be
+      restored by hand.  
 - **Outputs** — browse and manage saved inference results (grid / table, filters, preview).  
 - **Reference** — searchable in-app feature and parameter guides.  
 

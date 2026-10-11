@@ -126,16 +126,14 @@ const PlannerWorkspace = {
     const name = top.platform.npu.model + ' + ' + top.platform.host.name;
     const channels = this._formatChannels(top.maxChannels, top.boundaryFlag);
     const meets = top.meetsRequirement;
-    // boundaryFlag is measured-only now. '+' means even the top tested stream
-    // sustained, so the real ceiling is "at least this many".
-    const evidence = top.boundaryFlag === '+'
-      ? '<span data-i18n="(measured, likely higher)">(measured, likely higher)</span>'
-      : '<span data-i18n="(measured)">(measured)</span>';
-    // Informational: where the NPU starts to throttle (never affects ranking).
-    const throttleNote = top.throttleOnset
-      ? '<span class="ko"> · ' + top.throttleOnset + '채널↑ throttle</span><span class="en"> · throttles at ' + top.throttleOnset + '+ ch</span><span class="ja"> · ' + top.throttleOnset + 'ch↑ スロットル</span><span class="zh-CN"> · ' + top.throttleOnset + ' 路↑ 降频</span><span class="zh-TW"> · ' + top.throttleOnset + ' 路↑ 降頻</span><span class="es"> · limita desde ' + top.throttleOnset + ' ch</span>'
+    // Measured at a tested stream count, or estimated from the measured total FPS (spec 2026-10-11).
+    const evidence = {
+      estimated: '<span data-i18n="(estimated)">(estimated)</span>',
+      '+': '<span data-i18n="(estimated, at least)">(estimated, at least)</span>',
+    }[top.boundaryFlag] || '<span data-i18n="(measured)">(measured)</span>';
+    const throttleNote = top.throttled
+      ? ' · <span data-i18n="NPU throttled while measured">NPU throttled while measured</span>'
       : '';
-
     el.hidden = false;
     el.classList.remove('verdict-meets', 'verdict-insufficient', 'verdict-empty');
     el.classList.add(meets ? 'verdict-meets' : 'verdict-insufficient');

@@ -20,7 +20,7 @@ with live playback — WebRTC on the board or LAN, MJPEG from another computer o
   gives the equivalent command line. Stop or switch anytime.  
 - **Pipeline Builder** — a drag-and-drop GStreamer editor: pick elements from a searchable
   palette, wire them on the canvas, edit properties, then Run/Stop with live playback.
-  Save / load named pipelines, use the built-in presets, import/export JSON, and see the
+  Start from a built-in preset, export / import the pipeline as JSON, and see the
   equivalent `gst-launch` command.  
 - **Model Catalog** — browse, search, and download models for use in pipelines.  
 - **Element Reference** — browse DX Stream's GStreamer elements by category, with their

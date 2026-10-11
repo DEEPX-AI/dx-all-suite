@@ -1,11 +1,11 @@
 """Chat-render robustness: wide content (code/tables/long tokens) must stay contained in
 the center column instead of blowing out the 3-column grid; markdown stays complete."""
 import re
-import shutil
 import subprocess
 from pathlib import Path
 
 import pytest
+from tests.browser_support import resolve_node_executable
 
 AD = Path(__file__).resolve().parent.parent.parent / "dx_agent_dev"
 CSS = (AD / "static" / "css" / "console.css").read_text(encoding="utf-8")
@@ -36,7 +36,7 @@ def test_table_wrap_scrolls():
     assert wrap is not None and "overflow-x: auto" in wrap
 
 
-@pytest.mark.skipif(not shutil.which("node"), reason="node not available")
+@pytest.mark.skipif(not resolve_node_executable(), reason="node not available")
 def test_markdown_render_completeness():
     """Lock the verified-good renderer: unclosed fences repaired, tables wrapped, no raw fence."""
     js = AD.parent / "shared" / "static" / "markdown_render.js"
@@ -50,6 +50,6 @@ def test_markdown_render_completeness():
         "if(!b.includes('md-table-wrap')||!b.includes('<table'))throw new Error('table');"
         "console.log('OK');"
     ) % str(js)
-    out = subprocess.run(["node", "-e", script], capture_output=True, text=True)
+    out = subprocess.run([resolve_node_executable(), "-e", script], capture_output=True, text=True)
     assert out.returncode == 0, out.stderr
     assert "OK" in out.stdout

@@ -141,6 +141,26 @@ def test_demo_entries_include_default_video_uri_for_pipeline_presets():
     assert entries[0]["default_video"].startswith("file://")
 
 
+def test_pipeline_preset_video_is_the_demo_own_video(tmp_path, monkeypatch):
+    """A Builder preset plays the same clip the demo does. Every preset used the first video
+    (a road), so the pose / face presets ran on a clip with nobody close enough to draw."""
+    from core import demos
+
+    clips = tmp_path / "videos" / "sample_videos"
+    clips.mkdir(parents=True)
+    for name in ("blackbox-city-road.mp4", "dance-group.mov", "boat.mp4"):
+        (clips / name).write_bytes(b"x")
+    monkeypatch.setattr(demos, "VIDEOS_DIR", tmp_path / "videos")
+
+    by_id = {e["id"]: e for e in demos.list_demo_entries()}
+    pose = next(d for d in demos.DEMOS if d["category"] == "pose_estimation")
+    road = next(d for d in demos.DEMOS if d["category"] == "object_detection")
+
+    assert by_id[pose["id"]]["default_video"] == f"file://{clips / 'dance-group.mov'}"
+    assert by_id[road["id"]]["default_video"] == f"file://{clips / 'blackbox-city-road.mp4'}"
+    assert demos.build_pipeline_str(pose["id"], {}, webrtc_ok=False).count("dance-group.mov") >= 1
+
+
 def test_mjpeg_start_drains_dxrt_message_queues_before_subprocess(monkeypatch):
     from core import mjpeg
 
@@ -530,6 +550,52 @@ def test_demo_start_falls_back_to_mjpeg_when_webrtc_start_fails(monkeypatch):
     # MJPEG first-frame timeout was raised 5.0 -> 15.0 for slow ARM boards (commit 754631f).
     assert ("mjpeg_ready", 15.0, True) in calls
     assert lock_depths and lock_depths[0] > 0
+
+
+def test_demo_start_without_webrtc_plugins_admits_and_plays_the_mjpeg_graph(monkeypatch):
+    """No gstreamer1.0-nice (nicesrc) on the host: webrtcbin can't link, so the admission probe
+    must check the graph that will really play. Probing the webrtcbin variant rejected every
+    demo with "could not link rtpvp8pay0 to sendrecv" before the MJPEG fallback ran."""
+    import server
+    from shared.runtime_contract import ContractResult
+    from shared.runtime_profile import ContractCheck
+
+    _allow_stream_launch_contract(monkeypatch, server)
+    built, probed, calls = [], [], []
+
+    def build(*_args, webrtc_ok=True, **_kwargs):
+        built.append(webrtc_ok)
+        return "src ! webrtcbin name=sendrecv" if webrtc_ok else "src ! fpsdisplaysink"
+
+    def probe(pipeline, *, python_executable, environment):
+        probed.append(pipeline)
+        if "webrtcbin" in pipeline:
+            return ContractResult((ContractCheck(
+                check_id="gst.selected_pipeline", required="constructible",
+                observed="could not link rtpvp8pay0 to sendrecv", passed=False,
+                remediation="Repair the graph."),))
+        return ContractResult(())
+
+    monkeypatch.setattr(server, "validate_stream_pipeline", probe, raising=False)
+    monkeypatch.setattr(server, "_check_webrtc_available", lambda: False)
+    monkeypatch.setattr(server, "_pipeline_mgr", object())
+    monkeypatch.setattr(server, "demos", type(sys)("fake_demos"))
+    server.demos.DEMOS = [{"name": "test"}]
+    server.demos.build_pipeline_str = build
+    fake = _install_fake_mjpeg(monkeypatch, "no_webrtc_mjpeg")
+    fake.stop = lambda: None
+    fake.build_mjpeg_pipeline = lambda p: calls.append(("build_mjpeg", p)) or "src ! jpegenc ! fdsink fd=1"
+    fake.start = lambda p, extra_env=None: calls.append(("mjpeg_start", p))
+    fake.wait_until_ready = lambda **_kw: (True, "")
+
+    handler, sent = _pipeline_handler(server, {})
+    handler._handle_demo_start("/api/demos/0/start")
+
+    assert sent["code"] == 200, sent
+    assert sent["payload"]["output_mode"] == "mjpeg"
+    assert built == [False]
+    assert probed == ["src ! fpsdisplaysink"]
+    assert ("build_mjpeg", "src ! fpsdisplaysink") in calls
 
 
 def test_demo_launch_error_does_not_claim_stopped_playback_is_restored(monkeypatch):
@@ -1000,3 +1066,35 @@ def test_pipeline_stop_sends_response_while_holding_playback_lock(monkeypatch):
     handler._handle_pipeline_stop()
 
     assert observed_depths == [1]
+
+
+def test_rtsp_demo_launch_failure_names_the_unreachable_network_cameras():
+    """Demo 9 plays public RTSP cameras on the internet. On a closed network the old error
+    ("No output backend became ready") sent users after Stream dependencies instead."""
+    import server
+
+    generic = server._demo_launch_failure_payload(["mjpeg"])
+    rtsp = server._demo_launch_failure_payload(["mjpeg"], {"pipeline_type": "rtsp"})
+
+    assert "RTSP" not in generic["detail"] + generic["remediation"]
+    assert "RTSP" in rtsp["detail"]
+    assert "internet" in rtsp["remediation"]
+    assert rtsp["playback_active"] is False and rtsp["attempted_modes"] == ["mjpeg"]
+
+
+def test_demo_launch_failure_sentences_are_translated_in_the_toast():
+    import re
+
+    i18n = (ROOT / "dx_stream" / "static" / "js" / "stream-i18n.js").read_text(encoding="utf-8")
+    demo_js = (ROOT / "dx_stream" / "static" / "js" / "stream-demo.js").read_text(encoding="utf-8")
+    import server
+
+    for payload in (server._demo_launch_failure_payload([]),
+                    server._demo_launch_failure_payload([], {"pipeline_type": "rtsp"})):
+        for key in ("message", "detail", "remediation"):
+            sentence = payload[key]
+            entry = re.search(r"'" + re.escape(sentence) + r"':\s*\{([^}]*)\}", i18n)
+            assert entry, f"stream-i18n.js has no entry for {sentence!r}"
+            for lang in ("ko", "ja", "es", "'zh-CN'", "'zh-TW'"):
+                assert lang + ":" in entry.group(1), (sentence, lang)
+    assert "T(resp.detail)" in demo_js and "T(resp.remediation)" in demo_js

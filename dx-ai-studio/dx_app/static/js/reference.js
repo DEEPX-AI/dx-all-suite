@@ -83,7 +83,7 @@ return [
    _rBox('warn',{en:'Without the NPU Linux Driver (Setup step 4), inference cannot run on the NPU.',ko:'NPU Linux Driver(Setup 4단계)가 없으면 NPU에서 추론할 수 없습니다.',ja:'NPU Linux Driver（Setup のステップ 4）がないと、NPU で推論できません。','zh-CN':'未安装 NPU Linux Driver（Setup 第 4 步）时，无法在 NPU 上推理。','zh-TW':'未安裝 NPU Linux Driver（Setup 第 4 步）時，無法在 NPU 上推論。',es:'Sin el NPU Linux Driver (paso 4 de Setup) no se puede ejecutar la inferencia en la NPU.'})
 }},
 {cat:'start',id:'setup-install',icon:'gear',page:'setup',
- name:refL({en:'Setup & Install',ko:'설정 · 설치',ja:'セットアップとインストール','zh-CN':'设置与安装','zh-TW':'設定與安裝',es:'Configuración e instalación'}),
+ name:refL({en:'Setup & Install',ko:'설치',ja:'セットアップとインストール','zh-CN':'安装','zh-TW':'安裝',es:'Instalación'}),
  desc:refL({en:'Six steps: dependencies, runtime, driver, build, sample assets',ko:'6단계: 의존성, 런타임, 드라이버, 빌드, 샘플 에셋',ja:'6 ステップ：依存関係・ランタイム・ドライバー・ビルド・サンプル','zh-CN':'六个步骤：依赖、运行时、驱动、构建、示例资源','zh-TW':'六個步驟：相依套件、執行環境、驅動程式、建置、範例資源',es:'Seis pasos: dependencias, runtime, driver, compilación y recursos de ejemplo'}),
  tabs:{
   overview:_rH4(_R.overview)+

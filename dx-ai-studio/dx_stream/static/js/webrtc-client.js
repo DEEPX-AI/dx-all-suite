@@ -223,8 +223,7 @@ DXStream.webrtc = (function() {
         if (_retryCount < MAX_RETRIES && _videoEl) {
             var delay = RETRY_DELAYS[_retryCount] || 4000;
             _retryCount++;
-            DXStream.toast(T('Retrying WebRTC connection… (' + _retryCount + '/' + MAX_RETRIES + ')',
-                'WebRTC 재연결 시도 중… (' + _retryCount + '/' + MAX_RETRIES + ')'), 'info');
+            DXStream.toast(T('Retrying WebRTC connection… ({n}/{max})').replace('{n}', _retryCount).replace('{max}', MAX_RETRIES), 'info');
             _retryTimeout = setTimeout(function () {
                 connect(_videoEl, true);
             }, delay);

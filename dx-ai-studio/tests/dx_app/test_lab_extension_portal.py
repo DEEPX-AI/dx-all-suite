@@ -366,7 +366,7 @@ def test_experiment_card_renders_pipeline_shell():
     js = LAB_JS.read_text(encoding="utf-8")
     assert "flow === 'experiment'" in js
     assert "renderExperimentPipeline" in js
-    assert "exp-model-name" in js
+    assert "exp-model-pick" in js
     assert "exp-source-path" in js
     assert "btn-experiment-start" in js
 
@@ -464,7 +464,7 @@ def test_experiment_stepper_uses_step_object_ids():
         fn_end = js.find("\n  async function ", fn_start + 1)
     fn_body = js[fn_start: fn_end if fn_end != -1 else len(js)]
     assert "step.id === run.current_step" in fn_body
-    assert "li.textContent = step.id" in fn_body
+    assert "_EXPERIMENT_STEP_LABELS[step.id] || step.id" in fn_body
     assert "step === run.current_step" not in fn_body
     assert "li.textContent = step;" not in fn_body
 

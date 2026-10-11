@@ -444,6 +444,13 @@
 function _escErr(t) {
     return String(t).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; });
 }
+/* compile · re-quantization job 의 실패 (SSE error) → 번역 · escape 한 오류 상자. dxcom 의 문장
+   (예: 디스크 여유 8 GB 요구) 이 영어 원문 · HTML 로 그대로 들어갔다. */
+function _compileJobError(data) {
+    var msg = data && data.error;
+    var shown = msg ? (window.translateServerError ? window.translateServerError(msg) : msg) : T('Unknown error');
+    return '<div class="result error"><p>' + _escErr(shown) + '</p></div>';
+}
 function _compileRequestError(r) {
     return r.text().then(function (body) {
         var msg = body;
@@ -542,7 +549,6 @@ document.getElementById('compile-form').addEventListener('submit', async functio
 
     btn.textContent = T('Submitting...');
     const formData = new FormData(this);
-    ViewerPanel.resetViewer();
     const dxnnBtn = document.getElementById('download-dxnn-btn');
     if (dxnnBtn) {
         dxnnBtn.disabled = true;
@@ -559,9 +565,15 @@ document.getElementById('compile-form').addEventListener('submit', async functio
 
             // Start SSE progress tracking
             const container = resultEl.querySelector('.progress-container');
-            if (!container) return;
+            if (!container) {
+                // 거절됐다 (허용 밖 경로 · 없는 파일 …). 예전에는 보내기 전에 그래프를 지워 그래프가 사라졌고,
+                // 메시지는 버튼 아래 보이지 않는 곳에 붙어 아무 일도 없는 것 같았다 (2026-10-11 audit).
+                resultEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+                return;
+            }
             const jobId = container.dataset.jobId;
-            // Load input model in viewer
+            // A compile really started — only now clear the previous run's phases.
+            ViewerPanel.resetViewer();
             const modelPath = document.getElementById('model_path').value;
             if (modelPath) {
                 ViewerPanel.loadModel('input', modelPath);
@@ -671,8 +683,7 @@ document.getElementById('compile-form').addEventListener('submit', async functio
                     DXIcon.label(container.querySelector('h3'), 'x', T('Compilation Failed'));
                     phaseIndicator.classList.add('phase-error');
                     phaseValue.textContent = T('Error');
-                    container.insertAdjacentHTML('beforeend',
-                        '<div class="result error"><p>' + (data.error || 'Unknown error') + '</p></div>');
+                    container.insertAdjacentHTML('beforeend', _compileJobError(data));
                 } catch(err) {
                     phaseValue.textContent = T('Connection lost');
                 }
@@ -843,7 +854,7 @@ document.querySelectorAll('.dropzone').forEach(zone => {
                     DXIcon.label(fileLabel, 'check', data.filename + ' → ' + data.path);
                     _maybeLoadViewerInput(targetId, data.path);   // auto-render graph on model upload
                 } else {
-                    DXIcon.label(fileLabel, 'x', T('Upload failed:') + ' ' + (data.error || 'Unknown error'));
+                    DXIcon.label(fileLabel, 'x', T('Upload failed:') + ' ' + (data.error ? (window.translateServerError ? window.translateServerError(data.error) : data.error) : T('Unknown error')));
                 }
             })
             .catch(err => {
@@ -1076,8 +1087,7 @@ function trackResumeProgress(container) {
             DXIcon.label(container.querySelector('h3'), 'x', T('Re-quantization Failed'));
             phaseIndicator.classList.add('phase-error');
             phaseValue.textContent = T('Error');
-            container.insertAdjacentHTML('beforeend',
-                '<div class="result error"><p>' + (data.error || 'Unknown error') + '</p></div>');
+            container.insertAdjacentHTML('beforeend', _compileJobError(data));
         } catch (err) {
             phaseValue.textContent = T('Connection lost');
         }
@@ -1112,7 +1122,6 @@ document.getElementById('resume-form').addEventListener('submit', function(e) {
     var btn = this.querySelector('.resume-btn');
     btn.disabled = true;
     btn.textContent = T('Submitting...');
-    ViewerPanel.resetViewer();
     fetch('/compile/resume', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1129,6 +1138,7 @@ document.getElementById('resume-form').addEventListener('submit', function(e) {
             btn.textContent = T('Resume');
             var container = resultEl.querySelector('.progress-container');
             if (container) {
+                ViewerPanel.resetViewer();   // only once the resume really started
                 var h3 = container.querySelector('h3');
                 if (h3) DXIcon.label(h3, 'spinner', T('Re-quantizing...'), { cls: 'dx-ico--spin' });
                 trackResumeProgress(container);

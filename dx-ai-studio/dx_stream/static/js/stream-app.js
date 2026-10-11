@@ -180,6 +180,7 @@ const DXStream = (() => {
                     DXStream._pipeState.selectedNodes = DXStream._pipeState.nodes.map(function (n) { return n.id; });
                     DXStream._pipeState.selectedNode = DXStream._pipeState.selectedNodes[0] || null;
                 }
+                if (typeof _refreshCanvas === 'function') _refreshCanvas();   // the selection was invisible
                 return;
             }
         }
@@ -210,15 +211,21 @@ const DXStream = (() => {
 // Expose to window so external scripts (tutorial.js, etc.) can access via window.DXStream
 window.DXStream = DXStream;
 
+// What is playing, on every page: the header pill was updated only by the Dashboard poll, and the
+// Demo page never learned that a Pipeline Builder run had replaced its demo on the server.
+DXStream._pollPlayback = function () {
+    if (document.hidden) return;
+    DXStream.api('/api/pipeline/status').then(function (st) {
+        if (!st || st.error) return;
+        if (typeof DXStream.updatePipelineBadge === 'function') DXStream.updatePipelineBadge(st);
+        if (typeof DXStream._demoSyncWithServer === 'function') DXStream._demoSyncWithServer(st);
+    });
+};
+setInterval(DXStream._pollPlayback, 4000);
+
 // Sync with shared i18n — stream-lang-refresh.js owns onLangChange dispatch
 DXStream.T = window.T;
 if (typeof DXI18n !== 'undefined') {
   DXStream.S.lang = DXI18n.lang;
-  if (typeof DXI18n.onLangChange === 'function') {
-    DXI18n.onLangChange(function () {
-      if (DXStream.S.currentPage && typeof DXStream.nav === 'function') {
-        DXStream.nav(DXStream.S.currentPage);
-      }
-    });
-  }
+  // The page reload on a language change is owned by stream-lang-refresh.js (once per change).
 }

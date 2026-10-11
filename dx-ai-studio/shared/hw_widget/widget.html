@@ -19,6 +19,17 @@ body:has(.dx-shell-rail) .hw-float{left:calc(var(--dx-rail-w,56px) + var(--sp-3,
 .hw-float.dragging{opacity:.85;transition:none;box-shadow:0 8px 32px rgba(0,0,0,.5)}
 .hw-float.minimized .hw-float-body{display:none}
 .hw-float.minimized{width:max-content}
+/* 모듈 레일이 있는 화면에서는 접힌 위젯이 레일의 Hub 위 버튼이 된다 — 왼쪽 아래 pill 은 끝까지 스크롤한 뒤에도
+   Model Zoo 체크박스 · Compiler 상태 표시 · EdgeGuide 슬라이더 · DX App 표를 가렸다 (2026-10-11 실사용 감사).
+   점 색은 NPU 온도 상태 (데이터가 없으면 회색). */
+.hw-float.hw-docked.minimized{display:none}
+.dx-shell-rail-foot:has(.hw-rail-btn){flex-direction:column;align-items:center;gap:4px}
+.hw-rail-dot{position:absolute;top:6px;right:6px;width:7px;height:7px;border-radius:50%;
+  background:var(--text-faint);box-shadow:0 0 0 2px var(--surface-panel)}
+.hw-rail-btn[data-state="ok"] .hw-rail-dot{background:var(--status-ok)}
+.hw-rail-btn[data-state="warn"] .hw-rail-dot{background:var(--status-warn)}
+.hw-rail-btn[data-state="crit"] .hw-rail-dot{background:var(--status-error)}
+.hw-rail-btn[aria-expanded="true"]{color:var(--accent);background:var(--accent-dim)}
 .hw-float-header{display:flex;justify-content:space-between;align-items:center;
   cursor:grab;touch-action:none;padding:0;gap:8px}
 .hw-float-header:active{cursor:grabbing}
@@ -86,7 +97,42 @@ body:has(.dx-shell-rail) .hw-float{left:calc(var(--dx-rail-w,56px) + var(--sp-3,
   window._hwFloatToggle = function () {
     var minimized = _hf.classList.toggle('minimized');
     try { localStorage.setItem(_OPEN_KEY, minimized ? '0' : '1'); } catch (e) {}
+    _syncRailBtn();
   };
+
+  /* ── Rail dock: 모듈 레일이 있으면 접힌 위젯은 레일 버튼이다 ── */
+  var _railFoot = document.querySelector ? document.querySelector('.dx-shell-rail-foot') : null;
+  var _railBtn = null, _railTemp = '';
+  var _railW = 0;
+  if (_railFoot) {
+    _hf.classList.add('hw-docked');
+    _railBtn = document.createElement('button');
+    _railBtn.type = 'button';
+    _railBtn.className = 'dx-rail-btn hw-rail-btn';
+    _railBtn.setAttribute('aria-controls', 'hw-float');
+    _railBtn.dataset.state = 'offline';
+    _railBtn.innerHTML = '<svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#thermometer"></use></svg>'
+      + '<span class="hw-rail-dot" aria-hidden="true"></span>';
+    _railBtn.addEventListener('click', function () { window._hwFloatToggle(); });
+    _railFoot.insertBefore(_railBtn, _railFoot.firstChild);
+    var _rail = _railFoot.parentElement;
+    _railW = _rail ? Math.round(_rail.getBoundingClientRect().right) : 0;
+  }
+  function _syncRailBtn() {
+    if (!_railBtn) return;
+    _railBtn.setAttribute('aria-expanded', _hf.classList.contains('minimized') ? 'false' : 'true');
+    var label = (window.T ? T('NPU Monitor') : 'NPU Monitor') + (_railTemp ? ' · ' + _railTemp : '');
+    _railBtn.title = label;
+    _railBtn.setAttribute('aria-label', label);
+  }
+  function _syncRailState(n) {
+    if (!_railBtn) return;
+    var t = n && _isNum(n.temp_avg) ? n.temp_avg : null;
+    _railTemp = t === null ? '' : t.toFixed(1) + '°C';
+    _railBtn.dataset.state = t === null ? 'offline' : (_statusFor('npu_temp', t) || 'ok');
+    _syncRailBtn();
+  }
+  _syncRailBtn();
   var _drag = {active:false, ox:0, oy:0};
   var _sparkData = [], _sparkMode = 0;
   var _MODES = ['temp','volt','clock','ctemp','cpu','mem','dram','util'];
@@ -200,7 +246,7 @@ body:has(.dx-shell-rail) .hw-float{left:calc(var(--dx-rail-w,56px) + var(--sp-3,
   }
   function dMove(cx, cy) {
     if (!_drag.active) return;
-    _hf.style.left = Math.max(0, Math.min(window.innerWidth - _hf.offsetWidth, cx - _drag.ox)) + 'px';
+    _hf.style.left = Math.max(_railW, Math.min(window.innerWidth - _hf.offsetWidth, cx - _drag.ox)) + 'px';
     _hf.style.top = Math.max(0, Math.min(window.innerHeight - _hf.offsetHeight, cy - _drag.oy)) + 'px';
   }
   function dEnd() {
@@ -233,7 +279,7 @@ body:has(.dx-shell-rail) .hw-float{left:calc(var(--dx-rail-w,56px) + var(--sp-3,
       var pos = JSON.parse(saved);
       requestAnimationFrame(function() {
         _hf.style.right = 'auto'; _hf.style.bottom = 'auto';
-        _hf.style.left = Math.max(0, Math.min(pos.x, window.innerWidth - 220)) + 'px';
+        _hf.style.left = Math.max(_railW, Math.min(pos.x, window.innerWidth - 220)) + 'px';
         _hf.style.top = Math.max(0, Math.min(pos.y, window.innerHeight - 200)) + 'px';
       });
     }
@@ -252,6 +298,7 @@ body:has(.dx-shell-rail) .hw-float{left:calc(var(--dx-rail-w,56px) + var(--sp-3,
     var npus=Array.isArray(_lastPayload.npus)?_lastPayload.npus:[];
     var n=_selectedNpu(npus);
     _renderSelector(npus);
+    _syncRailState(n);
 
     /* NPU title (+ MOCK badge when the source is serving simulated data — otherwise
        the sin-wave demo values look like real telemetry and get mistaken for a bug). */

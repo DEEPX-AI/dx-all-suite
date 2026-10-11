@@ -141,9 +141,15 @@ def _enrich_summary(model):
     summary = disp.get("summary")
     if not isinstance(summary, dict):
         summary = {}
+    # 문장은 id 로 시작한다 ('3ddfa_v2_mobilnet0_5_120x120 is a …') — 카드 제목과 같은 게시 이름으로
+    mid, name = model.get("id") or "", model.get("name") or ""
     for lang in _I18N_LANGS:
-        if desc.get(lang):
-            summary[lang] = desc[lang]
+        text = desc.get(lang)
+        if text:
+            if mid and name and name != mid and text.startswith(mid):
+                text = name + text[len(mid):]
+                desc[lang] = text
+            summary[lang] = text
     disp["summary"] = summary
 
 
@@ -312,7 +318,7 @@ def merge_conf_and_catalog(conf_models, catalog_data):
             "compile_guide": {},
             "demo": _build_demo_info(cm["id"], cm["category"], cm.get("model_file", ""),
                                      _representative_input(cm["id"], cm["category"])),
-            "variants": _detect_inference_variants(cm["id"], cm["category"]),
+            "variants": _detect_inference_variants(cm["id"], cm["category"], cm.get("model_file", "")),
             "legal": {},
             "thumbnail": f"thumbnails/{cm['id']}.jpg",
             "example_images": {
@@ -361,21 +367,29 @@ def _catalog_models_as_conf(catalog_data):
 
 
 def load_generated_catalog(cache_path=None, json_path=None):
-    """생성된 카탈로그 로드. schema_version 2.0 호환성 검사."""
+    """생성된 카탈로그 로드. schema_version 2.0 호환성 검사.
+
+    둘 다 있으면 **나중에 쓰인 쪽**. 예전에는 늘 캐시가 먼저였다 — 10/1 sync 가 남긴 캐시가 10/9 에
+    게시 이름 341개를 고친 generated_catalog.json 을 가려, 이 PC 의 Model Zoo 가 'yolo26n' 같은 id 를
+    이름으로 보였다 (2026-10-11 audit). sync 는 둘을 함께 쓰므로 그 경우에는 어느 쪽이든 같다."""
+    found = []
     for path in (cache_path or GENERATED_CATALOG_CACHE, json_path or GENERATED_CATALOG_JSON):
         path = Path(path)
         if not path.exists():
             continue
         try:
             data = json.loads(path.read_text(encoding="utf-8"))
+            mtime = path.stat().st_mtime
         except (json.JSONDecodeError, OSError):
             continue
         if not isinstance(data, dict):
             continue
         if data.get("schema_version") != "2.0":
             continue
-        return data
-    return None
+        found.append((mtime, data))
+    if not found:
+        return None
+    return max(found, key=lambda item: item[0])[1]
 
 
 def _metadata_source_from_generated(generated_catalog):
@@ -454,6 +468,11 @@ def _enrich_model_entry(base, enriched, metadata_source=None):
             base[key] = enriched[key]
     if metadata_source and "metadata_source" not in enriched:
         base["metadata_source"] = metadata_source
+    # 사람이 정한 이름 — model_catalog.json 의 이름은 id 를 기계적으로 펼친 것이라 'Regnety16Gf' ·
+    # '3Ddfa V2 Mobilnet0 5 120X120' 처럼 깨졌다 (2026-10-11 matrix). generated 의 display.name 이 있으면 그것.
+    display_name = (enriched.get("display") or {}).get("name")
+    if display_name:
+        base["name"] = display_name
 
     # specification: enriched가 더 풍부하면 머지
     if enriched.get("specification") and not base.get("specification"):
@@ -531,24 +550,29 @@ _PY_VARIANTS = ("sync", "async", "sync_cpp_postprocess", "async_cpp_postprocess"
 _CPP_VARIANTS = ("sync", "async")
 
 
-def _detect_inference_variants(model_id, category):
+def _detect_inference_variants(model_id, category, model_file=""):
     """Detect which (lang, variant) execution paths actually exist for a model.
 
     Mirrors dx_app run_inference resolution exactly so the UI never offers a path the
     backend can't run:
-      - cpp:    BUILD_DIR/<model>_<variant>                       (compiled binary)
-      - python: PY_DIR/<category>/<model>/<model>_<variant>.py    (script)
+      - cpp:    BUILD_DIR/<example>_<variant>                     (compiled binary)
+      - python: <example dir>/<example>_<variant>.py              (script)
+    <example> is resolved like dx_app does (shared.dx_app_layout): the catalog id, else the
+    .dxnn stem, else the registry variant. The flat PY_DIR/<category>/<id> lookup found
+    nothing in the per-model layout (object_detection/yolo26/yolo26-n_640x640/), so the
+    panel fell back to an unbuilt C++ binary — "Binary not found" (2026-10-11 audit).
     Returns e.g. {"cpp": ["sync", "async"], "python": ["sync", "async", "sync_cpp_postprocess"]}.
     Langs with no available variant are omitted.
     """
     if not DX_APP_ROOT.exists():
         return {}
+    from shared import dx_app_layout as _layout
+    name = _layout.example_name(DX_APP_ROOT, category, model_id, model_file or "")
     variants = {}
-    cpp = [v for v in _CPP_VARIANTS if (BUILD_DIR / f"{model_id}_{v}").exists()]
+    cpp = [v for v in _CPP_VARIANTS if _layout.cpp_binary(BUILD_DIR, name, v).exists()]
     if cpp:
         variants["cpp"] = cpp
-    py_dir = PY_DIR / category / model_id
-    py = [v for v in _PY_VARIANTS if (py_dir / f"{model_id}_{v}.py").exists()]
+    py = [v for v in _PY_VARIANTS if _layout.python_script(DX_APP_ROOT, category, name, v).is_file()]
     if py:
         variants["python"] = py
     return variants

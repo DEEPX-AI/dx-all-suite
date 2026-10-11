@@ -29,7 +29,8 @@
   var _tick = null;
   var _turn = null;          // { block, summary, commands, files, other }
   var _turns = [];           // every turn, so a language change can relabel them
-  var _ended = '';           // 'done' | 'stopped' — the badge's resting text
+  var _ended = '';           // 'Completed' | 'Failed' | 'Stopped' — the badge's resting text
+  var _failed = false;       // an `error` came — the closing `done` must not read as success
   var _sessionDir = '';
   /* 한 대화 — Interactive 면 답장이 같은 conversation 으로 이어진다. 닫으면 버린다. */
   var _conversationId = null;
@@ -153,6 +154,8 @@
 
   /* ── the stream ──────────────────────────────────────────── */
 
+  function _artifactSeen() { return _sessionDir.indexOf('dx-agent-dev') >= 0; }
+
   function renderEvent(ev) {
     if (!ev || ev.type === 'ping' || ev.hidden) return;
     switch (ev.type) {
@@ -174,11 +177,20 @@
         if (ev.session_dir) _sessionDir = ev.session_dir;
         break;
       case 'error':
+        _failed = true;
         _error(ev.text || '');
         _termLine(ev.text || '', 'err');
         break;
+      case 'artifacts':
+        /* 에이전트가 앱을 만든 곳 (대상 프로젝트의 dx-agent-dev/<session>/) — done 의 Studio 추적 폴더 대신 */
+        if (ev.dirs && ev.dirs.length) {
+          _sessionDir = ev.dirs.join(', ');
+          var pathEl = $('workSessionPath');
+          if (pathEl && pathEl.textContent) pathEl.textContent = _sessionDir;
+        }
+        break;
       case 'done':
-        if (ev.session_dir) _sessionDir = ev.session_dir;
+        if (ev.session_dir && !_artifactSeen()) _sessionDir = ev.session_dir;
         if (ev.conversation_id) _conversationId = ev.conversation_id;
         _finish(true);
         break;
@@ -223,9 +235,9 @@
     _setBusy(false);
     if (_turn && _turn.paint) { cancelAnimationFrame(_turn.paint); _turn.paint = 0; _paintTurn(_turn); }
     _turn = null;                          // 다음 답장은 새 턴
-    _ended = ok ? 'Completed' : 'Stopped';
-    /* Interactive 면 agent 가 묻고 멈춘 자리다 — 답장 칸을 연다 (같은 대화로 이어 간다). */
-    _showReply(ok && _mode === 'interactive' && !!_conversationId);
+    _ended = !ok ? 'Stopped' : (_failed ? 'Failed' : 'Completed');
+    /* Interactive 면 agent 가 묻고 멈춘 자리다 — 답장 칸을 연다 (같은 대화로 이어 간다). 실패한 실행에는 열지 않는다. */
+    _showReply(ok && !_failed && _mode === 'interactive' && !!_conversationId);
     var badge = $('workBadge');
     if (badge) badge.textContent = _t(_ended);
     var foot = $('workArtefact');
@@ -278,6 +290,7 @@
   function _run(prompt) {
     _turn = null;
     _ended = '';
+    _failed = false;
     _setBusy(true);
     fetch('/agent/api/agent/run', {
       method: 'POST',
@@ -361,7 +374,7 @@
         _mode = st.run_mode === 'autopilot' ? 'autopilot' : 'interactive';
         _setup = (ns.agentChoice && ns.agentChoice()) || {};
         _showReply(false);
-        _turn = null; _turns = []; _ended = ''; _follow = true;
+        _turn = null; _turns = []; _ended = ''; _failed = false; _follow = true;
         _setBusy(true);
         return fetch('/agent/api/agent/run/events?from=0').then(function (resp) {
           if (!resp.ok || !resp.body) { _finish(false); return false; }

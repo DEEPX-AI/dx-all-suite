@@ -143,6 +143,7 @@ function _perfTick() {
     });
 }
 
+DXStream.updatePipelineBadge = function (data) { _updatePipelineBadge(data); };
 function _updatePipelineBadge(data) {
     var badge = DXStream.$('pipeline-status');
     if (!badge) return;
@@ -189,14 +190,24 @@ if (typeof document !== 'undefined') {
     });
 }
 
-DXStream.quickLaunchDemo = function (demoId) {
+// Quick Launch: open the demo on the stage once the list has loaded, then start it — only if it
+// can run. It used to fire _startDemo 400 ms after nav, before the list (and the stage) existed,
+// and with no availability check: a demo needing setup came back as a raw 424.
+DXStream.quickLaunchDemo = async function (demoId) {
+    DXStream._allDemos = null;            // judge on the list this visit loads, not an old one
     DXStream.nav('demo');
-    // 데모 페이지 초기화 후 자동 시작
-    setTimeout(function () {
-        if (typeof DXStream._startDemo === 'function') {
-            DXStream._startDemo(demoId);
-        }
-    }, 400);
+    for (var i = 0; i < 80 && !(DXStream._demoCtl && DXStream._allDemos); i++) {
+        await new Promise(function (r) { setTimeout(r, 100); });
+    }
+    var d = (DXStream._allDemos || []).find(function (x) { return x.id === demoId; });
+    if (DXStream._demoCtl) DXStream._demoCtl.select(String(demoId));
+    if (!d) return;
+    if (!d.available) {
+        var why = (typeof _demoUnavailableReason === 'function') ? _demoUnavailableReason(d.availability || {}) : '';
+        DXStream.toast(T('Needs setup') + (why ? ': ' + why : ''), 'warn');
+        return;
+    }
+    if (typeof DXStream._startDemo === 'function') DXStream._startDemo(demoId);
 };
 
 DXStream._perfHistory = { fps: [], npu: [] };

@@ -27,7 +27,8 @@ Step 2. **Set the run** using the console controls:
 
 Step 3. **Describe your task** in the prompt — the agent works and streams its progress live;
    an expandable **activity panel** shows each turn's shell / tool output next to the reply.
-   The generated app lands in `workspace/agent-sessions/` (the console shows the path).
+   The agent writes the generated app to `dx-agent-dev/<session_id>/` inside the sub-project it worked on
+   (for example `dx-runtime/dx_app/dx-agent-dev/…`).
    The same run can also be started from the **prompt box on the hub home** and followed
    there (activity, replies, resume).
 
@@ -49,9 +50,9 @@ Step 5. **Showcases** — browse the gallery of example NPU apps for reference.
 
 - **Bring-your-own agent** — uses whatever coding CLI you have installed and signed in;
   one login powers both the generator and the chat.  
-- **Local / self-hosted LLM** support (any OpenAI-compatible endpoint; auto-discovers
-  models). No API key is stored — it is just an HTTP client.  
-- **SDK knowledge** — the assistant can pull in DEEPX SDK documentation to answer
-  accurately, with a refresh button to update it.  
+- **Studio chat (the button at the bottom right)** — separate from the Agent Console; it can  
+  use a signed-in coding CLI, a cloud API, or a **local / self-hosted** OpenAI- or  
+  Ollama-compatible endpoint (models are auto-discovered), and its settings have  
+  **Refresh knowledge** for the DEEPX SDK documentation.  
 - **Live streaming** of the agent's work, with a wall-clock timeout so a stuck run frees
   the slot for the next request.  

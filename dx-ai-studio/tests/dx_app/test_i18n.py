@@ -383,3 +383,13 @@ def test_app_html_lang_defaults_to_en():
     assert m.group(1) == "en", (
         f'<html lang="{m.group(1)}"> should be <html lang="en">'
     )
+
+
+def test_sync_mode_reads_as_synchronous_in_spanish():
+    """'Sync' is the inference mode (synchronous), not the verb — es said 'Sincronizar' (to synchronise) (2026-10-11)."""
+    import re
+    from pathlib import Path
+
+    src = (Path(__file__).resolve().parents[2] / "dx_app/static/js/i18n.js").read_text(encoding="utf-8")
+    entry = re.search(r"\n  'Sync': \{([^}]*)\}", src).group(1)
+    assert "es: 'Síncrono'" in entry, entry

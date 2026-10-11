@@ -456,11 +456,33 @@ function initRTSPStreams(selId){
   });
 }
 
+// RTSP 주소: 카메라가 주는 전체 URL (rtsp://user:pass@cam:554/cam/realmonitor?channel=1 …) 은 적은 그대로 쓴다.
+// host:port 만 적으면 예전처럼 rtsp://host:port/streamN. 비면 '' — 부르는 쪽이 멈추고 묻는다.
+// 예전에는 늘 rtsp://<칸>/streamN 이라 실제 카메라에 닿을 수 없었고, 빈 칸은 rtsp:///stream1 을 보냈다 (2026-10-11).
 function buildRTSPUrl(ipId,streamId){
-  var ip=$(ipId)?$(ipId).value:'';
+  var raw=($(ipId)?$(ipId).value:'').trim();
+  if(!raw)return '';
+  if(/^rtsps?:\/\//i.test(raw))return raw;
   var stream=$(streamId)?$(streamId).value:'stream1';
-  return 'rtsp://'+ip+'/'+stream;
+  return 'rtsp://'+raw+'/'+(stream||'stream1');
 }
+// 전체 URL 을 적으면 Stream 고르기는 쓰이지 않는다 — 그 줄을 숨긴다 (끄기만 하면 실행 뒤 Stop 이 모든 select 를
+// 다시 켜 되살아났다)
+function syncRTSPStreamPick(ipId,streamId){
+  var ip=$(ipId),sel=$(streamId);if(!ip||!sel)return;
+  var row=sel.closest('.fg')||sel;
+  row.hidden=/^rtsps?:\/\//i.test(ip.value.trim());
+}
+function rtspAddressMissing(ipId){
+  if(($(ipId)?$(ipId).value:'').trim())return false;
+  toast(T('Enter the RTSP address (rtsp://… or IP:Port)'),'warn');
+  var el=$(ipId);if(el)el.focus();
+  return true;
+}
+document.addEventListener('input',function(e){
+  var id=e.target&&e.target.id;
+  if(id==='c-rtsp-ip'||id==='b-rtsp-ip'||id==='ab-rtsp-ip')syncRTSPStreamPick(id,id.replace('-ip','-stream'));
+});
 
 async function doRun(){
   if(_runInFlight){toast(T('Run already in progress'),'warn');return}
@@ -871,6 +893,7 @@ async function contStart(){
   if(cInputType==='video'&&!$('c-video').value){toast(T('Please select a video'),'warn');return}
   // 카메라가 없으면 시작하지 않는다 — 예전에는 runner 를 띄웠다가 "카메라를 열 수 없음" 으로 끝났다 (A-16)
   if(cInputType==='camera'&&!$('c-camera').value){toast(T('No cameras found'),'warn');return}
+  if(cInputType==='rtsp'&&rtspAddressMissing('c-rtsp-ip'))return;
   for(var i=0;i<CONT.slots.length;i++){
     var m=findModel(CONT.slots[i].model);
     if(!m){toast(T('Model not found: ')+CONT.slots[i].model,'err');return}

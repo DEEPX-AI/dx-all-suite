@@ -318,7 +318,7 @@
           </div>
         </div>
         <div id="c-rtsp-pick" class="hidden">
-          <div class="fg"><label for="c-rtsp-ip" data-i18n="RTSP Server">RTSP Server</label><input type="text" id="c-rtsp-ip" class="input" value="" data-i18n-placeholder="IP:Port"></div>
+          <div class="fg"><label for="c-rtsp-ip" data-i18n="RTSP address">RTSP address</label><input type="text" id="c-rtsp-ip" class="input" value="" data-i18n-placeholder="rtsp://… or IP:Port"></div>
           <div class="fg"><label for="c-rtsp-stream" data-i18n="Stream">Stream</label><select id="c-rtsp-stream" class="input"></select></div>
         </div>
         <div class="grid2" style="gap:10px">
@@ -387,7 +387,7 @@
           </div>
         </div>
         <div id="b-input-rtsp" style="margin-bottom:8px;display:none">
-          <div class="fg" style="margin:0"><label data-i18n="RTSP Server">RTSP Server</label><input type="text" id="b-rtsp-ip" class="input" value="" data-i18n-placeholder="IP:Port"></div>
+          <div class="fg" style="margin:0"><label for="b-rtsp-ip" data-i18n="RTSP address">RTSP address</label><input type="text" id="b-rtsp-ip" class="input" value="" data-i18n-placeholder="rtsp://… or IP:Port"></div>
           <div class="fg" style="margin:0;margin-top:6px"><label data-i18n="Stream">Stream</label><select id="b-rtsp-stream" class="input"></select></div>
         </div>
         <div class="fg" style="margin:0 0 12px"><label for="b-loop" id="b-loop-label" data-i18n="Loop Count">Loop Count</label><input type="number" id="b-loop" class="input" value="100" min="1" max="10000" style="width:100%"></div>
@@ -447,7 +447,7 @@
         <div class="flex gap8 items-c"><select id="ab-camera" class="input" style="font-size:12px"><option value="0">/dev/video0</option></select><button class="btn btn-ghost btn-sm" onclick="loadCameras()" title="Refresh" data-i18n-title="Refresh" style="padding:2px 6px"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#refresh"></use></svg></button></div>
       </div>
       <div id="ab-rtsp-pick" class="hidden" style="display:flex;gap:8px;align-items:end">
-        <div class="fg" style="margin:0;width:160px"><label data-i18n="RTSP Server">RTSP Server</label><input type="text" id="ab-rtsp-ip" class="input" value="" style="font-size:12px"></div>
+        <div class="fg" style="margin:0;width:260px;max-width:100%"><label for="ab-rtsp-ip" data-i18n="RTSP address">RTSP address</label><input type="text" id="ab-rtsp-ip" class="input" value="" style="font-size:12px" data-i18n-placeholder="rtsp://… or IP:Port"></div>
         <div class="fg" style="margin:0;width:100px"><label data-i18n="Stream">Stream</label><select id="ab-rtsp-stream" class="input" style="font-size:12px"></select></div>
       </div>
       <div class="fg hidden" style="margin:0;width:90px" id="ab-frames-pick"><label data-i18n="Frames">Frames</label><input type="number" id="ab-frames" class="input" value="30" min="1" max="10000" style="width:80px;font-size:12px"></div>
@@ -558,7 +558,7 @@
   <h1><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#lab"></use></svg> <span class="accent" data-i18n="Lab">Lab</span></h1>
   <p class="txt-dim txt-sm mb16" data-i18n="Manage model/task extensions, experiments, and safe change previews in one place.">Manage model/task extensions, experiments, and safe change previews in one place.</p>
   <div class="lab-status lab-status-info mb12" id="lab-status" data-i18n="Preparing Lab session">Preparing Lab session</div>
-  <div class="grid" id="lab-home" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px">
+  <div class="lab-home" id="lab-home">
     <button class="card lab-card lab-composer-card" id="lab-card-composer" data-lab-flow="composer" type="button">
       <strong><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#puzzle"></use></svg> <span data-i18n="DX App Composer">DX App Composer</span></strong>
       <span class="txt-dim txt-sm" data-i18n="Choose a model and input, run the workflow, then export a package.">Choose a model and input, run the workflow, then export a package.</span>
@@ -600,9 +600,9 @@
       <div class="dev-panel active" id="dev-add">
         <div class="grid2" style="gap:10px">
           <div class="fg"><label for="da-name" data-i18n="Model Name">Model Name</label><input type="text" id="da-name" data-i18n-placeholder="e.g. yolov8n_custom"></div>
-          <div class="fg"><label for="da-task" data-i18n="Task Type">Task Type</label><select id="da-task" onchange="_devUpdatePP(this.value)"></select></div>
-          <div class="fg"><label for="da-lang" data-i18n="Output Language">Output Language</label><select id="da-lang"><option value="both">Both</option><option value="cpp">C++</option><option value="python">Python</option></select></div>
-          <div class="fg"><label for="da-pp" data-i18n="Postprocessor">Postprocessor</label><select id="da-pp"></select></div>
+          <div class="fg"><label for="da-task" data-i18n="Task Type">Task Type</label><select id="da-task" onchange="_devUpdateBase()"></select></div>
+          <div class="fg"><label for="da-lang" data-i18n="Output Language">Output Language</label><select id="da-lang" onchange="_devUpdateBase()"><option value="both" data-i18n="Both (C++ &amp; Python)">Both (C++ &amp; Python)</option><option value="cpp" data-i18n="C++ only">C++ only</option><option value="python" data-i18n="Python only">Python only</option></select></div>
+          <div class="fg"><label for="da-base" data-i18n="Start from">Start from</label><select id="da-base"></select></div>
         </div>
         <label style="font-size:12px;color:var(--text-muted);display:flex;align-items:center;gap:6px;margin:8px 0">
           <input type="checkbox" id="da-sync"> <span data-i18n="Sync only">Sync only</span>

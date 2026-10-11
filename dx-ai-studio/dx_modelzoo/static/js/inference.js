@@ -65,9 +65,14 @@ function _buildExecPathOptions(model) {
 }
 
 /* Read the chosen execution path (defaults to cpp/sync when no selector present). */
+// The one path this model has when the selector is not drawn (a single option).
+let _infDefaultPath = 'cpp|sync';
+
 function _currentExecPath() {
   const sel = document.getElementById('infExecPath');
-  const raw = (sel && sel.value) || 'cpp|sync';
+  // 선택지가 하나면 selector 를 그리지 않는다 — 그때 예전에는 늘 cpp|sync 로 불러, python 예제만 있는
+  // model 이 "Binary not found" 로 실패했다 (2026-10-11 audit). 그 하나의 경로를 쓴다.
+  const raw = (sel && sel.value) || _infDefaultPath;
   const [lang, ...rest] = raw.split('|');
   return { lang: lang || 'cpp', variant: rest.join('|') || 'sync' };
 }
@@ -79,7 +84,7 @@ function renderInferencePanel(model) {
   const disabled = !_dxAppAlive;
   const disabledAttr = disabled ? 'disabled' : '';
   const disabledMsg = disabled
-    ? `<p style="color:var(--status-warn);font-size:13px;margin-top:8px">${_mzIco('alert')} ${T('DX App is not running. Run Inference needs the DX App module (port 8080) — launch DX AI Studio (it auto-starts DX App) or start the DX App module, then retry.')}</p>`
+    ? `<p style="color:var(--status-warn);font-size:13px;margin-top:8px">${_mzIco('alert')} ${T('DX App is not running. Run Inference needs the DX App module — DX AI Studio starts it with the launcher; if it stopped, restart the launcher and retry.')}</p>`
     : '';
   // Inference needs the .dxnn locally. Without it the backend returns a confusing
   // "File not found" — gate the run controls and tell the user to download first.
@@ -106,6 +111,7 @@ function renderInferencePanel(model) {
   // Execution-path selector (C++/Python × Sync/Async × Python/C++ postprocess).
   // Only the paths that actually exist on disk are offered (model.variants).
   const execOpts = _buildExecPathOptions(model);
+  _infDefaultPath = execOpts.length ? execOpts[0].value : 'cpp|sync';
   const execPathSelectHtml = execOpts.length > 1
     ? `<div class="mz-exec-path-row">
          <label class="mz-exec-path-label" for="infExecPath">${_mzIco('gear')} ${T('Execution path')}</label>
@@ -373,7 +379,7 @@ async function runInference(modelId, category, modelFile, imagePath, imageBase64
     const dxAppUnavailable = ((!data.ok && data.code === 'DX_APP_UNAVAILABLE') ||
       data.error === 'DX_APP_UNAVAILABLE');
     if (dxAppUnavailable) {
-      resultDiv.innerHTML = `<p style="color:var(--status-error)">${_mzIco('alert')} ${T('DX App is not running. Run Inference needs the DX App module (port 8080) — launch DX AI Studio (it auto-starts DX App) or start the DX App module, then retry.')}</p>`;
+      resultDiv.innerHTML = `<p style="color:var(--status-error)">${_mzIco('alert')} ${T('DX App is not running. Run Inference needs the DX App module — DX AI Studio starts it with the launcher; if it stopped, restart the launcher and retry.')}</p>`;
       _dxAppAlive = false;
       document.getElementById('dxAppStatus')?.classList.remove('alive');
       return;

@@ -454,6 +454,12 @@ body { overflow-x: auto; overflow-y: hidden; }
   grid-template-columns: 1fr;
   gap: var(--sp-3);
 }
+/* 결과가 나오면 조건 칸은 좁은 옆줄이다 — 1440 px 이하에서 AI 작업 · 모델 크기를 두 칸으로 나눠
+   작업 이름이 "Object Detectic" · "Segmen" 으로 잘렸다 (2026-10-11). 옆줄에서는 한 칸으로 쌓는다. */
+.planner-workspace.workspace-state-recommended .requirements-wizard-stage .requirements-row-3,
+.planner-workspace.workspace-state-detailed .requirements-wizard-stage .requirements-row-3 {
+  grid-template-columns: minmax(0, 1fr);
+}
 .workspace-state-recommended .task-grid,
 .workspace-state-detailed .task-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1115,6 +1121,26 @@ input[type="range"]::-webkit-slider-thumb:hover {
   text-overflow: ellipsis;
   max-width: 100%;
 }
+.card-why {
+  flex: 1 1 100%;
+  margin: 0;
+  line-height: 1.45;
+}
+.card-why-note {
+  display: inline-block;
+  margin-left: var(--sp-2);
+  padding: 0 var(--sp-2);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  font-size: var(--fs-xs);
+  white-space: nowrap;
+}
+.badge-confidence[data-confidence="estimated"],
+.badge-confidence[data-confidence="+"] {
+  background: rgba(var(--warning-rgb), .12);
+  color: var(--status-warn);
+  border-color: var(--status-warn);
+}
 .card-release-meta {
   flex: 1 1 100%;
   color: var(--text-muted);
@@ -1657,6 +1683,9 @@ body.lang-zh-TW .zh-CN { display: none; }
   .spec-grid { grid-template-columns: 1fr; }
   .fact-grid { grid-template-columns: 1fr; }
   .card-metrics { gap: var(--sp-2); }
+  /* 폰 — 숫자 셋이 제목 옆 칸을 차지해 제목이 한 단어씩 접히고 badge 가 세로로 쌓였다 (2026-10-11). */
+  .rec-card .card-header { flex: 1 1 calc(100% - 52px); min-width: 0; }
+  .rec-card .card-metrics { flex: 1 1 100%; margin-top: 0; }
 }
 /* ═══ 13. Utility / Toast ═══ */
 .tooltip {

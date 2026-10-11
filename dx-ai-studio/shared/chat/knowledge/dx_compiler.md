@@ -1,8 +1,8 @@
-# DX Compiler — ONNX 컴파일 GUI (DX-COM v2.3.0)
+# DX Compiler — ONNX 컴파일 GUI (DX-COM)
 
 ## [section:overview,소개] DX Compiler 개요
 
-DX Compiler (포트 8095)는 **ONNX 모델을 NPU용 `.dxnn`으로 변환**하는 웹 GUI이며,
+DX Compiler (Studio 경로 `/compiler/`)는 **ONNX 모델을 NPU용 `.dxnn`으로 변환**하는 웹 GUI이며,
 내부적으로 **DX-COM (DEEPX Compiler)**을 호출합니다.
 
 - **DX-COM**: ONNX → .dxnn 핵심 컴파일러. INT8 Intelligent Quantization, NPU/CPU 자동 파티셔닝
@@ -19,11 +19,11 @@ DX Compiler (포트 8095)는 **ONNX 모델을 NPU용 `.dxnn`으로 변환**하�
 # Local 설치
 ./install.sh                     # DX-Compiler 전체 설치
 
-# Docker 설치
+# Docker 설치 (dx-all-suite 루트의 스크립트 — dx-compiler 안에는 없음)
 ./docker_build.sh               # Docker 이미지 빌드
 ./docker_run.sh                 # 컨테이너 실행
 
-# 실행 (DX-TRON Web UI)
+# 실행 (DX-TRON Web UI, dx-compiler 디렉터리)
 ./run_dxtron_web.sh             # 웹 기반 GUI 실행
 ./run_dxtron_appimage.sh        # AppImage 기반 실행
 ```
@@ -35,7 +35,7 @@ DX Compiler (포트 8095)는 **ONNX 모델을 NPU용 `.dxnn`으로 변환**하�
 2. **모델 검사**: 자동으로 입력/출력 Shape, Dynamic 축 감지
 3. **옵션 설정**: 최적화 레벨, 양자화, 파티셔닝 옵션
 4. **Config 생성**: Config Wizard로 전처리 파이프라인 설정
-5. **컴파일 시작**: Submit → 6단계 자동 진행
+5. **컴파일 시작**: **Compile** 버튼 → 6단계 자동 진행
 6. **결과 확인**: DX-TRON 그래프 시각화 + `.dxnn` 다운로드
 
 ### End-to-End 워크플로우 (E2E)
@@ -63,32 +63,38 @@ DX Compiler (포트 8095)는 **ONNX 모델을 NPU용 `.dxnn`으로 변환**하�
 ### 기본 옵션
 | 옵션 | 설명 | 기본값 |
 |------|------|--------|
-| `opt_level` | 최적화 레벨 (0=없음 ~ 3=최대) | 2 |
-| `aggressive_partitioning` | 적극적 NPU 파티셔닝 | False |
-| `gen_log` | 상세 로그 출력 | False |
-| `node_selection` | 컴파일 범위 선택 기능 | False |
+| `opt_level` (Optimization Level) | `0` (Standard) 또는 `1` (Advanced) | 1 |
+| `aggressive_partitioning` | 적극적 NPU 파티셔닝 (NPU task 수 제한 해제) | False |
+| `gen_log` (Generate Log) | 컴파일 로그를 Output Directory에 파일로 저장 | False |
+| `node_selection` (Compile Range Selection) | 컴파일 범위 선택 기능 | False |
 
 ### DXQ 양자화 (INT8 Intelligent Quantization)
 DeepX 독자 양자화 기술로 정확도 손실 최소화 + 추론 속도 극대화:
 
-| 설정 | 설명 |
+**Advanced Options → DXQ Enhancement Scheme**: `DXQ-P0` ~ `DXQ-P5`는 단계가 아니라 **각각 켜고 끄는 체크박스**이며, 켠 옵션들이 `enhancement_scheme` dict로 합쳐집니다.
+
+| 옵션 | 파라미터 (UI 기본값) |
 |------|------|
-| P0 ~ P5 | 양자화 프리셋 (P0=기본, P5=최고 정밀) |
-| weight_dtype | `int8`, `uint8`, `float16` |
-| activation_dtype | `uint8`, `int8` |
-| calibration_method | `entropy`, `percentile`, `kl` |
-| calibration_dataset | 캘리브레이션용 데이터 경로 (정확도에 중요) |
+| DXQ-P0 | `alpha` (0.5) |
+| DXQ-P1 | 파라미터 없음 (Boolean) |
+| DXQ-P2 | `alpha` (0.1), `beta` (1.0), `cosim_num` (2) |
+| DXQ-P3 / P4 / P5 | `num_samples` (1024) |
+| **Auto (Q-PRO)** | dx_com 자동 Q-PRO 양자화 튜닝 — 켜면 수동 DXQ 옵션은 비활성화 · 무시 |
+
+- 캘리브레이션 방식은 Config Wizard의 **Calibration Method**: `EMA` (기본) 또는 `MinMax`
+- 캘리브레이션 데이터 경로는 정확도에 중요 (실제 입력과 비슷한 이미지 사용)
 
 ### Config Wizard (전처리 설정)
-- **리사이즈**: 보간 모드 설정 (bilinear, nearest 등)
-- **노멀라이제이션**: 채널별/텐서별 (mean, std 값)
-- **패딩**: 입력 크기 조정
-- **캘리브레이션**: 데이터 경로 + 샘플 수 지정 (기본 100장)
+- **Data Loader**: Default Loader 또는 Dummy Loader
+- **Dataset & Preprocessing**: Dataset Path, File Extensions
+- **캘리브레이션**: Calibration Samples (기본 100장), Calibration Method (`EMA` / `MinMax`)
+- **Preprocessing Pipeline**: 실행 순서대로 transform 추가 (resize, normalize, transpose, expandDim, centercrop, convertColor, div, mul, subtract, add, squeeze, dtype, slice 등)
 
 ### CLI 컴파일 (dxcom 직접 사용)
 ```bash
-dxcom compile --model model.onnx --config config.json --output model.dxnn
-dxcom compile --model model.onnx --opt-level 3 --quant P0
+dxcom -m model.onnx -c config.json -o output/                 # 기본 (opt_level 기본값 1)
+dxcom -m model.onnx -c config.json -o output/ --opt_level 0   # 빠른 반복용 (Standard)
+dxcom -m model.onnx -c config.json -o output/ --aggressive_partitioning --gen_log
 ```
 
 ## [section:compile,graph,그래프] 그래프 뷰어 (DX-TRON)
@@ -128,8 +134,8 @@ dxcom compile --model model.onnx --opt-level 3 --quant P0
 1. `node_selection=true` 활성화 후 컴파일 시작
 2. PREPARE 완료 후 → **자동 일시정지**
 3. 그래프에서 **입력/출력 경계 노드 선택**
-4. "Calculate Exclude" → 제외 노드 미리보기 (BFS)
-5. "Resume" → 선택 범위만 컴파일 계속
+4. "Calculate Range" → 컴파일 범위 미리보기 (BFS)
+5. "Resume Compilation" → 선택 범위만 컴파일 계속
 
 ### BFS 제외 알고리즘
 - 입력+출력 노드 선택: `포함 = 입력의 하류 ∩ 출력의 상류`
@@ -147,7 +153,7 @@ dxcom compile --model model.onnx --opt-level 3 --quant P0
 | 파티셔닝 후 CPU 노드 많음 | 미지원 Op 다수 | `aggressive_partitioning=true` 시도, Op 분해 고려 |
 | 컴파일 시간 초과 | 모델 너무 큼 | 노드 선택으로 범위 축소, opt_level 낮추기 |
 | `.dxnn` 파일 안 생김 | 코드 생성 실패 | SSE 로그에서 에러 메시지 확인 |
-| 양자화 정확도 낮음 | 캘리브레이션 데이터 부적절 | 실제 데이터와 유사한 캘리브레이션 데이터 사용, P-preset 높이기 |
+| 양자화 정확도 낮음 | 캘리브레이션 데이터 부적절 | 실제 데이터와 유사한 캘리브레이션 데이터 사용, DXQ-P 옵션 조합 또는 Auto (Q-PRO) 시도 |
 | Dynamic Shape 처리 불가 | 가변 축 존재 | 고정 Shape로 export 또는 Config에서 고정값 지정 |
 
 ## [section:install,setup,설치] 전제 조건 및 설치
@@ -156,7 +162,7 @@ dxcom compile --model model.onnx --opt-level 3 --quant P0
 | 방법 | 설명 | 장점 |
 |------|------|------|
 | **Local** | `./install.sh` | 직접 접근, 빠른 실행 |
-| **Docker** | `docker_build.sh` + `docker_run.sh` | 환경 격리, 재현성 |
+| **Docker** | dx-all-suite 루트의 `docker_build.sh` + `docker_run.sh` | 환경 격리, 재현성 |
 | **DX-AllSuite** | 통합 설치 | 전체 SDK와 호환 보장 |
 
 ### 호환 환경
@@ -167,7 +173,7 @@ dxcom compile --model model.onnx --opt-level 3 --quant P0
 ### Feature Check
 - `/feature-check` API로 설치 여부 확인: `{compile: true/false}`
 - 컴파일러 미설치 시 UI에서 안내 메시지 표시
-- 업로드 경로: `compiler_uploads/` (보안 경로 검증 포함)
+- 업로드 경로: DX AI Studio의 `var/compiler/uploads/` (보안 경로 검증 포함)
 
 ### 문서 생성
 ```bash

@@ -2,11 +2,11 @@
 
 from pathlib import Path
 import re
-import shutil
 import subprocess
 
 import pytest
 from tests.css_rules import css_rule
+from tests.browser_support import resolve_node_executable
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -89,7 +89,7 @@ assert.strictEqual(elements['mock-banner'].style.display, 'none');
 apply({npus: [npu()], cpu_load: 2.0, mem_pct: 30.0, telemetry: {source_mode: 'stale'}});
 assert.strictEqual(state().mode, 'stale');
 assert(elements['telemetry-status'].className.includes('degraded stale'));
-assert.strictEqual(elements['telemetry-status'].textContent, '⚠ NPU telemetry is not current');
+assert.strictEqual(elements['telemetry-status'].textContent, 'NPU telemetry is not current');
 assert.strictEqual(elements['telemetry-status'].style.display, 'inline');
 assert(elements['status-bar'].innerHTML.includes('NPU telemetry is not current'));
 
@@ -130,7 +130,7 @@ console.log('OK: dashboard telemetry transitions');
 
 
 def run_dashboard_telemetry_vm() -> str:
-        node = shutil.which("node")
+        node = resolve_node_executable()
         if not node:
                 pytest.skip("node is required for dashboard runtime test")
         result = subprocess.run(

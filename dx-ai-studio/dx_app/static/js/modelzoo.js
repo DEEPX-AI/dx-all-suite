@@ -365,7 +365,7 @@ function mzRenderCart() {
       detailHtml += '<div class="mz-cart-item">'
         + '<div class="mz-cart-item-info">'
         + '<span class="mz-cart-item-name">' + DXIcon('models') + ' ' + esc(name) + '</span>'
-        + '<span class="badge b-cat">' + esc(task) + '</span>'
+        + '<span class="badge b-cat">' + esc(catText(task)) + '</span>'
         + '</div>'
         + '<div class="mz-cart-item-chips">';
 

@@ -79,11 +79,11 @@ window._DX_I18N_DICT = {
     es: 'Preparado',
   },
   'Surgery': {
-    ko: '수술',
+    ko: 'Surgery',
     ja: 'モデル加工',
     'zh-CN': '模型修改',
     'zh-TW': '模型修改',
-    es: 'Cirugía',
+    es: 'Surgery',
   },
   'Partition': {
     ko: '파티션',
@@ -190,7 +190,7 @@ window._DX_I18N_DICT = {
     ja: '量子化',
     'zh-CN': '量化',
     'zh-TW': '量化',
-    es: 'Cuantizar',
+    es: 'Cuantización',
   },
   'Other': {
     ko: '기타',
@@ -283,7 +283,7 @@ window._DX_I18N_DICT = {
     ja: '設定を生成',
     'zh-CN': '生成配置',
     'zh-TW': '產生設定',
-    es: 'Configuración de compilación',
+    es: 'Crear configuración',
   },
   'Output Directory *': {
     ko: '출력 디렉터리 *',
@@ -407,6 +407,13 @@ window._DX_I18N_DICT = {
   },
   'Re-quantizing...': {
     ko: '재양자화 중...', ja: '再量子化中...', 'zh-CN': '正在重新量化...', 'zh-TW': '正在重新量化...', es: 'Recuantizando...',
+  },
+  'Enter the dataset folder used for calibration, or go back and choose Dummy Loader.': {
+    ko: '보정에 쓸 데이터셋 폴더를 입력하거나, 이전 단계로 돌아가 Dummy Loader를 고르세요.',
+    ja: 'キャリブレーションに使うデータセットフォルダーを入力するか、前のステップに戻って Dummy Loader を選んでください。',
+    'zh-CN': '请输入用于校准的数据集文件夹，或返回上一步选择 Dummy Loader。',
+    'zh-TW': '請輸入用於校準的資料集資料夾，或返回上一步選擇 Dummy Loader。',
+    es: 'Indique la carpeta del conjunto de datos para la calibración, o vuelva atrás y elija Dummy Loader.',
   },
   'Dataset path is empty. The default loader needs a dataset directory for realistic calibration.': {
     ko: '데이터셋 경로가 비어 있습니다. 기본 로더는 현실적인 보정을 위해 데이터셋 디렉토리가 필요합니다.',
@@ -611,7 +618,7 @@ window._DX_I18N_DICT = {
     ja: 'ステップ 1 — 入力形状',
     'zh-CN': '步骤 1 — 输入形状',
     'zh-TW': '步驟 1 — 輸入形狀',
-    es: 'Step 1 — Entrada Shapes',
+    es: 'Paso 1 — Formas de entrada',
   },
   'Define model input tensor names and shapes.': {
     ko: '모델 입력 텐서 이름과 형상을 정의하세요.',
@@ -629,7 +636,7 @@ window._DX_I18N_DICT = {
   },
   'Choose how calibration data is loaded.': {
     ko: '보정 데이터를 로드하는 방법을 선택하세요.',
-    ja: '調整データのロード方法を選択してください。',
+    ja: 'キャリブレーションデータのロード方法を選択してください。',
     'zh-CN': '选择校准数据的加载方式。',
     'zh-TW': '選擇校準資料的載入方式。',
     es: 'Elija cómo se cargan los datos de calibración.',
@@ -653,7 +660,7 @@ window._DX_I18N_DICT = {
     ja: 'ステップ 3 — データセット & 前処理',
     'zh-CN': '步骤 3 — 数据集与预处理',
     'zh-TW': '步驟 3 — 資料集與預處理',
-    es: 'Step 3 — Conjunto de datos & Preprocessing',
+    es: 'Paso 3 — Conjunto de datos y preprocesamiento',
   },
   'Dataset Path *': {
     ko: '데이터셋 경로 *',
@@ -671,14 +678,14 @@ window._DX_I18N_DICT = {
   },
   'Calibration Samples': {
     ko: '보정 샘플 수',
-    ja: '調整サンプル数',
+    ja: 'キャリブレーションサンプル数',
     'zh-CN': '校准样本数',
     'zh-TW': '校準樣本數',
     es: 'Muestras de calibración',
   },
   'Calibration Method': {
     ko: '보정 방법',
-    ja: '調整方法',
+    ja: 'キャリブレーション方法',
     'zh-CN': '校准方法',
     'zh-TW': '校準方法',
     es: 'Método de calibración',
@@ -1047,11 +1054,11 @@ window._DX_I18N_DICT = {
     es: 'Instale primero el SDK',
   },
   'Setup Status': {
-    ko: '설정 상태',
+    ko: '설치 상태',
     ja: 'セットアップ状態',
-    'zh-CN': '设置状态',
-    'zh-TW': '設定狀態',
-    es: 'Estado de configuración',
+    'zh-CN': '安装状态',
+    'zh-TW': '安裝狀態',
+    es: 'Estado de instalación',
   },
   'DX Compiler SDK': {
     ko: 'DX 컴파일러 SDK',
@@ -1203,6 +1210,13 @@ window._DX_I18N_DICT = {
     'zh-CN': '请求失败：',
     'zh-TW': '請求失敗：',
     es: 'Error en la solicitud:',
+  },
+  'Unknown error': {
+    ko: '알 수 없는 오류',
+    ja: '不明なエラー',
+    'zh-CN': '未知错误',
+    'zh-TW': '未知錯誤',
+    es: 'Error desconocido',
   },
   'Upload failed:': {
     ko: '업로드 실패:',
@@ -1485,10 +1499,10 @@ window._DX_I18N_DICT = {
   },
   'Re-quantize from an existing <code>.qxnn</code> artifact to produce a new <code>.dxnn</code>. Usable any time, with or without a prior compile job.': {
     ko: '기존 <code>.qxnn</code> 아티팩트에서 재양자화하여 새 <code>.dxnn</code>을 생성합니다. 이전 컴파일 작업 없이도 사용할 수 있습니다.',
-    ja: '既存の <code>.qxnn</code> アーティファクトから再量子化して新しい <code>.dxnn</code> を生成します。',
-    'zh-CN': '从现有 <code>.qxnn</code> 工件重新量化以生成新的 <code>.dxnn</code>。',
-    'zh-TW': '從現有 <code>.qxnn</code> 工件重新量化以產生新的 <code>.dxnn</code>。',
-    es: 'Re-cuantice desde un artefacto <code>.qxnn</code> existente para producir un nuevo <code>.dxnn</code>.',
+    ja: '既存の <code>.qxnn</code> アーティファクトから再量子化して新しい <code>.dxnn</code> を生成します。以前のコンパイルジョブの有無にかかわらず、いつでも使用できます。',
+    'zh-CN': '从现有 <code>.qxnn</code> 工件重新量化以生成新的 <code>.dxnn</code>。无论之前是否有编译任务，均可随时使用。',
+    'zh-TW': '從現有 <code>.qxnn</code> 工件重新量化以產生新的 <code>.dxnn</code>。無論先前是否有編譯作業，皆可隨時使用。',
+    es: 'Re-cuantice desde un artefacto <code>.qxnn</code> existente para producir un nuevo <code>.dxnn</code>. Se puede usar en cualquier momento, con o sin un trabajo de compilación previo.',
   },
   'Recalibration Method': {
     ko: '재보정 방법',

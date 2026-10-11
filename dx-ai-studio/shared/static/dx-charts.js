@@ -296,7 +296,7 @@ function renderTaskSummary(tag,summary){
   if(tag==='DET'||tag==='ISEG'||tag==='OBB'||tag==='CLS'||tag==='HAND'){
     var entries=Object.entries(summary).sort(function(a,b){return(b[1].count||0)-(a[1].count||0)});
     if(!entries.length)return'<p style="color:var(--text-muted);font-size:12px">'+_t('No results recorded.','기록된 결과가 없습니다.')+'</p>';
-    var lbl=tag==='HAND'?_t('Handedness','손잡이'):_t('Class','클래스');
+    var lbl=tag==='HAND'?_t('Handedness','왼손/오른손'):_t('Class','클래스');
     h='<table class="perf-table"><thead><tr><th>'+lbl+'</th><th style="text-align:right">'+_t('Count','개수')+'</th><th style="text-align:right">'+_t('Avg Conf','평균 신뢰도')+'</th></tr></thead><tbody>';
     entries.forEach(function(e){
       var ca=(e[1].conf_avg||0)*100;

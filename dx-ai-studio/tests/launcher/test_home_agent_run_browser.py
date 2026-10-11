@@ -189,3 +189,62 @@ def test_the_terminal_wraps_long_lines(browser, port):
         assert ws == "pre-wrap", ws
     finally:
         ctx.close()
+
+
+def test_a_run_that_failed_is_not_shown_as_completed(browser, port):
+    """The server closes every run with `done`, also after `error` (a CLI that exits 1 — e.g. an
+    account usage limit). The badge read "Completed" and the reply box opened for a dead run."""
+    sse = "".join("data: " + json.dumps(e) + "\n\n" for e in (
+        {"type": "message", "text": "usage limit reached"},
+        {"type": "error", "text": "exit 1"},
+        {"type": "done", "text": "ok", "conversation_id": "c1"}))
+    ctx, page = _home(browser, port, route=("**/agent/api/agent/run",
+                                            lambda r: r.fulfill(status=200, content_type="text/event-stream", body=sse)))
+    try:
+        page.wait_for_selector("#setupForm:not([hidden])", state="attached", timeout=15000)
+        page.evaluate("DXLauncher.homeAgentStart('make a demo')")
+        page.wait_for_function("!document.getElementById('homeWork').classList.contains('is-running')"
+                               " && document.getElementById('workBadge').textContent.trim() !== ''", timeout=15000)
+        assert page.inner_text("#workBadge") == "Failed"
+        assert page.locator("#workReply").is_hidden()
+    finally:
+        ctx.close()
+
+
+def test_the_folded_summary_names_the_model_a_run_will_use(browser, port):
+    """2026-10-11: the folded setup read "copilot · auto" while the live list had already selected copilot's own
+    default (claude-sonnet-5) — the summary was painted before the list arrived and the list changes the select
+    without a change event, so the line under the prompt named a model the run would not use."""
+    route = ("**/agent/api/agent/models?agent=copilot*",
+             lambda r: r.fulfill(status=200, content_type="application/json", body=json.dumps(CATALOG)))
+    ctx, page = _home(browser, port, route=route)
+    try:
+        page.wait_for_selector("#setupForm:not([hidden])", state="attached", timeout=15000)
+        page.evaluate("document.getElementById('setupAgent').value")  # copilot is first (DX_AGENT_DEV_PIN_AGENTS)
+        page.wait_for_function("document.querySelector('#setupModel option[value=\"claude-fable-5\"][disabled]')", timeout=8000)
+        assert page.evaluate("document.getElementById('setupModel').value") == "claude-sonnet-5"
+        assert page.text_content("#setupFoldValue") == "copilot · claude-sonnet-5"
+    finally:
+        ctx.close()
+
+
+def test_a_model_picked_before_the_live_list_arrives_is_kept(browser, port):
+    """The CLI's list can take seconds (cursor asks for 200+ models). A model picked meanwhile was replaced by the
+    agent's default when the list landed, and the summary kept naming the picked one."""
+    held = []
+    ctx, page = _home(browser, port, route=("**/agent/api/agent/models?agent=copilot*", lambda r: held.append(r)))
+    try:
+        page.wait_for_selector("#setupForm:not([hidden])", state="attached", timeout=15000)
+        page.click("#setupFold > summary")
+        page.wait_for_function("document.querySelectorAll('#setupModel option').length > 1", timeout=8000)
+        page.select_option("#setupModel", "claude-opus-5.5")
+        for _ in range(80):
+            if held:
+                break
+            page.wait_for_timeout(100)
+        held[0].fulfill(status=200, content_type="application/json", body=json.dumps(CATALOG))
+        page.wait_for_function("document.querySelector('#setupModel option[value=\"claude-fable-5\"][disabled]')", timeout=8000)
+        assert page.evaluate("document.getElementById('setupModel').value") == "claude-opus-5.5"
+        assert page.text_content("#setupFoldValue") == "copilot · claude-opus-5.5"
+    finally:
+        ctx.close()

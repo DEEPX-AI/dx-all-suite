@@ -52,7 +52,11 @@ def _should_skip_stale_copy(record: AuditRecord, en: str) -> bool:
                 # 적어 stale-copy 를 피하고 있었지만, 영어에 없는 말을 덧붙인 것이라
                 # 라벨이 2.6배 길어졌다(dashboard.js:563 의 메트릭 라벨). 올바른 번역이
                 # 영어와 같아지는 경우를 결함으로 세면 안 된다.
-                "Firmware", "🔧 Firmware"}:
+                "Firmware", "🔧 Firmware",
+                # Throughput 도 같다 — 스페인어 'Rendimiento' 는 Performance 와 겹쳐서
+                # 영어 기술 용어를 그대로 쓴다(FPS 처럼). 'Throughput' 한 낱말은 위의
+                # 짧은 낱말 규칙으로 이미 빠지고, 단위가 붙은 라벨만 여기서 뺀다.
+                "Throughput (FPS)"}:
         return True
     vals = {(record.texts.get(lang) or "").strip() for lang in LANGUAGES if (record.texts.get(lang) or "").strip()}
     if len(vals) == 1:

@@ -17,25 +17,30 @@ DXStream.elementsInit = async function () {
     _renderElementCards(DXStream._allElements);
 
     const search = DXStream.$('elements-search');
-    if (search) {
-        search.oninput = function () {
-            var q = this.value.toLowerCase();
-            var filtered = DXStream._allElements.filter(function (e) {
-                return e.name.toLowerCase().indexOf(q) !== -1 || (e.category || '').toLowerCase().indexOf(q) !== -1;
-            });
-            _renderElementCards(filtered);
-        };
-    }
+    if (search) search.oninput = _applyElementFilter;
+    _applyElementFilter();
 };
+
+// Category and search narrow TOGETHER — each used to throw the other away (choosing a category
+// showed the whole category whatever was typed; typing searched every category).
+DXStream._elemCat = DXStream._elemCat || 'all';
+function _applyElementFilter() {
+    var box = DXStream.$('elements-search');
+    var q = ((box && box.value) || '').trim().toLowerCase();
+    var cat = DXStream._elemCat || 'all';
+    _renderElementCards((DXStream._allElements || []).filter(function (e) {
+        if (cat !== 'all' && e.category !== cat) return false;
+        if (!q) return true;
+        return e.name.toLowerCase().indexOf(q) !== -1 || (e.category || '').toLowerCase().indexOf(q) !== -1
+            || String(e.description_en || '').toLowerCase().indexOf(q) !== -1;
+    }));
+}
 
 DXStream.filterElements = function (cat, btn) {
     document.querySelectorAll('#elements-filter-bar .btn').forEach(function (b) { b.classList.remove('active'); });
     if (btn) btn.classList.add('active');
-    if (cat === 'all') {
-        _renderElementCards(DXStream._allElements);
-    } else {
-        _renderElementCards(DXStream._allElements.filter(function (e) { return e.category === cat; }));
-    }
+    DXStream._elemCat = cat || 'all';
+    _applyElementFilter();
 };
 
 var _elemCatCssClasses = {
@@ -88,27 +93,29 @@ function _renderElementExtra(el) {
     }
     if (el.key_features && el.key_features.length) {
         html += '<div class="element-detail-section"><h4>' +
-            '<span data-i18n="Key Features">Key Features</span>' +
+            '<span data-i18n="Key Features">' + T('Key Features') + '</span>' +
             '</h4><ul class="element-feature-list">';
         for (var i = 0; i < el.key_features.length; i++) {
             var feature = el.key_features[i] || {};
-            html += '<li>' + _renderBilingualText(feature.ko, feature.en) + '</li>';
+            // the data carries all six languages; only ko / en were ever read
+            var lang = (window.DXI18n && DXI18n.lang) || DXStream.S.lang || 'en';
+            html += '<li>' + _escElementHtml(feature[lang] || _bilingual(feature.ko, feature.en)) + '</li>';
         }
         html += '</ul></div>';
     }
     if (el.pipeline_hint_ko || el.pipeline_hint_en) {
         html += '<div class="element-detail-section"><h4>' +
-            '<span data-i18n="Pipeline Hint">Pipeline Hint</span>' +
+            '<span data-i18n="Pipeline Hint">' + T('Pipeline Hint') + '</span>' +
             '</h4><p>' + _renderBilingualText(el.pipeline_hint_ko, el.pipeline_hint_en) + '</p></div>';
     }
     if (el.example_config) {
         html += '<div class="element-detail-section"><h4>' +
-            '<span data-i18n="Example Config">Example Config</span>' +
+            '<span data-i18n="Example Config">' + T('Example Config') + '</span>' +
             '</h4><pre class="element-code-snippet">' + _escElementHtml(el.example_config) + '</pre></div>';
     }
     if (el.related_elements && el.related_elements.length) {
         html += '<div class="element-detail-section element-related"><h4>' +
-            '<span data-i18n="Related Elements">Related Elements</span>' +
+            '<span data-i18n="Related Elements">' + T('Related Elements') + '</span>' +
             '</h4>';
         for (var j = 0; j < el.related_elements.length; j++) {
             html += '<span class="badge b-cat">' + _escElementHtml(el.related_elements[j]) + '</span>';
@@ -117,7 +124,7 @@ function _renderElementExtra(el) {
     }
     if (el.doc_path) {
         html += '<div class="element-detail-section"><h4>' +
-            '<span data-i18n="SDK Docs">SDK Docs</span>' +
+            '<span data-i18n="SDK Docs">' + T('SDK Docs') + '</span>' +
             '</h4><code class="element-doc-path">' + _escElementHtml(el.doc_path) + '</code></div>';
     }
     return html;

@@ -224,6 +224,9 @@ def _watchdog_check_once():
 
             if proc_alive and port_open:
                 entry["status"] = "alive"
+                # 한 번 놓친 뒤 다시 답한 module 의 예약을 지운다 — 남겨 두면 다음 한 번의 blip 에 (이미 지난 기한이라)
+                # 유예 없이 멀쩡히 돌던 module 을 죽였다 (2026-10-11). 손으로 누른 restart 는 동기로 이미 끝났다.
+                entry["restart_at"] = None
                 continue
 
             # Module is down — re-check status was not changed concurrently
@@ -243,9 +246,10 @@ def _watchdog_check_once():
             if entry["restart_at"] is None:
                 deadline = _WATCHDOG_RESTART_DEADLINE_SECONDS()
                 entry["restart_at"] = now + deadline
-            entry["last_error"] = (
-                f"Process exited (pid={proc.pid})" if proc else "No process"
-            )
+            if entry.get("last_error_pid") != (proc.pid if proc else None):
+                entry["last_error"] = _exit_description(name, proc)
+                entry["last_error_pid"] = proc.pid if proc else None
+                print(f"  [Launcher] {name}: {entry['last_error']}", file=sys.stderr)
 
 
 def _watchdog_do_restarts():
@@ -746,14 +750,19 @@ def start_sub_server(name, directory, port=0, server_id=None):
     # dx_app 이 다시 뜨면 port 가 바뀐다 — 그 port 를 담는 파일을 넘겨 Zoo 가 요청마다 읽게 한다
     env["DX_APP_PORT_FILE"] = str(PORTS_DIR / "dx_app.port")
 
+    # stdout 은 요청마다 한 줄씩 찍는 module 이 있어 버린다. stderr (traceback · 경고 · native crash 의 faulthandler
+    # 덤프) 는 module 마다 크기 제한 log 에 남긴다 — 예전에는 둘 다 /dev/null 이라 module 이 죽어도 이유가 없었다
+    # (2026-10-11 실사용 감사).
+    env["PYTHONFAULTHANDLER"] = "1"
     proc = subprocess.Popen(
         cmd,
         cwd=str(directory),
         stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
+        stderr=subprocess.PIPE,
         env=env,
         preexec_fn=os.setsid,
     )
+    _start_module_log(server_id or name, proc)
     _procs[name] = proc
     _save_pids()
 
@@ -769,6 +778,73 @@ def start_sub_server(name, directory, port=0, server_id=None):
     if server_id:
         _LAUNCHER_PROXY_PORTS[server_id] = actual
     return True
+
+
+_MODULE_LOG_CAP_BYTES = 1024 * 1024
+_module_log_threads = {}
+
+
+def _module_log_path(server_id):
+    base = os.environ.get("XDG_STATE_HOME") or str(Path.home() / ".local" / "state")
+    return Path(base) / "dx-ai-studio" / "logs" / f"{server_id}.log"
+
+
+def _pump_module_stderr(pipe, log_path, cap_bytes=_MODULE_LOG_CAP_BYTES):
+    """Copy a module's stderr into log_path; past cap_bytes the log becomes <log>.1 and a new one starts."""
+    log_path = Path(log_path)
+    try:
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+        out = open(log_path, "ab")
+    except OSError:
+        for _ in iter(pipe.readline, b""):
+            pass
+        return
+    try:
+        for line in iter(pipe.readline, b""):
+            out.write(line)
+            out.flush()
+            if out.tell() > cap_bytes:
+                out.close()
+                os.replace(log_path, log_path.with_name(log_path.name + ".1"))
+                out = open(log_path, "ab")
+    except (OSError, ValueError):
+        pass
+    finally:
+        try:
+            out.close()
+        except OSError:
+            pass
+
+
+def _start_module_log(server_id, proc):
+    pipe = getattr(proc, "stderr", None)
+    if pipe is None:
+        return
+    path = _module_log_path(server_id)
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with open(path, "ab") as f:
+            f.write(f"\n=== {time.strftime('%Y-%m-%d %H:%M:%S')} start pid={proc.pid} ===\n".encode())
+    except OSError:
+        pass
+    t = threading.Thread(target=_pump_module_stderr, args=(pipe, path), name=f"log-{server_id}", daemon=True)
+    t.start()
+    _module_log_threads[server_id] = t
+
+
+def _exit_description(name, proc):
+    if proc is None:
+        return "No process"
+    code = proc.poll()
+    if code is None:
+        return f"Port closed (pid={proc.pid})"
+    detail = f"Process exited (pid={proc.pid}, code {code}"
+    if isinstance(code, int) and code < 0:
+        try:
+            detail += f" {signal.Signals(-code).name}"
+        except ValueError:
+            pass
+    return detail + f"); log: {_module_log_path(name)}"
 
 
 def stop_all():
@@ -893,10 +969,19 @@ def _proxy(handler, target_port, path, inject_widget=True):
         widget_cache = _get_widget_cache() if may_inject else b""
         is_html_inject = bool(widget_cache)
 
+        # http.client 가 module 의 chunked 를 풀어 준다. 길이를 모르는 응답 (SSE · chunked) 을 그대로 쓰면 HTTP/1.1
+        # keep-alive 연결에서 브라우저가 끝을 알 수 없다 — Chat 답이 [DONE] 뒤에도 끝나지 않고 연결을 붙잡았다
+        # (2026-10-11). 그런 응답은 다시 chunk 로 싸서 보낸다.
+        bodyless = handler.command == "HEAD" or resp.status in (204, 304) or 100 <= resp.status < 200
+        rechunk = (not is_html_inject and not bodyless and resp.getheader("Content-Length") is None)
+
         handler.send_response(resp.status)
         for key, val in resp.getheaders():
             low = key.lower()
-            if low in ("connection", "transfer-encoding"):
+            # send_response 가 이미 Server · Date 를 쓴다 — 그대로 옮기면 두 번 간다
+            if low in ("connection", "transfer-encoding", "server", "date"):
+                continue
+            if is_sse and low in ("cache-control", "x-accel-buffering"):
                 continue
             if low == "x-dx-no-widget":
                 continue  # internal signal — do not leak to the browser
@@ -906,6 +991,14 @@ def _proxy(handler, target_port, path, inject_widget=True):
         if is_sse:
             handler.send_header("Cache-Control", "no-cache")
             handler.send_header("X-Accel-Buffering", "no")
+        if rechunk:
+            handler.send_header("Transfer-Encoding", "chunked")
+
+        def _relay(data):
+            if rechunk:
+                handler.wfile.write(b"%x\r\n%s\r\n" % (len(data), data))
+            else:
+                handler.wfile.write(data)
 
         if is_html_inject:
             body = resp.read()
@@ -924,16 +1017,23 @@ def _proxy(handler, target_port, path, inject_widget=True):
                 line = resp.readline()
                 if not line:
                     break
-                handler.wfile.write(line)
+                _relay(line)
                 if line in (b"\n", b"\r\n") or line.startswith(b"data:"):
                     handler.wfile.flush()
+            if rechunk:
+                handler.wfile.write(b"0\r\n\r\n")
+            handler.wfile.flush()
         else:
             handler.end_headers()
             while True:
-                chunk = resp.read(65536)
+                chunk = resp.read1(65536) if rechunk else resp.read(65536)
                 if not chunk:
                     break
-                handler.wfile.write(chunk)
+                _relay(chunk)
+                if rechunk:
+                    handler.wfile.flush()
+            if rechunk:
+                handler.wfile.write(b"0\r\n\r\n")
             handler.wfile.flush()
 
     except Exception as e:

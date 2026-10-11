@@ -62,7 +62,8 @@ const ExplorerView = {
     const metrics = this._metricsFor(platform, inputs, result);
     const copy = this._factsCopy();
     const runtime = (inputs.ort !== false) ? copy.runtimeOrt : copy.runtimeNative;
-    const status = metrics.meetsRequirement ? copy.meets : copy.insufficient;
+    const status = metrics.status === 'meets-estimated' ? copy.meetsEstimate
+      : (metrics.meetsRequirement ? copy.meets : copy.insufficient);
     el.innerHTML =
       '<div class="fact-grid">' +
         this._factItem(copy.task, plannerTaskLabel(inputs.task)) +
@@ -72,6 +73,7 @@ const ExplorerView = {
         this._factItem(copy.runtime, runtime) +
         this._factItem(copy.maxChannels, this._formatChannels(metrics.maxChannels, metrics.boundaryFlag, copy)) +
         this._factItem(copy.status, status) +
+        this._factItem(copy.pipeline, this._formatNumber(metrics.pipelineFps, 0)) +
         this._factItem(copy.throughput, this._formatNumber(metrics.throughputFps, 0)) +
         this._factItem(copy.latency, this._formatNumber(metrics.latencyMs, 2)) +
         this._factItem(copy.tdp, platform.npu.tdp_w + 'W') +
@@ -86,6 +88,7 @@ const ExplorerView = {
         task: 'Task', modelSize: 'Model size', channelsRequired: 'Channels required',
         targetFps: 'Target FPS', runtime: 'Runtime', runtimeOrt: 'ONNX Runtime', runtimeNative: 'Native',
         maxChannels: 'Max channels', status: 'Status', meets: 'Meets', insufficient: 'Insufficient',
+        pipeline: 'Camera pipeline FPS (total)', meetsEstimate: 'Meets (estimate)',
         throughput: 'Throughput FPS', latency: 'Latency (ms)', tdp: 'TDP',
         topsPerW: 'TOPS/W',
         pricing: 'Pricing', pricingValue: 'Contact DEEPX for quote',
@@ -94,6 +97,7 @@ const ExplorerView = {
         task: '작업', modelSize: '모델 크기', channelsRequired: '필요 채널 수',
         targetFps: '목표 FPS', runtime: '런타임', runtimeOrt: 'ONNX Runtime', runtimeNative: 'Native',
         maxChannels: '최대 채널', status: '충족 여부', meets: '충족', insufficient: '부족',
+        pipeline: '카메라 파이프라인 FPS (합계)', meetsEstimate: '충족 (추정)',
         throughput: '처리량 FPS', latency: '지연 (ms)', tdp: 'TDP',
         topsPerW: 'TOPS/W',
         pricing: '가격', pricingValue: '가격은 DEEPX에 문의',
@@ -102,6 +106,7 @@ const ExplorerView = {
         task: 'タスク', modelSize: 'モデルサイズ', channelsRequired: '必要チャンネル数',
         targetFps: '目標FPS', runtime: 'ランタイム', runtimeOrt: 'ONNX Runtime', runtimeNative: 'Native',
         maxChannels: '最大チャンネル', status: '充足状況', meets: '充足', insufficient: '不足',
+        pipeline: 'カメラパイプライン FPS (合計)', meetsEstimate: '充足 (推定)',
         throughput: 'スループット FPS', latency: 'レイテンシ (ms)', tdp: 'TDP',
         topsPerW: 'TOPS/W',
         pricing: '価格', pricingValue: '価格はDEEPXへお問い合わせ',
@@ -110,6 +115,7 @@ const ExplorerView = {
         task: '任务', modelSize: '模型大小', channelsRequired: '所需通道数',
         targetFps: '目标 FPS', runtime: '运行时', runtimeOrt: 'ONNX Runtime', runtimeNative: 'Native',
         maxChannels: '最大通道', status: '达标情况', meets: '达标', insufficient: '不足',
+        pipeline: '摄像头管线 FPS（合计）', meetsEstimate: '达标（估算）',
         throughput: '吞吐量 FPS', latency: '延迟 (ms)', tdp: 'TDP',
         topsPerW: 'TOPS/W',
         pricing: '价格', pricingValue: '价格请联系 DEEPX',
@@ -118,6 +124,7 @@ const ExplorerView = {
         task: '任務', modelSize: '模型大小', channelsRequired: '所需通道數',
         targetFps: '目標 FPS', runtime: '執行環境', runtimeOrt: 'ONNX Runtime', runtimeNative: 'Native',
         maxChannels: '最大通道', status: '達標情況', meets: '達標', insufficient: '不足',
+        pipeline: '攝影機管線 FPS（合計）', meetsEstimate: '達標（估算）',
         throughput: '吞吐量 FPS', latency: '延遲 (ms)', tdp: 'TDP',
         topsPerW: 'TOPS/W',
         pricing: '價格', pricingValue: '價格請聯絡 DEEPX',
@@ -126,6 +133,7 @@ const ExplorerView = {
         task: 'Tarea', modelSize: 'Tamaño del modelo', channelsRequired: 'Canales requeridos',
         targetFps: 'FPS objetivo', runtime: 'Entorno', runtimeOrt: 'ONNX Runtime', runtimeNative: 'Native',
         maxChannels: 'Canales máx.', status: 'Estado', meets: 'Cumple', insufficient: 'Insuficiente',
+        pipeline: 'FPS del pipeline de cámaras (total)', meetsEstimate: 'Cumple (estimado)',
         throughput: 'Throughput FPS', latency: 'Latencia (ms)', tdp: 'TDP',
         topsPerW: 'TOPS/W',
         pricing: 'Precio', pricingValue: 'Consultar precio a DEEPX',
@@ -496,41 +504,16 @@ const ExplorerView = {
 
   _metricsFor(platform, inputs, result) {
     if (result && result.platform && result.platform.id === platform.id) {
-      return {
-        throughputFps: result.throughputFps,
-        latencyMs: result.latencyMs,
-        maxChannels: result.maxChannels,
-        boundaryFlag: result.boundaryFlag,
-        meetsRequirement: result.meetsRequirement,
-        topsPerWatt: result.topsPerWatt,
-      };
+      return result;
     }
 
-    const bench = this._selectedBenchmark(platform, inputs);
-    const ort = inputs.ort !== undefined ? inputs.ort : true;
-    // Match multi-stream rows by (size, task, ort) — the benchmark data models
-    // are named yolo26-l-obb_1024x1024 etc., so the old `yolo26${size}` string
-    // never equalled m.model.
-    const multiAll = platform.multi_stream.filter(
-      m => m.size === inputs.size && m.task === inputs.task && m.ort === ort
-    );
-    const channelCalc = bench
-      ? RecommendEngine._calcMaxChannels(bench, multiAll, inputs.targetFps)
-      : { maxChannels: 0, boundaryFlag: null };
-    const maxChannels = channelCalc.maxChannels || 0;
-    const latencyMs = bench ? bench.latency_ms || 0 : 0;
-    const topsPerWatt = platform.npu.tdp_w > 0 ? platform.npu.tops / platform.npu.tdp_w : 0;
-    return {
-      throughputFps: bench ? bench.throughput_fps || 0 : 0,
-      latencyMs,
-      maxChannels,
-      boundaryFlag: channelCalc.boundaryFlag,
-      // Same rule as RecommendEngine: channels AND latency (throttle already
-      // baked into maxChannels via the sustainable-set filter).
-      meetsRequirement: maxChannels >= (inputs.cameras || 0)
-        && RecommendEngine._meetsLatency(latencyMs, inputs.maxLatencyMs),
-      topsPerWatt,
-    };
+    // Any other platform (the compare pick) goes through the same engine as the cards.
+    const r = RecommendEngine.recommend(inputs, [platform])[0];
+    if (!r) {
+      return { throughputFps: null, pipelineFps: null, latencyMs: null, maxChannels: 0, boundaryFlag: null,
+               status: 'short', meetsRequirement: false, topsPerWatt: null };
+    }
+    return r;
   },
 
   _renderCommerce(platform, inputs, result) {

@@ -12,11 +12,11 @@ when Node is unavailable.
 
 from __future__ import annotations
 
-import shutil
 import subprocess
 from pathlib import Path
 
 import pytest
+from tests.browser_support import resolve_node_executable
 
 ROOT = Path(__file__).resolve().parents[2]
 PLANNER_JS = ROOT / "dx_planner/static/js/planner.js"
@@ -71,7 +71,7 @@ console.log('OK');
 
 
 def _node_or_skip() -> str:
-    node = shutil.which("node")
+    node = resolve_node_executable()
     if not node:
         pytest.skip("node not available")
     return node

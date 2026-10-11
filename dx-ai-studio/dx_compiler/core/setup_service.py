@@ -9,6 +9,7 @@ dx_com SDK 설치 및 샘플 데이터 다운로드를 관리하는 서비스.
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -31,6 +32,39 @@ VENV_CANDIDATES = [
     "venv-dx-compiler-local",  # 호스트
     "venv-dx-compiler",        # 컨테이너
 ]
+
+# dx-com 은 torch 를 요구하고, x86 의 기본 torch 는 CUDA library 를 함께 받는다 (디스크 ~5 GB). dxcom 은 CPU 로
+# compile 하므로 NVIDIA GPU 가 없는 host 에선 쓰이지 않는다 — 거의 찬 board 에서는 "No space left on device" 로
+# 설치가 죽었다. 그런 host 에서만 CPU torch index 를 더한다 (같은 torch, +cpu build).
+TORCH_CPU_INDEX = "https://download.pytorch.org/whl/cpu"
+
+
+# The probe starts the venv's python and imports dx_com (and with it torch): ~1.5 s on a board.
+# /feature-check and /setup/status both asked on every call, so the Compiler page waited for it on
+# every load. The answer changes only when the installed package does — the key is the dx_com
+# package folder and its mtime. Only "installed" answers are kept, so an install shows up at once.
+_DX_COM_PROBE: Dict[tuple, dict] = {}
+
+
+def _dx_com_probe_key(venv_python: Path) -> Optional[tuple]:
+    venv = Path(venv_python).parent.parent
+    for pkg in sorted(venv.glob("lib/python*/site-packages/dx_com")):
+        try:
+            return (str(pkg), pkg.stat().st_mtime_ns)
+        except OSError:
+            return None
+    return None
+
+
+def _has_nvidia_gpu() -> bool:
+    return Path("/dev/nvidia0").exists() or shutil.which("nvidia-smi") is not None
+
+
+def _pip_env(env: Dict[str, str]) -> Dict[str, str]:
+    """pip 이 받을 torch 를 host 에 맞춘다. 사용자가 고른 index (PIP_INDEX_URL · PIP_EXTRA_INDEX_URL) 는 둔다."""
+    if not _has_nvidia_gpu() and not env.get("PIP_INDEX_URL") and not env.get("PIP_EXTRA_INDEX_URL"):
+        env["PIP_EXTRA_INDEX_URL"] = TORCH_CPU_INDEX
+    return env
 
 
 class SetupService:
@@ -148,7 +182,7 @@ class SetupService:
         import threading
         from shared.sudo_askpass import configure_sudo_env, preauthorize_sudo, keep_sudo_alive
 
-        env = os.environ.copy()
+        env = _pip_env(os.environ.copy())
         # PEP 668 (Ubuntu 24.04+): 내부 pip 폴백이 system Python을 건드릴 때 하드실패 방지.
         env.setdefault("PIP_BREAK_SYSTEM_PACKAGES", "1")
         cleanup = configure_sudo_env(env, sudo_password)
@@ -245,7 +279,7 @@ class SetupService:
             yield {"type": "progress", "progress": 20, "message": "Installing with pip..."}
             proc = subprocess.Popen(
                 cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                text=True, cwd=str(SDK_ROOT)
+                text=True, cwd=str(SDK_ROOT), env=_pip_env(os.environ.copy())
             )
             total_lines = 0
             for line in proc.stdout:
@@ -309,6 +343,10 @@ class SetupService:
     def _check_dx_com(self, venv_python: Optional[Path]) -> dict:
         if not venv_python:
             return {"installed": False}
+        key = _dx_com_probe_key(venv_python)
+        if key is not None and key in _DX_COM_PROBE:
+            return dict(_DX_COM_PROBE[key])
+        found = {"installed": False}
         try:
             result = subprocess.run(
                 [str(venv_python), "-c",
@@ -316,10 +354,12 @@ class SetupService:
                 capture_output=True, text=True, timeout=10
             )
             if result.returncode == 0:
-                return {"installed": True, "version": result.stdout.strip()}
+                found = {"installed": True, "version": result.stdout.strip()}
         except (subprocess.TimeoutExpired, FileNotFoundError):
             pass
-        return {"installed": False}
+        if key is not None and found["installed"]:
+            _DX_COM_PROBE[key] = dict(found)
+        return found
 
     def _check_samples(self) -> dict:
         result = {}

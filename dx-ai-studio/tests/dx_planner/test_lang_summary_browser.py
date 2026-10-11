@@ -61,3 +61,12 @@ def test_switching_language_translates_chips_facts_and_platform_summary(page):
         assert "Host" not in summary and "Benchmark system" not in summary
     finally:
         page.evaluate("() => DXI18n.setLang('en')")
+
+
+def test_task_names_are_not_clipped_in_the_results_sidebar(page):
+    """At 1440 px the sidebar split AI task · model size into two columns: "Object Detectic", "Segmen" (2026-10-11)."""
+    clipped = page.evaluate("""() => [...document.querySelectorAll('.task-btn .task-name')]
+        .filter(e => e.offsetParent !== null && e.scrollWidth > e.clientWidth + 1).map(e => e.textContent.trim())""")
+    widths = page.evaluate("[...document.querySelectorAll('.task-btn')].map(b => Math.round(b.getBoundingClientRect().width))")
+    assert not clipped, (clipped, widths)
+    assert min(widths) >= 120, widths

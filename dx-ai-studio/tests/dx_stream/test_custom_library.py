@@ -166,7 +166,7 @@ class TestBuild:
     def test_build_requires_meson_build(self, lib_dirs):
         CL, src, _ = lib_dirs
         (src / "nomeson").mkdir()
-        with pytest.raises(FileNotFoundError, match="meson.build not found"):
+        with pytest.raises(FileNotFoundError, match="has no meson.build"):   # no server path in the message
             CL.CustomLibraryManager().build("nomeson")
 
     def test_get_build_log_shape(self, lib_dirs):
@@ -223,6 +223,13 @@ class TestBuildExecution:
     successful one in the UI — these pin both outcomes. Popen is always faked:
     the real command list ends in `sudo meson install`.
     """
+
+    @pytest.fixture(autouse=True)
+    def _no_real_sudo(self, monkeypatch):
+        """The sudo check runs `sudo -n true` for real — answer it here (passwordless host)."""
+        import os
+        from core import custom_library as CL
+        monkeypatch.setattr(CL, "_sudo_env", lambda password=None: (dict(os.environ), lambda: None))
 
     @pytest.fixture()
     def ready_lib(self, lib_dirs):
@@ -301,3 +308,86 @@ class TestBuildExecution:
         log = _wait_for_build(CL)
         assert "second" in log["log"]
         assert "first" not in log["log"], "a new build must not append to the old log"
+
+
+class TestBuildNeedsSudoForInstall:
+    """`sudo meson install` ran with no TTY and no askpass: on any host that asks for a password
+    the build died at the install step ("a terminal is required"). The password now comes from the
+    page, as Stream Setup does it, and the build refuses up front when it is needed but missing."""
+
+    @pytest.fixture()
+    def ready_lib(self, lib_dirs):
+        CL, src, _ = lib_dirs
+        d = src / "mylib"
+        d.mkdir()
+        (d / "meson.build").write_text("project()")
+        return CL
+
+    def test_a_password_is_asked_for_before_anything_runs(self, ready_lib, monkeypatch):
+        CL = ready_lib
+        import shared.sudo_askpass as SA
+        monkeypatch.setattr(SA, "preauthorize_sudo", lambda password=None, env=None: "a password is required")
+        monkeypatch.setattr(CL.subprocess, "Popen", lambda *a, **k: (_ for _ in ()).throw(AssertionError("ran")))
+        with pytest.raises(CL.SudoRequired):
+            CL.CustomLibraryManager().build("mylib")
+
+    def test_a_wrong_password_is_refused_and_cleaned_up(self, ready_lib, monkeypatch):
+        CL = ready_lib
+        import shared.sudo_askpass as SA
+        cleaned = []
+        monkeypatch.setattr(SA, "preauthorize_sudo",
+                            lambda password=None, env=None: "Sorry, try again" if password else "required")
+        monkeypatch.setattr(SA, "configure_sudo_env", lambda env, password=None: lambda: cleaned.append(1))
+        with pytest.raises(CL.SudoAuthFailed):
+            CL.CustomLibraryManager().build("mylib", sudo_password="wrong")
+        assert cleaned == [1]
+
+    def test_the_install_step_gets_the_askpass_environment(self, ready_lib, monkeypatch):
+        CL = ready_lib
+        import shared.sudo_askpass as SA
+        seen, cleaned = [], []
+        monkeypatch.setattr(SA, "preauthorize_sudo",
+                            lambda password=None, env=None: None if password else "required")
+
+        def _configure(env, password=None):
+            env["SUDO_ASKPASS"] = "/tmp/askpass"
+            return lambda: cleaned.append(1)
+
+        monkeypatch.setattr(SA, "configure_sudo_env", _configure)
+        monkeypatch.setattr(CL.subprocess, "Popen",
+                            lambda cmd, **k: seen.append(k.get("env", {}).get("SUDO_ASKPASS")) or _FakeProc(["ok\n"]))
+        CL.CustomLibraryManager().build("mylib", sudo_password="pw")
+        _wait_for_build(CL)
+        assert seen == ["/tmp/askpass"] * 3
+        assert cleaned == [1], "the askpass shim must be removed when the build ends"
+
+
+def test_the_build_route_answers_401_and_404_with_a_reason(lib_dirs, monkeypatch):
+    import json
+    import urllib.error
+    import urllib.request
+    from tests.server_helpers import start_module_server
+    import shared.sudo_askpass as SA
+
+    CL, src, _ = lib_dirs
+    (src / "mylib").mkdir()
+    (src / "mylib" / "meson.build").write_text("project()")
+    monkeypatch.setattr(SA, "preauthorize_sudo", lambda password=None, env=None: "a password is required")
+    srv, port = start_module_server("dx_stream")
+    try:
+        def post(path, body=None):
+            req = urllib.request.Request(f"http://127.0.0.1:{port}{path}", method="POST",
+                                         data=json.dumps(body or {}).encode(),
+                                         headers={"Content-Type": "application/json"})
+            try:
+                with urllib.request.urlopen(req, timeout=10) as r:
+                    return r.status, json.loads(r.read())
+            except urllib.error.HTTPError as e:
+                return e.code, json.loads(e.read())
+
+        code, body = post("/api/custom-library/mylib/build")
+        assert (code, body["error"]) == (401, "need_sudo")
+        code, body = post("/api/custom-library/nolib/build")
+        assert code == 404 and "meson.build" in body["message"]
+    finally:
+        srv.shutdown()

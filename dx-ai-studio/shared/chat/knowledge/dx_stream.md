@@ -1,10 +1,10 @@
-# DX Stream — 실시간 비전 AI 스트리밍 플랫폼 (v3.0.0)
+# DX Stream — 실시간 비전 AI 스트리밍 플랫폼
 
 ## [section:overview,소개] DX Stream 개요
 
-DX Stream (포트 8093)은 **GStreamer 기반 Vision AI 애플리케이션 개발 도구**로, DEEPX NPU를 활용하여 실시간 비전 AI 파이프라인을 빠르고 쉽게 구현할 수 있습니다.
-- **13개 DxStream 커스텀 GStreamer 엘리먼트** — 전처리/추론/후처리/추적/메시징 완전 커버
-- **10종 프리셋 데모**: Object Detection, Face, Pose, Tracking, Multi-Stream
+DX Stream (Studio 경로 `/stream/`)은 **GStreamer 기반 Vision AI 애플리케이션 개발 도구**로, DEEPX NPU를 활용하여 실시간 비전 AI 파이프라인을 빠르고 쉽게 구현할 수 있습니다.
+- **13개 DxStream 커스텀 GStreamer 엘리먼트** — 전처리/추론/후처리/추적/메시징 완전 커버 (Pipeline Builder 팔레트에는 VNPU 하드웨어용 `DxVnpuDec` · `DxVnpuEnc` · `DxVnpuPipeline` · `DxVnpuOverlay` 4종과 표준 GStreamer 엘리먼트도 함께 있음)
+- **12종 프리셋 데모**: Object Detection, Face, Pose, Instance Segmentation, Tracking, Multi-Stream, Secondary Inference, Depth Estimation
 - **비주얼 파이프라인 빌더**: 드래그 & 드롭으로 커스텀 파이프라인 구성
 - **WebRTC 스트리밍**: 브라우저에서 실시간 영상 확인
 - **Python bindings (pydxs)**: Python에서 파이프라인 제어
@@ -23,11 +23,15 @@ DX Stream (포트 8093)은 **GStreamer 기반 Vision AI 애플리케이션 개�
 ## [section:pipeline,gstreamer,gst,pipe,파이프라인] 파이프라인 빌더
 
 ### 비주얼 에디터
-1. 왼쪽 팔레트에서 **엘리먼트 드래그** → 캔버스에 배치
+1. 왼쪽 팔레트에서 **엘리먼트 드래그** → 캔버스에 배치 (또는 **Preset**에서 Demo 0~11 불러오기)
 2. 포트 연결 (출력 → 입력) 으로 **엣지 생성**
 3. 엘리먼트 속성 편집 (모델 경로, 리사이즈 크기 등)
-4. **Validate** → `gst-launch` 문자열로 변환 확인
-5. **Run** → GStreamer 파이프라인 실행 + WebRTC 연결
+4. 명령 미리보기에서 같은 뜻의 `gst-launch-1.0` 명령 확인
+5. **Run** → GStreamer 파이프라인 실행, **Stop**으로 정지
+
+- 툴바: **Run** · **Stop** · **Export** · **Import** (파이프라인 JSON) · **Preset**
+- **Playback**: **Local (WebRTC)** / **Remote (MJPEG)** 선택 — SSH tunnel · 원격 브라우저에서는 Remote (MJPEG)
+- 단축키 (Pipeline 화면): Delete = 선택 노드/엣지 삭제, Esc = 선택 해제, Ctrl+Z / Ctrl+Shift+Z = Undo / Redo, Ctrl+C / Ctrl+V = 노드 복사 / 붙여넣기
 
 ### 파이프라인 → gst-launch 변환
 JSON 노드/엣지 구조가 `gst-launch-1.0` 명령어 문자열로 자동 변환됩니다.
@@ -55,19 +59,21 @@ JSON 노드/엣지 구조가 `gst-launch-1.0` 명령어 문자열로 자동 변�
 
 ## [section:video,stream,camera,rtsp,데모] 데모 파이프라인
 
-### 10종 프리셋 데모
-| ID | 이름 | 카테고리 | 주요 기능 |
+### 12종 프리셋 데모
+| ID | 이름 | 카테고리 | 모델 / 주요 기능 |
 |----|------|----------|-----------|
-| 0 | Object Detection | 객체 탐지 | 개별 속성 모드 |
-| 1 | Object Detection PPU | 객체 탐지 | Config 파일 모드, PPU 하드웨어 후처리 |
-| 2 | Face Detection | 얼굴 탐지 | 전용 postproc 라이브러리 |
-| 3 | Face Detection PPU | 얼굴 탐지 | PPU 가속 |
-| 4 | Pose Estimation | 자세 추정 | 키포인트 오버레이 |
-| 5 | Pose Estimation PPU | 자세 추정 | PPU 가속 |
-| 6 | Semantic Segmentation | 시맨틱 분할 | 마스크 시각화 |
+| 0 | Object Detection | 객체 탐지 | YOLOv26n |
+| 1 | Object Detection PPU | 객체 탐지 | YoloV5S_PPU, Config 파일 모드, PPU 하드웨어 후처리 |
+| 2 | Face Detection | 얼굴 탐지 | YOLOv5s_Face |
+| 3 | Face Detection PPU | 얼굴 탐지 | SCRFD500M_PPU |
+| 4 | Pose Estimation | 자세 추정 | YOLOv26n-pose |
+| 5 | Pose Estimation PPU | 자세 추정 | YOLOV5Pose_PPU |
+| 6 | Instance Segmentation | 인스턴스 분할 | YOLOv26n-seg |
 | 7 | Multi-Object Tracking | 다중 객체 추적 | OC_SORT 알고리즘 |
 | 8 | Multi-Stream | 멀티 스트림 | 4채널 2×2 그리드 |
 | 9 | Multi-Stream RTSP | 멀티 RTSP | 네트워크 카메라 입력 |
+| 10 | Secondary Inference | 2차 추론 | 1차 감지 → 2차 분류 / 얼굴 인식 |
+| 11 | Depth Estimation | 깊이 추정 | YOLOv26 depth |
 
 ### CLI 데모 실행
 ```bash
@@ -75,37 +81,38 @@ JSON 노드/엣지 구조가 `gst-launch-1.0` 명령어 문자열로 자동 변�
 ./setup.sh                 # 모델 + 샘플 비디오 다운로드
 ```
 
-### 인코더 자동 감지 (우선순위)
-1. `vaapih264enc` (하드웨어 H.264)
-2. `x264enc tune=zerolatency` (소프트웨어 H.264)
-3. `vp8enc deadline=1` (VP8)
-4. `jpegenc` (JPEG 폴백)
+### 인코더 자동 감지 (우선순위 — 설치된 첫 번째 인코더 사용)
+1. `mpph264enc profile=baseline` (Rockchip 하드웨어 H.264)
+2. `vp8enc deadline=1 cpu-used=8` (소프트웨어 VP8)
+3. `vaapih264enc` (하드웨어 H.264)
+4. `x264enc tune=zerolatency` (소프트웨어 H.264)
+5. `jpegenc` (JPEG 폴백)
 
 ## [section:element,엘리먼트,플러그인] DxStream 커스텀 엘리먼트 (13개)
 
 ### 추론 파이프라인 핵심 3요소
 | 엘리먼트 | 역할 | 주요 속성 |
 |----------|------|-----------|
-| **DxPreprocess** | 추론용 이미지 전처리 | `width`, `height`, `color-format`, `crop-mode` |
-| **DxInfer** | DEEPX NPU 모델 추론 | `model` (.dxnn 경로), `config` (JSON), `batch-size` |
-| **DxPostprocess** | 결과 디코딩 (.so 라이브러리) | `lib-path`, `func-name`, `label-file` |
+| **DxPreprocess** | 추론용 이미지 전처리 (리사이즈, 색변환, ROI 추출) | `preprocess-id`, `resize-width`, `resize-height`, `keep-ratio`, `pad-value`, `config-file-path`, `secondary-mode` |
+| **DxInfer** | DEEPX NPU 모델 추론 | `model-path` (.dxnn 경로), `preprocess-id`, `inference-id`, `config-file-path`, `secondary-mode` |
+| **DxPostprocess** | 결과 디코딩 (.so 라이브러리) | `library-file-path`, `function-name`, `inference-id`, `config-file-path` |
 
 ### 추적 & 시각화
 | 엘리먼트 | 역할 | 주요 속성 |
 |----------|------|-----------|
-| **DxTracker** | 다중 객체 추적 (OC_SORT) | `algorithm`, `max-age`, `min-hits`, `iou-threshold` |
-| **DxOsd** | 바운딩박스/라벨/마스크/키포인트 오버레이 | `font-size`, `border-width`, `show-label`, `show-score` |
+| **DxTracker** | 다중 객체 추적 (OC_SORT) | `config-file-path` (트래커 설정 파일) |
+| **DxOsd** | 바운딩박스/라벨/마스크/키포인트 오버레이 | — |
 
 ### 전처리 보조
 | 엘리먼트 | 역할 | 주요 속성 |
 |----------|------|-----------|
 | **DxScale** | 하드웨어 가속 이미지 스케일링 | `width`, `height`, `method` |
-| **DxConvert** | 컬러 스페이스 변환 | `format` |
+| **DxConvert** | 컬러 스페이스 변환 | — |
 
 ### 유틸리티
 | 엘리먼트 | 역할 | 설명 |
 |----------|------|------|
-| **DxRate** | 프레임 레이트 제어 | 입력 FPS를 지정된 값으로 제한 |
+| **DxRate** | 프레임 레이트 제어 | `framerate` (목표 FPS, 필수), `throttle` |
 | **DxGather** | 병렬 브랜치 병합 | 여러 파이프라인 브랜치 결과를 하나로 합침 |
 | **DxInputSelector** | 입력 스트림 선택 | 여러 입력 중 하나를 동적 선택 |
 | **DxOutputSelector** | 출력 스트림 선택 | 하나의 입력을 여러 출력 중 하나로 라우팅 |
@@ -113,8 +120,8 @@ JSON 노드/엣지 구조가 `gst-launch-1.0` 명령어 문자열로 자동 변�
 ### 메시징 (IoT / 클라우드 연동)
 | 엘리먼트 | 역할 | 설명 |
 |----------|------|------|
-| **DxMsgConv** | 메타데이터 → JSON 변환 | 추론 결과를 구조화된 JSON으로 변환 |
-| **DxMsgBroker** | 메시지 브로커 발행 | MQTT, Kafka 등으로 JSON 메시지 전송 |
+| **DxMsgConv** | 메타데이터 → JSON 변환 | 추론 결과를 구조화된 JSON으로 변환 (`config-file-path`) |
+| **DxMsgBroker** | 메시지 브로커 발행 | MQTT, Kafka 등으로 JSON 메시지 전송 (`topic`, `broker-name`, `conn-info`, `config`) |
 
 ### 표준 GStreamer 엘리먼트 (파이프라인에서 같이 사용)
 - **소스**: `urisourcebin` (파일/URL), `rtspsrc` (RTSP), `v4l2src` (카메라)
@@ -130,12 +137,13 @@ JSON 노드/엣지 구조가 `gst-launch-1.0` 명령어 문자열로 자동 변�
 1. 클라이언트: `POST /api/webrtc/offer` → SDP Offer 전송
 2. 서버: SDP Answer 반환
 3. 클라이언트: `POST /api/webrtc/ice` → ICE 후보 전송
-4. 서버: `GET /api/webrtc/ice` → 서버 ICE 후보 폴링 (100ms 간격)
+4. 서버: `GET /api/webrtc/ice` → 서버 ICE 후보 폴링 (1초 간격)
 
 ### 클라이언트 기능
-- 자동 재시도: 실패 시 3회 (1초/2초/4초 간격)
+- 자동 재시도: 최대 5회 (1초/2초/3초/4초/5초 간격), 실패 화면에 **Retry** / **Dismiss** 버튼
+- 9초 안에 연결되지 않으면 WebRTC를 포기하고 MJPEG 스트림으로 전환 (원격 · NAT · SSH tunnel 환경)
+- 재생 방식 선택: **Local (WebRTC)** / **Remote (MJPEG)** — 원격 브라우저에서는 Remote (MJPEG) 권장
 - FPS/지연 시간 통계 오버레이
-- 키보드 단축키: P=일시정지, M=음소거, F=전체화면
 
 ## [section:model,모델] 사전 학습 모델 (16종)
 

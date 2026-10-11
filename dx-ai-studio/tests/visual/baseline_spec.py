@@ -31,8 +31,36 @@ SPECS: dict[str, dict] = {
     # (tests/visual/conftest.py 의 DX_APP_MODELS_DIR). 설치돼 있든 아니든 같은
     # 그림이 나오므로 전제가 필요 없다.
     "dx_app": {"settle_ms": _DEFAULT_SETTLE_MS},
-    "dx_stream": {"settle_ms": _DEFAULT_SETTLE_MS},
-    "dx_compiler": {"settle_ms": _DEFAULT_SETTLE_MS},
+    # The Dashboard's status cards show how far THIS host is set up (NPU, plugin, models
+    # 0/17 → 17/17, sample videos). Running Stream Setup changed 8 baselines with no code
+    # change. The capture answers /api/status with one fixed host instead — the cards are
+    # still drawn and compared, only their numbers no longer come from the machine.
+    "dx_stream": {"settle_ms": _DEFAULT_SETTLE_MS, "routes": {"**/api/status": {
+        "npu": {"ok": True, "devices": ["/dev/dxrt0"]},
+        "gstreamer": {"ok": True, "installed": True, "plugin": True},
+        "models": {"ok": False, "total": 17, "installed": 0, "missing": [], "installed_list": [],
+                   "catalog_source": "manifest"},
+        "videos": {"ok": False, "count": 0, "files": []},
+        "build": {"ok": True, "path": "/usr/local/lib/gstreamer-1.0/libgstdxstream.so"},
+        "webrtc": {"ok": False, "nice_plugin": False},
+        "system_info": {"os": "Linux", "gstreamer_version": "GStreamer 1.24.2",
+                        "npu_driver_version": "DXRT", "python_version": "3.12"},
+        "catalog_source": "manifest",
+    }}},
+    # The Setup panel shows whether THIS host has dxcom and the samples (collapsed "Setup ready"
+    # vs the expanded install steps). Installing dxcom changed 8 baselines with no code change.
+    # The capture answers both status endpoints with one fixed, not-yet-set-up host.
+    "dx_compiler": {"settle_ms": _DEFAULT_SETTLE_MS, "routes": {
+        "**/setup/status": {
+            "dx_com_installed": False, "dx_com_version": None, "venv_path": None, "venv_python": None,
+            "sample_models": {name: {"downloaded": False, "onnx_path": None, "config_path": None}
+                              for name in ("YOLOV5S-1", "YOLOV5S_Face-1", "MobileNetV2-1")},
+            "calibration_data": {"downloaded": False, "path": None},
+            "install_requires_sudo": True,
+        },
+        "**/feature-check": {"compile": False, "setup_available": True,
+                             "capabilities": {"node_selection": False}, "warnings": []},
+    }},
     "dx_modelzoo": {
         "settle_ms": _DEFAULT_SETTLE_MS,
         # 두 요소가 실행마다 미세하게 다르게 그려져 0.0205-0.0274% 를 오갔다 —

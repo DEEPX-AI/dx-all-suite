@@ -290,6 +290,11 @@
 .dx-steps-bar > i.is-next { background: var(--accent); }
 .dx-steps-bar > i.is-failed { background: var(--step-err); }
 .dx-steps-run { display: inline-flex; align-items: center; gap: var(--sp-2); }
+/* 좁은 화면 — 오른쪽 버튼이 소개 문장을 한 단어씩 접힌 좁은 칸으로 밀었다 (2026-10-11 Stream audit, 390 px · es). */
+@media (max-width: 600px) {
+  .dx-steps-head { grid-template-columns: minmax(0, 1fr); align-items: start; }
+  .dx-steps-run { flex-wrap: wrap; }
+}
 
 .dx-steps-list { list-style: none; margin: 0; padding: 0; position: relative; }
 .dx-steps-list::before { content: ""; position: absolute; left: calc(var(--step-dot) / 2 - 1px); top: var(--sp-5); bottom: var(--sp-5);

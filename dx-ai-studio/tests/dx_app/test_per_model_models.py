@@ -119,6 +119,22 @@ def test_a_model_with_its_own_example_never_borrows_another_binary(per_model):
     assert m["cpp_sync"] and not m["cpp_async"], m
 
 
+def test_an_old_name_of_an_example_is_not_listed_as_a_second_model(per_model, monkeypatch):
+    """The bundled catalog still carries pre-layout ids (yolo26n, efficientnet_lite0 …) with an
+    installed file. A run under that name is renamed to the example (server
+    _validate_inference_payload → example_name), which has no borrowed binary — so the extra
+    row offered C++ and every C++ run failed with "Binary not found … run build.sh"."""
+    from dx_app.core import models
+
+    other = per_model.parents[1] / "workspace/res/models/yolo26-n_640x640_old.dxnn"
+    other.write_bytes(b"DXNN\x08\x00\x00\x00")
+    monkeypatch.setattr(models, "_REG", {"yolo26n": {"category": "object_detection",
+                                                     "file": "assets/models/yolo26-n_640x640_old.dxnn"}})
+    _exe(per_model / "bin" / "yolov5s_sync")           # a binary the old row would have borrowed
+
+    assert [m["name"] for m in models.get_models()] == [STEM]
+
+
 def test_the_run_route_accepts_stem_names_but_not_paths():
     """per-model 의 model 이름은 .dxnn stem 이라 '-' '.' 을 쓴다 — 경로 모양은 여전히 막는다."""
     import pytest as _pytest

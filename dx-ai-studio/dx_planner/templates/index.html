@@ -226,7 +226,7 @@
                 <span class="priority-icon"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#video"></use></svg></span>
                 <span class="priority-text">
                   <strong data-i18n="Most channels">Most channels</strong>
-                  <span class="txt-dim txt-sm" data-i18n="Prioritize measured max channels">Prioritize measured max channels</span>
+                  <span class="txt-dim txt-sm" data-i18n="Most channels at your target FPS">Most channels at your target FPS</span>
                 </span>
               </span>
             </label>
@@ -236,7 +236,7 @@
                 <span class="priority-icon"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#bench"></use></svg></span>
                 <span class="priority-text">
                   <strong data-i18n="Best Performance">Best Performance</strong>
-                  <span class="txt-dim txt-sm" data-i18n="Maximize throughput">Maximize throughput</span>
+                  <span class="txt-dim txt-sm" data-i18n="Highest camera-pipeline FPS">Highest camera-pipeline FPS</span>
                 </span>
               </span>
             </label>
@@ -246,7 +246,7 @@
                 <span class="priority-icon"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#bolt"></use></svg></span>
                 <span class="priority-text">
                   <strong data-i18n="Lowest Power">Lowest Power</strong>
-                  <span class="txt-dim txt-sm" data-i18n="Minimize power usage">Minimize power usage</span>
+                  <span class="txt-dim txt-sm" data-i18n="Lowest NPU power (host not included)">Lowest NPU power (host not included)</span>
                 </span>
               </span>
             </label>
@@ -290,7 +290,7 @@
           <canvas id="overviewChart"></canvas>
         </div>
         <div class="info-banner" id="fps-banner" style="display:none">
-          <svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#alert"></use></svg> <span data-i18n="60FPS mode: only platforms with measured data are shown.">60FPS mode: only platforms with measured data are shown.</span>
+          <svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#alert"></use></svg> <span data-i18n="60 FPS: no stream count was measured this fast — channel counts are estimates from the measured total FPS.">60 FPS: no stream count was measured this fast — channel counts are estimates from the measured total FPS.</span>
         </div>
       </section>
 
@@ -364,26 +364,34 @@
         </section>
 
         <section class="cfg-card methodology-card">
-          <h3 class="card-title" data-i18n="2. Max channels">2. Max channels</h3>
-          <pre class="methodology-formula">maxChannels = max stream_count where
-              per_channel_fps ≥ targetFps
-              AND NOT npu_throttled</pre>
-          <p class="txt-sm txt-dim" data-i18n-html="Counts the largest measured stream that holds target FPS &lt;strong&gt;without throttling&lt;/strong&gt;. Points where the NPU throttled are excluded as unsustainable; no interpolated or theoretical estimates are used.">Counts the largest measured stream that holds target FPS <strong>without throttling</strong>. Points where the NPU throttled are excluded as unsustainable; no interpolated or theoretical estimates are used.
+          <h3 class="card-title" data-i18n="2. Channels">2. Channels</h3>
+          <pre class="methodology-formula">T_sat = lowest measured total FPS
+M     = largest measured stream count
+        with per_channel_fps ≥ target
+E     = floor(T_sat / target)
+
+channels = M   if a measured count above M misses the target
+         = max(M, min(E, 2 × max tested))   if every count holds it
+         = E   if no measured count holds it</pre>
+          <p class="txt-sm txt-dim" data-i18n="Measured when a tested stream count brackets your target; otherwise estimated from the measured total FPS, which stays nearly flat around saturation. Estimates stop at twice the highest tested stream count. A throttled measurement is kept — its FPS already ran at throttled clocks — and flagged.">Measured when a tested stream count brackets your target; otherwise estimated from the measured total FPS, which stays nearly flat around saturation. Estimates stop at twice the highest tested stream count. A throttled measurement is kept — its FPS already ran at throttled clocks — and flagged.
           </p>
         </section>
 
         <section class="cfg-card methodology-card">
           <h3 class="card-title" data-i18n="3. Meets requirement">3. Meets requirement</h3>
-          <pre class="methodology-formula">meets = (maxChannels ≥ cameras)
-     && (latency_ms ≤ maxLatencyMs if set)</pre>
-          <p class="txt-sm txt-dim" data-i18n="Throttling is already excluded when computing maxChannels, so the requirement check only looks at channel count and latency.">Throttling is already excluded when computing maxChannels, so the requirement check only looks at channel count and latency.
+          <pre class="methodology-formula">meets            = channels ≥ cameras
+                   && latency_ms ≤ maxLatencyMs (if set)
+meets (estimate) = the same, on an estimate
+                   or with latency not measured</pre>
+          <p class="txt-sm txt-dim" data-i18n="Latency is the single-stream benchmark latency. With a budget set and no latency measured, a result never counts as a plain pass.">Latency is the single-stream benchmark latency. With a budget set and no latency measured, a result never counts as a plain pass.
           </p>
         </section>
 
         <section class="cfg-card methodology-card">
           <h3 class="card-title" data-i18n="4. Sorting">4. Sorting</h3>
-          <pre class="methodology-formula">sort: meets → priority → maxChannels → throughput</pre>
-          <p class="txt-sm txt-dim" data-i18n="Channels and FPS come from that benchmark system (host + NPU). Contact DEEPX for pricing.">Channels and FPS come from that benchmark system (host + NPU). Contact DEEPX for pricing.
+          <pre class="methodology-formula">sort: meets → meets (estimate) → not throttled
+      → priority → channels → pipeline FPS</pre>
+          <p class="txt-sm txt-dim" data-i18n="Best performance ranks by measured camera-pipeline FPS (host + NPU end to end), not the NPU-only figure. Lowest power ranks by NPU TDP, then FPS per NPU watt — host power is not included. Contact DEEPX for pricing.">Best performance ranks by measured camera-pipeline FPS (host + NPU end to end), not the NPU-only figure. Lowest power ranks by NPU TDP, then FPS per NPU watt — host power is not included. Contact DEEPX for pricing.
           </p>
         </section>
       </div>
@@ -394,9 +402,9 @@
           <span data-i18n="Notice — guide limits">Notice — guide limits</span>
         </h3>
         <ul class="methodology-disclaimer-list txt-sm">
-          <li data-i18n-html="Channel counts shown are &lt;strong&gt;measured multi-stream&lt;/strong&gt; figures only. Platforms without measured data at your target are omitted rather than estimated.">Channel counts shown are <strong>measured multi-stream</strong> figures only. Platforms without measured data at your target are omitted rather than estimated.
+          <li data-i18n-html="Channel counts are measured where a tested stream count brackets your target, and otherwise &lt;strong&gt;estimated&lt;/strong&gt; from the measured total FPS — each card says which.">Channel counts are measured where a tested stream count brackets your target, and otherwise <strong>estimated</strong> from the measured total FPS — each card says which.
           </li>
-          <li data-i18n-html="Benchmarks were measured &lt;strong&gt;around 30 FPS&lt;/strong&gt;. Setting a target FPS far from that falls outside the measured range and may limit channel-count accuracy.">Benchmarks were measured <strong>around 30 FPS</strong>. Setting a target FPS far from that falls outside the measured range and may limit channel-count accuracy.
+          <li data-i18n-html="Benchmarks were measured &lt;strong&gt;around 30 FPS per channel&lt;/strong&gt;. At 15 or 60 FPS most figures are estimates — confirm on hardware for production.">Benchmarks were measured <strong>around 30 FPS per channel</strong>. At 15 or 60 FPS most figures are estimates — confirm on hardware for production.
           </li>
           <li data-i18n="Benchmarks cover the YOLO26 DX Benchmark matrix only — not your camera codec, pre/post processing, or multi-model pipelines.">Benchmarks cover the YOLO26 DX Benchmark matrix only — not your camera codec, pre/post processing, or multi-model pipelines.
           </li>

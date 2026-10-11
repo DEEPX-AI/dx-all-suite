@@ -545,7 +545,7 @@ function _canvasDblClick(e) {
     if (node) {
         DXStream.confirmModal(
             T('Delete Node'),
-            T('Delete node "' + node.name + '"?', '"' + node.name + '" 노드를 삭제하시겠습니까?')
+            T('Delete node "{name}"?').replace('{name}', node.name)
         ).then(function (ok) {
             if (!ok) return;
             st.nodes = st.nodes.filter(function (n) { return n.id !== node.id; });
@@ -1101,7 +1101,7 @@ function _showContextMenu(e) {
         _item(T('Redo'), 'Ctrl+Shift+Z', function () { DXStream._redo(); });
         _sep();
         _item(T('Fit View'), '', function () { DXStream.pipelineFitView(); });
-        _item(T('Clear All'), '', function () { DXStream.pipelineClear(); });
+        _item(T('Clear All'), '', function () { DXStream.pipelineReset(); });   // pipelineClear 는 없었다 — TypeError
     }
 
     menu.style.left = e.clientX + 'px';

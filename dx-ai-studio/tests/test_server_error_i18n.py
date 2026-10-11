@@ -122,6 +122,16 @@ class TestItIsWiredIntoThePagesThatShowServerErrors:
                     bad.append(f"{rel}:{i}  {line.strip()[:70]}")
         assert not bad, "서버 오류를 번역 없이 그대로 띄우는 곳:\n  " + "\n  ".join(bad)
 
+    def test_the_compile_progress_box_translates_and_escapes_the_job_error(self):
+        """A failed compile / re-quantization wrote the job error into the page raw: English on
+        a Korean page, and markup in a dxcom message would have been parsed as HTML."""
+        html = (ROOT / "dx_compiler" / "templates" / "index.html").read_text(encoding="utf-8")
+        assert "(data.error || 'Unknown error')" not in html
+        assert html.count("insertAdjacentHTML('beforeend', _compileJobError(data))") == 2
+        helper = html[html.index("function _compileJobError"):]
+        helper = helper[:helper.index("}") + 1]
+        assert "translateServerError" in helper and "_escErr(" in helper and "T('Unknown error')" in helper
+
     def test_the_script_is_loaded_by_the_shell(self):
         """어느 페이지가 불러오는지 — 로드되지 않으면 함수가 없어 조용히 실패한다."""
         hits = [p for p in ROOT.rglob("*.html")
@@ -180,6 +190,8 @@ class TestThePatternsActuallyMatchWhatTheServerSends:
         "output_dir cannot be a compiler job folder",
         "Host not allowed",
         "Cross-origin request refused",
+        # DX-COM's own refusal, shown in the compile progress box (dxcom needs > 8 GB free)
+        "Requires available disk size higher than 8 but you have 1.6405487060546875G",
     ]
 
     @staticmethod

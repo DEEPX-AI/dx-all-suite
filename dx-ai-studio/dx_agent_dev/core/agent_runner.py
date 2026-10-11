@@ -109,6 +109,7 @@ class AgentRunner:
 
         deadline = time.monotonic() + self._timeout if self._timeout else None
         timed_out = False
+        fresh_dirs = None
         try:
             while True:
                 if deadline is not None:
@@ -131,12 +132,18 @@ class AgentRunner:
             if timed_out:
                 yield {"type": "error",
                        "text": f"agent timeout after {self._timeout:g}s"}
+            # 앱은 대상 프로젝트의 dx-agent-dev/<session>/ 에 생긴다 — done 의 session_dir 은 Studio 의
+            # 추적 폴더라, 콘솔이 "Output saved to var/dx_agent_dev/sessions/…" 만 보여 앱을 찾을 수 없었다.
+            if target:
+                fresh_dirs = sorted(detect_session_dirs(target) - before)
+                if fresh_dirs:
+                    yield {"type": "artifacts", "dirs": fresh_dirs}
         finally:
             # 정상 완료·타임아웃·소비자 조기 종료(GeneratorExit) 모두 여기로 수렴한다.
             # cancel()은 멈춘 subprocess를 종료해 워커 스레드가 빠져나오게 하고 슬롯을 푼다.
             active.cancel()
             if target:
-                fresh = sorted(detect_session_dirs(target) - before)
+                fresh = fresh_dirs if fresh_dirs is not None else sorted(detect_session_dirs(target) - before)
                 if fresh and conversation is not None:
                     try:
                         conversation.artifact_dirs = fresh

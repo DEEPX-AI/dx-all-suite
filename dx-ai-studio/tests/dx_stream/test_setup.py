@@ -198,7 +198,10 @@ class TestSetupSteps:
         assert isinstance(status, dict)
         assert "build" in status
         assert "download-models" in status
-        for v in status.values():
+        for k, v in status.items():
+            if k == "running":          # the step still running (name or None), not a step state
+                assert v is None or isinstance(v, str)
+                continue
             assert "ok" in v
 
 
@@ -557,3 +560,57 @@ class TestManagedRuntimeWorker:
         assert "[ERROR] reconcile failed" in state["log"]
         assert cleanup_calls == [True]
         assert setup._running_proc is None
+
+
+def test_setup_status_names_the_step_that_is_still_running(monkeypatch):
+    """Leaving Setup (or changing language) stops the page's log poll; coming back it must learn
+    from the server which step is still running, or the install looks idle while it runs on."""
+    from dx_stream.core import setup as SU
+
+    monkeypatch.setattr(SU, "_step_logs", {
+        "build": {"log": "done", "done": True, "exit_code": 0},
+        "download-models": {"log": "Downloading 3/17", "done": False, "exit_code": None},
+    })
+    monkeypatch.setattr("dx_stream.core.status._check_build", lambda: {"ok": True})
+    monkeypatch.setattr("dx_stream.core.status._check_models", lambda: {"ok": False})
+    assert SU.get_setup_status()["running"] == "download-models"
+    monkeypatch.setattr(SU, "_step_logs", {"build": {"log": "", "done": True, "exit_code": 0}})
+    assert SU.get_setup_status()["running"] is None
+
+
+class TestStopStep:
+    """Stop said "Stop failed" for the runtime/driver steps (they run in a thread, there is no
+    process to stop), and for script steps it terminated only the shell — wget / meson / apt children
+    kept running."""
+
+    def test_a_thread_step_answers_that_it_cannot_be_stopped(self, monkeypatch):
+        from dx_stream.core import setup as SU
+        monkeypatch.setattr(SU, "_running_proc", True)
+        r = SU.stop_step()
+        assert r["ok"] is False and r["error"] == "not_stoppable" and "finishes on its own" in r["message"]
+
+    def test_a_script_step_is_stopped_with_its_children(self, monkeypatch):
+        import signal
+        from dx_stream.core import setup as SU
+
+        class _Proc:
+            pid = 4242
+            def poll(self):
+                return None
+            def terminate(self):
+                raise AssertionError("only the shell would stop")
+
+        killed = []
+        monkeypatch.setattr(SU, "_running_proc", _Proc())
+        monkeypatch.setattr(SU.os, "getpgid", lambda pid: pid, raising=False)
+        monkeypatch.setattr(SU.os, "killpg", lambda pg, sig: killed.append((pg, sig)), raising=False)
+        monkeypatch.setattr(SU, "_step_logs", {"build": {"log": "", "done": False, "exit_code": None}})
+        assert SU.stop_step()["ok"] is True
+        assert killed == [(4242, signal.SIGTERM)]
+        assert SU._step_logs["build"]["exit_code"] == 130
+
+
+def test_script_steps_start_in_their_own_process_group():
+    import inspect
+    from dx_stream.core import setup as SU
+    assert "start_new_session=True" in inspect.getsource(SU.run_step)

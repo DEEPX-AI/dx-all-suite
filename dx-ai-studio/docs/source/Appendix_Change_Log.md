@@ -14,7 +14,8 @@ Changes since the v0.1.0 beta manual. The version number and date are set at rel
 - Light, dark and system themes; one icon set across all modules (no emoji in the UI); real
   variable fonts with one CJK face per language.
 - A new intro built from real runs and real DX-M1 footage.
-- The NPU monitor float starts folded at the bottom left and remembers your choice.
+- The NPU monitor float starts folded and remembers your choice. In a module it folds into a rail button
+  above Hub (a dot shows the NPU temperature state), so it no longer covers the bottom of the page.
 
 **Remote access & security**
 
@@ -35,6 +36,36 @@ Changes since the v0.1.0 beta manual. The version number and date are set at rel
 - SDK Library follows the suite's documentation (190 documents, 6 shelves).
 - About 370 DX App strings that were translated but never shown now appear in every language;
   Korean spacing follows Korean orthography; server errors are translated.
+- DX EdgeGuide: channel counts come from the measured end-to-end pipeline throughput. They are
+  measured where a tested stream count brackets your target FPS and estimated otherwise
+  (capped at twice the tested count). Each card says which, and why, in one line, with notes
+  for NPU throttling, whether the NPU or the host was the limit, and unmeasured latency.
+  60 FPS no longer reads 0 channels almost everywhere. Best Performance ranks by camera-pipeline
+  FPS; Lowest Power by NPU TDP (host power excluded).
+- DX Agent Dev: a **Stop** button while an agent runs; a dropped connection no longer stays
+  "Running…".
+- DX Compiler: large graphs open at a readable zoom at the input node; picking a sample model
+  draws its graph; Config Builder asks for the dataset folder (or Dummy Loader); a refused
+  compile keeps the graph and shows the reason.
+- Model Zoo: cards and details use the published model names; **Run Inference** finds each
+  model's example in the per-model layout (it used to fail with "Binary not found").
+- DX App Lab: **Add Model** works again — it copies an existing example of the category (*Start from*)
+  and the Python copy runs on the board; **Experiment** really runs (read the model, one inference,
+  throughput in FPS); **Safety Center** rolls back an applied change that only created files, and
+  applied changes stay listed in Generated Files; **Commit with git** lists the files a change wrote and
+  the git commands that commit only those.
+- DX App: **RTSP address** takes the camera's own URL (`rtsp://user:pass@cam:554/...`); host:port still
+  works. RTSP with the Python examples runs (it used to fail with "Input file not found").
+- DX Compiler: Agentic Auto Compile opens on the agent CLI's own default model, and picking a model
+  updates the model-quality note.
+- AI Help (chat): answers use this PC's dx_app layout and a command that runs here; **Local /
+  Self-hosted** finds the models of the endpoint you type; answers through the launcher end cleanly
+  instead of holding a connection open.
+- Home: the folded agent line names the model a run will use, and a model picked before the CLI's
+  list arrives is kept.
+- All modules: phone-width (390 px) layouts fixed for Setup, EdgeGuide cards, Compiler tabs,
+  Benchmark Settings/Results, the Lab home and the SDK Library; dozens of mistranslations
+  fixed (e.g. Setup no longer reads as Settings); the AI Help knowledge matches today's UI.
 
 ## v0.1.0 / 2026-07
 

@@ -4,6 +4,7 @@ from __future__ import annotations
 import re
 import difflib
 from pathlib import Path
+from . import live_facts
 
 SYNONYMS = {
     "compile":  ["컴파일", "빌드", "변환", "build", "convert", "onnx", "dxnn"],
@@ -199,6 +200,11 @@ def build_system_prompt(
             sdk_sections = []
         for sec in match_sections(sdk_sections, user_message, max_sections=3):
             parts.append(f"## {sec['title']}\n{sec['content']}")
+
+    # 2.6 이 PC 의 설치 상태 — knowledge 가 두 모양을 다 적어 두어 model 이 틀린 쪽을 골랐다 (2026-10-11).
+    facts = live_facts.system_facts()
+    if facts:
+        parts.append(facts)
 
     if runtime_context:
         lines = [f"- {k}: {v}" for k, v in runtime_context.items()]

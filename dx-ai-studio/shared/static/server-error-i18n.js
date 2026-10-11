@@ -402,6 +402,15 @@
       'zh-CN': 'temperature 必须在 $1 和 $2 之间',
       'zh-TW': 'temperature 必須在 $1 和 $2 之間',
     },
+    // DX-COM refuses to compile below 8 GB free disk (checked inside dxcom, not by the studio)
+    {
+      re: /^Requires available disk size higher than (\d+) but you have (\d+(?:\.\d)?)\d*G$/,
+      ko: 'DX-COM은 디스크 여유 공간이 $1 GB보다 많아야 합니다 (현재 $2 GB). 공간을 비운 뒤 다시 시도하세요.',
+      ja: 'DX-COM にはディスクの空き容量が $1 GB より多く必要です (現在 $2 GB)。空き容量を増やしてから、もう一度お試しください。',
+      es: 'DX-COM necesita más de $1 GB libres en disco (ahora hay $2 GB). Libere espacio y vuelva a intentarlo.',
+      'zh-CN': 'DX-COM 需要超过 $1 GB 的可用磁盘空间 (当前 $2 GB)。请释放空间后重试。',
+      'zh-TW': 'DX-COM 需要超過 $1 GB 的可用磁碟空間 (目前 $2 GB)。請釋出空間後再試一次。',
+    },
     {
       re: /^temperature must be a number$/,
       ko: 'temperature는 숫자여야 합니다',
