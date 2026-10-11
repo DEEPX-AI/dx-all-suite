@@ -104,6 +104,7 @@ BROWSER_TESTS=(
   tests/shared/test_text_contrast_browser.py
   tests/shared/test_accessible_names_browser.py
   tests/launcher/test_home_facts_deferred_browser.py
+  tests/shared/test_browser_language_default_browser.py
   tests/dx_app/test_setup_steps_browser.py
   tests/dx_stream/test_setup_steps_browser.py
   tests/dx_compiler/test_setup_steps_browser.py
