@@ -67,6 +67,8 @@ def _home(browser, port, route=None):
     page = ctx.new_page()
     page.goto(f"http://127.0.0.1:{port}/", wait_until="domcontentloaded", timeout=60000)
     page.wait_for_function("!!(window.DXLauncher && window.DXLauncher.homeAgentStart)", timeout=30000)
+    # The home is visibility:hidden until boot ends (html.launcher-boot-pending); innerText of a hidden badge is ''.
+    page.wait_for_function("!document.documentElement.classList.contains('launcher-boot-pending')", timeout=30000)
     return ctx, page
 
 
