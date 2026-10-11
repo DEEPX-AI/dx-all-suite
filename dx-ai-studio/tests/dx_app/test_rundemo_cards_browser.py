@@ -100,7 +100,7 @@ def test_the_first_ready_demo_is_open_on_the_stage(page):
 
 
 def test_options_and_run_live_on_the_stage_not_on_cards(page):
-    assert page.locator(".dds-card[data-id='0'] button").count() == 0
+    assert page.locator(".dds-card[data-id='0'] button:not(.dds-cpick)").count() == 0
     for axis in ("input", "code", "mode"):
         assert page.is_visible(f".dds-stage [data-axis-row='{axis}']"), axis
     assert page.is_visible(".dds-stage .dds-run")

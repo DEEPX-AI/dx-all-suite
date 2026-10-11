@@ -46,6 +46,7 @@
     'Tutorial unavailable': { ko: '튜토리얼 없음', ja: 'チュートリアルなし', 'zh-CN': '暂无教程', 'zh-TW': '暫無教學', es: 'Tutorial no disponible' },
     'Settings': { ko: '설정', ja: '設定', 'zh-CN': '设置', 'zh-TW': '設定', es: 'Configuración' },
     'Chat': { ko: '채팅', ja: 'チャット', 'zh-CN': '聊天', 'zh-TW': '聊天', es: 'Chat' },
+    'Pages': { ko: '페이지', ja: 'ページ', 'zh-CN': '页面', 'zh-TW': '頁面', es: 'Páginas' },
     'Close': { ko: '닫기', ja: '閉じる', 'zh-CN': '关闭', 'zh-TW': '關閉', es: 'Cerrar' },
     '{n} more pages': { ko: '페이지 {n}개 더 보기', ja: 'ほか {n} ページ', 'zh-CN': '另外 {n} 个页面', 'zh-TW': '另外 {n} 個頁面', es: '{n} páginas más' }
   };

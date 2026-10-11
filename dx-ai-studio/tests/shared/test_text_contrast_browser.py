@@ -66,7 +66,7 @@ def browser():
         br.close()
 
 
-@pytest.fixture(scope="module", params=["dx_app", "dx_stream", "dx_compiler", "dx_benchmark"])
+@pytest.fixture(scope="module", params=["dx_app", "dx_stream", "dx_compiler", "dx_benchmark", "dx_monitor"])
 def module_server(request):
     srv, port = start_module_server(request.param)
     yield request.param, port
@@ -100,7 +100,7 @@ def test_affected_text_meets_aa(browser, module_server, theme, os_theme):
           fixture.style.cssText = 'position:fixed;top:100px;left:16px;z-index:99999;background:var(--surface-raised)';
           fixture.innerHTML = '<span class="badge b-cat">Category</span>' +
             '<span class="badge b-blue">Async</span><span class="badge b-red">Messaging</span>' +
-            '<span class="txt-dim">Muted text</span>';
+            '<span class="txt-dim">Muted text</span><span class="badge b-ok">Installed</span>';
           if (module === 'dx_app') {
             fixture.innerHTML += '<button class="chip active">All</button>' +
               '<a class="txt-link">dxnn</a><button class="m-action-btn m-action-detail">Detail</button>' +
@@ -108,19 +108,34 @@ def test_affected_text_meets_aa(browser, module_server, theme, os_theme):
               '<div class="lab-composer-graph-toolbar" style="position:static">' +
                 '<button class="btn btn-ghost btn-sm">Undo</button>' +
                 '<span class="lab-composer-graph-status ready">Graph ready</span>' +
-                '<span class="lab-composer-graph-status blocked">Graph blocked</span></div>';
+                '<span class="lab-composer-graph-status blocked">Graph blocked</span></div>' +
+              // 2026-10-11 axe: accent text on grey/tinted grounds, the A/B slot badge, the active chip's count
+              '<button class="m-action-btn m-action-run">Run</button>' +
+              '<div class="radio-group"><label><input type="radio" checked><span>Image</span></label></div>' +
+              '<div class="run-tab-bar"><button class="run-tab active"><span>Single</span></button></div>' +
+              '<span class="ab-slot-badge">A</span>' +
+              '<button class="out-filter-chip active">All <span class="chip-count">3</span></button>' +
+              '<div class="ref-cat-title">Getting started</div>';
           } else if (module === 'dx_stream') {
             fixture.innerHTML += '<button class="chip active">All</button>' +
-              '<div class="element-card-props">11 properties</div>';
+              '<div class="element-card-props">11 properties</div>' +
+              '<div class="card-grid"><div class="card"><span class="card-badge">Custom</span></div></div>' +
+              '<div class="playback-mode-bar"><button class="btn btn-ghost btn-sm active"><span>Local (WebRTC)</span></button></div>';
           } else if (module === 'dx_compiler') {
-            fixture.innerHTML += '<div class="resume-card"><span class="rc-badge">Re-quantize</span></div>';
+            fixture.innerHTML += '<div class="resume-card"><span class="rc-badge">Re-quantize</span></div>' +
+              '<div class="viewer-tabs"><button class="viewer-tab active">Input</button></div>' +
+              '<div class="viewer-empty" style="position:static"><span>Load a model to visualize</span></div>';
           } else if (module === 'dx_benchmark') {
-            fixture.innerHTML += '<table><thead><tr><th>Benchmark</th></tr></thead></table>';
+            fixture.innerHTML += '<table><thead><tr><th>Benchmark</th></tr></thead></table>' +
+              '<p class="eyebrow"><span>DX-M1</span></p><button class="dashboard-tab active">E2E FPS Overview</button>';
+          } else if (module === 'dx_monitor') {
+            fixture.innerHTML += '<div class="btn-group"><button class="active"><span>Realtime</span></button></div>';
           }
           document.body.appendChild(fixture);
         }""", module)
         _assert_aa(page, "#contrast-fixture span, #contrast-fixture button, #contrast-fixture a,"
-                   " #contrast-fixture th, #contrast-fixture .element-card-props", (module, theme, os_theme))
+                   " #contrast-fixture th, #contrast-fixture .element-card-props, #contrast-fixture .ref-cat-title",
+                   (module, theme, os_theme))
         if module == "dx_app":
             page.evaluate("nav('lab')")
             page.wait_for_selector(".lab-composer-graph-editor .lab-composer-graph-toolbar .btn")

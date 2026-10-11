@@ -133,8 +133,10 @@
         ? '<span class="dds-cmeta" title="' + _esc(it.sub || '') + '">' + _esc(it.sub || '') + '</span>'
         : '<span class="dds-reason" title="' + _esc(it.reasonTitle || it.reason || '') + '">' + _esc(it.reason || '') + '</span>' +
           '<button type="button" class="dds-setup">' + _esc(L.setup || 'Set up') + _ico('chev') + '</button>') + '</span>';
-      return '<div class="' + cls + '" data-id="' + _esc(it.id) + '" data-category="' + _esc(it.category || '') +
-        '" role="button" tabindex="0" aria-pressed="' + (it.id === selected) + '">' +
+      /* card 는 마우스로는 어디를 눌러도 고른다 (grid 의 click). 키보드 · screen reader 에서 고르는 것은 보이지 않는
+         .dds-cpick 버튼이다 — card 자체가 role=button 이면 안의 Set up 이 버튼 속 버튼이 됐다 (axe 2026-10-11). */
+      return '<div class="' + cls + '" data-id="' + _esc(it.id) + '" data-category="' + _esc(it.category || '') + '">' +
+        '<button type="button" class="dds-cpick" aria-pressed="' + (it.id === selected) + '">' + _esc(it.title) + '</button>' +
         (it.thumb ? '<span class="dds-thumb">' + _thumb(it.thumb) + '</span>'
           : '<span class="dds-thumb is-blank">' + _ico(it.task && it.task.icon) + '</span>') +
         '<span class="dds-cbody">' +
@@ -203,7 +205,8 @@
       Array.prototype.forEach.call(el.grid.children, function (c) {
         var sel = String(c.dataset.id) === String(it.id);
         c.classList.toggle('is-selected', sel);
-        c.setAttribute('aria-pressed', String(sel));
+        var pick = c.querySelector('.dds-cpick');
+        if (pick) pick.setAttribute('aria-pressed', String(sel));
       });
       if (opts.onRender) opts.onRender(el.head);
       if (it.ready && opts.onSelect) opts.onSelect(it, stage);
@@ -275,12 +278,6 @@
       /* 무대가 화면 위로 지나가 있으면 (아래 줄의 card 를 누른 경우) 무대로 올린다 */
       if (el.stage.getBoundingClientRect().top < 0) {
         try { el.stage.scrollIntoView({ block: 'start', behavior: 'smooth' }); } catch (err) {}
-      }
-    });
-    el.grid.addEventListener('keydown', function (e) {
-      if ((e.key === 'Enter' || e.key === ' ') && e.target.classList.contains('dds-card')) {
-        e.preventDefault();
-        select(e.target.dataset.id);
       }
     });
 

@@ -121,7 +121,7 @@ tbody tr:hover td{background:var(--surface-hover)}
   transition:var(--transition);font-family:var(--font);
 }
 .btn-group button:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-dim)}
-.btn-group button.active{background:var(--accent);color:var(--surface-page);border-color:var(--accent)}
+.btn-group button.active{background:var(--accent-fill);color:var(--text-on-accent);border-color:var(--accent)}
 
 /*═══ Badges ═══*/
 /*═══ Utilities ═══*/

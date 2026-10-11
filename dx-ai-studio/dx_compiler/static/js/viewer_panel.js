@@ -255,6 +255,12 @@ function _srvErr(msg) {
         });
     }
 
+    // 아직 그래프가 없는 phase tab — 흐리게 그리는 class 와 screen reader 에 알리는 aria-disabled 를 같이 둔다 (axe 2026-10-11).
+    function setTabEnabled(tab, on) {
+        tab.classList.toggle('disabled', !on);
+        if (on) tab.removeAttribute('aria-disabled'); else tab.setAttribute('aria-disabled', 'true');
+    }
+
     function init() {
         document.querySelectorAll('.viewer-tab').forEach(function(tab) {
             tab.addEventListener('click', function() {
@@ -546,7 +552,7 @@ function _srvErr(msg) {
             }
             graphCache[phase] = graphData;
             var tab = document.querySelector('.viewer-tab[data-phase="' + phase + '"]');
-            if (tab) tab.classList.remove('disabled');
+            if (tab) setTabEnabled(tab, true);
             // Only auto-switch for the input model; intermediate phases just enable the tab
             if (phase === 'input') switchTab(phase);
         })
@@ -589,7 +595,7 @@ function _srvErr(msg) {
             // In-memory graph data from GUI callback (no file saved)
             graphCache[tabPhase] = data.graph;
             var tab = document.querySelector('.viewer-tab[data-phase="' + tabPhase + '"]');
-            if (tab) tab.classList.remove('disabled');
+            if (tab) setTabEnabled(tab, true);
             if (tabPhase === 'prepared') switchTab('prepared');
         } else if (data.path) {
             loadModel(tabPhase, data.path);
@@ -606,7 +612,7 @@ function _srvErr(msg) {
         currentQxnnPath = (data && data.qxnn_path) || null;
         currentQxnnSuggestedOutputDir = (data && data.suggested_output_dir) || null;
         var tab = document.querySelector('.viewer-tab[data-phase="qxnn"]');
-        if (tab && (hasDiagnosisReport || diagnosisRequested)) tab.classList.remove('disabled');
+        if (tab && (hasDiagnosisReport || diagnosisRequested)) setTabEnabled(tab, true);
         if (activePhase === 'qxnn') updateQxnnViewVisibility('qxnn');
     }
 
@@ -727,7 +733,7 @@ function _srvErr(msg) {
         deepLinkNotice = null;
         document.querySelectorAll('.viewer-tab').forEach(function(t) {
             t.classList.remove('active');
-            if (t.dataset.phase !== 'input') t.classList.add('disabled');
+            if (t.dataset.phase !== 'input') setTabEnabled(t, false);
         });
         var inputTab = document.querySelector('.viewer-tab[data-phase="input"]');
         if (inputTab) inputTab.classList.add('active');

@@ -63,10 +63,10 @@ function setABCols(n){
     grid.innerHTML+='<div class="ab-panel" id="abp-'+i+'">'
       +'<div class="ab-panel-hdr"><span class="ab-slot-badge">'+T('Slot ')+slots[i]+'</span></div>'
       +'<div class="ab-panel-body">'
-      +'<div class="fg"><label>'+T('Task Filter')+'</label><select class="input" id="ab-cat-'+i+'" onchange="filterABModels('+i+')">'+catOpts+'</select></div>'
+      +'<div class="fg"><label for="ab-cat-'+i+'">'+T('Task Filter')+'</label><select class="input" id="ab-cat-'+i+'" onchange="filterABModels('+i+')">'+catOpts+'</select></div>'
       +'<div class="fg"><label>'+T('Search')+'</label><div class="ac-wrap"><input type="text" class="input" id="ab-search-'+i+'" placeholder="'+esc(T('Search model name…'))+'" oninput="filterABModels('+i+')" onfocus="filterABModels('+i+')" autocomplete="off"><div class="ac-list" id="ab-ac-'+i+'"></div></div></div>'
-      +'<div class="fg"><label>Model</label><select class="input" id="ab-model-'+i+'" onchange="onABModel('+i+')"><option value="">'+T('— Select Model —')+'</option>'+opts+'</select></div>'
-      +'<div class="fg"><label>Language</label><select class="input" id="ab-lang-'+i+'"><option value="cpp">C++ (Compiled)</option><option value="python">Python</option></select></div>'
+      +'<div class="fg"><label for="ab-model-'+i+'">'+T('Model')+'</label><select class="input" id="ab-model-'+i+'" onchange="onABModel('+i+')"><option value="">'+T('— Select Model —')+'</option>'+opts+'</select></div>'
+      +'<div class="fg"><label for="ab-lang-'+i+'">'+T('Language')+'</label><select class="input" id="ab-lang-'+i+'"><option value="cpp">C++ (Compiled)</option><option value="python">Python</option></select></div>'
       +'<div class="ab-res-area"><div id="ab-res-'+i+'" class="txt-dim txt-sm">'+T('Select a model and click Run All')+'</div></div>'
       +'</div></div>';
   }

@@ -194,7 +194,7 @@
     </button>
     <button class="btn btn-ghost btn-sm" onclick="DXStream.importPipeline()" ><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#download"></use></svg> <span data-i18n="Import">Import</span>
     </button>
-    <select class="btn btn-ghost btn-sm" id="preset-select" onchange="if(this.value) DXStream.loadPreset(parseInt(this.value)); this.value='';" style="max-width:160px">
+    <select class="btn btn-ghost btn-sm" id="preset-select" aria-label="Preset" data-i18n-aria-label="Preset" onchange="if(this.value) DXStream.loadPreset(parseInt(this.value)); this.value='';" style="max-width:160px">
       <option value="" data-i18n="Preset">Preset</option>
       <option value="0" data-i18n="Demo 0 — Object Detection">Demo 0 — Object Detection</option>
       <option value="1" data-i18n="Demo 1 — OD (PPU)">Demo 1 — OD (PPU)</option>
@@ -589,9 +589,9 @@
     <div>
       <h4 data-i18n="Upload New Library">Upload New Library</h4>
       <div class="card">
-        <label data-i18n="Library Name">Library Name</label>
+        <label for="custom-lib-name" data-i18n="Library Name">Library Name</label>
         <input type="text" id="custom-lib-name" class="input" data-i18n-placeholder="my_postprocess">
-        <label class="mt8" data-i18n="Select Files (C source + meson.build)">Select Files (C source + meson.build)</label>
+        <label for="custom-lib-files" class="mt8" data-i18n="Select Files (C source + meson.build)">Select Files (C source + meson.build)</label>
         <input type="file" id="custom-lib-files" multiple class="input">
         <button class="btn btn-accent mt8" onclick="DXStream.custom.upload()" data-i18n="Upload">Upload
         </button>
@@ -602,7 +602,7 @@
       </div>
       <h4 class="mt8" data-i18n="Upload Model (.dxnn)">Upload Model (.dxnn)</h4>
       <div class="card">
-        <label data-i18n="Becomes selectable in DxInfer&#x27;s model-path">Becomes selectable in DxInfer's model-path</label>
+        <label for="model-upload-file" data-i18n="Becomes selectable in DxInfer&#x27;s model-path">Becomes selectable in DxInfer's model-path</label>
         <input type="file" id="model-upload-file" accept=".dxnn" class="input mt8">
         <button class="btn btn-accent mt8" onclick="DXStream.uploadModel()" data-i18n="Upload">Upload
         </button>

@@ -194,7 +194,7 @@ main { display: flex; height: calc(100vh - var(--dx-module-header-h)); overflow:
     border-bottom: 2px solid transparent; transition: all 0.2s var(--ease); font-family: var(--font);
 }
 .viewer-tab:hover:not(.disabled) { color: var(--text-primary); background: var(--control-bg); }
-.viewer-tab.active { color: var(--accent); border-bottom-color: var(--accent); background: var(--surface-page); }
+.viewer-tab.active { color: var(--accent-ink); border-bottom-color: var(--accent); background: var(--surface-page); }
 .viewer-tab.disabled { opacity: 0.35; cursor: default; }
 .viewer-body { flex: 1; display: flex; min-height: 0; min-width: 0; position: relative; overflow-x: auto; }
 .viewer-canvas-wrap {
@@ -204,7 +204,7 @@ main { display: flex; height: calc(100vh - var(--dx-module-header-h)); overflow:
 .viewer-empty {
     position: absolute; top: 0; left: 0; right: 0; bottom: 0;
     display: flex; align-items: center; justify-content: center;
-    color: var(--text-faint); font-size: var(--fs-base); flex-direction: column; gap: 0.5rem;
+    color: var(--text-muted); font-size: var(--fs-base); flex-direction: column; gap: 0.5rem;
     background: var(--surface-page); z-index: 5;
 }
 .viewer-empty-icon { font-size: 2rem; }
