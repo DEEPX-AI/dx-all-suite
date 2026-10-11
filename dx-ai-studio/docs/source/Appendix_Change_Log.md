@@ -61,6 +61,12 @@ Changes since the v0.1.0 beta manual. The version number and date are set at rel
 - AI Help (chat): answers use this PC's dx_app layout and a command that runs here; **Local /
   Self-hosted** finds the models of the endpoint you type; answers through the launcher end cleanly
   instead of holding a connection open.
+- DX Stream: Local (WebRTC) playback works when Setup step 6 is done; Setup now checks both of its packages
+  (gstreamer1.0-nice and gir1.2-gst-plugins-bad-1.0) and names the missing one. `launcher.sh` repairs a `.venv`
+  made without system site packages, which hid the GStreamer bindings from the module servers.
+- DX App live RTSP and multi-slot camera runs reach the runner (they ended with "Input file not found").
+- Module servers keep their errors in `~/.local/state/dx-ai-studio/logs/`; DX App no longer stops itself after
+  an idle hour under the launcher.
 - Home: the folded agent line names the model a run will use, and a model picked before the CLI's
   list arrives is kept.
 - All modules: phone-width (390 px) layouts fixed for Setup, EdgeGuide cards, Compiler tabs,

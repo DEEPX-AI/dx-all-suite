@@ -72,17 +72,31 @@ def _check_videos() -> dict:
     return {"ok": len(vids) > 0, "count": len(vids), "files": sorted(vids)}
 
 
-def _check_webrtc() -> dict:
-    """WebRTC 의존성 확인 — nicesrc 플러그인 필요"""
+def _nice_plugin_ok() -> bool:
     try:
-        r = subprocess.run(
-            ["gst-inspect-1.0", "nicesrc"],
-            capture_output=True, timeout=5
-        )
-        nice_ok = r.returncode == 0
+        return subprocess.run(["gst-inspect-1.0", "nicesrc"], capture_output=True, timeout=5).returncode == 0
     except Exception:
-        nice_ok = False
-    return {"ok": nice_ok, "nice_plugin": nice_ok}
+        return False
+
+
+def _gi_webrtc_ok() -> bool:
+    """이 server 의 Python 이 GstWebRTC binding 을 읽는가 (webrtcbin 을 다루는 쪽)."""
+    try:
+        import gi
+        gi.require_version("GstWebRTC", "1.0")
+        from gi.repository import GstWebRTC  # noqa: F401
+        return True
+    except Exception:
+        return False
+
+
+def _check_webrtc() -> dict:
+    """WebRTC 의존성 — nicesrc 와 GstWebRTC binding 둘 다. 예전에는 nicesrc 만 봐서 Setup 이 "OK" 라 하는데도
+    Local (WebRTC) 은 늘 MJPEG 로 떨어졌다 (gir1.2-gst-plugins-bad-1.0 없음, 2026-10-11)."""
+    nice_ok = _nice_plugin_ok()
+    gi_ok = _gi_webrtc_ok()
+    missing = ([] if nice_ok else ["gstreamer1.0-nice"]) + ([] if gi_ok else ["gir1.2-gst-plugins-bad-1.0"])
+    return {"ok": nice_ok and gi_ok, "nice_plugin": nice_ok, "gi_webrtc": gi_ok, "missing": missing}
 
 
 def _check_build() -> dict:
