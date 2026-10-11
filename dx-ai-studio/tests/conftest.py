@@ -16,6 +16,14 @@ sys.path.insert(0, str(ROOT))
 # 실행이 12번 돌았다 (2026-09-30). 계약: tests/dx_agent_dev/test_no_real_runs_in_tests.py
 os.environ["DX_AGENT_NO_REAL_RUN"] = "1"
 
+# test 는 사용자의 Studio 설정 (~/.dx-ai-studio: chat_config.json · agent.json) 을 건드리지 않는다. Home 이 고른 agent 를
+# 저장하게 되자 (2026-10-11 chat settings) agent 를 바꾸는 browser test 가 실행한 사람의 agent.json 을 썼다.
+# 세션 전체를 임시 폴더로 돌린다 — module server 하위 process 도 물려받는다. test 가 monkeypatch 로 따로 정하면 그것이 이긴다.
+# 계약: tests/shared/test_tests_keep_user_settings.py
+if not os.environ.get("DX_CHAT_CONFIG_DIR"):
+    import tempfile as _tempfile
+    os.environ["DX_CHAT_CONFIG_DIR"] = _tempfile.mkdtemp(prefix="dx-studio-cfg-")
+
 # 일부 모듈 테스트가 자체 top-level package 경로를 앞에 추가해도 감사 도구 import가
 # 흔들리지 않도록 root namespace를 먼저 고정한다.
 import tools.i18n_audit  # noqa: E402,F401

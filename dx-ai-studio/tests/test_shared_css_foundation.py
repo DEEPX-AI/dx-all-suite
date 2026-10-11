@@ -861,20 +861,21 @@ def test_shared_dx_server_owns_chat_config_routes():
 
 
 def test_shared_chat_widget_owns_settings_panel_and_config_api():
-    """chat-widget.js가 설정 패널과 config save/test API 호출을 소유."""
+    """chat-widget.js가 설정 패널과 config save API 호출을 소유. 저장이 먼저 연결을 확인한다 (2026-10-11 재설계 —
+    따로 있던 Test 버튼 · /config/test 호출은 저장에 합쳐졌다; server route 는 남아 있다)."""
     source = read_text(ROOT / "shared" / "chat" / "static" / "chat-widget.js")
     assert 'data-action="settings"' in source
     assert 'class="dx-chat-settings-panel"' in source
     assert 'class="dx-chat-settings-form"' in source
     assert "function _openSettingsPanel()" in source
     assert "function _saveSettings(" in source
-    assert "function _testSettingsConnection()" in source
+    assert "function _postConfig(" in source and "force: true" in source
     assert "fetch(_apiUrl('/api/chat/config'))" in source
     assert "fetch(_apiUrl('/api/chat/config'), {" in source
-    assert "fetch(_apiUrl('/api/chat/config/test'), {" in source
+    assert "method: 'DELETE'" in source          # back to automatic
     assert "Launcher → Settings" not in source
     assert ".value = data.api_key" not in source
-    assert "chatApiKey.value = ''" in source
+    assert "_els.settingsApiKey.value = ''" in source
 
 
 def test_shared_chat_widget_has_provider_specific_model_hints():
@@ -888,13 +889,14 @@ def test_shared_chat_widget_has_provider_specific_model_hints():
 
 
 def test_shared_chat_widget_retranslates_banner_without_refetching_config():
-    """언어 변경은 배너 문구만 갱신하고 config API를 다시 호출하지 않는다."""
+    """언어 변경은 상단 한 줄 (누가 답하는지) 만 다시 그리고 config API 를 다시 호출하지 않는다.
+    배너는 2026-10-11 chat settings 재설계에서 그 한 줄 (_renderSource) 이 됐다."""
     source = read_text(ROOT / "shared" / "chat" / "static" / "chat-widget.js")
-    assert "function _renderConfigBanner()" in source
+    assert "function _renderSource()" in source
     start = source.index("DXI18n.onLangChange(function() {")
     end = source.index("_history.forEach(m => _renderMessage", start)
     handler = source[start:end]
-    assert "_renderConfigBanner();" in handler
+    assert "_renderSource();" in handler
     assert "_checkConfig();" not in handler
 
 
@@ -907,7 +909,7 @@ def test_shared_chat_widget_styles_settings_panel():
         ".dx-chat-settings-field",
         ".dx-chat-settings-actions",
         ".dx-chat-settings-status",
-        ".dx-chat-banner-action",
+        ".dx-chat-source-change",
     ):
         assert selector in css, selector
 

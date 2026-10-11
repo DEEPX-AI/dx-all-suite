@@ -33,12 +33,17 @@ def port():
     agent dev 를 따로 띄우고 launcher 의 proxy 표에 그 port 를 적는다 — SSE 까지 실제 경로로 간다."""
     saved = {k: os.environ.get(k) for k in _ENV}
     os.environ.update(_ENV)
+    # These tests are about copilot's model list. Home now starts on the Studio agent, then the first signed-in in
+    # Studio order (claude before copilot) — so pick copilot as the Studio agent, as a user who chose it would.
+    from shared import agent_cli
+    agent_cli.set_studio_agent("copilot", None)
     agent, agent_port = start_module_server("dx_agent_dev")
     server, port = start_module_server("launcher")
     sys.modules["launcher.launcher"]._LAUNCHER_PROXY_PORTS["dx_agent_dev"] = agent_port
     try:
         yield port
     finally:
+        agent_cli._studio_path().unlink(missing_ok=True)
         server.shutdown()
         agent.shutdown()
         for k, v in saved.items():
