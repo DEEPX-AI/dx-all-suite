@@ -58,10 +58,10 @@ window._DX_CHAT_I18N = window._DX_CHAT_I18N || {
   'Ollama, LM Studio, llama.cpp …': { ko: 'Ollama, LM Studio, llama.cpp …', ja: 'Ollama, LM Studio, llama.cpp …', es: 'Ollama, LM Studio, llama.cpp …', 'zh-CN': 'Ollama, LM Studio, llama.cpp …', 'zh-TW': 'Ollama, LM Studio, llama.cpp …' },
   'Cloud API key': { ko: 'cloud API key', ja: 'クラウド API key', es: 'API key en la nube', 'zh-CN': '云 API key', 'zh-TW': '雲端 API key' },
   'OpenAI, Anthropic, Google, GitHub Models …': { ko: 'OpenAI, Anthropic, Google, GitHub Models …', ja: 'OpenAI, Anthropic, Google, GitHub Models …', es: 'OpenAI, Anthropic, Google, GitHub Models …', 'zh-CN': 'OpenAI, Anthropic, Google, GitHub Models …', 'zh-TW': 'OpenAI, Anthropic, Google, GitHub Models …' },
-  'Agent': { ko: 'Agent', ja: 'エージェント', es: 'Agente', 'zh-CN': '智能体', 'zh-TW': '智能體' },
+  'Agent': { ko: '에이전트', ja: 'エージェント', es: 'Agente', 'zh-CN': '智能体', 'zh-TW': '代理程式' },
   'signed in': { ko: '로그인됨', ja: 'ログイン済み', es: 'sesión iniciada', 'zh-CN': '已登录', 'zh-TW': '已登入' },
   'sign in: {cmd}': { ko: '로그인 필요: {cmd}', ja: 'ログインが必要: {cmd}', es: 'inicie sesión: {cmd}', 'zh-CN': '需要登录: {cmd}', 'zh-TW': '需要登入: {cmd}' },
-  'Advanced': { ko: '고급', ja: '詳細設定', es: 'Avanzado', 'zh-CN': '高级', 'zh-TW': '進階' },
+  'Advanced': { ko: '고급', ja: '詳細', es: 'Avanzado', 'zh-CN': '高级', 'zh-TW': '進階' },
   'Checking the connection…': { ko: '연결을 확인하는 중…', ja: '接続を確認しています…', es: 'Comprobando la conexión…', 'zh-CN': '正在检查连接…', 'zh-TW': '正在檢查連線…' },
   'Save anyway': { ko: '그래도 저장', ja: 'それでも保存', es: 'Guardar de todos modos', 'zh-CN': '仍然保存', 'zh-TW': '仍然儲存' },
   'Back to automatic': { ko: '자동으로 되돌리기', ja: '自動に戻す', es: 'Volver a automático', 'zh-CN': '恢复自动', 'zh-TW': '恢復自動' },
@@ -232,7 +232,10 @@ const DXChat = (() => {
       el.setAttribute('aria-label', el.title);
     });
     win.querySelectorAll('[data-chat-title]').forEach(function (el) { el.title = _t(el.dataset.chatTitle); });
-    win.querySelectorAll('[data-chat-ph]').forEach(function (el) { el.placeholder = _t(el.dataset.chatPh); });
+    win.querySelectorAll('[data-chat-ph]').forEach(function (el) {
+      el.placeholder = _t(el.dataset.chatPh);
+      el.setAttribute('aria-label', el.placeholder);   // a placeholder is not a name (2026-10-11 a11y)
+    });
     if (_els.fab) _els.fab.setAttribute('aria-label', _open ? _t('Close', '닫기') : _t('Chat'));
     if (_headerTitle) {
       var titleEl = win.querySelector('.dx-chat-header-title');

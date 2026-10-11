@@ -43,8 +43,11 @@ From left to right on the right side:
 - **Tutorial** — opens the tutorial contents for the current view.
 
 The global **DX AI Studio Help** assistant is the round chat button at the bottom right of
-every view; set or clear its API key from its settings. It supports several providers,
-including fully offline ones (a local server or a signed-in coding CLI) — see
+every view. Its top line says which AI answers. With nothing set, it answers through the
+coding agent you are signed in to (claude, copilot, cursor …), the same one Home and Agent Dev
+use. **Change** asks one question — a coding agent on this PC, your local LLM server, or a
+cloud API key (OpenAI, Anthropic, Google, GitHub Models or a custom endpoint) — and tests the
+connection before saving; **Back to automatic** returns to the signed-in agent. See
 [SDK Library & About](11_SDK_Library_and_About.md). Its header also links to the web
 **DEEPX Agent**.
 

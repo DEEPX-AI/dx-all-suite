@@ -65,7 +65,7 @@ class TestNoMatchDefault(unittest.TestCase):
     def test_no_match_default_ko(self):
         engine = FallbackEngine()
         result = engine.respond("xyzzy 무작위", lang="ko")
-        self.assertIn("API 키를 설정하시면", result["reply"])
+        self.assertIn("로그인하면 설정 없이 답합니다", result["reply"])
         self.assertIn(DEFAULT_RESPONSE["ko"], result["reply"])
 
     def test_no_match_default_en(self):
@@ -266,3 +266,15 @@ class TestAppPurposeSuggestionRouting(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def test_the_no_ai_copy_leads_with_the_signed_in_agent_not_an_api_key():
+    """2026-10-11 chat settings redesign §3.1: with no AI, the copy lists the three ways in the order a user can take
+    them — sign in a coding agent (answers with no setup), a local server, then a cloud key. It led with "set an API
+    key" before."""
+    from shared.chat.fallback import COMMON_RULES
+    greeting = COMMON_RULES[0][1]
+    for lang in ("en", "ko", "ja", "es", "zh-CN", "zh-TW"):
+        for text in (SETUP_BANNER[lang], DEFAULT_RESPONSE[lang], greeting[lang]):
+            assert "claude" in text, (lang, text)
+            assert text.index("claude") < text.index("API"), (lang, text)

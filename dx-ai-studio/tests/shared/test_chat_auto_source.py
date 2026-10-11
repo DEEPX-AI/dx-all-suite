@@ -66,7 +66,7 @@ def test_a_failing_auto_cli_says_how_to_log_in_and_does_not_switch(env):
 
 
 def test_no_cli_gives_the_offline_answer(env):
-    assert "agent-cli" in env.ask()                     # fallback text names the keyless ways
+    assert "coding agent" in env.ask()                  # fallback text leads with the signed-in agent
 
 
 def test_a_saved_config_wins(env, monkeypatch):

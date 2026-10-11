@@ -92,7 +92,7 @@ def test_the_web_agent_left_the_bar_for_the_chat():
 def test_the_chat_link_speaks_six_languages_and_follows_the_language():
     _speaks_six(CHAT, AGENT_TITLE)
     on_change = CHAT[CHAT.index("DXI18n.onLangChange(function() {"):]
-    on_change = on_change[:on_change.index("_renderConfigBanner();")]
+    on_change = on_change[:on_change.index("_renderSource();")]   # the status line (2026-10-11 chat settings)
     assert "_relabel()" in on_change, "언어를 바꿔도 링크 설명이 그대로다"
     relabel = CHAT[CHAT.index("function _relabel()"):CHAT.index("function _buildDOM()")]
     assert "[data-chat-tip]" in relabel and "aria-label" in relabel

@@ -132,7 +132,7 @@
   align-items: center;
   flex-wrap: wrap;
   gap: 4px var(--sp-2);
-  padding: 6px 12px;
+  padding: 8px 12px;
   border-bottom: 1px solid var(--chat-border);
   color: var(--text-secondary, var(--chat-text-muted));
   font-size: var(--fs-sm);
@@ -152,7 +152,7 @@
 .dx-chat-source-change {
   margin-left: auto;
   min-height: 24px;
-  padding: 2px 6px;
+  padding: 4px 8px;
   border: 0;
   border-radius: var(--radius-sm, 4px);
   background: transparent;
@@ -253,7 +253,7 @@
 .dx-chat-settings-kind {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
   margin: 0;
   padding: 0;
   border: 0;
@@ -281,8 +281,8 @@
   border-color: var(--accent);
   background: var(--accent-dim);
 }
-.dx-chat-kind-card input { margin: 3px 0 0; accent-color: var(--chat-primary); }
-.dx-chat-kind-card span { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.dx-chat-kind-card input { margin: 4px 0 0; accent-color: var(--chat-primary); }
+.dx-chat-kind-card span { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .dx-chat-kind-card b { color: var(--chat-text); font-weight: 600; font-size: var(--fs-sm); }
 .dx-chat-kind-card small { color: var(--text-muted); font-size: var(--fs-xs); }
 .dx-chat-settings-field[hidden] { display: none; }
@@ -296,7 +296,7 @@
   align-self: flex-start;
   border: 1px solid var(--chat-border);
   border-radius: var(--radius);
-  padding: 6px 8px;
+  padding: 8px 8px;
   background: var(--chat-surface);
   color: var(--chat-text);
   font: inherit;
@@ -307,7 +307,7 @@
   align-self: flex-start;
   border: 1px solid var(--chat-border);
   border-radius: var(--radius);
-  padding: 6px 10px;
+  padding: 8px 12px;
   background: var(--chat-surface);
   color: var(--chat-text);
   font: inherit;
