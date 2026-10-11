@@ -110,9 +110,9 @@ DXStream.setupInit = async function () {
         var drvOk = DXStream._setupCompletedSteps['driver'] || (sysStatus.npu && sysStatus.npu.ok);
         _setupStepFrom('driver', drvOk,
             ((sysStatus.npu && sysStatus.npu.devices) || []).map(_basename).concat([info.npu_driver_version || '']));
-        // webrtc-deps: nice_plugin 여부로 판단
-        _setupStepFrom('webrtc-deps', sysStatus.webrtc && sysStatus.webrtc.ok && sysStatus.webrtc.nice_plugin,
-            ['gstreamer1.0-nice']);
+        // webrtc-deps: nicesrc 와 GstWebRTC binding 둘 다 (server 의 webrtc.ok)
+        _setupStepFrom('webrtc-deps', sysStatus.webrtc && sysStatus.webrtc.ok,
+            ['gstreamer1.0-nice', 'gir1.2-gst-plugins-bad-1.0']);
         if (sysStatus.system_info) {
             var el;
             el = DXStream.$('setup-os-info'); if (el) el.textContent = info.os || '--';
@@ -546,9 +546,10 @@ DXStream.checkEnvironment = async function () {
         status.videos.count + ' ' + T('files'));
     // WebRTC — 서버 nice_plugin 상태 반영
     if (status.webrtc) {
-        var wOk = status.webrtc.ok && status.webrtc.nice_plugin;
+        var wOk = !!status.webrtc.ok;
+        var miss = status.webrtc.missing || (status.webrtc.nice_plugin ? [] : ['gstreamer1.0-nice']);
         _setEnvRow('webrtc', wOk,
-            wOk ? 'gstreamer1.0-nice ' + T('OK') : T('gstreamer1.0-nice not installed'));
+            wOk ? T('OK') : T('Not installed: ') + miss.join(', '));
     } else {
         _setEnvRow('webrtc', false, T('Not checked'));
     }

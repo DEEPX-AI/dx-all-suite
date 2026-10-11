@@ -474,6 +474,7 @@ window._DX_I18N_DICT = {
   'Loaded: ': { ko: '로드됨: ', ja: '読込済み: ', 'zh-CN': '已加载: ', 'zh-TW': '已載入: ',es:'Cargado: '},
   'Deleted: ': { ko: '삭제됨: ', ja: '削除済み: ', 'zh-CN': '已删除: ', 'zh-TW': '已刪除: ',es:'Eliminado: '},
   'Not checked': { ko: '미확인', ja: '未確認', 'zh-CN': '未检查', 'zh-TW': '未檢查',es:'No verificado'},
+  'Not installed: ': { ko: '미설치: ', ja: '未インストール: ', 'zh-CN': '未安装：', 'zh-TW': '未安裝：', es: 'No instalado: '},
   'gstreamer1.0-nice not installed': { ko: 'gstreamer1.0-nice 미설치', ja: 'gstreamer1.0-nice 未インストール', 'zh-CN': 'gstreamer1.0-nice 未安装', 'zh-TW': 'gstreamer1.0-nice 未安裝',es:'gstreamer1.0-nice no instalado'},
 
   'Select All': { ko: '전체 선택', ja: 'すべて選択', 'zh-CN': '全选', 'zh-TW': '全選',es:'Seleccionar todo'},

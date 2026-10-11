@@ -132,6 +132,22 @@ if [[ ! -x "$SCRIPT_DIR/.venv/bin/python" ]]; then
   echo "  [launcher.sh] Creating .venv (--system-site-packages) ..."
   python3 -m venv --system-site-packages "$SCRIPT_DIR/.venv" 2>/dev/null || true
 fi
+# >>> venv-repair
+# A .venv made by an older launcher.sh lacks --system-site-packages and is reused as is: no `gi`, so DX Stream ran no
+# in-process pipeline and Local (WebRTC) always fell back to MJPEG (2026-10-11). Turning system site packages on in
+# such a venv is not safe — its own pip numpy 2.x then meets the system OpenCV built for numpy 1.x and `import cv2`
+# fails — so link only the system `gi` package in, when the Python versions match.
+if [[ -x "$SCRIPT_DIR/.venv/bin/python" ]] && ! "$SCRIPT_DIR/.venv/bin/python" -c "import gi" 2>/dev/null; then
+  _SYS_GI="$(/usr/bin/python3 -c 'import gi, os, sys; print(os.path.dirname(gi.__file__))' 2>/dev/null)"
+  _SYS_VER="$(/usr/bin/python3 -c 'import sys; print("%d.%d" % sys.version_info[:2])' 2>/dev/null)"
+  _VENV_VER="$("$SCRIPT_DIR/.venv/bin/python" -c 'import sys; print("%d.%d" % sys.version_info[:2])' 2>/dev/null)"
+  _VENV_SITE="$("$SCRIPT_DIR/.venv/bin/python" -c 'import sysconfig; print(sysconfig.get_paths()["purelib"])' 2>/dev/null)"
+  if [[ -n "$_SYS_GI" && "$_SYS_VER" == "$_VENV_VER" && -d "$_VENV_SITE" && ! -e "$_VENV_SITE/gi" ]]; then
+    echo "  [launcher.sh] .venv: linking the system GStreamer bindings (gi) ..."
+    ln -s "$_SYS_GI" "$_VENV_SITE/gi"
+  fi
+fi
+# <<< venv-repair
 if [[ -x "$SCRIPT_DIR/.venv/bin/python" ]]; then
   DX_PY="$SCRIPT_DIR/.venv/bin/python"
 else
