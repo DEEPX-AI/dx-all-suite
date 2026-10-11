@@ -6,10 +6,12 @@ Uses only Python standard library (urllib.request, json, ssl).
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import socket
 import ssl
 import subprocess
+import tempfile
 import threading
 import time
 import urllib.error
@@ -265,6 +267,13 @@ def _flatten_prompt(messages: list[dict]) -> str:
     return "\n\n".join(parts)
 
 
+def _is_real_install(path: str) -> bool:
+    """A CLI that exists outside the temp dir — the user's own install, not a test's fake script."""
+    real = os.path.realpath(path)
+    tmp = os.path.realpath(tempfile.gettempdir()) + os.sep
+    return os.path.exists(real) and not real.startswith(tmp)
+
+
 # How often to emit a keepalive token while the CLI subprocess runs silently.
 # Mirrors dx_agent_dev/core/agent_runner.py's KEEPALIVE_SEC=15 pattern.
 _KEEPALIVE_SEC = 15
@@ -307,6 +316,10 @@ def stream_agent_cli(
                 break
     if not cli:
         raise ChatAPIError("cli_missing", "No coding-agent CLI found on PATH (claude/copilot/cursor/codex/opencode)")
+    if os.environ.get("DX_AGENT_NO_REAL_RUN") == "1" and _is_real_install(cli):
+        # Tests must not spend the user's account (tests/conftest.py). With nothing saved, Chat now answers through
+        # the logged-in CLI, so a test without a config would otherwise reach the real one (2026-10-11).
+        raise ChatAPIError("api_error", f"real {bin_name} runs are disabled under tests", 0)
     prompt = _flatten_prompt(messages)
     cmd = [cli] + build_tail(prompt, model, effort)
     try:

@@ -885,6 +885,7 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
         "/api/chat/config/test",
         "/api/chat/local/models",
         "/api/chat/knowledge/refresh",
+        "/api/studio/agent",
     ))
 
     # Providers that need no API key: local/self-hosted runtimes + CLI-backed agents
@@ -1276,6 +1277,25 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
             self.send_json(chat_engine.get_config_status())
             return True
 
+        # DELETE /api/chat/config — forget the saved choice; Chat follows the Studio agent again
+        if method == "DELETE" and self.url_path == "/api/chat/config":
+            from shared.chat.config import delete_config
+            delete_config()
+            self.send_json({"ok": True})
+            return True
+
+        # POST /api/studio/agent — the agent Home · Agent Dev picked; Chat answers through it when nothing is saved
+        if method == "POST" and self.url_path == "/api/studio/agent":
+            data = self.read_json_body()
+            from shared import agent_cli
+            try:
+                agent_cli.set_studio_agent(data.get("agent"), data.get("model") or None)
+            except ValueError as e:
+                self.send_error_json(400, str(e))
+                return True
+            self.send_json({"ok": True})
+            return True
+
         # POST /api/chat/knowledge/refresh → regenerate SDK knowledge from the live .deepx
         if method == "POST" and self.url_path == "/api/chat/knowledge/refresh":
             try:
@@ -1318,6 +1338,12 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
             api_key = data.get("api_key", "").strip() if isinstance(data.get("api_key"), str) else ""
             model = data.get("model", "").strip() if isinstance(data.get("model"), str) else ""
             key_required = provider not in self._KEYLESS_PROVIDERS
+            if key_required and not api_key:
+                # The field shows the saved key masked; left blank, it means "keep the saved key".
+                from shared.chat.config import load_config
+                prev = load_config() or {}
+                if prev.get("provider") == provider and prev.get("api_key"):
+                    api_key = prev["api_key"]
             if not provider or not model or (key_required and not api_key):
                 fields = "provider, model" + (", api_key" if key_required else "")
                 self.send_error_json(400, f"{fields} are required")
@@ -1333,6 +1359,14 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
             from shared.chat.config import save_config
             endpoint_value = data.get("endpoint")
             endpoint = endpoint_value.strip() or None if isinstance(endpoint_value, str) else None
+            # Save only what answers — unless the user asks to save anyway (the network may be down right now).
+            tested = data.get("force") is not True
+            response = None
+            if tested:
+                ok, response, etype = self._probe_chat(provider, api_key, model, endpoint)
+                if not ok:
+                    self.send_json({"ok": False, "tested": True, "error": response, "error_type": etype})
+                    return True
             save_config(
                 provider=provider,
                 api_key=api_key,
@@ -1340,7 +1374,8 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
                 endpoint=endpoint,
                 temperature=temperature,
             )
-            self.send_json({"ok": True})
+            self.send_json({"ok": True, "tested": True, "response": response} if tested
+                           else {"ok": True, "tested": False})
             return True
 
         # POST /api/chat/config/test — test connection
@@ -1354,27 +1389,31 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
                 fields = "provider, model" + (", api_key" if key_required else "")
                 self.send_error_json(400, f"{fields} are required")
                 return True
-            from shared.chat.providers import stream_chat, ChatAPIError
             endpoint_value = data.get("endpoint")
             endpoint = endpoint_value.strip() or None if isinstance(endpoint_value, str) else None
-            try:
-                messages = [{"role": "user", "content": "Hello, respond with just 'OK'."}]
-                tokens = list(stream_chat(
-                    provider=provider, api_key=api_key, model=model,
-                    messages=messages,
-                    endpoint=endpoint,
-                    temperature=0.1,
-                ))
-                response = "".join(tokens)
-                self.send_json({"ok": True, "response": response[:200]})
-            except ChatAPIError as e:
-                self.send_json({"ok": False, "error": str(e), "error_type": e.error_type})
-            except Exception as e:
-                self.send_json({"ok": False, "error": str(e), "error_type": "unknown"})
+            ok, response, etype = self._probe_chat(provider, api_key, model, endpoint)
+            if ok:
+                self.send_json({"ok": True, "response": response})
+            else:
+                self.send_json({"ok": False, "error": response, "error_type": etype})
             return True
 
         return False
 
+
+    @staticmethod
+    def _probe_chat(provider, api_key, model, endpoint):
+        """One short request through the provider. Returns (ok, response_or_error, error_type)."""
+        from shared.chat.providers import stream_chat, ChatAPIError
+        try:
+            tokens = list(stream_chat(provider=provider, api_key=api_key, model=model,
+                                      messages=[{"role": "user", "content": "Hello, respond with just 'OK'."}],
+                                      endpoint=endpoint, temperature=0.1))
+            return True, "".join(tokens)[:200], None
+        except ChatAPIError as e:
+            return False, str(e), e.error_type
+        except Exception as e:  # noqa: BLE001 — reported to the user, not raised
+            return False, str(e), "unknown"
 
     def log_message(self, fmt, *args):
         if self.log_silent:

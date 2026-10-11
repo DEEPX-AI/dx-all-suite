@@ -71,6 +71,14 @@ def save_config(
     _cached_mtime = 0.0
 
 
+def delete_config() -> None:
+    """Forget the saved Chat choice — Chat goes back to the Studio agent / logged-in CLI (spec 2026-10-11 §3.3)."""
+    get_config_path().unlink(missing_ok=True)
+    global _cached_config, _cached_mtime
+    _cached_config = None
+    _cached_mtime = 0.0
+
+
 def mask_api_key(key: str | None) -> str | None:
     """Mask an API key for display.
 

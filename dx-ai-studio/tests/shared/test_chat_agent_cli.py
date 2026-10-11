@@ -116,3 +116,26 @@ def test_agent_cli_timeout_kills_and_raises():
             list(stream_agent_cli("claude", None, [{"role": "user", "content": "q"}], timeout=0.1))
     assert exc_info.value.error_type == "timeout"
     assert killed["called"]
+
+
+def test_tests_never_run_a_real_installed_cli(monkeypatch):
+    """2026-10-11: with nothing saved, Chat now answers through the logged-in CLI. A test without a config reached
+    the real ~/.local/bin/claude. Under DX_AGENT_NO_REAL_RUN (tests/conftest.py) a CLI that exists outside the temp
+    dir is refused; fake scripts in tmp_path still run."""
+    import os
+    assert os.environ.get("DX_AGENT_NO_REAL_RUN") == "1"
+    launched = []
+    monkeypatch.setattr(providers.shutil, "which", lambda b: "/bin/true")
+    monkeypatch.setattr(providers.subprocess, "Popen", lambda cmd, **kw: launched.append(cmd))
+    with pytest.raises(ChatAPIError) as err:
+        list(stream_agent_cli("claude", None, [{"role": "user", "content": "q"}]))
+    assert "disabled under tests" in str(err.value)
+    assert launched == []
+
+
+def test_a_fake_cli_in_tmp_still_runs(tmp_path, monkeypatch):
+    fake = tmp_path / "claude"
+    fake.write_text("#!/bin/sh\necho FAKE-OK\n")
+    fake.chmod(0o755)
+    monkeypatch.setattr(providers.shutil, "which", lambda b: str(fake))
+    assert list(stream_agent_cli("claude", None, [{"role": "user", "content": "q"}])) == ["FAKE-OK"]

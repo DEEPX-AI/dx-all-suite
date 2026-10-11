@@ -31,21 +31,6 @@ class CopilotAdapter(SubprocessAdapter):
     def __init__(self, cli_path=None, model=None, effort=None):
         super().__init__(cli_path=cli_path or find_cli(self.cli_bin), model=model, effort=effort)
 
-    def is_authenticated(self):
-        """`copilot login` 은 token 을 OS keyring 에 두고 `~/.copilot/config.json` 의 `loggedInUsers` 에
-        계정을 적는다 (예전 판정의 `session-store.db` 는 로그인해도 생기지 않았다 — 늘 "not signed in").
-        환경 변수 token 도 CLI 가 받는 로그인이다. config 는 주석 줄을 가질 수 있다."""
-        if any(os.environ.get(v) for v in ("COPILOT_GITHUB_TOKEN", "GH_TOKEN", "GITHUB_TOKEN")):
-            return True
-        path = Path.home() / ".copilot" / "config.json"
-        try:
-            if not path.is_file():
-                return False
-            text = re.sub(r"^\s*//.*$", "", path.read_text(encoding="utf-8"), flags=re.M)
-            return bool(json.loads(text).get("loggedInUsers"))
-        except (ValueError, OSError):
-            return None
-
     def list_models(self):
         got = self.account_models()
         return [m["id"] for m in got["models"] if m["enabled"]] if got else None
