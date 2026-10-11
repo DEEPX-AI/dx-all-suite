@@ -92,10 +92,32 @@ def test_a_card_is_for_choosing_only(browser, port):
     """옵션 · 실행은 무대에 — card 에는 버튼이 없다 (준비 안 된 card 의 Set up 하나만)."""
     page = _page(browser, port)
     try:
-        assert page.locator(".dds-card[data-id='b'] button").count() == 0
-        assert page.locator(".dds-card[data-id='a'] button").count() == 1
+        assert page.locator(".dds-card[data-id='b'] button:not(.dds-cpick)").count() == 0
+        assert page.locator(".dds-card[data-id='a'] button:not(.dds-cpick)").count() == 1
         heights = page.evaluate("[...document.querySelectorAll('.dds-card')].map(c => Math.round(c.getBoundingClientRect().height))")
         assert len(set(heights)) == 1, f"card 높이가 같아야 한다: {heights}"
+    finally:
+        page.close()
+
+
+def test_a_card_is_chosen_from_the_keyboard_without_a_button_inside_a_button(browser, port):
+    """2026-10-11 axe: the card was role=button and the not-ready card's Set up sat inside it (nested-interactive).
+    A hidden .dds-cpick button now does the choosing from the keyboard; the card draws its focus ring."""
+    page = _page(browser, port)
+    try:
+        assert page.locator(".dds-card[role], .dds-card[tabindex]").count() == 0
+        assert page.locator("[role=button] button, button button").count() == 0
+        page.focus(".dds-card[data-id='c'] .dds-cpick")
+        page.keyboard.press("Enter")
+        assert page.evaluate("document.querySelector('.dds-card[data-id=\"c\"]').classList.contains('is-selected')")
+        assert page.get_attribute(".dds-card[data-id='c'] .dds-cpick", "aria-pressed") == "true"
+        assert page.get_attribute(".dds-card[data-id='b'] .dds-cpick", "aria-pressed") == "false"
+        page.keyboard.press("Shift+Tab")
+        page.keyboard.press("Tab")
+        ring = page.evaluate("getComputedStyle(document.querySelector('.dds-card[data-id=\"c\"]')).outlineStyle")
+        assert ring == "solid", ring
+        assert page.inner_text(".dds-card[data-id='c'] .dds-cpick").strip() == \
+            page.inner_text(".dds-card[data-id='c'] .dds-ctitle").strip()
     finally:
         page.close()
 
@@ -106,7 +128,7 @@ def test_a_not_ready_card_gives_one_short_reason(browser, port):
         reason = page.locator(".dds-card[data-id='a'] .dds-reason")
         assert reason.inner_text() == "Model not installed"
         assert reason.get_attribute("title") == "Model not installed: yolov7.dxnn"
-        page.click(".dds-card[data-id='a'] button")
+        page.click(".dds-card[data-id='a'] .dds-setup")
         assert page.evaluate("window.__setup") == 1
         assert page.inner_text(".dds-stage .dds-title") != "YOLOv7", "Set up 은 card 를 고르지 않는다"
     finally:

@@ -143,7 +143,7 @@ function mzRenderTable() {
           dl = '<span class="badge b-ok txt-xs" title="' + T('Downloaded') + '">' + DXIcon('check') + '</span>';
         } else {
           dl = '<label class="mz-chk-wrap" title="' + T('Add to cart') + ' — ' + chip.label + '">'
-             + '<input type="checkbox" onchange="mzToggleChip(\'' + esc(m.name) + '\',\'' + chip.key + '\')"'
+             + '<input type="checkbox" aria-label="' + esc(T('Add to cart') + ' — ' + m.name + ' ' + chip.label) + '" onchange="mzToggleChip(\'' + esc(m.name) + '\',\'' + chip.key + '\')"'
              + (inCart ? ' checked' : '') + '>'
              + '<span class="mz-chk ' + chip.chk + '"></span></label>';
         }
@@ -160,7 +160,7 @@ function mzRenderTable() {
     var rowCls = anyInCart ? 'mz-row-selected' : '';
 
     return '<tr class="' + rowCls + '">'
-      + '<td><label class="mz-chk-wrap"><input type="checkbox" onchange="mzToggleCart(\'' + esc(m.name) + '\')"' + (cart ? ' checked' : '') + '><span class="mz-chk"></span></label></td>'
+      + '<td><label class="mz-chk-wrap"><input type="checkbox" aria-label="' + esc(T('Add to cart') + ' — ' + m.name) + '" onchange="mzToggleCart(\'' + esc(m.name) + '\')"' + (cart ? ' checked' : '') + '><span class="mz-chk"></span></label></td>'
       + '<td><span class="badge b-cat">' + esc(catText(m.task)) + '</span></td>'
       + '<td><strong>' + esc(m.name) + '</strong></td>'
       + '<td class="txt-dim txt-xs">' + esc(m.class_name || '–') + '</td>'

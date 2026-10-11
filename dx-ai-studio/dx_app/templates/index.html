@@ -369,7 +369,7 @@
         <div class="fg" style="margin:0 0 8px"><label for="b-mode" data-i18n="Mode">Mode</label><select id="b-mode" class="input"><option value="sync">Sync</option><option value="async">Async</option></select></div>
         <div class="fg" style="margin:0 0 8px"><label for="b-input-type" data-i18n="Input Type">Input Type</label><select id="b-input-type" class="input" onchange="toggleBenchInput()"><option value="image">Image</option><option value="video">Video</option><option value="camera">Camera</option><option value="rtsp">RTSP</option></select></div>
         <div id="b-input-image" style="margin-bottom:8px">
-          <div class="fg" style="margin:0"><label data-i18n="Input Image">Input Image</label>
+          <div class="fg" style="margin:0"><label for="b-img-sel" data-i18n="Input Image">Input Image</label>
             <select id="b-img-sel" class="input"><option value="">Default (built-in)</option></select>
           </div>
         </div>
@@ -475,7 +475,7 @@
   <div class="card" style="padding:12px 16px;margin-bottom:12px">
     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
       <div class="fg" style="margin:0;width:160px">
-        <label data-i18n="Source">Source</label>
+        <label for="mz-source" data-i18n="Source">Source</label>
         <select id="mz-source" class="input" onchange="mzSwitchSource()" style="font-size:12px">
           <option value="public" selected>Public</option>
           <option value="internal">Internal (Air-gapped)</option>
@@ -780,7 +780,7 @@
 <div class="toast-wrap" id="toast-wrap"></div>
 <!-- Notification Drawer -->
 <div class="notif-drawer" id="notif-drawer">
-  <div class="notif-header"><h3><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#info"></use></svg> <span data-i18n="Notifications">Notifications</span></h3><div style="display:flex;gap:8px"><button class="btn btn-sm btn-ghost" onclick="clearNotifHistory()" data-i18n="Clear">Clear</button><button class="btn btn-sm btn-ghost" onclick="toggleNotifDrawer()"></button></div></div>
+  <div class="notif-header"><h3><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#info"></use></svg> <span data-i18n="Notifications">Notifications</span></h3><div style="display:flex;gap:8px"><button class="btn btn-sm btn-ghost" onclick="clearNotifHistory()" data-i18n="Clear">Clear</button><button class="btn btn-sm btn-ghost" onclick="toggleNotifDrawer()" aria-label="Close" data-i18n-aria-label="Close"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#x"></use></svg></button></div></div>
   <div class="notif-list" id="notif-list"><p class="txt-dim" style="padding:16px;text-align:center" data-i18n="No notifications yet">No notifications yet</p></div>
 </div>
 <script src="/static/js/i18n.js?m=dx_app"></script>

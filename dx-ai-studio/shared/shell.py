@@ -130,7 +130,9 @@ def render_tabs(pages: list[tuple[str, str, str]], active: str | None) -> str:
             "</button>"
         )
 
-    return f'<div class="dx-shell-tabs" role="tablist">{"".join(tabs)}</div>'
+    # 페이지 이동이다 (aria-current="page") — tab 패턴 (role=tablist/tab) 이 아니다. axe 2026-10-11.
+    return (f'<nav class="dx-shell-tabs" aria-label="Pages" data-i18n-aria-label="Pages">'
+            f'{"".join(tabs)}</nav>')
 
 
 # ── 템플릿 주입 ────────────────────────────────────────────────

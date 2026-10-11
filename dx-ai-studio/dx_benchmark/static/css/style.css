@@ -192,7 +192,7 @@ body { overflow-x: auto; overflow-y: hidden; }
   margin: 0;
   letter-spacing: .08em;
   text-transform: uppercase;
-  color: var(--accent);
+  color: var(--accent-ink);
   font-weight: 700;
   font-size: var(--fs-xs);
 }
@@ -889,7 +889,7 @@ body.lang-zh-TW .zh-CN { display: none; }
 }
 .dashboard-tab:hover { color: var(--text-primary); }
 .dashboard-tab.active {
-  color: var(--accent); border-bottom-color: var(--accent);
+  color: var(--accent-ink); border-bottom-color: var(--accent);
 }
 .tab-content { display: none; padding: 0 var(--sp-4); }
 .tab-content.active { display: block; }

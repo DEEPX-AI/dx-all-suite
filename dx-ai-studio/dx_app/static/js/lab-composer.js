@@ -1595,7 +1595,7 @@ window.LabComposer = (function () {
     ].forEach(function (tab) {
       var button = make('button', 'lab-composer-tab' + (currentTab === tab.id ? ' active' : ''), tab.label);
       button.type = 'button';
-      button.setAttribute('aria-selected', String(currentTab === tab.id));
+      button.setAttribute('aria-pressed', String(currentTab === tab.id));
       button.addEventListener('click', function () {
         currentTab = tab.id;
         render();

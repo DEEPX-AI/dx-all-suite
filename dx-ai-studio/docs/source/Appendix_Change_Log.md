@@ -66,6 +66,11 @@ Changes since the v0.1.0 beta manual. The version number and date are set at rel
   made without system site packages, which hid the GStreamer bindings from the module servers.
 - DX App live RTSP and multi-slot camera runs reach the runner (they ended with "Input file not found"); several
   slots can share a camera without an MJPEG 640x480 mode. DX Stream's Pipeline Builder has a camera source (`v4l2src`).
+- Accessibility (axe WCAG 2 A/AA, light and dark): every form control has a name screen readers can read (model
+  checkboxes, A/B Compare, Agent Dev settings, Benchmark Settings, Stream uploads). The page-tab row is a labelled
+  navigation, Run Demo cards no longer put Set up inside a button, and Compiler's unavailable phase tabs say so.
+  Accent text, status badges and the A/B slot badge meet 4.5:1. The notification drawer's close button was blank
+  and now shows its icon. A/B Compare's Model and Language labels are translated.
 - Module servers keep their errors in `~/.local/state/dx-ai-studio/logs/`; DX App no longer stops itself after
   an idle hour under the launcher.
 - Home: the folded agent line names the model a run will use, and a model picked before the CLI's

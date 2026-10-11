@@ -124,7 +124,7 @@
   line-height: 1.6;
   color: var(--dxt-text);
 }
-.dxt-tip-body strong { color: var(--dxt-accent); }
+.dxt-tip-body strong { color: var(--accent-ink,var(--dxt-accent)); }
 /* 본문 안의 아이콘 ({{i:name}} — tutorial-engine.js _dxtExpandIcons). 글자 높이에 맞춘다. */
 .dxt-tip-body .dxt-inline-ico { width: 1.15em; height: 1.15em; vertical-align: -0.2em; }
 
@@ -251,7 +251,7 @@
 }
 .dxt-toc-ppct {
   font-size: var(--fs-sm); font-weight: 600;
-  color: var(--dxt-accent);
+  color: var(--accent-ink,var(--dxt-accent));
   white-space: nowrap;
 }
 
@@ -490,7 +490,7 @@ body.dxt-help-active .dxt-help-badge { pointer-events: auto; }
 /* ── Category Header ── */
 .ref-cat{margin:32px 0 16px;padding-bottom:8px;border-bottom:1px solid var(--dxt-border)}
 .ref-cat:first-child{margin-top:12px}
-.ref-cat-title{font-size:var(--fs-base);font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--dxt-accent)}
+.ref-cat-title{font-size:var(--fs-base);font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--accent-ink,var(--dxt-accent))}
 .ref-cat-desc{font-size:var(--fs-xs);color:var(--dxt-text-dim);margin-top:2px}
 
 /* ── Section Card ── */
@@ -503,7 +503,7 @@ body.dxt-help-active .dxt-help-badge { pointer-events: auto; }
 .ref-section-info{flex:1;min-width:0}
 .ref-section-name{font-size:var(--fs-md);font-weight:600;color:var(--dxt-text)}
 .ref-section-desc{font-size:var(--fs-xs);color:var(--dxt-text-dim);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.ref-section-go{font-size:var(--fs-xs);color:var(--dxt-accent);background:rgba(88,166,255,.1);border:1px solid rgba(88,166,255,.2);border-radius:var(--radius-sm);padding:4px 8px;cursor:pointer;white-space:nowrap;transition:all .15s var(--ease);text-decoration:none}
+.ref-section-go{font-size:var(--fs-xs);color:var(--accent-ink,var(--dxt-accent));background:rgba(88,166,255,.1);border:1px solid rgba(88,166,255,.2);border-radius:var(--radius-sm);padding:4px 8px;cursor:pointer;white-space:nowrap;transition:all .15s var(--ease);text-decoration:none}
 .ref-section-go:hover{background:var(--dxt-accent);color:#000}
 .ref-section-arrow{color:var(--dxt-text-dim);transition:transform .25s var(--ease);font-size:var(--fs-xs);flex-shrink:0}
 .ref-section.open .ref-section-arrow{transform:rotate(90deg)}
@@ -516,21 +516,21 @@ body.dxt-help-active .dxt-help-badge { pointer-events: auto; }
 .ref-tabs{display:flex;gap:0;border-bottom:1px solid var(--dxt-border);margin-bottom:12px}
 .ref-tab{padding:4px 12px;font-size:var(--fs-sm);font-weight:600;color:var(--dxt-text-dim);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s}
 .ref-tab:hover{color:var(--dxt-text)}
-.ref-tab.active{color:var(--dxt-accent);border-bottom-color:var(--dxt-accent)}
+.ref-tab.active{color:var(--accent-ink,var(--dxt-accent));border-bottom-color:var(--dxt-accent)}
 .ref-tab-content{display:none}
 .ref-tab-content.active{display:block}
 
 /* ── Content elements ── */
-.ref-section-body h4{font-size:var(--fs-base);font-weight:700;color:var(--dxt-accent);margin:12px 0 4px;padding-left:0}
+.ref-section-body h4{font-size:var(--fs-base);font-weight:700;color:var(--accent-ink,var(--dxt-accent));margin:12px 0 4px;padding-left:0}
 .ref-section-body p{font-size:var(--fs-sm);line-height:1.7;color:var(--dxt-text);margin:0 0 8px}
 .ref-section-body ul{font-size:var(--fs-sm);line-height:1.8;color:var(--dxt-text);padding-left:16px;margin:0 0 8px}
 .ref-section-body li{margin-bottom:2px}
-.ref-section-body strong{color:var(--dxt-accent)}
+.ref-section-body strong{color:var(--accent-ink,var(--dxt-accent))}
 .ref-section-body code{background:var(--dxt-bg3);padding:1px 4px;border-radius:3px;font-size:var(--fs-xs);color:var(--vpu);font-family:'JetBrains Mono',monospace}
 
 /* ── Table ── */
 .ref-tbl{width:100%;border-collapse:collapse;font-size:var(--fs-sm);margin:8px 0 12px}
-.ref-tbl th{text-align:left;padding:4px 8px;background:var(--dxt-bg2);color:var(--dxt-accent);font-weight:600;border-bottom:1px solid var(--dxt-border);font-size:var(--fs-xs);text-transform:uppercase;letter-spacing:.5px}
+.ref-tbl th{text-align:left;padding:4px 8px;background:var(--dxt-bg2);color:var(--accent-ink,var(--dxt-accent));font-weight:600;border-bottom:1px solid var(--dxt-border);font-size:var(--fs-xs);text-transform:uppercase;letter-spacing:.5px}
 .ref-tbl td{padding:4px 8px;border-bottom:1px solid rgba(56,56,80,.4);color:var(--dxt-text);vertical-align:top}
 .ref-tbl tr:hover td{background:rgba(88,166,255,.04)}
 .ref-tbl .mono{font-family:'JetBrains Mono',monospace;font-size:var(--fs-xs);color:var(--vpu)}
@@ -549,7 +549,7 @@ body.dxt-help-active .dxt-help-badge { pointer-events: auto; }
 .ref-flow-arrow{color:var(--dxt-text-dim);font-size:var(--fs-md);margin:0 4px}
 
 /* ── Keyboard shortcut ── */
-.ref-kbd{display:inline-block;background:var(--dxt-bg3);border:1px solid var(--dxt-border);border-radius:var(--radius-xs);padding:1px 4px;font-size:var(--fs-xs);font-family:monospace;color:var(--dxt-accent);min-width:20px;text-align:center}
+.ref-kbd{display:inline-block;background:var(--dxt-bg3);border:1px solid var(--dxt-border);border-radius:var(--radius-xs);padding:1px 4px;font-size:var(--fs-xs);font-family:monospace;color:var(--accent-ink,var(--dxt-accent));min-width:20px;text-align:center}
 
 /* ── API endpoint badge ── */
 .ref-api-method{display:inline-block;font-size:var(--fs-2xs);font-weight:700;border-radius:3px;padding:1px 4px;min-width:32px;text-align:center;color:#000}

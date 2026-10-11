@@ -66,7 +66,7 @@ function filterBenchModels(){
     return true;
   });
   $('bench-sel').querySelector('tbody').innerHTML=list.map(function(m){
-    return '<tr><td><input type="checkbox" class="b-chk" value="'+esc(m.name)+'" data-cat="'+m.category+'"/></td>'
+    return '<tr><td><input type="checkbox" class="b-chk" value="'+esc(m.name)+'" aria-label="'+esc(m.name)+'" data-cat="'+m.category+'"/></td>'
       +'<td>'+esc(m.name)+'</td><td><span class="badge b-cat">'+m.category+'</span></td>'
       +'<td>'+(m.cpp?DXIcon('check'):'')+' '+(m.python?DXIcon('check'):'')+'</td></tr>';
   }).join('');

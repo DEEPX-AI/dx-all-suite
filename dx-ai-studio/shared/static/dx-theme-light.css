@@ -41,7 +41,7 @@
   --control-border-focus:#0071e3;
   --control-ring:rgba(0,113,227,.22);
 
-  --status-ok:#1e7b34;
+  --status-ok:#1a6f2f;
   --status-warn:#b25000;
   --status-error:#d70015;
   --status-info:#0071e3;
@@ -99,7 +99,7 @@
     --control-border-focus:#0071e3;
     --control-ring:rgba(0,113,227,.22);
 
-    --status-ok:#1e7b34;
+    --status-ok:#1a6f2f;
     --status-warn:#b25000;
     --status-error:#d70015;
     --status-info:#0071e3;

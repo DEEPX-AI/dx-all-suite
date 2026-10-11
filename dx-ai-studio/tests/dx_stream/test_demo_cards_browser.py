@@ -86,7 +86,7 @@ def test_cards_show_the_task_symbol_and_the_first_ready_demo_is_open(page):
       c.querySelector('.dds-task use').getAttribute('href').split('#')[1])""")
     assert icons == ["task-object_detection", "dashboard", "task-object_detection"], icons
     assert page.inner_text("#demo-root .dds-stage .dds-title").strip() == "Object Detection"
-    assert page.locator("#demo-root .dds-card button:not(.dds-setup)").count() == 0
+    assert page.locator("#demo-root .dds-card button:not(.dds-setup):not(.dds-cpick)").count() == 0
 
 
 def test_filters_come_from_the_demos(page):
