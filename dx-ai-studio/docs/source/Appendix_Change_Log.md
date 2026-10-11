@@ -66,6 +66,11 @@ Changes since the v0.1.0 beta manual. The version number and date are set at rel
   made without system site packages, which hid the GStreamer bindings from the module servers.
 - DX App live RTSP and multi-slot camera runs reach the runner (they ended with "Input file not found"); several
   slots can share a camera without an MJPEG 640x480 mode. DX Stream's Pipeline Builder has a camera source (`v4l2src`).
+- Faster screens, especially over remote access. Large JSON answers are gzipped and revalidated (the Model Zoo
+  catalog went from 2.5 MB to 127 KB, and to a 304 on a repeat visit). Home's module numbers load when home is
+  shown, not on every screen. The diagram library loads only for a document with a diagram, and Agent Dev's
+  showcase animations are light WebP thumbnails. A first visit now takes 0.9–1.8 MB, down from 4.5–7.3 MB
+  (Agent Dev: 7 MB, down from 20.5 MB), and a repeat visit about 200 KB.
 - Accessibility (axe WCAG 2 A/AA, light and dark): every form control has a name screen readers can read (model
   checkboxes, A/B Compare, Agent Dev settings, Benchmark Settings, Stream uploads). The page-tab row is a labelled
   navigation, Run Demo cards no longer put Set up inside a button, and Compiler's unavailable phase tabs say so.

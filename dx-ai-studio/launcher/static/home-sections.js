@@ -189,8 +189,22 @@
     });
   }
 
+  /* home 은 모든 경로에서 문서에 남아 있다. 그 숫자 (zoo catalog 2.5 MB 포함) 는 home 이 처음 보일 때 받는다 —
+     /app/ · /compiler/ 로 바로 연 사용자는 home 을 보지 않았는데 화면마다 catalog 를 받았다 (2026-10-11 성능 감사).
+     계약: tests/launcher/test_home_facts_deferred_browser.py */
+  function _whenHomeShows(fn) {
+    var body = document.body;
+    if (body.classList.contains('home-visible')) { fn(); return; }
+    var mo = new MutationObserver(function () {
+      if (!body.classList.contains('home-visible')) return;
+      mo.disconnect();
+      fn();
+    });
+    mo.observe(body, { attributes: true, attributeFilter: ['class'] });
+  }
+
   function init() {
-    loadCatalogueSize();
+    _whenHomeShows(loadCatalogueSize);
     refreshModuleState();
     /* Piggyback on the health poll's cadence instead of adding one. */
     setInterval(refreshModuleState, 5000);

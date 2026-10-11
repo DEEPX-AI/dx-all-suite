@@ -38,3 +38,11 @@ def test_showcase_media_and_url():
         assert sc["media"].startswith("media/"), sc["id"]
         assert (MEDIA_DIR / Path(sc["media"]).name).exists(), sc["media"]
         assert sc["url"].startswith("https://"), sc["id"]
+
+
+def test_showcase_thumbnails_stay_light():
+    """The cards show each media at 194 px. Three 4-5 MB GIFs made Agent Dev's first visit 20 MB
+    (2026-10-11 performance audit). They are now 2x animated WebP thumbnails with the GIF frame timing."""
+    for sc in _load():
+        size = (MEDIA_DIR / Path(sc["media"]).name).stat().st_size
+        assert size <= 1_500_000, (sc["id"], size)
