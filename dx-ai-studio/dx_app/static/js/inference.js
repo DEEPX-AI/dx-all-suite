@@ -466,10 +466,12 @@ function buildRTSPUrl(ipId,streamId){
   var stream=$(streamId)?$(streamId).value:'stream1';
   return 'rtsp://'+raw+'/'+(stream||'stream1');
 }
-// 전체 URL 을 적으면 Stream 고르기는 쓰이지 않는다 — 꺼서 보여 준다
+// 전체 URL 을 적으면 Stream 고르기는 쓰이지 않는다 — 그 줄을 숨긴다 (끄기만 하면 실행 뒤 Stop 이 모든 select 를
+// 다시 켜 되살아났다)
 function syncRTSPStreamPick(ipId,streamId){
   var ip=$(ipId),sel=$(streamId);if(!ip||!sel)return;
-  sel.disabled=/^rtsps?:\/\//i.test(ip.value.trim());
+  var row=sel.closest('.fg')||sel;
+  row.hidden=/^rtsps?:\/\//i.test(ip.value.trim());
 }
 function rtspAddressMissing(ipId){
   if(($(ipId)?$(ipId).value:'').trim())return false;

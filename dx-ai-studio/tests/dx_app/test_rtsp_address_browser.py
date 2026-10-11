@@ -40,7 +40,7 @@ def test_a_full_camera_url_is_sent_as_typed(page, prefix):
     page.evaluate("([p, v]) => { const el = document.getElementById(p + '-rtsp-ip'); el.value = v;"
                   " el.dispatchEvent(new Event('input', {bubbles: true})); }", [prefix, CAM])
     assert page.evaluate("p => buildRTSPUrl(p + '-rtsp-ip', p + '-rtsp-stream')", prefix) == CAM
-    assert page.evaluate("p => document.getElementById(p + '-rtsp-stream').disabled", prefix)
+    assert page.evaluate("p => document.getElementById(p + '-rtsp-stream').closest('.fg').hidden", prefix)
 
 
 @pytest.mark.parametrize("prefix", ["c", "b", "ab"])
@@ -50,7 +50,7 @@ def test_host_and_port_keep_the_stream_form(page, prefix):
                   " el.dispatchEvent(new Event('input', {bubbles: true})); }", [prefix, "10.0.0.5:8554"])
     page.evaluate("p => { document.getElementById(p + '-rtsp-stream').value = 'stream3'; }", prefix)
     assert page.evaluate("p => buildRTSPUrl(p + '-rtsp-ip', p + '-rtsp-stream')", prefix) == "rtsp://10.0.0.5:8554/stream3"
-    assert not page.evaluate("p => document.getElementById(p + '-rtsp-stream').disabled", prefix)
+    assert not page.evaluate("p => document.getElementById(p + '-rtsp-stream').closest('.fg').hidden", prefix)
 
 
 def test_an_empty_address_stops_the_benchmark_before_running(page):
