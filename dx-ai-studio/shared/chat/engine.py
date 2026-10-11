@@ -83,8 +83,10 @@ class ChatEngine:
                 endpoint=config.get("endpoint"),
                 temperature=config.get("temperature", 0.7),
             )
-        except ChatAPIError:
-            yield from self._fallback_response(message, lang=lang)
+        except ChatAPIError as exc:
+            # key 를 넣은 사용자에게 offline fallback ("No AI model connected") 을 보이면 틀린 말이 된다 —
+            # 무엇이 실패했는지 말한다 (2026-10-11, 실제 Anthropic 401 로 확인).
+            yield self._api_error_text(config.get("provider", ""), exc, lang)
         except Exception as exc:
             yield from self._error_response(type(exc).__name__, str(exc), lang=lang)
 
@@ -106,6 +108,68 @@ class ChatEngine:
         """Generator[str] — yields fallback response as a single chunk."""
         result = self.fallback.respond(message, lang=lang)
         yield result["reply"]
+
+    _API_ERROR_TEXT = {
+        "invalid_api_key": {
+            "en": "{provider} rejected the API key.",
+            "ko": "{provider}에서 API key 를 거부했습니다.",
+            "ja": "{provider} が API key を拒否しました。",
+            "es": "{provider} rechazó la API key.",
+            "zh-CN": "{provider} 拒绝了该 API key。",
+            "zh-TW": "{provider} 拒絕了該 API key。",
+        },
+        "rate_limit": {
+            "en": "{provider} refused the request: rate limit or quota reached.",
+            "ko": "{provider}에서 요청을 거절했습니다: 사용 한도 (rate limit · quota) 에 닿았습니다.",
+            "ja": "{provider} がリクエストを拒否しました: 利用上限 (rate limit · quota) に達しました。",
+            "es": "{provider} rechazó la solicitud: se alcanzó el límite de uso (rate limit o cuota).",
+            "zh-CN": "{provider} 拒绝了请求：已达到使用上限（rate limit · quota）。",
+            "zh-TW": "{provider} 拒絕了請求：已達到使用上限（rate limit · quota）。",
+        },
+        "unreachable": {
+            "en": "Studio could not reach {provider}.",
+            "ko": "Studio 가 {provider} 에 연결하지 못했습니다.",
+            "ja": "Studio は {provider} に接続できませんでした。",
+            "es": "Studio no pudo conectar con {provider}.",
+            "zh-CN": "Studio 无法连接到 {provider}。",
+            "zh-TW": "Studio 無法連線到 {provider}。",
+        },
+        "timeout": {
+            "en": "{provider} stopped answering.",
+            "ko": "{provider} 의 응답이 멈췄습니다.",
+            "ja": "{provider} の応答が止まりました。",
+            "es": "{provider} dejó de responder.",
+            "zh-CN": "{provider} 停止了响应。",
+            "zh-TW": "{provider} 停止了回應。",
+        },
+        "api_error": {
+            "en": "{provider} returned an error.",
+            "ko": "{provider}에서 오류를 돌려줬습니다.",
+            "ja": "{provider} がエラーを返しました。",
+            "es": "{provider} devolvió un error.",
+            "zh-CN": "{provider} 返回了错误。",
+            "zh-TW": "{provider} 回傳了錯誤。",
+        },
+    }
+    _API_ERROR_HINT = {
+        "en": "Check the provider, model and key in **chat settings** (⚙️ in the chat header) — **Test** shows the answer.",
+        "ko": "**채팅 설정**(채팅창 상단의 ⚙️)에서 provider · model · key 를 확인하세요 — **Test** 가 결과를 보여 줍니다.",
+        "ja": "**チャット設定**（チャットヘッダーの⚙️）で provider・model・key を確認してください。**Test** で結果を確認できます。",
+        "es": "Revise el proveedor, el modelo y la key en la **configuración del chat** (⚙️ en el encabezado); **Test** muestra la respuesta.",
+        "zh-CN": "请在**聊天设置**（聊天标题栏的⚙️）中检查 provider、model 和 key；**Test** 会显示结果。",
+        "zh-TW": "請在**聊天設定**（聊天標題列的⚙️）中檢查 provider、model 和 key；**Test** 會顯示結果。",
+    }
+    _PROVIDER_NAMES = {"openai": "OpenAI", "anthropic": "Anthropic", "google": "Google (Gemini)",
+                       "github": "GitHub Models", "custom": "Custom endpoint", "local": "local LLM server"}
+
+    def _api_error_text(self, provider: str, exc: ChatAPIError, lang: str = "en") -> str:
+        """What failed, in the user's language, with the provider's own reason as detail."""
+        texts = self._API_ERROR_TEXT.get(exc.error_type, self._API_ERROR_TEXT["api_error"])
+        name = self._PROVIDER_NAMES.get(provider, provider or "API")
+        head = texts.get(lang, texts["en"]).format(provider=name)
+        detail = str(exc).strip()
+        hint = self._API_ERROR_HINT.get(lang, self._API_ERROR_HINT["en"])
+        return f"⚠️ **{head}**" + (f"\n\n`{detail}`" if detail else "") + f"\n\n{hint}"
 
     def _error_response(self, error_type: str, detail: str, lang: str = "en"):
         """Generator[str] — yields error message as a single chunk."""
