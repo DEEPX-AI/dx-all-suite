@@ -66,6 +66,8 @@ Changes since the v0.1.0 beta manual. The version number and date are set at rel
   made without system site packages, which hid the GStreamer bindings from the module servers.
 - DX App live RTSP and multi-slot camera runs reach the runner (they ended with "Input file not found"); several
   slots can share a camera without an MJPEG 640x480 mode. DX Stream's Pipeline Builder has a camera source (`v4l2src`).
+- A first visit opens in the browser's language (Korean, Japanese, Simplified or Traditional Chinese, Spanish;
+  English otherwise) instead of always English. A language picked in the menu still wins.
 - Chat says why an external API failed instead of showing the offline answer "No AI model connected" to a user who
   set a key: a rejected key, a rate limit, an unreachable host (named, within 15 s rather than 2 minutes) or the
   provider's own reason ("model not found", unsupported parameter). An error in the middle of a stream is reported

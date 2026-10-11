@@ -68,8 +68,25 @@
     }
   }
 
-  var _lang = localStorage.getItem(STORAGE_KEY) || DEFAULT_LANG;
+  // 처음 오는 사람은 브라우저 언어로 연다 — 한국어 · 일본어 · 중국어 · 스페인어 브라우저도 언어 메뉴를 찾을 때까지 영어였다
+  // (2026-10-11 첫 실행 감사). 고른 것을 저장해 dx-lang 을 직접 읽는 script (brand · toolbar · tutorial …) 도 같은 언어를 본다.
+  // 저장된 선택이 있으면 그대로 쓴다. 계약: tests/shared/test_browser_language_default_browser.py
+  function _browserLang() {
+    var list = (navigator.languages && navigator.languages.length) ? navigator.languages : [navigator.language || ''];
+    for (var i = 0; i < list.length; i++) {
+      var l = String(list[i] || '').toLowerCase();
+      if (/^zh-(tw|hk|mo)\b/.test(l) || l.indexOf('zh-hant') === 0) return 'zh-TW';
+      if (l.indexOf('zh') === 0) return 'zh-CN';
+      var base = l.split('-')[0];
+      if (base === 'en' || base === 'ko' || base === 'ja' || base === 'es') return base;
+    }
+    return DEFAULT_LANG;
+  }
+  var _saved = null;
+  try { _saved = localStorage.getItem(STORAGE_KEY); } catch (_) { /* storage blocked */ }
+  var _lang = _saved || _browserLang();
   if (SUPPORTED_LANGS.indexOf(_lang) === -1) _lang = DEFAULT_LANG;
+  if (!_saved) { try { localStorage.setItem(STORAGE_KEY, _lang); } catch (_) { /* storage blocked */ } }
   var _callbacks = [];
 
   // T(key) or T(en, ko) backward compat
