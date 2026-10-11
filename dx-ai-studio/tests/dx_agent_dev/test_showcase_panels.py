@@ -9,14 +9,14 @@ CONSOLE = AGENT / "static" / "js" / "console.js"
 MEDIA = AGENT / "static" / "media"
 
 EXPECTED_MEDIA = (
-    "dx-agent-dev-squat-gameplay.gif",
-    "dx-agent-dev-stretch-gameplay.gif",
-    "dx-agent-dev-ultralytics-yolo.gif",
+    "dx-agent-dev-squat-gameplay.webp",
+    "dx-agent-dev-stretch-gameplay.webp",
+    "dx-agent-dev-ultralytics-yolo.webp",
     "dx-agent-dev-ultralytics-wildlife-sample.jpg",
     "dx-agent-dev-ultralytics-ppe-sample.jpg",
     "dx-agent-dev-ultralytics-braintumor-sample.jpg",
     "dx-agent-dev-ultralytics-pills-sample.jpg",
-    "dx-agent-dev-paddleocr-gameplay.gif",
+    "dx-agent-dev-paddleocr-gameplay.webp",
     "dx-agent-dev-rapiddoc-pdf2md-sample.png",
 )
 
