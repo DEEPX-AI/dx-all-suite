@@ -228,6 +228,17 @@ _ELEMENTS = [
         ],
     },
     {
+        # USB / V4L2 카메라 — 예전에는 소스가 urisourcebin · rtspsrc 뿐이라 카메라 파이프라인을 만들 수 없었다 (2026-10-11).
+        "name": "v4l2src",
+        "category": "source",
+        "description_ko": "USB · V4L2 카메라 소스",
+        "description_en": "USB / V4L2 camera source", "description_es": "Fuente de cámara USB / V4L2",
+        "properties": [
+            {"name": "device", "type": "string", "description": "카메라 장치", "description_ko": "카메라 장치 (예: /dev/video0)",
+             "description_en": "Camera device (e.g. /dev/video0)", "description_es": "Dispositivo de cámara (p. ej. /dev/video0)"},
+        ],
+    },
+    {
         "name": "decodebin",
         "category": "utility",
         "description_ko": "자동 디코더 선택",
@@ -487,6 +498,7 @@ _GST_DEFAULTS = {
     "DxRate": {"framerate": "0", "throttle": "false"},
     "DxMsgBroker": {"broker-name": "mqtt"},
     "rtspsrc": {"latency": "2000"},
+    "v4l2src": {"device": "/dev/video0"},
     "queue": {"max-size-buffers": "200", "leaky": "no (0)"},
     "fpsdisplaysink": {"sync": "true"},
     "ximagesink": {"sync": "true", "force-aspect-ratio": "true"},

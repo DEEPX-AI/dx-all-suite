@@ -8,7 +8,7 @@ layer) — that one upward dependency is resolved with a local import inside
 the function body (see below) so module-load time stays acyclic.
 """
 
-import os, re, math, time, uuid, subprocess, tempfile, threading, atexit
+import os, re, math, shutil, time, uuid, subprocess, tempfile, threading, atexit
 from pathlib import Path
 from dx_app.core import config
 from dx_app.core.config import DX_APP_ROOT, BUILD_DIR, resolve_model_path
@@ -101,7 +101,10 @@ def run_inference_live(model_name, category, model_file, lang="cpp", variant="sy
             # Multi-slot: ffmpeg reads camera once → N UDP streams
             if slot_idx == 0:
                 if not _start_cam_mux(_cam_idx, n_total_slots):
-                    return _err("failed_camera_mux", "Failed to start camera multiplexer (ffmpeg). Is ffmpeg installed?")
+                    from dx_app.core.camera import cam_mux_last_error
+                    why = cam_mux_last_error() or ("ffmpeg not found" if not shutil.which("ffmpeg") else "")
+                    return _err("failed_camera_mux", "Failed to share the camera between slots (ffmpeg)"
+                                + (f": {why}" if why else ""))
             else:
                 # Give ffmpeg a moment to stabilize for later slots
                 time.sleep(0.5)
