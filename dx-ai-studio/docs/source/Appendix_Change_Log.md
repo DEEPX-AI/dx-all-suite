@@ -64,7 +64,8 @@ Changes since the v0.1.0 beta manual. The version number and date are set at rel
 - DX Stream: Local (WebRTC) playback works when Setup step 6 is done; Setup now checks both of its packages
   (gstreamer1.0-nice and gir1.2-gst-plugins-bad-1.0) and names the missing one. `launcher.sh` repairs a `.venv`
   made without system site packages, which hid the GStreamer bindings from the module servers.
-- DX App live RTSP and multi-slot camera runs reach the runner (they ended with "Input file not found").
+- DX App live RTSP and multi-slot camera runs reach the runner (they ended with "Input file not found"); several
+  slots can share a camera without an MJPEG 640x480 mode. DX Stream's Pipeline Builder has a camera source (`v4l2src`).
 - Module servers keep their errors in `~/.local/state/dx-ai-studio/logs/`; DX App no longer stops itself after
   an idle hour under the launcher.
 - Home: the folded agent line names the model a run will use, and a model picked before the CLI's

@@ -22,6 +22,7 @@ _UDP_BASE_PORT = 9100        # UDP ports 9100, 9101, 9102 ...
 _cam_mux_proc = None         # ffmpeg tee process
 _cam_mux_lock = threading.Lock()
 _cam_mux_count = 0           # how many UDP streams are active
+_cam_mux_last_error = ""
 
 
 def _start_cam_mux(real_cam_idx, n_slots):
@@ -47,28 +48,38 @@ def _start_cam_mux(real_cam_idx, n_slots):
             tee_parts.append(f"[f=mpegts]udp://127.0.0.1:{port}?pkt_size=1316")
         tee_output = "|".join(tee_parts)
 
-        cmd = ["ffmpeg", "-hide_banner", "-loglevel", "warning",
-               "-f", "v4l2", "-input_format", "mjpeg",
-               "-video_size", "640x480", "-framerate", "30",
-               "-i", real_dev,
-               "-map", "0:v",
-               "-c:v", "libx264", "-preset", "ultrafast",
-               "-tune", "zerolatency", "-g", "30",
-               "-f", "tee", tee_output]
-
-        print(f"[CAM-MUX] Starting ffmpeg: {' '.join(cmd)}")
-        _cam_mux_proc = subprocess.Popen(
-            cmd, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE,
-            close_fds=True)
-        _cam_mux_count = n_slots
-        time.sleep(1.5)  # let UDP streams initialize
-        if _cam_mux_proc.poll() is not None:
+        # MJPEG 640x480 first (cheap to decode on most USB webcams); a camera without that mode (YUYV-only webcams,
+        # capture cards) made ffmpeg exit at once and every multi-slot run failed — then take the camera's own format
+        # and scale to the same 640x480 (2026-10-11 real-use audit).
+        attempts = [
+            (["-input_format", "mjpeg", "-video_size", "640x480", "-framerate", "30"], []),
+            ([], ["-vf", "scale=640:480"]),
+        ]
+        global _cam_mux_last_error
+        _cam_mux_last_error = ""
+        for in_opts, filt in attempts:
+            cmd = (["ffmpeg", "-hide_banner", "-loglevel", "warning", "-f", "v4l2"] + in_opts + ["-i", real_dev,
+                   "-map", "0:v"] + filt + ["-c:v", "libx264", "-preset", "ultrafast",
+                   "-tune", "zerolatency", "-g", "30", "-f", "tee", tee_output])
+            print(f"[CAM-MUX] Starting ffmpeg: {' '.join(cmd)}")
+            _cam_mux_proc = subprocess.Popen(
+                cmd, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE,
+                close_fds=True)
+            _cam_mux_count = n_slots
+            time.sleep(1.5)  # let UDP streams initialize
+            if _cam_mux_proc.poll() is None:
+                print(f"[CAM-MUX] ffmpeg running PID={_cam_mux_proc.pid}, {n_slots} UDP streams")
+                return True
             stderr = _cam_mux_proc.stderr.read().decode(errors="replace")
             print(f"[CAM-MUX] ffmpeg exited immediately: {stderr[:500]}")
+            _cam_mux_last_error = stderr.strip().splitlines()[-1][:300] if stderr.strip() else "ffmpeg exited"
             _cam_mux_proc = None
-            return False
-        print(f"[CAM-MUX] ffmpeg running PID={_cam_mux_proc.pid}, {n_slots} UDP streams")
-        return True
+        return False
+
+
+def cam_mux_last_error():
+    """Why the last _start_cam_mux failed (ffmpeg's last stderr line)."""
+    return _cam_mux_last_error
 
 
 def _stop_cam_mux():
