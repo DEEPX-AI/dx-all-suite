@@ -153,3 +153,11 @@ def test_chat_says_what_failed_instead_of_no_model_connected(monkeypatch, etype,
     assert must in text
     assert "anthropic" in text.lower()
     assert "⚙" in text
+
+
+def test_the_hint_does_not_point_at_the_removed_test_button():
+    """The settings lost their Test button (saving tests the connection, 2026-10-11 redesign); the hint named it."""
+    import importlib
+    E = importlib.import_module("shared.chat.engine")
+    for lang, text in E.ChatEngine._API_ERROR_HINT.items():
+        assert "**Test**" not in text and "Test" not in text, (lang, text)

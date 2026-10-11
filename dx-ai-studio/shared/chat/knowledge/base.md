@@ -29,16 +29,19 @@
 - **High Efficiency**: DX-COM의 Intelligent Quantization (INT8)으로 정확도 손실 최소화 + 추론 속도 극대화
 
 ### DX AI Studio 앱 구성
-| 앱 | 포트 | 역할 |
+Studio 는 launcher (`http://<보드>:8899`) 한 곳에서 연다. 각 앱은 그 아래 경로로 열리고, 왼쪽 rail 의 아이콘으로 옮겨 다닌다.
+
+| 앱 | Studio 안의 위치 | 역할 |
 |----|------|------|
-| **DX App** | 8080 | NPU 추론 실행, C++/Python 템플릿, 프로파일러 |
-| **DX Stream** | 8093 | GStreamer 비디오 파이프라인, WebRTC, 13개 커스텀 엘리먼트 |
-| **DX Model Zoo** | 8094 | 약 500개 모델 카탈로그, 인퍼런스 데모, YAML 오케스트레이션 |
-| **DX Compiler** | 8095 | ONNX → .dxnn 컴파일 GUI, DX-TRON 그래프 뷰어 |
-| **DX Planner (EdgeGuide)** | 8096 | 실측 YOLO26 벤치마크 기반 NPU 제품(DX-M1/H1 등) 추천 |
-| **DX Benchmark** | 8097 | YOLO26 하드웨어 벤치마크 결과 뷰어 (읽기 전용, 실행은 CLI) |
-| **DX Monitor** | 8098 | NPU/시스템 실시간 하드웨어 모니터링 대시보드 |
-| **DX Agent Dev** | 8099 | 자연어 명령으로 NPU 앱을 빌드하는 대화형 에이전트 콘솔 |
+| **DX App** | `/app/` | NPU 추론 실행, C++/Python 템플릿, 프로파일러 |
+| **DX Stream** | `/stream/` | GStreamer 비디오 파이프라인, WebRTC, 13개 커스텀 엘리먼트 |
+| **DX Model Zoo** | `/zoo/` | 약 500개 모델 카탈로그, 인퍼런스 데모, YAML 오케스트레이션 |
+| **DX Compiler** | `/compiler/` | ONNX → .dxnn 컴파일 GUI, DX-TRON 그래프 뷰어 |
+| **DX Planner (EdgeGuide)** | `/planner/` | 실측 YOLO26 벤치마크 기반 NPU 제품(DX-M1/H1 등) 추천 |
+| **DX Benchmark** | `/benchmark/` | YOLO26 하드웨어 벤치마크 결과 뷰어 (읽기 전용, 실행은 CLI) |
+| **DX Monitor** | `/dx_monitor/` | NPU/시스템 실시간 하드웨어 모니터링 대시보드 |
+| **DX Agent Dev** | `/agent/` | 자연어 명령으로 NPU 앱을 빌드하는 대화형 에이전트 콘솔 |
+| **NPU Monitor** (rail 버튼) | 모든 화면의 왼쪽 rail 아래 온도계 | NPU 온도 · 클럭 · 전력을 어느 화면에서나 바로 본다 (펼치면 코어별 그래프) |
 
 ### 에코시스템 파트너
 - **Cloud & Platform**: AWS (IoT Greengrass), Baidu, DeGirum

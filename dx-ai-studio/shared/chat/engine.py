@@ -161,12 +161,12 @@ class ChatEngine:
         },
     }
     _API_ERROR_HINT = {
-        "en": "Check the provider, model and key in **chat settings** (⚙️ in the chat header) — **Test** shows the answer.",
-        "ko": "**채팅 설정**(채팅창 상단의 ⚙️)에서 provider · model · key 를 확인하세요 — **Test** 가 결과를 보여 줍니다.",
-        "ja": "**チャット設定**（チャットヘッダーの⚙️）で provider・model・key を確認してください。**Test** で結果を確認できます。",
-        "es": "Revise el proveedor, el modelo y la key en la **configuración del chat** (⚙️ en el encabezado); **Test** muestra la respuesta.",
-        "zh-CN": "请在**聊天设置**（聊天标题栏的⚙️）中检查 provider、model 和 key；**Test** 会显示结果。",
-        "zh-TW": "請在**聊天設定**（聊天標題列的⚙️）中檢查 provider、model 和 key；**Test** 會顯示結果。",
+        "en": "Check the provider, model and key in **chat settings** (⚙️ in the chat header) — saving there checks the connection first.",
+        "ko": "**채팅 설정**(채팅창 상단의 ⚙️)에서 provider · model · key 를 확인하세요 — 저장할 때 연결을 먼저 확인합니다.",
+        "ja": "**チャット設定**（チャットヘッダーの⚙️）で provider・model・key を確認してください。保存時に接続を先に確認します。",
+        "es": "Revise el proveedor, el modelo y la key en la **configuración del chat** (⚙️ en el encabezado); al guardar se comprueba primero la conexión.",
+        "zh-CN": "请在**聊天设置**（聊天标题栏的⚙️）中检查 provider、model 和 key；保存时会先检查连接。",
+        "zh-TW": "請在**聊天設定**（聊天標題列的⚙️）中檢查 provider、model 和 key；儲存時會先檢查連線。",
     }
     _PROVIDER_NAMES = {"openai": "OpenAI", "anthropic": "Anthropic", "google": "Google (Gemini)",
                        "github": "GitHub Models", "custom": "Custom endpoint", "local": "local LLM server"}
@@ -191,7 +191,7 @@ class ChatEngine:
         head = texts.get(lang, texts["en"]).format(provider=name)
         detail = str(exc).strip()
         login = ""
-        if provider == "agent-cli" and agent in LOGIN_HINTS:
+        if provider == "agent-cli" and agent in LOGIN_HINTS and exc.error_type != "rate_limit":
             login = "\n\n" + self._LOGIN_LINE.get(lang, self._LOGIN_LINE["en"]).format(cmd=LOGIN_HINTS[agent])
         hint = self._API_ERROR_HINT.get(lang, self._API_ERROR_HINT["en"])
         return f"⚠️ **{head}**" + (f"\n\n`{detail}`" if detail else "") + login + f"\n\n{hint}"

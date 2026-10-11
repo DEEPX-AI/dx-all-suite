@@ -145,3 +145,67 @@ def test_every_language_and_a_phone(browser, port, lang):
         assert page.evaluate("document.documentElement.scrollWidth <= document.documentElement.clientWidth")
     finally:
         ctx.close()
+
+
+def test_opening_chat_rereads_who_answers(browser, port):
+    """2026-10-11 real check: Home switched the Studio agent to copilot, but the chat line still said claude — the
+    widget read the status once at page load. Opening the chat reads it again."""
+    ctx, page, _, state = _page(browser, port, AUTO)
+    try:
+        assert "claude" in page.inner_text(".dx-chat-source")
+        state["status"] = dict(AUTO, source={"kind": "studio", "provider": "agent-cli", "agent": "copilot", "model": None})
+        page.evaluate("DXChat.toggle()")          # close
+        page.evaluate("DXChat.toggle()")          # open again
+        page.wait_for_function("document.querySelector('.dx-chat-source').textContent.includes('copilot')", timeout=5000)
+    finally:
+        ctx.close()
+
+
+def test_a_late_model_list_for_another_agent_is_ignored(browser, port):
+    """2026-10-11 real check: picking cursor saved copilot's model (claude-sonnet-5.5) — copilot's model list, asked
+    first, arrived after cursor's and replaced it. A list for an agent that is no longer picked is dropped."""
+    status = dict(AUTO, agents=[dict(a, installed=True, authenticated=True) for a in AGENTS[:3]],
+                  source={"kind": "studio", "provider": "agent-cli", "agent": "copilot", "model": None})
+    ctx, page, posts, _ = _page(browser, port, status)
+    held = []
+    lists = {"copilot": {"models": ["auto", "claude-sonnet-5.5"], "default_model": "claude-sonnet-5.5"},
+             "cursor": {"models": ["auto", "composer-2.5"], "default_model": "auto"}}
+
+    def models(route):
+        agent = route.request.url.split("agent=")[1].split("&")[0]
+        if agent == "copilot":
+            held.append(route)
+        else:
+            route.fulfill(status=200, content_type="application/json", body=json.dumps(lists[agent]))
+    page.route("**/agent/api/agent/models*", models)
+    try:
+        page.click(".dx-chat-source button")
+        page.wait_for_selector(".dx-chat-settings-panel.open")
+        page.wait_for_function("1")
+        page.select_option(".dx-chat-settings-agent", "cursor")
+        page.wait_for_function("[...document.querySelectorAll('.dx-chat-settings-agentmodel-select option')]"
+                               ".some(o => o.value === 'composer-2.5')", timeout=5000)
+        for r in held:
+            r.fulfill(status=200, content_type="application/json", body=json.dumps(lists["copilot"]))
+        page.wait_for_timeout(500)
+        opts = page.eval_on_selector_all(".dx-chat-settings-agentmodel-select option", "os => os.map(o => o.value)")
+        assert opts == ["auto", "composer-2.5"], opts
+        page.click(".dx-chat-settings-save")
+        page.wait_for_function("document.querySelector('.dx-chat-settings-status').textContent.length > 0")
+        assert posts[-1][1]["model"] in ("cursor", "cursor::auto"), posts[-1]
+    finally:
+        ctx.close()
+
+
+def test_on_a_phone_the_send_button_is_not_under_the_chat_button(browser, port):
+    """2026-10-11 real check at 390 px: the open chat fills the width and the round chat/close button sat on top of
+    Send. The header already has a close button, so the round one steps aside while the chat is open."""
+    ctx, page, _, _ = _page(browser, port, AUTO, width=390)
+    try:
+        hit = page.evaluate("""() => { const b = document.querySelector('.dx-chat-send-btn').getBoundingClientRect();
+          const el = document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2);
+          return el && el.closest('.dx-chat-send-btn') ? 'send' : (el ? el.className : 'none'); }""")
+        assert hit == "send", hit
+        assert page.is_visible(".dx-chat-header-btn[data-action=close]")
+    finally:
+        ctx.close()

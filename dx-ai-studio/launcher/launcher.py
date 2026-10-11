@@ -1705,7 +1705,10 @@ class LauncherHandler(DXBaseHandler):
             if ambiguous and self._proxy_by_referer(path, parsed):
                 return
 
-        if path in ("/api/chat/config", "/api/chat/config/test"):
+        # Every shared chat route but the chat stream itself (its referer rule is below). The list was kept by hand
+        # and missed /api/studio/agent (Home's agent pick saved nothing), local-model discovery and the knowledge
+        # refresh (both 502 on Home's chat). 2026-10-11 chat settings real check.
+        if path in self._CHAT_ROUTES and path != "/api/chat":
             if self.handle_chat_routes(_chat_engine):
                 return
             return self.send_error_json(405, "Method not allowed")

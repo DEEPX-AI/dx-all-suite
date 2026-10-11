@@ -451,6 +451,7 @@ const DXChat = (() => {
     if (_open) {
       _els.input.focus();
       _scrollBottom();
+      _checkConfig();   // who answers can change elsewhere (Home · Agent Dev pick the Studio agent) — read it again
     }
   }
 
@@ -835,6 +836,9 @@ const DXChat = (() => {
     fetch('/agent/api/agent/models?agent=' + encodeURIComponent(agent))
       .then(function (r) { return r.json(); })
       .then(function (d) {
+        /* 늦게 온 다른 agent 의 목록은 버린다 — copilot 목록이 cursor 것보다 늦게 와 cursor 에 copilot 의 model 이
+           저장될 뻔했다 (2026-10-11 실기). */
+        if (_els.agentSelect && _els.agentSelect.value && _els.agentSelect.value !== agent) return;
         var models = (d && d.models) || [];
         if (!models.length) { sel.hidden = true; sel.innerHTML = ''; return; }
         _fillSelect(sel, models, (current && models.indexOf(current) !== -1) ? current
