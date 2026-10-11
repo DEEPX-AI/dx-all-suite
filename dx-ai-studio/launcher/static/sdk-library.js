@@ -705,14 +705,23 @@
   // Docs (e.g. Model Zoo architecture) use ```mermaid fences. The parser emits them as
   // <pre class="mermaid-source">; here we turn each into an SVG once the doc mounts, using
   // the offline vendored mermaid.min.js. On failure, the original code block is kept visible.
+  // The library (800 KB) loads the first time a doc has a diagram — it was a <script> on every launcher screen
+  // (2026-10-11 performance audit).
   let _mermaidReady = null;
   function ensureMermaid() {
-    if (typeof mermaid === 'undefined') return null;
     if (!_mermaidReady) {
-      try {
-        mermaid.initialize({ startOnLoad: false, securityLevel: 'strict', theme: 'dark', fontFamily: 'inherit' });
-      } catch (e) { /* already initialised */ }
-      _mermaidReady = Promise.resolve();
+      _mermaidReady = new Promise((resolve, reject) => {
+        if (typeof mermaid !== 'undefined') { resolve(); return; }
+        const s = document.createElement('script');
+        s.src = '/static/shared/vendor/mermaid.min.js';
+        s.onload = () => resolve();
+        s.onerror = () => { _mermaidReady = null; reject(new Error('mermaid failed to load')); };
+        document.head.appendChild(s);
+      }).then(() => {
+        try {
+          mermaid.initialize({ startOnLoad: false, securityLevel: 'strict', theme: 'dark', fontFamily: 'inherit' });
+        } catch (e) { /* already initialised */ }
+      });
     }
     return _mermaidReady;
   }
@@ -720,9 +729,7 @@
     if (!root) return;
     const blocks = root.querySelectorAll('pre.mermaid-source');
     if (!blocks.length) return;
-    const ready = ensureMermaid();
-    if (!ready) return;  // mermaid lib absent → leave the code block visible
-    ready.then(() => {
+    ensureMermaid().then(() => {
       blocks.forEach((pre) => {
         if (pre.dataset.mmDone === '1') return;
         pre.dataset.mmDone = '1';
@@ -739,7 +746,7 @@
           }).catch(() => fallback(host, src));
         } catch (e) { fallback(host, src); }
       });
-    });
+    }).catch(() => { /* the library did not load — the code blocks stay visible */ });
     function fallback(host, src) {
       const pre = document.createElement('pre');
       const c = document.createElement('code');
@@ -1552,7 +1559,8 @@
     init: initSdkLibrary,
     refresh: function () { if (_libData) renderView(_libData); },
     reset: function () { _sdkInitialized = false; _libData = null; },
-    applyQuery: applyQuery
+    applyQuery: applyQuery,
+    _renderMermaid: renderMermaidBlocks   // test_home_facts_deferred_browser.py
   };
   window.showSdkLibrary = function () {
     if (window.LauncherRouter) window.LauncherRouter.navigate('sdk-library');

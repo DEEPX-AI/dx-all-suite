@@ -339,16 +339,61 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
             spool.close()
 
 
+    # 이보다 큰 200 JSON 은 gzip + 내용 ETag (2026-10-11 성능 감사 — launcher 가 화면마다 2.5 MB catalog 를 새로 받았다)
+    _JSON_TRANSPORT_MIN = 8 * 1024
+    _json_gzip_cache: dict[str, bytes] = {}
+
     def send_json(self, data, code: int = 200):
-        """JSON 응답 + CORS + charset + Content-Length."""
+        """JSON 응답 + CORS + charset + Content-Length.
+
+        큰 200 응답은 내용 hash ETag 와 no-cache 를 달아 같은 내용의 재요청을 304 로 끝내고, gzip 을 받는
+        client 에는 압축해 보낸다. 작은 응답과 오류 응답은 예전 그대로다."""
         body = json.dumps(data, ensure_ascii=False, default=str).encode("utf-8")
-        self.send_response(code)
+        if code != 200 or len(body) < self._JSON_TRANSPORT_MIN:
+            self.send_response(code)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", len(body))
+            self.end_headers()
+            if self._is_head_request():
+                return
+            self.wfile.write(body)
+            return
+
+        etag = '"' + hashlib.blake2b(body, digest_size=12).hexdigest() + '"'
+        inm = self.headers.get("If-None-Match")
+        if inm is not None and etag in [t.strip() for t in inm.split(",")]:
+            self.send_response(304)
+            self.send_header("ETag", etag)
+            self.send_header("Cache-Control", "no-cache")
+            self.send_header("Vary", "Accept-Encoding")
+            self.end_headers()
+            return
+
+        payload = body
+        gz = "gzip" in self.headers.get("Accept-Encoding", "")
+        if gz:
+            cache = DXBaseHandler._json_gzip_cache
+            payload = cache.get(etag)
+            if payload is None:
+                payload = gzip.compress(body, compresslevel=5)
+                if len(cache) >= 8:
+                    try:
+                        cache.pop(next(iter(cache)), None)
+                    except (StopIteration, RuntimeError):   # 다른 thread 가 동시에 바꿨다 — 다음에 비운다
+                        pass
+                cache[etag] = payload
+        self.send_response(200)
         self.send_header("Content-Type", "application/json; charset=utf-8")
-        self.send_header("Content-Length", len(body))
+        self.send_header("ETag", etag)
+        self.send_header("Cache-Control", "no-cache")
+        self.send_header("Vary", "Accept-Encoding")
+        if gz:
+            self.send_header("Content-Encoding", "gzip")
+        self.send_header("Content-Length", len(payload))
         self.end_headers()
         if self._is_head_request():
             return
-        self.wfile.write(body)
+        self.wfile.write(payload)
 
     def send_html(self, html, code: int = 200):
         """HTML 응답."""
