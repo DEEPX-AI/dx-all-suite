@@ -191,7 +191,30 @@
     }
   }
 
-  function fillAgentControls(agents) {
+  var _STUDIO_ORDER = ['claude', 'copilot', 'cursor', 'codex', 'opencode'];
+  /* Home 과 같은 agent 로 시작한다 — 고른 것 (studio_agent) → 로그인된 첫 agent (Studio 순서) → 첫 agent.
+     spec 2026-10-11 chat settings §3.5, 계약: tests/dx_agent_dev/test_studio_agent_console_browser.py */
+  function initialAgent(agents, studio) {
+    const names = agents.map(function (a) { return a.name; });
+    if (studio && names.indexOf(studio.agent) !== -1) return studio.agent;
+    for (let i = 0; i < _STUDIO_ORDER.length; i++) {
+      const a = agents.find(function (x) { return x.name === _STUDIO_ORDER[i]; });
+      if (a && a.authenticated === true) return a.name;
+    }
+    return names[0];
+  }
+
+  function saveStudioAgent() {
+    const agentSel = $('agent-select');
+    const modelSel = $('model-select');
+    if (!agentSel || !agentSel.value) return;
+    fetch('api/studio/agent', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ agent: agentSel.value, model: (modelSel && modelSel.value) || null })
+    }).catch(function () { /* the pick still applies to this page */ });
+  }
+
+  function fillAgentControls(agents, studio) {
     _agents = agents || [];
     const controls = $('agent-controls');
     const agentSel = $('agent-select');
@@ -206,13 +229,16 @@
       agentSel.appendChild(opt);
     });
     updateAgentPickerLayout();
-    fillModels(_agents[0]);
+    const first = initialAgent(_agents, studio);
+    agentSel.value = first;
+    fillModels(_agents.find(function (x) { return x.name === first; }));
     if (!_agentControlsBound) {
       _agentControlsBound = true;
       agentSel.addEventListener('change', function () {
         const found = _agents.find(function (x) { return x.name === agentSel.value; });
         if (modelSel) delete modelSel.dataset.userPicked;  // 다른 에이전트 — 그 에이전트의 기본 모델부터
         fillModels(found);
+        saveStudioAgent();
       });
     }
     if (!_modelHintBound) {
@@ -221,6 +247,7 @@
         // 사용자가 고른 모델은 CLI 목록을 다시 받아도 · 언어를 바꿔도 지킨다 (release audit G-1).
         modelSel.dataset.userPicked = '1';
         updateModelQualityHint();
+        saveStudioAgent();
       });
     }
     updateModelQualityHint();
@@ -903,7 +930,7 @@
     try { st = await api('/api/agent/status'); } catch (e) { st = {}; }
     if (st && st.available) {
       setBadge('Ready', 'ok');
-      fillAgentControls(st.agents);
+      fillAgentControls(st.agents, st.studio_agent);
       /* 이미 도는 실행이 있으면 붙는다 — home 에서 넘어온 경우가 그것이다. */
       if (st.run_id && !st.run_done) attachIfRunning(st);
     } else {

@@ -148,3 +148,33 @@ def test_affected_text_meets_aa(browser, module_server, theme, os_theme):
                        (module, theme, os_theme))
     finally:
         ctx.close()
+
+
+@pytest.mark.parametrize(("theme", "os_theme"), THEMES)
+def test_chat_status_line_and_settings_meet_aa(browser, theme, os_theme):
+    """2026-10-11 chat settings redesign: the status line, its Change link and the three choice cards."""
+    import json
+    srv, port = start_module_server("dx_planner")
+    ctx = browser.new_context(color_scheme=os_theme, viewport={"width": 1440, "height": 900})
+    ctx.add_init_script("localStorage.setItem('dx-tutorial-mode','off');"
+                        f"localStorage.setItem('dx-theme','{theme}');")
+    status = {"configured": False,
+              "agents": [{"name": "claude", "installed": True, "authenticated": True, "login_hint": "claude"}],
+              "source": {"kind": "auto", "provider": "agent-cli", "agent": "claude", "model": None}}
+    ctx.route("**/api/chat/config", lambda r: r.fulfill(status=200, content_type="application/json",
+                                                        body=json.dumps(status)))
+    page = ctx.new_page()
+    try:
+        page.goto(f"http://127.0.0.1:{port}/", wait_until="load")
+        page.wait_for_function("typeof DXChat !== 'undefined'")
+        page.evaluate("DXChat.toggle()")
+        page.wait_for_selector(".dx-chat-source button", state="visible")
+        _assert_aa(page, ".dx-chat-source-text, .dx-chat-source-change", (theme, os_theme))
+        page.click(".dx-chat-source button")
+        page.wait_for_selector(".dx-chat-settings-panel.open")
+        _assert_aa(page, ".dx-chat-kind-card b, .dx-chat-kind-card small, .dx-chat-settings-kind legend",
+                   (theme, os_theme))
+    finally:
+        ctx.close()
+        srv.shutdown()
+        srv.server_close()

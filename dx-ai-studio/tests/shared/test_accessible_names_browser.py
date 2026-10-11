@@ -95,3 +95,33 @@ def test_every_page_names_its_controls(browser, module):
         ctx.close()
         srv.shutdown()
         srv.server_close()
+
+
+@pytest.mark.parametrize("kind", ["agent", "local", "cloud"])
+def test_chat_settings_name_every_control(browser, kind):
+    """The chat settings (2026-10-11 redesign) are hidden until opened, so the page sweep above never saw them."""
+    import json
+    srv, port = start_module_server("dx_planner")
+    ctx = browser.new_context(viewport={"width": 1440, "height": 900})
+    ctx.add_init_script("try{localStorage.setItem('dx-tutorial-mode','off');localStorage.setItem('dx-lang','en')}catch(e){}")
+    status = {"configured": False,
+              "agents": [{"name": "claude", "installed": True, "authenticated": True, "login_hint": "claude"}],
+              "source": {"kind": "auto", "provider": "agent-cli", "agent": "claude", "model": None}}
+    ctx.route("**/api/chat/config", lambda r: r.fulfill(status=200, content_type="application/json",
+                                                        body=json.dumps(status)))
+    page = ctx.new_page()
+    try:
+        page.goto(f"http://127.0.0.1:{port}/", wait_until="networkidle", timeout=60000)
+        page.evaluate("DXChat.toggle()")
+        page.click(".dx-chat-source button")
+        page.wait_for_selector(".dx-chat-settings-panel.open")
+        page.check(f"input[name=dx-chat-kind][value={kind}]")
+        page.click(".dx-chat-settings-advanced > summary")
+        page.wait_for_timeout(300)
+        problems = [p for p in page.evaluate(_PROBLEMS)
+                    if ".dx-chat-" in p or "dx-chat" in p or "#" not in p]
+        assert not problems, problems
+    finally:
+        ctx.close()
+        srv.shutdown()
+        srv.server_close()

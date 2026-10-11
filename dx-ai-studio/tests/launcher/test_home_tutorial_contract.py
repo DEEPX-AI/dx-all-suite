@@ -21,7 +21,7 @@ ORDER = [
     "#homeBar",
     "#homeTour",
     ".dx-chat-fab",
-    ".dx-chat-settings-provider",
+    ".dx-chat-settings-kind",          # 2026-10-11: settings ask one question (chat settings redesign)
     ".dx-chat-window.open",
 ]
 GONE = [".top-bar", "#launcherToolbar", "#deepxLinks", "#dxt-tutorial-card", "#replayBtn"]

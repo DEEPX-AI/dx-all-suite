@@ -6,10 +6,13 @@ Uses only Python standard library (urllib.request, json, ssl).
 from __future__ import annotations
 
 import json
+import os
+import re
 import shutil
 import socket
 import ssl
 import subprocess
+import tempfile
 import threading
 import time
 import urllib.error
@@ -239,7 +242,9 @@ _AGENT_CHAT = {
                + _model_flag("--model", m) + (["--effort", e] if e else [])),
     "opencode": ("opencode", lambda p, m, e: ["run", p] + _model_flag("-m", m)),
     "copilot": ("copilot", lambda p, m, e: ["-p", p] + _model_flag("--model", m)),
-    "cursor": ("cursor-agent", lambda p, m, e: ["-p", p] + _model_flag("--model", m)),
+    # --trust: the neutral chat dir is new to cursor, which otherwise stops at "Workspace Trust Required". It trusts the
+    # folder only — -f/--yolo would also auto-run commands (2026-10-11 real check).
+    "cursor": ("cursor-agent", lambda p, m, e: ["-p", p, "--trust"] + _model_flag("--model", m)),
     "codex": ("codex", lambda p, m, e: ["exec", p] + _model_flag("-m", m)),
 }
 
@@ -263,6 +268,25 @@ def _flatten_prompt(messages: list[dict]) -> str:
         else:
             parts.append("User: " + content)
     return "\n\n".join(parts)
+
+
+def _neutral_cwd() -> str:
+    """Where a chat CLI runs: outside any project, so it does not pick up a repo's CLAUDE.md / AGENTS.md. Run inside
+    dx-all-suite, copilot answered a Chat question with "[DX-AGENT-DEV: START]" and the DEEPX banner (2026-10-11).
+    Chat's knowledge travels in the prompt, not the working directory."""
+    d = os.path.join(tempfile.gettempdir(), "dx-studio-chat")
+    os.makedirs(d, exist_ok=True)
+    return d
+
+
+def _is_real_install(path: str) -> bool:
+    """A CLI that exists outside the temp dir — the user's own install, not a test's fake script."""
+    real = os.path.realpath(path)
+    tmp = os.path.realpath(tempfile.gettempdir()) + os.sep
+    return os.path.exists(real) and not real.startswith(tmp)
+
+
+_LIMIT_WORDS = re.compile(r"usage limit|rate[ -]?limit|quota|too many requests|limit (?:has been )?reached", re.I)
 
 
 # How often to emit a keepalive token while the CLI subprocess runs silently.
@@ -307,10 +331,14 @@ def stream_agent_cli(
                 break
     if not cli:
         raise ChatAPIError("cli_missing", "No coding-agent CLI found on PATH (claude/copilot/cursor/codex/opencode)")
+    if os.environ.get("DX_AGENT_NO_REAL_RUN") == "1" and _is_real_install(cli):
+        # Tests must not spend the user's account (tests/conftest.py). With nothing saved, Chat now answers through
+        # the logged-in CLI, so a test without a config would otherwise reach the real one (2026-10-11).
+        raise ChatAPIError("api_error", f"real {bin_name} runs are disabled under tests", 0)
     prompt = _flatten_prompt(messages)
     cmd = [cli] + build_tail(prompt, model, effort)
     try:
-        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, cwd=_neutral_cwd())
     except OSError as exc:
         raise ChatAPIError("api_error", f"launch failed: {exc}") from exc
 
@@ -351,7 +379,10 @@ def stream_agent_cli(
 
     if proc.returncode != 0:
         detail = (result.get("stderr") or result.get("stdout") or "agent CLI failed").strip()
-        raise ChatAPIError("api_error", detail[:300], proc.returncode)
+        # A spent account is a limit, not a broken login — cursor said "Your team has reached its usage limit" and
+        # Chat suggested signing in again (2026-10-11 real check).
+        etype = "rate_limit" if _LIMIT_WORDS.search(detail) else "api_error"
+        raise ChatAPIError(etype, detail[:300], proc.returncode)
     out = (result.get("stdout") or "").strip()
     if out:
         yield out

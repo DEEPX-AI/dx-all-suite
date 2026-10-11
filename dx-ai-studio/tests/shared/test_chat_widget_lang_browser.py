@@ -43,6 +43,7 @@ def _snapshot(page):
         custom: w.querySelector('.dx-chat-settings-provider option[value=custom]').textContent,
         input: w.querySelector('.dx-chat-input').placeholder,
         save: w.querySelector('.dx-chat-settings-save').textContent,
+        legend: w.querySelector('.dx-chat-settings-kind legend').textContent,
         web: w.querySelector('.dx-chat-header-link').getAttribute('aria-label'),
       };
     }""")
@@ -51,7 +52,8 @@ def _snapshot(page):
 def test_the_widget_speaks_english_first(page):
     s = _snapshot(page)
     assert s["fab"] == "Chat" and s["send"] == "Send"
-    assert s["fields"][:4] == ["Provider", "API Key", "Model", "Endpoint"]
+    # 2026-10-11: settings ask one question first; the Agent field leads (chat settings redesign)
+    assert s["fields"][:5] == ["Agent", "Provider", "API Key", "Model", "Endpoint"]
     assert s["custom"] == "Custom endpoint" and s["save"] == "Save"
 
 
@@ -61,12 +63,13 @@ def test_every_label_follows_a_language_change(page):
         s = _snapshot(page)
         assert s["fab"] == "チャット" and s["send"] == "送信"
         assert s["settingsAria"] == "AI設定"
-        assert s["fields"][:4] == ["プロバイダー", "API キー", "モデル", "エンドポイント"]
-        assert s["fields"][4].startswith("温度")
+        assert s["fields"][:5] == ["エージェント", "プロバイダー", "API キー", "モデル", "エンドポイント"]
+        assert s["fields"][5].startswith("温度")
+        assert s["legend"] == "どの AI で回答しますか?"
         assert s["custom"] == "カスタムエンドポイント"
         assert s["input"] == "質問を入力..."
         assert s["save"] == "保存"
         assert s["web"] == "Web で DEEPX Agent を開く"
     finally:
         page.evaluate("() => DXI18n.setLang('en')")
-    assert _snapshot(page)["fields"][1] == "API Key", "다시 영어로"
+    assert _snapshot(page)["fields"][2] == "API Key", "다시 영어로"

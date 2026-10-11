@@ -99,8 +99,9 @@
     var chosen = d.default_model || fallbackDefault;
     /* CLI 목록은 몇 초 걸린다 (cursor 는 200 개 넘게) — 그 사이 사람이 고른 model 은 지킨다. 예전에는 기본값으로
        바꿔 놓고 접힌 요약은 고른 이름을 그대로 보였다 (2026-10-11 실사용 감사). */
-    var picked = sel && sel.dataset.userPicked === name ? sel.value : '';
+    var picked = sel && sel.dataset.userPicked === name ? (sel.dataset.wanted || sel.value) : '';
     if (picked && (d.models || []).indexOf(picked) !== -1) chosen = picked;
+    if (sel) delete sel.dataset.wanted;
     if (d.catalog && d.catalog.length && sel) {
       var off = _t('not available on this account');
       sel.innerHTML = d.catalog.map(function (m) {
@@ -185,6 +186,29 @@
   var _RETRY_MS = [500, 1000, 2000, 4000, 4000, 4000, 4000, 4000, 4000, 4000];
   var _retry = null;
 
+  var _STUDIO_ORDER = ['claude', 'copilot', 'cursor', 'codex', 'opencode'];
+  /* Studio 전체가 같은 agent 를 쓴다 — 고른 것 (studio_agent) → 없으면 로그인된 첫 agent (Studio 순서) → 첫 agent.
+     Chat 도 같은 값으로 답한다. spec 2026-10-11 chat settings §3.5, 계약: tests/launcher/test_home_studio_agent_browser.py */
+  function _initialAgent(status) {
+    var names = _agents.map(function (a) { return a.name; });
+    var pick = status.studio_agent && status.studio_agent.agent;
+    if (pick && names.indexOf(pick) !== -1) return pick;
+    for (var i = 0; i < _STUDIO_ORDER.length; i++) {
+      var a = _byName(_STUDIO_ORDER[i]);
+      if (a && a.authenticated === true) return a.name;
+    }
+    return names[0];
+  }
+
+  function _saveStudioAgent() {
+    var agent = $('setupAgent'), model = $('setupModel');
+    if (!agent || !agent.value) return;
+    fetch('/api/studio/agent', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ agent: agent.value, model: (model && model.value) || null })
+    }).catch(function () { /* the pick still applies to this page */ });
+  }
+
   function load(attempt) {
     attempt = attempt || 0;
     if (_retry) { clearTimeout(_retry); _retry = null; }
@@ -197,8 +221,16 @@
         _show($('setupDegraded'), false);
         _show($('setupForm'), true);
         _show($('setupFold'), true);
-        _fill($('setupAgent'), _agents.map(function (a) { return a.name; }), _agents[0].name);
-        _selectAgent(_agents[0].name);
+        var first = _initialAgent(status);
+        _fill($('setupAgent'), _agents.map(function (a) { return a.name; }), first);
+        _selectAgent(first);
+        var savedModel = status.studio_agent && status.studio_agent.agent === first && status.studio_agent.model;
+        var modelSel = $('setupModel');
+        if (savedModel && modelSel) {
+          modelSel.dataset.userPicked = first;          // the CLI list that arrives later keeps it
+          modelSel.dataset.wanted = savedModel;          // may exist only in that later list (cursor: 200+)
+          if ([].some.call(modelSel.options, function (o) { return o.value === savedModel; })) modelSel.value = savedModel;
+        }
         _paintFoldSummary();
       })
       .catch(function () {
@@ -257,13 +289,16 @@
       agent.addEventListener('change', function () {
         _selectAgent(agent.value);
         _paintFoldSummary();
+        _saveStudioAgent();
       });
     }
     var model = $('setupModel');
     if (model) {
       model.addEventListener('change', function () {
         model.dataset.userPicked = _current ? _current.name : '';
+        delete model.dataset.wanted;      // the user's own pick beats the saved Studio model
         _paintFoldSummary();
+        _saveStudioAgent();
       });
     }
     _restoreMode();

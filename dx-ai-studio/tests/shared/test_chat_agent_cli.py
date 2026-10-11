@@ -116,3 +116,82 @@ def test_agent_cli_timeout_kills_and_raises():
             list(stream_agent_cli("claude", None, [{"role": "user", "content": "q"}], timeout=0.1))
     assert exc_info.value.error_type == "timeout"
     assert killed["called"]
+
+
+def test_tests_never_run_a_real_installed_cli(monkeypatch):
+    """2026-10-11: with nothing saved, Chat now answers through the logged-in CLI. A test without a config reached
+    the real ~/.local/bin/claude. Under DX_AGENT_NO_REAL_RUN (tests/conftest.py) a CLI that exists outside the temp
+    dir is refused; fake scripts in tmp_path still run."""
+    import os
+    assert os.environ.get("DX_AGENT_NO_REAL_RUN") == "1"
+    launched = []
+    monkeypatch.setattr(providers.shutil, "which", lambda b: "/bin/true")
+    monkeypatch.setattr(providers.subprocess, "Popen", lambda cmd, **kw: launched.append(cmd))
+    with pytest.raises(ChatAPIError) as err:
+        list(stream_agent_cli("claude", None, [{"role": "user", "content": "q"}]))
+    assert "disabled under tests" in str(err.value)
+    assert launched == []
+
+
+def test_a_fake_cli_in_tmp_still_runs(tmp_path, monkeypatch):
+    fake = tmp_path / "claude"
+    fake.write_text("#!/bin/sh\necho FAKE-OK\n")
+    fake.chmod(0o755)
+    monkeypatch.setattr(providers.shutil, "which", lambda b: str(fake))
+    assert list(stream_agent_cli("claude", None, [{"role": "user", "content": "q"}])) == ["FAKE-OK"]
+
+
+def test_the_cli_runs_outside_the_repo_so_project_agent_rules_stay_out(tmp_path, monkeypatch):
+    """2026-10-11 real check: copilot answered a Chat question with "[DX-AGENT-DEV: START]" and the DEEPX banner — it
+    ran inside dx-all-suite and followed that repo's AGENTS.md. Chat carries its own knowledge in the prompt, so the
+    CLI runs in a neutral directory with no project instruction files above it."""
+    from pathlib import Path
+    fake = tmp_path / "copilot"
+    fake.write_text("#!/bin/sh\npwd\n")
+    fake.chmod(0o755)
+    monkeypatch.setattr(providers.shutil, "which", lambda b: str(fake))
+    where = Path(list(stream_agent_cli("copilot", None, [{"role": "user", "content": "q"}]))[0].strip()).resolve()
+    repo = Path(providers.__file__).resolve().parents[3]          # .../dx-all-suite
+    assert not where.is_relative_to(repo), where
+    for d in [where, *where.parents]:
+        for name in ("CLAUDE.md", "AGENTS.md", ".github"):
+            assert not (d / name).exists(), d / name
+
+
+def test_cursor_trusts_the_neutral_dir_without_forcing_commands(monkeypatch):
+    """Run outside the repo, cursor-agent stopped at "Workspace Trust Required … Pass --trust, --yolo, or -f"
+    (2026-10-11 real check). --trust trusts the folder only; -f/--yolo would also auto-run commands."""
+    seen = {}
+
+    def popen(cmd, **kwargs):
+        seen["cmd"] = cmd
+        return _FakeProc(cmd, stdout="ok")
+    monkeypatch.setattr(providers.shutil, "which", lambda b: "/nonexistent/" + b)
+    monkeypatch.setattr(providers.subprocess, "Popen", popen)
+    list(stream_agent_cli("cursor", None, [{"role": "user", "content": "q"}]))
+    assert "--trust" in seen["cmd"]
+    assert not {"-f", "--force", "--yolo"} & set(seen["cmd"])
+
+
+@pytest.mark.parametrize("said", [
+    "ActionRequiredError: Your team has reached its usage limit Please reach out to an admin",
+    "Error: rate limit exceeded, retry later",
+    "You have exceeded your monthly quota",
+])
+def test_a_cli_out_of_quota_is_a_rate_limit(monkeypatch, said):
+    """2026-10-11 real check: cursor said its team reached its usage limit; Chat called it "an error" and suggested
+    signing in again. Usage, rate and quota limits are rate_limit, which Chat words as a limit, not a login problem."""
+    monkeypatch.setattr(providers.shutil, "which", lambda b: "/nonexistent/" + b)
+    monkeypatch.setattr(providers.subprocess, "Popen", _fake_popen(stdout="", returncode=1, stderr=said))
+    with pytest.raises(ChatAPIError) as err:
+        list(stream_agent_cli("cursor", None, [{"role": "user", "content": "q"}]))
+    assert err.value.error_type == "rate_limit"
+    assert said[:30] in str(err.value)
+
+
+def test_a_rate_limited_cli_gets_no_sign_in_line():
+    import importlib
+    E = importlib.import_module("shared.chat.engine")
+    text = E.ChatEngine(app_name="dx_app")._api_error_text(
+        "agent-cli", E.ChatAPIError("rate_limit", "team reached its usage limit", 1), "en", agent="cursor")
+    assert "limit" in text and "cursor-agent login" not in text

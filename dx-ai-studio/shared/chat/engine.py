@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
+from shared.agent_cli import LOGIN_HINTS, detect, resolve_chat_source
 from .config import load_config, mask_api_key
 from .providers import stream_chat, ChatAPIError
 from .prompt_builder import build_system_prompt
@@ -52,9 +53,17 @@ class ChatEngine:
         #    side-effect-free.
         _maybe_sync_knowledge()
         config = load_config()
-        if config is None:
+        source = resolve_chat_source(config)
+        if source["kind"] == "none":
             yield from self._fallback_response(message, lang=lang)
             return
+        if source["kind"] == "saved":
+            provider, api_key = config["provider"], config.get("api_key", "")
+            model, endpoint = config["model"], config.get("endpoint")
+            temperature = config.get("temperature", 0.7)
+        else:   # Studio agent or the first logged-in CLI — no setup needed (spec 2026-10-11 chat settings §3.1)
+            provider, api_key, endpoint, temperature = "agent-cli", "", None, 0.7
+            model = source["agent"] + (f"::{source['model']}" if source["model"] else "")
 
         if runtime_context is None and self.context_callback is not None:
             try:
@@ -76,33 +85,33 @@ class ChatEngine:
 
         try:
             yield from stream_chat(
-                provider=config["provider"],
-                api_key=config["api_key"],
-                model=config["model"],
+                provider=provider,
+                api_key=api_key,
+                model=model,
                 messages=messages,
-                endpoint=config.get("endpoint"),
-                temperature=config.get("temperature", 0.7),
+                endpoint=endpoint,
+                temperature=temperature,
             )
         except ChatAPIError as exc:
             # key 를 넣은 사용자에게 offline fallback ("No AI model connected") 을 보이면 틀린 말이 된다 —
             # 무엇이 실패했는지 말한다 (2026-10-11, 실제 Anthropic 401 로 확인).
-            yield self._api_error_text(config.get("provider", ""), exc, lang)
+            yield self._api_error_text(provider, exc, lang, agent=source.get("agent"))
         except Exception as exc:
             yield from self._error_response(type(exc).__name__, str(exc), lang=lang)
 
     def get_config_status(self) -> dict:
-        """Returns chat config status for UI."""
+        """Chat config for the UI: what is saved, who answers now, and the coding-agent CLIs on this PC."""
         config = load_config()
-        if config is None:
-            return {"configured": False}
-        return {
-            "configured": True,
-            "provider": config.get("provider"),
-            "model": config.get("model"),
-            "api_key": mask_api_key(config.get("api_key")),
-            "endpoint": config.get("endpoint", ""),
-            "temperature": config.get("temperature", 0.7),
-        }
+        status = {"configured": config is not None, "source": resolve_chat_source(config), "agents": detect()}
+        if config is not None:
+            status.update({
+                "provider": config.get("provider"),
+                "model": config.get("model"),
+                "api_key": mask_api_key(config.get("api_key")),
+                "endpoint": config.get("endpoint", ""),
+                "temperature": config.get("temperature", 0.7),
+            })
+        return status
 
     def _fallback_response(self, message: str, lang: str = "en"):
         """Generator[str] — yields fallback response as a single chunk."""
@@ -152,24 +161,40 @@ class ChatEngine:
         },
     }
     _API_ERROR_HINT = {
-        "en": "Check the provider, model and key in **chat settings** (⚙️ in the chat header) — **Test** shows the answer.",
-        "ko": "**채팅 설정**(채팅창 상단의 ⚙️)에서 provider · model · key 를 확인하세요 — **Test** 가 결과를 보여 줍니다.",
-        "ja": "**チャット設定**（チャットヘッダーの⚙️）で provider・model・key を確認してください。**Test** で結果を確認できます。",
-        "es": "Revise el proveedor, el modelo y la key en la **configuración del chat** (⚙️ en el encabezado); **Test** muestra la respuesta.",
-        "zh-CN": "请在**聊天设置**（聊天标题栏的⚙️）中检查 provider、model 和 key；**Test** 会显示结果。",
-        "zh-TW": "請在**聊天設定**（聊天標題列的⚙️）中檢查 provider、model 和 key；**Test** 會顯示結果。",
+        "en": "Check the provider, model and key in **chat settings** (⚙️ in the chat header) — saving there checks the connection first.",
+        "ko": "**채팅 설정**(채팅창 상단의 ⚙️)에서 provider · model · key 를 확인하세요 — 저장할 때 연결을 먼저 확인합니다.",
+        "ja": "**チャット設定**（チャットヘッダーの⚙️）で provider・model・key を確認してください。保存時に接続を先に確認します。",
+        "es": "Revise el proveedor, el modelo y la key en la **configuración del chat** (⚙️ en el encabezado); al guardar se comprueba primero la conexión.",
+        "zh-CN": "请在**聊天设置**（聊天标题栏的⚙️）中检查 provider、model 和 key；保存时会先检查连接。",
+        "zh-TW": "請在**聊天設定**（聊天標題列的⚙️）中檢查 provider、model 和 key；儲存時會先檢查連線。",
     }
     _PROVIDER_NAMES = {"openai": "OpenAI", "anthropic": "Anthropic", "google": "Google (Gemini)",
                        "github": "GitHub Models", "custom": "Custom endpoint", "local": "local LLM server"}
 
-    def _api_error_text(self, provider: str, exc: ChatAPIError, lang: str = "en") -> str:
-        """What failed, in the user's language, with the provider's own reason as detail."""
+    _LOGIN_LINE = {
+        "en": "If the login expired, sign in again in a terminal: `{cmd}`",
+        "ko": "로그인이 만료됐다면 터미널에서 다시 로그인하세요: `{cmd}`",
+        "ja": "ログインが切れた場合はターミナルで再ログインしてください: `{cmd}`",
+        "es": "Si la sesión caducó, vuelva a iniciarla en una terminal: `{cmd}`",
+        "zh-CN": "如果登录已过期，请在终端重新登录：`{cmd}`",
+        "zh-TW": "如果登入已過期，請在終端機重新登入：`{cmd}`",
+    }
+
+    def _api_error_text(self, provider: str, exc: ChatAPIError, lang: str = "en", agent: str | None = None) -> str:
+        """What failed, in the user's language, with the provider's own reason as detail. A coding-agent CLI is
+        named by itself (claude, copilot …) and gets the command that signs it in again."""
         texts = self._API_ERROR_TEXT.get(exc.error_type, self._API_ERROR_TEXT["api_error"])
-        name = self._PROVIDER_NAMES.get(provider, provider or "API")
+        if provider == "agent-cli" and agent:
+            name = agent
+        else:
+            name = self._PROVIDER_NAMES.get(provider, provider or "API")
         head = texts.get(lang, texts["en"]).format(provider=name)
         detail = str(exc).strip()
+        login = ""
+        if provider == "agent-cli" and agent in LOGIN_HINTS and exc.error_type != "rate_limit":
+            login = "\n\n" + self._LOGIN_LINE.get(lang, self._LOGIN_LINE["en"]).format(cmd=LOGIN_HINTS[agent])
         hint = self._API_ERROR_HINT.get(lang, self._API_ERROR_HINT["en"])
-        return f"⚠️ **{head}**" + (f"\n\n`{detail}`" if detail else "") + f"\n\n{hint}"
+        return f"⚠️ **{head}**" + (f"\n\n`{detail}`" if detail else "") + login + f"\n\n{hint}"
 
     def _error_response(self, error_type: str, detail: str, lang: str = "en"):
         """Generator[str] — yields error message as a single chunk."""

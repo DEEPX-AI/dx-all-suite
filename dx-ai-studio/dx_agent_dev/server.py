@@ -20,6 +20,7 @@ from dx_agent_dev.core.prompt_wrap import wrap_autopilot_prompt, wrap_console_pr
 from dx_agent_dev.core.run_context import RunContext
 from dx_agent_dev.core.adapters import make_adapter
 from dx_agent_dev.core.showcases import load_showcases
+from shared import agent_cli
 from shared.dx_server import DXBaseHandler
 from shared.chat import ChatEngine
 from shared.chat import module_fallbacks as _module_fallbacks
@@ -256,6 +257,8 @@ class AgentDevHandler(DXBaseHandler):
             "busy": _runner.is_busy(),
             "showcase_count": len(load_showcases()),
             "agents": agents,
+            # Home 과 이 console 이 같은 agent 로 시작한다 (spec 2026-10-11 chat settings §3.5)
+            "studio_agent": agent_cli.studio_agent(),
             # 붙을 자리를 알려준다: 어느 실행인지, 몇 번째까지 나왔는지.
             "run_id": snap["run_id"],
             "event_count": snap["count"],

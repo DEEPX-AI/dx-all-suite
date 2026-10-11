@@ -19,9 +19,6 @@
   --chat-ai-text: var(--text-primary);
   --chat-input-bg: var(--control-bg);
   --chat-input-border: var(--control-border);
-  --chat-banner-bg: var(--surface-raised);
-  --chat-banner-border: var(--status-warn);
-  --chat-banner-text: var(--status-warn);
   --chat-code-bg: var(--surface-sunken);
   --chat-shadow: var(--shadow);
 }
@@ -128,34 +125,43 @@
   text-decoration: none;
 }
 
-/* ── Banner ─────────────────────────────────────────── */
-
-.dx-chat-banner {
+/* ── Who answers (status line) ─────────────────────── */
+/* spec 2026-10-11 chat settings §3.4 — 경고 띠가 아니라 늘 있는 한 줄. */
+.dx-chat-source {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px var(--sp-2);
   padding: 8px 12px;
-  background: var(--chat-banner-bg);
-  border-bottom: 1px solid var(--chat-banner-border);
-  color: var(--chat-banner-text);
+  border-bottom: 1px solid var(--chat-border);
+  color: var(--text-secondary, var(--chat-text-muted));
   font-size: var(--fs-sm);
-  line-height: 1.5;
+  line-height: 1.4;
   flex-shrink: 0;
 }
-.dx-chat-banner a {
-  color: var(--chat-banner-text);
-  text-decoration: underline;
+.dx-chat-source:empty { display: none; }
+.dx-chat-source-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--status-ok);
+  flex: none;
 }
-.dx-chat-banner-action {
-  margin-left: 4px;
-  padding: 2px 8px;
-  border: 1px solid var(--chat-banner-border);
-  border-radius: var(--radius-pill);
+.dx-chat-source.is-none .dx-chat-source-dot { background: var(--text-muted); }
+.dx-chat-source-text { min-width: 0; overflow-wrap: anywhere; }
+.dx-chat-source-change {
+  margin-left: auto;
+  min-height: 24px;
+  padding: 4px 8px;
+  border: 0;
+  border-radius: var(--radius-sm, 4px);
   background: transparent;
-  color: var(--chat-banner-text);
-  cursor: pointer;
+  color: var(--accent-ink);
   font: inherit;
+  cursor: pointer;
 }
-.dx-chat-banner-action:hover {
-  background: rgba(251,191,36,.14);
-}
+.dx-chat-source-change:hover { text-decoration: underline; }
+.dx-chat-source-change:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 
 /* ── Settings Panel ─────────────────────────────────── */
 
@@ -237,11 +243,78 @@
   line-height: 1.4;
 }
 .dx-chat-settings-status.success {
-  color: #34d399;
+  color: var(--status-ok);
 }
 .dx-chat-settings-status.error {
-  color: #f87171;
+  color: var(--status-error);
 }
+
+/* 질문 하나 — 어떤 AI 로 답할까 */
+.dx-chat-settings-kind {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+.dx-chat-settings-kind legend {
+  margin-bottom: 4px;
+  padding: 0;
+  color: var(--chat-text);
+  font-weight: 600;
+  font-size: var(--fs-sm);
+}
+.dx-chat-kind-card {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: start;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid var(--chat-border);
+  border-radius: var(--radius);
+  background: var(--chat-surface);
+  cursor: pointer;
+}
+.dx-chat-kind-card:has(input:checked) {
+  border-color: var(--accent);
+  background: var(--accent-dim);
+}
+.dx-chat-kind-card input { margin: 4px 0 0; accent-color: var(--chat-primary); }
+.dx-chat-kind-card span { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.dx-chat-kind-card b { color: var(--chat-text); font-weight: 600; font-size: var(--fs-sm); }
+.dx-chat-kind-card small { color: var(--text-muted); font-size: var(--fs-xs); }
+.dx-chat-settings-field[hidden] { display: none; }
+.dx-chat-settings-advanced > summary {
+  cursor: pointer;
+  color: var(--text-secondary, var(--chat-text-muted));
+  font-size: var(--fs-sm);
+}
+.dx-chat-settings-advanced[open] { display: flex; flex-direction: column; gap: 8px; }
+.dx-chat-settings-advanced .dx-chat-settings-refresh-kb {
+  align-self: flex-start;
+  border: 1px solid var(--chat-border);
+  border-radius: var(--radius);
+  padding: 8px 8px;
+  background: var(--chat-surface);
+  color: var(--chat-text);
+  font: inherit;
+  font-size: var(--fs-sm);
+  cursor: pointer;
+}
+.dx-chat-settings-force {
+  align-self: flex-start;
+  border: 1px solid var(--chat-border);
+  border-radius: var(--radius);
+  padding: 8px 12px;
+  background: var(--chat-surface);
+  color: var(--chat-text);
+  font: inherit;
+  font-size: var(--fs-sm);
+  cursor: pointer;
+}
+.dx-chat-settings-force[hidden] { display: none; }
 
 /* ── Messages ───────────────────────────────────────── */
 
@@ -426,6 +499,10 @@
   .dx-chat-fab {
     bottom: 16px;
     right: 16px;
+  }
+  /* 열린 채팅이 폭을 다 쓰면 둥근 버튼이 Send 를 덮었다 — 머리에 닫기가 있으니 열린 동안 비켜선다 (2026-10-11 실기) */
+  .dx-chat-fab.open {
+    display: none;
   }
 }
 

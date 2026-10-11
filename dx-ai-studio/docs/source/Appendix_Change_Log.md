@@ -66,6 +66,11 @@ Changes since the v0.1.0 beta manual. The version number and date are set at rel
   made without system site packages, which hid the GStreamer bindings from the module servers.
 - DX App live RTSP and multi-slot camera runs reach the runner (they ended with "Input file not found"); several
   slots can share a camera without an MJPEG 640x480 mode. DX Stream's Pipeline Builder has a camera source (`v4l2src`).
+- Chat answers through the coding agent you are signed in to (claude, copilot, cursor …) with no setup, the same
+  agent Home and Agent Dev use; its top line always says which AI answers. Settings ask one question — a coding
+  agent on this PC, your local LLM server, or a cloud API key (OpenAI, Anthropic, Google, GitHub Models, custom
+  endpoint) — with temperature and the knowledge refresh under Advanced. Saving tests the connection first
+  ("Save anyway" when it fails), a blank key keeps the saved one, and "Back to automatic" forgets the choice.
 - A first visit opens in the browser's language (Korean, Japanese, Simplified or Traditional Chinese, Spanish;
   English otherwise) instead of always English. A language picked in the menu still wins.
 - Chat says why an external API failed instead of showing the offline answer "No AI model connected" to a user who

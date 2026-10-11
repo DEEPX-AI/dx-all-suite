@@ -32,25 +32,11 @@ class AgentAdapter(ABC):
     def cancel(self) -> None: ...
 
 
-# 설치된 CLI 가 아니라 "설치할까요?" 를 묻는 안내 shim. VS Code 의 Copilot Chat 이 PATH 에
-# 넣는다 — 실행하면 "Cannot find GitHub Copilot CLI … Install? [y/N]" 에서 멈춘다. 설치된 것으로
-# 세면 agent 목록에 뜨고, 고르면 실행이 그 질문에서 멈춘다.
-_INSTALL_SHIMS = ("/github.copilot-chat/copilotCli/",)
+# CLI 찾기 (설치 안내 shim 건너뛰기) 와 로그인 판정은 shared/agent_cli.py 한 곳에 있다 — Chat 도 같은 규칙을 쓴다
+# (spec 2026-10-11 chat settings §3.2). 여기서는 다시 내보낸다.
+from shared.agent_cli import BINS as _AGENT_BINS, _is_shim, authenticated as _shared_authenticated, find_cli  # noqa: E402,F401
 
-
-def _is_shim(path):
-    return any(s in str(path).replace(os.sep, "/") for s in _INSTALL_SHIMS)
-
-
-def find_cli(name):
-    """shutil.which 와 같되 설치 안내 shim 은 건너뛴다 (없으면 None). shim 이 먼저 걸리면 그 폴더를
-    뺀 PATH 로 다시 찾는다 — 진짜 CLI 가 뒤에 있을 수 있다 (`~/.local/bin/copilot`)."""
-    found = shutil.which(name)
-    if not found or not _is_shim(found):
-        return found
-    rest = [d for d in os.environ.get("PATH", "").split(os.pathsep)
-            if d and not _is_shim(os.path.join(d, name))]
-    return shutil.which(name, path=os.pathsep.join(rest)) if rest else None
+_AGENT_BY_BIN = {b: n for n, b in _AGENT_BINS.items()}
 
 
 class SubprocessAdapter(AgentAdapter):
@@ -93,6 +79,9 @@ class SubprocessAdapter(AgentAdapter):
         거짓 음성(실제 로그인 상태인데 False)을 피하기 위해 확신 없으면 None을 반환한다.
         creds_relpath를 선언한 서브클래스는 홈 기준 파일(+선택 JSON 키)로 판정한다.
         """
+        name = _AGENT_BY_BIN.get(self.cli_bin or "")
+        if name:
+            return _shared_authenticated(name)
         if not self.creds_relpath:
             return None
         path = Path.home().joinpath(*self.creds_relpath)

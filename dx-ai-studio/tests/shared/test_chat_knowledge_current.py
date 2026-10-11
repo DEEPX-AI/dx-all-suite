@@ -161,3 +161,16 @@ def test_nothing_points_users_at_workspace_agent_sessions():
     for rel in ("dx_agent_dev/templates/index.html", "dx_agent_dev/static/js/i18n.js",
                 "dx_agent_dev/static/js/tutorial.js", "docs/source/10_DX_Agent_Dev.md", "dx_agent_dev/README.md"):
         assert "workspace/agent-sessions" not in (root / rel).read_text(encoding="utf-8"), rel
+
+
+def test_the_module_table_says_where_studio_opens_each_module():
+    """2026-10-11 real check: asked where the NPU temperature is, Chat answered "DX Monitor (port 8098)". Under the
+    launcher every module opens at a path on :8899 (8098 is only the standalone default), and the rail's NPU Monitor
+    button shows the temperature on every screen."""
+    from launcher.launcher import _MODULE_PROXY_PATHS
+    base = _page("base.md")
+    table = base[base.index("### DX AI Studio 앱 구성"):base.index("### 에코시스템 파트너")]
+    for path in _MODULE_PROXY_PATHS.values():
+        assert f"`{path}`" in table, path
+    assert "| 8098 |" not in table
+    assert "NPU Monitor" in table

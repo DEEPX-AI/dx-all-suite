@@ -42,7 +42,7 @@ def page():
     pg.wait_for_selector(".dx-chat-fab", timeout=10000)
     pg.click(".dx-chat-fab")
     pg.click('.dx-chat-header-btn[data-action="settings"]')
-    pg.wait_for_selector(".dx-chat-settings-provider", state="visible")
+    pg.wait_for_selector(".dx-chat-settings-panel.open")
     pg.asked = asked
     yield pg
     ctx.close()
@@ -52,7 +52,7 @@ def page():
 
 
 def test_typing_the_endpoint_looks_up_its_models(page):
-    page.select_option(".dx-chat-settings-provider", "local")
+    page.check("input[name=dx-chat-kind][value=local]")   # settings ask one question (2026-10-11)
     page.fill(".dx-chat-settings-endpoint", "http://127.0.0.1:1234")
     page.locator(".dx-chat-settings-endpoint").blur()
     page.wait_for_function("() => !document.querySelector('.dx-chat-settings-model-select').hidden", timeout=5000)
@@ -63,7 +63,7 @@ def test_typing_the_endpoint_looks_up_its_models(page):
 
 
 def test_typing_pauses_look_up_once_not_per_key(page):
-    page.select_option(".dx-chat-settings-provider", "local")
+    page.check("input[name=dx-chat-kind][value=local]")   # settings ask one question (2026-10-11)
     before = len(page.asked)
     page.locator(".dx-chat-settings-endpoint").press_sequentially("http://127.0.0.1:1234", delay=20)
     page.wait_for_function("() => !document.querySelector('.dx-chat-settings-model-select').hidden", timeout=5000)
