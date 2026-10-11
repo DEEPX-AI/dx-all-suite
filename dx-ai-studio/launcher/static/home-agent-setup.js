@@ -296,6 +296,7 @@
     if (model) {
       model.addEventListener('change', function () {
         model.dataset.userPicked = _current ? _current.name : '';
+        delete model.dataset.wanted;      // the user's own pick beats the saved Studio model
         _paintFoldSummary();
         _saveStudioAgent();
       });

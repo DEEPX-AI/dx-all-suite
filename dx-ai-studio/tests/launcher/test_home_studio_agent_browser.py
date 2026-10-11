@@ -86,3 +86,32 @@ def test_a_saved_model_only_the_cli_lists_is_kept(browser, port):
         page.wait_for_function("document.getElementById('setupModel').value === 'm2'", timeout=10000)
     finally:
         ctx.close()
+
+
+def test_a_model_the_user_picks_beats_the_saved_one(browser, port):
+    """2026-10-12 full CI: with a saved Studio model, a model the user picked before the CLI's list arrived was
+    replaced by the saved one when the list came. The user's own pick wins."""
+    import json as _json
+    ctx = browser.new_context(viewport={"width": 1440, "height": 900})
+    ctx.add_init_script(_QUIET)
+    held = []
+    status = {"available": True, "agents": AGENTS, "studio_agent": {"agent": "claude", "model": "m2"},
+              "busy": False, "showcase_count": 0}
+    ctx.route("**/agent/api/agent/status", lambda r: r.fulfill(status=200, content_type="application/json",
+                                                               body=_json.dumps(status)))
+    ctx.route("**/agent/api/agent/models*", lambda r: held.append(r))
+    ctx.route("**/api/studio/agent", lambda r: r.fulfill(status=200, content_type="application/json", body='{"ok":true}'))
+    page = ctx.new_page()
+    try:
+        page.goto(f"http://127.0.0.1:{port}/", wait_until="load")
+        page.wait_for_selector("#setupForm:not([hidden])", state="attached", timeout=20000)
+        page.click("#setupFold > summary")
+        page.select_option("#setupModel", "m1")              # picked while the CLI list is still on its way
+        page.wait_for_function("document.querySelectorAll('#setupModel option').length > 0")
+        for r in held:
+            r.fulfill(status=200, content_type="application/json",
+                      body='{"models": ["auto", "m1", "m2"], "default_model": "auto"}')
+        page.wait_for_timeout(500)
+        assert page.evaluate("document.getElementById('setupModel').value") == "m1"
+    finally:
+        ctx.close()
