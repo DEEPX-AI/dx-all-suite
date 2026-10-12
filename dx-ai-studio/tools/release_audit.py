@@ -10,8 +10,8 @@ Navigates each release route and collects:
   - Placeholder tokens: undefined, NaN, null, TODO, FIXME
   - Internal release leak tokens: sandbox, Coming Soon, Metadata pending
 
-Usage:
-    python3 tools/release_audit.py [--base-url URL] [--routes r1,r2] [--json FILE]
+Usage (from the repo root, so the studio packages import):
+    python3 -m tools.release_audit [--base-url URL] [--routes r1,r2] [--json FILE]
 
 Exit codes:
     0  No blocker-level findings
@@ -26,7 +26,6 @@ import json
 import re
 import sys
 import time
-from pathlib import Path
 from dataclasses import asdict, dataclass, field
 from urllib import error as urllib_error
 from urllib import request as urllib_request
@@ -285,7 +284,7 @@ def _run_keyboard_smoke(page, route: str) -> list[SmokeCheck]:
             focus_selector = action.get("focus_selector", selector)
             if focus_selector == selector:
                 # Focus and key in one step: Home focuses its ask box when it shows, which stole the focus between a
-                # separate focus() and press() (2026-10-12).
+                # separate focus() and press().
                 page.locator(selector).first.press(str(action["key"]), timeout=2_000)
             else:
                 if focus_selector:
@@ -340,12 +339,11 @@ def _try_playwright_audit(base_url: str, routes: list[str]) -> list[RouteResult]
     results: list[RouteResult] = []
 
     try:  # the same Chromium the CI browser suites use (Playwright's shell build may be missing)
-        repo_root = str(Path(__file__).resolve().parents[1])
-        if repo_root not in sys.path:
-            sys.path.insert(0, repo_root)
-        from tests.browser_support import resolve_chromium_executable
+        from shared.chromium import resolve_chromium_executable
         executable = resolve_chromium_executable()
     except ImportError:
+        print("[release_audit] shared/ not importable; run `python3 -m tools.release_audit` from the repo root",
+              file=sys.stderr)
         executable = None
 
     with sync_playwright() as p:
