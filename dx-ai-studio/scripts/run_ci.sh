@@ -189,6 +189,9 @@ echo "== breakpoint ratchet =="
 echo "== 간격 스케일 ratchet =="
 "$PY" -m scripts.spacing_scale_gate || exit 1
 
+echo "== comment language ratchet =="
+"$PY" -m scripts.comment_language_gate || exit 1
+
 echo "== UI 이모지 ratchet =="
 "$PY" -m scripts.emoji_gate || exit 1
 
