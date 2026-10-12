@@ -2,9 +2,8 @@
 
 dx_com normally lives in its OWN venv (the standard launcher setup), so the
 in-process `from dx_com.html_export import ...` raises ModuleNotFoundError and
-every call goes through _call_via_venv. That whole branch was untested: a
-regression in the arg marshalling or the error reporting would surface as an
-opaque failure in the Compiler UI.
+every call goes through _call_via_venv. A break in its arg marshalling or
+error reporting would surface only as an opaque failure in the Compiler UI.
 
 No real dx_com or venv is needed — subprocess.run is faked.
 """

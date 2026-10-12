@@ -50,7 +50,7 @@ class TestChatEngineNoConfig(unittest.TestCase):
         status = self.engine.get_config_status()
         self.assertFalse(status["configured"])
         self.assertNotIn("api_key", status)          # nothing saved, nothing to mask
-        self.assertIn("source", status)              # who answers now (spec 2026-10-11 chat settings §3.3)
+        self.assertIn("source", status)              # who answers now
         self.assertIn("agents", status)
 
     def test_error_response_points_to_chat_settings(self):

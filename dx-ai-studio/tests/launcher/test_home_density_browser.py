@@ -1,11 +1,10 @@
-"""home 의 모듈 행이 각자 숫자를 들고, 정상일 때는 조용한지.
+"""Home's module rows each carry their own number, and stay quiet when everything is normal.
 
-모듈 여덟 개를 실제로 띄우지 않는다 — 런처 프록시로 가는 요청을 가로채 가짜로
-응답한다. 계약은 "각 모듈 API 의 응답을 이 화면이 어떻게 읽는가" 이므로 진짜 서버는
-필요 없고, 여덟 프로세스를 띄우는 비용도 치르지 않는다.
+The eight modules are not started: requests to the launcher proxy are intercepted and answered with fakes. The
+contract is how this screen reads each module API's response, so real servers are not needed, nor the cost of eight
+processes.
 
-이 파일이 존재하는 이유: 기존 home 계약은 `home-sections.js` 를 문자열로 읽는 정적
-검사뿐이었다. ModelZoo 가상화가 죽어 있던 동안에도 같은 종류의 검사는 전부 초록이었다.
+A string-only check of `home-sections.js` cannot see whether the numbers render, so this file drives the page.
 """
 from __future__ import annotations
 
@@ -56,8 +55,8 @@ def _open(browser, port, *, serve=None, health=None):
         "localStorage.setItem('dx-tutorial-launcher-autostarted','1');}catch(e){}"
     )
     page = ctx.new_page()
-    # Playwright 는 핸들러를 (route, request) 로 부른다. 기본 인자로 payload 를
-    # 넘기면 두 번째 자리에 Request 가 들어와 덮어쓴다 — 팩토리로 닫아 둔다.
+    # Playwright calls handlers as (route, request). Passing the payload as a default argument would let the
+    # Request overwrite it in the second slot, so close over it with a factory.
     def _fulfil(payload):
         def handler(route, *_):
             route.fulfill(status=200, content_type="application/json",
@@ -113,7 +112,7 @@ def test_modules_with_nothing_to_count_keep_their_prose(home):
 
 
 def test_a_module_that_is_down_does_not_block_the_others(browser):
-    """한 모듈의 응답 실패가 나머지 행을 막으면 안 된다."""
+    """One module's failed response must not block the other rows."""
     server, port = start_module_server("launcher")
     broken = dict(ROUTES)
     broken.pop("**/app/api/demos")
@@ -127,17 +126,14 @@ def test_a_module_that_is_down_does_not_block_the_others(browser):
         page.close(); ctx.close(); server.shutdown()
 
 
-# ── 정상일 때는 조용해야 한다 ──────────────────────────────────
+# ── quiet when normal ─────────────────────────────────────────
 #
-# 모듈이 전부 돌면(평상시) 화면은 같은 사실을 세 번 말했다: 목록 위 "8 of 8 running",
-# 행마다 "Running" 여덟 번, 오른쪽 패널에 같은 이름 여덟 개. 무대 (spec 2026-09-23) 에서
-# 앞의 둘은 없어졌고, 도는 것은 아이콘이 빛으로 말한다 (P2/P3). 이 파일이 지키는 것은
-# "예외를 드러내고 평상시엔 침묵한다" 이다. 같은 파일의 기존 주석이 이미 같은 함정을
-# 다룬다 — "start → 여덟 개는 행동 유도가 여덟 개라는 뜻이고, 그러면 아무것도 행동
-# 유도가 아니다."
+# When every module runs (the usual case) the screen must not state the same fact several times: no
+# "8 of 8 running" count, no "Running" on every row. Running is told by the icon's light. What this file
+# protects is "show the exception, stay silent otherwise": eight calls to action are no call to action.
 
-# health 키는 카드의 data-app 과 다르다 (dx_monitor → monitor). 목록을 손으로
-# 적으면 매핑이 바뀔 때 조용히 어긋나므로, 페이지가 실제로 쓰는 매핑에서 뽑는다.
+# Health keys differ from the cards' data-app (dx_monitor → monitor). A hand-written list would drift
+# silently when the mapping changes, so take the mapping the page actually uses.
 _KEYS_FROM_PAGE = """() => {
   const map = (window.DXLauncher && window.DXLauncher._HEALTH_KEY) || null;
   return [...document.querySelectorAll('.orbital-card[data-app]')]
@@ -156,10 +152,10 @@ def _health(alive_keys, all_keys):
 
 
 def _set_health(page, health):
-    """페이지가 들고 있는 health 를 바꿔 다시 그리게 한다.
+    """Swap the health the page holds and make it repaint.
 
-    /api/health 를 가로채는 대신 이렇게 하는 이유: 폴링이 이미 한 번 돌아 결과를
-    캐시해 둔 뒤라 route 만으로는 다음 주기까지 반영되지 않는다.
+    Done this way rather than by intercepting /api/health because polling has already cached a result, so a route
+    would only take effect on the next cycle.
     """
     page.evaluate(
         "(h) => { window.DXLauncher._healthStatus = h;"

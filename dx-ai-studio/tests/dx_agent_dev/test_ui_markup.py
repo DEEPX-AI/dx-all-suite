@@ -1,4 +1,4 @@
-"""콘솔 드롭다운 마크업 계약."""
+"""Console dropdown markup contract."""
 from pathlib import Path
 from tests.i18n_markup import assert_translatable
 

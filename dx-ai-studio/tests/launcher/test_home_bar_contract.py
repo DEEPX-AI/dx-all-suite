@@ -1,4 +1,4 @@
-"""무대 아래 유리 막대 (spec 2026-09-23 §5.1, §5.7) — 위계 · 오프라인 · 챗으로 옮긴 DEEPX Agent."""
+"""The glass bar under the stage: hierarchy, offline behaviour, and DEEPX Agent moved into the chat."""
 from __future__ import annotations
 
 import re
@@ -36,7 +36,7 @@ def _bar() -> str:
 
 
 def _links() -> list[tuple[str, str, str]]:
-    """막대의 링크들: (class, href, 안쪽 HTML)."""
+    """Links in the bar: (class, href, inner HTML)."""
     return re.findall(r'<a class="([^"]+)"[^>]*href="([^"]+)"[^>]*>(.*?)</a>', _bar(), re.S)
 
 
@@ -79,7 +79,7 @@ def test_every_link_opens_a_new_tab_safely():
 
 
 def test_the_web_agent_left_the_bar_for_the_chat():
-    """웹 챗봇은 챗 버튼 안의 "웹 버전 열기" 로 옮긴다 (spec §5.7)."""
+    """The web chatbot lives in "Open web version" inside the chat button."""
     assert AGENT_URL not in _bar()
     assert 'data-i18n="DEEPX Agent"' not in _bar()
     head = CHAT[CHAT.index("'<div class=\"dx-chat-header\">'"):CHAT.index("dx-chat-settings-panel")]
@@ -92,11 +92,11 @@ def test_the_web_agent_left_the_bar_for_the_chat():
 def test_the_chat_link_speaks_six_languages_and_follows_the_language():
     _speaks_six(CHAT, AGENT_TITLE)
     on_change = CHAT[CHAT.index("DXI18n.onLangChange(function() {"):]
-    on_change = on_change[:on_change.index("_renderSource();")]   # the status line (2026-10-11 chat settings)
+    on_change = on_change[:on_change.index("_renderSource();")]   # the status line
     assert "_relabel()" in on_change, "언어를 바꿔도 링크 설명이 그대로다"
     relabel = CHAT[CHAT.index("function _relabel()"):CHAT.index("function _buildDOM()")]
     assert "[data-chat-tip]" in relabel and "aria-label" in relabel
-    # 실제 화면에서의 확인: tests/shared/test_chat_widget_lang_browser.py
+    # On-screen check: tests/shared/test_chat_widget_lang_browser.py
 
 
 @pytest.mark.parametrize("key", [TITLE[0], "Documents", "Offline"] + [p[2] for p in PRIMARY + SECONDARY])
@@ -105,7 +105,7 @@ def test_new_bar_words_speak_six_languages(key):
 
 
 def test_the_old_labels_are_gone_from_the_dictionary():
-    """막대에서 빠진 라벨의 사전 항목이 남으면 i18n audit 이 쓰이지 않는 키를 센다."""
+    """Dictionary entries for labels removed from the bar would be counted as unused keys by the i18n audit."""
     for key in ("Document Download", "DEEPX Agent"):
         assert f"data-i18n=\"{key}\"" not in HTML
         assert not re.search(r"^\s*'" + re.escape(key) + r"':", HTML, re.M), key
@@ -136,8 +136,8 @@ def test_the_bar_script_is_served_and_loaded():
 
 
 def test_the_probe_is_one_no_cors_head_on_first_hover_not_at_load():
-    """로드 때 외부로 나가면 --offline 계약이 깨진다. 응답은 CORS 때문에 못 읽지만 네트워크
-    실패는 reject 로 구분된다 (spec §5.7)."""
+    """Going out to the network on load breaks the --offline contract. CORS hides the response, but a network
+    failure still shows up as a rejection."""
     js = _bar_js()
     assert "mode: 'no-cors'" in js and "method: 'HEAD'" in js
     assert "https://developer.deepx.ai/" in js
@@ -163,13 +163,13 @@ def test_the_bar_is_glass():
 
 
 def test_the_tutorial_no_longer_sends_people_to_the_agent_in_the_bar():
-    step = TUTORIAL[TUTORIAL.index("target: '#homeBar'"):]   # P8: 막대 단계는 막대 전체를 비춘다
+    step = TUTORIAL[TUTORIAL.index("target: '#homeBar'"):]   # the bar step spotlights the whole bar
     step = step[:step.index("target:", 10)]
     assert "DEEPX Agent" not in step
     assert "DEEPX Developers" in step
 
 
 def test_the_top_bar_carries_no_home_nav():
-    """한 화면이라 anchor 가 할 일이 없다 (spec §5.1). 탭은 앱 안에서만 채워진다."""
+    """One screen leaves anchors nothing to do. Tabs are filled only inside the app."""
     tabs = re.search(r'<div class="top-bar-center" id="navTabs">(.*?)</div>', HTML, re.S).group(1)
     assert "<a" not in tabs and "<button" not in tabs

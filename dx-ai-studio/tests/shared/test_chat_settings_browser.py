@@ -1,4 +1,4 @@
-"""Chat says who answers and asks one question in settings (spec §3.4). API answers are routed, so no CLI runs."""
+"""Chat says who answers and asks one question in settings. API answers are routed, so no CLI runs."""
 from __future__ import annotations
 
 import json
@@ -148,8 +148,8 @@ def test_every_language_and_a_phone(browser, port, lang):
 
 
 def test_opening_chat_rereads_who_answers(browser, port):
-    """2026-10-11 real check: Home switched the Studio agent to copilot, but the chat line still said claude — the
-    widget read the status once at page load. Opening the chat reads it again."""
+    """When Home switches the Studio agent to copilot, the chat line must not keep saying claude, as it would if the
+    widget read the status only once at page load. Opening the chat reads it again."""
     ctx, page, _, state = _page(browser, port, AUTO)
     try:
         assert "claude" in page.inner_text(".dx-chat-source")
@@ -162,8 +162,8 @@ def test_opening_chat_rereads_who_answers(browser, port):
 
 
 def test_a_late_model_list_for_another_agent_is_ignored(browser, port):
-    """2026-10-11 real check: picking cursor saved copilot's model (claude-sonnet-5.5) — copilot's model list, asked
-    first, arrived after cursor's and replaced it. A list for an agent that is no longer picked is dropped."""
+    """Picking cursor must not save copilot's model (claude-sonnet-5.5), which happens when copilot's model list,
+    asked first, arrives after cursor's and replaces it. A list for an agent that is no longer picked is dropped."""
     status = dict(AUTO, agents=[dict(a, installed=True, authenticated=True) for a in AGENTS[:3]],
                   source={"kind": "studio", "provider": "agent-cli", "agent": "copilot", "model": None})
     ctx, page, posts, _ = _page(browser, port, status)
@@ -198,8 +198,8 @@ def test_a_late_model_list_for_another_agent_is_ignored(browser, port):
 
 
 def test_on_a_phone_the_send_button_is_not_under_the_chat_button(browser, port):
-    """2026-10-11 real check at 390 px: the open chat fills the width and the round chat/close button sat on top of
-    Send. The header already has a close button, so the round one steps aside while the chat is open."""
+    """At 390 px the open chat fills the width, so the round chat/close button would sit on top of Send. The
+    header already has a close button, so the round one steps aside while the chat is open."""
     ctx, page, _, _ = _page(browser, port, AUTO, width=390)
     try:
         hit = page.evaluate("""() => { const b = document.querySelector('.dx-chat-send-btn').getBoundingClientRect();

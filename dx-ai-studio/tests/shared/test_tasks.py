@@ -1,4 +1,4 @@
-"""task key 의 두 이름 (spec 2026-10-01 dx_app per-model layout 결정 3)."""
+"""The two names of a task key (dx_app per-model layout)."""
 from __future__ import annotations
 
 from shared import tasks

@@ -1,10 +1,9 @@
-"""DX Stream — controls that did nothing or threw (real-hardware audit 2026-10-10).
+"""DX Stream — controls must do something and must not throw.
 
-- Pipeline Builder palette search: the box was there (and the tutorial points at it) but no code
-  listened to it.
-- Canvas context menu "Clear All" called DXStream.pipelineClear, which does not exist: TypeError.
+- Pipeline Builder palette search: the tutorial points at the box, so typing in it must filter.
+- Canvas context menu "Clear All" must call a function that exists.
 - Element Reference detail: the long description, key features, pipeline hint, example config and
-  related elements are rendered into #element-detail-extra — an element the page never had.
+  related elements render into #element-detail-extra, which the page must have.
 """
 from __future__ import annotations
 
@@ -407,7 +406,7 @@ def test_node_messages_are_translated_beyond_english_and_korean(page):
 
 
 def test_setup_intro_keeps_its_width_on_a_phone(page):
-    """390 px · es: "Instalar el resto" took the row and the intro folded one word per line (matrix 2026-10-11)."""
+    """390 px · es: "Instalar el resto" must not take the row and fold the intro one word per line."""
     page.set_viewport_size({"width": 390, "height": 844})
     try:
         page.evaluate("() => { DXI18n.setLang('es'); DXStream.nav('setup'); }")
@@ -423,7 +422,7 @@ def test_setup_intro_keeps_its_width_on_a_phone(page):
 
 
 def test_the_reference_names_the_setup_button_as_the_button_reads():
-    """Reference said '나머지 설정' / 'Configurar el resto' for a button labelled '나머지 설치' / 'Instalar el resto'."""
+    """Reference names the setup button by the label it carries, in Korean and Spanish."""
     import re
     from pathlib import Path
 

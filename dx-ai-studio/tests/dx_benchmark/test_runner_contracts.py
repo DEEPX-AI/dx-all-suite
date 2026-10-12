@@ -1,12 +1,7 @@
 """Static-asset behavior checks for the benchmark dashboard/settings frontend.
 
-NOTE: this file used to also cover contract conformance for the vendored
-dx_benchmark/core/ runner package (BenchmarkResultProtocol, ModelResult,
-PipelineResult, pipeline_sweeps, report_models, report_renderers,
-run_orchestrator, reporter). That package was removed — the studio is a pure
-viewer now and benchmark execution lives in the standalone dx-benchmark tool.
-The tests below, which only exercise the bundled static JS, are unaffected
-and were kept.
+The studio is a pure viewer; benchmark execution lives in the standalone
+dx-benchmark tool, so only the bundled static JS is checked here.
 """
 
 from pathlib import Path

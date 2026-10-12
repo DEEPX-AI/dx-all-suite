@@ -1,4 +1,4 @@
-"""Agent Dev's console starts on the Studio agent and saves a change, like Home (spec 2026-10-11 chat settings §3.5)."""
+"""Agent Dev's console starts on the Studio agent and saves a change, like Home."""
 from __future__ import annotations
 
 import json

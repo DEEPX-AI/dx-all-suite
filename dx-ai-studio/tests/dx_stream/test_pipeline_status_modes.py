@@ -1,7 +1,7 @@
-"""/api/pipeline/status 는 어떤 출력 방식으로 돌든 실행 중인 것을 말한다 (release audit S-15).
+"""/api/pipeline/status reports what is running, whatever the output mode.
 
-예전에는 WebRTC 파이프라인 관리자만 보아, MJPEG · fMP4 로 돌고 있는 demo 를 대시보드가 Idle 이라고 했고,
-어느 demo 인지는 알 길이 없었다.
+Checking only the WebRTC pipeline manager would show a demo running over MJPEG or fMP4 as Idle on the dashboard,
+with no way to tell which demo it is.
 """
 from __future__ import annotations
 

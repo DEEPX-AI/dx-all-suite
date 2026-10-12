@@ -38,8 +38,8 @@ def test_detect_session_dirs_missing_target_is_safe():
 
 
 def test_the_run_reports_where_the_agent_wrote_the_app(tmp_path):
-    """done.session_dir is Studio's tracking folder (var/dx_agent_dev/sessions/…); the console only showed that,
-    so users could not find the app the agent wrote into <project>/dx-agent-dev/<session>/ (2026-10-11)."""
+    """done.session_dir is Studio's tracking folder (var/dx_agent_dev/sessions/…). The run must also report
+    where the agent wrote the app (<project>/dx-agent-dev/<session>/), or users cannot find it."""
     from core.agent_runner import AgentRunner, MockAdapter
 
     target = tmp_path / "suite"

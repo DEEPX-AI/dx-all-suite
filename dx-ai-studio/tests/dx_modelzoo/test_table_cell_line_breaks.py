@@ -1,7 +1,7 @@
-"""A <br> inside a table cell separates values (2026-10-02 release audit Z-3).
+"""A <br> inside a table cell separates values.
 
-The parser dropped <br>, so two metrics in one cell ran together: dncnn_15 showed "PSNRSSIM" and "32.91530.9014",
-face models "AP(Easy)AP(Med)AP(Hard)" and "89.289983.063854.075" (33 models).
+Dropping <br> runs two metrics in one cell together: dncnn_15 would show "PSNRSSIM" and "32.91530.9014",
+face models "AP(Easy)AP(Med)AP(Hard)" and "89.289983.063854.075".
 """
 from __future__ import annotations
 

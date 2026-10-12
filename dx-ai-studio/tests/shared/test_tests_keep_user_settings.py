@@ -1,7 +1,7 @@
-"""Tests never touch the user's own Studio settings (2026-10-11).
+"""Tests never touch the user's own Studio settings.
 
-Home now saves the picked agent (POST /api/studio/agent) and Chat settings are saved after a test. A browser test
-that changes the agent wrote ~/.dx-ai-studio/agent.json of whoever ran the suite. tests/conftest.py points
+Home saves the picked agent (POST /api/studio/agent) and Chat settings are saved after a test, so a browser test
+that changes the agent would write ~/.dx-ai-studio/agent.json of whoever runs the suite. tests/conftest.py points
 DX_CHAT_CONFIG_DIR at a temp dir for the whole session; module servers started by tests inherit it.
 """
 import os

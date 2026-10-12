@@ -1,8 +1,8 @@
-"""The catalog only points at thumbnails and result images that exist (2026-10-02 release audit Z-5).
+"""The catalog only points at thumbnails and result images that exist.
 
-Six models (beit_l_p16_384x384, levit_128s_224x224, vit_*, clip_text_*) pointed at missing files, so every catalog
-load made three 404s per model. A missing image is now no image (the card shows its task icon, the detail page its
-'Run inference' note); BEiT-L/16 384 — the same model filed as beit_large_patch16 — uses that file.
+A path to a missing file costs three 404s per model on every catalog load. A missing image is no image (the card
+shows its task icon, the detail page its 'Run inference' note); BEiT-L/16 384, the same model filed as
+beit_large_patch16, uses that model's file.
 """
 from __future__ import annotations
 

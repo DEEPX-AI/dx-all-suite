@@ -309,11 +309,11 @@ def test_tutorial_advanced_card_no_checkpoint_visible_copy():
 
 
 def test_status_bar_absorbs_long_labels_instead_of_pushing_the_viewer():
-    """하단 상태바는 라벨이 길어져도 그래프 패널을 옆으로 밀지 않는다.
+    """The bottom status bar must not push the graph panel sideways when labels grow.
 
-    es 에서 40px, ja 에서 43px 넘쳐 .viewer-panel 이 가로 스크롤됐고,
-    "Expandir todo" 를 보려면 그래프를 옆으로 밀어야 했다. 픽셀 폭은 폰트에
-    따라 달라지므로 값이 아니라 흡수 장치가 붙어 있는지를 본다.
+    Long es / ja labels overflow by about 40px and make .viewer-panel scroll
+    horizontally, hiding "Expandir todo". Pixel widths depend on the font, so the test
+    checks that the absorbing rules are present rather than a width.
     """
     css = read_text(COMPILER / "static" / "css" / "style.css")
     bar = re.search(r"\.viewer-status-bar\s*\{([^}]*)\}", css, re.S)

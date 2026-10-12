@@ -358,9 +358,9 @@ def test_pip_install_prefers_the_wheel_matching_this_interpreter(sdk, monkeypatc
     """Installing another interpreter's wheel fails at import time, far from here.
 
     glob() order is filesystem order, so the fallback (`wheels[0]`) can land on the
-    right wheel by luck — an earlier version of this test passed against a mutant
-    with the py_tag filter deleted. Pin the order so the WRONG wheel is first:
-    now only the tag match can produce a correct answer.
+    right wheel by luck, and the test would pass with the py_tag filter deleted.
+    Pin the order so the WRONG wheel is first: only the tag match can then produce
+    a correct answer.
     """
     tag = f"cp{sys.version_info.major}{sys.version_info.minor}"
     wrong = _wheel(sdk, "dx_com-1.0-cp36-cp36m-linux_x86_64.whl")

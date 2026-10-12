@@ -1,4 +1,4 @@
-"""__main__.py CLI 인자 파싱 테스트"""
+"""__main__.py CLI argument parsing"""
 import warnings
 from pathlib import Path
 
@@ -16,7 +16,7 @@ pytestmark = [
     ),
 ]
 
-# benchmark import는 각 테스트에서 지연 수행하므로 모듈 레벨 guard가 필요 없다.
+# Each test imports benchmark lazily, so no module-level guard is needed.
 class TestGetStages:
     def test_stage_model(self):
         from benchmark.__main__ import _get_stages

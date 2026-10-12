@@ -1,7 +1,7 @@
-"""카탈로그가 공유 파운데이션만으로 렌더되는지.
+"""The design system catalog renders from the shared foundation alone.
 
-여기서 자기 색을 정의하면 카탈로그와 실제 제품이 어긋나고,
-카탈로그는 존재 의미를 잃는다.
+If the catalog defined its own colors it would drift from the real product and stop
+being worth anything.
 """
 from __future__ import annotations
 
@@ -48,7 +48,7 @@ def test_page_renders_every_semantic_token():
 
 
 def test_page_shows_the_resolved_theme_state():
-    """system 상태에서 실제로 무엇이 적용됐는지 못 보면 3-상태를 검수할 수 없다."""
+    """The page must show what the system state resolved to, or the 3-state theme cannot be reviewed."""
     html = read()
     assert "DXTheme.resolved()" in html
     assert "DXTheme.cycle()" in html

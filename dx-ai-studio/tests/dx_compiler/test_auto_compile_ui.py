@@ -18,7 +18,7 @@ def test_agentic_has_llm_model_and_effort_pickers():
     """Mirror dx_agent_dev console: agentic compile exposes Model + Effort selectors."""
     for el in (
         'id="agentic-model-select"',       # LLM/coding model picker
-        'id="agentic-effort-control"',     # 사고 강도 wrapper (hidden until populated)
+        'id="agentic-effort-control"',     # reasoning-effort wrapper (hidden until populated)
         'id="agentic-effort-select"',      # effort picker
         'id="agentic-model-quality-hint"', # low-quality-model warning box
     ):

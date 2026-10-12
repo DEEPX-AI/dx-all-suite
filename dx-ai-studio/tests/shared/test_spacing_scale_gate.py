@@ -1,25 +1,14 @@
-"""간격이 4px 스케일을 벗어나는 것을 단조 감소로 묶는다.
+"""Spacing values off the 4px scale may only go down.
 
-토큰은 일곱 단계를 정해 두었다 — `--sp-1..7` = 4·8·12·16·24·32·48px.
-그런데 실측하면(2026-09-22) 간격 선언에 쓰인 생 px 값이 **33종** 이고,
-1,576개 중 **788개(50%)가 스케일 밖** 이다. 가장 흔한 값이 6px(210회)로,
-토큰에 아예 없는 값이다.
+The tokens define seven steps: `--sp-1..7` = 4·8·12·16·24·32·48px. Raw px values in spacing declarations that
+are not on that scale (6px, 10px, 14px and so on) are counted per file.
 
-    6px ×210 → 4px 와 2px 차
-   10px ×192 → 8px 와 2px 차
-   14px ×116 → 16px 와 2px 차
-    5px ×52 · 20px ×52 · 3px ×36 · 7px ×30 · 9px ×23 …
+A 2px difference is invisible in one place. The problem is **when they stack**: 6px inside a card, 10px in the list
+inside it and 14px in a badge inside that, and nothing lines up. Shared components matter most, since every module
+that uses them inherits the drift.
 
-모듈 편차도 크다. dx_planner 는 토큰을 87% 쓰는데 shared 는 9%, dx_compiler 는
-9% 다. **shared 가 낮은 것이 가장 나쁘다** — 공용 컴포넌트가 스케일을 벗어나면
-그것을 쓰는 모든 모듈이 따라 어긋난다.
-
-2px 차이는 한 자리만 보면 눈에 띄지 않는다. 문제는 **쌓일 때** 생긴다 — 카드
-안에 6px, 그 안 목록에 10px, 그 안 배지에 14px 이 섞이면 어느 것도 서로
-정렬되지 않는다. 그리고 그것을 고칠 때마다 비주얼 baseline 이 흔들린다.
-
-그래서 색상(css_token_gate)·breakpoint(breakpoint_gate)와 같은 방식을 쓴다:
-**지금 값을 상한으로 박고 늘어나는 것만 막는다.** 줄이는 것은 자유다.
+So this works like the colour (css_token_gate) and breakpoint (breakpoint_gate) gates: **the current counts are the
+ceiling and only an increase fails.** Reducing them is always allowed.
 """
 from __future__ import annotations
 
@@ -49,7 +38,7 @@ def test_the_gate_passes_on_the_current_tree():
 
 
 def test_the_baseline_only_ratchets_down():
-    """상한을 올리는 것은 이 게이트의 목적을 뒤집는다. 계약으로 막는다."""
+    """Raising the ceiling would defeat the gate, so the contract forbids it."""
     src = GATE.read_text(encoding="utf-8")
     assert ">" in src and "baseline" in src.lower()
     assert "새 간격" in src or "늘었다" in src, "늘어남을 막는 메시지가 없다"
@@ -61,27 +50,26 @@ def test_it_is_wired_into_run_ci():
 
 
 def test_the_scale_follows_the_tokens(monkeypatch, tmp_path):
-    """스케일을 코드에 적지 않고 **토큰 파일에서 읽는지** 를 본다.
+    """The scale is **read from the token file**, not written into the code.
 
-    처음엔 소스에 'dx-tokens.css' 라는 글자가 있는지만 봤다. 그래서 스케일을
-    그대로 하드코딩하는 변이가 통과했다 — 값이 우연히 같았기 때문이다.
-    토큰을 바꿔 보고 게이트가 **따라오는지** 를 봐야 한다.
+    Checking that the source mentions 'dx-tokens.css' is not enough: a hard-coded copy of the scale would pass
+    because the values happen to match. Change the tokens and check that the gate **follows**.
     """
     sys.path.insert(0, str(ROOT))
     from scripts import spacing_scale_gate as gate
 
     real = gate.TOKENS.read_text(encoding="utf-8")
     fake = tmp_path / "dx-tokens.css"
-    # 스케일을 5의 배수로 바꾼다 — 지금 값과 겹치지 않는다.
+    # Switch the scale to multiples of 5, which share no value with the real one.
     fake.write_text("--sp-1:5px;--sp-2:10px;--sp-3:15px;", encoding="utf-8")
     monkeypatch.setattr(gate, "TOKENS", fake)
     assert gate.scale() == {5, 10, 15}, (
         f"토큰을 바꿨는데 스케일이 따라오지 않는다: {gate.scale()}")
-    assert "px" in real  # 실제 파일을 읽고 있었음을 확인
+    assert "px" in real  # the real file was being read
 
 
 def test_a_new_off_scale_value_is_rejected(tmp_path):
-    """게이트가 실제로 무는지 — baseline 을 낮춰 한 파일이 넘치게 만든다."""
+    """The gate actually bites: lower the baseline so one file goes over it."""
     baseline = json.loads(BASELINE.read_text(encoding="utf-8"))
     worst = max(baseline, key=lambda k: baseline[k])
     assert baseline[worst] > 0, "스케일 밖이 하나도 없다면 이 검사는 무의미하다"

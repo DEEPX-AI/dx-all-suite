@@ -40,14 +40,14 @@ def _install_fake_mjpeg(monkeypatch, name="fake_mjpeg_mod"):
     """Install a fresh empty fake ``mjpeg`` module so a test can stub individual
     functions on it.
 
-    Now that server.py imports the module qualified (``from dx_stream.core import
+    Because server.py imports the module qualified (``from dx_stream.core import
     mjpeg`` / ``from dx_stream.core.mjpeg import ...``), interception requires BOTH:
       * the sys.modules["dx_stream.core.mjpeg"] entry — feeds
         ``from dx_stream.core.mjpeg import name``; and
       * the ``mjpeg`` attribute on the already-imported ``dx_stream.core`` package
         object — feeds ``from dx_stream.core import mjpeg`` (Python binds the parent
         package's existing attribute and never consults sys.modules for it).
-    Patching only sys.modules (the pre-qualification behavior) silently misses the
+    Patching only sys.modules silently misses the
     second form. Both are monkeypatched so they auto-revert after the test.
     """
     fake = type(sys)(name)
@@ -547,7 +547,7 @@ def test_demo_start_falls_back_to_mjpeg_when_webrtc_start_fails(monkeypatch):
     assert mjpeg_start[1] == mjpeg_pipeline
     assert mjpeg_start[2]["VIRTUAL_ENV"] == "/runtime/infer"
     assert mjpeg_start[2]["GST_PLUGIN_PATH"] == "/runtime/gst"
-    # MJPEG first-frame timeout was raised 5.0 -> 15.0 for slow ARM boards (commit 754631f).
+    # The MJPEG first-frame timeout is 15 s so slow ARM boards can start in time.
     assert ("mjpeg_ready", 15.0, True) in calls
     assert lock_depths and lock_depths[0] > 0
 
@@ -1069,8 +1069,8 @@ def test_pipeline_stop_sends_response_while_holding_playback_lock(monkeypatch):
 
 
 def test_rtsp_demo_launch_failure_names_the_unreachable_network_cameras():
-    """Demo 9 plays public RTSP cameras on the internet. On a closed network the old error
-    ("No output backend became ready") sent users after Stream dependencies instead."""
+    """Demo 9 plays public RTSP cameras on the internet. On a closed network the error must name the
+    unreachable cameras rather than send users after Stream dependencies ("No output backend became ready")."""
     import server
 
     generic = server._demo_launch_failure_payload(["mjpeg"])

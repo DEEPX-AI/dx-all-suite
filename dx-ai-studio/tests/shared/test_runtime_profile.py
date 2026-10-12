@@ -114,7 +114,7 @@ def test_bundled_manifest_uses_verified_staging_and_rollback_artifacts():
     """target = the runtime the shipping suite pins (v2.4.3 → dx-runtime v2.4.2: DX-RT 3.4.2 · driver 2.6.0).
 
     Digests were taken from the git blobs at those revisions and re-checked against the downloaded files
-    (2026-10-02). 2.4.1 and 2.3.0 stay as verified rollback profiles."""
+    2.4.1 and 2.3.0 stay as verified rollback profiles."""
     api = _api()
     manifest = api.load_runtime_manifest(PROFILE_MANIFEST)
     target = manifest.profile("2.4.2", "x86_64")

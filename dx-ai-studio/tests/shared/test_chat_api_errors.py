@@ -1,10 +1,10 @@
-"""Chat says why an external API failed (2026-10-11, checked against the real Anthropic API with a fake key).
+"""Chat says why an external API failed.
 
-api.anthropic.com answered 401 `{"type":"error","error":{"type":"authentication_error","message":"invalid x-api-key"}}`.
-Chat replaced it with the offline fallback "No AI model connected — set an API key", which is wrong for a user who set
-a key. Other statuses showed only "HTTP 400" and dropped the provider's reason. On this network api.openai.com and
-generativelanguage.googleapis.com time out; the user waited 120 s for "Request timed out", with no host named. An
-error event in the middle of a stream ended the answer quietly.
+A 401 from api.anthropic.com (`{"type":"error","error":{"type":"authentication_error","message":"invalid x-api-key"}}`)
+must not become the offline fallback "No AI model connected — set an API key", which is wrong for a user who set a
+key. Other statuses keep the provider's reason instead of a bare "HTTP 400". On restricted networks api.openai.com and
+generativelanguage.googleapis.com time out; the timeout names the host instead of a bare "Request timed out" after
+120 s. An error event in the middle of a stream is reported, not dropped.
 
 The bodies below copy each provider's real error shape.
 """
@@ -156,7 +156,7 @@ def test_chat_says_what_failed_instead_of_no_model_connected(monkeypatch, etype,
 
 
 def test_the_hint_does_not_point_at_the_removed_test_button():
-    """The settings lost their Test button (saving tests the connection, 2026-10-11 redesign); the hint named it."""
+    """The settings have no Test button (saving tests the connection), so the hint must not name it."""
     import importlib
     E = importlib.import_module("shared.chat.engine")
     for lang, text in E.ChatEngine._API_ERROR_HINT.items():

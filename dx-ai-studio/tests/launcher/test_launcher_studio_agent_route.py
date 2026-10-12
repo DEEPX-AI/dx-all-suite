@@ -1,8 +1,8 @@
-"""The launcher itself answers the Studio-agent and reset routes (2026-10-11 real check).
+"""The launcher itself answers the Studio-agent and reset routes.
 
-Home lives on the launcher, which hands only a fixed list of paths to the shared chat routes. /api/studio/agent was
-not on it, so picking copilot in Home saved nothing and Chat kept answering with claude. The browser test routed the
-call, so it never reached a server; this one talks to the real launcher server.
+Home lives on the launcher, which hands only a fixed list of paths to the shared chat routes. Without /api/studio/agent
+on that list, picking copilot in Home would save nothing and Chat would keep answering with claude. A browser test
+that routes the call never reaches a server; this one talks to the real launcher server.
 """
 import json
 import urllib.request

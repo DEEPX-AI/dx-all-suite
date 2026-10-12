@@ -1,8 +1,7 @@
-"""서버가 실행을 소유하는지 — 스트림을 끊어도 계속되고, 다시 붙을 수 있는지.
+"""The server owns the run: it continues when the stream drops, and clients can reattach.
 
-`test_live_run.py` 가 버퍼 자체를 지킨다면, 여기서는 그것이 실제로 HTTP 경로에
-배선되었는지를 본다. 둘을 나눈 이유: 버퍼가 옳아도 핸들러가 예전처럼
-`_runner.run()` 을 직접 돌리면 이 버그는 그대로다.
+`test_live_run.py` covers the buffer itself; this file checks it is wired into the HTTP path. A correct
+buffer does not help if the handler calls `_runner.run()` directly.
 """
 from __future__ import annotations
 
@@ -19,9 +18,9 @@ from tests.server_helpers import start_module_server
 
 @pytest.fixture()
 def agent(monkeypatch):
-    # mock 으로 — agent 를 지정하지 않은 실행은 기본 copilot 으로 간다. copilot CLI 가 설치 · 로그인된
-    # 기기에서 이 test 가 실제 실행을 12번 돌렸다 (2026-09-30). 느린 mock 으로 "도중에 떠났다 붙기" 를
-    # 실제로 만든다 (즉시 끝나는 mock 이면 떠나기 전에 끝난다).
+    # Use mock: a run without an agent goes to the default copilot, which would start real runs on a
+    # machine where the copilot CLI is installed and signed in. A slow mock makes "leave mid-run, then
+    # reattach" possible (an instant mock would finish before the client leaves).
     monkeypatch.setenv("DX_AGENT_ADAPTER", "mock")
     monkeypatch.setenv("DX_AGENT_MOCK_DELAY", "0.25")
     server, port = start_module_server("dx_agent_dev")
@@ -52,11 +51,11 @@ def test_status_reports_the_current_run(agent):
 
 
 def test_the_run_survives_a_consumer_that_walks_away(agent):
-    """home 에서 Agent Dev 로 이동하는 것이 이 상황이다."""
+    """This is what moving from home to Agent Dev looks like."""
     resp = _post_stream(agent, {"prompt": "make baseball game"})
     first = resp.readline()
     assert first, "스트림이 아무것도 주지 않았다"
-    resp.close()                       # 창을 닫은 것과 같다
+    resp.close()                       # same as closing the window
     time.sleep(0.4)
 
     st = _get(agent, "/api/agent/status")
@@ -65,7 +64,7 @@ def test_the_run_survives_a_consumer_that_walks_away(agent):
 
 
 def test_you_can_attach_to_a_run_you_did_not_start(agent):
-    """Agent Dev 가 home 이 시작한 실행에 붙는 경로."""
+    """The path Agent Dev uses to attach to a run home started."""
     resp = _post_stream(agent, {"prompt": "make baseball game"})
     resp.readline()
     resp.close()
@@ -76,11 +75,7 @@ def test_you_can_attach_to_a_run_you_did_not_start(agent):
 
 
 def test_attaching_from_an_index_skips_what_was_seen(agent):
-    """`from` 이 실제로 건너뛰는지. 이벤트 개수는 어댑터마다 다르므로 상대 비교한다.
-
-    (처음에 "2개 이상 나온다" 를 전제했다가 mock 이 1개만 내서 어긋났다 — 전제를
-    두지 않는 편이 맞다.)
-    """
+    """`from` really skips events. Event counts differ per adapter, so compare relatively."""
     resp = _post_stream(agent, {"prompt": "make baseball game"})
     resp.read()
     resp.close()
@@ -101,7 +96,7 @@ def test_attaching_from_an_index_skips_what_was_seen(agent):
 
 
 def test_the_post_response_shape_is_unchanged(agent):
-    """Agent Dev 자체 콘솔(console.js:623)이 그대로 동작해야 한다."""
+    """Agent Dev's own console (console.js) must keep working."""
     resp = _post_stream(agent, {"prompt": "make baseball game"})
     try:
         assert resp.headers.get("Content-Type", "").startswith("text/event-stream")

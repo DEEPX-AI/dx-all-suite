@@ -1,7 +1,7 @@
-"""launcher 튜토리얼을 처음부터 끝까지 걸어 본다 (spec 2026-09-23 §9).
+"""Walk the launcher tutorial from start to finish.
 
-정적 계약은 대상 목록만 본다. 배열에 빈 칸 (`},,`) 이 생기자 엔진은 SDK Library 다음에서 투어를
-멈췄고, 정적 계약도 journey 도 그것을 보지 못했다.
+The static contract sees only the target list. A hole in the step array (`},,`) stops the engine after SDK
+Library, and neither the static contract nor a target-only journey would notice.
 """
 from __future__ import annotations
 
@@ -50,7 +50,7 @@ def test_every_step_is_shown_on_its_target_to_the_end(browser, server, lang):
             page.wait_for_function("""() => { const t = window._dxTutorial;
               return t._curSection && document.querySelector('.dxt-spotlight.active'); }""", timeout=5000)
             seen.append(page.evaluate("() => { const t = window._dxTutorial; return t._curSection.steps[t._curStep].target; }"))
-            page.evaluate("() => { window._dxTutorial.next(); }")   # 마지막 next 는 완료 창을 await 한다
+            page.evaluate("() => { window._dxTutorial.next(); }")   # the last next awaits the completion dialog
             page.wait_for_timeout(250)
         assert seen == ORDER, seen
     finally:

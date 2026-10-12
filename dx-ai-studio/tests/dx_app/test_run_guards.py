@@ -116,8 +116,8 @@ def test_inference_run_inflight_guard_warns_and_disables_run_button():
 
 
 def test_stopping_a_continuous_run_does_not_also_report_it_complete():
-    """Stop 을 누르면 기다리던 /api/run 이 돌아와 loop 가 끝나고 contFinish() 가 '완료' toast 와 요약을 냈다. 대기 중
-    slot 은 'Waiting…' spinner 가 영원히 돌았다 (2026-10-02 release audit A-5)."""
+    """Stop must not end the loop as if it completed: no "done" toast and summary from contFinish(), and no waiting
+    slot left with a 'Waiting…' spinner that never stops."""
     js = _read(JS_DIR / "inference.js")
     start = _function_body(js, "async function contStart(")
     stop = _function_body(js, "async function contStop(")

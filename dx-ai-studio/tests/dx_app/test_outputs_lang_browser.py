@@ -1,7 +1,7 @@
-"""dx_app Outputs — 칩 · 빈 목록 · 아이콘 버튼 이름이 고른 언어를 따른다 (release audit A-8 · A-13).
+"""dx_app Outputs: chips, the empty list and icon-button names follow the chosen language.
 
-예전에는 칩 이름 (_TYPE_LABEL) 을 script 를 읽을 때 한 번 번역해 언어를 바꿔도 그대로였고, 'No files' ·
-' Compare' 는 영어 고정, 내려받기 · 삭제 버튼은 아이콘만 있고 이름이 없었다. /api/outputs 는 fixture.
+Chip names (_TYPE_LABEL) must be translated at render time, not once when the script loads; 'No files' and
+' Compare' must be translated; download and delete buttons need accessible names. /api/outputs is a fixture.
 """
 from __future__ import annotations
 

@@ -1,8 +1,8 @@
-"""DX Benchmark on a phone (390 px, 2026-10-11 matrix).
+"""DX Benchmark on a phone (390 px).
 
-Settings: a 220 px input beside each label folded the label one syllable per line and the
-inputs ran off-screen. Results: the 1fr column kept its min-content width, so the hardware
-list was cut at the right edge.
+Settings: a 220 px input beside each label would fold the label one syllable per line and push the
+inputs off-screen. Results: a 1fr column that keeps its min-content width cuts the hardware list at
+the right edge.
 """
 from __future__ import annotations
 

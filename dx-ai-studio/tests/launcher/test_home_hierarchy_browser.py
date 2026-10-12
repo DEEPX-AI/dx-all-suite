@@ -1,12 +1,11 @@
-"""home 첫 화면에 눈이 들어갈 입구가 하나 있어야 한다.
+"""Home's first screen must have one entry point for the eye.
 
-실측(1512×900)에서 `Build` · `Measured on DX-M1` · `Modules` 가 전부 24px/600 으로
-같았다. 제목이 셋이면 주인공이 없고, 그러면 화면은 "무엇을 하는 곳인지" 를 말하지
-못한다. 게다가 화면에서 가장 크고 유일하게 색을 가진 글자가 `DX-M1 · 1 device`
-(28px, 초록)였다 — 성취가 아니라 사실인데 경고 세기를 쓰고 있었다.
+With `Build`, `Measured on DX-M1` and `Modules` all at 24px/600, three titles mean no lead, and the screen
+cannot say what it is for. A device line such as `DX-M1 · 1 device` must not be the largest, only coloured
+text: it is a fact, not an achievement, and colour is the warning register.
 
-색은 예외에 쓴다. 장치가 붙어 있는 것은 정상이므로 색이 없고, 붙어 있지 않을 때
-나타난다. 같은 원칙을 앞선 작업에서 `Running` 표시에 적용했다.
+Colour is for exceptions: an attached device is normal and gets none. The same rule applies to the
+`Running` indicator.
 """
 from __future__ import annotations
 
@@ -61,7 +60,7 @@ def _px(page, selector, prop="fontSize"):
         " const v = getComputedStyle(e)[p]; return parseFloat(v); }", [selector, prop])
 
 
-# 무대 (spec 2026-09-23): hero 제목 하나와, 양옆 위젯의 제목 둘.
+# The stage: one hero title and the titles of the two side widgets.
 BUILD_H = "#homeStage .stage-title"
 MEASURED_H = "#homeMeasured .stage-widget-title"
 MODULES_H = "#homeDevice .stage-widget-title"
@@ -75,15 +74,15 @@ def test_build_is_the_one_heading_that_leads(home):
 
 
 def test_the_two_supporting_headings_agree_with_each_other(home):
-    """양옆 위젯의 제목. 둘 중 하나만 내리면 위계가 셋이 되어 다시 읽기 어려워진다."""
+    """Titles of the two side widgets. Demoting only one of them makes three levels and the screen harder to read."""
     assert _px(home, MEASURED_H) == _px(home, MODULES_H)
 
 
 def test_the_hero_input_is_big_enough_to_be_the_hero(home):
-    """히어로는 입력 요소가 아니라 그 바(.home-ask) 전체다.
+    """The hero is the whole bar (.home-ask), not just the input.
 
-    실측에서 바의 글자가 17px 였다. 제품의 문장("말로 설명하면 스튜디오가 만든다")을
-    담는 자리인데 본문과 같은 크기였다.
+    It carries the product's sentence ("describe it and the studio builds it"), so its text must not be
+    body-sized.
     """
     bar = home.evaluate(
         "() => { const e = document.querySelector('.home-ask');"
@@ -95,11 +94,10 @@ def test_the_hero_input_is_big_enough_to_be_the_hero(home):
 
 
 def _device_colour(browser, hw):
-    """hw_status 응답을 고정하고 장치 표시의 색을 읽는다.
+    """Pin the hw_status response and read the colour of the device indicator.
 
-    환경에 맡기면 이 검사가 뒤집힌다 — 테스트 하네스는 런처만 띄우므로 monitor 가
-    없고, 그러면 '정상' 을 검사하려던 것이 실제로는 '미검출' 을 검사하게 된다.
-    (처음에 그렇게 써서 한 번 틀렸다.)
+    Left to the environment this check flips: the test harness starts only the launcher, so there is no
+    monitor, and a check meant for 'normal' would actually check 'not detected'.
     """
     import json
 
@@ -133,7 +131,7 @@ def _device_colour(browser, hw):
 
 
 def test_a_healthy_device_does_not_shout_in_colour(browser):
-    """정상은 색을 쓰지 않는다. 색을 여기 써버리면 진짜 예외가 묻힌다."""
+    """Normal gets no colour. Spending colour here would bury the real exceptions."""
     got = _device_colour(browser, {"available": True, "count": 1,
                                    "npus": [{"id": 0, "cores": 3}]})
     assert "is-live" in got["cls"], got["cls"]
@@ -143,11 +141,10 @@ def test_a_healthy_device_does_not_shout_in_colour(browser):
 
 
 def test_a_missing_device_turns_the_widget_off(browser):
-    """없는 장치는 조명이 꺼진다 — 색으로 외치지 않는다 (spec 2026-09-23 §5.5).
+    """A missing device has its lights dimmed rather than shouting in colour.
 
-    이 테스트의 전 판은 "없는 장치가 색을 갖는다" 였다 (f6b4192: 정상은 조용하고 예외가
-    색을 갖는다). 무대에서도 예외는 드러나지만, 드러내는 수단이 색이 아니라 조명이다 —
-    위젯 전체가 가라앉고 조용한 한 줄만 남는다. 정상과 구분되는 것은 그대로다.
+    The exception is still visible, but through lighting rather than colour: the whole widget sinks and
+    only one quiet line remains. It stays distinguishable from normal.
     """
     got = _device_colour(browser, {"available": False, "count": 0})
     assert got["off"], "장치가 없는데 위젯이 켜져 있다"
@@ -157,12 +154,11 @@ def test_a_missing_device_turns_the_widget_off(browser):
 
 
 def test_the_agent_settings_do_not_compete_with_the_hero(home):
-    """설정은 히어로 바로 아래에서 두 번째로 눈에 띌 일이 아니다.
+    """Settings must not be the second most visible thing right under the hero.
 
-    `Agent [copilot] Model [claude-sonnet-4.6] 29 models Effort [medium] ● not
-    signed in  Sign in with copilot (first run opens GitHub device login)` 이
-    파란 monospace 칩까지 달고 입력 바로 아래 있었다. 에이전트를 바꾸고 싶은
-    순간은 "무엇을 만들지 생각할 때" 가 아니다 — 접어 두고 필요할 때 편다.
+    A row like `Agent [copilot] Model [claude-sonnet-4.6] 29 models Effort [medium] ● not signed in ...`
+    with blue monospace chips under the input competes with the prompt. Choosing an agent is not what you
+    do while thinking about what to build, so it is folded and opened when needed.
     """
     state = home.evaluate(
         """() => {
@@ -184,11 +180,11 @@ def test_the_agent_settings_do_not_compete_with_the_hero(home):
 
 
 def test_the_agent_settings_open_when_asked(home):
-    """접는 것과 숨기는 것은 다르다 — 펼치면 나와야 한다.
+    """Folding is not hiding: opening it must show the settings.
 
-    하네스에는 agent 모듈이 없어 setupForm 이 hidden 인 채로 온다. 그 상태를
-    그대로 두고 '펼쳐도 안 나온다' 고 하면 환경을 재는 것이지 계약을 재는 것이
-    아니므로, 모듈이 살아 있는 경우를 만들어 준다.
+    The harness has no agent module, so setupForm arrives hidden. Asserting 'it does not appear when
+    opened' in that state would measure the environment, not the contract, so the test sets up a live
+    module.
     """
     home.evaluate(
         """() => {
@@ -205,25 +201,24 @@ def test_the_agent_settings_open_when_asked(home):
 
 
 def test_the_fold_summary_says_what_is_selected(home):
-    """접혀 있어도 무엇이 골라져 있는지는 보여야 한다."""
+    """Even folded, what is selected must be visible."""
     src = (ROOT_JS := __import__("pathlib").Path(__file__).resolve().parents[2]
            / "launcher" / "static" / "home-agent-setup.js").read_text(encoding="utf-8")
     assert "_paintFoldSummary" in src, "요약을 그리는 코드가 없다"
     assert "setupFoldValue" in src, "요약이 쓰일 자리가 없다"
-    # 에이전트/모델을 바꾸면 요약이 따라가야 한다.
+    # Changing agent or model must update the summary.
     assert src.count("_paintFoldSummary") >= 4, (
         "요약이 초기화 때만 그려진다 — 선택이 바뀌면 어긋난다"
     )
 
 
-# ── 리듬과 rail ────────────────────────────────────────────────
+# ── rhythm and rail ───────────────────────────────────────────
 
 
 def test_the_grid_is_ten_tiles_in_two_rows(home):
-    """그룹 라벨 셋 (Build · Models · Measure) 은 세로 목록의 리듬이었다. 무대에서는
-    도구가 칸이고, 칸의 자리가 곧 순서다 (spec 2026-09-23 §4.1): 1행 App · Stream ·
-    Model Zoo · Compiler · SDK Library, 2행 Benchmark · EdgeGuide · Monitor · Agent Dev ·
-    About DEEPX. 튜토리얼은 #studioGrid 와 .orbital-card 를 가리키므로 둘 다 남는다.
+    """The stage has no group labels: tools are cells and a cell's position is its order. Row 1 App · Stream ·
+    Model Zoo · Compiler · SDK Library, row 2 Benchmark · EdgeGuide · Monitor · Agent Dev · About DEEPX.
+    The tutorial targets #studioGrid and .orbital-card, so both stay.
     """
     assert home.evaluate("() => document.querySelectorAll('#studioGrid .studio-group').length") == 0
     tiles = home.evaluate(
@@ -237,9 +232,9 @@ def test_the_grid_is_ten_tiles_in_two_rows(home):
     assert rows == 2, f"1512 폭에서 {rows}줄이다"
 
 def test_the_device_card_carries_what_the_device_is_doing(browser):
-    """Running 패널을 접으면서 짧아진 rail 을, 카드가 자기 주제로 채운다.
+    """The cards fill the rail with their own subjects.
 
-    SDK 버전과 포트는 변하지 않는 값이다. 온도·코어는 변하고, 이미 받아오고 있다.
+    SDK version and port do not change. Temperature and cores change, and are already being fetched.
     """
     got = _device_colour(browser, {
         "available": True, "count": 1,
@@ -269,7 +264,7 @@ def test_device_facts_show_live_values_when_a_device_is_there(browser):
         page.wait_for_timeout(3500)
         page.evaluate(_QUIET)
         page.wait_for_timeout(600)
-        # 변하는 값은 코어 막대 (코어 수만큼) 와 한 줄 (온도 · clock · 전력) 이다 (spec §5.5).
+        # The changing values are the core bars (one per core) and one line (temperature · clock · power).
         cores = page.evaluate("() => document.querySelectorAll('#homeCores .dev-core').length")
         line = page.inner_text("#homeDeviceLine")
         assert cores == 3, f"코어 3개인 장치에 막대가 {cores}개다"

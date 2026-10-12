@@ -1,8 +1,9 @@
-"""DX-RT 가 읽을 수 있는 .dxnn container 와 다운로드 판 (spec 2026-10-01 dx_app per-model layout 결정 5 · 6).
+"""Which .dxnn container DX-RT can read, and which download to pick.
 
-Model Zoo 2_5_0 은 container v9 이고 DX-RT 3.4.2 는 6–8 만 읽는다 ("Model file format version 9 is not
-supported" — 이 PC 에서 직접 확인). 받아서 실행이 실패하기 전에: 같은 이름의 2_4_0 (v8) 을 먼저 받고, 그것이
-없으면 받지 않고 "DX-RT 3.5 필요" 라고 말한다. DX-RT 가 3.5 이상이면 publish page 의 기본 (2_5_0) 그대로.
+Model Zoo 2_5_0 ships container v9, and DX-RT 3.4.2 reads only 6–8 ("Model file format version 9 is not
+supported"). Rather than let the run fail after the download: fetch the 2_4_0 (v8) build of the same name first, and
+if there is none, download nothing and say "DX-RT 3.5 required". With DX-RT 3.5 or later the publish page default
+(2_5_0) is used as is.
 """
 from __future__ import annotations
 

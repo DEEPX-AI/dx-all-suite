@@ -1,14 +1,13 @@
-"""legacy 테이블 분기가 자체 HTML 파서의 문법을 지켜야 한다.
+"""The legacy table branch must use the in-house HTML parser's API.
 
-`_parse_models()` 는 20칼럼(Q-Lite/Q-Pro 그룹 헤더) 레이아웃을 먼저 찾고, 아니면
-"`.dxnn` 링크가 든 표" 라는 느슨한 legacy 분기로 떨어진다. 그 분기가
-`find_all("a", href=True)` 로 쓰여 있었다 — BeautifulSoup 문법이다.
+`_parse_models()` looks for the 20-column layout (Q-Lite/Q-Pro group headers) first and otherwise falls back to a
+loose legacy branch: "a table containing `.dxnn` links". That branch must not call `find_all("a", href=True)`,
+which is BeautifulSoup syntax.
 
-`dx_app/core/_html_dom.py` 의 Node.find_all 은 `find_all(self, names)` 다.
-같은 파일의 `find(name, href=False)` 는 href 를 받으므로 호출부가 find_all 도
-그럴 것이라 가정했고, 그래서 이 분기에 닿는 순간 TypeError 로 500 이 났다.
-공개 페이지가 인라인 JSON 으로 리팩토링되면서 20칼럼 판정이 실패하게 되자
-실제로 닿았다.
+Node.find_all in `dx_app/core/_html_dom.py` is `find_all(self, names)`. `find(name, href=False)` in the same file
+does take href, which makes it easy to assume find_all does too; reaching the branch then raises TypeError and the
+page returns 500. The branch is reached whenever the 20-column detection fails, e.g. when a page switches to inline
+JSON.
 """
 from __future__ import annotations
 
@@ -38,10 +37,10 @@ def _parse():
 
 
 def test_legacy_table_parses_without_raising():
-    """이 호출이 TypeError 를 내면 SETUP 페이지가 500 을 돌려준다."""
+    """A TypeError here makes the SETUP page return 500."""
     try:
         models = _parse()
-    except TypeError as exc:  # pragma: no cover - 회귀했을 때만 도달
+    except TypeError as exc:  # pragma: no cover - reached only on a regression
         pytest.fail(f"legacy 분기가 자체 파서 문법을 어겼다: {exc}")
     assert models, "legacy 레이아웃에서 한 건도 못 읽었다"
 
@@ -57,7 +56,7 @@ def test_legacy_table_picks_up_both_urls():
 
 
 def test_anchors_without_href_are_skipped():
-    """href 없는 <a> 가 섞여도 죽지 않아야 한다 — 그게 href=True 가 하던 일이다."""
+    """An <a> without href must not crash the parser; that is what href=True guarded against."""
     from dx_app.core.modelzoo import _parse_models
 
     html = LEGACY_HTML.replace(

@@ -1,4 +1,4 @@
-"""Contracts verifying Task 7 AI-frontend removal for DX Compiler."""
+"""Contracts that the removed AI frontend stays out of DX Compiler."""
 
 import pathlib
 

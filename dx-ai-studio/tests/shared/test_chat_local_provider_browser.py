@@ -1,8 +1,8 @@
-"""Chat settings — Local / Self-hosted finds the models of the endpoint the user types (2026-10-11 real-use audit).
+"""Chat settings — Local / Self-hosted finds the models of the endpoint the user types.
 
-Models were looked up only when the provider changed, with whatever endpoint was there then (empty → the Ollama
-default localhost:11434). Typing another endpoint (LM Studio :1234, llama.cpp :8080, Ollama on another host) found
-nothing, the model box stayed an empty text field and Save said "Please enter a model".
+Looking models up only when the provider changes uses whatever endpoint is there then (empty → the Ollama default
+localhost:11434). Typing another endpoint (LM Studio :1234, llama.cpp :8080, Ollama on another host) must look up its
+models too; otherwise the model box stays an empty text field and Save says "Please enter a model".
 """
 from __future__ import annotations
 
@@ -52,7 +52,7 @@ def page():
 
 
 def test_typing_the_endpoint_looks_up_its_models(page):
-    page.check("input[name=dx-chat-kind][value=local]")   # settings ask one question (2026-10-11)
+    page.check("input[name=dx-chat-kind][value=local]")   # settings ask one question
     page.fill(".dx-chat-settings-endpoint", "http://127.0.0.1:1234")
     page.locator(".dx-chat-settings-endpoint").blur()
     page.wait_for_function("() => !document.querySelector('.dx-chat-settings-model-select').hidden", timeout=5000)
@@ -63,7 +63,7 @@ def test_typing_the_endpoint_looks_up_its_models(page):
 
 
 def test_typing_pauses_look_up_once_not_per_key(page):
-    page.check("input[name=dx-chat-kind][value=local]")   # settings ask one question (2026-10-11)
+    page.check("input[name=dx-chat-kind][value=local]")   # settings ask one question
     before = len(page.asked)
     page.locator(".dx-chat-settings-endpoint").press_sequentially("http://127.0.0.1:1234", delay=20)
     page.wait_for_function("() => !document.querySelector('.dx-chat-settings-model-select').hidden", timeout=5000)

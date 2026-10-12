@@ -1,6 +1,6 @@
 """Models + reasoning-effort per agent must match the original .deepx/e2e/test.sh:
-  claude   default claude-sonnet-5-5 since 2026-09-30 (+ --effort supported)
-  copilot  default auto since 2026-09-30 (the account's own default comes over ACP), passes --model
+  claude   default claude-sonnet-5-5 (+ --effort supported)
+  copilot  default auto (the account's own default comes over ACP), passes --model
   opencode default github-copilot/claude-sonnet-4.6, lists models dynamically
   cursor   dynamic list (cursor-agent --list-models), effort via bracket
 """
@@ -76,7 +76,7 @@ def test_copilot_lists_full_model_set():
 
 
 def test_copilot_exposes_reasoning_effort():
-    """copilot CLI supports --effort/--reasoning-effort → expose it (was hidden: empty)."""
+    """copilot CLI supports --effort/--reasoning-effort → expose it."""
     from core.agents_config import AGENTS
     assert AGENTS["copilot"]["reasoning_efforts"]      # non-empty
     assert AGENTS["copilot"]["default_effort"]

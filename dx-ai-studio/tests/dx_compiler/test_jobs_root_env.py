@@ -1,5 +1,5 @@
-"""Compile jobs can live outside the studio's var/ (DX_COMPILER_JOB_ROOT) — tests use it so they stop leaving
-empty job folders in the real var/compiler/jobs (2,500 of them by 2026-10-02, release audit housekeeping)."""
+"""Compile jobs can live outside the studio's var/ (DX_COMPILER_JOB_ROOT) — tests use it so they do not leave
+empty job folders in the real var/compiler/jobs."""
 from __future__ import annotations
 
 import importlib

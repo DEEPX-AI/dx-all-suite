@@ -162,10 +162,10 @@ class TestLauncherAppFrameContracts:
     def test_every_module_card_carries_its_own_health_dot(self):
         """State belongs on the card it describes.
 
-        The top bar used to repeat all eight modules as dots with labels, next
-        to eight cards that already carried a status dot each. Two navigations,
-        two health readouts, one set of modules. The strip went; the per-card
-        dot — which was always the one attached to the thing you click — stays.
+        A top-bar strip repeating all eight modules as dots, next to eight cards
+        that each carry a status dot, means two navigations and two health readouts
+        for one set of modules. The per-card dot, attached to the thing you click,
+        is the one that stays.
         """
         html = (STATIC / "index.html").read_text(encoding="utf-8")
         for status_id in (
@@ -942,12 +942,8 @@ class TestWave2D_SdkLibrarySpanishSupport:
 class TestWave2D_SplashIsTranslatable:
     """The intro's copy must be reachable by the dictionary, in every language.
 
-    These used to assert `<span class="es">` inside _showProceedPrompt and
-    replaySplash. Both the proceed prompt and the "ALL SYSTEMS ONLINE" core
-    text were props of the 17.5-second cinematic and went with it; the six
-    sibling language spans were also the markup pattern the studio spent a
-    migration removing. What survives is one line — "Click to skip" — and the
-    rule that matters is unchanged: the intro must not hard-code English.
+    The intro shows one line of copy, "Click to skip", and like all visible
+    copy it must not hard-code English.
     """
 
     def test_intro_copy_goes_through_the_dictionary(self):

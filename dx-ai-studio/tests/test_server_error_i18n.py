@@ -1,24 +1,23 @@
-"""서버가 만든 영어 오류가 한국어 화면에 그대로 뜨던 것을 번역한다.
+"""English errors produced by the server are translated before they are shown.
 
-config_wizard.js:531 이 이렇게 한다:
+Pages display server errors like this:
 
     alert(T('Config generation failed: ') + data.error);
 
-앞은 번역되고 **뒤에 붙는 data.error 는 영어 그대로** 다. 한국어로 쓰던
-사용자는 이런 문장을 본다:
+The prefix is translated, but **the appended data.error is raw English**, so a user
+working in another language sees a translated prefix followed by an English sentence:
 
-    설정 생성 실패: Invalid opt_level: 'abc' — must be one of [0, 1]
+    <translated prefix>: Invalid opt_level: 'abc' — must be one of [0, 1]
 
-서버 호출부 92곳은 건드리지 않는다. 오류 처리 경로를 손대는 위험을 피하고,
-**표시 직전에** 영어→번역을 통과시킨다.
+The server call sites are left alone, to avoid touching error-handling paths; the
+English→translation step runs **right before display**.
 
-단순 접두 매칭으로는 반쪽이 된다 — 대부분 f-string 이라 값이 문장 **중간에**
-낀다(`Invalid opt_level: 'abc' — must be one of [0, 1]`). 그래서 캡처 그룹이
-있는 패턴을 쓰고, 값은 그대로 옮긴다.
+Plain prefix matching only gets half the way — most messages are f-strings with values
+**in the middle** (`Invalid opt_level: 'abc' — must be one of [0, 1]`). So the patterns use
+capture groups and carry the values over unchanged.
 
-번역하는 범위는 **입력 검증 계열 40개** 다(2026-09-21 결정). 사용자가 잘못
-입력하면 바로 뜨는 것들이다. `Job not found` 처럼 정상 사용에서 보이지 않는
-30개는 영어로 둔다.
+The translated scope is the **input validation messages** — the ones a user sees right
+after a bad input. Messages not seen in normal use, such as `Job not found`, stay English.
 """
 from __future__ import annotations
 
@@ -43,13 +42,13 @@ class TestTheModuleExists:
         assert "translateServerError" in src()
 
     def test_it_is_shared_not_per_module(self):
-        """dx_compiler 만의 문제가 아니다 — shared/ 에 둬야 다른 모듈도 쓴다.
-        (dx_agent_dev 8건, dx_benchmark 3건, launcher 2건, shared 9건)"""
+        """Not only dx_compiler shows server errors — it lives in shared/ so other modules
+        (dx_agent_dev, dx_benchmark, launcher, shared) use it too."""
         assert SRC.parent.name == "static" and SRC.parent.parent.name == "shared"
 
 
 class TestPatternsCoverTheValidationMessages:
-    """서버가 실제로 내는 40개를 패턴이 덮는지 본다."""
+    """The patterns cover the validation messages the server actually sends."""
 
     def _patterns(self):
         body = src()
@@ -74,7 +73,7 @@ class TestPatternsCoverTheValidationMessages:
         assert not missing, f"언어가 빠진 패턴: {missing[:6]}"
 
     def test_the_fields_users_actually_hit_are_covered(self):
-        """SR-758 작업에서 내가 넣은 검증 메시지들 — 마법사에서 일상적으로 뜬다."""
+        """Validation messages the config wizard shows routinely."""
         body = self._patterns()
         for token in ("opt_level", "calibration_num", "input_shapes",
                       "preprocessings", "file_extensions", "node names"):
@@ -82,11 +81,11 @@ class TestPatternsCoverTheValidationMessages:
 
 
 class TestUnknownMessagesFallThrough:
-    """사전에 없으면 **영어 원문 그대로** 보여준다. 조용히 비우거나 "알 수 없는
-    오류" 로 바꾸면 지금보다 나쁘다 — 사용자가 검색할 단서를 잃는다.
+    """A message missing from the dictionary is shown **as the English original**. Blanking it
+    or replacing it with "unknown error" would be worse — the user loses the clue to search for.
 
-    처음엔 `"return msg" in body` 로 확인했는데, 변이로 `return ''` 을 넣어도
-    다른 곳의 `return msg` 때문에 통과했다. 함수의 **마지막 경로** 를 봐야 한다.
+    A plain `"return msg" in body` check would pass even with `return ''` added, because of
+    another `return msg` elsewhere; the **final path** of the function must be checked.
     """
 
     def test_the_final_fallback_returns_the_message(self):
@@ -107,9 +106,9 @@ class TestUnknownMessagesFallThrough:
 
 class TestItIsWiredIntoThePagesThatShowServerErrors:
     def test_every_place_that_shows_data_error_passes_it_through(self):
-        """연결을 빠뜨리면 그 화면만 영어로 남는다. 파일에 함수 이름이 있는지가
-        아니라 **표시하는 줄마다** 통과시키는지를 본다 — 처음엔 전자로 검사했고,
-        호출부를 끊는 변이가 안 잡혔다."""
+        """A page that skips the wiring stays English. Checks **every line that displays** the
+        error, not merely that the function name appears in the file — that weaker check
+        misses a call site that bypasses it."""
         import re as _re
 
         bad = []
@@ -123,8 +122,8 @@ class TestItIsWiredIntoThePagesThatShowServerErrors:
         assert not bad, "서버 오류를 번역 없이 그대로 띄우는 곳:\n  " + "\n  ".join(bad)
 
     def test_the_compile_progress_box_translates_and_escapes_the_job_error(self):
-        """A failed compile / re-quantization wrote the job error into the page raw: English on
-        a Korean page, and markup in a dxcom message would have been parsed as HTML."""
+        """A failed compile / re-quantization job error must be translated and escaped: raw, it
+        shows English on a localized page, and markup in a dxcom message would be parsed as HTML."""
         html = (ROOT / "dx_compiler" / "templates" / "index.html").read_text(encoding="utf-8")
         assert "(data.error || 'Unknown error')" not in html
         assert html.count("insertAdjacentHTML('beforeend', _compileJobError(data))") == 2
@@ -133,22 +132,22 @@ class TestItIsWiredIntoThePagesThatShowServerErrors:
         assert "translateServerError" in helper and "_escErr(" in helper and "T('Unknown error')" in helper
 
     def test_the_script_is_loaded_by_the_shell(self):
-        """어느 페이지가 불러오는지 — 로드되지 않으면 함수가 없어 조용히 실패한다."""
+        """Some page must load the script — without it the function is missing and fails silently."""
         hits = [p for p in ROOT.rglob("*.html")
                 if ".venv" not in str(p) and "server-error-i18n.js" in p.read_text(encoding="utf-8", errors="ignore")]
         assert hits, "server-error-i18n.js 를 로드하는 페이지가 없다"
 
 
 class TestThePatternsActuallyMatchWhatTheServerSends:
-    """JS 를 실행할 수 없으므로 패턴을 파이썬 정규식으로 옮겨 **실제 서버 문자열**에
-    물려 본다. 여기서 안 물면 브라우저에서도 안 문다.
+    """JS cannot run here, so the patterns are ported to Python regexes and matched against
+    **real server strings**. If they do not match here, they do not match in the browser.
 
-    서버가 내는 문자열은 f-string 이라 값이 낀다. 그 값을 그럴듯하게 채운
-    표본으로 검사한다.
+    Server strings are f-strings with values inside, so the samples fill those values in
+    plausibly.
     """
 
     SAMPLES = [
-        # DX Stream 실행 계약 (release audit S-7)
+        # DX Stream runtime contract
         "Runtime contract failed: profile.context",
         "Studio runtime profile is not active and validated.",
         "Run the DX-Runtime Dependencies step in Setup, then try again.",
@@ -196,8 +195,8 @@ class TestThePatternsActuallyMatchWhatTheServerSends:
 
     @staticmethod
     def _py_patterns():
-        """JS 정규식 리터럴을 파이썬 정규식으로 옮긴다. 둘 다 PCRE 계열이라
-        이 패턴들이 쓰는 문법(`^ $ (.+?) \\( \\)`)은 그대로 통한다."""
+        """Port JS regex literals to Python regexes. Both are PCRE-like, so the syntax these
+        patterns use (`^ $ (.+?) \\( \\)`) carries over unchanged."""
         body = src()
         out = []
         for m in re.finditer(r"re:\s*/\^(.*?)\$/,", body):
@@ -212,8 +211,8 @@ class TestThePatternsActuallyMatchWhatTheServerSends:
         unmatched = [s for s in self.SAMPLES if not any(p.match(s) for p in pats)]
         assert not unmatched, "패턴이 안 무는 실제 서버 메시지:\n  " + "\n  ".join(unmatched)
 
-    # 실제로 **두 패턴이 겹치는** 표본. 처음엔 겹치지 않는 문자열로 순서를
-    # 검사해서, 구체 패턴을 맨 뒤로 옮기는 변이가 잡히지 않았다.
+    # Samples that **two patterns really match**. Order can only be tested with overlapping
+    # strings; non-overlapping ones would miss a specific pattern moved to the end.
     OVERLAPPING = [
         ("Invalid opt_level: empty — must be one of [0, 1]", "empty"),
         ("Invalid file_extensions: expected a list, got a string. Use ['jpg'], not 'jpg'.",
@@ -223,9 +222,9 @@ class TestThePatternsActuallyMatchWhatTheServerSends:
     ]
 
     def test_the_more_specific_pattern_is_tried_first(self):
-        """순서가 전부다. 덜 구체적인 패턴이 앞에 오면 먼저 물어서, 사용자는
-        덜 도움 되는 문장을 본다 — 예를 들어 'opt_level 이 비어 있습니다' 대신
-        'opt_level 값 empty 를 쓸 수 없습니다' 가 나온다.
+        """Order is everything. A less specific pattern placed first matches first, and the user
+        sees a less helpful sentence — e.g. "the opt_level value 'empty' is not allowed" instead
+        of "opt_level is empty".
         """
         pats = self._py_patterns()
         for sample, marker in self.OVERLAPPING:
@@ -237,7 +236,7 @@ class TestThePatternsActuallyMatchWhatTheServerSends:
                 f"  먼저 문 것: {first[:80]}\n  기대: {marker!r} 를 포함한 패턴")
 
     def test_an_unregistered_message_matches_nothing(self):
-        """'Job not found' 같은 비정상 경로는 번역 대상이 아니다 — 원문이 나와야 한다."""
+        """Abnormal paths such as 'Job not found' are not translated — the original must show."""
         pats = self._py_patterns()
         for s in ("Job not found", "Internal server error", "Compilation not complete"):
             assert not any(p.match(s) for p in pats), f"{s!r} 가 패턴에 물렸다"

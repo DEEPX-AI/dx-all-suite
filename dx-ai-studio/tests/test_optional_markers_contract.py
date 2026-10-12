@@ -1,7 +1,7 @@
-"""Phase 2 Task 7.4 — optional external dependency marker 계약 테스트.
+"""Contract for optional external dependency markers.
 
-테스트 파일에 적절한 분류 마커가 적용되었는지 검증한다.
-마커는 분류 메타데이터일 뿐, 기존 skipif/skip 동작은 변경하지 않는다.
+Checks that test files carry the right classification markers. Markers are
+classification metadata only; they do not change existing skipif/skip behavior.
 """
 from __future__ import annotations
 
@@ -15,12 +15,12 @@ TESTS_DIR = REPO_ROOT / "tests"
 
 
 def _get_module_markers(filepath: Path) -> set[str]:
-    """AST에서 pytestmark 할당 또는 모듈 레벨 데코레이터로 선언된 마커 이름을 추출."""
+    """Extract marker names declared by a pytestmark assignment or module-level decorator, from the AST."""
     return set(_get_module_marker_list(filepath))
 
 
 def _get_module_marker_list(filepath: Path) -> list[str]:
-    """AST에서 pytestmark 할당으로 선언된 마커 이름을 중복 포함 목록으로 추출."""
+    """Extract marker names declared by a pytestmark assignment, as a list that keeps duplicates."""
     source = filepath.read_text(encoding="utf-8")
     tree = ast.parse(source, filename=str(filepath))
     markers: list[str] = []
@@ -33,12 +33,12 @@ def _get_module_marker_list(filepath: Path) -> list[str]:
 
 
 def _get_function_markers(filepath: Path, func_name: str) -> set[str]:
-    """AST에서 특정 함수에 적용된 pytest.mark.X 데코레이터 이름을 추출."""
+    """Extract the pytest.mark.X decorator names applied to a given function, from the AST."""
     return set(_get_function_marker_list(filepath, func_name))
 
 
 def _get_function_marker_list(filepath: Path, func_name: str) -> list[str]:
-    """AST에서 특정 함수에 적용된 pytest 마커 이름을 중복 포함 목록으로 추출."""
+    """Extract the pytest marker names applied to a given function, as a list that keeps duplicates."""
     source = filepath.read_text(encoding="utf-8")
     tree = ast.parse(source, filename=str(filepath))
     aliases = _collect_marker_aliases(tree)
@@ -55,17 +55,17 @@ def _get_function_marker_list(filepath: Path, func_name: str) -> list[str]:
 
 
 def _get_effective_function_markers(filepath: Path, func_name: str) -> set[str]:
-    """모듈 레벨 pytestmark와 함수 데코레이터를 합친 실제 함수 마커를 반환."""
+    """Return a function's effective markers: module-level pytestmark plus its decorators."""
     return set(_get_effective_function_marker_list(filepath, func_name))
 
 
 def _get_effective_function_marker_list(filepath: Path, func_name: str) -> list[str]:
-    """모듈 레벨 pytestmark와 함수 데코레이터를 합친 실제 함수 마커 목록을 반환."""
+    """Return a function's effective markers as a list: module-level pytestmark plus its decorators."""
     return _get_module_marker_list(filepath) + _get_function_marker_list(filepath, func_name)
 
 
 def _collect_marker_aliases(tree: ast.Module) -> dict[str, list[str]]:
-    """모듈 레벨 할당에서 pytest.mark.X 별칭을 수집."""
+    """Collect pytest.mark.X aliases from module-level assignments."""
     aliases: dict[str, list[str]] = {}
     for node in ast.iter_child_nodes(tree):
         if isinstance(node, ast.Assign) and len(node.targets) == 1:
@@ -78,7 +78,7 @@ def _collect_marker_aliases(tree: ast.Module) -> dict[str, list[str]]:
 
 
 def _extract_marker_names(node: ast.expr) -> list[str]:
-    """pytest.mark.X 형태의 마커 이름을 추출 (리스트, 단일 속성 모두 처리)."""
+    """Extract pytest.mark.X marker names (handles both lists and a single attribute)."""
     names: list[str] = []
     if isinstance(node, (ast.List, ast.Tuple)):
         for elt in node.elts:
@@ -94,7 +94,7 @@ def _extract_marker_names(node: ast.expr) -> list[str]:
 
 
 def _dotted_name(node: ast.expr) -> str:
-    """Attribute 체인을 점 구분 문자열로 변환."""
+    """Turn an Attribute chain into a dotted string."""
     parts: list[str] = []
     while isinstance(node, ast.Attribute):
         parts.append(node.attr)
@@ -105,7 +105,7 @@ def _dotted_name(node: ast.expr) -> str:
 
 
 class TestMarkerExtractionHelpers:
-    """마커 contract helper 자체가 중복과 누락을 감지해야 한다."""
+    """The marker contract helpers themselves must detect duplicates and omissions."""
 
     def test_module_marker_list_preserves_duplicates(self, tmp_path):
         sample = tmp_path / "test_sample.py"
@@ -136,7 +136,7 @@ class TestMarkerExtractionHelpers:
 
 
 class TestHwWidgetMarkers:
-    """tests/test_hw_widget.py의 Node runtime 테스트만 requires_node 마커를 가져야 한다."""
+    """Only the Node runtime tests in tests/test_hw_widget.py carry the requires_node marker."""
 
     NODE_RUNTIME_TESTS = [
         "test_hw_widget_can_switch_between_two_npus",
@@ -163,7 +163,7 @@ class TestHwWidgetMarkers:
 
 
 class TestI18nAttributeMarkers:
-    """test_shared_i18n_behavior_runtime에 requires_node 마커가 있어야 한다."""
+    """test_shared_i18n_behavior_runtime must carry the requires_node marker."""
 
     def test_runtime_function_has_requires_node(self):
         filepath = TESTS_DIR / "dx_stream" / "test_i18n_attributes.py"
@@ -174,7 +174,7 @@ class TestI18nAttributeMarkers:
 
 
 class TestModelzooVirtualizedPerformanceMarkers:
-    """Pillow 의존 테스트 함수에 requires_pillow 마커가 있어야 한다."""
+    """Test functions that depend on Pillow must carry the requires_pillow marker."""
 
     PILLOW_TESTS = [
         "test_optimizer_dry_run_does_not_write_outputs",
@@ -211,7 +211,7 @@ class TestModelzooVirtualizedPerformanceMarkers:
 
 
 class TestBenchmarkMarkers:
-    """dx_stream/benchmark 테스트 모듈에 requires_dx_runtime 마커가 있어야 한다."""
+    """The dx_stream/benchmark test modules must carry the requires_dx_runtime marker."""
 
     BENCHMARK_FILES = [
         "test_config_expansion.py",

@@ -1,13 +1,11 @@
-"""공개 ModelZoo 어댑터 계약.
+"""Public ModelZoo adapter contracts.
 
-이 파일은 원래 서버 렌더 HTML 테이블 파서를 검증했다 — 3행 그룹 헤더, 셀의
-href 추출, 모델이 아닌 테이블 건너뛰기 같은 것들. 페이지가 리팩토링되면서 그
-테이블이 사라졌으므로 그 검증들은 존재하지 않는 구조를 지키고 있었다. 파싱
-자체의 계약은 tests/dx_modelzoo/test_public_payload_parser.py 로 옮겼다(실제
-페이로드 고정본으로 검증한다).
+Parsing itself is covered by tests/dx_modelzoo/test_public_payload_parser.py, against a
+fixed copy of the real payload.
 
-여기 남는 것은 **파싱 방식과 무관한 어댑터 계약**이다: 주입된 fetch 를 쓰는가,
-네트워크가 죽으면 실패를 보고하는가. 이 둘은 페이지가 또 바뀌어도 유효하다.
+This file holds the **adapter contracts that do not depend on how parsing works**: the
+injected fetch is used, and a dead network is reported as failure. Both stay valid when the
+page changes again.
 """
 from __future__ import annotations
 
@@ -36,10 +34,10 @@ class TestPublicModelZooAdapter(unittest.TestCase):
         self.assertTrue(r["errors"])
 
     def test_adapter_reports_a_shape_change_as_failure(self):
-        """페이지 구조가 바뀌면 빈 카탈로그를 내놓지 말고 실패로 보고해야 한다.
+        """A changed page structure must be reported as failure, not as an empty catalog.
 
-        조용한 부분 성공이 가장 위험하다 — 모델 수가 줄어든 카탈로그는 눈으로
-        구분되지 않은 채 merge 를 통과한다.
+        Silent partial success is the worst case: a catalog with fewer models looks the
+        same and passes through merge.
         """
         r = public_modelzoo_adapter(".", fetch_text=lambda url: "<html>no payload</html>")
         self.assertFalse(r["ok"])

@@ -81,8 +81,8 @@ def test_a_degraded_allow_says_so(tmp_path, monkeypatch):
 
 
 def test_the_launch_context_follows_the_policy_not_only_the_journal(tmp_path, monkeypatch):
-    """gate 가 dx_stream 을 degraded 로 허용했는데 context 가 ACTIVE 만 받아 모든 Stream 실행이 424
-    'profile.context' 로 막혔다 (2026-10-02 release audit S-1). 허용됐으면 context 도 풀린다."""
+    """When the gate allows dx_stream as degraded, the launch context must allow it too; a context that accepts
+    only ACTIVE would block every Stream run with 424 'profile.context'."""
     import shared.runtime_validation as rv
     from shared.runtime_context import RuntimeContextError, resolve_launch_context
     monkeypatch.setattr(rv, "validate_module_contracts",

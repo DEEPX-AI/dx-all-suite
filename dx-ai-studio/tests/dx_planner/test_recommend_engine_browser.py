@@ -1,13 +1,14 @@
-"""EdgeGuide RecommendEngine — runs the real recommend.js in Chromium (2026-10-11 redesign).
+"""EdgeGuide RecommendEngine: runs the real recommend.js in Chromium.
 
-The old engine test needed Node, which CI hosts may not have (it silently skipped), so the
-logic had no running test. This one loads recommend.js into a blank page.
+Loading recommend.js into a blank page keeps the logic under test on hosts without Node.
 
-What the redesign fixes (spec 2026-10-11-edgeguide-recommendation-design.md):
-- 60 FPS showed 0 channels on 231 of 240 combos — no row ever measured 60 per channel.
-- 15 FPS under-reported capacity — the answer was just the highest tested stream count.
-- One throttled row zeroed the platform although the row held the target.
-- Missing latency counted as a pass; "Best performance" ranked by single-model NPU FPS.
+What the engine must get right:
+- 60 FPS is estimated, not 0 channels, when no row measured 60 per channel.
+- A lower target (15 FPS) is estimated from the measured total, not capped at the highest tested
+  stream count.
+- One throttled row warns but does not zero a platform whose row holds the target.
+- Missing latency is not a plain pass; "Best performance" ranks by end-to-end pipeline FPS, not
+  single-model NPU FPS.
 """
 from __future__ import annotations
 
@@ -83,7 +84,7 @@ def test_a_measured_boundary_is_the_answer(page):
 
 
 def test_a_lower_target_than_measured_estimates_from_the_measured_total(page):
-    # RPi5: 2 ch @ 40.1 (80.2 total), 3 ch @ 26.7 (80.1) — at 15 FPS the old answer was "3+"
+    # RPi5: 2 ch @ 40.1 (80.2 total), 3 ch @ 26.7 (80.1); at 15 FPS the answer is 5, not "3+"
     r = _one(page, _rows((2, 40.1), (3, 26.7)), 15)
     assert r["maxChannels"] == math.floor(80.1 / 15) == 5
     assert r["evidence"] == "estimated" and r["boundaryFlag"] == "estimated"

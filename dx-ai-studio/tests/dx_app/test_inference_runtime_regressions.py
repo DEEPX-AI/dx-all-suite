@@ -458,8 +458,8 @@ def test_base64_upload_uses_atomic_tempfile_creation():
 
 
 def test_an_image_run_whose_runner_reported_an_error_is_not_shown_as_success(tmp_path, monkeypatch):
-    """C++ runner 가 `[DXAPP] [ERROR] Failed to align output tensors.` 를 찍고도 exit 0 으로 끝나면 결과 그림은
-    쓰레기다 (상자 수백 개 · 872950%) — 성공으로 보이지 않게 오류로 올린다 (2026-10-02 release audit Z-1)."""
+    """When the C++ runner prints `[DXAPP] [ERROR] Failed to align output tensors.` and still exits 0, the result
+    image is garbage (hundreds of boxes, 872950%), so the run is reported as an error, not as a success."""
     inference, _ = _prepare_dx_app_runtime(tmp_path, monkeypatch)
     (inference.DX_APP_ROOT / "input.jpg").write_bytes(b"input")
 
@@ -516,9 +516,9 @@ def _python_cmd_for(tmp_path, monkeypatch, **kw):
 
 
 def test_python_rtsp_run_passes_the_url_as_rtsp(tmp_path, monkeypatch):
-    """2026-10-11: Benchmark / A/B Compare with Python + RTSP ended "[ERROR] Input file not found: rtsp://…" — the URL
-    went in as --video, and the Python video source requires a file on disk. The runner takes it as --rtsp, and it
-    refuses --loop for a live source ("--loop is not valid with --camera or --rtsp")."""
+    """Benchmark / A/B Compare with Python + RTSP must not end in "[ERROR] Input file not found: rtsp://…": the
+    Python video source requires a file on disk, so the URL goes in as --rtsp, not --video, and the runner refuses
+    --loop for a live source ("--loop is not valid with --camera or --rtsp")."""
     url = "rtsp://127.0.0.1:8554/cam"
     cmd = _python_cmd_for(tmp_path, monkeypatch, input_type="rtsp", rtsp_url=url, loop=30)
     assert cmd[cmd.index(url) - 1] == "--rtsp"

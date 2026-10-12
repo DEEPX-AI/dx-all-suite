@@ -1,7 +1,7 @@
-"""Agent Dev 가 home 이 시작한 실행을 이어받아 그린다 (spec 2026-09-30 home agent run §5).
+"""Agent Dev takes over and renders a run that home started.
 
-예전: `attachIfRunning()` 은 stream 에 붙었지만 대화 칸 (`beginTurn`) 을 만들지 않아, message · command
-renderer 가 `if (!_turn) return` 으로 전부 버렸다 — "Go to agent dev" 뒤에 실시간 출력이 없었다.
+`attachIfRunning()` must open a conversation turn (`beginTurn`) as well as attach to the stream; otherwise the
+message and command renderers drop everything (`if (!_turn) return`) and "Go to agent dev" shows no live output.
 """
 from __future__ import annotations
 
@@ -43,7 +43,7 @@ def browser():
 
 
 def _start_run_elsewhere(port, prompt):
-    """home 이 시작하고 떠난 실행 — 첫 줄만 받고 끊는다 (server 가 실행을 들고 있다)."""
+    """A run home started and left: read only the first line, then disconnect (the server keeps the run)."""
     req = urllib.request.Request(f"http://127.0.0.1:{port}/api/agent/run",
                                  data=json.dumps({"prompt": prompt, "mode": "interactive"}).encode(),
                                  headers={"Content-Type": "application/json"})

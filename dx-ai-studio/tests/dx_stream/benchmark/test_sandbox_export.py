@@ -1,4 +1,4 @@
-"""sandbox_export.py 테스트: benchmark 결과 → sandbox JSON 형식 변환"""
+"""sandbox_export.py: benchmark results → sandbox JSON format"""
 import json
 from pathlib import Path
 
@@ -18,7 +18,7 @@ pytestmark = [
 
 @pytest.fixture
 def mock_results(tmp_path):
-    """모의 benchmark 결과 디렉토리"""
+    """Mock benchmark results directory"""
     result_dir = tmp_path / "results" / "test_hw" / "run_001"
     result_dir.mkdir(parents=True)
     model_results = [

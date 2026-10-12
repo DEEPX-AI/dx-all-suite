@@ -1,6 +1,6 @@
-"""AdapterResult 프로토콜 계약 테스트.
+"""AdapterResult protocol contract tests.
 
-각 어댑터 반환값이 AdapterResult 필수 키와 타입을 준수하는지 검증한다.
+Every adapter must return the required AdapterResult keys with the right types.
 """
 
 import json
@@ -33,7 +33,7 @@ _EXPECTED_TYPES = {
 
 
 def _assert_adapter_result_shape(result: dict, *, label: str = ""):
-    """result 가 AdapterResult 필수 키·타입을 모두 갖추었는지 검증."""
+    """Check that result has every required AdapterResult key and type."""
     prefix = f"[{label}] " if label else ""
     for key in ADAPTER_RESULT_REQUIRED_KEYS:
         assert key in result, f"{prefix}missing required key: {key}"
@@ -47,7 +47,7 @@ def _assert_adapter_result_shape(result: dict, *, label: str = ""):
 
 
 class TestAdapterResultDefinition:
-    """AdapterResult TypedDict 가 올바르게 정의되었는지 확인."""
+    """The AdapterResult TypedDict must be defined correctly."""
 
     def test_required_keys_constant_matches_spec(self):
         assert ADAPTER_RESULT_REQUIRED_KEYS == {
@@ -63,7 +63,7 @@ class TestAdapterResultDefinition:
 
 
 class TestAdapterResultHelper:
-    """adapters._adapter_result() 헬퍼가 계약을 준수하는지 확인."""
+    """The adapters._adapter_result() helper must honour the contract."""
 
     def test_default_result_shape(self):
         r = _adapter_result("test_adapter")
@@ -89,10 +89,10 @@ class TestAdapterResultHelper:
 
 
 class TestLocalRuntimeAdapterContract:
-    """local_runtime_adapter 가 외부 파일 없이도 계약을 준수하는지 확인."""
+    """local_runtime_adapter must honour the contract without external files."""
 
     def test_missing_runtime_returns_ok_false_with_error(self, tmp_path):
-        """dx-runtime 디렉토리가 없으면 ok=False, errors 비어있지 않아야 한다."""
+        """Without a dx-runtime directory: ok=False and errors is not empty."""
         result = local_runtime_adapter(tmp_path)
         _assert_adapter_result_shape(result, label="local_runtime missing")
         assert result["ok"] is False
@@ -106,13 +106,13 @@ class TestLocalRuntimeAdapterContract:
 
 
 class TestBenchmarkCacheAdapterContract:
-    """benchmark_cache_adapter 계약 검증."""
+    """benchmark_cache_adapter contract."""
 
     def test_missing_cache_file_returns_ok_true_with_warning(self, tmp_path):
-        """캐시 파일이 없으면 ok=True + warning (기존 동작 문서화)."""
+        """A missing cache file gives ok=True plus a warning."""
         result = benchmark_cache_adapter(tmp_path / "nonexistent.json")
         _assert_adapter_result_shape(result, label="benchmark_cache missing")
-        # 기존 동작: 파일 없으면 ok=True, warnings에 항목 추가
+        # No file: ok=True, with an entry in warnings
         assert result["ok"] is True
         assert any("not found" in w for w in result["warnings"])
 
@@ -145,7 +145,7 @@ class TestBenchmarkCacheAdapterContract:
 
 
 class TestLocalModelzooRepoAdapterContract:
-    """local_modelzoo_repo_adapter 계약 검증."""
+    """local_modelzoo_repo_adapter contract."""
 
     def test_missing_models_dir_returns_ok_false(self, tmp_path):
         result = local_modelzoo_repo_adapter(tmp_path)
@@ -161,7 +161,7 @@ class TestLocalModelzooRepoAdapterContract:
 
 
 class TestInternalModelzooAdapterContract:
-    """internal_modelzoo_adapter 계약 검증 (네트워크 모킹)."""
+    """internal_modelzoo_adapter contract (network mocked)."""
 
     def test_fetch_failure_returns_ok_false(self, tmp_path):
         def _fail(url):
@@ -185,7 +185,7 @@ class TestInternalModelzooAdapterContract:
 
 
 class TestStubNetworkAdapterContract:
-    """sync.py 의 _stub_network_adapter 결과가 계약을 준수하는지 확인."""
+    """The result of sync.py's _stub_network_adapter must honour the contract."""
 
     def test_stub_result_shape(self):
         from dx_modelzoo.metadata.sync import _stub_network_adapter
@@ -197,7 +197,7 @@ class TestStubNetworkAdapterContract:
 
 
 class TestSyncAggregationContract:
-    """run_sync 가 어댑터 결과를 올바르게 집계하는지 확인."""
+    """run_sync must aggregate adapter results correctly."""
 
     def test_all_adapters_fail_produces_empty_catalog(self, tmp_path):
         from dx_modelzoo.metadata.sync import run_sync

@@ -1,11 +1,10 @@
-"""DX Compiler — real-use audit (2026-10-11).
+"""DX Compiler — browser checks of everyday flows.
 
 Config Builder: "Dataset Path *" is required.
 
-Leaving it empty walked straight through to "Use This Config" and produced a config
-with no dataset_path; the user found out only when dxcom failed. An empty path now
-stops at step 3 and says why. A path that does not exist still only warns (the
-server decides), and Dummy Loader skips the step.
+An empty path must stop at step 3 and say why; otherwise the wizard reaches "Use This
+Config" with no dataset_path and the user finds out only when dxcom fails. A path that
+does not exist only warns (the server decides), and Dummy Loader skips the step.
 """
 from __future__ import annotations
 
@@ -60,8 +59,8 @@ def test_dummy_loader_does_not_ask_for_a_dataset(page):
 
 
 def test_a_long_graph_opens_readable_at_its_input(page):
-    """A 300-node model was fitted to the viewer at 2 % — a pale column nobody could read (2026-10-11 audit).
-    It now opens at a readable zoom with the input node in view; Fit still shows the whole graph."""
+    """A 300-node model fitted to the viewer is a 2 % pale column nobody can read.
+    It must open at a readable zoom with the input node in view; Fit still shows the whole graph."""
     page.evaluate("() => { document.getElementById('config-wizard').style.display = 'none'; }")
     got = page.evaluate("""() => {
         const svg = document.querySelector('svg #graph-content').ownerSVGElement;
@@ -81,12 +80,12 @@ def test_a_long_graph_opens_readable_at_its_input(page):
                 inputVisible: input.top >= box.top && input.bottom <= box.bottom
                               && input.left >= box.left && input.right <= box.right};
     }""")
-    assert got["fit"] < 0.5, got            # the case that used to open unreadable
+    assert got["fit"] < 0.5, got            # fitting this graph would be unreadable
     assert got["first"] >= 0.5 and got["inputVisible"], got
 
 
 def test_picking_a_sample_model_loads_its_graph(page):
-    """The sample menu filled the path but sent no change event, so the graph never drew (2026-10-11 audit)."""
+    """The sample menu must send a change event when it fills the path, or the graph never draws."""
     page.evaluate("() => { document.getElementById('config-wizard').style.display = 'none'; }")
     fired = page.evaluate("""() => {
         const got = [];
@@ -101,8 +100,8 @@ def test_picking_a_sample_model_loads_its_graph(page):
 
 
 def test_a_refused_compile_keeps_the_graph_and_shows_why(page):
-    """Compile with an output folder outside the allowed ones: the viewer was wiped before the request, and
-    the refusal landed below the Agentic card, off-screen — it looked like nothing happened (2026-10-11 audit)."""
+    """Compile with an output folder outside the allowed ones: the viewer must not be wiped before the request,
+    and the refusal must be on screen, not below the Agentic card where it looks like nothing happened."""
     page.evaluate("() => { document.getElementById('config-wizard').style.display = 'none'; }")
     page.route("**/compile", lambda r: r.fulfill(status=400, content_type="application/json",
                                                  body='{"error": "output_dir is outside the allowed folders"}'))
@@ -125,7 +124,7 @@ def test_a_refused_compile_keeps_the_graph_and_shows_why(page):
 
 
 def test_phase_tabs_and_actions_stay_reachable_on_a_phone(page):
-    """390 px: Quant Diagnosis / DXNN tabs and the buttons beside Compile ran off the screen (2026-10-11 matrix)."""
+    """390 px: Quant Diagnosis / DXNN tabs and the buttons beside Compile must not run off the screen."""
     page.set_viewport_size({"width": 390, "height": 844})
     page.evaluate("() => { document.getElementById('config-wizard').style.display = 'none'; }")
     page.wait_for_timeout(300)

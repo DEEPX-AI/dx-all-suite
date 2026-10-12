@@ -1,6 +1,6 @@
-"""공용 chrome 의 아이콘이 화면에서 sprite 로 그려지는지 (spec 2026-09-29 아이콘 체계 단계 1).
+"""The shared chrome icons are drawn on screen from the sprite.
 
-launcher 와 모듈 하나 (dx_app) 를 본다 — 툴바 · 챗 · 튜토리얼 목록은 두 곳에서 같은 코드다.
+Checks the launcher and one module (dx_app); the toolbar, chat and tutorial list are the same code in both.
 """
 from __future__ import annotations
 
@@ -66,7 +66,7 @@ def test_the_theme_icon_follows_the_state(page):
 
 
 def test_the_icons_are_drawn(page):
-    """sprite 를 못 받으면 <use> 는 0×0 이 아니라 빈 상자로 남는다 — 선이 칠해졌는지 본다."""
+    """Without the sprite a <use> stays an empty box rather than 0×0, so check that strokes were painted."""
     box = page.evaluate("""() => { const s = document.querySelector('#dxToolbarTheme svg.dx-ico');
       const r = s.getBoundingClientRect(); return [r.width, r.height]; }""")
     assert box[0] >= 12 and box[1] >= 12, box

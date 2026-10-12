@@ -1,13 +1,10 @@
-"""internal 소스의 20칼럼 테이블이 우리가 가정한 모양인지.
+"""The internal source's 20-column table has the shape the parser assumes.
 
-`docs/testing.md` 에 "사내망 호스트라 게이트가 닿지 못한다" 고 적었는데, 확인해보니
-닿는다. 확인하지 않고 단정한 것이었다. 실측 응답에서 대표 구간(20칼럼 헤더 3행 +
-데이터 3행)을 잘라 픽스처로 두고, 여기서 그 모양을 고정한다.
+The fixture is a representative slice of a real response (3 header rows of the 20-column table plus 3 data rows),
+and these tests pin that shape.
 
-왜 필요한가: 공개 페이지가 정확히 이렇게 조용히 깨졌다. 테이블이 사라지고 인라인
-JSON 으로 바뀌었는데 스크래퍼는 따라가지 않았고, 그 경로는 500 을 내면서도 아무
-게이트도 울리지 않았다. internal 은 같은 위험을 안고 있었고, 다른 점은 아무도 그것을
-보고 있지 않았다는 것뿐이다.
+Why: the public page broke in exactly this silent way. Its table was replaced by inline JSON, the scraper did not
+follow, and the route returned 500 without any gate noticing. The internal source carries the same risk.
 """
 from __future__ import annotations
 
@@ -35,12 +32,11 @@ def test_a_row_carries_the_fields_the_screen_uses():
 
 
 def test_internal_rows_carry_only_two_tiers():
-    """공개 소스는 Q-Master 를 주지만 이쪽은 주지 않는다 — 그 비대칭을 적어 둔다.
+    """The public source offers Q-Master but this one does not; pin that asymmetry.
 
-    `_CHIP_DIRS` 와 프론트의 `MZ_CHIPS` 는 세 티어를 순회하는데, 이 경로가 만드는
-    행에는 `qmaster` 키 자체가 없다. 지금은 조용히 넘어간다(`m.get(chip)` → None,
-    `m[chip.key]` → undefined → '–'). 우연이 아니라 계약이 되도록 고정한다.
-    실측: internal 496 모델 중 Q-Master 0 건.
+    `_CHIP_DIRS` and the frontend's `MZ_CHIPS` iterate over three tiers, but rows built here have no `qmaster`
+    key at all. That is handled quietly (`m.get(chip)` → None, `m[chip.key]` → undefined → '–'); this test makes
+    it a contract rather than an accident. The internal source lists no Q-Master models.
     """
     m = _models()[0]
     assert "qmaster" not in m, (
@@ -49,10 +45,10 @@ def test_internal_rows_carry_only_two_tiers():
 
 
 def test_missing_numbers_are_dashes_here_not_nulls():
-    """public 은 숫자나 None 을 주고 internal 은 '-' 문자열을 준다.
+    """Public gives numbers or None; internal gives the string '-'.
 
-    같은 화면이 두 소스를 쓰므로 이 차이를 알고 있어야 한다 — 정렬이나 계산에
-    들어가면 조용히 어긋난다.
+    The same screen reads both sources, so the difference must be known: in sorting or arithmetic it would go wrong
+    silently.
     """
     m = _models()[0]
     for key in ("fps", "fps_per_watt"):

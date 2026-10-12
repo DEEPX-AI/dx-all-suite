@@ -1,4 +1,4 @@
-"""status.py 시스템 상태 감지 테스트 — 파일시스템 모킹으로 격리"""
+"""status.py system status detection — isolated with a mocked filesystem"""
 import os, sys, pytest
 from pathlib import Path
 from unittest.mock import patch, MagicMock
@@ -48,7 +48,7 @@ class TestCheckModels:
         models_dir.mkdir()
         # Names from the catalog in force: setup.sh's model download writes a manifest that
         # renames the catalog (yolo26n.dxnn → yolo26-n_640x640.dxnn), so hard-coded legacy
-        # names failed on every host that had run Setup.
+        # names would fail on every host that has run Setup.
         for name in [m["file"] for m in get_models()][:2]:
             (models_dir / name).touch()
         with patch("core.status.MODELS_DIR", models_dir):
@@ -172,7 +172,7 @@ class TestCheckSystem:
         mock_mgr = MagicMock()
         mock_mgr.is_running.return_value = True
         result = check_system(pipeline_mgr=mock_mgr)
-        # GstShark/perf was removed; check_system still returns the core status blocks.
+        # check_system returns the core status blocks and no perf block.
         assert "npu" in result and "gstreamer" in result and "models" in result
         assert "perf" not in result
 

@@ -1,9 +1,9 @@
 """Real-NPU tier for DX Stream: every demo starts, frames flow, a frame decodes, it stops.
 
 The unit and browser suites drive the Stream page against fakes, so none of them can
-tell that a demo which "started" never produced a frame (the S-1/S-6 failures of the
-2026-10-10 audit were exactly that). This tier starts the real ``dx_stream/server.py``
-on an ephemeral port and drives the same HTTP calls the Demo Launcher makes.
+tell that a demo which "started" never produced a frame. This tier starts the real
+``dx_stream/server.py`` on an ephemeral port and drives the same HTTP calls the Demo
+Launcher makes.
 
 Opt in on a board with a DX-M1: ``DX_E2E_STREAM_NPU=1 pytest tests/e2e -m e2e_npu``
 (``DX_E2E_NPU_STRICT=1`` turns a missing NPU into a failure). The RTSP demo needs the

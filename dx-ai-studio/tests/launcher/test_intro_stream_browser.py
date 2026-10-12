@@ -1,8 +1,8 @@
-"""intro 의 첫 작업 장면 — 16채널 pull-back (spec 2026-09-30 intro stream).
+"""The intro's first working scene: a 16-channel pull-back.
 
-교차로 한 채널이 화면을 채우고 box 가 잡힌 뒤, 카메라가 한 번 물러나며 그 화면이 4×4 wall 의 자기
-칸이 된다. 나머지 15칸의 box 는 대각선 물결로 잡힌다. 여기서는 그 약속을 실제 browser 에서 본다:
-box 는 bake 한 수만큼 그려지고, 물러난 화면은 자기 칸에 정확히 앉고, debug 흔적은 없다.
+One intersection channel fills the screen and its boxes lock on; the camera pulls back once and that view becomes
+its own cell of a 4×4 wall. The other 15 cells lock their boxes in a diagonal wave. This checks that promise in a
+real browser: as many boxes as were baked, the pulled-back view lands exactly in its cell, and no debug traces.
 """
 from __future__ import annotations
 
@@ -64,7 +64,7 @@ def test_the_first_work_beat_is_the_sixteen_channel_wall(browser, port):
 
 
 def test_the_logo_is_gone_before_the_first_scene_comes_in(browser, port):
-    """logo 가 반투명하게 남아 교차로 위에 겹쳤다 (사용자 피드백 2026-09-30) — 장면이 들어올 때는 이미 없다."""
+    """The logo must already be gone when the scene enters, not linger semi-transparent over the intersection."""
     ctx, page = _open(browser, port)
     try:
         page.wait_for_selector(".intro-stream", state="attached", timeout=15000)

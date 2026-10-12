@@ -1,16 +1,15 @@
-"""ModelZoo 카탈로그 가상화가 실제로 스크롤을 따라가는지.
+"""ModelZoo catalog virtualization actually follows the scroll.
 
-기존 "가상화 계약" 테스트(`tests/test_modelzoo_virtualized_performance.py`)는
-catalog.js 를 문자열로 grep 해서 `renderViewport` 같은 이름이 있는지만 본다.
-그래서 가상화가 통째로 죽어 있어도 전부 통과했다 — 실제로 죽어 있었다.
+The source-level contract (`tests/test_modelzoo_virtualized_performance.py`) only greps
+catalog.js for names like `renderViewport`, so it passes even when virtualization is dead.
 
-증상: 필터가 All 인데 347개 중 40장만 그려지고, 끝까지 내려도 늘지 않았다.
-원인: 가상화가 스크롤러를 "자기 컨테이너 아니면 window" 로 가정했는데, 앱 셸이
-통합되면서 overflow 가 조상(`main.dx-shell-main`)으로 옮겨갔다. 컨테이너도 window 도
-스크롤 이벤트를 내지 않으니 `_getEffectiveScrollTop()` 이 영원히 0 이었다.
+The failure this catches: with the filter on All, only the first 40 of 347 cards render and
+scrolling to the end adds none. That happens when the virtualizer assumes the scroller is "its
+own container or window" while the overflow sits on an ancestor (`main.dx-shell-main`): neither
+fires scroll events, so `_getEffectiveScrollTop()` stays 0.
 
-그래서 여기서는 스크롤러를 **이름으로 찾지 않는다.** DOM 에서 실제로 넘치는 조상을
-찾아 스크롤한다 — 셸이 또 바뀌어도 이 테스트는 따라간다.
+So this test does **not find the scroller by name.** It scrolls the ancestor that actually
+overflows in the DOM, so it keeps working if the shell changes.
 """
 from __future__ import annotations
 
@@ -20,7 +19,7 @@ pytest.importorskip("playwright.sync_api")
 
 from tests.server_helpers import start_module_server  # noqa: E402
 
-# 컨테이너에서 위로 올라가며 실제로 스크롤 가능한 첫 조상을 찾는다.
+# Walk up from the container to the first ancestor that actually scrolls.
 _FIND_SCROLLER = """() => {
   let node = document.getElementById('catalogContainer');
   while (node && node !== document.documentElement) {
@@ -97,10 +96,11 @@ def test_scrolling_moves_the_rendered_window(zoo):
 
 
 def test_scrolling_to_the_end_shows_models_the_top_never_showed(zoo):
-    """끝까지 내렸을 때 맨 위에서 보이던 것과 겹치지 않는 모델이 나와야 한다.
+    """Scrolling to the end must show models not seen at the top.
 
-    API 순서와 렌더 순서가 같다고 가정하지 않는다 — 카탈로그는 정렬을 따로 하므로
-    'API 앞 40개' 와 비교하면 무의미하게 참이 된다. 화면이 실제로 이동했는지만 본다.
+    API order and render order are not assumed equal — the catalog sorts on its own, so a
+    comparison with the 'first 40 from the API' would be trivially true. Only checks that the
+    view actually moved.
     """
     sel = _scroller(zoo)
     _scroll_to(zoo, sel, 0.0)
@@ -116,7 +116,7 @@ def test_scrolling_to_the_end_shows_models_the_top_never_showed(zoo):
 
 
 def test_virtualization_still_windows(zoo):
-    """전부 그려버리는 '고침' 도 회귀다 — 347장을 한 번에 그리면 화면이 느려진다."""
+    """Rendering everything is not a fix — drawing 347 cards at once makes the page slow."""
     sel = _scroller(zoo)
     total = _total_models(zoo)
     for ratio in (0.0, 0.3, 0.6, 1.0):

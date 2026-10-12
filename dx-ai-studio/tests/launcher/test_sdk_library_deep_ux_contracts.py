@@ -290,7 +290,7 @@ class TestReleaseConsoleLogGating:
     def test_sdk_library_no_ungated_console_log(self, sdk_js):
         """sdk-library.js must not contain bare console.log('[SDK Library]')."""
         for m in self._LOG_PATTERN.finditer(sdk_js):
-            # 해당 줄 전체를 추출하여 가드 확인
+            # Take the whole line and check for the guard.
             line_start = sdk_js.rfind("\n", 0, m.start()) + 1
             line = sdk_js[line_start : sdk_js.find("\n", m.end())]
             assert self._GUARD in line or "if" in sdk_js[max(0, line_start - 80) : line_start], (
@@ -363,8 +363,8 @@ class TestSdkOverlayStateExposed:
 
 
 def test_sdk_library_stacks_on_a_phone_and_points_nowhere():
-    """390 px: the 240 px list and the document pane sat side by side (the pane two words wide), and the empty
-    state pointed '← left' at a list that is above it on a phone (2026-10-11 matrix)."""
+    """At 390 px the 240 px list and the document pane must not sit side by side (the pane would be two words
+    wide), and the empty state must not point '← left' at a list that is above it on a phone."""
     from pathlib import Path
 
     root = Path(__file__).resolve().parents[2]

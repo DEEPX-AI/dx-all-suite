@@ -1,9 +1,9 @@
-"""튜토리얼 툴팁은 가리키는 대상을 덮지 않는다 — 좁은 화면에서도 (release audit E-1, E-2, E-3).
+"""A tutorial tooltip never covers the target it points at — on narrow screens too.
 
-E-1: 툴팁을 화면 안으로 밀어 넣은 뒤 '잘렸는가' 만 보아, 밀어 넣은 위치가 대상 위여도 그대로 두었다. 390px 에서
-     dx_app 86 단계 중 41 단계가 대상을 20% 넘게 가렸다.
-E-2: 높이 0 인 띠도 '보이는 대상' 으로 쳐 스포트라이트가 빈 줄에 걸렸다.
-E-3: beforeStep 이 예외를 던지면 투어가 앞 스텝에 멈췄다.
+- A tooltip clamped into the viewport must not end up on top of its target; checking only
+  "is it clipped" would leave it covering the target on a phone width.
+- A zero-height strip is not a visible target; the spotlight must not land on an empty line.
+- A beforeStep that throws must not stall the tour on the previous step.
 """
 from __future__ import annotations
 
@@ -82,7 +82,7 @@ def test_a_zero_height_target_is_not_spotlighted(browser, server):
         pg.evaluate("""() => { const d = document.createElement('div'); d.id = 'probe-empty';
           d.style.cssText = 'width:400px;height:0'; document.body.prepend(d); }""")
         pg.evaluate(START, [{"target": "#probe-empty", "title": {"en": "t"}, "content": {"en": "empty strip"}}])
-        pg.wait_for_timeout(2600)   # 엔진의 폴링 (2초) 뒤
+        pg.wait_for_timeout(2600)   # after the engine's polling (2 s)
         assert pg.evaluate("() => !!document.querySelector('.dxt-tooltip').getAttribute('data-dxt-floating')")
         assert not pg.evaluate("() => document.querySelector('.dxt-spotlight').classList.contains('active')")
     finally:

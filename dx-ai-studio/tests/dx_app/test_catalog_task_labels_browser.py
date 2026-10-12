@@ -1,9 +1,9 @@
-"""DX App ModelZoo tab — every catalog task name shows in the chosen language (2026-10-11 matrix).
+"""DX App ModelZoo tab — every catalog task name shows in the chosen language.
 
 The public catalog names tasks slightly differently from the label table: 'Face Attribute
 Recognition' vs face_attribute, 'Image De-noising' vs image_denoising, 'Zero Shot Image
-Classification' vs zero_shot_image_classification. Those chips and badges stayed English
-on every non-English screen.
+Classification' vs zero_shot_image_classification. Unless those names are mapped, their chips
+and badges stay English on every non-English screen.
 """
 from __future__ import annotations
 
@@ -50,8 +50,8 @@ def test_every_catalog_task_has_a_korean_label(page):
 
 
 def test_lab_home_tiles_form_a_grid(page):
-    """class="grid" had no CSS, so #lab-home was display:block and the six tiles stacked at
-    ragged widths at every screen size (2026-10-11 matrix)."""
+    """class="grid" needs CSS; without it #lab-home is display:block and the six tiles stack at
+    ragged widths at every screen size."""
     page.evaluate("nav('lab')")
     page.wait_for_timeout(400)
     got = page.evaluate("""() => { const g = document.getElementById('lab-home');

@@ -1,10 +1,10 @@
-"""studio 가 돌리는 dx_app 은 DXRT_DYNAMIC_CPU_THREAD=ON 으로 (2026-10-01).
+"""dx_app runs launched by the studio get DXRT_DYNAMIC_CPU_THREAD=ON.
 
-RT-DETR r18 처럼 graph 일부가 CPU task 인 model 은 그 task 가 thread 하나라 async 로 돌려도 막힌다. 이 PC
-(DX-RT 3.5.0) 에서 C++ async 100 frame: OFF 4.2 FPS (CPU queue 78%) → ON 9.3 FPS (30%). DX-RT 자신이
-"To improve FPS, set: 'export DXRT_DYNAMIC_CPU_THREAD=ON'" 이라고 찍고, dx_rt 문서
-(04_Model_Inference.md) 와 dx_app 의 performance_patterns 도 같은 처방이다. 사용자가 이미 정한 값 (OFF 포함)
-은 그대로 둔다.
+Models with a CPU task in the graph (RT-DETR r18, for one) stall on that task's single thread even when run async.
+On DX-RT 3.5.0, C++ async over 100 frames went from 4.2 FPS (CPU queue 78%) with OFF to 9.3 FPS (30%) with ON.
+DX-RT itself prints "To improve FPS, set: 'export DXRT_DYNAMIC_CPU_THREAD=ON'", and the dx_rt docs
+(04_Model_Inference.md) and dx_app's performance_patterns give the same advice. A value the user already set (OFF
+included) is left alone.
 """
 from pathlib import Path
 
@@ -51,9 +51,9 @@ def test_live_runs_use_the_same_env():
 
 
 def test_run_env_drops_the_qt_paths_that_opencv_python_sets_on_import():
-    """opencv-python 은 import 될 때 QT_QPA_PLATFORM_PLUGIN_PATH · QT_QPA_FONTDIR 를 자기 cv2/qt 로 바꾼다. 서버가
-    한 번 cv2 를 쓰면 (이미지 추론 · 썸네일) 그 뒤의 C++ runner 는 시스템 Qt5 에 pip 의 플러그인을 싣다가
-    "Could not load the Qt platform plugin xcb" 로 abort (-6) — 라이브 화면이 검다 (release audit A-30, 이 PC)."""
+    """opencv-python rewrites QT_QPA_PLATFORM_PLUGIN_PATH and QT_QPA_FONTDIR to its own cv2/qt on import. Once the
+    server has used cv2 (image inference, thumbnails), a later C++ runner would load pip's plugins into the system Qt5
+    and abort (-6) with "Could not load the Qt platform plugin xcb", leaving the live view black."""
     from shared import dxrt
     cv2_qt = "/venv/lib/python3.12/site-packages/cv2/qt"
     env = dxrt.run_env({"QT_QPA_PLATFORM_PLUGIN_PATH": cv2_qt + "/plugins", "QT_QPA_FONTDIR": cv2_qt + "/fonts",

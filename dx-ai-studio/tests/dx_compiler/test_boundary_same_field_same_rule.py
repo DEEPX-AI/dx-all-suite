@@ -1,20 +1,17 @@
-"""같은 필드는 어느 엔드포인트에서나 같게 처리돼야 한다.
+"""The same field must get the same rule at every endpoint.
 
-전수조사에서 나온 가장 설명적인 증거다. `/compile/resume` 은 꼼꼼히 검증하는데
-바로 옆 `/compile` 과 `/config/generate` 는 같은 개념을 그냥 받는다:
+`/compile/resume`, `/compile` and `/config/generate` accept the same concepts and
+must judge them alike:
 
-    enhanced_scheme 알 수 없는 DXQ 키   resume 400  /compile 200
-    enhanced_scheme 이 dict 가 아님      resume 400  /compile 200
-    calibration method                  resume 400  /config/generate 200 ("고양이" 저장)
+    enhanced_scheme with an unknown DXQ key   400 everywhere
+    enhanced_scheme that is not a dict        400 everywhere
+    calibration method                        400 for values outside the documented set
 
-즉 "검증이 없다" 가 아니라 **"있는데 고르지 않다"** 이다. 그래서 새 규칙을
-만들지 않는다 — resume 이 이미 옳게 하는 것을 validation.py 로 옮기고 안 부르던
-곳이 부르게 한다.
+The rules live once in validation.py and every endpoint calls them, instead of
+each endpoint growing its own.
 
-이 파일 앞부분(TestResumeContractIsUnchanged)은 **리팩터링 안전장치**다. 추출
-전에 기존 400 동작을 못박아, 옮기는 과정에서 동작이 바뀌지 않았음을 보증한다.
-
-계약: docs/superpowers/specs/2026-09-18-compiler-input-validation-design.md
+TestResumeContractIsUnchanged pins the resume endpoint's 400 behaviour, so moving
+its checks into validation.py cannot change what it accepts.
 """
 from __future__ import annotations
 
@@ -24,7 +21,7 @@ import urllib.request
 import uuid
 
 import pytest
-from tests.dx_compiler._compile_paths import compile_paths_not_under_test, compile_jobs_outside_var  # noqa: F401  (경로 정책은 이 시험의 대상이 아니다 · 작업은 tmp 에)
+from tests.dx_compiler._compile_paths import compile_paths_not_under_test, compile_jobs_outside_var  # noqa: F401  (path policy is not under test here; jobs go to tmp)
 
 from tests.server_helpers import start_module_server
 
@@ -70,7 +67,7 @@ _RESUME = {"qxnn_path": "/tmp/a.qxnn", "output_dir": "/tmp/o"}
 
 
 class TestResumeContractIsUnchanged:
-    """추출 전후로 동작이 같아야 한다. 리팩터링 안전장치."""
+    """The resume endpoint keeps its existing contract."""
 
     @pytest.mark.parametrize("method", ["minmax", "ema", "iqr"])
     def test_the_three_documented_resume_methods_pass(self, compiler, method):
@@ -83,7 +80,7 @@ class TestResumeContractIsUnchanged:
     def test_other_resume_methods_are_refused(self, compiler, method):
         code, _ = _post(compiler, "/compile/resume",
                         {**_RESUME, "recalibration_method": method})
-        # "" 는 "지정 안 함" 으로 취급하는 기존 동작이다 — 바꾸지 않는다.
+        # "" means "not specified" — that behaviour stays.
         expected = 200 if not method.strip() else 400
         assert code == expected
 
@@ -115,17 +112,17 @@ class TestCompileNowChecksWhatResumeAlreadyChecked:
         assert code == 400, f"enhanced_scheme={raw} 가 통과했다 — {code} {body}"
 
     def test_a_valid_scheme_still_compiles(self, compiler):
-        """과잉 차단 방지 — 정상 DXQ 는 계속 통과해야 한다."""
+        """No over-blocking — a valid DXQ scheme must still pass."""
         code, body = _compile(compiler, enhanced_scheme='{"DXQ-P3": {"num_samples": 8}}')
         assert code == 200, f"정상 DXQ 를 막았다 — {code} {body}"
 
 
 class TestDxqValuesMustBeObjects:
-    """키 화이트리스트는 있었지만 값은 아무도 안 봤다.
+    """Scheme keys are whitelisted; their values must be objects too.
 
-    인자 **이름** 은 막지 않는다 — 02_06:493 을 보면 스킴마다 다르다
-    (alpha, beta, cosim_num, num_samples). 이름을 막는 것은 과잉 차단이다.
-    값이 객체인지까지만 본다.
+    Parameter **names** are not restricted — per 02_06:493 they differ per scheme
+    (alpha, beta, cosim_num, num_samples), so restricting them would over-block.
+    Only check that the value is an object.
     """
 
     @pytest.mark.parametrize("value", ["많이", 5, [1, 2], None])
@@ -141,22 +138,22 @@ class TestDxqValuesMustBeObjects:
         {},
     ])
     def test_documented_scheme_parameters_pass(self, compiler, params):
-        """02_06:493 에 나오는 인자 조합들. 이름을 화이트리스트하지 않으므로
-        전부 통과해야 한다."""
+        """Parameter combinations from 02_06:493. Names are not whitelisted, so
+        all of them must pass."""
         code, body = _post(compiler, "/compile/resume",
                            {**_RESUME, "enhanced_scheme": {"DXQ-P0": params}})
         assert code == 200, f"문서에 있는 인자를 막았다: {params} — {body}"
 
 
 class TestConfigCalibrationMethodIsNotTheResumeOne:
-    """이름은 비슷하지만 같은 것이 아니다.
+    """Similar names, different things.
 
-    config.json 의 calibration_method 는 `{ema, minmax}` (config-schema.md:76).
-    resume 의 recalibration_method 는 `{minmax, ema, iqr}` 이고 문서가
-    **"(Resume-only)"** 라고 못박았다 (02_06:103).
+    config.json's calibration_method is `{ema, minmax}` (config-schema.md:76).
+    Resume's recalibration_method is `{minmax, ema, iqr}`, which the docs mark
+    **"(Resume-only)"** (02_06:103).
 
-    하나로 합치면 iqr 이 config.json 에 들어간다. 합치지 않는 이유를 이 테스트가
-    기억한다 — 안 그러면 다음 사람이 "중복" 으로 보고 합친다.
+    Merging the two would let iqr into config.json. This test records why they stay
+    separate, so they are not merged as an apparent duplicate.
     """
 
     @pytest.mark.parametrize("method", ["ema", "minmax"])

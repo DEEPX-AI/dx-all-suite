@@ -200,8 +200,8 @@ def test_dxnn_upload_and_mjpeg_fallback_strings_cover_all_languages():
     html = stream_template()
     for element_id in ("model-upload-file", "model-upload-status"):
         assert f'id="{element_id}"' in html
-    # 언어 span 은 걷어냈다. 화면 문구가 여섯 언어를 다 받는지는 key 가
-    # 사전에서 풀리는지로 본다.
+    # Whether the on-screen text takes all six languages is checked by every key
+    # resolving in the dictionary.
     assert_translatable(html, "dx_stream/static/js/stream-i18n.js", "dx_stream index")
 
 
@@ -482,7 +482,7 @@ def test_stream_fallback_routes_localized_app_keywords(message, lang, expected):
 
 
 def test_stream_server_app_fallback_rules_cover_all_supported_languages():
-    # 규칙은 shared/chat/module_fallbacks.py 한 곳에 (6개 언어 — tests/shared/test_module_fallbacks.py)
+    # The rules live in shared/chat/module_fallbacks.py (six languages — tests/shared/test_module_fallbacks.py)
     source = read_text(STREAM / "server.py")
     assert 'fallback_rules=_module_fallbacks.rules("dx_stream")' in source
     from shared.chat import module_fallbacks

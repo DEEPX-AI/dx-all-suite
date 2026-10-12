@@ -1,6 +1,5 @@
 """Connected browsers — the launcher's list of paired remote browsers, in a real browser.
 
-spec: docs/superpowers/specs/2026-10-02-studio-connected-browsers-ui-design.md
 The server side (status addresses, sessions API) is pinned in tests/shared/test_remote_access.py.
 """
 from __future__ import annotations
@@ -175,7 +174,7 @@ def test_a_launcher_nobody_else_can_reach_has_no_button(studio, browser):
     ctx, page, _ = _open(browser, port)
     try:
         page.wait_for_function("!!document.getElementById('dxToolbarTutorial')", timeout=30000)
-        page.wait_for_timeout(2000)  # status 응답을 기다린다 (health poll 때문에 networkidle 은 오지 않는다)
+        page.wait_for_timeout(2000)  # wait for the status response (the health poll keeps networkidle from arriving)
         assert page.locator("#dxToolbarRemote").count() == 0
     finally:
         ctx.close()

@@ -1,4 +1,4 @@
-"""아티팩트 검증 및 서버 엔드포인트 테스트."""
+"""Artifact validation and server endpoint tests."""
 import json
 import urllib.request
 import sys
@@ -59,7 +59,7 @@ def test_safe_local_artifact_path_rejects_symlink_escape(tmp_path):
     from dx_modelzoo.metadata.artifacts import safe_local_artifact_path
     root = tmp_path / "assets"
     root.mkdir()
-    # 심볼릭 링크로 탈출 시도
+    # try to escape through a symlink
     link = root / "escape"
     link.symlink_to(tmp_path.parent)
     try:
@@ -135,7 +135,7 @@ def _load_create_server():
 
 @pytest.fixture(scope="module")
 def server():
-    """테스트용 서버 시작/정지."""
+    """Start/stop a server for the tests."""
     import threading, time
     create_server = _load_create_server()
     srv = create_server(TEST_PORT)
@@ -156,11 +156,11 @@ def server():
 
 
 def test_safe_local_artifact_path_accepts_double_dot_in_filename(tmp_path):
-    """model..v2.dxnn 같은 유효한 파일명은 허용해야 한다."""
+    """A valid file name such as model..v2.dxnn must be accepted."""
     from dx_modelzoo.metadata.artifacts import safe_local_artifact_path
     root = tmp_path / "assets"
     root.mkdir()
-    # 실제 traversal 아닌 '..'를 포함하는 파일명
+    # a file name containing '..' that is not a traversal
     result = safe_local_artifact_path(root, "models/model..v2.dxnn")
     assert result.is_relative_to(root)
     assert result.name == "model..v2.dxnn"
@@ -169,7 +169,7 @@ def test_safe_local_artifact_path_accepts_double_dot_in_filename(tmp_path):
 
 
 def test_resolve_artifact_blocks_internal_host_even_with_local_profile():
-    """source_profile='local'이라도 내부 호스트 URL은 노출하지 않아야 한다."""
+    """Internal host URLs must not be exposed, even with source_profile='local'."""
     from dx_modelzoo.metadata.artifacts import resolve_artifact
     model = {
         "id": "TestModel",
@@ -185,7 +185,7 @@ def test_resolve_artifact_blocks_internal_host_even_with_local_profile():
 
 
 def test_resolve_artifact_allows_public_host_with_local_profile():
-    """source_profile='local'에서 공개 호스트 URL은 허용해야 한다."""
+    """Public host URLs must be allowed with source_profile='local'."""
     from dx_modelzoo.metadata.artifacts import resolve_artifact
     model = {
         "id": "TestModel",
@@ -202,7 +202,7 @@ def test_resolve_artifact_allows_public_host_with_local_profile():
 
 class TestArtifactEndpoints:
     def test_artifact_endpoint_rejects_unknown_artifact(self, server):
-        # 먼저 유효한 모델 ID를 가져옴
+        # get a valid model ID first
         resp = urlopen(f"http://127.0.0.1:{TEST_PORT}/api/catalog")
         data = json.loads(resp.read())
         if not data["models"]:
@@ -233,10 +233,9 @@ class TestArtifactEndpoints:
         if not data["models"]:
             pytest.skip("No models loaded")
         model_id = data["models"][0]["id"]
-        # 리다이렉트를 따라가지 않는다. 원격 아티팩트면 서버가 CDN 으로 302 를 내는데,
-        # urlopen 은 그것을 따라가므로 인터넷이 없는 곳에서는 서버가 옳게 답했는데도
-        # 이 테스트가 죽는다 — 실제로 그렇게 오해한 적이 있다.
-        # 여기서 볼 것은 서버의 응답이지 CDN 에 닿는지가 아니다.
+        # Do not follow redirects. For a remote artifact the server answers 302 to the CDN;
+        # urlopen would follow it, so without internet the test would fail even though the
+        # server answered correctly. What matters is the server's response, not the CDN.
         class _NoRedirect(urllib.request.HTTPRedirectHandler):
             def redirect_request(self, *args, **kwargs):
                 return None

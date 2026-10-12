@@ -1,7 +1,7 @@
-"""무대의 아이콘과 책 (spec 2026-09-23 §5.3–5.4) — 모양의 계약.
+"""The stage's icons and books: contracts on their shape.
 
-크기와 상태는 test_home_icons_browser.py 가 화면에서 잰다. 여기는 마크업과 규칙이
-그 모양을 약속하는지 본다.
+Size and state are measured on screen by test_home_icons_browser.py. This file checks that the markup and
+rules promise that shape.
 """
 from __future__ import annotations
 
@@ -29,7 +29,7 @@ def _glyph(app: str) -> str:
 
 
 def test_icon_size_is_one_variable():
-    """평소 72, Dock 48 — 두 상태가 같은 규칙을 쓰게 크기는 변수 하나다."""
+    """72 normally, 48 in the Dock: one size variable so both states use the same rule."""
     css = _css()
     assert re.search(r"--icon:\s*72px", css)
     assert re.search(r"--icon:\s*48px", css), "Dock 크기가 없다"
@@ -38,13 +38,13 @@ def test_icon_size_is_one_variable():
 
 
 def test_icon_glass_is_mixed_from_the_module_colour():
-    """모듈 색은 style.css 의 --mod-tint 하나에서 온다 — 새 hex 를 들이지 않는다."""
+    """Module colours come from the single --mod-tint in style.css; no new hex values."""
     tile = re.search(r"\.stage-deck \.mod-tile\s*\{([^}]*)\}", _css()).group(1)
     assert "var(--mod-tint)" in tile
     assert not re.search(r"#[0-9a-fA-F]{3,8}\b", _css()), "home-stage.css 에 hex 가 생겼다"
 
 
-# 타일의 모듈 키 → 공용 sprite 의 symbol (아이콘 체계 단계 0: 레일 · 탭과 같은 모양).
+# Tile module key → symbol in the shared sprite (same shapes as the rail and tabs).
 SYMBOL = {"app": "app", "stream": "stream", "zoo": "zoo", "compiler": "compiler", "benchmark": "bench",
           "planner": "edge", "dx_monitor": "monitor", "agent": "agent"}
 SPRITE = (ROOT / "shared" / "static" / "dx-icons.svg").read_text(encoding="utf-8")
@@ -52,8 +52,8 @@ SPRITE = (ROOT / "shared" / "static" / "dx-icons.svg").read_text(encoding="utf-8
 
 @pytest.mark.parametrize("app", APPS)
 def test_each_glyph_is_two_layers_of_glass(app):
-    """가는 한 겹 선 (stroke 1.7) 은 유리 판 위에서 사라졌다. 굵은 선 + 뒤쪽 채움 면.
-    glyph 는 이제 공용 sprite 의 symbol 이다 — 두 층은 그 symbol 이 가진다."""
+    """A thin single stroke (1.7) disappears on the glass panel: a heavy stroke plus a filled face behind it.
+    The glyph is a symbol in the shared sprite, and that symbol carries both layers."""
     g = _glyph(app)
     assert f'dx-icons.svg#{SYMBOL[app]}"' in g, f"{app}: sprite 를 쓰지 않는다"
     sym = re.search(r'<symbol id="' + SYMBOL[app] + r'"[^>]*>(.*?)</symbol>', SPRITE, re.S).group(1)
@@ -65,12 +65,12 @@ def test_glyph_line_weight_reads_on_glass():
     css = _css()
     rule = re.search(r"\.stage-deck \.mod-glyph\s*\{([^}]*)\}", css)
     assert rule, "무대의 glyph 규칙이 없다"
-    width = re.search(r"--ico-stroke:\s*([\d.]+)", rule.group(1))   # sprite 의 선은 변수로 굵기를 받는다
+    width = re.search(r"--ico-stroke:\s*([\d.]+)", rule.group(1))   # sprite strokes take their width from a variable
     assert width and float(width.group(1)) >= 2
 
 
 def test_description_is_a_tooltip_not_a_second_line():
-    """설명은 DOM 에 남는다 (숫자를 쓰는 _paintFacts, 화면 낭독기). 평소에는 보이지 않는다."""
+    """The description stays in the DOM (_paintFacts writes numbers there; screen readers read it). It is not visible at rest."""
     css = _css()
     rest = re.search(r"\.stage-deck \.studio-grid :is\(\.card-desc, \.orbital-port\)\s*\{([^}]*)\}", css)
     assert rest and re.search(r"opacity:\s*0\b", rest.group(1))
@@ -79,7 +79,8 @@ def test_description_is_a_tooltip_not_a_second_line():
 
 
 def test_a_module_that_is_down_is_dimmed_not_hidden():
-    """꺼졌다고 확인된 것만 (is-down). 'is-up 이 없으면' 이면 첫 health 응답 전에 전부 흐리다."""
+    """Only modules confirmed down (is-down) are dimmed. Keying on 'no is-up' would dim everything before the
+    first health response."""
     css = _css()
     assert re.search(r"\.orbital-card\.is-down[^{]*\{[^}]*opacity", css)
     assert not re.search(r"\.orbital-card:not\(\.is-up\)", css)

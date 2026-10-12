@@ -197,8 +197,8 @@ def test_get_catalog_keeps_uninstalled_modelzoo_entry(tmp_path, monkeypatch):
 
 
 def test_the_models_page_follows_the_model_zoo_catalog(monkeypatch, tmp_path):
-    """App > Models 는 Model Zoo 와 같은 catalog (dx_modelzoo/data/generated_catalog.json) 를 읽는다 — 예전에는
-    2026-08-21 에 구운 공개 page 사본 (352) 이라 publish page 의 새 model 이 보이지 않았다."""
+    """App > Models reads the same catalog as Model Zoo (dx_modelzoo/data/generated_catalog.json), not a frozen copy
+    of the public page, so new models on the publish page show up."""
     import models
 
     gen = tmp_path / "generated_catalog.json"

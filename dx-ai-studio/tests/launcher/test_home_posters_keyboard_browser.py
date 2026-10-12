@@ -1,8 +1,7 @@
-"""Home's two film pills open from the keyboard (2026-10-12 release audit).
+"""Home's two film pills open from the keyboard.
 
-`tools/release_audit.py` keyboard smoke "landing_poster_enter" failed: #landingPoster and #ecosystemPoster are
-<a role="button" tabindex="0"> with only an onclick, so Enter and Space did nothing. The keyboard handler sat on the
-inner image, which never takes focus.
+#landingPoster and #ecosystemPoster are <a role="button" tabindex="0">, so Enter and Space must open them like a
+click. A keyboard handler on the inner image would never fire, because the image never takes focus.
 """
 from __future__ import annotations
 

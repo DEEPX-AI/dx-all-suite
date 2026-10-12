@@ -1,8 +1,7 @@
-"""위젯이 실제 데이터대로 그려지는지 (spec 2026-09-23 §5.5–5.6).
+"""The widgets render from real data.
 
-장치와 카탈로그를 fixture 로 고정한다 — 테스트 하네스는 launcher 만 띄우므로 monitor 와
-zoo 가 없고, 환경에 맡기면 '장치 있음' 을 검사하려던 것이 '없음' 을 검사한다 (이 저장소의
-test_home_hierarchy_browser.py 가 한 번 그렇게 틀렸다).
+Device and catalog are pinned with fixtures: the test harness starts only the launcher, so there is no
+monitor or zoo, and left to the environment a check meant for 'device present' would check 'absent'.
 """
 from __future__ import annotations
 
@@ -34,14 +33,14 @@ def _m(mid, task, fps):
 
 
 CATALOG = {"models": [
-    _m("ssd_mobilenet", "object_detection", 1847),     # 더 빠르지만 헤드라인이 아니다
+    _m("ssd_mobilenet", "object_detection", 1847),     # faster, but not the headline
     _m("yolo26n", "object_detection", 321),
     _m("yolo26s", "object_detection", 203),
     _m("yolo26n_seg", "instance_segmentation", 240),
-    # pose 는 없다 — 건너뛰어야 한다
+    # no pose model: must be skipped
     _m("yolo26n_cls", "classification", 3695),
     _m("yolo26n_obb", "obb_detection", 104),
-    _m("yolo26_depth_n", "depth_estimation", None),     # fps 없음 — 건너뛴다
+    _m("yolo26_depth_n", "depth_estimation", None),     # no fps: skipped
 ]}
 
 
@@ -130,7 +129,7 @@ def test_the_headline_moves_on_and_skips_what_is_not_measured(live):
     for _ in range(4):
         live.evaluate("() => window.DXLauncher._rotateHeadline()")
         seen.append(_headline(live)[0])
-    # object 321 → seg 240 → (pose 없음) cls 3,695 → obb 104 → (depth fps 없음) 처음으로
+    # object 321 → seg 240 → (no pose) cls 3,695 → obb 104 → (depth has no fps) back to the start
     assert seen == ["321", "240", "3,695", "104", "321"], seen
     dots = live.locator("#homeProofDots > *").count()
     assert dots == 4, "점은 실제로 보여줄 task 수만큼"

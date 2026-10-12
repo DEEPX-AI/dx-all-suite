@@ -1,8 +1,8 @@
-"""Model Zoo keeps reaching DX App after DX App restarts on a new port (2026-10-02 release audit).
+"""Model Zoo keeps reaching DX App after DX App restarts on a new port.
 
-The launcher starts modules on ephemeral ports and passed the Zoo DX_APP_PORT once, at start. When DX App was
-restarted (by the watchdog after a crash, or from the home), it came back on another port and every Zoo
-'Run Inference' answered DX_APP_UNAVAILABLE until the Zoo was restarted too."""
+The launcher starts modules on ephemeral ports. When DX App restarts (by the watchdog after a crash, or from the
+home), it comes back on another port; a DX_APP_PORT read once at start would make every Zoo 'Run Inference'
+answer DX_APP_UNAVAILABLE until the Zoo restarts too."""
 from __future__ import annotations
 
 import importlib

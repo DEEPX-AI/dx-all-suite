@@ -1,7 +1,7 @@
-"""유리 막대가 화면에서 약속한 모양과 동작인지 (spec 2026-09-23 §5.7).
+"""The glass bar under the stage looks and behaves as specified.
 
-외부 사이트는 route 로 고정한다 — probe 의 결과가 이 PC 의 네트워크에 따라 달라지면
-'닿지 않음' 을 검사하려던 것이 '닿음' 을 검사한다.
+External sites are pinned with routes: if the probe result depended on this PC's network, a check meant for
+'unreachable' would end up checking 'reachable'.
 """
 from __future__ import annotations
 
@@ -83,7 +83,7 @@ def test_the_links_are_one_line_and_the_legal_keeps_the_right_edge(browser, serv
         assert len(links) == 8, links
         assert max(links) - min(links) <= 12, f"링크가 두 줄로 접혔다: {links}"
         assert rows["legalGap"] <= 24, f"법적 고지가 오른쪽 끝을 떠났다: {rows}"
-        # 1280 이하에서는 챗 버튼 자리 (64px) 를 비우므로 고지가 둘째 줄로 내려간다.
+        # At 1280 and below the chat button's 64px slot is kept clear, so the legal notice wraps to a second row.
         if lang == "en" and size[0] == 1440:
             assert rows["legal"] - min(links) <= 12, f"en 은 1440 에서 한 줄이어야 한다: {rows}"
     finally:

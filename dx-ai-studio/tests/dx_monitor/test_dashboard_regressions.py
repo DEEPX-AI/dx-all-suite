@@ -219,7 +219,7 @@ def test_shared_line_chart_skips_missing_metric_samples():
 
 
 def test_monitor_language_menu_parent_stacks_above_monitor_content():
-    # 헤더/툴바 사다리는 통합 shell(dx-shell.css)이 소유한다.
+    # The header/toolbar stacking order belongs to the shared shell (dx-shell.css).
     shell_css = read_text(MONITOR.parent / "shared" / "static" / "dx-shell.css")
     css = read_text(MONITOR / "static" / "css" / "style.css")
     top_bar = css_rule(shell_css, ".dx-shell-header")
@@ -357,7 +357,7 @@ def test_monitor_z_index_ladder_no_shared_toolbar_conflict():
     .toolbar should position children but NOT use the same z-index as the shared
     lang-menu popup (10000 in toolbar.css).
     """
-    # .toolbar 는 통합 shell 이 소유한다 (.dx-shell-header-right 와 같은 요소).
+    # .toolbar belongs to the shared shell (the same element as .dx-shell-header-right).
     shell_css = read_text(MONITOR.parent / "shared" / "static" / "dx-shell.css")
     toolbar_rule = css_rule(shell_css, ".toolbar")
 
@@ -429,7 +429,7 @@ def test_mock_banner_show_overrides_css_display_none():
 
 
 def test_dashboard_shows_no_data_for_npu_with_no_valid_temperature_sensors():
-    """F-15: a dead temperature sensor (cores==0, all channels == -32768 sentinel) must
+    """A dead temperature sensor (cores==0, all channels == -32768 sentinel) must
     NOT render as '0.0°C' with an OK/green badge. The temp card must guard on cores/
     temperatures and fall back to a no-data state."""
     dashboard = read_text(MONITOR / "static" / "js" / "dashboard.js")
@@ -449,7 +449,7 @@ def test_telemetry_status_template_and_clock_control_contract():
     assert template.index('id="sse-status"') < template.index('id="telemetry-status"')
     assert "cm-clock" in template
     assert "🔄" not in template
-    # 아이콘은 sprite 의 clock (아이콘 체계 단계 5 — 예전의 CSS .icon-clock 을 대신한다).
+    # The icon is the sprite's clock symbol.
     assert 'dx-icons.svg#clock' in template
     assert 'aria-hidden="true"' in template
     assert "��" not in template
@@ -463,7 +463,7 @@ def test_clock_controls_use_deterministic_accessibility_icon():
 
     assert "🔄" not in template
     assert "🔄" not in dashboard
-    # 정적 · 동적 Clock 라벨 모두 sprite 의 clock (DXIcon 은 aria-hidden 으로 그린다).
+    # Static and dynamic Clock labels both use the sprite's clock (DXIcon draws it aria-hidden).
     assert 'dx-icons.svg#clock' in template
     assert "_mIco('clock')" in dashboard
     assert "aria-hidden" in (MONITOR.parent / "shared" / "static" / "dx-icon.js").read_text(encoding="utf-8")
@@ -585,7 +585,7 @@ def test_charts_redraw_on_resize_and_visibility():
 
 
 def test_single_chart_value_carries_its_unit():
-    """The big number beside each chart said "38.0" with no unit (release audit M-2)."""
+    """The big number beside each chart must carry its unit, not read a bare "38.0"."""
     utils = DASHBOARD_UTILS.read_text(encoding="utf-8")
     dashboard = (MONITOR / "static" / "js" / "dashboard.js").read_text(encoding="utf-8")
     assert "temp: '°C'" in utils and "clock: ' MHz'" in utils

@@ -1,9 +1,9 @@
-"""dx_app Run Demo — 공통 결과 무대 위에 (spec 2026-10-01 demo stage).
+"""dx_app Run Demo sits on the shared result stage.
 
-예전에는 card 마다 옵션 · Run · 결과가 들어 있어 결과를 그리면 card 가 858px 로 늘어났다
-(``.rd-card`` · ``.rundemo-result`` · 결과를 좁은 card 안에 가두는 inline style). 이제 Run Demo 는
-공통 component (``shared/static/dx-demo-stage.{js,css}``) 에 올라가고, 자기 옵션 · 실행 · 결과만 채운다.
-화면에서의 약속은 test_rundemo_cards_browser.py.
+Cards must not hold their own options, Run and result (``.rd-card``, ``.rundemo-result``, inline styles that
+squeeze a result into a narrow card); a result drawn there stretches the card. Run Demo uses the shared component
+(``shared/static/dx-demo-stage.{js,css}``) and fills in only its own options, run and result.
+On-screen behaviour is covered by test_rundemo_cards_browser.py.
 """
 from __future__ import annotations
 
@@ -32,7 +32,7 @@ def test_the_old_in_card_result_is_gone():
 
 
 def test_the_postprocess_toggle_reaches_the_body():
-    """sel.post 는 boolean 이고 rundemoBody 는 'on' 을 본다 — 예전에는 C++ 후처리가 늘 빠졌다."""
+    """sel.post is a boolean and rundemoBody checks for 'on'; a mismatch silently drops C++ postprocessing."""
     run = JS[JS.index("function rundemoRun("):]
     run = run[:run.index("\n}\n")]
     assert "post: sel.post ? 'on' : 'off'" in run

@@ -1,6 +1,6 @@
-"""home 에서 계속 도는 효과 (spec 2026-09-23 §7 #4 #10 #11 #16) — 도는지, 멈출 때 멈추는지, 무겁지 않은지.
+"""Home's continuous effects: they run, they stop when they should, and they are not heavy.
 
-장치와 카탈로그는 fixture 로 고정한다 (test_home_widgets_browser.py 와 같은 이유).
+Device and catalog are pinned with fixtures (same reason as test_home_widgets_browser.py).
 """
 from __future__ import annotations
 
@@ -48,8 +48,8 @@ def browser():
 
 
 def _open(browser, port, *, still=False, hw=None, width=1440, height=900, fx="full"):
-    """fx: 효과 등급. headless 는 GPU 가 없어 기본이 'lite' (커서 조명 꺼짐) 다 — 조명을 보는 테스트는
-    'full' 로 켜고, 예산 테스트는 기본값 (None) 을 본다."""
+    """fx: effect level. Headless has no GPU, so the default is 'lite' (cursor light off). Tests that look at the
+    light turn on 'full'; the budget test uses the default (None)."""
     ctx = browser.new_context(viewport={"width": width, "height": height},
                               reduced_motion="reduce" if still else "no-preference")
     ctx.add_init_script(_SEEN + (f"try{{localStorage.setItem('dx-fx','{fx}');}}catch(e){{}}" if fx else ""))
@@ -72,7 +72,7 @@ def _samples(page, ms, every=60, expr="() => document.getElementById('homeAsk').
     }})""")
 
 
-# ── #4 placeholder ────────────────────────────────────────────────────────
+# ── placeholder ───────────────────────────────────────────────────────────
 
 def test_the_placeholder_erases_and_types_the_next_request(browser, server):
     ctx, page = _open(browser, server)
@@ -115,7 +115,7 @@ def test_the_typing_speaks_the_ui_language(browser, server):
         ctx.close()
 
 
-# ── #10 코어 막대 ─────────────────────────────────────────────────────────
+# ── core bars ─────────────────────────────────────────────────────────────
 
 def test_core_bars_ease_toward_the_new_value(browser, server):
     ctx, page = _open(browser, server)
@@ -149,7 +149,7 @@ def test_a_busy_device_does_not_breathe(browser, server):
         ctx.close()
 
 
-# ── #11 카운트업 ──────────────────────────────────────────────────────────
+# ── count-up ──────────────────────────────────────────────────────────────
 
 def test_the_headline_counts_up_to_the_measured_value(browser, server):
     ctx, page = _open(browser, server)
@@ -173,7 +173,7 @@ def test_reduced_motion_shows_the_value_at_once(browser, server):
         ctx.close()
 
 
-# ── #16 커서 조명 ─────────────────────────────────────────────────────────
+# ── cursor light ──────────────────────────────────────────────────────────
 
 def _light(page):
     return page.evaluate("""() => { const i = document.querySelector('#landing .stage-light > i');
@@ -185,7 +185,7 @@ def test_the_light_follows_the_cursor(browser, server):
     ctx, page = _open(browser, server)
     try:
         assert _light(page)["o"] == 0, "움직이기 전부터 켜져 있다"
-        # 무대가 들어오는 translateY (animateIn) 가 끝난 뒤 — 그 동안 잰 자리는 다음 움직임까지 남는다.
+        # Wait until the stage's entry translateY (animateIn) ends; a position measured during it lasts until the next move.
         page.wait_for_function("() => { const l = document.getElementById('landing');"
                                " return l.getAnimations().every(a => a.playState !== 'running'); }", timeout=3000)
         page.mouse.move(400, 300)
@@ -194,9 +194,8 @@ def test_the_light_follows_the_cursor(browser, server):
         light = _light(page)
         assert abs(light["x"] - 420) <= 4 and abs(light["y"] - 320) <= 4, light
         assert light["o"] > 0.5
-        # 층이 clip 하므로, 층이 무대를 덮지 않으면 빛은 제자리에 있어도 보이지 않는다. 처음 판은
-        # 층의 높이가 0 이었다 (.landing 의 align-items: center) — 위치와 opacity 만 보던 이 테스트가
-        # 놓쳤다.
+        # The layer clips, so if it does not cover the stage the light is invisible even when correctly placed
+        # (a zero-height layer, from .landing's align-items: center, passes a position-and-opacity check).
         wrap = page.evaluate("""() => { const r = document.querySelector('#landing .stage-light').getBoundingClientRect();
           return [r.left, r.top, r.right, r.bottom]; }""")
         assert wrap[0] <= 0 and wrap[1] <= 44 and wrap[2] >= 1440 and wrap[3] >= 900 - 12, f"빛의 층이 무대를 덮지 않는다: {wrap}"
@@ -217,7 +216,7 @@ def test_the_light_never_makes_the_page_scroll(browser, server):
 
 
 def test_without_gpu_the_light_stays_off(browser, server):
-    """headless chromium 은 소프트웨어 래스터다 — 기본 등급이면 커서 조명이 켜지지 않는다."""
+    """Headless Chromium is a software rasterizer, so at the default level the cursor light does not turn on."""
     ctx, page = _open(browser, server, fx=None)
     try:
         page.mouse.move(400, 300)
@@ -239,14 +238,14 @@ def test_reduced_motion_keeps_the_light_off(browser, server):
         ctx.close()
 
 
-# ── 예산 ──────────────────────────────────────────────────────────────────
+# ── budget ────────────────────────────────────────────────────────────────
 
 def test_everything_running_at_once_leaves_no_long_frame(browser, server):
-    """spec §10.2: 커서 이동 + placeholder + 위젯이 동시에 돌 때 5초간 긴 frame (>50ms) 0개.
-    이 기계의 기본 등급으로 잰다 (fx=None) — GPU 가 없으면 커서 조명이 꺼진 채다."""
+    """Cursor movement + placeholder + widgets running together: no long frame (>50 ms) in 5 s.
+    Measured at this machine's default level (fx=None); without a GPU the cursor light stays off."""
     ctx, page = _open(browser, server, fx=None)
     try:
-        page.wait_for_timeout(1000)   # 첫 그림이 끝난 뒤부터 잰다
+        page.wait_for_timeout(1000)   # measure only after the first paint
         page.evaluate("""() => { window.__long = [];
           const type = PerformanceObserver.supportedEntryTypes.includes('long-animation-frame')
             ? 'long-animation-frame' : 'longtask';

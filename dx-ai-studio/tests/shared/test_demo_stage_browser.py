@@ -1,8 +1,8 @@
-"""demo 화면 공통 무대 · card · filter (spec 2026-10-01 demo stage).
+"""Shared demo stage, cards and filter.
 
-App Run Demo 와 Stream Demo Launcher 가 같은 component 를 쓴다: page 위쪽 결과 무대 (왼쪽 media,
-오른쪽 panel), 그 아래 filter 와 고르기용 card. 무엇이 약속인지는 spec 의 결정 표 — 여기서는 module 과
-상관없이 component 자체가 그 약속을 지키는지 본다.
+App Run Demo and the Stream Demo Launcher use the same component: a result stage at the top of the page (media on
+the left, panel on the right), with the filter and the cards to choose from below it. These tests check that the
+component itself keeps those promises, independent of any module.
 """
 from __future__ import annotations
 
@@ -89,7 +89,7 @@ def test_a_card_opens_its_demo_on_the_stage(browser, port):
 
 
 def test_a_card_is_for_choosing_only(browser, port):
-    """옵션 · 실행은 무대에 — card 에는 버튼이 없다 (준비 안 된 card 의 Set up 하나만)."""
+    """Options and Run live on the stage — a card has no buttons (except Set up on a card that is not ready)."""
     page = _page(browser, port)
     try:
         assert page.locator(".dds-card[data-id='b'] button:not(.dds-cpick)").count() == 0
@@ -101,8 +101,8 @@ def test_a_card_is_for_choosing_only(browser, port):
 
 
 def test_a_card_is_chosen_from_the_keyboard_without_a_button_inside_a_button(browser, port):
-    """2026-10-11 axe: the card was role=button and the not-ready card's Set up sat inside it (nested-interactive).
-    A hidden .dds-cpick button now does the choosing from the keyboard; the card draws its focus ring."""
+    """A card must not be role=button with the not-ready card's Set up inside it (axe: nested-interactive).
+    A hidden .dds-cpick button does the choosing from the keyboard; the card draws its focus ring."""
     page = _page(browser, port)
     try:
         assert page.locator(".dds-card[role], .dds-card[tabindex]").count() == 0
@@ -196,7 +196,7 @@ def test_metrics_and_stage_bars_render(browser, port):
 
 
 def test_many_filters_stay_on_one_line(browser, port):
-    """group 이 많아도 filter 는 한 줄 — 두 줄로 접히면 card 첫 줄이 화면 밖으로 밀린다."""
+    """Many groups still fit the filter on one line — wrapping to two lines pushes the first card row off screen."""
     many = "[" + ",".join(f"{{id: 'm{i}', title: 'M{i}', category: 'group_{i}', task: {{label: 'Task'}}, ready: true}}"
                           for i in range(14)) + "]"
     page = _page(browser, port, items=many)

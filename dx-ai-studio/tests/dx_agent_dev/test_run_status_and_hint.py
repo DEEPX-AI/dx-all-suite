@@ -1,8 +1,8 @@
-"""terminal 줄은 command 를 다 보이고, status 는 도는 실행이 무엇인지 알린다 (spec 2026-09-30 home agent run).
+"""Terminal lines show the whole command, and status says what the running job is.
 
-- `_tool_arg_hint` 가 command 를 50자에서 잘라 home 의 terminal 이 칸의 절반만 찼다 (JSON 폭주를 막으려던
-  자르기가 command 까지 먹었다). 다른 key (prompt · url …) 는 지금처럼 짧게.
-- Agent Dev 가 home 이 시작한 실행을 이어받을 때 첫 줄 (사용자의 요청) 과 대화를 알아야 한다.
+- `_tool_arg_hint` must not cut a command at 50 characters, or home's terminal fills only half its width.
+  Truncation is for runaway JSON; other keys (prompt, url, …) stay short.
+- When Agent Dev takes over a run home started, it needs the first line (the user's request) and the conversation.
 """
 from __future__ import annotations
 

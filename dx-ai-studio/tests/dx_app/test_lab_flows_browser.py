@@ -1,11 +1,11 @@
-"""DX App Lab flows in the browser (2026-10-11 real-use audit).
+"""DX App Lab flows in the browser.
 
-- Add Model offered a Postprocessor list from every category and failed on apply; it now copies an existing
-  example, so "Start from" lists the examples of the chosen category that have code in the chosen language.
-- Experiment sat on "compile / pending" forever; the run now advances on the server and the page polls it to
-  the end and shows the throughput.
-- Safety Center's Rollback only said "preview only"; an applied change is rolled back after typing
-  rollback:<name>, and an applied change that overwrote files says so instead.
+- Add Model copies an existing example, so "Start from" lists the examples of the chosen category that have code in
+  the chosen language (a Postprocessor list from every category would fail on apply).
+- Experiment advances on the server; the page polls it to the end and shows the throughput instead of sitting on
+  "compile / pending".
+- Safety Center's Rollback rolls an applied change back after typing rollback:<name> instead of only saying
+  "preview only", and an applied change that overwrote files says so.
 """
 from __future__ import annotations
 

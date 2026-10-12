@@ -1,10 +1,9 @@
-"""언어별 형제 span 뭉치가 다시 늘지 않도록 묶는 ratchet.
+"""Ratchet that keeps per-language sibling span groups from growing.
 
-한 문구를 `<span class="ko">…</span><span class="en">…</span>…` 6벌로 적는
-마크업은 번역을 사전과 마크업 두 곳에 살게 만든다. 두 벌이 어긋나기 시작하면
-어느 쪽이 맞는지 아무도 모른다 — 실제로 마이그레이션 때 125개 key 가
-어긋나 있었다. 남은 뭉치는 key 하나에 문구가 둘이라 사람이 정해야 하는
-것들뿐이고, 새로 생기는 것만 막으면 된다.
+Markup that writes one phrase six times (`<span class="ko">…</span><span class="en">…</span>…`)
+keeps translations in two places, the dictionary and the markup, and once the two drift nobody
+knows which is right. The remaining groups hold two phrases under one key and need a human
+decision, so the gate only blocks new ones.
 """
 from __future__ import annotations
 
@@ -57,7 +56,7 @@ WANTED = ("ko", "ja", "zh-CN", "zh-TW", "es")
 
 
 def _key_gaps() -> dict[str, dict[str, list[str]]]:
-    """마크업이 부르는데 사전이 못 채우는 key → 빠진 언어."""
+    """Keys the markup uses that the dictionary cannot fill → missing languages."""
     import html as _html
 
     out: dict[str, dict[str, list[str]]] = {}
@@ -77,12 +76,11 @@ def _key_gaps() -> dict[str, dict[str, list[str]]]:
 
 
 def test_no_new_untranslated_data_i18n_key():
-    """사전이 못 채우는 key 는 화면에 영어가 그대로 남는다 — 늘리지 않는다.
+    """A key the dictionary cannot fill shows in English on screen — the count must not grow.
 
-    남아 있는 것들은 원래 `<span class="ko">`/`<span class="en">` 두 벌만 있던
-    자리라 마이그레이션 전에도 ja/zh/es 는 영어로 떨어지고 있었다. 동작은
-    그대로 두고, 새로 생기는 것만 막는다. launcher 의 about* 키는 사전이
-    아니라 about-deepx.js 의 ABOUT_NAV_LABELS 가 채운다.
+    The remaining gaps are spots that only ever had ko/en text, so ja/zh/es fall back to
+    English; the gate keeps that behavior and blocks new gaps. The launcher's about* keys are
+    filled by ABOUT_NAV_LABELS in about-deepx.js, not by the dictionary.
     """
     baseline = json.loads(GAP_BASELINE.read_text(encoding="utf-8"))
     gaps = _key_gaps()

@@ -1,5 +1,5 @@
-"""Stream demo card 이미지 — 공식 sample 영상에 그 demo 의 model 을 DX-M1 에서 돌린 결과 (spec 2026-10-01
-demo stage 결정 3). App Run Demo card 는 이미 실제 결과 이미지가 있고, Stream 만 비어 있었다.
+"""Stream demo card images — the result of running each demo's model on DX-M1 over the official sample video,
+like the App Run Demo cards.
 
 bake: scripts/demo/bake_stream_thumbs.py → dx_stream/static/img/demo/<id>.webp + SOURCE.md
 """
@@ -67,8 +67,8 @@ def _webp_size(data: bytes) -> tuple[int, int]:
 
 
 def test_the_bake_finds_examples_in_the_per_model_layout(tmp_path, monkeypatch):
-    """dx_app 이 per-model layout (teammate 8d0b748) 이면 PLAN 의 main 경로 (object_detection/yolo26n) 대신 그
-    model 의 Model Zoo stem 폴더 (object_detection/yolo26/yolo26-n_640x640)."""
+    """With dx_app's per-model layout, the bake uses the model's Model Zoo stem folder
+    (object_detection/yolo26/yolo26-n_640x640) instead of PLAN's main path (object_detection/yolo26n)."""
     bake = _bake()
     root = tmp_path / "dx_app"
     ex = root / "src/python_example/object_detection/yolo26/yolo26-n_640x640"

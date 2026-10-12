@@ -1,4 +1,4 @@
-"""server.py 라우팅 테스트"""
+"""server.py routing tests"""
 import re
 import sys, json, pytest, threading, time
 from pathlib import Path
@@ -22,7 +22,7 @@ def _load_create_server():
 
 @pytest.fixture(scope="module")
 def server():
-    """테스트용 서버 시작/정지."""
+    """Start/stop a server for the tests."""
     create_server = _load_create_server()
     srv = create_server(TEST_PORT)
     t = threading.Thread(target=srv.serve_forever, daemon=True)
@@ -355,7 +355,7 @@ class TestServerRoutes:
         resp = urlopen(f"http://127.0.0.1:{TEST_PORT}/static/css/style.css")
         css = resp.read().decode()
         assert resp.status == 200
-        # .mz-topbar 는 통합 shell(dx-shell.css)로 옮겼다.
+        # The top bar belongs to the shared shell (dx-shell.css).
         assert ".mz-explorer-shell" in css
         assert ".mz-card" in css
 
@@ -367,7 +367,7 @@ class TestServerRoutes:
             assert e.code in (400, 404)
 
     def test_tutorial_tags_in_html(self, server):
-        """index.html에 tutorial 관련 3개 태그가 존재하는지 확인."""
+        """index.html must contain the three tutorial tags."""
         resp = urlopen(f"http://127.0.0.1:{TEST_PORT}/")
         html = resp.read().decode()
         assert 'tutorial-engine.js' in html, "tutorial-engine.js 태그 누락"
@@ -466,7 +466,7 @@ class TestServerRoutes:
         "page=1&page_size=0",
     ])
     def test_api_catalog_page_bad_params_clamp_safely(self, server, qs_params):
-        """비정상/엣지 쿼리 파라미터가 500을 유발하지 않고 안전하게 클램핑되는지 확인."""
+        """Invalid/edge query parameters must be clamped safely, never cause a 500."""
         resp = urlopen(f"http://127.0.0.1:{TEST_PORT}/api/catalog/page?{qs_params}")
         data = json.loads(resp.read())
         assert resp.status == 200
@@ -620,7 +620,7 @@ class TestServerRoutes:
 
 class TestDemoPathGuard:
     def test_is_safe_demo_dir_rejects_sibling_prefix(self, tmp_path):
-        """root=/tmp/dx-app, candidate=/tmp/dx-app-evil 은 거부되어야 한다."""
+        """root=/tmp/dx-app with candidate=/tmp/dx-app-evil must be rejected."""
         sys.path.insert(0, str(MODULE_DIR))
         try:
             from server import _is_safe_demo_dir
@@ -646,7 +646,7 @@ class TestDemoPathGuard:
         assert _is_safe_demo_dir(link, root) is False
 
     def test_empty_demo_paths_do_not_serve_root_files(self, tmp_path):
-        """demo path가 빈 문자열일 때 DX_APP_ROOT 파일이 서빙되지 않아야 한다."""
+        """An empty demo path must not serve files from DX_APP_ROOT."""
         (tmp_path / "leak.cpp").write_text("// leaked cpp")
         (tmp_path / "leak.py").write_text("# leaked py")
 
@@ -660,7 +660,7 @@ class TestDemoPathGuard:
                 if hasattr(srv_mod, '_collect_demo_files'):
                     cpp, py = srv_mod._collect_demo_files(demo)
                 else:
-                    # 기존 인라인 로직 재현 (버그 포함)
+                    # Without _collect_demo_files: the equivalent inline logic
                     cpp = py = ""
                     cpp_dir = srv_mod.DX_APP_ROOT / demo.get("cpp_example", "")
                     if cpp_dir.is_dir():
@@ -706,17 +706,17 @@ class TestDemoPathGuard:
 
 class TestSyncUpdatesCatalog:
     def test_sync_post_updates_live_catalog(self):
-        """POST sync 후 in-memory 카탈로그가 갱신되어야 한다."""
+        """The in-memory catalog must update after a POST sync."""
         sys.path.insert(0, str(MODULE_DIR))
         try:
-            # 깨끗한 모듈 import
+            # import clean modules
             for mod_name in list(sys.modules):
                 if mod_name.startswith("core.catalog") or mod_name == "core.catalog":
                     del sys.modules[mod_name]
             from core import catalog as catalog_mod
             from core.catalog import apply_generated_catalog
 
-            # 초기 카탈로그 설정: 모델 1개
+            # initial catalog: one model
             initial_models = [{"id": "BaseModel", "name": "BaseModel", "category": "cls",
                                "processor": {"status": "metadata_pending"}, "specification": {}}]
             catalog_mod._catalog_cache = {
@@ -725,7 +725,7 @@ class TestSyncUpdatesCatalog:
                 "count": 1,
             }
 
-            # apply_generated_catalog 로 enriched 데이터 적용
+            # apply enriched data with apply_generated_catalog
             gen_catalog = {
                 "schema_version": "2.0",
                 "models": [{
@@ -745,7 +745,7 @@ class TestSyncUpdatesCatalog:
             catalog_mod._catalog_cache = None
 
     def test_apply_generated_catalog_attaches_metadata_source(self):
-        """generated catalog의 source_profile/generated_at은 각 모델에 전달되어야 한다."""
+        """The generated catalog's source_profile/generated_at must reach every model."""
         sys.path.insert(0, str(MODULE_DIR))
         try:
             for mod_name in list(sys.modules):
@@ -778,7 +778,7 @@ class TestSyncUpdatesCatalog:
             catalog_mod._catalog_cache = None
 
     def test_apply_generated_catalog_overwrites_empty_legacy_spec_values(self):
-        """generated catalog 값은 legacy catalog의 빈 문자열 specification보다 우선해야 한다."""
+        """Generated catalog values must win over empty-string specifications in the legacy catalog."""
         sys.path.insert(0, str(MODULE_DIR))
         try:
             for mod_name in list(sys.modules):
@@ -842,7 +842,7 @@ class TestSyncUpdatesCatalog:
             catalog_mod._catalog_cache = None
 
     def test_metadata_sync_shared_state_updates_are_locked(self):
-        """ThreadingHTTPServer에서 sync 상태와 catalog 갱신은 lock으로 보호되어야 한다."""
+        """Under ThreadingHTTPServer, sync state and catalog updates must be guarded by a lock."""
         server_src = (MODULE_DIR / "server.py").read_text(encoding="utf-8")
         catalog_src = (MODULE_DIR / "core" / "catalog.py").read_text(encoding="utf-8")
         assert "_sync_lock = threading.RLock()" in server_src
@@ -851,7 +851,7 @@ class TestSyncUpdatesCatalog:
         assert "with _catalog_lock:" in catalog_src
 
     def test_sync_generated_artifacts_are_gitignored(self):
-        # generated_catalog.json is now a SHIPPED release artifact (produced by
+        # generated_catalog.json is a SHIPPED release artifact (produced by
         # dx_modelzoo/scripts/sync_release_catalog.sh in the general-net stage), so
         # it must NOT be gitignored — the offline/air-gapped build exposes official
         # accuracy/fps/onnx URLs only via this committed snapshot. The build-local

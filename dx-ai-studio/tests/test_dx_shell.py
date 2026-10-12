@@ -1,7 +1,7 @@
-"""Option A shell(레일 + 상단 탭)의 구조 계약.
+"""Structure contract for the shared App Shell (rail + top tabs).
 
-CSS/JS/스프라이트는 브라우저 없이 소스 계약으로 잡고,
-런타임 렌더는 visual 스위트가 테마·로케일 축으로 잡는다.
+CSS/JS/sprite are checked as source contracts without a browser; runtime
+rendering is covered by the visual suite across themes and locales.
 """
 from __future__ import annotations
 
@@ -40,7 +40,7 @@ def _rule(css: str, selector: str) -> str:
     return m.group(1).replace(" ", "").replace("\n", "")
 
 
-# ── 아이콘 스프라이트 ───────────────────────────────────────────
+# ── Icon sprite ─────────────────────────────────────────────────
 def test_icon_sprite_exists_and_parses():
     assert ICONS.is_file(), "shared/static/dx-icons.svg 가 없다"
     ElementTree.fromstring(ICONS.read_text(encoding="utf-8"))
@@ -53,7 +53,7 @@ def test_sprite_defines_every_module_and_page_icon():
 
 
 def test_every_symbol_has_a_viewbox():
-    """viewBox가 없으면 <use> 크기 조절이 조용히 실패한다."""
+    """Without a viewBox, sizing through <use> silently fails."""
     for m in re.finditer(r"<symbol([^>]*)>", ICONS.read_text(encoding="utf-8")):
         sid = re.search(r'id="([^"]+)"', m.group(1))
         assert "viewBox=" in m.group(1), (
@@ -62,7 +62,7 @@ def test_every_symbol_has_a_viewbox():
 
 
 def test_icons_recolor_with_currentcolor():
-    """리터럴 색이 박히면 테마를 바꿔도 아이콘만 옛 색으로 남는다."""
+    """A literal color would keep the icon in the old color when the theme changes."""
     text = ICONS.read_text(encoding="utf-8")
     hexes = re.findall(r"#[0-9a-fA-F]{3,8}\b", text)
     assert not hexes, f"아이콘에 리터럴 색이 있다: {sorted(set(hexes))}"
@@ -86,7 +86,7 @@ def test_rail_is_56px_and_never_shrinks():
 
 
 def test_shell_has_no_240px_nav_column():
-    """Option A는 좌측 nav 컬럼을 없앤 안이다. 남아 있으면 B안이 섞인 것이다."""
+    """The shared App Shell has no left nav column; one showing up means another layout leaked in."""
     assert ".dx-shell-nav" not in SHELL_CSS.read_text(encoding="utf-8")
 
 
@@ -97,7 +97,7 @@ def test_shell_uses_semantic_tokens_only():
 
 
 def test_tabs_row_never_wraps_to_a_second_line():
-    """wrap하면 42px 행이 두 줄이 되어 헤더 높이 계약이 깨진다."""
+    """Wrapping would turn the 42px row into two lines and break the header height contract."""
     body = _rule(SHELL_CSS.read_text(encoding="utf-8"), ".dx-shell-tabs")
     assert "flex-wrap:nowrap" in body
     assert "overflow:hidden" in body
@@ -116,7 +116,7 @@ def test_active_rail_button_is_not_signalled_by_colour_alone():
     )
 
 
-# ── 탭 오버플로 ────────────────────────────────────────────────
+# ── Tab overflow ───────────────────────────────────────────────
 def test_tabs_js_exposes_init_and_reflow():
     js = TABS_JS.read_text(encoding="utf-8")
     assert "window.DXTabs" in js
@@ -131,7 +131,7 @@ def test_tabs_js_reflows_on_container_resize():
 
 
 def test_tabs_js_reflows_on_language_change():
-    """오버플로는 폭이 아니라 번역 길이의 함수다 — 언어가 바뀌면 반드시 다시 센다."""
+    """Overflow depends on translation length, not just width — recount on every language change."""
     assert "dx-lang-applied" in TABS_JS.read_text(encoding="utf-8"), (
         "언어 변경 이벤트를 듣지 않으면 긴 번역에서 탭이 잘린다"
     )

@@ -1,8 +1,8 @@
-"""스튜디오의 아이콘 한 벌 (spec 2026-09-29 아이콘 체계 §2–3).
+"""The studio's single icon set.
 
-모든 아이콘은 `shared/static/dx-icons.svg` 의 symbol 이다. home 의 모듈 glyph 와 같은 두 겹 — 24 격자,
-옅은 면 + 2px 선 — 이고, 색은 currentColor 뿐이다. `<use>` 의 그림자 트리 안은 바깥 CSS 가 닿지 않으므로
-모양은 상속되는 CSS 변수 (--ico-fill · --ico-fill-o · --ico-stroke) 로만 바꾼다.
+Every icon is a symbol in `shared/static/dx-icons.svg`, drawn in the same two layers as home's module glyphs (24
+grid, a light fill + a 2px stroke), colored only with currentColor. Outside CSS cannot reach into a `<use>` shadow
+tree, so the look changes only through inherited CSS variables (--ico-fill, --ico-fill-o, --ico-stroke).
 """
 from __future__ import annotations
 
@@ -21,7 +21,7 @@ EXISTING = MODULES + ["home", "setup", "models", "run", "demo", "compare", "down
 NEW = ["library", "globe", "theme", "graduation", "gear", "check", "alert", "x", "info", "spinner", "lock",
        "trash", "chat", "send", "play", "stop", "refresh", "search", "upload", "image", "video", "camera",
        "file", "clipboard", "copy", "eye", "external"]
-# 선만으로 뜻이 되는 표시 — 면이 있으면 오히려 흐려진다.
+# Marks that read from the stroke alone; a fill would only blur them.
 MARKS = {"chev", "chevd", "dots", "check", "x", "external", "send", "refresh", "spinner", "search", "circle", "menu", "plus", "minus"}
 DOCUMENTS = [
     "launcher/static/index.html",
@@ -67,7 +67,7 @@ def test_the_sprite_names_no_colour_of_its_own():
 
 
 def test_the_module_glyphs_are_the_home_ones():
-    """레일 · 탭과 home 에서 같은 모듈이 다르게 생겼었다 (20 격자 한 겹 vs 24 격자 두 겹)."""
+    """A module looks the same in the rail, the tabs and home (24 grid, two layers)."""
     app = _symbols()["app"]
     assert 'd="M10.5 8.2v4.6l4-2.3z"' in app, "home 의 App glyph 가 아니다"
 
@@ -88,7 +88,7 @@ def test_the_helper_hides_decoration_and_names_meaning():
     js = (ROOT / "shared" / "static" / "dx-icon.js").read_text(encoding="utf-8")
     assert "window.DXIcon" in js
     assert "aria-hidden" in js and "role" in js and "aria-label" in js
-    # hash URL 은 <meta name="dx-icons"> 에서, 없으면 hash 없는 경로 (test_the_helper_takes_the_hashed_sprite_url_from_the_page)
+    # Hashed URL from <meta name="dx-icons">, else the unhashed path (test_the_helper_takes_the_hashed_sprite_url_from_the_page)
     assert "'/static/shared/dx-icons.svg'" in js
 
 
@@ -110,8 +110,8 @@ FAVICONS = {
 
 @pytest.mark.parametrize("doc,mod", sorted(FAVICONS.items()))
 def test_every_module_tab_shows_its_glyph(doc, mod):
-    """탭 아이콘 (favicon) 도 같은 한 벌 — 예전엔 두 모듈만 이모지 (🔷 · 🎬) 였고 나머지는 브라우저 기본값이었다.
-    scripts/build_icon_sprite.py 가 모듈 glyph 를 어두운 판 위에 그려 shared/static/favicons/ 에 둔다."""
+    """Tab icons (favicons) come from the same set, not emoji data-URIs or the browser default.
+    scripts/build_icon_sprite.py draws each module glyph on a dark tile into shared/static/favicons/."""
     html = (ROOT / doc).read_text(encoding="utf-8")
     assert f'<link rel="icon" type="image/svg+xml" href="/static/shared/favicons/{mod}.svg">' in html
     assert "data:image/svg+xml" not in html.split("</head>")[0], "이모지 data-URI favicon 이 남아 있다"
@@ -120,15 +120,15 @@ def test_every_module_tab_shows_its_glyph(doc, mod):
 
 
 def test_the_helper_takes_the_hashed_sprite_url_from_the_page():
-    """server 가 <meta name="dx-icons"> 로 hash 붙은 sprite URL 을 알린다 (spec 2026-09-30 boot assets).
-    <use> 와 DXIcon.load() 가 같은 URL 을 써야 cache 한 항목으로 끝난다."""
+    """The server announces the hashed sprite URL in <meta name="dx-icons">.
+    <use> and DXIcon.load() must use the same URL so the sprite is a single cache entry."""
     js = (ROOT / "shared" / "static" / "dx-icon.js").read_text(encoding="utf-8")
     assert 'meta[name="dx-icons"]' in js
     assert "DXIcon.url = " in js
 
 
 def test_no_script_spells_the_sprite_path_itself():
-    """sprite 경로를 직접 쓰면 hash 없는 URL 로 한 번 더 받는다 — DXIcon.url() 을 쓴다."""
+    """Spelling the sprite path directly fetches it again under the unhashed URL; use DXIcon.url()."""
     offenders = []
     for base in [ROOT / "shared", *sorted(ROOT.glob("*/static"))]:
         for p in base.rglob("*.js"):

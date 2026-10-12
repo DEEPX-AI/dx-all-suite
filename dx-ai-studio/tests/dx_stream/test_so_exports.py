@@ -1,4 +1,4 @@
-"""function-name 후보는 라이브러리가 실제로 내보내는 함수다 (release audit S-18)."""
+"""function-name candidates are functions the library actually exports."""
 from __future__ import annotations
 
 import _ctypes

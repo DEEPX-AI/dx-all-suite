@@ -1,7 +1,7 @@
-"""scripts/runtime_profile_update.py — 한 dx-runtime 릴리즈 tag 로 runtime profile 을 만든다.
+"""scripts/runtime_profile_update.py builds a runtime profile from one dx-runtime release tag.
 
-dx-runtime 은 릴리즈마다 올라가므로 (2.4.1 → 2.4.2 → …) profile 을 손으로 적지 않는다. tag 하나에서
-revision · 구성 버전 · .deb 주소 · SHA-256 을 모두 읽는다. 네트워크는 fetch 함수로 바꿔 끼운다.
+dx-runtime moves with every release (2.4.1 → 2.4.2 → …), so profiles are not written by hand. Revision, component
+versions, .deb URLs and SHA-256 all come from the one tag. Tests swap the network for a fetch function.
 """
 from __future__ import annotations
 

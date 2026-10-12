@@ -1,11 +1,10 @@
-"""Agentic Auto Compile model picker (2026-10-11 real-use audit).
+"""Agentic Auto Compile model picker.
 
-- The CLI's live default was ignored: the static default ("auto" for copilot) was already selected
-  when the live list arrived and the refresh kept it, so the page opened on "auto" with the
-  "Current model may reduce instruction following quality" warning although copilot itself
-  defaults to claude-sonnet-5.5. Agent Dev had the same bug and fixed it; the Compiler copy was not.
-- Picking a model by hand never re-checked the warning: it stayed after choosing Sonnet, and
-  choosing auto did not show it.
+- The CLI's live default must win: if the static default ("auto" for copilot) stays selected when
+  the live list arrives, the page opens on "auto" with the "Current model may reduce instruction
+  following quality" warning although copilot itself defaults to claude-sonnet-5.5. Agent Dev
+  shares this picker logic and must behave the same.
+- Picking a model by hand must re-check the warning: it clears for Sonnet and shows for auto.
 """
 from __future__ import annotations
 

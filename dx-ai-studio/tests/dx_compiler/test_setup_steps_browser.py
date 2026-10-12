@@ -1,6 +1,6 @@
-"""dx_compiler Setup 칸이 화면에서 약속대로 움직이는지 (spec 2026-09-29 아이콘 체계 단계 2c).
+"""The dx_compiler Setup panel behaves on screen as promised.
 
-상태는 fixture 로 고정한다 (route /setup/status · /feature-check) — 이 PC 에 SDK 가 있든 없든.
+State is pinned by fixtures (routes /setup/status and /feature-check), whether or not the SDK is on this PC.
 """
 from __future__ import annotations
 

@@ -106,7 +106,7 @@ def test_static_response_uses_http11_cache_headers_and_validators(static_server)
     assert resp.headers["Cache-Control"] == "no-cache, must-revalidate"
     assert resp.headers["ETag"].startswith('W/"')
     assert resp.headers["Last-Modified"]
-    # 2026-10-01 (QA COM-A1): CORS 를 열지 않는다 — same-origin 만
+    # CORS stays closed — same-origin only
     assert "Access-Control-Allow-Origin" not in resp.headers
     assert resp.headers["Vary"] == "Accept-Encoding"
 
@@ -220,7 +220,7 @@ def test_304_includes_cache_headers_but_no_content_length(static_server):
         assert second.getheader("ETag") == etag
         assert second.getheader("Cache-Control") is not None
         assert second.getheader("Last-Modified") is not None
-        assert second.getheader("Access-Control-Allow-Origin") is None   # QA COM-A1
+        assert second.getheader("Access-Control-Allow-Origin") is None   # same-origin only
         assert second.getheader("Vary") == "Accept-Encoding"
     finally:
         conn.close()
@@ -407,9 +407,9 @@ def test_production_sse_handlers_call_end_sse():
                 f"{rel_path}::{node.name} must call self.end_sse() inside a finally block"
             )
 
-# ── hash 가 맞는 static 은 immutable (spec 2026-09-30-studio-boot-assets) ──────────────
-# ?v= 는 render_html_with_asset_hashes 가 붙인 내용 hash 다. 맞으면 URL 이 곧 내용이라 재검증할
-# 이유가 없다 — VS Code port-forward tunnel 너머에서 CSS/JS 수십 개의 304 왕복이 사라진다.
+# ── static with a matching hash is immutable ────────────────────────────────────────────
+# ?v= is the content hash added by render_html_with_asset_hashes. When it matches, the URL is the content, so there is
+# nothing to revalidate — dozens of CSS/JS 304 round trips over a VS Code port-forward tunnel go away.
 IMMUTABLE = "public, max-age=31536000, immutable"
 
 
@@ -439,7 +439,7 @@ def test_static_304_with_matching_hash_is_immutable(static_server, tmp_path):
 
 
 def test_explicit_cache_control_yields_to_matching_hash(tmp_path):
-    """launcher 는 shell asset 에 cache_control=_SHELL_CACHE 를 준다 — hash 가 맞으면 그래도 immutable."""
+    """The launcher gives shell assets cache_control=_SHELL_CACHE — a matching hash still makes them immutable."""
     asset = tmp_path / "shell.js"
     asset.write_text("window.shell = 1;\n", encoding="utf-8")
     digest = DXBaseHandler.asset_content_hash(asset)
@@ -463,7 +463,7 @@ def test_explicit_cache_control_yields_to_matching_hash(tmp_path):
     assert miss.headers["Cache-Control"] == "no-cache, must-revalidate"
 
 
-# ── 아이콘 sprite 도 hash URL 로 ─────────────────────────────────────────────────────────
+# ── the icon sprite gets a hash URL too ─────────────────────────────────────────────────
 SPRITE = "/static/shared/dx-icons.svg"
 
 
@@ -497,7 +497,7 @@ def test_sprite_meta_is_injected_once_before_head_close():
 
 
 def test_fragments_injected_after_the_rewrite_can_be_versioned_on_their_own():
-    """launcher 가 proxy 응답에 끼워 넣는 NPU Monitor widget 은 module server 의 rewrite 를 거치지 않는다."""
+    """The NPU Monitor widget the launcher injects into proxied responses skips the module server's rewrite."""
     snippet = f'<div><svg><use href="{SPRITE}#clock"></use></svg></div>'
     out = DXBaseHandler.version_sprite_refs(snippet)
     assert out == f'<div><svg><use href="{SPRITE}?v={_sprite_hash()}#clock"></use></svg></div>'

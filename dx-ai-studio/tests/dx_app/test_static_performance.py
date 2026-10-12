@@ -131,7 +131,7 @@ def test_continuous_result_status_skips_same_value_text_writes():
     result_body = _function_body(source, "function contShowResult(")
 
     assert "function setTextIfChanged(" in source
-    # 상태는 아이콘 + 말 — 같은 값이면 다시 쓰지 않는다 (setLabelIfChanged, 아이콘 체계 단계 5).
+    # Status is icon + words; an unchanged value is not rewritten (setLabelIfChanged).
     assert "function setLabelIfChanged(" in source
     assert "setLabelIfChanged(statusEl,'x',T('Error'));" in result_body
     assert "setLabelIfChanged(statusEl,'check',T('Done'));" in result_body

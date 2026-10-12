@@ -47,12 +47,12 @@ COMPILER_DIR = ROOT / "dx_compiler"
 TEST_PORT = 18095
 BASE_URL = f"http://127.0.0.1:{TEST_PORT}"
 
-# 다른 테스트 conftest 훅(예: dx_stream)이 등록한 모듈과 충돌 방지용 프리픽스 목록
+# Module prefixes to clear, so modules registered by other tests' conftest hooks (e.g. dx_stream) do not collide
 _STALE_MODULE_PREFIXES = ("core", "shared", "server", "dx_compiler_server_for_tests", "dx_compiler")
 
 
 def _clear_stale_modules():
-    """sys.modules에서 다른 앱이 남긴 core/shared/server 모듈을 제거한다."""
+    """Remove core/shared/server modules left in sys.modules by other apps."""
     for name in list(sys.modules):
         if any(
             name == prefix or name.startswith(prefix + ".")
@@ -62,16 +62,16 @@ def _clear_stale_modules():
 
 
 def _reset_sys_path():
-    """sys.path에서 COMPILER_DIR/ROOT 항목을 제거한 후 재삽입하여 결정적 순서를 보장한다.
+    """Remove and re-insert the COMPILER_DIR/ROOT entries in sys.path for a deterministic order.
 
-    최종 순서: COMPILER_DIR(idx 0) → ROOT(idx 1) → 기존 항목들.
-    TODO(Task 4.1): 모든 컴파일러 테스트가 package import만 사용하면 COMPILER_DIR 삽입을 제거한다.
+    Final order: COMPILER_DIR (idx 0) → ROOT (idx 1) → existing entries.
+    TODO: drop the COMPILER_DIR insert once every compiler test uses package imports only.
     """
     root_str, compiler_str = str(ROOT), str(COMPILER_DIR)
     for p in (root_str, compiler_str):
         while p in sys.path:
             sys.path.remove(p)
-    # COMPILER_DIR를 먼저 insert(0)하면 ROOT가 0으로 밀리므로 역순으로 삽입
+    # Insert in reverse: inserting COMPILER_DIR at 0 first would let ROOT push it down
     sys.path.insert(0, root_str)
     sys.path.insert(0, compiler_str)
 
@@ -80,9 +80,9 @@ class ReusableThreadingHTTPServer(ThreadingHTTPServer):
     allow_reuse_address = True
 
 
-# module-scoped fixture: 하나의 서버 인스턴스를 모든 테스트가 공유한다.
-# 이 서버는 읽기 전용/안전한 라우트에만 사용되어야 한다 — 상태를 변경하는
-# 요청은 별도의 function-scoped 서버를 사용할 것.
+# module-scoped fixture: every test shares one server instance.
+# Use it only for read-only / safe routes — requests that change state
+# need their own function-scoped server.
 @pytest.fixture(scope="module")
 def server():
     _clear_stale_modules()
@@ -125,12 +125,11 @@ def server():
         srv.server_close()
         sys.modules.pop("dx_compiler_server_for_tests", None)
         _clear_stale_modules()
-        # Restore, do NOT blind-remove. The old code stripped every copy of ROOT,
-        # including the ones tests/conftest.py and this package's conftest.py own,
-        # and never put them back — so for the REST of the pytest process the repo
-        # root was off sys.path and any later `import shared` (which production code
-        # in setup_service._run_install_sh does at call time) died with
-        # ModuleNotFoundError, far from the test that caused it.
+        # Restore, do NOT blind-remove. Stripping every copy of ROOT would also drop
+        # the ones tests/conftest.py and this package's conftest.py own — so for the
+        # REST of the pytest process the repo root would be off sys.path and any later
+        # `import shared` (which production code in setup_service._run_install_sh does
+        # at call time) would die with ModuleNotFoundError, far from the test that caused it.
         sys.path[:] = _saved_sys_path
 
 
@@ -1302,7 +1301,7 @@ class TestValidatePathRoute:
         assert status == 403
 
     def test_existing_directory_has_no_warnings(self, server, tmp_path, monkeypatch):
-        # tmp_path 는 /tmp 아래라 compile 경로 정책 밖이다 — 이 시험은 '있는 폴더면 경고 없음' 만 본다
+        # tmp_path is under /tmp, outside the compile path policy — this test only checks "existing folder, no warning"
         monkeypatch.setenv("DX_COMPILER_ALLOWED_ROOTS", str(tmp_path))
         status, body = _api("GET", f"/validate/path?path={tmp_path}&kind=dir")
         assert status == 200 and body["warnings"] == []

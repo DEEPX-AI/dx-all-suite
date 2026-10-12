@@ -1,4 +1,4 @@
-"""무대 양옆의 위젯 두 개 (spec 2026-09-23 §5.5–5.6) — 데이터 경로와 선택의 계약."""
+"""The two widgets beside the stage: contracts on data paths and selection."""
 from __future__ import annotations
 
 import re
@@ -25,23 +25,23 @@ def test_the_widget_script_is_served_and_loaded_after_the_sections():
 
 
 def test_the_device_widget_rides_the_shared_stream_not_a_new_poll():
-    """장치 값은 이미 startSharedHwStream 이 SSE (없으면 3초 poll) 로 뿌린다. 위젯이 자기
-    주기 poll 을 가지면 같은 장치를 두 번 묻는다."""
+    """Device values are already broadcast by startSharedHwStream over SSE (3 s poll without it). A widget with
+    its own poll would ask the same device twice."""
     js = _widgets()
     assert "dx-hw-data" in js
     assert not re.search(r"setInterval\([^)]*\n?[^)]*hw_status", js), "위젯이 hw_status 를 주기로 묻는다"
 
 
 def test_one_owner_paints_the_device():
-    """15초 poll 과 스트림이 같은 칩을 번갈아 덮어쓰지 않게, 옛 painter 는 없어진다."""
+    """No old painter: a 15 s poll and the stream must not take turns overwriting the same chip."""
     assert "function refreshHeroDevice" not in FRAME
     assert "_paintDeviceFacts" not in FRAME
     assert "refreshHeroDevice" not in FRAME
 
 
 def test_the_headline_is_the_nano_model_of_each_task_named_by_id():
-    """가장 빠른 모델을 뽑으면 task 가 달라 비교할 수 없는 숫자가 된다 (spec §5.6).
-    이름 패턴으로 추측하지 않고 id 로 적는다 — 무엇이 뽑히는지 읽으면 보인다."""
+    """Picking the fastest model overall gives numbers from different tasks that cannot be compared.
+    The ids are listed explicitly rather than guessed from name patterns, so what gets picked is readable."""
     js = _widgets()
     pairs = re.findall(r"\['(\w+)',\s*'(\w+)'\]", js[js.index("HEADLINE"):js.index("];", js.index("HEADLINE"))])
     assert pairs == [
@@ -61,7 +61,7 @@ def test_the_sections_hand_the_catalogue_over_instead_of_a_second_fetch():
 
 
 def test_the_widgets_open_their_modules_without_inline_handlers():
-    """카드와 같은 규칙: 위임된 리스너로 연다 (test_home_cards_use_delegated_routing_not_inline_onclick)."""
+    """Same rule as the cards: open through a delegated listener (test_home_cards_use_delegated_routing_not_inline_onclick)."""
     device = HTML[HTML.index('id="homeDevice"'):HTML.index('id="studioGrid"')]
     assert "onclick" not in device
     js = _widgets()
@@ -81,7 +81,7 @@ def test_new_words_speak_all_six_languages(key):
 
 
 def test_task_words_are_the_ones_the_model_zoo_already_uses():
-    """용어가 모듈마다 갈라지지 않게 — Model Zoo 사전의 번역을 그대로 쓴다."""
+    """Terms must not diverge per module: reuse the Model Zoo dictionary's translations."""
     zoo = (ROOT / "dx_modelzoo" / "static" / "js" / "i18n-dict-shared.js").read_text(encoding="utf-8")
     for key in _KEYS[1:]:
         ours = re.search(r"'" + re.escape(key) + r"':\s*\{([^}]*)\}", HTML).group(1)

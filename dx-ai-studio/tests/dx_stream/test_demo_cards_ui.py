@@ -1,9 +1,8 @@
-"""dx_stream Demo Launcher — 공통 결과 무대 위에 (spec 2026-10-01 demo stage).
+"""dx_stream Demo Launcher — on the shared result stage.
 
-예전: page 위의 Playback 막대 · 고정된 filter 막대 · card grid · 그 **아래** 영상 영역 (Start 를 누르면
-scroll 해야 보였다). 이제 App Run Demo 와 같은 ``shared/static/dx-demo-stage.{js,css}`` 에 올라가고,
-Playback · RTSP · Start 는 무대 옵션, 영상은 무대 media, filter 는 demo 의 category 에서.
-화면에서의 약속은 test_demo_cards_browser.py.
+The launcher sits on the same ``shared/static/dx-demo-stage.{js,css}`` as App Run Demo: Playback · RTSP · Start are
+stage options, the video is the stage media, and the filters come from the demos' categories.
+On-screen behavior is covered by test_demo_cards_browser.py.
 """
 from __future__ import annotations
 

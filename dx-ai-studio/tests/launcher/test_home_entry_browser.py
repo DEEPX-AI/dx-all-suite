@@ -1,6 +1,6 @@
-"""home 의 움직임 (spec 2026-09-23 §7 #1 #5 #6 #7) — 첫 진입, 보내기의 빛, Dock 확대, 실행 중 점등.
+"""Home's motion: first entry, the send sweep, Dock magnification, and the running light.
 
-효과 JS 는 자기 animation 에 id 를 붙인다 (entry · sweep · orb · lit) — 여기서 그 이름으로 찾는다.
+The effects JS names its animations (entry · sweep · orb · lit); the tests find them by those ids.
 """
 from __future__ import annotations
 
@@ -50,7 +50,7 @@ def _ids(page, name):
     return page.evaluate(f"() => document.getAnimations().filter(a => a.id === '{name}').length")
 
 
-# ── #1 첫 진입 ────────────────────────────────────────────────────────────
+# ── first entry ───────────────────────────────────────────────────────────
 
 def test_the_first_entry_rises_in_order_and_sweeps_once(browser, server):
     ctx, page = _open(browser, server, entered=False)
@@ -84,7 +84,7 @@ def test_reduced_motion_skips_the_entry(browser, server):
         ctx.close()
 
 
-# ── #5 보내기 ─────────────────────────────────────────────────────────────
+# ── send ──────────────────────────────────────────────────────────────────
 
 def test_sending_flies_a_light_to_the_routed_module(browser, server):
     ctx, page = _open(browser, server)
@@ -98,7 +98,7 @@ def test_sending_flies_a_light_to_the_routed_module(browser, server):
         ctx.close()
 
 
-# ── #6 Dock 확대 ──────────────────────────────────────────────────────────
+# ── Dock magnification ────────────────────────────────────────────────────
 
 def _scale(page, app):
     t = page.evaluate(f"""() => getComputedStyle(document.querySelector(
@@ -124,7 +124,7 @@ def test_icons_near_the_cursor_grow_like_a_dock(browser, server):
         near, far = _scale(page, "app"), _scale(page, "agent")
         assert abs(near - 1.18) < 0.02, near
         assert far == 1.0, far
-        # 두 아이콘 사이 (거리는 커서에서 잰다): 둘 다 커지고, 가까운 쪽이 더.
+        # Between two icons (distance measured from the cursor): both grow, the nearer one more.
         page.mouse.move(x + 45, y, steps=2)
         page.wait_for_timeout(250)
         a, b = _scale(page, "app"), _scale(page, "stream")
@@ -153,7 +153,7 @@ def test_reduced_motion_keeps_the_icons_still(browser, server):
         ctx.close()
 
 
-# ── #7 실행 중 ────────────────────────────────────────────────────────────
+# ── running ───────────────────────────────────────────────────────────────
 
 def test_a_running_module_lights_its_glyph(browser, server):
     ctx, page = _open(browser, server)

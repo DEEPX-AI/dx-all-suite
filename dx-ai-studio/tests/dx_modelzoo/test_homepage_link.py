@@ -7,7 +7,7 @@ DICT = ROOT / "dx_modelzoo" / "static" / "js" / "i18n-dict-catalog.js"
 
 
 def test_topbar_has_public_modelzoo_link():
-    """링크는 shell 헤더의 .toolbar 슬롯 안에 서버 렌더로 들어간다."""
+    """The link is server-rendered into the .toolbar slot of the shell header."""
     from dx_modelzoo.server import DX_MODELZOO_SHELL
     from shared.shell import apply as apply_shell
 

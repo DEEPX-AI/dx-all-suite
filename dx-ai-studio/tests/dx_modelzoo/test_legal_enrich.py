@@ -22,8 +22,8 @@ def _no_reference_ids():
 
 
 def test_no_reference_is_never_shown_as_a_source():
-    """page 가 출처를 "No Reference" 로 적은 model 은 publish_only 든 conf row 든 출처를 비운다 — 그 글자를
-    URL 자리에 두지 않는다 (per-model dx_app 에서 conf row 가 된 28 개가 그랬다, 2026-10-01)."""
+    """A model whose page gives its source as "No Reference" gets an empty source, whether it is publish_only
+    or a conf row; that text never stands in the URL slot."""
     from core import catalog as C
     m = {"legal": {"source_url": "No Reference", "license": "Apache-2.0"}}
     C._enrich_legal(m)
@@ -37,9 +37,8 @@ def test_all_models_have_complete_legal_block():
     # source_url + copyright are mechanically derivable for every model: the source
     # comes from the studio's curated catalog or the staging dx-modelzoo model YAML
     # `reference` field, and copyright is derived from the repo owner.
-    # publish page 에만 있는 model (publish_only) 중 page 가 출처를 "No Reference" 로 적은 것은 비워 둔다 — 지어내지
-    # 않는다 (spec 2026-10-01 dx_app per-model layout 결정 8).
-    # per-model dx_app 에서는 그런 model 도 conf 에 있어 publish_only 가 아니다 — page 의 말 ("No Reference") 로 가린다.
+    # Models whose page gives the source as "No Reference" are left empty, never made up. In a per-model
+    # dx_app such models are conf rows rather than publish_only, so they are identified by the page text.
     no_ref = _no_reference_ids()
     for key in ("source_url", "copyright"):
         missing = [m["id"] for m in ms if not (m.get("legal") or {}).get(key)
@@ -71,15 +70,13 @@ def test_license_text_is_canonical_reference():
     assert "gpl-3.0" in ms["yolov7_w6"]["legal"]["license_text"]
 
 
-# yolo26_depth 계열은 2026-09 에 공개 ModelZoo 에 추가됐다. 그전까지 studio 카탈로그는
-# 이 다섯 개를 legal 없이 내보냈고, 게이트는 "상류에 데이터가 없다" 는 잘못된 근거로
-# deselect 되어 있었다. 실제로는 (1) generated_catalog.json 이 추가 이전 산출물이었고
-# (2) studio id `yolo26_depth_n` 이 생성 id `yolo26_depth_n_768x768` 과 매칭되지 않았다.
+# The yolo26_depth family needs both a current generated_catalog.json and a working id match
+# (studio `yolo26_depth_n` vs generated `yolo26_depth_n_768x768`) to carry its legal block.
 #
-# test_all_models_have_complete_legal_block 은 "비어 있지 않다" 만 본다. 다음 동기화가
-# 값을 비우거나 엉뚱한 저장소를 가리켜도 그 테스트는 통과하므로, 실제 값을 여기 고정한다.
-# id 는 publish page 의 .dxnn 이름 (yolo26-depth-n_768x768) — main 과 per-model dx_app 이 같은 id 를 쓰게
-# (spec 2026-10-01 dx_app per-model layout). 예전 id 는 yolo26_depth_n 이었다.
+# test_all_models_have_complete_legal_block only checks "not empty". A sync that blanks the
+# values or points at the wrong repository would still pass it, so the real values are pinned here.
+# The ids follow the publish page's .dxnn name (yolo26-depth-n_768x768) so main and per-model
+# dx_app share them.
 _YOLO26_DEPTH_IDS = (
     "yolo26_depth_n_768x768",
     "yolo26_depth_s_768x768",
@@ -98,9 +95,9 @@ def test_yolo26_depth_carries_its_upstream_legal():
             f"{mid}: source_url={lg.get('source_url')!r}"
         )
         assert lg.get("license") == "AGPL-3.0", f"{mid}: license={lg.get('license')!r}"
-        # 고치기 전에는 license 를 몰라 fallback 인 "restricted" 가 붙어 있었다.
-        # 이제 AGPL 로 판별되므로 _LICENSE_COMMERCIAL 의 "copyleft" 가 되어야 한다 —
-        # 같은 "쓰기 조심" 이라도 이유가 다르고, UI 가 그 이유를 표시한다.
+        # With the license known as AGPL, _LICENSE_COMMERCIAL must give "copyleft", not the
+        # unknown-license fallback "restricted": both mean "use with care", but for different
+        # reasons, and the UI shows the reason.
         assert lg.get("commercial_use") == "copyleft", (
             f"{mid}: commercial_use={lg.get('commercial_use')!r}"
         )

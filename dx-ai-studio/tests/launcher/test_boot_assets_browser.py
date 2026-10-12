@@ -1,8 +1,8 @@
-"""Home 은 아이콘 · font 가 도착한 뒤에 열린다 — 단 상한 안에 (spec 2026-09-30 boot assets).
+"""Home opens only after its icons and fonts arrive, but within a time limit.
 
-외부 sprite (`<use href="dx-icons.svg?v=…#id">`) 는 도착하기 전까지 빈칸이다. VS Code port-forward
-tunnel 너머에서는 그 틈이 보였다: Home 이 먼저 열리고 아이콘이 나중에 튀어나왔다. boot gate 는
-`studio_ready` 에 더해 font · sprite 를 기다리고, 무엇이 막혀도 문서 시작부터 3s 에 연다.
+An external sprite (`<use href="dx-icons.svg?v=…#id">`) is blank until it loads. Over a slow link such as a VS Code
+port-forward tunnel that gap shows as Home opening first and the icons popping in later. The boot gate waits for fonts
+and the sprite in addition to `studio_ready`, and opens 3 s after document start whatever is still blocking.
 """
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ pytest.importorskip("playwright.sync_api")
 
 from tests.server_helpers import start_module_server  # noqa: E402
 
-# boot-pending 이 풀린 순간 (performance.now) 을 적는다 — 한 번 pending 을 본 뒤에만.
+# Record when boot-pending clears (performance.now), counted only after pending was seen once.
 _WATCH = """
 try{sessionStorage.setItem('dx-splash-seen','1');localStorage.setItem('dx-splash-seen','1');
 localStorage.setItem('dx-tutorial-launcher-autostarted','1');}catch(e){}

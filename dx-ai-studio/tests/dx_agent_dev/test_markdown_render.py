@@ -9,7 +9,7 @@ import pytest
 from tests.browser_support import resolve_node_executable
 
 ROOT = Path(__file__).resolve().parents[2]
-JS = ROOT / "shared" / "static" / "markdown_render.js"   # home 과 Agent Dev 가 같은 파일을 쓴다
+JS = ROOT / "shared" / "static" / "markdown_render.js"   # home and Agent Dev share this file
 
 NODE_TEST = r"""
 const fs = require('fs');

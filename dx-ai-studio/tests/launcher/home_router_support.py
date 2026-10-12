@@ -1,8 +1,8 @@
-"""home-router 테스트가 공유하는 소스 로더와 히어로 칩 목록.
+"""Source loader and hero chip list shared by the home-router tests.
 
-계약이 두 파일로 갈렸다 — 소스만 읽는 정적 계약은 블로킹 게이트에, 실제 라우터를
-브라우저에서 돌리는 계약은 advisory 인 --browser 스테이지에 있다. 양쪽이 같은
-`source()` 와 `HERO_CHIPS` 를 봐야 하므로 여기 한 벌만 둔다.
+The contracts are split across two files: static contracts that only read the source run in the blocking gate, and
+contracts that run the real router in a browser run in the advisory --browser stage. Both must see the same
+`source()` and `HERO_CHIPS`, so they live here once.
 """
 from __future__ import annotations
 

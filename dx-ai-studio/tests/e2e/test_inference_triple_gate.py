@@ -1,4 +1,4 @@
-"""Inference E2E triple gate — SR-586 / SR-678.
+"""Inference E2E triple gate.
 
 One real browser journey (nav -> pick model -> pick image -> click Run) asserted
 on three independent layers, so a regression in any one of them fails the gate:
@@ -38,8 +38,8 @@ FPS_MIN, FPS_MAX = 0.1, 100_000.0
 #   2. img.res-img          — a plain result image (no "before" to compare against)
 #   3. .cmp-fallback img    — the slider is REPLACED by this when the original and
 #                             the result have different aspect ratios
-# Shape 3 only showed up once the NPU tier ran a real model: the mock fixture's
-# input and output are both 640x384, so it never leaves the slider path.
+# Only the NPU tier reaches shape 3: the mock fixture's input and output are both
+# 640x384, so it never leaves the slider path.
 RESULT_IMG_SELECTOR = (
     "#r-result .cmp-after-clip img, #r-result img.res-img, #r-result .cmp-fallback img"
 )
@@ -81,8 +81,7 @@ def _dismiss_tutorial(page):
 def _open_run_tab(page, base_url):
     page.goto(base_url, wait_until="load", timeout=60_000)
     _dismiss_tutorial(page)
-    # 통합 shell(Option A)에는 사이드바가 없다 — 페이지 전환은 상단 탭 행이다.
-    # 이관 때 이 셀렉터가 낡은 채 남아 게이트가 30초 타임아웃으로 죽고 있었다.
+    # The unified shell has no sidebar; pages switch through the top tab row.
     page.click('.dx-tab[data-page="run"]')
     expect(page.locator("#r-run-btn")).to_be_visible(timeout=30_000)
 

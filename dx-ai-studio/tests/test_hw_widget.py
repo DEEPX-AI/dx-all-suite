@@ -300,7 +300,7 @@ def test_hw_widget_static_contracts():
 
 
 def test_the_widget_starts_folded_on_the_left_and_remembers_the_choice():
-    """펼친 위젯이 오른쪽 아래의 채팅 버튼 · 표 · Run 단추를 가렸다 (2026-10-02 release audit M-1)."""
+    """The widget starts folded on the left, because unfolded at the bottom right it covers the chat button, tables and Run button."""
     html = WIDGET.read_text(encoding="utf-8")
     assert '<div class="hw-float minimized" id="hw-float">' in html
     assert "bottom:20px;left:20px" in html

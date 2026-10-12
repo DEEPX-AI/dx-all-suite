@@ -1,7 +1,7 @@
-"""Stream Dashboard — 실행 중인 demo 를 이름으로 말하고, FPS 와 NPU 사용률을 채운다 (release audit S-15).
+"""Stream Dashboard — names the running demo and fills in FPS and NPU usage.
 
-예전 표는 서버가 보낸 적 없는 perf 필드를 기다려 늘 "--" 였고, Pipeline Status 카드는 바뀌지 않았다.
-서버 응답은 route 로 고정한다 (MJPEG 로 demo 4 실행 중, 프레임이 초당 ~25 장 늘어난다, NPU 40%).
+The table must not wait on perf fields the server never sends, and the Pipeline Status card must follow the run.
+Server responses are fixed by route (demo 4 running over MJPEG, ~25 frames per second, NPU 40%).
 """
 from __future__ import annotations
 

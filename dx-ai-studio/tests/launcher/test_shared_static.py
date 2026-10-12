@@ -292,8 +292,7 @@ def test_launcher_tutorial_mode_defaults_on():
     assert "_stored === 'on'" not in tutorial_js
     assert "type: _tutorialMode ? 'dx-tutorial-start' : 'dx-tutorial-stop'" in tutorial_js
     # The tour row (Tutorial Mode switch + Replay intro) has its own step that says how to turn
-    # the tours off. It used to be the first step; the stage redesign (spec 2026-09-23 §9) walks
-    # the stage in reading order and puts the tour row after the bar.
+    # the tours off. The tour walks the stage in reading order and puts the tour row after the bar.
     step = tutorial_js[tutorial_js.index("target: '#homeTour'"):]
     step = step[:step.index("} }")]
     assert "Tutorial Mode" in step and "off" in step

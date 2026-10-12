@@ -1,7 +1,7 @@
 """Tutorial language and selector contracts for DX Compiler.
 
-`tests/dx_agent_dev/test_tutorial.py` 패턴을 dx_compiler(멀티 튜토리얼)에 맞게 복제.
-정적 계약 테스트 — 브라우저/JS 런타임 없이 소스 텍스트만 검증.
+The `tests/dx_agent_dev/test_tutorial.py` pattern, adapted to dx_compiler (multiple tutorials).
+Static contract tests — they check source text only, with no browser or JS runtime.
 """
 from __future__ import annotations
 
@@ -35,10 +35,10 @@ def read_text(path: Path) -> str:
 
 
 def _compiler_template_html() -> str:
-    """템플릿 조각 + 서버가 주입하는 shell 마크업.
+    """Template partials plus the shell markup the server injects.
 
-    레일·헤더는 shared/shell.py 가 렌더 컨텍스트로 들어가므로 템플릿 파일만
-    읽으면 튜토리얼이 가리키는 shell 셀렉터가 보이지 않는다.
+    The rail and header come from shared/shell.py through the render context, so
+    reading only the template files would miss the shell selectors the tutorial targets.
     """
     from dx_compiler.server import DX_COMPILER_SHELL
     from shared.shell import context as shell_context
@@ -111,7 +111,7 @@ def _unresolved_target_tokens(target: str, selectors: set) -> list:
 
 
 def test_tutorial_targets_extract():
-    """헬퍼 단위(순수) — target/targetAll 추출 정확성."""
+    """Helper unit (pure) — target/targetAll are extracted correctly."""
     source = """
     var helpDefs = {
       compiler: [
@@ -164,7 +164,7 @@ def test_preserves_expected_sections():
 
 
 def test_sections_cover_target_languages():
-    """모든 i18n 객체가 TARGET_LANGS를 빠짐없이 커버(ko 출현수 기준)."""
+    """Every i18n object covers all TARGET_LANGS (counted against the ko occurrences)."""
     source = read_text(JS_DIR / "tutorial.js")
     ko_count = len(re.findall(r"(?<![A-Za-z0-9_'\"-])ko\s*:", source))
     assert ko_count >= 8, f"expected several i18n objects, ko-keys={ko_count}"

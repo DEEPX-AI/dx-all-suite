@@ -1,9 +1,7 @@
-"""home-router 의 정적 계약 — 소스만 읽으므로 블로킹 게이트에서 돈다.
+"""Static contracts for home-router: source only, so they run in the blocking gate.
 
-이 파일은 한때 브라우저 계약과 한 파일이었고, 그래서 브라우저 스위트로 등록되는
-순간 정적 계약 4건까지 advisory 로 내려갔다. 파싱 중 fetch 를 하지 않는다거나
-엔트리 포인트가 하나라는 계약은 브라우저 없이 확인할 수 있고, 값이 싸므로 매 PR 에서
-막아야 한다. 브라우저가 필요한 쪽은 test_home_router_browser.py 에 있다.
+Contracts such as "no fetch during parsing" and "a single entry point" need no browser and are cheap,
+so every PR must be held to them. The contracts that need a browser are in test_home_router_browser.py.
 """
 from __future__ import annotations
 

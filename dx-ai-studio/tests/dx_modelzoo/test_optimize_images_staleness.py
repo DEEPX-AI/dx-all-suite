@@ -1,15 +1,12 @@
-"""최적화본은 원본이 바뀌면 다시 만들어져야 하고, manifest 는 전체를 기록해야 한다.
+"""Optimized images are rebuilt when their source changes, and the manifest records everything.
 
-2026-09-21 에 썸네일 11개를 재생성하고 optimize_images.py 를 그냥 돌렸더니
-**778개 스킵, 내 파일은 하나도 갱신되지 않았다.** 스킵 조건이 "출력이 이미
-존재하면 건너뜀" 이라 원본이 언제 바뀌었는지 보지 않기 때문이다. catalog.js 는
-.webp → .jpg → 원본 순으로 시도하므로, 브라우저는 계속 옛 그림을 받는다.
---force 로 우회했지만 그것은 매번 1578개를 전부 다시 만든다는 뜻이다.
+A skip rule of "the output already exists" ignores when the source changed, so regenerated
+thumbnails would never be re-optimized. catalog.js tries .webp → .jpg → original, so the browser
+would keep getting the old picture; --force works around it only by rebuilding every image.
 
-두 번째 결함은 더 조용하다. manifest.json 을 **이번 실행에서 처리한 것만으로
-덮어쓴다.** `--model` 로 하나씩 돌리면 마지막 하나만 남는다 — 실제로 그렇게
-되어 1578개 중 2개만 적힌 manifest 가 커밋됐다. tools/perf_audit.py 는
-`manifest.is_file()` 만 보므로 아무도 눈치채지 못했다.
+The manifest must also not be overwritten with **only what this run processed**: running
+`--model` one at a time would leave only the last one. tools/perf_audit.py only checks
+`manifest.is_file()`, so nothing else would notice.
 """
 from __future__ import annotations
 
@@ -53,7 +50,7 @@ class TestStaleOutputsAreRebuilt:
         first = _run(src, out)
         assert first["written"] == 2
 
-        # 원본을 다시 만든다 (썸네일 재생성과 같은 상황)
+        # Rebuild the source (as when thumbnails are regenerated)
         _png(src / "thumbnails" / "alpha.jpg", (0, 250, 0))
         import os, time
 
@@ -69,7 +66,7 @@ class TestStaleOutputsAreRebuilt:
         assert "alpha.jpg" in sources
 
     def test_an_unchanged_source_is_still_skipped(self, tree):
-        """과잉 재생성 방지 — 안 바뀐 것까지 매번 다시 만들면 --force 와 같아진다."""
+        """No needless rebuilds: rebuilding unchanged images every time would equal --force."""
         src, out = tree
         _run(src, out)
         again = _run(src, out)
@@ -78,7 +75,7 @@ class TestStaleOutputsAreRebuilt:
 
 class TestTheManifestDescribesEverything:
     def test_a_partial_run_does_not_erase_the_rest(self, tree):
-        """`--model` 로 하나만 돌려도 나머지 기록이 남아야 한다."""
+        """Running `--model` for one image must keep the other records."""
         src, out = tree
         _run(src, out)
         full = json.loads((out / "manifest.json").read_text())
@@ -103,10 +100,9 @@ class TestTheManifestDescribesEverything:
         assert m["total_source_bytes"] == sum(e["source_bytes"] for e in m["images"])
 
     def test_a_removed_source_drops_out_of_the_manifest(self, tree):
-        """원본이 사라진 기록을 남겨두면 합계가 현실과 어긋난다.
+        """Keeping records of removed sources would make the totals disagree with reality.
 
-        merge 를 넣으면서 생긴 위험이다 — 예전(덮어쓰기)에는 사라진 것이 저절로
-        빠졌다. 변이 검사에서 이 가지만 살아남아 계약이 비어 있는 것이 드러났다.
+        The manifest is merged across runs, so removed sources must be dropped explicitly.
         """
         import json
         import os
@@ -130,8 +126,8 @@ class TestTheManifestDescribesEverything:
 
 class TestTheManifestIsPortable:
     def test_no_absolute_paths_are_written(self, tree):
-        """2026-10-12 release audit: the committed manifest carried ~1,500 paths like /home/deepx/hj_ws/… — one
-        developer's checkout. Paths are written relative: sources to the source root, outputs to the output root."""
+        """Absolute paths would bake one developer's checkout (/home/…) into the committed manifest.
+        Paths are written relative: sources to the source root, outputs to the output root."""
         src, out = tree
         _run(src, out)
         m = json.loads((out / "manifest.json").read_text())
@@ -145,7 +141,7 @@ class TestTheManifestIsPortable:
         src, out = tree
         _run(src, out)
         m = json.loads((out / "manifest.json").read_text())
-        for e in m["images"]:                       # simulate the old committed file
+        for e in m["images"]:                       # simulate a manifest with absolute paths
             e["source"] = str(src / e["source"])
         (out / "manifest.json").write_text(json.dumps(m))
         import os, time

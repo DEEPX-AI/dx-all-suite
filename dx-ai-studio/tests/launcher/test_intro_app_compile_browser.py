@@ -1,8 +1,8 @@
-"""intro 의 둘째 · 셋째 작업 장면 (spec 2026-09-30 intro app/compiler).
+"""The intro's second and third working scenes.
 
-App: 실제 주행 영상 위로 빛의 선이 위 → 아래로 훑고, 지나간 자리가 DX-M1 이 낸 segmentation 으로
-바뀐 뒤 그대로 재생된다. Compiler: Ultralytics YOLO26n 의 실제 graph 384 node 가 펼쳐졌다가 DX-M1
-칩으로 빨려 든다. 세 장면이 모두 화면을 쓰므로 옛 card (.cue-scene) 는 없다.
+App: a line of light sweeps top to bottom over real drive footage, the area it passes turns into the segmentation
+a DX-M1 produced, and playback continues. Compiler: the real 384-node graph of Ultralytics YOLO26n spreads out and
+is drawn into the DX-M1 chip. All three scenes use the full screen, so there is no card (.cue-scene).
 """
 from __future__ import annotations
 

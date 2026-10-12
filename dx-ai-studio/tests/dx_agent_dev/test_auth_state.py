@@ -1,8 +1,8 @@
-"""P1: 어댑터 인증 상태 감지(is_authenticated) + detect_available_agents의 authenticated 필드.
+"""Adapter sign-in detection (is_authenticated) and the authenticated field of detect_available_agents.
 
-설계: is_authenticated() -> bool | None
-  - True/False: 값싼 자격증명 파일 검사로 확정 가능한 경우
-  - None: 확정 불가(unknown) — 거짓 음성(로그인했는데 안 됐다고 표시) 방지
+is_authenticated() -> bool | None
+  - True/False: when a cheap credential-file check can decide
+  - None: cannot decide (unknown), to avoid false negatives (signed in but shown as signed out)
 """
 import json
 import sys
@@ -12,7 +12,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "dx_agent
 
 
 def test_base_adapter_auth_unknown_is_none():
-    """자격증명 경로 미선언 어댑터 → unknown(None)."""
+    """An adapter that declares no credential path is unknown (None)."""
     from core.adapters.base import SubprocessAdapter
 
     class Bare(SubprocessAdapter):
@@ -46,8 +46,8 @@ def test_cursor_authenticated_reads_authinfo(monkeypatch, tmp_path):
 
 
 def test_copilot_authenticated_when_config_lists_a_user(monkeypatch, tmp_path):
-    """`copilot login` 은 token 을 keyring 에, 계정을 config.json 의 loggedInUsers 에 둔다. 예전 판정의
-    session-store.db 는 로그인해도 생기지 않았다 (CLI 1.0.89 실측) — 로그인해도 늘 "not signed in"."""
+    """`copilot login` keeps the token in the keyring and the account in config.json's loggedInUsers.
+    session-store.db is not created by signing in, so it cannot be the signal."""
     monkeypatch.setattr(Path, "home", classmethod(lambda cls: tmp_path))
     for var in ("COPILOT_GITHUB_TOKEN", "GH_TOKEN", "GITHUB_TOKEN"):
         monkeypatch.delenv(var, raising=False)
@@ -67,7 +67,7 @@ def test_copilot_authenticated_false_when_never_logged_in(monkeypatch, tmp_path)
 
 
 def test_detect_available_agents_includes_authenticated(monkeypatch):
-    """status가 노출하는 agents 항목에 authenticated 필드가 포함된다."""
+    """The agents entries in status include the authenticated field."""
     from core import environment
     monkeypatch.setattr(
         environment.shutil, "which",

@@ -1,9 +1,9 @@
-"""breakpoint 파편화가 다시 늘지 않도록 묶는 ratchet.
+"""Ratchet that keeps breakpoint fragmentation from growing.
 
-같은 제품 안에서 반응형이 19개 폭에서 갈린다 — 900 에서 접히는 화면 옆에
-960 에서 접히는 화면이 있고, 그 차이에 이유는 없다. 값을 지금 스케일로 몰면
-그 폭 구간 레이아웃이 실제로 바뀌는데 확인할 responsive baseline 이 아직
-없다. 그래서 새 값이 들어오는 것만 막는다.
+Responsive layouts in the product switch at many unrelated widths (one screen folds at
+900, another at 960, for no reason). Moving existing values onto the scale would change
+layouts in those width ranges with no responsive baseline to check them, so this only
+blocks new values.
 """
 from __future__ import annotations
 
@@ -26,15 +26,14 @@ def test_no_file_introduces_a_new_breakpoint():
 
 
 def test_scale_values_need_no_baseline_entry():
-    """메시지는 "스케일 중에서 고르라" 고 하는데 판정은 스케일을 보지 않았다 — 새 파일
-    (launcher/static/home-stage.css) 이 600 · 900 · 1200 을 쓰자 전부 '새 값' 으로 막혔다.
-    스케일 값은 파편화를 늘리지 않으므로 기준값 없이 허용한다."""
+    """Scale values never add fragmentation, so they are allowed without a baseline entry —
+    the failure message tells authors to pick from the scale, and that must actually pass."""
     assert new_values({"new.css": list(SCALE)}, {}) == {}
 
 
 def test_values_off_the_scale_are_still_new():
     assert new_values({"new.css": [900, 1100]}, {}) == {"new.css": [1100]}
-    # 이미 그 파일이 쓰던 값은 스케일 밖이어도 그대로 둔다 (옮기는 것은 별도 절차)
+    # Values the file already used stay allowed even off the scale (moving them is a separate step)
     assert new_values({"old.css": [768, 1100]}, {"old.css": [768]}) == {"old.css": [1100]}
 
 

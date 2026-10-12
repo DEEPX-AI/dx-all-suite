@@ -1,4 +1,4 @@
-"""Home starts on the Studio agent and saves a change, so Chat follows it (spec §3.5)."""
+"""Home starts on the Studio agent and saves a change, so Chat follows it."""
 from __future__ import annotations
 
 import json
@@ -89,8 +89,8 @@ def test_a_saved_model_only_the_cli_lists_is_kept(browser, port):
 
 
 def test_a_model_the_user_picks_beats_the_saved_one(browser, port):
-    """2026-10-12 full CI: with a saved Studio model, a model the user picked before the CLI's list arrived was
-    replaced by the saved one when the list came. The user's own pick wins."""
+    """With a saved Studio model, a model the user picked before the CLI's list arrived must not be replaced by
+    the saved one when the list comes. The user's own pick wins."""
     import json as _json
     ctx = browser.new_context(viewport={"width": 1440, "height": 900})
     ctx.add_init_script(_QUIET)

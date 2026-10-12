@@ -20,21 +20,19 @@ SPECS: dict[str, dict] = {
         # two passed. Masked, like dx_monitor's telemetry.
         "mask": ("#hubLauncherPort",),
     },
-    # 이 표는 **로컬에 무엇이 설치돼 있는지** 에 따라 다섯 열이 달라진다 —
-    # models.js 의 `dl = !!runnable` 이 설치된 모델에만 C++/PYTHON/MODE 열을 켜고
-    # ACTIONS 에 Graph 버튼을 더한다. 표가 통째로 리플로우돼 베이스라인이 최대 22%
-    # 어긋났다. 한동안 "모델이 없는 상태에서 찍을 것" 이라는 전제로 버텼지만,
-    # 그것은 개발자에게 준수를 떠넘기는 것이었다 — 모델 설치는 이 제품의 정상
-    # 사용이다.
+    # Five columns of this table depend on **what is installed locally** — models.js's
+    # `dl = !!runnable` turns on the C++/PYTHON/MODE columns and adds a Graph button
+    # under ACTIONS only for installed models. The whole table reflows, moving the
+    # baseline by up to 22%. Installing models is normal use, so developers cannot be
+    # asked to capture without them.
     #
-    # 이제 하네스가 빈 모델 디렉터리를 가리켜 상태를 고정한다
-    # (tests/visual/conftest.py 의 DX_APP_MODELS_DIR). 설치돼 있든 아니든 같은
-    # 그림이 나오므로 전제가 필요 없다.
+    # The harness points at an empty models directory instead (DX_APP_MODELS_DIR in
+    # tests/visual/conftest.py), so the picture is the same whatever is installed.
     "dx_app": {"settle_ms": _DEFAULT_SETTLE_MS},
     # The Dashboard's status cards show how far THIS host is set up (NPU, plugin, models
-    # 0/17 → 17/17, sample videos). Running Stream Setup changed 8 baselines with no code
-    # change. The capture answers /api/status with one fixed host instead — the cards are
-    # still drawn and compared, only their numbers no longer come from the machine.
+    # 0/17 → 17/17, sample videos), so running Stream Setup would change 8 baselines with no
+    # code change. The capture answers /api/status with one fixed host instead — the cards are
+    # still drawn and compared, only their numbers do not come from the machine.
     "dx_stream": {"settle_ms": _DEFAULT_SETTLE_MS, "routes": {"**/api/status": {
         "npu": {"ok": True, "devices": ["/dev/dxrt0"]},
         "gstreamer": {"ok": True, "installed": True, "plugin": True},
@@ -48,7 +46,7 @@ SPECS: dict[str, dict] = {
         "catalog_source": "manifest",
     }}},
     # The Setup panel shows whether THIS host has dxcom and the samples (collapsed "Setup ready"
-    # vs the expanded install steps). Installing dxcom changed 8 baselines with no code change.
+    # vs the expanded install steps), so installing dxcom would change 8 baselines with no code change.
     # The capture answers both status endpoints with one fixed, not-yet-set-up host.
     "dx_compiler": {"settle_ms": _DEFAULT_SETTLE_MS, "routes": {
         "**/setup/status": {
@@ -63,21 +61,21 @@ SPECS: dict[str, dict] = {
     }},
     "dx_modelzoo": {
         "settle_ms": _DEFAULT_SETTLE_MS,
-        # 두 요소가 실행마다 미세하게 다르게 그려져 0.0205-0.0274% 를 오갔다 —
-        # 임계 0.02% 바로 위라 게이트가 무작위로 붉어졌다. 임계를 올리면 진짜
-        # 회귀까지 통과시키게 되므로, 불안정한 요소만 가린다.
-        #   #sortSelect       네이티브 <select> 의 값 렌더가 호스트마다/실행마다 흔들린다
-        #   .mz-dx-app-status dx_app 연결 상태 점 — 폴링 결과에 따라 색이 바뀐다
-        #   #catalogSubtitle  "synced <날짜>" — gitignore 된 local catalog cache 가 다시 만들어지면
-        #                     날짜가 바뀌어 코드와 무관하게 붉어졌다 (2026-09-30). 개수는 header
-        #                     chip 이, 날짜 표시는 tests/dx_modelzoo/test_catalog_freshness.py 가 본다.
+        # These elements render slightly differently on each run, landing at 0.0205-0.0274% —
+        # just over the 0.02% limit, so the gate would go red at random. Raising the limit
+        # would also pass real regressions, so only the unstable elements are masked.
+        #   #sortSelect       a native <select>'s value rendering wobbles per host and per run
+        #   .mz-dx-app-status the dx_app connection dot — its colour follows the poll result
+        #   #catalogSubtitle  "synced <date>" — the date changes whenever the gitignored local
+        #                     catalog cache is rebuilt, unrelated to code. The header chip covers
+        #                     the count; tests/dx_modelzoo/test_catalog_freshness.py the date.
         "mask": ("#sortSelect", ".mz-dx-app-status", "#catalogSubtitle"),
     },
     "dx_benchmark": {"settle_ms": _DEFAULT_SETTLE_MS},
     "dx_planner": {
         "settle_ms": _DEFAULT_SETTLE_MS,
-        # Same failure as dx_modelzoo's #sortSelect, found on the 1320-wide axis
-        # where TARGET FPS finally comes into frame: Chromium draws a native
+        # Same failure as dx_modelzoo's #sortSelect, visible on the 1320-wide axis
+        # where TARGET FPS comes into frame: Chromium draws a native
         # <select>'s value through the host font stack, and the resolution wobbles
         # between runs of one commit. Measured — five captures of the same commit
         # gave four at 0 px and one at 278 px in a 45×10 box holding the string
@@ -91,8 +89,7 @@ SPECS: dict[str, dict] = {
         "settle_ms": _DEFAULT_SETTLE_MS,
         # Showcase thumbnails are animated/lazily decoded, so a capture lands on
         # whichever frame happened to be up. Two captures taken back-to-back agree;
-        # captures minutes apart drift 0.97-2.16%, which is why this was only
-        # visible once the suite ran against a stored baseline.
+        # captures minutes apart drift 0.97-2.16%, so a stored baseline would not match.
         "mask": (".example-thumb",),
     },
     "dx_monitor": {
@@ -111,18 +108,19 @@ SPECS: dict[str, dict] = {
 }
 
 
-# ── 캡처 축 ────────────────────────────────────────────────────
-# 단일 축(1280 · en · dark) baseline은 이 개편의 회귀를 잡지 못한다.
-# semantic 토큰/light 테마는 색을, 번역 길이는 레이아웃을 바꾸므로 둘 다 축이어야 한다.
+# ── Capture axes ───────────────────────────────────────────────
+# A single-axis baseline (1280 · en · dark) misses regressions in theme and copy.
+# Semantic tokens / the light theme change colour and translation length changes layout,
+# so both are axes.
 THEMES = ("dark", "light")
 
-# es 는 라벨이 가장 길어(Benchmark -> Evaluación de rendimiento) 탭 오버플로와
-# 헤더 폭을 밀어낸다. en 은 기준선.
+# es has the longest labels (Benchmark -> Evaluación de rendimiento) and pushes tab
+# overflow and header width. en is the reference.
 LOCALES = ("en", "es")
 
 
 def axes() -> list[tuple[str, str, str]]:
-    """(module, theme, locale) 조합. baseline 파일명의 근거."""
+    """(module, theme, locale) combinations — the basis of the baseline file names."""
     return [
         (module, theme, locale)
         for module in sorted(SPECS)
@@ -135,22 +133,22 @@ def baseline_name(module: str, theme: str, locale: str) -> str:
     return f"{module}__{theme}__{locale}.png"
 
 
-# ── 반응형 축 ──────────────────────────────────────────────────
-# 위 baseline 은 전부 1280 한 폭이라, breakpoint 를 옮기면 무엇이 달라지는지
-# 볼 수 없다. 지금 제품은 19개 폭에서 갈리고 (600·640·700·720·768·769·900·
-# 960·980·1024·1100·1200·1280·1360·1440·1600·1979) 그 값들을 스케일로 몰려면
-# 각 구간이 어떻게 그려지는지 먼저 고정돼 있어야 한다.
+# ── Responsive axis ────────────────────────────────────────────
+# The baselines above are all 1280 wide, so they cannot show what changes when a
+# breakpoint moves. The product switches layout at many widths (600·640·700·720·768·
+# 769·900·960·980·1024·1100·1200·1280·1360·1440·1600·1979); consolidating them into a
+# scale needs each range pinned first.
 #
-# 폭은 breakpoint 사이 구간의 한가운데를 고른다 — 경계값을 찍으면 1px 차이로
-# 결과가 뒤집혀 게이트가 불안정해진다.
-#   650  = 600 과 768 사이   (격자가 1열로 접히는 경계 바로 위)
-#   860  = 768 과 900 사이   (모바일→태블릿 구간)
-#   1150 = 1100 과 1200 사이 (태블릿→데스크톱 구간)
-#   1320 = 1200 과 1440 사이 (데스크톱→와이드 구간)
+# Each width sits mid-range between breakpoints — capturing at a boundary flips the
+# result on a 1px difference and makes the gate unstable.
+#   650  = between 600 and 768   (just above where the grid folds to one column)
+#   860  = between 768 and 900   (mobile → tablet range)
+#   1150 = between 1100 and 1200 (tablet → desktop range)
+#   1320 = between 1200 and 1440 (desktop → wide range)
 RESPONSIVE_WIDTHS = (650, 860, 1150, 1320)
 RESPONSIVE_HEIGHT = 900
 
-# 색이 아니라 배치를 보는 축이라 테마/언어는 하나면 된다.
+# This axis checks layout, not colour, so one theme and locale is enough.
 RESPONSIVE_THEME = "dark"
 RESPONSIVE_LOCALE = "en"
 
@@ -163,19 +161,19 @@ def responsive_baseline_name(module: str, width: int) -> str:
     return f"{module}__w{width}.png"
 
 
-# ── 인트로 축 ──────────────────────────────────────────────────
-# 위 baseline 들은 캡처 전에 dx-splash-seen 을 심어 인트로를 통째로 건너뛴다.
-# 애니메이션을 시간으로 찍으면 같은 커밋에서도 타이핑이 한 글자 어긋나고 스윕이
-# 몇 px 다른 자리에 있어 게이트가 흔들리기 때문이다.
+# ── Intro axis ─────────────────────────────────────────────────
+# The baselines above plant dx-splash-seen before capture and skip the intro entirely.
+# Capturing the animation by time is unstable even on one commit — the typing is off by
+# a character and the sweep sits a few px elsewhere.
 #
-# 그래서 시간을 기다리지 않고 상태를 직접 세운다 — 클래스와 data-beat 와 문구를
-# 최종값으로 박은 뒤 animations="disabled" 로 찍는다. 그러면 무엇을 고정하는지가
-# "2.6초 시점의 화면"이 아니라 "hero 가 안착한 화면"이 되어, 타이밍을 조정해도
-# 붉어지지 않고 구도가 바뀌면 붉어진다.
+# So instead of waiting, the state is set directly — classes, data-beat and copy are set
+# to their final values, then captured with animations="disabled". What gets pinned is
+# "the settled hero", not "the screen at 2.6 s": timing changes stay green, composition
+# changes go red.
 #
-# 반복 촬영 0픽셀을 확인하고 넣었다 (1280x800, 3회, hero/work 각각 0/1024000).
-# close 는 인트로의 결론이라 특히 지켜야 한다 — 인용문과 귀속이 한 프레임에
-# 같이 읽혀야 하고, 둘 중 하나만 깨져도 주장이 우리 것이 되어 버린다.
+# Repeat captures are pixel-identical (1280x800, 3 runs, 0/1024000 for hero and work).
+# close is the intro's conclusion and matters most — quote and attribution must read
+# together in one frame; if either breaks, the claim reads as ours.
 INTRO_STATES = ("hero", "work", "close")
 
 

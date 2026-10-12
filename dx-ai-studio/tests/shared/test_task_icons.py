@@ -1,8 +1,8 @@
-"""task 아이콘 한 표 (spec 2026-09-29 아이콘 체계 단계 3).
+"""One table of task icons.
 
-예전: task 마다 이모지가 다섯 군데에 따로 있었다 — Model Zoo (config.py · model_catalog.json), Planner 버튼,
-Planner 의 읽히지 않는 _TASKS, dx_app 결과 안내 (VIS_HINTS). 같은 task 가 곳에 따라 🖌️/🎨/🖼️/🧩 였고, 📐 는
-OBB 이기도 embedding 이기도 했다. 이제 원본은 config.py CATEGORIES 의 `icon` = sprite symbol `task-<key>` 하나다.
+The single source is the `icon` of config.py CATEGORIES, which names the sprite symbol `task-<key>`. Model Zoo,
+the Planner task buttons and the dx_app result hints all draw from it, so one task never gets different icons in
+different places.
 """
 from __future__ import annotations
 
@@ -41,7 +41,7 @@ def test_the_bundled_catalog_carries_the_same_table():
 
 
 def test_the_sprite_is_built_by_the_script():
-    """sprite 는 scripts/build_icon_sprite.py 의 결과다 — 손으로 고친 sprite 는 다음 빌드에 사라진다."""
+    """The sprite is the output of scripts/build_icon_sprite.py; hand edits to it vanish on the next build."""
     src = _read("scripts/build_icon_sprite.py")
     for key in config.CATEGORIES:
         assert f"S['task-{key}']" in src, key

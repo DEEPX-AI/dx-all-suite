@@ -1,15 +1,15 @@
-"""인트로의 픽셀 축.
+"""The intro's pixel axis.
 
-랜딩 baseline 은 캡처 전에 dx-splash-seen 을 심어 인트로를 건너뛴다. 그래서
-72/72 초록은 "splash 이후 화면이 안 움직였다"는 뜻일 뿐, 인트로가 의도대로
-그려지는지는 말해 주지 않는다. 구조 계약(tests/launcher/test_home_portal.py)이
-문법을 붙잡고 있지만, 문법이 맞아도 그림은 틀릴 수 있다 — 이 세션에서 실제로
-그랬다: 로고 마스크가 움직이는 레이어에 붙어 X 가 두 개로 보였고, 면이 너무
-밝아 스페큘러가 묻혔고, 반사 마스크가 뒤집혀 워드마크가 하나 더 누워 있었다.
-셋 다 계약은 통과한 상태였고 프레임을 봐야 보였다.
+The landing baselines plant dx-splash-seen before capture and skip the intro. So an
+all-green run only means "the screens after the splash did not move"; it says nothing
+about whether the intro draws as intended. The structural contract
+(tests/launcher/test_home_portal.py) holds the markup, but correct markup can still
+draw wrong — e.g. a logo mask attached to a moving layer showing two X marks, a face
+too bright to show the specular, or a flipped reflection mask laying a second wordmark
+down. Such defects pass the contract and show only in the frame.
 
-시간으로 찍지 않는다. 상태를 최종값으로 세운 뒤 animations="disabled" 로 찍어,
-타이밍을 조정해도 붉어지지 않고 구도가 바뀌면 붉어지게 한다.
+Capture is not timed. The state is set to its final values and captured with
+animations="disabled", so timing changes stay green and composition changes go red.
 """
 from __future__ import annotations
 
@@ -34,8 +34,8 @@ from tests.visual.test_visual_regression import (  # noqa: E402
     UPDATE,
 )
 
-# 시퀀스를 재생하지 않고 한 상태로 세운다. 문구는 launcher-splash.js 의 _WORK 와
-# 같아야 하므로, 어긋나면 test_home_portal 의 working-beat 계약이 먼저 잡는다.
+# Set one state instead of playing the sequence. The copy must match _WORK in
+# launcher-splash.js; if it drifts, test_home_portal's working-beat contract catches it first.
 _DRIVE = """(state) => {
   const ov = document.getElementById('splashOverlay');
   if (!ov) return false;
@@ -65,9 +65,9 @@ _DRIVE = """(state) => {
 def _capture_intro(browser, state: str, out: Path) -> None:
     server, port = start_module_server("launcher")
     try:
-        # reduced_motion 은 여기서 쓰지 않는다. 인트로에는 전용 reduced-motion
-        # 경로(is-still)가 있어서, 켜면 다른 디자인을 찍은 뒤 700ms 만에 걷힌다.
-        # 움직임은 animations="disabled" 가 최종 상태로 고정한다.
+        # reduced_motion is not used here. The intro has its own reduced-motion path
+        # (is-still), which would capture a different design that clears after 700ms.
+        # animations="disabled" pins motion at the final state instead.
         ctx = browser.new_context(viewport=VIEWPORT)
         page = ctx.new_page()
         try:

@@ -1,9 +1,9 @@
-"""Q-Master 티어가 표시에서 끝나지 않고 설치 경로까지 간다.
+"""The Q-Master tier reaches the install path, not only the display.
 
-1단계가 ModelZoo 화면에 Q-Master 를 그리게 만들었는데, dx_app 쪽 다운로더에는
-`qmaster` 문자열이 한 번도 없었다 — 보이지만 받을 수 없는 상태였다.
+Showing Q-Master on the ModelZoo screen is not enough: the dx_app downloader must also handle `qmaster`, or the
+model is visible but cannot be downloaded.
 
-설치 위치는 Q-Pro 의 규칙을 따라 assets/models/q-master/ 다.
+Following the Q-Pro convention, it installs into assets/models/q-master/.
 """
 from __future__ import annotations
 
@@ -25,7 +25,7 @@ def test_qmaster_has_its_own_install_dir():
 
 
 def test_every_tier_is_in_the_chip_table():
-    """세 곳의 이진 분기를 표 하나로 모았다 — 표가 진실의 출처다."""
+    """One table holds the tier directories; it is the single source of truth."""
     mz = _mz()
     assert set(mz._CHIP_DIRS) == {"qlite", "qpro", "qmaster"}
     assert mz._CHIP_DIRS["qlite"] == (mz.MODELS_DIR, "assets/models")
@@ -34,7 +34,7 @@ def test_every_tier_is_in_the_chip_table():
 
 
 def test_download_sends_qmaster_to_its_own_dir():
-    """task 조립은 스레드를 띄우지 않는 순수 함수라 그대로 검사한다."""
+    """Task assembly is a pure function that starts no thread, so it is checked directly."""
     mz = _mz()
     tasks = mz._build_tasks([{
         "name": "RepVGG-A0",
@@ -59,7 +59,7 @@ def test_each_tier_lands_in_its_own_directory():
 
 
 def test_unknown_chip_is_rejected_rather_than_silently_qpro():
-    """else 가 기본값이던 시절엔 오타난 chip 이 전부 q-pro 로 갔다."""
+    """With q-pro as the fallback, a mistyped chip would silently install into q-pro."""
     mz = _mz()
     with pytest.raises(ValueError, match="unknown chip"):
         mz._build_tasks([{
@@ -97,7 +97,7 @@ def test_refresh_exists_checks_the_qmaster_dir(tmp_path, monkeypatch):
 
 
 def test_auto_register_uses_the_qmaster_relative_path():
-    """레지스트리에 적히는 경로가 실제 설치 위치와 같아야 한다."""
+    """The path written to the registry must match the actual install location."""
     mz = _mz()
     src = Path(mz.__file__).read_text(encoding="utf-8")
     assert 'assets/models/q-master' not in src.replace('"assets/models/q-master"', ''), (

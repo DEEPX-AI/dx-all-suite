@@ -1,8 +1,8 @@
-"""intro Stream 장면의 소재 — 실제 영상 16채널과 DX-M1 이 낸 실제 detection (spec 2026-09-30 intro stream).
+"""Assets for the intro Stream scene: 16 channels of real video and real detections from a DX-M1.
 
-그림을 code 로 그리던 장면이 싸 보였다. 소재는 DEEPX 공식 sample 영상에서 뽑은 frame 이고, box 는
-공식 Model Zoo yolov5-s 320 을 DX-M1 에서 돌린 결과다 (`scripts/bake_intro_stream.py`).
-여기서는 굽힌 산출물이 화면이 기대는 모양을 지키는지 본다 — debug 흔적 (score) 이 없는지도.
+Frames come from DEEPX's official sample videos, and the boxes are the result of the official Model Zoo
+yolov5-s 320 on a DX-M1 (`scripts/bake_intro_stream.py`). This checks that the baked outputs keep the shape the
+screen relies on, with no debug traces (scores).
 """
 from __future__ import annotations
 

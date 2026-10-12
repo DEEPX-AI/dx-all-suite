@@ -1,11 +1,10 @@
-"""SETUP 화면이 세 티어를 모두 고를 수 있어야 한다.
+"""The SETUP screen must let the user pick every tier.
 
-백엔드가 Q-Master 를 받을 수 있게 돼도 화면에서 고를 수 없으면 "보이지만 받을 수
-없다" 는 그대로다. 표시(1단계)와 설치(2단계) 사이의 마지막 한 칸이다.
+If the backend can download Q-Master but the screen cannot select it, the model is still visible but not
+installable. This closes the gap between showing a tier and installing it.
 
-파이썬 쪽에서 세 곳의 `qlite else qpro` 이진 분기를 `_CHIP_DIRS` 표로 바꿨다.
-화면 쪽도 같은 수를 둔다 — 렌더러/카트/일괄선택이 chip 목록 위에서 돌면 다음
-티어가 생겨도 목록만 고치면 된다.
+The Python side keeps the tiers in the `_CHIP_DIRS` table; the screen does the same, so renderer, cart and
+select-all loop over one chip list and a new tier only needs a new list entry.
 """
 from __future__ import annotations
 
@@ -35,7 +34,7 @@ def test_chip_list_is_the_single_source_of_truth():
 
 
 def test_cart_emptiness_is_not_hardcoded_to_two_tiers():
-    """`!cart.qlite && !cart.qpro` 는 세 번째 티어를 카트에서 지워버린다."""
+    """`!cart.qlite && !cart.qpro` would drop a third tier from the cart."""
     src = _js()
     assert "!MZ.cart[name].qlite && !MZ.cart[name].qpro" not in src, (
         "카트 비었는지 판정이 두 티어에 박혀 있다 — qmaster 만 담으면 즉시 삭제된다"
@@ -49,7 +48,7 @@ def test_table_offers_a_qmaster_group():
 
 
 def test_empty_row_colspan_matches_the_header():
-    """티어 그룹을 늘리면 '결과 없음' 행의 colspan 도 같이 늘어야 한다."""
+    """Adding a tier group must widen the colspan of the "no results" row too."""
     header = _html()
     js = _js()
 

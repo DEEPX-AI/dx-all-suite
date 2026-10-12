@@ -1,17 +1,15 @@
-"""사용자가 보낸 값 때문에 나는 500 은 전부 결함이다.
+"""A 500 caused by a value the user sent is always a defect.
 
-500 은 "우리 잘못" 을 뜻한다. 사용자가 이상한 값을 보냈으면 400 으로 "그 값은
-못 쓴다" 고 말해야 한다. 500 은 아무것도 알려주지 않으면서 서버 로그에 스택
-트레이스만 남긴다.
+A 500 means "our fault". If the user sent a bad value, a 400 must say "that value
+cannot be used". A 500 tells the user nothing and only leaves a stack trace in the
+server log.
 
-여기 네 건은 전부 실측으로 재현했다 (2026-09-18 전수조사):
+Each of these inputs must get a 400, not a 500:
 
-    POST /compile          opt_level='abc'    -> 500  int() 가 맨몸
-    POST /api/mkdir        300자 이름          -> 500  OSError(ENAMETOOLONG) 누출
-    POST /viewer/parse     path=12345         -> 500  숫자에 .strip()
-    POST /compile/resume   qxnn_path=5        -> 500  같은 원인
-
-계약: docs/superpowers/specs/2026-09-18-compiler-input-validation-design.md
+    POST /compile          opt_level='abc'      unguarded int()
+    POST /api/mkdir        300-character name   OSError(ENAMETOOLONG) must not leak
+    POST /viewer/parse     path=12345           .strip() on a number
+    POST /compile/resume   qxnn_path=5          same cause
 """
 from __future__ import annotations
 
@@ -21,7 +19,7 @@ import urllib.request
 import uuid
 
 import pytest
-from tests.dx_compiler._compile_paths import compile_paths_not_under_test, compile_jobs_outside_var  # noqa: F401  (경로 정책은 이 시험의 대상이 아니다 · 작업은 tmp 에)
+from tests.dx_compiler._compile_paths import compile_paths_not_under_test, compile_jobs_outside_var  # noqa: F401  (path policy is not under test here; jobs go to tmp)
 
 from tests.server_helpers import start_module_server
 
@@ -84,9 +82,9 @@ def test_unparseable_opt_level_is_refused_not_a_crash(compiler, value, why):
 
 @pytest.mark.parametrize("value", ["-5", "999", "2"])
 def test_opt_level_outside_the_documented_range_is_refused(compiler, value):
-    """문서가 {0, 1} 로 못박았다 (02_06_Execution_of_DX-COM.md).
+    """The docs fix opt_level to {0, 1} (02_06_Execution_of_DX-COM.md).
 
-    모델을 읽어야 아는 값이 아니라 고정 열거형이므로 이 계층이 판단할 수 있다.
+    It is a fixed enum, not something only the model knows, so this layer can decide.
     """
     code, body = _post_form(compiler, "/compile", {**_COMPILE_BASE, "opt_level": value})
     assert code == 400, f"opt_level={value} 가 통과했다 — {code} {body}"
@@ -94,16 +92,16 @@ def test_opt_level_outside_the_documented_range_is_refused(compiler, value):
 
 @pytest.mark.parametrize("value", ["0", "1"])
 def test_the_documented_opt_levels_still_pass(compiler, value):
-    """과잉 차단 방지 — 정상 값은 계속 통과해야 한다."""
+    """No over-blocking — valid values must still pass."""
     code, _ = _post_form(compiler, "/compile", {**_COMPILE_BASE, "opt_level": value})
     assert code == 200, f"정상 opt_level={value} 를 막았다"
 
 
 def test_an_unusable_directory_name_is_refused_not_a_crash(compiler):
-    """fs_browse.make_directory 의 docstring 은 ValueError 만 던진다고 약속한다.
+    """fs_browse.make_directory promises to raise only ValueError.
 
-    실제로는 mkdir() 이 OSError(ENAMETOOLONG) 를 던지고, server.py 는 ValueError
-    만 잡으므로 그대로 새어 500 이 된다. 약속을 지키게 한다.
+    mkdir() raises OSError(ENAMETOOLONG) for a long name, and server.py catches only
+    ValueError, so a leaked OSError would become a 500. The promise must hold.
     """
     code, body = _post_json(compiler, "/api/mkdir", {"path": "/tmp", "name": "x" * 300})
     assert code != 500, f"긴 이름이 서버를 터뜨렸다 — {body}"

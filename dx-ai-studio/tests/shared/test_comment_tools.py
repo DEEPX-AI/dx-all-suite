@@ -1,5 +1,5 @@
-"""Comment tools for the release cleanup (2026-10-12): a lexer that tells comments from code, a gate that keeps Korean
-out of comments, and a checker that proves a rewrite touched comments only.
+"""Comment tools: a lexer that tells comments from code, a gate that keeps Korean out of comments, and a checker
+that proves a rewrite touched comments only.
 
 The lexer must not mistake code for a comment: a URL in a string, a regex literal with a slash, a template literal,
 a CSS url(//cdn…), inline <script>/<style> in HTML. A wrong split would let a code change pass as "comments only".

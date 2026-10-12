@@ -1,7 +1,7 @@
-"""Setup 단계 목록 — 공용 부품의 계약 (spec 2026-09-29 아이콘 체계 단계 2).
+"""Setup step list: the contract of the shared component.
 
-app · stream 의 Setup 과 compiler 의 Setup 칸이 같은 부품을 쓴다. 모듈 JS 는 상태만 알리고
-(DXSteps.set), 다음 단계 · 막대 · 버튼 글자 · 접기는 부품이 계산한다.
+The app and stream Setup pages and the compiler's Setup pane use the same component. Module JS only reports state
+(DXSteps.set); the component works out the next step, the bar, the button labels and collapsing.
 """
 from __future__ import annotations
 
@@ -20,7 +20,7 @@ def test_the_states_are_the_agreed_five():
 
 
 def test_state_is_shape_colour_and_words():
-    """색만으로 가르지 않는다 — 각 상태에 아이콘과 말이 있다."""
+    """States are not told apart by colour alone: each has an icon and words."""
     icons = re.search(r"STATE_ICON = \{([^}]*)\}", JS).group(1)
     for state, icon in (("done", "check"), ("todo", "alert"), ("running", "spinner"), ("failed", "x")):
         assert f"{state}: '{icon}'" in icons, state

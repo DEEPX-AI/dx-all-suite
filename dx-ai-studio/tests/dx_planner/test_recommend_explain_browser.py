@@ -1,11 +1,11 @@
-"""EdgeGuide — every number explains itself (spec addendum 2026-10-12, user-approved scope 1–5).
+"""EdgeGuide: every number explains itself.
 
-Checked on the live Studio in Korean (객체 감지 · 8 cameras · 60 FPS):
-1. the methodology "This session" line was English in a Korean UI ("max 8 ch · estimated", raw object_detection);
-2. the bottleneck rule (NPU ≥ 85 % busy → NPU, else host) was explained nowhere;
-3. "Estimated+" was not explained;
-4. the formula boxes were English prose;
-5. a card did not show its arithmetic (534 FPS ÷ 60 FPS = 8.9 → 8 ch).
+In a non-English UI (e.g. Korean, object detection · 8 cameras · 60 FPS):
+1. the methodology "This session" line is translated (not "max 8 ch · estimated" or raw object_detection);
+2. the bottleneck rule (NPU ≥ 85 % busy → NPU, else host) is explained;
+3. "Estimated+" is explained;
+4. the formula boxes are translated;
+5. each card shows its arithmetic (534 FPS ÷ 60 FPS = 8.9 → 8 ch).
 """
 from __future__ import annotations
 

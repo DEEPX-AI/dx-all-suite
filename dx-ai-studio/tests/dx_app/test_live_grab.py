@@ -1,10 +1,8 @@
-"""Live frames are grabbed from Xvfb with libX11 itself — no `mss` (2026-10-02 release audit).
+"""Live frames are grabbed from Xvfb with libX11 itself — no `mss`.
 
-`mss` was never declared anywhere (requirements.txt says the studio has no third-party runtime
-dependencies); it only worked because it had been pip-installed into one .venv by hand. A fresh
-install failed every camera / RTSP / Continuous / Run Demo video run with
-"Live streaming requires: mss (pip install mss)". The grab now uses XGetImage through ctypes,
-the same libX11 the window fitting already loads.
+The studio has no third-party runtime dependencies (requirements.txt), so on a fresh install `mss` is missing and every
+camera / RTSP / Continuous / Run Demo video run would fail with "Live streaming requires: mss (pip install mss)".
+The grab uses XGetImage through ctypes, the same libX11 the window fitting already loads.
 """
 from __future__ import annotations
 
@@ -62,7 +60,7 @@ def test_a_window_on_the_virtual_display_comes_back_as_its_pixels(xvfb):
     assert d
     try:
         root = x.XDefaultRootWindow(d)
-        # 왼쪽 위 100x60 에 빨간 (0xff0000) 창 — 나머지는 Xvfb 기본 (검정)
+        # a red (0xff0000) window at the top-left 100x60; the rest is the Xvfb default (black)
         w = x.XCreateSimpleWindow(d, root, 0, 0, 100, 60, 0, 0, 0xFF0000)
         x.XMapWindow(d, w)
         x.XSync(d, 0)
@@ -76,7 +74,8 @@ def test_a_window_on_the_virtual_display_comes_back_as_its_pixels(xvfb):
 
 
 def test_a_virtual_display_that_dies_is_reported_not_fatal(tmp_path):
-    """Xlib 은 X 연결이 끊기면 프로세스를 exit 시킨다 — 그래서 xcb. 죽은 display 는 None, 다시 뜨면 다시 찍는다."""
+    """Xlib exits the process when the X connection drops, hence xcb. A dead display gives None, and grabbing resumes
+    once it is back."""
     if not shutil.which("Xvfb"):
         pytest.skip("Xvfb not installed")
     script = tmp_path / "probe.py"
@@ -103,8 +102,8 @@ def test_a_virtual_display_that_dies_is_reported_not_fatal(tmp_path):
 
 
 def test_an_x_server_already_on_the_display_is_reused_not_killed(monkeypatch):
-    """`pkill -f 'Xvfb :99'` 는 ':990' 이나 다른 studio 의 Xvfb 까지 죽였다. 이미 있으면 쓰고, 멈출 때는 자기 것만 끈다
-    (2026-10-02 release audit A-15)."""
+    """`pkill -f 'Xvfb :99'` would also kill ':990' or another studio's Xvfb. An existing Xvfb is reused, and stopping
+    stops only our own."""
     if not shutil.which("Xvfb"):
         pytest.skip("Xvfb not installed")
     from dx_app.core import camera

@@ -1,7 +1,8 @@
-"""Model Zoo 결과 그림 생성기 (dx_modelzoo/scripts/generate_examples.py) 의 순수 부분.
+"""Pure parts of the Model Zoo result image generator (dx_modelzoo/scripts/generate_examples.py).
 
-예제가 없는 model 을 남의 binary 로 돌려 super resolution 에 분류 결과가 찍히던 것 (generate_thumbnails.py) 대신,
-그 model 의 .dxnn 이름 = per-model dx_app 예제의 stem 으로 짝을 짓는다.
+A model is paired with the per-model dx_app example whose stem equals its .dxnn name, so a model without an
+example is never run through another model's binary (which would stamp, say, a classification result on a
+super-resolution image).
 """
 from __future__ import annotations
 

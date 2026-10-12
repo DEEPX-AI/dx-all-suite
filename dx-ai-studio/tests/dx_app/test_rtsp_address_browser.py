@@ -1,9 +1,9 @@
-"""DX App RTSP input takes the camera's own URL (2026-10-11 real-use audit).
+"""DX App RTSP input takes the camera's own URL.
 
-Run / Benchmark / A/B Compare asked for "RTSP Server (IP:Port)" plus a "Stream 1-16" pick and always sent
-rtsp://<server>/streamN, so a real camera (rtsp://user:pass@cam:554/cam/realmonitor?channel=1, /h264, /live/ch0 ...)
-could not be reached; an empty field sent rtsp:///stream1 and failed later without saying why. A full rtsp:// URL is
-now used as typed (the Stream pick steps aside), host:port alone keeps the old form, and an empty field stops at once.
+Run / Benchmark / A/B Compare must reach a real camera (rtsp://user:pass@cam:554/cam/realmonitor?channel=1, /h264,
+/live/ch0 ...), not only rtsp://<server>/streamN built from "RTSP Server (IP:Port)" plus a "Stream 1-16" pick. A full
+rtsp:// URL is used as typed (the Stream pick steps aside), host:port alone keeps the server/streamN form, and an
+empty field stops at once instead of sending rtsp:///stream1 and failing later without saying why.
 """
 from __future__ import annotations
 

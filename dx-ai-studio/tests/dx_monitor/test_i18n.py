@@ -167,8 +167,8 @@ def test_monitor_charts_receive_translated_empty_state_text():
 
 
 def _template_selectors() -> set[str]:
-    # 레일·헤더는 shared/shell.py 가 서버 렌더 시점에 주입하므로
-    # 템플릿 파일만 읽으면 튜토리얼이 가리키는 shell 셀렉터가 안 보인다.
+    # shared/shell.py injects the rail and header at render time, so the template file
+    # alone lacks the shell selectors the tutorial points at.
     from dx_monitor.server import DX_MONITOR_SHELL
     from shared.shell import apply as apply_shell
 

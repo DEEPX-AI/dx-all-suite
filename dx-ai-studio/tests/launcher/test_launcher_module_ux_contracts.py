@@ -410,9 +410,8 @@ class TestHealthDotsCompleteness:
         )
 
     def test_health_check_updates_dot_benchmark(self):
-        # setDot('dotBenchmark') 였다. #dotBenchmark 는 홈 재설계에서 사라진 뒤로
-        # 코드베이스 어디에도 없어 그 호출은 아무것도 갱신하지 않았다. 계약의 뜻은
-        # "Benchmark 의 상태가 화면에 반영된다" 이므로, 반영하는 쪽을 본다.
+        # The contract is that Benchmark's state reaches the screen, so check the code that updates
+        # the card.
         src = _read("launcher-app-frame.js")
         assert "_setOrbStatus('orbStatusBenchmark'" in src, (
             "checkHealth must update the Benchmark card's status dot"
@@ -462,10 +461,9 @@ class TestCheckHealthCatchOrbitalStatus:
         ), f"checkHealth catch must call _setOrbStatus('{orb_id}', false)"
 
     def test_catch_has_status_monitor_false(self):
-        """건강 조회가 실패하면 Monitor 도 꺼진 것으로 표시돼야 한다.
+        """A failed health check must also show Monitor as down.
 
-        setStatus('statusMonitor', false) 를 요구했는데 #statusMonitor 는 존재하지
-        않는다. 확인해야 할 것은 호출의 이름이 아니라 카드가 꺼짐으로 바뀌는 것이다.
+        What matters is that the card switches to down, not the name of the call.
         """
         catch_body = self._catch_body()
         assert "_setOrbStatus('orbStatusMonitor', false)" in catch_body, (

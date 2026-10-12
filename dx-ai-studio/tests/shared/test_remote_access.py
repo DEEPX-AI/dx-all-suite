@@ -1,10 +1,8 @@
-"""원격 접근 인증 · Host · Origin · bind (QA COM-A1, 2026-10-01).
+"""Remote access: authentication, Host, Origin and bind address.
 
-기본 bind 가 모든 인터페이스이고, DX_API_TOKEN 이 없으면 모든 요청이 통과했으며, 응답마다
-`Access-Control-Allow-Origin: *` 였다. 사용자 결정: 보드 원격 사용 흐름은 유지하되 원격 요청은 인증 필수 — 로컬은
-그대로, 원격 브라우저는 보드 콘솔의 페어링 코드로 한 번 연결 (세션 쿠키), API 클라이언트는 DX_API_TOKEN.
-
-spec: docs/superpowers/specs/2026-10-01-studio-remote-auth-and-compile-paths-design.md (A · B · C)
+Remote use of the board stays possible, but every remote request must authenticate. Local requests pass as before;
+a remote browser connects once with the pairing code shown on the board console (session cookie), and API clients
+use DX_API_TOKEN. No response may allow every origin.
 """
 from __future__ import annotations
 
@@ -53,7 +51,7 @@ def test_this_machines_name_and_configured_hosts_are_allowed(monkeypatch):
     assert not ra.host_allowed("studio.lab.example.evil", hostname="board")
 
 
-# ── 페어링 코드 ────────────────────────────────────────────────────────────────
+# ── Pairing code ──────────────────────────────────────────────────────────────
 
 def test_a_pairing_code_works_once_and_then_changes():
     shown = []
@@ -77,7 +75,7 @@ def test_five_wrong_codes_lock_and_replace_the_code():
     assert p.verify(p.code) == "ok"
 
 
-# ── 세션 ──────────────────────────────────────────────────────────────────────
+# ── Sessions ──────────────────────────────────────────────────────────────────
 
 def test_sessions_are_stored_as_hashes_in_a_private_file(tmp_path):
     f = tmp_path / "sessions.json"
@@ -121,7 +119,7 @@ def test_a_module_bound_beyond_loopback_without_a_token_refuses_to_start(monkeyp
     httpd.server_close()
 
 
-# ── 모듈 서버 (DXBaseHandler) ────────────────────────────────────────────────
+# ── Module server (DXBaseHandler) ────────────────────────────────────────────
 
 class _Probe(DXBaseHandler):
     server_name = "Probe"
@@ -221,7 +219,7 @@ def test_the_board_itself_is_unchanged(launcher):
 
 def test_a_remote_browser_sees_only_the_pairing_page(launcher, monkeypatch):
     base, access, _, handler = launcher
-    # 다른 시험이 shared 를 지우고 다시 import 하면 DXBaseHandler 가 둘이 된다 — launcher 가 쓰는 클래스에 직접
+    # Another test may drop and re-import shared, leaving two DXBaseHandler classes; patch the one the launcher uses
     monkeypatch.setattr(handler, "_peer_ip", lambda self: REMOTE_IP)
     code, headers, body = _req(base + "/api/health")
     assert code == 401
@@ -233,7 +231,7 @@ def test_a_remote_browser_sees_only_the_pairing_page(launcher, monkeypatch):
 
 def test_pairing_gives_a_strict_httponly_cookie_and_then_everything_works(launcher, monkeypatch):
     base, access, _, handler = launcher
-    # 다른 시험이 shared 를 지우고 다시 import 하면 DXBaseHandler 가 둘이 된다 — launcher 가 쓰는 클래스에 직접
+    # Another test may drop and re-import shared, leaving two DXBaseHandler classes; patch the one the launcher uses
     monkeypatch.setattr(handler, "_peer_ip", lambda self: REMOTE_IP)
     origin = {"Origin": base}
     code, _, _ = _req(base + "/api/auth/unlock", "POST", {**origin, "Content-Type": "application/json"},
@@ -246,7 +244,7 @@ def test_pairing_gives_a_strict_httponly_cookie_and_then_everything_works(launch
     assert cookie.startswith("dx_session=") and "HttpOnly" in cookie and "SameSite=Strict" in cookie
     jar = {"Cookie": cookie.split(";", 1)[0]}
     assert _req(base + "/api/health", headers=jar)[0] == 200
-    # 쿠키로 상태를 바꾸는 요청은 Origin/Referer 가 반드시 있어야 한다 (CSRF)
+    # A cookie-authenticated request that changes state must carry Origin/Referer (CSRF)
     assert _req(base + "/api/auth/logout", "POST", jar, {})[0] == 403
     assert _req(base + "/api/auth/logout", "POST", {**jar, **origin}, {})[0] in (200, 204)
     assert _req(base + "/api/health", headers=jar)[0] == 401, "로그아웃한 세션은 끝"
@@ -343,7 +341,7 @@ def test_the_proxy_sends_its_own_secret_and_drops_a_clients_forged_one(monkeypat
 
 
 def test_no_server_code_opens_cors_to_every_origin():
-    """`Access-Control-Allow-Origin: *` 가 다시 생기지 않게 — 2026-10-01 에 shared 9 · dx_app 3 곳을 지웠다."""
+    """No server code sends `Access-Control-Allow-Origin: *`."""
     import re
     hits = []
     for f in _REPO.rglob("*.py"):
@@ -358,14 +356,14 @@ def test_no_server_code_opens_cors_to_every_origin():
 
 def test_a_module_in_the_launchers_own_process_trusts_what_the_launcher_proxies():
     """browser suites run modules in the launcher's process (tests/server_helpers) — the secret the proxy
-    sends must be the one those modules read, or every proxied call is a 401 (2026-10-01 --browser)."""
+    sends must be the one those modules read, or every proxied call is a 401."""
     import launcher.launcher as lmod
     from shared.dx_server import DXBaseHandler
     assert os.environ.get("DX_PROXY_SECRET") == lmod.PROXY_SECRET
     assert DXBaseHandler._proxy_secret() == lmod.PROXY_SECRET
 
 
-# ── 연결된 브라우저 화면 (spec 2026-10-02-studio-connected-browsers-ui-design) ─────────────────
+# ── Connected browsers screen ─────────────────────────────────────────────────────────────────
 
 def test_the_board_is_told_where_other_computers_connect_but_a_remote_browser_is_not(launcher, monkeypatch):
     base, access, _, handler = launcher
@@ -409,8 +407,9 @@ def test_the_launcher_page_loads_the_connected_browsers_script_and_its_words():
 
 
 def test_a_body_nobody_read_does_not_poison_the_next_request_on_the_connection(launcher):
-    """logout 은 본문을 읽지 않는다 — keep-alive 에 남은 `{}` 가 다음 요청 줄 앞에 붙어 `{}GET` 501 이 됐다
-    (원격 브라우저가 연결을 끊고 새로고침하면 페어링 화면 대신 오류). 401 · 403 거부도 본문을 읽지 않는다."""
+    """logout does not read its body, so the body must still be drained: a `{}` left on a keep-alive connection
+    would prefix the next request line and turn it into a `{}GET` 501 (a remote browser that logs out and reloads
+    would see an error instead of the pairing page). 401 and 403 rejections must drain the body too."""
     import http.client
     base, _, _, _ = launcher
     host, port = base.rsplit("//", 1)[1].split(":")
@@ -430,7 +429,8 @@ def test_a_body_nobody_read_does_not_poison_the_next_request_on_the_connection(l
 
 
 def test_a_remote_browser_sees_only_itself_and_cannot_disconnect_others(launcher, monkeypatch):
-    """목록 · 다른 브라우저 해제는 보드에서만 (01_Installation "from the board"). 원격은 자기 행만, 해제는 logout 으로."""
+    """Listing and disconnecting other browsers is board-only (01_Installation "from the board"). A remote browser
+    sees only its own row and disconnects itself with logout."""
     base, access, _, handler = launcher
     mine, my_id = access.sessions.create(user_agent="Laptop", ip=REMOTE_IP)
     _, other_id = access.sessions.create(user_agent="Phone", ip="192.168.0.77")

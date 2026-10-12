@@ -1,4 +1,4 @@
-"""dx_agent_dev 쇼케이스 양옆 패널 정적 계약 테스트."""
+"""Static contract for the dx_agent_dev showcase side panels."""
 import re
 from pathlib import Path
 
@@ -26,7 +26,7 @@ def _read(p):
 
 
 def _func_body(js, name):
-    """IIFE 내 함수 본문을 다음 함수 선언 직전까지 추출."""
+    """Extract a function body inside the IIFE, up to the next function declaration."""
     marker = "function " + name + "("
     start = js.index(marker)
     rest = js[start + len(marker):]
@@ -36,7 +36,7 @@ def _func_body(js, name):
 
 def test_index_has_side_panels():
     html = _read(INDEX)
-    # 통합 shell 이관 후 main 은 shell 클래스와 모듈 클래스를 함께 갖는다.
+    # main carries both the shared shell class and the module class.
     assert re.search(r'<main[^>]*class="[^"]*\bagent-layout\b', html), html[:200]
     assert 'id="examples-left"' in html
     assert 'id="examples-right"' in html

@@ -1,8 +1,5 @@
 #!/usr/bin/env python3
-"""DX-APP 경로/파일명 보안 테스트 — Phase 5 Task 1.1.
-
-Audit IDs: 1, 2, 3, 4, 5, 18, 85, 86, 87, 88
-"""
+"""DX-APP path and filename security tests."""
 
 import sys
 import tempfile
@@ -10,7 +7,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-# shared / core 접근 경로 추가
+# Make shared / core importable
 _STUDIO_DIR = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(_STUDIO_DIR))
 sys.path.insert(0, str(_STUDIO_DIR / "shared"))
@@ -18,9 +15,9 @@ sys.path.insert(0, str(_STUDIO_DIR / "dx_app"))
 sys.path.insert(0, str(_STUDIO_DIR / "dx_app" / "core"))
 
 
-# 1. _resolve_under  — 경로 허용 목록 헬퍼
+# 1. _resolve_under: allow-list helper for paths
 class TestResolveUnder(unittest.TestCase):
-    """_resolve_under 헬퍼가 허용된 루트만 통과시키는지 검증."""
+    """_resolve_under lets through only allowed roots."""
 
     def _get_fn(self):
         from dx_app_security import resolve_under
@@ -67,9 +64,9 @@ class TestResolveUnder(unittest.TestCase):
             self.assertTrue(result.is_file())
 
 
-# 1b. resolve_existing_path — 파일 OR 디렉터리 허용 (reid/embedding pair dir)
+# 1b. resolve_existing_path: allows a file OR a directory (reid/embedding pair dir)
 class TestResolveExistingPath(unittest.TestCase):
-    """resolve_existing_path가 루트 안의 디렉터리를 허용하되 탈출은 막는지 검증."""
+    """resolve_existing_path allows a directory inside the root but blocks escapes."""
 
     def _get_fn(self):
         from dx_app_security import resolve_existing_path
@@ -100,9 +97,9 @@ class TestResolveExistingPath(unittest.TestCase):
             fn(str(root / "does_not_exist_xyz"), (root,))
 
 
-# 2. sanitize_filename — 업로드 파일명 안전 처리
+# 2. sanitize_filename: safe handling of upload filenames
 class TestSanitizeFilename(unittest.TestCase):
-    """업로드 파일명에서 경로 구분자 및 위험 패턴을 제거."""
+    """Strip path separators and dangerous patterns from upload filenames."""
 
     def _get_fn(self):
         from dx_app_security import sanitize_filename
@@ -138,9 +135,9 @@ class TestSanitizeFilename(unittest.TestCase):
             fn("..", (".onnx",))
 
 
-# 3. safe_content_disposition — 다운로드 헤더 안전 처리
+# 3. safe_content_disposition: safe download headers
 class TestSafeContentDisposition(unittest.TestCase):
-    """Content-Disposition 헤더 값에서 파일명을 안전하게 인용."""
+    """Quote the filename safely in a Content-Disposition header value."""
 
     def _get_fn(self):
         from dx_app_security import safe_content_disposition
@@ -163,9 +160,9 @@ class TestSafeContentDisposition(unittest.TestCase):
         self.assertNotIn("..", result)
 
 
-# 5. fs_list / fs_read 경로 제한 (filesystem.py)
+# 5. fs_list / fs_read path restrictions (filesystem.py)
 class TestFsListRestriction(unittest.TestCase):
-    """fs_list 가 허용된 루트 외부를 거부해야 함."""
+    """fs_list must reject paths outside the allowed roots."""
 
     def test_root_listing_rejected(self):
         from filesystem import fs_list
@@ -179,7 +176,7 @@ class TestFsListRestriction(unittest.TestCase):
 
 
 class TestFsReadRestriction(unittest.TestCase):
-    """fs_read API가 허용된 루트 외부 파일 읽기를 거부해야 함."""
+    """The fs_read API must refuse to read files outside the allowed roots."""
 
     def test_etc_passwd_read_rejected_via_route(self):
         import server
@@ -198,9 +195,9 @@ class TestFsReadRestriction(unittest.TestCase):
         self.assertIn("outside allowed roots", captured.get("data", {}).get("error", ""))
 
 
-# 6. /outputs/ 경로 순회 차단
+# 6. Block path traversal under /outputs/
 class TestOutputsTraversal(unittest.TestCase):
-    """/outputs/../secret.txt 같은 경로 순회 요청을 403으로 거부."""
+    """Reject a traversal request such as /outputs/../secret.txt with 403."""
 
     def test_traversal_outside_outputs_dir_returns_403(self):
         import server
@@ -208,7 +205,7 @@ class TestOutputsTraversal(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             outputs_dir = Path(tmpdir) / "outputs"
             outputs_dir.mkdir()
-            # outputs 디렉토리 밖에 비밀 파일 생성
+            # Create a secret file outside the outputs directory
             secret = Path(tmpdir) / "secret.txt"
             secret.write_text("TOP SECRET")
 
@@ -233,7 +230,7 @@ class TestOutputsTraversal(unittest.TestCase):
 
 
 class TestFileRouteTraversal(unittest.TestCase):
-    """/file/ 경로도 DX_APP_ROOT 밖으로 나가면 403으로 거부해야 함."""
+    """/file/ must also return 403 for paths outside DX_APP_ROOT."""
 
     def test_file_route_traversal_outside_dx_app_root_returns_403(self):
         import server
@@ -265,9 +262,9 @@ class TestFileRouteTraversal(unittest.TestCase):
             handler.wfile.write.assert_not_called()
 
 
-# 7. /api/fs/read 존재 오라클 제거
+# 7. /api/fs/read must not act as an existence oracle
 class TestFsReadExistenceOracle(unittest.TestCase):
-    """허용 루트 밖 경로는 존재 여부와 무관하게 항상 403을 반환해야 함."""
+    """Paths outside the allowed roots always get 403, whether or not they exist."""
 
     def test_missing_outside_path_returns_403_not_404(self):
         import server
@@ -403,7 +400,7 @@ class TestOverwriteConfirmation(unittest.TestCase):
     """dev_add / dev_new_task must reject overwrites unless confirm_overwrite=True."""
 
     def test_dev_new_task_rejects_overwrite_without_confirm(self):
-        """기존 파일이 존재할 때 confirm_overwrite=False → 400 반환."""
+        """Existing file with confirm_overwrite=False → 400."""
         from developer import lab_session, dev_new_task
         tok = lab_session()["token"]
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -420,7 +417,7 @@ class TestOverwriteConfirmation(unittest.TestCase):
         self.assertEqual(result.get("status"), 400)
 
     def test_dev_new_task_allows_overwrite_with_confirm(self):
-        """기존 파일이 존재해도 confirm_overwrite=True → 정상 생성."""
+        """Existing file with confirm_overwrite=True → created normally."""
         from developer import lab_session, dev_new_task
         tok = lab_session()["token"]
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -435,7 +432,7 @@ class TestOverwriteConfirmation(unittest.TestCase):
         self.assertTrue(result.get("ok"), result)
 
     def test_dev_new_task_no_conflict_passes(self):
-        """기존 파일이 없으면 confirm_overwrite=False 도 정상."""
+        """No existing file: confirm_overwrite=False is fine."""
         from developer import lab_session, dev_new_task
         tok = lab_session()["token"]
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -446,7 +443,7 @@ class TestOverwriteConfirmation(unittest.TestCase):
         self.assertTrue(result.get("ok"), result)
 
     def test_dev_add_rejects_overwrite_without_confirm(self):
-        """기존 모델 디렉토리가 존재할 때 confirm_overwrite=False → 400 반환."""
+        """Existing model directory with confirm_overwrite=False → 400."""
         from developer import lab_session, dev_add
         tok = lab_session()["token"]
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -467,7 +464,7 @@ class TestOverwriteConfirmation(unittest.TestCase):
         self.assertEqual(result.get("status"), 400)
 
     def test_dev_add_allows_overwrite_with_confirm(self):
-        """기존 디렉토리 있어도 confirm_overwrite=True → 스크립트 실행."""
+        """Existing directory with confirm_overwrite=True → the script runs."""
         from developer import lab_session, dev_add
         tok = lab_session()["token"]
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -492,7 +489,7 @@ class TestOverwriteConfirmation(unittest.TestCase):
         self.assertNotEqual(result.get("status"), 400)
 
     def test_dev_add_rejects_traversal_category(self):
-        """category는 알려진 카테고리여야 하며 경로 순회를 허용하지 않는다."""
+        """category must be a known category and must not allow path traversal."""
         from developer import lab_session, dev_add
         tok = lab_session()["token"]
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -509,7 +506,7 @@ class TestOverwriteConfirmation(unittest.TestCase):
         self.assertIn("category", result.get("error", "").lower())
 
     def test_dev_add_rejects_traversal_model_name(self):
-        """model_name은 경로 컴포넌트로 쓰이므로 경로 순회를 허용하지 않는다."""
+        """model_name is used as a path component, so it must not allow path traversal."""
         from developer import lab_session, dev_add
         tok = lab_session()["token"]
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -526,7 +523,7 @@ class TestOverwriteConfirmation(unittest.TestCase):
         self.assertIn("model name", result.get("error", "").lower())
 
     def test_dev_delete_rejects_traversal_model_name_without_deleting(self):
-        """delete 확인 문자열만으로는 model_name 경로 순회를 허용하지 않는다."""
+        """The delete confirmation string alone must not permit model_name path traversal."""
         from developer import lab_session, dev_delete
         tok = lab_session()["token"]
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -545,7 +542,7 @@ class TestOverwriteConfirmation(unittest.TestCase):
         self.assertIn("model name", result.get("error", "").lower())
 
     def test_server_passes_confirm_overwrite_to_new_task(self):
-        """server.py가 dev_new_task에 confirm_overwrite를 전달하는지 소스 코드 검증."""
+        """Source check: server.py passes confirm_overwrite to dev_new_task."""
         root = Path(__file__).resolve().parent.parent.parent
         server_src = (root / "dx_app" / "server.py").read_text()
         # Find the route handler (path=="/api/dev/new_task") not the set definition

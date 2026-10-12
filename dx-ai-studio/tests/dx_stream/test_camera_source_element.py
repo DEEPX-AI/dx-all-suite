@@ -1,8 +1,7 @@
-"""The Pipeline Builder offers a camera source (2026-10-11 real-use audit).
+"""The Pipeline Builder offers a camera source.
 
-The element palette had urisourcebin and rtspsrc only, so a pipeline could not read a USB camera although the AI Help
-knowledge lists v4l2src as the camera source. Verified with a v4l2loopback camera: preset 0 with its source swapped
-for v4l2src device=/dev/video0 streams detections.
+Without v4l2src in the element palette (only urisourcebin and rtspsrc), a pipeline cannot read a USB camera, although
+the AI Help knowledge lists v4l2src as the camera source.
 """
 from dx_stream.core import elements
 

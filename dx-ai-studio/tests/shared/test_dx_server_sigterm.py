@@ -1,9 +1,8 @@
-"""모듈 서버가 SIGTERM 에 곧 끝나는지.
+"""A module server exits promptly on SIGTERM.
 
-shared/dx_server.py 의 신호 처리기는 serve_forever() 가 도는 바로 그 main thread 에서 shutdown() 을
-불렀다 — shutdown() 은 serve_forever() 가 끝나기를 기다리므로 서로를 기다리며 멈췄다. 테스트가 띄운
---port 0 서버들이 SIGTERM 을 받고도 살아남아 고아로 쌓였다 (2026-09-30, 7개). dx_monitor 는 이미
-shutdown 을 다른 thread 에서 불러 피하고 있었다.
+The signal handler in shared/dx_server.py must not call shutdown() on the main thread that runs serve_forever():
+shutdown() waits for serve_forever() to return, so the two wait on each other and hang. --port 0 servers started by
+tests would then survive SIGTERM and pile up as orphans.
 """
 from __future__ import annotations
 
@@ -19,7 +18,7 @@ ROOT = Path(__file__).resolve().parents[2]
 
 def test_a_module_server_exits_promptly_on_sigterm(tmp_path):
     port_file = tmp_path / "port"
-    # launcher 처럼 repo 루트를 PYTHONPATH 에 (launcher/launcher.py 의 서버 띄우기와 같게)
+    # repo root on PYTHONPATH, as launcher/launcher.py starts its servers
     env = dict(os.environ, DX_PORT_FILE=str(port_file), PYTHONUNBUFFERED="1",
                PYTHONPATH=str(ROOT) + (os.pathsep + os.environ["PYTHONPATH"] if os.environ.get("PYTHONPATH") else ""))
     proc = subprocess.Popen([sys.executable, str(ROOT / "dx_planner" / "server.py"), "--port", "0", "--no-browser"],

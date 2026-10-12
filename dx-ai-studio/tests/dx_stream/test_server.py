@@ -1,6 +1,6 @@
-"""DX Stream server.py 통합 테스트.
+"""DX Stream server.py integration tests.
 
-테스트 포트 18093 사용 — 실제 서버 포트(8093)와 충돌 방지.
+Uses test port 18093 to avoid clashing with the real server port (8093).
 """
 import json
 import http.client
@@ -34,17 +34,17 @@ def server():
 
 
 def _get(path: str) -> bytes:
-    """GET 요청 헬퍼."""
+    """GET request helper."""
     return urlopen(f"{BASE_URL}{path}", timeout=5).read()
 
 
 def _get_json(path: str):
-    """GET 요청 → JSON 파싱."""
+    """GET request → parsed JSON."""
     return json.loads(_get(path))
 
 
 def _post_json(path: str, body: dict):
-    """POST JSON body → 응답 dict"""
+    """POST a JSON body → response dict"""
     import urllib.request
     data = json.dumps(body).encode()
     req = urllib.request.Request(
@@ -54,11 +54,11 @@ def _post_json(path: str, body: dict):
     return json.loads(urllib.request.urlopen(req, timeout=5).read())
 
 
-# ── 테스트 ────────────────────────────────────────────────────
+# ── Tests ──────────────────────────────────────────────────────
 
 
 def test_get_root_returns_html(server):
-    """GET / 는 200 + HTML을 반환해야 한다."""
+    """GET / returns 200 + HTML."""
     resp = urlopen(f"{BASE_URL}/", timeout=5)
     assert resp.status == 200
     body = resp.read().decode()
@@ -74,7 +74,7 @@ def test_index_html_returns_html(server):
 
 
 def test_api_status_returns_json(server):
-    """GET /api/status 는 npu, gstreamer, models 키를 포함해야 한다."""
+    """GET /api/status includes the npu, gstreamer and models keys."""
     data = _get_json("/api/status")
     assert "npu" in data
     assert "gstreamer" in data
@@ -82,14 +82,14 @@ def test_api_status_returns_json(server):
 
 
 def test_api_demos_returns_list(server):
-    """GET /api/demos 는 dev-backed 12개 데모 목록을 반환해야 한다."""
+    """GET /api/demos returns the 12 dev-backed demos."""
     data = _get_json("/api/demos")
     assert isinstance(data, list)
     assert len(data) == 12
 
 
 def test_api_models_returns_catalog_object(server):
-    """GET /api/models 는 카탈로그 객체를 반환해야 한다."""
+    """GET /api/models returns the catalog object."""
     data = _get_json("/api/models")
     assert isinstance(data, dict)
     assert data["catalog_source"] in {"manifest", "fallback"}
@@ -98,21 +98,21 @@ def test_api_models_returns_catalog_object(server):
 
 
 def test_api_elements_returns_list(server):
-    """GET /api/elements 는 13개 이상 엘리먼트를 반환해야 한다."""
+    """GET /api/elements returns at least 13 elements."""
     data = _get_json("/api/elements")
     assert isinstance(data, list)
     assert len(data) >= 13
 
 
 def test_unknown_api_returns_404(server):
-    """GET /api/nonexistent 는 404를 반환해야 한다."""
+    """GET /api/nonexistent returns 404."""
     with pytest.raises(HTTPError) as exc_info:
         urlopen(f"{BASE_URL}/api/nonexistent", timeout=5)
     assert exc_info.value.code == 404
 
 
 def test_static_css_served(server):
-    """GET /static/css/stream.css 는 200 + Stream CSS를 반환해야 한다."""
+    """GET /static/css/stream.css returns 200 + the Stream CSS."""
     resp = urlopen(f"{BASE_URL}/static/css/stream.css", timeout=5)
     css = resp.read().decode()
     assert resp.status == 200
@@ -154,7 +154,7 @@ def test_api_setup_status_returns_dict(server):
 
 
 def test_tutorial_tags_in_html(server):
-    """index.html에 tutorial 관련 3개 태그가 존재하는지 확인."""
+    """index.html carries the three tutorial tags."""
     resp = urlopen(f"{BASE_URL}/", timeout=5)
     html = resp.read().decode()
     assert 'tutorial-engine.js' in html, "tutorial-engine.js 태그 누락"
@@ -163,14 +163,14 @@ def test_tutorial_tags_in_html(server):
 
 
 def test_api_pipeline_status(server):
-    """GET /api/pipeline/status 는 running 필드를 반환해야 한다."""
+    """GET /api/pipeline/status returns a running field."""
     data = _get_json("/api/pipeline/status")
     assert "running" in data
     assert data["running"] is False
 
 
 def test_post_without_body_handler_drains_keepalive_body(server):
-    """body를 쓰지 않는 POST 핸들러도 keep-alive 요청 본문을 소비해야 한다."""
+    """POST handlers that ignore the body still consume a keep-alive request body."""
     conn = http.client.HTTPConnection("127.0.0.1", TEST_PORT, timeout=5)
     try:
         conn.request(
@@ -194,7 +194,7 @@ def test_post_without_body_handler_drains_keepalive_body(server):
 
 
 def test_api_pipeline_elements_wrapped(server):
-    """API 응답이 categories + connection_rules를 포함하는지 확인"""
+    """The API response includes categories + connection_rules"""
     data = _get_json("/api/pipeline/elements")
     assert "categories" in data
     assert "connection_rules" in data
@@ -205,7 +205,7 @@ def test_api_pipeline_elements_wrapped(server):
     assert "source" in data["categories"]
 
 def test_api_pipeline_validate_connection(server):
-    """서버사이드 연결 검증"""
+    """Server-side connection validation"""
     data = _post_json("/api/pipeline/validate-connection",
                       {"from_elem": "urisourcebin", "to_elem": "DxPreprocess"})
     assert data["result"] == "allow"

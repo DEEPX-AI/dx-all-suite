@@ -308,8 +308,8 @@ def test_release_leak_and_result_field_contracts_are_structured():
 
 
 def test_the_release_audit_launches_the_resolved_chromium():
-    """2026-10-12: release_audit.py called chromium.launch() with no executable, so on a host whose Playwright cache
-    has only the full Chromium (CI's browser suites resolve it) the audit could not run at all."""
+    """The audit launches the same Chromium the CI browser suites resolve: a bare chromium.launch() cannot run on a
+    host whose Playwright cache has only the full Chromium."""
     from pathlib import Path
     src = (Path(__file__).resolve().parents[2] / "tools" / "release_audit.py").read_text(encoding="utf-8")
     assert "resolve_chromium_executable" in src

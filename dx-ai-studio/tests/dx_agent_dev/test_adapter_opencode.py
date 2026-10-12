@@ -1,4 +1,4 @@
-"""OpenCode 어댑터: opencode run -m, cwd=harness, 텍스트 출력."""
+"""OpenCode adapter: opencode run -m, cwd=harness, plain-text output."""
 import sys
 from pathlib import Path
 
@@ -26,7 +26,7 @@ def test_opencode_cwd_mode_harness(tmp_path):
 
 
 def test_opencode_normalize_text_heuristic():
-    """텍스트 출력 도구: 기본 휴리스틱 상속."""
+    """A plain-text tool inherits the default heuristic."""
     from core.adapters.opencode import OpenCodeAdapter
     a = OpenCodeAdapter()
     assert a.normalize("$ run")["type"] == "command"

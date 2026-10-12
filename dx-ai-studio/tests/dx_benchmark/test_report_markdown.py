@@ -1,7 +1,7 @@
-"""Run reports render with the shared Markdown renderer, tables included (2026-10-02 release audit B-1).
+"""Run reports render with the shared Markdown renderer, tables included.
 
-dx_benchmark shipped a 748-byte "minimal fallback" under the name vendor/marked.min.js; it turned a GFM table into
-bare <tr> rows inside a <p>, so every REPORT.md table read as run-on text in Results.
+A "minimal fallback" posing as vendor/marked.min.js turns a GFM table into bare <tr> rows inside a <p>, so every
+REPORT.md table reads as run-on text in Results.
 """
 from __future__ import annotations
 

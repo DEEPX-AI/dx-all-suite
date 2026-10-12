@@ -1,12 +1,12 @@
-"""전처리 값에 대한 프론트엔드 즉시 피드백.
+"""Immediate front-end feedback on preprocessing values.
 
-서버가 400 으로 막게 됐지만 그것만으로는 사용자가 생성 버튼을 누른 뒤에야
-안다. `validateCalibNum` 과 `validateInputShapes` 가 이미 입력 즉시 말한다 —
-전처리도 같은 자리에서 같은 방식이어야 한다.
+The server refuses bad values with a 400, but on its own the user learns that only
+after pressing Generate. `validateCalibNum` and `validateInputShapes` already warn as
+the user types — preprocessing must do the same, in the same place.
 
-여기서 더 중요한 것은 **프론트와 서버의 규칙이 같아야** 한다는 점이다.
-프론트가 더 빡빡하면 서버가 받아줄 값을 막고, 더 헐거우면 경고 없이 400 을
-맞는다. 둘 다 사용자를 혼란스럽게 한다.
+More importantly, **front-end and server rules must match**. A stricter front end
+blocks values the server would accept; a looser one lets the user hit a 400 with no
+warning. Both confuse the user.
 """
 from __future__ import annotations
 
@@ -28,7 +28,7 @@ def test_the_wizard_warns_about_unusable_preprocessing_values():
 
 
 def test_the_warning_element_exists_and_is_announced():
-    """경고가 화면에만 뜨고 스크린리더에 안 알려지면 절반만 된 것이다."""
+    """A warning shown on screen but not announced to screen readers is only half done."""
     html = HTML.read_text(encoding="utf-8")
     assert 'id="wiz-prep-warning"' in html, "경고를 띄울 자리가 없다"
     block = html[html.index('id="wiz-prep-warning"') - 200:
@@ -37,15 +37,15 @@ def test_the_warning_element_exists_and_is_announced():
 
 
 def test_the_listener_is_delegated_to_the_pipeline_container():
-    """전처리 항목은 추가·삭제로 계속 바뀐다. 개별 입력칸에 붙이면 나중에
-    추가된 항목이 조용히 검사에서 빠진다 — input-shapes-list 와 같은 이유."""
+    """Preprocessing entries are added and removed over time. A listener on each input
+    would silently miss entries added later — the same reason as input-shapes-list."""
     src = js()
     assert re.search(r"prepPipeline\.addEventListener\('input', validatePreprocessings\)", src), \
         "컨테이너 위임이 아니다 — 나중에 추가한 전처리가 검사에서 빠진다"
 
 
 def test_the_front_end_checks_the_same_size_parameters_as_the_server():
-    """서버는 width·height·size·scale 을 양수로 본다. 프론트도 같아야 한다."""
+    """The server requires width, height, size and scale to be positive. So must the front end."""
     from dx_compiler.core.validation import _POSITIVE_PARAMS
     src = js()
     m = re.search(r"var PREP_POSITIVE = \[([^\]]*)\]", src)
@@ -57,16 +57,16 @@ def test_the_front_end_checks_the_same_size_parameters_as_the_server():
 
 
 def test_the_front_end_also_catches_a_zero_std():
-    """0 으로 나누는 것은 생성 버튼을 누르기 전에 말해줄 수 있다."""
+    """A division by zero can be reported before Generate is pressed."""
     src = js()
     assert "'std'" in src and "n === 0" in src, "std 의 0 을 프론트가 잡지 않는다"
 
 
 def test_the_front_end_does_not_police_what_the_server_leaves_alone():
-    """axis·x·pad_value 는 스칼라도 리스트도 되고 부호도 자유롭다.
+    """axis, x and pad_value may be a scalar or a list, with any sign.
 
-    프론트가 이것을 막으면 서버가 받아줄 정당한 값에 경고가 뜬다 — 서버보다
-    빡빡한 프론트는 그 자체로 결함이다.
+    Blocking them in the front end would warn about valid values the server accepts —
+    a front end stricter than the server is itself a defect.
     """
     src = js()
     m = re.search(r"var PREP_POSITIVE = \[([^\]]*)\]", src)

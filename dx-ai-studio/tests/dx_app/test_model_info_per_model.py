@@ -1,7 +1,7 @@
-"""Model detail on a per-model dx_app tree (2026-10-02 release audit A-4).
+"""Model detail on a per-model dx_app tree.
 
-get_model_info still walked the old flat layout (<lang>/<task>/<name>) and only looked for the model at
-DX_APP_ROOT/<file>, so on the per-model tree an installed model's Detail dialog showed no category, no files and
+get_model_info must walk the per-model layout, not only the flat one (<lang>/<task>/<name>), and find the model
+beyond DX_APP_ROOT/<file>; otherwise an installed model's Detail dialog shows no category, no files and
 "Model File ✗ N/A".
 """
 from __future__ import annotations

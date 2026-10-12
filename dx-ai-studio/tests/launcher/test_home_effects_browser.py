@@ -1,4 +1,4 @@
-"""home 의 효과가 화면에서 실제로 도는지, 효과 줄이기에서는 멈추는지 (spec 2026-09-23 §7)."""
+"""Home's effects actually run on screen, and stop under reduced motion."""
 from __future__ import annotations
 
 import pytest
@@ -10,7 +10,7 @@ from tests.server_helpers import start_module_server  # noqa: E402
 _SEEN = ("try{sessionStorage.setItem('dx-splash-seen','1');localStorage.setItem('dx-splash-seen','1');"
          "localStorage.setItem('dx-tutorial-launcher-autostarted','1');"
          "localStorage.setItem('dx-tutorial-mode','off');}catch(e){}")
-# 전환을 부른 횟수를 센다 — 부른 뒤에는 진짜 API 로 넘긴다.
+# Count calls to the transition, then hand off to the real API.
 _COUNT_FADES = """() => {
   window.__fades = [];
   const real = document.startViewTransition && document.startViewTransition.bind(document);
@@ -54,7 +54,7 @@ def _glow(page):
 
 
 def _glow_animating(page):
-    """JS 가 건 물결만 센다 — focus 의 CSS transition 도 getAnimations() 에 잡힌다."""
+    """Count only the ripples JS starts; focus CSS transitions also show up in getAnimations()."""
     return page.evaluate("""() => document.getAnimations().some(a => a.effect
       && !(a instanceof CSSTransition) && !(a instanceof CSSAnimation)
       && a.effect.pseudoElement === '::after' && a.effect.target

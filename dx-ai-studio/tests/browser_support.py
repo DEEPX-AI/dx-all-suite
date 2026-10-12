@@ -11,10 +11,9 @@ from shared.chromium import resolve_chromium_executable  # noqa: F401  (re-expor
 def resolve_node_executable() -> str | None:
     """Return a Node.js binary: the one on PATH, else the one Playwright ships with.
 
-    The Node harness tests (widget, i18n runtime, telemetry states, markdown render ...) used to skip
-    whenever ``node`` was not on PATH, which is the normal state of this box, so six of them broke
-    without anyone seeing it (found 2026-10-11). Playwright is a test dependency and carries its
-    own Node, so those tests can always run.
+    The Node harness tests (widget, i18n runtime, telemetry states, markdown render ...) must not skip
+    just because ``node`` is missing from PATH, or they can break unseen. Playwright is a test
+    dependency and carries its own Node, so those tests can always run.
     """
     found = shutil.which("node")
     if found:
@@ -27,7 +26,7 @@ def resolve_node_executable() -> str | None:
     return str(bundled) if bundled.is_file() and os.access(bundled, os.X_OK) else None
 
 
-# --- Multi-engine selection (Phase 2 cross-browser) -------------------------
+# --- Multi-engine selection (cross-browser) ---------------------------------
 
 ENGINES = ("chromium", "firefox", "webkit")
 DEFAULT_ENGINE = "chromium"

@@ -1,8 +1,8 @@
-"""home-router 의 행동 계약 — 실제 라우터를 브라우저에서 돌린다.
+"""Behaviour contracts for home-router: the real router runs in a browser.
 
-빈 페이지에 스크립트만 주입해 순수 함수를 호출한다(서버도 페이지도 없다). 그래도
-sync Playwright 는 프로세스당 이벤트 루프를 하나 소유하므로 --browser 스테이지에서
-격리해 돌린다. 소스만 읽는 계약은 test_home_router.py 에 남아 블로킹 게이트를 지킨다.
+Only the script is injected into a blank page and its pure functions are called (no server, no page).
+Sync Playwright still owns one event loop per process, so this runs isolated in the --browser stage.
+Source-only contracts stay in test_home_router.py and guard the blocking gate.
 """
 from __future__ import annotations
 
@@ -69,7 +69,7 @@ def test_it_reads_task_channels_and_target(route):
 
 
 def test_the_intro_stream_prompt_goes_to_stream_with_sixteen_channels(route):
-    """intro 의 첫 작업 장면이 타이핑하는 문장 — home 이 실제로 그 일을 받아야 한다 (spec 2026-09-30)."""
+    """The sentence the intro's first working scene types: home must actually take on that job."""
     got = json.loads(route("16-channel CCTV object detection", CATALOG, DEMOS))
     assert got["parsed"]["channels"] == 16
     assert any(r.get("module") == "stream" for r in got["routes"]), got["routes"]
@@ -126,7 +126,7 @@ ZOO = [  # the Model Zoo's own catalogue calls the task "category"
 
 
 @pytest.mark.parametrize("text, task", [
-    ("face detection on a webcam", "face_detection"),       # 'detection' 이 먼저 있어도 더 긴 말이 이긴다
+    ("face detection on a webcam", "face_detection"),       # the longer phrase wins even though 'detection' comes first
     ("카메라로 사람 탐지", "object_detection"),
     ("웹캠으로 얼굴 탐지", "face_detection"),
     ("カメラで姿勢推定", "pose_estimation"),
@@ -134,7 +134,7 @@ ZOO = [  # the Model Zoo's own catalogue calls the task "category"
     ("segmentación de video", "segmentation"),
 ])
 def test_the_router_reads_the_six_languages(route, text, task):
-    """release audit L-15: 한국어 · 일본어 문장은 아무것도 못 읽어 늘 agent 로 갔다."""
+    """Korean and Japanese sentences must route by their words, not fall through to the agent every time."""
     got = json.loads(route(text, ZOO, DEMOS))
     assert got["parsed"]["task"] == task, got
 
@@ -147,7 +147,7 @@ def test_a_korean_source_word_is_read(route):
 
 
 def test_the_zoo_catalogue_counts_by_category(route):
-    """Model Zoo 의 catalog 는 task 를 category 로 준다 — 예전에는 늘 0 개라 'Pick a model' 이 나오지 않았다."""
+    """Model Zoo's catalog gives task as category; reading it is what makes 'Pick a model' appear."""
     got = json.loads(route("segmentation", ZOO, DEMOS))
     models = [r for r in got["routes"] if r["kind"] == "models"]
     assert models and models[0]["count"] == 2, got["routes"]

@@ -1,7 +1,7 @@
-"""EdgeGuide — 요약 칩 · 사실 표 · 벤치마크 표 · 플랫폼 요약이 고른 언어를 따른다 (release audit P-3).
+"""EdgeGuide: summary chips, facts table, benchmark table and platform summary follow the chosen language.
 
-예전에는 칩 이름 (Task · Model · Channels …) 이 영어 고정이고 값에 작업 slug (pose_estimation) 가 그대로
-나왔다. 'Benchmark system' · 'Host' 는 data-i18n span 이라 다시 그릴 때마다 영어로 돌아갔다.
+Chip names (Task · Model · Channels …) must be translated and values must show task names, not slugs
+(pose_estimation). 'Benchmark system' and 'Host' are data-i18n spans and must stay translated across redraws.
 """
 from __future__ import annotations
 
@@ -64,7 +64,7 @@ def test_switching_language_translates_chips_facts_and_platform_summary(page):
 
 
 def test_task_names_are_not_clipped_in_the_results_sidebar(page):
-    """At 1440 px the sidebar split AI task · model size into two columns: "Object Detectic", "Segmen" (2026-10-11)."""
+    """At 1440 px the sidebar must not clip task names ("Object Detectic", "Segmen") by splitting task · size into columns."""
     clipped = page.evaluate("""() => [...document.querySelectorAll('.task-btn .task-name')]
         .filter(e => e.offsetParent !== null && e.scrollWidth > e.clientWidth + 1).map(e => e.textContent.trim())""")
     widths = page.evaluate("[...document.querySelectorAll('.task-btn')].map(b => Math.round(b.getBoundingClientRect().width))")

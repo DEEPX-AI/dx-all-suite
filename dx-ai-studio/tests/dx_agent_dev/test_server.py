@@ -1,6 +1,6 @@
-"""DX Agent Dev server.py 통합 테스트.
+"""DX Agent Dev server.py integration tests.
 
-테스트 포트 18099 사용 — 실제 서버 포트(8099)와 충돌 방지.
+Uses test port 18099 to avoid the real server port (8099).
 """
 import json
 import os
@@ -21,7 +21,7 @@ BASE_URL = f"http://127.0.0.1:{TEST_PORT}"
 
 @pytest.fixture(scope="module")
 def monkeypatch_module():
-    """모듈 전체에서 Mock 어댑터 강제(폐쇄망 계약 검증)."""
+    """Force the Mock adapter for the whole module (offline contract)."""
     os.environ["DX_AGENT_ADAPTER"] = "mock"
     yield
     os.environ.pop("DX_AGENT_ADAPTER", None)
@@ -43,7 +43,7 @@ def _get_json(path):
 
 
 def _post_sse(path, payload):
-    """POST → data: 프레임 파싱 → 이벤트 리스트."""
+    """POST, parse the data: frames, return the event list."""
     req = Request(f"{BASE_URL}{path}", data=json.dumps(payload).encode(),
                   headers={"Content-Type": "application/json"}, method="POST")
     raw = urlopen(req, timeout=10).read().decode()
@@ -119,7 +119,7 @@ _LANGS = {"en", "ko", "ja", "zh-CN", "zh-TW", "es"}
 
 
 def test_degraded_payload_contract():
-    """available=false 시 run 분기가 만드는 페이로드(404 아님, MED-8/§10 #8).
+    """The payload the run branch builds when available=false (not a 404).
 
     reason(raw code) + text(short EN summary, backward-compat) + localized title/detail +
     installOptions(cli_missing only, per-CLI install/login status).

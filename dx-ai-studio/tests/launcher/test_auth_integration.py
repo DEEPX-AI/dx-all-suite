@@ -1,6 +1,6 @@
-"""런처 no-auth 로컬 모드 통합 테스트.
+"""Launcher integration tests in no-auth local mode.
 
-인증 게이트가 제거된 런처의 동작을 검증한다.
+Local requests pass without credentials; there is no auth gate.
 """
 import json
 import os
@@ -147,8 +147,8 @@ class TestNoAuthLocalMode:
         data = json.loads(resp.read())
 
         assert resp.status == 200
-        # 2026-10-01 (QA COM-A1): 로컬은 그대로 — 인증 없이 통과한다고 알린다. 원격은 페어링
-        # (tests/shared/test_remote_access.py). 이 시험의 서버에는 페어링 상태가 없다.
+        # Local access passes without auth and says so. Remote access uses pairing
+        # (tests/shared/test_remote_access.py); this server has no pairing state.
         assert data == {
             "ok": True,
             "auth_enabled": False,
@@ -159,7 +159,7 @@ class TestNoAuthLocalMode:
         }
 
     def test_unlock_without_pairing_sets_no_cookie(self, live_server):
-        # 페어링 상태가 없는 launcher (loopback 에만 열림) 에서는 unlock 할 것이 없다 — 403, 쿠키 없음
+        # A launcher without pairing state (bound to loopback only) has nothing to unlock: 403, no cookie.
         import urllib.error
         with pytest.raises(urllib.error.HTTPError) as e:
             _post(live_server["base"], "/api/auth/unlock", {"code": "123456"})

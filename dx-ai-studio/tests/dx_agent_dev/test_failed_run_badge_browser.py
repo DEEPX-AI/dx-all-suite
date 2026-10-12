@@ -93,7 +93,7 @@ def _start_controlled(page):
 
 
 def test_stop_cancels_the_run_and_says_stopped(page):
-    """The Agent Dev console had no Stop — a mistaken multi-minute build could not be stopped here (2026-10-11)."""
+    """The Agent Dev console must offer Stop, so a mistaken multi-minute build can be stopped here."""
     _start_controlled(page)
     stop = page.locator("#console-stop")
     assert stop.is_visible()

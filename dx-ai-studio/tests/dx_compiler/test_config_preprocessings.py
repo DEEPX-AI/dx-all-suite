@@ -1,27 +1,20 @@
-"""SR-758 이 원래 지목한 필드. `/config/generate` 의 preprocessings.
+"""`/config/generate` must refuse unusable preprocessings.
 
-티켓은 `preprocessing.resize.width = -640` 을 들었다. 최상위 `preprocessing` 키는
-없어서 그 payload 는 `{"inputs": {}}` 를 만들지만, **필드를 잘못 짚은 것은
-아니었다** — `resize.width` 는 `preprocessings[]` 안에 실재하고, 재보니 거기도
-검증이 없었다. 틀린 것은 JSON 중첩이지 지목한 필드가 아니다.
+Fields such as `resize.width` live inside `preprocessings[]` and must be validated.
+Bad values reach the server straight from the GUI: the parameter inputs are free-text
+`type="text"` fields and the collector sends `isNaN(num) ? raw : num`, so whatever is
+typed is sent as-is.
 
-input_shapes 보다 나쁘다. input_shapes 는 프론트가 잘못된 값을 조용히 버려서
-API 를 직접 불러야 재현됐다. 여기는 **GUI 로 그냥 된다** — 파라미터 입력칸이
-`type="text"` 자유 입력이고 수집 코드가 `isNaN(num) ? raw : num` 이라 타이핑한
-값이 그대로 실린다.
-
-무엇을 막지 않는지가 더 중요하다. 저장소의 실제 config 8 개를 읽어 보면:
+What is NOT blocked matters more. Real configs in the repository look like:
 
     {"resize": {"mode": "pad", "size": 640,
-                "pad_location": "edge",          # UI 는 'EDGE' 대문자를 준다
-                "pad_value": [114, 114, 114]}}   # UI 기본값은 스칼라 0
-    {"transpose": {"axis": [2, 0, 1]}}           # 리스트
-    {"expandDim": {"axis": 0}}                   # 스칼라
+                "pad_location": "edge",          # the UI sends upper-case 'EDGE'
+                "pad_value": [114, 114, 114]}}   # the UI default is scalar 0
+    {"transpose": {"axis": [2, 0, 1]}}           # list
+    {"expandDim": {"axis": 0}}                   # scalar
 
-같은 파라미터가 스칼라도 되고 리스트도 되며 대소문자도 다르다. 이런 것에
-규칙을 세우면 지금 도는 config 가 막힌다. 뜻이 분명한 것만 본다.
-
-계약: docs/superpowers/specs/2026-09-18-compiler-input-validation-design.md
+The same parameter can be a scalar or a list and its case varies. Rules on such
+things would block configs in use today. Only values with a clear meaning are checked.
 """
 from __future__ import annotations
 
@@ -30,15 +23,15 @@ import urllib.error
 import urllib.request
 
 import pytest
-from tests.dx_compiler._compile_paths import compile_paths_not_under_test, compile_jobs_outside_var  # noqa: F401  (경로 정책은 이 시험의 대상이 아니다 · 작업은 tmp 에)
+from tests.dx_compiler._compile_paths import compile_paths_not_under_test, compile_jobs_outside_var  # noqa: F401  (path policy is not under test here; jobs go to tmp)
 
 from tests.server_helpers import start_module_server
 
 OK = {"loader_mode": "default", "dataset_path": "/tmp/calib",
       "input_shapes": {"images": [1, 3, 640, 640]}}
 
-# 저장소의 실제 config 에서 그대로 가져온 전처리 사슬.
-# 새 규칙이 이것을 막으면 규칙이 틀린 것이다.
+# A preprocessing chain taken verbatim from a real config in the repository.
+# A rule that blocks it is wrong.
 REAL_CHAIN = [
     {"resize": {"mode": "pad", "size": 640, "pad_location": "edge",
                 "pad_value": [114, 114, 114]}},
@@ -71,7 +64,7 @@ def _generate(base, preps):
 
 
 class TestRealConfigsMustKeepWorking:
-    """과잉 차단 방지. 이 클래스가 실패하면 규칙이 틀린 것이다."""
+    """No over-blocking. If this class fails, the rule is wrong."""
 
     def test_the_chain_from_the_repositorys_own_configs_passes(self, compiler):
         code, body = _generate(compiler, REAL_CHAIN)
@@ -93,18 +86,18 @@ class TestRealConfigsMustKeepWorking:
         {"slice": {"channel": 3}},
     ])
     def test_shapes_that_vary_legitimately_are_left_alone(self, compiler, entry):
-        """axis 는 음수도 리스트도 되고, x 와 pad_value 는 스칼라도 리스트도 된다.
+        """axis may be negative or a list; x and pad_value may be a scalar or a list.
 
-        여기에 규칙을 세우면 정당한 config 가 막힌다. 건드리지 않는다.
+        A rule here would block valid configs. Leave them alone.
         """
         code, body = _generate(compiler, [entry])
         assert code == 200, f"정당한 값을 막았다: {entry} — {body}"
 
     @pytest.mark.parametrize("name", ["resize2", "resize3", "resize_tv", "그런거"])
     def test_transform_names_are_not_whitelisted(self, compiler, name):
-        """벤더 레지스트리(02_06:394)에 resize2·resize3·resize_tv 가 있는데 UI 는
-        내보내지 않는다. UI 목록으로 막으면 정당한 config 가 거부된다. 문서
-        목록이 최신이라는 보장도 없다. 이름은 컴파일 단계가 판단한다."""
+        """The vendor registry (02_06:394) has resize2, resize3 and resize_tv, which the
+        UI does not offer. Blocking by the UI list would reject valid configs, and the
+        documented list may be out of date. The compile step judges names."""
         code, body = _generate(compiler, [{name: {"size": 640}}])
         assert code == 200, f"transform 이름을 막았다: {name} — {body}"
 
@@ -129,8 +122,8 @@ class TestUnusableSizesAreRefused:
         assert code == 400, f"{key}=-1 이 통과했다 — {body}"
 
     def test_centercrop_sizes_are_checked_too(self, compiler):
-        """크기 규칙은 transform 이름이 아니라 **파라미터 이름** 에 붙는다.
-        resize 만 보면 centercrop 이 빠진다."""
+        """Size rules attach to the **parameter name**, not the transform name.
+        Checking only resize would miss centercrop."""
         code, body = _generate(compiler, [{"centercrop": {"width": 0, "height": 224}}])
         assert code == 400, f"centercrop.width=0 이 통과했다 — {body}"
 
@@ -157,7 +150,7 @@ class TestNormalizeMustBeUsable:
         ([0, 0, 0], [255, 255, 255]),
     ])
     def test_documented_normalizations_pass(self, compiler, pair):
-        """config-schema.md:140 의 표에 있는 조합들. 전부 통과해야 한다."""
+        """Combinations from the table at config-schema.md:140. All must pass."""
         mean, std = pair
         code, body = _generate(compiler, [{"normalize": {"mean": mean, "std": std}}])
         assert code == 200, f"문서에 있는 정규화를 막았다: {pair} — {body}"
@@ -169,10 +162,10 @@ class TestTheContainerItselfMustBeUsable:
         ("resize 640x640", "배열이 아니라 문자열"),
         (5, "배열이 아니라 숫자"),
         (["resize"], "원소가 dict 가 아님"),
-        # 길이가 1 인 것들이 중요하다. 원소 타입 가드가 없으면 len(entry) != 1 을
-        # 통과해 .items() 에서 AttributeError 가 나고 400 이 아니라 500 이 된다.
-        # 변이 검사에서 그 가드만 살아남아 드러났다 — "resize" 는 길이 6 이라
-        # 다음 검사에 걸려서 가드의 값어치를 가리고 있었다.
+        # The length-1 entries matter. Without the element type guard they pass
+        # len(entry) != 1 and .items() raises AttributeError — a 500, not a 400.
+        # A longer value such as "resize" (length 6) is caught by the next check
+        # and would hide a missing guard.
         (["a"], "원소가 길이 1짜리 문자열"),
         ([["x"]], "원소가 길이 1짜리 리스트"),
         ([5], "원소가 숫자"),
@@ -186,7 +179,7 @@ class TestTheContainerItselfMustBeUsable:
         assert code == 400, f"{why}: 통과했다 — {body}"
 
     def test_an_absent_preprocessings_is_fine(self, compiler):
-        """전처리 없이 컴파일하는 것은 정상이다."""
+        """Compiling without preprocessing is valid."""
         payload = dict(OK)
         req = urllib.request.Request(
             compiler + "/config/generate", data=json.dumps(payload).encode(),
@@ -196,7 +189,7 @@ class TestTheContainerItselfMustBeUsable:
 
 
 class TestTheOtherLoaderFields:
-    """preprocessings 옆에서 같이 새던 것들."""
+    """The other loader fields next to preprocessings get the same care."""
 
     @pytest.mark.parametrize("value, why", [
         ("jpg", "문자열 — dx_com 이 'j','p','g' 로 순회한다"),
@@ -214,7 +207,7 @@ class TestTheOtherLoaderFields:
             f"무엇으로 고쳐야 하는지 보여주지 않는다 — {body}"
 
     def test_documented_file_extensions_pass(self, compiler):
-        """config-schema.md:126 의 예시."""
+        """The example from config-schema.md:126."""
         code, body = _generate_field(
             compiler, {"file_extensions": ["jpeg", "png", "jpg", "bmp"]})
         assert code == 200, body
@@ -227,8 +220,8 @@ class TestTheOtherLoaderFields:
         assert code == 400, f"dataset_path={value!r} 가 저장됐다 — {body}"
 
     def test_a_boolean_calibration_num_is_refused(self, compiler):
-        """input_shapes 의 차원에서는 bool 을 막아 놓고 여기서는 안 막았다.
-        int(True) 가 1 이라 `true` 가 표본 수 1 로 조용히 저장된다."""
+        """bool is refused here as it is for input_shapes dimensions.
+        int(True) is 1, so `true` would silently be stored as a sample count of 1."""
         code, body = _generate_field(compiler, {"calibration_num": True})
         assert code == 400, f"calibration_num=True 가 1 로 저장됐다 — {body}"
 

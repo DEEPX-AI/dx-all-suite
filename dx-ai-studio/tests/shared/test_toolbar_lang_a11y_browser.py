@@ -1,8 +1,8 @@
-"""공용 toolbar — 단추 이름이 고른 언어를 따르고, 언어 메뉴는 키보드로 쓸 수 있다.
+"""Shared toolbar: button names follow the chosen language, and the language menu works from the keyboard.
 
-release audit L-13: 'Language' · 'Theme: …' · 'Tutorial' · 'Settings' 와 shell rail 의 'Modules' 가 모든 언어에서
-영어였다 (module 사전마다 따로 있어야 했다 — 이제 shared/static/i18n.js 의 공용 chrome 사전).
-release audit L-16: 언어 항목이 div 라 Tab · 화살표로 닿지 못했다.
+'Language', 'Theme: …', 'Tutorial', 'Settings' and the shell rail's 'Modules' come from the shared chrome dictionary
+in shared/static/i18n.js, so they are translated in every language without a copy per module dictionary. Language
+items must be reachable with Tab and the arrow keys.
 """
 from __future__ import annotations
 

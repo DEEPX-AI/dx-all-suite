@@ -95,6 +95,6 @@ def test_sdk_sidebar_count_badges_use_design_tokens():
     css = read_css()
     group_count = normalize(css_rule(css, ".sdk-sidebar-count"))
     section_count = normalize(css_rule(css, ".sdk-sidebar-sec-count"))
-    # 글자색은 토큰으로. 개수 배지는 밝은 테마 대비 (1.98:1) 때문에 --text-muted 를 쓴다 (release audit)
+    # Text color comes from tokens. The group count badge may use --text-muted for contrast in the light theme
     assert "color:var(--text-muted)" in group_count or "color:var(--text-faint)" in group_count
     assert "color:var(--text-faint)" in section_count

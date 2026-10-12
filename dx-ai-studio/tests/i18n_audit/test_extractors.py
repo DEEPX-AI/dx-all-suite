@@ -111,7 +111,7 @@ def test_extract_js_i18n_dictionary_decodes_quoted_keys_and_escapes():
     assert by_key["Board's mode"].texts["es"] == "modo de la placa"
 
 
-# --- Issue 1: _SPAN_RE substring false positive ---
+# --- _SPAN_RE must not match on a substring ---
 
 def test_css_class_substring_not_treated_as_locale():
     """Classes like 'content' or 'styles' must not match as en/es locale spans."""
@@ -120,7 +120,7 @@ def test_css_class_substring_not_treated_as_locale():
     assert not any(r.surface == "static-html" for r in records)
 
 
-# --- Issue 2: nested same-tag elements break grouping ---
+# --- Nested same-tag elements must not break grouping ---
 
 def test_nested_same_tag_does_not_drop_language_spans():
     """Wrapper with nested same-tag child must still find language spans."""
@@ -139,7 +139,7 @@ def test_nested_same_tag_does_not_drop_language_spans():
     assert rec.texts["ko"] == "Korean"
 
 
-# --- Issue 3: duplicate records from ancestor propagation ---
+# --- Ancestor propagation must not duplicate records ---
 
 def test_extract_html_emits_nearest_language_wrapper_only():
     """Non-language ancestors must not duplicate locale span records."""
@@ -164,7 +164,7 @@ def test_extract_html_emits_nearest_language_wrapper_only():
     assert static_records[0].texts["en"] == "Setup"
 
 
-# --- Issue 4: _text_ sentinel creates false locale group threshold ---
+# --- The _text_ sentinel must not count toward the locale group threshold ---
 
 def test_extract_html_ignores_direct_text_when_deciding_locale_group():
     """Direct text (_text_ sentinel) must not count toward the >=2 span threshold."""
@@ -184,7 +184,7 @@ def test_extract_html_ignores_direct_text_when_deciding_locale_group():
     assert static_records[0].texts["ko"] == "Korean"
 
 
-# --- Issue 5: JS dictionary regex drops entries with braces in values ---
+# --- JS dictionary regex must keep entries with braces in values ---
 
 def test_extract_js_i18n_dictionary_keeps_braces_inside_strings():
     source = "window._DX_I18N_DICT = {'Model {0}': { ko:'모델 {0}', ja:'モデル {0}', 'zh-CN':'模型 {0}' }};"
@@ -198,7 +198,7 @@ def test_extract_js_i18n_dictionary_keeps_braces_inside_strings():
     assert records[0].texts["ja"] == "モデル {0}"
 
 
-# --- Issue 6: wrapper selector truncates to first two CSS classes ---
+# --- Wrapper selector must not truncate to the first two CSS classes ---
 
 def test_extract_html_selector_preserves_all_non_locale_classes():
     html = """
@@ -222,7 +222,7 @@ def test_extract_html_selector_preserves_all_non_locale_classes():
     assert len({r.record_id for r in records}) == 2
 
 
-# --- Issue 7 (Chunk 3): Brand-term suppression via real extraction path ---
+# --- Brand-term suppression via the real extraction path ---
 
 def test_extract_inventory_tags_brand_terms_for_classifier(tmp_path):
     (tmp_path / "launcher/static").mkdir(parents=True)
@@ -278,7 +278,7 @@ def test_brand_term_not_attached_for_longer_copy():
     assert records[0].brand_terms == ()
 
 
-# --- Issue 8 (Chunk 3): Python extractor ---
+# --- Python extractor ---
 
 def test_extract_inventory_reads_python_language_maps(tmp_path):
     (tmp_path / "launcher").mkdir()
@@ -323,7 +323,7 @@ def test_extract_from_python_source_brand_terms():
     assert records[0].brand_terms == ("NPU",)
 
 
-# --- Issue (Chunk 3): Python extractor handles annotated assignments ---
+# --- Python extractor handles annotated assignments ---
 
 def test_extract_inventory_reads_python_annotated_language_maps(tmp_path):
     (tmp_path / "dx_app").mkdir()
@@ -355,7 +355,7 @@ def test_extract_from_python_source_annotated_assign_no_value():
     assert records == []
 
 
-# --- Issue 9: Report self-scan and test contamination ---
+# --- Report outputs and tests must not be scanned ---
 
 def test_iter_source_files_excludes_reports_and_tests(tmp_path):
     """iter_source_files must not yield files under docs/superpowers/reports/ or tests/."""

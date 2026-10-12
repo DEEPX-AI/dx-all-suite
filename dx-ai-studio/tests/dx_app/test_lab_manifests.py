@@ -1582,8 +1582,8 @@ def test_overwrite_confirmation_requires_manifest_specific_value():
 
 
 def test_scoped_git_plan_lists_what_the_apply_created_and_the_commands():
-    """2026-10-11: the plan listed the dry-run operation paths under "(preview only)" and stopped there. For an applied
-    change it now lists what the apply really created and the git commands to commit exactly those paths."""
+    """For an applied change the plan lists what the apply really created and the git commands to commit exactly those
+    paths, not only the dry-run operation paths under "(preview only)"."""
     from lab_portal import create_manifest, scoped_git_plan
     from config import DX_APP_ROOT
     m = create_manifest("add_model", summary="Add my_net to object_detection (from yolov8n)", operations=[

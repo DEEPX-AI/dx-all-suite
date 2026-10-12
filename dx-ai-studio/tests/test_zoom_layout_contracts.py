@@ -42,15 +42,15 @@ def test_body_allows_horizontal_scroll_on_zoom(module: str, css_path: Path):
     assert "overflow:hidden" not in css.replace(" ", "").split("overflow-x")[0] or "overflow-y:hidden" in css.replace(" ", "")
 
 
-# dx_app 은 통합 App Shell(Option A)로 이관되어 shell 루트가 .app 이 아니라
-# shared/static/dx-shell.css 의 .dx-shell 이다. 이관되는 모듈마다 여기서 옮긴다.
+# Modules on the shared App Shell have .dx-shell from shared/static/dx-shell.css as their
+# shell root instead of .app. Add each module here when it moves to the shared shell.
 SHELL_ROOTS = {
     "dx_app": (ROOT / "shared/static/dx-shell.css", ".dx-shell"),
     "dx_stream": (ROOT / "shared/static/dx-shell.css", ".dx-shell"),
 }
 
-# .modal-overlay 는 여덟 모듈이 같은 규칙을 각자 복제하고 있어서 공유 계층으로
-# 합쳤다. 계약은 그대로 살아 있어야 하므로, 모듈 CSS 에 없으면 공유 쪽을 본다.
+# .modal-overlay lives in the shared component layer for all eight modules. The contract
+# still applies, so when a module's CSS lacks the rule, the shared layer is checked.
 SHARED_COMPONENTS = ROOT / "shared/static/dx-components.css"
 
 

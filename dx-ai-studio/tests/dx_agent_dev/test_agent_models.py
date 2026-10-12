@@ -1,7 +1,7 @@
-"""P5b-ext: 동적 agent 모델 조회 — cursor 등 CLI에서 실제 모델 목록을 파싱.
+"""Dynamic agent model lookup: parse the real model list from CLIs such as cursor.
 
-정적 임시목록(예: cursor ["sonnet-4.6","gpt-5"]) 대신 `cursor-agent --list-models`의
-실제 목록(auto 포함 수십 개)을 노출한다. 미지원 agent는 None → 정적 목록 폴백.
+Expose the real `cursor-agent --list-models` list (dozens, including auto) rather than a static
+stub. Agents without a lookup return None and fall back to the static list.
 """
 import sys
 from pathlib import Path
@@ -54,8 +54,8 @@ def test_base_list_models_none_by_default():
 
 
 def test_list_agent_models_falls_back_to_static(monkeypatch):
-    """동적 조회 불가(None) → agents_config 정적 목록으로 폴백."""
+    """No dynamic lookup (None) falls back to the static agents_config list."""
     from core import environment
-    # claude는 동적 list_models 미구현 → 정적 목록(claude-*)을 돌려줘야 함
+    # claude has no dynamic list_models, so the static list (claude-*) must come back
     models = environment.list_agent_models("claude")
     assert isinstance(models, list) and any("claude" in m for m in models)

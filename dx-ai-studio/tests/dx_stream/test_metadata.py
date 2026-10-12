@@ -1,4 +1,4 @@
-"""metadata.py — parse_model 래퍼 계약.
+"""metadata.py — the parse_model wrapper contract.
 
 get_model_metadata shells out to dx_rt's `cli.parse_model` twice: once for the
 human-readable dump, once with -j to drop JSON files into a temp dir. Both calls

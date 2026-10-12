@@ -72,8 +72,8 @@ if __name__ == "__main__":
 
 
 def test_unmapped_publish_models_are_one_row_each_with_a_task_key():
-    """publish page 는 model 마다 두 key (이름 · .dxnn stem) 로 온다. studio catalog 에 없는 새 model 이 두 줄로 남고
-    task 가 page 글자 ("Anomaly Detection") 로 남던 것 (spec 2026-10-01 dx_app per-model layout 결정 8)."""
+    """The publish page gives each model under two keys (name and .dxnn stem). A model missing from the studio
+    catalog must still be one row, with a task key rather than the page text ("Anomaly Detection")."""
     from dx_modelzoo.metadata.studio_id_map import remap_public_models
 
     url = "https://sdk.deepx.ai/modelzoo/q-lite-dxnn/2_5_0/patchcore_224x224.dxnn"
@@ -90,14 +90,14 @@ def test_unmapped_publish_models_are_one_row_each_with_a_task_key():
 
 
 def test_two_page_models_never_collapse_into_one_studio_id():
-    """publish page 의 model 은 .dxnn stem 하나에 한 줄. 이름이 비슷하다고 (yolo11-m 과 그 pre-optimized 판)
-    한 studio id 로 합치면 한쪽이 목록에서 사라진다 — 497 중 41 개가 그랬다 (spec 2026-10-01 결정 8)."""
+    """One row per .dxnn stem on the publish page. Merging similar names (yolo11-m and its pre-optimized build)
+    into one studio id would drop one of them from the list."""
     from dx_modelzoo.metadata.studio_id_map import remap_public_models
 
     def row(stem, task="Object Detection"):
         return {"display.task": task, "display.name": stem,
                 "artifacts.qlite_dxnn.remote_url": f"https://sdk.deepx.ai/modelzoo/q-lite-dxnn/2_5_0/{stem}.dxnn"}
-    # 실제로는 이름 · signature 매칭이 pre-optimized 판도 yolo11m 으로 푼다 — 그 충돌을 by_key 로 재현한다
+    # Name/signature matching resolves the pre-optimized build to yolo11m too; by_key reproduces that collision
     index = {"studio_ids": {"yolo11m"}, "by_signature": {},
              "by_key": {"yolo11m": "yolo11m", "yolo11_m_640x640": "yolo11m", "yolo11_m_640x640_pre_optimized": "yolo11m"}}
     out, _ = remap_public_models({
@@ -109,8 +109,8 @@ def test_two_page_models_never_collapse_into_one_studio_id():
 
 
 def test_both_keys_of_one_page_model_land_on_the_same_row():
-    """page 는 한 model 을 이름 key 와 stem key 로 준다. 이름 key 만 studio id 로 풀려도 stem key 가 따로 한 줄이
-    되면 같은 model 이 두 번 보인다 (yolov5m6 · yolov5_m6_1280x1280)."""
+    """The page gives one model under a name key and a stem key. If only the name key resolves to a studio id and the
+    stem key becomes its own row, the model shows twice (yolov5m6 · yolov5_m6_1280x1280)."""
     from dx_modelzoo.metadata.studio_id_map import remap_public_models
 
     f = {"display.task": "Object Detection", "display.name": "YOLOv5-M6",
@@ -121,7 +121,7 @@ def test_both_keys_of_one_page_model_land_on_the_same_row():
 
 
 def test_a_stem_claimed_by_two_studio_ids_goes_to_the_one_named_after_it():
-    """curated catalog 에 같은 model 이 두 id (yolov5m6 · yolov5_m6_1280x1280) 로 있으면 page 의 한 줄이 둘에 붙었다."""
+    """When the curated catalog has one model under two ids (yolov5m6 · yolov5_m6_1280x1280), a page row must not attach to both."""
     from dx_modelzoo.metadata.studio_id_map import remap_public_models
 
     f = {"display.task": "Object Detection", "display.name": "YOLOV5M6-1",
@@ -133,8 +133,8 @@ def test_a_stem_claimed_by_two_studio_ids_goes_to_the_one_named_after_it():
 
 
 def test_a_row_pushed_off_an_id_does_not_fall_back_onto_it_by_its_key():
-    """page 의 1280 판 YOLOv5-M6 는 이름 key 가 'yolov5m6' 이다 — studio 의 yolov5m6 (640 판) 에서 밀려나도 그 key
-    로 다시 붙으면 두 판이 한 줄에 섞인다."""
+    """The page's 1280 YOLOv5-M6 has the name key 'yolov5m6'. Once displaced from the studio's yolov5m6 (the 640
+    build), it must not reattach through that key, or the two builds mix in one row."""
     from dx_modelzoo.metadata.studio_id_map import remap_public_models
 
     def row(stem):

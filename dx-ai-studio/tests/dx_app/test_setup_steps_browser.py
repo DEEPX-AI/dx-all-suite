@@ -1,6 +1,6 @@
-"""dx_app Setup 의 단계 목록이 화면에서 약속대로 움직이는지 (spec 2026-09-29 아이콘 체계 단계 2a).
+"""dx_app Setup's step list behaves as promised on screen.
 
-상태는 fixture 로 고정한다 (route /api/setup/status) — 이 PC 의 설치 상태에 따라 결과가 달라지지 않게.
+Status is a fixture (route /api/setup/status) so results do not depend on what is installed on this machine.
 """
 from __future__ import annotations
 
@@ -102,7 +102,7 @@ def test_when_everything_is_ready_there_is_nothing_to_run(browser, server):
 
 
 def test_the_list_fits_one_screen(browser, server):
-    """카드 여섯 장 2열은 1280×800 에서 세 번째 줄부터 접혀 있었다. 목록은 한 화면에 든다."""
+    """The step list fits on one screen at 1280×800 (two columns of six cards would fold from the third row)."""
     ctx, page = _open(browser, server, _status(), width=1280, height=800)
     try:
         bottom = page.evaluate("() => document.querySelector('#setup-steps .dx-steps-list').getBoundingClientRect().bottom")
@@ -122,8 +122,8 @@ DIAG = {"all_ok": False, "passed": 1, "total": 2, "checks": [
 
 
 def test_server_facts_and_diagnostics_speak_the_language(browser, server):
-    """release audit A-13: Setup 의 사실 칩 ("11 model(s), 0 video(s)") 과 진단 (label · detail · fix) 이 스페인어에서
-    영어였다 — 진단 label 사전에 es 가 없었고 _T5 는 다섯 언어뿐이었다. 언어를 바꾸면 진단도 다시 그린다."""
+    """Setup's fact chips ("11 model(s), 0 video(s)") and diagnostics (label · detail · fix) follow the chosen
+    language, Spanish included, and diagnostics re-render when the language changes."""
     ctx, page = _open(browser, server, _status())
     page.route("**/api/setup/diagnostics", lambda route, *_: route.fulfill(
         status=200, content_type="application/json", body=json.dumps(DIAG)))

@@ -1,4 +1,4 @@
-"""Enabled release-audit text meets WCAG AA in explicit and system themes."""
+"""Enabled text meets WCAG AA in explicit and system themes."""
 from __future__ import annotations
 
 import pytest
@@ -152,7 +152,7 @@ def test_affected_text_meets_aa(browser, module_server, theme, os_theme):
 
 @pytest.mark.parametrize(("theme", "os_theme"), THEMES)
 def test_chat_status_line_and_settings_meet_aa(browser, theme, os_theme):
-    """2026-10-11 chat settings redesign: the status line, its Change link and the three choice cards."""
+    """Chat settings: the status line, its Change link and the three choice cards."""
     import json
     srv, port = start_module_server("dx_planner")
     ctx = browser.new_context(color_scheme=os_theme, viewport={"width": 1440, "height": 900})

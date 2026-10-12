@@ -53,10 +53,10 @@ TARGET_LANGS = ("ko", "ja", "zh-CN", "zh-TW", "es")
 
 
 def rendered_index() -> str:
-    """서버가 실제로 내보내는 index.html.
+    """The index.html the server actually serves.
 
-    레일·헤더·탭은 shared/shell.py 가 서버 렌더 시점에 주입하므로
-    템플릿 파일만 읽으면 튜토리얼이 가리키는 shell 셀렉터가 안 보인다.
+    shared/shell.py injects the rail, header and tabs at render time, so reading the template file alone would miss
+    the shell selectors the tutorial points at.
     """
     from shared.shell import apply as apply_shell
     from dx_app.server import DX_APP_SHELL
@@ -179,7 +179,7 @@ def test_app_tutorial_preserves_expected_sections():
 
 
 def test_sections_cover_target_languages():
-    """모든 i18n 객체가 TARGET_LANGS를 빠짐없이 커버(ko 출현수 기준)."""
+    """Every i18n object covers all TARGET_LANGS (objects counted by their ko keys)."""
     source = read_text(JS_DIR / "tutorial.js")
     ko_count = len(re.findall(r"(?<![A-Za-z0-9_'\"-])ko\s*:", source))
     assert ko_count >= 8, f"expected several i18n objects, ko-keys={ko_count}"

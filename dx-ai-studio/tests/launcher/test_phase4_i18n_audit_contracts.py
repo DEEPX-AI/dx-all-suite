@@ -1,4 +1,4 @@
-"""Phase 4 i18n Audit Contracts — Module Language Bridges.
+"""i18n Contracts — Module Language Bridges.
 
 Validates:
 - Module language bridge integration (postMessage or DXI18n.onLangChange hook)
@@ -264,10 +264,10 @@ class TestCSSLanguageMarkers:
         )
 
     def test_dx_stream_language_helper_returns_plain_text(self):
-        """DXStream._L 은 고른 언어의 글자 하나를 돌려준다 (release audit S-8).
+        """DXStream._L returns the text for the chosen language only.
 
-        예전에는 언어별 <span class="ko">… 다섯 개를 돌려주고 CSS 로 하나만 보였는데, toast 와 확인 창은
-        textContent 로 넣으므로 날 HTML 이 그대로 보였고, 스페인어 span 은 없어 빈칸이었다."""
+        Five per-language <span>s toggled by CSS would leak raw HTML into toasts and confirm dialogs, which use
+        textContent, and a language without a span would show blank."""
         source = _read("dx_stream/static/js/stream-app.js")
         body = source[source.index("_L: function("):]
         body = body[: body.index("}") + 1]

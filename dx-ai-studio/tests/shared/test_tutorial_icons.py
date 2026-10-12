@@ -1,10 +1,9 @@
-"""튜토리얼의 아이콘도 sprite 한 벌 (spec 2026-09-29 아이콘 체계 단계 5).
+"""Tutorial icons come from the same sprite.
 
-예전: 구역 icon 은 이모지 ('🎬'), 제목은 '⚙️ 설정 & 설치', 본문은 "✅이면 완료", "①번 카드". 이제
-- 구역 icon 은 sprite 이름 (tutorial-engine.js _dxtSectionIcon 이 그린다),
-- 제목 · 설명은 글자만,
-- 본문이 화면의 표시를 가리킬 때는 {{i:name}} (엔진이 그 아이콘으로 바꾼다), ①–⑥ 은 숫자.
-옮긴 모듈은 아래 MIGRATED 에 오른다 — 옮긴 뒤 이모지가 다시 들어오지 않게.
+- a section icon is a sprite name (drawn by tutorial-engine.js _dxtSectionIcon),
+- titles and descriptions are plain text,
+- body text that points at a mark on screen uses {{i:name}} (the engine swaps in that icon), and steps are digits.
+Migrated modules are listed in MIGRATED below, so emoji cannot come back once a module is moved.
 """
 from __future__ import annotations
 

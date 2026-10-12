@@ -21,8 +21,8 @@ if __name__ == '__main__':
 
 
 def test_the_payload_says_which_sample_media_is_on_disk(monkeypatch, tmp_path):
-    """Run Demo 는 받지 않은 sample 영상을 기본값으로 고르면 안 된다 (spec 2026-10-01 demo stage).
-    예전에는 assets/videos 가 없는 PC 에서 Video 가 기본이라 Run 이 곧바로 'File not found' 였다."""
+    """Run Demo must not default to a sample video that has not been downloaded: on a machine without assets/videos,
+    a Video default makes Run fail at once with 'File not found'."""
     from dx_app.core import demos
 
     (tmp_path / "sample" / "img").mkdir(parents=True)

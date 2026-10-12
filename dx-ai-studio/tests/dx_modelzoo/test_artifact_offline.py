@@ -1,17 +1,16 @@
-"""인터넷이 없을 때 아티팩트 엔드포인트가 어떻게 동작하는지 — 사실을 고정한다.
+"""How the artifact endpoint behaves without internet access.
 
-처음에 나는 이것을 결함으로 적었다. 외부 소켓을 막고 `urlopen` 으로 부르면
-`URLError` 가 나므로 "응답이 오지 않는다" 고 읽었다. **틀렸다.** `urlopen` 이
-리다이렉트를 따라가다 실패한 것이고, 서버는 차단 상태에서도 302 를 제대로 낸다:
+With outside sockets blocked, `urlopen` raises `URLError`, which looks like "no response".
+It is not: `urlopen` fails while following the redirect, and the server still answers 302:
 
     HTTP 302  Location: https://sdk.deepx.ai/modelzoo/onnx/damoyolo-t_640x640.onnx
 
-그러니 서버는 할 일을 한다. 인터넷 없이 CDN 에 못 닿는 것은 고장이 아니라 사실이다.
-아티팩트 다운로드는 docs/offline-contract.md 의 "네트워크" 등급이다.
+Not reaching the CDN without internet is expected, not a fault. Artifact download is in the
+"network" tier of docs/offline-contract.md.
 
-이 파일이 지키는 것은 두 가지다: 서버가 네트워크 유무와 무관하게 **판단 가능한
-응답**을 준다는 것(무응답이나 무한 대기가 아니라), 그리고 폐쇄망 대응을 이유로
-누군가 이 302 를 없애지 않는다는 것 — 인터넷이 있을 때는 이것이 맞는 동작이다.
+This file protects two things: the server gives a **decidable response** with or without a
+network (no silence, no endless wait), and nobody removes this 302 for the sake of air-gapped
+sites, because with internet it is the right behaviour.
 """
 from __future__ import annotations
 
@@ -26,7 +25,7 @@ from tests.server_helpers import start_module_server
 
 
 class _NoRedirect(urllib.request.HTTPRedirectHandler):
-    """리다이렉트를 따라가지 않는다 — 서버가 무엇을 답했는지 보려면 따라가면 안 된다."""
+    """Do not follow redirects: following one hides what the server answered."""
 
     def redirect_request(self, *args, **kwargs):
         return None
@@ -75,13 +74,13 @@ def _ask(base, model_id):
 
 
 def test_the_server_answers_with_no_internet(zoo, no_internet):
-    """무응답이나 무한 대기가 아니라 판단 가능한 응답이어야 한다."""
+    """The response must be decidable, not silence or an endless wait."""
     status, _ = _ask(zoo, _first_model(zoo))
     assert status in (200, 302, 404), f"예상 밖 응답: {status}"
 
 
 def test_a_remote_artifact_still_points_at_the_cdn(zoo, no_internet):
-    """폐쇄망 대응을 이유로 이 리다이렉트를 없애면 인터넷이 있을 때가 깨진다."""
+    """Removing this redirect for air-gapped sites would break the case with internet."""
     status, location = _ask(zoo, _first_model(zoo))
     if status == 302:
         assert location and location.startswith("http"), location
