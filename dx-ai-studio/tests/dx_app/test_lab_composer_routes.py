@@ -1117,6 +1117,8 @@ def test_composer_export_builds_owned_ready_package_and_returns_download_metadat
     assert captured_build["source_root"] == lab_portal.DX_APP_ROOT
     assert captured_build["output_root"] == lab_portal.OUTPUTS_DIR
     assert captured_build["workflow"]["model"]["model_file"] == registry_model["model_file"]
+    # the same stores inference reads, so a model that runs can be packaged
+    assert any(path.parts[-3:] == ("workspace", "res", "models") for path in captured_build["model_roots"])
     assert exported["data"] == {
         "package_type": "run",
         "download": {

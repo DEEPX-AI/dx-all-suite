@@ -522,3 +522,55 @@ def test_a_built_package_leaves_no_copy_out_behind(tmp_path, monkeypatch):
     assert result["copy_out_dir"] is None
     copy_outs = [path for path in made if "dx-app-lab-copy-out" in path]
     assert copy_outs and not any(Path(path).exists() for path in copy_outs)
+
+
+def _model_outside_source(tmp_path):
+    """dx_app checkout without the model; the model sits in the suite's workspace/res/models instead."""
+    source, model, _ = _source_tree(tmp_path)
+    model.unlink()
+    shared_models = tmp_path / "suite" / "workspace" / "res" / "models"
+    shared_models.mkdir(parents=True)
+    (shared_models / "model.dxnn").write_bytes(b"DXNN model bytes from the shared model store")
+    return source, shared_models
+
+
+def test_a_model_from_the_shared_model_store_is_packaged(tmp_path):
+    """Inference finds models in workspace/res/models too; the package export must find the same file."""
+    source, shared_models = _model_outside_source(tmp_path)
+    result = build_workflow_package(
+        workflow=_workflow(),
+        package_type="run",
+        source_root=source,
+        output_root=tmp_path / "output",
+        model_roots=[shared_models],
+    )
+    packaged = result["package_dir"] / "models" / "model.dxnn"
+    assert packaged.read_bytes() == b"DXNN model bytes from the shared model store"
+
+
+def test_a_missing_model_is_still_reported(tmp_path):
+    source, _ = _model_outside_source(tmp_path)
+    with pytest.raises(ValueError, match="model_file not found"):
+        build_workflow_package(
+            workflow=_workflow(),
+            package_type="run",
+            source_root=source,
+            output_root=tmp_path / "output",
+        )
+
+
+def test_a_model_root_symlink_cannot_escape_it(tmp_path):
+    source, shared_models = _model_outside_source(tmp_path)
+    (shared_models / "model.dxnn").unlink()
+    secret = tmp_path / "elsewhere" / "secret.dxnn"
+    secret.parent.mkdir()
+    secret.write_bytes(b"not a model store file")
+    (shared_models / "model.dxnn").symlink_to(secret)
+    with pytest.raises(ValueError, match="model_file"):
+        build_workflow_package(
+            workflow=_workflow(),
+            package_type="run",
+            source_root=source,
+            output_root=tmp_path / "output",
+            model_roots=[shared_models],
+        )
