@@ -26,6 +26,7 @@ import json
 import re
 import sys
 import time
+from pathlib import Path
 from dataclasses import asdict, dataclass, field
 from urllib import error as urllib_error
 from urllib import request as urllib_request
@@ -282,9 +283,14 @@ def _run_keyboard_smoke(page, route: str) -> list[SmokeCheck]:
             selector = str(action["selector"])
             page.locator(selector).first.wait_for(state="attached", timeout=2_000)
             focus_selector = action.get("focus_selector", selector)
-            if focus_selector:
-                page.locator(str(focus_selector)).first.focus(timeout=2_000)
-            page.keyboard.press(str(action["key"]))
+            if focus_selector == selector:
+                # Focus and key in one step: Home focuses its ask box when it shows, which stole the focus between a
+                # separate focus() and press() (2026-10-12).
+                page.locator(selector).first.press(str(action["key"]), timeout=2_000)
+            else:
+                if focus_selector:
+                    page.locator(str(focus_selector)).first.focus(timeout=2_000)
+                page.keyboard.press(str(action["key"]))
             wait_for_eval = action.get("wait_for_eval")
             if wait_for_eval:
                 page.wait_for_function(str(wait_for_eval), timeout=2_000)
@@ -333,8 +339,17 @@ def _try_playwright_audit(base_url: str, routes: list[str]) -> list[RouteResult]
 
     results: list[RouteResult] = []
 
+    try:  # the same Chromium the CI browser suites use (Playwright's shell build may be missing)
+        repo_root = str(Path(__file__).resolve().parents[1])
+        if repo_root not in sys.path:
+            sys.path.insert(0, repo_root)
+        from tests.browser_support import resolve_chromium_executable
+        executable = resolve_chromium_executable()
+    except ImportError:
+        executable = None
+
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
+        browser = p.chromium.launch(headless=True, executable_path=executable)
 
         for route in routes:
             result = RouteResult(route=route)

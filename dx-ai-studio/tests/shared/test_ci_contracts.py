@@ -37,6 +37,7 @@ BROWSER_SUITE_PATHS = {
     "tests/shared/test_browser_language_default_browser.py",
     "tests/dx_agent_dev/test_studio_agent_console_browser.py",
     "tests/launcher/test_home_studio_agent_browser.py",
+    "tests/launcher/test_home_posters_keyboard_browser.py",
     "tests/shared/test_chat_settings_browser.py",
     "tests/dx_app/test_setup_steps_browser.py",
     "tests/dx_stream/test_setup_steps_browser.py",

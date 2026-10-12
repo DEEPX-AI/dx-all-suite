@@ -1457,15 +1457,13 @@
       activateOnEnterOrSpace(card, function() { card.click(); });
     });
 
-    // landingPoster: only image + hint are clickable (container passes clicks through)
-    var posterImg = document.querySelector('#landingPoster img');
-    var posterHint = document.querySelector('#landingPoster .poster-hint');
-    if (posterImg && typeof ns.openPlatformInfo === 'function') {
-      activateOnEnterOrSpace(posterImg, function() { ns.openPlatformInfo(); });
-    }
-    if (posterHint && typeof ns.openPlatformInfo === 'function') {
-      activateOnEnterOrSpace(posterHint, function() { ns.openPlatformInfo(); });
-    }
+    // The film pills are <a role="button" tabindex="0"> with an onclick: Enter and Space must open them too.
+    [['landingPoster', 'openPlatformInfo'], ['ecosystemPoster', 'openEcosystemInfo']].forEach(function (pair) {
+      var pill = document.getElementById(pair[0]);
+      if (pill && typeof ns[pair[1]] === 'function') {
+        activateOnEnterOrSpace(pill, function() { ns[pair[1]](); });
+      }
+    });
   }
 
 

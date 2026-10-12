@@ -174,3 +174,5 @@ def test_the_module_table_says_where_studio_opens_each_module():
         assert f"`{path}`" in table, path
     assert "| 8098 |" not in table
     assert "NPU Monitor" in table
+    from launcher.launcher import LAUNCHER_PORT
+    assert f":{LAUNCHER_PORT}" in base and ":8899" not in base     # the default, not one PC's custom port

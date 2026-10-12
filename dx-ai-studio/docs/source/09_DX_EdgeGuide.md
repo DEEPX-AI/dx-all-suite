@@ -20,7 +20,7 @@ where panels open as you go.
 - **Model size**: n (fastest) → x (most accurate).  
 - **Operating requirements**: cameras / **channels**, **target FPS**, runtime
   (ONNX Runtime vs Native), **max latency**.  
-- Click **Next — choose ranking**, choose a **ranking priority** — Most Channels / Best
+- Click **Next — choose ranking**, choose a **ranking priority** — Most channels / Best
   Performance (camera-pipeline FPS) / Lowest Power (NPU TDP; host power not included) —
   then **Get Recommendations**. (After the first run,
   changing any input auto-refreshes the results; **Start over** clears everything.)  
@@ -35,9 +35,10 @@ total; tested up to 18 ch)".
 
 How the channel count is worked out: the multi-stream benchmark measured the stream counts
 around 30 FPS per channel. When a measured count holds your target and the next one misses
-it, that count is the answer (measured). Otherwise the count is estimated as
-`floor(T_sat / target)`, where `T_sat` is the lowest measured total FPS — around saturation
-the total stays nearly flat as streams are added — and an estimate never exceeds twice the
+it, that count is the answer (measured). If every measured count holds the target, the answer
+is the larger of that count and `floor(T_sat / target)`; if none holds it, `floor(T_sat / target)`.
+`T_sat` is the lowest measured total FPS — around saturation the total stays nearly flat as
+streams are added — and an estimate never exceeds twice the
 highest tested count; **Estimated+** means the estimate hit that cap, so the real capacity may
 be higher. The quotient is shown cut to one decimal, never rounded up past the floor. A
 measurement taken while the NPU throttled is kept (its FPS already ran at throttled clocks) but

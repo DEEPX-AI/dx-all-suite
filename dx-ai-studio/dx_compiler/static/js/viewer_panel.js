@@ -221,7 +221,6 @@ function _srvErr(msg) {
                     var cy = py + ph / 2;
                     var tx = svgW * 0.35 - cx * scale;
                     var ty = svgH * 0.25 - cy * scale;
-                    console.log('[TensorZoom] zooming to', _tid, 'tx='+tx.toFixed(0), 'ty='+ty.toFixed(0), 'scale='+scale.toFixed(2));
                     zp.setTransform(tx, ty, scale);
                 } catch (e) { console.warn('[TensorZoom] error:', e); }
             }, 50);

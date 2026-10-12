@@ -1,4 +1,4 @@
-# DX Agent Dev — 자연어 NPU 앱 빌드 에이전트 (v1.0.0)
+# DX Agent Dev — 자연어 NPU 앱 빌드 에이전트
 
 ## [section:overview,소개,개요] DX Agent Dev 개요
 
@@ -12,7 +12,7 @@ DX Agent Dev (Studio 경로 `/agent/`)는 DX AI Studio의 8번째 모듈로, **�
 
 ## [section:usage,사용법,실행,run] 사용 방법
 
-1. 런처 (`./launcher.sh` 가 시작할 때 출력하는 주소)에서 **🤖 Agent Dev** 카드 클릭 (또는 상단 탭)
+1. 런처 (`./launcher.sh` 가 시작할 때 출력하는 주소)에서 **DX Agent Dev** 카드 클릭 (또는 왼쪽 rail 아이콘)
 2. 콘솔 하단 채팅창에 만들고 싶은 것을 자연어로 입력 (예: "카메라로 사람 감지하는 앱")
 3. **Send** → 에이전트가 요청을 분석하고 빌드 명령을 실행 (실행 중에는 **Stop** 버튼이 나타나 진행 중인 빌드를 멈출 수 있음)
 4. 터미널 영역에 실시간 빌드 로그(SSE 스트리밍)가 표시됨

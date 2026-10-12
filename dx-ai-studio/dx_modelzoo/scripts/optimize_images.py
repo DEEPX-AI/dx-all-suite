@@ -199,6 +199,26 @@ def optimize_images(
         # 하나씩 11번 돌렸더니 실제로 1578개 중 2개만 남은 manifest 가 커밋됐다 —
         # tools/perf_audit.py 가 `manifest.is_file()` 만 보므로 아무도 몰랐다.
         # 기존 기록에 **덮어쓰기(merge)** 한다.
+        src_root = Path(source_root).resolve()
+        out_root = Path(output_root).resolve()
+
+        def _rel(value, root):
+            """Paths go in relative (sources to the source root, outputs to the output root) — an absolute path
+            records one developer's checkout and is wrong everywhere else."""
+            p = Path(value)
+            try:
+                return p.resolve().relative_to(root).as_posix() if p.is_absolute() else p.as_posix()
+            except ValueError:
+                return p.as_posix()
+
+        def _portable(entry):
+            e = dict(entry)
+            e["source"] = _rel(e["source"], src_root)
+            for key in ("webp_path", "jpg_path"):
+                if e.get(key):
+                    e[key] = _rel(e[key], out_root)
+            return e
+
         merged: dict[str, dict] = {}
         if manifest_path.is_file():
             try:
@@ -207,11 +227,16 @@ def optimize_images(
                 previous = {}
             for entry in previous.get("images", []):
                 source = entry.get("source")
-                # 원본이 사라진 기록은 버린다 — 남겨두면 합계가 현실과 어긋난다.
-                if source and Path(source).is_file():
-                    merged[source] = entry
+                if not source:
+                    continue
+                absolute = Path(source) if Path(source).is_absolute() else src_root / source
+                # A record whose source is gone is dropped; keeping it would skew the totals.
+                if absolute.is_file():
+                    portable = _portable(entry)
+                    merged[portable["source"]] = portable
         for entry in report["images"]:
-            merged[entry["source"]] = entry
+            portable = _portable(entry)
+            merged[portable["source"]] = portable
 
         images = sorted(merged.values(), key=lambda e: e["source"])
         manifest = {

@@ -126,3 +126,37 @@ class TestTheManifestDescribesEverything:
         names = {_P(e["source"]).name for e in after["images"]}
         assert names == {"alpha.jpg"}, f"사라진 원본이 manifest 에 남았다: {sorted(names)}"
         assert after["total_source_bytes"] == sum(e["source_bytes"] for e in after["images"])
+
+
+class TestTheManifestIsPortable:
+    def test_no_absolute_paths_are_written(self, tree):
+        """2026-10-12 release audit: the committed manifest carried ~1,500 paths like /home/deepx/hj_ws/… — one
+        developer's checkout. Paths are written relative: sources to the source root, outputs to the output root."""
+        src, out = tree
+        _run(src, out)
+        m = json.loads((out / "manifest.json").read_text())
+        for e in m["images"]:
+            for key in ("source", "webp_path", "jpg_path"):
+                if key in e:
+                    assert not Path(e[key]).is_absolute(), (key, e[key])
+        assert {Path(e["source"]).as_posix() for e in m["images"]} == {"thumbnails/alpha.jpg", "thumbnails/beta.jpg"}
+
+    def test_an_old_absolute_manifest_is_rewritten_relative(self, tree):
+        src, out = tree
+        _run(src, out)
+        m = json.loads((out / "manifest.json").read_text())
+        for e in m["images"]:                       # simulate the old committed file
+            e["source"] = str(src / e["source"])
+        (out / "manifest.json").write_text(json.dumps(m))
+        import os, time
+        future = time.time() + 10
+        os.utime(src / "thumbnails" / "alpha.jpg", (future, future))
+        _run(src, out, model="alpha")
+        after = json.loads((out / "manifest.json").read_text())
+        assert sorted(e["source"] for e in after["images"]) == ["thumbnails/alpha.jpg", "thumbnails/beta.jpg"]
+
+
+def test_the_committed_manifest_has_no_local_paths():
+    committed = ROOT / "dx_modelzoo" / "data" / "optimized" / "manifest.json"
+    text = committed.read_text(encoding="utf-8")
+    assert "/home/" not in text and '"/' not in text

@@ -9,8 +9,8 @@
 - **Python 3.8+**. `./launcher.sh` installs the package automatically on first run —
   no manual install step, no third-party dependencies.
 - For **real** compilation and inference: the **DEEPX SDK** (from `dx-runtime` /
-  `dx-compiler`) and a DEEPX **NPU**. Without them the studio still launches in
-  **demo / mock mode** for exploring the UI.
+  `dx-compiler`) and a DEEPX **NPU**. Without them the studio still launches and every
+  tool stays browsable; tools say when the NPU or SDK is missing.
 - **DX Stream** additionally needs the system **GStreamer + PyGObject** (`python3-gi`,
   `gstreamer1.0-*`) — standard on desktop Linux — to run pipelines.
 - **Live DX App runs** (camera, RTSP, Continuous, and Run Demo video) draw the example's
@@ -22,8 +22,8 @@
     `./launcher.sh` creates its virtualenv with **`--system-site-packages`**, so it inherits
     the platform-provided `dx_engine` (DEEPX runtime) and `gi` (GStreamer bindings). The
     studio's *own* code stays stdlib-only (no pip third-party); these are platform runtimes,
-    like the NPU driver. If `dx_engine` is missing, **DX Monitor** shows mock data and live
-    inference is unavailable; if `gi` is missing, **DX Stream** can build but not run pipelines.
+    like the NPU driver. If `dx_engine` is missing, **DX Monitor** shows *NPU telemetry
+    unavailable* and live inference is unavailable; if `gi` is missing, **DX Stream** can build but not run pipelines.
 
 !!! note "Check your NPU"
     Once the DEEPX runtime is installed, `dxrt-cli --status` lists each NPU device with its
@@ -217,7 +217,7 @@ reach it, and no code is needed (the tunnel arrives on the board's `localhost`).
 
 ## Troubleshooting
 
-- **Everything shows sample / mock data** — the NPU or SDK isn't detected. Confirm the
+- **DX Monitor says *NPU telemetry unavailable* / tools say the SDK is missing** — the NPU or SDK isn't detected. Confirm the
   driver is loaded with `lsmod | grep dx` (expect `dxrt_driver` and `dx_dma`) and the
   device with `dxrt-cli --status`; **DX Monitor**'s version panel shows what the studio sees.
 - **A tool stays on the splash / "not ready"** — module servers may still be starting;
@@ -225,4 +225,4 @@ reach it, and no code is needed (the tunnel arrives on the board's `localhost`).
 - **"Port already in use"** — 8890 auto-bumps to the next free port; pin one with `-p`, or
   pass `--no-kill` to leave an existing instance alone.
 - **UI works but compile / inference fails** — the DEEPX SDK is missing. Use the in-app
-  **Setup** panel in DX App and DX Compiler to check and install the required runtime.
+  **Setup** panel in DX App, DX Stream or DX Compiler to check and install the required runtime.

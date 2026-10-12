@@ -305,3 +305,12 @@ def test_release_leak_and_result_field_contracts_are_structured():
         "local_api_smoke",
     ):
         assert token in _AUDIT_SRC
+
+
+def test_the_release_audit_launches_the_resolved_chromium():
+    """2026-10-12: release_audit.py called chromium.launch() with no executable, so on a host whose Playwright cache
+    has only the full Chromium (CI's browser suites resolve it) the audit could not run at all."""
+    from pathlib import Path
+    src = (Path(__file__).resolve().parents[2] / "tools" / "release_audit.py").read_text(encoding="utf-8")
+    assert "resolve_chromium_executable" in src
+    assert "chromium.launch(headless=True)" not in src

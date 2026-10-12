@@ -19,7 +19,8 @@ The **hub** is the studio's home screen and the single place everything launches
   each tool **embedded** in the hub, under one address.
 - **This board at a glance.** The **DX-M1 widget** shows the NPU's cores, temperature, clock
   and power (click for DX Monitor); **Measured on DX-M1** shows FPS measured on this device
-  (click for DX Benchmark). A small **NPU monitor** float follows you inside every tool.
+  (click for DX Benchmark). Inside every tool, the **NPU monitor** sits in the left rail as a
+  thermometer button (its dot shows the temperature state); click it to unfold the readout.
 - **Tutorial Mode** (top-right switch, on by default) runs a short walkthrough on the first
   visit and opens each tool's tutorial contents when you open it.
 - **Built-in references.** The **SDK Library** (DEEPX docs & brochures, fully in-app) and
@@ -43,8 +44,8 @@ Demo video) use the OS packages `xvfb` and `python3-pil`.
 **Layout:** DX AI Studio is meant to sit inside a `dx-all-suite` tree, alongside
 sibling `dx-runtime` / `dx-compiler`. Running actual NPU inference or compiling models
 needs the DEEPX SDK (from those siblings), an NPU + driver, and models fetched into
-`dx-runtime/dx_app` — but the whole studio is fully browsable in demo/mock mode without
-any hardware, SDK, or models.
+`dx-runtime/dx_app` — but the whole studio is fully browsable without any hardware, SDK,
+or models; each tool says what is missing.
 
 ```bash
 ./launcher.sh
@@ -113,8 +114,8 @@ inference.
 From the **hub** you can also open the **SDK Library** (DEEPX docs & brochures in-app),
 **About DEEPX**, switch **language** (6 locales), and jump to the DEEPX store.
 
-Every tool degrades gracefully to sample/mock data when no NPU or SDK is present, so the
-whole studio is browsable without hardware.
+Every tool stays browsable when no NPU or SDK is present and says what is missing — DX Monitor
+shows *NPU telemetry unavailable* rather than made-up values.
 
 ## For developers
 

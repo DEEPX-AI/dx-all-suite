@@ -29,7 +29,7 @@
 - **High Efficiency**: DX-COM의 Intelligent Quantization (INT8)으로 정확도 손실 최소화 + 추론 속도 극대화
 
 ### DX AI Studio 앱 구성
-Studio 는 launcher (`http://<보드>:8899`) 한 곳에서 연다. 각 앱은 그 아래 경로로 열리고, 왼쪽 rail 의 아이콘으로 옮겨 다닌다.
+Studio 는 `./launcher.sh` 가 출력하는 주소 한 곳에서 연다 (기본 `http://<보드>:8890`). 각 앱은 그 아래 경로로 열리고, 왼쪽 rail 의 아이콘으로 옮겨 다닌다.
 
 | 앱 | Studio 안의 위치 | 역할 |
 |----|------|------|

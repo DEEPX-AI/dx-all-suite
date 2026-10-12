@@ -11,7 +11,8 @@ The module opens on a set of pages (top tabs):
 - **Models** — browse the model registry by AI task (detection, classification,
   segmentation, pose, …); open a model to see its details.
 - **Run Inference** — pick a model and an input and run it. **Single** runs one image or
-  video; **Continuous** streams video / camera / RTSP live, several slots side by side.
+  video; **Continuous** streams video / camera / RTSP live, several slots side by side (RTSP takes
+  the camera's full `rtsp://` URL, or `IP:Port` with a stream pick).
 - **Run Demo** — 26 ready-made demos in 12 groups on one stage (image or video, C++ or
   Python, Sync or Async).
 - **Benchmark** / **A/B Compare** — measure a model’s throughput and compare models side by side.
