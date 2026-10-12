@@ -1,7 +1,7 @@
-"""경로 기반 프록시 매핑 — 런처 프록시 접두사 → 모듈 서버 ID 변환."""
+"""Path-based proxy mapping: launcher proxy prefix → module server id."""
 from __future__ import annotations
 
-# 런처 프록시 접두사 → 모듈 서버 ID 매핑
+# Launcher proxy prefix → module server id
 _PROXY_PREFIX_MAP: dict[str, str] = {
     "/app": "dx_app",
     "/stream": "dx_stream",
@@ -16,7 +16,7 @@ _PROXY_PREFIX_MAP: dict[str, str] = {
 
 
 def map_launcher_proxy(path: str) -> tuple[str, str] | None:
-    """런처 프록시 경로를 (target_server_id, stripped_path)로 변환."""
+    """Turn a launcher proxy path into (target_server_id, stripped_path)."""
     for prefix, server_id in _PROXY_PREFIX_MAP.items():
         if path == prefix:
             return server_id, "/"

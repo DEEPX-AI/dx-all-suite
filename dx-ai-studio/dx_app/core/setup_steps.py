@@ -42,7 +42,7 @@ def _dxcom_version():
 
 
 def _read_release_ver(path):
-    """release.ver 파일에서 버전 문자열 읽기."""
+    """Read the version string from a release.ver file."""
     try:
         p = Path(path) if not isinstance(path, Path) else path
         if not p.is_absolute():
@@ -52,7 +52,7 @@ def _read_release_ver(path):
         return '--'
 
 def _get_npu_driver_version():
-    """dxrt-cli 또는 /dev/deepx* 기반 드라이버 버전."""
+    """Driver version from dxrt-cli or /dev/deepx*."""
     try:
         r = subprocess.run(['dxrt-cli', '--version'], capture_output=True, text=True, timeout=5)
         if r.returncode == 0:
@@ -245,13 +245,13 @@ def setup_status():
     gcc_ok=bool(shutil.which("gcc") or shutil.which("gcc-12") or shutil.which("g++"))
     ninja_ok=bool(shutil.which("ninja") or shutil.which("ninja-build"))
     r["dx-app-deps"]={"ok":cmake_ok and gcc_ok,
-        # 화면 (공용 단계 목록) 은 " · " 로 나눠 한 줄의 짧은 사실로 보인다 — 표시는 말로, 이모지 없이.
+        # The screen (shared step list) splits on " · " into short facts on one line; show words, no emoji.
         "detail":" · ".join([n for n, ok in (("cmake", cmake_ok), ("gcc", gcc_ok), ("ninja", ninja_ok)) if ok]
                             + (["missing: " + ", ".join(n for n, ok in (("cmake", cmake_ok), ("gcc", gcc_ok), ("ninja", ninja_ok)) if not ok)]
                                if not (cmake_ok and gcc_ok and ninja_ok) else []))}
     bdir=DX_APP_ROOT/"build_x86_64"
     bins=list(bdir.rglob("*_sync"))[:1] if bdir.exists() else []
-    # build.sh 가 설치하는 bin/ 도 빌드된 것이다 (prebuilt tree · per-model layout 의 --minimal build)
+    # The bin/ installed by build.sh counts as built too (prebuilt tree, the per-model layout's --minimal build)
     bin_dir=DX_APP_ROOT/"bin"
     if not bins and bin_dir.is_dir():
         bins=[p for p in bin_dir.glob("*_sync") if p.is_file()][:1]
@@ -546,7 +546,7 @@ def setup_run(step,params=None):
     return{"ok":True,"started":True}
 
 def setup_stop():
-    """실행 중인 Setup 프로세스를 중단한다."""
+    """Stop the running Setup process."""
     with config._comp_lock:
         proc = config._comp_stdin_proc
         if proc and proc.poll() is None:

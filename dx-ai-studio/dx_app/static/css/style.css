@@ -41,7 +41,7 @@ table{width:100%;border-collapse:collapse;font-size:var(--fs-base)}
 th{text-align:left;color:var(--text-muted);font-weight:600;font-size:var(--fs-xs);text-transform:uppercase;letter-spacing:.5px;padding:10px 12px;border-bottom:2px solid var(--accent);background:var(--surface-panel);position:sticky;top:0;z-index:2}
 td{padding:9px 12px;border-bottom:1px solid var(--border-subtle);vertical-align:middle}
 tbody tr{transition:background .12s}
-/* 줄무늬는 테마를 따른다 — 고정된 어두운 색이 밝은 테마에서 표를 회색 띠로 칠했다 (release audit) */
+/* Stripes follow the theme; a fixed dark color would paint the table in gray bands on the light theme */
 tbody tr:nth-child(even) td{background:color-mix(in srgb,var(--text-primary) 4%,transparent)}
 tbody tr:hover td{background:var(--surface-hover)}
 .clickable{cursor:pointer}.clickable:hover{color:var(--accent)}
@@ -63,7 +63,7 @@ tbody tr:hover td{background:var(--surface-hover)}
 }
 .search-box input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(var(--accent-rgb),.1)}
 .search-box::before{
-  /* 돋보기 — sprite 의 search 와 같은 모양을 mask 로 (::before 에는 <use> 가 들어가지 못한다) */
+  /* Magnifier: the sprite's search shape as a mask (::before cannot hold a <use>) */
   content:'';position:absolute;left:12px;top:50%;transform:translateY(-50%);width:15px;height:15px;
   background:currentColor;opacity:.7;
   -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='10.5' cy='10.5' r='6.5'/%3E%3Cpath d='M15.5 15.5 20 20'/%3E%3C/svg%3E") center/contain no-repeat;
@@ -216,7 +216,7 @@ tbody tr:hover td{background:var(--surface-hover)}
 /*═══ Result image ═══*/
 .res-img{max-width:100%;border-radius:var(--radius);border:1px solid var(--border-subtle);cursor:pointer;transition:.15s}
 .res-img:hover{border-color:var(--accent)}
-/* 결과 안내 — task 아이콘 (sprite task-<key>) + 문장 (inference.js VIS_HINTS, 아이콘 체계 단계 3) */
+/* Result hint: task icon (sprite task-<key>) + sentence (inference.js VIS_HINTS) */
 .res-hint{display:flex;align-items:flex-start;gap:var(--sp-2);line-height:1.5}
 .res-hint-ico{flex:none;width:16px;height:16px;margin-top:1px}
 .res-line{display:flex;align-items:flex-start;gap:var(--sp-2)}
@@ -300,15 +300,15 @@ tbody tr:hover td{background:var(--surface-hover)}
 .input::placeholder{color:var(--text-faint)}
 
 /*═══ Model action btns ═══*/
-/* 이 열의 내용은 **로컬에 모델이 설치돼 있는지** 에 따라 달라진다 — models.js 가
-   설치된 모델에만 `Graph` 버튼을 붙이고 Download 라벨을 Re-download 로 늘린다.
-   마지막 열이라 폭이 변하면 왼쪽 열들이 좁아지며 표 전체가 리플로우됐다: 모델을
-   하나 받을 때마다 표가 들썩였고, 실측으로 175px ↔ 246px 였다.
-   가장 넓은 상태(246px)로 고정해 설치 여부와 무관하게 자리를 잡아둔다. 네 뷰포트
-   폭(650/860/1150/1320) 모두 같은 값이라 미디어 쿼리가 필요 없다.
-   계약: tests/dx_app/test_models_table_stable_width.py */
+/* This column's content depends on **whether the model is installed locally**: models.js
+   adds a `Graph` button and widens the Download label to Re-download only for installed models.
+   As the last column, a changing width would narrow the columns to its left and reflow the
+   whole table on every download (175px <-> 246px).
+   Fixed at the widest state (246px) so the space is reserved whatever the install state. The
+   value is the same at all four viewport widths (650/860/1150/1320), so no media query is needed.
+   Contract: tests/dx_app/test_models_table_stable_width.py */
 .m-actions{display:flex;gap:var(--sp-1);flex-wrap:nowrap;min-width:246px}
-/* 긴 파일 이름은 줄을 바꾼다 — 한 줄로 두면 스페인어처럼 단추 글자가 긴 언어에서 Actions 열이 표 밖으로 밀려 잘렸다 */
+/* Long file names wrap; on one line, languages with long button text (such as Spanish) push the Actions column out of the table */
 .m-file{font-size:var(--fs-xs);overflow-wrap:break-word;min-width:200px}
 #m-table td:first-child{overflow-wrap:break-word;min-width:160px}
 .m-file-row{display:inline-flex;gap:var(--sp-1);align-items:baseline;min-width:0}.m-file-row>.dx-ico{flex:none}
@@ -427,7 +427,7 @@ tbody tr:hover td{background:var(--surface-hover)}
 }
 .cont-badge{
   padding:3px 8px;border-radius:var(--radius-sm);font-size:var(--fs-2xs);font-weight:700;
-  /* 바탕이 테마를 따른다 — 늘 검은 바탕에 테마 글자색이라 밝은 테마에서 1.7:1 이었다 (release audit A-33) */
+  /* The background follows the theme; a fixed black background with the theme's text color gives 1.7:1 on the light theme */
   background:color-mix(in srgb,var(--surface-page) 85%,transparent);backdrop-filter:blur(4px);
   font-family:var(--mono);letter-spacing:.3px;
 }
@@ -681,10 +681,10 @@ tbody tr:hover td{background:var(--surface-hover)}
 .mz-full-table thead{position:sticky;top:0;z-index:3}
 .mz-full-table thead th{background:var(--control-bg);font-size:var(--fs-xs);padding:6px 8px}
 .mz-full-table td{padding:5px 8px;vertical-align:middle}
-/* 티어 그룹 헤더. 예전에는 템플릿에 다크 테마 남색 hex 가 인라인으로 박혀
-   있었다 — 라이트 테마에서 흰 표 위에 어두운 띠가 떠 보였다. 토큰에서 섞으면
-   두 테마를 다 따라간다. (리터럴을 예시로 적어두면 raw-color ratchet 이 그것도
-   센다 — 이 주석이 실제로 게이트를 올렸다.) */
+/* Tier group header. Mixed from tokens so it follows both themes (a fixed dark
+   hex would float as a dark band over the white table on the light theme).
+   Do not write a literal color here as an example: the raw-color ratchet counts
+   comments too. */
 .mz-grp{text-align:center;border-bottom:1px solid var(--border-subtle)}
 .mz-grp-ql{background:color-mix(in srgb, var(--accent-strong) 12%, transparent)}
 .mz-grp-qp{background:color-mix(in srgb, var(--npu) 12%, transparent)}
@@ -694,10 +694,10 @@ tbody tr:hover td{background:var(--surface-hover)}
 .mz-sub-qm{background:color-mix(in srgb, var(--status-info) 6%, transparent)}
 .mz-col-ql{background:rgba(88,166,255,.04)}
 .mz-col-qp{background:rgba(163,113,247,.04)}
-/* Q-Master 는 354개 중 15개뿐이라 대부분의 행에서 비어 있다 — 그룹을 구분하되
-   Q-Pro 보다 옅게 두어 빈 칸이 시선을 끌지 않게 한다.
-   이웃 두 줄처럼 rgba() 리터럴을 쓰면 raw-color ratchet 이 올라간다. 토큰에서
-   섞어 쓰면 테마를 따라가고 게이트도 통과한다. */
+/* Q-Master has few models, so it is empty in most rows: keep the group distinct
+   but fainter than Q-Pro so the empty cells do not draw the eye.
+   An rgba() literal like the two lines above would raise the raw-color ratchet;
+   mixing from a token follows the theme and passes the gate. */
 .mz-col-qm{background:color-mix(in srgb, var(--status-info) 3%, transparent)}
 .mz-chk-ql{accent-color:var(--accent-strong)!important}
 .mz-chk-qp{accent-color:var(--npu)!important}
@@ -1009,8 +1009,8 @@ html[lang="zh-TW"] .zh-CN{display:none!important}
 .lab-card-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:var(--sp-3)}
 .lab-card{text-align:left;color:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:flex-start;gap:var(--sp-1)}
 .lab-card:hover{border-color:var(--accent)}
-/* 타일은 칸에 맞춰 늘어난다. 예전에는 class="grid" 에 CSS 가 없어 display:block 이었고, 여섯 타일이
-   제각각 폭으로 세로로 쌓였다 — 1440 px 에서도 (2026-10-11 matrix). */
+/* Tiles stretch to fit the cell; without a grid, the six tiles would stack vertically
+   at uneven widths, even at 1440 px. */
 .lab-home{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:var(--sp-3)}
 .lab-home > .lab-card{width:100%}
 .lab-status-ok{border-color:rgba(34,197,94,.35)}
@@ -1127,7 +1127,7 @@ html[lang="zh-TW"] .zh-CN{display:none!important}
 .lab-composer-graph-host{min-width:0;margin-top:var(--sp-3)}
 .lab-composer-graph-editor{position:relative;min-height:460px;border:1px solid rgba(var(--accent-rgb),.26);border-radius:calc(var(--radius) - 2px);overflow:hidden;background:var(--surface-page)}
 .lab-composer-graph-toolbar{position:absolute;z-index:2;top:10px;left:10px;right:10px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;pointer-events:none}
-/* 그래프 위 떠 있는 단추 · 상태 — 어두운 남색 고정이라 밝은 테마에서 회색 글자가 2.15:1 이었다. 테마의 오버레이 면을 쓴다. */
+/* Buttons and status floating over the graph: a fixed dark navy gives gray text 2.15:1 on the light theme, so use the theme's overlay surface. */
 .lab-composer-graph-toolbar .btn{pointer-events:auto;background:var(--surface-overlay);backdrop-filter:blur(6px)}
 .lab-composer-graph-status{margin-left:auto;border:1px solid var(--border-subtle);border-radius:999px;background:var(--surface-overlay);padding:4px 8px;font-size:var(--fs-2xs);font-weight:700;letter-spacing:.03em;pointer-events:auto}
 .lab-composer-graph-status.ready{border-color:rgba(34,197,94,.45);color:var(--status-ok)}
@@ -1166,11 +1166,11 @@ html[lang="zh-TW"] .zh-CN{display:none!important}
 }
 
 
-/* 카드가 세로로 쌓이는 페이지 흐름. .card 자체는 여백을 갖지 않는다
-   (shared/static/dx-components.css 참조) — 여백은 배치의 몫이다. */
+/* Page flow where cards stack vertically. .card itself has no margin
+   (see shared/static/dx-components.css); spacing belongs to the layout. */
 .page > .card{margin-bottom:var(--sp-4)}
 
-/* 폰 폭 (release audit A-10): Setup 로그 도구줄은 접히고, Lab 의 dev 탭 줄은 가로로 스크롤한다 */
+/* Phone width: the Setup log toolbar wraps and the Lab dev tab row scrolls horizontally */
 #page-setup .comp-section .flex.between{flex-wrap:wrap;gap:var(--sp-2)}
 .dev-tabs{overflow-x:auto}
 .dev-tab{flex-shrink:0}

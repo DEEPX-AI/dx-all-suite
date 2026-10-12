@@ -1037,7 +1037,7 @@ window._DX_I18N_DICT = {
     es: 'Especifique los nodos de entrada/salida en el gráfico visualizado en el Visor izquierdo para definir el rango de compilación. El rango final puede diferir de su selección debido al algoritmo interno de asignación de dispositivo. Actualmente no se admiten rangos múltiples.',
   },
 
-  // Setup 칸 (아이콘 체계 단계 2c) — 모두 끝났을 때의 한 줄 · Compile 이 잠긴 이유.
+  // Setup panel — the one-line summary when everything is done · why Compile is locked.
   'Setup ready': { ko: '설치 완료', ja: 'セットアップ完了', 'zh-CN': '安装完成', 'zh-TW': '安裝完成', es: 'Instalación lista' },
   '{n} sample models': {
     ko: '샘플 모델 {n}개',
@@ -1398,7 +1398,7 @@ window._DX_I18N_DICT = {
     'zh-TW': '建議：為獲得最佳 harness following，請使用 Claude Sonnet 4.6+ 或 Opus 4.6+。',
     es: 'Recomendado: Claude Sonnet 4.6+ u Opus 4.6+ para el mejor harness following.',
   },
-  // ── 마크업 lang-span 에서 옮겨온 항목 ──
+  // ── Entries moved over from markup lang-spans ──
   'Agent': {
     ko: '에이전트',
     ja: 'エージェント',
@@ -1542,7 +1542,7 @@ window._DX_I18N_DICT = {
   'Remove': {
     ko: '제거', ja: '削除', 'zh-CN': '移除', 'zh-TW': '移除', es: 'Eliminar',
   },
-  /* ── 그래프 상세 패널 · 설정 마법사 3 단계 (release audit C-3) ── */
+  /* ── Graph detail panel · config wizard step 3 ── */
   'Operation': {
     ko: '연산',
     ja: '演算',

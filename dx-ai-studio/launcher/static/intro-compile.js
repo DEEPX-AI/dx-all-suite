@@ -1,24 +1,23 @@
-/* ─── intro · Compiler 장면 — 수백 개가 하나의 칩이 된다 ────────────────────────
-   spec: docs/superpowers/specs/2026-09-30-intro-app-compiler-scenes-design.md
+/* ─── intro · Compiler scene — hundreds of nodes become one chip ──────────────
 
-   Ultralytics YOLO26n 의 실제 ONNX graph (node 384 · 연결 526) 가 왼쪽에서 오른쪽으로 켜지고, compile
-   의 물결이 지나가며 node 들이 가운데로 빨려 들어 DX-M1 이 된다. 그리고 칩 위로 빛이 한 번 지나간다.
-   graph 는 scripts/intro/bake_compile.py 가 굽는다 (배치만 풀었고 연결은 그대로).
+   The real ONNX graph of Ultralytics YOLO26n (384 nodes, 526 edges) lights up left to right, then a
+   compile wave pulls the nodes into the center, where they become DX-M1. A glint crosses the chip once.
+   scripts/intro/bake_compile.py bakes the graph (layout computed, edges unchanged).
 
-   Stream 은 "밖으로", App 은 "가로지르기", 여기는 "안으로". 점 384 개를 따로 움직여야 하므로 graph 는
-   canvas 한 장에 rAF 로 그린다 — frame 당 1ms 안쪽이고, 다 빨려 들면 그리기를 멈춘다. 칩은 정적 SVG 를
-   transform/opacity 로만 띄운다. */
+   Stream moves "out", App moves "across", this one moves "in". 384 dots move independently, so the
+   graph is drawn on one canvas with rAF — under 1 ms per frame, and drawing stops once all are absorbed.
+   The chip is a static SVG animated with transform/opacity only. */
 (function () {
   'use strict';
 
   var SRC = '/static/img/intro/compile/graph.json';
-  var LIGHT = 900;        // graph 가 왼쪽 → 오른쪽으로 켜지는 시간
-  var PULL_AT = 1000;     // 물결이 시작하는 때
-  var PULL_SPREAD = 520;  // 왼쪽 node 가 먼저 — 가로 위치만큼 늦게 출발
-  var PULL_MS = 760;      // node 하나가 칩까지 가는 시간
-  var FORGE_AT = 1650;    // 칩이 선다
-  var LIT_AT = 2300;      // 빛이 칩을 지나간다
-  var CHIP = { x: 800, y: 470, s: 300 };   // 무대 좌표 (1600×1000) — prompt 는 아래에 앉는다
+  var LIGHT = 900;        // time for the graph to light up left → right
+  var PULL_AT = 1000;     // when the wave starts
+  var PULL_SPREAD = 520;  // left nodes first — start delayed by x position
+  var PULL_MS = 760;      // travel time of one node to the chip
+  var FORGE_AT = 1650;    // the chip appears
+  var LIT_AT = 2300;      // the glint crosses the chip
+  var CHIP = { x: 800, y: 470, s: 300 };   // stage coordinates (1600×1000) — the prompt sits below
 
   var _data = null, _ready = false, _started = false, _root = null, _timers = [], _raf = 0;
 
@@ -31,7 +30,7 @@
       .then(function (d) { _data = d; _ready = true; }, function () { _ready = false; });
   }
 
-  /* DX-M1 — package · die · NPU core 셋 · 가장자리 pin. 색은 CSS (.icp-*) 가 준다. */
+  /* DX-M1 — package, die, three NPU cores, edge pins. Colors come from CSS (.icp-*). */
   function _chipSvg() {
     var pins = '';
     for (var i = 0; i < 9; i++) {
@@ -55,14 +54,14 @@
   }
 
   function _ease(t) { return t <= 0 ? 0 : t >= 1 ? 1 : t * t * (3 - 2 * t); }
-  function _in(t) { return t <= 0 ? 0 : t >= 1 ? 1 : t * t * t; }   // 빨려 들 때는 끝에서 빠르게
+  function _in(t) { return t <= 0 ? 0 : t >= 1 ? 1 : t * t * t; }   // accelerate toward the end when absorbed
 
   function _draw(canvas, t0) {
     var ctx = canvas.getContext('2d');
     var nodes = _data.nodes, edges = _data.edges, W = _data.stage[0];
     var k = canvas.width / W;
     var n = nodes.length, px = new Float32Array(n), py = new Float32Array(n), a = new Float32Array(n);
-    var accent = getComputedStyle(canvas).getPropertyValue('--icp-node').trim() || 'white';   // 색은 style.css
+    var accent = getComputedStyle(canvas).getPropertyValue('--icp-node').trim() || 'white';   // colors live in style.css
     function frame(now) {
       var t = now - t0, done = true;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -75,8 +74,8 @@
         py[i] = (y + (CHIP.y - y) * go) * k;
         a[i] = lit * (1 - go);
       }
-      /* 'lighter' — 겹칠수록 밝아진다. 점마다 옅은 번짐 (halo) 을 한 번 더 그려 빛나게 한다
-         (shadowBlur 는 점마다 blur 를 돌려 느리다). */
+      /* 'lighter' — overlaps get brighter. Each dot gets a faint halo drawn once more to glow
+         (shadowBlur runs a blur per dot and is slow). */
       ctx.globalCompositeOperation = 'lighter';
       ctx.lineWidth = Math.max(1, k);
       ctx.strokeStyle = accent;
@@ -128,7 +127,7 @@
     return root;
   }
 
-  /* 박자 시작에 부른다. 준비가 안 됐으면 false — 박자는 prompt 만으로 간다. */
+  /* Called when the beat starts. Returns false if not ready — the beat then runs on the prompt alone. */
   function play(overlay, beatMs) {
     if (!_ready || !overlay) return false;
     stop();

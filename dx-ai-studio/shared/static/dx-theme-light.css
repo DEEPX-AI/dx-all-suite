@@ -1,21 +1,20 @@
-/* Light 테마 — semantic 토큰만 재정의한다. 레거시 alias는 건드리지 않는다
-   (dx-semantic.css의 alias가 자동으로 따라온다).
+/* Light theme — redefines semantic tokens only. Legacy aliases are left alone
+   (the aliases in dx-semantic.css follow automatically).
 
-   dark의 단순 반전이 아니라 대비 재매핑이다: dark accent 는 밝은 바탕에서
-   너무 옅어지므로 한 단계 어둡게 내리고, 상태색은 애플의 시스템 색이 흰
-   바탕에서 2.2~3.6:1 이라 접근성 변형을 쓴다. 각 값의 대비는 교체 전후를
-   대조해 확인했다. 그림자는 무채색이다 — 애플의 첫 화면은 box-shadow 를
-   쓰지 않고, 여기 남은 것은 면을 띄우는 최소한이다.
+   A contrast remap, not a plain inversion: the dark accent is too pale on a light
+   background, so it goes one step darker, and Apple's system status colours are only
+   2.2–3.6:1 on white, so the accessible variants are used. Shadows are neutral and
+   minimal — just enough to lift a surface.
 
-   뷰어 상태는 셋이다:
-     data-theme="light"  명시적 light 선택
-     data-theme="dark"   명시적 dark 선택 (기본값이므로 여기서 다루지 않음)
-     (스탬프 없음)        system — prefers-color-scheme가 결정
-   아래 두 블록이 1번과 3번을 덮는다. */
+   The viewer has three states:
+     data-theme="light"  explicit light
+     data-theme="dark"   explicit dark (the default, not handled here)
+     (no stamp)          system — prefers-color-scheme decides
+   The two blocks below cover the first and the third. */
 
 :root[data-theme="light"]{
   color-scheme:light;
-  --vpu:var(--npu);   /* 자홍 (#e879f9) 은 밝은 배경에서 2.4:1 — 진한 남보라로 (release audit M-4) */
+  --vpu:var(--npu);   /* magenta (#e879f9) is 2.4:1 on a light background — use the deep indigo */
 
   --surface-page:#f5f5f7;
   --surface-panel:#FFFFFF;
@@ -68,12 +67,12 @@
   --glass-border:rgba(0,0,0,.1);
 }
 
-/* system = light 인데 사용자가 dark를 명시하지 않은 경우.
-   :not([data-theme="dark"]) 가드가 있어야 명시적 dark 선택이 이긴다. */
+/* System is light and the user has not chosen dark explicitly.
+   The :not([data-theme="dark"]) guard lets an explicit dark choice win. */
 @media (prefers-color-scheme: light){
   :root:not([data-theme="dark"]){
     color-scheme:light;
-  --vpu:var(--npu);   /* 자홍 (#e879f9) 은 밝은 배경에서 2.4:1 — 진한 남보라로 (release audit M-4) */
+  --vpu:var(--npu);   /* magenta (#e879f9) is 2.4:1 on a light background — use the deep indigo */
 
     --surface-page:#f5f5f7;
     --surface-panel:#FFFFFF;

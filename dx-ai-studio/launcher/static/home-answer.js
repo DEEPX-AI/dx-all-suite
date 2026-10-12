@@ -38,14 +38,14 @@
     });
   }
 
-  /* 문장 하나를 통째로 번역한다 — 조각을 이어 붙이면 어순이 다른 언어 (ko · ja) 에서 문장이 깨졌다
-     (release audit L-15: "선택 에 맞는 모델을 object detection"). {x} 는 값, **…** 는 굵게. */
+  /* Translate a whole sentence at once — joining fragments breaks sentences in languages with a
+     different word order (ko · ja). {x} is a value, **…** is bold. */
   function _tpl(key, vals) {
     var out = _esc(_t(key)).replace(/\{(\w+)\}/g, function (_, k) { return _esc((vals || {})[k]); });
     return out.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
   }
 
-  /* 라우터의 task id → 화면의 이름. 모르는 id 는 사람이 읽는 모양으로. */
+  /* Router task id → display name. Unknown ids get a human-readable form. */
   var TASK_NAME = {
     object_detection: 'Object Detection', pose_estimation: 'Pose Estimation', segmentation: 'Segmentation',
     face_detection: 'Face Detection', classification: 'Classification',
@@ -159,7 +159,7 @@
     _show(plan, !matched);
     _show(panel, true);
     panel.dataset.ask = text;
-    /* 보낸 요청이 어디로 갔는지 — home-effects.js 가 그 모듈 아이콘으로 빛을 날린다 (spec §7 #5). */
+    /* Where the request went — home-effects.js flies a light to that module's icon. */
     document.dispatchEvent(new CustomEvent('dx-home-routed', { detail: routes.slice(0, 3) }));
   }
 
@@ -173,14 +173,11 @@
     });
   }
 
-  /* home 에서 나가는 길이 둘인데 하나만 파괴적이었다. 모듈 카드는 셸 안에서
-     pushState 로 움직여 문서가 그대로인데, 여기는 location.href 로 SPA 를 떠났다 —
-     그래서 돌아오면 새 문서였고 쓰던 문장이 사라졌다. 카드와 같은 길을 쓴다.
-     그 다음 판도 새고 있었다: 모듈 이름 (문자열) 을 iframe 을 받는 loadAppIframeIfNeeded 에
-     넘겨 에러가 났고, catch 가 결국 location.href 로 문서를 새로 불렀다. 이제는 아이콘과 똑같이
-     launch 하나 — 누른 카드 자리에서 열리고, #demo=N 같은 hash 는 모듈까지 간다 (P7).
-     location.href 는 셸이 없을 때만.
-     계약: tests/launcher/test_home_draft_browser.py, test_home_open_browser.py */
+  /* Leave home the same way the module cards and icons do: one launch call inside the shell,
+     so the document stays and a half-written sentence is not lost. It opens from the card that
+     was clicked, and a hash such as #demo=N reaches the module. location.href is used only when
+     there is no shell.
+     Contract: tests/launcher/test_home_draft_browser.py, test_home_open_browser.py */
   function _leaveHome(path, fromEl) {
     if (!path) return;
     var ns2 = window.DXLauncher;
@@ -210,20 +207,20 @@
       ns.homeAgentStart(text);
       return;
     }
-    /* 작업 뷰를 못 쓰는 상황이면 모듈로 넘긴다 — 문장은 그대로 실어서. */
+    /* If the work view cannot be used, hand off to the module with the sentence. */
     _leaveHome('/agent/#ask=' + encodeURIComponent(text), $('answerEscalateGo'));
   }
 
-  /* 쓰다 만 문장은 작업이다. 모듈에 다녀오거나 새로고침해도 잃지 않게 저장한다 —
-     보내고 나면 지운다(보낸 문장이 다음에 또 떠 있으면 그건 남은 게 아니라 고장이다).
-     sessionStorage 라 탭을 닫으면 사라진다: 초안이지 기록이 아니다. */
+  /* A half-written sentence is work: save it so a trip to a module or a reload does not lose it.
+     Clear it once sent (a sent sentence showing up again would be a bug, not a draft).
+     sessionStorage, so it goes away with the tab: a draft, not a history. */
   var DRAFT_KEY = 'dxHome.ask.draft';
 
   function _saveDraft(text) {
     try {
       if (text && text.trim()) sessionStorage.setItem(DRAFT_KEY, text);
       else sessionStorage.removeItem(DRAFT_KEY);
-    } catch (e) { /* storage off — 저장이 안 될 뿐 입력은 동작한다 */ }
+    } catch (e) { /* storage off — nothing is saved, but input still works */ }
   }
 
   function _restoreDraft() {
@@ -243,8 +240,8 @@
       e.preventDefault();
       ask($('homeAsk').value);
     });
-    /* 여러 줄을 쓸 수 있게 textarea 로 열었으므로 Enter 가 줄바꿈이 된다. 프롬프트
-       입력의 관례대로 Enter 는 보내고, 줄을 바꾸려면 Shift+Enter 를 쓴다. */
+    /* The input is a textarea so it can hold several lines, which makes Enter a newline. Follow
+       the prompt-input convention instead: Enter sends, Shift+Enter starts a new line. */
     var box = $('homeAsk');
     if (box) {
       box.addEventListener('input', function () { _saveDraft(box.value); });
@@ -255,9 +252,9 @@
         }
       });
     }
-    /* 예시는 실제로 만들어진 showcase 의 원문 (home-prompts.js) 이다. 채우고 기다린다 —
-       예전처럼 곧바로 실행하면 긴 원문을 읽거나 고칠 틈 없이 답이 뜨고 무대가 Dock 으로
-       바뀐다. 원문은 번역하지 않는다: 검증된 것은 영어 원문이다 (spec 2026-09-23 §5.2). */
+    /* Examples are the original prompts of real showcases (home-prompts.js). Fill and wait —
+       running at once would show an answer and switch the stage to the Dock before the long
+       prompt could be read or edited. Not translated: the verified text is the English original. */
     var chips = $('homeAskChips');
     if (chips) {
       chips.addEventListener('click', function (e) {
@@ -310,7 +307,7 @@
     }
   }
 
-  /* 답을 닫고 무대를 되돌린다 (닫기 버튼 · Esc). 닫혀 있으면 아무것도 하지 않는다. */
+  /* Close the answer and restore the stage (close button · Esc). Does nothing if already closed. */
   function closeHomeAnswer() {
     var panel = $('homeAnswer');
     if (!panel || panel.hidden) return false;
@@ -320,7 +317,7 @@
 
   ns.closeHomeAnswer = closeHomeAnswer;
   ns.homeAsk = ask;
-  /* 작업 뷰도 같은 길로 나간다 — 나가는 방법이 둘이면 하나는 반드시 낡는다. */
+  /* The work view leaves the same way — with two ways out, one always goes stale. */
   ns.homeLeaveTo = _leaveHome;
   ns.initHomeAnswer = init;
   if (document.readyState === 'loading') {

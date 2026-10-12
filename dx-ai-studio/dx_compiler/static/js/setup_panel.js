@@ -1,10 +1,10 @@
 /**
- * Setup Panel — SDK 설치/샘플 다운로드 대시보드 UI
+ * Setup Panel — dashboard for SDK install and sample download
  *
- * 공용 단계 목록의 압축형 (shared/static/dx-steps.js · 아이콘 체계 단계 2c). 여기서는 상태만 알린다
- * (DXSteps.set) — 뱃지 · 다음 단계 · 막대 · 모두 끝났을 때의 한 줄 접힘은 부품이 칠한다.
- * Compile 버튼의 잠금은 이 파일 한 곳이 정한다: SDK 가 없거나 /feature-check 가 컴파일 불가라고
- * 하면 잠그고, 그 이유를 버튼 옆에 적는다 (_disableCompileForm).
+ * Built on the shared compact step list (shared/static/dx-steps.js). This file only reports state
+ * (DXSteps.set); the component draws the badges, next step, progress bar and the one-line collapse.
+ * This file alone decides whether the Compile button is locked: it locks when the SDK is missing or
+ * /feature-check says compiling is unavailable, and writes the reason next to the button (_disableCompileForm).
  */
 class SetupPanel {
   constructor() {
@@ -38,10 +38,10 @@ class SetupPanel {
   _render() {
     const s = this.status;
     if (!s) return;
-    // 첫 상태가 오기 전에는 두 단계가 모두 todo 라 전체가 펼쳐졌다가 한 줄로 접히며 폼을 밀었다.
+    // Kept busy until the first status, so the panel does not expand and then collapse, shifting the form.
     this.panel.removeAttribute('aria-busy');
 
-    // SDK 상태
+    // SDK status
     const sdkVersion = document.getElementById('setup-sdk-version');
     const installBtn = document.getElementById('setup-install-btn');
 
@@ -56,7 +56,7 @@ class SetupPanel {
     if (!this._installing) this._step('sdk', sdkOk ? 'done' : (this._sdkFailed ? 'failed' : 'todo'));
     installBtn.onclick = () => this.installSDK();
 
-    // 샘플 + 캘리브레이션 상태
+    // Samples + calibration status
     const downloadBtn = document.getElementById('setup-download-btn');
     const allDownloaded = Object.values(s.sample_models || {}).every(m => m.downloaded) &&
                           (s.calibration_data && s.calibration_data.downloaded);
@@ -73,19 +73,19 @@ class SetupPanel {
     this._updateSummary();
     downloadBtn.onclick = () => this.downloadSamples();
 
-    // 패널 접기/펼치기 결정 (최초 렌더링 시에만)
+    // Decide collapsed/expanded (first render only)
     if (!this._initialRenderDone) {
       this._initialRenderDone = true;
       this._expand();
     }
 
-    // 컴파일 버튼 잠금 여부 (이유는 버튼 옆에)
+    // Lock or unlock the Compile button (reason shown next to it)
     this._applyCompileGate();
 
-    // 샘플 선택 버튼 업데이트
+    // Update the sample picker button
     this._updateSampleSelector();
 
-    // i18n 적용
+    // Apply i18n
     if (window.DXI18n && typeof DXI18n.applyLang === 'function') DXI18n.applyLang();
   }
 
@@ -328,19 +328,19 @@ class SetupPanel {
     if (modelPath) modelPath.value = model.onnx_path;
     if (configPath) configPath.value = model.config_path;
 
-    // 드롭존 숨기기 (서버 경로 모드)
+    // Hide the drop zone (server path mode)
     const modelServerPath = document.getElementById('model_server_path');
     const configServerPath = document.getElementById('config_server_path');
     if (modelServerPath && !modelServerPath.checked) modelServerPath.click();
     if (configServerPath && !configServerPath.checked) configServerPath.click();
 
-    // 값만 바꾸면 change 가 오지 않아 그래프가 그려지지 않았다 — 직접 입력할 때와 같은 길로 (2026-10-11 audit)
+    // Setting the value fires no change event, so dispatch one — same path as typing it in
     if (modelPath) modelPath.dispatchEvent(new Event('change', { bubbles: true }));
     if (configPath) configPath.dispatchEvent(new Event('change', { bubbles: true }));
   }
 
   togglePanel() {
-    // 모두 끝나 한 줄에서 펼친 상태면, 접기는 다시 그 한 줄로.
+    // When complete and expanded from the one-line summary, collapsing returns to that line.
     if (this.panel.classList.contains('is-complete') && this.panel.classList.contains('is-expanded')) {
       this.panel.classList.remove('is-expanded');
       return;
@@ -356,13 +356,13 @@ class SetupPanel {
     this._isCompiling = isCompiling;
   }
 
-  /** /feature-check 의 결과 (index.html). 버튼을 직접 만지지 않고 여기로 알린다 — 잠금은 한 곳에서. */
+  /** Result of /feature-check (index.html). Callers report here instead of touching the button — locking lives in one place. */
   setFeatureCompile(available) {
     this._featureBlocked = !available;
     this._applyCompileGate();
   }
 
-  /** 튜토리얼이 접힌 칸 안의 버튼을 가리키기 전에 — 한 줄 요약도, 접힌 단계도 편다. */
+  /** Before the tutorial points at a button inside the collapsed panel, expand the summary and the steps. */
   revealForTour() {
     if (!this.panel) return;
     this.panel.classList.add('is-expanded');
@@ -383,7 +383,7 @@ class SetupPanel {
     return this._t('{n} sample models').split('{n}').join(String(n));
   }
 
-  /* 모두 끝났을 때의 한 줄: "Setup ready · SDK v… · 샘플 N개". */
+  /* The one-line summary when everything is done: "Setup ready · SDK v… · N samples". */
   _updateSummary() {
     const facts = document.getElementById('setup-summary-facts');
     if (!facts || !this.status) return;
@@ -471,7 +471,7 @@ class SetupPanel {
       if (disabled) compileBtn.setAttribute('aria-describedby', 'compile-gate-reason');
       else compileBtn.removeAttribute('aria-describedby');
     }
-    // 잠긴 버튼만 보이면 왜 못 누르는지 모른다 — 이유를 옆에 적는다.
+    // A locked button alone does not say why — write the reason next to it.
     const why = document.getElementById('compile-gate-reason');
     if (why) {
       why.hidden = !disabled;
@@ -489,7 +489,7 @@ class SetupPanel {
     const hasAny = Object.values(models).some(m => m.downloaded);
     container.style.display = hasAny ? 'inline-block' : 'none';
 
-    // 드롭다운 항목 생성
+    // Build the dropdown items
     const dropdown = document.getElementById('sample-dropdown');
     if (!dropdown) return;
     dropdown.innerHTML = '';
@@ -523,7 +523,7 @@ class SetupPanel {
   }
 }
 
-// 전역 인스턴스 + 자동 초기화
+// Global instance + auto-init
 window.setupPanel = new SetupPanel();
 document.addEventListener('DOMContentLoaded', function () {
   if (!window.setupPanel || !document.getElementById('setup-panel')) return;
@@ -537,7 +537,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
-  // 샘플 선택 드롭다운 토글 (position: fixed — form-panel overflow 회피)
+  // Sample dropdown toggle (position: fixed, to escape the form-panel overflow)
   var sampleBtn = document.getElementById('sample-select-btn');
   var sampleDD = document.getElementById('sample-dropdown');
   if (sampleBtn) {

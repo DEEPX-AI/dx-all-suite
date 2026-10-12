@@ -18,8 +18,8 @@ DX_COMPILER_ROOT = _root("DX_COMPILER_ROOT", "dx-compiler")
 def outputs_dir(app: str | None = None) -> Path:
     """User-viewable results root (STUDIO_ROOT/outputs[/app]); created on demand.
 
-    DX_STUDIO_OUTPUTS moves the root — the inference E2E tests point it at a temporary folder; they used to add a
-    result_e2eyolo_*.jpg to the user's DX App gallery on every CI run (release audit A-26)."""
+    DX_STUDIO_OUTPUTS moves the root — the inference E2E tests point it at a temporary folder so their results do not
+    land in the user's DX App gallery."""
     base = Path(os.environ["DX_STUDIO_OUTPUTS"]) if os.environ.get("DX_STUDIO_OUTPUTS") else STUDIO_ROOT / "outputs"
     d = base / app if app else base
     d.mkdir(parents=True, exist_ok=True)

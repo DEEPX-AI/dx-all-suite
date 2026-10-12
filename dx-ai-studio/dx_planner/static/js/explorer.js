@@ -1,6 +1,6 @@
 /**
- * ExplorerView — 플랫폼 상세 대시보드.
- * RadarChart, GroupBarChart, 벤치마크 테이블, 비교 모드.
+ * ExplorerView — platform detail dashboard.
+ * RadarChart, GroupBarChart, benchmark table, compare mode.
  */
 const ExplorerView = {
   _modelClickCb: null,

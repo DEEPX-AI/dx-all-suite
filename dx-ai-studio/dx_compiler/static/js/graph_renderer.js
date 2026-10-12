@@ -1055,8 +1055,8 @@
             applyTransform();
         }
 
-        /* First view of a graph. Fitting a 300-node model put it at 2 % — a pale column nobody can read
-           (2026-10-11 audit). When the whole graph would be drawn below READABLE, start at a readable
+        /* First view of a graph. Fitting a 300-node model put it at 2 % — a pale column nobody can read.
+           When the whole graph would be drawn below READABLE, start at a readable
            zoom with the inputs at the top instead; Fit still shows everything. */
         const READABLE = 0.5;
         const FIRST_VIEW_SCALE = 0.8;

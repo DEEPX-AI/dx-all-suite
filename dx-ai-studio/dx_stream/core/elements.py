@@ -1,10 +1,10 @@
-"""GStreamer 엘리먼트 레퍼런스 — DxStream 커스텀 13개 + GStreamer 표준 소스/싱크.
+"""GStreamer element reference — the 13 DxStream custom elements plus standard GStreamer sources/sinks.
 
-파이프라인 빌더 팔레트에서 사용.
+Used by the pipeline builder palette.
 """
 from __future__ import annotations
 
-# 카테고리별 색상 (pipeline-iso.css와 동기화)
+# Colors per category (keep in sync with pipeline-iso.css)
 CATEGORY_COLORS = {
     "source": "#3B82F6",
     "preprocess": "#F59E0B",
@@ -18,7 +18,7 @@ CATEGORY_COLORS = {
 }
 
 _ELEMENTS = [
-    # DxStream 커스텀 (13개)
+    # DxStream custom elements (13)
     {
         "name": "DxPreprocess",
         "category": "preprocess",
@@ -207,7 +207,7 @@ _ELEMENTS = [
             {"name": "group-count", "type": "int", "description_ko": "HDMI 그리드 오버레이 그룹 수", "description_en": "Number of overlay groups for HDMI grid", "description_es": "Número de grupos de superposición para cuadrícula HDMI"},
         ],
     },
-    # GStreamer 표준 (파이프라인 빌더용)
+    # Standard GStreamer elements (for the pipeline builder)
     {
         "name": "urisourcebin",
         "category": "source",
@@ -228,7 +228,7 @@ _ELEMENTS = [
         ],
     },
     {
-        # USB / V4L2 카메라 — 예전에는 소스가 urisourcebin · rtspsrc 뿐이라 카메라 파이프라인을 만들 수 없었다 (2026-10-11).
+        # USB / V4L2 camera — without it a camera pipeline cannot be built (the other sources are urisourcebin · rtspsrc).
         "name": "v4l2src",
         "category": "source",
         "description_ko": "USB · V4L2 카메라 소스",
@@ -485,9 +485,9 @@ _ELEMENT_DETAILS = {
 }
 
 
-# 속성 기본값. 이 PC 에 설치된 플러그인에서 `gst-inspect-1.0 <element>` 로 읽은 값이다
-# (dx_stream 플러그인 3.1.2 · GStreamer 표준). 문자열 기본값이 null 인 속성과 이 PC 에 없는
-# 플러그인 (DxVnpu* · x264enc) 은 적지 않는다 — 표에는 "--" 로 나온다 (release audit S-17).
+# Property defaults, read with `gst-inspect-1.0 <element>` from installed plugins
+# (dx_stream plugins 3.1.2 · standard GStreamer). Properties whose string default is null and
+# plugins that were not installed (DxVnpu* · x264enc) are left out — the table shows "--" for them.
 _GST_DEFAULTS = {
     "DxPreprocess": {"preprocess-id": "0", "resize-width": "0", "resize-height": "0", "secondary-mode": "false",
                      "interval": "0", "min-object-width": "0", "min-object-height": "0", "keep-ratio": "true",
@@ -559,12 +559,12 @@ AUTO_CONVERTER_RULES = [
 
 
 def get_elements() -> list[dict]:
-    """전체 엘리먼트 레퍼런스 반환"""
+    """The whole element reference."""
     return [_with_detail(e) for e in _ELEMENTS]
 
 
 def get_element_by_name(name: str) -> dict | None:
-    """이름으로 엘리먼트 조회"""
+    """Look up an element by name."""
     for e in _ELEMENTS:
         if e["name"] == name:
             return _with_detail(e)
@@ -572,7 +572,7 @@ def get_element_by_name(name: str) -> dict | None:
 
 
 def get_elements_by_category() -> dict[str, list[dict]]:
-    """카테고리별 엘리먼트 그룹핑"""
+    """Elements grouped by category."""
     cats: dict[str, list[dict]] = {}
     for e in get_elements():
         cats.setdefault(e["category"], []).append(e)
@@ -580,7 +580,7 @@ def get_elements_by_category() -> dict[str, list[dict]]:
 
 
 def validate_connection(from_elem: str, to_elem: str) -> dict:
-    """엘리먼트 연결 호환성 검증.
+    """Check whether two elements may be connected.
 
     Returns:
         {"result": "allow"} |
@@ -591,7 +591,7 @@ def validate_connection(from_elem: str, to_elem: str) -> dict:
     from_el = get_element_by_name(from_elem)
     to_el = get_element_by_name(to_elem)
 
-    # unknown elements → allow (차단하지 않음)
+    # unknown elements → allow (never block)
     if not from_el or not to_el:
         return {"result": "allow"}
 
@@ -602,7 +602,7 @@ def validate_connection(from_elem: str, to_elem: str) -> dict:
     from_override = ELEMENT_OVERRIDES.get(from_elem, {})
     to_override = ELEMENT_OVERRIDES.get(to_elem, {})
 
-    # Step 1: 구조 검증 — has_output / has_input
+    # Step 1: structure — has_output / has_input
     has_output = from_override.get("has_output", from_rule.get("has_output", True))
     if not has_output:
         return {"result": "block", "reason_en": "Output has no outgoing connections",
@@ -613,11 +613,11 @@ def validate_connection(from_elem: str, to_elem: str) -> dict:
         return {"result": "block", "reason_en": "Source cannot receive input",
                 "reason_ko": "소스는 입력을 받을 수 없습니다"}
 
-    # Step 2: 카테고리 호환성
+    # Step 2: category compatibility
     allowed_next = from_rule.get("allowed_next")
     if allowed_next is not None:
         if to_cat not in allowed_next and to_cat != "utility":
-            # 시맨틱 경고가 블록보다 우선하는 경우 체크
+            # A semantic warning takes precedence over a block
             for sw in SEMANTIC_WARNINGS:
                 if sw["pattern"] == "inference_to_inference" and from_cat == "inference" and to_cat == "inference":
                     return {"result": "warn", "reason_en": sw["msg_en"],
@@ -625,7 +625,7 @@ def validate_connection(from_elem: str, to_elem: str) -> dict:
             return {"result": "block", "reason_en": "Category connection not allowed",
                     "reason_ko": "카테고리 연결이 허용되지 않습니다"}
 
-    # Step 3: 자동 컨버터
+    # Step 3: auto converter
     for rule in AUTO_CONVERTER_RULES:
         if from_cat in rule["from_categories"] and to_elem in rule["to_elements"]:
             return {
@@ -635,7 +635,7 @@ def validate_connection(from_elem: str, to_elem: str) -> dict:
                 "msg_ko": "자동으로 " + rule["insert"] + "를 삽입할까요?",
             }
 
-    # Step 4: 시맨틱 경고
+    # Step 4: semantic warnings
     for sw in SEMANTIC_WARNINGS:
         if sw["pattern"] == "inference_to_inference" and from_cat == "inference" and to_cat == "inference":
             return {"result": "warn", "reason_en": sw["msg_en"],
@@ -651,7 +651,7 @@ def validate_connection(from_elem: str, to_elem: str) -> dict:
 
 
 def get_connection_rules() -> dict:
-    """프론트엔드에 전달할 연결 규칙 번들"""
+    """Connection rules bundled for the frontend."""
     return {
         "connection_rules": CONNECTION_RULES,
         "element_overrides": ELEMENT_OVERRIDES,

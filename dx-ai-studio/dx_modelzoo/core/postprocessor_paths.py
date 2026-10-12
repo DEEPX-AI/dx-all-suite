@@ -175,7 +175,7 @@ def _scan_factory_postprocessor(category: str, model_id: str) -> str | None:
 
 @lru_cache(maxsize=4)
 def _processor_files(py_dir: str) -> dict[str, str]:
-    """common/processors 의 ``class Name`` → 그 파일 (dx_app/ 으로 시작하는 경로)."""
+    """``class Name`` in common/processors → its file (a path starting with dx_app/)."""
     out: dict[str, str] = {}
     proc = Path(py_dir) / "common" / "processors"
     if not proc.is_dir():
@@ -191,8 +191,9 @@ def _processor_files(py_dir: str) -> dict[str, str]:
 
 
 def _per_model_postprocessor(model: dict) -> str | None:
-    """per-model dx_app (8d0b748): family factory 가 ``<stem>/config.json`` 의 ``postprocessor.class`` 로 만든다 —
-    factory import 로는 보이지 않는다 (계약: test_postprocessor_paths.py)."""
+    """Per-model dx_app: the family factory builds the postprocessor from ``postprocessor.class`` in
+    ``<stem>/config.json``, so it is not visible from the factory imports.
+    Contract: tests/dx_modelzoo/test_postprocessor_paths.py"""
     from shared import dx_app_layout as layout
     if not DX_APP_ROOT.exists() or layout.detect(DX_APP_ROOT) != layout.PER_MODEL:
         return None

@@ -1,4 +1,4 @@
-/* DX Agent Dev — i18n dictionary (콘솔 동적 라벨) */
+/* DX Agent Dev — i18n dictionary (console dynamic labels) */
 window._DX_I18N_DICT = {
   'Describe what you want to build...': {
     ko: '만들고 싶은 것을 설명하세요...',
@@ -195,7 +195,7 @@ window._DX_I18N_DICT = {
     'zh-TW': '已安裝',
     es: 'Instalado',
   },
-  // ── 마크업 lang-span 에서 옮겨온 항목 ──
+  // ── Entries moved from the markup lang-spans ──
   'Agent': {
     ko: '에이전트',
     ja: 'エージェント',

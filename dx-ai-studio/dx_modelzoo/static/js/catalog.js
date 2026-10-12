@@ -1,6 +1,6 @@
 'use strict';
 
-// 전역 상태 (기존 app/message handler가 참조)
+// Global state (referenced by the existing app/message handlers)
 let _viewMode = 'card';
 let _selectedCategories = [];
 let _allModels = [];
@@ -16,7 +16,7 @@ const OVERSCAN_ROWS = 3;
 const CARD_DOM_LIMIT = 50;
 const LIST_ROW_DOM_LIMIT = 100;
 
-// 최적화 이미지 헬퍼 (Task 9) — window에 노출하여 detail.js와 공유
+// Optimized image helpers — exposed on window so detail.js can share them
 
 function optimizedImageCandidates(originalPath) {
   if (!originalPath) return [];
@@ -118,19 +118,19 @@ function _bestAccuracyValue(m) {
   return legacyMetric || '';
 }
 
-/* ── 지표와 정확도 ────────────────────────────────────────────
-   정확도 숫자만 보여주면 비교할 수 없다. 이 테이블은 `3.499`(NME) 와
-   `98.667`(Top-1) 을 한 칸에 섞어 놓고 정렬까지 제공하고 있었는데, 서로 다른
-   지표 사이에는 순서가 존재하지 않는다.
+/* ── Metrics and accuracy ────────────────────────────────────────────
+   Accuracy numbers alone cannot be compared. Different metrics (`3.499` NME and
+   `98.667` Top-1) cannot share one sortable column: there is no order between
+   different metrics.
 
-   방향도 지표마다 다르다 — Top1 은 클수록, RMSE 는 작을수록 좋다. 그래서 델타에
-   색을 칠하려면 어느 쪽인지 알아야 하고, 모르는 지표는 칠하지 않는다.
-   방향 표는 app.js 가 한 벌만 들고 있다 (METRIC_HIGHER_IS_BETTER /
-   METRIC_LOWER_IS_BETTER). 서버 쪽 같은 표: dx_modelzoo/core/metrics.py */
+   Direction also differs per metric — Top1 is better higher, RMSE lower — so coloring
+   a delta needs to know which way is good; metrics of unknown direction stay uncolored.
+   app.js holds the single direction table (METRIC_HIGHER_IS_BETTER /
+   METRIC_LOWER_IS_BETTER). Server-side counterpart: dx_modelzoo/core/metrics.py */
 function _metricName(m) {
   const name = m.specification?.metric?.name;
   if (name) return String(name);
-  // 옛 스냅샷은 metric 이 {mAP: 51.2} 같은 객체였다.
+  // Older snapshots stored metric as an object such as {mAP: 51.2}.
   const legacy = m.specification?.metric;
   if (legacy && typeof legacy === 'object') return Object.keys(legacy)[0] || '';
   return '';
@@ -147,12 +147,12 @@ function _accuracyWithMetric(m) {
   const value = _bestAccuracyValue(m);
   if (value === '' || value == null) return '';
   const metric = _metricName(m);
-  // 지표 이름 중 영어 낱말 (Accuracy · Top1 Accuracy · Average Accuracy) 은 번역한다. mAP · mIoU 같은 약어는 사전에 없어 그대로다.
+  // English words in metric names (Accuracy · Top1 Accuracy · Average Accuracy) are translated. Abbreviations such as mAP · mIoU are not in the dictionary and stay as-is.
   return metric ? T(metric) + ' ' + value : String(value);
 }
 
-/* 같은 지표끼리만 비교한다. 다른 지표는 0 을 돌려 서로 순서를 만들지 않는다 —
-   정렬은 그 경우 원래 순서를 유지한다(안정 정렬). */
+/* Compare only within the same metric. Different metrics return 0 so they get no
+   order between them — the sort then keeps the original order (stable sort). */
 function _compareAccuracy(a, b, metricOf) {
   const ma = metricOf(a), mb = metricOf(b);
   if (ma !== mb) return 0;
@@ -162,7 +162,7 @@ function _compareAccuracy(a, b, metricOf) {
   if (isNaN(va)) return 1;
   if (isNaN(vb)) return -1;
   const dir = _metricDirection(ma);
-  // 작을수록 좋은 지표는 오름차순이 '좋은 순' 이다.
+  // For lower-is-better metrics, ascending is the 'best first' order.
   return dir === 'lower' ? va - vb : vb - va;
 }
 
@@ -217,16 +217,16 @@ function _artifactBadges(m) {
     _artifactBadge({ artifacts }, 'qlite_dxnn', 'Q-Lite'),
     _artifactBadge({ artifacts }, 'qpro_dxnn', 'Q-Pro'),
   ];
-  // Q-Master 는 공개 카탈로그 354개 중 15개뿐이다. 늘 그리면 대부분이 '없음'
-  // 이 되어 칩이 정보를 잃는다 — 있을 때만 자리를 차지한다.
+  // Q-Master exists for only 15 of the 354 public catalog models. Always drawing it
+  // would make most chips read 'none' — it takes space only when present.
   if (artifacts.qmaster_dxnn) {
     badges.push(_artifactBadge({ artifacts }, 'qmaster_dxnn', 'Q-Master'));
   }
   return badges.join(' ');
 }
 
-// 이 PC 의 DX-RT 가 못 읽는 model (Model Zoo 2_5_0 = .dxnn container v9) — 받아도 실행되지 않는다
-// (spec 2026-10-01 dx_app per-model layout 결정 5).
+// Models this PC's DX-RT cannot read (Model Zoo 2_5_0 = .dxnn container v9) — they would not run even if
+// downloaded.
 function _dxrtBadge(m) {
   if (!m.requires_dxrt) return '';
   const label = T('Needs DX-RT') + ' ' + m.requires_dxrt;
@@ -306,11 +306,10 @@ const ModelZooVirtualCatalog = {
     };
     container.addEventListener('scroll', onScroll);
     window.addEventListener('scroll', onScroll);
-    // 스크롤러가 컨테이너도 window 도 아닐 수 있다. 앱 셸이 통합되면서 overflow 가
-    // 조상(main.dx-shell-main)으로 옮겨갔고, 그때부터 이 가상화는 스크롤을 한 번도
-    // 보지 못한 채 첫 화면 분량만 그리고 있었다. 특정 클래스를 박아 넣으면 셸이 또
-    // 바뀔 때 같은 자리에서 다시 깨지므로, 넘치는 조상을 전부 구독한다.
-    // (같은 방식의 선례: shared/static/tutorial-engine.js 의 _bindScrollRootsFor)
+    // The scroller may be neither the container nor window: with the shared app shell the
+    // overflow lives on an ancestor (main.dx-shell-main). Hard-coding one class would break
+    // again whenever the shell changes, so subscribe to every overflowing ancestor.
+    // (Same approach: _bindScrollRootsFor in shared/static/tutorial-engine.js)
     this._scrollRootSeen = this._scrollRootSeen || new WeakSet();
     let node = container.parentElement;
     while (node && node !== document.documentElement) {
@@ -355,7 +354,7 @@ const ModelZooVirtualCatalog = {
     this._listSortBound = true;
   },
 
-  /** 컨테이너를 실제로 스크롤하는 조상. 없으면 null (= window 스크롤). */
+  /** The ancestor that actually scrolls the container, or null (= window scrolling). */
   _scrollRoot() {
     let node = this._container && this._container.parentElement;
     while (node && node !== document.documentElement) {
@@ -372,22 +371,18 @@ const ModelZooVirtualCatalog = {
   _getEffectiveScrollTop() {
     const container = this._container;
     if (!container) return 0;
-    // container가 자체 스크롤 컨테이너인 경우
+    // When the container is its own scroll container
     const style = window.getComputedStyle ? window.getComputedStyle(container) : {};
     const overflowY = style.overflowY || '';
     if (container.scrollHeight > container.clientHeight &&
         (overflowY === 'auto' || overflowY === 'scroll')) {
       return container.scrollTop || 0;
     }
-    // 그 외에는 스크롤 루트의 뷰포트 상단을 기준으로 컨테이너가 얼마나 위로
-    // 밀려났는지를 쓴다. 이 식 하나로 세 경우(컨테이너/조상/window 스크롤)를 덮는다.
-    //
-    // 예전 식 `window.scrollY - (rect.top + window.scrollY)` 도 전개하면 `-rect.top`
-    // 이라 조상 스크롤을 이미 따라가고 있었다 — 40장에서 멈춘 원인은 이 계산이 아니라
-    // renderViewport() 를 부르는 사람이 없었던 것이다(위 _bindScroll 참조). 여기서
-    // 달라지는 것은 rootTop 항 하나다: 스크롤러의 상단이 뷰포트 y=0 이 아니라 헤더
-    // 아래에 있으면 옛 식은 그 높이만큼 어긋난다. 오버스캔이 흡수해 눈에 띄지 않지만
-    // 맞는 값은 이쪽이다.
+    // Otherwise use how far the container has been pushed above the top of the scroll
+    // root's viewport. This one expression covers container, ancestor and window scrolling.
+    // rootTop matters when the scroller's top sits below a header instead of at viewport
+    // y=0; without it the offset would be off by that height (hidden by the overscan, but
+    // wrong).
     const root = this._scrollRoot();
     const containerTop = container.getBoundingClientRect().top;
     const rootTop = root ? root.getBoundingClientRect().top : 0;
@@ -441,7 +436,7 @@ const ModelZooVirtualCatalog = {
     return sortModels(models);
   },
 
-  // loadPage: 서버 페이지 fetch 경로 — API 기반 가상화/향후 점진적 로딩용으로 유지
+  // loadPage: server page fetch path — kept for API-based virtualization / future incremental loading
   async loadPage(page) {
     const cacheKey = this._cacheKey(page);
     if (this.pageCache.has(cacheKey)) {
@@ -676,7 +671,7 @@ const ModelZooVirtualCatalog = {
     const legacyFps = m.specification?.fps ? `<span class="mz-card-fps">${_escapeAttr(m.specification.fps)} FPS</span>` : '';
     const fps = `<span class="${_escapeAttr(_modelFpsClass(m))}">${_escapeAttr(_modelFpsText(m))}</span>` || legacyFps;
     const resolution = _modelInputResolution(m);
-    // 지표명을 함께 적는다. 숫자만 두면 NME 3.5 와 Top-1 98.6 이 같은 척도로 읽힌다.
+    // Show the metric name too — bare numbers make NME 3.5 and Top-1 98.6 look like the same scale.
     const accuracy = _accuracyWithMetric(m);
     const summary = _summaryText(m);
     const thumbImg = m.thumbnail
@@ -760,7 +755,7 @@ const ModelZooVirtualCatalog = {
         this._stateSaveTimer = null;
         _commitCatalogStateSave(state);
       }, 150);
-    } catch (_) { /* sessionStorage 접근 불가 시 무시 */ }
+    } catch (_) { /* ignore when sessionStorage is unavailable */ }
   },
 
   _restoreState() {
@@ -791,24 +786,23 @@ const ModelZooVirtualCatalog = {
           if (this._container) this._container.scrollTop = state.scrollTop;
         });
       }
-    } catch (_) { /* 파싱 실패 시 무시 */ }
+    } catch (_) { /* ignore parse failures */ }
   },
 };
 
 
-/** 카탈로그가 만들어진 날짜(로컬 표기). 값이 없으면 빈 문자열 — 없는 것을
-    "알 수 없음" 으로 채우면 낡은 것과 구분되지 않는다. */
+/** Date the catalog was built (local format), or an empty string when there is none — filling a missing value
+    with "unknown" would make it indistinguishable from a stale one. */
 function _catalogGeneratedAt() {
-  /* app.js 가 /api/catalog 응답을 _catalogData 에 담는다 (bundler 가 없으므로
-     classic script 들이 한 스코프를 공유한다 — 같은 이유로 이 저장소에서 const
-     충돌 사고가 있었다). */
+  /* app.js stores the /api/catalog response in _catalogData (there is no bundler, so
+     the classic scripts share one scope). */
   var data = (typeof _catalogData !== 'undefined' && _catalogData) || null;
   var at = (data && data.generated_at) || '';
   if (!at) return '';
   try {
     var d = new Date(at);
     if (isNaN(d.getTime())) return '';
-    // 날짜 형식은 브라우저가 아니라 고른 언어를 따른다 (ko 화면에 "10/1/2026" 이 나왔다)
+    // Date format follows the chosen language, not the browser (otherwise a ko page shows "10/1/2026")
     var lang = (typeof DXI18n !== 'undefined' && DXI18n.lang) || undefined;
     try { return d.toLocaleDateString(lang); } catch (e2) { return d.toLocaleDateString(); }
   } catch (e) {
@@ -816,8 +810,8 @@ function _catalogGeneratedAt() {
   }
 }
 
-/* 수 + 이름. 수량사 (개 · 件 · 个 · 個) 로 시작하는 번역은 숫자에 붙인다 — "499개 모델" (release audit).
-   app.js 는 이렇게 그렸는데 여기서 다시 "499 개 모델" 로 덮어썼다. */
+/* Count + name. Translations starting with a CJK counter word attach to the number with no space,
+   matching app.js. */
 function _countLabel(n, key) {
   var tr = T(key);
   return /^[개件個个]/.test(tr) ? n + tr : n + ' ' + tr;
@@ -842,11 +836,10 @@ function updateCatalogHeading() {
     }
   }
   if (subtitleEl) {
-    /* 목록이 언제 만들어졌는지 함께 말한다. 개별 모델의 상세 화면은 이미 보여주지만,
-       "이 목록 전체가 낡았나" 를 묻는 자리는 여기다 — 그것을 말하지 않아 8일 묵은
-       카탈로그가 조용히 서빙된 적이 있다(2026-09-16).
-       언제 다시 동기화할지는 운영 판단이고, 여기서는 보이게만 한다.
-       계약: tests/dx_modelzoo/test_catalog_freshness.py */
+    /* Say when the list was built. Detail pages already show it per model, but this is where
+       "is this whole list stale?" gets asked. When to re-sync is an operator decision; this
+       only makes it visible.
+       Contract: tests/dx_modelzoo/test_catalog_freshness.py */
     var parts = [
       _countLabel(variantCount, 'model variants'),
       _countLabel(uniqueModelCount, 'unique models'),
@@ -874,7 +867,7 @@ function syncCatalogControls() {
   document.getElementById('btnListView')?.classList.toggle('active', _viewMode === 'list');
 }
 
-// 공개 API — 기존 호환 래퍼
+// Public API — compatibility wrappers
 
 function initCatalog(data) {
   if (!data) return;
@@ -1026,8 +1019,8 @@ function sortModels(models) {
       return (va - vb) * dir;
     }
     if (_sortField === 'accuracy') {
-      // 지표가 다르면 0 — 서로 순서를 만들지 않는다. Array.sort 는 안정 정렬이라
-      // 그 경우 원래 순서가 유지된다.
+      // Different metrics compare as 0 — no order between them. Array.sort is stable,
+      // so the original order is kept.
       return _compareAccuracy(a, b, _metricName) * dir;
     }
     return String(va).localeCompare(String(vb)) * dir;
@@ -1049,13 +1042,13 @@ function filterAndRender() {
 }
 
 function renderCardView(container, models) {
-  // 가상화 위임 — 내부 상태 사용, 레거시 인자는 호환성을 위해 유지
+  // Delegate to the virtualizer — uses internal state; legacy arguments kept for compatibility
   ModelZooVirtualCatalog._viewMode = 'card';
   ModelZooVirtualCatalog.renderViewport();
 }
 
 function renderListView(container, models) {
-  // 가상화 위임 — 내부 상태 사용, 레거시 인자는 호환성을 위해 유지
+  // Delegate to the virtualizer — uses internal state; legacy arguments kept for compatibility
   ModelZooVirtualCatalog._viewMode = 'list';
   ModelZooVirtualCatalog.renderViewport();
 }

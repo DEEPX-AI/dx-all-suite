@@ -1,19 +1,19 @@
 /**
- * DX Stream — 데모 런처
- * 데모 카드 렌더링, 시작/중지, WebRTC 연결
+ * DX Stream — demo launcher
+ * Renders demo cards, starts/stops demos, connects WebRTC
  */
 DXStream._runningDemoId = null;
 DXStream._startingDemo = false;
 
-/* 서버가 주는 /static/img/demo/… 는 모듈 기준 — launcher 안 (/stream/) 에서는 launcher 의 /static 으로 풀려 404 였다
-   (2026-10-02 release audit S-2). 모듈 접두어를 붙인다. */
+/* The server's /static/img/demo/… paths are module-relative; inside the launcher (/stream/) they would resolve
+   to the launcher's /static and 404, so add the module prefix. */
 function _thumbUrl(u) {
   if (!u) return '';
   var base = (window.DXStream && DXStream._base) || '';
   return u.charAt(0) === '/' && base && u.indexOf(base + '/') !== 0 ? base + u : u;
 }
 
-/* ── XSS 방지: HTML 특수문자 이스케이프 ── */
+/* ── XSS guard: escape HTML special characters ── */
 function _escHtml(s) {
     if (s == null) return '';
     return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
@@ -35,8 +35,8 @@ function _demoCatLabel(cat) {
     return t[DXStream.S.lang] || t.en || cat || '';
 }
 
-// task 아이콘은 Model Zoo · DX App 과 같은 한 표 (sprite 의 task-<key>, 아이콘 체계 단계 3). stream 만의
-// 묶음 (추적 · 멀티 스트림 · 2차 추론) 은 가까운 공용 아이콘으로.
+// Task icons share one table with Model Zoo · DX App (sprite task-<key>). Stream-only groups
+// (tracking · multi-stream · secondary inference) use the closest shared icon.
 var _DEMO_ICON = {
     segmentation: 'task-instance_segmentation', tracking: 'video', multi_stream: 'dashboard',
     secondary: 'task-attribute_recognition'
@@ -119,12 +119,12 @@ DXStream.demoInit = async function () {
     _mountDemoStage(demos);
 };
 
-// ── 결과 무대 (공통 shared/static/dx-demo-stage.js, spec 2026-10-01) ─────────────────────────
-// 예전에는 Start 를 누르면 영상이 card grid **아래** 에 생겨 scroll 해야 보였다. 이제 page 위쪽 무대에
-// 고른 demo 가 열리고 (Playback · RTSP · Start), 영상도 같은 자리에서 돈다. card 는 고르기만 한다.
-// 영상 상자 (#demo-video-section — <video id="webrtc-video"> · #webrtc-stats-overlay) 는 하나뿐이고,
-// 무대가 도는 demo 를 보여 줄 때만 media 로 옮기고 그 밖에는 숨은 #demo-video-park 에 둔다 — 늘 문서
-// 안에 있어야 webrtc-client 와 정리 코드가 id 로 찾는다.
+// ── Result stage (shared shared/static/dx-demo-stage.js) ─────────────────────────────────────
+// The chosen demo opens on the stage at the top of the page (Playback · RTSP · Start) and its video plays
+// there; cards only select. There is a single video box (#demo-video-section — <video id="webrtc-video"> ·
+// #webrtc-stats-overlay). It moves into the stage media only while the stage shows the running demo and
+// otherwise waits in the hidden #demo-video-park — it must stay in the document so webrtc-client and the
+// cleanup code can find it by id.
 function _demoItem(d) {
     var availability = d.availability || {};
     var items = availability.reason_items || [];
@@ -170,7 +170,7 @@ function _mountDemoStage(demos) {
         onSelect: function (item, stage) { _demoOpen(+item.id, stage); },
         onSetup: function () { DXStream.nav('setup'); }
     });
-    // 다시 그렸을 때 (언어 전환 등) 도는 demo 가 있으면 그것을 무대에
+    // On a re-render (language switch etc.), put the running demo back on the stage
     if (DXStream._runningDemoId != null) {
         DXStream._demoCtl.setRunning(String(DXStream._runningDemoId));
         DXStream._demoCtl.select(String(DXStream._runningDemoId));
@@ -604,7 +604,7 @@ function _clearStoppedDemoLaunchState(resp) {
 // WebRTC couldn't connect (remote/NAT/tunnel). Restart this demo forcing MJPEG on the server,
 // then show the MJPEG stream. Guarded so it only runs once per start.
 // A refused start: the server's sentence through translateServerError, plus the detail it sends
-// (which check failed and how). The toast used to print resp.error raw and drop the detail.
+// (which check failed and how), rather than resp.error raw.
 function _demoStartError(resp) {
     var tr = (typeof window.translateServerError === 'function') ? window.translateServerError : function (m) { return m; };
     var msg = tr(String((resp && resp.error) || T('Demo playback stopped.')));
@@ -622,7 +622,7 @@ DXStream._fallbackToMjpeg = async function (id) {
         try { if (DXStream.webrtc && DXStream.webrtc.disconnect) DXStream.webrtc.disconnect(); } catch (e) {}
         try { _stopFmp4(); } catch (e) {}
         DXStream.toast(T('WebRTC unavailable from here — switching to MJPEG…'), 'info');
-        // Same source as the first start: an RTSP demo's camera URL was lost here.
+        // Same source as the first start, so an RTSP demo keeps its camera URL.
         var first = (DXStream._demoStartBody || {})[id] || {};
         var retry = { forceMjpeg: true };
         if (first.video) retry.video = first.video;
@@ -682,14 +682,14 @@ DXStream._startDemo = async function (id) {
         _setPerfCmd(id);
         DXStream.toast(T('Demo started'), 'success');
 
-        // 무대: 이 demo 를 보여 주고 (다른 card 를 보고 있었다면 돌아온다) 영상 상자를 media 로
+        // Stage: show this demo (switching back if another card was selected) and move the video box into its media
         if (DXStream._demoCtl) {
             DXStream._demoCtl.setRunning(String(id));
             if (DXStream._demoCurrent !== id) DXStream._demoCtl.select(String(id));
             else _demoPaint(id);
         }
 
-        // 비디오 연결
+        // Connect video
         if (resp.output_mode === 'mjpeg' || resp.output_mode === 'webrtc' || resp.output_mode === 'fmp4') {
             var videoSection = DXStream.$('demo-video-section');
             if (resp.output_mode === 'mjpeg') {
@@ -738,7 +738,7 @@ DXStream._stopDemo = async function (id) {
         ? await DXStream.postJ('/api/demos/' + demoId + '/stop', {})
         : await DXStream.postJ('/api/pipeline/stop', {});
     if (resp && resp.error) {
-        // It used to say "Demo stopped" whatever the server answered.
+        // Report a refused stop instead of claiming the demo stopped.
         DXStream.toast(_demoStartError(resp), 'error');
         return;
     }
@@ -759,7 +759,7 @@ DXStream._demoSyncWithServer = function (st) {
 function _demoTearDown(demoId) {
     try { DXStream.webrtc.disconnect(); } catch (e) {}
 
-    // 비디오 정리
+    // Clean up video
     var videoSection = DXStream.$('demo-video-section');
     if (document.fullscreenElement === videoSection && document.exitFullscreen) {
         try { document.exitFullscreen().catch(function () {}); } catch (e) {}

@@ -1,16 +1,12 @@
 /* ═══════════════════════════════════════════════════════════════
-   DX App — Tutorial Definitions v2.1 (Audit Fix)
+   DX App — Tutorial Definitions
    12 sections, ~115 steps — 6-language (ko/en/ja/zh-CN/zh-TW/es)
-   Removed: dashboard, community, planner (separate apps)
-   Fixed: chat widget selectors (class-based)
-   Added: r-topk, r-alpha, export controls, compiler options,
-          notification drawer
    ═══════════════════════════════════════════════════════════════ */
 (function () {
   'use strict';
   function goPage(p) { if (typeof nav === 'function') nav(p); }
-  /* Setup 의 끝난 단계는 한 줄로 접혀 그 안의 버튼이 0 크기다 — 가리키기 전에 연다
-     (공용 단계 목록 shared/static/dx-steps.js, 아이콘 체계 단계 2a). */
+  /* A finished Setup step collapses to one line and its buttons have zero size, so open it before pointing at it
+     (shared step list: shared/static/dx-steps.js). */
   function _openSetupStep(id) {
     var root = document.getElementById('setup-steps');
     if (root && window.DXSteps) window.DXSteps.open(root, id);
@@ -104,8 +100,8 @@
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 
-  /* 카탈로그가 끝내 비어 있을 때만 쓰는 마지막 수단. innerHTML 만 쓰면 다음
-     mzRenderCart() 가 지우므로, 그것이 다시 그리지 않도록 표시를 남긴다. */
+  /* Last resort, used only when the catalog stays empty. Setting innerHTML alone would be
+     wiped by the next mzRenderCart(), so leave a mark that keeps it from redrawing. */
   function _mockModelzooCartFallback() {
     var cart = document.getElementById('mz-cart');
     if (!cart) return;
@@ -118,7 +114,7 @@
       + '</div>';
   }
 
-  /* 티어 모양은 MZ_CHIPS 에서 만든다. 손으로 적으면 이름이 바뀔 때 조용히 어긋난다. */
+  /* Build the tier shape from MZ_CHIPS; a hand-written one would silently drift when names change. */
   function _demoCartEntry(first) {
     var chips = (window.MZ_CHIPS || []).map(function (c) { return c.key; });
     if (!chips.length) chips = ['qlite', 'qpro'];
@@ -127,16 +123,15 @@
     return entry;
   }
 
-  /* nav('modelzoo') 는 initModelZoo() 를 부르는데 그것이 async 이고 await 되지
-     않는다. 모델이 아직 없으면 여기서 fallback 을 그리고, 잠시 뒤 fetch 가 끝나면서
-     initModelZoo() 의 mzRenderCart() 가 빈 MZ.cart 를 보고 방금 만든 카트를
-     display:none 으로 지웠다 — 스텝이 드물게 빨간불을 낸 이유다.
+  /* nav('modelzoo') calls initModelZoo(), which is async and not awaited. When there are
+     no models yet the fallback is drawn here; once the fetch finishes, initModelZoo()'s
+     mzRenderCart() would see the empty MZ.cart and hide the cart just built with
+     display:none, making the step fail now and then.
 
-     기다리지 않는다. beforeStep 에서 몇 초를 끌면 그 사이 스텝이 교체되어(저니
-     러너는 350ms 마다 Next 를 누른다) 오히려 floating 으로 떨어진다 — 한 번
-     그렇게 고쳤다가 되돌렸다. 대신 fallback 이 만든 카트에 표시를 남겨 나중의
-     mzRenderCart() 가 지우지 않게 한다.
-     계약: tests/dx_app/test_modelzoo_cart_demo.py */
+     Do not wait: stalling a few seconds in beforeStep lets the step be replaced meanwhile
+     (the journey runner presses Next every 350ms), which drops it to floating. Instead
+     the fallback cart carries a mark so a later mzRenderCart() leaves it alone.
+     Contract: tests/dx_app/test_modelzoo_cart_demo.py */
   function _prepModelzooCartDemo() {
     goPage('modelzoo');
     var cart = document.getElementById('mz-cart');
@@ -169,7 +164,7 @@
     return list;
   }
 
-  /* 연속 실행 요약의 투어용 미리보기 (실제 요약과 같은 perf-grid). 투어 중 언어를 바꾸면 다시 그린다. */
+  /* Tour preview of the continuous-run summary (the same perf-grid as the real one). Redrawn on a language switch during the tour. */
   function _contSummaryMock(el) {
     el.setAttribute('data-dxt-mock', '1');
     el.innerHTML = '<div class="perf-grid">' +
@@ -307,8 +302,8 @@
           title:{ ko: 'NMS IoU 임계값', en: 'NMS IoU Threshold', ja: 'NMS IoU しきい値', 'zh-CN': 'NMS IoU 阈值', 'zh-TW': 'NMS IoU 閾值', es: 'Umbral NMS IoU' },
           content:{ ko: '<strong>Non-Maximum Suppression</strong>의 IoU 임계값입니다. 겹치는 바운딩 박스를 제거하는 기준으로, 값이 낮을수록 더 공격적으로 중복을 제거합니다. Detection 전용 파라미터입니다.', en: '<strong>Non-Maximum Suppression</strong> IoU threshold. Controls overlapping bounding box removal. Lower = more aggressive dedup. Detection only.', ja: '<strong>Non-Maximum Suppression</strong>のIoUしきい値。重複するバウンディングボックスの除去を制御します。値が低いほど積極的に重複を除去します。Detection専用パラメータです。', 'zh-CN': '<strong>Non-Maximum Suppression</strong> IoU阈值。控制重叠边界框的去除。值越低去重越积极。仅用于Detection。', 'zh-TW': '<strong>Non-Maximum Suppression</strong> IoU閾值。控制重疊邊界框的去除。值越低去重越積極。僅用於Detection。', es: 'Umbral IoU de <strong>Non-Maximum Suppression</strong>. Controla la eliminación de cajas delimitadoras superpuestas. Un valor más bajo = deduplicación más agresiva. Solo Detection.' },
           beforeStep: function() { _showDetectParams(); } },
-        /* Top-K 줄은 분류 카테고리를 고를 때만 보인다. 카테고리 목록은 설치된 모델로 만들므로 분류 모델이 없으면
-           'classification' 을 고를 수 없었다 — 줄을 직접 보인다 (release audit A-20). 주석이 position 을 삼키고 있었다. */
+        /* The Top-K row only shows when a classification category is picked, and the category list comes from installed
+           models, so 'classification' may not be pickable without a classification model; show the row directly. */
         { target:'#r-topk', optionalTarget:true, position:'right',
           title:{ ko: 'Top-K 결과 수', en: 'Top-K Results', ja: 'Top-K 結果数', 'zh-CN': 'Top-K 结果数', 'zh-TW': 'Top-K 結果數', es: 'Resultados Top-K' },
           content:{ ko: '<strong>Classification</strong> 카테고리 선택 시 표시되는 슬라이더입니다. 상위 <strong>K개의 분류 결과</strong>를 표시합니다. 값이 클수록 더 많은 후보 클래스가 결과에 포함됩니다 (기본값: 5).', en: 'Slider shown when <strong>Classification</strong> category is selected. Displays the top <strong>K classification results</strong>. Higher values include more candidate classes (default: 5).', ja: '<strong>Classification</strong>カテゴリ選択時に表示されるスライダーです。上位<strong>K個の分類結果</strong>を表示します。値が大きいほどより多くの候補クラスが含まれます（デフォルト：5）。', 'zh-CN': '选择<strong>Classification</strong>分类时显示的滑块。显示前<strong>K个分类结果</strong>。值越大包含的候选类别越多（默认：5）。', 'zh-TW': '選擇<strong>Classification</strong>分類時顯示的滑桿。顯示前<strong>K個分類結果</strong>。值越大包含的候選類別越多（預設：5）。', es: 'Control deslizante que aparece al seleccionar la categoría <strong>Classification</strong>. Muestra los <strong>K mejores resultados de clasificación</strong>. Valores más altos incluyen más clases candidatas (predeterminado: 5).' },
@@ -389,7 +384,7 @@
         { target:'#c-summary', position:'top',
           title:{ ko: '성능 요약', en: 'Performance Summary', ja: '性能サマリー', 'zh-CN': '性能摘要', 'zh-TW': '效能摘要', es: 'Resumen de rendimiento' },
           content:{ ko: '연속 추론 종료 후 각 슬롯의 <strong>평균 FPS, 총 프레임 수, 처리 시간</strong> 등의 성능 요약이 표시됩니다.', en: 'After stopping, shows <strong>average FPS, total frames, processing time</strong> summary for each slot.', ja: '停止後、各スロットの<strong>平均FPS、総フレーム数、処理時間</strong>のサマリーが表示されます。', 'zh-CN': '停止后显示各槽位的<strong>平均FPS、总帧数、处理时间</strong>摘要。', 'zh-TW': '停止後顯示各插槽的<strong>平均FPS、總幀數、處理時間</strong>摘要。', es: 'Al detener, muestra un resumen de <strong>FPS promedio, fotogramas totales y tiempo de procesamiento</strong> por ranura.' },
-          /* 요약은 연속 실행을 멈춘 뒤에야 채워진다 — 비어 있으면 투어 동안만 모양을 보인다 (release audit A-20) */
+          /* The summary fills only after a continuous run stops; while empty, show its shape during the tour only */
           beforeStep: function() {
             var el = document.getElementById('c-summary');
             if (!el) return;
@@ -431,10 +426,10 @@
         { target:'#rundemo-root .dds-stage', position:'bottom',
           title:{ ko: '결과 무대', en: 'Result Stage', ja: '結果ステージ', 'zh-CN': '结果舞台', 'zh-TW': '結果舞台', es: 'Escenario de resultados' },
           content:{ ko: '왼쪽은 미리보기와 결과, 오른쪽은 <strong>Input</strong>(이미지/영상), <strong>Code</strong>(Python/C++), <strong>Mode</strong>(Sync/Async) 옵션과 <strong>{{i:play}} 실행 / {{i:stop}} 중지</strong>입니다. 모델이 설치되지 않은 데모는 여기서 Setup으로 가는 버튼을 보여 줍니다.', en: 'Preview and result on the left; on the right the <strong>Input</strong> (image/video), <strong>Code</strong> (Python/C++) and <strong>Mode</strong> (Sync/Async) options and <strong>{{i:play}} Run / {{i:stop}} Stop</strong>. A demo whose model isn&rsquo;t installed shows a button to Setup here instead.', ja: '左はプレビューと結果、右は<strong>Input</strong>（画像/動画）、<strong>Code</strong>（Python/C++）、<strong>Mode</strong>（同期/非同期）のオプションと<strong>{{i:play}} 実行 / {{i:stop}} 停止</strong>です。モデル未インストールのデモはここにSetupへのボタンを表示します。', 'zh-CN': '左侧是预览和结果，右侧是<strong>Input</strong>（图片/视频）、<strong>Code</strong>（Python/C++）、<strong>Mode</strong>（同步/异步）选项以及<strong>{{i:play}} 运行 / {{i:stop}} 停止</strong>。未安装模型的演示会在此显示前往 Setup 的按钮。', 'zh-TW': '左側是預覽和結果，右側是<strong>Input</strong>（圖片/影片）、<strong>Code</strong>（Python/C++）、<strong>Mode</strong>（同步/非同步）選項以及<strong>{{i:play}} 執行 / {{i:stop}} 停止</strong>。未安裝模型的示範會在此顯示前往 Setup 的按鈕。', es: 'Vista previa y resultado a la izquierda; a la derecha las opciones <strong>Input</strong> (imagen/video), <strong>Code</strong> (Python/C++) y <strong>Mode</strong> (Sync/Async) y <strong>{{i:play}} Ejecutar / {{i:stop}} Detener</strong>. Una demo sin modelo instalado muestra aquí un botón a Setup.' } },
-        { target:'#rundemo-root .dds-stage [data-axis-row="post"]', optionalTarget:true, position:'left',  // C++ 후처리가 있는 데모에서만
+        { target:'#rundemo-root .dds-stage [data-axis-row="post"]', optionalTarget:true, position:'left',  // only for demos with a C++ postprocess
           title:{ ko: 'C++ 후처리 토글', en: 'C++ Postprocess Toggle', ja: 'C++後処理トグル', 'zh-CN': 'C++ 后处理切换', 'zh-TW': 'C++ 後處理切換', es: 'Interruptor de postproceso C++' },
           content:{ ko: '<strong>Python</strong> 코드를 선택했을 때만 나타나는 토글로, 후처리를 <strong>C++로 오프로드</strong>할지 선택합니다. 켜면 Python 추론 결과를 C++ 후처리 라이브러리로 넘겨 처리 속도를 높일 수 있습니다.', en: 'Appears only when <strong>Python</strong> code is selected — toggles whether postprocessing is <strong>offloaded to C++</strong>. Turning it on hands the Python inference output to the C++ postprocess library for faster processing.', ja: '<strong>Python</strong>コード選択時のみ表示されるトグルで、後処理を<strong>C++にオフロード</strong>するかを選びます。オンにするとPython推論結果をC++後処理ライブラリに渡し、処理速度を高められます。', 'zh-CN': '仅在选择<strong>Python</strong>代码时出现的切换项，用于选择是否将后处理<strong>转由 C++ 处理</strong>。开启后会将 Python 推理结果交给 C++ 后处理库处理，以提升速度。', 'zh-TW': '僅在選擇<strong>Python</strong>程式碼時出現的切換項，用於選擇是否將後處理<strong>轉由 C++ 處理</strong>。開啟後會將 Python 推論結果交給 C++ 後處理函式庫處理，以提升速度。', es: 'Solo aparece cuando se selecciona código <strong>Python</strong>: alterna si el postprocesamiento se <strong>delega a C++</strong>. Al activarlo, la salida de la inferencia en Python se pasa a la librería de postproceso en C++ para mayor velocidad.' } },
-        { target:'#rundemo-root .dds-stage .dds-run', optionalTarget:true, position:'left',  // 준비된 데모가 있을 때만
+        { target:'#rundemo-root .dds-stage .dds-run', optionalTarget:true, position:'left',  // only when a demo is ready
           title:{ ko: '실행 버튼', en: 'Run Button', ja: '実行ボタン', 'zh-CN': '运行按钮', 'zh-TW': '執行按鈕', es: 'Botón Ejecutar' },
           content:{ ko: '<strong>{{i:play}} 실행</strong>을 클릭하면 선택한 조합으로 데모가 실행되고, 완료되면 결과 이미지·영상과 FPS가 <strong>무대의 같은 자리에</strong> 표시됩니다. 실행 중에는 <strong>{{i:stop}} 중지</strong>로 즉시 멈출 수 있습니다.', en: 'Click <strong>{{i:play}} Run</strong> to execute the demo with the chosen combination. Once done, the result image/video and FPS appear <strong>in the same place on the stage</strong> — no page navigation needed. Click <strong>{{i:stop}} Stop</strong> to cancel while it&rsquo;s running.', ja: '<strong>{{i:play}} 実行</strong>をクリックすると、選択した組み合わせでデモが実行されます。完了すると結果画像/動画とFPSが<strong>ステージの同じ場所</strong>に表示されます — ページ遷移は不要です。実行中は<strong>{{i:stop}} 停止</strong>でいつでも中断できます。', 'zh-CN': '点击<strong>{{i:play}} 运行</strong>即可用所选组合执行演示。完成后，结果图片/视频和FPS会<strong>显示在舞台的同一位置</strong> — 无需跳转页面。运行中点击<strong>{{i:stop}} 停止</strong>可随时取消。', 'zh-TW': '點擊<strong>{{i:play}} 執行</strong>即可用所選組合執行示範。完成後，結果圖片/影片和FPS會<strong>顯示在舞台的同一位置</strong> — 無需跳轉頁面。執行中點擊<strong>{{i:stop}} 停止</strong>可隨時取消。', es: 'Haga clic en <strong>{{i:play}} Ejecutar</strong> para correr la demo con la combinación elegida. Al terminar, la imagen/video de resultado y el FPS aparecen <strong>en el mismo lugar del escenario</strong> — sin necesidad de navegar. Haga clic en <strong>{{i:stop}} Detener</strong> para cancelar mientras se ejecuta.' } },
       ]

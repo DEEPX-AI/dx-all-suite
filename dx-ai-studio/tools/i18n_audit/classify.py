@@ -47,15 +47,13 @@ def _should_skip_stale_copy(record: AuditRecord, en: str) -> bool:
     if en.endswith("↗"):
         return True
     if en in {"Error", "Error:", "ERROR", "❌ Error", "❌ Error:", "Python", "CPU", "FPS", "ORT", "OBB", "PPU", "Pose", "Multi", "Hardware", "Zoom", "visible",
-                # Firmware 는 스페인어에서도 그대로 쓰는 외래어다 — 바로 옆의 Hardware 와
-                # 같은 경우다. 예전에는 'Firmware del dispositivo'(기기 펌웨어)로 늘려
-                # 적어 stale-copy 를 피하고 있었지만, 영어에 없는 말을 덧붙인 것이라
-                # 라벨이 2.6배 길어졌다(dashboard.js:563 의 메트릭 라벨). 올바른 번역이
-                # 영어와 같아지는 경우를 결함으로 세면 안 된다.
+                # Spanish keeps "Firmware" as a loanword, like "Hardware" next to it. A
+                # correct translation that equals the English must not count as a defect;
+                # padding it out to dodge stale-copy only makes the label longer.
                 "Firmware", "🔧 Firmware",
-                # Throughput 도 같다 — 스페인어 'Rendimiento' 는 Performance 와 겹쳐서
-                # 영어 기술 용어를 그대로 쓴다(FPS 처럼). 'Throughput' 한 낱말은 위의
-                # 짧은 낱말 규칙으로 이미 빠지고, 단위가 붙은 라벨만 여기서 뺀다.
+                # Same for "Throughput": Spanish 'Rendimiento' collides with Performance, so
+                # the English term stays (like FPS). The bare word is already skipped by the
+                # short-word rule above; only the label with a unit needs listing here.
                 "Throughput (FPS)"}:
         return True
     vals = {(record.texts.get(lang) or "").strip() for lang in LANGUAGES if (record.texts.get(lang) or "").strip()}
@@ -106,56 +104,56 @@ def classify_records(records: list[AuditRecord]) -> list[Finding]:
     return findings
 
 
-# ── 여기서부터: 칸이 채워졌는지가 아니라 **무엇이 채워졌는지** 를 본다 ────────────
+# ── From here on: not whether a cell is filled, but **what** it is filled with ──────
 #
-# classify_records / classify_stale_copy 는 빈 칸과 "영어 그대로" 만 잡는다. 그래서
-# 감사가 0건이어도 사용자는 어색한 화면을 볼 수 있다. 아래 셋은 기계가 확실히
-# 판정할 수 있는 것만 다룬다 — 문법이나 어투가 자연스러운지는 시도하지 않는다.
-# 그것은 원어민의 몫이고, 흉내 내면 지금의 0건보다 나쁜 가짜 안전감이 된다.
+# classify_records / classify_stale_copy catch only empty cells and copies of the
+# English, so a clean audit can still ship awkward screens. The three checks below
+# cover only what a machine can judge reliably; grammar and tone are left to native
+# speakers, since guessing at them would give false confidence.
 
-# 한 글자가 한 낱말 몫을 하는 표기. 길이 비교에서 제외한다 — 중국어/일본어는
-# 영어보다 **짧은** 것이 정상이라 같은 잣대를 대면 의미가 없다.
+# Scripts where one character carries a word. Skipped in the length check: Chinese and
+# Japanese are normally **shorter** than English, so the same ratio means nothing.
 _CJK_LANGS = ("zh-CN", "zh-TW", "ja")
 
-# 번역이 영어의 몇 배를 넘으면 UI 를 넘칠 위험으로 본다. 2.2 는 실측에서 고른 값:
-# 스페인어가 영어보다 20~30% 긴 것은 정상이고, 2.2배를 넘는 것은 대개 풀어쓴
-# 설명문이 버튼/라벨 자리에 들어간 경우였다.
+# A translation longer than this multiple of the English risks overflowing the UI. 2.2
+# was picked from measured copy: Spanish runs 20-30% longer than English as a rule, and
+# anything past 2.2x was usually an explanation sitting in a button or label.
 _LENGTH_RATIO = 2.2
-_LENGTH_MIN_DELTA = 14   # 짧은 문자열의 배수는 쉽게 튄다 — 절대 증가분도 본다
+_LENGTH_MIN_DELTA = 14   # ratios of short strings jump easily, so require an absolute increase too
 
 _PLACEHOLDER_RE = re.compile(r"\{[^}]*\}|%[sd]|\$\{[^}]*\}")
 
 
 def _skip_for_drift(text: str) -> bool:
-    """용어 불일치에서 건너뛸 말.
+    """Words the terminology-drift check skips.
 
-    `_is_brand_or_short` 를 그대로 쓸 수 없다. 그것은 "12자 이하이고 공백이 없는"
-    것을 전부 건너뛰는데, 그러면 'Dashboard' 나 'Settings' 같은 **한 낱말 용어가
-    통째로 빠진다** — 정작 화면마다 갈리기 쉬운 것이 그런 말이다. stale-copy 에는
-    맞는 규칙이지만 여기서는 정반대다.
+    `_is_brand_or_short` does not fit here: it skips everything of 12 characters or less
+    without spaces, which would drop **single-word terms** like 'Dashboard' or
+    'Settings' — exactly the words most likely to drift between screens. That rule is
+    right for stale-copy and wrong here.
 
-    여기서는 브랜드와 아주 짧은 약어만 뺀다.
+    Only brands and very short abbreviations are skipped.
     """
     t = (text or "").strip()
     if not t or t in BRAND_TERMS:
         return True
     if t.startswith("DX ") or t.startswith("DX-") or t.startswith("DXNN"):
         return True
-    # 'ID', 'OK', 'FPS' 처럼 짧은 약어는 문맥마다 달리 옮기는 것이 정상이다.
+    # Short abbreviations such as 'ID', 'OK', 'FPS' legitimately vary with context.
     if len(t) <= 3 or (t.isupper() and len(t) <= 6):
         return True
     return False
 
 
 def classify_terminology_drift(records: list[AuditRecord]) -> list[Finding]:
-    """같은 영어가 화면마다 다르게 번역된 것을 보고한다.
+    """Report English text that is translated differently on different screens.
 
-    Dashboard 가 어떤 화면에서는 仪表板, 다른 화면에서는 仪表盘 이면 둘 다 맞는
-    말이어도 제품은 조잡해 보인다. 문법 판정이 아니라 **일관성** 판정이므로
-    기계가 확실히 할 수 있다.
+    If Dashboard is 仪表板 on one screen and 仪表盘 on another, both are correct but the
+    product looks careless. This is a **consistency** check, not a grammar one, so a
+    machine can do it reliably.
 
-    짧거나 브랜드에 해당하는 말은 건너뛴다 — 'ID' 가 문맥에 따라 '아이디' 와
-    '식별자' 로 갈리는 것은 정상이다.
+    Short words and brand names are skipped: an abbreviation like 'ID' may be
+    translated differently depending on context.
     """
     by_en: dict[str, dict[str, set[str]]] = {}
     sources: dict[str, dict[str, set[str]]] = {}
@@ -192,11 +190,10 @@ def classify_terminology_drift(records: list[AuditRecord]) -> list[Finding]:
 
 
 def classify_length_overflow(records: list[AuditRecord]) -> list[Finding]:
-    """번역이 영어보다 지나치게 길어 UI 를 넘칠 위험을 보고한다.
+    """Report translations so much longer than the English that they may overflow the UI.
 
-    줌 감사는 레이아웃을 보지만 **번역 길이** 는 보지 않는다. 라벨이 두 배 넘게
-    길어지면 버튼이 줄바꿈되거나 잘린다 — 이번 세션에 ACTIONS 열이 71px 늘어
-    표 전체가 밀린 것과 같은 종류다.
+    The zoom audit checks layout but not **translation length**. A label more than twice
+    as long wraps or gets clipped, and a widened column can push a whole table over.
     """
     findings: list[Finding] = []
     for record in records:
@@ -223,11 +220,11 @@ def classify_length_overflow(records: list[AuditRecord]) -> list[Finding]:
 
 
 def classify_placeholder_mismatch(records: list[AuditRecord]) -> list[Finding]:
-    """번역이 {n} 같은 자리표시자를 잃거나 바꾼 것을 보고한다.
+    """Report translations that drop or rename a placeholder such as {n}.
 
-    잃으면 값이 사라지고(사용자는 'Found  models' 를 본다), 이름이 바뀌면 포맷이
-    터진다. 실측 시점에는 0건이었으나, 0 을 계약으로 고정해 두지 않으면 다음
-    번역 추가 때 조용히 들어온다.
+    A dropped placeholder loses the value (the user sees 'Found  models'); a renamed one
+    breaks formatting. Holding the count at zero keeps new translations from slipping
+    one in silently.
     """
     findings: list[Finding] = []
     for record in records:

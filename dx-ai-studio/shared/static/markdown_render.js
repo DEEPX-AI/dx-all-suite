@@ -145,7 +145,7 @@
 
     html = html.replace(/`([^`\n]+)`/g, '<code class="md-inline-code">$1</code>');
     html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, function (_, label, url) {
-      /* agent 가 쓴 글이다 — javascript: 같은 scheme 은 link 로 만들지 않는다 (http · https · 상대 경로만). */
+      /* Agent-written text — schemes like javascript: never become links (http · https · relative paths only). */
       var raw = String(url).trim();
       if (/^[a-z][a-z0-9+.-]*:/i.test(raw) && !/^https?:/i.test(raw)) return label;
       var safeUrl = escapeHtml(raw).replace(/"/g, '&quot;');

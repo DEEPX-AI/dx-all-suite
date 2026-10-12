@@ -80,8 +80,8 @@ def resolve_launch_context(module: str, *, state_store: Optional[RuntimeStateSto
     """The launch context for ``module`` exactly when the launch gate allows it.
 
     The gate allows dx_stream when the journal is ACTIVE *or* when Stream's own contracts validate live;
-    the context used to accept only the first, so every Stream launch on a board that never ran the
-    managed runtime transaction failed with ``profile.context`` (2026-10-02 release audit S-1)."""
+    the context must accept both, or a board that never ran the managed runtime transaction could not
+    launch Stream at all (``profile.context``)."""
     from shared.runtime_gate import module_start_policy
     policy = module_start_policy(module, state_store)
     if not policy.allowed:

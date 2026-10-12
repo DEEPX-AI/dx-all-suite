@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""dx_app inference API로 340개 모델 썸네일/예제 이미지 생성.
+"""Generate thumbnails/example images for the models through the dx_app inference API.
 
-사전 조건: dx_app 서버가 localhost:8080에서 실행 중이어야 함.
+Prerequisite: the dx_app server must be running on localhost:8080.
 Usage: python3 generate_thumbnails.py [--dry-run] [--model MODEL_ID]
 """
 import sys, json, base64, os, time, shutil
@@ -27,7 +27,7 @@ PY_LANG_CATEGORIES = {
 
 
 def run_inference_api(model_name, category, model_file):
-    """dx_app /api/run 엔드포인트 호출."""
+    """Call the dx_app /api/run endpoint."""
     image_path = MODEL_IMAGE_OVERRIDE.get(model_name, SAMPLE_IMAGES.get(category, ""))
     payload_d = {
         "model_name": model_name,
@@ -49,7 +49,7 @@ def run_inference_api(model_name, category, model_file):
 
 
 def save_base64_image(b64_str, path):
-    """base64 문자열을 이미지 파일로 저장."""
+    """Save a base64 string as an image file."""
     path.parent.mkdir(parents=True, exist_ok=True)
     data = base64.b64decode(b64_str)
     path.write_bytes(data)
@@ -102,11 +102,11 @@ def generate(dry_run=False, single_model=None, only_missing=False):
             failed.append(mid)
             continue
 
-        # 썸네일 (결과 이미지 = 썸네일)
+        # Thumbnail (the result image is the thumbnail)
         save_base64_image(img_b64, THUMB_DIR / f"{mid}.jpg")
         save_base64_image(img_b64, EXAMPLE_DIR / f"{mid}_result.jpg")
 
-        # before_after/overlay: 원본 이미지도 복사
+        # before_after/overlay: also copy the original image
         if ex_type in ("before_after", "overlay"):
             sample = SAMPLE_IMAGES.get(cat, "")
             src = DX_APP_ROOT / sample

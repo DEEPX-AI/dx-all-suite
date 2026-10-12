@@ -1,16 +1,16 @@
-/* ─── DX AI Studio — Setup 단계 목록 (공용) ────────────────────────────────
-   spec: docs/superpowers/specs/2026-09-29-studio-icon-system-design.md §4 단계 2
+/* ─── DX AI Studio — Setup step list (shared) ──────────────────────────────
 
-   app · stream 의 Setup 페이지와 compiler 의 Setup 칸이 같은 부품을 쓴다.
-   - 위: "N of M ready" · 단계마다 한 칸인 막대 · 할 일을 한 번에 하는 버튼 하나.
-   - 목록: 번호 동그라미를 선으로 이은 세로 순서. 끝난 단계는 한 줄로 접히고, 첫 번째로 끝나지 않은
-     단계 ("다음") 만 펼쳐진다 — 파란 버튼은 거기에만 있다. 접힌 줄을 누르면 세부가 열린다.
-   - 상태 (data-state): done · todo · running · failed · blocked. 모양 + 색 + 말로 (색만으로 가르지
-     않는다).
-   - compact (compiler): 모두 끝나면 카드 전체가 한 줄 ("Setup ready") 로 접힌다.
+   The app and stream Setup pages and the compiler's Setup panel share this component.
+   - Top: "N of M ready" · a bar with one segment per step · one button that does the remaining work.
+   - List: a vertical sequence of numbered circles joined by a line. Finished steps collapse to one line;
+     only the first unfinished step ("next") expands — the blue button lives only there. Clicking a
+     collapsed row opens its details.
+   - State (data-state): done · todo · running · failed · blocked. Shown by shape + colour + words (never
+     colour alone).
+   - compact (compiler): when everything is done the whole card collapses to one line ("Setup ready").
 
-   모듈 JS 는 상태만 알려 준다 — DXSteps.set(root, id, state, { facts, detail }). 나머지 (다음 단계,
-   막대, 버튼 글자, 접기) 는 여기서 계산한다.
+   Module JS only reports state — DXSteps.set(root, id, state, { facts, detail }). Everything else (next step,
+   bar, button text, collapsing) is computed here.
 
      <section class="dx-steps" data-steps>
        <header class="dx-steps-head">…<b data-steps-count></b>…<div class="dx-steps-bar"></div>
@@ -21,19 +21,19 @@
            <div class="dx-step-body">
              <div class="dx-step-row"><h3 class="dx-step-title">…</h3><span class="dx-step-facts"></span>
                <span class="dx-step-state"></span></div>
-             <div class="dx-step-more">설명 · 명령 · 버튼 · 로그 (펼쳤을 때만)</div>
+             <div class="dx-step-more">description · command · buttons · log (only when expanded)</div>
            </div>
          </li>
        </ol>
      </section>
 
-   계약: tests/shared/test_setup_steps.py, test_setup_steps_browser.py */
+   Contract: tests/shared/test_setup_steps.py, test_setup_steps_browser.py */
 (function () {
   'use strict';
 
   var STATES = ['done', 'todo', 'running', 'failed', 'blocked'];
 
-  /* 이 부품의 말 (hw_widget 과 같은 방식 — 모듈 사전마다 복사하지 않는다). */
+  /* This component's own text (as in hw_widget — not copied into every module dictionary). */
   var DICT = {
     'Ready': { ko: '준비됨', ja: '準備完了', 'zh-CN': '就绪', 'zh-TW': '就緒', es: 'Listo' },
     'Needs setup': { ko: '설치 필요', ja: 'セットアップが必要', 'zh-CN': '需要安装', 'zh-TW': '需要安裝', es: 'Requiere instalación' },
@@ -74,7 +74,7 @@
     }
   }
 
-  /* 모든 것을 상태에서 다시 계산한다 — 누가 set 을 불렀든 화면이 한 규칙을 따른다. */
+  /* Recompute everything from state — whoever called set, the screen follows one rule. */
   function refresh(root) {
     if (!root) return;
     var steps = _steps(root);
@@ -86,7 +86,7 @@
     steps.forEach(function (li, i) {
       _paintStep(li, i, lastDone + 1);
       li.classList.toggle('is-next', li === next);
-      /* 펼침: 다음 단계 · 진행 중 · 실패, 또는 사람이 연 줄. */
+      /* Expanded: the next step, running, failed, or a row the user opened. */
       var open = li === next || li.dataset.state === 'running' || li.dataset.state === 'failed' || li.dataset.pinned === '1';
       li.classList.toggle('is-open', open);
       var row = li.querySelector('.dx-step-row');
@@ -108,8 +108,8 @@
     var left = steps.length - ready;
     if (run) {
       run.hidden = left === 0;
-      /* 글자는 두 방식: 부품이 쓰는 문장 ([data-steps-run-label]) 이나, 모듈 사전의 라벨 + 개수만
-         ([data-steps-left] — 라벨은 모듈의 data-i18n 이 번역한다). */
+      /* Two ways to label: a sentence this component writes ([data-steps-run-label]), or a label from the
+         module dictionary plus just the count ([data-steps-left] — the module's data-i18n translates the label). */
       var label = run.querySelector('[data-steps-run-label]');
       if (label) label.textContent = _t('Set up the rest ({n})', { n: left });
       var leftEl = run.querySelector('[data-steps-left]');
@@ -120,7 +120,7 @@
     root.dispatchEvent(new CustomEvent('dx-steps-change', { detail: { ready: ready, total: steps.length } }));
   }
 
-  /* 상태 하나를 알린다. facts: 한 줄에 남는 짧은 사실들 (버전 · 부품). */
+  /* Report one step's state. facts: short facts kept on the collapsed line (version · component). */
   function set(root, id, state, opts) {
     if (!root || STATES.indexOf(state) === -1) return;
     var li = root.querySelector('.dx-step[data-step="' + id + '"]');
@@ -145,7 +145,7 @@
     refresh(root);
   }
 
-  /* 접힌 단계를 연다 (튜토리얼이 그 안의 버튼을 가리키기 전에). 닫는 것은 사람이 줄을 눌러서. */
+  /* Open a collapsed step (before the tutorial points at a button inside it). Only the user closes it, by clicking the row. */
   function open(root, id) {
     var li = root && root.querySelector('.dx-step[data-step="' + id + '"]');
     if (!li) return;
@@ -157,7 +157,7 @@
     if (!root || root.dataset.stepsMounted === '1') return;
     root.dataset.stepsMounted = '1';
     root.addEventListener('click', function (e) {
-      /* 접힌 줄을 누르면 세부를 연다 (버튼 · 링크를 누른 것은 제외). */
+      /* Clicking a collapsed row opens its details (clicks on buttons and links excepted). */
       if (e.target.closest('button, a, input, select, textarea, label')) return;
       var row = e.target.closest('.dx-step-row');
       if (!row) return;

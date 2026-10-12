@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-venv Python으로 실행되는 독립 컴파일 워커.
-stdin에서 JSON 파라미터를 읽고, event_queue 이벤트를 stdout JSON으로 출력한다.
+Standalone compile worker, run by the venv Python.
+Reads JSON parameters from stdin and writes event_queue events to stdout as JSON.
 
-사용법:
+Usage:
   echo '{"model":"/path/model.onnx","config":"/path/config.json",...}' | \
     /path/to/venv/bin/python3 compile_worker.py
 """
@@ -13,8 +13,8 @@ import sys
 import threading
 import traceback
 
-# compile_worker.py가 패키지 외부(venv Python)에서 실행될 때도
-# dx_compiler.* import가 동작하도록 프로젝트 루트를 sys.path에 추가한다.
+# Put the project root on sys.path so dx_compiler.* imports work even when the
+# venv Python runs this file from outside the package.
 from pathlib import Path
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 if str(_PROJECT_ROOT) not in sys.path:
@@ -28,7 +28,7 @@ EVENT_PREFIX = "__DXEVENT__"
 
 
 def event_to_dict(event) -> dict:
-    """PhaseEvent 객체를 JSON-serializable dict로 변환"""
+    """Convert a PhaseEvent into a JSON-serializable dict."""
     result = {"phase": str(getattr(event, "phase", "")),}
     meta = getattr(event, "metadata", None)
     if meta:

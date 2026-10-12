@@ -1,17 +1,14 @@
-"""intro 의 Stream 장면을 굽는다 — 실제 영상 16채널 + DX-M1 이 낸 실제 detection.
+"""Bake the intro Stream scene: 16 channels of real video plus real detections from DX-M1.
 
-spec: docs/superpowers/specs/2026-09-30-intro-stream-scene-design.md
+All 16 tiles share one color grade (the wall) so mixed sources look like one system, and boxes are stored as
+coordinates (detections.json) rather than baked into the image, so the page draws and animates them itself.
 
-옛 make_scenes.py (2026-09-30 지움) 가 사진을 쓰지 않은 이유는 둘이었다 — 사진마다 톤이 제각각이고, 가진 사진에는 AI
-overlay 가 이미 구워져 있었다. 여기서는 둘 다 풀린다: 16칸에 grade 를 하나로 입히고 (wall), box 는
-구운 그림이 아니라 좌표 (detections.json) 로 두어 화면이 직접 그리고 움직인다.
-
-소재는 dx_stream demo 가 쓰는 DEEPX 공식 sample 영상 묶음이다 (repo 에 넣지 않는다):
+The source is the official DEEPX sample video bundle the dx_stream demos use (not kept in the repo):
 
     curl -s https://sdk.deepx.ai/res/video/sample_videos.tar.gz | tar -xz -C <videos>
 
-추론은 공식 Model Zoo yolov5-s 320 을 dx_app 예제의 factory (pre/post processor, 기본 threshold)
-그대로 DX-M1 에서 돌린다. dx_engine 과 NPU 가 있는 runtime venv 로 실행한다:
+Inference runs the official Model Zoo yolov5-s 320 on DX-M1 through the dx_app example's factory (pre/post
+processor, default threshold), unchanged. Run it with the runtime venv that has dx_engine and the NPU:
 
     dx-runtime/venv-dx-runtime/bin/python3 scripts/intro/bake_stream.py \\
         --videos <videos> --model <yolov5-s_320x320.dxnn> [--bench]
@@ -36,18 +33,18 @@ EXAMPLES = SUITE / "dx-runtime" / "dx_app" / "src" / "python_example"
 OUT = STUDIO / "launcher" / "static" / "img" / "intro" / "stream"
 SOURCE_PACK = "https://sdk.deepx.ai/res/video/sample_videos.tar.gz"
 
-# (영상, 초) — 4×4 를 행 순서로. 같은 영상을 두 번 쓸 때는 시점과 구도가 다른 순간을 고른다.
+# (video, seconds), 4×4 in row order. When a video is used twice, pick moments with a different view and framing.
 SHOTS = [
     ("dron-citry-road.mov", 3), ("cctv-city-road2.mov", 2), ("blackbox-city-road.mp4", 1), ("dance-group.mov", 3),
     ("carrierbag.mp4", 2), ("cctv-city-road.mov", 6), ("dron-citry-road2.mov", 2), ("dogs.mp4", 2),
     ("blackbox-city-road2.mov", 9), ("dance-solo.mov", 4), ("cctv-city-road2.mov", 8), ("dron-citry-road.mov", 12),
     ("dance-group2.mov", 10), ("dron-citry-road2.mov", 5), ("carrierbag.mp4", 5), ("blackbox-city-road2.mov", 3),
 ]
-HERO = 1          # 교차로 — 위에서 내려다보는 CCTV 앵글, 큰 차량을 이 model 이 잘 잡는다
+HERO = 1          # intersection: top-down CCTV angle, large vehicles this model detects well
 COLS = ROWS = 4
-STAGE = (1600, 1000)   # 화면 좌표계 (16:10). 화면은 이 무대를 cover 로 채운다
-GAP = 2                # 칸 사이 (무대 단위)
-SCALE = 1.5            # atlas 해상도 = 무대 × SCALE
+STAGE = (1600, 1000)   # screen coordinates (16:10); the page covers its area with this stage
+GAP = 2                # gap between tiles (stage units)
+SCALE = 1.5            # atlas resolution = stage × SCALE
 TILE = ((STAGE[0] - GAP * (COLS - 1)) / COLS, (STAGE[1] - GAP * (ROWS - 1)) / ROWS)
 
 
@@ -70,7 +67,7 @@ def cover(img: np.ndarray, ratio: float) -> np.ndarray:
 
 
 def _duotone_lut() -> np.ndarray:
-    """회색 0–255 → 남색 · 중간 청색 · 차가운 흰색 사이를 잇는 256 색 (RGB)."""
+    """Gray 0–255 → 256 colors (RGB) running from navy through mid blue to cool white."""
     black, mid, white = np.array((3, 8, 20)), np.array((38, 66, 100)), np.array((205, 225, 240))
     g = np.arange(256)[:, None]
     lo = black + (mid - black) * (g / 127)
@@ -82,10 +79,10 @@ _LUT = _duotone_lut()
 
 
 def grade(bgr: np.ndarray) -> np.ndarray:
-    """16칸을 한 system 의 시선으로 묶는 grade — 남색 duotone 에 원색 18% 를 남긴다 (BGR in/out)."""
+    """The grade that makes 16 tiles read as one system: a navy duotone keeping 18% of the original color (BGR in/out)."""
     rgb = bgr[..., ::-1].astype(np.float32)
     lum = rgb @ np.array([0.299, 0.587, 0.114], dtype=np.float32)
-    base = np.clip(lum.mean() + (rgb - lum.mean()) * 1.25, 0, 255)             # 대비 1.25
+    base = np.clip(lum.mean() + (rgb - lum.mean()) * 1.25, 0, 255)             # contrast 1.25
     gray = np.clip(base @ np.array([0.299, 0.587, 0.114], dtype=np.float32), 0, 255).astype(np.uint8)
     out = (_LUT[gray] * 0.82 + base * 0.18) * 0.85
     return np.clip(out, 0, 255).astype(np.uint8)[..., ::-1]

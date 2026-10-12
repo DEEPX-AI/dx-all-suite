@@ -1,8 +1,5 @@
 #!/usr/bin/env python3
-"""DX Stream 웹 서버 — 포트 8093.
-
-DXBaseHandler 기반 마이그레이션.
-"""
+"""DX Stream web server — port 8093, built on DXBaseHandler."""
 from __future__ import annotations
 
 import json
@@ -29,7 +26,7 @@ from shared.shell import ShellSpec
 log = logging.getLogger(__name__)
 WEBRTC_INITIAL_ERROR_TIMEOUT = 0.25
 
-# GStreamer 의존 모듈 — 선택적 임포트
+# GStreamer-dependent modules are optional: the server still serves pages without them
 _pipeline_mgr = None
 _webrtc_handler = None
 try:
@@ -40,11 +37,11 @@ try:
 except Exception:
     pass
 
-# 공유 재생 상태
+# Shared playback state
 _playback_lock = threading.RLock()
 _current_output_mode = None
 _current_pipeline_id = None
-_current_demo_id = None   # 실행 중인 demo (대시보드가 이름을 보인다, release audit S-15)
+_current_demo_id = None   # demo now playing (the dashboard shows its name)
 
 def _active_stream_context() -> tuple[ContractResult, object | None]:
     """Resolve the validated profile context shared by every Stream launch path."""
@@ -53,7 +50,8 @@ def _active_stream_context() -> tuple[ContractResult, object | None]:
         assert policy.reason is not None
         return ContractResult((policy.reason,)), None
     try:
-        # degraded 허용 (Stream 계약이 지금 통과) 이면 journal 이 ACTIVE 가 아니어도 같은 사실로 context 를 만든다 (S-1)
+        # When degraded launch is allowed (the Stream contract passes now), build the context from the same facts
+        # even if the journal is not ACTIVE
         return ContractResult(()), resolve_active_runtime_context(allow_unjournaled=policy.degraded)
     except RuntimeContextError as exc:
         return ContractResult((ContractCheck(
@@ -66,7 +64,7 @@ def _active_stream_context() -> tuple[ContractResult, object | None]:
 
 
 def _contract_failure_detail(failure: ContractCheck) -> str:
-    # check_id 는 message 에 이미 있다 — 예전에는 'profile.context profile.context: …' 로 두 번 나왔다 (release audit S-7)
+    # check_id is already part of the message, so it is not repeated here
     return " — ".join(p for p in (failure.observed, failure.remediation) if p)
 
 
@@ -115,7 +113,7 @@ def _deepx_element_types(body: object) -> set[str]:
 
 
 def _check_webrtc_available() -> bool:
-    """WebRTC 스트리밍 가능 여부 (gstreamer1.0-nice 설치 확인)."""
+    """Whether WebRTC streaming is available (gstreamer1.0-nice installed)."""
     try:
         from dx_stream.core.pipeline import Gst as _G
         if _G is None:
@@ -126,7 +124,7 @@ def _check_webrtc_available() -> bool:
 
 
 def _stop_all_playback() -> None:
-    """WebRTC + MJPEG 양쪽 백엔드를 모두 중지한다."""
+    """Stop both the WebRTC and MJPEG backends."""
     global _current_output_mode, _current_pipeline_id, _current_demo_id
     with _playback_lock:
         if _pipeline_mgr is not None:
@@ -150,8 +148,8 @@ def _stop_all_playback() -> None:
 
 
 def _playback_running() -> bool:
-    """WebRTC · MJPEG · fMP4 중 무엇으로든 재생 중인가 — 예전 /api/pipeline/status 는 WebRTC 만 보아,
-    MJPEG 로 돌고 있는 demo 를 대시보드가 Idle 이라고 했다."""
+    """Whether anything is playing over WebRTC, MJPEG or fMP4. Checking WebRTC alone would report a demo
+    running over MJPEG as Idle."""
     if _pipeline_mgr is not None and _pipeline_mgr.is_running():
         return True
     try:
@@ -190,7 +188,7 @@ def _demo_launch_failure_payload(attempted_modes: list[str], demo: dict | None =
 
 
 def _apply_webrtc_payload_types(encoder: dict, payload_types) -> dict:
-    """브라우저가 offer에서 사용할 RTP payload type을 encoder 설정에 반영한다."""
+    """Apply the RTP payload types the browser offered to the encoder settings."""
     adjusted = dict(encoder)
     if not isinstance(payload_types, dict):
         return adjusted
@@ -226,7 +224,7 @@ def _webrtc_enabled() -> bool:
 
 
 def _try_start_webrtc_pipeline(pipeline_str: str, extra_env: dict | None = None) -> str | None:
-    """WebRTC 파이프라인 시작을 시도한다. 성공 시 pipeline_id 반환, 실패 시 None."""
+    """Try to start a WebRTC pipeline. Return its pipeline_id, or None on failure."""
     global _current_output_mode, _current_pipeline_id
     with _playback_lock:
         if not _webrtc_enabled():
@@ -265,9 +263,9 @@ _chat_engine = ChatEngine(
 
 
 
-# ── 통합 App Shell (Option A) ──────────────────────────────────
-# 좌측 240px 사이드바를 없애고 페이지 8개를 상단 탭 행으로 올렸다.
-# 라벨은 영어 원문 = i18n 사전 키. 아이콘 id는 shared/static/dx-icons.svg.
+# ── Shared App Shell ──────────────────────────────────────────
+# The eight pages are tabs in the top row (no sidebar).
+# Labels are the English text, which is also the i18n dictionary key. Icon ids come from shared/static/dx-icons.svg.
 DX_STREAM_PAGES = (
     ("setup", "Setup", "setup"),
     ("dashboard", "Dashboard", "dashboard"),
@@ -279,9 +277,9 @@ DX_STREAM_PAGES = (
     ("reference", "Reference", "book"),
 )
 
-# 파이프라인 상태 배지는 dx_stream 고유 컨트롤이라 공유 헤더의 .toolbar 슬롯
-# 안으로 넣는다. 밖에 두면 DXToolbar가 만드는 버튼들과 정렬이 어긋난다.
-# 언어별 sibling span 은 레거시 i18n 경로 — Phase 7에서 data-i18n 으로 바뀐다.
+# The pipeline status badge is specific to dx_stream, so it goes inside the shared header's .toolbar slot.
+# Outside it, it would not line up with the buttons DXToolbar creates.
+# The per-language sibling spans are the legacy i18n path (data-i18n is the newer one).
 _PIPELINE_BADGE = (
     '<span class="stream-badge" id="pipeline-status">'
     '<span class="ko">대기</span><span class="en">Idle</span>'
@@ -298,7 +296,7 @@ DX_STREAM_SHELL = ShellSpec(
 )
 
 class DXStreamHandler(DXBaseHandler):
-    """DX Stream HTTP 요청 핸들러."""
+    """DX Stream HTTP request handler."""
 
     server_name = SERVER_NAME
     static_dir = STATIC_DIR
@@ -307,14 +305,14 @@ class DXStreamHandler(DXBaseHandler):
     log_silent = True
 
     def _error(self, code: int, error: str, message: str, detail: str = ""):
-        """에러 JSON 응답 (원본 포맷 유지)."""
+        """JSON error response (keeps the original format)."""
         payload = {"error": error, "message": message}
         if detail:
             payload["detail"] = detail
         self.send_json(payload, code)
 
     def _sse(self, generator):
-        """SSE 스트림 응답."""
+        """Server-Sent Events stream response."""
         self.start_sse()
         try:
             for line in generator:
@@ -326,7 +324,7 @@ class DXStreamHandler(DXBaseHandler):
             self.end_sse()
 
     def _safe_read_json(self):
-        """JSON body 파싱. 실패 시 에러 응답 후 None 반환."""
+        """Parse the JSON body. On failure, send an error response and return None."""
         try:
             return self.read_json_body()
         except RequestBodyError:
@@ -336,7 +334,7 @@ class DXStreamHandler(DXBaseHandler):
             return None
 
     def _drain_request_body(self) -> None:
-        """본문을 사용하지 않는 POST에서도 keep-alive 잔여 바이트를 제거한다."""
+        """Drain the body of a POST that ignores it, so leftover bytes do not break keep-alive."""
         try:
             length = int(self.headers.get("Content-Length", 0))
         except (AttributeError, TypeError, ValueError):
@@ -373,7 +371,7 @@ class DXStreamHandler(DXBaseHandler):
             if path == "/api/elements":
                 return self.send_json(elements.get_elements())
             if path == "/api/pipeline/assets":
-                # 모델, 비디오, 라이브러리, 설정 목록 — 속성 드롭다운용
+                # Models, videos, libraries and configs for the property dropdowns
                 from dx_stream.core.config import MODELS_DIR, VIDEOS_DIR, CONFIGS_DIR
                 import glob as _glob
                 _models = sorted([f.name for f in MODELS_DIR.iterdir()
@@ -390,7 +388,7 @@ class DXStreamHandler(DXBaseHandler):
                     "models": _models,
                     "videos": _videos,
                     "libraries": _libs,
-                    # 라이브러리별 function-name 후보 (S-18)
+                    # function-name candidates per library
                     "functions": {lib: exported_functions(_lib_dir / lib) for lib in _libs},
                     "configs": _configs,
                     "models_dir": str(MODELS_DIR),
@@ -557,7 +555,7 @@ class DXStreamHandler(DXBaseHandler):
         self.route_legacy()
 
     def _handle_model_metadata(self, path: str):
-        """모델 메타데이터 반환."""
+        """Return model metadata."""
         from dx_stream.core.metadata import get_model_metadata
         from dx_stream.core.config import MODELS_DIR
         parts = path.split("/")
@@ -572,7 +570,7 @@ class DXStreamHandler(DXBaseHandler):
         self.send_json(result)
 
     def _handle_demo_start(self, path: str):
-        """데모 파이프라인 시작 — WebRTC 우선, MJPEG 폴백."""
+        """Start a demo pipeline — WebRTC first, MJPEG as fallback."""
         global _current_output_mode, _current_pipeline_id, _current_demo_id
         attempted_modes: list[str] = []
         playback_stopped = False
@@ -709,7 +707,7 @@ class DXStreamHandler(DXBaseHandler):
             self._error(500, "pipeline_error", "Unable to prepare the demo pipeline.")
 
     def _handle_demo_stop(self, path: str):
-        """데모 파이프라인 중지 — 양쪽 백엔드 모두 정리."""
+        """Stop the demo pipeline and clean up both backends."""
         self._drain_request_body()
         parts = path.split("/")
         try:
@@ -725,7 +723,7 @@ class DXStreamHandler(DXBaseHandler):
             self._error(500, "pipeline_error", str(e))
 
     def _handle_mjpeg_stream(self):
-        """MJPEG 스트리밍 — multipart/x-mixed-replace 응답."""
+        """MJPEG streaming as a multipart/x-mixed-replace response."""
         from dx_stream.core import mjpeg
         if not mjpeg.is_streaming():
             self._error(503, "unavailable", "No active stream")
@@ -768,7 +766,7 @@ class DXStreamHandler(DXBaseHandler):
             pass
 
     def _handle_mjpeg_snapshot(self):
-        """현재 프레임 1장 반환 (JPEG)."""
+        """Return the current frame as one JPEG."""
         from dx_stream.core import mjpeg
         frame = mjpeg.get_latest_frame()
         if frame is None:
@@ -800,7 +798,7 @@ class DXStreamHandler(DXBaseHandler):
             self._error(500, "webrtc_error", str(e))
 
     def _handle_webrtc_ice(self):
-        """WebRTC ICE candidate 추가."""
+        """Add a WebRTC ICE candidate."""
         body = self._safe_read_json()
         if body is None:
             return
@@ -819,7 +817,7 @@ class DXStreamHandler(DXBaseHandler):
             self._error(500, "webrtc_error", str(e))
 
     def _handle_pipeline_validate(self):
-        """파이프라인 JSON 정의를 검증하고 gst-launch 문자열 반환."""
+        """Validate a pipeline JSON definition and return its gst-launch string."""
         body = self._safe_read_json()
         if body is None:
             return
@@ -864,7 +862,7 @@ class DXStreamHandler(DXBaseHandler):
         return out
 
     def _handle_pipeline_run(self):
-        """파이프라인 JSON 정의로 파이프라인 시작 — WebRTC 우선, MJPEG 폴백."""
+        """Start a pipeline from its JSON definition — WebRTC first, MJPEG as fallback."""
         global _current_output_mode, _current_pipeline_id
         attempted_modes = []
         playback_stopped = False
@@ -919,7 +917,7 @@ class DXStreamHandler(DXBaseHandler):
                     + '. Download them from the Setup panel ("Model & Video Download"), then retry.',
                 )
 
-            # 싱크 분류
+            # Classify the sinks
             sink_keywords = [
                 "fpsdisplaysink", "webrtcbin", "autovideosink",
                 "ximagesink", "waylandsink", "fakesink", "fdsink"
@@ -928,7 +926,7 @@ class DXStreamHandler(DXBaseHandler):
             has_webrtcbin = "webrtcbin" in gst_str
             has_display_sink = "fpsdisplaysink" in gst_str
 
-            # WebRTC 싱크 결정
+            # Choose the WebRTC sink
             payload_types = body.get("webrtcPayloadTypes") if isinstance(body, dict) else None
             encoder = _apply_webrtc_payload_types(detect_encoder(), payload_types)
             if has_webrtcbin:
@@ -1036,7 +1034,7 @@ class DXStreamHandler(DXBaseHandler):
             self._error(500, "pipeline_error", str(e))
 
     def _handle_pipeline_stop(self):
-        """현재 파이프라인 중지 — 양쪽 백엔드 모두 정리."""
+        """Stop the current pipeline and clean up both backends."""
         self._drain_request_body()
         try:
             with _playback_lock:
@@ -1046,7 +1044,7 @@ class DXStreamHandler(DXBaseHandler):
             self._error(500, "pipeline_error", str(e))
 
     def _handle_setup_step(self, step_id: str):
-        """설정 단계 실행. sudo 필요 시 body에서 password 수신."""
+        """Run a setup step. A step that needs sudo takes the password from the body."""
         body = self._safe_read_json()
         sudo_password = body.get("password") if body else None
         opts = {k: v for k, v in (body or {}).items() if k != 'password'} if body else None
@@ -1068,7 +1066,7 @@ class DXStreamHandler(DXBaseHandler):
             self._error(500, "setup_error", str(e))
 
     def _handle_download_model(self):
-        """개별 모델 다운로드."""
+        """Download one model."""
         body = self._safe_read_json()
         if body is None:
             return
@@ -1129,7 +1127,7 @@ class DXStreamHandler(DXBaseHandler):
         return self.send_json({"uploaded": True, "name": safe_name})
 
     def _handle_custom_upload(self):
-        """커스텀 라이브러리 소스 업로드 (JSON body with base64 content)."""
+        """Upload a custom library source (JSON body with base64 content)."""
         from dx_stream.core.custom_library import CustomLibraryManager
         import base64
         body = self._safe_read_json()
@@ -1155,7 +1153,7 @@ class DXStreamHandler(DXBaseHandler):
         self.send_json(result)
 
     def _handle_custom_build(self, path: str):
-        """커스텀 라이브러리 빌드. body {password?} — `sudo meson install` 용 (Setup 과 같은 방식)."""
+        """Build a custom library. Body {password?} is for `sudo meson install`, as in Setup."""
         from dx_stream.core.custom_library import CustomLibraryManager, SudoAuthFailed, SudoRequired
         body = self._safe_read_json()
         if body is None:
@@ -1269,7 +1267,7 @@ def _detect_local_x_session():
 
 
 def create_server(port=DEFAULT_PORT):
-    """테스트용 서버 팩토리: HTTPServer 인스턴스를 반환."""
+    """Server factory for tests: return an HTTPServer instance."""
     from http.server import ThreadingHTTPServer
     srv = ThreadingHTTPServer(("127.0.0.1", port), DXStreamHandler)
     srv.daemon_threads = True

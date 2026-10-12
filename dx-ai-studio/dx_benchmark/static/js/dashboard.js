@@ -116,7 +116,7 @@ function _appendEdgeGuideLink(parentEl, overrides) {
   var el = document.createElement('a');
   el.className = 'edgeguide-link';
   el.href = _edgeGuideUrl(overrides);
-  // EdgeGuide 의 나침반 아이콘 (sprite edge — 레일의 그 모듈 표시, 아이콘 체계 단계 5).
+  // EdgeGuide's compass icon (sprite `edge`, the same mark the rail uses for that module).
   el.innerHTML = ((typeof DXIcon === 'function') ? DXIcon('edge') : '');
   el.appendChild(document.createTextNode(' ' + _t('Find optimal product in EdgeGuide →')));
   el.addEventListener('click', function(e) {
@@ -400,9 +400,8 @@ function _envProductLabel(env) {
   }
   return null;
 }
-/* 장비 이름은 한 가지로. 예전에는 실행 선택 · 상세 제목은 hostname (두 장비가 둘 다 "raspberrypi"),
-   차트는 hw_id + SKU ("RPi5B_M1 (M1)" — M1 두 번), 결과 탭은 hw_id 로 같은 장비를 세 이름으로 불렀다 (release audit B-3).
-   hw_id 는 장비마다 달라 그것을 쓰고, 끝의 _<SKU> 는 괄호 안 SKU 와 겹치므로 뗀다. */
+/* One name per device, used everywhere. hw_id is unique per device (hostnames can repeat, e.g. two
+   "raspberrypi"), so use it; drop its trailing _<SKU> because the SKU is shown in parentheses. */
 function envName(env) {
   env = env || {};
   var sku = _envProductLabel(env) || '?';
@@ -415,7 +414,7 @@ function envLabel(env) { return envName(env).replace(' (', '\n('); }
    both env and run objects; falls back to 'unknown' if absent (older shape). */
 function envVersion(env) { env = env || {}; return env.dx_all_suite_version || env.suite_version || env.version || 'unknown'; }
 function fmt(v, d) { if (v === null || v === undefined) return '-'; var n = Number(v); return Number.isNaN(n) ? '-' : n.toFixed(d === undefined ? 1 : d); }
-// 이름은 yolo26-l_640x640.dxnn 처럼 하이픈이 있다 — 예전 정규식은 yolo26l 만 봐서 크기가 모두 '-' 였다 (B-3).
+// Names may carry a hyphen (yolo26-l_640x640.dxnn) as well as the plain form (yolo26l).
 function modelSizeChar(name) { var m = String(name||'').match(/yolo26-?([nslmx])(?=[-_.]|$)/i); return m ? m[1].toLowerCase() : ''; }
 function formatInputShape(shape) {
   if (!shape || !Array.isArray(shape)) return '-';
@@ -1256,7 +1255,7 @@ function initOrtCompareTab() {
     },
     refreshAllCharts: function() {
       if (!state.dataset) return;
-      if (document.getElementById('meta')) renderMeta();   // Environments · Generated 도 고른 언어로
+      if (document.getElementById('meta')) renderMeta();   // Environments · Generated follow the chosen language too
       refreshFpsCompare();
       refreshChart();
       if (Object.keys(state.trendCharts).length) refreshTrend();

@@ -1,6 +1,6 @@
 /**
- * CardRenderer — Step 2 추천 카드 렌더링.
- * GaugeChart.draw()로 각 카드에 미니 게이지 그림.
+ * CardRenderer — renders the Step 2 recommendation cards.
+ * Draws a mini gauge on each card with GaugeChart.draw().
  */
 const CardRenderer = {
   _detailCb: null,
@@ -13,7 +13,7 @@ const CardRenderer = {
     if (!container) return;
     container.innerHTML = '';
 
-    // 60fps 배너
+    // 60fps banner
     const banner = document.getElementById('fps-banner');
     if (banner) {
       banner.style.display = inputs.targetFps >= 60 ? '' : 'none';
@@ -29,7 +29,7 @@ const CardRenderer = {
       container.appendChild(this._buildCard(r, i, inputs));
     });
 
-    // 게이지 렌더링 (charts.js 로드 후)
+    // Gauge rendering (after charts.js loads)
     if (typeof GaugeChart !== 'undefined') {
       results.forEach((r, i) => {
         const cv = container.querySelectorAll('.gauge-canvas')[i];
@@ -49,7 +49,7 @@ const CardRenderer = {
     return '<span class="badge badge-confidence" data-confidence="' + key + '">' + labels[key] + '</span>';
   },
 
-  // 순위는 숫자 원 — 1위만 금빛 (메달 이모지는 OS 마다 다르게 그려졌다, 아이콘 체계 단계 5).
+  // The rank is a numbered disc — only first place is gold (medal emoji render differently on each OS).
   _rankBadge(i) {
     return '<span class="rank-disc' + (i === 0 ? ' rank-disc--top' : '') + '">' + (i + 1) + '</span>';
   },
@@ -111,7 +111,7 @@ const CardRenderer = {
         '</button>' +
       '</div>';
 
-    // 이벤트
+    // Events
     card.querySelector('.card-why')._result = r;
     card.querySelector('.btn-detail').addEventListener('click', () => {
       if (this._detailCb) this._detailCb(pid);
@@ -146,8 +146,7 @@ const CardRenderer = {
     return Object.keys(vals).reduce((out, k) => out.split('{' + k + '}').join(vals[k]), this._t(key));
   },
 
-  /** One line saying why this channel count — the measured point, or the division the estimate comes from
-      (spec addendum 2026-10-12: every number explains itself). */
+  /** One line saying why this channel count — the measured point, or the division the estimate comes from. */
   _whyHtml(r) {
     const w = r.why || { kind: 'none' };
     const fps = v => this._formatNumber(v, 1);

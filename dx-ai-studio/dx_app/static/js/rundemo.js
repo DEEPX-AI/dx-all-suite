@@ -1,6 +1,6 @@
 // dx_app/static/js/rundemo.js
 // Run Demo GUI: fetch /api/demos and lay them out on the shared demo stage
-// (shared/static/dx-demo-stage.js, spec 2026-10-01): a result stage on top
+// (shared/static/dx-demo-stage.js): a result stage on top
 // (preview · options · Run · result) and cards below that only choose which
 // demo the stage shows. Options are segmented toggles (input/code/mode/post)
 // gated by each demo's real availability; Run maps them to an /api/run body
@@ -192,7 +192,7 @@ function _rundemoLabels() {
   };
 }
 
-// 언어가 바뀌면 card 의 글자와 열린 demo 의 panel 만 다시 — 고른 설정 · 결과는 RUNDEMO 에 남아 있다 (A-8)
+// On a language switch only the card text and the open demo's panel are redrawn; the chosen settings and result stay in RUNDEMO
 if (typeof registerLangRefresher === 'function') {
   registerLangRefresher(function refreshRunDemoLanguage() {
     if (!RUNDEMO.ctl) return;
@@ -207,7 +207,7 @@ if (typeof registerLangRefresher === 'function') {
 }
 
 // One card/stage item per demo. The reason is one short line; the file name and the fix go to
-// the tooltip (사용자 결정 2026-10-01 #6).
+// the tooltip.
 function _rundemoItem(d) {
   var avail = d.avail || {};
   var ready = runnable(d);
@@ -234,8 +234,8 @@ function _rundemoItem(d) {
   };
 }
 
-// task 아이콘은 Model Zoo 와 같은 한 표 (sprite 의 task-<key>, 아이콘 체계 단계 3). 두 task 를 묶은 데모
-// (object_detection_x_semantic_segmentation) 는 앞의 task 로.
+// The task icon comes from the same table as Model Zoo (sprite task-<key>). A demo that combines two tasks
+// (object_detection_x_semantic_segmentation) uses the first task.
 function _rundemoTaskIcoName(d) {
   var cat = String((d.run_ref && d.run_ref.category) || d.category || '').split('_x_')[0];
   return /^[a-z0-9_]+$/.test(cat) ? 'task-' + cat : 'models';
@@ -243,8 +243,8 @@ function _rundemoTaskIcoName(d) {
 function _rundemoIco(name, cls) {
   return (typeof window.DXIcon === 'function') ? window.DXIcon(name, cls ? { cls: cls } : undefined) : '';
 }
-// 라벨은 "Object Detection   (YOLOv7)" — 앞은 task, 괄호 안은 모델. card 는 task 를 한 번, 제목에는 모델만
-// 쓴다 (사용자 확정 2026-09-29).
+// The label is "Object Detection   (YOLOv7)": task first, model in parentheses. The card shows the task once and the
+// title only the model.
 function _rundemoSplitLabel(d) {
   var m = /^(.*?)\s*\(([^)]*)\)\s*$/.exec(String(d.label || ''));
   return m ? { task: m[1].trim(), model: m[2].trim() } : { task: d.group || '', model: String(d.label || d.model_name || '') };
@@ -252,9 +252,9 @@ function _rundemoSplitLabel(d) {
 function _rundemoTitle(d) { return _rundemoSplitLabel(d).model; }
 function _rundemoTaskName(d) { return _rundemoSplitLabel(d).task; }
 
-// task 이름 · group 이름은 그린 뒤 data-i18n 을 붙인다 — 언어를 바꾸면 공용 applyLang 이 제자리에서
-// 바꾼다 (card 를 다시 그리면 고른 입력 · 모드와 결과가 사라진다). 마크업 문자열에 data-i18n 을 직접 쓰지
-// 않는 것은 정적 검사 (tests/test_i18n_span_gate.py) 가 그 식을 사전 key 로 읽기 때문이다.
+// Task and group names get data-i18n after rendering, so the shared applyLang swaps them in place on a language
+// switch (redrawing the card would lose the chosen input, mode and result). data-i18n is not written into the markup
+// strings directly because the static check (tests/test_i18n_span_gate.py) would read that expression as a dictionary key.
 function _rundemoTranslate(el) {
   el.querySelectorAll('.dds-task > span, .dds-fbtn').forEach(function (s) {
     if (!s.hasAttribute('data-i18n')) s.setAttribute('data-i18n', s.textContent);
@@ -380,7 +380,7 @@ function _rundemoPreview(d, dim) {
   return d.thumbnail ? '<img class="dds-preview' + (dim ? ' is-dim' : '') + '" src="' + esc(d.thumbnail) + '" alt="">' : '';
 }
 
-// 비동기 실행은 프레임별 NPU 지연을 재지 않아 "0.00" 을 돌려준다. 0 은 측정값이 아니므로 — 로 보인다 (release audit A-17).
+// Async runs do not measure per-frame NPU latency and return "0.00". 0 is not a measurement, so show —.
 function _rundemoNum(v, unit) {
   return (v === undefined || v === null || v === '' || !(parseFloat(v) > 0)) ? '—' : (v + (unit ? ' ' + unit : ''));
 }

@@ -61,7 +61,7 @@ class ChatEngine:
             provider, api_key = config["provider"], config.get("api_key", "")
             model, endpoint = config["model"], config.get("endpoint")
             temperature = config.get("temperature", 0.7)
-        else:   # Studio agent or the first logged-in CLI — no setup needed (spec 2026-10-11 chat settings §3.1)
+        else:   # Studio agent or the first logged-in CLI — no setup needed
             provider, api_key, endpoint, temperature = "agent-cli", "", None, 0.7
             model = source["agent"] + (f"::{source['model']}" if source["model"] else "")
 
@@ -93,8 +93,8 @@ class ChatEngine:
                 temperature=temperature,
             )
         except ChatAPIError as exc:
-            # key 를 넣은 사용자에게 offline fallback ("No AI model connected") 을 보이면 틀린 말이 된다 —
-            # 무엇이 실패했는지 말한다 (2026-10-11, 실제 Anthropic 401 로 확인).
+            # A user who entered a key would be misled by the offline fallback ("No AI model connected"),
+            # so say what failed instead.
             yield self._api_error_text(provider, exc, lang, agent=source.get("agent"))
         except Exception as exc:
             yield from self._error_response(type(exc).__name__, str(exc), lang=lang)

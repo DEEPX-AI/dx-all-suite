@@ -1,6 +1,6 @@
-"""커스텀 후처리 라이브러리 관리 — 목록/업로드/빌드.
+"""Custom postprocess libraries — list, upload, build.
 
-SDK의 custom_library/postprocess_library/ 구조를 GUI에서 관리한다.
+Manages the SDK's custom_library/postprocess_library/ tree from the GUI.
 """
 from __future__ import annotations
 
@@ -70,12 +70,12 @@ class CustomLibraryManager:
         return None
 
     def list_libraries(self) -> list[dict]:
-        """postprocess_library/ 하위 디렉토리 목록 반환.
+        """List the directories under postprocess_library/.
 
         A library counts as built/installed when EITHER its source builddir has a .so OR a
         matching .so is already installed under INSTALLED_SO_DIR. The SDK ships the stock
         libraries pre-installed there (never leaving a source builddir), so checking only the
-        builddir wrongly reported every stock library as "Not built"."""
+        builddir would report every stock library as "Not built"."""
         if not POSTPROC_LIB_DIR.exists():
             return []
         # Index installed .so by normalized name (strip libpostprocess_ prefix + .so suffix).
@@ -103,7 +103,7 @@ class CustomLibraryManager:
         return libs
 
     def get_available_so(self) -> list[dict]:
-        """설치된 .so 파일 목록 반환."""
+        """List the installed .so files."""
         if not INSTALLED_SO_DIR.exists():
             return []
         return [
@@ -119,9 +119,9 @@ class CustomLibraryManager:
             raise ValueError(f"Invalid {label}: {component!r}")
 
     def save_upload(self, name: str, files: dict[str, str]) -> dict:
-        """업로드된 소스 파일을 postprocess_library/<name>/에 저장.
+        """Save uploaded source files to postprocess_library/<name>/.
 
-        files: {"filename": "content"} 딕셔너리 (Base64 디코딩 후).
+        files: {"filename": "content"}, already Base64-decoded.
         """
         self._reject_traversal(name, "library name")
         target_dir = POSTPROC_LIB_DIR / name
@@ -135,7 +135,7 @@ class CustomLibraryManager:
         return {"name": name, "path": str(target_dir), "files": saved}
 
     def build(self, name: str, sudo_password: str | None = None):
-        """meson setup + compile + sudo install — 백그라운드 스레드."""
+        """meson setup + compile + sudo install, in a background thread."""
         global _build_log, _build_done
 
         self._reject_traversal(name, "library name")

@@ -1,7 +1,7 @@
 /**
- * DX Stream — WebRTC 클라이언트
- * SDP/ICE 교환 via HTTP POST (WebSocket 미사용)
- * 자동 재시도 (지수 백오프), FPS/latency 통계
+ * DX Stream — WebRTC client
+ * SDP/ICE exchange over HTTP POST (no WebSocket)
+ * Automatic retry with backoff, FPS/latency stats
  */
 DXStream.webrtc = (function() {
     var pc = null;
@@ -12,12 +12,12 @@ DXStream.webrtc = (function() {
     var _videoEl = null;
     var MAX_RETRIES = 5;
     var RETRY_DELAYS = [1000, 2000, 3000, 4000, 5000];
-    // 재생 정지(black screen) 감시: getStats 폴링에서 디코딩된 프레임이
-    // 연속으로 늘지 않으면 GStreamer 버스 에러 등으로 스트림이 죽은 것으로 간주한다.
+    // Stall (black screen) watch: if decoded frames stop increasing across getStats polls,
+    // treat the stream as dead (e.g. a GStreamer bus error).
     var _errorEl = null;
     var _stallPolls = 0;
     var _lastFramesDecoded = -1;
-    var STALL_LIMIT = 3; // 2초 폴링 × 3 = 약 6초간 신규 프레임 없음
+    var STALL_LIMIT = 3; // 2 s poll × 3 = about 6 s without a new frame
     // WebRTC media is peer-to-peer UDP. It connects when the browser can reach the board
     // directly (localhost / same-LAN host candidates). A remote viewer over an SSH tunnel or
     // different subnet only ever sees the board's host (LAN) candidates, which don't route, so
@@ -31,7 +31,7 @@ DXStream.webrtc = (function() {
 
     function _log(msg) { console.log('[WebRTC]', msg); }
 
-    /* ── 지속형 에러 배너: 자동 숨김 없이 스트림 복구/사용자 조작까지 유지 ── */
+    /* ── Persistent error banner: no auto-hide, stays until the stream recovers or the user acts ── */
     function _errorHost() {
         var video = _videoEl || DXStream.$('webrtc-video');
         if (video && video.parentNode) return video.parentNode;
@@ -53,7 +53,7 @@ DXStream.webrtc = (function() {
             host.appendChild(el);
             _errorEl = el;
         }
-        // 자동 숨김 타이머 없음 — _clearError() 로만 제거된다.
+        // No auto-hide timer — only _clearError() removes it.
         el.innerHTML = '';
         var text = document.createElement('div');
         text.className = 'webrtc-error-msg';
@@ -147,7 +147,7 @@ DXStream.webrtc = (function() {
                 });
                 _log('srcObject set');
                 _stallPolls = 0;
-                _clearError(); // 트랙 수신 = 스트림 복구
+                _clearError(); // track received = stream recovered
             } else if (e.track) {
                 var stream = new MediaStream();
                 stream.addTrack(e.track);
@@ -301,8 +301,8 @@ DXStream.webrtc = (function() {
                         rtt = report.currentRoundTripTime || 0;
                     }
                 });
-                // 재생 정지 감시: 연결은 살아있는데 디코딩 프레임이 늘지 않으면
-                // (GStreamer 버스 에러 등) 검은 화면이 방치되지 않도록 에러를 노출한다.
+                // Stall watch: the connection is alive but decoded frames do not increase
+                // (e.g. a GStreamer bus error) — show an error instead of leaving a black screen.
                 if (framesDecoded === _lastFramesDecoded) {
                     _stallPolls++;
                     if (_stallPolls >= STALL_LIMIT) {
@@ -310,7 +310,7 @@ DXStream.webrtc = (function() {
                     }
                 } else {
                     _stallPolls = 0;
-                    _clearError(); // 프레임 진행 = 정상 재생
+                    _clearError(); // frames advancing = playing normally
                 }
                 _lastFramesDecoded = framesDecoded;
                 _updateStatsOverlay(fps, rtt, jitter, packetsLost);

@@ -1,7 +1,7 @@
 // viewer_panel.js — Manages the embedded model viewer panel with phase tabs
 
-/* 서버 오류를 표시 직전에 번역한다. shared/static/server-error-i18n.js 가
-   로드되지 않았으면 원문을 그대로 쓴다 — 조용히 비우지 않는다. */
+/* Translate a server error right before showing it. If shared/static/server-error-i18n.js
+   is not loaded, show the original text — never silently blank it. */
 function _srvErr(msg) {
   return (typeof window.translateServerError === 'function')
     ? window.translateServerError(msg) : msg;
@@ -254,7 +254,7 @@ function _srvErr(msg) {
         });
     }
 
-    // 아직 그래프가 없는 phase tab — 흐리게 그리는 class 와 screen reader 에 알리는 aria-disabled 를 같이 둔다 (axe 2026-10-11).
+    // A phase tab with no graph yet: the class dims it, aria-disabled tells screen readers.
     function setTabEnabled(tab, on) {
         tab.classList.toggle('disabled', !on);
         if (on) tab.removeAttribute('aria-disabled'); else tab.setAttribute('aria-disabled', 'true');
@@ -363,7 +363,7 @@ function _srvErr(msg) {
         setupSearch();
         setupExplorer();
         setupKeyboardShortcuts();
-        // 모델을 열기 전에도 상태줄은 고른 언어로 (예전에는 첫 로드에 "Nodes: 0 · Edges: 0 · Zoom" 영어 그대로, C-3).
+        // Render the status bar in the chosen language even before a model is opened.
         updateStatusBar(null, null);
         updateZoomDisplay();
 
@@ -763,7 +763,7 @@ function _srvErr(msg) {
         return fallback;
     }
 
-    var lastCapabilities = null;   // 언어를 바꾸면 안내 문구를 다시 단다 (release audit C-3)
+    var lastCapabilities = null;   // Re-applied when the language changes
 
     function applyCompilerCapabilities(data) {
         if (!data || !data.capabilities) return;

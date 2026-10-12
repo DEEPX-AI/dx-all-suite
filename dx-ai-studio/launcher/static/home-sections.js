@@ -8,10 +8,9 @@
  * already runs. A second poller would mean two answers to "is this module up",
  * and they would eventually disagree.
  *
- * This used to render a five-across model row in a Models section. The section
- * is gone — the home is a workspace, and 348 models belong in the module that
- * exists to browse them. What survives is the one number worth seeing from the
- * front door, on the card that opens that module.
+ * The home is a workspace, so it shows only the one number worth seeing from
+ * the front door, on the card that opens that module; browsing models belongs
+ * in Model Zoo.
  */
 (function () {
   'use strict';
@@ -33,17 +32,15 @@
 
   var _models = null;
 
-  /* 각 모듈이 자기 숫자를 든다. 여덟 행이 이름 + 산문 한 줄로만 되어 있으면 서로
-     구별되지 않아 목록이 한 덩어리로 읽힌다.
+  /* Each module carries its own number. Eight rows of name + one line of prose do
+     not tell apart and read as one block.
 
-     모듈마다 함수를 한 벌씩 두지 않는다 — 다음 모듈이 생길 때 또 한 벌이 늘고,
-     그건 이 저장소에서 이미 두 번 고친 모양이다. 응답 모양은 제각각이라 파싱은
-     각자 갖되(`pick`), 그리는 일은 _paintFacts 한 곳에서 한다.
+     There is no function per module: response shapes differ, so each has its own
+     parser (`pick`), but painting happens in one place, _paintFacts.
 
-     compiler 와 planner 는 없다. 셀 API 가 없고(각각 listdir/mkdir, hb 뿐),
-     숫자를 붙이자고 엔드포인트를 만드는 것은 이 작업이 아니다. 그 둘은 출하 시
-     산문을 유지한다 — 비대칭을 그대로 두는 편이 정직하다.
-     계약: tests/launcher/test_home_module_facts.py */
+     compiler and planner have none: they expose no count API, so they keep their
+     shipped prose.
+     Contract: tests/launcher/test_home_module_facts.py */
   var MODULE_FACTS = [
     { app: 'zoo', url: '/zoo/api/catalog', pick: function (d) {
         var models = (d && d.models) || (Array.isArray(d) ? d : []);
@@ -52,7 +49,7 @@
         models.forEach(function (m) { var t = (m.display || {}).task; if (t) tasks[t] = 1; });
         _models = models;
         _paintMeasuredCount(models);
-        /* 위젯 (home-widgets.js) 은 같은 카탈로그를 다시 받지 않고 이것을 쓴다. */
+        /* The widgets (home-widgets.js) use this instead of fetching the same catalog again. */
         ns._homeCatalog = models;
         document.dispatchEvent(new CustomEvent('dx-home-catalog', { detail: models }));
         return [[models.length, 'models'], [Object.keys(tasks).length, 'tasks']];
@@ -92,7 +89,7 @@
       } },
   ];
 
-  /* 그린 값은 언어가 바뀌면 다시 그려야 한다 (JS 로 쓰므로 data-i18n 이 닿지 않는다). */
+  /* Painted values must be repainted on a language change (written by JS, so data-i18n does not reach them). */
   var _facts = {};
 
   function _paintFacts() {
@@ -110,8 +107,8 @@
 
   function _paintCount() { _paintFacts(); }
 
-  /* 숫자 + 단위. 단위가 수량사 (개 · 件 · 個 · 个 · 類 · 类) 로 시작하면 붙여 쓴다 — "354개", "28件" (release audit
-     L-12 · L-28). 그 밖 (models · グループ …) 은 띄운다. */
+  /* Number + unit. A unit that starts with a CJK counter word (see the regex) is joined without
+     a space, e.g. "28件". Others (models · グループ …) get a space. */
   function _count(n, unitKey) {
     var unit = _t(unitKey);
     return String(n) + (/^[개件個个类類]/.test(unit) ? '' : ' ') + unit;
@@ -121,8 +118,8 @@
   function _fmt(n) {
     return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
   }
-  /* 오른쪽 위젯의 한 줄. 표는 home 을 떠났다 (spec §5.6) — 무엇이 얼마나 빠른지는
-     Benchmark 와 Model Zoo 가 보여준다. 여기는 이 장치에서 몇 개를 쟀는지만 말한다. */
+  /* One line in the right-hand widget. Speed is shown by Benchmark and Model Zoo; this
+     line only says how many models were measured on this device. */
   function _paintMeasuredCount(models) {
     var note = $('measuredCount');
     if (!note) return;
@@ -138,7 +135,7 @@
 
   function loadCatalogueSize() {
     MODULE_FACTS.forEach(function (f) {
-      if (_facts[f.app]) return;            // 이미 알고 있으면 다시 묻지 않는다
+      if (_facts[f.app]) return;            // do not ask again once known
       fetch(f.url).then(function (r) { return r.json(); })
         .then(function (data) {
           var parts = f.pick(data);
@@ -147,8 +144,8 @@
           _paintFacts();
         })
         .catch(function () {
-          /* 그 모듈이 돌지 않는다. 카드는 출하 시 설명을 유지한다 — 서버가 떠
-             있든 아니든 참인 문장이다. 한 모듈의 실패가 나머지를 막지 않는다. */
+          /* That module is not running. The card keeps its shipped description, which is
+             true whether or not the server is up. One module failing does not block the rest. */
         });
     });
   }
@@ -166,20 +163,19 @@
       if (!(health[key] && health[key].alive)) down += 1;
     });
 
-    /* "start →" 여덟 개는 행동 유도가 여덟 개라는 뜻이고, 그러면 아무것도 행동
-       유도가 아니다. 상태 라벨도 같다 — 전부 돌 때(평상시) "Running" 여덟 개는
-       아무것도 말하지 않으면서 칸마다 같은 폭을 차지한다. 그러니 예외가 있을 때만
-       말한다.
-       점은 그대로 둔다 — 점은 한 글자도 차지하지 않으면서 상태를 말한다.
-       계약: tests/launcher/test_home_density_browser.py */
+    /* Eight "start →" links are eight calls to action, which means none. Status labels
+       likewise: when everything runs (the usual case) eight "Running" labels say nothing
+       and take space in every row. So speak only for exceptions.
+       The dot stays — it shows status without taking a character.
+       Contract: tests/launcher/test_home_density_browser.py */
     var exceptional = down > 0;
 
     cards.forEach(function (card) {
       var key = HEALTH_KEY[card.dataset.app] || card.dataset.app;
       var alive = !!(health[key] && health[key].alive);
       card.classList.toggle('is-up', alive);
-      /* 꺼졌다고 확인된 것만 흐리게 한다. 'is-up 이 없으면' 으로 쓰면 첫 health 응답
-         전 (최대 5초) 에 여덟 개가 모두 흐리다 (home-stage.css, spec 2026-09-23 §5.3). */
+      /* Dim only what is confirmed down. Keying on "no is-up" would dim all eight before
+         the first health response (up to 5s) (home-stage.css). */
       card.classList.toggle('is-down', !alive);
       var line = card.querySelector('[data-role="state"]');
       if (line) {
@@ -189,9 +185,9 @@
     });
   }
 
-  /* home 은 모든 경로에서 문서에 남아 있다. 그 숫자 (zoo catalog 2.5 MB 포함) 는 home 이 처음 보일 때 받는다 —
-     /app/ · /compiler/ 로 바로 연 사용자는 home 을 보지 않았는데 화면마다 catalog 를 받았다 (2026-10-11 성능 감사).
-     계약: tests/launcher/test_home_facts_deferred_browser.py */
+  /* home stays in the document on every route. Its numbers (including the 2.5 MB zoo catalog) load
+     when home is first shown, so users who open /app/ or /compiler/ directly do not fetch the catalog.
+     Contract: tests/launcher/test_home_facts_deferred_browser.py */
   function _whenHomeShows(fn) {
     var body = document.body;
     if (body.classList.contains('home-visible')) { fn(); return; }
@@ -221,8 +217,8 @@
   }
 
   ns.refreshModuleState = refreshModuleState;
-  /* 카드의 data-app 과 health 키가 다르다(dx_monitor → monitor). 계약 테스트가
-     그 매핑을 손으로 베끼면 조용히 어긋나므로, 진짜를 내보낸다. */
+  /* A card's data-app and its health key differ (dx_monitor → monitor). A contract test
+     that copied the mapping by hand would drift silently, so the real one is exported. */
   ns._HEALTH_KEY = HEALTH_KEY;
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);

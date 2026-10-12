@@ -104,8 +104,8 @@ def make_directory(parent: str, name: str) -> dict:
     try:
         target.mkdir(parents=False, exist_ok=True)
     except OSError as exc:
-        # 이름이 문법적으로는 멀쩡해도 OS 가 거부할 수 있다 (ENAMETOOLONG,
-        # 읽기 전용 파일시스템, 권한). 전부 사용자가 보낸 값 탓이므로
-        # 이 함수의 계약대로 ValueError 로 바꾼다 — 그대로 새면 500 이 된다.
+        # A well-formed name can still be refused by the OS (ENAMETOOLONG,
+        # read-only filesystem, permissions). These come from user input, so
+        # raise ValueError as this function promises; letting it escape is a 500.
         raise ValueError(f"cannot create directory: {exc.strerror or exc}") from exc
     return {"ok": True, "path": str(target)}

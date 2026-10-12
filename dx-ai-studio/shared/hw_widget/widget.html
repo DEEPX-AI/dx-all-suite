@@ -1,12 +1,12 @@
 <!-- DX HW Float Widget — auto-injected by launcher proxy -->
 <style>
 /* Fixed width + own box-sizing so the float renders identically in EVERY module
-   iframe. It used to be min-width only (content-driven), so its size drifted per
-   tab as values populated (--→numbers), the MOCK badge toggled, or a module's
-   font fallback differed. A fixed width pins the outer box regardless of host CSS
-   or content; slightly-long values just fit/wrap instead of widening it. */
-/* 왼쪽 아래 · 접힌 채로 시작 — 오른쪽 아래는 채팅 버튼 자리이고, 펼친 위젯 (≈210×340) 이 버튼 · 표 · Run 단추를
-   가렸다 (2026-10-02 release audit M-1 · A-11 · L-23). 펼침/접힘과 끌어 놓은 자리는 기억한다. */
+   iframe — a content-driven width would drift as values populate (--→numbers), the
+   MOCK badge toggles, or a module's font fallback differs. A fixed width pins the
+   outer box regardless of host CSS or content; slightly-long values just fit/wrap
+   instead of widening it. */
+/* Bottom left, starting collapsed — bottom right belongs to the chat button, and the expanded widget
+   (≈210×340) would cover buttons, tables and Run. Expanded/collapsed state and the dragged position are remembered. */
 .hw-float{box-sizing:border-box;position:fixed;bottom:20px;left:20px;z-index:9000;
   background:var(--surface-overlay);backdrop-filter:saturate(1.8) blur(20px);
   border:1px solid var(--border-subtle);border-radius:12px;
@@ -14,14 +14,14 @@
   width:212px;font-size:11px;transition:opacity .3s;
   user-select:none;font-family:Inter,-apple-system,'Segoe UI',Roboto,system-ui,sans-serif;color:var(--text-primary)}
 .hw-float *{box-sizing:border-box}
-/* 모듈 화면에서는 왼쪽 레일 (56px) 위에 얹혀 레일 아래 버튼을 가렸다 — 레일 오른쪽에서 시작한다 (release audit hw-float). */
+/* On module screens, start right of the left rail (56px) so the widget does not cover the rail's bottom buttons. */
 body:has(.dx-shell-rail) .hw-float{left:calc(var(--dx-rail-w,56px) + var(--sp-3,12px))}
 .hw-float.dragging{opacity:.85;transition:none;box-shadow:0 8px 32px rgba(0,0,0,.5)}
 .hw-float.minimized .hw-float-body{display:none}
 .hw-float.minimized{width:max-content}
-/* 모듈 레일이 있는 화면에서는 접힌 위젯이 레일의 Hub 위 버튼이 된다 — 왼쪽 아래 pill 은 끝까지 스크롤한 뒤에도
-   Model Zoo 체크박스 · Compiler 상태 표시 · EdgeGuide 슬라이더 · DX App 표를 가렸다 (2026-10-11 실사용 감사).
-   점 색은 NPU 온도 상태 (데이터가 없으면 회색). */
+/* On screens with a module rail, the collapsed widget becomes a rail button above Hub — a bottom-left pill would
+   cover page content even when scrolled to the end.
+   The dot colour is the NPU temperature state (grey with no data). */
 .hw-float.hw-docked.minimized{display:none}
 .dx-shell-rail-foot:has(.hw-rail-btn){flex-direction:column;align-items:center;gap:4px}
 .hw-rail-dot{position:absolute;top:6px;right:6px;width:7px;height:7px;border-radius:50%;
@@ -91,7 +91,7 @@ body:has(.dx-shell-rail) .hw-float{left:calc(var(--dx-rail-w,56px) + var(--sp-3,
   /* ── Widget self-contained JS ── */
   var _hf = document.getElementById('hw-float');
   if (!_hf) return;
-  /* 펼침/접힘을 기억한다 — 처음에는 접힌 채 (M-1). 'hw-float-open' = '1' 이면 펼친다. */
+  /* Remember expanded/collapsed — collapsed at first. 'hw-float-open' = '1' means expanded. */
   var _OPEN_KEY = 'hw-float-open';
   try { if (localStorage.getItem(_OPEN_KEY) === '1') _hf.classList.remove('minimized'); } catch (e) {}
   window._hwFloatToggle = function () {
@@ -100,7 +100,7 @@ body:has(.dx-shell-rail) .hw-float{left:calc(var(--dx-rail-w,56px) + var(--sp-3,
     _syncRailBtn();
   };
 
-  /* ── Rail dock: 모듈 레일이 있으면 접힌 위젯은 레일 버튼이다 ── */
+  /* ── Rail dock: with a module rail, the collapsed widget is a rail button ── */
   var _railFoot = document.querySelector ? document.querySelector('.dx-shell-rail-foot') : null;
   var _railBtn = null, _railTemp = '';
   var _railW = 0;
@@ -363,7 +363,7 @@ body:has(.dx-shell-rail) .hw-float{left:calc(var(--dx-rail-w,56px) + var(--sp-3,
     if (max === min) max = min + 1;
     var step = canvas.width / Math.max(data.length - 1, 1);
     ctx.beginPath();
-    // canvas 는 CSS 변수를 못 읽는다 — 'var(--accent)' 는 무시돼 선이 검게 그려졌다 (release audit M-3).
+    // Canvas cannot read CSS variables ('var(--accent)' would be ignored and draw black), so resolve it first.
     ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim(); ctx.lineWidth = 2;
     for (var i = 0; i < data.length; i++) {
       var x = i * step;
@@ -421,9 +421,9 @@ body:has(.dx-shell-rail) .hw-float{left:calc(var(--dx-rail-w,56px) + var(--sp-3,
 </script>
 
 <script>
-// 이 위젯은 launcher 프록시가 호스트 페이지에 꽂는다 — 사전은 모듈마다
-// 따로라, 라벨을 여덟 모듈 사전에 아홉 개씩 복사하는 대신 자기 번역을
-// 들고 와서 등록한다. 모듈이 같은 key 를 이미 쓰면 그쪽이 이긴다.
+// The launcher proxy injects this widget into the host page. Dictionaries are
+// per module, so instead of copying the labels into every module dictionary the
+// widget brings and registers its own translations. A module's own key wins.
 (function () {
   var DICT = {
     'Avg Temp': { ko: '평균 온도', ja: '平均温度', 'zh-CN': '平均温度', 'zh-TW': '平均溫度', es: 'Temp. promedio' },

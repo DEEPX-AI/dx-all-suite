@@ -1,6 +1,6 @@
 window._DX_I18N_DICT = {
     'Face Detection': { ko: '얼굴 탐지', ja: '顔検出', 'zh-CN': '人脸检测', 'zh-TW': '人臉偵測', es: 'Detección de rostros' },
-    /* 요소 · model 설명 — 데이터에는 ko · en 만 있다 (release audit S-20 후속). ko 는 데이터와 같은 글 */
+    /* Element · model descriptions — the data has only ko · en; ko here matches the data text */
     'Frame resize, color conversion, ROI extraction': { ko: '프레임 리사이즈, 색변환, ROI 추출', ja: 'フレームのリサイズ、色変換、ROI 抽出', 'zh-CN': '帧缩放、颜色转换、ROI 提取', 'zh-TW': '影格縮放、色彩轉換、ROI 擷取', es: 'Redimensionado de fotogramas, conversión de color y extracción de ROI' },
     'Run .dxnn model on NPU': { ko: 'NPU에서 .dxnn 모델 실행', ja: 'NPU で .dxnn モデルを実行', 'zh-CN': '在 NPU 上运行 .dxnn 模型', 'zh-TW': '在 NPU 上執行 .dxnn 模型', es: 'Ejecuta un modelo .dxnn en la NPU' },
     'Parse inference results with custom .so library': { ko: '추론 결과 파싱 (커스텀 .so 라이브러리)', ja: 'カスタム .so ライブラリで推論結果を解析', 'zh-CN': '用自定义 .so 库解析推理结果', 'zh-TW': '以自訂 .so 函式庫解析推論結果', es: 'Analiza los resultados de inferencia con una biblioteca .so personalizada' },
@@ -58,7 +58,7 @@ window._DX_I18N_DICT = {
     'Open Demo Launcher': { ko: 'Demo Launcher 열기', ja: 'Demo Launcher を開く', 'zh-CN': '打开 Demo Launcher', 'zh-TW': '開啟 Demo Launcher', es: 'Abrir Demo Launcher' },
     'Open Pipeline Builder': { ko: 'Pipeline Builder 열기', ja: 'Pipeline Builder を開く', 'zh-CN': '打开 Pipeline Builder', 'zh-TW': '開啟 Pipeline Builder', es: 'Abrir Pipeline Builder' },
     'With WebRTC the browser receives the video; see FPS on the Demo page.': { ko: 'WebRTC는 브라우저가 영상을 받으므로 FPS는 Demo 화면에서 보세요.', ja: 'WebRTC ではブラウザが映像を受け取るため、FPS は Demo 画面で確認してください。', 'zh-CN': 'WebRTC 由浏览器接收视频，请在 Demo 页面查看 FPS。', 'zh-TW': 'WebRTC 由瀏覽器接收影片，請在 Demo 頁面查看 FPS。', es: 'Con WebRTC el navegador recibe el video; vea los FPS en la página Demo.' },
-    // 재생 · 연결 알림 (release audit: 사전에 없어 모든 언어에서 영어였다)
+    // Playback · connection notices
     'MSE init failed, using MJPEG: ': { ko: 'MSE 초기화 실패, MJPEG로 전환: ', ja: 'MSE の初期化に失敗、MJPEG に切り替え: ', 'zh-CN': 'MSE 初始化失败，改用 MJPEG：', 'zh-TW': 'MSE 初始化失敗，改用 MJPEG：', es: 'Falló la inicialización de MSE, se usa MJPEG: ' },
     'fMP4 stream error: ': { ko: 'fMP4 스트림 오류: ', ja: 'fMP4 ストリームのエラー: ', 'zh-CN': 'fMP4 流错误：', 'zh-TW': 'fMP4 串流錯誤：', es: 'Error en el flujo fMP4: ' },
     'Video decode stalled — switching to MJPEG': { ko: '영상 디코딩이 멈췄습니다 — MJPEG로 전환합니다', ja: '動画のデコードが止まりました — MJPEG に切り替えます', 'zh-CN': '视频解码停滞 — 改用 MJPEG', 'zh-TW': '影片解碼停滯 — 改用 MJPEG', es: 'La decodificación de video se detuvo — cambiando a MJPEG' },
@@ -67,7 +67,7 @@ window._DX_I18N_DICT = {
     'Pasted {n} nodes': { ko: '노드 {n}개를 붙여 넣었습니다', ja: '{n} 個のノードを貼り付けました', 'zh-CN': '已粘贴 {n} 个节点', 'zh-TW': '已貼上 {n} 個節點', es: '{n} nodos pegados' },
     'Delete node "{name}"?': { ko: '"{name}" 노드를 삭제할까요?', ja: 'ノード「{name}」を削除しますか?', 'zh-CN': '删除节点“{name}”？', 'zh-TW': '刪除節點「{name}」？', es: '¿Eliminar el nodo "{name}"?' },
     'Retrying WebRTC connection… ({n}/{max})': { ko: 'WebRTC 다시 연결하는 중… ({n}/{max})', ja: 'WebRTC に再接続しています… ({n}/{max})', 'zh-CN': '正在重新连接 WebRTC… ({n}/{max})', 'zh-TW': '正在重新連線 WebRTC… ({n}/{max})', es: 'Reintentando la conexión WebRTC… ({n}/{max})' },
-    // Element Reference — long descriptions, pipeline hints, property descriptions (were English on every page but ko)
+    // Element Reference — long descriptions, pipeline hints, property descriptions
     'Resizes, converts color, pads, and optionally crops ROI regions so incoming frames match the tensor layout expected by the next DxInfer element.': { ko: '입력 프레임을 NPU 모델 입력 형식에 맞게 리사이즈·색상 변환·패딩하고, 필요하면 ROI나 2차 추론 대상만 추출해 다음 DxInfer로 전달합니다.', ja: '入力フレームをリサイズ・色変換・パディングし、必要に応じて ROI 領域を切り出して、次の DxInfer が想定するテンソルレイアウトに合わせます。', 'zh-CN': '对输入帧进行缩放、色彩转换和填充，并可选择裁剪 ROI 区域，使其符合下一个 DxInfer 所需的张量布局。', 'zh-TW': '對輸入影格進行縮放、色彩轉換與填補，並可選擇裁切 ROI 區域，使其符合下一個 DxInfer 所需的張量配置。', es: 'Redimensiona, convierte el color, rellena y, opcionalmente, recorta regiones ROI para que los fotogramas entrantes coincidan con la disposición de tensor que espera el siguiente elemento DxInfer.' },
     'Place after source/decoder stages and before DxInfer. Match preprocess-id with the connected DxInfer preprocess-id.': { ko: '소스/디코더 뒤, DxInfer 앞에 배치합니다. preprocess-id는 연결되는 DxInfer의 preprocess-id와 맞추세요.', ja: 'ソース/デコーダーの後、DxInfer の前に配置します。preprocess-id は接続先 DxInfer の preprocess-id と一致させてください。', 'zh-CN': '放在源/解码器之后、DxInfer 之前。preprocess-id 需与所连接 DxInfer 的 preprocess-id 一致。', 'zh-TW': '放在來源/解碼器之後、DxInfer 之前。preprocess-id 需與所連接 DxInfer 的 preprocess-id 一致。', es: 'Colóquelo después de las etapas de fuente/decodificador y antes de DxInfer. Haga coincidir preprocess-id con el preprocess-id del DxInfer conectado.' },
     'Preprocess identifier': { ko: '전처리 식별자', ja: '前処理識別子', 'zh-CN': '预处理标识符', 'zh-TW': '前處理識別碼', es: 'Identificador de preprocesamiento' },
@@ -182,9 +182,9 @@ window._DX_I18N_DICT = {
     'No plugin': { ko: '플러그인 없음', ja: 'プラグインなし', 'zh-CN': '无插件', 'zh-TW': '無外掛',es:'Sin plugin'},
     'Not installed': { ko: '미설치', ja: '未インストール', 'zh-CN': '未安装', 'zh-TW': '未安裝',es:'No instalado'},
     'files': { ko: '파일', ja: 'ファイル', 'zh-CN': '文件', 'zh-TW': '檔案',es:'archivos'},
-    // 'OK' 는 대화상자 버튼이다. 플러그인 빌드 상태(정상/미빌드)는
-    // 'Built' 로 분리했다 — 한 key 에 두 뜻이 얹혀 있어 어느 쪽으로
-    // 번역해도 다른 쪽이 틀렸다.
+    // 'OK' is the dialog button. The plugin build state uses its own
+    // 'Built' key — one key with two meanings cannot be translated
+    // right for both.
     'OK': { ko: '확인', ja: 'OK', 'zh-CN': '确定', 'zh-TW': '確定', es: 'Aceptar' },
     'Built': { ko: '빌드됨', ja: 'ビルド済み', 'zh-CN': '已构建', 'zh-TW': '已建置', es: 'Compilado' },
     'Not built': { ko: '미빌드', ja: '未ビルド', 'zh-CN': '未构建', 'zh-TW': '未建置',es:'No compilado'},
@@ -509,7 +509,7 @@ window._DX_I18N_DICT = {
   'Reset': { ko: '초기화', ja: 'リセット', 'zh-CN': '重置', 'zh-TW': '重設',es:'Restablecer'},
   'Select...': { ko: '선택...', ja: '選択...', es: 'Seleccionar...', 'zh-CN': '选择...', 'zh-TW': '選擇...' },
   'my_postprocess': { ko: 'my_postprocess', ja: 'my_postprocess', es: 'my_postprocess', 'zh-CN': 'my_postprocess', 'zh-TW': 'my_postprocess' },
-  // ── 마크업 lang-span 에서 옮겨온 항목 ──
+  // ── Entries moved here from markup lang-spans ──
   'Becomes selectable in DxInfer\'s model-path': {
     ko: 'DxInfer의 model-path에서 선택 가능해집니다',
     ja: 'DxInfer の model-path で選択可能になります',
@@ -727,7 +727,7 @@ window._DX_I18N_DICT = {
     'zh-TW': '本機 (WebRTC)',
     es: 'Equipo local (WebRTC)',
   },
-  // Setup 단계 목록 (아이콘 체계 단계 2b) — 버튼 말에서 이모지를 뺐다 (아이콘은 마크업이 그린다).
+  // Setup step list — button labels carry no emoji (the markup draws the icons).
   'Set up the rest': { ko: '나머지 설치', ja: '残りをセットアップ', 'zh-CN': '安装其余项', 'zh-TW': '安裝其餘項目', es: 'Instalar el resto' },
   'Six steps get DX Stream running on this PC. What is done stays done.': {
     ko: '여섯 단계면 이 PC에서 DX Stream이 돌아갑니다. 끝난 단계는 그대로 둡니다.',
@@ -738,10 +738,10 @@ window._DX_I18N_DICT = {
   },
   'Clear Log': { ko: '로그 지우기', ja: 'ログクリア', 'zh-CN': '清除日志', 'zh-TW': '清除日誌', es: 'Limpiar registro' },
   'Re-check Environment': { ko: '환경 재점검', ja: '環境を再確認', 'zh-CN': '重新检查环境', 'zh-TW': '重新檢查環境', es: 'Verificar entorno nuevamente' },
-  // 데모 카드 상태 (아이콘 체계 단계 4) — Setup 단계 목록과 같은 말.
+  // Demo card states — same wording as the Setup step list.
   'Ready': { ko: '준비됨', ja: '準備完了', 'zh-CN': '就绪', 'zh-TW': '就緒', es: 'Listo' },
   'Needs setup': { ko: '설치 필요', ja: 'セットアップが必要', 'zh-CN': '需要安装', 'zh-TW': '需要安裝', es: 'Requiere instalación' },
-  // 결과 무대 (spec 2026-10-01 demo stage)
+  // Demo result stage
   'Install a model in Setup to run a demo.': { ko: 'Setup에서 모델을 설치하면 데모를 실행할 수 있습니다.', ja: 'Setup でモデルをインストールするとデモを実行できます。', 'zh-CN': '在 Setup 中安装模型即可运行演示。', 'zh-TW': '在 Setup 中安裝模型即可執行示範。', es: 'Instale un modelo en Setup para ejecutar una demo.' },
   'Terminal command': { ko: '터미널 명령', ja: 'ターミナルコマンド', 'zh-CN': '终端命令', 'zh-TW': '終端機命令', es: 'Comando de terminal' },
   'Resolution': { ko: '해상도', ja: '解像度', 'zh-CN': '分辨率', 'zh-TW': '解析度', es: 'Resolución' },

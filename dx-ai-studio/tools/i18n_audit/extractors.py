@@ -395,21 +395,21 @@ def extract_from_python_source(source: str, *, module: str, source_file: str) ->
     return records
 
 
-# ── 서버가 만들어 화면에 그대로 띄우는 영어 문자열 ──────────────────────────────
+# ── English strings the server builds and the page shows as is ───────────────────
 #
-# extract_from_python_source 는 dict/list 리터럴 **할당만** 본다. 번역 테이블은
-# 잡지만 `send_error_json(400, "...")` 처럼 함수 인자로 들어간 문자열은 구조적으로
-# 못 본다. 그런데 그 문자열은 화면에 그대로 뜬다 —
-#     config_wizard.js:531  alert(T('Config generation failed: ') + data.error)
-# 앞은 번역되고 뒤는 영어다.
+# extract_from_python_source sees only dict/list literal **assignments**. That finds the
+# translation tables but cannot see strings passed as call arguments, such as
+# `send_error_json(400, "...")`. Those still reach the screen:
+#     config_wizard.js  alert(T('Config generation failed: ') + data.error)
+# where the first half is translated and the second half is English.
 #
-# 화면에 닿는 호출만 본다. 로깅이나 내부 예외까지 세면 신호가 묻힌다.
+# Only calls that reach the screen count; logging and internal exceptions would bury the signal.
 _USER_FACING_CALLS = frozenset({
-    "send_error_json",   # HTTP 오류 본문 → 프론트가 data.error 로 표시
-    "ValidationError",   # 경계 검증 → send_error_json 으로 변환돼 같은 자리에 뜬다
+    "send_error_json",   # HTTP error body; the frontend shows it as data.error
+    "ValidationError",   # boundary validation; turned into send_error_json and shown in the same place
 })
 
-# 사람이 읽는 문장만 센다. 식별자/경로/코드값은 번역 대상이 아니다.
+# Count only sentences people read. Identifiers, paths and code values are not translated.
 _MIN_MESSAGE_LEN = 4
 
 
@@ -422,10 +422,10 @@ class ServerMessage:
 
 
 def _literal_parts(node) -> str:
-    """f-string 에서 **리터럴 부분만** 이어 붙인다.
+    """Join only the **literal parts** of an f-string.
 
-    치환되는 값(`{raw!r}`)은 번역 대상이 아니고 내용도 실행 시점에 정해진다.
-    문장 골격만 보면 번역이 필요한지 판단하기에 충분하다.
+    Substituted values (`{raw!r}`) are not translated and are only known at run time.
+    The sentence skeleton is enough to tell whether it needs translating.
     """
     if isinstance(node, ast.Constant) and isinstance(node.value, str):
         return node.value
@@ -438,7 +438,7 @@ def _literal_parts(node) -> str:
 
 
 def extract_server_messages(source: str, *, module: str, source_file: str) -> list[ServerMessage]:
-    """사용자에게 그대로 보이는 서버측 영어 문자열을 찾는다."""
+    """Find server-side English strings that users see as is."""
     try:
         tree = ast.parse(source)
     except SyntaxError:

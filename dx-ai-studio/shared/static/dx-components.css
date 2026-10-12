@@ -1,17 +1,14 @@
 /* Shared DeepX UI components — canonical, token-built. Loaded after module-chrome,
    before each module's own style.css so modules may still override.
 
-   This file holds the component foundation that was previously copy-pasted across
-   modules. Start: the button system (base + disabled + ghost), byte-identical to the
-   dx_app / dx_monitor / dx_stream definitions it replaces. Module-specific button
-   variants still live in each module until reconciled (see docs/design-system.html). */
+   Holds the components every module shares: buttons, fields, cards, toasts, modals, stat
+   tiles, the Reference page, icons and the Setup step list (see docs/design-system.html). */
 
 /* ═══ Buttons ═══ */
 .btn{
   display:inline-flex;align-items:center;gap:4px;padding:8px 16px;border-radius:var(--radius);
-  /* 투명한 1px 테두리를 미리 깔아 둔다. 변형은 border-color 만 바꾸면 되고,
-     테두리 있는 변형(.btn-ghost)과 없는 변형(.btn-primary) 사이에서 1px 만큼
-     크기가 튀지 않는다. dx_benchmark 가 자기 사본에서만 이렇게 하고 있었다. */
+  /* A transparent 1px border up front: variants only change border-color, and
+     outlined (.btn-ghost) and borderless (.btn-primary) buttons stay the same size. */
   border:1px solid transparent;
   cursor:pointer;white-space:nowrap;
   font-size:var(--fs-base);font-weight:600;font-family:var(--font);
@@ -22,12 +19,12 @@
 .btn:disabled{opacity:.35;cursor:not-allowed;pointer-events:none;transform:none!important;filter:none!important}
 
 /* Ghost / secondary outline button.
-   base 가 투명 테두리를 깔아 두므로 여기서는 색만 바꾼다. */
+   The base already reserves the border, so only the colour changes here. */
 .btn-ghost{background:transparent;color:var(--text-muted);border-color:var(--border-subtle)}
 .btn-ghost:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-dim)}
 
-/* Destructive. 색은 파괴적 동작에만 쓰고, 채워진 빨강 대신 옅은 배경 + 빨간
-   글자로 간다 — 실수로 누르기 쉬운 위치에서 시선을 덜 끌면서도 의미는 분명하다. */
+/* Destructive. Red is kept for destructive actions only, as a tinted background with
+   red text rather than solid red: clear in meaning, but quiet where it is easy to misclick. */
 .btn-danger{
   background:rgba(var(--error-rgb),.15);
   color:var(--status-error);
@@ -35,10 +32,7 @@
 }
 .btn-danger:hover{background:rgba(var(--error-rgb),.24);border-color:var(--status-error)}
 
-/* Neutral filled button — accent 도 ghost 도 아닌 세 번째 자리.
-   dx_app 은 .btn-sm 안에 이 외형을 숨겨 두고 있었고(그 바람에 같은 요소의
-   .btn-ghost 를 조용히 덮었다), dx_compiler 는 .btn 없이 쓰는 독립 버튼
-   .btn-secondary 로 갖고 있었다. 둘을 여기로 합친다. */
+/* Neutral filled button — the third option, neither accent nor ghost. */
 .btn-neutral{
   background:var(--control-bg);
   color:var(--text-primary);
@@ -46,9 +40,8 @@
 }
 .btn-neutral:hover{border-color:var(--accent);color:var(--accent)}
 
-/* Small size modifier */
-/* 크기만 바꾼다. 외형(배경·테두리 색)은 변형의 몫이다 — dx_app 사본이
-   여기에 배경까지 넣는 바람에 .btn-ghost 41개가 ghost 로 보이지 않았다. */
+/* Small size modifier. Size only: background and border colour belong to the variant,
+   so .btn-sm never hides .btn-ghost. */
 .btn-sm{padding:4px 12px;font-size:var(--fs-sm);border-radius:var(--radius-sm)}
 
 /* ═══ Form fields (.fg = field group) ═══ */
@@ -65,20 +58,9 @@
 .badge{display:inline-block;padding:2px 8px;border-radius:var(--radius-xs);font-size:var(--fs-xs);font-weight:600;letter-spacing:.2px}
 
 /* ═══ Card ═══
-   네 모듈이 각자 정의하던 것을 하나로 합쳤다. 합치기 전 실측 차이:
-     padding      20px (app/stream/monitor) vs var(--sp-4)=16px (benchmark)
-     margin-bottom 16px (app/monitor) vs 없음 (stream/benchmark)
-     box-shadow   var(--surface-raised-shadow) (셋) vs inset만 (monitor — 그림자 없음)
-
-   결정:
-   - padding 은 20px 을 따른다(4개 중 3개). 다만 20px 은 spacing 스케일
-     (4/8/12/16/24/32/48)에 없는 값이라 --card-padding 으로 명시해 둔다 —
-     스케일 밖 값이 리터럴로 흩어져 있는 것이 애초에 이 편차의 원인이었다.
-   - margin 은 갖지 않는다. 컴포넌트가 자기 바깥 여백을 소유하면 grid gap 과
-     이중으로 걸려 모듈마다 다른 보정이 생긴다 — 실제로 그렇게 갈라졌다.
-     흐름 배치가 필요한 모듈은 컨테이너 쪽에서 준다.
-   - 그림자는 공유 depth 토큰을 쓴다. monitor 만 그림자가 없던 것은 의도가
-     아니라 토큰을 안 쓴 결과다. */
+   --card-padding names the padding so it is not repeated as a literal.
+   A card has no outer margin: it would stack with grid gaps. Containers space cards.
+   The shadow comes from the shared depth token. */
 :root{ --card-padding:16px; }
 
 .card{
@@ -99,19 +81,9 @@
 }
 
 /* ═══ Primary / accent button ═══
-   합치기 전 실측: 네 모듈이 다섯 개의 rule 로 같은 버튼을 그렸다.
-     dx_app .btn-acc / dx_stream .btn-acc / dx_stream .btn-primary  — 셋이 동일
-     dx_monitor .btn-acc                                            — box-shadow 만 누락
-     dx_benchmark .btn-primary                                      — color:#fff, 다른 shadow
-
-   글자색은 --text-on-accent 로 간다. dx_benchmark 의 흰 글자는 accent
-   그라디언트(var(--accent)) 위에서 대비 3.15:1 로 WCAG AA(4.5) 미달이었고,
-   나머지가 쓰던 어두운 글자는 6.2:1 로 통과한다. 통합은 낮은 쪽이 아니라
-   읽히는 쪽으로 맞춘다.
-
-   .btn-acc 는 기존 사용처(26곳)를 위한 별칭으로만 남긴다. 새 마크업은
-   .btn-primary 를 쓴다 — 같은 버튼에 이름이 둘인 것이 애초에 dx_stream 이
-   양쪽을 다 정의하게 만든 원인이다. */
+   Text uses --text-on-accent: white on the accent gradient is 3.15:1 and fails WCAG AA (4.5),
+   the dark text is 6.2:1.
+   .btn-acc is an alias kept for existing markup; new markup uses .btn-primary. */
 .btn-primary,
 .btn-acc{
   background:var(--gradient-accent);
@@ -124,10 +96,8 @@
 
 
 /* ═══ Toast ═══
-   dx_app / dx_stream 이 같은 정의를 각자 갖고 있었고(stream 은 action/close 가
-   빠진 부분집합), dx_planner 만 반대 위치였다 — 상단 우측, column, z-index 9999.
-   하단 우측으로 통일한다: 3개 중 2개가 그렇고, 헤더와 겹치지 않으며,
-   column-reverse 라 새 토스트가 항상 시선이 머무는 아래쪽에 쌓인다. */
+   Bottom right: clear of the header, and column-reverse stacks new toasts at the bottom
+   where the eye already is. */
 .toast-wrap{position:fixed;bottom:20px;right:20px;z-index:300;display:flex;flex-direction:column-reverse;gap:var(--sp-2);pointer-events:none}
 .toast{padding:8px 16px;border-radius:10px;font-size:var(--fs-base);box-shadow:var(--shadow);
   transform:translateX(120%);transition:.3s var(--ease);max-width:420px;
@@ -144,7 +114,7 @@
 .toast-warn{background:rgba(var(--surface-panel-rgb),.92);border:1px solid rgba(var(--warning-rgb),.4);color:var(--status-warn)}
 .toast-info{background:rgba(var(--surface-panel-rgb),.92);border:1px solid rgba(var(--info-rgb),.4);color:var(--status-info)}
 
-/* ═══ Modal ═══ dx_app / dx_stream 정의가 일곱 rule 전부 동일했다. */
+/* ═══ Modal ═══ */
 .modal-overlay{border:none;background:transparent;padding:0;max-width:100%;max-height:100%;
   width:100%;height:100%;}
 .modal-overlay[open]{display:flex;align-items:center;justify-content:center;}
@@ -159,14 +129,11 @@
 .modal-x svg{width:18px;height:18px}
 
 /* ═══ Stat tile ═══
-   dx_monitor 만 --surface-raised-bg 대신 같은 값을 손으로 적고 그림자를 inset 만
-   남겨 두었다 — .card 와 똑같은 우회다. 배치(flex 여부)는 컴포넌트가 아니라
-   담는 쪽의 몫이라 여기 넣지 않는다. */
+   Layout (flex or not) belongs to the container, so it is not set here. */
 .stat{background: var(--surface-raised);border:1px solid var(--border-subtle);border-radius:var(--radius);
   padding:16px 16px;position:relative;overflow:hidden;transition:var(--transition);
   box-shadow: var(--surface-raised-shadow);}
 
-/* stat 내부. :hover 만 dx_monitor 가 토큰 대신 값을 손으로 적고 있었다. */
 .stat:hover{transform:translateY(-1px);box-shadow:var(--surface-hover-shadow);border-color:var(--border-strong)}
 .stat::before{content:'';position:absolute;inset:-1px;border-radius:inherit;background:linear-gradient(135deg,rgba(var(--accent-rgb),.06),transparent 60%);pointer-events:none;z-index:0}
 .stat::after{content:'';position:absolute;top:0;left:0;width:100%;height:2px;
@@ -174,7 +141,7 @@
 .stat .val{font-size:26px;font-weight:700;color:var(--accent);text-shadow:0 0 12px rgba(var(--accent-rgb),.2)}
 .stat .label{font-size:var(--fs-xs);color:var(--text-muted);text-transform:uppercase;letter-spacing:.6px;margin-top:2px}
 
-/* ═══ 여러 모듈이 공유하던 작은 컴포넌트 ═══ */
+/* ═══ Small shared components ═══ */
 .card-glow{box-shadow:0 0 0 1px var(--accent),0 0 30px rgba(var(--accent-rgb),.06)}
 .chip{padding:4px 12px;border:1px solid var(--border-subtle);border-radius:20px;font-size:var(--fs-sm);
   cursor:pointer;transition:var(--transition);color:var(--text-muted);background:transparent;font-family:var(--font);}
@@ -186,9 +153,7 @@
 .setup-card-title{font-weight:600;font-size:var(--fs-md);margin-bottom:4px}
 .setup-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
 
-/* ═══ Reference 페이지 ═══
-   dx_app 과 dx_stream 이 Reference 화면 전체(.ref-*)를 서로 복제하고 있었다.
-   31개 rule 이 두 벌, 값은 한 글자도 다르지 않았다. 화면이 같으니 정의도 하나다. */
+/* ═══ Reference page ═══ (the .ref-* screen shared by dx_app and dx_stream) */
 .ref-box{display:flex;align-items:flex-start;gap:8px;padding:12px 16px;border-radius:var(--radius);margin:12px 0;font-size:var(--fs-base);line-height:1.6}
 .ref-box-icon{font-size:var(--fs-lg);flex-shrink:0;margin-top:1px}
 .ref-card-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(280px,100%),1fr));gap:var(--sp-3)}
@@ -215,14 +180,14 @@
   border-radius:var(--radius);font-size:var(--fs-sm);font-weight:600;color:var(--accent-light);}
 .ref-grid{display:flex;flex-direction:column;gap:var(--sp-4)}
 .ref-layout{display:flex;flex-direction:column;gap:var(--sp-4);width:100%;flex:1}
-/* 글자 시작 = 아이콘 left(12) + 아이콘(16) + 간격(8) */
+/* Text starts at icon left (12) + icon (16) + gap (8) */
 .ref-search{width:100%;padding:8px 12px 8px calc(12px + 16px + 8px);background:var(--control-bg);border:1px solid var(--border-subtle);
   border-radius:var(--radius);color:var(--text-primary);font-size:var(--fs-base);transition:var(--transition);}
 .ref-search-bar{margin-bottom:12px}
 .ref-search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:var(--fs-md);opacity:.5}
 .ref-search-wrap{position:relative;max-width:600px;margin:0 auto}
 .ref-section-desc{font-size:var(--fs-sm);color:var(--text-muted);margin-top:4px;line-height:1.4}
-/* tutorial.css 의 같은 이름 규칙 (한 줄 · nowrap) 이 Reference 카드에도 걸려 폰 폭에서 가로로 넘쳤다 (release audit A-10) */
+/* tutorial.css has a one-line nowrap rule of the same name; let Reference cards wrap so they fit a phone */
 .ref-topic-card .ref-section-desc{white-space:normal;overflow-wrap:anywhere}
 .ref-section-icon{font-size:var(--fs-3xl);flex-shrink:0}
 .ref-section-info{display:flex;flex-direction:column;flex:1;min-width:0}
@@ -239,11 +204,7 @@
   border-radius:var(--radius-lg);cursor:pointer;transition:var(--transition);font-family:var(--font);
   box-shadow: var(--surface-raised-shadow);}
 
-/* ═══ 남은 공유 컴포넌트 ═══
-   .setup-card / .chart-box / .npu-card 는 두 모듈이 거의 같은 정의를 갖고 있었고,
-   차이는 한쪽에만 있던 선언 한둘이었다. 더 갖고 있던 쪽을 기준으로 합친다.
-   dx_monitor 는 여기서도 .npu-card 배경과 .chart-box 그림자를 토큰 대신 손으로
-   적고 있었다 — .card / .stat / .stat:hover 에 이은 네 번째, 다섯 번째다. */
+/* ═══ More shared components ═══ */
 .setup-card{background: var(--surface-raised);border:1px solid var(--border-subtle);border-radius:10px;
   padding:var(--sp-4);display:flex;flex-direction:column;gap:8px;transition:var(--transition);
   box-shadow: var(--surface-raised-shadow);}
@@ -252,9 +213,9 @@
   position:relative;overflow:hidden;transition:var(--transition);
   box-shadow: var(--surface-raised-shadow);}
 
-/* ─── 아이콘 (spec 2026-09-29 아이콘 체계) ────────────────────────────────
-   shared/static/dx-icons.svg 의 symbol 을 <use> 로 쓴다 (DXIcon helper). 글자 크기를 따르고 (1em),
-   색은 currentColor. 모양은 상속되는 변수로: --ico-fill (면, .24) · --ico-fill-o · --ico-stroke (선, 2). */
+/* ─── Icons ───────────────────────────────────────────────────────────────
+   <use> symbols from shared/static/dx-icons.svg (DXIcon helper). They follow the font size (1em) and
+   currentColor. Shape comes from inherited variables: --ico-fill (fill, .24) · --ico-fill-o · --ico-stroke (stroke, 2). */
 .dx-ico {
   width: 1em;
   height: 1em;
@@ -262,19 +223,19 @@
   vertical-align: -.125em;
   overflow: visible;
 }
-/* 진행 중 표시 (spinner) 가 돈다. 움직임을 줄이라는 설정이면 멈춰 둔다. */
+/* Spinners turn, except when the user asks for reduced motion. */
 .dx-ico--spin { animation: dx-spin 1s linear infinite; }
 @media (prefers-reduced-motion: reduce) { .dx-ico--spin { animation: none; } }
-/* 접기 · 펼치기 chevron: 접힌 쪽을 가리킨다 (열림 = 아래, 닫힘 = 오른쪽). */
+/* Fold chevron points the way the content goes (open = down, closed = right). */
 .dx-ico--fold { transition: transform .15s; }
 .is-collapsed > .dx-ico--fold, .collapsed .dx-ico--fold, [aria-expanded="false"] > .dx-ico--fold { transform: rotate(-90deg); }
 .dx-ico--sm { font-size: var(--fs-sm); }
 .dx-ico--lg { width: 1.5em; height: 1.5em; }
 
-/* ─── Setup 단계 목록 (spec 2026-09-29 아이콘 체계 단계 2) ─────────────────
-   app · stream 의 Setup 과 compiler 의 Setup 칸이 함께 쓴다 (shared/static/dx-steps.js).
-   끝난 단계는 한 줄, 다음 단계만 펼침. 상태는 모양 + 색 + 말. */
-/* 부품 안에서는 hidden 이 이긴다 — .btn 의 display 가 속성을 덮어 "할 일 없음" 버튼이 남았다. */
+/* ─── Setup step list ─────────────────────────────────────────────────────
+   Shared by the app and stream Setup pages and the compiler Setup panel (shared/static/dx-steps.js).
+   Finished steps are one line, only the next step is open. State shows as shape + colour + words. */
+/* Inside the component hidden wins — otherwise .btn's display overrides the attribute. */
 .dx-steps [hidden] { display: none !important; }
 .dx-steps { --step-ok: var(--status-ok); --step-warn: var(--status-warn); --step-err: var(--status-error);
   --step-dot: 36px; color: var(--text-primary); }
@@ -290,7 +251,7 @@
 .dx-steps-bar > i.is-next { background: var(--accent); }
 .dx-steps-bar > i.is-failed { background: var(--step-err); }
 .dx-steps-run { display: inline-flex; align-items: center; gap: var(--sp-2); }
-/* 좁은 화면 — 오른쪽 버튼이 소개 문장을 한 단어씩 접힌 좁은 칸으로 밀었다 (2026-10-11 Stream audit, 390 px · es). */
+/* Narrow screens: stack the run buttons under the intro so it is not squeezed into a thin column. */
 @media (max-width: 600px) {
   .dx-steps-head { grid-template-columns: minmax(0, 1fr); align-items: start; }
   .dx-steps-run { flex-wrap: wrap; }
@@ -304,7 +265,7 @@
 .dx-step-dot { position: relative; z-index: 1; width: var(--step-dot); height: var(--step-dot); border-radius: 50%;
   display: grid; place-items: center; font-size: var(--fs-sm); font-weight: var(--fw-semibold);
   background: var(--surface-page); border: 2px solid color-mix(in srgb, var(--text-primary) 18%, transparent); color: var(--text-secondary); }
-/* 크기는 동그라미에서 — grid item 의 % 높이는 풀 곳이 없어 16×75 로 늘어났다. */
+/* Size comes from the dot: a % height on a grid item has nothing to resolve against. */
 .dx-step-dot .dx-ico { width: calc(var(--step-dot) * .5); height: calc(var(--step-dot) * .5); }
 .dx-step[data-state="done"] .dx-step-dot { color: var(--step-ok); border-color: color-mix(in srgb, var(--step-ok) 60%, transparent);
   background: color-mix(in srgb, var(--step-ok) 16%, var(--surface-page)); }
@@ -342,13 +303,13 @@
   font: var(--fs-xs)/1.4 var(--font-mono, ui-monospace, monospace); color: var(--text-muted); }
 .dx-step-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); margin-top: var(--sp-3); }
 .dx-step-log { margin-top: var(--sp-3); }
-/* 파란 버튼은 다음 단계에만 — 끝난 단계를 펼치면 같은 버튼이 조용한 "다시 하기" 모양이다. */
+/* Only the next step gets the blue button; on an opened finished step the same button looks like a quiet "redo". */
 .dx-step:not(.is-next) .dx-step-actions .btn-primary {
   background: transparent; color: var(--text-secondary);
   border: 1px solid color-mix(in srgb, var(--text-primary) 16%, transparent); }
 .dx-step-log:empty { display: none; }
 
-/* compact: compiler 의 오른쪽 칸. 모두 끝나면 한 줄 ("Setup ready") 로 접힌다. */
+/* compact: the compiler's right-hand panel. Folds to one line ("Setup ready") when everything is done. */
 .dx-steps--compact { --step-dot: 28px; padding: var(--sp-4); border-radius: var(--radius-xl); background: var(--surface-panel);
   border: 1px solid color-mix(in srgb, var(--text-primary) 8%, transparent); }
 .dx-steps--compact .dx-steps-head { grid-template-columns: auto 1fr auto; align-items: center; margin-bottom: var(--sp-2); }
@@ -363,9 +324,9 @@
 .dx-steps-summary small { color: var(--text-muted); }
 .dx-steps-summary .dx-ico:last-child { margin-left: auto; color: var(--text-muted); }
 .dx-steps--compact.is-complete:not(.is-expanded) .dx-steps-summary { display: flex; }
-/* !important: 모듈 JS 가 칸을 펴며 인라인 display 를 준다 (compiler setup_panel.js _expand) — 한 줄 접힘이 이긴다. */
+/* !important: module JS sets an inline display when it expands the panel (compiler setup_panel.js _expand); the one-line fold must win. */
 .dx-steps--compact.is-complete:not(.is-expanded) > :not(.dx-steps-summary) { display: none !important; }
-/* 데모만 원할 때의 한 줄 — 단계 목록 위, 조용한 강조 (파란 테두리 · 옅은 판). */
+/* One-line shortcut for users who only want the demo — above the step list, quietly highlighted. */
 .dx-steps-quick { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-3) var(--sp-4); margin-bottom: var(--sp-5);
   padding: var(--sp-3) var(--sp-4); border-radius: var(--radius-xl);
   background: color-mix(in srgb, var(--accent) 8%, var(--surface-panel)); border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent); }

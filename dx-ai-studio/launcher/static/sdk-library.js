@@ -2,7 +2,7 @@
 (function () {
   'use strict';
 
-  // 서랍 · 칸 · 파일 아이콘은 sprite 이름 (sdk-library-data.json, 아이콘 체계 단계 5). 옛 글자 icon 은 그대로.
+  // Drawer, section and file icons are sprite names (sdk-library-data.json). Legacy text icons pass through as is.
   function _sdkIco(name) {
     if (/^[a-z0-9_-]+$/.test(name || '') && typeof window.DXIcon === 'function') return window.DXIcon(name);
     return escHtmlSafe(name || '');
@@ -187,7 +187,7 @@
   let _viewMode = 'list'; // 'cabinet' | 'list' — list is default
   let _selectedDrawer = null;
   let _selectedSection = null;
-  let _listData = null;   // List 보기가 그린 data — 검색이 전체 문서를 찾는다 (searchListView)
+  let _listData = null;   // Data the List view rendered — search looks through every doc (searchListView)
 
   function buildModuleHeader() {
     const header = document.createElement('header');
@@ -564,7 +564,7 @@
         clearTimeout(_searchUrlTimeout);
         requestSdkUrlUpdate({ q: input.value.trim() }, 'replace');
       } else if (e.key === 'Escape' && input.value) {
-        // 튜토리얼이 약속한 대로 검색을 지운다 — 예전에는 launcher 가 받아 SDK Library 를 떠났다 (L-5)
+        // Escape clears the search, as the tutorial says, instead of reaching the launcher and leaving SDK Library
         input.value = '';
         input.dispatchEvent(new Event('input', { bubbles: true }));
         e.preventDefault();
@@ -611,8 +611,8 @@
     else _clearEmptySearch(cabinet);
   }
 
-  /* List 보기 검색 — 문서 목록 전체에서 찾아 결과를 내용 칸에 카드로 그린다. 예전에는 사이드바 구역 이름과 이미 그려진
-     카드만 보아서 'quick start' · 'compiler' 가 0 건이었다 (Cabinet 보기는 2 건). 2026-10-02 release audit L-4. */
+  /* List view search — looks through the whole doc list and draws the hits as cards in the content pane, not just
+     the sidebar section names and the cards already on screen. */
   function searchListView(q) {
     const listContent = document.getElementById('sdkListContent');
     const groups = document.querySelectorAll('.sdk-sidebar-group');
@@ -623,7 +623,7 @@
         g.classList.remove('search-hidden');
         g.querySelectorAll('.sdk-sidebar-section').forEach(sec => sec.classList.remove('search-hidden'));
       });
-      // 고르던 구역으로 돌아간다
+      // Back to the section that was selected
       const drawer = _listData && _listData.drawers.find(d => d.id === _selectedDrawer);
       const section = drawer && drawer.sections.find(sec => sec.id === _selectedSection);
       if (drawer && section) renderListContent(_listData, drawer, section);
@@ -668,7 +668,7 @@
       hits.forEach(h => grid.appendChild(buildFileCard(h.file, h.drawer.color)));
     }
     const matchCount = hits.length;
-    const contentCardMatch = matchCount > 0;   // 빈 상태는 내용 칸의 카드로 정한다 (사이드바 일치가 아니라)
+    const contentCardMatch = matchCount > 0;   // The empty state depends on the cards in the content pane, not on sidebar matches
     renderSearchSummary(q, matchCount);
     if (!contentCardMatch) _showEmptySearch(listContent);
     else _clearEmptySearch(listContent);
@@ -705,8 +705,7 @@
   // Docs (e.g. Model Zoo architecture) use ```mermaid fences. The parser emits them as
   // <pre class="mermaid-source">; here we turn each into an SVG once the doc mounts, using
   // the offline vendored mermaid.min.js. On failure, the original code block is kept visible.
-  // The library (800 KB) loads the first time a doc has a diagram — it was a <script> on every launcher screen
-  // (2026-10-11 performance audit).
+  // The library (800 KB) loads the first time a doc has a diagram, so other launcher screens never pay for it.
   let _mermaidReady = null;
   function ensureMermaid() {
     if (!_mermaidReady) {
@@ -762,7 +761,7 @@
     // Fenced code. Accept a full info string after the opening fence (e.g. ```python
     // title="x", ```py {.highlight}) — capture everything to end-of-line and derive the
     // language token from its first word, so attribute-carrying fences still pair correctly
-    // (an unmatched fence used to shift the pairing and leak code as plain text).
+    // (an unmatched fence would shift the pairing and leak code as plain text).
     let s = md.replace(/```[ \t]*([^\n]*)\n([\s\S]*?)```/g, (_, info, code) => {
       const idx = codeBlocks.length;
       const lang = ((info || '').trim().match(/^[\w+-]+/) || [''])[0];
@@ -800,8 +799,8 @@
       t = t.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (m, alt, src) => `<img src="${rewriteSrc(src)}" alt="${alt}">`);
       // Raw HTML <img src="rel"> → rewrite the src attribute (keep other attrs)
       t = t.replace(/(<img\b[^>]*?\bsrc\s*=\s*["'])([^"']+)(["'])/gi, (m, pre, src, post) => `${pre}${rewriteSrc(src)}${post}`);
-      // Doc-relative links to another .md open inside the viewer; everything else opens in a
-      // new tab. (Cross-doc links used to point at a raw .md path and 404.)
+      // Doc-relative links to another .md open inside the viewer (a raw .md path would 404);
+      // everything else opens in a new tab.
       const mkLink = (txt, url) => {
         const u = (url || '').trim();
         const base = u.split('#')[0].split('?')[0];
@@ -838,7 +837,7 @@
     const admRe = /^(!!!|\?\?\?\+?)\s+([\w-]+)(?:\s+"([^"]*)")?\s*$/;
     const tabRe = /^===\+?\s+"([^"]*)"\s*$/;
     const indentedRe = /^( {4}|\t)/;
-    // 알림 상자 (!!! note …) 의 표시 — sprite 이름 (아이콘 체계 단계 5)
+    // Admonition (!!! note …) icons — sprite names
     const ADM_ICONS = {
       note:'file', abstract:'clipboard', summary:'clipboard', tldr:'clipboard', info:'info', todo:'check',
       tip:'info', hint:'info', important:'alert', success:'check', check:'check', done:'check',
@@ -1474,7 +1473,7 @@
       window.LauncherTutorial.connectToolbar();
       return;
     }
-    // Launcher tutorial engine이 없을 때만 튜토리얼 토글을 복구한다.
+    // Restore the tutorial toggle only when the launcher's tutorial engine is absent.
     DXToolbar.connectTutorial({
       toggleTOC: function() { if (window._dxTutorialMode) window._dxTutorialMode.toggle(); },
       _toggleBtnEl: null

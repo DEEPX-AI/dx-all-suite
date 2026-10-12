@@ -82,7 +82,7 @@ function initABImages(){
     var imgs=Array.isArray(r[0])?r[0]:[];
     var vids=Array.isArray(r[1])?r[1]:[];
     // Files first: the list also holds pair FOLDERS (sample/img/face_pair) for embedding demos,
-    // and the first entry used to be one — the default "Original" was a broken image.
+    // and if the first entry were one, the default "Original" would be a broken image.
     var _isFile=function(p){return /\.[a-z0-9]+$/i.test(p)};
     imgs=imgs.filter(_isFile).concat(imgs.filter(function(p){return !_isFile(p)}));
     $('ab-img').innerHTML=

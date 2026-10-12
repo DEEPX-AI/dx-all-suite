@@ -24,7 +24,7 @@ _PROJECT_ROOT = _STUDIO_DIR.parent
 
 
 class _Rejected(Exception):
-    """검증이 입력을 거부했고 400 응답이 이미 나갔다는 신호. route() 가 삼킨다."""
+    """Validation rejected the input and the 400 response has already been sent. route() swallows it."""
 
 
 class _ViewerDepsError(Exception):
@@ -206,9 +206,9 @@ def _compiler_feature_status() -> dict:
 
 
 
-# ── 통합 App Shell (Option A) ──────────────────────────────────
-# 컴파일 워크플로 단일 화면이라 탭 행이 없다 — base.html 루트에
-# .dx-shell--no-tabs 를 붙였다.
+# ── Shared App Shell ──────────────────────────────────────────
+# The compile workflow is a single screen, so there is no tab row
+# (base.html root carries .dx-shell--no-tabs).
 DX_COMPILER_SHELL = ShellSpec(module_key="compiler")
 
 class CompilerHandler(DXBaseHandler):
@@ -224,16 +224,16 @@ class CompilerHandler(DXBaseHandler):
         # serve stale cached scripts until the process restarts (e.g. the sudo modal not
         # appearing). static_version() is a cheap hash of ~9 small files.
         ctx.setdefault("v", static_version())
-        # 통합 App Shell 주입. 이 모듈은 자체 미니 템플릿 엔진을 쓰고 그 변수
-        # 패턴이 {{DX_SHELL_*}} 와 겹치므로, 문자열 치환을 따로 돌리지 않고
-        # 렌더 컨텍스트로 넘겨 한 번에 채운다.
+        # Inject the unified App Shell. This module has its own mini template engine
+        # whose variable pattern overlaps {{DX_SHELL_*}}, so pass the markup in the
+        # render context instead of running a separate string replace.
         for key, markup in _shell.context(DX_COMPILER_SHELL).items():
             ctx.setdefault(key, markup)
         return _render_template(template_name, ctx)
 
 
     def _path_ok(self, fn, *args, **kwargs):
-        """compile 경로 정책 (path_policy) — 어기면 400 을 보내고 ``_Rejected`` (QA COM-A2)."""
+        """Apply the compile path policy (path_policy): on violation send 400 and raise ``_Rejected``."""
         try:
             return fn(*args, **kwargs)
         except path_policy.PathPolicyError as exc:
@@ -241,14 +241,14 @@ class CompilerHandler(DXBaseHandler):
             raise _Rejected from None
 
     def _validated(self, fn, *args, **kwargs):
-        """검증자를 부르고 ValidationError 를 400 으로 바꾼다.
+        """Call a validator and turn ValidationError into a 400.
 
-        호출부마다 try 를 쓰지 않게 하는 한 곳. 여기가 이 서버에서 "사용자 입력
-        오류는 400" 이라는 규칙이 사는 자리다 — 500 은 우리 잘못을 뜻하므로
-        사용자가 보낸 값 때문에 나면 안 된다.
+        The one place that saves every caller a try block, and where this server's
+        rule "user input errors are 400" lives: a 500 means our bug, so a value the
+        user sent must never cause one.
 
-        검증에 실패하면 400 을 보내고 ``_Rejected`` 를 던진다. 호출부는 잡지
-        않는다 — route() 가 잡아서 조용히 끝낸다(응답은 이미 나갔다).
+        On failure it sends 400 and raises ``_Rejected``. Callers do not catch it;
+        route() does and ends quietly (the response has already been sent).
         """
         try:
             return fn(*args, **kwargs)
@@ -262,7 +262,7 @@ class CompilerHandler(DXBaseHandler):
         try:
             return self._route_inner()
         except _Rejected:
-            return  # 400 응답은 _validated 가 이미 보냈다
+            return  # _validated already sent the 400 response
 
     def _route_inner(self):
         path = self.url_path
@@ -385,8 +385,8 @@ class CompilerHandler(DXBaseHandler):
 
         parsed_scheme = self._validated(
             validate_enhanced_scheme_json, enhanced_scheme_raw)
-        # resume 이 이미 하던 검사다. 새 규칙이 아니라, 여기서 안 부르고
-        # 있었을 뿐이다 — 그래서 DXQ-P99 가 /compile 로는 통과했다.
+        # Same check as /compile/resume, so an unknown key such as DXQ-P99 is
+        # rejected here too.
         parsed_scheme = self._validated(validate_enhanced_scheme, parsed_scheme)
 
         if use_q_pro:
@@ -394,12 +394,12 @@ class CompilerHandler(DXBaseHandler):
 
         if not model_path or not config_path or not output_dir:
             return self.send_error_json(400, "model_path, config_path, and output_dir are required")
-        # 허용된 폴더 안의 실제 파일 · 폴더만 — submit · 읽기 · mkdir 전에 거부 (QA COM-A2)
+        # Only real files and folders inside the allowed roots; reject before submit, reads or mkdir
         model_path = str(self._path_ok(path_policy.check_input_file, model_path, "model_path"))
         config_path = str(self._path_ok(path_policy.check_input_file, config_path, "config_path"))
         output_dir = str(self._path_ok(path_policy.check_output_dir, output_dir))
 
-        # config 안의 dataset_path 는 submit 이 본다 — 어긋나면 500 이 아니라 400 (사용자 입력이다)
+        # submit checks the dataset_path inside the config; a violation is user input, so 400 rather than 500
         job = self._path_ok(
             compiler_service.submit,
             model_path=model_path,
@@ -434,8 +434,8 @@ class CompilerHandler(DXBaseHandler):
             return self.send_error_json(400, "Job is not paused")
 
         body = self.read_json_body()
-        # 둘 다 먼저 검증하고 나서 쓴다. 하나를 쓰고 다음에서 거부하면 job 이
-        # 반만 바뀐 채로 남는다.
+        # Validate both before writing either. Writing one and rejecting the next
+        # would leave the job half-updated.
         input_nodes = self._validated(validate_node_names, body.get("input_nodes"), "input_nodes")
         output_nodes = self._validated(validate_node_names, body.get("output_nodes"), "output_nodes")
         job.selected_input_nodes = input_nodes
@@ -567,8 +567,8 @@ class CompilerHandler(DXBaseHandler):
                 "total_count": total,
             })
         except ValueError as e:
-            # validate_target_nodes 가 "그런 노드가 없다" 로 던지는 것. 사용자가
-            # 이름을 잘못 쓴 것이므로 400 이다 — 500 은 우리 잘못을 뜻한다.
+            # validate_target_nodes raises this for an unknown node. The user
+            # mistyped a name, so it is a 400; a 500 would mean our bug.
             return self.send_error_json(400, str(e))
         except Exception as e:
             return self.send_error_json(500, str(e))
@@ -759,7 +759,7 @@ class CompilerHandler(DXBaseHandler):
             self.end_sse()
 
     def _sse_setup(self, generator_fn):
-        """Setup 작업의 SSE 스트리밍 (install-sdk, download-samples)"""
+        """Stream a setup task over SSE (install-sdk, download-samples)."""
         self.start_sse()
         try:
             for event in generator_fn():
@@ -802,7 +802,7 @@ class CompilerHandler(DXBaseHandler):
             warnings.append(f"Path is not a file: {path}")
         if kind == "file" and ext and not path.lower().endswith(ext.lower()):
             warnings.append(f"File does not end in {ext}: {path}")
-        # 탐색기가 보여도 compile 이 거절할 곳 (path_policy — 예: /tmp) 이면 미리 말한다 (release audit C-2)
+        # Warn early if compile would refuse this path (path_policy, e.g. /tmp) even though the browser shows it
         if exists:
             from dx_compiler.core import path_policy as _pp
             try:
@@ -967,15 +967,14 @@ class CompilerHandler(DXBaseHandler):
         except Exception:
             return self.send_error_json(400, "Invalid JSON")
 
-        # SR-758: 이 한 줄이 무엇이 들어오든 그대로 복사했다. 바로 아래 calibration_num
-        # 은 int() 로 감싸고 400 을 내는데, inputs 만 지나쳤다 — 그래서 음수 차원이나
-        # 문자열이 config.json 까지 내려가 컴파일 단계에서야 터졌다.
-        # 유효 범위는 .deepx/toolsets/config-schema.md 가 정한다:
+        # Check input_shapes here so negative dimensions or strings fail with a 400
+        # instead of reaching config.json and failing only at compile time.
+        # The valid range comes from .deepx/toolsets/config-schema.md:
         # "Dimensions: All must be positive integers (no -1, no 0)".
-        # batch 가 1 인지와 키가 ONNX 노드 이름과 맞는지는 여기서 보지 않는다 —
-        # 이 API 는 모델을 읽지 않으므로 알 수 없고, 알 수 없는 것을 막으면 모델을
-        # 아직 고르지 않은 마법사 단계의 정당한 입력까지 거부한다.
-        # 계약: tests/dx_compiler/test_config_input_shapes.py
+        # Whether batch is 1 and whether keys match ONNX node names is not checked:
+        # this API does not read the model, and blocking what it cannot know would
+        # reject valid input from wizard steps where no model is chosen yet.
+        # Contract: tests/dx_compiler/test_config_input_shapes.py
         input_shapes = config_data.get("input_shapes", {})
         if not isinstance(input_shapes, dict):
             return self.send_error_json(400, "Invalid input_shapes: expected an object")
@@ -984,7 +983,7 @@ class CompilerHandler(DXBaseHandler):
                 return self.send_error_json(
                     400, f"Invalid input_shapes for {name!r}: expected a list of dimensions")
             for dim in shape:
-                # bool 을 먼저 거른다 — 파이썬에서 True 는 int 의 인스턴스다.
+                # Filter out bool first: in Python True is an instance of int.
                 if isinstance(dim, bool) or not isinstance(dim, int) or dim < 1:
                     return self.send_error_json(
                         400,
@@ -1011,13 +1010,13 @@ class CompilerHandler(DXBaseHandler):
             config["default_loader"] = default_loader
 
         if config_data.get("calibration_num"):
-            # 타입은 보고 범위는 보지 않았다 — int("-5") 는 통과한다. 프론트의
-            # validateCalibNum 은 n <= 0 을 막으므로 GUI 로는 보이지 않지만, API 를
-            # 직접 부르면 음수 표본 수가 config.json 까지 내려간다. 같은 규칙을 둔다.
+            # Check the range as well as the type: int("-5") converts fine. The front
+            # end's validateCalibNum blocks n <= 0, but a direct API call could still
+            # write a negative sample count to config.json, so apply the same rule.
             raw_calib = config_data["calibration_num"]
             if isinstance(raw_calib, bool):
-                # input_shapes 의 차원에서는 bool 을 막아 놓고 여기서는 안 막았다.
-                # int(True) 가 1 이라 `true` 가 표본 수 1 로 조용히 저장된다.
+                # Reject bool as for the input_shapes dimensions: int(True) is 1, so
+                # `true` would silently be stored as a sample count of 1.
                 return self.send_error_json(
                     400, f"Invalid calibration_num: {raw_calib!r} — expected a number")
             try:
@@ -1141,7 +1140,7 @@ class CompilerHandler(DXBaseHandler):
 
 
 def create_server(port=DEFAULT_PORT):
-    """테스트용 서버 팩토리: HTTPServer 인스턴스를 반환."""
+    """Server factory for tests: returns an HTTPServer instance."""
     from http.server import ThreadingHTTPServer
     srv = ThreadingHTTPServer(("127.0.0.1", port), CompilerHandler)
     srv.daemon_threads = True

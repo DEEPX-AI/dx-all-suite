@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Ratchet: Korean text in source comments may only go down.
 
-Comments and docstrings ship with the studio, and readers of the code should not need Korean to follow it. The
-release cleanup (2026-10-12) moved them to English; this gate keeps it that way. UI text (i18n dictionary values,
-strings shown to users) is not a comment and is not counted.
+Comments and docstrings ship with the studio, and readers of the code should not need Korean to follow it. This
+gate keeps them in English. UI text (i18n dictionary values, strings shown to users) is not a comment and is not
+counted.
 
 Counts lines of comment text that contain Hangul, per tracked file (py, js, css, html, sh; vendor and minified files
 are skipped). `--update` rewrites config/comment_language_baseline.json; a file may never exceed its baseline.

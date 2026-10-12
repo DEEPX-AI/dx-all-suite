@@ -1,25 +1,25 @@
 /* ─── Launcher home — the effects ───────────────────────────────────────
-   spec: docs/superpowers/specs/2026-09-23-launcher-home-redesign-design.md §7
 
-   규칙: transform · opacity 만 움직인다. JS 가 움직이는 것은 Web Animations API 로 —
-   class 를 떼고 reflow 로 다시 붙이는 트릭은 키 입력마다 layout 을 부른다.
-   효과 줄이기를 켠 사람에게는 시작하지 않는다 (CSS 쪽은 dx-base.css 의 전역 규칙).
+   Rule: move only transform and opacity. What JS animates goes through the Web
+   Animations API — removing a class and re-adding it after a reflow forces layout
+   on every keystroke. Nothing starts for people with reduced motion on (the CSS
+   side is the global rule in dx-base.css).
 
-   정지한 효과 (무대 조명 · 책 · 포스터 pill) 는 home-stage.css 가 혼자 한다. 여기에는 JS 가
-   있어야 하는 것만 둔다.
-   계약: tests/launcher/test_home_effects_contract.py, test_home_effects_browser.py */
+   Static effects (stage lighting, book, poster pills) live in home-stage.css alone.
+   Only what needs JS is here.
+   Contract: tests/launcher/test_home_effects_contract.py, test_home_effects_browser.py */
 (function () {
   'use strict';
 
-  var EASE = 'cubic-bezier(.2, .8, .2, 1)';   // 튕기지 않는다 (spec §7)
+  var EASE = 'cubic-bezier(.2, .8, .2, 1)';   // no overshoot
 
   function still() {
     try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; }
   }
 
-  /* #3 입력창 — 키를 누를 때마다 가장자리 빛이 차올랐다가 focus 의 밝기로 240ms 에 가라앉는다.
-     쉴 때 · focus 때의 밝기는 CSS (.ask-box::after, :focus-within) 가 정한다. 여기서는 그 위에
-     한 번의 물결만 얹는다 — 끝나면 animation 이 사라져 CSS 값으로 돌아간다. */
+  /* #3 Input box — each keystroke swells the edge glow, which settles back to the focus
+     brightness over 240ms. Resting and focus brightness come from CSS (.ask-box::after,
+     :focus-within); this adds one ripple on top, and the CSS value returns when it ends. */
   function inputRipple() {
     var input = document.getElementById('homeAsk');
     var box = input && input.closest('.ask-box');
@@ -35,11 +35,11 @@
     });
   }
 
-  /* #4 placeholder — 검증된 요청과 모듈로 바로 가는 요청 (home-prompts.js DXHomePlaceholders) 을
-     돌아가며 친다: 다 보인 채 1.8s → 20ms/자 로 지움 → 다음 문장을 45ms/자 로 침.
-     포커스하면 멈추고 비운다 (쓰려는 사람 앞에서 글자가 움직이지 않게). 떠나면 다시.
-     도는 동안에는 i18n 이 placeholder 를 되돌려 놓지 못하게 data-i18n-placeholder 를 떼고,
-     언어는 여기서 따라간다. */
+  /* #4 Placeholder — cycles through proven requests and requests that go straight to a module
+     (home-prompts.js DXHomePlaceholders): fully shown for 1.8s → erased at 20ms/char → the next
+     line typed at 45ms/char. Focus stops and clears it (text should not move in front of someone
+     typing); blur resumes. While it runs, data-i18n-placeholder is removed so i18n cannot restore
+     the placeholder, and the language is followed here. */
   var TYPE_MS = 45, HOLD_MS = 1800, ERASE_MS = 20;
 
   function placeholderCycle() {
@@ -73,7 +73,7 @@
       later(TYPE_MS);
     }
 
-    /* 지금 문장을 다 보인 채로 다시 시작한다. */
+    /* Restart with the current line fully shown. */
     function restart() {
       chars = say(at);
       n = chars.length;
@@ -94,12 +94,13 @@
     restart();
   }
 
-  /* 효과 등급. 커서 조명은 유리 (입력창 · 막대의 backdrop-filter) 아래를 지나가므로 움직일 때마다
-     유리가 다시 흐려진다 — GPU 는 가볍게 하지만, 소프트웨어 래스터 (가속 없는 PC · 원격 데스크톱 ·
-     headless) 에서는 frame 이 50–85ms 로 멈췄다 (2026-09-29 측정, 빛을 끄면 0). 그런 기계에서는
-     커서 조명만 끈다. failIfMajorPerformanceCaveat 는 WebGL 이 소프트웨어로만 가능할 때 context 를
-     주지 않는다 — 다만 ANGLE 위의 SwiftShader 는 통과시키므로 (headless chrome, 2026-09-29 확인)
-     renderer 이름도 본다. localStorage['dx-fx'] = 'full' | 'lite' 로 직접 고를 수 있다 (테스트 · 설정). */
+  /* Effect tier. The cursor light passes under glass (backdrop-filter on the input and bar), so
+     every move re-blurs the glass — cheap on a GPU, but with software raster (no acceleration,
+     remote desktop, headless) frames stalled at 50-85ms, and 0 with the light off. On such
+     machines only the cursor light is turned off. failIfMajorPerformanceCaveat withholds a
+     context when WebGL is software-only, but SwiftShader on ANGLE passes (headless Chrome), so
+     the renderer name is checked too. localStorage['dx-fx'] = 'full' | 'lite' forces a tier
+     (tests, settings). */
   var SOFTWARE_GL = /swiftshader|llvmpipe|softpipe|software|basic render/i;
   var _lite = null;
   function lite() {
@@ -114,16 +115,16 @@
       var renderer = gl ? String(gl.getParameter(info ? info.UNMASKED_RENDERER_WEBGL : gl.RENDERER)) : '';
       _lite = !gl || SOFTWARE_GL.test(renderer);
       var lose = gl && gl.getExtension('WEBGL_lose_context');
-      if (lose) lose.loseContext();   // 재어 봤으면 바로 돌려준다
+      if (lose) lose.loseContext();   // release the context as soon as it has been measured
     } catch (e) {
       _lite = true;
     }
     return _lite;
   }
 
-  /* #16 커서 조명 — 무대 아래의 빛 (.stage-light > i) 을 커서 자리로 옮긴다. 옮기는 것은
-     transform 하나, 한 frame 에 한 번 (rAF). 첫 움직임에 켜지고 창을 떠나면 꺼진다. 가벼운 등급
-     (위) 에서는 켜지 않는다. */
+  /* #16 Cursor light — moves the light under the stage (.stage-light > i) to the cursor. Only a
+     transform changes, once per frame (rAF). It turns on with the first move and off when the
+     pointer leaves the window. Not used on the lite tier (above). */
   function cursorLight() {
     var wrap = document.querySelector('#landing .stage-light');
     var dot = wrap && wrap.firstElementChild;
@@ -136,7 +137,7 @@
       var r = wrap.getBoundingClientRect();
       if (!half) half = dot.getBoundingClientRect().width / 2;
       dot.style.transform = 'translate3d(' + (x - r.left - half) + 'px, ' + (y - r.top - half) + 'px, 0)';
-      wrap.classList.add('is-on');   // 자리를 잡은 뒤에 켠다 — 모서리에서 떠오르지 않게
+      wrap.classList.add('is-on');   // turn on after it is in place, so it does not float in from the corner
     }
     document.addEventListener('pointermove', function (e) {
       if (e.pointerType === 'touch' || still()) return;
@@ -149,19 +150,19 @@
     });
   }
 
-  /* ── 움직임 (P6c) ───────────────────────────────────────────────────── */
+  /* ── Motion ─────────────────────────────────────────────────────────── */
 
   var STAGGER_MS = 60, ENTRY_MS = 500, TILE_STAGGER_MS = 16, SWEEP_MS = 900, FLY_MS = 600;
   var NEAR_PX = 120, MAX_SCALE = 1.18, PRESS_SCALE = .96;
 
   function lightLayer() { return document.querySelector('#landing .stage-light'); }
 
-  /* 빛 층의 요소 el 의 가운데가 화면 좌표 (x, y) 에 오게 하는 transform. */
+  /* The transform that puts the centre of light-layer element el at screen point (x, y). */
   function at(el, x, y) {
     var r = lightLayer().getBoundingClientRect();
     return 'translate3d(' + (x - r.left - el._dxW / 2) + 'px, ' + (y - r.top - el._dxH / 2) + 'px, 0)';
   }
-  /* 빛 요소의 크기는 CSS 가 고정한다 — 한 번 재어 둔다. */
+  /* CSS fixes the size of light elements, so measure once. */
   function sized(el) {
     if (!el._dxW) {
       var b = el.getBoundingClientRect();
@@ -175,9 +176,10 @@
     return [r.left + r.width / 2, r.top + r.height / 2];
   }
 
-  /* #1 첫 진입 — 세션에 한 번. 화면 순서대로 떠오르고 (60ms 간격, 타일끼리는 16ms), 빛이 제목
-     뒤를 왼→오로 훑은 뒤 막대를 한 번 스친다. 셸이 드러나는 순간 (launcher-boot-pending 이 빠지고
-     home 이 보일 때) 에 시작한다 — 인트로가 끝나기 전에 끝나 버리지 않게. */
+  /* #1 First entry — once per session. Elements rise in screen order (60ms apart, 16ms between
+     tiles), a light sweeps left to right behind the title, then grazes the bar once. Starts when
+     the shell is revealed (launcher-boot-pending removed and home visible), so it does not finish
+     before the intro ends. */
   var ENTERED = 'dx-home-entered';
 
   function firstEntry() {
@@ -247,8 +249,9 @@
     g.id = 'sweep';
   }
 
-  /* #5 보내기 — 빛이 입력창에서 떨어져 라우팅된 모듈 아이콘에 닿고, 아이콘이 켜진다. 여러 곳이면
-     순서대로. render() 가 답을 열면 무대가 Dock 으로 바뀌므로, 그 배치가 끝난 frame 에서 잰다. */
+  /* #5 Send — a light drops from the input box onto the routed module icon, which lights up;
+     several in order when there are several. Once render() opens the answer the stage becomes the
+     Dock, so measure on the frame after that layout settles. */
   var TILE_OF = { monitor: 'dx_monitor' };
 
   function routedLight() {
@@ -287,9 +290,9 @@
     });
   }
 
-  /* #6 Dock 확대 — 커서에서 120px 안의 모듈 아이콘이 가까운 만큼 커진다 (최대 1.18, 누르면 .96 배).
-     가장자리 specular 는 커서 쪽에서 비친다 (CSS 변수 → ::before). 읽기를 먼저 다 하고 쓰기를
-     나중에 해서 한 frame 에 layout 을 한 번만 부른다. */
+  /* #6 Dock magnification — module icons within 120px of the cursor grow with proximity (up to
+     1.18, .96 when pressed). The edge specular lights from the cursor side (CSS variables →
+     ::before). All reads happen before all writes, so layout runs once per frame. */
   function dockMagnify() {
     var tiles = Array.prototype.slice.call(document.querySelectorAll('#studioGrid .orbital-card .mod-tile'));
     if (!tiles.length) return;

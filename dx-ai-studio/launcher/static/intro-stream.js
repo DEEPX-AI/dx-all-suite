@@ -1,24 +1,25 @@
-/* ─── intro · Stream 장면 — 16채널 pull-back ─────────────────────────────────
-   spec: docs/superpowers/specs/2026-09-30-intro-stream-scene-design.md
+/* ─── intro · Stream scene — 16-channel pull-back ─────────────────────────────
 
-   교차로 한 채널이 화면을 채우고 box 가 잡힌다. 카메라가 한 번 물러나며 그 화면이 4×4 wall 의
-   자기 칸이 되고, 원색이 wall 의 grade 로 바뀐다. 그리고 나머지 15칸의 box 가 대각선 물결로 잡힌다.
+   One intersection channel fills the screen and its boxes appear. The camera pulls back once, the
+   view becomes its own cell in a 4×4 wall, and its colors shift to the wall's grade. Then the boxes
+   of the other 15 cells appear in a diagonal wave.
 
-   사진과 box 는 실제다: DEEPX 공식 sample 영상의 frame 에 공식 Model Zoo yolov5-s 320 을 DX-M1 에서
-   돌린 결과 (scripts/intro/bake_stream.py). 그림은 굽고, box 는 좌표로 두어 여기서 그린다.
+   Images and boxes are real: frames of DEEPX's official sample video run through the official Model Zoo
+   yolov5-s 320 on DX-M1 (scripts/intro/bake_stream.py). Images are baked; boxes are kept as coordinates
+   and drawn here.
 
-   좌표계는 하나다 — 16:10 무대 (1600×1000) 가 화면을 cover 로 채우고, wall · box · 시작 화면이 모두
-   그 안에 있다. 그래서 pull-back 은 시작 화면의 transform 한 번으로 정확히 제 칸에 떨어진다.
-   움직이는 것은 transform 과 opacity 뿐이다. */
+   There is one coordinate system — a 16:10 stage (1600×1000) covers the screen, and the wall, boxes and
+   start view all live in it. So the pull-back lands exactly in its cell with a single transform on the
+   start view. Only transform and opacity animate. */
 (function () {
   'use strict';
 
   var BASE = '/static/img/intro/stream/';
-  var PULL_AT = 900;      // 시작 화면에서 box 가 잡힌 뒤
-  var RIPPLE_AT = 1800;   // pull-back 이 끝나는 때
-  var STEP_TILE = 70;     // 대각선 한 칸마다
-  var STEP_BOX = 18;      // 칸 안에서 box 하나마다
-  var LABELS = 4;         // 시작 화면에서 이름을 붙이는 큰 box 수
+  var PULL_AT = 900;      // after the boxes appear on the start view
+  var RIPPLE_AT = 1800;   // when the pull-back ends
+  var STEP_TILE = 70;     // per diagonal step
+  var STEP_BOX = 18;      // per box within a cell
+  var LABELS = 4;         // number of large boxes labelled on the start view
 
   var _data = null, _ready = false, _root = null, _timers = [];
 
@@ -35,7 +36,7 @@
     });
   }
 
-  /* intro 가 시작할 때 부른다 — 박자까지 3초 남짓 동안 받아 둔다. 못 받으면 박자는 prompt 만. */
+  /* Called when the intro starts — preloads during the ~3 s before the beat. If loading fails, the beat shows the prompt only. */
   function prepare() {
     if (_ready || _data) return;
     _data = {};
@@ -53,11 +54,11 @@
     return { x: c * (tw + gap), y: r * (th + gap), w: tw, h: th, r: r, c: c };
   }
 
-  /* box 하나 = HTML 요소 하나. 모서리 네 개는 CSS gradient 로 그린다 (style.css .ist-b).
-     SVG 로 그리면 path 의 transform/opacity 가 compositor 에 가지 못해 물결 동안 무대 전체를 매
-     frame 다시 칠했다 (실측: 느린 frame 48%). 요소면 box 마다 layer 라 칠하지 않고 움직인다.
-     좌표는 무대 기준 % — 무대가 어떤 크기로 cover 되든 같은 자리다. 모서리 길이는 한 변의 25%
-     (최소 6 단위) 를 가로 · 세로 각각의 % 로 바꿔 넘긴다. */
+  /* One box = one HTML element, its four corners drawn with CSS gradients (style.css .ist-b).
+     In SVG, path transform/opacity cannot reach the compositor, so the whole stage repaints every frame
+     during the wave. As elements, each box is its own layer and moves without repainting.
+     Coordinates are % of the stage — the same spot whatever size the stage covers. Corner length is 25%
+     of a side (at least 6 units), passed as separate horizontal and vertical %. */
   function _box(parent, rect, box, delay, extra) {
     var b = box.b, S = _data.stage;
     var x0 = rect.x + b[0] * rect.w, y0 = rect.y + b[1] * rect.h;
@@ -93,14 +94,14 @@
       '</div></div>' +
       '<div class="ist-shade"></div>';
     var drift = root.querySelector('.ist-drift');
-    /* prepare() 가 받아 둔 바로 그 URL — cache 에서 바로 칠해진다 */
+    /* the same URL prepare() preloaded — paints straight from cache */
     root.querySelector('.ist-wall').style.backgroundImage = 'url(' + BASE + 'wall.webp)';
     root.querySelector('.ist-hero-photo').style.backgroundImage = 'url(' + BASE + 'hero.webp)';
     var wall = _layer('ist-boxes');
     drift.insertBefore(wall, root.querySelector('.ist-slot'));
 
-    /* 16칸의 box — 나머지 15칸은 대각선 물결로, 시작 화면의 칸은 pull-back 이 끝날 때 (그 칸의
-       큰 box 가 물러나며 걷히는 자리를 제 크기의 box 가 받는다 — 선 굵기가 줄어들지 않게) */
+    /* Boxes for all 16 cells — the other 15 in the diagonal wave, the start view's cell when the pull-back
+       ends (its large boxes fade as they shrink and right-sized boxes take over, so line widths never shrink) */
     d.tiles.forEach(function (tile, i) {
       var rect = _tileRect(i);
       tile.boxes.forEach(function (box, k) {
@@ -109,14 +110,14 @@
       });
     });
 
-    /* 시작 화면 — 무대 전체에 그린 뒤 transform 으로 자기 칸에 내려앉는다 */
+    /* Start view — drawn over the whole stage, then settles into its cell with a transform */
     var heroEl = root.querySelector('.ist-hero');
     var heroBoxes = _layer('ist-hero-boxes');
     heroEl.appendChild(heroBoxes);
     var byArea = d.tiles[heroI].boxes.slice().sort(function (a, b) {
       return (b.b[2] - b.b[0]) * (b.b[3] - b.b[1]) - (a.b[2] - a.b[0]) * (a.b[3] - a.b[1]);
     });
-    /* 큰 box 몇 개에 class 이름 — model 이 실제로 낸 이름 그대로 (고치지 않는다) */
+    /* Class names on a few large boxes — exactly as the model output them (never edited) */
     var labels = root.querySelector('.ist-labels');
     byArea.forEach(function (box, k) {
       _box(heroBoxes, full, box, 120 + k * 40);
@@ -139,7 +140,7 @@
     return root;
   }
 
-  /* 박자 시작에 부른다. 준비가 안 됐으면 false — 박자는 prompt 만으로 간다. */
+  /* Called when the beat starts. Returns false if not ready — the beat then runs on the prompt alone. */
   function play(overlay, beatMs) {
     if (!_ready || !overlay) return false;
     stop();

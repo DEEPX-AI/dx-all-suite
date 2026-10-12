@@ -87,8 +87,8 @@ def _video_has_frames(path) -> bool:
 
 
 def _model_default_input(category, model_name, kind):
-    """per-model layout 의 config.json 은 자기 기본 입력을 안다 (default_image / default_video) — task 표보다 정확하다
-    (예: classification 중 person_pair 를 쓰는 model)."""
+    """A per-model layout config.json knows its own default input (default_image / default_video), which is more
+    precise than the task table (e.g. a classification model that uses person_pair)."""
     from shared import dx_app_layout as _layout
     spec = _layout.load_config(DX_APP_ROOT, category, model_name)
     return (spec.get(f"default_{kind}") or "") if "variant" in spec else ""
@@ -100,8 +100,8 @@ _PY_LOOP_STARTED = "Starting inference"
 
 def _end_live_python_run(proc, stdout_file, budget_s, timeout):
     """A live Python run (camera · RTSP) has no frame limit and ends on SIGINT, printing its summary. Run it for
-    budget_s counted from the start of its frame loop — model load and the RTSP connect took most of a budget
-    counted from launch (2026-10-11: 3 and 23 frames measured in an A/B run)."""
+    budget_s counted from the start of its frame loop: model load and the RTSP connect would use up most of a
+    budget counted from launch."""
     t0 = time.time()
     started = None
     while proc.poll() is None:
@@ -207,7 +207,7 @@ def run_inference(model_name, category, model_file, lang="cpp", variant="sync",
     if input_type == "image":
         inf = "-i"
     elif input_type == "rtsp":
-        inf = "-r"  # -v 는 디스크의 파일만 받는다 (SDKREQ-529) — URL 은 rtsp_url 로
+        inf = "-r"  # -v only takes files on disk; a URL goes through rtsp_url
     else:
         inf = "-v"  # video, camera (/dev/videoN)
     _inp_str = rtsp_url if input_type == "rtsp" else str(inp)
@@ -234,7 +234,7 @@ def run_inference(model_name, category, model_file, lang="cpp", variant="sync",
     if run_lang == "cpp":
         bp = BUILD_DIR / f"{model_name}_{variant}"
         if not _is_executable_file(bp):
-            # per-model layout: 예제가 있는 model 의 binary 는 그 model 전용이다 — 빌리지 않는다 (spec 2026-10-01)
+            # per-model layout: a model with its own example has a binary for that model only; do not borrow one
             from shared import dx_app_layout as _layout
             _own = _layout.detect(DX_APP_ROOT) == _layout.PER_MODEL and _layout.find(DX_APP_ROOT, category, model_name)
             bp = None if _own else _find_fallback_binary(category, variant, build_dir=BUILD_DIR)
@@ -276,14 +276,14 @@ def run_inference(model_name, category, model_file, lang="cpp", variant="sync",
         if input_type == "video":
             _video_save_dir = tempfile.mkdtemp(prefix="dxapp_video_", dir=_TMP)
             py_extra += ["--save", "--save-dir", _video_save_dir]
-        # live source (camera · RTSP) 에는 --loop 가 없다 ("--loop is not valid with --camera or --rtsp") — 끝없이
-        # 돌다 SIGINT 를 받으면 성능 요약을 찍고 끝난다. 요청한 frame 수를 30 FPS 기준 시간으로 바꿔 그만큼 돌린다.
+        # A live source (camera · RTSP) has no --loop ("--loop is not valid with --camera or --rtsp"): it runs until
+        # SIGINT, then prints the performance summary and exits. The requested frame count becomes time at 30 FPS.
         if _is_live:
             _live_py_budget = max(1.0, _loop / 30.0)
         elif _loop != 1:
             py_extra += ["-l", str(_loop)]
-        # Python 의 video source 는 디스크의 파일만 연다 — RTSP 를 --video 로 주면 "Input file not found: rtsp://…" 로
-        # 끝났다 (2026-10-11 실사용 감사). runner 의 --rtsp · --camera 로 준다. (C++ 은 -v 를 OpenCV 가 열어 그대로 된다.)
+        # Python's video source opens only files on disk: RTSP passed as --video ends with "Input file not found:
+        # rtsp://…". Use the runner's --rtsp / --camera. (C++ works with -v because OpenCV opens it.)
         if input_type == "rtsp":
             py_input = ["--rtsp", _inp_str]
         elif input_type == "camera":
@@ -449,8 +449,8 @@ def run_inference(model_name, category, model_file, lang="cpp", variant="sync",
         if proc.returncode != 0 and not res.get("fps"):
                 res["error"] = f"Process exited with code {proc.returncode}: {(res.get('output') or '')[-200:].strip()}"
                 res["error_key"] = "process_exit"
-        # exit 0 이어도 runner 가 [ERROR] 를 찍었으면 결과를 못 믿는다 — 이미지 한 장의 결과는 오류로 (release audit Z-1),
-        # 영상은 FPS 가 남으므로 경고로만
+        # Even with exit 0, a runner that printed [ERROR] cannot be trusted: a single-image result becomes an error,
+        # a video only a warning since the FPS still stands
         _runner_errs = runner_errors(stdout)
         if _runner_errs:
             res["runner_errors"] = _runner_errs[:5]

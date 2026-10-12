@@ -106,7 +106,7 @@ const PlannerWorkspace = {
       : '{n} platforms · YOLO26 benchmark · updated {date}';
     this.scopeBannerMeta.textContent = tpl.replace('{n}', platformCount).replace('{date}', generatedText);
     if (!this._metaLangHooked && typeof DXI18n !== 'undefined' && DXI18n.onLangChange) {
-      this._metaLangHooked = true;   // 언어를 바꾸면 다시 (release audit P-3: 늘 영어였다)
+      this._metaLangHooked = true;   // re-render on language change
       DXI18n.onLangChange(() => this.renderScopeBannerMeta());
     }
   },
@@ -126,7 +126,7 @@ const PlannerWorkspace = {
     const name = top.platform.npu.model + ' + ' + top.platform.host.name;
     const channels = this._formatChannels(top.maxChannels, top.boundaryFlag);
     const meets = top.meetsRequirement;
-    // Measured at a tested stream count, or estimated from the measured total FPS (spec 2026-10-11).
+    // Measured at a tested stream count, or estimated from the measured total FPS.
     const evidence = {
       estimated: '<span data-i18n="(estimated)">(estimated)</span>',
       '+': '<span data-i18n="(estimated, at least)">(estimated, at least)</span>',

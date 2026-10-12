@@ -500,7 +500,7 @@ window.LabPortal = (function () {
         _currentManifest = manifest;
         renderManifestPreview(manifest, applyTaskManifest, 'btn-task-apply');
 
-        // 생성된 파일 목록용 컨테이너
+        // Container for the generated file list
         var root = document.getElementById('lab-flow-root');
         if (root) {
           var genDiv = document.createElement('div');
@@ -812,8 +812,8 @@ window.LabPortal = (function () {
   }
 
 
-  /* Generated Files — Lab 이 만든 manifest 마다 생성 파일을 본다. 예전에는 카드를 누르면 "다음 단계에서 구현됩니다"
-     만 나왔다 (release audit A-19). 목록 · 파일 API 는 이미 있었다 (/api/lab/manifests · /api/lab/generated/<id>). */
+  /* Generated Files — shows the generated files of each manifest Lab made
+     (/api/lab/manifests, /api/lab/generated/<id>). */
   var _MANIFEST_STATUS_LABELS = { ready: 'Preview', applied: 'Applied', rolled_back: 'Rolled back' };
 
   function _manifestLine(m) {
@@ -975,7 +975,7 @@ window.LabPortal = (function () {
     try {
       var result = await _labPost('/api/lab/git/plan', { manifest_id: manifestId });
       if (result && result.files) {
-        // Studio 는 사용자의 dx_app 에서 git 을 돌리지 않는다 — 이 변경이 쓴 파일만 담는 명령을 건넨다.
+        // Studio never runs git in the user's dx_app; it hands over a command that stages only the files this change wrote.
         _appendText(output, 'h4', 'safety-git-title', _text('Files this change wrote'));
         var ul = document.createElement('ul');
         ul.className = 'safety-git-files';

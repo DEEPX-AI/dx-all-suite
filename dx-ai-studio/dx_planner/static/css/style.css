@@ -4,11 +4,11 @@ body { overflow-x: auto; overflow-y: hidden; }
 
 /* ═══ 5. Header / Topbar — Glassmorphism ═══ */
 /* ═══ 6. Main Content Area ═══ */
-/* 통합 shell(Option A)에서는 .dx-shell-main 이 이미 남은 공간을 채우고 스크롤한다.
-   구 position:fixed + top 오프셋은 left:0 이라 56px 모듈 레일 위를 덮었다. */
+/* In the shared shell, .dx-shell-main already fills the remaining space and scrolls.
+   A position:fixed + top offset with left:0 would cover the 56px module rail. */
 .planner-main {
   padding: var(--sp-5);
-  padding-bottom: calc(var(--sp-5) + var(--sp-7) + var(--sp-5));   /* 채팅 단추가 맨 아래 Next 를 덮지 않게 (release audit L-24) */
+  padding-bottom: calc(var(--sp-5) + var(--sp-7) + var(--sp-5));   /* keep the chat button off the bottom Next */
 }
 .requirements-panel {
   align-self: start;
@@ -454,8 +454,8 @@ body { overflow-x: auto; overflow-y: hidden; }
   grid-template-columns: 1fr;
   gap: var(--sp-3);
 }
-/* 결과가 나오면 조건 칸은 좁은 옆줄이다 — 1440 px 이하에서 AI 작업 · 모델 크기를 두 칸으로 나눠
-   작업 이름이 "Object Detectic" · "Segmen" 으로 잘렸다 (2026-10-11). 옆줄에서는 한 칸으로 쌓는다. */
+/* Once results show, the conditions panel is a narrow side column — two columns there would cut task names
+   ("Object Detectic", "Segmen") at 1440 px and below, so AI task and model size stack in one column. */
 .planner-workspace.workspace-state-recommended .requirements-wizard-stage .requirements-row-3,
 .planner-workspace.workspace-state-detailed .requirements-wizard-stage .requirements-row-3 {
   grid-template-columns: minmax(0, 1fr);
@@ -537,7 +537,7 @@ body { overflow-x: auto; overflow-y: hidden; }
   color: var(--accent-light);
   box-shadow: var(--surface-active-shadow);
 }
-/* task 아이콘 — sprite 의 task-<key> (아이콘 체계 단계 3). 크기는 글자가 아니라 상자로. */
+/* Task icon — task-<key> in the sprite. Sized by its box, not by the font. */
 .task-icon { width: 28px; height: 28px; color: var(--accent); }
 .task-name { font-size: var(--fs-xs); font-weight: 600; }
 .task-desc { display: block; color: var(--text-muted); }
@@ -791,7 +791,7 @@ input[type="range"]::-webkit-slider-thumb:hover {
   }
 }
 .btn-methodology-inline { margin-top: 0; }
-/* 밝은 테마: 노란 판 위의 옅은 노란 글자는 거의 보이지 않았다 — 테마의 경고색 (진한 주황) 으로. */
+/* Light theme: pale yellow text on a yellow panel is barely visible — use the theme's warning color (dark orange). */
 :root[data-theme="light"] .btn-methodology { color: var(--status-warn); }
 @media (prefers-color-scheme: light) {
   :root:not([data-theme="dark"]) .btn-methodology { color: var(--status-warn); }
@@ -1016,21 +1016,21 @@ input[type="range"]::-webkit-slider-thumb:hover {
   border-color: var(--accent);
   box-shadow: var(--glow-accent);
 }
-/* 모든 카드가 접힌다 — 측정 정보 줄 (.card-release-meta, flex-basis 100%) 이 접히지 않는 줄에서 제목 칸을 0 px 로
-   눌러 2위부터 제목 · 순위 · badge 가 서로 겹쳤다. 예전에는 1위 (featured) 만 접혔다 (2026-10-02 release audit P-1). */
+/* Every card wraps — otherwise the measurement line (.card-release-meta, flex-basis 100%) squeezes the title cell
+   to 0 px on an unwrapped row and the title, rank and badge overlap. */
 .rec-card {
   flex-wrap: wrap;
   align-items: flex-start;
 }
-/* 순위 원 (cards.js _rankBadge) — 1위만 금빛. 주석이 선택자 사이에 끼어 `.rec-card--featured .rank-disc` 가 되어
-   2위부터는 원이 없었다 (P-1). */
+/* Rank disc (cards.js _rankBadge) — only first place is gold. Keep comments out of selector lists: one there
+   would silently change the selector. */
 .rank-disc { display: inline-grid; place-items: center; width: 32px; height: 32px; border-radius: 50%;
   font-size: var(--fs-md); font-weight: 700; font-variant-numeric: tabular-nums; color: var(--text-secondary);
   background: color-mix(in srgb, var(--text-primary) 8%, transparent); }
 .rank-disc--top { color: var(--status-warn); background: color-mix(in srgb, var(--status-warn) 18%, transparent);
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--status-warn) 45%, transparent); }
 .rec-card--featured .rank-disc { width: 40px; height: 40px; font-size: var(--fs-xl); }
-/* info 아이콘은 제 원을 가진다 — 노란 원판 안에 두면 원이 두 겹이었다. */
+/* The info icon has its own circle — inside the yellow disc it would be doubled. */
 .btn-methodology-icon:has(.dx-ico) { background: none; }
 .btn-methodology-icon .dx-ico { width: 20px; height: 20px; }
 .methodology-disclaimer-icon .dx-ico { width: 18px; height: 18px; }
@@ -1683,7 +1683,7 @@ body.lang-zh-TW .zh-CN { display: none; }
   .spec-grid { grid-template-columns: 1fr; }
   .fact-grid { grid-template-columns: 1fr; }
   .card-metrics { gap: var(--sp-2); }
-  /* 폰 — 숫자 셋이 제목 옆 칸을 차지해 제목이 한 단어씩 접히고 badge 가 세로로 쌓였다 (2026-10-11). */
+  /* Phone — the three numbers would take the cell next to the title, wrapping it word by word and stacking the badge. */
   .rec-card .card-header { flex: 1 1 calc(100% - 52px); min-width: 0; }
   .rec-card .card-metrics { flex: 1 1 100%; margin-top: 0; }
 }

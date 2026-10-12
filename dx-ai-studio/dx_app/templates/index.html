@@ -32,8 +32,8 @@
 <main class="dx-shell-main" id="main-area">
 <!-- ═══ PAGE: Setup & Install ═══ -->
 <div id="page-setup" class="page">
-  <!-- 공용 단계 목록 (shared/static/dx-steps.js · spec 2026-09-29 아이콘 체계 단계 2a). 끝난 단계는 한 줄,
-       다음 단계만 펼친다. 상태는 setup.js 가 DXSteps.set 으로 알린다 — 흐름 (sudo · 로그 · Run All) 은 그대로. -->
+  <!-- Shared step list (shared/static/dx-steps.js). A finished step is one line; only the next step is expanded.
+       setup.js reports status through DXSteps.set; the flow (sudo, log, Run All) is unchanged. -->
   <section class="dx-steps" data-steps id="setup-steps">
     <header class="dx-steps-head">
       <div>
@@ -47,7 +47,7 @@
       </div>
       <div class="dx-steps-progress"><span class="dx-steps-count" data-steps-count></span><div class="dx-steps-bar"></div></div>
     </header>
-    <!-- 데모만 원할 때 — Run Demo 에 필요한 것만 한 번에 -->
+    <!-- When only the demos are wanted: just what Run Demo needs, in one go -->
     <div class="dx-steps-quick" id="setup-quickstart">
       <svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#demo"></use></svg>
       <div class="dx-steps-quick-text">
@@ -203,9 +203,8 @@
     <!-- Left: Config -->
     <div class="card rel" id="run-config-card">
       <h2 data-i18n="Configuration">Configuration</h2>
-      <!-- 모델이 하나도 설치되지 않으면 카테고리 목록이 비고, 그러면 이 화면은
-           "고를 것이 없다" 와 "고장났다" 를 구분해 주지 못한다. 어디서 모델이
-           오는지 말해 주는 것이 이 자리의 일이다. -->
+      <!-- With no models installed the category list is empty, and this screen could not
+           tell "nothing to pick" from "broken". This slot says where models come from. -->
       <div class="fg" id="r-no-models" hidden>
         <p style="margin:0 0 8px;color:var(--text-muted);font-size:12px">
           <strong data-i18n="No models are installed yet">No models are installed yet</strong><br>
@@ -808,8 +807,8 @@ DXBrand.mount({
 <script>DXToolbar.init({ container: '.toolbar', onSettings: function(){ nav('setup'); } });</script>
 <script src="/static/shared/dx-tabs.js"></script>
 <script>
-// 탭 행 오버플로: 라벨을 자르지 않고 넘치는 만큼 +N 드롭다운으로 옮긴다.
-// 페이지 10개 x 6개 언어라 폭이 아니라 번역 길이가 한계를 정한다.
+// Tab row overflow: labels are not cut; whatever overflows moves into a +N dropdown.
+// With 10 pages x 6 languages, translation length rather than width sets the limit.
 DXTabs.init({ row: '.dx-shell-tabs' });
 document.querySelectorAll('.dx-tab').forEach(function (t) {
   t.addEventListener('click', function () { nav(t.dataset.page); });

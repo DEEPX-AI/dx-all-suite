@@ -24,18 +24,18 @@ SOURCE_URLS = {
     SOURCE_INTERNAL: "https://modelzoo-publish-api.devops.dpx.ai/publish/html",
 }
 
-# 설정 가능한 모델 디렉터리를 쓴다 (config.MODELS_DIR). 예전에는 여기서
-# ASSETS_DIR/'models' 를 다시 만들어 설정을 무시했다.
+# Use the configurable model directory (config.MODELS_DIR) rather than rebuilding
+# ASSETS_DIR/'models' here, which would ignore the setting.
 MODELS_DIR = _CFG_MODELS_DIR
 QPRO_DIR = MODELS_DIR / "q-pro"
 QMASTER_DIR = MODELS_DIR / "q-master"
 
-# 티어 → (설치 디렉토리, 레지스트리에 적을 상대 경로).
+# Tier -> (install directory, relative path written to the registry).
 #
-# 이 셋은 원래 세 곳에서 `chip == "qlite" and MODELS_DIR or QPRO_DIR` 꼴의 이진
-# 분기였다. 티어가 둘뿐이라는 가정이 코드에 박혀 있었고, else 쪽이 기본값이라
-# 오타난 chip 이 조용히 q-pro 로 갔다. 표로 바꿔 두면 다음 티어가 생겨도 여기만
-# 고치면 되고, 모르는 chip 은 KeyError 로 드러난다.
+# A table rather than `chip == "qlite" and MODELS_DIR or QPRO_DIR`-style branches: those
+# assume only two tiers and make the else side a default, so a mistyped chip would
+# silently go to q-pro. With a table a new tier is a one-place change, and an unknown
+# chip surfaces as a KeyError.
 _CHIP_DIRS = {
     "qlite": (MODELS_DIR, "assets/models"),
     "qpro": (QPRO_DIR, "assets/models/q-pro"),
@@ -269,9 +269,9 @@ def _parse_models(html):
                         task = t
                 dxnn_url = json_url = None
                 for c in cells:
-                    # _html_dom.Node.find_all 은 태그 이름만 받는다 (BeautifulSoup 의
-                    # href=True 필터가 아니다) — 그 흉내를 냈다가 이 분기가 닿는
-                    # 순간 TypeError 로 500 이 났다. 계약: tests/dx_app/test_modelzoo_legacy_parse.py
+                    # _html_dom.Node.find_all takes only a tag name (not BeautifulSoup's
+                    # href=True filter); passing that filter raises TypeError (a 500)
+                    # once this branch runs. Contract: tests/dx_app/test_modelzoo_legacy_parse.py
                     for a in c.find_all("a"):
                         h = a.get("href")
                         if not h:
@@ -314,7 +314,7 @@ _CACHE_TTL = 300  # 5 minutes
 
 
 def _tier_block(row, tier):
-    """페이로드의 accuracy/artifacts 를 dx_app 이 쓰는 티어 블록으로 옮긴다."""
+    """Move the payload's accuracy/artifacts into the tier block dx_app uses."""
     artifacts = row.get("artifacts") or {}
     dxnn_url = artifacts.get(f"{tier}_dxnn")
     dest_dir = _CHIP_DIRS[tier][0]
@@ -330,13 +330,13 @@ def _tier_block(row, tier):
 
 
 def _models_from_payload(html):
-    """공개 페이지의 `window.__MODEL_ZOO_DATA__` 에서 모델 목록을 만든다.
+    """Build the model list from the public page's `window.__MODEL_ZOO_DATA__`.
 
-    developer.deepx.ai/modelzoo/ 는 2026-09 리팩토링으로 데이터 행을 잃었다 —
-    실제 응답에 <table> 1개, <tr> 2개(헤더 뼈대)뿐이다. 테이블 파서로는 0건이
-    나오므로 이 소스만 페이로드를 읽는다. 파서는 dx_modelzoo 와 공유한다
-    (shared/modelzoo_payload.py) — 티어·필드 지식이 두 벌이 되면 페이지가 또
-    바뀔 때 한쪽만 고쳐진다.
+    developer.deepx.ai/modelzoo/ no longer carries data rows in its table (one <table>
+    with only the two header <tr>s), so a table parser finds nothing and this source
+    reads the payload instead. The parser is shared with dx_modelzoo
+    (shared/modelzoo_payload.py): two copies of the tier and field knowledge would
+    mean only one gets fixed when the page changes again.
     """
     from shared.modelzoo_payload import parse_public_payload
 
@@ -376,8 +376,8 @@ def modelzoo_list(source="internal"):
     if err:
         return {"ok": False, "error": err, "models": []}
 
-    # 소스마다 문서의 모양이 다르다. 공개 페이지는 인라인 JSON, 내부 publish 는
-    # 20칼럼 테이블 — _parse_models 는 "테이블을 판다" 한 가지 일만 하게 둔다.
+    # Each source has a different document shape: the public page is inline JSON, the
+    # internal publish page a 20-column table. _parse_models only parses tables.
     if source == SOURCE_PUBLIC:
         try:
             models = _models_from_payload(html)
@@ -406,11 +406,11 @@ def _refresh_exists(models):
 
 
 def _build_tasks(items):
-    """items → 다운로드 task 목록. 스레드를 띄우지 않으므로 그대로 검사할 수 있다.
+    """items -> download task list. Starts no threads, so it can be checked directly.
 
-    모르는 chip 은 거부한다. 예전에는 `MODELS_DIR if chip == "qlite" else QPRO_DIR`
-    라서 오타 하나가 조용히 q-pro 로 떨어졌다 — 잘못된 자리에 설치된 모델은
-    '없음'으로 보이고, 사용자는 왜 다시 받아도 안 되는지 알 수 없다.
+    Unknown chips are refused. With `MODELS_DIR if chip == "qlite" else QPRO_DIR` a
+    single typo would silently land in q-pro; a model installed in the wrong place
+    shows as missing, and the user cannot tell why downloading again does not help.
     """
     tasks = []
     for item in items:
@@ -484,8 +484,8 @@ def _download_worker(tasks, source):
 
         dest = task["dest"]
         _ensure_dir(dest.parent)
-        # DX-RT 가 v9 (Model Zoo 2_5_0) 를 못 읽으면 같은 파일의 2_4_0 (v8) 을 받는다. 2_4_0 에 없는 model 은 받지
-        # 않고 "DX-RT 3.5 필요" 로 끝낸다 — 받아 두어도 실행이 실패한다 (spec 2026-10-01 결정 6).
+        # If DX-RT cannot read v9 (Model Zoo 2_5_0), fetch the same file from 2_4_0 (v8). A model missing from 2_4_0
+        # is not downloaded and ends with "DX-RT 3.5 required": a download would fail to run anyway.
         urls = _dxrt.download_urls(task["url"])
         last_err = None
         for url in urls:
@@ -582,8 +582,8 @@ def modelzoo_stop():
 
 def _auto_register():
     """After download, update test_models.conf for newly downloaded models."""
-    # per-model layout (teammate 8d0b748) 의 registry 는 499 model 을 다 갖는다 — 외부 repo 의 test_models.conf 에
-    # 더 적지 않는다 (spec 2026-10-01 결정 12).
+    # The per-model layout's registry already has every model, so nothing more is written to the external
+    # repo's test_models.conf.
     from shared import dx_app_layout as _layout
     if _layout.detect(DX_APP_ROOT) == _layout.PER_MODEL:
         return
@@ -608,8 +608,8 @@ def _auto_register():
                     continue
                 chip = res.get("chip", "qlite")
                 if chip not in _CHIP_DIRS:
-                    # _build_tasks 가 이미 막지만, 레지스트리에 엉뚱한 경로를 적느니
-                    # 건너뛴다 — 잘못 적힌 줄은 나중에 "모델이 없다" 로만 보인다.
+                    # _build_tasks already blocks this, but skip rather than write a bogus path
+                    # to the registry: a wrong line would only ever show as "model missing".
                     continue
                 fname = res["file"]
                 rel_path = f"{_CHIP_DIRS[chip][1]}/{fname}"

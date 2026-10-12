@@ -1,11 +1,11 @@
-"""JS object literal 파서 — i18n 사전을 읽기 위한 최소 구현.
+"""JS object literal parser: the minimum needed to read the i18n dictionaries.
 
-사전은 `window._DX_I18N_DICT = { ... };` 형태의 JS 리터럴이라 json 으로는
-못 읽는다. node 는 이 환경에 없다. 필요한 문법이 좁으므로 (문자열 키,
-문자열 값, 한 단계 중첩, 후행 콤마, 줄/블록 주석) 직접 읽는다.
+The dictionaries are JS literals of the form `window._DX_I18N_DICT = { ... };`, so json cannot
+read them, and node is not available here. The grammar needed is narrow (string keys, string
+values, one level of nesting, trailing commas, line/block comments), so it is parsed directly.
 
-값의 원문 조각(source span)도 같이 돌려준다 — 마이그레이션이 기존 항목을
-덮어쓰지 않고 "무엇이 다른지" 보고하려면 원문 위치가 필요하다.
+Source spans of the values are returned too: to report "what differs" instead of overwriting
+existing entries, a migration needs the original positions.
 """
 from __future__ import annotations
 
@@ -130,7 +130,7 @@ class _Reader:
 
 
 def parse_object_after(text: str, marker: str) -> dict:
-    """`marker` 뒤에 오는 첫 object literal 을 dict 로 돌려준다."""
+    """Return the first object literal after `marker` as a dict."""
     at = text.find(marker)
     if at < 0:
         raise JSParseError(f"marker {marker!r} not found")
@@ -142,7 +142,7 @@ def parse_object_after(text: str, marker: str) -> dict:
 
 
 def object_span(text: str, marker: str) -> tuple[int, int]:
-    """`marker` 뒤 object literal 의 (시작, 끝) 인덱스. 끝은 '}' 다음."""
+    """(start, end) indices of the object literal after `marker`. End is just past the '}'."""
     at = text.find(marker)
     if at < 0:
         raise JSParseError(f"marker {marker!r} not found")
@@ -156,10 +156,10 @@ def object_span(text: str, marker: str) -> tuple[int, int]:
 
 
 def value_spans(text: str, marker: str) -> dict[str, dict[str, tuple[int, int]]]:
-    """사전 항목마다 각 언어 값의 (시작, 끝) 인덱스 — 따옴표 포함.
+    """For each dictionary entry, the (start, end) indices of each language value, quotes included.
 
-    항목 하나의 값만 고쳐 쓰려면 위치가 필요하다. 전체를 다시 찍어내면
-    주석과 손으로 맞춰둔 줄바꿈이 전부 날아간다.
+    Rewriting a single value needs its position. Re-emitting the whole literal would lose the
+    comments and the hand-tuned line breaks.
     """
     at = text.find(marker)
     if at < 0:

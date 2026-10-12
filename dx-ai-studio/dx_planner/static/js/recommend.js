@@ -24,7 +24,7 @@ const RecommendEngine = {
   NPU_BOUND_PCT: 85,
 
   /**
-   * Channel capacity from the multi-stream benchmark (spec 2026-10-11-edgeguide-recommendation).
+   * Channel capacity from the multi-stream benchmark.
    *
    * The benchmark measured only the stream counts that bracket ~30 FPS per channel. Around that
    * point the pipeline is throughput-bound: total FPS stays roughly flat as streams are added and
@@ -35,7 +35,7 @@ const RecommendEngine = {
    * A measured failure above M → M (measured). Every row held the target → max(M, E) capped at
    * 2× the highest tested count (estimated; '+' when capped). No row held it → E (estimated).
    * E with the minimum T_sat never contradicts a measured row: a failing row has total < target·n.
-   * Throttling no longer zeroes a platform — the measured FPS already ran at throttled clocks —
+   * Throttling does not zero a platform — the measured FPS already ran at throttled clocks —
    * it is reported (throttled) and ranks after an equal cool result.
    *
    * @param {Object} inputs - {task, size, cameras, targetFps, priority, ort, maxLatencyMs}
@@ -156,7 +156,7 @@ const RecommendEngine = {
 
     const loaded = rows[rows.length - 1];
     const npuPct = Number(loaded.npu_total_avg_pct);
-    // target and raw (T_sat / target) let the card show its arithmetic (spec addendum 2026-10-12)
+    // target and raw (T_sat / target) let the card show its arithmetic
     const why = evidence === 'measured'
       ? { kind: 'measured', n: measured, atFps: mRow.per_channel_fps, target,
           nextN: failAbove ? failAbove.stream_count : null, nextFps: failAbove ? failAbove.per_channel_fps : null }

@@ -339,7 +339,7 @@ window._DX_I18N_DICT = {
     es: 'No se registraron eventos',
   },
   'Mock Data': { ko: '모의 데이터', ja: 'モックデータ', 'zh-CN': '模拟数据', 'zh-TW': '模擬資料',es:'Datos simulados'},
-  // 영어만 복수형이 있다 — "1 NPU(s)" 대신 1 NPU · 2 NPUs (release audit M-3).
+  // Only English has a plural form: 1 NPU · 2 NPUs rather than "1 NPU(s)".
   'NPUs': { ko: 'NPU', ja: 'NPU', 'zh-CN': 'NPU', 'zh-TW': 'NPU', es: 'NPU' },
 
   'Mock': {
@@ -461,7 +461,7 @@ window._DX_I18N_DICT = {
     'zh-TW': 'NPU {id}',
     es: 'NPU {id}',
   },
-  // 차트 임계선 이름 (아이콘 체계 단계 5 — 선 끝의 이모지 대신)
+  // Chart threshold line names (shown at the line end instead of an emoji)
   'warn': { ko: '경고', ja: '警告', 'zh-CN': '警告', 'zh-TW': '警告', es: 'aviso' },
   'crit': { ko: '위험', ja: '危険', 'zh-CN': '危险', 'zh-TW': '危險', es: 'crítico' },
   'Avg Temp': {
@@ -555,7 +555,7 @@ window._DX_I18N_DICT = {
     'zh-CN': '平均置信度',
     'zh-TW': '平均信賴度',
   },
-  // ── 마크업 lang-span 에서 옮겨온 항목 ──
+  // ── Entries moved from markup lang-spans ──
   'All': {
     ko: '전체',
     ja: '全体',

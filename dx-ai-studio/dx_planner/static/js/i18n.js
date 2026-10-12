@@ -48,7 +48,7 @@ window._DX_I18N_DICT = {
   ms: { ko: 'ms', ja: 'ms', es: 'ms', 'zh-CN': 'ms', 'zh-TW': 'ms' },
   'How ranking works': { ko: '추천 원리 보기', ja: '推奨の仕組み', es: 'Cómo funciona el ranking', 'zh-CN': '查看推荐原理', 'zh-TW': '查看推薦原理' },
   Close: { ko: '닫기', ja: '閉じる', es: 'Cerrar', 'zh-CN': '关闭', 'zh-TW': '關閉' },
-  // ── 마크업 lang-span 에서 옮겨온 항목 ──
+  // ── Entries moved here from lang-spans in the markup ──
   '(measured)': {
     ko: '(실측)',
     ja: '(実測)',
@@ -420,7 +420,7 @@ window._DX_I18N_DICT = {
     'zh-TW': '· 產品資訊:',
     es: '· Info:',
   },
-  // ── 마크업 lang-span 에서 옮겨온 항목 ──
+  // ── Entries moved here from lang-spans in the markup ──
   'Top pick': {
     ko: '1순위',
     ja: '第1推奨',
@@ -433,7 +433,7 @@ window._DX_I18N_SELECTORS = '';
 window._DX_I18N_PLACEHOLDERS = {};
 window._DX_I18N_CALLBACKS = [];
 window.__plannerLangRefreshers = window.__plannerLangRefreshers || [];
-/* 작업 slug (object_detection …) 는 데이터 값이다. 화면에는 고른 언어의 작업 이름으로 보인다 (release audit P-3). */
+/* Task slugs (object_detection …) are data values. On screen they show as task names in the chosen language. */
 window.plannerTaskLabel = function (task) {
   var en = { object_detection: 'Object Detection', pose_estimation: 'Pose Estimation', segmentation: 'Segmentation',
     oriented_bbox: 'OBB', classification: 'Classification' }[task];

@@ -1,13 +1,12 @@
-/* ─── DX AI Studio — demo 결과 무대 · card · filter (dx-demo-stage.js 짝) ──────────
-   spec: docs/superpowers/specs/2026-10-01-demo-stage-design.md
-   A. 옆 panel — 결과 16:9 왼쪽, 오른쪽 320px panel. 좁을 때 (내용 폭 < 1000px) panel 이 아래로.
-   화면 폭이 아니라 **내용 폭** 으로 접는다 (@container) — module 옆 sidebar 가 폭을 먹는다. */
+/* ─── DX AI Studio — demo result stage · cards · filter (pairs with dx-demo-stage.js) ──────────
+   Side panel layout: the 16:9 result on the left, a 320px panel on the right. Narrow (content width < 1000px):
+   the panel moves below. Folds on **content width** (@container), not screen width — the module sidebar takes room. */
 
 .dds { container-type: inline-size; display: block; }
 
-/* ── 무대 ──────────────────────────────────────────────────────────────── */
-/* media 높이는 화면 높이에서 정한다 — 1440×900 에서 card 첫 줄이 무대와 함께 보이게 (spec).
-   media 폭은 그 높이의 16:9, 남는 폭은 panel (320 ~ 480px) 이 받고 그래도 남으면 가운데 정렬. */
+/* ── Stage ─────────────────────────────────────────────────────────────── */
+/* Media height comes from the viewport height, so at 1440×900 the first row of cards is visible with the stage.
+   Media width is 16:9 of that height; the panel (320 – 480px) takes the rest, and any extra is centred. */
 .dds-stage {
   --dds-media-h: clamp(240px, calc(100vh - 540px), 600px);
   display: flex;
@@ -64,7 +63,7 @@
   color: var(--text-secondary);
 }
 .dds-task .dds-ico { width: 16px; height: 16px; color: var(--accent); }
-.dds-title {             /* module 의 h2 규칙 (dx_app: 대문자 · 흐린 색) 을 이긴다 */
+.dds-title {             /* beats the module's h2 rule (dx_app: uppercase, dim) */
   margin: 0;
   font-family: var(--font);
   font-weight: 650;
@@ -108,8 +107,8 @@
 .dds-opts:empty, .dds-actions:empty, .dds-metrics:empty, .dds-bars:empty, .dds-extra:empty { display: none; }
 .dds-why { margin: 0; font-size: var(--fs-sm); color: var(--text-secondary); }
 
-/* 옵션 한 줄 — label 왼쪽 + segmented button (module 이 이 class 로 채운다). 한 줄씩이라 결과 수치가
-   더해져도 panel 이 media 보다 크게 늘지 않는다. */
+/* One option per line — label on the left + segmented button (modules fill this class). One per line keeps
+   the panel from growing taller than the media as result figures are added. */
 .dds-opt { display: flex; align-items: center; gap: var(--sp-2); }
 .dds-opt-label { flex: 0 0 88px; font-size: var(--fs-xs); color: var(--text-muted); }
 .dds-opt > .dds-seg, .dds-opt > .dds-input { flex: 1 1 auto; min-width: 0; }
@@ -247,7 +246,7 @@
 .dds-none p { margin: 0; font-size: var(--fs-base); color: var(--text-secondary); }
 
 /* ── filter ────────────────────────────────────────────────────────────── */
-/* 한 줄 — 넘치면 옆으로 민다 (App 은 group 이 13 개라 두 줄로 접히며 card 를 밀어냈다) */
+/* One line — overflow scrolls sideways rather than wrapping and pushing the cards down */
 .dds-filter {
   display: flex;
   flex-wrap: nowrap;
@@ -271,7 +270,7 @@
 .dds-fbtn:hover { color: var(--text-primary); border-color: var(--border-strong); }
 .dds-fbtn.is-on { background: var(--accent-fill); border-color: var(--accent); color: var(--text-on-accent); }
 
-/* ── card — 고르기만. 모두 같은 높이 (grid-auto-rows: 1fr) ──────────────── */
+/* ── Cards — for picking only. All the same height (grid-auto-rows: 1fr) ── */
 .dds-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
@@ -290,7 +289,7 @@
   cursor: pointer;
   transition: border-color .15s, box-shadow .15s;
 }
-/* 고르는 버튼 — 보이지 않고 focus 만 받는다. focus 표시는 card 가 한다. */
+/* The pick button — invisible, takes focus only. The card draws the focus ring. */
 .dds-cpick {
   position: absolute;
   width: 1px;
@@ -324,7 +323,7 @@
   padding: var(--sp-2) var(--sp-3) var(--sp-3);
   min-width: 0;
 }
-/* 상태 배지가 길면 ("Requiere instalación") 작업 이름이 "Detección de o…" 로 잘렸다 — 줄을 넘긴다 (release audit A-32) */
+/* Wrap so a long status badge ("Requiere instalación") does not truncate the task name */
 .dds-crow { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sp-1) var(--sp-2); min-width: 0; }
 .dds-crow .dds-task { flex: 1 1 auto; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .dds-ctitle {
@@ -365,14 +364,14 @@
 }
 .dds-card .dds-setup { flex: none; padding: 2px var(--sp-2); font-size: var(--fs-xs); }
 
-/* ── 좁을 때: panel 을 media 아래로 ─────────────────────────────────────── */
+/* ── Narrow: panel below the media ─────────────────────────────────────── */
 @container (max-width: 999px) {
   .dds-stage { flex-direction: column; }
   .dds-media { flex: none; width: 100%; }
   .dds-side { flex: none; max-width: none; min-width: 0; }
 }
 
-/* ── 실행 중 · 결과 알림 (module 이 채운다) ─────────────────────────────── */
+/* ── Running · result notices (filled by the module) ─────────────────────── */
 .dds-media .dds-preview.is-dim { opacity: .35; }
 .dds-overlay {
   position: absolute;

@@ -1,9 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="0" height="0" style="position:absolute" aria-hidden="true">
-<!-- DX AI Studio 아이콘 한 벌 (spec 2026-09-29 아이콘 체계). 24 격자, 두 층: 옅은 면 (g.f) + 2px 선 (g.l).
-     <use> 의 그림자 트리 안은 바깥 CSS 선택자가 닿지 않는다 — 모양은 상속되는 변수로만 바꾼다:
-     CSS 변수 ico-fill (면의 불투명도, .24) · ico-fill-o (면 전체, 1) · ico-stroke (선 굵기, 2). 색은 currentColor.
-     (XML 주석 안에는 대시 둘을 쓸 수 없어 변수 이름의 앞 대시를 뺐다.)
-     모듈 8개는 launcher home 의 glyph 와 같은 모양이다. 계약: tests/shared/test_icon_system.py -->
+<!-- DX AI Studio icon set. 24 grid, two layers: a faint fill (g.f) + a 2px line (g.l).
+     CSS outside cannot reach inside the <use> shadow tree, so shapes change only through inherited variables:
+     ico-fill (fill opacity, .24), ico-fill-o (whole fill, 1), ico-stroke (line width, 2). Colour is currentColor.
+     (XML comments cannot contain a double dash, so the variable names lose their leading dashes.)
+     The eight module icons match the launcher home glyphs. Contract: tests/shared/test_icon_system.py -->
 <defs>
 <symbol id="app" viewBox="0 0 24 24"><g class="f" style="fill: currentColor; fill-opacity: var(--ico-fill, .24); opacity: var(--ico-fill-o, 1); stroke: none"><rect x="3" y="4" width="18" height="13" rx="2.5"/></g><g class="l" style="fill: none; stroke: currentColor; stroke-width: var(--ico-stroke, 2); stroke-linecap: round; stroke-linejoin: round"><rect x="3" y="4" width="18" height="13" rx="2.5"/><path d="M10.5 8.2v4.6l4-2.3z"/><path d="M8 20.5h8"/></g></symbol>
 <symbol id="stream" viewBox="0 0 24 24"><g class="f" style="fill: currentColor; fill-opacity: var(--ico-fill, .24); opacity: var(--ico-fill-o, 1); stroke: none"><rect x="7.5" y="3.5" width="13" height="10" rx="2"/></g><g class="l" style="fill: none; stroke: currentColor; stroke-width: var(--ico-stroke, 2); stroke-linecap: round; stroke-linejoin: round"><rect x="7.5" y="3.5" width="13" height="10" rx="2"/><path d="M3.5 8v8.5a2 2 0 0 0 2 2H16"/><path d="M12.5 6.6l3.2 1.9-3.2 1.9z"/></g></symbol>

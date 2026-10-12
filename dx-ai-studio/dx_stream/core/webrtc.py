@@ -1,7 +1,7 @@
-"""WebRTC 시그널링 핸들러 — HTTP 기반 SDP/ICE 교환.
+"""WebRTC signaling — SDP/ICE exchange over plain HTTP.
 
-WebSocket 불필요. POST /api/webrtc/offer → SDP answer.
-단일 peer(1:1), ICE 타임아웃 30초.
+No WebSocket needed. POST /api/webrtc/offer → SDP answer.
+One peer at a time (1:1), 30 s ICE timeout.
 """
 from __future__ import annotations
 
@@ -35,9 +35,9 @@ except (ImportError, ValueError):
 
 
 class WebRTCHandler:
-    """WebRTC 시그널링 관리 — 단일 peer 제한."""
+    """WebRTC signaling — one peer at a time."""
 
-    ICE_TIMEOUT = 30  # 초
+    ICE_TIMEOUT = 30  # seconds
 
     def __init__(self):
         self._current_peer_id: str | None = None
@@ -48,7 +48,7 @@ class WebRTCHandler:
         self._lock = threading.Lock()
 
     def _reset_peer(self, new_peer_id: str):
-        """이전 peer 해제, 새 peer로 전환"""
+        """Release the previous peer and switch to the new one."""
         if self._ice_timer is not None:
             self._ice_timer.cancel()
         self._current_peer_id = new_peer_id
@@ -57,9 +57,9 @@ class WebRTCHandler:
         self._schedule_ice_timeout()
 
     def handle_offer(self, sdp_offer: str, pipeline_manager) -> str:
-        """SDP offer → answer 생성.
+        """SDP offer → answer.
 
-        GLib.idle_add()로 GStreamer 메인 루프 스레드에서 실행.
+        Runs on the GStreamer main-loop thread via GLib.idle_add().
         """
         if not _gst_available:
             raise RuntimeError("GStreamer WebRTC not available")
@@ -113,7 +113,7 @@ class WebRTCHandler:
 
     def _on_answer_created(self, promise, result: dict, event: threading.Event,
                            webrtcbin):
-        """create-answer 콜백 — SDP answer를 추출하여 result에 저장"""
+        """create-answer callback — stores the SDP answer in result."""
         try:
             reply = promise.get_reply()
             answer = reply.get_value("answer")
@@ -128,7 +128,7 @@ class WebRTCHandler:
             event.set()
 
     def _on_ice_candidate_cb(self, element, mline_index: int, candidate: str):
-        """webrtcbin on-ice-candidate 시그널 콜백"""
+        """webrtcbin on-ice-candidate signal callback."""
         log.debug("ICE candidate: mline=%d %s", mline_index, candidate[:60])
         with self._lock:
             self._ice_candidates.append({
@@ -138,7 +138,7 @@ class WebRTCHandler:
             })
 
     def handle_ice(self, sdp_mline_index: int, candidate: str, pipeline_manager):
-        """클라이언트 ICE candidate를 webrtcbin에 추가"""
+        """Add a client ICE candidate to webrtcbin."""
         if not _gst_available:
             self._buffer_ice_candidate(sdp_mline_index, candidate)
             return
@@ -151,21 +151,21 @@ class WebRTCHandler:
         GLib.idle_add(webrtcbin.emit, "add-ice-candidate", sdp_mline_index, candidate)
 
     def _buffer_ice_candidate(self, index: int, candidate: str):
-        """GStreamer 없을 때 ICE candidate 버퍼에 저장"""
+        """Buffer the ICE candidate when GStreamer is not available."""
         self._ice_buffer.append({
             "sdpMLineIndex": index,
             "candidate": candidate,
         })
 
     def get_server_ice_candidates(self) -> list[dict]:
-        """서버측 ICE 후보 반환 + 비움"""
+        """Return the server-side ICE candidates and clear them."""
         with self._lock:
             candidates = list(self._ice_candidates)
             self._ice_candidates = []
         return candidates
 
     def _schedule_ice_timeout(self):
-        """ICE 연결 타임아웃 — 30초 후 정리"""
+        """ICE connection timeout — clean up after 30 s."""
         if self._ice_timer is not None:
             self._ice_timer.cancel()
         self._ice_timer = threading.Timer(
@@ -175,7 +175,7 @@ class WebRTCHandler:
         self._ice_timer.start()
 
     def _cleanup_stale_peer(self):
-        """ICE 타임아웃 시 peer 정리"""
+        """Clean up the peer on ICE timeout."""
         log.warning("ICE 타임아웃 (%ds) — peer 정리", self.ICE_TIMEOUT)
         with self._lock:
             self._current_peer_id = None

@@ -65,11 +65,9 @@
       <p class="studio-boot-gate-hint es">Espere a que todos los módulos estén listos antes de navegar.</p>
     </div>
   </div>
-  <!-- ── Splash Intro Overlay (v2: Neural Circuit Awakening) ── -->
+  <!-- ── Splash Intro Overlay ── -->
   <div class="splash-overlay" id="splashOverlay" onclick="skipSplash(true)">
-    <!-- 조용한 인트로. 회로 트레이스·파티클·동심원 링·에너지 빔·버스트는
-         17.5초짜리 시네마틱의 소품이었고 그 시퀀스와 함께 사라졌다. 남은 건
-         워드마크와 모듈 여덟 개뿐이고, 그게 이 문이 말할 전부다. -->
+    <!-- A quiet intro: only the wordmark and the eight modules. -->
     <div class="mark" id="splashMark">
       <span class="mark-face" aria-hidden="true"></span>
       <span class="mark-sweep" aria-hidden="true"><span class="mark-shine"></span></span>
@@ -107,12 +105,12 @@
 
   <!-- ── Landing Page (orbital layout) ── -->
   <main class="landing home-stage" id="landing">
-    <!-- 무대의 빛 (spec §7 #1 #5 #16). 무대 전체에 걸친 grid item, 내용 아래 (z-index -1).
-         i = 커서 조명, stage-sweep = 첫 진입에 제목을 훑는 빛, stage-orb = 보낸 요청이 모듈로
-         날아가는 빛. home-effects.js 가 transform · opacity 로만 움직인다. -->
+    <!-- Stage light. A grid item spanning the whole stage, behind content (z-index -1).
+         i = cursor light, stage-sweep = light that sweeps the title on first entry, stage-orb = light
+         that flies from a sent request to its module. home-effects.js moves them with transform and opacity only. -->
     <div class="stage-light" aria-hidden="true"><i></i><b class="stage-sweep"></b><b class="stage-orb"></b></div>
-    <!-- 투어 컨트롤. tutorial.js 가 #dxt-tutorial-card 를 여기 맨 앞에 넣는다.
-         spec 2026-09-23 §5.1: 메뉴에 숨기지 않고 보이는 자리. -->
+    <!-- Tour controls. tutorial.js inserts #dxt-tutorial-card at the start of this row,
+         visible on the page rather than hidden in a menu. -->
     <div class="home-tour" id="homeTour">
       <button class="replay-btn" id="replayBtn" onclick="replaySplash()" data-i18n-title="Replay intro animation" style="display:none;">
         <span class="replay-btn-icon"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#play"></use></svg></span>
@@ -120,17 +118,17 @@
       </button>
     </div>
 
-    <!-- 만들기. 문구는 P4 에서 바뀐다 — 지금은 자리만 옮긴다. -->
+    <!-- Build. -->
     <section class="stage-hero" id="homeStage">
       <h1 class="stage-title" data-i18n="Describe anything. Run it on DX-M1.">Describe anything. Run it on DX-M1.</h1>
       <p class="stage-sub" data-i18n="Say what you need. The agent picks the model, compiles it, builds the app and measures it on this NPU.">Say what you need. The agent picks the model, compiles it, builds the app and measures it on this NPU.</p>
-      <!-- "Watch the film" 자리 (spec §5.2): 무엇인지 더 보고 싶은 순간에. 썸네일은 장식이다. -->
+      <!-- "Watch the film": for the moment someone wants to see more. The thumbnail is decorative. -->
       <div class="stage-films">
         <a class="stage-film" id="landingPoster" role="button" tabindex="0" onclick="openPlatformInfo()" data-i18n-title="DX-M1 and DX-M2 NPU lineup"><img src="/static/img/about/marketing/m1_m2.webp" alt="" width="36" height="24" loading="lazy"><span data-i18n="Explore DX AI Studio">Explore DX AI Studio</span></a>
         <a class="stage-film" id="ecosystemPoster" role="button" tabindex="0" onclick="openEcosystemInfo()" data-i18n-title="DEEPX Physical AI ecosystem"><img src="/static/img/about/marketing/deepx-physical-ai.webp" alt="" width="36" height="24" loading="lazy"><span data-i18n="Physical AI Ecosystem">Physical AI Ecosystem</span></a>
       </div>
       <form class="home-ask" id="homeAskForm" autocomplete="off">
-        <!-- 유리 상자: 쓰는 자리 · 누가 만들지 · 만들기. 예시는 상자 밖 아래 줄. -->
+        <!-- Glass box: text area · agent picker · Build. Examples sit on the row below the box. -->
         <div class="ask-box">
           <textarea class="ask-input" id="homeAsk" rows="2"
                  placeholder="Build a squat-counting fitness mini-game using yolo26n-pose on DEEPX NPU"
@@ -170,7 +168,7 @@
             <button class="ask-go" type="submit" data-i18n="Build it">Build it</button>
           </div>
         </div>
-        <!-- 실제로 만들어진 showcase 의 프롬프트 (home-prompts.js). 누르면 원문이 채워진다. -->
+        <!-- Prompts from showcases that were actually built (home-prompts.js). Clicking fills in the original text. -->
         <div class="ask-chips" id="homeAskChips">
           <button type="button" class="ask-chip" data-prompt="mini-game-squat-fitness" data-i18n="Squat game">Squat game</button>
           <button type="button" class="ask-chip" data-prompt="paddleocr-video-ocr" data-i18n="Video OCR">Video OCR</button>
@@ -191,7 +189,7 @@
         </div>
     </section>
 
-    <!-- 입력 뒤의 무대 (spec §5.7b). 보이면 #landing:has(...) 가 Dock 으로 바꾼다. -->
+    <!-- The stage behind the input. When visible, #landing:has(...) switches the layout to the Dock. -->
     <section class="stage-work" id="homeStageWork">
       <section class="home-answer" id="homeAnswer" hidden aria-live="polite">
           <button type="button" class="stage-close" id="answerClose" aria-label="Close" data-i18n-aria-label="Close"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#x"></use></svg></button>
@@ -226,10 +224,7 @@
             <span class="work-title" data-i18n="Agent Console">Agent Console</span>
             <span class="work-badge" id="workBadge"></span>
             <span class="work-grow"></span>
-            <!-- setup 은 Build 섹션이 소유한다. 여기 있던 select 3개는
-                 채워진 적이 없었고(로더가 /api/agent/models 에서 그 응답에
-                 없는 `agents` 키를 읽고 있었다), 실행을 시작한 뒤에야
-                 닿는 자리이기도 했다. -->
+            <!-- Agent setup belongs to the Build section; this only shows a summary of it. -->
             <span class="work-setup" id="workSetupSummary"></span>
             <button type="button" class="work-stop" id="workStop" data-i18n="Stop">Stop</button>
             <button type="button" class="stage-close" id="workClose" aria-label="Close" data-i18n-aria-label="Close"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#x"></use></svg></button>
@@ -240,7 +235,7 @@
               <p class="work-ask" id="workAsk"></p>
               <div id="workNarration"></div>
               <p class="work-status" id="workStatus"></p>
-              <!-- Interactive: agent 가 묻고 멈추면 여기서 답한다 — 같은 대화로 이어진다 -->
+              <!-- Interactive: when the agent stops to ask, answer here — it continues the same conversation -->
               <form class="work-reply" id="workReply" hidden>
                 <textarea class="work-reply-input" id="workReplyInput" rows="2"
                           placeholder="Reply to the agent…" data-i18n-placeholder="Reply to the agent…"
@@ -271,10 +266,10 @@
       <aside class="stage-widget stage-device" id="homeDevice" role="button" tabindex="0" aria-label="Open Monitor" data-i18n-aria-label="Open Monitor">
         <h3 class="stage-widget-title">DX-M1 <span class="dev-dot" aria-hidden="true"></span></h3>
         <p class="ws-device" id="heroDeviceChip" data-i18n="Checking DX-M1…">Checking DX-M1…</p>
-        <!-- 코어 막대는 home-widgets.js 가 장치의 코어 수만큼 만든다 (spec §5.5). -->
+        <!-- home-widgets.js creates one core bar per device core. -->
         <div class="dev-cores" id="homeCores" aria-hidden="true"></div>
         <p class="dev-line" id="homeDeviceLine"></p>
-        <!-- 변하지 않는 값은 가리킬 때만 (spec §5.5 "hover: SDK 버전"). -->
+        <!-- Values that never change show only on hover. -->
         <dl class="ws-facts stage-widget-more">
           <div><dt data-i18n="DXNN SDK">DXNN SDK</dt><dd>{{SDK_VERSION}}</dd></div>
           <div><dt data-i18n="Studio">Studio</dt><dd id="studioVersionHub"></dd></div>
@@ -282,8 +277,8 @@
         </dl>
       </aside>
 
-      <!-- 순서 (spec §4.1): 1행 app · stream · zoo · compiler · SDK Library
-                            2행 benchmark · planner · dx_monitor · agent · About DEEPX -->
+      <!-- Order: row 1 app · stream · zoo · compiler · SDK Library
+                            row 2 benchmark · planner · dx_monitor · agent · About DEEPX -->
       <div class="studio-grid" id="studioGrid">
             <div class="orbital-card" data-app="app" tabindex="0" role="button">
               <span class="orbital-status" id="orbStatusApp"></span>
@@ -381,7 +376,7 @@
 
       <aside class="stage-widget stage-proof" id="homeMeasured" aria-label="Measured on DX-M1" data-i18n-aria-label="Measured on DX-M1">
         <h3 class="stage-widget-title" data-i18n="Measured on DX-M1">Measured on DX-M1</h3>
-        <!-- task 마다 YOLO26n 의 실측 FPS (spec §5.6). 가장 빠른 모델이 아니다. -->
+        <!-- Measured YOLO26n FPS per task — not the fastest model. -->
         <div class="proof-body" id="homeProof" hidden>
           <p class="proof-fps"><b id="homeProofFps"></b> <span class="proof-unit">fps</span></p>
           <p class="proof-model" id="homeProofModel"></p>
@@ -391,8 +386,8 @@
       </aside>
     </section>
 
-    <!-- 막대 (spec §5.7): 제목 → 주요 pill 2 → 나머지 5. 설명은 타일의 말풍선처럼 0 높이 첫 행에서
-         위로 넘친다. 끄고 켜는 것은 home-bar.js. DEEPX Agent (웹 챗봇) 는 챗 머리로 옮겼다. -->
+    <!-- Bar: title → 2 main pills → the other 5. Descriptions overflow upward from a zero-height
+         first row, like the tile tooltips. home-bar.js turns links on and off. DEEPX Agent (web chatbot) lives in the chat header. -->
     <footer class="stage-bar" id="homeBar">
       <nav class="deepx-links" id="deepxLinks" aria-label="DEEPX resources" data-i18n-aria-label="DEEPX resources">
         <a class="bar-title" href="https://developer.deepx.ai/" target="_blank" rel="noopener noreferrer"><span data-i18n="Go deeper at DEEPX Developers">Go deeper at DEEPX Developers</span><span class="bar-arrow" aria-hidden="true">↗</span></a>
@@ -587,7 +582,7 @@
   <script src="/about-deepx.js"></script>
   <script>
   window._DX_I18N_DICT = {
-    // ── 포털 홈 (2026-09 재개편) ──
+    // ── Portal home ──
     'Browse all': { ko:'전체 보기', ja:'すべて見る', es:'Ver todo', 'zh-CN':'查看全部', 'zh-TW':'檢視全部' },
     'tasks': { ko:'개 태스크', ja:'件のタスク', es:'tareas', 'zh-CN':'类任务', 'zh-TW':'類任務' },
     '8 modules · runs locally': { ko:'모듈 8개 · 로컬 실행', ja:'8モジュール · ローカル実行', es:'8 módulos · se ejecuta localmente', 'zh-CN':'8 个模块 · 本地运行', 'zh-TW':'8 個模組 · 本機執行' },
@@ -625,7 +620,7 @@
     'measured': { ko:'개 실측', ja:'件を実測', es:'medidos', 'zh-CN':'个已实测', 'zh-TW':'個已實測' },
     'Modules': { ko:'모듈', ja:'モジュール', es:'Módulos', 'zh-CN':'模块', 'zh-TW':'模組' },
     'Device': { ko:'장치', ja:'デバイス', es:'Dispositivo', 'zh-CN':'设备', 'zh-TW':'裝置' },
-    /* 무대의 hero (spec 2026-09-23 §5.2, §8.1). 프롬프트 원문 자체는 번역하지 않는다 (home-prompts.js). */
+    /* Stage hero. The prompt texts themselves are not translated (home-prompts.js). */
     'Describe anything. Run it on DX-M1.': { ko:'무엇이든 말하세요. DX-M1이 돌립니다.', ja:'何でも伝えてください。DX-M1 が動かします。', es:'Describa lo que sea. Ejecútelo en DX-M1.', 'zh-CN':'描述任何需求，在 DX-M1 上运行。', 'zh-TW':'描述任何需求，在 DX-M1 上執行。' },
     'Say what you need. The agent picks the model, compiles it, builds the app and measures it on this NPU.': { ko:'원하는 것을 적으면 에이전트가 모델을 고르고, 컴파일하고, 앱을 만들고, 이 NPU에서 측정합니다.', ja:'必要なことを書けば、エージェントがモデルを選び、コンパイルし、アプリを作り、この NPU で計測します。', es:'Diga lo que necesita. El agente elige el modelo, lo compila, crea la app y la mide en esta NPU.', 'zh-CN':'说出你的需求，智能体会选择模型、完成编译、构建应用，并在这块 NPU 上测量。', 'zh-TW':'說出你的需求，代理會選擇模型、完成編譯、建置應用，並在這顆 NPU 上量測。' },
     'Show 5 more examples': { ko:'예시 5개 더 보기', ja:'例をあと 5 件表示', es:'Mostrar 5 ejemplos más', 'zh-CN':'再显示 5 个示例', 'zh-TW':'再顯示 5 個範例' },
@@ -650,7 +645,7 @@
     'No DX-M1 connected': { ko:'연결된 DX-M1 없음', ja:'接続された DX-M1 がありません', es:'No hay ningún DX-M1 conectado', 'zh-CN':'未连接 DX-M1', 'zh-TW':'未連接 DX-M1' },
     'Mock data': { ko:'모의 데이터', ja:'モックデータ', es:'Datos simulados', 'zh-CN':'模拟数据', 'zh-TW':'模擬資料' },
     'Open Monitor': { ko:'Monitor 열기', ja:'Monitor を開く', es:'Abrir Monitor', 'zh-CN':'打开 Monitor', 'zh-TW':'開啟 Monitor' },
-    /* task 이름은 Model Zoo 사전 (dx_modelzoo/static/js/i18n-dict-shared.js) 과 같다. */
+    /* Task names match the Model Zoo dictionary (dx_modelzoo/static/js/i18n-dict-shared.js). */
     'Object Detection': { ko:'객체 탐지', ja:'物体検出', es:'Detección de objetos', 'zh-CN':'目标检测', 'zh-TW':'物件偵測' },
     'Instance Segmentation': { ko:'인스턴스 분할', ja:'インスタンスセグメンテーション', es:'Segmentación de instancias', 'zh-CN':'实例分割', 'zh-TW':'實例分割' },
     'Segmentation': { ko:'분할', ja:'セグメンテーション', es:'Segmentación', 'zh-CN':'分割', 'zh-TW':'分割' },
@@ -776,7 +771,7 @@
     'Close': { ko:'닫기', ja:'閉じる', es:'Cerrar', 'zh-CN':'关闭', 'zh-TW':'關閉' },
     'Launcher gateway': { ko:'Launcher gateway', ja:'Launcher gateway', es:'Puerta de enlace Launcher', 'zh-CN':'Launcher 网关', 'zh-TW':'Launcher 閘道' },
     'DEEPX resources': { ko:'DEEPX 리소스', ja:'DEEPXリソース', es:'Recursos DEEPX', 'zh-CN':'DEEPX 资源', 'zh-TW':'DEEPX 資源' },
-  // ── 마크업 lang-span 에서 옮겨온 항목 ──
+  // ── Static page labels ──
   '13 custom GStreamer plugins': {
     ko: 'GStreamer 기반 13개 커스텀 플러그인',
     ja: 'GStreamer ベース 13 個のカスタムプラグイン',
@@ -1036,7 +1031,7 @@
     'zh-TW': '百科全書',
     es: 'Enciclopedia',
   },
-  // data-i18n-aria-label · data-i18n-title 은 달려 있었지만 사전에 key 가 없어 모든 언어에서 영어였다 (release audit)
+  // Keys for data-i18n-aria-label · data-i18n-title attributes
   'Beta version': {
     ko: '베타 버전', ja: 'ベータ版', 'zh-CN': '测试版', 'zh-TW': '測試版', es: 'Versión beta',
   },
@@ -1413,8 +1408,7 @@
     'zh-TW': '端側AI',
     es: 'IA en el dispositivo',
   },
-  // ── 마크업 lang-span 에서 옮겨온 항목 ──
-  // ── 유리 막대 (P5) ──
+  // ── Glass bar ──
   'Go deeper at DEEPX Developers': {
     ko: 'DEEPX Developers에서 더 깊이',
     ja: 'DEEPX Developers でさらに詳しく',

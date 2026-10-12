@@ -100,8 +100,7 @@ COMMON_RULES: list[tuple[list[str], dict[str, str]]] = [
     ),
 ]
 
-# 세 갈래를 사용자가 밟을 순서로 말한다 — 로그인하면 설정 없이 답한다 → local server → cloud key
-# (spec 2026-10-11 chat settings §3.1). 예전에는 "API 키를 설정하세요" 가 먼저였다.
+# The three ways to connect, in the order a user should try them: a logged-in CLI (no setup) → local server → cloud key.
 SETUP_BANNER = {
     "ko": "⚠️ 연결된 AI 가 없습니다 — Studio 는 **모델을 내장하지 않습니다** (오프라인 우선 설계).\n"
           "• 터미널에서 coding agent (claude · copilot · cursor …) 에 로그인하면 **설정 없이** 그 계정으로 답합니다.\n"

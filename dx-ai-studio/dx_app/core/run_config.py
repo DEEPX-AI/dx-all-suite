@@ -25,8 +25,8 @@ CONF_SCORE_ALIASES = ("score_threshold", "confidence_threshold", "conf_threshold
 def load_model_config(category: str, model_name: str) -> Dict[str, Any]:
     """Load config.json from cpp/python example dirs (first match wins), as the flat threshold dict.
 
-    per-model layout (teammate 8d0b748) 의 config.json 은 중첩 spec 이고 threshold 는 ``config`` 안에 있다 —
-    실행에 넘기는 ``--config`` 는 평평해야 한다 (C++ reader 는 평평한 key 만 읽는다)."""
+    A per-model layout config.json is a nested spec with the thresholds under ``config``; the ``--config`` passed to
+    a run must be flat (the C++ reader reads flat keys only)."""
     from shared import dx_app_layout as layout
     for base in (CPP_DIR, PY_DIR):
         cfp = base / category / model_name / "config.json"

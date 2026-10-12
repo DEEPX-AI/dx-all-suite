@@ -569,7 +569,7 @@ window._DX_I18N_DICT = {
     'zh-CN': '共享图像', 'zh-TW': '共用影像',
     es: 'Imagen compartida',
   },
-  // ── Setup 단계 목록 (아이콘 체계 단계 2a) ──
+  // ── Setup step list ──
   'Install system packages required for C++ build (cmake, gcc, ninja, OpenCV, …)': {
     ko: 'C++ 빌드에 필요한 시스템 패키지 설치 (cmake, gcc, ninja, OpenCV, …)',
     ja: 'C++ ビルドに必要なシステムパッケージをインストール (cmake, gcc, ninja, OpenCV, …)',
@@ -612,8 +612,8 @@ window._DX_I18N_DICT = {
     'zh-TW': '下載 Run / Benchmark 示範用的範例模型和影片',
     es: 'Descargue modelos y videos de ejemplo para demos de Ejecución / Benchmark',
   },
-  // Run Demo 카드의 task 이름 (아이콘 체계 단계 4) — Model Zoo CATEGORIES 의 라벨과 같은 말.
-  // dx_app per-model layout 의 새 demo (spec 2026-10-01) — Model Zoo CATEGORIES 의 라벨과 같은 말.
+  // Run Demo card task names; the same words as the Model Zoo CATEGORIES labels.
+  // New demos of the dx_app per-model layout, also matching the Model Zoo CATEGORIES labels.
   'Image Matting': { ko: '이미지 매팅', ja: '画像マッティング', 'zh-CN': '图像抠图', 'zh-TW': '影像去背', es: 'Matting de imagen' },
   'Image Retrieval': { ko: '이미지 검색', ja: '画像検索', 'zh-CN': '图像检索', 'zh-TW': '影像檢索', es: 'Recuperación de imágenes' },
   'Visual Place Recognition': { ko: '장소 인식', ja: '視覚的場所認識', 'zh-CN': '视觉地点识别', 'zh-TW': '視覺地點辨識', es: 'Reconocimiento visual de lugares' },
@@ -621,7 +621,7 @@ window._DX_I18N_DICT = {
   '3D Object Detection': { ko: '3D 객체 탐지', ja: '3D物体検出', 'zh-CN': '3D目标检测', 'zh-TW': '3D物件偵測', es: 'Detección de objetos 3D' },
   'Attribute Recognition': { ko: '속성 인식', ja: '属性認識', 'zh-CN': '属性识别', 'zh-TW': '屬性辨識', es: 'Reconocimiento de atributos' },
   'Classification': { ko: '분류', ja: '分類', 'zh-CN': '分类', 'zh-TW': '分類', es: 'Clasificación' },
-  // Run Demo 의 묶음 (filter) 이름 — /api/demos 의 groups (release audit: 모든 언어에서 영어였다)
+  // Run Demo group (filter) names: the groups of /api/demos
   'Detection': { ko: '탐지', ja: '検出', 'zh-CN': '检测', 'zh-TW': '偵測', es: 'Detección' },
   'Segmentation': { ko: '분할', ja: 'セグメンテーション', 'zh-CN': '分割', 'zh-TW': '分割', es: 'Segmentación' },
   'Keypoint & Pose': { ko: '키포인트 · 자세', ja: 'キーポイント · 姿勢', 'zh-CN': '关键点 · 姿态', 'zh-TW': '關鍵點 · 姿態', es: 'Puntos clave y pose' },
@@ -1931,7 +1931,7 @@ window._DX_I18N_DICT = {
     'zh-CN': '未配置模型文件', 'zh-TW': '未設定模型檔案',
     es: 'Archivo de modelo no configurado',
   },
-  // DX-RT 가 못 읽는 .dxnn (Model Zoo 2_5_0 = container v9, spec 2026-10-01 dx_app per-model layout)
+  // .dxnn files DX-RT cannot read (Model Zoo 2_5_0 = container v9)
   'needs_dxrt': {
     en: 'This model needs DX-RT 3.5.0 or later (.dxnn container v9). The installed DX-RT reads up to v8.',
     ko: '이 모델은 DX-RT 3.5.0 이상이 필요합니다 (.dxnn container v9). 설치된 DX-RT는 v8까지 읽습니다.',
@@ -2907,7 +2907,7 @@ window._DX_I18N_DICT = {
   'Package export completed': { ko: '패키지 내보내기가 완료되었습니다', ja: 'パッケージのエクスポートが完了しました', 'zh-CN': '软件包导出已完成', 'zh-TW': '套件匯出已完成', es: 'La exportación del paquete se completó' },
   'Running inference…': { ko: '추론 실행 중…', ja: '推論実行中…', 'zh-CN': '正在运行推理…', 'zh-TW': '正在執行推論…', es: 'Ejecutando inferencia…' },
   'frames': { ko: '프레임', ja: 'フレーム', 'zh-CN': '帧', 'zh-TW': '影格', es: 'fotogramas' },
-  // ── 마크업 lang-span 에서 옮겨온 항목 ──
+  // ── Entries moved from the markup lang-spans ──
   'Advanced Tools': {
     ko: '고급 도구',
     ja: '高度なツール',
@@ -3149,7 +3149,7 @@ window._DX_I18N_DICT = {
     'zh-CN': '打开 ModelZoo', 'zh-TW': '開啟 ModelZoo',
     es: 'Abrir ModelZoo',
   },
-  /* Lab — Add Model copies an existing example (2026-10-11) */
+  /* Lab — Add Model copies an existing example */
   'Start from': {
     ko: '복사할 예제', ja: 'コピー元の例',
     'zh-CN': '起始示例', 'zh-TW': '起始範例',
@@ -4765,7 +4765,7 @@ window._DX_I18N_PLACEHOLDERS = {
   },
 
   /* ==== Lab Portal ==== */
-  /* Lab flows that do real work (2026-10-11) */
+  /* Lab flows that do real work */
   'New': {
     ko: '생성', ja: '新規',
     'zh-CN': '新建', 'zh-TW': '新增',
@@ -5207,7 +5207,7 @@ window._DX_I18N_PLACEHOLDERS = {
 };
 
 /* ─── inline helper for JS runtime strings (ko, en, ja, zh-CN, zh-TW, es) ───
-   이름은 _T5 그대로 — es 는 여섯째 인자 (예전에는 다섯 언어라 스페인어에서 영어가 보였다, release audit A-13). */
+   The name stays _T5 although es is a sixth argument. */
 function _T5(ko, en, ja, zhCN, zhTW, es) {
     var lang = (window.DXI18n && window.DXI18n.lang) || 'en';
     if (lang === 'ko') return ko || en;

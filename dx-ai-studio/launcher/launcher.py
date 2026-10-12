@@ -107,7 +107,7 @@ def _debug_routes_enabled() -> bool:
     return os.environ.get("DX_DEBUG_MODE", "").lower() in {"1", "true", "yes", "on"}
 
 
-# Display name → canonical key mapping for _procs cleanup (I-2)
+# Display name → canonical key mapping for _procs cleanup
 _DISPLAY_NAME_TO_CANONICAL = {
     "DX App": "dx_app",
     "DX Stream": "dx_stream",
@@ -139,7 +139,6 @@ _SDK_VERSION_FALLBACK = "v2.4.0"
 def _suite_sdk_version() -> str:
     """The DX-AllSuite (DXNN SDK) version, read live from <suite>/release.ver.
 
-    The hub used to hard-code "v2.3.0", which drifted out of date (the tree ships v2.4.0).
     release.ver is the single source of truth the release tooling writes, so read it at serve
     time and normalize to a leading-'v' tag. Any failure falls back to a known-good constant.
     """
@@ -224,8 +223,9 @@ def _watchdog_check_once():
 
             if proc_alive and port_open:
                 entry["status"] = "alive"
-                # 한 번 놓친 뒤 다시 답한 module 의 예약을 지운다 — 남겨 두면 다음 한 번의 blip 에 (이미 지난 기한이라)
-                # 유예 없이 멀쩡히 돌던 module 을 죽였다 (2026-10-11). 손으로 누른 restart 는 동기로 이미 끝났다.
+                # A module that missed one check and answered again drops its pending restart. Left in place, the
+                # next blip would find the deadline already past and kill a healthy module with no grace period.
+                # A manual restart is synchronous and has already finished by now.
                 entry["restart_at"] = None
                 continue
 
@@ -242,7 +242,7 @@ def _watchdog_check_once():
                 continue
 
             entry["status"] = "dead"
-            # Only schedule restart_at if not already pending (C-1/C-2 fix)
+            # Only schedule restart_at if not already pending
             if entry["restart_at"] is None:
                 deadline = _WATCHDOG_RESTART_DEADLINE_SECONDS()
                 entry["restart_at"] = now + deadline
@@ -299,7 +299,7 @@ def _do_module_restart(name, entry):
 
     server_id = name  # module keys are already server_ids like "dx_app"
 
-    # Clean up stale display-name _procs entry before restart (I-2 fix)
+    # Clean up stale display-name _procs entry before restart
     display_name = _CANONICAL_TO_DISPLAY_NAME.get(name)
     if display_name and display_name in _procs and display_name != name:
         del _procs[display_name]
@@ -473,9 +473,9 @@ def _save_pids():
 
 
 def _is_our_sub_server(pid):
-    """pid 가 start_sub_server 가 띄운 모양(`python <STUDIO_DIR>/<module>/server.py ...`)인가.
+    """Whether pid looks like a server start_sub_server spawned (`python <STUDIO_DIR>/<module>/server.py ...`).
 
-    확인할 수 없으면(/proc 없음, 권한 없음, 이미 종료) False — 모르면 죽이지 않는다.
+    False when it cannot be checked (no /proc, no permission, already gone): never kill what we cannot identify.
     """
     try:
         raw = Path(f"/proc/{pid}/cmdline").read_bytes()
@@ -503,24 +503,24 @@ def _cleanup_old_pids():
     except Exception:
         _PIDFILE.unlink(missing_ok=True)
         return
-    if not isinstance(data, dict):  # 손상된 파일이 launcher 시작을 막지 않게
+    if not isinstance(data, dict):  # a corrupt file must not block launcher startup
         _PIDFILE.unlink(missing_ok=True)
         return
 
     for name, pid in data.items():
-        # 번호는 재사용된다(재부팅, 서버가 먼저 죽은 경우). 우리 하위 서버의 모양일 때만
-        # 종료한다. 계약: tests/launcher/test_cleanup_old_pids.py
+        # PIDs get reused (after a reboot, or when the server died first). Only kill a process that
+        # still looks like one of our sub-servers. Contract: tests/launcher/test_cleanup_old_pids.py
         if not isinstance(pid, int) or not _is_our_sub_server(pid):
             continue
         try:
-            # start_sub_server 는 setsid 로 띄워 서버가 제 group 의 leader 다. 아니면 그 group
-            # 은 남의 것(launcher 를 띄운 셸 등)이므로 group 째 보내지 않는다.
+            # start_sub_server uses setsid, so our server leads its own group. Otherwise the group
+            # belongs to someone else (e.g. the shell that started the launcher): signal the pid only.
             if os.getpgid(pid) == pid:
                 os.killpg(pid, signal.SIGTERM)
             else:
                 os.kill(pid, signal.SIGTERM)
             time.sleep(0.3)
-            # Force kill if still alive — 0.3초 사이 번호가 재사용됐을 수 있어 다시 확인한다
+            # Force kill if still alive — re-check, the pid may have been reused within 0.3 s
             try:
                 if _is_our_sub_server(pid):
                     os.kill(pid, signal.SIGKILL)
@@ -670,17 +670,17 @@ def _get_health_status():
         return _health_cache_data
 
 
-# 원격 접근 (QA COM-A1, spec 2026-10-01-studio-remote-auth-and-compile-paths): 페어링 코드 · 세션.
-# main() 이 만든다 — import 만으로 코드를 찍거나 ~/.config 에 쓰지 않게.
+# Remote access: pairing code and sessions. main() creates it, so a bare import never prints a code
+# or writes to ~/.config.
 REMOTE_ACCESS = None
 _PAIR_PAGE = Path(__file__).resolve().parent / "static" / "pair.html"
 
 
 def _lan_addresses():
-    """다른 컴퓨터가 이 보드에 닿는 IPv4 주소 — 연결된 브라우저 화면과 콘솔이 안내한다.
+    """IPv4 addresses other computers reach this board on, shown in the connected-browsers view and the console.
 
-    인터페이스마다 SIOCGIFADDR 로 읽는다 (패킷을 보내지 않는다 — 오프라인 계약). loopback · link-local ·
-    컨테이너/가상 bridge 는 뺀다. Linux 가 아니거나 읽지 못하면 빈 목록."""
+    Read per interface with SIOCGIFADDR, which sends no packets (the studio must work offline). Loopback,
+    link-local and container/virtual bridges are skipped. Empty when not on Linux or nothing can be read."""
     import fcntl
     import ipaddress
     import struct
@@ -706,9 +706,10 @@ def _lan_addresses():
         if str(ip) not in out:
             out.append(str(ip))
     return out
-# 모듈은 loopback 에만 열리고, launcher 가 중계한 요청에는 이 비밀이 X-DX-Proxy 로 실린다 (자식 env 로 전달).
-# launcher 자신의 env 에도 둔다 — 같은 프로세스에서 도는 모듈 (browser suite 의 tests/server_helpers) 도 같은 값을
-# 읽어야 하고, reload 해도 값이 바뀌지 않는다. 이 기계의 프로세스는 어차피 로컬로 신뢰되므로 권한이 늘지 않는다.
+# Modules listen on loopback only; requests the launcher relays carry this secret in X-DX-Proxy (passed to
+# children via env). It is also set in the launcher's own env so modules running in the same process (the browser
+# suite's tests/server_helpers) read the same value and a reload keeps it. Local processes are trusted anyway, so
+# this grants nothing new.
 PROXY_SECRET = os.environ.setdefault("DX_PROXY_SECRET", secrets.token_hex(32))
 
 
@@ -737,7 +738,7 @@ def start_sub_server(name, directory, port=0, server_id=None):
     # (repo root on PYTHONPATH). Its own package dir is already on sys.path via the script path.
     env["PYTHONPATH"] = _REPO_ROOT + (os.pathsep + env["PYTHONPATH"] if env.get("PYTHONPATH") else "")
     env["DX_PORT_FILE"] = pf
-    # 모듈은 항상 loopback — 사용자가 launcher 용으로 준 DX_BIND_HOST/LOCAL 을 물려주지 않는다 (QA COM-A1)
+    # Modules always bind loopback — DX_BIND_HOST/LOCAL given for the launcher must not reach them
     env.pop("DX_BIND_LOCAL", None)
     env["DX_BIND_HOST"] = "127.0.0.1"
     env["DX_PROXY_SECRET"] = PROXY_SECRET
@@ -747,12 +748,11 @@ def start_sub_server(name, directory, port=0, server_id=None):
     # dx_app port (dx_app is started before modelzoo in main()).
     if _LAUNCHER_PROXY_PORTS.get("dx_app") is not None:
         env["DX_APP_PORT"] = str(_LAUNCHER_PROXY_PORTS["dx_app"])
-    # dx_app 이 다시 뜨면 port 가 바뀐다 — 그 port 를 담는 파일을 넘겨 Zoo 가 요청마다 읽게 한다
+    # dx_app gets a new port when it restarts — pass the file holding it so the Zoo reads it per request
     env["DX_APP_PORT_FILE"] = str(PORTS_DIR / "dx_app.port")
 
-    # stdout 은 요청마다 한 줄씩 찍는 module 이 있어 버린다. stderr (traceback · 경고 · native crash 의 faulthandler
-    # 덤프) 는 module 마다 크기 제한 log 에 남긴다 — 예전에는 둘 다 /dev/null 이라 module 이 죽어도 이유가 없었다
-    # (2026-10-11 실사용 감사).
+    # stdout is dropped: some modules print a line per request. stderr (tracebacks, warnings, faulthandler dumps
+    # of native crashes) goes to a size-capped log per module, so a module that dies leaves a reason behind.
     env["PYTHONFAULTHANDLER"] = "1"
     proc = subprocess.Popen(
         cmd,
@@ -770,7 +770,7 @@ def start_sub_server(name, directory, port=0, server_id=None):
     if actual is None:
         print(f"  [Launcher] WARNING: {server_id or name} did not report a port in time", file=sys.stderr)
         # Clear the stale default (e.g. 8080) so the proxy/health never route to a
-        # foreign process squatting on that port (F-01). port=None → proxy falls
+        # foreign process squatting on that port. port=None → proxy falls
         # through to 404 and health reports alive=false.
         if server_id:
             _LAUNCHER_PROXY_PORTS[server_id] = None
@@ -930,7 +930,7 @@ def _proxy(handler, target_port, path, inject_widget=True):
         skip = {"host", "connection", "transfer-encoding", "keep-alive",
                 "proxy-authenticate", "proxy-authorization", "te", "trailers",
                 "upgrade",
-                # 클라이언트가 위조해 보낸 값은 버린다 — 아래에서 launcher 가 정한 값만 싣는다
+                # drop client-forged values — only the launcher's own values are set below
                 "x-dx-proxy", "x-forwarded-for"}
         for key, val in handler.headers.items():
             if key.lower() not in skip:
@@ -942,7 +942,7 @@ def _proxy(handler, target_port, path, inject_widget=True):
             headers["X-Forwarded-Host"] = handler.headers.get("Host", "")
         headers["Host"] = f"127.0.0.1:{target_port}"
         headers["X-Forwarded-For"] = handler.client_address[0]
-        headers["X-DX-Proxy"] = PROXY_SECRET   # 모듈: launcher 가 이미 인증한 요청 (shared/dx_server._is_local)
+        headers["X-DX-Proxy"] = PROXY_SECRET   # tells the module the launcher already authenticated it (shared/dx_server._is_local)
 
         conn.request(handler.command, path, body=body, headers=headers)
         resp = conn.getresponse()
@@ -969,16 +969,16 @@ def _proxy(handler, target_port, path, inject_widget=True):
         widget_cache = _get_widget_cache() if may_inject else b""
         is_html_inject = bool(widget_cache)
 
-        # http.client 가 module 의 chunked 를 풀어 준다. 길이를 모르는 응답 (SSE · chunked) 을 그대로 쓰면 HTTP/1.1
-        # keep-alive 연결에서 브라우저가 끝을 알 수 없다 — Chat 답이 [DONE] 뒤에도 끝나지 않고 연결을 붙잡았다
-        # (2026-10-11). 그런 응답은 다시 chunk 로 싸서 보낸다.
+        # http.client de-chunks the module's response. Relaying a body of unknown length (SSE, chunked) as is over an
+        # HTTP/1.1 keep-alive connection leaves the browser unable to see where it ends (a Chat answer would hang
+        # after [DONE]), so such responses are re-chunked.
         bodyless = handler.command == "HEAD" or resp.status in (204, 304) or 100 <= resp.status < 200
         rechunk = (not is_html_inject and not bodyless and resp.getheader("Content-Length") is None)
 
         handler.send_response(resp.status)
         for key, val in resp.getheaders():
             low = key.lower()
-            # send_response 가 이미 Server · Date 를 쓴다 — 그대로 옮기면 두 번 간다
+            # send_response already writes Server and Date — copying them would send them twice
             if low in ("connection", "transfer-encoding", "server", "date"):
                 continue
             if is_sse and low in ("cache-control", "x-accel-buffering"):
@@ -1497,7 +1497,7 @@ class LauncherHandler(DXBaseHandler):
         return self.client_address[0]
 
     def _read_json_body(self) -> dict | None:
-        """제한된 크기의 JSON body 파싱. 실패 시 400 반환 후 None."""
+        """Parse a size-limited JSON body. On failure, send 400 and return None."""
         try:
             length = int(self.headers.get("Content-Length", 0))
         except (ValueError, TypeError):
@@ -1521,21 +1521,21 @@ class LauncherHandler(DXBaseHandler):
         return body
 
     def _send_auth_json(self, payload, status=200):
-        """Auth 응답은 CSRF nonce 노출 방지를 위해 wildcard CORS를 쓰지 않는다."""
+        """Auth responses never use wildcard CORS, so the CSRF nonce cannot leak."""
         resp = json.dumps(payload).encode()
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Cache-Control", "no-store")
         for c in getattr(self, "_set_cookies", ()):
             self.send_header("Set-Cookie", c)
-        self._set_cookies = ()   # keep-alive 로 이어지는 다음 응답에 붙지 않게
+        self._set_cookies = ()   # so they don't stick to the next response on a keep-alive connection
         self.send_header("Content-Length", len(resp))
         self.end_headers()
         if self._is_head_request():
             return
         self.wfile.write(resp)
 
-    # ── 원격 접근 — 페어링 · 세션 (QA COM-A1) ─────────────────────────────────
+    # ── Remote access — pairing and sessions ───────────────────────────────────
     def _remote(self):
         return REMOTE_ACCESS
 
@@ -1546,7 +1546,7 @@ class LauncherHandler(DXBaseHandler):
         return (self.command, self.url_path) in self._AUTH_OPEN
 
     def _send_unauthorized(self):
-        """원격 브라우저의 페이지 요청에는 페어링 화면, 그 밖에는 401 JSON."""
+        """The pairing page for a remote browser's page request, 401 JSON otherwise."""
         accept = self.headers.get("Accept", "")
         if self.command in ("GET", "HEAD") and ("text/html" in accept or self.url_path == "/"):
             body = _PAIR_PAGE.read_bytes() if _PAIR_PAGE.is_file() else b"<h1 id=\"dx-pair\">Pairing required</h1>"
@@ -1576,7 +1576,7 @@ class LauncherHandler(DXBaseHandler):
             or bool(self._session()),
             "pairing": REMOTE_ACCESS is not None and REMOTE_ACCESS.pairing is not None,
         }
-        # 보드 자신에게만 — 다른 컴퓨터가 열 주소 (연결된 브라우저 화면). 코드는 넣지 않는다 (콘솔 전용).
+        # Board only: addresses other computers can open (connected-browsers view). Never the code (console only).
         if local and REMOTE_ACCESS is not None:
             port = self.server.server_address[1]
             payload["addresses"] = [f"http://{ip}:{port}" for ip in _lan_addresses()]
@@ -1608,7 +1608,7 @@ class LauncherHandler(DXBaseHandler):
         ra = REMOTE_ACCESS
         token = ra.cookie_value(self.headers.get("Cookie", "")) if ra is not None else ""
         if not token:
-            return self._send_no_content()   # 세션이 없으면 예전처럼 204 (쿠키 없음)
+            return self._send_no_content()   # no session: 204 without a cookie
         ra.sessions.revoke_token(token)
         self._set_cookies = [self._cookie("", 0)]
         self._send_auth_json({"ok": True})
@@ -1620,7 +1620,7 @@ class LauncherHandler(DXBaseHandler):
         ra = REMOTE_ACCESS
         items = [] if ra is None else sorted(ra.sessions.list(), key=lambda v: -float(v.get("last_seen", 0)))
         mine = (self._session() or {}).get("id")
-        # 목록은 보드에서만 — 원격 브라우저는 자기 행만 본다 (다른 컴퓨터의 IP 를 서로 보지 않게)
+        # Full list on the board only — a remote browser sees its own row, never other computers' IPs
         if not self._is_local():
             items = [v for v in items if v.get("id") == mine]
         self._send_auth_json({"sessions": [
@@ -1634,7 +1634,7 @@ class LauncherHandler(DXBaseHandler):
             return
         ra = REMOTE_ACCESS
         if not self._is_local():
-            # 다른 브라우저를 끊는 일은 보드에서만. 원격 브라우저는 자기 자신을 /api/auth/logout 으로 끊는다.
+            # Only the board disconnects other browsers. A remote browser disconnects itself via /api/auth/logout.
             return self._send_auth_json({"error": "Only the studio computer can disconnect other browsers"}, 403)
         ok = ra is not None and isinstance(body.get("id"), str) and ra.sessions.revoke(body["id"])
         self._send_auth_json({"ok": bool(ok)}, 200 if ok else 404)
@@ -1691,9 +1691,7 @@ class LauncherHandler(DXBaseHandler):
                 if parsed.query:
                     sub_path += "?" + parsed.query
                 # Inject the NPU Monitor float into every proxied module EXCEPT dx_monitor
-                # itself (it already shows full hardware telemetry). Agent Dev used to be
-                # excluded too, but it should carry the same floating monitor as the other
-                # modules, so it now receives the widget.
+                # itself (it already shows full hardware telemetry).
                 _proxy(self, port, sub_path, inject_widget=(target_id != "dx_monitor"))
                 return
 
@@ -1705,9 +1703,7 @@ class LauncherHandler(DXBaseHandler):
             if ambiguous and self._proxy_by_referer(path, parsed):
                 return
 
-        # Every shared chat route but the chat stream itself (its referer rule is below). The list was kept by hand
-        # and missed /api/studio/agent (Home's agent pick saved nothing), local-model discovery and the knowledge
-        # refresh (both 502 on Home's chat). 2026-10-11 chat settings real check.
+        # Every shared chat route but the chat stream itself (its referer rule is below).
         if path in self._CHAT_ROUTES and path != "/api/chat":
             if self.handle_chat_routes(_chat_engine):
                 return
@@ -1720,8 +1716,8 @@ class LauncherHandler(DXBaseHandler):
         if path == "/" or path == "/index.html" or path == "/sdk-library" or path == "/about":
             self._serve_index()
         elif path == "/design-system":
-            # 살아있는 토큰/컴포넌트 카탈로그. 공유 파운데이션만 로드하므로
-            # 여기 보이는 것이 제품에서 보이는 것이다.
+            # Live token/component catalog. It loads only the shared foundation,
+            # so what shows here is what the product shows.
             self._send_shell_asset(BASE_DIR.parent / "docs/design-system.html", "text/html")
         elif path == "/style.css":
             self._send_shell_asset(BASE_DIR / "static/style.css", "text/css")
@@ -1976,7 +1972,7 @@ def main():
     # thread so the cosmetic boot below runs while the port already accepts connections.
     threading.Thread(target=srv.serve_forever, name="launcher-http", daemon=True).start()
 
-    # 원격 브라우저 페어링 (QA COM-A1) — loopback 에만 열렸으면 원격이 없으므로 만들지 않는다
+    # Remote browser pairing — skipped when bound to loopback only, since nothing remote can connect
     global REMOTE_ACCESS
     if not (_bind_host in ("127.0.0.1", "::1", "localhost")):
         REMOTE_ACCESS = _ra.RemoteAccess()
@@ -1986,7 +1982,7 @@ def main():
     print("\n  ┌──────────────────────────────────────────────────┐")
     print(f"  │  👉  OPEN THE STUDIO:  {_studio_url:<25} │")
     if REMOTE_ACCESS is not None:
-        # 다른 컴퓨터에서 열 주소 — 처음 한 번 위의 원격 접속 코드를 묻는다
+        # Addresses for other computers — the first visit asks for the remote access code
         for _ip in _lan_addresses()[:3]:
             _lan_url = f"http://{_ip}:{port}"
             print(f"  │      other computers:  {_lan_url:<25} │")

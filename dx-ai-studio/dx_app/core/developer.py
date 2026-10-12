@@ -277,7 +277,7 @@ def dev_delete(tok,mn,lang="both",confirm=""):
         return {"error": "Delete confirmation required", "status": 400}
     deleted=[]
     bases={"cpp":[CPP_DIR],"python":[PY_DIR],"both":[CPP_DIR,PY_DIR]}.get(lang,[CPP_DIR,PY_DIR])
-    # 예제 폴더는 resolver 가 찾는다 — legacy <task>/<model>, per-model <task>/<family>/<stem> (shared/dx_app_layout.py)
+    # The resolver finds the example folder: legacy <task>/<model>, per-model <task>/<family>/<stem> (shared/dx_app_layout.py)
     from shared import dx_app_layout as _layout
     _layout.clear_cache()
     for base in bases:
@@ -342,9 +342,9 @@ def extract_model_package(model_path, lang="both"):
             results.append({"lang": l, "ok": r.returncode == 0, "output": (r.stdout + r.stderr)[-500:]})
         except Exception as e:
             results.append({"lang": l, "ok": False, "error": str(e)})
-    # 추출기는 outputs/<lang>/<model_path>/ 에 만든다. 예전에는 outputs 바로 아래에서 이름이 맞는 폴더를 찾아
-    # per-model layout (py/object_detection/yolo26/yolo26-n_640x640) 에서는 아무것도 못 찾아 download_url 이
-    # 비었다. python 은 config.json 이 이름으로 부르는 processor 가 빠지지 않게 common/ 을 채운다 (2026-10-11 audit).
+    # The extractor writes to outputs/<lang>/<model_path>/; matching a folder by name directly under outputs finds
+    # nothing in the per-model layout (py/object_detection/yolo26/yolo26-n_640x640) and leaves download_url empty.
+    # For python, common/ is filled so the processors config.json names are not missing.
     download_url = None
     model_name = model_path.rstrip("/").split("/")[-1]
     pkg_dirs = []

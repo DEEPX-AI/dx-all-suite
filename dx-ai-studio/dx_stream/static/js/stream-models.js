@@ -1,6 +1,6 @@
 /**
- * DX Stream — 모델 카탈로그
- * 카드 렌더링, 카테고리 필터, 검색, 상세 모달
+ * DX Stream — model catalog
+ * Card rendering, category filter, search, detail modal
  */
 var _modelCatI18n = {
     'object detection': { ko: '객체 탐지',  ja: '物体検出',   'zh-CN': '目标检测',  'zh-TW': '物件偵測',es:'detección de objetos'},
@@ -30,7 +30,7 @@ DXStream.modelsInit = async function () {
     _renderModelCards(DXStream._allModels);
     _renderModelFilters(DXStream._allModels);
 
-    // 검색
+    // Search
     var search = DXStream.$('models-search');
     if (search) {
         search.oninput = function () {
@@ -44,8 +44,8 @@ DXStream.modelsInit = async function () {
     }
 };
 
-/* 분류 버튼은 받은 목록에 있는 분류로 만든다. 목록은 manifest 에서 오고 (깊이 추정은 있고 OBB 는 없다) 매니페스트가
-   없으면 내장 목록이라, 고정 버튼은 있는 model 을 못 고르거나 빈 분류를 보여줬다 (release audit S-16). */
+/* Build the category buttons from the categories in the received list. The list comes from the manifest (or the
+   built-in list when there is none), so fixed buttons could miss present models or show empty categories. */
 function _renderModelFilters(models) {
     var bar = DXStream.$('models-filter-bar');
     if (!bar) return;
@@ -78,7 +78,7 @@ DXStream.filterModels = function (cat, btn) {
     var bar = DXStream.$('models-filter-bar');
     if (bar) {
         bar.querySelectorAll('.btn').forEach(function (b) { b.classList.remove('active'); });
-        // onclick 은 버튼을 넘기지 않는다 — 분류로 찾아야 첫 클릭 뒤에도 고른 버튼이 강조된다 (release audit S-16).
+        // onclick does not pass the button — look it up by category so the chosen button stays highlighted.
         btn = btn || bar.querySelector('[data-cat="' + cat + '"]');
         if (btn) btn.classList.add('active');
     }
@@ -90,14 +90,14 @@ DXStream.filterModels = function (cat, btn) {
             return m.category === cat;
         });
     }
-    // 검색어는 지우지 않고 새 분류에 다시 적용한다 (S-16).
+    // Keep the search text and reapply it to the new category.
     var search = DXStream.$('models-search');
     if (search && search.value && search.oninput) search.oninput.call(search);
     else _renderModelCards(DXStream._filteredModels);
 };
 
-/* 설명은 고른 언어로 (서버는 ko · en 만 준다 — 다른 언어는 en), 분류는 번역한 이름으로. 예전에는 ko · en <span> 만 있어
-   ja · zh · es 에서는 설명이 비었고, 분류는 "object detection" 같은 slug 였다 (release audit S-10). */
+/* Description in the chosen language (the server sends only ko · en; other languages get en), and the category
+   as a translated name rather than its slug. */
 function _modelDesc(m) {
     var lang = (window.DXI18n && DXI18n.lang) || 'en';
     if (m['description_' + lang]) return m['description_' + lang];
@@ -154,7 +154,7 @@ DXStream.loadModelMetadata = function(modelFile) {
     DXStream.api('/api/models/' + encodeURIComponent(modelFile) + '/metadata')
         .then(function(data) {
             if (!data || data.error) {
-                /* 서버의 오류 코드 ('not_found') 를 그대로 보이지 않는다 — 모델 파일이 없을 때가 대부분이다 */
+                /* Do not show the server's raw error code ('not_found') — it almost always means the model file is missing */
                 var msg = (data && (data.error_code === 'not_found' || data.status === 404))
                     ? T('Download this model to see its metadata.')
                     : _srvMsg((data && data.error) || '');
@@ -175,9 +175,8 @@ DXStream.loadModelMetadata = function(modelFile) {
 
 function _srvMsg(m) { return (typeof window.translateServerError === 'function') ? window.translateServerError(m) : m; }
 
-// One download path for the card button and the detail dialog. It used to (card) poll the latest
-// log of ANY step, never report a failed download, and keep a disabled spinner forever when the
-// server said another process was running; the dialog started a download and showed nothing more.
+// One download path for the card button and the detail dialog: it polls this download's own log,
+// reports a failed download, and restores the button when the server says another process is running.
 function _downloadModelFile(file, btn) {
     function restore() {
         if (!btn) return;
@@ -250,7 +249,7 @@ DXStream.showModelDetail = function (name) {
     var tabs = document.getElementById('model-detail-tabs');
     if (tabs) tabs.dataset.modelFile = model.file || '';
 
-    // 탭 초기화: detail 탭으로 리셋
+    // Reset tabs to the detail tab
     document.querySelectorAll('.modal-tab').forEach(function(t) { t.classList.remove('active'); });
     var detailTab = document.querySelector('.modal-tab[data-tab="detail"]');
     if (detailTab) detailTab.classList.add('active');

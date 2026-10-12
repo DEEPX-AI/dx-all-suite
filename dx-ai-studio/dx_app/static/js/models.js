@@ -81,7 +81,7 @@ function filterModels(){
       +'<td>'+modes.join(' ')+'</td>'
       +'<td>'+(meta.join(' ')||'\u2014')+'</td>'
       +'<td class="m-file">'+fileInfo+'</td>'
-      /* 버튼 줄은 칸 안의 div — td 자체를 flex 로 두면 표 칸이 아니게 되어 두 줄 행에서 칸 높이와 경계선이 어긋났다 */
+      /* The button row is a div inside the cell: a flex td stops being a table cell, and two-line rows misalign cell heights and borders */
       +'<td class="m-actions-cell"><div class="m-actions"><button class="m-action-btn m-action-detail" onclick="event.stopPropagation();showDetail(\''+esc(m.name)+'\')" title="'+esc(T('Details'))+'">' + DXIcon('search') + ' '+T('Detail')+'</button>'
       +(_onnxGraphArg(m.model_file)&&m.model_exists?'<button class="m-action-btn" onclick="event.stopPropagation();openModelGraph(\''+esc(m.model_file)+'\')" title="'+esc(T('View Graph'))+'">' + DXIcon('dashboard') + ' '+T('Graph')+'</button>':'')
       +(m.dxnn_url?'<button class="m-action-btn m-action-dl" data-name="'+esc(m.mz_name||m.name)+'" data-dxnn="'+esc(m.dxnn_url)+'" data-json="'+esc(m.json_url||'')+'" onclick="event.stopPropagation();mzQuickDownload(this)" title="'+(m.model_exists?T('Re-download the Q-Lite .dxnn from ModelZoo'):T('Download the Q-Lite .dxnn from ModelZoo'))+'">' + DXIcon('download') + ' '+(m.model_exists?T('Re-download'):T('Download'))+'</button>':'')

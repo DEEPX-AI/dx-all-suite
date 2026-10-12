@@ -1,22 +1,21 @@
-/* ─── intro · App 장면 — 빛의 선이 지나간 자리가 분할된다 ──────────────────────
-   spec: docs/superpowers/specs/2026-09-30-intro-app-compiler-scenes-design.md
+/* ─── intro · App scene — a line of light leaves segmentation behind ─────────
 
-   실제 주행 영상의 첫 frame. 가는 빛의 선이 위에서 아래로 훑고, 지나간 자리가 DX-M1 이 낸 실제
-   segmentation 으로 바뀐다. 다 바뀌면 그대로 재생된다 — mask 가 달리는 차를 따라간다 (video file).
-   그림과 clip 은 scripts/intro/bake_app.py 가 굽는다.
+   The first frame of a real driving video. A thin line of light sweeps top to bottom, and what it
+   passes turns into the real segmentation DX-M1 produced. Once fully revealed it plays on — the mask
+   follows the moving cars (a video file). scripts/intro/bake_app.py bakes the images and the clip.
 
-   Stream 이 "밖으로" (pull-back) 였으니 여기는 "가로지르기", 카메라는 달리는 방향으로 아주 조금
-   다가간다. 무대 (.ist-stage) 와 가장자리 (.ist-shade) 는 Stream 과 같은 것을 쓴다.
+   Stream moves "out" (pull-back), so this one moves "across"; the camera creeps slightly forward in
+   the driving direction. The stage (.ist-stage) and edge shade (.ist-shade) are shared with Stream.
 
-   reveal 은 compositor 로만 한다: mask 층을 감싼 틀이 위에서 내려오고 (translateY -100% → 0) 안쪽은
-   반대로 움직여 (100% → 0) 그림은 제자리에 있다 — 틀의 아래 가장자리가 곧 빛의 선이다. clip-path 를
-   움직이면 매 frame 다시 칠한다. */
+   The reveal runs on the compositor only: the frame around the mask layer slides down (translateY
+   -100% → 0) while its inside moves the other way (100% → 0), so the image stays put — the frame's
+   bottom edge is the line of light. Animating clip-path would repaint every frame. */
 (function () {
   'use strict';
 
   var BASE = '/static/img/intro/app/';
   var REVEAL_AT = 300;
-  var PLAY_AT = 1450;     // reveal (1.1s) 이 끝난 뒤
+  var PLAY_AT = 1450;     // after the reveal (1.1 s) ends
 
   var _ready = false, _started = false, _root = null, _timers = [];
 
@@ -33,7 +32,7 @@
     });
   }
 
-  /* 그림 둘만 기다린다 — clip 은 재생할 때 준비돼 있으면 돌고, 아니면 정지 mask 그림으로 남는다. */
+  /* Wait for the two images only — the clip plays if ready by then, otherwise the still mask image stays. */
   function prepare() {
     if (_started) return;
     _started = true;
@@ -56,8 +55,8 @@
       '<div class="ist-shade"></div>';
     root.querySelector('.iap-photo').style.backgroundImage = 'url(' + BASE + 'first.webp)';
     root.querySelector('.iap-seg').style.backgroundImage = 'url(' + BASE + 'seg-first.webp)';
-    /* 영상은 첫 frame 이 실제로 화면에 나온 뒤에만 보인다 (is-playing). decode 가 실패하는 GPU 경로가
-       있었다 — 그때 멈춘 video 가 흰 · 검은 면으로 정지 mask 그림을 덮었다. 실패하면 계속 숨긴다. */
+    /* Show the video only once its first frame is really on screen (is-playing). On some GPU paths decode
+       fails, and a stalled video would cover the still mask image with a white or black box. On failure it stays hidden. */
     var video = root.querySelector('video');
     video.muted = true;
     function shown() { if (!video.error) root.classList.add('is-playing'); }
@@ -71,7 +70,7 @@
     return root;
   }
 
-  /* 박자 시작에 부른다. 준비가 안 됐으면 false — 박자는 prompt 만으로 간다. */
+  /* Called when the beat starts. Returns false if not ready — the beat then runs on the prompt alone. */
   function play(overlay, beatMs) {
     if (!_ready || !overlay) return false;
     stop();

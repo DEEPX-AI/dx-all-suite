@@ -9,11 +9,11 @@
   --border-accent:var(--accent);
   --accent:#2997ff;--accent-light:#4aa8ff;--accent-dim:rgba(41,151,255,.16);--accent-glow:rgba(41,151,255,.28);--accent-strong:#5e5ce6;
   --app-accent:#2997ff;
-  /* 글자용 강조색. --accent 는 채움 · 테두리에 맞춘 값이라 옅은 강조 배경 (accent-dim) 위 글자로는 AA (4.5:1) 에
-     못 미쳤다 (분류 배지 3.7:1, 보라 글자 2.75:1 — release audit 대비 점검). 채움은 그대로 두고 글자만 이것을 쓴다. */
+  /* Accent for text. --accent is tuned for fills and borders and falls below AA (4.5:1) as text on the pale
+     accent background (accent-dim). Fills keep --accent; text uses this. */
   --accent-ink:#6cb6ff;--accent-strong-ink:#9d9bf3;
-  /* 흰 글자를 올리는 채움 (Run · Send · 활성 칩). 어두운 테마의 --accent (#2997ff) 는 밝아 흰 글자가 3.0:1 이었다 —
-     채움만 한 단계 진한 파랑 (밝은 테마와 같은 #0071e3, 4.7:1). 글자 · 테두리용 --accent 는 그대로. */
+  /* Fill under white text (Run · Send · active chips). The dark theme's --accent (#2997ff) gives white text only
+     3.0:1, so fills use one step deeper blue (#0071e3, as in light, 4.7:1). Text and borders keep --accent. */
   --accent-fill:#0071e3;
   --gradient-accent:linear-gradient(135deg,#2997ff,#5e5ce6);
     --npu:#5e5ce6;
@@ -25,10 +25,8 @@
   --surface-active-shadow:0 0 12px var(--accent-dim),inset 0 -2px 0 var(--accent);--surface-hover-shadow:var(--shadow),var(--inset-highlight);
   --text-glow-accent:0 0 8px rgba(var(--accent-rgb),.18);
   --glass-border:rgba(255,255,255,.08);--glass-blur:saturate(1.8) blur(20px);
-  /* 모션. 값은 apple.com 의 computed style 에서 잰 것이다 — 지배 easing 은
-     cubic-bezier(.4,0,.6,1)(243건), 지속시간은 0.32s(263) · 0.24s(118) 순.
-     여기 있던 커브는 Material 것이었고, 이 토큰을 쓰는
-     84곳이 전부 그 커브로 움직이고 있었다. */
+  /* Motion, measured from apple.com computed styles: the dominant easing is
+     cubic-bezier(.4,0,.6,1); durations are mostly 0.32s and 0.24s. */
   --ease:cubic-bezier(.4,0,.6,1);
   --dur:.24s;
   --dur-lg:.32s;
@@ -57,8 +55,8 @@
   --op-pooling:#7c3aed;--op-elementwise:#d97706;--op-quantize:#ca8a04;--op-other:#6b7280;
 }
 
-/* <html lang> 은 shared/static/i18n.js · launcher-language.js 가 언어를 바꿀 때 갱신한다.
-   --font 는 같은 요소(:root)에서 계산되므로 --font-cjk 만 바꾸면 따라온다. */
+/* <html lang> is updated by shared/static/i18n.js and launcher-language.js when the language changes.
+   --font is computed on the same element (:root), so changing --font-cjk is enough. */
 :root:lang(ko){--font-cjk:'DX CJK KR','DX CJK SC'}
 :root:lang(ja){--font-cjk:'DX CJK JP','DX CJK SC'}
 :root:lang(zh-CN){--font-cjk:'DX CJK SC'}

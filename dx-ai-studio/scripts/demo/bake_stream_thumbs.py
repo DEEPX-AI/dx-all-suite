@@ -1,17 +1,17 @@
-"""Stream Demo Launcher 의 card · 무대 미리보기 이미지를 굽는다 — 실제 결과 이미지 (spec 2026-10-01 demo stage 결정 3).
+"""Bake the Stream Demo Launcher card and stage preview images from real inference results.
 
-demo 마다 그 demo 의 model 을 DEEPX 공식 sample 영상의 한 frame 에 DX-M1 에서 돌린다. 추론 · 그리기는 dx_app
-Python 예제 (IFactory · SyncRunner) 를 그대로 쓴다 — 예제가 `DXAPP_SAVE_IMAGE` 에 결과 이미지를 쓴다.
+Each demo runs its model on DX-M1 over one frame of an official DEEPX sample video. Inference and drawing come
+straight from the dx_app Python examples (IFactory, SyncRunner); each example writes its result to `DXAPP_SAVE_IMAGE`.
 
     dx-runtime/venv-dx-runtime/bin/python3 scripts/demo/bake_stream_thumbs.py --videos <videos> --models <models>
 
-소재 (repo 에 넣지 않는다):
-    videos: blackbox-city-road.mp4 · dance-group.mov — dx_stream demo 가 쓰는 공식 묶음
+Inputs (not kept in the repo):
+    videos: blackbox-city-road.mp4 · dance-group.mov, from the official bundle the dx_stream demos use
             curl -s https://sdk.deepx.ai/res/video/sample_videos.tar.gz | tar -xz -C <videos> \\
                 --wildcards '*blackbox-city-road.mp4' '*dance-group.mov'
-    models: 공식 Model Zoo 의 .dxnn 을 dx_stream demo 의 이름으로 (MODEL_ZOO 표)
+    models: official Model Zoo .dxnn files, saved under the dx_stream demo names (MODEL_ZOO table)
 
-산출물: dx_stream/static/img/demo/<id>.webp (640×360, ≤ 60 KB) + SOURCE.md
+Output: dx_stream/static/img/demo/<id>.webp (640×360, ≤ 60 KB) + SOURCE.md
 """
 from __future__ import annotations
 
@@ -33,7 +33,7 @@ MAX_BYTES = 60 * 1024
 
 ROAD, DANCE = "blackbox-city-road.mp4", "dance-group.mov"
 
-# dx_stream demo 의 model 이름 → 공식 Model Zoo 파일 (2_4_0)
+# dx_stream demo model name → official Model Zoo file (2_4_0)
 MODEL_ZOO = {
     "yolo26n.dxnn": "q-lite-dxnn/2_4_0/yolo26-n_640x640.dxnn",
     "YoloV5S_PPU.dxnn": "q-lite-dxnn/2_4_0/yolov5-s_640x640_ppu.dxnn",
@@ -46,9 +46,9 @@ MODEL_ZOO = {
     "SCRFD500M.dxnn": "q-lite-dxnn/2_4_0/scrfd-500m_640x640.dxnn",
 }
 
-# demo id → 그 demo 의 model · 돌릴 dx_app 예제 · 소재 frame. `steps` 는 차례로 겹쳐 그린다 (2차 추론).
-# `grid` 는 multi-stream 처럼 네 frame 을 2×2 로. 표는 dx_stream/core/demos.py 의 DEMOS 와 같아야 한다
-# (tests/dx_stream/test_demo_thumbs.py).
+# demo id → its model, the dx_app example to run, and the source frame. `steps` are drawn on top of each other in
+# order (secondary inference). `grid` tiles four frames 2×2, like multi-stream. The table must match DEMOS in
+# dx_stream/core/demos.py (tests/dx_stream/test_demo_thumbs.py).
 PLAN = {
     0: {"model": "yolo26n.dxnn", "steps": [("object_detection/yolo26n", "yolo26n.dxnn")], "video": ROAD, "at": [6.0]},
     1: {"model": "YoloV5S_PPU.dxnn", "steps": [("ppu/yolov5s_ppu", "YoloV5S_PPU.dxnn")], "video": ROAD, "at": [6.0]},
@@ -86,12 +86,12 @@ def grab(video: Path, at: float, out: Path) -> None:
 
 
 def example_dir(example: str, model: str) -> Path:
-    """PLAN 의 예제는 main 의 모양 (<task>/<model>). dx_app 이 per-model layout (teammate 8d0b748 이후) 이면
-    그 model 의 Model Zoo stem 폴더 (<task>/<family>/<stem>) 를 쓴다 (shared/dx_app_layout.py 와 같은 모양)."""
+    """PLAN examples use the <task>/<model> layout. When dx_app uses the per-model layout, use the model's
+    Model Zoo stem folder (<task>/<family>/<stem>) instead, the same shape as shared/dx_app_layout.py."""
     legacy = EXAMPLES / example
     if legacy.is_dir():
         return legacy
-    # runtime venv 에서 돈다 (studio 의 shared 가 없다) — 폴더 찾기는 glob 하나로 충분하다
+    # Runs in the runtime venv, where the studio's shared package is missing; one glob finds the folder.
     stem = MODEL_ZOO.get(model, model).rsplit("/", 1)[-1].removesuffix(".dxnn")
     hits = sorted(d for d in EXAMPLES.glob(f"*/*/{stem}") if (d / f"{stem}_sync.py").is_file())
     if not hits:

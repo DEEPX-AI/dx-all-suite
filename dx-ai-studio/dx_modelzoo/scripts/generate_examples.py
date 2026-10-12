@@ -1,20 +1,20 @@
 #!/usr/bin/env python3
-"""Model Zoo card · 상세 화면의 추론 결과 이미지를 per-model layout 의 dx_app 예제로 만든다.
+"""Produce the inference result images for Model Zoo cards and detail pages from per-model dx_app examples.
 
-generate_thumbnails.py 는 legacy dx_app 서버에 /api/run 을 보낸다 — 예제가 없는 model 은 남의 binary 를 빌려
-돌려 (super resolution model 에 분류 결과 "jackfruit 75%") 틀린 그림이 나왔고, publish page 에만 있는 새 model
-(spec 2026-10-01 dx_app per-model layout 결정 8) 은 예제도 model 파일도 없어 그림이 없었다.
+generate_thumbnails.py posts /api/run to the legacy dx_app server: a model without its own example runs someone
+else's binary (a classification result "jackfruit 75%" on a super-resolution model), and models that exist only
+on the publish page have neither an example nor a model file, so they get no image at all.
 
-여기서는 model 마다:
-  1. 그 model 의 artifact 파일 이름 (= dx_app per-model 예제의 stem) 으로 예제를 찾고
-  2. .dxnn 을 받아 (끝나면 지운다 — 디스크가 작다) dx_engine 이 읽은 실제 입력 shape 을 적고
-  3. studio 의 run_inference 로 (그 예제 자신의 전처리 · 후처리 · 기본 입력) 한 장 돌려
-  4. thumbnails/<id>.jpg · examples/<id>_result.jpg (+ before/after · overlay 는 _original) 로 저장한다.
-실제 입력 shape 이 catalog 의 값과 다르면 model_enrichment.json 의 input_resolution 을 고친다 (sync 가 그것을 쓴다).
+Here, for each model:
+  1. find the example by the model's artifact file name (= the stem of the per-model dx_app example)
+  2. download the .dxnn (deleted afterwards — the disk is small) and record the real input shape read by dx_engine
+  3. run one image through studio's run_inference (the example's own pre/postprocessing and default input)
+  4. save thumbnails/<id>.jpg and examples/<id>_result.jpg (+ _original for before/after and overlay).
+If the real input shape differs from the catalog, input_resolution in model_enrichment.json is fixed (sync uses it).
 
     DX_APP_ROOT=<per-model dx_app> python -m dx_modelzoo.scripts.generate_examples [--missing] [--ids a,b] [--dry-run]
 
-DX-RT 가 그 .dxnn container 를 읽을 수 있어야 한다 (2_5_0 = v9 → DX-RT 3.5.0).
+DX-RT must be able to read the .dxnn container (2_5_0 = v9 → DX-RT 3.5.0).
 """
 from __future__ import annotations
 
@@ -57,7 +57,7 @@ def has_own_images(model_id: str) -> bool:
 
 
 def plan(models: list, app_root, ids=None, missing=False) -> list:
-    """(model, example) 짝. 예제가 없거나 받을 .dxnn 이 없으면 이유와 함께."""
+    """(model, example) pair — or a reason when there is no example or no .dxnn to download."""
     by_stem = {e.name: e for e in layout.examples(app_root) if e.py_dir is not None or e.cpp_dir is not None}
     out = []
     for m in models:
@@ -83,7 +83,7 @@ def _download(url: str, dest: Path) -> None:
 
 
 def _input_shape(model_path: Path):
-    """dx_engine 이 읽은 입력 tensor shape (runtime venv 에서)."""
+    """Input tensor shape as read by dx_engine (in the runtime venv)."""
     from shared.runtime import runtime_python
     code = ("import json,sys;from dx_engine import InferenceEngine;"
             "print(json.dumps(InferenceEngine(sys.argv[1]).get_input_tensors_info()[0]['shape']))")
@@ -95,7 +95,7 @@ def _input_shape(model_path: Path):
 
 
 def _resolution(shape) -> str:
-    """NHWC [1,H,W,C] → 'HxWxC' (dx_app 의 파일 이름 · bisenet 등 기존 값과 같은 순서)."""
+    """NHWC [1,H,W,C] → 'HxWxC' (the same order as dx_app file names and existing values such as bisenet)."""
     if not shape or len(shape) < 3:
         return ""
     dims = [int(x) for x in shape[1:]]
@@ -105,7 +105,7 @@ def _resolution(shape) -> str:
 
 
 def _same_dims(a: str, b: str) -> bool:
-    """'224x224x3' 와 '416x416x3' 는 다르고, 'HxW' · 'WxH' 의 순서만 다른 것은 같다."""
+    """'224x224x3' and '416x416x3' differ; values that differ only in HxW vs WxH order are the same."""
     pa, pb = [p for p in a.split("x") if p], [p for p in b.split("x") if p]
     return sorted(pa[:2]) == sorted(pb[:2]) if len(pa) >= 2 and len(pb) >= 2 else False
 
@@ -141,7 +141,7 @@ def run_one(item: dict, app_root: Path, keep: bool, enrichment: dict) -> str:
         res = _resolution(_input_shape(dest))
         if res and not _same_dims(res, item["resolution"]):
             enrichment.setdefault(item["id"], {})["input_resolution"] = res
-            _fix_curated_resolution(item["id"], res)   # curated catalog 이 merge 에서 이기므로 거기도
+            _fix_curated_resolution(item["id"], res)   # the curated catalog wins the merge, so fix it there too
         lang = "python" if ex.py_dir is not None else "cpp"
         r = run_inference(item["stem"], ex.task, f"assets/models/{item['stem']}.dxnn", lang=lang,
                           variant="sync", input_type="image")
@@ -191,7 +191,7 @@ def main(argv=None) -> int:
             continue
         try:
             status = run_one(item, app_root, args.keep_models, enrichment)
-        except Exception as e:  # 한 model 의 실패가 나머지를 막지 않게
+        except Exception as e:  # one model's failure must not block the rest
             status = f"failed: {e}"
         ok = status.startswith("ok")
         done += ok

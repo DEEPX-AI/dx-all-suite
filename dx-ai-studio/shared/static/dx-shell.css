@@ -1,10 +1,9 @@
 /* ═══════════════════════════════════════════════════════════
-   DX AI Studio — 통합 App Shell (Option A: 레일 + 상단 탭)
+   DX AI Studio — App Shell (rail + top tabs)
 
-   골격:  56px 레일 │ 56px 헤더 / 42px 탭 행 / 본문
-   콘텐츠 폭 1384px @1440 (기존 사이드바 240px 대비 +184px).
-   좌측 nav 컬럼은 없다 — 모듈 내 페이지는 탭 행으로 간다.
-   색은 전부 semantic 토큰. 리터럴 금지(테마가 그 자리에서 깨진다).
+   Layout:  56px rail │ 56px header / 42px tab row / body
+   No left nav column — pages inside a module go in the tab row.
+   Colours are semantic tokens only; a literal breaks under the other theme.
    ═══════════════════════════════════════════════════════════ */
 :root{
   --dx-rail-w:56px;
@@ -12,9 +11,8 @@
   --dx-main-px:28px;
   --dx-main-py:24px;
   --dx-shell-elevation:0 4px 20px rgba(0,0,0,.25);
-  /* 헤더 치수/색은 module-chrome.css의 --dx-module-header-* 를 그대로 쓴다.
-     이관 중에는 shell 모듈과 미이관 모듈의 헤더가 같은 높이여야 하고,
-     tests/test_visual_header_contract.py 가 그 계약을 강제한다. */
+  /* Header size and colour come from module-chrome.css --dx-module-header-*, so every
+     module's header has the same height. Contract: tests/test_visual_header_contract.py */
 }
 
 .dx-shell{
@@ -22,7 +20,7 @@
   background:var(--surface-page);color:var(--text-primary);
 }
 
-/* ── 모듈 레일 ───────────────────────────────────────────── */
+/* ── Module rail ───────────────────────────────────────────── */
 .dx-shell-rail{
   width:56px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;
   background:var(--surface-panel);border-right:1px solid var(--border-subtle);
@@ -51,14 +49,14 @@
 }
 .dx-rail-btn:hover{color:var(--text-primary);background:var(--control-bg);text-decoration:none}
 .dx-rail-btn[aria-current="page"]{color:var(--accent);background:var(--accent-dim)}
-/* 활성 표시를 색에만 의존하지 않게 좌측 막대를 함께 둔다. */
+/* A left bar marks the active item, so it does not rely on colour alone. */
 .dx-rail-btn[aria-current="page"]::before{
   content:"";position:absolute;left:-9px;top:9px;width:3px;height:20px;
   border-radius:0 3px 3px 0;background:var(--accent);
 }
 .dx-rail-btn svg{width:20px;height:20px;display:block}
 
-/* ── 본문 컬럼 ───────────────────────────────────────────── */
+/* ── Body column ───────────────────────────────────────────── */
 .dx-shell-body{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
 
 .dx-shell-header{
@@ -69,25 +67,20 @@
   border-bottom: 1px solid var(--dx-module-header-border);
   box-shadow: var(--dx-module-header-elevation);
   backdrop-filter: var(--glass-blur);-webkit-backdrop-filter: var(--glass-blur);
-  /* 공유 언어 드롭다운이 페이지 카드 위, 모달 아래에 오도록 고정한다.
-     position이 없으면 z-index가 무시되고 드롭다운이 카드 밑으로 들어간다. */
+  /* Keeps the shared language dropdown above page cards and below modals.
+     Without position, z-index is ignored and the dropdown slips under the cards. */
   position:relative;z-index:250;overflow:visible;
 }
 .dx-shell-header-left{
   display:flex;align-items:center;gap: var(--dx-module-header-gap);min-width:0;
-  /* 좁아지면 **왼쪽이 양보한다.** 예전에는 양쪽 다 flex-shrink:0 이라 헤더가
-     줄지 않고 넘쳤고, 부모의 overflow-x:hidden 이 그것을 잘라내 오른쪽 툴바의
-     테마·설정 버튼이 화면 밖으로 사라졌다. 문서 가로 넘침은 0 이므로 줌 감사는
-     이것을 보지 못한다. 실측: 512px 폭에서 헤더 505/456, 툴바 right=561.
-     왼쪽은 모듈명과 경로라 말줄임으로 줄어도 되지만, 오른쪽은 누를 수 있어야
-     하는 컨트롤이다.
-     계약: tests/test_toolbar_reachable_when_narrow.py */
+  /* When narrow, **the left side gives way.** It holds the module name and path, which
+     can ellipsize; the right side holds controls that must stay reachable.
+     Contract: tests/test_toolbar_reachable_when_narrow.py */
   flex-shrink:1;overflow:hidden;
 }
-/* .toolbar 는 같은 요소의 두 번째 이름이다 — DXToolbar 가 container 로 그 이름을
-   찾아 여기에 붙는다. 네 모듈이 각자 .toolbar 를 정의하며 gap 을 8px/16px 로
-   달리 잡고 있었고, 이제 셸이 한 번만 정한다.
-   (CSS 주석 안에 중괄호를 쓰지 않는다 — 계약 테스트의 rule 파서가 깨진다.) */
+/* .toolbar is a second name for the same element: DXToolbar finds its container by that
+   name and attaches here, so the shell sets the toolbar gap once.
+   (No curly braces inside CSS comments: the contract tests' rule parser breaks on them.) */
 .dx-shell-header-right,
 .toolbar{
   display:flex;align-items:center;gap:var(--sp-4);flex-shrink:0;
@@ -103,10 +96,10 @@
   overflow:hidden;text-overflow:ellipsis;
 }
 
-/* ── 페이지 탭 행 ─────────────────────────────────────────
-   라벨은 절대 자르지 않는다. 번역이 길어 넘치는 분량은
-   dx-tabs.js가 우측 +N 드롭다운으로 옮긴다.
-   (Benchmark 9자 -> es Evaluación de rendimiento 25자) ───── */
+/* ── Page tab row ─────────────────────────────────────────
+   Labels are never truncated. Tabs that do not fit (long translations)
+   move into the +N dropdown on the right (dx-tabs.js).
+   (Benchmark is 9 chars -> es Evaluación de rendimiento is 25) ───── */
 .dx-shell-tabs{
   height:var(--dx-tabs-h);min-height:var(--dx-tabs-h);flex-shrink:0;
   display:flex;align-items:stretch;gap:2px;padding:0 var(--dx-module-header-px);position:relative;
@@ -133,7 +126,7 @@
   font-family:var(--mono);font-size:11.5px;color:var(--text-muted);
   background:none;border:none;cursor:pointer;
 }
-.dx-tab-overflow[hidden]{display:none}   /* display:flex 가 hidden 을 이겨 '+0 ···' 이 늘 보였다 (release audit A-14) */
+.dx-tab-overflow[hidden]{display:none}   /* display:flex would beat the hidden attribute and always show '+0 ···' */
 .dx-tab-overflow:hover{color:var(--text-primary)}
 .dx-tab-overflow svg{width:16px;height:16px;display:block}
 .dx-tab-menu{
@@ -146,12 +139,12 @@
   width:100%;padding:8px 16px;border-bottom:none;justify-content:flex-start;
 }
 
-/* ── 본문 / 상태 바 ──────────────────────────────────────── */
+/* ── Body / status bar ─────────────────────────────────────── */
 .dx-shell-main{
   flex:1;overflow-y:auto;overflow-x:auto;min-width:0;
   padding:var(--dx-main-py) var(--dx-main-px);scroll-behavior:smooth;
 }
-/* 후속 B안에서 전역 상태 바로 확장될 자리. 지금은 opt-in. */
+/* Optional status bar, off unless a module turns it on. */
 .dx-shell-status{
   flex-shrink:0;display:none;height:28px;align-items:center;gap:var(--sp-4);padding:0 24px;
   font-size:var(--fs-xs);color:var(--text-muted);
@@ -166,8 +159,8 @@
   .dx-tab-menu{right:var(--sp-4)}
 }
 
-/* 폰 폭: 머리글에는 모듈 이름과 오른쪽 단추만 — 부제 · 경로 · 상태 알약까지 넣으면 이름이 몇 글자로 줄었다
-   (release audit H-1). 페이지 이름은 바로 아래 탭 행이 이미 보인다. */
+/* Phone width: the header keeps only the module name and the right-hand buttons, or the name shrinks to a few
+   letters. The page name is already visible in the tab row just below. */
 @media (max-width:600px){
   .dx-shell-header .dx-brand-subtitle,
   .dx-shell-header .dx-shell-sep,
@@ -177,13 +170,10 @@
   .dx-shell-header .toolbar{gap:var(--sp-2)}
 }
 
-/* ═══ 페이지 전환 ═══
-   탭 행과 짝을 이루는 계약: 활성 페이지만 보인다. dx_app / dx_stream 이 같은
-   정의를 각자 갖고 있었고, dx_benchmark 는 같은 이름을 정반대 뜻으로
-   (max-width 를 가진 콘텐츠 컨테이너) 쓰고 있었다 — 두 규칙이 만나면
-   benchmark 화면이 통째로 사라진다. benchmark 쪽은 .benchmark-workspace 로 옮겼다. */
+/* ═══ Page switching ═══
+   Pairs with the tab row: only the active page is shown. */
 .page{display:none;animation:dx-fade-in .25s ease;min-width:0;max-width:100%}
 .page.active{display:block}
-/* 오른쪽 아래의 채팅 단추 (56px, 24px 띄움) 가 페이지 맨 아래의 단추를 덮지 않도록, 끝까지 내리면 그만큼 비운다
-   (release audit L-24). 화면 높이를 꽉 채우는 페이지에는 쓰지 않는다 — 그런 페이지는 .page 가 아니다. */
+/* Leave room at the bottom so the chat button (56px, 24px inset, bottom right) does not cover the page's last
+   buttons. Not for full-height screens, which are not .page. */
 .dx-shell-main > .page{padding-bottom:calc(var(--sp-7) + var(--sp-5))}

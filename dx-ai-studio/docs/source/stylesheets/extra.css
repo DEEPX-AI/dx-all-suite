@@ -24,10 +24,10 @@ a {
 }
 
 /* ---------------------------------------------------- */
-/* PDF 변환(WeasyPrint) 시 레이아웃 깨짐 및 짤림 방지 종합 세트 */
+/* Keep the layout intact and uncut in the PDF export (WeasyPrint) */
 /* ---------------------------------------------------- */
 @media print {
-    /* 1. 코드 블록 페이지 밀림 방지 및 줄바꿈 설정 */
+    /* 1. Wrap code blocks instead of pushing them off the page */
     .md-typeset pre,
     .md-typeset pre > code {
         overflow: visible !important;
@@ -40,7 +40,7 @@ a {
         break-inside: auto !important;
     }
 
-    /* 2. Nested 구조 챕터 블록 렌더링 중단 방지 */
+    /* 2. Keep nested chapter blocks from stopping the render */
     article, section, .md-content, .md-grid, .md-main__inner, .md-content__inner {
         page-break-inside: auto !important;
         break-inside: auto !important;
@@ -50,7 +50,7 @@ a {
         max-height: none !important;
     }
 
-    /* 3. [핵심] 표(Table) 가로 스크롤 해제, 텍스트 줄바꿈 및 아주 연한 격자선 강제 */
+    /* 3. Tables: no horizontal scroll, wrapped text, faint grid lines */
     .md-typeset__scrollwrap,
     .md-typeset__table {
         overflow: visible !important;
@@ -64,7 +64,7 @@ a {
         page-break-inside: auto !important; 
         break-inside: auto !important;
         table-layout: fixed !important; 
-        border-collapse: collapse !important; /* 이중 선 방지 */
+        border-collapse: collapse !important; /* no double borders */
     }
 
     th, td {
@@ -73,13 +73,13 @@ a {
         white-space: normal !important;
         overflow-wrap: break-word !important;
         
-        /* 👇 연하고 얇은 회색 가로/세로 격자선 추가 */
+        /* thin, light gray grid lines */
         border: 0.5px solid #e2e8f0 !important; 
         padding: 8px 4px !important;
     }
 
     th {
-        /* 👇 제목 행 구분을 위한 은은한 배경색과 두꺼운 하단 선 */
+        /* subtle background and heavier bottom line set the header row apart */
         background-color: #f8fafc !important;
         font-weight: bold !important;
         border-bottom: 1px solid #cbd5e1 !important; 
@@ -90,7 +90,7 @@ a {
         break-inside: auto !important;
     }
 
-    /* 4. 큰 이미지가 페이지를 뚫고 나가 문서가 잘리는 현상 방어 */
+    /* 4. Keep large images inside the page so the document is not cut off */
     img, svg {
         max-width: 100% !important;
         height: auto !important;

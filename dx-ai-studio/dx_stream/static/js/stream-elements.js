@@ -1,6 +1,6 @@
 /**
- * DX Stream — GStreamer 요소 레퍼런스
- * 카드 기반 렌더링 + 검색/필터
+ * DX Stream — GStreamer element reference
+ * Card-based rendering + search/filter
  */
 DXStream.elementsInit = async function () {
     const grid = DXStream.$('elements-grid');
@@ -21,8 +21,8 @@ DXStream.elementsInit = async function () {
     _applyElementFilter();
 };
 
-// Category and search narrow TOGETHER — each used to throw the other away (choosing a category
-// showed the whole category whatever was typed; typing searched every category).
+// Category and search narrow TOGETHER — choosing a category keeps the typed search, and typing
+// searches only the chosen category.
 DXStream._elemCat = DXStream._elemCat || 'all';
 function _applyElementFilter() {
     var box = DXStream.$('elements-search');
@@ -72,8 +72,8 @@ function _escElementHtml(value) {
     });
 }
 
-/* 요소 설명은 ko · en 두 벌만 있다. 예전에는 두 <span> 을 그려 CSS 로 하나만 보였는데, ja · zh · es 에서는 둘 다
-   숨겨져 설명이 비었다 (release audit S-20). 고른 언어가 ko 면 ko, 아니면 en 글자 하나. */
+/* Element descriptions exist only in ko and en. Return one string: ko when the chosen language is ko,
+   otherwise en (so ja · zh · es still get a description). */
 function _bilingual(ko, en) {
     var lang = (window.DXI18n && DXI18n.lang) || DXStream.S.lang || 'en';
     if (lang === 'ko') return ko || en || '';
@@ -97,7 +97,7 @@ function _renderElementExtra(el) {
             '</h4><ul class="element-feature-list">';
         for (var i = 0; i < el.key_features.length; i++) {
             var feature = el.key_features[i] || {};
-            // the data carries all six languages; only ko / en were ever read
+            // the data carries all six languages; fall back to ko / en
             var lang = (window.DXI18n && DXI18n.lang) || DXStream.S.lang || 'en';
             html += '<li>' + _escElementHtml(feature[lang] || _bilingual(feature.ko, feature.en)) + '</li>';
         }

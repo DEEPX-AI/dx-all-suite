@@ -1,14 +1,14 @@
-"""SDK Library 목록을 dx-all-suite 의 md 에 맞춘다 (2026-10-01).
+"""Keep the SDK Library list in step with the md files in dx-all-suite.
 
-sdk-library-data.json 은 손으로 고른 목록 (drawer · section · 제목) 이다. 그 틀은 그대로 두고, 보여 줄 때:
+sdk-library-data.json is a hand-picked list (drawer, section, title). That structure stays; when serving it:
 
-- md 의 크기는 디스크에서 (손으로 적은 값은 175 개 중 125 개가 틀렸다)
-- 한 section 안의 같은 파일은 한 번만
-- 등록된 문서가 있는 ``docs`` 폴더에 새 md 가 생기면 그 section 에 저절로 (제목은 첫 ``#`` 줄) — 예전에는
-  JSON 을 고치기 전까지 보이지 않았다. agent 지시 파일 (CLAUDE · AGENTS · copilot) 은 문서가 아니다.
-- pymdownx snippet (``--8<-- "file"``) 을 펼친다 — dx_app 의 change log 가 그 한 줄이었다.
+- md sizes come from disk (hand-written sizes go stale)
+- a file appears only once per section
+- a new md in a ``docs`` folder that already has registered docs joins that section on its own (title from the
+  first ``#`` line). Agent instruction files (CLAUDE, AGENTS, copilot) are not docs.
+- pymdownx snippets (``--8<-- "file"``) are expanded — some docs, like dx_app's change log, are just that one line.
 
-계약: tests/launcher/test_sdk_library_live.py
+Contract: tests/launcher/test_sdk_library_live.py
 """
 from __future__ import annotations
 
@@ -66,7 +66,7 @@ def augment(data: dict, suite_root) -> dict:
                     continue
                 for md in sorted(folder.glob("*.md")):
                     rel = f"{d}/{md.name}"
-                    # 끊긴 symlink 은 문서가 아니다 (dx_stream docs 의 RELEASE_NOTES.md 는 '--8<-- …' 를 가리키는 깨진 link)
+                    # A broken symlink is not a doc (dx_stream's docs/RELEASE_NOTES.md is a dangling link)
                     if rel in registered or _NOT_DOCS.match(md.name) or not md.is_file():
                         continue
                     registered.add(rel)
@@ -81,8 +81,8 @@ def allowed_paths(data: dict) -> set:
 
 
 def expand_snippets(text: str, doc_rel: str, suite_root, depth: int = 0) -> str:
-    """``--8<-- "file"`` → 그 파일. pymdownx 는 snippet 을 mkdocs 의 base_path 에서 찾는다 — 여기서는 문서의
-    폴더부터 위로 올라가며 처음 있는 것 (suite 밖으로는 나가지 않는다)."""
+    """``--8<-- "file"`` → that file. pymdownx looks snippets up from mkdocs' base_path; here it is the first match
+    walking up from the doc's folder (never leaving the suite)."""
     suite_root = Path(suite_root).resolve()
     if depth > 4:
         return text

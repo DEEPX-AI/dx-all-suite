@@ -1,12 +1,12 @@
 /**
- * DX Stream Pipeline — API & 연결 검증 모듈
- * 서버 API 호출, 파이프라인 제어, 연결 규칙 검증, 팔레트 하이라이트
+ * DX Stream Pipeline — API & connection validation module
+ * Server API calls, pipeline control, connection-rule validation, palette highlighting
  */
 
 DXStream.pipelineInit = async function () {
     var resp = await DXStream.api('/api/pipeline/elements');
     if (resp.error) return;
-    // 새 API 형식: {categories: {...}, connection_rules: {...}, ...}
+    // API shape: {categories: {...}, connection_rules: {...}, ...}
     var cats = resp.categories || resp;  // backward compat
     DXStream._pipeState.elements = cats;
     DXStream._connectionRules = resp.connection_rules || {};
@@ -22,7 +22,7 @@ DXStream.pipelineInit = async function () {
         flat = cats;
     }
     DXStream._pipeState.elementFlat = flat;
-    // 모델/비디오/라이브러리 목록 로드 (속성 드롭다운용)
+    // Load the model/video/library lists for the property dropdowns
     DXStream._pipeAssets = null;
     DXStream.api('/api/pipeline/assets').then(function (a) {
         if (!a.error) DXStream._pipeAssets = a;
@@ -32,7 +32,7 @@ DXStream.pipelineInit = async function () {
     _bindPaletteDrag();
     _bindPaletteSearch();
     _hidePropertyPanel();
-    // localStorage 자동복원
+    // Restore the autosaved pipeline from localStorage
     try {
         var draft = localStorage.getItem('dx-pipeline-draft');
         if (draft) {
@@ -46,10 +46,10 @@ DXStream.pipelineInit = async function () {
     } catch(_) {}
     _updateElementCount();
     _updatePipelineButtons();
-    _pushHistory(); // 초기 상태 기록
+    _pushHistory(); // record the initial state
 };
 
-/* ── 팔레트 검색 — 이름 · 설명으로 거른다. 검색 칸은 있었고 튜토리얼도 가리켰지만 아무도 듣지 않았다. ── */
+/* ── Palette search — filters by name and description. ── */
 function _applyPaletteSearch() {
     var box = DXStream.$('palette-search');
     var q = ((box && box.value) || '').trim().toLowerCase();
@@ -71,7 +71,7 @@ function _bindPaletteSearch() {
     box.addEventListener('input', _applyPaletteSearch);
 }
 
-/* ── 언어 변경 시 캔버스/팔레트만 갱신 (이벤트 리스너 중복 방지) ── */
+/* ── On language change, refresh only the canvas and palette (avoids duplicate event listeners) ── */
 DXStream._pipelineRefreshLang = function () {
     if (DXStream._pipeState.elements) {
         _renderPalette(DXStream._pipeState.elements);
@@ -142,13 +142,13 @@ DXStream.pipelineValidate = async function () {
     var issues = [];
     var warnNodeIds = [];
 
-    // 1. client-side: source 존재 확인
+    // 1. client-side: a source exists
     var hasSource = st.nodes.some(function (n) { return n.category === 'source'; });
     if (!hasSource && st.nodes.length > 0) {
         issues.push(T('Pipeline has no source'));
     }
 
-    // 2. client-side: 고립 노드
+    // 2. client-side: isolated nodes
     st.nodes.forEach(function (n) {
         var connected = st.edges.some(function (ed) { return ed.from === n.id || ed.to === n.id; });
         if (!connected && st.nodes.length > 1) {
@@ -157,7 +157,7 @@ DXStream.pipelineValidate = async function () {
         }
     });
 
-    // 3. client-side: ELEMENT_OVERRIDES 검증 (min_outputs, min_inputs)
+    // 3. client-side: ELEMENT_OVERRIDES checks (min_outputs, min_inputs)
     var overrides = DXStream._elementOverrides || {};
     st.nodes.forEach(function (n) {
         var ov = overrides[n.type];
@@ -178,7 +178,7 @@ DXStream.pipelineValidate = async function () {
         }
     });
 
-    // 4. client-side: DxDeTile without DxTile 경고
+    // 4. client-side: warn on DxDeTile without DxTile
     var hasDeTile = st.nodes.some(function (n) { return n.type === 'DxDeTile'; });
     var hasTile = st.nodes.some(function (n) { return n.type === 'DxTile'; });
     if (hasDeTile && !hasTile) {
@@ -190,13 +190,13 @@ DXStream.pipelineValidate = async function () {
         });
     }
 
-    // client-side 결과 표시
+    // Show the client-side results
     if (issues.length > 0) {
         DXStream.toast(T('Pipeline has issues: ') + issues.length, 'warn');
         issues.forEach(function (msg) { DXStream.toast(msg, 'warn'); });
     }
 
-    // warn 노드 시각적 강조 (3초 후 해제)
+    // Highlight warned nodes (cleared after 3 s)
     if (warnNodeIds.length > 0) {
         st._validateWarnNodes = warnNodeIds;
         _refreshCanvas();
@@ -206,7 +206,7 @@ DXStream.pipelineValidate = async function () {
         }, 3000);
     }
 
-    // 4. server-side GStreamer 검증 (기존 로직 유지)
+    // 4. server-side GStreamer validation
     var resp = await DXStream.postJ('/api/pipeline/validate', {
         nodes: st.nodes,
         edges: st.edges,
@@ -290,7 +290,8 @@ DXStream.pipelineRun = async function () {
         }
         // Prefer the human-readable message (e.g. "Model not installed: … Download from
         // Setup") over the bare error code so a missing-asset run isn't a cryptic toast.
-        // 부분마다 번역한다 (shared/static/server-error-i18n.js) — 예전에는 모든 언어에서 영어 원문이 이어 붙었다 (S-7)
+        // Translate each part separately (shared/static/server-error-i18n.js) so other languages
+        // do not get English fragments appended.
         var _tr = function (t) { return (window.translateServerError && t) ? window.translateServerError(t) : t; };
         var parts = [resp.message || resp.error];
         String(resp.detail || '').split(' — ').forEach(function (d) { if (d) parts.push(d); });
@@ -300,11 +301,11 @@ DXStream.pipelineRun = async function () {
     }
     DXStream.toast(T('Pipeline started'), 'success');
 
-    // 파이프라인 상태 배지 즉시 갱신
+    // Update the pipeline status badge right away
     var badge = DXStream.$('pipeline-status');
     if (badge) { DXIcon.label(badge, 'play', T('Running')); badge.className = 'status-pill pill-running'; }
 
-    // MJPEG/WebRTC/fMP4 자동 연결 (output_mode에 따라)
+    // Connect MJPEG/WebRTC/fMP4 automatically, by output_mode
     if (resp.output_mode === 'mjpeg' || resp.output_mode === 'webrtc' || resp.output_mode === 'fmp4') {
         var videoSection = DXStream.$('pipeline-video-section');
         if (videoSection) {
@@ -371,7 +372,7 @@ function _updatePipelineButtons() {
     if (stopBtn) stopBtn.disabled = !DXStream._pipeRunning;
 }
 
-/* ── HTML onclick에서 호출하는 함수 alias/구현 ── */
+/* ── Functions and aliases called from HTML onclick ── */
 DXStream.runPipeline = function () { DXStream.pipelineRun(); };
 DXStream.stopPipeline = function () { DXStream.pipelineStop(); };
 
@@ -417,7 +418,7 @@ DXStream.loadPipelineFromServer = async function () {
     if (data.error) { DXStream.toast(data.error, 'error'); return; }
     DXStream._pipeState.nodes = data.nodes || [];
     DXStream._pipeState.edges = data.edges || [];
-    // _nextId 재계산 (node/edge ID 충돌 방지)
+    // Recompute _nextId so new node/edge ids do not collide
     var maxId = 0;
     DXStream._pipeState.nodes.forEach(function (n) {
         var num = parseInt((n.id || '').replace('n', '')) || 0;
@@ -494,7 +495,7 @@ DXStream.importPipeline = function () {
 };
 
 function _hasCycle(fromId, toId, edges) {
-    // toId → fromId에 도달 가능하면 순환
+    // If fromId is reachable from toId, the edge would make a cycle
     var visited = {};
     var queue = [toId];
     while (queue.length > 0) {
@@ -531,17 +532,17 @@ function _validateConnection(fromId, toId) {
     var fromOv = overrides[fromNode.type] || {};
     var toOv = overrides[toNode.type] || {};
 
-    // Step 1: 구조 검증
+    // Step 1: structural checks
     var hasOut = fromOv.has_output !== undefined ? fromOv.has_output : (fromRule.has_output !== false);
     if (!hasOut) return { result: 'block', reason: T('Output has no outgoing connections') };
     var hasIn = toOv.has_input !== undefined ? toOv.has_input : (toRule.has_input !== false);
     if (!hasIn) return { result: 'block', reason: T('Source cannot receive input') };
 
-    // Step 2: 카테고리 호환성
+    // Step 2: category compatibility
     var allowed = fromRule.allowed_next;
     if (allowed !== null && allowed !== undefined) {
         if (allowed.indexOf(toNode.category) === -1 && toNode.category !== 'utility') {
-            // 차단 전 의미론적 경고 확인 (inference→inference 등)
+            // Check semantic warnings before blocking (inference→inference etc.)
             var sWarnings = DXStream._semanticWarnings || [];
             for (var si = 0; si < sWarnings.length; si++) {
                 var sw = sWarnings[si];
@@ -554,7 +555,7 @@ function _validateConnection(fromId, toId) {
         }
     }
 
-    // Step 3: 자동 컨버터 (의미론적보다 먼저)
+    // Step 3: auto converter (before the semantic checks)
     var acRules = DXStream._autoConverterRules || [];
     for (var i = 0; i < acRules.length; i++) {
         var acr = acRules[i];
@@ -564,7 +565,7 @@ function _validateConnection(fromId, toId) {
         }
     }
 
-    // Step 4: 의미론적 경고
+    // Step 4: semantic warnings
     var sWarnings = DXStream._semanticWarnings || [];
     for (var j = 0; j < sWarnings.length; j++) {
         var sw = sWarnings[j];
@@ -640,7 +641,7 @@ function _highlightPalette(fromId) {
     var allowed = fromRule.allowed_next;
     _clearPaletteHighlight();
     if (allowed === null || allowed === undefined) {
-        // utility: 모든 카테고리 연결 가능
+        // utility: connects to every category
         document.querySelectorAll('.palette-item').forEach(function (el) {
             el.classList.add('connectable');
         });

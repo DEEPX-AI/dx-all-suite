@@ -1,9 +1,9 @@
-/* DX Agent Dev — 콘솔 스타일 (shared 토큰 재사용) */
+/* DX Agent Dev — console styles (reuses the shared tokens) */
 
-/* 상단 바 — 다른 모듈(monitor/benchmark)과 동일한 표준 chrome.
-   .top-bar는 shared로 추출되어 있지 않아 모듈마다 정의가 필요하다. */
-/* 통합 shell(Option A)에서는 .dx-shell-main 이 이미 남은 공간을 채운다.
-   구 position:fixed + inset 은 56px 모듈 레일 위를 덮었다. */
+/* Top bar — the same standard chrome as the other modules (monitor/benchmark).
+   .top-bar is not in shared, so each module defines it. */
+/* In the shared shell, .dx-shell-main already fills the remaining space;
+   position:fixed + inset would cover the 56px module rail. */
 .agent-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(min(100%, 560px), 880px) minmax(0, 1fr);
@@ -22,7 +22,7 @@
   overflow: visible;
 }
 
-/* 양옆 예제 패널 */
+/* Example panels on both sides */
 .examples-panel {
   overflow-y: auto;
   min-height: 0;
@@ -117,7 +117,7 @@
   flex-direction: column;
   gap: 12px;
 }
-/* 첫 화면의 빈 상자 — 여기에 무엇이 나오는지 알려 준다 (release audit G-2). 첫 turn 이 붙으면 :empty 가 풀린다. */
+/* The empty box on the first screen says what will appear here. :empty stops matching once the first turn arrives. */
 #console-output:empty::before {
   content: attr(data-empty-hint);
   margin: auto;
@@ -397,9 +397,9 @@
   white-space: pre-wrap;
 }
 
-/* 오른쪽은 채팅 단추 (56px) 자리 — 그 아래에 Send 가 숨었다 (release audit L-24) */
+/* The right side is reserved for the chat button (56px); Send would hide beneath it */
 #console-form { display: flex; gap: var(--sp-2); padding: var(--sp-3) calc(var(--sp-7) + var(--sp-5)) 0 0; flex-shrink: 0; position: relative; z-index: 5; }
-/* 폰 폭에서 오른쪽 72px 를 비우면 입력칸이 124px 로 줄었다 — 대신 아래를 비워 채팅 버튼을 피한다 (release audit G-1) */
+/* At phone width, reserving 72px on the right shrinks the input to 124px; leave room below for the chat button instead */
 @media (max-width: 600px) {
   #console-form { padding-right: 0; margin-bottom: calc(var(--sp-7) + var(--sp-3)); }
 }
@@ -464,7 +464,7 @@
   border-radius: 6px;
 }
 
-/* 에이전트/모델 툴바 — 콘솔 헤더 바로 아래 */
+/* Agent/model toolbar, right below the console header */
 #agent-controls[hidden] { display: none; }
 .agent-toolbar {
   display: flex;
@@ -607,7 +607,7 @@
 .model-quality-hint {
   font-size: var(--fs-sm);
   line-height: 1.45;
-  color: var(--status-warn);   /* --warning-light 는 밝은 테마의 베이지 위에서 1.16:1 이었다 (release audit G-3) */
+  color: var(--status-warn);   /* --warning-light gives only 1.16:1 on the light theme's beige */
   padding: var(--sp-1) var(--sp-2);
   border-radius: var(--radius);
   background: color-mix(in srgb, var(--status-warn) 10%, transparent);

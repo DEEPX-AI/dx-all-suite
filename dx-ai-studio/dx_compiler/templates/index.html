@@ -272,7 +272,7 @@
     <!-- Agentic Auto Compile -->
     <div class="agentic-compile" id="agentic-compile">
         <div class="agentic-title" data-i18n="Agentic Auto Compile">Agentic Auto Compile</div>
-        <!-- 컴파일할 모델 (full-width) -->
+        <!-- Model to compile (full-width) -->
         <div class="form-group agentic-model">
             <label for="agentic-model-input" data-i18n="Model to compile (file path or name/ID/URL)">Model to compile (file path or name/ID/URL)</label>
             <input type="text" id="agentic-model-input" data-i18n-placeholder="e.g. yolo11n  |  /path/model.onnx  |  https://...">
@@ -439,13 +439,13 @@
 </div>
 
 <script>
-/* 실패한 compile · resume 요청 → 번역된 오류 상자. 예전에는 '{"error": "model_path is outside the allowed folders"}'
-   를 그대로 결과 칸에 쓰거나 (compile), JSON 따옴표째 '요청 실패:' 뒤에 붙였다 (resume). release audit C-1. */
+/* A failed compile or resume request → a translated error box, not the raw JSON body
+   (e.g. '{"error": "model_path is outside the allowed folders"}'). */
 function _escErr(t) {
     return String(t).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; });
 }
-/* compile · re-quantization job 의 실패 (SSE error) → 번역 · escape 한 오류 상자. dxcom 의 문장
-   (예: 디스크 여유 8 GB 요구) 이 영어 원문 · HTML 로 그대로 들어갔다. */
+/* A failed compile or re-quantization job (SSE error) → a translated, escaped error box, so dxcom's
+   messages (e.g. the 8 GB free disk requirement) are never inserted as raw HTML. */
 function _compileJobError(data) {
     var msg = data && data.error;
     var shown = msg ? (window.translateServerError ? window.translateServerError(msg) : msg) : T('Unknown error');
@@ -454,7 +454,7 @@ function _compileJobError(data) {
 function _compileRequestError(r) {
     return r.text().then(function (body) {
         var msg = body;
-        try { var d = JSON.parse(body); msg = (d && (d.error || d.message)) || body; } catch (e) { /* HTML 그대로 */ }
+        try { var d = JSON.parse(body); msg = (d && (d.error || d.message)) || body; } catch (e) { /* not JSON: keep the body as is */ }
         if (typeof msg !== 'string') msg = JSON.stringify(msg);
         var shown = (window.translateServerError ? window.translateServerError(msg) : msg);
         return '<div class="result error"><p>' + DXIcon('x') + ' ' + T('Request failed:') + ' ' + _escErr(shown) + '</p></div>';
@@ -466,8 +466,8 @@ function _compileRequestError(r) {
 window.addEventListener('load', function() {
     fetch('/feature-check').then(function(r) { return r.json(); }).then(function(data) {
         if (window.ViewerPanel && ViewerPanel.applyCompilerCapabilities) ViewerPanel.applyCompilerCapabilities(data);
-        // 잠금은 setup_panel.js 한 곳에서 (SDK 없음 · 서버에서 컴파일 불가) — 여기서 버튼을 직접 만지면
-        // 둘 중 늦게 끝난 쪽이 이겨 버튼이 풀리거나 잠긴 채로 남았다.
+        // Locking lives only in setup_panel.js (no SDK · server cannot compile). Touching the button here
+        // as well would race: whichever finished last would win, leaving it wrongly locked or unlocked.
         if (window.setupPanel && setupPanel.setFeatureCompile) setupPanel.setFeatureCompile(!!(data && data.compile));
         if (!data || !data.compile) {
             const warn = document.getElementById('auto-detect-warning-wiz') || document.getElementById('auto-detect-warning');
@@ -566,8 +566,8 @@ document.getElementById('compile-form').addEventListener('submit', async functio
             // Start SSE progress tracking
             const container = resultEl.querySelector('.progress-container');
             if (!container) {
-                // 거절됐다 (허용 밖 경로 · 없는 파일 …). 예전에는 보내기 전에 그래프를 지워 그래프가 사라졌고,
-                // 메시지는 버튼 아래 보이지 않는 곳에 붙어 아무 일도 없는 것 같았다 (2026-10-11 audit).
+                // Rejected (disallowed path, missing file …). Keep the graph and scroll the message into view
+                // so the failure is visible.
                 resultEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
                 return;
             }
@@ -879,8 +879,7 @@ document.querySelectorAll('.dropzone').forEach(zone => {
 });
 
 // Auto-render the input model's graph in the left Viewer as soon as an .onnx is set
-// (upload / drop / type), so users don't have to click Compile first to see it. The graph
-// used to load ONLY on compile-submit (and deep-link), so "load ONNX → nothing shows".
+// (upload / drop / type), so users don't have to click Compile first to see it.
 function _maybeLoadViewerInput(targetId, path) {
     if (targetId !== 'model_path' || !path) return;
     if (!/\.onnx$/i.test(path.trim())) return;   // only ONNX graphs are parseable here
@@ -1166,7 +1165,7 @@ if (window.DXI18n && typeof DXI18n.onLangChange === 'function') {
 }
 document.addEventListener('DOMContentLoaded', refreshCompilerStaticOptions);
 
-// Setup Panel 초기화는 setup_panel.js DOMContentLoaded에서 자동 실행됨
+// Setup Panel initializes itself on DOMContentLoaded in setup_panel.js
 
 // ── Output Directory folder picker (server-side browser) ─────────────
 (function () {

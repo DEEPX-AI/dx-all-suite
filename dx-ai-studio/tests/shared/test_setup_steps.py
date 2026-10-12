@@ -41,5 +41,5 @@ def test_compact_collapses_to_one_line_when_complete():
 
 def test_no_emoji_in_the_component():
     assert gate.count(JS) == 0
-    part = CSS[CSS.index("Setup 단계 목록"):]
+    part = CSS[CSS.index("Setup step list"):]
     assert gate.count(part) == 0

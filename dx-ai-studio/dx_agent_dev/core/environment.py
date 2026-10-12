@@ -1,4 +1,4 @@
-"""에이전트 CLI / 하니스 디렉토리 감지."""
+"""Detect agent CLIs and harness directories."""
 import concurrent.futures
 import os
 import shutil
@@ -6,27 +6,27 @@ import time
 
 from dx_agent_dev.core.config import harness_search_paths
 
-_models_cache = {}      # name -> (ts, models) — CLI 조회 비용 절감용 단기 캐시
+_models_cache = {}      # name -> (ts, models): short-lived cache, CLI queries are costly
 _MODELS_TTL = 120.0
-# 어댑터별 list_models()가 자체 subprocess timeout(cursor/opencode: 20s)을 갖고 있지만,
-# 여기서도 상한을 둬 (미래의) 타임아웃 없는 구현이 /api/agent/models 응답을 막지 않게 한다.
+# Each adapter's list_models() has its own subprocess timeout (cursor/opencode: 20s), but a cap here
+# keeps a (future) implementation without a timeout from blocking the /api/agent/models response.
 _MODELS_CALL_TIMEOUT = 15.0
 
 
 def list_agent_models(name):
-    """agent의 고를 수 있는 model id 목록 (agent_model_info 의 models)."""
+    """The agent's selectable model ids (the models of agent_model_info)."""
     return agent_model_info(name)["models"]
 
 
 def agent_model_info(name):
-    """{"models": 고를 수 있는 id, "default_model": id, "catalog": [{id, name, usage, enabled}] 또는 None}.
+    """{"models": selectable ids, "default_model": id, "catalog": [{id, name, usage, enabled}] or None}.
 
-    어댑터의 동적 조회 우선, 실패 시 정적 config 폴백. CLI 조회는 비용이 있어 짧게 캐시하고, 응답이
-    없는 CLI 호출이 엔드포인트를 막지 않도록 하드 타임아웃을 둔다(_MODELS_CALL_TIMEOUT).
+    Prefers the adapter's live query and falls back to the static config. CLI queries cost time, so they are
+    cached briefly, and a hard timeout (_MODELS_CALL_TIMEOUT) keeps an unresponsive CLI from blocking the endpoint.
 
-    copilot 은 계정의 목록 (ACP) 을 받아 **전체를 보이고 계정 것만 고르게** 한다 — catalog = 계정 목록
-    (enabled) + 정적 표에만 있는 것 (enabled False: 이 계정에서 막혔거나 은퇴). 계정마다 요금제 · 회사
-    정책이 달라 쓸 수 있는 model 이 다르다 (사용자 결정 2026-09-30).
+    copilot gets the account's list (ACP) and **shows everything but lets only the account's models be picked**:
+    catalog = the account list (enabled) + entries only in the static table (enabled False: blocked for this
+    account or retired). Plans and company policies differ, so each account may use different models.
     """
     from dx_agent_dev.core.agents_config import AGENTS
     from dx_agent_dev.core.adapters import make_adapter
@@ -69,7 +69,7 @@ _HARNESS_MARKER = ".deepx"
 
 
 def find_harness_dirs():
-    """하니스 마커(.deepx)를 가진 후보 경로 목록."""
+    """Candidate paths that carry the harness marker (.deepx)."""
     found = []
     for base in harness_search_paths():
         try:
@@ -81,15 +81,15 @@ def find_harness_dirs():
 
 
 def detect_available_agents():
-    """설치된 CLI 어댑터 목록(name/models/default_model/authenticated). 드롭다운 동적 노출용.
+    """Installed CLI adapters (name/models/default_model/authenticated), for the dynamic dropdown.
 
-    authenticated: True/False(확정) 또는 None(unknown). 어댑터의 값싼 자격증명 검사 결과.
+    authenticated: True/False (certain) or None (unknown), from the adapter's cheap credential check.
     """
     from dx_agent_dev.core.agents_config import AGENTS
     pinned = os.environ.get("DX_AGENT_DEV_PIN_AGENTS")
     if pinned is not None:
-        # 비주얼 회귀용 고정: 개발자 PATH/로그인 상태 대신 주어진 이름을 순서대로,
-        # 로그인된 것으로 돌려준다. 계약: tests/dx_agent_dev/test_agents_can_be_pinned.py
+        # Pinned for visual regression: return the given names in order, all logged in, instead of the
+        # developer's PATH and login state. Contract: tests/dx_agent_dev/test_agents_can_be_pinned.py
         names = [n.strip() for n in pinned.split(",") if n.strip() in AGENTS]
         return [_agent_entry(n, AGENTS[n], True) for n in names]
     from dx_agent_dev.core.adapters import make_adapter
@@ -118,20 +118,19 @@ def _agent_entry(name, cfg, authed):
 
 
 def detect_environment():
-    """실행 가능 여부 판정. DX_AGENT_ADAPTER=mock이면 Mock 강제(검증용, spec §5.4).
+    """Decide whether runs are possible. DX_AGENT_ADAPTER=mock forces Mock (for checks).
 
-    반환값에 "agents"(detect_available_agents() 결과)를 포함한다 — 호출부가 같은
-    요청 안에서 detect_available_agents()를 다시 부르지 않고 이 값을 재사용할 수
-    있도록(중복 계산 제거). forced_mock 조기 반환 경로는 원래도 이 계산을 건너뛰므로
-    "agents" 키를 넣지 않는다(호출부는 forced_mock일 때 이 키를 쓰지 않는다).
+    The result includes "agents" (the detect_available_agents() result) so a caller can reuse it in the
+    same request instead of calling detect_available_agents() again. The forced_mock early return skips
+    that computation and so has no "agents" key (callers do not use it when forced_mock is set).
     """
     if os.environ.get("DX_AGENT_ADAPTER") == "mock":
         return {"available": True, "forced_mock": True, "cli": None,
                 "harness_dirs": [], "reason": None}
     from dx_agent_dev.core.adapters.base import find_cli
     cli = find_cli(COPILOT_BIN)
-    # 설치된 에이전트가 하나라도 있으면 사용 가능(copilot 전용 게이트 제거 — claude/codex/cursor/opencode 포함).
-    # detect_available_agents()는 copilot도 포함하므로 cli는 표시/기본값 용도로만 유지.
+    # Usable if any agent is installed (claude/codex/cursor/opencode count, not just copilot).
+    # detect_available_agents() includes copilot too, so cli is kept only for display and the default.
     agents = detect_available_agents()
     has_agent = bool(agents) or bool(cli)
     harness = find_harness_dirs()

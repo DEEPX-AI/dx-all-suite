@@ -1,4 +1,4 @@
-"""어댑터 베이스: AgentAdapter(ABC) + SubprocessAdapter 공통 구동."""
+"""Adapter base: AgentAdapter (ABC) and the shared SubprocessAdapter driver."""
 from __future__ import annotations
 
 import json
@@ -13,11 +13,11 @@ from typing import Iterator, Optional
 
 from dx_agent_dev.core.message_sanitize import is_harness_status_line, sanitize_assistant_text
 
-# cursor-agent 재연결·내부 상태 줄 → status 슬롯(채팅 말풍선 X)
+# cursor-agent reconnect / internal-state lines -> status slot (not a chat bubble)
 _STATUS_LINE = re.compile(
     r"(?i)^(connection lost|reconnecting|retry(\s+attempt|\s+\d+)?|\[DX-AGENT)",
 )
-# 도구/셸 출력 휴리스틱(plain text 폴백)
+# Heuristic for tool/shell output (plain-text fallback)
 _COMMAND_LINE = re.compile(
     r"^(?:\$ |\+ |✅\s*\*\*|(?:Read|Write|Bash|Edit|Glob|Grep|Task|Shell)\b)",
 )
@@ -32,41 +32,41 @@ class AgentAdapter(ABC):
     def cancel(self) -> None: ...
 
 
-# CLI 찾기 (설치 안내 shim 건너뛰기) 와 로그인 판정은 shared/agent_cli.py 한 곳에 있다 — Chat 도 같은 규칙을 쓴다
-# (spec 2026-10-11 chat settings §3.2). 여기서는 다시 내보낸다.
+# Finding the CLI (skipping install-hint shims) and deciding login live in shared/agent_cli.py, so Chat uses the
+# same rules. They are re-exported here.
 from shared.agent_cli import BINS as _AGENT_BINS, _is_shim, authenticated as _shared_authenticated, find_cli  # noqa: E402,F401
 
 _AGENT_BY_BIN = {b: n for n, b in _AGENT_BINS.items()}
 
 
 class SubprocessAdapter(AgentAdapter):
-    """CLI subprocess 공통 구동. 서브클래스는 cli_bin·build_command·normalize만 정의.
+    """Shared driver for a CLI subprocess. Subclasses define only cli_bin, build_command and normalize.
 
-    - cwd_mode="session"(기본): cwd=session_dir, 쓰기 격리(--add-dir 도구).
-    - cwd_mode="harness": cwd=harness_dirs[0](없으면 session_dir), 하니스 컨텍스트(-C/cwd 도구).
-      ⚠️ harness 모드는 쓰기가 하니스 루트에 발생 → 격리와 양립 불가(일반망 검증, spec §6/§11 #4).
+    - cwd_mode="session" (default): cwd=session_dir, writes isolated (tools with --add-dir).
+    - cwd_mode="harness": cwd=harness_dirs[0] (or session_dir), harness context (tools with -C/cwd).
+      Warning: in harness mode writes land in the harness root, so it cannot be combined with isolation.
     """
     cli_bin = None
     cwd_mode = "session"
-    # 인증 상태 감지용(선택): 서브클래스가 홈 기준 상대 경로 + (선택)JSON 키를 선언하면
-    # is_authenticated()가 값싼 파일 검사로 True/False를 판정. 미선언 시 None(unknown).
-    creds_relpath: tuple | None = None   # 예: (".claude", ".credentials.json")
-    creds_key: str | None = None          # 예: "claudeAiOauth"; None이면 파일 존재만 확인
-    # in-UI 로그인 안내: 사용자가 터미널에서 실행할 로그인 명령(브라우저 OAuth는 결국 브라우저 필요).
+    # Optional auth detection: when a subclass declares a home-relative path plus an optional JSON key,
+    # is_authenticated() decides True/False with a cheap file check. Undeclared -> None (unknown).
+    creds_relpath: tuple | None = None   # e.g. (".claude", ".credentials.json")
+    creds_key: str | None = None          # e.g. "claudeAiOauth"; None checks only that the file exists
+    # In-UI login hint: the command the user runs in a terminal (browser OAuth still needs a browser).
     login_cmd_hint: str | None = None
 
     def __init__(self, cli_path: str = None, model: str = None, effort: str = None):
         self._cli = cli_path or (find_cli(self.cli_bin) if self.cli_bin else None)
         self.model = model
-        self.effort = effort  # reasoning effort(지원 어댑터만 build_command에서 사용)
-        self.name = None  # make_adapter가 주입(레지스트리 키)
+        self.effort = effort  # reasoning effort (used in build_command only by adapters that support it)
+        self.name = None  # injected by make_adapter (registry key)
         self._proc = None
 
     def is_available(self) -> bool:
         return bool(self._cli)
 
     def _is_the_installed_cli(self) -> bool:
-        """이 adapter 가 PATH 에 설치된 진짜 agent CLI (copilot · claude · …) 를 가리키는가."""
+        """Whether this adapter points at the real agent CLI installed on PATH (copilot, claude, ...)."""
         from dx_agent_dev.core.agents_config import AGENTS
         if self.cli_bin not in {cfg["cli_bin"] for cfg in AGENTS.values()}:
             return False
@@ -74,10 +74,10 @@ class SubprocessAdapter(AgentAdapter):
         return bool(installed) and os.path.realpath(installed) == os.path.realpath(self._cli)
 
     def is_authenticated(self):
-        """로그인 여부. True/False(확정) 또는 None(unknown, 값싼 판정 불가).
+        """Login state: True/False (certain) or None (unknown, no cheap check).
 
-        거짓 음성(실제 로그인 상태인데 False)을 피하기 위해 확신 없으면 None을 반환한다.
-        creds_relpath를 선언한 서브클래스는 홈 기준 파일(+선택 JSON 키)로 판정한다.
+        Returns None when unsure, to avoid false negatives (logged in but reported False).
+        Subclasses that declare creds_relpath decide from a home-relative file (plus an optional JSON key).
         """
         name = _AGENT_BY_BIN.get(self.cli_bin or "")
         if name:
@@ -95,14 +95,14 @@ class SubprocessAdapter(AgentAdapter):
             return None
 
     def list_models(self):
-        """동적 모델 목록(CLI 조회). 지원 어댑터만 override; 기본은 None(정적 폴백)."""
+        """Dynamic model list (queried from the CLI). Only supporting adapters override; default None (static fallback)."""
         return None
 
     def build_command(self, prompt, session_dir, harness_dirs, run_ctx=None) -> list:
         raise NotImplementedError
 
     def normalize(self, line: str) -> dict:
-        """기본 텍스트 휴리스틱. 구조화 출력 도구는 오버라이드."""
+        """Default plain-text heuristic. Tools with structured output override this."""
         return classify_plain_line(line)
 
     def _resolve_cwd(self, session_dir, harness_dirs):
@@ -125,7 +125,7 @@ class SubprocessAdapter(AgentAdapter):
             yield {"type": "error", "text": f"{self.cli_bin} CLI not found"}
             return
         if os.environ.get("DX_AGENT_NO_REAL_RUN") == "1" and self._is_the_installed_cli():
-            # test 가 진짜 agent 를 돌리면 계정의 요금이 든다 (tests/conftest.py)
+            # A test that runs a real agent costs account money (tests/conftest.py)
             yield {"type": "error", "text": f"real {self.cli_bin} runs are disabled under tests"}
             return
         cmd = self.build_command(prompt, session_dir, harness_dirs, run_ctx=run_ctx)
@@ -199,7 +199,7 @@ def _message_event(text: str, *, sanitize: bool = False, **extra) -> dict:
 
 
 def classify_plain_line(line: str) -> dict:
-    """비 JSON stdout 한 줄 → AgentEvent (재연결 로그·도구 출력 분류)."""
+    """One non-JSON stdout line -> AgentEvent (classifies reconnect logs and tool output)."""
     stripped = (line or "").strip()
     if not stripped:
         return _hidden_status()
@@ -233,7 +233,7 @@ def _extract_text_from_content(content) -> str:
 
 
 def _extract_message_text(obj: dict) -> str:
-    """cursor/claude/codex stream-json·result 공통 텍스트 추출."""
+    """Shared text extraction for cursor/claude/codex stream-json and result events."""
     for key in ("result", "text", "output"):
         val = obj.get(key)
         if isinstance(val, str) and val.strip():
@@ -265,8 +265,8 @@ def _tool_arg_hint(args) -> str:
             v = args.get(k)
             if isinstance(v, str) and v:
                 return v.rsplit("/", 1)[-1]
-        # command 는 다 보인다 — terminal 에 뜨는 것이 곧 이 줄이고, 50자로 자르면 칸의 절반만 찼다.
-        # 한 줄 상한은 호출부의 [:500] 이 지킨다. 나머지 key 는 짧은 힌트로 둔다 (JSON 폭주 방지).
+        # Show the whole command: it is exactly what appears in the terminal, and cutting it at 50 chars filled
+        # only half the cell. The caller's [:500] caps the line. Other keys stay short hints (avoid JSON floods).
         for k in ("command", "cmd"):
             v = args.get(k)
             if isinstance(v, str) and v:
@@ -393,9 +393,9 @@ def _map_codex_item(obj: dict) -> Optional[dict]:
 
 
 def _map_json_event(obj, raw):
-    """JSON NDJSON → AgentEvent (cursor/claude/codex stream-json·result).
+    """JSON NDJSON -> AgentEvent (cursor/claude/codex stream-json and result).
 
-    upstream `.deepx/tools/dx_transcripts/parse_*_session.py` 스키마를 UI 슬롯에 맞게 축약.
+    Condenses the upstream `.deepx/tools/dx_transcripts/parse_*_session.py` schema to fit the UI slots.
     """
     if not isinstance(obj, dict):
         return classify_plain_line(raw)

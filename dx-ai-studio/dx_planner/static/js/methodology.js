@@ -59,8 +59,7 @@ const MethodologyDialog = {
     }
 
     const top = results[0];
-    // In the user's language, in the card's own words — it read "max 8 ch · estimated" with the raw task id in a
-    // Korean UI, and the Spanish kicker printed twice (spec addendum 2026-10-12).
+    // In the user's language and in the card's own words: the translated task name, not the raw task id.
     const t = key => (typeof T === 'function' ? T(key) : key);
     const fill = (key, vals) => Object.keys(vals).reduce((out, k) => out.split('{' + k + '}').join(vals[k]), t(key));
     const taskBtn = document.querySelector('.task-btn[data-task="' + inputs.task + '"]');

@@ -125,7 +125,7 @@
   color: var(--dxt-text);
 }
 .dxt-tip-body strong { color: var(--accent-ink,var(--dxt-accent)); }
-/* 본문 안의 아이콘 ({{i:name}} — tutorial-engine.js _dxtExpandIcons). 글자 높이에 맞춘다. */
+/* Icons inside tip text ({{i:name}} — tutorial-engine.js _dxtExpandIcons), sized to the text. */
 .dxt-tip-body .dxt-inline-ico { width: 1.15em; height: 1.15em; vertical-align: -0.2em; }
 
 .dxt-tip-nav {
@@ -481,7 +481,7 @@ body.dxt-help-active .dxt-help-badge { pointer-events: auto; }
 /* ── Main content area ── */
 .ref-main{padding:0 24px 48px;min-width:0}
 .ref-search-bar{position:sticky;top:0;z-index:10;padding:12px 0;background:var(--surface-page,#0d1117)}
-/* 글자 시작 = 아이콘 left(12) + 아이콘(16) + 간격(8) */
+/* Text starts at icon left (12) + icon (16) + gap (8) */
 .ref-search{width:100%;padding:8px 12px 8px calc(12px + 16px + 8px);border-radius:10px;border:1px solid var(--dxt-border);background:var(--dxt-bg2);color:var(--dxt-text);font-size:var(--fs-md);transition:border-color .2s}
 .ref-search:focus{outline:none;border-color:var(--dxt-accent);box-shadow:0 0 0 3px rgba(88,166,255,.12)}
 .ref-search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:var(--fs-md);pointer-events:none;color:var(--dxt-text-dim)}
@@ -629,8 +629,8 @@ body.dxt-help-active .dxt-help-badge { pointer-events: auto; }
 
 /* Tutorial-only overlays: non-modal dialogs stay below tooltip (99995) */
 dialog.dxt-tutorial-dialog {
-  /* show() 로 연 (non-modal) dialog 는 문서 흐름 속 absolute 라 긴 페이지에서 화면 밖에 떴다 — 화면에 고정한다
-     (release audit S-19: Stream 투어의 모델 상세 창이 y≈1000–3000 에 열렸다) */
+  /* A non-modal dialog opened with show() is absolute in the document flow and lands off screen on long
+     pages — pin it to the viewport */
   position: fixed;
   inset: 0;
   z-index: 99992;

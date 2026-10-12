@@ -1,7 +1,7 @@
 /* DX Model Zoo — i18n Dictionary: shared */
 'use strict';
 window._DX_MODELZOO_I18N_REGISTER({
-  // 카드 · 상세의 요약 (metadata/merge.py 의 task 별 문장, app.js _summaryText)
+  // Card and detail summaries (per-task sentences from metadata/merge.py, app.js _summaryText)
   'Image classification model for visual recognition tasks.': { en: 'Image classification model for visual recognition tasks.', ko: '시각 인식을 위한 이미지 분류 모델입니다.', ja: '視覚認識のための画像分類モデルです。', 'zh-CN': '用于视觉识别的图像分类模型。', 'zh-TW': '用於視覺辨識的影像分類模型。', es: 'Modelo de clasificación de imágenes para tareas de reconocimiento visual.' },
   'Object detection model for identifying and localizing objects.': { en: 'Object detection model for identifying and localizing objects.', ko: '물체를 찾고 위치를 알려 주는 객체 탐지 모델입니다.', ja: '物体を識別して位置を特定する物体検出モデルです。', 'zh-CN': '用于识别和定位物体的目标检测模型。', 'zh-TW': '用於辨識與定位物體的物件偵測模型。', es: 'Modelo de detección de objetos para identificarlos y localizarlos.' },
   'Semantic segmentation model for pixel-level classification.': { en: 'Semantic segmentation model for pixel-level classification.', ko: '픽셀 단위로 분류하는 의미론적 분할 모델입니다.', ja: 'ピクセル単位で分類するセマンティックセグメンテーションモデルです。', 'zh-CN': '用于像素级分类的语义分割模型。', 'zh-TW': '用於像素級分類的語意分割模型。', es: 'Modelo de segmentación semántica para clasificación a nivel de píxel.' },

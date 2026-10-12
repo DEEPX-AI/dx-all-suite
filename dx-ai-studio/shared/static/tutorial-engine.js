@@ -1,18 +1,18 @@
-/* 공용 아이콘 (shared/static/dx-icon.js, spec 2026-09-29 아이콘 체계). 엔진은 모든 모듈에서 돌므로
-   DXIcon 이 없으면 (옛 문서) 빈 자리로 둔다. */
+/* Shared icons (shared/static/dx-icon.js). The engine runs in every module, so without DXIcon
+   (an older document) the spot stays empty. */
 function _dxtIcon(name) {
   return (typeof window !== 'undefined' && typeof window.DXIcon === 'function') ? window.DXIcon(name) : '';
 }
-/* 구역 아이콘: sprite 이름 (task-object_detection 처럼 숫자 · 밑줄도) 이면 그 아이콘, 아니면 적힌 글자
-   그대로. 없으면 file. */
+/* Section icon: a sprite name (digits and underscores allowed, e.g. task-object_detection) gives that icon,
+   anything else is used as literal text. None gives file. */
 var _DXT_ICON_NAME = /^[a-z0-9_-]+$/;
 function _dxtSectionIcon(icon) {
   if (!icon) return _dxtIcon('file');
   if (_DXT_ICON_NAME.test(icon)) return _dxtIcon(icon);
   return String(icon);
 }
-/* 단계 본문 안의 아이콘: {{i:check}} → sprite 아이콘 (아이콘 체계 단계 5). 본문은 화면의 버튼 · 표시를
-   가리키므로 (예: "Ready 표시 {{i:check}}") 그 모양을 그대로 쓴다 — 이모지는 OS 마다 다르게 그려졌다. */
+/* Icons inside step text: {{i:check}} → sprite icon. Step text points at buttons and badges on screen
+   (e.g. "the Ready badge {{i:check}}"), so it uses the same shapes — emoji render differently per OS. */
 function _dxtExpandIcons(html) {
   return String(html || '').replace(/\{\{i:([a-z0-9_-]+)\}\}/g, function (m, name) {
     return (typeof window !== 'undefined' && typeof window.DXIcon === 'function')
@@ -64,8 +64,8 @@ class DXTutorialEngine {
   constructor(opts = {}) {
     this.options      = opts || {};
     this.appId        = opts.appId || 'app';
-    /* 버튼은 자기 engine 을 부른다 — 한 문서에 engine 이 둘 (launcher · SDK Library) 이면 window._dxTutorial 은 나중에
-       만든 쪽이라, SDK 목차의 'Start from Beginning' 이 launcher 투어를 시작했다 (2026-10-02 release audit L-3). */
+    /* Buttons call their own engine — with two engines in one document (launcher · SDK Library),
+       window._dxTutorial is whichever was created last and would start the wrong tour. */
     if (typeof window !== 'undefined') (window._dxTutorials = window._dxTutorials || {})[this.appId] = this;
     this.sections     = opts.sections || [];
     this.getLang      = opts.getLang || (() => localStorage.getItem('dx-lang') || 'en');
@@ -74,7 +74,7 @@ class DXTutorialEngine {
 
     this._curSection  = null;
     this._curStep     = 0;
-    this._stepToken   = 0;  // race condition 방지용 토큰
+    this._stepToken   = 0;  // token that guards against races
     this._spotlight   = null;
     this._overlay     = null;
     this._tooltip     = null;
@@ -118,7 +118,7 @@ class DXTutorialEngine {
         var style = window.getComputedStyle(node);
         if (style.display === 'none' || style.visibility === 'hidden') continue;
         var r = node.getBoundingClientRect();
-        if (r.width > 0 && r.height > 0) return node;   // 높이 0 인 띠는 보이는 대상이 아니다 (release audit E-2)
+        if (r.width > 0 && r.height > 0) return node;   // a zero-height strip is not a visible target
       }
       return null;
     };
@@ -449,14 +449,13 @@ class DXTutorialEngine {
 
   async _showStep() {
     if (!this._curSection) return;
-    var token = ++this._stepToken; // 각 호출마다 고유 토큰 — 이전 폴링 중단용
+    var token = ++this._stepToken; // unique per call — stops an earlier poll
     var steps = this._curSection.steps;
     var step = steps[this._curStep];
     if (!step) { this.stop(); return; }
 
     if (step.beforeStep) {
-      // 준비가 실패해도 투어는 이 스텝을 그린다 — 예전에는 예외가 나면 앞 스텝의 상자가 남고 Next 가 먹지 않았다
-      // (release audit E-3: Benchmark 투어가 그렇게 멈췄다)
+      // Draw this step even if its preparation fails — otherwise the previous step's box stays and Next stops working.
       try {
         var beforeResult = step.beforeStep.call(step);
         if (beforeResult && typeof beforeResult.then === 'function') {
@@ -485,18 +484,18 @@ class DXTutorialEngine {
       };
       var _vis = _isVisible(target);
       if (!_vis) {
-        // 폴링은 최대 2초다. 그동안 앞 스텝의 스포트라이트와 툴팁을 그대로 두면
-        // 사용자는 이미 지나간 스텝의 상자를 보게 되고, 그 사이 Next 를 또 누르면
-        // 이 함수는 _stepToken 가드에 걸려 아무것도 렌더하지 않고 빠져나간다 —
-        // 화면이 앞 스텝에 멈춘 채로 남는다. 그래서 기다리기 전에 새 스텝의
-        // 내용을 floating 으로 먼저 보여주고, 타깃이 나타나면 아래에서 anchored
-        // 로 승격한다. 첫 조회에 성공한 스텝은 이 경로를 타지 않는다.
-        // (계약: tests/test_tutorial_stale_step.py)
+        // Polling takes up to 2 s. Leaving the previous step's spotlight and tooltip up
+        // meanwhile shows a step the user has already left, and a second Next press
+        // trips the _stepToken guard so nothing renders — the screen stays stuck on
+        // the previous step. So show the new step floating before waiting, and promote
+        // it to anchored below once the target appears. Steps whose first lookup
+        // succeeds skip this path.
+        // (Contract: tests/test_tutorial_stale_step.py)
         this._spotlight.classList.remove('active');
         this._renderTooltipFloating(step);
         for (var _pw = 0; _pw < 20; _pw++) {
           await new Promise(function(r) { setTimeout(r, 100); });
-          if (this._stepToken !== token || !this._curSection) return; // 중간에 중단됐으면 종료
+          if (this._stepToken !== token || !this._curSection) return; // stopped meanwhile: bail out
           target = this._queryTarget(step.target);
           if (_isVisible(target)) { _vis = true; break; }
         }
@@ -507,7 +506,7 @@ class DXTutorialEngine {
       }
     }
 
-    if (this._stepToken !== token || !this._curSection) return; // 렌더링 전 최종 체크
+    if (this._stepToken !== token || !this._curSection) return; // last check before rendering
 
     if (target) {
       this._bindScrollRootsFor(target);
@@ -596,7 +595,7 @@ class DXTutorialEngine {
   }
 
   _renderTooltipFloating(step) {
-    if (!this._curSection) return; // stop() 이후 호출 방지
+    if (!this._curSection) return; // ignore calls after stop()
     var lang = this.getLang();
     var steps = this._curSection.steps;
     var isFirst = this._curStep === 0;
@@ -682,10 +681,10 @@ class DXTutorialEngine {
       tip.style.left = clampX(parseFloat(tip.style.left)) + 'px';
     };
 
-    /* 대상을 가리지 않는 쪽을 고른다 (release audit E-1). 예전에는 화면 안으로 밀어 넣은 뒤 '잘렸는가' 만 보았는데,
-       밀어 넣었으니 늘 안 잘린 것으로 보여 다른 쪽을 시도하지 않았고 — 좁은 화면에서 툴팁이 대상 위에 앉았다.
-       명시한 위치를 먼저, 그 반대, 그 다음 옆쪽. 600px 보다 좁으면 위 · 아래만. 어느 쪽도 비지 않으면 대상에서 먼 쪽
-       가장자리에 붙인다 (가리는 넓이가 가장 작은 곳). */
+    /* Pick the side that does not cover the target, judged by overlap with the target (after clamping into the
+       viewport every side looks unclipped, so clipping alone cannot decide).
+       Try the requested side first, then its opposite, then the two other sides. Under 600px wide, only top and
+       bottom. If no side is clear, dock to the screen edge away from the target (smallest covered area). */
     var flip = { bottom: 'top', top: 'bottom', right: 'left', left: 'right' };
     var side = { bottom: ['right', 'left'], top: ['right', 'left'], right: ['bottom', 'top'], left: ['bottom', 'top'] };
     var first = (pos === 'auto' || !flip[pos]) ? chosen : pos;
@@ -704,7 +703,7 @@ class DXTutorialEngine {
       if (area === 0) break;
     }
     if (bestArea > 0) {
-      // 가장자리에 붙이기: 대상의 가운데가 화면 위쪽이면 아래 가장자리, 아니면 위 가장자리
+      // Dock: bottom edge if the target's centre is in the upper half of the screen, otherwise the top edge
       var dockBottom = (rect.top + rect.bottom) / 2 < window.innerHeight / 2;
       tip.style.top = (dockBottom ? window.innerHeight - tipRect.height - 8 : 8) + 'px';
       tip.style.left = clampX(rect.left + rect.width / 2 - tipRect.width / 2) + 'px';
@@ -987,7 +986,7 @@ class DXTutorialEngine {
         return;
       }
       if (e.key === 'Escape') {
-        /* 처리했으면 표시한다 — launcher 의 Escape (모듈 닫기) 가 이것을 보고 멈춘다 (release audit X-1) */
+        /* Mark it handled — the launcher's Escape (close module) checks this and stands down */
         if (self._curSection) { self.stop(); e.preventDefault(); return; }
         if (self._tocEl && self._tocEl.classList.contains('open')) { self.hideTOC(); e.preventDefault(); return; }
         return;
@@ -996,7 +995,7 @@ class DXTutorialEngine {
       if (e.key === 'ArrowRight' || e.key === 'Enter') { self.next(); e.preventDefault(); }
       if (e.key === 'ArrowLeft') { self.prev(); e.preventDefault(); }
     };
-    document.addEventListener('keydown', this._keyHandler, true);   // capture — 맨 위 층이 먼저
+    document.addEventListener('keydown', this._keyHandler, true);   // capture — the topmost layer goes first
   }
 
   createToggleBtn(container) {

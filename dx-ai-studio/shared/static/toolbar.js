@@ -22,9 +22,8 @@
     return (typeof DXI18n !== 'undefined') ? DXI18n.lang : (localStorage.getItem('dx-lang') || 'en');
   }
 
-  /* 단추 이름 (title · aria-label) 은 key 로 기억해 두고 언어가 바뀌면 다시 번역한다 (release audit L-13 —
-     예전에는 'Language' · 'Theme: dark' · 'Tutorial' · 'Settings' 가 모든 언어에서 영어였다). 말은
-     shared/static/i18n.js 의 공용 chrome 사전에. */
+  /* Button names (title · aria-label) keep their key so a language change translates them again. The text
+     lives in the shared chrome dictionary in shared/static/i18n.js. */
   function _tr(key) {
     return (typeof window.T === 'function') ? window.T(key) : key;
   }
@@ -111,7 +110,7 @@
     menu.className = 'dx-lang-menu';
     menu.setAttribute('role', 'menu');
     LANGS.forEach(function (code) {
-      /* button — 키보드로 닿고 Enter · Space 로 고른다 (release audit L-16: div 라 Tab 으로 못 닿았다) */
+      /* A button, so the keyboard can reach it with Tab and pick with Enter · Space */
       var item = document.createElement('button');
       item.type = 'button';
       item.className = 'dx-lang-item';
@@ -124,7 +123,7 @@
       if (code === _getLang()) item.classList.add('active');
       item.addEventListener('click', function (e) {
         e.stopPropagation();
-        var fromKey = e.detail === 0;          // Enter · Space 로 골랐으면 단추로 focus 를 돌려준다
+        var fromKey = e.detail === 0;          // picked with Enter · Space: return focus to the button
         _setLang(code);
         _closeLangMenu();
         if (fromKey) btn.focus();
@@ -189,7 +188,7 @@
       if (wrap.classList.contains('open')) {
         _closeLangMenu();
       } else {
-        _openLangMenu(e.detail === 0);       // 키보드로 열면 고른 언어에 focus
+        _openLangMenu(e.detail === 0);       // opened from the keyboard: focus the current language
       }
     });
     btn.addEventListener('keydown', function (e) {
@@ -207,7 +206,7 @@
       else if (e.key === 'Home') next = list[0];
       else if (e.key === 'End') next = list[list.length - 1];
       else if (e.key === 'Escape') {
-        e.preventDefault();                  // 바깥 (dialog · 화면) 의 Escape 는 이번에 닫지 않는다
+        e.preventDefault();                  // keep this Escape from also closing an outer dialog or screen
         e.stopPropagation();
         _closeLangMenu();
         btn.focus();
@@ -237,8 +236,8 @@
     return wrap;
   }
 
-  /* 아이콘은 공용 sprite 에서 (spec 2026-09-29 아이콘 체계) — 이모지는 OS · 글꼴마다 다르게 그려졌다
-     (headless 에서 반쪽 원 기호가 "-" 로). DXIcon 이 없으면 (dx-icon.js 를 빠뜨린 문서) 빈 자리로 둔다. */
+  /* Icons come from the shared sprite — emoji render differently per OS and font. Without DXIcon
+     (a document that did not load dx-icon.js) the spot stays empty. */
   function _icon(name) {
     if (window.DXIcon && window.DXIcon.el) return window.DXIcon.el(name);
     return document.createTextNode('');
@@ -275,7 +274,7 @@
     toolbar.appendChild(_makeLangDropdown());
 
     if (typeof DXTheme !== 'undefined') {
-      /* 세 상태가 그림으로 다르다: 밤 · 낮 · 시스템 (반쪽 원). title 도 지금 상태를 말한다. */
+      /* Each of the three states has its own icon: dark · light · system (half circle). The title names the current state too. */
       var THEME_ICON = { dark: 'moon', light: 'sun', system: 'theme' };
       var THEME_TITLE = { dark: 'Theme: dark', light: 'Theme: light', system: 'Theme: system' };
       var themeBtn = _makeIconBtn(THEME_ICON[DXTheme.getTheme()], THEME_TITLE[DXTheme.getTheme()], function () {
@@ -371,7 +370,7 @@
         }
         tutBtn.addEventListener('click', newTutHandler);
       } else {
-        // launcher 와 같은 순서 — 언어 · 테마 · 튜토리얼 · (설정). 예전에는 언어 바로 뒤에 끼어 테마 앞에 왔다 (release audit L-27).
+        // Same order as the launcher — language · theme · tutorial · (settings).
         var settingsRef = document.getElementById('dxToolbarSettings');
         var insertRef = settingsRef && settingsRef.parentNode === toolbar ? settingsRef : null;
         tutBtn = _makeIconBtn('graduation', 'Tutorial', newTutHandler);

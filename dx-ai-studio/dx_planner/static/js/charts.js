@@ -1,6 +1,6 @@
 /**
- * Charts — Canvas 2D 차트 4종 (BarChart, GaugeChart, GroupBarChart, RadarChart).
- * 테마 CSS 변수 기반, devicePixelRatio 지원, 외부 라이브러리 없음.
+ * Charts — four Canvas 2D charts (BarChart, GaugeChart, GroupBarChart, RadarChart).
+ * Driven by theme CSS variables, devicePixelRatio aware, no external libraries.
  */
 
 let _plannerThemeColorCache = null;
@@ -43,7 +43,7 @@ function getCanvasParentContentWidth(canvas, fallback) {
   return Math.max(parent.clientWidth - paddingX, 120);
 }
 
-// 1. BarChart — Step 2 수평 바 차트
+// 1. BarChart — Step 2 horizontal bar chart
 const BarChart = {
   draw(canvas, results, onBarClick) {
     if (!canvas || !results.length) return;
@@ -67,14 +67,14 @@ const BarChart = {
       const color = r.meetsRequirement ? accent : warning;
       const label = r.platform.npu.model + ' + ' + r.platform.host.name;
 
-      // 플랫폼 이름
+      // Platform name
       ctx.fillStyle = text;
       ctx.font = '12px system-ui, sans-serif';
       ctx.textAlign = 'right';
       ctx.textBaseline = 'middle';
       ctx.fillText(label, pad.left - 8, y + barH / 2);
 
-      // 바 (measured only — no theoretical/estimated bars)
+      // Bar (measured only — no theoretical/estimated bars)
       ctx.fillStyle = color;
       if (ctx.roundRect) {
         ctx.beginPath();
@@ -84,13 +84,13 @@ const BarChart = {
         ctx.fillRect(pad.left, y, bw, barH);
       }
 
-      // FPS 값
+      // FPS value
       ctx.fillStyle = dim;
       ctx.textAlign = 'left';
       ctx.fillText(Math.round((r.pipelineFps || 0)) + ' FPS', pad.left + bw + 6, y + barH / 2);
     });
 
-    // 클릭 이벤트 (기존 핸들러 정리)
+    // Click events (clear the previous handler)
     canvas.onclick = null;
     canvas.onclick = (e) => {
       const rect = canvas.getBoundingClientRect();
@@ -103,7 +103,7 @@ const BarChart = {
   }
 };
 
-// 2. GaugeChart — 미니 도넛 게이지 (60x60)
+// 2. GaugeChart — mini donut gauge (60x60)
 const GaugeChart = {
   draw(canvas, current, required, boundaryFlag) {
     if (!canvas) return;
@@ -127,7 +127,7 @@ const GaugeChart = {
     else if (current >= required * 0.5) color = warning;
     else color = danger;
 
-    // 배경 아크
+    // Background arc
     ctx.beginPath();
     ctx.arc(cx, cy, radius, startAngle, endAngle);
     ctx.strokeStyle = border;
@@ -135,7 +135,7 @@ const GaugeChart = {
     ctx.lineCap = 'round';
     ctx.stroke();
 
-    // 값 아크
+    // Value arc
     const fillAngle = startAngle + ratio * Math.PI;
     ctx.beginPath();
     ctx.arc(cx, cy, radius, startAngle, fillAngle);
@@ -144,7 +144,7 @@ const GaugeChart = {
     ctx.lineCap = 'round';
     ctx.stroke();
 
-    // 텍스트
+    // Text
     const text = getThemeColor('--text-primary') || '#f5f5f7';
     ctx.fillStyle = text;
     ctx.font = 'bold 10px system-ui, sans-serif';
@@ -155,7 +155,7 @@ const GaugeChart = {
   }
 };
 
-// 3. GroupBarChart — 모델 사이즈별 그룹 바 (Step 3)
+// 3. GroupBarChart — grouped bars per model size (Step 3)
 const GroupBarChart = {
   draw(canvas, platform, task, ort, onBarClick) {
     if (!canvas || !platform) return;
@@ -170,7 +170,7 @@ const GroupBarChart = {
     const dim = getThemeColor('--text-muted') || '#8892A8';
     const gridColor = getThemeColor('--border-subtle') || '#333';
 
-    // 데이터 수집
+    // Collect data
     const data = sizes.map(sz => {
       const bench = platform.benchmarks.find(
         b => b.size === sz && b.task === task && b.ort === ort
@@ -189,7 +189,7 @@ const GroupBarChart = {
     const groupW = chartW / sizes.length;
     const barW = groupW * 0.3;
 
-    // 그리드라인
+    // Grid lines
     ctx.strokeStyle = gridColor;
     ctx.lineWidth = 0.5;
     ctx.setLineDash([3, 3]);
@@ -207,7 +207,7 @@ const GroupBarChart = {
     }
     ctx.setLineDash([]);
 
-    // 범례
+    // Legend
     const accentLight = accent + '88';
     ctx.fillStyle = accentLight;
     ctx.fillRect(w - pad.right - 140, pad.top - 30, 12, 12);
@@ -220,12 +220,12 @@ const GroupBarChart = {
     ctx.fillStyle = dim;
     ctx.fillText('Throughput FPS', w - pad.right - 124, pad.top - 4);
 
-    // 바 그리기
+    // Draw bars
     const barRects = [];
     data.forEach((d, i) => {
       const gx = pad.left + i * groupW + groupW / 2;
 
-      // X축 라벨
+      // X-axis label
       ctx.fillStyle = text;
       ctx.font = '12px system-ui, sans-serif';
       ctx.textAlign = 'center';
@@ -256,7 +256,7 @@ const GroupBarChart = {
       }
     });
 
-    // 바 클릭 (기존 핸들러 정리)
+    // Bar clicks (clear the previous handler)
     canvas.onclick = null;
     if (onBarClick) {
       canvas.onclick = (e) => {
@@ -274,7 +274,7 @@ const GroupBarChart = {
   }
 };
 
-// 4. RadarChart — 5축 레이더/스파이더 차트 (Step 3)
+// 4. RadarChart — 5-axis radar/spider chart (Step 3)
 const RadarChart = {
   draw(canvas, platforms, currentId, compareId, inputs) {
     if (!canvas || !platforms.length) return;
@@ -293,7 +293,7 @@ const RadarChart = {
     const axes = 5;
     const labels = ['FPS', 'Channels', 'TOPS/W', 'Stability', 'TOPS'].map(l => (typeof T === 'function' ? T(l) : l));
 
-    // 각 플랫폼에 대해 5축 값 계산
+    // Compute the 5 axis values for each platform
     function calcMetrics(pid) {
       const p = platforms.find(pl => pl.id === pid);
       if (!p) return null;
@@ -318,7 +318,7 @@ const RadarChart = {
       return { metrics: [fps, maxChannels, topsW, stability, p.npu.tops], boundaryFlag: bf };
     }
 
-    // 정규화를 위한 최대값 계산
+    // Maximum values for normalization
     const allCalc = platforms.map(p => calcMetrics(p.id)).filter(Boolean);
     const allMetrics = allCalc.map(c => c.metrics);
     const maxVals = [0, 0, 0, 0, 0];
@@ -331,7 +331,7 @@ const RadarChart = {
       return metrics.map((v, i) => v / maxVals[i]);
     }
 
-    // 동심원 그리드
+    // Concentric grid
     const rings = [0.33, 0.66, 1.0];
     rings.forEach(scale => {
       ctx.beginPath();
@@ -348,7 +348,7 @@ const RadarChart = {
       ctx.stroke();
     });
 
-    // 축 라인 + 라벨
+    // Axis lines + labels
     for (let i = 0; i < axes; i++) {
       const angle = -Math.PI / 2 + (2 * Math.PI / axes) * i;
       const ex = cx + Math.cos(angle) * radius;
@@ -369,7 +369,7 @@ const RadarChart = {
       ctx.fillText(labels[i], lx, ly);
     }
 
-    // 데이터 영역 그리기
+    // Draw the data area
     function drawArea(calc, fillColor, alpha) {
       const norm = normalize(calc.metrics);
       const bf = calc.boundaryFlag;
@@ -390,7 +390,7 @@ const RadarChart = {
       ctx.fill();
       ctx.globalAlpha = 1.0;
 
-      // 점
+      // Points
       norm.forEach((v, i) => {
         const angle = -Math.PI / 2 + (2 * Math.PI / axes) * i;
         const px = cx + Math.cos(angle) * radius * v;
@@ -399,7 +399,7 @@ const RadarChart = {
         ctx.arc(px, py, 3, 0, 2 * Math.PI);
         ctx.globalAlpha = 1.0;
         if (i === 1 && bf === '+') {
-          // 측정 상한 표시: 빈 원
+          // Measurement ceiling marker: hollow circle
           ctx.strokeStyle = fillColor;
           ctx.lineWidth = 2;
           ctx.stroke();
@@ -410,13 +410,13 @@ const RadarChart = {
       });
     }
 
-    // 비교 플랫폼 (뒤에 그림)
+    // Comparison platform (drawn behind)
     if (compareId) {
       const compCalc = calcMetrics(compareId);
       if (compCalc) drawArea(compCalc, success, 0.2);
     }
 
-    // 현재 플랫폼
+    // Current platform
     const curCalc = calcMetrics(currentId);
     if (curCalc) drawArea(curCalc, accent, 0.3);
   }

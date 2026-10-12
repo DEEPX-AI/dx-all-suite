@@ -1,15 +1,13 @@
-"""intro 의 App 장면을 굽는다 — 실제 주행 영상의 모든 frame 에 DX-M1 이 낸 실제 segmentation.
+"""Bake the intro App scene: real segmentation from DX-M1 on every frame of a real driving video.
 
-spec: docs/superpowers/specs/2026-09-30-intro-app-compiler-scenes-design.md
-
-소재는 dx_stream demo 가 쓰는 DEEPX 공식 sample 영상 묶음의 `blackbox-city-road.mp4` 다 (repo 에
-넣지 않는다 — bake_stream.py 의 docstring 에 받는 법). 추론은 공식 Model Zoo segformer-b0 (Cityscapes
-19 class) 를 dx_app 예제의 factory 그대로 DX-M1 에서 돌린다.
+The source is `blackbox-city-road.mp4` from the official DEEPX sample video bundle the dx_stream demos use (not kept
+in the repo; the bake_stream.py docstring shows how to fetch it). Inference runs the official Model Zoo segformer-b0
+(Cityscapes, 19 classes) on DX-M1 through the dx_app example's factory, unchanged.
 
     dx-runtime/venv-dx-runtime/bin/python3 scripts/intro/bake_app.py \\
         --videos <videos> --model <segformer_mit-b0_512x1024.dxnn> [--bench]
 
-색은 절제된 다섯 무리 (사용자 결정 A) 다 — Cityscapes 표준 19색은 논문 demo 처럼 보였다.
+Colors are five muted groups; the standard 19-color Cityscapes palette looked like a paper demo.
 """
 from __future__ import annotations
 
@@ -36,17 +34,17 @@ STAGE = 16 / 10
 CLIP = (1440, 900)
 SKY, NONE = 10, 255
 
-# Cityscapes id → (BGR, alpha). 하늘은 칠하지 않는다.
+# Cityscapes id → (BGR, alpha). The sky is left unpainted.
 GROUPS = {
     "vehicle": ((13, 14, 15, 16, 17, 18), (255, 151, 41), .72),   # --accent
     "person": ((11, 12), (58, 172, 245), .80),                     # amber
-    "road": ((0, 1), (130, 60, 24), .55),                          # 남색
+    "road": ((0, 1), (130, 60, 24), .55),                          # navy
     "green": ((8, 9), (116, 128, 28), .45),                        # teal
     "built": ((2, 3, 4), (118, 88, 70), .35),                      # slate
-    "street": ((5, 6, 7), (235, 205, 185), .55),                   # 기둥 · 신호 · 표지
+    "street": ((5, 6, 7), (235, 205, 185), .55),                   # poles, signals, signs
 }
-EDGE = np.array((255, 235, 220), np.float32)   # 경계선: 옅은 청백
-MIN_AREA = 0.0005                               # 이보다 작은 조각은 지운다 (frame 면적 비)
+EDGE = np.array((255, 235, 220), np.float32)   # edge line: pale blue-white
+MIN_AREA = 0.0005                               # smaller fragments are removed (fraction of frame area)
 
 
 def cover(img: np.ndarray, ratio: float = STAGE) -> np.ndarray:
@@ -83,7 +81,7 @@ class Segmenter:
 
 
 def steady(prev: np.ndarray | None, cur: np.ndarray, nxt: np.ndarray | None) -> np.ndarray:
-    """앞 · 뒤 frame 이 같은 label 인데 지금만 다르면 깜빡임이다 — 앞 · 뒤를 따른다."""
+    """A pixel that differs only in this frame while the previous and next frames agree is flicker; follow them."""
     if prev is None or nxt is None:
         return cur
     out = cur.copy()
@@ -93,8 +91,8 @@ def steady(prev: np.ndarray | None, cur: np.ndarray, nxt: np.ndarray | None) -> 
 
 
 def tidy(labels: np.ndarray) -> np.ndarray:
-    """작은 조각을 둘레의 class 로 메운다. 가로등 · 표지 주변의 잔 경계선이 자글거렸고, 지우기만 하면
-    그 자리가 칠하지 않은 검은 구멍으로 남았다 — 가장 가까운 남은 pixel 의 class 를 받는다."""
+    """Fill small fragments with the surrounding class. Tiny fragments around street lights and signs make the edges
+    jitter, and just deleting them leaves unpainted black holes, so each hole takes the class of the nearest kept pixel."""
     out = labels.copy()
     floor = MIN_AREA * labels.size
     for c in np.unique(labels):
@@ -106,10 +104,10 @@ def tidy(labels: np.ndarray) -> np.ndarray:
             out[np.isin(comp, small)] = NONE
     holes = out == NONE
     if holes.any():
-        # 0 인 자리 (남은 pixel) 마다 번호를 매기고, 구멍은 가장 가까운 번호의 class 를 받는다
+        # Label every zero (kept pixel); each hole takes the class of the nearest label
         _, idx = cv2.distanceTransformWithLabels(holes.astype(np.uint8), cv2.DIST_L2, 5,
                                                  labelType=cv2.DIST_LABEL_PIXEL)
-        kept = out[~holes]                       # 번호 순서 = 남은 pixel 의 scan 순서
+        kept = out[~holes]                       # label order = scan order of the kept pixels
         out[holes] = kept[idx[holes] - 1]
     return out
 
@@ -120,7 +118,7 @@ def paint(img: np.ndarray, labels: np.ndarray) -> np.ndarray:
     for ids, bgr, a in GROUPS.values():
         sel = np.isin(labels, ids)
         out[sel] = base[sel] * (1 - a) + np.array(bgr, np.float32) * a
-    # class 경계 — 하늘과 칠하지 않는 자리 사이는 긋지 않는다
+    # class edges; none between the sky and unpainted areas
     painted = (labels != SKY) & (labels != NONE)
     grad = cv2.morphologyEx(labels, cv2.MORPH_GRADIENT, np.ones((3, 3), np.uint8)) > 0
     edge = grad & cv2.dilate(painted.astype(np.uint8), np.ones((3, 3), np.uint8)).astype(bool)
@@ -162,8 +160,8 @@ def main() -> int:
         fps = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries",
                               "stream=r_frame_rate", "-of", "csv=p=0", str(args.videos / VIDEO)],
                              capture_output=True, text=True, check=True).stdout.strip()
-        # H.264 main — hardware decode 가 가장 넓게 된다 (Safari 포함). VP9 는 GPU decode 가 실패하는
-        # 경로가 있었고, 화면은 어차피 첫 frame 이 실제로 나온 뒤에만 영상을 보인다 (intro-app.js).
+        # H.264 main has the widest hardware decode support (Safari included). VP9 GPU decode can fail on some
+        # paths; the page only shows the video once the first frame has actually rendered (intro-app.js).
         subprocess.run(["ffmpeg", "-loglevel", "error", "-y", "-framerate", fps, "-i", str(tmp / "out_%03d.png"),
                         "-c:v", "libx264", "-profile:v", "main", "-preset", "slow", "-crf", str(args.crf),
                         "-pix_fmt", "yuv420p", "-movflags", "+faststart", "-an", str(args.out / "seg.mp4")],

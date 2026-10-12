@@ -1,7 +1,6 @@
-"""공개 DEEPX Model Zoo(developer.deepx.ai/modelzoo) 리더.
+"""Reader for the public DEEPX Model Zoo (developer.deepx.ai/modelzoo).
 
-예전 이 파일은 서버 렌더 HTML 테이블(3행 그룹 헤더)을 파싱했다. 페이지가
-리팩토링되면서 그 테이블은 사라지고, 문서 안에 구조화된 페이로드가 실린다:
+The page embeds a structured payload in the document:
 
     window.__MODEL_ZOO_DATA__ = {
       fields: [task, name, display, dataset, input, ops, params, license,
@@ -11,15 +10,13 @@
       rows:   [[...], ...]
     }
 
-공식 JSON 엔드포인트는 없다 — 실측으로 확인했다(페이지 네트워크 요청 6건,
-XHR/fetch 0건, /modelzoo/*.json 404, /api/modelzoo 는 페이지로 301, 버킷 목록 403).
-그래서 이건 여전히 스크래핑이지만, 대상이 HTML 테이블에서 인라인 JSON 으로
-바뀐 것이고 그쪽이 훨씬 튼튼하다: `fields` 가 열 이름을 주므로 위치에 기대지
-않는다. 이 저장소는 위치 기반 파싱 탓에 카탈로그 캐시의 필드가 한 칸씩 밀려
-(`fps` ← `fps_per_watt`) 잘못된 성능 수치를 내보낸 전례가 있다.
+There is no official JSON endpoint (the page makes no XHR/fetch calls, /modelzoo/*.json is 404,
+/api/modelzoo redirects to the page, the bucket listing is 403), so this is still scraping — but of inline JSON,
+which is far sturdier than a table: `fields` names the columns, so nothing depends on position. Positional parsing
+can shift every field by one column (`fps` ← `fps_per_watt`) and publish wrong performance numbers.
 
-공식 계약이 아니므로 **조용히 실패하지 않는다.** 전역이 없거나 필수 열이
-사라지면 부분 카탈로그를 만드는 대신 예외를 던진다.
+Since this is not an official contract, it **never fails silently**: if the global or a required column is
+missing, it raises instead of building a partial catalog.
 """
 from __future__ import annotations
 
@@ -28,14 +25,14 @@ from typing import Any
 
 _GLOBAL = "window.__MODEL_ZOO_DATA__"
 
-# 없으면 읽을 수 없는 열. (qm* 처럼 희소한 것은 필수가 아니다.)
+# Columns the reader cannot do without. (Sparse ones such as qm* are optional.)
 _REQUIRED_FIELDS = (
     "task", "name", "display", "dataset", "input", "ops", "params",
     "license", "metric", "source", "rawAcc", "onnx",
     "qlAcc", "qlDxnn", "qlJson", "fps", "fpsw",
 )
 
-# 페이로드의 열 이름 → 우리가 쓰는 아티팩트 이름
+# payload column name → our artifact name
 _ARTIFACTS = {
     "onnx": "onnx",
     "qlDxnn": "qlite_dxnn", "qlJson": "qlite_json",
@@ -46,10 +43,10 @@ _ACCURACY = {"rawAcc": "raw", "qlAcc": "qlite", "qpAcc": "qpro", "qmAcc": "qmast
 
 
 def _extract_payload(html: str) -> dict[str, Any]:
-    """전역 대입문에서 객체를 꺼낸다.
+    """Pull the object out of the global assignment.
 
-    끝은 **괄호 균형**으로 찾는다. 정규식으로 첫 `}` 를 잡으면 중첩 객체에서
-    잘리고, 그러면 절반짜리 JSON 을 파싱하려다 엉뚱한 곳에서 터진다.
+    The end is found by **brace balance**. A regex up to the first `}` would cut a
+    nested object short and then fail somewhere unrelated while parsing half the JSON.
     """
     at = html.find(_GLOBAL)
     if at < 0:
@@ -82,7 +79,7 @@ def _as_number(value):
 
 
 def parse_public_payload(html: str) -> list[dict[str, Any]]:
-    """페이지 HTML → 모델 행 목록."""
+    """Page HTML → list of model rows."""
     payload = _extract_payload(html)
     fields = payload.get("fields")
     rows = payload.get("rows")
@@ -108,7 +105,7 @@ def parse_public_payload(html: str) -> list[dict[str, Any]]:
         for field, key in _ARTIFACTS.items():
             raw = cell(row, field)
             if raw:
-                # 페이로드의 상대경로는 `~onnx/...` 꼴이다.
+                # Relative paths in the payload look like `~onnx/...`.
                 artifacts[key] = base + str(raw).lstrip("~/")
         out.append({
             "task": cell(row, "task"),
@@ -130,12 +127,10 @@ def parse_public_payload(html: str) -> list[dict[str, Any]]:
     return out
 
 
-# ── 어댑터 인터페이스 ────────────────────────────────────────
-# 어댑터와 studio_id_map 은 {모델id: {leaf 경로: 값}} 을 기대한다. leaf 경로는
-# 예전 HTML 파서가 쓰던 것과 같다 — 스키마는 이미 specification.dataset /
-# parameters / metric.name / evaluation.qmaster 를 정의해 두고 있었고, 채우는
-# 쪽이 없었을 뿐이다. 그래서 흡수는 새 경로를 만드는 일이 아니라 비어 있던
-# 자리를 채우는 일이다.
+# ── Adapter interface ────────────────────────────────────
+# The adapter and studio_id_map expect {model_id: {leaf path: value}}. The leaf
+# paths are ones the schema already defines (specification.dataset /
+# parameters / metric.name / evaluation.qmaster ...); this reader only fills them.
 
 _LEAF_OF = {
     "display":      "display.class_name",
@@ -156,10 +151,10 @@ _ACCURACY_LEAF = {
 
 
 def _artifact_model_id(artifacts: dict) -> str:
-    """아티팩트 파일명에서 모델 id 를 만든다.
+    """Build the model id from an artifact file name.
 
-    canonical_model_id 에 **전체 파일명**을 넘긴다. 미리 확장자를 떼고 넘기면
-    두 번 깎여서 숫자 안에 점이 있는 이름이 망가진다
+    Pass the **whole file name** to canonical_model_id. Stripping the extension first
+    strips it twice and breaks names with a dot inside a number
     (`...mobilnet0.5_120x120.dxnn` → `...mobilnet0`).
     """
     from dx_modelzoo.metadata.normalization import canonical_model_id
@@ -172,7 +167,7 @@ def _artifact_model_id(artifacts: dict) -> str:
 
 
 def parse_public_modelzoo_html(html: str) -> tuple[dict, list[str]]:
-    """공개 페이지 HTML → (모델 dict, 경고 목록)."""
+    """Public page HTML → (model dict, warnings)."""
     warnings: list[str] = []
     models: dict[str, dict] = {}
 
@@ -184,8 +179,8 @@ def parse_public_modelzoo_html(html: str) -> tuple[dict, list[str]]:
                 fields[leaf] = value
         for tier, leaf in _ACCURACY_LEAF.items():
             value = row["accuracy"].get(tier)
-            # 없는 값은 키를 만들지 않는다. merge 는 '값이 있는 소스' 를 고르므로
-            # None 을 넣으면 다른 소스가 채운 값을 빈 값으로 덮어쓸 수 있다.
+            # Leave out missing values. merge picks "the source that has a value",
+            # so a None here could blank out a value another source filled in.
             if value is not None:
                 fields[leaf] = value
         for key, url in row["artifacts"].items():

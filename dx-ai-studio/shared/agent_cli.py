@@ -1,7 +1,7 @@
 """Coding-agent CLIs on this PC: which are installed and logged in, and which one Studio uses.
 
 Chat (shared/chat) and Agent Dev (dx_agent_dev) both read this, so the login rules live in one place.
-shared must not import dx_agent_dev (layering). Spec: docs/superpowers/specs/2026-10-11-chat-settings-redesign-design.md
+shared must not import dx_agent_dev (layering).
 """
 from __future__ import annotations
 

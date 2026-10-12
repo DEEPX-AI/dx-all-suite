@@ -18,9 +18,8 @@ function refApiBase(){
 }
 
 /* ════════════  DATA  ════════════
-   여섯 언어를 한 자리에 — 예전에는 refT5 (en · ko · ja · zh-CN · zh-TW) 로 스페인어가 없었고, 화면과 다른
-   사실 (설정 카드 5개, 없는 API · RTSP 입력 칸, 틀린 기본값) 이 많았다. 사실은 코드와 대조했다
-   (release audit A-9, 2026-10-02). 값이 언어와 무관하면 문자열 하나, 아니면 { en, ko, ja, 'zh-CN', 'zh-TW', es }. */
+   All six languages in one place, with facts checked against the code.
+   A value that does not depend on language is one string, otherwise { en, ko, ja, 'zh-CN', 'zh-TW', es }. */
 function refL(o){
   if(o==null) return '';
   if(typeof o!=='object') return String(o);
@@ -36,7 +35,7 @@ function _rTbl(head,rows){
   return '<table class="ref-tbl"><tr>'+head.map(function(h){return '<th>'+refL(h)+'</th>';}).join('')+'</tr>'+
     rows.map(function(r){return '<tr>'+r.map(function(c){return '<td>'+refL(c)+'</td>';}).join('')+'</tr>';}).join('')+'</table>';
 }
-var _R={  /* 여러 곳에서 쓰는 말 */
+var _R={  /* words used in several places */
   tips:{en:'Tips',ko:'팁',ja:'ヒント','zh-CN':'提示','zh-TW':'提示',es:'Consejos'},
   overview:{en:'Overview',ko:'개요',ja:'概要','zh-CN':'概述','zh-TW':'概述',es:'Descripción general'},
   workflow:{en:'Workflow',ko:'작업 순서',ja:'手順','zh-CN':'操作流程','zh-TW':'操作流程',es:'Flujo de trabajo'},
@@ -388,9 +387,9 @@ function renderRef(){
 
 /* ════════════  INTERACTIONS  ════════════ */
 
-/* 주제 아이콘은 sprite 이름 (아이콘 체계 단계 5). 옛 글자 icon 은 그대로. */
-/* 주제 이름 중 화면 이름 (Models · Outputs · Run Inference …) 은 탭과 같은 사전 키라 T() 로 번역한다.
-   예전에는 ja · es 에서도 영어로 보였다 (탭은 번역되는데). */
+/* Topic icons are sprite names. Old text icons stay as they are. */
+/* Topic names that are screen names (Models, Outputs, Run Inference, …) share the tabs' dictionary keys,
+   so T() translates them like the tabs. */
 function _refName(s){return typeof T==='function'?T(s.name):s.name;}
 
 function _refIco(n){return (/^[a-z0-9_-]+$/.test(n||'')&&typeof DXIcon==='function')?DXIcon(n):(n||'');}
@@ -413,22 +412,22 @@ function selectRefSection(secId,card){
   _SEC.forEach(function(s){if(s.id===secId) selected=s;});
   if(!selected) return;
 
-  /* 같은 카드 다시 클릭 → 닫기 */
+  /* Clicking the same card again closes it */
   if(card&&card.classList.contains('active')){closeRefDetail();return;}
 
-  /* 기존 확장 패널 제거 */
+  /* Remove the existing expanded panel */
   var old=document.getElementById('ref-expand');
   if(old) old.remove();
 
-  /* 활성 카드 표시 */
+  /* Mark the active card */
   document.querySelectorAll('.ref-topic-card').forEach(function(c){c.classList.remove('active');});
   if(card) card.classList.add('active');
 
-  /* 확장 패널 생성 */
+  /* Build the expanded panel */
   var expand=document.createElement('div');
   expand.className='ref-expand';expand.id='ref-expand';
 
-  /* 화살표 */
+  /* Arrow */
   var arrow=document.createElement('div');
   arrow.className='ref-expand-arrow';
   var row=card?card.closest('.ref-card-row'):null;
@@ -439,18 +438,18 @@ function selectRefSection(secId,card){
   }
   expand.appendChild(arrow);
 
-  /* 닫기 버튼 */
+  /* Close button */
   var closeBtn=document.createElement('button');
   closeBtn.className='ref-expand-close';closeBtn.innerHTML=(typeof DXIcon==='function')?DXIcon('x'):'';closeBtn.setAttribute('aria-label','Close');
     expand.appendChild(closeBtn);
 
-  /* 상세 내용 */
+  /* Detail content */
   var inner=document.createElement('div');
   inner.className='ref-expand-inner';inner.id='ref-detail';
   inner.innerHTML=_refBuildDetail(selected);
   expand.appendChild(inner);
 
-  /* 카드 행 바로 뒤에 삽입 */
+  /* Insert right after the card row */
   if(row&&row.nextSibling) row.parentNode.insertBefore(expand,row.nextSibling);
   else if(row) row.parentNode.appendChild(expand);
 
@@ -485,7 +484,7 @@ function filterRefCategory(catId,btn){
     var match=catId==='all'||el.getAttribute('data-ref-cat')===catId||el.id==='ref-cat-'+catId;
     el.style.display=match?'':'none';
   });
-  /* 카드 행 내부 카드도 모두 보이게 */
+  /* Show every card inside the card rows too */
   document.querySelectorAll('.ref-topic-card').forEach(function(c){c.style.display='';});
   var searchInput=document.getElementById('ref-search');
   if(searchInput) searchInput.value='';
@@ -533,7 +532,7 @@ function bindEvents(){
   document.querySelectorAll('.ref-topic-card').forEach(function(s){
     s.style.display=q&&!s.textContent.toLowerCase().includes(q)?'none':'';
   });
-  /* 카드가 없는 카테고리+행 숨기기 */
+  /* Hide categories and rows without cards */
   document.querySelectorAll('.ref-card-row').forEach(function(row){
     var catId=row.getAttribute('data-ref-cat');
     var hasVisible=false;

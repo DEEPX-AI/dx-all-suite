@@ -1,6 +1,6 @@
 /**
  * DX EdgeGuide — Main Entry Point
- * 모듈 와이어링: DataLoader, I18n, WizardController, RecommendEngine,
+ * Module wiring: DataLoader, I18n, WizardController, RecommendEngine,
  *               CardRenderer, BarChart, GaugeChart, ExplorerView, PlannerWorkspace
  */
 
@@ -29,7 +29,7 @@ function recommendationSignature(inputs, compareId) {
 }
 
 // ── Share link: build a URL that fully reproduces the current inputs ──
-// (task/size/cameras/fps/ort plus priority + latency, which were previously dropped).
+// (task/size/cameras/fps/ort plus priority + latency).
 function buildShareParams(inputs) {
   const params = new URLSearchParams();
   if (!inputs) return params;
@@ -358,7 +358,8 @@ async function initConfigurator() {
 
 document.addEventListener('DOMContentLoaded', initConfigurator);
 
-// 조건 · 결과 요약 칩은 추천을 돌릴 때만 그려져, 언어를 바꿔도 이전 언어로 남았다 (release audit P-3).
+// The condition and result summary chips are drawn only when a recommendation runs, so redraw them on a language
+// change.
 if (typeof registerPlannerLangRefresher === 'function') {
   registerPlannerLangRefresher(function() {
     if (_lastInputs && _lastResults) PlannerWorkspace.renderRecommendationSummary(_lastInputs, _lastResults);

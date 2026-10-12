@@ -31,7 +31,7 @@ def _sweep_stale_temp(max_age_s=6 * 3600):
             except OSError:
                 pass
 
-# TaskSet: per-model layout 의 새 task key (face_recognition · person_reid …) 도 같은 집합에 속한다 (shared/tasks.py)
+# TaskSet: the per-model layout's new task keys (face_recognition, person_reid, …) belong to the same set (shared/tasks.py)
 _PAIR_COMPARE_CATS = TaskSet({"embedding", "reid"})
 _STDOUT_TAG_CATS = TaskSet({"classification", "attribute_recognition"})
 _SIDE_BY_SIDE_OUTPUT_CATS = TaskSet({
@@ -59,7 +59,7 @@ def _python_script_path(category, model_name, variant, py_dir=None):
     pf = py_dir / category / model_name / f"{model_name}_{variant}.py"
     if pf.exists():
         return pf
-    # per-model layout: <task>/<family>/<stem>/ — 폴더는 resolver 가 찾는다 (shared/dx_app_layout.py)
+    # per-model layout: <task>/<family>/<stem>/; the resolver finds the folder (shared/dx_app_layout.py)
     from shared import dx_app_layout as layout
     pf = layout.python_script(py_dir.parent.parent, category, model_name, variant)
     return pf if pf.exists() else None

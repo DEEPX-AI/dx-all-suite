@@ -35,9 +35,9 @@ def main() -> int:
     tutorial_records = extract_tutorial_records(args.repo)
     findings = findings + classify_records(tutorial_records) + classify_stale_copy(tutorial_records)
     records = records + tutorial_records
-    # 칸이 채워졌는지(missing-language / stale-copy) 위의 층. 리포트에 실어야
-    # 사람이 본다 — 테스트에만 두면 상한만 지킬 뿐 내용이 보이지 않는다.
-    # --fail-on-findings 는 missing-language 만 막으므로 게이트를 붉히지는 않는다.
+    # Quality checks on top of "is every cell filled". They go in the report so people
+    # see them; a test alone would only cap the count. --fail-on-findings blocks only
+    # missing-language, so these never fail the gate.
     findings = findings + (classify_terminology_drift(records)
                            + classify_placeholder_mismatch(records)
                            + classify_length_overflow(records))

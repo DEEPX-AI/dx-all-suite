@@ -153,7 +153,7 @@ main { display: flex; height: calc(100vh - var(--dx-module-header-h)); overflow:
 .log-actions { display: flex; gap: var(--sp-1); }
 .log-btn { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: var(--fs-xs); padding: 2px 4px; border-radius: 3px; }
 .log-btn:hover { background: rgba(var(--accent-rgb),0.15); color: var(--text-primary); }
-/* 아이콘 크기 (아이콘 체계 단계 5) — 글자 크기 1em 이 너무 작은 자리 */
+/* Icon sizes where the default 1em is too small */
 .log-btn .dx-ico { width: 14px; height: 14px; }
 .btn-browse .dx-ico, .sample-select-btn .dx-ico { width: 16px; height: 16px; }
 .agentic-chat-icon .dx-ico { width: 18px; height: 18px; color: var(--accent); }
@@ -161,7 +161,7 @@ main { display: flex; height: calc(100vh - var(--dx-module-header-h)); overflow:
 .explorer-close .dx-ico, .fp-close .dx-ico, .wizard-close .dx-ico { width: 16px; height: 16px; }
 .cat-chevron .dx-ico, .op-chevron .dx-ico { width: 12px; height: 12px; }
 .viewer-empty-icon .dx-ico { width: 44px; height: 44px; opacity: .7; }
-/* Compile 잠금 이유는 버튼 줄 아래 한 줄로 (버튼 사이에 끼면 낱말마다 줄이 바뀌었다) */
+/* The Compile lock reason gets its own line below the buttons; squeezed between them it wrapped word by word */
 .form-actions:has(.compile-gate-reason:not([hidden])) { flex-wrap: wrap; }
 .form-actions .compile-gate-reason { flex-basis: 100%; order: 10; }
 .ns-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: currentColor; margin-right: var(--sp-1); vertical-align: 1px; }
@@ -268,7 +268,7 @@ main { display: flex; height: calc(100vh - var(--dx-module-header-h)); overflow:
 .explorer-category-body.expanded { display: block; }
 .explorer-optype { margin-bottom: 1px; }
 .explorer-optype-header {
-    /* 들여쓰기 = 카테고리 padding(12) + cat-chevron(16): 셰브론이 위 줄 점 아래에 온다 */
+    /* Indent = category padding(12) + cat-chevron(16): the chevron lines up under the dot above */
     display: flex; align-items: center; padding: 4px 12px 4px calc(12px + 16px);
     cursor: pointer; font-size: var(--fs-sm); color: var(--text-primary);
     user-select: none; transition: background 0.1s var(--ease);
@@ -284,7 +284,7 @@ main { display: flex; height: calc(100vh - var(--dx-module-header-h)); overflow:
 .explorer-optype-body { display: none; }
 .explorer-optype-body.expanded { display: block; }
 .explorer-node-item {
-    /* 들여쓰기 = optype 들여쓰기(28) + op-chevron(14): 노드 이름이 op 라벨 아래에 온다 */
+    /* Indent = optype indent(28) + op-chevron(14): the node name lines up under the op label */
     display: block; padding: 4px 12px 4px calc(28px + 14px); font-size: var(--fs-xs);
     color: var(--text-muted); cursor: pointer; white-space: nowrap;
     overflow: hidden; text-overflow: ellipsis; transition: background 0.1s var(--ease), color 0.1s var(--ease);
@@ -297,20 +297,19 @@ main { display: flex; height: calc(100vh - var(--dx-module-header-h)); overflow:
     display: flex; align-items: center; height: 32px; background: var(--surface-panel);
     color: var(--text-secondary); font-size: var(--fs-base); padding: 0 var(--sp-3); gap: var(--sp-3); flex-shrink: 0;
     border-top: 1px solid var(--border-subtle);
-    /* 라벨이 긴 언어에서 이 띠가 40-43px 넘쳐 .viewer-panel 을 옆으로 밀었고,
-       그래프를 스크롤해야 "Expandir todo" 가 보였다. 이제 카운터가 먼저
-       줄고, 그래도 모자라면 이 띠 안에서만 스크롤한다. */
+    /* In languages with long labels this bar overflowed and pushed
+       .viewer-panel sideways. Let it scroll within itself instead. */
     min-width: 0; overflow-x: auto; overscroll-behavior-x: contain;
     scrollbar-width: none;
 }
 .viewer-status-bar::-webkit-scrollbar { height: 0; }
 .viewer-status-bar span { white-space: nowrap; }
-/* 숫자는 정보고 버튼은 동작이다 — 자리가 모자라면 숫자가 먼저 양보한다. */
+/* Counts are information, buttons are actions: when space is short, the counts give way first. */
 .viewer-status-counts {
     display: flex; align-items: center; gap: var(--sp-3);
     min-width: 0; overflow: hidden; flex: 0 1 auto;
 }
-/* 숫자를 말줄임하면 "No… Ed…" 가 되어 아무것도 알 수 없었다 (1024px, release audit C-4) — 줄이지 않고, 모자라면 띠 안에서 스크롤한다 */
+/* Truncated counts ("No… Ed…") say nothing — keep them whole and let the bar scroll instead */
 .viewer-status-counts { overflow: visible; flex: 0 0 auto; }
 .viewer-status-counts span { flex-shrink: 0; }
 .viewer-status-bar > .btn { flex-shrink: 0; }
@@ -408,7 +407,7 @@ main { display: flex; height: calc(100vh - var(--dx-module-header-h)); overflow:
 .form-panel {
   flex: 0 1 550px; width: min(550px, 42vw); max-width: 550px; min-width: min(320px, 100%);
   overflow-y: auto; padding: 2rem; border-left: 1px solid var(--border-subtle); background: var(--surface-page);
-  padding-bottom: calc(2rem + var(--sp-7) + var(--sp-5));   /* 채팅 단추 (오른쪽 아래) 가 맨 아래 단추를 덮지 않게 (release audit L-24) */
+  padding-bottom: calc(2rem + var(--sp-7) + var(--sp-5));   /* Keep the chat button (bottom right) from covering the last button */
 }
 .form-panel .compile-form { max-width: 600px; }
 .help-text { font-size: var(--fs-xs); color: var(--text-muted); margin: 0.3rem 0 0.8rem; line-height: 1.45; }
@@ -440,7 +439,7 @@ main { display: flex; height: calc(100vh - var(--dx-module-header-h)); overflow:
     display: flex; flex-direction: column; gap: 2px;
 }
 .info-tensor .info-tensor-row1 { display: flex; align-items: center; gap: 4px; }
-/* 둘째 줄을 이름 첫 글자에 맞춘다: 배지 min-width(18px) + row1 gap(4px) */
+/* Align the second line with the first letter of the name: badge min-width(18px) + row1 gap(4px) */
 .info-tensor .info-tensor-row2 { display: flex; align-items: center; gap: 4px; padding-left: calc(18px + 4px); }
 .info-tensor-param { background: rgba(217,119,6,.1); border-color: rgba(217,119,6,.25); }
 .info-tensor-activation { background: rgba(var(--accent-rgb),.08); border-color: rgba(var(--accent-rgb),.2); }
@@ -582,14 +581,14 @@ body.lang-zh-CN .zh-TW { display: none !important; }
 body.lang-zh-TW .zh-CN { display: none !important; }
 
 /* ─── Setup Panel ─────────────────────────────── */
-/* 공용 단계 목록의 압축형 (.dx-steps--compact, shared/static/dx-components.css) 위에 compiler 만의 것.
-   모두 끝나면 한 줄 ("Setup ready · …") 로 접힌다. */
+/* Compiler-specific additions on top of the shared compact step list (.dx-steps--compact,
+   shared/static/dx-components.css). Collapses to one line ("Setup ready · …") when every step is done. */
 
 .setup-panel {
   margin-bottom: 16px;
 }
 
-/* 첫 상태가 오기 전 — 머리 줄만 (setup_panel.js 가 aria-busy 를 뗀다). */
+/* Before the first status arrives, show only the header (setup_panel.js removes aria-busy). */
 .setup-panel[aria-busy="true"] .setup-body,
 .setup-panel[aria-busy="true"] .dx-steps-progress { visibility: hidden; height: 0; overflow: hidden; }
 
@@ -650,7 +649,7 @@ body.lang-zh-TW .zh-CN { display: none !important; }
   word-break: break-word;
 }
 
-/* SDK 가 없을 때 Compile 옆의 이유 (setup_panel.js _disableCompileForm) */
+/* Reason shown next to Compile when the SDK is missing (setup_panel.js _disableCompileForm) */
 .compile-gate-reason {
   display: inline-flex;
   align-items: center;
@@ -661,7 +660,7 @@ body.lang-zh-TW .zh-CN { display: none !important; }
 
 .compile-gate-reason[hidden] { display: none; }
 
-/* ─── 샘플 모델 선택 드롭다운 ──────────────────── */
+/* ─── Sample model dropdown ──────────────────── */
 
 .sample-select-container {
   display: inline-block;
@@ -868,13 +867,13 @@ body.lang-zh-TW .zh-CN { display: none !important; }
 }
 /* The 280px explorer becomes an overlay drawer instead of squeezing the graph/form. */
 @media (max-width: 768px) {
-  /* 좁은 화면에서는 그래프와 폼을 위아래로 쌓는다 — 나란히 두면 그래프가 0px 까지 눌리고 폼이 그 위를 덮었다
-     (release audit C-4). main 은 그대로 자기 안에서 스크롤한다. */
+  /* Stack graph and form on narrow screens — side by side, the graph gets squeezed to 0px
+     and the form covers it. main still scrolls within itself. */
   main { position: relative; flex-direction: column; }
   .viewer-panel { flex: 0 0 55vh; min-height: 320px; }
   .form-panel { flex: 0 0 auto; width: 100%; max-width: none; min-width: 0; border-left: 0; border-top: 1px solid var(--border-subtle); overflow: visible; }
 }
-/* 폰 폭: 범례 패널이 그래프 폭을 거의 다 차지했다 — 숨기고 그래프에 자리를 준다 */
+/* Phone width: the legend panel would take almost all of the graph's width — hide it */
 @media (max-width: 600px) {
   .viewer-sidebar { display: none; }
   .explorer-panel { width: min(280px, 82vw); }
@@ -883,8 +882,8 @@ body.lang-zh-TW .zh-CN { display: none !important; }
     box-shadow: var(--shadow-lg);
   }
   .compile-form { padding: 1.2rem; }
-  /* 폰 — 단계 탭 (Quant Diagnosis · DXNN) 과 Compile 옆 버튼들이 화면 밖으로 잘렸다 (2026-10-11 matrix).
-     탭은 띠 안에서 옆으로 넘기고, 버튼은 다음 줄로 접는다. */
+  /* Phone: keep the phase tabs (Quant Diagnosis · DXNN) and the buttons next to Compile on screen.
+     Tabs scroll sideways within their bar; buttons wrap to the next line. */
   .viewer-tabs { overflow-x: auto; scrollbar-width: none; overscroll-behavior-x: contain; }
   .viewer-tabs::-webkit-scrollbar { height: 0; }
   .viewer-tab { white-space: nowrap; flex-shrink: 0; }

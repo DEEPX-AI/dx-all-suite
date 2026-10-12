@@ -70,8 +70,8 @@ let _infDefaultPath = 'cpp|sync';
 
 function _currentExecPath() {
   const sel = document.getElementById('infExecPath');
-  // 선택지가 하나면 selector 를 그리지 않는다 — 그때 예전에는 늘 cpp|sync 로 불러, python 예제만 있는
-  // model 이 "Binary not found" 로 실패했다 (2026-10-11 audit). 그 하나의 경로를 쓴다.
+  // With a single choice no selector is drawn — use that one path rather than defaulting to cpp|sync,
+  // which fails with "Binary not found" for a model that has only a python example.
   const raw = (sel && sel.value) || _infDefaultPath;
   const [lang, ...rest] = raw.split('|');
   return { lang: lang || 'cpp', variant: rest.join('|') || 'sync' };
@@ -193,7 +193,7 @@ function renderInferencePanel(model) {
 }
 
 /* -----------------------------------------------------------------------
- * data-attribute 기반 onclick 헬퍼 — inline JS 문자열 보간 제거
+ * onclick helpers based on data attributes — no string interpolation into inline JS
  * ---------------------------------------------------------------------- */
 function switchInferenceTabFromButton(btn, tab) {
   const d = btn.dataset;
@@ -340,7 +340,7 @@ function clearInferenceResults() {
 }
 
 /* -----------------------------------------------------------------------
- * runInference — 공통 inference 실행
+ * runInference — shared inference run
  * isSample: true → #inferenceResult (preview area)
  *           false → #inferenceResultUpload (upload area)
  * ---------------------------------------------------------------------- */

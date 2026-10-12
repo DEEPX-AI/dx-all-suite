@@ -42,8 +42,8 @@ _chat_engine = ChatEngine(
 )
 
 
-# ── 통합 App Shell (Option A) ──────────────────────────────────
-# NPU 목 데이터 배너는 dx_monitor 고유 컨트롤이라 공유 헤더의 .toolbar 슬롯 안에 둔다.
+# ── Shared App Shell ──────────────────────────────────────────
+# The NPU mock-data banner is specific to dx_monitor, so it goes in the shared header's .toolbar slot.
 _MOCK_BANNER = (
     '<span id="mock-banner" class="mock-banner" style="display:none"></span>'
 )

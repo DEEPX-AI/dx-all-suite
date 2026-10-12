@@ -1,9 +1,7 @@
 """Each module's offline-assistant answers (no API key), in all six languages.
 
-They used to live in each server.py with Korean and English only, so ja / zh / es users got English, and several
-described screens that no longer exist ("the Object Detection tab", "the Developer tab", a TCO calculator, "340+
-models"). One table here keeps them current and lets a contract test check every language
-(tests/shared/test_module_fallbacks.py). 2026-10-02 release audit A-22 / X-2b.
+One table keeps every module's answers current and lets a contract test check every language.
+Contract: tests/shared/test_module_fallbacks.py
 
 Each rule is (keywords, {lang: answer}); FallbackEngine matches a keyword in the user's message.
 """
@@ -78,7 +76,7 @@ _RULES = {
         }),
     ],
     "dx_modelzoo": [
-        # 구체적인 질문 (다운로드 · 추론) 이 먼저 — 첫 일치가 이긴다
+        # Specific questions (download, inference) come first: the first match wins
         (["download", "다운로드", "설치", "ダウンロード", "下载", "下載", "descargar"], {
             "en": "Download a model (Q-Lite or Q-Pro) from its detail page.",
             "ko": "모델 상세 화면에서 Q-Lite 또는 Q-Pro로 다운로드하세요.",

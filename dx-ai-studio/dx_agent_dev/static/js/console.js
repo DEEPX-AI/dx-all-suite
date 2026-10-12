@@ -1,11 +1,11 @@
-/* DX Agent Dev — Agent Console (채팅 UX + Activity 패널 + SSE) */
+/* DX Agent Dev — Agent Console (chat UX + Activity panel + SSE) */
 (function () {
   let _running = false;
   let _agents = [];
   let _showcaseCache = null;
   let _showcasePromise = null;
   let _turn = null;
-  /* error 뒤에도 server 는 done 으로 끝낸다 — 이 실행이 실패했는지 done 까지 기억한다. */
+  /* After an error the server still ends with done, so remember until done whether this run failed. */
   let _runFailed = false;
   let _heartbeatTimer = null;
   let _agentControlsBound = false;
@@ -34,8 +34,7 @@
     if (stop) { stop.hidden = !busy; stop.disabled = false; }
   }
 
-  /* 예전에는 이 콘솔에 멈춤이 없었다 — 몇 분짜리 빌드를 잘못 보내면 끝날 때까지 기다려야 했다
-     (home 콘솔에만 있었다, 2026-10-11 audit). */
+  /* Stop a run: a minutes-long build sent by mistake should not have to run to the end. */
   function stopRun() {
     if (!_running || _stopRequested) return;
     _stopRequested = true;
@@ -45,7 +44,7 @@
     fetch('/api/agent/cancel', { method: 'POST' }).catch(function () {});
   }
 
-  /* stream 이 done 없이 끝났다 — 서버가 죽었거나 연결이 끊겼다. 예전에는 "Running..." 이 그대로 남았다. */
+  /* The stream ended without done: the server died or the connection dropped. Do not leave "Running..." on screen. */
   function finishWithoutDone() {
     if (!_turn) return;
     if (_stopRequested) {
@@ -192,8 +191,8 @@
   }
 
   var _STUDIO_ORDER = ['claude', 'copilot', 'cursor', 'codex', 'opencode'];
-  /* Home 과 같은 agent 로 시작한다 — 고른 것 (studio_agent) → 로그인된 첫 agent (Studio 순서) → 첫 agent.
-     spec 2026-10-11 chat settings §3.5, 계약: tests/dx_agent_dev/test_studio_agent_console_browser.py */
+  /* Start with the same agent as Home: the picked one (studio_agent) -> first logged-in agent (Studio order) -> first agent.
+     Contract: tests/dx_agent_dev/test_studio_agent_console_browser.py */
   function initialAgent(agents, studio) {
     const names = agents.map(function (a) { return a.name; });
     if (studio && names.indexOf(studio.agent) !== -1) return studio.agent;
@@ -236,7 +235,7 @@
       _agentControlsBound = true;
       agentSel.addEventListener('change', function () {
         const found = _agents.find(function (x) { return x.name === agentSel.value; });
-        if (modelSel) delete modelSel.dataset.userPicked;  // 다른 에이전트 — 그 에이전트의 기본 모델부터
+        if (modelSel) delete modelSel.dataset.userPicked;  // another agent: start from that agent's default model
         fillModels(found);
         saveStudioAgent();
       });
@@ -244,7 +243,7 @@
     if (!_modelHintBound) {
       _modelHintBound = true;
       modelSel.addEventListener('change', function () {
-        // 사용자가 고른 모델은 CLI 목록을 다시 받아도 · 언어를 바꿔도 지킨다 (release audit G-1).
+        // Keep the user's model pick when the CLI list is refetched or the language changes.
         modelSel.dataset.userPicked = '1';
         updateModelQualityHint();
         saveStudioAgent();
@@ -351,7 +350,7 @@
         if (!live.length || !sel || sel.value !== agent.name) return;
         const prev = modelSel.value;
         const def = d.default_model;
-        // 예전에는 정적 기본값 (prev) 이 늘 이겨 CLI 의 실제 기본 모델 (예: copilot 의 claude-sonnet-5) 이 안 골라졌다.
+        // The static default (prev) must not win over the CLI's real default model (e.g. copilot's claude-sonnet-5).
         const picked = modelSel.dataset.userPicked === '1' && live.indexOf(prev) !== -1;
         const keep = picked ? prev : (def && live.indexOf(def) !== -1 ? def : prev);
         modelSel.innerHTML = '';
@@ -369,7 +368,7 @@
     const m = String(model).trim().toLowerCase();
     if (!m || m === '—') return true;
     if (m === 'auto' || m.includes('auto')) return false;
-    // 버전 없는 별칭은 그 계열의 최신을 가리킨다
+    // An alias without a version points at the newest of that family
     if (m === 'opus' || m === 'sonnet') return true;
     return _RECOMMENDED_MODEL.test(m);
   }
@@ -650,7 +649,7 @@
         setStatusLine('');
         break;
       case 'artifacts':
-        // 에이전트가 앱을 만든 곳 (대상 프로젝트의 dx-agent-dev/<session>/) — done 의 Studio 추적 폴더보다 이것
+        // Where the agent built the app (the target project's dx-agent-dev/<session>/); preferred over done's Studio tracking folder
         if (Array.isArray(ev.dirs) && ev.dirs.length) {
           const where = ev.dirs.join(', ');
           setStatusLine(T('App written to') + ' ' + where, null);
@@ -741,8 +740,8 @@
     }
   }
 
-  /* SSE 본문을 읽어 화면에 흘린다. 실행을 시작할 때와 이미 도는 실행에 붙을 때가
-     같은 코드를 쓴다 — 붙는 쪽이 다르게 그리면 "이어받았다" 가 거짓말이 된다. */
+  /* Read the SSE body and render it. Starting a run and attaching to a running one share this code;
+     if attaching drew differently, "picked up" would be a lie. */
   async function _consumeStream(resp) {
     const reader = resp.body.getReader();
     const decoder = new TextDecoder();
@@ -764,9 +763,8 @@
     }
   }
 
-  /* home 에서 시작한 실행을 여기서 이어받는 길. 예전에는 이 콘솔이 자기가 시작한
-     실행만 볼 수 있었고, 그래서 이동해 온 사용자에게는 아무 일도 일어나지 않았다. */
-  /* home 이 넘겨주는 요청 (/agent/#ask=…) — status 가 모를 때의 첫 줄 */
+  /* Picks up here a run started from home, so a user who navigates over sees it continue. */
+  /* The request home hands over (/agent/#ask=…): the first line when status does not know it */
   function _askFromHash() {
     const m = /(?:^#|&)ask=([^&]*)/.exec(window.location.hash || '');
     if (!m) return '';
@@ -781,10 +779,10 @@
     _runFailed = false;
     setBadge('Running...', 'running');
     startHeartbeat();
-    /* 대화 칸부터 — 없으면 message · command renderer 가 전부 `if (!_turn) return` 으로 버린다. 예전
-       이어받기는 stream 에는 붙었지만 이 칸을 만들지 않아서, home 에서 넘어온 사용자에게 실시간 출력이
-       보이지 않았다. 첫 줄은 그 실행의 요청 (status), 없으면 home 이 넘긴 #ask. 이어서 여기서 답하면
-       같은 대화로 간다 (conversation · mode). */
+    /* The conversation cell comes first: without it the message and command renderers drop everything
+       (`if (!_turn) return`), and a user arriving from home would see no live output. The first line is the
+       run's request (status), else the #ask home handed over. Replying here continues the same conversation
+       (conversation, mode). */
     beginTurn(st.run_prompt || _askFromHash() || T('Resumed run'));
     if (st.run_conversation_id) _conversationId = st.run_conversation_id;
     const modeSel = $('mode-select');
@@ -931,7 +929,7 @@
     if (st && st.available) {
       setBadge('Ready', 'ok');
       fillAgentControls(st.agents, st.studio_agent);
-      /* 이미 도는 실행이 있으면 붙는다 — home 에서 넘어온 경우가 그것이다. */
+      /* Attach to a run already in progress (the case when arriving from home). */
       if (st.run_id && !st.run_done) attachIfRunning(st);
     } else {
       showDegradedGallery(st);
@@ -985,7 +983,7 @@
     const agentSel = $('agent-select');
     const agent = _agents.find(function (x) { return x.name === (agentSel && agentSel.value); }) || _agents[0];
     if (agent) {
-      // 언어만 바꿨다 — 고른 모델 · 노력 수준은 그대로 둔다 (예전에는 기본값으로 되돌아갔다, G-1)
+      // Only the language changed: keep the picked model and effort level (do not reset to defaults)
       const modelSel = $('model-select'), effortSel = $('effort-select');
       const keepModel = modelSel ? modelSel.value : '', picked = modelSel ? modelSel.dataset.userPicked : '';
       const keepEffort = effortSel ? effortSel.value : '';

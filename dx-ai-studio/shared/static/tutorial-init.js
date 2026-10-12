@@ -1,5 +1,5 @@
 /**
- * DXTutorial.create() — Tutorial 공통 초기화 헬퍼
+ * DXTutorial.create() — shared tutorial setup helper
  *
  * Usage:
  *   window.DXTutorial.create({
@@ -32,8 +32,8 @@
   if (typeof DXI18n !== 'undefined' && typeof DXI18n.onLangChange === 'function') {
     DXI18n.onLangChange(_runSharedRefreshers);
   } else {
-    /* launcher 는 이 파일을 i18n.js 보다 먼저 읽는다 — 그때는 DXI18n 이 없어 구독이 걸리지 않았고, 투어 중 언어를
-       바꿔도 툴팁 · 목차가 그대로였다 (release audit E-4 / L-11). i18n.js 가 언어를 바꿀 때마다 쏘는 사건으로 듣는다. */
+    /* The launcher loads this file before i18n.js, when DXI18n does not exist yet. Listen to the event i18n.js
+       fires on every language change instead, so tooltips and the contents follow a switch mid-tour. */
     window.addEventListener('dx-lang-applied', _runSharedRefreshers);
   }
 
@@ -99,10 +99,10 @@
             return;
           }
           // Launcher, first load with the tutorial on → auto-run the walkthrough. It opens on the
-          // ask box (spec 2026-09-23 §9); the "you can turn this off" switch is its tour-row step.
+          // ask box; the "you can turn this off" switch is its tour-row step.
           // Afterwards (and for module tutorials) just open the table of contents.
-          // launcher 의 투어 · 목차는 홈에서만 — 모듈 · SDK Library · About 로 바로 들어왔으면 그 화면의 튜토리얼이 맡는다.
-          // 예전에는 'Launcher Home' 목차가 모듈 목차 위에 같이 열렸다 (2026-10-02 release audit X-3 / A-21 / L-3).
+          // The launcher tour and contents run only on the home screen — when a module, SDK Library or About
+          // was opened directly, that screen's tutorial takes over (otherwise two contents panels would stack).
           if (engine.appId === 'launcher' && window.DXLauncher && window.DXLauncher.currentApp) return;
           if (engine.appId === 'launcher' &&
               !localStorage.getItem('dx-tutorial-launcher-autostarted')) {
@@ -217,7 +217,7 @@
         tutorials.forEach(function(tut) {
           var item = document.createElement('div');
           item.className = 'tutorial-menu-item';
-          // icon 은 sprite 이름 (아이콘 체계 단계 5). 예전 글자 icon 이 남아 있으면 글자 그대로.
+          // icon is a sprite name; any other icon value is shown as literal text.
           if (tut.icon && /^[a-z0-9_-]+$/.test(tut.icon)) item.innerHTML = _ico(tut.icon) + ' ';
           else if (tut.icon) item.textContent = tut.icon + ' ';
           item.appendChild(document.createTextNode(tut.name));

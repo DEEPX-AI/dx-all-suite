@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""DX EdgeGuide 웹 서버 — 포트 8096.
+"""DX EdgeGuide web server — port 8096.
 
-DX EdgeGuide — Edge AI 제품 추천 가이드.
-DXBaseHandler 기반.
+DX EdgeGuide — an Edge AI product recommendation guide.
+Built on DXBaseHandler.
 """
 
 from pathlib import Path
@@ -25,14 +25,14 @@ _chat_engine = ChatEngine(
 
 
 
-# ── 통합 App Shell (Option A) ──────────────────────────────────
-# 워크스페이스 단일 화면이라 탭 행이 없다 — 템플릿 루트에 .dx-shell--no-tabs 를 붙였다.
+# ── Shared app shell ────────────────────────────────────────────
+# A single workspace screen, so there is no tab row — the template root carries .dx-shell--no-tabs.
 DX_PLANNER_SHELL = ShellSpec(
     module_key="edge",
 )
 
 class DXPlannerHandler(DXBaseHandler):
-    """DX EdgeGuide HTTP 요청 핸들러."""
+    """DX EdgeGuide HTTP request handler."""
 
     server_name = SERVER_NAME
     static_dir = STATIC_DIR
@@ -57,7 +57,7 @@ class DXPlannerHandler(DXBaseHandler):
 
 
 def _run_aggregation():
-    """벤치마크 결과를 집계하여 static/data/benchmarks.json 생성."""
+    """Aggregate benchmark results into static/data/benchmarks.json."""
     base_dir = Path(__file__).resolve().parent.parent
     results_dir = base_dir / "dx_benchmark" / "results"
     npu_catalog_path = Path(__file__).resolve().parent / "data" / "npu.json"
@@ -78,7 +78,7 @@ def _run_aggregation():
 
 
 def create_server(port=DEFAULT_PORT):
-    """테스트용 서버 팩토리: HTTPServer 인스턴스를 반환."""
+    """Server factory for tests: returns an HTTPServer instance."""
     from http.server import ThreadingHTTPServer
     srv = ThreadingHTTPServer(("127.0.0.1", port), DXPlannerHandler)
     srv.daemon_threads = True

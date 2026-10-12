@@ -1,9 +1,9 @@
-"""codex exec --json 어댑터(cwd=harness, -C). NDJSON 라인 단위 스트리밍.
+"""codex exec --json adapter (cwd=harness, -C). Streams NDJSON line by line.
 
-Codex는 ``exec --json`` 으로 thread/turn/item.* 이벤트를 실시간 출력한다.
-_map_json_event 의 codex 분기(parse_codex_session 스키마)로 UI 슬롯에 매핑.
+With ``exec --json`` Codex prints thread/turn/item.* events live. The codex branch of
+_map_json_event (parse_codex_session schema) maps them to UI slots.
 
-codex CLI는 미설치 환경에서 web-verified(문서 기준)로만 작성 — 실행 미검증.
+Written from the codex docs; not run against an installed codex CLI.
 Codex has NO `--effort` flag (unlike claude/copilot). Reasoning effort is a
 `-c` config override on `codex exec`: `-c model_reasoning_effort=<level>`
 (levels: minimal|low|medium|high|xhigh, per codex docs).

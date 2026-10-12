@@ -4,10 +4,10 @@
 
    Usage:
    1. Module sets window._DX_I18N_DICT before loading this script
-      Dict format: { 'English key': { ko:'한국어', ja:'日本語', es:'Español', 'zh-CN':'简体', 'zh-TW':'繁體' } }
-      Legacy format { 'English key': '한국어' } is also supported.
+      Dict format: { 'English key': { ko:'…', ja:'…', es:'…', 'zh-CN':'…', 'zh-TW':'…' } }
+      Legacy format { 'English key': '<Korean text>' } is also supported.
    2. <script src="/static/shared/i18n.js"></script>
-   3. Use T('key') or T('english', '한국어') for translations
+   3. Use T('key') or T('english', '<Korean text>') for translations
    ============================================================ */
 (function () {
   'use strict';
@@ -26,15 +26,14 @@
   var _placeholders = window._DX_I18N_PLACEHOLDERS || {};
   var _initCallbacks = window._DX_I18N_CALLBACKS || [];
 
-  // placeholder 사전에만 있는 항목도 T() · data-i18n 이 본다 — dx_app 은 사전을 일찍 닫아 일반 문구 ~370개가
-  // _DX_I18N_PLACEHOLDERS 에 들어가 있었고, 그래서 모든 언어에서 영어로 남았다 (2026-10-02 release audit A-3).
-  // 일반 사전이 이긴다 (같은 key 는 덮지 않는다).
+  // Entries that exist only in the placeholder dictionary are visible to T() and data-i18n too — a module may
+  // keep ordinary phrases in _DX_I18N_PLACEHOLDERS. The main dictionary wins (same keys are not overwritten).
   for (var _pk in _placeholders) {
     if (_placeholders.hasOwnProperty(_pk) && !_dict.hasOwnProperty(_pk)) _dict[_pk] = _placeholders[_pk];
   }
 
-  // 모든 module 이 같이 쓰는 chrome (shell rail · toolbar · chat 단추) 의 말. module 사전에 같은 key 가 없을 때만
-  // 쓴다 — 예전에는 module 마다 사전에 따로 있어야 해서 대부분의 module 에서 영어로 남았다 (release audit L-13).
+  // Text for the chrome every module shares (shell rail, toolbar, chat button), so each module's dictionary
+  // need not repeat it. Used only when the module dictionary has no entry for the same key.
   var _SHARED = {
     'Modules': { ko: '모듈', ja: 'モジュール', 'zh-CN': '模块', 'zh-TW': '模組', es: 'Módulos' },
     'Hub': { ko: '홈', ja: 'ホーム', 'zh-CN': '首页', 'zh-TW': '首頁', es: 'Inicio' },
@@ -68,9 +67,9 @@
     }
   }
 
-  // 처음 오는 사람은 브라우저 언어로 연다 — 한국어 · 일본어 · 중국어 · 스페인어 브라우저도 언어 메뉴를 찾을 때까지 영어였다
-  // (2026-10-11 첫 실행 감사). 고른 것을 저장해 dx-lang 을 직접 읽는 script (brand · toolbar · tutorial …) 도 같은 언어를 본다.
-  // 저장된 선택이 있으면 그대로 쓴다. 계약: tests/shared/test_browser_language_default_browser.py
+  // A first-time visitor gets the browser language. The pick is saved so scripts that read dx-lang directly
+  // (brand, toolbar, tutorial …) see the same language. A saved choice always wins.
+  // Contract: tests/shared/test_browser_language_default_browser.py
   function _browserLang() {
     var list = (navigator.languages && navigator.languages.length) ? navigator.languages : [navigator.language || ''];
     for (var i = 0; i < list.length; i++) {
@@ -109,9 +108,9 @@
     return null;
   }
 
-  /* 글자 교차 fade (launcher spec 2026-09-23 §7 #15). <html data-dx-fade> 로 고른 문서에서만 —
-     모듈은 그대로 즉시 바뀐다. _lang · 저장은 곧바로, 화면만 교차한다. 길이는 CSS 가
-     html[data-dx-fading="lang"] 로 정한다. dx-theme.js 의 _fade 와 같은 규칙. */
+  /* Cross-fade the text, only in documents that opt in with <html data-dx-fade> — modules switch instantly.
+     _lang and the saved value change at once; only the screen fades. CSS sets the duration via
+     html[data-dx-fading="lang"]. Same rule as _fade in dx-theme.js. */
   function _fade(kind, update) {
     var root = document.documentElement;
     var still = false;
@@ -293,15 +292,15 @@
   function _translateEl(el) {
     if (!el.childNodes.length) return;
     if (el.querySelector('.ko, .en, .ja, .es, .zh-CN, .zh-TW')) return;
-    // 이 아래는 el.textContent 를 통째로 갈아끼운다 — 자식 엘리먼트가 같이
-    // 지워진다. 자기 key 를 든 자식이 있으면 번역의 주인은 그쪽이다.
-    // (.legend-item 은 색 점 span + 라벨 span 인데, 여기서 평평해지면
-    //  점이 사라진다.)
+    // Below, el.textContent is replaced wholesale, which wipes child elements.
+    // A child that carries its own key owns the translation.
+    // (.legend-item is a colour-dot span + a label span; flattening it here
+    //  would drop the dot.)
     if (el.querySelector('[data-i18n], [data-i18n-html]')) return;
-    // 아이콘 + 글자 (DXIcon.label · 아이콘 체계 단계 5): 자식 엘리먼트가 아이콘뿐이면 글자 node 만 바꾼다 —
-    // textContent 로 통째 갈면 아이콘이 사라진다.
-    // 입력 · 단추 · 링크 · 그림을 품은 것 (예: <label>글자 <select>…</label>) 도 글자 node 만 — 통째로 갈면 그 control 이
-    // 사라진다 (release audit: dx_app 의 'label' selector 가 chat 설정 form 의 select · input 을 지웠다).
+    // Icon + text (DXIcon.label): if the only child elements are icons, replace just the text nodes —
+    // replacing textContent would drop the icon.
+    // Same for elements holding inputs, buttons, links or images (e.g. <label>text <select>…</label>) —
+    // replacing textContent would remove that control.
     var kids = el.children;
     if (kids.length && (el.querySelector('input, select, textarea, button, a, img, video, canvas') ||
         Array.prototype.every.call(kids, function (k) {
@@ -359,12 +358,12 @@
     _init();
   }
 
-  /** 나중에 주입되는 조각이 자기 번역을 들고 올 수 있게 한다.
+  /** Let fragments injected later bring their own translations.
    *
-   *  hw_widget 은 launcher 프록시가 호스트 페이지에 꽂는다. 사전은 모듈마다
-   *  따로라, 이 위젯의 라벨을 data-i18n 으로 쓰려면 여덟 모듈 사전에 같은
-   *  항목을 아홉 개씩 복사해야 했다 — 그래서 언어 span 아홉 벌로 남아 있었다.
-   *  이미 있는 key 는 덮지 않는다: 모듈이 정한 문구가 우선이다. */
+   *  The launcher proxy injects hw_widget into the host page. Dictionaries are
+   *  per module, so without this the widget's labels would have to be copied
+   *  into every module dictionary.
+   *  Existing keys are not overwritten: the module's wording wins. */
   function register(extra) {
     if (!extra) return;
     for (var key in extra) {

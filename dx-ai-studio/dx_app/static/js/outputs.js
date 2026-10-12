@@ -4,7 +4,7 @@ let _outView='grid';   // 'grid' | 'table'
 let _outFilter='all';  // 'all' | 'image' | 'video' | 'archive' | 'other'
 
 const _TYPE_ICON={image:DXIcon('image'),video:DXIcon('demo'),archive:DXIcon('models'),other:DXIcon('file')};
-// 그릴 때마다 번역한다 — 처음 읽을 때 한 번 번역하면 언어를 바꿔도 칩이 그대로였다 (A-8)
+// Translate on every render; translating once at first read would leave the chips unchanged after a language switch
 const _TYPE_KEYS={all:'All',image:'Images',video:'Videos',archive:'Archives',other:'Other'};
 
 async function loadOutputs(){
@@ -87,8 +87,8 @@ function _renderOutputs(){
   }
 }
 
-/* 영상 미리보기는 화면 가까이 올 때만 src 를 붙인다. 예전에는 모든 카드가 preload="metadata" 로 한꺼번에
-   요청해 결과가 수백 개면 갤러리를 열 때마다 수백 개 요청이 몰렸다 (release audit A-23). */
+/* Video previews get their src only when near the viewport; preload="metadata" on every card would fire hundreds
+   of requests at once each time a large gallery opens. */
 let _videoThumbObserver=null;
 function _lazyVideoThumbs(root){
   const vids=root.querySelectorAll('video.gal-thumb[data-src]');

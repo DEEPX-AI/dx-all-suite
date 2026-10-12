@@ -22,8 +22,8 @@
       <div id="auto-detect-warning-wiz" class="alert-warning" style="display:none;" aria-live="polite"></div>
       <button type="button" class="btn btn-neutral" id="btn-auto-detect"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#search"></use></svg> <span data-i18n="Auto Detect from Model">Auto Detect from Model</span></button>
       <div id="input-shapes-list"></div>
-      <!-- 차원 경고. calibration 경고(wiz-calib-warning)와 같은 모양으로 둔다 —
-           경고를 그리는 방식이 둘로 갈리면 하나는 반드시 낡는다. (SR-758) -->
+      <!-- Dimension warning. Same shape as the calibration warning (wiz-calib-warning) —
+           two ways of drawing warnings means one of them goes stale. -->
       <div id="wiz-shape-warning" class="alert-warning" style="display:none;" aria-live="polite"></div>
       <button type="button" class="btn btn-neutral" id="btn-add-input" data-i18n="+ Add Input">+ Add Input</button>
     </div>
@@ -79,8 +79,8 @@
         <legend data-i18n="Preprocessing Pipeline">Preprocessing Pipeline</legend>
         <p class="wizard-desc" data-i18n="Add transforms in execution order.">Add transforms in execution order.</p>
         <div id="prep-pipeline"></div>
-        <!-- 전처리 경고. wiz-shape-warning / wiz-calib-warning 과 같은 모양 —
-             서버 400 을 보기 전에 쓰는 순간 말한다. -->
+        <!-- Preprocessing warning, same shape as wiz-shape-warning / wiz-calib-warning —
+             it speaks while typing, before the server returns a 400. -->
         <div id="wiz-prep-warning" class="alert-warning" style="display:none;" aria-live="polite"></div>
         <div class="prep-add-row">
           <select id="prep-select">
