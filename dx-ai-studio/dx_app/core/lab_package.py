@@ -609,10 +609,11 @@ def validate_copy_out(package_dir, source_root=None):
     return copy_dir
 
 
-def build_workflow_package(workflow, package_type, source_root, output_root, *, plugin_root=None):
+def build_workflow_package(workflow, package_type, source_root, output_root, *, plugin_root=None, keep_copy_out=False):
     """Build a self-contained run, developer, or recipe package.
 
-    The caller's workflow is deep-copied before normalization and never mutated.
+    The caller's workflow is deep-copied before normalization and never mutated. The copy-out made to
+    verify the package is removed afterwards unless keep_copy_out is set (the caller then owns its parent).
     """
     if package_type not in _PACKAGE_TYPES:
         raise ValueError("package_type must be run, developer, or recipe")
@@ -709,6 +710,9 @@ def build_workflow_package(workflow, package_type, source_root, output_root, *, 
             shutil.rmtree(copy_out_dir.parent, ignore_errors=True)
         raise
 
+    if not keep_copy_out:
+        shutil.rmtree(copy_out_dir.parent, ignore_errors=True)
+        copy_out_dir = None
     return {
         "package_dir": package_dir,
         "archive_path": archive_path,

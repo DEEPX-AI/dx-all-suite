@@ -1,6 +1,7 @@
 """RED contracts for portable Lab Composer package exports."""
 
 import json
+import shutil
 import subprocess
 from pathlib import Path
 import zipfile
@@ -126,7 +127,7 @@ def test_package_rejects_symlinked_lab_package_namespace(tmp_path):
         )
 
 
-def test_run_package_bundles_exact_runner_and_help_works_from_copy_out(tmp_path):
+def test_run_package_bundles_exact_runner_and_help_works_from_copy_out(tmp_path, request):
     source, _, _ = _source_tree(tmp_path)
 
     result = build_workflow_package(
@@ -134,7 +135,9 @@ def test_run_package_bundles_exact_runner_and_help_works_from_copy_out(tmp_path)
         package_type="run",
         source_root=source,
         output_root=tmp_path / "output",
+        keep_copy_out=True,
     )
+    request.addfinalizer(lambda: shutil.rmtree(result["copy_out_dir"].parent, ignore_errors=True))
 
     manifest = json.loads((result["package_dir"] / "workflow.json").read_text(encoding="utf-8"))
     runner = manifest["packaged_runner"]
@@ -267,7 +270,7 @@ def test_recipe_contains_identity_without_model_bytes_or_studio_paths(tmp_path):
     assert str(source) not in recipe.read_text(encoding="utf-8")
 
 
-def test_package_builder_reports_successful_copy_out_verification(tmp_path):
+def test_package_builder_reports_successful_copy_out_verification(tmp_path, request):
     source, _, _ = _source_tree(tmp_path)
 
     result = build_workflow_package(
@@ -275,7 +278,9 @@ def test_package_builder_reports_successful_copy_out_verification(tmp_path):
         package_type="run",
         source_root=source,
         output_root=tmp_path / "output",
+        keep_copy_out=True,
     )
+    request.addfinalizer(lambda: shutil.rmtree(result["copy_out_dir"].parent, ignore_errors=True))
 
     assert result["copy_out_verified"] is True
     assert result["copy_out_dir"].is_dir()
@@ -491,3 +496,29 @@ def test_validation_failure_cleans_temporary_copy_out_directory(tmp_path, monkey
             assert not Path(temp_dir).exists(), (
                 f"Temp copy-out dir was leaked: {temp_dir}"
             )
+
+
+def test_a_built_package_leaves_no_copy_out_behind(tmp_path, monkeypatch):
+    """The copy-out is a throwaway check: every Lab build would otherwise leave a full package copy in /tmp."""
+    import tempfile
+    made = []
+    real_mkdtemp = tempfile.mkdtemp
+
+    def tracking_mkdtemp(*args, **kwargs):
+        path = real_mkdtemp(*args, **kwargs)
+        made.append(path)
+        return path
+
+    monkeypatch.setattr(tempfile, "mkdtemp", tracking_mkdtemp)
+    source, _, _ = _source_tree(tmp_path)
+    result = build_workflow_package(
+        workflow=_workflow(),
+        package_type="run",
+        source_root=source,
+        output_root=tmp_path / "output",
+    )
+
+    assert result["copy_out_verified"] is True
+    assert result["copy_out_dir"] is None
+    copy_outs = [path for path in made if "dx-app-lab-copy-out" in path]
+    assert copy_outs and not any(Path(path).exists() for path in copy_outs)
