@@ -1488,7 +1488,6 @@ def test_app_stream_final_card_rules_use_shared_raised_depth():
             ".npu-card",
             ".plan-sc",
             ".comp-result-card",
-            ".forum-item",
             ".ref-topic-card",
         ],
         "dx_stream/static/css/stream.css": [

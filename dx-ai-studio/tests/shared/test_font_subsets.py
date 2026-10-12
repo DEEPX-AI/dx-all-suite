@@ -209,3 +209,12 @@ def test_retired_cjk_family_is_not_referenced_anywhere():
         if "'Noto Sans CJK'" in path.read_text(encoding="utf-8", errors="replace"):
             hits.append(rel)
     assert hits == []
+
+
+def test_modules_carry_no_font_copies():
+    """Every module page loads /static/shared/dx-fonts.css, which points at shared/static/fonts only. Five modules
+    still carried their own copies (32 files, ~12 MB, some byte-identical to shared, some retired formats) that
+    nothing requested (2026-10-12 release audit)."""
+    for module in ("dx_app", "dx_benchmark", "dx_compiler", "dx_monitor", "dx_planner", "dx_stream", "dx_modelzoo",
+                   "dx_agent_dev"):
+        assert not (ROOT / module / "static" / "fonts").exists(), module

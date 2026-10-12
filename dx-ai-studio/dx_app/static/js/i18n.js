@@ -2156,33 +2156,6 @@ window._DX_I18N_DICT = {
     es: 'Error al leer archivo: ',
   },
 
-  /* ==== Forum (reverse) ==== */
-  'Please enter comment content': {
-    ko: '댓글 내용을 입력하세요', ja: 'コメント内容を入力してください',
-    'zh-CN': '请输入评论内容', 'zh-TW': '請輸入留言內容',
-    es: 'Por favor introduzca contenido del comentario',
-  },
-  'Comment posted': {
-    ko: '댓글이 등록되었습니다', ja: 'コメントが投稿されました',
-    'zh-CN': '评论已发布', 'zh-TW': '留言已發布',
-    es: '¡Comentario publicado',
-  },
-  'Please enter a title': {
-    ko: '제목을 입력하세요', ja: 'タイトルを入力してください',
-    'zh-CN': '请输入标题', 'zh-TW': '請輸入標題',
-    es: 'Por favor introduzca un título',
-  },
-  'Please enter content': {
-    ko: '내용을 입력하세요', ja: '内容を入力してください',
-    'zh-CN': '请输入内容', 'zh-TW': '請輸入內容',
-    es: 'Por favor introduzca contenido',
-  },
-  'Post published': {
-    ko: '게시물이 등록되었습니다', ja: '投稿が公開されました',
-    'zh-CN': '帖子已发布', 'zh-TW': '文章已發布',
-    es: '¡Publicación publicada',
-  },
-
   /* ==== Models ==== */
   'File not found': {
     ko: '파일을 찾을 수 없음', ja: 'ファイルが見つかりません',
@@ -2430,39 +2403,13 @@ window._DX_I18N_DICT = {
     es: 'Desplazamiento para zoom • Arrastre para desplazar',
   },
 
-  /* ==== Forum (extra) ==== */
+    /* ==== Relative time ==== */
   'just now': {
     ko: '방금 전', ja: 'たった今',
     'zh-CN': '刚刚', 'zh-TW': '剛剛',
     es: 'ahora mismo',
   },
-  ' min ago': {
-    ko: '분 전', ja: ' 分前',
-    'zh-CN': ' 分钟前', 'zh-TW': ' 分鐘前',
-    es: ' hace min',
-  },
-  ' hours ago': {
-    ko: '시간 전', ja: ' 時間前',
-    'zh-CN': ' 小时前', 'zh-TW': ' 小時前',
-    es: ' hace horas',
-  },
-  ' days ago': {
-    ko: '일 전', ja: ' 日前',
-    'zh-CN': ' 天前', 'zh-TW': ' 天前',
-    es: ' hace días',
-  },
-  'Ask DeepX': {
-    ko: 'DeepX에게 질문', ja: 'DeepX に質問',
-    'zh-CN': '向 DeepX 提问', 'zh-TW': '向 DeepX 提問',
-    es: 'Preguntar a DeepX',
-  },
-  'Community': {
-    ko: '커뮤니티', ja: 'コミュニティ',
-    'zh-CN': '社区', 'zh-TW': '社群',
-    es: 'Comunidad',
-  },
-
-  /* ==== Community page buttons ==== */
+/* ==== Community page buttons ==== */
   'All': {
     ko: '전체', ja: 'すべて',
     'zh-CN': '全部', 'zh-TW': '全部',

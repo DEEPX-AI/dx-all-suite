@@ -1848,7 +1848,7 @@ class LauncherHandler(DXBaseHandler):
                 "/api/recent_runs", "/api/hb", "/api/models", "/api/chat",
                 "/api/run", "/api/runner", "/api/history",
                 "/api/file", "/file/", "/outputs/",
-                "/api/images", "/api/videos", "/api/forum",
+                "/api/images", "/api/videos",
             )
             if any(path.startswith(p) for p in _DX_MONITOR_APIS):
                 _proxy(self, _LAUNCHER_PROXY_PORTS.get("dx_monitor"), full_path, inject_widget=False)
