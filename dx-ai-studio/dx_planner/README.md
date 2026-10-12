@@ -23,12 +23,14 @@ The whole thing is one page (**DX EdgeGuide**) with a four-step strip —
 
 **2. Read the recommendations.** A verdict line shows the **Top pick** and whether your
 channel/FPS target is met. Each card carries a **Measured** or **Estimated** badge and one line
-saying why: "12 ch held 30.4 FPS each (measured) · 13 ch dropped to 28.1 FPS", or "≈ 6 ch
-estimated from 365 FPS measured in total (tested up to 13 ch)". The benchmark measured the
+saying why: "12 ch held 30.4 FPS each ≥ 30 FPS target (measured) · 13 ch dropped to 28.1 FPS",
+or the estimate's division, "534 FPS ÷ 60 FPS = 8.9 → 8 ch (tested up to 18 ch)". The benchmark measured the
 stream counts around 30 FPS per channel; at other targets the channel count is estimated from
 the measured total FPS (it stays nearly flat around saturation), capped at twice the highest
-tested count (**Estimated+**). Notes flag an NPU that throttled during the measurement, whether
-the NPU or the host (CPU / decode) was the limit, and a latency that was not measured. Click a
+tested count (**Estimated+** = the estimate hit that cap; real capacity may be higher). Notes flag
+an NPU that throttled during the measurement, the limit — **NPU** when it was ≥ 85 % busy at the
+most loaded measured count, else **host** (CPU / decode / PCIe), with the measured NPU load —
+and a latency that was not measured. Click a
 card (or a bar in the throughput chart) to open details.
 
 **3. Explore / compare.** The Details panel shows key facts, platform specs, a

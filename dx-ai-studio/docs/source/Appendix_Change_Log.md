@@ -66,6 +66,10 @@ Changes since the v0.1.0 beta manual. The version number and date are set at rel
   made without system site packages, which hid the GStreamer bindings from the module servers.
 - DX App live RTSP and multi-slot camera runs reach the runner (they ended with "Input file not found"); several
   slots can share a camera without an MJPEG 640x480 mode. DX Stream's Pipeline Builder has a camera source (`v4l2src`).
+- EdgeGuide cards show their arithmetic ("534 FPS ÷ 60 FPS = 8.9 → 8 ch", "31.7 FPS each ≥ 30 FPS target") and the
+  measured NPU load next to the NPU / host limit; **How ranking works** explains the 85 % limit rule and what
+  **Estimated+** means, gives every formula's meaning in your language, and its session summary no longer mixes in
+  English.
 - Chat answers through the coding agent you are signed in to (claude, copilot, cursor …) with no setup, the same
   agent Home and Agent Dev use; its top line always says which AI answers. Settings ask one question — a coding
   agent on this PC, your local LLM server, or a cloud API key (OpenAI, Anthropic, Google, GitHub Models, custom

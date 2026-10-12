@@ -322,7 +322,7 @@ const ExplorerView = {
     const container = document.getElementById('task-tabs');
     if (!container) return;
     const tasks = [
-      { key: 'object_detection', ko: '객체 탐지', en: 'Object Detection', ja: '物体検出', 'zh-CN': '目标检测', 'zh-TW': '物件偵測', es: 'Detección de objetos' },
+      { key: 'object_detection', ko: '객체 감지', en: 'Object Detection', ja: '物体検出', 'zh-CN': '目标检测', 'zh-TW': '物件偵測', es: 'Detección de objetos' },
       { key: 'pose_estimation', ko: '포즈', en: 'Pose', ja: 'ポーズ', 'zh-CN': '姿态', 'zh-TW': '姿態', es: 'Pose' },
       { key: 'segmentation', ko: '분할', en: 'Segmentation', ja: 'セグメンテーション', 'zh-CN': '分割', 'zh-TW': '分割', es: 'Segmentación' },
       { key: 'oriented_bbox', ko: 'OBB', en: 'OBB', ja: 'OBB', 'zh-CN': 'OBB', 'zh-TW': 'OBB', es: 'OBB' },

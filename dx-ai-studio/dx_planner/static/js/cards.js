@@ -146,26 +146,34 @@ const CardRenderer = {
     return Object.keys(vals).reduce((out, k) => out.split('{' + k + '}').join(vals[k]), this._t(key));
   },
 
-  /** One line saying why this channel count — measured point, or estimate from the measured total. */
+  /** One line saying why this channel count — the measured point, or the division the estimate comes from
+      (spec addendum 2026-10-12: every number explains itself). */
   _whyHtml(r) {
     const w = r.why || { kind: 'none' };
     const fps = v => this._formatNumber(v, 1);
+    // The quotient is cut, not rounded: 8.95 shown as "9" next to "8 ch" would contradict the floor.
+    const quotient = v => this._formatNumber(Math.floor(v * 10) / 10, 1);
     let line;
     if (w.kind === 'measured') {
-      line = this._fill('{n} ch held {fps} FPS each (measured)', { n: w.n, fps: fps(w.atFps) });
+      line = this._fill('{n} ch held {fps} FPS each ≥ {target} FPS target (measured)',
+        { n: w.n, fps: fps(w.atFps), target: w.target });
       if (w.nextN != null) line += ' · ' + this._fill('{n} ch dropped to {fps} FPS', { n: w.nextN, fps: fps(w.nextFps) });
     } else if (w.kind === 'estimated' && w.n > 0) {
-      line = this._fill('≈ {n} ch estimated from {total} FPS measured in total (tested up to {max} ch)',
-        { n: w.n, total: Math.round(w.tSat), max: w.maxTested });
+      const vals = { total: fps(w.tSat), target: w.target, raw: quotient(w.raw), n: w.n, max: w.maxTested };
+      line = w.capped
+        ? this._fill('{total} FPS ÷ {target} FPS = {raw} → {n} ch+ (estimates stop at 2 × {max} tested ch)', vals)
+        : this._fill('{total} FPS ÷ {target} FPS = {raw} → {n} ch (estimated from the measured total; tested up to {max} ch)', vals);
     } else if (w.kind === 'estimated') {
-      line = this._fill('Not even one stream reaches this FPS ({total} FPS measured in total)', { total: Math.round(w.tSat) });
+      line = this._fill('Not even one stream: {total} FPS ÷ {target} FPS = {raw} → 0 ch',
+        { total: fps(w.tSat), target: w.target, raw: quotient(w.raw) });
     } else {
       line = this._t('No multi-stream measurement');
     }
     const notes = [];
     if (r.throttled) notes.push(this._t('NPU throttled while measured'));
-    if (r.bottleneck === 'npu') notes.push(this._t('Limit: NPU'));
-    else if (r.bottleneck === 'host') notes.push(this._t('Limit: host (CPU / decode)'));
+    const load = Number.isFinite(r.npuPct) ? ' · ' + this._fill('NPU {pct}%', { pct: Math.round(r.npuPct) }) : '';
+    if (r.bottleneck === 'npu') notes.push(this._t('Limit: NPU') + load);
+    else if (r.bottleneck === 'host') notes.push(this._t('Limit: host (CPU / decode)') + load);
     if (r.meetsLatency === null) notes.push(this._t('Latency not measured'));
     return this._escHtml(line) + notes.map(n => '<span class="card-why-note">' + this._escHtml(n) + '</span>').join('');
   },
