@@ -34,17 +34,17 @@ def test_reload_catalog_fills_postprocessor_for_all_models():
 
     models = get_catalog()["models"]
     assert models
-    # publish page 에만 있는 새 model (anomaly · matting …) 은 지금의 dx_app 에 예제가 없어 후처리기를 모른다 —
-    # per-model layout 의 config.json 이 그것을 말한다 (spec 2026-10-01 dx_app per-model layout 결정 8).
+    # Models only on the publish page (anomaly · matting …) have no dx_app example here, so their
+    # postprocessor is unknown; in the per-model layout their config.json names it.
     missing = [m["id"] for m in models if not (m.get("technical") or {}).get("postprocessor")
                and not m.get("publish_only")]
     assert not missing, f"missing postprocessor path: {missing[:5]}"
 
 
 def test_a_per_model_example_names_its_postprocessor_in_config_json(tmp_path, monkeypatch):
-    """per-model dx_app (8d0b748) 의 factory 는 family 하나가 config.json 의 ``postprocessor.class`` 로 processor 를
-    만든다 — factory import 로는 찾을 수 없다. 그 class 를 정의한 common/processors 파일을 보여 준다 (2026-10-01:
-    efficientad · patchcore · CLIP 이 경로 없이 나왔다)."""
+    """In a per-model dx_app, one factory per family builds its processor from ``postprocessor.class`` in
+    config.json, so importing the factory does not reveal it. The common/processors file that defines that class
+    is shown instead (efficientad, patchcore and CLIP depend on this)."""
     import json
     from dx_modelzoo.core import postprocessor_paths as pp
     from shared import dx_app_layout as layout

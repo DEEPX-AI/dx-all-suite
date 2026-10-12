@@ -1,4 +1,4 @@
-"""브라우저 노출용 모델 메타데이터 sanitize 테스트."""
+"""Sanitizing model metadata before it reaches the browser."""
 
 
 def test_sanitize_browser_model_removes_internal_remote_urls():

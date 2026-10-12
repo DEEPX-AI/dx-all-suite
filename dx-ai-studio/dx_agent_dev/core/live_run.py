@@ -1,19 +1,18 @@
-"""실행을 HTTP 응답에서 떼어내는 자리.
+"""Detaches a run from the HTTP response.
 
-예전에는 `_runner.run(...)` 제너레이터를 SSE 핸들러가 직접 돌렸다. 그래서 브라우저가
-스트림 리더를 놓으면 제너레이터에 `GeneratorExit` 가 나고, `agent_runner.py` 의
-`finally` 가 subprocess 를 종료했다 — 창을 닫거나 다른 모듈로 이동하는 것만으로
-돌던 작업이 죽었다. home 의 `Open in DX Agent Dev` 가 정확히 그 일을 했다.
+If the SSE handler drove the `_runner.run(...)` generator itself, a browser dropping the stream reader would raise
+`GeneratorExit` in the generator and the `finally` in `agent_runner.py` would kill the subprocess: closing the
+window or moving to another module would kill the running job.
 
-여기서는 백그라운드 스레드가 이벤트를 쌓고, 응답은 그 버퍼를 읽는다. 소비자가 없거나
-중간에 사라져도 실행은 계속되고, 나중에 붙으면 처음부터(또는 원하는 지점부터) 받는다.
+Here a background thread collects the events and the response reads that buffer. The run continues when no
+consumer is attached or one leaves midway, and a consumer that attaches later gets everything from the start
+(or from a chosen index).
 
-서버당 실행은 하나다 — `AgentRunner` 가 그렇게 만들어져 있다("서버당 실행 세션 1개").
-그래서 레지스트리가 아니라 슬롯 하나다. 끝난 실행은 다음이 시작될 때까지 남는다:
-끝난 직후에 붙은 창도 결과를 봐야 하기 때문이다.
+There is one run per server, as `AgentRunner` is built that way, so this is a single slot, not a registry. A
+finished run stays until the next one starts, so a window that attaches just after the end still sees the result.
 
-버퍼는 메모리다. 서버가 죽으면 사라진다 — 실행 이력이 아니라 진행 중인 실행에
-다시 붙기 위한 것이다.
+The buffer lives in memory and is lost when the server dies: it is for re-attaching to a running job, not a
+run history.
 """
 from __future__ import annotations
 
@@ -33,7 +32,7 @@ class LiveRun:
         self._cancel: Optional[Callable[[], None]] = None
         self._on_event = on_event
 
-    # ── 생애 ──────────────────────────────────────────────────
+    # ── lifecycle ─────────────────────────────────────────────
 
     def start(
         self,
@@ -43,8 +42,8 @@ class LiveRun:
         on_event: Optional[Callable[[dict], None]] = None,
         info: Optional[dict] = None,
     ) -> str:
-        """`source` 를 백그라운드에서 소비하기 시작하고 run_id 를 돌려준다. `info` 는 이 실행이 무엇인지
-        (prompt · conversation · mode) — 이어받는 쪽이 첫 줄과 대화를 알아야 한다."""
+        """Start consuming `source` in the background and return the run_id. `info` says what the run is
+        (prompt, conversation, mode): whoever attaches later needs the first line and the conversation."""
         with self._cv:
             if not self._done:
                 raise RuntimeError("run already in progress")
@@ -63,11 +62,11 @@ class LiveRun:
                 for ev in source:
                     with self._cv:
                         if self._run_id != run_id:
-                            break          # 다른 실행이 슬롯을 가져갔다
+                            break          # another run took the slot
                         self._events.append(ev)
                         self._cv.notify_all()
-                    # 대화 기록 바인딩처럼 "소비자가 없어도 일어나야 하는 일" 은
-                    # 여기서 한다. 응답 쪽에 두면 창을 닫았을 때 결과가 유실된다.
+                    # Work that must happen even without a consumer (such as binding the conversation
+                    # record) is done here; done on the response side, it would be lost when the window closes.
                     if self._on_event is not None:
                         try:
                             self._on_event(ev)
@@ -90,13 +89,12 @@ class LiveRun:
         if cancel is not None:
             cancel()
 
-    # ── 읽기 ──────────────────────────────────────────────────
+    # ── reading ───────────────────────────────────────────────
 
     def events(self, from_index: int = 0) -> Iterator[dict]:
-        """`from_index` 부터 흘려보낸다. 실행이 끝나면 종료된다.
+        """Stream events from `from_index` on; ends when the run ends.
 
-        소비자가 이 제너레이터를 닫아도 실행에는 영향이 없다 — 그것이 이 클래스의
-        존재 이유다.
+        Closing this generator does not affect the run; that is why this class exists.
         """
         i = max(0, int(from_index or 0))
         while True:

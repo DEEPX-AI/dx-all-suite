@@ -1,10 +1,9 @@
-"""dx_stream Demo Launcher — 결과 무대 + 고르기용 card (spec 2026-10-01 demo stage).
+"""dx_stream Demo Launcher — a result stage plus cards to pick from.
 
-예전에는 Start 를 누르면 영상이 card grid **아래** 폭 전체 영역에 생겨 scroll 해야 보였고, FPS 는 영상
-구석의 녹색 monospace 였다. 이제 App Run Demo 와 같은 공통 무대: 위쪽에 고른 demo (Playback · RTSP ·
-Start) 가 열리고 영상도 같은 자리, 수치는 오른쪽 panel.
+The stage is shared with App Run Demo: the chosen demo (Playback · RTSP · Start) opens at the top, the video plays in
+the same place so no scrolling is needed, and the figures sit in the right panel.
 
-/api/demos 와 시작 · 영상 API 는 fixture 로 고정한다.
+/api/demos and the start and video APIs are fixed by fixtures.
 """
 from __future__ import annotations
 
@@ -27,7 +26,7 @@ DEMOS = [
      "description_en": "Detection on an RTSP camera", "pipeline_type": "rtsp", "available": True,
      "availability": {"available": True}},
 ]
-# 4×2 png — MJPEG 자리에 frame 이 들어오는지 · 해상도가 panel 에 가는지만 본다
+# 4×2 png — only checks that a frame lands in the MJPEG slot and its resolution reaches the panel
 PNG = base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAQAAAACCAYAAAB/qH1jAAAAEUlEQVR42mNk+M9QzwAEjDAGACCDAv8cI7IoAAAAAElFTkSuQmCC")
 
 
@@ -122,7 +121,7 @@ def test_start_plays_on_the_stage_and_stop_returns_to_the_preview(page):
     page.wait_for_function("() => document.getElementById('demo-resolution-info')?.textContent === '4×2'", timeout=6000)
     page.wait_for_function("() => /\\d/.test(document.getElementById('demo-fps-info')?.textContent || '')", timeout=6000)
     assert page.inner_text("#demo-model-info") == "yolo26n"
-    # 다른 card 를 보면 영상 상자는 숨은 자리로 — 문서 안에 남는다 (webrtc-client 가 id 로 찾는다)
+    # Viewing another card parks the video box out of sight — it stays in the document (webrtc-client finds it by id)
     page.click(".dds-card[data-id='2']")
     assert page.evaluate("document.getElementById('demo-video-section').parentNode.id") == "demo-video-park"
     page.click(".dds-card[data-id='0']")

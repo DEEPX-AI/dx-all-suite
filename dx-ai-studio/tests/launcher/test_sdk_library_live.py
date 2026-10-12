@@ -1,8 +1,8 @@
-"""SDK Library 가 dx-all-suite 의 md 를 따라가는가 (2026-10-01).
+"""SDK Library follows the md files in dx-all-suite.
 
-글은 열 때마다 디스크에서 읽어 늘 최신이었지만, **어떤 파일이 목록에 있는지 · 크기** 는 손으로 고치는
-sdk-library-data.json 이라 새 문서가 보이지 않았고 크기는 175 개 중 125 개가 틀렸다. 그리고 dx_app 의
-change log 는 pymdownx snippet (`--8<--`) 한 줄이라 그 줄 그대로 보였다.
+Text is read from disk on every open, so it is always current. **Which files are listed, and their sizes,** must also
+come from disk rather than a hand-edited sdk-library-data.json, which misses new documents and drifts on size.
+dx_app's change log is a single pymdownx snippet line (`--8<--`) that must be resolved, not shown as is.
 """
 from __future__ import annotations
 
@@ -28,7 +28,7 @@ def _suite(tmp_path):
     (d / "02_New_Guide.md").write_text("---\ntitle: x\n---\n\n# New Guide\n\nbody\n")
     (d / "CLAUDE.md").write_text("# not a doc\n")
     (d / "03_Guide_KO.md").write_text("# 가이드\n")
-    (d / "RELEASE_NOTES.md").symlink_to('--8<-- "RELEASE_NOTES.md"')   # 실제 suite 에 있는 깨진 link
+    (d / "RELEASE_NOTES.md").symlink_to('--8<-- "RELEASE_NOTES.md"')   # a broken link like the one in the real suite
     return s
 
 

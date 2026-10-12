@@ -1,4 +1,4 @@
-"""ModelZoo 메타데이터 스키마 상수."""
+"""ModelZoo metadata schema constants."""
 
 SCHEMA_VERSION = "2.0"
 

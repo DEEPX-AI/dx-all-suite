@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# DX AI Studio CI runner — dx_app/run_tc.sh 패턴 (폐쇄망 self-hosted PR gate).
+# DX AI Studio CI runner, following the dx_app/run_tc.sh pattern (air-gapped self-hosted PR gate).
 #
 # Usage:
 #   bash scripts/run_ci.sh              # blocking PR gate (default)
@@ -107,6 +107,7 @@ BROWSER_TESTS=(
   tests/shared/test_browser_language_default_browser.py
   tests/dx_agent_dev/test_studio_agent_console_browser.py
   tests/launcher/test_home_studio_agent_browser.py
+  tests/launcher/test_home_posters_keyboard_browser.py
   tests/shared/test_chat_settings_browser.py
   tests/dx_app/test_setup_steps_browser.py
   tests/dx_stream/test_setup_steps_browser.py
@@ -142,6 +143,7 @@ BROWSER_TESTS=(
   tests/dx_compiler/test_auto_compile_model_browser.py
   tests/dx_planner/test_lang_summary_browser.py
   tests/dx_planner/test_recommend_engine_browser.py
+  tests/dx_planner/test_recommend_explain_browser.py
   tests/test_catalog_virtual_scroll_browser.py
   tests/test_iframe_lang_sync_browser.py
   tests/test_toolbar_reachable_when_narrow.py
@@ -187,6 +189,9 @@ echo "== breakpoint ratchet =="
 echo "== 간격 스케일 ratchet =="
 "$PY" -m scripts.spacing_scale_gate || exit 1
 
+echo "== comment language ratchet =="
+"$PY" -m scripts.comment_language_gate || exit 1
+
 echo "== UI 이모지 ratchet =="
 "$PY" -m scripts.emoji_gate || exit 1
 
@@ -227,9 +232,7 @@ echo ""
 # are deselected here (visible, greppable, counted) instead of being silenced inside
 # the test files. tests/shared/test_ci_contracts.py pins the size of this list, so it
 # can only ever SHRINK. See docs/testing.md "Quarantined pre-existing failures".
-# 비어 있다. 2026-09-16 에 마지막 항목(yolo26_depth legal)이 해제됐다 — 상류에
-# 데이터가 없는 것이 아니라 generated_catalog.json 이 그 모델들의 공개 이전 산출물이었고,
-# studio id 가 생성 id 의 해상도 접미사와 매칭되지 않았다. docs/testing.md 참조.
+# Currently empty.
 QUARANTINE=()
 
 echo "== 5/7 Module + shared + root contract suites (no browser) =="
@@ -258,23 +261,21 @@ echo "== 6/7 Inference E2E triple gate (e2e_mock, isolated) =="
 # a process with the module suites would pin the wrong tree for one of them.
 # Skips itself when playwright/chromium are unavailable rather than failing.
 # `env -u` is load-bearing, not defensive: tests/e2e/conftest.py binds DX_APP_ROOT
-# at import time and picks the NPU overlay whenever DX_E2E_NPU_MODEL is set. Running
-# `run_ci.sh --npu` therefore used to fail THIS stage — the mock tier looked for its
-# fixture model in the real dx_app tree ("model 'e2eyolo' is not in /api/models").
-# The blocking stage must be hermetic no matter what the caller exported.
+# at import time and picks the NPU overlay whenever DX_E2E_NPU_MODEL is set, so with
+# `run_ci.sh --npu` the mock tier would look for its fixture model in the real dx_app
+# tree. The blocking stage must be hermetic no matter what the caller exported.
 env -u DX_E2E_NPU_MODEL -u DX_E2E_NPU_MODEL_FILE -u DX_E2E_NPU_STRICT \
   "$PY" -m pytest tests/e2e/ -q --tb=short -m e2e_mock
 
 if [ "$RUN_OFFLINE" = "1" ]; then
   echo ""
   echo "== Optional: offline contract (external network blocked) =="
-  # 개발이 폐쇄망에서 일반망으로 옮겨가면서 "인터넷에 의존하는 코드를 애초에 쓸 수
-  # 없다" 는 안전장치가 사라졌다. 이제 그런 코드는 PR 을 올리는 폐쇄망 PC 에서 처음
-  # 드러난다 — push → pull → push → PR 왕복 뒤에. 여기서 30초에 끝낸다.
-  # 고객도 폐쇄망에 배치하므로 제품 요건이기도 하다: docs/offline-contract.md
-  # launcher 와 dx_agent_dev 는 각자 프로세스로 돈다 — 기본 게이트가 그러는 것과
-  # 같은 이유다(포트 충돌, 그리고 dx_agent_dev 가 자기 패키지를 최상위 `core` 로
-  # import 해서 다른 모듈의 `core` 와 부딪힌다).
+  # Catches code that depends on the internet before it reaches the air-gapped PR
+  # machine, in about 30 seconds. Customers deploy air-gapped too, so this is a
+  # product requirement: docs/offline-contract.md
+  # launcher and dx_agent_dev run in their own processes for the same reason as in
+  # the default gate (port collisions, and dx_agent_dev imports its package as the
+  # top-level `core`, which clashes with other modules' `core`).
   DX_OFFLINE_GUARD=1 "$PY" -m pytest \
     tests/dx_app/ tests/dx_stream/ tests/dx_compiler/ tests/dx_modelzoo/ \
     tests/dx_planner/ tests/dx_benchmark/ tests/dx_monitor/ \
@@ -312,9 +313,7 @@ fi
 if [ "$RUN_COVERAGE" = "1" ]; then
   echo ""
   echo "== Optional: Python coverage (all modules) =="
-  # .coveragerc declares all ten module sources, but this stanza used to measure
-  # only shared+launcher — so eight modules reported as uncovered code that was in
-  # fact well tested. Measure every declared source instead.
+  # Measure every source .coveragerc declares (all ten modules).
   #
   # The suites cannot share one pytest process (launcher and dx_agent_dev collide
   # on the 18xxx test ports, and tests/e2e rebinds DX_APP_ROOT), so each group runs
@@ -401,18 +400,14 @@ if [ "$RUN_BROWSER" = "1" ]; then
   # next to them — it would claim coverage that does not exist. Only tests/e2e is
   # engine-parameterised (see the cross-engine step below). Migrating a legacy
   # suite means swapping its fixture for tests.browser_support.launch_browser.
-  # 알려진 결함은 명시적으로 안고 간다 — 블로킹 게이트의 QUARANTINE 과 같은 규율이다.
-  # 목록은 tests/shared/test_ci_contracts.py 가 크기를 고정해 줄어들 수만 있고, 각
-  # 항목은 docs/testing.md 에 근거와 함께 적혀 있어야 한다.
-  # 비어 있다. 2026-09-15 에 세 항목이 모두 해제됐다 — 원인은 썩은 셀렉터가 아니라
-  # (1) 폴링 중 교체된 스텝이 앞 스텝의 시각물을 남기던 것, (2) 의도적으로 주입한
-  # 프리뷰를 존재만으로 결함으로 세던 것이었다. docs/testing.md 참조.
+  # Known defects are carried explicitly, with the same discipline as the blocking
+  # gate's QUARANTINE: tests/shared/test_ci_contracts.py pins the list size so it can
+  # only shrink, and each entry must be justified in docs/testing.md. Currently empty.
   BROWSER_QUARANTINE=()
 
-  # 한 스위트가 실패해도 나머지를 마저 돈다. set -e 아래에서 pytest 를 그냥 호출하면
-  # 첫 실패가 스크립트를 통째로 끝내는데, 실측해 보니 열 개 중 다섯 개만 돌고 나머지
-  # 다섯 개는 상태조차 모른 채 넘어가고 있었다 — advisory 빨간불이 상시인 데다
-  # 불완전하기까지 하면 새 회귀는 잡음에 묻힌다.
+  # Keep running the remaining suites when one fails. Calling pytest bare under set -e
+  # would end the script at the first failure and leave the later suites unreported,
+  # and new regressions would get lost in the noise.
   _browser_failed=()
   for _bt in "${_shard_suites[@]}"; do
     echo "== Browser suite: $_bt (chromium) =="

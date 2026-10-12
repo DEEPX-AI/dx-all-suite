@@ -38,10 +38,7 @@ def _function_body(source: str, name: str) -> str:
 def test_health_status_writes_only_when_class_changes():
     js = _read_all_launcher_js()
 
-    # setDot 과 setStatus 도 여기 있었다. 둘은 존재하지 않는 요소(#dotApp,
-    # #statusApp …)를 갱신하던 함수라 이 불변식이 지켜도 아무 일이 없었고,
-    # 이 목록이 그 죽은 코드를 붙잡아 두는 이유 중 하나였다. 화면에 실제로
-    # 쓰는 경로는 하나뿐이다.
+    # Only _setOrbStatus writes health state to the screen.
     for function_name in ("_setOrbStatus",):
         body = _function_body(js, function_name)
         assert "if (el && el.className !== targetClass)" in body

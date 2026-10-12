@@ -109,7 +109,7 @@ def test_cli_merges_browser_evidence(tmp_path):
     # Legacy human-readable evidence key preserved outside the table
     assert "launcher / home / es" in markdown
 
-    # --- Regression: table must be structurally contiguous (no list items
+    # --- The table must be structurally contiguous (no list items
     # between header and rows).  A stray "- Evidence key:" line before a
     # table row terminates the Markdown table.
     lines = markdown.splitlines()

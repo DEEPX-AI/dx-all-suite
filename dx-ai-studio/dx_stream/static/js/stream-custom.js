@@ -51,7 +51,7 @@
                 remaining--;
                 if (remaining === 0) {
                     DXStream.postJ('/api/custom-library/upload', { name: name, files: files }).then(function(data) {
-                        // A refused upload (binary file, bad name) used to start a build anyway.
+                        // A refused upload (binary file, bad name) must not start a build.
                         if (!data || data.error) {
                             DXStream.toast(T('Upload failed') + ': ' + _srv((data && data.error) || ''), 'error');
                             return;
@@ -123,7 +123,7 @@
             wrong = true;
         }
         if (!res || res.error) {
-            // A refused build used to poll a stale log as if it had started.
+            // A refused build never started; do not poll a stale log.
             var msg = _srv((res && res.error) || '');
             if (logPre) logPre.textContent = msg;
             DXStream.toast(T('Build failed') + ': ' + msg, 'error');

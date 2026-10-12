@@ -1,10 +1,9 @@
-"""Large JSON API responses are compressed and revalidated (2026-10-11 performance audit).
+"""Large JSON API responses are compressed and revalidated.
 
-The launcher shell fetches /zoo/api/catalog on every screen to draw home's module counts. That is 2.5 MB of JSON sent
-uncompressed and without a validator, so every visit downloaded all of it again. Model Zoo fetched it twice. Over
-remote access (pairing) every screen paid that cost. send_json now gzips a large 200 body for clients that accept it,
-and it adds a content ETag with no-cache, so a repeat request revalidates to a 304. Small and non-200 bodies stay as
-they were.
+The launcher shell fetches /zoo/api/catalog on every screen to draw home's module counts: 2.5 MB of JSON. Sent
+uncompressed and without a validator, every visit downloads all of it again, a cost remote access (pairing) pays on
+every screen. send_json gzips a large 200 body for clients that accept it, and it adds a content ETag with no-cache,
+so a repeat request revalidates to a 304. Small and non-200 bodies are left as is.
 """
 from __future__ import annotations
 

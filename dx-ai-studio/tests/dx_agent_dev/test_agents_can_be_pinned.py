@@ -1,9 +1,8 @@
-"""DX_AGENT_DEV_PIN_AGENTS 로 감지 결과를 고정할 수 있어야 한다.
+"""DX_AGENT_DEV_PIN_AGENTS must be able to pin the agent detection result.
 
-비주얼 회귀 스위트가 에이전트 콘솔을 찍을 때, 드롭다운은 개발자 PATH 에 무엇이
-있는지 · 어느 CLI 에 로그인돼 있는지를 그대로 그렸다. VS Code 세션이 copilot 을
-PATH 에 올리자 첫 항목이 claude → copilot 으로 바뀌고 로그인 안내 줄이 끼어들어
-dx_agent_dev 스크린샷 8장이 코드 변경 없이 깨졌다.
+Otherwise the visual regression suite's screenshots of the agent console depend on what is on the
+developer's PATH and which CLIs are signed in: a CLI appearing on PATH changes the first dropdown
+entry and adds a sign-in hint, breaking screenshots with no code change.
 """
 import sys
 from pathlib import Path

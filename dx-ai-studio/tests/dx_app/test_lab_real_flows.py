@@ -1,12 +1,11 @@
-"""Lab flows that must do real work (2026-10-11 real-use audit).
+"""Lab flows that must do real work on the DX-M1.
 
-Found on the DX-M1:
-- Add Model failed for every choice: Studio passed ``--lang python`` (add_model.sh takes cpp|py|both) and the
-  script's built-in references are legacy folders the per-model layout no longer has.
-- A package copied from a per-model example kept the reference's ``_FIXED_VARIANT``, so it died with
+- Add Model passes a language add_model.sh accepts (cpp|py|both, not ``--lang python``) and does not rely on the
+  script's built-in references, which are legacy folders the per-model layout does not have.
+- A package copied from a per-model example must not keep the reference's ``_FIXED_VARIANT``, or it dies with
   "no variant config".
-- Rollback only said "preview only", and an applied change vanished from Generated Files / Safety Center.
-- Experiment never advanced past "compile / pending".
+- Rollback really rolls back, and an applied change stays listed in Generated Files / Safety Center.
+- Experiment advances past "compile / pending".
 """
 
 import json

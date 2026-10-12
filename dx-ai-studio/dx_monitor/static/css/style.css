@@ -22,7 +22,7 @@ body{overflow-x:auto;overflow-y:auto}
 /*═══ Charts ═══*/
 .chart-box canvas{display:block;width:100%;height:100%}
 
-/*═══ Status Bar (상단 요약 카드) ═══*/
+/*═══ Status Bar (top summary cards) ═══*/
 .status-bar {
   display: flex;
   flex-wrap: wrap;
@@ -63,7 +63,7 @@ body{overflow-x:auto;overflow-y:auto}
   padding: 0 2px;
 }
 
-/*═══ Chart Rows (NPU별 행) ═══*/
+/*═══ Chart Rows (one row per NPU) ═══*/
 .chart-row {
   display: flex;
   gap: var(--sp-3);
@@ -95,7 +95,7 @@ body{overflow-x:auto;overflow-y:auto}
   flex: 1;
 }
 
-/*═══ All Mode 그리드 ═══*/
+/*═══ All Mode grid ═══*/
 .chart-all-grid {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
@@ -135,8 +135,8 @@ html[lang="zh-CN"] .zh-TW{display:none!important}
 html[lang="zh-TW"] .zh-CN{display:none!important}
 
 /* DX Monitor layout */
-/* 통합 shell(Option A)에서는 .dx-shell-main 이 이미 남은 공간을 채우고 스크롤한다.
-   구 position:fixed + top 오프셋은 56px 모듈 레일을 무시하고 그 위를 덮었다. */
+/* .dx-shell-main already fills the remaining space and scrolls, so no fixed
+   positioning here (it would cover the 56px module rail). */
 .monitor-main {
   min-width: 0;
   padding: var(--sp-5);
@@ -185,6 +185,6 @@ html[lang="zh-TW"] .zh-CN{display:none!important}
   flex: 1;
 }
 
-/* 카드가 세로로 쌓이는 페이지 흐름. .card 자체는 여백을 갖지 않는다
-   (shared/static/dx-components.css 참조) — 여백은 배치의 몫이다. */
+/* Page flow with cards stacked vertically. .card itself has no margin
+   (see shared/static/dx-components.css) — spacing belongs to the layout. */
 .monitor-main > .card{margin-bottom:var(--sp-4)}

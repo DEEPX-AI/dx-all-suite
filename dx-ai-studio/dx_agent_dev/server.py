@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""DX Agent Dev Server — 대화형 콘솔 (port 8099)."""
+"""DX Agent Dev Server — interactive console (port 8099)."""
 from __future__ import annotations
 
 import json
@@ -164,7 +164,7 @@ def _agent_install_options():
 
 
 def _degraded_payload(env):
-    """강등 SSE 페이로드(MED-8, §10 #8). 순수 함수 — 단위 테스트 대상.
+    """Degraded-mode SSE payload. A pure function, unit-tested.
 
     ``reason``/``text`` stay backward-compatible (raw reason code + short EN summary); ``title``/
     ``detail`` add localized (6-lang) guidance so a first-time user knows exactly what to do, and
@@ -195,17 +195,16 @@ def _make_runner():
 
 _runner = _make_runner()
 
-# 실행을 HTTP 응답에서 떼어내는 슬롯. 예전에는 핸들러가 _runner.run() 제너레이터를
-# 직접 돌렸고, 브라우저가 스트림을 놓으면 GeneratorExit → agent_runner 의 finally →
-# subprocess 종료였다. home 의 "Open in DX Agent Dev" 가 그 경로를 탔다.
-# 자세한 내용: dx_agent_dev/core/live_run.py
+# Slot that detaches a run from the HTTP response. If the handler drove the _runner.run() generator
+# itself, a browser dropping the stream would mean GeneratorExit -> agent_runner's finally ->
+# subprocess killed. Details: dx_agent_dev/core/live_run.py
 _live = LiveRun()
 _conversations = ConversationStore()
 
 
 
-# ── 통합 App Shell (Option A) ──────────────────────────────────
-# 단일 콘솔 화면이라 탭 행이 없다 — 템플릿 루트에 .dx-shell--no-tabs 를 붙였다.
+# ── Shared App Shell ──────────────────────────────────────────
+# A single console screen has no tab row, so the template root carries .dx-shell--no-tabs.
 DX_AGENT_DEV_SHELL = ShellSpec(
     module_key="agent",
     toolbar_extra="",
@@ -246,8 +245,8 @@ class AgentDevHandler(DXBaseHandler):
         env = environment.detect_environment()
         forced = env.get("forced_mock", False)
         available = env["available"] or forced
-        # mock 이어도 agent 목록을 고정해 두었으면 (DX_AGENT_DEV_PIN_AGENTS — 시각 회귀 · browser test) 그것을
-        # 보인다: 화면은 진짜처럼 고르고, 실행은 mock 이 받는다.
+        # Even under mock, pinned agents (DX_AGENT_DEV_PIN_AGENTS: visual regression, browser tests) are
+        # shown: the screen picks like the real thing and mock takes the run.
         pinned = os.environ.get("DX_AGENT_DEV_PIN_AGENTS") is not None
         agents = environment.detect_available_agents() if (pinned or not forced) else []
         snap = _live.snapshot()
@@ -257,13 +256,13 @@ class AgentDevHandler(DXBaseHandler):
             "busy": _runner.is_busy(),
             "showcase_count": len(load_showcases()),
             "agents": agents,
-            # Home 과 이 console 이 같은 agent 로 시작한다 (spec 2026-10-11 chat settings §3.5)
+            # Home and this console start with the same agent
             "studio_agent": agent_cli.studio_agent(),
-            # 붙을 자리를 알려준다: 어느 실행인지, 몇 번째까지 나왔는지.
+            # Where to attach: which run, and how many events so far.
             "run_id": snap["run_id"],
             "event_count": snap["count"],
             "run_done": snap["done"],
-            # 이어받는 쪽 (home → Agent Dev) 이 첫 줄 · 대화 · mode 를 안다
+            # Whoever takes over (home -> Agent Dev) knows the first line, conversation and mode
             "run_prompt": snap["info"].get("prompt"),
             "run_conversation_id": snap["info"].get("conversation_id"),
             "run_mode": snap["info"].get("mode"),
@@ -280,7 +279,7 @@ class AgentDevHandler(DXBaseHandler):
         return status
 
     def _agent_models(self):
-        """?agent=<name> → 동적 모델 목록(+default). 정적 config 폴백은 list_agent_models 내부."""
+        """?agent=<name> -> live model list (+default). The static config fallback lives in list_agent_models."""
         from urllib.parse import urlparse, parse_qs
         agent = (parse_qs(urlparse(self.path).query).get("agent", [""])[0] or "").strip()
         if not agent:
@@ -288,14 +287,14 @@ class AgentDevHandler(DXBaseHandler):
         info = environment.agent_model_info(agent)
         out = {"agent": agent, "models": info["models"], "default_model": info["default_model"]}
         if info.get("catalog"):
-            out["catalog"] = info["catalog"]   # 전체 + enabled — 계정이 고를 수 있는 것만 enabled
+            out["catalog"] = info["catalog"]   # everything + enabled; only models the account may pick are enabled
         return out
 
     def _login_status(self):
-        """in-UI 로그인 보조: ?agent=<name> → 설치/인증 상태 + 로그인 명령 안내.
+        """In-UI login help: ?agent=<name> -> install/auth state plus the login command.
 
-        대화형 OAuth는 결국 브라우저가 필요하므로, 여기서는 정확한 로그인 명령을 안내하고
-        is_authenticated()로 완료 여부를 재확인할 수 있게 한다(거짓 음성 방지: None=unknown).
+        Interactive OAuth needs a browser anyway, so this gives the exact login command and lets
+        is_authenticated() confirm completion (avoiding false negatives: None=unknown).
         """
         from urllib.parse import urlparse, parse_qs
         from dx_agent_dev.core.adapters import make_adapter
@@ -312,7 +311,7 @@ class AgentDevHandler(DXBaseHandler):
 
 
     def _stream_live(self, from_index: int, conversation_id: str = ""):
-        """버퍼를 SSE 로 흘린다. 소비자가 끊겨도 실행에는 영향이 없다."""
+        """Stream the buffer as SSE. A disconnected consumer does not affect the run."""
         self.start_sse()
         try:
             for ev in _live.events(from_index):
@@ -338,10 +337,10 @@ class AgentDevHandler(DXBaseHandler):
             self.end_sse()
 
     def _attach_sse(self):
-        """진행 중(또는 방금 끝난) 실행에 붙는다.
+        """Attach to a running (or just finished) run.
 
-        home 에서 시작한 실행을 Agent Dev 가 보는 길이고, 떠났다 돌아온 창이
-        이어받는 길이다.
+        This is how Agent Dev shows a run started from home, and how a window that left and came back
+        picks it up again.
         """
         from urllib.parse import parse_qs, urlparse
         q = parse_qs(urlparse(self.path).query)
@@ -437,9 +436,8 @@ class AgentDevHandler(DXBaseHandler):
         assistant_chunks: list[str] = []
         session_dir_bound = bool(conv.session_dir)
 
-        # 이벤트를 보면서 대화에 바인딩하는 일은 **펌프 쪽**에서 한다. 예전에는 이
-        # 루프 안에 있었고, 그래서 창을 닫으면 실행이 죽는 것과 별개로 결과도
-        # 유실됐다. 소비자가 없어도 일어나야 하는 일이므로 응답에 두면 안 된다.
+        # Binding events to the conversation happens on the **pump side**: it must happen even with
+        # no consumer, so it cannot live in the response (closing the window would lose the result).
         state = {"chunks": [], "bound": bool(conv.session_dir)}
 
         def _absorb(ev):

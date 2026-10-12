@@ -1,7 +1,7 @@
 /* Config Builder Wizard */
 
-/* 서버 오류를 표시 직전에 번역한다. shared/static/server-error-i18n.js 가
-   로드되지 않았으면 원문을 그대로 쓴다 — 조용히 비우지 않는다. */
+/* Translate a server error right before showing it. If shared/static/server-error-i18n.js
+   is not loaded, show the original text — never silently blank it. */
 function _srvErr(msg) {
   return (typeof window.translateServerError === 'function')
     ? window.translateServerError(msg) : msg;
@@ -191,7 +191,7 @@ function _srvErr(msg) {
         fetch('/validate/path?kind=dir&path=' + encodeURIComponent(path))
             .then(r => r.json())
             .then(data => {
-                // 허용 폴더 밖 등 거절 (403 {error}) 도 보인다 — 예전에는 warnings 만 읽어 아무 말이 없었다 (release audit C-2)
+                // Show rejections too (403 {error}, e.g. outside the allowed folders), not only warnings
                 const err = data && data.error;
                 const warnings = (data && data.warnings) || [];
                 const msgs = (err ? [err] : []).concat(warnings)
@@ -217,11 +217,11 @@ function _srvErr(msg) {
         el.textContent = msg;
     }
 
-    /* 차원에 대한 즉시 피드백. 생성 버튼을 누른 뒤 400 을 보는 것보다, 쓰는
-       순간 말하는 편이 낫다 — calibration_num 이 이미 그렇게 한다.
-       유효 범위는 .deepx/toolsets/config-schema.md: 모두 양의 정수, -1 과 0 불가.
-       batch 가 1인지는 여기서 보지 않는다 — 서버도 보지 않는다(모델을 모른다).
-       계약: tests/dx_compiler/test_config_wizard_shape_input.js 대응 파이썬 */
+    /* Immediate feedback on dimensions: better to say it while typing than to
+       return a 400 after Generate — calibration_num already works this way.
+       Valid range per .deepx/toolsets/config-schema.md: positive integers only, no -1 or 0.
+       Whether batch is 1 is not checked here — nor on the server (it does not know the model).
+       Contract: tests/dx_compiler/test_config_wizard_shape_input.py */
     function validateInputShapes() {
         const el = document.getElementById('wiz-shape-warning');
         if (!el) return;
@@ -243,11 +243,11 @@ function _srvErr(msg) {
         el.textContent = msg;
     }
 
-    /* 전처리 값에 대한 즉시 피드백. validateInputShapes 와 같은 규칙·같은 자리.
-       서버(validation.validate_preprocessings)와 규칙이 같아야 한다 —
-       크기류(width/height/size/scale)는 양수, std 에 0 금지.
-       axis·x·pad_value 는 **보지 않는다**: 저장소의 실제 config 를 보면 스칼라도
-       리스트도 되고 axis 는 음수도 된다. 여기서 막으면 정당한 값이 막힌다. */
+    /* Immediate feedback on preprocessing values, in the same style and place as validateInputShapes.
+       Rules must match the server (validation.validate_preprocessings):
+       sizes (width/height/size/scale) are positive, std may not be 0.
+       axis, x and pad_value are **not** checked: real configs use both scalars
+       and lists there, and axis can be negative. Blocking them would reject valid values. */
     var PREP_POSITIVE = ['width', 'height', 'size', 'scale'];
 
     function validatePreprocessings() {
@@ -433,10 +433,9 @@ function _srvErr(msg) {
         const inputShapes = {};
         document.querySelectorAll('.input-shape-row').forEach(row => {
             const name = row.querySelector('.shape-name').value.trim();
-            /* 예전에는 `.filter(d => !isNaN(d))` 로 잘못 쓴 값을 조용히 버렸다.
-               `1,3,abc,224` 가 `[1,3,224]` 가 되어 4차원을 넣었는데 3차원이
-               전송되고, 아무도 그 사실을 말해주지 않았다. 그대로 실어 보내고
-               validateInputShapes 가 말하게 한다. 서버도 400 으로 막는다(SR-758). */
+            /* Do not drop bad values: `1,3,abc,224` must not silently become `[1,3,224]`.
+               Send them as typed and let validateInputShapes report them;
+               the server rejects them with a 400 as well. */
             const dims = row.querySelector('.shape-dims').value.trim()
                 .split(',').filter(t => t.trim() !== '')
                 .map(d => { const n = Number(d.trim()); return Number.isInteger(n) ? n : d.trim(); });
@@ -570,8 +569,8 @@ function _srvErr(msg) {
 
         if (prevBtn) prevBtn.addEventListener('click', function() { wizGoTo(currentStep - 1); });
         if (nextBtn) nextBtn.addEventListener('click', function() {
-            // Dataset Path * 는 필수 — 비워도 넘어가 dataset_path 없는 config 가 생기고 컴파일에서야 실패했다
-            // (2026-10-11 audit). 빈 칸만 막는다. 없는 폴더 · 허용 밖 경로는 여전히 경고만 한다 (서버가 판단).
+            // Dataset Path is required — without it the config has no dataset_path and fails only at compile time.
+            // Only an empty field blocks; a missing folder or disallowed path still just warns (the server decides).
             if (currentStep === 3) {
                 const mode = document.querySelector('input[name="loader_mode"]:checked');
                 const ds = document.getElementById('wiz-dataset-path');
@@ -610,15 +609,15 @@ function _srvErr(msg) {
             calibNum.addEventListener('input', validateCalibNum);
             calibNum.addEventListener('change', validateCalibNum);
         }
-        /* 차원 행은 동적으로 늘어나므로 목록에 위임한다 — 행마다 바인딩하면
-           나중에 추가된 행이 조용히 빠진다. */
+        /* Dimension rows are added dynamically, so delegate to the list — binding per
+           row would silently miss rows added later. */
         const shapeList = document.getElementById('input-shapes-list');
         if (shapeList) {
             shapeList.addEventListener('input', validateInputShapes);
             shapeList.addEventListener('change', validateInputShapes);
         }
-        /* 전처리도 같은 이유로 컨테이너에 위임한다 — 전처리 항목은 추가·삭제로
-           계속 바뀌므로 개별 입력칸에 붙이면 나중에 추가된 것이 조용히 빠진다. */
+        /* Same for preprocessing: items keep being added and removed, so delegate to
+           the container — binding per input would silently miss ones added later. */
         const prepPipeline = document.getElementById('prep-pipeline');
         if (prepPipeline) {
             prepPipeline.addEventListener('input', validatePreprocessings);

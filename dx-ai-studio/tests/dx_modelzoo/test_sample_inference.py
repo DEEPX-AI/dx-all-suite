@@ -1,4 +1,4 @@
-"""ModelZoo 샘플 이미지 inference API 계약 테스트."""
+"""ModelZoo sample-image inference API contracts."""
 import os
 import sys
 
@@ -7,7 +7,7 @@ sys.path.insert(0, os.path.join(REPO_ROOT, 'dx_modelzoo'))
 
 
 def test_sample_images_route_registered_in_server():
-    """/api/sample-images 라우트가 server.py에 등록되어야 한다."""
+    """The /api/sample-images route must be registered in server.py."""
     server_src = open(os.path.join(REPO_ROOT, 'dx_modelzoo', 'server.py')).read()
     assert '/api/sample-images' in server_src, (
         "server.py must handle GET /api/sample-images"
@@ -15,7 +15,7 @@ def test_sample_images_route_registered_in_server():
 
 
 def test_sample_image_serve_route_registered_in_server():
-    """/api/sample-image/ 라우트가 server.py에 등록되어야 한다."""
+    """The /api/sample-image/ route must be registered in server.py."""
     server_src = open(os.path.join(REPO_ROOT, 'dx_modelzoo', 'server.py')).read()
     assert '/api/sample-image/' in server_src, (
         "server.py must handle GET /api/sample-image/<filename>"
@@ -23,14 +23,14 @@ def test_sample_image_serve_route_registered_in_server():
 
 
 def test_sample_img_dir_constant_defined():
-    """config.py에 SAMPLE_IMG_DIR 상수가 정의되어야 한다."""
+    """config.py must define the SAMPLE_IMG_DIR constant."""
     from core.config import SAMPLE_IMG_DIR
     from pathlib import Path
     assert isinstance(SAMPLE_IMG_DIR, Path), "SAMPLE_IMG_DIR must be a Path"
 
 
 def test_sample_images_list_helper_logic():
-    """SAMPLE_IMG_DIR 목록 반환 로직: 확장자 필터 + 재귀 없음."""
+    """SAMPLE_IMG_DIR listing: extension filter, no recursion."""
     import tempfile, pathlib
 
     with tempfile.TemporaryDirectory() as td:
@@ -52,7 +52,7 @@ def test_sample_images_list_helper_logic():
 
 
 def test_path_traversal_guard_in_server_source():
-    """server.py의 /api/sample-image/ 라우트에 실제 경로 탈출 방지 코드가 있어야 한다."""
+    """The /api/sample-image/ route in server.py must guard against path escape."""
     server_src = open(os.path.join(REPO_ROOT, 'dx_modelzoo', 'server.py')).read()
     # is_relative_to pattern must be present in the serve route
     assert 'is_relative_to' in server_src, (
@@ -66,7 +66,7 @@ def test_path_traversal_guard_in_server_source():
 
 
 def test_extension_allowlist_in_serve_route():
-    """serve route가 이미지 확장자 이외 파일 서빙을 거부해야 한다."""
+    """The serve route must refuse files without an image extension."""
     server_src = open(os.path.join(REPO_ROOT, 'dx_modelzoo', 'server.py')).read()
     # The serve route should check extension allowlist
     assert 'is_file()' in server_src, (
@@ -75,7 +75,7 @@ def test_extension_allowlist_in_serve_route():
 
 
 def test_default_image_selection_logic():
-    """default 이미지 선정: SAMPLE_IMAGES 매핑 → 파일 존재 확인 → 첫 번째 파일 fallback."""
+    """Default image pick: SAMPLE_IMAGES mapping → file exists → first file as fallback."""
     import tempfile, pathlib
     with tempfile.TemporaryDirectory() as td:
         td = pathlib.Path(td)
@@ -110,28 +110,28 @@ def test_default_image_selection_logic():
 
 
 def test_js_load_sample_images_function_exists():
-    """inference.js에 loadSampleImages 함수가 존재해야 한다."""
+    """inference.js must have a loadSampleImages function."""
     js_path = os.path.join(REPO_ROOT, 'dx_modelzoo', 'static', 'js', 'inference.js')
     content = open(js_path).read()
     assert 'loadSampleImages' in content, "inference.js must define loadSampleImages"
 
 
 def test_js_sample_grid_class_exists():
-    """inference.js에 mz-sample-grid 클래스 참조가 있어야 한다."""
+    """inference.js must reference the mz-sample-grid class."""
     js_path = os.path.join(REPO_ROOT, 'dx_modelzoo', 'static', 'js', 'inference.js')
     content = open(js_path).read()
     assert 'mz-sample-grid' in content, "inference.js must reference mz-sample-grid CSS class"
 
 
 def test_js_input_mode_tabs_class_exists():
-    """inference.js에 mz-input-mode-tabs 클래스 참조가 있어야 한다."""
+    """inference.js must reference the mz-input-mode-tabs class."""
     js_path = os.path.join(REPO_ROOT, 'dx_modelzoo', 'static', 'js', 'inference.js')
     content = open(js_path).read()
     assert 'mz-input-mode-tabs' in content, "inference.js must reference mz-input-mode-tabs CSS class"
 
 
 def test_js_uses_image_path_not_input_path():
-    """inference.js가 image_path 키를 사용해야 한다 (input_path 아님)."""
+    """inference.js must use the image_path key (not input_path)."""
     js_path = os.path.join(REPO_ROOT, 'dx_modelzoo', 'static', 'js', 'inference.js')
     content = open(js_path).read()
     assert 'body.image_path' in content, (
@@ -143,7 +143,7 @@ def test_js_uses_image_path_not_input_path():
 
 
 def test_js_sample_images_api_includes_model_id():
-    """loadSampleImages()가 /api/sample-images 호출 시 model_id 파라미터를 포함해야 한다."""
+    """loadSampleImages() must pass the model_id parameter to /api/sample-images."""
     js_path = os.path.join(REPO_ROOT, 'dx_modelzoo', 'static', 'js', 'inference.js')
     content = open(js_path).read()
     assert 'model_id=' in content, (
@@ -152,15 +152,15 @@ def test_js_sample_images_api_includes_model_id():
 
 
 def test_js_sample_inference_uses_api_path_not_hardcoded():
-    """runSampleInference가 하드코딩된 'sample/img/' 경로 대신 API 응답의 경로를 사용해야 한다.
+    """runSampleInference must use the path from the API response, not a hardcoded 'sample/img/'.
 
-    카테고리별 샘플 이미지가 다른 경로에 있을 수 있으므로, 선택된 파일명의 경로를
-    API가 제공하는 data.sample_dir 또는 thumb의 data-sample-dir 속성에서 가져와야 한다.
+    Sample images can live in a different path per category, so the selected file's path must
+    come from the API's data.sample_dir or the thumbnail's data-sample-dir attribute.
     """
     js_path = os.path.join(REPO_ROOT, 'dx_modelzoo', 'static', 'js', 'inference.js')
     content = open(js_path).read()
 
-    # runSampleInference 함수 본문에 하드코딩된 'sample/img/' 경로가 없어야 한다
+    # The runSampleInference body must not hardcode the 'sample/img/' path
     import re
     func_match = re.search(r'function\s+runSampleInference\s*\([^)]*\)\s*\{', content)
     assert func_match, "runSampleInference function must exist"
@@ -179,7 +179,7 @@ def test_js_sample_inference_uses_api_path_not_hardcoded():
 
 
 def test_js_load_sample_images_has_no_sample_img_fallback():
-    """loadSampleImages는 API sample_dir 누락 시 sample/img로 추측하지 않아야 한다."""
+    """loadSampleImages must not guess sample/img when the API gives no sample_dir."""
     js_path = os.path.join(REPO_ROOT, 'dx_modelzoo', 'static', 'js', 'inference.js')
     content = open(js_path).read()
     body = _extract_js_function_body(content, 'loadSampleImages')
@@ -188,7 +188,7 @@ def test_js_load_sample_images_has_no_sample_img_fallback():
 
 
 def test_js_run_sample_inference_has_no_sample_img_fallback():
-    """runSampleInference는 선택 썸네일의 data-sample-dir가 없으면 실행하지 않아야 한다."""
+    """runSampleInference must not run when the selected thumbnail has no data-sample-dir."""
     js_path = os.path.join(REPO_ROOT, 'dx_modelzoo', 'static', 'js', 'inference.js')
     content = open(js_path).read()
     body = _extract_js_function_body(content, 'runSampleInference')
@@ -198,7 +198,7 @@ def test_js_run_sample_inference_has_no_sample_img_fallback():
 
 
 def test_js_render_panel_disables_sample_tab_without_sample_dir():
-    """sample_dir가 없는 모델은 Sample 탭을 비활성화하고 사용자 안내를 보여야 한다."""
+    """A model without sample_dir must disable the Sample tab and show a notice."""
     js_path = os.path.join(REPO_ROOT, 'dx_modelzoo', 'static', 'js', 'inference.js')
     content = open(js_path).read()
     body = _extract_js_function_body(content, 'renderInferencePanel')
@@ -209,7 +209,7 @@ def test_js_render_panel_disables_sample_tab_without_sample_dir():
 
 
 def test_js_render_panel_escapes_sample_path_hint():
-    """기본 샘플 경로 힌트는 innerHTML에 들어가기 전에 이스케이프해야 한다."""
+    """The default sample path hint must be escaped before it goes into innerHTML."""
     js_path = os.path.join(REPO_ROOT, 'dx_modelzoo', 'static', 'js', 'inference.js')
     content = open(js_path).read()
     body = _extract_js_function_body(content, 'renderInferencePanel')
@@ -218,24 +218,24 @@ def test_js_render_panel_escapes_sample_path_hint():
 
 
 def test_css_sample_grid_defined():
-    """style.css에 .mz-sample-grid 클래스가 정의되어야 한다."""
+    """style.css must define the .mz-sample-grid class."""
     css_path = os.path.join(REPO_ROOT, 'dx_modelzoo', 'static', 'css', 'style.css')
     content = open(css_path).read()
     assert '.mz-sample-grid' in content, "style.css must define .mz-sample-grid"
 
 
 def test_css_inference_preview_defined():
-    """style.css에 .mz-inference-preview 클래스가 정의되어야 한다."""
+    """style.css must define the .mz-inference-preview class."""
     css_path = os.path.join(REPO_ROOT, 'dx_modelzoo', 'static', 'css', 'style.css')
     content = open(css_path).read()
     assert '.mz-inference-preview' in content, "style.css must define .mz-inference-preview"
 
 
 def test_inference_js_escattr_escapes_single_quote():
-    """_escAttr 함수가 작은따옴표를 &#39;로 이스케이프해야 한다.
+    """_escAttr must escape a single quote as &#39;.
 
-    renderInferencePanel에서 onclick='...' 내부에 값을 삽입할 때
-    작은따옴표가 이스케이프되지 않으면 XSS 취약점이 된다.
+    renderInferencePanel inserts values inside onclick='...'; an unescaped
+    single quote there is an XSS hole.
     """
     js_path = os.path.join(REPO_ROOT, 'dx_modelzoo', 'static', 'js', 'inference.js')
     content = open(js_path).read()
@@ -246,16 +246,16 @@ def test_inference_js_escattr_escapes_single_quote():
 
 
 def test_inference_js_render_panel_escapes_model_values():
-    """renderInferencePanel이 model.id, category, model_file을 _escAttr로 이스케이프해야 한다.
+    """renderInferencePanel must escape model.id, category and model_file with _escAttr.
 
-    inline onclick에서 이 값들이 이스케이프 없이 삽입되면
-    특수 문자가 포함된 모델명으로 JS 인젝션이 가능하다.
+    Inserted unescaped into an inline onclick, a model name with special
+    characters could inject JS.
     """
     import re
     js_path = os.path.join(REPO_ROOT, 'dx_modelzoo', 'static', 'js', 'inference.js')
     content = open(js_path).read()
 
-    # renderInferencePanel 함수 본문 추출
+    # Extract the renderInferencePanel body
     func_match = re.search(r'function\s+renderInferencePanel\s*\([^)]*\)\s*\{', content)
     assert func_match, "renderInferencePanel function must exist"
     start = func_match.end()
@@ -267,8 +267,8 @@ def test_inference_js_render_panel_escapes_model_values():
         i += 1
     body = content[start:i-1]
 
-    # onclick 내에서 model.id/category/model_file이 _escAttr로 감싸져야 한다
-    # 이스케이프 없이 직접 삽입하는 패턴이 없어야 한다
+    # Inside onclick, model.id/category/model_file must be wrapped in _escAttr,
+    # never inserted unescaped
     raw_patterns = [
         r"'\$\{model\.id\}'",
         r"'\$\{model\.category\}'",
@@ -283,7 +283,7 @@ def test_inference_js_render_panel_escapes_model_values():
 
 
 def _extract_js_function_body(content, func_name):
-    """JS 소스에서 function funcName(...) { ... } 본문을 추출한다."""
+    """Extract the body of function funcName(...) { ... } from JS source."""
     import re
     func_match = re.search(
         rf'function\s+{re.escape(func_name)}\s*\([^)]*\)\s*\{{', content
@@ -303,10 +303,10 @@ def _extract_js_function_body(content, func_name):
 
 
 def test_render_panel_no_inline_model_interpolation():
-    """renderInferencePanel은 onclick 내에서 모델 값을 직접 보간하지 않아야 한다.
+    """renderInferencePanel must not interpolate model values inside onclick.
 
-    switchInferenceTab('upload', '${eId}', ...) 같은 패턴은 HTML이 &#39;를
-    apostrophe로 디코딩한 뒤 JS가 실행되므로, 작은따옴표를 포함하는 값에서 깨진다.
+    In a pattern like switchInferenceTab('upload', '${eId}', ...), HTML decodes &#39;
+    back to an apostrophe before the JS runs, so a value with a single quote breaks it.
     """
     import re
     js_path = os.path.join(REPO_ROOT, 'dx_modelzoo', 'static', 'js', 'inference.js')
@@ -314,7 +314,7 @@ def test_render_panel_no_inline_model_interpolation():
     body = _extract_js_function_body(content, 'renderInferencePanel')
     assert body is not None, "renderInferencePanel function must exist"
 
-    # 금지 패턴: onclick="someFunc('${eId}', '${eCat}', '${eFile}')" 형태
+    # Forbidden: onclick="someFunc('${eId}', '${eCat}', '${eFile}')"
     forbidden = [
         r"switchInferenceTab\(\s*'[^']*'\s*,\s*'\$\{",
         r"onInferenceFileSelected\(\s*this\s*,\s*'\$\{",
@@ -329,7 +329,7 @@ def test_render_panel_no_inline_model_interpolation():
 
 
 def test_render_panel_uses_data_attributes():
-    """renderInferencePanel이 data-model-id / data-category / data-model-file 속성을 사용해야 한다."""
+    """renderInferencePanel must use the data-model-id / data-category / data-model-file attributes."""
     js_path = os.path.join(REPO_ROOT, 'dx_modelzoo', 'static', 'js', 'inference.js')
     content = open(js_path).read()
     body = _extract_js_function_body(content, 'renderInferencePanel')
@@ -342,13 +342,13 @@ def test_render_panel_uses_data_attributes():
 
 
 def test_render_panel_uses_dataset_helper_functions():
-    """renderInferencePanel의 onclick이 dataset을 읽는 헬퍼 함수를 호출해야 한다."""
+    """renderInferencePanel's onclick must call a helper that reads dataset."""
     js_path = os.path.join(REPO_ROOT, 'dx_modelzoo', 'static', 'js', 'inference.js')
     content = open(js_path).read()
     body = _extract_js_function_body(content, 'renderInferencePanel')
     assert body is not None, "renderInferencePanel function must exist"
 
-    # 헬퍼 함수가 onclick에서 호출되어야 한다
+    # The helper must be called from onclick
     helpers = [
         'switchInferenceTabFromButton',
         'onInferenceFileSelectedFromInput',
@@ -363,7 +363,7 @@ def test_render_panel_uses_dataset_helper_functions():
 
 
 def test_dataset_helpers_read_dataset():
-    """헬퍼 함수들이 btn/input의 dataset에서 modelId, category, modelFile을 읽어야 한다."""
+    """The helpers must read modelId, category and modelFile from the btn/input dataset."""
     js_path = os.path.join(REPO_ROOT, 'dx_modelzoo', 'static', 'js', 'inference.js')
     content = open(js_path).read()
 
@@ -383,17 +383,17 @@ def test_dataset_helpers_read_dataset():
 
 
 def test_escattr_escapes_single_quote_for_data_attrs():
-    """_escAttr가 data 속성 값에서 작은따옴표를 &#39;로 이스케이프해야 한다.
+    """_escAttr must escape a single quote as &#39; in data attribute values.
 
-    data-model-id="${eId}" 형태에서 eId에 큰따옴표가 포함되면 속성이 깨지므로
-    &quot; 이스케이프도 필요하다.
+    In data-model-id="${eId}", a double quote in eId breaks the attribute, so
+    &quot; escaping is needed too.
     """
     js_path = os.path.join(REPO_ROOT, 'dx_modelzoo', 'static', 'js', 'inference.js')
     content = open(js_path).read()
     body = _extract_js_function_body(content, '_escAttr')
     assert body is not None, "_escAttr function must exist"
 
-    # 작은따옴표 → &#39;
+    # single quote → &#39;
     assert "&#39;" in body, "_escAttr must escape ' to &#39;"
-    # 큰따옴표 → &quot;
+    # double quote → &quot;
     assert "&quot;" in body, "_escAttr must escape \" to &quot;"

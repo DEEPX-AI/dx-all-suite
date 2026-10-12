@@ -1,7 +1,7 @@
-"""공용 chat widget — 모든 글자 · 단추 이름이 고른 언어를 따른다 (release audit L-14).
+"""Shared chat widget: every label and button name follows the chosen language.
 
-예전에는 'API Key' · 'Model' · 'Endpoint' · 'Custom endpoint' · Send · Chat 이 영어 고정이었고, 나머지 글자는 위젯을
-처음 그린 언어에 머물렀다 (언어를 바꾸면 placeholder · title 몇 개만 바뀌고 aria-label 은 그대로).
+'API Key', 'Model', 'Endpoint', 'Custom endpoint', Send and Chat must not be fixed in English, and the rest must not
+stay in the language the widget was first drawn in (placeholders, titles and aria-labels all follow a language switch).
 """
 from __future__ import annotations
 
@@ -52,7 +52,7 @@ def _snapshot(page):
 def test_the_widget_speaks_english_first(page):
     s = _snapshot(page)
     assert s["fab"] == "Chat" and s["send"] == "Send"
-    # 2026-10-11: settings ask one question first; the Agent field leads (chat settings redesign)
+    # settings ask one question first; the Agent field leads
     assert s["fields"][:5] == ["Agent", "Provider", "API Key", "Model", "Endpoint"]
     assert s["custom"] == "Custom endpoint" and s["save"] == "Save"
 

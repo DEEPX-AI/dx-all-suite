@@ -16,7 +16,7 @@ except Exception:
                               "object_pose_estimation", "3d_object_detection"}
 
 def _drop_suffix(text: str, suffix: str) -> str:
-    """str.removesuffix 는 3.9+ — pyproject 는 3.8 부터 (tests/shared/test_python_floor.py)."""
+    """str.removesuffix is 3.9+, but pyproject supports 3.8 (tests/shared/test_python_floor.py)."""
     return text[: -len(suffix)] if suffix and text.endswith(suffix) else text
 
 
@@ -57,8 +57,8 @@ def parse_run_demo(run_demo_path: Path) -> list[dict]:
         n = len(cols["DEMO_LABELS"])
         if n == 0 or any(len(v) != n for v in cols.values()):
             return []
-        # per-model layout (teammate 8d0b748): DEMO_PY_DIR 는 task/family, model 은 DEMO_MODEL 의 stem 이다 —
-        # studio 의 model 이름 · 실행 경로도 stem (spec 2026-10-01 dx_app per-model layout 결정 9).
+        # per-model layout: DEMO_PY_DIR is task/family and the model is DEMO_MODEL's stem; the studio's
+        # model name and run path use the stem too.
         from shared import dx_app_layout as _layout
         per_model = _layout.detect(Path(run_demo_path).parent) == _layout.PER_MODEL
         demos = []
@@ -92,7 +92,7 @@ def parse_run_demo(run_demo_path: Path) -> list[dict]:
 
 
 def _dx_app_root():
-    """dx_app root (DX_APP_ROOT 설정을 따른다) — run_demo.sh 가 여기 있고 sample media 경로도 여기 기준."""
+    """dx_app root (follows the DX_APP_ROOT setting): run_demo.sh lives here and sample media paths are relative to it."""
     try:
         from dx_app.core.config import DX_APP_ROOT
     except Exception:
@@ -140,8 +140,8 @@ def build_demos_payload() -> dict:
         d["run_ref"] = {"model_name": m.get("name") or d["model_name"],
                         "category": m.get("category") or d["category"],
                         "model_file": m.get("model_file") or d["model"]}
-        # per-model 의 stem (yolov7_640x640) 은 Model Zoo 썸네일 이름 (yolov7d6.jpg) 과 멀다 — family 와 registry 의
-        # 옛 이름으로도 찾는다.
+        # A per-model stem (yolov7_640x640) is far from the Model Zoo thumbnail name (yolov7d6.jpg), so also look
+        # up the family and the registry's old name.
         thumb = _resolve_thumb(d["model_name"], d["run_ref"]["model_name"], d.get("model"),
                                _legacy_name(d["model_name"]), d.get("family"))
         d["thumbnail"] = ("/api/demo-thumb?f=" + thumb) if thumb else None
@@ -153,7 +153,7 @@ _LEGACY_NAMES = None
 
 
 def _legacy_name(stem):
-    """per-model registry 의 stem → 옛 model_name (yolov7_640x640 → yolov7). 없으면 None."""
+    """per-model registry stem -> old model_name (yolov7_640x640 -> yolov7). None if unknown."""
     global _LEGACY_NAMES
     if _LEGACY_NAMES is None:
         _LEGACY_NAMES = {}
@@ -176,7 +176,7 @@ def _media_exists(rel) -> bool:
     try:
         p = Path(rel)
         q = p if p.is_absolute() else _dx_app_root() / p
-        return q.is_file() or q.is_dir()    # face_pair · person_pair 는 이미지 쌍의 폴더다
+        return q.is_file() or q.is_dir()    # face_pair and person_pair are folders of image pairs
     except Exception:
         return True
 
@@ -186,8 +186,8 @@ def _media_exists(rel) -> bool:
 # don't always equal a thumbnail filename (yolov7 → yolov7d6.jpg), so match by a normalized
 # key: exact first, then the shortest thumbnail whose name starts with the demo key.
 _THUMBS_DIR = Path(__file__).resolve().parents[2] / "dx_modelzoo" / "data" / "thumbnails"
-# 원본 폴더는 .gitignore 다 — clone 한 곳에는 Model Zoo 화면이 쓰는 저장소의 사본 (<stem>-jpg.webp) 만 있다
-# (계약: tests/dx_app/test_demo_thumbs_committed.py)
+# The original folder is gitignored; a clone only has the repo copy the Model Zoo screen uses (<stem>-jpg.webp)
+# (contract: tests/dx_app/test_demo_thumbs_committed.py)
 _OPT_THUMBS_DIR = Path(__file__).resolve().parents[2] / "dx_modelzoo" / "data" / "optimized" / "thumbnails"
 _THUMB_INDEX = None
 

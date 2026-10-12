@@ -1,14 +1,12 @@
-"""스텝이 교체되면 이전 스텝의 시각물이 남아 있으면 안 된다.
+"""When the step changes, nothing from the previous step may stay on screen.
 
-`_showStep()` 은 타깃이 안 보이면 최대 2초(20×100ms) 폴링한다. 그 사이 사용자가
-Next 를 누르면 `_stepToken` 가드가 걸려 아무것도 렌더하지 않고 빠져나간다. 그
-동안 화면에는 **이전 스텝의 스포트라이트와 툴팁**이 그대로 남는다 — 사용자는
-이미 지나간 스텝의 상자를 보고 있고, 툴팁 내용도 앞 스텝의 것이다.
+`_showStep()` polls for up to 2 s (20×100ms) when the target is not visible. If the user
+presses Next meanwhile, the `_stepToken` guard returns without rendering. Unless the old
+visuals are cleared, **the previous step's spotlight and tooltip** stay on screen — the user
+looks at a box from a step already passed, with that step's tooltip text.
 
-그 상태가 튜토리얼 e2e 게이트에서는 `TARGET_MISSING` 으로 보고됐다. 셀렉터가
-썩어서가 아니라(측정한 셀렉터는 처음부터 0개였다) 엔진이 아직 그것을 찾는
-중이었기 때문이다. instrumented run 으로 확인했다: 문제 스텝은 전부
-"렌더된 적 없음" 이었고 직전 렌더는 바로 앞 스텝이었다.
+The tutorial e2e gate reports that state as `TARGET_MISSING` even though the selector is
+fine: the engine is simply still looking for it.
 """
 from __future__ import annotations
 
@@ -83,9 +81,9 @@ def test_no_stale_spotlight_while_polling_for_a_missing_target(page):
         assert first["spotlightActive"], "앵커된 첫 스텝이 스포트라이트를 걸어야 한다"
         assert "anchored step" in first["tooltipText"]
 
-        # 타깃이 없는 다음 스텝으로 — 엔진은 이제 폴링에 들어간다.
+        # Move to the next step, which has no target — the engine starts polling.
         page.evaluate("() => window._dxTutorial.next()")
-        page.wait_for_timeout(300)  # 폴링(2초)이 끝나기 한참 전
+        page.wait_for_timeout(300)  # well before polling (2 s) ends
 
         during = _state(page)
         assert not during["spotlightActive"], (
@@ -102,7 +100,7 @@ def test_no_stale_spotlight_while_polling_for_a_missing_target(page):
 
 
 def test_anchored_steps_are_unaffected(page):
-    """첫 조회에 성공하는 스텝은 지금 경로 그대로여야 한다 (툴팁 깜빡임 없음)."""
+    """A step whose target is found on the first lookup keeps the direct path (no tooltip flicker)."""
     server, port = start_module_server("dx_modelzoo")
     try:
         page.goto(f"http://127.0.0.1:{port}/", wait_until="domcontentloaded", timeout=60000)

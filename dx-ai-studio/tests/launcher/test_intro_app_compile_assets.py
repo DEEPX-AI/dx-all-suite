@@ -1,8 +1,8 @@
-"""intro 의 App · Compiler 장면 소재 (spec 2026-09-30 intro app/compiler).
+"""Assets for the intro's App and Compiler scenes.
 
-App 은 공식 sample 주행 영상의 모든 frame 에 공식 segformer 를 DX-M1 에서 돌려 구운 clip 이고
-(`scripts/intro/bake_app.py`), Compiler 는 Ultralytics 공식 YOLO26n 의 실제 ONNX graph 다
-(`scripts/intro/bake_compile.py`). 여기서는 굽힌 산출물이 화면이 기대는 모양과 무게를 지키는지 본다.
+App is a clip baked by running the official segformer on a DX-M1 over every frame of the official sample drive
+video (`scripts/intro/bake_app.py`); Compiler is the real ONNX graph of Ultralytics' official YOLO26n
+(`scripts/intro/bake_compile.py`). This checks that the baked outputs keep the shape and weight the screen relies on.
 """
 from __future__ import annotations
 
@@ -50,9 +50,9 @@ def test_the_compile_source_names_the_onnx_and_the_compiled_model():
 
 
 def test_only_the_splash_timeline_owns_the_scene_flag():
-    """`is-scene` (prompt 를 화면 아래로 · logo 를 비킨다) 를 장면이 각자 끄면, 앞 장면이 늦게 시작한
-    날에는 그 timer 가 다음 장면이 켠 뒤에 돌아 Compiler 도중 prompt 가 가운데로 튀어 칩과 겹쳤다
-    (간헐, 실측 여유 9–15ms). 박자마다 splash 한 곳이 "이번 장면이 떴는가" 로 켜고 끈다."""
+    """`is-scene` (prompt moved down, logo out of the way) is switched on and off in one place in the splash per
+    beat, by "is this beat's scene up". If each scene switched it off itself, a late-starting scene's timer could fire
+    after the next scene switched it on, and the prompt would jump to the centre over the chip mid-Compiler."""
     static = ROOT / "launcher" / "static"
     for js in ("intro-stream.js", "intro-app.js", "intro-compile.js"):
         assert "is-scene" not in (static / js).read_text(encoding="utf-8"), js

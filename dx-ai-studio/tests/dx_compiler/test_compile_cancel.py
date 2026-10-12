@@ -1,10 +1,9 @@
-"""F-10: compile timeout / cancel must actually terminate the worker process.
+"""Compile timeout / cancel must actually terminate the worker process.
 
-The old behaviour only formatted an error message on timeout; the running
-compile worker (and its child processes) kept running. These tests prove that
-both an explicit cancel and the shared termination path used by the timeout
-actually kill the *tracked* worker process — targeted by its own process group,
-never a broad pkill.
+Reporting an error on timeout is not enough: the compile worker (and its child
+processes) must stop. These tests prove that both an explicit cancel and the
+shared termination path used by the timeout kill the *tracked* worker process —
+targeted by its own process group, never a broad pkill.
 """
 import sys
 from pathlib import Path

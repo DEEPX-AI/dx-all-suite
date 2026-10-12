@@ -4,9 +4,9 @@
 
   var BOOT_GATE_POLL_MS = 250;
   var BOOT_GATE_MAX_WAIT_MS = 120000;
-  // Home 은 font · 아이콘 sprite 가 도착한 뒤에 연다 — 외부 <use> 는 sprite 전까지 빈칸이라, 먼저 열면
-  // 아이콘이 나중에 튀어나온다 (port-forward tunnel 너머에서 보였다). 무엇이 막혀도 문서 시작부터
-  // 이 시간이면 연다. spec: docs/superpowers/specs/2026-09-30-studio-boot-assets-design.md
+  // Home opens only after the font and the icon sprite arrive: an external <use> is blank until the
+  // sprite loads, so opening early makes icons pop in late (visible over a port-forward tunnel). If
+  // something stalls, open anyway after this long from document start.
   var BOOT_ASSET_MAX_WAIT_MS = 3000;
   var _pendingRouteRestore = null;
   var _shellRevealInFlight = false;
@@ -183,7 +183,7 @@
 
       function openShell(data) {
         ns._studioReadyResolved = true;
-        /* home 의 agent 설정처럼 module 에 기대는 것들이 다시 물을 때 (home-agent-setup.js) */
+        /* for things that depend on a module and ask again, such as the home agent setup (home-agent-setup.js) */
         try { window.dispatchEvent(new Event('dx-studio-ready')); } catch (e) {}
         if (showBootGate) hideStudioBootGate();
         if (!ns._launcherCoreStarted) ns._initLauncherCore();
@@ -389,11 +389,12 @@
     if (overlay) overlay.remove();
   }
 
-  /* ── 아이콘에서 열리고 아이콘으로 닫힌다 (spec 2026-09-23 §7 #8, §7.1) ──────────────
-     모듈 색의 빈 판 (.open-veil) 이 출발한 요소의 자리에서 frame 크기로 커진 뒤 걷힌다.
-     닫을 때는 frame 크기에서 그 모듈의 아이콘으로 줄어든다. 움직이는 것은 이 판 하나 —
-     iframe 을 확대하면 모듈 전체를 매 frame 다시 그린다. 출발점이 없거나 (직접 URL · 복원)
-     효과 줄이기면 예전의 fade 로 연다. */
+  /* ── Opens from the icon and closes back to it ──────────────────────────────
+     A plain panel in the module colour (.open-veil) grows from the element that was
+     clicked to the frame size, then lifts. Closing shrinks it from the frame back to
+     that module's icon. Only this panel moves: scaling the iframe would repaint the
+     whole module every frame. With no origin (direct URL, restore) or with reduced
+     motion, it opens with a fade. */
   var OPEN_MS = 420, CLOSE_MS = 360, VEIL_FADE_MS = 200;
   var VEIL_EASE = 'cubic-bezier(.2, .8, .2, 1)';
 
@@ -405,7 +406,7 @@
     return document.querySelector('#studioGrid .orbital-card[data-app="' + appKey + '"] .mod-tile');
   }
 
-  /* home 이 아직 보일 때 잰다 — frame 을 보이고 나면 출발점이 사라진다. */
+  /* Measure while home is still visible: once the frame shows, the origin is gone. */
   function _veilSource(el, appKey) {
     if (_veilStill() || !el || typeof el.getBoundingClientRect !== 'function') return null;
     if (typeof document.body.animate !== 'function') return null;
@@ -416,7 +417,7 @@
     return { rect: r, tint: tint };
   }
 
-  /* frame 의 자리 (fixed: top bar 아래 전체). frame 이 숨어 있어도 계산할 수 있게 top bar 에서. */
+  /* The frame's box (fixed: everything below the top bar). Taken from the top bar so it works while the frame is hidden. */
   function _frameBox() {
     var bar = document.querySelector('.top-bar');
     var top = bar ? bar.getBoundingClientRect().bottom : 0;
@@ -559,13 +560,13 @@
     var rb        = document.getElementById('replayBtn');
 
     document.body.classList.toggle('app-frame-visible', viewName === 'app');
-    // 무대 조명 (home-stage.css body.home-visible) 은 home 에만 켠다 — spec 2026-09-23 §7 #2.
+    // Stage lighting (home-stage.css body.home-visible) is for home only.
     document.body.classList.toggle('home-visible', viewName === 'home');
     // The shared NPU Monitor float is injected into the launcher shell but should only show
     // on SDK Library — module iframes carry their own, the home splash stays uncluttered, and
-    // About is a company page where it only covered the Developer Hub cards (release audit hw-float).
+    // About is a company page where it only covered the Developer Hub cards.
     document.body.classList.toggle('hw-native-visible', viewName === 'sdk-library');
-    // 홈 · About 의 채팅은 studio 전체 도움말 — SDK Library 가 바꿔 둔 대상을 되돌린다
+    // Chat on home and About is studio-wide help: undo the target SDK Library switched to
     if ((viewName === 'home' || viewName === 'about') && typeof DXChat !== 'undefined' && DXChat.init) {
       DXChat.init({ appName: 'launcher' });
     }
@@ -604,8 +605,9 @@
         window.LauncherTutorial.connectToolbar();
       }
     }
-    /* About 에는 자기 투어가 없다 — 단추가 홈 투어를 열어 About 을 떠나 홈으로 갔다 (release audit L-18). 홈 투어에
-       이어 붙인 뒤 'launcher' 연결을 끊어 단추를 "튜토리얼 없음" 으로 둔다. 홈으로 돌아오면 위에서 다시 이어진다. */
+    /* About has no tour of its own; its button would open the home tour and leave About. After
+       connecting to the home tour above, disconnect 'launcher' so the button shows "no tutorial".
+       Returning home reconnects it above. */
     if (viewName === 'about' && typeof DXToolbar !== 'undefined' && typeof DXToolbar.disconnectTutorial === 'function') {
       DXToolbar.disconnectTutorial('launcher');
     }
@@ -739,7 +741,7 @@
       if (opts.suffix) iframePath += opts.suffix;
       if (opts.query) iframePath += '?' + opts.query;
       else if (opts.rawQuery) iframePath += opts.rawQuery;
-      if (opts.hash) iframePath += opts.hash;   // #demo=N · #ask= — 답에서 여는 길 (P7)
+      if (opts.hash) iframePath += opts.hash;   // #demo=N · #ask= — opened from an answer
 
       var historyUrl = '/' + appKey;
       if (opts.suffix) historyUrl += '/' + opts.suffix;
@@ -853,18 +855,16 @@
   function goHome() { LauncherRouter.navigate('home'); }
   function showAboutView() { LauncherRouter.navigate('about'); }
   function showSdkLibrary() { LauncherRouter.navigate('sdk-library'); }
-  /* launch(app, 'k=v') — 예전 그대로 query. launch(app, { query, hash, from }) — from 은 누른 요소
-     (아이콘 · 경로 카드): 그 자리에서 열린다 (P7). */
+  /* launch(app, 'k=v') — a plain query. launch(app, { query, hash, from }) — from is the element
+     that was clicked (icon, path card): the app opens from that spot. */
   function launch(app, arg) {
     var o = (arg && typeof arg === 'object') ? arg : { query: arg };
     LauncherRouter.navigate('app', { app: app, query: o.query, hash: o.hash, from: o.from });
   }
 
-  /* 탭 라벨은 짧게. 이 스트립은 열한 칸이 1272px 을 요구하는데 473px 만 받고
-     있었다 — 절반 넘게가 가로 스크롤 뒤에 숨어, 모듈 목록이면서 모듈을 못 보여
-     줬다. 이모지가 칸당 22px, "DX " 접두어가 25px 을 먹었고 둘 다 정보가 아니다:
-     이 줄에 있는 것은 전부 DX 이고, 아이콘은 홈의 모듈 목록이 이미 제대로 쓴다.
-     빼고 나면 980px 로 줄어 1440 에서 스크롤 없이 들어간다. */
+  /* Keep tab labels short so every module fits without horizontal scroll (about
+     980px, fits at 1440). Emoji and a "DX " prefix carry no information here:
+     everything on this strip is DX, and the home module list already shows icons. */
   var NAV_TAB_LABELS = {
     app: 'App',
     stream: 'Stream',
@@ -977,9 +977,8 @@
     var home = document.createElement('div');
     home.className = 'nav-tab home-btn';
     home.dataset.home = '1';
-    /* 이모지 하나가 전부였다. 이제 줄의 나머지가 전부 글자라 톤이 어긋나고,
-       무엇보다 접근 가능한 이름이 없어 스크린리더가 "집" 을 읽었다. 같은 획
-       굵기의 글리프로 바꾸고 이름을 붙인다 — 라벨은 사전이 번역한다. */
+    /* A glyph with the same stroke weight as the text, plus an accessible name
+       (an emoji alone was read aloud literally). The label is translated by the dictionary. */
     home.innerHTML = '<svg viewBox="0 0 16 16" width="15" height="15" fill="none" ' +
       'stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" aria-hidden="true">' +
       '<path d="M2.2 6.6 8 2.2l5.8 4.4V13a.8.8 0 0 1-.8.8H3a.8.8 0 0 1-.8-.8Z"/>' +
@@ -1220,12 +1219,9 @@
     });
   }
 
-  /* 웹사이트는 "DX-M1 연결됨" 이라고 못 쓴다. 그 한 줄이 이게 브로슈어가
-     아니라는 증거다. 런처는 이미 monitor 모듈을 /monitor/ 로 프록시하므로
-     새 서버 코드 없이 그 모듈이 쓰는 엔드포인트를 그대로 부른다. */
-  /* 장치 표시 (칩 · 코어 · 온도) 는 home-widgets.js 가 startSharedHwStream 의 dx-hw-data 로
-     칠한다. 여기 있던 15초 poll 은 같은 장치를 한 번 더 물어 같은
-     칩을 번갈아 덮어썼다 — spec 2026-09-23 §5.5. */
+  /* The device display (chip · cores · temperature) is painted by home-widgets.js from
+     startSharedHwStream's dx-hw-data. Do not poll the device here as well: two writers
+     would overwrite the same chip in turn. */
 
   function checkHealth() {
     return fetch('/api/health').then(function(res) { return res.json(); }).then(function(data) {
@@ -1271,8 +1267,7 @@
           // entry present  → /api/health ran; trust it (alive true OR a real down).
           // entry absent   → the probe itself couldn't run (launcher busy under a request
           //   burst). Do NOT block entry on that — load the iframe optimistically; its own
-          //   20s load-timeout is the real availability gate. This removes the false
-          //   "unavailable" that previously forced a manual retry / refresh.
+          //   20s load-timeout is the real availability gate, so there is no false "unavailable".
           return entry || { alive: true, optimistic: true };
         }).catch(function() {
           return { alive: true, optimistic: true };
@@ -1424,10 +1419,7 @@
     }
   }
 
-  /* 건강 상태를 화면에 쓰는 유일한 경로. 예전에는 setDot()·setStatus() 가 같은 값을
-     두 번 더 썼는데, 그 대상(#dotApp, #statusApp …)은 홈 재설계에서 마크업이 사라진
-     뒤로 코드베이스 어디에도 존재하지 않아 15번의 조회가 매 폴링(5초)마다 헛돌았다.
-     테스트가 그 호출의 '존재'를 8곳에서 요구하고 있어 죽은 채로 남아 있었다. */
+  /* The only path that writes health status to the screen. */
   function _setOrbStatus(id, alive) {
     var el = document.getElementById(id);
     var targetClass = alive ? 'orbital-status alive' : 'orbital-status dead';
@@ -1457,15 +1449,13 @@
       activateOnEnterOrSpace(card, function() { card.click(); });
     });
 
-    // landingPoster: only image + hint are clickable (container passes clicks through)
-    var posterImg = document.querySelector('#landingPoster img');
-    var posterHint = document.querySelector('#landingPoster .poster-hint');
-    if (posterImg && typeof ns.openPlatformInfo === 'function') {
-      activateOnEnterOrSpace(posterImg, function() { ns.openPlatformInfo(); });
-    }
-    if (posterHint && typeof ns.openPlatformInfo === 'function') {
-      activateOnEnterOrSpace(posterHint, function() { ns.openPlatformInfo(); });
-    }
+    // The film pills are <a role="button" tabindex="0"> with an onclick: Enter and Space must open them too.
+    [['landingPoster', 'openPlatformInfo'], ['ecosystemPoster', 'openEcosystemInfo']].forEach(function (pair) {
+      var pill = document.getElementById(pair[0]);
+      if (pill && typeof ns[pair[1]] === 'function') {
+        activateOnEnterOrSpace(pill, function() { ns[pair[1]](); });
+      }
+    });
   }
 
 

@@ -15,7 +15,8 @@ Step 1. **Connect an agent** — the console detects installed coding CLIs. Five
    then re-checks.  
 
 Step 2. **Set the run** using the console controls:  
-  - **Agent picker** — which of the 5 CLIs to use.  
+  - **Agent picker** — which of the 5 CLIs to use. The agent and model you pick are saved
+      as the Studio agent (`~/.dx-ai-studio/agent.json`) and shared by Home, Agent Dev and the chat.  
   - **Model picker** — a dropdown of that agent's models; for CLIs that support
       listing them (Copilot — the models this account may use —, Cursor, OpenCode) it's
       enumerated live from the CLI, otherwise it falls back to a built-in list. A hint warns if the chosen model is too weak and
@@ -51,8 +52,8 @@ Step 5. **Showcases** — browse the gallery of example NPU apps for reference.
 - **Bring-your-own agent** — uses whatever coding CLI you have installed and signed in;
   one login powers both the generator and the chat.  
 - **Studio chat (the button at the bottom right)** — separate from the Agent Console; it can  
-  use a signed-in coding CLI, a cloud API, or a **local / self-hosted** OpenAI- or  
-  Ollama-compatible endpoint (models are auto-discovered), and its settings have  
-  **Refresh knowledge** for the DEEPX SDK documentation.  
+  answers through your signed-in coding agent by default, or a **local / self-hosted**  
+  OpenAI- or Ollama-compatible endpoint (models are auto-discovered) or a cloud API key;  
+  **Refresh knowledge** for the DEEPX SDK documentation is under Settings ▸ Advanced.  
 - **Live streaming** of the agent's work, with a wall-clock timeout so a stuck run frees
   the slot for the next request.  

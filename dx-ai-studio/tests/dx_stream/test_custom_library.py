@@ -1,4 +1,4 @@
-"""custom_library.py 테스트"""
+"""Tests for custom_library.py"""
 import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "dx_stream"))
@@ -311,9 +311,9 @@ class TestBuildExecution:
 
 
 class TestBuildNeedsSudoForInstall:
-    """`sudo meson install` ran with no TTY and no askpass: on any host that asks for a password
-    the build died at the install step ("a terminal is required"). The password now comes from the
-    page, as Stream Setup does it, and the build refuses up front when it is needed but missing."""
+    """`sudo meson install` needs a password on hosts that ask for one, and with no TTY or askpass the build
+    dies at the install step ("a terminal is required"). The password comes from the page, as in Stream
+    Setup, and the build refuses up front when it is needed but missing."""
 
     @pytest.fixture()
     def ready_lib(self, lib_dirs):

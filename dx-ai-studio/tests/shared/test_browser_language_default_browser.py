@@ -1,7 +1,7 @@
-"""A first visit opens in the browser's language (2026-10-11 first-run audit).
+"""A first visit opens in the browser's language.
 
-Studio speaks six languages, but a Korean, Japanese, Chinese or Spanish browser always opened it in English until
-the user found the language menu. With no saved choice, the browser's languages now pick the first supported one, and
+Studio speaks six languages; a Korean, Japanese, Chinese or Spanish browser must not open it in English and leave the
+user to find the language menu. With no saved choice, the browser's languages pick the first supported one, and
 the pick is saved so every script that reads dx-lang agrees. A saved choice still wins.
 """
 from __future__ import annotations

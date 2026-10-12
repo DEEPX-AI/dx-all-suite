@@ -1,6 +1,7 @@
-"""Outputs 갤러리의 영상 미리보기는 화면 가까이 올 때만 받는다 (release audit A-23).
+"""Video previews in the Outputs gallery load only when they come near the viewport.
 
-예전에는 모든 카드가 preload="metadata" 로 src 를 바로 가져, 결과가 수백 개면 갤러리를 열 때 수백 개 요청이 몰렸다.
+If every card fetched its src up front (preload="metadata"), opening a gallery of hundreds of results would fire
+hundreds of requests at once.
 """
 from pathlib import Path
 

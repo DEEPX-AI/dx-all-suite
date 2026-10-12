@@ -1,25 +1,22 @@
 /* ─── Launcher home — the stage ───────────────────────────────────────
-   spec: docs/superpowers/specs/2026-09-23-launcher-home-redesign-design.md §4, §5.7b
-   P1 은 자리만 정한다. 재질 (유리, 빛) 과 움직임은 뒤 단계가 이 파일에 더한다.
-
-   역할마다 한 영역: tour · hero · work · deck(위젯 · 아이콘 · 위젯) · bar.
-   position:absolute/fixed 는 쓰지 않는다 — 투어도 막대도 grid 가 놓는다.
-   계약: tests/launcher/test_home_stage_contract.py, test_home_stage_browser.py */
+   One grid area per role: tour · hero · work · deck (widget · icons · widget) · bar.
+   No absolute or fixed positioning — the grid places the tour and the bar too.
+   Contract: tests/launcher/test_home_stage_contract.py, test_home_stage_browser.py */
 
 .landing.home-stage {
   display: grid;
-  /* 한 열. 투어는 hero 위 오른쪽의 얇은 한 줄 (spec §4.1 그림). P1 은 투어를 hero 옆 열에
-     두었는데, 투어 카드 (205px) 가 그 열을 차지해 hero 를 760 에 가뒀고 56px 제목이 두 줄로
-     접혔다 (118px, P4 측정). 제목은 hero 폭 전체를 쓰고, 부제 · 입력만 760 이다. */
+  /* One column. The tour is a thin row above the hero, on the right. The title uses the full
+     hero width; only the subtitle and input are capped at 760 (a tour column beside the
+     hero would squeeze it and fold the 56px title onto two lines). */
   grid-template-columns: minmax(0, 1fr);
   grid-template-areas: "tour" "hero" "deck" "bar";
   align-content: space-between;
   justify-content: stretch;
-  /* style.css 의 .landing (옛 flex 배치) 이 align-items: center 를 남겨, grid item 이 칸을 채우지 않고
-     가운데에 놓였다: Dock 의 답 (227px) 이 123px 칸에서 위아래로 넘쳐 아이콘을 덮었고, 무대의 빛
-     층은 높이 0 이 되어 clip 에 가려졌다 (2026-09-28). 칸을 채우게 한다. */
+  /* style.css's .landing leaves align-items: center, which centres grid items instead of
+     filling their cell: the Dock answer then overflows over the icons and the stage light
+     layer collapses to zero height. Make items fill their cell. */
   align-items: stretch;
-  /* 세로 여백은 창 높이를 따른다 — 1280×800 에서도 한 화면 (spec §4.2). */
+  /* Vertical spacing follows the window height — one screen even at 1280×800. */
   row-gap: clamp(var(--sp-3), 2vh, var(--sp-6));
   width: min(100%, 1280px);
   min-height: 100vh;
@@ -28,9 +25,9 @@
   box-sizing: border-box;
 }
 
-/* 투어: 오른쪽 위 한 줄 — Tutorial mode 스위치 · Replay intro (spec §5.1). 카드는
-   tutorial.js 가 스타일째 끼워 넣으므로 #homeTour 로 우선순위를 올려 한 줄로 접는다.
-   설명 글은 숨기되 DOM 에 남긴다. */
+/* Tour: one row at the top right — Tutorial mode switch · Replay intro. tutorial.js injects
+   the card with its own styles, so #homeTour raises specificity to fold it into one row.
+   The description text is hidden but stays in the DOM. */
 .home-tour {
   grid-area: tour;
   max-width: 100%;
@@ -55,7 +52,7 @@
   box-shadow: none;
 }
 #homeTour .dxt-launcher-card .dxt-lc-desc { display: none; }
-/* 주입 스타일의 글자 칸은 flex: 1 이라 남은 폭을 다 먹어 Replay 를 둘째 줄로 밀었다. */
+/* The injected text cell is flex: 1 and would eat the remaining width, pushing Replay to a second line. */
 #homeTour .dxt-launcher-card .dxt-lc-text { flex: 0 0 auto; }
 #homeTour .dxt-launcher-card .dxt-lc-title { font-size: var(--fs-sm); font-weight: var(--fw-regular); color: var(--text-secondary); }
 #homeTour .replay-btn { font-size: var(--fs-sm); }
@@ -63,8 +60,8 @@
 .stage-hero {
   grid-area: hero;
   min-width: 0;
-  /* 제목은 hero 폭 전체, 부제 · 포스터 · 입력 · 안내는 760 (아래 규칙). Dock 의 2열 grid
-     에서도 입력이 화면 폭으로 늘어나지 않게 폭은 각자가 갖는다 (2026-09-23 Dock 캡처). */
+  /* The title spans the hero width; subtitle, poster, input and hint are 760 (rules below). Each
+     sets its own width so the input does not stretch to the screen in the Dock's 2-column grid. */
   justify-self: stretch;
   width: 100%;
   display: flex;
@@ -72,8 +69,8 @@
   gap: var(--sp-3);
   text-align: center;
 }
-/* ── hero (spec §5.2) ────────────────────────────────────────────────
-   제목은 Inter 의 Display 자형 (opsz) 으로 — 56px 에서 글자가 촘촘해진다. */
+/* ── hero ─────────────────────────────────────────────────────────────
+   The title uses Inter's Display optical size (opsz) — tighter letterforms at 56px. */
 .stage-title {
   margin: 0;
   font-size: 56px;
@@ -94,14 +91,15 @@
   color: var(--text-secondary);
 }
 
-/* 한국어는 기본 줄바꿈이 글자 단위라 부제가 "컴 / 파일하고", placeholder 가 "주 / 세요" 로
-   끊겼다 (2026-09-28 ko 캡처). 단어 단위로 끊는다. */
+/* Korean breaks between any two characters by default, splitting words mid-word in the
+   subtitle and placeholder. Break on word boundaries instead. */
 .stage-hero :is(.stage-title, .stage-sub, .ask-input) { word-break: keep-all; overflow-wrap: anywhere; }
-/* keep-all 은 띄어쓰기로 끊는 한국어용이다. 띄어쓰기가 없는 일본어 · 중국어에서는 구절 전체가 한 덩어리가 되어
-   anywhere 로 아무 데서나 잘렸고, 390px 에서 "。" 가 홀로 다음 줄로 떨어졌다 — 글자 사이에서 끊되 금칙은 지킨다. */
+/* keep-all is for Korean, which breaks at spaces. Japanese and Chinese have no spaces, so a whole
+   phrase would become one unit and break anywhere, leaving "。" alone on a line — break between
+   characters but keep the line-break rules. */
 :root:is(:lang(ja), :lang(zh-CN), :lang(zh-TW)) .stage-hero :is(.stage-title, .stage-sub, .ask-input) { word-break: normal; line-break: strict; }
 
-/* "Watch the film" pill: 썸네일 + 제목. 누르면 지금과 같은 overlay. */
+/* "Watch the film" pill: thumbnail + title. Clicking opens the film overlay. */
 .stage-films { display: flex; justify-content: center; flex-wrap: wrap; gap: var(--sp-2); }
 .stage-film {
   display: inline-flex;
@@ -120,8 +118,8 @@
 .stage-film img { width: 36px; height: 24px; object-fit: cover; border-radius: 980px; }
 .stage-film span::before { content: "\25B6"; margin-right: var(--sp-1); font-size: .75em; color: var(--text-muted); }
 
-/* 입력: form 은 틀일 뿐이고, 유리 상자가 쓰는 자리 · 누가 만들지 · 만들기를 담는다.
-   backdrop-filter 는 여기와 아래 막대 두 곳에만 (spec §5.2). */
+/* Input: the form is only a frame; the glass box holds the text area, the agent picker and Build.
+   backdrop-filter is used only here and on the bar below. */
 .stage-hero :is(.home-ask, .setup-degraded) { width: min(100%, 760px); margin-inline: auto; }
 .stage-hero .home-ask {
   display: flex;
@@ -135,7 +133,7 @@
 }
 .stage-hero .home-ask:focus-within { outline: none; }
 .ask-box {
-  /* grid 인 이유: ::after 빛 테가 두 행에 걸친 grid item 이 된다 (absolute 없이 겹친다). */
+  /* Grid so the ::after light ring becomes a grid item spanning both rows (overlaps without absolute). */
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   grid-template-rows: auto auto;
@@ -159,7 +157,7 @@
     0 20px 40px -24px rgba(0, 0, 0, .35),
     0 0 0 4px var(--accent-dim);
 }
-/* 두 줄. 옛 입력창은 200px 였다 — 한 화면을 가장 많이 먹던 것 (P1 측정). */
+/* Two lines — a tall input would take most of the screen. */
 .stage-hero .ask-input { min-height: 0; padding: 0; font-size: 21px; line-height: 1.35; }
 .ask-foot { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-3); }
 .ask-foot .setup-fold { margin: 0; }
@@ -179,9 +177,9 @@
 }
 .ask-more:hover { text-decoration: underline; }
 
-/* 입력 뒤의 무대. 보일 때만 자리를 갖는다 (아래 Dock 규칙). */
+/* The stage behind the input. It takes space only while visible (Dock rules below). */
 .stage-work { grid-area: work; display: none; min-width: 0; }
-/* 닫기 — 글자 "×" 가 브라우저 기본 단추로 보였다. 다른 닫기와 같은 아이콘 단추로. */
+/* Close — an icon button like every other close, not a bare "×" in a default button. */
 .stage-close {
   float: inline-end;
   display: inline-grid;
@@ -199,7 +197,7 @@
 .stage-close:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .stage-close .dx-ico { width: 16px; height: 16px; }
 
-/* deck: 위젯 · 아이콘 · 위젯 (spec §4.1 가로 예산 264 · 48 · 520 · 48 · 264) */
+/* deck: widget · icons · widget (width budget 264 · 48 · 520 · 48 · 264) */
 .stage-deck {
   grid-area: deck;
   display: grid;
@@ -227,21 +225,21 @@
   font-weight: var(--fw-semibold);
 }
 
-/* ── 위젯 (spec §5.5–5.6). 카운트업 · 맥박 · 막대 전환은 P6. ──────────── */
+/* ── Widgets ─────────────────────────────────────────────────────────── */
 
-/* 상태: 누르면 Monitor. 없으면 조명이 꺼진다 — 색으로 외치지 않는다. */
-/* 장치가 빠지면 조명이 0.8s 에 걸쳐 꺼진다 (spec §7 #10). */
+/* Status: click opens Monitor. With no device the light goes out — no alarm colour. */
+/* When the device goes away the light fades out over 0.8s. */
 .stage-device { cursor: pointer; border-radius: var(--radius); transition: opacity 800ms var(--ap-ease); }
 .stage-device:focus-visible { outline: 2px solid var(--accent); outline-offset: var(--sp-1); }
 .stage-device.is-off { opacity: .5; }
 .dev-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ap-green); }
 .stage-device.is-off .dev-dot { background: var(--ap-line); }
-.stage-device .ws-device { margin: 0; font-size: var(--fs-md); font-weight: var(--fw-regular); }   /* 옛 칩은 24px 였다 — "조용한 한 줄" */
+.stage-device .ws-device { margin: 0; font-size: var(--fs-md); font-weight: var(--fw-regular); }
 .stage-device .ws-device.is-missing { color: var(--text-muted); }
 
-/* 코어 막대: 좁은 세로 막대가 40px 트랙 안에서 사용률 % 높이. 트랙은 ::before, 막대는
-   같은 칸의 i. 칸 폭을 나눠 가졌을 때는 막대 하나가 80px 넘게 넓어 가로 조각처럼 보였고,
-   트랙 (surface-hover) 은 라이트 테마에서 안 보였다 (2026-09-28 캡처). */
+/* Core bars: a narrow vertical bar whose height is the usage % inside a 40px track. The track
+   is ::before, the bar is the i in the same cell. Sharing the cell width would make each bar
+   over 80px wide (a horizontal slab), and a surface-hover track is invisible in the light theme. */
 .dev-cores { display: flex; gap: var(--sp-3); }
 .dev-cores:empty { display: none; }
 .dev-core {
@@ -258,8 +256,8 @@
   border-radius: var(--radius-sm);
   background: color-mix(in srgb, var(--text-primary) 8%, transparent);
 }
-/* 높이는 transform 으로: 트랙 전체 높이의 막대를 아래를 축으로 줄인다 (spec §7 — transform 만
-   움직인다). 값이 1초마다 와도 300ms 에 걸쳐 따라간다. 모서리는 scaleY 에 눌리므로 작게. */
+/* Height via transform: a full-track bar scaled from the bottom (only transform animates).
+   Values arrive every second and are followed over 300ms. Keep corners small, scaleY squashes them. */
 .dev-core i {
   grid-area: 1 / 1;
   width: 100%;
@@ -270,7 +268,7 @@
   transform: scaleY(max(.05, calc(var(--u, 0) / 100)));
   transition: transform 300ms var(--ap-ease);
 }
-/* 쉬고 있으면 (모든 코어 < 5%) 4초마다 숨을 쉰다 — 꺼진 것이 아니라 기다린다. */
+/* Idle (every core < 5%): breathe every 4s — waiting, not off. */
 .stage-device.is-idle .dev-core i { animation: dev-breathe 4s var(--ap-ease) infinite; }
 @keyframes dev-breathe {
   0%, 100% { opacity: .45; }
@@ -279,11 +277,11 @@
 .dev-core b { font-size: var(--fs-2xs); font-weight: var(--fw-regular); color: var(--text-muted); }
 .dev-line { margin: 0; font-size: var(--fs-sm); color: var(--text-muted); font-variant-numeric: tabular-nums; }
 
-/* 변하지 않는 값 (SDK · Studio · Gateway) 은 가리킬 때만. 위젯이 칸보다 낮아 자리가 흔들리지 않는다. */
+/* Values that never change (SDK · Studio · Gateway) show only on hover; the widget stays shorter than its cell so nothing shifts. */
 .stage-widget-more { display: none; margin: 0; }
 .stage-device:is(:hover, :focus-within) .stage-widget-more { display: block; }
 
-/* 증거: 큰 숫자 하나, 모델과 task, 점, Benchmark 링크. */
+/* Proof: one big number, model and task, dots, Benchmark link. */
 .proof-body { display: flex; flex-direction: column; gap: var(--sp-1); }
 .proof-fps { margin: 0; display: flex; align-items: baseline; gap: var(--sp-1); }
 .proof-fps b {
@@ -297,7 +295,7 @@
 .proof-unit { font-size: var(--fs-md); color: var(--text-muted); }
 .proof-model { margin: 0; font-size: var(--fs-sm); color: var(--text-secondary); }
 .proof-dots { display: flex; }
-/* 누를 자리는 16px, 보이는 점은 6px. */
+/* 16px hit area, 6px visible dot. */
 .proof-dot {
   width: 16px;
   height: 16px;
@@ -314,23 +312,23 @@
 .stage-widget-link:not(:empty)::after { content: " \203A"; }
 .stage-widget-link:hover { text-decoration: underline; }
 
-/* ── 칸: 아이콘 8 + 책 2 (spec §5.3–5.4) ─────────────────────────────────
-   칸 하나는 4줄 grid: [말풍선 0px] [아이콘] [이름] [상태]. 말풍선은 높이 0 줄에서
-   위로 넘치게 둔다 — absolute 없이 겹친다 (P1 계약: 이 home 에는 떠 있는 가구가 없다).
-   .mod-text 는 display:contents 로 풀어 이름과 설명이 각자 줄을 갖게 한다. */
+/* ── Cells: 8 icons + 2 books ─────────────────────────────────────────
+   Each cell is a 4-row grid: [tooltip 0px] [icon] [name] [status]. The tooltip sits in a
+   zero-height row and overflows upward — overlap without absolute positioning (nothing floats
+   on this home). .mod-text uses display:contents so name and description get their own rows. */
 .stage-deck { --icon: 72px; }
 .stage-deck .studio-grid > .orbital-card,
 .stage-deck .studio-grid > .about-book-card {
   display: grid;
-  /* 칸의 열은 셀 폭에 고정한다. auto 로 두면 말풍선 (max-content, 최대 200px) 이 열을
-     셀보다 넓혀, 설명이 긴 칸일수록 아이콘이 오른쪽으로 밀려 두 줄의 열이 어긋났다
-     (2026-09-23 1440 캡처). 말풍선만 셀 밖으로 양쪽 대칭으로 넘친다. */
+  /* Pin the cell's column to the cell width. With auto, the tooltip (max-content, up to 200px)
+     widens the column, pushing icons with long descriptions to the right and misaligning the
+     rows. Only the tooltip overflows the cell, symmetrically on both sides. */
   grid-template-columns: minmax(0, 1fr);
   grid-template-rows: 0 auto auto auto;
   justify-items: center;
   align-content: start;
-  /* 줄 사이는 row-gap 이 아니라 각 요소의 margin 으로 — 상태 줄이 비어 있어도 grid 는
-     빈 줄의 간격을 남겨 칸마다 24px 가 새었다 (P4 측정). */
+  /* Spacing via each element's margin, not row-gap — grid keeps the gap for an empty status
+     row, adding 24px to every cell. */
   row-gap: 0;
   padding: 0;
   min-width: 0;
@@ -341,13 +339,13 @@
 .stage-deck .studio-grid > *:hover { background: transparent; }
 .stage-deck .studio-grid .mod-text { display: contents; }
 .stage-deck .studio-grid :is(.mod-chev, .orbital-status) { display: none; }
-/* 세로 목록일 때 행 사이에 긋던 선 (inset box-shadow, style.css 의 .orbital-card + .orbital-card)
-   이 칸으로 옮겨 와 몇 칸 위에만 남았다. */
+/* Drop the separator line (inset box-shadow from style.css's .orbital-card + .orbital-card)
+   meant for the vertical list; in the grid it showed above only some cells. */
 .stage-deck .studio-grid > *,
-.stage-deck .studio-grid > *:focus-visible { box-shadow: none; }   /* focus 는 outline 이 그린다 */
+.stage-deck .studio-grid > *:focus-visible { box-shadow: none; }   /* focus is drawn by outline */
 
-/* 아이콘 — Liquid Glass. 색은 style.css 의 --mod-tint 하나에서 섞는다 (새 hex 없음).
-   광택 · 가장자리 빛 · 그림자는 무채색 rgba (css_token_gate 는 세지 않는다). */
+/* Icon — Liquid Glass. Colours mix from style.css's single --mod-tint (no new hex).
+   Gloss, edge light and shadow are neutral rgba (css_token_gate does not count them). */
 .stage-deck .mod-tile {
   grid-row: 2;
   margin-bottom: var(--sp-2);
@@ -369,7 +367,7 @@
     0 2px 4px rgba(0, 0, 0, .10);
   transition: opacity var(--dur) var(--ap-ease), filter var(--dur) var(--ap-ease),
               transform 120ms var(--ap-ease);
-  /* glyph · specular (::before) · 도착 빛 (::after) 이 한 칸에 겹친다 (spec §7 #5 #6). */
+  /* glyph · specular (::before) · arrival light (::after) stack in one cell. */
   display: grid;
   place-items: center;
 }
@@ -383,25 +381,26 @@
   border-radius: inherit;
   pointer-events: none;
 }
-/* 가장자리 specular — 커서 쪽 (--sx, --sy) 에서, 가까운 만큼 (--near). home-effects.js 가 쓴다. */
+/* Edge specular — from the cursor side (--sx, --sy), as strong as it is near (--near). Set by home-effects.js. */
 .stage-deck .mod-tile::before {
   background: radial-gradient(circle at var(--sx, 50%) var(--sy, 0%), rgba(255, 255, 255, .5), rgba(255, 255, 255, 0) 55%);
   opacity: var(--near, 0);
 }
-/* 보낸 요청이 닿으면 켜졌다 꺼지는 빛 (WAAPI, pseudoElement ::after). */
+/* Light that flashes when a sent request arrives (WAAPI, pseudoElement ::after). */
 .stage-deck .mod-tile::after {
   background: radial-gradient(closest-side, rgba(255, 255, 255, .7), rgba(255, 255, 255, 0));
   opacity: 0;
 }
-/* glyph 두 겹: 뒤쪽 면 + 앞쪽 선 — 공용 아이콘 sprite (shared/static/dx-icons.svg) 의 symbol 이다
-   (아이콘 체계 단계 0: 레일 · 탭과 같은 모양). <use> 안은 선택자가 닿지 않으므로 모양은 변수로 준다:
-   --ico-stroke 선 굵기, --ico-fill 면의 불투명도, --ico-fill-o 면 전체의 밝기. 판 위에 뜨도록 모듈 색 그림자. */
+/* Two-layer glyph: back fill + front stroke — symbols from the shared icon sprite
+   (shared/static/dx-icons.svg, the same shapes as the rail and tabs). Selectors cannot reach inside
+   <use>, so the shape is driven by variables: --ico-stroke stroke width, --ico-fill fill opacity,
+   --ico-fill-o overall fill brightness. A module-coloured shadow lifts it off the plate. */
 @property --ico-fill-o { syntax: '<number>'; inherits: true; initial-value: 1; }
 .stage-deck .mod-glyph {
   width: 56%;
   height: 56%;
   --ico-stroke: 2;
-  /* 안쪽 면: 실행 중이면 켜진다 (spec §7 #7) — .55 × .44 = 예전의 .24. 등록한 변수라 400ms 에 걸쳐 변한다. */
+  /* Inner fill lights up while running. A registered property, so it animates over 400ms. */
   --ico-fill: .55;
   --ico-fill-o: .44;
   transition: --ico-fill-o 400ms var(--ap-ease);
@@ -409,7 +408,7 @@
 }
 .stage-deck .orbital-card.is-up .mod-glyph { --ico-fill-o: 1; }
 
-/* 꺼졌다고 확인된 모듈만 가라앉힌다 (is-down 은 health 응답이 있어야 붙는다). */
+/* Dim only modules confirmed down (is-down needs a health response). */
 .stage-deck .orbital-card.is-down .mod-tile { opacity: .42; filter: saturate(.25); }
 
 .stage-deck .studio-grid .orbital-name {
@@ -423,7 +422,7 @@
 .stage-deck .studio-grid .card-state { grid-row: 4; margin-top: var(--sp-1); font-size: var(--fs-xs); }
 .stage-deck .studio-grid .card-state:empty { display: none; }
 
-/* 말풍선 — 설명과 책의 부제. DOM 에 남아 _paintFacts 가 숫자를 쓰고 화면 낭독기가 읽는다. */
+/* Tooltip — description and book subtitle. Stays in the DOM: _paintFacts writes numbers into it and screen readers read it. */
 .stage-deck .studio-grid :is(.card-desc, .orbital-port) {
   grid-row: 1;
   align-self: end;
@@ -443,7 +442,7 @@
 }
 .stage-deck .studio-grid > :is(:hover, :focus-visible) :is(.card-desc, .orbital-port) { opacity: 1; }
 
-/* 책 — 천 표지 + 은박. 물건이라 두 테마에서 같다. 표지 아래 끝이 아이콘과 같은 줄. */
+/* Books — cloth cover + silver foil. Physical objects, so the same in both themes. Cover bottom aligns with the icons. */
 .stage-deck .about-book-card .orbital-icon {
   grid-row: 2;
   margin-bottom: var(--sp-2);
@@ -460,7 +459,7 @@
     repeating-linear-gradient(45deg, rgba(255, 255, 255, .04) 0 1px, rgba(255, 255, 255, 0) 1px 3px),
     repeating-linear-gradient(-45deg, rgba(0, 0, 0, .06) 0 1px, rgba(0, 0, 0, 0) 1px 3px),
     var(--cover);
-  /* 가장자리 빛: 흑연 표지가 다크 무대에서 배경에 묻혔다 (2026-09-23 캡처). */
+  /* Edge light: the graphite cover would vanish into the dark stage. */
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, .20),
     inset 0 0 0 1px rgba(255, 255, 255, .12),
@@ -469,19 +468,19 @@
 }
 .stage-deck .about-book-card.sdk-card .orbital-icon { --cover: color-mix(in srgb, black 60%, var(--cat-1)); }
 .stage-deck .about-book-card:not(.sdk-card) .orbital-icon { --cover: color-mix(in srgb, black 80%, var(--cat-3)); }
-/* 은박: 눌러 찍힌 은색 — 위쪽 그림자와 아래쪽 반사로 판에 파인 것처럼. */
+/* Foil: pressed silver — a top shadow and bottom reflection make it look stamped into the cover. */
 .stage-deck .about-book-card .mod-glyph {
   width: 52%;
   height: 52%;
-  /* 은박은 선만 — 면은 표지의 천이 대신한다. */
+  /* Foil is stroke only — the cloth cover stands in for the fill. */
   --ico-stroke: 1.8;
   --ico-fill: 0;
   filter: drop-shadow(0 -1px 0 rgba(0, 0, 0, .55)) drop-shadow(0 1px 0 rgba(255, 255, 255, .22));
 }
 
-/* ── 유리 막대 (spec §5.7) ─────────────────────────────────────────────
-   위계 셋: 제목 (어디로 가는가) → 주요 pill 2 (테두리) → 나머지 5 (글자). 색은 제목의 ↗
-   하나. 입력창과 같은 유리 — backdrop-filter 는 이 둘에만. */
+/* ── Glass bar ───────────────────────────────────────────────────────
+   Three levels: title (where it goes) → 2 main pills (bordered) → the other 5 (text). The only
+   colour is the title's ↗. Same glass as the input — backdrop-filter only on these two. */
 .stage-bar {
   grid-area: bar;
   display: flex;
@@ -498,9 +497,9 @@
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, .18),
     0 16px 32px -24px rgba(0, 0, 0, .40);
-  /* 챗 버튼 (공용, fixed: 오른쪽 24 · 56px) 자리를 비운다 — 1280 에서 법적 고지를 덮었다.
-     막대 오른쪽 끝 = (100vw + min(100vw, 1280px)) / 2 - 24px 가 버튼 왼쪽 - 8px 를 넘는 만큼:
-     1280 이하에서 64px, 그 위에서 704px - 50vw, 1408 부터 0. */
+  /* Leave room for the shared chat button (fixed, right 24 · 56px), which would cover the legal notice.
+     By how far the bar's right edge, (100vw + min(100vw, 1280px)) / 2 - 24px, passes the button's left - 8px:
+     64px up to 1280, 704px - 50vw above that, 0 from 1408. */
   margin-right: clamp(0px, calc(704px - 50vw), 64px);
 }
 #homeBar .deepx-links {
@@ -523,9 +522,9 @@
 #homeBar .bar-arrow { color: var(--accent); transition: transform var(--dur) var(--ap-ease); }
 #homeBar .bar-title:is(:hover, :focus-visible) .bar-arrow { transform: translate(2px, -2px); }
 
-/* 링크는 2행 grid — 0 높이 첫 행의 설명이 위로 넘친다 (타일의 말풍선과 같은 방식, absolute 없음). */
-/* 폭은 글자 줄이 정한다: 설명 (max-content) 이 칸을 넓히면 링크마다 ~220px 가 되어 막대가
-   세 줄로 접혔다 (P5 측정). 설명은 .bar-desc 의 음수 margin 으로 칸 계산에서 빠진다. */
+/* Links are a 2-row grid — the description in the zero-height first row overflows upward (like the tile tooltips). */
+/* The text row sets the width: a max-content description would widen each link to ~220px and fold
+   the bar into three lines. .bar-desc's negative margin takes it out of the width calculation. */
 #homeBar .deepx-link {
   display: inline-grid;
   grid-template-rows: 0 auto;
@@ -551,13 +550,13 @@
   transition: color var(--dur) var(--ap-ease), box-shadow var(--dur) var(--ap-ease),
               border-color var(--dur) var(--ap-ease);
 }
-/* 테두리 없는 다섯은 좌우 여백이 hit 영역일 뿐이라 좁힌다 — en 은 이것으로 한 줄에 든다. */
+/* The five borderless links only need side padding as hit area, so keep it narrow — en fits on one line. */
 #homeBar .deepx-link:not(.is-primary) .bar-line { padding-inline: var(--sp-2); }
 #homeBar .deepx-link.is-primary .bar-line {
   color: var(--text-primary);
   border-color: color-mix(in srgb, var(--text-primary) 18%, transparent);
 }
-/* hover: 링크 아래 빛. */
+/* hover: light under the link. */
 #homeBar .deepx-link:is(:hover, :focus-visible) .bar-line {
   color: var(--text-primary);
   box-shadow: 0 10px 18px -12px color-mix(in srgb, var(--accent) 80%, transparent);
@@ -577,13 +576,13 @@
 }
 #homeBar .bar-icon.is-mark { fill: currentColor; stroke: none; }
 #homeBar .bar-desc {
-  --tip-w: 260px;   /* 300px 은 줄 끝 링크에서 화면 밖으로 14px 까지 나갔다 (release audit L-20) */
+  --tip-w: 260px;   /* 300px would push the tooltip of a line-end link off screen */
   grid-row: 1;
   align-self: end;
   z-index: 2;
   width: max-content;
   max-width: var(--tip-w);
-  /* 양쪽 같은 음수 margin: 칸에 내는 폭은 0 이하가 되고, 가운데 정렬은 그대로다. */
+  /* Equal negative margins on both sides: the cell gets zero width and centring is kept. */
   margin-inline: calc(var(--tip-w) / -2);
   margin-bottom: var(--sp-2);
   padding: var(--sp-1) var(--sp-2);
@@ -600,7 +599,7 @@
 }
 #homeBar .deepx-link:is(:hover, :focus-visible) .bar-desc { opacity: 1; }
 
-/* 닫힌 망: 흐리게, 누를 수 없게, 그리고 이유를 말한다 (home-bar.js). */
+/* Network closed: dimmed, not clickable, and the reason is shown (home-bar.js). */
 #homeBar.is-offline :is(.bar-title, .deepx-link) { opacity: .4; cursor: not-allowed; }
 #homeBar.is-offline .bar-desc { visibility: hidden; }
 #homeBar.is-offline .bar-line { box-shadow: none; }
@@ -613,7 +612,7 @@
   font-size: var(--fs-xs);
   font-weight: var(--fw-semibold);
 }
-/* 긴 언어 (es · ja) 에서는 둘째 줄로 내려가되 오른쪽 끝을 지킨다. */
+/* In long languages (es · ja) it wraps to a second line but stays right-aligned. */
 .stage-legal {
   margin: 0 0 0 auto;
   color: var(--text-muted);
@@ -621,23 +620,23 @@
   white-space: nowrap;
 }
 
-/* ── Dock: 답이나 콘솔이 보이면 (spec §5.7b) ──────────────────────────
-   class 를 켜는 대신 보이는지에서 계산한다 — 여는 경로가 여럿이라 하나라도
-   켜기를 잊으면 화면이 어긋난다. :has() 는 잊을 수 없다. */
+/* ── Dock: while an answer or console is visible ──────────────────────
+   Computed from visibility instead of toggling a class — there are several ways to open them,
+   and missing one class toggle would break the layout. :has() cannot be forgotten. */
 #landing:has(#homeAnswer:not([hidden])),
 #landing:has(#homeWork:not([hidden])) {
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   grid-template-areas: "hero hero" "dev meas" "work work" "dock dock" "bar bar";
-  /* 한 화면을 지킨다: 긴 답이나 긴 콘솔은 가운데 칸 안에서만 스크롤한다. */
+  /* Keep one screen: a long answer or console scrolls inside the middle cell only. */
   grid-template-rows: auto auto minmax(0, 1fr) auto auto;
   height: 100vh;
   align-content: stretch;
 }
 #landing:has(#homeAnswer:not([hidden])) .stage-work,
 #landing:has(#homeWork:not([hidden])) .stage-work { display: block; overflow: auto; }
-/* 시작을 돕던 chip 과 포스터는 답이 서면 자리를 내준다 — 1280×800 에서 답 칸이 123px 였다
-   (2026-09-29 결정: 입력창이 조금 올라가는 대신 경로 카드가 한눈에 든다). */
-/* 옛 배치의 아래 여백 (24px) 은 무대에서는 행 간격이 한다 — 칸 안에서 스크롤만 만들었다. */
+/* The starter chips and poster give up their space once an answer appears, so the answer
+   cell is not squeezed at 1280×800 (the input moves up a little; the route cards fit at a glance). */
+/* The row gap provides the bottom spacing on the stage; a margin here only causes scrolling in the cell. */
 .stage-work .home-answer { margin-bottom: 0; }
 #landing:has(#homeAnswer:not([hidden])) :is(#homeAskChips, #homeStage .stage-films),
 #landing:has(#homeWork:not([hidden])) :is(#homeAskChips, #homeStage .stage-films) { display: none; }
@@ -654,12 +653,12 @@
 #landing:has(#homeWork:not([hidden])) .about-book-card .orbital-icon { width: 38px; height: 48px; }
 #landing:has(#homeAnswer:not([hidden])) .studio-grid :is(.card-desc, .card-state, .orbital-port),
 #landing:has(#homeWork:not([hidden])) .studio-grid :is(.card-desc, .card-state, .orbital-port),
-/* 장치 위젯은 이름 ("DX-M1" 과 점) 을 남긴다 — 지우면 Dock 의 줄이 무엇의 온도인지 말하지 못한다. */
+/* The device widget keeps its name ("DX-M1" and dot) — without it the Dock row would not say whose temperature it is. */
 #landing:has(#homeAnswer:not([hidden])) .stage-widget :is(.ws-facts, .proof-dots, .stage-widget-link),
 #landing:has(#homeWork:not([hidden])) .stage-widget :is(.ws-facts, .proof-dots, .stage-widget-link),
 #landing:has(#homeAnswer:not([hidden])) .stage-proof .stage-widget-title,
 #landing:has(#homeWork:not([hidden])) .stage-proof .stage-widget-title { display: none; }
-/* Dock 의 위젯은 한 줄: 코어 막대가 짧아지고 숫자가 작아진다 — agent 가 일하는 동안에도 보인다. */
+/* In the Dock each widget is one row: shorter core bars and smaller numbers — still visible while the agent works. */
 #landing:has(#homeAnswer:not([hidden])) .stage-widget,
 #landing:has(#homeWork:not([hidden])) .stage-widget { flex-direction: row; align-items: center; gap: var(--sp-3); }
 #landing:has(#homeAnswer:not([hidden])) .dev-core,
@@ -673,7 +672,7 @@
 #landing:has(#homeAnswer:not([hidden])) .home-tour,
 #landing:has(#homeWork:not([hidden])) .home-tour { display: none; }
 
-/* ── 좁아질 때 (spec §4.2, breakpoint 는 스케일 값만) ── */
+/* ── Narrow windows (breakpoints use scale values only) ── */
 @media (max-width: 1200px) {
   .stage-deck {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
@@ -689,12 +688,12 @@
 }
 
 
-/* ═══ P6a 효과 — 반응하는 것 (spec §7 #2 #3 #9 #12 #14 #15) ════════════════════
-   움직임은 transform · opacity 만. 효과 줄이기는 dx-base.css 의 전역 규칙이 transition 을
-   0 으로 만든다 — 최종 상태만 보인다. JS 가 필요한 것은 home-effects.js. */
+/* ═══ Effects — reacting ═════════════════════════════════════════════════════
+   Only transform and opacity move. Reduced motion: the global rule in dx-base.css sets
+   transitions to 0 so only the final state shows. Anything needing JS is in home-effects.js. */
 
-/* #2 무대 조명 — 위 가운데의 윗조명 + 가장자리 비네팅. 정지. home 이 보일 때만
-   (setVisibleView 가 body.home-visible 을 토글). */
+/* Stage lighting — a top light at the top centre plus an edge vignette. Static. Only while
+   home is visible (setVisibleView toggles body.home-visible). */
 :root {
   --stage-toplight: color-mix(in srgb, var(--accent) 16%, transparent);
   --stage-vignette: rgba(0, 0, 0, .55);
@@ -717,14 +716,14 @@ body.home-visible {
   background-attachment: fixed;
 }
 
-/* #3 입력창 빛 테 — 쉴 때 꺼짐, focus 면 켜짐. 키 입력의 물결은 home-effects.js (WAAPI). */
+/* Input light ring — off at rest, on with focus. The keystroke ripple is in home-effects.js (WAAPI). */
 .ask-box > .ask-input { grid-row: 1; grid-column: 1; }
 .ask-box > .ask-foot { grid-row: 2; grid-column: 1; }
 .ask-box::after {
   content: "";
   grid-row: 1 / -1;
   grid-column: 1;
-  /* padding 까지 덮는다 (.ask-box 의 padding 과 같은 값). */
+  /* Covers the padding too (same value as .ask-box's padding). */
   margin: calc(var(--sp-4) * -1) calc(var(--sp-4) * -1) calc(var(--sp-3) * -1) calc(var(--sp-5) * -1);
   border-radius: inherit;
   box-shadow:
@@ -737,7 +736,7 @@ body.home-visible {
 }
 .ask-box:focus-within::after { opacity: .55; }
 
-/* #9 책 — 표지가 살짝 돌고, 은박 위로 광택이 한 번 지나간다. 광택은 표지의 ::after (grid item). */
+/* Books — the cover tilts slightly and a sheen passes once over the foil. The sheen is the cover's ::after (grid item). */
 .stage-deck .about-book-card .orbital-icon {
   display: grid;
   place-items: center;
@@ -764,12 +763,12 @@ body.home-visible {
   transform: translateX(60%);
 }
 
-/* #12 포스터 pill — 썸네일이 조금 다가온다. */
+/* Poster pill — the thumbnail moves slightly closer. */
 .stage-film img { transition: transform 240ms var(--ap-ease); }
 .stage-film:is(:hover, :focus-visible) img { transform: scale(1.06); }
 
-/* #14 · #15 테마 · 언어 교차 — View Transitions (shared dx-theme.js · i18n.js 의 _fade,
-   <html data-dx-fade> 로 opt-in). 전환 중에만 붙는 data-dx-fading 이 길이를 고른다. */
+/* Theme and language cross-fade — View Transitions (_fade in shared dx-theme.js and i18n.js,
+   opt-in via <html data-dx-fade>). data-dx-fading, set only during the transition, picks the duration. */
 html[data-dx-fading="theme"]::view-transition-old(root),
 html[data-dx-fading="theme"]::view-transition-new(root) {
   animation-duration: 600ms;
@@ -782,13 +781,14 @@ html[data-dx-fading="lang"]::view-transition-new(root) {
 }
 
 
-/* ═══ P6b 효과 — 계속 도는 것 (spec §7 #4 #10 #11 #16) ═════════════════════════
-   placeholder 타이핑 · 카운트업 · 커서 조명의 움직임은 JS (home-effects.js · home-widgets.js).
-   코어 막대 · 맥박은 위의 위젯 절. */
+/* ═══ Effects — continuous ═════════════════════════════════════════════════════
+   Placeholder typing, count-up and cursor-light motion are JS (home-effects.js · home-widgets.js).
+   Core bars and pulse are in the widget section above. */
 
-/* #16 커서 조명 — 무대 전체 (모든 행 · 열) 에 걸친 grid item. 내용 아래 (z-index -1), 무대
-   밖으로 넘치지 않게 clip — 넘치면 커서를 모서리로 옮길 때 문서가 스크롤을 얻는다. 가로는
-   창 폭까지, 세로는 padding 까지 넓힌다 (.landing.home-stage 의 padding 과 같은 식). */
+/* Cursor light — a grid item spanning the whole stage (all rows and columns). Behind content
+   (z-index -1) and clipped to the stage — overflow would let the document scroll when the cursor
+   nears a corner. Widened to the window width and to the padding vertically (same formula as
+   .landing.home-stage's padding). */
 .stage-light {
   grid-row: 1 / -1;
   grid-column: 1 / -1;
@@ -805,7 +805,7 @@ html[data-dx-fading="lang"]::view-transition-new(root) {
   display: block;
   width: calc(var(--r) * 2);
   height: calc(var(--r) * 2);
-  /* 칸 높이에 보태지 않는다 — 무대의 행을 늘리면 한 화면이 깨진다. */
+  /* Adds nothing to the cell height — growing a stage row would break the one-screen layout. */
   margin-bottom: calc(var(--r) * -2);
   border-radius: 50%;
   background: radial-gradient(circle closest-side, var(--cursor-light), transparent);
@@ -821,14 +821,14 @@ html[data-dx-fading="lang"]::view-transition-new(root) {
 }
 
 
-/* ═══ P6c 효과 — 움직임 (spec §7 #1 #1' #5) ════════════════════════════════════
-   첫 진입의 stagger · sweep, 보내기의 orb, Dock 확대는 home-effects.js (WAAPI · rAF). */
+/* ═══ Effects — motion ═════════════════════════════════════════════════════════
+   First-entry stagger and sweep, the send orb and Dock growth are in home-effects.js (WAAPI · rAF). */
 
-/* #1' 다시 home 으로: 0.4s 미끄러짐 대신 200ms fade (다른 view 는 그대로). */
+/* Back to home: a 200ms fade instead of the 0.4s slide (other views unchanged). */
 .landing.home-stage.view-slide-in { animation: stage-fade-in 200ms var(--ap-ease) both; }
 @keyframes stage-fade-in { from { opacity: 0; } }
 
-/* sweep · orb 는 커서 조명과 같은 층의 형제 — 칸 높이에 보태지 않는다 (음수 margin). */
+/* sweep and orb are siblings on the cursor-light layer — they add nothing to the cell height (negative margin). */
 .stage-light > b {
   display: block;
   border-radius: 50%;

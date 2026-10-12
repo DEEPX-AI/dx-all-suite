@@ -1,6 +1,6 @@
-<!-- Setup Panel — 공용 단계 목록의 압축형 (shared/static/dx-steps.js · spec 2026-09-29 아이콘 체계 단계 2c).
-     두 단계 (SDK · 샘플). 모두 끝나면 카드 전체가 한 줄 ("Setup ready · SDK v… · 샘플 N개") 로 접힌다.
-     SDK 가 없으면 아래 Compile 버튼이 잠기고 그 이유를 옆에 적는다 (setup_panel.js _disableCompileForm). -->
+<!-- Setup Panel — the shared compact step list (shared/static/dx-steps.js).
+     Two steps (SDK · samples). When both are done the card collapses to one line ("Setup ready · SDK v… · N samples").
+     Without the SDK the Compile button below is locked, with the reason next to it (setup_panel.js _disableCompileForm). -->
 <section id="setup-panel" class="setup-panel dx-steps dx-steps--compact" data-steps aria-busy="true">
   <button type="button" class="dx-steps-summary" data-steps-summary id="setup-summary">
     <span class="dx-step-dot"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#check"></use></svg></span>
@@ -35,7 +35,7 @@
           </div>
         </div>
       </li>
-      <!-- 2. 샘플 모델 + 캘리브레이션 -->
+      <!-- 2. Sample models + calibration -->
       <li class="dx-step" data-step="samples" data-state="todo" id="setup-samples">
         <span class="dx-step-dot"></span>
         <div class="dx-step-body">

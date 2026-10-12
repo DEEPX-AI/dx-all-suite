@@ -130,9 +130,9 @@ def fast_config(tmp_path_factory):
 
 @pytest.fixture(scope="module")
 def live_server(tmp_path_factory):
-    # Compile paths must sit inside the allowed roots (path_policy, QA COM-A2); these tests keep
-    # their configs and outputs in pytest's tmp dirs. Written before that policy and skipped on
-    # hosts without dx_com, they had never met it — every /compile here answered 400.
+    # Compile paths must sit inside the allowed roots (path_policy); these tests keep their
+    # configs and outputs in pytest's tmp dirs, so the tmp base is added as an allowed root —
+    # otherwise every /compile here answers 400.
     import os
     saved_roots = os.environ.get("DX_COMPILER_ALLOWED_ROOTS")
     os.environ["DX_COMPILER_ALLOWED_ROOTS"] = str(tmp_path_factory.getbasetemp())
@@ -493,7 +493,7 @@ def test_live_qxnn_resume_fails_without_checkpoint_support(live_server, tmp_path
 def test_live_resume_summary_returns_clear_400(live_server, fast_config, tmp_path, dx_com_info):
     """A completed QXNN-resume job carries a .qxnn (not ONNX) as model_path, so
     /summary must return a clear 400 — not a 500 from the ONNX parser choking on
-    the .qxnn (regression guard for the resume-summary 500)."""
+    the .qxnn."""
     if not dx_com_info.get("supports_checkpoint") or not dx_com_info.get("supports_quant_diagnosis"):
         pytest.skip("needs dx_com 2.4+ (checkpoint + quant_diagnosis) to produce and resume a .qxnn")
     _require_compile_disk_space()

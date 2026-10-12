@@ -29,17 +29,17 @@ const $=id=>document.getElementById(id);
 const esc=s=>{const d=document.createElement('div');d.textContent=s;return d.innerHTML};
 function api(url,opts){return fetch(url,opts).then(r=>r.json()).catch(e=>({error:e.message}))}
 function findModel(name){return S.models.find(function(m){return m.name===name})}
-/* task slug → 지금 언어의 이름 (Model Zoo 와 같은 6개 언어 표, /api/category_labels). 표를 아직 못 받았으면
-   slug 를 펼친 말 — 예전에는 'zero_shot_image_classification' 이 그대로 보였다 (release audit A-12). */
+/* task slug -> name in the current language (the same 6-language table as Model Zoo, /api/category_labels). Until the
+   table arrives, the slug spelled out, never a raw 'zero_shot_image_classification'. */
 function catText(c){
   var labels=S.catLabels||{};
   var e=labels[c];
-  if(!e){   // Models 쪽 catalog 는 slug 대신 영어 이름 ('Attribute Recognition') 을 준다
+  if(!e){   // the Models catalog gives English names ('Attribute Recognition') instead of slugs
     for(var k in labels){if(labels[k]&&labels[k].en===c){e=labels[k];break}}
   }
   if(!e&&c){
-    // catalog 이름이 표의 이름과 조금 다르다 — 'Face Attribute Recognition' ↔ face_attribute,
-    // 'Image De-noising' ↔ image_denoising. slug 로 펼쳐 맞추고, 안 맞으면 끝 단어를 하나씩 뗀다 (2026-10-11 matrix).
+    // Catalog names differ slightly from the table's: 'Face Attribute Recognition' <-> face_attribute,
+    // 'Image De-noising' <-> image_denoising. Match via the slug, dropping trailing words one by one if needed.
     var slug=String(c).toLowerCase().replace(/de-noising/g,'denoising').replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'');
     while(slug&&!e){
       e=labels[slug];
@@ -161,9 +161,9 @@ function _applyLangToActivePage(){
   const active=document.querySelector('.page.active');
   DXI18n.applyLang(active||document);
 }
-// 헤더의 페이지명은 활성 탭 라벨을 그대로 쓴다. PAGE_TITLES 는 이모지 접두사를
-// 달고 있어(예: '<다운로드 이모지> ModelZoo') 탭의 SVG 아이콘과 겹쳐 보이고, 탭과 헤더가
-// 서로 다른 번역 경로를 타면 어긋난다. 탭이 없을 때만 PAGE_TITLES 로 떨어진다.
+// The header's page name uses the active tab's label as is. PAGE_TITLES carry an emoji prefix
+// that would clash with the tab's SVG icon, and tab and header would drift if they took
+// different translation paths. PAGE_TITLES is used only when there is no tab.
 function _shellPageLabel(page){
   const tab=document.querySelector('.dx-tab[data-page="'+page+'"] span');
   const fromTab=tab&&tab.textContent&&tab.textContent.trim();
@@ -175,15 +175,15 @@ function nav(page){
   PAGES.forEach(p=>{
     const el=$('page-'+p);if(el)el.classList.toggle('active',p===page);
   });
-  // 통합 shell: 좌측 nav 대신 상단 탭 행. 활성 표시는 aria-current로 간다
-  // (dx-shell.css가 그걸로 스타일을 건다 — class="active"가 아니다).
+  // Shared shell: a top tab row instead of a left nav. The active mark goes through aria-current
+  // (dx-shell.css styles on that, not on class="active").
   document.querySelectorAll('.dx-tab').forEach(function(t){
     if(t.dataset.page===page)t.setAttribute('aria-current','page');
     else t.removeAttribute('aria-current');
   });
   const _pageSlot=document.getElementById('dxShellPage');
   if(_pageSlot)_pageSlot.textContent=_shellPageLabel(page);
-  // 활성 탭이 오버플로 메뉴에 있었다면 행으로 되돌려야 한다.
+  // If the active tab was in the overflow menu, bring it back into the row.
   if(window.DXTabs)DXTabs.reflowAll();
   if(page==='outputs')loadOutputs();
   if(page==='models')renderModelsPage();
@@ -200,8 +200,8 @@ function nav(page){
 // openDev is defined in developer.js (with auth logic)
 
 
-// 통합 shell(Option A)에는 접을 사이드바가 없다 — 56px 레일은 항상 보인다.
-// 외부 호출자가 남아 있을 수 있어 no-op으로 유지한다.
+// The shared shell has no sidebar to collapse; the 56px rail is always visible.
+// Kept as a no-op because outside callers may remain.
 function toggleSidebar(){ /* no sidebar in the unified shell */ }
 
 

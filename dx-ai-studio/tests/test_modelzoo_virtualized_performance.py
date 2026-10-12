@@ -1,4 +1,4 @@
-"""ModelZoo 이미지 옵티마이저 및 프론트엔드 가상화 계약 테스트."""
+"""Contract tests for the ModelZoo image optimizer and frontend virtualization."""
 
 import importlib.util
 import json
@@ -29,7 +29,7 @@ def load_optimizer():
 
 
 def test_legal_merge_prefers_generated_over_empty_legacy():
-    """legacy legal 필드가 비어 있으면 generated catalog 값이 표시되어야 한다."""
+    """When a legacy legal field is empty, the generated catalog value is shown."""
     import sys, os
     sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'dx_modelzoo'))
     from core.catalog import _enrich_model_entry
@@ -41,7 +41,7 @@ def test_legal_merge_prefers_generated_over_empty_legacy():
 
 
 def test_legal_merge_does_not_overwrite_real_legacy_values():
-    """legacy legal 필드에 실제 값이 있으면 유지되어야 한다."""
+    """When a legacy legal field has a real value, it is kept."""
     import sys, os
     sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'dx_modelzoo'))
     from core.catalog import _enrich_model_entry
@@ -85,7 +85,7 @@ def test_optimizer_writes_webp_jpg_and_manifest(tmp_path):
     report = optimizer.optimize_images(source_root, out_root, write=True)
 
     assert report["processed"] == 1
-    # I-4: 충돌 방지를 위해 원본 확장자를 stem에 포함
+    # The original extension is part of the stem, to avoid collisions
     assert (out_root / "thumbnails" / "sample-jpg.webp").exists()
     assert (out_root / "thumbnails" / "sample-jpg.jpg").exists()
     manifest = json.loads((out_root / "manifest.json").read_text())
@@ -96,7 +96,7 @@ def test_optimizer_writes_webp_jpg_and_manifest(tmp_path):
 @pytest.mark.requires_pillow
 @_requires_pil
 def test_dryrun_reports_skipped_when_outputs_exist(tmp_path):
-    """I-2: dry-run에서도 기존 출력 파일이 있으면 skipped로 보고해야 합니다."""
+    """Even in dry-run, an existing output file is reported as skipped."""
     from PIL import Image
 
     optimizer = load_optimizer()
@@ -106,10 +106,10 @@ def test_dryrun_reports_skipped_when_outputs_exist(tmp_path):
     Image.new("RGB", (800, 600), "red").save(thumb_dir / "sample.jpg", quality=95)
     out_root = source_root / "optimized"
 
-    # 먼저 write 모드로 출력 파일 생성
+    # First create the output file in write mode
     optimizer.optimize_images(source_root, out_root, write=True)
 
-    # dry-run(write=False)에서 기존 출력 감지
+    # dry-run (write=False) detects the existing output
     report = optimizer.optimize_images(source_root, out_root, write=False, force=False)
     assert report["skipped"] == 1
     assert report["processed"] == 0
@@ -118,7 +118,7 @@ def test_dryrun_reports_skipped_when_outputs_exist(tmp_path):
 @pytest.mark.requires_pillow
 @_requires_pil
 def test_stem_collision_produces_distinct_outputs(tmp_path):
-    """I-4: 동일 stem, 다른 확장자 이미지가 서로 덮어쓰지 않아야 합니다."""
+    """Images with the same stem and different extensions do not overwrite each other."""
     from PIL import Image
 
     optimizer = load_optimizer()
@@ -137,7 +137,7 @@ def test_stem_collision_produces_distinct_outputs(tmp_path):
     assert (out_dir / "dup-jpg.jpg").exists()
     assert (out_dir / "dup-png.webp").exists()
     assert (out_dir / "dup-png.jpg").exists()
-    # 총 4개의 고유 파일이 존재해야 함
+    # There must be 4 distinct files in total
     output_files = sorted(f.name for f in out_dir.iterdir())
     assert len(output_files) == 4
 
@@ -145,16 +145,11 @@ def test_stem_collision_produces_distinct_outputs(tmp_path):
 @pytest.mark.requires_pillow
 @_requires_pil
 def test_cli_summary_zero_source_bytes(tmp_path, monkeypatch, capsys):
-    """I-1: source_bytes가 0일 때 퍼센트 출력에서 ZeroDivisionError가 발생하지 않아야 합니다.
+    """The percentage output must not raise ZeroDivisionError when source_bytes is 0.
 
-    예전에는 **빈 소스 트리** 로 이 상황을 만들었다. 2026-09-21 부터 그것은
-    FileNotFoundError 다 — data/thumbnails 와 data/examples 를 git 에서 빼면서,
-    원본이 없는 채로 도는 것을 조용히 성공시키지 않기로 했다
-    (tests/dx_modelzoo/test_optimize_images_needs_sources.py).
-
-    이 테스트가 지키려던 것은 빈 트리가 아니라 **0으로 나누지 않는 것** 이므로,
-    같은 상황을 `--model` 필터로 만든다. 아무것도 매칭되지 않아 source_bytes 가
-    0 이 되는 것은 같고, 새 계약과 부딪히지 않는다.
+    An empty source tree is a FileNotFoundError by contract — running without the original
+    images must not silently succeed (tests/dx_modelzoo/test_optimize_images_needs_sources.py).
+    So source_bytes = 0 is produced with a `--model` filter that matches nothing instead.
     """
     import sys
 
@@ -184,7 +179,7 @@ def test_cli_summary_zero_source_bytes(tmp_path, monkeypatch, capsys):
 @pytest.mark.requires_pillow
 @_requires_pil
 def test_rgba_composites_on_white_background(tmp_path):
-    """M-1: RGBA PNG가 흰 배경 위에 합성되어야 합니다 (검은 배경 아님)."""
+    """An RGBA PNG is composited onto a white background (not black)."""
     from PIL import Image
 
     optimizer = load_optimizer()
@@ -192,7 +187,7 @@ def test_rgba_composites_on_white_background(tmp_path):
     thumb_dir = source_root / "thumbnails"
     thumb_dir.mkdir(parents=True)
 
-    # 완전 투명(alpha=0) RGBA 이미지 생성
+    # Create a fully transparent (alpha=0) RGBA image
     rgba = Image.new("RGBA", (100, 100), (0, 0, 0, 0))
     rgba.save(thumb_dir / "transparent.png")
     out_root = source_root / "optimized"
@@ -200,11 +195,11 @@ def test_rgba_composites_on_white_background(tmp_path):
     report = optimizer.optimize_images(source_root, out_root, write=True)
     assert report["written"] == 1
 
-    # 결과 JPG를 열어서 흰 배경인지 확인
+    # Open the resulting JPG and check the background is white
     result_jpg = out_root / "thumbnails" / "transparent-png.jpg"
     result_img = Image.open(result_jpg)
     pixels = list(result_img.getdata())
-    # 모든 픽셀이 흰색(255,255,255)에 가까워야 함
+    # Every pixel must be close to white (255,255,255)
     avg_r = sum(p[0] for p in pixels) / len(pixels)
     avg_g = sum(p[1] for p in pixels) / len(pixels)
     avg_b = sum(p[2] for p in pixels) / len(pixels)
@@ -215,12 +210,12 @@ def test_rgba_composites_on_white_background(tmp_path):
 
 
 def read_text(path):
-    """UTF-8 텍스트 파일을 읽어 반환합니다."""
+    """Read and return a UTF-8 text file."""
     return path.read_text(encoding="utf-8")
 
 
 def modelzoo_i18n_sources():
-    """분리된 ModelZoo i18n dictionary fragment와 bootstrap source를 함께 반환합니다."""
+    """Return the split ModelZoo i18n dictionary fragment together with the bootstrap source."""
     files = [MODELZOO_JS / "i18n.js", *sorted(MODELZOO_JS.glob("i18n-dict-*.js"))]
     return "\n".join(read_text(path) for path in files)
 
@@ -359,7 +354,7 @@ def test_modelzoo_state_labels_cover_stale_suspect_legal():
 
 
 def js_function_body(src, name):
-    """간단한 brace matching으로 JS 함수 본문을 추출합니다."""
+    """Extract a JS function body with simple brace matching."""
     pattern = rf"function\s+{name}\s*\([^)]*\)\s*\{{"
     match = re.search(pattern, src)
     if not match:
@@ -380,15 +375,14 @@ def js_function_body(src, name):
 
 
 def test_catalog_js_defines_virtualized_catalog_contract():
-    """catalog.js에 ModelZooVirtualCatalog와 핵심 API가 존재해야 합니다.
+    """catalog.js defines ModelZooVirtualCatalog and its core API.
 
-    **이 테스트는 가상화가 동작한다는 증거가 아니다.** 이름이 있는지만 본다.
-    2026-09 에 가상화는 실제로 죽어 있었다 — 앱 셸이 overflow 를 조상으로 옮긴 뒤
-    스크롤 리스너가 어디에도 붙지 않아 347개 중 40장만 그린 채 멈춰 있었는데, 여기
-    있는 토큰은 전부 제자리에 있었으므로 이 파일은 계속 초록이었다.
+    **This test is no evidence that virtualization works.** It only checks that names exist;
+    virtualization can be dead (e.g. a scroll listener attached to nothing) with every token
+    in place.
 
-    동작을 지키는 것은 tests/test_catalog_virtual_scroll_browser.py 다. 이쪽은
-    "이름이 사라지는 것" 만 회귀로 잡는다.
+    tests/test_catalog_virtual_scroll_browser.py guards the behavior. This one only catches
+    names disappearing.
     """
     src = read_text(ROOT / "dx_modelzoo" / "static" / "js" / "catalog.js")
     for token in (
@@ -399,19 +393,19 @@ def test_catalog_js_defines_virtualized_catalog_contract():
         "renderCardItem",
         "renderListRow",
         "MAX_CACHED_PAGES",
-        # 스크롤 루트를 찾는 쪽. 이것이 사라지면 조상이 스크롤을 갖는 레이아웃에서
-        # 다시 첫 화면에 멈춘다.
+        # Finds the scroll root. Without it, a layout where an ancestor scrolls stalls
+        # on the first screen.
         "_scrollRoot",
     ):
         assert token in src, f"catalog.js에 '{token}'이 없습니다"
 
 
 def test_catalog_js_no_longer_full_maps_models_for_card_or_list():
-    """renderCardView/renderListView가 더 이상 전체 모델을 한번에 렌더링하지 않아야 합니다."""
+    """renderCardView/renderListView do not render every model at once."""
     src = read_text(ROOT / "dx_modelzoo" / "static" / "js" / "catalog.js")
 
     def function_body(name):
-        # 함수 시작을 찾고, 중괄호 매칭으로 body를 추출
+        # Find the function start and extract the body by brace matching
         pattern = rf"function\s+{name}\s*\([^)]*\)\s*\{{"
         match = re.search(pattern, src)
         assert match, f"{name} 함수를 찾을 수 없습니다"
@@ -438,7 +432,7 @@ def test_catalog_js_no_longer_full_maps_models_for_card_or_list():
 
 
 def test_catalog_and_detail_images_use_lazy_async_and_optimized_fallbacks():
-    """catalog.js와 detail.js가 최적화 이미지 fallback 정책을 준수해야 합니다."""
+    """catalog.js and detail.js follow the optimized image fallback policy."""
     catalog = read_text(ROOT / "dx_modelzoo" / "static" / "js" / "catalog.js")
     detail = read_text(ROOT / "dx_modelzoo" / "static" / "js" / "detail.js")
     combined = catalog + "\n" + detail
@@ -449,12 +443,12 @@ def test_catalog_and_detail_images_use_lazy_async_and_optimized_fallbacks():
         "onerror = null" in combined or "onerror=null" in combined
         or ".onerror = null" in combined
     ), "onerror 종료 처리 누락"
-    # 충돌 방지 naming 정책: safeStem 패턴이 JS에 존재해야 함
+    # Collision-safe naming policy: the safeStem pattern must exist in JS
     assert "safeStem" in combined, "collision-safe safeStem 헬퍼 누락"
 
 
 def test_catalog_js_has_loading_error_and_scroll_restore_contracts():
-    """catalog.js에 로딩 placeholder, 에러, 스크롤 복원 계약이 존재해야 합니다."""
+    """catalog.js has the loading placeholder, error and scroll restore contracts."""
     src = read_text(ROOT / "dx_modelzoo" / "static" / "js" / "catalog.js")
     assert "mz-placeholder" in src, "로딩 placeholder 클래스 누락"
     assert "mz-catalog-error" in src, "에러 placeholder 클래스 누락"
@@ -463,7 +457,7 @@ def test_catalog_js_has_loading_error_and_scroll_restore_contracts():
 
 
 def test_catalog_js_scroll_listener_with_raf_throttle():
-    """C-1: 스크롤 이벤트 리스너가 rAF 스로틀링과 함께 renderViewport를 호출해야 합니다."""
+    """The scroll listener calls renderViewport with rAF throttling."""
     src = read_text(ROOT / "dx_modelzoo" / "static" / "js" / "catalog.js")
     assert "addEventListener" in src and "'scroll'" in src, (
         "scroll 이벤트 리스너가 없습니다 — 가상화가 스크롤 시 업데이트되지 않음"
@@ -475,9 +469,9 @@ def test_catalog_js_scroll_listener_with_raf_throttle():
 
 
 def test_catalog_js_preserves_scroll_position_on_rerender():
-    """C-2: innerHTML 교체 시 scrollTop을 보존해야 합니다."""
+    """Replacing innerHTML preserves scrollTop."""
     src = read_text(ROOT / "dx_modelzoo" / "static" / "js" / "catalog.js")
-    # _renderCardViewport와 _renderListViewport 모두에서 scrollTop 보존 확인
+    # Both _renderCardViewport and _renderListViewport preserve scrollTop
     assert "savedScrollTop" in src or "saved_scroll" in src, (
         "scrollTop 보존 변수가 없습니다 — innerHTML이 스크롤 위치를 초기화할 수 있음"
     )
@@ -533,10 +527,10 @@ def test_catalog_js_view_mode_change_resets_viewport():
 
 
 def test_catalog_js_conditional_scrolltop_restore():
-    """C-3: scrollTop 복원이 조건부여야 합니다 — 불필요한 scroll 이벤트 방지."""
+    """scrollTop restore is conditional — avoids needless scroll events."""
     src = read_text(ROOT / "dx_modelzoo" / "static" / "js" / "catalog.js")
-    # 조건부 복원 패턴이 두 viewport 렌더러 모두에 존재해야 함
-    # _isContainerScrollable()를 포함한 조건부 복원도 허용
+    # Both viewport renderers must have the conditional restore pattern
+    # A conditional restore that includes _isContainerScrollable() is also allowed
     conditional_pattern = re.compile(
         r"if\s*\(.*container\.scrollTop\s*!==\s*savedScrollTop"
     )
@@ -548,7 +542,7 @@ def test_catalog_js_conditional_scrolltop_restore():
 
 
 def test_detail_js_escape_html_handles_quotes():
-    """I-2: detail.js escapeHtml이 따옴표도 이스케이프해야 합니다."""
+    """detail.js escapeHtml also escapes quotes."""
     src = read_text(ROOT / "dx_modelzoo" / "static" / "js" / "detail.js")
     assert "&quot;" in src, (
         "detail.js escapeHtml에 큰따옴표 이스케이프(&quot;)가 없습니다"
@@ -560,14 +554,14 @@ def test_detail_js_escape_html_handles_quotes():
 
 
 def test_detail_js_error_path_escapes_model_id():
-    """C-1: renderDetailPage 에러 경로에서 modelId를 escapeHtml로 이스케이프해야 합니다."""
+    """The renderDetailPage error path escapes modelId with escapeHtml."""
     src = read_text(ROOT / "dx_modelzoo" / "static" / "js" / "detail.js")
-    # catch 블록에서 modelId를 raw로 삽입하면 안 됨
+    # The catch block must not insert modelId raw
     assert "escapeHtml(modelId)" in src, (
         "detail.js 에러 경로에서 escapeHtml(modelId)를 사용해야 합니다 — XSS 위험"
     )
-    # raw ${modelId} 패턴이 innerHTML에 직접 사용되면 안 됨
-    # catch 블록 내 innerHTML에 raw modelId가 있으면 실패
+    # A raw ${modelId} must not go into innerHTML directly
+    # Fails if innerHTML in the catch block has a raw modelId
     catch_match = re.search(r"catch\s*\([^)]*\)\s*\{(.*?)\}", src, re.DOTALL)
     if catch_match:
         catch_body = catch_match.group(1)
@@ -578,7 +572,7 @@ def test_detail_js_error_path_escapes_model_id():
 
 
 def test_detail_js_escapes_model_name_in_title():
-    """I-2: renderDetail에서 model.name이 escapeHtml으로 이스케이프되어야 합니다."""
+    """renderDetail escapes model.name with escapeHtml."""
     src = read_text(ROOT / "dx_modelzoo" / "static" / "js" / "detail.js")
     assert "escapeHtml(model.name)" in src, (
         "detail.js에서 model.name이 escapeHtml 없이 렌더링됨"
@@ -586,7 +580,7 @@ def test_detail_js_escapes_model_name_in_title():
 
 
 def test_detail_js_escapes_category_label():
-    """I-2: renderDetail에서 catLabel이 escapeHtml으로 이스케이프되어야 합니다."""
+    """renderDetail escapes catLabel with escapeHtml."""
     src = read_text(ROOT / "dx_modelzoo" / "static" / "js" / "detail.js")
     assert "escapeHtml(catLabel)" in src, (
         "detail.js에서 catLabel이 escapeHtml 없이 렌더링됨"
@@ -594,7 +588,7 @@ def test_detail_js_escapes_category_label():
 
 
 def test_detail_js_escapes_legal_fields():
-    """I-2: renderLegal에서 license/copyright가 escapeHtml으로 이스케이프되어야 합니다."""
+    """renderLegal escapes license/copyright with escapeHtml."""
     src = read_text(ROOT / "dx_modelzoo" / "static" / "js" / "detail.js")
     assert "escapeHtml(legal.license)" in src, (
         "detail.js에서 legal.license가 escapeHtml 없이 렌더링됨"
@@ -605,16 +599,16 @@ def test_detail_js_escapes_legal_fields():
 
 
 def test_detail_js_escapes_error_messages():
-    """I-2: detail.js에서 e.message가 innerHTML에 삽입될 때 이스케이프되어야 합니다."""
+    """detail.js escapes e.message when inserting it into innerHTML."""
     src = read_text(ROOT / "dx_modelzoo" / "static" / "js" / "detail.js")
-    # loadDemoCode의 catch 블록에서 e.message를 raw로 사용하면 안 됨
+    # loadDemoCode's catch block must not use e.message raw
     assert "escapeHtml(e.message)" in src, (
         "detail.js에서 e.message가 escapeHtml 없이 innerHTML에 삽입됨"
     )
 
 
 def test_detail_js_escapes_remaining_detail_content_fields():
-    """Security: description/spec/compile/legal URL도 HTML/속성 문맥에서 escape해야 합니다."""
+    """Security: description/spec/compile/legal URLs are escaped in HTML/attribute context too."""
     src = read_text(ROOT / "dx_modelzoo" / "static" / "js" / "detail.js")
     assert "<p>${escapeHtml(text)}</p>" in src, (
         "description/compile guide text가 escapeHtml 없이 <p>에 삽입됨"
@@ -631,7 +625,7 @@ def test_detail_js_escapes_remaining_detail_content_fields():
 
 
 def test_detail_js_escapes_download_error_messages():
-    """Security: API error 문자열은 상태 HTML에 삽입되기 전에 escape해야 합니다."""
+    """Security: API error strings are escaped before going into status HTML."""
     src = read_text(ROOT / "dx_modelzoo" / "static" / "js" / "detail.js")
     assert "escapeHtml(data.error || '')" in src, (
         "downloadModel data.error가 escapeHtml 없이 innerHTML에 삽입됨"
@@ -645,7 +639,7 @@ def test_detail_js_escapes_download_error_messages():
 
 
 def test_detail_js_download_buttons_avoid_inline_model_id_handlers():
-    """Security: model.id를 inline onclick JS 문자열에 직접 삽입하지 않아야 합니다."""
+    """Security: model.id is never inserted directly into an inline onclick JS string."""
     src = read_text(ROOT / "dx_modelzoo" / "static" / "js" / "detail.js")
     assert "onclick=\"downloadModel(event, '${model.id}'" not in src
     assert "data-model-id=\"${escapeHtml(model.id)}\"" in src
@@ -654,7 +648,7 @@ def test_detail_js_download_buttons_avoid_inline_model_id_handlers():
 
 
 def test_detail_js_cancel_download_avoids_inline_model_id_handler():
-    """Security: cancel button도 modelId/quantType을 inline onclick에 삽입하지 않아야 합니다."""
+    """Security: the cancel button does not insert modelId/quantType into an inline onclick either."""
     src = read_text(ROOT / "dx_modelzoo" / "static" / "js" / "detail.js")
     assert "onclick=\"cancelDownload('${modelId}','${quantType}')\"" not in src
     assert "data-cancel-download" in src
@@ -662,7 +656,7 @@ def test_detail_js_cancel_download_avoids_inline_model_id_handler():
 
 
 def test_catalog_and_detail_image_src_attributes_are_escaped():
-    """Security: optimized image src 후보도 attribute 문맥에서 escape해야 합니다."""
+    """Security: optimized image src candidates are escaped in attribute context too."""
     catalog = read_text(ROOT / "dx_modelzoo" / "static" / "js" / "catalog.js")
     detail = read_text(ROOT / "dx_modelzoo" / "static" / "js" / "detail.js")
     assert 'src="${_escapeAttr(first)}"' in catalog, (
@@ -674,7 +668,7 @@ def test_catalog_and_detail_image_src_attributes_are_escaped():
 
 
 def test_catalog_js_avoids_inline_model_id_navigation_handlers():
-    """Security: catalog card/list는 model id를 inline onclick JS 문자열에 넣지 않아야 합니다."""
+    """Security: catalog cards/list never put the model id into an inline onclick JS string."""
     src = read_text(ROOT / "dx_modelzoo" / "static" / "js" / "catalog.js")
     assert "onclick=\"location.hash='model=${m.id}'\"" not in src
     assert "data-model-id=\"${_escapeAttr(m.id)}\"" in src
@@ -683,7 +677,7 @@ def test_catalog_js_avoids_inline_model_id_navigation_handlers():
 
 
 def test_modelzoo_encoded_hashes_decode_before_detail_render():
-    """Correctness: encoded model hash는 API 호출 전 원래 model id로 decode해야 합니다."""
+    """Correctness: the encoded model hash is decoded to the original model id before API calls."""
     app = read_text(ROOT / "dx_modelzoo" / "static" / "js" / "app.js")
     i18n = read_text(ROOT / "dx_modelzoo" / "static" / "js" / "i18n.js")
     assert "function getModelIdFromHash" in app
@@ -695,14 +689,14 @@ def test_modelzoo_encoded_hashes_decode_before_detail_render():
 
 
 def test_modelzoo_waits_for_health_check_before_initial_route_render():
-    """DX App 상태 확인이 끝난 뒤 상세 화면을 렌더링해야 비활성 오탐을 줄일 수 있습니다."""
+    """The detail view renders after the DX App status check, to avoid false "inactive" states."""
     app = read_text(ROOT / "dx_modelzoo" / "static" / "js" / "app.js")
     assert "await checkDxAppHealth();" in app
     assert app.index("await checkDxAppHealth();") < app.index("route();")
 
 
 def test_modelzoo_rerenders_detail_when_dx_app_health_changes():
-    """상세 화면에서 health 상태가 바뀌면 Run Demo/다운로드 제어도 동기화되어야 합니다."""
+    """When health changes on the detail view, the Run Demo/download controls follow."""
     app = read_text(ROOT / "dx_modelzoo" / "static" / "js" / "app.js")
     assert "const changed = previousAlive !== _dxAppAlive;" in app
     assert "if (changed && location.hash.startsWith('#model='))" in app
@@ -710,7 +704,7 @@ def test_modelzoo_rerenders_detail_when_dx_app_health_changes():
 
 
 def test_modelzoo_api_urls_are_proxy_prefix_aware():
-    """런처 /zoo 경유에서도 ModelZoo API가 런처 /api/health와 충돌하지 않아야 합니다."""
+    """Through the launcher's /zoo, the ModelZoo API does not collide with the launcher's /api/health."""
     app = read_text(ROOT / "dx_modelzoo" / "static" / "js" / "app.js")
     assert "function modelzooApiUrl(path)" in app
     assert "fetch(modelzooApiUrl('/api/health'))" in app
@@ -718,7 +712,7 @@ def test_modelzoo_api_urls_are_proxy_prefix_aware():
 
 
 def test_modelzoo_client_api_calls_use_proxy_prefix_helper():
-    """ModelZoo 클라이언트 API 호출은 런처 /zoo prefix를 보존해야 합니다."""
+    """ModelZoo client API calls keep the launcher's /zoo prefix."""
     for rel_path in (
         "dx_modelzoo/static/js/catalog.js",
         "dx_modelzoo/static/js/detail.js",
@@ -733,20 +727,20 @@ def test_modelzoo_client_api_calls_use_proxy_prefix_helper():
 
 
 def test_inference_handles_dx_app_unavailable_error_payload_shape():
-    """프록시가 code 대신 error 필드로 반환해도 DX App 미실행 상태를 정확히 표시해야 합니다."""
+    """The DX-App-not-running state shows correctly even when the proxy returns an error field instead of code."""
     src = read_text(ROOT / "dx_modelzoo" / "static" / "js" / "inference.js")
     assert "data.error === 'DX_APP_UNAVAILABLE'" in src
 
 
 def test_detail_run_demo_button_opens_inference_panel_explicitly():
-    """Run Demo 버튼은 추론 패널을 열고 스크롤해야 사용자가 즉시 실행 위치를 볼 수 있습니다."""
+    """The Run Demo button opens and scrolls to the inference panel, so the user sees where it runs."""
     src = read_text(ROOT / "dx_modelzoo" / "static" / "js" / "detail.js")
     assert "openInferencePanelFromDemo" in src
     assert "onclick=\"openInferencePanelFromDemo()\"" in src
 
 
 def test_detail_example_images_have_no_inline_width_caps():
-    """모든 Example 타입은 상세 박스 폭을 활용해야 하며 inline max-width cap에 묶이면 안 됩니다."""
+    """Every Example type uses the detail box width and is not capped by an inline max-width."""
     src = read_text(ROOT / "dx_modelzoo" / "static" / "js" / "detail.js")
     css = read_text(ROOT / "dx_modelzoo" / "static" / "css" / "style.css")
     assert "max-width:640px" not in src
@@ -764,7 +758,7 @@ def test_detail_example_images_have_no_inline_width_caps():
 
 
 def test_catalog_js_avoids_inline_category_handlers():
-    """Security: category id도 inline onclick JS 문자열에 넣지 않아야 합니다."""
+    """Security: the category id is not put into an inline onclick JS string either."""
     src = read_text(ROOT / "dx_modelzoo" / "static" / "js" / "catalog.js")
     assert "onclick=\"toggleCategory('${id}')\"" not in src
     assert "onclick=\"toggleCategory('__unknown__')\"" not in src
@@ -773,7 +767,7 @@ def test_catalog_js_avoids_inline_category_handlers():
 
 
 def test_catalog_js_escapes_spec_fields_in_card_and_list():
-    """Security: catalog card/list specification 필드는 HTML 삽입 전 escape해야 합니다."""
+    """Security: catalog card/list specification fields are escaped before HTML insertion."""
     src = read_text(ROOT / "dx_modelzoo" / "static" / "js" / "catalog.js")
     assert "_escapeAttr(m.specification.fps)" in src, (
         "card fps가 _escapeAttr 없이 렌더링됨"
@@ -790,7 +784,7 @@ def test_catalog_js_escapes_spec_fields_in_card_and_list():
 
 
 def test_catalog_js_avoids_inline_sort_header_handlers():
-    """Security: list sort header도 inline onclick 없이 data attribute로 위임해야 합니다."""
+    """Security: list sort headers delegate via data attributes, without inline onclick."""
     src = read_text(ROOT / "dx_modelzoo" / "static" / "js" / "catalog.js")
     assert "onclick=\"onListHeaderClick('${h.key}')\"" not in src
     assert "data-sort-key=\"${_escapeAttr(h.key)}\"" in src
@@ -801,7 +795,7 @@ def test_catalog_js_avoids_inline_sort_header_handlers():
 
 
 def test_catalog_js_window_scroll_listener():
-    """I-1: catalog.js가 window scroll 이벤트도 바인딩해야 합니다."""
+    """catalog.js also binds the window scroll event."""
     src = read_text(ROOT / "dx_modelzoo" / "static" / "js" / "catalog.js")
     assert "window.addEventListener" in src and "'scroll'" in src, (
         "window scroll 리스너가 없습니다 — container가 스크롤 컨테이너가 아닐 때 가상화 미동작"
@@ -809,7 +803,7 @@ def test_catalog_js_window_scroll_listener():
 
 
 def test_catalog_js_effective_scroll_uses_window():
-    """I-1: catalog.js가 window.scrollY/getBoundingClientRect를 사용한 effective scroll을 계산해야 합니다."""
+    """catalog.js computes the effective scroll with window.scrollY/getBoundingClientRect."""
     src = read_text(ROOT / "dx_modelzoo" / "static" / "js" / "catalog.js")
     has_window_scroll = "window.scrollY" in src or "window.pageYOffset" in src
     has_bounding_rect = "getBoundingClientRect" in src
@@ -820,7 +814,7 @@ def test_catalog_js_effective_scroll_uses_window():
 
 
 def test_catalog_js_processor_placeholder_removed_from_release():
-    """catalog.js와 style.css에서 프로세서 플레이스홀더가 제거되었어야 합니다 (릴리스 계약)."""
+    """catalog.js and style.css carry no processor placeholder (release contract)."""
     src = read_text(ROOT / "dx_modelzoo" / "static" / "js" / "catalog.js")
     css = read_text(ROOT / "dx_modelzoo" / "static" / "css" / "style.css")
     i18n = modelzoo_i18n_sources()
@@ -842,7 +836,7 @@ def test_catalog_js_processor_placeholder_removed_from_release():
 
 
 def test_modelzoo_i18n_defines_explorer_redesign_keys():
-    """i18n.js에 Explorer 리디자인에 필요한 키가 정의되어 있어야 합니다."""
+    """i18n.js defines the keys the Explorer layout needs."""
     src = modelzoo_i18n_sources()
     for key in (
         "DX Model Zoo Explorer",
@@ -881,7 +875,7 @@ def test_modelzoo_i18n_new_keys_have_five_language_coverage():
 
 
 def test_modelzoo_processor_filter_not_exposed_in_release_ui():
-    """릴리스 UI에 AI Processor 필터가 노출되지 않아야 합니다 (M2 미출시)."""
+    """The release UI does not show the AI Processor filter (M2 is not released)."""
     html = read_text(ROOT / 'dx_modelzoo/templates/index.html')
     js = read_text(ROOT / 'dx_modelzoo/static/js/catalog.js')
     css = read_text(ROOT / 'dx_modelzoo/static/css/style.css')
@@ -894,7 +888,7 @@ def test_modelzoo_processor_filter_not_exposed_in_release_ui():
 
 
 def test_detail_js_preserves_reference_section_ids():
-    """detail.js에 기존 섹션 ID가 보존되어야 합니다."""
+    """detail.js keeps the existing section IDs."""
     src = read_text(ROOT / "dx_modelzoo" / "static" / "js" / "detail.js")
     for section_id in (
         "sectionUseCase",
@@ -908,7 +902,7 @@ def test_detail_js_preserves_reference_section_ids():
 
 
 def test_catalog_js_declares_bounded_card_and_list_targets():
-    """catalog.js에 bounded DOM 렌더링 상수와 리스트 행 클래스가 존재해야 합니다."""
+    """catalog.js has the bounded DOM rendering constants and the list row class."""
     src = read_text(ROOT / "dx_modelzoo" / "static" / "js" / "catalog.js")
     assert re.search(r"CARD_DOM_LIMIT\s*=\s*50\b", src), \
         "CARD_DOM_LIMIT must be assigned the value 50"
@@ -920,7 +914,7 @@ def test_catalog_js_declares_bounded_card_and_list_targets():
 
 
 def test_catalog_js_resets_viewport_when_filters_change():
-    """Filter/search/sort 변경 시 깊은 스크롤 상태에서 빈 viewport가 나오지 않아야 합니다."""
+    """Changing filter/search/sort while scrolled deep never leaves an empty viewport."""
     src = read_text(ROOT / "dx_modelzoo" / "static" / "js" / "catalog.js")
     assert "function resetCatalogViewport" in src
     for handler in ("toggleCategory", "onSearchInput", "onSortChange", "resetFilters"):
@@ -932,7 +926,7 @@ def test_catalog_js_resets_viewport_when_filters_change():
 
 
 def test_catalog_js_clamps_visible_range_after_result_shrink():
-    """저장/현재 scrollTop이 결과 수를 넘어서도 visible range가 유효 범위에 머물러야 합니다."""
+    """The visible range stays valid even when the saved/current scrollTop exceeds the result count."""
     src = read_text(ROOT / "dx_modelzoo" / "static" / "js" / "catalog.js")
     assert "totalRows" in src, "카드 visible range는 전체 row 수 기준으로 clamp해야 합니다"
     assert "maxStartRow" in src, "visible range 시작 row를 최대 유효 row로 clamp해야 합니다"
@@ -940,7 +934,7 @@ def test_catalog_js_clamps_visible_range_after_result_shrink():
 
 
 def test_catalog_js_card_visible_range_clamps_in_row_space():
-    """카드 가상화는 마지막 모델들이 누락되지 않도록 row-space에서 tail clamp해야 합니다."""
+    """Card virtualization clamps the tail in row space, so the last models are not dropped."""
     src = read_text(ROOT / "dx_modelzoo" / "static" / "js" / "catalog.js")
     assert "const totalRows = Math.ceil(models.length / cols);" in src
     assert "const rowsByLimit = Math.max(1, Math.floor(CARD_DOM_LIMIT / cols));" in src
@@ -951,7 +945,7 @@ def test_catalog_js_card_visible_range_clamps_in_row_space():
 
 
 def test_catalog_js_restored_unknown_filter_requires_unknown_models():
-    """복원된 __unknown__ 필터는 실제 unknown 모델이 있을 때만 유지되어야 합니다."""
+    """A restored __unknown__ filter is kept only when unknown models actually exist."""
     src = read_text(ROOT / "dx_modelzoo" / "static" / "js" / "catalog.js")
     assert "function hasUnknownCategoryModels" in src
     restore_match = re.search(r"_restoreState\(\)\s*\{(.*?)\n  \},", src, re.DOTALL)
@@ -961,7 +955,7 @@ def test_catalog_js_restored_unknown_filter_requires_unknown_models():
 
 
 def test_catalog_js_populates_active_summary_on_initial_render():
-    """초기 렌더 직후 subtitle/active summary가 비어 있지 않아야 합니다."""
+    """Right after the first render, the subtitle/active summary is not empty."""
     src = read_text(ROOT / "dx_modelzoo" / "static" / "js" / "catalog.js")
     init_match = re.search(r"init\(dataOrMeta\)\s*\{(.*?)\n  \},", src, re.DOTALL)
     assert init_match, "ModelZooVirtualCatalog.init body를 찾을 수 없습니다"
@@ -971,7 +965,7 @@ def test_catalog_js_populates_active_summary_on_initial_render():
 
 
 def test_catalog_js_syncs_restored_sort_and_view_controls():
-    """복원된 sort/view 상태는 내부 상태뿐 아니라 visible controls에도 반영되어야 합니다."""
+    """Restored sort/view state shows in the visible controls, not only in internal state."""
     src = read_text(ROOT / "dx_modelzoo" / "static" / "js" / "catalog.js")
     assert "function syncCatalogControls" in src
     assert "sortSelect.value = _sortField" in src
@@ -982,14 +976,14 @@ def test_catalog_js_syncs_restored_sort_and_view_controls():
 
 
 def test_catalog_js_renders_enriched_card_and_missing_states():
-    """Catalog card/list는 generated metadata와 빈 값 상태를 표시해야 합니다."""
+    """Catalog cards/list show generated metadata and empty-value states."""
     src = read_text(ROOT / "dx_modelzoo" / "static" / "js" / "catalog.js")
     for token in ("performance", "Benchmark required", "input_resolution", "artifacts", "missing"):
         assert token in src
 
 
 def test_detail_js_renders_hybrid_datasheet_sections():
-    """Detail 화면은 Hybrid Datasheet 섹션과 기존 anchor ID를 함께 유지해야 합니다."""
+    """The detail view keeps both the Hybrid Datasheet sections and the existing anchor IDs."""
     src = read_text(ROOT / "dx_modelzoo" / "static" / "js" / "detail.js")
     for token in (
         "mz-key-facts",
@@ -1012,7 +1006,7 @@ def test_detail_js_renders_hybrid_datasheet_sections():
 
 
 def test_frontend_does_not_directly_link_internal_artifact_urls():
-    """Frontend는 raw artifact URL이 아니라 backend artifact endpoint만 링크해야 합니다."""
+    """The frontend links only to the backend artifact endpoint, never to raw artifact URLs."""
     detail = read_text(ROOT / "dx_modelzoo" / "static" / "js" / "detail.js")
     catalog = read_text(ROOT / "dx_modelzoo" / "static" / "js" / "catalog.js")
     combined = detail + catalog
@@ -1021,7 +1015,7 @@ def test_frontend_does_not_directly_link_internal_artifact_urls():
 
 
 def test_catalog_list_uses_explicit_missing_accuracy_label():
-    """List accuracy/resolution 누락 값은 '-' 대신 명시적인 source-missing 라벨이어야 합니다."""
+    """Missing list accuracy/resolution values show an explicit source-missing label, not '-'."""
     src = read_text(ROOT / "dx_modelzoo" / "static" / "js" / "catalog.js")
     body = js_function_body(src, "renderListRow")
     assert "let accuracy = '';" in body
@@ -1033,7 +1027,7 @@ def test_catalog_list_uses_explicit_missing_accuracy_label():
 
 
 def test_detail_legal_source_rows_render_explicit_missing_metadata():
-    """Legal/source 영역은 provenance row와 명시적 missing state를 항상 렌더링해야 합니다."""
+    """The legal/source area always renders the provenance row and an explicit missing state."""
     src = read_text(ROOT / "dx_modelzoo" / "static" / "js" / "detail.js")
     body = js_function_body(src, "renderLegal")
     for token in (
@@ -1048,7 +1042,7 @@ def test_detail_legal_source_rows_render_explicit_missing_metadata():
 
 
 def test_detail_specification_uses_enriched_resolution_and_explicit_missing_rows():
-    """Specification table은 enriched resolution fallback과 explicit missing states를 사용해야 합니다."""
+    """The specification table uses the enriched resolution fallback and explicit missing states."""
     src = read_text(ROOT / "dx_modelzoo" / "static" / "js" / "detail.js")
     body = js_function_body(src, "renderSpecification")
     assert "['Input Resolution', _inputResolution(model)" in body
@@ -1059,7 +1053,7 @@ def test_detail_specification_uses_enriched_resolution_and_explicit_missing_rows
 
 
 def test_detail_artifact_table_renders_last_checked_status():
-    """Artifact table은 last checked/sync 상태를 표시해야 합니다."""
+    """The artifact table shows the last checked/sync state."""
     src = read_text(ROOT / "dx_modelzoo" / "static" / "js" / "detail.js")
     body = js_function_body(src, "renderArtifactTable")
     assert "T('Last metadata sync')" in body
@@ -1067,7 +1061,7 @@ def test_detail_artifact_table_renders_last_checked_status():
 
 
 def test_detail_artifact_table_uses_remote_url_as_source_when_present():
-    """artifact remote_url이 있으면 Source 칸이 Not provided로 떨어지면 안 됩니다."""
+    """With an artifact remote_url, the Source cell must not fall back to Not provided."""
     src = read_text(ROOT / "dx_modelzoo" / "static" / "js" / "detail.js")
     helper = js_function_body(src, "_artifactSourceCell")
     body = js_function_body(src, "renderArtifactTable")
@@ -1083,7 +1077,7 @@ def test_detail_artifact_table_uses_remote_url_as_source_when_present():
 
 
 def test_detail_accuracy_matrix_shows_suspect_label():
-    """detail.js renderAccuracyMatrix는 suspect source_status일 때 경고 문구를 표시해야 한다."""
+    """detail.js renderAccuracyMatrix shows a warning when source_status is suspect."""
     src = read_text(ROOT / "dx_modelzoo" / "static" / "js" / "detail.js")
     body = js_function_body(src, "renderAccuracyMatrix")
     assert "source_status" in body
@@ -1091,7 +1085,7 @@ def test_detail_accuracy_matrix_shows_suspect_label():
 
 
 def test_detail_accuracy_matrix_does_not_render_absent_onnx_accuracy_row():
-    """홈페이지의 Raw ONNX는 artifact 링크이므로 accuracy matrix의 고정 ONNX 행이 아니어야 합니다."""
+    """Raw ONNX on the homepage is an artifact link, so it is not a fixed ONNX row in the accuracy matrix."""
     src = read_text(ROOT / "dx_modelzoo" / "static" / "js" / "detail.js")
     body = js_function_body(src, "renderAccuracyMatrix")
     assert "['ONNX', evaluation.onnx]" not in body
@@ -1100,7 +1094,7 @@ def test_detail_accuracy_matrix_does_not_render_absent_onnx_accuracy_row():
 
 
 def test_catalog_best_accuracy_skips_suspect():
-    """catalog.js _bestAccuracyValue는 source_status가 suspect인 항목을 건너뛰어야 한다."""
+    """catalog.js _bestAccuracyValue skips entries whose source_status is suspect."""
     src = read_text(ROOT / "dx_modelzoo" / "static" / "js" / "catalog.js")
     body = js_function_body(src, "_bestAccuracyValue")
     assert "source_status" in body
@@ -1147,10 +1141,10 @@ def test_modelzoo_sample_selection_clears_upload_result_container():
 
 
 def test_catalog_js_card_height_uses_measurement_not_only_fixed_constant():
-    """카드 높이 추정이 고정 300px만 사용하지 않고, 측정 메커니즘이 있어야 한다.
+    """Card height estimation measures, rather than relying on a fixed 300px.
 
-    고정 CARD_ESTIMATED_HEIGHT=300은 카드 높이가 다를 때 스크롤 점프를 유발한다.
-    _measuredCardHeight 또는 동적 측정 헬퍼가 catalog.js에 존재해야 한다.
+    A fixed CARD_ESTIMATED_HEIGHT=300 causes scroll jumps when card heights differ.
+    catalog.js must have _measuredCardHeight or a dynamic measuring helper.
     """
     src = read_text(ROOT / "dx_modelzoo" / "static" / "js" / "catalog.js")
     assert '_measuredCardHeight' in src, (
@@ -1160,7 +1154,7 @@ def test_catalog_js_card_height_uses_measurement_not_only_fixed_constant():
 
 
 def test_js_class_name_reads_display_class_name():
-    """detail.js가 model.display?.class_name을 우선 읽어야 한다."""
+    """detail.js reads model.display?.class_name first."""
     import os
     detail_js = open(os.path.join(
         os.path.dirname(__file__), '..', 'dx_modelzoo', 'static', 'js', 'detail.js'
@@ -1171,13 +1165,13 @@ def test_js_class_name_reads_display_class_name():
 
 
 def test_catalog_js_resize_invalidates_measured_card_height():
-    """window resize 시 _measuredCardHeight를 무효화해야 스크롤 점프가 발생하지 않는다.
+    """A window resize invalidates _measuredCardHeight, so scrolling does not jump.
 
-    카드 높이는 창 크기에 따라 변하므로, resize 이벤트 시 측정값을
-    null로 리셋하고 다시 측정해야 한다.
+    Card height changes with the window size, so on resize the measurement is reset
+    to null and taken again.
     """
     src = read_text(ROOT / "dx_modelzoo" / "static" / "js" / "catalog.js")
-    # resize 핸들러 내부에서 _measuredCardHeight를 null로 리셋하는 코드가 있어야 한다
+    # The resize handler must reset _measuredCardHeight to null
     assert re.search(
         r'resize.*_measuredCardHeight\s*=\s*null|_measuredCardHeight\s*=\s*null.*resize',
         src, re.DOTALL

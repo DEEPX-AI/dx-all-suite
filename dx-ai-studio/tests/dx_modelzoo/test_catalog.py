@@ -1,4 +1,4 @@
-"""catalog.py 카탈로그 로드/필터 테스트"""
+"""catalog.py load/filter tests"""
 import sys, json, pytest
 from pathlib import Path
 from unittest.mock import patch
@@ -8,9 +8,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "dx_model
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 MODELZOO_DATA_DIR = PROJECT_ROOT / "dx_modelzoo" / "data"
 
-# The dx-runtime staging catalog dropped the `_h` brand suffix from these model ids
-# (e.g. yolov5l_h -> yolov5l) and renamed their dxnn files to the clean upstream naming.
-# Three 6.1-variant P6 models (yolov5{m,n,s}6_61_h) were removed from staging entirely.
+# In the dx-runtime staging catalog these model ids carry no `_h` brand suffix
+# (e.g. yolov5l_h -> yolov5l) and their dxnn files use the upstream naming.
+# The 6.1-variant P6 models (yolov5{m,n,s}6_61_h) are not in staging at all.
 RELEASE_RENAMED_H_MODELS = {
     "yolov5l": "yolov5-l_640x640.dxnn",
     "yolov5m": "yolov5-m_640x640.dxnn",
@@ -41,7 +41,7 @@ def _string_values(value):
 
 @pytest.fixture
 def sample_conf(tmp_path):
-    """test_models.conf 샘플 생성"""
+    """Write a sample test_models.conf"""
     conf = tmp_path / "test_models.conf"
     conf.write_text(
         "# comment\n"
@@ -54,7 +54,7 @@ def sample_conf(tmp_path):
 
 @pytest.fixture
 def sample_catalog(tmp_path):
-    """model_catalog.json 샘플 생성"""
+    """Write a sample model_catalog.json"""
     catalog = tmp_path / "model_catalog.json"
     catalog.write_text(json.dumps({
         "version": "1.0",
@@ -265,8 +265,8 @@ class TestCatalogQueryPagination:
 
 
 def test_a_v9_only_model_says_which_dx_rt_it_needs(monkeypatch):
-    """Model Zoo 2_5_0 만 있는 model 은 container v9 — DX-RT 3.4.2 에서는 받아도 돌지 않는다
-    (spec 2026-10-01 dx_app per-model layout 결정 5)."""
+    """A model only in Model Zoo 2_5_0 is container v9: it downloads but does not run on DX-RT 3.4.2,
+    so it must say which DX-RT it needs."""
     from dx_modelzoo.core.catalog import _enrich_model_entry
     from shared import dxrt
 
@@ -280,14 +280,14 @@ def test_a_v9_only_model_says_which_dx_rt_it_needs(monkeypatch):
 
 
 def test_models_only_on_the_publish_page_are_listed(monkeypatch):
-    """curated catalog 에 없는 새 model (publish page · generated catalog 에만) 도 목록에 든다 — 예전에는 보강만
-    되고 목록에 들지 않았다 (spec 2026-10-01 dx_app per-model layout 결정 8)."""
+    """A model missing from the curated catalog (only on the publish page / generated catalog) must still be
+    listed, not only used to enrich other entries."""
     from dx_modelzoo.core import catalog
     from shared import dxrt
 
     monkeypatch.setattr(dxrt, "runtime_version", lambda: (3, 4, 2))
     monkeypatch.setattr(catalog, "load_generated_catalog", lambda: {"schema_version": "2.0", "models": [
-        # 어느 dx_app conf 에도 없는 model 이어야 한다 — per-model conf 에는 patchcore 가 이미 있다
+        # Must be a model that no dx_app conf lists (the per-model conf already has patchcore)
         {"id": "brandnew_224x224", "display": {"name": "Brand New", "task": "anomaly_detection"},
          "artifacts": {"qlite_dxnn": {"remote_url": "https://sdk.deepx.ai/modelzoo/q-lite-dxnn/2_5_0/brandnew_224x224.dxnn"}},
          "legal": {"source_url": "No Reference"}},
@@ -296,7 +296,7 @@ def test_models_only_on_the_publish_page_are_listed(monkeypatch):
         models = {m["id"]: m for m in catalog.reload_catalog()["models"]}
     finally:
         monkeypatch.undo()
-        catalog.reload_catalog()   # 가짜 catalog 를 cache 에 남기지 않는다 — 뒤의 test 가 그것을 읽었다
+        catalog.reload_catalog()   # do not leave the fake catalog in the cache for later tests
     pc = models["brandnew_224x224"]
     assert pc["category"] == "anomaly_detection" and pc["publish_only"] is True
     assert pc["model_file"] == "assets/models/brandnew_224x224.dxnn"
@@ -306,9 +306,9 @@ def test_models_only_on_the_publish_page_are_listed(monkeypatch):
 
 
 def test_a_per_model_test_models_conf_lists_each_model_once(tmp_path, monkeypatch):
-    """per-model dx_app (teammate 8d0b748) 의 test_models.conf 는 family<TAB>task<TAB>model_file<TAB>variant —
-    1 열 (family) 을 id 로 읽으면 efficientad 가 세 번, yolo26_depth 가 다섯 번 나온다. variant (= .dxnn 이름) 가
-    model 이고, Model Zoo 는 같은 파일의 기존 id (yolo26n) 와 옛 task key 를 쓴다."""
+    """The per-model dx_app test_models.conf is family<TAB>task<TAB>model_file<TAB>variant. Reading column 1
+    (family) as the id lists efficientad three times and yolo26_depth five times. The variant (the .dxnn name) is
+    the model; Model Zoo keeps the existing id for the same file (yolo26n) and the older task key."""
     from dx_modelzoo.core import catalog
     from shared.catalog_sources import parse_test_models_conf
 
@@ -335,8 +335,8 @@ def test_a_per_model_test_models_conf_lists_each_model_once(tmp_path, monkeypatc
 
 
 def test_a_legacy_row_outside_the_curated_catalog_takes_the_id_of_its_file():
-    """main dx_app 의 3 열 줄 (yolo26_depth_n) 과 per-model dx_app 의 같은 model 이 다른 id 면 그림을 찾지 못한다.
-    curated catalog 의 id 는 그대로 (DeiT 처럼 자기 자료가 있다)."""
+    """A 3-column row (yolo26_depth_n) and the per-model dx_app entry for the same model must share an id, or
+    the images are not found. Curated catalog ids stay as they are (like DeiT, they carry their own data)."""
     from dx_modelzoo.core import catalog
 
     gen = {"models": [{"id": "yolo26_depth_n_768x768", "artifacts": {"qlite_dxnn": {
@@ -352,9 +352,9 @@ def test_a_legacy_row_outside_the_curated_catalog_takes_the_id_of_its_file():
 
 
 def test_a_per_model_row_takes_the_task_of_its_example_dir(tmp_path, monkeypatch):
-    """per-model dx_app 의 test_models.conf 는 repvgg-a0-reid 를 image_classification 이라 적지만 예제는
-    person_reid/ 에 있고 (registry 도 person_reid), 그 runner 는 query 한 장 + gallery 로 돈다. Model Zoo 가 conf 를
-    따르면 개 사진으로 분류를 돌렸다 — 돌아가는 방식을 정하는 예제 폴더의 task 를 쓴다 (2026-10-01)."""
+    """The per-model dx_app test_models.conf files repvgg-a0-reid under image_classification, but its example is in
+    person_reid/ (the registry agrees) and its runner takes one query plus a gallery. Following the conf would run
+    classification on a dog photo, so the task of the example folder, which decides how it runs, wins."""
     import json
     from dx_modelzoo.core import catalog
     from shared import dx_app_layout as layout
@@ -381,9 +381,9 @@ def test_a_per_model_row_takes_the_task_of_its_example_dir(tmp_path, monkeypatch
 
 
 def test_a_registry_alias_row_does_not_list_its_model_twice(tmp_path):
-    """per-model dx_app 의 registry 에는 alias 항목이 있다 (deit_base384_distilled → deit_base_distilled_2, 같은
-    variant). test_models.conf 를 만드는 스크립트가 alias 를 거르지 않아 같은 variant 가 두 줄이 되고, Model Zoo 에
-    deitbase384 가 두 번 나왔다 (teammate 2eb1350e 이후는 deit_base384_distilled 가). variant 하나에 한 줄."""
+    """The per-model dx_app registry has alias entries (deit_base384_distilled → deit_base_distilled_2, the same
+    variant). The script that writes test_models.conf keeps aliases, so one variant can appear on two rows; the
+    model must still be listed once. One row per variant."""
     from shared.catalog_sources import parse_test_models_conf
     conf = tmp_path / "test_models.conf"
     conf.write_text(

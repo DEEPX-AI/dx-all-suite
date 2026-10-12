@@ -24,8 +24,8 @@
     if (modal.open && typeof modal.close === 'function') modal.close();
   }
 
-  /* Setup 의 끝난 단계는 한 줄로 접혀 그 안의 버튼이 0 크기다 — 가리키기 전에 연다
-     (공용 단계 목록 shared/static/dx-steps.js, 아이콘 체계 단계 2b). */
+  /* A finished Setup step collapses to one line and its buttons have zero size — open it before pointing at it
+     (shared step list: shared/static/dx-steps.js). */
   function _openSetupStep(id) {
     var root = document.getElementById('setup-steps');
     if (root && window.DXSteps) window.DXSteps.open(root, id);
@@ -45,7 +45,7 @@
     return list;
   }
 
-  // 무대 (spec 2026-10-01 demo stage) 위에 도는 모습을 흉내 낸다 — 그리는 것은 stream-demo.js 가 (번역 포함).
+  // Mock a running demo on the stage — stream-demo.js does the drawing (translations included).
   function _mockDemoVideoPreview() {
     if (window.DXStream && typeof DXStream._demoMockRunning === 'function') DXStream._demoMockRunning(true);
   }
@@ -151,7 +151,7 @@
     panel.scrollIntoView({ block: 'nearest' });
   }
 
-  // 비동기 DOM 폴링 헬퍼
+  // Async DOM polling helper
   function pollFor(selector, cb) {
     var tries = 0;
     (function poll() {
@@ -214,7 +214,7 @@
     { id: 'demo', icon: 'demo',
       title: { ko: '데모 런처', en: 'Demo Launcher', ja: 'デモランチャー', 'zh-CN': '演示启动器', 'zh-TW': '示範啟動器', es: 'Lanzador de demos' },
       description: { ko: 'AI 데모 실행 및 실시간 영상', en: 'Run AI demos and view real-time video', ja: 'AIデモの実行とリアルタイム映像', 'zh-CN': '运行AI演示并查看实时视频', 'zh-TW': '執行AI示範並查看即時影像', es: 'Ejecute demos de IA y vea video en tiempo real' },
-      // 무대가 그려질 때까지 기다렸다가 demo 하나를 연다 — 아무것도 설치되지 않은 PC 에서도 둘러볼 수 있게.
+      // Wait for the stage to render, then open one demo — so the tour works on a PC with nothing installed.
       beforeStart: function () {
         goPage('demo');
         return new Promise(function (resolve) {
@@ -227,7 +227,7 @@
         });
       },
       steps: [
-        { target: '#demo-root .dds-stage [data-axis-row="playback"]', optionalTarget: true, position: 'left',  // 준비된 demo 에서만
+        { target: '#demo-root .dds-stage [data-axis-row="playback"]', optionalTarget: true, position: 'left',  // only on a ready demo
           title: { ko: '재생 방식 (로컬 / 원격)', en: 'Playback Mode (Local / Remote)', ja: '再生方式 (ローカル / リモート)', 'zh-CN': '播放方式 (本地 / 远程)', 'zh-TW': '播放方式 (本機 / 遠端)', es: 'Modo de reproducción (Local / Remoto)' },
           content: { ko: '보드와 같은 PC·LAN에서 보면 <strong>로컬 (WebRTC)</strong> — 저지연, 재인코딩 없음. 다른 PC에서 원격 접속하면 <strong>원격 (MJPEG)</strong> — 어디서나 재생됩니다. WebRTC는 브라우저↔보드 직접 연결이라 원격에서는 붙지 않을 수 있어 MJPEG를 씁니다.', en: 'Viewing on the board\'s own PC / same LAN → <strong>Local (WebRTC)</strong> (low latency, no re-encode). Accessing remotely from another PC → <strong>Remote (MJPEG)</strong> (works anywhere). WebRTC needs a direct browser↔board path, so remote viewers use MJPEG.', ja: 'ボードと同じPC・LANで視聴 → <strong>ローカル (WebRTC)</strong>(低遅延・再エンコードなし)。別PCからリモート接続 → <strong>リモート (MJPEG)</strong>(どこでも再生)。WebRTCはブラウザ↔ボード直結が必要なため、リモートではMJPEGを使います。', 'zh-CN': '在开发板本机 / 同一 LAN 观看 → <strong>本地 (WebRTC)</strong>(低延迟, 无重编码)。从其他 PC 远程访问 → <strong>远程 (MJPEG)</strong>(随处播放)。WebRTC 需要浏览器↔开发板直连, 远程时改用 MJPEG。', 'zh-TW': '在開發板本機 / 同一 LAN 觀看 → <strong>本機 (WebRTC)</strong>(低延遲, 無重編碼)。從其他 PC 遠端存取 → <strong>遠端 (MJPEG)</strong>(隨處播放)。WebRTC 需要瀏覽器↔開發板直連, 遠端時改用 MJPEG。', es: 'Viendo en el PC de la placa / misma LAN → <strong>Local (WebRTC)</strong> (baja latencia, sin recodificar). Acceso remoto desde otro PC → <strong>Remoto (MJPEG)</strong> (funciona en cualquier lugar). WebRTC necesita una ruta directa navegador↔placa, por eso los remotos usan MJPEG.' } },
         { target: '#demo-root .dds-filter', position: 'bottom',
@@ -249,7 +249,7 @@
               });
             }
           } },
-        // Start (준비 안 된 demo 는 Set up) 는 무대의 actions 자리 (spec 2026-10-01 demo stage).
+        // Start (Set up for a demo that is not ready) sits in the stage's actions slot.
         { target: '#demo-root .dds-stage .dds-actions', position: 'left',
           title: { ko: '데모 시작', en: 'Start Demo', ja: 'デモ開始', 'zh-CN': '启动演示', 'zh-TW': '啟動示範', es: 'Iniciar demo' },
           content: { ko: '{{i:play}} <strong>Start</strong>를 누르면 파이프라인이 시작되고 영상이 무대의 같은 자리에서 재생됩니다. 도는 데모의 카드에는 <strong>Running</strong>이 표시됩니다.', en: 'Click {{i:play}} <strong>Start</strong> to start the pipeline — the video plays in the same place on the stage. The running demo&rsquo;s card shows <strong>Running</strong>.', ja: '{{i:play}} <strong>Start</strong>を押すとパイプラインが開始し、映像がステージの同じ場所で再生されます。実行中のデモのカードには<strong>Running</strong>が表示されます。', 'zh-CN': '点击{{i:play}} <strong>Start</strong>即可启动管道，视频会在舞台的同一位置播放。运行中演示的卡片会显示<strong>Running</strong>。', 'zh-TW': '點擊{{i:play}} <strong>Start</strong>即可啟動管線，影片會在舞台的同一位置播放。執行中示範的卡片會顯示<strong>Running</strong>。', es: 'Haga clic en {{i:play}} <strong>Start</strong> para iniciar el pipeline: el video se reproduce en el mismo lugar del escenario. La tarjeta de la demo en ejecución muestra <strong>Running</strong>.' },

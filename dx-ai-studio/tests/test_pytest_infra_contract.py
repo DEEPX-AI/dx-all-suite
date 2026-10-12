@@ -1,7 +1,7 @@
-"""Phase 2 Task 7.1/7.2 — pytest 인프라 계약 테스트.
+"""Pytest infrastructure contract.
 
-pytest.ini와 root tests/conftest.py가 요구사항을 충족하는지 검증한다.
-Task 7.2: 모듈별 conftest 존재 및 sys.path 해킹 제거 계약.
+Checks pytest.ini and the root tests/conftest.py, and that each module has its own
+conftest so test files need no top-level sys.path hacks.
 """
 import ast
 import configparser
@@ -24,12 +24,12 @@ REQUIRED_MARKERS = {
     "smoke",
 }
 
-# 광범위한 addopts 중 금지 목록 (collection 제한/조기 중단 옵션)
+# addopts that are forbidden globally (options that limit collection or stop early)
 DISRUPTIVE_ADDOPTS = {"--maxfail", "-x", "--ignore"}
 
 
 class TestPytestIniContract:
-    """pytest.ini 존재 및 내용 계약."""
+    """pytest.ini exists and has the required content."""
 
     def test_pytest_ini_exists(self):
         assert PYTEST_INI.exists(), "pytest.ini must exist at repo root"
@@ -85,13 +85,13 @@ class TestPytestIniContract:
 
 
 class TestRootConftestContract:
-    """root tests/conftest.py 존재 및 내용 계약."""
+    """The root tests/conftest.py exists and has the required content."""
 
     def test_root_conftest_exists(self):
         assert ROOT_CONFTEST.exists(), "tests/conftest.py must exist"
 
     def test_inserts_repo_root_into_sys_path(self):
-        """conftest.py 소스가 parents[1]을 sys.path에 삽입하는 로직을 포함."""
+        """conftest.py inserts parents[1] into sys.path."""
         source = ROOT_CONFTEST.read_text()
         assert "parents[1]" in source or "parents[ 1 ]" in source, (
             "conftest.py must compute repo root via parents[1]"
@@ -99,7 +99,7 @@ class TestRootConftestContract:
         assert "sys.path" in source, "conftest.py must reference sys.path"
 
     def test_does_not_contain_module_specific_paths(self):
-        """conftest.py는 모듈별 경로를 포함하지 않아야 한다 (Task 7.2 범위)."""
+        """The root conftest.py holds no module-specific paths (module conftests own those)."""
         source = ROOT_CONFTEST.read_text()
         forbidden = ["dx_stream", "dx_modelzoo", "dx_monitor", "dx_sandbox", "dx_compiler"]
         for mod in forbidden:
@@ -108,14 +108,14 @@ class TestRootConftestContract:
             )
 
     def test_conditional_insert(self):
-        """sys.path 삽입은 중복 방지 조건부여야 한다."""
+        """The sys.path insert is conditional, to avoid duplicates."""
         source = ROOT_CONFTEST.read_text()
         assert "not in sys.path" in source or "if str(ROOT)" in source, (
             "conftest.py must conditionally insert to avoid duplicates"
         )
 
     def test_root_tools_package_is_stable_after_module_paths_are_prepended(self):
-        """모듈별 top-level package가 root tools.i18n_audit를 가리지 않아야 한다."""
+        """Module top-level packages must not shadow the root tools.i18n_audit."""
         script = f"""
 import runpy
 import sys
@@ -150,15 +150,15 @@ TARGET_MODULE_CONFTESTS = [
     "tests/launcher/conftest.py",
 ]
 
-# 테스트 파일에서 제거되어야 할 redundant top-level sys.path.insert 패턴.
-# 함수 내부의 동적 sys.path 조작(import-isolation 테스트)은 허용.
+# Redundant top-level sys.path.insert pattern that test files must not have.
+# Dynamic sys.path changes inside functions (import-isolation tests) are allowed.
 _TOPLEVEL_SYSPATH_INSERT = re.compile(
     r"^sys\.path\.insert\(0,\s*str\(", re.MULTILINE
 )
 
 
 class TestModuleConftestsExist:
-    """Task 7.2: 대상 모듈별 conftest 파일 존재 검증."""
+    """Each target module has its own conftest file."""
 
     @pytest.mark.parametrize("rel_path", TARGET_MODULE_CONFTESTS)
     def test_conftest_exists(self, rel_path):
@@ -167,7 +167,7 @@ class TestModuleConftestsExist:
 
     @pytest.mark.parametrize("rel_path", TARGET_MODULE_CONFTESTS)
     def test_conftest_adds_only_allowed_paths(self, rel_path):
-        """conftest는 sys.path만 조작하고, 애플리케이션 코드를 import하지 않아야 한다."""
+        """A module conftest only touches sys.path and never imports application code."""
         path = REPO_ROOT / rel_path
         if not path.exists():
             pytest.skip("conftest not yet created")
@@ -185,8 +185,8 @@ class TestModuleConftestsExist:
                 )
 
 
-# 대상 모듈 테스트 파일에서 redundant top-level sys.path 해킹이 제거되었는지 검증.
-# 동적 isolation 함수 내부의 sys.path는 허용.
+# Target module test files must have no redundant top-level sys.path hacks.
+# sys.path changes inside dynamic isolation functions are allowed.
 _FILES_MUST_NOT_HAVE_TOPLEVEL_SYSPATH = [
     "tests/dx_app/test_modelzoo_gateway.py",
     "tests/dx_app/test_server.py",
@@ -199,16 +199,16 @@ _FILES_MUST_NOT_HAVE_TOPLEVEL_SYSPATH = [
 
 
 class TestRedundantSysPathRemoved:
-    """Task 7.2: conftest 추가 후 redundant top-level sys.path.insert 제거 검증."""
+    """Module test files leave sys.path to their conftest (no redundant top-level insert)."""
 
     @pytest.mark.parametrize("rel_path", _FILES_MUST_NOT_HAVE_TOPLEVEL_SYSPATH)
     def test_no_toplevel_syspath_insert(self, rel_path):
-        """Top-level에 sys.path.insert(0, str(...)) 패턴이 없어야 한다."""
+        """No top-level sys.path.insert(0, str(...)) pattern."""
         path = REPO_ROOT / rel_path
         if not path.exists():
             pytest.skip("file not found")
         source = path.read_text()
-        # 함수/클래스 외부(모듈 레벨)의 sys.path.insert만 검사
+        # Only checks sys.path.insert outside functions/classes (module level)
         tree = ast.parse(source)
         for node in ast.iter_child_nodes(tree):
             if isinstance(node, ast.Expr) and isinstance(node.value, ast.Call):
@@ -222,7 +222,7 @@ class TestRedundantSysPathRemoved:
                         "should be handled by module conftest"
                     )
             elif isinstance(node, ast.If):
-                # 조건부 sys.path.insert도 top-level이면 제거 대상
+                # A conditional sys.path.insert at top level counts too
                 for child in ast.walk(node):
                     if (isinstance(child, ast.Call)
                             and isinstance(child.func, ast.Attribute)

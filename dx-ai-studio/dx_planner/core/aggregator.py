@@ -1,7 +1,7 @@
-"""벤치마크 결과 집계 모듈.
+"""Benchmark result aggregation.
 
-dx_benchmark/results 디렉터리를 스캔하여 플랫폼별 벤치마크를
-단일 JSON 구조로 병합한다.
+Scans the dx_benchmark/results directory and merges the per-platform
+benchmarks into a single JSON structure.
 """
 from __future__ import annotations
 
@@ -186,10 +186,10 @@ def aggregate_benchmarks(
     npu_catalog_path: Path | None = None,
     out_path: Path | None = None,
 ) -> dict:
-    """벤치마크 결과를 집계하여 dict 를 반환하고, out_path 가 있으면 JSON 파일도 생성."""
+    """Aggregate benchmark results into a dict; also write a JSON file when out_path is given."""
     results_dir = Path(results_dir)
 
-    # NPU 카탈로그 로드
+    # Load the NPU catalog
     npu_catalog: dict = {}
     if npu_catalog_path is not None:
         npu_catalog_path = Path(npu_catalog_path)

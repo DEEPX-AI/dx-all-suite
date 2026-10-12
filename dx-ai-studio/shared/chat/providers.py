@@ -243,7 +243,7 @@ _AGENT_CHAT = {
     "opencode": ("opencode", lambda p, m, e: ["run", p] + _model_flag("-m", m)),
     "copilot": ("copilot", lambda p, m, e: ["-p", p] + _model_flag("--model", m)),
     # --trust: the neutral chat dir is new to cursor, which otherwise stops at "Workspace Trust Required". It trusts the
-    # folder only — -f/--yolo would also auto-run commands (2026-10-11 real check).
+    # folder only — -f/--yolo would also auto-run commands.
     "cursor": ("cursor-agent", lambda p, m, e: ["-p", p, "--trust"] + _model_flag("--model", m)),
     "codex": ("codex", lambda p, m, e: ["exec", p] + _model_flag("-m", m)),
 }
@@ -272,7 +272,7 @@ def _flatten_prompt(messages: list[dict]) -> str:
 
 def _neutral_cwd() -> str:
     """Where a chat CLI runs: outside any project, so it does not pick up a repo's CLAUDE.md / AGENTS.md. Run inside
-    dx-all-suite, copilot answered a Chat question with "[DX-AGENT-DEV: START]" and the DEEPX banner (2026-10-11).
+    dx-all-suite, copilot answered a Chat question with "[DX-AGENT-DEV: START]" and the DEEPX banner.
     Chat's knowledge travels in the prompt, not the working directory."""
     d = os.path.join(tempfile.gettempdir(), "dx-studio-chat")
     os.makedirs(d, exist_ok=True)
@@ -333,7 +333,7 @@ def stream_agent_cli(
         raise ChatAPIError("cli_missing", "No coding-agent CLI found on PATH (claude/copilot/cursor/codex/opencode)")
     if os.environ.get("DX_AGENT_NO_REAL_RUN") == "1" and _is_real_install(cli):
         # Tests must not spend the user's account (tests/conftest.py). With nothing saved, Chat now answers through
-        # the logged-in CLI, so a test without a config would otherwise reach the real one (2026-10-11).
+        # the logged-in CLI, so a test without a config would otherwise reach the real one.
         raise ChatAPIError("api_error", f"real {bin_name} runs are disabled under tests", 0)
     prompt = _flatten_prompt(messages)
     cmd = [cli] + build_tail(prompt, model, effort)
@@ -379,8 +379,8 @@ def stream_agent_cli(
 
     if proc.returncode != 0:
         detail = (result.get("stderr") or result.get("stdout") or "agent CLI failed").strip()
-        # A spent account is a limit, not a broken login — cursor said "Your team has reached its usage limit" and
-        # Chat suggested signing in again (2026-10-11 real check).
+        # A spent account is a limit, not a broken login: don't tell the user to sign in again when cursor says
+        # "Your team has reached its usage limit".
         etype = "rate_limit" if _LIMIT_WORDS.search(detail) else "api_error"
         raise ChatAPIError(etype, detail[:300], proc.returncode)
     out = (result.get("stdout") or "").strip()
@@ -390,8 +390,8 @@ def stream_agent_cli(
 
 
 
-# 연결 (TCP · TLS · 응답 header) 은 이 안에 끝나야 한다. 방화벽이 막은 host (이 망의 api.openai.com) 를 120 s 기다리던
-# 것을 끊는다. 연결된 뒤 token 사이는 read timeout 으로 기다린다 (2026-10-11).
+# Connecting (TCP, TLS, response headers) must finish within this, so a host blocked by a firewall fails fast instead
+# of hanging for the full read timeout. Once connected, the gap between tokens waits on the read timeout.
 _CONNECT_TIMEOUT = 15.0
 
 
@@ -459,7 +459,7 @@ def _http_stream(
     except (TimeoutError, socket.timeout, urllib.error.URLError, OSError) as exc:
         raise _unreachable(host, exc) from exc
 
-    # 연결됐다 — 이제 token 사이의 간격은 read timeout 으로 기다린다.
+    # Connected: from here the gap between tokens waits on the read timeout.
     try:
         resp.fp.raw._sock.settimeout(timeout)
     except AttributeError:

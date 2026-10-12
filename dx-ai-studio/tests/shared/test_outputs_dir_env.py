@@ -1,4 +1,4 @@
-"""DX_STUDIO_OUTPUTS 가 결과 폴더를 옮긴다 — E2E 테스트가 사용자의 Outputs 에 그림을 쌓지 않게 (release audit A-26)."""
+"""DX_STUDIO_OUTPUTS moves the results folder, so E2E tests do not pile images into the user's Outputs."""
 from __future__ import annotations
 
 

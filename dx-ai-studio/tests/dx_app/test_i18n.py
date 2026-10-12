@@ -123,7 +123,7 @@ def test_app_dictionary_entries_cover_target_languages():
 
 def test_app_global_t5_defaults_to_en_and_keeps_legacy_order():
     source = i18n_source()
-    # 다섯 언어 순서는 그대로, 스페인어는 여섯째 인자 (release audit A-13)
+    # the five languages keep their order; Spanish is the sixth argument
     assert "function _T5(ko, en, ja, zhCN, zhTW, es)" in source
     body = _extract_braced_body(source, "function _T5")
     assert "|| 'en'" in body
@@ -202,8 +202,8 @@ def test_app_dictionary_has_no_duplicate_keys():
     Scoped to the dictionary object. _DX_I18N_PLACEHOLDERS is a separate map
     keyed by placeholder text and feeds a different attribute, so the same
     English string may legitimately appear in both ("Class" is a table header
-    and a filter placeholder). dx_compiler's sibling contract splits the same
-    way; this one used to scan the whole file and read that as a duplicate.
+    and a filter placeholder). dx_compiler's sibling contract is scoped the
+    same way; scanning the whole file would report such strings as duplicates.
     """
     source = i18n_source().split("window._DX_I18N_PLACEHOLDERS")[0]
     keys = re.findall(r"'((?:\\.|[^'\\])+)':\s*\{", source)
@@ -386,7 +386,7 @@ def test_app_html_lang_defaults_to_en():
 
 
 def test_sync_mode_reads_as_synchronous_in_spanish():
-    """'Sync' is the inference mode (synchronous), not the verb — es said 'Sincronizar' (to synchronise) (2026-10-11)."""
+    """'Sync' is the inference mode (synchronous), not the verb — es must not say 'Sincronizar' (to synchronise)."""
     import re
     from pathlib import Path
 

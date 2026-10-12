@@ -61,10 +61,9 @@ def test_nav_tab_labels_are_english_fixed(app_key: str, frame_js: str):
     raw = _extract_nav_tab_label(frame_js, app_key)
     expected = ENGLISH_NAV_TAB_LABELS[app_key]
     assert expected == raw, f"{app_key}: got {raw!r}, want {expected!r}"
-    # The labels used to lead with an emoji (📱 🎬 🦁 …). They cost 22px each in
-    # a strip that was already 800px short, and they were the last emoji left in
-    # the launcher's chrome. The test used to strip them before comparing, which
-    # is how they survived every pass over this file.
+    # The labels must not lead with an emoji: each cost 22px in a strip with no room
+    # to spare, and the launcher's chrome carries no emoji. Compare the raw label,
+    # without stripping, so an emoji cannot slip through.
     assert not re.search(r"[\U0001F300-\U0001FAFF]", raw), (
         f"{app_key}: {raw!r} carries an emoji"
     )

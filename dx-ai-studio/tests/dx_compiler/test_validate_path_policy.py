@@ -1,7 +1,7 @@
-"""The dataset-path advisory warns about a folder compile would refuse (2026-10-02 release audit C-2).
+"""The dataset-path advisory warns about a folder compile would refuse.
 
 The file picker's roots (a UX guardrail: /home, /tmp, /data, /mnt, /opt) are wider than the compile path policy
-(suite, studio var, home, /media, /mnt), so /tmp passed the advisory and then the compile refused it."""
+(suite, studio var, home, /media, /mnt), so without this a /tmp path passes the advisory and then compile refuses it."""
 from __future__ import annotations
 
 import importlib

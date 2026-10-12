@@ -1,7 +1,7 @@
-"""DX Agent Dev 서버 경로 상수 및 기본 설정.
+"""DX Agent Dev server path constants and defaults.
 
-dx_monitor/core/config.py 패턴을 따른다.
-경로 계산: SCRIPT_DIR(dx_agent_dev/) → STUDIO_DIR(dx-ai-studio/) → SUITE_ROOT(dx-all-suite/)
+Follows the dx_monitor/core/config.py pattern.
+Path chain: SCRIPT_DIR (dx_agent_dev/) -> STUDIO_DIR (dx-ai-studio/) -> SUITE_ROOT (dx-all-suite/)
 """
 import os
 import sys
@@ -12,21 +12,21 @@ STUDIO_DIR = SCRIPT_DIR.parent                          # dx-ai-studio/
 
 from shared.paths import SUITE_ROOT, var_dir
 
-# 서버 디렉토리
+# Server directories
 STATIC_DIR = SCRIPT_DIR / "static"
 TEMPLATES_DIR = SCRIPT_DIR / "templates"
 
 DEFAULT_PORT = 8099
 SERVER_NAME = "DX Agent Dev"
 
-# 에이전트 세션 작업 디렉토리 (.gitignore 대상)
+# Agent session working directory (gitignored)
 WORKSPACE_ROOT = var_dir("dx_agent_dev", "sessions")
 
-# 입력/스트림 한계
+# Input / stream limits
 PROMPT_MAX_LEN = 8000
-KEEPALIVE_SEC = 15   # 일반망 keepalive ping 주기. 유휴(이벤트 없음) 시 ping으로 SSE 연결 유지.
-# 단일 생성(generation)에 대한 wall-clock 상한(초). 멈춘/행(hang)한 실행이 단일 동시성
-# 슬롯을 영구 점유하는 것을 방지한다(F-19). 환경변수로 조정 가능.
+KEEPALIVE_SEC = 15   # keepalive ping interval: while idle (no events) a ping holds the SSE connection open.
+# Wall-clock cap (s) for one generation, so a stuck or hung run cannot hold the single concurrency
+# slot forever. Adjustable through the environment.
 GENERATION_TIMEOUT_SEC = int(os.environ.get("DX_AGENT_GENERATION_TIMEOUT", "900"))
 
 
@@ -61,7 +61,7 @@ def resolve_target(name):
 
 
 def harness_search_paths():
-    """하니스 디렉토리 후보: env override → dx-all-suite 루트 → dx-agent-dev."""
+    """Harness directory candidates: env override -> dx-all-suite root -> dx-agent-dev."""
     candidates = []
     env = os.environ.get("DX_HARNESS_ROOT")
     if env:

@@ -1,10 +1,11 @@
-"""실시간 연속 실행 (live) 의 화면 — 2026-10-01 Xvfb 를 깔고 처음 실제로 돌려 본 결과.
+"""The live (continuous run) view as captured from Xvfb.
 
-1. 창: dx_app 의 C++ runner 는 OpenCV 창을 Qt 기본 크기 (400x300) 로 띄운다 (per-model 8d0b748 의 DisplayPump 는
-   setInitialWindowSize 를 아무도 부르지 않는다). studio 는 1280x720 Xvfb 화면 전체를 찍으므로 영상이 왼쪽 위
-   구석에 작게, 나머지는 검게 나왔다 → 창을 화면 크기로 맞춘다 (libX11, 새 의존성 없음).
-2. 테두리: Qt 창의 toolbar · status bar · 비율을 지키느라 남는 회색 여백을 잘라낸다.
-3. 통계: runner 는 [DET] 같은 프레임별 줄을 --show-log 일 때만 찍는다 — 없으면 poll 이 frames 0 · FPS 0.
+1. Window: dx_app's C++ runner opens its OpenCV window at Qt's default size (400x300); the per-model DisplayPump never
+   calls setInitialWindowSize. The studio captures the whole 1280x720 Xvfb screen, so the video would sit small in
+   the top-left corner on black → the window is fitted to the screen (libX11, no new dependency).
+2. Border: the Qt window's toolbar, status bar and the grey margins left by aspect-ratio fitting are cropped.
+3. Stats: the runner prints per-frame lines such as [DET] only with --show-log; without them the poll reports
+   frames 0 and FPS 0.
 """
 import shutil
 import subprocess
@@ -19,10 +20,10 @@ _CHROME = (239, 239, 239)
 
 
 def _qt_window(w=1280, h=720, img=(43, 1237, 28, 700)):
-    """x_fit.png 와 같은 모양: 회색 바탕 · 위 toolbar 글자 · 가운데 영상."""
+    """Shaped like x_fit.png: grey background, toolbar text on top, video in the middle."""
     im = Image.new("RGB", (w, h), _CHROME)
     d = ImageDraw.Draw(im)
-    # 실제 Qt toolbar 처럼 글자가 길다 — 그 줄의 회색은 절반 남짓 (실측 0.44–0.53)
+    # long text like a real Qt toolbar — that row is only about half grey (measured 0.44–0.53)
     for y in range(10, 20):
         for x0 in range(8, w - 40, 14):
             d.line([x0, y, x0 + 6, y], fill=(20, 20, 20))
@@ -41,7 +42,7 @@ def test_the_qt_chrome_is_cropped_away():
 
 
 def test_a_portrait_video_keeps_its_wide_margins_out():
-    """세로 영상 (480x640) 은 좌우 여백이 화면의 절반을 넘는다 — 줄만 보면 영상 줄도 회색이 많다."""
+    """A portrait video (480x640) leaves side margins wider than half the screen, so even video rows are mostly grey."""
     box = camera._content_box(_qt_window(img=(371, 909, 28, 700)))
     assert box is not None
     x0, y0, x1, y1 = box
@@ -116,7 +117,7 @@ def test_live_cpp_runs_print_per_frame_lines(tmp_path, monkeypatch):
     monkeypatch.setattr(live, "_ensure_xvfb", lambda s: None)
     monkeypatch.setattr(live.shutil if hasattr(live, "shutil") else shutil, "which", lambda n: "/usr/bin/" + n)
     monkeypatch.setattr(live.subprocess, "Popen", FakeProc)
-    monkeypatch.setattr(live, "_video_frame_count", lambda p: None)   # ffprobe 도 Popen 을 쓴다
+    monkeypatch.setattr(live, "_video_frame_count", lambda p: None)   # ffprobe uses Popen too
     r = live.run_inference_live("demo", "object_detection", "m.dxnn", lang="cpp", variant="async",
                                 input_type="video", video_path=str(video), slot_idx=7)
     live._live_procs.pop(7, None)
@@ -125,9 +126,10 @@ def test_live_cpp_runs_print_per_frame_lines(tmp_path, monkeypatch):
 
 
 def test_det_frames_are_counted_as_frames_not_detections():
-    """[DET] 는 검출 하나에 한 줄 — 프레임 번호가 없다. 줄 수를 프레임으로 세면 FPS 가 470 이 됐다 (yolov12-n, 실제
-    ~60). 한 프레임의 검출은 신뢰도 내림차순으로 찍히므로 신뢰도가 다시 오르는 곳이 새 프레임이다 — 실제 로그에서
-    yolov12-n 478/478 · RT-DETR r18 190/190 프레임이 맞았다. 검출이 없는 프레임은 세지 못한다 (하한)."""
+    """[DET] is one line per detection, with no frame number. Counting lines as frames gave 470 FPS (yolov12-n, really
+    ~60). A frame's detections are printed in descending confidence, so a rise in confidence starts a new frame; on
+    real logs this counted yolov12-n 478/478 and RT-DETR r18 190/190 frames. Frames without detections cannot be
+    counted, so it is a lower bound."""
     from dx_app.core import live
     log = "\n".join([
         "[DET] person 0.91 1 2 3 4 1920 1080", "[DET] person 0.72 1 2 3 4 1920 1080", "[DET] bag 0.30 1 2 3 4 1920 1080",
@@ -139,11 +141,11 @@ def test_det_frames_are_counted_as_frames_not_detections():
     assert t["frame_count"] == 3
 
 
-# ── 모든 task 를 live 로 돌려 본 결과 (2026-10-01, 26 task) ───────────────────────────────────────────────
+# ── Live runs across all tasks ──────────────────────────────────────────────────────────────────────────────────────
 
 def test_interleaved_classification_lines_never_break_the_poll(tmp_path):
-    """async callback 들이 stdout 에 동시에 써서 줄이 섞인다 ('3.50273.5913'). 예전에는 float() 가 터져
-    /api/live_poll 이 500 이었다 (resnet50 live)."""
+    """Async callbacks write to stdout concurrently, so lines interleave ('3.50273.5913'). Parsing must not crash in
+    float() and turn /api/live_poll into a 500 (resnet50 live)."""
     from dx_app.core import live
     log = "\n".join([
         "[CLS]  4.8052  4.6978  4.3400  4.2734  4.2368",
@@ -169,7 +171,8 @@ def test_interleaved_classification_lines_never_break_the_poll(tmp_path):
 
 
 def test_obb_and_instance_seg_frames_are_frames_not_objects():
-    """[OBB] · [ISEG] 도 [DET] 처럼 객체마다 한 줄 — OBB 가 1244 'FPS' (실제 38.8). 실측 OBB 621/621."""
+    """[OBB] and [ISEG] are one line per object like [DET]; counting lines gave OBB 1244 'FPS' (really 38.8). On a
+    real log the OBB frame count matched 621/621."""
     from dx_app.core import live
     obb = "\n".join(["[OBB] car 0.51 48.9", "[OBB] car 0.42 28.2", "[OBB] car 0.60 10.0", "[OBB] car 0.30 1.0"])
     iseg = "\n".join(["[ISEG] dog 0.85 1 2 3 4", "[ISEG] dog 0.81 1 2 3 4", "[ISEG] cow 0.90 1 2 3 4"])
@@ -195,13 +198,13 @@ def _poll_with(tmp_path, log, elapsed=10.0):
 
 
 def test_untagged_tasks_do_not_invent_fps_from_the_source_rate(tmp_path):
-    """segmentation · depth · denoise · SR · matting · anomaly 의 runner 는 프레임별 줄을 찍지 않는다. 예전에는
-    '원본 FPS × 경과' 를 프레임이라 했다 — PP-Matting 은 실제 0.2 FPS 인데 24 FPS 로 보였다."""
+    """segmentation, depth, denoise, SR, matting and anomaly runners print no per-frame lines. 'source FPS × elapsed'
+    must not be reported as frames — PP-Matting really runs at 0.2 FPS but would show 24 FPS."""
     head = ("[DXAPP] [INFO] Input source FPS: 24.00\n[DXAPP] [INFO] Total frames: 478\n"
             "[DXAPP] [INFO] Starting async inference...\n[DXAPP] [INFO] Loop 1/999999\n")
     r = _poll_with(tmp_path, head)
     assert r["frames"] is None and r["fps_est"] is None and r["frame_basis"] == "none"
-    # 영상이 한 바퀴 돌 때마다 'Loop k/N' — 끝난 바퀴 × 총 프레임은 실제로 처리한 프레임의 하한
+    # 'Loop k/N' after each pass over the video — finished passes × total frames is a lower bound on frames processed
     r = _poll_with(tmp_path, head + "[DXAPP] [INFO] Loop 2/999999\n[DXAPP] [INFO] Loop 3/999999\n", elapsed=10.0)
     assert r["frames"] == 956 and r["frame_basis"] == "loop"
     assert abs(r["fps_est"] - 95.6) < 0.2
@@ -221,8 +224,8 @@ def test_the_live_ui_shows_a_dash_when_frames_are_unknown():
 
 
 def test_live_refuses_an_image_only_model(tmp_path, monkeypatch):
-    """runner 가 -v 를 거부하고 (arcface · CLIP · ReID · VPR · DOPE · SFA3D · DeepMAR · CAS-ViT) 바로 끝나서 검은
-    화면만 남았다. 연속 실행의 camera · RTSP 는 UI 가 막지 않으므로 서버가 이유와 함께 거절한다."""
+    """Some runners refuse -v (arcface, CLIP, ReID, VPR, DOPE, SFA3D, DeepMAR, CAS-ViT) and exit at once, leaving a
+    black screen. The UI does not block camera or RTSP for continuous runs, so the server refuses them with a reason."""
     from dx_app.core import live
     monkeypatch.setattr(live.config, "model_image_only", lambda cat, name: True)
     r = live.run_inference_live("arcface_mobilefacenet_112x112", "face_recognition", "m.dxnn",
@@ -236,13 +239,14 @@ def test_image_only_comes_from_the_model_config_then_the_task():
     if layout.detect(config.DX_APP_ROOT) != layout.PER_MODEL:
         pytest.skip("per-model checkout 에서 본다")
     assert config.model_image_only("face_recognition", "arcface_mobilefacenet_112x112") is True
-    assert config.model_image_only("image_classification", "casvit-t_224x224") is True   # task 표에는 없다
+    assert config.model_image_only("image_classification", "casvit-t_224x224") is True   # not in the task table
     assert config.model_image_only("image_classification", "resnet50_224x224") is False
-    assert config.model_image_only("embedding", "no_such_model") is True                  # legacy task 표
+    assert config.model_image_only("embedding", "no_such_model") is True                  # legacy task table
 
 
 def test_the_loop_basis_uses_the_video_length_when_the_runner_does_not_print_it(tmp_path):
-    """segmentation 등 많은 runner 는 'Total frames' 를 찍지 않는다 — studio 가 시작할 때 영상 길이를 재 둔다."""
+    """Many runners (segmentation and others) never print 'Total frames', so the studio measures the video length when
+    it starts."""
     import time
     from dx_app.core import live
     f = tmp_path / "s.log"
@@ -292,8 +296,8 @@ def _result_with(tmp_path, log, rc):
 
 
 def test_a_runner_that_refuses_video_is_reported_not_called_complete(tmp_path):
-    """CLIP ViT-B/32 zero-shot 은 config.json 이 image_only false 인데 C++ 예제는 -v 를 거부한다 (teammate 데이터
-    불일치). 미리 막을 수 없으니 runner 가 스스로 끝난 이유를 결과에 싣는다 — UI 는 '라이브 추론 완료' 라고 했다."""
+    """CLIP ViT-B/32 zero-shot has image_only false in config.json, yet its C++ example refuses -v (inconsistent data).
+    That cannot be blocked up front, so the runner puts the reason it ended in the result, not just 'live done'."""
     r = _result_with(tmp_path, "Option 'v' does not exist\n[HINT] This example is image-only: video/camera/RTSP "
                                "input (-v/--video, -c/--camera, -r/--rtsp) is not supported.\n", 1)
     assert r["run_error_key"] == "live_image_only" and "image-only" in r["run_error"]
@@ -311,7 +315,8 @@ def test_a_stopped_run_is_not_an_error(tmp_path):
 
 
 def test_frames_take_the_larger_of_the_tag_and_the_loop_count(tmp_path):
-    """hand detector 는 손이 보일 때만 [HAND] 를 찍는다 — 손이 드문 영상에서 1.6 FPS (실제 151.5)."""
+    """The hand detector prints [HAND] only while a hand is visible — on a video with few hands that read 1.6 FPS
+    (really 151.5)."""
     import time
     from dx_app.core import live
     f = tmp_path / "h.log"
@@ -336,11 +341,11 @@ def test_the_live_ui_reports_a_runner_that_ended_by_itself():
     assert "run_error_key" in body and "'err'" in body
 
 
-# ── dx_app 이 [PROGRESS] 를 찍는다 (fix/studio-live-findings, 2026-10-01) ─────────────────────────────
+# ── dx_app prints [PROGRESS] ────────────────────────────────────────────────────────────────────────────────────────
 
 def test_progress_lines_are_the_frame_count_when_present(tmp_path):
-    """DXAPP_PROGRESS=1 이면 dx_app runner 가 '[PROGRESS] frames=N' 을 1 초마다 찍는다 — 추정 (태그 · Loop) 보다
-    먼저 그것을 쓴다. 없으면 (main 01b7727 의 runner) 지금의 추정."""
+    """With DXAPP_PROGRESS=1 the dx_app runner prints '[PROGRESS] frames=N' every second, and that wins over the
+    estimates (tags, Loop). Runners without it fall back to the estimates."""
     log = ("[DET] person 0.9 1 2 3 4 5 6\n[DET] person 0.8 1 2 3 4 5 6\n[PROGRESS] frames=120\n"
            "[DET] person 0.9 1 2 3 4 5 6\n[PROGRESS] frames=95\n[PROGRESS] frames=240\n")
     r = _poll_with(tmp_path, log)
@@ -378,7 +383,7 @@ def test_live_runs_ask_for_progress_and_a_screen_the_window_fills(tmp_path, monk
     live._live_procs.pop(6, None)
     env = captured["env"]
     assert env.get("DXAPP_PROGRESS") == "1"
-    # dx_app 은 창을 화면의 절반으로 연다 — Xvfb 의 두 배를 알려 주면 창이 Xvfb 를 채운다
+    # dx_app opens its window at half the screen size — report twice the Xvfb size so the window fills Xvfb
     from dx_app.core.camera import _XVFB_RES
     w, h = (int(v) for v in _XVFB_RES.split("x")[:2])
     assert (env.get("DXAPP_SCREEN_W"), env.get("DXAPP_SCREEN_H")) == (str(2 * w), str(2 * h))
@@ -417,9 +422,8 @@ def _live_cmd(tmp_path, monkeypatch, **kw):
 
 
 def test_live_rtsp_goes_in_as_rtsp(tmp_path, monkeypatch):
-    """2026-10-11: live RTSP ended at once with "[DXAPP] [ERROR] Input file not found: rtsp://…" (exit 255, a black
-    screen): since SDKREQ-529 the runner requires a -v path to exist. The URL goes in as -r (C++ rtsp_url, verified on
-    the DX-M1: 128 frames at 14.8 FPS from a local RTSP camera)."""
+    """Live RTSP must not end at once with "[DXAPP] [ERROR] Input file not found: rtsp://…" (exit 255, a black
+    screen): the runner requires a -v path to exist, so the URL goes in as -r (the C++ rtsp_url)."""
     url = "rtsp://127.0.0.1:8554/cam"
     cmd = _live_cmd(tmp_path, monkeypatch, input_type="rtsp", rtsp_url=url)
     assert cmd[cmd.index(url) - 1] == "-r"

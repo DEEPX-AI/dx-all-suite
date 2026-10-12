@@ -1,4 +1,4 @@
-"""pipeline.py 테스트 — 파이프라인 직렬화 + 인코더 폴백 로직"""
+"""pipeline.py — pipeline serialization and the encoder fallback logic"""
 import sys, pytest
 from pathlib import Path
 from unittest.mock import patch, MagicMock
@@ -16,7 +16,7 @@ class TestEncoderFallback:
 
     @patch("core.pipeline._gst_available", True)
     def test_fallback_order(self):
-        """인코더 폴백 순서: mpph264enc(HW H264, 저부하) → vp8enc(SW, 이식성) → vaapih264enc → x264enc → jpegenc"""
+        """Encoder fallback order: mpph264enc (HW H264, low load) → vp8enc (SW, portable) → vaapih264enc → x264enc → jpegenc"""
         from core.pipeline import ENCODER_FALLBACK_CHAIN
         assert ENCODER_FALLBACK_CHAIN[0]["factory"] == "mpph264enc"  # HW H264 — real-time on ARM
         assert ENCODER_FALLBACK_CHAIN[0]["extra"] == "profile=baseline"  # webrtc-compatible profile
@@ -56,7 +56,7 @@ class TestPipelineJson:
         assert len(gst_str) > 0
 
     def test_json_to_gst_branching(self):
-        """tee + gather 분기 파이프라인 변환 테스트."""
+        """tee + gather branching pipeline conversion."""
         from core.pipeline import pipeline_json_to_gst
         pipeline_def = {
             "nodes": [
@@ -88,10 +88,9 @@ class TestPipelineJson:
         assert "dxgather" in result.lower() or "gather" in result.lower()
 
     def test_json_to_gst_multisource_compositor(self):
-        """멀티스트림: N개 독립 소스가 compositor로 합류 — 모든 소스가 방출되어야 한다.
+        """Multi-stream: N independent sources join at a compositor — every source chain must be emitted.
 
-        이전 구현은 첫 소스 체인만 방출하고 나머지를 누락시켜 멀티스트림 빌더가
-        한 스트림만 출력하던 회귀를 방지한다.
+        Emitting only the first source chain would make the multi-stream builder output a single stream.
         """
         from core.pipeline import pipeline_json_to_gst
         nodes, edges = [], []
@@ -107,19 +106,19 @@ class TestPipelineJson:
             edges.append({"from": p + "osd", "to": "comp"})
         nodes.append({"id": "comp", "type": "compositor", "properties": {}})
         result = pipeline_json_to_gst({"nodes": nodes, "edges": edges})
-        # 모든 소스 체인이 존재해야 함 (이전엔 1개만)
+        # Every source chain must be present
         assert result.count("urisourcebin") == 3, result
         for i in range(3):
             assert f"/v{i}.mp4" in result, f"source {i} dropped: {result}"
-        # compositor 가 3개의 sink pad 로 합류
+        # The compositor joins on three sink pads
         assert "compositor" in result
         for i in range(3):
             assert f".sink_{i}" in result, result
-        # compositor 격자 배치가 자동 지정되어 화면이 겹치지 않음
+        # Compositor grid positions are set automatically so the streams do not overlap
         assert "::xpos=" in result and "::ypos=" in result, result
 
     def test_json_to_gst_branching_preserves_linear(self):
-        """분기 코드 추가 후에도 선형 파이프라인은 정상 동작해야 한다."""
+        """Linear pipelines still work alongside the branching code."""
         from core.pipeline import pipeline_json_to_gst
         pipeline_def = {
             "nodes": [
@@ -148,7 +147,7 @@ class TestPipelineManagerMock:
 
     @patch("core.pipeline._gst_available", False)
     def test_concurrent_limit(self):
-        """동시 실행 1개 제한 — _pipeline_id 수동 설정으로 로직 테스트"""
+        """One concurrent run at most — tests the logic by setting _pipeline_id by hand"""
         from core.pipeline import PipelineManager
         pm = PipelineManager()
         pm._pipeline_id = "test-123"

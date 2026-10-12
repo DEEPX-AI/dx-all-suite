@@ -1,14 +1,14 @@
-"""run 요청의 category 는 legacy · per-model 어느 이름이든 받는다 (2026-10-01).
+"""A run request's category is accepted under either its legacy or its per-model name.
 
-dx_app 을 teammate per-model layout 으로 바꾸면 CATEGORIES 에는 oriented_object_detection 만 있고
-obb_detection 은 없다. 예전에 저장된 recent run · 링크 · 외부 client 가 obb_detection 으로 보내면
-"Unknown category" 400 이었다. 짝 이름이 있으면 그 이름으로 바꿔 받는다 (main checkout 에서는 반대로).
+In the per-model dx_app layout CATEGORIES has oriented_object_detection but not obb_detection. Saved recent runs,
+links and external clients that send obb_detection must not get a 400 "Unknown category": a name with a counterpart
+is mapped to it (in the other direction on a legacy checkout).
 """
 from unittest.mock import patch
 
 
 def _server():
-    import server   # conftest 가 dx_app 을 sys.path 에 둔 뒤에 (test_security_paths 와 같은 방식)
+    import server   # after conftest has put dx_app on sys.path (as in test_security_paths)
     return server
 
 

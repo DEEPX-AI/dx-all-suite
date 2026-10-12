@@ -2,9 +2,8 @@
    DX Chat Widget — Shared Chat UI Component
    ═══════════════════════════════════════════════════════ */
 
-/* 이 위젯은 자기만의 보라 팔레트를 들고 있어서, 스튜디오가 어떤
-   테마든 상관없이 화면 오른쪽 아래에 보라색 원으로 떠 있었다. 이름은 그대로
-   두고 값만 semantic 토큰 위로 올린다 — 그러면 light/dark 도 함께 따라온다. */
+/* The widget keeps its own variable names, but the values sit on the semantic
+   tokens so it follows the studio theme (light/dark). */
 :root {
   --chat-bg: var(--surface-panel);
   --chat-surface: var(--surface-raised);
@@ -108,7 +107,7 @@
   color: var(--chat-text);
   background: var(--chat-border);
 }
-/* 웹 챗봇으로 가는 글자 링크 — 아이콘 버튼 셋 옆에서 이름으로 읽힌다. */
+/* Text link to the web chatbot — reads as a name next to the three icon buttons. */
 .dx-chat-header-actions { align-items: center; }
 .dx-chat-header-link {
   padding: var(--sp-1) var(--sp-2);
@@ -126,7 +125,7 @@
 }
 
 /* ── Who answers (status line) ─────────────────────── */
-/* spec 2026-10-11 chat settings §3.4 — 경고 띠가 아니라 늘 있는 한 줄. */
+/* A line that is always there, not a warning strip. */
 .dx-chat-source {
   display: flex;
   align-items: center;
@@ -249,7 +248,7 @@
   color: var(--status-error);
 }
 
-/* 질문 하나 — 어떤 AI 로 답할까 */
+/* One question — which AI answers */
 .dx-chat-settings-kind {
   display: flex;
   flex-direction: column;
@@ -500,7 +499,7 @@
     bottom: 16px;
     right: 16px;
   }
-  /* 열린 채팅이 폭을 다 쓰면 둥근 버튼이 Send 를 덮었다 — 머리에 닫기가 있으니 열린 동안 비켜선다 (2026-10-11 실기) */
+  /* An open chat fills the width and the round button would cover Send; the header has a close button, so hide it while open */
   .dx-chat-fab.open {
     display: none;
   }
@@ -515,7 +514,7 @@
   border-radius: 3px;
 }
 
-/* 오류 말풍선 — 경고 아이콘 + 오류 색 (예전에는 글 앞의 이모지였다). */
+/* Error bubble — warning icon + error colour. */
 .dx-chat-msg.is-error { color: var(--status-error); }
 .dx-chat-msg.is-error > .dx-ico:first-child,
 .dx-chat-banner > .dx-ico:first-child,

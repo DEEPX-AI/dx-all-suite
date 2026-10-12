@@ -1,9 +1,9 @@
-"""copilot -p 비대화형 어댑터(--add-dir 격리).
+"""copilot -p non-interactive adapter (--add-dir isolation).
 
-model 목록: copilot CLI 에는 목록 명령이 없지만, ACP 모드 (`copilot --acp --stdio`, IDE 연동용
-JSON-RPC) 의 `session/new` 가 **이 계정이 쓸 수 있는 model** (요금제 · 회사 정책 반영 — 막힌 model 은
-빠진다) 과 요금 배수 (`_meta.copilotUsage`) 를 준다. prompt 를 보내지 않으므로 요금이 들지 않는다
-(실측 1.7s). spec: docs/superpowers/specs/2026-09-30-home-agent-run-fixes-design.md
+Model list: the copilot CLI has no list command, but ACP mode (`copilot --acp --stdio`, the JSON-RPC used by
+IDEs) answers `session/new` with **the models this account may use** (plan and company policy applied; blocked
+models are left out) and their price multipliers (`_meta.copilotUsage`). No prompt is sent, so it costs nothing
+(about 1.7 s).
 """
 import json
 import os
@@ -36,14 +36,15 @@ class CopilotAdapter(SubprocessAdapter):
         return [m["id"] for m in got["models"] if m["enabled"]] if got else None
 
     def account_models(self):
-        """ACP 로 이 계정의 model 을 묻는다. {"models": [{id, name, usage, enabled}], "default": id} 또는 None.
+        """Ask ACP for this account's models. {"models": [{id, name, usage, enabled}], "default": id} or None.
 
-        session 을 하나 열어야 목록이 오므로 열고 닫는다. 닫아도 CLI 가 session 폴더를 남기므로
-        (`~/.copilot/session-state/<id>`) 방금 연 그 id 의 폴더만 지운다 — 2분마다 하나씩 쌓였을 것이다."""
+        The list only comes with an open session, so one is opened and closed. The CLI leaves the session folder
+        behind (`~/.copilot/session-state/<id>`), so the folder of the id just opened is removed; otherwise one
+        would pile up every two minutes."""
         if not self._cli:
             return None
         if os.environ.get("DX_AGENT_NO_REAL_RUN") == "1" and self._is_the_installed_cli():
-            return None     # test 는 진짜 CLI 를 부르지 않는다 (tests/conftest.py)
+            return None     # tests never call the real CLI (tests/conftest.py)
         proc = None
         sid = None
         try:
@@ -104,7 +105,7 @@ class CopilotAdapter(SubprocessAdapter):
                 except Exception:
                     proc.kill()
             if sid and re.fullmatch(r"[0-9a-fA-F-]{8,64}", sid):
-                # CLI 가 쓰는 곳 = 물려준 $HOME (Path.home() 은 test 가 따로 바꿀 수 있다)
+                # Where the CLI writes = the inherited $HOME (tests may patch Path.home() separately)
                 home = Path(os.path.expanduser("~"))
                 shutil.rmtree(home / ".copilot" / "session-state" / sid, ignore_errors=True)
 

@@ -12,7 +12,8 @@ need (and all you can reach from another computer — module ports listen on the
   and click **Build it**. The hub either opens the module that already does it (for example,
   "compile yolo26n to DXNN" opens DX Compiler), or runs DX Agent Dev right on the home page,
   where you follow its activity and answer its questions. Example chips under the box fill in
-  a ready-made request; the **Agent** row picks the coding agent, model, effort and mode.
+  a ready-made request; the **Agent** row picks the coding agent, model, effort and mode. The
+  agent and model are saved as the Studio agent and shared with Agent Dev and the chat.
 - **Tool cards** — the eight tools plus **SDK Library** and **About DEEPX**. Cards show live
   facts where a module can count them (for example *26 demos · 12 groups* for DX App, the
   catalogue size for Model Zoo). Click a card to open the tool; the hub chrome stays in
@@ -72,5 +73,6 @@ button in the top bar opens the contents at any time.
 ## Language
 
 The entire studio is available in **6 languages** — English, 한국어, 日本語, 简体中文,
-繁體中文, Español. Switch from the top bar at any time; every open tool follows, and the
-choice persists.
+繁體中文, Español. A first visit opens in your browser's language (English when it is none
+of these). Switch from the top bar at any time; every open tool follows, and the choice
+persists and wins over the browser.

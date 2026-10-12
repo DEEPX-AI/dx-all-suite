@@ -1,7 +1,7 @@
-"""Every control a user can reach has a name a screen reader can read (2026-10-11 axe audit).
+"""Every control a user can reach has a name a screen reader can read.
 
-axe-core (WCAG 2 A/AA) on the live Studio found 383 unnamed form controls, among them every model checkbox in the
-Benchmark list and the Model Zoo cart, the A/B Compare selects and the Agent Dev settings. It also found an icon-only
+axe-core (WCAG 2 A/AA) on the live Studio can find unnamed form controls, among them every model checkbox in the
+Benchmark list and the Model Zoo cart, the A/B Compare selects and the Agent Dev settings, as well as an icon-only
 close button, a page-tab row marked role=tablist that holds no tabs, Run Demo cards that are buttons with buttons
 inside, and aria-selected on plain buttons. This test does not vendor axe. It applies the same rules to every page of
 every module.
@@ -99,7 +99,7 @@ def test_every_page_names_its_controls(browser, module):
 
 @pytest.mark.parametrize("kind", ["agent", "local", "cloud"])
 def test_chat_settings_name_every_control(browser, kind):
-    """The chat settings (2026-10-11 redesign) are hidden until opened, so the page sweep above never saw them."""
+    """The chat settings are hidden until opened, so the page sweep above never saw them."""
     import json
     srv, port = start_module_server("dx_planner")
     ctx = browser.new_context(viewport={"width": 1440, "height": 900})

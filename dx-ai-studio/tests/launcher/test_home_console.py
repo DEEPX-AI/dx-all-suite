@@ -122,19 +122,15 @@ def test_the_terminal_pins_when_the_user_scrolls_up():
 def test_setup_is_decided_before_the_run_not_during_it():
     """Agent, model and effort are a decision, and the console is not where it is made.
 
-    They used to be three selects in the console header, which is only on
-    screen once a run has started — a control you can reach only after
-    committing cannot help you decide whether to commit. Worse, they were
-    never populated: the loader asked /api/agent/models for an `agents` key
-    that endpoint does not return, so every run posted empty strings.
-
-    They live in the input form now, visible at rest, and the console reads
-    the choice rather than owning a second copy of it.
+    The console header is only on screen once a run has started, and a control
+    you can reach only after committing cannot help you decide whether to
+    commit. The choice lives in the input form, visible at rest; the console
+    reads it rather than owning a second copy.
     """
     src = console()
     assert "is-running" in src, "nothing marks the view as busy"
     assert "agentChoice" in src, "the console must read the choice, not re-collect it"
-    # The comment explaining the old bug names the endpoint, so match the call.
+    # Source comments may name the endpoint, so match the call itself.
     assert "fetch('/agent/api/agent/models" not in src, (
         "the console must not fetch options — that endpoint needs ?agent= and "
         "returns no agent list"

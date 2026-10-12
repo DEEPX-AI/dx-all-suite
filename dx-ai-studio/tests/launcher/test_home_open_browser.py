@@ -1,7 +1,7 @@
-"""모듈이 아이콘에서 열리고 아이콘으로 닫히는지, 어느 길로 열어도 문서가 그대로인지 (spec §7 #8, §7.1).
+"""Modules open from their icon and close back to it, and the document stays the same whichever way they open.
 
-모듈 서버는 떠 있지 않다 — 전환은 health 응답보다 먼저 시작하므로 그것으로 충분하다. 문서가
-새로 불렸는지는 window 에 남긴 표식으로 본다 (새 문서면 사라진다).
+No module server runs: the transition starts before the health response, so none is needed. Whether the document
+was reloaded is read from a marker left on window (a new document loses it).
 """
 from __future__ import annotations
 
@@ -90,8 +90,8 @@ def test_going_home_shrinks_the_module_back_into_its_icon(browser, server):
 
 
 def test_a_route_card_opens_inside_the_same_shell(browser, server):
-    """예전에는 문자열을 loadAppIframeIfNeeded 에 넘겨 에러가 났고, catch 가 location.href 로 문서를
-    새로 불렀다 — 돌아오면 쓰던 문장과 상태가 사라졌다."""
+    """Opening must not reload the document. A string passed to loadAppIframeIfNeeded throws, and a catch that
+    falls back to location.href would lose the typed sentence and state."""
     ctx, page = _open(browser, server)
     try:
         page.fill("#homeAsk", "compile yolo26n to DXNN")

@@ -1,8 +1,8 @@
-"""home 에서 agent 를 돌리는 길 (spec 2026-09-30 home agent run).
+"""Running an agent from home.
 
-사용자가 본 것: model 선택이 떴다 안 떴다 한다 · 계획 글에 줄바꿈이 없다 · 늘 auto 같다 (답할 곳이
-없다). 각각의 원인은 spec 의 표 — 여기서는 고쳐진 행동을 실제 browser 에서 본다. agent 는 mock 이다
-(tests/conftest.py 가 진짜 CLI 실행을 막는다).
+What this protects: the model choice stays put, plan text keeps its line breaks, and a run that asks a question has a
+place to answer it instead of always behaving like auto. The fixed behaviour is checked in a real browser. The agent is
+a mock (tests/conftest.py blocks real CLI runs).
 """
 from __future__ import annotations
 
@@ -29,8 +29,8 @@ _QUIET = ("try{sessionStorage.setItem('dx-splash-seen','1');localStorage.setItem
 
 @pytest.fixture(scope="module")
 def port():
-    """launcher + 진짜 agent dev server (mock adapter). test 용 launcher 는 module 을 띄우지 않으므로
-    agent dev 를 따로 띄우고 launcher 의 proxy 표에 그 port 를 적는다 — SSE 까지 실제 경로로 간다."""
+    """Launcher plus a real agent dev server (mock adapter). The test launcher starts no modules, so agent dev is
+    started separately and its port is written into the launcher's proxy table; SSE takes the real path."""
     saved = {k: os.environ.get(k) for k in _ENV}
     os.environ.update(_ENV)
     # These tests are about copilot's model list. Home now starts on the Studio agent, then the first signed-in in
@@ -116,7 +116,7 @@ def test_the_answer_reads_as_formatted_text(browser, port):
         page.evaluate("DXLauncher.homeAgentStart('make a demo')")
         _wait_done(page)
         narr = page.locator("#workNarration")
-        assert narr.locator(":is(h2, h3, h4)").count() >= 1, narr.inner_html()[:300]   # renderer 는 ## 를 한 단 낮춘다 (Agent Dev 와 같다)
+        assert narr.locator(":is(h2, h3, h4)").count() >= 1, narr.inner_html()[:300]   # the renderer demotes ## one level (same as Agent Dev)
         assert narr.locator("ol li").count() == 2
         assert page.locator("#workNarration .work-turn").count() == 1, "한 턴의 글은 한 덩어리"
     finally:
@@ -149,7 +149,7 @@ def test_autopilot_sends_its_mode_and_asks_nothing(browser, port):
     bodies = _runs(page)
     try:
         page.wait_for_selector("#setupForm:not([hidden])", state="attached", timeout=15000)
-        page.click("#setupFold > summary")        # 설정은 접혀 있다 — 사람처럼 펼치고 고른다
+        page.click("#setupFold > summary")        # setup is folded; open it and choose like a user
         page.select_option("#setupMode", "autopilot")
         page.evaluate("DXLauncher.homeAgentStart('make a demo')")
         _wait_done(page)
@@ -219,9 +219,9 @@ def test_a_run_that_failed_is_not_shown_as_completed(browser, port):
 
 
 def test_the_folded_summary_names_the_model_a_run_will_use(browser, port):
-    """2026-10-11: the folded setup read "copilot · auto" while the live list had already selected copilot's own
-    default (claude-sonnet-5) — the summary was painted before the list arrived and the list changes the select
-    without a change event, so the line under the prompt named a model the run would not use."""
+    """The folded setup summary must name the model the run will use. The live list selects the CLI's own default
+    (e.g. claude-sonnet-5) without a change event, so a summary painted before the list arrived would read "copilot ·
+    auto" for a model the run would not use."""
     route = ("**/agent/api/agent/models?agent=copilot*",
              lambda r: r.fulfill(status=200, content_type="application/json", body=json.dumps(CATALOG)))
     ctx, page = _home(browser, port, route=route)

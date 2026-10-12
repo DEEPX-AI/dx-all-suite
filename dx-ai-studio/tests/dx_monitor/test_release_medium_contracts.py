@@ -25,7 +25,7 @@ def test_chat_panel_stacks_above_monitor_topbar():
     monitor_css = read_text(MONITOR / "static" / "css" / "style.css")
     chat_css = read_text(CHAT_WIDGET_CSS)
 
-    # 헤더는 통합 shell(dx-shell.css)이 소유한다.
+    # The header belongs to the shared shell (dx-shell.css).
     shell_css = read_text(MONITOR.parent / "shared" / "static" / "dx-shell.css")
     topbar_z = z_index(css_rule(shell_css, ".dx-shell-header"), ".dx-shell-header")
     chat_z = z_index(css_rule(chat_css, ".dx-chat-window"), ".dx-chat-window")
@@ -49,7 +49,7 @@ def test_monitor_topbar_stacks_below_hw_float_widget():
 
 
 def test_mock_banner_is_in_topbar_template():
-    """배너는 shell 헤더의 .toolbar 슬롯 안에 서버 렌더로 들어간다."""
+    """The banner is server-rendered into the .toolbar slot of the shell header."""
     from dx_monitor.server import DX_MONITOR_SHELL
     from shared.shell import apply as apply_shell
 

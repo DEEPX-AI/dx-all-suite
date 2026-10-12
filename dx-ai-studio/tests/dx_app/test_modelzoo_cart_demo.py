@@ -1,18 +1,18 @@
-"""튜토리얼의 장바구니 시연이 카탈로그 로딩 순서에 지지 않아야 한다.
+"""The tutorial's cart demo must not lose to the catalog loading order.
 
-`tests/test_tutorial_spotlight_spot_check.py` 의 `#mz-cart` 검사가 드물게 빨간불을
-냈다. 5회 연속 돌리면 통과해서 flaky 로 보이지만, 원인은 타이밍이 아니라 순서다:
+Otherwise the `#mz-cart` check in `tests/test_tutorial_spotlight_spot_check.py` fails now
+and then. That looks flaky, but the cause is ordering, not timing:
 
-    nav('modelzoo') → initModelZoo()  (async, await 되지 않는다)
-                        └ MZ.models 가 비어 있으면 await mzLoadModels()
-    _prepModelzooCartDemo() 는 동기로 계속 진행한다
-                        └ 모델이 아직 없으니 _mockModelzooCartFallback()
-                          (innerHTML 만 쓰고 MZ.cart 는 채우지 않는다)
-    fetch 완료 → initModelZoo() 가 mzRenderCart() 를 다시 부른다
-                        └ MZ.cart 가 비어 있으므로 display:none  ← 방금 만든 것을 지운다
+    nav('modelzoo') → initModelZoo()  (async, not awaited)
+                        └ if MZ.models is empty, await mzLoadModels()
+    _prepModelzooCartDemo() carries on synchronously
+                        └ no models yet, so _mockModelzooCartFallback()
+                          (writes innerHTML only, does not fill MZ.cart)
+    fetch done → initModelZoo() calls mzRenderCart() again
+                        └ MZ.cart is empty, so display:none  ← wipes what was just built
 
-카탈로그가 이미 로드된 상태면 첫 분기가 진짜 카트를 만들어 살아남는다. 그래서 대개
-이기고 가끔 진다.
+When the catalog is already loaded, the first branch builds a real cart that
+survives. So the demo usually wins and sometimes loses.
 """
 from __future__ import annotations
 
@@ -30,19 +30,19 @@ def _prep_body() -> str:
 
 
 def test_the_demo_does_not_block_the_step():
-    """beforeStep 에서 기다리면 그 사이 스텝이 교체된다.
+    """Waiting in beforeStep lets the step be replaced in the meantime.
 
-    처음에는 "카탈로그를 기다리게" 고쳤다가 되돌렸다. 저니 러너는 350ms 마다
-    Next 를 누르므로, beforeStep 이 2.5초를 끌면 엔진의 _stepToken 이 바뀌어
-    스텝이 렌더되지 않고 floating 으로 떨어진다 — 고치려던 것보다 나쁜 증상이다.
-    해법은 기다리는 것이 아니라 나중에 덮이지 않게 하는 것이다.
+    The journey runner presses Next every 350ms, so a beforeStep that takes 2.5s
+    changes the engine's _stepToken; the step never renders and falls back to
+    floating — a worse symptom than the one being fixed. The fix is not to wait
+    but to keep the cart from being overwritten later.
     """
     body = _prep_body()
     assert "_waitForModels" not in body, "beforeStep 이 카탈로그를 기다린다"
 
 
 def test_the_fallback_does_not_leave_the_cart_unowned():
-    """innerHTML 만 쓰면 다음 mzRenderCart() 가 그것을 지운다."""
+    """Writing innerHTML alone gets wiped by the next mzRenderCart()."""
     src = SRC.read_text(encoding="utf-8")
     start = src.index("function _mockModelzooCartFallback")
     body = src[start: src.index("\n  }", start)]
@@ -52,10 +52,10 @@ def test_the_fallback_does_not_leave_the_cart_unowned():
 
 
 def test_the_demo_cart_is_built_from_the_chip_table():
-    """티어를 손으로 적으면 이름이 바뀔 때 조용히 어긋난다.
+    """Hand-written tiers silently drift when names change.
 
-    `MZ_CHIPS` 가 생긴 뒤에도 여기에는 `{ qlite: true, qpro: false }` 리터럴이
-    남아 있었다. 지금은 qmaster 가 undefined→falsy 라 동작하지만, 그건 우연이다.
+    A `{ qlite: true, qpro: false }` literal works only by accident (qmaster is
+    undefined, hence falsy); the cart must be built from `MZ_CHIPS`.
     """
     body = _prep_body()
     assert not re.search(r"\{\s*qlite:", body), (

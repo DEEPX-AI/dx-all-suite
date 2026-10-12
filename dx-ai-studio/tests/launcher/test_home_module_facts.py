@@ -1,16 +1,15 @@
-"""home 의 모듈 목록은 각 모듈이 스스로 내놓는 숫자를 든다.
+"""Home's module list carries the numbers each module reports about itself.
 
-여덟 행이 이름 + 산문 한 줄로만 되어 있으면 서로 구별되지 않아 목록이 한 덩어리로
-읽힌다. Model Zoo 한 행만 `347 models · 22 tasks` 를 들고 있었고, 그 방식
-(`/zoo/api/catalog` 를 프록시로 불러 `.card-desc` 에 쓰기)이 이미 검증돼 있으므로
-나머지에도 같은 수를 둔다.
+Eight rows of a name plus one line of prose do not tell modules apart, and the list reads as one block.
+The Model Zoo approach (`/zoo/api/catalog` through the proxy, written into `.card-desc`, e.g.
+`347 models · 22 tasks`) applies to the others too.
 
-**표 하나로 모은다.** 모듈마다 함수를 한 벌씩 쓰면 다음 모듈이 생길 때 또 한 벌이
-늘고, 그건 이 저장소에서 이미 두 번 고친 패턴이다 (`_CHIP_DIRS`, `MZ_CHIPS`).
+**One table.** One function per module would add another copy with every new module, a pattern this
+repo avoids elsewhere (`_CHIP_DIRS`, `MZ_CHIPS`).
 
-Compiler 와 EdgeGuide 는 일부러 제외한다 — 셀 것이 없다. 각각 `/api/listdir`
-`/api/mkdir` 과 `/api/hb` 뿐이고, 숫자를 붙이자고 새 엔드포인트를 만드는 것은
-이 작업의 목적이 아니다. 비대칭을 그대로 두는 편이 정직하다.
+Compiler and EdgeGuide are left out on purpose: they have nothing to count (`/api/listdir`, `/api/mkdir`
+and `/api/hb` only), and adding an endpoint just to show a number is not the goal. Keeping the asymmetry
+is the honest choice.
 """
 from __future__ import annotations
 
@@ -40,7 +39,7 @@ def test_every_module_with_a_number_is_in_the_table():
 
 
 def test_modules_with_nothing_to_count_are_left_out():
-    """Compiler 와 EdgeGuide 는 셀 것이 없다. 억지로 넣으면 빈 숫자가 생긴다."""
+    """Compiler and EdgeGuide have nothing to count; forcing them in would produce empty numbers."""
     block = _facts_block()
     for app in ("compiler", "planner"):
         assert f"'{app}'" not in block, (
@@ -49,7 +48,7 @@ def test_modules_with_nothing_to_count_are_left_out():
 
 
 def test_each_entry_fetches_through_the_launcher_proxy():
-    """모듈은 각자 포트에 있고, home 은 런처 프록시(/zoo/, /app/ …)로만 닿는다."""
+    """Each module is on its own port; home reaches them only through the launcher proxy (/zoo/, /app/ …)."""
     block = _facts_block()
     urls = re.findall(r"url:\s*'([^']+)'", block)
     assert len(urls) >= 6, f"url 이 {len(urls)}개뿐이다"
@@ -59,7 +58,7 @@ def test_each_entry_fetches_through_the_launcher_proxy():
 
 
 def test_counts_are_written_to_the_description_not_the_state_slot():
-    """`card-state` 는 Running 이 쓴다. 숫자가 그 자리를 뺏으면 상태가 사라진다."""
+    """`card-state` belongs to Running. A number taking that slot would hide the state."""
     src = source()
     paint = src[src.index("function _paintFacts") :] if "function _paintFacts" in src else ""
     assert paint, "_paintFacts 가 없다"

@@ -1,4 +1,4 @@
-"""브라우저 응답용 모델 payload sanitize."""
+"""Sanitize model payloads for browser responses."""
 
 import copy
 from urllib.parse import urlparse

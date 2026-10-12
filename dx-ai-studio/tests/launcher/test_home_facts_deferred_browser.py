@@ -1,8 +1,8 @@
-"""Home's module numbers are fetched when home shows, not on every screen (2026-10-11 performance audit).
+"""Home's module numbers are fetched when home shows, not on every screen.
 
-The launcher shell keeps home in the document on every route. Its module facts fetched /zoo/api/catalog (2.5 MB)
-at boot even when the user opened /app/ or /compiler/ and never saw home. Model Zoo then paid for the catalog twice.
-The facts now load the first time home becomes visible.
+The launcher shell keeps home in the document on every route. Fetching the module facts (/zoo/api/catalog, 2.5 MB)
+at boot would cost that even when the user opens /app/ or /compiler/ and never sees home, and Model Zoo would pay for
+the catalog twice. The facts load the first time home becomes visible.
 """
 from __future__ import annotations
 

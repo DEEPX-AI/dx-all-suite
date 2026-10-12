@@ -7,7 +7,7 @@
   let _tutorialMode = _stored !== 'off';
   const _lang = () => localStorage.getItem('dx-lang') || 'en';
   let _engine = null;
-// Launcher 자체 화면을 위한 튜토리얼 섹션이다. iframe 모듈 튜토리얼은 각 모듈이 소유한다.
+// Tutorial sections for the launcher's own screens. Each iframe module owns its own tutorial.
   const sections = [
     { id: 'home', icon: 'home',
       title: { en: 'Launcher Home', ko: '런처 홈', ja: 'ランチャーホーム', 'zh-CN': '启动器主页', 'zh-TW': '啟動器首頁', es: 'Inicio del iniciador' },
@@ -31,7 +31,7 @@
         }
       },
       steps: [
-        // 무대의 순서대로 (spec 2026-09-23 §9): 입력 → 예시 → 소개 → 모듈 → 책 → 위젯 둘 → 막대 → 투어 줄 → 챗.
+        // In stage order: input → examples → intro → modules → book → two widgets → bar → tour row → chat.
         { target: '#homeAskForm .ask-box', position: 'bottom',
           title: { en: 'Describe it', ko: '말로 설명하기', ja: '言葉で伝える', 'zh-CN': '用一句话描述', 'zh-TW': '用一句話描述', es: 'Descríbalo' },
           content: { en: 'Type what you want in plain words and press <strong>Build it</strong>. The agent picks a model, compiles it, builds the app and measures it on this NPU. A request that names a tool — "compile yolo26n to DXNN" — opens that module directly.', ko: '만들고 싶은 것을 평소 말로 적고 <strong>만들기</strong> 를 누르세요. 에이전트가 모델을 고르고, 컴파일하고, 앱을 만들어 이 NPU에서 측정합니다. 도구를 콕 집은 요청 ("compile yolo26n to DXNN")은 그 모듈을 바로 엽니다.', ja: '作りたいものを普段の言葉で書き、<strong>作る</strong>を押します。エージェントがモデルを選び、コンパイルし、アプリを作ってこの NPU で測定します。ツールを名指しする依頼（"compile yolo26n to DXNN"）はそのモジュールを直接開きます。', 'zh-CN': '用平常的话写下你想做的东西，然后点<strong>开始构建</strong>。智能体会选模型、编译、构建应用，并在这块 NPU 上实测。点名某个工具的请求（如 "compile yolo26n to DXNN"）会直接打开对应模块。', 'zh-TW': '用平常的話寫下你想做的東西，然後按<strong>開始建構</strong>。智能體會選模型、編譯、建構應用，並在這塊 NPU 上實測。點名某個工具的請求（如 "compile yolo26n to DXNN"）會直接開啟對應模組。', es: 'Escriba lo que quiere con sus palabras y pulse <strong>Construir</strong>. El agente elige el modelo, lo compila, crea la app y la mide en esta NPU. Una petición que nombra una herramienta —"compile yolo26n to DXNN"— abre ese módulo directamente.' } },
@@ -84,7 +84,7 @@
             var closeBtn = document.querySelector('.dx-chat-settings-close');
             if (closeBtn) closeBtn.click();
           } },
-        /* 제안 질문 칸은 비어 있을 때가 많아 (높이 0) 창 전체를 가리킨다. 투어가 끝나면 열어 둔 창을 닫는다 (release audit L-10) */
+        /* The suggested-questions area is often empty (zero height), so point at the whole window. Close the window the tour opened when it moves on */
         { target: '.dx-chat-window.open', position: 'left',
           title: { en: 'Ask & Refresh Knowledge', ko: '질문하기 & 지식 새로고침', ja: '質問と知識の更新', 'zh-CN': '提问与刷新知识', 'zh-TW': '提問與刷新知識', es: 'Preguntar y actualizar conocimiento' },
           content: { en: 'Click a <strong>suggested question</strong> to get started quickly, or type your own — e.g. "ask the chatbot to explain a failed compile error" in DX Compiler. <strong>Refresh knowledge</strong> (under <strong>Advanced</strong> in settings) re-syncs the bot\'s SDK knowledge with the latest .deepx docs.', ko: '<strong>추천 질문</strong>을 클릭해 빠르게 시작하거나 직접 입력하세요 — 예: DX Compiler에서 "컴파일 실패 오류를 챗봇에게 설명해달라고 요청". 설정의 <strong>고급</strong> 안 <strong>지식 새로고침</strong>으로 챗봇의 SDK 지식을 최신 .deepx 문서와 재동기화할 수 있습니다.', ja: '<strong>おすすめの質問</strong>をクリックしてすぐに始めるか、自分で入力してください — 例：DX Compilerで「コンパイル失敗エラーをチャットボットに説明してもらう」。設定の<strong>詳細</strong>にある<strong>知識を更新</strong>でボットのSDK知識を最新の.deepxドキュメントと再同期できます。', 'zh-CN': '点击<strong>推荐问题</strong>快速开始，或自行输入——例如在 DX Compiler 中「让聊天机器人解释一次编译失败的错误」。设置中<strong>高级</strong>里的<strong>刷新知识</strong>可将机器人的 SDK 知识与最新的 .deepx 文档重新同步。', 'zh-TW': '點擊<strong>推薦問題</strong>快速開始，或自行輸入——例如在 DX Compiler 中「請聊天機器人解釋一次編譯失敗的錯誤」。設定中<strong>進階</strong>裡的<strong>刷新知識</strong>可將機器人的 SDK 知識與最新的 .deepx 文件重新同步。', es: 'Haga clic en una <strong>pregunta sugerida</strong> para empezar rápido, o escriba la suya — por ejemplo, en DX Compiler: "pídale al chatbot que explique un error de compilación fallido". <strong>Actualizar conocimiento</strong> (en <strong>Avanzado</strong>, dentro de los ajustes) resincroniza el conocimiento del SDK del bot con la documentación .deepx más reciente.' },
@@ -116,7 +116,7 @@
       label.textContent = _tutorialMode ? 'ON' : 'OFF';
       label.className = 'dxt-lc-mode' + (_tutorialMode ? ' is-on' : '');
     }
-    // 네비 버튼 피드백
+    // Nav button feedback
     const navBtn = document.querySelector('.dxt-toggle-btn');
     if (navBtn) {
       navBtn.style.opacity = _tutorialMode ? '1' : '0.5';
@@ -136,7 +136,7 @@
   }
 
   function buildTutorialCard() {
-    // 무대의 투어 자리 (spec 2026-09-23 §5.1). 없으면 예전처럼 #landing 끝.
+    // The tour slot on the stage; without it, the end of #landing.
     const tour = document.getElementById('homeTour');
     const landing = document.getElementById('landing');
     if (!landing) return;
@@ -169,7 +169,7 @@
       toggleTutorialMode();
     });
 
-    // CSS 주입
+    // Inject CSS
     if (!document.getElementById('dxt-card-style')) {
       const style = document.createElement('style');
       style.id = 'dxt-card-style';
@@ -220,7 +220,7 @@
     btn.className = 'dx-toolbar-btn dxt-toggle-btn';
     var _tutorialLabels = {en:'Tutorial Mode',ko:'튜토리얼 모드',ja:'チュートリアルモード','zh-CN':'教程模式','zh-TW':'教學模式',es:'Modo tutorial'};
     btn.title = _tutorialLabels[_lang()] || _tutorialLabels.en;
-    /* SF Symbols 계열 라인 글리프 — 이모지는 chrome 에 안 어울린다 */
+    /* SF Symbols-style line glyphs — emoji clash with the chrome */
     btn.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8l9-4 9 4-9 4-9-4z"/><path d="M7 10.5V16c0 1.1 2.2 2 5 2s5-.9 5-2v-5.5"/></svg>';
     btn.addEventListener('click', toggleTutorialMode);
     topRight.insertBefore(btn, topRight.firstChild);

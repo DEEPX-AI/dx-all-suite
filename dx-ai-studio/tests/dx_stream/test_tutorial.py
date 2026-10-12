@@ -1,7 +1,7 @@
 """Tutorial language and selector contracts for DX Stream.
 
-`tests/dx_benchmark/test_tutorial.py` 패턴을 dx_stream에 맞게 복제.
-정적 계약 테스트 — 브라우저/JS 런타임 없이 소스 텍스트만 검증.
+Mirrors the `tests/dx_benchmark/test_tutorial.py` pattern for dx_stream.
+Static contract tests — check source text only, without a browser/JS runtime.
 """
 
 import re
@@ -59,10 +59,10 @@ TARGET_LANGS = ("ko", "ja", "zh-CN", "zh-TW", "es")
 
 
 def rendered_index() -> str:
-    """서버가 실제로 내보내는 index.html.
+    """The index.html the server actually serves.
 
-    레일·헤더·탭·툴바 배지는 shared/shell.py 가 서버 렌더 시점에 주입하므로
-    템플릿 파일만 읽으면 튜토리얼이 가리키는 shell 셀렉터가 안 보인다.
+    shared/shell.py injects the rail, header, tabs and toolbar badges at render time, so
+    reading only the template file misses the shell selectors the tutorial points at.
     """
     from dx_stream.server import DX_STREAM_SHELL
     from shared.shell import apply as apply_shell
@@ -134,7 +134,7 @@ def _unresolved_target_tokens(target: str, selectors: set) -> list:
 
 
 def test_tutorial_targets_extract():
-    """헬퍼 단위(순수) — target/targetAll 추출 정확성."""
+    """Pure helper unit — target/targetAll extraction."""
     source = """
     var helpDefs = {
       dashboard: [
@@ -185,7 +185,7 @@ def test_preserves_expected_sections():
 
 
 def test_sections_cover_target_languages():
-    """모든 i18n 객체가 TARGET_LANGS를 빠짐없이 커버(ko 출현수 기준)."""
+    """Every i18n object covers all TARGET_LANGS (counted against ko occurrences)."""
     source = read_text(JS_DIR / "tutorial.js")
     ko_count = len(re.findall(r"\bko\s*:", source))
     assert ko_count >= 8, f"expected several i18n objects, ko-keys={ko_count}"
@@ -216,9 +216,8 @@ def test_index_html_loads_tutorial_assets():
 
 
 def test_tutorial_header_declares_six_language_support():
-    """The literal '6-language support' header string was removed in a refactor;
-    verify the tutorial genuinely ships all six languages
-    (ko/en/ja/zh-CN/zh-TW/es) with real per-section coverage."""
+    """The tutorial ships all six languages (ko/en/ja/zh-CN/zh-TW/es) with real
+    per-section coverage, not just a '6-language support' header string."""
     source = read_text(JS_DIR / "tutorial.js")
     langs = ("ko", "en", "ja", "zh-CN", "zh-TW", "es")
     counts = {

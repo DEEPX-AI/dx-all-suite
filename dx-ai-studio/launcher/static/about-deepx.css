@@ -19,8 +19,8 @@
      into the section below with no seam and no purple→blue hue jump at the boundary. */
   --about-hero-grad-3: var(--about-bg-alt);
 }
-/* 밝은 테마 — 글자는 이미 밝은 테마 색 (어두운 글자) 이라 hero 도 밝게. 어두운 보라 · 남색 위에 짙은 글자가
-   올라 문구 · 통계 이름이 보이지 않았다 (2026-10-02 release audit L-6). */
+/* Light theme: the text is already dark, so the hero goes light too — dark text on a dark
+   purple/navy band would hide the tagline and stat labels. */
 :root[data-theme="light"] #about-view {
   --about-hero-grad-1: color-mix(in srgb, var(--accent) 12%, var(--surface-panel));
   --about-hero-grad-2: color-mix(in srgb, var(--accent) 6%, var(--surface-panel));
@@ -85,14 +85,13 @@
   flex: 0 0 auto;
   gap: 10px;
 }
-/* About header brand now uses the shared .dx-brand component (brand.css); the bespoke
-   .about-logo-* rules were removed. */
+/* The About header brand uses the shared .dx-brand component (brand.css). */
 .about-nav {
   display: flex;
   flex: 1 1 auto;
   min-width: 0;
   gap: var(--sp-1);
-  /* safe — 넘치면 왼쪽부터 보인다. 그냥 flex-end 면 넘친 앞쪽 (Company) 이 왼쪽 밖으로 나가 스크롤로도 못 닿았다 (release audit L-25) */
+  /* safe: on overflow the start stays visible; plain flex-end pushes the first tabs off the left edge, out of scroll reach */
   justify-content: safe flex-end;
   overflow-x: auto;
   overflow-y: hidden;
@@ -304,8 +303,8 @@
 .about-hero {
   position: relative;
   /* Same centered 1680 column as .about-section so the hero's coloured band lines up in
-     width with every section below it (on wide screens the hero used to bleed full-width
-     while the sections stayed 1680, leaving the edges misaligned). */
+     width with every section below it (a full-bleed hero on wide screens
+     while the sections stay 1680 would leave the edges misaligned). */
   max-width: 1680px;
   margin: 0 auto;
   width: 100%;
@@ -354,7 +353,7 @@
 }
 .about-hero-stats {
   display: flex;
-  flex-wrap: wrap;            /* 좁은 화면에서 양 끝이 잘렸다 (L-7) */
+  flex-wrap: wrap;            /* otherwise both ends clip on narrow screens */
   justify-content: center;
   gap: var(--sp-5) var(--sp-7);
   position: relative;
@@ -803,7 +802,7 @@ ul.about-timeline-list li::before {
   margin: -4px -4px 12px;
   border-radius: var(--radius);
   overflow: hidden;
-  /* All product shots are now on a white studio background, so give the band a white backing
+  /* All product shots are on a white studio background, so give the band a white backing
      and use object-fit:contain — the whole product shows, letterbox padding is white and
      therefore invisible, and every card top reads as a clean product-on-white photo. */
   background: #ffffff;
@@ -1250,18 +1249,18 @@ ul.about-timeline-list li::before {
   border-top: 1px solid var(--about-divider);
 }
 
-/* 분야 · 가치 · 상 · 링크 아이콘 (sprite, about-data.json 의 icon 이름 — 아이콘 체계 단계 5) */
+/* Solution, value, award and link icons (sprite; names come from the icon fields in about-data.json) */
 .about-value-icon .dx-ico, .about-solution-icon .dx-ico, .about-award-icon .dx-ico { width: 28px; height: 28px; color: var(--accent); }
 .about-action-icon .dx-ico { width: 22px; height: 22px; color: var(--accent); }
 .about-scroll-hint .dx-ico { width: 20px; height: 20px; }
 .about-round-status .dx-ico { width: 14px; height: 14px; vertical-align: -2px; }
 
-/* 폰 폭: 목차가 0px 로 눌려 사라졌다 — 다음 줄로 내려 가로로 스크롤한다 (release audit L-25) */
+/* Phone width: the section nav would shrink to 0px, so it wraps to its own row and scrolls sideways */
 @media (max-width: 600px) {
   .about-topbar { flex-wrap: wrap; height: auto; padding: var(--sp-2) var(--sp-4); }
   .about-nav {
     order: 3; flex: 1 0 100%; overflow-x: auto; justify-content: flex-start;
-    /* 끝 탭이 화면 밖에 있다는 걸 오른쪽 끝을 흐리게 해 알린다 */
+    /* fade the right edge to hint that more tabs sit off screen */
     -webkit-mask-image: linear-gradient(90deg, rgba(0,0,0,1) calc(100% - var(--sp-6)), rgba(0,0,0,0));
     mask-image: linear-gradient(90deg, rgba(0,0,0,1) calc(100% - var(--sp-6)), rgba(0,0,0,0));
   }

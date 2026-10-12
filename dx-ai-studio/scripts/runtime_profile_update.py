@@ -1,19 +1,19 @@
-"""dx-runtime 릴리즈 tag 하나로 config/runtime_profiles.json 의 profile 을 만든다.
+"""Build a config/runtime_profiles.json profile from one dx-runtime release tag.
 
-dx-runtime 은 릴리즈마다 올라간다 (2.4.1 → 2.4.2 → …). profile 의 revision · 구성 버전 · .deb 주소 ·
-SHA-256 을 손으로 옮겨 적으면 틀리기 쉬워서, 전부 GitHub 의 그 tag 에서 읽는다:
+dx-runtime moves forward every release (2.4.1 → 2.4.2 → …). Copying a profile's revisions, component versions,
+.deb URLs and SHA-256 by hand is error-prone, so everything is read from that tag on GitHub:
 
-- runtime_revision: DEEPX-AI/dx-runtime 의 tag commit
-- suite_revision:   DEEPX-AI/dx-all-suite 의 같은 이름 tag commit
-- 구성 버전:         그 tag 의 RELEASE_NOTES.md ("DX-RT: v3.4.2", "NPU Driver: v2.6.0")
-- .deb 주소:        tag 가 가리키는 dx_rt · dx_rt_npu_linux_driver submodule commit 의 release/<버전>/
-- sha256:           그 .deb 를 받아 계산
+- runtime_revision:   the tag commit in DEEPX-AI/dx-runtime
+- suite_revision:     the commit of the same-named tag in DEEPX-AI/dx-all-suite
+- component versions: the tag's RELEASE_NOTES.md ("DX-RT: v3.4.2", "NPU Driver: v2.6.0")
+- .deb URLs:          release/<version>/ in the dx_rt and dx_rt_npu_linux_driver submodule commits the tag pins
+- sha256:             computed by downloading that .deb
 
-    python -m scripts.runtime_profile_update                 # 최신 릴리즈를 보여 주기만 한다
+    python -m scripts.runtime_profile_update                 # only show the latest release
     python -m scripts.runtime_profile_update --tag v2.4.2 --write
-    python -m scripts.runtime_profile_update --write --keep-target   # profile 만 추가, 목표는 그대로
+    python -m scripts.runtime_profile_update --write --keep-target   # add the profile, keep the target
 
-GITHUB_TOKEN 이 있으면 API 요청에 쓴다 (없으면 익명 — 시간당 60 회).
+GITHUB_TOKEN is used for API requests when set (otherwise anonymous, 60 requests per hour).
 """
 from __future__ import annotations
 
@@ -65,7 +65,7 @@ def latest_tag(*, fetch_json=fetch_json) -> str:
 
 
 def parse_component_versions(notes: str) -> dict:
-    """RELEASE_NOTES.md 머리의 구성 목록에서 DX-RT · NPU Driver 버전을 읽는다."""
+    """Read the DX-RT and NPU Driver versions from the component list at the top of RELEASE_NOTES.md."""
     found = {}
     for key, pattern in (("runtime", r"^-\s*DX-RT:\s*v?([\d.]+)"), ("driver", r"^-\s*NPU Driver:\s*v?([\d.]+)")):
         m = re.search(pattern, notes, re.M)
@@ -91,7 +91,7 @@ def _pick(names: list[str], pattern: str, what: str) -> str:
 
 def build_profile(tag: str, *, gstreamer_abi: str, fetch_json=fetch_json, fetch_text=fetch_text,
                   fetch_bytes=fetch_bytes) -> tuple[str, dict]:
-    """tag (예: v2.4.2) → ("2.4.2", profile)."""
+    """tag (e.g. v2.4.2) → ("2.4.2", profile)."""
     version = tag.lstrip("v")
     runtime_rev = fetch_json(f"{API}/repos/{ORG}/dx-runtime/commits/{tag}")["sha"]
     suite_rev = fetch_json(f"{API}/repos/{ORG}/dx-all-suite/commits/{tag}")["sha"]

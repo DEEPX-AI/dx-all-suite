@@ -1,22 +1,18 @@
-"""test_models.conf 가 쓰는 카테고리는 전부 CATEGORIES 에 있어야 한다.
+"""Every category test_models.conf uses must be in CATEGORIES.
 
-이 불변식만 지금 지켜지지 않고 있다. 변이로 확인한 현재 상태(2026-09-21):
+Without this contract one change goes unnoticed:
 
-    conf 에 모델 추가, 메타데이터 없음       → 3개 테스트가 모델 id 를 찍고 실패 (시끄러움)
-    CATEGORIES 에서 카테고리 제거           → test_config.py 실패 (시끄러움)
-    conf 에 새 카테고리, CATEGORIES 엔 미추가 → **아무것도 울지 않음**
+    model added to the conf, no metadata         → 3 tests fail naming the model id (loud)
+    category removed from CATEGORIES             → test_config.py fails (loud)
+    new category in the conf, not in CATEGORIES  → **nothing fails**
 
-마지막 경우가 조용한 이유는 `CATEGORIES` 쪽 계약이 **고정 집합** 을 보기 때문이다.
-`CATEGORIES` 를 건드리지 않으면 그 테스트들은 통과하고, conf 쪽에서 새 이름이
-들어온 것은 아무도 보지 않는다. 그 모델은 UI 의 `__unknown__` 버킷으로 빠지고,
-카테고리 필터에서 이름조차 갖지 못한다.
+The last case is silent because the `CATEGORIES` contract checks a **fixed set**. Leave
+`CATEGORIES` alone and those tests pass while nobody sees the new name in the conf. The
+model falls into the UI's `__unknown__` bucket and has no name in the category filter.
 
-왜 지금 필요한가: 릴리즈에 모델 142개가 추가되고 그중 `Visual Place Recognition`
-은 `CATEGORIES` 에 없는 태스크다. conf 에 넣고 CATEGORIES 를 잊으면 조용히 샌다.
-
-세 dict 를 함께 보는 이유: 하나만 채우면 반쪽이다. `CATEGORIES` 는 라벨(6개 언어)
-+ 아이콘, `EXAMPLE_TYPES` 는 결과를 어떻게 그릴지, `SAMPLE_IMAGES` 는 어떤 입력으로
-돌릴지를 정한다. 셋 중 하나라도 빠지면 그 태스크는 화면 어딘가에서 깨진다.
+The three dicts are checked together because filling one is only part of the job.
+`CATEGORIES` holds the label (6 languages) and icon, `EXAMPLE_TYPES` how to draw the result,
+`SAMPLE_IMAGES` which input to run. Miss any one and the task breaks somewhere on screen.
 """
 from __future__ import annotations
 
@@ -46,7 +42,7 @@ def _conf_categories() -> set[str]:
 def test_every_category_in_the_conf_is_declared(table):
     declared = getattr(_config(), table)
     used = _conf_categories()
-    # EXAMPLE_TYPES · SAMPLE_IMAGES 는 TaskTable — per-model conf 의 새 이름 (face_landmark …) 은 옛 이름의 짝으로 찾는다
+    # EXAMPLE_TYPES and SAMPLE_IMAGES are TaskTables: per-model names (face_landmark …) resolve through their legacy pair
     missing = sorted(c for c in used if c not in declared)
     assert not missing, (
         f"test_models.conf 가 쓰는 카테고리가 {table} 에 없다: {missing}\n"
@@ -56,10 +52,10 @@ def test_every_category_in_the_conf_is_declared(table):
 
 
 def test_the_three_tables_agree_with_each_other():
-    """셋 중 하나만 채우고 나머지를 잊는 것이 가장 흔한 실수다."""
+    """Filling one of the three and forgetting the others is the most common mistake."""
     cfg = _config()
-    # 두 표는 TaskTable 이라 per-model layout 의 새 이름 (image_classification …) 이 옛 이름 (classification) 의
-    # 값을 찾는다 (shared/tasks.py) — 같은 task 를 두 번 적지 않는다. 그래서 key 가 아니라 "찾아지는가" 로 본다.
+    # Both tables are TaskTables: a per-model name (image_classification …) finds the value of its legacy name
+    # (classification) through shared/tasks.py, so no task is written twice. Check lookup, not keys.
     cats = set(cfg.CATEGORIES)
     no_example = sorted(c for c in cats if c not in cfg.EXAMPLE_TYPES)
     no_sample = sorted(c for c in cats if c not in cfg.SAMPLE_IMAGES)
@@ -71,15 +67,15 @@ def test_the_three_tables_agree_with_each_other():
 
 
 def test_each_sample_image_actually_exists():
-    """SAMPLE_IMAGES 는 경로를 담는다. 없는 곳을 가리키면 소비처가 **조용히** 다른
-    그림으로 떨어진다 — server.py 의 기본 이미지 선택은 파일명이 목록에 없으면
-    `images[0]` 을 쓴다. 오류가 아니라 엉뚱한 그림이 뜬다.
+    """SAMPLE_IMAGES holds paths. A path to nothing makes its consumers fall back **silently**
+    to another image: server.py's default image pick uses `images[0]` when the file name is
+    not in the list. No error, just the wrong picture.
 
-    실제로 dx_app v3.2.0/v3.2.1 이 샘플을 교체한 뒤 이 표가 한 달 넘게 없는 파일을
-    가리켰고, 아무도 몰랐다. 이 계약이 그것을 잡는다.
+    dx_app replaces samples between releases, so a stale entry is easy to miss without this
+    contract.
 
-    `is_file()` 이 아니라 `exists()` 로 본다: embedding 과 reid 는 이미지 **쌍**을
-    쓰므로 경로가 디렉터리다 (`sample/img/face_pair/` 안에 3장).
+    Uses `exists()`, not `is_file()`: embedding and reid use image **pairs**, so the path is a
+    directory (3 images in `sample/img/face_pair/`).
     """
     cfg = _config()
     from dx_modelzoo.core.config import DX_APP_ROOT
@@ -92,7 +88,7 @@ def test_each_sample_image_actually_exists():
     for category, rel in cfg.SAMPLE_IMAGES.items():
         if not rel:
             continue
-        # 새 task 의 sample (sample/vpr/ …) 은 per-model layout 의 dx_app 에만 있다
+        # Samples for the newer tasks (sample/vpr/ …) exist only in a per-model layout dx_app
         if legacy_root and category in NEW_TASKS:
             continue
         if not (Path(DX_APP_ROOT) / rel).exists():
@@ -101,12 +97,11 @@ def test_each_sample_image_actually_exists():
 
 
 def test_sample_images_agree_with_the_runtime_source_of_truth():
-    """`test_models.conf` 헤더가 말한다: "Source of truth: scripts/run_examples.sh".
+    """The `test_models.conf` header says: "Source of truth: scripts/run_examples.sh".
 
-    studio 의 SAMPLE_IMAGES 는 그 표의 사본이고, 사본은 말없이 어긋난다. 실제로
-    dx_app 이 교체한 두 건을 studio 가 따라가지 못했다 — 경로 문자열은 이 저장소에
-    있고 파일은 dx_app 저장소에 있어서, 어느 쪽 CI 도 둘을 같이 보지 않는다.
-    이 계약이 그 틈을 메운다.
+    The studio's SAMPLE_IMAGES is a copy of that table, and copies drift silently: the path
+    strings live in this repository and the files in the dx_app repository, so neither CI
+    sees both. This contract closes that gap.
     """
     import re
 
@@ -121,8 +116,8 @@ def test_sample_images_agree_with_the_runtime_source_of_truth():
     assert truth, "CATEGORY_IMAGE 표가 비어 보인다 — 파싱이 틀렸을 수 있다"
 
     cfg = _config()
-    # per-model dx_app 의 표에는 옛 이름 ([reid] = 쌍 폴더) 과 새 이름 ([person_reid] = query 한 장) 이 같이 있다.
-    # studio 는 짝을 한 칸으로 보므로, 둘 다 있으면 이 checkout 의 이름 쪽만 본다.
+    # The per-model dx_app table has both the legacy name ([reid] = pair folder) and the new one ([person_reid] =
+    # one query image). The studio treats the pair as one slot, so when both exist only this checkout's name counts.
     from shared import dx_app_layout as layout
     from shared.tasks import canonical, legacy
     per_model = layout.detect(DX_APP_ROOT) == layout.PER_MODEL
@@ -133,7 +128,7 @@ def test_sample_images_agree_with_the_runtime_source_of_truth():
             continue
         mine = cfg.SAMPLE_IMAGES.get(category)
         if mine is None:
-            continue  # 선언 누락은 위의 다른 계약이 잡는다
+            continue  # a missing declaration is caught by the contracts above
         if mine.rstrip("/") != path.rstrip("/"):
             drift.append(f"{category}: studio={mine!r} != run_examples.sh={path!r}")
     assert not drift, "SAMPLE_IMAGES 가 진짜 출처와 어긋난다:\n  " + "\n  ".join(drift)

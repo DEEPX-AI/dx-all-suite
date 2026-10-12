@@ -1,12 +1,10 @@
-"""외부 소켓만 막고 localhost 는 살려 두는 가드.
+"""A guard that blocks external sockets and keeps localhost open.
 
-개발이 폐쇄망에서 일반망으로 옮겨가면서 안전장치가 하나 사라졌다 — 전에는 개발
-환경 자체가 "인터넷에 의존하는 코드" 를 막았다. 이제 그런 코드를 쓸 수 있고, 처음
-드러나는 곳은 PR 을 올리는 폐쇄망 PC 다. 고객도 폐쇄망에 배치하므로 제품 요건이기도
-하다. 자세한 등급은 docs/offline-contract.md.
+The studio is deployed on air-gapped networks, so code that depends on the internet is a
+product defect; this guard makes such code fail in the suite. Tiers: docs/offline-contract.md.
 
-localhost 를 막지 않는 것이 핵심이다. 테스트는 모듈 서버를 띄워 127.0.0.1 로 말하고,
-그것까지 막으면 아무것도 돌지 않는다. 막아야 할 것은 "바깥" 이다.
+Leaving localhost open is the point: tests start module servers and talk to them on 127.0.0.1,
+and blocking that would stop everything. Only the outside is blocked.
 """
 from __future__ import annotations
 
@@ -25,7 +23,7 @@ def _is_local(host) -> bool:
 
 @contextmanager
 def no_external_network():
-    """이 블록 안에서는 외부로 나가는 TCP 연결이 OSError 로 막힌다."""
+    """Inside this block, outgoing TCP connections to external hosts raise OSError."""
     real = socket.socket.connect
 
     def guard(self, address):
@@ -49,12 +47,12 @@ _installed = False
 
 
 def install() -> None:
-    """프로세스 전체에 가드를 건다 (되돌리지 않는다).
+    """Install the guard for the whole process (never undone).
 
-    `no_external_network()` 를 `__enter__` 만 하고 참조를 버리면 제너레이터가
-    수거되면서 `finally` 가 돌아 가드가 풀린다 — 실제로 그렇게 써서 스위트가
-    "막혀서" 가 아니라 "원래 안 나가서" 통과했다. 세션 내내 유지해야 하는
-    설정이므로 컨텍스트 매니저가 아니라 이 함수를 쓴다.
+    Calling only `__enter__` on `no_external_network()` and dropping the reference lets the
+    generator be collected, which runs `finally` and lifts the guard — the suite would then pass
+    without being guarded at all. The setting must hold for the whole session, so use this
+    function rather than the context manager.
     """
     global _installed
     if _installed:

@@ -1,5 +1,5 @@
-"""테마 토글의 계약. 브라우저 없이 소스 계약으로 검증한다
-(런타임 동작은 visual 스위트가 테마별 baseline으로 잡는다)."""
+"""Theme toggle contract, checked as source contracts without a browser
+(runtime behavior is covered by the visual suite's per-theme baselines)."""
 from __future__ import annotations
 
 import re
@@ -62,7 +62,7 @@ def test_theme_js_syncs_across_the_launcher_iframe_boundary():
 
 
 def test_incoming_theme_messages_do_not_echo_back():
-    """부모↔자식이 서로 되쏘면 무한 메아리가 된다."""
+    """If parent and child re-broadcast each other's messages, they echo forever."""
     js = read(THEME_JS)
     m = re.search(r"'dx-theme-change'\)\s*return;(.*?)\}\);", js, re.S)
     assert m, "message 핸들러를 못 찾았다"
@@ -86,8 +86,8 @@ def test_toolbar_builds_a_theme_button():
 
 
 def test_theme_button_glyphs_are_monochrome_not_emoji():
-    """이모지는 OS별 렌더가 달라 36px 버튼에서 크기가 튄다. 반쪽 원 기호 (U+25D2) 도 headless 캡처에서
-    "-" 로 나왔다 — 세 상태는 공용 sprite 의 아이콘 이름이다 (spec 2026-09-29 아이콘 체계 단계 1)."""
+    """Emoji render differently per OS and jump in size in a 36px button, and symbol glyphs such as
+    the half circle (U+25D2) can render as "-" headless — the three states are shared sprite icon names."""
     js = read(TOOLBAR_JS)
     m = re.search(r"THEME_ICON = \{([^}]*)\}", js)
     assert m, "THEME_ICON 을 못 찾았다"

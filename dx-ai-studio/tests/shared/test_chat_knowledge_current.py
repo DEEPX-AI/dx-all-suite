@@ -1,7 +1,7 @@
-"""AI Help knowledge pages must not repeat claims the code no longer backs (2026-10-11 audit).
+"""AI Help knowledge pages must not repeat claims the code no longer backs.
 
-Each phrase below was removed from shared/chat/knowledge/*.md after it was checked against the
-code; the positive anchors are the corrected wording. If a page brings a stale phrase back, the
+Each phrase below contradicts the code and must stay out of shared/chat/knowledge/*.md; the
+positive anchors are the correct wording. If a page brings a stale phrase back, the
 in-app chat starts answering with it again.
 """
 from pathlib import Path
@@ -142,8 +142,8 @@ def test_knowledge_does_not_pin_module_ports():
 
 
 def test_monitor_tutorial_does_not_promise_automatic_mock_data():
-    """The Monitor reference said it 'operates with mock data when no NPU is connected' and that disk is shown;
-    mock needs DX_MONITOR_EXPLICIT_MOCK=1, otherwise the page says NPU telemetry unavailable (2026-10-11)."""
+    """The Monitor reference must not say it 'operates with mock data when no NPU is connected' or that disk is shown:
+    mock needs DX_MONITOR_EXPLICIT_MOCK=1, otherwise the page says NPU telemetry unavailable."""
     from pathlib import Path
 
     tut = (Path(__file__).resolve().parents[2] / "dx_monitor/static/js/tutorial.js").read_text(encoding="utf-8")
@@ -153,8 +153,8 @@ def test_monitor_tutorial_does_not_promise_automatic_mock_data():
 
 
 def test_nothing_points_users_at_workspace_agent_sessions():
-    """The Agent Dev hint, tutorial and manual said outputs go to workspace/agent-sessions/ — a folder that
-    does not exist; the agent writes to dx-agent-dev/<session>/ in the project it works on (2026-10-11)."""
+    """The Agent Dev hint, tutorial and manual must not send outputs to workspace/agent-sessions/ — a folder that
+    does not exist; the agent writes to dx-agent-dev/<session>/ in the project it works on."""
     from pathlib import Path
 
     root = Path(__file__).resolve().parents[2]
@@ -164,8 +164,8 @@ def test_nothing_points_users_at_workspace_agent_sessions():
 
 
 def test_the_module_table_says_where_studio_opens_each_module():
-    """2026-10-11 real check: asked where the NPU temperature is, Chat answered "DX Monitor (port 8098)". Under the
-    launcher every module opens at a path on :8899 (8098 is only the standalone default), and the rail's NPU Monitor
+    """Asked where the NPU temperature is, Chat must not answer "DX Monitor (port 8098)". Under the launcher every
+    module opens at a path on :8899 (8098 is only the standalone default), and the rail's NPU Monitor
     button shows the temperature on every screen."""
     from launcher.launcher import _MODULE_PROXY_PATHS
     base = _page("base.md")
@@ -174,3 +174,5 @@ def test_the_module_table_says_where_studio_opens_each_module():
         assert f"`{path}`" in table, path
     assert "| 8098 |" not in table
     assert "NPU Monitor" in table
+    from launcher.launcher import LAUNCHER_PORT
+    assert f":{LAUNCHER_PORT}" in base and ":8899" not in base     # the default, not one PC's custom port

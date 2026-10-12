@@ -1,7 +1,7 @@
-"""번역 사전의 한중일 글자가 그 언어의 글꼴 subset 에 모두 있는지 확인한다.
+"""Check that every CJK glyph in the translation dictionaries is in that language's font subset.
 
-없는 글자는 화면에서 다른 글꼴로 넘어가 한 문장 안에서 자형이 섞인다.
-실패하면: .venv/bin/python -m scripts.build_font_subsets
+A missing glyph falls back to another font on screen, mixing letterforms within one sentence.
+On failure: .venv/bin/python -m scripts.build_font_subsets
 """
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ import sys
 
 try:
     from fontTools.ttLib import TTFont
-except ImportError:  # run_ci.sh 는 pip install 을 하지 않는다 (air-gapped). 같은 안내를 준다.
+except ImportError:  # run_ci.sh does not pip install (air-gapped); give the same hint.
     sys.exit("fonttools not found — install test deps first: "
              "<python> -m pip install -r requirements-ci.txt")
 
@@ -19,8 +19,9 @@ from scripts.font_glyphs import ROOT, dictionary_glyphs
 SOURCES = ROOT / "config" / "font_sources.json"
 FONTS = ROOT / "shared" / "static" / "fonts"
 
-# dx-tokens.css 의 :root:lang(...) --font-cjk 와 같은 순서. 앞 글꼴에 없는 글자는 뒤 글꼴이
-# 그리므로, gate 도 이 사슬 전체로 검사한다 (한 글꼴만 보면 멀쩡히 그려지는 글자로 실패한다).
+# Same order as --font-cjk in the :root:lang(...) rules of dx-tokens.css. A glyph missing from the
+# first font is drawn by the next, so the gate checks the whole chain (checking one font alone would
+# fail on glyphs that render fine).
 CHAIN = {"ko": ("ko", "zh-CN"), "ja": ("ja", "zh-CN"), "zh-CN": ("zh-CN",), "zh-TW": ("zh-TW", "zh-CN")}
 
 

@@ -26,7 +26,8 @@ Step 3. Watch the live charts while you run inference or benchmarks in the other
 - **Runtime Events log** — INFO / WARN / ERROR / CRITICAL entries from the runtime.  
 - **System stats** — CPU per-core, load, memory.  
 - **Version info** — DX-RT / PCIe driver / DX Engine / SDK / OS / Python versions, uptime.  
-- Falls back to **mock telemetry** when no NPU is present (for exploring the UI).  
+- With no NPU, shows **NPU telemetry unavailable** — it never shows made-up values; CPU and memory
+  are always real. Mock telemetry appears only when started with `DX_MONITOR_EXPLICIT_MOCK=1` (marked Mock).  
 
 !!! note  
     The same version and device information is available on the command line via

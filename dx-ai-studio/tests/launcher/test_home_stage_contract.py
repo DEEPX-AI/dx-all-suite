@@ -1,7 +1,7 @@
-"""launcher home 의 무대 뼈대 (spec 2026-09-23 §4, §5.7b, §5.8).
+"""Skeleton of the launcher home stage.
 
-역할마다 제자리가 있다: 투어 · hero · 작업 · deck(위젯 · 아이콘 · 위젯) · 아래 막대.
-이 파일은 자리와 빠진 것을 본다. 크기와 한 화면은 test_home_stage_browser.py 가 본다.
+Each role has its place: tour · hero · work · deck (widget · icons · widget) · bar below.
+This file checks the places and what is gone. Size and one-screen fit are checked by test_home_stage_browser.py.
 """
 from __future__ import annotations
 
@@ -16,14 +16,14 @@ HTML = (STATIC / "index.html").read_text(encoding="utf-8")
 
 
 def _css() -> str:
-    """파일이 없을 때 빈 문자열을 검사하면 '금지' 계약들이 저절로 통과한다 — 처음 쓴 판이 그랬다."""
+    """Checking an empty string when the file is missing would make every 'forbidden' contract pass by itself."""
     path = STATIC / "home-stage.css"
     assert path.is_file(), "launcher/static/home-stage.css 가 없다"
     return path.read_text(encoding="utf-8")
 
 
 def _region(region_id: str) -> str:
-    """id 가 붙은 여는 태그부터, 같은 이름의 닫는 태그가 짝을 이룰 때까지."""
+    """From the opening tag with the id until the matching closing tag of the same name."""
     m = re.search(r"<(\w+)\b[^>]*\bid=\"" + region_id + r"\"", HTML)
     assert m, f"#{region_id} 가 없다"
     tag, start, depth = m.group(1), m.start(), 0
@@ -93,9 +93,8 @@ def test_launcher_serves_the_stage_css():
 
 
 def test_docked_state_is_derived_from_what_is_visible():
-    """일하는 동안 무대는 작업에 자리를 내준다 (예전 test_the_state_column_yields_while_the_agent_runs:
-    "작업 화면은 전체 폭을 달라고 했다"). 그 전환을 class 로 JS 가 켜면 답을 여는 모든
-    경로가 기억해야 한다. :has() 는 잊을 수 없다."""
+    """While working, the stage makes room for the work, which takes the full width. If JS toggled that with a
+    class, every path that opens an answer would have to remember it; :has() cannot be forgotten."""
     for panel in ("homeAnswer", "homeWork"):
         assert f"#landing:has(#{panel}:not([hidden]))" in _css(), panel
     console_js = (STATIC / "home-console.js").read_text(encoding="utf-8")
@@ -105,14 +104,14 @@ def test_docked_state_is_derived_from_what_is_visible():
 
 
 def test_home_places_nothing_with_absolute_or_fixed():
-    """투어와 막대도 grid 로 놓는다 — 겹쳐 떠 있는 가구는 두 번 걷어냈다."""
+    """The tour and bar are placed by the grid too; no overlapping floating furniture."""
     body = re.sub(r"/\*.*?\*/", "", _css(), flags=re.S)
     assert not re.search(r"position\s*:\s*(absolute|fixed)", body)
 
 
 def test_stage_css_breakpoints_come_from_the_scale():
-    """@media 조건만 본다 — 처음 판은 파일 전체를 훑어, 말풍선의 max-width: 200px 를
-    breakpoint 로 읽었다 (scripts/breakpoint_gate.py 와 같은 범위)."""
+    """Read @media conditions only; scanning the whole file would read a tooltip's max-width: 200px as a
+    breakpoint (same scope as scripts/breakpoint_gate.py)."""
     for query in re.findall(r"@media([^{]*)\{", _css()):
         for w in re.findall(r"(?:max|min)-width:\s*(\d+)px", query):
             assert int(w) in (600, 900, 1200, 1440), w

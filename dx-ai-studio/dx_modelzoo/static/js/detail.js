@@ -9,7 +9,7 @@ function setModelZooStatusHtml(el, html) {
   el.innerHTML = html;
 }
 
-// 최적화 이미지 헬퍼 (catalog.js의 ModelZooImages와 동일 정책)
+// Optimized image helper (same policy as ModelZooImages in catalog.js)
 
 function _detailOptimizedCandidates(originalPath) {
   if (!originalPath) return [];
@@ -50,8 +50,8 @@ function _detailHandleImageFallback(img) {
   img.remove();
 }
 
-// catalog.js가 먼저 로드되면 window.handleImageFallback이 이미 존재함.
-// 독립 로드 시에도 동작하도록 fallback 등록
+// window.handleImageFallback already exists when catalog.js loaded first.
+// Register a fallback so this file also works on its own.
 if (typeof window.handleImageFallback !== 'function') {
   window.handleImageFallback = _detailHandleImageFallback;
 }
@@ -395,15 +395,14 @@ function renderArtifactTable(model) {
   </div>`;
 }
 
-/* ── 양자화가 정확도에 치르는 값 ──────────────────────────────
-   예전에는 Raw / Q-Lite / Q-Pro 의 숫자만 세로로 놓았다. 그것만으로는 양자화가
-   무엇을 잃게 하는지 읽히지 않는다 — 이 제품이 파는 트레이드오프가 바로 그건데도.
-
-   그래서 기준(Raw) 대비 델타를 함께 적는다. 단, 지표마다 방향이 다르다:
-   Top1 은 클수록, RMSE 는 작을수록 좋다. 방향을 모르는 지표는 부호만 보여주고
-   좋다/나쁘다로 칠하지 않는다 — 모르는 것을 아는 척하는 쪽이 더 나쁘다.
-   방향 표는 app.js 가 한 벌만 들고 있다 (METRIC_HIGHER_IS_BETTER /
-   METRIC_LOWER_IS_BETTER). 서버 쪽 같은 표: dx_modelzoo/core/metrics.py */
+/* ── What quantization costs in accuracy ──────────────────────────────
+   Raw / Q-Lite / Q-Pro numbers stacked alone do not show what quantization loses —
+   the very trade-off the product is about.
+   So the delta against the baseline (Raw) is shown too. Metrics differ in direction:
+   Top1 is better higher, RMSE lower. For a metric of unknown direction only the sign
+   is shown, without good/bad color — pretending to know is worse.
+   app.js holds the single direction table (METRIC_HIGHER_IS_BETTER /
+   METRIC_LOWER_IS_BETTER). Server-side counterpart: dx_modelzoo/core/metrics.py */
 function _detailMetricName(model) {
   const name = model.specification?.metric?.name;
   if (name) return String(name);
@@ -762,7 +761,7 @@ function copyCode(btn) {
   const code = btn.parentElement.querySelector('code');
   if (code) {
     navigator.clipboard.writeText(code.textContent).then(() => {
-      const orig = btn.innerHTML;  // 아이콘 + 글자 그대로 되돌린다
+      const orig = btn.innerHTML;  // restore the icon + text exactly
       DXIcon.label(btn, 'check', T('Copied!'));
       setTimeout(() => { btn.innerHTML = orig; }, 2000);
     });

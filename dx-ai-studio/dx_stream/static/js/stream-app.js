@@ -1,5 +1,5 @@
 /**
- * DX Stream — 메인 앱 로직
+ * DX Stream — main app logic
  */
 const DXStream = (() => {
     const S = {
@@ -8,7 +8,7 @@ const DXStream = (() => {
     };
 
     const $ = id => document.getElementById(id);
-    // 프록시 경로 자동 감지: /stream/api/... 또는 /api/...
+    // Detect the proxy prefix: /stream/api/... or /api/...
     const _base = (() => {
         const m = location.pathname.match(/^(\/stream)\/?/);
         return m ? m[1] : '';
@@ -50,24 +50,24 @@ const DXStream = (() => {
         if (pageEl) pageEl.classList.add('active');
         S.currentPage = page;
 
-        // 통합 shell: 좌측 nav 대신 상단 탭 행. 활성 표시는 aria-current 로 간다
-        // (dx-shell.css 가 그걸로 스타일을 건다 — class="active" 가 아니다).
+        // Unified shell: a top tab row instead of a left nav. The active tab is marked with aria-current
+        // (dx-shell.css styles that, not class="active").
         const tabs = document.querySelectorAll('.dx-tab');
         tabs.forEach(t => {
             if (t.dataset.page === page) t.setAttribute('aria-current', 'page');
             else t.removeAttribute('aria-current');
         });
 
-        // 헤더의 페이지명은 활성 탭 라벨을 그대로 쓴다. 탭은 data-i18n 사전을
-        // 타므로 헤더가 따로 언어 분기를 하면 둘이 어긋난다.
+        // The header page name reuses the active tab label. Tabs go through the data-i18n dictionary,
+        // so a separate language branch in the header would drift from them.
         const label = document.querySelector('.dx-tab[data-page="' + page + '"] span');
         const slot = $('dxShellPage');
         if (slot && label) slot.textContent = label.textContent.trim();
 
-        // 활성 탭이 오버플로 메뉴에 있었다면 행으로 되돌려야 한다.
+        // If the active tab sat in the overflow menu, bring it back to the row.
         if (window.DXTabs) DXTabs.reflowAll();
 
-        // 페이지별 init 함수 호출
+        // Call the page's init function
         const initFn = page.replace(/-/g, '') + 'Init';
         if (typeof DXStream[initFn] === 'function') DXStream[initFn]();
     }
@@ -80,19 +80,19 @@ const DXStream = (() => {
         }
     }
 
-    // 통합 shell(Option A)에는 접을 사이드바가 없다 — 56px 레일은 항상 보인다.
-    // 외부 호출자가 남아 있을 수 있어 no-op으로 유지한다.
+    // The unified shell has no collapsible sidebar; the 56px rail is always visible.
+    // Kept as a no-op because external callers may still call it.
     function toggleSidebar() { /* no sidebar in the unified shell */ }
 
     function toast(msg, type = 'info') {
         const c = $('toast-container');
         if (!c) return;
-        // 중복 메시지 방지
+        // Skip duplicate messages
         var existing = c.querySelectorAll('.toast');
         for (var i = 0; i < existing.length; i++) {
             if (existing[i].textContent === msg) return;
         }
-        // 최대 5개 제한
+        // Keep at most 5
         while (c.children.length >= 5) c.removeChild(c.firstChild);
         const el = document.createElement('div');
         el.className = 'toast toast-' + type;
@@ -136,7 +136,7 @@ const DXStream = (() => {
     }
 
     window.addEventListener('keydown', e => {
-        // input/textarea 내부에서 Delete/Backspace 는 무시
+        // Ignore Delete/Backspace inside input/textarea
         if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
         if (S.currentPage === 'pipeline') {
             if (e.key === 'Delete') {
@@ -175,20 +175,20 @@ const DXStream = (() => {
             }
             if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
                 e.preventDefault();
-                // 전체 선택
+                // Select all
                 if (DXStream._pipeState && DXStream._pipeState.nodes) {
                     DXStream._pipeState.selectedNodes = DXStream._pipeState.nodes.map(function (n) { return n.id; });
                     DXStream._pipeState.selectedNode = DXStream._pipeState.selectedNodes[0] || null;
                 }
-                if (typeof _refreshCanvas === 'function') _refreshCanvas();   // the selection was invisible
+                if (typeof _refreshCanvas === 'function') _refreshCanvas();   // otherwise the selection does not show
                 return;
             }
         }
     });
 
-    // 런처에서 theme/lang 동기화는 toolbar.js + i18n.js가 처리
+    // In the launcher, toolbar.js + i18n.js sync theme/lang
 
-    // 로드 시 초기화
+    // Initialise on load
     window.addEventListener('DOMContentLoaded', () => {
         _applyLang();
         nav('dashboard');
@@ -197,9 +197,8 @@ const DXStream = (() => {
     function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 
     return { S, $, api, postJ, nav, toggleLang, toggleSidebar, toast, confirmModal, _base, escHtml,
-        /* 고른 언어의 글자 하나 (ko, en, ja, zh-CN, zh-TW, es). 예전에는 언어별 <span> 다섯 개를 돌려주고 CSS 로
-           하나만 보였는데, toast · 확인 창은 textContent 로 넣으므로 날 HTML 이 그대로 보였고, 스페인어에는
-           span 이 없어 빈칸이었다 (release audit S-8). */
+        /* One string in the chosen language (ko, en, ja, zh-CN, zh-TW, es). Plain text, not per-language
+           <span>s: toasts and confirm dialogs set textContent, so markup would show up raw. */
         _L: function(ko, en, ja, zhCN, zhTW, es) {
             var lang = (window.DXI18n && DXI18n.lang) || S.lang || 'en';
             var v = { ko: ko, en: en, ja: ja, 'zh-CN': zhCN, 'zh-TW': zhTW, es: es }[lang];
@@ -211,8 +210,8 @@ const DXStream = (() => {
 // Expose to window so external scripts (tutorial.js, etc.) can access via window.DXStream
 window.DXStream = DXStream;
 
-// What is playing, on every page: the header pill was updated only by the Dashboard poll, and the
-// Demo page never learned that a Pipeline Builder run had replaced its demo on the server.
+// What is playing, on every page: keeps the header pill current outside the Dashboard, and tells the
+// Demo page when a Pipeline Builder run has replaced its demo on the server.
 DXStream._pollPlayback = function () {
     if (document.hidden) return;
     DXStream.api('/api/pipeline/status').then(function (st) {

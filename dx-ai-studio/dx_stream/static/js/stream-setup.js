@@ -1,12 +1,12 @@
 /**
- * DX Stream — 설정 페이지
- * 빌드/모델 다운로드 상태 확인, 실행, 로그 폴링
+ * DX Stream — setup page
+ * Checks build/model-download state, runs steps, polls logs
  */
 DXStream._setupLogSource = null;
 DXStream._setupRunning = false;
 DXStream._setupCompletedSteps = {};
 
-// stepId → HTML log element ID 매핑
+// stepId → HTML log element ID
 var _setupLogIds = {
     'stream-deps': 'setup-log-stream-deps',
     'build': 'setup-log-build',
@@ -25,8 +25,8 @@ var _setupBadgeIds = {
 };
 DXStream._setupFailedSteps = {};
 
-// 뱃지 · 다음 단계 · 막대는 공용 단계 목록이 칠한다 (shared/static/dx-steps.js, 아이콘 체계 단계 2b).
-// 여기서는 상태와 한 줄의 짧은 사실만 알린다.
+// The shared step list (shared/static/dx-steps.js) paints badges, the next step and the bar.
+// This page only reports each step's state and a one-line fact.
 function _setupIco(name) {
     return (typeof window !== 'undefined' && typeof window.DXIcon === 'function') ? window.DXIcon(name) : '';
 }
@@ -35,7 +35,7 @@ function _setupStep(stepId, state, facts) {
     if (!root || !window.DXSteps || !stepId) return;
     window.DXSteps.set(root, stepId, state, facts ? { facts: facts } : undefined);
 }
-// 끝났는지는 서버 상태, 이 화면에서 방금 끝낸 단계, 방금 실패한 단계 순서로 본다.
+// Done-ness comes from the server state, then steps just finished here, then steps that just failed.
 function _setupStepFrom(stepId, ok, facts) {
     var done = ok || DXStream._setupCompletedSteps[stepId];
     _setupStep(stepId, done ? 'done' : (DXStream._setupFailedSteps[stepId] ? 'failed' : 'todo'), done ? facts : []);
@@ -89,28 +89,28 @@ DXStream.setupInit = async function () {
     // (a single-model download from Model Catalog runs as "model-<file>" — not a Setup step)
     if (status.running && _setupLogIds[status.running] && !DXStream._setupPollTimer) _resumeRunningStep(status.running);
 
-    // 모델 다운로드 진행률 표시
+    // Model download progress
     var dl = status['download-models'];
     if (dl) {
         var progressText = DXStream.$('setup-download-text');
         if (progressText) progressText.textContent = dl.installed + '/' + dl.total;
     }
 
-    // runtime/driver 뱃지도 갱신 (상태 API에서 간접 확인)
+    // Also refresh the runtime/driver badges (inferred from the status API)
     var sysStatus = await DXStream.api('/api/status');
     if (!sysStatus.error) {
         var info = sysStatus.system_info || {};
-        // stream-deps: 빌드 툴체인(gstreamer 포함) 설치 여부로 간접 판단
+        // stream-deps: inferred from whether the build toolchain (incl. GStreamer) is installed
         _setupStepFrom('stream-deps', sysStatus.gstreamer && sysStatus.gstreamer.installed,
             [info.gstreamer_version ? 'GStreamer ' + String(info.gstreamer_version).replace(/^GStreamer\s*/i, '') : '']);
-        // runtime: gstreamer 설치 여부로 판단
+        // runtime: inferred from whether GStreamer is installed
         _setupStepFrom('runtime-deps', sysStatus.gstreamer && sysStatus.gstreamer.installed,
             [sysStatus.gstreamer && sysStatus.gstreamer.plugin ? 'dxstream' : '']);
-        // driver: npu 감지 여부로 판단
+        // driver: inferred from whether an NPU is detected
         var drvOk = DXStream._setupCompletedSteps['driver'] || (sysStatus.npu && sysStatus.npu.ok);
         _setupStepFrom('driver', drvOk,
             ((sysStatus.npu && sysStatus.npu.devices) || []).map(_basename).concat([info.npu_driver_version || '']));
-        // webrtc-deps: nicesrc 와 GstWebRTC binding 둘 다 (server 의 webrtc.ok)
+        // webrtc-deps: both nicesrc and the GstWebRTC binding (the server's webrtc.ok)
         _setupStepFrom('webrtc-deps', sysStatus.webrtc && sysStatus.webrtc.ok,
             ['gstreamer1.0-nice', 'gir1.2-gst-plugins-bad-1.0']);
         if (sysStatus.system_info) {
@@ -134,7 +134,7 @@ DXStream.setupInit = async function () {
         });
     }
 
-    // 환경 점검도 같이 실행
+    // Run the environment check too
     DXStream.checkEnvironment();
 };
 
@@ -152,7 +152,7 @@ function _markSetupStepDone(stepId) {
     _setupStep(stepId, 'done');
 }
 
-// sudo가 필요한 스텝 목록
+// Steps that need sudo
 var _sudoSteps = { 'stream-deps': true, 'build': true, 'webrtc-deps': true, 'runtime-deps': true, 'driver': true };
 
 // POST a setup step and return {ok, data} reading the JSON body regardless of HTTP status
@@ -258,12 +258,12 @@ DXStream.runSetup = async function (stepId) {
     }
     DXStream.toast(_stepLabel(stepId) + ' ' + T('started'), 'info');
 
-    // 로그 폴링 시작
+    // Start log polling
     _startLogPoll(stepId, logEl);
 };
 
 // runtime-deps · driver run as an in-process transaction on the server: there is nothing to stop,
-// so Stop is not offered (it used to answer "Stop failed").
+// so Stop is not offered.
 var _unstoppableSteps = { 'runtime-deps': true, 'driver': true };
 function _showStopFor(stepId) {
     var stopBtn = DXStream.$('setup-stop-btn');
@@ -280,7 +280,7 @@ function _resumeRunningStep(stepId) {
 
 function _startLogPoll(stepId, logEl) {
     if (DXStream._setupPollTimer) clearInterval(DXStream._setupPollTimer);
-    // 로그는 비어 있으면 숨겨 두고, 실행이 시작되면 보인다 (Run All 도 이 길로 온다).
+    // The log stays hidden while empty and shows once a run starts (Run All comes through here too).
     if (logEl) logEl.style.display = '';
     delete DXStream._setupFailedSteps[stepId];
     _setupStep(stepId, 'running');
@@ -319,9 +319,9 @@ function _startLogPoll(stepId, logEl) {
                 DXStream._setupFailedSteps[stepId] = true;
                 _setupStep(stepId, 'failed');
             }
-            // 설정 상태 + 대시보드 갱신
+            // Refresh setup state + dashboard
             DXStream.setupInit();
-            // 대시보드 status polling 재시작
+            // Restart dashboard status polling
             if (typeof DXStream.startStatusPolling === 'function') {
                 DXStream.startStatusPolling();
             }
@@ -358,7 +358,7 @@ DXStream.setupRunAll = async function() {
     }
 
     var steps = ['stream-deps', 'runtime-deps', 'driver', 'build', 'download-models', 'webrtc-deps'];
-    // "Set up the rest (n)" — 끝난 단계는 다시 돌리지 않는다 (dx_app Run All 과 같은 규칙).
+    // "Set up the rest (n)" — finished steps are not rerun (same rule as dx_app Run All).
     steps = steps.filter(function (id) {
         var li = document.querySelector('#setup-steps .dx-step[data-step="' + id + '"]');
         return !li || li.dataset.state !== 'done';
@@ -462,7 +462,7 @@ DXStream.runDiagnostics = async function() {
     try {
         var r = await DXStream.api('/api/diagnostics');
         if (!r || r.error || !Array.isArray(r.checks)) {
-            // r.checks was read regardless: an error answer threw, and the reason never showed.
+            // An error answer has no checks; show its reason instead.
             var why = (window.translateServerError || String)((r && r.error) || '');
             if (res) res.innerHTML = '<p class="txt-dim">' + DXStream.escHtml(why) + '</p>';
             DXStream.toast(DXStream._L('진단 오류: ','Diagnostics error: ','診断エラー: ','诊断错误: ','診斷錯誤: ','Error de diagnóstico: ') + why, 'err');
@@ -544,7 +544,7 @@ DXStream.checkEnvironment = async function () {
         status.models.installed + '/' + status.models.total + ' ' + T('files'));
     _setEnvRow('video', status.videos.ok,
         status.videos.count + ' ' + T('files'));
-    // WebRTC — 서버 nice_plugin 상태 반영
+    // WebRTC — reflects the server's nice_plugin state
     if (status.webrtc) {
         var wOk = !!status.webrtc.ok;
         var miss = status.webrtc.missing || (status.webrtc.nice_plugin ? [] : ['gstreamer1.0-nice']);
@@ -559,7 +559,7 @@ function _setEnvRow(key, ok, detail) {
     var statusEl = DXStream.$('env-' + key + '-status');
     var detailEl = DXStream.$('env-' + key + '-detail');
     if (statusEl) {
-        // 단계 목록의 상태 표시와 같은 모양 (아이콘 + 말).
+        // Same look as the step list's state (icon + label).
         statusEl.className = 'dx-step-state ' + (ok ? 'is-done' : 'is-todo');
         statusEl.innerHTML = _setupIco(ok ? 'check' : 'alert') + '<span>' + T(ok ? 'Ready' : 'Needs setup') + '</span>';
     }

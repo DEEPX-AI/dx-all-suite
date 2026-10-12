@@ -169,9 +169,10 @@ class CompileJob:
 
 
 def _resolve_relative_dataset(raw: str, config_path: str) -> Path:
-    """config 의 상대 dataset_path → 실제 폴더. SDK 샘플 config (dx_com/sample_models/json/*.json) 는
-    dx_com/ 에서 dxcom 을 돌린다는 전제로 "./calibration_dataset" 을 쓴다. config 폴더부터 위로 두 단을
-    보고 처음 있는 폴더를 고른다 — 없으면 config 폴더 기준 경로를 돌려 검사가 "없다" 고 말하게 한다."""
+    """Resolve a config's relative dataset_path to a real folder. SDK sample configs
+    (dx_com/sample_models/json/*.json) use "./calibration_dataset", assuming dxcom runs from dx_com/.
+    Look in the config folder and up to two levels above it and take the first match; if none exists,
+    return the path under the config folder so the check reports it as missing."""
     p = Path(raw).expanduser()
     if p.is_absolute():
         return p
@@ -186,7 +187,7 @@ class CompilerService:
     def __init__(self, job_root: Optional[Path] = None):
         self.jobs: Dict[str, CompileJob] = {}
         self._direct_compile_lock = threading.Lock()
-        # DX_COMPILER_JOB_ROOT: 작업 폴더를 var/ 밖에 — 시험이 쓴다 (path_policy._jobs_root 와 같은 값)
+        # DX_COMPILER_JOB_ROOT moves job folders outside var/ (used by tests; same value as path_policy._jobs_root)
         env_root = os.environ.get("DX_COMPILER_JOB_ROOT", "").strip()
         self.job_root = (Path(job_root) if job_root is not None
                          else Path(env_root) if env_root else var_dir("compiler", "jobs"))
@@ -209,7 +210,7 @@ class CompilerService:
 
     @staticmethod
     def _job_inputs(job: "CompileJob") -> list:
-        """게시가 덮으면 안 되는 이 작업의 입력 파일들."""
+        """This job's input files, which publishing must not overwrite."""
         return [getattr(job, k, "") or "" for k in ("model_path", "config_path", "qxnn_checkpoint_path")]
 
     def _prepare_job_staging(
@@ -380,10 +381,9 @@ class CompilerService:
             # The /progress SSE loop polls job.status every 0.5s and, the moment it sees
             # "done", it emits the terminal `complete` event (with a qxnn payload computed
             # from job.diagnosis_report_path) and breaks — it never polls again. If these
-            # stores ran AFTER status="done" (as they used to, from the callers), an SSE
-            # poll landing in that window would send `complete` with the report still
-            # unrecorded, so the freshly-generated diagnosis_report.html — which does exist
-            # on disk under work_dir/quant_diagnosis/ — was reported as "not generated".
+            # stores ran AFTER status="done", an SSE poll landing in that window would send
+            # `complete` with the report still unrecorded, and a diagnosis_report.html that
+            # exists under work_dir/quant_diagnosis/ would be reported as "not generated".
             # Ordering these first (same thread, before the status write) closes the race.
             try:
                 self._store_qxnn_artifact(job)
@@ -701,10 +701,10 @@ class CompilerService:
         node_selection: bool = False,
         use_q_pro: bool = False,
     ) -> CompileJob:
-        # 실행 직전 검사 — HTTP 진입점과 이중 (QA COM-A2). 거부는 job · 폴더를 만들기 전에.
+        # Check again right before running (the HTTP entry point checks too); reject before creating the job or folders.
         model_path = str(path_policy.check_input_file(model_path, "model_path"))
         config_path = str(path_policy.check_input_file(config_path, "config_path"))
-        # config 가 가리키는 calibration 폴더도 compiler 가 읽는다 — 올린 config 로 밖을 읽지 않게
+        # The compiler also reads the calibration folder the config points at; an uploaded config must not read outside
         try:
             config_data = json.loads(Path(config_path).read_text(encoding="utf-8")) or {}
             loader = config_data.get("default_loader") or {}
@@ -739,8 +739,8 @@ class CompilerService:
         if not self._prepare_job_staging(job):
             return job
         if dataset_copy is not None:
-            # dxcom 은 상대 dataset_path 를 자기 cwd 로 읽는다 — 풀어 쓴 사본을 이 job 폴더에 두고 그것을 넘긴다.
-            # 사용자의 config 는 고치지 않는다.
+            # dxcom resolves a relative dataset_path against its own cwd, so pass a resolved copy kept in
+            # this job folder. The user's config is left untouched.
             resolved = self._job_directory(job) / "config.resolved.json"
             resolved.write_text(json.dumps(dataset_copy, indent=2, ensure_ascii=False), encoding="utf-8")
             config_path = str(resolved)
@@ -869,7 +869,7 @@ class CompilerService:
         use_q_pro: bool,
     ):
 
-        # venv에만 dx_com이 있는 경우 → subprocess 방식
+        # dx_com only in the venv: run it in a subprocess
         from dx_compiler.core.setup_service import setup_service
         venv_python = setup_service.get_venv_python()
         if venv_python and not self._is_dx_com_available():
@@ -957,7 +957,7 @@ class CompilerService:
                 job.tqdm_sub = None
 
     def _is_dx_com_available(self) -> bool:
-        """현재 프로세스에서 dx_com을 import할 수 있는지 확인"""
+        """Return True if dx_com can be imported in this process."""
         try:
             import importlib.util
             return importlib.util.find_spec("dx_com") is not None
@@ -968,7 +968,7 @@ class CompilerService:
                                  opt_level, aggressive_partitioning, gen_log,
                                  quant_debug, quant_diagnosis, enhanced_scheme, use_q_pro,
                                  input_nodes=None, output_nodes=None):
-        """venv Python의 compile_worker.py를 subprocess로 실행."""
+        """Run compile_worker.py with the venv Python in a subprocess."""
         if not self._prepare_job_staging(job, output_dir):
             return
         output_dir = job.work_dir

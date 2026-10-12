@@ -1,4 +1,4 @@
-"""Cursor 어댑터: cursor-agent -p --model --output-format stream-json, cwd=harness."""
+"""Cursor adapter: cursor-agent -p --model --output-format stream-json, cwd=harness."""
 import sys
 from pathlib import Path
 

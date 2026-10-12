@@ -81,7 +81,7 @@
 /* Topbar toggle & buttons */
 .sdk-topbar-toggle {
   display: flex; gap: 2px;
-  background: color-mix(in srgb, var(--text-primary) 8%, transparent);   /* 검은 반투명은 밝은 테마에서 1.97:1 이었다 */
+  background: color-mix(in srgb, var(--text-primary) 8%, transparent);   /* a translucent black falls to 1.97:1 contrast in the light theme */
   border-radius: var(--radius-sm); padding: 2px;
 }
 .sdk-toggle-btn {
@@ -152,7 +152,7 @@
   margin-bottom: 6px;
 }
 
-/* 서랍 전면 */
+/* Drawer front */
 .drawer-face {
   position: relative;
   height: 72px;
@@ -183,7 +183,7 @@
     0 1px 2px rgba(0,0,0,0.3);
 }
 
-/* 서랍 손잡이 */
+/* Drawer handle */
 .drawer-handle {
   width: 60px;
   height: 10px;
@@ -207,7 +207,7 @@
     inset 0 1px 0 rgba(255,255,255,0.2);
 }
 
-/* 라벨 플레이트 */
+/* Label plate */
 .drawer-label-plate {
   background: linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
   border: 1px solid rgba(255,255,255,0.08);
@@ -228,7 +228,7 @@
   margin-left: auto;
 }
 
-/* 색상 스트라이프 */
+/* Colour stripe */
 .drawer-stripe {
   position: absolute;
   left: 0; top: 0; bottom: 0;
@@ -236,13 +236,13 @@
   border-radius: 6px 0 0 6px;
 }
 
-/* ── 서랍 열린 상태 (손잡이) ── */
+/* ── Open drawer (handle) ── */
 .drawer-unit.open .drawer-handle {
   background: linear-gradient(180deg, var(--status-info), color-mix(in srgb, var(--status-info) 80%, black));
   border-color: var(--accent-light);
 }
 
-/* 서랍 내부 */
+/* Drawer interior */
 .drawer-body {
   max-height: 0;
   overflow: hidden;
@@ -263,7 +263,7 @@
   opacity: 1;
 }
 
-/* 서랍 열릴 때 파일 카드 stagger 애니메이션 */
+/* Staggered file-card animation when a drawer opens */
 .drawer-unit.open .file-card {
   animation: drawerSlideIn 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
 }
@@ -286,7 +286,7 @@
 .drawer-unit.open .file-card:nth-child(12) { animation-delay: 0.38s; }
 .drawer-unit.open .file-card:nth-child(n+13) { animation-delay: 0.40s; }
 
-/* 서랍 face 열릴 때 살짝 들어올림 */
+/* Lift the drawer face slightly when open */
 .drawer-unit.open .drawer-face {
   border-radius: 6px 6px 0 0;
   border-bottom-color: transparent;
@@ -382,7 +382,7 @@
   justify-content: center;
 }
 
-/* 호버 시 열기 뱃지 */
+/* "Open" badge on hover */
 .file-card-pull {
   position: absolute;
   top: 6px;
@@ -399,7 +399,7 @@
   opacity: 1;
 }
 
-/* ── 서랍 색상 변형 ── */
+/* ── Drawer colour variants ── */
 .drawer-gold .drawer-stripe { background: var(--status-warn); }
 .drawer-gold .drawer-label-text { color: var(--status-warn); }
 .drawer-gold .file-card:hover { border-bottom-color: var(--status-warn); }
@@ -420,14 +420,14 @@
 .drawer-amber .drawer-label-text { color: var(--status-warn); }
 .drawer-amber .file-card:hover { border-bottom-color: var(--status-warn); }
 
-/* 열린 서랍 글로우 */
+/* Open drawer glow */
 .drawer-gold.open .drawer-face { box-shadow: 0 0 15px rgba(212,160,23,0.15), inset 0 1px 0 rgba(255,255,255,0.04); }
 .drawer-red.open .drawer-face { box-shadow: 0 0 15px rgba(244,112,103,0.15), inset 0 1px 0 rgba(255,255,255,0.04); }
 .drawer-green.open .drawer-face { box-shadow: 0 0 15px rgba(63,185,80,0.15), inset 0 1px 0 rgba(255,255,255,0.04); }
 .drawer-blue.open .drawer-face { box-shadow: 0 0 15px rgba(88,166,255,0.15), inset 0 1px 0 rgba(255,255,255,0.04); }
 .drawer-amber.open .drawer-face { box-shadow: 0 0 15px rgba(210,153,34,0.15), inset 0 1px 0 rgba(255,255,255,0.04); }
 
-/* 검색 숨김 */
+/* Hidden by search */
 .drawer-unit.search-hidden { display: none; }
 .drawer-section.search-hidden { display: none; }
 .file-card.search-hidden { display: none; }
@@ -1009,8 +1009,8 @@ details.sdk-adm[open] > summary.sdk-adm-title::after { transform: rotate(90deg);
 .sdk-mermaid { margin: 16px 0; text-align: center; overflow-x: auto; }
 .sdk-mermaid svg { max-width: 100%; height: auto; }
 
-/* 폰 — 목록 (240 px) 과 내용 칸이 390 px 에 나란히 붙어 내용 칸이 두 낱말 폭이었다 (2026-10-11 matrix).
-   목록을 위 (높이 제한), 내용을 아래로 쌓는다. */
+/* Phone: a 240px list beside the content leaves the content two words wide at 390px.
+   Stack the list on top (height-capped) and the content below. */
 @media (max-width: 600px) {
   .sdk-list-layout { flex-direction: column; overflow-x: hidden; overflow-y: auto; }
   .sdk-list-sidebar {

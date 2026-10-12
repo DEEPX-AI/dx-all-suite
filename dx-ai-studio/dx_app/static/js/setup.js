@@ -27,20 +27,20 @@ function compRenderLogAppend(logEl,text,state){
   logEl.scrollTop=logEl.scrollHeight;
 }
 function setupInit(){setupCheckAll();setupLoadVersions();}
-/* ── 공용 단계 목록과 아이콘 (spec 2026-09-29 아이콘 체계 단계 2a) ──
-   뱃지를 직접 칠하던 자리 (체크 · 경고 이모지 + 완료 · 필요) 는 상태만 알린다. 다음 단계 · 막대 · 접기는 DXSteps 가 한다. */
+/* ── Shared step list and icons ──
+   This only reports status (no hand-painted badges or emoji); next step, bar and collapsing are done by DXSteps. */
 function _setupIco(n){return (typeof window.DXIcon==='function')?window.DXIcon(n):'';}
 function _setupStepState(id,state,facts){
   var root=document.getElementById('setup-steps');
   if(root&&window.DXSteps&&id)window.DXSteps.set(root,id,state,facts?{facts:facts}:undefined);
 }
-/* 백엔드 detail ("cmake · gcc · ninja") 을 한 줄의 짧은 사실들로. */
+/* Backend detail ("cmake · gcc · ninja") as short facts on one line. */
 function _setupFacts(detail){
   if(!detail)return[];
   return String(detail).split(/\s+·\s+/).filter(Boolean).slice(0,4).map(_setupFactText);
 }
-/* 서버는 사실 (detail) 을 영어 한 벌로 보낸다 — 아는 모양은 고른 언어로 (release audit A-13: Setup 의
-   "18 model(s), 24 video(s)" · "Loaded" 가 모든 언어에서 영어였다). 모르는 말 · 이름 · 판은 그대로. 위에서부터. */
+/* The server sends facts (detail) in English only; known shapes are shown in the chosen language
+   (e.g. "18 model(s), 24 video(s)", "Loaded"). Unknown words, names and versions stay as they are. Matched top-down. */
 var _SETUP_FACTS=[
   [/^(\d+) model\(s\), (\d+) video\(s\)$/,{ko:'모델 $1개, 영상 $2개',ja:'モデル $1 件、動画 $2 件','zh-CN':'$1 个模型，$2 个视频','zh-TW':'$1 個模型，$2 部影片',es:'$1 modelos, $2 videos'}],
   [/^(\d+) model\(s\) — all OK$/,{ko:'모델 $1개 — 모두 정상',ja:'モデル $1 件 — すべて正常','zh-CN':'$1 个模型 — 全部正常','zh-TW':'$1 個模型 — 全部正常',es:'$1 modelos — todos correctos'}],
@@ -77,7 +77,7 @@ function _setupFactText(text){
   }
   return text;
 }
-/* 실행 로그 옆의 상태 — 단계 목록의 상태 표시와 같은 모양 (아이콘 + 말). */
+/* Status next to the run log, in the same shape as the step list's status (icon + words). */
 function _setupRunStatus(el,state,text){
   var icon={running:'spinner',done:'check',failed:'x',todo:'stop'}[state]||'info';
   el.className='dx-step-state is-'+state;
@@ -90,9 +90,9 @@ async function setupCheckAll(){
       var s=r[id];if(!s)return;
       var locallyDone=SETUP.completedSteps&&SETUP.completedSteps[id];
       var det=$('setup-detail-'+id);
-      /* 사실 (s.detail) 은 줄의 칩으로 보인다 — 아래 줄에는 그 밖의 말 (방금 완료됨) 만. */
+      /* Facts (s.detail) show as chips in the row; the line below holds only other words (just completed). */
       if(det)det.textContent=(locallyDone&&!s.ok)?_T5('방금 완료됨','Completed just now','完了したばかり','刚刚完成','剛剛完成','Completado ahora mismo'):'';
-      /* 뱃지 · 다음 단계 · 막대는 공용 단계 목록이 칠한다 (shared/static/dx-steps.js). 한 줄에는 짧은 사실만. */
+      /* Badge, next step and bar are painted by the shared step list (shared/static/dx-steps.js). One row holds short facts only. */
       _setupStepState(id,(s.ok||locallyDone)?'done':'todo',_setupFacts(s.detail));
     });
   }catch(e){console.error('setupCheckAll error:',e);}
@@ -266,7 +266,7 @@ function setupHideStdin(){
   SETUP._stdinManual=false;
 }
 
-/* 진단 결과 — 언어를 바꾸면 다시 그린다 (SETUP._diag). 통과했으면 true. */
+/* Diagnostics result, redrawn on a language switch (SETUP._diag). True if it passed. */
 function _setupRenderDiag(r){
   var sum=$('diag-summary');
   sum.style.display='';

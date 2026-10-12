@@ -1,4 +1,4 @@
-"""dx_agent_dev 에이전트 러너/어댑터 테스트."""
+"""dx_agent_dev agent runner and adapter tests."""
 import sys
 from pathlib import Path
 
@@ -25,7 +25,7 @@ def test_mock_adapter_emits_valid_event_sequence(tmp_path):
     assert all(e["type"] in VALID_TYPES for e in events)
     assert all("text" in e for e in events)
     assert events[-1]["type"] == "done"
-    # 결정적: 동일 입력 → 동일 시퀀스
+    # deterministic: same input, same sequence
     events2 = list(MockAdapter().run("build a yolo demo", tmp_path, []))
     assert [e["type"] for e in events] == [e["type"] for e in events2]
 
@@ -46,7 +46,7 @@ def test_runner_creates_isolated_session_dir(tmp_path):
 
 
 def test_runner_single_session_rejects_concurrent(tmp_path):
-    """서버당 1세션: busy 중 2차 run은 error 이벤트로 거부."""
+    """One session per server: a second run while busy is refused with an error event."""
     import threading
     from core.agent_runner import AgentRunner, AgentAdapter
 
@@ -68,7 +68,7 @@ def test_runner_single_session_rejects_concurrent(tmp_path):
     a = BlockingAdapter()
     runner = AgentRunner(a, tmp_path)
     gen1 = runner.run("first", [])
-    next(gen1)  # busy 진입
+    next(gen1)  # now busy
     second = list(runner.run("second", []))
     assert second[0]["type"] == "error"
     a.release.set()
@@ -80,12 +80,12 @@ def test_runner_clears_busy_after_completion(tmp_path):
     runner = AgentRunner(MockAdapter(), tmp_path)
     list(runner.run("a", []))
     assert runner.is_busy() is False
-    list(runner.run("b", []))  # 재실행 가능
+    list(runner.run("b", []))  # can run again
     assert runner.is_busy() is False
 
 
 def test_runner_calls_adapter_cancel_in_finally(tmp_path):
-    """R5: 정상완료 시에도 finally에서 adapter.cancel()이 호출되어 subprocess 정리 보장."""
+    """adapter.cancel() runs in finally even on normal completion, so the subprocess is cleaned up."""
     from core.agent_runner import AgentRunner, MockAdapter
     calls = []
     adapter = MockAdapter()
@@ -96,7 +96,7 @@ def test_runner_calls_adapter_cancel_in_finally(tmp_path):
 
 
 def test_runner_timeout_releases_slot_on_hung_generation(tmp_path):
-    """F-19: a hung generation must not hold the single concurrency slot forever.
+    """A hung generation must not hold the single concurrency slot forever.
 
     After the wall-clock timeout elapses the runner must cancel the stuck run,
     surface an error event, free the busy slot, and let a new request proceed.
@@ -139,7 +139,7 @@ def test_runner_timeout_releases_slot_on_hung_generation(tmp_path):
 
 
 def test_copilot_adapter_cancel_kills_process_group(monkeypatch):
-    """I-1/R5: 살아있는 자식은 프로세스 그룹 단위로 SIGTERM 종료(좀비 방지)."""
+    """A live child is terminated with SIGTERM to its process group (no zombies)."""
     import signal
     from core import agent_runner
     sent = {}
@@ -149,7 +149,7 @@ def test_copilot_adapter_cancel_kills_process_group(monkeypatch):
     class FakeProc:
         pid = 4321
         def poll(self):
-            return None  # 살아있음
+            return None  # still alive
 
         def wait(self, timeout=None):
             return 0

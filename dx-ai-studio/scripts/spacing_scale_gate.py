@@ -1,28 +1,27 @@
 #!/usr/bin/env python3
-"""간격이 4px 스케일을 벗어나는 것을 단조 감소로 묶는 ratchet.
+"""Ratchet that keeps spacing values off the 4px scale going down.
 
-토큰은 일곱 단계를 정해 두었다 — `--sp-1..7` = 4·8·12·16·24·32·48px.
-그런데 실측하면(2026-09-22) padding/margin/gap 에 쓰인 생 px 값이 **33종** 이고,
-1,576개 중 **788개(50%)가 스케일 밖** 이다. 가장 흔한 값이 6px(210회)로 토큰에
-아예 없다. 10px 192회, 14px 116회가 뒤를 잇는다.
+The tokens define seven steps: `--sp-1..7` = 4·8·12·16·24·32·48px. Yet raw px values in
+padding/margin/gap were spread over dozens of sizes, about half of them off the scale; the most
+common, 6px, has no token at all.
 
-한 자리만 보면 2px 차이는 눈에 띄지 않는다. 문제는 **쌓일 때** 생긴다 — 카드에
-6px, 그 안 목록에 10px, 배지에 14px 이 섞이면 어느 것도 서로 정렬되지 않는다.
-그리고 뒤늦게 고치면 비주얼 baseline 이 통째로 흔들린다.
+A 2px difference is invisible in one place. The problem shows when values **stack**: a card at
+6px, a list inside it at 10px and a badge at 14px never line up with each other. Fixing that late
+shakes the whole visual baseline.
 
-색상(css_token_gate)·breakpoint(breakpoint_gate)와 같은 방식을 쓴다: **지금
-값을 파일별 상한으로 박고 늘어나는 것만 막는다.** 줄이는 것은 자유이고,
-`--update` 로 내린다.
+Same approach as colours (css_token_gate) and breakpoints (breakpoint_gate): **the current count is
+a per-file ceiling and only increases are blocked.** Reducing is always fine; lower the ceiling with
+`--update`.
 
-스케일은 여기 적지 않고 `shared/static/dx-tokens.css` 에서 읽는다. 따로 적으면
-토큰이 바뀔 때 조용히 어긋난다.
+The scale is read from `shared/static/dx-tokens.css` rather than written here, so it cannot drift
+silently when the tokens change.
 
-세지 않는 것:
-  - `var(--sp-*)` 를 쓴 선언 — 목적을 이미 달성했다
-  - 0, 1px, 2px — 테두리·헤어라인급이라 스케일의 대상이 아니다
-  - `auto`, `%`, `em`, `rem`, `calc()` 안의 값 — px 스케일이 적용되지 않는다
+Not counted:
+  - declarations that use `var(--sp-*)`: they already do the right thing
+  - 0, 1px, 2px: border and hairline sizes, not spacing
+  - values inside `auto`, `%`, `em`, `rem`, `calc()`: the px scale does not apply
 
-계약: tests/shared/test_spacing_scale_gate.py
+Contract: tests/shared/test_spacing_scale_gate.py
 """
 from __future__ import annotations
 
@@ -36,13 +35,13 @@ TOKENS = ROOT / "shared" / "static" / "dx-tokens.css"
 BASELINE_PATH = ROOT / "config" / "spacing_scale_baseline.json"
 
 _PROPS = ("padding", "margin", "gap")
-# 테두리·헤어라인은 스케일의 대상이 아니다.
+# Borders and hairlines are not on the spacing scale.
 _IGNORE_BELOW = 3
 _SKIP_DIRS = (".venv", "node_modules", "/data/", "docs/.venv-docs", "/outputs/")
 
 
 def scale() -> set[int]:
-    """`--sp-N: Xpx` 선언에서 스케일을 읽는다."""
+    """Read the scale from the `--sp-N: Xpx` declarations."""
     text = TOKENS.read_text(encoding="utf-8")
     return {int(v) for v in re.findall(r"--sp-\d+\s*:\s*(\d+)px", text)}
 
@@ -56,7 +55,7 @@ def _iter_css():
 
 
 def count_off_scale(allowed: set[int]) -> dict[str, int]:
-    """파일별로 스케일 밖 간격 값이 몇 번 쓰였는지 센다."""
+    """Count, per file, how many spacing values are off the scale."""
     counts: dict[str, int] = {}
     for rel, path in _iter_css():
         n = 0

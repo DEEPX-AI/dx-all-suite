@@ -6,9 +6,9 @@
     if (typeof fn === 'function') window.__streamLangRefreshers.push(fn);
   };
 
-  // One language change used to reload the page twelve times: here, in each of the ten
-  // registered refreshers and in stream-app.js — every reload re-ran the page's fetches and
-  // stopped any running setup log poll. Refreshers still ask for a reload; it happens once.
+  // Each registered refresher (and stream-app.js) asks for a reload on a language change;
+  // coalesce them into one, since every reload re-runs the page's fetches and stops any
+  // running setup log poll.
   function refreshStreamModuleLanguage(lang) {
     if (typeof DXI18n !== 'undefined' && typeof DXI18n.applyLang === 'function') DXI18n.applyLang(document);
     var hasStream = typeof DXStream !== 'undefined' && typeof DXStream.nav === 'function';

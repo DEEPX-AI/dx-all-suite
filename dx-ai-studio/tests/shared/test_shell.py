@@ -1,4 +1,4 @@
-"""shell 마크업 helper. 8개 모듈이 레일/헤더 HTML을 각자 복제하지 않게 한다."""
+"""shell markup helpers, so the eight modules do not each copy the rail/header HTML."""
 from __future__ import annotations
 
 import re
@@ -52,7 +52,7 @@ def test_header_carries_brand_page_name_and_toolbar_slot():
 
 
 def test_header_does_not_print_the_module_name_twice():
-    """brand.js가 이름을 넣으므로 헤더가 또 쓰면 두 번 보인다."""
+    """brand.js inserts the name, so a header that also prints it shows it twice."""
     html = render_header("DX App", "Run Inference")
     assert html.count("DX App") == 1, "aria-label 한 번만 나와야 한다"
     assert 'aria-label="DX App"' in html
@@ -84,7 +84,7 @@ def test_tabs_with_no_match_marks_nothing_active():
 
 
 def test_rendered_markup_has_no_emoji():
-    """이모지는 OS별로 다르게 렌더되고 크기·색 제어가 안 된다."""
+    """Emoji render differently per OS and cannot be sized or coloured."""
     html = (
         render_rail("app")
         + render_header("DX App", "Run")
@@ -95,7 +95,7 @@ def test_rendered_markup_has_no_emoji():
 
 
 def test_rendered_markup_references_only_sprite_icons():
-    """인라인 path를 흩뿌리면 아이콘이 다시 갈라진다."""
+    """Inline paths scattered around would let the icons drift apart again."""
     html = render_rail("app") + render_header("DX App", "Run")
     assert "<path" not in html
     assert html.count("/static/shared/dx-icons.svg#") == html.count("<use ")

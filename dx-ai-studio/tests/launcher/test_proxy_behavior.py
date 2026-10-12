@@ -1,4 +1,4 @@
-"""런처 프록시 동작 테스트 — no-auth 로컬 모드."""
+"""Launcher proxy behaviour tests in no-auth local mode."""
 import os
 import sys
 import threading
@@ -12,8 +12,8 @@ _REPO = Path(__file__).resolve().parents[2]
 if str(_REPO) not in sys.path:
     sys.path.insert(0, str(_REPO))
 
-# 런처 모듈은 import 시점에 환경변수를 읽어 인증 상태를 초기화하므로,
-# import 전에 인증 관련 환경변수를 제거하여 no-auth 모드로 테스트한다.
+# The launcher module reads environment variables at import to set up auth, so the auth
+# variables are removed before import to test no-auth mode.
 os.environ.pop("DX_AUTH_ENABLED", None)
 os.environ.pop("DX_AUTH_STATE_FILE", None)
 
@@ -139,10 +139,10 @@ class _ChunkedTarget(BaseHTTPRequestHandler):
 
 @pytest.mark.parametrize("path", ["/app/api/chat", "/app/api/stream_lines"])
 def test_a_streamed_response_ends_and_headers_are_not_doubled(live_server, monkeypatch, path):
-    """2026-10-11: a Chat answer through the launcher arrived with [DONE] after 18 s but the connection never ended
-    (curl waited out its 240 s limit), and Server / Date / Cache-Control / X-Accel-Buffering came twice. The proxy
-    de-chunked the module's stream and relayed it with no length and no chunking on a kept-alive HTTP/1.1
-    connection, so the browser could not tell where the response stopped and each answer held a connection."""
+    """A Chat answer relayed by the proxy must end where the module's stream ends, with no duplicated headers
+    (Server / Date / Cache-Control / X-Accel-Buffering). A de-chunked stream relayed with neither a length nor
+    chunking on a kept-alive HTTP/1.1 connection leaves the browser unable to tell where the response stops, so each
+    answer would hold a connection open."""
     import http.client
     import time
 

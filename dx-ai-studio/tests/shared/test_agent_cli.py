@@ -1,4 +1,4 @@
-"""Coding-agent CLIs: installed, logged in, the Studio-wide choice, and which one Chat uses (spec 2026-10-11 §3.1-3.2)."""
+"""Coding-agent CLIs: installed, logged in, the Studio-wide choice, and which one Chat uses."""
 from __future__ import annotations
 
 import json

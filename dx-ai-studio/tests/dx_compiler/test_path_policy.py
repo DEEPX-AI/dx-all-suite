@@ -1,14 +1,12 @@
-"""compile 경로는 허용된 폴더 안의 실제 파일 · 폴더만 (QA COM-A2, 2026-10-01).
+"""Compile paths may only be real files and folders inside the allowed roots.
 
-`/compile` 은 model_path · config_path · output_dir 를 필수값인지만 보고 compiler_service.submit 에 넘겼고,
-`/compile/resume` 은 타입만 봤다. 산출물은 요청이 준 폴더에 mkdir · copyfile · replace 됐다. 2026-09-18 에는
-"서버를 localhost 밖에 노출하지 않는다" 는 전제로 일부러 검사하지 않았지만 (config.is_safe_path 주석), 기본 bind 가
-모든 인터페이스라 전제가 성립하지 않았다 (COM-A1).
+`/compile` (model_path, config_path, output_dir) and `/compile/resume` hand these paths to
+compiler_service, which reads them and writes outputs with mkdir, copyfile and replace. The
+server may be reachable beyond localhost, so a request must not be able to point it anywhere.
 
-허용 루트: suite root · studio var/ · 사용자 홈 · /media · /mnt + DX_COMPILER_ALLOWED_ROOTS. resolve 후 경로
-구성요소로 포함을 본다 (문자열 접두어 아님). 거부는 submit · 파일 읽기 · mkdir 전에.
-
-spec: docs/superpowers/specs/2026-10-01-studio-remote-auth-and-compile-paths-design.md (D)
+Allowed roots: suite root, studio var/, the user's home, /media, /mnt, plus
+DX_COMPILER_ALLOWED_ROOTS. Containment is checked by path components after resolve (not by
+string prefix). Refusal happens before submit, any file read or mkdir.
 """
 from __future__ import annotations
 
@@ -19,20 +17,20 @@ import pytest
 
 
 def _pp():
-    """지금 sys.modules 의 path_policy — 다른 시험 (test_server) 이 dx_compiler 를 지우고 다시 import 하므로
-    collection 때 잡은 모듈 · 예외 클래스는 서비스가 쓰는 것과 다를 수 있다."""
+    """path_policy as currently in sys.modules — another test (test_server) drops and re-imports dx_compiler,
+    so the module and exception classes captured at collection may differ from what the service uses."""
     return importlib.import_module("dx_compiler.core.path_policy")
 
 
 @pytest.fixture()
 def ws(tmp_path, monkeypatch):
-    """허용 루트 하나 (ws) 와 그 밖 (outside · 접두어만 같은 ws-evil)."""
+    """One allowed root (ws) and folders outside it (outside, and ws-evil which only shares the prefix)."""
     root = tmp_path / "ws"
     root.mkdir()
     (tmp_path / "ws-evil").mkdir()
     (tmp_path / "outside").mkdir()
     monkeypatch.setenv("DX_COMPILER_ALLOWED_ROOTS", str(root))
-    monkeypatch.setattr(_pp(), "_default_roots", lambda: [])   # 홈 · suite 가 tmp 를 덮지 않게
+    monkeypatch.setattr(_pp(), "_default_roots", lambda: [])   # so home / suite roots do not cover tmp
     return root
 
 
@@ -42,7 +40,7 @@ def _file(p, text="x"):
     return p
 
 
-# ── 읽기 ──────────────────────────────────────────────────────────────────────
+# ── Reads ─────────────────────────────────────────────────────────────────────
 
 def test_a_file_inside_an_allowed_root_is_accepted_and_resolved(ws):
     m = _file(ws / "models" / "a.onnx")
@@ -54,7 +52,7 @@ def test_a_file_outside_is_refused(ws, where):
     outside = _file(ws.parent / "outside" / "a.onnx")
     sibling = _file(ws.parent / "ws-evil" / "a.onnx")
     raw = {"dotdot": str(ws / ".." / "outside" / "a.onnx"),
-           "prefix_sibling": str(sibling),          # '/…/ws-evil' 은 문자열로는 '/…/ws' 로 시작한다
+           "prefix_sibling": str(sibling),          # as a string, '/…/ws-evil' starts with '/…/ws'
            "absolute_outside": str(outside)}[where]
     with pytest.raises(_pp().PathPolicyError) as e:
         _pp().check_input_file(raw, "model_path")
@@ -84,7 +82,7 @@ def test_a_dataset_is_an_existing_directory_inside(ws):
         _pp().check_input_dir(str(ws.parent / "outside"), "dataset_path")
 
 
-# ── 쓰기 ──────────────────────────────────────────────────────────────────────
+# ── Writes ────────────────────────────────────────────────────────────────────
 
 def test_an_output_dir_that_does_not_exist_yet_is_checked_at_its_nearest_parent(ws):
     out = _pp().check_output_dir(str(ws / "out" / "run1"))
@@ -119,7 +117,7 @@ def test_publishing_never_overwrites_an_input(ws):
     assert not _pp().would_overwrite_input(ws / "m2.qxnn", [str(q)])
 
 
-# ── 진입점 ────────────────────────────────────────────────────────────────────
+# ── Entry points ──────────────────────────────────────────────────────────────
 
 def test_the_service_refuses_before_creating_a_job(ws):
     from dx_compiler.core.compiler_service import CompilerService
@@ -204,11 +202,11 @@ def test_the_http_routes_refuse_before_submit_and_touch_nothing_outside(ws, monk
         server.shutdown()
 
 
-# ── 샘플 config 의 상대 dataset_path ─────────────────────────────────────────────
+# ── Relative dataset_path in the sample config ───────────────────────────────────
 
 def _sdk_sample(ws, dataset="./calibration_dataset"):
-    """SDK 의 샘플 모양: dx_com/sample_models/{onnx,json}/ + dx_com/calibration_dataset/.
-    샘플 config 의 dataset_path 는 dx_com/ 에서 dxcom 을 돌린다는 전제의 상대 경로다."""
+    """The SDK sample layout: dx_com/sample_models/{onnx,json}/ + dx_com/calibration_dataset/.
+    The sample config's dataset_path is relative, assuming dxcom runs from dx_com/."""
     com = ws / "dx_com"
     model = _file(com / "sample_models" / "onnx" / "m.onnx")
     cfg = _file(com / "sample_models" / "json" / "m.json",
@@ -219,9 +217,9 @@ def _sdk_sample(ws, dataset="./calibration_dataset"):
 
 def test_a_sample_config_with_a_relative_dataset_compiles_from_a_resolved_copy(ws, monkeypatch):
     """Setup → "use sample" puts the SDK sample config in the form. Its "./calibration_dataset"
-    was resolved against the studio's own folder: the check said it does not exist and /compile
-    answered 500 — the sample compile never started. It is now resolved like the SDK examples
-    run it, and dxcom gets a copy of the config with that absolute path."""
+    must be resolved the way the SDK examples run it, not against the studio's own folder (where
+    it does not exist and /compile would answer 500), and dxcom gets a copy of the config with
+    that absolute path."""
     import json
     from dx_compiler.core import compiler_service as cs
 

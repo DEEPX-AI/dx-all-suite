@@ -1,7 +1,6 @@
-"""모듈 CSS가 토큰 대신 raw hex를 쓰는 양을 단조 감소로 묶는 ratchet.
+"""Ratchet that keeps raw hex colors in module CSS (instead of tokens) going only down.
 
-허용치를 0으로 두면 지금 244건이 걸린다. 한 번에 GREEN을 강제하지 않고
-baseline을 두되, baseline은 오르지 못한다 — 새 raw hex는 즉시 실패한다.
+Existing uses are recorded in a baseline that may never rise, so any new raw hex fails at once.
 """
 from __future__ import annotations
 
@@ -37,7 +36,7 @@ def test_no_module_exceeds_its_baseline():
 
 
 def test_baseline_has_no_stale_headroom():
-    """실제보다 큰 baseline은 ratchet을 무력화한다 — 줄었으면 baseline도 줄인다."""
+    """A baseline above the real count defeats the ratchet — when counts drop, lower the baseline too."""
     baseline = json.loads(BASELINE_PATH.read_text(encoding="utf-8"))
     counts = scan_modules(ROOT)
     stale = {

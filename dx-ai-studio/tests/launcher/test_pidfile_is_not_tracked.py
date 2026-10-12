@@ -1,9 +1,8 @@
-"""launcher/.launcher_pids 는 저장소에 있으면 안 된다.
+"""launcher/.launcher_pids must not be in the repository.
 
-_cleanup_old_pids() 는 시작할 때 이 파일의 PID 를 이전 launcher 가 남긴 것으로 보고
-process group 째 SIGTERM/SIGKILL 한다. b79f6cb 에서 실수로 커밋돼, 새로 clone 한
-머신에서 launcher 를 처음 켜면 그 머신에서 같은 번호를 우연히 쓰고 있던 무관한
-프로세스를 죽일 수 있었다.
+On start, _cleanup_old_pids() treats the PIDs in this file as left by a previous launcher and signals their
+process groups with SIGTERM/SIGKILL. A committed copy would make the first launcher start on a fresh clone
+kill unrelated processes that happen to hold the same numbers.
 """
 import subprocess
 from pathlib import Path

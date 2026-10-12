@@ -1,22 +1,18 @@
-"""한 페이지가 불러오는 스크립트들은 전역 스코프 하나를 나눠 쓴다.
+"""The scripts one page loads share a single global scope.
 
-이 프로젝트에는 번들러가 없다. 모듈 페이지는 `<script src>` 를 순서대로 나열하고,
-그 파일들의 최상위 선언은 전부 같은 전역 렉시컬 스코프에 들어간다. 그래서:
+There is no bundler. A module page lists `<script src>` tags in order, and the top-level declarations of all those
+files land in the same global lexical scope. So:
 
-* `const` / `let` / `class` 를 두 파일이 같은 이름으로 선언하면 **나중에 로드되는
-  파일이 통째로 파싱에 실패한다** (SyntaxError: has already been declared).
-  화면은 조용히 빈 채로 남고, 파이썬 테스트는 전부 통과한다 — 실제로
-  METRIC_HIGHER_IS_BETTER 를 catalog.js 와 detail.js 가 각자 선언해서
-  ModelZoo 상세 화면이 통째로 렌더되지 않은 적이 있다.
-* `function` / `var` 는 재선언이 허용되는 대신 **나중 것이 조용히 이긴다**.
-  catalog.js 의 `_localLabel` 에 있던 ja/zh/es 폴백이 detail.js 의 같은 이름
-  함수에 덮여 죽어 있었다.
+* If two files declare the same name with `const` / `let` / `class`, **the later file fails to parse entirely**
+  (SyntaxError: has already been declared). The screen silently stays blank while every Python test passes; two
+  files each declaring a shared constant can leave a whole screen unrendered.
+* `function` / `var` may be redeclared, but **the later one silently wins**, so an earlier helper with the same
+  name is dead code.
 
-둘 다 브라우저를 켜지 않으면 드러나지 않는데, 기본 CI 에는 브라우저 스테이지가
-없다. 그래서 소스만 읽어서 막는다.
+Neither shows up without a browser, and the default CI has no browser stage, so this reads the sources instead.
 
-최상위 판정은 들여쓰기로 한다 — 이 코드베이스의 모든 파일이 2칸 들여쓰기를
-쓰므로 컬럼 0 의 선언은 최상위다.
+Top level is judged by indentation: every file in this codebase indents by 2 spaces, so a declaration at column 0
+is top level.
 """
 from __future__ import annotations
 
@@ -33,12 +29,12 @@ _TOP_LEVEL_DECL = re.compile(
     r"^(?:export\s+)?(?:async\s+)?(?P<kind>const|let|var|class|function)\s*\*?\s*"
     r"(?P<name>[A-Za-z_$][\w$]*)"
 )
-# 재선언이 SyntaxError 인 것들. var/function 은 허용되지만 조용히 덮인다.
+# Kinds whose redeclaration is a SyntaxError. var/function are allowed but silently overridden.
 _FATAL_KINDS = {"const", "let", "class"}
 
 
 def _documents():
-    """(문서 경로, [스크립트 파일…]) — 로드 순서 그대로."""
+    """(document path, [script files…]) in load order."""
     htmls = sorted(ROOT.glob("*/templates/index.html"))
     htmls += [p for p in [ROOT / "launcher" / "static" / "index.html"] if p.exists()]
     for html in htmls:
@@ -63,7 +59,7 @@ def _resolve(src: str, module_dir: Path) -> Path | None:
 
 
 def _top_level_declarations(path: Path):
-    """{이름: 종류} — 컬럼 0 에서 시작하는 선언만."""
+    """{name: kind} for declarations starting at column 0 only."""
     out = {}
     for line in path.read_text(encoding="utf-8").splitlines():
         match = _TOP_LEVEL_DECL.match(line)
@@ -88,7 +84,7 @@ def _collisions(scripts):
     "html,scripts", list(_documents()), ids=lambda v: v.parts[-3] if isinstance(v, Path) else ""
 )
 def test_no_fatal_redeclaration_across_scripts(html, scripts):
-    """const/let/class 충돌 — 나중 파일이 통째로 파싱에 실패한다."""
+    """const/let/class collision: the later file fails to parse entirely."""
     fatal = {n: (k, p) for n, (k, p) in _collisions(scripts).items() if k in _FATAL_KINDS}
     assert not fatal, "\n".join(
         f"{html.relative_to(ROOT)}: `{k} {n}` 이(가) "
@@ -102,7 +98,7 @@ def test_no_fatal_redeclaration_across_scripts(html, scripts):
     "html,scripts", list(_documents()), ids=lambda v: v.parts[-3] if isinstance(v, Path) else ""
 )
 def test_no_silent_override_across_scripts(html, scripts):
-    """function/var 충돌 — 파싱은 되지만 나중 것이 조용히 이긴다."""
+    """function/var collision: it parses, but the later one silently wins."""
     silent = {n: (k, p) for n, (k, p) in _collisions(scripts).items() if k not in _FATAL_KINDS}
     assert not silent, "\n".join(
         f"{html.relative_to(ROOT)}: `{k} {n}` 이(가) "

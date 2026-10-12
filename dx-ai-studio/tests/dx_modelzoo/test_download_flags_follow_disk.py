@@ -1,7 +1,7 @@
-"""A finished download shows as downloaded without a restart (2026-10-02 release audit Z-2).
+"""A finished download shows as downloaded without a restart.
 
-`downloaded` was computed once when the catalogue first loaded and cached for the life of the server, so a model
-downloaded from its detail page stayed "Download the model first" with Run Inference disabled, even after a reload.
+If `downloaded` were computed once at first catalogue load and cached for the life of the server, a model
+downloaded from its detail page would stay "Download the model first" with Run Inference disabled, even after a reload.
 """
 from __future__ import annotations
 

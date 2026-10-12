@@ -18,11 +18,11 @@ _RESET = '\033[0m'
 
 # ANSI 256-color gradient: deep blue → cyan
 _LOGO_COLORS = [
-    '\033[38;5;27m',   # 진파랑
+    '\033[38;5;27m',   # deep blue
     '\033[38;5;27m',
-    '\033[38;5;33m',   # 파랑
+    '\033[38;5;33m',   # blue
     '\033[38;5;33m',
-    '\033[38;5;39m',   # 시안블루
+    '\033[38;5;39m',   # cyan blue
     '\033[38;5;39m',
 ]
 
@@ -183,7 +183,7 @@ def show_boot_progress(modules, *, file=None, poll_interval=0.2, timeout=30,
 
 
 _YELLOW = '\033[33m'
-_CHECK_GREEN = '\033[32m'  # standard green (spec requires distinct from 256-color _GREEN)
+_CHECK_GREEN = '\033[32m'  # standard green, kept distinct from the 256-color _GREEN
 _CHECK_LABEL_WIDTH = 30
 
 _CHECK_ITEMS = [

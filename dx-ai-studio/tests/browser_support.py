@@ -5,33 +5,15 @@ import os
 from pathlib import Path
 import shutil
 
+from shared.chromium import resolve_chromium_executable  # noqa: F401  (re-exported for the suites)
 
-_CHROMIUM_CANDIDATES = (
-    "google-chrome",
-    "google-chrome-stable",
-    "chromium",
-    "chromium-browser",
-)
-
-
-def resolve_chromium_executable() -> str | None:
-    """Return a usable explicit or system Chromium executable, if available."""
-    override = os.environ.get("DX_PLAYWRIGHT_EXECUTABLE")
-    candidates = [override] if override else []
-    candidates.extend(shutil.which(name) for name in _CHROMIUM_CANDIDATES)
-
-    for candidate in candidates:
-        if candidate and Path(candidate).is_file() and os.access(candidate, os.X_OK):
-            return candidate
-    return None
 
 def resolve_node_executable() -> str | None:
     """Return a Node.js binary: the one on PATH, else the one Playwright ships with.
 
-    The Node harness tests (widget, i18n runtime, telemetry states, markdown render ...) used to skip
-    whenever ``node`` was not on PATH, which is the normal state of this box, so six of them broke
-    without anyone seeing it (found 2026-10-11). Playwright is a test dependency and carries its
-    own Node, so those tests can always run.
+    The Node harness tests (widget, i18n runtime, telemetry states, markdown render ...) must not skip
+    just because ``node`` is missing from PATH, or they can break unseen. Playwright is a test
+    dependency and carries its own Node, so those tests can always run.
     """
     found = shutil.which("node")
     if found:
@@ -44,7 +26,7 @@ def resolve_node_executable() -> str | None:
     return str(bundled) if bundled.is_file() and os.access(bundled, os.X_OK) else None
 
 
-# --- Multi-engine selection (Phase 2 cross-browser) -------------------------
+# --- Multi-engine selection (cross-browser) ---------------------------------
 
 ENGINES = ("chromium", "firefox", "webkit")
 DEFAULT_ENGINE = "chromium"

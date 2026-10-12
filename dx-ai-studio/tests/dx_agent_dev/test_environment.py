@@ -1,4 +1,4 @@
-"""dx_agent_dev 환경 감지 테스트."""
+"""dx_agent_dev environment detection."""
 import sys
 from pathlib import Path
 
@@ -13,7 +13,7 @@ def test_detect_returns_contract_keys():
 
 
 def test_unavailable_when_cli_missing(monkeypatch):
-    monkeypatch.delenv("DX_AGENT_ADAPTER", raising=False)  # mock 우선분기 중화 → 실제 감지 검증
+    monkeypatch.delenv("DX_AGENT_ADAPTER", raising=False)  # bypass the mock override to test real detection
     from core import environment
     monkeypatch.setattr(environment.shutil, "which", lambda _: None)
     env = environment.detect_environment()
@@ -22,7 +22,7 @@ def test_unavailable_when_cli_missing(monkeypatch):
 
 
 def test_unavailable_when_harness_missing(monkeypatch, tmp_path):
-    monkeypatch.delenv("DX_AGENT_ADAPTER", raising=False)  # mock 우선분기 중화
+    monkeypatch.delenv("DX_AGENT_ADAPTER", raising=False)  # bypass the mock override
     from core import environment
     monkeypatch.setattr(environment.shutil, "which", lambda _: "/usr/bin/copilot")
     monkeypatch.setattr(environment, "find_harness_dirs", lambda: [])
@@ -32,7 +32,7 @@ def test_unavailable_when_harness_missing(monkeypatch, tmp_path):
 
 
 def test_available_when_both_present(monkeypatch, tmp_path):
-    monkeypatch.delenv("DX_AGENT_ADAPTER", raising=False)  # mock 우선분기 중화
+    monkeypatch.delenv("DX_AGENT_ADAPTER", raising=False)  # bypass the mock override
     from core import environment
     (tmp_path / ".deepx").mkdir()
     monkeypatch.setattr(environment.shutil, "which", lambda _: "/usr/bin/copilot")

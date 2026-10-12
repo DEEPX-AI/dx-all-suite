@@ -1,9 +1,7 @@
-"""글꼴이 선언만이 아니라 실제로 그렇게 그려지는지.
+"""Fonts render the way they are declared, not just declared.
 
-950.9px — Inter 를 400 · 600 · 900 으로 재도 폭이 같았다. Regular 한 벌뿐인 파일을
-`font-weight:100 900` 으로 선언해서, 브라우저는 굵기가 다 있다고 믿고 가짜 굵기조차
-만들지 않았다. 스튜디오의 굵은 영문은 전부 Regular 로 그려지고 있었다.
-진짜 굵기라면 글자 폭이 달라진다.
+A Regular-only file declared as `font-weight:100 900` makes the browser believe every weight exists, so it does not
+even synthesise bold, and all bold Latin text renders as Regular. A real weight changes the text width.
 """
 from __future__ import annotations
 
@@ -55,16 +53,16 @@ def page():
     ("es", "Describe cualquier cosa. Ejecútalo en DX-M1."),
 ])
 def test_latin_bold_is_a_real_weight(page, lang, text):
-    """폭으로 가려지는 것은 라틴뿐이다. 한중일은 굵기와 무관하게 한 글자가 1em 이라
-    진짜 굵기여도 폭이 같다 (처음 이 테스트를 다섯 언어에 걸었을 때 ja·zh 가 336 = 336)."""
+    """Width only tells weights apart for Latin. A CJK glyph is 1em wide at any weight, so a real weight
+    gives the same width there."""
     w = page.evaluate(PROBE, [lang, text])
     assert w["700"] > w["400"] * 1.02, w
 
 
 @pytest.mark.parametrize("family", ["DX CJK KR", "DX CJK JP", "DX CJK SC", "DX CJK TC"])
 def test_cjk_faces_cover_400_to_700_so_the_browser_never_synthesises_bold(page, family):
-    """face 의 font-weight 범위가 400–700 을 실제로 덮어야, 그 사이 굵기가 그대로 나온다.
-    옛 'Noto Sans CJK' 는 400 · 700 두 벌이라 600 을 요청하면 700 이 나왔다."""
+    """The face's font-weight range must cover 400–700 so weights in between render as asked.
+    With only 400 and 700 files, a request for 600 renders as 700."""
     weight = page.evaluate(
         "(fam) => [...document.fonts].filter(f => f.family.replace(/\"/g, '') === fam)"
         ".map(f => f.weight)", family)
@@ -73,8 +71,8 @@ def test_cjk_faces_cover_400_to_700_so_the_browser_never_synthesises_bold(page, 
     assert lo <= 400 and hi >= 700, weight
 
 
-# 정확히 맞춘다: "Pretendard" 로 앞부분만 보면 ja 용 "Pretendard JP" 가 ko 에 쓰여도 통과한다.
-# Noto 의 " Thin" 은 가변 글꼴 기본 인스턴스의 이름일 뿐, 그려지는 굵기와 무관하다.
+# Match exactly: a "Pretendard" prefix match would pass even if the ja face "Pretendard JP" were used for ko.
+# Noto's " Thin" is only the name of the variable font's default instance, not the rendered weight.
 @pytest.mark.parametrize("lang,text,family", [
     ("ko", "무엇이든", r"Pretendard Variable"),
     ("ja", "説明", r"Pretendard JP Variable"),

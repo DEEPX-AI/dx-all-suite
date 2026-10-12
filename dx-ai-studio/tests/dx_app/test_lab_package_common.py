@@ -1,7 +1,7 @@
-"""Composer export — a per-model package runs outside the Studio (2026-10-11 audit).
+"""Composer export — a per-model package runs outside the Studio.
 
 extract_model_package.sh trims common/ to static imports, but per-model examples name their
-processors in config.json; the exported yolo26n package died with "processor class
+processors in config.json; a trimmed package dies with "processor class
 'LetterboxPreprocessor' is exported by neither common.processors nor common.visualizers".
 """
 from __future__ import annotations
@@ -46,8 +46,8 @@ def test_the_full_common_is_vendored_next_to_the_runner(tmp_path):
 
 
 def test_export_model_package_tars_the_per_model_folder_with_a_full_common(tmp_path, monkeypatch):
-    """/api/extract made outputs/py/<task>/<family>/<stem>/ but looked for a folder named after the model
-    directly under outputs/, so download_url was empty; and the folder had the trimmed common/ (2026-10-11)."""
+    """/api/extract writes outputs/py/<task>/<family>/<stem>/ and must look there, not for a folder named after the
+    model directly under outputs/ (download_url would be empty); the packaged folder carries the full common/."""
     import subprocess
     import tarfile
 

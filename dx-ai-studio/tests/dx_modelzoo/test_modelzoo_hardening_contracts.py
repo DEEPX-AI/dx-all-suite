@@ -1,4 +1,4 @@
-"""ModelZoo 16-item hardening DOM/static 계약 테스트."""
+"""ModelZoo hardening contracts for the DOM and static assets."""
 
 from pathlib import Path
 import re
@@ -64,7 +64,7 @@ def test_hardening_contract_status_and_legal_copy():
 
 
 def test_hardening_contract_no_processor_filter_references():
-    """Wave 2C: processor filter was removed; no JS should reference it."""
+    """There is no processor filter; no JS may reference it."""
     catalog = _read("dx_modelzoo/static/js/catalog.js")
     tutorial = _read("dx_modelzoo/static/js/tutorial.js")
     assert "_selectedProcessor" not in catalog

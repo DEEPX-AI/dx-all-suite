@@ -207,7 +207,7 @@ def test_task_wizard_uses_task_and_generated_endpoints():
 def test_generated_preview_renderer_avoids_inner_html():
     js = LAB_JS.read_text(encoding="utf-8")
     start = js.index("function renderGeneratedFiles")
-    # 다음 명명된 함수 선언까지 잘라냄 (익명 함수 콜백 제외)
+    # cut at the next named function declaration (anonymous callbacks excluded)
     next_fn = js.find("\n  function ", start + 1)
     if next_fn == -1:
         next_fn = js.find("\n  async function ", start + 1)

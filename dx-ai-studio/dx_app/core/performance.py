@@ -80,8 +80,9 @@ _ANSI_RE = __import__("re").compile(r"\x1b\[[0-9;]*[A-Za-z]")
 
 
 def runner_errors(stdout):
-    """dx_app runner 가 찍은 `[DXAPP] [ERROR] …` 줄 (색 코드 · 접두어 뺀 본문). exit 0 이어도 결과를 못 믿는 경우다
-    — 입력 없음 · 출력 tensor 정렬 실패 · 후처리 오류 (dx_app src 의 [ERROR] 는 전부 그런 것)."""
+    """`[DXAPP] [ERROR] …` lines printed by a dx_app runner (body without color codes or prefix). Their presence means
+    the result cannot be trusted even with exit 0: no input, output tensor ordering failed, postprocess error (every
+    [ERROR] in the dx_app source is of that kind)."""
     out = []
     for line in (stdout or "").splitlines():
         clean = _ANSI_RE.sub("", line).strip()

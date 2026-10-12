@@ -1,4 +1,4 @@
-"""config.py 경로 계산 테스트"""
+"""config.py path computation tests"""
 import sys, os, pytest, importlib
 from pathlib import Path
 
@@ -34,7 +34,7 @@ class TestConfig:
         assert str(CONFIG_FILE).endswith("test_models.conf")
 
     def test_categories_has_36_entries(self):
-        """22 (dx_app main) + 14 (per-model layout 의 새 key, spec 2026-10-01): 이름만 바뀐 7 + 새 task 7."""
+        """22 (dx_app main) + 14 per-model layout keys: 7 renamed tasks + 7 new tasks."""
         from core.config import CATEGORIES
         assert len(CATEGORIES) == 36
 
@@ -45,10 +45,10 @@ class TestConfig:
                     "image_denoising", "obb_detection", "reid", "embedding",
                     "attribute_recognition", "super_resolution", "face_alignment",
                     "depth_estimation", "image_enhancement", "hand_landmark",
-                    # added by the staging catalog (dx_app v3.2.0 → dx-runtime staging)
+                    # task keys from the staging catalog
                     "hand_detection", "keypoint_detection", "object_pose_estimation",
                     "panoptic_driving_perception", "3d_object_detection",
-                    # dx_app per-model layout (teammate 8d0b748) 의 task key
+                    # task keys of the dx_app per-model layout
                     "image_classification", "oriented_object_detection", "face_landmark", "face_recognition",
                     "person_attribute", "low_light_enhancement", "person_reid",
                     "anomaly_detection", "zero_shot_image_classification", "zero_shot_instance_segmentation",

@@ -24,7 +24,7 @@ const RecommendEngine = {
   NPU_BOUND_PCT: 85,
 
   /**
-   * Channel capacity from the multi-stream benchmark (spec 2026-10-11-edgeguide-recommendation).
+   * Channel capacity from the multi-stream benchmark.
    *
    * The benchmark measured only the stream counts that bracket ~30 FPS per channel. Around that
    * point the pipeline is throughput-bound: total FPS stays roughly flat as streams are added and
@@ -35,7 +35,7 @@ const RecommendEngine = {
    * A measured failure above M → M (measured). Every row held the target → max(M, E) capped at
    * 2× the highest tested count (estimated; '+' when capped). No row held it → E (estimated).
    * E with the minimum T_sat never contradicts a measured row: a failing row has total < target·n.
-   * Throttling no longer zeroes a platform — the measured FPS already ran at throttled clocks —
+   * Throttling does not zero a platform — the measured FPS already ran at throttled clocks —
    * it is reported (throttled) and ranks after an equal cool result.
    *
    * @param {Object} inputs - {task, size, cameras, targetFps, priority, ort, maxLatencyMs}
@@ -78,6 +78,7 @@ const RecommendEngine = {
         why: cap.why,
         throttled: cap.throttled,
         bottleneck: cap.bottleneck,
+        npuPct: cap.npuPct,                          // NPU load at the most loaded measured count (limit chip)
         meetsChannels,
         meetsLatency,
         status,
@@ -119,7 +120,7 @@ const RecommendEngine = {
 
   /**
    * @returns {{maxChannels:number, boundaryFlag:('measured'|'estimated'|'+'), evidence:('measured'|'estimated'|'none'),
-   *            tSat:number, throttled:boolean, bottleneck:('npu'|'host'|null), why:Object}}
+   *            tSat:number, throttled:boolean, bottleneck:('npu'|'host'|null), npuPct:(number|null), why:Object}}
    */
   _calcMaxChannels(bench, multiAll, targetFps) {
     const rows = this._sortedMulti(multiAll).filter(
@@ -128,7 +129,7 @@ const RecommendEngine = {
     const target = Number(targetFps) || 0;
     if (!rows.length || target <= 0) {
       return { maxChannels: 0, boundaryFlag: 'measured', evidence: 'none', tSat: 0, throttled: false,
-               bottleneck: null, why: { kind: 'none' } };
+               bottleneck: null, npuPct: null, why: { kind: 'none' } };
     }
 
     const satRow = rows.reduce((lo, m) => (Number(m.total_fps) < Number(lo.total_fps) ? m : lo), rows[0]);
@@ -155,10 +156,11 @@ const RecommendEngine = {
 
     const loaded = rows[rows.length - 1];
     const npuPct = Number(loaded.npu_total_avg_pct);
+    // target and raw (T_sat / target) let the card show its arithmetic
     const why = evidence === 'measured'
-      ? { kind: 'measured', n: measured, atFps: mRow.per_channel_fps,
+      ? { kind: 'measured', n: measured, atFps: mRow.per_channel_fps, target,
           nextN: failAbove ? failAbove.stream_count : null, nextFps: failAbove ? failAbove.per_channel_fps : null }
-      : { kind: 'estimated', n: maxChannels, tSat, maxTested, capped };
+      : { kind: 'estimated', n: maxChannels, tSat, target, raw: tSat / target, maxTested, capped };
     return {
       maxChannels,
       boundaryFlag: capped ? '+' : evidence,
@@ -166,6 +168,7 @@ const RecommendEngine = {
       tSat,
       throttled: basis.npu_throttled === true,
       bottleneck: Number.isFinite(npuPct) ? (npuPct >= this.NPU_BOUND_PCT ? 'npu' : 'host') : null,
+      npuPct: Number.isFinite(npuPct) ? npuPct : null,
       why,
     };
   },

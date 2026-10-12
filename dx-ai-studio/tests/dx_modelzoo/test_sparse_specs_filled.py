@@ -1,6 +1,6 @@
-"""The 11 models the source left sparse now carry params/ops/accuracy, researched from
+"""The models the source leaves sparse carry params/ops/accuracy, researched from
 upstream (GitHub/HF/papers) or mirrored from an exact DEEPX sibling. Guards the values and
-the CAS-ViT license correction (was wrongly Apache-2.0; the repo LICENSE is MIT)."""
+the CAS-ViT license (MIT per the repo LICENSE, not Apache-2.0)."""
 import sys
 from pathlib import Path
 
@@ -19,16 +19,16 @@ def _raw(m):
 
 def test_casvit_license_is_mit_not_apache():
     ms = _ms()
-    # casvit_xs / casvit_s were dropped from the staging catalog; casvit_t / casvit_m remain.
+    # The staging catalog has casvit_t / casvit_m (not casvit_xs / casvit_s).
     for v in ("casvit_t", "casvit_m"):
         assert ms[v]["legal"]["license"] == "MIT", f"{v} license must be MIT (repo LICENSE)"
 
 
 def test_sparse_cluster_has_params_ops_accuracy():
     ms = _ms()
-    # params/ops are curated specification values (stable); accuracy is now sourced
+    # params/ops are curated specification values (stable); accuracy is sourced
     # from the OFFICIAL publish-site snapshot (generated_catalog.json) at load, so it
-    # is dynamic and legitimately differs from the old hand-derived numbers
+    # is dynamic and can differ from hand-derived numbers
     # (e.g. casvit_t 82.3 → official 83.026, efficientformerv2_l 83.5 → 83.522).
     # Assert accuracy PRESENCE + plausible format/range, not an exact pinned value.
     expect = {

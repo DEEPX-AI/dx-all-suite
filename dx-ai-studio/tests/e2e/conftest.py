@@ -45,7 +45,7 @@ else:
 
 fake_app_root.activate(_FIXTURE_ROOT)
 
-# 결과 그림은 임시 폴더로 — 예전에는 CI 를 돌릴 때마다 사용자의 DX App Outputs 에 한 장씩 쌓였다 (release audit A-26)
+# Result images go to a temp dir so test runs do not pile files into the user's DX App Outputs.
 _OUTPUTS = Path(tempfile.mkdtemp(prefix="dx-e2e-outputs-"))
 atexit.register(shutil.rmtree, _OUTPUTS, True)
 os.environ["DX_STUDIO_OUTPUTS"] = str(_OUTPUTS)

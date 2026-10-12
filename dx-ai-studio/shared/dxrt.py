@@ -1,13 +1,13 @@
-"""이 PC 의 DX-RT 가 읽을 수 있는 .dxnn container (spec 2026-10-01 dx_app per-model layout 결정 5 · 6).
+"""Which .dxnn containers this PC's DX-RT can read.
 
-.dxnn 의 header 는 'DXNN' + little-endian uint32 (container 판) 다. DX-RT 3.4.2 는 6–8 을 읽고, DX Model Zoo 2_5_0
-의 파일은 9 다 (teammate dx_app 043351f2 · 이 PC 에서 직접 확인: "Model file format version 9 is not supported.
-Please use model file version between 6 and 8."). v9 는 DX-RT 3.5.0 이 필요하다.
+A .dxnn header is 'DXNN' + a little-endian uint32 (the container version). DX-RT 3.4.2 reads 6–8; DX Model Zoo
+2_5_0 files are 9 (DX-RT 3.4.2 says: "Model file format version 9 is not supported. Please use model file version
+between 6 and 8."). v9 needs DX-RT 3.5.0.
 
-- 버전은 ``dx-runtime/dx_rt/release.ver`` (예: ``v3.4.2``) 에서. 모르면 막지 않는다.
-- 다운로드: 오래된 DX-RT 에서는 같은 이름의 2_4_0 (v8) 파일을 받는다. 2_4_0 에 없으면 받지 않는다.
+- The version comes from ``dx-runtime/dx_rt/release.ver`` (e.g. ``v3.4.2``). Unknown never blocks.
+- Downloads: an older DX-RT gets the same-named 2_4_0 (v8) file. If 2_4_0 lacks it, nothing is downloaded.
 
-계약: tests/dx_app/test_dxrt_container.py (studio 의 dx_app · dx_modelzoo 가 같이 쓴다)
+Contract: tests/dx_app/test_dxrt_container.py (shared by the studio's dx_app and dx_modelzoo)
 """
 from __future__ import annotations
 
@@ -44,7 +44,7 @@ def supports(container: Optional[int]) -> bool:
 
 
 def needs_for(container: Optional[int]) -> Optional[str]:
-    """이 container 를 돌리려면 필요한 DX-RT (지금 것으로 되면 None)."""
+    """The DX-RT this container needs (None when the installed one runs it)."""
     return None if supports(container) else NEEDS_FOR_V9
 
 
@@ -53,7 +53,7 @@ def needs_for_file(path) -> Optional[str]:
 
 
 def download_urls(url: str) -> list:
-    """받을 URL 을 차례로. DX-RT 가 v9 를 못 읽으면 2_5_0 대신 같은 파일의 2_4_0."""
+    """URLs to try, in order. If DX-RT cannot read v9, the 2_4_0 copy replaces the 2_5_0 one."""
     if url and "/2_5_0/" in url and not supports(9):
         return [url.replace("/2_5_0/", "/2_4_0/")]
     return [url]
@@ -64,11 +64,12 @@ def is_v9_only(url: str) -> bool:
 
 
 def run_env(base: dict) -> dict:
-    """dx_app 실행 env. graph 일부가 CPU task 인 model (RT-DETR r18 등) 은 그 task 가 thread 하나면 async 도
-    막힌다 — DX-RT 가 권하는 DXRT_DYNAMIC_CPU_THREAD=ON (C++ async 4.2 → 9.3 FPS). 이미 정한 값은 둔다.
-    opencv-python 이 import 때 넣는 Qt 경로 (cv2/qt/...) 는 뺀다 — 시스템 Qt5 로 링크된 runner 가 그 플러그인을
-    싣다 abort 한다 (라이브 화면이 검다). 다른 곳을 가리키는 Qt 경로는 사용자가 정한 것이니 둔다.
-    계약: tests/dx_app/test_dxrt_cpu_thread.py"""
+    """Environment for a dx_app run. Models with CPU tasks in their graph (RT-DETR r18 etc.) stall even in async
+    when that task has one thread — so set DX-RT's recommended DXRT_DYNAMIC_CPU_THREAD=ON (C++ async 4.2 → 9.3
+    FPS). A value already set is kept.
+    Qt paths that opencv-python adds on import (cv2/qt/...) are removed — a runner linked against the system Qt5
+    aborts loading those plugins (the live view goes black). Qt paths pointing elsewhere are the user's and stay.
+    Contract: tests/dx_app/test_dxrt_cpu_thread.py"""
     env = dict(base)
     env.setdefault("DXRT_DYNAMIC_CPU_THREAD", "ON")
     for key in _CV2_QT_VARS:

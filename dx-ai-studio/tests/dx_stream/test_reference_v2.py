@@ -50,11 +50,10 @@ SHARED_COMPONENTS = ROOT / "shared" / "static" / "dx-components.css"
 
 
 def stream_css_source() -> str:
-    """브라우저가 실제로 보는 CSS — 모듈 것 + 공유 컴포넌트.
+    """The CSS the browser actually sees — the module's plus the shared components.
 
-    Reference 화면(.ref-*)은 dx_app 과 dx_stream 이 통째로 복제하고 있다가
-    shared/static/dx-components.css 로 올라갔다. 모듈 파일만 읽으면
-    화면이 멀쩡히 렌더되는데도 셀렉터가 사라진 것처럼 보인다.
+    The Reference screen (.ref-*) lives in shared/static/dx-components.css, so reading only the
+    module file would make its selectors look missing while the screen renders fine.
     """
     return read_text(STREAM / "static" / "css" / "stream.css") + "\n" + read_text(SHARED_COMPONENTS)
 
@@ -111,7 +110,7 @@ def test_stream_reference_preserves_categories_and_topics():
 
 
 def test_stream_reference_categories_have_v2_descriptions():
-    """카테고리 설명은 여섯 언어 (release audit S-9 — 예전에는 스페인어가 없었다)."""
+    """Category descriptions come in six languages."""
     js = reference_js_source()
     for expected in (
         "Setup, dashboard and the first demo",
@@ -177,7 +176,7 @@ def test_demo_fullscreen_target_keeps_stop_controls_inside():
 
     assert "var target = DXStream.$('demo-video-section')" in src
     assert "requestFullscreen()" in src
-    # panel 은 전체 화면 밖이다 — Stop 이 영상 상자 안에도 있다
+    # The panel stays outside fullscreen — Stop is inside the video box too
     html = template_source()
     box = html[html.index('id="demo-video-section"'):html.index('id="btn-demo-fullscreen"')]
     assert 'class="dds-live-stop" onclick="DXStream.stopDemo()"' in box
@@ -193,7 +192,7 @@ def test_demo_stop_exits_fullscreen_before_hiding_video_section():
 
     assert "document.fullscreenElement" in src
     assert "document.exitFullscreen()" in src
-    # 영상 상자를 무대에서 빼기 (숨은 자리로) 전에 전체 화면을 끝낸다 (spec 2026-10-01 demo stage)
+    # Leave fullscreen before parking the video box off the stage
     assert src.index("document.exitFullscreen()") < src.index("_demoParkVideo()")
 
 
@@ -320,12 +319,11 @@ def test_stream_reference_tab_labels_support_keyboard_activation():
     assert "activateRefTab(tab);" in js
 
 
-# Task 9: Reference — 제거된 데모/모델 카테고리 검증
+# Reference — removed demo/model categories
 
 
 def test_stream_reference_matches_dev_demo_surface():
-    """Demo 목록은 dx_stream/core/demos.py 와 같다 — 12개, 6번은 instance segmentation, 11번은 depth
-    (release audit S-9: 11개 · semantic 으로 적혀 있었다)."""
+    """The demo list matches dx_stream/core/demos.py — 12 demos, #6 is instance segmentation, #11 is depth."""
     source = reference_js_source()
     assert "OBB Detection" not in source
     assert "YOLO26n_OBB" not in source
@@ -337,12 +335,10 @@ def test_stream_reference_matches_dev_demo_surface():
 
 
 def test_reference_screen_has_exactly_one_definition():
-    """Reference 화면은 이제 한 곳에서만 정의된다.
+    """The Reference screen is defined in one place only.
 
-    dx_app 과 dx_stream 이 .ref-* 31개 rule 을 각자 갖고 있었고, 두 사본이
-    어긋나지 않는지 확인하려고 위의 visual-contract 테스트가 존재했다.
-    사본이 하나가 되면서 그 비교는 자명해졌고, 지켜야 할 것은 "다시 갈라지지
-    않는다"로 바뀐다.
+    dx_app and dx_stream share a single copy of the .ref-* rules; this keeps a
+    module-local copy from creeping back.
     """
     shared = read_text(SHARED_COMPONENTS)
     module_only = {

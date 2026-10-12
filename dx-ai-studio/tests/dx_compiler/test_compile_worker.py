@@ -1,12 +1,11 @@
 """compile_worker — the subprocess that runs dx_com inside the compiler venv.
 
-This module had zero coverage while carrying two fixes that are invisible when
-they break:
+The worker carries two behaviours that are invisible when they break:
 
   * event_to_dict parses the ONNX ModelProto to a graph dict HERE, because the
     proto cannot cross the process boundary as JSON. Without it the Prepared /
     Surgery / Partition / DXNN viewer tabs silently stay empty under subprocess
-    mode (the module comment records this regression).
+    mode.
   * every event line is prefixed with EVENT_PREFIX after a leading newline,
     because dx_com writes \\r-terminated tqdm bars to the SAME stdout — a raw
     JSON line would arrive glued to progress-bar noise and fail to parse.
@@ -108,7 +107,7 @@ class TestMain:
         assert payload["type"] == "error" and "Invalid JSON input" in payload["message"]
 
     def test_event_survives_a_tqdm_progress_bar_on_the_same_stream(self, monkeypatch, capsys):
-        """The regression this module guards against.
+        """The failure this module guards against.
 
         dx_com writes tqdm bars to the SAME stdout using \r and NO trailing
         newline. Without the leading "\n" the worker prints, the marker lands

@@ -1,4 +1,4 @@
-"""launcher 튜토리얼이 새 무대를 따라가는지 (spec 2026-09-23 §9, §8.2)."""
+"""The launcher tutorial follows the stage layout."""
 from __future__ import annotations
 
 import re
@@ -21,7 +21,7 @@ ORDER = [
     "#homeBar",
     "#homeTour",
     ".dx-chat-fab",
-    ".dx-chat-settings-kind",          # 2026-10-11: settings ask one question (chat settings redesign)
+    ".dx-chat-settings-kind",          # settings ask one question
     ".dx-chat-window.open",
 ]
 GONE = [".top-bar", "#launcherToolbar", "#deepxLinks", "#dxt-tutorial-card", "#replayBtn"]
@@ -38,8 +38,8 @@ def test_the_steps_follow_the_stage():
 
 
 def test_the_step_list_has_no_holes():
-    """`},,` 는 배열에 빈 칸을 만든다 — 엔진은 steps[i] 가 undefined 인 곳에서 투어를 멈춘다. 처음 판이
-    SDK Library 다음에서 멈췄다 (정규식으로 대상만 보던 위 테스트는 통과했다)."""
+    """`},,` makes a hole in the array, and the engine stops the tour where steps[i] is undefined. A regex that
+    reads only targets (the test above) does not see it."""
     assert not re.search(r"\}\s*,\s*,", _steps())
 
 
@@ -54,7 +54,7 @@ def _pictographs(text: str) -> list[str]:
 
 
 def test_no_emoji_in_the_launcher_steps():
-    """아이콘은 이모지 작업이 SVG 로 바꾼다 — 설명이 이모지를 가리키면 그때 거짓이 된다."""
+    """Icons are SVG; a description that points at an emoji would be false."""
     body = re.sub(r"//[^\n]*", "", _steps())
     assert _pictographs(body) == [], _pictographs(body)
 

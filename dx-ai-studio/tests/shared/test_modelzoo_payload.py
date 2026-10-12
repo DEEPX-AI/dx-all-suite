@@ -1,13 +1,12 @@
-"""공개 ModelZoo 페이로드 파서는 `shared/` 에 한 벌만 있다.
+"""The public ModelZoo payload parser exists once, in `shared/`.
 
-dx_modelzoo 는 카탈로그를 채우려고, dx_app 은 SETUP 페이지의 다운로드 목록을
-만들려고 같은 페이로드를 읽는다. 두 모듈은 서로 import 하지 않으므로 이 지식이
-한쪽에 있으면 다른 쪽이 베껴야 하고, 그러면 공개 페이지가 다시 바뀔 때 한쪽만
-고쳐진다 — 실제로 그 페이지는 2026-09 에 테이블에서 인라인 JSON 으로 한 번
-바뀌었다.
+dx_modelzoo reads the payload to fill its catalog, and dx_app reads it to build
+the SETUP page's download list. The two modules do not import each other, so if
+the parser lived in one, the other would have to copy it, and a change to the
+public page's format would get fixed on one side only.
 
-여기서 지키는 것은 "위임이 껍데기가 아니다" 다. `dx_modelzoo` 쪽 경로로 부르든
-`shared` 쪽 경로로 부르든 같은 객체여야 한다.
+What is guarded here: the delegation is only a re-export. Called through the
+`dx_modelzoo` path or the `shared` path, it is the same parser.
 """
 from __future__ import annotations
 
@@ -35,15 +34,15 @@ def test_shared_module_is_the_implementation():
 
 
 def test_dx_modelzoo_path_carries_no_implementation_of_its_own():
-    """위임 파일에 파싱 로직이 다시 들어가면 두 벌이 된다.
+    """Parsing logic in the delegating file would make two copies.
 
-    객체 동일성(`is`)으로는 이걸 못 잡는다 — tests/shared/conftest.py 가
-    `shared/` 자체를 sys.path 에 올리므로 같은 파일이 `shared.modelzoo_payload`
-    와 `modelzoo_payload` 두 모듈 객체로 존재할 수 있고, 그러면 함수 객체도
-    서로 다르다. 파서가 상태 없는 순수 함수라 그 자체는 해롭지 않지만,
-    동일성은 이 저장소가 보장하는 성질이 아니다.
+    Object identity (`is`) cannot catch this: tests/shared/conftest.py puts
+    `shared/` itself on sys.path, so one file can exist as two module objects,
+    `shared.modelzoo_payload` and `modelzoo_payload`, with distinct function
+    objects. That is harmless for a stateless parser, but identity is not a
+    property this repository guarantees.
 
-    그래서 실제로 지켜야 할 것을 본다: 위임 파일은 재수출뿐이어야 한다.
+    So check what matters: the delegating file only re-exports.
     """
     from dx_modelzoo.metadata import _public_parser
 
@@ -59,7 +58,7 @@ def test_dx_modelzoo_path_carries_no_implementation_of_its_own():
 
 
 def test_both_import_paths_agree():
-    """어느 경로로 부르든 같은 결과가 나와야 한다."""
+    """Either import path must give the same result."""
     from dx_modelzoo.metadata import _public_parser
     from shared import modelzoo_payload
 
@@ -68,7 +67,7 @@ def test_both_import_paths_agree():
 
 
 def test_payload_carries_all_four_tiers():
-    """Q-Master 까지 읽는다 — dx_app 의 설치 흐름이 이 값에 기댄다."""
+    """Reads every tier up to Q-Master; dx_app's install flow relies on it."""
     from shared.modelzoo_payload import parse_public_payload
 
     rows = parse_public_payload(_html())

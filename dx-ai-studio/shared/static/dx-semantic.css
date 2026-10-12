@@ -1,27 +1,25 @@
-/* Semantic 토큰 — 역할 이름. 모듈 CSS는 이 계층만 참조한다.
-   dx-tokens.css(primitive)와 각 모듈 CSS 사이에 로드된다.
-   여기 값은 dark(기본). light는 dx-theme-light.css가 이 이름들만 덮어쓴다.
+/* Semantic tokens — role names. Module CSS refers to this layer only.
+   Loaded between dx-tokens.css (primitives) and each module's CSS.
+   Values here are dark (the default); dx-theme-light.css overrides these names for light.
 
-   팔레트는 애플 계열로 옮겼다 — apple.com / developer.apple.com 의 실제
-   computed style 을 재서 뽑은 값이다. 런처 홈만 그 톤으로 만들어 놓으니
-   모듈을 열 때마다 회색에서 남색으로 튀었다. 토큰 이름은 그대로라 모듈
-   CSS 14,000줄은 한 줄도 건드리지 않고 함께 따라온다.
+   The palette follows Apple's (measured from apple.com computed styles), so the launcher
+   home and the modules share one tone.
 
-   상태색은 애플 값을 그대로 쓰지 않고 대비를 확인해 골랐다. dark 는
-   애플의 시스템 색이 검정 위에서 6:1 이상이라 그대로 쓰고, light 는
-   #34c759 같은 값이 흰 배경에서 2.2:1 이라 접근성 변형을 쓴다. */
+   Status colours were picked for contrast, not copied: Apple's system colours clear 6:1 on
+   black, so dark uses them as is; on white values like #34c759 drop to 2.2:1, so light uses
+   the accessible variants. */
 :root{
-  /* 면 */
+  /* Surfaces */
   --surface-page:#000000;
   --surface-panel:#1d1d1f;
   --surface-raised:#2c2c2e;
   --surface-sunken:#000000;
   --surface-overlay:rgba(0,0,0,.8);
-  /* 행 hover, 테이블 헤더, 코드 칩처럼 면보다 한 단계 도드라지는 자리. */
+  /* One step above a surface: row hover, table headers, code chips. */
   --surface-hover:#2c2c2e;
   --surface-hover-strong:#3a3a3c;
 
-  /* 글자 */
+  /* Text */
   --text-primary:#f5f5f7;
   --text-secondary:#d6d6d8;
   --text-muted:#a1a1a6;
@@ -29,17 +27,17 @@
   --text-on-accent:#ffffff;
   --text-on-accent-solid:var(--surface-page);
 
-  /* 선 */
+  /* Borders */
   --border-subtle:rgba(255,255,255,.12);
   --border-strong:rgba(255,255,255,.2);
 
-  /* 컨트롤 */
+  /* Controls */
   --control-bg:#2c2c2e;
   --control-border:rgba(255,255,255,.12);
   --control-border-focus:#2997ff;
   --control-ring:rgba(41,151,255,.25);
 
-  /* 상태 — accent와 별개다. 검정 위 대비: 10.4 / 10.2 / 6.2 / 7.0 */
+  /* Status — separate from accent. Contrast on black: 10.4 / 10.2 / 6.2 / 7.0 */
   --status-ok:#30d158;
   --status-warn:#ff9f0a;
   --status-error:#ff453a;

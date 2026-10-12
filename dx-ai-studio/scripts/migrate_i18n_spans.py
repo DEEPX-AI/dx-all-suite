@@ -1,22 +1,22 @@
 #!/usr/bin/env python3
-"""언어별 형제 span 뭉치를 data-i18n 한 줄로 바꾼다.
+"""Replace groups of per-language sibling spans with a single data-i18n span.
 
-지금 마크업은 한 문구를 6번 쓴다:
+The markup writes each phrase six times, once per language:
 
-    <span class="ko">저장</span><span class="ja">保存</span><span class="zh-CN">保存</span>
+    <span class="ko">...</span><span class="ja">保存</span><span class="zh-CN">保存</span>
     <span class="zh-TW">儲存</span><span class="en">Save</span><span class="es">Guardar</span>
 
-같은 문구가 사전(_DX_I18N_DICT)에도 들어 있어 번역이 두 곳에 산다. i18n.js 는
-data-i18n 을 이미 지원하므로 마크업은 영어 한 벌만 남기면 된다:
+The same phrase is also in the dictionary (_DX_I18N_DICT), so translations live in two places. i18n.js
+already supports data-i18n, so the markup only needs the English text:
 
     <span data-i18n="Save">Save</span>
 
-    python -m scripts.migrate_i18n_spans            # 무엇이 바뀌는지만 출력
-    python -m scripts.migrate_i18n_spans --apply    # 실제로 고친다
+    python -m scripts.migrate_i18n_spans            # only print what would change
+    python -m scripts.migrate_i18n_spans --apply    # apply the changes
 
-사전은 절대 덮어쓰지 않는다. 마크업에만 있던 번역은 새 key 로 추가하고,
-사전과 값이 다르면 사전 쪽을 남긴 채 불일치로 보고한다 — 어느 쪽이 맞는지는
-사람이 판단할 문제다.
+The dictionary is never overwritten. Translations found only in the markup are added as new keys; when
+markup and dictionary disagree, the dictionary value is kept and the mismatch is reported, since a person
+has to decide which one is right.
 """
 from __future__ import annotations
 
@@ -30,7 +30,7 @@ from scripts.js_object_literal import object_span, parse_object_after, value_spa
 ROOT = Path(__file__).resolve().parent.parent
 LANGS = ("ko", "ja", "zh-CN", "zh-TW", "en", "es")
 
-# 모듈 → (마크업 glob, 사전 파일). launcher 는 사전이 HTML 안에 인라인이다.
+# module → (markup glob, dictionary file). The launcher dictionary is inline in its HTML.
 MODULES = {
     "dx_app": ("dx_app", "dx_app/static/js/i18n.js"),
     "dx_stream": ("dx_stream", "dx_stream/static/js/stream-i18n.js"),
@@ -41,24 +41,23 @@ MODULES = {
     "launcher": ("launcher", "launcher/static/index.html"),
 }
 
-# 언어 클래스는 class 안 어디에 있어도 언어 span 이다.
-# class="ko" 만 보던 시절엔 launcher 의 `class="deepx-link-label ko"` 9뭉치가
-# 통째로 안 보였다 — 게이트가 0 을 보고하는 동안 54개 span 이 살아 있었다.
+# A language class anywhere in the class list makes it a language span; matching only class="ko"
+# misses spans like `class="deepx-link-label ko"`.
 _ONE = (
     r'<span class="(?:[^"]*\s)?(ko|ja|zh-CN|zh-TW|en|es)(?:\s[^"]*)?">'
     r'((?:(?!</?span).)*?)</span>'
 )
-# 첫 span 앞의 공백은 먹지 않는다 — "🎬 <group>" 의 그 한 칸은 화면에 보인다.
-# span 사이의 공백은 먹는다 — 보이는 span 은 하나뿐이라 앞뒤 공백으로 접힌다.
+# Whitespace before the first span is kept: the space in "🎬 <group>" is visible on screen.
+# Whitespace between spans is consumed: only one span is visible, so it collapses into the surrounding space.
 _GROUP = re.compile(_ONE + r"(?:\s*" + _ONE + r")+", re.S)
 _SINGLE = re.compile(_ONE, re.S)
 
-# JS 안에서 문자열을 이어붙여 만든 span 은 텍스트가 아니라 코드다.
+# Spans built by string concatenation inside JS are code, not text.
 _CONCAT = re.compile(r"""['"]\s*\+|\+\s*['"]""")
 
 
 def _texts(block: str) -> dict[str, str]:
-    """그룹 안의 언어별 원문. 같은 언어가 두 번 나오면 첫 것을 쓴다."""
+    """The per-language text in a group. If a language appears twice, the first wins."""
     out: dict[str, str] = {}
     for lang, value in _SINGLE.findall(block):
         out.setdefault(lang, value.strip())
@@ -66,13 +65,13 @@ def _texts(block: str) -> dict[str, str]:
 
 
 def _is_solo(text: str, start: int, end: int) -> bool:
-    """그룹이 부모 엘리먼트의 유일한 내용인가."""
+    """Whether the group is the only content of its parent element."""
     before = text[max(0, start - 400) : start].rstrip()
     after = text[end : end + 200].lstrip()
     return before.endswith(">") and after.startswith("</")
 
 
-# 자식을 가질 수 없는 태그. 이 뒤에 오는 span 뭉치는 자식이 아니라 형제다.
+# Void tags. A span group after one of these is a sibling, not a child.
 _VOID = {
     "area", "base", "br", "col", "embed", "hr", "img", "input",
     "link", "meta", "param", "source", "track", "wbr",
@@ -80,7 +79,7 @@ _VOID = {
 
 
 def _parent_tag(text: str, start: int) -> tuple[int, str] | None:
-    """그룹 바로 앞 여는 태그의 (시작 인덱스, 태그 원문)."""
+    """(start index, raw tag) of the opening tag right before the group."""
     close = text.rfind(">", 0, start)
     if close < 0:
         return None
@@ -91,7 +90,7 @@ def _parent_tag(text: str, start: int) -> tuple[int, str] | None:
     if tag.startswith("</") or tag.endswith("/>") or "<" in tag[1:]:
         return None
     if tag.count('"') % 2 or tag.count("'") % 2:
-        # 속성값 안의 '>' 에서 잘린 조각이다 (onclick="f(a>b)"). 손대지 않는다.
+        # A fragment cut at a '>' inside an attribute value (onclick="f(a>b)"). Leave it alone.
         return None
     name = re.match(r"<([a-zA-Z][a-zA-Z0-9]*)", tag)
     if not name or name.group(1).lower() in _VOID:
@@ -127,18 +126,18 @@ def _plan_file(path: Path) -> list[Finding]:
     for m in _GROUP.finditer(text):
         block = m.group(0)
         if _CONCAT.search(block):
-            # '<span class="ko">' + t.ko + '</span>' 같은 조립식. 문자열이 아니라
-            # 코드라서 key 를 뽑을 수 없다.
+            # Assembled like '<span class="ko">' + t.ko + '</span>'. That is code, not a
+            # string, so no key can be extracted.
             continue
         tr = _texts(block)
         key = tr.get("en")
         if not key:
-            # 영어가 없는 뭉치는 key 를 만들 수 없다. 손대지 않는다.
+            # A group without English cannot produce a key. Leave it alone.
             continue
         has_html = any("<" in v for v in tr.values())
         attr = "data-i18n-html" if has_html else "data-i18n"
-        # data-i18n 은 textContent 를 쓴다 — 사전 key 와 화면 문자열 둘 다
-        # 엔티티가 풀린 상태여야 한다. data-i18n-html 은 원문 그대로 둔다.
+        # data-i18n writes textContent, so both the dictionary key and the displayed text
+        # must have entities decoded. data-i18n-html keeps the raw source.
         if has_html:
             key_attr = key
             body = key
@@ -183,10 +182,10 @@ def _load_dict(rel: str) -> dict:
 
 
 def _render_entry(key: str, tr: dict[str, str]) -> str:
-    """사전에 이미 쓰이는 여러 줄 형태로 찍는다.
+    """Render in the multi-line form the dictionary already uses.
 
-    한 줄로 찍으면 계약 테스트가 항목을 못 읽는다 — dx_compiler 의
-    dict_entry() 는 `'key': {` 다음 줄부터 `\n  },` 까지를 본문으로 본다.
+    A one-line entry is unreadable to the contract tests: dx_compiler's
+    dict_entry() reads the body from the line after `'key': {` up to `\n  },`.
     """
     lines = [f"  {_js_str(key)}: {{"]
     for lang in LANGS:
@@ -203,10 +202,10 @@ def _js_str(value: str) -> str:
 
 
 def _referenced_outside_spans(files: list[Path], key: str) -> list[str]:
-    """key 가 lang-span 뭉치 말고 다른 경로로도 참조되는가.
+    """Whether the key is referenced by anything other than lang-span groups.
 
-    참조가 있으면 사전 값을 마크업 쪽으로 맞추는 순간 그 다른 화면들이 같이
-    바뀐다. 그런 key 는 기계가 정할 문제가 아니라서 건드리지 않는다.
+    If so, aligning the dictionary value with the markup would also change those
+    other screens. That is not for a script to decide, so such keys are left alone.
     """
     pat = re.escape(key)
     probes = (
@@ -225,7 +224,7 @@ def _referenced_outside_spans(files: list[Path], key: str) -> list[str]:
 
 
 def _apply_dict_edits(rel: str, edits: dict[str, dict[str, str]]) -> None:
-    """사전의 개별 언어 값만 제자리에서 교체한다."""
+    """Replace individual language values in the dictionary in place."""
     path = ROOT / rel
     src = path.read_text()
     spans = value_spans(src, "_DX_I18N_DICT")
@@ -240,11 +239,11 @@ def _apply_dict_edits(rel: str, edits: dict[str, dict[str, str]]) -> None:
 
 
 def _plan_module(name: str) -> dict:
-    """모듈 하나의 마이그레이션 계획.
+    """The migration plan for one module.
 
-    key 하나는 번역 한 벌만 가질 수 있다. 그래서 같은 key 인데 화면마다 다른
-    문구를 쓰고 있으면 (마크업끼리 어긋나거나, 사전과 어긋나는데 그 key 를
-    다른 화면도 쓰고 있으면) 기계가 고를 수 없다 — 그런 key 는 통째로 남긴다.
+    A key can hold only one set of translations. When screens use different text
+    for the same key (markup disagrees with itself, or with the dictionary while
+    other screens also use the key), a script cannot choose, so the key is left as is.
     """
     root, dict_rel = MODULES[name]
     dictionary = _load_dict(dict_rel)
@@ -254,7 +253,7 @@ def _plan_module(name: str) -> dict:
     for path in files:
         findings.extend(_plan_file(path))
 
-    # 1) key 별로 마크업이 주장하는 번역을 모은다.
+    # 1) Collect the translations the markup claims for each key.
     claims: dict[str, dict[str, set[str]]] = {}
     for f in findings:
         per_key = claims.setdefault(f.key, {})
@@ -262,7 +261,7 @@ def _plan_module(name: str) -> dict:
             if lang != "en":
                 per_key.setdefault(lang, set()).add(value)
 
-    # 2) 손댈 수 없는 key 를 가려낸다.
+    # 2) Set aside the keys that cannot be touched.
     blocked: dict[str, str] = {}
     edits: dict[str, dict[str, str]] = {}
     additions: dict[str, dict[str, str]] = {}

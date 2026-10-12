@@ -49,8 +49,8 @@ def _start_cam_mux(real_cam_idx, n_slots):
         tee_output = "|".join(tee_parts)
 
         # MJPEG 640x480 first (cheap to decode on most USB webcams); a camera without that mode (YUYV-only webcams,
-        # capture cards) made ffmpeg exit at once and every multi-slot run failed — then take the camera's own format
-        # and scale to the same 640x480 (2026-10-11 real-use audit).
+        # capture cards) would make ffmpeg exit at once and fail every multi-slot run — then take the camera's own
+        # format and scale to the same 640x480.
         attempts = [
             (["-input_format", "mjpeg", "-video_size", "640x480", "-framerate", "30"], []),
             ([], ["-vf", "scale=640:480"]),
@@ -157,8 +157,8 @@ def _ensure_xvfb(slot_idx=0):
         proc = _xvfb_procs.get(slot_idx)
         if proc and proc.poll() is None:
             return
-        # 그 display 에 이미 X 서버가 있으면 (이전 실행이 남긴 것 · 다른 studio) 죽이지 않고 쓴다 — 예전의
-        # `pkill -f 'Xvfb :99'` 는 ':990' 이나 남의 Xvfb 까지 죽였다 (2026-10-02 release audit A-15). -ac 라 그려도 된다.
+        # If that display already has an X server (left by an earlier run, or another studio), use it rather than
+        # kill it: a `pkill -f 'Xvfb :99'` would also kill ':990' or someone else's Xvfb. It runs with -ac, so drawing works.
         if _xcb_conn(display) is not None:
             _xvfb_procs.pop(slot_idx, None)
             return
@@ -171,7 +171,7 @@ def _ensure_xvfb(slot_idx=0):
 
 
 def stop_xvfb(slot_idx):
-    """이 서버가 띄운 slot 의 Xvfb 만 끈다 (남이 띄운 display 는 건드리지 않는다). 다음 실행이 다시 띄운다 (약 1초)."""
+    """Stop only the Xvfb of a slot this server started (displays started by others are left alone). The next run restarts it (about 1 s)."""
     with _xvfb_lock:
         p = _xvfb_procs.pop(slot_idx, None)
     conn = _xcb_conns.pop(f":{_XVFB_BASE + slot_idx}", None)
@@ -188,10 +188,10 @@ def stop_xvfb(slot_idx):
             p.kill()
 
 
-# ── Live 화면: 창 맞추기 · Qt 테두리 잘라내기 (계약: tests/dx_app/test_live_display.py) ──────────────
-# dx_app 의 C++ runner 는 OpenCV(Qt) 창을 기본 크기 (400x300) 로 띄운다. Xvfb 에는 window manager 가 없어 그대로
-# 왼쪽 위 구석에 작게 남고, 화면 전체를 찍으면 나머지가 검다. 창을 화면 크기로 늘리고, 찍은 그림에서 Qt 의
-# toolbar · status bar · 비율 여백 (회색) 을 잘라낸다. libX11 은 ctypes 로 — 새 의존성 없음 (화면은 libxcb 로 찍는다, `_grab_screen`).
+# ── Live view: fit the window, crop the Qt frame (contract: tests/dx_app/test_live_display.py) ──────────────
+# dx_app's C++ runner opens an OpenCV (Qt) window at its default size (400x300). Xvfb has no window manager, so it
+# stays small in the top-left corner and a full-screen grab is mostly black. The window is stretched to the screen,
+# and the Qt toolbar, status bar and aspect padding (gray) are cut from the grab. libX11 via ctypes, no new dependency (the screen is grabbed with libxcb, `_grab_screen`).
 _LIVE_FRAME_MAX = (960, 540)
 _QT_CHROME = (239, 239, 239)
 _FIT_EVERY_S = 1.0
@@ -201,7 +201,7 @@ _XLIB = None
 
 
 def _load_lib(soname, short):
-    """soname 으로 먼저 연다 — find_library 는 ldconfig · gcc 를 띄운다. 그래도 없으면 find_library."""
+    """Open by soname first, since find_library spawns ldconfig and gcc. Fall back to find_library."""
     import ctypes
     try:
         return ctypes.cdll.LoadLibrary(soname)
@@ -216,7 +216,7 @@ def _load_lib(soname, short):
 
 
 def _xlib():
-    """libX11 (ctypes) — 없으면 None."""
+    """libX11 (ctypes), or None."""
     global _XLIB
     if _XLIB is not None:
         return _XLIB or None
@@ -252,8 +252,8 @@ _xcb_conns = {}              # display -> (conn, root, width, height)
 
 
 def _xcb():
-    """libxcb + libc (ctypes) — 없으면 None. Xlib 이 아니라 xcb 인 이유: Xlib 은 X 서버 연결이 끊기면 (Xvfb 가 죽으면)
-    기본 IO error handler 가 프로세스를 exit 시킨다 — dx_app 서버가 통째로 죽는다. xcb 는 오류를 돌려줄 뿐이다."""
+    """libxcb + libc (ctypes), or None. Why xcb rather than Xlib: when the X server connection drops (Xvfb dies), Xlib's
+    default IO error handler exits the process, taking the whole dx_app server down. xcb just returns an error."""
     global _XCB
     if _XCB is not None:
         return _XCB or None
@@ -289,7 +289,7 @@ def _xcb():
 
 
 def _xcb_conn(display):
-    """display 의 (conn, root, width, height) — 연결은 다시 쓰고, 끊겼으면 새로 맺는다."""
+    """(conn, root, width, height) for the display. Reuses the connection and reconnects if it dropped."""
     import ctypes
     x = _xcb()
     if x is None:
@@ -321,11 +321,11 @@ def _xcb_conn(display):
 
 
 def _grab_screen(display):
-    """display 의 root 창 전체를 PIL RGB 그림으로 (xcb_get_image). 실패하면 None.
+    """Grab the display's whole root window as a PIL RGB image (xcb_get_image). None on failure.
 
-    mss 대신 — mss 는 어디에도 선언되지 않은 의존성이라 새로 설치한 보드에서 라이브가 전부 막혔다
-    (계약: tests/dx_app/test_live_grab.py). Xvfb 는 24bit TrueColor · 32bpp · little-endian 이라 BGRX 그대로 읽는다.
-    호출하는 쪽 (capture_live_frame) 이 _display_env_lock 을 잡고 있어 연결을 동시에 쓰지 않는다."""
+    Not mss: mss is not a declared dependency, so live view would fail on a freshly installed board
+    (contract: tests/dx_app/test_live_grab.py). Xvfb is 24-bit TrueColor, 32bpp, little-endian, so BGRX is read as is.
+    The caller (capture_live_frame) holds _display_env_lock, so the connection is never used concurrently."""
     import ctypes
     from PIL import Image
     x = _xcb()
@@ -351,7 +351,7 @@ def _grab_screen(display):
 
 
 def _fit_windows(display, width, height):
-    """display 의 top-level 창을 (0, 0, width, height) 로. 그 크기인 창 수를 돌려준다."""
+    """Move the display's top-level windows to (0, 0, width, height). Returns how many windows have that size."""
     import ctypes
     x = _xlib()
     if x is None:
@@ -389,18 +389,18 @@ def _is_chrome(px):
 
 
 def _content_box(img):
-    """Qt 창의 회색 테두리 (toolbar · status bar · 비율 여백) 를 뺀 영상 영역 (x0, y0, x1, y1). 테두리가 없으면 None.
-    가장자리에서 안쪽으로만 깎는다 — 영상 한가운데의 밝은 회색 줄은 건드리지 않는다."""
+    """Video area (x0, y0, x1, y1) without the Qt window's gray frame (toolbar, status bar, aspect padding). None if no frame.
+    Trims inward from the edges only, so a light gray line in the middle of the video is left alone."""
     W, H = img.size
     step = max(1, min(W, H) // 180)
     from PIL import Image
-    # nearest — 섞으면 테두리와 영상의 경계 열이 회색도 영상도 아니게 된다
+    # nearest: blending would make the column between frame and video neither gray nor video
     small = img.convert("RGB").resize((max(1, W // step), max(1, H // step)), Image.Resampling.NEAREST)
     sw, sh = small.size
     px = small.load()
 
-    # 좌우 여백부터 (열 전체가 거의 회색) — 세로 영상이면 여백이 화면 절반을 넘어 줄로는 가를 수 없다.
-    # 그다음 영상 열 안에서 위 · 아래 줄 (toolbar 글자 줄도 회색이 절반 가까이, 영상 줄은 거의 0).
+    # Side padding first (whole column nearly gray): for portrait video the padding exceeds half the screen, so rows cannot split it.
+    # Then the top and bottom rows inside the video columns (toolbar text rows are close to half gray, video rows near 0).
     def chrome_col(x):
         return sum(_is_chrome(px[x, y]) for y in range(sh)) > 0.6 * sh
 
@@ -430,7 +430,7 @@ def _content_box(img):
 
 
 def _frame_jpeg(img, box=None):
-    """찍은 화면 → 영상 영역만, 비율을 지켜 _LIVE_FRAME_MAX 안으로, JPEG."""
+    """Grabbed screen -> video area only, scaled with aspect ratio to fit _LIVE_FRAME_MAX, as JPEG."""
     from PIL import Image
     if box is None:
         box = _content_box(img)
@@ -461,7 +461,7 @@ def capture_live_frame(slot_idx=0):
             pil = _grab_screen(display)
             if pil is None:
                 return None
-            # 창을 막 늘린 직후의 한 장은 아직 작은 창이다 — 영상 영역을 못 찾았으면 곧 다시 본다
+            # The first grab right after stretching still shows the small window; if no video area was found, look again soon
             if now - view["box_at"] >= (_BOX_EVERY_S if view["box"] else 0.5):
                 view["box_at"] = now
                 view["box"] = _content_box(pil)

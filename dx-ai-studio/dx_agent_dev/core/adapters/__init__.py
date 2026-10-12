@@ -1,7 +1,7 @@
-"""에이전트 어댑터 레지스트리.
+"""Agent adapter registry.
 
-AGENT_REGISTRY는 도구명→어댑터 클래스. 신규 어댑터는 자신의 모듈에서 import 후
-아래 dict에 등록한다(Chunk 2). model은 make_adapter 생성 시 바인딩 → run arity 불변.
+AGENT_REGISTRY maps a tool name to its adapter class. A new adapter is imported from its own module and
+registered in the dict below. The model is bound when make_adapter builds the instance, so run() keeps its arity.
 """
 from dx_agent_dev.core.agents_config import AGENTS
 from dx_agent_dev.core.adapters.base import AgentAdapter, SubprocessAdapter
@@ -22,18 +22,18 @@ AGENT_REGISTRY = {
 
 
 def get_adapter(name):
-    """레지스트리 클래스 조회(없으면 None)."""
+    """Look up the registry class (None if unknown)."""
     return AGENT_REGISTRY.get(name)
 
 
 def make_adapter(name, model=None, effort=None):
-    """config 기반 인스턴스 생성 + name/model/effort 바인딩(없으면 None)."""
+    """Build an instance from config and bind name/model/effort (None if unknown)."""
     cls = AGENT_REGISTRY.get(name)
     if cls is None:
         return None
     cfg = AGENTS.get(name, {})
     resolved = model or cfg.get("default_model")
-    # effort는 해당 agent가 지원할 때만 바인딩(미지원이면 무시).
+    # Bind effort only when the agent supports it; otherwise ignore it.
     efforts = cfg.get("reasoning_efforts", [])
     bound_effort = effort if (effort and effort in efforts) else None
     inst = cls(model=resolved, effort=bound_effort)

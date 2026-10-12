@@ -40,17 +40,24 @@ The **chat assistant** (bottom-right button) is available in every DX AI Studio 
 it anytime to ask about DEEPX models, the SDK, the compiler, or how any module works — it
 draws on bundled DEEPX SDK knowledge to answer.  
 
-In chat settings (⚙️) you can pick from **seven providers**:  
+The line at the top of the chat always says who answers. With nothing set, it answers through
+the **coding agent you are signed in to** (`claude`, `copilot`, `cursor-agent`, `codex` or
+`opencode`) — no API key needed, and the same Studio agent that Home and Agent Dev use. Note
+that a coding agent answers from its vendor's cloud with that account's usage.
 
-- **API-key providers** — OpenAI, Anthropic, Google, GitHub Models, or a **Custom**
-  (OpenAI-compatible) endpoint.  
-- **Fully offline, no cloud key needed** — **Local** (your own Ollama-compatible server)
-  or **Coding-agent CLI** (reuse an already-logged-in `claude` / `copilot` / `cursor-agent`
-  / `codex` / `opencode` session — no separate API key).  
+**Change** (or ⚙️) asks one question — *Which AI should answer?*  
 
-With no provider configured, the assistant falls back to built-in keyword-based guidance
-rather than failing outright. Use **Refresh knowledge** (⚙️) to re-sync the assistant's
-SDK knowledge with the latest `.deepx` docs.  
+- **Coding agent on this PC** — pick an installed CLI; each shows whether it is signed in, or
+  the command that signs it in.  
+- **My local LLM server** — your own Ollama-compatible server (Ollama, LM Studio, llama.cpp …).  
+- **Cloud API key** — OpenAI, Anthropic, Google, GitHub Models, or a custom
+  OpenAI-compatible endpoint.  
 
-The in-app tutorial's chatbot walkthrough (providers, offline options, refresh knowledge)
-is now centralized in the launcher's onboarding tour, rather than repeated per-module.  
+Saving tests the connection first; if it fails, the reason is shown with **Save anyway**.
+Leaving the key field blank keeps the saved key. **Back to automatic** forgets the choice.
+Temperature and **Refresh knowledge** (re-sync the assistant's SDK knowledge with the latest
+`.deepx` docs) are under **Advanced**. With no agent signed in and nothing set, the assistant
+gives basic built-in guidance and says how to connect an AI.
+
+The chat walkthrough (who answers, the one settings question, Refresh knowledge) is in the
+launcher's onboarding tour, rather than repeated per module.  

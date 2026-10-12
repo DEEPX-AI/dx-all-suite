@@ -18,6 +18,8 @@ The module opens on a set of pages (top tabs):
       **own uploaded image**, or a video (some tasks are image-only; special inputs like 3D
       LiDAR `.bin` appear where they apply). Image runs show a **before/after compare slider**.  
     - **Continuous** — video, camera or RTSP streamed live, with several slots side by side.
+      For RTSP, paste the camera's full URL (`rtsp://user:pass@cam:554/…`); an `IP:Port` with a
+      stream pick still works.
       A model that takes still images only is refused with an explanation.  
 - **Run Demo** — 26 ready-made demos in 12 groups on one stage: choose a demo, the input
   (image or video), C++ or Python, Sync or Async, and run. Video runs stream live with FPS.  

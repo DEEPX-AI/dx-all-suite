@@ -1,4 +1,4 @@
-"""Root conftest — repo root import 우선순위를 안정화한다."""
+"""Root conftest — keep the repo root first on the import path."""
 from pathlib import Path
 import os
 import sys
@@ -10,22 +10,25 @@ if str(ROOT) in sys.path:
     sys.path.remove(str(ROOT))
 sys.path.insert(0, str(ROOT))
 
-# test 는 진짜 agent CLI (copilot · claude · cursor …) 를 돌리지 않는다. adapter 가 이 값을 보고
-# PATH 의 진짜 CLI 실행을 거절한다 (가짜 script 는 그대로). module server 하위 process 도 물려받는다.
-# agent 를 지정하지 않은 실행이 기본 copilot 으로 가서, CLI 를 설치 · 로그인하자 test 한 번에 실제
-# 실행이 12번 돌았다 (2026-09-30). 계약: tests/dx_agent_dev/test_no_real_runs_in_tests.py
+# Tests never run a real agent CLI (copilot · claude · cursor …). With this set, the adapter refuses to
+# run a real CLI from PATH (fake scripts still run); module server child processes inherit it. Without it,
+# a run that names no agent falls back to copilot and, on a machine where that CLI is installed and logged
+# in, really runs it. Contract: tests/dx_agent_dev/test_no_real_runs_in_tests.py
 os.environ["DX_AGENT_NO_REAL_RUN"] = "1"
 
-# test 는 사용자의 Studio 설정 (~/.dx-ai-studio: chat_config.json · agent.json) 을 건드리지 않는다. Home 이 고른 agent 를
-# 저장하게 되자 (2026-10-11 chat settings) agent 를 바꾸는 browser test 가 실행한 사람의 agent.json 을 썼다.
-# 세션 전체를 임시 폴더로 돌린다 — module server 하위 process 도 물려받는다. test 가 monkeypatch 로 따로 정하면 그것이 이긴다.
-# 계약: tests/shared/test_tests_keep_user_settings.py
+# Tests never touch the user's Studio settings (~/.dx-ai-studio: chat_config.json · agent.json); otherwise a
+# browser test that switches the agent in Home would overwrite the agent.json of whoever runs the suite.
+# The whole session points at a temp dir, inherited by module server child processes. A test that sets its own
+# value with monkeypatch wins. Contract: tests/shared/test_tests_keep_user_settings.py
 if not os.environ.get("DX_CHAT_CONFIG_DIR"):
+    import atexit as _atexit
+    import shutil as _shutil
     import tempfile as _tempfile
     os.environ["DX_CHAT_CONFIG_DIR"] = _tempfile.mkdtemp(prefix="dx-studio-cfg-")
+    _atexit.register(_shutil.rmtree, os.environ["DX_CHAT_CONFIG_DIR"], True)
 
-# 일부 모듈 테스트가 자체 top-level package 경로를 앞에 추가해도 감사 도구 import가
-# 흔들리지 않도록 root namespace를 먼저 고정한다.
+# Pin the root namespace first, so module tests that prepend their own top-level package paths
+# cannot shadow the audit tool import.
 import tools.i18n_audit  # noqa: E402,F401
 
 
@@ -33,10 +36,9 @@ def pytest_configure(config):
     """Let browser tests reuse a host Chromium when Playwright has no cache."""
     del config
 
-    # DX_OFFLINE_GUARD=1 이면 외부 소켓을 막은 채로 돈다. run_ci.sh --offline 이
-    # 이것을 켠다 — 폐쇄망에서 개발하던 시절에는 환경이 해주던 일이다.
-    # localhost 는 막지 않는다: 테스트가 모듈 서버를 띄워 127.0.0.1 로 말한다.
-    # 등급과 예외는 docs/offline-contract.md.
+    # With DX_OFFLINE_GUARD=1 the suite runs with external sockets blocked; run_ci.sh --offline
+    # sets it. localhost stays open: tests start module servers and talk to them on 127.0.0.1.
+    # Tiers and exceptions: docs/offline-contract.md.
     if os.environ.get("DX_OFFLINE_GUARD") == "1":
         from tests.offline_guard import install as install_offline_guard
 

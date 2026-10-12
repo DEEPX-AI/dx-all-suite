@@ -1,6 +1,6 @@
 /**
- * DX Stream — 대시보드 페이지
- * 시스템 상태 5초 폴링, i18n 적용
+ * DX Stream — dashboard page
+ * Polls system status every 5 s and applies i18n
  */
 DXStream.dashboardInit = function () {
     _fetchStatus();
@@ -49,10 +49,11 @@ async function _fetchStatus() {
     _setPerfPolling(!!(pipeResp && pipeResp.running));
 }
 
-/* ── 실행 중인 파이프라인과 그 수치 (release audit S-15) ──
-   예전 표는 /api/status 의 perf 필드를 기다렸는데 서버는 그것을 보낸 적이 없어 늘 "--" 였다. 이제:
-   FPS 는 /api/stream/stats 의 프레임 수 차이 (MJPEG · fMP4 — WebRTC 는 브라우저가 받으므로 Demo 화면에서),
-   NPU 사용률은 DX Monitor (/dx_monitor/api/hw_status, launcher 안에서만). 근거가 없는 지연 행은 뺐다. */
+/* ── The running pipeline and its numbers ──
+   /api/status carries no perf fields, so the numbers come from elsewhere:
+   FPS is the frame-count delta from /api/stream/stats (MJPEG · fMP4 — WebRTC is received by the browser,
+   so it shows on the Demo page), NPU usage from DX Monitor (/dx_monitor/api/hw_status, launcher only).
+   There is no latency row because nothing measures it. */
 var _perfTimer = null;
 var _perfPrev = null;
 var _perfRunKey = null;
@@ -156,7 +157,7 @@ function _updatePipelineBadge(data) {
     }
 }
 
-// 아이콘 + 글자를 바뀔 때만 다시 쓴다 (폴링마다 DOM 을 갈지 않는다, 아이콘 체계 단계 5).
+// Rewrite icon + text only when they change, so each poll does not churn the DOM.
 function _setLabelIfChanged(el, icon, text) {
     var key = icon + '|' + text;
     if (el.dataset.dxLabel === key) return;
@@ -191,8 +192,8 @@ if (typeof document !== 'undefined') {
 }
 
 // Quick Launch: open the demo on the stage once the list has loaded, then start it — only if it
-// can run. It used to fire _startDemo 400 ms after nav, before the list (and the stage) existed,
-// and with no availability check: a demo needing setup came back as a raw 424.
+// can run. Starting before the list (and the stage) exists, or without the availability check,
+// turns a demo that needs setup into a raw 424.
 DXStream.quickLaunchDemo = async function (demoId) {
     DXStream._allDemos = null;            // judge on the list this visit loads, not an old one
     DXStream.nav('demo');
@@ -296,7 +297,7 @@ function _drawSparkline(canvasId, data, minVal, maxVal, color) {
 }
 if (typeof registerStreamLangRefresher === 'function') {
   registerStreamLangRefresher(function() {
-    // 헤더 상태 배지는 폴링 때만 다시 써서, 언어를 바꾸면 다음 폴링까지 (대시보드 밖에서는 계속) 이전 언어였다
+    // The header status badge is otherwise rewritten only by the poll; refresh it now so a language switch shows at once
     var badge = DXStream.$('pipeline-status');
     if (badge && /pill-running/.test(badge.className)) { delete badge.dataset.dxLabel; _setLabelIfChanged(badge, 'play', T('Running')); }
     else if (badge && /pill-idle/.test(badge.className)) badge.textContent = T('Idle');

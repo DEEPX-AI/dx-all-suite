@@ -1,14 +1,14 @@
-"""모델 카탈로그 — 임베디드 메타데이터 + 런타임 매니페스트 기반.
+"""Model catalog — embedded metadata plus the runtime manifest.
 
-runtime manifest가 존재하면 manifest 모델 목록을 카탈로그로 사용하고,
-없으면 임베디드 폴백 목록을 사용한다.
+When the runtime manifest exists its model list is the catalog;
+otherwise the embedded fallback list is used.
 """
 from __future__ import annotations
 
 from dx_stream.core.config import DX_STREAM_ROOT, MODELS_DIR
 from dx_stream.core.runtime import load_model_manifest
 
-# 17개 임베디드 모델 메타데이터 (setup.sh에서 다운로드)
+# Embedded model metadata (the files are downloaded by setup.sh)
 _EMBEDDED_MODELS = [
     {"name": "YOLOv26n", "file": "yolo26n.dxnn", "category": "object_detection",
      "description_ko": "경량 객체 감지 모델", "description_en": "Lightweight object detection"},
@@ -111,12 +111,12 @@ def get_catalog_source() -> str:
 
 
 def get_models() -> list[dict]:
-    """전체 모델 카탈로그 반환 (dict 복사본)"""
+    """The whole model catalog (copies of the dicts)."""
     return [dict(m) for m in _MODELS]
 
 
 def get_model_status() -> dict:
-    """각 모델의 설치 상태 반환 — {파일명: {installed, size}}"""
+    """Install state per model — {file name: {installed, size}}."""
     result = {}
     for m in _MODELS:
         p = MODELS_DIR / m["file"]
@@ -128,7 +128,7 @@ def get_model_status() -> dict:
 
 
 def get_models_by_category() -> dict[str, list[dict]]:
-    """카테고리별 모델 그룹핑 (dict 복사본)"""
+    """Models grouped by category (copies of the dicts)."""
     cats: dict[str, list[dict]] = {}
     for m in _MODELS:
         cats.setdefault(m["category"], []).append(dict(m))

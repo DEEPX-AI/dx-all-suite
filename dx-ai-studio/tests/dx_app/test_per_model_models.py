@@ -1,7 +1,7 @@
-"""per-model layout 에서의 model 목록 · 실행 경로 · config (spec 2026-10-01 dx_app per-model layout 결정 2 · 4 · 7).
+"""Model list, run paths and config in the per-model layout.
 
-teammate branch (8d0b748) 의 모양: ``src/<lang>_example/<task>/<family>/<stem>/``, config.json 은 중첩 spec,
-binary 는 ``bin/<stem>_<variant>``, model 은 ``assets/models`` 또는 suite 의 ``workspace/res/models``.
+The layout: ``src/<lang>_example/<task>/<family>/<stem>/``, config.json is a nested spec, binaries are
+``bin/<stem>_<variant>``, models live in ``assets/models`` or the suite's ``workspace/res/models``.
 """
 from __future__ import annotations
 
@@ -45,8 +45,8 @@ def per_model(tmp_path, monkeypatch):
     (ws / f"{STEM}.dxnn").write_bytes(b"DXNN\x08\x00\x00\x00")
     _exe(root / "bin" / f"{STEM}_sync")
     layout.clear_cache()
-    # 다른 test 가 config 를 reload 하면 models 가 쥔 resolve_model_path 는 옛 module 의 것이다 — 그 함수가
-    # 실제로 보는 전역에 넣는다.
+    # If another test reloads config, the resolve_model_path held by models belongs to the old module; patch the
+    # globals that function actually reads.
     for fn in (config.resolve_model_path, models.resolve_model_path):
         monkeypatch.setitem(fn.__globals__, "_SUITE_ROOT", suite)
         monkeypatch.setitem(fn.__globals__, "_MODELS_DIR_ENV", "")
@@ -56,7 +56,7 @@ def per_model(tmp_path, monkeypatch):
         monkeypatch.setattr(mod, "PY_DIR", root / "src" / "python_example")
         monkeypatch.setattr(mod, "BUILD_DIR", root / "bin", raising=False)
         monkeypatch.setattr(mod, "CONFIG_FILE", root / "config" / "test_models.conf")
-    # 옛 이름의 registry 줄 (bundled catalog) 이 같은 model 을 한 번 더 만들면 안 된다
+    # A registry entry under an old name (bundled catalog) must not create the same model a second time
     monkeypatch.setattr(models, "_REG", {"yolo26n": {"category": "object_detection", "file": "assets/models/yolo26n.dxnn"}})
     monkeypatch.setattr(models, "_download_index", lambda: {})
     monkeypatch.setattr(models, "_python_runtime_ready", lambda: True, raising=False)
@@ -111,10 +111,10 @@ def test_the_run_config_passed_to_the_runner_is_flat(per_model, monkeypatch):
 
 
 def test_a_model_with_its_own_example_never_borrows_another_binary(per_model):
-    """per-model binary 는 자기 model 의 전처리 · 후처리를 박아 두었다 — 남의 것으로 돌리면 틀린 결과가 나온다."""
+    """A per-model binary has its model's pre- and postprocessing built in; another model's gives wrong results."""
     from dx_app.core import models
 
-    _exe(per_model / "bin" / "yolov5s_async")          # 예전 fallback 이 집어 들던 binary
+    _exe(per_model / "bin" / "yolov5s_async")          # the binary a fallback lookup would pick up
     m = models.get_models()[0]
     assert m["cpp_sync"] and not m["cpp_async"], m
 
@@ -136,7 +136,7 @@ def test_an_old_name_of_an_example_is_not_listed_as_a_second_model(per_model, mo
 
 
 def test_the_run_route_accepts_stem_names_but_not_paths():
-    """per-model 의 model 이름은 .dxnn stem 이라 '-' '.' 을 쓴다 — 경로 모양은 여전히 막는다."""
+    """Per-model model names are .dxnn stems and may use '-' and '.'; path-like names are still rejected."""
     import pytest as _pytest
     from dx_app import server
 
@@ -148,7 +148,7 @@ def test_the_run_route_accepts_stem_names_but_not_paths():
 
 
 def test_a_lab_package_takes_the_runner_from_the_stem_folder(per_model):
-    """Lab 의 exact-runner 묶기: per-model 에서는 task/family/stem 폴더와 extract 의 새 인자."""
+    """Lab exact-runner binding: in the per-model layout, the task/family/stem folder and extract's new arguments."""
     from dx_app.core import lab_package
 
     src = lab_package._runner_source(per_model, "object_detection", STEM, "python", "sync")

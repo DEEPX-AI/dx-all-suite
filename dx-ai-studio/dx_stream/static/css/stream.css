@@ -27,7 +27,7 @@ h1 .accent{color:var(--accent)}
 h2{font-size:var(--fs-md);margin:16px 0 8px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.6px}
 
 .card-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
-/* launcher 에도 .card-grid 가 있지만 다른 컴포넌트다 — 공유 계층에 올리면 샌다. */
+/* The launcher also has a .card-grid, but it is a different component — moving this to the shared layer would leak. */
 @media(max-width:1200px){.card-grid{grid-template-columns:1fr 1fr}}
 @media(max-width:600px){.card-grid{grid-template-columns:1fr}}
 /* ═══════════════════════════════════════════════════════════════════
@@ -67,9 +67,9 @@ tbody tr:hover td{background:var(--surface-hover)}
 .comp-status-badge.cs-run{background:rgba(88,166,255,.12);color:var(--status-info);border:1px solid rgba(88,166,255,.3)}
 
 /* ═══════════════════════════════════════════════════════════════════
-   Setup — 공용 단계 목록 (shared/static/dx-steps.js) 위에 stream 만의 것
+   Setup — stream-only additions on top of the shared step list (shared/static/dx-steps.js)
    ═══════════════════════════════════════════════════════════════════ */
-/* 이 PC 의 사실 한 줄 (OS · GStreamer · NPU 드라이버 · Python) */
+/* One line of facts about this PC (OS · GStreamer · NPU driver · Python) */
 .setup-info-bar{display:flex;flex-wrap:wrap;gap:var(--sp-2) var(--sp-5);margin:0 0 var(--sp-4);font-size:var(--fs-sm)}
 .setup-info-item{display:inline-flex;align-items:baseline;gap:var(--sp-2);min-width:0}
 .setup-info-item span{color:var(--text-muted);font-size:var(--fs-xs)}
@@ -79,7 +79,7 @@ tbody tr:hover td{background:var(--surface-hover)}
 .dx-step-progress{display:flex;align-items:center;gap:var(--sp-2);margin-top:var(--sp-2)}
 .dx-step-progress .progress-fill{height:4px;border-radius:2px;background:var(--accent);transition:width .3s}
 .dx-step-progress .progress-text{font-size:var(--fs-xs);color:var(--text-muted);font-variant-numeric:tabular-nums}
-/* 환경 점검 표의 상태도 단계 목록과 같은 모양 — 색 변수는 .dx-steps 밖이라 여기서 준다. */
+/* Environment-check states look like the step list; the color variables live outside .dx-steps, so set them here. */
 #setup-env-tbody{--step-ok:var(--status-ok);--step-warn:var(--status-warn);--step-err:var(--status-error)}
 #setup-env-tbody .dx-step-state{margin-left:0}
 
@@ -138,8 +138,8 @@ tbody tr:hover td{background:var(--surface-hover)}
   width:100%;height:100%;object-fit:contain;display:block;
 }
 
-/* 무대 media 안의 영상 상자 (Demo Launcher, spec 2026-10-01 demo stage). FPS 는 영상 구석이 아니라
-   panel 의 수치로 — overlay 는 transport 의 숫자를 받는 자리로만 남는다 (stream-demo.js _demoStartMetrics). */
+/* Video box inside the stage media (Demo Launcher). FPS shows in the panel, not in a corner of the video —
+   the overlay only receives the transport's numbers (stream-demo.js _demoStartMetrics). */
 .dds-live{position:relative;width:100%;height:100%}
 .dds-live .video-container{height:100%;aspect-ratio:auto;border:0;border-radius:0;background:transparent}
 .dds-live #webrtc-stats-overlay{display:none}
@@ -149,7 +149,7 @@ tbody tr:hover td{background:var(--surface-hover)}
 .dds-live-fs:hover{opacity:1;color:var(--text-primary)}
 .dds-live-fs .dx-ico{width:16px;height:16px}
 .dds-live:fullscreen{background:var(--surface-sunken)}
-/* 전체 화면에서는 panel 이 안 보인다 — Stop 을 영상 안에 (Esc 말고도 멈출 수 있게) */
+/* In full screen the panel is hidden — put Stop inside the video (a way to stop besides Esc) */
 .dds-live-stop{display:none;position:absolute;top:var(--sp-2);right:calc(var(--sp-2) + 40px);align-items:center;gap:var(--sp-1);
   height:32px;padding:0 var(--sp-3);border:1px solid var(--status-error);border-radius:var(--radius-sm);
   background:var(--surface-panel);color:var(--status-error);font:inherit;font-size:var(--fs-sm);cursor:pointer}
@@ -175,7 +175,7 @@ tbody tr:hover td{background:var(--surface-hover)}
   --step-ok:var(--status-ok);--step-warn:var(--status-warn);--step-err:var(--status-error);
 }
 .demo-card:hover{transform:translateY(-2px);box-shadow:var(--surface-hover-shadow);border-color:var(--border-strong)}
-/* DX App Run Demo 와 같은 틀 (아이콘 체계 단계 4): task 한 조각 + 상태, 제목은 데모, 준비 안 된 카드는 짧게. */
+/* Same frame as DX App Run Demo: a task chip + state, the demo as title, unready cards kept short. */
 .demo-card-header{display:flex;align-items:center;gap:var(--sp-2);min-width:0}
 .demo-task{display:inline-flex;align-items:center;gap:var(--sp-1);min-width:0;font-size:var(--fs-xs);font-weight:600;
   color:var(--text-secondary);padding:var(--sp-1) var(--sp-2);border-radius:999px;background:color-mix(in oklab,var(--accent) 10%,transparent)}
@@ -189,7 +189,7 @@ tbody tr:hover td{background:var(--surface-hover)}
 .demo-card.demo-running .demo-state-ready{display:none}
 .demo-card.demo-running .demo-state-running{display:inline-flex}
 .demo-card.demo-running .demo-state-running .dx-ico{animation:dx-spin 1s linear infinite}
-/* 이유는 두 줄까지 — 나머지는 title 로 (카드를 짧게 두는 것이 이 틀의 약속이다). */
+/* The reason gets at most two lines — the rest goes in title (this frame keeps cards short). */
 .demo-card.is-unready .demo-unavailable-reason{margin:0;color:var(--text-muted);line-height:1.5;font-size:var(--fs-xs);
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .demo-setup-link{display:inline-flex;align-items:center;gap:var(--sp-1);padding:0;border:0;background:none;cursor:pointer;
@@ -294,12 +294,12 @@ tbody tr:hover td{background:var(--surface-hover)}
 }
 
 /* Dashboard helper */
-/* 모델 카드의 파일 · 분류 — 규칙이 없어 "x.dxnnobject detection" 처럼 붙어 보였다 (release audit S-10) */
+/* File · category on the model card — spaced so they do not run together ("x.dxnnobject detection") */
 .demo-card-meta{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;margin-top:8px;font-size:var(--fs-xs);color:var(--text-muted)}
 .demo-card-meta>span{min-width:0;overflow-wrap:anywhere}
 .demo-card-cat{padding:0 8px;border-radius:var(--radius-pill);background:var(--surface-raised);color:var(--text-secondary)}
 .pipeline-placeholder{padding:32px 16px;text-align:center;border:2px dashed var(--border-subtle);border-radius:var(--radius);color:var(--text-faint)}
-/* 실행 중인 파이프라인 (release audit S-15) */
+/* Running pipeline */
 .pipe-live{display:flex;align-items:center;gap:var(--sp-3);padding:16px;border:1px solid var(--border-subtle);border-radius:var(--radius)}
 .pipe-live-dot{flex:none;width:10px;height:10px;border-radius:50%;background:var(--status-ok);box-shadow:0 0 0 4px color-mix(in srgb,var(--status-ok) 25%,transparent)}
 .pipe-live-text{flex:1;min-width:0}
@@ -385,7 +385,7 @@ html[lang="zh-TW"] .zh-CN, .lang-zh-TW .zh-CN{display:none!important}
   display:flex;align-items:center;gap:4px;
   padding:8px 12px 4px;font-size:var(--fs-xs);font-weight:700;
   text-transform:uppercase;letter-spacing:.5px;
-  /* 분류 색을 글자색과 섞는다 — 순색 글자는 밝은 테마에서 2.2–2.8:1 이었다. 색은 아이콘이 그대로 낸다. */
+  /* Mix the category color with the text color — pure-color text is only 2.2–2.8:1 in the light theme. The icon keeps the pure color. */
   color:color-mix(in srgb, var(--cat-color,var(--text-muted)) 55%, var(--text-primary));
 }
 .palette-cat-icon{font-size:var(--fs-sm);width:16px;text-align:center;color:var(--cat-color,var(--text-muted))}
@@ -494,6 +494,6 @@ html[lang="zh-TW"] .zh-CN, .lang-zh-TW .zh-CN{display:none!important}
 .progress-fill{height:100%;background:var(--accent);border-radius:var(--radius);transition:width .3s}
 .progress-text{position:absolute;top:0;right:8px;line-height:20px;font-size:var(--fs-xs);color:var(--text-secondary)}
 
-/* stat 타일의 '가로 배치'는 컴포넌트가 아니라 이 그리드의 배치 결정이다
-   (shared/static/dx-components.css 의 .stat 은 표면만 소유한다). */
+/* Laying stat tiles out horizontally is this grid's decision, not the component's
+   (.stat in shared/static/dx-components.css owns only the surface). */
 .stat-grid > .stat{display:flex;align-items:center;gap:12px}

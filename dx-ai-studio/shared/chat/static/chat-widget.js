@@ -1,6 +1,6 @@
 /**
  * DX Chat Widget — Shared AI Chat UI Component
- * 5개 DX 앱에서 공통으로 사용하는 채팅 위젯.
+ * The chat widget every DX module shares.
  *
  * Usage:
  *   <link rel="stylesheet" href="/static/shared/chat-widget.css">
@@ -171,7 +171,7 @@ const DXChat = (() => {
       || 'en';
   }
 
-  /* 공용 아이콘 (shared/static/dx-icon.js). 없으면 빈 자리 — 챗이 아이콘 때문에 멈추지 않게. */
+  /* Shared icons (shared/static/dx-icon.js). Missing icons render as nothing so chat never breaks on them. */
   function _ico(name) {
     return (window.DXIcon && typeof window.DXIcon === 'function') ? window.DXIcon(name) : '';
   }
@@ -191,8 +191,8 @@ const DXChat = (() => {
 
 
   function init(opts) {
-    /* 다시 부르면 (SDK Library 가 그렇다) 대상 앱 · 제목만 바꾼다 — 예전에는 위젯을 하나 더 만들어 같은 자리에
-       채팅 버튼이 두 개 겹쳤다 (2026-10-02 release audit). */
+    /* A second init (SDK Library does this) only changes the target app and title — building another widget
+       would stack two chat buttons in the same spot. */
     if (_els.fab && document.body.contains(_els.fab)) {
       _appName = (opts && opts.appName) || _appName;
       _headerTitle = (opts && opts.headerTitle)
@@ -220,9 +220,8 @@ const DXChat = (() => {
   }
 
 
-  /* 글자 · 이름은 key 로 달아 두고 언어가 바뀌면 다시 번역한다 (release audit L-14: 'API Key' · 'Model' ·
-     'Endpoint' · 'Custom endpoint' 는 영어 고정이었고, 다른 글자는 처음 그린 언어에 머물렀다).
-     data-chat-t → 글자, data-chat-tip → title + aria-label, data-chat-title → title, data-chat-ph → placeholder. */
+  /* Text and names carry their key so a language change can translate them again.
+     data-chat-t → text, data-chat-tip → title + aria-label, data-chat-title → title, data-chat-ph → placeholder. */
   function _relabel() {
     var win = _els.win;
     if (!win) return;
@@ -234,7 +233,7 @@ const DXChat = (() => {
     win.querySelectorAll('[data-chat-title]').forEach(function (el) { el.title = _t(el.dataset.chatTitle); });
     win.querySelectorAll('[data-chat-ph]').forEach(function (el) {
       el.placeholder = _t(el.dataset.chatPh);
-      el.setAttribute('aria-label', el.placeholder);   // a placeholder is not a name (2026-10-11 a11y)
+      el.setAttribute('aria-label', el.placeholder);   // a placeholder is not an accessible name
     });
     if (_els.fab) _els.fab.setAttribute('aria-label', _open ? _t('Close', '닫기') : _t('Chat'));
     if (_headerTitle) {
@@ -259,8 +258,7 @@ const DXChat = (() => {
       '<div class="dx-chat-header">',
       '  <span class="dx-chat-header-title">' + _t('DX Assistant') + '</span>',
       '  <div class="dx-chat-header-actions">',
-      /* 웹 챗봇 (DEEPX Agent) 은 launcher 막대에 따로 있던 링크였다. 같은 "물어보기" 이므로
-         챗 안에서 연다 — 모든 모듈의 챗에 생긴다 (spec 2026-09-23 §5.7). */
+      /* The web chatbot (DEEPX Agent) is another way to ask, so it is linked from the chat of every module. */
       '    <a class="dx-chat-header-link" href="https://deepx.rapidflare.ai/" target="_blank" rel="noopener noreferrer" data-chat-tip="Open DEEPX Agent on the web">DEEPX Agent <span aria-hidden="true">↗</span></a>',
       '    <button class="dx-chat-header-btn" data-action="settings" data-chat-tip="AI settings">' + _ico('gear') + '</button>',
       '    <button class="dx-chat-header-btn" data-action="clear" data-chat-tip="Clear chat">' + _ico('trash') + '</button>',
@@ -271,8 +269,8 @@ const DXChat = (() => {
       '<div class="dx-chat-settings-panel" hidden>',
       '  <form class="dx-chat-settings-form">',
       '    <div class="dx-chat-settings-title" data-chat-t="AI Assistant Settings"></div>',
-      /* 질문 하나 — 어떤 AI 로 답할까 (spec 2026-10-11 chat settings §3.4). provider select 는 cloud 일 때만 보이고,
-         agent · local 은 radio 가 그 값을 정한다. */
+      /* One question: which AI answers. The provider select shows only for cloud; for agent and local the
+         radio sets the value. */
       '    <fieldset class="dx-chat-settings-kind">',
       '      <legend data-chat-t="Which AI should answer?"></legend>',
       '      <label class="dx-chat-kind-card"><input type="radio" name="dx-chat-kind" value="agent">',
@@ -379,8 +377,8 @@ const DXChat = (() => {
       }
     });
     _els.input.addEventListener('input', _autoResize);
-    /* Escape: 설정 → 창 순서로 닫는다. capture 라 launcher 의 Escape (모듈 닫기) 보다 먼저, 처리했으면 표시
-       (release audit X-1 — 채팅에서 Escape 를 누르면 모듈을 떠나고 답이 끊겼다). */
+    /* Escape closes settings, then the window. Capture phase runs before the launcher's Escape (close module)
+       and marks the event handled, so Escape in chat does not leave the module and cut off an answer. */
     document.addEventListener('keydown', (e) => {
       if (e.key !== 'Escape' || e.defaultPrevented) return;
       if (_els.settingsPanel && _els.settingsPanel.classList.contains('open')) {
@@ -410,8 +408,8 @@ const DXChat = (() => {
       _setApiKeyPlaceholder();
     });
     if (_els.settingsModelSelect) _els.settingsModelSelect.addEventListener('change', _onModelSelectChange);
-    // Local: 적은 endpoint 의 model 을 찾는다 — 예전에는 provider 를 바꿀 때만, 그때의 (빈) endpoint 로 찾아
-    // LM Studio · llama.cpp · 다른 host 의 Ollama 는 끝내 model 이 안 나왔다 (2026-10-11 실사용 감사).
+    // Local: look up models at the endpoint as typed, so LM Studio, llama.cpp and Ollama on another host
+    // all list their models (not just whatever endpoint was set when the provider changed).
     if (_els.settingsEndpoint) {
       var _endpointTimer = null;
       var _lookupLocal = function () {
@@ -445,7 +443,7 @@ const DXChat = (() => {
     _open = !_open;
     _els.win.classList.toggle('open', _open);
     _els.fab.classList.toggle('open', _open);
-    /* 열리면 닫기 표시로 바뀐다 — 예전에는 말풍선 이모지를 45° 돌렸는데, 아이콘을 돌리면 기울어진 말풍선일 뿐이다. */
+    /* Open shows a close icon (rotating the chat icon would only give a tilted bubble). */
     _els.fab.innerHTML = _ico(_open ? 'x' : 'chat');
     _els.fab.setAttribute('aria-label', _open ? _t('Close', '닫기') : _t('Chat'));
     if (_open) {
@@ -578,7 +576,7 @@ const DXChat = (() => {
 
   function _finishAI(el, text, opts) {
     el.innerHTML = _renderMarkdown(text);
-    /* 오류는 말풍선 색과 경고 아이콘으로 — 예전에는 글 앞의 이모지였다 (spec 2026-09-29 아이콘 체계). */
+    /* Errors show as a bubble colour and a warning icon. */
     if (opts && opts.error) {
       el.classList.add('is-error');
       el.insertAdjacentHTML('afterbegin', _ico('alert') + ' ');
@@ -651,8 +649,8 @@ const DXChat = (() => {
   var _PROVIDER_LABEL = { openai: 'OpenAI', anthropic: 'Anthropic', google: 'Google', github: 'GitHub Models',
                           custom: 'Custom endpoint', local: 'Local / Self-hosted' };
 
-  /* 지금 누가 답하는지 한 줄로 늘 보인다 (spec 2026-10-11 chat settings §3.4). 예전에는 "API 키를 등록하세요" 경고였다 —
-     로그인된 coding agent 로 key 없이 답할 수 있는 PC 에서도. */
+  /* One line always says who is answering — not an "add an API key" warning, since a logged-in coding agent
+     answers without a key. */
   function _renderSource() {
     var el = _els.source;
     if (!el || !_status) return;
@@ -718,7 +716,7 @@ const DXChat = (() => {
     return (_status && _status.configured && _status.provider === provider) ? _status.api_key : null;
   }
 
-  /* 설치된 CLI 만, 로그인 상태와 함께. 로그인이 필요하면 그 명령을 보인다. */
+  /* Installed CLIs only, with their login state. If a login is needed, show the command for it. */
   function _fillAgents(current) {
     var sel = _els.agentSelect;
     if (!sel) return;
@@ -836,8 +834,8 @@ const DXChat = (() => {
     fetch('/agent/api/agent/models?agent=' + encodeURIComponent(agent))
       .then(function (r) { return r.json(); })
       .then(function (d) {
-        /* 늦게 온 다른 agent 의 목록은 버린다 — copilot 목록이 cursor 것보다 늦게 와 cursor 에 copilot 의 model 이
-           저장될 뻔했다 (2026-10-11 실기). */
+        /* Drop a list that arrives late for another agent — otherwise a slow copilot list could land under
+           cursor and save copilot's model for it. */
         if (_els.agentSelect && _els.agentSelect.value && _els.agentSelect.value !== agent) return;
         var models = (d && d.models) || [];
         if (!models.length) { sel.hidden = true; sel.innerHTML = ''; return; }
@@ -967,7 +965,7 @@ const DXChat = (() => {
     };
   }
 
-  /* 저장은 먼저 연결을 확인한다. 실패하면 이유를 보이고 "그래도 저장" 을 건넨다 (지금 망이 막혀 있어도 설정해 두려는 경우). */
+  /* Saving tests the connection first. On failure show why and offer "save anyway" (for setting up while the network is blocked). */
   function _postConfig(body) {
     if (_els.forceBtn) _els.forceBtn.hidden = true;
     _showSettingsStatus(body.force ? _t('Saving...', '저장 중...') : _t('Checking the connection…'), '');

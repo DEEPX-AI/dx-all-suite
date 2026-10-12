@@ -1,14 +1,14 @@
-"""task key 의 두 이름 — dx_app per-model layout 의 key 와 main (legacy) 의 key (spec 2026-10-01 결정 3).
+"""The two names of a task key — the dx_app per-model layout key and the legacy key.
 
-teammate branch (``8d0b748``) 는 task 폴더 이름을 dx-modelzoo 에 맞췄다 (22 → 28). 같은 task 를 다른 이름으로
-부른 것이 7 개, 새 task 가 7 개. studio 의 task 표 (label · icon · 기본 입력 · image-only · 결과 안내) 는 key 로
-찾으니, 한쪽 이름으로 적힌 값을 다른 쪽 이름으로도 찾게 여기서 묶는다. 표의 원본은 그대로
-``dx_modelzoo/core/config.py`` 의 CATEGORIES.
+The per-model layout names task folders after dx-modelzoo (22 → 28 tasks): 7 tasks are renamed and 7 are new. The
+studio's task tables (label · icon · default input · image-only · result notes) are looked up by key, so this module
+pairs the names and a value written under one name is also found under the other. The tables themselves stay in
+``dx_modelzoo/core/config.py`` (CATEGORIES).
 
-``ppu`` 는 task 가 아니라 model 묶음이었다 — per-model layout 에서는 ``object_detection/yolo_ppu`` 등으로
-흩어졌으므로 새 key 가 없다.
+``ppu`` is a group of models, not a task — the per-model layout spreads it over ``object_detection/yolo_ppu`` and
+similar, so it has no new key.
 
-계약: tests/shared/test_tasks.py
+Contract: tests/shared/test_tasks.py
 """
 from __future__ import annotations
 
@@ -35,17 +35,17 @@ NEW_TASKS = (
 
 
 def canonical(key: str) -> str:
-    """legacy key → per-model key (이미 새 key 거나 모르는 key 는 그대로)."""
+    """legacy key → per-model key (a key that is already new, or unknown, is returned unchanged)."""
     return LEGACY_TO_TASK.get(key, key)
 
 
 def legacy(key: str) -> str:
-    """per-model key → legacy key (짝이 없으면 그대로)."""
+    """per-model key → legacy key (unchanged when it has no pair)."""
     return TASK_TO_LEGACY.get(key, key)
 
 
 def lookup(table: dict, key: str, default=None):
-    """key 로, 없으면 짝 이름으로 table 을 찾는다."""
+    """Look up table by key, falling back to the paired name."""
     if key in table:
         return table[key]
     for alt in (LEGACY_TO_TASK.get(key), TASK_TO_LEGACY.get(key)):
@@ -55,10 +55,11 @@ def lookup(table: dict, key: str, default=None):
 
 
 class TaskTable(dict):
-    """task key → 값 표. 한쪽 이름으로 적어 두면 짝 이름으로도 찾는다 (``get`` · ``[]`` · ``in``).
+    """task key → value table. A value written under one name is also found under its pair (``get`` · ``[]`` ·
+    ``in``).
 
-    기존 표 (SAMPLE_IMAGES · EXAMPLE_TYPES · CAT_IMAGE …) 를 이것으로 감싸면 호출부를 고치지 않고도 새 key 가 옛
-    값을 찾는다. 같은 task 의 값이 두 이름에 다르게 적히는 일이 없게 한 곳에만 적는다."""
+    Wrapping an existing table (SAMPLE_IMAGES · EXAMPLE_TYPES · CAT_IMAGE …) lets new keys find old values without
+    touching callers. Write each value once so the two names can never disagree."""
 
     def _alt(self, key):
         for alt in (LEGACY_TO_TASK.get(key), TASK_TO_LEGACY.get(key)):
@@ -83,7 +84,7 @@ class TaskTable(dict):
 
 
 class TaskSet(frozenset):
-    """task key 집합 — 짝 이름도 속한 것으로 본다 (IMAGE_ONLY_CATEGORIES 등)."""
+    """A set of task keys whose paired names count as members too (IMAGE_ONLY_CATEGORIES etc.)."""
 
     def __contains__(self, key):
         return (frozenset.__contains__(self, key) or frozenset.__contains__(self, LEGACY_TO_TASK.get(key, key))

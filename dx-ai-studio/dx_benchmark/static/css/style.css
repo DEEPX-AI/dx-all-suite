@@ -1,8 +1,8 @@
 /* DX Benchmark app layout overrides. Shared tokens/base live in /static/shared/*.css. */
 body { overflow-x: auto; overflow-y: hidden; }
-/* 콘텐츠 위쪽 chrome 총높이. 통합 shell(Option A)에서는 헤더 아래 42px
-   탭 행이 하나 더 있으므로 둘을 합산한다 — 안 그러면 100vh 계산이
-   탭 행 높이만큼 넘쳐 세로 스크롤이 두 겹으로 생긴다. */
+/* Total chrome height above the content. The shell adds a 42px tab row
+   under the header, so sum both — otherwise the 100vh math overflows by
+   the tab row and a second vertical scrollbar appears. */
 :root { --benchmark-topbar-h: calc(var(--dx-module-header-h) + var(--dx-tabs-h)); }
 
 /* ═══ Layout: Top Bar ═══ */
@@ -115,7 +115,7 @@ body { overflow-x: auto; overflow-y: hidden; }
 }
 
 .env-detail-grid--3 {
-  /* 반 폭 카드 안의 고정 3 칸은 값이 한 글자씩 꺾였다 ("raspbe/rrypi") — 칸이 220px 아래로 줄면 줄을 바꾼다 (B-3). */
+  /* Three fixed columns in a half-width card break values mid-word ("raspbe/rrypi"); wrap once a column drops below 220px. */
   grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
 }
 
@@ -879,7 +879,7 @@ body.lang-zh-TW .zh-CN { display: none; }
   display: flex; gap: var(--sp-1); padding: 0 var(--sp-4);
   border-bottom: 1px solid var(--border-subtle); margin-bottom: var(--sp-4);
 }
-/* 좁은 폭에서 탭을 줄이지 않는다 — 한국어가 한 글자씩 접혔다 ("전체메트릭스", release audit B-3). 모자라면 띠가 옆으로 스크롤한다 */
+/* Tabs do not shrink when narrow (Korean labels would fold one syllable per line); the strip scrolls sideways instead */
 .benchmark-segment-tabs { overflow-x: auto; scrollbar-width: none; }
 .dashboard-tab {
   flex-shrink: 0; white-space: nowrap; word-break: keep-all;
@@ -1016,7 +1016,7 @@ body.lang-zh-TW .zh-CN { display: none; }
    Settings Panel
    ═══════════════════════════════════════════════════════════════════ */
 .settings-panel { padding: var(--sp-4); max-width: 640px; }
-/* 제목 h2 의 margin 이 0 이라 바로 아래 상자에 붙었다 (release audit A-27). */
+/* Space the h2 title from the box below it. */
 .results-rail-section > h2,
 .settings-panel > h2 { margin: 0 0 var(--sp-3); }
 .settings-group {
@@ -1108,13 +1108,13 @@ body.lang-zh-TW .zh-CN { display: none; }
   .results-workspace { grid-template-columns: minmax(0, 1fr); }
   .results-rail { position: static; min-width: 0; }
 }
-/* 폰 — 1fr 는 최소 내용 폭만큼 버텨 하드웨어 목록이 화면 오른쪽 밖으로 잘렸고 (위 minmax(0,1fr)),
-   설정 줄은 220px 입력칸이 라벨을 한 글자씩 세로로 접었다 (2026-10-11 matrix). 라벨 위, 입력칸 아래. */
+/* Phone — a 220px input would squeeze its label into a vertical column of letters. Stack them:
+   label above, input below. (The minmax(0, 1fr) above keeps lists from overflowing the screen.) */
 @media (max-width: 600px) {
   .setting-row { flex-direction: column; align-items: stretch; gap: var(--sp-1); }
   .setting-input { width: 100%; }
 }
 
-/* 표 머리글은 한국어에서 "크/기" · "메모/리" 처럼 음절 사이에서 꺾였다 — 낱말 단위로만 줄을 바꾼다 (B-3). */
+/* Korean table headers would break between syllables; wrap at word boundaries only. */
 :root:lang(ko) .summary-table thead th,
-:root:lang(ko) .detail-table thead th { word-break: keep-all; }  /* 한국어만 — 일본어 · 중국어는 띄어쓰기가 없어 keep-all 이면 못 끊는다 */
+:root:lang(ko) .detail-table thead th { word-break: keep-all; }  /* Korean only — Japanese and Chinese have no spaces, so keep-all could not break them */

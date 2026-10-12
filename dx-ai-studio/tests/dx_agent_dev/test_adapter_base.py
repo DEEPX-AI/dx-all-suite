@@ -1,4 +1,4 @@
-"""SubprocessAdapter 공통 동작(빌드명령 위임·cwd 결정·normalize 폴백·취소)."""
+"""SubprocessAdapter shared behavior: command building, cwd choice, normalize fallback, cancel."""
 import signal
 import sys
 from pathlib import Path
@@ -15,7 +15,7 @@ def test_agent_adapter_is_abstract():
 
 
 def test_subprocess_adapter_requires_build_command():
-    """build_command 미구현 서브클래스는 run 시 NotImplementedError."""
+    """A subclass without build_command raises NotImplementedError on run."""
     from core.adapters.base import SubprocessAdapter
 
     class Bare(SubprocessAdapter):
@@ -46,7 +46,7 @@ def test_cwd_mode_session_default(tmp_path):
 
     a = Bare(cli_path="/bin/true")
     assert a._resolve_cwd(tmp_path, []) == tmp_path
-    assert a._resolve_cwd(tmp_path, ["/harness"]) == tmp_path  # session 모드
+    assert a._resolve_cwd(tmp_path, ["/harness"]) == tmp_path  # session mode
 
 
 def test_cwd_mode_harness(tmp_path):
@@ -58,7 +58,7 @@ def test_cwd_mode_harness(tmp_path):
 
     a = HarnessTool(cli_path="/bin/true")
     assert a._resolve_cwd(tmp_path, ["/harness"]) == "/harness"
-    assert a._resolve_cwd(tmp_path, []) == tmp_path  # 하니스 없으면 session 폴백
+    assert a._resolve_cwd(tmp_path, []) == tmp_path  # no harness: falls back to the session
 
 
 def test_is_available_resolves_cli_bin(monkeypatch):
@@ -75,7 +75,7 @@ def test_is_available_resolves_cli_bin(monkeypatch):
 
 
 def test_run_launch_failure_emits_error(tmp_path):
-    """존재하지 않는 바이너리 → launch failed error 이벤트."""
+    """A missing binary yields a "launch failed" error event."""
     from core.adapters.base import SubprocessAdapter
 
     class Echo(SubprocessAdapter):
@@ -91,7 +91,7 @@ def test_run_launch_failure_emits_error(tmp_path):
 
 
 def test_run_success_with_echo_emits_done(tmp_path):
-    """실 subprocess(echo)로 정상 경로 — stdout 라인 normalize 후 done."""
+    """Happy path with a real subprocess (echo): stdout lines are normalized, then done."""
     from core.adapters.base import SubprocessAdapter
 
     class Echo(SubprocessAdapter):

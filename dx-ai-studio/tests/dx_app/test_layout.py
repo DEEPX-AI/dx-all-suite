@@ -1,8 +1,8 @@
-"""dx_app 예제 layout 두 가지를 한 resolver 로 (spec 2026-10-01 dx_app per-model layout 결정 1 · 2 · 7).
+"""One resolver for both dx_app example layouts.
 
-- legacy (main ``01b7727``): ``src/<lang>_example/<task>/<model>/<model>_<variant>.py``
-- per_model (teammate ``8d0b748``): ``src/<lang>_example/<task>/<family>/<stem>/<stem>_<variant>.py``
-  (stem = ``.dxnn`` 이름, registry 의 ``variant``)
+- legacy: ``src/<lang>_example/<task>/<model>/<model>_<variant>.py``
+- per_model: ``src/<lang>_example/<task>/<family>/<stem>/<stem>_<variant>.py``
+  (stem = the ``.dxnn`` name, the registry's ``variant``)
 """
 from __future__ import annotations
 
@@ -44,7 +44,7 @@ def per_model(tmp_path):
     _touch(ex / "factory/yolo26-n_640x640_factory.py")
     _touch(root / "src/cpp_example/object_detection/yolo26/yolo26-n_640x640/yolo26-n_640x640_sync.cpp")
     _touch(root / "src/python_example/object_detection/yolo_ppu/yolov5-s_640x640_ppu/yolov5-s_640x640_ppu_sync.py")
-    _touch(root / "src/python_example/object_detection/yolov5/yolov5n_sync_ort_off.py")   # family 의 옛 조각 — 예제가 아니다
+    _touch(root / "src/python_example/object_detection/yolov5/yolov5n_sync_ort_off.py")   # leftover piece, not an example
     _touch(root / "src/python_example/object_detection/yolov5/__init__.py")
     _touch(root / "config/model_registry.json", json.dumps([
         {"model_name": "yolo26n", "variant": "yolo26-n_640x640", "family": "yolo26", "task": "object_detection",
@@ -110,7 +110,7 @@ def test_the_container_version_is_read_from_the_header(tmp_path):
 
 
 def test_a_model_added_by_add_model_sh_is_found_in_a_per_model_tree(per_model):
-    """add_model.sh 는 branch 에서도 <task>/<model>/ 로 만든다."""
+    """add_model.sh creates <task>/<model>/ on the per-model layout too."""
     _touch(per_model / "src/python_example/object_detection/my_custom/my_custom_sync.py")
     layout.clear_cache()
     ex = layout.find(per_model, "object_detection", "my_custom")
@@ -119,9 +119,9 @@ def test_a_model_added_by_add_model_sh_is_found_in_a_per_model_tree(per_model):
 
 
 def test_a_caller_naming_the_model_its_own_way_still_reaches_its_example(per_model):
-    """Model Zoo 는 카탈로그 id (`rtdetr_r18vd_6x_640x640`) 로 부른다 — dx_app 예제 이름은 .dxnn stem
-    (`rtdetr-r18vd-6x_640x640`). 못 찾으면 dx_app 이 같은 task 의 남의 binary (yolov7) 를 빌려 엉뚱한 상자를
-    성공처럼 보였다 (2026-10-02 release audit Z-1)."""
+    """Model Zoo calls a model by its catalog id (`rtdetr_r18vd_6x_640x640`); the dx_app example name is the .dxnn stem
+    (`rtdetr-r18vd-6x_640x640`). If the lookup misses, dx_app borrows another binary of the same task (yolov7) and
+    shows wrong boxes as if the run had succeeded."""
     task = "object_detection"
     assert layout.example_name(per_model, task, "yolo26-n_640x640", "") == "yolo26-n_640x640"
     assert layout.example_name(per_model, task, "yolo26_n_640x640",
@@ -134,7 +134,7 @@ def test_the_inference_entry_runs_the_models_own_example(monkeypatch, per_model)
     import importlib
     srv = importlib.import_module("dx_app.server")
     monkeypatch.setattr(srv, "DX_APP_ROOT", per_model, raising=False)
-    monkeypatch.setattr(srv, "_require_model_file", lambda f: None)   # 이 시험은 이름만 본다
+    monkeypatch.setattr(srv, "_require_model_file", lambda f: None)   # this test looks at names only
     data = {"category": "object_detection", "model_name": "yolo26_n_640x640",
             "model_file": "assets/models/yolo26-n_640x640.dxnn", "lang": "cpp", "variant": "sync",
             "input_type": "image"}

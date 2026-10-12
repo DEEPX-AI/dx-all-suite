@@ -1,4 +1,4 @@
-"""모듈 열기 · 닫기 전환 (spec 2026-09-23 §7 #8, §7.1) — 한 길로 열리고 문서를 새로 부르지 않는다."""
+"""Module open / close transition: one path to open, and the document is never reloaded."""
 from __future__ import annotations
 
 import re
@@ -28,7 +28,7 @@ def test_home_icons_open_from_themselves():
 
 
 def test_the_answer_leaves_through_launch_not_a_reload():
-    """문자열을 loadAppIframeIfNeeded 에 넘기면 에러 → catch → location.href 로 문서를 새로 불렀다."""
+    """Passing a string to loadAppIframeIfNeeded throws → catch → location.href reloads the document."""
     body = _fn(ANSWER, "_leaveHome")
     assert "loadAppIframeIfNeeded" not in body
     assert "ns2.launch(" in body
@@ -49,7 +49,7 @@ def test_the_open_and_close_lengths_are_the_spec_ones():
 
 
 def test_the_veil_moves_not_the_iframe():
-    """iframe 을 확대하면 모듈 전체를 매 frame 다시 그린다 — 빈 색 판만 움직인다."""
+    """Scaling the iframe repaints the whole module every frame; only a plain colour panel moves."""
     veil = FRAME[FRAME.index("function _makeVeil("):FRAME.index("function playClose(")]
     assert "open-veil" in veil and ".animate(" in veil
     assert "iframe" not in veil

@@ -1,7 +1,7 @@
-"""DX Monitor 서버 경로 상수 및 기본 설정.
+"""DX Monitor server path constants and defaults.
 
-DX Stream의 core/config.py 패턴을 따른다.
-경로 계산: SCRIPT_DIR(dx_monitor/) → SUITE_ROOT(dx-all-suite/) → SDK 경로
+Follows the DX Stream core/config.py pattern.
+Path resolution: SCRIPT_DIR (dx_monitor/) → SUITE_ROOT (dx-all-suite/) → SDK paths
 """
 import os
 import sys
@@ -12,18 +12,18 @@ STUDIO_DIR = SCRIPT_DIR.parent                               # dx-ai-studio/
 
 from shared.paths import SUITE_ROOT
 
-# DX App 경로 (release.ver 등 참조용)
+# DX App path (for release.ver and similar)
 DX_APP_ROOT = STUDIO_DIR / "dx_app"
 
-# 서버 디렉토리
+# Server directories
 STATIC_DIR = SCRIPT_DIR / "static"
 TEMPLATES_DIR = SCRIPT_DIR / "templates"
 
-# 기본 설정
+# Defaults
 DEFAULT_PORT = 8098
 SERVER_NAME = "DX Monitor"
 
-# 임계치 상수 — 프론트엔드로 /api/system_info를 통해 전달
+# Threshold constants — sent to the frontend via /api/system_info
 THRESHOLDS = {
     "npu_temp":  {"warn": 70, "crit": 85, "unit": "°C"},
     "core_temp": {"warn": 70, "crit": 85, "unit": "°C"},

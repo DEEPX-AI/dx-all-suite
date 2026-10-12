@@ -1,7 +1,7 @@
-"""per-model layout 의 run_demo.sh (spec 2026-10-01 dx_app per-model layout 결정 9).
+"""run_demo.sh on the per-model layout.
 
-teammate branch 에서 ``DEMO_PY_DIR`` 는 ``task/family`` 이고, 실행 경로는 ``DEMO_MODEL`` 의 stem 으로 만든다
-(``bin/<stem>_sync``, ``python_example/<py_dir>/<stem>/<stem>_sync.py``). studio 의 model 이름도 stem 이다.
+There ``DEMO_PY_DIR`` is ``task/family`` and the run path is built from the stem of ``DEMO_MODEL``
+(``bin/<stem>_sync``, ``python_example/<py_dir>/<stem>/<stem>_sync.py``). The studio's model name is the stem too.
 """
 from __future__ import annotations
 

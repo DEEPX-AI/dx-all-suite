@@ -1,29 +1,29 @@
-/* 서버가 만든 영어 오류를 화면에 띄우기 직전에 번역한다.
+/* Translate English errors from the server right before they are shown.
  *
- * 왜 프론트에서 하는가 — config_wizard.js 가 `alert(T('...') + data.error)` 처럼
- * 서버 문자열을 그대로 붙인다. 서버 호출부는 92곳이고, 오류 처리 경로를 손대는
- * 것은 위험하다. 표시 직전에 한 번 통과시키면 서버를 안 건드려도 된다.
+ * Why in the front end — callers such as config_wizard.js append the server string
+ * as is (`alert(T('...') + data.error)`). There are many server call sites, and
+ * touching the error paths is risky; one pass just before display leaves the server alone.
  *
- * 왜 단순 사전이 아닌가 — 대부분 f-string 이라 값이 문장 **중간에** 낀다:
+ * Why not a plain dictionary — most messages are f-strings with values **inside** the sentence:
  *     Invalid opt_level: 'abc' — must be one of [0, 1]
- * 통문장 사전으로는 맞지 않고, 접두만 바꾸면 반쪽짜리 번역이 된다. 그래서
- * 캡처 그룹이 있는 패턴을 쓰고 값($1, $2)은 그대로 옮긴다.
+ * Whole-sentence lookups would not match, and translating only the prefix gives half a
+ * translation. So the entries are patterns with capture groups, and values ($1, $2) are copied over.
  *
- * 범위 — 입력 검증 계열만(2026-09-21 결정). 사용자가 잘못 입력하면 바로 뜨는
- * 것들이다. 'Job not found' 처럼 정상 사용에서 보이지 않는 것은 영어로 둔다.
+ * Scope — input validation only: messages a user sees right after a wrong input.
+ * Messages normal use never shows, such as 'Job not found', stay English.
  *
- * 등록되지 않은 메시지는 **원문 그대로** 돌려준다. 조용히 비우거나 "알 수 없는
- * 오류" 로 바꾸면 지금보다 나쁘다 — 사용자가 검색할 단서를 잃는다.
+ * An unregistered message comes back **unchanged**. Blanking it or replacing it with
+ * "unknown error" would be worse — the user would lose the text to search for.
  *
- * 계약: tests/test_server_error_i18n.js 대응 → tests/test_server_error_i18n.py
+ * Contract: tests/test_server_error_i18n.py
  */
 (function () {
   'use strict';
 
-  // 순서가 중요하다. **더 구체적인 것이 먼저** 와야 한다 —
-  // 'Invalid input_shapes for X' 가 'Invalid input_shapes:' 보다 앞이다.
+  // Order matters: **more specific patterns first** —
+  // 'Invalid input_shapes for X' comes before 'Invalid input_shapes:'.
   var _SERVER_ERROR_PATTERNS = [
-    // DX Stream 실행 계약 (release audit S-7)
+    // DX Stream runtime contract
     {
       re: /^Runtime contract failed: (\S+)$/,
       ko: '런타임 점검을 통과하지 못했습니다 ($1)',
@@ -320,7 +320,7 @@
       'zh-CN': '需要 $1 参数',
       'zh-TW': '需要 $1 參數',
     },
-    // compile 경로 정책 (QA COM-A2, 2026-10-01 — dx_compiler/core/path_policy.py)
+    // Compile path policy (dx_compiler/core/path_policy.py)
     {
       re: /^(.+?) is outside the allowed folders$/,
       ko: '$1이(가) 허용된 폴더 밖에 있습니다 (suite 폴더 · studio var · 홈 · /media · /mnt)',
@@ -369,7 +369,7 @@
       'zh-CN': '$1 不能是编译任务文件夹',
       'zh-TW': '$1 不能是編譯工作資料夾',
     },
-    // 원격 접근 거절 (QA COM-A1, 2026-10-01 — shared/dx_server.py)
+    // Remote access refused (shared/dx_server.py)
     {
       re: /^Host not allowed$/,
       ko: '허용되지 않은 접속 주소(Host)입니다',
@@ -431,8 +431,8 @@
   }
 
   /**
-   * 서버가 보낸 영어 오류 문자열을 현재 언어로 옮긴다.
-   * 등록된 패턴이 없으면 **원문을 그대로** 돌려준다.
+   * Translate an English error string from the server into the current language.
+   * With no matching pattern, the original comes back **unchanged**.
    */
   function translateServerError(msg) {
     if (typeof msg !== 'string' || !msg) return msg;
@@ -444,13 +444,13 @@
       var m = text.match(entry.re);
       if (!m) continue;
       var tpl = entry[lang];
-      if (!tpl) return msg;          // 그 언어가 없으면 원문
+      if (!tpl) return msg;          // no entry for this language: original
       return tpl.replace(/\$(\d)/g, function (_, d) {
         var v = m[Number(d)];
         return v === undefined ? '' : v;
       });
     }
-    return msg;                       // 등록되지 않은 메시지 — 원문 그대로
+    return msg;                       // unregistered message: unchanged
   }
 
   window.translateServerError = translateServerError;

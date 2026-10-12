@@ -1,7 +1,7 @@
-"""Pipeline Builder 캔버스 — 밝은 테마에서도 노드 이름 · 격자 · 연결선이 보인다 (release audit S-6).
+"""Pipeline Builder canvas — node names, grid and links stay visible in the light theme.
 
-예전에는 노드 이름을 흰 글자 (#f5f5f7) 로, 격자 · 연결선을 흰색 반투명으로 그렸고, 테마 색은 처음 읽은 것을 끝까지
-썼다 — 밝은 테마로 바꿔도 캔버스는 어두운 색 그대로였고, 밝은 배경 위의 흰 글자는 읽을 수 없었다.
+They follow the current theme colors: white text (#f5f5f7) and translucent white lines cannot be read on a light
+background, and the canvas must repaint when the theme changes.
 """
 from __future__ import annotations
 
@@ -34,7 +34,7 @@ def page():
 
 
 def _luma(page):
-    """[캔버스 바탕의 밝기, 노드 이름 글자의 평균 밝기] (0–255). 글자 = 이름 자리에서 바탕과 40 넘게 다른 픽셀."""
+    """[background brightness, mean node-name text brightness] (0–255); text = name-area pixels >40 off the background."""
     return page.evaluate("""() => {
       const st = DXStream._pipeState;
       if (!st.nodes.length) _addNode(st.elementFlat[0].name, 300, 200);

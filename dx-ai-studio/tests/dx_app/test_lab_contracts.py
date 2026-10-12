@@ -15,11 +15,11 @@ def _read(path: Path) -> str:
 
 
 def test_lab_nav_is_between_modelzoo_and_outputs():
-    # The in-app DX-COM compiler nav was removed (dx-compiler is the single source);
-    # Lab now sits between ModelZoo and Outputs.
+    # There is no in-app DX-COM compiler nav (dx-compiler is the single source);
+    # Lab sits between ModelZoo and Outputs.
     #
-    # 통합 shell(Option A)로 옮기면서 좌측 nav가 상단 탭 행이 되었고,
-    # 페이지 순서의 원본은 템플릿이 아니라 dx_app/server.py 의 DX_APP_PAGES 다.
+    # In the unified shell the nav is a top tab row, and the page order comes from
+    # DX_APP_PAGES in dx_app/server.py, not from the template.
     from dx_app.server import DX_APP_PAGES
 
     order = [page_id for page_id, _label, _icon in DX_APP_PAGES]
@@ -29,7 +29,7 @@ def test_lab_nav_is_between_modelzoo_and_outputs():
     labels = {page_id: label for page_id, label, _icon in DX_APP_PAGES}
     assert labels["lab"] == "Lab", "탭 라벨은 i18n 사전 키(영문 원문)여야 한다"
 
-    # 페이지 본문은 여전히 템플릿이 소유한다.
+    # The page bodies still belong to the template.
     html = _read(INDEX)
     for page_id in order:
         assert f'id="page-{page_id}"' in html, f"page-{page_id} 본문이 사라졌다"
@@ -70,7 +70,7 @@ def test_lab_session_tokens_expire_after_ttl(monkeypatch):
 
 
 def test_no_nav_opendev_recursion():
-    """nav('lab') → openDev() → nav('lab') 무한 재귀가 없어야 한다."""
+    """nav('lab') → openDev() → nav('lab') must not recurse forever."""
     js = _read(DEV_JS)
     utils = _read(UTILS_JS)
     # openDev must NOT unconditionally call nav('lab')
@@ -116,7 +116,7 @@ def test_devNewTask_handles_overwrite_confirm():
 def test_cors_preflight_uses_x_lab_token_not_x_dev_token():
     """The retired X-Dev-Token is never re-admitted by a CORS allow-list.
 
-    2026-10-01 (QA COM-A1): preflight is same-origin only and sends no allow-list at all
+    Preflight is same-origin only and sends no allow-list at all
     (tests/shared/test_remote_access.py), so X-Lab-Token travels as a same-origin header."""
     server_src = (ROOT / "shared" / "dx_server.py").read_text()
     assert "Access-Control-Allow-Headers" not in server_src

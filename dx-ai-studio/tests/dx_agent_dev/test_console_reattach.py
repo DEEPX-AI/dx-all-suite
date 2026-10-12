@@ -1,11 +1,10 @@
-"""Agent Dev 콘솔이 자기가 시작하지 않은 실행에도 붙는지.
+"""The Agent Dev console attaches to a run it did not start.
 
-home 에서 시작한 실행을 여기서 이어받는 것이 `Open in DX Agent Dev` 가 원래
-약속하던 일이다. 예전에는 그 버튼이 `#ask=<문장>` 만 넘겼고, 콘솔은 돌던 실행을
-전혀 몰라서 "아무 일도 일어나지 않았다".
+`Open in DX Agent Dev` promises to take over a run started from home; passing only `#ask=<text>`
+leaves the console unaware of the running job, so nothing appears to happen.
 
-서버는 이제 실행을 들고 있다(`/api/agent/status` 의 run_id, `/api/agent/run/events`).
-여기서 지키는 것은 콘솔이 그것을 **쓰는가** 이다.
+The server owns the run (`run_id` in `/api/agent/status`, `/api/agent/run/events`). These tests
+check that the console **uses** that.
 """
 from __future__ import annotations
 
@@ -29,7 +28,7 @@ def test_the_console_knows_how_to_attach():
 
 
 def test_it_attaches_on_load_not_only_on_submit():
-    """열릴 때 확인하지 않으면 이동해 온 사용자는 아무것도 못 본다."""
+    """Without a check on open, a user who navigated here sees nothing."""
     src = source()
     m = re.search(r"async function checkStatus\(\)\s*\{(.*?)\n  \}", src, re.S)
     assert m, "checkStatus를 찾을 수 없다"
@@ -39,7 +38,7 @@ def test_it_attaches_on_load_not_only_on_submit():
 
 
 def test_the_stream_reader_is_shared_between_start_and_attach():
-    """붙는 쪽이 따로 그리면 '이어받았다'가 거짓말이 된다."""
+    """If the attach path rendered separately, "taking over" would not be real."""
     src = source()
     assert src.count("getReader()") <= 1, (
         "스트림 소비가 두 벌이다 — 시작과 붙기가 갈라진다"

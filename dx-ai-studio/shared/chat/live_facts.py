@@ -1,8 +1,8 @@
 """Facts about this PC's installation for the chat system prompt.
 
 The knowledge pages describe both dx_app example layouts (legacy and per-model). Answering from them, a model gave
-the legacy path and an invented `--input` flag on a box with the per-model layout (2026-10-11 real-use audit), so
-the prompt carries the layout Studio detected and a command that runs here.
+the legacy path and an invented `--input` flag on a box with the per-model layout, so the prompt carries the layout
+Studio detected and a command that runs here.
 """
 from __future__ import annotations
 
@@ -63,7 +63,7 @@ def _facts(root: str) -> str:
     venv = _runtime_venv()
     if venv:
         lines.append(f"- dx_engine 이 든 venv: {venv} (먼저 source {venv}/bin/activate)")
-    # dx_app 이 C++ binary 를 찾는 순서 그대로 (dx_app/core/config.py _BUILD_DIR_CANDIDATES)
+    # Same search order dx_app uses for C++ binaries (dx_app/core/config.py _BUILD_DIR_CANDIDATES)
     dirs = [d for d in (base / "build_x86_64" / "src" / "cpp_example", base / "build_aarch64" / "src" / "cpp_example",
                         base / "bin") if d.is_dir()]
     exe = next((d / f"{ex.name}_sync" for d in dirs if os.access(d / f"{ex.name}_sync", os.X_OK)), None)

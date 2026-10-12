@@ -1,8 +1,8 @@
 // Browse DEEPX ModelZoo, add to cart, download Q-Lite / Q-Pro models
 
-// 티어 목록. 렌더러·카트·일괄선택이 전부 이 위에서 돈다 — 예전에는 세 군데가
-// 각각 qlite/qpro 를 손으로 나열해서, Q-Master 를 받을 수 있게 된 뒤에도 화면에서
-// 고를 방법이 없었다. 서버 쪽 같은 표: dx_app/core/modelzoo.py 의 _CHIP_DIRS.
+// Tier list. The renderer, cart and bulk select all run on it, so a new tier (such as
+// Q-Master) appears everywhere at once instead of in hand-written qlite/qpro lists.
+// The same table on the server: _CHIP_DIRS in dx_app/core/modelzoo.py.
 var MZ_CHIPS = [
   { key: 'qlite',   label: 'Q-Lite',   col: 'mz-col-ql', chk: 'mz-chk-ql' },
   { key: 'qpro',    label: 'Q-Pro',    col: 'mz-col-qp', chk: 'mz-chk-qp' },
@@ -172,7 +172,7 @@ function mzRenderTable() {
       + '<td class="txt-dim txt-xs" style="white-space:normal">' + mzNl2br(esc(m.metric || '–')) + '</td>'
       + '<td class="txt-dim txt-xs" style="white-space:normal">' + mzNl2br(esc(m.raw_accuracy || '–')) + '</td>'
       + '<td>' + onnxLink + '</td>'
-      /* 티어 그룹 — MZ_CHIPS 순서 */
+      /* tier groups, in MZ_CHIPS order */
       + chipCells
       /* Performance */
       + '<td class="txt-dim">' + esc(m.fps || '–') + '</td>'
@@ -216,7 +216,7 @@ function mzToggleCart(name) {
         var t = m[MZ_CHIPS[i].key];
         entry[MZ_CHIPS[i].key] = !!(t && t.dxnn_url && !t.exists);
       }
-      // 전부 이미 받아둔 상태면 담을 게 없어 보인다 — 받을 수 있는 첫 티어를 켠다.
+      // If everything is already downloaded the cart looks empty, so turn on the first tier that can be downloaded.
       if (mzCartIsEmpty(entry)) {
         for (var j = 0; j < MZ_CHIPS.length; j++) {
           var t2 = m[MZ_CHIPS[j].key];
@@ -333,9 +333,9 @@ function mzRenderCart() {
   var fileCount = mzCartFileCount();
 
   if (!names.length) {
-    /* 튜토리얼이 고정해 둔 시연 카트는 지우지 않는다. 카탈로그가 늦게 도착하면
-       이 함수가 다시 돌면서 방금 만든 시연을 display:none 으로 덮었다.
-       계약: tests/dx_app/test_modelzoo_cart_demo.py */
+    /* Never clear the demo cart the tutorial pinned: when the catalog arrives late this
+       function runs again and would hide the demo just built with display:none.
+       Contract: tests/dx_app/test_modelzoo_cart_demo.py */
     if (cartEl.dataset && cartEl.dataset.dxtPinned === '1') return;
     cartEl.style.display = 'none';
     return;

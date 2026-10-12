@@ -1,8 +1,7 @@
-"""Setup's WebRTC check needs both packages (2026-10-11 real-use audit).
+"""Setup's WebRTC check needs both packages.
 
-With gstreamer1.0-nice installed Setup showed "gstreamer1.0-nice OK" and marked step 6 done, but Local (WebRTC)
-still fell back to MJPEG every time: the server also needs the GstWebRTC bindings (gir1.2-gst-plugins-bad-1.0), which
-step 6 installs but nothing checked.
+gstreamer1.0-nice alone is not enough: without the GstWebRTC bindings (gir1.2-gst-plugins-bad-1.0), which step 6
+installs, Local (WebRTC) falls back to MJPEG every time, so Setup must not mark step 6 done.
 """
 from dx_stream.core import status
 

@@ -137,7 +137,7 @@ def _read_config_cached(cf):
 
 
 def _installed(path):
-    """설치된 model 파일인가 — 0 byte 는 받다 만 것이다 (workspace/res/models 에 191 개가 그랬다)."""
+    """Whether this is an installed model file; 0 bytes means a partial download."""
     try:
         return path.is_file() and path.stat().st_size > 0
     except OSError:
@@ -156,8 +156,8 @@ def _cpp_runner_ready(category,model_name,variant,allow_fallback=True):
     direct=BUILD_DIR/f"{model_name}_{variant}"
     if _is_executable_file(direct):
         return True
-    # per-model layout 의 binary 는 자기 model 의 전처리 · 후처리를 박아 두었다 — 남의 binary 로 돌리면 틀린 결과다.
-    # 빌린 binary 는 예제가 없는 custom model (registry-only) 에만.
+    # A per-model layout binary has its own model's pre/postprocessing built in; another model's binary gives wrong
+    # results. A borrowed binary is only for custom models without an example (registry-only).
     if not allow_fallback:
         return False
     return _is_executable_file(_find_fallback_binary(category,variant,build_dir=BUILD_DIR))
@@ -171,8 +171,8 @@ def _python_runner_ready(category,model_name,variant,runtime_ready):
 
 def get_models():
     models={}
-    # 예제 폴더는 resolver 가 찾는다 — legacy (<task>/<model>) 와 per-model (<task>/<family>/<stem>) 둘 다
-    # (shared/dx_app_layout.py, spec 2026-10-01 dx_app per-model layout).
+    # The resolver finds example folders, both legacy (<task>/<model>) and per-model (<task>/<family>/<stem>)
+    # (shared/dx_app_layout.py).
     _per_model=_layout.detect(DX_APP_ROOT)==_layout.PER_MODEL
     for ex in sorted(_layout.examples(DX_APP_ROOT),key=lambda e:(e.task,e.name)):
         cat,mn=ex.task,ex.name
@@ -210,16 +210,16 @@ def get_models():
             else:models[key].update({"python":True,"py_sync":hs,"py_async":ha,
                  "py_sync_cpp_postprocess":hsp,"py_async_cpp_postprocess":hap})
     # Also include registry-only models (deployed via compiler but no source code yet)
-    # per-model layout 에서는 registry 의 옛 이름 (yolo26n …) 이 이미 stem 예제로 있다 — 예제가 쓰지 않는
-    # model 파일만 (Compiler 로 배포한 custom model) registry-only 로 더한다.
+    # In the per-model layout the registry's old names (yolo26n, …) already exist as stem examples; only model
+    # files no example uses (custom models deployed by the Compiler) are added as registry-only.
     _covered={(m.get("model_file") or "").rsplit("/",1)[-1] for m in models.values()} if _per_model else set()
     for mn,reg in _REG.items():
         cat=reg.get("category","custom")
         key=f"{cat}/{mn}"
         if _per_model and ((reg.get("file") or "").rsplit("/",1)[-1] in _covered or not _required_dxnn_exists(reg.get("file",""))):
             continue
-        # 옛 이름 (yolo26n, efficientnet_lite0 …) 은 실행 때 그 예제 이름으로 바뀌고 남의 binary 를 빌리지 않는다
-        # (server _validate_inference_payload). 따로 보여 주면 C++ 를 내세우고 매번 "Binary not found" 로 실패한다.
+        # Old names (yolo26n, efficientnet_lite0, …) become their example's name at run time and never borrow a binary
+        # (server _validate_inference_payload). Listed separately, they would offer C++ and fail with "Binary not found".
         if _per_model and _layout.example_name(DX_APP_ROOT,cat,mn,reg.get("file",""))!=mn:
             continue
         if _per_model:
@@ -244,8 +244,8 @@ def get_models():
         m["cpp"]=any(m[key] for key in _cpp_modes)
         m["python"]=any(m[key] for key in _py_modes)
     models={key:m for key,m in models.items() if m["model_exists"] and (m["cpp"] or m["python"])}
-    # DX-RT 가 못 읽는 container (Model Zoo 2_5_0 = v9, DX-RT 3.4.2 는 6–8) — 목록에는 두고 이유를 단다.
-    # 실행은 run_inference 가 막는다 (spec 2026-10-01 결정 5).
+    # Containers DX-RT cannot read (Model Zoo 2_5_0 = v9, while DX-RT 3.4.2 reads 6–8) stay listed with a reason.
+    # run_inference blocks running them.
     from shared import dxrt as _dxrt
     for m in models.values():
         mf=m.get("model_file") or ""
@@ -348,7 +348,7 @@ def _download_index() -> dict:
     return _DL_URLS
 
 def _find_example(name, model_file=""):
-    """name (registry model_name · 예제 이름 · 카탈로그 이름) → 이 tree 의 예제. task 는 모른다."""
+    """name (registry model_name, example name or catalog name) -> this tree's example. The task is unknown."""
     stem = Path(model_file).name[:-5] if str(model_file).endswith(".dxnn") else ""
     _variants = _layout._registry_variants(str(DX_APP_ROOT))
     variant = _variants.get(name) or next((v for k, v in _variants.items() if k.lower() == str(name).lower()), "")
@@ -362,10 +362,10 @@ def _find_example(name, model_file=""):
 
 
 def get_model_info(name):
-    """Models 표의 Detail 대화상자 — 어느 layout 이든 (shared.dx_app_layout). 예전에는 옛 평평한 layout 만 걷고 모델 파일도
-    DX_APP_ROOT/<file> 에서만 찾아 per-model tree 에서 category · 파일 · 'Model File' 이 비었다 (2026-10-02 release audit A-4)."""
+    """Detail dialog of the Models table, for either layout (shared.dx_app_layout). Model files are looked up in both
+    layouts, so category, files and 'Model File' are filled in the per-model tree too."""
     info={"name":name,"files":{},"postprocessors":{}}
-    # 카탈로그 이름 (SCRFD10G) 은 registry key (scrfd10g) 와 대소문자만 다르다
+    # A catalog name (SCRFD10G) differs from its registry key (scrfd10g) only in case
     reg=_REG.get(name) or next((v for k,v in _REG.items() if k.lower()==str(name).lower()),{})
     mf=reg.get("file","")
     if mf.startswith("-"):
@@ -396,7 +396,7 @@ _GENERATED_CATALOG = Path(__file__).resolve().parents[2] / "dx_modelzoo" / "data
 
 
 def _generated_catalog_rows():
-    """generated catalog → [{name, task (label), dxnn_url, json_url, class_name}] (없으면 [])."""
+    """generated catalog -> [{name, task (label), dxnn_url, json_url, class_name}] ([] if missing)."""
     try:
         data = json.loads(_GENERATED_CATALOG.read_text(encoding="utf-8"))
     except (OSError, ValueError):
@@ -414,7 +414,7 @@ def _generated_catalog_rows():
             u = ((arts.get(f"{tier}_{kind}") or {}).get("remote_url")) or None
             return u if u and u not in ("-",) else None
         from shared.tasks import legacy as _legacy_task
-        task = _legacy_task(disp.get("task") or "")     # Model Zoo 와 같은 무리 (image_classification → classification)
+        task = _legacy_task(disp.get("task") or "")     # the same grouping as Model Zoo (image_classification -> classification)
         label = (_MZ_CATS.get(task) or {}).get("label_en") or task.replace("_", " ").title() or "Other"
         rows.append({"name": disp.get("name") or gm.get("id"), "task": label,
                      "dxnn_url": url("qlite", "dxnn") or url("qpro", "dxnn") or url("qmaster", "dxnn"),
@@ -483,9 +483,9 @@ def get_catalog():
         return ent
 
     # Catalog source 1: the Model Zoo module's own catalog (dx_modelzoo/data/generated_catalog.json, synced
-    # from the internal publish page) — the same list the Model Zoo page shows, so App > Models no longer
-    # drifts from it (the baked public snapshot below stopped at 352 models on 2026-08-21; spec 2026-10-01
-    # dx_app per-model layout 결정 8). The snapshot / live listing remain the fallback.
+    # from the internal publish page) — the same list the Model Zoo page shows, so App > Models does not
+    # drift from it (the baked public snapshot below is older and smaller). The snapshot / live listing
+    # remain the fallback.
     out = []
     gen_rows = _generated_catalog_rows()
     for g in gen_rows:
@@ -534,10 +534,10 @@ _LANGS = ("en", "ko", "ja", "zh-CN", "zh-TW", "es")
 
 
 def category_labels():
-    """slug → {언어: 이름} — 화면에 snake_case 를 그대로 보이지 않게 (2026-10-02 release audit A-12).
+    """slug -> {language: name}, so the screen never shows raw snake_case.
 
-    이름은 Model Zoo 의 카테고리 표 (6개 언어) 에서 — 두 모듈이 같은 task 를 같은 말로 부른다. dx_app 의 slug 가
-    다르게 불리면 (legacy ↔ per-model, shared.tasks) 짝을 찾고, 그래도 없으면 slug 를 사람 말로 펼친 영어."""
+    Names come from Model Zoo's category table (6 languages), so both modules call a task the same. When dx_app's slug
+    differs (legacy <-> per-model, shared.tasks) its pair is used; failing that, the slug spelled out in English."""
     try:
         from dx_modelzoo.core.config import CATEGORIES as _MZ
     except Exception:

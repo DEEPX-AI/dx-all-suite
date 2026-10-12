@@ -28,7 +28,7 @@ def strip_harness_delta(chunk: str) -> str:
     Preserve whitespace-only deltas: in a token stream, a chunk that is just spaces/newlines
     is a real content separator between sentences/paragraphs. is_harness_status_line() treats
     blank as harness (correct for whole-line filtering, wrong here) — applying it to deltas
-    swallowed the separators and ran text together ("…입니다.무엇을…"). Only test non-blank
+    swallowed the separators and ran text together ("…is done.What next…"). Only test non-blank
     chunks against the harness matcher.
     """
     if not chunk:

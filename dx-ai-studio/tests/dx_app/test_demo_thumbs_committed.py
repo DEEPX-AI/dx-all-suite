@@ -1,8 +1,8 @@
-"""Run Demo 카드의 썸네일은 새로 clone 한 곳에서도 나온다 (2026-10-01).
+"""Run Demo card thumbnails show on a fresh clone.
 
-카드는 dx_modelzoo/data/thumbnails/*.jpg 만 읽었는데 그 폴더는 .gitignore 다 (원본은 NPU 로 다시 만든다).
-그래서 이 PC 밖에서는 27 장 모두 빈 카드였다. Model Zoo 화면이 쓰는 것과 같은, 저장소에 들어 있는
-data/optimized/thumbnails/<stem>-jpg.webp 로도 찾는다.
+dx_modelzoo/data/thumbnails/*.jpg is gitignored (the originals are regenerated on the NPU), so cards that read only
+that folder are blank on every other machine. The lookup also uses the committed
+data/optimized/thumbnails/<stem>-jpg.webp, the same files the Model Zoo screen uses.
 """
 import pytest
 
@@ -11,7 +11,7 @@ from dx_app.core import demos
 
 @pytest.fixture
 def no_raw_thumbs(tmp_path, monkeypatch):
-    monkeypatch.setattr(demos, "_THUMBS_DIR", tmp_path / "thumbnails")   # clone 한 직후 — 원본 폴더 없음
+    monkeypatch.setattr(demos, "_THUMBS_DIR", tmp_path / "thumbnails")   # fresh clone: no original folder
     monkeypatch.setattr(demos, "_THUMB_INDEX", None)
     yield
     demos._THUMB_INDEX = None

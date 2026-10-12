@@ -375,7 +375,7 @@
           ko: '뷰어 닫기', en: 'Close Viewer', ja: 'ビューアを閉じる', 'zh-CN': '关闭查看器', 'zh-TW': '關閉檢視器', es: 'Cerrar visor'},
         content: {
           ko: '<strong>닫기 버튼</strong>을 클릭하거나 <strong>ESC</strong>를 눌러 문서 뷰어를 닫고 라이브러리 뷰로 돌아갑니다.', en: 'Click the <strong>close button</strong> or press <strong>ESC</strong> to close the document viewer and return to the library view.', ja: '<strong>閉じるボタン</strong>をクリックするか、<strong>ESC</strong>キーを押してドキュメントビューアを閉じ、ライブラリビューに戻ります。', 'zh-CN': '点击<strong>关闭按钮</strong>或按<strong>ESC</strong>关闭文档查看器并返回库视图。', 'zh-TW': '點擊<strong>關閉按鈕</strong>或按<strong>ESC</strong>關閉文件檢視器並返回庫檢視。', es: 'Haga clic en el <strong>botón cerrar</strong> o pulse <strong>ESC</strong> para cerrar el visor y volver a la vista de biblioteca.'},
-        afterStep: function() { _closeDocViewer(); }   // 투어가 끝나면 문서 뷰어를 닫는다
+        afterStep: function() { _closeDocViewer(); }   // close the doc viewer when the tour moves on
       }
     ]
   };
@@ -407,7 +407,7 @@
           var archBtn = document.getElementById('sdkArchBtn');
           if (archBtn) archBtn.click();
         },
-        /* 투어가 끝나도 전체 화면 그림이 남아 있었다 (release audit L-9) */
+        /* Close the full-screen diagram so it does not outlive the tour */
         afterStep: function() {
           var ov = document.getElementById('sdkArchOverlay');
           if (ov) ov.classList.remove('open');

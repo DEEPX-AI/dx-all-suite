@@ -1,7 +1,7 @@
-"""home 의 효과 (spec 2026-09-23 §7) — 움직이는 방식의 계약.
+"""Home's effects: contracts on how things move.
 
-화면에 무엇이 보이는지는 browser 테스트가 본다. 여기서는 규칙을 본다: transform · opacity 만,
-JS 는 Web Animations API, 효과 줄이기를 존중, 공용 스크립트는 opt-in 한 문서에서만.
+What is visible on screen is the browser tests' job. This file checks the rules: transform and opacity only,
+the Web Animations API for JS, reduced motion respected, and the shared script only in documents that opt in.
 """
 from __future__ import annotations
 
@@ -39,7 +39,7 @@ def test_js_effects_respect_reduced_motion():
 
 
 def test_js_effects_use_web_animations_not_class_reinsertion():
-    """class 를 떼고 offsetWidth 로 reflow 한 뒤 다시 붙이는 트릭은 키 입력마다 layout 을 부른다."""
+    """Removing a class, forcing reflow with offsetWidth and adding it back triggers layout on every keystroke."""
     js = _effects()
     assert ".animate(" in js
     assert "offsetWidth" not in js and "offsetHeight" not in js
@@ -76,7 +76,7 @@ def test_the_poster_thumbnail_grows_on_hover():
 
 
 def test_theme_and_language_fade_only_where_a_page_opts_in():
-    """공용 스크립트다 — 모듈 9개가 모두 교차 fade 를 얻지 않게, 문서가 고른다."""
+    """It is a shared script: the document opts in, so not all nine modules get the cross-fade."""
     for name in ("dx-theme.js", "i18n.js"):
         js = (SHARED / name).read_text(encoding="utf-8")
         assert "startViewTransition" in js, name
@@ -93,7 +93,7 @@ def test_the_fade_lengths_are_the_spec_ones():
         assert re.search(pat, CSS), kind
 
 
-# ── P6b: 계속 도는 것 (#4 #10 #11 #16) ─────────────────────────────────────
+# ── continuous effects ────────────────────────────────────────────────────
 
 WIDGETS = (STATIC / "home-widgets.js").read_text(encoding="utf-8")
 
@@ -141,7 +141,7 @@ def test_the_cursor_light_is_a_grid_item_moved_by_transform():
     assert "translate3d(" in js and "requestAnimationFrame" in js
 
 
-# ── P6c: 움직임 (#1 #5 #6 #7) ──────────────────────────────────────────────
+# ── motion ────────────────────────────────────────────────────────────────
 
 def test_the_movement_constants_are_the_spec_ones():
     js = _effects()
@@ -175,17 +175,17 @@ def test_the_orb_and_the_sweep_live_in_the_stage_light():
 
 
 def test_a_running_module_lights_its_glyph_by_opacity():
-    """glyph 가 공용 sprite (<use>) 가 되면서 면의 밝기는 상속 변수 --ico-fill-o 로 준다 — 등록된
-    (@property) 숫자라 400ms 전환이 된다."""
+    """The glyph is a shared sprite (<use>), so the face brightness comes from the inherited variable
+    --ico-fill-o, a registered (@property) number, which lets it transition over 400 ms."""
     assert "--ico-fill-o: 1" in _rule(".stage-deck .orbital-card.is-up .mod-glyph")
     assert re.search(r"transition:\s*--ico-fill-o 400ms", _rule(".stage-deck .mod-glyph"))
     assert re.search(r"@property --ico-fill-o\s*\{[^}]*syntax:\s*'<number>'", CSS)
 
 
 def test_the_cursor_light_stays_off_without_gpu_acceleration():
-    """빛이 유리 (backdrop-filter) 아래를 지나면 유리가 매 frame 다시 흐려진다. GPU 가 없는 기계
-    (소프트웨어 래스터 — headless 도 그렇다) 에서 frame 이 50–85ms 로 멈췄다 (P9 측정: 빛을 끄면 0).
-    GPU 가 있으면 그대로 켠다. localStorage['dx-fx'] = 'full' | 'lite' 로 고를 수 있다."""
+    """Light passing under glass (backdrop-filter) makes the glass re-blur every frame. On a machine without a GPU
+    (software rasterizer, headless included) frames take 50–85 ms; with the light off, none do.
+    With a GPU it stays on. localStorage['dx-fx'] = 'full' | 'lite' chooses explicitly."""
     js = _effects()
     assert "failIfMajorPerformanceCaveat" in js
     assert "swiftshader" in js.lower() and "llvmpipe" in js, "ANGLE 위의 SwiftShader 는 caveat 로 걸리지 않는다"

@@ -1,19 +1,18 @@
-"""dx_app 예제 layout — 경로를 만드는 곳은 여기 하나 (spec 2026-10-01 dx_app per-model layout).
+"""dx_app example layout — the one place that builds example paths.
 
-dx_app 은 두 모양으로 온다:
+dx_app comes in two shapes:
 
-- **legacy** (main ``01b7727``): ``src/<lang>_example/<task>/<model>/<model>_<variant>.{py,cpp}``
-- **per_model** (``deepx-yjlee/dx_app`` ``feat/per-model-example-dirs`` ``8d0b748``, 곧 staging):
-  ``src/<lang>_example/<task>/<family>/<stem>/<stem>_<variant>.{py,cpp}`` — stem 은 ``.dxnn`` 이름이고
-  registry 의 ``variant``. 옛 경로 shim 은 없다.
+- **legacy**: ``src/<lang>_example/<task>/<model>/<model>_<variant>.{py,cpp}``
+- **per_model**: ``src/<lang>_example/<task>/<family>/<stem>/<stem>_<variant>.{py,cpp}`` — the stem is the
+  ``.dxnn`` name and the registry's ``variant``. There is no shim for the legacy paths.
 
-어느 쪽이든 C++ binary 는 ``<build>/<name>_<variant>`` (name = legacy 의 model, per_model 의 stem) 라서
-달라지는 것은 **예제 폴더** 뿐이다. 그래서 호출부는 (task, name) 만 들고 여기서 폴더를 찾는다.
+Either way the C++ binary is ``<build>/<name>_<variant>`` (name = the legacy model, or the per_model stem), so
+only the **example folder** differs. Callers pass (task, name) and the folder is resolved here.
 
-모델 파일은 ``assets/models`` 다음에 suite 의 ``workspace/res/models`` 에서도 찾는다 (branch 의 run_demo.sh ·
-run_demo.py 와 같은 순서). 0 byte 파일은 받다 만 것이라 없는 것으로 친다.
+Model files are looked up in ``assets/models`` and then in the suite's ``workspace/res/models`` (the same order as
+run_demo.sh / run_demo.py). A 0-byte file is a partial download and counts as missing.
 
-계약: tests/dx_app/test_layout.py
+Contract: tests/dx_app/test_layout.py
 """
 from __future__ import annotations
 
@@ -34,8 +33,8 @@ _SUFFIX = {"python": ".py", "cpp": ".cpp"}
 @dataclass(frozen=True)
 class Example:
     task: str
-    name: str                      # legacy: model dir · per_model: stem (= .dxnn 이름)
-    family: Optional[str] = None   # per_model 만
+    name: str                      # legacy: model dir · per_model: stem (= .dxnn name)
+    family: Optional[str] = None   # per_model only
     py_dir: Optional[Path] = None
     cpp_dir: Optional[Path] = None
 
@@ -62,7 +61,7 @@ def _detect(root: str) -> str:
             return PER_MODEL
     except (OSError, ValueError):
         pass
-    # registry 가 없으면 tree 로: <task>/<family>/<stem>/<stem>_sync.* 가 하나라도 있으면 per_model
+    # No registry: per_model if any <task>/<family>/<stem>/<stem>_sync.* exists in the tree
     for lang in LANGS:
         base = _base(Path(root), lang)
         if not base.is_dir():
@@ -94,7 +93,7 @@ def _index(root: str) -> dict:
             else:
                 cands = [(fam.name, d) for fam in task.iterdir() if fam.is_dir() and fam.name not in _SKIP
                          for d in fam.iterdir() if d.is_dir() and d.name not in _SKIP]
-                # add_model.sh (branch 에서도 그대로) 는 <task>/<model>/ 모양으로 만든다 — per-model tree 안의 그것도 예제다
+                # add_model.sh creates <task>/<model>/ — such a folder inside a per-model tree is an example too
                 cands += [(None, d) for d in task.iterdir() if d.is_dir() and d.name not in _SKIP]
             for family, d in cands:
                 if not _is_example_dir(d, lang):
@@ -119,7 +118,7 @@ def examples(root) -> Iterable[Example]:
 def find(root, task: str, name: str) -> Optional[Example]:
     ex = _index(str(root)).get((task, name))
     if ex is None and task:
-        # 옛 이름으로 불렸을 때 (예: legacy task key) — 같은 이름의 예제가 하나뿐이면 그것
+        # Called by an old name (e.g. a legacy task key): use the example if exactly one has this name
         hits = [e for e in _index(str(root)).values() if e.name == name]
         ex = hits[0] if len(hits) == 1 else None
     return ex
@@ -137,11 +136,12 @@ def _registry_variants(root: str) -> dict:
 
 
 def example_name(root, task: str, name: str, model_file: str = "") -> str:
-    """부르는 쪽이 쓴 이름 → 이 tree 의 예제 이름. 모르면 받은 이름 그대로.
+    """The caller's name → this tree's example name. Unknown names come back unchanged.
 
-    Model Zoo 는 카탈로그 id (`rtdetr_r18vd_6x_640x640`) 로, 옛 client 는 registry 의 model_name (`yolo26n`) 으로
-    부른다. per-model 예제 이름은 .dxnn stem 이다. 순서: 받은 이름 → model_file 의 stem → registry 의 variant.
-    (계약: tests/dx_app/test_layout.py — 못 찾으면 dx_app 이 같은 task 의 남의 binary 를 빌렸다)"""
+    Model Zoo calls with a catalog id (`rtdetr_r18vd_6x_640x640`), older clients with the registry model_name
+    (`yolo26n`). Per-model example names are .dxnn stems. Order: given name → model_file stem → registry variant.
+    (Contract: tests/dx_app/test_layout.py — without this, dx_app would borrow another model's binary of the same
+    task.)"""
     if find(root, task, name):
         return name
     stem = Path(model_file).name[: -len(".dxnn")] if str(model_file).endswith(".dxnn") else ""
@@ -154,7 +154,8 @@ def example_name(root, task: str, name: str, model_file: str = "") -> str:
 
 
 def example_dir(root, lang: str, task: str, name: str) -> Path:
-    """예제 폴더. 모르는 예제는 legacy 모양의 경로를 돌려준다 (없는 경로 — 호출부의 '없음' 판정이 그대로)."""
+    """The example folder. An unknown example gets a legacy-shaped path that does not exist, so the caller's
+    "missing" check still applies."""
     ex = find(root, task, name)
     d = ex.dir(lang) if ex else None
     return d if d is not None else _base(Path(root), lang) / task / name
@@ -192,8 +193,8 @@ def load_config(root, task: str, name: str) -> dict:
 
 
 def flat_config(data: dict) -> dict:
-    """per_model 의 config.json 은 중첩 spec 이고 threshold 는 ``config`` 안에 있다. 실행에 넘기는 것은 늘 평평하게
-    — C++ ``--config`` reader 는 평평한 key 만 읽는다."""
+    """A per_model config.json is nested, with thresholds under ``config``. What is passed to a run is always flat
+    — the C++ ``--config`` reader reads flat keys only."""
     if isinstance(data, dict) and "variant" in data and isinstance(data.get("config"), dict):
         return dict(data["config"])
     return dict(data or {})
@@ -212,7 +213,8 @@ def model_locations(root, suite_root=None) -> list:
 
 
 def find_model(model_file: str, root, suite_root=None, models_dir=None) -> Optional[Path]:
-    """``assets/models/x.dxnn`` 또는 ``x.dxnn`` → 실제 파일 (0 byte 제외). 절대 경로는 그대로 확인만."""
+    """``assets/models/x.dxnn`` or ``x.dxnn`` → the actual file (0-byte files excluded). Absolute paths are only
+    checked."""
     p = PurePosixPath(model_file)
     if p.is_absolute():
         q = Path(model_file)
@@ -220,7 +222,7 @@ def find_model(model_file: str, root, suite_root=None, models_dir=None) -> Optio
     rel = p.parts[2:] if p.parts[:2] == ("assets", "models") else p.parts
     locs = ([Path(models_dir)] if models_dir else []) + model_locations(root, suite_root)
     if p.parts[:2] != ("assets", "models") and len(p.parts) > 1:
-        locs = [Path(root)] + locs            # sample/... 같은 모델 트리 밖의 상대 경로
+        locs = [Path(root)] + locs            # a relative path outside the model tree, e.g. sample/...
         rel = p.parts
     for base in locs:
         q = base.joinpath(*rel)
@@ -233,7 +235,7 @@ def find_model(model_file: str, root, suite_root=None, models_dir=None) -> Optio
 
 
 def container_version(path) -> Optional[int]:
-    """.dxnn container 판: 'DXNN' 다음 little-endian uint32 (8 byte 만 읽는다, NPU 없이)."""
+    """.dxnn container version: the little-endian uint32 after 'DXNN' (reads 8 bytes, no NPU needed)."""
     try:
         with open(path, "rb") as f:
             head = f.read(8)
@@ -242,5 +244,5 @@ def container_version(path) -> Optional[int]:
     if len(head) < 8 or head[:4] != b"DXNN":
         return None
     v = struct.unpack("<I", head[4:8])[0]
-    # 판이 아닌 값 (예: 'DXNN' 뒤에 글이 오는 test fixture) 은 모르는 것 — 모르면 막지 않는다
+    # Not a version (e.g. a test fixture with text after 'DXNN'): unknown, and unknown never blocks
     return v if 0 < v < 256 else None

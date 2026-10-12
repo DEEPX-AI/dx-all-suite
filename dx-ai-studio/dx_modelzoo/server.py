@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""DX Model Zoo 웹 서버 — 포트 8094."""
+"""DX Model Zoo web server — port 8094."""
 import json
 import threading
 from pathlib import Path
@@ -27,7 +27,7 @@ from shared.shell import ShellSpec
 
 
 def _collect_demo_files(demo):
-    """demo dict에서 cpp/python 예제 코드를 수집하여 (cpp_code, py_code) 반환."""
+    """Collect cpp/python example code from the demo dict and return (cpp_code, py_code)."""
     cpp_code = py_code = ""
     cpp_rel = demo.get("cpp_example", "")
     if cpp_rel:
@@ -49,15 +49,15 @@ def _collect_demo_files(demo):
 
 
 def _is_safe_demo_dir(path, root):
-    """경로가 root 하위인지 resolve 기반으로 검증. symlink/prefix 우회 방지."""
-    # Python 3.8-safe (Path.is_relative_to는 3.9+): relative_to + ValueError로 판정.
+    """Check, after resolving, that a path is under root (prevents symlink/prefix escapes)."""
+    # Python 3.8-safe (Path.is_relative_to is 3.9+): decide with relative_to + ValueError.
     try:
         Path(path).resolve().relative_to(Path(root).resolve())
         return True
     except ValueError:
         return False
 
-# 메타데이터 sync 런타임 상태
+# Runtime state of the metadata sync
 _sync_state = {
     "last_report": None,
     "last_synced_at": None,
@@ -73,10 +73,10 @@ _chat_engine = ChatEngine(
 
 
 
-# ── 통합 App Shell (Option A) ──────────────────────────────────
-# 카탈로그 단일 화면이라 탭 행이 없다 — 템플릿 루트에 .dx-shell--no-tabs 를 붙였다.
-# 모델 개수는 페이지 수준 상태라 헤더 좌측(페이지명 옆)에, 홈페이지 링크와
-# dx_app 연결 상태 점은 툴바 슬롯에 둔다.
+# ── Shared app shell ────────────────────────────────────────────
+# A single catalog screen, so there is no tab row — the template root carries .dx-shell--no-tabs.
+# The model count is page-level state and sits on the left of the header (next to the page name);
+# the homepage link and the dx_app connection dot go in the toolbar slot.
 _MODEL_COUNT = '<span class="mz-model-count" id="modelCount"></span>'
 
 _ZOO_TOOLBAR = (
@@ -86,7 +86,7 @@ _ZOO_TOOLBAR = (
     ' aria-label="ModelZoo public site" data-i18n-aria-label="ModelZoo public site">'
     '<span class="mz-homepage-text" data-i18n="ModelZoo Homepage">ModelZoo Homepage</span>'
     '<svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#external"></use></svg></a>'
-    # 8px 점만 있으면 무엇의 상태인지 몰랐고 튜토리얼 spotlight 도 점 하나였다 — 이름표를 붙인다 (release audit Z-8)
+    # A bare 8px dot did not say what it was the status of (and the tutorial spotlight was just a dot) — add a label
     '<span class="mz-dx-app-indicator" id="dxAppIndicator" role="status" title="DX App">'
     '<span class="mz-dx-app-status" id="dxAppStatus" aria-hidden="true"></span>'
     '<span class="mz-dx-app-label">DX App</span></span>'
@@ -127,8 +127,8 @@ class ModelZooHandler(DXBaseHandler):
                            "categories": cat["categories"], "count": len(safe_models),
                            "variant_count": stats["variant_count"],
                            "unique_model_count": stats["unique_model_count"]}
-                # 이 목록이 언제·무엇으로부터 만들어졌는지. 핸들러가 필드를 골라 담으므로
-                # get_catalog() 에 실어두는 것만으로는 화면까지 닿지 않는다.
+                # When and from what this list was built. The handler picks fields explicitly, so putting
+                # them on get_catalog() alone would not reach the page.
                 for key in ("generated_at", "source_profile"):
                     if cat.get(key):
                         payload[key] = cat[key]
@@ -197,7 +197,7 @@ class ModelZooHandler(DXBaseHandler):
                 self.wfile.write(data)
                 return
 
-            # API: card/list 카탈로그 뷰 (모델 상세 prefix 매칭 전에 처리)
+            # API: card/list catalog view (handled before the model-detail prefix match)
             if path in ("/api/catalog/card", "/api/catalog/list"):
                 cat = get_catalog()
                 view = "card" if path.endswith("/card") else "list"
@@ -215,7 +215,7 @@ class ModelZooHandler(DXBaseHandler):
                 payload["models"] = [sanitize_browser_model(model) for model in payload["models"]]
                 return self.send_json(payload)
 
-            # API: 페이지네이션 카탈로그 (모델 상세보다 먼저 매칭)
+            # API: paginated catalog (matched before model detail)
             if path == "/api/catalog/page":
                 cat = get_catalog()
                 category = qs.get("category", [None])[0]
@@ -247,7 +247,7 @@ class ModelZooHandler(DXBaseHandler):
                     "unique_model_count": stats["unique_model_count"],
                 })
 
-            # API: 아티팩트 엔드포인트 (모델 상세 전에 매칭)
+            # API: artifact endpoint (matched before model detail)
             if path.startswith("/api/catalog/") and "/artifacts/" in path:
                 return self._handle_artifact_request(path)
 
@@ -257,7 +257,7 @@ class ModelZooHandler(DXBaseHandler):
             if path == "/api/metadata/sync/report":
                 return self._handle_sync_report()
 
-            # API: 모델 상세 (카테고리/헬스 뒤에 배치 — prefix 충돌 방지)
+            # API: model detail (after categories/health — avoids prefix collisions)
             if path.startswith("/api/catalog/"):
                 model_id = path[len("/api/catalog/"):]
                 if not is_safe_model_id(model_id):
@@ -502,7 +502,7 @@ class ModelZooHandler(DXBaseHandler):
         report = result.get("report", {})
         now = datetime.now(timezone.utc).isoformat()
 
-        # in-memory 카탈로그 갱신
+        # Refresh the in-memory catalog
         if catalog:
             apply_generated_catalog(catalog)
 
@@ -524,7 +524,7 @@ class ModelZooHandler(DXBaseHandler):
 
 
 def create_server(port=DEFAULT_PORT):
-    """테스트용 서버 팩토리: HTTPServer 인스턴스를 반환."""
+    """Server factory for tests: returns an HTTPServer instance."""
     from http.server import ThreadingHTTPServer
     reload_catalog()
     srv = ThreadingHTTPServer(("127.0.0.1", port), ModelZooHandler)

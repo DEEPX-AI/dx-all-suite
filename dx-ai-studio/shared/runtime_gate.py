@@ -17,7 +17,8 @@ class ModuleStartPolicy:
 
     allowed: bool
     reason: Optional[ContractCheck] = None
-    # 허용은 됐지만 journal 의 ACTIVE 가 아니라 이 module 의 계약이 지금 통과해서 — launch context 도 그것을 따른다
+    # Allowed because this module's contract passes right now, not because the journal says ACTIVE; the launch
+    # context follows the same rule
     degraded: bool = False
 
 

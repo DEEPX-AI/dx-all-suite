@@ -15,7 +15,7 @@ def _read(path: Path) -> str:
 
 
 def _read_all_pipeline_sources() -> str:
-    """모든 파이프라인 분할 파일 + 원본을 하나의 문자열로 합침."""
+    """Joins every split pipeline file plus the original into one string."""
     files = [
         "stream-pipeline-state.js",
         "stream-pipeline-api.js",
@@ -178,10 +178,10 @@ def test_webrtc_stops_ice_poll_after_connection_established():
 
 
 def test_webrtc_error_banner_persists_and_is_not_auto_hidden():
-    """F-22(a): 스트림 실패 시 에러 배너가 지속되어야 한다(자동 숨김 금지).
+    """A stream failure keeps its error banner up (no auto-hide).
 
-    복구/사용자 조작(_clearError)까지 유지되며, 표시 로직에 자동 숨김
-    타이머(setTimeout)가 없어야 한다.
+    It stays until recovery or a user action (_clearError); the display logic has no
+    auto-hide timer (setTimeout).
     """
     source = _read(STREAM_JS / "webrtc-client.js")
 
@@ -189,18 +189,18 @@ def test_webrtc_error_banner_persists_and_is_not_auto_hidden():
     assert "function _clearError(" in source, "error dismiss/recovery path missing"
 
     show_body = _function_body(source, "function _showError(")
-    # 지속형: 자동 숨김 타이머가 없어야 한다.
+    # Persistent: no auto-hide timer.
     assert "setTimeout" not in show_body, "error banner must not auto-hide via setTimeout"
-    # 재시도/닫기 조작이 배너에 노출되어야 한다.
+    # The banner offers retry/close.
     assert "DXStream.webrtc.retry()" in show_body
     assert "_clearError()" in show_body
 
-    # 트랙 수신(복구) 시 에러가 지워진다.
+    # Receiving a track (recovery) clears the error.
     ontrack_region = source[source.index("pc.ontrack"):source.index("pc.onicecandidate")]
     assert "_clearError()" in ontrack_region, "recovery must clear the error banner"
 
-    # 최대 재시도 소진 후에는 MJPEG 폴백으로 넘어간다(_giveUp → _onFail 콜백).
-    # 원격/NAT에서 webrtc가 붙지 못하면 죽은 배너 대신 mjpeg로 자동 전환.
+    # After the last retry it falls back to MJPEG (_giveUp → _onFail callback):
+    # when WebRTC cannot connect remotely/behind NAT, switch to MJPEG instead of a dead banner.
     retry_body = _function_body(source, "function _attemptRetry(")
     assert "_giveUp(" in retry_body
     giveup_body = _function_body(source, "function _giveUp(")
@@ -341,8 +341,8 @@ async function runCase(name, forcedMjpegResponse) {
 
 
 def test_webrtc_surfaces_stall_as_bus_error_state():
-    """F-22(b): 스트리밍 중 프레임이 멈추면(버스 에러로 인한 검은 화면)
-    에러 상태를 노출해야 한다.
+    """A frame stall while streaming (black screen from a bus error)
+    surfaces an error state.
     """
     source = _read(STREAM_JS / "webrtc-client.js")
     stats_body = _function_body(source, "function _startStatsPoll(")
@@ -350,14 +350,14 @@ def test_webrtc_surfaces_stall_as_bus_error_state():
     assert "framesDecoded" in stats_body, "stall watchdog must track decoded frames"
     assert "STALL_LIMIT" in source, "stall threshold missing"
     assert "_showError(" in stats_body, "stalled stream must surface an error state"
-    # 프레임이 다시 진행되면 에러를 해제한다.
+    # Clear the error once frames advance again.
     assert "_clearError()" in stats_body
 
 
-# Task 4.3: Stream Pipeline Split — 계약 테스트
+# Stream pipeline split — contract tests
 
 def test_stream_pipeline_split_files_exist():
-    """분할된 파이프라인 JS 파일이 모두 존재한다."""
+    """Every split pipeline JS file exists."""
     expected_files = [
         "stream-pipeline-state.js",
         "stream-pipeline-api.js",
@@ -369,7 +369,7 @@ def test_stream_pipeline_split_files_exist():
 
 
 def test_stream_pipeline_split_script_order_in_html():
-    """index.html에서 파이프라인 스크립트가 올바른 순서로 로드된다."""
+    """index.html loads the pipeline scripts in the right order."""
     html = _read(STREAM_HTML)
     expected = [
         "static/js/stream-pipeline-state.js",
@@ -383,7 +383,7 @@ def test_stream_pipeline_split_script_order_in_html():
         pos = html.find(script)
         assert pos != -1, f"Script not found in HTML: {script}"
         positions.append(pos)
-    # 순서 검증
+    # Order check
     for i in range(len(positions) - 1):
         assert positions[i] < positions[i + 1], (
             f"Script order wrong: {expected[i]} should come before {expected[i + 1]}"
@@ -391,7 +391,7 @@ def test_stream_pipeline_split_script_order_in_html():
 
 
 def test_stream_runtime_scripts_are_content_hash_versioned():
-    """Firefox가 오래된 WebRTC JS를 재사용하지 않도록 런타임 스크립트는 v= 해시를 받아야 한다."""
+    """Runtime scripts get a v= hash so Firefox does not reuse stale WebRTC JS."""
     import server
 
     handler = object.__new__(server.DXStreamHandler)
@@ -408,19 +408,19 @@ def test_stream_runtime_scripts_are_content_hash_versioned():
 
 
 def test_stream_pipeline_namespace_in_state_file():
-    """stream-pipeline-state.js에 window.DXStreamPipeline 네임스페이스가 정의되어 있다."""
+    """stream-pipeline-state.js defines the window.DXStreamPipeline namespace."""
     source = _read(STREAM_JS / "stream-pipeline-state.js")
     assert "window.DXStreamPipeline" in source
 
 
 def test_stream_pipeline_namespace_bridges_existing_public_api():
-    """분할 네임스페이스는 기존 DXStream 공개 API와 명시적으로 연결된다."""
+    """The split namespace is linked explicitly to the existing public DXStream API."""
     source = _read(STREAM_JS / "stream-pipeline-state.js")
     assert "window.DXStreamPipeline.publicApi = DXStream" in source
 
 
 def test_stream_pipeline_state_contains_core_state():
-    """stream-pipeline-state.js에 핵심 상태 변수와 상수가 있다."""
+    """stream-pipeline-state.js holds the core state variables and constants."""
     source = _read(STREAM_JS / "stream-pipeline-state.js")
     assert "DXStream._pipeState" in source
     assert "DXStream._pipeRunning" in source
@@ -430,7 +430,7 @@ def test_stream_pipeline_state_contains_core_state():
 
 
 def test_stream_pipeline_api_contains_server_methods():
-    """stream-pipeline-api.js에 서버 API 관련 메서드가 있다."""
+    """stream-pipeline-api.js holds the server API methods."""
     source = _read(STREAM_JS / "stream-pipeline-api.js")
     assert "DXStream.pipelineValidate" in source
     assert "DXStream.pipelineRun" in source
@@ -440,7 +440,7 @@ def test_stream_pipeline_api_contains_server_methods():
 
 
 def test_stream_pipeline_serialization_contains_history():
-    """stream-pipeline-serialization.js에 히스토리/프리셋 관련 코드가 있다."""
+    """stream-pipeline-serialization.js holds the history/preset code."""
     source = _read(STREAM_JS / "stream-pipeline-serialization.js")
     assert "function _pushHistory(" in source
     assert "function _restoreHistory(" in source
@@ -450,7 +450,7 @@ def test_stream_pipeline_serialization_contains_history():
 
 
 def test_stream_pipeline_renderer_contains_canvas():
-    """stream-pipeline-renderer.js에 캔버스/렌더링 코드가 있다."""
+    """stream-pipeline-renderer.js holds the canvas/rendering code."""
     source = _read(STREAM_JS / "stream-pipeline-renderer.js")
     assert "function _initCanvas(" in source
     assert "function _refreshCanvas(" in source
@@ -460,14 +460,14 @@ def test_stream_pipeline_renderer_contains_canvas():
 
 
 def test_stream_pipeline_bootstrap_wraps_init():
-    """stream-pipeline.js에 pipelineInit 래퍼(컨텍스트 메뉴 + 터치 바인딩)가 남아있다."""
+    """stream-pipeline.js keeps the pipelineInit wrapper (context menu + touch bindings)."""
     source = _read(STREAM_JS / "stream-pipeline.js")
     assert "_origPipelineInit" in source
     assert "DXStream.pipelineInit" in source
 
 
 def test_stream_pipeline_bootstrap_preserves_init_promise_chain():
-    """pipelineInit 래퍼는 원본 async 초기화의 Promise와 에러 전파를 보존한다."""
+    """The pipelineInit wrapper preserves the original async init's Promise and error propagation."""
     source = _read(STREAM_JS / "stream-pipeline.js")
     body = _function_body(source, "DXStream.pipelineInit = async function (")
     assert "await _origPipelineInit();" in body
@@ -476,18 +476,18 @@ def test_stream_pipeline_bootstrap_preserves_init_promise_chain():
 
 
 def test_stream_demo_dispatches_webrtc_connect_for_webrtc_mode():
-    """stream-demo.js에서 WebRTC 모드일 때 connect(video, ...)를 호출하고,
-    연결 실패 시 MJPEG 폴백 콜백을 넘긴다."""
+    """In WebRTC mode stream-demo.js calls connect(video, ...) and passes an
+    MJPEG fallback callback for a failed connection."""
     source = _read(STREAM_JS / "stream-demo.js")
     assert "DXStream.webrtc.connect(video" in source
     assert "output_mode === 'webrtc'" in source or "output_mode === 'mjpeg'" in source
-    # WebRTC가 붙지 못하는 원격/NAT 환경에서 자동으로 MJPEG로 전환한다.
+    # Switch to MJPEG automatically when WebRTC cannot connect remotely/behind NAT.
     assert "_fallbackToMjpeg" in source
     assert "forceMjpeg" in source
 
 
 def test_webrtc_client_exposes_payload_type_preflight():
-    """webrtc-client.js는 서버 시작 전에 브라우저 VP8 payload type을 계산할 수 있어야 한다."""
+    """webrtc-client.js can compute the browser's VP8 payload type before the server starts."""
     source = _read(STREAM_JS / "webrtc-client.js")
     assert "preferredPayloadTypes" in source
     assert "createOffer()" in source
@@ -495,30 +495,30 @@ def test_webrtc_client_exposes_payload_type_preflight():
 
 
 def test_stream_demo_sends_webrtc_payload_types_to_start():
-    """데모 시작 요청은 Firefox 등 브라우저별 RTP PT를 서버에 전달한다."""
+    """The demo start request passes the browser's RTP PT (Firefox etc.) to the server."""
     source = _read(STREAM_JS / "stream-demo.js")
     assert "await DXStream.webrtc.preferredPayloadTypes()" in source
     assert "webrtcPayloadTypes" in source
 
 
 def test_stream_demo_uses_mjpeg_img_for_mjpeg_mode():
-    """stream-demo.js에서 MJPEG 모드일 때 /api/stream/mjpeg 경로를 설정한다."""
+    """In MJPEG mode stream-demo.js points at /api/stream/mjpeg."""
     source = _read(STREAM_JS / "stream-demo.js")
     assert "/api/stream/mjpeg" in source
     assert "output_mode === 'mjpeg'" in source
 
 
 def test_stream_playback_mode_is_explicit_local_vs_remote():
-    """재생 방식이 로컬(WebRTC)/원격(MJPEG) 명시 선택.
-    원격은 fMP4/MSE가 SSH tunnel에서 렌더링하지 않는 문제를 피하기 위해
-    forceMjpeg를 서버에 요청한다. 로컬 WebRTC가 연결되지 않으면 MJPEG로 폴백한다."""
+    """Playback is an explicit Local (WebRTC) / Remote (MJPEG) choice.
+    Remote requests forceMjpeg from the server because fMP4/MSE does not render over an SSH
+    tunnel. A Local WebRTC that does not connect falls back to MJPEG."""
     js = _read(STREAM_JS / "stream-demo.js")
     html = _read(STREAM_HTML)
     assert "setPlaybackMode" in js
     assert "_playbackMode === 'remote'" in js
     assert "_startBody.forceMjpeg = true" in js
     assert 'data-mode="local"' in html and 'data-mode="remote"' in html
-    # 명시 선택과 별개로, 연결되지 않는 로컬 WebRTC는 9초 뒤 MJPEG 폴백을 시작한다.
+    # Apart from the explicit choice, a Local WebRTC that does not connect starts the MJPEG fallback after 9 s.
     wc = _read(STREAM_JS / "webrtc-client.js")
     connect_body = _function_body(wc, "function connect(")
     assert "CONNECT_TIMEOUT" in connect_body
@@ -526,7 +526,7 @@ def test_stream_playback_mode_is_explicit_local_vs_remote():
 
 
 def test_remote_uses_fmp4_h264_over_http_via_mse():
-    """원격은 fMP4(H264) over HTTP를 MSE로 재생 — SSH 터널에서 MJPEG 대역폭 폭발 회피."""
+    """When the server answers output_mode 'fmp4', the page plays fMP4 (H264) over HTTP via MSE."""
     js = _read(STREAM_JS / "stream-demo.js")
     assert "/api/stream/fmp4" in js
     assert "MediaSource" in js and "addSourceBuffer" in js
@@ -535,22 +535,22 @@ def test_remote_uses_fmp4_h264_over_http_via_mse():
 
 
 def test_mjpeg_fps_uses_server_frame_counter_in_bottom_overlay():
-    """MJPEG FPS는 서버 프레임 카운터(/api/stream/stats)를 폴링해 좌하단
-    #webrtc-stats-overlay 하나에 표시한다(우상단 #video-overlay/#fps-display 제거)."""
+    """MJPEG FPS polls the server frame counter (/api/stream/stats) and shows it in the single
+    bottom-left #webrtc-stats-overlay (no top-right #video-overlay/#fps-display)."""
     js = _read(STREAM_JS / "stream-demo.js")
     html = _read(STREAM_HTML)
     assert "/api/stream/stats" in js
     assert "webrtc-stats-overlay" in js
-    # 우상단 초록 오버레이 제거됨.
+    # No green top-right overlay.
     assert 'id="video-overlay"' not in html
     assert 'id="fps-display"' not in html
-    # img 'load' 카운팅(불안정) 폐기.
+    # No counting of img 'load' events (unreliable).
     assert "addEventListener('load'" not in js
 
 
 def test_stream_pipeline_api_dispatches_webrtc_for_webrtc_mode():
-    """stream-pipeline-api.js에서 WebRTC/MJPEG/fMP4 출력을 처리하고, 데모 페이지와
-    동일하게 원격(_playbackMode)에서는 reliable MJPEG를 요청한다."""
+    """stream-pipeline-api.js handles WebRTC/MJPEG/fMP4 output and, like the demo page,
+    requests reliable MJPEG in Remote mode (_playbackMode)."""
     source = _read(STREAM_JS / "stream-pipeline-api.js")
     assert "DXStream.webrtc.connect(pipeVideo, false, function" in source
     assert "await DXStream.webrtc.preferredPayloadTypes()" in source
@@ -564,7 +564,7 @@ def test_stream_pipeline_api_dispatches_webrtc_for_webrtc_mode():
     assert "_fmp4PlayInto" in source
 
 
-# Task 7: Setup UI — split download 옵션 제거 검증
+# Setup UI — no split-download option
 
 
 def test_stream_setup_no_longer_sends_model_video_split_options():
@@ -581,12 +581,12 @@ def test_stream_setup_template_hides_split_download_options():
     assert 'id="setup-opt-videos"' not in html
 
 
-# Task 9: Demo/Model filter & availability reason 검증
+# Demo/Model filter & availability reason
 
 
 def test_stream_demo_filters_match_dev_runtime_surface():
-    """Demo filter 는 고정된 막대가 아니라 /api/demos 의 category 에서 만든다 (spec 2026-10-01 demo
-    stage) — 없는 category (classification · obb_detection) 를 광고하지 않는다."""
+    """Demo filters come from the categories in /api/demos, not a fixed bar — no filter for a category
+    that has no demo (classification · obb_detection)."""
     html = _read(STREAM_HTML)
     js = _read(STREAM_JS / "stream-demo.js")
     assert 'id="demo-filter-bar"' not in html
@@ -594,8 +594,8 @@ def test_stream_demo_filters_match_dev_runtime_surface():
 
 
 def test_stream_model_filters_come_from_the_loaded_catalog():
-    """분류 버튼은 HTML 에 고정하지 않고 받은 목록의 분류로 만든다 (release audit S-16).
-    목록은 manifest (깊이 추정 있음 · OBB 없음) 나 내장 목록 (OBB 있음) 이라 고정 버튼은 둘 중 하나와 어긋났다."""
+    """Category buttons are built from the received list, not fixed in HTML: the list is either the manifest
+    (depth estimation, no OBB) or the built-in one (OBB), so fixed buttons would mismatch one of them."""
     html = _read(STREAM_HTML)
     model_filter = html[html.index('id="models-filter-bar"'):html.index('id="models-search"')]
     assert model_filter.count("data-cat=") == 1 and 'data-cat="all"' in model_filter

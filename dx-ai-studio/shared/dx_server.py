@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""DXBaseHandler + DXServer — 모든 DX 서버의 공통 베이스 클래스.
+"""DXBaseHandler + DXServer — the common base for every DX server.
 
-DX App, DX Sandbox, DX Stream, DX Model Zoo, DX Compiler, Launcher의
-35개 장점을 통합한 단일 베이스. 서브클래스는 route()만 오버라이드하면 된다.
+One base for DX App, DX Sandbox, DX Stream, DX Model Zoo, DX Compiler and the
+Launcher. A subclass only overrides route().
 
 Usage:
     from shared.dx_server import DXBaseHandler, DXServer
@@ -79,11 +79,12 @@ _bridge_system_ca_trust()
 
 
 def _resolve_bind_host() -> str | None:
-    """모듈 서버의 bind 주소 — 기본은 loopback (QA COM-A1, 2026-10-01).
+    """Bind address for a module server — loopback by default.
 
-    모듈 (dx_app · dx_compiler …) 은 launcher 가 127.0.0.1 로 중계하므로 밖에 열 이유가 없다. launcher 는 자식
-    env 에 DX_BIND_HOST=127.0.0.1 을 명시한다. 단독 실행에서 넓히려면 DX_BIND_HOST=<host> — 그때는 DX_API_TOKEN 이
-    있어야 시작한다 (`DXServer._create_server`). DX_BIND_LOCAL=1 은 예전처럼 127.0.0.1.
+    Modules (dx_app, dx_compiler, …) are reached through the launcher on 127.0.0.1, so there is no reason to expose
+    them. The launcher sets DX_BIND_HOST=127.0.0.1 in the child env. To widen a standalone run, set
+    DX_BIND_HOST=<host>; the server then refuses to start without DX_API_TOKEN (`DXServer._create_server`).
+    DX_BIND_LOCAL=1 also means 127.0.0.1.
     """
     if os.environ.get("DX_BIND_LOCAL", "").strip().lower() in ("1", "true", "yes"):
         return "127.0.0.1"
@@ -107,7 +108,7 @@ def _configured_api_token() -> str | None:
 
 
 class _BodyCounter:
-    """요청 하나 동안 rfile 을 감싸 handler 가 읽은 본문 바이트를 센다 (`DXBaseHandler._dispatch_request`)."""
+    """Wraps rfile for one request and counts the body bytes the handler read (`DXBaseHandler._dispatch_request`)."""
 
     def __init__(self, raw):
         self.raw = raw
@@ -138,7 +139,7 @@ class _BodyCounter:
 
 
 class RequestBodyError(Exception):
-    """요청 body 파싱 실패를 HTTP status와 함께 전달한다."""
+    """A request body that failed to parse, with the HTTP status to answer."""
 
     def __init__(self, status_code: int, message: str):
         super().__init__(message)
@@ -148,7 +149,7 @@ class RequestBodyError(Exception):
 
 
 class DXBaseHandler(SimpleHTTPRequestHandler):
-    """HTTP 요청 핸들러 베이스 — 응답 헬퍼, SSE, 캐시, 보안, 라우팅 통합."""
+    """Base HTTP handler — response helpers, SSE, caching, security and routing."""
 
     protocol_version = "HTTP/1.1"
 
@@ -156,28 +157,28 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
     server_name: str = "DXServer"
     static_dir: Path | None = None
     templates_dir: Path | None = None
-    # shared.shell.ShellSpec — 통합 App Shell(Option A)을 쓰는 모듈만 설정한다.
-    # None이면 serve_template이 템플릿을 그대로 통과시킨다.
+    # shared.shell.ShellSpec — set only by modules that use the shared App Shell.
+    # When None, serve_template passes the template through unchanged.
     shell_spec: "_shell.ShellSpec | None" = None
 
-    # 로깅: 해당 경로 포함 시 로그 생략
+    # Logging: skip requests whose path contains one of these
     log_filter: list[str] | None = None
     log_silent: bool = False
 
-    # 캐시 (opt-in)
+    # Cache (opt-in)
     cache_enabled: bool = False
     cache_max: int = 512
     cache_ttl: int = 3600
 
-    # 업로드 크기 제한 (바이트)
+    # Upload size limits (bytes)
     upload_max_bytes: int = 500 * 1024 * 1024  # 500MB
     json_max_bytes: int = 1024 * 1024  # 1MB
 
-    # 공유 캐시 저장소 (클래스 레벨)
+    # Shared cache store (class level)
     _cache: dict = {}
     _cache_lock = threading.Lock()
 
-    # 에셋 콘텐츠 해시 캐시 (클래스 레벨)
+    # Asset content hash cache (class level)
     _asset_hash_cache: dict = {}
     _asset_hash_lock = threading.Lock()
     _ASSET_ATTR_RE = re.compile(
@@ -192,13 +193,13 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
 
 
     def _parse_request_url(self):
-        """URL 파싱 → self.parsed, self.url_path, self.query 설정."""
+        """Parse the URL into self.parsed, self.url_path and self.query."""
         self.parsed = urlparse(self.path)
         self.url_path = unquote(self.parsed.path).rstrip("/") or "/"
         self.query = parse_qs(self.parsed.query)
 
     def read_json_body(self) -> dict:
-        """POST/PUT body를 JSON으로 파싱. 빈 body → {}."""
+        """Parse a POST/PUT body as JSON. An empty body gives {}."""
         length = self._content_length_or_error()
         if length > self.json_max_bytes:
             raise RequestBodyError(413, "JSON body too large")
@@ -226,14 +227,14 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
         return length
 
     def read_query_param(self, key: str, default: str = "") -> str:
-        """query string에서 단일 파라미터 추출."""
+        """One parameter from the query string."""
         return self.query.get(key, [default])[0]
 
     def _is_head_request(self) -> bool:
         return getattr(self, "command", "GET") == "HEAD"
 
     def parse_multipart(self):
-        """multipart/form-data 파싱. Returns (fields_dict, files_dict).
+        """Parse multipart/form-data. Returns (fields_dict, files_dict).
 
         files_dict: {name: {"filename": str, "data": bytes}}
         """
@@ -339,15 +340,15 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
             spool.close()
 
 
-    # 이보다 큰 200 JSON 은 gzip + 내용 ETag (2026-10-11 성능 감사 — launcher 가 화면마다 2.5 MB catalog 를 새로 받았다)
+    # 200 JSON larger than this gets gzip and a content ETag (the launcher would otherwise refetch a 2.5 MB catalog)
     _JSON_TRANSPORT_MIN = 8 * 1024
     _json_gzip_cache: dict[str, bytes] = {}
 
     def send_json(self, data, code: int = 200):
-        """JSON 응답 + CORS + charset + Content-Length.
+        """JSON response with charset and Content-Length.
 
-        큰 200 응답은 내용 hash ETag 와 no-cache 를 달아 같은 내용의 재요청을 304 로 끝내고, gzip 을 받는
-        client 에는 압축해 보낸다. 작은 응답과 오류 응답은 예전 그대로다."""
+        A large 200 response carries a content-hash ETag and no-cache, so a repeat request for the same content ends
+        in 304, and it is gzipped for clients that accept it. Small and error responses are sent as-is."""
         body = json.dumps(data, ensure_ascii=False, default=str).encode("utf-8")
         if code != 200 or len(body) < self._JSON_TRANSPORT_MIN:
             self.send_response(code)
@@ -379,7 +380,7 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
                 if len(cache) >= 8:
                     try:
                         cache.pop(next(iter(cache)), None)
-                    except (StopIteration, RuntimeError):   # 다른 thread 가 동시에 바꿨다 — 다음에 비운다
+                    except (StopIteration, RuntimeError):   # another thread changed it; trim next time
                         pass
                 cache[etag] = payload
         self.send_response(200)
@@ -396,7 +397,7 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
         self.wfile.write(payload)
 
     def send_html(self, html, code: int = 200):
-        """HTML 응답."""
+        """HTML response."""
         if isinstance(html, str):
             html = html.encode("utf-8")
         self.send_response(code)
@@ -408,12 +409,12 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
         self.wfile.write(html)
 
     def send_error_json(self, code: int, message: str):
-        """구조화된 에러 JSON 응답: {"error": message}."""
+        """Structured JSON error response: {"error": message}."""
         self.send_json({"error": message}, code)
 
     def send_bytes(self, data: bytes, content_type: str, code: int = 200,
                    filename: str | None = None):
-        """바이너리 응답. filename이 있으면 Content-Disposition: attachment."""
+        """Binary response. With a filename, sends Content-Disposition: attachment."""
         self.send_response(code)
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", len(data))
@@ -424,18 +425,18 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
             return
         self.wfile.write(data)
 
-    # 장기 캐시 대상 확장자
+    # Extensions cached long-term
     _IMMUTABLE_SUFFIXES = frozenset((
         ".woff", ".woff2", ".ttf", ".otf", ".eot",
         ".png", ".jpg", ".jpeg", ".gif", ".webp", ".ico",
     ))
-    # ?v=<내용 hash> 가 맞는 static (render_html_with_asset_hashes 가 붙인 URL)
+    # Static file whose ?v=<content hash> matches (URLs added by render_html_with_asset_hashes)
     _HASHED_CACHE = "public, max-age=31536000, immutable"
-    # 아이콘 sprite — <use href> 와 dx-icon.js 가 같은 hash URL 을 쓰게 한다
+    # Icon sprite — <use href> and dx-icon.js must use the same hashed URL
     _SPRITE_URL = "/static/shared/dx-icons.svg"
     _SPRITE_REF_RE = re.compile(r'(?P<q>["\'])/static/shared/dx-icons\.svg(?:\?[^"\'#]*)?#')
     _SPRITE_META_RE = re.compile(r'<meta name="dx-icons" content="[^"]*">')
-    # gzip 대상 MIME 타입 (text/html, text/event-stream 제외)
+    # MIME types to gzip (text/html and text/event-stream excluded)
     _GZIP_MIME_TYPES = frozenset((
         "application/javascript", "application/x-javascript",
         "application/json", "application/xml", "image/svg+xml",
@@ -458,14 +459,14 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
         etag = f'W/"{mtime_ns:x}-{file_size:x}"'
         last_modified = email.utils.formatdate(mtime_sec, usegmt=True)
 
-        # Cache-Control 정책 (override via cache_control= for shell assets)
+        # Cache-Control policy (override via cache_control= for shell assets)
         #
-        # JS/CSS/JSON/SVG는 no-cache(매 요청 재검증, ETag로 304). max-age로 캐시하면
-        # 삭제/이동된 비버전 리소스를 옛 캐시가 참조해 첫 로드에서 404 → 화면 blank가
-        # 되고, 일반 새로고침은 max-age 만료 전이라 캐시를 그대로 써 고쳐지지 않는다
-        # (하드 리프레시만 회피). launcher가 자기 에셋에 이미 쓰는 정책과 일치.
-        # 폰트/이미지(immutable)는 내용이 안정적이고 무거우며, 프레시 HTML/CSS/JSON이
-        # 참조할 때만 로드되므로 장기 캐시 유지.
+        # JS/CSS/JSON/SVG are no-cache (revalidated every request, 304 via ETag). With
+        # max-age, a stale cache can point at an unversioned resource that was deleted
+        # or moved: the first load 404s, the screen goes blank, and a normal reload
+        # keeps the cache until max-age expires. Same policy the launcher uses for its
+        # own assets. Fonts/images are stable and heavy, and only load when fresh
+        # HTML/CSS/JSON refers to them, so they keep a long cache.
         base_ct = content_type.split(";")[0].strip().lower()
         suffix = p.suffix.lower()
         if cache_control is None:
@@ -475,9 +476,9 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
                 cache_control = "public, max-age=86400, must-revalidate"
             else:
                 cache_control = "no-cache, must-revalidate"
-        # ?v= 가 지금 내용 hash 와 같으면 URL 이 곧 내용이다 — 재검증할 이유가 없다. HTML 이 늘 새로
-        # 받아지고 (no-cache) 새 hash 를 적으므로, 내용이 바뀌면 URL 이 바뀐다. 옛 HTML 이 옛 hash 로
-        # 부르면 맞지 않아 위 정책 그대로 (stale 없음). 명시 cache_control= (launcher shell) 보다 우선.
+        # When ?v= equals the current content hash, the URL is the content: no need to revalidate. HTML is
+        # always refetched (no-cache) and writes the new hash, so changed content means a changed URL. An
+        # old hash does not match and gets the policy above (never stale). Wins over an explicit cache_control=.
         if base_ct != "text/html" and self._request_asset_version_matches(p):
             cache_control = self._HASHED_CACHE
 
@@ -486,7 +487,7 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
             if base_ct.startswith("text/") or base_ct in self._GZIP_MIME_TYPES:
                 gzip_eligible = True
 
-        # 조건부 요청 처리 (304) — Content-Length 생략 (RFC 7232 §4.1)
+        # Conditional request (304) — no Content-Length (RFC 7232 §4.1)
         inm = self.headers.get("If-None-Match")
         if inm is not None and inm.strip() == etag:
             self.send_response(304)
@@ -557,7 +558,7 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
                 f.close()
 
     def send_download(self, filepath, filename: str):
-        """Content-Disposition: attachment 파일 다운로드."""
+        """File download with Content-Disposition: attachment."""
         p = Path(filepath)
         if not p.exists() or not p.is_file():
             self.send_error(404)
@@ -567,7 +568,7 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
         self.send_bytes(data, content_type, filename=filename)
 
     def serve_static(self, rel_path: str, base_dir: Path | None = None):
-        """static/ 디렉토리에서 안전하게 파일 서빙 (path traversal 차단)."""
+        """Serve a file from static/ safely (path traversal blocked)."""
         base = base_dir or self.static_dir
         if base is None:
             self.send_error(404)
@@ -584,7 +585,7 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
         self.send_file(safe_path, ct)
 
     def serve_template(self, name: str):
-        """templates/ 디렉토리에서 HTML 읽기 → 에셋 해시 리라이트 → no-cache 응답."""
+        """Read HTML from templates/, rewrite asset hashes, answer with no-cache."""
         if self.templates_dir is None:
             self.send_error(404)
             return
@@ -593,9 +594,9 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
             self.send_error(404)
             return
         html = filepath.read_text(encoding="utf-8")
-        # 통합 App Shell 주입: 모듈이 shell_spec 을 선언하면 템플릿의
-        # {{DX_SHELL_*}} 자리가 shared/shell.py 마크업으로 채워진다.
-        # 선언하지 않은 모듈은 그대로 통과한다 (아직 이관 전).
+        # Shared App Shell: when a module declares shell_spec, the template's
+        # {{DX_SHELL_*}} slots are filled with shared/shell.py markup.
+        # Modules without one pass through unchanged.
         html = _shell.apply(html, self.shell_spec)
         asset_scope = None
         if self.static_dir is not None:
@@ -611,12 +612,11 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
 
     @classmethod
     def asset_content_hash(cls, filepath) -> str:
-        """파일 콘텐츠의 SHA-256 해시 앞 8자를 반환.
+        """First 8 hex chars of the file content's SHA-256.
 
-        해시는 콘텐츠에서 직접 계산한다. 예전엔 (path, st_mtime_ns, st_size)로 캐시했으나,
-        일부 파일시스템은 mtime_ns 해상도가 거칠어 '같은 크기·같은 mtime_ns로 내용만 바뀐'
-        경우(빠른 재기록/배포 스왑)를 놓쳐 stale 해시를 반환했다. 정적 자산은 작으므로
-        매 호출 콘텐츠를 읽어 정확성을 보장하고, 캐시는 경로당 최신 1개만 유지한다."""
+        Hashed from the content on every call: some filesystems have coarse mtime_ns, so a
+        key of (path, mtime_ns, size) misses a same-size rewrite and returns a stale hash.
+        Static assets are small; the cache keeps only the latest entry per path."""
         p = Path(filepath).resolve()
         data = p.read_bytes()
         digest = hashlib.sha256(data).hexdigest()[:8]
@@ -627,7 +627,7 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
         return digest
 
     def _resolve_asset_path(self, url_path: str, extra_static_roots=None):
-        """URL 경로를 로컬 파일로 안전하게 해석. 없으면 None."""
+        """Resolve a URL path to a local file safely. None when there is none."""
         shared_static = self._shared_static.resolve()
         if url_path.startswith("/static/shared/"):
             rel = url_path[len("/static/shared/"):]
@@ -650,7 +650,7 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
         return None, False
 
     def _request_asset_version_matches(self, p: Path) -> bool:
-        """요청 query 의 v 가 파일 내용 hash 와 같은가."""
+        """Whether the request's v query equals the file's content hash."""
         try:
             versions = parse_qs(urlsplit(getattr(self, "path", "") or "").query).get("v")
             return bool(versions) and versions[-1] == self.asset_content_hash(p)
@@ -659,7 +659,7 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
 
     @classmethod
     def sprite_url(cls) -> str | None:
-        """내용 hash 붙은 sprite URL. sprite 가 없으면 None."""
+        """Sprite URL with its content hash. None when there is no sprite."""
         try:
             return f"{cls._SPRITE_URL}?v={cls.asset_content_hash(cls._shared_static / 'dx-icons.svg')}"
         except (OSError, PermissionError):
@@ -667,15 +667,15 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
 
     @classmethod
     def version_sprite_refs(cls, text: str) -> str:
-        """sprite 참조 (정적 <use> · inline script 문자열) 에 hash 를 붙인다. fragment (#id) 는 그대로.
-        rewrite 뒤에 끼워 넣는 조각 (launcher 의 NPU Monitor widget) 도 이것을 거친다."""
+        """Add the hash to sprite references (static <use>, inline script strings); the fragment (#id) stays.
+        Snippets inserted after the rewrite (the launcher's NPU Monitor widget) go through this too."""
         url = cls.sprite_url()
         if url is None:
             return text
         return cls._SPRITE_REF_RE.sub(lambda m: f"{m.group('q')}{url}#", text)
 
     def _render_sprite_refs(self, html: str) -> str:
-        """sprite 참조에 hash 를 붙이고 <meta name="dx-icons"> 로 dx-icon.js 에 같은 URL 을 알린다."""
+        """Hash the sprite references and tell dx-icon.js the same URL via <meta name="dx-icons">."""
         url = self.sprite_url()
         if url is None:
             return html
@@ -689,7 +689,7 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
         return html[:idx] + meta + html[idx:]
 
     def render_html_with_asset_hashes(self, html: str, asset_scope=None, extra_static_roots=None) -> str:
-        """HTML 내 로컬 CSS/JS URL에 콘텐츠 해시 v= 쿼리를 추가 (아이콘 sprite 참조 포함)."""
+        """Add a content-hash v= query to local CSS/JS URLs in the HTML (icon sprite references included)."""
         def _replace_url(match):
             prefix = match.group("prefix")
             raw_url = match.group("url")
@@ -707,7 +707,7 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
             except (OSError, PermissionError):
                 return match.group(0)
 
-            # 기존 쿼리 파싱 → v, m 제거 후 재구성
+            # Rebuild the query without any existing v and m
             params = [(k, v) for k, v in parse_qsl(parts.query) if k not in ("v", "m")]
             if is_module_local and asset_scope:
                 params.append(("m", asset_scope))
@@ -719,7 +719,7 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
         return self._render_sprite_refs(self._ASSET_ATTR_RE.sub(_replace_url, html))
 
     def send_html_no_cache(self, html: str, status: int = 200):
-        """HTML 응답 + Cache-Control: no-cache."""
+        """HTML response with Cache-Control: no-cache."""
         data = html.encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "text/html; charset=utf-8")
@@ -732,7 +732,7 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
 
 
     def start_sse(self):
-        """SSE 응답 헤더 전송. 이후 send_sse()로 이벤트 전송."""
+        """Send SSE response headers. Events follow via send_sse()."""
         self.send_response(200)
         self.send_header("Content-Type", "text/event-stream")
         self.send_header("Cache-Control", "no-cache")
@@ -742,19 +742,19 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
         self._sse_chunked = True
 
     def _write_chunk(self, data: bytes):
-        """HTTP/1.1 chunked transfer-encoding으로 한 프레임 기록 후 flush."""
+        """Write one HTTP/1.1 chunked transfer-encoding frame and flush."""
         self.wfile.write(f"{len(data):x}\r\n".encode("ascii"))
         self.wfile.write(data)
         self.wfile.write(b"\r\n")
         self.wfile.flush()
 
     def _end_chunked(self):
-        """종단 청크(0\\r\\n\\r\\n) 전송."""
+        """Send the terminating chunk (0\\r\\n\\r\\n)."""
         self.wfile.write(b"0\r\n\r\n")
         self.wfile.flush()
 
     def end_sse(self):
-        """SSE 스트림 종료. chunked 모드일 때 종단 청크 전송 (멱등)."""
+        """End the SSE stream. In chunked mode, send the terminating chunk (idempotent)."""
         if not getattr(self, "_sse_chunked", False):
             return
         self._sse_chunked = False
@@ -764,9 +764,9 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
             pass
 
     def send_sse(self, event: str, data):
-        """SSE 이벤트 전송. data는 자동으로 JSON 직렬화.
+        """Send an SSE event. data is JSON-serialized automatically.
 
-        BrokenPipeError / ConnectionResetError 시 False 반환.
+        Returns False on BrokenPipeError / ConnectionResetError.
         """
         try:
             if not isinstance(data, str):
@@ -782,7 +782,7 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
             return False
 
     def send_sse_data(self, data):
-        """event 없이 data만 전송 (기존 패턴 호환)."""
+        """Send data without an event name."""
         try:
             if not isinstance(data, str):
                 data = json.dumps(data, ensure_ascii=False, default=str)
@@ -798,7 +798,7 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
 
 
     def cache_get(self, prefix: str, data: dict):
-        """SHA256 해시 키로 캐시 조회. TTL 만료 시 None."""
+        """Look up the cache by SHA-256 key. None when missing or past the TTL."""
         if not self.cache_enabled:
             return None
         key = self._make_cache_key(prefix, data)
@@ -813,7 +813,7 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
             return result
 
     def cache_set(self, prefix: str, data: dict, result):
-        """캐시 저장 + LRU 제거 (max 초과 시)."""
+        """Store in the cache, evicting the oldest entry when full."""
         if not self.cache_enabled:
             return
         key = self._make_cache_key(prefix, data)
@@ -824,14 +824,14 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
             self._cache[key] = (result, time.time())
 
     def cache_clear(self):
-        """전체 캐시 무효화."""
+        """Invalidate the whole cache."""
         with self._cache_lock:
             count = len(self._cache)
             self._cache.clear()
             return count
 
     def cache_stats(self) -> dict:
-        """캐시 통계 반환."""
+        """Cache statistics."""
         with self._cache_lock:
             return {
                 "cached_entries": len(self._cache),
@@ -840,7 +840,7 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
             }
 
     def send_cached_json(self, prefix: str, data: dict, producer):
-        """캐시된 결과가 있으면 반환, 없으면 producer()를 실행하고 캐시."""
+        """Send the cached result, or run producer(), cache it and send that."""
         cached = self.cache_get(prefix, data)
         if cached is not None:
             self.send_json(cached)
@@ -857,15 +857,15 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
 
     @staticmethod
     def is_safe_path(path: str, allowed_dir: str | Path | None = None) -> bool:
-        """경로가 allowed_dir 범위 안에 있는지 검증.
+        """Whether path lies inside allowed_dir.
 
-        allowed_dir가 None이면 path가 유효한지만 검사
-        (상대경로 트래버설 '..' 검출).
+        When allowed_dir is None, only check that path is valid
+        (no '..' traversal).
         """
         try:
             if allowed_dir is not None:
                 return _shared_is_safe_path(path, [allowed_dir])
-            # allowed_dir 없으면 '..' 없는지 확인 (resolve()로 null-byte 등 무효 경로도 거부)
+            # No allowed_dir: reject '..' (resolve() also rejects invalid paths such as a null byte)
             Path(path).resolve()
             return ".." not in Path(path).parts
         except (ValueError, OSError):
@@ -873,7 +873,7 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
 
     @staticmethod
     def sanitize_id(value: str) -> str | None:
-        """안전한 ID 검증: [a-zA-Z0-9_-]만 허용. 실패 시 None."""
+        """Validate a safe id: letters, digits, '_', '-', '.' only. None when invalid."""
         if value and re.match(r'^[a-zA-Z0-9_.-]+$', value):
             return value
         return None
@@ -893,7 +893,7 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
     _KEYLESS_PROVIDERS = frozenset(("local", "agent-cli"))
 
     def _effective_request_origin(self) -> tuple[str, str]:
-        """현재 요청의 외부 origin(scheme, netloc)을 reverse proxy 헤더까지 반영해 계산."""
+        """External origin (scheme, netloc) of the current request, honouring reverse-proxy headers."""
         host = self.headers.get("Host", "").split(",", 1)[0].strip().lower()
         forwarded_host = self.headers.get(
             "X-Forwarded-Host", ""
@@ -941,7 +941,7 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
         return host in {"127.0.0.1", "localhost", "::1"}
 
     def do_OPTIONS(self):
-        """preflight — same-origin 만 (QA COM-A1). 교차 Origin 은 403, CORS 허용 헤더는 보내지 않는다."""
+        """Preflight — same-origin only. A cross origin gets 403; no CORS allow headers are sent."""
         self._parse_request_url()
         if not self._host_ok():
             return self._refuse_host()
@@ -954,10 +954,10 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
         self.end_headers()
 
     def _check_same_origin(self) -> bool:
-        """Origin/Referer가 있으면 same-origin인지 확인. 없으면 True(허용).
+        """When Origin/Referer is present, check it is same-origin. When absent, True (allowed).
 
-        브라우저 origin 기준에 맞춰 scheme + netloc을 모두 비교한다.
-        reverse proxy에서는 X-Forwarded-Proto/Host를 외부 origin으로 사용한다.
+        Compares scheme and netloc, as browsers define an origin.
+        Behind a reverse proxy, X-Forwarded-Proto/Host give the external origin.
         """
         origin = self.headers.get("Origin", "")
         if origin:
@@ -965,11 +965,11 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
         referer = self.headers.get("Referer", "")
         if referer:
             return self._url_matches_effective_origin(referer)
-        # Origin/Referer 없음 (curl 등) → 허용
+        # No Origin/Referer (curl and the like) → allowed
         return True
 
-    # ── 원격 접근 (QA COM-A1, spec 2026-10-01) ────────────────────────────────
-    # launcher 가 shared.remote_access.RemoteAccess 를 둔다 (페어링 · 세션). 모듈 서버는 None.
+    # ── Remote access ────────────────────────────────────────────────────────
+    # The launcher sets shared.remote_access.RemoteAccess (pairing, sessions). Module servers leave it None.
     remote_access = None
 
     def _peer_ip(self) -> str:
@@ -980,14 +980,15 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
 
     @staticmethod
     def _proxy_secret() -> str:
-        """launcher 가 자식 env 로만 넘기는 비밀 — 중계한 요청에 X-DX-Proxy 로 실린다."""
+        """Secret the launcher passes only through the child env; proxied requests carry it in X-DX-Proxy."""
         return os.environ.get("DX_PROXY_SECRET", "")
 
     def _is_local(self) -> bool:
-        """이 기계 안에서 직접 온 요청 — 로컬 사용은 그대로 둔다 (사용자 결정).
+        """A request made directly on this machine — local use needs no authentication.
 
-        loopback peer 이고 X-Forwarded-For 가 없어야 한다 (같은 기계의 reverse proxy 경유는 원격). launcher 가
-        중계한 요청은 X-Forwarded-For 가 붙지만 X-DX-Proxy 의 비밀이 맞으면 launcher 가 이미 인증한 것이다."""
+        The peer must be loopback with no X-Forwarded-For (a reverse proxy on the same machine counts as remote).
+        Requests the launcher proxies carry X-Forwarded-For, but a matching X-DX-Proxy secret means the launcher
+        already authenticated them."""
         ip = self._peer_ip().split("%", 1)[0]
         try:
             addr = ipaddress.ip_address(ip)
@@ -1005,12 +1006,12 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
         return True
 
     def _host_ok(self) -> bool:
-        """DNS rebinding 차단 — IP Host 는 허용, 이름은 localhost · 이 기계 · DX_ALLOWED_HOSTS."""
+        """Block DNS rebinding — any IP Host is allowed; names must be localhost, this machine or DX_ALLOWED_HOSTS."""
         from shared.remote_access import host_allowed
         return host_allowed(self.headers.get("Host", ""))
 
     def _origin_ok(self, require: bool = False) -> bool:
-        """Origin (없으면 Referer) 이 same-origin 인가. 둘 다 없으면 ``not require``."""
+        """Whether Origin (else Referer) is same-origin. With neither, ``not require``."""
         origin = self.headers.get("Origin", "")
         if origin:
             return self._url_matches_effective_origin(origin)
@@ -1053,14 +1054,14 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
         return ra.sessions.valid(token) if token else None
 
     def _auth_exempt(self) -> bool:
-        """인증 없이 원격에서 닿아도 되는 경로 (launcher: 페어링 화면 · 코드 입력)."""
+        """Paths reachable remotely without authentication (launcher: pairing screen, code entry)."""
         return False
 
     def _send_unauthorized(self):
         self.send_error_json(401, "Unauthorized")
 
     def _enforce_auth(self) -> bool:
-        """막았으면 True. 로컬 → 통과, 원격 → DX_API_TOKEN 또는 페어링 세션 (쿠키) 이 있어야 한다."""
+        """True when the request was refused. Local passes; remote needs DX_API_TOKEN or a pairing session (cookie)."""
         self.auth_kind = None
         if self._is_local():
             self.auth_kind = "local"
@@ -1070,7 +1071,7 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
             return False
         session = self._session()
         if session:
-            # 쿠키는 브라우저가 알아서 붙인다 — 상태를 바꾸는 요청은 Origin/Referer 가 반드시 같은 곳이어야 (CSRF)
+            # Browsers attach cookies on their own, so a state-changing request must be same-origin (CSRF)
             if self._is_state_changing() and not self._origin_ok(require=True):
                 self._refuse_cross_origin()
                 return True
@@ -1083,7 +1084,7 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
         return True
 
     def _dispatch_request(self):
-        """URL 파싱 후 route() 호출. 다 읽히지 않은 본문은 응답 뒤에 비운다 (`_BodyCounter`)."""
+        """Parse the URL and call route(). Any unread body is drained after the response (`_BodyCounter`)."""
         length, chunked = self._declared_body()
         counter = None
         if length > 0 and not chunked:
@@ -1105,10 +1106,9 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
             length = -1
         return length, "chunked" in te
 
-    # 거부 (401 · 403) 와 본문을 쓰지 않는 handler (logout 등) 는 본문을 읽지 않는다. 그 바이트가 keep-alive 연결에
-    # 남으면 다음 요청 줄 앞에 붙어 (`{}GET / HTTP/1.1`) 501 이 된다 — 원격 브라우저가 연결을 끊고 새로고침하면
-    # 페어링 화면 대신 오류가 나왔다 (2026-10-02). handler 마다 고치는 대신 여기서 한 번에 비운다. 크면 (거절된
-    # 업로드) 읽지 않고 연결을 닫는다.
+    # Refusals (401, 403) and handlers that ignore the body (logout, …) never read it. Left on a keep-alive
+    # connection, those bytes prefix the next request line (`{}GET / HTTP/1.1`) and it fails with 501. Drain them
+    # here once instead of in every handler; when large (a refused upload), close the connection instead.
     _DRAIN_MAX = 1024 * 1024
 
     def _drain_unread(self, left: int) -> None:
@@ -1133,7 +1133,8 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
         self._parse_request_url()
         if not self._host_ok():
             return self._refuse_host()
-        # 상태를 바꾸는 교차 Origin 요청은 로컬이어도 거부 — 보드 안 브라우저의 악성 페이지가 127.0.0.1 로 보내는 CSRF
+        # Refuse state-changing cross-origin requests even when local — CSRF from a malicious page in a browser on
+        # the board aimed at 127.0.0.1
         if self._is_state_changing() and not self._origin_ok():
             return self._refuse_cross_origin()
         if self._enforce_auth():
@@ -1177,13 +1178,13 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
         self._dispatch_request()
 
     def route(self):
-        """서브클래스에서 오버라이드하여 앱 라우트 정의."""
+        """Override in a subclass to define the app's routes."""
         if self.route_common():
             return
         self.route_legacy()
 
     def route_common(self) -> bool:
-        """공통 GET 라우트 처리. 처리했으면 True, 아니면 False.
+        """Handle the common GET routes. True when handled, otherwise False.
 
         Handles:
           GET / or /index.html
@@ -1222,7 +1223,7 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
     _shared_static = Path(__file__).parent / "static"
 
     def serve_shared_static(self, rel_path: str):
-        """shared/static/ 우선, shared/chat/static/ fallback."""
+        """shared/static/ first, shared/chat/static/ as fallback."""
         candidate = (self._shared_static / rel_path).resolve()
         if (self._path_is_within(candidate, self._shared_static.resolve())
                 and candidate.is_file()):
@@ -1232,7 +1233,7 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
         self.serve_static(rel_path, base_dir=self._shared_chat_static)
 
     def send_sse_stream(self, token_generator):
-        """Generator[str]를 SSE로 스트리밍. 각 토큰을 data json으로 전송."""
+        """Stream a Generator[str] as SSE, each token as a JSON data event."""
         self.start_sse()
         try:
             for token in token_generator:
@@ -1245,14 +1246,14 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
             self.end_sse()
 
     def handle_chat_routes(self, chat_engine):
-        """공통 채팅 라우트 처리. True 반환 시 처리됨.
+        """Handle the common chat routes. Returns True when handled.
 
         Routes:
-          GET  /api/chat/config → 설정 상태
-          POST /api/chat → SSE 스트리밍 응답
-          POST /api/chat/config → 설정 저장
-          POST /api/chat/config/test → 연결 테스트
-          GET  /static/shared/* → shared static 파일
+          GET  /api/chat/config → config status
+          POST /api/chat → SSE streaming response
+          POST /api/chat/config → save config
+          POST /api/chat/config/test → connection test
+          GET  /static/shared/* → shared static files
 
         Cross-origin requests to chat routes are rejected with 403.
 
@@ -1427,7 +1428,7 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
 
 
 class _DualStackHTTPServer(ThreadingHTTPServer):
-    """IPv4 + IPv6 dual-stack 서버 (localhost에서 ::1, 127.0.0.1 모두 동작)."""
+    """IPv4 + IPv6 dual-stack server (localhost works as both ::1 and 127.0.0.1)."""
     address_family = socket.AF_INET6
     allow_reuse_address = True
     daemon_threads = True
@@ -1438,7 +1439,7 @@ class _DualStackHTTPServer(ThreadingHTTPServer):
 
 
 class DXServer:
-    """서버 생성·시작 래퍼: CLI 파싱, IPv6 듀얼스택, 포트 충돌 해결, 시그널 핸들링."""
+    """Creates and starts a server: CLI parsing, IPv6 dual stack, port conflicts, signal handling."""
 
     def __init__(self, handler_class, name: str, default_port: int):
         self.handler_class = handler_class
@@ -1449,7 +1450,7 @@ class DXServer:
         self._shutdown_requested = False
 
     def start(self):
-        """CLI 파싱 → 서버 생성 → 시그널 등록 → serve_forever."""
+        """Parse the CLI → create the server → register signals → serve_forever."""
         args = self._parse_args()
         port = args.port
 
@@ -1506,10 +1507,10 @@ class DXServer:
         return parser.parse_args()
 
     def _create_server(self, port: int, max_attempts: int = 5):
-        """IPv6 듀얼스택 우선, 실패 시 IPv4 폴백. 포트 충돌 시 재시도."""
+        """IPv6 dual stack first, IPv4 as fallback. Retries on a port conflict."""
         bind_host = _resolve_bind_host()
         if not _is_loopback_host(bind_host) and not _configured_api_token():
-            # 원격에 열면서 인증이 없으면 시작하지 않는다 (QA COM-A1). 모듈은 launcher 뒤 loopback 이 기본.
+            # Never listen remotely without authentication. Modules default to loopback behind the launcher.
             print(f"  [{self.name}] ERROR: refusing to listen on {bind_host} without DX_API_TOKEN "
                   "(set DX_API_TOKEN, or use the launcher which pairs remote browsers).")
             return None
@@ -1533,13 +1534,13 @@ class DXServer:
                     print(f"  [{self.name}] Bind failed ({e}), retrying...")
                     continue
 
-            # IPv6 듀얼스택 시도
+            # Try IPv6 dual stack
             try:
                 return _DualStackHTTPServer(("::", port), self.handler_class)
             except OSError:
                 pass
 
-            # IPv4 폴백
+            # IPv4 fallback
             try:
                 srv = ThreadingHTTPServer(("0.0.0.0", port), self.handler_class)
                 srv.allow_reuse_address = True
@@ -1554,10 +1555,10 @@ class DXServer:
         return None
 
     def _register_signals(self):
-        # 신호 처리기는 serve_forever() 가 도는 main thread 에서 불린다. 여기서 바로 shutdown() 을 부르면
-        # shutdown() 이 serve_forever() 가 끝나기를 기다리고, serve_forever() 는 이 처리기가 끝나기를
-        # 기다려 둘 다 멈춘다 — SIGTERM 을 받은 서버가 살아남아 고아로 쌓였다. dx_monitor 처럼 다른
-        # thread 에 맡기면 serve_forever() 가 돌아와 start() 가 끝나고 프로세스가 내려간다.
+        # Signal handlers run on the main thread, where serve_forever() runs. Calling shutdown() here
+        # deadlocks: shutdown() waits for serve_forever() to finish, which waits for this handler, and the
+        # server survives SIGTERM as an orphan. Handing shutdown() to another thread lets serve_forever()
+        # return, start() finish and the process exit.
         def _shutdown(*_):
             print(f"\n  [{self.name}] Shutting down...")
             with self._shutdown_lock:

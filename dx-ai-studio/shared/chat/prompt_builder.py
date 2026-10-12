@@ -201,7 +201,7 @@ def build_system_prompt(
         for sec in match_sections(sdk_sections, user_message, max_sections=3):
             parts.append(f"## {sec['title']}\n{sec['content']}")
 
-    # 2.6 이 PC 의 설치 상태 — knowledge 가 두 모양을 다 적어 두어 model 이 틀린 쪽을 골랐다 (2026-10-11).
+    # 2.6 This PC's installation. The knowledge pages describe both layouts, so state which one is here.
     facts = live_facts.system_facts()
     if facts:
         parts.append(facts)

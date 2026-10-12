@@ -1,8 +1,8 @@
-"""Escape closes the topmost thing first, and only then leaves the module (2026-10-02 release audit X-1 / A-1 / L-5).
+"""Escape closes the topmost thing first, and only then leaves the module.
 
-Escape anywhere in the launcher document called goHome() while a module was open: pressed in the chat input it
-left the module (and aborted the reply) with the chat still open; pressed with the Tutorial Guide open it left the
-module too; in the SDK Library search box it left the view instead of clearing the search.
+Escape in the launcher document must not jump straight to goHome() while a module is open: in the chat input it closes
+the chat (it must not leave the module and abort the reply); with the Tutorial Guide open it closes the guide; in the
+SDK Library search box it clears the search rather than leaving the view.
 """
 from __future__ import annotations
 
@@ -71,7 +71,8 @@ def _open(browser, port, app, deferred_tutorial=None):
 
 
 def test_escape_in_the_chat_closes_the_chat_and_stays_in_the_view(port, browser):
-    # launcher 채팅은 launcher 의 화면 (홈 · SDK Library · About) 에 있다 — 모듈 안에서는 모듈 자신의 채팅 (아래 시험)
+    # The launcher chat lives on launcher screens (Home, SDK Library, About); inside a module the module's own chat
+    # is used (test below).
     ctx, page = _open(browser, port, "sdk-library")
     try:
         page.click(".dx-chat-fab")
@@ -85,8 +86,8 @@ def test_escape_in_the_chat_closes_the_chat_and_stays_in_the_view(port, browser)
 
 
 def test_escape_with_the_tutorial_guide_open_closes_the_guide_first(port, browser):
-    # 모듈 화면에서는 launcher toolbar 가 숨고 모듈이 iframe 안에 자기 toolbar 를 가진다 — launcher 자신의 화면
-    # (SDK Library) 에서 본다
+    # On module screens the launcher toolbar hides and the module has its own toolbar in its iframe, so this runs on
+    # a launcher screen (SDK Library).
     ctx, page = _open(browser, port, "sdk-library")
     try:
         page.wait_for_function("!!(window._dxTutorials && window._dxTutorials.sdk_library)", timeout=15000)
@@ -193,8 +194,8 @@ def test_escape_in_the_sdk_search_clears_it_and_stays(port, browser):
 
 
 def test_inside_a_module_only_the_modules_own_chat_button_is_there(port, browser):
-    """launcher 의 채팅 버튼이 모듈 iframe 의 채팅 버튼을 같은 자리에서 덮어, 모듈 전용 도움말 (모듈 지식 · 오프라인 답) 을
-    열 수 없었다 (2026-10-02 release audit X-2 / A-2). 모듈 안에서는 launcher 의 것을 숨긴다."""
+    """Inside a module the launcher's chat button is hidden: it sits in the same spot as the module iframe's chat
+    button and would block module-only help (module knowledge, offline answers)."""
     ctx, page = _open(browser, port, "zoo")
     try:
         assert not page.locator("body > .dx-chat-fab, .dx-chat-fab").first.is_visible()
@@ -206,7 +207,7 @@ def test_inside_a_module_only_the_modules_own_chat_button_is_there(port, browser
 
 
 def test_opening_the_sdk_library_does_not_add_a_second_chat_button(port, browser):
-    """SDK Library 가 DXChat.init 을 다시 불러 위젯이 하나 더 생겼다 — 같은 자리에 버튼 두 개 (2026-10-02)."""
+    """SDK Library must not call DXChat.init again: a second widget means two buttons in the same spot."""
     ctx, page = _open(browser, port, "sdk-library")
     try:
         assert page.evaluate("document.querySelectorAll('.dx-chat-fab').length") == 1
@@ -225,12 +226,12 @@ def _deep(browser, port, path):
     page = ctx.new_page()
     page.goto(f"http://127.0.0.1:{port}{path}", wait_until="domcontentloaded", timeout=60000)
     page.wait_for_function("!!(window.DXLauncher && DXLauncher._studioReadyResolved)", timeout=30000)
-    page.wait_for_timeout(2500)   # 자동 목차는 500 ms 뒤 + 준비 대기
+    page.wait_for_timeout(2500)   # the automatic guide opens after 500 ms, plus readiness
     return ctx, page
 
 
 def test_a_deep_link_into_a_module_does_not_open_the_launcher_guide_over_it(port, browser):
-    """모듈 URL 로 바로 들어오면 'Launcher Home' 목차가 모듈 목차 위에 같이 열렸다 (release audit X-3 / A-21)."""
+    """Entering by a module URL must not open the 'Launcher Home' guide on top of the module's guide."""
     ctx, page = _deep(browser, port, "/zoo")
     try:
         assert page.evaluate("DXLauncher.currentApp") == "zoo"
@@ -240,7 +241,8 @@ def test_a_deep_link_into_a_module_does_not_open_the_launcher_guide_over_it(port
 
 
 def test_the_sdk_library_guide_starts_the_sdk_tour_not_the_home_tour(port, browser):
-    """SDK Library 로 바로 들어오면 목차가 둘 열리고, SDK 목차의 Start from Beginning 이 홈 투어를 시작했다 (L-3)."""
+    """Entering SDK Library directly opens one guide, and its Start from Beginning starts the SDK tour, not the
+    home tour."""
     ctx, page = _deep(browser, port, "/sdk-library")
     try:
         opened = page.locator(".dxt-toc.open")
@@ -253,8 +255,8 @@ def test_the_sdk_library_guide_starts_the_sdk_tour_not_the_home_tour(port, brows
 
 
 def test_the_sdk_list_view_search_finds_documents(port, browser):
-    """List 보기 (기본) 검색이 사이드바 이름과 이미 그려진 카드만 보아 'quick start' · 'compiler' 가 0 건이었다
-    (Cabinet 보기는 찾았다). 2026-10-02 release audit L-4."""
+    """List view (the default) search must cover every document, not just sidebar names and cards already drawn:
+    'quick start' and 'compiler' must match there as they do in Cabinet view."""
     ctx, page = _open(browser, port, "sdk-library")
     try:
         page.wait_for_selector("#sdkListContent", timeout=15000)

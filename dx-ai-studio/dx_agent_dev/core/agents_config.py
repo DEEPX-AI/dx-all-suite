@@ -1,15 +1,14 @@
-"""에이전트별 CLI/모델 설정 테이블.
+"""Per-agent CLI and model settings.
 
-verified 2026-07-19 against installed CLIs (claude/copilot/cursor-agent/opencode) + codex docs;
-claude · copilot refreshed 2026-09-30. 모델 목록은 각 벤더가 수시로 변경하므로 **날짜에 민감**하다 —
-이 테이블은 폴백일 뿐, 동적 조회가 가능한 agent 는 항상 실 CLI 결과를 우선한다
-(environment.agent_model_info 참고):
+Checked against the installed CLIs (claude/copilot/cursor-agent/opencode) and the codex docs; claude and copilot
+last refreshed 2026-09-30. Vendors change their model lists often, so this table is **date-sensitive**. It is
+only a fallback: agents that can be queried always prefer the live CLI result (see environment.agent_model_info):
   cursor    `cursor-agent --list-models`
   opencode  `opencode models`
-  copilot   ACP `session/new` — 이 계정이 쓸 수 있는 model (adapters/copilot.py). 여기 표는 폴백이자,
-            계정 목록에 없는 model 을 "보이되 고를 수 없게" 보여 줄 전체 목록이다.
-claude/codex 는 CLI 에 models-list 가 없어 정적 목록이 유일한 소스다 — claude 는 그래서 alias 를 맨
-앞에 둔다 (CLI 가 늘 최신으로 풀어 준다).
+  copilot   ACP `session/new`, the models this account may use (adapters/copilot.py). The table here is the
+            fallback and also the full list, so models missing from the account show as visible but not selectable.
+claude and codex have no models-list command, so the static list is the only source; claude therefore puts the
+aliases first (the CLI always resolves them to the newest model).
 """
 
 AGENTS = {
@@ -18,8 +17,8 @@ AGENTS = {
         # Fallback + "everything" list. The live list comes from ACP per account (adapters/copilot.py);
         # this is that list as measured 2026-09-30 (copilot CLI 1.0.89, a company account) plus the
         # older ids other accounts may still have. Default "auto": which models an account may use
-        # differs per plan and org policy — the old default claude-sonnet-4.6 was not offered to the
-        # measured account, so a default run failed. The live default (currentModelId) replaces it.
+        # differs per plan and org policy, so a fixed default can be refused for an account. The live
+        # default (currentModelId) replaces it.
         "models": [
             "auto",
             "claude-sonnet-5.5", "claude-sonnet-5", "claude-opus-5.5", "claude-opus-5",
@@ -35,7 +34,7 @@ AGENTS = {
         "default_model": "auto",
         "output_format": "text",
         # copilot CLI: `--effort/--reasoning-effort <level>` — verbatim from `copilot --help`:
-        # none|low|medium|high|xhigh|max (previously missing "none").
+        # none|low|medium|high|xhigh|max.
         "reasoning_efforts": ["none", "low", "medium", "high", "xhigh", "max"],
         "default_effort": "medium",
     },
@@ -107,7 +106,7 @@ AGENTS = {
     },
 }
 
-# session_id 짧은형 매핑(spec §10). 미등록 모델은 원문 사용.
+# Short model names for the session_id. Unlisted models use the full name.
 MODEL_SHORT = {
     "claude-fable-5": "fable5",
     "claude-opus-4-8": "opus48",

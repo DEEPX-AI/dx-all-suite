@@ -30,11 +30,9 @@
 .diag-fail{background:rgba(248,81,73,.1);color:var(--status-error);border:1px solid rgba(248,81,73,.25)}
 
 
-/* ═══ Layout / text utilities ═══
-   dx_app · dx_stream · dx_monitor · dx_benchmark 가 같은 유틸리티를 각자 갖고
-   있었다. 값은 같았고 공백만 달랐다 — 어차피 같을 것을 네 번 적고 있었다. */
+/* ═══ Layout / text utilities ═══ (shared by every module) */
 .flex{display:flex}
-/* between · items-c · ml8 은 정리 때 같이 지워졌지만 dx_app 머리줄 6 곳이 아직 쓴다 — 없으니 제목과 설명이 붙었다 (release audit A-27). */
+/* between · items-c · ml8 are still used by dx_app page headers. */
 .between{justify-content:space-between}
 .items-c{align-items:center}
 .ml8{margin-left:var(--sp-2)}
@@ -45,10 +43,9 @@
 .grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--sp-4)}
 .grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--sp-4)}
 .grid4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
-/* minmax(0,1fr) — 1fr 의 최솟값은 내용 폭이라 넓은 표 · 카드가 칸을 밀어 폰 폭에서 가로로 넘쳤다 (release audit A-10) */
+/* minmax(0,1fr): a bare 1fr has a content-width minimum, so wide tables and cards would overflow at phone width */
 
-/* dx_app / dx_monitor / dx_stream 이 같은 규칙을 각자 복제하고 있었다.
-   접히는 폭이 파일마다 갈리기 시작하면 같은 격자가 화면마다 다르게 접힌다. */
+/* One set of breakpoints, so the same grid folds the same way on every screen. */
 @media(max-width:1200px){
   .grid2,.grid3,.grid4{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
@@ -59,9 +56,7 @@
 .tbl-wrap{overflow-x:auto}
 
 /* ═══ Status badges ═══
-   dx_stream 만 상태 토큰 대신 색을 직접 적고 있었다 — #34d399 #38bdf8 #fbbf24
-   #fb7185. 같은 "성공" 배지가 모듈에 따라 다른 초록이었다는 뜻이고, 테마를
-   바꾸면 그 모듈만 따라오지 않는다. 토큰 쪽으로 맞춘다. */
+   Colours come from the status tokens, so badges match across modules and follow the theme. */
 .b-ok{background:rgba(63,185,80,.12);color:var(--status-ok);border:1px solid rgba(63,185,80,.2)}
 .b-no{background:rgba(148,163,184,.08);color:var(--text-faint);border:1px solid rgba(148,163,184,.1)}
 .b-cat{background:var(--accent-dim);color:var(--accent-ink);border:1px solid rgba(var(--accent-rgb),.15)}
@@ -73,7 +68,7 @@
 .mt16{margin-top:16px}
 .txt-acc{color:var(--accent)}
 
-/* dx_app · dx_stream · dx_monitor · dx_benchmark 가 각자 갖고 있던 나머지 유틸리티. */
+/* Other shared utilities. */
 .gap12{gap:var(--sp-3)}
 .mb8{margin-bottom:8px}
 .txt-sm{font-size:var(--fs-sm)}

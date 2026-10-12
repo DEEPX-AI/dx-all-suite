@@ -1,14 +1,13 @@
-"""공개 ModelZoo 페이지의 __MODEL_ZOO_DATA__ 를 읽는다.
+"""Reads __MODEL_ZOO_DATA__ from the public ModelZoo page.
 
-페이지가 리팩토링되면서 서버 렌더 HTML 테이블이 사라지고 구조화된 페이로드가
-문서 안에 실리게 됐다. 우리 파서는 테이블을 읽고 있었으므로 더 이상 맞지 않는다.
+The page carries a structured payload in the document rather than a server-rendered table.
 
-이름으로 읽는다. 페이로드의 `fields` 배열이 열 이름을 주므로 위치에 기대지 않는다 —
-이 저장소는 위치 기반 파싱으로 카탈로그 캐시의 필드가 한 칸씩 밀려(`fps` ←
-`fps_per_watt`) 잘못된 성능 수치를 보여준 전례가 있다.
+Fields are read by name. The payload's `fields` array gives the column names, so nothing
+depends on position: positional parsing can shift every field by one column (`fps` ←
+`fps_per_watt`) and show wrong performance numbers.
 
-그리고 조용히 실패하지 않는다. 공식 API 가 아니라 페이지 구조에 기대고 있으므로,
-모양이 바뀌면 부분 카탈로그를 만드는 대신 예외를 던져야 한다.
+And it never fails silently. It relies on the page structure, not an official API, so a
+changed shape must raise instead of producing a partial catalog.
 """
 from __future__ import annotations
 
@@ -31,7 +30,7 @@ def test_every_row_is_read(rows):
 
 
 def test_fields_are_read_by_name_not_position(rows):
-    """이름으로 읽으면 열 순서가 바뀌어도 값이 밀리지 않는다."""
+    """Reading by name keeps values in place when the column order changes."""
     by_name = {r["display"]: r for r in rows}
     d = by_name["DenseNet-121"]
     assert d["task"] == "Image Classification"
@@ -50,14 +49,14 @@ def test_accuracy_is_read_per_tier(rows):
     assert d["accuracy"]["raw"] == pytest.approx(74.436)
     assert d["accuracy"]["qlite"] == pytest.approx(73.97)
     assert d["accuracy"]["qpro"] == pytest.approx(74.25)
-    assert d["accuracy"]["qmaster"] is None        # 이 모델엔 없다
+    assert d["accuracy"]["qmaster"] is None        # this model has none
 
-    r = by_name["RepVGG-A0"]                       # 네 tier 가 모두 있는 행
+    r = by_name["RepVGG-A0"]                       # a row with all four tiers
     assert r["accuracy"]["qmaster"] == pytest.approx(71.238)
 
 
 def test_artifact_urls_are_absolute(rows):
-    """상대경로(~onnx/…)는 페이로드의 base 와 합쳐 완전한 URL 이 돼야 한다."""
+    """A relative path (~onnx/…) must join the payload's base into a full URL."""
     d = next(r for r in rows if r["display"] == "DenseNet-121")
     onnx = d["artifacts"]["onnx"]
     assert onnx.startswith("https://sdk.deepx.ai/modelzoo/"), onnx
@@ -71,13 +70,13 @@ def test_absent_artifacts_are_absent_not_empty_strings(rows):
 
 
 def test_missing_global_raises(recwarn):
-    """조용한 부분 성공이 가장 위험하다 — 없으면 큰 소리로 실패한다."""
+    """Silent partial success is the worst case, so a missing payload fails loudly."""
     with pytest.raises(ValueError, match="__MODEL_ZOO_DATA__"):
         parse_public_payload("<html><body>no payload here</body></html>")
 
 
 def test_unknown_field_layout_raises():
-    """`fields` 에서 필수 열이 사라지면 조용히 비우지 않는다."""
+    """A required column missing from `fields` raises instead of leaving values empty."""
     broken = (
         '<script>window.__MODEL_ZOO_DATA__ = '
         '{"fields":["task","name"],"base":"https://x/","rows":[["a","b"]]};</script>'
@@ -87,7 +86,7 @@ def test_unknown_field_layout_raises():
 
 
 def test_nested_braces_do_not_truncate_the_payload():
-    """괄호 균형으로 끝을 찾는다. 정규식으로 첫 `}` 를 잡으면 중첩에서 잘린다."""
+    """The end is found by brace balance; a regex stopping at the first `}` would cut nested objects."""
     payload = (
         '<script>window.__MODEL_ZOO_DATA__ = '
         '{"fields":["task","name","display","dataset","input","ops","params",'
@@ -101,11 +100,10 @@ def test_nested_braces_do_not_truncate_the_payload():
     assert len(rows) == 1 and rows[0]["display"] == "D"
 
 
-# ── 어댑터가 쓰는 형태 ────────────────────────────────────────
-# 어댑터와 studio_id_map 은 {모델id: {점으로 이어진 leaf 경로: 값}} 을 기대한다.
-# 그 leaf 경로들은 예전 HTML 파서가 이미 정의해 둔 것과 같아야 한다 — 스키마는
-# specification.dataset / parameters / metric.name / evaluation.qmaster 를 이미
-# 갖고 있었고, 채우는 쪽이 없었을 뿐이다.
+# ── The shape the adapter uses ────────────────────────────────
+# The adapter and studio_id_map expect {model id: {dotted leaf path: value}}.
+# The leaf paths must match the established schema (specification.dataset /
+# parameters / metric.name / evaluation.qmaster …).
 from dx_modelzoo.metadata._public_parser import parse_public_modelzoo_html  # noqa: E402
 
 
@@ -118,7 +116,7 @@ def models():
 def test_adapter_shape_is_keyed_by_model_id(models):
     assert isinstance(models, dict) and len(models) == 8
     assert all(isinstance(v, dict) for v in models.values())
-    # id 는 아티팩트 파일명에서 나온다. 숫자 안의 점을 두 번 깎지 않아야 한다.
+    # The id comes from the artifact file name; a dot inside a number must not be stripped twice.
     assert "densenet121_224x224" in models
 
 
@@ -141,10 +139,10 @@ def test_leaf_paths_match_the_established_schema(models):
 
 
 def test_absent_tiers_do_not_appear_as_keys(models):
-    """없는 값은 None 으로 채우지 않고 키를 만들지 않는다.
+    """Absent values create no key rather than a None.
 
-    merge 가 '값이 있는 소스' 를 고르므로, None 을 넣으면 다른 소스가 채운
-    값을 빈 값으로 덮어쓸 수 있다.
+    merge picks 'the source that has a value', so a None could overwrite a value
+    another source filled in.
     """
     f = models["densenet121_224x224"]
     assert "evaluation.qmaster.accuracy" not in f
@@ -152,10 +150,10 @@ def test_absent_tiers_do_not_appear_as_keys(models):
 
 
 def test_dotted_model_names_are_not_double_stripped(models):
-    """숫자 안의 점을 확장자로 오인하면 안 된다.
+    """A dot inside a number must not be taken for an extension.
 
-    `3ddfa-v2_mobilenet-0.5_120x120.dxnn` 에서 확장자를 미리 떼고 정규화하면
-    `.5_120x120` 까지 함께 날아가 `3ddfa_v2_mobilenet_0` 이 된다. 전체 파일명을
-    넘겨 Path.stem 이 한 번만 깎게 한다.
+    Stripping the extension of `3ddfa-v2_mobilenet-0.5_120x120.dxnn` before normalizing
+    also drops `.5_120x120`, giving `3ddfa_v2_mobilenet_0`. The full file name is passed
+    so Path.stem strips only once.
     """
     assert "3ddfa_v2_mobilenet_0_5_120x120" in models, sorted(models)

@@ -1,10 +1,10 @@
 """Sample-image mapping must be model-aware and not show unrelated images.
 
-Before this fix the inference Sample tab was dead for every model: the catalog never
-set `sample_dir` (so `hasSampleMetadata` was always false → tab disabled), the server
-never returned `sample_dir`, and it ignored `model_id` so MODEL_IMAGE_OVERRIDE never
-applied (a face detector got the ppu default street shot). Pair/gallery tasks (reid,
-embedding) have no flat sample file and must stay unmapped rather than mis-point.
+The inference Sample tab needs the catalog to set `sample_dir` (else `hasSampleMetadata`
+is false and the tab is disabled), the server to return `sample_dir`, and the server to
+honour `model_id` so MODEL_IMAGE_OVERRIDE applies (a face detector must not get the ppu
+default street shot). Pair/gallery tasks (reid, embedding) have no flat sample file and
+must stay unmapped rather than mis-point.
 """
 import os
 import sys
@@ -42,13 +42,12 @@ def _per_model():
 
 def test_pair_task_has_no_flat_sample():
     # reid (person_pair dir) / embedding (face_pair dir) cannot be a single flat file →
-    # sample_dir stays None so the UI honestly disables the tab. (casvit_xs was removed from
-    # the staging catalog.)
+    # sample_dir stays None so the UI honestly disables the tab.
     ms = _catalog_models()
     assert ms["arcface_r50"].get("sample_dir") is None
     assert ms["arcface_r50"].get("sample_image") is None
     if not _per_model():
-        # main 에서 casvit_t 는 reid 다. per-model dx_app (8d0b748) 은 image_classification 으로 옮겼다.
+        # In main dx_app casvit_t is reid; the per-model dx_app files it under image_classification.
         assert ms["casvit_t"].get("sample_dir") is None
         assert ms["casvit_t"].get("sample_image") is None
 
@@ -59,13 +58,8 @@ def test_demo_input_is_representative_image_for_file_tasks():
     ms = _catalog_models()
     assert ms["yolov7_w6"].get("demo_input") == "sample/img/sample_street.jpg"
     assert ms["scrfd500m_ppu"].get("demo_input") == "sample/img/sample_face.jpg"  # override
-    # dx_app 이 v3.2.0(680366d) 에서 dota8_test/ 10장(93MB)을 지우고
-    # sample_airport_satellite_view.png 로 교체했다. 자산이 사라진 것이 아니라 교체된
-    # 것이고, studio 의 SAMPLE_IMAGES 만 따라가지 못해 한 달 넘게 없는 파일을 가리켰다.
-    #
-    # 썸네일도 새 입력으로 재생성했다(2026-09-21). obb 5개 + super_resolution 6개를
-    # 실제 NPU 추론으로 다시 만들었으므로, 이 함수 이름이 약속하는 "썸네일과 같은
-    # 이미지" 가 다시 성립한다.
+    # dx_app's OBB sample is sample_airport_satellite_view.png, and the obb thumbnails were
+    # made from it on the NPU, so the demo runs on the same image as the thumbnail.
     assert ms["yolo26n_obb"].get("demo_input") == "sample/img/sample_airport_satellite_view.png"
 
 
@@ -75,7 +69,7 @@ def test_demo_input_is_pair_dir_for_reid_embedding():
     ms = _catalog_models()
     assert ms["arcface_r50"].get("demo_input") == "sample/img/face_pair"
     if _per_model():
-        # per-model 의 person ReID 는 query 한 장 + gallery — 그 예제의 config.json default_image
+        # Per-model person ReID takes one query plus a gallery: the example's config.json default_image
         assert ms["repvgg_a0_reid_256x128"]["category"] == "reid"
         assert ms["repvgg_a0_reid_256x128"].get("demo_input") == "sample/reid/queries/sample_person_a2.jpg"
     else:

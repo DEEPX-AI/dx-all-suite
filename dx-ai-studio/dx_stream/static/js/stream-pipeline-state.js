@@ -1,6 +1,6 @@
 /**
- * DX Stream Pipeline — 상태 & 상수 모듈
- * 네임스페이스, 공유 상태, 테마 헬퍼, 스케줄링 유틸리티, 카테고리 정보
+ * DX Stream Pipeline — state & constants module
+ * Namespace, shared state, theme helpers, scheduling utilities, category info
  */
 
 window.DXStreamPipeline = window.DXStreamPipeline || {};
@@ -38,7 +38,7 @@ function _cv(k) {
     return colors.raw[k];
 }
 
-/* 색 token 에 투명도를 준 canvas 색 (hex · rgb() → rgba(…, a)). 모르는 모양이면 그대로. */
+/* Canvas color from a color token with alpha (hex · rgb() → rgba(…, a)). Unknown formats pass through. */
 function _cvAlpha(k, a) {
     var c = _cv(k) || '';
     var m = c.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
@@ -51,14 +51,14 @@ function _cvAlpha(k, a) {
     return m ? 'rgba(' + m[1] + ',' + m[2] + ',' + m[3] + ',' + a + ')' : c;
 }
 
-/* 테마가 바뀌면 (사용자 · 시스템) 색을 다시 읽고 다시 그린다 — 예전에는 처음 읽은 색이 끝까지 남아, 밝은 테마로
-   바꿔도 캔버스는 어두운 색 (흰 글자 · 흰 격자) 그대로였다 (release audit S-6). */
+/* When the theme changes (user or system), re-read the colors and redraw; otherwise the canvas keeps the colors
+   it read first. */
 if (window.DXTheme && typeof DXTheme.onThemeChange === 'function') {
     DXTheme.onThemeChange(function () {
         _pipelineThemeColors = null;
-        requestAnimationFrame(function () {   // CSS 가 새 테마를 먼저 입게
+        requestAnimationFrame(function () {   // let CSS apply the new theme first
             _pipelineThemeColors = null;
-            if (typeof _refreshCanvas === 'function') { try { _refreshCanvas(); } catch (e) { /* 캔버스 없음 */ } }
+            if (typeof _refreshCanvas === 'function') { try { _refreshCanvas(); } catch (e) { /* no canvas */ } }
         });
     });
 }
@@ -109,11 +109,11 @@ DXStream._pipeState = {
     elementFlat: [],     // flat array of all elements
     nodes: [],           // [{id, type, name, category, x, y, properties:{}}]
     edges: [],           // [{id, from, to}]  (node id → node id)
-    selectedNode: null,  // node id (단일 선택 호환용)
-    selectedNodes: [],   // [node id, ...] (멀티 선택)
+    selectedNode: null,  // node id (single-selection compatibility)
+    selectedNodes: [],   // [node id, ...] (multi-selection)
     selectedEdge: null,   // edge id
     _nextId: 1,
-    _clipboard: [],      // 복사된 노드들
+    _clipboard: [],      // copied nodes
 
     _drag: null,         // {nodeId, startX, startY, origX, origY} or {multi: true, startX, startY, origPositions: [{id, x, y}]}
     _pan: null,          // {startX, startY, origOX, origOY}
@@ -125,7 +125,7 @@ DXStream._pipeState = {
 };
 DXStream._pipeRunning = false;
 
-/* ── 카테고리 색상 (서버 CATEGORY_COLORS 동기화) ── */
+/* ── Category colors (kept in sync with the server's CATEGORY_COLORS) ── */
 var _elemCatColors = {
     source:        '#3B82F6',
     preprocess:    '#F59E0B',
@@ -150,7 +150,7 @@ var _elemCatIcons = {
     utility:       'wrench',
 };
 function _catColor(cat) { return _elemCatColors[cat] || _elemCatColors.default; }
-// 요소 분류 아이콘은 sprite 이름 (아이콘 체계 단계 5) — 목록은 DXIcon, 캔버스는 DXIcon.draw 로 그린다.
+// Category icons are sprite names — lists draw them with DXIcon, the canvas with DXIcon.draw.
 function _catIcon(cat) { return _elemCatIcons[cat] || 'circle'; }
 var _catNameI18n = {
     source:        { ko: '소스',     ja: 'ソース',         'zh-CN': '源',      'zh-TW': '來源' },

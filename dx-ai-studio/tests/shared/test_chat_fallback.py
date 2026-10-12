@@ -269,9 +269,8 @@ if __name__ == "__main__":
 
 
 def test_the_no_ai_copy_leads_with_the_signed_in_agent_not_an_api_key():
-    """2026-10-11 chat settings redesign §3.1: with no AI, the copy lists the three ways in the order a user can take
-    them — sign in a coding agent (answers with no setup), a local server, then a cloud key. It led with "set an API
-    key" before."""
+    """With no AI, the copy lists the three ways in the order a user can take them — sign in a coding agent (answers
+    with no setup), a local server, then a cloud key — rather than leading with "set an API key"."""
     from shared.chat.fallback import COMMON_RULES
     greeting = COMMON_RULES[0][1]
     for lang in ("en", "ko", "ja", "es", "zh-CN", "zh-TW"):

@@ -1,7 +1,7 @@
-"""DX Stream Reference — 15개 주제가 여섯 언어로 열리고 화면과 맞는 사실을 말한다 (release audit S-9).
+"""DX Stream Reference — 15 topics open in six languages and state facts that match the screen.
 
-예전에는 스페인어가 없었고 (_T5), 7단계 · 데모 11개 · MJPEG 기본 · 프리셋 5개 · 모델 16개 · 요소 26개 ·
-없는 단축키 (Ctrl+K, Backspace) · 틀린 API 경로를 적고 있었다.
+Step counts, demo / preset / model / element counts, the default playback mode, shortcuts and API paths must match
+what the app actually has.
 """
 from __future__ import annotations
 

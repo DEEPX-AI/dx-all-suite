@@ -1,4 +1,4 @@
-"""setup.py 테스트 — step 정의, 상태 확인, 스크립트 경로"""
+"""setup.py — step definitions, status checks, script paths"""
 import sys, pytest
 from pathlib import Path
 from types import SimpleNamespace
@@ -9,13 +9,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "dx_strea
 
 class TestSetupSteps:
     def test_install_model_registers_step(self):
-        """install_model()이 SETUP_STEPS에 동적 스텝을 등록하는지 확인"""
+        """install_model() registers a dynamic step in SETUP_STEPS"""
         from core.setup import SETUP_STEPS
         from core.setup import install_model
         assert callable(install_model)
 
     def test_run_step_supports_args(self):
-        """run_step()이 step에 args 키가 있으면 인자를 전달하는지 확인"""
+        """run_step() passes arguments when the step has an args key"""
         from core.setup import SETUP_STEPS
         SETUP_STEPS["_test_echo"] = {
             "label_ko": "테스트",
@@ -30,8 +30,8 @@ class TestSetupSteps:
     def test_all_core_setup_steps_have_post_routes(self):
         """Every core setup step must have a POST route in server.py.
 
-        Regression guard: the 'stream-deps' step was added to SETUP_STEPS + the UI
-        without a server route, so clicking Install 404'd (no run, no logs).
+        A step in SETUP_STEPS and the UI without a server route would make Install
+        return 404 (no run, no logs).
         """
         import re
         root = Path(__file__).resolve().parent.parent.parent / "dx_stream"

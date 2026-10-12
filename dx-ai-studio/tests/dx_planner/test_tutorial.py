@@ -1,7 +1,7 @@
 """Tutorial language and selector contracts for DX EdgeGuide (dx_planner).
 
-`tests/dx_agent_dev/test_tutorial.py` 패턴을 dx_planner(워크스페이스 추천 UI)에 맞게 복제.
-정적 계약 테스트 — 브라우저/JS 런타임 없이 소스 텍스트만 검증.
+Follows the `tests/dx_agent_dev/test_tutorial.py` pattern for the dx_planner workspace UI.
+Static contract tests: they check source text only, with no browser or JS runtime.
 """
 
 import re
@@ -25,9 +25,9 @@ TARGET_LANGS = ("ko", "ja", "zh-CN", "zh-TW", "es")
 
 
 def rendered_index() -> str:
-    """서버가 실제로 내보내는 index.html (shell 주입 후).
+    """The index.html the server actually sends (after shell injection).
 
-    레일·헤더·툴바는 shared/shell.py 가 서버 렌더 시점에 주입한다.
+    shared/shell.py injects the rail, header and toolbar at render time.
     """
     from dx_planner.server import DX_PLANNER_SHELL
     from shared.shell import apply as apply_shell
@@ -82,7 +82,7 @@ def _unresolved_target_tokens(target: str, selectors: set) -> list:
 
 
 def test_tutorial_targets_extract():
-    """헬퍼 단위(순수) — target/targetAll 추출 정확성."""
+    """Pure helper check: target/targetAll extraction is exact."""
     source = """
     var helpDefs = {
       workspace: [
@@ -130,7 +130,7 @@ def test_preserves_expected_sections():
 
 
 def test_sections_cover_target_languages():
-    """모든 i18n 객체가 TARGET_LANGS를 빠짐없이 커버(ko 출현수 기준)."""
+    """Every i18n object covers all TARGET_LANGS (counted against the ko entries)."""
     source = read_text(JS_DIR / "tutorial.js")
     ko_count = len(re.findall(r"\bko\s*:", source))
     assert ko_count >= 8, f"expected several i18n objects, ko-keys={ko_count}"

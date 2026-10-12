@@ -1,8 +1,8 @@
-"""Module stderr is kept (2026-10-11 real-use audit).
+"""Module stderr is kept.
 
-A dx_app module server exited once during real use and the launcher brought it back, but nothing said why: every
-module's stdout and stderr went to /dev/null. stderr (tracebacks, warnings, and the faulthandler dump of a native
-crash) now goes to a size-capped log per module, and the watchdog records the exit code.
+When a module server exits and the launcher brings it back, the reason must be recorded. stderr (tracebacks,
+warnings, and the faulthandler dump of a native crash) goes to a size-capped log per module, and the watchdog
+records the exit code.
 """
 from __future__ import annotations
 

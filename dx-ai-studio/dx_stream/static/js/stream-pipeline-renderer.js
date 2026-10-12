@@ -1,6 +1,6 @@
 /**
- * DX Stream Pipeline — 렌더러 & 인터랙션 모듈
- * 팔레트, 캔버스 초기화, 히트테스트, 마우스/터치 이벤트, 노드/엣지 드로잉, 속성 패널, 미니맵
+ * DX Stream Pipeline — renderer & interaction module
+ * Palette, canvas setup, hit testing, mouse/touch events, node/edge drawing, property panel, minimap
  */
 
 function _renderPalette(grouped) {
@@ -53,7 +53,7 @@ function _bindPaletteDrag() {
     var canvas = DXStream.$('pipeline-canvas');
     if (!palette || !container || !canvas) return;
 
-    // 중복 등록 방지
+    // Avoid registering twice
     if (container.dataset.pipeDragBound) return;
     container.dataset.pipeDragBound = '1';
 
@@ -136,8 +136,7 @@ function _updateElementCount() {
     var el = DXStream.$('pipeline-element-count');
     if (!el) return;
     var n = DXStream._pipeState.nodes.length;
-    /* 예전에는 템플릿에 없는 .ko / .en span 에 써서 preset 을 불러도 'Elements: 0' 그대로였다 (release audit S-5).
-       살아 있는 숫자라 사전 key 가 아니다 — 언어가 바뀌면 다시 그린다 (아래 onLangChange). */
+    /* A live number, not a dictionary key — it is redrawn when the language changes (onLangChange below). */
     el.removeAttribute('data-i18n');
     el.textContent = T('Elements') + ': ' + n;
 }
@@ -163,7 +162,7 @@ function _initCanvas() {
     }
     resize();
 
-    // 중복 등록 방지: 이미 바인딩되었으면 리사이즈만 수행
+    // Avoid binding twice: if already bound, only resize
     if (canvas.dataset.pipeEvtBound) return;
     canvas.dataset.pipeEvtBound = '1';
 
@@ -297,7 +296,7 @@ function _canvasMouseDown(e) {
     if (hit) {
         st.selectedEdge = null;
         if (e.shiftKey) {
-            // Shift+클릭: 멀티 선택 토글
+            // Shift+click: toggle multi-selection
             var idx = st.selectedNodes.indexOf(hit.id);
             if (idx >= 0) { st.selectedNodes.splice(idx, 1); }
             else { st.selectedNodes.push(hit.id); }
@@ -306,7 +305,7 @@ function _canvasMouseDown(e) {
         }
         st.selectedNode = st.selectedNodes[0] || null;
         DXStream._showPropertyPanel(hit);
-        // 멀티 노드 드래그
+        // Multi-node drag
         if (st.selectedNodes.length > 1 && st.selectedNodes.includes(hit.id)) {
             var origPositions = st.selectedNodes.map(function (nid) {
                 var nd = st.nodes.find(function (n) { return n.id === nid; });
@@ -354,7 +353,7 @@ function _canvasMouseMove(e) {
     if (st._drag) {
         var w = _screenToWorld(e, canvas);
         if (st._drag.multi) {
-            // 멀티 노드 드래그
+            // Multi-node drag
             var dx = w.x - st._drag.startX;
             var dy = w.y - st._drag.startY;
             st._drag.origPositions.forEach(function (op) {
@@ -456,7 +455,7 @@ function _canvasMouseUp(e) {
 
     if (st._drag) {
         if (st._drag.multi) {
-            // 멀티 노드 드래그: 모든 선택 노드 그리드 스냅
+            // Multi-node drag: snap every selected node to the grid
             st._drag.origPositions.forEach(function (op) {
                 var nd = st.nodes.find(function (n) { return n.id === op.id; });
                 if (nd) {
@@ -466,7 +465,7 @@ function _canvasMouseUp(e) {
             });
             _pushHistory();
         } else {
-            // 단일 노드 드래그: 그리드 스냅
+            // Single-node drag: snap to the grid
             var node = st.nodes.find(function (n) { return n.id === st._drag.nodeId; });
             if (node) {
                 node.x = Math.round(node.x / 20) * 20;
@@ -581,7 +580,7 @@ function _canvasWheel(e) {
     _scheduleCanvasRefresh();
 }
 
-// sprite 를 다 읽으면 (DXIcon.draw 첫 호출이 읽기를 시작한다) 캔버스를 다시 그려 아이콘을 채운다.
+// Once the sprite has loaded (the first DXIcon.draw call starts loading it), redraw the canvas to fill in icons.
 if (typeof window !== 'undefined') window.addEventListener('dx-icons-ready', function () { try { _refreshCanvas(); } catch (e) {} });
 
 function _refreshCanvas() {
@@ -661,7 +660,7 @@ function _refreshCanvas() {
 }
 
 function _drawNode(ctx, node, selected, connStatus) {
-    // outer save — connStatus에 따른 전체 노드 globalAlpha 제어
+    // outer save — globalAlpha for the whole node, by connStatus
     ctx.save();
     if (connStatus === 'block') {
         ctx.globalAlpha = 0.3;
@@ -719,7 +718,7 @@ function _drawNode(ctx, node, selected, connStatus) {
     ctx.fill();
     ctx.restore();
 
-    // 분류 아이콘 — sprite 를 캔버스에 (DXIcon.draw). 아직 못 읽었으면 다 읽은 뒤 다시 그린다.
+    // Category icon — sprite drawn on the canvas (DXIcon.draw). If not loaded yet, it is redrawn once loaded.
     if (typeof DXIcon === 'function' && DXIcon.draw) DXIcon.draw(ctx, icon, x + 8, y + _NODE_H / 2 - 7, 14, color);
 
     ctx.fillStyle = _cv('--text-primary');
@@ -732,7 +731,7 @@ function _drawNode(ctx, node, selected, connStatus) {
     ctx.font = '9px sans-serif';
     ctx.fillText(_catLabel(node.category), x + 26, y + _NODE_H / 2 + 8);
 
-    // input port (left) — block 상태에서는 숨김
+    // input port (left) — hidden in the block state
     if (connStatus !== 'block') {
         ctx.beginPath();
         ctx.arc(x, y + _NODE_H / 2, _PORT_R + 1, 0, Math.PI * 2);
@@ -759,14 +758,14 @@ function _drawNode(ctx, node, selected, connStatus) {
     ctx.lineWidth = 1.5;
     ctx.stroke();
 
-    // 차단 표시 (block 상태)
+    // Blocked marker (block state)
     if (connStatus === 'block') {
         ctx.globalAlpha = 1;
-        // 연결할 수 없는 노드 — x 아이콘 (sprite)
+        // Node that cannot connect — x icon (sprite)
         if (typeof DXIcon === 'function' && DXIcon.draw) DXIcon.draw(ctx, 'x', x + _NODE_W / 2 - 10, y + _NODE_H / 2 - 10, 20, _cv('--status-error'));
     }
 
-    // 외부 restore — globalAlpha 복원
+    // outer restore — resets globalAlpha
     ctx.restore();
 }
 
@@ -815,7 +814,7 @@ function _drawEdge(ctx, x1, y1, x2, y2, dashed, selected, fromColor, toColor, wa
     if (warnEdge) {
         var mx = (x1 + x2) / 2;
         var my = (y1 + y2) / 2;
-        // 경고 연결 — alert 아이콘 (sprite)
+        // Warned connection — alert icon (sprite)
         if (typeof DXIcon === 'function' && DXIcon.draw) DXIcon.draw(ctx, 'alert', mx - 8, my - 18, 16, _cv('--status-warn'));
     }
 }
@@ -845,7 +844,7 @@ function _hidePropertyPanel() {
     if (empty) empty.style.display = '';
 }
 
-/* 속성 드롭다운 옵션 생성 — 모델/비디오/라이브러리/설정 */
+/* Build property dropdown options — models/videos/libraries/configs */
 function _getDropdownOptions(propName, nodeType, props) {
     var a = DXStream._pipeAssets;
     if (!a) return null;
@@ -856,14 +855,14 @@ function _getDropdownOptions(propName, nodeType, props) {
         });
     }
     if (propName === 'library-file-path') {
-        // 후처리 요소에는 후처리 라이브러리만, 메시지 변환 요소에는 메시지 변환 라이브러리만 보인다.
+        // Postprocess elements list only postprocess libraries; message-conversion elements only msgconv libraries.
         var prefix = nodeType === 'DxPostprocess' ? 'libpostprocess_' : nodeType === 'DxMsgConv' ? 'libdx_msgconv' : '';
         return (a.libraries || []).filter(function (lib) { return !prefix || lib.indexOf(prefix) === 0; }).map(function (lib) {
             return { value: a.libs_dir + '/' + lib, label: lib.replace('libpostprocess_', '').replace('.so', '') };
         });
     }
     if (propName === 'function-name') {
-        // 고른 라이브러리가 내보내는 함수들 (서버가 .so 의 .dynsym 에서 읽는다, S-18). 모르면 PostProcess.
+        // Functions the chosen library exports (the server reads them from the .so's .dynsym). Unknown → PostProcess.
         var lib = String((props || {})['library-file-path'] || '').split('/').pop();
         var fns = (a.functions && a.functions[lib] && a.functions[lib].length) ? a.functions[lib] : ['PostProcess'];
         return fns.map(function (f) { return { value: f, label: f }; });
@@ -875,7 +874,7 @@ function _getDropdownOptions(propName, nodeType, props) {
                 items.push({ value: a.configs_dir + '/' + dir + '/' + f, label: dir + '/' + f });
             });
         });
-        // 트래커 설정도 추가
+        // Add tracker configs too
         items.push({ value: a.configs_dir + '/tracker_config.json', label: 'tracker_config.json' });
         return items;
     }
@@ -897,7 +896,7 @@ DXStream._showPropertyPanel = function (node) {
     var header = panel.querySelector('.prop-header');
     if (header) header.textContent = node.name || T('Properties');
 
-    // 요소 정의에서 속성 메타데이터 가져오기
+    // Get property metadata from the element definition
     var elDef = DXStream._pipeState.elementFlat.find(function (e) { return e.name === node.type; });
     var propMeta = {};
     if (elDef && elDef.properties && Array.isArray(elDef.properties)) {
@@ -926,7 +925,7 @@ DXStream._showPropertyPanel = function (node) {
             }
             var typeHint = meta.type ? '<span class=\"prop-type-hint\">' + meta.type + '</span>' : '';
 
-            // 드롭다운 대상: model-path, library-file-path, function-name, config-file-path, uri
+            // Dropdown properties: model-path, library-file-path, function-name, config-file-path, uri
             var dropdown = _getDropdownOptions(entry[0], node.type, node.properties);
             if (dropdown) {
                 var curVal = entry[1] != null ? String(entry[1]) : '';
@@ -935,7 +934,7 @@ DXStream._showPropertyPanel = function (node) {
                     var sel = (opt.value === curVal) ? ' selected' : '';
                     opts += '<option value="' + opt.value.replace(/"/g, '&quot;') + '"' + sel + '>' + opt.label + '</option>';
                 });
-                // 목록에 없는 값이면 커스텀 항목 추가
+                // Add a custom entry for a value not in the list
                 if (curVal && !dropdown.some(function (o) { return o.value === curVal; })) {
                     opts += '<option value="' + curVal.replace(/"/g, '&quot;') + '" selected>' + curVal.split('/').pop() + ' (custom)</option>';
                 }
@@ -969,7 +968,7 @@ DXStream._updateNodeProp = function (nodeId, key, value) {
     if (node && node.properties) {
         node.properties[key] = value;
         _pushHistory();
-        // 라이브러리를 바꾸면 function-name 후보도 바뀐다 — 속성 패널을 다시 그린다.
+        // Changing the library changes the function-name candidates — redraw the property panel.
         if (key === 'library-file-path' && typeof DXStream._showPropertyPanel === 'function') DXStream._showPropertyPanel(node);
     }
 };
@@ -1101,7 +1100,7 @@ function _showContextMenu(e) {
         _item(T('Redo'), 'Ctrl+Shift+Z', function () { DXStream._redo(); });
         _sep();
         _item(T('Fit View'), '', function () { DXStream.pipelineFitView(); });
-        _item(T('Clear All'), '', function () { DXStream.pipelineReset(); });   // pipelineClear 는 없었다 — TypeError
+        _item(T('Clear All'), '', function () { DXStream.pipelineReset(); });
     }
 
     menu.style.left = e.clientX + 'px';

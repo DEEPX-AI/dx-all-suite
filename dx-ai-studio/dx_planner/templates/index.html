@@ -365,33 +365,41 @@
 
         <section class="cfg-card methodology-card">
           <h3 class="card-title" data-i18n="2. Channels">2. Channels</h3>
-          <pre class="methodology-formula">T_sat = lowest measured total FPS
-M     = largest measured stream count
-        with per_channel_fps ≥ target
-E     = floor(T_sat / target)
+          <pre class="methodology-formula">target = <span data-i18n="the FPS per channel you asked for">the FPS per channel you asked for</span>
+T_sat  = <span data-i18n="lowest measured total FPS">lowest measured total FPS</span>
+M      = <span data-i18n="largest measured stream count whose per-channel FPS ≥ target">largest measured stream count whose per-channel FPS ≥ target</span>
+N_max  = <span data-i18n="highest tested stream count">highest tested stream count</span>
+E      = floor(T_sat ÷ target)
 
-channels = M   if a measured count above M misses the target
-         = max(M, min(E, 2 × max tested))   if every count holds it
-         = E   if no measured count holds it</pre>
+channels = M                          <span data-i18n="if a measured count above M misses the target">if a measured count above M misses the target</span>
+         = max(M, min(E, 2 × N_max))  <span data-i18n="if every measured count holds it">if every measured count holds it</span>
+         = E                          <span data-i18n="if no measured count holds it">if no measured count holds it</span></pre>
           <p class="txt-sm txt-dim" data-i18n="Measured when a tested stream count brackets your target; otherwise estimated from the measured total FPS, which stays nearly flat around saturation. Estimates stop at twice the highest tested stream count. A throttled measurement is kept — its FPS already ran at throttled clocks — and flagged.">Measured when a tested stream count brackets your target; otherwise estimated from the measured total FPS, which stays nearly flat around saturation. Estimates stop at twice the highest tested stream count. A throttled measurement is kept — its FPS already ran at throttled clocks — and flagged.
+          </p>
+          <p class="txt-sm txt-dim" data-i18n="Estimated+ means the estimate hit that cap of twice the highest tested count — the real capacity may be higher. Each card shows its own division, e.g. 534 FPS ÷ 60 FPS = 8.9 → 8 ch.">Estimated+ means the estimate hit that cap of twice the highest tested count — the real capacity may be higher. Each card shows its own division, e.g. 534 FPS ÷ 60 FPS = 8.9 → 8 ch.
           </p>
         </section>
 
         <section class="cfg-card methodology-card">
           <h3 class="card-title" data-i18n="3. Meets requirement">3. Meets requirement</h3>
-          <pre class="methodology-formula">meets            = channels ≥ cameras
-                   && latency_ms ≤ maxLatencyMs (if set)
-meets (estimate) = the same, on an estimate
-                   or with latency not measured</pre>
+          <pre class="methodology-formula"><span data-i18n="meets = channels ≥ cameras, and latency ≤ your budget (if set)">meets = channels ≥ cameras, and latency ≤ your budget (if set)</span>
+<span data-i18n="meets (estimate) = the same, but resting on an estimate or with latency not measured">meets (estimate) = the same, but resting on an estimate or with latency not measured</span></pre>
           <p class="txt-sm txt-dim" data-i18n="Latency is the single-stream benchmark latency. With a budget set and no latency measured, a result never counts as a plain pass.">Latency is the single-stream benchmark latency. With a budget set and no latency measured, a result never counts as a plain pass.
           </p>
         </section>
 
         <section class="cfg-card methodology-card">
           <h3 class="card-title" data-i18n="4. Sorting">4. Sorting</h3>
-          <pre class="methodology-formula">sort: meets → meets (estimate) → not throttled
-      → priority → channels → pipeline FPS</pre>
+          <pre class="methodology-formula"><span data-i18n="meets → meets (estimate) → not throttled → your priority → channels → pipeline FPS">meets → meets (estimate) → not throttled → your priority → channels → pipeline FPS</span></pre>
           <p class="txt-sm txt-dim" data-i18n="Best performance ranks by measured camera-pipeline FPS (host + NPU end to end), not the NPU-only figure. Lowest power ranks by NPU TDP, then FPS per NPU watt — host power is not included. Contact DEEPX for pricing.">Best performance ranks by measured camera-pipeline FPS (host + NPU end to end), not the NPU-only figure. Lowest power ranks by NPU TDP, then FPS per NPU watt — host power is not included. Contact DEEPX for pricing.
+          </p>
+        </section>
+
+        <section class="cfg-card methodology-card">
+          <h3 class="card-title" data-i18n="5. Limit &amp; thermal">5. Limit &amp; thermal</h3>
+          <pre class="methodology-formula"><span data-i18n="limit = NPU, if the NPU was ≥ 85% busy at the most loaded measured stream count">limit = NPU, if the NPU was ≥ 85% busy at the most loaded measured stream count</span>
+<span data-i18n="limit = host (CPU / decode / PCIe), otherwise">limit = host (CPU / decode / PCIe), otherwise</span></pre>
+          <p class="txt-sm txt-dim" data-i18n="Each card shows the limit with the measured NPU load. When the host is the limit, a faster host CPU or hardware decoding adds channels; when the NPU is, a bigger NPU does. A measurement taken while the NPU throttled is kept and flagged, and ranks after an equal result measured cool.">Each card shows the limit with the measured NPU load. When the host is the limit, a faster host CPU or hardware decoding adds channels; when the NPU is, a bigger NPU does. A measurement taken while the NPU throttled is kept and flagged, and ranks after an equal result measured cool.
           </p>
         </section>
       </div>

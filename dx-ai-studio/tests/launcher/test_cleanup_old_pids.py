@@ -1,11 +1,10 @@
-"""_cleanup_old_pids() 는 자기가 띄운 하위 서버만 죽여야 한다.
+"""_cleanup_old_pids() must kill only the sub-servers the launcher itself started.
 
-pidfile 의 번호는 이전 launcher 가 남긴 것이지만, 그 사이 재부팅되거나 서버가 먼저
-죽으면 같은 번호를 무관한 프로세스가 다시 받는다. 예전 구현은 번호만 보고 process
-group 째 SIGTERM/SIGKILL 했다(60d900d 는 커밋된 pidfile 경로만 막았다).
+The pidfile numbers were left by a previous launcher, but after a reboot or an early server exit an unrelated
+process can receive the same number. Signalling a process group by number alone would hit it.
 
-하위 서버는 `python <studio>/<module>/server.py --port 0 --no-browser` 를 setsid 로
-띄운다(start_sub_server). 그 모양일 때만 종료한다.
+Sub-servers are started with setsid as `python <studio>/<module>/server.py --port 0 --no-browser`
+(start_sub_server). Only a process of that shape is terminated.
 """
 import json
 import os
@@ -89,15 +88,15 @@ def test_our_orphaned_sub_server_is_killed(launcher_mod, procs):
 
 
 def test_group_kill_only_when_the_pid_leads_its_own_group(launcher_mod, procs):
-    """우리 서버라도 group leader 가 아니면(setsid 없이 떴으면) group 째 보내지 않는다 —
-    그 group 은 launcher 를 띄운 셸의 것이다."""
+    """Even our own server is not signalled as a group unless it leads its group: one started without setsid
+    shares the group of the shell that started the launcher."""
     L = launcher_mod
     server_py = L.STUDIO_DIR / "dx_fake" / "server.py"
-    # 같은 세션 안의 별도 group — setsid 로 띄우면 다른 세션이라 setpgid 로 합류할 수 없다
+    # A separate group in the same session: a setsid child is in another session and cannot join via setpgid.
     leader = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"],
                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, process_group=0)
     procs.append(leader)
-    # leader 의 group 안에 우리 server.py 를 setsid 없이 넣는다
+    # Put our server.py into the leader's group, without setsid.
     member = subprocess.Popen([sys.executable, str(server_py), "--port", "0", "--no-browser"],
                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                               preexec_fn=lambda: os.setpgid(0, leader.pid))
@@ -127,7 +126,7 @@ def test_wrong_shape_pidfile_does_not_crash_startup(launcher_mod, payload):
 
 
 def test_sigkill_rechecks_identity(launcher_mod, monkeypatch):
-    """SIGTERM 뒤 0.3초 사이 번호가 재사용될 수 있다 — SIGKILL 전에 다시 확인한다."""
+    """The number can be reused in the 0.3 s after SIGTERM, so identity is checked again before SIGKILL."""
     L = launcher_mod
     L._PIDFILE.write_text(json.dumps({"DX Fake": 424242}))
     answers = iter([True, False])

@@ -1,19 +1,17 @@
-"""compile 경로 정책 — 허용된 폴더 안의 실제 파일 · 폴더만 (QA COM-A2, 2026-10-01).
+"""Compile path policy: only real files and folders inside the allowed roots.
 
-`/compile` · `/compile/resume` · `/config/generate` 와 compiler_service.submit · submit_resume 가 받는 경로
-(model_path · config_path · qxnn_path · dataset_path · output_dir) 를 실행 전에 본다.
+Checks the paths (model_path, config_path, qxnn_path, dataset_path, output_dir) taken by `/compile`,
+`/compile/resume`, `/config/generate` and compiler_service.submit / submit_resume before anything runs.
 
-- 허용 루트: suite root · studio `var/` · 사용자 홈 · `/media` · `/mnt` + ``DX_COMPILER_ALLOWED_ROOTS``
-  (``os.pathsep`` 구분). 모두 resolve 해서 비교한다.
-- 포함 여부는 resolve 한 실제 경로의 **구성요소** 로 본다 (``Path.relative_to``) — ``/ws-evil`` 은 ``/ws``
-  아래가 아니다. symlink 는 resolve 로 실제 위치를 보므로 밖을 가리키면 거부된다.
-- 거부 메시지에 서버 경로를 넣지 않는다.
+- Allowed roots: suite root, studio `var/`, the user's home, `/media`, `/mnt`, plus ``DX_COMPILER_ALLOWED_ROOTS``
+  (``os.pathsep``-separated). All are resolved before comparing.
+- Containment is decided on the **components** of the resolved path (``Path.relative_to``), so ``/ws-evil`` is
+  not under ``/ws``. Symlinks are resolved to their real location, so one pointing outside is rejected.
+- Rejection messages never include server paths.
 
-2026-09-18 에는 "서버를 localhost 밖에 노출하지 않는다" 는 전제로 compile 경로에 검사를 걸지 않기로 했다
-(config.is_safe_path 주석 · 그날의 spec R1). 기본 bind 가 모든 인터페이스라 전제가 성립하지 않아 철회한다.
+The server binds to all interfaces by default, so compile paths cannot rely on staying on localhost.
 
-계약: tests/dx_compiler/test_path_policy.py
-spec: docs/superpowers/specs/2026-10-01-studio-remote-auth-and-compile-paths-design.md (D)
+Contract: tests/dx_compiler/test_path_policy.py
 """
 from __future__ import annotations
 
@@ -25,7 +23,7 @@ from shared.paths import STUDIO_ROOT, SUITE_ROOT
 
 
 class PathPolicyError(ValueError):
-    """경로가 정책 밖 — HTTP 400 으로 돌려준다."""
+    """Path is outside the policy; reported as HTTP 400."""
 
 
 def _default_roots() -> list[Path]:
@@ -34,7 +32,7 @@ def _default_roots() -> list[Path]:
 
 
 def _jobs_root() -> Path:
-    env_root = os.environ.get("DX_COMPILER_JOB_ROOT", "").strip()   # compiler_service 와 같은 값
+    env_root = os.environ.get("DX_COMPILER_JOB_ROOT", "").strip()   # same value as compiler_service
     return Path(env_root) if env_root else STUDIO_ROOT / "var" / "compiler" / "jobs"
 
 
@@ -68,7 +66,7 @@ def _text(raw, field: str) -> str:
 
 
 def check_input_file(raw, field: str) -> Path:
-    """존재하는 일반 파일이고 허용 루트 안 — resolve 한 경로를 돌려준다."""
+    """An existing regular file inside the allowed roots; returns the resolved path."""
     try:
         p = Path(_text(raw, field)).expanduser().resolve(strict=True)
     except (OSError, RuntimeError):
@@ -81,7 +79,7 @@ def check_input_file(raw, field: str) -> Path:
 
 
 def check_input_dir(raw, field: str) -> Path:
-    """존재하는 디렉터리이고 허용 루트 안 (dataset_path)."""
+    """An existing directory inside the allowed roots (dataset_path)."""
     try:
         p = Path(_text(raw, field)).expanduser().resolve(strict=True)
     except (OSError, RuntimeError):
@@ -94,7 +92,7 @@ def check_input_dir(raw, field: str) -> Path:
 
 
 def check_output_dir(raw, field: str = "output_dir") -> Path:
-    """쓸 폴더 — 아직 없으면 가장 가까운 존재하는 부모를 resolve 해서 본다. 만들지는 않는다."""
+    """A folder to write to. If it does not exist yet, check its nearest existing parent. Never creates it."""
     p = Path(_text(raw, field)).expanduser()
     if not p.is_absolute():
         p = Path.cwd() / p
@@ -117,7 +115,7 @@ def check_output_dir(raw, field: str = "output_dir") -> Path:
     roots = allowed_roots()
     if not _inside(base, roots) or not _inside(resolved, roots):
         raise PathPolicyError(f"{field} is outside the allowed folders")
-    # compiler 가 작업마다 만드는 내부 폴더 (다른 작업의 산출물) 는 출력 위치가 아니다
+    # The compiler's per-job internal folders (other jobs' outputs) are not valid output locations
     try:
         if _inside(resolved, [_jobs_root().resolve()]):
             raise PathPolicyError(f"{field} cannot be a compiler job folder")
@@ -127,7 +125,7 @@ def check_output_dir(raw, field: str = "output_dir") -> Path:
 
 
 def would_overwrite_input(destination: Path, inputs: Iterable[str]) -> bool:
-    """게시할 산출물이 입력 파일 자리인가 (resolve 해서 비교)."""
+    """Would the published output land on an input file? (compared after resolving)"""
     try:
         dest = Path(destination).resolve()
     except (OSError, RuntimeError):

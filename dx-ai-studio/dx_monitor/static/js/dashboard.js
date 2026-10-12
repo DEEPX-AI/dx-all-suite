@@ -114,9 +114,9 @@ function renderStatusBar(hw){
     var telemetryText=telemetryMode==='stale'?T('NPU telemetry is not current'):T('NPU telemetry unavailable');
     h+='<div class="status-card '+statusClass('none')+'" data-help-id="status-npu-telemetry"><span class="sc-badge">'+statusIcon('none')+'</span><span class="sc-label">NPU</span><span class="sc-value">'+telemetryText+'</span></div>';
   }
-  // NPU별 온도 카드
+  // Temperature card per NPU
   npus.forEach(function(n, idx){
-    // F-15: cores==0 means every temperature channel returned the invalid sentinel
+    // cores==0 means every temperature channel returned the invalid sentinel
     // (e.g. -32768). Do NOT render that as "0.0°C" with an OK/green badge — a dead
     // sensor is not a healthy 0°C. Show a no-data state instead.
     var hasTemp=(n.cores||0)>0 && (n.temperatures||[]).length>0;
@@ -135,18 +135,18 @@ function renderStatusBar(hw){
     var worstDram=dramValues.length?Math.max.apply(null,dramValues):null;
     var dSt=worstDram==null?'none':getStatus('npu_dram',worstDram);
     h+='<div class="status-card '+statusClass(dSt)+'" data-help-id="status-dram"><span class="sc-badge">'+statusIcon(dSt)+'</span><span class="sc-label">'+statusLabel('DRAM')+'</span><span class="sc-value">'+_formatDramPct(worstDram)+'</span></div>';
-    // Util worst-case (임계치 없음)
+    // Util worst-case (no thresholds)
     var worstUtil=Math.max.apply(null,npus.map(function(n){var u=n.utilization||[];return u.length?u.reduce(function(a,b){return a+b},0)/u.length:0}));
     h+='<div class="status-card" data-help-id="status-util"><span class="sc-label">'+statusLabel('Util')+'</span><span class="sc-value">'+worstUtil.toFixed(1)+'%</span></div>';
-    // Volt worst-case (임계치 없음)
+    // Volt worst-case (no thresholds)
     var worstVolt=Math.max.apply(null,npus.map(function(n){return n.voltage_avg||0}));
     h+='<div class="status-card" data-help-id="status-voltage"><span class="sc-label">'+statusLabel('Voltage')+'</span><span class="sc-value">'+worstVolt.toFixed(0)+' mV</span></div>';
-    // Clock worst-case (임계치 없음) — Math.min: 최저 클럭 NPU가 병목이므로 min 사용
+    // Clock worst-case (no thresholds) — Math.min: the slowest-clocked NPU is the bottleneck
     var worstClock=Math.min.apply(null,npus.map(function(n){return n.clock_avg||0}));
     h+='<div class="status-card" data-help-id="status-clock"><span class="sc-label">'+statusLabel('Clock')+'</span><span class="sc-value">'+worstClock.toFixed(0)+' MHz</span></div>';
   }
   var cpuSt=getStatus('cpu_load',hw.cpu_load||0);
-  h+='<div class="status-card '+statusClass(cpuSt)+'" data-help-id="status-cpu"><span class="sc-badge">'+statusIcon(cpuSt)+'</span><span class="sc-label">'+T('CPU Load')+'</span><span class="sc-value">'+(hw.cpu_load||0).toFixed(2)+'</span></div>';   // 부하 평균 — 단위 없는 "CPU 0.74" 는 % 로 읽혔다 (M-3)
+  h+='<div class="status-card '+statusClass(cpuSt)+'" data-help-id="status-cpu"><span class="sc-badge">'+statusIcon(cpuSt)+'</span><span class="sc-label">'+T('CPU Load')+'</span><span class="sc-value">'+(hw.cpu_load||0).toFixed(2)+'</span></div>';   // load average, unitless (not a %)
   var memSt=getStatus('memory',hw.mem_pct||0);
   h+='<div class="status-card '+statusClass(memSt)+'" data-help-id="status-memory"><span class="sc-badge">'+statusIcon(memSt)+'</span><span class="sc-label">'+statusLabel('Memory')+'</span><span class="sc-value">'+(hw.mem_pct||0).toFixed(1)+'%</span></div>';
   $('status-bar').innerHTML=h;
@@ -185,19 +185,19 @@ function _applyHWData(d){
   S.lastHW=d;
   var telemetryMode=_updateTelemetryStatus(d);
   _updateMockBanner();
-  // 상태 바 업데이트
+  // Update the status bar
   var statusSig=_hwStatusSignature(d);
   if (statusSig !== S._lastStatusSig){
     S._lastStatusSig=statusSig;
     renderStatusBar(d);
   }
-  // NPU 토폴로지 (5초마다)
+  // NPU topology (every 5 seconds)
   var now=Date.now();
   if(telemetryMode!==previousTelemetryMode||!_applyHWData._lastTopo||now-_applyHWData._lastTopo>5000){
     _applyHWData._lastTopo=now;
     renderNPUTopo(d);
   }
-  // 새 데이터 구조로 push
+  // Push in the new data shape
   var entry={t:now,npus:[],system:{}};
   npus.forEach(function(n){
     var u=n.utilization||[];
@@ -642,12 +642,11 @@ setInterval(pollEvents,3000);
 
 // The launcher embeds each module in an <iframe>. The bootstrap's first drawCharts()
 // (refreshDash -> rAF) can run before the iframe is laid out / visible, so the chart
-// canvases get sized against a not-yet-final container and are never redrawn — there was
-// no resize or visibility hook — leaving blank charts on first entry until a manual
-// reload (exactly the launcher-only "blank grid" report). Redraw whenever the chart area
-// resizes (ResizeObserver fires when the iframe becomes visible/sized after layout) or the
-// tab is re-shown. drawCharts()/_prepareChartCanvas re-measure each call, so a redraw at
-// the correct size fixes it. Cheap: draws only when size/visibility actually changes.
+// canvases get sized against a not-yet-final container and the charts stay blank.
+// Redraw whenever the chart area resizes (ResizeObserver fires when the iframe becomes
+// visible/sized after layout) or the tab is re-shown. drawCharts()/_prepareChartCanvas
+// re-measure each call, so a redraw at the correct size fixes it. Cheap: draws only when
+// size/visibility actually changes.
 (function _installChartAutoRedraw(){
   if(typeof window==='undefined'||typeof document==='undefined')return;  // non-browser (test VM) no-op
   var _redraw=function(){requestAnimationFrame(drawCharts);};

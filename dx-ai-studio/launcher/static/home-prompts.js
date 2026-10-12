@@ -1,7 +1,7 @@
-/* 실제로 만들어진 showcase 의 원래 프롬프트 (dx-agent-dev-showcase/<name>/README.md 의
-   "The prompt"). 번역하지 않는다 — 검증된 것은 이 영어 원문이다. chip 을 누르면 이것이
-   입력창에 그대로 채워진다 (spec 2026-09-23 §5.2). 9/30 의 새 예제는 여기에 더한다.
-   계약: tests/launcher/test_home_hero_contract.py 가 README 원문과 글자까지 같은지 본다. */
+/* The original prompts of showcases that were actually built ("The prompt" in
+   dx-agent-dev-showcase/<name>/README.md). Not translated — the English original is what was
+   verified. Clicking a chip fills the input with it verbatim.
+   Contract: tests/launcher/test_home_hero_contract.py checks they match the READMEs exactly. */
 window.DXHomePrompts = {
   "mini-game-squat-fitness": "Build a squat-counting fitness mini-game using yolo26n-pose on DEEPX NPU, validate with dx-agent-dev-showcase/mini-game-squat-fitness/sample/squat_demo.mp4",
   "paddleocr-video-ocr": "Build an OCR inference app whose text detection + recognition runs on the DEEPX DX-M1 NPU.\nThe app must accept BOTH a video file (--source <path.mp4>) and a live webcam\n(--source <camera_index>), run NPU OCR on each frame, overlay the detected text boxes and\nthe recognized strings, and write an annotated output video (optionally show a live\nwindow). Save one annotated sample frame as sample_detect.jpg. Validate it on the provided\ndemo video at dx-agent-dev-showcase/paddleocr-video-ocr/sample/ocr_demo.mp4. Provide\nsetup.sh, run.sh, and a short README reporting the measured per-frame latency / FPS on the NPU.",
@@ -14,11 +14,11 @@ window.DXHomePrompts = {
   "ultralytics-retrain-eval-deepx-export-wildlife": "Using the Ultralytics Python package, adapt the base yolo26n model for a wildlife-monitoring / safari camera scenario. The stock yolo26n is a general COCO-trained detector that does not reliably recognize African wildlife species, so fine-tune (retrain) it on the Ultralytics african-wildlife dataset (classes: buffalo, elephant, rhino, zebra) on the local GPU for about 40 epochs to produce a domain-optimized model. Then evaluate accuracy (mAP50-95) and speed (FPS) for BOTH the base model and the retrained model in two forms each: (a) the PyTorch model in fp32 on the GPU, and (b) its DeepX export (.dxnn, INT8 on the DX-M1 NPU, via format=deepx). Write report.md comparing all four results (base vs retrained, fp32 vs INT8) with a short analysis of the accuracy gain and the INT8 quantization effect. Work autonomously to completion without asking for confirmation or approval; make default decisions per the knowledge base and PRODUCE THE ACTUAL ARTIFACTS (both .dxnn model dirs, the measured FPS/mAP numbers, report.md), not just a plan. Before writing any code, READ the dx-compiler knowledge base toolsets dx-compiler/.deepx/toolsets/ultralytics-train-eval.md and dx-compiler/.deepx/toolsets/ultralytics-deepx-export.md and follow them. Also, after evaluation, save an annotated detection SAMPLE IMAGE — the retrained model run on a representative validation image with bounding boxes + class labels drawn — as sample_detect.jpg in the session directory. Respond in English."
 };
 
-/* placeholder 가 돌아가며 보여주는 문장 (타이핑은 효과 단계 P6). 사전 키이므로 각 언어로
-   보인다. 두 종류를 섞는다: showcase 원문의 첫 문장 (agent 가 처음부터 만든다) 과, 모듈이
-   바로 받는 짧은 요청 (home-router 가 Stream · App · Compiler 로 보낸다). 뒤의 셋은 intro 의
-   "작업 장면" 이 타이핑하는 바로 그 문장이다 (launcher-splash.js _WORK) — intro 는 home 이
-   실제로 제공하는 것만 보여준다 (2026-09-28 사용자 결정). */
+/* Sentences the placeholder rotates through (typed out by the effects code). They are dictionary
+   keys, so they show in each language. Two kinds are mixed: first sentences of showcase prompts
+   (the agent builds from scratch) and short requests a module takes directly (home-router sends
+   them to Stream, App or Compiler). The last three are exactly what the intro's work scene types
+   (launcher-splash.js _WORK), so the intro only shows what home really offers. */
 window.DXHomePlaceholders = [
   "Build a squat-counting fitness mini-game using yolo26n-pose on DEEPX NPU",
   "Build an OCR inference app whose text detection + recognition runs on the DEEPX DX-M1 NPU.",

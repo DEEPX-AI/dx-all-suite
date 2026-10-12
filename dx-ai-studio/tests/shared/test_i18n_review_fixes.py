@@ -1,11 +1,11 @@
-"""Pins the translation-review fixes of 2026-10-11 so they do not drift back.
+"""Pins translation-review fixes so they do not drift back.
 
 Each test reads the shipped UI dictionary source and checks one entry. The
-wrong values these replace were: es 'Sincronizar' (the verb, for the Sync
-inference mode), ko '실행 취소' for Cancel run (that is Undo), Setup sharing
-설정/设置/設定/Configuración with Settings, es 'Rellenos' / zh-TW '墊片' for
-GStreamer Pads, the Built badge reading '정상' (OK), ko '손잡이' (a door handle)
-for Handedness, and a stage-2 message glued from two fragments that came out
+wrong values guarded against: es 'Sincronizar' (the verb) for the Sync
+inference mode, the ko word for Undo used for Cancel run, Setup sharing the
+Settings word in ko/zh/ja/es, es 'Rellenos' / zh-TW '墊片' for GStreamer
+Pads, the Built badge reading "OK", the ko word for a door handle used for
+Handedness, and a stage-2 message glued from two fragments that came out
 scrambled in ko/ja/zh.
 """
 from __future__ import annotations

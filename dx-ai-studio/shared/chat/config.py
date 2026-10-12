@@ -72,7 +72,7 @@ def save_config(
 
 
 def delete_config() -> None:
-    """Forget the saved Chat choice — Chat goes back to the Studio agent / logged-in CLI (spec 2026-10-11 §3.3)."""
+    """Forget the saved Chat choice — Chat goes back to the Studio agent / logged-in CLI."""
     get_config_path().unlink(missing_ok=True)
     global _cached_config, _cached_mtime
     _cached_config = None

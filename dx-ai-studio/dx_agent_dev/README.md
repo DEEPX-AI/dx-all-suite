@@ -19,9 +19,9 @@ showcases.
 - **Bring-your-own agent** — uses whatever coding CLI you have installed + signed in;
   one login powers both the generator and the chat.
 - **Studio chat (the button at the bottom right)** — separate from the Agent Console; it can
-  use a signed-in coding CLI, a cloud API, or a **local / self-hosted** OpenAI- or
-  Ollama-compatible endpoint (models are auto-discovered), and its settings have
-  **Refresh knowledge** for the DEEPX SDK documentation.
+  answers through your signed-in coding agent by default, or a **local / self-hosted**
+  OpenAI- or Ollama-compatible endpoint (models are auto-discovered) or a cloud API key;
+  **Refresh knowledge** for the DEEPX SDK documentation is under Settings ▸ Advanced.
 - **Live streaming** of the agent's work, with a wall-clock timeout so a stuck run frees
   the slot for the next request.
 - **6-language UI** (English / 한국어 / 日本語 / 简体中文 / 繁體中文 / Español).

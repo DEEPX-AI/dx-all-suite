@@ -1,4 +1,4 @@
-"""아이콘과 책이 화면에서 약속한 모양인지 (spec 2026-09-23 §5.3–5.4)."""
+"""Icons and books look as specified on screen."""
 from __future__ import annotations
 
 import pytest
@@ -57,7 +57,7 @@ def _opacity(page, sel):
 
 
 def _becomes_opaque(page, sel):
-    """말풍선은 --dur (0.24s) 동안 나타난다. 전환 중에 읽으면 0 과 1 사이다."""
+    """The tooltip appears over --dur (0.24s); read mid-transition, it is between 0 and 1."""
     page.wait_for_function(
         "(s) => parseFloat(getComputedStyle(document.querySelector(s)).opacity) === 1", arg=sel, timeout=2000)
     return _opacity(page, sel)
@@ -87,9 +87,9 @@ def test_keyboard_focus_shows_the_description_too(page):
 
 
 def test_only_a_module_that_is_down_is_dimmed(page):
-    # 넣은 health 를 고정한다 — 진짜 /api/health poll 이 _healthStatus 를 덮고, 5초마다 도는
-    # refreshModuleState 가 그 사이에 끼면 넣은 상태가 사라졌다 (CI 부하에서 한 번, 2026-09-29:
-    # 다른 테스트가 띄운 모듈 서버 때문에 진짜 health 가 benchmark 를 alive 로 보고했다).
+    # Pin the injected health: the real /api/health poll overwrites _healthStatus, and refreshModuleState (every
+    # 5 s) can run in between and erase the injected state (for example when another test's module server makes
+    # the real health report benchmark alive).
     page.evaluate("""() => { const L = window.DXLauncher; const h = {};
       document.querySelectorAll('.orbital-card[data-app]').forEach(c => {
         const k = (L._HEALTH_KEY && L._HEALTH_KEY[c.dataset.app]) || c.dataset.app;
@@ -108,14 +108,15 @@ def test_books_are_covers(page):
 
 
 def test_icons_and_covers_share_one_baseline(page):
-    """아이콘 (72) 과 표지 (72) 의 아래 끝이 같은 줄이라야 이름이 한 줄에 선다."""
+    """The bottom edges of the icon (72) and the cover (72) must line up so the names sit on one line."""
     bottoms = page.evaluate("""() => [...document.querySelectorAll('#studioGrid > *')].slice(0, 5)
       .map(t => Math.round((t.querySelector('.mod-tile') || t.querySelector('.orbital-icon')).getBoundingClientRect().bottom))""")
     assert len(set(bottoms)) == 1, bottoms
 
 
 def test_the_two_rows_stand_in_the_same_columns(page):
-    """말풍선이 칸의 열을 넓혀 설명이 긴 칸일수록 아이콘이 밀렸다 — 두 줄이 어긋났다."""
+    """A tooltip must not widen its cell's column; otherwise cells with long descriptions push their icons and
+    the two rows misalign."""
     centres = page.evaluate("""() => [...document.querySelectorAll('#studioGrid > *')].map(t => {
       const i = t.querySelector('.mod-tile') || t.querySelector('.orbital-icon');
       const r = i.getBoundingClientRect(); return Math.round(r.left + r.width / 2); })""")

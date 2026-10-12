@@ -1,7 +1,7 @@
 /* ── Connected browsers ──────────────────────────────────────
  *
  * The launcher answers other computers on the network, and each of their browsers pairs
- * once with the 6-digit code on the launcher's console (QA COM-A1). This is where the
+ * once with the 6-digit code on the launcher's console. This is where the
  * board's owner sees which browsers are paired and disconnects one, and where a remote
  * browser disconnects itself.
  *
@@ -9,8 +9,7 @@
  * bound to loopback has nothing to show, so it shows nothing. The code is never put on
  * this screen — it stays on the console, where only someone at the board can read it.
  *
- * spec: docs/superpowers/specs/2026-10-02-studio-connected-browsers-ui-design.md
- * 계약: tests/shared/test_remote_access.py · tests/launcher/test_connected_browsers_browser.py
+ * Contract: tests/shared/test_remote_access.py, tests/launcher/test_connected_browsers_browser.py
  */
 (function () {
   'use strict';
@@ -76,7 +75,7 @@
           return rtf.format(units[i][0] === 'second' && Math.abs(n) < 30 ? 0 : n, units[i][0]);
         }
       }
-    } catch (e) { /* 아래 */ }
+    } catch (e) { /* fall back below */ }
     return new Date(sec * 1000).toLocaleString();
   }
   function _date(sec) {
@@ -96,8 +95,8 @@
     _dialog.id = 'remoteAccessDialog';
     _dialog.setAttribute('aria-labelledby', 'remoteAccessTitle');
     _dialog.addEventListener('click', function (ev) { if (ev.target === _dialog) _dialog.close(); });
-    /* 어디에 focus 가 있었는지 — 목록을 다시 그리면 (새로 고침 · 연결 끊기) 그 자리로 돌려준다
-       (release audit L-19: focus 가 body 로 빠져 키보드 사용자가 길을 잃었다) */
+    /* Remember where focus was — after the list is redrawn (refresh, disconnect) it goes back there,
+       instead of dropping to body and losing keyboard users */
     _dialog.addEventListener('focusin', function (ev) {
       var row = ev.target.closest && ev.target.closest('.ra-row');
       _focusKey = row ? 'row:' + row.dataset.session : 'close';
@@ -115,7 +114,7 @@
       Array.prototype.forEach.call(d.querySelectorAll('.ra-row'), function (r) {
         if (r.dataset.session === id) target = r.querySelector('button');
       });
-      if (!target) target = d.querySelector('.ra-row button');   // 끊은 줄은 없다 — 다음 줄로
+      if (!target) target = d.querySelector('.ra-row button');   // the disconnected row is gone — go to the next one
     }
     (target || d.querySelector('.modal-x')).focus();
   }
@@ -184,7 +183,7 @@
     btn.disabled = true;
     var req = s.current ? _post('/api/auth/logout') : _post('/api/auth/sessions/revoke', { id: s.id });
     req.then(function () {
-      /* 자기 자신을 끊으면 이 화면을 쓸 권한도 끝난다 — 다시 불러 페어링 화면으로 */
+      /* Disconnecting yourself ends access to this screen too — reload into the pairing page */
       if (s.current) { location.reload(); return; }
       _refresh();
     }).catch(function () { btn.disabled = false; _render([], true); });
@@ -201,7 +200,7 @@
     _focusKey = 'close';
     _render([], false);
     if (!d.open) d.showModal();
-    /* 주소 (보드 IP) 는 열 때마다 다시 — 네트워크가 바뀌었을 수 있다 */
+    /* Re-read the addresses (board IPs) on every open — the network may have changed */
     return _json('/api/auth/status').then(function (st) { _status = st; }, function () {}).then(_refresh);
   }
 
@@ -236,9 +235,9 @@
     _json('/api/auth/status').then(function (st) {
       _status = st;
       if (!st || !st.pairing) return;
-      /* toolbar.js 가 DOMContentLoaded 에 #dxToolbar 를 만든다 — 아직이면 한 번 더 */
+      /* toolbar.js builds #dxToolbar on DOMContentLoaded — if it is not there yet, try once more */
       if (!_addButton()) requestAnimationFrame(_addButton);
-    }).catch(function () { /* 상태를 모르면 버튼을 두지 않는다 */ });
+    }).catch(function () { /* no button when the status is unknown */ });
   }
 
   ns.remoteAccess = { open: open };

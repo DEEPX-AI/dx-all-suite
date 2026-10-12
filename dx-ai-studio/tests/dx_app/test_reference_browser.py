@@ -1,7 +1,6 @@
-"""DX App Reference — 모든 주제가 여섯 언어로 열리고, 화면과 맞는 사실을 말한다 (release audit A-9).
+"""DX App Reference: every topic opens in all six languages and states facts that match the screen.
 
-예전 Reference 는 스페인어가 없었고 (refT5 다섯 언어), 설정 카드 5개 · 없는 API 6개 · 없는 RTSP 입력 칸 ·
-틀린 기본값을 적고 있었다. 사실은 코드와 대조해 다시 썼다.
+The facts (settings cards, APIs, RTSP input, defaults) are checked against the code, and Spanish must be present.
 """
 from __future__ import annotations
 
@@ -37,7 +36,7 @@ def page():
 
 
 def _open_all(page):
-    """모든 주제를 열고 모든 탭의 글자를 모은다."""
+    """Open every topic and collect the text of every tab."""
     return page.evaluate("""() => {
       const out = [];
       const ids = [...document.querySelectorAll('.ref-topic-card')].map(c => c.dataset.refId);

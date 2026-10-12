@@ -48,7 +48,7 @@ window._DX_I18N_DICT = {
   ms: { ko: 'ms', ja: 'ms', es: 'ms', 'zh-CN': 'ms', 'zh-TW': 'ms' },
   'How ranking works': { ko: '추천 원리 보기', ja: '推奨の仕組み', es: 'Cómo funciona el ranking', 'zh-CN': '查看推荐原理', 'zh-TW': '查看推薦原理' },
   Close: { ko: '닫기', ja: '閉じる', es: 'Cerrar', 'zh-CN': '关闭', 'zh-TW': '關閉' },
-  // ── 마크업 lang-span 에서 옮겨온 항목 ──
+  // ── Entries moved here from lang-spans in the markup ──
   '(measured)': {
     ko: '(실측)',
     ja: '(実測)',
@@ -234,12 +234,30 @@ window._DX_I18N_DICT = {
   'Measured': { ko: '실측', ja: '実測', 'zh-CN': '实测', 'zh-TW': '實測', es: 'Medido' },
   'Estimated': { ko: '추정', ja: '推定', 'zh-CN': '估算', 'zh-TW': '估算', es: 'Estimado' },
   'Estimated+': { ko: '추정+', ja: '推定+', 'zh-CN': '估算+', 'zh-TW': '估算+', es: 'Estimado+' },
-  '{n} ch held {fps} FPS each (measured)': { ko: '{n}채널에서 채널당 {fps} FPS 유지 (실측)', ja: '{n}ch でチャンネルあたり {fps} FPS を維持 (実測)', 'zh-CN': '{n} 路时每路保持 {fps} FPS（实测）', 'zh-TW': '{n} 路時每路維持 {fps} FPS（實測）', es: '{n} canales a {fps} FPS cada uno (medido)' },
   '{n} ch dropped to {fps} FPS': { ko: '{n}채널은 {fps} FPS로 하락', ja: '{n}ch では {fps} FPS に低下', 'zh-CN': '{n} 路时降至 {fps} FPS', 'zh-TW': '{n} 路時降至 {fps} FPS', es: 'con {n} canales baja a {fps} FPS' },
-  '≈ {n} ch estimated from {total} FPS measured in total (tested up to {max} ch)': { ko: '실측 총 {total} FPS 기준 약 {n}채널 추정 ({max}채널까지 측정)', ja: '実測合計 {total} FPS から約 {n}ch と推定 ({max}ch まで計測)', 'zh-CN': '按实测总计 {total} FPS 估算约 {n} 路（最多测到 {max} 路）', 'zh-TW': '依實測總計 {total} FPS 估算約 {n} 路（最多測到 {max} 路）', es: '≈ {n} canales estimados a partir de {total} FPS medidos en total (probado hasta {max} canales)' },
-  'Not even one stream reaches this FPS ({total} FPS measured in total)': { ko: '이 FPS로는 1채널도 처리하지 못함 (실측 총 {total} FPS)', ja: 'この FPS では 1ch も処理できません (実測合計 {total} FPS)', 'zh-CN': '此 FPS 下连 1 路也无法处理（实测总计 {total} FPS）', 'zh-TW': '此 FPS 下連 1 路也無法處理（實測總計 {total} FPS）', es: 'Ni un solo canal alcanza estos FPS ({total} FPS medidos en total)' },
   'No multi-stream measurement': { ko: '멀티 스트림 측정 없음', ja: 'マルチストリーム計測なし', 'zh-CN': '无多路流测量', 'zh-TW': '無多路串流測量', es: 'Sin medición multistream' },
   'NPU throttled while measured': { ko: '측정 중 NPU throttle 발생', ja: '計測中に NPU がスロットル', 'zh-CN': '测量时 NPU 降频', 'zh-TW': '測量時 NPU 降頻', es: 'NPU limitada térmicamente al medir' },
+  '{n} ch held {fps} FPS each ≥ {target} FPS target (measured)': { ko: '{n}채널에서 채널당 {fps} FPS ≥ 목표 {target} FPS (실측)', ja: '{n}ch でチャンネルあたり {fps} FPS ≥ 目標 {target} FPS (実測)', 'zh-CN': '{n} 路时每路 {fps} FPS ≥ 目标 {target} FPS（实测）', 'zh-TW': '{n} 路時每路 {fps} FPS ≥ 目標 {target} FPS（實測）', es: '{n} canales a {fps} FPS cada uno ≥ objetivo de {target} FPS (medido)' },
+  '{total} FPS ÷ {target} FPS = {raw} → {n} ch (estimated from the measured total; tested up to {max} ch)': { ko: '실측 총 {total} FPS ÷ {target} FPS = {raw} → {n}채널 (추정, {max}채널까지 측정)', ja: '実測合計 {total} FPS ÷ {target} FPS = {raw} → {n}ch (推定、{max}ch まで計測)', 'zh-CN': '实测总计 {total} FPS ÷ {target} FPS = {raw} → {n} 路（估算，最多测到 {max} 路）', 'zh-TW': '實測總計 {total} FPS ÷ {target} FPS = {raw} → {n} 路（估算，最多測到 {max} 路）', es: '{total} FPS medidos en total ÷ {target} FPS = {raw} → {n} canales (estimado; probado hasta {max} canales)' },
+  '{total} FPS ÷ {target} FPS = {raw} → {n} ch+ (estimates stop at 2 × {max} tested ch)': { ko: '실측 총 {total} FPS ÷ {target} FPS = {raw} → {n}채널+ (추정은 측정 최대 {max}채널의 2배에서 멈춤)', ja: '実測合計 {total} FPS ÷ {target} FPS = {raw} → {n}ch+ (推定は計測最大 {max}ch の 2 倍で打ち切り)', 'zh-CN': '实测总计 {total} FPS ÷ {target} FPS = {raw} → {n} 路+（估算以最多实测 {max} 路的 2 倍为上限）', 'zh-TW': '實測總計 {total} FPS ÷ {target} FPS = {raw} → {n} 路+（估算以最多實測 {max} 路的 2 倍為上限）', es: '{total} FPS medidos en total ÷ {target} FPS = {raw} → {n} canales+ (las estimaciones se detienen en 2 × {max} canales probados)' },
+  'Not even one stream: {total} FPS ÷ {target} FPS = {raw} → 0 ch': { ko: '1채널도 어려움: 실측 총 {total} FPS ÷ {target} FPS = {raw} → 0채널', ja: '1ch も不可: 実測合計 {total} FPS ÷ {target} FPS = {raw} → 0ch', 'zh-CN': '连 1 路也不够：实测总计 {total} FPS ÷ {target} FPS = {raw} → 0 路', 'zh-TW': '連 1 路也不夠：實測總計 {total} FPS ÷ {target} FPS = {raw} → 0 路', es: 'Ni un solo canal: {total} FPS medidos en total ÷ {target} FPS = {raw} → 0 canales' },
+  'NPU {pct}%': { ko: 'NPU {pct}%', ja: 'NPU {pct}%', 'zh-CN': 'NPU {pct}%', 'zh-TW': 'NPU {pct}%', es: 'NPU {pct}%' },
+  '{n} ch': { ko: '{n}채널', ja: '{n}ch', 'zh-CN': '{n} 路', 'zh-TW': '{n} 路', es: '{n} canales' },
+  'the FPS per channel you asked for': { ko: '요청한 채널당 FPS', ja: '指定したチャンネルあたりの FPS', 'zh-CN': '您要求的每路 FPS', 'zh-TW': '您要求的每路 FPS', es: 'los FPS por canal que pidió' },
+  'lowest measured total FPS': { ko: '실측 총 FPS 중 최솟값', ja: '実測合計 FPS の最小値', 'zh-CN': '实测总 FPS 的最小值', 'zh-TW': '實測總 FPS 的最小值', es: 'el menor FPS total medido' },
+  'largest measured stream count whose per-channel FPS ≥ target': { ko: '채널당 FPS ≥ target 을 지킨 가장 큰 실측 스트림 수', ja: 'チャンネルあたり FPS ≥ target を満たした最大の実測ストリーム数', 'zh-CN': '每路 FPS ≥ target 的最大实测流数', 'zh-TW': '每路 FPS ≥ target 的最大實測串流數', es: 'el mayor número de flujos medido con FPS por canal ≥ target' },
+  'highest tested stream count': { ko: '측정한 최대 스트림 수', ja: '計測した最大ストリーム数', 'zh-CN': '实测的最大流数', 'zh-TW': '實測的最大串流數', es: 'el mayor número de flujos probado' },
+  'if a measured count above M misses the target': { ko: 'M 보다 큰 실측 스트림 수가 목표를 놓쳤을 때', ja: 'M より大きい実測ストリーム数が目標を下回ったとき', 'zh-CN': '当大于 M 的实测流数未达到目标时', 'zh-TW': '當大於 M 的實測串流數未達到目標時', es: 'si un número medido mayor que M no alcanza el objetivo' },
+  'if every measured count holds it': { ko: '모든 실측 스트림 수가 목표를 지켰을 때', ja: 'すべての実測ストリーム数が目標を満たしたとき', 'zh-CN': '当所有实测流数都达到目标时', 'zh-TW': '當所有實測串流數都達到目標時', es: 'si todos los números medidos lo cumplen' },
+  'if no measured count holds it': { ko: '목표를 지킨 실측 스트림 수가 없을 때', ja: '目標を満たした実測ストリーム数がないとき', 'zh-CN': '当没有实测流数达到目标时', 'zh-TW': '當沒有實測串流數達到目標時', es: 'si ningún número medido lo cumple' },
+  'Estimated+ means the estimate hit that cap of twice the highest tested count — the real capacity may be higher. Each card shows its own division, e.g. 534 FPS ÷ 60 FPS = 8.9 → 8 ch.': { ko: '추정+ 는 추정이 측정 최대 스트림 수의 2배라는 상한에 닿았다는 뜻입니다 — 실제로는 더 많을 수 있습니다. 카드마다 자기 계산을 보여 줍니다. 예: 534 FPS ÷ 60 FPS = 8.9 → 8채널.', ja: '推定+ は、推定が計測最大ストリーム数の 2 倍という上限に達したことを示します。実際はさらに多い可能性があります。各カードは自分の計算を表示します。例: 534 FPS ÷ 60 FPS = 8.9 → 8ch。', 'zh-CN': '估算+ 表示估算达到了最多实测流数 2 倍的上限——实际可能更多。每张卡片都会显示自己的计算，例如 534 FPS ÷ 60 FPS = 8.9 → 8 路。', 'zh-TW': '估算+ 表示估算達到了最多實測串流數 2 倍的上限——實際可能更多。每張卡片都會顯示自己的計算，例如 534 FPS ÷ 60 FPS = 8.9 → 8 路。', es: 'Estimado+ significa que la estimación llegó al límite de dos veces el mayor número probado; la capacidad real puede ser mayor. Cada tarjeta muestra su propia división, p. ej. 534 FPS ÷ 60 FPS = 8.9 → 8 canales.' },
+  'meets = channels ≥ cameras, and latency ≤ your budget (if set)': { ko: '충족 = 채널 수 ≥ 카메라 수, 그리고 지연 시간 ≤ 정한 한도 (정했다면)', ja: '充足 = チャンネル数 ≥ カメラ台数、かつ遅延 ≤ 指定した上限 (指定した場合)', 'zh-CN': '满足 = 通道数 ≥ 摄像头数，且延迟 ≤ 您设定的上限（如已设定）', 'zh-TW': '滿足 = 通道數 ≥ 攝影機數，且延遲 ≤ 您設定的上限（如已設定）', es: 'cumple = canales ≥ cámaras, y latencia ≤ su límite (si lo fijó)' },
+  'meets (estimate) = the same, but resting on an estimate or with latency not measured': { ko: '충족 (추정) = 같은 조건이지만 추정값에 기대거나 지연 시간이 측정되지 않았을 때', ja: '充足 (推定) = 同じ条件だが、推定値に基づくか遅延が未計測のとき', 'zh-CN': '满足（估算）= 条件相同，但依据估算值或延迟未测量', 'zh-TW': '滿足（估算）= 條件相同，但依據估算值或延遲未測量', es: 'cumple (estimado) = lo mismo, pero basado en una estimación o con la latencia sin medir' },
+  'meets → meets (estimate) → not throttled → your priority → channels → pipeline FPS': { ko: '충족 → 충족 (추정) → throttle 없음 → 고른 우선순위 → 채널 수 → pipeline FPS', ja: '充足 → 充足 (推定) → スロットリングなし → 選んだ優先順位 → チャンネル数 → パイプライン FPS', 'zh-CN': '满足 → 满足（估算）→ 未降频 → 您选的优先级 → 通道数 → 流水线 FPS', 'zh-TW': '滿足 → 滿足（估算）→ 未降頻 → 您選的優先順序 → 通道數 → 管線 FPS', es: 'cumple → cumple (estimado) → sin estrangulamiento → su prioridad → canales → FPS del pipeline' },
+  '5. Limit & thermal': { ko: '5. 한계와 발열', ja: '5. 上限と発熱', 'zh-CN': '5. 瓶颈与发热', 'zh-TW': '5. 瓶頸與發熱', es: '5. Límite y temperatura' },
+  'limit = NPU, if the NPU was ≥ 85% busy at the most loaded measured stream count': { ko: '한계 = NPU, 가장 부하가 큰 실측 스트림 수에서 NPU 사용률이 85% 이상일 때', ja: '上限 = NPU、最も負荷の大きい実測ストリーム数で NPU 使用率が 85% 以上のとき', 'zh-CN': '瓶颈 = NPU，当负载最大的实测流数下 NPU 使用率 ≥ 85% 时', 'zh-TW': '瓶頸 = NPU，當負載最大的實測串流數下 NPU 使用率 ≥ 85% 時', es: 'límite = NPU, si la NPU estuvo ≥ 85% ocupada en el número de flujos medido con más carga' },
+  'limit = host (CPU / decode / PCIe), otherwise': { ko: '한계 = 호스트 (CPU / 디코딩 / PCIe), 그 밖의 경우', ja: '上限 = ホスト (CPU / デコード / PCIe)、それ以外のとき', 'zh-CN': '瓶颈 = 主机（CPU / 解码 / PCIe），其他情况', 'zh-TW': '瓶頸 = 主機（CPU / 解碼 / PCIe），其他情況', es: 'límite = host (CPU / decodificación / PCIe), en otro caso' },
+  'Each card shows the limit with the measured NPU load. When the host is the limit, a faster host CPU or hardware decoding adds channels; when the NPU is, a bigger NPU does. A measurement taken while the NPU throttled is kept and flagged, and ranks after an equal result measured cool.': { ko: '카드마다 한계를 실측 NPU 사용률과 함께 보여 줍니다. 한계가 호스트이면 더 빠른 호스트 CPU 나 하드웨어 디코딩이 채널을 늘리고, NPU 이면 더 큰 NPU 가 늘립니다. NPU 가 throttle 된 채 잰 측정도 버리지 않고 표시하며, 같은 결과라면 발열 없이 잰 쪽보다 뒤에 둡니다.', ja: '各カードは上限を実測 NPU 使用率とともに表示します。上限がホストなら、より速いホスト CPU やハードウェアデコードでチャンネルが増え、NPU なら、より大きな NPU で増えます。NPU がスロットリング中に計測した値も捨てずに表示し、同じ結果なら発熱なしで計測した方より後に並べます。', 'zh-CN': '每张卡片都会连同实测 NPU 使用率显示瓶颈。瓶颈是主机时，更快的主机 CPU 或硬件解码能增加通道；是 NPU 时，更大的 NPU 才能增加。NPU 降频时的测量也会保留并标注，结果相同时排在未降频测量之后。', 'zh-TW': '每張卡片都會連同實測 NPU 使用率顯示瓶頸。瓶頸是主機時，更快的主機 CPU 或硬體解碼能增加通道；是 NPU 時，更大的 NPU 才能增加。NPU 降頻時的量測也會保留並標註，結果相同時排在未降頻量測之後。', es: 'Cada tarjeta muestra el límite con la carga de NPU medida. Si el límite es el host, una CPU de host más rápida o la decodificación por hardware añaden canales; si es la NPU, una NPU más grande. Una medición tomada con la NPU estrangulada se conserva y se marca, y queda detrás de un resultado igual medido sin calor.' },
   'Limit: NPU': { ko: '한계: NPU', ja: '上限: NPU', 'zh-CN': '瓶颈：NPU', 'zh-TW': '瓶頸：NPU', es: 'Límite: NPU' },
   'Limit: host (CPU / decode)': { ko: '한계: 호스트 (CPU / 디코딩)', ja: '上限: ホスト (CPU / デコード)', 'zh-CN': '瓶颈：主机（CPU / 解码）', 'zh-TW': '瓶頸：主機（CPU / 解碼）', es: 'Límite: host (CPU / decodificación)' },
   'Latency not measured': { ko: 'latency 측정값 없음', ja: 'レイテンシ未計測', 'zh-CN': '未测量延迟', 'zh-TW': '未測量延遲', es: 'Latencia no medida' },
@@ -402,7 +420,7 @@ window._DX_I18N_DICT = {
     'zh-TW': '· 產品資訊:',
     es: '· Info:',
   },
-  // ── 마크업 lang-span 에서 옮겨온 항목 ──
+  // ── Entries moved here from lang-spans in the markup ──
   'Top pick': {
     ko: '1순위',
     ja: '第1推奨',
@@ -415,7 +433,7 @@ window._DX_I18N_SELECTORS = '';
 window._DX_I18N_PLACEHOLDERS = {};
 window._DX_I18N_CALLBACKS = [];
 window.__plannerLangRefreshers = window.__plannerLangRefreshers || [];
-/* 작업 slug (object_detection …) 는 데이터 값이다. 화면에는 고른 언어의 작업 이름으로 보인다 (release audit P-3). */
+/* Task slugs (object_detection …) are data values. On screen they show as task names in the chosen language. */
 window.plannerTaskLabel = function (task) {
   var en = { object_detection: 'Object Detection', pose_estimation: 'Pose Estimation', segmentation: 'Segmentation',
     oriented_bbox: 'OBB', classification: 'Classification' }[task];

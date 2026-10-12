@@ -1,7 +1,7 @@
-"""내부 Publish HTML 테이블 파싱 헬퍼.
+"""Parsing helpers for the internal publish HTML table.
 
-adapters.py 에서 분리된 순수 파싱 로직.
-AdapterResult 의존성 없이 dict[str, dict] 를 반환한다.
+Pure parsing logic split out of adapters.py.
+Returns dict[str, dict] without depending on AdapterResult.
 """
 
 import re
@@ -15,7 +15,7 @@ from dx_modelzoo.metadata.normalization import canonical_model_id, normalize_sou
 _TABLE_FIELD_MAP = {
     "Task": "display.task",
     "Name": "display.name",
-    "Display Name": "display.name",       # 사람이 보는 이름 — Name (DenseNet121-1) 뒤 열이라 덮어쓴다
+    "Display Name": "display.name",       # human-facing name — the column after Name (DenseNet121-1), so it overrides it
     "Class Name": "display.class_name",
     "Dataset": "specification.dataset",
     "Input Resolution": "specification.input_resolution",
@@ -72,7 +72,7 @@ _ARTIFACT_JOIN_SCORES = {
 
 
 def html_span(value):
-    """rowspan/colspan 속성값을 int 로 파싱. 최솟값 1."""
+    """Parse a rowspan/colspan attribute as int (minimum 1)."""
     try:
         span = int(value or 1)
     except (TypeError, ValueError):
@@ -81,12 +81,12 @@ def html_span(value):
 
 
 def clean_cell_text(text):
-    """셀 텍스트를 정리하여 연속 공백을 단일 공백으로 변환."""
+    """Clean cell text, collapsing runs of whitespace into one space."""
     return " ".join(str(text or "").split())
 
 
 def expand_table_headers(header_rows):
-    """rowspan/colspan 이 있는 thead 를 leaf column header 목록으로 펼친다."""
+    """Flatten a thead with rowspan/colspan into a list of leaf column headers."""
     grid = []
     for row_idx, row in enumerate(header_rows):
         while len(grid) <= row_idx:
@@ -156,7 +156,7 @@ class _TableParser(HTMLParser):
                 "colspan": html_span(attrs_dict.get("colspan")),
             }
         elif tag == "br" and self._current_cell is not None:
-            # 한 칸에 줄을 나눠 둔 값 (PSNR<br>SSIM · 32.9<br>0.90) — 예전에는 붙어서 'PSNRSSIM' 이 됐다 (Z-3)
+            # A cell holding several lines (PSNR<br>SSIM · 32.9<br>0.90) — keep them apart, not 'PSNRSSIM'
             self._current_cell["text"] += "\u0000"
         elif tag == "a" and self._current_cell is not None:
             href = attrs_dict.get("href")
@@ -299,9 +299,9 @@ def _parse_internal_table_rows(rows, headers):
 
 
 def parse_internal_table_models(html):
-    """HTML 을 파싱하여 {canonical_id: fields} dict 를 반환.
+    """Parse the HTML and return a {canonical_id: fields} dict.
 
-    AdapterResult 에 의존하지 않는 순수 파싱 함수.
+    A pure parsing function with no dependency on AdapterResult.
     """
     parser = _TableParser()
     parser.feed(html)

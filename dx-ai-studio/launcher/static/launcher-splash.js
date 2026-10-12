@@ -2,52 +2,50 @@
 (function() {
   var ns = window.DXLauncher;
 
-  /* 인트로.
+  /* Intro.
    *
-   * 앞선 시도들은 전부 장르를 빌려왔다 — 네온 회로, 그리고 강착원반을 두른
-   * 블랙홀. 레퍼런스를 "어떻게 판단할지"가 아니라 "무엇을 그릴지"로 받으면
-   * 매번 남의 영화 포스터를 제품 앞에 붙이게 된다.
+   * The intro follows the grammar of Apple and Google product ads rather than
+   * borrowing a genre look (neon circuits, black holes): sell the product, not
+   * the ad.
    *
-   * 그래서 애플과 구글 광고의 문법을 찾아 읽고 그대로 적용했다.
+   * Apple: hero reveal -> detail -> context shot (the product in use) -> one
+   * claim. And:
    *
-   * 애플: hero reveal → detail → context shot(제품이 실제로 쓰이는 장면) → 주장
-   * 하나. 파는 것은 광고가 아니라 제품이다. 그리고:
+   *   · one subject on a black stage (at least 20% empty space around it)
+   *   · the camera moves once, and the move reveals something
+   *   · animate transform and opacity only (compositor-friendly)
+   *   · springs: damping 1.0, response 0.3-0.4s; no abrupt starts or stops
+   *   · tighten tracking on large type (-0.02em); type comes last
+   *   · the signature is a hard specular sweeping across the surface
+   *   · reduced motion falls back to an opacity crossfade
    *
-   *   · 피사체는 하나, 무대는 검은 여백 (요소 주변 최소 20%)
-   *   · 카메라는 한 번만 움직이고, 그 움직임이 무언가를 드러낸다
-   *   · transform 과 opacity 만 애니메이션한다 (compositor-friendly)
-   *   · 스프링: damping 1.0, response 0.3–0.4s. 급히 시작하거나 멈추지 않는다
-   *   · 큰 글자는 자간을 조이고(-0.02em), 타입은 마지막에 온다
-   *   · 시그니처는 표면을 훑고 지나가는 하드 스페큘러
-   *   · reduced motion 은 opacity 크로스페이드로 대체
+   * Google "Parisian Love": no actors, no dialogue, only sentences typed into
+   * the product's input box. The viewer's inference does the work.
    *
-   * 구글 〈Parisian Love〉: 60초 전체를 배우도 대사도 그림도 없이, 제품의
-   * 입력창에 타이핑되는 문장들만으로 끌고 간다. 추론이 일을 한다.
+   * Both point to the same scene: the product at work. This product's premise
+   * is "say what you want and it builds it", so the intro has three beats:
    *
-   * 두 레퍼런스가 같은 곳을 가리킨다. 이 제품의 전제가 "원하는 걸 말하면
-   * 만들어준다"이므로, 애플의 context shot 과 구글의 검색어 시퀀스는 같은
-   * 장면이다 — 제품이 일하는 장면. 그래서 인트로는 세 박자다:
+   *   1. hero    the logotype arrives as a machined object; light sweeps it
+   *   2. work    three prompts are typed; the studio answers with a module
+   *   3. close   the prompts clear and the mark stays with the name
    *
-   *   1. hero    로고타입이 가공된 물체로 도착하고, 빛이 표면을 훑는다
-   *   2. work    프롬프트 셋이 타이핑되고, 스튜디오가 모듈로 답한다
-   *   3. close   프롬프트가 걷히고 마크가 이름과 함께 남는다
-   *
-   * 2번의 문구는 지어낸 카피가 아니다 — 홈의 Build 예시 칩에 이미 있고 이미
-   * 6개 언어로 번역돼 있는 실제 프롬프트다. 답은 그 요청을 실제로 맡는 모듈
-   * 이름이고, 모듈명은 고유명사라 번역이 필요 없다. 광고가 주장하는 것이
-   * 아니라 제품이 하는 일을 그대로 보여주는 것이다. */
+   * The beat-2 prompts are not invented copy: they are the real prompts from
+   * the home Build example chips, already translated into six languages. Each
+   * answer is the module that handles that request; module names are proper
+   * nouns and are not translated. */
 
-  /* 타이핑은 setTimeout 스케줄이지 프레임 루프가 아니다. 글자 수가 언어마다
-     다르므로 글자당 속도가 아니라 총 시간을 고정한다 — 한국어와 영어가 같은
-     박자로 끝나야 시퀀스가 어긋나지 않는다. */
+  /* Typing runs on setTimeout, not a frame loop. Text length differs per
+     language, so the total time is fixed rather than the per-character speed:
+     every language must finish on the same beat or the sequence drifts. */
   var _TYPE_MS = 900;
   var _BEAT = 1950;
-  /* 박자마다 길이가 다를 수 있다 — Stream 은 장면이 세 번 움직이므로 (box · pull-back · 물결)
-     길다 (intro-stream.js). answerAt 은 대답이 오는 때: 장면이 할 말을 다 한 뒤 — 그리고 대답을
-     읽을 시간을 준다. 처음 0.9s 는 "나오자마자 넘어간다", 2.4s 는 "넘어갈 때가 길다" 는 사용자
-     피드백이었다 — 지금은 약 1.7–1.8s. note 는 대답에
-     붙는 실측 한 줄 — img/intro/stream/MEASURED.md. 16 × 30 fps 는 NPU 로는 넘지만 이 host (N97)
-     의 end-to-end 는 채널당 약 18 fps 라서, 참인 NPU 수치로 말한다 (2026-09-30 사용자 결정). */
+  /* Beats can differ in length: Stream is longer because its scene moves three
+     times (box · pull-back · ripple; intro-stream.js). answerAt is when the answer
+     appears: after the scene has made its point, leaving time to read it (about
+     1.7-1.8s). note is a measured line attached to the answer
+     (img/intro/stream/MEASURED.md). The 16 x 30 fps figure is an NPU number: this
+     host's (N97) end-to-end rate is about 18 fps per channel, so the note quotes
+     the NPU figure, which is true. */
   var _WORK = [
     { ask: '16-channel CCTV object detection', by: 'Stream', note: '16 channels on one DX-M1 · 495 fps NPU',
       ms: 4700, answerAt: 2600, scene: 'stream' },
@@ -56,21 +54,20 @@
     { ask: 'compile yolo26n to DXNN', by: 'Compiler', note: 'yolo26n → DXNN · 212 fps on DX-M1',
       ms: 4600, answerAt: 2650, scene: 'compile' }
   ];
-  /* 박자마다 화면을 채우는 장면 — 셋 다 prepare / play / stop 모양이다. 장면이 준비되지 않았으면
-     (느린 tunnel · 그림 없음) 박자는 prompt 만으로 간다. */
+  /* The scene that fills the screen on each beat; each one has prepare / play / stop.
+     If a scene is not ready (slow tunnel, missing images) the beat runs on the prompt alone. */
   function _scene(name) {
     return { stream: window.DXIntroStream, app: window.DXIntroApp, compile: window.DXIntroCompile }[name];
   }
   var _SCENES = ['stream', 'app', 'compile'];
   function _ms(item) { return item.ms || _BEAT; }
   var _WORK_MS = _WORK.reduce(function (sum, item) { return sum + _ms(item); }, 0);
-  /* hero 의 부제("AI Studio")는 CSS 가 1.9s 에 띄운다. work 는 그게 자리를
-     잡고 한 박자 쉰 다음에 시작해야 한다 — 처음엔 2.8s 로 잡았더니 부제가
-     250ms 만에 밀려나서, 있었는지도 모르게 지나갔다. */
+  /* CSS shows the hero subtitle ("AI Studio") at 1.9s. work must start one
+     beat after it settles, or the subtitle is pushed away before anyone sees it. */
   var _WORK_IN  = 3400;
   var _CLOSE    = _WORK_IN + _WORK_MS;         /* 17300 */
-  /* close 는 주장 하나로 닫는다. 읽을 시간이 필요하므로 hero 로 돌아오는
-     것보다 길게 잡는다 — 한 문장을 못 읽고 끝나면 없느니만 못하다. */
+  /* close ends on a single claim. It needs reading time, so it runs longer
+     than the return to hero would. */
   var _INTRO    = _CLOSE + 2600;              /* 19900 */
 
   function _t(key) {
@@ -91,7 +88,7 @@
     })();
   }
 
-  /* 한 박자: 요청이 타이핑되고, 스튜디오가 답하고, 둘 다 물러난다. */
+  /* One beat: the request is typed, the studio answers, both step back. */
   function _beat(item, index, at) {
     var cue = document.getElementById('splashCue');
     var text = document.getElementById('splashCueText');
@@ -101,9 +98,9 @@
       cue.classList.remove('is-answered', 'is-out');
       cue.setAttribute('data-beat', String(index));
       answer.textContent = item.note ? item.by + ' \u00b7 ' + _t(item.note) : item.by;
-      /* is-scene (prompt 를 아래로, logo 는 비킨다) 은 여기 한 곳이 박자마다 정한다. 장면이 각자
-         끄던 때는 앞 장면이 늦게 시작한 날 그 timer 가 다음 장면이 켠 뒤에 돌아, Compiler 도중
-         prompt 가 가운데로 튀어 칩과 겹쳤다 (간헐 — 여유가 9–15ms 였다). */
+      /* is-scene (prompt moves down, logo steps aside) is set here, once per beat. When each
+         scene cleared it itself, a late-starting scene's timer could fire after the next scene
+         had set it, and the prompt jumped to the centre over the chips. */
       var ov = document.getElementById('splashOverlay');
       var scene = item.scene && _scene(item.scene);
       var played = !!(scene && scene.play(ov, _ms(item)));
@@ -127,7 +124,7 @@
 
     var overlay = document.getElementById('splashOverlay');
 
-    /* 움직임을 줄여 달라고 한 사람에게는 크로스페이드. */
+    /* Crossfade for people who asked for reduced motion. */
     var still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (!still) _SCENES.forEach(function (name) { var s = _scene(name); if (s) s.prepare(); });
     if (still) {
@@ -136,30 +133,30 @@
       return true;
     }
 
-    /* 한 프레임 뒤에 시작해야 초기 상태가 실제로 칠해진 뒤 전환이 걸린다.
+    /* Start one frame later so the initial state is painted before the transition.
 
-       그리고 컷의 시계는 여기서, 시퀀스가 실제로 시작한 프레임에서 출발한다.
-       initSplashV2 가 불린 순간부터 재면 부팅이 메인 스레드를 붙잡고 있는 동안
-       예산이 흘러가 버린다 — 실측으로 첫 프레임까지 1.2초가 걸렸고, 3.6초짜리
-       인트로가 2.4초만에 잘렸다. 느린 기기일수록 더 잘린다. */
+       The cut's clock also starts here, on the frame the sequence actually starts.
+       Measuring from the initSplashV2 call lets boot work on the main thread eat the
+       budget (first frame can take over a second), and the intro gets cut short,
+       more so on slower devices. */
     requestAnimationFrame(function () {
       requestAnimationFrame(function () {
         if (overlay) overlay.classList.add('is-running');
 
-        /* 2. work — 이름이 물러나고 그 자리에서 제품이 일한다. */
+        /* 2. work — the name steps back and the product works in its place. */
         _later(function () { if (overlay) overlay.classList.add('is-working'); }, _WORK_IN - 400);
         for (var i = 0, at = _WORK_IN; i < _WORK.length; at += _ms(_WORK[i]), i++) {
           _beat(_WORK[i], i, at);
         }
 
-        /* 3. close — 프롬프트가 걷히고 마크가 이름과 함께 남는다. */
+        /* 3. close — the prompts clear and the mark stays with the name. */
         _later(function () {
           if (!overlay) return;
           overlay.classList.remove('is-working', 'is-scene');
           overlay.classList.add('is-closed');
         }, _CLOSE);
 
-        /* 마지막: 앱을 켜고 마크째로 나간다 — 페이드가 아니라 컷이다. */
+        /* Last: start the app and leave on the mark — a cut, not a fade. */
         _later(function () {
           if (typeof ns.completeLauncherBoot === 'function') {
             ns.completeLauncherBoot({ revealAnimation: 'skip' });

@@ -46,7 +46,7 @@ body{overflow-x:auto;overflow-y:auto}
   border-bottom:1px solid var(--border-subtle)}
 .mz-card-thumb img{width:100%;height:100%;object-fit:cover}
 .mz-card-thumb.no-thumb{display:flex;align-items:center;justify-content:center;font-size:var(--fs-5xl);background:var(--control-bg)}
-/* 썸네일이 없거나 깨졌을 때만 task 아이콘이 그 자리를 채운다 (catalog.js imageTagWithFallback). */
+/* The task icon fills the slot only when the thumbnail is missing or broken (catalog.js imageTagWithFallback). */
 .mz-card-thumb > .mz-thumb-ico{display:none}
 .mz-card-thumb.no-thumb > .mz-thumb-ico{display:block;width:56px;height:56px;color:var(--text-muted)}
 .mz-task-ico{width:1.15em;height:1.15em;flex:none}
@@ -126,10 +126,10 @@ body{overflow-x:auto;overflow-y:auto}
   word-break:break-word;overflow-wrap:anywhere}
 .mz-artifact-table th,.mz-accuracy-matrix th,.mz-runtime-performance th{
   color:var(--text-muted);font-weight:600;background:var(--surface-panel)}
-/* 정확도 행: 지표명과 기준 대비 델타.
-   지표명은 h4 의 uppercase 를 물려받으면 mAP 가 MAP 이 된다 — 대소문자가 곧
-   지표의 이름이므로 되돌린다. 델타 색은 방향을 아는 지표에만 붙는다
-   (is-better / is-worse; 모르는 지표는 부호만 남고 중립색). */
+/* Accuracy row: metric name and delta against the baseline.
+   Inheriting the h4 uppercase would turn mAP into MAP — the casing is part of the
+   metric's name, so undo it. The delta color applies only to metrics whose direction
+   is known (is-better / is-worse; unknown metrics keep just the sign, in a neutral color). */
 .mz-metric-name{text-transform:none;letter-spacing:0;font-weight:600;color:var(--text-muted)}
 .mz-acc-delta{margin-left:var(--sp-1);font-size:var(--fs-sm);font-variant-numeric:tabular-nums;
   color:var(--text-muted)}
@@ -332,17 +332,16 @@ body.lang-zh-TW .zh-CN { display: none !important; }
 .mz-explorer-shell.is-detail{grid-template-columns:minmax(0,1fr)}
 .mz-explorer-shell.is-detail .mz-filter-rail{display:none}
 
-/* 헤더가 좁을 때 (860 에서 페이지명 · 브랜드 · 개수가 모두 두 줄로 밀렸다): 홈페이지 링크는 아이콘만,
-   개수는 한 줄. 링크의 이름은 aria-label · title 이 남긴다. */
+/* Narrow header (at 860 the page name, brand and count all wrapped to two lines): the homepage link shows only
+   its icon and the count stays on one line. aria-label and title keep the link's name. */
 .mz-model-count{white-space:nowrap}
 @media(max-width:900px){.mz-explorer-shell{grid-template-columns:1fr} .mz-filter-rail{position:static;max-height:none;overflow:visible}
   .mz-homepage-link .mz-homepage-text{display:none}}
 @media(max-width:1440px){
-  /* 한 열로 접을 때 grid-column 만 1 로 되돌리면 두 열이 `grid-row:1` 을 그대로
-     들고 같은 셀에 겹쳐 쌓인다 — Key Facts 가 Use Case 밑에 깔려 1440px 이하
-     모든 화면에서 읽히지 않았다. 행도 함께 푼다. 그러면 DOM 순서대로
-     Key Facts → Specification → Compile → Use Case → Example → Demo 가 되는데,
-     데이터시트로 읽기에 그 편이 낫다. */
+  /* When collapsing to one column, resetting only grid-column leaves both columns on
+     `grid-row:1`, stacked in the same cell (Key Facts hidden under Use Case). Release
+     the rows too; the DOM order then reads Key Facts → Specification → Compile →
+     Use Case → Example → Demo, which reads better as a datasheet. */
   .mz-detail-two-by-two{grid-template-columns:1fr}
   .mz-detail-col-left,.mz-detail-col-right{grid-column:1;grid-row:auto}
   .mz-detail-side-sticky{position:static}
@@ -362,7 +361,7 @@ body.lang-zh-TW .zh-CN { display: none !important; }
   .mz-legal-grid{grid-template-columns:1fr}
 }
 
-/* ── Inference Panel: Tab 전환 ─────────────────────────────────────── */
+/* ── Inference Panel: tab switching ──────────────────────────────────── */
 .mz-input-mode-tabs {
   display: flex;
   gap: var(--sp-1);
@@ -389,7 +388,7 @@ body.lang-zh-TW .zh-CN { display: none !important; }
 }
 .mz-tab-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
-/* ── Inference Panel: 샘플 이미지 그리드 ──────────────────────────── */
+/* ── Inference Panel: sample image grid ──────────────────────────────── */
 .mz-sample-grid {
   display: flex;
   flex-wrap: wrap;
@@ -428,7 +427,7 @@ body.lang-zh-TW .zh-CN { display: none !important; }
   white-space: nowrap;
 }
 
-/* ── Inference Panel: Input/Result 미리보기 2열 ───────────────────── */
+/* ── Inference Panel: Input/Result preview, two columns ───────────────── */
 .mz-inference-preview {
   display: flex;
   gap: var(--sp-4);
@@ -450,8 +449,8 @@ body.lang-zh-TW .zh-CN { display: none !important; }
 @media (max-width: 600px) {
   .mz-inference-preview { flex-direction: column; }
   .mz-sample-grid { max-height: 160px; }
-  /* 390px 에서 shell · explorer · main · section 의 padding 네 겹 (한쪽 88px) 에 spec 표 th 180px 가 겹쳐
-     값 칸이 0px 가 되고 경로가 한 글자씩 꺾였다 (release audit Z-8). */
+  /* At 390px the four nested paddings (shell, explorer, main, section — 88px a side) plus the 180px spec-table th
+     left the value cell 0px wide, breaking paths one letter per line. */
   .mz-explorer-shell, .mz-main { padding: 0; }
   .mz-detail-header, .mz-detail-section { padding: var(--sp-4); }
   .mz-spec-table th { width: 40%; }

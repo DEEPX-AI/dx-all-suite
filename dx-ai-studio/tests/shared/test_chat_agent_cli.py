@@ -1,7 +1,7 @@
-"""P4: CLI 백엔드 챗 provider("agent-cli") — 로그인된 코딩 에이전트 CLI로 채팅.
+"""CLI-backed chat provider ("agent-cli"): chat through a logged-in coding-agent CLI.
 
-claude 로그인 1회로 챗봇 + dx_agent_dev 양쪽을 커버(별도 API 키 불필요).
-provider="agent-cli", model=<agent 이름>(claude/opencode/…).
+One claude login covers both the chatbot and dx_agent_dev (no separate API key).
+provider="agent-cli", model=<agent name> (claude/opencode/…).
 """
 from unittest.mock import patch
 
@@ -119,8 +119,8 @@ def test_agent_cli_timeout_kills_and_raises():
 
 
 def test_tests_never_run_a_real_installed_cli(monkeypatch):
-    """2026-10-11: with nothing saved, Chat now answers through the logged-in CLI. A test without a config reached
-    the real ~/.local/bin/claude. Under DX_AGENT_NO_REAL_RUN (tests/conftest.py) a CLI that exists outside the temp
+    """With nothing saved, Chat answers through the logged-in CLI, so a test without a config could reach the real
+    ~/.local/bin/claude. Under DX_AGENT_NO_REAL_RUN (tests/conftest.py) a CLI that exists outside the temp
     dir is refused; fake scripts in tmp_path still run."""
     import os
     assert os.environ.get("DX_AGENT_NO_REAL_RUN") == "1"
@@ -142,8 +142,8 @@ def test_a_fake_cli_in_tmp_still_runs(tmp_path, monkeypatch):
 
 
 def test_the_cli_runs_outside_the_repo_so_project_agent_rules_stay_out(tmp_path, monkeypatch):
-    """2026-10-11 real check: copilot answered a Chat question with "[DX-AGENT-DEV: START]" and the DEEPX banner — it
-    ran inside dx-all-suite and followed that repo's AGENTS.md. Chat carries its own knowledge in the prompt, so the
+    """Run inside dx-all-suite, copilot follows that repo's AGENTS.md and answers a Chat question with
+    "[DX-AGENT-DEV: START]" and the DEEPX banner. Chat carries its own knowledge in the prompt, so the
     CLI runs in a neutral directory with no project instruction files above it."""
     from pathlib import Path
     fake = tmp_path / "copilot"
@@ -159,8 +159,8 @@ def test_the_cli_runs_outside_the_repo_so_project_agent_rules_stay_out(tmp_path,
 
 
 def test_cursor_trusts_the_neutral_dir_without_forcing_commands(monkeypatch):
-    """Run outside the repo, cursor-agent stopped at "Workspace Trust Required … Pass --trust, --yolo, or -f"
-    (2026-10-11 real check). --trust trusts the folder only; -f/--yolo would also auto-run commands."""
+    """Run outside the repo, cursor-agent stops at "Workspace Trust Required … Pass --trust, --yolo, or -f".
+    --trust trusts the folder only; -f/--yolo would also auto-run commands."""
     seen = {}
 
     def popen(cmd, **kwargs):
@@ -179,8 +179,8 @@ def test_cursor_trusts_the_neutral_dir_without_forcing_commands(monkeypatch):
     "You have exceeded your monthly quota",
 ])
 def test_a_cli_out_of_quota_is_a_rate_limit(monkeypatch, said):
-    """2026-10-11 real check: cursor said its team reached its usage limit; Chat called it "an error" and suggested
-    signing in again. Usage, rate and quota limits are rate_limit, which Chat words as a limit, not a login problem."""
+    """When cursor says its team reached its usage limit, Chat must not call it "an error" and suggest signing in
+    again. Usage, rate and quota limits are rate_limit, which Chat words as a limit, not a login problem."""
     monkeypatch.setattr(providers.shutil, "which", lambda b: "/nonexistent/" + b)
     monkeypatch.setattr(providers.subprocess, "Popen", _fake_popen(stdout="", returncode=1, stderr=said))
     with pytest.raises(ChatAPIError) as err:

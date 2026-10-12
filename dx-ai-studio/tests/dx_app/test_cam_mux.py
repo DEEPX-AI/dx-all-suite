@@ -1,9 +1,9 @@
-"""Several live slots on one camera work when the camera has no MJPEG 640x480 mode (2026-10-11 real-use audit).
+"""Several live slots on one camera work when the camera has no MJPEG 640x480 mode.
 
-The ffmpeg fan-out always asked for -input_format mjpeg -video_size 640x480. A camera without that mode (YUYV-only
-webcams, capture cards; here a v4l2loopback device at 1280x720 YUV) made ffmpeg exit at once and every multi-slot run
-failed with "Failed to start camera multiplexer (ffmpeg). Is ffmpeg installed?". It now falls back to the camera's own
-format scaled to 640x480, and a failure says what ffmpeg said.
+The ffmpeg fan-out must not insist on -input_format mjpeg -video_size 640x480: a camera without that mode (YUYV-only
+webcams, capture cards; here a v4l2loopback device at 1280x720 YUV) makes ffmpeg exit at once, and every multi-slot
+run would fail with "Failed to start camera multiplexer (ffmpeg). Is ffmpeg installed?". It falls back to the camera's
+own format scaled to 640x480, and a failure reports what ffmpeg said.
 """
 import io
 

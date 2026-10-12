@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
-"""언어별 형제 span 뭉치 수를 단조 감소로 묶는 ratchet.
+"""Ratchet that keeps the number of per-language sibling span groups going down.
 
-한 문구를 6개 언어 span 으로 늘어놓는 마크업은 사전과 번역이 두 곳에 살게
-만든다. `scripts/migrate_i18n_spans.py` 가 대부분을 data-i18n 으로 옮겼고,
-남은 것은 key 하나에 문구가 둘이라 사람이 정해야 하는 것들뿐이다. 새로
-늘어나는 것만 막으면 된다.
+Markup that lists one phrase as six language spans keeps the dictionary and the translations in
+two places. `scripts/migrate_i18n_spans.py` moved most of them to data-i18n; the rest have two
+phrases for one key and need a human decision. The gate only has to stop new ones.
 
-    python -m scripts.i18n_span_gate            # 검사
-    python -m scripts.i18n_span_gate --write    # baseline 조이기
+    python -m scripts.i18n_span_gate            # check
+    python -m scripts.i18n_span_gate --write    # tighten the baseline
 """
 from __future__ import annotations
 
@@ -39,7 +38,7 @@ def count_groups(text: str) -> int:
 
 
 def scan(root: Path = ROOT) -> dict[str, int]:
-    """lang-span 뭉치가 하나라도 있는 파일 → 개수."""
+    """File with at least one lang-span group -> number of groups."""
     out: dict[str, int] = {}
     for name in SCAN_ROOTS:
         for path in _markup_files(name):

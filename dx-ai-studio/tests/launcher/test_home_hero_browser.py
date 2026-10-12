@@ -1,4 +1,4 @@
-"""hero 가 화면에서 약속한 모양과 동작인지 (spec 2026-09-23 §5.2)."""
+"""The hero looks and behaves as specified on screen."""
 from __future__ import annotations
 
 import pytest
@@ -59,7 +59,7 @@ def test_the_title_leads_at_56_and_the_subtitle_follows_at_21(browser, server):
 
 
 def test_a_chip_fills_the_english_prompt_and_waits(browser, server):
-    """UI 가 한국어여도 검증된 영어 원문이 채워지고, 실행은 사용자가 누를 때."""
+    """Even with a Korean UI the verified English original is filled in, and it runs only when the user presses."""
     ctx, page = _open(browser, server, "ko")
     try:
         page.click('#homeAskChips .ask-chip[data-prompt="mini-game-squat-fitness"]')
@@ -97,7 +97,7 @@ def test_the_agent_line_and_build_sit_inside_the_input_box(browser, server):
 
 
 def test_korean_breaks_between_words_not_inside_them(browser, server):
-    """부제가 "컴 / 파일하고" 로 끊겼다 — 한국어의 기본 줄바꿈은 글자 단위다."""
+    """The Korean subtitle must not break in the middle of a word: by default Korean wraps between any two characters."""
     ctx, page = _open(browser, server, "ko")
     try:
         rule = page.evaluate("() => ['.stage-sub', '.stage-title', '#homeAsk']"

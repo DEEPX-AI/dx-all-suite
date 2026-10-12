@@ -1,9 +1,9 @@
-"""dx_app Run Demo — 결과 무대 + 고르기용 card (spec 2026-10-01 demo stage).
+"""dx_app Run Demo: a result stage plus cards used for picking.
 
-예전에는 card 마다 옵션 · Run 이 있고 결과가 폭 321px card 안에 그려져 card 가 858px 로 늘어났다.
-이제 card 는 고르기만 하고, 옵션 · Run · 결과는 page 위쪽 무대 (공통 DXDemoStage) 에 있다.
+Cards only select a demo; options, Run and results live in the stage at the top of the page (the shared
+DXDemoStage), so a result never stretches a narrow card.
 
-/api/demos 와 실행 API 는 fixture 로 고정한다 — 이 PC 에 모델이 설치됐는지와 무관하게.
+/api/demos and the run APIs are fixtures, independent of which models are installed on this machine.
 """
 from __future__ import annotations
 
@@ -39,7 +39,7 @@ DEMOS = [
 ]
 DEMOS[3]["media"] = {"video": False, "image": True}     # sample video not downloaded on this PC
 
-# 1×1 png — 무대 media 에 결과 이미지가 들어가는지만 본다
+# 1×1 png: only checks that the result image lands in the stage media
 PNG = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="
 RESULT = {"running": False, "exit_code": 0, "fps": 2.8, "latency": 56.2, "elapsed_s": 0.93, "result_image": PNG,
           "perf": {"pipeline": [{"step": "Read", "latency_ms": 202.0}, {"step": "Pre", "latency_ms": 16.0},
@@ -104,7 +104,7 @@ def test_options_and_run_live_on_the_stage_not_on_cards(page):
     for axis in ("input", "code", "mode"):
         assert page.is_visible(f".dds-stage [data-axis-row='{axis}']"), axis
     assert page.is_visible(".dds-stage .dds-run")
-    # 일반 글자 — 예전의 monospace 대문자 (INPUT · CODE) 가 아니다
+    # Plain text, not monospace capitals (INPUT · CODE)
     tt, ff, text = page.evaluate("""() => { const l = document.querySelector('.dds-stage .dds-opt-label');
       const cs = getComputedStyle(l); return [cs.textTransform, cs.fontFamily, l.textContent]; }""")
     assert tt == "none" and "mono" not in ff.lower() and text == "Input", (tt, ff, text)
@@ -154,7 +154,7 @@ def test_the_result_comes_back_when_the_demo_is_opened_again(page):
 
 
 def test_cpp_postprocess_reaches_the_run(page):
-    """Postprocess 'C++' 를 고르면 variant 가 *_cpp_postprocess 여야 한다 (예전에는 늘 빠졌다)."""
+    """Choosing Postprocess 'C++' must give a *_cpp_postprocess variant."""
     page.bodies.clear()
     page.click(".dds-card[data-id='3']")
     page.click(".dds-stage [data-axis='post'][data-val='on']")
@@ -189,9 +189,9 @@ def test_a_sample_video_that_is_not_downloaded_is_not_the_default(page):
 
 
 def test_the_stage_and_card_words_follow_the_language(page):
-    """언어를 바꾸면 무대의 옵션 · Run · 상태 · 수치 이름과 준비 안 된 card 의 이유도 바뀐다 — card 는 다시 그리지
-    않고 무대의 결과도 남는다 (release audit A-8: 예전에는 task 이름만 바뀌었다)."""
-    page.click(".dds-card[data-id='0']")            # 앞 test 의 결과 (Done) 가 있는 demo
+    """Switching language changes the stage's options, Run, status and metric names, and the reason on cards that
+    are not ready; cards are not re-rendered and the stage keeps its result."""
+    page.click(".dds-card[data-id='0']")            # the demo with the previous test's result (Done)
     page.evaluate("() => { document.querySelector(\".dds-card[data-id='1']\").dataset.probe = '1'; DXI18n.setLang('ko'); }")
     page.wait_for_timeout(300)
     try:

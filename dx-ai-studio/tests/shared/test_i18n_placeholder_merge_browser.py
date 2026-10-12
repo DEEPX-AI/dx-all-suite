@@ -1,8 +1,8 @@
-"""Translations kept in _DX_I18N_PLACEHOLDERS reach T() and data-i18n too (2026-10-02 release audit A-3).
+"""Translations kept in _DX_I18N_PLACEHOLDERS reach T() and data-i18n too.
 
 dx_app's i18n.js closes _DX_I18N_DICT early; ~370 ordinary strings ("Waiting…", "Elapsed", "All Tasks" …) sit in
-_DX_I18N_PLACEHOLDERS, which only the placeholder pass read — so they stayed English in every language. The
-`[data-i18n-placeholder]` pass then wrote the English key back over a placeholder the first pass had translated.
+_DX_I18N_PLACEHOLDERS. If only the placeholder pass read them, they would stay English in every language, and the
+`[data-i18n-placeholder]` pass must not write the English key back over a placeholder the first pass translated.
 """
 from __future__ import annotations
 

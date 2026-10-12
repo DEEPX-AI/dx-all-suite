@@ -6,7 +6,7 @@
 (function () {
     'use strict';
 
-    // 상세 패널 글자는 고른 언어로 (release audit C-3). 독립 model summary HTML 에는 사전이 없어 영어로 남는다.
+    // Detail panel text follows the chosen language. The standalone model summary HTML has no dictionary, so it stays English.
     function tr(k) { return typeof T === 'function' ? T(k) : k; }
 
     var CATEGORY_COLORS = {

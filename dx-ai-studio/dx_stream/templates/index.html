@@ -153,11 +153,11 @@
   <h1><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#demo"></use></svg> <span class="accent" data-i18n="Demo Launcher">Demo Launcher</span></h1>
   <p class="txt-dim txt-sm mb16" data-i18n="Select a demo and view results in real-time.">Select a demo and view results in real-time.</p>
 
-  <!-- 결과 무대 + filter + card (shared/static/dx-demo-stage.js, spec 2026-10-01). Playback (Local WebRTC /
-       Remote MJPEG) · RTSP 주소 · Start 는 무대 옵션, 영상은 무대 media 에서 돈다. -->
+  <!-- Result stage + filter + cards (shared/static/dx-demo-stage.js). Playback (Local WebRTC /
+       Remote MJPEG) · RTSP address · Start are stage options; the video plays in the stage media. -->
   <div id="demo-root"></div>
 
-  <!-- 영상 상자는 하나 — 도는 demo 를 무대가 보여 줄 때만 무대 media 로 옮긴다 (stream-demo.js _demoPaint). -->
+  <!-- A single video box — moved into the stage media only while the stage shows the running demo (stream-demo.js _demoPaint). -->
   <div id="demo-video-park" hidden>
     <div class="dds-live" id="demo-video-section">
       <div class="video-container" id="demo-video">
@@ -360,7 +360,7 @@
         <h4 data-i18n="Description">Description</h4>
         <p id="element-detail-desc">--</p>
       </div>
-      <!-- 긴 설명 · 주요 기능 · 파이프라인 힌트 · 예시 · 관련 요소 (stream-elements.js _renderElementExtra) -->
+      <!-- Long description · key features · pipeline hints · examples · related elements (stream-elements.js _renderElementExtra) -->
       <div id="element-detail-extra"></div>
       <div class="element-detail-section">
         <h4 data-i18n="Properties">Properties</h4>
@@ -388,8 +388,8 @@
 
 <!-- ═══ PAGE: Setup ═══ -->
 <div class="page" id="page-setup">
-  <!-- 공용 단계 목록 (shared/static/dx-steps.js · spec 2026-09-29 아이콘 체계 단계 2b). 끝난 단계는 한 줄,
-       다음 단계만 펼친다. 상태는 stream-setup.js 가 DXSteps.set 으로 알린다 — 흐름 (sudo · 로그 폴링 · Run All) 은 그대로. -->
+  <!-- Shared step list (shared/static/dx-steps.js). Finished steps collapse to one line; only the next step
+       is expanded. stream-setup.js reports state with DXSteps.set; the flow (sudo · log polling · Run All) is its own. -->
   <section class="dx-steps" data-steps id="setup-steps">
     <header class="dx-steps-head">
       <div>
@@ -403,7 +403,7 @@
       </div>
       <div class="dx-steps-progress"><span class="dx-steps-count" data-steps-count></span><div class="dx-steps-bar"></div></div>
     </header>
-    <!-- 이 PC — 한 줄의 사실 -->
+    <!-- This PC — one line of facts -->
     <div class="setup-info-bar" id="setup-info-bar">
       <div class="setup-info-item"><span data-i18n="OS">OS</span><b id="setup-os-info">--</b></div>
       <div class="setup-info-item"><span data-i18n="GStreamer Version">GStreamer Version</span><b id="setup-gst-version">--</b></div>
@@ -664,7 +664,7 @@ DXBrand.mount({
 <script>DXToolbar.init({ container: '.toolbar', onSettings: function(){ DXStream.nav('setup'); } });</script>
 <script src="/static/shared/dx-tabs.js"></script>
 <script>
-// 탭 행 오버플로: 라벨을 자르지 않고 넘치는 만큼 +N 드롭다운으로 옮긴다.
+// Tab row overflow: rather than truncating labels, move what does not fit into a +N dropdown.
 DXTabs.init({ row: '.dx-shell-tabs' });
 document.querySelectorAll('.dx-tab').forEach(function (t) {
   t.addEventListener('click', function () { DXStream.nav(t.dataset.page); });
@@ -672,7 +672,7 @@ document.querySelectorAll('.dx-tab').forEach(function (t) {
 </script>
 <script src="/static/js/stream-app.js?m=dx_stream"></script>
 <script src="/static/js/webrtc-client.js?m=dx_stream"></script>
-<!-- ═══ 공용 입력 모달 ═══ -->
+<!-- ═══ Shared input modal ═══ -->
 <dialog class="modal-overlay confirm-modal" id="dx-input-modal">
   <div class="modal" style="max-width:380px">
     <div class="modal-header">
@@ -697,10 +697,10 @@ document.querySelectorAll('.dx-tab').forEach(function (t) {
     var _resolve = null;
 
     /**
-     * 커스텀 입력 모달 — prompt() 대체
-     * @param {string} title  모달 타이틀
+     * Custom input modal — replaces prompt()
+     * @param {string} title  modal title
      * @param {Object} opts   { description, placeholder, type, okLabel }
-     * @returns {Promise<string|null>}  입력값 또는 취소 시 null
+     * @returns {Promise<string|null>}  the input value, or null when cancelled
      */
     DXStream.inputModal = function(title, opts) {
         opts = opts || {};
@@ -730,8 +730,8 @@ document.querySelectorAll('.dx-tab').forEach(function (t) {
 
         return new Promise(function(resolve) {
             _resolve = resolve;
-            // preview (튜토리얼): top layer 가 아닌 일반 dialog 로 — showModal 은 튜토리얼 말풍선 · Next 를 그 아래로
-            // 숨겼다 (release audit S-3)
+            // preview (tutorial): a plain dialog, not the top layer — showModal would hide the tutorial
+            // bubble and its Next button underneath
             if (dlg && opts.preview && dlg.show) dlg.show();
             else if (dlg && dlg.showModal) dlg.showModal();
             if (field && !opts.preview) field.focus();
@@ -755,7 +755,7 @@ document.querySelectorAll('.dx-tab').forEach(function (t) {
         if (_resolve) { _resolve(null); _resolve = null; }
     };
 
-    // Enter키로 확인, Escape는 dialog가 자동 처리
+    // Enter confirms; the dialog handles Escape itself
     document.addEventListener('keydown', function(e) {
         var dlg = DXStream.$('dx-input-modal');
         if (dlg && dlg.open && e.key === 'Enter') {

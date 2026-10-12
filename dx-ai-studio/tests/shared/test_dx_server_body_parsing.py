@@ -19,7 +19,7 @@ class _BodyHandler(DXBaseHandler):
 
 def _handler(method="POST", headers=None, body=b"{}"):
     h = _BodyHandler.__new__(_BodyHandler)
-    h.client_address = ("127.0.0.1", 5555)   # 로컬 요청 — 원격 인증은 tests/shared/test_remote_access.py
+    h.client_address = ("127.0.0.1", 5555)   # local request; remote auth is in tests/shared/test_remote_access.py
     h.command = method
     h.path = "/api/test"
     h.rfile = io.BytesIO(body)

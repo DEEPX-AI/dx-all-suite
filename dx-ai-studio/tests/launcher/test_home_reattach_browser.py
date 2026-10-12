@@ -1,11 +1,11 @@
-"""home 과 Agent Dev 가 같은 실행에 붙는지.
+"""Home and Agent Dev attach to the same run.
 
-`test_live_run.py` 는 버퍼를, `test_server_reattach.py` 는 HTTP 배선을 지킨다.
-여기서는 화면이 실제로 그것을 쓰는지 본다 — 서버가 옳아도 콘솔이 붙지 않으면
-사용자에게는 여전히 "작업이 사라진" 것이다.
+`test_live_run.py` guards the buffer and `test_server_reattach.py` the HTTP wiring. This file checks that
+the screen actually uses them: even with a correct server, a console that does not attach still looks to
+the user like the work vanished.
 
-원래 증상: home 에서 에이전트가 도는 중 `Open in DX Agent Dev` 를 누르면 Agent Dev
-에서는 아무 일도 일어나지 않고, home 으로 돌아오면 작업이 없어져 있었다.
+Pressing `Open in DX Agent Dev` while an agent runs on home must show that run in Agent Dev, and coming
+back to home must still show the work.
 """
 from __future__ import annotations
 
@@ -71,7 +71,7 @@ def _open(browser, status):
 
 
 def test_home_picks_up_a_run_that_is_already_going(browser):
-    """떠났다 돌아온 창이 이어받는 길."""
+    """The path by which a window that left and came back takes the run over again."""
     server, ctx, page = _open(browser, RUNNING)
     try:
         shown = page.evaluate(
@@ -86,7 +86,7 @@ def test_home_picks_up_a_run_that_is_already_going(browser):
 
 
 def test_home_stays_quiet_when_nothing_is_running(browser):
-    """돌지 않는데 작업 뷰가 열리면 그건 유령이다."""
+    """A work view opening when nothing runs is a ghost."""
     server, ctx, page = _open(browser, IDLE)
     try:
         shown = page.evaluate(
@@ -98,7 +98,7 @@ def test_home_stays_quiet_when_nothing_is_running(browser):
 
 
 def test_the_move_button_does_not_leave_the_shell(browser):
-    """전체 이동이면 스트림이 끊기고, 예전에는 그것이 실행을 죽였다."""
+    """A full navigation drops the stream, and that must not kill the run."""
     src = (__import__("pathlib").Path(__file__).resolve().parents[2]
            / "launcher" / "static" / "home-console.js").read_text(encoding="utf-8")
     body = src[src.index("workOpenModule"):]

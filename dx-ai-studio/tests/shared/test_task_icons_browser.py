@@ -1,6 +1,7 @@
-"""task 아이콘이 화면에서 sprite 로 그려지는지 (spec 2026-09-29 아이콘 체계 단계 3).
+"""Task icons are drawn on screen from the sprite.
 
-Model Zoo (카드 · 목록 필터 · 상세), Planner task 버튼, dx_app 결과 안내 — 모두 같은 `task-<key>` 한 표.
+Model Zoo (cards, list filter, detail), the Planner task buttons and the dx_app result hints all use the same
+`task-<key>` table.
 """
 from __future__ import annotations
 

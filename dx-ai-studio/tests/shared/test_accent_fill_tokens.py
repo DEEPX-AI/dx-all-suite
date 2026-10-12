@@ -1,6 +1,7 @@
-"""흰 글자를 올리는 강조 채움은 --accent-fill 을 쓴다 (release audit 대비 점검).
+"""Accent fills that carry white text use --accent-fill.
 
-어두운 테마의 --accent (#2997ff) 위 흰 글자는 3.0:1 이었다. 채움만 #0071e3 (4.7:1) 로, 밝은 테마는 --accent 그대로.
+White text on the dark theme's --accent (#2997ff) is only 3.0:1. Fills alone use #0071e3 (4.7:1); the light theme keeps
+--accent.
 """
 import re
 from pathlib import Path

@@ -10,7 +10,7 @@ function _escAttr(s) {
   return _escHtml(s).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
-/* 결과 탭의 장비 이름도 대시보드와 같게 — hw_id 끝의 _<SKU> 를 괄호로 ("OrangePi5+_M1" → "OrangePi5+ (M1)", release audit B-3). */
+/* Device names match the dashboard: the trailing _<SKU> of hw_id goes in parentheses ("OrangePi5+_M1" → "OrangePi5+ (M1)"). */
 function _hwName(id) {
   var s = String(id || '');
   var i = s.lastIndexOf('_');
@@ -148,8 +148,7 @@ var Results = {
     if (report && report.markdown) {
       html += '<section class="result-section result-section--report" data-help-id="bench-result-report"><h2>' + _t('View Report') + '</h2>';
       html += '<div class="report-content">';
-      // 공용 renderer (GFM 표 포함) — 예전 vendor/marked.min.js 는 748 B 짜리 대용이라 REPORT.md 의 표가
-      // '<p>' 안의 맨 '<tr>' 로 이어 붙어 읽을 수 없었다 (2026-10-02 release audit B-1)
+      // Shared renderer, which supports GFM tables (REPORT.md is mostly tables).
       if (window.DXMarkdownRender && DXMarkdownRender.render) {
         html += DXMarkdownRender.render(report.markdown);
       } else {

@@ -35,14 +35,14 @@
   letter-spacing: 1px;
   color: var(--text-muted, #8b93a7);
 }
-/* 이름 · 부제는 한 줄 — 좁은 헤더에서 줄을 바꾸면 세 줄로 접혀 잘렸다 ("Runn", "St / Re Vis", release audit H-1) */
+/* Name and subtitle stay on one line — wrapping in a narrow header folds them into clipped fragments */
 .dx-brand-name,
 .dx-brand-subtitle {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-/* 브랜드 옆 보조 페이지 타이틀은 의도적으로 낮은 강조색을 사용한다. */
+/* The secondary page title next to the brand is deliberately low-emphasis. */
 .dx-brand-page-title {
   padding-left: 12px;
   border-left: 1px solid var(--border-subtle, rgba(255,255,255,.12));

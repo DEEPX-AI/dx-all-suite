@@ -1,10 +1,10 @@
-"""가변 글꼴 원본을 받아, 스튜디오가 실제로 쓰는 글자만 남긴 woff2 를 만든다.
+"""Download the variable source fonts and build woff2 subsets with only the glyphs the studio uses.
 
     .venv/bin/python -m scripts.build_font_subsets
 
-원본은 config/font_sources.json 에 URL 과 sha256 으로 고정하고 var/font-src/ 에
-캐시한다 (git 무시). 커밋하는 것은 결과물과 라이선스뿐이다. 번역에 새 글자가
-생겨 scripts/font_coverage_gate.py 가 실패하면 이것을 다시 돌린다.
+Sources are pinned by URL and sha256 in config/font_sources.json and cached in var/font-src/
+(git-ignored). Only the subsets and licenses are committed. Re-run this when a translation adds
+new glyphs and scripts/font_coverage_gate.py fails.
 """
 from __future__ import annotations
 
@@ -27,8 +27,8 @@ CACHE = ROOT / "var" / "font-src"
 OUT = ROOT / "shared" / "static" / "fonts"
 LAUNCHER_OUT = ROOT / "launcher" / "static" / "fonts"
 
-# 라틴 글꼴에 남길 범위: 기본 라틴 + 확장 (es 포함), 결합 부호, 일반 문장부호, 통화,
-# 문자형 기호(™), 화살표(→ ↗), 수학 기호, 도형(▶ ●), 체크(✓ ✕).
+# Ranges kept in the Latin fonts: Basic Latin + extensions (covers es), combining marks, general
+# punctuation, currency, letterlike symbols (™), arrows (→ ↗), math, shapes (▶ ●), checks (✓ ✕).
 LATIN = [
     *range(0x20, 0x7F), *range(0xA0, 0x250), *range(0x300, 0x370),
     *range(0x2000, 0x2070), *range(0x20A0, 0x20D0), *range(0x2100, 0x2150),
@@ -61,12 +61,12 @@ def _read(path: Path, member: str | None) -> bytes:
 def _subset(font_bytes: bytes, unicodes, out: Path) -> None:
     opts = subset.Options()
     opts.flavor = "woff2"
-    opts.layout_features = ["*"]   # tnum (카운트업 숫자 폭 고정), kern, liga …
+    opts.layout_features = ["*"]   # tnum (fixed digit width for count-ups), kern, liga …
     opts.name_IDs = ["*"]
     opts.hinting = False
     opts.notdef_outline = True
-    # recalcTimestamp=False: 원본의 head.modified 를 그대로 둔다. 켜 두면 저장 시각이 들어가
-    # 같은 입력에서도 매번 다른 파일이 나온다 (tests/shared/test_font_subsets.py).
+    # recalcTimestamp=False keeps the source head.modified. Otherwise the save time is written in
+    # and the same input gives a different file each run (tests/shared/test_font_subsets.py).
     font = TTFont(io.BytesIO(font_bytes), recalcTimestamp=False)
     sub = subset.Subsetter(opts)
     sub.populate(unicodes=sorted(unicodes))

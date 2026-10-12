@@ -1,5 +1,5 @@
-// DX Charts — 공유 차트 헬퍼 라이브러리
-// dx_app/static/js/charts.js + dx_monitor/static/js/charts.js 통합
+// DX Charts — shared chart helper library
+// Used by dx_app and dx_monitor.
 
 function _dxChartCssColor(token,fallback){
   if(typeof _cv==='function'){
@@ -53,9 +53,8 @@ function _prepareChartCanvas(canvas,resetInline){
   return{ctx:ctx,W:W,H:H};
 }
 
-/* y 축 눈금. 평평한 값은 ±1 로 벌려 "37.0…39.0" · "749.5 mV" · 0% 일 때 "-1.0" 이 나왔고, toFixed(1) 이라
-   "0.7, 0.7, 0.6" 처럼 같은 눈금이 겹쳤다 (release audit M-2). 1 · 2 · 2.5 · 5 × 10ⁿ 간격 4 칸으로 맞추고,
-   값이 모두 0 이상이면 축도 0 아래로 내려가지 않는다. */
+/* Y-axis ticks: four steps of 1 · 2 · 2.5 · 5 × 10ⁿ, so flat series still get readable, distinct ticks
+   (no duplicate labels from rounding). When every value is ≥ 0 the axis does not go below 0. */
 function _chartNiceAxis(lo,hi){
   var nonNeg=lo>=0;
   if(lo===hi){var d=Math.max(Math.abs(hi)*0.05,0.5);lo-=d;hi+=d;}
@@ -145,7 +144,7 @@ function drawLineChart(canvas,datasets,opts){
       if(!lbl)return;
       var x=pad.l+(i/(Math.max(len-1,1)))*cw;
       if(x-lastDrawnX<60)return;
-      // 끝 라벨이 캔버스 밖으로 반쯤 잘렸다 — 가운데 정렬 폭만큼 안쪽으로 당긴다.
+      // Pull centred end labels inward by half their width so they are not clipped at the canvas edge.
       var half=ctx.measureText(lbl).width/2;
       ctx.fillText(lbl,Math.min(Math.max(x,half+2),W-half-2),H-pad.b+14);
       lastDrawnX=x;
@@ -200,7 +199,7 @@ function drawGauge(canvas,pct,color){
   ctx.beginPath();ctx.arc(cx,cy,r,start,angle);ctx.strokeStyle=color||_dxChartCssColor('--app-accent','#22d3ee');ctx.globalAlpha=0.2;ctx.lineWidth=16;ctx.stroke();ctx.globalAlpha=1;
 }
 
-/* 공용 아이콘 (shared/static/dx-icon.js, spec 2026-09-29 아이콘 체계) — 없으면 빈 자리. */
+/* Shared icons (shared/static/dx-icon.js) — empty if missing. */
 function _dxcIcon(n){return (typeof window.DXIcon==='function')?window.DXIcon(n):'';}
 
 function renderWaterfall(perf){

@@ -109,7 +109,7 @@ function _invalidateRunMediaCache(cat){
   else{_runMediaCache={};_runMediaPending={};}
 }
 
-/* 아이콘 + 글자를 바뀔 때만 다시 쓴다 (폴링마다 DOM 을 갈지 않는다, 아이콘 체계 단계 5). */
+/* Rewrite the icon and text only when they change (do not replace DOM on every poll). */
 function setLabelIfChanged(el,icon,text){
   if(!el)return;
   var key=icon+'|'+text;
@@ -195,8 +195,8 @@ function initRunPage(){
   });
   var cats=[...new Set(S.models.map(function(m){return m.category}))].sort();
   $('r-cat').innerHTML='<option value="">'+T('— Select Category —')+'</option>'+cats.map(function(c){return '<option value="'+esc(c)+'">'+esc(catText(c))+'</option>'}).join('');
-  // 모델이 없으면 고를 것도 없다. 빈 드롭다운만 두면 고장으로 읽히므로 어디서
-  // 모델을 받는지 말해 주고, 그동안 고를 수 없는 컨트롤은 잠가 둔다.
+  // With no models there is nothing to pick. An empty dropdown reads as broken, so say where
+  // to get models and lock the controls that cannot be used meanwhile.
   _setRunEmptyState(cats.length === 0);
   _applyPendingAutoSelect();
 }
@@ -218,8 +218,8 @@ function onRCat(){
   updateRunInputMode(cat);
 }
 
-// task 표 (기본 입력 · image-only · 옛 key) 는 서버의 것을 쓴다 — /api/task_defaults (spec 2026-10-01
-// dx_app per-model layout). 서버가 답하기 전 · 답하지 않을 때만 아래 옛 표로.
+// The task table (default input, image-only, old key) comes from the server via /api/task_defaults.
+// The old table below is used only before the server answers or when it does not.
 var _TASK_DEFAULTS=null;
 function loadTaskDefaults(){
   if(_TASK_DEFAULTS)return Promise.resolve(_TASK_DEFAULTS);
@@ -237,7 +237,7 @@ function updateRunInputMode(cat){
   // runners reject video/camera/rtsp — detector-crop pipeline (embedding/reid/attribute),
   // static pose (DOPE), or LiDAR .bin (SFA3D). Video is hard-disabled for them here.
   // hand_detection / hand_landmark are NOT image-only (they process video per-frame).
-  // per-model layout 의 model 은 자기 image_only 를 안다 (config.json) — 그것이 먼저, 다음이 서버의 task 표.
+  // A per-model layout model knows its own image_only (config.json); that comes first, then the server's task table.
   var imageOnly=['embedding','reid','attribute_recognition',
                  'object_pose_estimation','3d_object_detection'];
   var vidRadio=$('r-input-vid');
@@ -456,9 +456,8 @@ function initRTSPStreams(selId){
   });
 }
 
-// RTSP 주소: 카메라가 주는 전체 URL (rtsp://user:pass@cam:554/cam/realmonitor?channel=1 …) 은 적은 그대로 쓴다.
-// host:port 만 적으면 예전처럼 rtsp://host:port/streamN. 비면 '' — 부르는 쪽이 멈추고 묻는다.
-// 예전에는 늘 rtsp://<칸>/streamN 이라 실제 카메라에 닿을 수 없었고, 빈 칸은 rtsp:///stream1 을 보냈다 (2026-10-11).
+// RTSP address: a full URL from the camera (rtsp://user:pass@cam:554/cam/realmonitor?channel=1 …) is used as typed.
+// Only host:port gives rtsp://host:port/streamN. Empty gives '' and the caller stops and asks.
 function buildRTSPUrl(ipId,streamId){
   var raw=($(ipId)?$(ipId).value:'').trim();
   if(!raw)return '';
@@ -466,8 +465,8 @@ function buildRTSPUrl(ipId,streamId){
   var stream=$(streamId)?$(streamId).value:'stream1';
   return 'rtsp://'+raw+'/'+(stream||'stream1');
 }
-// 전체 URL 을 적으면 Stream 고르기는 쓰이지 않는다 — 그 줄을 숨긴다 (끄기만 하면 실행 뒤 Stop 이 모든 select 를
-// 다시 켜 되살아났다)
+// With a full URL the Stream pick is unused, so hide that row (merely disabling it is undone when Stop re-enables
+// every select after a run)
 function syncRTSPStreamPick(ipId,streamId){
   var ip=$(ipId),sel=$(streamId);if(!ip||!sel)return;
   var row=sel.closest('.fg')||sel;
@@ -593,7 +592,7 @@ function updateRunProgress(poll){
   }
 }
 
-/* 결과의 표시는 sprite 아이콘 (아이콘 체계 단계 4) — 문장 앞의 이모지가 아니다. */
+/* Result marks are sprite icons, not emoji in front of the sentence. */
 function _resIco(n){return (typeof DXIcon==='function')?DXIcon(n,{cls:'res-mark'}):'';}
 window.renderInferenceError=function(el,msg,hintHtml){
   el.innerHTML='<p class="res-line" style="color:var(--status-error)">'+_resIco('x')+'<span>'+T('Error: ')+esc(msg)+(hintHtml||'')+'</span></p>';
@@ -621,7 +620,7 @@ window.renderInferenceResult=function(el,res){
   };
   if(!VIS_HINTS[cat]&&VIS_HINTS[_taskLegacy(cat)])cat=_taskLegacy(cat);
   if(VIS_HINTS[cat]){
-    /* task 아이콘은 Model Zoo 와 같은 한 표 (sprite 의 task-<key>, 아이콘 체계 단계 3) — 문장 앞의 이모지가 아니다. */
+    /* The task icon comes from the same table as Model Zoo (sprite task-<key>), not an emoji in front of the sentence. */
     var hintIco=(typeof DXIcon==='function')?DXIcon('task-'+cat,{cls:'res-hint-ico'}):'';
     h+='<div class="res-hint" style="background:var(--accent-dim);border:1px solid rgba(41,151,255,.2);border-radius:8px;padding:8px 12px;margin-bottom:10px;font-size:11px;color:var(--accent)">'+hintIco+'<span>'+VIS_HINTS[cat]+'</span></div>';
   }
@@ -844,7 +843,7 @@ function contOnCat(idx,val){
   CONT.slots[idx].cat=val;CONT.slots[idx].model='';
   contRenderSlots();
 }
-// 고른 모델을 슬롯 화면의 이름표에 바로 보인다 — 예전에는 시작할 때까지 "(no model selected)" 였다 (release audit A-16)
+// Show the picked model on the slot's label right away, not "(no model selected)" until the run starts
 function contOnModel(idx,val){CONT.slots[idx].model=val;if(!CONT.running)contRenderGrid()}
 
 function toggleContInput(){
@@ -891,7 +890,7 @@ async function contStart(){
   if(!valid){toast(T('Please select Category and Model for all slots'),'warn');return}
   var cInputType=$('c-input-type')?$('c-input-type').value:'video';
   if(cInputType==='video'&&!$('c-video').value){toast(T('Please select a video'),'warn');return}
-  // 카메라가 없으면 시작하지 않는다 — 예전에는 runner 를 띄웠다가 "카메라를 열 수 없음" 으로 끝났다 (A-16)
+  // Do not start without a camera; the runner would only end with "cannot open camera"
   if(cInputType==='camera'&&!$('c-camera').value){toast(T('No cameras found'),'warn');return}
   if(cInputType==='rtsp'&&rtspAddressMissing('c-rtsp-ip'))return;
   for(var i=0;i<CONT.slots.length;i++){
@@ -940,11 +939,11 @@ async function contStart(){
     if(cInputType==='camera'){body.camera_id=parseInt($('c-camera').value)||0;body.loop=parseInt($('c-cam-frames').value)||300}
     if(cInputType==='rtsp'){body.rtsp_url=buildRTSPUrl('c-rtsp-ip','c-rtsp-stream')}
     var res=await postJ('/api/run',body);
-    if(!CONT.running)break;   // 멈춘 slot 의 (죽인) 결과는 요약에 넣지 않는다
+    if(!CONT.running)break;   // results of a stopped (killed) slot stay out of the summary
     allResults.push(res);
     contShowResult(i,res,sl.model);
   }
-  // Stop 이 이미 UI 를 정리했다 — '완료' toast · 요약을 또 내지 않는다 (release audit A-5)
+  // Stop already cleaned up the UI; do not show the 'done' toast and summary again
   if(CONT.stopped)return;
   contFinish(allResults);
 }
@@ -1042,11 +1041,11 @@ async function contStop(){
   document.querySelectorAll('#c-grid video').forEach(function(v){v.pause()});
   CONT.slots.forEach(function(sl,i){
     var statusEl=$('c-status-'+i);
-    /* 아직 '처리 중' 이면 (아이콘 + 번역된 말) 중지로 바꾼다 */
+    /* If still 'processing' (icon + translated text), switch to stopped */
     if(statusEl&&statusEl.textContent.trim()===T('Processing...'))DXIcon.label(statusEl,'stop',T('Stopped'));
     var slot=$('c-slot-'+i);
     if(slot&&slot.classList.contains('processing')){slot.className='cont-slot'}
-    /* 아직 끝나지 않은 slot 의 spinner ('… running inference…' · 'Waiting…') 를 멈춤 표시로 (A-5) */
+    /* Turn the spinner of an unfinished slot ('… running inference…', 'Waiting…') into the stopped mark */
     var phEl=$('c-ph-'+i);
     var finished=slot&&(slot.classList.contains('done')||slot.classList.contains('error'));
     if(phEl&&!finished){
@@ -1135,8 +1134,8 @@ function _updateSlotStats(lslot,poll){
   var i=lslot.slotIdx;
   var now=Date.now()/1000;
   var wfps='—';
-  // 프레임별 줄이 없는 task 는 frames 를 모른다 (null) — '—'. 'Loop' 기준 (frame_basis 'loop') 은 영상 한 바퀴마다
-  // 계단으로 뛰므로 구간 FPS 대신 평균을 보인다 (계약: tests/dx_app/test_live_display.py)
+  // Tasks without per-frame lines do not know frames (null): '—'. 'Loop' counting (frame_basis 'loop') jumps in steps
+  // each time the video wraps, so show the average instead of the interval FPS (contract: tests/dx_app/test_live_display.py)
   if(poll.frames==null){
     wfps='—';
   }else if(poll.frame_basis==='loop'){
@@ -1258,8 +1257,8 @@ async function contFinishLiveSlot(lslot){
       _orig_error:lslot.result?lslot.result.error:null
     };
   }
-  // runner 가 스스로 끝났다 (영상을 거부한 image-only 예제 · 죽은 예제) — '완료' 가 아니다
-  // (계약: tests/dx_app/test_live_display.py)
+  // The runner exited on its own (an image-only example rejecting video, or a crashed example); that is not 'done'
+  // (contract: tests/dx_app/test_live_display.py)
   if(lslot.result&&lslot.result.run_error_key){
     lslot.failed=true;
     toast(T('Slot ')+(lslot.slotIdx+1)+': '+translatedError({error_key:lslot.result.run_error_key,error:lslot.result.run_error}),'err');

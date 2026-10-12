@@ -1,11 +1,10 @@
 """Contracts for the launcher home as a platform portal.
 
-The home used to signal "advanced" with ornament — an orbital ring, a HUD frame,
-a neon halo, a logo that decoded on load. That is a deliberate brand surface and
-it is being kept, but it was written as 52 loose hex literals scattered through
-the same stylesheet as the toolbar and the settings dialog. A literal is
-invisible to the theme switch, so the chrome could never follow light mode while
-its colours sat next to the splash's.
+The home's ornament (an orbital ring, a HUD frame, a neon halo, a logo that
+decodes on load) is a deliberate brand surface. Written as loose hex literals
+in the same stylesheet as the toolbar and the settings dialog, its colours
+would be invisible to the theme switch, and the chrome could never follow
+light mode.
 
 The split this file enforces: **brand colour is named and scoped, chrome colour
 comes from the shared semantic tokens.** An intentionally dark hero is not a
@@ -101,20 +100,20 @@ def test_chrome_selectors_carry_no_literal_colour():
 
 
 # ── the portal nav ──────────────────────────────────────────────
-# The home used to navigate twice to the same eight places: a dot strip across
-# the top bar and a ring of tiles below it. Every other surface in the studio
-# navigates from one place; the home was the exception.
+# One navigation, not two: the home must not reach the same eight places from
+# both a dot strip in the top bar and a ring of tiles. Every other surface in
+# the studio navigates from one place.
 
 def index() -> str:
     return INDEX.read_text(encoding="utf-8")
 
 
 def test_the_home_has_no_section_nav():
-    """The nav pointed at sections of one page — Home, Modules, Learn.
+    """The home has no section nav (Home, Modules, Learn).
 
-    The home is one screen now (spec 2026-09-23 §5.1), so an anchor has nowhere
-    to scroll. SDK Library and About became books in the grid; the wordmark goes
-    home. A nav that still existed would point at nothing.
+    The home is one screen, so an anchor has nowhere to scroll. SDK Library and
+    About are books in the grid; the wordmark goes home. A section nav would
+    point at nothing.
     """
     html = index()
     assert 'class="portal-nav' not in html, "the section nav is back"
@@ -159,8 +158,8 @@ def test_the_ring_left_the_resting_home():
 def test_the_prompt_is_the_first_thing_in_the_work_column():
     """The command line comes before the tools.
 
-    A 38px headline and a two-line subtitle once spent the top of a local app's
-    work surface on a pitch. The stage keeps a title, but the input is still the
+    The top of a local app's work surface is not for a pitch (a big headline
+    and a two-line subtitle). The stage keeps a title, but the input is the
     first thing you can act on, above the module grid.
     """
     html = index()
@@ -261,10 +260,9 @@ def test_the_catalogue_size_lands_on_the_card_that_opens_it():
     """
     js = (ROOT / "launcher" / "static" / "home-sections.js").read_text(encoding="utf-8")
     assert "/zoo/api/catalog" in js, "the count must come from the zoo, not a constant"
-    # 카드를 고르는 셀렉터는 이제 MODULE_FACTS 의 app 키에서 조립된다 (여섯 모듈이
-    # 같은 코드를 쓰므로). 예전에는 `data-app="zoo"` 리터럴을 찾았는데 그건 철자를
-    # 본 것이지 성질을 본 것이 아니었다 — 지켜야 할 것은 "zoo 가 그 표에 있고,
-    # 그리는 코드가 data-app 으로 카드를 찾는다" 이다.
+    # The card selector is built from the app keys in MODULE_FACTS (six modules share
+    # the code). What must hold is that zoo is in that table and the drawing code
+    # finds cards by data-app.
     assert "orbital-card[data-app=" in js, "the count has to land on a module card"
     assert "'zoo'" in js, "the Model Zoo must still be one of the counted modules"
     html = index()
@@ -284,12 +282,12 @@ def test_module_cards_say_what_they_are():
 
 
 def test_what_leaves_the_app_sits_below_the_work_surface():
-    """Ecosystem and Solutions were a partner list and four invented one-liners.
+    """No Ecosystem or Solutions sections: a partner list and invented one-liners.
 
-    Neither is state and neither is a tool, so on a workspace they were filler
-    with the same visual weight as the modules. The links that do lead
-    somewhere real live in the bar under the stage; the replay control is part
-    of the tour, top right (spec 2026-09-23 §5.1, §5.7).
+    Neither is state and neither is a tool, so on a workspace they are filler
+    with the same visual weight as the modules. The links that lead somewhere
+    real live in the bar under the stage; the replay control is part of the
+    tour, top right.
     """
     html = index()
     bar = html[html.index('id="homeBar"'):]
@@ -374,18 +372,16 @@ def test_the_intro_obeys_apple_ad_grammar():
 
 
 def test_the_intro_subject_is_a_surface_the_light_crosses():
-    """Three ways this sequence has already been built wrong, all pinned here.
+    """The intro's subject is a surface the light can cross; three invariants pin it.
 
-    The intro started as plain text and read as refined but empty. The reason
-    was not that it had too few elements — it was that a flat white wordmark
-    has no surface for light to cross. The subject is now the real logotype
-    used as a mask, with a material and a reflection. Three invariants make
-    that read, and each one is a bug this actually shipped into a frame:
+    A flat white wordmark has no surface for light to cross, so the intro would
+    read as refined but empty. The subject is the real logotype used as a mask,
+    with a material and a reflection. Three invariants make that read:
 
       1. The logo clips; the band moves. Putting the logo mask on the MOVING
-         layer moves the letters instead of the light — the X was drawn twice,
-         offset. Text hid it because the glyphs look alike; the logotype did
-         not.
+         layer moves the letters instead of the light, and the X is drawn twice,
+         offset. Plain text hides this because the glyphs look alike; the
+         logotype does not.
       2. The face is dark at rest. A near-white face with a white band passing
          over it shows nothing (measured: face 239, band 255).
       3. The reflection's mask has to survive scaleY(-1). Masks apply before
@@ -424,12 +420,11 @@ def test_the_working_beat_shows_the_product_rather_than_claiming_it():
     """Apple's context shot and Google's search-query sequence, which here are
     the same shot.
 
-    The intro was refined and still felt thin, and more decoration would not
-    have fixed that. Apple's answer is the context shot — the product in use —
-    and Google's "Parisian Love" tells a whole story with nothing but queries
-    typed into the product's own input. This product's premise is "say what
-    you want and it builds it", so those two references land on one scene: the
-    studio working.
+    More decoration does not make an intro feel less thin. Apple's answer is
+    the context shot — the product in use — and Google's "Parisian Love" tells
+    a whole story with nothing but queries typed into the product's own input.
+    This product's premise is "say what you want and it builds it", so those
+    two references land on one scene: the studio working.
 
     That only holds if the scene is true, which is what this pins. The prompts
     are the ones already offered on the home's Build box, already translated
@@ -448,8 +443,7 @@ def test_the_working_beat_shows_the_product_rather_than_claiming_it():
 
     # The home offers requests in two places: the chips (showcase prompts) and the
     # placeholder cycle, which also carries the short requests the router sends straight
-    # to a module (2026-09-28: the chips became showcase prompts, and the intro's three
-    # routed requests moved into the cycle rather than out of the home).
+    # to a module (the intro's three routed requests live in the cycle).
     prompts = (ROOT / "launcher" / "static" / "home-prompts.js").read_text(encoding="utf-8")
     cycle = prompts[prompts.index("window.DXHomePlaceholders"):]
     for ask, by in beats:
@@ -465,20 +459,17 @@ def test_the_working_beat_shows_the_product_rather_than_claiming_it():
 def test_the_working_beats_are_regenerable_and_stay_in_the_splash():
     """Every scene in the working beats can be made again, and none leaks into the page.
 
-    All three beats are real material now (2026-09-30 user decisions): sixteen
-    channels of DEEPX's own sample footage with the boxes a DX-M1 drew, a drive
-    through LA segmented frame by frame on a DX-M1, and the real YOLO26n graph
-    folding into the chip. The drawn scenes read as clip-art and are gone, with
-    their generator. The two objections to photographs the drawings once
-    answered (mixed colour casts, AI overlays baked in) are met by one grade per
+    All three beats are real material: sixteen channels of DEEPX's own sample
+    footage with the boxes a DX-M1 drew, a drive through LA segmented frame by
+    frame on a DX-M1, and the real YOLO26n graph folding into the chip. Mixed
+    colour casts and AI overlays baked into photographs are met by one grade per
     scene and by keeping results as data the page draws where it can.
 
-    The rule the drawings kept still holds: an asset nobody can regenerate is
-    worse than none, so every folder names its bake script and its source.
+    An asset nobody can regenerate is worse than none, so every folder names its
+    bake script and its source.
 
-    It also pins the boundary that was crossed once already: replacing the
-    photo paths matched the About section's use-case images too, and quietly
-    swapped them for intro scenes.
+    It also pins a boundary: replacing the intro's photo paths must not touch the
+    About section's use-case images.
     """
     intro = ROOT / "launcher" / "static" / "img" / "intro"
     for stale in ("scene-detect.svg", "scene-segment.svg", "scene-silicon.svg"):
@@ -552,14 +543,14 @@ def test_the_name_and_the_console_share_one_slot():
 
     The subtitle and the prompt line occupy the same spot, so the sequence has
     one composition rather than a layout that jumps every beat. Both are
-    absolutely placed inside the slot; laying them out in flow puts them at
-    different heights and shows both at once, which is what it did.
+    absolutely placed inside the slot; laid out in flow they would sit at
+    different heights and show at once.
 
     The delay is the subtler half. The subtitle's entrance is deliberately late
     — type arrives last — but a transition-delay applies to every direction, so
-    the same 1.85s also delayed its exit and its return: it sat behind the
-    first prompt for two seconds, and after the work it could not come back
-    before the cut. Each state change carries its own transition.
+    a shared 1.85s would also delay its exit and its return: it would sit behind
+    the first prompt for two seconds and could not come back before the cut
+    after the work. Each state change carries its own transition.
     """
     css = style()
     slot = rule_body(css, ".mark-slot")

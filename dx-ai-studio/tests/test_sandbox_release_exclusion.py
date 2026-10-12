@@ -34,10 +34,8 @@ def test_launcher_runtime_does_not_register_sandbox():
 def test_launcher_state_registers_exact_eight_release_modules():
     """Eight modules, no sandbox — checked where the app actually routes.
 
-    This used to check APP_PATHS and then check the same eight names again in
-    _SPLASH_MODULES, a second list the intro kept for itself. The intro no
-    longer names modules and that list is gone, so there is one register now.
-    The names themselves are asserted where they are shown: the home's list.
+    APP_PATHS is the one register. The names themselves are asserted where
+    they are shown: the home's list.
     """
     src = read("launcher/static/launcher-state.js")
     app_paths = _js_block(src, "window.DXLauncher.APP_PATHS")
@@ -98,14 +96,9 @@ def test_launcher_home_copy_and_cards_are_eight_module_release():
     assert "8 módulos" in html
     assert "8 个模块" in html
     assert "8 個模組" in html
-    # The cards used to carry data-angle because the home laid them out on a
-    # ring at eight fixed bearings. The portal home lays them out in a grid, so
-    # the angle is gone — the ring survives only in the splash, which computes
-    # its own bearings from the module count. What this test is for is unchanged:
-    # eight modules, in order, with no ninth and no sandbox.
-    # 2026-09-23: 무대의 5×2 칸 순서 (spec §4.1). 책 두 권 (SDK Library, About) 은
-    # 모듈이 아니므로 여기 세지 않는다. 지키는 것은 그대로 — 여덟 개, 아홉 번째 없음,
-    # sandbox 없음. 칸 순서를 바꾸면 여기도 같이 고친다.
+    # Eight modules, in the home grid's order, with no ninth and no sandbox. The two
+    # books (SDK Library, About) are not modules and are not counted here. Update this
+    # list together with the grid order.
     cards = re.findall(r'class="orbital-card"[^>]*\sdata-app="([^"]+)"', html)
     assert cards == [
         "app", "stream", "zoo", "compiler",
@@ -114,13 +107,11 @@ def test_launcher_home_copy_and_cards_are_eight_module_release():
 
 
 def test_the_intro_carries_no_module_list():
-    """The intro stopped naming the modules, so the data it needed is gone too.
+    """The intro does not name the modules, so it carries no module data either.
 
-    It listed all eight — first on a ring with per-module bearings, then as a
-    stagger of pills. The Gargantua sequence has one subject and it is not a
-    menu. _SPLASH_MODULES and the icon table it fed were left behind by that
-    change, and unread data is how a ninth module ends up with an invented
-    bearing for a ring that no longer exists.
+    The Gargantua sequence has one subject and it is not a menu. A module list
+    (_SPLASH_MODULES) or icon table nobody reads is how a ninth module ends up
+    with invented values for a layout that does not exist.
     """
     state = read("launcher/static/launcher-state.js")
     splash = read("launcher/static/launcher-splash.js")
@@ -133,7 +124,7 @@ def test_the_intro_carries_no_module_list():
 
 
 def test_the_offline_assistant_does_not_offer_the_excluded_sandbox():
-    """API 키 없이 쓰는 도움말 (FallbackEngine) 이 릴리즈에 없는 DX Sandbox 와 옛 모델 수 (340+) 를 말했다."""
+    """The no-API-key assistant (FallbackEngine) must not mention DX Sandbox, which the release excludes, or a stale model count (340+)."""
     src = (ROOT / "shared" / "chat" / "fallback.py").read_text(encoding="utf-8")
     assert "Sandbox" not in src
     assert "340" not in src

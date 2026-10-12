@@ -1,7 +1,7 @@
-"""pyproject 는 requires-python >= 3.8 — 런타임 코드는 3.9+ 문자열 API 를 쓰지 않는다 (2026-10-02 release audit).
+"""pyproject says requires-python >= 3.8, so runtime code must not use the 3.9+ string APIs.
 
-vermin (stdlib · 문법 검사) 은 3.8 을 통과하지만 변수에 대한 `str.removesuffix` 는 타입을 몰라 놓친다.
-그 둘만 따로 막는다. Ubuntu 20.04 는 Python 3.8 이다."""
+vermin (stdlib and syntax check) passes for 3.8 but misses `str.removesuffix` on a variable, since it cannot know
+the type. Those two methods are blocked separately. Ubuntu 20.04 ships Python 3.8."""
 from __future__ import annotations
 
 import re

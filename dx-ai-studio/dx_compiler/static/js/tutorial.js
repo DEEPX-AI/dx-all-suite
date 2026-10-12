@@ -1,18 +1,12 @@
 /**
- * DX Compiler — 5개 멀티 튜토리얼
+ * DX Compiler — five tutorials
  * Quick Start | Graph Viewer | Config Wizard | Advanced | Agentic Auto Compile
  * 6-language support (ko/en/ja/zh-CN/zh-TW/es)
  *
- * 수정 이력:
- *  - beforeStep 추가: 동적/숨겨진 요소 사전 표시
- *  - 존재하지 않는 타겟 수정 (.progress-container → #result, .input-shape-row → #btn-add-input)
- *  - 위자드 스텝 네비게이션(wizGoTo) 연동
- *  - 채팅 위젯 셀렉터 수정 (.chat-widget-toggle → .dx-chat-fab)
- *  - 미커버 기능 스텝 추가 (zoom, expand-all, wizard-close 등)
- *  - 챗봇 위젯 스텝(quick-start 마지막 단계, ai-assist 섹션 전체) 제거 → 런처 튜토리얼로 통합
+ * beforeStep reveals dynamic or hidden elements before a step points at them.
  */
 
-  /* 투어용 미리보기 — 컴파일 중 · 끝난 뒤의 #result 모양. 이미 실제 내용이 있으면 그대로 둔다. */
+  /* Tour preview of #result during and after a compile. Left alone if it already has real content. */
   function _tutResultMock(kind) {
     var el = document.getElementById('result');
     if (!el) return;
@@ -35,7 +29,7 @@
   function openWizardStep(step) {
     var wiz = document.getElementById('config-wizard');
     if (wiz) wiz.style.display = 'flex';
-    // wizard-step 직접 전환 (wizGoTo는 클로저 내부 함수)
+    // Switch wizard steps directly (wizGoTo is private to a closure)
     document.querySelectorAll('.wizard-step').forEach(function (s) {
       s.classList.toggle('active', parseInt(s.dataset.step) === step);
     });
@@ -120,8 +114,8 @@
     { target: '#compile-main-btn', position: 'left',
       title: { en: 'Compile', ko: '컴파일', ja: 'コンパイル', 'zh-CN': '编译', 'zh-TW': '編譯', es: 'Compilar' },
       content: { en: 'Start compilation when everything is ready.', ko: '모든 준비가 완료되면 컴파일을 시작합니다.', ja: '準備が整ったらコンパイルを開始します。', 'zh-CN': '一切准备就绪后开始编译。', 'zh-TW': '一切準備就緒後開始編譯。', es: 'Inicie la compilación cuando todo esté listo.' } },
-    /* #result 는 컴파일 전에는 빈 div 라 (높이 0) 가리킬 것이 없었다 — 투어 동안만 모양을 보여 주고 뒤에 지운다
-       (release audit C-5). 실제 결과가 있으면 건드리지 않는다. */
+    /* Before a compile, #result is an empty div (height 0) with nothing to point at — show a preview
+       during the tour and remove it afterwards. Real results are left untouched. */
     { target: '#result', position: 'left',
       beforeStep: function () { _tutResultMock('progress'); },
       afterStep: function () { _tutResultMock(null); },

@@ -1,7 +1,7 @@
-"""The detail page's CLI command is one that runs (2026-10-02 release audit Z-4).
+"""The detail page's CLI command is one that runs.
 
-It was built from the catalog id for every model: './yolo26n_sync -m {}/assets/models/yolo26n.dxnn -i
-sample/img/sample_street.jpg' — a literal '{}', a binary and a model file that do not exist (the real ones are
+Building it from the catalog id gives './yolo26n_sync -m {}/assets/models/yolo26n.dxnn -i
+sample/img/sample_street.jpg': a literal '{}', a binary and a model file that do not exist (the real ones are
 yolo26-n_640x640), and the street image even for point-cloud, denoising and ReID models.
 """
 from __future__ import annotations

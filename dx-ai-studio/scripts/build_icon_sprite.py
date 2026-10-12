@@ -1,11 +1,11 @@
-"""shared/static/dx-icons.svg 를 만든다 (spec 2026-09-29 아이콘 체계).
+"""Build shared/static/dx-icons.svg, the source of the studio icon set.
 
-스튜디오 아이콘 한 벌의 원본. 24 격자, 두 층 — 옅은 면 (g.f) + 2px 선 (g.l), 색은 currentColor.
-S[name] = (면 요소들, 선 요소들). 선만으로 뜻이 되는 표시는 면을 비운다.
+24px grid, two layers: a faint fill (g.f) and a 2px line (g.l), coloured with currentColor.
+S[name] = (fill elements, line elements). Icons that read from lines alone leave the fill empty.
 
     python -m scripts.build_icon_sprite
 
-계약: tests/shared/test_icon_system.py · tests/shared/test_task_icons.py
+Contract: tests/shared/test_icon_system.py · tests/shared/test_task_icons.py
 """
 import math
 F = 'fill: currentColor; fill-opacity: var(--ico-fill, .24); opacity: var(--ico-fill-o, 1); stroke: none'
@@ -25,7 +25,7 @@ def gear():
 
 G = gear()
 S = {}
-# ── 모듈 8 (launcher home 의 glyph 그대로) ──
+# ── The 8 modules (same glyphs as the launcher home) ──
 S['app'] = ([R(3, 4, 18, 13, 2.5)], [R(3, 4, 18, 13, 2.5), P('M10.5 8.2v4.6l4-2.3z'), P('M8 20.5h8')])
 S['stream'] = ([R(7.5, 3.5, 13, 10, 2)], [R(7.5, 3.5, 13, 10, 2), P('M3.5 8v8.5a2 2 0 0 0 2 2H16'), P('M12.5 6.6l3.2 1.9-3.2 1.9z')])
 S['zoo'] = ([R(13.5, 3.5, 7, 7, 2)], [R(3.5, 3.5, 7, 7, 2), R(13.5, 3.5, 7, 7, 2), R(3.5, 13.5, 7, 7, 2), R(13.5, 13.5, 7, 7, 2)])
@@ -34,11 +34,11 @@ S['bench'] = ([P('M4 16a8 8 0 0 1 16 0z')], [P('M4 16a8 8 0 0 1 16 0'), P('M12 1
 S['edge'] = ([C(12, 12, 9)], [C(12, 12, 9), P('M15.6 8.4l-2.3 4.9-4.9 2.3 2.3-4.9z')])
 S['monitor'] = ([R(3, 4, 18, 16, 3)], [R(3, 4, 18, 16, 3), P('M6 12.5h3l1.8-4 2.6 8 1.8-4H18')])
 S['agent'] = ([R(3, 5.5, 18, 14, 3)], [R(3, 5.5, 18, 14, 3), P('M7 10.5l2.5 2L7 14.5'), P('M12 15h4'), P('M18.5 1.8v2.8M17.1 3.2h2.8')])
-# ── 책 ──
+# ── Books ──
 S['library'] = ([R(5.2, 5, 6.6, 14.5, 1)], [P('M6.5 5v14M10.5 5v14'), P('M14 5.6l3.4 13'), P('M4.5 19.5h15')])
 OPEN_BOOK = 'M12 7.2c-2-1.5-5-1.6-7.5-.6v11.2c2.5-1 5.5-.9 7.5.6 2-1.5 5-1.6 7.5-.6V6.6c-2.5-1-5.5-.9-7.5.6z'
 S['book'] = ([P(OPEN_BOOK)], [P(OPEN_BOOK + 'M12 7.2v11.2')])
-# ── 쪽 · 도구 (레일 · 탭이 쓰던 이름) ──
+# ── Pages · tools (names used by the rail and tabs) ──
 HOUSE = 'M4 10.8 12 4l8 6.8v8.7a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 19.5z'
 S['home'] = ([P(HOUSE)], [P(HOUSE), P('M10 21v-5.5h4V21')])
 S['setup'] = ([C(15, 7, 2.2), C(9, 12, 2.2), C(16, 17, 2.2)],
@@ -64,7 +64,7 @@ PIECE = 'M5 5h5a2 2 0 1 1 4 0h5v5a2 2 0 1 1 0 4v5h-5a2 2 0 1 0-4 0H5v-5a2 2 0 1 
 S['puzzle'] = ([P(PIECE)], [P(PIECE)])
 SPANNER = 'M15.5 3.5a5 5 0 0 0-4.7 6.6l-6.5 6.5a2 2 0 0 0 2.8 2.8l6.5-6.5a5 5 0 0 0 6.6-4.7L17.4 10.9l-3-.5-.5-3 2.8-2.8a5 5 0 0 0-1.2-.1z'
 S['wrench'] = ([P(SPANNER)], [P(SPANNER)])
-# ── 새 표시 (1차) ──
+# ── General UI marks ──
 MERIDIAN = 'M12 3c2.5 2.6 3.5 5.6 3.5 9s-1 6.4-3.5 9c-2.5-2.6-3.5-5.6-3.5-9s1-6.4 3.5-9z'
 S['globe'] = ([C(12, 12, 9)], [C(12, 12, 9), P('M3 12h18'), P(MERIDIAN)])
 S['theme'] = ([P('M12 3a9 9 0 0 1 0 18z')], [C(12, 12, 9), P('M12 3v18')])
@@ -99,7 +99,7 @@ EYE = 'M2.5 12s3.5-6.5 9.5-6.5 9.5 6.5 9.5 6.5-3.5 6.5-9.5 6.5S2.5 12 2.5 12z'
 S['eye'] = ([P(EYE)], [P(EYE), C(12, 12, 3)])
 S['external'] = ([], [P('M14 4h6v6'), P('M20 4l-9 9'), P('M18 14v4.5a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 4 18.5v-11A1.5 1.5 0 0 1 5.5 6H10')])
 
-# ── 단계 1 (공용 chrome) ──
+# ── Shared chrome ──
 RAYS = 'M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4'
 S['sun'] = ([C(12, 12, 4.2)], [C(12, 12, 4.2), P(RAYS)])
 MOON = 'M20 14.2A8.2 8.2 0 1 1 9.8 4a6.6 6.6 0 0 0 10.2 10.2z'
@@ -115,7 +115,7 @@ S['memory'] = ([R(3, 7, 18, 9, 2)], [R(3, 7, 18, 9, 2), P('M7 10.5v2M10.5 10.5v2
 S['disk'] = ([C(12, 12, 9)], [C(12, 12, 9), C(12, 12, 2.5), P('M15.5 6.5a7 7 0 0 1 2.2 2.8')])
 S['clock'] = ([C(12, 12, 9)], [C(12, 12, 9), P('M12 7v5l3.2 2')])
 
-# ── 단계 3: task 22개 (dx_modelzoo/core/config.py CATEGORIES 의 icon = "task-<key>") ──
+# ── Tasks (icon = "task-<key>" in dx_modelzoo/core/config.py CATEGORIES) ──
 CORNERS = 'M3 8V4.5A1.5 1.5 0 0 1 4.5 3H8M16 3h3.5A1.5 1.5 0 0 1 21 4.5V8M21 16v3.5a1.5 1.5 0 0 1-1.5 1.5H16M8 21H4.5A1.5 1.5 0 0 1 3 19.5V16'
 S['task-object_detection'] = ([R(7.5, 7.5, 9, 9, 1.5)], [P(CORNERS), R(7.5, 7.5, 9, 9, 1.5)])
 TAG = 'M3.5 11.6V5a1.5 1.5 0 0 1 1.5-1.5h6.6l8.6 8.6a1.5 1.5 0 0 1 0 2.1l-6.2 6.2a1.5 1.5 0 0 1-2.1 0z'
@@ -157,8 +157,8 @@ S['task-panoptic_driving_perception'] = ([P('M8.5 3.5h7L20.5 20.5h-17z')],
     [P('M8.5 3.5 3.5 20.5M15.5 3.5l5 17'), P('M12 5v2M12 10.5v2.5M12 16.5v4')])
 S['task-3d_object_detection'] = ([R(3, 9, 12, 12, 1.5)],
     [R(3, 9, 12, 12, 1.5), P('M9 3h10.5A1.5 1.5 0 0 1 21 4.5V15'), P('M3.4 9.4 9 3.4M14.6 9.4 20.6 3.4M14.6 20.6l5.9-5.9'), P('M9 3v2.5M9 8v1')])
-# ── dx_app per-model layout 의 task key (spec 2026-10-01): 옛 key 를 새 이름으로 부른 것은 같은 그림을 자기 id 로,
-#    새 task 7 개는 새 그림. dx_modelzoo/core/config.py CATEGORIES · shared/tasks.py 의 LEGACY_TO_TASK 와 같은 표. ──
+# ── dx_app per-model task keys: renamed legacy keys reuse the same drawing under their own id, new tasks get
+#    new drawings. Same table as dx_modelzoo/core/config.py CATEGORIES and LEGACY_TO_TASK in shared/tasks.py. ──
 S['task-image_classification'] = S['task-classification']
 S['task-oriented_object_detection'] = S['task-obb_detection']
 S['task-face_landmark'] = S['task-face_alignment']
@@ -178,7 +178,7 @@ S['task-visual_place_recognition'] = ([P(PIN)], [P(PIN), P('M9.5 10.5l2 2 3.5-4'
 S['task-face_attribute'] = ([C(10, 12.5, 6.5)],
     [C(10, 12.5, 6.5), P('M8.3 11.2v.1M11.7 11.2v.1'), P('M8 14.8c1.2.9 2.8.9 4 0'), P('M16.5 3h3.5l1.5 1.8-1.5 1.8h-3.5z')])
 
-# ── 단계 5: launcher About · SDK Library 의 분야 · 상 표시 ──
+# ── Industry and award marks (launcher About, SDK Library) ──
 CAR = 'M5 16.5V12l1.8-4.6A2 2 0 0 1 8.6 6h6.8a2 2 0 0 1 1.8 1.4L19 12v4.5'
 S['car'] = ([P('M4 12h16v4.5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z')], [P(CAR), P('M3.5 12h17'), P('M4 12v5.5M20 12v5.5'), C(8, 15, .6), C(16, 15, .6), P('M6.5 17.5v2M17.5 17.5v2')])
 S['factory'] = ([P('M3 20V10l5 3V10l5 3V7l8 4v9z')], [P('M3 20V10l5 3V10l5 3V7l8 4v9z'), P('M2 20h20'), P('M16.5 5V3.5M7 16h2M12 16h2M17 16h2')])
@@ -203,11 +203,11 @@ S['plus'] = ([], [P('M12 5v14M5 12h14')])
 S['minus'] = ([], [P('M5 12h14')])
 
 out = ['<svg xmlns="http://www.w3.org/2000/svg" width="0" height="0" style="position:absolute" aria-hidden="true">',
-       '<!-- DX AI Studio 아이콘 한 벌 (spec 2026-09-29 아이콘 체계). 24 격자, 두 층: 옅은 면 (g.f) + 2px 선 (g.l).',
-       '     <use> 의 그림자 트리 안은 바깥 CSS 선택자가 닿지 않는다 — 모양은 상속되는 변수로만 바꾼다:',
-       '     CSS 변수 ico-fill (면의 불투명도, .24) · ico-fill-o (면 전체, 1) · ico-stroke (선 굵기, 2). 색은 currentColor.',
-       '     (XML 주석 안에는 대시 둘을 쓸 수 없어 변수 이름의 앞 대시를 뺐다.)',
-       '     모듈 8개는 launcher home 의 glyph 와 같은 모양이다. 계약: tests/shared/test_icon_system.py -->',
+       '<!-- DX AI Studio icon set. 24 grid, two layers: a faint fill (g.f) + a 2px line (g.l).',
+       '     CSS outside cannot reach inside the <use> shadow tree, so shapes change only through inherited variables:',
+       '     ico-fill (fill opacity, .24), ico-fill-o (whole fill, 1), ico-stroke (line width, 2). Colour is currentColor.',
+       '     (XML comments cannot contain a double dash, so the variable names lose their leading dashes.)',
+       '     The eight module icons match the launcher home glyphs. Contract: tests/shared/test_icon_system.py -->',
        '<defs>']
 for name, (fills, lines) in S.items():
     body = ''
@@ -219,9 +219,9 @@ out += ['</defs>', '</svg>']
 open(__import__('pathlib').Path(__file__).resolve().parents[1] / 'shared/static/dx-icons.svg', 'w', encoding='utf-8').write('\n'.join(out) + '\n')
 print(len(S), 'symbols')
 
-# ── 탭 아이콘 (favicon) — 모듈 glyph 를 어두운 판 위에 (아이콘 체계 단계 5) ──
-# 탭 줄은 밝기도 어둡기도 하다 — 어두운 판 + 강조색 선이면 어느 쪽에서도 보인다.
-# 모듈 이름 → glyph. launcher 는 스튜디오 전체라 DX 글자.
+# ── Tab icons (favicons): the module glyph on a dark tile ──
+# Tab strips can be light or dark; a dark tile with accent lines reads on both.
+# Module name -> glyph. The launcher stands for the whole studio, so it gets the letters DX.
 FAV_DIR = __import__('pathlib').Path(__file__).resolve().parents[1] / 'shared/static/favicons'
 FAV = {'dx_app': 'app', 'dx_stream': 'stream', 'dx_modelzoo': 'zoo', 'dx_compiler': 'compiler',
        'dx_benchmark': 'bench', 'dx_planner': 'edge', 'dx_monitor': 'monitor', 'dx_agent_dev': 'agent'}

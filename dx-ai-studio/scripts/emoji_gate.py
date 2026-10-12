@@ -1,22 +1,27 @@
 #!/usr/bin/env python3
-"""UI 에 남은 이모지 아이콘을 단조 감소로 묶는 ratchet (spec 2026-09-29 아이콘 체계 §3).
+"""Ratchet that keeps the number of emoji icons in the UI going down.
 
-스튜디오의 아이콘은 `shared/static/dx-icons.svg` 한 벌이다. 그런데 화면 곳곳의 아이콘은 아직 이모지다 —
-툴바 🌏 ◒◓◑ 🎓, Setup 의 ①–⑥ ✅ ⏳, task 🎯🏷️, 페이지 제목, 튜토리얼 구역. 이모지는 OS · 글꼴마다 다르게
-그려지고 (headless 캡처에서 ◒ 이 "-" 로 나왔다) 색 · 굵기를 테마가 정할 수 없다.
+The studio's icons are the single set in `shared/static/dx-icons.svg`, but many places still use
+emoji: toolbar 🌏 ◒◓◑ 🎓, Setup ①–⑥ ✅ ⏳, task 🎯🏷️, page titles, tutorial sections. Emoji render
+differently per OS and font (headless capture drew ◒ as "-"), and the theme cannot set their colour
+or weight.
 
-수백 곳이라 한 번에 걷지 않는다. css_token_gate · spacing_scale_gate 와 같은 방식: **지금 수를 파일별
-상한으로 박고 늘어나는 것만 막는다.** 단계마다 걷어낸 만큼 `--update` 로 내린다.
+There are too many to remove at once, so this works like css_token_gate and spacing_scale_gate:
+**the current count is a per-file ceiling and only increases are blocked.** Lower it with `--update`
+after removing some.
 
-세는 것: 그림 문자 (U+1F000–1FAFF), 기타 기호 · 딩뱃 (2600–27BF), 기술 기호 (2300–23FF — ⏳ ⌨ ⏹),
-원 숫자 (2460–24FF — ①), 도형 (25A0–25FF — ▶ ◒ ■), 기타 기호 · 화살표 (2B00–2BFF — ⬇ ⭐), ℹ.
-세지 않는 것: 화살표 (2190–21FF — → ↗), 문장 부호 (— · ›), 변형 선택자 (FE0F).
-글자로 쓴 것뿐 아니라 JS 이스케이프 (\\uD83C\\uDF93 · \\u2705) 와 HTML 숫자 엔티티 (&#9662;) 도 센다.
+Counted: pictographs (U+1F000–1FAFF), misc symbols and dingbats (2600–27BF), misc technical
+(2300–23FF — ⏳ ⌨ ⏹), enclosed numbers (2460–24FF — ①), geometric shapes (25A0–25FF — ▶ ◒ ■),
+misc symbols and arrows (2B00–2BFF — ⬇ ⭐), and ℹ.
+Not counted: arrows (2190–21FF — → ↗), punctuation (— · ›), variation selectors (FE0F).
+Literal characters are counted, and so are JS escapes (\\uD83C\\uDF93 · \\u2705) and HTML numeric
+entities (&#9662;).
 
-대상: 모듈 · 공용의 `static/` 과 `templates/` (그리고 모든 모듈에 주입되는 shared/hw_widget) 아래 .js · .html · .css · .json. 튜토리얼 · 번역 사전 ·
-레퍼런스 · 데이터도 센다 — 그곳의 아이콘도 이 체계로 옮긴다 (본문은 글자로).
+Scope: .js · .html · .css · .json under each module's and the shared `static/` and `templates/`
+(plus shared/hw_widget, which is injected into every module). Tutorials, translation dictionaries,
+references and data count too; their icons move to the icon set as well (body text stays text).
 
-계약: tests/shared/test_emoji_gate.py
+Contract: tests/shared/test_emoji_gate.py
 """
 from __future__ import annotations
 
@@ -50,8 +55,8 @@ def _pictographic(cp: int) -> bool:
 
 
 def _decoded(text: str):
-    """글자 그대로 쓴 것에 더해 JS 이스케이프 ('\\uD83C\\uDF93', '\\u2705') 와 HTML 숫자 엔티티
-    ('&#9662;') 로 쓴 것도 센다 — tutorial-engine.js 의 🎓 · ✅ 가 이렇게 적혀 있었다."""
+    """Code points written literally, plus those written as JS escapes ('\\uD83C\\uDF93', '\\u2705')
+    or HTML numeric entities ('&#9662;'), so an escaped emoji still counts."""
     for ch in text:
         yield ord(ch)
     for m in _JS_ESCAPE.finditer(text):
@@ -76,7 +81,7 @@ def _iter_files():
         if any(s in rel for s in _SKIP):
             continue
         parts = path.relative_to(ROOT).parts
-        # hw_widget 은 static/ 밖에 있지만 모든 모듈에 주입되는 공용 화면이다.
+        # hw_widget lives outside static/ but is a shared view injected into every module.
         if "static" not in parts and "templates" not in parts and "hw_widget" not in parts:
             continue
         yield rel[1:], path
@@ -92,7 +97,7 @@ def count_tree() -> dict[str, int]:
 
 
 def regressions(counts: dict[str, int], baseline: dict[str, int]) -> list[str]:
-    """상한을 넘은 파일들 (새 파일은 상한 0)."""
+    """Files over their ceiling (a new file has a ceiling of 0)."""
     return [rel for rel, n in sorted(counts.items()) if n > baseline.get(rel, 0)]
 
 

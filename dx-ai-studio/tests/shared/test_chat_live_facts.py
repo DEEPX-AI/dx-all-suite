@@ -1,10 +1,9 @@
-"""Chat gets this PC's dx_app example layout as a fact (2026-10-11 real-use audit).
+"""Chat gets this PC's dx_app example layout as a fact.
 
-Asked "DX-M1 에서 yolo26n 예제를 실행하는 명령" through the agent-cli provider, Chat answered
-`python src/python_example/object_detection/yolo26n/yolo26n_sync.py --input ...`: the legacy path (this box has
-the per-model layout, where that folder holds only factory/) and a flag that does not exist (`--image`/`-i`).
-The knowledge page lists both layouts and the model picked the wrong one, so the prompt now carries the layout
-Studio detected with a runnable example command.
+Asked for the command that runs the yolo26n example on DX-M1, a model that sees only the knowledge page (which lists
+both layouts) can answer `python src/python_example/object_detection/yolo26n/yolo26n_sync.py --input ...`: the legacy
+path (with the per-model layout that folder holds only factory/) and a flag that does not exist (`--image`/`-i`).
+So the prompt carries the layout Studio detected, with a runnable example command.
 """
 from __future__ import annotations
 

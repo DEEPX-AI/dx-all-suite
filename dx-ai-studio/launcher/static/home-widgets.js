@@ -1,15 +1,13 @@
 /* ─── Launcher home — the two widgets beside the grid ─────────────────────
-   spec: docs/superpowers/specs/2026-09-23-launcher-home-redesign-design.md §5.5–5.6
 
-   왼쪽은 지금 사실인 것 (이 PC 의 DX-M1), 오른쪽은 그 장치에서 잰 것.
+   Left: what is true right now (this PC's DX-M1). Right: what was measured on that device.
 
-   장치 값의 주인은 여기 하나다. 예전에는 15초 poll (refreshHeroDevice) 이 칩을 칠했는데,
-   startSharedHwStream 이 같은 장치를 SSE (없으면 3초 poll) 로 이미 뿌리고 있어 두 곳이 같은
-   자리를 번갈아 덮어썼을 것이다. 스트림은 studio 가 준비된 뒤 켜지므로, 그 전에는
-   hw_status 를 한 번만 읽는다.
+   This file alone owns the device values. startSharedHwStream already broadcasts the device over
+   SSE (or a 3 s poll), so a second poller would overwrite the same slots in turn. The stream
+   starts once the studio is ready; before that, hw_status is read once.
 
-   카운트업은 여기 (_countTo), 막대 전환 · 맥박은 CSS (is-idle).
-   계약: tests/launcher/test_home_widgets_contract.py, test_home_widgets_browser.py */
+   Count-up lives here (_countTo); bar transitions and the pulse are CSS (is-idle).
+   Contract: tests/launcher/test_home_widgets_contract.py, test_home_widgets_browser.py */
 (function () {
   'use strict';
 
@@ -33,7 +31,7 @@
     });
   }
 
-  /* ── 상태: DX-M1 ─────────────────────────────────────────── */
+  /* ── Status: DX-M1 ─────────────────────────────────────────── */
 
   var _hw = null;
 
@@ -76,14 +74,14 @@
     var cores = $('homeCores');
     var line = $('homeDeviceLine');
     if (!box || !chip || !cores || !line) return;
-    chip.removeAttribute('data-i18n');   // 살아 있는 값은 사전 키가 아니다
+    chip.removeAttribute('data-i18n');   // live values are not dictionary keys
 
     var npu = hw && hw.npus && hw.npus[0];
     var live = !!(hw && hw.available && hw.count > 0 && npu);
     var mock = !!(hw && hw.mock && npu);
-    /* 없음은 색으로 외치지 않고 조명을 끈다 (spec §5.5). */
+    /* Absent is shown by dimming, not by shouting in color. */
     box.classList.toggle('is-off', !live && !mock);
-    /* 모든 코어가 5% 밑이면 쉬는 중 — 막대가 4초마다 숨을 쉰다 (spec §7 #10, CSS). */
+    /* All cores under 5% means idle — the bars breathe every 4 s (CSS). */
     var util = (npu && npu.utilization) || [];
     box.classList.toggle('is-idle', (live || mock) && Math.max.apply(null, util.concat([0])) < 5);
 
@@ -102,11 +100,11 @@
     }
   }
 
-  /* ── 증거: 이 장치에서 잰 것 ──────────────────────────────── */
+  /* ── Evidence: measured on this device ─────────────────────── */
 
-  /* task 마다 사람들이 실제로 돌리는 크기 (nano) 하나. 가장 빠른 것을 뽑으면 task 가 달라
-     비교할 수 없는 숫자가 된다 — 분류의 3,695 옆에 검출의 1,847 은 아무것도 말하지 않는다.
-     이름 패턴으로 추측하지 않고 id 로 적는다: 무엇이 뽑히는지 여기서 읽힌다. */
+  /* One model per task, at the size people actually run (nano). Picking the fastest would mix tasks
+     into numbers that cannot be compared — classification's 3,695 next to detection's 1,847 says
+     nothing. Listed by id rather than guessed from name patterns, so what gets picked is readable here. */
   var HEADLINE = [
     ['object_detection', 'yolo26n'],
     ['instance_segmentation', 'yolo26n_seg'],
@@ -115,7 +113,7 @@
     ['obb_detection', 'yolo26n_obb'],
     ['depth_estimation', 'yolo26_depth_n'],
   ];
-  /* Model Zoo 사전 (i18n-dict-shared.js) 과 같은 키 — 용어가 모듈마다 갈라지지 않게. */
+  /* Same keys as the Model Zoo dictionary (i18n-dict-shared.js), so terms stay the same across modules. */
   var TASK_LABEL = {
     object_detection: 'Object Detection',
     instance_segmentation: 'Instance Segmentation',
@@ -158,8 +156,8 @@
     });
   }
 
-  /* 숫자는 지금 보이는 값에서 새 값까지 700ms 에 걸쳐 센다 (spec §7 #11). 효과 줄이기나
-     가려진 탭에서는 곧바로. */
+  /* Numbers count from the shown value to the new one over 700 ms. Instant under reduced motion
+     or in a hidden tab. */
   var COUNT_MS = 700;
   var _shownFps = 0;
   var _countRaf = 0;
@@ -202,8 +200,8 @@
     paintProof();
   }
 
-  /* 저절로 넘어가는 것도 움직임이다: 효과 줄이기를 켠 사람에게는 첫 task 에 머물고, 점을
-     눌러 고른다. 가리키고 있거나 탭이 가려져 있으면 넘기지 않는다. */
+  /* Auto-advancing is motion too: under reduced motion it stays on the first task and the dots
+     pick. It does not advance while hovered or while the tab is hidden. */
   function _startRotation() {
     if (_timer || _rows.length < 2) return;
     var still = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -249,13 +247,13 @@
       window.DXI18n.onLangChange(function () {
         if (_hw !== null) paintDevice(_hw);
         var dots = $('homeProofDots');
-        if (dots) dots.innerHTML = '';   // 점의 이름표도 언어를 따른다
+        if (dots) dots.innerHTML = '';   // dot labels follow the language too
         paintProof();
       });
     }
   }
 
-  ns._pickHeadline = pickHeadline;   // 테스트가 선택 규칙을 직접 본다
+  ns._pickHeadline = pickHeadline;   // lets tests check the pick rule directly
   ns._rotateHeadline = rotate;
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);

@@ -66,6 +66,10 @@ Changes since the v0.1.0 beta manual. The version number and date are set at rel
   made without system site packages, which hid the GStreamer bindings from the module servers.
 - DX App live RTSP and multi-slot camera runs reach the runner (they ended with "Input file not found"); several
   slots can share a camera without an MJPEG 640x480 mode. DX Stream's Pipeline Builder has a camera source (`v4l2src`).
+- EdgeGuide cards show their arithmetic ("534 FPS ÷ 60 FPS = 8.9 → 8 ch", "31.7 FPS each ≥ 30 FPS target") and the
+  measured NPU load next to the NPU / host limit; **How ranking works** explains the 85 % limit rule and what
+  **Estimated+** means, gives every formula's meaning in your language, and its session summary no longer mixes in
+  English.
 - Chat answers through the coding agent you are signed in to (claude, copilot, cursor …) with no setup, the same
   agent Home and Agent Dev use; its top line always says which AI answers. Settings ask one question — a coding
   agent on this PC, your local LLM server, or a cloud API key (OpenAI, Anthropic, Google, GitHub Models, custom
@@ -76,7 +80,7 @@ Changes since the v0.1.0 beta manual. The version number and date are set at rel
 - Chat says why an external API failed instead of showing the offline answer "No AI model connected" to a user who
   set a key: a rejected key, a rate limit, an unreachable host (named, within 15 s rather than 2 minutes) or the
   provider's own reason ("model not found", unsupported parameter). An error in the middle of a stream is reported
-  rather than ending the answer silently. Settings ▸ Test shows the same reasons.
+  rather than ending the answer silently. Saving in Settings shows the same reasons.
 - Faster screens, especially over remote access. Large JSON answers are gzipped and revalidated (the Model Zoo
   catalog went from 2.5 MB to 127 KB, and to a 304 on a repeat visit). Home's module numbers load when home is
   shown, not on every screen. The diagram library loads only for a document with a diagram, and Agent Dev's

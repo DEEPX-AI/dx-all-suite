@@ -1,12 +1,10 @@
-"""SETUP 페이지의 public 소스는 테이블이 아니라 페이로드를 읽는다.
+"""The SETUP page's public source reads the inline payload, not a table.
 
-`developer.deepx.ai/modelzoo/` 는 2026-09 에 리팩토링되면서 데이터 행을 잃었다 —
-실제 응답에 `<table>` 은 1개, `<tr>` 은 2개(헤더 뼈대)뿐이고 모델은
-`window.__MODEL_ZOO_DATA__` 안에 있다. 그래서 이 소스로는 테이블 파서가
-20칼럼 판정에 실패하고 legacy 분기로 떨어져 0건을 돌려준다.
+`developer.deepx.ai/modelzoo/` carries no data rows: the response has one `<table>` with two `<tr>` (the header
+skeleton), and the models live in `window.__MODEL_ZOO_DATA__`. A table parser fails the 20-column detection there,
+falls into the legacy branch and returns nothing.
 
-여기서 지키는 것은 "public 소스가 페이로드를 본다" 와 "네 번째 티어가
-설치 흐름까지 도달한다" 두 가지다.
+Two things are protected here: the public source reads the payload, and the fourth tier reaches the install flow.
 """
 from __future__ import annotations
 
@@ -42,7 +40,7 @@ def test_each_model_carries_the_shape_dx_app_consumes():
 
 
 def test_artifact_urls_are_absolute():
-    """페이로드의 아티팩트 경로는 base 기준 상대다 — 다운로더는 절대 URL 이 필요하다."""
+    """Artifact paths in the payload are relative to the base; the downloader needs absolute URLs."""
     seen = 0
     for m in _models():
         for tier in ("qlite", "qpro", "qmaster"):
@@ -54,7 +52,7 @@ def test_artifact_urls_are_absolute():
 
 
 def test_qmaster_is_none_where_the_source_has_none():
-    """354개 중 15개만 Q-Master 다. 없는 걸 있다고 하면 다운로드가 404 로 죽는다."""
+    """Only 15 of 354 models have Q-Master. Claiming one that does not exist makes the download die with 404."""
     models = _models()
     with_qm = [m for m in models if m["qmaster"].get("dxnn_url")]
     without_qm = [m for m in models if not m["qmaster"].get("dxnn_url")]
@@ -65,7 +63,7 @@ def test_qmaster_is_none_where_the_source_has_none():
 
 
 def test_list_routes_public_source_to_the_payload_reader(monkeypatch):
-    """modelzoo_list(source='public') 가 테이블 파서로 가면 0건이 된다."""
+    """If modelzoo_list(source='public') went through the table parser, it would return nothing."""
     import dx_app.core.modelzoo as mz
 
     monkeypatch.setattr(mz, "_fetch_page", lambda source: (FIXTURE.read_text(encoding="utf-8"), None))

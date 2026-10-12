@@ -132,8 +132,8 @@ class TestParseRunDemo(unittest.TestCase):
         if not r["ok"]:
             self.skipTest("list_demos() could not locate/parse the real run_demo.sh in this environment")
         self.assertTrue(r["ok"] is True)
-        # demo 수는 dx_app 이 정한다 (main 01b7727 23 · 8d0b748 27 · 2eb1350e 26 — CasViT Re-ID 를 뺐다).
-        # 숫자를 박지 않고 bash 자신이 센 DEMO_LABELS 길이와 비교한다 (2eb1350e 는 배열을 한 줄에 하나 · 따옴표로 바꿨다).
+        # The demo count belongs to dx_app and changes between versions, so no number is hard-coded:
+        # compare with the DEMO_LABELS length that bash itself counts.
         import subprocess
         from dx_app.core.demos import _dx_app_root
         script = _dx_app_root() / "run_demo.sh"

@@ -1,4 +1,4 @@
-"""무대의 hero (spec 2026-09-23 §5.2, §8.1) — 문구와 실제 프롬프트의 계약."""
+"""The stage hero: the contract between its copy and the real prompts."""
 from __future__ import annotations
 
 import json
@@ -15,7 +15,7 @@ SHOWCASE = ROOT.parent / "dx-agent-dev-showcase"
 TITLE = "Describe anything. Run it on DX-M1."
 SUBTITLE = ("Say what you need. The agent picks the model, compiles it, "
             "builds the app and measures it on this NPU.")
-# (showcase, chip 라벨, placeholder 로 쓰는 첫 문장). 처음 4개가 보이는 chip.
+# (showcase, chip label, first sentence used as placeholder). The first four are the visible chips.
 CHIPS = [
     ("mini-game-squat-fitness", "Squat game",
      "Build a squat-counting fitness mini-game using yolo26n-pose on DEEPX NPU"),
@@ -78,16 +78,16 @@ def test_every_new_line_speaks_six_languages(key):
 @pytest.mark.skipif(not SHOWCASE.is_dir(), reason="dx-agent-dev-showcase 가 없다 (suite 밖)")
 @pytest.mark.parametrize("name", [c[0] for c in CHIPS])
 def test_each_prompt_is_the_showcase_prompt_verbatim(name):
-    """검증된 것은 그 showcase 를 실제로 만든 문장이다 — 다듬으면 검증이 사라진다."""
+    """What was verified is the exact sentence that built the showcase; editing it loses the verification."""
     assert _prompts()[name] == _readme_prompt(name)
 
 
 @pytest.mark.parametrize("name,label,first", CHIPS)
 def test_the_placeholder_sentence_opens_that_prompt(name, label, first):
-    """placeholder 는 원문의 첫 문장이다 — 지어낸 예시가 아니다.
+    """The placeholder is the original's first sentence, not an invented example.
 
-    README 는 원문을 코드 블록 안에서 줄바꿈해 적기도 한다 (rapiddoc-pdf2md) — 원문은
-    그대로 두고, 비교할 때만 공백을 하나로 편다."""
+    A README sometimes wraps the original inside a code block (rapiddoc-pdf2md). The original stays as is; whitespace
+    is collapsed only for the comparison."""
     flat = " ".join(_prompts()[name].split())
     assert flat.startswith(first.rstrip(".")), name
 
@@ -121,7 +121,8 @@ def test_the_prompts_file_is_served_and_loaded():
 
 
 def test_a_chip_fills_the_prompt_instead_of_running_it():
-    """긴 원문을 읽거나 고칠 틈 없이 답이 뜨고 무대가 Dock 으로 바뀌던 것을 막는다."""
+    """A chip must not fire right away, showing an answer and turning the stage into the Dock before the long
+    original can be read or edited."""
     src = (STATIC / "home-answer.js").read_text(encoding="utf-8")
     handler = src[src.index("var chips = $('homeAskChips');"):]
     handler = handler[:handler.index("var routes")]
@@ -129,10 +130,9 @@ def test_a_chip_fills_the_prompt_instead_of_running_it():
     assert "ask(" not in handler, "chip 이 곧바로 실행한다"
 
 
-# 모듈이 바로 받는 짧은 요청 — intro 의 "작업 장면" 이 타이핑하는 바로 그 세 문장이다
-# (launcher-splash.js _WORK). chip 이 showcase 원문으로 바뀌면서 home 에서 사라졌는데,
-# 입력창은 모듈로 바로 보내는 일 (home-router) 도 하므로 그 쪽 예시를 placeholder 순환에
-# 남긴다 (2026-09-28 사용자 결정 A).
+# Short requests a module takes directly: the same three sentences the intro's working scene types
+# (launcher-splash.js _WORK). The chips are showcase prompts, but the input also routes straight to
+# modules (home-router), so these examples stay in the placeholder cycle.
 ROUTED = ["16-channel CCTV object detection", "segment a video file", "compile yolo26n to DXNN"]
 
 

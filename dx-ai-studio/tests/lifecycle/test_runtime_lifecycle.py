@@ -45,7 +45,7 @@ class TestRuntimeLifecycle:
         )
 
         assert result.status is BootstrapStatus.ACTIVE
-        # 목표는 config 의 target_runtime_version — dx-runtime 릴리즈마다 올라가므로 숫자를 박지 않는다
+        # The target is config's target_runtime_version; it moves with every dx-runtime release, so no number is hard-coded.
         target = json.loads((Path(__file__).resolve().parents[2] / "config" / "runtime_profiles.json")
                             .read_text(encoding="utf-8"))["target_runtime_version"]
         assert result.plan.target.version == target

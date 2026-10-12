@@ -1,8 +1,7 @@
-"""글꼴 subset 계약.
+"""Font subset contract.
 
-두 가지로 되돌아가지 않기 위한 계약이다. 하나는 굵기가 없던 것이다: Inter Regular
-한 벌을 100–900 으로 선언해 굵은 영문이 전부 Regular 로 그려졌다. 다른 하나는
-한중일 네 언어를 간체 자형 한 벌(400 · 700)로 그리던 것이다.
+Guards two things: real weights (a single Inter Regular declared as 100–900 renders all bold Latin as Regular), and
+per-language CJK faces (four CJK languages must not share one Simplified Chinese face with only 400 and 700).
 """
 from __future__ import annotations
 
@@ -19,7 +18,7 @@ SOURCES = json.loads((ROOT / "config" / "font_sources.json").read_text(encoding=
 
 @pytest.fixture(scope="module")
 def glyphs():
-    """(사전, 전체). 사전 3천여 건을 훑는 데 수 초가 걸려 한 번만 계산한다."""
+    """(dictionary, full). Scanning 3,000+ dictionary entries takes seconds, so compute once."""
     from scripts.font_glyphs import all_glyphs, dictionary_glyphs
 
     return dictionary_glyphs(), all_glyphs()
@@ -37,11 +36,11 @@ def test_glyphs_split_by_script():
 def test_dictionary_glyphs_are_per_language(glyphs):
     per = glyphs[0]
     assert set(per) == {"ko", "ja", "zh-CN", "zh-TW"}
-    # 한글은 ko 에만, 가나는 ja 에만 모인다
+    # Hangul goes only to ko, kana only to ja
     assert any(0xAC00 <= cp <= 0xD7A3 for cp in per["ko"])
     assert not any(0xAC00 <= cp <= 0xD7A3 for cp in per["zh-CN"])
     assert any(0x3040 <= cp <= 0x30FF for cp in per["ja"])
-    # 번체와 간체는 다른 글자를 쓴다 — 하나로 합쳐 두면 이 차이가 사라진다
+    # Traditional and Simplified use different characters; merging them would lose this difference
     assert per["zh-TW"] - per["zh-CN"]
 
 
@@ -52,17 +51,17 @@ def test_all_glyphs_is_a_superset_of_the_dictionaries(glyphs):
 
 
 def test_file_scan_only_distributes_characters_of_unknown_origin(glyphs):
-    """중국어 사전 문자열의 한자가 파일 스캔을 통해 일본어 글꼴로 새지 않는다.
+    """Han characters from Chinese dictionary strings do not leak into the Japanese face via the file scan.
 
-    처음 구현에서는 정적 파일의 한자를 모두 ja · zh-CN · zh-TW 에 나눠 넣어, ja 가
-    사전 730자에서 1,775자로 불어났다 — 늘어난 대부분이 zh 사전에만 있는 글자였다.
+    Giving every Han character in static files to ja, zh-CN and zh-TW alike bloats the ja subset with characters
+    that only the zh dictionaries use.
     """
     dic, full = glyphs
     known = set().union(*dic.values())
     zh_only = (dic["zh-CN"] | dic["zh-TW"]) - dic["ja"]
     assert zh_only, "fixture: zh 에만 있는 한자가 있어야 이 계약이 의미가 있다"
     assert not (full["ja"] & zh_only), "zh 사전에만 있는 한자가 ja subset 에 들어갔다"
-    # 사전에 없는 글자만 문자 종류로 나뉜다
+    # Only characters missing from the dictionaries are split by script
     for lang in dic:
         assert full[lang] - dic[lang] <= (full[lang] - known)
 
@@ -78,7 +77,7 @@ def _axes(path):
 def test_inter_is_really_variable_with_optical_size():
     axes = _axes(FONTS / SOURCES["inter"]["output"])
     assert axes["wght"][0] <= 100 and axes["wght"][1] >= 900
-    # Display 자형 (큰 제목) 은 opsz 축에서 나온다
+    # Display shapes (large headings) come from the opsz axis
     assert axes["opsz"] == (14.0, 32.0)
 
 
@@ -107,10 +106,10 @@ def test_retired_font_files_are_gone():
 
 
 def test_subsetting_is_reproducible(tmp_path):
-    """같은 입력이면 같은 바이트. 아니면 스크립트를 돌릴 때마다 git 에 변경이 생긴다.
+    """Same input, same bytes; otherwise every run of the script leaves a change in git.
 
-    fontTools 는 저장할 때 head.modified 를 현재 시각으로 바꾼다 — 처음 구현이 그랬다.
-    초 단위라 1초 넘게 띄워 두 번 만든다.
+    fontTools sets head.modified to the current time on save. It has one-second resolution, so build twice more
+    than a second apart.
     """
     import time
 
@@ -131,7 +130,7 @@ def test_coverage_gate_passes_on_the_repo():
 
 
 def test_coverage_chain_matches_the_css_fallback_order():
-    """gate 의 사슬이 CSS 와 다르면, 화면과 다른 것을 검사하게 된다."""
+    """If the gate's chain differed from the CSS, it would check something other than what renders."""
     from scripts.font_coverage_gate import CHAIN
 
     lang_of = {fam: s["lang"] for fam, s in zip(
@@ -145,14 +144,14 @@ def test_coverage_chain_matches_the_css_fallback_order():
 
 
 def test_coverage_gate_reports_a_character_the_subset_lacks(monkeypatch):
-    """gate 가 실제로 무는지: 사전에 없던 희귀 한자를 넣으면 잡아야 한다."""
+    """The gate bites: a rare Han character not in the dictionaries must be reported."""
     from scripts import font_coverage_gate as gate
 
     real = gate.dictionary_glyphs
 
     def with_rare_char():
         per = real()
-        per["zh-TW"].add(ord("齉"))  # U+9F49, 사전에 없는 글자
+        per["zh-TW"].add(ord("齉"))  # U+9F49, not in any dictionary
         return per
 
     monkeypatch.setattr(gate, "dictionary_glyphs", with_rare_char)
@@ -182,7 +181,7 @@ def test_each_language_gets_its_own_cjk_face(lang, family):
     name = next(s["output"] for s in SOURCES.values() if s["lang"] == lang)
     face = re.search(r"@font-face\{font-family:'" + family + r"';[^}]*\}", CSS).group(0)
     assert name in face
-    assert "unicode-range:" in face        # 그 글자가 나올 때만 받는다
+    assert "unicode-range:" in face        # downloaded only when those characters appear
     assert "font-weight:100 900" in face or "font-weight:45 930" in face
     assert re.search(r":root:lang\(" + re.escape(lang) + r"\)\s*\{[^}]*--font-cjk:'" + family, TOKENS)
 
@@ -193,8 +192,8 @@ def test_font_token_puts_cjk_after_inter():
 
 
 def test_mono_token_also_falls_back_to_the_language_cjk_face():
-    """--mono 도 옛 'Noto Sans CJK' 를 가리키고 있었다. 지우면 코드 블록 속 한중일이
-    시스템 글꼴로 떨어진다 — 계획에서 놓친 곳이라 계약으로 남긴다."""
+    """--mono needs the language CJK face too; without it, CJK text in code blocks falls back to the
+    system font."""
     mono = re.search(r"--mono:([^;]+);", TOKENS).group(1)
     assert "var(--font-cjk)" in mono
 
@@ -209,3 +208,11 @@ def test_retired_cjk_family_is_not_referenced_anywhere():
         if "'Noto Sans CJK'" in path.read_text(encoding="utf-8", errors="replace"):
             hits.append(rel)
     assert hits == []
+
+
+def test_modules_carry_no_font_copies():
+    """Every module page loads /static/shared/dx-fonts.css, which points at shared/static/fonts only, so per-module
+    font copies are dead weight (megabytes that nothing requests)."""
+    for module in ("dx_app", "dx_benchmark", "dx_compiler", "dx_monitor", "dx_planner", "dx_stream", "dx_modelzoo",
+                   "dx_agent_dev"):
+        assert not (ROOT / module / "static" / "fonts").exists(), module

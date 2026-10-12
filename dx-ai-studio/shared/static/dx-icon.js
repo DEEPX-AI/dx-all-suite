@@ -1,23 +1,23 @@
-/* ─── DX AI Studio — 아이콘 helper ─────────────────────────────────────────
-   spec: docs/superpowers/specs/2026-09-29-studio-icon-system-design.md
+/* ─── DX AI Studio — icon helper ───────────────────────────────────────────
 
-   스튜디오의 아이콘은 shared/static/dx-icons.svg 한 벌이다. 이모지 (지구본 · 체크 · 모래시계 …) 를 textContent 로 넣던
-   자리는 이것으로 SVG 를 넣는다 — 색은 currentColor 라 글자 색 · 테마 · 상태를 따라간다.
+   The studio's icons are one set: shared/static/dx-icons.svg. Use this to insert SVG icons instead of
+   emoji in textContent — the colour is currentColor, so it follows text colour, theme and state.
 
-     DXIcon('check')                       → '<svg class="dx-ico" aria-hidden="true">…</svg>' (문자열)
-     DXIcon('alert', { label: 'Warning' }) → 뜻이 있는 아이콘: role="img" + aria-label
-     DXIcon.el('globe', { cls: 'dx-ico--lg' }) → 요소
+     DXIcon('check')                       → '<svg class="dx-ico" aria-hidden="true">…</svg>' (string)
+     DXIcon('alert', { label: 'Warning' }) → a meaningful icon: role="img" + aria-label
+     DXIcon.el('globe', { cls: 'dx-ico--lg' }) → element
 
-   장식이면 (옆에 같은 뜻의 글자가 있으면) label 을 주지 않는다 — 화면 낭독기가 두 번 읽는다.
-   계약: tests/shared/test_icon_system.py */
+   Decorative icons (with text of the same meaning beside them) get no label — screen readers would read it twice.
+   Contract: tests/shared/test_icon_system.py */
 (function () {
   'use strict';
 
   var NS = 'http://www.w3.org/2000/svg';
 
-  /* sprite URL — server 가 <meta name="dx-icons"> 에 내용 hash 붙은 URL 을 적는다 (dx_server
-     _render_sprite_refs). hash URL 은 immutable cache 라 재방문에 왕복이 없다. <use> 와 load() 가 같은
-     URL 을 써야 cache 한 항목으로 끝난다. meta 가 없는 문서 (정적 미리보기 등) 는 hash 없는 경로. */
+  /* Sprite URL — the server writes a content-hashed URL into <meta name="dx-icons"> (dx_server
+     _render_sprite_refs). Hashed URLs are cached as immutable, so revisits cost no round trip. <use> and load()
+     must use the same URL to share one cache entry. Documents without the meta (static previews etc.) use the
+     unhashed path. */
   var _sprite = null;
   function _spriteUrl() {
     if (_sprite) return _sprite;
@@ -41,7 +41,7 @@
     return '<svg class="' + _esc(cls) + '"' + a11y + '><use href="' + _esc(DXIcon.url(name)) + '"></use></svg>';
   }
 
-  /* <use href> 값 — 직접 <svg> 를 짜는 곳 (dx-tabs 등) 도 이것을 쓴다 */
+  /* The <use href> value — code that builds <svg> by hand (dx-tabs etc.) uses this too */
   DXIcon.url = function (name) {
     return _spriteUrl() + '#' + name;
   };
@@ -63,8 +63,8 @@
     return svg;
   };
 
-  /* 아이콘 + 글자를 한 번에 — el.textContent = '<체크 이모지> ' + T('Done') 이던 자리 (아이콘 체계 단계 5).
-     글자는 text node 로 넣는다 (번역 · 서버 메시지를 HTML 로 해석하지 않는다).
+  /* Icon + text in one call.
+     Text goes in as a text node (translations and server messages are never parsed as HTML).
        DXIcon.label(btn, 'check', T('Use This Config'))
        DXIcon.label(h3, 'spinner', T('Compiling...'), { cls: 'dx-ico--spin' }) */
   DXIcon.label = function (el, name, text, opts) {
@@ -78,10 +78,10 @@
     return el;
   };
 
-  /* canvas 에 그리기 — <use> 가 닿지 않는 자리 (파이프라인 노드 등, 아이콘 체계 단계 5).
-     sprite 를 한 번 읽어 symbol 마다 Path2D 로 바꿔 둔다. 아직 못 읽었으면 false 를 돌려주고 읽기를
-     시작한다 — 다 읽으면 window 에 'dx-icons-ready' 를 보낸다 (그리는 쪽이 다시 그린다).
-       DXIcon.draw(ctx, 'play', x, y, 16, color)  // x, y 는 왼쪽 위, color 는 CSS 색 */
+  /* Draw on a canvas — for places <use> cannot reach (pipeline nodes etc.).
+     The sprite is read once and each symbol turned into a Path2D. If it is not loaded yet, this returns false and
+     starts loading — when done, 'dx-icons-ready' fires on window (the caller redraws).
+       DXIcon.draw(ctx, 'play', x, y, 16, color)  // x, y is the top-left corner, color is a CSS colour */
   var _shapes = null, _loading = null;
   function _toPath(node) {
     var tag = node.tagName.toLowerCase(), p = new Path2D();

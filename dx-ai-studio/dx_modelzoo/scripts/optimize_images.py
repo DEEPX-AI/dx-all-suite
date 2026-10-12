@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""ModelZoo 이미지 최적화 도구.
+"""ModelZoo image optimizer.
 
-thumbnails/examples 이미지를 WebP/JPG로 변환하여 optimized/ 디렉토리에 저장합니다.
-기본 동작은 dry-run(보고만 수행)이며 --write 플래그로 실제 파일 생성을 활성화합니다.
+Converts thumbnails/examples images to WebP/JPG and stores them under optimized/.
+The default is a dry run (report only); --write actually creates the files.
 
-Pillow는 오프라인 툴링 의존성입니다. 런타임 requirements.txt에 추가하지 않습니다.
+Pillow is an offline tooling dependency and is not added to the runtime requirements.txt.
 """
 
 from __future__ import annotations
@@ -13,7 +13,7 @@ import argparse
 import json
 from pathlib import Path
 
-# 서브디렉토리별 최대 너비 설정
+# Maximum width per subdirectory
 _MAX_WIDTHS = {
     "thumbnails": 420,
     "examples": 960,
@@ -40,7 +40,7 @@ def _discover_images(
     model: str | None = None,
     limit: int | None = None,
 ) -> list[tuple[str, Path]]:
-    """source_root 아래 thumbnails/, examples/ 에서 이미지 파일을 탐색합니다."""
+    """Find image files under thumbnails/ and examples/ below source_root."""
     results: list[tuple[str, Path]] = []
     for subdir in ("thumbnails", "examples"):
         dir_path = source_root / subdir
@@ -63,11 +63,11 @@ def _resize_and_save(
     out_dir: Path,
     max_width: int,
 ) -> dict:
-    """이미지를 리사이즈하고 WebP/JPG로 저장합니다. 원본 비율을 유지합니다."""
+    """Resize an image and save it as WebP/JPG, keeping the aspect ratio."""
     img = Image.open(src_path)
     orig_size = src_path.stat().st_size
 
-    # RGB 변환 (RGBA/P 모드 처리) — M-1: 알파 채널은 흰 배경 위에 합성
+    # RGB conversion (RGBA/P modes) — alpha is composited onto a white background
     if img.mode == "RGBA":
         background = Image.new("RGB", img.size, (255, 255, 255))
         background.paste(img, mask=img.split()[3])
@@ -83,7 +83,7 @@ def _resize_and_save(
 
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    # I-4: 충돌 방지 — 원본 확장자를 stem에 포함
+    # Avoid collisions — include the original extension in the stem
     safe_stem = f"{src_path.stem}-{src_path.suffix.lstrip('.').lower()}"
     webp_path = out_dir / f"{safe_stem}.webp"
     jpg_path = out_dir / f"{safe_stem}.jpg"
@@ -112,18 +112,18 @@ def optimize_images(
     limit: int | None = None,
     model: str | None = None,
 ) -> dict:
-    """이미지를 최적화하고 보고서를 반환합니다.
+    """Optimize images and return a report.
 
     Args:
-        source_root: thumbnails/, examples/ 가 있는 루트 디렉토리.
-        output_root: 최적화 결과를 저장할 디렉토리.
-        write: True면 실제 파일 생성, False면 dry-run.
-        force: True면 기존 파일도 재생성.
-        limit: 처리할 최대 이미지 수.
-        model: 필터링할 모델 이름 부분 문자열.
+        source_root: root directory holding thumbnails/ and examples/.
+        output_root: directory for the optimized output.
+        write: True creates files, False is a dry run.
+        force: True regenerates existing files too.
+        limit: maximum number of images to process.
+        model: model name substring to filter by.
 
     Returns:
-        processed, written, skipped, source_bytes, output_bytes, images 키를 포함하는 dict.
+        dict with processed, written, skipped, source_bytes, output_bytes and images.
     """
     source_root = Path(source_root)
     output_root = Path(output_root)
@@ -131,11 +131,8 @@ def optimize_images(
 
     images_found = _discover_images(source_root, model=model, limit=limit)
     if not images_found and model is None:
-        # 원본이 없으면 **소리 내어** 실패한다. 예전에는 처리 0건으로 조용히
-        # 성공했다 — `data/thumbnails` 와 `data/examples` 를 git 에서 뺀 뒤
-        # (2026-09-21) 새로 clone 한 사람이 보게 될 모습이 바로 이것이고,
-        # "아무 일도 안 일어났는데 성공" 은 이 스크립트의 원래 결함(출력이
-        # 있으면 무조건 스킵)과 같은 종류의 침묵이다.
+        # Fail **loudly** when there are no sources. thumbnails/ and examples/ are not tracked in
+        # git, so a fresh clone has none — "succeeded, processed 0" would hide that.
         raise FileNotFoundError(
             f"No source images under {source_root}. "
             "thumbnails/ and examples/ are not tracked in git — regenerate them first "
@@ -156,14 +153,12 @@ def optimize_images(
         out_subdir = output_root / subdir
         stem = img_path.stem
 
-        # 출력이 **있고 원본보다 새로울 때만** 스킵한다.
+        # Skip only when the outputs exist **and are newer than the source**.
         #
-        # 예전에는 존재 여부만 봤다. 그래서 썸네일을 재생성해도 최적화본은 영원히
-        # 갱신되지 않았다 — 2026-09-21 에 11개를 다시 만들고 돌렸더니 778개 스킵,
-        # 내 파일은 하나도 안 바뀌었다. catalog.js 가 .webp → .jpg → 원본 순으로
-        # 시도하므로 브라우저는 계속 옛 그림을 받는다. --force 는 우회이지 해법이
-        # 아니다(매번 1578개를 전부 다시 만든다).
-        # 계약: tests/dx_modelzoo/test_optimize_images_staleness.py
+        # Checking existence alone would never refresh the optimized copies after a thumbnail is
+        # regenerated, and catalog.js tries .webp → .jpg → original, so browsers would keep getting
+        # the old image. --force is a workaround, not a fix (it rebuilds every image each time).
+        # Contract: tests/dx_modelzoo/test_optimize_images_staleness.py
         safe_stem = f"{stem}-{img_path.suffix.lstrip('.').lower()}"
         if not force:
             outputs = [out_subdir / f"{safe_stem}.webp", out_subdir / f"{safe_stem}.jpg"]
@@ -195,10 +190,28 @@ def optimize_images(
     if write and report["written"] > 0:
         output_root.mkdir(parents=True, exist_ok=True)
         manifest_path = output_root / "manifest.json"
-        # 이번에 처리한 것만 적으면 부분 실행이 나머지 기록을 지운다. `--model` 로
-        # 하나씩 11번 돌렸더니 실제로 1578개 중 2개만 남은 manifest 가 커밋됐다 —
-        # tools/perf_audit.py 가 `manifest.is_file()` 만 보므로 아무도 몰랐다.
-        # 기존 기록에 **덮어쓰기(merge)** 한다.
+        # Writing only this run's entries would let a partial run (`--model`) erase the rest of the
+        # manifest, so **merge** into the existing records.
+        src_root = Path(source_root).resolve()
+        out_root = Path(output_root).resolve()
+
+        def _rel(value, root):
+            """Paths go in relative (sources to the source root, outputs to the output root) — an absolute path
+            records one developer's checkout and is wrong everywhere else."""
+            p = Path(value)
+            try:
+                return p.resolve().relative_to(root).as_posix() if p.is_absolute() else p.as_posix()
+            except ValueError:
+                return p.as_posix()
+
+        def _portable(entry):
+            e = dict(entry)
+            e["source"] = _rel(e["source"], src_root)
+            for key in ("webp_path", "jpg_path"):
+                if e.get(key):
+                    e[key] = _rel(e[key], out_root)
+            return e
+
         merged: dict[str, dict] = {}
         if manifest_path.is_file():
             try:
@@ -207,11 +220,16 @@ def optimize_images(
                 previous = {}
             for entry in previous.get("images", []):
                 source = entry.get("source")
-                # 원본이 사라진 기록은 버린다 — 남겨두면 합계가 현실과 어긋난다.
-                if source and Path(source).is_file():
-                    merged[source] = entry
+                if not source:
+                    continue
+                absolute = Path(source) if Path(source).is_absolute() else src_root / source
+                # A record whose source is gone is dropped; keeping it would skew the totals.
+                if absolute.is_file():
+                    portable = _portable(entry)
+                    merged[portable["source"]] = portable
         for entry in report["images"]:
-            merged[entry["source"]] = entry
+            portable = _portable(entry)
+            merged[portable["source"]] = portable
 
         images = sorted(merged.values(), key=lambda e: e["source"])
         manifest = {

@@ -1,6 +1,6 @@
 /* Shared reset and base element defaults. */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-/* 위 reset 이 <dialog> 의 기본 가운데 정렬 (margin:auto) 까지 지워 class 없는 대화상자가 왼쪽 위에 열렸다 (release audit A-7) */
+/* The reset above also clears <dialog>'s default centring (margin:auto); restore it */
 dialog{margin:auto}
 button,select,input,textarea,optgroup{color:inherit;font-family:inherit;font-size:inherit}
 select option{background:var(--control-bg);color:var(--text-primary)}

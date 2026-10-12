@@ -205,7 +205,7 @@ def test_continuous_grid_shows_waiting_copy_for_queued_slots():
     assert match, "contRenderGrid() not found"
     grid_body = match.group(1)
 
-    # 문구 앞의 표시는 sprite 아이콘 (아이콘 체계 단계 5) — key 는 말만.
+    # The mark before the text is a sprite icon; the key holds only the words.
     assert "T('Waiting…')" in grid_body, (
         "contRenderGrid must show explicit Waiting copy while sequential inference is running"
     )

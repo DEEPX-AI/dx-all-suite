@@ -1,8 +1,8 @@
-"""dx_compiler 의 Setup 칸이 공용 단계 목록의 압축형 (DXSteps) 을 쓰는지 (spec 2026-09-29 아이콘 체계 단계 2c).
+"""The dx_compiler Setup panel uses the compact form of the shared step list (DXSteps).
 
-예전 칸: ❌/✅ 이모지 두 줄과 📦 · ⬇️ · 🔄 버튼, ▲▼ 글자 토글. 설치가 끝나도 칸이 그대로 남아 컴파일 폼을
-아래로 밀었다. 이제 두 단계 목록 — 모두 끝나면 한 줄 ("Setup ready · SDK v… · 샘플 N개") 로 접힌다.
-SDK 가 없으면 Compile 이 잠기고 이유가 버튼 옆에 적힌다. 잠금을 정하는 곳은 setup_panel.js 한 곳이다.
+A two-step list that collapses to one line ("Setup ready · SDK v… · N samples") once both steps are done, so it
+does not push the compile form down. Without the SDK, Compile is locked and the reason is shown beside the button.
+Only setup_panel.js decides the lock.
 """
 from __future__ import annotations
 
@@ -46,7 +46,7 @@ def test_state_goes_through_dxsteps():
 
 
 def test_one_place_decides_the_compile_lock():
-    """feature-check 와 setup status 가 따로 버튼을 만져 늦게 끝난 쪽이 이겼다."""
+    """If feature-check and setup status each set the button, whichever finishes last wins."""
     start = INDEX.index("fetch('/feature-check')")
     feature = INDEX[start:INDEX.index("}).catch", start)]
     assert "setupPanel.setFeatureCompile(" in feature

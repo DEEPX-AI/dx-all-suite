@@ -1,8 +1,8 @@
-"""dx_stream Setup 이 공용 단계 목록 (DXSteps) 을 쓰는지 (spec 2026-09-29 아이콘 체계 단계 2b).
+"""dx_stream Setup uses the shared step list (DXSteps).
 
-예전 화면: ①–⑥ 과 이모지가 붙은 카드 여섯 장이 2열로, 버튼 말에도 이모지 (🧰 Install · 🗑 Clear Log).
-이제 dx_app 과 같은 세로 목록 하나: 끝난 단계는 한 줄, 다음 단계만 펼친다. 흐름 (sudo 재질문 ·
-append-only 로그 폴링 · Run All · 다운로드 진행률) 은 그대로다.
+One vertical list, as in dx_app: finished steps collapse to one line and only the next step is expanded, with no
+emoji on cards or buttons. The flow covers the sudo re-prompt, append-only log polling, Run All and download
+progress.
 """
 from __future__ import annotations
 
@@ -16,7 +16,7 @@ SETUP_JS = (ROOT / "dx_stream" / "static" / "js" / "stream-setup.js").read_text(
 TUTORIAL = (ROOT / "dx_stream" / "static" / "js" / "tutorial.js").read_text(encoding="utf-8")
 gate = importlib.import_module("scripts.emoji_gate")
 
-# (단계 id = POST 경로, 뱃지 id, 로그 id)
+# (step id = POST path, badge id, log id)
 STEPS = [("stream-deps", "stream-deps", "stream-deps"), ("runtime-deps", "runtime", "runtime"),
          ("driver", "driver", "driver"), ("build", "build", "build"),
          ("download-models", "download", "download"), ("webrtc-deps", "webrtc-deps", "webrtc-deps")]
@@ -36,7 +36,7 @@ def test_the_page_is_one_step_list():
 
 
 def test_every_step_keeps_its_ids_and_handlers():
-    """튜토리얼은 onclick 문자열과 id 로 대상을 푼다 (tests/dx_stream/test_tutorial.py)."""
+    """The tutorial resolves targets by onclick string and id (tests/dx_stream/test_tutorial.py)."""
     page = _page()
     for step, badge, log in STEPS:
         li = page[page.index(f'data-step="{step}"'):]
@@ -59,7 +59,7 @@ def test_the_header_counts_and_runs_the_rest():
 
 
 def test_logs_start_hidden():
-    """빈 로그 상자가 카드마다 떠 있었다 — 실행이 시작될 때 보인다."""
+    """The log box appears when a run starts, not as an empty box on every card."""
     for tag in re.findall(r'<pre[^>]*id="setup-log-[^"]+"[^>]*>', _page()):
         assert 'style="display:none"' in tag, tag
     poll = SETUP_JS[SETUP_JS.index("function _startLogPoll("):]

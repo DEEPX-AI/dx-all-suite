@@ -1,16 +1,15 @@
-"""원격 접근 — Host 허용 · 페어링 코드 · 세션 (QA COM-A1, 2026-10-01).
+"""Remote access — allowed Hosts · pairing code · sessions.
 
-보드에서 띄운 studio 를 노트북 브라우저로 쓰는 흐름은 유지하되, 원격 요청은 인증이 있어야 한다.
+A studio started on a board can still be used from a laptop browser, but remote requests must authenticate.
 
-- 로컬 (보드 자신 · SSH/VS Code 터널) 은 그대로.
-- 원격 브라우저: launcher 콘솔에만 나오는 6자리 페어링 코드를 한 번 넣으면 세션 쿠키 (HttpOnly ·
-  SameSite=Strict). 서버에는 토큰의 SHA-256 만 0600 파일로 남는다.
-- API 클라이언트: DX_API_TOKEN (Authorization: Bearer · X-DX-Api-Token).
-- Host: IP 주소는 허용 (DNS rebinding 은 공격자 도메인 이름으로만 일어난다), 이름은 localhost · 이 기계의
-  hostname · DX_ALLOWED_HOSTS 만.
+- Local (the board itself · SSH/VS Code tunnels): unchanged.
+- Remote browser: entering the 6-digit pairing code, shown only on the launcher console, once gives a session cookie
+  (HttpOnly · SameSite=Strict). The server keeps only the token's SHA-256, in a 0600 file.
+- API clients: DX_API_TOKEN (Authorization: Bearer · X-DX-Api-Token).
+- Host: IP addresses are allowed (DNS rebinding only works through an attacker's domain name); names are limited to
+  localhost · this machine's hostname · DX_ALLOWED_HOSTS.
 
-계약: tests/shared/test_remote_access.py
-spec: docs/superpowers/specs/2026-10-01-studio-remote-auth-and-compile-paths-design.md (B · C)
+Contract: tests/shared/test_remote_access.py
 """
 from __future__ import annotations
 
@@ -65,7 +64,7 @@ def host_allowed(host_header: str, hostname: Optional[str] = None) -> bool:
     return host in names
 
 
-# ── 페어링 코드 ────────────────────────────────────────────────────────────────
+# ── Pairing code ──────────────────────────────────────────────────────────────
 
 def _announce_to_console(code: str) -> None:
     print("\n  ┌────────────────────────────────────────────────────────────────┐")
@@ -75,7 +74,7 @@ def _announce_to_console(code: str) -> None:
 
 
 class Pairing:
-    """6자리 1회용 코드. 5번 틀리면 60초 잠그고 코드를 바꾼다. 성공해도 바꾼다."""
+    """A 6-digit one-time code. Five wrong tries lock it for 60 s and rotate it; a success rotates it too."""
 
     def __init__(self, announce: Callable[[str], None] = _announce_to_console,
                  now: Callable[[], float] = time.time, max_attempts: int = 5, lock_seconds: int = 60):
@@ -112,7 +111,7 @@ class Pairing:
             return "bad"
 
 
-# ── 세션 ──────────────────────────────────────────────────────────────────────
+# ── Sessions ──────────────────────────────────────────────────────────────────
 
 def _hash(token: str) -> str:
     return hashlib.sha256(token.encode("utf-8")).hexdigest()
@@ -124,7 +123,7 @@ def default_sessions_file() -> Path:
 
 
 class SessionStore:
-    """세션 토큰의 해시만 0600 파일에 둔다. 만료 기본 30일 (DX_SESSION_DAYS)."""
+    """Keeps only session-token hashes, in a 0600 file. Sessions expire after 30 days by default (DX_SESSION_DAYS)."""
 
     def __init__(self, path: Path, days: Optional[float] = None, now: Callable[[], float] = time.time):
         self.path = Path(path)
@@ -212,7 +211,7 @@ class SessionStore:
 
 
 class RemoteAccess:
-    """launcher 가 가진 원격 접근 상태 (페어링 · 세션)."""
+    """The launcher's remote-access state (pairing · sessions)."""
 
     def __init__(self, sessions: Optional[SessionStore] = None, pairing: Optional[Pairing] = None):
         self.sessions = sessions or SessionStore(default_sessions_file())

@@ -1,8 +1,8 @@
-"""dx_app Setup 이 공용 단계 목록 (DXSteps) 을 쓰는지 (spec 2026-09-29 아이콘 체계 단계 2a).
+"""dx_app Setup uses the shared step list (DXSteps).
 
-예전 화면: ①–⑥ 과 이모지가 붙은 카드 여섯 장이 2열로 — 순서가 지그재그로 읽혔고, 끝난 단계에도 파란
-Install 이 그대로라 무엇을 누를지 보이지 않았다. 이제 세로 목록 하나: 끝난 단계는 한 줄, 다음 단계만
-펼친다. 흐름 (sudo · 로그 · Run All · 데모 · 숨은 inference-venv) 은 그대로다.
+One vertical list: finished steps collapse to a single line and only the next step expands, so the order reads
+top to bottom and it is clear what to press next. The flow (sudo, log, Run All, demos, hidden inference-venv) is
+unchanged.
 """
 from __future__ import annotations
 
@@ -32,7 +32,7 @@ def test_the_page_is_one_step_list():
 
 
 def test_every_step_keeps_its_ids_and_handler():
-    """튜토리얼 대상은 템플릿의 onclick 문자열과 id 로만 풀린다 (tests/dx_app/test_tutorial.py)."""
+    """Tutorial targets resolve only through the template's onclick strings and ids (tests/dx_app/test_tutorial.py)."""
     page = _page()
     for step in STEPS:
         li = page[page.index(f'data-step="{step}"'):]
@@ -63,7 +63,7 @@ def test_setup_js_reports_state_instead_of_painting_badges():
 
 
 def test_the_flows_are_untouched():
-    """sudo 재질문 · append-only 로그 · 방금 끝낸 단계 기억 · 숨은 inference-venv · demo_only."""
+    """sudo re-prompt · append-only log · remembering the step just finished · hidden inference-venv · demo_only."""
     for needle in ("SETUP_SUDO_STEPS", "setupPromptSudoPassword", "compRenderLogAppend(logEl,r.log,SETUP);",
                    "setupCheckAll().then(function(){setupMarkStepDone(completedStep);});",
                    "'inference-venv'", "demo_only"):
@@ -71,7 +71,7 @@ def test_the_flows_are_untouched():
 
 
 def test_the_setup_tutorial_opens_collapsed_steps_before_pointing_at_them():
-    """끝난 단계는 접혀 0 크기라, 그 안의 버튼을 가리키면 journey 가 TARGET_HIDDEN 으로 떨어진다."""
+    """A finished step collapses to zero size, so pointing at a button inside it sends the journey to TARGET_HIDDEN."""
     sec = TUTORIAL[re.search(r"id:\s*'setup'", TUTORIAL).start():]
     sec = sec[:sec.index("\n    },", 10)]
     for step in STEPS:

@@ -1,4 +1,4 @@
-"""Copilot 어댑터 build_command 계약 + 경로 생성자 하위호환."""
+"""Copilot adapter: build_command contract and the positional path constructor."""
 import sys
 from pathlib import Path
 
@@ -6,7 +6,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "dx_agent
 
 
 def test_copilot_path_constructor_preserved():
-    """기존 CopilotAdapter('/usr/bin/copilot') 위치인자 생성자 유지."""
+    """The positional CopilotAdapter('/usr/bin/copilot') constructor keeps working."""
     from core.adapters.copilot import CopilotAdapter
     a = CopilotAdapter("/usr/bin/copilot")
     assert a._cli == "/usr/bin/copilot"
@@ -37,7 +37,7 @@ def test_mock_adapter_moved_and_compatible(tmp_path):
     events = list(MockAdapter().run("x", tmp_path, []))
     assert events[-1]["type"] == "done"
     assert MockAdapter().is_available() is True
-    # name 미설정 → session_id uuid 폴백 대상
+    # no name set: session_id falls back to a uuid
     assert getattr(MockAdapter(), "name", None) is None
 
 

@@ -1,4 +1,4 @@
-"""Spot-check tutorial steps that previously had misaligned spotlights."""
+"""Spot-check tutorial steps prone to misaligned spotlights."""
 from __future__ import annotations
 
 import math

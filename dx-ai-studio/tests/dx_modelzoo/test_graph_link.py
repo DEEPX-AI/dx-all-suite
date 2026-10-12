@@ -1,4 +1,4 @@
-"""modelzoo model graph must open in the dx-compiler viewer (DX-TRON removed).
+"""modelzoo model graph must open in the dx-compiler viewer (not DX-TRON).
 
 The detail page resolves the model's ABSOLUTE local ONNX path via a server endpoint
 (.../artifacts/onnx/localpath), then deep-links to /compiler/?viewer_path=<path>. When the

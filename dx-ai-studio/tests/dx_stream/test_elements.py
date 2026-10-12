@@ -1,4 +1,4 @@
-"""elements.py 테스트 — 엘리먼트 레퍼런스"""
+"""elements.py — element reference"""
 import pytest
 
 from tests.dx_stream._stream_import import pin_stream_core
@@ -51,8 +51,8 @@ class TestElements:
                     f"{e['name']}.{p['name']} missing description_en"
 
     def test_vnpu_elements_present_and_phantom_removed(self):
-        """staging(v3.1.0)에 실제 등록된 VNPU HW 코덱 엘리먼트는 노출하고, 실제 플러그인에
-        존재하지 않던 팬텀 엘리먼트(run 시 'no element' 실패)는 제거되어야 한다."""
+        """Expose the VNPU HW codec elements registered in staging (v3.1.0) and drop phantom elements the
+        plugins never had (they fail at run time with 'no element')."""
         names = [e["name"] for e in get_elements()]
         for expected in ["DxVnpuDec", "DxVnpuEnc", "DxVnpuPipeline", "DxVnpuOverlay", "tee", "webrtcbin"]:
             assert expected in names, f"{expected} missing from elements"
@@ -183,7 +183,7 @@ class TestConnectionValidation:
         assert "auto_converter_rules" in rules
 
 
-# ── 속성 이름 · 기본값은 설치된 플러그인과 맞아야 한다 (release audit S-17) ──
+# ── Property names and defaults must match the installed plugins ──
 import shutil
 import subprocess
 
@@ -209,7 +209,7 @@ def test_dx_element_properties_exist_in_installed_plugin():
             continue
         out = subprocess.run(["gst-inspect-1.0", e["name"].lower()], capture_output=True, text=True, timeout=30).stdout
         if "Element Properties" not in out:
-            continue  # 이 PC 에 없는 플러그인 (DxVnpu*)
+            continue  # plugin not installed on this PC (DxVnpu*)
         body = out.split("Element Properties:", 1)[1]
         for prop in e.get("properties", []):
             assert f"\n  {prop['name']} " in body, (e["name"], prop["name"])

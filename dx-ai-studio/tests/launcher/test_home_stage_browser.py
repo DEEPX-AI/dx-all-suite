@@ -1,7 +1,7 @@
-"""무대가 실제로 한 화면에 서고, 입력 뒤에는 Dock 으로 바뀌는지.
+"""The stage really fits one screen, and turns into the Dock after input.
 
-한 화면은 이 home 이 두 번 잃은 원칙이다: 1407px (`867744f`) 에서 1853px 로 다시
-불었다. 1280×800 은 visual 스위트의 기준 창이다.
+One screen is easy to lose as content is added, so it is measured. 1280×800 is the visual suite's
+reference window.
 """
 from __future__ import annotations
 
@@ -141,9 +141,8 @@ def test_docked_widgets_stay_above_the_answer_on_one_screen(browser, server):
 
 
 def test_a_real_answer_scrolls_inside_its_row_instead_of_spilling(browser, server):
-    """빈 답은 칸에 들어갔지만 경로 카드가 있는 진짜 답 (227px) 은 123px 칸의 가운데에 놓여 위아래로
-    52px 씩 넘쳤다 — Dock 아이콘을 덮었다 (P6c 녹화, 2026-09-28). .landing 의 align-items: center
-    (옛 flex 배치의 흔적) 가 grid item 을 늘이지 않고 가운데에 두었다."""
+    """A real answer with a path card (227px) must stay inside its 123px cell and off the Dock icons. With
+    .landing's align-items: center the grid item is centred rather than stretched and overflows above and below."""
     ctx, page = _open(browser, server, 1280, 800)
     try:
         page.fill("#homeAsk", "compile yolo26n to DXNN")
@@ -155,8 +154,8 @@ def test_a_real_answer_scrolls_inside_its_row_instead_of_spilling(browser, serve
         assert r["#homeStageWork"][1] <= r["#studioGrid"][0] + 1, f"답이 Dock 을 덮는다: {r}"
         assert r["#homeStageWork"][0] >= r["#homeDevice"][1] - 1, f"답이 위젯을 덮는다: {r}"
         assert page.evaluate("() => document.documentElement.scrollHeight - innerHeight") <= 0
-        # 1280×800 에서도 경로 카드까지 한눈에 — Dock 에서는 시작을 돕던 chip · 포스터가 자리를
-        # 내준다 (2026-09-29 결정). 넘치면 칸 안에서 스크롤하지만, 한 번 가는 길 하나는 들어가야 한다.
+        # Even at 1280×800 the answer must fit through the path card: in the Dock the chips and poster that help you
+        # start give up their space. Overflow scrolls inside the cell, but one route must fit.
         fit = page.evaluate("""() => { const w = document.getElementById('homeStageWork');
           return [w.scrollHeight, w.clientHeight]; }""")
         assert fit[0] <= fit[1] + 1, f"답이 칸 안에서 잘린다: {fit}"
@@ -194,8 +193,8 @@ def test_a_running_console_cannot_be_closed_by_accident(browser, server):
     try:
         page.evaluate("""() => { const w = document.getElementById('homeWork');
           w.hidden = false; window.DXLauncher._homeWorkSetBusy(true); }""")
-        # 처음부터 보이던 ✕ 가 도는 동안 숨는다 — 재접속으로 복원된 끝난 작업에서는 보여야 하므로
-        # HTML 에서 hidden 으로 시작하지 않는다.
+        # The ✕ visible from the start hides while running. It must show on a finished run restored by reconnect, so
+        # the HTML does not start it hidden.
         assert page.locator("#workClose").is_hidden()
         page.keyboard.press("Escape")
         assert page.evaluate("() => !document.getElementById('homeWork').hidden"), "도는 중에 Esc 로 닫혔다"

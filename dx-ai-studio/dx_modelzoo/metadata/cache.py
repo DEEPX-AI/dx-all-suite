@@ -1,4 +1,4 @@
-"""카탈로그 캐시 원자적 읽기/쓰기."""
+"""Atomic read/write of the catalog cache."""
 
 import json
 import os
@@ -9,7 +9,7 @@ from dx_modelzoo.metadata.schema import SCHEMA_VERSION
 
 
 def atomic_write_json(path, data):
-    """원자적으로 JSON 파일 작성 (tmp → fsync → rename)."""
+    """Write a JSON file atomically (tmp → fsync → rename)."""
     path = Path(path)
     content = json.dumps(data, ensure_ascii=False, indent=2)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -38,7 +38,7 @@ def atomic_write_json(path, data):
 
 
 def load_catalog_cache(path):
-    """캐시 파일 로드. 없거나 손상되었으면 None 반환."""
+    """Load the cache file; return None if it is missing or corrupt."""
     path = Path(path)
     if not path.exists():
         return None
@@ -46,7 +46,7 @@ def load_catalog_cache(path):
         data = json.loads(path.read_text(encoding="utf-8"))
     except (json.JSONDecodeError, OSError):
         return None
-    # 호환성 검사
+    # Compatibility check
     if not isinstance(data, dict):
         return None
     if data.get("schema_version") != SCHEMA_VERSION:

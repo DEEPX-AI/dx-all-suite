@@ -1,6 +1,6 @@
-"""about-data.json 구조 검증 테스트.
+"""Structure tests for about-data.json.
 
-about-data.json은 기업 랜딩페이지 구조:
+about-data.json follows the company landing page structure:
 hero, company, technology, products, investment, partners, news
 + meta, developer, contact, distribution (user-centric extensions)
 """
@@ -73,9 +73,9 @@ def test_distribution_has_direct_sales_channel(about_data):
 
 def test_developer_hub(about_data):
     dev = about_data['developer']
-    # supportEmail + modelZooSnapshot were intentionally removed (commit 67a2116, "remove
-    # version/stats chrome from developer hub"); the 271-model claim is now covered by
-    # test_sdk_model_count_official via the developer links.
+    # supportEmail + modelZooSnapshot are intentionally absent (no version/stats chrome in the
+    # developer hub); the 271-model claim is covered by test_sdk_model_count_official via the
+    # developer links.
     assert len(dev.get('links', [])) >= 4
     assert len(dev.get('ctas', [])) >= 2
 
@@ -158,8 +158,8 @@ def test_technology_has_iq8_and_npu(about_data):
     assert 'npu' in tech
     assert 'Intelligent Quantization' in tech['iq8']['title']['en']
     assert tech['sdk'].get('components')
-    # SDK component version badges were intentionally removed (commit 67a2116): dx-com v2.3.0
-    # was dropped and the dx-rt version is unpublished, so no versions block should ship.
+    # SDK component version badges are intentionally absent: the dx-rt version is unpublished,
+    # so no versions block should ship.
     assert not tech['sdk'].get('versions')
 
 
@@ -185,7 +185,7 @@ def test_hero_founded_year_official(about_data):
 
 def test_sdk_model_count_official(about_data):
     # The verified-model-count claim lives in the developer links section (the SDK technology
-    # block was redesigned to a steps/start-here flow and no longer carries a stats array).
+    # block is a steps/start-here flow and carries no stats array).
     descs = [l['desc']['en'] for l in about_data['developer']['links'] if isinstance(l.get('desc'), dict)]
     assert any('271' in d and 'ONNX' in d for d in descs), descs
 

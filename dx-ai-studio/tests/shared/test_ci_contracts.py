@@ -37,6 +37,7 @@ BROWSER_SUITE_PATHS = {
     "tests/shared/test_browser_language_default_browser.py",
     "tests/dx_agent_dev/test_studio_agent_console_browser.py",
     "tests/launcher/test_home_studio_agent_browser.py",
+    "tests/launcher/test_home_posters_keyboard_browser.py",
     "tests/shared/test_chat_settings_browser.py",
     "tests/dx_app/test_setup_steps_browser.py",
     "tests/dx_stream/test_setup_steps_browser.py",
@@ -72,6 +73,7 @@ BROWSER_SUITE_PATHS = {
     "tests/dx_compiler/test_auto_compile_model_browser.py",
     "tests/dx_planner/test_lang_summary_browser.py",
     "tests/dx_planner/test_recommend_engine_browser.py",
+    "tests/dx_planner/test_recommend_explain_browser.py",
     "tests/test_catalog_virtual_scroll_browser.py",
     "tests/test_iframe_lang_sync_browser.py",
     "tests/test_tutorial_stale_step.py",
@@ -129,15 +131,14 @@ def test_run_ci_excludes_browser_tests_from_default_gate():
 
 
 def test_every_playwright_suite_is_registered_as_a_browser_suite():
-    """playwright 를 쓰는 테스트 파일은 전부 BROWSER_TESTS 에 올라와 있어야 한다.
+    """Every test file that uses playwright must be listed in BROWSER_TESTS.
 
-    인벤토리는 손으로 관리되는 목록이고, 지금까지 "목록의 항목이 스크립트에 있는가"
-    만 검사했다. 반대 방향 — 디스크의 브라우저 스위트가 목록에 있는가 — 은 아무도
-    보지 않았고, 그래서 새 브라우저 테스트가 조용히 게이트 밖에 남을 수 있었다.
-    실제로 2026-09 에 두 개가 그렇게 새어 있었다(`test_tutorial_stale_step.py`,
-    `test_catalog_virtual_scroll_browser.py`). 등록되지 않으면 --browser 로 돌지
-    않고, 대신 기본 게이트의 공유 pytest 프로세스에서 브라우저를 띄우게 된다 —
-    이 파일 맨 위 주석이 피하려던 바로 그 상황이다.
+    The inventory is a hand-kept list. The test above checks one direction (each
+    listed entry is in the script); this one checks the other (each browser suite
+    on disk is listed), so a new browser test cannot quietly stay outside the gate.
+    An unregistered suite does not run under --browser and instead launches a
+    browser inside the default gate's shared pytest process — exactly what the
+    comment at the top of this file avoids.
     """
     import re
 
@@ -148,7 +149,7 @@ def test_every_playwright_suite_is_registered_as_a_browser_suite():
         if rel in BROWSER_SUITE_PATHS:
             continue
         parts = path.relative_to(ROOT).parts
-        # conftest / 헬퍼 / 자기 자신 / 별도 게이트로 도는 디렉토리는 제외
+        # skip conftest, helpers, this file, and directories run by their own gate
         if path.name in ("conftest.py", "server_helpers.py", "tutorial_e2e_runner.py"):
             continue
         if rel == "tests/shared/test_ci_contracts.py":
@@ -250,10 +251,10 @@ def _quarantined_in_script() -> set:
     }
 
 
-# 브라우저 스테이지의 quarantine. 블로킹 쪽과 같은 규율을 받는다 — 줄어들 수만
-# 있고, 각 항목은 docs/testing.md 에 근거와 함께 적혀야 하며, 낡은 항목은 실패한다.
-# 이 목록이 생기기 전에는 스테이지 전체가 advisory 였고, 그래서 빨간불이 상시
-# 상태였다. 상시 빨강은 신호가 아니라 배경이라, 새 회귀가 그 안에 묻힌다.
+# Quarantine for the browser stage, under the same discipline as the blocking side:
+# it may only shrink, every entry must be justified in docs/testing.md, and stale
+# entries fail. Without it the stage would be advisory, and a permanently red stage
+# is background, not signal — new regressions get buried in it.
 BROWSER_QUARANTINED: set[str] = set()
 
 
@@ -268,7 +269,7 @@ def _browser_quarantined_in_script() -> set:
 
 
 def test_browser_quarantine_never_grows():
-    """브라우저 쪽 부채도 늘어날 수 없다."""
+    """Browser-side debt cannot grow either."""
     added = _browser_quarantined_in_script() - BROWSER_QUARANTINED
     assert not added, (
         "브라우저 quarantine 에 항목이 추가됐다 — 회귀가 게이트를 통과했다는 뜻이다: "
@@ -278,8 +279,8 @@ def test_browser_quarantine_never_grows():
 
 def test_browser_quarantine_entries_are_documented():
     doc = (ROOT / "docs" / "testing.md").read_text(encoding="utf-8")
-    # 파라미터까지 포함한 전체 이름을 요구한다. 모듈 이름만 보면 "dx_modelzoo" 가
-    # 문서 곳곳에 있어 무엇이든 통과한다 — 처음 쓸 때 실제로 그렇게 통과했다.
+    # Require the full name, parameters included. A module name alone such as
+    # "dx_modelzoo" appears all over the doc and would let anything pass.
     undocumented = sorted(
         n for n in _browser_quarantined_in_script() if n.split("::")[-1] not in doc
     )

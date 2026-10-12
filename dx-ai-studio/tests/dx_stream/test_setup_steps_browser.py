@@ -1,6 +1,6 @@
-"""dx_stream Setup 의 단계 목록이 화면에서 약속대로 움직이는지 (spec 2026-09-29 아이콘 체계 단계 2b).
+"""dx_stream Setup's step list behaves as promised on screen.
 
-상태는 fixture 로 고정한다 (route /api/setup/status · /api/status) — 이 PC 의 설치 상태와 무관하게.
+Status is fixed by fixtures (route /api/setup/status · /api/status), independent of this PC's install state.
 """
 from __future__ import annotations
 

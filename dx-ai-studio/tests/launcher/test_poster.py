@@ -76,8 +76,7 @@ def test_the_home_has_no_absolutely_positioned_furniture():
     """
     css = (ROOT / "launcher/static/style.css").read_text(encoding="utf-8")
     assert ".landing-poster" not in css, "the floating poster component is back"
-    # 무대의 배치는 home-stage.css 한 파일에 있다 (spec 2026-09-23). 예전에는 style.css 의
-    # "Workspace" ~ "Working view" 구간이었고, 그 구간은 무대로 바뀌면서 지워졌다.
+    # The stage layout lives in one file, home-stage.css.
     home = (ROOT / "launcher/static/home-stage.css").read_text(encoding="utf-8")
     # A ::before/::after anchored inside its own relatively-positioned parent
     # is a mark, not a layer — the chevrons between the workflow steps are
@@ -227,7 +226,7 @@ def test_platform_value_badges_cover_core_studio_capabilities():
     values = _platform_values(html)
 
     assert values.count('class="pv-badge"') == 7
-    # 배지의 표시는 sprite 아이콘 + 글자 (아이콘 체계 단계 5 — 예전엔 글자 앞의 이모지).
+    # A badge shows a sprite icon plus text.
     for label in [
         "Zero-Code Deploy",
         "End-to-End Solution",

@@ -1,4 +1,4 @@
-"""demos.py 테스트 — 데모 목록 및 파이프라인 문자열 생성"""
+"""demos.py — demo list and pipeline string generation"""
 import sys, pytest
 from pathlib import Path
 
@@ -49,7 +49,7 @@ class TestPipelineString:
         assert "urisourcebin" in pipe
 
     def test_ppu_demo_uses_config_files(self):
-        """PPU 데모 1번은 config-file-path 속성 사용"""
+        """PPU demo 1 uses the config-file-path property"""
         from core.demos import build_pipeline_str
         pipe = build_pipeline_str(demo_id=1, encoder={"encoder": "x264enc tune=zerolatency", "payloader": "rtph264pay config-interval=-1", "encoding_name": "H264", "payload_type": 96})
         assert "config-file-path" in pipe

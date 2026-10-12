@@ -14,8 +14,8 @@ function _T5(en, ko, ja, zhCN, zhTW, es) {
   return en;
 }
 
-/* 여섯 언어를 한 자리에 — 예전에는 _T5 (스페인어 없음) 였고 화면과 다른 사실 (7단계, 데모 11개, MJPEG 기본, 프리셋 5개,
-   모델 16개, 요소 26개, 없는 단축키 · API) 이 많았다. 코드와 대조했다 (release audit S-9, 2026-10-02). */
+/* All six languages in one object. Facts in the reference text (step, demo, preset, model and element counts,
+   shortcuts, API) are checked against the code — keep them in sync when the UI changes. */
 function refL(o) {
   if (o == null) return '';
   if (typeof o !== 'object') return String(o);
@@ -278,8 +278,8 @@ function renderRefContent(filter, search) {
   });
 }
 
-// 구역 · 주제 아이콘은 sprite 이름 (아이콘 체계 단계 5). 옛 글자 icon 은 그대로.
-/* 화면 이름 주제 (Demo Launcher · Pipeline Builder · API Endpoints) 는 탭과 같은 사전 키라 T() 로 번역한다 */
+// Section · topic icons are sprite names; older glyph icons pass through unchanged.
+/* Topics named after screens (Demo Launcher · Pipeline Builder · API Endpoints) share the tab dictionary keys, so T() translates them */
 function _refTopicName(t) { return typeof T === 'function' ? T(t.name) : t.name; }
 
 function _refIco(name) {

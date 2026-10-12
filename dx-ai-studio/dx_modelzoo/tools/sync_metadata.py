@@ -1,4 +1,4 @@
-"""ModelZoo 메타데이터 동기화 CLI."""
+"""ModelZoo metadata sync CLI."""
 
 import argparse
 import os
@@ -18,7 +18,7 @@ from dx_modelzoo.metadata.sync import resolve_source_profile, run_sync
 
 
 def _resolve_metadata_config_path(dx_ai_studio_root):
-    """메타데이터 동기화 config의 preferred/legacy 경로를 결정."""
+    """Resolve the preferred/legacy path of the metadata sync config."""
     preferred_config_path = dx_ai_studio_root / "dx_modelzoo" / "data" / "metadata_sync_config.json"
     legacy_config_path = dx_ai_studio_root / "metadata_sync_config.json"
     if not preferred_config_path.exists() and legacy_config_path.exists():
@@ -42,7 +42,7 @@ def main():
 
     suite_root = _DX_AI_STUDIO_ROOT.parent
 
-    # 소스 프로필 결정: 선호 경로 → legacy fallback
+    # Decide the source profile: preferred path → legacy fallback
     config_path = _resolve_metadata_config_path(_DX_AI_STUDIO_ROOT)
     source_profile = resolve_source_profile(
         cli_source=args.source,

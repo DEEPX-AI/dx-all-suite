@@ -1,8 +1,8 @@
-"""UI 에 남은 이모지 아이콘을 단조 감소로 묶는다 (spec 2026-09-29 아이콘 체계 §3).
+"""Emoji icons left in the UI may only go down.
 
-이모지는 OS · 글꼴마다 다르게 그려지고 (headless 캡처에서 ◒ 이 "-" 로 나왔다), 색과 굵기를 테마가
-정할 수 없다. 수백 곳이라 한 번에 걷지 않는다 — css_token_gate · spacing_scale_gate 와 같이 지금 수를
-파일별 상한으로 박고, 단계마다 내린다. 늘어나는 것만 막는다.
+Emoji render differently per OS and font (a headless capture drew ◒ as "-"), and the theme cannot set their color or
+weight. There are hundreds, so they are not removed at once: like css_token_gate and spacing_scale_gate, the current
+count is a per-file ceiling that is lowered step by step. Only growth is blocked.
 """
 from __future__ import annotations
 
@@ -53,8 +53,8 @@ def test_it_is_wired_into_run_ci():
 
 
 def test_it_sees_emoji_written_as_escapes():
-    """tutorial-engine.js 는 🎓 을 '\\uD83C\\uDF93' 로, hw_widget 은 ▾ 를 '&#9662;' 로 쓴다 — 글자만 세면
-    가장 널리 쓰이는 공용 아이콘을 놓친다."""
+    """tutorial-engine.js writes 🎓 as '\\uD83C\\uDF93' and hw_widget writes ▾ as '&#9662;'; counting literal
+    characters alone would miss the most widely used shared icons."""
     import importlib
     gate = importlib.import_module("scripts.emoji_gate")
     assert gate.count(r"'🎓 ' + t") == 1

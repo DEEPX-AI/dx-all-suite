@@ -91,14 +91,14 @@
       .catch(function () { /* the static list is already on screen */ });
   }
 
-  /* copilot 은 `catalog` 를 준다 — 전체 model 과, 이 계정이 쓸 수 있는지 (요금제 · 회사 정책) 와 요금
-     배수. 전부 보이되 계정 것만 고르게 한다 (사용자 결정 2026-09-30): 못 쓰는 것은 disabled, 쓸 수
-     있는 것은 배수를 붙인다. catalog 가 없으면 (다른 agent · 조회 실패) 목록 전체가 고를 수 있는 것이다. */
+  /* copilot gives a `catalog`: every model, whether this account may use it (plan, org policy), and its
+     cost multiplier. All are shown but only the account's are selectable: unusable ones are disabled,
+     usable ones carry the multiplier. Without a catalog (other agents, lookup failed) the whole list is selectable. */
   function _paintModels(name, d, fallbackDefault) {
     var sel = $('setupModel');
     var chosen = d.default_model || fallbackDefault;
-    /* CLI 목록은 몇 초 걸린다 (cursor 는 200 개 넘게) — 그 사이 사람이 고른 model 은 지킨다. 예전에는 기본값으로
-       바꿔 놓고 접힌 요약은 고른 이름을 그대로 보였다 (2026-10-11 실사용 감사). */
+    /* The CLI list takes seconds (cursor has 200+) — keep a model the user picked meanwhile, rather than
+       resetting it to the default while the collapsed summary still shows the pick. */
     var picked = sel && sel.dataset.userPicked === name ? (sel.dataset.wanted || sel.value) : '';
     if (picked && (d.models || []).indexOf(picked) !== -1) chosen = picked;
     if (sel) delete sel.dataset.wanted;
@@ -114,8 +114,8 @@
     }
     var note = $('setupModelCount');
     if (note) note.textContent = d.models.length + ' ' + _t('models');
-    /* 목록이 select 를 바꿔도 change 가 나지 않는다 — 요약을 여기서 다시 쓴다 ("copilot · auto" 로 남아 실제로
-       돌 model 과 달랐다). */
+    /* Changing the select from code fires no change event — rewrite the summary here so it names the model
+       that will actually run. */
     _paintFoldSummary();
   }
 
@@ -179,16 +179,16 @@
 
   /* ── load ────────────────────────────────────────────────── */
 
-  /* 한 번 묻고 끝내면 안 된다. home 은 launcher 가 module 들을 띄우는 동안 열릴 수 있고, 그때
-     agent dev 는 아직 없어 proxy 가 502 를 준다 — 예전에는 그 한 번으로 form 을 숨긴 채 다시 묻지
-     않아서, 새로고침 시점에 따라 model 선택이 떴다 안 떴다 했다. 준비될 때까지 (최대 ~30s) 다시
-     묻고, studio 가 준비됐다는 신호 (dx-studio-ready) 에도 한 번 더 묻는다. */
+  /* One request is not enough. Home can open while the launcher is still starting modules; Agent Dev
+     is not up yet and the proxy answers 502, and giving up there would hide the model picker depending
+     on when the page loaded. Retry until it is ready (up to ~30 s), and ask once more on the
+     studio-ready signal (dx-studio-ready). */
   var _RETRY_MS = [500, 1000, 2000, 4000, 4000, 4000, 4000, 4000, 4000, 4000];
   var _retry = null;
 
   var _STUDIO_ORDER = ['claude', 'copilot', 'cursor', 'codex', 'opencode'];
-  /* Studio 전체가 같은 agent 를 쓴다 — 고른 것 (studio_agent) → 없으면 로그인된 첫 agent (Studio 순서) → 첫 agent.
-     Chat 도 같은 값으로 답한다. spec 2026-10-11 chat settings §3.5, 계약: tests/launcher/test_home_studio_agent_browser.py */
+  /* The whole studio uses one agent: the picked one (studio_agent) → else the first signed-in agent (studio
+     order) → else the first agent. Chat answers with the same one. Contract: tests/launcher/test_home_studio_agent_browser.py */
   function _initialAgent(status) {
     var names = _agents.map(function (a) { return a.name; });
     var pick = status.studio_agent && status.studio_agent.agent;
@@ -235,8 +235,8 @@
       })
       .catch(function () {
         /* The module is not running (yet). The Build section still explains itself;
-           it just cannot say who would do the building. 다시 묻는 동안에도 숨겨 둔다 — 값이 빈
-           "Agent ›" 가 떠 있으면 고장 난 control 로 보인다. 받아지면 위의 성공 경로가 보인다. */
+           it just cannot say who would do the building. Stay hidden while retrying — an empty
+           "Agent ›" looks like a broken control. Once an answer arrives, the success path above shows it. */
         _show($('setupForm'), false);
         _show($('setupFold'), false);
         _show($('setupDegraded'), false);
@@ -246,7 +246,7 @@
       });
   }
 
-  /* 접힌 채로도 무엇이 골라져 있는지는 보여야 한다 — 접는 것과 숨기는 것은 다르다. */
+  /* Collapsed, it still shows what is picked — collapsing is not hiding. */
   function _paintFoldSummary() {
     var out = $('setupFoldValue');
     if (!out) return;
@@ -258,8 +258,8 @@
     out.textContent = parts.join(' \u00B7 ');
   }
 
-  /* What the console posts to /api/agent/run. mode 는 Agent Dev 와 같은 두 값 — Interactive (묻고 멈춘다,
-     답장으로 이어진다) 와 Autopilot (묻지 않고 끝까지). */
+  /* What the console posts to /api/agent/run. mode takes Agent Dev's two values — Interactive (asks and
+     stops, continues on a reply) and Autopilot (runs to the end without asking). */
   function choice() {
     return {
       agent: $('setupAgent') ? $('setupAgent').value : undefined,
@@ -276,7 +276,7 @@
     try {
       var saved = localStorage.getItem(_MODE_KEY);
       if (saved === 'interactive' || saved === 'autopilot') sel.value = saved;
-    } catch (e) { /* storage 없음 — 기본 Interactive */ }
+    } catch (e) { /* no storage — default to Interactive */ }
     sel.addEventListener('change', function () {
       try { localStorage.setItem(_MODE_KEY, sel.value); } catch (e) {}
     });

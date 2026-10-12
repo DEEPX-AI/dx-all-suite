@@ -1,7 +1,7 @@
 (function() {
   'use strict';
 
-  // 분야 · 상 · 링크 아이콘은 sprite 이름 (about-data.json, 아이콘 체계 단계 5). 옛 글자 icon 은 그대로.
+  // Field, award and link icons are sprite names (about-data.json). Legacy text icons pass through as is.
   function _aboutIco(name) {
     if (/^[a-z0-9_-]+$/.test(name || '') && typeof window.DXIcon === 'function') return window.DXIcon(name);
     return name || '';

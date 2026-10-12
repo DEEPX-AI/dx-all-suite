@@ -110,15 +110,15 @@ def _model_identifier(model: dict) -> tuple[str, str]:
     name = model.get("name")
     if not isinstance(category, str) or not re.fullmatch(r"[A-Za-z0-9_-]+", category):
         raise ValueError("workflow model category is invalid")
-    # per-model layout 의 이름은 .dxnn stem 이라 '.' 이 들어갈 수 있다 (3ddfa-v2_mobilenet-0.5_120x120) — '..' 는 막는다
+    # per-model layout names are .dxnn stems and may contain '.' (3ddfa-v2_mobilenet-0.5_120x120); '..' is refused
     if not isinstance(name, str) or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]*", name) or ".." in name:
         raise ValueError("workflow model name is invalid")
     return category, name
 
 
 def _example_rel(source_root: Path, language: str, category: str, model: str) -> PurePosixPath:
-    """예제 폴더의 source_root 상대 경로 — legacy <task>/<model> · per-model <task>/<family>/<stem>
-    (shared/dx_app_layout.py, spec 2026-10-01 dx_app per-model layout)."""
+    """The example folder relative to source_root: legacy <task>/<model>, per-model <task>/<family>/<stem>
+    (shared/dx_app_layout.py)."""
     from shared import dx_app_layout as layout
     d = layout.example_dir(source_root, language, category, model)
     try:
@@ -145,7 +145,7 @@ def _runner_source(
 
 
 def _extract_target(source_root: Path, language: str, category: str, name: str) -> str:
-    """extract_model_package.sh 의 대상: legacy 는 task/model, per-model 은 task/family/stem (branch 의 새 인자)."""
+    """Target for extract_model_package.sh: legacy is task/model, per-model is task/family/stem (the new argument)."""
     rel = _example_rel(source_root, language, category, name)
     return "/".join(rel.parts[2:]) or f"{category}/{name}"
 
@@ -166,9 +166,9 @@ def _complete_python_common(source_root: Path, runner_dir: Path) -> None:
 
     extract_model_package.sh trims `common/` to what the runner and factory import statically, but
     per-model examples name their pre/postprocessor in config.json and resolve it at run time
-    (common.variant_config). The exported yolo26n package therefore failed outside the Studio with
+    (common.variant_config). The exported yolo26n package would otherwise fail outside the Studio with
     "processor class 'LetterboxPreprocessor' is exported by neither common.processors nor
-    common.visualizers" (2026-10-11 audit). The full package is ~1.3 MB of Python.
+    common.visualizers". The full package is ~1.3 MB of Python.
     """
     source_common = source_root / "src" / "python_example" / "common"
     if not source_common.is_dir():
@@ -609,10 +609,11 @@ def validate_copy_out(package_dir, source_root=None):
     return copy_dir
 
 
-def build_workflow_package(workflow, package_type, source_root, output_root, *, plugin_root=None):
+def build_workflow_package(workflow, package_type, source_root, output_root, *, plugin_root=None, keep_copy_out=False):
     """Build a self-contained run, developer, or recipe package.
 
-    The caller's workflow is deep-copied before normalization and never mutated.
+    The caller's workflow is deep-copied before normalization and never mutated. The copy-out made to
+    verify the package is removed afterwards unless keep_copy_out is set (the caller then owns its parent).
     """
     if package_type not in _PACKAGE_TYPES:
         raise ValueError("package_type must be run, developer, or recipe")
@@ -709,6 +710,9 @@ def build_workflow_package(workflow, package_type, source_root, output_root, *, 
             shutil.rmtree(copy_out_dir.parent, ignore_errors=True)
         raise
 
+    if not keep_copy_out:
+        shutil.rmtree(copy_out_dir.parent, ignore_errors=True)
+        copy_out_dir = None
     return {
         "package_dir": package_dir,
         "archive_path": archive_path,

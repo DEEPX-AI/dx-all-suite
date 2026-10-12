@@ -1,7 +1,7 @@
-"""모든 모듈이 함께 쓰는 chrome 의 아이콘 (spec 2026-09-29 아이콘 체계 단계 1).
+"""Icons in the chrome every module shares.
 
-툴바 · 챗 · 튜토리얼 · NPU 떠 있는 창 · 차트 표시는 한 번 바꾸면 아홉 화면이 함께 바뀐다. 여기에 이모지가
-남으면 모든 모듈에 남는다 — 이 파일들의 이모지는 0 이다.
+The toolbar, chat, tutorial, floating NPU window and chart markers change on all nine screens at once. An emoji
+left here would show up in every module, so these files carry none.
 """
 from __future__ import annotations
 
@@ -55,12 +55,12 @@ def test_the_toolbar_draws_its_buttons_from_the_sprite():
 def test_the_chat_draws_its_buttons_from_the_sprite():
     js = _src("chat-widget.js")
     for name in ("chat", "gear", "trash", "x", "send", "alert"):
-        # _ico 는 DXIcon 을 부르는 챗의 얇은 감싸개 (dx-icon.js 가 없어도 챗이 멈추지 않게).
+        # _ico is the chat's thin wrapper around DXIcon (keeps the chat working without dx-icon.js).
         assert re.search(r"(DXIcon(\.el)?|_ico)\('" + name + "'", js), name
 
 
 def test_no_dictionary_key_carries_an_icon():
-    """키에 이모지가 있으면 아이콘을 바꿀 때 키 · 호출 · 6개 언어를 한꺼번에 바꿔야 한다."""
+    """An emoji in a key would force changing the key, its callers and all six languages to swap an icon."""
     js = _src("chat-widget.js")
     keys = re.findall(r"^\s*'([^']+)':\s*\{", js[js.index("window._DX_CHAT_I18N"):js.index("window._DX_CHAT_HEADER_TITLES")], re.M)
     assert keys and not [k for k in keys if gate.count(k)]

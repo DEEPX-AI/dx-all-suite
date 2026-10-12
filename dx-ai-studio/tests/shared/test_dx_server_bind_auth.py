@@ -1,7 +1,7 @@
 """bind · API-token contracts for DXBaseHandler / DXServer.
 
-2026-10-01 (QA COM-A1): 모듈 서버의 기본 bind 는 loopback, 로컬 요청은 그대로 통과, 원격 요청은 DX_API_TOKEN
-(또는 launcher 의 페어링 세션) 이 있어야 한다. 전체 매트릭스는 tests/shared/test_remote_access.py.
+A module server binds to loopback by default; local requests pass as they are, and remote requests need DX_API_TOKEN
+(or a launcher pairing session). The full matrix is in tests/shared/test_remote_access.py.
 """
 from __future__ import annotations
 

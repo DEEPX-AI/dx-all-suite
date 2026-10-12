@@ -1,11 +1,10 @@
-"""The NPU Monitor float, folded, docks into the module rail (2026-10-11 real-use audit).
+"""The NPU Monitor float, folded, docks into the module rail.
 
-Folded, it sat over the bottom-left of every module page: measured at 1440 and 390 px with each page
-scrolled to its end, it still covered the Model Zoo category checkbox, the Compiler's Nodes/Edges/Zoom
-status, EdgeGuide's channel slider and task buttons, an Agent Dev example card and the DX App model table,
-so those could not be reached without dragging it away. On a page with the module rail the folded widget
-is now a rail button above Hub; opening it shows the panel beside the rail. A page without the rail
-(the launcher's SDK Library) keeps the floating pill.
+A folded float over the bottom-left of a module page covers controls there (at 1440 and 390 px, scrolled to the
+end: the Model Zoo category checkbox, the Compiler's Nodes/Edges/Zoom status, EdgeGuide's channel slider and task
+buttons, an Agent Dev example card, the DX App model table). On a page with the module rail the folded widget is
+a rail button above Hub; opening it shows the panel beside the rail. A page without the rail (the launcher's SDK
+Library) keeps the floating pill.
 """
 from __future__ import annotations
 

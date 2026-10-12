@@ -1,4 +1,4 @@
-"""DX Model Zoo — 경로, 상수, 카테고리 정의."""
+"""DX Model Zoo — paths, constants and category definitions."""
 from shared.tasks import TaskTable
 import importlib
 import os
@@ -38,9 +38,9 @@ except (TypeError, ValueError):
 
 
 def dx_app_port() -> int:
-    """지금 dx_app 의 port — launcher 가 쓰는 port 파일 (DX_APP_PORT_FILE) 을 요청마다 읽는다. dx_app 이 재시작하면
-    (watchdog · 홈) 새 임시 port 로 오는데, 시작할 때 받은 DX_APP_PORT 만 쓰면 Zoo 의 Run Inference 가 전부
-    DX_APP_UNAVAILABLE 이었다 (2026-10-02 release audit). 파일이 없으면 DX_APP_PORT."""
+    """The current dx_app port, read from the launcher's port file (DX_APP_PORT_FILE) on every request. A restarted
+    dx_app (watchdog or home) comes back on a new ephemeral port, so the DX_APP_PORT received at startup goes stale
+    and Run Inference would fail with DX_APP_UNAVAILABLE. Falls back to DX_APP_PORT when the file is missing."""
     pf = os.environ.get("DX_APP_PORT_FILE", "").strip()
     if pf:
         try:
@@ -78,7 +78,7 @@ CATEGORIES = {
     "object_pose_estimation":{"label_en": "Object Pose Estimation","label_ko": "객체 자세 추정",     "label_ja": "物体姿勢推定",          "label_es": "Estimación de pose de objetos","label_zh-CN": "物体姿态估计","label_zh-TW": "物件姿態估計","icon": "task-object_pose_estimation"},
     "panoptic_driving_perception":{"label_en": "Panoptic Driving Perception","label_ko": "파놉틱 주행 인식","label_ja": "パノプティック走行認識","label_es": "Percepción panóptica de conducción","label_zh-CN": "全景驾驶感知","label_zh-TW": "全景駕駛感知","icon": "task-panoptic_driving_perception"},
     "3d_object_detection":  {"label_en": "3D Object Detection",   "label_ko": "3D 객체 탐지",       "label_ja": "3D物体検出",            "label_es": "Detección de objetos 3D",      "label_zh-CN": "3D目标检测", "label_zh-TW": "3D物件偵測", "icon": "task-3d_object_detection"},
-    # dx_app per-model layout 의 task key (spec 2026-10-01) — 옛 key 와의 짝은 shared/tasks.py LEGACY_TO_TASK
+    # Task keys of the dx_app per-model layout — their legacy counterparts are in shared/tasks.py LEGACY_TO_TASK
     "image_classification": {"label_en": "Image Classification", "label_ko": "이미지 분류", "label_ja": "画像分類", "label_es": "Clasificación de imágenes", "label_zh-CN": "图像分类", "label_zh-TW": "影像分類", "icon": "task-image_classification"},
     "oriented_object_detection": {"label_en": "Oriented Object Detection", "label_ko": "회전 객체 탐지", "label_ja": "回転物体検出", "label_es": "Detección de objetos orientados", "label_zh-CN": "旋转目标检测", "label_zh-TW": "旋轉物件偵測", "icon": "task-oriented_object_detection"},
     "face_landmark": {"label_en": "Face Landmark", "label_ko": "얼굴 랜드마크", "label_ja": "顔ランドマーク", "label_es": "Puntos faciales", "label_zh-CN": "人脸关键点", "label_zh-TW": "人臉關鍵點", "icon": "task-face_landmark"},
@@ -95,8 +95,8 @@ CATEGORIES = {
     "face_attribute": {"label_en": "Face Attribute", "label_ko": "얼굴 속성", "label_ja": "顔属性", "label_es": "Atributos faciales", "label_zh-CN": "人脸属性", "label_zh-TW": "人臉屬性", "icon": "task-face_attribute"},
 }
 
-# 태스크별 Example 이미지 표시 타입
-# TaskTable: 새 task key (image_classification …) 로 물어도 옛 key 의 값을 찾는다 (shared/tasks.py)
+# How each task's example image is shown
+# TaskTable: a lookup with a new task key (image_classification …) finds the legacy key's value (shared/tasks.py)
 EXAMPLE_TYPES = TaskTable({
     "object_detection": "single", "face_detection": "single",
     "pose_estimation": "single", "obb_detection": "single",
@@ -115,18 +115,12 @@ EXAMPLE_TYPES = TaskTable({
     "visual_place_recognition": "gallery", "face_attribute": "single",
 })
 
-# 태스크별 기본 샘플 이미지 (inference 용)
-# dx_app 이 v3.2.0/v3.2.1 에서 샘플을 교체했는데 이 표가 따라가지 않아, 한 달 넘게
-# 없는 파일을 가리키고 있었다. server.py 의 기본 이미지 선택은 파일명이 목록에 없으면
-# 조용히 `images[0]` 으로 떨어지므로 오류 없이 엉뚱한 그림이 떴다 —
-# 초해상도 데모에 위성사진이 나오는 식이었다.
-#
-#   680366d (v3.2.0-rc) dota8_test/ 10장(93MB) 삭제 → sample_airport_satellite_view.png 추가
-#   c6c35e4 (v3.2.1-rc) sample_superresolution.png 삭제 → sample_lowres275x150.png 추가
-#
-# 둘 다 같은 커밋에서 대체물을 함께 넣었다. 자산이 사라진 것이 아니라 교체된 것이다.
-# 진짜 출처는 dx_app/scripts/run_examples.sh 의 CATEGORY_IMAGE 표이고,
-# 이제 tests/dx_modelzoo/test_conf_categories_are_known.py 가 어긋나면 말한다.
+# Default sample image per task (for inference)
+# These must track the samples dx_app actually ships: server.py's default-image pick silently falls back to
+# `images[0]` when a file name is not in the list, so a stale entry shows the wrong picture with no error
+# (e.g. a satellite photo in the super-resolution demo).
+# The source of truth is the CATEGORY_IMAGE table in dx_app/scripts/run_examples.sh;
+# tests/dx_modelzoo/test_conf_categories_are_known.py reports any mismatch.
 SAMPLE_IMAGES = TaskTable({
     "object_detection": "sample/img/sample_street.jpg",
     "face_detection": "sample/img/sample_face.jpg",
@@ -150,7 +144,7 @@ SAMPLE_IMAGES = TaskTable({
     "object_pose_estimation": "sample/dope/000000.png",
     "panoptic_driving_perception": "sample/img/sample_parking.jpg",
     "3d_object_detection": "sample/kitti/velodyne/000049.bin",
-    # dx_app per-model layout 의 새 task — 그 예제들의 config.json default_image (8d0b748)
+    # New tasks of the dx_app per-model layout — the default_image in each example's config.json
     "anomaly_detection": "sample/img/sample_parking.jpg",
     "zero_shot_image_classification": "sample/img/sample_dog.jpg",
     "zero_shot_instance_segmentation": "sample/img/sample_street.jpg",
@@ -160,8 +154,9 @@ SAMPLE_IMAGES = TaskTable({
     "face_attribute": "sample/img/sample_person_a1.jpg",
 })
 
-# per-model dx_app (8d0b748) 의 person ReID (reid ↔ person_reid) 는 사람 쌍 폴더가 아니라 query 한 장 + gallery
-# (sample/gallery/*.bin) 다 — 그 예제의 config.json default_image · run_examples.sh 의 [person_reid]. main 은 쌍 폴더.
+# In the per-model dx_app, person ReID (reid ↔ person_reid) takes one query image plus a gallery (sample/gallery/*.bin),
+# not a folder of person pairs — see the example's config.json default_image and [person_reid] in run_examples.sh.
+# The flat layout uses the pair folder.
 from shared import dx_app_layout as _layout
 if _layout.detect(DX_APP_ROOT) == _layout.PER_MODEL:
     SAMPLE_IMAGES["reid"] = "sample/reid/queries/sample_person_a2.jpg"

@@ -1,8 +1,8 @@
-"""아이콘 + 글자가 언어를 바꿔도 아이콘을 잃지 않는지 (spec 2026-09-29 아이콘 체계 단계 5).
+"""An icon + label keeps its icon when the language changes.
 
-DXIcon.label(el, name, text) 은 아이콘 svg + 글자 node 를 넣는다. 모듈 사전의 _DX_I18N_SELECTORS (h3 · 버튼 …)
-에 걸린 엘리먼트는 언어를 바꿀 때 shared/i18n.js _translateEl 이 textContent 를 통째 갈아 — 아이콘이
-사라졌다. 이제 자식이 아이콘뿐이면 글자 node 만 바꾼다.
+DXIcon.label(el, name, text) inserts an icon svg and a text node. For elements matched by a module dictionary's
+_DX_I18N_SELECTORS (h3, buttons …), replacing the whole textContent in shared/i18n.js _translateEl on a language
+change would drop the icon, so when the only element child is the icon, only the text node is replaced.
 """
 from __future__ import annotations
 

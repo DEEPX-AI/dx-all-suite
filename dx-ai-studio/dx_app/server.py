@@ -20,8 +20,8 @@ _WORKSPACE_MODELS = _SUITE_FOR_MODELS / "workspace" / "res" / "models"
 MODEL_INPUT_ROOTS = (DX_APP_ROOT, ASSETS_DIR, ASSETS_DIR / "models", OUTPUTS_DIR, _WORKSPACE_MODELS)
 TEST_RUN_INPUT_ROOTS = (DX_APP_ROOT, SAMPLE_DIR, ASSETS_DIR, OUTPUTS_DIR)
 _SAFE_ID_RE = re.compile(r'^[A-Za-z0-9_]+$')
-# model 이름: per-model layout 의 stem 은 .dxnn 이름이라 '-' 와 '.' 이 들어간다 (3ddfa-v2_mobilenet-0.5_120x120).
-# 경로 구분자 · '..' · 앞의 '.' 은 여전히 막는다 (spec 2026-10-01 dx_app per-model layout).
+# Model name: per-model layout stems are .dxnn names and contain '-' and '.' (3ddfa-v2_mobilenet-0.5_120x120).
+# Path separators, '..' and a leading '.' are still refused.
 _MODEL_NAME_RE = re.compile(r'^[A-Za-z0-9][A-Za-z0-9_.\-]*$')
 _RUN_LANGS = {"cpp", "python"}
 # *_cpp_postprocess variants run the Python app with the C++ dx_postprocess pybind
@@ -45,8 +45,8 @@ def _validation_error_key(message):
 
 
 def _task_defaults():
-    """task → 기본 입력 · image-only · 옛 key (JS 가 같은 표를 쓰게 — 예전에는 utils.js 의 CAT_IMG 가 서버 표와
-    어긋나 있었다). per-model layout 의 task key 도 옛 key 의 값을 찾는다 (shared/tasks.py)."""
+    """task -> default input, image-only, old key, so JS uses the same table as the server instead of its own copy.
+    per-model layout task keys also find the values of their old key (shared/tasks.py)."""
     from dx_app.core.config import CAT_IMAGE, CAT_VIDEO, IMAGE_ONLY_CATEGORIES
     from shared.tasks import legacy
     return {c: {"image": CAT_IMAGE.get(c, ""), "video": CAT_VIDEO.get(c, ""),
@@ -61,8 +61,8 @@ def _require_category(category):
         raise ValueError(f"Invalid category: {category!r}")
     if category in CATEGORIES:
         return category
-    # legacy ↔ per-model 짝 이름 (obb_detection ↔ oriented_object_detection …) — 예전 recent run · 링크 · client
-    # 는 다른 layout 의 이름으로 보낸다 (계약: tests/dx_app/test_category_alias.py)
+    # legacy <-> per-model pair names (obb_detection <-> oriented_object_detection, …): older recent runs, links and
+    # clients send the other layout's name (contract: tests/dx_app/test_category_alias.py)
     from shared.tasks import canonical, legacy
     for alt in (canonical(category), legacy(category)):
         if alt != category and alt in CATEGORIES:
@@ -100,7 +100,7 @@ def _require_model_file(model_file):
             if has_path_shape:
                 resolve_existing_file(_candidate_path(part), MODEL_INPUT_ROOTS, (".dxnn",))
         return
-    # assets/models 에 없으면 suite 의 workspace/res/models 에서 찾는다 (config.resolve_model_path)
+    # If missing from assets/models, look in the suite's workspace/res/models (config.resolve_model_path)
     cand = _candidate_path(model_file)
     if not Path(model_file).is_absolute() and not Path(cand).is_file():
         cand = str(resolve_model_path(model_file, DX_APP_ROOT))
@@ -122,7 +122,7 @@ def _validate_inference_payload(data, live=False):
         data["category"] = _require_category(data.get("category", ""))
         _require_model_name(data.get("model_name", ""))
         _require_model_file(data.get("model_file", ""))
-        # 부르는 쪽 이름 (Model Zoo 카탈로그 id 등) → 이 dx_app 의 예제 이름. 없으면 남의 binary 를 빌린다 (release audit Z-1)
+        # Caller's name (a Model Zoo catalog id etc.) -> this dx_app's example name. Without one, another binary is borrowed
         if not str(data["model_file"]).startswith("-"):
             from shared import dx_app_layout as _layout
             data["model_name"] = _layout.example_name(DX_APP_ROOT, data["category"], data["model_name"],
@@ -220,9 +220,9 @@ _chat_engine = ChatEngine(
 )
 
 
-# ── 통합 App Shell (Option A) ──────────────────────────────────
-# 좌측 240px 사이드바를 없애고 페이지 10개를 상단 탭 행으로 올렸다.
-# 라벨은 영어 원문 = i18n 사전 키. 아이콘 id는 shared/static/dx-icons.svg.
+# ── Shared App Shell ──────────────────────────────────────────
+# The ten pages sit in a top tab row (no left sidebar).
+# Labels are the English source text = i18n dictionary keys. Icon ids come from shared/static/dx-icons.svg.
 DX_APP_PAGES = (
     ("setup", "Setup", "setup"),
     ("models", "Models", "models"),
@@ -236,7 +236,7 @@ DX_APP_PAGES = (
     ("reference", "Reference", "book"),
 )
 
-# 알림 벨은 dx_app 고유 컨트롤이라 공유 헤더의 .toolbar 슬롯 안으로 넣는다.
+# The notification bell is a dx_app-only control, so it goes into the shared header's .toolbar slot.
 _NOTIF_BELL = (
     '<button class="notif-bell" onclick="toggleNotifDrawer()" title="Notifications"'
     ' data-i18n-title="Notifications">\U0001F514'
@@ -746,8 +746,8 @@ class Handler(DXBaseHandler):
 
 def _idle_shutdown_enabled():
     """A standalone dx_app (its own browser tab) shuts down after an hour without requests. Under the launcher
-    (DX_PORT_FILE set) the launcher owns the lifecycle — stopping there broke Model Zoo inference until the
-    launcher noticed and respawned it (2026-10-11)."""
+    (DX_PORT_FILE set) the launcher owns the lifecycle; stopping there would break Model Zoo inference until the
+    launcher noticed and respawned it."""
     return not os.environ.get("DX_PORT_FILE")
 
 
@@ -759,7 +759,7 @@ def _watchdog(srv):
             stop_inference();shutdown_live_processes();srv.shutdown();return
 
 def create_server(port=DEFAULT_PORT):
-    """테스트용 서버 팩토리: HTTPServer 인스턴스를 반환."""
+    """Server factory for tests: returns an HTTPServer instance."""
     from http.server import ThreadingHTTPServer
     srv = ThreadingHTTPServer(("127.0.0.1", port), Handler)
     srv.daemon_threads = True

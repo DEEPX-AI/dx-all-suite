@@ -1,4 +1,4 @@
-"""launcher.sh gives an old .venv the system GStreamer bindings (2026-10-11 real-use audit).
+"""launcher.sh gives an old .venv the system GStreamer bindings.
 
 The .venv is created with --system-site-packages only when it is missing. One made by an older launcher.sh had none,
 so the module servers could not import gi: DX Stream ran no in-process pipeline and Local (WebRTC) playback always

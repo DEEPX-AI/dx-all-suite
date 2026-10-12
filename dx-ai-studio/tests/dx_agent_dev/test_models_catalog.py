@@ -1,10 +1,10 @@
-"""model 목록이 오늘의 것이고, copilot 은 이 계정이 쓸 수 있는 것만 고르게 한다 (spec 2026-09-30 home agent run).
+"""Model lists are current, and copilot offers only the models this account may use.
 
-- claude CLI 에는 model 목록 명령이 없어 정적 표가 유일한 소스다 — 표가 2026-07-19 에 멈춰 Fable 5.1 ·
-  Sonnet/Opus 5.5 가 없었다. alias (opus · sonnet · fable · haiku) 는 CLI 가 늘 최신으로 풀어 준다.
-- copilot 은 계정의 요금제 · 회사 정책이 반영된 목록을 ACP (`copilot --acp --stdio`) 의 `session/new` 가
-  준다 (prompt 없음). 실측 계정에서 정적 표의 기본 `claude-sonnet-4.6` 은 쓸 수 없는 model 이었다.
-- VS Code 가 PATH 에 넣는 설치 안내 shim 은 설치된 CLI 가 아니다 — 실행하면 "Install? [y/N]" 에서 멈춘다.
+- The claude CLI has no model-list command, so the static table is the only source and must list current
+  models. The aliases (opus, sonnet, fable, haiku) always resolve to the latest in the CLI.
+- copilot gets a list reflecting the account's plan and org policy from ACP (`copilot --acp --stdio`)
+  `session/new`, with no prompt. A static default may not be usable by the account.
+- The install-prompt shim VS Code puts on PATH is not an installed CLI; running it stops at "Install? [y/N]".
 """
 from __future__ import annotations
 
@@ -30,7 +30,7 @@ FAKE_MODELS = [
 
 
 def _fake_copilot(tmp_path: Path, mode: str = "ok") -> Path:
-    """최소한의 ACP 만 말하는 가짜 copilot. session/new 때 실제 CLI 처럼 session 폴더를 만든다."""
+    """A fake copilot speaking minimal ACP. Like the real CLI, it creates a session folder on session/new."""
     script = tmp_path / "bin" / "copilot"
     script.parent.mkdir(parents=True, exist_ok=True)
     script.write_text(textwrap.dedent(f"""\
@@ -71,7 +71,7 @@ def test_claude_offers_the_aliases_first_and_todays_models():
     assert AGENTS["claude"]["default_model"] in models
 
 
-# ── copilot: 계정의 목록 ───────────────────────────────────────────────────
+# ── copilot: the account's list ───────────────────────────────────────────
 
 
 def test_copilot_reads_the_accounts_models_over_acp_and_cleans_up(tmp_path, monkeypatch):
@@ -122,7 +122,7 @@ def test_copilot_falls_back_to_the_static_table_when_acp_fails(tmp_path, monkeyp
     assert AGENTS["copilot"]["default_model"] == "auto", "계정마다 쓸 수 있는 model 이 달라 기본은 CLI 에 맡긴다"
 
 
-# ── copilot: 감지 · 로그인 ────────────────────────────────────────────────
+# ── copilot: detection and sign-in ────────────────────────────────────────
 
 
 def _exe(path: Path) -> Path:

@@ -56,9 +56,9 @@
         return;
       }
     }
-    if (e.key === 'Escape' && e.defaultPrevented) return;   // 채팅 · 튜토리얼 · 검색이 이미 닫았다 (X-1)
+    if (e.key === 'Escape' && e.defaultPrevented) return;   // chat, tutorial or search already closed something
     if (e.key === 'Escape') {
-      /* home 에서는 무대를 되돌린다: 콘솔 (안 돌 때) 이 먼저, 그다음 답 (spec 2026-09-23 §5.7b). */
+      /* On home, Escape steps the stage back: the console first (when idle), then the answer. */
       if (!ns.currentApp) {
         if ((ns.closeHomeWork && ns.closeHomeWork()) ||
             (ns.closeHomeAnswer && ns.closeHomeAnswer())) e.preventDefault();

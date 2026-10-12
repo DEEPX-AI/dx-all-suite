@@ -43,4 +43,4 @@ ENABLE_PDF_EXPORT=1 mkdocs build     # → site/DX-AI-Studio-User-Manual.pdf
 - `docs_dir: source`, `site_dir: site` — generated HTML never touches the developer
   docs (`docs/architecture.md`, `docs/development.md`, `docs/testing.md`).
 - Screenshots live under `source/resources/` and are referenced relatively.
-- The logo/favicon is `source/img/deepx-logo.svg` (copied from the studio's own assets).
+- The logo is `source/img/deepx.png` (set in `mkdocs.yml`).

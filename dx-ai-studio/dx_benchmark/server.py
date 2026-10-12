@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""DX Benchmark 웹 서버 — 포트 8097.
+"""DX Benchmark web server — port 8097.
 
-YOLO26 하드웨어 벤치마크 대시보드 서버 (결과 조회·비교).
-이 서버는 순수 뷰어입니다: 번들된 dataset.json을 그대로 서빙하며 런타임 집계를
-수행하지 않습니다. 벤치마크 실행은 독립 실행형 dx-benchmark CLI에서 수행합니다
+Dashboard for YOLO26 hardware benchmarks (browse and compare results).
+This server is a pure viewer: it serves the bundled dataset.json as-is and does no
+aggregation at runtime. Benchmarks are run with the standalone dx-benchmark CLI
 (`cd dx-benchmark && ./run.sh run`).
-DXBaseHandler 기반.
+Built on DXBaseHandler.
 """
 
 import json
@@ -57,16 +57,16 @@ def _check_bundled_dataset():
 
 
 
-# ── 통합 App Shell (Option A) ──────────────────────────────────
-# 기존 .top-bar + .main-tabs 구조가 그대로 shell 헤더 + 탭 행으로 들어온다.
-# 라벨은 영어 원문 = i18n 사전 키. 아이콘 id는 shared/static/dx-icons.svg.
+# ── Shared App Shell ──────────────────────────────────────────
+# The .top-bar + .main-tabs structure becomes the shell header and tab row.
+# Labels are the English source text = i18n dictionary keys. Icon ids are in shared/static/dx-icons.svg.
 DX_BENCHMARK_PAGES = (
     ("dashboard", "Dashboard", "dashboard"),
     ("results", "Results", "folder"),
     ("settings", "Settings", "setup"),
 )
 
-# EdgeGuide 버튼은 dx_benchmark 고유 컨트롤이라 공유 헤더의 .toolbar 슬롯 안에 둔다.
+# The EdgeGuide button is specific to dx_benchmark, so it goes in the shared header's .toolbar slot.
 _EDGEGUIDE_BTN = (
     '<button id="edgeguideBtn" class="dx-toolbar-btn" title="DX EdgeGuide" aria-label="DX EdgeGuide">'
     '<svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#edge"></use></svg></button>'
@@ -80,7 +80,7 @@ DX_BENCHMARK_SHELL = ShellSpec(
 )
 
 class DXBenchmarkHandler(DXBaseHandler):
-    """DX Benchmark HTTP 요청 핸들러."""
+    """DX Benchmark HTTP request handler."""
 
     server_name = SERVER_NAME
     static_dir = STATIC_DIR
@@ -206,7 +206,7 @@ class DXBenchmarkHandler(DXBaseHandler):
 
 
 def create_server(port=DEFAULT_PORT):
-    """테스트용 서버 팩토리: HTTPServer 인스턴스를 반환."""
+    """Server factory for tests: returns an HTTPServer instance."""
     from http.server import ThreadingHTTPServer
     srv = ThreadingHTTPServer(("127.0.0.1", port), DXBenchmarkHandler)
     srv.daemon_threads = True

@@ -10,11 +10,10 @@ from tests.tutorial_e2e_runner import mock_left_over, run_ui_journey, summarize 
 
 JOURNEY_MODULES = [
     {
-        # 런처가 빠져 있었다. 이 브랜치가 가장 많이 다시 그린 화면인데, 그 튜토리얼을
-        # 구동하는 테스트가 하나도 없어서 홈 재설계가 지운 요소를 가리키는 스텝이
-        # 그대로 살아남았다 — 사용자에게는 4번이 건너뛰어지는 것으로 보였다.
-        # 스플래시를 먼저 건너뛰어야 한다: 오버레이가 DOM 에 있는 동안 튜토리얼
-        # 엔진이 열리지 않고(tutorial-init.js 의 셸 차단 조건), 인트로는 12초짜리다.
+        # Driving the launcher tour catches steps that point at elements a home redesign
+        # removed (users see such steps skipped). The splash must be skipped first: the
+        # tutorial engine will not open while its overlay is in the DOM (the shell block
+        # in tutorial-init.js), and the intro lasts 12 seconds.
         "id": "launcher",
         "server": "launcher",
         "setup": "() => {}",
@@ -45,7 +44,7 @@ JOURNEY_MODULES = [
         "ready": "() => typeof DXStream!=='undefined' && window._dxTutorial",
     },
     {
-        # 빠져 있었다 — Compiler 는 튜토리얼이 있는데 구동하는 테스트가 없었다 (2026-10-11 audit).
+        # Every module with a tutorial needs a journey here, Compiler included.
         "id": "dx_compiler",
         "server": "dx_compiler",
         "setup": "() => {}",
@@ -97,9 +96,9 @@ def browser():
 @pytest.fixture()
 def page(browser):
     ctx = browser.new_context(viewport={"width": 1920, "height": 1080})
-    # 런처만 해당된다. 12초짜리 인트로가 DOM 에 있는 동안 튜토리얼 엔진은 열리지
-    # 않고(tutorial-init.js), 자동 워크스루가 돌면 저니가 구동하는 투어와 싸운다.
-    # 다른 모듈에는 스플래시도 자동 워크스루도 없어 무해하다.
+    # Only matters for the launcher: the tutorial engine will not open while the 12-second
+    # intro is in the DOM (tutorial-init.js), and an auto walkthrough would fight the tour
+    # the journey drives. Other modules have neither, so this is harmless there.
     ctx.add_init_script(
         "try {"
         " sessionStorage.setItem('dx-splash-seen', '1');"
@@ -115,18 +114,15 @@ def page(browser):
         ctx.close()
 
 
-# 투어는 요소를 **픽셀 좌표로 겨눈다.** 번역문은 길이가 달라서 — `Re-download`
-# 가 `다시 다운로드` 가 되면 버튼이 커지고, 그 옆 요소가 접히거나 밀려난다 —
-# 영어에서만 맞고 다른 언어에서 어긋날 수 있다. 실제로 이번 세션에 ACTIONS 열
-# 하나가 71px 늘자 표 전체가 22% 밀리는 것을 봤다.
+# The tour aims at elements by **pixel coordinates.** Translations differ in length — when
+# `Re-download` becomes a longer phrase the button grows and its neighbors wrap or shift —
+# so a tour can be right in English and off in another language (one wider table column
+# can shift the whole table).
 #
-# 그런데 이 스위트는 오랫동안 `lang="en"` 하나만 돌렸다. 러너에는 `set_lang`
-# 헬퍼와 `lang` 인자가 **이미 있었는데** 테스트가 쓰지 않았다.
-#
-# 일본어를 고른 이유: 한국어·중국어보다 라벨이 길어지는 경향이 있고(가타카나
-# 외래어), 스페인어와 달리 줄바꿈 규칙이 달라 레이아웃을 더 흔든다.
-# 언어 하나당 8모듈 · 약 8분이므로 전 언어를 돌리지 않는다 — 깨지는 종류를
-# 찾는 것이 목적이지 전수 검증이 목적이 아니다.
+# Why Japanese: labels tend to run longer than Korean or Chinese (katakana loanwords), and
+# its line-break rules differ from Spanish, so it shakes the layout more. One language
+# costs ~8 minutes for 8 modules, so not every language runs — the goal is to find the
+# kinds of breakage, not to verify every language.
 JOURNEY_LANGS = ["en", "ja"]
 
 _JOURNEY_AXES = [(m, lang) for m in JOURNEY_MODULES for lang in JOURNEY_LANGS]
@@ -153,8 +149,8 @@ def test_tutorial_ui_journey_no_visual_defects(page, mod, lang):
         assert not failures, (
             f"{mod['id']} UI journey defects [{lang}]:\n" + "\n".join(failures[:30]))
 
-        # 주입한 프리뷰는 투어가 끝나면 사라져야 한다. 스텝이 살아 있는 동안의
-        # 존재는 정상이므로 analyze_step 이 아니라 여기서 센다.
+        # Injected previews must be gone once the tour ends. They are expected while their
+        # step is live, so they are counted here rather than in analyze_step.
         left = mock_left_over(page)
         assert not left, f"{mod['id']}[{lang}]: 투어 종료 후에도 남은 튜토리얼 주입 요소: {left}"
     finally:

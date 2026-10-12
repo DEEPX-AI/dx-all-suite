@@ -1,13 +1,10 @@
-"""home 의 Build 는 검색창이 아니라 작업을 시작하는 자리여야 한다.
+"""Home's Build must be a place to start work, not a search box.
 
-앞 작업에서 제목 위계를 잡고 입력을 17→21px 로 키웠는데도 "여전히 뭔지 안 보인다"
-는 평가를 받았다. 맞는 지적이었다 — 블록이 화면 900px 중 217px 를 쓰면서 여전히
-"검색창 하나" 로 읽혔다.
+A block taking 217px of a 900px screen can still read as "one search box". This file protects two
+things: that block is the largest thing on the first screen, and it takes several lines, not a one-line
+question.
 
-그래서 이 파일이 지키는 것은 두 가지다: 그 덩어리가 첫 화면에서 가장 크다는 것과,
-한 줄짜리 질문이 아니라 여러 줄을 쓸 수 있다는 것.
-
-모듈의 배치 (5×2, 좁으면 접힘) 는 test_home_stage_browser.py 가 본다.
+Module layout (5×2, collapsing when narrow) is checked by test_home_stage_browser.py.
 """
 from __future__ import annotations
 
@@ -68,7 +65,7 @@ def _h(page, sel):
 
 
 def test_the_build_block_is_the_largest_thing_on_the_first_screen(home):
-    """hero 가 양옆 위젯보다 커야 한다 — 제품의 주장이 상태보다 작은 자리를 쓰면 안 된다."""
+    """The hero must be larger than the side widgets; the product's claim must not take less room than status."""
     build = _h(home, "#homeStage")
     for widget in ("#homeDevice", "#homeMeasured"):
         other = _h(home, widget)
@@ -86,21 +83,21 @@ def test_you_can_write_more_than_one_line(home):
 
 
 def test_the_input_reads_at_least_as_large_as_the_subtitle(home):
-    """무대 (spec 2026-09-23 §5.2) 에서 가장 큰 글자는 56px 제목이다. 예전 계약 ("입력이 이
-    블록에서 가장 크다") 은 제목이 없던 판의 것이라, 입력이 부제보다 작아지지 않는 것만 남긴다."""
+    """On the stage the largest text is the 56px title, so what this contract keeps is that the input is not
+    smaller than the subtitle."""
     ask = home.evaluate(
         "() => parseFloat(getComputedStyle(document.getElementById('homeAsk')).fontSize)")
     note = home.evaluate(
         "() => { const e = document.querySelector('#homeStage .stage-sub');"
         " return e ? parseFloat(getComputedStyle(e).fontSize) : 0; }")
-    # 설명이 없으면 0 과 비교해 공짜로 통과한다 — 예전 판이 .ws-note 를 잃고 그랬다.
+    # Without a description this would compare against 0 and pass for free.
     assert note > 0, "hero 부제가 없다"
     assert ask >= note, f"입력 {ask}px 가 부제 {note}px 보다 작다"
     assert ask >= 21, f"입력 글자가 {ask}px — 작업 공간으로 읽히기에 작다"
 
 
 def test_the_examples_belong_to_the_input_not_the_page(home):
-    """칩이 입력 밖에 떠 있으면 무엇의 예시인지 보이지 않는다."""
+    """Chips floating outside the input do not say what they are examples of."""
     inside = home.evaluate(
         """() => {
           const chips = document.getElementById('homeAskChips');

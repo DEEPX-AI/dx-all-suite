@@ -1,4 +1,4 @@
-"""proxy.py dx_app 프록시 테스트"""
+"""proxy.py dx_app proxy tests"""
 import sys, pytest, socket
 from pathlib import Path
 from unittest.mock import patch, MagicMock
@@ -48,7 +48,7 @@ class TestProxyRequest:
 
     @patch("core.proxy.http.client.HTTPConnection")
     def test_proxy_error_response_has_content_length(self, mock_http):
-        """프록시 오류 JSON은 HTTP/1.1 클라이언트가 body 종료를 알 수 있어야 한다."""
+        """A proxy error JSON must let an HTTP/1.1 client tell where the body ends."""
         mock_http.return_value.getresponse.side_effect = TimeoutError("timed out")
         from core.proxy import proxy_request
         status, headers, body = proxy_request("POST", "/api/run")

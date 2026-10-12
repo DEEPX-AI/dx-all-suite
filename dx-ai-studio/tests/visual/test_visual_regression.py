@@ -1,6 +1,6 @@
-"""Pixel visual-regression gate — the ticket's Visual Regression requirement.
+"""Pixel visual-regression gate.
 
-What it is NOT: the existing tests/test_ux_visual_gate.py, which audits tutorial
+What it is NOT: tests/test_ux_visual_gate.py, which audits tutorial
 spotlight geometry through the DOM. That catches "the highlight points at nothing";
 it cannot catch "the header lost its border" or "the hub tiles shifted 20px".
 
@@ -47,9 +47,9 @@ ARTIFACT_DIR = Path(__file__).resolve().parents[2] / "var" / "visual-diffs"
 
 # Repeat captures of the same commit differ by EXACTLY 0 pixels on all nine
 # modules, so the threshold only has to absorb host-to-host AA jitter — and
-# baselines are per-host anyway. 0.02% was picked by measurement, not feel: at the
-# old 0.1% a global --accent change moved only 1 of 9 modules past the limit, i.e.
-# the gate would have waved through a palette change on eight pages.
+# baselines are per-host anyway. 0.02% is measured, not felt: at 0.1% a global
+# --accent change moves only 1 of 9 modules past the limit, i.e. the gate would
+# wave through a palette change on eight pages.
 MAX_CHANGED_RATIO = float(os.environ.get("DX_VISUAL_MAX_RATIO", "0.0002"))
 UPDATE = os.environ.get("DX_VISUAL_UPDATE") == "1"
 
@@ -79,9 +79,9 @@ def _capture(
         # Host state the page reads (spec["routes"]) is answered with a fixed payload.
         for pattern, payload in spec.get("routes", {}).items():
             ctx.route(pattern, _fixed_json(payload))
-        # 테마와 언어는 페이지 스크립트보다 먼저 확정돼야 첫 페인트가 맞다.
-        # dx-theme.js 는 <head>에서 즉시 data-theme 를 스탬프하므로, 여기서
-        # 심어두지 않으면 dark baseline이 light로 찍힌다.
+        # Theme and language must be settled before any page script for the first
+        # paint to be right. dx-theme.js stamps data-theme from <head> immediately, so
+        # without seeding them here a dark baseline is captured as light.
         ctx.add_init_script(
             "try {"
             f" localStorage.setItem('dx-theme', '{theme}');"
@@ -121,7 +121,7 @@ _AXES = axes()
 
 
 def test_axes_cover_every_module_theme_and_locale():
-    """축이 하나라도 빠지면 그 조합의 회귀는 영영 안 잡힌다."""
+    """If any axis is missing, regressions in that combination are never caught."""
     from tests.visual.baseline_spec import LOCALES, THEMES
 
     assert len(_AXES) == len(SPECS) * len(THEMES) * len(LOCALES)
@@ -178,10 +178,10 @@ def test_module_landing_page_matches_baseline(
 def test_module_landing_page_matches_baseline_at_width(
     visual_browser, module, width, tmp_path
 ):
-    """breakpoint 를 옮겼을 때 무엇이 달라지는지 볼 수 있게 하는 축.
+    """The axis that shows what changes when a breakpoint moves.
 
-    나머지 baseline 은 전부 1280 한 폭이라, 900 에서 접히던 화면을 960 으로
-    옮겨도 아무 테스트도 붉어지지 않는다. 여기 두 폭이 그 구간을 잡는다.
+    The other baselines are all 1280 wide, so moving a fold from 900 to 960 would
+    turn no test red. These widths cover those ranges.
     """
     engine, browser = visual_browser
     spec = SPECS[module]

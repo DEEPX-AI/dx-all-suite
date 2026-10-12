@@ -110,7 +110,7 @@
 .dx-lang-icon { font-size: var(--fs-md); line-height: 1; }
 .dx-lang-code { font-size: var(--fs-xs); }
 .dx-lang-arrow { font-size: var(--fs-2xs); opacity: 0.6; }
-/* sprite 아이콘 (dx-ico, 1em) 이 글자 줄 가운데에 서게 한다. */
+/* Centre sprite icons (dx-ico, 1em) on the text line. */
 .dx-lang-icon,
 .dx-lang-arrow { display: inline-flex; align-items: center; }
 

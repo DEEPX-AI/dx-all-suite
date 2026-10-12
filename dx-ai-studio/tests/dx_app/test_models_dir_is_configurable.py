@@ -1,23 +1,23 @@
-"""모델이 어디 설치돼 있는지는 설정으로 정할 수 있어야 한다.
+"""Where models are installed must be configurable.
 
-동기는 둘이다.
+Two reasons:
 
-1. **제품** — 모델은 크다(.dxnn 하나가 85MB 인 것도 있다). 다른 디스크에 두고
-   쓰고 싶다는 요구는 자연스럽다. 지금은 `dx_app/assets/models` 로 못박혀 있다.
+1. **Product** — models are large (a single .dxnn can be 85 MB), and keeping them on
+   another disk is a natural request.
 
-2. **테스트 결정성** — 이게 급한 쪽이다. dx_app 랜딩의 모델 표는 **로컬에 무엇이
-   설치돼 있는지** 에 따라 다르게 그려진다. models.js 의 `dl = !!runnable` 이
-   설치된 모델에만 C++/PYTHON/MODE 열을 켜고 ACTIONS 에 Graph 버튼을 더한다.
-   다섯 열의 폭이 달라져 표가 통째로 리플로우되고, 비주얼 베이스라인이 최대 22%
-   어긋났다. 원인은 UI 가 아니라 **테스트가 개발자 파일시스템이라는 통제되지 않은
-   입력을 그대로 찍고 있다**는 것이다.
+2. **Test determinism** — the dx_app landing model table renders differently
+   depending on **what is installed locally**: models.js's `dl = !!runnable` turns on
+   the C++/PYTHON/MODE columns and adds a Graph button to ACTIONS only for installed
+   models. Five columns change width, the whole table reflows, and visual baselines
+   drift by up to 22%. The cause is not the UI but tests capturing an uncontrolled
+   input, the developer's filesystem.
 
-   이 저장소는 같은 문제를 이미 한 번 풀었다 — `tests/server_helpers.py` 가
-   dx_monitor 에 `DX_MONITOR_SKIP_HARDWARE_INIT=1` 을 세워 실제 하드웨어 읽기를
-   끈다. dx_app 의 설치 모델도 같은 성격인데 통제하지 않았을 뿐이다.
+   The repo already handles the same problem for dx_monitor: `tests/server_helpers.py`
+   sets `DX_MONITOR_SKIP_HARDWARE_INIT=1` to turn off real hardware reads. dx_app's
+   installed models are the same kind of input.
 
-여기서는 운영 코드에 테스트 플래그를 심지 않는다. **경로를 설정 가능하게** 만들고
-테스트가 그 설정을 쓴다 — 같은 결과를 얻으면서 제품도 나아진다.
+No test flag goes into production code: the **path is configurable** and the tests
+use that setting — the same result, and a better product.
 """
 from __future__ import annotations
 
@@ -32,7 +32,7 @@ ENV = "DX_APP_MODELS_DIR"
 
 @pytest.fixture()
 def reloaded(monkeypatch):
-    """config/models 를 주어진 환경으로 다시 읽어 들인다."""
+    """Reload config/models under the given environment."""
 
     def _load(models_dir: str | None):
         if models_dir is None:
@@ -66,7 +66,7 @@ def test_the_env_moves_the_models_directory(reloaded, tmp_path):
 
 
 def test_a_model_is_not_installed_when_the_directory_is_empty(reloaded, tmp_path):
-    """이것이 비주얼 결정성의 핵심이다 — 실제 설치 여부와 무관하게 비어 보여야 한다."""
+    """The core of visual determinism — the table must look empty whatever is really installed."""
     _, models = reloaded(str(tmp_path))
     assert models._required_dxnn_exists("assets/models/espcn-x4_17x17.dxnn") is False
 
@@ -78,7 +78,7 @@ def test_a_model_is_installed_when_it_sits_in_the_configured_directory(reloaded,
 
 
 def test_chip_subdirectories_follow_the_configured_root(reloaded, tmp_path):
-    """q-pro / q-master 는 모델 디렉터리 **아래** 에 있다. 같이 따라와야 한다."""
+    """q-pro / q-master live **under** the models directory and must move with it."""
     (tmp_path / "q-pro").mkdir()
     (tmp_path / "q-pro" / "x.dxnn").write_bytes(b"x")
     _, models = reloaded(str(tmp_path))
@@ -86,12 +86,11 @@ def test_chip_subdirectories_follow_the_configured_root(reloaded, tmp_path):
 
 
 def test_paths_outside_the_models_tree_are_untouched(reloaded, tmp_path):
-    """이 설정은 **모델 디렉터리만** 옮긴다.
+    """This setting moves **only the models directory**.
 
-    assets/videos 나 sample/ 은 그대로 DX_APP_ROOT 기준이어야 한다 — 처음에
-    "밖을 가리키면 False" 라고 썼다가 틀렸다. 그 함수는 존재만 보고 확장자를
-    따지지 않으므로, 실재하는 sample 파일은 True 가 맞다. 확인할 것은
-    **어디로 해석되는가** 이지 존재 여부가 아니다.
+    assets/videos and sample/ stay relative to DX_APP_ROOT. The function checks
+    existence only and ignores the extension, so a real sample file is True;
+    what matters is **where it resolves**, not whether it exists.
     """
     config, _ = reloaded(str(tmp_path))
     assert config.ASSETS_DIR == config.DX_APP_ROOT / "assets"
@@ -99,5 +98,5 @@ def test_paths_outside_the_models_tree_are_untouched(reloaded, tmp_path):
         config.DX_APP_ROOT / "assets" / "videos" / "x.mp4"
     assert config.resolve_model_path("sample/img/sample_dog.jpg") == \
         config.DX_APP_ROOT / "sample" / "img" / "sample_dog.jpg"
-    # 그리고 모델 경로는 설정을 따른다 — 같은 함수가 둘을 갈라야 한다.
+    # and model paths follow the setting — the same function must tell the two apart.
     assert config.resolve_model_path("assets/models/x.dxnn") == tmp_path / "x.dxnn"

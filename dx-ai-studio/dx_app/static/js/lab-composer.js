@@ -212,7 +212,7 @@ window.LabComposer = (function () {
   }
 
   function labelFor(model) {
-    // 분류는 slug (face_landmark) 대신 고른 언어의 이름으로
+    // Show the category in the chosen language instead of the slug (face_landmark)
     return model.name + ' · ' + (typeof catText === 'function' ? catText(model.category) : model.category);
   }
 

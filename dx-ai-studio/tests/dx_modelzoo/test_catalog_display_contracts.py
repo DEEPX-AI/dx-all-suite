@@ -1,8 +1,8 @@
-"""새 카탈로그 데이터가 화면에 닿는 방식.
+"""How the catalog data reaches the screen.
 
-정적 계약이다 — 브라우저 없이 소스를 읽어 확인한다. 값이 맞게 계산되는지는
-test_metric_polarity.py 가, 파싱은 test_public_payload_parser.py 가 본다.
-여기서 지키는 것은 "그 데이터가 실제로 화면 코드에 배선됐는가" 다.
+Static contracts: they read the source, with no browser. test_metric_polarity.py checks
+that values are computed correctly and test_public_payload_parser.py checks parsing; this
+file checks that the data is actually wired into the UI code.
 """
 from __future__ import annotations
 
@@ -19,7 +19,7 @@ def _catalog():
 
 
 def test_table_gains_params_and_fps_per_watt_columns():
-    """FPS/W 는 데이터가 341/348 있는데 표시되지 않고 있었다. params 는 신규다."""
+    """The table shows FPS/W (present for most models) and params."""
     src = _catalog()
     headers = re.search(r"const headers = \[(.*?)\];", src, re.S)
     assert headers, "테이블 헤더 정의를 찾을 수 없다"
@@ -29,19 +29,19 @@ def test_table_gains_params_and_fps_per_watt_columns():
 
 
 def test_accuracy_is_shown_with_its_metric_name():
-    """`3.499`(NME) 와 `98.667`(Top-1) 이 한 칸에 섞여 있었다.
+    """One column holds values such as `3.499` (NME) and `98.667` (Top-1).
 
-    지표명이 없으면 두 값이 비교 가능해 보이지만 아니다. 값 옆에 지표를 적는다.
+    Without the metric name the two look comparable, but they are not, so each value carries its metric.
     """
     src = _catalog()
     assert "_accuracyWithMetric" in src, "지표명을 붙이는 경로가 없다"
 
 
 def test_sorting_never_compares_across_metrics():
-    """다른 지표끼리는 순서를 만들지 않는다.
+    """Values of different metrics are not ordered against each other.
 
-    정렬 비교자가 지표를 확인하지 않으면 NME 3.5 가 Top-1 98.6 보다 '작다'는
-    무의미한 순서가 나온다.
+    A comparator that ignores the metric would put NME 3.5 'below' Top-1 98.6,
+    an order that means nothing.
     """
     src = _catalog()
     assert "_compareAccuracy" in src, "정확도 전용 비교자가 없다"
@@ -58,7 +58,7 @@ def test_card_shows_accuracy_next_to_fps():
 
 
 def test_detail_has_a_tier_comparison():
-    """ONNX → Q-Lite → Q-Pro → Q-Master 를 한 줄에 놓아 양자화 비용을 보여준다."""
+    """ONNX → Q-Lite → Q-Pro → Q-Master on one row shows the cost of quantization."""
     src = DETAIL_JS.read_text(encoding="utf-8")
     assert "sectionTiers" in src, "tier 비교 섹션이 없다"
     for tier in ("qlite", "qpro", "qmaster"):
@@ -66,9 +66,9 @@ def test_detail_has_a_tier_comparison():
 
 
 def test_qmaster_chip_only_when_present():
-    """Q-Master 는 354개 중 15개뿐이다.
+    """Only a few models have Q-Master.
 
-    항상 칩을 그리면 대부분이 '없음' 이 되어 칩이 정보를 잃는다.
+    Drawing the chip always would make most chips read 'none', and the chip would carry no information.
     """
     src = _catalog()
     assert "qmaster" in src, "Q-Master 를 아는 코드가 없다"

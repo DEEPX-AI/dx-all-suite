@@ -1,10 +1,10 @@
 /**
- * DX Stream — 파이프라인 빌더 (bootstrap)
- * 모듈 로드 순서: state → api → serialization → renderer → bootstrap
- * contextmenu + touch 이벤트를 pipelineInit 에 바인딩한다.
+ * DX Stream — pipeline builder (bootstrap)
+ * Module load order: state → api → serialization → renderer → bootstrap
+ * Binds the contextmenu and touch events in pipelineInit.
  */
 
-/* contextmenu + touch 바인딩 */
+/* contextmenu + touch bindings */
 var _origPipelineInit = DXStream.pipelineInit;
 DXStream.pipelineInit = async function () {
     if (_origPipelineInit) await _origPipelineInit();

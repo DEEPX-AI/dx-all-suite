@@ -19,8 +19,8 @@
 
   /* Task vocabulary. The words on the left are what people type; the ids on the
      right are what the demos and the catalogue already call these tasks.
-     The studio speaks six languages, so the words do too (release audit L-15: a
-     Korean or Japanese sentence matched nothing and always went to the agent).
+     The studio speaks six languages, so the words do too — otherwise a Korean or
+     Japanese sentence would match nothing and always go to the agent.
      The longest word that appears wins — "face detection" is a face, not the
      "detection" of the first row. */
   var TASKS = [
