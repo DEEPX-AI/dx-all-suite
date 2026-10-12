@@ -1039,6 +1039,13 @@ def _package_download_metadata(package_result):
     }
 
 
+def _model_stores():
+    """Where inference finds models (config.resolve_model_path), so a model that runs can also be packaged."""
+    from shared import dx_app_layout
+    from shared.paths import SUITE_ROOT
+    return [config.MODELS_DIR] + dx_app_layout.model_locations(DX_APP_ROOT, SUITE_ROOT)
+
+
 def export_composer_package(tok, payload):
     """Export an owned ready Composer workflow as a portable package archive."""
     err = require_lab(tok)
@@ -1124,6 +1131,7 @@ def export_composer_package(tok, payload):
             source_root=DX_APP_ROOT,
             output_root=OUTPUTS_DIR,
             plugin_root=plugin_root,
+            model_roots=_model_stores(),
         )
         download = _package_download_metadata(package_result)
     except (OSError, RuntimeError, ValueError) as exc:

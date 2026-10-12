@@ -72,6 +72,29 @@ def _safe_source_file(source_root: Path, relative: object, label: str) -> Path:
     return resolved
 
 
+def _model_source_file(source_root: Path, model_file: object, model_roots) -> Path:
+    """The model under source_root, else in one of the model stores inference also reads (workspace/res/models,
+    DX_APP_MODELS_DIR). A store file must be a real .dxnn that stays inside its store."""
+    try:
+        return _safe_source_file(source_root, model_file, "model_file")
+    except ValueError as exc:
+        if "not found" not in str(exc) or not model_roots:
+            raise
+    path = _relative_path(model_file, "model_file")
+    rel = path.parts[2:] if path.parts[:2] == ("assets", "models") else path.parts
+    for root in model_roots:
+        root = Path(root).resolve(strict=False)
+        candidate = root.joinpath(*rel)
+        if not candidate.exists() and not candidate.is_symlink():
+            continue
+        resolved = candidate.resolve(strict=False)
+        if not _is_under(resolved, root) or not resolved.is_file() or resolved.suffix != ".dxnn":
+            raise ValueError("unsafe model_file: outside the model store")
+        if resolved.stat().st_size > 0:
+            return resolved
+    raise ValueError("model_file not found")
+
+
 def _safe_destination(package_dir: Path, relative: PurePosixPath) -> Path:
     destination = package_dir.joinpath(*relative.parts)
     if not _is_under(destination.resolve(strict=False), package_dir):
@@ -609,7 +632,8 @@ def validate_copy_out(package_dir, source_root=None):
     return copy_dir
 
 
-def build_workflow_package(workflow, package_type, source_root, output_root, *, plugin_root=None, keep_copy_out=False):
+def build_workflow_package(workflow, package_type, source_root, output_root, *, plugin_root=None, model_roots=None,
+                           keep_copy_out=False):
     """Build a self-contained run, developer, or recipe package.
 
     The caller's workflow is deep-copied before normalization and never mutated. The copy-out made to
@@ -653,7 +677,7 @@ def build_workflow_package(workflow, package_type, source_root, output_root, *, 
             model = local_workflow.get("model")
             if not isinstance(model, dict):
                 raise ValueError("workflow model is invalid")
-            model_source = _safe_source_file(source_root, model.get("model_file"), "model_file")
+            model_source = _model_source_file(source_root, model.get("model_file"), model_roots)
             model_target = PurePosixPath("models") / model_source.name
             _copy_regular(model_source, _safe_destination(package_dir, model_target))
             model["model_file"] = model_target.as_posix()
