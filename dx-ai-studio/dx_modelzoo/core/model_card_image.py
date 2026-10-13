@@ -1,4 +1,4 @@
-"""Example result image → webp for a dx_app example dir: ≤ 960 px, quality lowered until it fits the budget.
+"""Example result image → webp for a dx_app example dir: ≤ 800 px, quality lowered until it fits the budget.
 
 Contract: tests/dx_modelzoo/test_model_card_html.py
 """
@@ -10,7 +10,7 @@ from pathlib import Path
 
 from PIL import Image
 
-MAX_SIDE = 960
+MAX_SIDE = 800
 BUDGET = 60_000
 FLOOR = 60
 

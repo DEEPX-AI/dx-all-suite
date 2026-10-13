@@ -86,7 +86,7 @@ def test_webp_fits_the_budget(tmp_path):
     data = webp_bytes(src)
     assert data[:4] == b"RIFF" and len(data) <= 60_000
     from io import BytesIO
-    assert max(Image.open(BytesIO(data)).size) <= 960
+    assert max(Image.open(BytesIO(data)).size) == 800
     assert data == webp_bytes(src)          # deterministic, so --check is stable
 
 
