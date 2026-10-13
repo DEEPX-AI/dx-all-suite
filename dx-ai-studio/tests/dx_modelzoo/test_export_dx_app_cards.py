@@ -110,3 +110,40 @@ def test_setup_name_check_ignores_case(tmp_path):
     (app / "scripts/modelzoo_manifest.json").write_text(json.dumps([{"name": "YOLOv5m_Face"}]), encoding="utf-8")
     _, report = ex.build_outputs(app, [model], {}, [], data, "2026-10-13")
     assert report["setup_name_missing"] == []
+
+
+def test_dead_download_links_are_dropped_and_reported(tmp_path):
+    app, data, model = _tree(tmp_path)
+    dead = {"https://sdk.deepx.ai/modelzoo/q-lite-json/2_5_0/yolov5-m-face_640x640.json": 404,
+            "https://sdk.deepx.ai/modelzoo/q-pro-dxnn/2_4_0/yolov5-m-face_640x640.dxnn": 403}
+    asked = []
+
+    def url_ok(url):
+        asked.append(url)
+        status = dead.get(url, 200)
+        return status == 200, status
+
+    outputs, report = ex.build_outputs(app, [model], {}, [], data, "2026-10-13", url_ok=url_ok)
+    index = json.loads(outputs["config/model_cards.json"])["models"][0]["downloads"]
+    assert [t["tier"] for t in index["tiers"]] == ["qlite"]            # Q-Pro's dxnn is dead: the tier goes
+    assert index["tiers"][0]["json"] is None                          # a dead json becomes None
+    assert index["onnx"] == "https://sdk.deepx.ai/modelzoo/onnx/yolov5-m-face_640x640.onnx"
+    assert sorted(report["dead_links"]) == [
+        "yolov5-m-face_640x640: https://sdk.deepx.ai/modelzoo/q-lite-json/2_5_0/yolov5-m-face_640x640.json (404)",
+        "yolov5-m-face_640x640: https://sdk.deepx.ai/modelzoo/q-pro-dxnn/2_4_0/yolov5-m-face_640x640.dxnn (403)",
+    ]
+    assert len(asked) == len(set(asked)) == 4                          # each URL once
+    readme = outputs["src/python_example/face_detection/yolov5_face/yolov5-m-face_640x640/README.md"].decode()
+    assert "q-pro-dxnn" not in readme and "q-lite-json" not in readme
+
+
+def test_links_are_not_checked_by_default(tmp_path):
+    app, data, model = _tree(tmp_path)
+    outputs, report = ex.build_outputs(app, [model], {}, [], data, "2026-10-13")
+    assert report["dead_links"] == []
+    assert "q-pro-dxnn" in outputs["config/model_cards.json"].decode()
+
+
+def test_head_status_reports_a_network_error_instead_of_raising():
+    ok, status = ex.head_status("http://127.0.0.1:9/nothing.dxnn", timeout=2)
+    assert ok is False and status

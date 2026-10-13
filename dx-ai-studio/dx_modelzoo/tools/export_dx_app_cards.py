@@ -1,11 +1,14 @@
 """Write the dx_app example cards: README.md in every python and cpp example dir, model.html and result.webp in
 the python dir, MODELS.md and config/model_cards.json at the dx_app root.
 
-    python -m dx_modelzoo.tools.export_dx_app_cards [--dx-app PATH] [--check] [--only VARIANT ...] [--report FILE]
+    python -m dx_modelzoo.tools.export_dx_app_cards [--dx-app PATH] [--check] [--verify-links] [--only VARIANT ...]
+                                                     [--report FILE]
 
 --check writes nothing into the dx_app checkout and exits 1 when any file would change; --report FILE is still
 written, since it lives outside dx_app. The catalog must carry its generated_at date (the cards' "as of").
 A variant whose python example dir is missing is skipped and reported (no_python_dir), never created.
+--verify-links sends a HEAD to every download URL; one that does not answer 200 is left off the card and listed in
+the report's dead_links.
 Contract: tests/dx_modelzoo/test_export_dx_app_cards.py
 """
 from __future__ import annotations
@@ -13,7 +16,10 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path, PurePosixPath
+from urllib.error import HTTPError
+from urllib.request import HTTPRedirectHandler, Request, build_opener
 
 from dx_modelzoo.core.model_card import build_card, load_benchmark, load_registry, load_setup_names, rel_dir
 from dx_modelzoo.core.model_card_html import render_html
@@ -24,8 +30,72 @@ from dx_modelzoo.core.model_card_studio import category_label
 INDEX_FIELDS = ("variant", "zoo_name", "setup_name", "zoo_id", "zoo_task", "name", "task", "family", "input",
                 "dataset", "fps", "fps_per_watt", "license", "paths", "downloads")
 
+LINK_CHECK_THREADS = 8
+LINK_CHECK_TIMEOUT = 30
 
-def build_outputs(dx_app_root, models, categories, benchmark_rows, data_dir, asof, only=None):
+
+class _KeepHead(HTTPRedirectHandler):
+    """Follow a redirect with HEAD again; urllib's default turns it into a GET of the whole model file."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        new = super().redirect_request(req, fp, code, msg, headers, newurl)
+        if new is not None:
+            new.method = req.get_method()
+        return new
+
+
+def head_status(url, timeout=LINK_CHECK_TIMEOUT):
+    """(alive, status) for one download URL: alive only on HTTP 200; status is the code or the error's name."""
+    request = Request(url, method="HEAD", headers={"User-Agent": "DX-ModelZoo-Cards/1.0"})
+    try:
+        with build_opener(_KeepHead).open(request, timeout=timeout) as response:
+            status = getattr(response, "status", 200)
+    except HTTPError as exc:
+        status = exc.code
+    except Exception as exc:  # noqa: BLE001 — any network failure means the link is not usable
+        return False, type(exc).__name__
+    return status == 200, status
+
+
+def _card_urls(card):
+    links = card["downloads"]
+    urls = [links.get("onnx")]
+    for tier in links["tiers"]:
+        urls += [tier["dxnn"], tier.get("json")]
+    return [u for u in urls if u]
+
+
+def drop_dead_links(cards, url_ok):
+    """Check every download URL once (LINK_CHECK_THREADS at a time) and take the dead ones off the cards. A tier
+    whose dxnn is dead goes; a dead json or onnx becomes None. Returns ["variant: url (status)", ...]."""
+    urls = sorted({u for card in cards for u in _card_urls(card)})
+    with ThreadPoolExecutor(max_workers=LINK_CHECK_THREADS) as pool:
+        result = dict(zip(urls, pool.map(url_ok, urls)))
+    dead = []
+    for card in cards:
+        def alive(url, variant=card["variant"]):
+            if not url:
+                return url
+            ok, status = result[url]
+            if not ok:
+                dead.append(f"{variant}: {url} ({status})")
+            return url if ok else None
+
+        links = card["downloads"]
+        links["onnx"] = alive(links.get("onnx"))
+        tiers = []
+        for tier in links["tiers"]:
+            if alive(tier["dxnn"]):
+                tiers.append(dict(tier, json=alive(tier.get("json"))))
+            elif tier.get("json"):
+                alive(tier["json"])
+        links["tiers"] = tiers
+    return dead
+
+
+def build_outputs(dx_app_root, models, categories, benchmark_rows, data_dir, asof, only=None, url_ok=None):
+    """url_ok: callable url -> (alive, status) used to drop dead download links (head_status for real); None skips
+    the check."""
     root = Path(dx_app_root)
     registry = load_registry(root)
     names, setup_names = load_setup_names(root)
@@ -37,7 +107,7 @@ def build_outputs(dx_app_root, models, categories, benchmark_rows, data_dir, aso
     outputs, cards = {}, []
     report = {"count": 0, "no_studio_model": [], "missing_image": [], "unpublished": [], "setup_name_missing": [],
               "sample_is_dir": [], "no_sample": [], "accuracy_warnings": [], "metric_count_mismatch": [],
-              "no_python_dir": []}
+              "no_python_dir": [], "dead_links": []}
     for variant in sorted(registry):
         if only and variant not in only:
             continue
@@ -48,10 +118,14 @@ def build_outputs(dx_app_root, models, categories, benchmark_rows, data_dir, aso
         card = build_card(model, row, root, benchmark_rows=benchmark_rows,
                           setup_name=setup_names.get(PurePosixPath(row["dxnn_file"]).name),
                           task_label=category_label(categories, model.get("category"), "en"), asof=asof)
-        py, cpp = card["paths"]["python"], card["paths"]["cpp"]
-        if not (root / py).is_dir():
+        if not (root / card["paths"]["python"]).is_dir():
             report["no_python_dir"].append(variant)
             continue
+        cards.append((card, model))
+    if url_ok is not None:
+        report["dead_links"] = drop_dead_links([card for card, _ in cards], url_ok)
+    for card, model in cards:
+        variant, py, cpp = card["variant"], card["paths"]["python"], card["paths"]["cpp"]
         image = example_image(model, data_dir)
         card["has_image"] = image is not None
         if image is not None:
@@ -77,7 +151,7 @@ def build_outputs(dx_app_root, models, categories, benchmark_rows, data_dir, aso
             report["metric_count_mismatch"].append(f"{variant}: {counts['names']} metric names, {counts['values']} values")
         for w in card["accuracy"]["warnings"]:
             report["accuracy_warnings"].append(f"{variant}: {w['tier']} −{w['drop']:.2f} on {w['metric']}")
-        cards.append(card)
+    cards = [card for card, _ in cards]
     report["count"] = len(cards)
     if not only:
         outputs["MODELS.md"] = render_index(cards, asof).encode("utf-8")
@@ -110,6 +184,8 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--dx-app", default=str(DX_APP_ROOT))
     parser.add_argument("--check", action="store_true")
+    parser.add_argument("--verify-links", action="store_true",
+                        help="HEAD every download URL and leave dead ones off the cards")
     parser.add_argument("--only", nargs="*")
     parser.add_argument("--report")
     args = parser.parse_args(argv)
@@ -120,14 +196,16 @@ def main(argv=None):
     catalog = get_catalog()
     outputs, report = build_outputs(args.dx_app, catalog["models"], catalog.get("categories") or {},
                                     load_benchmark(STUDIO_ROOT / "dx_benchmark" / "dataset.json"), DATA_DIR, asof,
-                                    only=set(args.only) if args.only else None)
+                                    only=set(args.only) if args.only else None,
+                                    url_ok=head_status if args.verify_links else None)
     if args.report:
         Path(args.report).write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     if args.check:
         changed = changed_outputs(args.dx_app, outputs)
         for rel in changed:
             print(f"would change: {rel}")
-        print(f"{report['count']} cards, {len(changed)} files would change")
+        print(f"{report['count']} cards, {len(changed)} files would change, "
+              f"{len(report['dead_links'])} dead links left off")
         return 1 if changed else 0
     write_outputs(args.dx_app, outputs)
     print(f"{report['count']} cards, {len(outputs)} files written to {args.dx_app}")
