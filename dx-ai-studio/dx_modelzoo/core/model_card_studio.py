@@ -19,6 +19,10 @@ class DxAppMissing(Exception):
     """The dx_app checkout (its model registry) is not there; the server answers 503."""
 
 
+class NoDxAppExample(Exception):
+    """This model has no example in the dx_app registry; the server answers 404."""
+
+
 def category_label(categories, category_id, lang="en"):
     if isinstance(categories, dict):
         info = categories.get(category_id) or {}
@@ -28,7 +32,7 @@ def category_label(categories, category_id, lang="en"):
 
 
 def studio_card(model, categories, payload, *, dx_app_root, data_dir, benchmark_path, asof=None):
-    """→ (html, filename). LookupError when this model has no dx_app example, DxAppMissing without a dx_app
+    """→ (html, filename). NoDxAppExample when this model has no dx_app example, DxAppMissing without a dx_app
     checkout. asof: the catalog date, or None (the footer then leaves the date out)."""
     payload = payload if isinstance(payload, dict) else {}
     lang = payload.get("lang") if payload.get("lang") in SUPPORTED_LANGS else "en"
@@ -39,7 +43,7 @@ def studio_card(model, categories, payload, *, dx_app_root, data_dir, benchmark_
         raise DxAppMissing(str(dx_app_root)) from exc
     row = registry.get(variant)
     if row is None:
-        raise LookupError(variant or model.get("id"))
+        raise NoDxAppExample(variant or model.get("id"))
     task_label = payload.get("task_label")
     if not isinstance(task_label, str) or not 0 < len(task_label) <= 80:
         task_label = category_label(categories, model.get("category"), lang)

@@ -9,13 +9,23 @@ from urllib.request import Request, urlopen
 
 import pytest
 
-from dx_modelzoo.core.model_card_studio import DxAppMissing, studio_card
+from dx_modelzoo.core.model_card_studio import DxAppMissing, NoDxAppExample, studio_card
 from shared.paths import DX_APP_ROOT
 
 MODULE_DIR = Path(__file__).resolve().parents[2] / "dx_modelzoo"
 def test_studio_card_without_a_dx_app_checkout(tmp_path):
     model = {"id": "x", "demo": {"python_example": "src/python_example/a/b/x/"}}
     with pytest.raises(DxAppMissing):
+        studio_card(model, {}, {}, dx_app_root=tmp_path, data_dir=tmp_path, benchmark_path=tmp_path / "none.json",
+                    asof=None)
+
+
+def test_studio_card_without_a_dx_app_example(tmp_path):
+    (tmp_path / "config").mkdir()
+    (tmp_path / "config" / "model_registry.json").write_text(
+        json.dumps([{"dxnn_file": "other.dxnn", "model_name": "other"}]), encoding="utf-8")
+    model = {"id": "x", "demo": {"python_example": "src/python_example/a/b/x/"}}
+    with pytest.raises(NoDxAppExample):
         studio_card(model, {}, {}, dx_app_root=tmp_path, data_dir=tmp_path, benchmark_path=tmp_path / "none.json",
                     asof=None)
 
@@ -95,3 +105,48 @@ def test_bad_requests(port):
         urlopen(Request(f"http://127.0.0.1:{port}/api/model_card/yolo26n", data=b"{not json", method="POST",
                         headers={"Content-Type": "application/json"}), timeout=30)
     assert broken.value.code == 400
+
+
+def test_no_dx_app_example_is_404(port, monkeypatch):
+    # Every catalog model has a dx_app example today, so the registry is emptied for this request.
+    monkeypatch.setattr("dx_modelzoo.core.model_card_studio.load_registry", lambda root: {})
+    with pytest.raises(HTTPError) as missing:
+        _post(port, "/api/model_card/yolo26n", {})
+    assert missing.value.code == 404
+    assert json.loads(missing.value.read())["error"] == "No dx_app example for this model"
+
+
+def test_other_errors_are_500(port, monkeypatch):
+    # A registry row without dxnn_file is a KeyError (a LookupError): a server fault, not "no example".
+    class EmptyRows(dict):
+        def get(self, key, default=None):
+            return {}
+
+    monkeypatch.setattr("dx_modelzoo.core.model_card_studio.load_registry", lambda root: EmptyRows())
+    with pytest.raises(HTTPError) as fault:
+        _post(port, "/api/model_card/yolo26n", {})
+    assert fault.value.code == 500
+
+
+def test_unsupported_lang_falls_back_to_english(port):
+    page = _post(port, "/api/model_card/yolo26n", {"lang": "xx-evil\"><script>"}).read().decode()
+    assert '<html lang="en">' in page and "xx-evil" not in page
+
+
+@pytest.mark.parametrize("task_label", ["T" * 81, 42, ["Detection"], ""])
+def test_bad_task_label_falls_back_to_the_category(port, task_label):
+    page = _post(port, "/api/model_card/yolo26n", {"task_label": task_label}).read().decode()
+    assert "Object Detection" in page and "T" * 81 not in page and ">42<" not in page
+
+
+def test_card_has_no_cpp_or_readme_link(port):
+    page = _post(port, "/api/model_card/yolo26n", {}).read().decode()
+    assert "C++ version of this example" not in page and ">README<" not in page and 'href="README.md"' not in page
+
+
+def test_cross_origin_post_is_refused(port):
+    req = Request(f"http://127.0.0.1:{port}/api/model_card/yolo26n", data=b"{}", method="POST",
+                  headers={"Content-Type": "application/json", "Origin": "http://evil.example"})
+    with pytest.raises(HTTPError) as refused:
+        urlopen(req, timeout=30)
+    assert refused.value.code == 403

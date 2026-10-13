@@ -24,7 +24,7 @@ from dx_modelzoo.core.catalog import (
 from dx_modelzoo.core.proxy import proxy_request, is_dx_app_alive, is_safe_model_id
 from dx_modelzoo.metadata.sanitize import sanitize_browser_model
 from dx_modelzoo.core.model_card_labels import LABELS as MODEL_CARD_LABELS
-from dx_modelzoo.core.model_card_studio import DxAppMissing, studio_card
+from dx_modelzoo.core.model_card_studio import DxAppMissing, NoDxAppExample, studio_card
 from shared.paths import STUDIO_ROOT
 from shared.shell import ShellSpec
 
@@ -329,7 +329,7 @@ class ModelZooHandler(DXBaseHandler):
                                          asof=str(cat.get("generated_at") or "")[:10] or None)
         except DxAppMissing:
             return self.send_json({"ok": False, "error": "The dx_app checkout is missing", "code": "DX_APP_MISSING"}, 503)
-        except LookupError:
+        except NoDxAppExample:
             return self.send_json({"ok": False, "error": "No dx_app example for this model", "code": "MODEL_NOT_FOUND"}, 404)
         return self.send_bytes(html.encode("utf-8"), "text/html; charset=utf-8", filename=filename)
 
