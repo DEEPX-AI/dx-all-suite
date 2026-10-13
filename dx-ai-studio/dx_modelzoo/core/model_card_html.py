@@ -9,7 +9,7 @@ import html as _html
 import re
 
 from dx_modelzoo.core.model_card import commands, fmt_delta, fmt_fps, fmt_input, fmt_num
-from dx_modelzoo.core.model_card_labels import CATALOG_NUMBERS, boards_footer, boards_note, generated_note, t
+from dx_modelzoo.core.model_card_labels import CATALOG_NUMBERS, boards_footer, boards_note, generated_note, lede, measured_note, t
 from dx_modelzoo.core.model_card_md import HEADER
 
 _DARK = ("--page:#000;--panel:#161617;--ink:#f5f5f7;--ink2:#d2d2d7;--muted:#a1a1a6;--line:#2c2c2e;"
@@ -179,8 +179,7 @@ def render_html(card, *, labels=None, lang="en", image_src=None, readme_href="RE
                     tier=w["tier"], drop=f"{w['drop']:.2f}", metric=w["metric"])
         accuracy += f"<p class=warn>{_e(warning)}</p>"
     if card["fps"] is not None:
-        measured = t(L, "{fps} FPS and {fpsw} FPS/W on DX-M1, DX Model Zoo reference measurement.",
-                     fps=fmt_fps(card["fps"]), fpsw=fmt_num(card["fps_per_watt"], 1))
+        measured = measured_note(card, L)
         throughput = f"<p class=sub>{_e(measured)}</p>"
     else:
         throughput = (f"<p class=empty>{_e(t(L, 'Throughput for this model is not published yet. Measure it on your board:'))}</p>"
@@ -238,7 +237,7 @@ def render_html(card, *, labels=None, lang="en", image_src=None, readme_href="RE
 <body><div class=page>
 <div class=top><div class=crumb><span>{_e(t(L, 'DX-APP example'))}</span><span>·</span><span>{_e(card['task_label'])}</span>
 <span>·</span><code>{_wbr(card['variant'])}</code></div><button class=theme type=button>{_e(t(L, 'Theme'))}</button></div>
-<section class=hero><div><h1>{_e(card['name']).replace('_', '_<wbr>')}</h1><p class=lede>{_e(card['summary'])}</p>{notice}
+<section class=hero><div><h1>{_e(card['name']).replace('_', '_<wbr>')}</h1><p class=lede>{_e(lede(card, L))}</p>{notice}
 <ul class=chips>{chips}</ul><div class=actions>{''.join(actions)}</div></div>{shot}</section>
 <div class=kpis>{kpi_html}</div>
 <div class=cols><main>

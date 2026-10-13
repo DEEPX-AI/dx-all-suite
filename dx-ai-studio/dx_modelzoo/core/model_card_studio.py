@@ -7,8 +7,8 @@ from __future__ import annotations
 import base64
 from pathlib import PurePosixPath
 
-from dx_modelzoo.core.model_card import (build_card, load_benchmark, load_manifest_urls, load_registry,
-                                         load_setup_names, manifest_url_for)
+from dx_modelzoo.core.model_card import (build_card, drop_dead_links, known_dead, load_benchmark, load_dead_links,
+                                         load_manifest_urls, load_registry, load_setup_names, manifest_url_for)
 from dx_modelzoo.core.model_card_html import render_html
 from dx_modelzoo.core.model_card_image import example_image, webp_bytes
 from dx_modelzoo.core.model_card_labels import clean_labels
@@ -53,6 +53,10 @@ def studio_card(model, categories, payload, *, dx_app_root, data_dir, benchmark_
     card = build_card(model, row, dx_app_root, benchmark_rows=load_benchmark(benchmark_path), setup_name=setup_name,
                       manifest_url=manifest_url_for(load_manifest_urls(dx_app_root), row),
                       task_label=task_label, asof=asof, lang=lang)
+    dead = load_dead_links(dx_app_root)
+    if dead:
+        # The links the dx_app cards leave off (their last --verify-links run), so both cards list the same downloads.
+        drop_dead_links([card], known_dead(dead))
     image = example_image(model, data_dir)
     card["has_image"] = image is not None
     src = "data:image/webp;base64," + base64.b64encode(webp_bytes(image)).decode() if image else None

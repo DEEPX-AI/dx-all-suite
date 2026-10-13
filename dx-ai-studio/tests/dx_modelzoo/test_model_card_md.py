@@ -21,7 +21,8 @@ def test_python_readme(app):
     assert "| Q-Lite | 95.57 (±0.00) | 94.14 (+0.01) | 86.33 (−0.01) |" in md
     assert "Q-Pro is 7.57 points below Raw on AP(Easy)." in md
     assert "[C++ version of this example](../../../../cpp_example/face_detection/yolov5_face/yolov5-m-face_640x640/)" in md
-    assert "[model.html](model.html)" in md
+    assert "[model.html](model.html)" in md and "open it in a browser" in md   # GitHub shows its source
+    assert "on DX-M1, DX Model Zoo reference measurement (publish table, 2026-10-13)." in md
     assert "devops.dpx.ai" not in md
     assert "GPL-3.0 (GNU GPL v3) · © deepcam-cn. Check the upstream license" in md    # no "— —" without a source
     assert "\n\n\n" not in md                                                         # no boards: one blank line
@@ -64,8 +65,9 @@ def test_unpublished_note_in_performance(app):
     md = render_markdown(card, "python")
     perf = md[md.index("## Performance"):md.index("## Model")]
     assert "Numbers from the DX AI Studio catalog; this model is not in the DX Model Zoo publish table." in perf
+    assert "(publish table," not in perf                     # catalog numbers carry no publish-table date
     md = render_markdown(_card(app), "python")
-    assert "publish table" not in md[md.index("## Performance"):md.index("## Model")]
+    assert "Numbers from the DX AI Studio catalog" not in md[md.index("## Performance"):md.index("## Model")]
 
 
 def test_no_cpp_dir_no_cpp_link(app):
@@ -95,6 +97,16 @@ def test_index_links_every_card(app):
     assert "## Face Detection" in md
     assert "[Python](src/python_example/face_detection/yolov5_face/yolov5-m-face_640x640/README.md)" in md
     assert "[C++](src/cpp_example/face_detection/yolov5_face/yolov5-m-face_640x640/README.md)" in md
+    assert "[Q-Lite DXNN](https://sdk.deepx.ai/modelzoo/q-lite-dxnn/2_5_0/yolov5-m-face_640x640.dxnn)" in md
+
+
+def test_index_download_falls_back_to_the_manifest_or_a_dash(app):
+    card = _card(app)
+    card["downloads"]["tiers"] = []
+    card["downloads"]["manifest"] = {"dxnn": "https://sdk.deepx.ai/modelzoo/dxnn/2_4_0/x.dxnn", "compiler": "2.4.0"}
+    assert "[DXNN](https://sdk.deepx.ai/modelzoo/dxnn/2_4_0/x.dxnn)" in render_index([card], "2026-10-13")
+    card["downloads"]["manifest"] = None
+    assert "| — | [Python]" in render_index([card], "2026-10-13")
 
 
 def test_labels():

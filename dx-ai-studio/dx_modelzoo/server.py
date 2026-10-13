@@ -23,6 +23,7 @@ from dx_modelzoo.core.catalog import (
 )
 from dx_modelzoo.core.proxy import proxy_request, is_dx_app_alive, is_safe_model_id
 from dx_modelzoo.metadata.sanitize import sanitize_browser_model
+from dx_modelzoo.core.model_card import catalog_date
 from dx_modelzoo.core.model_card_labels import LABELS as MODEL_CARD_LABELS
 from dx_modelzoo.core.model_card_studio import DxAppMissing, NoDxAppExample, studio_card
 from shared.paths import STUDIO_ROOT
@@ -326,7 +327,7 @@ class ModelZooHandler(DXBaseHandler):
             html, filename = studio_card(model, cat.get("categories") or {}, payload, dx_app_root=DX_APP_ROOT,
                                          data_dir=DATA_DIR,
                                          benchmark_path=STUDIO_ROOT / "dx_benchmark" / "dataset.json",
-                                         asof=str(cat.get("generated_at") or "")[:10] or None)
+                                         asof=catalog_date(cat.get("generated_at")))
         except DxAppMissing:
             return self.send_json({"ok": False, "error": "The dx_app checkout is missing", "code": "DX_APP_MISSING"}, 503)
         except NoDxAppExample:

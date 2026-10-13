@@ -4,6 +4,7 @@ import json
 import pytest
 
 from dx_modelzoo.core import model_card as mc
+from dx_modelzoo.core.model_card_labels import lede
 
 MODEL = {
     "id": "yolov5m_face", "category": "face_detection", "name": "YOLOv5-m-face",
@@ -62,8 +63,10 @@ def test_downloads_carry_compiler_versions_and_internal_links_are_dropped(app):
 def test_summary_fixes_the_article_and_falls_back(app):
     assert mc.build_card(MODEL, ROW, app, asof="2026-10-13")["summary"] == "YOLOv5-m-face is an object detector."
     bare = dict(MODEL, display={"name": "X"})
-    assert mc.build_card(bare, ROW, app, task_label="Face Detection", asof="2026-10-13")["summary"] == \
-        "X — face detection model, trained on WiderFace."
+    card = mc.build_card(bare, ROW, app, task_label="Face Detection", asof="2026-10-13")
+    assert card["summary"] == ""
+    # The dataset is the one the accuracy was measured on, not necessarily the training set.
+    assert lede(card) == "Face Detection model, evaluated on WiderFace."
 
 
 @pytest.mark.parametrize("text, fixed", [
@@ -76,6 +79,26 @@ def test_summary_fixes_the_article_and_falls_back(app):
 ])
 def test_the_article_only_changes_before_vowel_sounds(text, fixed):
     assert mc.summary({"display": {"summary": {"en": text}}}) == fixed
+
+
+def test_the_fallback_lede_is_translated_and_keeps_the_task_label_as_is(app):
+    bare = dict(MODEL, display={"name": "X"})
+    card = mc.build_card(bare, ROW, app, task_label="3D 객체 탐지", asof="2026-10-13", lang="ko")
+    ko = {"{task} model, evaluated on {dataset}.": "{task} 모델, {dataset}로 평가."}
+    assert lede(card, ko) == "3D 객체 탐지 모델, WiderFace로 평가."
+    card = mc.build_card(bare, ROW, app, task_label="3D Object Detection", asof="2026-10-13")
+    assert lede(card) == "3D Object Detection model, evaluated on WiderFace."
+    card["dataset"] = None
+    assert lede(card) == "3D Object Detection model."
+
+
+def test_catalog_date_is_the_local_day():
+    from datetime import timedelta, timezone
+    kst = timezone(timedelta(hours=9))
+    assert mc.catalog_date("2026-10-12T20:00:00+00:00", tz=kst) == "2026-10-13"
+    assert mc.catalog_date("2026-10-13T05:00:18.427410+00:00", tz=kst) == "2026-10-13"
+    assert mc.catalog_date("2026-10-13", tz=kst) == "2026-10-13"
+    assert mc.catalog_date("", tz=kst) is None and mc.catalog_date(None) is None
 
 
 def test_asof_is_required(app):
@@ -101,7 +124,7 @@ def test_unpublished_cards_use_the_registry_name_and_the_fallback_summary(app):
                          asof="2026-10-13")
     assert card["published"] is False
     assert card["name"] == "YOLOv5m_Face"
-    assert card["summary"] == "YOLOv5m_Face — face detection model, trained on WiderFace."
+    assert lede(card) == "Face Detection model, evaluated on WiderFace."
     assert card["params"] == 21.04 and card["accuracy"]["rows"]
     card = mc.build_card(studio_only, ROW, app, asof="2026-10-13")
     assert card["name"] == "yolov5-m-face_640x640"
@@ -207,8 +230,8 @@ def test_manifest_urls_match_the_dxnn_file_name_ignoring_case(tmp_path):
 ])
 def test_studio_template_summaries_give_way_to_the_fallback(app, generic):
     model = dict(MODEL, display=dict(MODEL["display"], summary={"en": generic}))
-    assert mc.build_card(model, ROW, app, task_label="Face Detection", asof="2026-10-13")["summary"] == \
-        "YOLOv5-m-face — face detection model, trained on WiderFace."
+    assert lede(mc.build_card(model, ROW, app, task_label="Face Detection", asof="2026-10-13")) == \
+        "Face Detection model, evaluated on WiderFace."
 
 
 def test_a_kept_summary_reads_task_keys_as_words(app):

@@ -7,8 +7,9 @@ the python dir, MODELS.md and config/model_cards.json at the dx_app root.
 --check writes nothing into the dx_app checkout and exits 1 when any file would change; --report FILE is still
 written, since it lives outside dx_app. The catalog must carry its generated_at date (the cards' "as of").
 A variant whose python example dir is missing is skipped and reported (no_python_dir), never created.
---verify-links sends a HEAD to every download URL; one that does not answer 200 is left off the card and listed in
-the report's dead_links.
+--verify-links sends a HEAD to every download URL; one that does not answer 200 is left off the card, listed in
+the report's dead_links and stored in config/model_cards.json. Without it (--check included) the stored list is
+applied again, so a run without the network writes the same cards; Studio's Save as HTML applies it too.
 Contract: tests/dx_modelzoo/test_export_dx_app_cards.py
 """
 from __future__ import annotations
@@ -16,13 +17,13 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path, PurePosixPath
 from urllib.error import HTTPError
 from urllib.request import HTTPRedirectHandler, Request, build_opener
 
-from dx_modelzoo.core.model_card import (build_card, load_benchmark, load_manifest_urls, load_registry,
-                                         load_setup_names, manifest_url_for, rel_dir)
+from dx_modelzoo.core.model_card import (build_card, catalog_date, drop_dead_links, known_dead, load_benchmark,
+                                         load_dead_links, load_manifest_urls, load_registry, load_setup_names,
+                                         manifest_url_for, rel_dir)
 from dx_modelzoo.core.model_card_html import render_html
 from dx_modelzoo.core.model_card_image import example_image, webp_bytes
 from dx_modelzoo.core.model_card_md import render_index, render_markdown
@@ -58,42 +59,11 @@ def head_status(url, timeout=LINK_CHECK_TIMEOUT):
     return status == 200, status
 
 
-def _card_urls(card):
-    links = card["downloads"]
-    urls = [links.get("onnx"), (links.get("manifest") or {}).get("dxnn")]
-    for tier in links["tiers"]:
-        urls += [tier["dxnn"], tier.get("json")]
-    return [u for u in urls if u]
-
-
-def drop_dead_links(cards, url_ok):
-    """Check every download URL once (LINK_CHECK_THREADS at a time) and take the dead ones off the cards. A tier
-    whose dxnn is dead goes; a dead json, onnx or manifest download becomes None. Returns ["variant: url (status)", ...]."""
-    urls = sorted({u for card in cards for u in _card_urls(card)})
-    with ThreadPoolExecutor(max_workers=LINK_CHECK_THREADS) as pool:
-        result = dict(zip(urls, pool.map(url_ok, urls)))
-    dead = []
-    for card in cards:
-        def alive(url, variant=card["variant"]):
-            if not url:
-                return url
-            ok, status = result[url]
-            if not ok:
-                dead.append(f"{variant}: {url} ({status})")
-            return url if ok else None
-
-        links = card["downloads"]
-        links["onnx"] = alive(links.get("onnx"))
-        if links.get("manifest") and not alive(links["manifest"]["dxnn"]):
-            links["manifest"] = None
-        tiers = []
-        for tier in links["tiers"]:
-            if alive(tier["dxnn"]):
-                tiers.append(dict(tier, json=alive(tier.get("json"))))
-            elif tier.get("json"):
-                alive(tier["json"])
-        links["tiers"] = tiers
-    return dead
+def stored_dead_links(dx_app_root):
+    """url_ok that applies the dead links the last --verify-links run stored in config/model_cards.json, so a run
+    without the network (--check included) writes the same cards; None without an index."""
+    dead = load_dead_links(dx_app_root)
+    return None if dead is None else known_dead(dead)
 
 
 def build_outputs(dx_app_root, models, categories, benchmark_rows, data_dir, asof, only=None, url_ok=None):
@@ -127,8 +97,10 @@ def build_outputs(dx_app_root, models, categories, benchmark_rows, data_dir, aso
             report["no_python_dir"].append(variant)
             continue
         cards.append((card, model))
+    dead_urls = []
     if url_ok is not None:
-        report["dead_links"] = drop_dead_links([card for card, _ in cards], url_ok)
+        report["dead_links"], dead_urls = drop_dead_links([card for card, _ in cards], url_ok,
+                                                                    LINK_CHECK_THREADS)
     for card, model in cards:
         variant, py, cpp = card["variant"], card["paths"]["python"], card["paths"]["cpp"]
         image = example_image(model, data_dir)
@@ -161,7 +133,7 @@ def build_outputs(dx_app_root, models, categories, benchmark_rows, data_dir, aso
     report["count"] = len(cards)
     if not only:
         outputs["MODELS.md"] = render_index(cards, asof).encode("utf-8")
-        index = {"generated_from": "DX Model Zoo publish table", "asof": asof,
+        index = {"generated_from": "DX Model Zoo publish table", "asof": asof, "dead_links": dead_urls,
                  "models": [{k: c[k] for k in INDEX_FIELDS} for c in cards]}
         outputs["config/model_cards.json"] = (json.dumps(index, indent=2, ensure_ascii=False) + "\n").encode("utf-8")
     return outputs, report
@@ -196,14 +168,14 @@ def main(argv=None):
     parser.add_argument("--report")
     args = parser.parse_args(argv)
     generated = load_generated_catalog() or {}
-    asof = str(generated.get("generated_at") or "")[:10]
+    asof = catalog_date(generated.get("generated_at"))
     if not asof:
         parser.error("the generated catalog has no generated_at date; regenerate it before exporting cards")
     catalog = get_catalog()
     outputs, report = build_outputs(args.dx_app, catalog["models"], catalog.get("categories") or {},
                                     load_benchmark(STUDIO_ROOT / "dx_benchmark" / "dataset.json"), DATA_DIR, asof,
                                     only=set(args.only) if args.only else None,
-                                    url_ok=head_status if args.verify_links else None)
+                                    url_ok=head_status if args.verify_links else stored_dead_links(args.dx_app))
     if args.report:
         Path(args.report).write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     if args.check:
