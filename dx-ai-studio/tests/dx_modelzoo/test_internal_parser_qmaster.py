@@ -18,3 +18,15 @@ def test_q_master_columns_are_parsed():
     assert entry["evaluation.qmaster.accuracy"] == "39.078"
     assert entry["artifacts.qmaster_dxnn.remote_url"].endswith("/q-master-dxnn/2_4_0/yolo26-n_640x640.dxnn")
     assert entry["artifacts.qmaster_json.remote_url"].endswith("/q-master-json/2_4_0/yolo26-n_640x640.json")
+
+
+def test_the_publish_task_is_kept_beside_the_merged_task():
+    """display.task is merged from several sources; the publish table's own task column stays readable."""
+    entry = next(iter(parse_internal_table_html(_HTML)["models"].values()))
+    assert entry["display.publish_task"] == "object_detection"
+
+
+def test_merge_keeps_the_publish_task():
+    from dx_modelzoo.metadata.merge import _build_structured_model
+    model = _build_structured_model("m", {"display.task": "embedding", "display.publish_task": "image_retrieval"}, {})
+    assert model["display"]["task"] == "embedding" and model["display"]["publish_task"] == "image_retrieval"

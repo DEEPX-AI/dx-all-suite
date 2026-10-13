@@ -274,7 +274,7 @@ def build_card(model, registry_row, dx_app_root, *, asof, benchmark_rows=(), tas
         "zoo_id": model.get("id"),
         "zoo_name": registry_row.get("model_name") or variant,
         "setup_name": setup_name or registry_row.get("model_name") or variant,
-        "zoo_task": (model.get("display") or {}).get("task"),
+        "zoo_task": (model.get("display") or {}).get("publish_task") or (model.get("display") or {}).get("task"),
         "family": family,
         "task": task,
         "task_label": task_label,

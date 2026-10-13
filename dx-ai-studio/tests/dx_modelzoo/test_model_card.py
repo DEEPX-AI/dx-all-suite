@@ -165,3 +165,9 @@ def test_formatting():
     assert mc.fmt_input("640x640x3") == "640 × 640 × 3"
     assert mc.public_url("https://sdk.deepx.ai/x.dxnn") == "https://sdk.deepx.ai/x.dxnn"
     assert mc.public_url("No Reference") is None
+
+
+def test_zoo_task_is_the_publish_tables(app):
+    model = dict(MODEL, display=dict(MODEL["display"], task="embedding", publish_task="image_retrieval"))
+    assert mc.build_card(model, ROW, app, asof="2026-10-13")["zoo_task"] == "image_retrieval"
+    assert mc.build_card(MODEL, ROW, app, asof="2026-10-13")["zoo_task"] == "face_detection"

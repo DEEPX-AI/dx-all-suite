@@ -116,6 +116,8 @@ def _build_structured_model(mid, flat, prov):
     }
     if "display.class_name" in flat:
         model["display"]["class_name"] = flat["display.class_name"]
+    if flat.get("display.publish_task"):
+        model["display"]["publish_task"] = flat["display.publish_task"]
 
     spec = {}
     for k, v in flat.items():
