@@ -1,44 +1,45 @@
-"""The "Save as HTML" model-card export must be fully localized and complete
-(legal block, compile guide, use-case, export timestamp), per the agreed scope."""
+"""Save as HTML: the page sends its language and translated labels; the server renders the card.
+Every card label is translated in all six languages exactly once across the module's dictionaries."""
+import re
 from pathlib import Path
+
+from dx_modelzoo.core.model_card_labels import LABELS
 
 ROOT = Path(__file__).resolve().parents[2]
 JS = ROOT / "dx_modelzoo" / "static" / "js"
+LANGS = ("en", "ko", "ja", "es", "zh-CN", "zh-TW")
+UNTRANSLATED = {"{metric} · {tier}"}          # symbols only
 
 
-def _export_fn():
+def _dict_keys(path):
+    return re.findall(r"^  '((?:[^'\\]|\\.)+)':\s*\{", path.read_text(encoding="utf-8"), re.M)
+
+
+def test_detail_uses_the_endpoint():
     src = (JS / "detail.js").read_text(encoding="utf-8")
-    return src.split("function _buildModelCardHtml(", 1)[1].split("\nfunction ", 1)[0]
+    assert "_buildModelCardHtml" not in src and "_imageToDataUrl" not in src
+    assert "/api/model_card/labels" in src and "'/api/model_card/' + encodeURIComponent(m.id)" in src
+    assert "task_label" in src and "lang" in src
 
 
-def test_export_is_localized():
-    body = _export_fn()
-    # html lang + headings via T(), not hardcoded English
-    assert "html lang=\"' + e(lang)" in body
-    for key in ("Key Facts", "Technical", "Accuracy Matrix", "Compile Guide",
-                "Artifacts & Downloads", "Demo", "Source & License"):
-        assert f"T('{key}')" in body, f"heading '{key}' must go through T()"
+def test_every_label_is_translated_once():
+    seen = {}
+    for path in sorted(JS.glob("i18n-dict-*.js")):
+        for key in _dict_keys(path):
+            seen.setdefault(key.replace("\\'", "'"), []).append(path.name)
+    missing = [k for k in LABELS if k not in UNTRANSLATED and k not in seen]
+    assert not missing, missing
+    twice = {k: v for k, v in seen.items() if len(v) > 1}
+    assert not twice, twice
 
 
-def test_export_has_complete_legal():
-    body = _export_fn()
-    for key in ("License", "License text", "Copyright", "Source", "Source profile",
-                "Last metadata sync"):
-        assert f"T('{key}')" in body, f"legal row '{key}' missing from export"
+def test_the_modelcard_dict_has_all_languages():
+    lines = [l for l in (JS / "i18n-dict-modelcard.js").read_text(encoding="utf-8").splitlines() if l.startswith("  '")]
+    assert len(lines) >= 40
+    for line in lines:
+        for lang in LANGS:
+            assert (f"'{lang}':" if "-" in lang else f" {lang}:") in line, (lang, line[:60])
 
 
-def test_export_has_compile_guide_and_timestamp():
-    body = _export_fn()
-    assert "m.compile_guide" in body and "recommended_quant" in body
-    assert "toLocaleString(lang)" in body, "export must stamp the export time"
-
-
-def test_export_added_dict_keys_complete():
-    src = (JS / "i18n-dict-detail.js").read_text(encoding="utf-8")
-    for key in ("Technical", "Demo", "Source & License", "Compile Guide", "Exported",
-                "Preview", "Task", "Config"):
-        block = src.split(f"'{key}':", 1)
-        assert len(block) == 2, f"{key} missing from detail dict"
-        seg = block[1].split("},", 1)[0]
-        for lang in ("ko", "ja", "zh-CN", "zh-TW", "es"):
-            assert lang in seg, f"{key} missing {lang}"
+def test_index_loads_the_modelcard_dict():
+    assert "i18n-dict-modelcard.js" in (ROOT / "dx_modelzoo" / "templates" / "index.html").read_text(encoding="utf-8")
