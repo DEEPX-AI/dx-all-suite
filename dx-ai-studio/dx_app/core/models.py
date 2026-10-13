@@ -459,7 +459,8 @@ def get_catalog():
         # Always point at THIS variant's own .dxnn (not a matched sibling example's file),
         # so Run/exists reflect the exact row the user sees and downloaded.
         model_file = ("assets/models/" + fn) if fn else ""
-        exists = bool(fn) and (DX_APP_ROOT / "assets" / "models" / fn).exists()
+        # resolve_model_path honours DX_APP_MODELS_DIR, like every other install check on this page.
+        exists = bool(fn) and _installed(resolve_model_path(model_file, DX_APP_ROOT))
         lm = None
         for k in (_norm(fn[:-5] if fn and fn.endswith(".dxnn") else fn), _norm(class_name), _norm(name)):
             if k and k in lk:
