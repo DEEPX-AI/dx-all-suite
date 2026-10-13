@@ -1,7 +1,7 @@
 {
   "schema_version": "2.0",
   "source_profile": "internal",
-  "generated_at": "2026-10-13T03:29:09.581609+00:00",
+  "generated_at": "2026-10-13T05:00:18.427410+00:00",
   "models": [
     {
       "id": "3ddfa_v2_mobilnet0_5_120x120",
@@ -1846,13 +1846,13 @@
       "id": "casvit_m",
       "display": {
         "name": "CAS-ViT-M",
-        "task": "reid",
+        "task": "classification",
         "class_name": "casvit_m",
         "publish_task": "image_classification",
         "summary": {
-          "en": "AI model for reid tasks."
+          "en": "Image classification model for visual recognition tasks."
         },
-        "category_label": "Reid"
+        "category_label": "Classification"
       },
       "specification": {
         "input_resolution": "224x224x3",
@@ -1912,7 +1912,7 @@
       ],
       "content": {
         "use_case": {
-          "en": "AI model for reid tasks."
+          "en": "Image classification model for visual recognition tasks."
         }
       },
       "provenance": {
@@ -2017,13 +2017,13 @@
       "id": "casvit_t",
       "display": {
         "name": "CAS-ViT-T",
-        "task": "reid",
+        "task": "classification",
         "class_name": "casvit_t",
         "publish_task": "image_classification",
         "summary": {
-          "en": "AI model for reid tasks."
+          "en": "Image classification model for visual recognition tasks."
         },
-        "category_label": "Reid"
+        "category_label": "Classification"
       },
       "specification": {
         "input_resolution": "224x224x3",
@@ -2083,7 +2083,7 @@
       ],
       "content": {
         "use_case": {
-          "en": "AI model for reid tasks."
+          "en": "Image classification model for visual recognition tasks."
         }
       },
       "provenance": {
@@ -2842,13 +2842,13 @@
       "id": "clip_img_resnet50_224x224_openai",
       "display": {
         "name": "CLIP ResNet-50 (OpenAI)",
-        "task": "embedding",
+        "task": "image_retrieval",
         "class_name": "clip_img_resnet50_224x224_openai",
         "publish_task": "zero_shot_image_classification",
         "summary": {
-          "en": "AI model for embedding tasks."
+          "en": "AI model for image_retrieval tasks."
         },
-        "category_label": "Embedding"
+        "category_label": "Image Retrieval"
       },
       "specification": {
         "input_width": 224,
@@ -2870,8 +2870,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -2905,7 +2905,7 @@
       ],
       "content": {
         "use_case": {
-          "en": "AI model for embedding tasks."
+          "en": "AI model for image_retrieval tasks."
         }
       },
       "provenance": {
@@ -2998,13 +2998,13 @@
       "id": "clip_img_vit_b16_quickgelu_224x224_metaclip_fullcc",
       "display": {
         "name": "CLIP ViT-B/16 QuickGELU (MetaCLIP FullCC)",
-        "task": "embedding",
+        "task": "zero_shot_image_classification",
         "class_name": "clip_img_vit_b16_quickgelu_224x224_metaclip_fullcc",
         "publish_task": "zero_shot_image_classification",
         "summary": {
-          "en": "AI model for embedding tasks."
+          "en": "AI model for zero_shot_image_classification tasks."
         },
-        "category_label": "Embedding"
+        "category_label": "Zero Shot Image Classification"
       },
       "specification": {
         "input_width": 224,
@@ -3026,8 +3026,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -3061,7 +3061,7 @@
       ],
       "content": {
         "use_case": {
-          "en": "AI model for embedding tasks."
+          "en": "AI model for zero_shot_image_classification tasks."
         }
       },
       "provenance": {
@@ -3154,13 +3154,13 @@
       "id": "clip_text_resnet50_77x512_openai",
       "display": {
         "name": "CLIP ResNet-50 Text Encoder (OpenAI)",
-        "task": "embedding",
+        "task": "image_retrieval",
         "class_name": "clip_text_resnet50_77x512_openai",
         "publish_task": "image_retrieval",
         "summary": {
-          "en": "AI model for embedding tasks."
+          "en": "AI model for image_retrieval tasks."
         },
-        "category_label": "Embedding"
+        "category_label": "Image Retrieval"
       },
       "specification": {
         "input_width": 77,
@@ -3182,8 +3182,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -3217,7 +3217,7 @@
       ],
       "content": {
         "use_case": {
-          "en": "AI model for embedding tasks."
+          "en": "AI model for image_retrieval tasks."
         }
       },
       "provenance": {
@@ -4556,8 +4556,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -4714,8 +4714,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -4872,8 +4872,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -10011,8 +10011,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -10173,8 +10173,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -10335,8 +10335,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -14668,13 +14668,13 @@
       "id": "face_attr_resnet_v1_18",
       "display": {
         "name": "FaceAttr ResNet-18",
-        "task": "attribute_recognition",
+        "task": "face_attribute",
         "class_name": "face_attr_resnet_v1_18",
         "publish_task": "face_attribute_recognition",
         "summary": {
-          "en": "AI model for attribute_recognition tasks."
+          "en": "AI model for face_attribute tasks."
         },
-        "category_label": "Attribute Recognition"
+        "category_label": "Face Attribute"
       },
       "specification": {
         "input_resolution": "178x218x3",
@@ -14734,7 +14734,7 @@
       ],
       "content": {
         "use_case": {
-          "en": "AI model for attribute_recognition tasks."
+          "en": "AI model for face_attribute tasks."
         }
       },
       "provenance": {
@@ -15010,13 +15010,13 @@
       "id": "fastsam_s",
       "display": {
         "name": "FastSAM-s",
-        "task": "instance_segmentation",
+        "task": "zero_shot_instance_segmentation",
         "class_name": "fastsam_s",
         "publish_task": "zero_shot_instance_segmentation",
         "summary": {
-          "en": "Instance segmentation model for per-object pixel masks."
+          "en": "AI model for zero_shot_instance_segmentation tasks."
         },
-        "category_label": "Instance Segmentation"
+        "category_label": "Zero Shot Instance Segmentation"
       },
       "specification": {
         "input_resolution": "1024x1024x3",
@@ -15076,7 +15076,7 @@
       ],
       "content": {
         "use_case": {
-          "en": "Instance segmentation model for per-object pixel masks."
+          "en": "AI model for zero_shot_instance_segmentation tasks."
         }
       },
       "provenance": {
@@ -17569,8 +17569,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -17728,8 +17728,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -17887,8 +17887,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -18046,8 +18046,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -18205,8 +18205,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -20580,8 +20580,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -20868,8 +20868,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -21023,8 +21023,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -21155,13 +21155,13 @@
       "id": "pp_shituv2_feature_extraction_224x224",
       "display": {
         "name": "PP-ShiTuV2_feature_extraction",
-        "task": "embedding",
+        "task": "visual_place_recognition",
         "class_name": "pp_shituv2_feature_extraction_224x224",
         "publish_task": "visual_place_recognition",
         "summary": {
-          "en": "AI model for embedding tasks."
+          "en": "AI model for visual_place_recognition tasks."
         },
-        "category_label": "Embedding"
+        "category_label": "Visual Place Recognition"
       },
       "specification": {
         "input_width": 224,
@@ -21183,8 +21183,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -21218,7 +21218,7 @@
       ],
       "content": {
         "use_case": {
-          "en": "AI model for embedding tasks."
+          "en": "AI model for visual_place_recognition tasks."
         }
       },
       "provenance": {
@@ -21339,8 +21339,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -21499,8 +21499,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -21657,8 +21657,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -21815,8 +21815,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -21973,8 +21973,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -22131,8 +22131,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -22289,8 +22289,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -22447,8 +22447,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -22605,8 +22605,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -22763,8 +22763,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -22921,8 +22921,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -23079,8 +23079,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -23237,8 +23237,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -23395,8 +23395,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -23525,13 +23525,13 @@
       "id": "ppmatting_hrnet_w48_composition_512x512",
       "display": {
         "name": "ppmatting-hrnet_w48-composition",
-        "task": "semantic_segmentation",
+        "task": "image_matting",
         "class_name": "ppmatting_hrnet_w48_composition_512x512",
         "publish_task": "image_matting",
         "summary": {
-          "en": "Semantic segmentation model for pixel-level classification."
+          "en": "AI model for image_matting tasks."
         },
-        "category_label": "Semantic Segmentation"
+        "category_label": "Image Matting"
       },
       "specification": {
         "input_width": 512,
@@ -23550,8 +23550,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -23585,7 +23585,7 @@
       ],
       "content": {
         "use_case": {
-          "en": "Semantic segmentation model for pixel-level classification."
+          "en": "AI model for image_matting tasks."
         }
       },
       "provenance": {
@@ -23677,13 +23677,13 @@
       "id": "ppmatting_hrnet_w48_distinctions_512x512",
       "display": {
         "name": "ppmatting-hrnet_w48-distinctions",
-        "task": "semantic_segmentation",
+        "task": "image_matting",
         "class_name": "ppmatting_hrnet_w48_distinctions_512x512",
         "publish_task": "image_matting",
         "summary": {
-          "en": "Semantic segmentation model for pixel-level classification."
+          "en": "AI model for image_matting tasks."
         },
-        "category_label": "Semantic Segmentation"
+        "category_label": "Image Matting"
       },
       "specification": {
         "input_width": 512,
@@ -23702,8 +23702,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -23737,7 +23737,7 @@
       ],
       "content": {
         "use_case": {
-          "en": "Semantic segmentation model for pixel-level classification."
+          "en": "AI model for image_matting tasks."
         }
       },
       "provenance": {
@@ -27379,8 +27379,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -30479,8 +30479,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -30638,8 +30638,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -30797,8 +30797,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -30956,8 +30956,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -31115,8 +31115,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -31274,8 +31274,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -31433,8 +31433,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -31592,8 +31592,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -31751,8 +31751,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -31910,8 +31910,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -32069,8 +32069,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -32228,8 +32228,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -32387,8 +32387,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -32546,8 +32546,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -32705,8 +32705,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -35626,8 +35626,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -35784,8 +35784,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -36077,8 +36077,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -36370,8 +36370,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -39815,8 +39815,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -41467,8 +41467,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -41624,8 +41624,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -41777,8 +41777,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -41936,8 +41936,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -42095,8 +42095,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -42254,8 +42254,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -42413,8 +42413,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -42572,8 +42572,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -42731,8 +42731,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -42890,8 +42890,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -43049,8 +43049,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -43208,8 +43208,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -43367,8 +43367,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -43526,8 +43526,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -43685,8 +43685,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -43844,8 +43844,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -46243,8 +46243,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -46403,8 +46403,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -46564,8 +46564,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -46724,8 +46724,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -46885,8 +46885,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -47045,8 +47045,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -47206,8 +47206,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -47366,8 +47366,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -47527,8 +47527,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -47687,8 +47687,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -54641,8 +54641,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -54799,8 +54799,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -54957,8 +54957,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -55115,8 +55115,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -55273,8 +55273,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -55431,8 +55431,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -55590,8 +55590,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -55749,8 +55749,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -55908,8 +55908,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -56067,8 +56067,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -56226,8 +56226,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -56385,8 +56385,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -56544,8 +56544,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -56703,8 +56703,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -56862,8 +56862,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -57021,8 +57021,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -57180,8 +57180,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -57339,8 +57339,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -57498,8 +57498,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -57657,8 +57657,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -57816,8 +57816,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -57975,8 +57975,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -58134,8 +58134,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -58293,8 +58293,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -58452,8 +58452,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -58786,8 +58786,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -58945,8 +58945,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -59104,8 +59104,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -59263,8 +59263,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -59422,8 +59422,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -59581,8 +59581,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -59740,8 +59740,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -59899,8 +59899,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -67039,8 +67039,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -71268,8 +71268,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -71427,8 +71427,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -71586,8 +71586,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -71745,8 +71745,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -71904,8 +71904,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -72063,8 +72063,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -72222,8 +72222,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -72381,8 +72381,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -72540,8 +72540,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -72699,8 +72699,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -72858,8 +72858,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -73017,8 +73017,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -73176,8 +73176,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -73335,8 +73335,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -73494,8 +73494,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -76814,8 +76814,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -76973,8 +76973,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -77132,8 +77132,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -77465,8 +77465,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -77624,8 +77624,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -77783,8 +77783,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -77942,8 +77942,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -78101,8 +78101,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -78260,8 +78260,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -78419,8 +78419,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -78578,8 +78578,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -78737,8 +78737,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {
@@ -78896,8 +78896,8 @@
         }
       },
       "performance": {
-        "fps_per_watt": null,
         "fps": null,
+        "fps_per_watt": null,
         "source_status": "benchmark_required"
       },
       "legal": {

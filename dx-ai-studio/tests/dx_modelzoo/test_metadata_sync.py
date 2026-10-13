@@ -186,6 +186,43 @@ def test_local_runtime_adapter_reads_registry_manifest_and_examples(tmp_path):
     assert "demo.python_example" in alexnet
 
 
+def test_local_runtime_adapter_takes_the_registry_task_in_studio_task_keys(tmp_path):
+    """display.task comes from the registry's current ``task`` (add_model_task is dx_app's legacy column, which
+    files CLIP and PP-Matting under embedding / semantic_segmentation). Renamed tasks keep Studio's legacy key so
+    a model still groups with the rest of the Model Zoo, and the ``ppu`` group stays a group."""
+    suite_root = tmp_path
+    dx_app = suite_root / "dx-runtime" / "dx_app"
+    (dx_app / "config").mkdir(parents=True)
+    (dx_app / "scripts").mkdir()
+    rows = [
+        ("clip_text_resnet50_77x512_openai", "embedding", "image_retrieval"),
+        ("ppmatting_hrnet_w48_composition_512x512", "semantic_segmentation", "image_matting"),
+        ("alexnet", "classification", "image_classification"),
+        ("arcface_mobilefacenet", "embedding", "face_recognition"),
+        ("yolo26n_obb", "obb_detection", "oriented_object_detection"),
+        ("yolov5s_ppu", "ppu", "object_detection"),
+        ("legacy_only", "pose_estimation", None),
+    ]
+    (dx_app / "config" / "model_registry.json").write_text(json.dumps([
+        {"model_name": name, "dxnn_file": f"{name}.dxnn", "add_model_task": legacy,
+         **({"task": task} if task else {})}
+        for name, legacy, task in rows
+    ]), encoding="utf-8")
+    (dx_app / "scripts" / "modelzoo_manifest.json").write_text("[]", encoding="utf-8")
+
+    models = local_runtime_adapter(suite_root)["models"]
+
+    assert {mid: models[mid]["display.task"] for mid, _, _ in rows} == {
+        "clip_text_resnet50_77x512_openai": "image_retrieval",
+        "ppmatting_hrnet_w48_composition_512x512": "image_matting",
+        "alexnet": "classification",
+        "arcface_mobilefacenet": "embedding",
+        "yolo26n_obb": "obb_detection",
+        "yolov5s_ppu": "ppu",
+        "legacy_only": "pose_estimation",
+    }
+
+
 def test_local_runtime_adapter_stores_relative_local_artifact_path(tmp_path):
     """A local artifact path must be relative to DX_APP_ROOT, as the artifact resolver accepts.
 

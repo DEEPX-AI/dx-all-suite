@@ -69,6 +69,20 @@ def _task_to_example_dir(task):
     return mapping.get(task)
 
 
+def _studio_task(task, legacy_task):
+    """The Model Zoo task of a registry row.
+
+    The registry's current ``task`` is dx_app's own category (add_model_task is its legacy column, which files CLIP
+    under embedding and PP-Matting under semantic_segmentation). A renamed task keeps Studio's legacy key
+    (image_classification → classification) so the model groups with the rest of the Model Zoo, as
+    core.catalog.conf_ids_from_generated does; ``ppu`` is a group rather than a task and stays one.
+    """
+    from shared.tasks import legacy
+    if not task or legacy_task == "ppu":
+        return legacy_task or task or ""
+    return legacy(task)
+
+
 def local_runtime_adapter(suite_root) -> AdapterResult:
     """Build metadata from dx-runtime's model_registry.json, manifest and examples."""
     suite_root = Path(suite_root)
@@ -114,7 +128,8 @@ def local_runtime_adapter(suite_root) -> AdapterResult:
         if not cid:
             continue
 
-        task = reg.get("add_model_task", "")
+        legacy_task = reg.get("add_model_task", "")
+        task = _studio_task(reg.get("task"), legacy_task)
         entry = {
             "display.name": original_name,
             "display.class_name": model_name,
@@ -159,7 +174,7 @@ def local_runtime_adapter(suite_root) -> AdapterResult:
                     entry["demo.python_example"] = ex.py_dir.relative_to(app_root).as_posix() + "/"
             example_dir = None
         else:
-            example_dir = _task_to_example_dir(task)
+            example_dir = _task_to_example_dir(legacy_task)
         if example_dir:
             cpp_ex = _find_example_dir(cpp_example_root, example_dir, model_name)
             if cpp_ex:
