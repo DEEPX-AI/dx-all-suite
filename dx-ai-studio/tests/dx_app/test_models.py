@@ -165,14 +165,12 @@ def test_get_models_excludes_python_source_when_studio_runtime_is_unavailable(
 def test_get_catalog_keeps_uninstalled_modelzoo_entry(tmp_path, monkeypatch):
     import models
 
-    catalog = json.loads(
-        (ROOT / "dx_modelzoo" / "data" / "model_catalog.json").read_text(
-            encoding="utf-8"
-        )
-    )
-    catalog_model = next(
-        model for model in catalog["models"] if model["id"] == "efficientnet_lite0"
-    )
+    # The file name comes from dx_app's registry, the source the catalog follows; the hand-written
+    # model_catalog.json may still name an older build of the same model.
+    from shared.paths import DX_APP_ROOT
+    registry = json.loads((DX_APP_ROOT / "config" / "model_registry.json").read_text(encoding="utf-8"))
+    dxnn_file = next(r["dxnn_file"] for r in registry if r.get("model_name") == "efficientnet_lite0")
+    catalog_model = {"model_file": f"assets/models/{dxnn_file}"}
     fake_root = tmp_path / "dx_app_root"
     source_dir = fake_root / "src" / "cpp_example" / "classification" / "efficientnet"
     source_dir.mkdir(parents=True)
