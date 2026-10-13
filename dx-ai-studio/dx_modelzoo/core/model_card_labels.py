@@ -5,6 +5,8 @@ Contract: tests/dx_modelzoo/test_model_card_md.py, tests/dx_modelzoo/test_html_e
 """
 from __future__ import annotations
 
+import string
+
 from dx_modelzoo.core.model_card import FILE_ROLES
 
 LABELS = (
@@ -30,18 +32,41 @@ _KEYS = frozenset(LABELS)
 MAX_LABEL = 300
 
 
+_FORMATTER = string.Formatter()
+
+
+def _fields(text):
+    """The replacement fields of text as (name, conversion, spec) tuples; None when it does not parse."""
+    try:
+        return [(name, conv, spec) for _lit, name, spec, conv in _FORMATTER.parse(text) if name is not None]
+    except ValueError:
+        return None
+
+
+def _safe(key, value):
+    """Every field in value is a bare placeholder of key: no conversion, no format spec (a width spec
+    would let one request expand to any size), no positional, indexed or attribute access."""
+    fields = _fields(value)
+    if fields is None:
+        return False
+    allowed = {name for name, _conv, _spec in _fields(key)}
+    return all(name in allowed and name.isidentifier() and conv is None and not spec for name, conv, spec in fields)
+
+
 def clean_labels(raw):
-    """Keep only known keys with short string values (the payload comes from a browser)."""
+    """Keep only known keys with short string values that use the key's own placeholders (the payload comes
+    from a browser)."""
     if not isinstance(raw, dict):
         return {}
-    return {k: v for k, v in raw.items() if k in _KEYS and isinstance(v, str) and 0 < len(v) <= MAX_LABEL}
+    return {k: v for k, v in raw.items()
+            if k in _KEYS and isinstance(v, str) and 0 < len(v) <= MAX_LABEL and _safe(k, v)}
 
 
 def t(labels, key, **values):
     text = (labels or {}).get(key, key)
     try:
         return text.format(**values)
-    except (KeyError, IndexError, ValueError):
+    except Exception:  # noqa: BLE001 — a bad translation must never break the card; English is always valid
         return key.format(**values)
 
 

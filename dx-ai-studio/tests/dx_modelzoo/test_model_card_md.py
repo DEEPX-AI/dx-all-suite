@@ -112,3 +112,22 @@ def test_raw_only_accuracy_has_no_difference_note(app):
     from dx_modelzoo.core.model_card_html import render_html
     assert "difference vs Raw" not in render_markdown(card, "python")
     assert "difference vs Raw" not in render_html(card)
+
+
+def test_clean_labels_drops_format_specs_and_foreign_fields():
+    # A label from the browser is formatted with str.format: a width spec would expand to any size.
+    key = "Download {tier} DXNN"
+    for bad in ("{tier:>999}", "{tier!r}", "{tier.__class__}", "{0}", "{}", "{nope}", "{tier[0]}", "{tier:{tier}}"):
+        assert clean_labels({key: bad}) == {}, bad
+    assert clean_labels({key: "{tier} DXNN 다운로드"}) == {key: "{tier} DXNN 다운로드"}
+    assert clean_labels({key: "{{x}} {tier}"}) == {key: "{{x}} {tier}"}
+    assert clean_labels({"Quick start": "빠른 {tier}"}) == {}
+    assert clean_labels({key: "broken {tier"}) == {}
+
+
+def test_t_falls_back_to_the_key_on_any_format_error():
+    # Labels are cleaned on the way in; t() still never lets a bad translation break the card.
+    key = "Download {tier} DXNN"
+    assert t({key: "{tier.upper.x} 다운로드"}, key, tier="Q") == "Download Q DXNN"        # AttributeError
+    assert t({key: "{tier:d}"}, key, tier="Q") == "Download Q DXNN"                    # ValueError
+    assert t({key: "{tier[x]}"}, key, tier=5) == "Download 5 DXNN"                     # TypeError
