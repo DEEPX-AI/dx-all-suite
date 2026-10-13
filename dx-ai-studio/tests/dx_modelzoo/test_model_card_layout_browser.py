@@ -13,8 +13,11 @@ from shared.paths import DX_APP_ROOT, STUDIO_ROOT  # noqa: E402
 from tests.dx_modelzoo.model_card_layout import faults  # noqa: E402
 
 FIXED = {"yolo26-n_640x640", "yolov5-m-face_640x640", "clip-img_vit-b16-quickgelu_224x224_metaclip-fullcc",
-         "yolov12-cls-n_224x224", "damoyolo-s_640x640", "SCRFD500M_PPU",
+         "yolov12-cls-n_224x224", "damoyolo-s_640x640", "yolov5-s_640x640_ppu",
          "mask-rtdetr-hgnetv2-x-6x_640x640"}   # a long unbroken model name
+# Every model the current dx_app registers is published, so the unpublished layout (manifest download, catalog note)
+# is drawn by taking this one's publish-table files away.
+UNPUBLISHED = "yolov5-s_640x640_ppu"
 pytestmark = pytest.mark.skipif(not (DX_APP_ROOT / "config" / "model_registry.json").is_file(),
                                 reason="needs the dx_app checkout")
 
@@ -33,9 +36,13 @@ def cards(tmp_path_factory):
                 dest = out / path.parent.relative_to(DX_APP_ROOT)
                 shutil.copytree(path.parent, dest)
     cat = get_catalog()
-    outputs, _ = build_outputs(out, cat["models"], cat.get("categories") or {},
+    models = [{k: v for k, v in m.items() if k not in ("artifacts", "performance")}
+              if ((m.get("demo") or {}).get("python_example") or "").rstrip("/").endswith("/" + UNPUBLISHED) else m
+              for m in cat["models"]]
+    outputs, report = build_outputs(out, models, cat.get("categories") or {},
                                load_benchmark(STUDIO_ROOT / "dx_benchmark" / "dataset.json"), DATA_DIR, "2026-10-13",
                                only=FIXED)
+    assert report["unpublished"] == [UNPUBLISHED]
     write_outputs(out, outputs)
     return sorted(out.glob("src/python_example/*/*/*/model.html"))
 
