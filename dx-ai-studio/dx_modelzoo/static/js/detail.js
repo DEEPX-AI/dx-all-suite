@@ -768,15 +768,37 @@ function copyCode(btn) {
   }
 }
 
+// The file name from Content-Disposition (filename="…" or filename*=UTF-8''…); null when absent.
+function _attachmentName(disposition) {
+  const v = String(disposition || '');
+  const star = /filename\*\s*=\s*UTF-8''([^;]+)/i.exec(v);
+  if (star) {
+    try { return decodeURIComponent(star[1].trim()); } catch (e) { /* fall through to filename= */ }
+  }
+  const plain = /filename\s*=\s*"([^"]+)"|filename\s*=\s*([^;\s]+)/i.exec(v);
+  const name = plain && (plain[1] || plain[2]);
+  return name ? name.replace(/[\\/]/g, '_') : null;
+}
+
 async function exportModelCardHtml(btn) {
   const m = _currentDetailModel;
   if (!m) { return; }
+  if (btn) {
+    if (btn.disabled) { return; }
+    // The button's own markup, kept once: a click while the error text shows must not restore to that text.
+    if (btn.dataset.idleHtml === undefined) { btn.dataset.idleHtml = btn.innerHTML; }
+    clearTimeout(btn._restoreTimer);
+    btn.innerHTML = btn.dataset.idleHtml;
+    btn.disabled = true;
+  }
   const lang = (typeof DXI18n !== 'undefined' && DXI18n.lang) || 'en';
   const catInfo = (_catalogData?.categories || {})[m.category] || {};
   try {
     // The server renders the card (the same renderer as the dx_app cards); the page sends its translations.
+    // Without the label keys the card would go out in English while marked as this language, so stop here.
     const keysResp = await fetch(modelzooApiUrl('/api/model_card/labels'));
-    const keys = keysResp.ok ? ((await keysResp.json()).keys || []) : [];
+    if (!keysResp.ok) { throw new Error(String(keysResp.status)); }
+    const keys = (await keysResp.json()).keys || [];
     const labels = {};
     keys.forEach(function (k) { labels[k] = T(k); });
     const resp = await fetch(modelzooApiUrl('/api/model_card/' + encodeURIComponent(m.id)), {
@@ -789,17 +811,18 @@ async function exportModelCardHtml(btn) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = (((m.display && m.display.class_name) || m.id || 'model') + '_modelcard.html');
+    a.download = _attachmentName(resp.headers.get('Content-Disposition')) || ((m.id || 'model') + '_modelcard.html');
     document.body.appendChild(a);
     a.click();
     a.remove();
     setTimeout(function () { URL.revokeObjectURL(url); }, 1500);
   } catch (e) {
     if (btn) {
-      const orig = btn.innerHTML;
       btn.textContent = T('Could not save the model card');
-      setTimeout(function () { btn.innerHTML = orig; }, 2500);
+      btn._restoreTimer = setTimeout(function () { btn.innerHTML = btn.dataset.idleHtml; }, 2500);
     }
+  } finally {
+    if (btn) { btn.disabled = false; }
   }
 }
 
