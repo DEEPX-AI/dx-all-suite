@@ -125,7 +125,7 @@ def test_paths_sample_files_and_commands(app):
     assert [f["name"] for f in card["files"]["python"]] == ["yolov5-m-face_640x640_sync.py", "config.json", "factory/"]
     assert [f["name"] for f in card["files"]["cpp"]] == ["yolov5-m-face_640x640_sync.cpp"]
     cmds = mc.commands(card)
-    assert cmds["get"].endswith("./setup.sh --models yolov5m_face")
+    assert cmds["get"].endswith("./setup_sample_models.sh --models yolov5m_face")
     assert "--image sample/img/sample_face.jpg" in cmds["python"]
     assert cmds["cpp"].startswith("./build.sh --target yolov5-m-face_640x640_sync")
     assert "--loop 100 --no-display" in cmds["measure"]

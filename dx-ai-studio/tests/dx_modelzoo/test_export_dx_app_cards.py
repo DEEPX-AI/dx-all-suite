@@ -101,7 +101,7 @@ def test_setup_name_comes_from_the_manifest_row_for_the_same_file(tmp_path):
         "dxnn_url": "https://sdk.deepx.ai/modelzoo/q-lite-dxnn/2_5_0/yolov5-m-face_640x640.dxnn"}]), encoding="utf-8")
     outputs, report = ex.build_outputs(app, [model], {}, [], data, "2026-10-13")
     py = "src/python_example/face_detection/yolov5_face/yolov5-m-face_640x640"
-    assert "./setup.sh --models YoloV5M_Face.v2" in outputs[f"{py}/README.md"].decode()
+    assert "./setup_sample_models.sh --models YoloV5M_Face.v2" in outputs[f"{py}/README.md"].decode()
     assert report["setup_name_missing"] == []
 
 

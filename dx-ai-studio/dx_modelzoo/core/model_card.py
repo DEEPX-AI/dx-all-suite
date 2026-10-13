@@ -99,7 +99,7 @@ def load_registry(dx_app_root):
 
 
 def load_setup_names(dx_app_root):
-    """setup.sh --models matches the manifest's name, case-insensitively. Returns (lower-cased names,
+    """setup_sample_models.sh --models matches the manifest's name, case-insensitively. Returns (lower-cased names,
     dxnn file name -> manifest name)."""
     try:
         rows = json.loads((Path(dx_app_root) / "scripts" / "modelzoo_manifest.json").read_text(encoding="utf-8"))
@@ -232,7 +232,8 @@ def commands(card):
     py_in = f" \\\n  --image {sample}" if sample else ""
     cpp_in = f" \\\n  -i {sample}" if sample else ""
     return {
-        "get": f"# from the dx_app root\n./setup.sh --models {card['setup_name']}",
+        # setup_sample_models.sh fetches only the model; setup.sh would also re-download the sample videos.
+        "get": f"# from the dx_app root\n./setup_sample_models.sh --models {card['setup_name']}",
         "python": f"python {script} \\\n  --model {model}{py_in}",
         "cpp": f"./build.sh --target {variant}_sync   # once\n./bin/{variant}_sync \\\n  -m {model}{cpp_in}",
         "measure": f"python {script} \\\n  --model {model}{py_in} \\\n  --loop 100 --no-display",
@@ -244,7 +245,7 @@ def commands(card):
 def build_card(model, registry_row, dx_app_root, *, asof, benchmark_rows=(), task_label=None, lang="en",
                setup_name=None):
     """asof: the publish table's date, or None when it is unknown (the footer then leaves the date out).
-    setup_name: the name dx_app's setup.sh --models knows (its manifest); defaults to the registry name."""
+    setup_name: the name dx_app's setup_sample_models.sh --models knows (its manifest); defaults to the registry name."""
     variant = PurePosixPath(registry_row["dxnn_file"]).stem
     task, family = registry_row["task"], registry_row["family"]
     py_dir = f"src/python_example/{task}/{family}/{variant}"

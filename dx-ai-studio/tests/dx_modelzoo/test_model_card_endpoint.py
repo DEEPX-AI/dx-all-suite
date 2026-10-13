@@ -80,9 +80,9 @@ def test_card_in_korean(port):
 
 
 def test_get_command_uses_the_setup_name(port):
-    # setup.sh --models knows this model by its manifest name, not the registry's lower-case name.
+    # setup_sample_models.sh --models knows this model by its manifest name, not the registry's lower-case name.
     page = _post(port, "/api/model_card/damoyolo_tinynasl20_t", {}).read().decode()
-    assert "./setup.sh --models DamoYolo_tinynasL20_T" in page
+    assert "./setup_sample_models.sh --models DamoYolo_tinynasL20_T" in page
 
 
 def test_missing_dx_app_is_503(port, tmp_path, monkeypatch):
