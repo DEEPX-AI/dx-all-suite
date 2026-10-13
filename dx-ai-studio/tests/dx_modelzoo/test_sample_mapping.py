@@ -26,12 +26,21 @@ def test_single_image_task_gets_sample_dir():
     assert m.get("sample_image") == "sample_street.jpg"
 
 
+def _overridden(ms):
+    """MODEL_IMAGE_OVERRIDE entries whose model this dx_app has (the per-model dx_app no longer ships
+    scrfd500m_ppu and yolov5pose_ppu as examples)."""
+    from core.config import MODEL_IMAGE_OVERRIDE
+    found = {mid: path for mid, path in MODEL_IMAGE_OVERRIDE.items() if mid in ms}
+    assert found, "no MODEL_IMAGE_OVERRIDE model is in the catalog"
+    return found
+
+
 def test_model_image_override_wins_over_task_default():
-    # scrfd500m_ppu is a face detector in the "ppu" category; the override must map it
-    # to a face sample, not the ppu default (sample_street.jpg).
+    # e.g. scrfd500m_ppu, a face detector in the old "ppu" category, maps to a face sample, not the ppu
+    # default (sample_street.jpg); handlandmarklite_1 to a hand.
     ms = _catalog_models()
-    assert ms["scrfd500m_ppu"].get("sample_image") == "sample_face.jpg"
-    assert ms["yolov5pose_ppu"].get("sample_image") == "sample_people.jpg"
+    for mid, path in _overridden(ms).items():
+        assert ms[mid].get("sample_image") == Path(path).name, mid
 
 
 def _per_model():
@@ -57,7 +66,8 @@ def test_demo_input_is_representative_image_for_file_tasks():
     # not dx_app's divergent per-category default.
     ms = _catalog_models()
     assert ms["yolov7_w6"].get("demo_input") == "sample/img/sample_street.jpg"
-    assert ms["scrfd500m_ppu"].get("demo_input") == "sample/img/sample_face.jpg"  # override
+    for mid, path in _overridden(ms).items():
+        assert ms[mid].get("demo_input") == path, mid                            # override
     # dx_app's OBB sample is sample_airport_satellite_view.png, and the obb thumbnails were
     # made from it on the NPU, so the demo runs on the same image as the thumbnail.
     assert ms["yolo26n_obb"].get("demo_input") == "sample/img/sample_airport_satellite_view.png"

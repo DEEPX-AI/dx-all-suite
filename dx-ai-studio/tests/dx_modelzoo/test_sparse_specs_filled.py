@@ -2,6 +2,8 @@
 upstream (GitHub/HF/papers) or mirrored from an exact DEEPX sibling. Guards the values and
 the CAS-ViT license (MIT per the repo LICENSE, not Apache-2.0)."""
 import sys
+
+import pytest
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -48,4 +50,6 @@ def test_sparse_cluster_has_params_ops_accuracy():
 
 def test_yolov5pose_source_corrected_to_ti():
     # upstream is TI edgeai-yolov5 (yolo-pose), not ultralytics
+    if "yolov5pose_ppu" not in _ms():
+        pytest.skip("this dx_app ships YOLOV5Pose_PPU as source only, so it is not in the catalog")
     assert "TexasInstruments/edgeai-yolov5" in _ms()["yolov5pose_ppu"]["legal"]["source_url"]
