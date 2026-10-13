@@ -10,6 +10,7 @@ import re
 
 from dx_modelzoo.core.model_card import commands, fmt_delta, fmt_fps, fmt_input, fmt_num
 from dx_modelzoo.core.model_card_labels import CATALOG_NUMBERS, boards_footer, boards_note, generated_note, t
+from dx_modelzoo.core.model_card_md import HEADER
 
 _DARK = ("--page:#000;--panel:#161617;--ink:#f5f5f7;--ink2:#d2d2d7;--muted:#a1a1a6;--line:#2c2c2e;"
          "--accent:#2997ff;--accent-ink:#2997ff;--soft:#0a2540;--code-bg:#0b0b0c;--good:#3fb950;--bad:#ff6b5e;"
@@ -116,7 +117,10 @@ def _wbr(name):
     return "<wbr>".join(f"<span class=nb>{_e(c)}</span>" for c in chunks)
 
 
-def render_html(card, *, labels=None, lang="en", image_src=None, readme_href="README.md", other_href=None):
+def render_html(card, *, labels=None, lang="en", image_src=None, readme_href="README.md", other_href=None,
+                marker=False):
+    """marker: the exporter's "do not edit" comment (model_card_md.HEADER) right after the doctype; Studio's Save as
+    HTML leaves it out, its file is not regenerated."""
     L = labels or {}
     cmds = commands(card)
     acc = card["accuracy"]
@@ -227,7 +231,7 @@ def render_html(card, *, labels=None, lang="en", image_src=None, readme_href="RE
     owner = f" · © {_e(card['copyright'])}" if card["copyright"] else ""
 
     return f"""<!doctype html>
-<html lang="{_e(lang)}">
+{HEADER if marker else ""}<html lang="{_e(lang)}">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{_e(card['name'])} · {_e(t(L, 'DX-APP example'))}</title>
 <script>{_BOOT}</script><style>{_CSS}</style></head>

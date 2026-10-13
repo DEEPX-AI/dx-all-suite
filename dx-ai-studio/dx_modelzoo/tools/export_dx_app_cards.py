@@ -140,6 +140,7 @@ def build_outputs(dx_app_root, models, categories, benchmark_rows, data_dir, aso
         outputs[f"{py}/README.md"] = render_markdown(card, "python").encode("utf-8")
         outputs[f"{py}/model.html"] = render_html(
             card, image_src="result.webp", other_href=rel_dir(py, cpp) + "README.md" if card["has_cpp"] else None,
+            marker=True,
         ).encode("utf-8")
         if card["has_cpp"]:
             outputs[f"{cpp}/README.md"] = render_markdown(card, "cpp").encode("utf-8")
