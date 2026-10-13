@@ -61,17 +61,11 @@ sudo apt install libdxrt-bin
     APT 저장소에 포함되지 않으므로 한 줄 설치 또는 `./dx-runtime/install.sh --target=dx_fw`로
     업데이트한 뒤, **DX-Runtime 설치** 섹션의 안내대로 cold boot 하십시오.
 
-!!! note "`dx_engine` Python package는 PyPI에서 설치"
+!!! note "`dx_engine` Python package 설치"
     `libdxrt-bin`은 어떤 interpreter나 virtualenv를 쓰는지 알 수 없기 때문에 `dx_engine` Python
-    binding을 설치하지 않습니다. PyPI(`dx-engine`)에서 virtualenv에 설치하되, 설치된
-    `libdxrt-bin`과 같은 major.minor 버전으로 고정하십시오. wheel이 runtime library를 자체
-    포함하므로 버전이 어긋나도 `apt`나 `pip`가 잡아주지 않습니다.
-    ```Bash
-    source /path/to/venv/bin/activate
-    pip install "dx-engine==$(dpkg-query -W -f='${Version}' libdxrt-bin | cut -d. -f1,2).*"
-    ```
-    오프라인 설치용으로 같은 wheel(CPython ABI별 1개)이 `/usr/share/libdxrt-bin/python`에도
-    들어 있으며, package 설치 후 정확한 `pip install` 명령이 출력됩니다.
+    binding을 설치하지 않습니다. 설치된 `libdxrt-bin`과 버전이 맞는 wheel(CPython ABI별 1개)이
+    `/usr/share/libdxrt-bin/python`에 들어 있으므로, 사용하는 Python 버전에 맞는 wheel을
+    virtualenv에 설치하십시오. package 설치 후 정확한 `pip install` 명령이 출력됩니다.
 
 이후 릴리즈는 `sudo apt update && sudo apt upgrade`로 업그레이드하고, 제거는
 `sudo apt purge libdxrt-bin dxrt-driver-dkms`로 합니다. 이 방법은 driver와 runtime만

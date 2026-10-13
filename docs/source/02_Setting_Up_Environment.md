@@ -132,18 +132,12 @@ sudo apt install libdxrt-bin
     `./dx-runtime/install.sh --target=dx_fw`, then cold boot as described in
     **DX-Runtime Installation**.
 
-!!! note "Install the `dx_engine` Python package from PyPI"
+!!! note "Install the `dx_engine` Python package"
     `libdxrt-bin` does not install the `dx_engine` Python binding, since it cannot know which
-    interpreter or virtualenv you use. Install it from PyPI (`dx-engine`) into your virtualenv,
-    pinned to the same major.minor version as the installed `libdxrt-bin` — the wheel carries
-    its own copy of the runtime library, so mismatched versions are not caught by `apt` or `pip`:
-    ```Bash
-    source /path/to/venv/bin/activate
-    pip install "dx-engine==$(dpkg-query -W -f='${Version}' libdxrt-bin | cut -d. -f1,2).*"
-    ```
-    For offline installs, the same wheels (one per CPython ABI) are staged in
-    `/usr/share/libdxrt-bin/python`; the package prints the exact `pip install` command after
-    installation.
+    interpreter or virtualenv you use. Wheels matching the installed `libdxrt-bin` (one per
+    CPython ABI) are staged in `/usr/share/libdxrt-bin/python`; install the one for your
+    Python version into your virtualenv. The package prints the exact `pip install` command
+    after installation.
 
 Upgrade to later releases with `sudo apt update && sudo apt upgrade`, and remove the packages
 with `sudo apt purge libdxrt-bin dxrt-driver-dkms`. This route covers the driver and runtime
