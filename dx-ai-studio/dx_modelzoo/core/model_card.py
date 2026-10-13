@@ -86,6 +86,19 @@ def load_registry(dx_app_root):
     return {PurePosixPath(r["dxnn_file"]).stem: r for r in rows if not r.get("alias_of")}
 
 
+def load_setup_names(dx_app_root):
+    """setup.sh --models matches the manifest's name, case-insensitively. Returns (lower-cased names,
+    dxnn file name -> manifest name)."""
+    try:
+        rows = json.loads((Path(dx_app_root) / "scripts" / "modelzoo_manifest.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return set(), {}
+    rows = [r for r in rows if isinstance(r, dict) and isinstance(r.get("name"), str)]
+    by_file = {PurePosixPath(urlparse(r["dxnn_url"]).path).name: r["name"]
+               for r in rows if isinstance(r.get("dxnn_url"), str)}
+    return {r["name"].lower() for r in rows}, by_file
+
+
 def load_benchmark(path):
     try:
         data = json.loads(Path(path).read_text(encoding="utf-8"))
