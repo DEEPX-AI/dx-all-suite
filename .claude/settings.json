@@ -3,13 +3,23 @@
     "PreToolUse": [
       {
         "matcher": "Edit|Write",
-        "hooks": [{"type": "command", "command": "bash .claude/hooks/pre-edit-generator-guard.sh"}]
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PROJECT_DIR:-$PWD}/.claude/hooks/pre-edit-generator-guard.sh\""
+          }
+        ]
       }
     ],
     "PostToolUse": [
       {
         "matcher": "Edit|Write",
-        "hooks": [{"type": "command", "command": "bash .claude/hooks/post-edit-dx-agent-gen.sh"}]
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PROJECT_DIR:-$PWD}/.claude/hooks/post-edit-dx-agent-gen.sh\""
+          }
+        ]
       }
     ]
   }
