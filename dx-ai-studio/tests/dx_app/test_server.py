@@ -80,6 +80,25 @@ def test_dx_app_scan_categories_keeps_hardcoded_baseline(tmp_path, monkeypatch):
     assert expected in categories
 
 
+def test_dx_app_scan_categories_skips_the_multi_model_folders(tmp_path, monkeypatch):
+    """multi_model (pipeline JSONs) and multi_model_graph (graph engine and graph JSONs) hold multi-model
+    examples, not one task's models; they must not show up as a task (Lab's task list read them as one)."""
+    import config
+
+    fake_cpp = tmp_path / "cpp_example"
+    for name in ("object_detection", "multi_model", "multi_model_graph"):
+        (fake_cpp / name).mkdir(parents=True)
+    fake_py = tmp_path / "python_example"
+    (fake_py / "multi_model").mkdir(parents=True)
+    monkeypatch.setattr(config, "CPP_DIR", fake_cpp)
+    monkeypatch.setattr(config, "PY_DIR", fake_py)
+
+    categories = config._scan_categories()
+
+    assert "object_detection" in categories
+    assert "multi_model" not in categories and "multi_model_graph" not in categories
+
+
 def test_idle_shutdown_is_only_for_a_standalone_server(monkeypatch):
     """Only a standalone dx_app (opened in its own browser tab) shuts down when idle. Under the launcher, which owns
     module lifecycles, an idle shutdown ("No heartbeat — shutting down") would leave dx_app down until the port-only

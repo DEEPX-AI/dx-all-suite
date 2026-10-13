@@ -74,7 +74,8 @@ STATIC_DIR  = SCRIPT_DIR/"static"
 TEMPLATES_DIR = SCRIPT_DIR/"templates"
 OUTPUTS_DIR = outputs_dir("dx_app")
 
-SKIP_CAT={"common","build","sample","__pycache__","utils","factory"}
+# multi_model and multi_model_graph hold multi-model examples (pipelines, graphs), not one task's models.
+SKIP_CAT={"common","build","sample","__pycache__","utils","factory","multi_model","multi_model_graph"}
 _HARDCODED_CATEGORIES=["object_detection","face_detection","pose_estimation","obb_detection",
  "classification","instance_segmentation","semantic_segmentation","depth_estimation",
  "image_denoising","super_resolution","image_enhancement","embedding","ppu",

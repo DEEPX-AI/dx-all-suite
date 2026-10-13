@@ -738,7 +738,12 @@ class TestCrossOriginLabMutatingRoute(unittest.TestCase):
         handler.read_json_body = lambda: payload
         handler.send_json = lambda data, code=200: captured.update({"data": data, "code": code})
         handler.send_error = lambda code, *a, **kw: captured.update({"code": code})
-        handler.route()
+        # These tests check the origin gate only: a request that passes it must not add or delete a real example
+        # in the dx_app checkout (it once left object_detection/x/ there).
+        stub = {"ok": True, "stubbed": True}
+        with patch.object(server, "dev_add", return_value=dict(stub)), \
+                patch.object(server, "dev_delete", return_value=dict(stub)):
+            handler.route()
         return captured
 
     def test_add_model_rejects_remote_origin(self):
@@ -759,8 +764,8 @@ class TestCrossOriginLabMutatingRoute(unittest.TestCase):
             {"model_name": "x"},
             headers={"X-Lab-Token": tok}
         )
-        # Should not be 403 for origin reasons (may be other error)
-        self.assertNotEqual(captured.get("code"), 403)
+        # Passes the gate and reaches the (stubbed) action
+        self.assertEqual(captured.get("data"), {"ok": True, "stubbed": True})
 
     def test_xdevtoken_not_accepted_on_lab_route(self):
         from developer import lab_session
@@ -852,7 +857,12 @@ class TestHostileRefererLabMutating(unittest.TestCase):
         handler.read_json_body = lambda: payload
         handler.send_json = lambda data, code=200: captured.update({"data": data, "code": code})
         handler.send_error = lambda code, *a, **kw: captured.update({"code": code})
-        handler.route()
+        # These tests check the origin gate only: a request that passes it must not add or delete a real example
+        # in the dx_app checkout (it once left object_detection/x/ there).
+        stub = {"ok": True, "stubbed": True}
+        with patch.object(server, "dev_add", return_value=dict(stub)), \
+                patch.object(server, "dev_delete", return_value=dict(stub)):
+            handler.route()
         return captured
 
     def test_hostile_referer_on_lab_mutating_route(self):
@@ -881,8 +891,8 @@ class TestHostileRefererLabMutating(unittest.TestCase):
                 "Referer": "http://localhost:8080/index.html",
             }
         )
-        # Should not be 403 for referer reasons
-        self.assertNotEqual(captured.get("code"), 403)
+        # Passes the gate and reaches the (stubbed) action
+        self.assertEqual(captured.get("data"), {"ok": True, "stubbed": True})
 
 
 
