@@ -6,9 +6,10 @@ Contract: tests/dx_modelzoo/test_model_card_html.py, tests/dx_modelzoo/test_mode
 from __future__ import annotations
 
 import html as _html
+import re
 
 from dx_modelzoo.core.model_card import commands, fmt_delta, fmt_fps, fmt_input, fmt_num
-from dx_modelzoo.core.model_card_labels import t
+from dx_modelzoo.core.model_card_labels import CATALOG_NUMBERS, boards_footer, boards_note, generated_note, t
 
 _DARK = ("--page:#000;--panel:#161617;--ink:#f5f5f7;--ink2:#d2d2d7;--muted:#a1a1a6;--line:#2c2c2e;"
          "--accent:#2997ff;--accent-ink:#2997ff;--soft:#0a2540;--code-bg:#0b0b0c;--good:#3fb950;--bad:#ff6b5e;"
@@ -27,7 +28,7 @@ a{color:var(--accent-ink);text-decoration:none}a:hover{text-decoration:underline
 .page{max-width:1160px;margin:0 auto;padding:clamp(20px,4vw,48px) clamp(16px,3vw,32px) 56px}
 .top{display:flex;justify-content:space-between;align-items:center;gap:12px}
 .crumb{font-size:13px;color:var(--muted);display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center;min-width:0}
-.crumb code{font:12.5px var(--mono);color:var(--ink2);overflow-wrap:anywhere}
+.crumb code{font:12.5px var(--mono);color:var(--ink2)}.nb{white-space:nowrap}
 .theme{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:999px;padding:5px 12px;
 font:12.5px var(--font);cursor:pointer;white-space:nowrap}
 .hero{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:clamp(20px,3vw,40px);align-items:center;margin-top:14px}
@@ -67,6 +68,7 @@ th{font-size:12px;font-weight:600;color:var(--muted);text-align:left;padding:8px
 td{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}tr:last-child td{border-bottom:0}
 td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 td.n small{display:block;font-size:12px}td.n small.neg{color:var(--bad)}td.n small.pos{color:var(--good)}
+td.n small.zero{color:var(--muted)}
 td.k{white-space:nowrap;font-weight:500}
 .note{font-size:12.5px;color:var(--muted);margin:10px 0 0}.warn{font-size:13px;color:var(--bad);margin:10px 0 0}
 .empty{color:var(--ink2);font-size:14px;margin:0 0 10px}
@@ -80,7 +82,7 @@ ul.dl .l a{border:1px solid var(--line);border-radius:999px;padding:4px 11px;fon
 .files{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:2px 24px}
 .files li{padding:10px 0;border-bottom:1px solid var(--line);min-width:0}
 .files code,.files a{display:block;font:13px var(--mono)}.files a{font-family:var(--font);font-weight:600}
-.files span{display:block;font-size:12.5px;color:var(--muted);overflow-wrap:anywhere}
+.files li>span{display:block;font-size:12.5px;color:var(--muted)}
 .foot{color:var(--muted);font-size:12.5px;border-top:1px solid var(--line);margin-top:8px;padding-top:16px;line-height:1.6}
 .aside{position:sticky;top:20px}
 @media (max-width:1000px){.cols{grid-template-columns:1fr}.aside{position:static}.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
@@ -108,7 +110,9 @@ def _cmd(text, label, labels):
 
 
 def _wbr(name):
-    return _e(name).replace("_", "_<wbr>")
+    """Break a long name only after "_" or "/": each chunk stays whole (nowrap), <wbr> marks the break points."""
+    chunks = [c for c in re.split(r"(?<=[_/])", str(name)) if c]
+    return "<wbr>".join(f"<span class=nb>{_e(c)}</span>" for c in chunks)
 
 
 def render_html(card, *, labels=None, lang="en", image_src=None, readme_href="README.md", other_href=None):
@@ -157,7 +161,8 @@ def render_html(card, *, labels=None, lang="en", image_src=None, readme_href="RE
         for c in row["cells"]:
             delta = ""
             if c["delta"] is not None:
-                delta = f'<small class="{"neg" if c["delta"] < 0 else "pos"}">{_e(fmt_delta(c["delta"]))}</small>'
+                tone = "zero" if fmt_delta(c["delta"]).startswith("±") else "neg" if c["delta"] < 0 else "pos"
+                delta = f'<small class="{tone}">{_e(fmt_delta(c["delta"]))}</small>'
             cells += f"<td class=n>{_e(fmt_num(c['value']))}{delta}</td>"
         body += f"<tr><td class=k>{_e(row['label'])}</td>{cells}</tr>"
     accuracy = (f"<div class=scroll><table><thead><tr><th>{_e(t(L, 'Quantization'))}</th>{head}</tr></thead>"
@@ -175,6 +180,8 @@ def render_html(card, *, labels=None, lang="en", image_src=None, readme_href="RE
     else:
         throughput = (f"<p class=empty>{_e(t(L, 'Throughput for this model is not published yet. Measure it on your board:'))}</p>"
                       + _cmd(cmds["measure"], t(L, "Measure"), L))
+    if not card["published"]:
+        throughput = f"<p class=note style=\"margin:0 0 12px\">{_e(t(L, CATALOG_NUMBERS))}</p>" + throughput
     boards = ""
     if card["boards"]["rows"]:
         rows = "".join(f"<tr><td class=k>{_e(r['board'])}</td><td class=n>{_e(fmt_num(r['throughput_fps'], 1))}</td>"
@@ -183,9 +190,7 @@ def render_html(card, *, labels=None, lang="en", image_src=None, readme_href="RE
         boards = (f"<h3>{_e(t(L, 'Measured on host boards'))}</h3><div class=scroll><table><thead><tr>"
                   f"<th>{_e(t(L, 'Board'))}</th><th class=n>{_e(t(L, 'Throughput FPS'))}</th>"
                   f"<th class=n>{_e(t(L, 'Single-stream FPS'))}</th><th class=n>{_e(t(L, 'Latency ms'))}</th></tr></thead>"
-                  f"<tbody>{rows}</tbody></table></div><p class=note>"
-                  + _e(t(L, "DX AI Studio Benchmark, {when}, DX-RT without ORT. Throughput: 5 in-flight buffers. "
-                            "Single-stream: 1.", when=card["boards"]["measured"])) + "</p>")
+                  f"<tbody>{rows}</tbody></table></div><p class=note>{_e(boards_note(card, L))}</p>")
 
     facts = [("Task", card["task_label"]), ("Dataset", card["dataset"]),
              ("Metric", " · ".join(acc["metrics"])), ("Input", fmt_input(card["input"])),
@@ -201,11 +206,16 @@ def render_html(card, *, labels=None, lang="en", image_src=None, readme_href="RE
         json_link = f'<a href="{_e(x["json"])}">JSON</a>' if x["json"] else ""
         dls += (f"<li><div class=t><b>{_e(x['label'])}</b><span>DX-COM {_e(x['compiler'] or '—')}</span></div>"
                 f'<div class=l><a href="{_e(x["dxnn"])}">DXNN</a>{json_link}</div></li>')
+    dls = f"<ul class=dl>{dls}</ul>" if dls else "<p class=empty>—</p>"
     files = "".join(f"<li><code>{_wbr(f['name'])}</code><span>{_e(t(L, f['role']))}</span></li>"
                     for f in card["files"]["python"])
-    if other_href:
+    if other_href and card["has_cpp"]:
         files += (f'<li><a href="{_e(other_href)}">{_e(t(L, "C++ version of this example"))} →</a>'
-                  f"<span>{_wbr(card['paths']['cpp'])}/</span></li>")
+                  f"<span>{_wbr(card['paths']['cpp'] + '/')}</span></li>")
+    files = f"<ul class=files>{files}</ul>" if files else "<p class=empty>—</p>"
+    license_text = (f"<p class=sub style=\"margin:0 0 8px\">{_e(card['license_text'])}</p>"
+                    if card["license_text"] and card["license_text"] != card["license"] else "")
+    footer = "\n".join(_e(x) for x in (generated_note(card, L), boards_footer(card, L)) if x)
     source = (f'<a href="{_e(card["source"])}">{_e(card["source"].replace("https://github.com/", ""))}</a>'
               if card["source"] else "—")
     owner = f" · © {_e(card['copyright'])}" if card["copyright"] else ""
@@ -217,7 +227,7 @@ def render_html(card, *, labels=None, lang="en", image_src=None, readme_href="RE
 <script>{_BOOT}</script><style>{_CSS}</style></head>
 <body><div class=page>
 <div class=top><div class=crumb><span>{_e(t(L, 'DX-APP example'))}</span><span>·</span><span>{_e(card['task_label'])}</span>
-<span>·</span><code>{_e(card['variant'])}</code></div><button class=theme type=button>{_e(t(L, 'Theme'))}</button></div>
+<span>·</span><code>{_wbr(card['variant'])}</code></div><button class=theme type=button>{_e(t(L, 'Theme'))}</button></div>
 <section class=hero><div><h1>{_e(card['name'])}</h1><p class=lede>{_e(card['summary'])}</p>{notice}
 <ul class=chips>{chips}</ul><div class=actions>{''.join(actions)}</div></div>{shot}</section>
 <div class=kpis>{kpi_html}</div>
@@ -226,15 +236,16 @@ def render_html(card, *, labels=None, lang="en", image_src=None, readme_href="RE
 <p class=sub>{_e(t(L, 'Run from the dx_app root after ./install.sh and ./build.sh.'))}</p>
 {_cmd(cmds['get'], t(L, 'Get the model'), L)}{_cmd(cmds['python'], 'Python', L)}{_cmd(cmds['cpp'], 'C++', L)}</section>
 <section class=panel><h2>{_e(t(L, 'Performance'))}</h2>{throughput}<h3>{_e(t(L, 'Accuracy'))}</h3>{accuracy}{boards}</section>
-<section class=panel><h2>{_e(t(L, 'Files in this example'))}</h2><ul class=files>{files}</ul></section>
+<section class=panel><h2>{_e(t(L, 'Files in this example'))}</h2>{files}</section>
 </main><aside class=aside>
 <section class=panel><h2>{_e(t(L, 'Model'))}</h2><dl class=facts>{fact_html}</dl></section>
-<section class=panel><h2>{_e(t(L, 'Downloads'))}</h2><ul class=dl>{dls}</ul></section>
+<section class=panel><h2>{_e(t(L, 'Downloads'))}</h2>{dls}</section>
 <section class=panel><h2>{_e(t(L, 'Source & License'))}</h2><p style="margin:0 0 6px">{source}</p>
 <p class=sub style="margin:0 0 8px">{_e(card['license'] or '—')}{owner} — {_e(t(L, 'Check the upstream license before commercial use.'))}</p>
+{license_text}
 <p class=sub style="margin:0">{_e(t(L, 'Compile it yourself: DX-COM in dx-compiler, or DX AI Studio → Compiler.'))}</p></section>
 </aside></div>
-<p class=foot>{_e(t(L, 'Generated from the DX Model Zoo publish table (as of {date}).', date=card['asof']))}
+<p class=foot>{footer}
 {_e(t(L, 'Open this model in DX AI Studio → Model Zoo for live inference and the model graph.'))}</p>
 </div><script>{_JS}</script></body></html>
 """

@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import datetime as _dt
 import json
+import posixpath
 import re
 from pathlib import Path, PurePosixPath
 from urllib.parse import urlparse
@@ -32,7 +33,11 @@ FILE_ROLES = (
     ("factory", "Pre-, post-processor and visualizer"),
 )
 _VERSION_DIR = re.compile(r"/(\d+)_(\d+)_(\d+)/")
-_ARTICLE = re.compile(r"\ba (?=[aeiouAEIOU])")
+# "a" before a vowel sound; a vowel letter that sounds like "y" or "w" (unified, user, European, one-stage) keeps "a".
+_ARTICLE = re.compile(r"\b(a) (?=[aeiou])(?!uni|use|usu|usa|uti|ura|ure|uro|u-|eu|ewe|one\b|once|ufo|ubiq)",
+                      re.IGNORECASE)
+# "AP(Easy)AP(Med)AP(Hard)": one catalog name for several values, glued at ")".
+_GLUED_METRICS = re.compile(r"(?<=\))(?=\S)")
 
 
 # ── formatting ──────────────────────────────────────────────────────────────
@@ -48,6 +53,8 @@ def fmt_fps(value):
 
 
 def fmt_delta(delta):
+    if round(delta, 2) == 0:
+        return "±0.00"
     return f"−{-delta:.2f}" if delta < 0 else f"+{delta:.2f}"
 
 
@@ -71,6 +78,11 @@ def public_url(url):
     if parsed.scheme not in ("http", "https") or not host or host == "dpx.ai" or host.endswith(".dpx.ai"):
         return None
     return url.strip()
+
+
+def rel_dir(from_dir, to_dir):
+    """Relative link from one dx_app dir to another, with a trailing slash."""
+    return posixpath.relpath(to_dir, from_dir) + "/"
 
 
 def split_values(value):
@@ -111,24 +123,36 @@ def accuracy_table(model):
     spec = model.get("specification") or {}
     metric = spec.get("metric")
     metric = metric.get("name") if isinstance(metric, dict) else metric
-    metrics = split_values(metric) or ["Accuracy"]
+    names = split_values(metric)
     evaluation = model.get("evaluation") or {}
-    raw = [_number(v) for v in split_values((evaluation.get("raw") or {}).get("accuracy"))]
+    tiers = {key: [_number(v) for v in split_values((evaluation.get(key) or {}).get("accuracy"))] for key, _ in TIERS}
+    count = max((len(v) for v in tiers.values() if any(x is not None for x in v)), default=0)
+    metrics = names or ["Accuracy"]
+    if len(metrics) == 1 and count > 1:
+        parts = [p.strip() for p in _GLUED_METRICS.split(metrics[0]) if p.strip()]
+        metrics = parts if len(parts) <= count else metrics
+    metrics += [f"Metric {i}" for i in range(len(metrics) + 1, count + 1)]
+    raw = tiers["raw"]
     rows, warnings = [], []
     for key, label in TIERS:
-        values = [_number(v) for v in split_values((evaluation.get(key) or {}).get("accuracy"))]
+        values = tiers[key]
         if not any(v is not None for v in values):
             continue
         values = (values + [None] * len(metrics))[:len(metrics)]
         cells = []
         for i, value in enumerate(values):
             base = raw[i] if key != "raw" and i < len(raw) else None
-            delta = round(value - base, 2) if value is not None and base is not None else None
+            # From the shown (2-decimal) values, so the delta matches the numbers next to it.
+            delta = None
+            if value is not None and base is not None:
+                delta = round(round(value, 2) - round(base, 2), 2) + 0.0
             cells.append({"value": value, "delta": delta})
             if delta is not None and -delta > LOSS_WARN_POINTS:
                 warnings.append({"tier": label, "metric": metrics[i], "drop": round(-delta, 2)})
         rows.append({"tier": key, "label": label, "cells": cells})
-    return {"metrics": metrics, "rows": rows, "warnings": warnings}
+    mismatch = count > 0 and len(names) != count and (bool(names) or count > 1)
+    return {"metrics": metrics, "rows": rows, "warnings": warnings, "metric_count_mismatch": mismatch,
+            "metric_counts": {"names": len(names), "values": count}}
 
 
 def compiler_version(url):
@@ -157,7 +181,7 @@ def summary(model, lang="en"):
     if isinstance(text, dict):
         text = text.get(lang) or text.get("en") or ""
     text = str(text).strip()
-    return _ARTICLE.sub("an ", text) if lang == "en" else text
+    return _ARTICLE.sub(lambda m: m.group(1) + "n ", text) if lang == "en" else text
 
 
 def board_rows(benchmark_rows, variant):
@@ -181,7 +205,10 @@ def board_rows(benchmark_rows, variant):
     measured = None
     stamps = [r[:8] for r in run_ids if r[:8].isdigit()]
     if stamps:
-        measured = _dt.datetime.strptime(max(stamps), "%Y%m%d").strftime("%B %Y")
+        try:
+            measured = _dt.datetime.strptime(max(stamps), "%Y%m%d").strftime("%B %Y")
+        except ValueError:
+            measured = None
     return {"rows": rows, "measured": measured}
 
 
@@ -214,9 +241,10 @@ def commands(card):
 
 # ── the card ────────────────────────────────────────────────────────────────
 
-def build_card(model, registry_row, dx_app_root, *, benchmark_rows=(), task_label=None, asof=None, lang="en",
+def build_card(model, registry_row, dx_app_root, *, asof, benchmark_rows=(), task_label=None, lang="en",
                setup_name=None):
-    """setup_name: the name dx_app's setup.sh --models knows (its manifest); defaults to the registry name."""
+    """asof: the publish table's date, or None when it is unknown (the footer then leaves the date out).
+    setup_name: the name dx_app's setup.sh --models knows (its manifest); defaults to the registry name."""
     variant = PurePosixPath(registry_row["dxnn_file"]).stem
     task, family = registry_row["task"], registry_row["family"]
     py_dir = f"src/python_example/{task}/{family}/{variant}"
@@ -229,12 +257,17 @@ def build_card(model, registry_row, dx_app_root, *, benchmark_rows=(), task_labe
     spec = model.get("specification") or {}
     legal = model.get("legal") or {}
     perf = model.get("performance") or {}
-    name = (model.get("display") or {}).get("name") or model.get("name") or variant
     task_label = task_label or task.replace("_", " ").title()
     dataset = spec.get("dataset")
     links = downloads(model)
-    text = summary(model, lang) or (
-        f"{name} — {task_label.lower()} model" + (f", trained on {dataset}." if dataset else "."))
+    published = bool(links["tiers"] or links["onnx"])
+    if published:
+        name = (model.get("display") or {}).get("name") or model.get("name") or variant
+        text = summary(model, lang)
+    else:
+        # Not in the publish table: Studio's display name and summary are made up from the file name.
+        name, text = registry_row.get("original_name") or variant, ""
+    text = text or f"{name} — {task_label.lower()} model" + (f", trained on {dataset}." if dataset else ".")
     return {
         "variant": variant,
         "zoo_id": model.get("id"),
@@ -246,7 +279,7 @@ def build_card(model, registry_row, dx_app_root, *, benchmark_rows=(), task_labe
         "task_label": task_label,
         "name": name,
         "summary": text,
-        "published": bool(links["tiers"] or links["onnx"]),
+        "published": published,
         "input": spec.get("input_resolution"),
         "dataset": dataset,
         "params": _number(spec.get("parameters")),
@@ -263,6 +296,7 @@ def build_card(model, registry_row, dx_app_root, *, benchmark_rows=(), task_labe
         "sample": config.get("default_image") or config.get("default_video") or "",
         "paths": {"python": py_dir, "cpp": cpp_dir},
         "files": {"python": example_files(root / py_dir, variant), "cpp": example_files(root / cpp_dir, variant)},
+        "has_cpp": (root / cpp_dir).is_dir(),
         "has_image": False,
-        "asof": asof or _dt.date.today().isoformat(),
+        "asof": asof,
     }

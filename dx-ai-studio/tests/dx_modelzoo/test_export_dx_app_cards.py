@@ -37,6 +37,44 @@ def test_outputs_and_report(tmp_path):
     assert index["asof"] == "2026-10-13" and index["models"][0]["zoo_task"] == "face_detection"
     assert "https://sdk.deepx.ai/modelzoo/q-lite-dxnn/2_5_0/yolov5-m-face_640x640.dxnn" in outputs["config/model_cards.json"].decode()
     assert report["count"] == 1 and report["setup_name_missing"] == [] and report["missing_image"] == []
+    assert report["metric_count_mismatch"] == [] and report["no_python_dir"] == []
+    page = outputs[f"{py}/model.html"].decode()
+    assert 'href="../../../../cpp_example/face_detection/yolov5_face/yolov5-m-face_640x640/README.md"' in page
+
+
+def test_missing_dirs_are_reported_not_created(tmp_path):
+    import shutil
+
+    app, data, model = _tree(tmp_path)
+    shutil.rmtree(app / "src/cpp_example")
+    outputs, report = ex.build_outputs(app, [model], {}, [], data, "2026-10-13")
+    py = "src/python_example/face_detection/yolov5_face/yolov5-m-face_640x640"
+    assert not any(k.startswith("src/cpp_example") for k in outputs)
+    assert "cpp_example" not in outputs[f"{py}/model.html"].decode()
+    assert "C++ version" not in outputs[f"{py}/README.md"].decode()
+    assert "[C++]" not in outputs["MODELS.md"].decode()
+    shutil.rmtree(app / "src/python_example")
+    outputs, report = ex.build_outputs(app, [model], {}, [], data, "2026-10-13")
+    assert report["no_python_dir"] == ["yolov5-m-face_640x640"] and report["count"] == 0
+    assert not any(k.startswith("src/") for k in outputs)
+
+
+def test_glued_metric_names_are_reported(tmp_path):
+    app, data, model = _tree(tmp_path)
+    model["specification"] = dict(model["specification"], metric={"name": "AP(Easy)AP(Med)AP(Hard)"})
+    _, report = ex.build_outputs(app, [model], {}, [], data, "2026-10-13")
+    assert report["metric_count_mismatch"] == ["yolov5-m-face_640x640: 1 metric names, 3 values"]
+
+
+def test_main_needs_the_catalog_date(tmp_path, monkeypatch, capsys):
+    import pytest
+
+    from dx_modelzoo.core import catalog
+    monkeypatch.setattr(catalog, "get_catalog", lambda: {"models": [], "categories": {}})
+    monkeypatch.setattr(catalog, "load_generated_catalog", lambda: {})
+    with pytest.raises(SystemExit) as exit_:
+        ex.main(["--dx-app", str(tmp_path), "--check"])
+    assert exit_.value.code == 2 and "generated_at" in capsys.readouterr().err
 
 
 def test_write_then_check_is_clean_and_drift_is_caught(tmp_path):

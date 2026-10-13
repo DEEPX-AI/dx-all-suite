@@ -3,7 +3,10 @@ the python dir, MODELS.md and config/model_cards.json at the dx_app root.
 
     python -m dx_modelzoo.tools.export_dx_app_cards [--dx-app PATH] [--check] [--only VARIANT ...] [--report FILE]
 
---check writes nothing and exits 1 when any file would change. Contract: tests/dx_modelzoo/test_export_dx_app_cards.py
+--check writes nothing into the dx_app checkout and exits 1 when any file would change; --report FILE is still
+written, since it lives outside dx_app. The catalog must carry its generated_at date (the cards' "as of").
+A variant whose python example dir is missing is skipped and reported (no_python_dir), never created.
+Contract: tests/dx_modelzoo/test_export_dx_app_cards.py
 """
 from __future__ import annotations
 
@@ -12,7 +15,7 @@ import json
 import sys
 from pathlib import Path, PurePosixPath
 
-from dx_modelzoo.core.model_card import build_card, load_benchmark, load_registry, load_setup_names
+from dx_modelzoo.core.model_card import build_card, load_benchmark, load_registry, load_setup_names, rel_dir
 from dx_modelzoo.core.model_card_html import render_html
 from dx_modelzoo.core.model_card_image import example_image, webp_bytes
 from dx_modelzoo.core.model_card_md import render_index, render_markdown
@@ -33,7 +36,8 @@ def build_outputs(dx_app_root, models, categories, benchmark_rows, data_dir, aso
             by_variant.setdefault(PurePosixPath(py).name, model)
     outputs, cards = {}, []
     report = {"count": 0, "no_studio_model": [], "missing_image": [], "unpublished": [], "setup_name_missing": [],
-              "sample_is_dir": [], "no_sample": [], "accuracy_warnings": []}
+              "sample_is_dir": [], "no_sample": [], "accuracy_warnings": [], "metric_count_mismatch": [],
+              "no_python_dir": []}
     for variant in sorted(registry):
         if only and variant not in only:
             continue
@@ -45,6 +49,9 @@ def build_outputs(dx_app_root, models, categories, benchmark_rows, data_dir, aso
                           setup_name=setup_names.get(PurePosixPath(row["dxnn_file"]).name),
                           task_label=category_label(categories, model.get("category"), "en"), asof=asof)
         py, cpp = card["paths"]["python"], card["paths"]["cpp"]
+        if not (root / py).is_dir():
+            report["no_python_dir"].append(variant)
+            continue
         image = example_image(model, data_dir)
         card["has_image"] = image is not None
         if image is not None:
@@ -52,12 +59,10 @@ def build_outputs(dx_app_root, models, categories, benchmark_rows, data_dir, aso
         else:
             report["missing_image"].append(variant)
         outputs[f"{py}/README.md"] = render_markdown(card, "python").encode("utf-8")
-        cpp_exists = (root / cpp).is_dir()
         outputs[f"{py}/model.html"] = render_html(
-            card, image_src="result.webp",
-            other_href=("../../../../cpp_example/" + cpp.split("cpp_example/", 1)[1] + "/") if cpp_exists else None,
+            card, image_src="result.webp", other_href=rel_dir(py, cpp) + "README.md" if card["has_cpp"] else None,
         ).encode("utf-8")
-        if cpp_exists:
+        if card["has_cpp"]:
             outputs[f"{cpp}/README.md"] = render_markdown(card, "cpp").encode("utf-8")
         if not card["published"]:
             report["unpublished"].append(variant)
@@ -67,6 +72,9 @@ def build_outputs(dx_app_root, models, categories, benchmark_rows, data_dir, aso
             report["no_sample"].append(variant)
         elif (root / card["sample"]).is_dir():
             report["sample_is_dir"].append(f"{variant}: {card['sample']}")
+        if card["accuracy"]["metric_count_mismatch"]:
+            counts = card["accuracy"]["metric_counts"]
+            report["metric_count_mismatch"].append(f"{variant}: {counts['names']} metric names, {counts['values']} values")
         for w in card["accuracy"]["warnings"]:
             report["accuracy_warnings"].append(f"{variant}: {w['tier']} −{w['drop']:.2f} on {w['metric']}")
         cards.append(card)
@@ -105,9 +113,11 @@ def main(argv=None):
     parser.add_argument("--only", nargs="*")
     parser.add_argument("--report")
     args = parser.parse_args(argv)
-    catalog = get_catalog()
     generated = load_generated_catalog() or {}
-    asof = str(generated.get("generated_at") or "")[:10] or None
+    asof = str(generated.get("generated_at") or "")[:10]
+    if not asof:
+        parser.error("the generated catalog has no generated_at date; regenerate it before exporting cards")
+    catalog = get_catalog()
     outputs, report = build_outputs(args.dx_app, catalog["models"], catalog.get("categories") or {},
                                     load_benchmark(STUDIO_ROOT / "dx_benchmark" / "dataset.json"), DATA_DIR, asof,
                                     only=set(args.only) if args.only else None)
