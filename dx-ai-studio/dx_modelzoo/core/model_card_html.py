@@ -167,7 +167,7 @@ def render_html(card, *, labels=None, lang="en", image_src=None, readme_href="RE
         body += f"<tr><td class=k>{_e(row['label'])}</td>{cells}</tr>"
     accuracy = (f"<div class=scroll><table><thead><tr><th>{_e(t(L, 'Quantization'))}</th>{head}</tr></thead>"
                 f"<tbody>{body}</tbody></table></div>") if acc["rows"] else "<p class=empty>—</p>"
-    if card["dataset"]:
+    if card["dataset"] and any(c["delta"] is not None for r in acc["rows"] for c in r["cells"]):
         accuracy += f"<p class=note>{_e(t(L, '{dataset} · difference vs Raw below each value.', dataset=card['dataset']))}</p>"
     for w in acc["warnings"]:
         warning = t(L, "{tier} is {drop} points below Raw on {metric}.",

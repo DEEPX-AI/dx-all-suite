@@ -28,7 +28,7 @@ def _accuracy(card):
             cells.append(value if c["delta"] is None else f"{value} ({fmt_delta(c['delta'])})")
         out.append(f"| {row['label']} | " + " | ".join(cells) + " |")
     text = "\n".join(out) + "\n"
-    if card["dataset"]:
+    if card["dataset"] and any(c["delta"] is not None for r in acc["rows"] for c in r["cells"]):
         text += f"\n{card['dataset']} · difference vs Raw in brackets.\n"
     for w in acc["warnings"]:
         text += f"\n> **Note:** {w['tier']} is {w['drop']:.2f} points below Raw on {w['metric']}.\n"

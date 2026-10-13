@@ -103,3 +103,12 @@ def test_labels():
     assert t({"Download {tier} DXNN": "{tier} DXNN 다운로드"}, "Download {tier} DXNN", tier="Q-Lite") == "Q-Lite DXNN 다운로드"
     assert t({"Download {tier} DXNN": "broken {nope}"}, "Download {tier} DXNN", tier="Q-Lite") == "Download Q-Lite DXNN"
     assert clean_labels({"Quick start": "빠른 시작", "evil": "x", "Copy": 3, "Model": "y" * 999}) == {"Quick start": "빠른 시작"}
+
+
+def test_raw_only_accuracy_has_no_difference_note(app):
+    card = _card(app)
+    card["accuracy"]["rows"] = [r for r in card["accuracy"]["rows"] if r["tier"] == "raw"]
+    card["accuracy"]["warnings"] = []
+    from dx_modelzoo.core.model_card_html import render_html
+    assert "difference vs Raw" not in render_markdown(card, "python")
+    assert "difference vs Raw" not in render_html(card)
