@@ -88,3 +88,21 @@ def test_webp_fits_the_budget(tmp_path):
     from io import BytesIO
     assert max(Image.open(BytesIO(data)).size) <= 960
     assert data == webp_bytes(src)          # deterministic, so --check is stable
+
+
+def test_webp_is_encoded_once_per_file_version(tmp_path, monkeypatch):
+    import os
+
+    from dx_modelzoo.core import model_card_image
+
+    src = tmp_path / "result.png"
+    Image.new("RGB", (64, 48), (200, 30, 30)).save(src)
+    opened = []
+    real_open = model_card_image.Image.open
+    monkeypatch.setattr(model_card_image.Image, "open", lambda p: opened.append(p) or real_open(p))
+    first = webp_bytes(src)
+    assert webp_bytes(tmp_path / "." / "result.png") == first and len(opened) == 1   # same file, same version
+    assert webp_bytes(src, max_side=32) != first and len(opened) == 2               # other arguments
+    Image.new("RGB", (64, 48), (30, 200, 30)).save(src)
+    os.utime(src, ns=(1, os.stat(src).st_mtime_ns + 1_000_000))
+    assert webp_bytes(src) != first and len(opened) == 3                             # the file changed

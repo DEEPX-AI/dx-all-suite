@@ -4,6 +4,7 @@ Contract: tests/dx_modelzoo/test_model_card_html.py
 """
 from __future__ import annotations
 
+from functools import lru_cache
 from io import BytesIO
 from pathlib import Path
 
@@ -21,6 +22,13 @@ def example_image(model, data_dir):
 
 
 def webp_bytes(path, max_side=MAX_SIDE, budget=BUDGET, floor=FLOOR):
+    """The encoded image. Cached per file version, so repeated Save as HTML clicks do not re-encode."""
+    resolved = Path(path).resolve()
+    return _encode(resolved, resolved.stat().st_mtime_ns, max_side, budget, floor)
+
+
+@lru_cache(maxsize=64)
+def _encode(path, _mtime_ns, max_side, budget, floor):
     with Image.open(path) as image:
         image = image.convert("RGB")
         image.thumbnail((max_side, max_side))
