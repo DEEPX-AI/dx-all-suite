@@ -15,6 +15,10 @@ from dx_modelzoo.core.model_card_labels import clean_labels
 SUPPORTED_LANGS = ("en", "ko", "ja", "es", "zh-CN", "zh-TW")
 
 
+class DxAppMissing(Exception):
+    """The dx_app checkout (its model registry) is not there; the server answers 503."""
+
+
 def category_label(categories, category_id, lang="en"):
     if isinstance(categories, dict):
         info = categories.get(category_id) or {}
@@ -24,11 +28,16 @@ def category_label(categories, category_id, lang="en"):
 
 
 def studio_card(model, categories, payload, *, dx_app_root, data_dir, benchmark_path, asof=None):
-    """→ (html, filename). LookupError when this model has no dx_app example."""
+    """→ (html, filename). LookupError when this model has no dx_app example, DxAppMissing without a dx_app
+    checkout. asof: the catalog date, or None (the footer then leaves the date out)."""
     payload = payload if isinstance(payload, dict) else {}
     lang = payload.get("lang") if payload.get("lang") in SUPPORTED_LANGS else "en"
     variant = PurePosixPath(((model.get("demo") or {}).get("python_example") or "").rstrip("/")).name
-    row = load_registry(dx_app_root).get(variant)
+    try:
+        registry = load_registry(dx_app_root)
+    except (OSError, ValueError) as exc:
+        raise DxAppMissing(str(dx_app_root)) from exc
+    row = registry.get(variant)
     if row is None:
         raise LookupError(variant or model.get("id"))
     task_label = payload.get("task_label")

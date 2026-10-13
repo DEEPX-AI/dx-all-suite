@@ -9,21 +9,31 @@ from urllib.request import Request, urlopen
 
 import pytest
 
+from dx_modelzoo.core.model_card_studio import DxAppMissing, studio_card
 from shared.paths import DX_APP_ROOT
 
 MODULE_DIR = Path(__file__).resolve().parents[2] / "dx_modelzoo"
-pytestmark = pytest.mark.skipif(not (DX_APP_ROOT / "config" / "model_registry.json").is_file(),
-                                reason="needs the dx_app checkout")
+def test_studio_card_without_a_dx_app_checkout(tmp_path):
+    model = {"id": "x", "demo": {"python_example": "src/python_example/a/b/x/"}}
+    with pytest.raises(DxAppMissing):
+        studio_card(model, {}, {}, dx_app_root=tmp_path, data_dir=tmp_path, benchmark_path=tmp_path / "none.json",
+                    asof=None)
+
+
+_SERVER_GLOBALS = {}
 
 
 @pytest.fixture(scope="module")
 def port():
+    if not (DX_APP_ROOT / "config" / "model_registry.json").is_file():
+        pytest.skip("needs the dx_app checkout")
     sys.modules.pop("server", None)
     sys.path.insert(0, str(MODULE_DIR))
     try:
         from server import create_server
     finally:
         sys.path.remove(str(MODULE_DIR))
+    _SERVER_GLOBALS.update(globals=create_server.__globals__)     # the module the handler reads DX_APP_ROOT from
     srv = create_server(0)
     port = srv.server_address[1]
     threading.Thread(target=srv.serve_forever, daemon=True).start()
@@ -63,6 +73,15 @@ def test_get_command_uses_the_setup_name(port):
     # setup.sh --models knows this model by its manifest name, not the registry's lower-case name.
     page = _post(port, "/api/model_card/damoyolo_tinynasl20_t", {}).read().decode()
     assert "./setup.sh --models DamoYolo_tinynasL20_T" in page
+
+
+def test_missing_dx_app_is_503(port, tmp_path, monkeypatch):
+    monkeypatch.setitem(_SERVER_GLOBALS["globals"], "DX_APP_ROOT", tmp_path)
+    with pytest.raises(HTTPError) as gone:
+        _post(port, "/api/model_card/yolo26n", {})
+    assert gone.value.code == 503
+    assert json.loads(gone.value.read()) == {"ok": False, "error": "The dx_app checkout is missing",
+                                             "code": "DX_APP_MISSING"}
 
 
 def test_bad_requests(port):
