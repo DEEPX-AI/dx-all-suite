@@ -38,6 +38,12 @@ _ARTICLE = re.compile(r"\b(a) (?=[aeiou])(?!uni|use|usu|usa|uti|ura|ure|uro|u-|e
                       re.IGNORECASE)
 # "AP(Easy)AP(Med)AP(Hard)": one catalog name for several values, glued at ")".
 _GLUED_METRICS = re.compile(r"(?<=\))(?=\S)")
+# Studio's stand-in summaries, the same sentence for every model of a task (generate_catalog.py and
+# metadata/merge.py): a card says nothing with them, so it uses its own fallback sentence instead.
+_TEMPLATE_SUMMARIES = (re.compile(r".+ is an? [a-z0-9 ]+ model optimized for DEEPX NPU\."),
+                       re.compile(r"AI model( for [a-z0-9_]+ tasks)?\."))
+# A task key left in a sentence ("anomaly_detection"): letters only, so model ids such as yolov5s_ppu stay.
+_TASK_KEY = re.compile(r"\b[a-z]+(?:_[a-z]+)+\b")
 
 
 # ── formatting ──────────────────────────────────────────────────────────────
@@ -190,12 +196,24 @@ def downloads(model):
     return {"onnx": url("onnx"), "tiers": tiers}
 
 
+def _template_summary(text):
+    from dx_modelzoo.metadata.merge import _EDITORIAL_BY_TASK
+    return text in _EDITORIAL_BY_TASK.values() or any(p.fullmatch(text) for p in _TEMPLATE_SUMMARIES)
+
+
 def summary(model, lang="en"):
+    """The catalog's summary for the card, or "" when it is one of Studio's per-task stand-ins."""
     text = ((model.get("display") or {}).get("summary")) or model.get("description") or ""
+    english = text.get("en") if isinstance(text, dict) else text
+    if _template_summary(str(english or "").strip()):
+        return ""
     if isinstance(text, dict):
         text = text.get(lang) or text.get("en") or ""
     text = str(text).strip()
-    return _ARTICLE.sub(lambda m: m.group(1) + "n ", text) if lang == "en" else text
+    if lang != "en":
+        return text
+    text = _TASK_KEY.sub(lambda m: m.group(0).replace("_", " "), text)
+    return _ARTICLE.sub(lambda m: m.group(1) + "n ", text)
 
 
 def board_rows(benchmark_rows, variant):

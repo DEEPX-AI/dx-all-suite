@@ -194,3 +194,25 @@ def test_manifest_urls_match_the_dxnn_file_name_ignoring_case(tmp_path):
     assert urls == {"yolov5-m-face_640x640.dxnn": MANIFEST_URL}
     assert mc.manifest_url_for(urls, ROW) == MANIFEST_URL
     assert mc.load_manifest_urls(tmp_path / "missing") == {}
+
+
+@pytest.mark.parametrize("generic", [
+    "YOLOv5-m-face is a face detection model optimized for DEEPX NPU.",
+    "Scrfd500M Ppu is a ppu model optimized for DEEPX NPU.",
+    "DAMO-YOLO-L is a object detection model optimized for DEEPX NPU.",
+    "AI model for anomaly_detection tasks.",
+    "AI model for reid tasks.",
+    "Object detection model for identifying and localizing objects.",
+    "Image classification model for visual recognition tasks.",
+])
+def test_studio_template_summaries_give_way_to_the_fallback(app, generic):
+    model = dict(MODEL, display=dict(MODEL["display"], summary={"en": generic}))
+    assert mc.build_card(model, ROW, app, task_label="Face Detection", asof="2026-10-13")["summary"] == \
+        "YOLOv5-m-face — face detection model, trained on WiderFace."
+
+
+def test_a_kept_summary_reads_task_keys_as_words(app):
+    model = dict(MODEL, display=dict(MODEL["display"],
+                                     summary={"en": "EfficientAD is a fast anomaly_detection network for yolov5s_ppu."}))
+    assert mc.build_card(model, ROW, app, asof="2026-10-13")["summary"] == \
+        "EfficientAD is a fast anomaly detection network for yolov5s_ppu."
