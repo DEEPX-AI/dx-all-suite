@@ -11,6 +11,7 @@ import argparse
 import json
 import sys
 from pathlib import Path, PurePosixPath
+from urllib.parse import urlparse
 
 from dx_modelzoo.core.model_card import build_card, load_benchmark, load_registry
 from dx_modelzoo.core.model_card_html import render_html
@@ -18,22 +19,27 @@ from dx_modelzoo.core.model_card_image import example_image, webp_bytes
 from dx_modelzoo.core.model_card_md import render_index, render_markdown
 from dx_modelzoo.core.model_card_studio import category_label
 
-INDEX_FIELDS = ("variant", "zoo_name", "zoo_id", "zoo_task", "name", "task", "family", "input", "dataset",
-                "fps", "fps_per_watt", "license", "paths", "downloads")
+INDEX_FIELDS = ("variant", "zoo_name", "setup_name", "zoo_id", "zoo_task", "name", "task", "family", "input",
+                "dataset", "fps", "fps_per_watt", "license", "paths", "downloads")
 
 
-def _manifest_names(root):
+def _manifest(root):
+    """setup.sh --models matches the manifest's name, case-insensitively. Returns (lower-cased names,
+    dxnn file name -> manifest name)."""
     try:
         rows = json.loads((Path(root) / "scripts" / "modelzoo_manifest.json").read_text(encoding="utf-8"))
     except (OSError, ValueError):
-        return set()
-    return {r.get("name") for r in rows if isinstance(r, dict)}
+        return set(), {}
+    rows = [r for r in rows if isinstance(r, dict) and isinstance(r.get("name"), str)]
+    by_file = {PurePosixPath(urlparse(r["dxnn_url"]).path).name: r["name"]
+               for r in rows if isinstance(r.get("dxnn_url"), str)}
+    return {r["name"].lower() for r in rows}, by_file
 
 
 def build_outputs(dx_app_root, models, categories, benchmark_rows, data_dir, asof, only=None):
     root = Path(dx_app_root)
     registry = load_registry(root)
-    names = _manifest_names(root)
+    names, setup_names = _manifest(root)
     by_variant = {}
     for model in models:
         py = ((model.get("demo") or {}).get("python_example") or "").rstrip("/")
@@ -50,6 +56,7 @@ def build_outputs(dx_app_root, models, categories, benchmark_rows, data_dir, aso
             report["no_studio_model"].append(variant)
             continue
         card = build_card(model, row, root, benchmark_rows=benchmark_rows,
+                          setup_name=setup_names.get(PurePosixPath(row["dxnn_file"]).name),
                           task_label=category_label(categories, model.get("category"), "en"), asof=asof)
         py, cpp = card["paths"]["python"], card["paths"]["cpp"]
         image = example_image(model, data_dir)
@@ -68,8 +75,8 @@ def build_outputs(dx_app_root, models, categories, benchmark_rows, data_dir, aso
             outputs[f"{cpp}/README.md"] = render_markdown(card, "cpp").encode("utf-8")
         if not card["published"]:
             report["unpublished"].append(variant)
-        if card["zoo_name"] not in names:
-            report["setup_name_missing"].append(f"{variant}: {card['zoo_name']}")
+        if card["setup_name"].lower() not in names:
+            report["setup_name_missing"].append(f"{variant}: {card['setup_name']}")
         if not card["sample"]:
             report["no_sample"].append(variant)
         elif (root / card["sample"]).is_dir():

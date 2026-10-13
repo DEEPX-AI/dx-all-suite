@@ -192,7 +192,7 @@ def commands(card):
     py_in = f" \\\n  --image {sample}" if sample else ""
     cpp_in = f" \\\n  -i {sample}" if sample else ""
     return {
-        "get": f"# from the dx_app root\n./setup.sh --models {card['zoo_name']}",
+        "get": f"# from the dx_app root\n./setup.sh --models {card['setup_name']}",
         "python": f"python {script} \\\n  --model {model}{py_in}",
         "cpp": f"./build.sh --target {variant}_sync   # once\n./bin/{variant}_sync \\\n  -m {model}{cpp_in}",
         "measure": f"python {script} \\\n  --model {model}{py_in} \\\n  --loop 100 --no-display",
@@ -201,7 +201,9 @@ def commands(card):
 
 # ── the card ────────────────────────────────────────────────────────────────
 
-def build_card(model, registry_row, dx_app_root, *, benchmark_rows=(), task_label=None, asof=None, lang="en"):
+def build_card(model, registry_row, dx_app_root, *, benchmark_rows=(), task_label=None, asof=None, lang="en",
+               setup_name=None):
+    """setup_name: the name dx_app's setup.sh --models knows (its manifest); defaults to the registry name."""
     variant = PurePosixPath(registry_row["dxnn_file"]).stem
     task, family = registry_row["task"], registry_row["family"]
     py_dir = f"src/python_example/{task}/{family}/{variant}"
@@ -224,6 +226,7 @@ def build_card(model, registry_row, dx_app_root, *, benchmark_rows=(), task_labe
         "variant": variant,
         "zoo_id": model.get("id"),
         "zoo_name": registry_row.get("model_name") or variant,
+        "setup_name": setup_name or registry_row.get("model_name") or variant,
         "zoo_task": (model.get("display") or {}).get("task"),
         "family": family,
         "task": task,

@@ -52,3 +52,23 @@ def test_only_skips_the_index(tmp_path):
     app, data, model = _tree(tmp_path)
     outputs, _ = ex.build_outputs(app, [model], {}, [], data, "2026-10-13", only={"yolov5-m-face_640x640"})
     assert "MODELS.md" not in outputs and "config/model_cards.json" not in outputs
+
+
+def test_setup_name_comes_from_the_manifest_row_for_the_same_file(tmp_path):
+    # download_models.py matches --models against the manifest name (case-insensitive); the registry's
+    # model_name can differ from it (e.g. yolov5m_6_1 vs YoloV5M_6.1), so the card uses the manifest's name.
+    app, data, model = _tree(tmp_path)
+    (app / "scripts/modelzoo_manifest.json").write_text(json.dumps([{
+        "name": "YoloV5M_Face.v2",
+        "dxnn_url": "https://sdk.deepx.ai/modelzoo/q-lite-dxnn/2_5_0/yolov5-m-face_640x640.dxnn"}]), encoding="utf-8")
+    outputs, report = ex.build_outputs(app, [model], {}, [], data, "2026-10-13")
+    py = "src/python_example/face_detection/yolov5_face/yolov5-m-face_640x640"
+    assert "./setup.sh --models YoloV5M_Face.v2" in outputs[f"{py}/README.md"].decode()
+    assert report["setup_name_missing"] == []
+
+
+def test_setup_name_check_ignores_case(tmp_path):
+    app, data, model = _tree(tmp_path)
+    (app / "scripts/modelzoo_manifest.json").write_text(json.dumps([{"name": "YOLOv5m_Face"}]), encoding="utf-8")
+    _, report = ex.build_outputs(app, [model], {}, [], data, "2026-10-13")
+    assert report["setup_name_missing"] == []
