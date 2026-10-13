@@ -137,6 +137,23 @@ def test_dead_download_links_are_dropped_and_reported(tmp_path):
     assert "q-pro-dxnn" not in readme and "q-lite-json" not in readme
 
 
+def test_dead_links_are_kept_in_the_index_and_reapplied_without_a_network_check(tmp_path):
+    app, data, model = _tree(tmp_path)
+    dead_url = "https://sdk.deepx.ai/modelzoo/q-pro-dxnn/2_4_0/yolov5-m-face_640x640.dxnn"
+    outputs, _ = ex.build_outputs(app, [model], {}, [], data, "2026-10-13",
+                                  url_ok=lambda u: (u != dead_url, 200 if u != dead_url else 403))
+    assert json.loads(outputs["config/model_cards.json"])["dead_links"] == [dead_url]
+    ex.write_outputs(app, outputs)
+    # A later run without --verify-links (or --check) applies the stored list: same files, nothing to change.
+    again, report = ex.build_outputs(app, [model], {}, [], data, "2026-10-13", url_ok=ex.stored_dead_links(app))
+    assert again == outputs and ex.changed_outputs(app, again) == []
+    assert report["dead_links"] == [f"yolov5-m-face_640x640: {dead_url} (dead at the last --verify-links)"]
+
+
+def test_stored_dead_links_is_none_without_an_index(tmp_path):
+    assert ex.stored_dead_links(tmp_path) is None
+
+
 def test_links_are_not_checked_by_default(tmp_path):
     app, data, model = _tree(tmp_path)
     outputs, report = ex.build_outputs(app, [model], {}, [], data, "2026-10-13")

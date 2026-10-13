@@ -482,10 +482,14 @@ def test_experiment_start_does_not_accept_dev_token():
     assert captured["code"] == 403
 
 
-def test_experiment_start_rejects_duplicate_active_source():
+def test_experiment_start_rejects_duplicate_active_source(monkeypatch):
     """Second start for same active source_path returns 409 run_in_progress."""
+    import server
     from developer import lab_session
     tok = lab_session()["token"]
+    # Without tools the worker fails the first run at once, making it terminal; whether the second start then sees
+    # it active would depend on the thread's timing. The run stays pending here.
+    monkeypatch.setattr(server, "launch_experiment_run", lambda run_id: None)
 
     def post_start(source_path):
         h, c = _make_handler(
