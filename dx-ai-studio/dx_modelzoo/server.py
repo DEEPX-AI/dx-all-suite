@@ -23,6 +23,9 @@ from dx_modelzoo.core.catalog import (
 )
 from dx_modelzoo.core.proxy import proxy_request, is_dx_app_alive, is_safe_model_id
 from dx_modelzoo.metadata.sanitize import sanitize_browser_model
+from dx_modelzoo.core.model_card_labels import LABELS as MODEL_CARD_LABELS
+from dx_modelzoo.core.model_card_studio import DxAppMissing, NoDxAppExample, studio_card
+from shared.paths import STUDIO_ROOT
 from shared.shell import ShellSpec
 
 
@@ -257,6 +260,9 @@ class ModelZooHandler(DXBaseHandler):
             if path == "/api/metadata/sync/report":
                 return self._handle_sync_report()
 
+            if path == "/api/model_card/labels":
+                return self.send_json({"ok": True, "keys": list(MODEL_CARD_LABELS)})
+
             # API: model detail (after categories/health — avoids prefix collisions)
             if path.startswith("/api/catalog/"):
                 model_id = path[len("/api/catalog/"):]
@@ -296,6 +302,9 @@ class ModelZooHandler(DXBaseHandler):
             if path == "/api/metadata/sync":
                 return self._handle_sync_post()
 
+            if path.startswith("/api/model_card/"):
+                return self._handle_model_card(path[len("/api/model_card/"):])
+
             if path.startswith("/api/proxy/"):
                 length = int(self.headers.get("Content-Length", 0))
                 body = self.rfile.read(length) if length else None
@@ -303,6 +312,26 @@ class ModelZooHandler(DXBaseHandler):
                 return self._handle_proxy("POST", path, self.parsed.query, body, ct)
 
         self.route_legacy()
+
+    def _handle_model_card(self, model_id):
+        """POST /api/model_card/<id> {lang, labels, task_label} → the card as an HTML attachment."""
+        payload = self.read_json_body()  # bad JSON → RequestBodyError → 400 in the dispatcher
+        if not is_safe_model_id(model_id):
+            return self.send_json({"ok": False, "error": "Invalid model ID", "code": "INVALID_PARAM"}, 400)
+        cat = get_catalog()
+        model = get_model(cat["models"], model_id)
+        if not model:
+            return self.send_json({"ok": False, "error": f"Model '{model_id}' not found", "code": "MODEL_NOT_FOUND"}, 404)
+        try:
+            html, filename = studio_card(model, cat.get("categories") or {}, payload, dx_app_root=DX_APP_ROOT,
+                                         data_dir=DATA_DIR,
+                                         benchmark_path=STUDIO_ROOT / "dx_benchmark" / "dataset.json",
+                                         asof=str(cat.get("generated_at") or "")[:10] or None)
+        except DxAppMissing:
+            return self.send_json({"ok": False, "error": "The dx_app checkout is missing", "code": "DX_APP_MISSING"}, 503)
+        except NoDxAppExample:
+            return self.send_json({"ok": False, "error": "No dx_app example for this model", "code": "MODEL_NOT_FOUND"}, 404)
+        return self.send_bytes(html.encode("utf-8"), "text/html; charset=utf-8", filename=filename)
 
     def _handle_proxy(self, method, path, query, body=None, content_type=None):
         if body and content_type and "application/json" in content_type:

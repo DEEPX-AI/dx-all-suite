@@ -216,7 +216,7 @@ function renderDetailActionBar(model) {
     <button class="mz-btn mz-btn-outline" onclick="location.hash=''">← ${T('Back to Catalog')}</button>
     <button class="mz-btn mz-btn-outline" onclick="scrollToDetailSection('sectionCompile')">${_mzIco('wrench')} ${T('How to Compile DXNN')}</button>
     <button class="mz-btn mz-btn-primary" onclick="scrollToDetailSection('demoSection')">${_mzIco('play')} ${T('Demo Usage')}</button>
-    <button class="mz-btn mz-btn-outline" onclick="exportModelCardHtml()">${_mzIco('download')} ${T('Save as HTML')}</button>
+    <button class="mz-btn mz-btn-outline" onclick="exportModelCardHtml(this)">${_mzIco('download')} ${T('Save as HTML')}</button>
   </div>`;
 }
 
@@ -768,156 +768,62 @@ function copyCode(btn) {
   }
 }
 
-async function _imageToDataUrl(url) {
-  try {
-    const resp = await fetch(url);
-    if (!resp.ok) { return ''; }
-    const blob = await resp.blob();
-    return await new Promise(function (resolve) {
-      const r = new FileReader();
-      r.onloadend = function () { resolve(typeof r.result === 'string' ? r.result : ''); };
-      r.onerror = function () { resolve(''); };
-      r.readAsDataURL(blob);
-    });
-  } catch (e) { return ''; }
+// The file name from Content-Disposition (filename="…" or filename*=UTF-8''…); null when absent.
+function _attachmentName(disposition) {
+  const v = String(disposition || '');
+  const star = /filename\*\s*=\s*UTF-8''([^;]+)/i.exec(v);
+  if (star) {
+    try { return decodeURIComponent(star[1].trim()); } catch (e) { /* fall through to filename= */ }
+  }
+  const plain = /filename\s*=\s*"([^"]+)"|filename\s*=\s*([^;\s]+)/i.exec(v);
+  const name = plain && (plain[1] || plain[2]);
+  return name ? name.replace(/[\\/]/g, '_') : null;
 }
 
-async function exportModelCardHtml() {
+async function exportModelCardHtml(btn) {
   const m = _currentDetailModel;
   if (!m) { return; }
-  // embed the model thumbnail (self-contained: base64 data URI). Best-effort.
-  let img = '';
-  try {
-    const thumbUrl = (typeof modelzooApiUrl === 'function')
-      ? modelzooApiUrl('/data/thumbnails/' + encodeURIComponent(m.id) + '.jpg')
-      : '/data/thumbnails/' + encodeURIComponent(m.id) + '.jpg';
-    img = await _imageToDataUrl(thumbUrl);
-  } catch (e) { img = ''; }
-  const html = _buildModelCardHtml(m, img);
-  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = (((m.display && m.display.class_name) || m.id || 'model') + '_modelcard.html');
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(function () { URL.revokeObjectURL(url); }, 1500);
-}
-
-function _buildModelCardHtml(m, imgDataUrl) {
-  const e = escapeHtml;
-  const v = function (x) { return _hasValue(x) ? e(String(x)) : '—'; };
-  const spec = m.specification || {};
-  const perf = m.performance || {};
-  const evalm = m.evaluation || {};
-  const legal = m.legal || {};
-  const demo = m.demo || {};
-  const arts = m.artifacts || {};
-  const tech = m.technical || {};
-  const title = (m.display && m.display.name) || m.name || (m.display && m.display.class_name) || m.id || 'Model';
-  const task = (m.display && m.display.category_label) || m.category || '';
-  const summary = _summaryText(m);
-
-  // Description (full use-case text) — model.description is curated in all 6 languages.
-  const description = _localText(m.description) || _localText(m.content && m.content.use_case) || '';
+  if (btn) {
+    if (btn.disabled) { return; }
+    // The button's own markup, kept once: a click while the error text shows must not restore to that text.
+    if (btn.dataset.idleHtml === undefined) { btn.dataset.idleHtml = btn.innerHTML; }
+    clearTimeout(btn._restoreTimer);
+    btn.innerHTML = btn.dataset.idleHtml;
+    btn.disabled = true;
+  }
   const lang = (typeof DXI18n !== 'undefined' && DXI18n.lang) || 'en';
-  const gflops = T('Operations') + ' (GFLOPs)';
-  const paramsM = T('Parameters') + ' (M)';
-
-  const facts = [
-    [T('Class Name'), (m.display && m.display.class_name) || m.id],
-    [T('Task'), task],
-    [T('Dataset'), spec.dataset],
-    [T('Input Resolution'), spec.input_resolution],
-    [gflops, spec.operations],
-    [paramsM, spec.parameters],
-    [T('Metric'), spec.metric && spec.metric.name],
-    [T('FPS (DX-M1)'), perf.fps],
-    [T('FPS/Watt'), perf.fps_per_watt],
-    [T('Quantization'), Array.isArray(spec.quantization) ? spec.quantization.join(', ') : spec.quantization],
-  ];
-  const factRows = facts.map(function (r) { return '<tr><th>' + e(r[0]) + '</th><td>' + v(r[1]) + '</td></tr>'; }).join('');
-  const accRows = [[T('Raw') + ' (FP32)', evalm.raw], ['Q-Lite', evalm.qlite], ['Q-Pro', evalm.qpro]]
-    .filter(function (r) { return r[1] && _hasValue(r[1].accuracy); })
-    .map(function (r) { return '<tr><th>' + e(r[0]) + '</th><td>' + v(r[1].accuracy) + '</td></tr>'; }).join('') || '<tr><td colspan="2">—</td></tr>';
-  const artRows = DETAIL_ARTIFACTS.map(function (art) {
-    const d = arts[art.id] || {};
-    const link = d.remote_url ? '<a href="' + e(d.remote_url) + '">' + e(d.remote_url) + '</a>' : '—';
-    return '<tr><th>' + e(T(art.label)) + '</th><td>' + link + '</td></tr>';
-  }).join('');
-  const cli = demo.cli_command ? '<pre>' + e(demo.cli_command) + '</pre>' : '';
-  const exP = [demo.python_example && ('Python: ' + demo.python_example), demo.cpp_example && ('C++: ' + demo.cpp_example)]
-    .filter(Boolean).map(function (s) { return '<div>' + e(s) + '</div>'; }).join('');
-  const src = legal.source_url ? '<a href="' + e(legal.source_url) + '">' + e(legal.source_url) + '</a>' : '—';
-
-  const techRows = [
-    [T('Postprocessor'), tech.postprocessor],
-    [T('Config'), (tech.config && Object.keys(tech.config).length) ? JSON.stringify(tech.config) : ''],
-    [T('Input Shape'), Array.isArray(tech.input_shape) ? tech.input_shape.join('x')
-      : ((_hasValue(spec.input_width) && _hasValue(spec.input_height) && spec.input_width) ? (spec.input_width + 'x' + spec.input_height) : '')],
-  ].filter(function (r) { return _hasValue(r[1]); })
-    .map(function (r) { return '<tr><th>' + e(r[0]) + '</th><td>' + v(r[1]) + '</td></tr>'; }).join('');
-
-  const cg = m.compile_guide || {};
-  const cgNote = _localText(cg.notes);
-  const cgRows = [
-    [T('Input Resolution'), spec.input_resolution],
-    [T('Quantization'), cg.recommended_quant || (Array.isArray(spec.quantization) ? spec.quantization.join(', ') : spec.quantization)],
-    [T('Class Name'), (m.display && m.display.class_name) || m.id],
-    ['ONNX', (arts.onnx && arts.onnx.remote_url) ? ('<a href="' + e(arts.onnx.remote_url) + '">' + e(arts.onnx.remote_url) + '</a>') : '—'],
-  ].map(function (r) { return '<tr><th>' + e(r[0]) + '</th><td>' + (r[0] === 'ONNX' ? r[1] : v(r[1])) + '</td></tr>'; }).join('');
-
-  const metaSrc = (typeof _metadataSource === 'function') ? _metadataSource(m) : {};
-  const lastSync = (typeof _lastMetadataSync === 'function') ? _lastMetadataSync(m) : '';
-  const legalRows = [
-    [T('License'), v(legal.license)],
-    [T('Commercial use'), e(_commercialUseLabel(legal.commercial_use))],
-    [T('License text'), v(legal.license_text)],
-    [T('Copyright'), v(legal.copyright)],
-    [T('Source'), src],
-    [T('Source profile'), v(metaSrc.source_profile)],
-    [T('Last metadata sync'), v(lastSync)],
-  ].map(function (r) { return '<tr><th>' + e(r[0]) + '</th><td>' + (r[0] === T('Source') ? r[1] : r[1]) + '</td></tr>'; }).join('');
-  const legalWarn = (legal.commercial_use === 'non-commercial')
-    ? ('<p class="sum">' + _mzIco('alert') + ' ' + e(T('This model is licensed for non-commercial use only — review the source license before deploying commercially.')) + '</p>')
-    : (legal.commercial_use === 'restricted')
-      ? ('<p class="sum">' + _mzIco('alert') + ' ' + e(T('This model has no clear commercial-use license — review the source license before deploying commercially.')) + '</p>')
-      : '';
-
-  const preview = imgDataUrl
-    ? '<h2>' + e(T('Preview')) + '</h2><img src="' + imgDataUrl + '" alt="' + e(title) + '" style="display:block;max-width:100%;margin:0 auto 8px;border-radius:10px;border:1px solid rgba(41,151,255,.18)">'
-    : '';
-  let exportedAt = '';
-  try { exportedAt = new Date().toLocaleString(lang); } catch (_) { exportedAt = ''; }
-
-  return '<!doctype html><html lang="' + e(lang) + '"><head><meta charset="utf-8">'
-    + '<meta name="viewport" content="width=device-width,initial-scale=1">'
-    + '<title>' + e(title) + ' — DEEPX Model Card</title><style>'
-    + 'body{margin:0;background:#000000;color:#f5f5f7;font:14px/1.6 Inter,system-ui,-apple-system,sans-serif;padding:32px}'
-    + '.wrap{max-width:860px;margin:0 auto}h1{font-size:28px;margin:0 0 4px}'
-    + '.cat{color:#4aa8ff;font-size:13px}.sum{color:#B0BDD0;margin:12px 0 24px}'
-    + 'h2{font-size:16px;color:#4aa8ff;border-bottom:1px solid rgba(41,151,255,.18);padding-bottom:6px;margin:28px 0 12px}'
-    + 'table{width:100%;border-collapse:collapse;margin:0 0 8px}'
-    + 'th,td{text-align:left;padding:7px 10px;border-bottom:1px solid rgba(41,151,255,.1);vertical-align:top}'
-    + 'th{color:#8892A8;font-weight:600;width:38%}td{word-break:break-word}a{color:#4aa8ff}'
-    + 'pre{background:#1d1d1f;border:1px solid rgba(41,151,255,.1);border-radius:8px;padding:12px;overflow-x:auto;font:12px/1.5 ui-monospace,monospace}'
-    + 'footer{margin-top:28px;color:#5E6B80;font-size:12px}</style></head><body><div class="wrap">'
-    + '<h1>' + e(title) + '</h1><div class="cat">' + e(task) + '</div>'
-    + (summary ? '<p class="sum">' + e(summary) + '</p>' : '')
-    + preview
-    + ((description && description !== summary) ? ('<h2>' + e(T('Use Case & Description')) + '</h2><p class="sum">' + e(description) + '</p>') : '')
-    + '<h2>' + e(T('Key Facts')) + '</h2><table>' + factRows + '</table>'
-    + (techRows ? ('<h2>' + e(T('Technical')) + '</h2><table>' + techRows + '</table>') : '')
-    + '<h2>' + e(T('Accuracy Matrix')) + '</h2><table>' + accRows + '</table>'
-    + '<h2>' + e(T('Compile Guide')) + '</h2><table>' + cgRows + '</table>'
-    + (cgNote ? '<p class="sum">' + e(cgNote) + '</p>' : '')
-    + '<h2>' + e(T('Artifacts & Downloads')) + '</h2><table>' + artRows + '</table>'
-    + ((cli || exP) ? ('<h2>' + e(T('Demo')) + '</h2>' + cli + exP) : '')
-    + '<h2>' + e(T('Source & License')) + '</h2><table>' + legalRows + '</table>' + legalWarn
-    + '<footer>Generated from DEEPX Model Zoo · ' + e(title)
-    + (exportedAt ? (' · ' + e(T('Exported')) + ': ' + e(exportedAt)) : '') + '</footer>'
-    + '</div></body></html>';
+  const catInfo = (_catalogData?.categories || {})[m.category] || {};
+  try {
+    // The server renders the card (the same renderer as the dx_app cards); the page sends its translations.
+    // Without the label keys the card would go out in English while marked as this language, so stop here.
+    const keysResp = await fetch(modelzooApiUrl('/api/model_card/labels'));
+    if (!keysResp.ok) { throw new Error(String(keysResp.status)); }
+    const keys = (await keysResp.json()).keys || [];
+    const labels = {};
+    keys.forEach(function (k) { labels[k] = T(k); });
+    const resp = await fetch(modelzooApiUrl('/api/model_card/' + encodeURIComponent(m.id)), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ lang: lang, labels: labels, task_label: _localLabel(catInfo, 'label') || '' }),
+    });
+    if (!resp.ok) { throw new Error(String(resp.status)); }
+    const blob = await resp.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = _attachmentName(resp.headers.get('Content-Disposition')) || ((m.id || 'model') + '_modelcard.html');
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1500);
+  } catch (e) {
+    if (btn) {
+      btn.textContent = T('Could not save the model card');
+      btn._restoreTimer = setTimeout(function () { btn.innerHTML = btn.dataset.idleHtml; }, 2500);
+    }
+  } finally {
+    if (btn) { btn.disabled = false; }
+  }
 }
 
 function escapeHtml(s) {

@@ -35,6 +35,9 @@ _TABLE_FIELD_MAP = {
     "Q-Pro Accuracy": "evaluation.qpro.accuracy",
     "Q-Pro DXNN": "artifacts.qpro_dxnn.remote_url",
     "Q-Pro JSON": "artifacts.qpro_json.remote_url",
+    "NPU Q-Master Accuracy": "evaluation.qmaster.accuracy",
+    "NPU Q-Master DXNN": "artifacts.qmaster_dxnn.remote_url",
+    "NPU Q-Master JSON": "artifacts.qmaster_json.remote_url",
     "FPS": "performance.fps",
     "FPS/Watt": "performance.fps_per_watt",
     "Performance FPS": "performance.fps",
@@ -60,6 +63,8 @@ _LINK_FIELDS = {
     "artifacts.qlite_json.remote_url",
     "artifacts.qpro_dxnn.remote_url",
     "artifacts.qpro_json.remote_url",
+    "artifacts.qmaster_dxnn.remote_url",
+    "artifacts.qmaster_json.remote_url",
 }
 
 _ARTIFACT_JOIN_SCORES = {
@@ -68,6 +73,8 @@ _ARTIFACT_JOIN_SCORES = {
     "artifacts.qlite_json.remote_url": 45,
     "artifacts.qpro_dxnn.remote_url": 45,
     "artifacts.qpro_json.remote_url": 45,
+    "artifacts.qmaster_dxnn.remote_url": 45,
+    "artifacts.qmaster_json.remote_url": 45,
 }
 
 
@@ -282,6 +289,9 @@ def _parse_internal_table_rows(rows, headers):
                 name_val = value
             elif header == "Class Name":
                 class_name_val = value
+            elif header == "Task":
+                # display.task is merged from several sources; keep the publish table's own column too.
+                entry["display.publish_task"] = value
             if _is_suspicious_accuracy(field, value):
                 base = field.rsplit(".", 1)[0]
                 entry[f"{base}.source_status"] = "suspect"
