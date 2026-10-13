@@ -95,13 +95,16 @@ def render_markdown(card, lang):
         if value:
             lines.append(f"| {key} | {_cell(value)} |")
     lines += ["", "## Downloads", ""]
-    if card["downloads"]["onnx"] or tiers:
+    manifest = card["downloads"].get("manifest")
+    if card["downloads"]["onnx"] or tiers or manifest:
         lines += ["| Artifact | Compiler | Files |", "|---|---|---|"]
         if card["downloads"]["onnx"]:
             lines.append(f"| ONNX | — | [ONNX]({card['downloads']['onnx']}) |")
         for t in tiers:
             files = f"[DXNN]({t['dxnn']})" + (f" · [JSON]({t['json']})" if t["json"] else "")
             lines.append(f"| {t['label']} | DX-COM {t['compiler'] or '—'} | {files} |")
+        if manifest:
+            lines.append(f"| DXNN (dx_app manifest) | DX-COM {manifest['compiler'] or '—'} | [DXNN]({manifest['dxnn']}) |")
     else:
         lines.append("No public downloads.")
     lines += ["", "## Files in this example", ""]

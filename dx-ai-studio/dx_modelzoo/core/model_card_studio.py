@@ -7,7 +7,8 @@ from __future__ import annotations
 import base64
 from pathlib import PurePosixPath
 
-from dx_modelzoo.core.model_card import build_card, load_benchmark, load_registry, load_setup_names
+from dx_modelzoo.core.model_card import (build_card, load_benchmark, load_manifest_urls, load_registry,
+                                         load_setup_names, manifest_url_for)
 from dx_modelzoo.core.model_card_html import render_html
 from dx_modelzoo.core.model_card_image import example_image, webp_bytes
 from dx_modelzoo.core.model_card_labels import clean_labels
@@ -50,6 +51,7 @@ def studio_card(model, categories, payload, *, dx_app_root, data_dir, benchmark_
     # The same setup name as the dx_app card, so "Get the model" is the command setup.sh knows.
     setup_name = load_setup_names(dx_app_root)[1].get(PurePosixPath(row["dxnn_file"]).name)
     card = build_card(model, row, dx_app_root, benchmark_rows=load_benchmark(benchmark_path), setup_name=setup_name,
+                      manifest_url=manifest_url_for(load_manifest_urls(dx_app_root), row),
                       task_label=task_label, asof=asof, lang=lang)
     image = example_image(model, data_dir)
     card["has_image"] = image is not None

@@ -21,7 +21,8 @@ from pathlib import Path, PurePosixPath
 from urllib.error import HTTPError
 from urllib.request import HTTPRedirectHandler, Request, build_opener
 
-from dx_modelzoo.core.model_card import build_card, load_benchmark, load_registry, load_setup_names, rel_dir
+from dx_modelzoo.core.model_card import (build_card, load_benchmark, load_manifest_urls, load_registry,
+                                         load_setup_names, manifest_url_for, rel_dir)
 from dx_modelzoo.core.model_card_html import render_html
 from dx_modelzoo.core.model_card_image import example_image, webp_bytes
 from dx_modelzoo.core.model_card_md import render_index, render_markdown
@@ -59,7 +60,7 @@ def head_status(url, timeout=LINK_CHECK_TIMEOUT):
 
 def _card_urls(card):
     links = card["downloads"]
-    urls = [links.get("onnx")]
+    urls = [links.get("onnx"), (links.get("manifest") or {}).get("dxnn")]
     for tier in links["tiers"]:
         urls += [tier["dxnn"], tier.get("json")]
     return [u for u in urls if u]
@@ -67,7 +68,7 @@ def _card_urls(card):
 
 def drop_dead_links(cards, url_ok):
     """Check every download URL once (LINK_CHECK_THREADS at a time) and take the dead ones off the cards. A tier
-    whose dxnn is dead goes; a dead json or onnx becomes None. Returns ["variant: url (status)", ...]."""
+    whose dxnn is dead goes; a dead json, onnx or manifest download becomes None. Returns ["variant: url (status)", ...]."""
     urls = sorted({u for card in cards for u in _card_urls(card)})
     with ThreadPoolExecutor(max_workers=LINK_CHECK_THREADS) as pool:
         result = dict(zip(urls, pool.map(url_ok, urls)))
@@ -83,6 +84,8 @@ def drop_dead_links(cards, url_ok):
 
         links = card["downloads"]
         links["onnx"] = alive(links.get("onnx"))
+        if links.get("manifest") and not alive(links["manifest"]["dxnn"]):
+            links["manifest"] = None
         tiers = []
         for tier in links["tiers"]:
             if alive(tier["dxnn"]):
@@ -99,6 +102,7 @@ def build_outputs(dx_app_root, models, categories, benchmark_rows, data_dir, aso
     root = Path(dx_app_root)
     registry = load_registry(root)
     names, setup_names = load_setup_names(root)
+    manifest_urls = load_manifest_urls(root)
     by_variant = {}
     for model in models:
         py = ((model.get("demo") or {}).get("python_example") or "").rstrip("/")
@@ -117,6 +121,7 @@ def build_outputs(dx_app_root, models, categories, benchmark_rows, data_dir, aso
             continue
         card = build_card(model, row, root, benchmark_rows=benchmark_rows,
                           setup_name=setup_names.get(PurePosixPath(row["dxnn_file"]).name),
+                          manifest_url=manifest_url_for(manifest_urls, row),
                           task_label=category_label(categories, model.get("category"), "en"), asof=asof)
         if not (root / card["paths"]["python"]).is_dir():
             report["no_python_dir"].append(variant)

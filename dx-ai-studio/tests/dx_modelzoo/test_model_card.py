@@ -171,3 +171,26 @@ def test_zoo_task_is_the_publish_tables(app):
     model = dict(MODEL, display=dict(MODEL["display"], task="embedding", publish_task="image_retrieval"))
     assert mc.build_card(model, ROW, app, asof="2026-10-13")["zoo_task"] == "image_retrieval"
     assert mc.build_card(MODEL, ROW, app, asof="2026-10-13")["zoo_task"] == "face_detection"
+
+
+MANIFEST_URL = "https://sdk.deepx.ai/modelzoo/dxnn/2_4_0/YOLOv5-M-Face_640x640.dxnn"
+
+
+def test_an_unpublished_card_downloads_from_the_dx_app_manifest(app):
+    studio_only = {k: v for k, v in MODEL.items() if k not in ("artifacts", "performance")}
+    card = mc.build_card(studio_only, ROW, app, asof="2026-10-13", manifest_url=MANIFEST_URL)
+    assert card["published"] is False
+    assert card["downloads"]["manifest"] == {"dxnn": MANIFEST_URL, "compiler": "2.4.0"}
+    # A published card links the publish table's files only.
+    assert mc.build_card(MODEL, ROW, app, asof="2026-10-13", manifest_url=MANIFEST_URL)["downloads"]["manifest"] is None
+    assert mc.build_card(studio_only, ROW, app, asof="2026-10-13")["downloads"]["manifest"] is None
+
+
+def test_manifest_urls_match_the_dxnn_file_name_ignoring_case(tmp_path):
+    (tmp_path / "scripts").mkdir()
+    (tmp_path / "scripts/modelzoo_manifest.json").write_text(json.dumps([
+        {"name": "YOLOv5m_Face", "dxnn_url": MANIFEST_URL}, {"name": "no_url"}, "junk"]), encoding="utf-8")
+    urls = mc.load_manifest_urls(tmp_path)
+    assert urls == {"yolov5-m-face_640x640.dxnn": MANIFEST_URL}
+    assert mc.manifest_url_for(urls, ROW) == MANIFEST_URL
+    assert mc.load_manifest_urls(tmp_path / "missing") == {}

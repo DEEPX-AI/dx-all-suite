@@ -147,3 +147,19 @@ def test_links_are_not_checked_by_default(tmp_path):
 def test_head_status_reports_a_network_error_instead_of_raising():
     ok, status = ex.head_status("http://127.0.0.1:9/nothing.dxnn", timeout=2)
     assert ok is False and status
+
+
+def test_an_unpublished_card_gets_the_manifest_download_which_is_checked_too(tmp_path):
+    app, data, model = _tree(tmp_path)
+    url = "https://sdk.deepx.ai/modelzoo/dxnn/2_4_0/YOLOv5-M-Face_640x640.dxnn"
+    (app / "scripts/modelzoo_manifest.json").write_text(json.dumps([{"name": "yolov5m_face", "dxnn_url": url}]),
+                                                        encoding="utf-8")
+    model = {k: v for k, v in model.items() if k not in ("artifacts", "performance")}
+    outputs, report = ex.build_outputs(app, [model], {}, [], data, "2026-10-13")
+    py = "src/python_example/face_detection/yolov5_face/yolov5-m-face_640x640"
+    assert report["unpublished"] == ["yolov5-m-face_640x640"]
+    assert f"| DXNN (dx_app manifest) | DX-COM 2.4.0 | [DXNN]({url}) |" in outputs[f"{py}/README.md"].decode()
+    assert url in outputs[f"{py}/model.html"].decode()
+    outputs, report = ex.build_outputs(app, [model], {}, [], data, "2026-10-13", url_ok=lambda u: (False, 404))
+    assert report["dead_links"] == [f"yolov5-m-face_640x640: {url} (404)"]
+    assert "No public downloads." in outputs[f"{py}/README.md"].decode()

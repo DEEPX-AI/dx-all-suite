@@ -98,17 +98,31 @@ def load_registry(dx_app_root):
     return {PurePosixPath(r["dxnn_file"]).stem: r for r in rows if not r.get("alias_of")}
 
 
-def load_setup_names(dx_app_root):
-    """setup_sample_models.sh --models matches the manifest's name, case-insensitively. Returns (lower-cased names,
-    dxnn file name -> manifest name)."""
+def _manifest_rows(dx_app_root):
     try:
         rows = json.loads((Path(dx_app_root) / "scripts" / "modelzoo_manifest.json").read_text(encoding="utf-8"))
     except (OSError, ValueError):
-        return set(), {}
-    rows = [r for r in rows if isinstance(r, dict) and isinstance(r.get("name"), str)]
+        return []
+    return [r for r in rows if isinstance(r, dict) and isinstance(r.get("name"), str)] if isinstance(rows, list) else []
+
+
+def load_setup_names(dx_app_root):
+    """setup_sample_models.sh --models matches the manifest's name, case-insensitively. Returns (lower-cased names,
+    dxnn file name -> manifest name)."""
+    rows = _manifest_rows(dx_app_root)
     by_file = {PurePosixPath(urlparse(r["dxnn_url"]).path).name: r["name"]
                for r in rows if isinstance(r.get("dxnn_url"), str)}
     return {r["name"].lower() for r in rows}, by_file
+
+
+def load_manifest_urls(dx_app_root):
+    """Lower-cased dxnn file name -> the manifest's dxnn_url: what setup_sample_models.sh downloads."""
+    return {PurePosixPath(urlparse(r["dxnn_url"]).path).name.lower(): r["dxnn_url"]
+            for r in _manifest_rows(dx_app_root) if isinstance(r.get("dxnn_url"), str)}
+
+
+def manifest_url_for(manifest_urls, registry_row):
+    return manifest_urls.get(PurePosixPath(registry_row["dxnn_file"]).name.lower())
 
 
 def load_benchmark(path):
@@ -243,9 +257,11 @@ def commands(card):
 # ── the card ────────────────────────────────────────────────────────────────
 
 def build_card(model, registry_row, dx_app_root, *, asof, benchmark_rows=(), task_label=None, lang="en",
-               setup_name=None):
+               setup_name=None, manifest_url=None):
     """asof: the publish table's date, or None when it is unknown (the footer then leaves the date out).
-    setup_name: the name dx_app's setup_sample_models.sh --models knows (its manifest); defaults to the registry name."""
+    setup_name: the name dx_app's setup_sample_models.sh --models knows (its manifest); defaults to the registry name.
+    manifest_url: the manifest's dxnn_url (manifest_url_for); listed only on a card the publish table has no files
+    for, so its Downloads match what the quick start fetches."""
     variant = PurePosixPath(registry_row["dxnn_file"]).stem
     task, family = registry_row["task"], registry_row["family"]
     py_dir = f"src/python_example/{task}/{family}/{variant}"
@@ -262,6 +278,8 @@ def build_card(model, registry_row, dx_app_root, *, asof, benchmark_rows=(), tas
     dataset = spec.get("dataset")
     links = downloads(model)
     published = bool(links["tiers"] or links["onnx"])
+    fallback = None if published else public_url(manifest_url)
+    links["manifest"] = {"dxnn": fallback, "compiler": compiler_version(fallback)} if fallback else None
     if published:
         name = (model.get("display") or {}).get("name") or model.get("name") or variant
         text = summary(model, lang)

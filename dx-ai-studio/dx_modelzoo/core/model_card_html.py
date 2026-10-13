@@ -207,6 +207,11 @@ def render_html(card, *, labels=None, lang="en", image_src=None, readme_href="RE
         json_link = f'<a href="{_e(x["json"])}">JSON</a>' if x["json"] else ""
         dls += (f"<li><div class=t><b>{_e(x['label'])}</b><span>DX-COM {_e(x['compiler'] or '—')}</span></div>"
                 f'<div class=l><a href="{_e(x["dxnn"])}">DXNN</a>{json_link}</div></li>')
+    manifest = card["downloads"].get("manifest")
+    if manifest:
+        dls += (f"<li><div class=t><b>{_e(t(L, 'DXNN (dx_app manifest)'))}</b>"
+                f"<span>DX-COM {_e(manifest['compiler'] or '—')}</span></div>"
+                f'<div class=l><a href="{_e(manifest["dxnn"])}">DXNN</a></div></li>')
     dls = f"<ul class=dl>{dls}</ul>" if dls else "<p class=empty>—</p>"
     files = "".join(f"<li><code>{_wbr(f['name'])}</code><span>{_e(t(L, f['role']))}</span></li>"
                     for f in card["files"]["python"])
