@@ -32,7 +32,8 @@ a{color:var(--accent-ink);text-decoration:none}a:hover{text-decoration:underline
 .theme{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:999px;padding:5px 12px;
 font:12.5px var(--font);cursor:pointer;white-space:nowrap}
 .hero{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:clamp(20px,3vw,40px);align-items:center;margin-top:14px}
-h1{font-size:clamp(30px,4.2vw,46px);line-height:1.08;letter-spacing:-.025em;margin:0 0 12px;text-wrap:balance}
+h1{font-size:clamp(30px,4.2vw,46px);line-height:1.08;letter-spacing:-.025em;margin:0 0 12px;text-wrap:balance;overflow-wrap:anywhere}
+.hero>*{min-width:0}
 .lede{font-size:17px;color:var(--ink2);margin:0 0 18px;max-width:46ch;text-wrap:pretty}
 .notice{font-size:13.5px;color:var(--bad);margin:0 0 14px}
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 20px;padding:0;list-style:none}
@@ -228,7 +229,7 @@ def render_html(card, *, labels=None, lang="en", image_src=None, readme_href="RE
 <body><div class=page>
 <div class=top><div class=crumb><span>{_e(t(L, 'DX-APP example'))}</span><span>·</span><span>{_e(card['task_label'])}</span>
 <span>·</span><code>{_wbr(card['variant'])}</code></div><button class=theme type=button>{_e(t(L, 'Theme'))}</button></div>
-<section class=hero><div><h1>{_e(card['name'])}</h1><p class=lede>{_e(card['summary'])}</p>{notice}
+<section class=hero><div><h1>{_e(card['name']).replace('_', '_<wbr>')}</h1><p class=lede>{_e(card['summary'])}</p>{notice}
 <ul class=chips>{chips}</ul><div class=actions>{''.join(actions)}</div></div>{shot}</section>
 <div class=kpis>{kpi_html}</div>
 <div class=cols><main>
