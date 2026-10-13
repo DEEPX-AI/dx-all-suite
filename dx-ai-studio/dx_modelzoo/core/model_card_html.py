@@ -51,6 +51,7 @@ figcaption{font-size:12.5px;color:var(--muted);padding:8px 4px 2px;overflow-wrap
 .kpi.na b{color:var(--muted);font-weight:500}
 .cols{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:20px;align-items:start}.cols>*{min-width:0}
 .panel{background:var(--panel);border-radius:var(--radius);padding:clamp(18px,2.4vw,26px);margin-bottom:20px;min-width:0}
+.aside p{overflow-wrap:anywhere}
 h2{font-size:21px;letter-spacing:-.015em;margin:0 0 4px}.sub{color:var(--muted);font-size:13.5px;margin:0 0 16px}
 h3{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:22px 0 8px;font-weight:600}
 .cmd{margin:0 0 12px;background:var(--code-bg);border-radius:12px;overflow:hidden}

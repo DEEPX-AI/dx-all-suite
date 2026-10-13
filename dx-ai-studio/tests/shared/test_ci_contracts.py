@@ -75,6 +75,7 @@ BROWSER_SUITE_PATHS = {
     "tests/dx_planner/test_recommend_engine_browser.py",
     "tests/dx_planner/test_recommend_explain_browser.py",
     "tests/dx_modelzoo/test_model_card_export_browser.py",
+    "tests/dx_modelzoo/test_model_card_layout_browser.py",
     "tests/test_catalog_virtual_scroll_browser.py",
     "tests/test_iframe_lang_sync_browser.py",
     "tests/test_tutorial_stale_step.py",
@@ -151,7 +152,7 @@ def test_every_playwright_suite_is_registered_as_a_browser_suite():
             continue
         parts = path.relative_to(ROOT).parts
         # skip conftest, helpers, this file, and directories run by their own gate
-        if path.name in ("conftest.py", "server_helpers.py", "tutorial_e2e_runner.py"):
+        if path.name in ("conftest.py", "server_helpers.py", "tutorial_e2e_runner.py", "model_card_layout.py"):
             continue
         if rel == "tests/shared/test_ci_contracts.py":
             continue

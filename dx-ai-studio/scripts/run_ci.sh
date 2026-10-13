@@ -145,6 +145,7 @@ BROWSER_TESTS=(
   tests/dx_planner/test_recommend_engine_browser.py
   tests/dx_planner/test_recommend_explain_browser.py
   tests/dx_modelzoo/test_model_card_export_browser.py
+  tests/dx_modelzoo/test_model_card_layout_browser.py
   tests/test_catalog_virtual_scroll_browser.py
   tests/test_iframe_lang_sync_browser.py
   tests/test_toolbar_reachable_when_narrow.py
