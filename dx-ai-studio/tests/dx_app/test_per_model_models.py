@@ -145,12 +145,3 @@ def test_the_run_route_accepts_stem_names_but_not_paths():
     for bad in ("../x", "a/b", ".hidden", "a..b", "", "a b"):
         with _pytest.raises(ValueError):
             server._require_model_name(bad)
-
-
-def test_a_lab_package_takes_the_runner_from_the_stem_folder(per_model):
-    """Lab exact-runner binding: in the per-model layout, the task/family/stem folder and extract's new arguments."""
-    from dx_app.core import lab_package
-
-    src = lab_package._runner_source(per_model, "object_detection", STEM, "python", "sync")
-    assert src == per_model / "src/python_example/object_detection/yolo26" / STEM / f"{STEM}_sync.py"
-    assert lab_package._extract_target(per_model, "python", "object_detection", STEM) == f"object_detection/yolo26/{STEM}"

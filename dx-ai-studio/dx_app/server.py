@@ -177,7 +177,7 @@ from dx_app.core.setup_steps import SETUP_STEPS, setup_status, setup_run, deep_d
 from dx_app.core.developer import (lab_session, lab_check, require_lab, _check_origin_local, dev_add,
                        dev_delete, dev_git, dev_extract, extract_model_package,
                        dev_new_task, bug_report, save_capture)
-from dx_app.core.lab_portal import lab_capabilities, plan_add_model, plan_add_model_response, apply_add_model, smoke_add_model, plan_task_scaffold_response, apply_task_scaffold, generated_files_for_manifest, validate_lab_manifest_id, start_experiment_run, launch_experiment_run, get_experiment_run, cancel_experiment_run, active_experiment_run_for_source, list_lab_manifests, change_summary_by_root, rollback_manifest, scoped_git_plan, plan_composer_quick_start, plan_composer_template, customize_composer_workflow, plan_composer_plugin_scaffold_response, apply_composer_plugin_scaffold, run_composer_workflow, export_composer_package, export_composer_recipe, import_composer_recipe
+from dx_app.core.lab_portal import lab_capabilities, plan_add_model, plan_add_model_response, apply_add_model, smoke_add_model, plan_task_scaffold_response, apply_task_scaffold, generated_files_for_manifest, validate_lab_manifest_id, start_experiment_run, launch_experiment_run, get_experiment_run, cancel_experiment_run, active_experiment_run_for_source, list_lab_manifests, change_summary_by_root, rollback_manifest, scoped_git_plan
 from shared.shell import ShellSpec
 
 _modelzoo_gw = ModelZooGateway()
@@ -314,7 +314,7 @@ class Handler(DXBaseHandler):
                 self.send_header("Cache-Control","public, max-age=86400");self.end_headers();self.wfile.write(d)
                 return
             if path=="/api/asset-thumb":
-                # Downscaled preview for the composer asset grid (82x54px) — avoids
+                # Downscaled preview for small asset pickers (82x54px) — avoids
                 # downloading+decoding full-res sample images. Cached on disk by src+mtime+w.
                 from dx_app.core.assets import sample_thumbnail
                 w=self.read_query_param("w") or "160"
@@ -485,14 +485,7 @@ class Handler(DXBaseHandler):
                            "/api/lab/add_model/smoke",
                            "/api/lab/task/dry_run", "/api/lab/task/apply",
                            "/api/lab/experiment/start",
-                           "/api/lab/rollback", "/api/lab/git/plan",
-                           "/api/lab/composer/quick_start", "/api/lab/composer/template",
-                           "/api/lab/composer/customize",
-                           "/api/lab/composer/plugin/dry_run", "/api/lab/composer/plugin/apply",
-                           "/api/lab/composer/run", "/api/lab/composer/run_async",
-                           "/api/lab/composer/export",
-                           "/api/lab/composer/recipe/export",
-                           "/api/lab/composer/recipe/import"}
+                           "/api/lab/rollback", "/api/lab/git/plan"}
             is_lab_route = path in _LAB_ROUTES or (path.startswith('/api/lab/experiment/') and path.endswith('/cancel'))
             if is_lab_route:
                 tok = self.headers.get("X-Lab-Token", "")
@@ -685,55 +678,6 @@ class Handler(DXBaseHandler):
                 if id_err:
                     return self.send_json({"error": id_err}, 400)
                 res, code = scoped_git_plan(manifest_id, data)
-                return self.send_json(res, code)
-
-            if path == "/api/lab/composer/quick_start":
-                res, code = plan_composer_quick_start(tok, data)
-                return self.send_json(res, code)
-
-            if path == "/api/lab/composer/template":
-                res, code = plan_composer_template(tok, data)
-                return self.send_json(res, code)
-
-            if path == "/api/lab/composer/customize":
-                res, code = customize_composer_workflow(tok, data)
-                return self.send_json(res, code)
-
-            if path == "/api/lab/composer/plugin/dry_run":
-                res, code = plan_composer_plugin_scaffold_response(tok, data)
-                return self.send_json(res, code)
-
-            if path == "/api/lab/composer/plugin/apply":
-                res, code = apply_composer_plugin_scaffold(tok, data)
-                return self.send_json(res, code)
-
-            if path == "/api/lab/composer/run":
-                debug_log.log_action("dx_app", "composer_run", data)
-                res, code = run_composer_workflow(tok, data)
-                return self.send_json(res, code)
-
-            if path == "/api/lab/composer/run_async":
-                debug_log.log_action("dx_app", "composer_run_async", data)
-                # Non-blocking composer run — same run_progress registry as the Run page, so it
-                # shares /api/run_poll and /api/run_result. The worker unwraps the (result,code)
-                # tuple to store just the result dict (what the composer UI renders).
-                from dx_app.core.run_progress import start_run
-                def _composer_job(job_id=None, tok=None, payload=None):
-                    r = run_composer_workflow(tok, payload, job_id=job_id)
-                    return r[0] if isinstance(r, tuple) else r
-                jid = start_run(_composer_job, {"tok": tok, "payload": data})
-                return self.send_json({"job_id": jid, "status": "started"})
-
-            if path == "/api/lab/composer/export":
-                res, code = export_composer_package(tok, data)
-                return self.send_json(res, code)
-
-            if path == "/api/lab/composer/recipe/export":
-                res, code = export_composer_recipe(tok, data)
-                return self.send_json(res, code)
-
-            if path == "/api/lab/composer/recipe/import":
-                res, code = import_composer_recipe(tok, data)
                 return self.send_json(res, code)
 
             if path=="/api/setup/run":

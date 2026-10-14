@@ -32,8 +32,6 @@ def page():
     pg.evaluate("nav('lab')")
     pg.wait_for_function("() => window.LabPortal && LabPortal.capabilities() && LabPortal.capabilities().reference_examples",
                          timeout=20000)
-    # Lab opens the Composer into #lab-flow-root once it is ready; let that land before a test opens a flow
-    pg.wait_for_selector("#lab-flow-root .lab-composer", timeout=20000)
     yield pg
     ctx.close()
     br.close()

@@ -105,10 +105,6 @@ def test_affected_text_meets_aa(browser, module_server, theme, os_theme):
             fixture.innerHTML += '<button class="chip active">All</button>' +
               '<a class="txt-link">dxnn</a><button class="m-action-btn m-action-detail">Detail</button>' +
               '<button class="m-action-btn m-action-dl">Download</button>' +
-              '<div class="lab-composer-graph-toolbar" style="position:static">' +
-                '<button class="btn btn-ghost btn-sm">Undo</button>' +
-                '<span class="lab-composer-graph-status ready">Graph ready</span>' +
-                '<span class="lab-composer-graph-status blocked">Graph blocked</span></div>' +
               // 2026-10-11 axe: accent text on grey/tinted grounds, the A/B slot badge, the active chip's count
               '<button class="m-action-btn m-action-run">Run</button>' +
               '<div class="radio-group"><label><input type="radio" checked><span>Image</span></label></div>' +
@@ -137,10 +133,10 @@ def test_affected_text_meets_aa(browser, module_server, theme, os_theme):
                    " #contrast-fixture th, #contrast-fixture .element-card-props, #contrast-fixture .ref-cat-title",
                    (module, theme, os_theme))
         if module == "dx_app":
-            page.evaluate("nav('lab')")
-            page.wait_for_selector(".lab-composer-graph-editor .lab-composer-graph-toolbar .btn")
-            _assert_aa(page, ".lab-composer-graph-editor .lab-composer-graph-toolbar .btn,"
-                       ".lab-composer-graph-editor .lab-composer-graph-status", (module, theme, os_theme))
+            page.evaluate("nav('graph')")
+            page.wait_for_selector("#gc-palette-list .gc-group-head")
+            _assert_aa(page, "#gc-toolbar .btn-ghost, #gc-toolbar .btn-neutral, #gc-palette-list .gc-group-title,"
+                       " [data-group='sources'] .gc-item-sub, .dxg-toolbar .dxg-zoom", (module, theme, os_theme))
         elif module == "dx_stream":
             page.evaluate("DXStream.nav('pipeline')")
             page.wait_for_selector("#palette-list .palette-group-title")

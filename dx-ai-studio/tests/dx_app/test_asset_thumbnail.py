@@ -1,6 +1,6 @@
-"""Composer asset-grid thumbnail generation (dx_app.core.assets.sample_thumbnail).
+"""Asset-picker thumbnail generation (dx_app.core.assets.sample_thumbnail).
 
-The composer palette shows 82x54px previews; sample_thumbnail serves a small cached JPEG
+An asset picker shows 82x54px previews; sample_thumbnail serves a small cached JPEG
 instead of the full-resolution original. The `f` argument is a user-supplied query param on
 /api/asset-thumb, so the path-traversal guard is security-relevant and locked here.
 """

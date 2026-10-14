@@ -1,48 +1,34 @@
-"""Composer export — a per-model package runs outside the Studio.
+"""Model package export — a per-model package runs outside the Studio.
 
-extract_model_package.sh trims common/ to static imports, but per-model examples name their
-processors in config.json; a trimmed package dies with "processor class
-'LetterboxPreprocessor' is exported by neither common.processors nor common.visualizers".
+extract_model_package.sh trims common/ to static imports, but per-model examples name their processors in
+config.json; a trimmed package dies with "processor class 'LetterboxPreprocessor' is exported by neither
+common.processors nor common.visualizers".
 """
 from __future__ import annotations
 
-import json
-
 import pytest
 
-from dx_app.core import lab_package
-
-
-def _tree(root, exports):
-    common = root / "runtime/python/object_detection/m/common"
-    (common / "processors").mkdir(parents=True)
-    (common / "visualizers").mkdir(parents=True)
-    (common / "processors/__init__.py").write_text("\n".join(f"from .x import {e}" for e in exports))
-    (common / "visualizers/__init__.py").write_text("from .v import DetectionVisualizer\n")
-    (root / "runtime/python/object_detection/m/config.json").write_text(json.dumps({
-        "preprocessor": {"class": "LetterboxPreprocessor"},
-        "postprocessor": {"class": "YOLOv8Postprocessor"},
-        "visualizer": {"class": "DetectionVisualizer"}}))
-    return common
-
-
-def test_a_trimmed_common_is_caught_before_export(tmp_path):
-    _tree(tmp_path, ["YOLOv8Postprocessor"])
-    missing = lab_package._unresolvable_processor_classes(tmp_path)
-    assert missing == ["runtime/python/object_detection/m/config.json: LetterboxPreprocessor"]
+from dx_app.core import package_common
 
 
 def test_the_full_common_is_vendored_next_to_the_runner(tmp_path):
-    pkg = tmp_path / "pkg"
-    common = _tree(pkg, ["YOLOv8Postprocessor"])
+    common = tmp_path / "pkg" / "runtime/python/object_detection/m/common"
+    (common / "processors").mkdir(parents=True)
     src = tmp_path / "dx_app/src/python_example/common/processors"
     src.mkdir(parents=True)
-    (src / "__init__.py").write_text("from .letterbox_preprocessor import LetterboxPreprocessor\n"
-                                     "from .yolo import YOLOv8Postprocessor\n")
+    (src / "__init__.py").write_text("from .letterbox_preprocessor import LetterboxPreprocessor\n")
     (src / "letterbox_preprocessor.py").write_text("class LetterboxPreprocessor: ...\n")
-    lab_package._complete_python_common(tmp_path / "dx_app", common.parent)
-    assert (common / "processors/letterbox_preprocessor.py").is_file()
-    assert lab_package._unresolvable_processor_classes(pkg) == []
+    package_common.complete_python_common(tmp_path / "dx_app", common.parent)
+    assert (common / "processors/letterbox_preprocessor.py").read_text() == "class LetterboxPreprocessor: ...\n"
+
+
+def test_a_symlink_in_common_is_refused(tmp_path):
+    src = tmp_path / "dx_app/src/python_example/common"
+    src.mkdir(parents=True)
+    (src / "evil.py").symlink_to("/etc/passwd")
+    (tmp_path / "pkg/common").mkdir(parents=True)
+    with pytest.raises(ValueError):
+        package_common.complete_python_common(tmp_path / "dx_app", tmp_path / "pkg")
 
 
 def test_export_model_package_tars_the_per_model_folder_with_a_full_common(tmp_path, monkeypatch):

@@ -205,12 +205,6 @@ def test_an_applied_add_model_stays_listed_with_its_files(app_root):
     assert "src/cpp_example/object_detection/mynet/factory/mynet_factory.hpp" in paths
 
 
-def test_composer_workflows_are_not_listed_as_lab_changes(app_root):
-    from lab_portal import create_manifest, list_lab_manifests
-    create_manifest("composer_workflow", inputs={}, status="ready")
-    assert all(m["kind"] in ("add_model", "task_scaffold") for m in list_lab_manifests())
-
-
 def test_rollback_deletes_exactly_what_apply_created(app_root):
     from lab_portal import rollback_manifest, list_lab_manifests
     keep = app_root / "src" / "python_example" / "object_detection" / "yolo26" / REF

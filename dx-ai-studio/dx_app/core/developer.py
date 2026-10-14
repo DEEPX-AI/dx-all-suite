@@ -353,8 +353,8 @@ def extract_model_package(model_path, lang="both"):
         if d.is_dir():
             if l == "py":
                 try:
-                    from dx_app.core.lab_package import _complete_python_common
-                    _complete_python_common(DX_APP_ROOT, d)
+                    from dx_app.core.package_common import complete_python_common
+                    complete_python_common(DX_APP_ROOT, d)
                 except Exception as ex:
                     print(f"[EXTRACT] common/ completion failed: {ex}")
             pkg_dirs.append((l, d))
