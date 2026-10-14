@@ -1,0 +1,5 @@
+{"ok": true, "available": true, "engine_ignored": false, "errors": [], "missing": [], "notes": [], "models": [
+  {"node": "cam", "model": null, "produces": "frame", "consumes": "-", "artifact": "sample/img/sample_people.jpg", "present": null, "file": null, "missing": false},
+  {"node": "od", "model": "yolov8-n_640x640", "produces": "boxes", "consumes": "full_frame", "artifact": "yolov8-n_640x640.dxnn", "present": true, "file": "v9", "missing": false},
+  {"node": "attr", "model": "deepmar_resnet50_224x224", "produces": "scores", "consumes": "either", "artifact": "deepmar_resnet50_224x224.dxnn", "present": true, "file": "v8", "missing": false}
+]}

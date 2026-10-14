@@ -1,0 +1,2 @@
+ERROR [MODEL_UNKNOWN] node "od": unknown model "no_such_model" - not in config/model_registry.json
+  -> run --list-models, or see docs/graph_models.md

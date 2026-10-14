@@ -1,0 +1,2 @@
+ERROR [GRAPH_SCHEMA] /tmp/dx-graph-check/check.json edge[1] "od"->"r" "roi": unknown key "classez"
+  -> did you mean "classes"? accepted keys: classes, min_score, min_area, pad, max, align

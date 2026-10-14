@@ -1,0 +1,1 @@
+[dxrt-exception] Model parsing exception {"Failed to read DXNN header: assets/models/yolo26-s_640x640.dxnn":lib/model_parser_factory.cpp:68:GetFileFormatVersion} error-code=263

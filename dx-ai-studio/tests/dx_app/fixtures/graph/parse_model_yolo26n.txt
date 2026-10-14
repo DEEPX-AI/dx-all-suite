@@ -1,0 +1,49 @@
+
+===================== Model Information ======================
+ Model File Path        : assets/models/yolo26-n_640x640.dxnn
+ .dxnn Format Version   : v9
+ DX-COM Version         : v2.5.0-rc.1+c6ae2e3
+
+ Model Input Tensors:
+  - images
+
+ Model Output Tensors:
+  - output0
+
+ Model Memory Usage:
+  - Total             : 117.81 MB (123,528,064 bytes)
+  - Buffers           : 114.54 MB (120,109,056 bytes)
+  - NPU Tasks Count   : 1
+  - Buffer Pool Size  : x6
+
+================== Task Graph Information ====================
+
+-------------------- Task Dependencies -----------------------
+
+  npu_0 [NPU] (model input)
+  npu_0 -> cpu_0 [CPU] (model output)
+
+---------------------- Task Details --------------------------
+
+Task[0]: npu_0 [NPU] (model input)
+  +- Inputs:
+  |  +- images
+  +- Outputs:
+     +- /model.23/one2one_cv2.0/one2one_cv2.0.2/Conv_output_0
+     +- /model.23/one2one_cv3.0/one2one_cv3.0.2/Conv_output_0
+     +- /model.23/one2one_cv2.1/one2one_cv2.1.2/Conv_output_0
+     +- /model.23/one2one_cv3.1/one2one_cv3.1.2/Conv_output_0
+     +- /model.23/one2one_cv2.2/one2one_cv2.2.2/Conv_output_0
+     +- /model.23/one2one_cv3.2/one2one_cv3.2.2/Conv_output_0
+
+Task[1]: cpu_0 [CPU] (model output)
+  +- Inputs:
+  |  +- /model.23/one2one_cv2.0/one2one_cv2.0.2/Conv_output_0
+  |  +- /model.23/one2one_cv2.2/one2one_cv2.2.2/Conv_output_0
+  |  +- /model.23/one2one_cv2.1/one2one_cv2.1.2/Conv_output_0
+  |  +- /model.23/one2one_cv3.0/one2one_cv3.0.2/Conv_output_0
+  |  +- /model.23/one2one_cv3.2/one2one_cv3.2.2/Conv_output_0
+  |  +- /model.23/one2one_cv3.1/one2one_cv3.1.2/Conv_output_0
+  +- Outputs:
+     +- output0
+     +- /model.23/TopK_output_0

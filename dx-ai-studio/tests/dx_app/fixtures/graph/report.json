@@ -1,0 +1,40 @@
+{
+  "frames": [
+    {
+      "error": "",
+      "index": 0,
+      "node_ms": {"attr": 6.1, "od": 9.8},
+      "nodes": {
+        "cam": {"origin": {"crop_size": [0, 0], "from_roi": false, "inv_align": [1.0, 0.0, 0.0, 0.0, 1.0, 0.0], "parent_index": -1, "parent_node": "", "roi_index": -1, "src_box": [0.0, 0.0, 0.0, 0.0], "track_id": -1}, "payload": {"image": {"channels": 3, "cols": 640, "rows": 427}, "shape": "frame"}},
+        "od": {"origin": {"crop_size": [0, 0], "from_roi": false, "inv_align": [1.0, 0.0, 0.0, 0.0, 1.0, 0.0], "parent_index": -1, "parent_node": "", "roi_index": -1, "src_box": [0.0, 0.0, 0.0, 0.0], "track_id": -1}, "payload": {"items": [
+          {"angle": 0.0, "box": [412.0, 155.0, 120.0, 310.0], "class_id": 0, "class_name": "person", "score": 0.91, "track_id": 3},
+          {"angle": 0.0, "box": [118.0, 140.0, 98.0, 280.0], "class_id": 0, "class_name": "person", "score": 0.87, "track_id": 4}
+        ], "shape": "boxes"}}
+      },
+      "roi_nodes": {
+        "attr": [
+          {"origin": {"crop_size": [132, 341], "from_roi": true, "inv_align": [1.0, 0.0, 406.0, 0.0, 1.0, 139.5], "parent_index": 0, "parent_node": "od", "roi_index": 0, "src_box": [406.0, 139.5, 132.0, 341.0], "track_id": 3}, "payload": {"items": [{"class_id": 5, "class_name": "upper_short_sleeve", "score": 0.83}], "shape": "scores"}},
+          {"origin": {"crop_size": [108, 308], "from_roi": true, "inv_align": [1.0, 0.0, 113.1, 0.0, 1.0, 126.0], "parent_index": 1, "parent_node": "od", "roi_index": 1, "src_box": [113.1, 126.0, 107.8, 308.0], "track_id": 4}, "payload": {"items": [{"class_id": 9, "class_name": "lower_trousers", "score": 0.79}], "shape": "scores"}}
+        ]
+      },
+      "skipped_out_of_bounds": 0
+    },
+    {
+      "error": "",
+      "index": 1,
+      "node_ms": {"attr": 5.9, "od": 10.2},
+      "nodes": {
+        "od": {"origin": {"crop_size": [0, 0], "from_roi": false, "inv_align": [1.0, 0.0, 0.0, 0.0, 1.0, 0.0], "parent_index": -1, "parent_node": "", "roi_index": -1, "src_box": [0.0, 0.0, 0.0, 0.0], "track_id": -1}, "payload": {"items": [
+          {"angle": 0.0, "box": [414.0, 156.0, 118.0, 309.0], "class_id": 0, "class_name": "person", "score": 0.9, "track_id": 3}
+        ], "shape": "boxes"}}
+      },
+      "roi_nodes": {
+        "attr": [
+          {"origin": {"crop_size": [130, 340], "from_roi": true, "inv_align": [1.0, 0.0, 408.1, 0.0, 1.0, 140.6], "parent_index": 0, "parent_node": "od", "roi_index": 0, "src_box": [408.1, 140.6, 129.8, 339.9], "track_id": 3}, "payload": {"items": [{"class_id": 5, "class_name": "upper_short_sleeve", "score": 0.81}], "shape": "scores"}}
+        ]
+      },
+      "skipped_out_of_bounds": 0
+    }
+  ],
+  "graph": "person-attributes"
+}
