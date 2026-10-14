@@ -352,6 +352,37 @@ def test_progress_lines_are_the_frame_count_when_present(tmp_path):
     assert r["frames"] == 240 and r["frame_basis"] == "progress"
 
 
+def test_the_runner_measured_rates_and_stage_latency_are_shown_as_is(tmp_path):
+    """dx_app's [PROGRESS] line also carries what the runner measured: fps (the last second), avg_fps (since the first
+    frame -- process start and model load are not in it) and the stage averages. frames / process time read low for
+    the first seconds and differed from the runner's own Overall FPS, so the runner's numbers win."""
+    log = ("[PROGRESS] frames=1\n"
+           "[PROGRESS] frames=11 fps=10.0 avg_fps=10.0 read_ms=1.10 pre_ms=2.00 infer_ms=20.00 post_ms=3.00\n"
+           "[PROGRESS] frames=31 fps=20.0 avg_fps=15.0 read_ms=1.00 pre_ms=2.00 infer_ms=18.40 post_ms=3.00\n")
+    r = _poll_with(tmp_path, log, elapsed=10.0)
+    assert r["frames"] == 31 and r["frame_basis"] == "progress"
+    assert r["runner_fps"] == 20.0, "the live rate is the last line's fps"
+    assert r["fps_est"] == 15.0, "the average is the runner's avg_fps, not 31 frames / 10 s of process time"
+    assert r["stage_ms"] == {"read": 1.0, "pre": 2.0, "infer": 18.4, "post": 3.0}
+
+
+def test_progress_without_measurements_keeps_the_old_estimate(tmp_path):
+    """An older dx_app prints '[PROGRESS] frames=N' only: frames / elapsed as before, no runner fps or stages."""
+    r = _poll_with(tmp_path, "[PROGRESS] frames=240\n", elapsed=10.0)
+    assert r["frames"] == 240 and r["fps_est"] == 24.0
+    assert r["runner_fps"] is None and r["stage_ms"] is None
+
+
+def test_the_live_ui_uses_the_runner_rate_and_shows_the_stage_latency():
+    from pathlib import Path
+    src = (Path(__file__).resolve().parents[2] / "dx_app/static/js/inference.js").read_text(encoding="utf-8")
+    body = src[src.index("function _updateSlotStats("):src.index("function _buildLiveSparklineGeometry(")]
+    assert "poll.runner_fps" in body, "the runner's own fps is the FPS pill when it is there"
+    assert "poll.stage_ms" in body and "c-ls-lat-" in body, "the stage latency line is filled from stage_ms"
+    slot = src[src.index("function _makeLiveSlotEl("):src.index("async function contStartLive(")]
+    assert "c-ls-lat-" in slot, "each slot has a latency line (hidden until the runner reports stages)"
+
+
 def test_live_runs_ask_for_progress_and_a_screen_the_window_fills(tmp_path, monkeypatch):
     from dx_app.core import live
     model = tmp_path / "m.dxnn"

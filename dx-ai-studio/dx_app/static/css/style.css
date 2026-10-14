@@ -665,6 +665,7 @@ tbody tr:hover td{background:var(--surface-hover)}
 .live-slot-stats{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
 .stat-pill{background:var(--control-bg);border-radius:var(--radius-xs);padding:2px 8px;font-size:var(--fs-xs);color:var(--text-muted)}
 .stat-pill b{color:var(--text-primary)}
+.live-slot-lat{font-size:var(--fs-xs);color:var(--text-muted);margin-top:4px;font-variant-numeric:tabular-nums}
 .live-slot-pred{font-size:var(--fs-xs);color:var(--text-muted);margin-top:4px;white-space:pre-wrap;max-height:64px;overflow:hidden;text-overflow:ellipsis}
 .live-slot-chart{margin-top:6px}
 /* ── Per-slot summary separator ── */

@@ -422,6 +422,29 @@ def _parse_task_tags(content):
             "last_pred": last_pred, "summary": summary}
 
 
+_STAGES = ("read", "pre", "infer", "post")
+_PROGRESS_LINE = re.compile(r"^\[PROGRESS\] frames=\d+(.*)$", re.M)
+
+
+def _progress_measurements(content):
+    """The fields of the last '[PROGRESS] frames=N key=value ...' line that carries any.
+
+    dx_app's runner measures fps (the last second), avg_fps (since its first frame) and the read / pre / infer / post
+    averages itself (src/cpp_example/common/utility/progress.hpp); an older dx_app prints frames only -> {}.
+    """
+    for rest in reversed(_PROGRESS_LINE.findall(content)):
+        fields = {}
+        for part in rest.split():
+            key, _, value = part.partition("=")
+            try:
+                fields[key] = float(value)
+            except ValueError:
+                pass
+        if fields:
+            return fields
+    return {}
+
+
 def poll_inference(job_id):
     """Poll live job for stats."""
     job = _live_jobs.get(job_id)
@@ -473,6 +496,7 @@ def poll_inference(job_id):
     # If the runner prints '[PROGRESS] frames=N' (dx_app with DXAPP_PROGRESS=1), that is the frame count;
     # the estimates below (tags, Loop) are for runners that do not
     progress = [int(x) for x in re.findall(r"^\[PROGRESS\] frames=(\d+)", content, re.M)]
+    measured = _progress_measurements(content)
 
     if progress:
         frame_basis, display_frames = "progress", max(progress)
@@ -490,6 +514,9 @@ def poll_inference(job_id):
         frame_basis, display_frames = "none", None
     if display_frames is None:
         fps_est = None
+    elif "avg_fps" in measured:
+        # The runner's average starts at its first frame; frames / process time also counts start-up and model load
+        fps_est = measured["avg_fps"]
     else:
         fps_est = round(display_frames / elapsed, 1) if elapsed > 0.5 else 0
 
@@ -523,9 +550,11 @@ def poll_inference(job_id):
                     class_counts[cls]["conf_sum"] += conf
                 except Exception: pass
 
+    stage_ms = {k: measured[k + "_ms"] for k in _STAGES if k + "_ms" in measured} or None
     return {"running": running, "frames": display_frames, "frame_basis": frame_basis,
             "det_count": det_count, "class_counts": class_counts,
             "elapsed": round(elapsed, 1), "fps_est": fps_est,
+            "runner_fps": measured.get("fps"), "stage_ms": stage_ms,
             "src_fps": src_fps, "is_det_mode": is_det_mode,
             "last_pred": last_pred,
             "task_tag": task_tag, "task_summary": task["summary"]}
