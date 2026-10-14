@@ -307,3 +307,45 @@ def test_an_upload_past_the_run_limit_is_refused_when_picked(ui):
     posted = [b for path, b in fake.posted if path == "run"][0]
     assert posted["uploads"] == {}, "the refused image is not sent"
 
+
+def _start_download(page, status):
+    calls = []
+    page.context.route("**/api/modelzoo/download", lambda r: r.fulfill(status=200, content_type="application/json",
+                                                                       body=json.dumps({"ok": True})))
+
+    def answer(route):
+        calls.append(1)
+        code, body = status(len(calls))
+        route.fulfill(status=code, content_type="application/json", body=json.dumps(body))
+    page.context.route("**/api/modelzoo/status", answer)
+    page.click("[data-group='task:object_detection'] .gc-group-head")
+    page.click("[data-group='task:object_detection'] .gc-item .btn:has-text('Download')")
+    return calls
+
+
+def test_the_download_poll_gives_up_after_repeated_failures(ui):
+    page, _ = ui
+    calls = _start_download(page, lambda n: (500, {"error": "boom"}))
+    page.wait_for_function("() => [...document.querySelectorAll('.toast')].some(t => t.textContent.includes('stopped answering'))",
+                           timeout=15000)
+    n = len(calls)
+    assert n == 5 and page.evaluate("GraphPalette.downloading()") is None
+    page.wait_for_timeout(2000)
+    assert len(calls) == n, "no more status requests"
+    assert page.locator("[data-group='task:object_detection'] .gc-item .btn:has-text('Download')").count() == 2
+
+
+def test_the_download_poll_pauses_while_the_page_is_left_and_resumes(ui):
+    page, _ = ui
+    calls = _start_download(page, lambda n: (200, {"finished": False, "done": 1, "total": 4}))
+    page.wait_for_function("() => GraphPalette.following()")
+    page.wait_for_timeout(1700)
+    page.evaluate("nav('models')")
+    page.wait_for_timeout(1700)
+    n = len(calls)
+    page.wait_for_timeout(3200)
+    assert len(calls) == n, "no status requests off the page"
+    page.evaluate("nav('graph')")
+    page.wait_for_function("() => GraphPalette.following()", timeout=5000)
+    page.wait_for_timeout(1700)
+    assert len(calls) > n and page.evaluate("GraphPalette.downloading()") == "yolo26-s_640x640"

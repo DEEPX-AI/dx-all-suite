@@ -1,12 +1,16 @@
 /* DX App — Graph Composer palette: example graphs, a source, the models dx_app can put in a graph (by task, with
    their install state and a Download button) and the CPU ops. Items drag onto the canvas; the + button (or Enter on
-   it) adds one in the middle of the view. Contract: tests/dx_app/test_graph_composer_browser.py */
+   it) adds one in the middle of the view. A model download is followed until it ends, the status stops answering
+   STATUS_FAILURES times in a row, or the page is left (it is picked up again when the page opens).
+   Contract: tests/dx_app/test_graph_composer_browser.py */
 window.GraphPalette = (function () {
   'use strict';
   var expanded = { examples: true, sources: true, cpu: true };   // task groups start closed: 497 models
   var query = '';
-  var downloading = null;
+  var downloading = null;          // {name, btn} while a download runs
   var lastRoot = null, lastCtx = null;
+  var STATUS_EVERY_MS = 1500, STATUS_FAILURES = 5;
+  var statusTimer = 0, failures = 0, resumeOnOpen = false;
 
   function stateLabel(m) {
     if (m.state === 'installed') return T('Installed');
@@ -90,9 +94,52 @@ window.GraphPalette = (function () {
     ]);
   }
 
+  function pageOpen() { return !!document.querySelector('#page-graph.active'); }
+
+  function stopFollowing() {
+    clearTimeout(statusTimer);
+    statusTimer = 0;
+  }
+
+  /* One status check; the next is scheduled only while the page is open and the status answers. */
+  function follow(c) {
+    stopFollowing();
+    statusTimer = setTimeout(async function () {
+      statusTimer = 0;
+      if (!downloading) return;
+      if (!pageOpen()) { resumeOnOpen = true; return; }
+      var s = await api('/api/modelzoo/status');
+      if (!downloading) return;
+      if (!s || s.error || typeof s !== 'object') {
+        failures += 1;
+        if (failures >= STATUS_FAILURES) {
+          var btn = downloading.btn;
+          downloading = null;
+          failures = 0;
+          if (btn) { btn.disabled = false; btn.textContent = T('Download'); }
+          c.notify(T('The download status stopped answering. Check Model Zoo, then refresh the palette.'), 'warn');
+          return;
+        }
+        follow(c);
+        return;
+      }
+      failures = 0;
+      if (!s.finished) {
+        if (s.total && downloading.btn) downloading.btn.textContent = T('Downloading') + ' ' + Math.round(s.done * 100 / s.total) + '%';
+        follow(c);
+        return;
+      }
+      downloading = null;
+      var ok = !(s.results || []).some(function (x) { return x && x.ok === false; });
+      c.notify(ok ? T('Download complete') : T('Download finished with errors'), ok ? 'ok' : 'warn');
+      c.reloadCatalog(true);
+    }, STATUS_EVERY_MS);
+  }
+
   async function download(c, m, btn) {
     if (downloading) { c.notify(T('A model download is already in progress.'), 'warn'); return; }
-    downloading = m.name;
+    downloading = { name: m.name, btn: btn };
+    failures = 0;
     btn.disabled = true;
     btn.textContent = T('Starting…');
     var r = await postJ('/api/modelzoo/download', { items: [{ name: m.download.name, chip: 'qlite',
@@ -104,18 +151,7 @@ window.GraphPalette = (function () {
       c.notify((r && r.error) || T('Download failed to start'), 'err');
       return;
     }
-    var timer = setInterval(async function () {
-      var s = await api('/api/modelzoo/status');
-      if (!s || !s.finished) {
-        if (s && s.total) btn.textContent = T('Downloading') + ' ' + Math.round(s.done * 100 / s.total) + '%';
-        return;
-      }
-      clearInterval(timer);
-      downloading = null;
-      var ok = !(s.results || []).some(function (x) { return x && x.ok === false; });
-      c.notify(ok ? T('Download complete') : T('Download finished with errors'), ok ? 'ok' : 'warn');
-      c.reloadCatalog(true);
-    }, 1500);
+    follow(c);
   }
 
   function render(root, c) {
@@ -129,6 +165,7 @@ window.GraphPalette = (function () {
       search.addEventListener('input', function () { query = search.value.trim().toLowerCase(); render(lastRoot, lastCtx); });
     }
     root.textContent = '';
+    if (resumeOnOpen && downloading) { resumeOnOpen = false; follow(c); }
     if (cat.available === false) {
       root.appendChild(c.h('p', { class: 'gc-empty', text: T('The graph runner is not built. Build dx_app (./build.sh) to use the Graph Composer.') }));
     }
@@ -152,5 +189,6 @@ window.GraphPalette = (function () {
     });
   }
 
-  return { render: render };
+  return { render: render, following: function () { return !!statusTimer; },
+    downloading: function () { return downloading ? downloading.name : null; } };
 })();

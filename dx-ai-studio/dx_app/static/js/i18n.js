@@ -3756,6 +3756,11 @@ window._DX_I18N_DICT = {
     'zh-CN': '上传的图片共 {mb} MB；一次运行最多 {max} MB。请使用较小的图片或示例。', 'zh-TW': '上傳的圖片共 {mb} MB；一次執行最多 {max} MB。請使用較小的圖片或範例。',
     es: 'Las imágenes subidas suman {mb} MB; una ejecución admite como máximo {max} MB. Use imágenes más pequeñas o una de muestra.',
   },
+  'The download status stopped answering. Check Model Zoo, then refresh the palette.': {
+    ko: '다운로드 상태가 응답하지 않습니다. Model Zoo를 확인한 뒤 팔레트를 새로 고치세요.', ja: 'ダウンロード状態が応答しなくなりました。Model Zoo を確認してからパレットを更新してください。',
+    'zh-CN': '下载状态不再响应。请检查 Model Zoo，然后刷新组件面板。', 'zh-TW': '下載狀態不再回應。請檢查 Model Zoo，然後重新整理元件面板。',
+    es: 'El estado de la descarga dejó de responder. Revise Model Zoo y actualice la paleta.',
+  },
 };
 
 /* ─── CSS Selectors for DOM translation ─── */
