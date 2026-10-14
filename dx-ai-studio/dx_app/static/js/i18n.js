@@ -3155,6 +3155,827 @@ window._DX_I18N_DICT = {
     'zh-CN': '起始示例', 'zh-TW': '起始範例',
     es: 'Partir de',
   },
+  /* ==== Graph Composer (graph-*.js, shared/static/dx-graph-canvas.js, templates #page-graph) ==== */
+  'Graph Composer': {
+    ko: '그래프 컴포저', ja: 'グラフコンポーザー',
+    'zh-CN': '图编排器', 'zh-TW': '圖編排器',
+    es: 'Compositor de grafos',
+  },
+  'Connect several models into one pipeline, check it, and run it on the NPU.': {
+    ko: '여러 모델을 하나의 파이프라인으로 연결하고, 검사한 뒤 NPU에서 실행합니다.', ja: '複数のモデルを一つのパイプラインにつなぎ、検証して NPU で実行します。',
+    'zh-CN': '将多个模型连接成一条流水线，检查后在 NPU 上运行。', 'zh-TW': '將多個模型連接成一條管線，檢查後在 NPU 上執行。',
+    es: 'Conecte varios modelos en una canalización, compruébela y ejecútela en la NPU.',
+  },
+  'New graph': {
+    ko: '새 그래프', ja: '新しいグラフ',
+    'zh-CN': '新建图', 'zh-TW': '新增圖',
+    es: 'Nuevo grafo',
+  },
+  'Project name': {
+    ko: '프로젝트 이름', ja: 'プロジェクト名',
+    'zh-CN': '项目名称', 'zh-TW': '專案名稱',
+    es: 'Nombre del proyecto',
+  },
+  'Open project': {
+    ko: '프로젝트 열기', ja: 'プロジェクトを開く',
+    'zh-CN': '打开项目', 'zh-TW': '開啟專案',
+    es: 'Abrir proyecto',
+  },
+  'Version': {
+    ko: '버전', ja: 'バージョン',
+    'zh-CN': '版本', 'zh-TW': '版本',
+    es: 'Versión',
+  },
+  'Save': {
+    ko: '저장', ja: '保存',
+    'zh-CN': '保存', 'zh-TW': '儲存',
+    es: 'Guardar',
+  },
+  'Import JSON': {
+    ko: 'JSON 가져오기', ja: 'JSON をインポート',
+    'zh-CN': '导入 JSON', 'zh-TW': '匯入 JSON',
+    es: 'Importar JSON',
+  },
+  'Validate': {
+    ko: '검사', ja: '検証',
+    'zh-CN': '验证', 'zh-TW': '驗證',
+    es: 'Validar',
+  },
+  'Palette': {
+    ko: '팔레트', ja: 'パレット',
+    'zh-CN': '组件面板', 'zh-TW': '元件面板',
+    es: 'Paleta',
+  },
+  'Search models…': {
+    ko: '모델 검색…', ja: 'モデルを検索…',
+    'zh-CN': '搜索模型…', 'zh-TW': '搜尋模型…',
+    es: 'Buscar modelos…',
+  },
+  'Search models': {
+    ko: '모델 검색', ja: 'モデルを検索',
+    'zh-CN': '搜索模型', 'zh-TW': '搜尋模型',
+    es: 'Buscar modelos',
+  },
+  'Checking the graph…': {
+    ko: '그래프를 검사하는 중…', ja: 'グラフを検証しています…',
+    'zh-CN': '正在检查图…', 'zh-TW': '正在檢查圖…',
+    es: 'Comprobando el grafo…',
+  },
+  'The graph runner is not built. Build dx_app (./build.sh) to use the Graph Composer.': {
+    ko: '그래프 실행 파일이 빌드되지 않았습니다. Graph Composer를 쓰려면 dx_app을 빌드하세요 (./build.sh).', ja: 'グラフ実行ファイルがビルドされていません。Graph Composer を使うには dx_app をビルドしてください (./build.sh)。',
+    'zh-CN': '图运行程序尚未构建。要使用图编排器，请构建 dx_app (./build.sh)。', 'zh-TW': '圖執行程式尚未建置。要使用圖編排器，請建置 dx_app (./build.sh)。',
+    es: 'El ejecutor de grafos no está compilado. Compile dx_app (./build.sh) para usar el compositor de grafos.',
+  },
+  'Empty graph': {
+    ko: '빈 그래프', ja: '空のグラフ',
+    'zh-CN': '空图', 'zh-TW': '空白圖',
+    es: 'Grafo vacío',
+  },
+  'Could not check the graph': {
+    ko: '그래프를 검사하지 못했습니다', ja: 'グラフを検証できませんでした',
+    'zh-CN': '无法检查该图', 'zh-TW': '無法檢查該圖',
+    es: 'No se pudo comprobar el grafo',
+  },
+  '{n} problems to fix': {
+    ko: '고칠 문제 {n}개', ja: '修正が必要な問題: {n} 件',
+    'zh-CN': '有 {n} 个问题需要修复', 'zh-TW': '有 {n} 個問題需要修正',
+    es: '{n} problemas por corregir',
+  },
+  '{n} models are not installed': {
+    ko: '설치되지 않은 모델 {n}개', ja: '未インストールのモデル: {n} 件',
+    'zh-CN': '有 {n} 个模型未安装', 'zh-TW': '有 {n} 個模型未安裝',
+    es: '{n} modelos no están instalados',
+  },
+  'Over the NPU memory budget': {
+    ko: 'NPU 메모리 한도를 넘습니다', ja: 'NPU メモリの上限を超えています',
+    'zh-CN': '超出 NPU 内存预算', 'zh-TW': '超出 NPU 記憶體預算',
+    es: 'Supera la memoria disponible de la NPU',
+  },
+  'Ready to run': {
+    ko: '실행 준비 완료', ja: '実行できます',
+    'zh-CN': '可以运行', 'zh-TW': '可以執行',
+    es: 'Listo para ejecutar',
+  },
+  'Unsaved changes': {
+    ko: '저장하지 않은 변경 사항', ja: '未保存の変更',
+    'zh-CN': '有未保存的更改', 'zh-TW': '有未儲存的變更',
+    es: 'Cambios sin guardar',
+  },
+  'Share one engine between {nodes} ({model}): saves {saves}': {
+    ko: '{nodes}가 엔진 하나를 공유 ({model}): {saves} 절약', ja: '{nodes} で 1 つのエンジンを共有 ({model}): {saves} 削減',
+    'zh-CN': '让 {nodes} 共用一个引擎 ({model})：节省 {saves}', 'zh-TW': '讓 {nodes} 共用一個引擎 ({model})：節省 {saves}',
+    es: 'Compartir un motor entre {nodes} ({model}): ahorra {saves}',
+  },
+  'Use {n} buffers on {nodes}: saves {saves}': {
+    ko: '{nodes}에서 buffer {n}개 사용: {saves} 절약', ja: '{nodes} でバッファーを {n} 個に: {saves} 削減',
+    'zh-CN': '在 {nodes} 上使用 {n} 个缓冲区：节省 {saves}', 'zh-TW': '在 {nodes} 上使用 {n} 個緩衝區：節省 {saves}',
+    es: 'Usar {n} búferes en {nodes}: ahorra {saves}',
+  },
+  'NPU memory': {
+    ko: 'NPU 메모리', ja: 'NPU メモリ',
+    'zh-CN': 'NPU 内存', 'zh-TW': 'NPU 記憶體',
+    es: 'Memoria de la NPU',
+  },
+  '{used} of {free} free': {
+    ko: '여유 {free} 중 {used}', ja: '空き {free} のうち {used}',
+    'zh-CN': '可用 {free} 中的 {used}', 'zh-TW': '可用 {free} 中的 {used}',
+    es: '{used} de {free} libres',
+  },
+  'Not counted (model file missing): {models}': {
+    ko: '계산에서 빠짐 (모델 파일 없음): {models}', ja: '集計外 (モデルファイルなし): {models}',
+    'zh-CN': '未计入（缺少模型文件）：{models}', 'zh-TW': '未計入（缺少模型檔案）：{models}',
+    es: 'Sin contar (falta el archivo del modelo): {models}',
+  },
+  'This dx_app build does not apply engine options yet; the estimate shows what they will save.': {
+    ko: '이 dx_app 빌드는 아직 engine 옵션을 적용하지 않습니다. 추정치는 적용되었을 때 절약되는 양을 보여 줍니다.', ja: 'この dx_app ビルドはまだ engine オプションを適用しません。見積もりは適用後に削減される量を示します。',
+    'zh-CN': '此 dx_app 版本尚未应用 engine 选项；估算显示应用后可节省的量。', 'zh-TW': '此 dx_app 版本尚未套用 engine 選項；估算顯示套用後可節省的量。',
+    es: 'Esta compilación de dx_app aún no aplica las opciones de engine; la estimación muestra lo que ahorrarán.',
+  },
+  'Ways to fit': {
+    ko: '맞추는 방법', ja: '収める方法',
+    'zh-CN': '缩减方法', 'zh-TW': '縮減方法',
+    es: 'Cómo hacer que quepa',
+  },
+  'Apply': {
+    ko: '적용', ja: '適用',
+    'zh-CN': '应用', 'zh-TW': '套用',
+    es: 'Aplicar',
+  },
+  'Discard the unsaved changes to this graph?': {
+    ko: '이 그래프의 저장하지 않은 변경 사항을 버릴까요?', ja: 'このグラフの未保存の変更を破棄しますか?',
+    'zh-CN': '放弃此图未保存的更改？', 'zh-TW': '放棄此圖未儲存的變更？',
+    es: '¿Descartar los cambios sin guardar de este grafo?',
+  },
+  'Open project…': {
+    ko: '프로젝트 열기…', ja: 'プロジェクトを開く…',
+    'zh-CN': '打开项目…', 'zh-TW': '開啟專案…',
+    es: 'Abrir proyecto…',
+  },
+  'No versions': {
+    ko: '버전 없음', ja: 'バージョンなし',
+    'zh-CN': '无版本', 'zh-TW': '無版本',
+    es: 'Sin versiones',
+  },
+  'Version {n}': {
+    ko: '버전 {n}', ja: 'バージョン {n}',
+    'zh-CN': '版本 {n}', 'zh-TW': '版本 {n}',
+    es: 'Versión {n}',
+  },
+  'This file is not a Graph Composer project.': {
+    ko: 'Graph Composer 프로젝트 파일이 아닙니다.', ja: 'Graph Composer のプロジェクトファイルではありません。',
+    'zh-CN': '该文件不是图编排器项目。', 'zh-TW': '該檔案不是圖編排器專案。',
+    es: 'Este archivo no es un proyecto del compositor de grafos.',
+  },
+  'Add a node before saving.': {
+    ko: '저장하기 전에 노드를 추가하세요.', ja: '保存する前にノードを追加してください。',
+    'zh-CN': '保存前请先添加节点。', 'zh-TW': '儲存前請先新增節點。',
+    es: 'Añada un nodo antes de guardar.',
+  },
+  'Untitled graph': {
+    ko: '제목 없는 그래프', ja: '無題のグラフ',
+    'zh-CN': '未命名图', 'zh-TW': '未命名圖',
+    es: 'Grafo sin título',
+  },
+  'Saved {name}, version {n}': {
+    ko: '{name} 저장됨 (버전 {n})', ja: '{name} を保存しました (バージョン {n})',
+    'zh-CN': '已保存 {name}（版本 {n}）', 'zh-TW': '已儲存 {name}（版本 {n}）',
+    es: 'Se guardó {name}, versión {n}',
+  },
+  'Delete the project {name} and all its versions?': {
+    ko: '프로젝트 {name}와 모든 버전을 삭제할까요?', ja: 'プロジェクト {name} とすべてのバージョンを削除しますか?',
+    'zh-CN': '删除项目 {name} 及其所有版本？', 'zh-TW': '刪除專案 {name} 及其所有版本？',
+    es: '¿Eliminar el proyecto {name} y todas sus versiones?',
+  },
+  'Installed': {
+    ko: '설치됨', ja: 'インストール済み',
+    'zh-CN': '已安装', 'zh-TW': '已安裝',
+    es: 'Instalado',
+  },
+  'Not installed': {
+    ko: '설치 안 됨', ja: '未インストール',
+    'zh-CN': '未安装', 'zh-TW': '未安裝',
+    es: 'No instalado',
+  },
+  'Broken file': {
+    ko: '손상된 파일', ja: '壊れたファイル',
+    'zh-CN': '文件损坏', 'zh-TW': '檔案損壞',
+    es: 'Archivo dañado',
+  },
+  'Needs a newer DX-RT': {
+    ko: '더 새로운 DX-RT 필요', ja: '新しい DX-RT が必要',
+    'zh-CN': '需要更新的 DX-RT', 'zh-TW': '需要更新的 DX-RT',
+    es: 'Requiere un DX-RT más reciente',
+  },
+  'Not graph-ready': {
+    ko: '그래프에서 사용 불가', ja: 'グラフでは使えません',
+    'zh-CN': '不可用于图', 'zh-TW': '不可用於圖',
+    es: 'No disponible en grafos',
+  },
+  'Add to the graph': {
+    ko: '그래프에 추가', ja: 'グラフに追加',
+    'zh-CN': '添加到图', 'zh-TW': '新增到圖',
+    es: 'Añadir al grafo',
+  },
+  'Add {name} to the graph': {
+    ko: '{name}을(를) 그래프에 추가', ja: '{name} をグラフに追加',
+    'zh-CN': '将 {name} 添加到图', 'zh-TW': '將 {name} 新增到圖',
+    es: 'Añadir {name} al grafo',
+  },
+  'Needs DX-RT {version} or later': {
+    ko: 'DX-RT {version} 이상 필요', ja: 'DX-RT {version} 以降が必要',
+    'zh-CN': '需要 DX-RT {version} 或更高版本', 'zh-TW': '需要 DX-RT {version} 或更新版本',
+    es: 'Requiere DX-RT {version} o posterior',
+  },
+  'frame or crop': {
+    ko: '프레임 또는 crop', ja: 'フレームまたはクロップ',
+    'zh-CN': '整帧或裁剪', 'zh-TW': '整幀或裁切',
+    es: 'fotograma o recorte',
+  },
+  'full frame': {
+    ko: '전체 프레임', ja: 'フレーム全体',
+    'zh-CN': '整帧', 'zh-TW': '整幀',
+    es: 'fotograma completo',
+  },
+  'Open': {
+    ko: '열기', ja: '開く',
+    'zh-CN': '打开', 'zh-TW': '開啟',
+    es: 'Abrir',
+  },
+  'Open the example {name}': {
+    ko: '예제 {name} 열기', ja: 'サンプル {name} を開く',
+    'zh-CN': '打开示例 {name}', 'zh-TW': '開啟範例 {name}',
+    es: 'Abrir el ejemplo {name}',
+  },
+  'Examples': {
+    ko: '예제', ja: 'サンプル',
+    'zh-CN': '示例', 'zh-TW': '範例',
+    es: 'Ejemplos',
+  },
+  'Sources': {
+    ko: '소스', ja: 'ソース',
+    'zh-CN': '源', 'zh-TW': '來源',
+    es: 'Fuentes',
+  },
+  'Image or video': {
+    ko: '이미지 또는 비디오', ja: '画像または動画',
+    'zh-CN': '图片或视频', 'zh-TW': '圖片或影片',
+    es: 'Imagen o vídeo',
+  },
+  'CPU ops': {
+    ko: 'CPU 연산', ja: 'CPU 演算',
+    'zh-CN': 'CPU 运算', 'zh-TW': 'CPU 運算',
+    es: 'Operaciones de CPU',
+  },
+  'takes {inputs}': {
+    ko: '입력: {inputs}', ja: '入力: {inputs}',
+    'zh-CN': '输入：{inputs}', 'zh-TW': '輸入：{inputs}',
+    es: 'recibe {inputs}',
+  },
+  'Problems': {
+    ko: '문제', ja: '問題',
+    'zh-CN': '问题', 'zh-TW': '問題',
+    es: 'Problemas',
+  },
+  'Remove {name}': {
+    ko: '{name} 제거', ja: '{name} を削除',
+    'zh-CN': '移除 {name}', 'zh-TW': '移除 {name}',
+    es: 'Quitar {name}',
+  },
+  'name, e.g. score_threshold': {
+    ko: '이름 (예: score_threshold)', ja: '名前 (例: score_threshold)',
+    'zh-CN': '名称，例如 score_threshold', 'zh-TW': '名稱，例如 score_threshold',
+    es: 'nombre, p. ej. score_threshold',
+  },
+  'Parameter name': {
+    ko: '파라미터 이름', ja: 'パラメーター名',
+    'zh-CN': '参数名称', 'zh-TW': '參數名稱',
+    es: 'Nombre del parámetro',
+  },
+  'value': {
+    ko: '값', ja: '値',
+    'zh-CN': '值', 'zh-TW': '值',
+    es: 'valor',
+  },
+  'Parameter value': {
+    ko: '파라미터 값', ja: 'パラメーター値',
+    'zh-CN': '参数值', 'zh-TW': '參數值',
+    es: 'Valor del parámetro',
+  },
+  'Parameters': {
+    ko: '파라미터', ja: 'パラメーター',
+    'zh-CN': '参数', 'zh-TW': '參數',
+    es: 'Parámetros',
+  },
+  'Overrides the model config.json for this node. Lists such as class_names are comma separated.': {
+    ko: '이 노드에서만 모델의 config.json 값을 덮어씁니다. class_names 같은 목록은 쉼표로 구분합니다.', ja: 'このノードだけモデルの config.json を上書きします。class_names などのリストはカンマ区切りです。',
+    'zh-CN': '仅对此节点覆盖模型的 config.json。class_names 等列表用逗号分隔。', 'zh-TW': '僅對此節點覆寫模型的 config.json。class_names 等清單以逗號分隔。',
+    es: 'Sustituye el config.json del modelo solo en este nodo. Las listas como class_names van separadas por comas.',
+  },
+  'Use letters, digits, _ or -, starting with a letter.': {
+    ko: '영문자, 숫자, _ 또는 -만 쓰고 영문자로 시작하세요.', ja: '英字、数字、_ または - を使い、英字で始めてください。',
+    'zh-CN': '请使用字母、数字、_ 或 -，并以字母开头。', 'zh-TW': '請使用字母、數字、_ 或 -，並以字母開頭。',
+    es: 'Use letras, dígitos, _ o -, empezando por una letra.',
+  },
+  'Another node already has this name.': {
+    ko: '같은 이름의 노드가 이미 있습니다.', ja: '同じ名前のノードがすでにあります。',
+    'zh-CN': '已有同名节点。', 'zh-TW': '已有同名節點。',
+    es: 'Otro nodo ya tiene este nombre.',
+  },
+  'Node name': {
+    ko: '노드 이름', ja: 'ノード名',
+    'zh-CN': '节点名称', 'zh-TW': '節點名稱',
+    es: 'Nombre del nodo',
+  },
+  'Connect to…': {
+    ko: '연결할 노드…', ja: '接続先…',
+    'zh-CN': '连接到…', 'zh-TW': '連接到…',
+    es: 'Conectar con…',
+  },
+  'Connect to': {
+    ko: '연결', ja: '接続先',
+    'zh-CN': '连接到', 'zh-TW': '連接到',
+    es: 'Conectar con',
+  },
+  'The keyboard way to draw an edge from this node.': {
+    ko: '키보드로 이 노드에서 연결선을 그립니다.', ja: 'キーボードでこのノードから接続を引きます。',
+    'zh-CN': '用键盘从此节点画一条连接。', 'zh-TW': '用鍵盤從此節點畫一條連接。',
+    es: 'La forma de trazar una conexión desde este nodo con el teclado.',
+  },
+  '{mb} on the NPU': {
+    ko: 'NPU에서 {mb}', ja: 'NPU 上で {mb}',
+    'zh-CN': '在 NPU 上占用 {mb}', 'zh-TW': '在 NPU 上佔用 {mb}',
+    es: '{mb} en la NPU',
+  },
+  'Uses the engine of {nodes}': {
+    ko: '{nodes}의 엔진을 함께 사용', ja: '{nodes} のエンジンを共用',
+    'zh-CN': '共用 {nodes} 的引擎', 'zh-TW': '共用 {nodes} 的引擎',
+    es: 'Usa el motor de {nodes}',
+  },
+  '{shape} · {frames} frames · {items} results · {crops} crops': {
+    ko: '{shape} · 프레임 {frames} · 결과 {items} · crop {crops}', ja: '{shape} · {frames} フレーム · 結果 {items} · クロップ {crops}',
+    'zh-CN': '{shape} · {frames} 帧 · {items} 个结果 · {crops} 个裁剪', 'zh-TW': '{shape} · {frames} 幀 · {items} 個結果 · {crops} 個裁切',
+    es: '{shape} · {frames} fotogramas · {items} resultados · {crops} recortes',
+  },
+  '{ms} ms per frame': {
+    ko: '프레임당 {ms} ms', ja: '1 フレームあたり {ms} ms',
+    'zh-CN': '每帧 {ms} ms', 'zh-TW': '每幀 {ms} ms',
+    es: '{ms} ms por fotograma',
+  },
+  'Last run': {
+    ko: '마지막 실행', ja: '前回の実行',
+    'zh-CN': '上次运行', 'zh-TW': '上次執行',
+    es: 'Última ejecución',
+  },
+  'An image or video under the dx_app folder, camera:0 or rtsp://… (Run once takes images and videos).': {
+    ko: 'dx_app 폴더 아래의 이미지나 비디오, camera:0 또는 rtsp://… (한 번 실행은 이미지와 비디오만 받습니다).', ja: 'dx_app フォルダー内の画像や動画、camera:0 または rtsp://… (1 回実行は画像と動画のみ)。',
+    'zh-CN': 'dx_app 文件夹下的图片或视频、camera:0 或 rtsp://…（单次运行只接受图片和视频）。', 'zh-TW': 'dx_app 資料夾下的圖片或影片、camera:0 或 rtsp://…（單次執行只接受圖片和影片）。',
+    es: 'Una imagen o un vídeo dentro de la carpeta de dx_app, camera:0 o rtsp://… (Ejecutar una vez admite imágenes y vídeos).',
+  },
+  '{task} · produces {produces} · takes {consumes}': {
+    ko: '{task} · 출력 {produces} · 입력 {consumes}', ja: '{task} · 出力 {produces} · 入力 {consumes}',
+    'zh-CN': '{task} · 输出 {produces} · 输入 {consumes}', 'zh-TW': '{task} · 輸出 {produces} · 輸入 {consumes}',
+    es: '{task} · produce {produces} · recibe {consumes}',
+  },
+  'Track objects across frames (IoU tracker)': {
+    ko: '프레임 사이에서 객체 추적 (IoU tracker)', ja: 'フレーム間でオブジェクトを追跡 (IoU トラッカー)',
+    'zh-CN': '跨帧跟踪目标（IoU 跟踪器）', 'zh-TW': '跨幀追蹤目標（IoU 追蹤器）',
+    es: 'Seguir objetos entre fotogramas (rastreador IoU)',
+  },
+  'Overlap to keep a track (IoU)': {
+    ko: '추적을 유지할 겹침 (IoU)', ja: '追跡を続ける重なり (IoU)',
+    'zh-CN': '保持跟踪所需的重叠（IoU）', 'zh-TW': '保持追蹤所需的重疊（IoU）',
+    es: 'Solapamiento para mantener un seguimiento (IoU)',
+  },
+  'Frames a lost track survives': {
+    ko: '놓친 추적이 유지되는 프레임 수', ja: '見失った追跡を保つフレーム数',
+    'zh-CN': '丢失的轨迹保留的帧数', 'zh-TW': '遺失的軌跡保留的幀數',
+    es: 'Fotogramas que sobrevive un seguimiento perdido',
+  },
+  'Tracking': {
+    ko: '추적', ja: '追跡',
+    'zh-CN': '跟踪', 'zh-TW': '追蹤',
+    es: 'Seguimiento',
+  },
+  'Default (6)': {
+    ko: '기본값 (6)', ja: '既定 (6)',
+    'zh-CN': '默认 (6)', 'zh-TW': '預設 (6)',
+    es: 'Predeterminado (6)',
+  },
+  'NPU engine': {
+    ko: 'NPU 엔진', ja: 'NPU エンジン',
+    'zh-CN': 'NPU 引擎', 'zh-TW': 'NPU 引擎',
+    es: 'Motor de la NPU',
+  },
+  'Buffers': {
+    ko: 'Buffer', ja: 'バッファー',
+    'zh-CN': '缓冲区', 'zh-TW': '緩衝區',
+    es: 'Búferes',
+  },
+  'Fewer buffers use less NPU memory and may lower throughput.': {
+    ko: 'buffer가 적을수록 NPU 메모리를 덜 쓰지만 처리량이 줄 수 있습니다.', ja: 'バッファーを減らすと NPU メモリは減りますが、スループットが下がることがあります。',
+    'zh-CN': '缓冲区越少，占用的 NPU 内存越少，但吞吐量可能降低。', 'zh-TW': '緩衝區越少，佔用的 NPU 記憶體越少，但輸送量可能降低。',
+    es: 'Menos búferes usan menos memoria de la NPU y pueden reducir el rendimiento.',
+  },
+  'Share one engine with other nodes of this model': {
+    ko: '이 모델의 다른 노드와 엔진 하나를 공유', ja: 'このモデルの他のノードと 1 つのエンジンを共有',
+    'zh-CN': '与此模型的其他节点共用一个引擎', 'zh-TW': '與此模型的其他節點共用一個引擎',
+    es: 'Compartir un motor con otros nodos de este modelo',
+  },
+  'Takes the results of: {inputs}': {
+    ko: '받는 결과: {inputs}', ja: '受け取る結果: {inputs}',
+    'zh-CN': '接收的结果：{inputs}', 'zh-TW': '接收的結果：{inputs}',
+    es: 'Recibe los resultados de: {inputs}',
+  },
+  'CPU op': {
+    ko: 'CPU 연산', ja: 'CPU 演算',
+    'zh-CN': 'CPU 运算', 'zh-TW': 'CPU 運算',
+    es: 'Operación de CPU',
+  },
+  'Delete node': {
+    ko: '노드 삭제', ja: 'ノードを削除',
+    'zh-CN': '删除节点', 'zh-TW': '刪除節點',
+    es: 'Eliminar nodo',
+  },
+  'Whole frame': {
+    ko: '전체 프레임', ja: 'フレーム全体',
+    'zh-CN': '整帧', 'zh-TW': '整幀',
+    es: 'Fotograma completo',
+  },
+  'One run per box (ROI crop)': {
+    ko: '박스마다 한 번 실행 (ROI crop)', ja: 'ボックスごとに 1 回実行 (ROI クロップ)',
+    'zh-CN': '每个框运行一次（ROI 裁剪）', 'zh-TW': '每個框執行一次（ROI 裁切）',
+    es: 'Una ejecución por caja (recorte ROI)',
+  },
+  'Results to a CPU op': {
+    ko: '결과를 CPU 연산으로', ja: '結果を CPU 演算へ',
+    'zh-CN': '将结果传给 CPU 运算', 'zh-TW': '將結果傳給 CPU 運算',
+    es: 'Resultados a una operación de CPU',
+  },
+  'Connection': {
+    ko: '연결', ja: '接続',
+    'zh-CN': '连接', 'zh-TW': '連接',
+    es: 'Conexión',
+  },
+  'Crops': {
+    ko: 'Crop', ja: 'クロップ',
+    'zh-CN': '裁剪', 'zh-TW': '裁切',
+    es: 'Recortes',
+  },
+  'Comma separated, e.g. person, car. Empty: every box.': {
+    ko: '쉼표로 구분 (예: person, car). 비우면 모든 박스.', ja: 'カンマ区切り (例: person, car)。空欄ならすべてのボックス。',
+    'zh-CN': '用逗号分隔，例如 person, car。留空表示所有框。', 'zh-TW': '以逗號分隔，例如 person, car。留空表示所有框。',
+    es: 'Separadas por comas, p. ej. person, car. Vacío: todas las cajas.',
+  },
+  'Minimum score': {
+    ko: '최소 점수', ja: '最小スコア',
+    'zh-CN': '最低分数', 'zh-TW': '最低分數',
+    es: 'Puntuación mínima',
+  },
+  'Minimum area (px²)': {
+    ko: '최소 면적 (px²)', ja: '最小面積 (px²)',
+    'zh-CN': '最小面积（px²）', 'zh-TW': '最小面積（px²）',
+    es: 'Área mínima (px²)',
+  },
+  'Padding (share of the box per side)': {
+    ko: '여백 (변마다 박스 크기 대비 비율)', ja: '余白 (各辺のボックスに対する割合)',
+    'zh-CN': '外扩（每边占框尺寸的比例）', 'zh-TW': '外擴（每邊占框尺寸的比例）',
+    es: 'Margen (fracción de la caja por lado)',
+  },
+  'At most this many boxes': {
+    ko: '최대 박스 수', ja: '最大ボックス数',
+    'zh-CN': '最多框数', 'zh-TW': '最多框數',
+    es: 'Como máximo este número de cajas',
+  },
+  'Alignment': {
+    ko: '정렬', ja: '位置合わせ',
+    'zh-CN': '对齐', 'zh-TW': '對齊',
+    es: 'Alineación',
+  },
+  'Five face landmarks (face5)': {
+    ko: '얼굴 랜드마크 5개 (face5)', ja: '顔のランドマーク 5 点 (face5)',
+    'zh-CN': '五个面部关键点（face5）', 'zh-TW': '五個臉部關鍵點（face5）',
+    es: 'Cinco puntos faciales (face5)',
+  },
+  'Primary output': {
+    ko: '기본 출력', ja: '主出力',
+    'zh-CN': '主输出', 'zh-TW': '主要輸出',
+    es: 'Salida principal',
+  },
+  'Delete connection': {
+    ko: '연결 삭제', ja: '接続を削除',
+    'zh-CN': '删除连接', 'zh-TW': '刪除連接',
+    es: 'Eliminar conexión',
+  },
+  'Select a node or a connection to edit it.': {
+    ko: '편집할 노드나 연결을 선택하세요.', ja: '編集するノードまたは接続を選択してください。',
+    'zh-CN': '选择要编辑的节点或连接。', 'zh-TW': '選擇要編輯的節點或連接。',
+    es: 'Seleccione un nodo o una conexión para editarlo.',
+  },
+  'Start from an example in the palette, or add a source and a model.': {
+    ko: '팔레트의 예제로 시작하거나 소스와 모델을 추가하세요.', ja: 'パレットのサンプルから始めるか、ソースとモデルを追加してください。',
+    'zh-CN': '从组件面板中的示例开始，或添加一个源和一个模型。', 'zh-TW': '從元件面板中的範例開始，或新增一個來源和一個模型。',
+    es: 'Empiece con un ejemplo de la paleta o añada una fuente y un modelo.',
+  },
+  '{n} nodes selected': {
+    ko: '노드 {n}개 선택됨', ja: '{n} 個のノードを選択中',
+    'zh-CN': '已选择 {n} 个节点', 'zh-TW': '已選擇 {n} 個節點',
+    es: '{n} nodos seleccionados',
+  },
+  'Run once takes images and videos. Camera and RTSP sources come with Live.': {
+    ko: '한 번 실행은 이미지와 비디오만 받습니다. 카메라와 RTSP 소스는 Live에서 지원됩니다.', ja: '1 回実行は画像と動画のみです。カメラと RTSP のソースは Live で対応します。',
+    'zh-CN': '单次运行只接受图片和视频。摄像头和 RTSP 源将在 Live 中支持。', 'zh-TW': '單次執行只接受圖片和影片。攝影機和 RTSP 來源將在 Live 中支援。',
+    es: 'Ejecutar una vez admite imágenes y vídeos. Las fuentes de cámara y RTSP llegan con Live.',
+  },
+  'This input does not exist or is outside the dx_app, sample and outputs folders.': {
+    ko: '이 입력이 없거나 dx_app, sample, outputs 폴더 밖에 있습니다.', ja: 'この入力は存在しないか、dx_app・sample・outputs フォルダーの外にあります。',
+    'zh-CN': '此输入不存在，或不在 dx_app、sample、outputs 文件夹中。', 'zh-TW': '此輸入不存在，或不在 dx_app、sample、outputs 資料夾中。',
+    es: 'Esta entrada no existe o está fuera de las carpetas dx_app, sample y outputs.',
+  },
+  'A graph run is already running.': {
+    ko: '그래프 실행이 이미 진행 중입니다.', ja: 'グラフの実行がすでに進行中です。',
+    'zh-CN': '已有图正在运行。', 'zh-TW': '已有圖正在執行。',
+    es: 'Ya hay una ejecución de grafo en curso.',
+  },
+  'The run failed.': {
+    ko: '실행에 실패했습니다.', ja: '実行に失敗しました。',
+    'zh-CN': '运行失败。', 'zh-TW': '執行失敗。',
+    es: 'La ejecución falló.',
+  },
+  'Add a source to run the graph.': {
+    ko: '그래프를 실행하려면 소스를 추가하세요.', ja: 'グラフを実行するにはソースを追加してください。',
+    'zh-CN': '要运行图，请添加一个源。', 'zh-TW': '要執行圖，請新增一個來源。',
+    es: 'Añada una fuente para ejecutar el grafo.',
+  },
+  'As in the graph: {uri}': {
+    ko: '그래프 설정대로: {uri}', ja: 'グラフの設定どおり: {uri}',
+    'zh-CN': '按图中设置：{uri}', 'zh-TW': '依圖中設定：{uri}',
+    es: 'Como en el grafo: {uri}',
+  },
+  'Upload an image…': {
+    ko: '이미지 업로드…', ja: '画像をアップロード…',
+    'zh-CN': '上传图片…', 'zh-TW': '上傳圖片…',
+    es: 'Subir una imagen…',
+  },
+  'Input for {source}': {
+    ko: '{source}의 입력', ja: '{source} の入力',
+    'zh-CN': '{source} 的输入', 'zh-TW': '{source} 的輸入',
+    es: 'Entrada de {source}',
+  },
+  'Sync (one stage at a time)': {
+    ko: 'Sync (한 번에 한 단계)', ja: 'Sync (1 段ずつ)',
+    'zh-CN': 'Sync（一次一个阶段）', 'zh-TW': 'Sync（一次一個階段）',
+    es: 'Sync (una etapa a la vez)',
+  },
+  'Async (stages overlap)': {
+    ko: 'Async (단계가 겹쳐 실행)', ja: 'Async (段が重なって実行)',
+    'zh-CN': 'Async（阶段重叠执行）', 'zh-TW': 'Async（階段重疊執行）',
+    es: 'Async (las etapas se solapan)',
+  },
+  'all': {
+    ko: '전체', ja: 'すべて',
+    'zh-CN': '全部', 'zh-TW': '全部',
+    es: 'todos',
+  },
+  'Run once': {
+    ko: '한 번 실행', ja: '1 回実行',
+    'zh-CN': '运行一次', 'zh-TW': '執行一次',
+    es: 'Ejecutar una vez',
+  },
+  'Frames in flight': {
+    ko: '동시에 처리할 프레임', ja: '同時処理フレーム数',
+    'zh-CN': '同时处理的帧数', 'zh-TW': '同時處理的幀數',
+    es: 'Fotogramas en curso',
+  },
+  'Stop after frames': {
+    ko: '이 프레임 수 후 중지', ja: 'このフレーム数で停止',
+    'zh-CN': '处理到此帧数后停止', 'zh-TW': '處理到此幀數後停止',
+    es: 'Detener tras estos fotogramas',
+  },
+  '{frames} frames': {
+    ko: '{frames} 프레임', ja: '{frames} フレーム',
+    'zh-CN': '{frames} 帧', 'zh-TW': '{frames} 幀',
+    es: '{frames} fotogramas',
+  },
+  '{fps} FPS (average {avg})': {
+    ko: '{fps} FPS (평균 {avg})', ja: '{fps} FPS (平均 {avg})',
+    'zh-CN': '{fps} FPS（平均 {avg}）', 'zh-TW': '{fps} FPS（平均 {avg}）',
+    es: '{fps} FPS (media {avg})',
+  },
+  '{s} s': {
+    ko: '{s}초', ja: '{s} 秒',
+    'zh-CN': '{s} 秒', 'zh-TW': '{s} 秒',
+    es: '{s} s',
+  },
+  'Done: {frames} frames in {s} s': {
+    ko: '완료: {s}초 동안 {frames} 프레임', ja: '完了: {s} 秒で {frames} フレーム',
+    'zh-CN': '完成：{s} 秒处理 {frames} 帧', 'zh-TW': '完成：{s} 秒處理 {frames} 幀',
+    es: 'Terminado: {frames} fotogramas en {s} s',
+  },
+  'The run stopped with exit code {code}': {
+    ko: '실행이 종료 코드 {code}로 멈췄습니다', ja: '実行は終了コード {code} で停止しました',
+    'zh-CN': '运行以退出码 {code} 停止', 'zh-TW': '執行以結束代碼 {code} 停止',
+    es: 'La ejecución terminó con el código de salida {code}',
+  },
+  'Result of {name}': {
+    ko: '{name}의 결과', ja: '{name} の結果',
+    'zh-CN': '{name} 的结果', 'zh-TW': '{name} 的結果',
+    es: 'Resultado de {name}',
+  },
+  'Node': {
+    ko: '노드', ja: 'ノード',
+    'zh-CN': '节点', 'zh-TW': '節點',
+    es: 'Nodo',
+  },
+  'ms per frame': {
+    ko: '프레임당 ms', ja: '1 フレームあたり ms',
+    'zh-CN': '每帧 ms', 'zh-TW': '每幀 ms',
+    es: 'ms por fotograma',
+  },
+  'Graph canvas. Tab moves between nodes, [ and ] between their connections, arrow keys move the selection, Delete removes it, Ctrl+Z undoes.': {
+    ko: '그래프 캔버스. Tab으로 노드 사이를, [ 와 ]로 연결 사이를 이동하고, 화살표 키로 선택 항목을 옮기며, Delete로 지우고, Ctrl+Z로 되돌립니다.', ja: 'グラフキャンバス。Tab でノード間を、[ と ] で接続間を移動し、矢印キーで選択を動かし、Delete で削除、Ctrl+Z で元に戻します。',
+    'zh-CN': '图画布。Tab 在节点间移动，[ 和 ] 在连接间移动，方向键移动所选项，Delete 删除，Ctrl+Z 撤销。', 'zh-TW': '圖畫布。Tab 在節點間移動，[ 和 ] 在連接間移動，方向鍵移動所選項目，Delete 刪除，Ctrl+Z 復原。',
+    es: 'Lienzo del grafo. Tab cambia de nodo, [ y ] recorren sus conexiones, las flechas mueven la selección, Supr la elimina y Ctrl+Z deshace.',
+  },
+  'Edge {from} to {to}': {
+    ko: '{from}에서 {to}(으)로 가는 연결', ja: '{from} から {to} への接続',
+    'zh-CN': '从 {from} 到 {to} 的连接', 'zh-TW': '從 {from} 到 {to} 的連接',
+    es: 'Conexión de {from} a {to}',
+  },
+  'No connections': {
+    ko: '연결 없음', ja: '接続なし',
+    'zh-CN': '没有连接', 'zh-TW': '沒有連接',
+    es: 'Sin conexiones',
+  },
+  'Align left': {
+    ko: '왼쪽 맞춤', ja: '左揃え',
+    'zh-CN': '左对齐', 'zh-TW': '靠左對齊',
+    es: 'Alinear a la izquierda',
+  },
+  'Align center': {
+    ko: '가운데 맞춤', ja: '中央揃え',
+    'zh-CN': '水平居中', 'zh-TW': '水平置中',
+    es: 'Centrar horizontalmente',
+  },
+  'Align top': {
+    ko: '위쪽 맞춤', ja: '上揃え',
+    'zh-CN': '顶端对齐', 'zh-TW': '靠上對齊',
+    es: 'Alinear arriba',
+  },
+  'Align middle': {
+    ko: '세로 가운데 맞춤', ja: '上下中央揃え',
+    'zh-CN': '垂直居中', 'zh-TW': '垂直置中',
+    es: 'Centrar verticalmente',
+  },
+  'Distribute horizontally': {
+    ko: '가로 간격 균등', ja: '左右に均等配置',
+    'zh-CN': '水平均匀分布', 'zh-TW': '水平均勻分布',
+    es: 'Distribuir horizontalmente',
+  },
+  'Distribute vertically': {
+    ko: '세로 간격 균등', ja: '上下に均等配置',
+    'zh-CN': '垂直均匀分布', 'zh-TW': '垂直均勻分布',
+    es: 'Distribuir verticalmente',
+  },
+  'Graph canvas tools': {
+    ko: '그래프 캔버스 도구', ja: 'グラフキャンバスのツール',
+    'zh-CN': '图画布工具', 'zh-TW': '圖畫布工具',
+    es: 'Herramientas del lienzo',
+  },
+  'Auto layout': {
+    ko: '자동 배치', ja: '自動レイアウト',
+    'zh-CN': '自动布局', 'zh-TW': '自動配置',
+    es: 'Distribución automática',
+  },
+  'Copy': {
+    ko: '복사', ja: 'コピー',
+    'zh-CN': '复制', 'zh-TW': '複製',
+    es: 'Copiar',
+  },
+  'Paste': {
+    ko: '붙여넣기', ja: '貼り付け',
+    'zh-CN': '粘贴', 'zh-TW': '貼上',
+    es: 'Pegar',
+  },
+  'Duplicate': {
+    ko: '복제', ja: '複製',
+    'zh-CN': '创建副本', 'zh-TW': '建立副本',
+    es: 'Duplicar',
+  },
+  'Select all': {
+    ko: '모두 선택', ja: 'すべて選択',
+    'zh-CN': '全选', 'zh-TW': '全選',
+    es: 'Seleccionar todo',
+  },
+  'Drag items from the palette, or select one and press Enter': {
+    ko: '팔레트에서 항목을 끌어오거나, 하나를 선택하고 Enter를 누르세요', ja: 'パレットから項目をドラッグするか、選択して Enter を押してください',
+    'zh-CN': '从组件面板拖入项目，或选中一个后按 Enter', 'zh-TW': '從元件面板拖入項目，或選取一個後按 Enter',
+    es: 'Arrastre elementos desde la paleta o seleccione uno y pulse Intro',
+  },
+  'Selected {label}': {
+    ko: '{label} 선택됨', ja: '{label} を選択',
+    'zh-CN': '已选择 {label}', 'zh-TW': '已選擇 {label}',
+    es: 'Seleccionado: {label}',
+  },
+  'Connected {from} to {to}': {
+    ko: '{from}을(를) {to}에 연결함', ja: '{from} を {to} に接続しました',
+    'zh-CN': '已将 {from} 连接到 {to}', 'zh-TW': '已將 {from} 連接到 {to}',
+    es: 'Se conectó {from} con {to}',
+  },
+  'Cannot connect: {reason}': {
+    ko: '연결할 수 없음: {reason}', ja: '接続できません: {reason}',
+    'zh-CN': '无法连接：{reason}', 'zh-TW': '無法連接：{reason}',
+    es: 'No se puede conectar: {reason}',
+  },
+  'This would create a cycle': {
+    ko: '순환이 생깁니다', ja: '循環ができてしまいます',
+    'zh-CN': '这会形成环', 'zh-TW': '這會形成循環',
+    es: 'Esto crearía un ciclo',
+  },
+  'These nodes are already connected': {
+    ko: '이미 연결된 노드입니다', ja: 'これらのノードはすでに接続されています',
+    'zh-CN': '这些节点已经连接', 'zh-TW': '這些節點已經連接',
+    es: 'Estos nodos ya están conectados',
+  },
+  'Deleted {n}': {
+    ko: '{n}개 삭제함', ja: '{n} 件削除しました',
+    'zh-CN': '已删除 {n} 项', 'zh-TW': '已刪除 {n} 項',
+    es: 'Se eliminaron {n}',
+  },
+  'A source has no input': {
+    ko: '소스에는 입력이 없습니다', ja: 'ソースには入力がありません',
+    'zh-CN': '源没有输入', 'zh-TW': '來源沒有輸入',
+    es: 'Una fuente no tiene entrada',
+  },
+  'A CPU op ends a branch': {
+    ko: 'CPU 연산은 분기의 끝입니다', ja: 'CPU 演算は分岐の終端です',
+    'zh-CN': 'CPU 运算是分支的终点', 'zh-TW': 'CPU 運算是分支的終點',
+    es: 'Una operación de CPU cierra una rama',
+  },
+  'A CPU op takes results from models': {
+    ko: 'CPU 연산은 모델의 결과를 받습니다', ja: 'CPU 演算はモデルの結果を受け取ります',
+    'zh-CN': 'CPU 运算接收模型的结果', 'zh-TW': 'CPU 運算接收模型的結果',
+    es: 'Una operación de CPU recibe resultados de modelos',
+  },
+  'This model does not take a full frame': {
+    ko: '이 모델은 전체 프레임을 받지 않습니다', ja: 'このモデルはフレーム全体を受け取りません',
+    'zh-CN': '该模型不接受整帧', 'zh-TW': '該模型不接受整幀',
+    es: 'Este modelo no recibe un fotograma completo',
+  },
+  'This model needs a full frame; boxes can only feed a model that takes crops': {
+    ko: '이 모델은 전체 프레임이 필요합니다. 박스는 crop을 받는 모델에만 연결할 수 있습니다', ja: 'このモデルはフレーム全体が必要です。ボックスはクロップを受け取るモデルにしか渡せません',
+    'zh-CN': '该模型需要整帧；框只能传给接受裁剪的模型', 'zh-TW': '該模型需要整幀；框只能傳給接受裁切的模型',
+    es: 'Este modelo necesita un fotograma completo; las cajas solo pueden ir a un modelo que reciba recortes',
+  },
+  'This model takes crops, and an image is a full frame': {
+    ko: '이 모델은 crop을 받는데, 이미지는 전체 프레임입니다', ja: 'このモデルはクロップを受け取りますが、画像はフレーム全体です',
+    'zh-CN': '该模型接受裁剪，而图片是整帧', 'zh-TW': '該模型接受裁切，而圖片是整幀',
+    es: 'Este modelo recibe recortes y una imagen es un fotograma completo',
+  },
+  'Only boxes (as crops) or an image can feed another model': {
+    ko: '다른 모델에는 박스 (crop으로) 또는 이미지만 넘길 수 있습니다', ja: '他のモデルに渡せるのはボックス (クロップとして) か画像だけです',
+    'zh-CN': '只有框（作为裁剪）或图片可以传给另一个模型', 'zh-TW': '只有框（作為裁切）或圖片可以傳給另一個模型',
+    es: 'Solo las cajas (como recortes) o una imagen pueden alimentar otro modelo',
+  },
+  'ROI': {
+    ko: 'ROI', ja: 'ROI',
+    'zh-CN': 'ROI', 'zh-TW': 'ROI',
+    es: 'ROI',
+  },
+  'result': {
+    ko: '결과', ja: '結果',
+    'zh-CN': '结果', 'zh-TW': '結果',
+    es: 'resultado',
+  },
+  'port': {
+    ko: '포트', ja: 'ポート',
+    'zh-CN': '端口', 'zh-TW': '連接埠',
+    es: 'puerto',
+  },
+  'error': {
+    ko: '오류', ja: 'エラー',
+    'zh-CN': '错误', 'zh-TW': '錯誤',
+    es: 'error',
+  },
+  'not installed': {
+    ko: '설치 안 됨', ja: '未インストール',
+    'zh-CN': '未安装', 'zh-TW': '未安裝',
+    es: 'no instalado',
+  },
+  'shared': {
+    ko: '공유', ja: '共有',
+    'zh-CN': '共用', 'zh-TW': '共用',
+    es: 'compartido',
+  },
+  'Unknown model': {
+    ko: '알 수 없는 모델', ja: '不明なモデル',
+    'zh-CN': '未知模型', 'zh-TW': '未知模型',
+    es: 'Modelo desconocido',
+  },
+  '{n} model files cannot be used': {
+    ko: '사용할 수 없는 모델 파일 {n}개', ja: '使用できないモデルファイル: {n} 件',
+    'zh-CN': '有 {n} 个模型文件无法使用', 'zh-TW': '有 {n} 個模型檔案無法使用',
+    es: '{n} archivos de modelo no se pueden usar',
+  },
 };
 
 /* ─── CSS Selectors for DOM translation ─── */
