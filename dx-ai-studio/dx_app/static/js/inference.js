@@ -1078,6 +1078,7 @@ function _makeLiveSlotEl(slotIdx,modelName){
     '<span class="stat-pill">Avg\u00a0<b id="c-ls-avg-'+slotIdx+'">0</b></span>'+
     '<span class="stat-pill">Elapsed\u00a0<b id="c-ls-ela-'+slotIdx+'">0s</b></span>'+
     '</div>'+
+    '<div id="c-ls-lat-'+slotIdx+'" class="live-slot-lat" style="display:none"></div>'+
     '<div id="c-ls-pred-'+slotIdx+'" class="live-slot-pred" style="display:none"></div>'+
     '<div id="c-ls-chart-'+slotIdx+'" class="live-slot-chart sparkline-wrap" style="display:none"></div>';
   return el;
@@ -1136,8 +1137,12 @@ function _updateSlotStats(lslot,poll){
   var wfps='—';
   // Tasks without per-frame lines do not know frames (null): '—'. 'Loop' counting (frame_basis 'loop') jumps in steps
   // each time the video wraps, so show the average instead of the interval FPS (contract: tests/dx_app/test_live_display.py)
+  // dx_app's runner measures its own rate over the last second ([PROGRESS] fps=); older runners do not, so the
+  // browser divides the frames between polls.
   if(poll.frames==null){
     wfps='—';
+  }else if(poll.runner_fps!=null){
+    wfps=Number(poll.runner_fps).toFixed(1);
   }else if(poll.frame_basis==='loop'){
     wfps=poll.fps_est!=null?String(poll.fps_est):'—';
   }else if(lslot.lastPollTime>0){
@@ -1163,9 +1168,19 @@ function _updateSlotStats(lslot,poll){
   function _u(id,val){var el=document.getElementById(id);if(el)el.textContent=val;}
   _u('c-ls-frames-'+i,poll.frames==null?'—':poll.frames);
   _u('c-ls-fps-'+i,wfps);
-  _u('c-ls-avg-'+i,poll.fps_est==null?'—':poll.fps_est);
+  _u('c-ls-avg-'+i,poll.fps_est==null?'—':Number(poll.fps_est).toFixed(1));
   _u('c-ls-ela-'+i,poll.elapsed+'s');
   _u('c-ls-fps-badge-'+i,wfps+' FPS');
+  // Stage averages the runner measured over the same second (async Infer: submit to callback)
+  var lat=document.getElementById('c-ls-lat-'+i);
+  if(lat&&poll.stage_ms){
+    var parts=[];
+    [['read','Read'],['pre','Pre'],['infer','Infer'],['post','Post']].forEach(function(k){
+      var v=poll.stage_ms[k[0]];
+      if(v!=null)parts.push(k[1]+'\u00a0'+Number(v).toFixed(1));
+    });
+    if(parts.length){lat.style.display='';lat.textContent=T('Latency(ms)')+'  '+parts.join(' · ');}
+  }
   if(poll.last_pred&&poll.last_pred.length){
     var pred=document.getElementById('c-ls-pred-'+i);
     if(pred){pred.style.display='';pred.textContent=poll.last_pred.join('\n');}
