@@ -139,3 +139,9 @@ def test_a_model_file_replaced_in_place_refreshes_the_listing(tmp_path, monkeypa
     os.utime(mdir, ns=(folder.st_atime_ns, folder.st_mtime_ns))
     graph_catalog.list_models()
     assert len(graph_fakes.calls(tmp_path)) == n + 1
+
+
+def test_an_async_only_build_lists_models(tmp_path, monkeypatch):
+    graph_fakes.install(tmp_path, monkeypatch, graph_fakes.TEXT_CLI, variants=("async",))
+    assert len(graph_catalog.list_models()["models"]) == 19
+    assert graph_catalog.catalog()["available"] is True

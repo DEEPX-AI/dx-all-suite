@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import subprocess
 import threading
 import uuid
@@ -46,6 +47,15 @@ def binary(variant: str = "sync") -> Path | None:
     return None
 
 
+def available():
+    """(variant, path) of the graph binary Studio uses for --check, --list-models and probes: sync, else async."""
+    for v in ("sync", "async"):
+        b = binary(v)
+        if b is not None:
+            return v, b
+    return None
+
+
 def models_dir() -> Path:
     return Path(config.MODELS_DIR)
 
@@ -56,7 +66,11 @@ def env() -> dict:
                          "LD_LIBRARY_PATH": ld_library_path(), "DXAPP_PROGRESS": "1"})
 
 
-def run(args: list[str], variant: str = "sync", timeout: float = 30.0) -> subprocess.CompletedProcess:
+def run(args: list[str], variant: str | None = None, timeout: float = 30.0) -> subprocess.CompletedProcess:
+    """Run a graph binary: `variant`, or with None whichever build exists (available())."""
+    if variant is None:
+        found = available()
+        variant = found[0] if found else "sync"
     b = binary(variant)
     if b is None:
         raise GraphCliMissing(f"{NAMES[variant]} not found: build dx_app (./build.sh)")
@@ -90,7 +104,13 @@ def _probe_engine_key() -> bool:
     finally:
         path.unlink(missing_ok=True)
     out = r.stdout + r.stderr
-    return 'unknown key "engine"' not in out and "GRAPH_SCHEMA" not in out
+    if 'unknown key "engine"' in out:
+        return False
+    if r.returncode == 0 and ("OK: graph" in out or re.search(r'"ok"\s*:\s*true', out)):
+        return True
+    # The graph was read with its "engine" key and failed later (a model that is missing or cannot load).
+    codes = set(re.findall(r"ERROR \[([A-Z_]+)\]", out)) | set(re.findall(r'"code"\s*:\s*"([A-Z_]+)"', out))
+    return bool(codes) and "GRAPH_SCHEMA" not in codes
 
 
 def capabilities() -> dict:
@@ -98,9 +118,10 @@ def capabilities() -> dict:
     "report_timing": --report-timing adds per-node ms to --report}.
 
     Probed once per binary build (keyed by the binary's path and mtime)."""
-    b = binary("sync")
-    if b is None:
+    found = available()
+    if found is None:
         return {"json": False, "engine_key": False, "report_timing": False}
+    b = found[1]
     key = (str(b), mtime(b))
     with _caps_lock:
         if key in _caps_cache:

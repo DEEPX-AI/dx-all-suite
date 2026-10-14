@@ -141,9 +141,10 @@ def _models_signature(mdir: Path) -> tuple:
 
 
 def list_models(refresh: bool = False) -> dict:
-    b = graph_cli.binary("sync")
-    if b is None:
+    found = graph_cli.available()
+    if found is None:
         return {"models": [], "aliases": [], "error": "graph_binary_missing"}
+    b = found[1]
     mdir = graph_cli.models_dir()
     key = (str(b), graph_cli.mtime(b), str(mdir), graph_cli.mtime(mdir), _models_signature(mdir))
     with _lock:
@@ -201,7 +202,7 @@ def examples() -> list[dict]:
 
 
 def catalog(refresh: bool = False) -> dict:
-    available = graph_cli.binary("sync") is not None
+    available = graph_cli.available() is not None
     lm = list_models(refresh)
     downloads = _download_index() if any(m["state"] in ("missing", "invalid") for m in lm["models"]) else {}
     models = []

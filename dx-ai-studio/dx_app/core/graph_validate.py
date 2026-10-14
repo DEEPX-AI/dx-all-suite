@@ -177,7 +177,7 @@ def validate(graph: dict) -> dict:
         return _studio_error("STUDIO_INVALID", "the graph must be an object with a nodes list")
     if len(graph["nodes"]) > MAX_NODES:
         return _studio_error("STUDIO_INVALID", f"a graph may have at most {MAX_NODES} nodes")
-    if graph_cli.binary("sync") is None:
+    if graph_cli.available() is None:
         res = _studio_error("GRAPH_BINARY_MISSING", "multi_model_graph_sync is not built",
                             "build dx_app (./build.sh)")
         res["available"] = False

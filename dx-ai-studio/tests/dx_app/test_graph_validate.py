@@ -149,3 +149,9 @@ def test_the_text_table_names_an_invalid_file_too():
     r = graph_validate.parse_check_text(graph_fakes.fixture("check_ok_missing.txt"), "", CHECK, _graph())
     assert r["unusable"] == {"od": "invalid"} and r["missing"] == ["p"]
     assert {m["node"]: m["state"] for m in r["models"]} == {"cam": None, "od": "invalid", "p": "missing"}
+
+
+def test_an_async_only_build_validates(tmp_path, monkeypatch):
+    graph_fakes.install(tmp_path, monkeypatch, graph_fakes.TEXT_CLI, variants=("async",))
+    r = graph_validate.validate(_graph("cam", "od"))
+    assert r["available"] is True and r["ok"] is True
