@@ -13,6 +13,7 @@ NPU work and the catalog lists local model files.
     POST /api/graph/live/start {graph, variant, inputs, max_inflight}
     GET  /api/graph/live/poll?id=[&events_after=N]   POST /api/graph/live/stop {id}
     POST /api/graph/gallery/build {folder, model, name?}   a gallery .bin for the gallery op (graph_gallery.py)
+    GET  /api/graph/gallery/poll?id=   POST /api/graph/gallery/stop {id}
     GET  /api/graph/projects   GET /api/graph/project?id=[&version=]   GET /api/graph/project/versions?id=
     POST /api/graph/project/save {id?, project}   POST /api/graph/project/delete {id}
 
@@ -70,6 +71,8 @@ def handle(method: str, path: str, query, data, headers, server_host) -> tuple:
             return graph_live.poll(q("id", "") or "", q("events_after", "0")), 200
         if path == "/api/graph/frame":
             return graph_frame.first_frame(q("uri", "") or "")
+        if path == "/api/graph/gallery/poll":
+            return graph_gallery.poll(q("id", "") or "")
         if path == "/api/graph/run/result":
             return graph_run.result(q("id", "") or ""), 200
         if path == "/api/graph/projects":
@@ -99,7 +102,9 @@ def handle(method: str, path: str, query, data, headers, server_host) -> tuple:
     if path == "/api/graph/live/stop":
         return graph_live.stop(str(data.get("id") or "")), 200
     if path == "/api/graph/gallery/build":
-        return graph_gallery.build(data.get("folder"), data.get("model"), data.get("name"))
+        return graph_gallery.start(data.get("folder"), data.get("model"), data.get("name"))
+    if path == "/api/graph/gallery/stop":
+        return graph_gallery.stop(str(data.get("id") or "")), 200
     if path == "/api/graph/project/save":
         return _project_call(graph_projects.save, data.get("project"), data.get("id") or None)
     if path == "/api/graph/project/delete":

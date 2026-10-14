@@ -7,10 +7,11 @@ from dx_app.core import config, graph_catalog, graph_memory, graph_routes, graph
 from dx_app.core.developer import lab_session
 
 GET_ROUTES = ("/api/graph/catalog", "/api/graph/run/poll", "/api/graph/run/result", "/api/graph/projects",
-              "/api/graph/project", "/api/graph/project/versions", "/api/graph/frame", "/api/graph/live/poll")
+              "/api/graph/project", "/api/graph/project/versions", "/api/graph/frame", "/api/graph/live/poll",
+              "/api/graph/gallery/poll")
 POST_ROUTES = ("/api/graph/validate", "/api/graph/memory", "/api/graph/run", "/api/graph/run/stop",
                "/api/graph/project/save", "/api/graph/project/delete", "/api/graph/live/start",
-               "/api/graph/live/stop", "/api/graph/gallery/build")
+               "/api/graph/live/stop", "/api/graph/gallery/build", "/api/graph/gallery/stop")
 LOCAL = {"Origin": "http://localhost:8080"}
 GRAPH = {"version": 1, "name": "g", "nodes": [{"id": "cam", "type": "source", "uri": "x.jpg"}], "edges": []}
 
@@ -238,14 +239,22 @@ def test_the_live_frame_stream_needs_the_running_job_and_a_local_origin(monkeypa
     assert (bad["code"], bad["data"]["error"]) == (403, "Cross-origin access denied") and bad["body"] == b""
 
 
-def test_gallery_build_reaches_graph_gallery(monkeypatch):
+def test_gallery_build_poll_and_stop_reach_graph_gallery(monkeypatch):
     from dx_app.core import graph_gallery
     seen = {}
-    monkeypatch.setattr(graph_gallery, "build",
-                        lambda folder, model, name=None: seen.update(args=(folder, model, name)) or ({"path": "p"}, 200))
+    monkeypatch.setattr(graph_gallery, "start", lambda folder, model, name=None: seen.update(args=(folder, model, name))
+                        or ({"job_id": "G1", "status": "started", "images": 3}, 200))
+    monkeypatch.setattr(graph_gallery, "poll", lambda jid: seen.update(poll=jid)
+                        or ({"error": "unknown_job", "error_key": "unknown_job"}, 404))
+    monkeypatch.setattr(graph_gallery, "stop", lambda jid: seen.update(stop=jid) or {"status": "stopping"})
     h = {"X-Lab-Token": _token(), **LOCAL}
     r = _route("POST", "/api/graph/gallery/build", {"folder": "sample/gallery/staff", "model": "osnet",
                                                     "name": "staff"}, h)
-    assert (r["code"], r["data"]) == (200, {"path": "p"}) and seen["args"] == ("sample/gallery/staff", "osnet", "staff")
+    assert (r["code"], r["data"]["job_id"]) == (200, "G1")
+    assert seen["args"] == ("sample/gallery/staff", "osnet", "staff")
     _route("POST", "/api/graph/gallery/build", {"folder": "f", "model": "m"}, h)
     assert seen["args"] == ("f", "m", None)
+    r = _route("GET", "/api/graph/gallery/poll", headers=h, query={"id": "G1"})
+    assert (r["code"], r["data"]["error_key"], seen["poll"]) == (404, "unknown_job", "G1")
+    r = _route("POST", "/api/graph/gallery/stop", {"id": "G1"}, h)
+    assert (r["code"], r["data"], seen["stop"]) == (200, {"status": "stopping"}, "G1")
