@@ -270,3 +270,40 @@ def test_shutdown_gives_the_npu_back(studio):
     assert _start("graph_live", studio) == (True, None)
     graph_live.stop_all()
     assert npu_jobs.busy() is None
+
+
+def test_attach_after_the_reservation_lapsed(monkeypatch):
+    """A job slower than RESERVE_TTL to start its runner: attach says whether it still holds the NPU."""
+    monkeypatch.setattr(npu_jobs, "RESERVE_TTL", 0.0)
+    assert npu_jobs.acquire("graph_run", "a") is None
+    assert npu_jobs.attach("a", _Proc()) is True, "lapsed but nobody took the NPU: the hold is kept"
+    monkeypatch.setattr(npu_jobs, "RESERVE_TTL", 120.0)
+    assert npu_jobs.busy() == {"kind": "graph_run", "job_id": "a"}
+    npu_jobs._reset()
+
+    monkeypatch.setattr(npu_jobs, "RESERVE_TTL", 0.0)
+    assert npu_jobs.acquire("graph_run", "a") is None
+    assert npu_jobs.busy() is None                       # pruned
+    monkeypatch.setattr(npu_jobs, "RESERVE_TTL", 120.0)
+    assert npu_jobs.attach("a", _Proc()) is False, "a pruned hold is not given back without its kind"
+    assert npu_jobs.attach("a", _Proc(), kind="graph_run") is True, "the NPU was free: taken again atomically"
+    assert npu_jobs.busy() == {"kind": "graph_run", "job_id": "a"}
+    npu_jobs._reset()
+
+    monkeypatch.setattr(npu_jobs, "RESERVE_TTL", 0.0)
+    assert npu_jobs.acquire("graph_run", "a") is None
+    assert npu_jobs.acquire("graph_live", "b") is None, "another job took the NPU meanwhile"
+    monkeypatch.setattr(npu_jobs, "RESERVE_TTL", 120.0)
+    assert npu_jobs.attach("a", _Proc(), kind="graph_run") is False
+    assert npu_jobs.busy() == {"kind": "graph_live", "job_id": "b"}
+
+
+def test_a_runner_whose_hold_was_lost_is_stopped(studio, monkeypatch):
+    """graph_run and graph_live kill the runner they started when attach says the NPU went to another job."""
+    monkeypatch.setattr(npu_jobs, "attach", lambda *a, **kw: False)
+    body, code = graph_run.start(GRAPH)
+    assert (code, body["error_key"]) == (409, "npu_hold_lost") and graph_run._jobs == {}
+    body, code = graph_live.start(GRAPH)
+    assert (code, body["error_key"]) == (409, "npu_hold_lost") and graph_live._job is None
+    r = _page_live(studio)
+    assert r.get("error_key") == "npu_hold_lost" and live._live_procs == {}

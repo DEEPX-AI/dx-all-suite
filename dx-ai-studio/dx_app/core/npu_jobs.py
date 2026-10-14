@@ -9,7 +9,8 @@ A job calls `acquire(kind, job_id)` before it prepares anything: it gets the NPU
 it. Once its process is started it calls `attach(job_id, proc)`; from then on the hold ends by itself when the
 process exits (finish, stop, crash, timeout or shutdown), so a job that is never released explicitly cannot keep
 the NPU. A hold without a process (still preparing) lapses after RESERVE_TTL seconds as a safety net; the callers
-release it on every error path. `release(job_id)` ends a hold at once; `release_if_idle(job_id)` only when no live
+release it on every error path. A job whose reservation lapsed and went to another job learns it from attach (False)
+and stops the process it started. `release(job_id)` ends a hold at once; `release_if_idle(job_id)` only when no live
 process is attached (a slot restarted with bad arguments keeps the hold of the runner still on it).
 Contract: tests/dx_app/test_npu_jobs.py
 """
@@ -21,6 +22,9 @@ import time
 KINDS = ("graph_run", "graph_live", "live", "gallery")
 SHARED = frozenset({"live"})        # kinds whose holders may run side by side (the Run page's Live slots)
 RESERVE_TTL = 120.0
+# Said by a job whose reservation lapsed while it prepared and went to another job (attach returned False)
+LOST = {"error": "another job took the NPU while this one was being prepared; start it again",
+        "error_key": "npu_hold_lost"}
 
 _lock = threading.Lock()
 _holders: dict = {}                 # job_id -> {"kind", "since", "proc"}
@@ -59,12 +63,21 @@ def acquire(kind: str, job_id: str):
         return None
 
 
-def attach(job_id: str, proc) -> None:
-    """The process now running for `job_id`: the hold ends when it exits."""
+def attach(job_id: str, proc, kind=None) -> bool:
+    """The process now running for `job_id`: the hold ends when it exits. False when `job_id` no longer holds the NPU
+    (its reservation lapsed and was dropped, or it was released): then the caller stops `proc`. With `kind`, a dropped
+    hold is taken again when the NPU is still free for it, atomically (as acquire would)."""
     with _lock:
         h = _holders.get(job_id)
-        if h is not None:
-            h["proc"] = proc
+        if h is None and kind is not None:
+            now = time.time()
+            _prune(now)
+            if not any(jid != job_id and not (o["kind"] == kind and kind in SHARED) for jid, o in _holders.items()):
+                h = _holders[job_id] = {"kind": kind, "since": now, "proc": None}
+        if h is None:
+            return False
+        h["proc"] = proc
+        return True
 
 
 def release(job_id: str) -> None:

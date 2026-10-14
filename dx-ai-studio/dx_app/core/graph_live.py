@@ -177,7 +177,13 @@ def start(graph: dict, *, variant="sync", inputs=None, max_inflight=None) -> tup
         shutil.rmtree(d, ignore_errors=True)
         camera.stop_xvfb(SLOT)
         return {"error": str(e), "error_key": "graph_live_failed"}, 500
-    npu_jobs.attach(job_id, proc)
+    if not npu_jobs.attach(job_id, proc, kind="graph_live"):
+        npu_jobs.release(job_id)
+        proc.kill()
+        proc.communicate()
+        shutil.rmtree(d, ignore_errors=True)
+        camera.stop_xvfb(SLOT)
+        return dict(npu_jobs.LOST), 409
     now = time.time()
     job = {"id": job_id, "dir": d, "proc": proc, "graph": graph, "start": now, "touched": now,
            "progress": {"node_ms": {}}, "events": graph_events.EventLog(), "tail": deque(maxlen=_TAIL_LINES),

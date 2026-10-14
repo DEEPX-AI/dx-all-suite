@@ -200,7 +200,10 @@ def _start_live(model_name, category, model_file, lang, variant, input_type, cam
     with open(log_file, "w") as fout:
         proc = subprocess.Popen(cmd, stdout=fout, stderr=subprocess.STDOUT,
                                 cwd=str(DX_APP_ROOT), env=env, text=True, close_fds=True)
-    npu_jobs.attach(_slot_hold(slot_idx), proc)
+    if not npu_jobs.attach(_slot_hold(slot_idx), proc, kind="live"):
+        proc.kill()
+        proc.wait()
+        return _err(npu_jobs.LOST["error_key"], npu_jobs.LOST["error"])
     with _live_procs_lock:
         _live_procs[slot_idx] = proc
     # keep config._running_proc for slot 0 backward compat

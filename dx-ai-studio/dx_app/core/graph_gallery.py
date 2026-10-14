@@ -153,7 +153,10 @@ def build(folder, model, name=None) -> tuple:
                                     errors="replace", cwd=str(config.DX_APP_ROOT), env=_env(), close_fds=True)
         except (OSError, subprocess.SubprocessError) as e:
             return _err("gallery_build_failed", str(e), 500)
-        npu_jobs.attach(job_id, proc)
+        if not npu_jobs.attach(job_id, proc, kind="gallery"):
+            proc.kill()
+            proc.communicate()
+            return dict(npu_jobs.LOST), 409
         with _lock:
             _procs[job_id] = proc
         try:

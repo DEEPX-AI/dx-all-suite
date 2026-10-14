@@ -308,7 +308,10 @@ def start(graph: dict, *, variant="sync", inputs=None, uploads=None, max_infligh
     except BaseException:
         give_up({}, 500)
         raise
-    npu_jobs.attach(job_id, proc)
+    if not npu_jobs.attach(job_id, proc, kind="graph_run"):
+        proc.kill()
+        proc.wait()
+        return give_up(dict(npu_jobs.LOST), 409)
     with _lock:
         job["proc"], job["video"] = proc, video
         job["start"] = job["touched"] = time.time()
