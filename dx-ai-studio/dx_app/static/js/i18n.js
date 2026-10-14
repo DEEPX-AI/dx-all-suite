@@ -4027,6 +4027,11 @@ window._DX_I18N_DICT = {
     'zh-CN': '共 {total} 个事件，显示 {shown} 个', 'zh-TW': '共 {total} 個事件，顯示 {shown} 個',
     es: '{shown} de {total} eventos',
   },
+  'Only the end of the log was read: the total and the counts are partial.': {
+    ko: '로그의 마지막 부분만 읽었으므로 합계와 횟수는 일부입니다.', ja: 'ログの最後の部分だけを読み込みました。合計と件数は一部です。',
+    'zh-CN': '只读取了日志的最后部分：总数和计数不完整。', 'zh-TW': '只讀取了日誌的最後部分：總數和計數不完整。',
+    es: 'Solo se leyó el final del registro: el total y los recuentos son parciales.',
+  },
   'the list shows the latest; the file has all of them': {
     ko: '목록에는 최근 것만 보이고, 파일에는 전부 있습니다', ja: '一覧には最新のものだけ表示され、ファイルにはすべて含まれます',
     'zh-CN': '列表只显示最新的，文件中包含全部', 'zh-TW': '清單只顯示最新的，檔案中包含全部',

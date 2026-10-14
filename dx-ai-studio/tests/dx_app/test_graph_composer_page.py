@@ -14,7 +14,7 @@ JS = ROOT / "dx_app" / "static" / "js"
 PAGE_SCRIPTS = ("graph-composer.js", "graph-palette.js", "graph-inspector.js", "graph-run.js",
                 "graph-zone-editor.js")
 # Pure or component scripts: no language hook of their own (their owner re-renders them).
-COMPONENTS = ("graph-doc.js", "graph-zone.js")
+COMPONENTS = ("graph-doc.js", "graph-zone.js", "graph-events.js")
 
 
 def _page_html() -> str:
@@ -59,7 +59,7 @@ def test_scripts_and_styles_load_in_order():
     html = INDEX.read_text(encoding="utf-8")
     order = ["/static/js/lang-refresh.js", "/static/shared/dx-graph-core.js", "/static/shared/dx-graph-canvas.js",
              "/static/js/graph-doc.js", "/static/js/graph-zone.js", "/static/js/graph-composer.js",
-             "/static/js/graph-palette.js", "/static/js/graph-inspector.js",
+             "/static/js/graph-palette.js", "/static/js/graph-inspector.js", "/static/js/graph-events.js",
              "/static/js/graph-run.js", "/static/js/graph-zone-editor.js",
              "/static/js/app.js"]
     positions = [html.index(s) for s in order]

@@ -135,6 +135,19 @@ def webm(tmp_path_factory):
     return out.read_bytes() if r.returncode == 0 else None
 
 
+def _serve_ranges(route, body, content_type):
+    """Answer a media request with byte ranges, as a file server does: without them Chrome cannot seek the video."""
+    first, last = 0, len(body) - 1
+    spec = (route.request.headers.get("range") or "").partition("=")[2]
+    if not spec:
+        route.fulfill(status=200, content_type=content_type, body=body, headers={"Accept-Ranges": "bytes"})
+        return
+    a, _, b = spec.partition("-")
+    first, last = int(a or 0), min(int(b) if b else last, last)
+    route.fulfill(status=206, content_type=content_type, body=body[first:last + 1],
+                  headers={"Accept-Ranges": "bytes", "Content-Range": f"bytes {first}-{last}/{len(body)}"})
+
+
 def _page(browser, server, fake, webm=None):
     ctx = browser.new_context(viewport={"width": 1440, "height": 1000})
     ctx.add_init_script("try { localStorage.setItem('dx-tutorial-mode', 'off'); localStorage.setItem('dx-lang', 'en');"
@@ -144,7 +157,7 @@ def _page(browser, server, fake, webm=None):
     ctx.route("**/api/graph/live/frame*", lambda r: r.fulfill(status=200, content_type="image/png",
                                                               body=base64.b64decode(_png().split(",", 1)[1])))
     if webm:
-        ctx.route("**/fake/result.webm", lambda r: r.fulfill(status=200, content_type="video/webm", body=webm))
+        ctx.route("**/fake/result.webm", lambda r: _serve_ranges(r, webm, "video/webm"))
     page = ctx.new_page()
     errors = []
     page.on("pageerror", lambda e: errors.append(str(e)))
@@ -354,6 +367,33 @@ def test_a_line_is_flipped_and_typed_in_numbers(ui):
     assert page.evaluate("GraphZoneEditor.isOpen()") is False
 
 
+def test_run_events_are_listed_filtered_badged_and_downloadable(browser, server, webm):
+    fake = FakeApi(video_url="/fake/result.webm" if webm else None)
+    ctx, page, errors = _page(browser, server, fake, webm)
+    try:
+        _open(page, "zone_intrusion")
+        page.click("#gc-run")
+        page.wait_for_selector("#gc-run-events .gc-ev-table tbody tr")
+        assert page.locator("#gc-run-events tbody tr").count() == 3
+        assert page.get_attribute("#gc-run-events .gc-ev-download", "href") == "/outputs/graph/runs/job1/events.jsonl"
+        page.select_option("#gc-run-ev-node", "zone")
+        assert page.locator("#gc-run-events tbody tr").count() == 2
+        page.fill("#gc-run-ev-track", "3")
+        assert page.locator("#gc-run-events tbody tr").count() == 1
+        assert "1 of 3 events" in page.inner_text("#gc-run-events .gc-ev-summary")
+        pins = page.evaluate("GraphDoc.pins(null, null, GraphComposer.state().run, k => k).badges")
+        assert pins["zone"] == [{"kind": "events", "text": "Events: 2"}]
+        if webm:
+            page.wait_for_function("() => document.querySelector('.gc-run-media').readyState >= 1", timeout=10000)
+            page.click("#gc-run-events tbody tr button")
+            # frame 1 of the stream at the video's 10 fps, in the middle of the frame
+            page.wait_for_function("() => Math.abs(document.querySelector('.gc-run-media').currentTime - 0.15) < 0.02")
+        assert page.evaluate("GraphComposer.canvas().selection().nodes") == ["zone"]
+        assert not errors, errors
+    finally:
+        ctx.close()
+
+
 class FakeGallery:
     """/api/graph/gallery/{build,poll,stop}: a build that runs for `polls` polls, then ends as `result`; `hold` keeps it
     running until it is stopped (then it ends as gallery_stopped, as graph_gallery.stop does)."""
@@ -446,3 +486,43 @@ def test_a_frame_too_large_to_show_says_why_and_the_shapes_stay_editable(ui):
     page.wait_for_selector("#gc-zone-body :text('the file is 900 MB; a video up to 512 MB is shown')", timeout=10000)
     assert "shapes are drawn on an empty 16:9 frame" in page.inner_text("#gc-zone-body")
     assert page.evaluate("GraphZoneEditor.state().shapes[0].points.length") == 4
+
+
+def test_the_event_list_names_several_tracks_seeks_each_streams_video_and_says_when_partial(ui):
+    page, _ = ui
+    r = page.evaluate("""() => {
+      const host = document.createElement('div'); document.body.appendChild(host);
+      const vid = () => ({ currentTime: -1, pause() {}, focus() {} });
+      const a = vid(), b = vid(), picked = [];
+      const ev = GraphEvents.create(host, GraphComposer.ctx(), { idPrefix: 'gc-t-ev', onSelectNode: id => picked.push(id) });
+      ev.set([
+        {seq: 1, frame: 4, time: 0.16, stream: 'cam_a', node: 'alarm', event: 'intrusion', track_id: -1, data: {track_ids: '3,7'}},
+        {seq: 2, frame: 4, time: 0.16, stream: 'cam_b', node: 'zone', event: 'enter', track_id: 7, data: {count: 1}},
+        {seq: 3, frame: 5, time: 0.2, stream: 'cam_c', node: 'zone', event: 'enter', track_id: -1, data: {}}],
+        {total: 9, partial: true, videos: [{video: a, fps: 10, stream: 'cam_a'}, {video: b, fps: 20, stream: 'cam_b'}]});
+      const rows = [...host.querySelectorAll('tbody tr')].map(tr => [...tr.cells].map(td => td.textContent));
+      const go = host.querySelectorAll('tbody tr button');
+      go[0].click(); go[1].click(); go[2].click();
+      const summary = host.querySelector('.gc-ev-summary').textContent;
+      const track = host.querySelector('#gc-t-ev-track'), counts = {};
+      for (const t of ['3', '7']) { track.value = t; track.dispatchEvent(new Event('input'));
+                                    counts[t] = host.querySelectorAll('tbody tr').length; }
+      host.remove();
+      return {rows, a: a.currentTime, b: b.currentTime, picked, summary, counts};
+    }""")
+    assert [row[4] for row in r["rows"]] == ["3,7", "7", "-"], "track_id -1 with track_ids: several tracks"
+    assert r["a"] == 0.45 and r["b"] == 0.225, "frames count per stream: each stream's own video and fps"
+    assert r["picked"] == ["alarm", "zone", "zone"], "an event of a stream without a video still selects its node"
+    assert r["counts"] == {"3": 1, "7": 2}, "the track filter reads track_ids too"
+    assert "3 of 9 events" in r["summary"]
+    assert "Only the end of the log was read: the total and the counts are partial." in r["summary"]
+
+
+def test_a_refused_run_says_why_in_the_page_language(ui):
+    page, _ = ui
+    page.context.route("**/api/graph/run", lambda r: r.fulfill(status=409, content_type="application/json", body=json.dumps(
+        {"error": "a graph run is already running", "error_key": "graph_run_busy"})))
+    _open(page, "zone_intrusion")
+    page.evaluate("DXI18n.setLang('ko')")
+    page.click("#gc-run")
+    page.wait_for_function("() => /그래프 실행이 진행 중입니다/.test(document.querySelector('#gc-run-panel').textContent)", timeout=10000)

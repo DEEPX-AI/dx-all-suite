@@ -1,10 +1,11 @@
 /* DX App — Graph Composer run panel: run the graph once on an image or a video (per source: the graph's own input,
-   a sample, or an uploaded image), sync or async, then show progress, FPS, per-node time, the rendered result and
-   per-node results. Camera and RTSP come with Live (a later phase). Uploads of one run together stay under the
-   server's limit (catalog `limits`). Contract: tests/dx_app/test_graph_composer_browser.py */
+   a sample, or an uploaded image), sync or async, then show progress, FPS, per-node time, the rendered result,
+   per-node results and the events (graph-events.js), which also arrive while it runs. Camera and RTSP run in the
+   Live tab (graph-live.js). Uploads of one run together stay under the server's limit (catalog `limits`).
+   Contract: tests/dx_app/test_graph_composer_browser.py, tests/dx_app/test_graph_logic_browser.py */
 window.GraphRun = (function () {
   'use strict';
-  var c = null, root = null, job = null, timer = 0, picks = {}, uploads = {}, samples = [];
+  var c = null, root = null, job = null, timer = 0, picks = {}, uploads = {}, samples = [], events = null;
   var els = {};
   var DEFAULT_UPLOAD_LIMIT = 20 * 1024 * 1024;
 
@@ -34,10 +35,11 @@ window.GraphRun = (function () {
     var key = r && r.error_key;
     if (key === 'live_source') return T('Run once takes images and videos. Camera and RTSP sources come with Live.');
     if (key === 'invalid_input') return T('This input does not exist or is outside the dx_app, sample and outputs folders.');
-    if (key === 'graph_run_busy') return T('A graph run is already running.');
     if (key === 'graph_binary_missing') return T('The graph runner is not built. Build dx_app (./build.sh) to use the Graph Composer.');
+    if (key === 'graph_live_busy') return T('The graph is running Live. Stop Live first.');
     if (key === 'uploads_too_large' || /^JSON body too large/.test((r && r.error) || '')) return tooLargeText(uploadBytes());
-    return (r && r.error) || T('The run failed.');
+    /* Other refusals (graph_run_busy, npu_hold_lost, live_busy, ...): the dictionary text of the error key. */
+    return (typeof translatedError === 'function' ? translatedError(r) : r && r.error) || T('The run failed.');
   }
 
   function renderInputs() {
@@ -111,8 +113,16 @@ window.GraphRun = (function () {
       c.h('div', { class: 'gc-run-actions' }, [els.start, els.stop])]));
     root.appendChild(els.progress);
     root.appendChild(els.result);
+    els.events = c.h('div', { class: 'gc-events', id: 'gc-run-events' });
+    root.appendChild(els.events);
+    if (!events) events = GraphEvents.create(els.events, c, { idPrefix: 'gc-run-ev', onSelectNode: selectNode });
+    else events.attach(els.events);
     renderInputs();
     loadSamples();
+  }
+
+  function selectNode(id) {
+    if (c.nodeOf(id)) { c.canvas().select({ nodes: [id] }); }
   }
 
   function setRunning(on) {
@@ -134,6 +144,7 @@ window.GraphRun = (function () {
     if (els.mode.value === 'async') body.max_inflight = Number(els.inflight.value) || 4;
     if (els.frames.value) body.frames = Number(els.frames.value);
     els.result.textContent = '';
+    events.clear();
     els.progress.textContent = T('Starting…');
     job = 'starting';
     setRunning(true);
@@ -172,9 +183,11 @@ window.GraphRun = (function () {
   function poll() {
     clearTimeout(timer);
     timer = setTimeout(async function () {
-      var p = await c.api.poll(job);
-      if (p.error) { finish({ ok: false, error: p.error }); return; }
+      var p = await c.api.poll(job, events.lastSeq());
+      if (p.error) { finish({ ok: false, error: p.error, error_key: p.error_key }); return; }
       renderProgress(p);
+      events.append(p.events, p.event_total);
+      c.observe({ node_ms: p.node_ms, event_counts: p.event_counts });
       if (!p.has_result) { poll(); return; }
       var r = await c.api.result(job);
       if (r.running) { poll(); return; }
@@ -185,6 +198,7 @@ window.GraphRun = (function () {
   function finish(r) {
     job = null;
     c.state.run = r.error && !r.nodes ? null : r;
+    c.observe(null);
     setRunning(false);
     c.applyPins();
     renderResult(r);
@@ -201,11 +215,18 @@ window.GraphRun = (function () {
       els.result.appendChild(c.h('div', { class: 'gc-error', role: 'alert' }, [c.h('strong', { text: e.code }),
         c.h('span', { text: ' ' + (e.node ? e.node + ': ' : '') + e.what }), e.how ? c.h('p', { class: 'gc-help', text: '→ ' + e.how }) : null]));
     });
+    var videos = [];
     (r.outputs || []).forEach(function (o) {
-      els.result.appendChild(o.kind === 'video'
-        ? c.h('video', { src: o.url, controls: true, class: 'gc-run-media' })
-        : c.h('img', { src: o.url, alt: c.fmt(T('Result of {name}'), { name: o.name }), class: 'gc-run-media' }));
+      var el = o.kind === 'video'
+        ? c.h('video', { src: o.url, controls: true, class: 'gc-run-media', tabindex: '0' })
+        : c.h('img', { src: o.url, alt: c.fmt(T('Result of {name}'), { name: o.name }), class: 'gc-run-media' });
+      /* dx_app writes one video per stream with several sources: <stem>_<source id><ext> */
+      var m = o.kind === 'video' && /^result_(.+)\.[^.]+$/.exec(o.name || '');
+      if (o.kind === 'video') videos.push({ video: el, fps: o.fps || null, stream: m ? m[1] : null });
+      els.result.appendChild(el);
     });
+    events.set(r.events || [], { total: r.event_total, truncated: r.events_truncated, partial: r.events_partial,
+      url: r.events_url, videos: videos });
     var ids = Object.keys(r.nodes || {});
     if (!ids.length) return;
     var rows = ids.map(function (id) {
@@ -228,6 +249,7 @@ window.GraphRun = (function () {
     if (!root) return;
     els.progress.textContent = '';
     els.result.textContent = '';
+    events.clear();
     renderInputs();
   }
 
@@ -240,6 +262,7 @@ window.GraphRun = (function () {
     els.start.disabled = !!job;
     els.stop.disabled = !job;
     if (c.state.run) renderResult(c.state.run);
+    else events.render();
   }
 
   if (typeof registerLangRefresher === 'function') {
