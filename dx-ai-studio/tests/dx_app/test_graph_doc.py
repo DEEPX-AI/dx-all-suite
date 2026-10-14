@@ -39,6 +39,13 @@ MODELS = {
     "realesrgan-x2_192x192": {"task": "super_resolution", "produces": "image", "consumes": "either"},
 }
 
+# Logic blocks as dx_app's --list-ops --json describes them (fixture recorded from the dx_app Phase 2 plan's catalog)
+# and two of its six samples.
+_FIX = ROOT / "tests" / "dx_app" / "fixtures" / "graph"
+OPS = {o["op"]: o for o in json.loads((_FIX / "list_ops.json").read_text(encoding="utf-8")) if o["type"] == "logic"}
+ZONE = json.loads((_FIX / "examples" / "zone_intrusion.json").read_text(encoding="utf-8"))
+PPE = json.loads((_FIX / "examples" / "ppe_zone_check.json").read_text(encoding="utf-8"))
+
 _PRELUDE = r"""
 const fs = require('fs');
 const vm = require('vm');
@@ -55,7 +62,8 @@ def _run(body: str) -> None:
     node = resolve_node_executable()
     if not node:
         pytest.skip("node is required for the graph-doc.js tests")
-    data = json.dumps({"cascade": CASCADE, "volume": VOLUME, "models": MODELS})
+    data = json.dumps({"cascade": CASCADE, "volume": VOLUME, "models": MODELS, "ops": OPS, "zone": ZONE,
+                       "ppe": PPE})
     proc = subprocess.run([node, "-e", _PRELUDE + body + "\nconsole.log('{\"ok\": true}');", str(DOC), data],
                           capture_output=True, text=True, cwd=str(ROOT), check=False)
     assert proc.returncode == 0, proc.stderr or proc.stdout
@@ -179,4 +187,90 @@ eq(out, {model: 'yolov8-n_640x640', engine: {share: true, buffers: 2}, track: {a
 eq(data.params, {score_threshold: 0.2}, 'the input is not changed');
 eq(D.applyPatch({model: 'm'}, {params: {a: 1}}), {model: 'm', params: {a: 1}});
 eq(D.applyPatch({model: 'm'}, null), {model: 'm'});
+""")
+
+
+# Phase 2: logic blocks.
+
+def test_logic_graphs_round_trip_with_their_drawn_params():
+    _run(r"""
+for (const k of ['zone', 'ppe']) eq(D.toEngine(D.fromEngine(DATA[k]), DATA[k].name), DATA[k], k);
+const g = D.fromEngine(DATA.zone);
+eq(g.nodes.map(n => n.kind), ['source', 'model', 'logic', 'logic', 'logic']);
+eq(g.edges.map(e => e.kind), ['frame', 'result', 'result', 'result']);
+eq(D.fromEngine(DATA.ppe).edges[3].kind, 'roi', 'zone -> ROI -> classifier');
+""")
+
+
+def test_logic_connection_rules_follow_list_ops():
+    _run(r"""
+const M = Object.assign({}, DATA.models, {'deepmar_resnet18_224x224': {task: 'person_attribute', produces: 'scores', consumes: 'either'},
+  'repvgg-a0-reid_256x128': {task: 'person_reid', produces: 'vector', consumes: 'either'}}), O = DATA.ops;
+const src = {id: 'cam', kind: 'source', data: {}}, od = {id: 'od', kind: 'model', data: {model: 'yolov8-n_640x640'}};
+const depth = {id: 'depth', kind: 'model', data: {model: 'fastdepth_224x224'}};
+const attr = {id: 'attr', kind: 'model', data: {model: 'deepmar_resnet18_224x224'}};
+const reid = {id: 'reid', kind: 'model', data: {model: 'repvgg-a0-reid_256x128'}};
+const L = (id, op, params) => ({id: id, kind: 'logic', data: {type: 'logic', op: op, params: params || {}}});
+const person = L('person', 'filter'), zone = L('zone', 'zone'), line = L('line', 'line'), alarm = L('alarm', 'condition');
+const known = L('known', 'gallery'), count = L('count', 'count');
+const g = {nodes: [src, od, person, zone, line, alarm, attr, reid, depth, known, count],
+           edges: [{from: 'cam', to: 'od', kind: 'frame'}, {from: 'od', to: 'person', kind: 'result'},
+                   {from: 'person', to: 'zone', kind: 'result'}, {from: 'zone', to: 'attr', kind: 'roi', data: {roi: {}}},
+                   {from: 'od', to: 'reid', kind: 'roi', data: {roi: {}}}]};
+eq(D.canConnect(od, person, M, O, {nodes: g.nodes, edges: []}), {ok: true, kind: 'result', data: {carry: 'result'}}, 'boxes into a filter');
+eq(D.canConnect(src, line, M, O, g).reason, 'A logic block takes results, not frames');
+eq(D.canConnect(depth, line, M, O, g).reason, 'This logic block does not take this kind of result', 'a densemap is no boxes');
+eq(D.outputOf(zone, M, O, g), 'boxes', 'a zone hands on what reaches it');
+eq(D.canConnect(zone, line, M, O, g).kind, 'result', 'the zone boxes into a line');
+eq(D.canConnect(zone, alarm, M, O, g).kind, 'result', 'boxes into a condition');
+eq(D.canConnect(attr, alarm, M, O, g).kind, 'result', 'scores per crop into a condition');
+eq(D.canConnect(attr, line, M, O, g).reason, 'This logic block does not take this kind of result');
+eq(D.canConnect(reid, known, M, O, g).kind, 'result', 'vectors per crop into a gallery');
+eq(D.canConnect(line, alarm, M, O, g).kind, 'result', 'records into a condition');
+eq(D.canConnect(line, count, M, O, g).reason, 'This logic block does not take this kind of result', 'records are not boxes');
+eq(D.canConnect(zone, depth, M, O, g).reason, 'Only a block that hands on boxes can feed a model, as crops');
+eq(D.canConnect(line, attr, M, O, g).reason, 'Only a block that hands on boxes can feed a model, as crops');
+eq(D.canConnect(zone, {id: 'v', kind: 'cpu', data: {op: 'volume'}}, M, O, g).reason, 'A CPU op takes results from models');
+eq(D.canConnect(od, zone, M, O, g).reason, 'This logic block takes no more inputs', 'a zone takes one input');
+ok(D.canConnect(od, count, M, O, {nodes: g.nodes, edges: [1, 2, 3, 4, 5, 6, 7].map(i => ({from: 'x' + i, to: 'count'}))}).ok, 'count takes eight');
+eq(D.canConnect(od, L('mine', 'user', {input: 'boxes', output: 'boxes'}), M, O, g).kind, 'result');
+eq(D.canConnect(od, L('x', 'brand_new_op'), M, O, g).kind, 'result', 'an op this page does not know is left to --check');
+eq(D.edgeKinds(od, zone, M, undefined, g), ['result'], 'no op list yet: --check decides');
+""")
+
+
+def test_logic_nodes_look_like_logic_and_start_with_what_they_require():
+    _run(r"""
+const n = D.decorate({id: 'zone', kind: 'logic', data: {op: 'zone'}}, DATA.models);
+eq([n.category, n.icon, n.sub, n.noInput, n.noOutput], ['logic', 'logic-zone', 'Logic · zone', false, false]);
+eq(D.decorate({id: 'x', kind: 'logic', data: {op: 'new_op'}}, {}).icon, 'puzzle');
+eq(D.decorate({id: 'u', kind: 'logic', data: {op: 'user', params: {name: 'ppe_rule'}}}, {}).sub, 'Logic · ppe_rule');
+eq(D.logicDefaults(DATA.ops.zone), {polygon: [0.25, 0.25, 0.75, 0.25, 0.75, 0.75, 0.25, 0.75]});
+eq(D.logicDefaults(DATA.ops.line), {line: [0.1, 0.5, 0.9, 0.5]});
+eq(D.logicDefaults(DATA.ops.user), {name: 'my_logic', input: 'boxes', output: 'boxes'});
+eq(D.logicDefaults(DATA.ops.condition), {}, 'optional params keep dx_app defaults');
+const d = D.logicDefaults(DATA.ops.zone); d.polygon[0] = 9;
+eq(D.logicDefaults(DATA.ops.zone).polygon[0], 0.25, 'each node gets its own copy');
+""")
+
+
+def test_a_block_that_needs_tracking_names_the_untracked_detector():
+    _run(r"""
+const O = DATA.ops;
+const g = {nodes: [{id: 'od', kind: 'model', data: {model: 'm'}}, {id: 'zone', kind: 'logic', data: {op: 'zone'}},
+                   {id: 'line', kind: 'logic', data: {op: 'line'}}, {id: 'od2', kind: 'model', data: {model: 'm', track: {}}},
+                   {id: 'line2', kind: 'logic', data: {op: 'line'}}],
+           edges: [{from: 'od', to: 'zone'}, {from: 'zone', to: 'line'}, {from: 'od2', to: 'line2'}]};
+eq(D.untrackedFeeds(g, 'line', O), ['od'], 'through the zone to its detector');
+eq(D.untrackedFeeds(g, 'line2', O), [], 'tracked');
+eq(D.untrackedFeeds(g, 'zone', O), [], 'a zone does not need tracking');
+""")
+
+
+def test_event_counts_become_badges():
+    _run(r"""
+const p = D.pins(null, null, {event_counts: {zone: {enter: 2, exit: 1}, alarm: {intrusion: 1}, quiet: {}}}, k => k);
+eq(p.badges.zone, [{kind: 'events', text: 'Events: 3'}]);
+eq(p.badges.alarm, [{kind: 'events', text: 'Events: 1'}]);
+ok(!p.badges.quiet, 'no badge without events');
 """)
