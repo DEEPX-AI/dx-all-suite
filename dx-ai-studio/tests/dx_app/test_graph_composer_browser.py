@@ -239,7 +239,8 @@ def test_projects_save_and_open_again(ui):
     page.select_option("#gc-projects", "my-graph")
     page.wait_for_function("() => GraphComposer.canvas().getGraph().nodes.length === 3")
     assert page.input_value("#gc-name") == "My graph"
-    assert page.input_value("#gc-versions") == "1"
+    # The project and version lists refresh after the graph is drawn (refreshProjects is not awaited by loadDoc).
+    page.wait_for_function("() => document.getElementById('gc-versions').value === '1'", timeout=5000)
 
 
 def test_the_page_follows_a_language_change(ui):
