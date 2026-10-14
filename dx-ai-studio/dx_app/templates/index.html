@@ -605,9 +605,9 @@
   <p class="txt-dim txt-sm mb16" data-i18n="Manage model/task extensions, experiments, and safe change previews in one place.">Manage model/task extensions, experiments, and safe change previews in one place.</p>
   <div class="lab-status lab-status-info mb12" id="lab-status" data-i18n="Preparing Lab session">Preparing Lab session</div>
   <div class="lab-home" id="lab-home">
-    <button class="card lab-card lab-composer-card" id="lab-card-composer" data-lab-flow="composer" type="button">
-      <strong><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#puzzle"></use></svg> <span data-i18n="DX App Composer">DX App Composer</span></strong>
-      <span class="txt-dim txt-sm" data-i18n="Choose a model and input, run the workflow, then export a package.">Choose a model and input, run the workflow, then export a package.</span>
+    <button class="card lab-card" id="lab-card-graph" data-lab-flow="graph" type="button">
+      <strong><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#graph"></use></svg> <span data-i18n="Graph Composer">Graph Composer</span></strong>
+      <span class="txt-dim txt-sm" data-i18n="Connect several models into one pipeline, check it, and run it on the NPU.">Connect several models into one pipeline, check it, and run it on the NPU.</span>
     </button>
     <button class="card lab-card" id="lab-card-add-model" data-lab-flow="add-model" type="button">
       <strong><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#plus"></use></svg> <span data-i18n="Add Model">Add Model</span></strong>
@@ -878,8 +878,6 @@ document.querySelectorAll('.dx-tab').forEach(function (t) {
 <script src="/static/js/rundemo.js?m=dx_app"></script>
 <script src="/static/js/developer.js?m=dx_app"></script>
 <script src="/static/js/lab-portal.js?m=dx_app"></script>
-<script src="/static/js/lab-composer-graph.js?m=dx_app"></script>
-<script src="/static/js/lab-composer.js?m=dx_app"></script>
 <script src="/static/shared/dx-graph-core.js"></script>
 <script src="/static/shared/dx-graph-canvas.js"></script>
 <script src="/static/js/graph-doc.js?m=dx_app"></script>

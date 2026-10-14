@@ -3,7 +3,6 @@ window.LabPortal = (function () {
   var _ready = false;
   var _cardsBound = false;
   var _capabilities = null;
-  var _composerOpened = false;
   var _currentManifest = null;
   var _dryRunInFlight = false;
   var _applyInFlight = false;
@@ -1025,13 +1024,8 @@ window.LabPortal = (function () {
           renderGeneratedFlow();
           return;
         }
-        if (flow === 'composer') {
-          if (window.LabComposer && typeof window.LabComposer.open === 'function') {
-            window.LabComposer.open();
-          } else {
-            var composerRoot = document.getElementById('lab-flow-root');
-            if (composerRoot) composerRoot.textContent = _text('Composer module unavailable', 'Composer 모듈을 사용할 수 없습니다.');
-          }
+        if (flow === 'graph') {
+          if (typeof nav === 'function') nav('graph');
           return;
         }
         var root = document.getElementById('lab-flow-root');
@@ -1040,22 +1034,18 @@ window.LabPortal = (function () {
     });
   }
 
-  async function _openComposerByDefault() {
-    if (_composerOpened || !window.LabComposer || typeof window.LabComposer.open !== 'function') return;
-    await window.LabComposer.open();
-    _composerOpened = true;
+  function _showHint() {
+    var root = document.getElementById('lab-flow-root');
+    if (root && !root.firstChild) root.textContent = _text('Choose a card above to start.');
   }
 
   async function init() {
-    if (_ready) {
-      await _openComposerByDefault();
-      return;
-    }
+    _showHint();
+    if (_ready) return;
     _bindCards();
     if (!S.labToken && typeof labEnsureSession === 'function') await labEnsureSession();
     var ok = await _loadCapabilities();
     _ready = !!ok;
-    if (_ready) await _openComposerByDefault();
   }
 
   return {

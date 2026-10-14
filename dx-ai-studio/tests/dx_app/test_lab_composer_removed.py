@@ -41,3 +41,13 @@ def test_package_export_keeps_its_common_helper():
 
     assert callable(package_common.complete_python_common)
     assert "package_common import complete_python_common" in Path(developer.__file__).read_text(encoding="utf-8")
+
+
+def test_the_lab_page_links_to_the_graph_composer():
+    html = (ROOT / "dx_app/templates/index.html").read_text(encoding="utf-8")
+    assert 'data-lab-flow="graph"' in html and "lab-composer" not in html
+    js = (ROOT / "dx_app/static/js/lab-portal.js").read_text(encoding="utf-8")
+    assert "LabComposer" not in js and "if (flow === 'graph')" in js
+    for gone in ("lab-composer.js", "lab-composer-graph.js"):
+        assert not (ROOT / "dx_app/static/js" / gone).exists(), gone
+    assert "lab-composer" not in (ROOT / "dx_app/static/css/style.css").read_text(encoding="utf-8")

@@ -389,7 +389,7 @@ def assert_local_topbar_token(css: str) -> None:
 
 # A module must not RE-DEFINE the global focus ring (shared/static/dx-base.css
 # ships `:focus-visible{...}` as a bare selector). Styling the pseudo-class on a
-# module's own component — `.lab-composer-palette-item:focus-visible` — is normal
+# module's own component — `.dxg-tbtn:focus-visible` — is normal
 # CSS and must stay allowed, so match only a STANDALONE `:focus-visible`, i.e. one
 # not attached to a preceding selector. A plain substring check cannot tell the two
 # apart; every other fragment below is a token unique to the foundation.
