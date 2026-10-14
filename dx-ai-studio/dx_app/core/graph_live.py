@@ -7,8 +7,8 @@ private Xvfb display, and the page watches an MJPEG stream grabbed from that dis
                                    [--max-inflight N]
 
 One graph Live at a time, on its own Xvfb slot (SLOT; the Run page's Live uses slots 0-7), so the two never draw on
-one display. A graph Live and a graph run once do not overlap (both load the graph's engines on the NPU), and neither
-starts while the Run page has a Live slot running; that page refuses to start one while a graph Live runs.
+one display. One NPU job at a time (npu_jobs.py): a graph Live, a graph run once and the Run page's Live never overlap
+(each loads its engines on the NPU); the hold is taken before anything is prepared and ends when the runner exits.
 stdout is read as it comes (line-buffered through coreutils' stdbuf when it exists: a pipe would otherwise hold the
 runner's lines in a 4 KB buffer): [PROGRESS] lines give FPS and per-node ms, [EVENT] lines go to an EventLog
 (bounded), everything else to a bounded tail for errors. A Live nobody polls for _TTL seconds is stopped (the page was closed),
@@ -29,7 +29,7 @@ import uuid
 from collections import deque
 from pathlib import Path
 
-from dx_app.core import config, graph_cli, graph_events, graph_run
+from dx_app.core import config, graph_cli, graph_events, graph_run, npu_jobs
 from dx_app.core.graph_validate import engine_graph, parse_errors
 
 SLOT = 8
@@ -42,6 +42,10 @@ _STREAM = re.compile(r"^rtsps?://[^\s]{1,500}$")
 
 _lock = threading.Lock()
 _job = None                     # the one graph Live: dict, or None
+# Why a graph Live cannot start, by the kind of job holding the NPU (npu_jobs.py)
+_BUSY = {"graph_live": {"error": "a graph Live is already running", "error_key": "graph_live_busy"},
+         "graph_run": {"error": "a graph run is running", "error_key": "graph_run_busy"},
+         "live": {"error": "the Run page has a Live run; stop it first", "error_key": "live_busy"}}
 
 
 def live_dir() -> Path:
@@ -68,12 +72,6 @@ def _deps_missing() -> list:
     except ImportError:
         missing.append("Pillow")
     return missing
-
-
-def _run_page_live_busy() -> bool:
-    from dx_app.core import live
-    with live._live_procs_lock:
-        return any(p is not None and p.poll() is None for p in live._live_procs.values())
 
 
 def resolve_input(value) -> tuple:
@@ -143,18 +141,20 @@ def start(graph: dict, *, variant="sync", inputs=None, max_inflight=None) -> tup
     global _job
     job_id = uuid.uuid4().hex
     with _lock:
-        if _job is not None and _job["proc"] is not None and _job["proc"].poll() is None:
-            return {"error": "a graph Live is already running", "error_key": "graph_live_busy"}, 409
-        if any(j["result"] is None for j in graph_run._jobs.values()):
-            return {"error": "a graph run is running", "error_key": "graph_run_busy"}, 409
-        if _run_page_live_busy():
-            return {"error": "the Run page has a Live run; stop it first", "error_key": "live_busy"}, 409
+        holder = npu_jobs.acquire("graph_live", job_id)    # the NPU is taken before anything is prepared
+        if holder is not None:
+            return dict(_BUSY[holder]), 409
         old, _job = _job, None
     if old is not None:
         _finish(old)
     d = live_dir() / job_id
-    d.mkdir(parents=True)
-    (d / "graph.json").write_text(json.dumps(engine_graph(graph, caps)), encoding="utf-8")
+    try:
+        d.mkdir(parents=True)
+        (d / "graph.json").write_text(json.dumps(engine_graph(graph, caps)), encoding="utf-8")
+    except OSError as e:
+        npu_jobs.release(job_id)
+        shutil.rmtree(d, ignore_errors=True)
+        return {"error": str(e), "error_key": "graph_live_failed"}, 500
     cmd = [str(binary), "--graph", str(d / "graph.json"), *args, "--display", "--model-dir",
            str(graph_cli.models_dir())]
     if files:
@@ -171,9 +171,11 @@ def start(graph: dict, *, variant="sync", inputs=None, max_inflight=None) -> tup
         proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=str(config.DX_APP_ROOT),
                                 env=_env(), text=True, bufsize=1, errors="replace", close_fds=True)
     except (OSError, subprocess.SubprocessError) as e:
+        npu_jobs.release(job_id)
         shutil.rmtree(d, ignore_errors=True)
         camera.stop_xvfb(SLOT)
         return {"error": str(e), "error_key": "graph_live_failed"}, 500
+    npu_jobs.attach(job_id, proc)
     now = time.time()
     job = {"id": job_id, "dir": d, "proc": proc, "graph": graph, "start": now, "touched": now,
            "progress": {"node_ms": {}}, "events": graph_events.EventLog(), "tail": deque(maxlen=_TAIL_LINES),
@@ -199,6 +201,7 @@ def _read(job: dict) -> None:
             continue
         job["tail"].append(line.rstrip("\n"))
     code = job["proc"].wait()
+    npu_jobs.release(job["id"])
     tail = "\n".join(job["tail"])
     errors, _notes = parse_errors(tail, job["graph"])
     if job["stop_reason"] == "events":

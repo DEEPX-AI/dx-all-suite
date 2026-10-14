@@ -10,7 +10,8 @@ in its own folder outputs/dx_app/graph/runs/<job>. The page polls: progress come
 `[PROGRESS] frames=N fps=F avg_fps=A node_ms=<id>:<ms>,...` lines (DXAPP_PROGRESS=1), results from --report once it
 exits; events from its `[EVENT] {json}` lines while it runs (numbered, so a poll asks only for new ones) and from
 --events once it exits (graph_events.py). Same lifetime rule as run_progress.py: a job nobody polls for _JOB_TTL seconds is stopped and dropped.
-One run at a time: the slot is taken under the lock before anything is prepared. A run is stopped (SIGTERM, then
+One NPU job at a time (npu_jobs.py: a run once, a graph Live or the Run page's Live): the NPU is taken before
+anything is prepared and given back when the runner exits. A run is stopped (SIGTERM, then
 SIGKILL after _STOP_GRACE seconds) when it outlives DX_GRAPH_RUN_MAX_SECONDS (default 600) or its log outgrows
 _MAX_LOG_BYTES, and every run is stopped when the server shuts down (atexit and the idle watchdog).
 Camera and RTSP sources belong to Live (a later phase) and are refused here.
@@ -32,7 +33,7 @@ import uuid
 from pathlib import Path
 from urllib.parse import unquote
 
-from dx_app.core import config, graph_cli, graph_events
+from dx_app.core import config, graph_cli, graph_events, npu_jobs
 from dx_app.core.dx_app_security import resolve_existing_file
 from dx_app.core.graph_validate import engine_graph, parse_errors
 
@@ -53,6 +54,10 @@ _PROGRESS = re.compile(r"^\[PROGRESS\] (.*)$")
 
 _lock = threading.Lock()
 _jobs: dict = {}
+# Why a run once cannot start, by the kind of job holding the NPU (npu_jobs.py)
+_BUSY = {"graph_run": {"error": "a graph run is already running", "error_key": "graph_run_busy"},
+         "graph_live": {"error": "a graph Live is running; stop it first", "error_key": "graph_live_busy"},
+         "live": {"error": "the Run page has a Live run; stop it first", "error_key": "live_busy"}}
 
 
 def runs_dir() -> Path:
@@ -244,9 +249,6 @@ def start(graph: dict, *, variant="sync", inputs=None, uploads=None, max_infligh
     if bad:
         return {"error": f"source id {bad[0]!r} must be 1-64 letters, digits, '_', '.' or '-'",
                 "error_key": "invalid_source_id"}, 400
-    from dx_app.core import graph_live           # graph_live imports this module
-    if graph_live.running():
-        return {"error": "a graph Live is running; stop it first", "error_key": "graph_live_busy"}, 409
     job_id = uuid.uuid4().hex
     d = runs_dir() / job_id
     now = time.time()
@@ -255,11 +257,13 @@ def start(graph: dict, *, variant="sync", inputs=None, uploads=None, max_infligh
            "events": graph_events.EventLog()}
     with _lock:
         _reap(now)
-        if any(j["result"] is None for j in _jobs.values()):
-            return {"error": "a graph run is already running", "error_key": "graph_run_busy"}, 409
-        _jobs[job_id] = job                   # the slot is taken before anything is prepared
+        holder = npu_jobs.acquire("graph_run", job_id)    # the NPU is taken before anything is prepared
+        if holder is not None:
+            return dict(_BUSY[holder]), 409
+        _jobs[job_id] = job
 
     def give_up(body, code):
+        npu_jobs.release(job_id)
         with _lock:
             _jobs.pop(job_id, None)
         if job["log"] is not None:
@@ -300,6 +304,10 @@ def start(graph: dict, *, variant="sync", inputs=None, uploads=None, max_infligh
         return give_up({"error": str(e), "error_key": key}, 400)
     except (OSError, subprocess.SubprocessError) as e:
         return give_up({"error": str(e), "error_key": "graph_run_failed"}, 500)
+    except BaseException:
+        give_up({}, 500)
+        raise
+    npu_jobs.attach(job_id, proc)
     with _lock:
         job["proc"], job["video"] = proc, video
         job["start"] = job["touched"] = time.time()
@@ -412,6 +420,7 @@ def _wait(job: dict) -> None:
         if reason:
             job["stop_reason"] = reason
             threading.Thread(target=_terminate, args=(proc,), daemon=True).start()
+    npu_jobs.release(job["id"])
     job["log"].close()
     d = job["dir"]
     log = _read_tail(log_path, min(_MAX_LOG_BYTES, 4 * 1024 * 1024))

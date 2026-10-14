@@ -11,6 +11,15 @@ import pytest
 from dx_app.core import config, graph_run
 from tests.dx_app import graph_fakes
 
+@pytest.fixture(autouse=True)
+def _npu_free():
+    """No test inherits another's hold on the NPU (npu_jobs.py): a fake runner whose poll() never ends keeps it."""
+    from dx_app.core import npu_jobs
+    npu_jobs._reset()
+    yield
+    npu_jobs._reset()
+
+
 # Writes what the real runner writes: [PROGRESS] lines, --report, --output. Arguments go to the log too.
 RUNNER = r"""
 case "$1" in --help|--check) exit 0 ;; esac     # capability probes answer at once, even in the slow fakes
@@ -426,8 +435,8 @@ def test_a_video_output_carries_its_frame_rate(tmp_path):
 # Phase 2: a run once and a graph Live never overlap.
 
 def test_a_run_waits_for_a_graph_live_to_end(studio, monkeypatch):
-    from dx_app.core import graph_live
+    from dx_app.core import npu_jobs
     graph_fakes.install(studio, monkeypatch, RUNNER)
-    monkeypatch.setattr(graph_live, "running", lambda: True)
+    npu_jobs.acquire("graph_live", "a-graph-live")            # the registry every NPU job starts through
     body, code = graph_run.start(GRAPH)
     assert (code, body["error_key"]) == (409, "graph_live_busy") and _started(studio) == []

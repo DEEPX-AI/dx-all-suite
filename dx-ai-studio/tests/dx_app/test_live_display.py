@@ -19,6 +19,15 @@ from dx_app.core import camera
 _CHROME = (239, 239, 239)
 
 
+@pytest.fixture(autouse=True)
+def _npu_free():
+    """No test inherits another's hold on the NPU (npu_jobs.py): the fake runners here never end."""
+    from dx_app.core import npu_jobs
+    npu_jobs._reset()
+    yield
+    npu_jobs._reset()
+
+
 def _qt_window(w=1280, h=720, img=(43, 1237, 28, 700)):
     """Shaped like x_fit.png: grey background, toolbar text on top, video in the middle."""
     im = Image.new("RGB", (w, h), _CHROME)

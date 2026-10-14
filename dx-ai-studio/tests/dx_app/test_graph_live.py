@@ -8,8 +8,17 @@ import time
 
 import pytest
 
-from dx_app.core import camera, config, graph_live, graph_run, live
+from dx_app.core import camera, config, graph_live, graph_run, live, npu_jobs
 from tests.dx_app import graph_fakes
+
+@pytest.fixture(autouse=True)
+def _npu_free():
+    """No test inherits another's hold on the NPU (npu_jobs.py): a fake runner whose poll() never ends keeps it."""
+    from dx_app.core import npu_jobs
+    npu_jobs._reset()
+    yield
+    npu_jobs._reset()
+
 
 LIVE_RUNNER = r"""
 case "$1" in --help) cat "$FIX/help_p2.txt"; exit 0 ;; --check) exit 0 ;; esac
@@ -142,14 +151,10 @@ def test_one_live_at_a_time_and_never_beside_a_run_or_the_run_pages_live(studio,
     assert r["error_key"] == "graph_live_busy"
     graph_live.stop(first)
     _poll_until(first, lambda p: not p["running"])
-    graph_run._jobs["x"] = {"result": None, "touched": time.time(), "proc": None, "dir": studio["tmp"]}
+    npu_jobs.acquire("graph_run", "a-run")                     # the registry every NPU job starts through
     assert graph_live.start(GRAPH)[0]["error_key"] == "graph_run_busy"
-    graph_run._jobs.clear()
-
-    class _Busy:
-        def poll(self):
-            return None
-    monkeypatch.setitem(live._live_procs, 0, _Busy())
+    npu_jobs.release("a-run")
+    npu_jobs.acquire("live", "live-slot-0")
     assert graph_live.start(GRAPH)[0]["error_key"] == "live_busy"
 
 

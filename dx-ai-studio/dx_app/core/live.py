@@ -10,7 +10,7 @@ the function body (see below) so module-load time stays acyclic.
 
 import os, re, math, shutil, time, uuid, subprocess, tempfile, threading, atexit
 from pathlib import Path
-from dx_app.core import config
+from dx_app.core import config, npu_jobs
 from dx_app.core.config import DX_APP_ROOT, BUILD_DIR, resolve_model_path
 from shared.runtime import ld_library_path
 from shared import dxrt
@@ -55,10 +55,31 @@ def run_inference_live(model_name, category, model_file, lang="cpp", variant="sy
     Performance stays the example's own stdout log (poll_inference parses it)."""
     if not model_file:
         return _err("no_model_file", "No model file configured")
-    # The Graph Composer's Live loads its own engines on the NPU and shares the Live display code: one at a time
-    from dx_app.core import graph_live
-    if graph_live.running():
-        return _err("graph_live_busy", "The Graph Composer has a Live run. Stop it before starting one here.")
+    # One NPU job at a time (npu_jobs.py): the Graph Composer's run once and Live load their own engines on the NPU.
+    # Each slot holds the NPU under its own id; the Run page's slots run side by side.
+    hold = _slot_hold(slot_idx)
+    holder = npu_jobs.acquire("live", hold)
+    if holder is not None:
+        return _err(*_BUSY[holder])
+    try:
+        return _start_live(model_name, category, model_file, lang, variant, input_type, camera_id, rtsp_url,
+                           video_path, slot_idx, n_total_slots)
+    finally:
+        npu_jobs.release_if_idle(hold)       # an error before the runner started gives the NPU back
+
+
+def _slot_hold(slot_idx):
+    return f"live-slot-{slot_idx}"
+
+
+# Why the Run page's Live cannot start, by the kind of job holding the NPU (npu_jobs.py)
+_BUSY = {"graph_live": ("graph_live_busy", "The Graph Composer has a Live run. Stop it before starting one here."),
+         "graph_run": ("graph_run_busy", "The Graph Composer is running a graph. Wait for it or stop it first.")}
+
+
+def _start_live(model_name, category, model_file, lang, variant, input_type, camera_id, rtsp_url, video_path,
+                slot_idx, n_total_slots):
+    """run_inference_live once this slot holds the NPU."""
 
     # Live streaming needs a virtual display (Xvfb), libX11/libxcb to drive and grab it and Pillow to encode the
     # frames — the only non-stdlib pieces of the live path (all OS packages). Without them frame
@@ -178,6 +199,7 @@ def run_inference_live(model_name, category, model_file, lang="cpp", variant="sy
     with open(log_file, "w") as fout:
         proc = subprocess.Popen(cmd, stdout=fout, stderr=subprocess.STDOUT,
                                 cwd=str(DX_APP_ROOT), env=env, text=True, close_fds=True)
+    npu_jobs.attach(_slot_hold(slot_idx), proc)
     with _live_procs_lock:
         _live_procs[slot_idx] = proc
     # keep config._running_proc for slot 0 backward compat
@@ -616,6 +638,7 @@ def shutdown_live_processes():
         for slot, p in list(_live_procs.items()):
             _terminate_proc(p)
             _live_procs.pop(slot, None)
+            npu_jobs.release(_slot_hold(slot))
     with camera._xvfb_lock:
         for slot, p in list(camera._xvfb_procs.items()):
             _terminate_proc(p)
