@@ -13,23 +13,13 @@
   --about-accent-glow: rgba(var(--accent-rgb),0.15);
   --about-accent-strong: var(--accent-strong);
   --about-divider: var(--border-subtle);
-  --about-hero-grad-1: #1a0533;
-  --about-hero-grad-2: #0a1628;
-  /* Bottom stop matches the Developer Hub's top colour (--about-bg-alt) so the hero melts
-     into the section below with no seam and no purple→blue hue jump at the boundary. */
-  --about-hero-grad-3: var(--about-bg-alt);
-}
-/* Light theme: the text is already dark, so the hero goes light too — dark text on a dark
-   purple/navy band would hide the tagline and stat labels. */
-:root[data-theme="light"] #about-view {
+  /* The hero tints the panel colour with the theme accent in both themes, so it follows the
+     Studio accent instead of a hue of its own. */
   --about-hero-grad-1: color-mix(in srgb, var(--accent) 12%, var(--surface-panel));
   --about-hero-grad-2: color-mix(in srgb, var(--accent) 6%, var(--surface-panel));
-}
-@media (prefers-color-scheme: light) {
-  :root:not([data-theme="dark"]) #about-view {
-    --about-hero-grad-1: color-mix(in srgb, var(--accent) 12%, var(--surface-panel));
-    --about-hero-grad-2: color-mix(in srgb, var(--accent) 6%, var(--surface-panel));
-  }
+  /* Bottom stop matches the Developer Hub's top colour (--about-bg-alt) so the hero melts
+     into the section below with no seam. */
+  --about-hero-grad-3: var(--about-bg-alt);
 }
 
 /* ── 2. View Layout (matches SDK Library shell offset) ── */
