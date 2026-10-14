@@ -43,6 +43,7 @@ EXPECTED_SECTION_IDS = [
     "bench",
     "compare",
     "modelzoo",
+    "graph",
     "compiler",
     "outputs",
     "global",

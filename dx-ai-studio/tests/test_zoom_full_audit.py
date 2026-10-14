@@ -24,7 +24,7 @@ AUDIT_SCENARIOS: list[tuple[str, str, str, str]] = [
     # 1 DX App — all nav pages
     *[
         ("dx_app", f"page:{p}", f"() => nav('{p}')", f"#page-{p}.active")
-        for p in ("setup", "models", "run", "bench", "compare", "modelzoo", "lab", "outputs", "reference")
+        for p in ("setup", "models", "run", "bench", "compare", "modelzoo", "graph", "lab", "outputs", "reference")
     ],
     # 2 DX Stream
     *[
