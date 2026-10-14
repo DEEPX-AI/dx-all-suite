@@ -1,0 +1,14 @@
+{
+  "errors": [
+    {"code": "GRAPH_SCHEMA", "edge": null, "how": "give \"polygon\" x, y pairs for at least 3 points",
+     "node": "zone", "what": "\"polygon\" must hold at least 3 points, got 2",
+     "where": "graph node[3] \"zone\" \"params\""}
+  ],
+  "graph": "zone-intrusion",
+  "models": [
+    {"container": "v9", "engine": {"buffers": 0, "share": false, "shared_with": null},
+     "file": "yolov8-n_640x640.dxnn", "model": "yolov8-n_640x640", "node": "od", "state": "present"}
+  ],
+  "notes": [],
+  "ok": false
+}

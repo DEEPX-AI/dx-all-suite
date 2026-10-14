@@ -1,0 +1,616 @@
+[
+  {
+    "op": "filter",
+    "type": "logic",
+    "summary": "keeps the boxes of the listed classes with at least a score and an area",
+    "inputs": {
+      "min": 1,
+      "max": 1,
+      "accepts": [
+        {
+          "shape": "boxes",
+          "per_crop": false
+        },
+        {
+          "shape": "obboxes",
+          "per_crop": false
+        },
+        {
+          "shape": "instances",
+          "per_crop": false
+        }
+      ]
+    },
+    "output": "same",
+    "tracking": false,
+    "events": [],
+    "numbers": [],
+    "params": [
+      {
+        "name": "classes",
+        "type": "text_list",
+        "required": false,
+        "default": [],
+        "help": "class names to keep, as the detector names them; leave it out to keep every class"
+      },
+      {
+        "name": "min_score",
+        "type": "number",
+        "required": false,
+        "default": 0,
+        "min": 0,
+        "max": 1,
+        "help": "the smallest confidence kept (0.5, not 50)"
+      },
+      {
+        "name": "min_area",
+        "type": "number",
+        "required": false,
+        "default": 0,
+        "min": 0,
+        "help": "the smallest box area kept, in source-frame pixels"
+      }
+    ]
+  },
+  {
+    "op": "zone",
+    "type": "logic",
+    "summary": "keeps the boxes whose anchor point is inside (or outside) a polygon; with track ids, an event when a box enters or leaves",
+    "inputs": {
+      "min": 1,
+      "max": 1,
+      "accepts": [
+        {
+          "shape": "boxes",
+          "per_crop": false
+        },
+        {
+          "shape": "obboxes",
+          "per_crop": false
+        },
+        {
+          "shape": "instances",
+          "per_crop": false
+        }
+      ]
+    },
+    "output": "same",
+    "tracking": false,
+    "events": [
+      "enter",
+      "exit"
+    ],
+    "numbers": [],
+    "params": [
+      {
+        "name": "polygon",
+        "type": "polygon",
+        "required": true,
+        "min_points": 3,
+        "help": "x0, y0, x1, y1, ...: at least 3 points, each a fraction 0..1 of the frame's width and height"
+      },
+      {
+        "name": "mode",
+        "type": "choice",
+        "required": false,
+        "default": "inside",
+        "choices": [
+          "inside",
+          "outside"
+        ],
+        "help": "which boxes pass: those whose anchor is inside the polygon, or outside it"
+      },
+      {
+        "name": "anchor",
+        "type": "choice",
+        "required": false,
+        "default": "bottom",
+        "choices": [
+          "bottom",
+          "center"
+        ],
+        "help": "the point of a box that is tested: its bottom centre (where a person stands) or its centre"
+      }
+    ]
+  },
+  {
+    "op": "line",
+    "type": "logic",
+    "summary": "counts tracked boxes crossing a line, in each direction, with an event per crossing",
+    "inputs": {
+      "min": 1,
+      "max": 1,
+      "accepts": [
+        {
+          "shape": "boxes",
+          "per_crop": false
+        },
+        {
+          "shape": "obboxes",
+          "per_crop": false
+        },
+        {
+          "shape": "instances",
+          "per_crop": false
+        }
+      ]
+    },
+    "output": "records",
+    "tracking": true,
+    "events": [
+      "cross"
+    ],
+    "numbers": [
+      "in",
+      "out",
+      "total"
+    ],
+    "params": [
+      {
+        "name": "line",
+        "type": "line",
+        "required": true,
+        "points": 2,
+        "help": "x0, y0, x1, y1: the line from A to B, each a fraction 0..1 of the frame's width and height; \"in\" is a crossing from the left of A->B to its right"
+      },
+      {
+        "name": "anchor",
+        "type": "choice",
+        "required": false,
+        "default": "bottom",
+        "choices": [
+          "bottom",
+          "center"
+        ],
+        "help": "the point of a box that is tested: its bottom centre (where a person stands) or its centre"
+      },
+      {
+        "name": "direction",
+        "type": "choice",
+        "required": false,
+        "default": "both",
+        "choices": [
+          "both",
+          "in",
+          "out"
+        ],
+        "help": "which crossings raise a \"cross\" event; the counts always keep both"
+      }
+    ]
+  },
+  {
+    "op": "count",
+    "type": "logic",
+    "summary": "counts the boxes of each input (one record per input), in total and per listed class",
+    "inputs": {
+      "min": 1,
+      "max": 8,
+      "accepts": [
+        {
+          "shape": "boxes",
+          "per_crop": false
+        },
+        {
+          "shape": "obboxes",
+          "per_crop": false
+        },
+        {
+          "shape": "instances",
+          "per_crop": false
+        }
+      ]
+    },
+    "output": "records",
+    "tracking": false,
+    "events": [],
+    "numbers": [
+      "total"
+    ],
+    "params": [
+      {
+        "name": "classes",
+        "type": "text_list",
+        "required": false,
+        "default": [],
+        "help": "count only these classes, one number each besides \"total\"; leave it out to count every box"
+      }
+    ]
+  },
+  {
+    "op": "dwell",
+    "type": "logic",
+    "summary": "measures how long each tracked box has stayed, with an event when it passes a threshold",
+    "inputs": {
+      "min": 1,
+      "max": 1,
+      "accepts": [
+        {
+          "shape": "boxes",
+          "per_crop": false
+        },
+        {
+          "shape": "obboxes",
+          "per_crop": false
+        },
+        {
+          "shape": "instances",
+          "per_crop": false
+        }
+      ]
+    },
+    "output": "records",
+    "tracking": true,
+    "events": [
+      "dwell"
+    ],
+    "numbers": [
+      "track_id",
+      "seconds"
+    ],
+    "params": [
+      {
+        "name": "threshold_s",
+        "type": "number",
+        "required": false,
+        "default": 10,
+        "min": 0,
+        "min_exclusive": true,
+        "help": "seconds a box must stay before its \"dwell\" event"
+      },
+      {
+        "name": "grace_s",
+        "type": "number",
+        "required": false,
+        "default": 1,
+        "min": 0,
+        "max": 60,
+        "help": "seconds a box may be missing (an occlusion) and still be the same stay"
+      }
+    ]
+  },
+  {
+    "op": "condition",
+    "type": "logic",
+    "summary": "raises an event when a value passes a threshold: a box or crop count, a records number, or the crops with or without a label",
+    "inputs": {
+      "min": 1,
+      "max": 1,
+      "accepts": [
+        {
+          "shape": "boxes",
+          "per_crop": false
+        },
+        {
+          "shape": "obboxes",
+          "per_crop": false
+        },
+        {
+          "shape": "instances",
+          "per_crop": false
+        },
+        {
+          "shape": "records",
+          "per_crop": false
+        },
+        {
+          "shape": "scores",
+          "per_crop": true
+        },
+        {
+          "shape": "vector",
+          "per_crop": true
+        }
+      ]
+    },
+    "output": "records",
+    "tracking": false,
+    "events": [
+      "<event>"
+    ],
+    "numbers": [
+      "value",
+      "active"
+    ],
+    "params": [
+      {
+        "name": "value",
+        "type": "text",
+        "required": false,
+        "default": "count",
+        "help": "\"count\" (boxes or crops), a number the input writes (records), or \"with:<label>\" / \"without:<label>\" (crops with scores)"
+      },
+      {
+        "name": "comparator",
+        "type": "choice",
+        "required": false,
+        "default": ">",
+        "choices": [
+          ">",
+          ">=",
+          "<",
+          "<=",
+          "==",
+          "!="
+        ],
+        "help": "how the value is compared with \"threshold\""
+      },
+      {
+        "name": "threshold",
+        "type": "number",
+        "required": false,
+        "default": 0,
+        "help": "the number the value is compared with"
+      },
+      {
+        "name": "reduce",
+        "type": "choice",
+        "required": false,
+        "default": "max",
+        "choices": [
+          "max",
+          "min",
+          "sum"
+        ],
+        "help": "how several records' values become one: their largest, smallest or sum"
+      },
+      {
+        "name": "cooldown_s",
+        "type": "number",
+        "required": false,
+        "default": 0,
+        "min": 0,
+        "max": 86400,
+        "help": "0: one event when the condition becomes true; more: an event at most this often while it holds"
+      },
+      {
+        "name": "event",
+        "type": "text",
+        "required": false,
+        "default": "",
+        "help": "the event name (letters, digits, _ . : -); leave it out for the node id"
+      }
+    ]
+  },
+  {
+    "op": "gallery",
+    "type": "logic",
+    "summary": "names each embedding after its nearest gallery entry, or \"unknown\" under a threshold, with an event when a track's name changes",
+    "inputs": {
+      "min": 1,
+      "max": 1,
+      "accepts": [
+        {
+          "shape": "vector",
+          "per_crop": true
+        },
+        {
+          "shape": "vector",
+          "per_crop": false
+        }
+      ]
+    },
+    "output": "records",
+    "tracking": false,
+    "events": [
+      "match",
+      "unknown"
+    ],
+    "numbers": [
+      "track_id",
+      "score",
+      "parent_index"
+    ],
+    "params": [
+      {
+        "name": "gallery",
+        "type": "text",
+        "required": true,
+        "help": "a DXGAL1 .bin built from an image folder: python3 scripts/build_gallery_database.py --variant <model> --images <folder> --out <file>.bin"
+      },
+      {
+        "name": "threshold",
+        "type": "number",
+        "required": false,
+        "default": 0.5,
+        "min": 0,
+        "max": 1,
+        "help": "the smallest cosine similarity that names a match"
+      },
+      {
+        "name": "events",
+        "type": "choice",
+        "required": false,
+        "default": "known",
+        "choices": [
+          "known",
+          "all",
+          "none"
+        ],
+        "help": "\"match\" events only, \"unknown\" events too, or none"
+      }
+    ]
+  },
+  {
+    "op": "user",
+    "type": "logic",
+    "summary": "your own logic: in a run it passes its input through; an exported project gets a function stub to fill in",
+    "inputs": {
+      "min": 1,
+      "max": 1,
+      "accepts": [
+        {
+          "shape": "boxes",
+          "per_crop": false
+        },
+        {
+          "shape": "obboxes",
+          "per_crop": false
+        },
+        {
+          "shape": "instances",
+          "per_crop": false
+        },
+        {
+          "shape": "keypoints",
+          "per_crop": false
+        },
+        {
+          "shape": "labelmap",
+          "per_crop": false
+        },
+        {
+          "shape": "densemap",
+          "per_crop": false
+        },
+        {
+          "shape": "image",
+          "per_crop": false
+        },
+        {
+          "shape": "scores",
+          "per_crop": false
+        },
+        {
+          "shape": "vector",
+          "per_crop": false
+        },
+        {
+          "shape": "records",
+          "per_crop": false
+        }
+      ]
+    },
+    "output": "same",
+    "tracking": false,
+    "events": [],
+    "numbers": [],
+    "params": [
+      {
+        "name": "name",
+        "type": "text",
+        "required": true,
+        "help": "the stub function's name in an exported project: letters, digits and _, not starting with a digit"
+      },
+      {
+        "name": "input",
+        "type": "choice",
+        "required": true,
+        "choices": [
+          "boxes",
+          "obboxes",
+          "instances",
+          "keypoints",
+          "labelmap",
+          "densemap",
+          "image",
+          "scores",
+          "vector",
+          "records"
+        ],
+        "help": "the kind of data the function receives"
+      },
+      {
+        "name": "output",
+        "type": "choice",
+        "required": true,
+        "choices": [
+          "boxes",
+          "obboxes",
+          "instances",
+          "keypoints",
+          "labelmap",
+          "densemap",
+          "image",
+          "scores",
+          "vector",
+          "records"
+        ],
+        "help": "the kind it returns; in a run the input passes through, so it equals \"input\""
+      }
+    ]
+  },
+  {
+    "op": "headpose",
+    "type": "cpu",
+    "summary": "head pitch, yaw and roll (degrees) from the largest face's five landmarks",
+    "inputs": {
+      "min": 1,
+      "max": 1,
+      "accepts": [
+        {
+          "shape": "boxes",
+          "per_crop": false
+        }
+      ]
+    },
+    "output": "records",
+    "tracking": false,
+    "events": [],
+    "numbers": [
+      "pitch",
+      "yaw",
+      "roll"
+    ],
+    "params": []
+  },
+  {
+    "op": "volume",
+    "type": "cpu",
+    "summary": "a volume proxy per package box from its instance mask and the depth map under it",
+    "inputs": {
+      "min": 3,
+      "max": 3,
+      "accepts": [
+        {
+          "shape": "boxes",
+          "per_crop": false
+        },
+        {
+          "shape": "instances",
+          "per_crop": false
+        },
+        {
+          "shape": "densemap",
+          "per_crop": false
+        }
+      ]
+    },
+    "output": "records",
+    "tracking": false,
+    "events": [],
+    "numbers": [
+      "box_x",
+      "box_y",
+      "box_w",
+      "box_h",
+      "class_id",
+      "mask_area_px",
+      "median_depth",
+      "volume_proxy"
+    ],
+    "params": [
+      {
+        "name": "scale_factor",
+        "type": "number",
+        "required": false,
+        "default": 1,
+        "min": 0,
+        "help": "multiplies the proxy; 1.0 leaves it in mask-pixels times depth"
+      },
+      {
+        "name": "classes",
+        "type": "text_list",
+        "required": false,
+        "default": [],
+        "help": "package class names; leave it out for the defaults, [] to match none"
+      },
+      {
+        "name": "class_ids",
+        "type": "text_list",
+        "required": false,
+        "default": [],
+        "help": "package class ids as strings; leave it out for the defaults, [] to match none"
+      }
+    ]
+  }
+]

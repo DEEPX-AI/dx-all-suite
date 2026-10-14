@@ -1,0 +1,494 @@
+{
+ "graph": "zone-intrusion",
+ "frames": [
+  {
+   "error": "",
+   "index": 0,
+   "node_ms": {
+    "od": 39.7,
+    "person": 0.02,
+    "zone": 0.21,
+    "alarm": 0.05
+   },
+   "nodes": {
+    "od": {
+     "origin": {
+      "crop_size": [
+       0,
+       0
+      ],
+      "from_roi": false,
+      "inv_align": [
+       1.0,
+       0.0,
+       0.0,
+       0.0,
+       1.0,
+       0.0
+      ],
+      "parent_index": -1,
+      "parent_node": "",
+      "roi_index": -1,
+      "src_box": [
+       0.0,
+       0.0,
+       0.0,
+       0.0
+      ],
+      "track_id": -1
+     },
+     "payload": {
+      "items": [
+       {
+        "angle": 0.0,
+        "box": [
+         400.0,
+         200.0,
+         100.0,
+         400.0
+        ],
+        "class_id": 0,
+        "class_name": "person",
+        "score": 0.9,
+        "track_id": 1
+       },
+       {
+        "angle": 0.0,
+        "box": [
+         60.0,
+         200.0,
+         100.0,
+         400.0
+        ],
+        "class_id": 0,
+        "class_name": "person",
+        "score": 0.9,
+        "track_id": 2
+       }
+      ],
+      "shape": "boxes"
+     }
+    },
+    "person": {
+     "origin": {
+      "crop_size": [
+       0,
+       0
+      ],
+      "from_roi": false,
+      "inv_align": [
+       1.0,
+       0.0,
+       0.0,
+       0.0,
+       1.0,
+       0.0
+      ],
+      "parent_index": -1,
+      "parent_node": "",
+      "roi_index": -1,
+      "src_box": [
+       0.0,
+       0.0,
+       0.0,
+       0.0
+      ],
+      "track_id": -1
+     },
+     "payload": {
+      "items": [
+       {
+        "angle": 0.0,
+        "box": [
+         400.0,
+         200.0,
+         100.0,
+         400.0
+        ],
+        "class_id": 0,
+        "class_name": "person",
+        "score": 0.9,
+        "track_id": 1
+       },
+       {
+        "angle": 0.0,
+        "box": [
+         60.0,
+         200.0,
+         100.0,
+         400.0
+        ],
+        "class_id": 0,
+        "class_name": "person",
+        "score": 0.9,
+        "track_id": 2
+       }
+      ],
+      "shape": "boxes"
+     }
+    },
+    "zone": {
+     "origin": {
+      "crop_size": [
+       0,
+       0
+      ],
+      "from_roi": false,
+      "inv_align": [
+       1.0,
+       0.0,
+       0.0,
+       0.0,
+       1.0,
+       0.0
+      ],
+      "parent_index": -1,
+      "parent_node": "",
+      "roi_index": -1,
+      "src_box": [
+       0.0,
+       0.0,
+       0.0,
+       0.0
+      ],
+      "track_id": -1
+     },
+     "payload": {
+      "items": [
+       {
+        "angle": 0.0,
+        "box": [
+         400.0,
+         200.0,
+         100.0,
+         400.0
+        ],
+        "class_id": 0,
+        "class_name": "person",
+        "score": 0.9,
+        "track_id": 1
+       }
+      ],
+      "shape": "boxes"
+     }
+    },
+    "alarm": {
+     "origin": {
+      "crop_size": [
+       0,
+       0
+      ],
+      "from_roi": false,
+      "inv_align": [
+       1.0,
+       0.0,
+       0.0,
+       0.0,
+       1.0,
+       0.0
+      ],
+      "parent_index": -1,
+      "parent_node": "",
+      "roi_index": -1,
+      "src_box": [
+       0.0,
+       0.0,
+       0.0,
+       0.0
+      ],
+      "track_id": -1
+     },
+     "payload": {
+      "items": [
+       {
+        "numbers": {
+         "value": 1,
+         "active": 1
+        },
+        "text": {}
+       }
+      ],
+      "shape": "records"
+     }
+    }
+   },
+   "roi_nodes": {},
+   "skipped_out_of_bounds": 0,
+   "events": [
+    {
+     "node": "zone",
+     "event": "enter",
+     "track_id": 1,
+     "time": 0.0,
+     "data": {
+      "count": 1
+     }
+    }
+   ]
+  },
+  {
+   "error": "",
+   "index": 1,
+   "node_ms": {
+    "od": 39.7,
+    "person": 0.02,
+    "zone": 0.21,
+    "alarm": 0.05
+   },
+   "nodes": {
+    "od": {
+     "origin": {
+      "crop_size": [
+       0,
+       0
+      ],
+      "from_roi": false,
+      "inv_align": [
+       1.0,
+       0.0,
+       0.0,
+       0.0,
+       1.0,
+       0.0
+      ],
+      "parent_index": -1,
+      "parent_node": "",
+      "roi_index": -1,
+      "src_box": [
+       0.0,
+       0.0,
+       0.0,
+       0.0
+      ],
+      "track_id": -1
+     },
+     "payload": {
+      "items": [
+       {
+        "angle": 0.0,
+        "box": [
+         400.0,
+         200.0,
+         100.0,
+         400.0
+        ],
+        "class_id": 0,
+        "class_name": "person",
+        "score": 0.9,
+        "track_id": 1
+       },
+       {
+        "angle": 0.0,
+        "box": [
+         500.0,
+         200.0,
+         100.0,
+         400.0
+        ],
+        "class_id": 0,
+        "class_name": "person",
+        "score": 0.9,
+        "track_id": 3
+       },
+       {
+        "angle": 0.0,
+        "box": [
+         60.0,
+         200.0,
+         100.0,
+         400.0
+        ],
+        "class_id": 0,
+        "class_name": "person",
+        "score": 0.9,
+        "track_id": 2
+       }
+      ],
+      "shape": "boxes"
+     }
+    },
+    "person": {
+     "origin": {
+      "crop_size": [
+       0,
+       0
+      ],
+      "from_roi": false,
+      "inv_align": [
+       1.0,
+       0.0,
+       0.0,
+       0.0,
+       1.0,
+       0.0
+      ],
+      "parent_index": -1,
+      "parent_node": "",
+      "roi_index": -1,
+      "src_box": [
+       0.0,
+       0.0,
+       0.0,
+       0.0
+      ],
+      "track_id": -1
+     },
+     "payload": {
+      "items": [
+       {
+        "angle": 0.0,
+        "box": [
+         400.0,
+         200.0,
+         100.0,
+         400.0
+        ],
+        "class_id": 0,
+        "class_name": "person",
+        "score": 0.9,
+        "track_id": 1
+       },
+       {
+        "angle": 0.0,
+        "box": [
+         500.0,
+         200.0,
+         100.0,
+         400.0
+        ],
+        "class_id": 0,
+        "class_name": "person",
+        "score": 0.9,
+        "track_id": 3
+       },
+       {
+        "angle": 0.0,
+        "box": [
+         60.0,
+         200.0,
+         100.0,
+         400.0
+        ],
+        "class_id": 0,
+        "class_name": "person",
+        "score": 0.9,
+        "track_id": 2
+       }
+      ],
+      "shape": "boxes"
+     }
+    },
+    "zone": {
+     "origin": {
+      "crop_size": [
+       0,
+       0
+      ],
+      "from_roi": false,
+      "inv_align": [
+       1.0,
+       0.0,
+       0.0,
+       0.0,
+       1.0,
+       0.0
+      ],
+      "parent_index": -1,
+      "parent_node": "",
+      "roi_index": -1,
+      "src_box": [
+       0.0,
+       0.0,
+       0.0,
+       0.0
+      ],
+      "track_id": -1
+     },
+     "payload": {
+      "items": [
+       {
+        "angle": 0.0,
+        "box": [
+         400.0,
+         200.0,
+         100.0,
+         400.0
+        ],
+        "class_id": 0,
+        "class_name": "person",
+        "score": 0.9,
+        "track_id": 1
+       },
+       {
+        "angle": 0.0,
+        "box": [
+         500.0,
+         200.0,
+         100.0,
+         400.0
+        ],
+        "class_id": 0,
+        "class_name": "person",
+        "score": 0.9,
+        "track_id": 3
+       }
+      ],
+      "shape": "boxes"
+     }
+    },
+    "alarm": {
+     "origin": {
+      "crop_size": [
+       0,
+       0
+      ],
+      "from_roi": false,
+      "inv_align": [
+       1.0,
+       0.0,
+       0.0,
+       0.0,
+       1.0,
+       0.0
+      ],
+      "parent_index": -1,
+      "parent_node": "",
+      "roi_index": -1,
+      "src_box": [
+       0.0,
+       0.0,
+       0.0,
+       0.0
+      ],
+      "track_id": -1
+     },
+     "payload": {
+      "items": [
+       {
+        "numbers": {
+         "value": 2,
+         "active": 1
+        },
+        "text": {}
+       }
+      ],
+      "shape": "records"
+     }
+    }
+   },
+   "roi_nodes": {},
+   "skipped_out_of_bounds": 0,
+   "events": [
+    {
+     "node": "zone",
+     "event": "enter",
+     "track_id": 3,
+     "time": 0.04,
+     "data": {
+      "count": 2
+     }
+    }
+   ]
+  }
+ ]
+}

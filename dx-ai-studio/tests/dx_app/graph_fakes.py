@@ -71,3 +71,31 @@ case "$1" in
 esac
 exit 2
 """
+
+# The dx_app Phase 2 CLI (docs/superpowers/plans/2026-10-14-graph-composer-p2-dxapp.md Tasks 12-15), recorded from
+# that plan until its build lands (Task "align with dx_app" re-captures them): list_ops.json is its --list-ops --json
+# catalog, help_p2.txt its --help, check_logic_*.json --check --json on zone_intrusion.json (and with a 2-point
+# polygon), run_events.log / events.jsonl / report_logic.json a 2-frame run of it, examples/*.json its six samples.
+P2_CLI = r"""
+case "$1" in
+  --help) cat "$FIX/help_p2.txt"; exit 0 ;;
+  --list-models) cat "$FIX/list_models.json"; exit 0 ;;
+  --list-ops) cat "$FIX/list_ops.json"; exit 0 ;;
+  --check)
+    if grep -q '"polygon": \[[0-9.]*, *[0-9.]*, *[0-9.]*, *[0-9.]*\]' "$2"; then   # a polygon of 2 points
+      cat "$FIX/check_logic_err.json"; exit 1; fi
+    if grep -q '"logic"' "$2"; then cat "$FIX/check_logic_ok.json"; exit 0; fi
+    if grep -q '"depth"' "$2"; then cat "$FIX/check_err.json"; exit 1; fi
+    cat "$FIX/check_ok.json"; exit 0 ;;
+esac
+exit 2
+"""
+
+
+def install_examples(root: Path) -> Path:
+    """Copy the six logic sample graphs into <root>/src/cpp_example/multi_model_graph (a fake dx_app root)."""
+    d = root / "src" / "cpp_example" / "multi_model_graph"
+    d.mkdir(parents=True, exist_ok=True)
+    for p in sorted((FIX / "examples").glob("*.json")):
+        (d / p.name).write_text(p.read_text(encoding="utf-8"), encoding="utf-8")
+    return d

@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "name": "people-count-per-zone",
+  "nodes": [
+    { "id": "cam",    "type": "source", "uri": "sample/img/sample_people.jpg" },
+    { "id": "od",     "model": "yolov8-n_640x640",
+      "params": { "score_threshold": 0.35 },
+      "track":  { "algo": "iou", "iou": 0.3, "max_age": 30 } },
+    { "id": "person", "type": "logic", "op": "filter", "params": { "classes": ["person"] } },
+    { "id": "left",   "type": "logic", "op": "zone",
+      "params": { "polygon": [0.0, 0.35, 0.45, 0.35, 0.45, 1.0, 0.0, 1.0] } },
+    { "id": "right",  "type": "logic", "op": "zone",
+      "params": { "polygon": [0.45, 0.35, 1.0, 0.35, 1.0, 1.0, 0.45, 1.0] } },
+    { "id": "count",  "type": "logic", "op": "count", "params": { "classes": ["person"] } }
+  ],
+  "edges": [
+    { "from": "cam",    "to": "od" },
+    { "from": "od",     "to": "person", "carry": "result" },
+    { "from": "person", "to": "left",   "carry": "result" },
+    { "from": "person", "to": "right",  "carry": "result" },
+    { "from": "left",   "to": "count",  "carry": "result" },
+    { "from": "right",  "to": "count",  "carry": "result" }
+  ]
+}
