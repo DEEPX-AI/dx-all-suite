@@ -255,6 +255,105 @@ def test_a_condition_suggests_the_values_its_input_writes(ui):
     assert "Fires: condition" in page.inner_text("#gc-inspector-body"), "the event takes the node id by default"
 
 
+def test_a_zone_is_edited_on_the_frame_with_mouse_keyboard_and_undo(ui):
+    page, _ = ui
+    _open(page, "zone_intrusion")
+    page.evaluate("GraphComposer.canvas().select({nodes: ['zone']})")
+    page.click("#gc-inspector-body .gc-zone-edit")
+    page.wait_for_function("() => GraphZoneEditor.state() && GraphZoneEditor.state().img")
+    assert page.evaluate("GraphZoneEditor.state().frame.width") == 1920
+    f = _fit(page)
+    # drag the first point (0.45, 0.35) to (0.40, 0.30)
+    x0, y0 = f["x"] + f["ox"] + 0.45 * f["w"], f["y"] + f["oy"] + 0.35 * f["h"]
+    page.mouse.move(x0, y0)
+    page.mouse.down()
+    page.mouse.move(x0 - f["w"] * 0.05, y0 - f["h"] * 0.05, steps=4)
+    page.mouse.up()
+    moved = _node(page, "zone")["params"]["polygon"][:2]
+    assert abs(moved[0] - 0.40) < 0.01 and abs(moved[1] - 0.30) < 0.01, moved
+    # keyboard: pick point 2, move it right, then delete point 1
+    page.focus(".gc-zone-canvas")
+    page.keyboard.press("]")
+    page.keyboard.press("ArrowRight")
+    page.wait_for_timeout(700)
+    assert _node(page, "zone")["params"]["polygon"][2] == 1.0, "clamped at the frame's edge"
+    assert "Point 2 of 4" in page.inner_text("#gc-zone-live")
+    page.keyboard.press("Delete")
+    assert len(_node(page, "zone")["params"]["polygon"]) == 6
+    page.keyboard.press("Delete")
+    assert len(_node(page, "zone")["params"]["polygon"]) == 6, "a zone keeps 3 points"
+    page.keyboard.press("Control+z")
+    assert len(_node(page, "zone")["params"]["polygon"]) == 8, "undo is the canvas history"
+    page.wait_for_function("() => GraphZoneEditor.state().shapes[0].points.length === 4")
+    page.click("#gc-zone-done")
+    assert page.evaluate("GraphZoneEditor.isOpen()") is False
+
+
+def test_another_zone_is_another_node_fed_by_the_same_input(ui):
+    page, _ = ui
+    _open(page, "zone_intrusion")
+    page.evaluate("GraphComposer.canvas().select({nodes: ['zone']})")
+    page.click("#gc-inspector-body .gc-zone-edit")
+    page.wait_for_function("() => GraphZoneEditor.state() && GraphZoneEditor.state().img")
+    page.click("#gc-zone-body button:has-text('Add zone')")
+    zone2 = _node(page, "zone_2")
+    assert zone2["params"]["polygon"] == [0.3, 0.3, 0.7, 0.3, 0.7, 0.7, 0.3, 0.7]
+    assert {"from": "person", "to": "zone_2", "carry": "result"} in _engine(page)["edges"]
+    assert page.eval_on_selector_all(".gc-zone-list button", "els => els.map(e => [e.textContent, e.getAttribute('aria-pressed')])") \
+        == [["zone", "false"], ["zone_2", "true"]]
+    page.focus(".gc-zone-canvas")
+    page.keyboard.press("PageDown")
+    assert page.evaluate("GraphZoneEditor.state().targets[GraphZoneEditor.state().cur].nodeId") == "zone"
+
+
+def test_a_zone_is_redrawn_point_by_point_and_escape_keeps_the_old_one(ui):
+    page, _ = ui
+    _open(page, "zone_intrusion")
+    page.evaluate("GraphComposer.canvas().select({nodes: ['zone']})")
+    page.click("#gc-inspector-body .gc-zone-edit")
+    page.wait_for_function("() => GraphZoneEditor.state() && GraphZoneEditor.state().img")
+    before = _node(page, "zone")["params"]["polygon"]
+    page.click("#gc-zone-body button:has-text('Redraw zone')")
+    f = _fit(page)
+    page.mouse.click(f["x"] + f["ox"] + 0.1 * f["w"], f["y"] + f["oy"] + 0.1 * f["h"])
+    page.keyboard.press("Escape")
+    assert _node(page, "zone")["params"]["polygon"] == before and page.evaluate("GraphZoneEditor.isOpen()")
+    page.click("#gc-zone-body button:has-text('Redraw zone')")
+    for nx, ny in ((0.6, 0.1), (0.9, 0.1), (0.9, 0.3)):
+        page.mouse.click(f["x"] + f["ox"] + nx * f["w"], f["y"] + f["oy"] + ny * f["h"])
+    page.keyboard.press("Enter")
+    assert [round(v, 2) for v in _node(page, "zone")["params"]["polygon"]] == [0.6, 0.1, 0.9, 0.1, 0.9, 0.3]
+
+
+def test_two_zones_of_one_input_are_drawn_together(ui):
+    page, _ = ui
+    _open(page, "zone_people_count")
+    page.evaluate("GraphComposer.canvas().select({nodes: ['right']})")
+    page.click("#gc-inspector-body .gc-zone-edit")
+    page.wait_for_function("() => GraphZoneEditor.state() && GraphZoneEditor.state().img")
+    st = page.evaluate("({ids: GraphZoneEditor.state().targets.map(t => t.nodeId), cur: GraphZoneEditor.state().cur})")
+    assert st == {"ids": ["left", "right"], "cur": 1}
+    f = _fit(page)
+    page.mouse.click(f["x"] + f["ox"] + 0.2 * f["w"], f["y"] + f["oy"] + 0.7 * f["h"])
+    assert page.evaluate("GraphZoneEditor.state().cur") == 0, "a click inside the other zone edits it"
+
+
+def test_a_line_is_flipped_and_typed_in_numbers(ui):
+    page, _ = ui
+    _open(page, "line_counting")
+    page.evaluate("GraphComposer.canvas().select({nodes: ['line']})")
+    page.click("#gc-inspector-body .gc-zone-edit")
+    page.wait_for_function("() => GraphZoneEditor.state() && GraphZoneEditor.state().img")
+    page.click("#gc-zone-body button:has-text('Flip direction')")
+    assert _node(page, "line")["params"]["line"] == [0.3, 0.0, 0.3, 1.0]
+    x = page.locator("#gc-zone-body input[aria-label='Point 1 x']")
+    x.fill("0.25")
+    x.dispatch_event("change")
+    assert _node(page, "line")["params"]["line"][0] == 0.25
+    page.keyboard.press("Escape")
+    assert page.evaluate("GraphZoneEditor.isOpen()") is False
+
+
 class FakeGallery:
     """/api/graph/gallery/{build,poll,stop}: a build that runs for `polls` polls, then ends as `result`; `hold` keeps it
     running until it is stopped (then it ends as gallery_stopped, as graph_gallery.stop does)."""
@@ -335,3 +434,15 @@ def test_a_gallery_build_shows_its_time_can_be_stopped_and_says_why_it_ended(ui)
     page.evaluate("GraphComposer.canvas().select({nodes: ['known']})")
     status = page.inner_text(f"{_GB} .gc-gallery-status")
     assert status.startswith("Gallery") and "the gallery build was stopped" in status, status
+
+
+def test_a_frame_too_large_to_show_says_why_and_the_shapes_stay_editable(ui):
+    page, _ = ui
+    page.context.route("**/api/graph/frame*", lambda r: r.fulfill(status=413, content_type="application/json", body=json.dumps(
+        {"error": "the file is 900 MB; a video up to 512 MB is shown", "error_key": "frame_too_large"})))
+    _open(page, "zone_intrusion")
+    page.evaluate("GraphComposer.canvas().select({nodes: ['zone']})")
+    page.click("#gc-inspector-body .gc-zone-edit")
+    page.wait_for_selector("#gc-zone-body :text('the file is 900 MB; a video up to 512 MB is shown')", timeout=10000)
+    assert "shapes are drawn on an empty 16:9 frame" in page.inner_text("#gc-zone-body")
+    assert page.evaluate("GraphZoneEditor.state().shapes[0].points.length") == 4
