@@ -1,0 +1,117 @@
+#!/usr/bin/env python3
+"""DX Edge web server — port 8100.
+
+DEEPX on AWS: the AWS Marketplace entry points (DEEPX Compiler Solution, DEEPX Greengrass
+Solution) and a cloud ONNX → DXNN compile through a deployed DEEPX Compiler stack.
+The AWS work lives in dx_edge/core/aws_compile.py; this file only routes.
+"""
+from pathlib import Path
+
+from shared.dx_server import DXBaseHandler, DXServer, RequestBodyError
+from shared.shell import ShellSpec
+from dx_edge.core import aws_compile as ac
+
+DEFAULT_PORT = 8100
+STATIC_DIR = Path(__file__).resolve().parent / "static"
+TEMPLATES_DIR = Path(__file__).resolve().parent / "templates"
+SERVER_NAME = "DX Edge"
+
+# A single screen, so there is no tab row — the template root carries .dx-shell--no-tabs.
+DX_EDGE_SHELL = ShellSpec(module_key="cloud")
+
+
+def _models_dir():
+    """The Studio models directory — the same setting dx_app uses (DX_APP_MODELS_DIR)."""
+    from dx_app.core import config as app_config
+    return app_config.MODELS_DIR
+
+
+class DXEdgeHandler(DXBaseHandler):
+    """DX Edge HTTP request handler."""
+
+    server_name = SERVER_NAME
+    static_dir = STATIC_DIR
+    templates_dir = TEMPLATES_DIR
+    shell_spec = DX_EDGE_SHELL
+    log_silent = True
+    upload_max_bytes = ac.MAX_ONNX_BYTES + ac.MAX_JSON_BYTES + 64 * 1024
+
+    def _job_args(self, src: dict):
+        return (src.get("profile", ""), src.get("region", ""), src.get("stack", ""),
+                src.get("prefix", ""))
+
+    def _query(self) -> dict:
+        return {k: self.read_query_param(k) for k in ("profile", "region", "stack", "prefix")}
+
+    def route(self):
+        if self.route_common():
+            return
+        path = self.url_path
+        try:
+            if self.command == "GET":
+                if path == "/api/hb":
+                    return self.send_json({"ok": True})
+                if path == "/api/aws/status":
+                    return self.send_json(ac.status())
+                if path == "/api/aws/stacks":
+                    q = self._query()
+                    return self.send_json({"stacks": ac.list_stacks(q["profile"], q["region"])})
+                if path == "/api/aws/compile/status":
+                    return self.send_json(ac.compile_status(*self._job_args(self._query())))
+                if path == "/api/aws/compile/download":
+                    return self._download()
+            elif self.command == "POST":
+                if path == "/api/aws/compile":
+                    return self._start_compile()
+                if path == "/api/aws/compile/save":
+                    out = ac.save_dxnn(*self._job_args(self.read_json_body()), _models_dir())
+                    return self.send_json({"path": str(out)})
+        except ac.AwsError as exc:
+            return self.send_error_json(exc.status, exc.message)
+        self.route_legacy()
+
+    def _download(self):
+        """Stream the .dxnn from S3 to the browser in chunks (models are tens of MB)."""
+        name, size, body = ac.open_dxnn(*self._job_args(self._query()))
+        chunks = ac.iter_body(body)
+        first = next(chunks, b"")  # an AWS error here can still become a JSON error response
+        self.send_response(200)
+        self.send_header("Content-Type", "application/octet-stream")
+        self.send_header("Content-Length", str(size))
+        self.send_header("Content-Disposition", f'attachment; filename="{name}"')
+        self.end_headers()
+        if self._is_head_request():
+            return
+        try:
+            self.wfile.write(first)
+            for chunk in chunks:
+                self.wfile.write(chunk)
+        except ac.AwsError:
+            # Headers are out; dropping the connection tells the browser the download failed.
+            self.close_connection = True
+
+    def _start_compile(self):
+        fields, files = self.parse_multipart()
+        onnx, cfg = files.get("onnx"), files.get("json")
+        if not onnx or not cfg:
+            raise RequestBodyError(400, "Both an .onnx and a .json file are required")
+        job = ac.start_compile(
+            profile=fields.get("profile", ""),
+            region=fields.get("region", ""),
+            stack=fields.get("stack", ""),
+            onnx_name=onnx["filename"], onnx_data=onnx["data"],
+            json_name=cfg["filename"], json_data=cfg["data"],
+        )
+        self.send_json(job)
+
+
+def create_server(port=DEFAULT_PORT):
+    """Server factory for tests: returns an HTTPServer instance."""
+    from http.server import ThreadingHTTPServer
+    srv = ThreadingHTTPServer(("127.0.0.1", port), DXEdgeHandler)
+    srv.daemon_threads = True
+    return srv
+
+
+if __name__ == "__main__":
+    DXServer(DXEdgeHandler, SERVER_NAME, default_port=DEFAULT_PORT).start()

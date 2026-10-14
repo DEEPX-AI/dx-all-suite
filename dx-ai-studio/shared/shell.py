@@ -1,6 +1,6 @@
 """Markup generator for the shared App Shell.
 
-If each of the 8 modules copied the rail / header / tab HTML, the shells would drift apart.
+If each of the 9 modules copied the rail / header / tab HTML, the shells would drift apart.
 It is built here at server render time and injected into the templates. Standard library only.
 
 dx-shell.css draws the frame: 56px rail + 56px header + 42px tab row.
@@ -31,6 +31,8 @@ MODULES: tuple[Module, ...] = (
     Module("bench", "DX Benchmark", "bench", "/benchmark/"),
     Module("monitor", "DX Monitor", "monitor", "/dx_monitor/"),
     Module("agent", "DX Agent Dev", "agent", "/agent/"),
+    # "edge" is taken by DX EdgeGuide (dx_planner), so DX Edge is "cloud" here.
+    Module("cloud", "DX Edge", "cloud", "/edge/"),
 )
 
 _BY_KEY = {m.key: m for m in MODULES}

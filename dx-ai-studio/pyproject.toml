@@ -12,6 +12,11 @@ requires-python = ">=3.8"
 # deliberate: air-gapped boards bootstrap via `pip install -e .` with no PyPI access.
 dependencies = []
 
+[project.optional-dependencies]
+# DX Edge cloud compile talks to AWS through boto3. Optional: without it the DX Edge page still
+# loads and shows an install hint; nothing else in the studio needs it.
+aws = ["boto3"]
+
 [tool.setuptools]
 packages = [
   "shared", "shared.chat", "launcher",
@@ -23,6 +28,7 @@ packages = [
   "dx_monitor", "dx_monitor.core",
   "dx_planner", "dx_planner.core",
   "dx_agent_dev", "dx_agent_dev.core", "dx_agent_dev.core.adapters",
+  "dx_edge", "dx_edge.core",
 ]
 
 [tool.setuptools.package-data]

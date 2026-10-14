@@ -1,0 +1,21 @@
+/* DX Edge – module-local layout (shared foundation loaded via HTML) */
+.edge-main{max-width:1100px;margin:0 auto;padding:var(--sp-5) var(--sp-4) var(--sp-7)}
+.edge-section + .edge-section{margin-top:var(--sp-6)}
+.edge-section-title{margin:0 0 var(--sp-3);font-size:var(--fs-lg);color:var(--text-primary)}
+.edge-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:var(--sp-4)}
+.edge-card p,.edge-note{color:var(--text-secondary);line-height:1.6;margin:0}
+.edge-card h3{display:flex;align-items:center;gap:var(--sp-2);margin:0}
+.edge-actions{display:flex;flex-wrap:wrap;gap:var(--sp-2);margin-top:var(--sp-3)}
+.edge-actions .btn{text-decoration:none}
+.edge-alert{margin:var(--sp-3) 0 0;color:var(--status-warn)}
+.edge-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:0 var(--sp-4);margin-top:var(--sp-4)}
+.edge-form .edge-actions{grid-column:1/-1;margin-top:0}
+.edge-inline{display:flex;gap:var(--sp-2);align-items:center}
+.edge-inline select{flex:1;min-width:0}
+.edge-job{margin-top:var(--sp-4);padding-top:var(--sp-4);border-top:1px solid var(--border-subtle)}
+.edge-job-line{display:flex;align-items:center;gap:var(--sp-2);margin:0;flex-wrap:wrap}
+.edge-job-msg{margin:var(--sp-2) 0 0;color:var(--text-secondary);overflow-wrap:anywhere}
+.edge-job-msg.is-error{color:var(--status-error)}
+.edge-job .badge[data-state="succeeded"]{color:var(--status-ok)}
+.edge-job .badge[data-state="failed"]{color:var(--status-error)}
+.edge-links{display:flex;flex-wrap:wrap;gap:var(--sp-2);margin-top:var(--sp-3)}

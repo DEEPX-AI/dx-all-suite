@@ -1,4 +1,4 @@
-"""shell markup helpers, so the eight modules do not each copy the rail/header HTML."""
+"""shell markup helpers, so the nine modules do not each copy the rail/header HTML."""
 from __future__ import annotations
 
 import re
@@ -8,9 +8,9 @@ import pytest
 from shared.shell import MODULES, render_header, render_rail, render_tabs
 
 
-def test_modules_registry_lists_all_eight_in_hub_order():
+def test_modules_registry_lists_all_nine_in_hub_order():
     assert [m.key for m in MODULES] == [
-        "app", "stream", "zoo", "compiler", "edge", "bench", "monitor", "agent",
+        "app", "stream", "zoo", "compiler", "edge", "bench", "monitor", "agent", "cloud",
     ]
 
 

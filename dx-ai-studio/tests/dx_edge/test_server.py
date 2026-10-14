@@ -1,0 +1,175 @@
+"""DX Edge server — the page, and the HTTP layer of the cloud compile API.
+
+AWS itself is replaced: the core functions are monkeypatched (their AWS behaviour is covered with
+botocore Stubber in test_aws_compile.py), so these tests pin routing, validation hand-off and the
+response shapes only.
+"""
+from __future__ import annotations
+
+import json
+import sys
+import threading
+import uuid
+from urllib.error import HTTPError
+from urllib.request import Request, urlopen
+
+import pytest
+
+from dx_edge.core import aws_compile as ac
+
+
+@pytest.fixture()
+def base():
+    from dx_edge.server import create_server
+
+    srv = create_server(port=0)
+    t = threading.Thread(target=srv.serve_forever, kwargs={"poll_interval": 0.01}, daemon=True)
+    t.start()
+    yield f"http://127.0.0.1:{srv.server_address[1]}"
+    srv.shutdown()
+    srv.server_close()
+    t.join(timeout=2)
+
+
+def _get(url):
+    try:
+        with urlopen(url, timeout=5) as r:
+            return r.status, r.headers, r.read()
+    except HTTPError as e:
+        return e.code, e.headers, e.read()
+
+
+def _post(url, body: bytes, ctype: str, headers=None):
+    req = Request(url, data=body, method="POST", headers={"Content-Type": ctype, **(headers or {})})
+    try:
+        with urlopen(req, timeout=5) as r:
+            return r.status, r.read()
+    except HTTPError as e:
+        return e.code, e.read()
+
+
+def _multipart(fields: dict, files: dict) -> tuple[bytes, str]:
+    boundary = uuid.uuid4().hex
+    out = []
+    for k, v in fields.items():
+        out.append(f'--{boundary}\r\nContent-Disposition: form-data; name="{k}"\r\n\r\n{v}\r\n'.encode())
+    for k, (name, data) in files.items():
+        out.append(
+            f'--{boundary}\r\nContent-Disposition: form-data; name="{k}"; filename="{name}"\r\n'
+            f"Content-Type: application/octet-stream\r\n\r\n".encode() + data + b"\r\n")
+    out.append(f"--{boundary}--\r\n".encode())
+    return b"".join(out), f"multipart/form-data; boundary={boundary}"
+
+
+def test_page_has_the_marketplace_cards_and_the_compile_panel(base):
+    code, _, body = _get(base + "/")
+    html = body.decode()
+    assert code == 200
+    assert "prodview-ev6ed5omu4ulo" in html  # DEEPX Compiler Solution
+    assert "prodview-732s46qfzuh34" in html  # DEEPX Greengrass Solution
+    assert 'id="cloudCompile"' in html
+    assert "{{DX_SHELL_" not in html  # shell slots filled
+
+
+def test_heartbeat(base):
+    code, _, body = _get(base + "/api/hb")
+    assert code == 200 and json.loads(body) == {"ok": True}
+
+
+def test_status_endpoint(base, monkeypatch):
+    monkeypatch.setattr(ac, "status", lambda: {"boto3": True, "profiles": ["default"],
+                                                "default_region": "ap-northeast-2"})
+    code, _, body = _get(base + "/api/aws/status")
+    assert code == 200
+    assert json.loads(body)["default_region"] == "ap-northeast-2"
+
+
+def test_missing_boto3_is_a_json_error_with_a_hint(base, monkeypatch):
+    monkeypatch.setitem(sys.modules, "boto3", None)
+    code, _, body = _get(base + "/api/aws/stacks?region=ap-northeast-2")
+    assert code == 503
+    assert "pip install" in json.loads(body)["error"]
+
+
+def test_stacks_passes_profile_and_region(base, monkeypatch):
+    seen = {}
+
+    def fake(profile, region):
+        seen.update(profile=profile, region=region)
+        return [{"name": "s", "bucket": "b", "status": "CREATE_COMPLETE", "state_machine": True}]
+
+    monkeypatch.setattr(ac, "list_stacks", fake)
+    code, _, body = _get(base + "/api/aws/stacks?profile=dev&region=us-west-2")
+    assert code == 200
+    assert json.loads(body)["stacks"][0]["name"] == "s"
+    assert seen == {"profile": "dev", "region": "us-west-2"}
+
+
+def test_compile_hands_the_files_to_the_core_and_ignores_a_client_bucket(base, monkeypatch):
+    seen = {}
+
+    def fake(**kw):
+        seen.update(kw)
+        return {"prefix": "models/m-20261014-093000/", "stack": kw["stack"], "region": kw["region"]}
+
+    monkeypatch.setattr(ac, "start_compile", fake)
+    body, ctype = _multipart(
+        {"profile": "dev", "region": "ap-northeast-2", "stack": "stk", "bucket": "attacker"},
+        {"onnx": ("m.onnx", b"ONNX"), "json": ("m.json", b"{}")},
+    )
+    code, resp = _post(base + "/api/aws/compile", body, ctype)
+    assert code == 200, resp
+    assert json.loads(resp)["prefix"] == "models/m-20261014-093000/"
+    assert seen["onnx_name"] == "m.onnx" and seen["onnx_data"] == b"ONNX"
+    assert seen["json_name"] == "m.json" and seen["json_data"] == b"{}"
+    assert "bucket" not in seen
+
+
+def test_compile_without_files_is_400(base):
+    body, ctype = _multipart({"region": "ap-northeast-2", "stack": "stk"}, {})
+    code, _ = _post(base + "/api/aws/compile", body, ctype)
+    assert code == 400
+
+
+def test_compile_cross_origin_is_refused(base, monkeypatch):
+    monkeypatch.setattr(ac, "start_compile", lambda **kw: pytest.fail("must not run"))
+    body, ctype = _multipart({"stack": "stk"}, {"onnx": ("m.onnx", b"x"), "json": ("m.json", b"{}")})
+    code, _ = _post(base + "/api/aws/compile", body, ctype, {"Origin": "http://evil.example"})
+    assert code == 403
+
+
+def test_compile_status_maps_aws_errors_to_json(base):
+    code, _, body = _get(base + "/api/aws/compile/status?region=ap-northeast-2&stack=s&prefix=models/../x/")
+    assert code == 400
+    assert "error" in json.loads(body)
+
+
+def test_download_streams_the_dxnn_as_an_attachment(base, monkeypatch):
+    import io
+    from botocore.response import StreamingBody
+
+    monkeypatch.setattr(ac, "open_dxnn",
+                        lambda p, r, s, x: ("m.dxnn", 4, StreamingBody(io.BytesIO(b"DXNN"), 4)))
+    code, headers, body = _get(base + "/api/aws/compile/download?region=ap-northeast-2&stack=s"
+                                      "&prefix=models/m-20261014-093000/")
+    assert code == 200 and body == b"DXNN"
+    assert 'filename="m.dxnn"' in headers["Content-Disposition"]
+
+
+def test_save_uses_the_studio_models_dir(base, monkeypatch, tmp_path):
+    import dx_app.core.config as app_config
+
+    monkeypatch.setattr(app_config, "MODELS_DIR", tmp_path)
+    seen = {}
+
+    def fake(profile, region, stack, prefix, models_dir):
+        seen["dir"] = models_dir
+        return models_dir / "m.dxnn"
+
+    monkeypatch.setattr(ac, "save_dxnn", fake)
+    payload = json.dumps({"profile": "", "region": "ap-northeast-2", "stack": "s",
+                          "prefix": "models/m-20261014-093000/"}).encode()
+    code, resp = _post(base + "/api/aws/compile/save", payload, "application/json")
+    assert code == 200, resp
+    assert seen["dir"] == tmp_path
+    assert json.loads(resp)["path"] == str(tmp_path / "m.dxnn")

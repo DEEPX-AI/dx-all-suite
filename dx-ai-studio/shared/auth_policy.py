@@ -11,6 +11,7 @@ _PROXY_PREFIX_MAP: dict[str, str] = {
     "/benchmark": "dx_benchmark",
     "/dx_monitor": "dx_monitor",
     "/agent": "dx_agent_dev",
+    "/edge": "dx_edge",
     "/chat": "shared_chat",
 }
 
