@@ -29,8 +29,9 @@ from dx_modelzoo.core.model_card_image import example_image, webp_bytes
 from dx_modelzoo.core.model_card_md import render_index, render_markdown
 from dx_modelzoo.core.model_card_studio import category_label
 
+# No fps / fps_per_watt: a dx_app example card carries no benchmark numbers
 INDEX_FIELDS = ("variant", "zoo_name", "setup_name", "zoo_id", "zoo_task", "name", "task", "family", "input",
-                "dataset", "fps", "fps_per_watt", "license", "paths", "downloads")
+                "dataset", "license", "paths", "downloads")
 
 LINK_CHECK_THREADS = 8
 LINK_CHECK_TIMEOUT = 30
@@ -112,7 +113,7 @@ def build_outputs(dx_app_root, models, categories, benchmark_rows, data_dir, aso
         outputs[f"{py}/README.md"] = render_markdown(card, "python").encode("utf-8")
         outputs[f"{py}/model.html"] = render_html(
             card, image_src="result.webp", other_href=rel_dir(py, cpp) + "README.md" if card["has_cpp"] else None,
-            marker=True,
+            marker=True, performance=False,
         ).encode("utf-8")
         if card["has_cpp"]:
             outputs[f"{cpp}/README.md"] = render_markdown(card, "cpp").encode("utf-8")
