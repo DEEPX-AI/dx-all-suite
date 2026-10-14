@@ -278,6 +278,32 @@ class Handler(DXBaseHandler):
                 time.sleep(0.08)  # ~12fps
         except(BrokenPipeError,ConnectionResetError):pass
 
+    def _graph_live_stream(self):
+        """The MJPEG stream of the running graph Live (dx_app/core/graph_routes.py says why it is served here)."""
+        from dx_app.core import graph_live
+        origin_err = _check_handler_origin_local(self)
+        if origin_err:
+            return self.send_json({k: v for k, v in origin_err.items() if k != "status"}, origin_err.get("status", 403))
+        job_id = self.read_query_param("id", "")
+        if not graph_live.frame_ok(job_id):
+            return self.send_json({"error": "unknown_job"}, 404)
+        self.send_response(200)
+        self.send_header("Content-Type", "multipart/x-mixed-replace; boundary=frame")
+        self.send_header("Cache-Control", "no-cache")
+        self.end_headers()
+        try:
+            while graph_live.frame_ok(job_id):
+                frame = graph_live.frame(job_id)
+                if frame:
+                    self.wfile.write(b"--frame\r\nContent-Type: image/jpeg\r\n")
+                    self.wfile.write(f"Content-Length: {len(frame)}\r\n\r\n".encode())
+                    self.wfile.write(frame)
+                    self.wfile.write(b"\r\n")
+                    self.wfile.flush()
+                time.sleep(0.08)
+        except (BrokenPipeError, ConnectionResetError):
+            pass
+
     def route(self):
         path = self.url_path
         method = self.command
@@ -379,6 +405,8 @@ class Handler(DXBaseHandler):
                 if rp.stat().st_size>5*1024*1024:return self.send_json({"error":"File too large (exceeds 5 MB)"},400)
                 try:return self.send_json({"content":rp.read_text(errors="replace")})
                 except Exception as ex:return self.send_json({"error":str(ex)})
+            if path == "/api/graph/live/frame":
+                return self._graph_live_stream()
             if path.startswith("/api/graph/"):
                 from dx_app.core import graph_routes
                 body, code = graph_routes.handle("GET", path, self.read_query_param, None, self.headers,
@@ -717,8 +745,8 @@ def _watchdog(srv):
         if time.time()-config._HEARTBEAT>_HB_TIMEOUT:
             print("\n[AUTO] No heartbeat — shutting down.")
             stop_inference();shutdown_live_processes()
-            from dx_app.core import graph_run
-            graph_run.stop_all();srv.shutdown();return
+            from dx_app.core import graph_live, graph_run
+            graph_run.stop_all();graph_live.stop_all();srv.shutdown();return
 
 def create_server(port=DEFAULT_PORT):
     """Server factory for tests: returns an HTTPServer instance."""

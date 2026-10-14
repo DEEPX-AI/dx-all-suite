@@ -7,9 +7,10 @@ from dx_app.core import config, graph_catalog, graph_memory, graph_routes, graph
 from dx_app.core.developer import lab_session
 
 GET_ROUTES = ("/api/graph/catalog", "/api/graph/run/poll", "/api/graph/run/result", "/api/graph/projects",
-              "/api/graph/project", "/api/graph/project/versions")
+              "/api/graph/project", "/api/graph/project/versions", "/api/graph/frame", "/api/graph/live/poll")
 POST_ROUTES = ("/api/graph/validate", "/api/graph/memory", "/api/graph/run", "/api/graph/run/stop",
-               "/api/graph/project/save", "/api/graph/project/delete")
+               "/api/graph/project/save", "/api/graph/project/delete", "/api/graph/live/start",
+               "/api/graph/live/stop")
 LOCAL = {"Origin": "http://localhost:8080"}
 GRAPH = {"version": 1, "name": "g", "nodes": [{"id": "cam", "type": "source", "uri": "x.jpg"}], "edges": []}
 
@@ -155,3 +156,83 @@ def test_a_corrupt_or_unwritable_project_is_a_clear_error(tmp_path, monkeypatch)
     monkeypatch.setattr(graph_projects, "save", full)
     r = _route("POST", "/api/graph/project/save", {"project": {"schema": 1, "graph": GRAPH}}, h)
     assert (r["code"], r["data"]["error_key"]) == (500, "project_io_error") and "No space" in r["data"]["error"]
+
+
+# Phase 2: events on the run poll, the frame for zone drawing, Live.
+
+def test_the_run_poll_passes_the_event_cursor(monkeypatch):
+    seen = {}
+    monkeypatch.setattr(graph_run, "poll", lambda jid, after="0": seen.update(id=jid, after=after) or {"running": True})
+    r = _route("GET", "/api/graph/run/poll", headers={"X-Lab-Token": _token(), **LOCAL},
+               query={"id": "j1", "events_after": "7"})
+    assert r["code"] == 200 and seen == {"id": "j1", "after": "7"}
+
+
+def test_the_frame_route_answers_with_the_frame_or_why_not(monkeypatch):
+    from dx_app.core import graph_frame
+    monkeypatch.setattr(graph_frame, "first_frame", lambda uri: ({"error_key": "live_source"}, 409) if uri.startswith(
+        "camera:") else ({"image": "data:image/jpeg;base64,AA==", "width": 4, "height": 2, "uri": uri}, 200))
+    h = {"X-Lab-Token": _token(), **LOCAL}
+    ok = _route("GET", "/api/graph/frame", headers=h, query={"uri": "sample/img/a.jpg"})
+    assert ok["code"] == 200 and ok["data"]["width"] == 4
+    assert _route("GET", "/api/graph/frame", headers=h, query={"uri": "camera:0"})["code"] == 409
+
+
+def test_live_start_poll_and_stop_reach_graph_live(monkeypatch):
+    from dx_app.core import graph_live
+    seen = {}
+    monkeypatch.setattr(graph_live, "start", lambda g, **kw: seen.update(start=kw) or ({"job_id": "L1"}, 200))
+    monkeypatch.setattr(graph_live, "poll", lambda jid, after="0": seen.update(poll=(jid, after)) or {"running": True})
+    monkeypatch.setattr(graph_live, "stop", lambda jid: seen.update(stop=jid) or {"status": "stopping"})
+    h = {"X-Lab-Token": _token(), **LOCAL}
+    r = _route("POST", "/api/graph/live/start", {"graph": GRAPH, "variant": "async",
+                                                 "inputs": {"cam": "camera:0"}, "max_inflight": 2}, h)
+    assert r["data"] == {"job_id": "L1"} and seen["start"] == {"variant": "async", "inputs": {"cam": "camera:0"},
+                                                               "max_inflight": 2}
+    assert _route("GET", "/api/graph/live/poll", headers=h, query={"id": "L1", "events_after": "3"})["code"] == 200
+    assert seen["poll"] == ("L1", "3")
+    assert _route("POST", "/api/graph/live/stop", {"id": "L1"}, h)["data"] == {"status": "stopping"}
+    assert _route("POST", "/api/graph/live/start", {"graph": "x"}, h)["code"] == 400
+
+
+def _stream(query, headers, monkeypatch, frames):
+    """GET /api/graph/live/frame through Handler.route() with a byte buffer as the socket."""
+    import io
+
+    from dx_app import server
+    from dx_app.core import graph_live
+
+    answers = iter(frames)
+    state = {"left": len(frames)}
+
+    def ok(jid):
+        return jid == "L1" and state["left"] > 0
+
+    def frame(jid):
+        state["left"] -= 1
+        return next(answers)
+    monkeypatch.setattr(graph_live, "frame_ok", ok)
+    monkeypatch.setattr(graph_live, "frame", frame)
+    monkeypatch.setattr(server.time, "sleep", lambda _s: None)
+    captured = {"headers": {}}
+    h = object.__new__(server.Handler)
+    h.command, h.url_path, h.headers = "GET", "/api/graph/live/frame", headers
+    h.query = {k: [v] for k, v in query.items()}
+    h.handle_chat_routes = lambda _engine: False
+    h.wfile = io.BytesIO()
+    h.send_json = lambda data, code=200: captured.update(data=data, code=code)
+    h.send_response = lambda code: captured.update(code=code)
+    h.send_header = lambda k, v: captured["headers"].update({k: v})
+    h.end_headers = lambda: None
+    h.route()
+    captured["body"] = h.wfile.getvalue()
+    return captured
+
+
+def test_the_live_frame_stream_needs_the_running_job_and_a_local_origin(monkeypatch):
+    r = _stream({"id": "L1"}, dict(LOCAL), monkeypatch, [b"JPEG1", b"JPEG2"])
+    assert r["code"] == 200 and r["headers"]["Content-Type"].startswith("multipart/x-mixed-replace")
+    assert r["body"].count(b"--frame") == 2 and b"JPEG2" in r["body"]
+    assert _stream({"id": "other"}, dict(LOCAL), monkeypatch, [b"x"])["code"] == 404
+    bad = _stream({"id": "L1"}, {"Origin": "https://evil.example.com"}, monkeypatch, [b"x"])
+    assert (bad["code"], bad["data"]["error"]) == (403, "Cross-origin access denied") and bad["body"] == b""
