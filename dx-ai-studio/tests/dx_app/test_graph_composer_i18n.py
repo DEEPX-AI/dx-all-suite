@@ -75,7 +75,7 @@ def test_korean_keeps_composer_and_inspector_in_english():
 
 
 # Phase 2: every string of the composer's scripts in six languages, and Korean keeps English technical terms there
-# instead of spelling them in Hangul (the older Run page entries such as '라이브 디스플레이' are not the composer's).
+# instead of spelling them in Hangul (the older Run page entries, such as its Live display, are not the composer's).
 GRAPH_SCRIPTS = sorted((ROOT / "dx_app/static/js").glob("graph-*.js"))
 _P2_HANGUL_SPELLINGS = _HANGUL_SPELLINGS + ("라이브", "로직", "갤러리", "템플릿", "스트리밍", "트래킹", "폴리곤")
 
