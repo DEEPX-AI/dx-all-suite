@@ -18,6 +18,7 @@ Contract: tests/dx_app/test_graph_live.py
 from __future__ import annotations
 
 import atexit
+import hmac
 import json
 import os
 import re
@@ -242,9 +243,13 @@ def _finish(job: dict) -> None:
 
 
 def _current(job_id: str):
+    """The graph Live whose id is `job_id`, else None. The id is the MJPEG stream's only key (an <img> cannot send
+    the session token), so it is compared in constant time, as bytes (compare_digest refuses non-ASCII str)."""
+    if not isinstance(job_id, str) or not job_id:
+        return None
     with _lock:
         job = _job
-    if job is None or job["id"] != job_id:
+    if job is None or not hmac.compare_digest(job["id"].encode(), job_id.encode("utf-8", "replace")):
         return None
     return job
 
@@ -282,7 +287,7 @@ def stop(job_id: str) -> dict:
 
 def frame_ok(job_id: str) -> bool:
     """True while `job_id` is the running graph Live (the MJPEG stream's gate)."""
-    job = _current(job_id) if isinstance(job_id, str) and job_id else None
+    job = _current(job_id)
     return job is not None and job["proc"].poll() is None
 
 

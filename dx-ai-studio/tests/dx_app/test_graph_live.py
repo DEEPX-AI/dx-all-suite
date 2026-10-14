@@ -206,3 +206,17 @@ def test_the_runner_s_lines_arrive_line_by_line(studio, monkeypatch):
     jid = graph_live.start(GRAPH)[0]["job_id"]
     assert seen["cmd"][1:3] == ["-oL", "-eL"] and seen["cmd"][0].endswith("stdbuf")
     graph_live.stop(jid)
+
+
+def test_the_job_id_is_compared_in_constant_time(studio, monkeypatch):
+    graph_fakes.install(studio["tmp"], monkeypatch, LIVE_RUNNER)
+    jid = graph_live.start(GRAPH)[0]["job_id"]
+    seen = []
+    real = graph_live.hmac.compare_digest
+    monkeypatch.setattr(graph_live.hmac, "compare_digest", lambda a, b: seen.append((a, b)) or real(a, b))
+    assert graph_live.frame_ok(jid) and seen, "the stream's gate goes through hmac.compare_digest"
+    for bad in (jid[:-1] + ("0" if jid[-1] != "0" else "1"), jid + "0", "", "é" * 32, None, 7):
+        assert graph_live.frame_ok(bad) is False, bad
+        assert graph_live.frame(bad) is None
+    assert graph_live.poll("é")["error"] == "unknown_job"
+    graph_live.stop(jid)
