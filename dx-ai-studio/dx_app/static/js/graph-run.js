@@ -1,10 +1,28 @@
 /* DX App — Graph Composer run panel: run the graph once on an image or a video (per source: the graph's own input,
    a sample, or an uploaded image), sync or async, then show progress, FPS, per-node time, the rendered result and
-   per-node results. Camera and RTSP come with Live (a later phase). Contract: tests/dx_app/test_graph_composer_browser.py */
+   per-node results. Camera and RTSP come with Live (a later phase). Uploads of one run together stay under the
+   server's limit (catalog `limits`). Contract: tests/dx_app/test_graph_composer_browser.py */
 window.GraphRun = (function () {
   'use strict';
   var c = null, root = null, job = null, timer = 0, picks = {}, uploads = {}, samples = [];
   var els = {};
+  var DEFAULT_UPLOAD_LIMIT = 20 * 1024 * 1024;
+
+  function uploadLimit() {
+    var l = c && c.state.catalog && c.state.catalog.limits;
+    return (l && l.uploads_total_b64) || DEFAULT_UPLOAD_LIMIT;
+  }
+
+  function uploadBytes(extra) {
+    var n = 0;
+    Object.keys(uploads).forEach(function (k) { n += uploads[k].length; });
+    return n + (extra || 0);
+  }
+
+  function tooLargeText(bytes) {
+    return c.fmt(T('The uploaded images add up to {mb} MB; one run takes at most {max} MB. Use smaller images or a sample.'),
+      { mb: (bytes / 1048576).toFixed(1), max: Math.round(uploadLimit() / 1048576) });
+  }
 
   function running() { return !!job; }
 
@@ -18,6 +36,7 @@ window.GraphRun = (function () {
     if (key === 'invalid_input') return T('This input does not exist or is outside the dx_app, sample and outputs folders.');
     if (key === 'graph_run_busy') return T('A graph run is already running.');
     if (key === 'graph_binary_missing') return T('The graph runner is not built. Build dx_app (./build.sh) to use the Graph Composer.');
+    if (key === 'uploads_too_large' || /^JSON body too large/.test((r && r.error) || '')) return tooLargeText(uploadBytes());
     return (r && r.error) || T('The run failed.');
   }
 
@@ -42,7 +61,16 @@ window.GraphRun = (function () {
         var f = file.files[0];
         if (!f) { sel.value = picks[s.id] || ''; return; }
         var reader = new FileReader();
-        reader.onload = function () { uploads[s.id] = String(reader.result); delete picks[s.id]; };
+        reader.onload = function () {
+          var data = String(reader.result), others = uploadBytes() - (uploads[s.id] ? uploads[s.id].length : 0);
+          if (others + data.length > uploadLimit()) {
+            c.notify(tooLargeText(others + data.length), 'warn');
+            sel.value = picks[s.id] || '';
+            return;
+          }
+          uploads[s.id] = data;
+          delete picks[s.id];
+        };
         reader.readAsDataURL(f);
       });
       els.inputs.appendChild(c.h('div', { class: 'fg gc-fg' }, [
@@ -97,6 +125,7 @@ window.GraphRun = (function () {
     if (job) return;
     var g = c.engine();
     if (!g.nodes.length) return;
+    if (uploadBytes() > uploadLimit()) { els.progress.textContent = tooLargeText(uploadBytes()); return; }
     var body = { graph: g, variant: els.mode.value, inputs: {}, uploads: {} };
     sources().forEach(function (s) {
       if (uploads[s.id]) body.uploads[s.id] = uploads[s.id];

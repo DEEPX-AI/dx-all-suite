@@ -289,3 +289,21 @@ def test_the_inspector_says_what_a_model_takes_in_words(ui):
     page.evaluate("GraphComposer.canvas().select({nodes: ['od']})")
     assert "takes full frame" in page.inner_text("#gc-inspector-body")
     assert "full_frame" not in page.inner_text("#gc-inspector-body")
+
+
+# Phase 1 follow-ups: uploads of one run stay under the server's JSON limit; the download-status poll ends.
+
+def test_an_upload_past_the_run_limit_is_refused_when_picked(ui):
+    import base64
+    page, fake = ui
+    _open_example(page)
+    page.evaluate("GraphComposer.state().catalog.limits = {uploads_total_b64: 100}")   # bytes: any image is over it
+    png = base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==")
+    page.set_input_files("#gc-run-body input[type=file]", {"name": "big.png", "mimeType": "image/png", "buffer": png * 4})
+    page.wait_for_function("() => [...document.querySelectorAll('.toast')].some(t => t.textContent.includes('add up to'))")
+    assert page.input_value("#gc-run-input-cam") == "", "the source keeps the graph's own input"
+    page.click("#gc-run")
+    page.wait_for_selector(".gc-run-table tbody tr")
+    posted = [b for path, b in fake.posted if path == "run"][0]
+    assert posted["uploads"] == {}, "the refused image is not sent"
+

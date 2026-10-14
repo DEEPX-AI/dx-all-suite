@@ -341,3 +341,28 @@ def test_the_watchdog_stops_graph_runs(monkeypatch):
     t.start()
     t.join(5)
     assert calls == [1]
+
+
+
+# Phase 1 follow-up: all uploads of one run stay under dx_app/server.py's JSON limit for /api/graph/run.
+
+TWO_SOURCES = {"version": 1, "name": "two",
+               "nodes": [{"id": "a", "type": "source", "uri": "sample/img/sample_people.jpg"},
+                         {"id": "b", "type": "source", "uri": "sample/img/sample_people.jpg"},
+                         {"id": "od", "model": "yolov8-n_640x640"}],
+               "edges": [{"from": "a", "to": "od"}, {"from": "b", "to": "od"}]}
+
+
+def test_uploads_that_add_up_past_the_limit_are_refused_before_anything_runs(studio, monkeypatch):
+    graph_fakes.install(studio, monkeypatch, RUNNER)
+    half = "data:image/png;base64," + "A" * (graph_run.MAX_UPLOADS_TOTAL_B64 // 2 + 10)
+    body, code = graph_run.start(TWO_SOURCES, uploads={"a": half, "b": half})
+    assert (code, body["error_key"], body["limit_bytes"]) == (413, "uploads_too_large", graph_run.MAX_UPLOADS_TOTAL_B64)
+    assert "add up to 20.0 MB" in body["error"] and _started(studio) == []
+    assert graph_run.MAX_UPLOADS_TOTAL_B64 < 24 * 1024 * 1024, "below dx_app/server.py's JSON limit for /api/graph/run"
+
+
+def test_the_server_json_limit_leaves_room_above_the_upload_limit():
+    from dx_app import server
+    assert server.Handler.json_max_bytes_by_path["/api/graph/run"] >= graph_run.MAX_UPLOADS_TOTAL_B64 + 1024 * 1024
+

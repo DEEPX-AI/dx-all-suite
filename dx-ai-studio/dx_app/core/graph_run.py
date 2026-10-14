@@ -41,6 +41,9 @@ _MAX_LOG_BYTES = 8 * 1024 * 1024
 _SOURCE_ID = re.compile(r"^[A-Za-z0-9_.-]{1,64}$")
 _KEEP_RUN_DIRS = 20
 _MAX_UPLOAD_B64 = 20 * 1024 * 1024
+# All uploads of one run together. dx_app/server.py accepts at most 24 MB of JSON on /api/graph/run; the uploads stay
+# below it with room for the graph, so too many images get this error instead of the server's bare 413.
+MAX_UPLOADS_TOTAL_B64 = 20 * 1024 * 1024
 _IMAGE_EXT = (".jpg", ".jpeg", ".png", ".bmp", ".webp")
 _VIDEO_EXT = (".mp4", ".mov", ".avi", ".mkv", ".webm")
 _LIVE = ("camera:", "rtsp://", "rtsps://", "http://", "https://")
@@ -215,6 +218,11 @@ def start(graph: dict, *, variant="sync", inputs=None, uploads=None, max_infligh
         return {"error": "inputs must be an object", "error_key": "invalid_payload"}, 400
     if uploads is not None and not isinstance(uploads, dict):
         return {"error": "uploads must be an object", "error_key": "invalid_payload"}, 400
+    total = sum(len(v) for v in (uploads or {}).values() if isinstance(v, str))
+    if total > MAX_UPLOADS_TOTAL_B64:
+        return {"error": f"the uploaded images add up to {total / 1048576:.1f} MB; one run takes at most "
+                         f"{MAX_UPLOADS_TOTAL_B64 // 1048576} MB of uploads",
+                "error_key": "uploads_too_large", "limit_bytes": MAX_UPLOADS_TOTAL_B64}, 413
     try:
         max_inflight = _int_in(max_inflight, 1, 64, "max_inflight")
         frames = _int_in(frames, 1, 100000, "frames")

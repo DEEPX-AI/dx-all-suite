@@ -3751,6 +3751,11 @@ window._DX_I18N_DICT = {
     'zh-CN': '选择上方的卡片开始。', 'zh-TW': '選擇上方的卡片開始。',
     es: 'Elija una tarjeta de arriba para empezar.',
   },
+  'The uploaded images add up to {mb} MB; one run takes at most {max} MB. Use smaller images or a sample.': {
+    ko: '업로드한 이미지가 모두 {mb} MB입니다. 한 번 실행에는 최대 {max} MB까지 올릴 수 있습니다. 더 작은 이미지나 샘플을 쓰세요.', ja: 'アップロードした画像の合計は {mb} MB です。1 回の実行で送れるのは最大 {max} MB です。小さい画像かサンプルを使ってください。',
+    'zh-CN': '上传的图片共 {mb} MB；一次运行最多 {max} MB。请使用较小的图片或示例。', 'zh-TW': '上傳的圖片共 {mb} MB；一次執行最多 {max} MB。請使用較小的圖片或範例。',
+    es: 'Las imágenes subidas suman {mb} MB; una ejecución admite como máximo {max} MB. Use imágenes más pequeñas o una de muestra.',
+  },
 };
 
 /* ─── CSS Selectors for DOM translation ─── */
