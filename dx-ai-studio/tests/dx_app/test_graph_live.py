@@ -220,3 +220,85 @@ def test_the_job_id_is_compared_in_constant_time(studio, monkeypatch):
         assert graph_live.frame(bad) is None
     assert graph_live.poll("é")["error"] == "unknown_job"
     graph_live.stop(jid)
+
+
+def test_an_unknown_live_says_so_with_an_error_key(studio):
+    assert graph_live.poll("nope") == {"error": "unknown_job", "error_key": "unknown_job"}
+
+
+def test_the_runner_reads_no_terminal_input(studio, monkeypatch):
+    seen = {}
+    real = graph_live.subprocess.Popen
+
+    def spy(cmd, *a, **k):
+        seen.update(k)
+        return real(cmd, *a, **k)
+    graph_fakes.install(studio["tmp"], monkeypatch, LIVE_RUNNER)
+    monkeypatch.setattr(graph_live.subprocess, "Popen", spy)
+    jid = graph_live.start(GRAPH)[0]["job_id"]
+    assert seen["stdin"] == graph_live.subprocess.DEVNULL
+    graph_live.stop(jid)
+
+
+class _DeadProc:
+    """A runner that has exited; its stdout breaks while being read."""
+    returncode = 0
+
+    class _Out:
+        def __iter__(self):
+            raise ValueError("I/O operation on closed file")
+
+    def __init__(self):
+        self.stdout = self._Out()
+
+    def poll(self):
+        return 0
+
+    def wait(self, timeout=None):
+        return 0
+
+
+def _old_job(tmp, jid="old"):
+    import threading
+    from collections import deque
+    from dx_app.core import graph_events
+    d = tmp / jid
+    d.mkdir()
+    return {"id": jid, "dir": d, "proc": _DeadProc(), "graph": GRAPH, "start": 0, "touched": 0,
+            "progress": {"node_ms": {}}, "events": graph_events.EventLog(), "tail": deque(), "result": None,
+            "stop_reason": None, "done": threading.Event(), "events_url": "/outputs/x"}
+
+
+def test_the_reader_always_ends_the_job_even_when_reading_fails(studio):
+    job = _old_job(studio["tmp"])
+    graph_live._job = job
+    assert npu_jobs.acquire("graph_live", "old") is None
+    with pytest.raises(ValueError):
+        graph_live._read(job)
+    assert job["done"].is_set() and npu_jobs.busy() is None
+    assert job["result"] is not None, "the poll still learns that the Live ended"
+
+
+def test_a_new_live_waits_for_the_old_reader_and_keeps_its_display(studio, monkeypatch):
+    """The old runner has exited (the NPU is free) but its reader has not finished: it must not close the display
+    the new Live has just opened."""
+    import threading
+    graph_fakes.install(studio["tmp"], monkeypatch, LIVE_RUNNER)
+    old = _old_job(studio["tmp"])
+    old["proc"].stdout = iter(["last line\n"])
+    graph_live._job = old
+    order = studio["xvfb"]
+
+    def finish_old():
+        time.sleep(0.3)
+        order.append("old reader")
+        graph_live._read(old)
+    t = threading.Thread(target=finish_old)
+    t.start()
+    jid = graph_live.start(GRAPH)[0]["job_id"]
+    t.join(5)
+    assert order.index("old reader") < order.index(("start", graph_live.SLOT)), order
+    assert ("stop", graph_live.SLOT) not in order, "the old reader leaves the new Live's display alone"
+    graph_live.stop(jid)
+    _poll_until(jid, lambda p: not p["running"])
+    assert order[-1] == ("stop", graph_live.SLOT), "the current Live's reader closes it"

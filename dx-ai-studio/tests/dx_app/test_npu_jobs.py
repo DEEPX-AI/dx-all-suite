@@ -253,7 +253,8 @@ def test_a_start_that_fails_gives_the_npu_back(studio, monkeypatch):
     def no_popen(*a, **kw):
         raise OSError("exec format error")
     monkeypatch.setattr(graph_live, "subprocess", types.SimpleNamespace(
-        Popen=no_popen, PIPE=subprocess.PIPE, STDOUT=subprocess.STDOUT, SubprocessError=subprocess.SubprocessError))
+        Popen=no_popen, PIPE=subprocess.PIPE, STDOUT=subprocess.STDOUT, DEVNULL=subprocess.DEVNULL,
+        SubprocessError=subprocess.SubprocessError))
     assert graph_live.start(GRAPH)[1] == 500 and npu_jobs.busy() is None
 
 

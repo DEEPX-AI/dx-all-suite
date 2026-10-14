@@ -147,8 +147,12 @@ def start(graph: dict, *, variant="sync", inputs=None, max_inflight=None) -> tup
         if holder is not None:
             return dict(_BUSY[holder]), 409
         old, _job = _job, None
+    from dx_app.core import camera
     if old is not None:
+        # Its runner has exited (the NPU was free), but its reader may still be draining stdout; it would close the
+        # display after this Live opened it. It is no longer the current Live, so it leaves the display to this one.
         _finish(old)
+        old["done"].wait(_STOP_GRACE + 2)
     d = live_dir() / job_id
     try:
         d.mkdir(parents=True)
@@ -156,6 +160,7 @@ def start(graph: dict, *, variant="sync", inputs=None, max_inflight=None) -> tup
     except OSError as e:
         npu_jobs.release(job_id)
         shutil.rmtree(d, ignore_errors=True)
+        camera.stop_xvfb(SLOT)
         return {"error": str(e), "error_key": "graph_live_failed"}, 500
     cmd = [str(binary), "--graph", str(d / "graph.json"), *args, "--display", "--model-dir",
            str(graph_cli.models_dir())]
@@ -167,11 +172,11 @@ def start(graph: dict, *, variant="sync", inputs=None, max_inflight=None) -> tup
         cmd += ["--max-inflight", str(max_inflight)]
     if shutil.which("stdbuf"):
         cmd = [shutil.which("stdbuf"), "-oL", "-eL"] + cmd
-    from dx_app.core import camera
     try:
         camera._ensure_xvfb(SLOT)
-        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=str(config.DX_APP_ROOT),
-                                env=_env(), text=True, bufsize=1, errors="replace", close_fds=True)
+        proc = subprocess.Popen(cmd, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                                cwd=str(config.DX_APP_ROOT), env=_env(), text=True, bufsize=1, errors="replace",
+                                close_fds=True)
     except (OSError, subprocess.SubprocessError) as e:
         npu_jobs.release(job_id)
         shutil.rmtree(d, ignore_errors=True)
@@ -197,32 +202,44 @@ def start(graph: dict, *, variant="sync", inputs=None, max_inflight=None) -> tup
 
 
 def _read(job: dict) -> None:
-    """The runner's stdout, line by line, until it exits."""
-    for line in job["proc"].stdout:
-        p = graph_run.parse_progress_line(line)
-        if p:
-            job["progress"] = p
-            continue
-        ev = graph_events.parse_event_line(line)
-        if ev:
-            job["events"].add(ev)
-            continue
-        job["tail"].append(line.rstrip("\n"))
-    code = job["proc"].wait()
-    npu_jobs.release(job["id"])
-    tail = "\n".join(job["tail"])
-    errors, _notes = parse_errors(tail, job["graph"])
-    if job["stop_reason"] == "events":
-        errors.insert(0, {"code": "LIVE_EVENTS_LIMIT", "where": "graph", "node": None, "edge": None,
-                          "what": f"the events file passed {_MAX_EVENTS_BYTES // 1048576} MB and Live was stopped",
-                          "how": "raise a condition's cooldown or narrow its zone so fewer events fire"})
-    url = job["events_url"] if (job["dir"] / "events.jsonl").is_file() else None
-    with _lock:
-        job["result"] = {"exit_code": code, "errors": errors, "log_tail": tail[-4000:], "events_url": url,
-                         "stopped_by": job["stop_reason"]}
-    from dx_app.core import camera
-    camera.stop_xvfb(SLOT)
-    job["done"].set()
+    """The runner's stdout, line by line, until it exits. However it ends, the hold is given back and `done` is set;
+    the display is closed only while this is still the current Live (a newer one may already draw on it)."""
+    try:
+        for line in job["proc"].stdout:
+            p = graph_run.parse_progress_line(line)
+            if p:
+                job["progress"] = p
+                continue
+            ev = graph_events.parse_event_line(line)
+            if ev:
+                job["events"].add(ev)
+                continue
+            job["tail"].append(line.rstrip("\n"))
+    finally:
+        try:
+            code = job["proc"].wait()
+            npu_jobs.release(job["id"])
+            tail = "\n".join(job["tail"])
+            errors, _notes = parse_errors(tail, job["graph"])
+            if job["stop_reason"] == "events":
+                errors.insert(0, {"code": "LIVE_EVENTS_LIMIT", "where": "graph", "node": None, "edge": None,
+                                  "what": f"the events file passed {_MAX_EVENTS_BYTES // 1048576} MB and Live was "
+                                          "stopped",
+                                  "how": "raise a condition's cooldown or narrow its zone so fewer events fire"})
+            url = job["events_url"] if (job["dir"] / "events.jsonl").is_file() else None
+            with _lock:
+                job["result"] = {"exit_code": code, "errors": errors, "log_tail": tail[-4000:], "events_url": url,
+                                 "stopped_by": job["stop_reason"]}
+                current = _job is job
+            if current:
+                from dx_app.core import camera
+                camera.stop_xvfb(SLOT)
+        finally:
+            npu_jobs.release(job["id"])
+            if job["result"] is None:
+                job["result"] = {"exit_code": None, "errors": [], "log_tail": "\n".join(job["tail"])[-4000:],
+                                 "events_url": None, "stopped_by": job["stop_reason"]}
+            job["done"].set()
 
 
 def _watch(job: dict) -> None:
@@ -265,7 +282,7 @@ def poll(job_id: str, events_after=0) -> dict:
     """FPS, per-node ms, the events numbered after `events_after`, and once the runner has exited, how it ended."""
     job = _current(job_id)
     if job is None:
-        return {"error": "unknown_job"}
+        return {"error": "unknown_job", "error_key": "unknown_job"}
     job["touched"] = time.time()
     try:
         after = max(0, int(events_after or 0))
