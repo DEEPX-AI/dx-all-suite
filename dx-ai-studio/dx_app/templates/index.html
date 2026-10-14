@@ -574,6 +574,7 @@
     <div class="gc-group gc-group-end">
       <button type="button" class="btn btn-ghost btn-sm" id="gc-validate"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#check"></use></svg> <span data-i18n="Validate">Validate</span></button>
       <button type="button" class="btn btn-primary btn-sm" id="gc-run" disabled><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#play"></use></svg> <span data-i18n="Run once">Run once</span></button>
+      <button type="button" class="btn btn-neutral btn-sm" id="gc-live" disabled><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#camera"></use></svg> <span data-i18n="Live">Live</span></button>
     </div>
   </div>
   <div class="gc-layout">
@@ -593,10 +594,22 @@
     </aside>
   </div>
   <section class="card gc-run" id="gc-run-panel" aria-labelledby="gc-run-title">
-    <h2 class="gc-title" id="gc-run-title" data-i18n="Run once">Run once</h2>
-    <div id="gc-run-body"></div>
+    <h2 class="dx-sr-only" id="gc-run-title" data-i18n="Run the graph">Run the graph</h2>
+    <div class="gc-tabs" role="tablist" aria-labelledby="gc-run-title">
+      <button type="button" class="gc-tab" role="tab" id="gc-tab-once" aria-controls="gc-run-body" aria-selected="true"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#play"></use></svg> <span data-i18n="Run once">Run once</span></button>
+      <button type="button" class="gc-tab" role="tab" id="gc-tab-live" aria-controls="gc-live-body" aria-selected="false" tabindex="-1"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#camera"></use></svg> <span data-i18n="Live">Live</span></button>
+    </div>
+    <div id="gc-run-body" role="tabpanel" aria-labelledby="gc-tab-once"></div>
+    <div id="gc-live-body" role="tabpanel" aria-labelledby="gc-tab-live" hidden></div>
   </section>
   <datalist id="gc-samples"></datalist>
+  <dialog class="modal-overlay" id="gc-zone-dialog" aria-labelledby="gc-zone-title">
+    <div class="modal modal-lg gc-zone-modal">
+      <h2 id="gc-zone-title"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#logic-zone"></use></svg> <span id="gc-zone-title-text"></span></h2>
+      <div id="gc-zone-body"></div>
+      <div class="gc-zone-foot"><button type="button" class="btn btn-primary btn-sm" id="gc-zone-done" data-i18n="Done">Done</button></div>
+    </div>
+  </dialog>
 </div>
 
 <!-- ═══ PAGE: Lab ═══ -->

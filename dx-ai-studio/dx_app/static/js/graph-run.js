@@ -247,5 +247,7 @@ window.GraphRun = (function () {
   }
 
   return { mount: mount, start: start, stop: stop, reset: reset, running: running, refreshLanguage: refreshLanguage,
-    renderInputs: function () { if (root) renderInputs(); } };
+    renderInputs: function () { if (root) renderInputs(); },
+    /* The input picked for a source here (a sample path), else null: the zone editor draws on that frame. */
+    inputFor: function (sid) { return picks[sid] || null; } };
 })();

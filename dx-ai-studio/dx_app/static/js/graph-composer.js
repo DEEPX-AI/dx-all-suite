@@ -2,15 +2,18 @@
 
    Palette, canvas, inspector, validation pins, the NPU memory bar, the run panel and projects around one dx_app
    graph. The server API is /api/graph/* (dx_app/core/graph_routes.py) with the Lab session token.
-   Pieces: graph-doc.js (document model), graph-palette.js, graph-inspector.js, graph-run.js; the canvas is
-   shared/static/dx-graph-canvas.js. Contract: tests/dx_app/test_graph_composer_page.py,
+   Pieces: graph-doc.js (document model), graph-palette.js, graph-inspector.js, graph-run.js (run once),
+   graph-live.js (Live), graph-events.js (event lists), graph-zone.js + graph-zone-editor.js (zones and lines); the
+   canvas is shared/static/dx-graph-canvas.js. While a run or a Live goes, its per-node time and event counts tint and
+   badge the nodes (observe()). Contract: tests/dx_app/test_graph_composer_page.py,
    tests/dx_app/test_graph_composer_browser.py */
 window.GraphComposer = (function () {
   'use strict';
   var D = window.GraphDoc;
   var DRAFT_KEY = 'dx-graph-draft';
   var st = {
-    cv: null, catalog: null, models: {}, check: null, memory: null, run: null, sel: { nodes: [], edge: null },
+    cv: null, catalog: null, models: {}, ops: {}, check: null, memory: null, run: null, observed: null,
+    sel: { nodes: [], edge: null }, runTab: 'once',
     projectId: null, version: null, name: '', dirty: false, opened: false, lang: null,
     validateTimer: 0, validateSeq: 0
   };
@@ -72,7 +75,15 @@ window.GraphComposer = (function () {
     validate: function (g) { return call('POST', '/api/graph/validate', { graph: g }); },
     memory: function (g) { return call('POST', '/api/graph/memory', { graph: g }); },
     run: function (body) { return call('POST', '/api/graph/run', body); },
-    poll: function (id) { return call('GET', '/api/graph/run/poll?id=' + encodeURIComponent(id)); },
+    poll: function (id, after) {
+      return call('GET', '/api/graph/run/poll?id=' + encodeURIComponent(id) + '&events_after=' + encodeURIComponent(after || 0));
+    },
+    frame: function (uri) { return call('GET', '/api/graph/frame?uri=' + encodeURIComponent(uri)); },
+    liveStart: function (body) { return call('POST', '/api/graph/live/start', body); },
+    livePoll: function (id, after) {
+      return call('GET', '/api/graph/live/poll?id=' + encodeURIComponent(id) + '&events_after=' + encodeURIComponent(after || 0));
+    },
+    liveStop: function (id) { return call('POST', '/api/graph/live/stop', { id: id }); },
     result: function (id) { return call('GET', '/api/graph/run/result?id=' + encodeURIComponent(id)); },
     stop: function (id) { return call('POST', '/api/graph/run/stop', { id: id }); },
     projects: function () { return call('GET', '/api/graph/projects'); },
@@ -99,6 +110,7 @@ window.GraphComposer = (function () {
     if (p.kind === 'source') n = { id: 'cam', kind: 'source', data: { type: 'source', uri: p.uri || 'sample/img/sample_people.jpg' } };
     else if (p.kind === 'cpu') n = { id: p.op, kind: 'cpu', data: { type: 'cpu', op: p.op, params: D.clone(p.params || {}) } };
     else if (p.kind === 'model') n = { id: D.suggestId(p.model, st.models), kind: 'model', data: { model: p.model } };
+    else if (p.kind === 'logic') n = { id: p.op, kind: 'logic', data: { type: 'logic', op: p.op, params: D.logicDefaults(st.ops[p.op]) } };
     else return null;
     return D.decorate(n, st.models, tr);
   }
@@ -127,7 +139,29 @@ window.GraphComposer = (function () {
     scheduleValidate();
     renderInspector();
     if (window.GraphRun) GraphRun.renderInputs();
+    if (window.GraphLive) GraphLive.renderInputs();
+    if (window.GraphZoneEditor) GraphZoneEditor.refresh();
     updateStatus();
+  }
+
+  /* The source a node's frames come from (walking its in-edges back), as the run would read it: the input picked in
+     the run panel, else the source's uri. Null when no source reaches it. */
+  function sourceFor(id) {
+    var g = st.cv.getGraph(), seen = {}, queue = [id];
+    while (queue.length) {
+      var cur = queue.shift(), n = nodeOf(cur);
+      if (!n || seen[cur]) continue;
+      seen[cur] = true;
+      if (n.kind === 'source') return (window.GraphRun && GraphRun.inputFor(n.id)) || (n.data && n.data.uri) || null;
+      g.edges.forEach(function (e) { if (e.to === cur) queue.push(e.from); });
+    }
+    return null;
+  }
+
+  /* Per-node time and event counts of a run or a Live while it goes; null when it ends (the result takes over). */
+  function observe(x) {
+    st.observed = x;
+    applyPins();
   }
 
   function scheduleValidate() {
@@ -158,7 +192,7 @@ window.GraphComposer = (function () {
   }
 
   function applyPins() {
-    var p = D.pins(st.check, st.memory, st.run, tr);
+    var p = D.pins(st.check, st.memory, st.observed || st.run, tr);
     st.cv.setBadges(p.badges);
     st.cv.setEdgeStatus(p.edges);
     st.cv.setTints(p.tints);
@@ -173,14 +207,19 @@ window.GraphComposer = (function () {
 
   function unusableCount() { return Object.keys((st.check && st.check.unusable) || {}).length; }
 
-  function canRun() {
+  function runnable() {
     return !!(st.check && st.check.ok && !(st.check.missing || []).length && !unusableCount()
-      && !(st.memory && st.memory.over_budget) && !(window.GraphRun && GraphRun.running()));
+      && !(st.memory && st.memory.over_budget));
   }
 
+  function busy() { return !!((window.GraphRun && GraphRun.running()) || (window.GraphLive && GraphLive.running())); }
+
+  function canRun() { return runnable() && !busy(); }
+
   function updateStatus() {
-    var g = st.cv.getGraph(), run = $id('gc-run');
+    var g = st.cv.getGraph(), run = $id('gc-run'), live = $id('gc-live');
     if (run) run.disabled = !canRun();
+    if (live) live.disabled = !canRun();
     if (st.catalog && st.catalog.available === false) {
       setStatus('error', T('The graph runner is not built. Build dx_app (./build.sh) to use the Graph Composer.'));
       return;
@@ -260,7 +299,8 @@ window.GraphComposer = (function () {
     return {
       h: h, icon: icon, fmt: fmt, api: api, D: D, state: st, canvas: function () { return st.cv; },
       engine: engineGraph, nodeOf: nodeOf, addFromPalette: addFromPalette, loadExample: loadExample,
-      reloadCatalog: loadCatalog, applyPins: applyPins, updateStatus: updateStatus, notify: notify
+      reloadCatalog: loadCatalog, applyPins: applyPins, updateStatus: updateStatus, notify: notify,
+      sourceFor: sourceFor, observe: observe, canRun: canRun
     };
   }
 
@@ -282,6 +322,8 @@ window.GraphComposer = (function () {
     st.catalog = r && Array.isArray(r.models) ? r : { available: false, models: [], examples: [], cpu_ops: [], error: (r && r.error) || 'catalog' };
     st.models = {};
     st.catalog.models.forEach(function (m) { st.models[m.name] = m; });
+    st.ops = {};
+    (st.catalog.logic_ops || []).forEach(function (o) { st.ops[o.op] = o; });
     renderPalette();
     refreshDisplay();
     updateStatus();
@@ -321,10 +363,12 @@ window.GraphComposer = (function () {
     st.version = (info && info.version) || null;
     st.dirty = !!(info && info.dirty);
     st.run = null;
+    st.observed = null;
     st.check = null;
     st.memory = null;
     st.sel = { nodes: [], edge: null };
     if (window.GraphRun) GraphRun.reset();
+    if (window.GraphLive) GraphLive.renderInputs();
     applyPins();
     renderMemory();
     renderInspector();
@@ -455,7 +499,21 @@ window.GraphComposer = (function () {
     $id('gc-projects').addEventListener('change', function (e) { openProject(e.target.value, null); });
     $id('gc-versions').addEventListener('change', function (e) { openProject(st.projectId, e.target.value); });
     $id('gc-validate').addEventListener('click', validateNow);
-    $id('gc-run').addEventListener('click', function () { if (window.GraphRun) GraphRun.start(); });
+    $id('gc-run').addEventListener('click', function () { selectRunTab('once'); if (window.GraphRun) GraphRun.start(); });
+    $id('gc-live').addEventListener('click', function () { selectRunTab('live'); if (window.GraphLive) GraphLive.start(); });
+    ['once', 'live'].forEach(function (name) {
+      var tab = $id('gc-tab-' + name);
+      tab.addEventListener('click', function () { selectRunTab(name); });
+      tab.addEventListener('keydown', function (e) {
+        if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight' && e.key !== 'Home' && e.key !== 'End') return;
+        e.preventDefault();
+        var next = name === 'once' ? 'live' : 'once';
+        if (e.key === 'Home') next = 'once';
+        if (e.key === 'End') next = 'live';
+        selectRunTab(next);
+        $id('gc-tab-' + next).focus();
+      });
+    });
     $id('gc-name').addEventListener('change', function (e) {
       st.name = e.target.value.trim();
       st.dirty = true;
@@ -470,16 +528,36 @@ window.GraphComposer = (function () {
     });
   }
 
+  /* The run panel's tabs: Run once and Live (ARIA tabs; arrow keys move between them). */
+  function selectRunTab(name) {
+    st.runTab = name;
+    ['once', 'live'].forEach(function (k) {
+      var tab = $id('gc-tab-' + k), on = k === name;
+      tab.setAttribute('aria-selected', String(on));
+      tab.tabIndex = on ? 0 : -1;
+    });
+    $id('gc-run-body').hidden = name !== 'once';
+    $id('gc-live-body').hidden = name !== 'live';
+  }
+
+  /* The page is being left (utils.js nav): a Live stops, the zone editor closes. */
+  function leave() {
+    if (!st.opened) return;
+    if (window.GraphLive) GraphLive.leave();
+    var dlg = $id('gc-zone-dialog');
+    if (dlg && dlg.open) dlg.close();
+  }
+
   async function open() {
     if (!st.opened) {
       st.opened = true;
       st.lang = curLang();
       bindToolbar();
       st.cv = DXGraphCanvas.create($id('gc-canvas-host'), {
-        categories: { source: { slot: 1 }, model: { slot: 3 }, cpu: { slot: 2 } },
+        categories: { source: { slot: 1 }, model: { slot: 3 }, cpu: { slot: 2 }, logic: { slot: 5 } },
         t: tr,
-        canConnect: function (from, to) {
-          var r = D.canConnect(from, to, st.models);
+        canConnect: function (from, to, graph) {
+          var r = D.canConnect(from, to, st.models, st.ops, graph);
           if (!r.ok) return { ok: false, reason: tr(r.reason) };
           return { ok: true, kind: r.kind, data: r.data, label: D.edgeLabel({ kind: r.kind, data: r.data }, tr) };
         },
@@ -492,6 +570,8 @@ window.GraphComposer = (function () {
         onDrop: function (payload) { return specFrom(payload); }
       });
       if (window.GraphRun) GraphRun.mount($id('gc-run-body'), ctx());
+      if (window.GraphLive) GraphLive.mount($id('gc-live-body'), ctx());
+      selectRunTab(st.runTab);
       if (!restoreDraft()) { renderInspector(); updateStatus(); }
       await refreshProjects();
     } else if (st.lang !== curLang()) {
@@ -512,6 +592,7 @@ window.GraphComposer = (function () {
     updateStatus();
     refreshProjects();
     if (window.GraphRun) GraphRun.refreshLanguage();
+    if (window.GraphLive) GraphLive.refreshLanguage();
   }
 
   if (typeof registerLangRefresher === 'function') {
@@ -520,7 +601,7 @@ window.GraphComposer = (function () {
 
   return {
     open: open, refreshLanguage: refreshLanguage, loadExample: loadExample, validate: validateNow,
-    applySuggestion: applySuggestion, canRun: canRun,
+    applySuggestion: applySuggestion, canRun: canRun, leave: leave, selectRunTab: selectRunTab,
     state: function () { return st; }, canvas: function () { return st.cv; }, ctx: ctx, h: h, fmt: fmt,
     ensureExample: function (id) { if (st.cv && !st.cv.getGraph().nodes.length) loadExample(id); }
   };

@@ -12,6 +12,8 @@ INDEX = ROOT / "dx_app" / "templates" / "index.html"
 UTILS = ROOT / "dx_app" / "static" / "js" / "utils.js"
 JS = ROOT / "dx_app" / "static" / "js"
 PAGE_SCRIPTS = ("graph-composer.js", "graph-palette.js", "graph-inspector.js", "graph-run.js")
+# Pure or component scripts: no language hook of their own (their owner re-renders them).
+COMPONENTS = ("graph-doc.js",)
 
 
 def _page_html() -> str:
@@ -37,7 +39,9 @@ def test_nav_opens_the_composer():
                                     "gc-delete", "gc-import", "gc-import-file", "gc-export", "gc-status",
                                     "gc-validate", "gc-run", "gc-palette", "gc-search", "gc-palette-list",
                                     "gc-canvas-host", "gc-memory", "gc-inspector", "gc-inspector-body",
-                                    "gc-run-panel", "gc-run-body", "gc-samples"])
+                                    "gc-run-panel", "gc-run-body", "gc-samples", "gc-live", "gc-tab-once",
+                                    "gc-tab-live", "gc-live-body", "gc-zone-dialog", "gc-zone-title-text",
+                                    "gc-zone-body", "gc-zone-done"])
 def test_the_template_has_every_region(region):
     assert f'id="{region}"' in _page_html()
 
@@ -53,7 +57,10 @@ def test_every_visible_text_of_the_page_is_a_dictionary_key():
 def test_scripts_and_styles_load_in_order():
     html = INDEX.read_text(encoding="utf-8")
     order = ["/static/js/lang-refresh.js", "/static/shared/dx-graph-core.js", "/static/shared/dx-graph-canvas.js",
-             "/static/js/graph-doc.js"] + [f"/static/js/{s}" for s in PAGE_SCRIPTS] + ["/static/js/app.js"]
+             "/static/js/graph-doc.js", "/static/js/graph-composer.js",
+             "/static/js/graph-palette.js", "/static/js/graph-inspector.js",
+             "/static/js/graph-run.js",
+             "/static/js/app.js"]
     positions = [html.index(s) for s in order]
     assert positions == sorted(positions)
     assert html.index("/static/shared/dx-components.css") < html.index("/static/shared/dx-graph-canvas.css")
@@ -64,7 +71,7 @@ def test_scripts_and_styles_load_in_order():
 _PRESENT = [n for n in PAGE_SCRIPTS if (JS / n).is_file()]
 
 
-@pytest.mark.parametrize("path", [f"dx_app/static/js/{s}" for s in ["graph-doc.js"] + _PRESENT]
+@pytest.mark.parametrize("path", [f"dx_app/static/js/{s}" for s in list(COMPONENTS) + _PRESENT]
                          + ["shared/static/dx-graph-canvas.js", "shared/static/dx-graph-core.js"])
 def test_graph_scripts_build_the_dom_without_inner_html(path):
     assert "innerHTML" not in (ROOT / path).read_text(encoding="utf-8")
@@ -82,3 +89,8 @@ def test_the_toast_close_button_has_a_name():
 
 def test_all_page_scripts_are_present():
     assert _PRESENT == list(PAGE_SCRIPTS)
+
+
+def test_leaving_the_page_lets_the_composer_stop_its_live():
+    assert "if(page!=='graph'&&window.GraphComposer&&GraphComposer.leave)GraphComposer.leave();" in UTILS.read_text(
+        encoding="utf-8")

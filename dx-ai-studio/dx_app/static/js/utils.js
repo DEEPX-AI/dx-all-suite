@@ -172,6 +172,8 @@ function _shellPageLabel(page){
 function nav(page){
   // Auto-stop continuous inference when leaving Run page
   if(CONT.running)contStop();
+  // Leaving the Graph Composer stops its Live and closes its zone editor
+  if(page!=='graph'&&window.GraphComposer&&GraphComposer.leave)GraphComposer.leave();
   PAGES.forEach(p=>{
     const el=$('page-'+p);if(el)el.classList.toggle('active',p===page);
   });
