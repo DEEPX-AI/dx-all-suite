@@ -113,24 +113,36 @@ def _probe_engine_key() -> bool:
     return bool(codes) and "GRAPH_SCHEMA" not in codes
 
 
+# What --help names for each capability Studio reads from it.
+_HELP_FLAGS = {"json": "--json", "report_timing": "--report-timing", "list_ops": "--list-ops",
+               "events": "--events", "loop": "--loop"}
+
+
+def no_capabilities() -> dict:
+    return {"json": False, "engine_key": False, "report_timing": False, "list_ops": False, "events": False,
+            "loop": False}
+
+
 def capabilities() -> dict:
     """{"json": --list-models / --check print JSON with --json, "engine_key": nodes accept "engine",
-    "report_timing": --report-timing adds per-node ms to --report}.
+    "report_timing": --report-timing adds per-node ms to --report, "list_ops": --list-ops --json lists the logic
+    blocks, "events": --events <file.jsonl> writes every event, "loop": --loop restarts video sources at the end}.
 
     Probed once per binary build (keyed by the binary's path and mtime)."""
     found = available()
     if found is None:
-        return {"json": False, "engine_key": False, "report_timing": False}
+        return no_capabilities()
     b = found[1]
     key = (str(b), mtime(b))
     with _caps_lock:
         if key in _caps_cache:
             return dict(_caps_cache[key])
-    caps = {"json": False, "engine_key": False, "report_timing": False}
+    caps = no_capabilities()
     try:
         r = run(["--help"], timeout=10)
-        caps["json"] = "--json" in (r.stdout + r.stderr)
-        caps["report_timing"] = "--report-timing" in (r.stdout + r.stderr)
+        text = r.stdout + r.stderr
+        for name, flag in _HELP_FLAGS.items():
+            caps[name] = re.search(re.escape(flag) + r"(?![\w-])", text) is not None
     except (subprocess.SubprocessError, OSError):
         pass
     caps["engine_key"] = _probe_engine_key()

@@ -29,12 +29,26 @@ def test_the_environment_turns_progress_on_and_qt_off_screen():
 
 def test_todays_dx_app_has_neither_json_nor_the_engine_key(tmp_path, monkeypatch):
     graph_fakes.install(tmp_path, monkeypatch, graph_fakes.TEXT_CLI)
-    assert graph_cli.capabilities() == {"json": False, "engine_key": False, "report_timing": False}
+    assert graph_cli.capabilities() == {"json": False, "engine_key": False, "report_timing": False,
+                                        "list_ops": False, "events": False, "loop": False}
 
 
 def test_the_planned_dx_app_has_both(tmp_path, monkeypatch):
     graph_fakes.install(tmp_path, monkeypatch, graph_fakes.JSON_CLI)
-    assert graph_cli.capabilities() == {"json": True, "engine_key": True, "report_timing": True}
+    assert graph_cli.capabilities() == {"json": True, "engine_key": True, "report_timing": True,
+                                        "list_ops": False, "events": False, "loop": False}
+
+
+def test_the_phase_2_dx_app_lists_ops_writes_events_and_loops(tmp_path, monkeypatch):
+    graph_fakes.install(tmp_path, monkeypatch, graph_fakes.P2_CLI)
+    assert graph_cli.capabilities() == {"json": True, "engine_key": True, "report_timing": True,
+                                        "list_ops": True, "events": True, "loop": True}
+
+
+def test_a_flag_is_found_only_as_a_whole_word(tmp_path, monkeypatch):
+    graph_fakes.install(tmp_path, monkeypatch, 'echo "  --events-dir <d>   --loop-count <n>"; exit 0')
+    caps = graph_cli.capabilities()
+    assert caps["events"] is False and caps["loop"] is False
 
 
 def test_capabilities_are_probed_once_per_binary(tmp_path, monkeypatch):
@@ -50,13 +64,14 @@ def test_capabilities_are_probed_once_per_binary(tmp_path, monkeypatch):
 def test_an_async_only_build_is_probed_and_used(tmp_path, monkeypatch):
     graph_fakes.install(tmp_path, monkeypatch, graph_fakes.JSON_CLI, variants=("async",))
     assert graph_cli.available() == ("async", tmp_path / "bin" / "multi_model_graph_async")
-    assert graph_cli.capabilities() == {"json": True, "engine_key": True, "report_timing": True}
+    assert graph_cli.capabilities()["json"] is True and graph_cli.capabilities()["engine_key"] is True
 
 
 def test_no_build_at_all(tmp_path, monkeypatch):
     monkeypatch.setattr(graph_cli, "_search_dirs", lambda: [tmp_path])
     assert graph_cli.available() is None
-    assert graph_cli.capabilities() == {"json": False, "engine_key": False, "report_timing": False}
+    assert graph_cli.capabilities() == graph_cli.no_capabilities()
+    assert not any(graph_cli.no_capabilities().values())
 
 
 @pytest.mark.parametrize("check, expected", [
