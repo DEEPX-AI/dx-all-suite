@@ -24,7 +24,7 @@ PAGE = """<!doctype html><html><head><meta charset="utf-8">
 MOUNT = """() => {
   window.__changes = []; window.__sel = null; window.__activated = null;
   window.cv = DXGraphCanvas.create(document.getElementById('host'), {
-    categories: {source: {slot: 1}, model: {slot: 3}},
+    categories: {source: {slot: 1}, model: {slot: 3, icon: 'cpu'}},
     canConnect: (f, t) => t.noInput ? {ok: false, reason: 'needs a full frame'} : {ok: true, kind: 'frame', label: ''},
     onChange: (g, info) => window.__changes.push(info.reason),
     onSelect: s => { window.__sel = s; },
@@ -157,6 +157,7 @@ def test_the_canvas_is_an_accessible_application(page):
     assert "Tab moves between nodes" in page.get_attribute(".dxg-canvas", "aria-label")
     labels = page.eval_on_selector_all(".dxg-tbtn", "els => els.map(e => e.getAttribute('aria-label'))")
     assert labels == ["Zoom out", "Zoom in", "Fit view", "Auto layout", "Undo", "Redo"]
+    assert page.get_attribute(".dxg-minimap", "role") != "img", "the minimap is clickable, so it is not an image"
     page.evaluate("cv.select({nodes: ['od']})")
     page.focus(".dxg-canvas")
     page.keyboard.press("Shift+F10")
@@ -194,3 +195,190 @@ def test_the_canvas_repaints_when_the_theme_changes(page):
     page.evaluate("DXTheme.setTheme('light')")
     light = background()
     assert dark < 80 < light, (dark, light)
+
+
+def _pixel(page, x, y):
+    return page.evaluate("""([x, y]) => {
+      const c = document.querySelector('.dxg-canvas'), r = c.getBoundingClientRect(), k = c.width / r.width;
+      return Array.from(c.getContext('2d').getImageData(Math.round(x * k), Math.round(y * k), 1, 1).data.slice(0, 3));
+    }""", [x, y])
+
+
+def test_the_arrowhead_shows_left_of_the_input_port(page):
+    page.evaluate("cv.connect('cam', 'od')")
+    page.wait_for_timeout(100)
+    # od's input port is at world (340, 148); the arrow tip sits just outside the 6 px port, so 6 px further left and
+    # 2 px below the line the arrowhead is drawn, where the bare canvas would show only the background.
+    tip, bg = _pixel(page, 327, 150), _pixel(page, 327, 190)
+    assert sum(abs(a - b) for a, b in zip(tip, bg)) > 60, (tip, bg)
+
+
+def test_a_node_without_an_icon_draws_its_category_icon(page):
+    page.evaluate("""() => {
+      window.__icons = [];
+      const draw = DXIcon.draw;
+      DXIcon.draw = function (ctx, name) { window.__icons.push(name); return draw.apply(this, arguments); };
+      cv.setGraph({nodes: [{id: 'm', label: 'm', category: 'model', x: 0, y: 0},
+                           {id: 'q', label: 'q', category: 'nowhere', x: 300, y: 0}], edges: []}, {fit: false});
+    }""")
+    page.wait_for_timeout(100)
+    icons = page.evaluate("window.__icons")
+    assert "cpu" in icons and "circle" not in icons, icons
+
+
+def test_the_minimap_shows_the_whole_viewport_rectangle(page):
+    page.wait_for_timeout(100)
+    r = page.evaluate("""() => {
+      const m = document.querySelector('.dxg-minimap'), mm = m._map, v = cv.view(), c = document.querySelector('.dxg-canvas');
+      const x = (-v.offsetX / v.zoom - mm.ox) * mm.s, y = (-v.offsetY / v.zoom - mm.oy) * mm.s;
+      return {x: x, y: y, w: c.clientWidth / v.zoom * mm.s, h: c.clientHeight / v.zoom * mm.s, mw: m.clientWidth, mh: m.clientHeight};
+    }""")
+    assert r["x"] >= -0.5 and r["y"] >= -0.5, r
+    assert r["x"] + r["w"] <= r["mw"] + 0.5 and r["y"] + r["h"] <= r["mh"] + 0.5, r
+
+
+def test_the_minimap_moves_the_view_by_touch_too(page):
+    before = page.evaluate("cv.view()")
+    box = page.locator(".dxg-minimap").bounding_box()
+    page.evaluate("""([x, y]) => {
+      const m = document.querySelector('.dxg-minimap');
+      const t = new Touch({identifier: 1, target: m, clientX: x, clientY: y});
+      m.dispatchEvent(new TouchEvent('touchstart', {touches: [t], changedTouches: [t], bubbles: true, cancelable: true}));
+    }""", [box["x"] + 10, box["y"] + 10])
+    page.wait_for_timeout(50)
+    assert page.evaluate("cv.view()") != before
+
+
+def test_the_edge_hit_area_stays_eight_screen_pixels_at_any_zoom(page):
+    page.evaluate("cv.connect('cam', 'od')")
+    # The edge runs from world (200, 148) to (340, 148). At 300 % its middle (270, 148) lands on screen (450, 250).
+    page.evaluate("cv.setView({zoom: 3, offsetX: 450 - 270 * 3, offsetY: 250 - 148 * 3}); cv.select({})")
+    page.mouse.click(450, 265)       # 15 screen px off the line: 5 world px, inside a world-sized 8 px threshold
+    assert page.evaluate("cv.selection().edge") is None
+    page.mouse.click(450, 254)
+    assert page.evaluate("cv.selection().edge") == "cam->od"
+
+
+def test_a_right_drag_opens_the_menu_and_does_not_pan(page):
+    before = page.evaluate("cv.view()")
+    page.mouse.move(700, 400)
+    page.mouse.down(button="right")
+    page.mouse.move(760, 440)
+    page.mouse.up(button="right")
+    assert page.evaluate("cv.view()") == before
+    assert page.locator(".dxg-menu").count() == 1
+
+
+def test_menu_separators_and_empty_text(page):
+    page.mouse.click(700, 400, button="right")
+    assert page.eval_on_selector_all(".dxg-menu hr", "els => els.map(e => e.getAttribute('role'))") == ["separator", "separator"]
+    page.keyboard.press("Escape")
+    page.evaluate("""() => {
+      cv.destroy();
+      window.__texts = [];
+      const fill = CanvasRenderingContext2D.prototype.fillText;
+      CanvasRenderingContext2D.prototype.fillText = function (s) { window.__texts.push(s); return fill.apply(this, arguments); };
+      window.cv = DXGraphCanvas.create(document.getElementById('host'), {emptyText: 'Pick a template'});
+    }""")
+    assert "Pick a template" in page.evaluate("window.__texts")
+
+
+def test_destroy_removes_every_listener_and_pending_work(page):
+    leaks = page.evaluate("""() => {
+      cv.destroy();
+      const host = document.getElementById('host'), live = new Map(), frames = new Set();
+      const key = (t, type, fn) => (t === window ? 'window' : t === document ? 'document' : 'host') + ':' + type;
+      const add = EventTarget.prototype.addEventListener, remove = EventTarget.prototype.removeEventListener;
+      EventTarget.prototype.addEventListener = function (type, fn, o) {
+        if (this === window || this === document || this === host) live.set(fn, key(this, type));
+        return add.call(this, type, fn, o);
+      };
+      EventTarget.prototype.removeEventListener = function (type, fn, o) { live.delete(fn); return remove.call(this, type, fn, o); };
+      const raf = window.requestAnimationFrame, caf = window.cancelAnimationFrame;
+      window.requestAnimationFrame = fn => { const id = raf(() => { frames.delete(id); fn(); }); frames.add(id); return id; };
+      window.cancelAnimationFrame = id => { frames.delete(id); caf(id); };
+      let themeHooks = 0;
+      const hook = DXTheme.onThemeChange;
+      DXTheme.onThemeChange = function () { themeHooks++; return hook.apply(this, arguments); };
+      const c = DXGraphCanvas.create(host, {});
+      c.setGraph({nodes: [{id: 'a', x: 0, y: 0}], edges: []});
+      c.repaint();
+      c.destroy();
+      EventTarget.prototype.addEventListener = add; EventTarget.prototype.removeEventListener = remove;
+      window.requestAnimationFrame = raf; window.cancelAnimationFrame = caf; DXTheme.onThemeChange = hook;
+      return {listeners: Array.from(live.values()), frames: frames.size, themeHooks: themeHooks};
+    }""")
+    assert leaks == {"listeners": [], "frames": 0, "themeHooks": 0}
+
+
+def test_a_destroyed_canvas_ignores_drops(page):
+    page.evaluate("""() => {
+      cv.destroy();
+      window.__changes = []; window.__changes2 = [];
+      window.cv2 = DXGraphCanvas.create(document.getElementById('host'), {onChange: (g, i) => window.__changes2.push(i.reason)});
+      const dt = new DataTransfer();
+      dt.setData(DXGraphCanvas.DND_TYPE, JSON.stringify({id: 'depth'}));
+      document.getElementById('host').dispatchEvent(new DragEvent('drop', {dataTransfer: dt, clientX: 600, clientY: 400, bubbles: true, cancelable: true}));
+    }""")
+    assert page.evaluate("window.__changes") == []
+    assert page.evaluate("window.__changes2") == ["add"]
+
+
+def test_the_theme_repaint_follows_the_theme_event(page):
+    page.evaluate("""() => {
+      window.__paints = 0;
+      const ctx = document.querySelector('.dxg-canvas').getContext('2d'), fill = ctx.fillRect;
+      ctx.fillRect = function () { window.__paints++; return fill.apply(this, arguments); };
+      window.dispatchEvent(new CustomEvent('dx-theme-applied', {detail: {theme: 'light'}}));
+    }""")
+    page.wait_for_timeout(150)
+    assert page.evaluate("window.__paints") > 0
+
+
+def test_brackets_walk_the_focused_nodes_edges_and_delete_removes_one(page):
+    page.evaluate("cv.addNode({id: 'x', label: 'x', category: 'model'}, {x: 720, y: 300})")
+    page.evaluate("cv.connect('cam', 'od'); cv.connect('od', 'x')")
+    page.evaluate("cv.updateEdge('od->x', {label: 'ROI · person'}); cv.setEdgeStatus({'od->x': 'error'})")
+    page.evaluate("cv.select({nodes: ['od']})")
+    page.focus(".dxg-canvas")
+    page.keyboard.press("]")
+    assert page.evaluate("window.__sel") == {"nodes": [], "edge": "cam->od"}
+    assert page.inner_text(".dxg-live") == "Edge cam to od"
+    page.keyboard.press("]")
+    assert page.evaluate("window.__sel.edge") == "od->x"
+    assert page.inner_text(".dxg-live") == "Edge od to x, ROI · person, Error"
+    page.keyboard.press("]")
+    assert page.evaluate("window.__sel.edge") == "cam->od", "wraps around"
+    page.keyboard.press("[")
+    assert page.evaluate("window.__sel.edge") == "od->x"
+    page.keyboard.press("Delete")
+    assert page.evaluate("cv.getGraph().edges.map(e => e.id)") == ["cam->od"]
+    assert [n["id"] for n in page.evaluate("cv.getGraph().nodes")] == ["cam", "od", "x"]
+
+
+def test_a_selection_announces_its_badges(page):
+    page.evaluate("cv.setBadges({od: [{kind: 'error', text: 'MODEL_LOAD'}, {kind: 'missing', text: 'not installed'}, {kind: 'mem', text: '118 MB'}, {kind: 'ms', text: '3.2 ms'}]})")
+    page.focus(".dxg-canvas")
+    page.keyboard.press("Tab")
+    page.keyboard.press("Tab")
+    assert page.inner_text(".dxg-live") == "Selected od, yolo26-n_640x640, MODEL_LOAD, not installed, 118 MB, 3.2 ms"
+
+
+def test_align_and_distribute_from_the_menu_and_the_keyboard(page):
+    page.evaluate("cv.addNode({id: 'x', label: 'x', category: 'model'}, {x: 720, y: 330})")
+    page.evaluate("cv.select({nodes: ['cam', 'od', 'x']})")
+    page.focus(".dxg-canvas")
+    page.keyboard.press("Shift+F10")
+    items = page.eval_on_selector_all(".dxg-menu [role=menuitem]", "els => els.map(e => e.firstChild.textContent)")
+    for name in ("Align left", "Align center", "Align top", "Align middle", "Distribute horizontally", "Distribute vertically"):
+        assert name in items, items
+    page.click(".dxg-menu [role=menuitem]:has-text('Align top')")
+    assert {n["y"] for n in page.evaluate("cv.getGraph().nodes")} == {120}
+    assert page.evaluate("window.__changes")[-1] == "align"
+    page.keyboard.press("Alt+KeyA")         # align left
+    assert {n["x"] for n in page.evaluate("cv.getGraph().nodes")} == {40}
+    page.keyboard.press("Control+z")
+    page.keyboard.press("Alt+Shift+KeyH")   # distribute horizontally: 40 .. 640, the middle one at 340
+    assert sorted(n["x"] for n in page.evaluate("cv.getGraph().nodes")) == [40, 340, 640]
+    for key in ("Align left", "Align center", "Align top", "Align middle", "Distribute horizontally", "Distribute vertically"):
+        assert page.evaluate("k => DXGraphCanvas.STRINGS.includes(k)", key), key

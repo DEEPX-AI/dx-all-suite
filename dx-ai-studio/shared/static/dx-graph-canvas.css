@@ -4,12 +4,15 @@
 .dxg-host.is-drop{outline:2px dashed var(--accent);outline-offset:-4px}
 .dxg-canvas{position:absolute;inset:0;display:block;width:100%;height:100%;touch-action:none;cursor:default}
 .dxg-canvas:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
-.dxg-toolbar{position:absolute;top:var(--sp-3);left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:2px;padding:var(--sp-1);background:var(--surface-panel);border:1px solid var(--border-subtle);border-radius:var(--radius);box-shadow:var(--shadow-sm);z-index:2}
-.dxg-tbtn{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;padding:0;border:0;background:transparent;color:var(--text-muted);border-radius:var(--radius-sm);cursor:pointer}
-.dxg-tbtn:hover{background:var(--surface-hover);color:var(--text-primary)}
-.dxg-tbtn:disabled{opacity:.4;cursor:default;background:transparent}
-.dxg-zoom{min-width:44px;text-align:center;font-size:var(--fs-2xs);color:var(--text-muted);font-variant-numeric:tabular-nums;user-select:none}
-.dxg-sep{width:1px;height:20px;margin:0 var(--sp-1);background:var(--border-subtle)}
+/* The toolbar is the Pipeline Builder's pill: small outlined ghost buttons (.btn-ghost.btn-sm) with 1em glyphs. */
+.dxg-toolbar{position:absolute;top:var(--sp-3);left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:2px;padding:var(--sp-1);background:var(--control-bg);border:1px solid var(--border-subtle);border-radius:var(--radius);box-shadow:var(--shadow);z-index:2}
+.dxg-tbtn{display:inline-flex;align-items:center;justify-content:center;min-width:30px;height:22px;padding:0 var(--sp-2);border:1px solid var(--border-subtle);background:transparent;color:var(--text-muted);border-radius:var(--radius-sm);font-size:var(--fs-sm);line-height:1;cursor:pointer;transition:var(--transition)}
+.dxg-tbtn svg{width:1em;height:1em;flex:none}
+.dxg-tbtn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-dim)}
+.dxg-tbtn:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.dxg-tbtn:disabled{opacity:.35;cursor:default;border-color:var(--border-subtle);color:var(--text-muted);background:transparent}
+.dxg-zoom{min-width:40px;text-align:center;font-size:var(--fs-2xs);color:var(--text-faint);font-variant-numeric:tabular-nums;user-select:none}
+.dxg-sep{width:1px;height:16px;margin:0 var(--sp-1);background:var(--border-subtle)}
 .dxg-minimap{position:absolute;right:var(--sp-3);bottom:var(--sp-3);width:160px;height:120px;background:var(--surface-panel);border:1px solid var(--border-subtle);border-radius:var(--radius);box-shadow:var(--shadow-sm);overflow:hidden;z-index:2;cursor:pointer}
 .dxg-minimap canvas{display:block;width:100%;height:100%}
 .dxg-tip{position:absolute;display:none;max-width:280px;padding:var(--sp-1) var(--sp-2);background:var(--surface-panel);color:var(--text-primary);border:1px solid var(--border-strong);border-radius:var(--radius-sm);box-shadow:var(--shadow-sm);font-size:var(--fs-xs);pointer-events:none;z-index:3}

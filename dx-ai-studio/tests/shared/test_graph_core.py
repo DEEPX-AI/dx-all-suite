@@ -120,3 +120,33 @@ h.push('new'); ok(!h.canRedo(), 'a new change drops the redo branch');
 ok(!h.push('new'), 'the same snapshot twice is one step');
 eq(C.HISTORY_MAX, 50);
 """)
+
+
+def test_align_lines_up_the_selection_and_leaves_the_rest():
+    _run(r"""
+const g = {nodes: [{id: 'a', x: 40, y: 20}, {id: 'b', x: 300, y: 140}, {id: 'c', x: 120, y: 300}, {id: 'z', x: 900, y: 900}],
+           edges: [{id: 'a->b', from: 'a', to: 'b'}]};
+const pos = (h) => { const m = {}; h.nodes.forEach(n => { m[n.id] = [n.x, n.y]; }); return m; };
+eq(pos(C.alignNodes(g, ['a', 'b', 'c'], 'left')), {a: [40, 20], b: [40, 140], c: [40, 300], z: [900, 900]}, 'left');
+eq(pos(C.alignNodes(g, ['a', 'b', 'c'], 'top')), {a: [40, 20], b: [300, 20], c: [120, 20], z: [900, 900]}, 'top');
+// The selection spans x 40..460: centre 250, so each card's left edge goes to 250 - 80 = 170, on the grid 180.
+eq(pos(C.alignNodes(g, ['a', 'b', 'c'], 'center')), {a: [180, 20], b: [180, 140], c: [180, 300], z: [900, 900]}, 'center');
+// y 20..356: middle 188, card top 188 - 28 = 160.
+eq(pos(C.alignNodes(g, ['a', 'b', 'c'], 'middle')), {a: [40, 160], b: [300, 160], c: [120, 160], z: [900, 900]}, 'middle');
+eq(pos(C.alignNodes(g, ['a'], 'left')), pos(g), 'one node has nothing to align with');
+eq(C.alignNodes(g, ['a', 'b'], 'left').edges, g.edges, 'edges ride along');
+eq(g.nodes[1].x, 300, 'the input graph is not changed');
+""")
+
+
+def test_distribute_spaces_the_selection_evenly_between_its_ends():
+    _run(r"""
+const g = {nodes: [{id: 'a', x: 0, y: 0}, {id: 'b', x: 100, y: 40}, {id: 'c', x: 600, y: 400}, {id: 'd', x: 200, y: 100}],
+           edges: []};
+const pos = (h) => { const m = {}; h.nodes.forEach(n => { m[n.id] = [n.x, n.y]; }); return m; };
+// x order a(0) b(100) d(200) c(600): the ends stay, the middle two go to 200 and 400.
+eq(pos(C.distributeNodes(g, ['a', 'b', 'c', 'd'], 'x')), {a: [0, 0], b: [200, 40], c: [600, 400], d: [400, 100]}, 'x');
+// y order a(0) b(40) d(100) c(400): 0, 133.3 -> 140 on the grid, 266.7 -> 260, 400.
+eq(pos(C.distributeNodes(g, ['a', 'b', 'c', 'd'], 'y')), {a: [0, 0], b: [100, 140], c: [600, 400], d: [200, 260]}, 'y');
+eq(pos(C.distributeNodes(g, ['a', 'b'], 'x')), pos(g), 'two nodes have nothing to distribute');
+""")

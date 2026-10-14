@@ -1,6 +1,6 @@
 /* DX AI Studio — graph canvas core (pure logic, no DOM).
 
-   Geometry, hit testing, history, clipboard and layout for shared/static/dx-graph-canvas.js. It has no DOM so Node
+   Geometry, hit testing, history, clipboard, layout and alignment for shared/static/dx-graph-canvas.js. It has no DOM so Node
    can test it (tests/shared/test_graph_core.py). A graph is {nodes: [{id, x, y, ...}], edges: [{id, from, to, ...}]};
    any other field on a node or an edge is carried along unchanged. */
 (function (root) {
@@ -267,6 +267,35 @@
     return out;
   }
 
+  /* Line up the nodes `ids` of g: 'left' and 'top' move them to the selection's first edge, 'center' and 'middle'
+     to its centre line (on the grid). Other nodes and every edge stay as they are; g is not changed. */
+  function alignNodes(g, ids, how) {
+    var out = clone(g), pick = {};
+    (ids || []).forEach(function (id) { pick[id] = true; });
+    var sel = out.nodes.filter(function (n) { return pick[n.id]; }), b = bounds(sel);
+    if (sel.length < 2) return out;
+    sel.forEach(function (n) {
+      if (how === 'left') n.x = b.minX;
+      else if (how === 'center') n.x = snap((b.minX + b.maxX) / 2 - NODE_W / 2);
+      else if (how === 'top') n.y = b.minY;
+      else if (how === 'middle') n.y = snap((b.minY + b.maxY) / 2 - NODE_H / 2);
+    });
+    return out;
+  }
+
+  /* Space the nodes `ids` of g evenly along `axis` ('x' or 'y'): the two outermost stay, the rest are spread between
+     them in their current order (on the grid). Needs three nodes; g is not changed. */
+  function distributeNodes(g, ids, axis) {
+    var out = clone(g), pick = {}, k = axis === 'y' ? 'y' : 'x';
+    (ids || []).forEach(function (id) { pick[id] = true; });
+    var sel = out.nodes.filter(function (n) { return pick[n.id]; });
+    if (sel.length < 3) return out;
+    sel.sort(function (a, b) { return (a[k] - b[k]) || (a.id < b.id ? -1 : 1); });
+    var first = sel[0][k], step = (sel[sel.length - 1][k] - first) / (sel.length - 1);
+    for (var i = 1; i < sel.length - 1; i++) sel[i][k] = snap(first + i * step);
+    return out;
+  }
+
   /* Undo history of graph snapshots (strings), newest `limit` kept. */
   function createHistory(limit) {
     var max = limit || HISTORY_MAX, stack = [], idx = -1;
@@ -298,6 +327,6 @@
     worldToScreen: worldToScreen, zoomAt: zoomAt, nodesInRect: nodesInRect, tabOrder: tabOrder,
     nextInOrder: nextInOrder, sanitizeId: sanitizeId, uniqueId: uniqueId, removeNodes: removeNodes,
     renameNode: renameNode, copySelection: copySelection, pasteClip: pasteClip, autoLayout: autoLayout,
-    createHistory: createHistory
+    alignNodes: alignNodes, distributeNodes: distributeNodes, createHistory: createHistory
   };
 })(typeof window !== 'undefined' ? window : this);

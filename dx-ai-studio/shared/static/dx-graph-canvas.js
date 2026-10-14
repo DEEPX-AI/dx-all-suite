@@ -6,14 +6,19 @@
    canvas, edge labels, node badges and tints, marquee selection and auto layout.
 
      var cv = DXGraphCanvas.create(hostElement, {
-       categories: { source: { slot: 1 }, model: { slot: 3 }, cpu: { slot: 2 } },   // colour = --cat-<slot>
+       categories: { source: { slot: 1, icon: 'camera' }, model: { slot: 3 } },   // colour --cat-<slot>, default icon
        canConnect: function (fromNode, toNode, graph) { return { ok: true, kind: 'frame', label: '', data: {} }; },
        onChange: function (graph, info) {},   // after every committed change (info.reason)
        onSelect: function (selection) {},     // {nodes: [ids], edge: id or null}
        onActivate: function (item) {},       // Enter or double-click: {type: 'node' or 'edge', id}
        onDrop: function (payload, worldPoint) { return nodeSpec; },   // a palette item dropped on the canvas
+       emptyText: '...',                     // optional: replaces the empty-canvas hint
        t: function (key) { return key; }     // translator; the keys are DXGraphCanvas.STRINGS
      });
+
+   Keys on the focused canvas: Tab / Shift+Tab nodes, arrows move, [ / ] walk the focused node's edges, Delete,
+   Enter, Ctrl+Z/Y/C/V/D/A, + - 0 zoom, Alt+A / Alt+H align left / center, Alt+W / Alt+V align top / middle,
+   Alt+Shift+H / Alt+Shift+V distribute, Shift+F10 menu.
 
    A node is {id, x, y, label, sub, category, icon, noInput, noOutput, ...}; an edge is {id, from, to, kind, label, ...}.
    Other fields ride along untouched. Colours come only from tokens (dx-tokens.css, dx-semantic.css) and are read on
@@ -28,13 +33,20 @@
   /* Every string the canvas shows. The page passes its translator; the dx_app dictionary carries these keys
      (tests/dx_app/test_graph_composer_i18n.py). */
   var STRINGS = [
-    'Graph canvas. Tab moves between nodes, arrow keys move the selection, Delete removes it, Ctrl+Z undoes.',
+    'Graph canvas. Tab moves between nodes, [ and ] between their connections, arrow keys move the selection, Delete removes it, Ctrl+Z undoes.',
     'Graph canvas tools', 'Zoom in', 'Zoom out', 'Fit view', 'Auto layout', 'Undo', 'Redo', 'Minimap',
     'Delete', 'Copy', 'Paste', 'Duplicate', 'Select all',
     'Drag items from the palette, or select one and press Enter',
     'Selected {label}', '{n} nodes selected', 'Connected {from} to {to}', 'Cannot connect: {reason}',
-    'This would create a cycle', 'These nodes are already connected', 'Deleted {n}'
+    'This would create a cycle', 'These nodes are already connected', 'Deleted {n}',
+    'Edge {from} to {to}', 'Error', 'No connections',
+    'Align left', 'Align center', 'Align top', 'Align middle', 'Distribute horizontally', 'Distribute vertically'
   ];
+
+  /* A node without an icon shows its category's (categories[c].icon), else one of these, never 'circle', which reads
+     as a third port. */
+  var CATEGORY_ICONS = { source: 'camera', model: 'cpu', cpu: 'gear', logic: 'puzzle', sink: 'video', output: 'video' };
+  var FALLBACK_ICON = 'puzzle';
 
   var _rootStyle = null;
   function css(name) {
@@ -119,8 +131,10 @@
     canvas.tabIndex = 0;
     canvas.setAttribute('role', 'application');
     var toolbar = buildToolbar();
+    /* The minimap moves the view on a click or a tap: a pointer shortcut, so it is hidden from the accessibility tree
+       (the keyboard pans with the arrow keys and fits with 0) but keeps a title for sighted users. */
     var mini = el('div', 'dxg-minimap');
-    mini.setAttribute('role', 'img');
+    mini.setAttribute('aria-hidden', 'true');
     var miniCanvas = el('canvas');
     mini.appendChild(miniCanvas);
     var tip = el('div', 'dxg-tip');
@@ -159,7 +173,7 @@
     function refreshLanguage() {
       canvas.setAttribute('aria-label', t(STRINGS[0]));
       toolbar.setAttribute('aria-label', t('Graph canvas tools'));
-      mini.setAttribute('aria-label', t('Minimap'));
+      mini.title = t('Minimap');
       Array.prototype.forEach.call(toolbar.querySelectorAll('.dxg-tbtn'), function (b) {
         b.setAttribute('aria-label', t(b.dataset.key));
         b.title = t(b.dataset.key);
@@ -327,10 +341,54 @@
     function announceSelection() {
       if (sel.nodes.length === 1) {
         var n = C.nodeMap(g.nodes)[sel.nodes[0]];
-        announce(t('Selected {label}').replace('{label}', (n.label || n.id) + (n.sub ? ', ' + n.sub : '')));
+        var parts = [n.label || n.id];
+        if (n.sub) parts.push(n.sub);
+        (badges[n.id] || []).forEach(function (b) { if (b && b.text) parts.push(b.text); });
+        announce(t('Selected {label}').replace('{label}', parts.join(', ')));
       } else if (sel.nodes.length > 1) {
         announce(t('{n} nodes selected').replace('{n}', sel.nodes.length));
       }
+    }
+
+    /* setEdgeStatus takes 'error' or {status: 'error', message} per edge id. Returns null (fine) or the message ('' if
+       none). */
+    function edgeError(id) {
+      var s = edgeStatus[id];
+      if (s === 'error') return '';
+      return s && s.status === 'error' ? String(s.message || '') : null;
+    }
+
+    function announceEdge(e) {
+      var parts = [t('Edge {from} to {to}').replace('{from}', e.from).replace('{to}', e.to)];
+      if (e.label) parts.push(e.label);
+      var err = edgeError(e.id);
+      if (err !== null) parts.push(err ? t('Error') + ': ' + err : t('Error'));
+      announce(parts.join(', '));
+    }
+
+    /* [ and ]: the previous / next edge into or out of the focused node (all edges when no node has focus). */
+    function cycleEdge(dir) {
+      var list = g.edges.filter(function (e) { return !focusId || e.from === focusId || e.to === focusId; });
+      if (!list.length) { announce(t('No connections')); return; }
+      var i = -1;
+      list.forEach(function (e, k) { if (e.id === sel.edge) i = k; });
+      var e = list[i === -1 ? (dir > 0 ? 0 : list.length - 1) : (i + dir + list.length) % list.length];
+      sel = { nodes: [], edge: e.id };
+      emitSelect();
+      announceEdge(e);
+      paint();
+    }
+
+    function align(how) {
+      if (sel.nodes.length < 2) return;
+      g = C.alignNodes(g, sel.nodes, how);
+      commit('align');
+    }
+
+    function distribute(axis) {
+      if (sel.nodes.length < 3) return;
+      g = C.distributeNodes(g, sel.nodes, axis);
+      commit('align');
     }
 
     function ensureVisible(id) {
@@ -373,6 +431,10 @@
 
     function catOf(n) { return theme.cats[n.category] || theme.cats._; }
 
+    function iconOf(n) {
+      return n.icon || (cats[n.category] && cats[n.category].icon) || CATEGORY_ICONS[n.category] || FALLBACK_ICON;
+    }
+
     function paintNow() {
       if (destroyed) return;
       theme = readTheme(cats);
@@ -386,7 +448,7 @@
         ctx.font = '13px ' + theme.font;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText(t('Drag items from the palette, or select one and press Enter'), cssW / 2, cssH / 2);
+        ctx.fillText(o.emptyText != null ? String(o.emptyText) : t('Drag items from the palette, or select one and press Enter'), cssW / 2, cssH / 2);
       }
       ctx.save();
       ctx.translate(view.offsetX, view.offsetY);
@@ -482,7 +544,7 @@
       ctx.closePath();
       ctx.fill();
       ctx.restore();
-      if (window.DXIcon && DXIcon.draw) DXIcon.draw(ctx, n.icon || 'circle', x + 11, y + H / 2 - 7, 14, c.color);
+      if (window.DXIcon && DXIcon.draw) DXIcon.draw(ctx, iconOf(n), x + 11, y + H / 2 - 7, 14, c.color);
       ctx.textAlign = 'left';
       ctx.textBaseline = 'middle';
       ctx.fillStyle = theme.text;
@@ -568,7 +630,7 @@
       var f = map[e.from], to = map[e.to];
       if (!f || !to) return;
       var a = C.outPort(f), b = C.inPort(to), cf = catOf(f), ct = catOf(to);
-      var selected = sel.edge === e.id, bad = edgeStatus[e.id] === 'error';
+      var selected = sel.edge === e.id, bad = edgeError(e.id) !== null;
       curve(ctx, a.x, a.y, b.x, b.y);
       if (selected) ctx.strokeStyle = theme.accent;
       else if (bad) ctx.strokeStyle = theme.error;
@@ -582,7 +644,8 @@
       ctx.setLineDash(bad ? [8, 4] : e.kind === 'roi' ? [6, 3] : []);
       ctx.stroke();
       ctx.setLineDash([]);
-      arrow(ctx, b.x, b.y, selected ? theme.accent : bad ? theme.error : ct.color);
+      /* The tip stops just outside the input port's ring so the port does not cover the arrowhead. */
+      arrow(ctx, b.x - PR - 1, b.y, selected ? theme.accent : bad ? theme.error : ct.color);
       var mid = C.bezierPoint(a.x, a.y, b.x, b.y, 0.5);
       if (e.label) drawEdgeLabel(ctx, mid, e.label, bad ? theme.error : theme.muted);
       if (bad && window.DXIcon && DXIcon.draw) DXIcon.draw(ctx, 'alert', mid.x - 8, mid.y - (e.label ? 30 : 18), 16, theme.error);
@@ -617,9 +680,10 @@
       if (miniCanvas.width !== Math.round(mw * dpr)) { miniCanvas.width = Math.round(mw * dpr); miniCanvas.height = Math.round(mh * dpr); }
       var m = miniCanvas.getContext('2d');
       m.setTransform(dpr, 0, 0, dpr, 0, 0);
-      var b = C.bounds(g.nodes), pad = 40;
-      var bw = b.maxX - b.minX + pad * 2, bh = b.maxY - b.minY + pad * 2, s = Math.min(mw / bw, mh / bh);
-      var ox = b.minX - pad, oy = b.minY - pad;
+      /* The map covers the nodes and the viewport, so the viewport rectangle is always whole on it. */
+      var nb = C.bounds(g.nodes), pad = 40, tl = C.screenToWorld(view, 0, 0), br = C.screenToWorld(view, cssW, cssH);
+      var ox = Math.min(nb.minX - pad, tl.x), oy = Math.min(nb.minY - pad, tl.y);
+      var bw = Math.max(nb.maxX + pad, br.x) - ox, bh = Math.max(nb.maxY + pad, br.y) - oy, s = Math.min(mw / bw, mh / bh);
       mini._map = { ox: ox, oy: oy, s: s };
       m.fillStyle = theme.panel;
       m.fillRect(0, 0, mw, mh);
@@ -640,10 +704,11 @@
         m.fillRect((n.x - ox) * s, (n.y - oy) * s, W * s, H * s);
         m.globalAlpha = 1;
       });
-      var tl = C.screenToWorld(view, 0, 0);
       m.strokeStyle = theme.accent;
       m.lineWidth = 1.5;
-      m.strokeRect((tl.x - ox) * s, (tl.y - oy) * s, cssW / view.zoom * s, cssH / view.zoom * s);
+      var vx = (tl.x - ox) * s, vy = (tl.y - oy) * s;
+      m.strokeRect(Math.max(0.75, vx), Math.max(0.75, vy), Math.min(mw - 0.75, vx + (br.x - tl.x) * s) - Math.max(0.75, vx),
+        Math.min(mh - 0.75, vy + (br.y - tl.y) * s) - Math.max(0.75, vy));
     }
 
     /* ── input ────────────────────────────────────────────────── */
@@ -654,6 +719,9 @@
     }
 
     function world(e) { var p = local(e); return C.screenToWorld(view, p.x, p.y); }
+
+    /* An edge takes clicks within 8 screen px, whatever the zoom. */
+    function edgeHit() { return 8 / view.zoom; }
 
     function showTip(p, text) {
       tip.textContent = text;
@@ -673,7 +741,8 @@
     function onDown(e) {
       hideMenu();
       canvas.focus();
-      if (e.button === 1 || e.button === 2) { startPan(e); return; }
+      if (e.button === 2) return;   // the context menu opens on 'contextmenu'; a right drag does not pan
+      if (e.button === 1) { startPan(e); return; }
       var w = world(e);
       var outN = C.hitPort(g.nodes, w.x, w.y, 'out');
       if (outN) {
@@ -700,8 +769,8 @@
         paint();
         return;
       }
-      var ed = C.hitEdge(g.nodes, g.edges, w.x, w.y);
-      if (ed) { sel = { nodes: [], edge: ed.id }; emitSelect(); paint(); return; }
+      var ed = C.hitEdge(g.nodes, g.edges, w.x, w.y, edgeHit());
+      if (ed) { sel = { nodes: [], edge: ed.id }; emitSelect(); announceEdge(ed); paint(); return; }
       if (e.shiftKey) { mode = 'marquee'; marquee = { x1: w.x, y1: w.y, x2: w.x, y2: w.y }; return; }
       if (sel.nodes.length || sel.edge) { sel = { nodes: [], edge: null }; emitSelect(); paint(); }
       startPan(e);
@@ -733,7 +802,7 @@
       }
       if (mode === 'marquee') { marquee.x2 = w.x; marquee.y2 = w.y; paint(); return; }
       canvas.style.cursor = C.hitPort(g.nodes, w.x, w.y, 'out') || C.hitPort(g.nodes, w.x, w.y, 'in') ? 'crosshair'
-        : C.hitNode(g.nodes, w.x, w.y) ? 'grab' : C.hitEdge(g.nodes, g.edges, w.x, w.y) ? 'pointer' : 'default';
+        : C.hitNode(g.nodes, w.x, w.y) ? 'grab' : C.hitEdge(g.nodes, g.edges, w.x, w.y, edgeHit()) ? 'pointer' : 'default';
     }
 
     function onUp(e) {
@@ -774,7 +843,7 @@
       if (typeof o.onActivate !== 'function') return;
       var w = world(e), n = C.hitNode(g.nodes, w.x, w.y);
       if (n) { o.onActivate({ type: 'node', id: n.id }); return; }
-      var ed = C.hitEdge(g.nodes, g.edges, w.x, w.y);
+      var ed = C.hitEdge(g.nodes, g.edges, w.x, w.y, edgeHit());
       if (ed) o.onActivate({ type: 'edge', id: ed.id });
     }
 
@@ -809,6 +878,14 @@
         focusNode(next);
         return;
       }
+      if (e.altKey && !mod) {
+        var al = e.shiftKey ? { KeyH: function () { distribute('x'); }, KeyV: function () { distribute('y'); } }
+          : { KeyA: function () { align('left'); }, KeyH: function () { align('center'); },
+              KeyW: function () { align('top'); }, KeyV: function () { align('middle'); } };
+        if (al[e.code]) { e.preventDefault(); al[e.code](); }
+        return;
+      }
+      if (k === '[' || k === ']') { e.preventDefault(); cycleEdge(k === ']' ? 1 : -1); return; }
       if (mod) {
         var lk = k.toLowerCase(), act = { z: e.shiftKey ? redo : undo, y: redo, c: copy, v: paste, a: selectAll, d: duplicate }[lk];
         if (act) { e.preventDefault(); act(); }
@@ -847,7 +924,7 @@
 
     function showMenu(cx, cy, w) {
       hideMenu();
-      var n = C.hitNode(g.nodes, w.x, w.y), ed = n ? null : C.hitEdge(g.nodes, g.edges, w.x, w.y);
+      var n = C.hitNode(g.nodes, w.x, w.y), ed = n ? null : C.hitEdge(g.nodes, g.edges, w.x, w.y, edgeHit());
       if (n && sel.nodes.indexOf(n.id) === -1) { sel = { nodes: [n.id], edge: null }; focusId = n.id; emitSelect(); }
       if (ed) { sel = { nodes: [], edge: ed.id }; emitSelect(); }
       paint();
@@ -865,16 +942,27 @@
         b.addEventListener('click', function () { hideMenu(); fn(); canvas.focus(); });
         menu.appendChild(b);
       }
+      function sep() { var hr = el('hr'); hr.setAttribute('role', 'separator'); menu.appendChild(hr); }
       if (n || ed) {
         item('Delete', 'Del', removeSelection);
         if (n) { item('Copy', 'Ctrl+C', copy); item('Duplicate', 'Ctrl+D', duplicate); }
+        if (n && sel.nodes.length > 1) {
+          var few = sel.nodes.length < 3;
+          sep();
+          item('Align left', 'Alt+A', function () { align('left'); });
+          item('Align center', 'Alt+H', function () { align('center'); });
+          item('Align top', 'Alt+W', function () { align('top'); });
+          item('Align middle', 'Alt+V', function () { align('middle'); });
+          item('Distribute horizontally', 'Alt+Shift+H', function () { distribute('x'); }, few);
+          item('Distribute vertically', 'Alt+Shift+V', function () { distribute('y'); }, few);
+        }
       } else {
         item('Paste', 'Ctrl+V', paste, !clip);
         item('Select all', 'Ctrl+A', selectAll, !g.nodes.length);
-        menu.appendChild(el('hr'));
+        sep();
         item('Undo', 'Ctrl+Z', undo, !hist.canUndo());
         item('Redo', 'Ctrl+Y', redo, !hist.canRedo());
-        menu.appendChild(el('hr'));
+        sep();
         item('Fit view', '0', fitView);
         item('Auto layout', '', autoLayout, !g.nodes.length);
       }
@@ -957,21 +1045,25 @@
       e.preventDefault();
       e.stopPropagation();
       if (!mini._map) return;
+      var p = e.touches ? e.touches[0] || e.changedTouches[0] : e;
+      if (!p) return;
       var r = mini.getBoundingClientRect(), mm = mini._map;
-      var wx = (e.clientX - r.left) / mm.s + mm.ox, wy = (e.clientY - r.top) / mm.s + mm.oy;
+      var wx = (p.clientX - r.left) / mm.s + mm.ox, wy = (p.clientY - r.top) / mm.s + mm.oy;
       view.offsetX = cssW / 2 - wx * view.zoom;
       view.offsetY = cssH / 2 - wy * view.zoom;
       paint();
     }
 
-    function onTheme() { requestAnimationFrame(function () { paint(); }); }
+    /* dx-theme.js fires 'dx-theme-applied' on window after the new theme's tokens are in place. */
+    function onTheme() { paint(); }
+    function onContextMenu(e) { e.preventDefault(); showMenu(e.clientX, e.clientY, world(e)); }
 
     canvas.addEventListener('mousedown', onDown);
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup', onUp);
     canvas.addEventListener('dblclick', onDblClick);
     canvas.addEventListener('wheel', onWheel, { passive: false });
-    canvas.addEventListener('contextmenu', function (e) { e.preventDefault(); showMenu(e.clientX, e.clientY, world(e)); });
+    canvas.addEventListener('contextmenu', onContextMenu);
     canvas.addEventListener('keydown', onKey);
     canvas.addEventListener('focus', paint);
     canvas.addEventListener('blur', paint);
@@ -982,8 +1074,9 @@
     host.addEventListener('dragleave', onDragLeave);
     host.addEventListener('drop', onDrop);
     mini.addEventListener('mousedown', onMiniDown);
+    mini.addEventListener('touchstart', onMiniDown, { passive: false });
     window.addEventListener('dx-icons-ready', paint);
-    if (window.DXTheme && typeof DXTheme.onThemeChange === 'function') DXTheme.onThemeChange(onTheme);
+    window.addEventListener('dx-theme-applied', onTheme);
     var ro = typeof ResizeObserver === 'function' ? new ResizeObserver(function () { resize(); }) : null;
     if (ro) ro.observe(host); else window.addEventListener('resize', resize);
 
@@ -994,6 +1087,12 @@
       window.removeEventListener('mousemove', onMove);
       window.removeEventListener('mouseup', onUp);
       window.removeEventListener('dx-icons-ready', paint);
+      window.removeEventListener('dx-theme-applied', onTheme);
+      host.removeEventListener('dragover', onDragOver);
+      host.removeEventListener('dragleave', onDragLeave);
+      host.removeEventListener('drop', onDrop);
+      if (raf) { cancelAnimationFrame(raf); raf = 0; }
+      clearTimeout(longPress);
       [canvas, toolbar, mini, tip, live].forEach(function (x) { x.remove(); });
       host.classList.remove('dxg-host', 'is-drop');
     }
