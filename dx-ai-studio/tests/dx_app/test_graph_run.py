@@ -422,3 +422,12 @@ def test_a_video_output_carries_its_frame_rate(tmp_path):
     assert graph_run.video_fps(v) == 12.0
     assert graph_run.video_fps(tmp_path / "none.mp4") is None
 
+
+# Phase 2: a run once and a graph Live never overlap.
+
+def test_a_run_waits_for_a_graph_live_to_end(studio, monkeypatch):
+    from dx_app.core import graph_live
+    graph_fakes.install(studio, monkeypatch, RUNNER)
+    monkeypatch.setattr(graph_live, "running", lambda: True)
+    body, code = graph_run.start(GRAPH)
+    assert (code, body["error_key"]) == (409, "graph_live_busy") and _started(studio) == []

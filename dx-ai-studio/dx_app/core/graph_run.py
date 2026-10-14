@@ -244,6 +244,9 @@ def start(graph: dict, *, variant="sync", inputs=None, uploads=None, max_infligh
     if bad:
         return {"error": f"source id {bad[0]!r} must be 1-64 letters, digits, '_', '.' or '-'",
                 "error_key": "invalid_source_id"}, 400
+    from dx_app.core import graph_live           # graph_live imports this module
+    if graph_live.running():
+        return {"error": "a graph Live is running; stop it first", "error_key": "graph_live_busy"}, 409
     job_id = uuid.uuid4().hex
     d = runs_dir() / job_id
     now = time.time()

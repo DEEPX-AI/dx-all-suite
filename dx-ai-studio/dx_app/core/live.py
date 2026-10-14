@@ -55,6 +55,10 @@ def run_inference_live(model_name, category, model_file, lang="cpp", variant="sy
     Performance stays the example's own stdout log (poll_inference parses it)."""
     if not model_file:
         return _err("no_model_file", "No model file configured")
+    # The Graph Composer's Live loads its own engines on the NPU and shares the Live display code: one at a time
+    from dx_app.core import graph_live
+    if graph_live.running():
+        return _err("graph_live_busy", "The Graph Composer has a Live run. Stop it before starting one here.")
 
     # Live streaming needs a virtual display (Xvfb), libX11/libxcb to drive and grab it and Pillow to encode the
     # frames — the only non-stdlib pieces of the live path (all OS packages). Without them frame
