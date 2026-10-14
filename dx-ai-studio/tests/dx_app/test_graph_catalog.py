@@ -115,3 +115,27 @@ def test_the_installed_dx_app_ships_thirteen_examples():
         pytest.skip("dx_app is not checked out next to the studio")
     names = {e["name"] for e in graph_catalog.examples()}
     assert len(names) == 13 and "person-attributes" in names
+
+
+def test_the_listing_maps_names_and_aliases_to_their_files():
+    for r in (graph_catalog.parse_list_models_text(graph_fakes.fixture("list_models.txt")),
+              graph_catalog.parse_list_models_json(graph_fakes.fixture("list_models.json"))):
+        assert r["files"]["fastdepth_224x224"] == "fastdepth_224x224.dxnn"
+        assert r["files"]["deit_base384_distilled"] == "deit-b_384x384_distilled.dxnn"
+        assert len(r["files"]) == 20
+
+
+def test_a_model_file_replaced_in_place_refreshes_the_listing(tmp_path, monkeypatch):
+    graph_fakes.install(tmp_path, monkeypatch, graph_fakes.TEXT_CLI)
+    mdir = tmp_path / "models"
+    f = mdir / "fastdepth_224x224.dxnn"
+    f.write_bytes(b"")
+    graph_catalog.list_models()
+    n = len(graph_fakes.calls(tmp_path))
+    folder = mdir.stat()
+    f.write_bytes(b"DXNN" * 100)                            # a download finished into the existing file
+    later = time.time() + 5
+    os.utime(f, (later, later))
+    os.utime(mdir, ns=(folder.st_atime_ns, folder.st_mtime_ns))
+    graph_catalog.list_models()
+    assert len(graph_fakes.calls(tmp_path)) == n + 1

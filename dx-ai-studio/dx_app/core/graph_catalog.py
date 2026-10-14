@@ -75,7 +75,15 @@ def parse_list_models_text(text: str) -> dict:
             reason = note
         models.append(_entry(name, task, produces, consumes, size, published == "yes", fm["file"].split()[0],
                              fm["needs"], fm["ready"] == "yes", reason, ports))
-    return {"models": models, "aliases": aliases}
+    return {"models": models, "aliases": aliases, "files": _files(models, aliases)}
+
+
+def _files(models: list, aliases: list, given: dict | None = None) -> dict:
+    """Model name or alias -> its .dxnn file name: what dx_app printed, else <name>.dxnn (an alias: its target's)."""
+    out = {m["name"]: f"{m['name']}.dxnn" for m in models}
+    out.update({a["name"]: f"{a['alias_of']}.dxnn" for a in aliases if a.get("alias_of")})
+    out.update({k: v for k, v in (given or {}).items() if isinstance(v, str) and v.endswith(".dxnn")})
+    return out
 
 
 def _input_text(v) -> str:
@@ -100,11 +108,12 @@ def parse_list_models_json(text: str) -> dict:
     aliases = [] if isinstance(data, list) else [
         {"name": a.get("name"), "alias_of": a.get("alias_of")}
         for a in data.get("aliases") or [] if isinstance(a, dict) and a.get("name")]
-    models = []
+    models, given = [], {}
     for m in rows:
         name = m.get("model") or m.get("name") if isinstance(m, dict) else None
         if not name:
             continue
+        given[name] = m.get("file")
         if m.get("alias_of"):
             aliases.append({"name": name, "alias_of": m["alias_of"]})
             continue
@@ -113,7 +122,22 @@ def parse_list_models_json(text: str) -> dict:
         models.append(_entry(name, m.get("task", ""), m.get("produces", ""), m.get("consumes", ""),
                              _input_text(m.get("input")), m.get("published", True), state.split()[0], needs,
                              m.get("ready", True), m.get("reason", ""), _ports(m.get("ports"))))
-    return {"models": models, "aliases": aliases}
+    return {"models": models, "aliases": aliases, "files": _files(models, aliases, given)}
+
+
+def _models_signature(mdir: Path) -> tuple:
+    """Changes when a .dxnn appears, goes, or is rewritten in place (the folder's mtime alone misses the last)."""
+    count, newest, size = 0, 0, 0
+    try:
+        for f in mdir.glob("*.dxnn"):
+            try:
+                st = f.stat()
+            except OSError:
+                continue
+            count, newest, size = count + 1, max(newest, st.st_mtime_ns), size + st.st_size
+    except OSError:
+        pass
+    return count, newest, size
 
 
 def list_models(refresh: bool = False) -> dict:
@@ -121,7 +145,7 @@ def list_models(refresh: bool = False) -> dict:
     if b is None:
         return {"models": [], "aliases": [], "error": "graph_binary_missing"}
     mdir = graph_cli.models_dir()
-    key = (str(b), graph_cli.mtime(b), str(mdir), graph_cli.mtime(mdir))
+    key = (str(b), graph_cli.mtime(b), str(mdir), graph_cli.mtime(mdir), _models_signature(mdir))
     with _lock:
         if not refresh and _cache["key"] == key:
             return _cache["value"]

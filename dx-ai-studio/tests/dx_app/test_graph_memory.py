@@ -5,6 +5,7 @@ import json
 import shutil
 import stat
 import subprocess
+import time
 
 import pytest
 
@@ -164,9 +165,11 @@ def test_the_probe_script_compiles_and_names_the_device_status_calls():
     for call in ("get_device_count", "get_current_status", "get_memory_used", "get_memory_free", "is_valid"):
         assert call in graph_memory.DEVICE_PROBE
 
-def _estimate(monkeypatch, graph, free):
+def _estimate(monkeypatch, graph, free, files=None, checked=None):
     sizes = {"yolo26-n_640x640": YOLO26N, "fastdepth_224x224": FASTDEPTH}
     monkeypatch.setattr(graph_memory, "model_memory", lambda p: sizes.get(p.stem))
+    monkeypatch.setattr(graph_memory, "model_files", lambda: dict(files or {}))
+    monkeypatch.setattr(graph_memory, "checked_files", lambda g: dict(checked or {}))
     monkeypatch.setattr(graph_memory, "device_memory", lambda: {"total_bytes": free, "used_bytes": 0,
                                                                  "free_bytes": free, "source": "device_status"})
     return graph_memory.estimate(graph)
@@ -236,3 +239,82 @@ def test_a_share_patch_removes_params_and_buffers_the_first_node_does_not_set(mo
     assert s["patch"] == {"od": {"engine": {"share": True}, "params": None},
                           "od2": {"engine": {"share": True}, "params": None}}
     assert s["saves_bytes"] == graph_memory.engine_bytes(YOLO26N, 2)
+
+
+
+# Review fixes: model files come from dx_app (catalog rows, aliases, old names), never from a path in the node.
+def test_a_node_s_model_is_found_through_the_catalog_and_through_check(monkeypatch):
+    seen = []
+    g = {"nodes": [{"id": "cam", "type": "source", "uri": "x.jpg"},
+                   {"id": "cls", "model": "deit_base384_distilled"}, {"id": "od", "model": "yolov8n"}],
+         "edges": []}
+    r = _estimate(monkeypatch, g, free=4000 * graph_memory.MB,
+                  files={"deit_base384_distilled": "deit-b_384x384_distilled.dxnn"},
+                  checked={"od": "yolov8-n_640x640.dxnn"})
+    monkeypatch.setattr(graph_memory, "model_memory", lambda p: seen.append(p.name) or YOLO26N)
+    r = graph_memory.estimate(g)
+    assert sorted(seen) == ["deit-b_384x384_distilled.dxnn", "yolov8-n_640x640.dxnn"]
+    assert r["unknown_models"] == [] and r["nodes"]["od"]["model"] == "yolov8n"
+
+
+@pytest.mark.parametrize("name", ["../../etc/passwd", "a/b", "..", ".hidden", "x\\y"])
+def test_a_crafted_model_name_never_reaches_the_file_system(monkeypatch, name):
+    seen = []
+    g = {"nodes": [{"id": "m", "model": name}], "edges": []}
+    _estimate(monkeypatch, g, free=1, files={name: "yolo26-n_640x640.dxnn"}, checked={"m": "../x.dxnn"})
+    monkeypatch.setattr(graph_memory, "model_memory", lambda p: seen.append(p) or YOLO26N)
+    r = graph_memory.estimate(g)
+    assert seen == [] and r["unknown_models"] == [name]
+
+
+def test_a_file_name_from_dx_app_must_be_a_plain_dxnn(monkeypatch):
+    seen = []
+    g = {"nodes": [{"id": "m", "model": "odd"}], "edges": []}
+    _estimate(monkeypatch, g, free=1, files={"odd": "../outside.dxnn"}, checked={"m": "sub/dir.dxnn"})
+    monkeypatch.setattr(graph_memory, "model_memory", lambda p: seen.append(p) or YOLO26N)
+    assert graph_memory.estimate(g)["unknown_models"] == ["odd"] and seen == []
+
+
+def test_check_files_come_from_the_check_table(tmp_path, monkeypatch):
+    graph_fakes.install(tmp_path, monkeypatch, graph_fakes.TEXT_CLI)
+    g = {"version": 1, "name": "g", "nodes": [{"id": "cam", "type": "source", "uri": "x.jpg"},
+                                              {"id": "od", "model": "yolov8n"}], "edges": []}
+    assert graph_memory.checked_files(g) == {"od": "yolov8-n_640x640.dxnn", "attr": "deepmar_resnet50_224x224.dxnn"}
+
+
+def test_model_files_are_the_catalog_s(monkeypatch):
+    from dx_app.core import graph_catalog
+    monkeypatch.setattr(graph_catalog, "list_models", lambda refresh=False: {"files": {"a": "a.dxnn"}, "models": []})
+    assert graph_memory.model_files() == {"a": "a.dxnn"}
+    monkeypatch.setattr(graph_catalog, "list_models", lambda refresh=False: {"models": [], "error": "x"})
+    assert graph_memory.model_files() == {}
+
+
+def test_zero_or_negative_buffers_mean_the_runtime_default(monkeypatch):
+    assert graph_memory.engine_bytes(FASTDEPTH, 0) == graph_memory.engine_bytes(FASTDEPTH, -3) == 118262080
+    r = _estimate(monkeypatch, _g(depth_engine={"buffers": 0}), free=4000 * graph_memory.MB)
+    assert r["nodes"]["depth"]["buffers"] == 6 and r["nodes"]["depth"]["bytes"] == FASTDEPTH["total_bytes"]
+    g = _g({"buffers": 0})
+    (s,) = [s for s in _estimate(monkeypatch, g, free=1)["suggestions"] if s["kind"] == "share"]
+    assert s["patch"]["od"]["engine"] == {"share": True}
+
+
+def test_device_status_from_the_studio_uses_the_device_with_the_least_free_memory(monkeypatch):
+    import shared.hardware as hw
+    monkeypatch.setattr(hw, "get_hw", lambda: {"mock": False, "npus": [
+        {"dram_total_mb": 4000.0, "dram_used_mb": 1000.0}, {"dram_total_mb": 4000.0, "dram_used_mb": 3500.0},
+        {"dram_total_mb": -1, "dram_used_mb": -1}]})
+    d = graph_memory.device_memory()
+    assert (d["used_bytes"], d["free_bytes"]) == (3500 * graph_memory.MB, 500 * graph_memory.MB)
+
+
+def test_parse_model_runs_in_parallel_for_many_models(monkeypatch):
+    def slow(p):
+        time.sleep(0.3)
+        return YOLO26N
+    g = {"nodes": [{"id": f"n{i}", "model": f"m{i}"} for i in range(4)], "edges": []}
+    _estimate(monkeypatch, g, free=1)
+    monkeypatch.setattr(graph_memory, "model_memory", slow)
+    t0 = time.time()
+    r = graph_memory.estimate(g)
+    assert time.time() - t0 < 0.9 and r["total_bytes"] == 4 * YOLO26N["total_bytes"]

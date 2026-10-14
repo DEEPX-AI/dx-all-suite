@@ -18,6 +18,7 @@ import shutil
 import subprocess
 import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 from dx_app.core import graph_cli
@@ -29,6 +30,9 @@ _BUFFERS = re.compile(r"-\s*Buffers\s*:\s*[\d.]+\s*MB\s*\(([\d,]+) bytes\)")
 _POOL = re.compile(r"Buffer Pool Size\s*:\s*x(\d+)")
 _DEVICE = re.compile(r"Memory\s*:.*?([\d.]+)\s*(GiB|MiB|GB|MB)\b")
 _UNIT = {"GiB": 1024 ** 3, "GB": 1000 ** 3, "MiB": MB, "MB": 1000 ** 2}
+# A model name or .dxnn file name Studio may join to the models directory: one plain path component.
+_SAFE_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.+-]{0,127}$")
+_PARSE_WORKERS = 4
 
 _lock = threading.Lock()
 _hash_cache: dict = {}
@@ -54,7 +58,7 @@ def parse_dxrt_status(text: str):
 
 def engine_bytes(info: dict, buffers=None) -> int:
     pool = info["pool"]
-    n = pool if buffers is None else max(1, int(buffers))
+    n = pool if buffers is None or int(buffers) <= 0 else int(buffers)      # 0: DX-RT's default
     return int(info["total_bytes"] - info["buffers_bytes"] + info["buffers_bytes"] * n / pool)
 
 
@@ -200,10 +204,11 @@ def device_memory() -> dict:
     try:
         from shared.hardware import get_hw
         hw = get_hw()
-        npus = [n for n in hw.get("npus") or [] if isinstance(n, dict)]
-        if npus and not hw.get("mock") and (npus[0].get("dram_total_mb") or -1) > 0:
-            total = int(npus[0]["dram_total_mb"] * MB)
-            used = int(max(0, npus[0].get("dram_used_mb") or 0) * MB)
+        npus = [n for n in hw.get("npus") or [] if isinstance(n, dict) and (n.get("dram_total_mb") or -1) > 0]
+        if npus and not hw.get("mock"):
+            # The same rule as the runtime-venv probe: the device with the least free memory is the budget.
+            rows = [(int(n["dram_total_mb"] * MB), int(max(0, n.get("dram_used_mb") or 0) * MB)) for n in npus]
+            total, used = min(rows, key=lambda r: r[0] - r[1])
             value = {"total_bytes": total, "used_bytes": used, "free_bytes": total - used, "source": "device_status"}
     except Exception:
         pass
@@ -242,11 +247,13 @@ def _engines(nodes: list) -> list:
 
 
 def _buffers_of(node: dict):
+    """The node's engine buffer count, or None for DX-RT's default (absent, 0 or less, or not a number)."""
     eng = node.get("engine") if isinstance(node.get("engine"), dict) else {}
     try:
-        return int(eng["buffers"]) if eng.get("buffers") is not None else None
+        n = int(eng["buffers"]) if eng.get("buffers") is not None else None
     except (TypeError, ValueError):
         return None
+    return n if n is not None and n > 0 else None
 
 
 def _share_patch(owner: dict, ids: list) -> dict:
@@ -291,19 +298,62 @@ def suggestions(engines: list, infos: dict, nodes=None) -> list:
     return out
 
 
+def _safe(name, suffix: str = "") -> bool:
+    return (isinstance(name, str) and bool(_SAFE_NAME.fullmatch(name)) and ".." not in name
+            and name.endswith(suffix))
+
+
+def model_files() -> dict:
+    """Model name (and alias) -> .dxnn file name, from dx_app's --list-models (cached by graph_catalog)."""
+    try:
+        from dx_app.core import graph_catalog
+        return dict(graph_catalog.list_models().get("files") or {})
+    except Exception:
+        return {}
+
+
+def checked_files(graph: dict) -> dict:
+    """Node id -> .dxnn file name as dx_app's --check resolves it (old model names included)."""
+    try:
+        from dx_app.core import graph_validate
+        rows = graph_validate.validate(graph).get("models") or []
+    except Exception:
+        return {}
+    return {r["node"]: r["artifact"] for r in rows
+            if isinstance(r, dict) and r.get("model") and isinstance(r.get("artifact"), str)
+            and r["artifact"].endswith(".dxnn")}
+
+
+def resolve_files(nodes: list, graph: dict) -> dict:
+    """Model name -> .dxnn file name in the models directory, or no entry when the name cannot be trusted.
+
+    The catalog answers names and aliases; a name it does not know (an old name) is asked of --check once. A name or
+    file that is not one plain path component never reaches the file system."""
+    names = {n["model"] for n in nodes if _safe(n["model"])}
+    catalog = model_files() if names else {}
+    out = {name: catalog[name] for name in names if _safe(catalog.get(name), ".dxnn")}
+    pending = names - set(out)
+    if pending:
+        by_node = checked_files(graph)
+        for n in nodes:
+            if n["model"] in pending and _safe(by_node.get(n["id"]), ".dxnn"):
+                out.setdefault(n["model"], by_node[n["id"]])
+        for name in pending - set(out):
+            if not catalog:                   # no catalog to ask (no binary): the registry's own file name
+                out[name] = f"{name}.dxnn"
+    return out
+
+
 def estimate(graph: dict) -> dict:
     nodes = [n for n in (graph or {}).get("nodes") or [] if isinstance(n, dict) and n.get("model") and n.get("id")]
     mdir = graph_cli.models_dir()
-    infos, unknown = {}, []
-    for n in nodes:
-        name = n["model"]
-        if name in infos or name in unknown:
-            continue
-        info = model_memory(mdir / f"{name}.dxnn")
-        if info is None:
-            unknown.append(name)
-        else:
-            infos[name] = info
+    files = resolve_files(nodes, graph)
+    names = list(dict.fromkeys(n["model"] for n in nodes))
+    wanted = [name for name in names if name in files]
+    with ThreadPoolExecutor(max_workers=max(1, min(_PARSE_WORKERS, len(wanted)))) as pool:
+        found = dict(zip(wanted, pool.map(lambda name: model_memory(mdir / files[name]), wanted)))
+    infos = {name: info for name, info in found.items() if info is not None}
+    unknown = [name for name in names if name not in infos]
     engines, per_node, total = _engines(nodes), {}, 0
     for e in engines:
         info = infos.get(e["model"])
