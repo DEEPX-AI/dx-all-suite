@@ -14,11 +14,13 @@
 <link rel="stylesheet" href="/static/shared/module-chrome.css">
 <link rel="stylesheet" href="/static/shared/dx-components.css">
 <link rel="stylesheet" href="/static/shared/dx-demo-stage.css">
+<link rel="stylesheet" href="/static/shared/dx-graph-canvas.css">
 <link rel="stylesheet" href="/static/shared/brand.css">
 <link rel="stylesheet" href="/static/shared/tutorial.css">
 <link rel="stylesheet" href="/static/shared/toolbar.css">
 <link rel="stylesheet" href="/static/shared/chat-widget.css">
 <link rel="stylesheet" href="/static/css/style.css?m=dx_app_shell_a">
+<link rel="stylesheet" href="/static/css/graph-composer.css?m=dx_app">
 <link rel="icon" type="image/svg+xml" href="/static/shared/favicons/dx_app.svg">
 <script src="/static/shared/dx-theme.js"></script>
 <script src="/static/shared/dx-icon.js"></script>
@@ -552,6 +554,51 @@
   <div class="mz-cart-bar" id="mz-cart" style="display:none"></div>
 </div>
 
+<!-- ═══ PAGE: Graph Composer ═══ -->
+<div id="page-graph" class="page">
+  <h1><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#graph"></use></svg> <span class="accent" data-i18n="Graph Composer">Graph Composer</span></h1>
+  <p class="txt-dim txt-sm mb16" data-i18n="Connect several models into one pipeline, check it, and run it on the NPU.">Connect several models into one pipeline, check it, and run it on the NPU.</p>
+  <div class="card gc-toolbar" id="gc-toolbar">
+    <label class="gc-field"><span data-i18n="Project name">Project name</span><input type="text" id="gc-name" class="input" maxlength="80"></label>
+    <div class="gc-group">
+      <button type="button" class="btn btn-ghost btn-sm" id="gc-new"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#plus"></use></svg> <span data-i18n="New graph">New graph</span></button>
+      <label class="gc-field gc-field-inline"><span class="dx-sr-only" data-i18n="Open project">Open project</span><select id="gc-projects" class="input"></select></label>
+      <label class="gc-field gc-field-inline"><span class="dx-sr-only" data-i18n="Version">Version</span><select id="gc-versions" class="input"></select></label>
+      <button type="button" class="btn btn-neutral btn-sm" id="gc-save"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#check"></use></svg> <span data-i18n="Save">Save</span></button>
+      <button type="button" class="btn btn-ghost btn-sm" id="gc-delete"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#trash"></use></svg> <span data-i18n="Delete">Delete</span></button>
+      <button type="button" class="btn btn-ghost btn-sm" id="gc-import"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#upload"></use></svg> <span data-i18n="Import JSON">Import JSON</span></button>
+      <input type="file" id="gc-import-file" accept="application/json,.json" hidden>
+      <button type="button" class="btn btn-ghost btn-sm" id="gc-export"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#download"></use></svg> <span data-i18n="Export JSON">Export JSON</span></button>
+    </div>
+    <span class="gc-status" id="gc-status" role="status" aria-live="polite"></span>
+    <div class="gc-group gc-group-end">
+      <button type="button" class="btn btn-ghost btn-sm" id="gc-validate"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#check"></use></svg> <span data-i18n="Validate">Validate</span></button>
+      <button type="button" class="btn btn-primary btn-sm" id="gc-run" disabled><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#play"></use></svg> <span data-i18n="Run once">Run once</span></button>
+    </div>
+  </div>
+  <div class="gc-layout">
+    <aside class="card gc-palette" id="gc-palette" aria-labelledby="gc-palette-title">
+      <h2 class="gc-title" id="gc-palette-title" data-i18n="Palette">Palette</h2>
+      <input type="search" id="gc-search" class="input" placeholder="Search models…" data-i18n-placeholder="Search models…" aria-label="Search models" data-i18n-aria-label="Search models">
+      <div id="gc-palette-list" class="gc-palette-list"></div>
+    </aside>
+    <section class="gc-stage" aria-labelledby="gc-stage-title">
+      <h2 class="dx-sr-only" id="gc-stage-title" data-i18n="Graph">Graph</h2>
+      <div id="gc-canvas-host" class="gc-canvas-host"></div>
+      <div id="gc-memory" class="gc-memory" hidden></div>
+    </section>
+    <aside class="card gc-inspector" id="gc-inspector" aria-labelledby="gc-inspector-title">
+      <h2 class="gc-title" id="gc-inspector-title" data-i18n="Inspector">Inspector</h2>
+      <div id="gc-inspector-body"></div>
+    </aside>
+  </div>
+  <section class="card gc-run" id="gc-run-panel" aria-labelledby="gc-run-title">
+    <h2 class="gc-title" id="gc-run-title" data-i18n="Run once">Run once</h2>
+    <div id="gc-run-body"></div>
+  </section>
+  <datalist id="gc-samples"></datalist>
+</div>
+
 <!-- ═══ PAGE: Lab ═══ -->
 <div id="page-lab" class="page">
   <h1><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#lab"></use></svg> <span class="accent" data-i18n="Lab">Lab</span></h1>
@@ -833,6 +880,13 @@ document.querySelectorAll('.dx-tab').forEach(function (t) {
 <script src="/static/js/lab-portal.js?m=dx_app"></script>
 <script src="/static/js/lab-composer-graph.js?m=dx_app"></script>
 <script src="/static/js/lab-composer.js?m=dx_app"></script>
+<script src="/static/shared/dx-graph-core.js"></script>
+<script src="/static/shared/dx-graph-canvas.js"></script>
+<script src="/static/js/graph-doc.js?m=dx_app"></script>
+<script src="/static/js/graph-composer.js?m=dx_app"></script>
+<script src="/static/js/graph-palette.js?m=dx_app"></script>
+<script src="/static/js/graph-inspector.js?m=dx_app"></script>
+<script src="/static/js/graph-run.js?m=dx_app"></script>
 <script src="/static/js/setup.js?m=dx_app"></script>
 <script src="/static/js/filebrowser.js?m=dx_app"></script>
 <script src="/static/js/app.js?m=dx_app"></script>

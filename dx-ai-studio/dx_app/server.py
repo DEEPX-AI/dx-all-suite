@@ -221,7 +221,7 @@ _chat_engine = ChatEngine(
 
 
 # ── Shared App Shell ──────────────────────────────────────────
-# The ten pages sit in a top tab row (no left sidebar).
+# The eleven pages sit in a top tab row (no left sidebar).
 # Labels are the English source text = i18n dictionary keys. Icon ids come from shared/static/dx-icons.svg.
 DX_APP_PAGES = (
     ("setup", "Setup", "setup"),
@@ -231,6 +231,7 @@ DX_APP_PAGES = (
     ("bench", "Benchmark", "bench"),
     ("compare", "A/B Compare", "compare"),
     ("modelzoo", "ModelZoo", "download"),
+    ("graph", "Graph Composer", "graph"),
     ("lab", "Lab", "lab"),
     ("outputs", "Outputs", "folder"),
     ("reference", "Reference", "book"),

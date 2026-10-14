@@ -77,7 +77,7 @@ function toast(msg,type='info',opts){
     t.appendChild(ab);
   }
   if(!opts.persist){
-    const cb=document.createElement('button');cb.className='toast-close';cb.innerHTML='';
+    const cb=document.createElement('button');cb.className='toast-close';cb.innerHTML='';cb.setAttribute('aria-label',T('Close'));
     cb.onclick=function(){t.classList.remove('show');setTimeout(()=>t.remove(),400);};
     t.appendChild(cb);
   }
@@ -154,8 +154,8 @@ function fmtTime(ts){const d=new Date(ts*1000);return d.toLocaleString(getLocale
 function fmtClock(epochMs){const d=new Date(epochMs);return d.toLocaleTimeString(getLocale(),{hour12:false,hour:'2-digit',minute:'2-digit',second:'2-digit'})}
 function tempColor(t){return t<40?_cv('--status-ok'):t<55?_cv('--status-warn'):_cv('--status-error')}
 
-const PAGES=['setup','models','run','rundemo','bench','compare','modelzoo','lab','outputs','reference'];
-const PAGE_TITLES={setup:DXIcon('gear') + ' Setup & Install',models:'Models',run:'Run Inference',rundemo:DXIcon('demo') + ' Run Demo',bench:'Benchmark',compare:'A/B Compare',modelzoo:DXIcon('download') + ' ModelZoo',lab:DXIcon('lab') + ' Lab',outputs:'Outputs',reference:DXIcon('book') + ' Reference'};
+const PAGES=['setup','models','run','rundemo','bench','compare','modelzoo','graph','lab','outputs','reference'];
+const PAGE_TITLES={setup:DXIcon('gear') + ' Setup & Install',models:'Models',run:'Run Inference',rundemo:DXIcon('demo') + ' Run Demo',bench:'Benchmark',compare:'A/B Compare',modelzoo:DXIcon('download') + ' ModelZoo',graph:DXIcon('graph') + ' Graph Composer',lab:DXIcon('lab') + ' Lab',outputs:'Outputs',reference:DXIcon('book') + ' Reference'};
 function _applyLangToActivePage(){
   if(!window.DXI18n)return;
   const active=document.querySelector('.page.active');
@@ -192,6 +192,7 @@ function nav(page){
   if(page==='bench')initBenchPage();
   if(page==='compare'){setABCols(S.abCols);initABImages()}
   if(page==='modelzoo')initModelZoo();
+  if(page==='graph'&&window.GraphComposer)GraphComposer.open();
   if(page==='lab')initLabPage();
   if(page==='setup')setupInit();
   // Re-apply i18n after page content renders
