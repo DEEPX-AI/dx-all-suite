@@ -394,6 +394,64 @@ def test_run_events_are_listed_filtered_badged_and_downloadable(browser, server,
         ctx.close()
 
 
+def test_live_starts_streams_lists_events_and_stops(ui):
+    page, fake = ui
+    _open(page, "zone_intrusion")
+    page.click("#gc-live")
+    assert page.get_attribute("#gc-tab-live", "aria-selected") == "true" and page.is_visible("#gc-live-body")
+    page.wait_for_function("() => document.getElementById('gc-live-view').src.includes('/api/graph/live/frame?id=L1')")
+    page.wait_for_selector("#gc-live-events tbody tr")
+    assert "25.0 FPS" in page.inner_text("#gc-live-body .gc-run-progress")
+    assert not page.is_enabled("#gc-run") and not page.is_enabled("#gc-live")
+    started = [b for path, b in fake.posted if path == "live/start"][0]
+    assert started["inputs"] == {} and [n.get("type") for n in started["graph"]["nodes"]].count("logic") == 3
+    page.click("#gc-live-stop")
+    page.wait_for_selector("#gc-live-body .gc-ok")
+    assert page.inner_text("#gc-live-body .gc-ok") == "Live stopped."
+    assert page.is_hidden("#gc-live-view") and page.is_enabled("#gc-live")
+    assert page.get_attribute("#gc-live-events .gc-ev-download", "href") == "/outputs/graph/live/L1/events.jsonl"
+
+
+def test_live_takes_a_camera_or_an_rtsp_address_and_stops_when_the_page_is_left(ui):
+    page, fake = ui
+    _open(page, "zone_intrusion")
+    page.click("#gc-tab-live")
+    page.select_option("#gc-live-input-cam", "__rtsp__")
+    page.fill("#gc-live-rtsp-cam", "rtsp://10.0.0.2/stream1")
+    page.dispatch_event("#gc-live-rtsp-cam", "change")
+    page.click("#gc-live-start")
+    page.wait_for_function("() => GraphLive.running()")
+    started = [b for path, b in fake.posted if path == "live/start"][-1]
+    assert started["inputs"] == {"cam": "rtsp://10.0.0.2/stream1"}
+    page.evaluate("nav('models')")
+    for _ in range(50):
+        if any(path == "live/stop" for path, _ in fake.posted):
+            break
+        page.wait_for_timeout(100)
+    assert any(path == "live/stop" for path, _ in fake.posted), "leaving the page stops Live"
+
+
+def test_the_tabs_follow_the_arrow_keys(ui):
+    page, _ = ui
+    page.focus("#gc-tab-once")
+    page.keyboard.press("ArrowRight")
+    assert page.evaluate("document.activeElement.id") == "gc-tab-live" and page.is_visible("#gc-live-body")
+    page.keyboard.press("Home")
+    assert page.is_visible("#gc-run-body") and page.is_hidden("#gc-live-body")
+
+
+def test_the_logic_pieces_follow_a_language_change(ui):
+    page, _ = ui
+    _open(page, "zone_intrusion")
+    page.evaluate("GraphComposer.canvas().select({nodes: ['zone']})")
+    page.evaluate("DXI18n.setLang('ko')")
+    page.wait_for_function("() => document.querySelector(\"[data-group='templates'] .gc-group-title\").textContent === 'Template'")
+    names = page.eval_on_selector_all("[data-group='logic'] .gc-item-name", "els => els.map(e => e.textContent)")
+    assert names[:3] == ["필터", "구역", "선 통과"]
+    assert "프레임 위에서 편집" in page.inner_text("#gc-inspector-body") and "점 4개" in page.inner_text("#gc-inspector-body")
+    assert page.inner_text("#gc-tab-live") .strip() == "Live"
+    page.evaluate("DXI18n.setLang('en')")
+
 class FakeGallery:
     """/api/graph/gallery/{build,poll,stop}: a build that runs for `polls` polls, then ends as `result`; `hold` keeps it
     running until it is stopped (then it ends as gallery_stopped, as graph_gallery.stop does)."""
@@ -526,3 +584,23 @@ def test_a_refused_run_says_why_in_the_page_language(ui):
     page.evaluate("DXI18n.setLang('ko')")
     page.click("#gc-run")
     page.wait_for_function("() => /그래프 실행이 진행 중입니다/.test(document.querySelector('#gc-run-panel').textContent)", timeout=10000)
+
+
+def test_live_says_why_it_could_not_start_or_why_it_ended(ui):
+    page, _ = ui
+    refuse = lambda r: r.fulfill(status=409, content_type="application/json", body=json.dumps(
+        {"error": "another job took the NPU while this one was being prepared; start it again", "error_key": "npu_hold_lost"}))
+    page.context.route("**/api/graph/live/start", refuse)
+    _open(page, "zone_intrusion")
+    page.evaluate("DXI18n.setLang('ko')")
+    page.click("#gc-tab-live")
+    page.click("#gc-live-start")
+    page.wait_for_function("() => /다른 작업이 NPU를 사용하기 시작했습니다/.test(document.querySelector('#gc-live-body').textContent)",
+                           timeout=10000)
+    page.evaluate("DXI18n.setLang('en')")
+    page.context.unroute("**/api/graph/live/start", refuse)
+    page.context.route("**/api/graph/live/poll*", lambda r: r.fulfill(status=404, content_type="application/json", body=json.dumps(
+        {"error": "unknown_job", "error_key": "unknown_job"})))
+    page.click("#gc-live-start")
+    page.wait_for_selector("#gc-live-body .gc-error:has-text('This run is no longer known to the server')", timeout=10000)
+    assert not page.evaluate("GraphLive.running()") and page.is_enabled("#gc-live-start")
