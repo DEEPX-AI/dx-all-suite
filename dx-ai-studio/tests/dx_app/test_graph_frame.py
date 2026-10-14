@@ -59,3 +59,40 @@ def test_a_file_that_is_not_an_image_is_unreadable(root):
     (root / "sample" / "img" / "fake.jpg").write_bytes(b"not a jpeg")
     body, code = graph_frame.first_frame("sample/img/fake.jpg")
     assert (code, body["error_key"]) == (422, "frame_unreadable")
+
+
+def test_a_file_too_large_to_show_is_refused_before_it_is_read(root, monkeypatch):
+    img = root / "sample" / "img" / "big.png"
+    PIL.new("RGB", (8, 8)).save(img)
+    vid = root / "assets" / "videos" / "big.mp4"
+    vid.write_bytes(b"\0" * 64)
+    monkeypatch.setattr(graph_frame, "MAX_IMAGE_BYTES", 16)
+    monkeypatch.setattr(graph_frame, "MAX_VIDEO_BYTES", 32)
+    monkeypatch.setattr(graph_frame, "_video_frame", lambda p: pytest.fail("a large video is not decoded"))
+    for uri in ("sample/img/big.png", "assets/videos/big.mp4"):
+        body, code = graph_frame.first_frame(uri)
+        assert (code, body["error_key"]) == (413, "frame_too_large"), uri
+    assert graph_frame.MAX_IMAGE_BYTES < graph_frame.MAX_VIDEO_BYTES
+
+
+def test_an_image_with_too_many_pixels_is_not_decoded(root, monkeypatch):
+    """A small file can declare a huge canvas (a decompression bomb); its header is enough to refuse it."""
+    PIL.new("RGB", (400, 300)).save(root / "sample" / "img" / "wide.png")
+    monkeypatch.setattr(graph_frame, "MAX_PIXELS", 100_000)
+    body, code = graph_frame.first_frame("sample/img/wide.png")
+    assert (code, body["error_key"]) == (413, "frame_too_large") and "pixels" in body["error"]
+    assert PIL.MAX_IMAGE_PIXELS != 100_000, "Pillow's process-wide limit is left alone"
+    assert graph_frame.MAX_PIXELS <= 50_000_000 < (PIL.MAX_IMAGE_PIXELS or 10 ** 12)
+
+
+def test_ffmpeg_reads_no_terminal_input(root, monkeypatch):
+    seen = {}
+
+    def run(cmd, **kw):
+        seen.update(cmd=cmd, **kw)
+        return subprocess.CompletedProcess(cmd, 1, stdout=b"", stderr=b"boom")
+    monkeypatch.setattr(graph_frame.shutil, "which", lambda name: "/usr/bin/" + name)
+    monkeypatch.setattr(graph_frame.subprocess, "run", run)
+    (root / "assets" / "videos" / "clip.mp4").write_bytes(b"\0")
+    body, code = graph_frame.first_frame("assets/videos/clip.mp4")
+    assert code == 422 and seen["stdin"] == subprocess.DEVNULL and "-nostdin" in seen["cmd"]
