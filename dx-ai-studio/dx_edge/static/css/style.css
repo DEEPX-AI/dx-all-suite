@@ -10,6 +10,7 @@
 .edge-alert{margin:var(--sp-3) 0 0;color:var(--status-warn)}
 .edge-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:0 var(--sp-4);margin-top:var(--sp-4)}
 .edge-form .edge-actions{grid-column:1/-1;margin-top:0}
+.edge-stack-row{grid-column:1/-1}
 .edge-inline{display:flex;gap:var(--sp-2);align-items:center}
 .edge-inline select{flex:1;min-width:0}
 .edge-job{margin-top:var(--sp-4);padding-top:var(--sp-4);border-top:1px solid var(--border-subtle)}
