@@ -416,6 +416,9 @@
 
     function fitNow() {
       var best = null;
+      /* The minimap shows with the next paint whenever there are nodes; fit against it now, or a graph set on an empty
+         canvas gets a different first view than a later refit. */
+      mini.style.display = g.nodes.length ? '' : 'none';
       fitInsets().forEach(function (ins) {
         var v = C.fitTransform(g.nodes, cssW, cssH, ins);
         if (!best || v.zoom > best.zoom + 1e-6) best = v;

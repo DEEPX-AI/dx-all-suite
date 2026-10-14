@@ -428,3 +428,16 @@ def test_a_fitted_view_follows_the_canvas_size_until_the_user_moves_it(page):
     page.evaluate("document.getElementById('host').style.width = '900px'")
     page.wait_for_timeout(150)
     assert page.evaluate("cv.view()") == moved, "a view the user zoomed or panned is kept"
+
+
+def test_a_graph_set_on_an_empty_canvas_is_fitted_around_the_minimap_at_once(page):
+    """The minimap is hidden while the canvas is empty and shown by the next paint. A graph set on an empty canvas is
+    fitted in the same call, so the fit must already leave the minimap's room — otherwise the first view differs from
+    a later refit and the Graph Composer's first picture depended on whether a resize came after the paint."""
+    page.evaluate("() => cv.setGraph({nodes: [], edges: []})")
+    page.wait_for_timeout(100)
+    assert page.evaluate("getComputedStyle(document.querySelector('.dxg-minimap')).display") == "none"
+    first = page.evaluate(f"() => {{ ({FLAT})(); return cv.view(); }}")
+    page.wait_for_timeout(100)
+    page.evaluate("cv.fitView()")
+    assert page.evaluate("cv.view()") == first
