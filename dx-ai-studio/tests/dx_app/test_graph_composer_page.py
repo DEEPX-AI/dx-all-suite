@@ -78,3 +78,7 @@ def test_every_page_script_follows_a_language_change(name):
 def test_the_toast_close_button_has_a_name():
     """The accessible-names sweep visits every tab; a toast left open by any page showed an unnamed button."""
     assert "cb.setAttribute('aria-label',T('Close'))" in UTILS.read_text(encoding="utf-8")
+
+
+def test_all_page_scripts_are_present():
+    assert _PRESENT == list(PAGE_SCRIPTS)
