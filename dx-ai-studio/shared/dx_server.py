@@ -173,6 +173,8 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
     # Upload size limits (bytes)
     upload_max_bytes: int = 500 * 1024 * 1024  # 500MB
     json_max_bytes: int = 1024 * 1024  # 1MB
+    # Per-path overrides of json_max_bytes, for the few routes that carry an upload inside their JSON body.
+    json_max_bytes_by_path: dict = {}
 
     # Shared cache store (class level)
     _cache: dict = {}
@@ -201,8 +203,10 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
     def read_json_body(self) -> dict:
         """Parse a POST/PUT body as JSON. An empty body gives {}."""
         length = self._content_length_or_error()
-        if length > self.json_max_bytes:
-            raise RequestBodyError(413, "JSON body too large")
+        limit = self.json_max_bytes_by_path.get(getattr(self, "url_path", None), self.json_max_bytes)
+        if length > limit:
+            size = f"{limit // (1024 * 1024)} MB" if limit >= 1024 * 1024 else f"{limit} bytes"
+            raise RequestBodyError(413, f"JSON body too large (at most {size})")
         if length == 0:
             return {}
         raw = self.rfile.read(length)

@@ -8,14 +8,19 @@ One job is one subprocess
 in its own folder outputs/dx_app/graph/runs/<job>. The page polls: progress comes from the runner's
 `[PROGRESS] frames=N fps=F avg_fps=A node_ms=<id>:<ms>,...` lines (DXAPP_PROGRESS=1), results from --report once it
 exits. Same lifetime rule as run_progress.py: a job nobody polls for _JOB_TTL seconds is stopped and dropped.
+One run at a time: the slot is taken under the lock before anything is prepared. A run is stopped (SIGTERM, then
+SIGKILL after _STOP_GRACE seconds) when it outlives DX_GRAPH_RUN_MAX_SECONDS (default 600) or its log outgrows
+_MAX_LOG_BYTES, and every run is stopped when the server shuts down (atexit and the idle watchdog).
 Camera and RTSP sources belong to Live (a later phase) and are refused here.
 Contract: tests/dx_app/test_graph_run.py
 """
 from __future__ import annotations
 
+import atexit
 import base64
 import binascii
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -30,6 +35,10 @@ from dx_app.core.dx_app_security import resolve_existing_file
 from dx_app.core.graph_validate import engine_graph, parse_errors
 
 _JOB_TTL = 600.0
+_STOP_GRACE = 5.0
+_MAX_RUN_SECONDS = float(os.environ.get("DX_GRAPH_RUN_MAX_SECONDS") or 600)
+_MAX_LOG_BYTES = 8 * 1024 * 1024
+_SOURCE_ID = re.compile(r"^[A-Za-z0-9_.-]{1,64}$")
 _KEEP_RUN_DIRS = 20
 _MAX_UPLOAD_B64 = 20 * 1024 * 1024
 _IMAGE_EXT = (".jpg", ".jpeg", ".png", ".bmp", ".webp")
@@ -169,10 +178,21 @@ def _prune_runs(keep: int = _KEEP_RUN_DIRS) -> None:
 
 def _reap(now: float) -> None:
     """Drop jobs nobody polled for _JOB_TTL seconds, stopping a run that is still going. Caller holds _lock."""
-    for jid in [j for j, e in _jobs.items() if now - e["touched"] > _JOB_TTL]:
+    for jid in [j for j, e in _jobs.items() if now - e["touched"] > _JOB_TTL and e["proc"] is not None]:
         job = _jobs.pop(jid)
         if job["proc"].poll() is None:
             job["proc"].kill()
+
+
+def _terminate(proc, grace=None) -> None:
+    """SIGTERM (the runner finishes the frames in flight and closes its outputs), SIGKILL after `grace` seconds."""
+    if proc is None or proc.poll() is not None:
+        return
+    proc.terminate()
+    try:
+        proc.wait(timeout=_STOP_GRACE if grace is None else grace)
+    except subprocess.TimeoutExpired:
+        proc.kill()
 
 
 def _int_in(value, lo, hi, label):
@@ -206,52 +226,64 @@ def start(graph: dict, *, variant="sync", inputs=None, uploads=None, max_infligh
     sources = [n for n in graph.get("nodes") or [] if isinstance(n, dict) and n.get("type") == "source"]
     if not sources:
         return {"error": "the graph has no source", "error_key": "no_source"}, 400
-    with _lock:
-        _reap(time.time())
-        if any(j["result"] is None for j in _jobs.values()):
-            return {"error": "a graph run is already running", "error_key": "graph_run_busy"}, 409
-    _prune_runs()
+    bad = [s.get("id") for s in sources
+           if not isinstance(s.get("id"), str) or not _SOURCE_ID.fullmatch(s["id"]) or not s["id"].strip(".")]
+    if bad:
+        return {"error": f"source id {bad[0]!r} must be 1-64 letters, digits, '_', '.' or '-'",
+                "error_key": "invalid_source_id"}, 400
     job_id = uuid.uuid4().hex
     d = runs_dir() / job_id
-    d.mkdir(parents=True)
-    args, video = [], False
+    now = time.time()
+    job = {"id": job_id, "dir": d, "proc": None, "log": None, "graph": graph, "video": False, "start": now,
+           "touched": now, "cursor": 0, "progress": {"node_ms": {}}, "result": None, "stop_reason": None}
+    with _lock:
+        _reap(now)
+        if any(j["result"] is None for j in _jobs.values()):
+            return {"error": "a graph run is already running", "error_key": "graph_run_busy"}, 409
+        _jobs[job_id] = job                   # the slot is taken before anything is prepared
+
+    def give_up(body, code):
+        with _lock:
+            _jobs.pop(job_id, None)
+        if job["log"] is not None:
+            job["log"].close()
+        shutil.rmtree(d, ignore_errors=True)
+        return body, code
+
     try:
+        _prune_runs()
+        d.mkdir(parents=True)
+        args, video = [], False
         for s in sources:
-            sid = str(s.get("id") or "")
+            sid = s["id"]
             if uploads and sid in uploads:
                 p = _write_upload(d, sid, uploads[sid])
             else:
                 p = _resolve_uri((inputs or {}).get(sid) or s.get("uri"))
             video = video or p.suffix.lower() in _VIDEO_EXT
             args += ["--input", f"{sid}={p}"]
-    except ValueError as e:
-        shutil.rmtree(d, ignore_errors=True)
-        key = "live_source" if str(e) == "live_source" else "invalid_input"
-        return {"error": str(e), "error_key": key}, 400
-    caps = graph_cli.capabilities()
-    (d / "graph.json").write_text(json.dumps(engine_graph(graph, caps)), encoding="utf-8")
-    cmd = [str(binary), "--graph", str(d / "graph.json"), *args,
-           "--output", str(d / ("raw.mp4" if video else "result.jpg")), "--report", str(d / "report.json"),
-           "--model-dir", str(graph_cli.models_dir())]
-    if caps.get("report_timing"):
-        cmd.append("--report-timing")
-    if variant == "async" and max_inflight:
-        cmd += ["--max-inflight", str(max_inflight)]
-    if frames:
-        cmd += ["--frames", str(frames)]
-    log = (d / "run.log").open("w", encoding="utf-8")
-    try:
-        proc = subprocess.Popen(cmd, stdout=log, stderr=subprocess.STDOUT, cwd=str(config.DX_APP_ROOT),
+        caps = graph_cli.capabilities()
+        (d / "graph.json").write_text(json.dumps(engine_graph(graph, caps)), encoding="utf-8")
+        cmd = [str(binary), "--graph", str(d / "graph.json"), *args,
+               "--output", str(d / ("raw.mp4" if video else "result.jpg")), "--report", str(d / "report.json"),
+               "--model-dir", str(graph_cli.models_dir())]
+        if caps.get("report_timing"):
+            cmd.append("--report-timing")
+        if variant == "async" and max_inflight:
+            cmd += ["--max-inflight", str(max_inflight)]
+        if frames:
+            cmd += ["--frames", str(frames)]
+        job["log"] = (d / "run.log").open("w", encoding="utf-8")
+        proc = subprocess.Popen(cmd, stdout=job["log"], stderr=subprocess.STDOUT, cwd=str(config.DX_APP_ROOT),
                                 env=graph_cli.env(), text=True, close_fds=True)
-    except OSError as e:
-        log.close()
-        shutil.rmtree(d, ignore_errors=True)
-        return {"error": str(e), "error_key": "graph_run_failed"}, 500
-    now = time.time()
-    job = {"id": job_id, "dir": d, "proc": proc, "log": log, "graph": graph, "video": video, "start": now,
-           "touched": now, "cursor": 0, "progress": {"node_ms": {}}, "result": None}
+    except ValueError as e:
+        key = "live_source" if str(e) == "live_source" else "invalid_input"
+        return give_up({"error": str(e), "error_key": key}, 400)
+    except (OSError, subprocess.SubprocessError) as e:
+        return give_up({"error": str(e), "error_key": "graph_run_failed"}, 500)
     with _lock:
-        _jobs[job_id] = job
+        job["proc"], job["video"] = proc, video
+        job["start"] = job["touched"] = time.time()
     threading.Thread(target=_wait, args=(job,), daemon=True, name=f"graph-run-{job_id[:8]}").start()
     return {"job_id": job_id, "status": "started"}, 200
 
@@ -281,15 +313,57 @@ def _last_progress(text: str) -> dict:
     return last
 
 
+def _read_tail(path: Path, limit: int) -> str:
+    """At most the last `limit` bytes of a log."""
+    try:
+        with open(path, "rb") as f:
+            size = f.seek(0, 2)
+            f.seek(max(0, size - limit))
+            return f.read(limit).decode("utf-8", "replace")
+    except OSError:
+        return ""
+
+
+def _limit_error(reason: str) -> dict:
+    if reason == "timeout":
+        what = f"the run took longer than {_MAX_RUN_SECONDS:g} s and was stopped"
+        how = "run fewer frames or a shorter video (DX_GRAPH_RUN_MAX_SECONDS sets the limit)"
+        code = "RUN_TIMEOUT"
+    else:
+        what = f"the run printed more than {_MAX_LOG_BYTES // (1024 * 1024) or 1} MB of log and was stopped"
+        how = "check the log tail for a message repeated on every frame"
+        code = "RUN_LOG_LIMIT"
+    return {"code": code, "where": "graph", "what": what, "how": how, "node": None, "edge": None}
+
+
 def _wait(job: dict) -> None:
-    code = job["proc"].wait()
+    proc, log_path = job["proc"], job["dir"] / "run.log"
+    while True:
+        try:
+            code = proc.wait(timeout=0.2)
+            break
+        except subprocess.TimeoutExpired:
+            pass
+        if job["stop_reason"]:
+            continue
+        reason = None
+        if time.time() - job["start"] > _MAX_RUN_SECONDS:
+            reason = "timeout"
+        else:
+            try:
+                if log_path.stat().st_size > _MAX_LOG_BYTES:
+                    reason = "log"
+            except OSError:
+                pass
+        if reason:
+            job["stop_reason"] = reason
+            threading.Thread(target=_terminate, args=(proc,), daemon=True).start()
     job["log"].close()
     d = job["dir"]
-    try:
-        log = (d / "run.log").read_text(encoding="utf-8", errors="replace")
-    except OSError:
-        log = ""
+    log = _read_tail(log_path, min(_MAX_LOG_BYTES, 4 * 1024 * 1024))
     errors, _notes = parse_errors(log, job["graph"])
+    if job["stop_reason"] in ("timeout", "log"):
+        errors.insert(0, _limit_error(job["stop_reason"]))
     report = summarize_report(d / "report.json")
     last = _last_progress(log)
     outputs = _outputs(d, job["video"])
@@ -305,6 +379,7 @@ def _wait(job: dict) -> None:
 
 def poll(job_id: str) -> dict:
     with _lock:
+        _reap(time.time())
         job = _jobs.get(job_id)
         if job is None:
             return {"error": "unknown_job"}
@@ -347,14 +422,37 @@ def result(job_id: str) -> dict:
 
 
 def stop(job_id: str) -> dict:
-    """SIGTERM: the runner finishes the frames in flight and finalizes --report and --output (README "Options")."""
+    """SIGTERM: the runner finishes the frames in flight and finalizes --report and --output (README "Options");
+    SIGKILL when it is still running _STOP_GRACE seconds later."""
     with _lock:
         job = _jobs.get(job_id)
         if job is None:
             return {"status": "no_process"}
         job["touched"] = time.time()
         proc = job["proc"]
-    if proc.poll() is None:
-        proc.terminate()
+    if proc is not None and proc.poll() is None:
+        job["stop_reason"] = job["stop_reason"] or "user"
+        threading.Thread(target=_terminate, args=(proc,), daemon=True).start()
         return {"status": "stopping"}
     return {"status": "no_process"}
+
+
+def stop_all() -> None:
+    """Stop every run before the server exits (atexit, idle watchdog): SIGTERM all, SIGKILL what is left."""
+    with _lock:
+        procs = [j["proc"] for j in _jobs.values() if j["proc"] is not None and j["proc"].poll() is None]
+    for proc in procs:
+        proc.terminate()
+    deadline = time.time() + _STOP_GRACE
+    for proc in procs:
+        try:
+            proc.wait(timeout=max(0.0, deadline - time.time()))
+        except subprocess.TimeoutExpired:
+            proc.kill()
+            try:
+                proc.wait(timeout=2)
+            except subprocess.TimeoutExpired:
+                pass
+
+
+atexit.register(stop_all)

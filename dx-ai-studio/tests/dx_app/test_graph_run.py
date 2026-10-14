@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import base64
 import json
+import threading
 import time
 
 import pytest
@@ -12,6 +13,7 @@ from tests.dx_app import graph_fakes
 
 # Writes what the real runner writes: [PROGRESS] lines, --report, --output. Arguments go to the log too.
 RUNNER = r"""
+case "$1" in --help|--check) exit 0 ;; esac     # capability probes answer at once, even in the slow fakes
 out=""; rep=""
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -54,7 +56,7 @@ def studio(tmp_path, monkeypatch):
     graph_run._jobs.clear()
     yield tmp_path
     for job in list(graph_run._jobs.values()):
-        if job["proc"].poll() is None:
+        if job["proc"] is not None and job["proc"].poll() is None:
             job["proc"].kill()
     graph_run._jobs.clear()
 
@@ -177,3 +179,162 @@ def test_old_run_folders_are_pruned(studio):
         (runs / f"old{i:02d}").mkdir()
     graph_run._prune_runs(keep=20)
     assert len(list(runs.iterdir())) == 20
+
+
+
+# Review fixes: one runner at a time even under parallel requests, safe input names, bounded runs, shutdown.
+
+STUBBORN = r"""
+case "$1" in --help|--check) exit 0 ;; esac
+trap '' TERM
+exec sleep 30
+"""
+
+NOISY = r"""
+case "$1" in --help|--check) exit 0 ;; esac
+trap 'exit 0' TERM
+head -c 400000 /dev/zero | tr '\0' 'x'
+sleep 30 & wait
+"""
+
+
+def _started(tmp_path):
+    return [c for c in graph_fakes.calls(tmp_path) if "--graph" in c]
+
+
+def test_two_parallel_starts_launch_one_runner(studio, monkeypatch):
+    graph_fakes.install(studio, monkeypatch, "SLEEP=30\n" + RUNNER)
+    real_caps = graph_run.graph_cli.capabilities
+
+    def slow_caps():
+        time.sleep(0.3)                      # widen the window between the busy check and Popen
+        return real_caps()
+    monkeypatch.setattr(graph_run.graph_cli, "capabilities", slow_caps)
+    barrier, codes = threading.Barrier(2), []
+
+    def go():
+        barrier.wait()
+        try:
+            codes.append(graph_run.start(GRAPH)[1])
+        except Exception as e:          # surfaced by the assertion below
+            codes.append(repr(e))
+    threads = [threading.Thread(target=go) for _ in range(2)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join(10)
+    assert sorted(codes) == [200, 409]
+    time.sleep(0.3)
+    assert len(_started(studio)) == 1
+
+
+def test_a_refused_start_frees_the_slot_and_its_folder(studio, monkeypatch):
+    graph_fakes.install(studio, monkeypatch, RUNNER)
+    assert graph_run.start(GRAPH, inputs={"cam": "/etc/passwd"})[1] == 400
+    with monkeypatch.context() as m:
+        m.setattr(graph_run.subprocess, "Popen", lambda *a, **k: (_ for _ in ()).throw(OSError("no exec")))
+        body, code = graph_run.start(GRAPH)
+    assert (code, body["error_key"]) == (500, "graph_run_failed")
+    assert graph_run._jobs == {} and list(graph_run.runs_dir().iterdir()) == []
+    body, code = graph_run.start(GRAPH)
+    assert code == 200
+    _wait(body["job_id"])
+
+
+def test_a_disk_error_while_preparing_is_a_clear_failure(studio, monkeypatch):
+    graph_fakes.install(studio, monkeypatch, RUNNER)
+
+    def full(*_a):
+        raise OSError(28, "No space left on device")
+    monkeypatch.setattr(graph_run, "_write_upload", full)
+    body, code = graph_run.start(GRAPH, uploads={"cam": "data:image/png;base64," + PNG})
+    assert (code, body["error_key"]) == (500, "graph_run_failed") and "No space left" in body["error"]
+    assert graph_run._jobs == {} and list(graph_run.runs_dir().iterdir()) == []
+
+
+@pytest.mark.parametrize("sid", ["a/b", "x=y", "..", "", "a" * 65, "cam\nx"])
+def test_source_ids_that_are_not_plain_names_are_refused(studio, monkeypatch, sid):
+    graph_fakes.install(studio, monkeypatch, RUNNER)
+    g = json.loads(json.dumps(GRAPH))
+    g["nodes"][0]["id"] = sid
+    g["edges"][0]["from"] = sid
+    body, code = graph_run.start(g, uploads={sid: "data:image/png;base64," + PNG})
+    assert (code, body["error_key"]) == (400, "invalid_source_id")
+    assert _started(studio) == [] and list(graph_run.runs_dir().iterdir()) == []
+    assert not list(studio.rglob("input_*")), "no file is written for a refused id"
+
+
+def test_a_five_megabyte_upload_is_accepted(studio, monkeypatch):
+    graph_fakes.install(studio, monkeypatch, RUNNER)
+    big = base64.b64encode(b"\x89PNG\r\n\x1a\n" + b"\0" * (5 * 1024 * 1024 * 3 // 4)).decode()
+    body, code = graph_run.start(GRAPH, uploads={"cam": "data:image/png;base64," + big})
+    assert code == 200, body
+    _wait(body["job_id"])
+
+
+def test_stop_kills_a_runner_that_ignores_sigterm(studio, monkeypatch):
+    graph_fakes.install(studio, monkeypatch, STUBBORN)
+    monkeypatch.setattr(graph_run, "_STOP_GRACE", 0.3)
+    body, _ = graph_run.start(GRAPH)
+    time.sleep(0.2)
+    assert graph_run.stop(body["job_id"]) == {"status": "stopping"}
+    _wait(body["job_id"], timeout=5)
+    assert graph_run.result(body["job_id"])["exit_code"] == -9
+
+
+def test_a_run_is_stopped_at_the_time_limit(studio, monkeypatch):
+    graph_fakes.install(studio, monkeypatch, "SLEEP=30\n" + RUNNER)
+    monkeypatch.setattr(graph_run, "_MAX_RUN_SECONDS", 0.5)
+    body, _ = graph_run.start(GRAPH)
+    _wait(body["job_id"], timeout=6)
+    r = graph_run.result(body["job_id"])
+    assert r["ok"] is False and r["errors"][0]["code"] == "RUN_TIMEOUT"
+
+
+def test_a_run_is_stopped_when_its_log_grows_too_large(studio, monkeypatch):
+    graph_fakes.install(studio, monkeypatch, NOISY)
+    monkeypatch.setattr(graph_run, "_MAX_LOG_BYTES", 20000)
+    body, _ = graph_run.start(GRAPH)
+    _wait(body["job_id"], timeout=6)
+    r = graph_run.result(body["job_id"])
+    assert r["ok"] is False and r["errors"][0]["code"] == "RUN_LOG_LIMIT"
+    assert len(r["log_tail"]) <= 4000
+
+
+def test_stop_all_ends_every_run(studio, monkeypatch):
+    graph_fakes.install(studio, monkeypatch, STUBBORN)
+    monkeypatch.setattr(graph_run, "_STOP_GRACE", 0.3)
+    body, _ = graph_run.start(GRAPH)
+    proc = graph_run._jobs[body["job_id"]]["proc"]
+    t0 = time.time()
+    graph_run.stop_all()
+    assert proc.poll() is not None and time.time() - t0 < 5
+
+
+def test_poll_drops_runs_nobody_asked_about(studio, monkeypatch):
+    graph_fakes.install(studio, monkeypatch, "SLEEP=30\n" + RUNNER)
+    body, _ = graph_run.start(GRAPH)
+    job = graph_run._jobs[body["job_id"]]
+    job["touched"] -= graph_run._JOB_TTL + 1
+    assert graph_run.poll("someone-else") == {"error": "unknown_job"}
+    assert body["job_id"] not in graph_run._jobs
+    job["proc"].wait(5)
+
+
+def test_the_watchdog_stops_graph_runs(monkeypatch):
+    from dx_app import server
+    calls = []
+    monkeypatch.setattr(server, "stop_inference", lambda: None)
+    monkeypatch.setattr(server, "shutdown_live_processes", lambda: None)
+    monkeypatch.setattr(graph_run, "stop_all", lambda: calls.append(1))
+    monkeypatch.setattr(server.time, "sleep", lambda _s: None)
+    monkeypatch.setattr(server, "_HB_TIMEOUT", 1)
+    monkeypatch.setattr(config, "_HEARTBEAT", time.time() - 10_000)
+
+    class _Srv:
+        def shutdown(self):
+            pass
+    t = threading.Thread(target=server._watchdog, args=(_Srv(),))
+    t.start()
+    t.join(5)
+    assert calls == [1]

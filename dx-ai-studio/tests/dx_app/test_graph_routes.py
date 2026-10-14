@@ -104,3 +104,37 @@ def test_unknown_graph_paths_are_not_found():
     h = {"X-Lab-Token": _token(), **LOCAL}
     assert _route("GET", "/api/graph/nope", headers=h)["code"] == 404
     assert _route("POST", "/api/graph/nope", {}, h)["code"] == 404
+
+
+# The shared server caps JSON bodies at 1 MB; /api/graph/run carries uploaded images, so it alone may be larger.
+def _read_body(path, length, body=b""):
+    import io
+
+    from dx_app import server
+
+    h = object.__new__(server.Handler)
+    h.url_path = path
+    h.headers = {"Content-Length": str(length)}
+    h.rfile = io.BytesIO(body)
+    return h.read_json_body()
+
+
+def test_a_run_may_carry_a_five_megabyte_image():
+    import base64
+    import json
+
+    png = base64.b64encode(b"\x89PNG\r\n\x1a\n" + b"\0" * (5 * 1024 * 1024 * 3 // 4)).decode()
+    body = json.dumps({"graph": GRAPH, "uploads": {"cam": "data:image/png;base64," + png}}).encode()
+    assert len(body) > 5 * 1024 * 1024
+    assert _read_body("/api/graph/run", len(body), body)["uploads"]["cam"].startswith("data:image/png")
+
+
+def test_a_25_megabyte_run_and_a_large_body_elsewhere_are_refused_with_the_limit():
+    from shared.dx_server import RequestBodyError
+
+    with pytest.raises(RequestBodyError) as e:
+        _read_body("/api/graph/run", 25 * 1024 * 1024)
+    assert e.value.status_code == 413 and "24 MB" in e.value.message
+    with pytest.raises(RequestBodyError) as e:
+        _read_body("/api/graph/validate", 5 * 1024 * 1024)
+    assert e.value.status_code == 413 and "1 MB" in e.value.message

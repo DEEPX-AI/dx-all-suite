@@ -256,6 +256,8 @@ class Handler(DXBaseHandler):
     templates_dir = TEMPLATES_DIR
     shell_spec = DX_APP_SHELL
     log_filter = ["/file/", "/static/"]
+    # A graph run may carry its input images base64-encoded (graph_run allows 20 MB per image).
+    json_max_bytes_by_path = {"/api/graph/run": 24 * 1024 * 1024}
 
     def _mjpeg_stream(self):
         slot_idx = int(self.read_query_param("slot", "0"))
@@ -769,7 +771,9 @@ def _watchdog(srv):
         time.sleep(5)
         if time.time()-config._HEARTBEAT>_HB_TIMEOUT:
             print("\n[AUTO] No heartbeat — shutting down.")
-            stop_inference();shutdown_live_processes();srv.shutdown();return
+            stop_inference();shutdown_live_processes()
+            from dx_app.core import graph_run
+            graph_run.stop_all();srv.shutdown();return
 
 def create_server(port=DEFAULT_PORT):
     """Server factory for tests: returns an HTTPServer instance."""
