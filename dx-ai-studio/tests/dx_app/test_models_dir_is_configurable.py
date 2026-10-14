@@ -48,7 +48,10 @@ def reloaded(monkeypatch):
         return config, models
 
     yield _load
-    for name in ("dx_app.core.models", "dx_app.core.config"):
+    # Put the environment back before reloading: monkeypatch's own teardown runs after this one, so reloading first
+    # would leave config.MODELS_DIR on the last test's (deleted) tmp dir and every later test would see no models.
+    monkeypatch.undo()
+    for name in ("dx_app.core.config", "dx_app.core.models"):
         import sys
 
         if name in sys.modules:
