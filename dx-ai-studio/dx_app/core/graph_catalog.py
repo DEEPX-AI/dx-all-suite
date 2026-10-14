@@ -1,5 +1,6 @@
 """What the Graph Composer palette offers: the models this dx_app build can put in a graph (with their install state and
-a download link), the CPU ops, and the shipped example graphs.
+a download link), the CPU ops, the logic blocks (graph_ops.py), and the shipped example graphs; examples with logic
+blocks are the scenario templates and carry a result thumbnail when one exists.
 
 Models come from `multi_model_graph_sync --list-models` (JSON with --json when the build has it, else the text table)
 and are cached by the binary's and the models directory's mtimes, so a finished download shows up without a restart.
@@ -13,7 +14,7 @@ import subprocess
 import threading
 from pathlib import Path
 
-from dx_app.core import config, graph_cli
+from dx_app.core import config, graph_cli, graph_ops, graph_run
 
 # The graph engine's two CPU reductions (README "three node kinds"): what they take over "carry": "result" edges.
 CPU_OPS = [
@@ -184,8 +185,25 @@ def _download_index() -> dict:
     return idx
 
 
+# Result thumbnails Studio ships for templates whose dx_app folder has none (scripts/build_graph_thumbs.py).
+THUMBS_DIR = Path(__file__).resolve().parents[1] / "static" / "img" / "graph-examples"
+_THUMB_EXT = (".jpg", ".png")
+
+
+def _thumb(d: Path, stem: str):
+    """URL of a template's result thumbnail: <stem>.jpg|png next to the graph in dx_app, else Studio's own."""
+    for ext in _THUMB_EXT:
+        if (d / (stem + ext)).is_file():
+            return "/file/" + (d / (stem + ext)).relative_to(Path(config.DX_APP_ROOT)).as_posix()
+    for ext in _THUMB_EXT:
+        if (THUMBS_DIR / (stem + ext)).is_file():
+            return f"/static/img/graph-examples/{stem}{ext}"
+    return None
+
+
 def examples() -> list[dict]:
-    """The shipped sample graphs (dx_app src/cpp_example/multi_model_graph/*.json)."""
+    """The shipped sample graphs (dx_app src/cpp_example/multi_model_graph/*.json); one with logic nodes is a
+    template (`logic`, `ops`, `thumb`)."""
     d = Path(config.DX_APP_ROOT) / "src" / "cpp_example" / "multi_model_graph"
     out = []
     for p in sorted(d.glob("*.json")):
@@ -195,9 +213,12 @@ def examples() -> list[dict]:
             continue
         if not isinstance(g, dict) or not isinstance(g.get("nodes"), list):
             continue
-        models = sorted({n["model"] for n in g["nodes"] if isinstance(n, dict) and n.get("model")})
+        nodes = [n for n in g["nodes"] if isinstance(n, dict)]
+        models = sorted({n["model"] for n in nodes if isinstance(n.get("model"), str)})
+        ops = sorted({n["op"] for n in nodes if n.get("type") == "logic" and isinstance(n.get("op"), str)})
         out.append({"id": p.stem, "name": g.get("name") or p.stem, "graph": g, "models": models,
-                    "nodes": len(g["nodes"]), "edges": len(g.get("edges") or [])})
+                    "nodes": len(g["nodes"]), "edges": len(g.get("edges") or []), "logic": bool(ops), "ops": ops,
+                    "thumb": _thumb(d, p.stem) if ops else None})
     return out
 
 
@@ -210,7 +231,8 @@ def catalog(refresh: bool = False) -> dict:
         e = dict(m)
         e["download"] = downloads.get(m["name"]) if m["state"] in ("missing", "invalid") else None
         models.append(e)
+    ops = graph_ops.list_ops(refresh) if available else {"ops": [], "error": "graph_binary_missing"}
     return {"available": available, "error": lm.get("error"), "models": models, "aliases": lm["aliases"],
-            "cpu_ops": CPU_OPS, "examples": examples(),
-            "capabilities": graph_cli.capabilities() if available else {"json": False, "engine_key": False,
-                                                                         "report_timing": False}}
+            "cpu_ops": CPU_OPS, "logic_ops": ops["ops"], "logic_error": ops["error"], "examples": examples(),
+            "capabilities": graph_cli.capabilities() if available else graph_cli.no_capabilities(),
+            "limits": {"uploads_total_b64": graph_run.MAX_UPLOADS_TOTAL_B64}}

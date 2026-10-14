@@ -145,3 +145,45 @@ def test_an_async_only_build_lists_models(tmp_path, monkeypatch):
     graph_fakes.install(tmp_path, monkeypatch, graph_fakes.TEXT_CLI, variants=("async",))
     assert len(graph_catalog.list_models()["models"]) == 19
     assert graph_catalog.catalog()["available"] is True
+
+
+# Phase 2: logic blocks, templates with thumbnails, the upload limit.
+
+def test_the_catalog_carries_logic_blocks_and_the_upload_limit(tmp_path, monkeypatch):
+    from dx_app.core import graph_ops, graph_run
+    graph_fakes.install(tmp_path, monkeypatch, graph_fakes.P2_CLI)
+    graph_ops._cache.update(key=None, value=None)
+    monkeypatch.setattr(graph_catalog, "examples", lambda: [])
+    cat = graph_catalog.catalog()
+    assert [o["op"] for o in cat["logic_ops"]][:3] == ["filter", "zone", "line"] and cat["logic_error"] is None
+    assert cat["capabilities"]["list_ops"] is True and cat["capabilities"]["loop"] is True
+    assert cat["limits"] == {"uploads_total_b64": graph_run.MAX_UPLOADS_TOTAL_B64}
+
+
+def test_a_build_without_logic_blocks_says_so(tmp_path, monkeypatch):
+    from dx_app.core import graph_ops
+    graph_fakes.install(tmp_path, monkeypatch, graph_fakes.JSON_CLI)
+    graph_ops._cache.update(key=None, value=None)
+    monkeypatch.setattr(graph_catalog, "examples", lambda: [])
+    cat = graph_catalog.catalog()
+    assert cat["logic_ops"] == [] and cat["logic_error"] == "list_ops_unsupported"
+
+
+def test_examples_with_logic_nodes_are_templates_with_a_thumbnail(tmp_path, monkeypatch):
+    d = graph_fakes.install_examples(tmp_path)
+    (d / "plain.json").write_text(json.dumps({"version": 1, "nodes": [{"id": "cam", "type": "source", "uri": "a"}],
+                                              "edges": []}))
+    (d / "line_counting.jpg").write_bytes(b"\xff\xd8")
+    thumbs = tmp_path / "studio_thumbs"
+    thumbs.mkdir()
+    (thumbs / "loitering_dwell.jpg").write_bytes(b"\xff\xd8")
+    monkeypatch.setattr(config, "DX_APP_ROOT", tmp_path)
+    monkeypatch.setattr(graph_catalog, "THUMBS_DIR", thumbs)
+    ex = {e["id"]: e for e in graph_catalog.examples()}
+    assert ex["plain"]["logic"] is False and ex["plain"]["thumb"] is None
+    zone = ex["zone_intrusion"]
+    assert zone["logic"] is True and zone["ops"] == ["condition", "filter", "zone"] and zone["thumb"] is None
+    assert ex["line_counting"]["thumb"] == "/file/src/cpp_example/multi_model_graph/line_counting.jpg"
+    assert ex["loitering_dwell"]["thumb"] == "/static/img/graph-examples/loitering_dwell.jpg"
+    assert ex["ppe_zone_check"]["models"] == ["deepmar_resnet18_224x224", "yolov8-n_640x640"]
+    assert sum(e["logic"] for e in ex.values()) == 6
