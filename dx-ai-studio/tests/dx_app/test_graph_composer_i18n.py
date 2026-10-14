@@ -60,3 +60,15 @@ def test_the_canvas_draws_no_literal_english_outside_strings():
     listed = set(re.findall(r"'([^']+)'", src[src.index("var STRINGS = ["):src.index("];", src.index("var STRINGS = ["))]))
     used = set(re.findall(r"\bt\('([^']+)'\)", src))
     assert used <= listed, sorted(used - listed)
+
+
+# Korean keeps English technical terms as written instead of spelling them out in Hangul (suite language rule).
+_HANGUL_SPELLINGS = ("컴포저", "인스펙터")
+
+
+def test_korean_keeps_composer_and_inspector_in_english():
+    sources = {p: p.read_text(encoding="utf-8") for p in (ROOT / "dx_app/static/js/i18n.js",
+                                                          ROOT / "dx_app/static/js/tutorial.js")}
+    found = [(p.name, w) for p, text in sources.items() for w in _HANGUL_SPELLINGS if w in text]
+    assert not found, found
+    assert "ko: 'Graph Composer'" in dict_entry("Graph Composer")

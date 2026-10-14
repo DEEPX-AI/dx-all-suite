@@ -610,7 +610,7 @@
     },
 
     { id:'graph', icon:'graph',
-      title:{ ko: '그래프 컴포저', en: 'Graph Composer', ja: 'グラフコンポーザー', 'zh-CN': '图编排器', 'zh-TW': '圖編排器', es: 'Compositor de grafos' },
+      title:{ ko: 'Graph Composer', en: 'Graph Composer', ja: 'グラフコンポーザー', 'zh-CN': '图编排器', 'zh-TW': '圖編排器', es: 'Compositor de grafos' },
       description:{ ko: '여러 모델을 한 파이프라인으로 연결하고 NPU에서 실행', en: 'Connect several models into one pipeline and run it on the NPU', ja: '複数のモデルを一つのパイプラインにつなぎ NPU で実行', 'zh-CN': '将多个模型连成一条流水线并在 NPU 上运行', 'zh-TW': '將多個模型連成一條管線並在 NPU 上執行', es: 'Conecte varios modelos en una canalización y ejecútela en la NPU' },
       beforeStart:function(){ goPage('graph'); if (window.GraphComposer && GraphComposer.ensureExample) GraphComposer.ensureExample('cascade_od_attr'); },
       steps:[
@@ -621,7 +621,7 @@
           title:{ ko: '캔버스', en: 'Canvas', ja: 'キャンバス', 'zh-CN': '画布', 'zh-TW': '畫布', es: 'Lienzo' },
           content:{ ko: '노드의 오른쪽 포트에서 다른 노드로 끌어 <strong>연결</strong>합니다. 맞지 않는 연결은 이유와 함께 거절됩니다. 키보드: Tab으로 노드 이동, 화살표로 옮기기, Delete로 삭제, Ctrl+Z / Ctrl+Y로 되돌리기·다시 실행.', en: 'Drag from a node\'s right port to another node to <strong>connect</strong> them; a connection that cannot work is refused with the reason. Keyboard: Tab moves between nodes, arrows move them, Delete removes, Ctrl+Z / Ctrl+Y undo and redo.', ja: 'ノードの右側のポートから別のノードへドラッグして<strong>接続</strong>します。成り立たない接続は理由付きで拒否されます。キーボード: Tab でノード移動、矢印で移動、Delete で削除、Ctrl+Z / Ctrl+Y で元に戻す・やり直し。', 'zh-CN': '从节点右侧端口拖到另一个节点即可<strong>连接</strong>；无法成立的连接会被拒绝并说明原因。键盘：Tab 在节点间移动，方向键移动节点，Delete 删除，Ctrl+Z / Ctrl+Y 撤销和重做。', 'zh-TW': '從節點右側連接埠拖到另一個節點即可<strong>連接</strong>；無法成立的連接會被拒絕並說明原因。鍵盤：Tab 在節點間移動，方向鍵移動節點，Delete 刪除，Ctrl+Z / Ctrl+Y 復原和重做。', es: 'Arrastre desde el puerto derecho de un nodo a otro para <strong>conectarlos</strong>; una conexión imposible se rechaza con el motivo. Teclado: Tab cambia de nodo, las flechas los mueven, Supr elimina, Ctrl+Z / Ctrl+Y deshacen y rehacen.' } },
         { target:'#gc-inspector', position:'left',
-          title:{ ko: '인스펙터', en: 'Inspector', ja: 'インスペクター', 'zh-CN': '检查器', 'zh-TW': '檢查器', es: 'Inspector' },
+          title:{ ko: 'Inspector', en: 'Inspector', ja: 'インスペクター', 'zh-CN': '检查器', 'zh-TW': '檢查器', es: 'Inspector' },
           content:{ ko: '선택한 노드나 연결의 설정입니다: 모델과 <strong>파라미터</strong>, 추적, NPU 엔진(buffer·공유), ROI crop 옵션. 이 항목의 검사 오류와 마지막 실행 결과도 여기 나옵니다.', en: 'Settings of the selected node or connection: model and <strong>parameters</strong>, tracking, the NPU engine (buffers, sharing) and ROI crop options. Its check errors and last run results show here too.', ja: '選択したノードまたは接続の設定です: モデルと<strong>パラメーター</strong>、追跡、NPU エンジン (バッファー・共有)、ROI クロップのオプション。検証エラーと前回の実行結果もここに表示されます。', 'zh-CN': '所选节点或连接的设置：模型和<strong>参数</strong>、跟踪、NPU 引擎（缓冲区、共用）以及 ROI 裁剪选项。它的检查错误和上次运行结果也显示在这里。', 'zh-TW': '所選節點或連接的設定：模型和<strong>參數</strong>、追蹤、NPU 引擎（緩衝區、共用）以及 ROI 裁切選項。它的檢查錯誤和上次執行結果也顯示在這裡。', es: 'Ajustes del nodo o la conexión seleccionados: modelo y <strong>parámetros</strong>, seguimiento, el motor de la NPU (búferes, uso compartido) y las opciones de recorte ROI. También muestra sus errores de comprobación y los resultados de la última ejecución.' } },
         { target:'#gc-validate', position:'bottom',
           title:{ ko: '검사와 NPU 메모리', en: 'Check and NPU memory', ja: '検証と NPU メモリ', 'zh-CN': '检查与 NPU 内存', 'zh-TW': '檢查與 NPU 記憶體', es: 'Comprobación y memoria de la NPU' },
