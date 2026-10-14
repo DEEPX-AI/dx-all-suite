@@ -3,11 +3,13 @@
 One job is one subprocess
 
     multi_model_graph_{sync,async} --graph graph.json --input <source>=<file> ... --output result.jpg|raw.mp4
-                                   --report report.json --model-dir <models> [--max-inflight N] [--frames N]
+                                   --report report.json --model-dir <models> [--events events.jsonl]
+                                   [--max-inflight N] [--frames N]
 
 in its own folder outputs/dx_app/graph/runs/<job>. The page polls: progress comes from the runner's
 `[PROGRESS] frames=N fps=F avg_fps=A node_ms=<id>:<ms>,...` lines (DXAPP_PROGRESS=1), results from --report once it
-exits. Same lifetime rule as run_progress.py: a job nobody polls for _JOB_TTL seconds is stopped and dropped.
+exits; events from its `[EVENT] {json}` lines while it runs (numbered, so a poll asks only for new ones) and from
+--events once it exits (graph_events.py). Same lifetime rule as run_progress.py: a job nobody polls for _JOB_TTL seconds is stopped and dropped.
 One run at a time: the slot is taken under the lock before anything is prepared. A run is stopped (SIGTERM, then
 SIGKILL after _STOP_GRACE seconds) when it outlives DX_GRAPH_RUN_MAX_SECONDS (default 600) or its log outgrows
 _MAX_LOG_BYTES, and every run is stopped when the server shuts down (atexit and the idle watchdog).
@@ -30,7 +32,7 @@ import uuid
 from pathlib import Path
 from urllib.parse import unquote
 
-from dx_app.core import config, graph_cli
+from dx_app.core import config, graph_cli, graph_events
 from dx_app.core.dx_app_security import resolve_existing_file
 from dx_app.core.graph_validate import engine_graph, parse_errors
 
@@ -118,6 +120,9 @@ def summarize_report(path: Path, max_items: int = 20) -> dict:
             s["frames"] += 1
             s["items_total"] += len(items)
             s["last_items"] = [_item(i) for i in items[:max_items] if isinstance(i, dict)]
+            if payload.get("shape") == "records":                # logic and cpu nodes: numbers per record
+                s["last_records"] = [{"numbers": dict(i.get("numbers") or {}), "text": dict(i.get("text") or {})}
+                                     for i in items[:max_items] if isinstance(i, dict)]
         for nid, crops in (fr.get("roi_nodes") or {}).items():
             crops = crops or []
             s = node(nid)
@@ -243,7 +248,8 @@ def start(graph: dict, *, variant="sync", inputs=None, uploads=None, max_infligh
     d = runs_dir() / job_id
     now = time.time()
     job = {"id": job_id, "dir": d, "proc": None, "log": None, "graph": graph, "video": False, "start": now,
-           "touched": now, "cursor": 0, "progress": {"node_ms": {}}, "result": None, "stop_reason": None}
+           "touched": now, "cursor": 0, "progress": {"node_ms": {}}, "result": None, "stop_reason": None,
+           "events": graph_events.EventLog()}
     with _lock:
         _reap(now)
         if any(j["result"] is None for j in _jobs.values()):
@@ -277,6 +283,8 @@ def start(graph: dict, *, variant="sync", inputs=None, uploads=None, max_infligh
                "--model-dir", str(graph_cli.models_dir())]
         if caps.get("report_timing"):
             cmd.append("--report-timing")
+        if caps.get("events"):
+            cmd += ["--events", str(d / "events.jsonl")]
         if variant == "async" and max_inflight:
             cmd += ["--max-inflight", str(max_inflight)]
         if frames:
@@ -308,8 +316,43 @@ def _outputs(d: Path, video: bool) -> list:
     else:
         out = sorted(p for p in d.glob("result*") if p.suffix.lower() in _IMAGE_EXT)
     base = Path(config.OUTPUTS_DIR)
-    return [{"url": "/outputs/" + p.relative_to(base).as_posix(), "kind": "video" if video else "image",
-             "name": p.name} for p in out]
+    rows = []
+    for p in out:
+        row = {"url": "/outputs/" + p.relative_to(base).as_posix(), "kind": "video" if video else "image",
+               "name": p.name}
+        if video:
+            row["fps"] = video_fps(p)       # the event list seeks the video to an event's frame
+        rows.append(row)
+    return rows
+
+
+def video_fps(path: Path):
+    """Frames per second of a video (ffprobe's average rate), or None when unknown."""
+    if not shutil.which("ffprobe"):
+        return None
+    try:
+        out = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries",
+                              "stream=avg_frame_rate", "-of", "csv=p=0", str(path)],
+                             capture_output=True, text=True, timeout=15).stdout.strip().split(",")[0]
+        num, _, den = out.partition("/")
+        fps = float(num) / float(den or 1)
+        return round(fps, 3) if fps > 0 else None
+    except (OSError, subprocess.SubprocessError, ValueError, ZeroDivisionError):
+        return None
+
+
+def events_of(d: Path, log_text: str) -> dict:
+    """A finished run's events: the --events file when dx_app wrote one, else the [EVENT] lines of its log."""
+    f = d / "events.jsonl"
+    if f.is_file():
+        listing = graph_events.read_jsonl(f)
+        url = "/outputs/" + f.relative_to(Path(config.OUTPUTS_DIR)).as_posix()
+    else:
+        printed = graph_events.EventLog(keep=graph_events.LIST_MAX)
+        printed.feed(log_text)
+        listing, url = printed.listing(), None
+    return {"events": listing["events"], "event_total": listing["total"], "event_counts": listing["counts"],
+            "events_truncated": listing["truncated"], "events_url": url}
 
 
 def _last_progress(text: str) -> dict:
@@ -379,13 +422,19 @@ def _wait(job: dict) -> None:
               "frames": report["frames"] or int(last.get("frames", 0)), "error_frames": report["error_frames"],
               "fps": last.get("fps"), "avg_fps": last.get("avg_fps"),
               "node_ms": report["node_ms"] or last.get("node_ms") or {}, "nodes": report["nodes"],
-              "errors": errors, "log_tail": log[-4000:], "elapsed": round(time.time() - job["start"], 1)}
+              "errors": errors, "log_tail": log[-4000:], "elapsed": round(time.time() - job["start"], 1),
+              **events_of(d, log)}
     with _lock:
         job["result"] = result
         job["touched"] = time.time()
 
 
-def poll(job_id: str) -> dict:
+def poll(job_id: str, events_after=0) -> dict:
+    """Progress of a run, and the events numbered after `events_after` (at most graph_events.PAGE)."""
+    try:
+        events_after = max(0, int(events_after or 0))
+    except (TypeError, ValueError):
+        events_after = 0
     with _lock:
         _reap(time.time())
         job = _jobs.get(job_id)
@@ -401,19 +450,21 @@ def poll(job_id: str) -> dict:
         buf = b""
     nl = buf.rfind(b"\n")
     if nl != -1:
-        latest = None
-        for line in buf[: nl + 1].decode("utf-8", "replace").splitlines():
+        latest, chunk = None, buf[: nl + 1].decode("utf-8", "replace")
+        for line in chunk.splitlines():
             latest = parse_progress_line(line) or latest
         with _lock:
             if job["cursor"] == cursor:
                 job["cursor"] = cursor + nl + 1
+                job["events"].feed(chunk)
                 if latest:
                     job["progress"] = latest
     with _lock:
         p = dict(job["progress"])
         return {"running": job["result"] is None, "frames": int(p.get("frames", 0)), "fps": p.get("fps"),
                 "avg_fps": p.get("avg_fps"), "node_ms": p.get("node_ms") or {},
-                "elapsed": round(time.time() - job["start"], 1), "has_result": job["result"] is not None}
+                "elapsed": round(time.time() - job["start"], 1), "has_result": job["result"] is not None,
+                "events": job["events"].since(events_after), **job["events"].snapshot()}
 
 
 def result(job_id: str) -> dict:

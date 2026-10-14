@@ -366,3 +366,59 @@ def test_the_server_json_limit_leaves_room_above_the_upload_limit():
     from dx_app import server
     assert server.Handler.json_max_bytes_by_path["/api/graph/run"] >= graph_run.MAX_UPLOADS_TOTAL_B64 + 1024 * 1024
 
+
+# Phase 2: events while it runs and from --events, logic records, the result video's frame rate.
+
+EVENTS_RUNNER = r"""
+case "$1" in --help) cat "$FIX/help_p2.txt"; exit 0 ;; --check) exit 0 ;; esac
+out=""; rep=""; evf=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --output) out="$2"; shift 2 ;;
+    --report) rep="$2"; shift 2 ;;
+    --events) evf="$2"; shift 2 ;;
+    *) shift ;;
+  esac
+done
+cat "$FIX/run_events.log"
+[ -n "$evf" ] && cp "$FIX/events.jsonl" "$evf"
+cp "$FIX/report_logic.json" "$rep"
+printf 'img' > "$out"
+exit 0
+"""
+
+
+def test_events_reach_the_poll_while_running_and_the_result_from_the_file(studio, monkeypatch):
+    graph_fakes.install(studio, monkeypatch, EVENTS_RUNNER)
+    body, _ = graph_run.start(GRAPH)
+    p = _wait(body["job_id"])
+    assert p["event_total"] == 3 and [e["event"] for e in p["events"]] == ["enter", "intrusion", "enter"]
+    assert graph_run.poll(body["job_id"], events_after=2)["events"][0]["seq"] == 3
+    assert "--events" in graph_fakes.calls(studio)[-1]
+    r = graph_run.result(body["job_id"])
+    assert r["event_total"] == 3 and r["event_counts"] == {"zone": {"enter": 2}, "alarm": {"intrusion": 1}}
+    assert r["events_url"] == f"/outputs/graph/runs/{body['job_id']}/events.jsonl" and r["events_truncated"] is False
+    assert r["nodes"]["alarm"]["last_records"] == [{"numbers": {"value": 2, "active": 1}, "text": {}}]
+    assert r["nodes"]["zone"]["items_total"] == 3 and "last_records" not in r["nodes"]["zone"]
+
+
+def test_a_build_without_events_files_still_lists_the_printed_events(studio, monkeypatch):
+    graph_fakes.install(studio, monkeypatch, EVENTS_RUNNER.replace('cat "$FIX/help_p2.txt"', 'cat "$FIX/help.txt"'))
+    body, _ = graph_run.start(GRAPH)
+    _wait(body["job_id"])
+    r = graph_run.result(body["job_id"])
+    assert "--events" not in graph_fakes.calls(studio)[-1]
+    assert r["event_total"] == 3 and r["events_url"] is None
+
+
+def test_a_video_output_carries_its_frame_rate(tmp_path):
+    import shutil
+    import subprocess
+    if not shutil.which("ffmpeg") or not shutil.which("ffprobe"):
+        pytest.skip("ffmpeg is needed to make a test video")
+    v = tmp_path / "v.mp4"
+    subprocess.run(["ffmpeg", "-v", "error", "-f", "lavfi", "-i", "testsrc=size=64x48:rate=12:duration=1",
+                    "-pix_fmt", "yuv420p", str(v)], check=True, timeout=60)
+    assert graph_run.video_fps(v) == 12.0
+    assert graph_run.video_fps(tmp_path / "none.mp4") is None
+
