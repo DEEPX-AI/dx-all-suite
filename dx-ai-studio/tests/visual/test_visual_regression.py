@@ -29,6 +29,7 @@ pytest.importorskip("PIL")
 
 from tests.server_helpers import start_module_server  # noqa: E402
 from tests.visual.baseline_spec import (  # noqa: E402
+    PAGE_SPECS,
     RESPONSIVE_HEIGHT,
     RESPONSIVE_LOCALE,
     RESPONSIVE_THEME,
@@ -36,6 +37,8 @@ from tests.visual.baseline_spec import (  # noqa: E402
     VIEWPORT,
     axes,
     baseline_name,
+    page_axes,
+    page_baseline_name,
     responsive_axes,
     responsive_baseline_name,
 )
@@ -103,6 +106,12 @@ def _capture(
                 " window.scrollTo(0, 0); }"
             )
             page.wait_for_timeout(500)
+            # A page behind a tab (PAGE_SPECS): open it and wait until its data has landed.
+            if spec.get("setup"):
+                page.evaluate(spec["setup"])
+                page.wait_for_function(spec["wait"], timeout=20_000)
+                page.evaluate("() => { const t = window._dxTutorial; if (t && t.hideTOC) t.hideTOC(); window.scrollTo(0, 0); }")
+                page.wait_for_timeout(800)
             masks = [
                 page.locator(sel)
                 for sel in spec.get("mask", ())
@@ -207,6 +216,54 @@ def test_module_landing_page_matches_baseline_at_width(
         browser, module, spec, RESPONSIVE_THEME, RESPONSIVE_LOCALE,
         candidate, viewport=viewport,
     )
+
+    diff_out = ARTIFACT_DIR / engine / f"{name[:-4]}-diff.png"
+    result = compare(baseline, candidate, diff_out)
+
+    assert result["same_size"], (
+        f"{engine}/{name}: viewport changed — baseline {result['baseline_size']} "
+        f"vs current {result['candidate_size']}"
+    )
+    assert result["changed_ratio"] <= MAX_CHANGED_RATIO, (
+        f"{engine}/{name}: {result['changed_pixels']} px "
+        f"({result['changed_ratio'] * 100:.4f}%) differ, limit "
+        f"{MAX_CHANGED_RATIO * 100:.4f}%. Diff: {diff_out}"
+    )
+
+
+_PAGE_AXES = page_axes()
+
+
+def test_page_axes_cover_both_themes_in_en_and_ko():
+    assert ("dx_app_graph", "dark", "ko") in _PAGE_AXES
+    assert len(_PAGE_AXES) == 4 * len(PAGE_SPECS)
+
+
+@pytest.mark.visual
+@pytest.mark.parametrize(
+    ("page_key", "theme", "locale"),
+    _PAGE_AXES,
+    ids=[f"{p}-{t}-{loc}" for p, t, loc in _PAGE_AXES],
+)
+def test_module_page_matches_baseline(visual_browser, page_key, theme, locale, tmp_path):
+    """Pages behind a tab, drawn from data (PAGE_SPECS): the Graph Composer with one example open."""
+    engine, browser = visual_browser
+    spec = PAGE_SPECS[page_key]
+    name = page_baseline_name(page_key, theme, locale)
+
+    baseline = BASELINE_DIR / engine / name
+    if UPDATE:
+        _capture(browser, spec["module"], spec, theme, locale, baseline)
+        pytest.skip(f"baseline written: {baseline.relative_to(BASELINE_DIR.parent)}")
+
+    if not baseline.is_file():
+        pytest.skip(
+            f"no baseline for {engine}/{name} — create it with "
+            f"DX_VISUAL_UPDATE=1 pytest tests/visual/"
+        )
+
+    candidate = tmp_path / name
+    _capture(browser, spec["module"], spec, theme, locale, candidate)
 
     diff_out = ARTIFACT_DIR / engine / f"{name[:-4]}-diff.png"
     result = compare(baseline, candidate, diff_out)

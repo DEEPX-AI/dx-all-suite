@@ -481,8 +481,9 @@ compares each against a committed baseline:
 | `<engine>/<module>__<theme>__<locale>.png` | 9 modules x {dark, light} x {en, es} at 1280x800 | 36 |
 | `<engine>/<module>__w<width>.png` | 9 modules x {650, 860, 1150, 1320} at dark/en | 36 |
 | `<engine>/launcher__intro__<state>.png` | the intro at `hero`, `work` and `close` | 3 |
+| `<engine>/<page>__<theme>__<locale>.png` | pages behind a tab (`PAGE_SPECS`): DX App's Graph Composer x {dark, light} x {en, ko} | 4 |
 
-75 shots. `tests/visual/baseline_spec.py` is the source of truth for the axes and
+79 shots. `tests/visual/baseline_spec.py` is the source of truth for the axes and
 carries the reasoning for each one; do not restate the numbers here.
 
 This is **not** what `tests/test_ux_visual_gate.py` does — that audits tutorial
@@ -521,6 +522,12 @@ what this axis watches, so one theme and one locale are enough.
 
 These widths are the precondition the breakpoint ratchet was waiting on; see
 `scripts/breakpoint_gate.py`.
+
+**Page.** A page behind a tab whose content comes from data gets its own axis
+(`PAGE_SPECS`, `test_module_page_matches_baseline`): the capture answers the page's
+API with fixtures (the Graph Composer's catalog, check and memory would otherwise
+show this host's models and NPU), opens it and waits until its data has landed.
+`ko` replaces `es` here because the graph canvas draws CJK text itself.
 
 #### The intro axis
 

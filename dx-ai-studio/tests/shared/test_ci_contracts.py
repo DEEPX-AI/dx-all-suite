@@ -583,15 +583,12 @@ def test_visual_baselines_are_committed_for_the_default_engine():
     let a light-theme or long-translation regression through unnoticed.
     """
     from tests.browser_support import DEFAULT_ENGINE
-    from tests.visual.baseline_spec import axes, baseline_name
+    from tests.visual.baseline_spec import axes, baseline_name, page_axes, page_baseline_name
 
     engine_dir = VISUAL_BASELINE_DIR / DEFAULT_ENGINE
     assert engine_dir.is_dir(), f"no baselines for {DEFAULT_ENGINE}"
-    missing = sorted(
-        baseline_name(*combo)
-        for combo in axes()
-        if not (engine_dir / baseline_name(*combo)).is_file()
-    )
+    wanted = [baseline_name(*combo) for combo in axes()] + [page_baseline_name(*combo) for combo in page_axes()]
+    missing = sorted(name for name in wanted if not (engine_dir / name).is_file())
     assert not missing, (
         f"axes with no {DEFAULT_ENGINE} baseline: {missing} "
         "(create with DX_VISUAL_UPDATE=1 pytest tests/visual/)"
@@ -609,11 +606,14 @@ def test_visual_baselines_have_no_orphans():
         axes,
         baseline_name,
         intro_baseline_name,
+        page_axes,
+        page_baseline_name,
         responsive_axes,
         responsive_baseline_name,
     )
 
     expected = {baseline_name(*combo) for combo in axes()}
+    expected |= {page_baseline_name(*combo) for combo in page_axes()}
     expected |= {responsive_baseline_name(*combo) for combo in responsive_axes()}
     expected |= {intro_baseline_name(state) for state in INTRO_STATES}
     for engine_dir in VISUAL_BASELINE_DIR.glob("*"):

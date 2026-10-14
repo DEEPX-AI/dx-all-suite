@@ -6,6 +6,9 @@ test_visual_regression.py).
 """
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 VIEWPORT = {"width": 1280, "height": 800}
 
 _DEFAULT_SETTLE_MS = 6000
@@ -159,6 +162,44 @@ def responsive_axes() -> list[tuple[str, int]]:
 
 def responsive_baseline_name(module: str, width: int) -> str:
     return f"{module}__w{width}.png"
+
+
+# ── Page axis ──────────────────────────────────────────────────
+# The axes above capture landing pages. A page behind a tab whose content is drawn from data needs its own: the
+# Graph Composer's canvas, palette and memory bar come from the graph API, so the capture answers it with fixed
+# payloads (the catalog would show what THIS host has installed, the memory bar THIS host's NPU) and opens one
+# shipped example. ko is the locale axis here instead of es: the canvas draws CJK text itself (DX CJK fonts), which
+# a landing page never does.
+_GRAPH_FIX = Path(__file__).resolve().parents[1] / "dx_app" / "fixtures" / "graph"
+
+
+def _fixture(name: str):
+    return json.loads((_GRAPH_FIX / name).read_text(encoding="utf-8"))
+
+
+PAGE_SPECS: dict[str, dict] = {
+    "dx_app_graph": {
+        "module": "dx_app",
+        "settle_ms": _DEFAULT_SETTLE_MS,
+        "routes": {
+            "**/api/graph/catalog*": _fixture("catalog.json"),
+            "**/api/graph/validate": _fixture("visual_check.json"),
+            "**/api/graph/memory": _fixture("visual_memory.json"),
+            "**/api/graph/projects": {"projects": []},
+        },
+        "setup": "async () => { nav('graph'); await GraphComposer.open(); GraphComposer.loadExample('cascade_od_attr'); }",
+        "wait": "() => { const s = GraphComposer.state(); return !!(s.check && s.memory); }",
+    },
+}
+PAGE_LOCALES = ("en", "ko")
+
+
+def page_axes() -> list[tuple[str, str, str]]:
+    return [(page, theme, locale) for page in sorted(PAGE_SPECS) for theme in THEMES for locale in PAGE_LOCALES]
+
+
+def page_baseline_name(page: str, theme: str, locale: str) -> str:
+    return f"{page}__{theme}__{locale}.png"
 
 
 # ── Intro axis ─────────────────────────────────────────────────
