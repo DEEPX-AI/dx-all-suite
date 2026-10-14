@@ -8,7 +8,7 @@ DX App (Studio 경로 `/app/`)은 DX AI Studio의 핵심 앱이자, **production
 - **Sync/Async 실행 패러다임** — 비동기(RunAsync)로 FPS 극대화
 - **Unified Post-Processing Engine** — C++ 최적화, pybind11(dx_postprocess)로 Python에서도 C++ 속도
 - **개발자 도구**: 모델 스캐폴딩, Git 연동, 배포
-- 상단 탭: Setup · Models · Run Inference · Run Demo · Benchmark · A/B Compare · ModelZoo · Lab · Outputs · Reference
+- 상단 탭: Setup · Models · Run Inference · Run Demo · Benchmark · A/B Compare · ModelZoo · Graph Composer · Lab · Outputs · Reference
 - ONNX → `.dxnn` 컴파일은 **DX Compiler** (`/compiler/`), NPU 하드웨어 모니터링은 **DX Monitor** (`/dx_monitor/`)에서 합니다
 
 ## [section:inference,run,predict,추론,실행] 추론 실행
@@ -193,6 +193,13 @@ artifacts/cpp_example/
 - 새 Task Type 용 스켈레톤 코드 자동 생성
 - C++ 템플릿: Factory, Processor, Visualizer, Runner (동기/비동기)
 - Python 템플릿: Postprocessor, Visualizer 모듈
+
+### Graph Composer 탭
+- 여러 model을 하나의 graph로 연결한다: source, task별 model (설치 상태 표시, 없으면 Download), CPU op (headpose, volume), dx_app 예제 graph 13개.
+- 편집할 때마다 dx_app `multi_model_graph_sync --check` 가 graph를 검사하고, 오류는 해당 node / edge 에 표시된다.
+- NPU memory bar: model마다 `parse_model` 의 Total 을 더한 값과 장치 여유 메모리. 넘치면 engine 공유, buffer 수 줄이기를 제안한다.
+- Run once: 이미지 / 비디오 입력, Sync / Async, 진행률, FPS, node별 시간, 결과 이미지, node별 결과. Camera / RTSP 는 이후 Live 에서 지원.
+- Project: Studio workspace (`outputs/dx_app/graph/projects/`) 에 저장하고, 저장할 때마다 version 이 남는다. JSON export / import.
 
 ### Studio Lab 탭
 - **Add Model**: category 의 기존 예제 하나(**Start from**)를 새 이름으로 복사한다 (`add_model.sh --base-model`).

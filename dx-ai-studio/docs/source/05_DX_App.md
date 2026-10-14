@@ -27,8 +27,13 @@ The module opens on a set of pages (top tabs):
   side; Benchmark can run several models in a batch and **export a report**.  
 - **ModelZoo** — browse and download additional models into the app (public or air-gapped
   source, Q-Lite / Q-Pro variants, batch cart).  
+- **Graph Composer** — connect several models into one pipeline on a canvas: a source, models by task (installed
+  ones marked, Download for the rest), the CPU ops `headpose` and `volume`, and the 13 example graphs dx_app ships.
+  dx_app checks the graph after every change and pins each problem to its node or connection; a bar shows the NPU
+  memory the models need, with ways to fit (share an engine, fewer buffers). **Run once** on an image or a video
+  shows progress, FPS, the time each node takes, the rendered result and each node's results. Projects keep every
+  saved version (Ctrl+S) and export / import as JSON. Keyboard: Tab between nodes, arrows to move, Delete, Ctrl+Z/Y.  
 - **Lab** — advanced tools, each with a change preview before anything is written:  
-    - **DX App Composer** — choose a model and input, run the workflow, export a package.  
     - **Add Model** — copies an existing example of a category (**Start from**) under a new name,
       in C++, Python or both. Run the Python copy with your own model:
       `python3 <name>_sync.py --model <your>.dxnn`. Build the C++ copy with dx_app's `build.sh`.  
