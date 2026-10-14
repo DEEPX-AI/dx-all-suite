@@ -31,7 +31,7 @@ python3 -m venv .venv
 
 `launcher.sh` kills only *our own* stale `launcher.py` / `dx_*/server.py` processes,
 picks a free launcher port (remembered in `dx-ai-studio/.launcher-port`), then execs
-`python3 launcher/launcher.py`. The launcher spawns all eight modules on ephemeral
+`python3 launcher/launcher.py`. The launcher spawns all nine modules on ephemeral
 ports and reverse-proxies them — you only ever touch the one launcher port.
 
 ## Running a single module standalone
@@ -49,6 +49,7 @@ Each module is a self-contained server. Run it directly for focused work
 ./.venv/bin/python dx_benchmark/server.py --port 8097 --no-browser
 ./.venv/bin/python dx_monitor/server.py   --port 8098 --no-browser
 ./.venv/bin/python dx_agent_dev/server.py --port 8099 --no-browser
+./.venv/bin/python dx_edge/server.py      --port 8100 --no-browser
 ```
 
 `--port 0` picks a free ephemeral port. The full studio (all modules + proxy) is

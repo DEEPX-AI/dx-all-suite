@@ -10,7 +10,7 @@ starts every module for you and lets you jump into any of them from one place.
 3. Describe what you want in the prompt box and click **Build it** (it opens the right
    module, or runs the coding agent in place), or click a tool card to open it:
    **DX App**, **DX Stream**, **DX Model Zoo**, **DX Compiler**, **DX EdgeGuide**,
-   **DX Benchmark**, **DX Monitor**, **DX Agent Dev**.
+   **DX Benchmark**, **DX Monitor**, **DX Agent Dev**, **DX Edge**.
 4. Also on the hub:
    - **SDK Library** — browse the DEEPX SDK documentation and brochures in-app.
    - **About DEEPX** — company, product, and news information.
@@ -20,7 +20,7 @@ starts every module for you and lets you jump into any of them from one place.
 
 ## Key features
 
-- **One-click access** to all eight modules from a single hub.
+- **One-click access** to all nine modules from a single hub.
 - **SDK Library** — curated DEEPX docs/PDFs viewable without leaving the studio.
 - **About DEEPX** — product and news overview.
 - **Purchase entry point** — the **Buy** button in the top bar links to the DEEPX store.

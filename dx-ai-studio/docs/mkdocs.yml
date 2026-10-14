@@ -47,6 +47,7 @@ nav:
     - DX EdgeGuide: 09_DX_EdgeGuide.md
   - Development:
     - DX Agent Dev: 10_DX_Agent_Dev.md
+    - DX Edge (AWS): 13_DX_Edge_AWS.md
   - Reference:
     - SDK Library and About: 11_SDK_Library_and_About.md
   - Appendix:

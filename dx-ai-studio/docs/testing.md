@@ -37,6 +37,7 @@ Run module suites **separately** — do not run `tests/launcher/` and
 ./.venv/bin/python -m pytest tests/dx_compiler/ -q
 ./.venv/bin/python -m pytest tests/dx_modelzoo/ -q
 ./.venv/bin/python -m pytest tests/dx_planner/ tests/dx_benchmark/ tests/dx_monitor/ -q
+./.venv/bin/python -m pytest tests/dx_edge/ -q          # AWS via botocore Stubber, no network
 ./.venv/bin/python -m pytest tests/i18n_audit/ tests/shared/ tests/release/ -q
 ```
 
@@ -233,7 +234,8 @@ across 152 files):
 
 | module | cover | | module | cover |
 |---|---|---|---|---|
-| dx_planner | 91.7% | | shared | 74.8% |
+| dx_edge | 95.4% | | shared | 74.8% |
+| dx_planner | 91.7% | | | |
 | dx_benchmark | 91.2% | | launcher | 70.7% |
 | dx_monitor | 85.0% | | dx_stream | 68.7% |
 | dx_modelzoo | 83.8% | | dx_app | 68.2% |
