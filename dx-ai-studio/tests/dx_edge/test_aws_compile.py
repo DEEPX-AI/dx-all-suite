@@ -395,6 +395,14 @@ def test_save_dxnn_writes_into_the_models_dir(aws, tmp_path):
     assert [p.name for p in out.parent.iterdir()] == ["yolov5s.dxnn"]  # no temp file left
 
 
+def test_saved_dxnn_is_readable_like_any_other_model(aws, tmp_path):
+    # mkstemp creates 0600; a runtime running as another user (Docker) must still read it.
+    stubs, _ = aws
+    _get_dxnn(stubs)
+    out = ac.save_dxnn("dev", REGION, STACK, PREFIX, tmp_path / "models")
+    assert out.stat().st_mode & 0o777 == 0o644
+
+
 # ── no credential leakage ───────────────────────────────────────────────────
 
 def test_nothing_returned_carries_credentials(aws):

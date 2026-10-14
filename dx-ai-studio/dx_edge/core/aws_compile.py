@@ -296,6 +296,7 @@ def save_dxnn(profile: str, region: str, stack: str, prefix: str, models_dir) ->
         with os.fdopen(fd, "wb") as f:
             for chunk in iter_body(body):
                 f.write(chunk)
+        os.chmod(tmp, 0o644)  # mkstemp makes it 0600
         os.replace(tmp, target)
     except BaseException:
         Path(tmp).unlink(missing_ok=True)
