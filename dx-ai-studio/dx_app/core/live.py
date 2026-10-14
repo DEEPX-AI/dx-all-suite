@@ -8,7 +8,7 @@ layer) — that one upward dependency is resolved with a local import inside
 the function body (see below) so module-load time stays acyclic.
 """
 
-import os, re, math, shutil, time, uuid, subprocess, tempfile, threading, atexit
+import os, re, sys, math, shutil, time, uuid, subprocess, tempfile, threading, atexit
 from pathlib import Path
 from dx_app.core import config, npu_jobs
 from dx_app.core.config import DX_APP_ROOT, BUILD_DIR, resolve_model_path
@@ -633,6 +633,12 @@ def shutdown_live_processes():
     # circular import. Deferred so it only resolves when this function actually runs.
     from dx_app.core import inference as _inference
     from dx_app.core import camera
+    # The graph Live draws on its own Xvfb display (graph_live.SLOT), which the loop below kills with the others:
+    # stop its runner first, so it ends by SIGTERM and records how it ended (only when it was ever loaded).
+    graph_live = sys.modules.get("dx_app.core.graph_live")
+    if graph_live is not None:
+        try: graph_live.stop_all()
+        except Exception: pass
     try: stop_inference_live(None)
     except Exception: pass
     with _live_procs_lock:

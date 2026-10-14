@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """DX-APP Server — HTTP server entry point with all routes."""
 import os, sys, json, time, re, signal, threading, webbrowser, mimetypes, shlex
+import select, socket
 import shutil
 from pathlib import Path
 
@@ -251,6 +252,36 @@ DX_APP_SHELL = ShellSpec(
     toolbar_extra=_NOTIF_BELL,
 )
 
+# The Run page's Live slots (CONT.slots in inference.js); slot 8 is the Graph Composer's Live display (graph_live.SLOT)
+RUN_SLOTS = 8
+# Viewers of one MJPEG stream at a time: each holds a server thread and grabs the display ~12 times a second
+MAX_VIEWERS = 4
+_viewers = {}
+_viewers_lock = threading.Lock()
+
+
+def _run_slot(value):
+    """A Run page Live slot, 0-7, from JSON or a query string; ValueError otherwise."""
+    if isinstance(value, str) and value.strip().isdigit():
+        value = int(value)
+    if isinstance(value, bool) or not isinstance(value, int) or not 0 <= value < RUN_SLOTS:
+        raise ValueError(f"slot must be a whole number from 0 to {RUN_SLOTS - 1}")
+    return value
+
+
+def _take_viewer(key):
+    with _viewers_lock:
+        if _viewers.get(key, 0) >= MAX_VIEWERS:
+            return False
+        _viewers[key] = _viewers.get(key, 0) + 1
+        return True
+
+
+def _drop_viewer(key):
+    with _viewers_lock:
+        _viewers[key] = max(0, _viewers.get(key, 0) - 1)
+
+
 class Handler(DXBaseHandler):
     server_name = SERVER_NAME
     static_dir = STATIC_DIR
@@ -260,23 +291,55 @@ class Handler(DXBaseHandler):
     # A graph run may carry its input images base64-encoded (graph_run allows 20 MB per image).
     json_max_bytes_by_path = {"/api/graph/run": 24 * 1024 * 1024}
 
-    def _mjpeg_stream(self):
-        slot_idx = int(self.read_query_param("slot", "0"))
-        self.send_response(200)
-        self.send_header("Content-Type","multipart/x-mixed-replace; boundary=frame")
-        self.send_header("Cache-Control","no-cache")
-        self.end_headers()
+    def _client_gone(self):
+        """True when the viewer closed the connection (a stream that has no frame to write would never notice)."""
+        conn = getattr(self, "connection", None)
+        if conn is None:
+            return False
         try:
-            while True:
-                frame=capture_live_frame(slot_idx)
+            readable, _, _ = select.select([conn], [], [], 0)
+            return bool(readable) and conn.recv(1, socket.MSG_PEEK) == b""
+        except (OSError, ValueError):
+            return True
+
+    def _serve_mjpeg(self, key, next_frame, alive=lambda: True):
+        """An MJPEG stream of `next_frame()` (JPEG bytes or None) while `alive()`, for at most MAX_VIEWERS viewers
+        of one stream (`key`) at a time."""
+        if not _take_viewer(key):
+            return self.send_json(_error_payload("too_many_viewers", f"this stream already has {MAX_VIEWERS} "
+                                                 "viewers; close another tab that shows it"), 429)
+        try:
+            self.send_response(200)
+            self.send_header("Content-Type", "multipart/x-mixed-replace; boundary=frame")
+            self.send_header("Cache-Control", "no-cache")
+            self.end_headers()
+            while alive():
+                frame = next_frame()
                 if frame:
                     self.wfile.write(b"--frame\r\nContent-Type: image/jpeg\r\n")
                     self.wfile.write(f"Content-Length: {len(frame)}\r\n\r\n".encode())
                     self.wfile.write(frame)
                     self.wfile.write(b"\r\n")
                     self.wfile.flush()
+                elif self._client_gone():
+                    return
                 time.sleep(0.08)  # ~12fps
-        except(BrokenPipeError,ConnectionResetError):pass
+        except (BrokenPipeError, ConnectionResetError):
+            pass
+        finally:
+            _drop_viewer(key)
+
+    def _mjpeg_stream(self):
+        """The Run page's Live display of one slot (0-7; slot 8 is the graph Live's, served by _graph_live_stream).
+        An <img> cannot send the session token, so a cross-origin page is refused by its Origin/Referer."""
+        origin_err = _check_handler_origin_local(self)
+        if origin_err:
+            return self.send_json({k: v for k, v in origin_err.items() if k != "status"}, origin_err.get("status", 403))
+        try:
+            slot_idx = _run_slot(self.read_query_param("slot", "0"))
+        except ValueError as e:
+            return self.send_json(_error_payload("invalid_slot", str(e)), 400)
+        return self._serve_mjpeg(f"live:{slot_idx}", lambda: capture_live_frame(slot_idx))
 
     def _graph_live_stream(self):
         """The MJPEG stream of the running graph Live (dx_app/core/graph_routes.py says why it is served here)."""
@@ -286,23 +349,8 @@ class Handler(DXBaseHandler):
             return self.send_json({k: v for k, v in origin_err.items() if k != "status"}, origin_err.get("status", 403))
         job_id = self.read_query_param("id", "")
         if not graph_live.frame_ok(job_id):
-            return self.send_json({"error": "unknown_job"}, 404)
-        self.send_response(200)
-        self.send_header("Content-Type", "multipart/x-mixed-replace; boundary=frame")
-        self.send_header("Cache-Control", "no-cache")
-        self.end_headers()
-        try:
-            while graph_live.frame_ok(job_id):
-                frame = graph_live.frame(job_id)
-                if frame:
-                    self.wfile.write(b"--frame\r\nContent-Type: image/jpeg\r\n")
-                    self.wfile.write(f"Content-Length: {len(frame)}\r\n\r\n".encode())
-                    self.wfile.write(frame)
-                    self.wfile.write(b"\r\n")
-                    self.wfile.flush()
-                time.sleep(0.08)
-        except (BrokenPipeError, ConnectionResetError):
-            pass
+            return self.send_json({"error": "unknown_job", "error_key": "unknown_job"}, 404)
+        return self._serve_mjpeg("graph_live", lambda: graph_live.frame(job_id), lambda: graph_live.frame_ok(job_id))
 
     def route(self):
         path = self.url_path
@@ -587,6 +635,15 @@ class Handler(DXBaseHandler):
 
             if path=="/api/stop":return self.send_json(stop_inference())
 
+            if path in ("/api/run_live", "/api/live_stop"):
+                slot = data.get("slot_idx", 0 if path == "/api/run_live" else None)
+                try:
+                    slot = None if slot is None else _run_slot(slot)
+                except ValueError as e:
+                    return self.send_json(_error_payload("invalid_slot", str(e)), 400)
+                if path == "/api/live_stop":
+                    return self.send_json(stop_inference_live(slot))
+
             if path=="/api/run_live":
                 err, code = _validate_inference_payload(data, live=True)
                 if err:
@@ -597,11 +654,9 @@ class Handler(DXBaseHandler):
                     variant=data.get("variant","sync"),input_type=data.get("input_type","camera"),
                     camera_id=data.get("camera_id"),rtsp_url=data.get("rtsp_url"),
                     video_path=data.get("video_path"),
-                    device_id=data.get("device_id"),slot_idx=int(data.get("slot_idx",0)),
+                    device_id=data.get("device_id"),slot_idx=slot,
                     n_total_slots=int(data.get("n_total_slots",1)))
                 return self.send_json(r)
-
-            if path=="/api/live_stop":return self.send_json(stop_inference_live(data.get("slot_idx")))
 
             if path=="/api/extract":
                 mp=data.get("model_path","");lang=data.get("lang","both")
@@ -739,14 +794,23 @@ def _idle_shutdown_enabled():
     return not os.environ.get("DX_PORT_FILE")
 
 
+def _stop_children():
+    """Stop every child process before the server exits. The graph Live goes first: it draws on an Xvfb display that
+    shutdown_live_processes kills with the Run page's ones."""
+    from dx_app.core import graph_gallery, graph_live, graph_run
+    graph_live.stop_all()
+    stop_inference()
+    shutdown_live_processes()
+    graph_run.stop_all()
+    graph_gallery.stop_all()
+
+
 def _watchdog(srv):
     while True:
         time.sleep(5)
         if time.time()-config._HEARTBEAT>_HB_TIMEOUT:
             print("\n[AUTO] No heartbeat — shutting down.")
-            stop_inference();shutdown_live_processes()
-            from dx_app.core import graph_gallery, graph_live, graph_run
-            graph_run.stop_all();graph_live.stop_all();graph_gallery.stop_all();srv.shutdown();return
+            _stop_children();srv.shutdown();return
 
 def create_server(port=DEFAULT_PORT):
     """Server factory for tests: returns an HTTPServer instance."""

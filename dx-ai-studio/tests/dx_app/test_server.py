@@ -108,3 +108,142 @@ def test_idle_shutdown_is_only_for_a_standalone_server(monkeypatch):
     assert server._idle_shutdown_enabled()
     monkeypatch.setenv("DX_PORT_FILE", "/tmp/dx_app.port")
     assert not server._idle_shutdown_enabled()
+
+
+# The Run page's Live display: slots 0-7 only (slot 8 is the Graph Composer's Live), a local origin, and a few
+# viewers per stream.
+
+LOCAL = {"Origin": "http://localhost:8080"}
+
+
+def _handler(method, path, query=None, payload=None, headers=None, frames=None):
+    """Drive dx_app's real Handler.route() without a socket; `frames` feeds an MJPEG stream until it runs out."""
+    import io
+    from dx_app import server
+
+    captured = {"headers": {}}
+
+    class Pipe(io.BytesIO):
+        def __init__(self, n):
+            super().__init__()
+            self.left = n
+
+        def flush(self):
+            self.left -= 1
+            if self.left <= 0:
+                raise BrokenPipeError
+
+    h = object.__new__(server.Handler)
+    h.command, h.url_path = method, path
+    h.headers = dict(LOCAL) if headers is None else headers
+    h.query = {k: [v] for k, v in (query or {}).items()}
+    h.handle_chat_routes = lambda _engine: False
+    h.read_json_body = lambda: payload if payload is not None else {}
+    h.wfile = Pipe(frames or 1)
+    h.send_json = lambda data, code=200: captured.update(data=data, code=code)
+    h.send_error = lambda code, *a, **k: captured.update(code=code)
+    h.send_response = lambda code: captured.update(code=code)
+    h.send_header = lambda k, v: captured["headers"].update({k: v})
+    h.end_headers = lambda: None
+    h.route()
+    captured["body"] = h.wfile.getvalue()
+    return captured
+
+
+def _frames(monkeypatch):
+    from dx_app import server
+    seen = []
+    monkeypatch.setattr(server, "capture_live_frame", lambda slot=0: seen.append(slot) or b"JPEG%d" % slot)
+    monkeypatch.setattr(server.time, "sleep", lambda _s: None)
+    return seen
+
+
+def test_the_run_page_live_frame_serves_only_its_own_slots(monkeypatch):
+    seen = _frames(monkeypatch)
+    ok = _handler("GET", "/api/live_frame", {"slot": "7"}, frames=2)
+    assert ok["code"] == 200 and b"JPEG7" in ok["body"] and set(seen) == {7}
+    for bad in ("8", "-1", "x", "99"):
+        r = _handler("GET", "/api/live_frame", {"slot": bad})
+        assert (r["code"], r["data"]["error_key"]) == (400, "invalid_slot"), bad
+    assert set(seen) == {7}, "slot 8 is the graph Live's display"
+
+
+def test_the_run_page_live_frame_refuses_another_origin(monkeypatch):
+    seen = _frames(monkeypatch)
+    r = _handler("GET", "/api/live_frame", {"slot": "0"}, headers={"Origin": "https://evil.example.com"})
+    assert (r["code"], r["data"]["error"]) == (403, "Cross-origin access denied") and r["body"] == b"" and not seen
+    r = _handler("GET", "/api/live_frame", {"slot": "0"}, headers={"Referer": "https://evil.example.com/x"})
+    assert r["code"] == 403 and not seen
+
+
+def test_run_live_and_live_stop_take_only_the_run_page_slots(monkeypatch):
+    from dx_app import server
+    calls = []
+    monkeypatch.setattr(server, "run_inference_live", lambda **kw: calls.append(("run", kw["slot_idx"])) or {})
+    monkeypatch.setattr(server, "stop_inference_live", lambda slot=None: calls.append(("stop", slot)) or {})
+    monkeypatch.setattr(server, "_validate_inference_payload", lambda data, live=False: (None, None))
+    for bad in (8, -1, "x", 1.5):
+        r = _handler("POST", "/api/run_live", payload={"slot_idx": bad})
+        assert (r["code"], r["data"]["error_key"]) == (400, "invalid_slot"), bad
+        r = _handler("POST", "/api/live_stop", payload={"slot_idx": bad})
+        assert (r["code"], r["data"]["error_key"]) == (400, "invalid_slot"), bad
+    assert calls == []
+    _handler("POST", "/api/run_live", payload={"slot_idx": 7})
+    _handler("POST", "/api/run_live", payload={})
+    _handler("POST", "/api/live_stop", payload={"slot_idx": "3"})
+    _handler("POST", "/api/live_stop", payload={})
+    assert calls == [("run", 7), ("run", 0), ("stop", 3), ("stop", None)]
+
+
+def test_a_live_stream_takes_a_few_viewers_at_a_time(monkeypatch):
+    from dx_app import server
+    from dx_app.core import graph_live
+    _frames(monkeypatch)
+    monkeypatch.setattr(graph_live, "frame_ok", lambda jid: jid == "L1")
+    monkeypatch.setattr(graph_live, "frame", lambda jid: b"G")
+    monkeypatch.setitem(server._viewers, "live:2", server.MAX_VIEWERS)
+    r = _handler("GET", "/api/live_frame", {"slot": "2"})
+    assert (r["code"], r["data"]["error_key"]) == (429, "too_many_viewers") and r["body"] == b""
+    assert _handler("GET", "/api/live_frame", {"slot": "3"})["code"] == 200, "each slot counts its own viewers"
+    assert server._viewers.get("live:3", 0) == 0, "a viewer that left is not counted"
+    monkeypatch.setitem(server._viewers, "graph_live", server.MAX_VIEWERS)
+    r = _handler("GET", "/api/graph/live/frame", {"id": "L1"})
+    assert (r["code"], r["data"]["error_key"]) == (429, "too_many_viewers")
+    monkeypatch.setitem(server._viewers, "graph_live", 0)
+    assert _handler("GET", "/api/graph/live/frame", {"id": "L1"}, frames=2)["code"] == 200
+    assert server._viewers["graph_live"] == 0
+
+
+def test_shutdown_stops_the_graph_live_before_the_live_displays_go(monkeypatch):
+    """The graph Live draws on an Xvfb display that shutdown_live_processes kills with the Run page's ones."""
+    from dx_app import server
+    from dx_app.core import graph_gallery, graph_live, graph_run
+    order = []
+    monkeypatch.setattr(server, "stop_inference", lambda: order.append("stop_inference"))
+    monkeypatch.setattr(server, "shutdown_live_processes", lambda: order.append("live"))
+    for mod in (graph_run, graph_live, graph_gallery):
+        monkeypatch.setattr(mod, "stop_all", lambda m=mod.__name__: order.append(m.rsplit(".", 1)[1]))
+    server._stop_children()
+    assert order.index("graph_live") < order.index("live")
+    assert set(order) == {"stop_inference", "live", "graph_run", "graph_live", "graph_gallery"}
+
+
+def test_shutdown_live_processes_stops_a_graph_live_first(monkeypatch):
+    """atexit runs shutdown_live_processes too: it ends a running graph Live before it kills the Xvfb displays."""
+    from dx_app.core import camera, graph_live, live
+    order = []
+
+    class P:
+        def poll(self):
+            return None
+
+        def terminate(self):
+            order.append("xvfb")
+
+        def wait(self, timeout=None):
+            return 0
+    monkeypatch.setattr(graph_live, "stop_all", lambda: order.append("graph_live"))
+    monkeypatch.setattr(camera, "_xvfb_procs", {8: P()})
+    monkeypatch.setattr(live, "stop_inference_live", lambda slot=None: None)
+    live.shutdown_live_processes()
+    assert order[:2] == ["graph_live", "xvfb"]
