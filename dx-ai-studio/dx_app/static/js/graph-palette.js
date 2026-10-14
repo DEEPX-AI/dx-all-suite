@@ -47,7 +47,7 @@ window.GraphPalette = (function () {
     add.addEventListener('click', function () { c.addFromPalette(payload); });
     var el = c.h('div', { class: 'gc-item', role: 'listitem', draggable: 'true', dataset: { cat: cat } }, [
       c.icon(iconName),
-      c.h('span', { class: 'gc-item-text' }, [c.h('span', { class: 'gc-item-name', text: name }),
+      c.h('span', { class: 'gc-item-text' }, [c.h('span', { class: 'gc-item-name', text: name, title: name }),
                                               c.h('span', { class: 'gc-item-sub', text: sub })]),
       extra || null,
       add

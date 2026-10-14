@@ -27,7 +27,7 @@
 .gc-group-title{flex:1;min-width:0}
 .gc-count{font-size:var(--fs-xs);color:var(--text-muted);font-weight:400}
 .gc-group.is-empty{display:none}
-.gc-item{position:relative;display:flex;align-items:center;gap:var(--sp-2);padding:var(--sp-1) var(--sp-2);margin:2px 0;border:1px solid var(--border-subtle);border-radius:var(--radius-sm);background:var(--surface-panel);cursor:grab}
+.gc-item{position:relative;display:flex;flex-wrap:wrap;align-items:center;gap:var(--sp-2);padding:var(--sp-1) var(--sp-2);margin:2px 0;border:1px solid var(--border-subtle);border-radius:var(--radius-sm);background:var(--surface-panel);cursor:grab}
 .gc-item::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:var(--radius-sm) 0 0 var(--radius-sm);background:var(--cat-3)}
 .gc-item[data-cat="source"]::before{background:var(--cat-1)}
 .gc-item[data-cat="cpu"]::before{background:var(--cat-2)}
@@ -36,7 +36,10 @@
 .gc-item-text{display:flex;flex-direction:column;flex:1;min-width:0}
 .gc-item-name{font-size:var(--fs-sm);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .gc-item-sub{font-size:var(--fs-2xs);color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.gc-item-extra{display:flex;align-items:center;gap:var(--sp-1)}
+/* A model's install state and Download sit on a second row, so the name keeps the width of the palette. */
+.gc-item-extra{order:3;display:flex;flex:1 0 100%;flex-wrap:wrap;align-items:center;gap:var(--sp-1);padding-left:var(--sp-5)}
+.gc-item-extra .badge{white-space:nowrap}
+.gc-item .gc-add{order:2}
 
 /* memory bar */
 .gc-memory{padding:var(--sp-3);border:1px solid var(--border-subtle);border-radius:var(--radius);background:var(--surface-raised)}
@@ -58,6 +61,8 @@
 .gc-section{margin-top:var(--sp-3);padding-top:var(--sp-3);border-top:1px solid var(--border-subtle)}
 .gc-section-title{margin:0 0 var(--sp-2);font-size:var(--fs-sm)}
 .gc-param{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;align-items:center;gap:var(--sp-1);margin-bottom:var(--sp-1)}
+.gc-param-new{grid-template-columns:minmax(0,1fr) auto}
+.gc-param-new>.input:first-child{grid-column:1 / -1}
 .gc-param code{font-size:var(--fs-xs);overflow-wrap:anywhere}
 .gc-check{display:flex;align-items:center;gap:var(--sp-2);margin-bottom:var(--sp-2);font-size:var(--fs-sm)}
 .gc-error{margin:var(--sp-1) 0;color:var(--status-error-ink);font-size:var(--fs-sm);overflow-wrap:anywhere}
@@ -72,7 +77,7 @@
 .gc-run-inputs .input{max-width:360px}
 .gc-run-actions{display:flex;gap:var(--sp-2)}
 .gc-run-progress{margin-top:var(--sp-3);font-size:var(--fs-sm)}
-.gc-ms{margin:var(--sp-2) 0 0;padding:0;list-style:none}
+.gc-ms{max-width:720px;margin:var(--sp-2) 0 0;padding:0;list-style:none}
 .gc-ms li{display:grid;grid-template-columns:120px minmax(0,1fr) 80px;align-items:center;gap:var(--sp-2);font-size:var(--fs-xs)}
 .gc-ms-bar{height:6px;border-radius:var(--radius-pill);background:var(--surface-sunken);overflow:hidden}
 .gc-ms-fill{display:block;height:100%;background:var(--status-warn)}

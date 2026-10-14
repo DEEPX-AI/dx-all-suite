@@ -177,7 +177,8 @@ window.GraphInspector = (function () {
       setData(c, n.id, function (x) { x.model = v; });
     });
     var out = [field(c, T('Model'), model, m.task ? c.fmt(T('{task} · produces {produces} · takes {consumes}'),
-      { task: typeof catText === 'function' ? catText(m.task) : m.task, produces: m.produces, consumes: m.consumes }) : '')];
+      { task: typeof catText === 'function' ? catText(m.task) : m.task, produces: m.produces,
+        consumes: m.consumes === 'either' ? T('frame or crop') : T('full frame') }) : '')];
     var line = memoryLine(c, n);
     if (line) out.push(line);
     out.push(paramsEditor(c, n));

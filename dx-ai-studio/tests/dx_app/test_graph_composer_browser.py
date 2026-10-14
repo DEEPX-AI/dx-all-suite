@@ -269,3 +269,22 @@ def test_an_example_opens_fitted_to_the_canvas_clear_of_its_overlays(ui):
       });
     }""")
     assert placed == [True, True, True], placed
+
+
+def test_palette_names_keep_their_width_next_to_a_state_and_download(ui):
+    """The install state and Download sit on their own row: in a 260 px palette they left the name no width."""
+    page, _ = ui
+    page.click("[data-group='task:object_detection'] .gc-group-head")
+    widths = page.eval_on_selector_all("[data-group='task:object_detection'] .gc-item-name", "els => els.map(e => e.clientWidth)")
+    assert widths and min(widths) >= 100, widths
+    clipped = page.eval_on_selector_all("[data-group='task:object_detection'] .badge",
+                                        "els => els.filter(e => e.scrollWidth > e.clientWidth + 1 || e.clientHeight > 30).length")
+    assert clipped == 0
+
+
+def test_the_inspector_says_what_a_model_takes_in_words(ui):
+    page, _ = ui
+    _open_example(page)
+    page.evaluate("GraphComposer.canvas().select({nodes: ['od']})")
+    assert "takes full frame" in page.inner_text("#gc-inspector-body")
+    assert "full_frame" not in page.inner_text("#gc-inspector-body")
