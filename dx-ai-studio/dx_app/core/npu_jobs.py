@@ -3,6 +3,7 @@
     graph_run   a graph run once (graph_run.py)
     graph_live  a graph Live (graph_live.py)
     live        the Run page's Live, one holder per display slot (live.py); its slots run side by side
+    gallery     a gallery build for the graph's gallery op (graph_gallery.py)
 
 A job calls `acquire(kind, job_id)` before it prepares anything: it gets the NPU, or the kind of the job that holds
 it. Once its process is started it calls `attach(job_id, proc)`; from then on the hold ends by itself when the
@@ -17,7 +18,7 @@ from __future__ import annotations
 import threading
 import time
 
-KINDS = ("graph_run", "graph_live", "live")
+KINDS = ("graph_run", "graph_live", "live", "gallery")
 SHARED = frozenset({"live"})        # kinds whose holders may run side by side (the Run page's Live slots)
 RESERVE_TTL = 120.0
 

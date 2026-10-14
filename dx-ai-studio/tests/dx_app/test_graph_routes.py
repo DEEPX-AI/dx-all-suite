@@ -10,7 +10,7 @@ GET_ROUTES = ("/api/graph/catalog", "/api/graph/run/poll", "/api/graph/run/resul
               "/api/graph/project", "/api/graph/project/versions", "/api/graph/frame", "/api/graph/live/poll")
 POST_ROUTES = ("/api/graph/validate", "/api/graph/memory", "/api/graph/run", "/api/graph/run/stop",
                "/api/graph/project/save", "/api/graph/project/delete", "/api/graph/live/start",
-               "/api/graph/live/stop")
+               "/api/graph/live/stop", "/api/graph/gallery/build")
 LOCAL = {"Origin": "http://localhost:8080"}
 GRAPH = {"version": 1, "name": "g", "nodes": [{"id": "cam", "type": "source", "uri": "x.jpg"}], "edges": []}
 
@@ -236,3 +236,16 @@ def test_the_live_frame_stream_needs_the_running_job_and_a_local_origin(monkeypa
     assert _stream({"id": "other"}, dict(LOCAL), monkeypatch, [b"x"])["code"] == 404
     bad = _stream({"id": "L1"}, {"Origin": "https://evil.example.com"}, monkeypatch, [b"x"])
     assert (bad["code"], bad["data"]["error"]) == (403, "Cross-origin access denied") and bad["body"] == b""
+
+
+def test_gallery_build_reaches_graph_gallery(monkeypatch):
+    from dx_app.core import graph_gallery
+    seen = {}
+    monkeypatch.setattr(graph_gallery, "build",
+                        lambda folder, model, name=None: seen.update(args=(folder, model, name)) or ({"path": "p"}, 200))
+    h = {"X-Lab-Token": _token(), **LOCAL}
+    r = _route("POST", "/api/graph/gallery/build", {"folder": "sample/gallery/staff", "model": "osnet",
+                                                    "name": "staff"}, h)
+    assert (r["code"], r["data"]) == (200, {"path": "p"}) and seen["args"] == ("sample/gallery/staff", "osnet", "staff")
+    _route("POST", "/api/graph/gallery/build", {"folder": "f", "model": "m"}, h)
+    assert seen["args"] == ("f", "m", None)

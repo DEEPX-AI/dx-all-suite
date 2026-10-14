@@ -74,7 +74,8 @@ def _slot_hold(slot_idx):
 
 # Why the Run page's Live cannot start, by the kind of job holding the NPU (npu_jobs.py)
 _BUSY = {"graph_live": ("graph_live_busy", "The Graph Composer has a Live run. Stop it before starting one here."),
-         "graph_run": ("graph_run_busy", "The Graph Composer is running a graph. Wait for it or stop it first.")}
+         "graph_run": ("graph_run_busy", "The Graph Composer is running a graph. Wait for it or stop it first."),
+         "gallery": ("gallery_busy", "The Graph Composer is building a gallery. Wait for it to finish.")}
 
 
 def _start_live(model_name, category, model_file, lang, variant, input_type, camera_id, rtsp_url, video_path,

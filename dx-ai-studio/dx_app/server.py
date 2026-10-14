@@ -745,8 +745,8 @@ def _watchdog(srv):
         if time.time()-config._HEARTBEAT>_HB_TIMEOUT:
             print("\n[AUTO] No heartbeat — shutting down.")
             stop_inference();shutdown_live_processes()
-            from dx_app.core import graph_live, graph_run
-            graph_run.stop_all();graph_live.stop_all();srv.shutdown();return
+            from dx_app.core import graph_gallery, graph_live, graph_run
+            graph_run.stop_all();graph_live.stop_all();graph_gallery.stop_all();srv.shutdown();return
 
 def create_server(port=DEFAULT_PORT):
     """Server factory for tests: returns an HTTPServer instance."""

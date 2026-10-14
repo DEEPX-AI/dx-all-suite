@@ -46,7 +46,8 @@ _job = None                     # the one graph Live: dict, or None
 # Why a graph Live cannot start, by the kind of job holding the NPU (npu_jobs.py)
 _BUSY = {"graph_live": {"error": "a graph Live is already running", "error_key": "graph_live_busy"},
          "graph_run": {"error": "a graph run is running", "error_key": "graph_run_busy"},
-         "live": {"error": "the Run page has a Live run; stop it first", "error_key": "live_busy"}}
+         "live": {"error": "the Run page has a Live run; stop it first", "error_key": "live_busy"},
+         "gallery": {"error": "a gallery is being built; wait for it", "error_key": "gallery_busy"}}
 
 
 def live_dir() -> Path:

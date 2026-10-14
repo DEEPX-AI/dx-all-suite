@@ -57,7 +57,8 @@ _jobs: dict = {}
 # Why a run once cannot start, by the kind of job holding the NPU (npu_jobs.py)
 _BUSY = {"graph_run": {"error": "a graph run is already running", "error_key": "graph_run_busy"},
          "graph_live": {"error": "a graph Live is running; stop it first", "error_key": "graph_live_busy"},
-         "live": {"error": "the Run page has a Live run; stop it first", "error_key": "live_busy"}}
+         "live": {"error": "the Run page has a Live run; stop it first", "error_key": "live_busy"},
+         "gallery": {"error": "a gallery is being built; wait for it", "error_key": "gallery_busy"}}
 
 
 def runs_dir() -> Path:

@@ -12,6 +12,7 @@ NPU work and the catalog lists local model files.
     GET  /api/graph/frame?uri=                 one frame of an input (zone and line drawing)
     POST /api/graph/live/start {graph, variant, inputs, max_inflight}
     GET  /api/graph/live/poll?id=[&events_after=N]   POST /api/graph/live/stop {id}
+    POST /api/graph/gallery/build {folder, model, name?}   a gallery .bin for the gallery op (graph_gallery.py)
     GET  /api/graph/projects   GET /api/graph/project?id=[&version=]   GET /api/graph/project/versions?id=
     POST /api/graph/project/save {id?, project}   POST /api/graph/project/delete {id}
 
@@ -22,8 +23,8 @@ Contract: tests/dx_app/test_graph_routes.py
 """
 from __future__ import annotations
 
-from dx_app.core import (graph_catalog, graph_frame, graph_live, graph_memory, graph_projects, graph_run,
-                         graph_validate)
+from dx_app.core import (graph_catalog, graph_frame, graph_gallery, graph_live, graph_memory, graph_projects,
+                         graph_run, graph_validate)
 from dx_app.core.developer import _check_origin_local, require_lab
 
 MAX_NODES = graph_validate.MAX_NODES
@@ -97,6 +98,8 @@ def handle(method: str, path: str, query, data, headers, server_host) -> tuple:
         return graph_run.stop(str(data.get("id") or "")), 200
     if path == "/api/graph/live/stop":
         return graph_live.stop(str(data.get("id") or "")), 200
+    if path == "/api/graph/gallery/build":
+        return graph_gallery.build(data.get("folder"), data.get("model"), data.get("name"))
     if path == "/api/graph/project/save":
         return _project_call(graph_projects.save, data.get("project"), data.get("id") or None)
     if path == "/api/graph/project/delete":
