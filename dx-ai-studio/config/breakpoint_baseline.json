@@ -1,12 +1,15 @@
 {
   "dx_agent_dev/static/css/console.css": [
+    600,
     768,
     1200
   ],
-  "dx_app/static/css/style.css": [
-    600,
+  "dx_app/static/css/graph-composer.css": [
     900,
     1200
+  ],
+  "dx_app/static/css/style.css": [
+    900
   ],
   "dx_benchmark/static/css/style.css": [
     600,
@@ -50,6 +53,9 @@
     900,
     1200
   ],
+  "launcher/static/sdk-library.css": [
+    600
+  ],
   "launcher/static/style.css": [
     600,
     768,
@@ -58,6 +64,12 @@
   ],
   "shared/chat/static/chat-widget.css": [
     480
+  ],
+  "shared/static/dx-components.css": [
+    600
+  ],
+  "shared/static/dx-graph-canvas.css": [
+    600
   ],
   "shared/static/dx-shell.css": [
     600,
