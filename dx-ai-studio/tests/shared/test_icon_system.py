@@ -40,6 +40,15 @@ def _symbols() -> dict[str, str]:
     return {m.group(1): m.group(0) for m in re.finditer(r'<symbol id="([^"]+)"[^>]*>.*?</symbol>', SPRITE, re.S)}
 
 
+def test_the_graph_composer_icons_are_there():
+    """The Graph Composer tab and the shared graph canvas toolbar (scripts/build_icon_sprite.py)."""
+    symbols = _symbols()
+    for name in ("graph", "undo", "redo", "fit"):
+        assert name in symbols, name
+        assert 'viewBox="0 0 24 24"' in symbols[name] and '<g class="l"' in symbols[name]
+    assert '<g class="f"' in symbols["graph"], "the graph glyph has the faint fill like the other glyphs"
+
+
 def test_every_name_the_studio_uses_is_there():
     missing = [n for n in EXISTING + NEW if n not in _symbols()]
     assert not missing, missing

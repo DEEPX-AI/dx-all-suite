@@ -201,6 +201,11 @@ S['user'] = ([C(12, 8, 3.8)], [C(12, 8, 3.8), P('M4.5 20.5a7.5 7.5 0 0 1 15 0')]
 
 S['plus'] = ([], [P('M12 5v14M5 12h14')])
 S['minus'] = ([], [P('M5 12h14')])
+# ── Graph Composer (dx_app) and the shared graph canvas toolbar ──
+S['graph'] = ([C(6, 7, 2.6), C(6, 17, 2.6), C(18, 12, 2.6)], [C(6, 7, 2.6), C(6, 17, 2.6), C(18, 12, 2.6), P('M8.5 8l7 3M8.5 16l7-3')])
+S['undo'] = ([], [P('M9 6.5 4.5 11 9 15.5'), P('M4.5 11H14a5 5 0 0 1 0 10h-2.5')])
+S['redo'] = ([], [P('M15 6.5l4.5 4.5-4.5 4.5'), P('M19.5 11H10a5 5 0 0 0 0 10h2.5')])
+S['fit'] = ([], [P('M4 9V5.5A1.5 1.5 0 0 1 5.5 4H9M15 4h3.5A1.5 1.5 0 0 1 20 5.5V9M20 15v3.5a1.5 1.5 0 0 1-1.5 1.5H15M9 20H5.5A1.5 1.5 0 0 1 4 18.5V15')])
 
 out = ['<svg xmlns="http://www.w3.org/2000/svg" width="0" height="0" style="position:absolute" aria-hidden="true">',
        '<!-- DX AI Studio icon set. 24 grid, two layers: a faint fill (g.f) + a 2px line (g.l).',
