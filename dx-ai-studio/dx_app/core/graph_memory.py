@@ -225,10 +225,7 @@ def _engines(nodes: list) -> list:
     engines, shared = [], {}
     for n in nodes:
         eng = n.get("engine") if isinstance(n.get("engine"), dict) else {}
-        try:
-            buffers = int(eng["buffers"]) if eng.get("buffers") is not None else None
-        except (TypeError, ValueError):
-            buffers = None
+        buffers = _buffers_of(n)
         if eng.get("share"):
             e = shared.get(n["model"])
             if e is None:
@@ -244,16 +241,44 @@ def _engines(nodes: list) -> list:
     return engines
 
 
-def suggestions(engines: list, infos: dict) -> list:
-    """Ways to shrink the sum, biggest saving first: share an engine between nodes of one model, or use 2 buffers."""
+def _buffers_of(node: dict):
+    eng = node.get("engine") if isinstance(node.get("engine"), dict) else {}
+    try:
+        return int(eng["buffers"]) if eng.get("buffers") is not None else None
+    except (TypeError, ValueError):
+        return None
+
+
+def _share_patch(owner: dict, ids: list) -> dict:
+    """Node id -> the keys to set so every node shares the owner's engine. dx_app accepts sharing nodes only with the
+    owner's "params" and "buffers" (GRAPH_SCHEMA on node "<id>" "engine" otherwise); a key set to None is removed."""
+    engine = {"share": True}
+    if _buffers_of(owner) is not None:
+        engine["buffers"] = _buffers_of(owner)
+    params = owner.get("params") if isinstance(owner.get("params"), dict) and owner.get("params") else None
+    return {nid: {"engine": dict(engine), "params": json.loads(json.dumps(params)) if params is not None else None}
+            for nid in ids}
+
+
+def suggestions(engines: list, infos: dict, nodes=None) -> list:
+    """Ways to shrink the sum, biggest saving first: share an engine between nodes of one model, or use 2 buffers.
+
+    A share suggestion lists the nodes in graph order and carries `patch`: the first node's params and buffers for
+    every node of the model, because dx_app's owner of a shared engine is the first sharing node and the others
+    must match it."""
     out, by_model = [], {}
+    order = {n.get("id"): i for i, n in enumerate(nodes or []) if isinstance(n, dict)}
+    by_id = {n.get("id"): n for n in nodes or [] if isinstance(n, dict)}
     for e in engines:
         by_model.setdefault(e["model"], []).append(e)
     for model, es in by_model.items():
         if model in infos and len(es) > 1:
-            sizes = [e["bytes"] or 0 for e in es]
-            out.append({"kind": "share", "model": model, "nodes": [n for e in es for n in e["nodes"]],
-                        "saves_bytes": sum(sizes) - max(sizes)})
+            ids = sorted((n for e in es for n in e["nodes"]), key=lambda nid: order.get(nid, len(order)))
+            owner = by_id.get(ids[0], {})
+            shared = engine_bytes(infos[model], _buffers_of(owner))
+            out.append({"kind": "share", "model": model, "nodes": ids,
+                        "saves_bytes": max(0, sum(e["bytes"] or 0 for e in es) - shared),
+                        "patch": _share_patch(owner, ids)})
     for e in engines:
         info = infos.get(e["model"])
         current = e["buffers"] if e["buffers"] is not None else (info or {}).get("pool", 0)
@@ -292,4 +317,4 @@ def estimate(graph: dict) -> dict:
     free = device.get("free_bytes")
     return {"nodes": per_node, "engines": engines, "total_bytes": total, "device": device,
             "over_budget": bool(free is not None and total > free), "unknown_models": unknown,
-            "suggestions": suggestions(engines, infos)}
+            "suggestions": suggestions(engines, infos, nodes)}

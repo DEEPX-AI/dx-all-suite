@@ -204,3 +204,35 @@ def test_shared_engines_count_once_and_buffers_shrink_the_sum(monkeypatch):
     assert r["total_bytes"] == YOLO26N["total_bytes"] + 40560960
     assert r["over_budget"] is False
     assert not [s for s in r["suggestions"] if s["kind"] == "share"]
+
+
+# dx_app refuses nodes that share an engine with different "params" or "buffers" (GRAPH_SCHEMA on node "<id>"
+# "engine"), so a share suggestion carries the patch that makes them equal: the first node's params and buffers.
+def test_a_share_suggestion_aligns_params_and_buffers_on_the_first_node(monkeypatch):
+    g = {"nodes": [{"id": "cam", "type": "source", "uri": "x.jpg"},
+                   {"id": "od", "model": "yolo26-n_640x640", "params": {"score_threshold": 0.4},
+                    "engine": {"buffers": 3}},
+                   {"id": "od2", "model": "yolo26-n_640x640", "params": {"score_threshold": 0.25}},
+                   {"id": "od3", "model": "yolo26-n_640x640", "engine": {"share": True, "buffers": 2}}],
+         "edges": []}
+    r = _estimate(monkeypatch, g, free=100 * graph_memory.MB)
+    (s,) = [s for s in r["suggestions"] if s["kind"] == "share"]
+    assert s["nodes"] == ["od", "od2", "od3"]
+    same = {"engine": {"share": True, "buffers": 3}, "params": {"score_threshold": 0.4}}
+    assert s["patch"] == {"od": same, "od2": same, "od3": same}
+    sizes = [graph_memory.engine_bytes(YOLO26N, 3), YOLO26N["total_bytes"], graph_memory.engine_bytes(YOLO26N, 2)]
+    assert s["saves_bytes"] == sum(sizes) - graph_memory.engine_bytes(YOLO26N, 3), "one engine with od's buffers"
+    assert g["nodes"][1]["params"] == {"score_threshold": 0.4} and "share" not in g["nodes"][1]["engine"], \
+        "the caller's graph is not changed"
+    s["patch"]["od"]["params"]["score_threshold"] = 0.9
+    assert s["patch"]["od2"]["params"]["score_threshold"] == 0.4, "each node gets its own copy"
+
+
+def test_a_share_patch_removes_params_and_buffers_the_first_node_does_not_set(monkeypatch):
+    g = _g(od2_engine={"buffers": 2})
+    g["nodes"][2]["params"] = {"score_threshold": 0.3}
+    r = _estimate(monkeypatch, g, free=100 * graph_memory.MB)
+    (s,) = [s for s in r["suggestions"] if s["kind"] == "share"]
+    assert s["patch"] == {"od": {"engine": {"share": True}, "params": None},
+                          "od2": {"engine": {"share": True}, "params": None}}
+    assert s["saves_bytes"] == graph_memory.engine_bytes(YOLO26N, 2)
