@@ -82,19 +82,38 @@ def parse_table(stdout: str) -> list:
             continue
         state = r["state"] or ""
         source = r["model"] == "(source)"
+        version = state.split(",", 1)[1].strip() if "," in state else None
         rows.append({"node": r["node"], "model": None if source else r["model"], "produces": r["produces"],
                      "consumes": r["consumes"], "artifact": r["artifact"],
                      "present": None if source else state.startswith("present"),
-                     "file": state.split(",", 1)[1].strip() if "," in state else None,
-                     "missing": state == "MISSING"})
+                     "file": version, "missing": state == "MISSING",
+                     "state": None if source else _text_state(state, version), "engine": None})
     return rows
+
+
+def _text_state(state: str, version) -> str:
+    """The JSON `state` of a text table cell: "present, v9", "present, invalid", "present, v9 (needs ...)", "MISSING"."""
+    if state == "MISSING":
+        return "missing"
+    if not state.startswith("present"):
+        return "unknown"
+    if version == "invalid":
+        return "invalid"
+    return "unloadable" if version and "needs" in version else "present"
+
+
+UNUSABLE = ("invalid", "unloadable", "unknown")
+
+
+def _summary(models: list) -> dict:
+    return {"missing": [m["node"] for m in models if m["missing"]],
+            "unusable": {m["node"]: m["state"] for m in models if m.get("state") in UNUSABLE}}
 
 
 def parse_check_text(stdout: str, stderr: str, check_path: str, graph: dict) -> dict:
     errors, notes = parse_errors((stderr or "") + "\n" + (stdout or ""), graph, check_path)
     models = parse_table(stdout)
-    return {"ok": not errors, "errors": errors, "models": models,
-            "missing": [m["node"] for m in models if m["missing"]], "notes": notes}
+    return {"ok": not errors, "errors": errors, "models": models, **_summary(models), "notes": notes}
 
 
 def parse_check_json(stdout: str, graph: dict, check_path: str = "") -> dict:
@@ -103,11 +122,20 @@ def parse_check_json(stdout: str, graph: dict, check_path: str = "") -> dict:
     An edge may also come as "a->b"; a missing node/edge is recovered from `where`. Model rows written as
     {present, file: <version>, missing} are read too."""
     data = json.loads(stdout)
+    if not isinstance(data, dict):
+        raise ValueError("--check --json printed no object")
+    rows, entries = data.get("models") or [], data.get("errors") or []
+    if not isinstance(rows, list) or not isinstance(entries, list) or not all(
+            isinstance(x, dict) for x in rows + entries):
+        raise ValueError("--check --json printed errors or models that are not objects")
     errors = []
-    for e in data.get("errors") or []:
+    for e in entries:
         node, edge = e.get("node"), e.get("edge")
         if isinstance(edge, dict):
-            edge = f"{edge.get('from')}->{edge.get('to')}"
+            ends = edge.get("from"), edge.get("to")
+            edge = f"{ends[0]}->{ends[1]}" if all(isinstance(x, str) and x for x in ends) else None
+        elif not isinstance(edge, str) or "->" not in edge:
+            edge = None
         where = str(e.get("where", ""))
         where = where.replace(check_path, "graph").strip() if check_path else where
         if not node and not edge:
@@ -115,15 +143,18 @@ def parse_check_json(stdout: str, graph: dict, check_path: str = "") -> dict:
         errors.append({"code": e.get("code", ""), "where": where, "what": e.get("what", ""),
                        "how": e.get("how", ""), "node": node, "edge": edge})
     models = []
-    for m in data.get("models") or []:
+    for m in rows:
         state = str(m.get("state") or "")
         present = m.get("present") if "present" in m else (state == "present" if state else None)
         version = m.get("container") if "container" in m else m.get("file")
+        missing = bool(m.get("missing")) or state == "missing"
         models.append({"node": m.get("node"), "model": m.get("model"), "produces": m.get("produces"),
                        "consumes": m.get("consumes"), "artifact": m.get("artifact") or m.get("file"),
-                       "present": present, "file": version, "missing": bool(m.get("missing")) or state == "missing"})
-    return {"ok": bool(data.get("ok")) and not errors, "errors": errors, "models": models,
-            "missing": [m["node"] for m in models if m["missing"]], "notes": list(data.get("notes") or [])}
+                       "present": present, "file": version, "missing": missing,
+                       "state": state or ("missing" if missing else "present" if present else None),
+                       "engine": m.get("engine") if isinstance(m.get("engine"), dict) else None})
+    return {"ok": bool(data.get("ok")) and not errors, "errors": errors, "models": models, **_summary(models),
+            "notes": list(data.get("notes") or [])}
 
 
 def engine_graph(graph: dict, caps: dict) -> dict:
@@ -138,7 +169,7 @@ def engine_graph(graph: dict, caps: dict) -> dict:
 
 def _studio_error(code: str, what: str, how: str = "") -> dict:
     return {"ok": False, "errors": [{"code": code, "where": "graph", "what": what, "how": how, "node": None,
-                                     "edge": None}], "models": [], "missing": [], "notes": []}
+                                     "edge": None}], "models": [], "missing": [], "unusable": {}, "notes": []}
 
 
 def validate(graph: dict) -> dict:

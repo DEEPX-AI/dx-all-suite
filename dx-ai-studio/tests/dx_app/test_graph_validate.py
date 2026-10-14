@@ -1,6 +1,10 @@
 """graph_validate: dx_app's --check output (recorded) pinned to canvas node and edge ids."""
 from __future__ import annotations
 
+import json
+
+import pytest
+
 from dx_app.core import graph_validate
 from tests.dx_app import graph_fakes
 
@@ -108,3 +112,40 @@ def test_engine_graph_keeps_the_key_only_when_the_build_supports_it():
     assert graph_validate.engine_graph(g, {"engine_key": True}) == g
     assert "engine" not in graph_validate.engine_graph(g, {"engine_key": False})["nodes"][0]
     assert g["nodes"][0]["engine"] == {"share": True}, "the input is not changed"
+
+
+# Review fixes: unreadable JSON is a pinned Studio error, every unusable file state is surfaced, engines are kept.
+@pytest.mark.parametrize("text", ['[]', '"ok"', '{"ok": false, "errors": ["boom"]}', '{"ok": true, "models": [3]}'])
+def test_json_that_is_not_the_documented_shape_is_unreadable(text):
+    with pytest.raises(ValueError):
+        graph_validate.parse_check_json(text, _graph())
+
+
+def test_validate_turns_unreadable_json_into_a_check_error(tmp_path, monkeypatch):
+    graph_fakes.install(tmp_path, monkeypatch, graph_fakes.JSON_CLI.replace('cat "$FIX/check_ok.json"', "echo '[]'"))
+    r = graph_validate.validate(_graph("cam", "od"))
+    assert r["ok"] is False and r["errors"][0]["code"] == "CHECK_UNREADABLE" and r["available"] is True
+
+
+def test_an_edge_without_ends_is_pinned_from_where():
+    text = json.dumps({"ok": False, "errors": [{"code": "X", "where": 'node "od"', "what": "w", "how": "",
+                                               "node": None, "edge": {"from": None, "to": None}}], "models": []})
+    (e,) = graph_validate.parse_check_json(text, _graph("od"))["errors"]
+    assert (e["node"], e["edge"]) == ("od", None)
+
+
+def test_every_unusable_model_file_is_surfaced_with_its_state_and_engine():
+    rows = [{"node": n, "model": "m", "file": "m.dxnn", "container": None, "state": st,
+             "engine": {"buffers": 2, "share": True, "shared_with": "a" if n != "a" else None}}
+            for n, st in (("a", "present"), ("b", "invalid"), ("c", "unloadable"), ("d", "unknown"), ("e", "missing"))]
+    r = graph_validate.parse_check_json(json.dumps({"ok": True, "errors": [], "models": rows}), _graph())
+    assert r["missing"] == ["e"]
+    assert r["unusable"] == {"b": "invalid", "c": "unloadable", "d": "unknown"}
+    by = {m["node"]: m for m in r["models"]}
+    assert by["b"]["state"] == "invalid" and by["c"]["engine"]["shared_with"] == "a"
+
+
+def test_the_text_table_names_an_invalid_file_too():
+    r = graph_validate.parse_check_text(graph_fakes.fixture("check_ok_missing.txt"), "", CHECK, _graph())
+    assert r["unusable"] == {"od": "invalid"} and r["missing"] == ["p"]
+    assert {m["node"]: m["state"] for m in r["models"]} == {"cam": None, "od": "invalid", "p": "missing"}

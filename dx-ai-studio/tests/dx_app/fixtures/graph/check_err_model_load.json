@@ -3,7 +3,7 @@
     {
       "code": "MODEL_LOAD",
       "edge": null,
-      "how": "download it again: ./setup.sh --models yolo26s",
+      "how": "download it again: python3 scripts/download_models.py --models yolo26s --output /home/deepx/hj_ws/dx-all-suite/dx-runtime/dx_app/assets/models",
       "node": "od",
       "what": "model \"yolo26-s_640x640\" (yolo26-s_640x640.dxnn) is not a loadable .dxnn: /home/deepx/hj_ws/dx-all-suite/dx-runtime/dx_app/assets/models/yolo26-s_640x640.dxnn: too short for a .dxnn header (8 bytes)",
       "where": "node \"od\""
